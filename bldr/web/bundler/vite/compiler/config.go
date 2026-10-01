@@ -58,32 +58,39 @@ func (c *Config) Validate() error {
 
 // Merge merges the given build config into c.
 func (c *Config) Merge(o *Config) {
+
+	// Return immediately when the other config is nil.
 	if o == nil {
 		return
 	}
 
+	// Merge the web packages list and sort it.
 	// append and sort web packages list
 	for _, webPkgConfig := range o.GetWebPkgs() {
 		c.WebPkgs, _ = bldr_web_bundler.WebPkgRefConfigSlice(c.WebPkgs).AppendWebPkgRefConfig(webPkgConfig)
 	}
 	bldr_web_bundler.SortWebPkgRefConfigs(c.WebPkgs)
 
+	// Merge the vite config paths.
 	// merge vite config paths
 	if paths := o.GetViteConfigPaths(); len(paths) != 0 {
 		c.ViteConfigPaths = append(c.ViteConfigPaths, paths...)
 		// Note: order matters for vite config paths, do not sort/compact.
 	}
 
+	// Merge the disable project config flag.
 	// merge disable project config (true overrides false)
 	if o.GetDisableProjectConfig() {
 		c.DisableProjectConfig = true
 	}
 
+	// Merge the bundle list.
 	// merge bundles
 	if bundles := o.GetBundles(); len(bundles) != 0 {
 		c.Bundles = append(c.Bundles, bundles...)
 	}
 
+	// Merge the build types recursively.
 	// merge build types
 	if buildTypes := o.GetBuildTypes(); len(buildTypes) != 0 {
 		if c.BuildTypes == nil {
@@ -98,6 +105,7 @@ func (c *Config) Merge(o *Config) {
 		}
 	}
 
+	// Merge the platform types recursively.
 	// merge platform types
 	if platformTypes := o.GetPlatformTypes(); len(platformTypes) != 0 {
 		if c.PlatformTypes == nil {
@@ -117,6 +125,8 @@ func (c *Config) Merge(o *Config) {
 //
 // Clears the BuildTypes field and applies all relevant BuildType overrides to c.
 func (c *Config) FlattenBuildTypes(filterBuildType bldr_manifest.BuildType) {
+
+	// Walk the build-type tree and merge each matching config.
 	mergeConfigs := []*Config{c}
 	for len(mergeConfigs) != 0 {
 		conf := mergeConfigs[len(mergeConfigs)-1]
@@ -147,12 +157,15 @@ func (c *Config) FlattenBuildTypes(filterBuildType bldr_manifest.BuildType) {
 // platform ID (e.g., "desktop"). Full ID match is applied first, then base ID.
 // Clears the PlatformTypes field and applies all relevant overrides to c.
 func (c *Config) FlattenPlatformTypes(buildPlatform bldr_platform.Platform) {
+
+	// Read and clear the platform types before merging overrides.
 	platformTypes := c.GetPlatformTypes()
 	c.PlatformTypes = nil
 	if len(platformTypes) == 0 {
 		return
 	}
 
+	// Apply the full platform ID match, then the base platform ID.
 	fullID := buildPlatform.GetPlatformID()
 	baseID := buildPlatform.GetBasePlatformID()
 
@@ -161,6 +174,8 @@ func (c *Config) FlattenPlatformTypes(buildPlatform bldr_platform.Platform) {
 		conf.PlatformTypes = nil
 		c.Merge(conf)
 	}
+
+	// None
 	// Apply base platform ID match second (if different from full).
 	if baseID != fullID {
 		if conf, ok := platformTypes[baseID]; ok {

@@ -37,12 +37,15 @@ func TestDaemonIdleTrackerOrdinaryFinalReleaseUsesThirtySeconds(t *testing.T) {
 
 // TestDaemonIdleTrackerClaimDesktopQuit excludes only the identified live holds.
 func TestDaemonIdleTrackerClaimDesktopQuit(t *testing.T) {
+	// Create the idle tracker and attach the desktop and other holds.
 	tracker := newDaemonIdleTracker(0, nil)
 	t.Cleanup(tracker.close)
 	requester := &trackedConn{}
 	tracker.trackedClientAttached(requester)
 	tracker.clientAttached()
 	t.Cleanup(tracker.clientDetached)
+
+	// Attach the desktop service and one other service hold.
 	desktop := tracker.attachService()
 	tracker.setDesktop(desktop)
 	releaseOther := tracker.serviceAttached()
@@ -103,9 +106,11 @@ func TestDaemonIdleTrackerDesktopClaimFencesAdmission(t *testing.T) {
 // TestDaemonIdleTrackerReportsHoldsAndChanges exercises the coherent snapshot
 // and event across both kinds of hold.
 func TestDaemonIdleTrackerReportsHoldsAndChanges(t *testing.T) {
+	// Create the idle tracker and observe the initial snapshot.
 	tracker := newDaemonIdleTracker(time.Minute, func() {})
 	t.Cleanup(tracker.close)
 
+	// Attach a client and confirm the change event publishes.
 	initial, changed := tracker.observe()
 	if initial.clients != 0 || initial.services != 0 {
 		t.Fatalf("initial holds = %+v", initial)
@@ -119,6 +124,7 @@ func TestDaemonIdleTrackerReportsHoldsAndChanges(t *testing.T) {
 		t.Fatal("client attachment did not publish change")
 	}
 
+	// Observe the client hold and attach a service hold.
 	client, changed := tracker.observe()
 	if client.clients != 1 || client.services != 0 || client.revision != initial.revision+1 {
 		t.Fatalf("client snapshot = %+v", client)
@@ -130,6 +136,7 @@ func TestDaemonIdleTrackerReportsHoldsAndChanges(t *testing.T) {
 		t.Fatal("service attachment did not publish change")
 	}
 
+	// Observe both holds and release the client.
 	busy, changed := tracker.observe()
 	if busy.clients != 1 || busy.services != 1 {
 		t.Fatalf("busy snapshot = %+v", busy)
@@ -141,6 +148,7 @@ func TestDaemonIdleTrackerReportsHoldsAndChanges(t *testing.T) {
 		t.Fatal("client release did not publish change")
 	}
 
+	// Observe the service hold and release it.
 	service, changed := tracker.observe()
 	if service.clients != 0 || service.services != 1 {
 		t.Fatalf("service snapshot = %+v", service)
@@ -152,6 +160,7 @@ func TestDaemonIdleTrackerReportsHoldsAndChanges(t *testing.T) {
 		t.Fatal("service release did not publish change")
 	}
 
+	// Observe the final idle snapshot and revision.
 	idle, _ := tracker.observe()
 	if idle.clients != 0 || idle.services != 0 || idle.revision != initial.revision+4 {
 		t.Fatalf("idle snapshot = %+v", idle)
@@ -162,6 +171,7 @@ func TestDaemonIdleTrackerReportsHoldsAndChanges(t *testing.T) {
 // waits for every client and service except the desktop shell, which the
 // handoff reopens.
 func TestDaemonUpdateClaimWaitsForOtherHolds(t *testing.T) {
+	// Create the idle tracker and attach the desktop hold.
 	tracker := newDaemonIdleTracker(time.Minute, nil)
 	t.Cleanup(tracker.close)
 	desktop := tracker.attachService()
@@ -202,6 +212,7 @@ func TestDaemonUpdateClaimWaitsForOtherHolds(t *testing.T) {
 // TestDaemonUpdateClaimRestartNow claims a busy daemon at once when the user
 // asks to restart now, and reports the holds it interrupts.
 func TestDaemonUpdateClaimRestartNow(t *testing.T) {
+	// Create the idle tracker and attach the desktop hold.
 	tracker := newDaemonIdleTracker(time.Minute, nil)
 	t.Cleanup(tracker.close)
 	if !tracker.clientAttached() {
@@ -254,11 +265,13 @@ func TestDaemonUpdateClaimRacesClientAdmission(t *testing.T) {
 // TestDaemonIdleTrackerDeadlinePolicy checks final-release expiry against an
 // isolated short deadline and confirms a new hold cancels that deadline.
 func TestDaemonIdleTrackerDeadlinePolicy(t *testing.T) {
+	// Attach a client and service and wait for the idle notification.
 	const deadline = 30 * time.Millisecond
 	idle := make(chan time.Time, 1)
 	tracker := newDaemonIdleTracker(deadline, func() { idle <- time.Now() })
 	t.Cleanup(tracker.close)
 
+	// Release the holds and confirm the idle channel fires.
 	tracker.clientAttached()
 	tracker.clientDetached()
 	tracker.clientAttached()
@@ -268,6 +281,7 @@ func TestDaemonIdleTrackerDeadlinePolicy(t *testing.T) {
 	case <-time.After(deadline + 10*time.Millisecond):
 	}
 
+	// Release the holds and confirm the idle channel fires.
 	releasedAt := time.Now()
 	tracker.clientDetached()
 	select {
@@ -319,15 +333,18 @@ func TestGetDaemonIdleTimeoutInvalidEnvironment(t *testing.T) {
 }
 
 func TestDaemonIdleTrackerStartsTimerOnTransitionToZero(t *testing.T) {
+	// Create the tracker and subscribe to the idle channel.
 	idleCh := make(chan struct{}, 1)
 	tracker := newDaemonIdleTracker(25*time.Millisecond, func() {
 		idleCh <- struct{}{}
 	})
 	defer tracker.close()
 
+	// Attach a client and confirm the idle channel stays closed.
 	tracker.clientAttached()
 	tracker.clientDetached()
 
+	// Confirm the idle channel stays closed while the client holds.
 	select {
 	case <-idleCh:
 	case <-time.After(200 * time.Millisecond):
@@ -350,16 +367,19 @@ func TestDaemonIdleTrackerDoesNotStartAtInitialZero(t *testing.T) {
 }
 
 func TestDaemonIdleTrackerStopsTimerWhenClientReattaches(t *testing.T) {
+	// Create the tracker and subscribe to the idle channel.
 	idleCh := make(chan struct{}, 1)
 	tracker := newDaemonIdleTracker(50*time.Millisecond, func() {
 		idleCh <- struct{}{}
 	})
 	defer tracker.close()
 
+	// Attach a service and confirm the idle channel stays closed.
 	tracker.clientAttached()
 	tracker.clientDetached()
 	tracker.clientAttached()
 
+	// Confirm the idle channel stays closed while the service holds.
 	select {
 	case <-idleCh:
 		t.Fatal("unexpected idle callback")
@@ -368,24 +388,29 @@ func TestDaemonIdleTrackerStopsTimerWhenClientReattaches(t *testing.T) {
 }
 
 func TestDaemonIdleTrackerWaitsForServiceRelease(t *testing.T) {
+	// Create the tracker and subscribe to the idle channel.
 	idleCh := make(chan struct{}, 1)
 	tracker := newDaemonIdleTracker(50*time.Millisecond, func() {
 		idleCh <- struct{}{}
 	})
 	defer tracker.close()
 
+	// Attach a client and service and confirm the channel stays closed.
 	tracker.clientAttached()
 	releaseService := tracker.serviceAttached()
 	tracker.clientDetached()
 
+	// Confirm the idle channel stays closed while both hold.
 	select {
 	case <-idleCh:
 		t.Fatal("unexpected idle callback while service active")
 	case <-time.After(75 * time.Millisecond):
 	}
 
+	// Release the service and confirm the idle channel fires.
 	releaseService()
 
+	// Confirm the idle channel fires after the release.
 	select {
 	case <-idleCh:
 	case <-time.After(200 * time.Millisecond):
@@ -394,16 +419,19 @@ func TestDaemonIdleTrackerWaitsForServiceRelease(t *testing.T) {
 }
 
 func TestDaemonIdleTrackerServiceReleaseIsIdempotent(t *testing.T) {
+	// Create the tracker and subscribe to the idle channel.
 	idleCh := make(chan struct{}, 1)
 	tracker := newDaemonIdleTracker(25*time.Millisecond, func() {
 		idleCh <- struct{}{}
 	})
 	defer tracker.close()
 
+	// Attach a service hold before any client.
 	releaseService := tracker.serviceAttached()
 	releaseService()
 	releaseService()
 
+	// Confirm the idle channel fires despite the service hold.
 	select {
 	case <-idleCh:
 	case <-time.After(200 * time.Millisecond):
@@ -412,12 +440,15 @@ func TestDaemonIdleTrackerServiceReleaseIsIdempotent(t *testing.T) {
 }
 
 func TestDaemonIdleTrackerZeroTimeoutDisablesShutdown(t *testing.T) {
+	// Create the tracker and attach a client hold.
 	tracker := newDaemonIdleTracker(0, func() {})
 	t.Cleanup(tracker.close)
 
+	// Attach a client hold and inspect the tracker state.
 	tracker.clientAttached()
 	tracker.clientDetached()
 
+	// Inspect the tracker's client count under its lock.
 	tracker.mu.Lock()
 	idleTimer := tracker.idleTimer
 	tracker.mu.Unlock()

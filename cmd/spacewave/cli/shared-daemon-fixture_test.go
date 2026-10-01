@@ -69,6 +69,8 @@ func runSharedDaemonFixture() error {
 	// Retain the same signal and bus release boundary as a native executable.
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer cancel()
+
+	// Read the state path and optional failure injection flag.
 	statePath := os.Args[2]
 	if os.Getenv(sharedDaemonFailSelected) != "" {
 		executable, err := os.Executable()
@@ -83,6 +85,8 @@ func runSharedDaemonFixture() error {
 			return ctx.Err()
 		}
 	}
+
+	// Build the discarded logger and the CLI bus holder.
 	logger := logrus.New()
 	logger.SetOutput(io.Discard)
 	le := logrus.NewEntry(logger)
@@ -106,6 +110,7 @@ func runSharedDaemonFixture() error {
 
 	// getBus is called only after production serve acquires the state lease.
 	getBus := func() cli_entrypoint.CliBus {
+		// Write the runtime identity marker with the process ID.
 		identity := strconv.Itoa(os.Getpid())
 		markerFlags := os.O_CREATE | os.O_EXCL | os.O_WRONLY
 		if os.Getenv(sharedDaemonUpdateTarget) != "" {
@@ -121,6 +126,8 @@ func runSharedDaemonFixture() error {
 		if buildErr != nil {
 			return nil
 		}
+
+		// Record the runtime executable path and build the CLI bus.
 		executable, err := os.Executable()
 		if err != nil {
 			buildErr = err
@@ -156,6 +163,8 @@ func runSharedDaemonFixture() error {
 		// A real stored atom supplies a watch that crosses the Resource Init stream.
 		atoms := resource_state.NewStateAtomManager(cliBus.GetBus(), "fixture-atoms", cliBus.GetVolume().GetID())
 		cliBus.AddRelease(atoms.Release)
+
+		// Store the identity value in the lifetime atom store.
 		store, err := atoms.GetOrCreateStore(ctx, "lifetime")
 		if err != nil {
 			buildErr = err

@@ -123,12 +123,14 @@ func (g *Graph) applyRefBatchTx(
 // addRefTx adds one edge and both endpoint inventory records unless the exact
 // forward edge already exists.
 func (g *Graph) addRefTx(ctx context.Context, tx kvtx.Tx, subject, object string) error {
+	// Skip the edge when its exact forward record already exists.
 	forward := graphKey('f', subject, object)
 	exists, err := tx.Exists(ctx, forward)
 	if err != nil || exists {
 		return err
 	}
 
+	// Write both endpoint inventory records and the two edge directions.
 	if err := tx.Set(ctx, graphKey('n', subject), []byte(subject)); err != nil {
 		return err
 	}
@@ -150,6 +152,7 @@ func (g *Graph) removeRefTx(
 	tx kvtx.Tx,
 	subject, object string,
 ) (bool, error) {
+	// Skip edges that do not already exist.
 	forward := graphKey('f', subject, object)
 	exists, err := tx.Exists(ctx, forward)
 	if err != nil || !exists {

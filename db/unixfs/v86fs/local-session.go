@@ -15,12 +15,16 @@ type LocalSession struct {
 
 // NewLocalSession opens a v86fs session without an SRPC stream.
 func NewLocalSession(ctx context.Context, server *Server) *LocalSession {
+
+	// Default the context and server for the local session.
 	if ctx == nil {
 		ctx = context.Background()
 	}
 	if server == nil {
 		server = NewServer(nil, nil)
 	}
+
+	// Create the session state.
 	sess := &session{
 		server:  server,
 		ctx:     ctx,
@@ -28,6 +32,7 @@ func NewLocalSession(ctx context.Context, server *Server) *LocalSession {
 		handles: make(map[uint64]*handleEntry),
 	}
 
+	// Register the session and replay pending mount notifications.
 	server.mtx.Lock()
 	server.sessions[sess] = struct{}{}
 	for _, entry := range server.mounts {
@@ -37,11 +42,14 @@ func NewLocalSession(ctx context.Context, server *Server) *LocalSession {
 	}
 	server.mtx.Unlock()
 
+	// Return the local session handle.
 	return &LocalSession{server: server, sess: sess}
 }
 
 // Close releases all FSHandle references owned by the session.
 func (s *LocalSession) Close() {
+
+	// Deregister the session and release its handles.
 	if s == nil || s.sess == nil {
 		return
 	}
@@ -54,12 +62,16 @@ func (s *LocalSession) Close() {
 
 // HandleMessage dispatches one request and returns the reply frame.
 func (s *LocalSession) HandleMessage(ctx context.Context, msg *V86FsMessage) (*V86FsMessage, error) {
+
+	// Reject dispatch on a closed session and default the context.
 	if s == nil || s.sess == nil {
 		return nil, errors.New("v86fs local session is closed")
 	}
 	if ctx == nil {
 		ctx = s.sess.context()
 	}
+
+	// Dispatch the request and map errors to an error reply.
 	reply, err := s.sess.dispatch(ctx, msg)
 	if err != nil {
 		return &V86FsMessage{

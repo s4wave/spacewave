@@ -53,6 +53,7 @@ func buildGitRemoteInstallCommand() *cli.Command {
 			},
 		},
 		Action: func(c *cli.Context) error {
+			// Resolve the spacewave binary and helper directory.
 			exe, err := os.Executable()
 			if err != nil {
 				return errors.Wrap(err, "find the spacewave binary")
@@ -69,6 +70,7 @@ func buildGitRemoteInstallCommand() *cli.Command {
 				return err
 			}
 
+			// Write the remote helper script and report its path.
 			serveArgs := append(append([]string{exe, "git", "remote", "serve"}, daemonFlags...), "--")
 			script := "#!/bin/sh\n" +
 				"# Serves spacewave:// Git remotes. Written by spacewave git remote install.\n" +
@@ -95,6 +97,7 @@ func buildGitRemoteServeCommand() *cli.Command {
 		Hidden:    true,
 		Flags:     commonFsFlags(&statePath, &spaceID, &sessIdx),
 		Action: func(c *cli.Context) error {
+			// Parse the remote URL and Git directory.
 			ctx := c.Context
 			space, objectKey, err := parseGitRemoteURL(c.Args().Get(1))
 			if err != nil {
@@ -105,6 +108,7 @@ func buildGitRemoteServeCommand() *cli.Command {
 				return err
 			}
 
+			// Mount the Git engine and run the remote helper.
 			engine, sess, cleanup, err := mountGitEngine(c, statePath, space, sessIdx)
 			if err != nil {
 				return err

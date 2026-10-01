@@ -44,6 +44,7 @@ func newAccountListCommand() *cli.Command {
 
 // runAccountList implements the account list command logic.
 func runAccountList(c *cli.Context, statePath, outputFormat string) error {
+	// Connect to the daemon over the configured state path.
 	ctx := c.Context
 	client, err := connectDaemonFromContext(ctx, c, statePath)
 	if err != nil {
@@ -51,6 +52,7 @@ func runAccountList(c *cli.Context, statePath, outputFormat string) error {
 	}
 	defer client.close()
 
+	// List all sessions from the daemon root.
 	sessions, err := client.root.ListSessions(ctx)
 	if err != nil {
 		return errors.Wrap(err, "list sessions")
@@ -75,6 +77,7 @@ func runAccountList(c *cli.Context, statePath, outputFormat string) error {
 		seen[k].sessions = append(seen[k].sessions, s.GetSessionIndex())
 	}
 
+	// Marshal the account list as JSON or YAML when requested.
 	if outputFormat == "json" || outputFormat == "yaml" {
 		buf, ms := newMarshalBuf()
 		ms.WriteArrayStart()
@@ -105,6 +108,7 @@ func runAccountList(c *cli.Context, statePath, outputFormat string) error {
 		return formatOutput(buf.Bytes(), outputFormat)
 	}
 
+	// Report an empty account list before building table rows.
 	if len(order) == 0 {
 		os.Stdout.WriteString("no accounts\n")
 		return nil
@@ -146,6 +150,7 @@ func newAccountInfoCommand() *cli.Command {
 
 // runAccountInfo implements the account info command.
 func runAccountInfo(c *cli.Context, statePath, outputFormat string, sessionIdx uint32) error {
+	// Connect to the daemon over the configured state path.
 	ctx := c.Context
 	client, err := connectDaemonFromContext(ctx, c, statePath)
 	if err != nil {
@@ -153,12 +158,14 @@ func runAccountInfo(c *cli.Context, statePath, outputFormat string, sessionIdx u
 	}
 	defer client.close()
 
+	// Mount the requested session on the daemon connection.
 	sess, err := client.mountSession(ctx, sessionIdx)
 	if err != nil {
 		return err
 	}
 	defer sess.Release()
 
+	// Read the session info to identify the provider and account.
 	sessInfo, err := sess.GetSessionInfo(ctx)
 	if err != nil {
 		return errors.Wrap(err, "get session info")
@@ -166,12 +173,14 @@ func runAccountInfo(c *cli.Context, statePath, outputFormat string, sessionIdx u
 	provID := sessInfo.GetSessionRef().GetProviderResourceRef().GetProviderId()
 	acctID := sessInfo.GetSessionRef().GetProviderResourceRef().GetProviderAccountId()
 
+	// Access the account service for the session's provider account.
 	acctSvc, acctCleanup, err := client.accessAccount(ctx, provID, acctID)
 	if err != nil {
 		return err
 	}
 	defer acctCleanup()
 
+	// Receive one account info snapshot from the watch stream.
 	strm, err := acctSvc.WatchAccountInfo(ctx, &s4wave_account.WatchAccountInfoRequest{})
 	if err != nil {
 		return errors.Wrap(err, "watch account info")
@@ -181,6 +190,7 @@ func runAccountInfo(c *cli.Context, statePath, outputFormat string, sessionIdx u
 		return errors.Wrap(err, "recv account info")
 	}
 
+	// Marshal the account info as JSON or YAML when requested.
 	if outputFormat == "json" || outputFormat == "yaml" {
 		buf, ms := newMarshalBuf()
 		ms.WriteObjectStart()
@@ -204,6 +214,7 @@ func runAccountInfo(c *cli.Context, statePath, outputFormat string, sessionIdx u
 		return formatOutput(buf.Bytes(), outputFormat)
 	}
 
+	// Print the account info fields as a text table.
 	writeFields(os.Stdout, [][2]string{
 		{"Account", info.GetAccountId()},
 		{"Entity", info.GetEntityId()},
@@ -242,6 +253,7 @@ func newAccountCreateLocalCommand() *cli.Command {
 
 // runAccountCreateLocal implements the account create local command logic.
 func runAccountCreateLocal(c *cli.Context, statePath, outputFormat string) error {
+	// Connect to the daemon over the configured state path.
 	ctx := c.Context
 	client, err := connectDaemonFromContext(ctx, c, statePath)
 	if err != nil {
@@ -249,12 +261,14 @@ func runAccountCreateLocal(c *cli.Context, statePath, outputFormat string) error
 	}
 	defer client.close()
 
+	// Look up the local provider on the daemon connection.
 	localProv, cleanup, err := client.lookupLocalProvider(ctx)
 	if err != nil {
 		return errors.Wrap(err, "lookup local provider")
 	}
 	defer cleanup()
 
+	// Create the local provider account and session.
 	resp, err := localProv.CreateAccount(ctx)
 	if err != nil {
 		return errors.Wrap(err, "create local provider account")
@@ -300,12 +314,14 @@ func runAccountCreateSpacewave(c *cli.Context, statePath, outputFormat string) e
 
 // printSessionListEntry prints a session list entry in the requested format.
 func printSessionListEntry(entry *session_pb.SessionListEntry, outputFormat string) error {
+	// Extract the session reference fields from the list entry.
 	sessRef := entry.GetSessionRef()
 	sessID := sessRef.GetProviderResourceRef().GetId()
 	provID := sessRef.GetProviderResourceRef().GetProviderId()
 	acctID := sessRef.GetProviderResourceRef().GetProviderAccountId()
 	idx := entry.GetSessionIndex()
 
+	// Marshal the session list entry as JSON or YAML when requested.
 	if outputFormat == "json" || outputFormat == "yaml" {
 		buf, ms := newMarshalBuf()
 		ms.WriteObjectStart()
@@ -326,6 +342,7 @@ func printSessionListEntry(entry *session_pb.SessionListEntry, outputFormat stri
 		return formatOutput(buf.Bytes(), outputFormat)
 	}
 
+	// Print the created account details as text.
 	w := os.Stdout
 	w.WriteString("Account created.\n\n")
 	writeFields(w, [][2]string{

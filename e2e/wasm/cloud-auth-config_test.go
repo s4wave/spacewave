@@ -21,7 +21,7 @@ func TestE2ECloudAuthConfigEndpoint(t *testing.T) {
 	}
 	t.Cleanup(stop)
 
-	// Decode the same binary response consumed by the provider.
+	// Fetch the auth config endpoint the provider consumes.
 	resp, err := http.Get(endpoint + e2eCloudAuthConfigPath)
 	if err != nil {
 		t.Fatalf("get auth config: %v", err)
@@ -30,6 +30,8 @@ func TestE2ECloudAuthConfigEndpoint(t *testing.T) {
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("status = %d, want 200", resp.StatusCode)
 	}
+
+	// Decode the same binary response consumed by the provider.
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		t.Fatalf("read auth config: %v", err)
@@ -38,6 +40,8 @@ func TestE2ECloudAuthConfigEndpoint(t *testing.T) {
 	if err := cfg.UnmarshalVT(body); err != nil {
 		t.Fatalf("decode auth config: %v", err)
 	}
+
+	// The advertised public base URL must match the fixture endpoint.
 	if cfg.GetPublicBaseUrl() != endpoint {
 		t.Fatalf("public base URL = %q, want %q", cfg.GetPublicBaseUrl(), endpoint)
 	}
@@ -46,9 +50,12 @@ func TestE2ECloudAuthConfigEndpoint(t *testing.T) {
 // TestStableE2ECloudAuthConfigAddr checks ports that are stable across
 // checkouts and distinct per build configuration.
 func TestStableE2ECloudAuthConfigAddr(t *testing.T) {
+	// Compute addresses for identical state roots across different checkouts.
 	a := stableE2ECloudAuthConfigAddr("/repo/.bldr/e2e-wasm/wasm-a")
 	b := stableE2ECloudAuthConfigAddr("/other/.bldr/e2e-wasm/wasm-a")
 	c := stableE2ECloudAuthConfigAddr("/repo/.bldr/e2e-wasm/wasm-b")
+
+	// Identical state roots must collide and distinct ones must not.
 	if a != b {
 		t.Fatalf("addr changed across checkouts: %q != %q", a, b)
 	}
@@ -75,12 +82,14 @@ func TestApplyE2ECloudAuthConfigEndpoint(t *testing.T) {
 		t.Fatalf("apply endpoint: %v", err)
 	}
 
-	// Check cloud discovery retains the local endpoint.
+	// Decode the compiled Go plugin config for the core manifest.
 	builder := projectConfig.GetManifests()["spacewave-core"].GetBuilder()
 	goConf, err := decodeGoPluginConfig(builder.GetConfig())
 	if err != nil {
 		t.Fatalf("decode go plugin config: %v", err)
 	}
+
+	// Check cloud discovery retains the local endpoint.
 	providerEntry := goConf.GetConfigSet()["provider-spacewave"]
 	if providerEntry == nil {
 		t.Fatal("provider-spacewave config missing")

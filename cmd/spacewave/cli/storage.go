@@ -114,6 +114,7 @@ func newStorageAddCommand(statePath *string, sessionIdx *uint) *cli.Command {
 				outputFlag(),
 			},
 			Action: func(c *cli.Context) error {
+				// Validate the backend name and collect its location and credentials.
 				name := c.Args().First()
 				if name == "" {
 					return errors.New("backend name required")
@@ -127,6 +128,7 @@ func newStorageAddCommand(statePath *string, sessionIdx *uint) *cli.Command {
 					return err
 				}
 				return withSession(c, *statePath, *sessionIdx, func(ctx context.Context, sess *s4wave_session.Session) error {
+					// Validate the S3 credentials from the environment or prompt.
 					resp, err := sess.AddStorageBackend(ctx, &s4wave_session.AddStorageBackendRequest{
 						DisplayName: name,
 						S3:          location,
@@ -207,6 +209,7 @@ func (a *s3AddArgs) location() (*account_settings.S3Location, error) {
 // readS3Credentials reads the access key from the standard environment
 // variables, or else from standard input, prompting when it is a terminal.
 func readS3Credentials() (*block_store_s3.Credentials, error) {
+	// List the storage backends through the mounted session.
 	accessKeyID, secret := os.Getenv("AWS_ACCESS_KEY_ID"), os.Getenv("AWS_SECRET_ACCESS_KEY")
 	if accessKeyID != "" && secret != "" {
 		return &block_store_s3.Credentials{
@@ -257,6 +260,7 @@ func newStorageListCommand(statePath *string, sessionIdx *uint) *cli.Command {
 		Flags: []cli.Flag{outputFlag()},
 		Action: func(c *cli.Context) error {
 			return withSession(c, *statePath, *sessionIdx, func(ctx context.Context, sess *s4wave_session.Session) error {
+				// Check the storage backend through the mounted session.
 				resp, err := readStorageBackends(ctx, sess)
 				if err != nil {
 					return err
@@ -303,6 +307,7 @@ func newStorageTestCommand(statePath *string, sessionIdx *uint) *cli.Command {
 		Flags:     []cli.Flag{outputFlag()},
 		Action: func(c *cli.Context) error {
 			return withStorageBackend(c, *statePath, *sessionIdx, func(ctx context.Context, sess *s4wave_session.Session, backend *account_settings.StorageBackend) error {
+				// Validate the Space and destination arguments.
 				resp, err := sess.CheckStorageBackend(ctx, &s4wave_session.CheckStorageBackendRequest{StorageBackendId: backend.GetId()})
 				if err != nil {
 					return errors.Wrap(err, "check storage backend")
@@ -331,6 +336,7 @@ func newStorageTestCommand(statePath *string, sessionIdx *uint) *cli.Command {
 func newStorageDefaultCommand(statePath *string, sessionIdx *uint) *cli.Command {
 	var none bool
 	return &cli.Command{
+		// Resolve the space and destination backend.
 		Name:      "default",
 		Usage:     "choose the backend new Spaces use",
 		ArgsUsage: "<name>",
@@ -345,6 +351,7 @@ func newStorageDefaultCommand(statePath *string, sessionIdx *uint) *cli.Command 
 					return errors.New("--none takes no backend name")
 				}
 				return withSession(c, *statePath, *sessionIdx, func(ctx context.Context, sess *s4wave_session.Session) error {
+					// Stream the storage move progress to the output.
 					if err := sess.SetDefaultStorageBackend(ctx, ""); err != nil {
 						return errors.Wrap(err, "clear default storage backend")
 					}
@@ -528,11 +535,13 @@ func newSpaceMoveStorageCommand(statePath *string, sessionIdx *uint) *cli.Comman
 			},
 		},
 		Action: func(c *cli.Context) error {
+			// Connect to the daemon and mount the selected session.
 			spaceArg, backendName := c.Args().Get(0), c.Args().Get(1)
 			if accountStorage == (backendName != "") {
 				return errors.New("name a backend or pass --account-storage")
 			}
 
+			// Connect to the daemon and mount the session.
 			ctx := c.Context
 			client, err := connectDaemonFromContext(ctx, c, *statePath)
 			if err != nil {
@@ -545,6 +554,7 @@ func newSpaceMoveStorageCommand(statePath *string, sessionIdx *uint) *cli.Comman
 			}
 			defer sess.Release()
 
+			// Open a canceled watch context and read one backend snapshot.
 			spaceID, err := client.resolveSpaceID(ctx, sess, spaceArg)
 			if err != nil {
 				return err
@@ -559,6 +569,7 @@ func newSpaceMoveStorageCommand(statePath *string, sessionIdx *uint) *cli.Comman
 				backendID, dest = backend.GetId(), backend.GetDisplayName()
 			}
 
+			// Open a canceled watch context and read one Space storage snapshot.
 			strm, err := sess.MoveSpaceStorage(ctx, spaceID, backendID)
 			if err != nil {
 				return errors.Wrap(err, "move space storage")
@@ -616,6 +627,7 @@ func withSession(
 	sessionIdx uint,
 	fn func(ctx context.Context, sess *s4wave_session.Session) error,
 ) error {
+	// Describe the backend name or account storage fallback.
 	ctx := c.Context
 	client, err := connectDaemonFromContext(ctx, c, statePath)
 	if err != nil {
@@ -668,6 +680,7 @@ func findStorageBackend(ctx context.Context, sess *s4wave_session.Session, name 
 
 // readStorageBackends reads the current storage backends from the watch.
 func readStorageBackends(ctx context.Context, sess *s4wave_session.Session) (*s4wave_session.WatchStorageBackendsResponse, error) {
+	// Describe the backend name or account storage fallback.
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 	strm, err := sess.WatchStorageBackends(ctx)
@@ -684,6 +697,7 @@ func readStorageBackends(ctx context.Context, sess *s4wave_session.Session) (*s4
 // readSpaceStorage reads where a Space's blocks are stored, or nil when the
 // session's provider does not report it.
 func readSpaceStorage(ctx context.Context, sess *s4wave_session.Session, spaceID string) *s4wave_session.WatchSpaceStorageResponse {
+	// Count the pending blocks and describe the upload state.
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 	strm, err := sess.WatchSpaceStorage(ctx, spaceID)
@@ -700,6 +714,7 @@ func readSpaceStorage(ctx context.Context, sess *s4wave_session.Session, spaceID
 // formatSpaceStorage describes where a Space's blocks are stored and what
 // remains to upload.
 func formatSpaceStorage(storage *s4wave_session.WatchSpaceStorageResponse) string {
+	// Describe the backend name or account storage fallback.
 	name := storage.GetStorageBackendName()
 	if name == "" {
 		return "account storage"
@@ -712,6 +727,8 @@ func formatSpaceStorage(storage *s4wave_session.WatchSpaceStorageResponse) strin
 	if pending == 1 {
 		blocks = " block"
 	}
+
+	// Describe the pending block count and upload state.
 	desc := name + ", " + strconv.FormatInt(pending, 10) + blocks + " (" +
 		formatByteCount(storage.GetPendingBytes()) + ") waiting to upload"
 	if uploadErr := storage.GetUploadError(); uploadErr != "" {

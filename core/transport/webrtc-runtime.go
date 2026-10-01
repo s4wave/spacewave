@@ -30,6 +30,7 @@ func (t *SessionTransport) startWebRTCControllers(
 	le *logrus.Entry,
 	b bus.Bus,
 ) (*transport_controller.Controller, func(), error) {
+	// Skip WebRTC entirely when no signaling endpoint is configured.
 	if t.signalingURL == "" {
 		return nil, nil, nil
 	}
@@ -76,6 +77,7 @@ func (t *SessionTransport) startWebRTCControllers(
 		return nil, nil, err
 	}
 
+	// Log readiness and return the transport with its release.
 	le.Debug("signaling and webrtc controllers started")
 	return rtcCtrl, rtcRef.Release, nil
 }

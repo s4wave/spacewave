@@ -48,6 +48,7 @@ type Controller struct {
 
 // NewController constructs a new signaling client controller.
 func NewController(le *logrus.Entry, b bus.Bus, conf *Config) (*Controller, error) {
+	// Parse and default the protocol id.
 	protocolID, err := conf.ParseProtocolID()
 	if err != nil {
 		return nil, err
@@ -56,18 +57,22 @@ func NewController(le *logrus.Entry, b bus.Bus, conf *Config) (*Controller, erro
 		protocolID = signaling_rpc.ProtocolID
 	}
 
+	// Resolve and default the service id.
 	serviceID := conf.GetServiceId()
 	if serviceID == "" {
 		serviceID = signaling_rpc.SRPCSignalingServiceID
 	}
 
+	// Build the stream srpc client for the protocol.
 	rpcClient, err := stream_srpc_client.NewClient(le, b, conf.GetClient(), protocolID)
 	if err != nil {
 		return nil, err
 	}
 
+	// Construct the signaling service client.
 	srv := signaling_rpc.NewSRPCSignalingClientWithServiceID(rpcClient, serviceID)
 
+	// Assemble the controller with its session tracker registry.
 	c := &Controller{
 		le:             le,
 		b:              b,
@@ -105,6 +110,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 		return err
 	}
 
+	// Log the local peer id while waiting for its private key.
 	c.le.
 		WithField("peer-id", localPeerID.String()).
 		Debug("waiting for peer private key")
@@ -113,23 +119,28 @@ func (c *Controller) Execute(ctx context.Context) error {
 		return err
 	}
 
+	// Fetch the private key and release the peer handle.
 	privKey, err := localPeer.GetPrivKey(ctx)
 	localPeerRef.Release()
 	if err != nil {
 		return err
 	}
 
+	// Construct the signaling client with the private key.
 	signalingClient, err := NewClient(c.le, c.srv, privKey, c.conf.GetBackoff())
 	if err != nil {
 		return err
 	}
 
+	// Publish the client for dependent directives.
 	c.client.SetValue(signalingClient)
 
+	// Install the incoming-session listen handler when listening is enabled.
 	if !c.conf.GetDisableListen() {
 		signalingClient.SetListenHandler(c.handlePeerWantsSession)
 	}
 
+	// Bind the client and session trackers to the controller lifecycle.
 	signalingClient.SetContext(ctx)
 	c.sessionTrackers.SetContext(ctx, true)
 
@@ -159,11 +170,13 @@ func (c *Controller) handlePeerWantsSession(ctx context.Context, reset, added bo
 		}
 	}
 	addSession := func(addPeerID string) {
+		// Skip peers that already have an incoming session.
 		_, ok := c.listenSessions[addPeerID]
 		if ok {
 			return
 		}
 
+		// Add a session tracker ref and record the incoming session.
 		ref, _, _, err := c.addSessionTrackerRef(ctx, addPeerID)
 		if err != nil {
 			if err != context.Canceled {
@@ -200,20 +213,24 @@ func (c *Controller) addSessionTrackerRef(
 	ctx context.Context,
 	peerIDStr string,
 ) (*keyed.KeyedRef[string, *sessionTracker], *sessionTracker, bool, error) {
+	// Parse the peer id with its public key.
 	peerID, peerPub, err := peer.ParsePeerIDWithPubKey(peerIDStr)
 	if err != nil {
 		return nil, nil, false, err
 	}
 
+	// Wait for the signaling client to resolve.
 	client, err := c.client.WaitValue(ctx, nil)
 	if err != nil {
 		return nil, nil, false, err
 	}
 
+	// Reject self-dialing.
 	if client.peerID.MatchesPublicKey(peerPub) {
 		return nil, nil, false, errors.New("signaling: cannot self-dial")
 	}
 
+	// Add or reference the session tracker for the peer.
 	ref, tkr, existed := c.sessionTrackers.AddKeyRef(peerID.String())
 	return ref, tkr, existed, nil
 }

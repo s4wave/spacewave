@@ -29,15 +29,18 @@ func UnixFSFactory(
 	ws world.WorldState,
 	objectKey string,
 ) (srpc.Invoker, func(), error) {
+	// Require a World state to construct the object resource.
 	if ws == nil {
 		return nil, nil, objecttype.ErrWorldStateRequired
 	}
 
+	// Look up the FS node type from the World state.
 	fsType, _, err := unixfs_world.LookupFsType(ctx, ws, objectKey)
 	if err != nil {
 		return nil, nil, err
 	}
 
+	// Open a read-write or read-only FS cursor for the object.
 	var fsCursor *unixfs_world.FSCursor
 	if !ws.GetReadOnly() {
 		fsCursor, _ = unixfs_world.NewFSCursorWithWriterContext(ctx, le, ws, objectKey, fsType, "")
@@ -45,12 +48,14 @@ func UnixFSFactory(
 		fsCursor = unixfs_world.NewFSCursorWithContext(ctx, le, ws, objectKey, fsType, nil, false)
 	}
 
+	// Construct the FS handle resource and its cleanup.
 	fsh, err := unixfs.NewFSHandle(fsCursor)
 	if err != nil {
 		fsCursor.Release()
 		return nil, nil, err
 	}
 
+	// Wrap the FS handle in an object resource.
 	resource := resource_unixfs.NewFSHandleObjectResource(
 		le,
 		fsh,
@@ -61,6 +66,7 @@ func UnixFSFactory(
 		nil,
 	)
 
+	// Return the resource's SRPC mux with its cleanup.
 	cleanup := func() {
 		fsh.Release()
 		fsCursor.Release()

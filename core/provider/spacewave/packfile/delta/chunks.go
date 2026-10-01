@@ -68,6 +68,7 @@ func EmitDeltaChunks(
 		chunkClosed := false
 
 		chunkIter := func() (*hash.Hash, *block.StoredBlock, error) {
+			// Stop feeding blocks once the chunk is closed.
 			if chunkClosed {
 				return nil, nil, nil
 			}
@@ -89,7 +90,7 @@ func EmitDeltaChunks(
 			}
 
 			// Include the generated entry, its size varint, and its fixed-width
-			// index position before accepting the block into this chunk.
+			// Measure the encoded entry and its index overhead.
 			valueSize := (&block.BlockObject{Data: blk.GetData(), Refs: blk.GetRefs()}).SizeVT()
 			entry := kvfile.IndexEntry{
 				Key:    packfile.BlockKey(h),
@@ -98,6 +99,8 @@ func EmitDeltaChunks(
 			}
 			entrySize := entry.SizeVT()
 			entryBytes := int64(entrySize + binary.PutUvarint(sizeBuf[:], uint64(entrySize)) + 8) //nolint:gosec // the writer's pack ceiling bounds the encoded entry size below int64 max.
+
+			// Close the chunk when the block would exceed a limit.
 			remaining := maxBytes - chunkBytes - indexBytes - entryBytes
 			if int64(valueSize) > remaining || (maxBlocks > 0 && chunkBlocks >= maxBlocks) {
 				if chunkBlocks == 0 {
@@ -107,9 +110,12 @@ func EmitDeltaChunks(
 				chunkClosed = true
 				return nil, nil, nil
 			}
+
+			// Accept the block into the chunk and account for its bytes.
 			chunkBytes += int64(valueSize)
 			indexBytes += entryBytes
 			chunkBlocks++
+
 			return h, blk, nil
 		}
 

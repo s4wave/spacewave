@@ -101,6 +101,8 @@ func (w *checkoutWatcher) AddRef() *refcount.Ref[struct{}] {
 
 // resolve is the RefCount resolver that runs the checkout WS goroutine.
 func (w *checkoutWatcher) resolve(ctx context.Context, _ func()) (struct{}, func(), error) {
+	// Read the checkout ticket and require one before dialing.
+	// Read the checkout ticket and require one before dialing.
 	var ticket string
 	w.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		ticket = w.ticket
@@ -109,12 +111,14 @@ func (w *checkoutWatcher) resolve(ctx context.Context, _ func()) (struct{}, func
 		return struct{}{}, nil, errors.New("no checkout ticket")
 	}
 
+	// Run the websocket goroutine until the checkout completes.
 	err := w.runWebSocket(ctx, ticket)
 	return struct{}{}, nil, err
 }
 
 // runWebSocket dials the checkout WS and reads status messages.
 func (w *checkoutWatcher) runWebSocket(ctx context.Context, ticket string) error {
+	// Require a ready session client before building the WS URL.
 	client := w.getClient()
 	if client == nil {
 		return errors.New("session client not ready")
@@ -125,12 +129,14 @@ func (w *checkoutWatcher) runWebSocket(ctx context.Context, ticket string) error
 	wsBase = strings.Replace(wsBase, "http://", "ws://", 1)
 	wsURL := wsBase + "/api/billing/checkout/ws?tk=" + url.QueryEscape(ticket)
 
+	// Dial the checkout websocket and hold the connection open.
 	conn, _, err := websocket.Dial(ctx, wsURL, nil)
 	if err != nil {
 		return errors.Wrap(err, "dial checkout websocket")
 	}
 	defer conn.CloseNow()
 
+	// Read status frames until a terminal status completes the checkout.
 	for {
 		_, data, rErr := conn.Read(ctx)
 		if rErr != nil {
@@ -139,6 +145,7 @@ func (w *checkoutWatcher) runWebSocket(ctx context.Context, ticket string) error
 			return errors.Wrap(rErr, "read checkout websocket")
 		}
 
+		// Decode the frame and require a status body.
 		var frame api.WsBillingCheckoutServerFrame
 		if err := frame.UnmarshalVT(data); err != nil {
 			w.le.WithError(err).Warn("failed to unmarshal checkout ws message")
@@ -149,6 +156,7 @@ func (w *checkoutWatcher) runWebSocket(ctx context.Context, ticket string) error
 			w.le.Warn("checkout ws message missing status frame")
 			continue
 		}
+		// Publish terminal status updates and stop on completed or expired.
 		msg := body.Status
 		if msg.GetType() == "checkout_status" && msg.GetStatus() != "" {
 			status := msg.GetStatus()

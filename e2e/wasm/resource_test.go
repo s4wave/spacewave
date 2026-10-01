@@ -11,7 +11,9 @@ import (
 	"github.com/s4wave/spacewave/net/peer"
 )
 
+// TestBrowserPeerErrorClassification classifies startup-race and fatal peer errors.
 func TestBrowserPeerErrorClassification(t *testing.T) {
+	// Deadline errors are startup races that keep retrying the current peer.
 	deadlineErr := errors.New("context deadline exceeded")
 	if !isBrowserPeerStartupErr(deadlineErr) {
 		t.Fatal("expected deadline errors to be treated as startup races")
@@ -20,22 +22,28 @@ func TestBrowserPeerErrorClassification(t *testing.T) {
 		t.Fatal("expected deadline errors to keep retrying the current peer")
 	}
 
+	// Closed transports are fatal for the current peer.
 	closedErr := errors.New("resource client: quic: transport closed")
 	if !shouldAbandonBrowserPeer(closedErr) {
 		t.Fatal("expected closed transports to abandon the peer")
 	}
 }
 
+// TestPeerWatcherReturnsNewestObservation proves the watcher returns the newest
+// buffered observation.
 func TestPeerWatcherReturnsNewestObservation(t *testing.T) {
+	// Observe two peers through the watcher.
 	pw := &PeerWatcher{pending: make(chan BrowserPeerObservation, 8)}
-
 	pw.observePeer(peer.ID("peer-a"))
 	pw.observePeer(peer.ID("peer-b"))
 
+	// Wait for the newest observation.
 	obs, err := pw.WaitForPeerObservation(context.Background())
 	if err != nil {
 		t.Fatalf("WaitForPeerObservation: %v", err)
 	}
+
+	// The newest observation must be peer-b with sequence 2 and a timestamp.
 	if obs.PeerID != peer.ID("peer-b") {
 		t.Fatalf("expected newest peer-b observation, got %q", obs.PeerID)
 	}
@@ -47,17 +55,22 @@ func TestPeerWatcherReturnsNewestObservation(t *testing.T) {
 	}
 }
 
+// TestPeerWatcherObservationAfterSkipsStalePeers proves the after-checkpoint
+// watcher skips observations at or before the checkpoint.
 func TestPeerWatcherObservationAfterSkipsStalePeers(t *testing.T) {
+	// Checkpoint the sequence between two observations.
 	pw := &PeerWatcher{pending: make(chan BrowserPeerObservation, 8)}
-
 	pw.observePeer(peer.ID("peer-a"))
 	afterSeq := pw.LatestSequence()
 	pw.observePeer(peer.ID("peer-b"))
 
+	// Wait for the first observation after the checkpoint.
 	obs, err := pw.WaitForPeerObservationAfter(context.Background(), afterSeq)
 	if err != nil {
 		t.Fatalf("WaitForPeerObservationAfter: %v", err)
 	}
+
+	// The observation must be peer-b with a sequence after the checkpoint.
 	if obs.PeerID != peer.ID("peer-b") {
 		t.Fatalf("expected peer-b after checkpoint, got %q", obs.PeerID)
 	}
@@ -69,6 +82,7 @@ func TestPeerWatcherObservationAfterSkipsStalePeers(t *testing.T) {
 
 // testPeerWatcherPreservesUnleasedPeer keeps a reconnect from hiding a new client.
 func testPeerWatcherPreservesUnleasedPeer(t *testing.T) {
+	// Observe a leased peer, a new client, and the leased peer reconnecting.
 	pw := &PeerWatcher{pending: make(chan BrowserPeerObservation, 8)}
 	pw.observePeer(peer.ID("leased"))
 	after := pw.LatestSequence()
@@ -84,7 +98,10 @@ func testPeerWatcherPreservesUnleasedPeer(t *testing.T) {
 	}
 }
 
+// TestResourceConnectionTimingSnapshot records a connection timing snapshot and
+// checks its recorded phases.
 func TestResourceConnectionTimingSnapshot(t *testing.T) {
+	// Build an observation for the timing records.
 	sess := &TestSession{}
 	start := time.Now()
 	peerID := peer.ID("peer-a")
@@ -94,12 +111,14 @@ func TestResourceConnectionTimingSnapshot(t *testing.T) {
 		ObservedAt: start,
 	}
 
+	// Record one peer wait, one attempt, a startup reload, and the finish.
 	sess.beginResourceConnectionTiming(start)
 	sess.recordPeerWaitTiming(start, start.Add(time.Millisecond), obs, nil)
 	sess.recordResourceConnectionAttemptTiming(start, start.Add(2*time.Millisecond), peerID, nil)
 	sess.recordResourceStartupReload()
 	sess.finishResourceConnectionTiming(start.Add(3*time.Millisecond), nil)
 
+	// The snapshot must record the elapsed time and every phase.
 	timing := sess.ResourceConnectionTiming()
 	if timing.Elapsed() != 3*time.Millisecond {
 		t.Fatalf("expected 3ms elapsed timing, got %s", timing.Elapsed())

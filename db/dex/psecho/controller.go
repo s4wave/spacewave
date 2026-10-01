@@ -94,11 +94,13 @@ func (c *Controller) Execute(ctx context.Context) error {
 	// Resolve the configured peer and private key.
 	c.le.Debug("psecho controller running")
 
+	// Parse the configured peer id.
 	peerID, err := c.cc.ParsePeerID()
 	if err != nil {
 		return err
 	}
 
+	// Resolve the peer and its private key, releasing the handle after use.
 	pr, _, prRef, err := peer.GetPeerWithID(ctx, c.b, peerID, false, nil)
 	if err != nil {
 		return errors.Wrap(err, "get peer")
@@ -112,6 +114,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 	c.peerID = peerID
 	prRef.Release()
 
+	// Bind the stream routines to the controller lifecycle.
 	c.incomingKeyed.SetContext(ctx, true)
 	c.outgoingKeyed.SetContext(ctx, true)
 
@@ -130,6 +133,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 	})
 	defer relHandler()
 
+	// Start the want-list publish loop.
 	go c.publishLoop(ctx, sub)
 
 	// Wait for controller cancellation.
@@ -231,6 +235,7 @@ func (c *Controller) HandleMountedStream(
 	ctx context.Context,
 	ms link.MountedStream,
 ) error {
+	// Register the incoming stream under a fresh session key.
 	from := ms.GetPeerID()
 	var key sessionKey
 	c.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
@@ -248,6 +253,7 @@ func (c *Controller) handleIncomingMessage(
 	m pubsub.Message,
 	privKey crypto.PrivKey,
 ) {
+	// Ignore unauthenticated messages and echoes of our own messages.
 	if !m.GetAuthenticated() || m.GetFrom().MatchesPrivateKey(privKey) {
 		return
 	}
@@ -259,11 +265,13 @@ func (c *Controller) handleIncomingMessage(
 		return
 	}
 
+	// Read the sender identity and message timestamp.
 	from := m.GetFrom()
 	ts := msg.GetTimestampUnixNano()
 
 	// Reconcile the remote peer want-list snapshot.
 	c.bcast.HoldLock(func(bcast func(), _ func() <-chan struct{}) {
+		// Reconcile the remote peer state against the message snapshot.
 		rp, ok := c.remotePeers[from]
 		if msg.GetWantEmpty() {
 			if ok {
@@ -297,6 +305,7 @@ func (c *Controller) handleIncomingMessage(
 			delete(rp.wantRefs, ref.MarshalString())
 		}
 
+		// Notify watchers of the want-list change.
 		bcast()
 	})
 
@@ -306,6 +315,7 @@ func (c *Controller) handleIncomingMessage(
 
 // checkAndQueueBlocks checks the local bucket for wanted blocks and queues them.
 func (c *Controller) checkAndQueueBlocks(ctx context.Context, pid peer.ID) {
+	// Snapshot the peer's wanted block refs under the lock.
 	var wants []*block.BlockRef
 	c.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		rp, ok := c.remotePeers[pid]
@@ -320,12 +330,14 @@ func (c *Controller) checkAndQueueBlocks(ctx context.Context, pid peer.ID) {
 		return
 	}
 
+	// Open the bucket lookup handle for existence checks.
 	lk, rel, err := c.getBucketLookup(ctx)
 	if err != nil || lk == nil {
 		return
 	}
 	defer rel()
 
+	// Keep only the wanted blocks stored locally.
 	queued, err := filterLocalExistingBlocks(ctx, lk, wants)
 	if err != nil {
 		c.le.WithError(err).Warn("failed to check local wanted blocks")
@@ -335,6 +347,7 @@ func (c *Controller) checkAndQueueBlocks(ctx context.Context, pid peer.ID) {
 		return
 	}
 
+	// Queue the locally available blocks for the peer.
 	c.bcast.HoldLock(func(bcast func(), _ func() <-chan struct{}) {
 		rp, ok := c.remotePeers[pid]
 		if !ok {
@@ -344,6 +357,7 @@ func (c *Controller) checkAndQueueBlocks(ctx context.Context, pid peer.ID) {
 		bcast()
 	})
 
+	// Start outgoing streams to drain the queue.
 	c.startOutgoingStreams(pid)
 }
 

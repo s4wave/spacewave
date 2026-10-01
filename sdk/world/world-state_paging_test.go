@@ -49,6 +49,8 @@ func (c *objectBodiesBatchClient) Close() error {
 }
 
 func TestWorldStateForEachObjectBodyPageYieldsPages(t *testing.T) {
+
+	// Script a service that answers with two pages of object bodies.
 	service := &objectBodiesBatchService{
 		streams: [][]*GetObjectBodiesBatchResponse{{
 			{Bodies: []*ObjectBody{{ObjectKey: "body/one"}, {ObjectKey: "body/two"}}},
@@ -57,6 +59,7 @@ func TestWorldStateForEachObjectBodyPageYieldsPages(t *testing.T) {
 	}
 	ws := &WorldState{service: service}
 
+	// Collect the object keys of each yielded page.
 	var pages [][]string
 	err := ws.ForEachObjectBodyPage(context.Background(), []string{"body/one", "body/two", "body/three"}, func(bodies []*world.ObjectBody) error {
 		page := make([]string, len(bodies))
@@ -69,6 +72,8 @@ func TestWorldStateForEachObjectBodyPageYieldsPages(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Assert the page keys match the scripted pages.
 	if len(pages) != 2 {
 		t.Fatalf("page count = %d, want 2", len(pages))
 	}
@@ -81,6 +86,8 @@ func TestWorldStateForEachObjectBodyPageYieldsPages(t *testing.T) {
 }
 
 func TestWorldStateObjectBodyPagePreservesRevisions(t *testing.T) {
+
+	// Script a service that answers with one page of two revisions.
 	service := &objectBodiesBatchService{
 		streams: [][]*GetObjectBodiesBatchResponse{{
 			{
@@ -93,6 +100,7 @@ func TestWorldStateObjectBodyPagePreservesRevisions(t *testing.T) {
 	}
 	ws := &WorldState{service: service}
 
+	// Collect the revision of each returned body.
 	var revs []uint64
 	err := ws.ForEachObjectBodyPage(context.Background(), []string{"body/one", "body/two"}, func(bodies []*world.ObjectBody) error {
 		for _, body := range bodies {
@@ -103,12 +111,16 @@ func TestWorldStateObjectBodyPagePreservesRevisions(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Assert the revisions are preserved in order.
 	if got, want := revs, []uint64{7, 9}; !slices.Equal(got, want) {
 		t.Fatalf("revs = %v, want %v", got, want)
 	}
 }
 
 func TestWorldStateGetObjectBodiesBatchChunksRequestKeys(t *testing.T) {
+
+	// Script one stream per oversized chunk of two large keys.
 	service := &objectBodiesBatchService{
 		streams: [][]*GetObjectBodiesBatchResponse{
 			{{Bodies: []*ObjectBody{{ObjectKey: "body/one"}}}},
@@ -119,13 +131,18 @@ func TestWorldStateGetObjectBodiesBatchChunksRequestKeys(t *testing.T) {
 	keySize := (block.MaxBlockSize - 64*1024) / 2
 	keys := []string{strings.Repeat("a", keySize), strings.Repeat("b", keySize)}
 
+	// Fetch the bodies of both large keys in batch.
 	bodies, err := ws.GetObjectBodiesBatch(context.Background(), keys)
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Assert each request stayed within the size budget.
 	if len(service.requests) != 2 {
 		t.Fatalf("request count = %d, want 2", len(service.requests))
 	}
+
+	// Assert each request carried one key and the results are in order.
 	for i, req := range service.requests {
 		if got := req.SizeVT(); got > block.MaxBlockSize-64*1024 {
 			t.Fatalf("request %d encoded size = %d, exceeds budget %d", i, got, block.MaxBlockSize-64*1024)
@@ -140,6 +157,8 @@ func TestWorldStateGetObjectBodiesBatchChunksRequestKeys(t *testing.T) {
 }
 
 func TestChunkObjectBodyKeysIncrementalSizeMatchesRequest(t *testing.T) {
+
+	// Build chunking cases of small, half-budget, and near-budget keys.
 	budget := world.ObjectBodiesBatchByteBudget
 	cases := [][]string{
 		{
@@ -162,11 +181,14 @@ func TestChunkObjectBodyKeysIncrementalSizeMatchesRequest(t *testing.T) {
 		},
 	}
 
+	// Chunk each case and compare the encoded request size to the incremental sum.
 	for caseIndex, keys := range cases {
 		chunks, err := chunkObjectBodyKeys(keys)
 		if err != nil {
 			t.Fatalf("case %d: chunk keys: %v", caseIndex, err)
 		}
+
+		// Flatten the chunks and assert they reproduce the original keys.
 		var flattened []string
 		for chunkIndex, chunk := range chunks {
 			incrementalSize := 0
@@ -195,17 +217,23 @@ func TestChunkObjectBodyKeysIncrementalSizeMatchesRequest(t *testing.T) {
 }
 
 func TestChunkObjectBodyKeysRejectsOversizedSingleKey(t *testing.T) {
+
+	// Chunk a single key larger than the request byte budget.
 	key := strings.Repeat("z", world.ObjectBodiesBatchByteBudget)
 	_, err := chunkObjectBodyKeys([]string{key})
 	if err == nil {
 		t.Fatal("expected a single oversized key to be rejected")
 	}
+
+	// Assert the error reports the request byte budget.
 	if !strings.Contains(err.Error(), "exceeds request byte budget") {
 		t.Fatalf("oversized key error = %v, want request budget error", err)
 	}
 }
 
 func TestWorldStateGetObjectBodiesBatchPagesResults(t *testing.T) {
+
+	// Script a service whose pages include a missing body.
 	service := &objectBodiesBatchService{
 		streams: [][]*GetObjectBodiesBatchResponse{{
 			{Bodies: []*ObjectBody{{ObjectKey: "body/large", Body: []byte("12345"), Exists: true}}},
@@ -220,10 +248,13 @@ func TestWorldStateGetObjectBodiesBatchPagesResults(t *testing.T) {
 	ws := &WorldState{service: service}
 	keys := []string{"body/large", "body/missing", "body/large"}
 
+	// Fetch the bodies of all keys in one batch.
 	bodies, err := ws.GetObjectBodiesBatch(context.Background(), keys)
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Assert the returned bodies match the requested keys in order.
 	if len(service.requests) != 1 {
 		t.Fatalf("request count = %d, want 1", len(service.requests))
 	}
@@ -241,6 +272,8 @@ func TestWorldStateGetObjectBodiesBatchPagesResults(t *testing.T) {
 }
 
 func TestWorldStateGetObjectBodiesBatchRestartsOnWorldSeqnoChange(t *testing.T) {
+
+	// Script two streams whose WorldSeqno changes mid-stream.
 	service := &objectBodiesBatchService{
 		streams: [][]*GetObjectBodiesBatchResponse{
 			{
@@ -255,10 +288,13 @@ func TestWorldStateGetObjectBodiesBatchRestartsOnWorldSeqnoChange(t *testing.T) 
 	}
 	ws := &WorldState{service: service}
 
+	// Fetch the bodies and assert the batch restarted once and succeeded.
 	bodies, err := ws.GetObjectBodiesBatch(context.Background(), []string{"body/one", "body/two"})
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Assert the request count and returned bodies.
 	if len(service.requests) != 2 {
 		t.Fatalf("request count = %d, want 2", len(service.requests))
 	}
@@ -268,6 +304,8 @@ func TestWorldStateGetObjectBodiesBatchRestartsOnWorldSeqnoChange(t *testing.T) 
 }
 
 func TestWorldStateGetObjectBodiesBatchReturnsTypedRevisionError(t *testing.T) {
+
+	// Script four streams that each change WorldSeqno mid-stream.
 	service := &objectBodiesBatchService{}
 	for attempt := range uint64(4) {
 		service.streams = append(service.streams, []*GetObjectBodiesBatchResponse{
@@ -277,17 +315,22 @@ func TestWorldStateGetObjectBodiesBatchReturnsTypedRevisionError(t *testing.T) {
 	}
 	ws := &WorldState{service: service}
 
+	// Fetch the bodies and expect a typed revision error after retries.
 	_, err := ws.GetObjectBodiesBatch(context.Background(), []string{"body/one", "body/two"})
 	var revisionErr *ObjectBodiesBatchRevisionError
 	if !errors.As(err, &revisionErr) {
 		t.Fatalf("error = %v, want ObjectBodiesBatchRevisionError", err)
 	}
+
+	// Assert the typed error reports three retries.
 	if revisionErr.Retries != 3 {
 		t.Fatalf("retries = %d, want 3", revisionErr.Retries)
 	}
 }
 
 func TestWorldStateForEachObjectBodyPageReturnsRevisionError(t *testing.T) {
+
+	// Script one stream that changes WorldSeqno after the first page.
 	service := &objectBodiesBatchService{
 		streams: [][]*GetObjectBodiesBatchResponse{{
 			{Bodies: []*ObjectBody{{ObjectKey: "body/one"}}, WorldSeqno: 1},
@@ -296,11 +339,14 @@ func TestWorldStateForEachObjectBodyPageReturnsRevisionError(t *testing.T) {
 	}
 	ws := &WorldState{service: service}
 
+	// Iterate the pages and count the callbacks before the error.
 	pages := 0
 	err := ws.ForEachObjectBodyPage(context.Background(), []string{"body/one", "body/two"}, func([]*world.ObjectBody) error {
 		pages++
 		return nil
 	})
+
+	// Assert the revision error reports expected and got sequence numbers.
 	var revisionErr *ObjectBodiesBatchRevisionError
 	if !errors.As(err, &revisionErr) {
 		t.Fatalf("error = %v, want ObjectBodiesBatchRevisionError", err)
@@ -308,6 +354,8 @@ func TestWorldStateForEachObjectBodyPageReturnsRevisionError(t *testing.T) {
 	if revisionErr.Expected != 1 || revisionErr.Got != 2 {
 		t.Fatalf("revision error = %+v, want expected 1 and got 2", revisionErr)
 	}
+
+	// Assert exactly one page callback ran before the revision error.
 	if pages != 1 {
 		t.Fatalf("page callbacks = %d, want 1 before the revision error", pages)
 	}

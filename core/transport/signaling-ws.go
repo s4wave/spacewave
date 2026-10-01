@@ -39,11 +39,13 @@ func dialSignalingClient(
 	url string,
 	priv bifrost_crypto.PrivKey,
 ) (*signaling_rpc_client.Client, *ws.Conn, *signaling_rpc_frame.Conn, error) {
+	// Dial the signaling WebSocket endpoint.
 	conn, _, err := ws.Dial(ctx, url, nil)
 	if err != nil {
 		return nil, nil, nil, errors.Wrap(err, "dial signaling websocket")
 	}
 
+	// Build the signaling client over SRPC frames on the connection.
 	frames := signaling_rpc_frame.NewConn(ctx, conn)
 	sig := signaling_rpc.NewSRPCSignalingClient(srpc.NewClient(frames.OpenStream))
 	sc, err := signaling_rpc_client.NewClient(le, sig, priv, nil)
@@ -160,6 +162,7 @@ func (c *wsSignalingCtrl) executeGeneration(ctx context.Context) error {
 	close(c.ready)
 	c.mtx.Unlock()
 	defer func() {
+		// Release the generation's references and reset its state.
 		c.mtx.Lock()
 		c.releaseAllRefsLocked()
 		c.client = nil
@@ -172,9 +175,11 @@ func (c *wsSignalingCtrl) executeGeneration(ctx context.Context) error {
 
 	// Attach incoming peers through the existing signaling directives.
 	client.SetListenHandler(func(lctx context.Context, reset, added bool, pid string) {
+		// Serialize listen callbacks against the controller state.
 		c.mtx.Lock()
 		defer c.mtx.Unlock()
 
+		// Drop all references when the peer list resets.
 		if reset {
 			c.releaseAllRefsLocked()
 		}
@@ -190,6 +195,7 @@ func (c *wsSignalingCtrl) executeGeneration(ctx context.Context) error {
 			return
 		}
 
+		// Attach the new peer with a session directive.
 		peerRef := client.AddPeerRef(pid)
 		sess := signaling_rpc_client.NewSessionWithRef(peerRef)
 		di := signaling.NewHandleSignalPeer(c.sigID, sess)

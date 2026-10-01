@@ -68,16 +68,19 @@ func NewController(
 	bus bus.Bus,
 	cc *Config,
 ) (*Controller, error) {
+	// Parse the web pkg id regexp from the config.
 	webPkgIdRe, err := cc.ParseWebPkgIdRe()
 	if err != nil {
 		return nil, err
 	}
 
+	// Parse the tracker release delay from the config.
 	releaseDelay, err := cc.ParseReleaseDelay()
 	if err != nil {
 		return nil, err
 	}
 
+	// Normalize the service id prefix to end with a slash.
 	serviceIDPrefix := cc.GetServiceIdPrefix()
 	if serviceIDPrefix == "" {
 		serviceIDPrefix = defServiceIDPrefix
@@ -86,6 +89,7 @@ func NewController(
 		serviceIDPrefix += "/"
 	}
 
+	// Construct the controller with the parsed configuration.
 	c := &Controller{
 		le:              le,
 		cc:              cc,
@@ -96,6 +100,7 @@ func NewController(
 		delayedReleases: make(map[*keyed.KeyedRef[string, *webPkgTracker]]*time.Timer),
 	}
 
+	// Build the keyed web pkg tracker registry.
 	c.webPkgs = keyed.NewKeyedRefCount(
 		func(key string) (keyed.Routine, *webPkgTracker) {
 			r, tracker := c.newWebPkgTracker(key)
@@ -123,6 +128,7 @@ func (c *Controller) GetControllerInfo() *controller.Info {
 
 // Execute executes the controller goroutine.
 func (c *Controller) Execute(ctx context.Context) error {
+	// Bind the tracker registry to the controller's lifecycle context.
 	c.lifecycleMtx.Lock()
 	defer c.lifecycleMtx.Unlock()
 	if c.closed {
@@ -137,12 +143,15 @@ func (c *Controller) HandleDirective(
 	ctx context.Context,
 	di directive.Instance,
 ) ([]directive.Resolver, error) {
+	// Reject directives after shutdown begins.
 	c.lifecycleMtx.Lock()
 	closed := c.closed
 	c.lifecycleMtx.Unlock()
 	if closed {
 		return nil, nil
 	}
+
+	// Resolve LookupRpcService directives for matching web pkg ids.
 	dir := di.GetDirective()
 	switch d := dir.(type) {
 	case bifrost_rpc.LookupRpcService:
@@ -193,10 +202,10 @@ func (c *Controller) HandleDirective(
 			c:   c,
 			key: webPkgID,
 			buildValue: func(ctx context.Context, val *webPkgTracker) (directive.Value, error) {
+				// Await the tracker's rpc server promise.
 				if val == nil {
 					return nil, nil
 				}
-
 				res, err := val.srvPromise.Await(ctx)
 				if err != nil {
 					return nil, err
@@ -205,6 +214,7 @@ func (c *Controller) HandleDirective(
 					return nil, nil
 				}
 
+				// Wrap the resolved server in the LookupRpcService value.
 				var rval bifrost_rpc.LookupRpcServiceValue = web_pkg_rpc.NewSRPCAccessWebPkgHandler(res, serviceID)
 				return rval, nil
 			},
@@ -216,6 +226,7 @@ func (c *Controller) HandleDirective(
 
 // Close releases any resources used by the controller.
 func (c *Controller) Close() error {
+	// Wait for an in-progress close to finish.
 	c.lifecycleMtx.Lock()
 	if c.closed {
 		done := c.closeDone
@@ -223,12 +234,15 @@ func (c *Controller) Close() error {
 		<-done
 		return nil
 	}
+
+	// Mark the controller closed and stop accepting new tracker work.
 	c.closed = true
 	c.closeDone = make(chan struct{})
 	done := c.closeDone
 	c.routines.StopAccepting()
 	c.lifecycleMtx.Unlock()
 
+	// Stop the trackers and delayed releases, then signal completion.
 	c.webPkgs.ClearContext()
 	c.stopDelayedReleases()
 	c.routines.Wait()

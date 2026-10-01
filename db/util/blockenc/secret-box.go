@@ -25,9 +25,11 @@ func NewSecretBox(key []byte) (Method, error) {
 
 // Encrypt encrypts the block and returns the encrypted buf.
 func (c *secretBox) Encrypt(alloc AllocFn, src []byte) ([]byte, error) {
+	// Derive the nonce from the source with blake3.
 	var nonce [24]byte
 	DeriveNonceBlake3(src, nonce[:])
 
+	// Allocate the output buffer, prefix the nonce, and seal the source.
 	outSize := len(nonce) + len(src) + secretbox.Overhead
 	out := alloc(outSize)[:len(nonce)]
 	copy(out, nonce[:])
@@ -37,6 +39,7 @@ func (c *secretBox) Encrypt(alloc AllocFn, src []byte) ([]byte, error) {
 
 // Decrypt decrypts the whole block and returns the decrypted buf.
 func (c *secretBox) Decrypt(alloc AllocFn, src []byte) ([]byte, error) {
+	// Split the nonce from the front of the source and open the ciphertext.
 	if len(src) < 25 {
 		return nil, ErrShortMsg
 	}

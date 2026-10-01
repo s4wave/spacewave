@@ -76,6 +76,8 @@ func (s *openService) QuitDesktopRuntime(context.Context, *desktop_runtime.QuitD
 
 // newOpenRuntime connects the test runtime through the real Resource server.
 func newOpenRuntime(t *testing.T, desktop *openService) *openRuntime {
+
+	// Register the desktop runtime and resource services on local pipes.
 	t.Helper()
 	rootMux := srpc.NewMux()
 	if err := desktop_runtime.SRPCRegisterDesktopRuntimeResourceService(rootMux, desktop); err != nil {
@@ -92,6 +94,8 @@ func newOpenRuntime(t *testing.T, desktop *openService) *openRuntime {
 
 // TestControllerOpenDeduplicatesAndWarmReopens proves concurrent opens share one shell and a clean exit permits a new generation.
 func TestControllerOpenDeduplicatesAndWarmReopens(t *testing.T) {
+
+	// Build the controller with a stubbed runtime launcher.
 	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
 	desktop := &openService{}
@@ -102,7 +106,11 @@ func TestControllerOpenDeduplicatesAndWarmReopens(t *testing.T) {
 	}
 	var launches atomic.Int32
 	exits := make(chan chan struct{}, 2)
+
+	// Record each launch, attach the runtime, and wait for its exit.
 	r.run = func(ctx context.Context) error {
+
+		// Count the launch and attach the test runtime.
 		launches.Add(1)
 		exit := make(chan struct{})
 		r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
@@ -117,6 +125,8 @@ func TestControllerOpenDeduplicatesAndWarmReopens(t *testing.T) {
 			return ctx.Err()
 		}
 	}
+
+	// Run the controller in the background.
 	done := make(chan error, 1)
 	go func() { done <- r.Execute(ctx) }()
 
@@ -126,6 +136,8 @@ func TestControllerOpenDeduplicatesAndWarmReopens(t *testing.T) {
 		err        error
 	}
 	results := make(chan openResult, 2)
+
+	// Issue two concurrent open requests.
 	for range 2 {
 		go func() {
 			generation, err := r.OpenOrFocusMainWindow(ctx, &bldr_web_plugin.OpenOrFocusDesktopRequest{})
@@ -133,6 +145,8 @@ func TestControllerOpenDeduplicatesAndWarmReopens(t *testing.T) {
 		}()
 	}
 	var firstGeneration uint64
+
+	// Assert both requests received the same first generation.
 	for range 2 {
 		result := <-results
 		if result.err != nil {
@@ -145,6 +159,8 @@ func TestControllerOpenDeduplicatesAndWarmReopens(t *testing.T) {
 			t.Fatalf("concurrent generation = %d, want %d", result.generation, firstGeneration)
 		}
 	}
+
+	// Assert only one launch happened with two acknowledgements.
 	if got := launches.Load(); got != 1 {
 		t.Fatalf("launches = %d, want 1", got)
 	}
@@ -153,6 +169,8 @@ func TestControllerOpenDeduplicatesAndWarmReopens(t *testing.T) {
 	}
 
 	// A clean shell exit completes the first generation's event.
+
+	// End the first shell cleanly and wait for its presence to end.
 	firstPresence := r.DesktopPresence(firstGeneration)
 	if firstPresence == nil {
 		t.Fatal("first shell is not active")
@@ -169,6 +187,8 @@ func TestControllerOpenDeduplicatesAndWarmReopens(t *testing.T) {
 	}
 
 	// A warm reopen advances generation without reviving the first one.
+
+	// Warm reopen and assert the generation advanced once.
 	secondGeneration, err := r.OpenOrFocusMainWindow(ctx, &bldr_web_plugin.OpenOrFocusDesktopRequest{})
 	if err != nil {
 		t.Fatal(err)
@@ -182,6 +202,8 @@ func TestControllerOpenDeduplicatesAndWarmReopens(t *testing.T) {
 	if got := launches.Load(); got != 2 {
 		t.Fatalf("warm launches = %d, want 2", got)
 	}
+
+	// Cancel the controller and assert a clean exit.
 	close(<-exits)
 	cancel()
 	if err := <-done; err != context.Canceled {
@@ -191,6 +213,8 @@ func TestControllerOpenDeduplicatesAndWarmReopens(t *testing.T) {
 
 // TestControllerLaunchFailureReleasesDemand proves a failed launch completes its request and permits an explicit retry.
 func TestControllerLaunchFailureReleasesDemand(t *testing.T) {
+
+	// Build a controller whose launch always fails.
 	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
 	r, err := NewController(logrus.NewEntry(logrus.New()), nil, "", "", "", "test", nil, nil)
@@ -201,12 +225,16 @@ func TestControllerLaunchFailureReleasesDemand(t *testing.T) {
 	r.run = func(context.Context) error { return want }
 	done := make(chan error, 1)
 	go func() { done <- r.Execute(ctx) }()
+
+	// Assert both open requests fail with the launch error.
 	if _, err := r.OpenOrFocusMainWindow(ctx, &bldr_web_plugin.OpenOrFocusDesktopRequest{}); !errors.Is(err, want) {
 		t.Fatalf("first open = %v, want launch failure", err)
 	}
 	if _, err := r.OpenOrFocusMainWindow(ctx, &bldr_web_plugin.OpenOrFocusDesktopRequest{}); !errors.Is(err, want) {
 		t.Fatalf("second open = %v, want fresh launch failure", err)
 	}
+
+	// Cancel the controller and assert a clean exit.
 	cancel()
 	if err := <-done; err != context.Canceled {
 		t.Fatalf("controller exit = %v, want cancellation", err)
@@ -215,6 +243,8 @@ func TestControllerLaunchFailureReleasesDemand(t *testing.T) {
 
 // TestControllerCleanExitBeforeReadyFailsOpen rejects a shell that exits before acknowledging readiness.
 func TestControllerCleanExitBeforeReadyFailsOpen(t *testing.T) {
+
+	// Build a controller whose runtime exits before readiness.
 	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
 	r, err := NewController(logrus.NewEntry(logrus.New()), nil, "", "", "", "test", nil, nil)
@@ -224,9 +254,13 @@ func TestControllerCleanExitBeforeReadyFailsOpen(t *testing.T) {
 	r.run = func(context.Context) error { return nil }
 	done := make(chan error, 1)
 	go func() { done <- r.Execute(ctx) }()
+
+	// Assert the open request fails with the closed error.
 	if _, err := r.OpenOrFocusMainWindow(ctx, &bldr_web_plugin.OpenOrFocusDesktopRequest{}); !errors.Is(err, errDesktopClosed) {
 		t.Fatalf("open = %v, want closed before acknowledgement", err)
 	}
+
+	// Cancel the controller and assert a clean exit.
 	cancel()
 	if err := <-done; err != context.Canceled {
 		t.Fatalf("controller exit = %v, want cancellation", err)
@@ -235,6 +269,8 @@ func TestControllerCleanExitBeforeReadyFailsOpen(t *testing.T) {
 
 // TestControllerExitCancelsOpenWaitingForReadiness unblocks readiness when Electron ends.
 func TestControllerExitCancelsOpenWaitingForReadiness(t *testing.T) {
+
+	// Build a controller with a runtime that waits for an explicit exit.
 	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
 	r, err := NewController(logrus.NewEntry(logrus.New()), nil, "", "", "", "test", nil, nil)
@@ -244,6 +280,8 @@ func TestControllerExitCancelsOpenWaitingForReadiness(t *testing.T) {
 	rt := &waitingRuntime{openRuntime: newOpenRuntime(t, &openService{})}
 	exit := make(chan struct{})
 	started := make(chan struct{})
+
+	// Attach the runtime, signal start, and wait for the exit signal.
 	r.run = func(context.Context) error {
 		r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 			r.runtime = rt
@@ -253,6 +291,8 @@ func TestControllerExitCancelsOpenWaitingForReadiness(t *testing.T) {
 		<-exit
 		return nil
 	}
+
+	// Start the controller and an open request in the background.
 	done := make(chan error, 1)
 	go func() { done <- r.Execute(ctx) }()
 	opened := make(chan error, 1)
@@ -260,11 +300,15 @@ func TestControllerExitCancelsOpenWaitingForReadiness(t *testing.T) {
 		_, err := r.OpenOrFocusMainWindow(ctx, &bldr_web_plugin.OpenOrFocusDesktopRequest{})
 		opened <- err
 	}()
+
+	// Close the runtime and assert the open request fails with the closed error.
 	<-started
 	close(exit)
 	if err := <-opened; !errors.Is(err, errDesktopClosed) {
 		t.Fatalf("open = %v, want shell closed", err)
 	}
+
+	// Cancel the controller and assert a clean exit.
 	cancel()
 	if err := <-done; err != context.Canceled {
 		t.Fatalf("controller exit = %v, want cancellation", err)
@@ -273,6 +317,8 @@ func TestControllerExitCancelsOpenWaitingForReadiness(t *testing.T) {
 
 // TestControllerProcessExitDetachesPrivateRuntime joins the process and detaches its private runtime.
 func TestControllerProcessExitDetachesPrivateRuntime(t *testing.T) {
+
+	// Build a core bus and an immediately-exiting shell script.
 	ctx := t.Context()
 	le := logrus.NewEntry(logrus.New())
 	b, _, err := core.NewCoreBus(ctx, le)
@@ -285,12 +331,16 @@ func TestControllerProcessExitDetachesPrivateRuntime(t *testing.T) {
 	if err := os.WriteFile(path, []byte("#!/bin/sh\nexit 0\n"), 0o700); err != nil {
 		t.Fatal(err)
 	}
+
+	// Construct the controller against the shell script.
 	r, err := NewController(le, b, path, t.TempDir(), "unused", "test-exit", nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	// Process completion detaches the runtime even when its pipe never became ready.
+
+	// Run the Electron shell and assert controllers return to baseline.
 	if err := r.runElectron(ctx); err != nil {
 		t.Fatal(err)
 	}

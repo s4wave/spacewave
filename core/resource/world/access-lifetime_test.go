@@ -88,25 +88,31 @@ func waitForCount(t *testing.T, name string, count *atomic.Int32, want int32) {
 // TestWatchWorldStateDiscardsTrackedTransaction proves each tracked
 // WatchWorldState snapshot transaction is discarded when the watch ends.
 func TestWatchWorldStateDiscardsTrackedTransaction(t *testing.T) {
+
+	// context ctx.
 	ctx := t.Context()
 	tb, cleanup := setupWorldTestbed(ctx, t)
 	defer cleanup()
 
+	// Record engine.
 	engine := &lifetimeEngine{Engine: tb.Engine}
 	resourceCtx := &worldStateOperationResourceContext{ctx: ctx}
 	watchCtx, watchCancel := context.WithCancel(resource_server.WithResourceClientContext(ctx, resourceCtx))
 	defer watchCancel()
 
+	// newEntry le via logrus.
 	le := logrus.NewEntry(logrus.New())
 	engineResource := resource_world.NewEngineResource(le, tb.Bus, engine, nil, nil)
 	defer engineResource.Close()
 
+	// make stream.
 	stream := &watchWorldStateTestStream{ctx: watchCtx, sent: make(chan *s4wave_world.WatchWorldStateResponse, 1)}
 	errCh := make(chan error, 1)
 	go func() {
 		errCh <- engineResource.WatchWorldState(&s4wave_world.WatchWorldStateRequest{}, stream)
 	}()
 
+	// Perform the action.
 	var tracked *s4wave_world.WatchWorldStateResponse
 	select {
 	case tracked = <-stream.sent:
@@ -128,6 +134,7 @@ func TestWatchWorldStateDiscardsTrackedTransaction(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// watchCancel.
 	watchCancel()
 	select {
 	case <-errCh:
@@ -148,18 +155,23 @@ func TestWatchWorldStateDiscardsTrackedTransaction(t *testing.T) {
 // TestAccessWorldStateCursorLivesUntilRelease proves the AccessWorldState
 // cursor stays inside its engine callback until the resource is released.
 func TestAccessWorldStateCursorLivesUntilRelease(t *testing.T) {
+
+	// context ctx.
 	ctx := t.Context()
 	tb, cleanup := setupWorldTestbed(ctx, t)
 	defer cleanup()
 
+	// Record engine.
 	engine := &lifetimeEngine{Engine: tb.Engine}
 	resourceCtx := &worldStateOperationResourceContext{ctx: ctx}
 	rpcCtx := resource_server.WithResourceClientContext(ctx, resourceCtx)
 
+	// newEntry le via logrus.
 	le := logrus.NewEntry(logrus.New())
 	engineResource := resource_world.NewEngineResource(le, tb.Bus, engine, nil, nil)
 	defer engineResource.Close()
 
+	// accessWorldState resp,err via engineResource.
 	resp, err := engineResource.AccessWorldState(rpcCtx, &s4wave_world.AccessWorldStateRequest{})
 	if err != nil {
 		t.Fatal(err.Error())
@@ -178,6 +190,7 @@ func TestAccessWorldStateCursorLivesUntilRelease(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// Check the condition before continuing.
 	if !resourceCtx.ReleaseResource(resp.GetResourceId()) {
 		t.Fatal("cursor resource was not registered")
 	}

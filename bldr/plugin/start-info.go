@@ -19,11 +19,13 @@ func NewPluginStartInfo(instanceID, pluginID, instanceKey, manifestRoot string) 
 
 // UnmarshalPluginStartInfoJsonBase64 unmarshals a base64-encoded JSON string into a PluginStartInfo.
 func UnmarshalPluginStartInfoJsonBase64(data string) (*PluginStartInfo, error) {
+	// Decode the base64-encoded JSON payload.
 	jdat, err := base64.StdEncoding.DecodeString(data)
 	if err != nil {
 		return nil, errors.Wrap(err, "decode base64")
 	}
 
+	// Unmarshal the JSON payload into the start info.
 	startInfo := &PluginStartInfo{}
 	if err := startInfo.UnmarshalJSON(jdat); err != nil {
 		return nil, errors.Wrap(err, "unmarshal json")
@@ -34,9 +36,11 @@ func UnmarshalPluginStartInfoJsonBase64(data string) (*PluginStartInfo, error) {
 
 // Validate checks the plugin meta.
 func (m *PluginStartInfo) Validate() error {
+	// Validate the instance ID as a DNS label.
 	if err := labels.ValidateDNSLabel(m.GetInstanceId()); err != nil {
 		return errors.Wrap(err, "instance_id")
 	}
+	// Validate the plugin ID.
 	if err := ValidatePluginID(m.GetPluginId(), true); err != nil {
 		return errors.Wrap(err, "plugin_id")
 	}

@@ -40,6 +40,8 @@ func RunElectron(
 	extraElectronFlags []string,
 	electronInit *ElectronInit,
 ) (*Electron, error) {
+
+	// Listen on the Electron IPC pipe socket.
 	le.Debug("listening on ipc socket")
 	pipeListener, err := bldr_pipesock.Listen(le, workdirPath, runtimeUuid)
 	if err != nil {
@@ -48,15 +50,20 @@ func RunElectron(
 
 	// electron acts as the server (outbound=false)
 	// we act as the client (outbound=true)
+
+	// Pump accepted IPC connections through the singleton muxed conn.
 	smc := singleton_muxed_conn.NewSingletonMuxedConn(ctx, true)
 	go smc.AcceptPump(pipeListener)
 
+	// Make the Electron binary executable.
 	_ = os.Chmod(electronPath, 0o755) // try to chmod
 
+	// Assemble the Electron command arguments.
 	var electronArgs []string
 	electronArgs = append(electronArgs, extraElectronFlags...)
 	electronArgs = append(electronArgs, rendererPath)
 
+	// Build the Electron command with its runtime environment.
 	cmd := exec.NewCmd(ctx, electronPath, electronArgs...)
 	cmd.Env = append(cmd.Env, "BLDR_RUNTIME_ID="+runtimeUuid)
 	cmd.Env = append(cmd.Env, "BLDR_PIPE_ROOT="+pipeListener.GetRootDir())
@@ -72,9 +79,11 @@ func RunElectron(
 		cmd.Env = append(cmd.Env, "BLDR_ELECTRON_INIT="+base64.StdEncoding.EncodeToString(initBytes))
 	}
 
+	// Wire Electron output into the debug log.
 	cmd.Stdout = le.WriterLevel(logrus.DebugLevel)
 	cmd.Stderr = le.WriterLevel(logrus.DebugLevel)
 
+	// Start the Electron process.
 	le.Debugf("starting electron: %s", cmd.String())
 	err = cmd.Start()
 	if err != nil {
@@ -83,6 +92,7 @@ func RunElectron(
 		return nil, err
 	}
 
+	// Construct the Electron handle and wait for exit in the background.
 	e := &Electron{
 		cmd: cmd,
 

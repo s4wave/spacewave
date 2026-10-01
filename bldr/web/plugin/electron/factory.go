@@ -42,14 +42,18 @@ func (t *Factory) Construct(
 	conf config.Config,
 	opts controller.ConstructOpts,
 ) (controller.Controller, error) {
+
+	// Read the factory options and config.
 	le := opts.GetLogger()
 	cc := conf.(*Config)
 
+	// Default the web runtime ID when unset.
 	webRuntimeId := cc.GetWebRuntimeId()
 	if webRuntimeId == "" {
 		webRuntimeId = "default"
 	}
 
+	// Default the workdir path to the current directory.
 	workdirPath := cc.GetWorkdirPath()
 	if workdirPath == "" {
 		var err error

@@ -64,6 +64,7 @@ func (r *ObjectTypeRegistryResource) RegisterObjectType(
 	ctx context.Context,
 	req *s4wave_objecttype_registry.RegisterObjectTypeRequest,
 ) (*s4wave_objecttype_registry.RegisterObjectTypeResponse, error) {
+	// Validate the type ID and plugin ID from the request.
 	typeID := req.GetTypeId()
 	pluginID := req.GetPluginId()
 	if typeID == "" {
@@ -72,6 +73,7 @@ func (r *ObjectTypeRegistryResource) RegisterObjectType(
 	if pluginID == "" {
 		return nil, ErrPluginIdRequired
 	}
+
 	// Require a namespace prefix before the first '/'. The prefix need not match
 	// pluginID: a single plugin (e.g. spacewave-v86) may serve multiple type
 	// namespaces (e.g. vm/v86 and vm/image/v86).
@@ -79,16 +81,19 @@ func (r *ObjectTypeRegistryResource) RegisterObjectType(
 		return nil, ErrTypeIdMustHavePluginPrefix
 	}
 
+	// Resolve the caller's registration generation and resource client.
 	generation, err := registration.FromContext(ctx, pluginID)
 	if err != nil {
 		return nil, err
 	}
 
+	// Get the caller's Resource client context.
 	client, err := resource_server.MustGetResourceClientContext(ctx)
 	if err != nil {
 		return nil, err
 	}
 
+	// Attach the requested handler capability if one is provided.
 	var attached *attachedObjectTypeHandler
 	if attachedID := req.GetAttachedHandlerResourceId(); attachedID != 0 {
 		attachedClient, err := client.GetAttachedResource(attachedID)
@@ -98,21 +103,28 @@ func (r *ObjectTypeRegistryResource) RegisterObjectType(
 		attached = &attachedObjectTypeHandler{client: attachedClient, ctx: client.Context()}
 	}
 
+	// Register the ObjectType under the broadcast lock, rejecting duplicates.
 	var regID uint32
 	var duplicate bool
 	r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		// Reject a duplicate type ID that cannot share the caller's name scope.
 		for _, registration := range r.registrations {
 			if registration.registration.GetTypeId() == typeID && !r.generations.CanShareNameLocked(registration, generation) {
 				duplicate = true
 				return
 			}
 		}
+
+		// Allocate an ID and clone the request metadata.
+		// Allocate an ID and clone the request metadata.
 		regID = r.nextID
 		r.nextID++
 		var metadata *s4wave_objecttype_registry.ObjectTypeMetadata
 		if req.GetMetadata() != nil {
 			metadata = req.GetMetadata().CloneVT()
 		}
+
+		// Store the registration and bind it to the caller's generation.
 		r.registrations[regID] = &objectTypeRegistration{registration: &s4wave_objecttype_registry.ObjectTypeRegistration{
 			TypeId:         typeID,
 			RegistrationId: regID,
@@ -134,6 +146,7 @@ func (r *ObjectTypeRegistryResource) RegisterObjectType(
 		return nil, ErrTypeIdAlreadyRegistered
 	}
 
+	// Publish the registration as a Resource owned by the caller.
 	emptyMux := srpc.NewMux()
 	resourceID, err := client.AddResource(emptyMux, func() {
 		r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {

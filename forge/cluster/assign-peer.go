@@ -67,12 +67,15 @@ func (o *ClusterAssignPeerOp) ApplyWorldOp(
 	worldHandle world.WorldState,
 	sender peer.ID,
 ) (sysErr bool, err error) {
+
+	// Parse the operation's cluster key and replacement peer ID.
 	clusterKey := o.GetClusterKey()
 	peerID, err := o.ParsePeerID()
 	if err != nil {
 		return false, err
 	}
 
+	// Format the replacement peer ID as a string for comparison.
 	peerIDStr := peerID.String()
 
 	// Confirm the cluster object type.
@@ -81,8 +84,11 @@ func (o *ClusterAssignPeerOp) ApplyWorldOp(
 		return false, err
 	}
 
+	// Update the cluster object inside a read-write transaction.
 	var changed bool
 	_, _, err = world.AccessWorldObject(ctx, worldHandle, clusterKey, true, func(bcs *block.Cursor) error {
+
+		// Decode the cluster, check authorization, and store the new peer ID.
 		var err error
 		cluster, err := UnmarshalCluster(ctx, bcs)
 		if err == nil {

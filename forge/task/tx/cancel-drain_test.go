@@ -32,8 +32,10 @@ type custodyFixture struct {
 }
 
 func newCustodyFixture(t *testing.T) *custodyFixture {
+	// Mark the helper and assemble the fixture.
 	t.Helper()
 
+	// Start the world testbed and register supporting factories.
 	ctx := t.Context()
 	tb, err := world_testbed.Default(ctx)
 	if err != nil {
@@ -41,9 +43,11 @@ func newCustodyFixture(t *testing.T) *custodyFixture {
 	}
 	t.Cleanup(tb.Release)
 
+	// Register supporting factories on the static resolver.
 	tb.StaticResolver.AddFactory(boilerplate_controller.NewFactory(tb.Bus))
 	tb.StaticResolver.AddFactory(forge_lib_kvtx.NewFactory(tb.Bus))
 
+	// Resolve the mock target for pass creation.
 	target, err := target_mock.ResolveMockTarget(ctx, tb.Bus)
 	if err != nil {
 		t.Fatal(err)
@@ -59,8 +63,10 @@ func newCustodyFixture(t *testing.T) *custodyFixture {
 }
 
 func (f *custodyFixture) createRunningPass(t *testing.T, passKey string, nonce uint64) string {
+	// Mark the helper.
 	t.Helper()
 
+	// Create the running pass on the world state.
 	createdObject, _, err := forge_pass.CreatePassWithTarget(
 		f.ctx,
 		f.tb.WorldState,
@@ -82,8 +88,12 @@ func (f *custodyFixture) createRunningPass(t *testing.T, passKey string, nonce u
 }
 
 func (f *custodyFixture) startPassExecution(t *testing.T, passKey string) string {
+	// Mark the helper.
 	t.Helper()
 
+	// Start the pass and its local execution.
+
+	// Start the pass with a local execution spec.
 	_, _, err := f.tb.WorldState.ApplyWorldOp(
 		f.ctx,
 		pass_tx.NewTxStart(passKey, []*pass_tx.ExecSpec{{PeerId: f.peerID.String()}}, true),
@@ -93,6 +103,7 @@ func (f *custodyFixture) startPassExecution(t *testing.T, passKey string) string
 		t.Fatal(err)
 	}
 
+	// Start the execution transaction on the execution object.
 	executionKey := forge_pass.BuildPassExecutionObjKey(passKey, f.peerID.String())
 	executionObject, err := world.MustGetObject(f.ctx, f.tb.WorldState, executionKey)
 	defer world.ReleaseObjectState(executionObject)
@@ -111,8 +122,12 @@ func (f *custodyFixture) startPassExecution(t *testing.T, passKey string) string
 }
 
 func (f *custodyFixture) cancelPass(t *testing.T, passKey string) *forge_value.Result {
+	// Mark the helper.
 	t.Helper()
 
+	// Cancel the pass with a canceled result.
+
+	// Apply the cancel transaction with a canceled result.
 	result := forge_value.NewResultWithCanceled(errors.New("test cancellation"))
 	_, _, err := f.tb.WorldState.ApplyWorldOp(
 		f.ctx,
@@ -126,8 +141,12 @@ func (f *custodyFixture) cancelPass(t *testing.T, passKey string) *forge_value.R
 }
 
 func (f *custodyFixture) cancelExecution(t *testing.T, executionKey string) world.ObjectState {
+	// Mark the helper.
 	t.Helper()
 
+	// Cancel the execution object.
+
+	// Cancel the execution object and return it for assertions.
 	executionObject, err := world.MustGetObject(f.ctx, f.tb.WorldState, executionKey)
 	if err != nil {
 		t.Fatal(err)
@@ -139,12 +158,15 @@ func (f *custodyFixture) cancelExecution(t *testing.T, executionKey string) worl
 	return executionObject
 }
 
+// Create a running pass and cancel it while the execution drains.
 func TestPassCancelWaitsForExecutionDrain(t *testing.T) {
+	// Create a running pass and cancel it while the execution drains.
 	f := newCustodyFixture(t)
 	passKey := "test/pass/cancel-drain"
 	executionKey := f.createRunningPass(t, passKey, 1)
 	cancelResult := f.cancelPass(t, passKey)
 
+	// Assert completing the pass fails while the execution is running.
 	if _, _, err := f.tb.WorldState.ApplyWorldOp(
 		f.ctx,
 		pass_tx.NewTxComplete(passKey, cancelResult),
@@ -153,6 +175,7 @@ func TestPassCancelWaitsForExecutionDrain(t *testing.T) {
 		t.Fatal("pass completed while its execution was running")
 	}
 
+	// Cancel the execution and update the pass exec states.
 	executionObject := f.cancelExecution(t, executionKey)
 	defer world.ReleaseObjectState(executionObject)
 	if _, _, err := f.tb.WorldState.ApplyWorldOp(
@@ -170,6 +193,7 @@ func TestPassCancelWaitsForExecutionDrain(t *testing.T) {
 		t.Fatalf("pass state = %s, want CANCELING", state)
 	}
 
+	// Assert a canceling execution rejects a successful terminal result.
 	if _, _, err := executionObject.ApplyObjectOp(
 		f.ctx,
 		execution_tx.NewTxComplete(
@@ -198,6 +222,7 @@ func TestPassCancelWaitsForExecutionDrain(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Assert the drained pass completed with its canceled result.
 	pass, _, err = forge_pass.LookupPass(f.ctx, f.tb.WorldState, passKey)
 	if err != nil {
 		t.Fatal(err)
@@ -211,6 +236,7 @@ func TestPassCancelWaitsForExecutionDrain(t *testing.T) {
 }
 
 func TestTaskStartDoesNotCreateSuccessorOverLivePass(t *testing.T) {
+	// Create a task whose start must fence on a live predecessor.
 	f := newCustodyFixture(t)
 	taskKey := "test/task/successor-fence"
 	createdObject, _, err := forge_task.CreateTaskWithTarget(
@@ -230,6 +256,7 @@ func TestTaskStartDoesNotCreateSuccessorOverLivePass(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Configure the task target and reset its inputs.
 	updateTarget := task_tx.NewTxUpdateInputs(taskKey)
 	updateTarget.TxUpdateInputs.UpdateTarget = true
 	updateTarget.TxUpdateInputs.ResetInputs = true
@@ -241,6 +268,7 @@ func TestTaskStartDoesNotCreateSuccessorOverLivePass(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Create a running predecessor pass and link it to the task.
 	passKey := forge_task.NewPassKey(taskKey, 1)
 	f.createRunningPass(t, passKey, 1)
 	if err := f.tb.WorldState.SetGraphQuad(
@@ -257,6 +285,7 @@ func TestTaskStartDoesNotCreateSuccessorOverLivePass(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Assert the task stays pending with only the draining predecessor.
 	task, objectState, err := forge_task.LookupTask(f.ctx, f.tb.WorldState, taskKey)
 	world.ReleaseObjectState(objectState)
 	if err != nil {
@@ -278,6 +307,7 @@ func TestTaskStartDoesNotCreateSuccessorOverLivePass(t *testing.T) {
 }
 
 func TestTaskInputChangeRestartsOnlyAfterDrain(t *testing.T) {
+	// Create a task whose input change waits for the pass to drain.
 	f := newCustodyFixture(t)
 	taskKey := "test/task/input-change-drain"
 	createdObject, _, err := forge_task.CreateTaskWithTarget(
@@ -296,6 +326,8 @@ func TestTaskInputChangeRestartsOnlyAfterDrain(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Configure the target, reset inputs, and start the task.
 	updateTarget := task_tx.NewTxUpdateInputs(taskKey)
 	updateTarget.TxUpdateInputs.UpdateTarget = true
 	updateTarget.TxUpdateInputs.ResetInputs = true
@@ -314,6 +346,7 @@ func TestTaskInputChangeRestartsOnlyAfterDrain(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Start a pass execution and request an input reset.
 	firstPassKey := forge_task.NewPassKey(taskKey, 1)
 	executionKey := f.startPassExecution(t, firstPassKey)
 	updateInputs := task_tx.NewTxUpdateInputs(taskKey)
@@ -326,6 +359,7 @@ func TestTaskInputChangeRestartsOnlyAfterDrain(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Assert the task stays running on the draining predecessor.
 	task, objectState, err := forge_task.LookupTask(f.ctx, f.tb.WorldState, taskKey)
 	world.ReleaseObjectState(objectState)
 	if err != nil {
@@ -345,6 +379,7 @@ func TestTaskInputChangeRestartsOnlyAfterDrain(t *testing.T) {
 		t.Fatalf("predecessor state = %s, want CANCELING", state)
 	}
 
+	// Drain the execution and advance the pass and task states.
 	executionObject := f.cancelExecution(t, executionKey)
 	defer world.ReleaseObjectState(executionObject)
 	if _, _, err := executionObject.ApplyObjectOp(
@@ -379,6 +414,7 @@ func TestTaskInputChangeRestartsOnlyAfterDrain(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Assert the successor pass started after the drain.
 	var objectState2 world.ObjectState
 	task, objectState2, err = forge_task.LookupTask(f.ctx, f.tb.WorldState, taskKey)
 	world.ReleaseObjectState(objectState2)
@@ -395,6 +431,8 @@ func TestTaskInputChangeRestartsOnlyAfterDrain(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Assert both predecessor and successor passes are present.
 	secondPassKey := forge_task.NewPassKey(taskKey, 2)
 	if len(passKeys) != 2 {
 		t.Fatalf("passes = %v, want predecessor and successor", passKeys)
@@ -410,11 +448,13 @@ func TestTaskInputChangeRestartsOnlyAfterDrain(t *testing.T) {
 }
 
 func TestCreateExecSpecsPreservesCancelingExecution(t *testing.T) {
+	// Cancel a running execution and recreate its exec specs.
 	f := newCustodyFixture(t)
 	passKey := "test/pass/preserve-canceling"
 	executionKey := f.createRunningPass(t, passKey, 1)
 	world.ReleaseObjectState(f.cancelExecution(t, executionKey))
 
+	// Recreate the exec specs for the canceled execution.
 	createTx := pass_tx.NewTxCreateExecSpecs(passKey)
 	createTx.TxCreateExecSpecs.ExecSpecs = []*pass_tx.ExecSpec{{
 		PeerId: f.peerID.String(),
@@ -427,6 +467,7 @@ func TestCreateExecSpecsPreservesCancelingExecution(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Assert the recreated execution preserved its canceling state.
 	execution, objectState, err := forge_execution.LookupExecution(
 		f.ctx,
 		f.tb.WorldState,
@@ -442,6 +483,7 @@ func TestCreateExecSpecsPreservesCancelingExecution(t *testing.T) {
 }
 
 func TestCancelReplayRecoversAfterRestart(t *testing.T) {
+	// Replay cancellation requests after a simulated restart.
 	f := newCustodyFixture(t)
 	passKey := "test/pass/restart-cancel"
 	executionKey := f.createRunningPass(t, passKey, 1)
@@ -453,6 +495,7 @@ func TestCancelReplayRecoversAfterRestart(t *testing.T) {
 	f.cancelPass(t, passKey)
 	world.ReleaseObjectState(f.cancelExecution(t, executionKey))
 
+	// Assert the replayed requests left the execution canceling.
 	execution, objectState, err := forge_execution.LookupExecution(f.ctx, f.tb.WorldState, executionKey)
 	world.ReleaseObjectState(objectState)
 	if err != nil {
@@ -479,6 +522,7 @@ func TestCancelReplayRecoversAfterRestart(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Assert the drained pass completed with its canceled result.
 	pass, _, err := forge_pass.LookupPass(f.ctx, f.tb.WorldState, passKey)
 	if err != nil {
 		t.Fatal(err)

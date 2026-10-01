@@ -29,6 +29,7 @@ const (
 )
 
 func (o *dedicatedWorkerOwner) observeDocumentStatus(docID string, hidden bool) (wake bool) {
+	// Record the document's visibility in the dedicatedWorkerOwner document set.
 	o.ensureDocs()
 	o.docs[docID] = hidden
 	if o.ownerDocID != docID {
@@ -43,6 +44,7 @@ func (o *dedicatedWorkerOwner) observeDocumentStatus(docID string, hidden bool) 
 }
 
 func (o *dedicatedWorkerOwner) observeDocumentRemoved(docID string) (wake bool) {
+	// Remove the document from the dedicatedWorkerOwner document set.
 	o.ensureDocs()
 	delete(o.docs, docID)
 	if o.ownerDocID == docID {
@@ -67,6 +69,7 @@ func (o *dedicatedWorkerOwner) beginCreate(docID string) (create bool, wake bool
 }
 
 func (o *dedicatedWorkerOwner) observeCreateSkipped(docID string, hidden bool) {
+	// Record the skipped creation and release an unconfirmed dedicatedWorkerOwner claim.
 	o.ensureDocs()
 	o.docs[docID] = hidden
 	if o.ownerDocID == docID && o.state == dedicatedWorkerStateCreatingOwnerWorker {

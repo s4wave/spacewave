@@ -47,12 +47,15 @@ type Engine struct {
 // Open constructs a ready World without starting accounts, networking, or apps.
 // Storage owns its dataset; closing the engine releases handles and never deletes it.
 func Open(ctx context.Context, le *logrus.Entry, backing storage.Storage) (_ *Engine, resultErr error) {
+	// Validate the arguments and prepare the engine with a cancelable context.
 	if backing == nil {
 		return nil, errors.New("sync engine requires storage")
 	}
 	if le == nil {
 		le = logrus.NewEntry(logrus.New())
 	}
+
+	// Create the engine with a cancelable context and failure cleanup.
 	ctx, cancel := context.WithCancel(ctx)
 	engine := &Engine{cancel: cancel}
 	defer func() {
@@ -60,6 +63,8 @@ func Open(ctx context.Context, le *logrus.Entry, backing storage.Storage) (_ *En
 			resultErr = errors.Join(resultErr, engine.Close())
 		}
 	}()
+
+	// Start a core bus and register the storage and World factories.
 	b, sr, err := cbc.NewCoreBus(ctx, le)
 	if err != nil {
 		return nil, err
@@ -69,6 +74,8 @@ func Open(ctx context.Context, le *logrus.Entry, backing storage.Storage) (_ *En
 	backing.AddFactories(b, sr)
 	sr.AddFactory(storage_volume.NewFactory(b))
 	sr.AddFactory(world_block_engine.NewFactory(b))
+
+	// Register the KV controller factory.
 	if err := registerKV(ctx, b); err != nil {
 		return nil, err
 	}
@@ -81,6 +88,8 @@ func Open(ctx context.Context, le *logrus.Entry, backing storage.Storage) (_ *En
 	if _, err := b.AddController(ctx, storageController, nil); err != nil {
 		return nil, err
 	}
+
+	// Start the configset and node controllers and retain their references.
 	_, _, configRef, err := loader.WaitExecControllerRunning(ctx, b, resolver.NewLoadControllerWithConfig(&configset_controller.Config{}), nil)
 	if err != nil {
 		return nil, err
@@ -91,6 +100,8 @@ func Open(ctx context.Context, le *logrus.Entry, backing storage.Storage) (_ *En
 		return nil, err
 	}
 	engine.refs = append(engine.refs, nodeRef)
+
+	// Start the volume controller for the sync storage.
 	volumeController, volumeRef, err := storage_volume.ExecVolumeController(ctx, b, &storage_volume.Config{
 		StorageId: "sync", StorageVolumeId: "sync",
 	})
@@ -98,6 +109,8 @@ func Open(ctx context.Context, le *logrus.Entry, backing storage.Storage) (_ *En
 		return nil, err
 	}
 	engine.refs = append(engine.refs, volumeRef)
+
+	// Configure the sync bucket and start the World engine.
 	volume, err := volumeController.GetVolume(ctx)
 	if err != nil {
 		return nil, err
@@ -112,6 +125,8 @@ func Open(ctx context.Context, le *logrus.Entry, backing storage.Storage) (_ *En
 		return nil, err
 	}
 	engine.refs = append(engine.refs, worldRef)
+
+	// Wait for the World engine and expose its writable state.
 	engine.World, err = worldController.GetWorldEngine(ctx)
 	if err != nil {
 		return nil, err
@@ -124,6 +139,7 @@ func Open(ctx context.Context, le *logrus.Entry, backing storage.Storage) (_ *En
 // Failure still releases every handle and remains observable on subsequent calls.
 func (e *Engine) Close() error {
 	e.closeOnce.Do(func() {
+		// Fence acknowledged data before tearing down the bus.
 		if e.State != nil {
 			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 			_, e.closeErr = e.State.Sync(ctx)
@@ -138,6 +154,8 @@ func (e *Engine) Close() error {
 				instance.Close()
 			}
 		}
+
+		// Release the retained controller references.
 		for _, ref := range e.refs {
 			ref.Release()
 		}

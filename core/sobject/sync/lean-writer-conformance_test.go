@@ -37,11 +37,15 @@ func FuzzLeanSyncWriter(f *testing.F) {
 
 // leanSyncWriterCases drives the same writer routine used by synchronize over a real pipe.
 func leanSyncWriterCases(t *testing.T, seed uint64) []leanSyncCase {
+
+	// helper.
 	t.Helper()
 	const soID = "lean-sync-writer"
 	owner, reader := mustKeyPair(t), mustKeyPair(t)
 	initial := authenticationState(t, soID, owner, reader)
 	localID, err := peer.IDFromPrivateKey(owner)
+
+	// Abort if peer iDFromPrivateKey fails.
 	if err != nil {
 		t.Fatal(err)
 	}

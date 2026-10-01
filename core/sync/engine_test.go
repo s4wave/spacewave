@@ -24,15 +24,20 @@ import (
 )
 
 func TestEngineReopensWorldCollectionAndDetachesResource(t *testing.T) {
+	// Set up a bounded context and logger for the test.
 	ctx, cancel := context.WithTimeout(t.Context(), 20*time.Second)
 	defer cancel()
 	le := logrus.NewEntry(logrus.New())
+
+	// Open a sync engine over a BoltDB-backed storage volume.
 	backing := storage_native.NewBoltDB(false, t.TempDir())
 	engine, err := core_sync.Open(ctx, le, backing)
 	if err != nil {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = engine.Close() })
+
+	// Create a KV-store World object and set its object type.
 	{
 		createdObject, _, err := world.CreateWorldObject(ctx, engine.State, "todos", func(cursor *block.Cursor) error {
 			cursor.SetBlock(kvtx_block.NewKeyValueStoreForWorkload(kvtx_block.WorkloadClassDefault), true)
@@ -46,10 +51,14 @@ func TestEngineReopensWorldCollectionAndDetachesResource(t *testing.T) {
 	if err := world_types.SetObjectType(ctx, engine.State, "todos", kv_world.KvStoreTypeID); err != nil {
 		t.Fatal(err)
 	}
+
+	// Attach the engine to an SRPC Resource client.
 	mux, release, err := core_sync.AttachEngine(le, engine.Bus, engine.World)
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Build a remote World client over the attached mux.
 	client, err := resource_client.NewClient(ctx, resource.NewSRPCResourceServiceClient(srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(mux)))))
 	if err != nil {
 		t.Fatal(err)
@@ -66,11 +75,15 @@ func TestEngineReopensWorldCollectionAndDetachesResource(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Write a value through the remote KV store transaction.
 	kvRef := client.CreateResourceReference(typed.ResourceId)
 	kvClient, err := kvRef.GetClient()
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Commit a value through the remote KV store transaction.
 	store := kvtx_rpc_client.NewStore(kvtx_rpc.NewSRPCKvtxClient(kvClient))
 	tx, err := store.NewTransaction(ctx, true)
 	if err != nil {
@@ -83,6 +96,8 @@ func TestEngineReopensWorldCollectionAndDetachesResource(t *testing.T) {
 		t.Fatal(err)
 	}
 	tx.Discard()
+
+	// Release the remote resources and wait for the client to shut down.
 	kvRef.Release()
 	remote.Release()
 	client.Release()
@@ -92,22 +107,30 @@ func TestEngineReopensWorldCollectionAndDetachesResource(t *testing.T) {
 		t.Fatal(ctx.Err())
 	}
 	release()
+
+	// Verify the detached engine still runs and closes cleanly.
 	if _, err := engine.World.GetSeqno(ctx); err != nil {
 		t.Fatalf("detaching stopped supplied engine: %v", err)
 	}
 	if err := engine.Close(); err != nil {
 		t.Fatal(err)
 	}
+
+	// Reopen the engine and read the value back from the KV store.
 	reopened, err := core_sync.Open(ctx, le, backing)
 	if err != nil {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = reopened.Close() })
+
+	// Read the value back through a fresh KV store client.
 	invoker, closeStore, err := kv_world.KvStoreFactory(ctx, le, reopened.Bus, reopened.World, reopened.State, "todos")
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer closeStore()
+
+	// Open a read transaction over the reopened store and check the value.
 	reader := kvtx_rpc_client.NewStore(kvtx_rpc.NewSRPCKvtxClient(srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(invoker)))))
 	read, err := reader.NewTransaction(ctx, false)
 	if err != nil {

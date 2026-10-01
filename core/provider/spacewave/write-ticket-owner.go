@@ -36,8 +36,11 @@ func newWriteTicketOwner(acc *ProviderAccount, resourceID string) *writeticketow
 }
 
 func (c *SessionClient) getDirectWriteTicketOwner(resourceID string) *writeticketowner.Owner {
+	// Lock the direct owner map for the resource lookup.
 	c.directWriteTicketOwnersMtx.Lock()
 	defer c.directWriteTicketOwnersMtx.Unlock()
+
+	// Create or reuse the direct write-ticket owner for the resource.
 	if c.directWriteTicketOwners == nil {
 		c.directWriteTicketOwners = make(map[string]*writeticketowner.Owner)
 	}
@@ -81,7 +84,10 @@ func validateWriteTicketAudience(audience writeTicketAudience) error {
 
 // setWriteTicketOwnersContext updates the lifecycle context for ticket owners.
 func (a *ProviderAccount) setWriteTicketOwnersContext(ctx context.Context) {
+	// Lock the owner map while recording the lifecycle context.
 	a.writeTicketOwnersMtx.Lock()
+
+	// Record the lifecycle context and snapshot the owners under the lock.
 	a.writeTicketOwnersCtx = ctx
 	owners := make([]*writeticketowner.Owner, 0, len(a.writeTicketOwners))
 	for _, owner := range a.writeTicketOwners {
@@ -89,6 +95,7 @@ func (a *ProviderAccount) setWriteTicketOwnersContext(ctx context.Context) {
 	}
 	a.writeTicketOwnersMtx.Unlock()
 
+	// Apply the new lifecycle context to each owner.
 	for _, owner := range owners {
 		if ctx == nil {
 			owner.ClearContext()
@@ -100,7 +107,10 @@ func (a *ProviderAccount) setWriteTicketOwnersContext(ctx context.Context) {
 
 // getWriteTicketOwner returns the bundled write-ticket owner for a resource.
 func (a *ProviderAccount) getWriteTicketOwner(resourceID string) *writeticketowner.Owner {
+	// Lock the owner map while resolving the resource owner.
 	a.writeTicketOwnersMtx.Lock()
+
+	// Create or reuse the bundled write-ticket owner for the resource.
 	if a.writeTicketOwners == nil {
 		a.writeTicketOwners = make(map[string]*writeticketowner.Owner)
 	}
@@ -112,6 +122,7 @@ func (a *ProviderAccount) getWriteTicketOwner(resourceID string) *writeticketown
 	ctx := a.writeTicketOwnersCtx
 	a.writeTicketOwnersMtx.Unlock()
 
+	// Apply the recorded lifecycle context to the owner.
 	if ctx != nil {
 		owner.SetContext(ctx)
 	}

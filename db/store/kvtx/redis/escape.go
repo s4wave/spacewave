@@ -2,14 +2,14 @@ package store_kvtx_redis
 
 // escapeKey escapes the key for matching.
 func escapeKey(key []byte, extraCap int) []byte {
+	// Return empty keys unchanged.
 	if len(key) == 0 {
 		return key
 	}
 
-	// escaped
+	// Check the key for any characters requiring escapes, building the escaped
+	// buffer on the slow path.
 	var esc []byte
-
-	// check for any necessary escapes
 	for i := range key {
 		// anything outside of basic chars should be escaped
 		c := key[i]

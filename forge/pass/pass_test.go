@@ -9,11 +9,14 @@ import (
 )
 
 func TestComputeOutputsWithStatesPromotesUnanimousFailedOutputs(t *testing.T) {
+	// Compute outputs from two identical failed exec states.
 	outputs := []*forge_target.Output{{
 		Name:       "continuation",
 		OutputType: forge_target.OutputType_OutputType_EXEC,
 		ExecOutput: "continuation",
 	}}
+
+	// Compute outputs from two identical failed exec states.
 	value := forge_value.NewValueWithWorldObjectSnapshot(
 		"continuation",
 		&forge_value.WorldObjectSnapshot{Key: "session"},
@@ -32,6 +35,7 @@ func TestComputeOutputsWithStatesPromotesUnanimousFailedOutputs(t *testing.T) {
 }
 
 func TestComputeOutputsWithStatesRejectsDivergentFailedOutputs(t *testing.T) {
+	// Require divergent failed exec state outputs to be rejected.
 	outputs := []*forge_target.Output{{
 		Name:       "continuation",
 		OutputType: forge_target.OutputType_OutputType_EXEC,

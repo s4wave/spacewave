@@ -56,6 +56,8 @@ func (tx *terminalLockProofTx) CreateObject(
 }
 
 func TestTxResourceTerminalLockSerializesCommitAndDiscard(t *testing.T) {
+
+	// background ctx via context.
 	ctx := context.Background()
 	tb, err := world_testbed.Default(ctx)
 	if err != nil {
@@ -63,6 +65,7 @@ func TestTxResourceTerminalLockSerializesCommitAndDiscard(t *testing.T) {
 	}
 	defer tb.Release()
 
+	// newTransaction baseTx,err via tb.
 	baseTx, err := tb.Engine.NewTransaction(ctx, true)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -79,6 +82,7 @@ func TestTxResourceTerminalLockSerializesCommitAndDiscard(t *testing.T) {
 	}
 	resource.terminalLocker = locker
 
+	// make batchDone.
 	batchDone := make(chan error, 1)
 	go func() {
 		_, err := resource.CommitMutations(ctx, &s4wave_world.CommitMutationsRequest{
@@ -93,6 +97,7 @@ func TestTxResourceTerminalLockSerializesCommitAndDiscard(t *testing.T) {
 	waitChannel(t, locker.acquired, "batch terminal lock acquisition")
 	waitChannel(t, tx.middleStarted, "blocked middle mutation")
 
+	// make commitDone.
 	commitDone := make(chan error, 1)
 	go func() {
 		_, err := resource.Commit(ctx, &s4wave_world.CommitRequest{})
@@ -101,6 +106,7 @@ func TestTxResourceTerminalLockSerializesCommitAndDiscard(t *testing.T) {
 	waitChannel(t, locker.attempted, "Commit terminal lock attempt")
 	assertNoChannel(t, locker.acquired, "Commit terminal lock acquisition")
 
+	// make discardDone.
 	discardDone := make(chan error, 1)
 	go func() {
 		_, err := resource.Discard(ctx, &s4wave_world.DiscardRequest{})
@@ -109,6 +115,7 @@ func TestTxResourceTerminalLockSerializesCommitAndDiscard(t *testing.T) {
 	waitChannel(t, locker.attempted, "Discard terminal lock attempt")
 	assertNoChannel(t, locker.acquired, "Discard terminal lock acquisition")
 
+	// close.
 	close(tx.unblockMiddle)
 	if err := <-batchDone; err != nil {
 		t.Fatalf("CommitMutations: %v", err)
@@ -150,6 +157,8 @@ type failedCommitTx struct {
 func (tx *failedCommitTx) Commit(context.Context) error { return tx.err }
 
 func TestTxResourceFailedCommitReleasesWriter(t *testing.T) {
+
+	// context ctx.
 	ctx := t.Context()
 	tb := world_testbed.MustDefault(t, ctx)
 	tx, err := tb.Engine.NewTransaction(ctx, true)
@@ -162,6 +171,7 @@ func TestTxResourceFailedCommitReleasesWriter(t *testing.T) {
 	if _, err := resource.Commit(ctx, &s4wave_world.CommitRequest{}); !errors.Is(err, failure) {
 		t.Fatalf("commit: %v", err)
 	}
+
 	// No client reference release or Discard RPC is needed to admit the next writer.
 	nextCtx, cancel := context.WithTimeout(ctx, time.Second)
 	defer cancel()

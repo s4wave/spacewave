@@ -63,6 +63,7 @@ func buildGitLfsSetupCommand() *cli.Command {
 
 // runGitLfsSetup configures the Git repository in the working directory.
 func runGitLfsSetup(c *cli.Context, statePath, spaceID string, sessIdx int) error {
+	// Locate the repository and resolve the object key, session, and executable.
 	ctx := c.Context
 
 	// Locate the repository and choose the object key.
@@ -81,6 +82,8 @@ func runGitLfsSetup(c *cli.Context, statePath, spaceID string, sessIdx int) erro
 	if findSubpathDelimiter(key) >= 0 {
 		return errors.New("object key cannot contain /-/")
 	}
+
+	// Count tracked LFS files and resolve the session index and executable.
 	tracked, err := countGitLfsFiles(ctx)
 	if err != nil {
 		return err
@@ -91,6 +94,8 @@ func runGitLfsSetup(c *cli.Context, statePath, spaceID string, sessIdx int) erro
 			return err
 		}
 	}
+
+	// Resolve the executable path and daemon flags.
 	exe, err := os.Executable()
 	if err != nil {
 		return errors.Wrap(err, "resolve executable")
@@ -112,6 +117,8 @@ func runGitLfsSetup(c *cli.Context, statePath, spaceID string, sessIdx int) erro
 		return err
 	}
 	defer sess.Release()
+
+	// Resolve the space and mount its World engine.
 	sid, err := client.resolveSpaceID(ctx, sess, spaceID)
 	if err != nil {
 		return err
@@ -126,6 +133,8 @@ func runGitLfsSetup(c *cli.Context, statePath, spaceID string, sessIdx int) erro
 		return err
 	}
 	defer engineCleanup()
+
+	// Create the UnixFS object when missing.
 	created, err := ensureGitLfsObject(ctx, engine, key)
 	if err != nil {
 		return err
@@ -138,10 +147,14 @@ func runGitLfsSetup(c *cli.Context, statePath, spaceID string, sessIdx int) erro
 	// serves every remote, so git-lfs skips probing an SSH remote for its
 	// own LFS transfer protocol.
 	uri := "/u/" + strconv.FormatUint(uint64(idx), 10) + "/so/" + sid + "/-/" + key
+
+	// Install the git-lfs filters and standalone transfer agent config.
 	if _, err := gitOutput(ctx, "lfs", "install", "--local", "--skip-repo"); err != nil {
 		return errors.Wrap(err, "install git-lfs filters")
 	}
 	agentArgs := append(append([]string{"git", "lfs", "agent"}, daemonFlags...), uri)
+
+	// Configure the standalone transfer agent in the local git config.
 	prefix := "lfs.customtransfer." + gitLfsAgentName + "."
 	for _, kv := range [][2]string{
 		{"lfs.standalonetransferagent", gitLfsAgentName},
@@ -203,6 +216,7 @@ func buildGitLfsAgentCommand() *cli.Command {
 		Hidden:    true,
 		Flags:     commonFsFlags(&statePath, &spaceID, &sessIdx),
 		Action: func(c *cli.Context) error {
+			// Parse the fs URI from the argument.
 			ctx := c.Context
 			uri, err := parseFsURI(c.Args().First(), spaceID, sessIdx)
 			if err != nil {
@@ -216,6 +230,7 @@ func buildGitLfsAgentCommand() *cli.Command {
 				return errors.Wrap(err, "find git-lfs temporary directory")
 			}
 
+			// Find the git-lfs temporary directory and mount the fs context.
 			fc, cleanup, err := mountFsContext(c, statePath, uri)
 			if err != nil {
 				return err
@@ -241,11 +256,14 @@ func buildGitLfsFlushCommand() *cli.Command {
 		Hidden:    true,
 		Flags:     commonFsFlags(&statePath, &spaceID, &sessIdx),
 		Action: func(c *cli.Context) error {
+			// Parse the fs URI from the argument.
 			ctx := c.Context
 			uri, err := parseFsURI(c.Args().First(), spaceID, sessIdx)
 			if err != nil {
 				return err
 			}
+
+			// Connect to the daemon and mount the session.
 			client, err := connectDaemonFromContext(ctx, c, statePath)
 			if err != nil {
 				return err
@@ -256,6 +274,8 @@ func buildGitLfsFlushCommand() *cli.Command {
 				return err
 			}
 			defer sess.Release()
+
+			// Resolve the space and mount its World engine.
 			sid, err := client.resolveSpaceID(ctx, sess, uri.spaceID)
 			if err != nil {
 				return err
@@ -270,6 +290,8 @@ func buildGitLfsFlushCommand() *cli.Command {
 				return err
 			}
 			defer engineCleanup()
+
+			// Sync the World and wait until the session has synced.
 			if _, err := engine.Sync(ctx); err != nil {
 				return errors.Wrap(err, "sync world")
 			}
@@ -281,6 +303,7 @@ func buildGitLfsFlushCommand() *cli.Command {
 // waitSessionSynced watches the session sync status until no work is
 // pending, reporting progress on stderr, and fails on a sync error.
 func waitSessionSynced(ctx context.Context, sess *s4wave_session.Session) error {
+	// Watch the session sync status until no work is pending.
 	strm, err := sess.WatchSyncStatus(ctx)
 	if err != nil {
 		return errors.Wrap(err, "watch sync status")
@@ -314,12 +337,14 @@ func waitSessionSynced(ctx context.Context, sess *s4wave_session.Session) error 
 // reports whether it did. An existing object that is not a stored UnixFS
 // filesystem is an error.
 func ensureGitLfsObject(ctx context.Context, engine *sdk_engine.SDKEngine, key string) (bool, error) {
+	// Open a write transaction on the engine.
 	tx, err := engine.NewTransaction(ctx, true)
 	if err != nil {
 		return false, errors.Wrap(err, "new transaction")
 	}
 	defer tx.Discard()
 
+	// Check whether the object already exists as a UnixFS filesystem.
 	state, found, err := tx.GetObject(ctx, key)
 	world.ReleaseObjectState(state)
 	if err != nil {
@@ -336,6 +361,7 @@ func ensureGitLfsObject(ctx context.Context, engine *sdk_engine.SDKEngine, key s
 		return false, nil
 	}
 
+	// Initialize the UnixFS object and commit the transaction.
 	op := unixfs_world.NewFsInitOp(key, unixfs_world.FSType_FSType_FS_NODE, nil, false, time.Now())
 	if _, _, err := tx.ApplyWorldOp(ctx, op, ""); err != nil {
 		return false, errors.Wrap(err, "apply fs init op")
@@ -349,6 +375,7 @@ func ensureGitLfsObject(ctx context.Context, engine *sdk_engine.SDKEngine, key s
 // countGitLfsFiles returns the number of LFS files in HEAD. A repository
 // without commits has none.
 func countGitLfsFiles(ctx context.Context) (int, error) {
+	// Skip the count when the repository has no commits.
 	if _, err := gitOutput(ctx, "rev-parse", "--verify", "--quiet", "HEAD"); err != nil {
 		return 0, nil
 	}
@@ -392,12 +419,14 @@ func gitDaemonFlags(c *cli.Context, statePath string) ([]string, error) {
 // It replaces only a missing hook, one it wrote, or the stock git-lfs hook,
 // so a user's own hook is never lost.
 func writeGitLfsHook(path, flushCmd string) error {
+	// Build the hook script and read the existing hook.
 	hook := "#!/bin/sh\n" +
 		gitLfsHookMarker + " upload LFS objects, then wait for the Space to sync them.\n" +
 		"command -v git-lfs >/dev/null 2>&1 || { echo >&2 \"spacewave: git-lfs was not found on your path.\"; exit 2; }\n" +
 		"git lfs pre-push \"$@\" || exit $?\n" +
 		"exec " + flushCmd + "\n"
 
+	// Reject an existing hook that setup did not write.
 	existing, err := os.ReadFile(path)
 	if err != nil && !os.IsNotExist(err) {
 		return err
@@ -440,6 +469,7 @@ func replaceableGitLfsHook(hook string) bool {
 // gitOutput runs git with args in the working directory and returns its
 // trimmed stdout. A failure carries git's stderr.
 func gitOutput(ctx context.Context, args ...string) (string, error) {
+	// Run git and capture its trimmed stdout.
 	var stdout, stderr bytes.Buffer
 	cmd := exec.CommandContext(ctx, "git", args...)
 	cmd.Stdout = &stdout

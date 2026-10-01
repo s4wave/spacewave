@@ -48,18 +48,21 @@ func watchWebListenerKeepalive(
 	invoker srpc.Invoker,
 	idleTracker *daemonIdleTracker,
 ) error {
+	// Build the SDK client from the invoker.
 	client, err := buildSDKClientFromInvoker(ctx, invoker)
 	if err != nil {
 		return err
 	}
 	defer client.close()
 
+	// Watch the daemon's web listener list.
 	watch, err := client.root.WatchWebListeners(ctx)
 	if err != nil {
 		return err
 	}
 	defer watch.Close()
 
+	// Release every held listener on exit.
 	held := make(map[string]func())
 	defer func() {
 		for _, release := range held {

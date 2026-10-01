@@ -66,6 +66,7 @@ func (h *HandleWebViewViaBus) HandleWebView(
 	ctx context.Context,
 	req *HandleWebViewRequest,
 ) (*HandleWebViewResponse, error) {
+	// Build a proxy web view that resolves the request through the access client.
 	webView := web_view_client.NewProxyWebViewViaAccess(
 		ctx,
 		req.GetId(),

@@ -392,6 +392,8 @@ func joinSyncWorkers(workers ...*routine.RoutineContainer) {
 // watchAuthority retains current authority until revocation, provider failure or cancellation.
 // Every exit releases the watch before canceling the owner and closing blocked transport.
 func (s *SOSync) watchAuthority(ctx context.Context, strm stream.Stream, sess *stream_packet.Session, remoteID peer.ID, cancel context.CancelCauseFunc) (rerr error) {
+
+	// func.
 	defer func() {
 		cancel(rerr)
 		strm.Close()
@@ -452,6 +454,7 @@ func (s *SOSync) handleRemoteOp(ctx context.Context, le *logrus.Entry, syncOp *S
 		return
 	}
 
+	// iDB58Decode peerID,err via peer.
 	peerID, err := peer.IDB58Decode(peerIDStr)
 	if err != nil {
 		le.WithError(err).Warn("invalid peer id in remote op")

@@ -14,12 +14,15 @@ import (
 )
 
 func TestCollectLatestManifestSetDeterministicPlatformsAndRevisions(t *testing.T) {
+	// Create the testbed, cursor, and mock World state.
 	ctx := context.Background()
 	tb, err := testbed.NewTestbed(ctx, logrus.NewEntry(logrus.New()))
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer tb.Release()
+
+	// Build the empty cursor and mock World state.
 	ocs, err := tb.BuildEmptyCursor(ctx)
 	if err != nil {
 		t.Fatal(err)
@@ -29,10 +32,14 @@ func TestCollectLatestManifestSetDeterministicPlatformsAndRevisions(t *testing.T
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Create the manifest store under the devtool host.
 	const host = "devtool"
 	if _, err := manifest_world.CreateManifestStore(ctx, ws, host); err != nil {
 		t.Fatal(err)
 	}
+
+	// Store the manifest refs under distinct object keys.
 	refs := []*manifest.ManifestRef{
 		testManifestRef(t, ctx, tb, "glados-core", "js", 3, "js"),
 		testManifestRef(t, ctx, tb, "glados-core", "desktop/darwin/arm64", 2, "native"),
@@ -65,11 +72,14 @@ func TestCollectLatestManifestSetDeterministicPlatformsAndRevisions(t *testing.T
 func TestCollectLatestManifestSetCollapsesIdenticalAndRejectsAmbiguous(t *testing.T) {
 	ctx := context.Background()
 	build := func(ambiguous bool) error {
+		// Create the testbed, cursor, and mock World state.
 		tb, err := testbed.NewTestbed(ctx, logrus.NewEntry(logrus.New()))
 		if err != nil {
 			return err
 		}
 		defer tb.Release()
+
+		// Build the empty cursor and mock World state.
 		ocs, err := tb.BuildEmptyCursor(ctx)
 		if err != nil {
 			return err
@@ -79,14 +89,20 @@ func TestCollectLatestManifestSetCollapsesIdenticalAndRejectsAmbiguous(t *testin
 		if err != nil {
 			return err
 		}
+
+		// Create the manifest store under the devtool host.
 		if _, err := manifest_world.CreateManifestStore(ctx, ws, "devtool"); err != nil {
 			return err
 		}
+
+		// Store the manifest refs, optionally with an ambiguous variant.
 		ref := testManifestRef(t, ctx, tb, "glados-core", "js", 4, "js")
 		refs := []*manifest.ManifestRef{ref, ref}
 		if ambiguous {
 			refs[1] = createTestManifestRefVariant(t, ctx, tb, "glados-core", "js", 4)
 		}
+
+		// Store each ref under its own object key.
 		for i, item := range refs {
 			key := "devtool/manifest/" + string(rune('a'+i))
 			if _, _, err := manifest_world.SetManifest(ctx, ws, peer.ID("test"), key, item.GetManifestRef()); err != nil {
@@ -120,6 +136,7 @@ func TestCollectLatestManifestSetCollapsesIdenticalAndRejectsAmbiguous(t *testin
 }
 
 func createTestManifestRefVariant(t *testing.T, ctx context.Context, tb *testbed.Testbed, manifestID, platformID string, rev uint64) *manifest.ManifestRef {
+	// Build the manifest meta and empty cursor.
 	t.Helper()
 	meta := &manifest.ManifestMeta{ManifestId: manifestID, BuildType: "production", PlatformId: platformID, Rev: rev}
 	oc, err := tb.BuildEmptyCursor(ctx)
@@ -127,6 +144,8 @@ func createTestManifestRefVariant(t *testing.T, ctx context.Context, tb *testbed
 		t.Fatal(err)
 	}
 	defer oc.Release()
+
+	// Write the variant manifest block and update the cursor root.
 	btx, bcs := oc.BuildTransaction(nil)
 	bcs.SetBlock(manifest.NewManifest(meta, "different-entrypoint"), true)
 	rootRef, _, err := btx.Write(ctx, true)
@@ -138,6 +157,7 @@ func createTestManifestRefVariant(t *testing.T, ctx context.Context, tb *testbed
 }
 
 func testManifestRef(t *testing.T, ctx context.Context, tb *testbed.Testbed, id, platform string, rev uint64, entrypoint string) *manifest.ManifestRef {
+	// Build the manifest meta and empty cursor.
 	t.Helper()
 	meta := &manifest.ManifestMeta{ManifestId: id, BuildType: "production", PlatformId: platform, Rev: rev}
 	oc, err := tb.BuildEmptyCursor(ctx)
@@ -145,6 +165,8 @@ func testManifestRef(t *testing.T, ctx context.Context, tb *testbed.Testbed, id,
 		t.Fatal(err)
 	}
 	defer oc.Release()
+
+	// Write the manifest block and update the cursor root.
 	btx, bcs := oc.BuildTransaction(nil)
 	bcs.SetBlock(manifest.NewManifest(meta, entrypoint), true)
 	root, _, err := btx.Write(ctx, true)

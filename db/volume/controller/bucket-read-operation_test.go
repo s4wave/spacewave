@@ -29,15 +29,21 @@ func testBucketReadOperationUsesOneSnapshot(t *testing.T, withGC bool) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = store.GetDB().Close() })
+
+	// Construct the volume over the Bolt store.
 	vol, err := common_kvtx.NewVolume(t.Context(), "test-volume", store_kvkey.NewDefaultKVKey(), store, nil, false, false, nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = vol.Close() })
+
+	// Build the bucket handle with optional GC wrapping.
 	handle := &bucketHandle{v: vol, bucketConf: &bucket.Config{Id: "test"}}
 	if withGC {
 		handle.gcOps = block_gc.NewGCStoreOps(vol, stubCollectorGraph{})
 	}
+
+	// Store one block to read back through the scope.
 	ref, _, err := vol.PutBlock(t.Context(), []byte("snapshot contents"), nil)
 	if err != nil {
 		t.Fatal(err)

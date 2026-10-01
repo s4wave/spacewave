@@ -93,6 +93,7 @@ func (r *RefGraph) HasIncomingRefsExcluding(
 	node string,
 	excluded ...string,
 ) (bool, error) {
+	// Fetch the node's incoming gc/ref edges.
 	sources, err := r.GetIncomingRefs(ctx, node)
 	if err != nil {
 		return false, err
@@ -181,6 +182,7 @@ func (r *RefGraph) RemoveObjectRoot(ctx context.Context, objectKey string, ref *
 // ApplyRefBatch sends one bounded ownership transition to the server-side
 // RefGraph.
 func (r *RefGraph) ApplyRefBatch(ctx context.Context, adds, removes []block_gc.RefEdge) error {
+	// Call the RPC service with the batch's adds and removes.
 	resp, err := r.client.ApplyRefBatch(ctx, &block_gc_rpc.ApplyRefBatchRequest{
 		Adds:    refEdgesToRPC(adds),
 		Removes: refEdgesToRPC(removes),

@@ -52,12 +52,16 @@ type leanSyncLoopRun struct {
 
 // run drives the real select with only the requested channel made ready.
 func (r *leanSyncLoopRun) run(t *testing.T, x *syncExchange, le *logrus.Entry) error {
+
+	// helper.
 	t.Helper()
 	ctx, cancel := context.WithTimeout(t.Context(), 2*time.Second)
 	defer cancel()
 	left, right := net.Pipe()
 	defer left.Close()
 	defer right.Close()
+
+	// afterFunc stop via context.
 	stop := context.AfterFunc(ctx, func() { left.Close(); right.Close() })
 	defer stop()
 	observed := &authenticationStream{Conn: left, messages: make(chan *SOSyncMessage, 2)}
@@ -73,31 +77,47 @@ func (r *leanSyncLoopRun) run(t *testing.T, x *syncExchange, le *logrus.Entry) e
 	}()
 	defer func() { left.Close(); right.Close(); <-readerDone }()
 
+	// Build the loop states and exchange channels.
 	states := &leanSyncLoopStates{CContainer: ccontainer.NewCContainerVT[*sobject.SOState](r.current), next: r.next}
 	incoming := make(chan syncIncoming, 2)
 	outbound := make(chan *SOSyncMessage)
 	sent := make(chan error, 1)
 	changed := make(chan struct{}, 1)
 	var driverDone chan struct{}
+
+	// func.
 	defer func() {
 		cancel()
 		if driverDone != nil {
 			<-driverDone
 		}
 	}()
+
+	// Apply the scheduled loop event before advancing.
 	switch r.event {
 	case 0:
+		// Cancel the loop context for the no-op event.
 		cancel()
+
+	// Perform the action.
 	case 1:
 		// The fixture's expired pinned deadline is the only ready event.
 	case 2:
+		// Wake the change channel for the scheduled event.
 		changed <- struct{}{}
+
+	// Wake the change channel for the scheduled event.
 	case 3:
+		// Buffer the outbound channel for the scheduled event.
 		outbound = make(chan *SOSyncMessage, 1)
+
 	case 4:
+		// Start the injected writer failure driver.
 		sent = make(chan error)
 		driverDone = make(chan struct{})
 		go func() {
+
+			// close.
 			defer close(driverDone)
 			var err error
 			if !r.eventOK {
@@ -120,13 +140,17 @@ func (r *leanSyncLoopRun) run(t *testing.T, x *syncExchange, le *logrus.Entry) e
 				}
 			}
 		}()
+
 	case 5:
+		// Inject the reader failure into the incoming channel.
 		var err error
 		if !r.eventOK {
 			err = errors.New("injected reader failure")
 		}
 		incoming <- syncIncoming{message: r.message, err: err}
 	}
+
+	// Advance the loop and verify the selected event completed.
 	timer := time.NewTimer(time.Hour)
 	timer.Stop()
 	defer timer.Stop()

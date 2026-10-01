@@ -20,6 +20,8 @@ func (c *Config) Validate() error {
 // takes precedence; otherwise the socket lives under the project storage
 // root, which the invocation's state path scopes when present.
 func (c *Config) DetermineSocketPath() (string, error) {
+
+	// Prefer the explicitly configured socket path, falling back to the project ID.
 	if socketPath := c.GetListenerSocketPath(); socketPath != "" {
 		return socketPath, nil
 	}
@@ -27,9 +29,13 @@ func (c *Config) DetermineSocketPath() (string, error) {
 	if projectID == "" {
 		return "", nil
 	}
+
+	// Honor a per-project socket path override from the environment.
 	if socketPath := os.Getenv(storagepath.SocketPathEnvVar(projectID)); socketPath != "" {
 		return socketPath, nil
 	}
+
+	// Place the managed socket under the project storage root.
 	storageRoot, err := storagepath.DetermineStorageRoot(projectID)
 	if err != nil {
 		return "", err

@@ -155,6 +155,7 @@ func generateAndSaveBackupKey(c *cli.Context, statePath string, sessionIdx uint3
 		return err
 	}
 
+	// Collect the account credential from the PEM file or password prompt.
 	cred, err := promptCredential(authPemFile)
 	if err != nil {
 		return err
@@ -167,6 +168,7 @@ func generateAndSaveBackupKey(c *cli.Context, statePath string, sessionIdx uint3
 	}
 	defer client.close()
 
+	// Mount the requested session on the daemon connection.
 	sess, err := client.mountSession(ctx, sessionIdx)
 	if err != nil {
 		return err
@@ -181,6 +183,7 @@ func generateAndSaveBackupKey(c *cli.Context, statePath string, sessionIdx uint3
 	provID := info.GetSessionRef().GetProviderResourceRef().GetProviderId()
 	acctID := info.GetSessionRef().GetProviderResourceRef().GetProviderAccountId()
 
+	// Access the account service for the session's provider account.
 	acctSvc, acctCleanup, err := client.accessAccount(ctx, provID, acctID)
 	if err != nil {
 		return err
@@ -195,6 +198,7 @@ func generateAndSaveBackupKey(c *cli.Context, statePath string, sessionIdx uint3
 		return errors.Wrap(err, "generate backup key")
 	}
 
+	// Write the generated PEM key to the output file.
 	if err := os.WriteFile(outFile, resp.GetPemData(), 0o600); err != nil {
 		return errors.Wrap(err, "write PEM file")
 	}
@@ -211,6 +215,7 @@ func generateAndSaveBackupKey(c *cli.Context, statePath string, sessionIdx uint3
 // promptCredential prompts for an entity credential (password or PEM file).
 // If pemFile is non-empty, reads the PEM file. Otherwise prompts for password.
 func promptCredential(pemFile string) (*session_pb.EntityCredential, error) {
+	// Read and wrap the supplied PEM credential when a file is given.
 	if pemFile != "" {
 		// Read and wrap the supplied PEM credential.
 		data, err := os.ReadFile(pemFile)
@@ -239,12 +244,15 @@ func promptCredential(pemFile string) (*session_pb.EntityCredential, error) {
 
 // promptNewPassword prompts for a new password with confirmation.
 func promptNewPassword(label string) (string, error) {
+	// Prompt for the new password.
 	os.Stderr.WriteString(label + ": ")
 	pw, err := term.ReadPassword(int(os.Stdin.Fd()))
 	os.Stderr.WriteString("\n")
 	if err != nil {
 		return "", errors.Wrap(err, "read password")
 	}
+
+	// Prompt for the confirmation password.
 	os.Stderr.WriteString("Retype " + label + ": ")
 	pw2, err := term.ReadPassword(int(os.Stdin.Fd()))
 	os.Stderr.WriteString("\n")
@@ -309,38 +317,45 @@ func newAuthMethodListCommand() *cli.Command {
 
 // runAuthMethodList implements the auth method list command.
 func runAuthMethodList(c *cli.Context, statePath, outputFormat string, sessionIdx uint32) error {
+	// Resolve the state path from the context or flag.
 	ctx := c.Context
 	resolved, err := authResolveStatePath(c, statePath)
 	if err != nil {
 		return err
 	}
 
+	// Connect to the daemon with the resolved state path.
 	client, err := authConnectDaemon(ctx, resolved)
 	if err != nil {
 		return err
 	}
 	defer authCloseClient(client)
 
+	// Mount the requested session on the daemon connection.
 	sess, err := authMountSession(ctx, client, sessionIdx)
 	if err != nil {
 		return err
 	}
 	defer sess.Release()
 
+	// Read the session info to identify the provider and account.
 	info, err := sess.GetSessionInfo(ctx)
 	if err != nil {
 		return errors.Wrap(err, "get session info")
 	}
 
+	// Extract the provider and account IDs from the session reference.
 	provID := info.GetSessionRef().GetProviderResourceRef().GetProviderId()
 	acctID := info.GetSessionRef().GetProviderResourceRef().GetProviderAccountId()
 
+	// Access the account service for the session's provider account.
 	acctSvc, acctCleanup, err := authAccessMethodAccount(ctx, client, provID, acctID)
 	if err != nil {
 		return err
 	}
 	defer acctCleanup()
 
+	// Collect the auth method outputs from the local or account service.
 	var methods []*authMethodOutput
 	if isLocalAuthSession(info) {
 		strm, err := acctSvc.WatchEntityKeypairs(ctx, &s4wave_account.WatchEntityKeypairsRequest{})
@@ -396,6 +411,7 @@ func newAuthMethodAddPasswordCommand() *cli.Command {
 
 // runAuthMethodAddPassword implements the auth method add password command.
 func runAuthMethodAddPassword(c *cli.Context, statePath string, sessionIdx uint32, pemFile string) error {
+	// Prompt for the existing credential and the new password.
 	cred, err := promptCredential(pemFile)
 	if err != nil {
 		return err
@@ -406,6 +422,7 @@ func runAuthMethodAddPassword(c *cli.Context, statePath string, sessionIdx uint3
 	}
 	return addAuthMethodFlow(c, statePath, sessionIdx, cred,
 		func(acctInfo *s4wave_account.WatchAccountInfoResponse) (*session_pb.EntityKeypair, string, error) {
+			// Derive the new password keypair from the entity ID and password.
 			_, newPriv, err := auth_password.BuildParametersWithUsernamePassword(acctInfo.GetEntityId(), []byte(newPassword))
 			if err != nil {
 				return nil, "", errors.Wrap(err, "derive new entity key")
@@ -447,6 +464,7 @@ func newAuthMethodAddPemCommand() *cli.Command {
 
 // runAuthMethodAddPem implements the auth method add pem command.
 func runAuthMethodAddPem(c *cli.Context, statePath string, sessionIdx uint32, authPemFile string) error {
+	// Parse the supplied PEM key and derive its peer ID.
 	pemData, err := os.ReadFile(c.String("file"))
 	if err != nil {
 		return errors.Wrap(err, "read PEM file")
@@ -459,6 +477,8 @@ func runAuthMethodAddPem(c *cli.Context, statePath string, sessionIdx uint32, au
 	if err != nil {
 		return errors.Wrap(err, "derive peer ID")
 	}
+
+	// Collect the account credential from the PEM file or password prompt.
 	cred, err := promptCredential(authPemFile)
 	if err != nil {
 		return err
@@ -487,24 +507,28 @@ func addAuthMethodFlow(
 	cred *session_pb.EntityCredential,
 	buildKeypair func(*s4wave_account.WatchAccountInfoResponse) (*session_pb.EntityKeypair, string, error),
 ) error {
+	// Resolve the state path from the context or flag.
 	ctx := c.Context
 	resolved, err := authResolveStatePath(c, statePath)
 	if err != nil {
 		return err
 	}
 
+	// Connect to the daemon with the resolved state path.
 	client, err := connectDaemonWithResolvedFallback(ctx, c, resolved)
 	if err != nil {
 		return err
 	}
 	defer client.close()
 
+	// Mount the requested session on the daemon connection.
 	sess, err := client.mountSession(ctx, sessionIdx)
 	if err != nil {
 		return err
 	}
 	defer sess.Release()
 
+	// Read the session info to identify the provider and account.
 	info, err := sess.GetSessionInfo(ctx)
 	if err != nil {
 		return errors.Wrap(err, "get session info")
@@ -512,12 +536,14 @@ func addAuthMethodFlow(
 	provID := info.GetSessionRef().GetProviderResourceRef().GetProviderId()
 	acctID := info.GetSessionRef().GetProviderResourceRef().GetProviderAccountId()
 
+	// Access the account service for the session's provider account.
 	acctSvc, acctCleanup, err := client.accessAccount(ctx, provID, acctID)
 	if err != nil {
 		return err
 	}
 	defer acctCleanup()
 
+	// Receive one account info snapshot from the watch stream.
 	infoStrm, err := acctSvc.WatchAccountInfo(ctx, &s4wave_account.WatchAccountInfoRequest{})
 	if err != nil {
 		return errors.Wrap(err, "watch account info")
@@ -527,11 +553,13 @@ func addAuthMethodFlow(
 		return errors.Wrap(err, "recv account info")
 	}
 
+	// Build the keypair to register with the callback.
 	kp, successMsg, err := buildKeypair(acctInfo)
 	if err != nil {
 		return err
 	}
 
+	// Register the keypair as an auth method with the credential.
 	_, err = acctSvc.AddAuthMethod(ctx, &s4wave_account.AddAuthMethodRequest{
 		Keypair:    kp,
 		Credential: cred,
@@ -540,6 +568,7 @@ func addAuthMethodFlow(
 		return errors.Wrap(err, "add auth method")
 	}
 
+	// Print the success message from the callback.
 	os.Stdout.WriteString(successMsg)
 	return nil
 }
@@ -594,29 +623,34 @@ func newAuthMethodRemoveCommand() *cli.Command {
 
 // runAuthMethodRemove implements the auth method remove command.
 func runAuthMethodRemove(c *cli.Context, statePath string, sessionIdx uint32, authPemFile, peerIDStr string) error {
+	// Resolve the state path from the context or flag.
 	ctx := c.Context
 	resolved, err := authResolveStatePath(c, statePath)
 	if err != nil {
 		return err
 	}
 
+	// Collect the account credential from the PEM file or password prompt.
 	cred, err := promptCredential(authPemFile)
 	if err != nil {
 		return err
 	}
 
+	// Connect to the daemon with the resolved state path.
 	client, err := connectDaemonWithResolvedFallback(ctx, c, resolved)
 	if err != nil {
 		return err
 	}
 	defer client.close()
 
+	// Mount the requested session on the daemon connection.
 	sess, err := client.mountSession(ctx, sessionIdx)
 	if err != nil {
 		return err
 	}
 	defer sess.Release()
 
+	// Read the session info to identify the provider and account.
 	info, err := sess.GetSessionInfo(ctx)
 	if err != nil {
 		return errors.Wrap(err, "get session info")
@@ -624,12 +658,14 @@ func runAuthMethodRemove(c *cli.Context, statePath string, sessionIdx uint32, au
 	provID := info.GetSessionRef().GetProviderResourceRef().GetProviderId()
 	acctID := info.GetSessionRef().GetProviderResourceRef().GetProviderAccountId()
 
+	// Access the account service for the session's provider account.
 	acctSvc, acctCleanup, err := client.accessAccount(ctx, provID, acctID)
 	if err != nil {
 		return err
 	}
 	defer acctCleanup()
 
+	// Remove the auth method matching the peer ID.
 	_, err = acctSvc.RemoveAuthMethod(ctx, &s4wave_account.RemoveAuthMethodRequest{
 		PeerId:     peerIDStr,
 		Credential: cred,
@@ -638,6 +674,7 @@ func runAuthMethodRemove(c *cli.Context, statePath string, sessionIdx uint32, au
 		return errors.Wrap(err, "remove auth method")
 	}
 
+	// Confirm the removal on stdout.
 	os.Stdout.WriteString("auth method removed\n")
 	return nil
 }
@@ -661,12 +698,14 @@ func newAuthPasswdCommand() *cli.Command {
 
 // runChangePassword implements the password change flow (shared by password set and method replace password).
 func runChangePassword(c *cli.Context, statePath string, sessionIdx uint32) error {
+	// Resolve the state path from the context or flag.
 	ctx := c.Context
 	resolved, err := authResolveStatePath(c, statePath)
 	if err != nil {
 		return err
 	}
 
+	// Prompt for and validate the current password.
 	os.Stderr.WriteString("Current password: ")
 	oldPw, err := term.ReadPassword(int(os.Stdin.Fd()))
 	os.Stderr.WriteString("\n")
@@ -677,23 +716,27 @@ func runChangePassword(c *cli.Context, statePath string, sessionIdx uint32) erro
 		return errors.New("password must not be empty")
 	}
 
+	// Prompt for and confirm the new password.
 	newPassword, err := promptNewPassword("New password")
 	if err != nil {
 		return err
 	}
 
+	// Connect to the daemon with the resolved state path.
 	client, err := connectDaemonWithResolvedFallback(ctx, c, resolved)
 	if err != nil {
 		return err
 	}
 	defer client.close()
 
+	// Mount the requested session on the daemon connection.
 	sess, err := client.mountSession(ctx, sessionIdx)
 	if err != nil {
 		return err
 	}
 	defer sess.Release()
 
+	// Read the session info to identify the provider and account.
 	info, err := sess.GetSessionInfo(ctx)
 	if err != nil {
 		return errors.Wrap(err, "get session info")
@@ -701,12 +744,14 @@ func runChangePassword(c *cli.Context, statePath string, sessionIdx uint32) erro
 	provID := info.GetSessionRef().GetProviderResourceRef().GetProviderId()
 	acctID := info.GetSessionRef().GetProviderResourceRef().GetProviderAccountId()
 
+	// Access the account service for the session's provider account.
 	acctSvc, acctCleanup, err := client.accessAccount(ctx, provID, acctID)
 	if err != nil {
 		return err
 	}
 	defer acctCleanup()
 
+	// Change the account password through the account service.
 	_, err = acctSvc.ChangePassword(ctx, &s4wave_account.ChangePasswordRequest{
 		OldPassword: string(oldPw),
 		NewPassword: newPassword,
@@ -715,6 +760,7 @@ func runChangePassword(c *cli.Context, statePath string, sessionIdx uint32) erro
 		return errors.Wrap(err, "change password")
 	}
 
+	// Confirm the password change on stdout.
 	os.Stdout.WriteString("password changed\n")
 	return nil
 }
@@ -757,34 +803,40 @@ func newAuthLockSetPinCommand() *cli.Command {
 
 // runAuthLockSetPin implements the auth lock set pin command.
 func runAuthLockSetPin(c *cli.Context, statePath string, sessionIdx uint32) error {
+	// Resolve the state path from the context or flag.
 	ctx := c.Context
 	resolved, err := authResolveStatePath(c, statePath)
 	if err != nil {
 		return err
 	}
 
+	// Prompt for and confirm the new PIN.
 	pin, err := promptNewPassword("PIN")
 	if err != nil {
 		return err
 	}
 
+	// Connect to the daemon with the resolved state path.
 	client, err := connectDaemonWithResolvedFallback(ctx, c, resolved)
 	if err != nil {
 		return err
 	}
 	defer client.close()
 
+	// Mount the requested session on the daemon connection.
 	sess, err := client.mountSession(ctx, sessionIdx)
 	if err != nil {
 		return err
 	}
 	defer sess.Release()
 
+	// Set the session lock mode to PIN-encrypted with the PIN.
 	err = sess.SetLockMode(ctx, session_pb.SessionLockMode_SESSION_LOCK_MODE_PIN_ENCRYPTED, []byte(pin))
 	if err != nil {
 		return errors.Wrap(err, "set lock mode")
 	}
 
+	// Confirm the lock mode change on stdout.
 	os.Stdout.WriteString("lock mode set to pin-encrypted\n")
 	return nil
 }
@@ -805,58 +857,68 @@ func newAuthLockSetAutoCommand() *cli.Command {
 
 // runAuthLockSetAuto implements the auth lock set auto command.
 func runAuthLockSetAuto(c *cli.Context, statePath string, sessionIdx uint32) error {
+	// Resolve the state path from the context or flag.
 	ctx := c.Context
 	resolved, err := authResolveStatePath(c, statePath)
 	if err != nil {
 		return err
 	}
 
+	// Connect to the daemon with the resolved state path.
 	client, err := connectDaemonWithResolvedFallback(ctx, c, resolved)
 	if err != nil {
 		return err
 	}
 	defer client.close()
 
+	// Mount the requested session on the daemon connection.
 	sess, err := client.mountSession(ctx, sessionIdx)
 	if err != nil {
 		return err
 	}
 	defer sess.Release()
 
+	// Set the session lock mode to auto-unlock.
 	err = sess.SetLockMode(ctx, session_pb.SessionLockMode_SESSION_LOCK_MODE_AUTO_UNLOCK, nil)
 	if err != nil {
 		return errors.Wrap(err, "set lock mode")
 	}
 
+	// Confirm the lock mode change on stdout.
 	os.Stdout.WriteString("lock mode set to auto-unlock\n")
 	return nil
 }
 
 // runAuthLockNow implements the lock now action.
 func runAuthLockNow(c *cli.Context, statePath string, sessionIdx uint32) error {
+	// Resolve the state path from the context or flag.
 	ctx := c.Context
 	resolved, err := authResolveStatePath(c, statePath)
 	if err != nil {
 		return err
 	}
 
+	// Connect to the daemon with the resolved state path.
 	client, err := connectDaemonWithResolvedFallback(ctx, c, resolved)
 	if err != nil {
 		return err
 	}
 	defer client.close()
 
+	// Mount the requested session on the daemon connection.
 	sess, err := client.mountSession(ctx, sessionIdx)
 	if err != nil {
 		return err
 	}
 	defer sess.Release()
 
+	// Lock the session immediately.
 	err = sess.LockSession(ctx)
 	if err != nil {
 		return errors.Wrap(err, "lock session")
 	}
 
+	// Confirm the lock on stdout.
 	os.Stdout.WriteString("session locked\n")
 	return nil
 }
@@ -877,24 +939,28 @@ func newAuthLockStatusCommand() *cli.Command {
 
 // runAuthLockStatus implements the auth lock status command.
 func runAuthLockStatus(c *cli.Context, statePath string, sessionIdx uint32) error {
+	// Resolve the state path from the context or flag.
 	ctx := c.Context
 	resolved, err := authResolveStatePath(c, statePath)
 	if err != nil {
 		return err
 	}
 
+	// Connect to the daemon with the resolved state path.
 	client, err := connectDaemonWithResolvedFallback(ctx, c, resolved)
 	if err != nil {
 		return err
 	}
 	defer client.close()
 
+	// Mount the requested session on the daemon connection.
 	sess, err := client.mountSession(ctx, sessionIdx)
 	if err != nil {
 		return err
 	}
 	defer sess.Release()
 
+	// Receive one lock state snapshot from the watch stream.
 	strm, err := sess.WatchLockState(ctx)
 	if err != nil {
 		return errors.Wrap(err, "watch lock state")
@@ -904,11 +970,13 @@ func runAuthLockStatus(c *cli.Context, statePath string, sessionIdx uint32) erro
 		return errors.Wrap(err, "watch lock state")
 	}
 
+	// Format the lock mode label from the response.
 	mode := "auto-unlock"
 	if resp.GetMode() == session_pb.SessionLockMode_SESSION_LOCK_MODE_PIN_ENCRYPTED {
 		mode = "pin-encrypted"
 	}
 
+	// Format the locked label from the response.
 	locked := "no"
 	if resp.GetLocked() {
 		locked = "yes"
@@ -938,12 +1006,14 @@ func newAuthUnlockCommand() *cli.Command {
 
 // runAuthUnlock implements the auth unlock command.
 func runAuthUnlock(c *cli.Context, statePath string, sessionIdx uint32) error {
+	// Resolve the state path from the context or flag.
 	ctx := c.Context
 	resolved, err := authResolveStatePath(c, statePath)
 	if err != nil {
 		return err
 	}
 
+	// Prompt for and validate the unlock PIN.
 	os.Stderr.WriteString("PIN: ")
 	pin, err := term.ReadPassword(int(os.Stdin.Fd()))
 	os.Stderr.WriteString("\n")
@@ -954,17 +1024,20 @@ func runAuthUnlock(c *cli.Context, statePath string, sessionIdx uint32) error {
 		return errors.New("PIN must not be empty")
 	}
 
+	// Connect to the daemon with the resolved state path.
 	client, err := connectDaemonWithResolvedFallback(ctx, c, resolved)
 	if err != nil {
 		return err
 	}
 	defer client.close()
 
+	// Unlock the session with the PIN.
 	err = client.root.UnlockSession(ctx, sessionIdx, pin)
 	if err != nil {
 		return errors.Wrap(err, "unlock session")
 	}
 
+	// Confirm the unlock on stdout.
 	os.Stdout.WriteString("session unlocked\n")
 	return nil
 }
@@ -990,24 +1063,28 @@ func newAuthThresholdCommand() *cli.Command {
 
 // runAuthThresholdShow prints the current auth threshold.
 func runAuthThresholdShow(c *cli.Context, statePath string, sessionIdx uint32) error {
+	// Resolve the state path from the context or flag.
 	ctx := c.Context
 	resolved, err := authResolveStatePath(c, statePath)
 	if err != nil {
 		return err
 	}
 
+	// Connect to the daemon with the resolved state path.
 	client, err := authConnectDaemon(ctx, resolved)
 	if err != nil {
 		return err
 	}
 	defer authCloseClient(client)
 
+	// Mount the requested session on the daemon connection.
 	sess, err := authMountSession(ctx, client, sessionIdx)
 	if err != nil {
 		return err
 	}
 	defer sess.Release()
 
+	// Read the session info and reject local sessions.
 	info, err := sess.GetSessionInfo(ctx)
 	if err != nil {
 		return errors.Wrap(err, "get session info")
@@ -1018,12 +1095,14 @@ func runAuthThresholdShow(c *cli.Context, statePath string, sessionIdx uint32) e
 	provID := info.GetSessionRef().GetProviderResourceRef().GetProviderId()
 	acctID := info.GetSessionRef().GetProviderResourceRef().GetProviderAccountId()
 
+	// Access the account service for the session's provider account.
 	acctSvc, acctCleanup, err := authAccessThresholdAccount(ctx, client, provID, acctID)
 	if err != nil {
 		return err
 	}
 	defer acctCleanup()
 
+	// Receive one account info snapshot from the watch stream.
 	strm, err := acctSvc.WatchAccountInfo(ctx, &s4wave_account.WatchAccountInfoRequest{})
 	if err != nil {
 		return errors.Wrap(err, "watch account info")
@@ -1033,6 +1112,7 @@ func runAuthThresholdShow(c *cli.Context, statePath string, sessionIdx uint32) e
 		return errors.Wrap(err, "recv account info")
 	}
 
+	// Print the auth threshold and keypair count fields.
 	writeFields(os.Stdout, [][2]string{
 		{"Threshold", strconv.FormatUint(uint64(acctInfo.GetAuthThreshold()), 10)},
 		{"Keypairs", strconv.FormatUint(uint64(acctInfo.GetKeypairCount()), 10)},
@@ -1051,6 +1131,7 @@ func newAuthThresholdSetCommand() *cli.Command {
 		ArgsUsage: "<threshold>",
 		Flags:     append(clientFlags(&statePath, &sessionIdx), pemFileFlag(&pemFile)),
 		Action: func(c *cli.Context) error {
+			// Parse the threshold argument for the set action.
 			arg := c.Args().First()
 			if arg == "" {
 				return errors.New("threshold value required as first argument")
@@ -1066,24 +1147,28 @@ func newAuthThresholdSetCommand() *cli.Command {
 
 // runAuthThresholdSet implements the auth threshold set command.
 func runAuthThresholdSet(c *cli.Context, statePath string, sessionIdx uint32, authPemFile string, threshold uint32) error {
+	// Resolve the state path from the context or flag.
 	ctx := c.Context
 	resolved, err := authResolveStatePath(c, statePath)
 	if err != nil {
 		return err
 	}
 
+	// Connect to the daemon with the resolved state path.
 	client, err := authConnectDaemon(ctx, resolved)
 	if err != nil {
 		return err
 	}
 	defer authCloseClient(client)
 
+	// Mount the requested session on the daemon connection.
 	sess, err := authMountSession(ctx, client, sessionIdx)
 	if err != nil {
 		return err
 	}
 	defer sess.Release()
 
+	// Read the session info and reject local sessions.
 	info, err := sess.GetSessionInfo(ctx)
 	if err != nil {
 		return errors.Wrap(err, "get session info")
@@ -1094,17 +1179,20 @@ func runAuthThresholdSet(c *cli.Context, statePath string, sessionIdx uint32, au
 	provID := info.GetSessionRef().GetProviderResourceRef().GetProviderId()
 	acctID := info.GetSessionRef().GetProviderResourceRef().GetProviderAccountId()
 
+	// Collect the account credential from the PEM file or password prompt.
 	cred, err := promptCredential(authPemFile)
 	if err != nil {
 		return err
 	}
 
+	// Access the account service for the session's provider account.
 	acctSvc, acctCleanup, err := authAccessThresholdAccount(ctx, client, provID, acctID)
 	if err != nil {
 		return err
 	}
 	defer acctCleanup()
 
+	// Set the auth threshold through the account service.
 	_, err = acctSvc.SetSecurityLevel(ctx, &s4wave_account.SetSecurityLevelRequest{
 		Threshold:  threshold,
 		Credential: cred,
@@ -1113,6 +1201,7 @@ func runAuthThresholdSet(c *cli.Context, statePath string, sessionIdx uint32, au
 		return errors.Wrap(err, "set security level")
 	}
 
+	// Confirm the threshold change on stdout.
 	os.Stdout.WriteString("auth threshold set to " + strconv.FormatUint(uint64(threshold), 10) + "\n")
 	return nil
 }
@@ -1177,6 +1266,7 @@ func buildAccountAuthMethodOutput(methods []*spacewave_api.AccountAuthMethod) []
 }
 
 func writeAuthMethodOutput(methods []*authMethodOutput, outputFormat string) error {
+	// Marshal the auth method outputs as JSON or YAML when requested.
 	if outputFormat == "json" || outputFormat == "yaml" {
 		buf, ms := newMarshalBuf()
 		ms.WriteArrayStart()
@@ -1207,6 +1297,7 @@ func writeAuthMethodOutput(methods []*authMethodOutput, outputFormat string) err
 		return formatOutput(buf.Bytes(), outputFormat)
 	}
 
+	// Report an empty auth method list before building table rows.
 	if len(methods) == 0 {
 		os.Stdout.WriteString("no auth methods\n")
 		return nil

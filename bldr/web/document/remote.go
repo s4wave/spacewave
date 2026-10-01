@@ -80,10 +80,13 @@ func NewRemote(
 	webDocumentId string,
 	openStream srpc.OpenStreamFunc,
 ) (*Remote, error) {
+
+	// Abort on the error.
 	if err := ValidateWebDocumentId(webDocumentId); err != nil {
 		return nil, err
 	}
 
+	// Record r.
 	r := &Remote{
 		documentID: webDocumentId,
 		ctx:        ctx,
@@ -92,6 +95,7 @@ func NewRemote(
 		handler:    handler,
 	}
 
+	// newCState via cstate.
 	r.cstate = cstate.NewCState(r)
 	r.snapshotCtr = ccontainer.NewCContainerVT[*WebDocumentStatus](nil)
 	_, _ = r.cstate.AddWatcher(context.Background(), false, func(ctx context.Context, state *Remote) {
@@ -161,10 +165,13 @@ func (r *Remote) GetWebViews(ctx context.Context) (map[string]web_view.WebView, 
 func (r *Remote) GetWebView(ctx context.Context, webViewID string, wait bool) (web_view.WebView, error) {
 	var out web_view.WebView
 	err := r.cstate.Wait(ctx, func(ctx context.Context, val *Remote) (bool, error) {
+
+		// Check the condition before continuing.
 		if !val.ready {
 			return false, nil
 		}
 
+		// lookupRemoteWebView _,rdoc.
 		_, rdoc := r.lookupRemoteWebView(webViewID)
 		if rdoc == nil {
 			return !wait, nil
@@ -221,10 +228,13 @@ func (r *Remote) GetWebWorkers(ctx context.Context) (map[string]web_worker.WebWo
 func (r *Remote) GetWebWorker(ctx context.Context, webWorkerID string, wait bool) (web_worker.WebWorker, error) {
 	var out web_worker.WebWorker
 	err := r.cstate.Wait(ctx, func(ctx context.Context, val *Remote) (bool, error) {
+
+		// Check the condition before continuing.
 		if !val.ready {
 			return false, nil
 		}
 
+		// lookupRemoteWebWorker _,rdoc.
 		_, rdoc := r.lookupRemoteWebWorker(webWorkerID)
 		if rdoc == nil {
 			return !wait, nil
@@ -245,6 +255,8 @@ func (r *Remote) CreateWebView(ctx context.Context, webViewID string) (bool, err
 	}
 	var created bool
 	_, err := r.cstate.Apply(ctx, func(ctx context.Context, v *cstate.CStateWriter[*Remote]) (dirty bool, err error) {
+
+		// lookupRemoteWebView _,rwv.
 		_, rwv := r.lookupRemoteWebView(webViewID)
 		if rwv != nil {
 			created = true
@@ -268,11 +280,14 @@ func (r *Remote) CreateWebView(ctx context.Context, webViewID string) (bool, err
 // Returns nil, nil if the worker was not created.
 // If the worker already existed it will be deleted and recreated.
 func (r *Remote) CreateWebWorker(ctx context.Context, req *CreateWebWorkerRequest) (web_worker.WebWorker, error) {
+
+	// getId webWorkerID via req.
 	webWorkerID := req.GetId()
 	if err := req.Validate(); err != nil {
 		return nil, err
 	}
 
+	// Perform the action.
 	var out web_worker.WebWorker
 	_, err := r.cstate.Apply(ctx, func(ctx context.Context, v *cstate.CStateWriter[*Remote]) (dirty bool, err error) {
 		// Plugin workers belong to the runtime and may start in a background owner.
@@ -287,6 +302,7 @@ func (r *Remote) CreateWebWorker(ctx context.Context, req *CreateWebWorkerReques
 			r.le.WithField("worker-id", webWorkerID).Debug("CreateWebWorker: recreating existing worker")
 		}
 
+		// createWebWorker resp,err.
 		resp, err := r.webDocument.CreateWebWorker(ctx, req)
 		if err != nil {
 			return false, err
@@ -295,6 +311,7 @@ func (r *Remote) CreateWebWorker(ctx context.Context, req *CreateWebWorkerReques
 			return false, nil
 		}
 
+		// handleWebWorkerStatuses dirty,err.
 		dirty, err = r.handleWebWorkerStatuses(false, []*WebWorkerStatus{{
 			Id:         webWorkerID,
 			Generation: req.GetGeneration(),
@@ -304,6 +321,7 @@ func (r *Remote) CreateWebWorker(ctx context.Context, req *CreateWebWorkerReques
 			return dirty, err
 		}
 
+		// lookupRemoteWebWorker _,remoteWebWorker.
 		_, remoteWebWorker := r.lookupRemoteWebWorker(webWorkerID)
 		if remoteWebWorker != nil {
 			out = remoteWebWorker
@@ -317,6 +335,8 @@ func (r *Remote) CreateWebWorker(ctx context.Context, req *CreateWebWorkerReques
 // Execute executes the runtime.
 // Returns any errors, nil if Execute is not required.
 func (r *Remote) Execute(rctx context.Context) error {
+
+	// withCancel ctx,ctxCancel via context.
 	ctx, ctxCancel := context.WithCancel(rctx)
 	defer ctxCancel()
 
@@ -355,6 +375,8 @@ func (r *Remote) GetWebDocumentMux(ctx context.Context, webDocumentId string) (s
 func (r *Remote) GetWebViewHost(ctx context.Context, webViewId string, _ func()) (srpc.Invoker, func(), error) {
 	var invoker srpc.Invoker
 	err := r.cstate.Wait(ctx, func(ctx context.Context, val *Remote) (bool, error) {
+
+		// Check the condition before continuing.
 		if !r.ready {
 			return false, nil
 		}
@@ -388,14 +410,18 @@ func (r *Remote) WebViewOpenStream(
 ) (srpc.PacketWriter, error) {
 	var writer srpc.PacketWriter
 	err := r.cstate.Wait(ctx, func(ctx context.Context, val *Remote) (bool, error) {
+
+		// Check the condition before continuing.
 		if !r.ready {
 			return false, nil
 		}
+
 		// wait for web document to exist
 		_, doc := r.lookupRemoteWebView(webViewID)
 		if doc == nil {
 			return false, nil
 		}
+
 		// request a stream with the web document
 		rw, err := rpcstream.OpenRpcStream(ctx, r.webDocument.WebViewRpc, webViewID, false)
 		if err != nil {
@@ -414,11 +440,13 @@ func (r *Remote) watchWebDocumentStatus(ctx context.Context, le *logrus.Entry) e
 	le.Debug("starting WebDocument status monitoring")
 	defer le.Debug("stopped WebDocument status monitoring")
 
+	// watchWebDocumentStatus stream,err.
 	stream, err := r.webDocument.WatchWebDocumentStatus(ctx, NewWatchWebDocumentStatusRequest())
 	if err != nil {
 		return err
 	}
 
+	// Perform the action.
 	var firstRx bool
 	for {
 		// ensure context is not canceled
@@ -459,6 +487,8 @@ func (r *Remote) watchWebDocumentStatus(ctx context.Context, le *logrus.Entry) e
 // expects mtx to be locked
 // returns dirty, err
 func (r *Remote) handleWebStatus(ctx context.Context, ws *WebDocumentStatus) (bool, error) {
+
+	// Check the condition before continuing.
 	if r.closed {
 		return false, nil
 	}
@@ -471,6 +501,7 @@ func (r *Remote) handleWebStatus(ctx context.Context, ws *WebDocumentStatus) (bo
 		return true, nil
 	}
 
+	// Perform the action.
 	var dirty bool
 	if blocked := ws.GetPluginWorkersBlocked(); blocked != r.pluginWorkersBlocked {
 		r.pluginWorkersBlocked = blocked
@@ -486,11 +517,13 @@ func (r *Remote) handleWebStatus(ctx context.Context, ws *WebDocumentStatus) (bo
 		dirty = true
 	}
 
+	// handleWebViewStatuses dirty1,err.
 	dirty1, err := r.handleWebViewStatuses(ctx, ws.GetSnapshot(), ws.GetWebViews())
 	if err != nil {
 		return dirty, err
 	}
 
+	// handleWebWorkerStatuses dirty2,err.
 	dirty2, err := r.handleWebWorkerStatuses(ws.GetSnapshot(), ws.GetWebWorkers())
 	if err != nil {
 		return dirty1 || dirty2 || dirty, err
@@ -549,6 +582,8 @@ func (r *Remote) updateStatusSnapshot() {
 // returns dirty, err
 // expects mtx to be locked
 func (r *Remote) handleWebViewStatuses(ctx context.Context, snapshot bool, statuses []*WebViewStatus) (bool, error) {
+
+	// Check the condition before continuing.
 	if !snapshot && len(statuses) == 0 {
 		return false, nil
 	}
@@ -606,6 +641,8 @@ func (r *Remote) handleWebViewStatuses(ctx context.Context, snapshot bool, statu
 // returns dirty, err
 // expects mtx to be locked
 func (r *Remote) handleWebWorkerStatuses(snapshot bool, statuses []*WebWorkerStatus) (bool, error) {
+
+	// Check the condition before continuing.
 	if !snapshot && len(statuses) == 0 {
 		return false, nil
 	}
@@ -663,6 +700,8 @@ func (r *Remote) handleWebWorkerStatuses(snapshot bool, statuses []*WebWorkerSta
 // insertRemoteWebView adds a new remote web view to the set.
 // expects mtx to be locked
 func (r *Remote) insertRemoteWebView(insertIdx int, rwv *remoteWebView) {
+
+	// append.
 	r.remoteWebViews = append(r.remoteWebViews, nil)
 	copy(r.remoteWebViews[insertIdx+1:], r.remoteWebViews[insertIdx:])
 	r.remoteWebViews[insertIdx] = rwv
@@ -692,6 +731,8 @@ func (r *Remote) buildRemoteWebViewsMap() map[string]web_view.WebView {
 // returns val, error, returns nil, nil if not found
 // expects mtx to be locked
 func (r *Remote) removeRemoteWebView(id string) *remoteWebView {
+
+	// lookupRemoteWebView idx,rwv.
 	idx, rwv := r.lookupRemoteWebView(id)
 	if rwv == nil {
 		return nil
@@ -805,6 +846,8 @@ func (r *Remote) buildRemoteWebWorkersMap() map[string]web_worker.WebWorker {
 // returns val, error, returns nil, nil if not found
 // expects mtx to be locked
 func (r *Remote) removeRemoteWebWorker(id string) *remoteWebWorker {
+
+	// lookupRemoteWebWorker idx,rwv.
 	idx, rwv := r.lookupRemoteWebWorker(id)
 	if rwv == nil {
 		return nil

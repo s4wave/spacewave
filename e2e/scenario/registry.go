@@ -154,6 +154,7 @@ func selected(s Scenario, tags []string) bool {
 // for the rest. Declared session boundaries reset only the scenario that owns
 // them; warm scenarios inherit the current runtime state.
 func (r *Registry) Run(ctx context.Context, rt runtime.Runtime, tags []string) Report {
+	// Snapshot the catalog and allocate the report rows.
 	scenarios := r.All()
 	selectedScenarios := make([]Scenario, 0, len(scenarios))
 	report := Report{Rows: make([]Row, len(scenarios))}

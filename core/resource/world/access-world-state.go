@@ -27,6 +27,7 @@ func addAccessWorldStateResource(
 	b bus.Bus,
 	access accessWorldStateFunc,
 ) (uint32, error) {
+	// Start a hold context and forward the cursor once the callback receives it.
 	holdCtx, holdCancel := context.WithCancel(resourceCtx.Context())
 	cursorCh := make(chan *bucket_lookup.Cursor, 1)
 	errCh := make(chan error, 1)

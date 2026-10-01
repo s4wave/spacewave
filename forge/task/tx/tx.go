@@ -43,6 +43,7 @@ type Transaction interface {
 
 // Validate checks the transaction (cursory checks only)
 func (t *Tx) Validate() error {
+	// Validate the object key, tx type, and the located transaction.
 	if len(t.GetTaskObjectKey()) == 0 {
 		return errors.Wrap(world.ErrEmptyObjectKey, "task_object_key")
 	}
@@ -96,6 +97,7 @@ func (t *Tx) LocateTx() (Transaction, error) {
 // If blk is nil, returns nil, nil
 // If the blk is already parsed to a Tx, returns the Tx.
 func ByteSliceToTx(blk block.Block) (*Tx, error) {
+	// Return nil for a nil block.
 	if blk == nil {
 		return nil, nil
 	}
@@ -127,13 +129,16 @@ func (t *Tx) ApplyWorldOp(
 	worldHandle world.WorldState,
 	sender peer.ID,
 ) (sysErr bool, err error) {
+	// Locate the concrete transaction for this type.
 	ttx, err := t.LocateTx()
 	if err != nil {
 		return false, err
 	}
 
+	// Execute the transaction on the task object with a validation hook.
 	objKey := t.GetTaskObjectKey()
 	_, _, err = world.AccessWorldObject(ctx, worldHandle, objKey, true, func(bcs *block.Cursor) error {
+		// Unmarshal the task and execute the transaction on it.
 		ps, err := forge_task.UnmarshalTask(ctx, bcs)
 		if err != nil {
 			return err

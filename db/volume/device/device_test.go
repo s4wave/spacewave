@@ -15,10 +15,13 @@ import (
 // TestMemoryPowerLoss checks that a power loss keeps every flushed write and
 // leaves each later write whole, absent, or torn at sector boundaries.
 func TestMemoryPowerLoss(t *testing.T) {
+	// Prepare the flushed and unflushed patterns and the outcome set.
 	ctx := context.Background()
 	flushed := bytes.Repeat([]byte{'f'}, 2*SectorSize)
 	unflushed := bytes.Repeat([]byte{'u'}, 2*SectorSize)
 	outcomes := make(map[string]bool)
+
+	// Crash each seed's device after one flushed write and one unflushed write.
 	for seed := range uint64(64) {
 		m := NewMemory()
 		if err := m.Write(ctx, []Write{{Name: "a", Data: flushed}}, true); err != nil {
@@ -39,10 +42,12 @@ func TestMemoryPowerLoss(t *testing.T) {
 
 		// The flushed first sector survives; each later sector is either
 		// version, or zero past the flushed end.
+		// Verify the flushed first sector survived the power loss.
 		data := m.files["a"]
 		if !bytes.Equal(data[:SectorSize], flushed[:SectorSize]) {
 			t.Fatalf("seed %d: flushed sector lost", seed)
 		}
+		// Classify each later sector as unflushed, flushed, or zero.
 		var outcome []byte
 		for start := SectorSize; start < len(data); start += SectorSize {
 			sector := data[start : start+SectorSize]
@@ -61,6 +66,7 @@ func TestMemoryPowerLoss(t *testing.T) {
 	}
 
 	// Across seeds the loss keeps the whole write, drops it, and tears it.
+	// Check every expected outcome occurred across the seeds.
 	for _, want := range []string{"uu", "f", "fu", "u0"} {
 		if !outcomes[want] {
 			t.Errorf("outcome %q never occurred in %v", want, outcomes)
@@ -71,6 +77,7 @@ func TestMemoryPowerLoss(t *testing.T) {
 // TestHandle checks that a Handle collects writes into one device call per
 // Sync, reads its own collected writes, and reports the end of the file.
 func TestHandle(t *testing.T) {
+	// Open a handle on a fresh memory device.
 	ctx := t.Context()
 	m := NewMemory()
 	h, err := OpenHandle(ctx, m, "f")
@@ -84,9 +91,13 @@ func TestHandle(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
+
+	// Check no device calls happened before Sync.
 	if m.Calls() != 0 {
 		t.Fatalf("%d device calls before Sync", m.Calls())
 	}
+
+	// Sync issues exactly one device call.
 	if err := h.Sync(); err != nil {
 		t.Fatal(err)
 	}
@@ -95,6 +106,7 @@ func TestHandle(t *testing.T) {
 	}
 
 	// A read sees collected writes and stops at the end of the file.
+	// Read the file back and check its contents and end of file.
 	if _, err := h.WriteAt([]byte("G"), 6); err != nil {
 		t.Fatal(err)
 	}
@@ -105,6 +117,7 @@ func TestHandle(t *testing.T) {
 	}
 
 	// A reopened handle finds the file length.
+	// Reopen the handle and check the recorded file length.
 	h, err = OpenHandle(ctx, m, "f")
 	if err != nil {
 		t.Fatal(err)

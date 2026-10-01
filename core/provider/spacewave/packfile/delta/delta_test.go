@@ -57,13 +57,17 @@ func (g *testRefGraph) GetIncomingRefs(_ context.Context, node string) ([]string
 // buildTestKvfile packs =n= deterministic blocks into a kvfile using PackBlocks.
 // Returns the raw bytes, the ordered block specs, and a *kvfile.Reader.
 func buildTestKvfile(t *testing.T, prefix string, n int, sizePerBlock int) (specs []blockSpec, reader *kvfile.Reader) {
+	// Mark the helper.
 	t.Helper()
+
+	// Build deterministic block specs with hashed keys.
 	specs = make([]blockSpec, 0, n)
 	for i := range n {
 		body := make([]byte, sizePerBlock)
 		for j := range body {
 			body[j] = byte((i*13 + j) & 0xff)
 		}
+		// Stamp the block body with its index or prefix.
 		body[0] = byte(i)
 		if len(prefix) > 0 {
 			copy(body, []byte(prefix+"-"+strconv.Itoa(i)))
@@ -75,6 +79,7 @@ func buildTestKvfile(t *testing.T, prefix string, n int, sizePerBlock int) (spec
 		specs = append(specs, blockSpec{key: h.MarshalString(), data: body})
 	}
 
+	// Pack the specs into a kvfile buffer.
 	var buf bytes.Buffer
 	idx := 0
 	if _, err := writer.PackBlocks(&buf, func() (*hash.Hash, *block.StoredBlock, error) {
@@ -88,6 +93,7 @@ func buildTestKvfile(t *testing.T, prefix string, n int, sizePerBlock int) (spec
 		t.Fatalf("pack blocks: %v", err)
 	}
 
+	// Build the kvfile reader over the packed bytes.
 	rd := bytes.NewReader(buf.Bytes())
 	reader, err := kvfile.BuildReader(rd, uint64(buf.Len()))
 	if err != nil {
@@ -107,12 +113,14 @@ func blockRefFromKey(t *testing.T, key string) *block.BlockRef {
 
 func newMirrorStore(t *testing.T, ctx context.Context, specs ...blockSpec) block.StoreOps {
 	t.Helper()
+	// Build the in-memory mirror store and fill it with the specs.
 	store := block_store_inmem.NewInmemBlock(
 		store_kvkey.NewDefaultKVKey(),
 		store_kvtx_inmem.NewStore(),
 		hash.HashType_HashType_SHA256,
 		false,
 	)
+	// Put each spec block and assert its ref key.
 	for _, spec := range specs {
 		ref, _, err := store.PutBlock(ctx, spec.data, nil)
 		if err != nil {
@@ -126,7 +134,10 @@ func newMirrorStore(t *testing.T, ctx context.Context, specs ...blockSpec) block
 }
 
 func packPhysicalKeys(t *testing.T, body []byte) []string {
+	// Mark the helper.
 	t.Helper()
+
+	// Read the pack and collect its index entries.
 	reader, err := kvfile.BuildReader(bytes.NewReader(body), uint64(len(body)))
 	if err != nil {
 		t.Fatalf("build pack reader: %v", err)
@@ -139,6 +150,8 @@ func packPhysicalKeys(t *testing.T, body []byte) []string {
 	if err != nil {
 		t.Fatalf("scan pack entries: %v", err)
 	}
+
+	// Sort entries by physical offset and decode their keys.
 	slices.SortFunc(entries, func(a, b *kvfile.IndexEntry) int {
 		if a.GetOffset() < b.GetOffset() {
 			return -1
@@ -163,17 +176,21 @@ func packPhysicalKeys(t *testing.T, body []byte) []string {
 // in the mirror, DiffBlockStores yields an exhausted iterator and
 // EmitDeltaChunks emits nothing (empty-diff no-op).
 func TestDiffBlockStoresEmpty(t *testing.T) {
+	// Run the empty-diff case in parallel.
 	t.Parallel()
 	ctx := context.Background()
 
+	// Build a source kvfile fully mirrored in the store.
 	specs, reader := buildTestKvfile(t, "empty", 4, 64)
 	mirror := newMirrorStore(t, ctx, specs...)
 
+	// Diff the source against the mirror.
 	iter, err := DiffBlockStores(ctx, reader, mirror)
 	if err != nil {
 		t.Fatalf("DiffBlockStores: %v", err)
 	}
 
+	// Emit chunks and assert nothing was emitted.
 	emitCalls := 0
 	emitted, err := EmitDeltaChunks(ctx, "test-resource", iter, DefaultMaxChunkBytes, func(ctx context.Context, idx int, entry *packfile.PackfileEntry, data []byte) error {
 		emitCalls++
@@ -194,19 +211,22 @@ func TestDiffBlockStoresEmpty(t *testing.T) {
 // chunk whose PackfileEntry reports the correct block count and non-empty
 // bloom filter.
 func TestDiffBlockStoresSingleChunk(t *testing.T) {
+	// Run the single-chunk case in parallel.
 	t.Parallel()
 	ctx := context.Background()
 
+	// Mirror only the first two specs; the remaining four should be packed.
 	specs, reader := buildTestKvfile(t, "single", 6, 128)
-	// mirror holds the first two specs; the remaining four should be packed.
 	mirror := newMirrorStore(t, ctx, specs[0], specs[1])
 	expectedCount := uint64(len(specs) - 2)
 
+	// Diff the source against the partial mirror.
 	iter, err := DiffBlockStores(ctx, reader, mirror)
 	if err != nil {
 		t.Fatalf("DiffBlockStores: %v", err)
 	}
 
+	// Emit chunks and collect their bytes.
 	var emitted []*packfile.PackfileEntry
 	var chunks [][]byte
 	emitted, err = EmitDeltaChunks(ctx, "test-resource", iter, DefaultMaxChunkBytes, func(ctx context.Context, idx int, entry *packfile.PackfileEntry, data []byte) error {
@@ -220,6 +240,7 @@ func TestDiffBlockStoresSingleChunk(t *testing.T) {
 		t.Fatalf("EmitDeltaChunks: %v", err)
 	}
 
+	// Assert the single entry's metadata fields.
 	if len(emitted) != 1 {
 		t.Fatalf("emitted %d entries, expected 1", len(emitted))
 	}
@@ -269,25 +290,30 @@ func TestDiffBlockStoresSingleChunk(t *testing.T) {
 }
 
 func TestDiffBlockStoresWithRefGraphOrdersPhysicalPack(t *testing.T) {
+	// Run the graph-ordering case in parallel.
 	t.Parallel()
 	ctx := context.Background()
 
+	// Build a kvfile with four blocks and reference them in a graph.
 	specs, reader := buildTestKvfile(t, "graph", 4, 128)
 	stray := blockRefFromKey(t, specs[0].key)
 	rootA := blockRefFromKey(t, specs[1].key)
 	rootB := blockRefFromKey(t, specs[2].key)
 	childA := blockRefFromKey(t, specs[3].key)
 
+	// Add ownership and child edges to the test graph.
 	graph := newTestRefGraph()
 	graph.add(block_gc.ObjectIRI("object-b"), block_gc.BlockIRI(rootB))
 	graph.add(block_gc.ObjectIRI("object-a"), block_gc.BlockIRI(rootA))
 	graph.add(block_gc.BlockIRI(rootA), block_gc.BlockIRI(childA))
 
+	// Diff with the graph and collect the emitted chunk.
 	iter, err := DiffBlockStoresWithRefGraph(ctx, reader, nil, graph)
 	if err != nil {
 		t.Fatalf("DiffBlockStoresWithRefGraph: %v", err)
 	}
 
+	// Emit the ordered chunk.
 	var chunks [][]byte
 	_, err = EmitDeltaChunks(ctx, "test-resource", iter, DefaultMaxChunkBytes, func(ctx context.Context, idx int, entry *packfile.PackfileEntry, data []byte) error {
 		chunks = append(chunks, bytes.Clone(data))
@@ -300,6 +326,7 @@ func TestDiffBlockStoresWithRefGraphOrdersPhysicalPack(t *testing.T) {
 		t.Fatalf("emitted %d chunks, want 1", len(chunks))
 	}
 
+	// Assert the physical pack order matches the graph order.
 	want := []string{
 		rootA.GetHash().MarshalString(),
 		childA.GetHash().MarshalString(),
@@ -316,13 +343,16 @@ func TestDiffBlockStoresWithRefGraphOrdersPhysicalPack(t *testing.T) {
 // maxBytes. Each block is larger than maxBytes/2 so every block lands in its
 // own chunk.
 func TestDiffBlockStoresMultiChunk(t *testing.T) {
+	// Run the multi-chunk case in parallel.
 	t.Parallel()
 	ctx := context.Background()
 
+	// Build blocks larger than half the chunk limit.
 	const nBlocks = 3
 	const blockSize = 1024
 	specs, reader := buildTestKvfile(t, "multi", nBlocks, blockSize)
 
+	// Diff the source without a mirror.
 	iter, err := DiffBlockStores(ctx, reader, nil)
 	if err != nil {
 		t.Fatalf("DiffBlockStores: %v", err)
@@ -330,6 +360,8 @@ func TestDiffBlockStoresMultiChunk(t *testing.T) {
 
 	// Force one block per chunk by choosing maxBytes below 2*blockSize.
 	maxBytes := int64(blockSize + 256)
+
+	// Emit chunks with the tight byte limit and collect sizes.
 	var emitted []*packfile.PackfileEntry
 	var sizes []uint64
 	emitted, err = EmitDeltaChunks(ctx, "test-resource", iter, maxBytes, func(ctx context.Context, idx int, entry *packfile.PackfileEntry, data []byte) error {
@@ -339,6 +371,8 @@ func TestDiffBlockStoresMultiChunk(t *testing.T) {
 	if err != nil {
 		t.Fatalf("EmitDeltaChunks: %v", err)
 	}
+
+	// Assert each chunk holds exactly one block within the limit.
 	if len(emitted) != nBlocks {
 		t.Fatalf("emitted %d entries, expected %d", len(emitted), nBlocks)
 	}
@@ -357,6 +391,7 @@ func TestDiffBlockStoresMultiChunk(t *testing.T) {
 		t.Fatal("spec keys collided; check buildTestKvfile determinism")
 	}
 
+	// Assert the pack ids are unique and non-empty.
 	seen := make(map[string]bool, len(emitted))
 	for _, entry := range emitted {
 		if entry.GetId() == "" {
@@ -370,16 +405,21 @@ func TestDiffBlockStoresMultiChunk(t *testing.T) {
 }
 
 func TestEmitDeltaChunksBlockCountCeiling(t *testing.T) {
+	// Run the block-count ceiling case in parallel.
 	t.Parallel()
 	ctx := context.Background()
 
+	// Build one more block than the pack ceiling.
 	nBlocks := int(writer.DefaultMaxBlocksPerPack) + 1
 	_, reader := buildTestKvfile(t, "count", nBlocks, 32)
+
+	// Diff the source without a mirror.
 	iter, err := DiffBlockStores(ctx, reader, nil)
 	if err != nil {
 		t.Fatalf("DiffBlockStores: %v", err)
 	}
 
+	// Emit chunks and assert the split respects the ceiling.
 	emitted, err := EmitDeltaChunks(ctx, "test-resource", iter, DefaultMaxChunkBytes, func(ctx context.Context, idx int, entry *packfile.PackfileEntry, data []byte) error {
 		if len(entry.GetBloomFilter()) == 0 {
 			t.Fatalf("chunk %d missing bloom metadata", idx)
@@ -407,11 +447,12 @@ func TestEmitDeltaChunksBlockCountCeiling(t *testing.T) {
 // TestOpenMirrorUnionAbsent verifies the mirror-absent degenerate case:
 // OpenMirrorUnion returns (nil, nil) when the per-space subdir does not exist.
 func TestOpenMirrorUnionAbsent(t *testing.T) {
+	// Run the absent-mirror case in parallel.
 	t.Parallel()
 	ctx := context.Background()
 
-	mirrorDir := t.TempDir()
 	// No {mirrorDir}/{spaceID}/ subdir; should degenerate cleanly.
+	mirrorDir := t.TempDir()
 	union, err := OpenMirrorUnion(ctx, nil, mirrorDir, "01test00000000000000000000")
 	if err != nil {
 		t.Fatalf("OpenMirrorUnion (subdir missing): %v", err)
@@ -447,9 +488,11 @@ func TestOpenMirrorUnionAbsent(t *testing.T) {
 }
 
 func TestOpenMirrorUnionReadsRawPackKeys(t *testing.T) {
+	// Run the raw-key pack case in parallel.
 	t.Parallel()
 	ctx := context.Background()
 
+	// Hash a block body and pack it into a raw pack.
 	body := []byte("mirror raw pack block")
 	h, err := hash.Sum(hash.HashType_HashType_SHA256, body)
 	if err != nil {
@@ -467,6 +510,7 @@ func TestOpenMirrorUnionReadsRawPackKeys(t *testing.T) {
 		t.Fatalf("PackBlocks: %v", err)
 	}
 
+	// Write the pack into a mirror directory layout.
 	mirrorDir := t.TempDir()
 	spaceID := "01test000000000000rawkeys"
 	packDir := filepath.Join(mirrorDir, spaceID, "packs", "01")
@@ -477,12 +521,14 @@ func TestOpenMirrorUnionReadsRawPackKeys(t *testing.T) {
 		t.Fatalf("write pack: %v", err)
 	}
 
+	// Open the union and read the block back through it.
 	union, err := OpenMirrorUnion(ctx, nil, mirrorDir, spaceID)
 	if err != nil {
 		t.Fatalf("OpenMirrorUnion: %v", err)
 	}
 	defer union.Close()
 
+	// Read the block back through the union.
 	got, found, err := union.GetBlock(ctx, block.NewBlockRef(h))
 	if err != nil {
 		t.Fatalf("GetBlock: %v", err)
@@ -499,9 +545,11 @@ func TestOpenMirrorUnionReadsRawPackKeys(t *testing.T) {
 // embedded =CdnRootPointer.space_id= does not match =spaceID= is a fatal error
 // before any packs are opened.
 func TestOpenMirrorUnionSpaceIDMismatch(t *testing.T) {
+	// Run the space-id mismatch case in parallel.
 	t.Parallel()
 	ctx := context.Background()
 
+	// Create a mirror dir with a mismatching root pointer.
 	mirrorDir := t.TempDir()
 	spaceID := "01test00000000000000abcd00"
 	otherID := "01test00000000000000wxyz00"
@@ -510,6 +558,7 @@ func TestOpenMirrorUnionSpaceIDMismatch(t *testing.T) {
 		t.Fatalf("mkdir packs: %v", err)
 	}
 
+	// Marshal and write the mismatched root pointer.
 	ptr := &alpha_cdn.CdnRootPointer{SpaceId: otherID}
 	body, err := ptr.MarshalVT()
 	if err != nil {
@@ -520,6 +569,7 @@ func TestOpenMirrorUnionSpaceIDMismatch(t *testing.T) {
 		t.Fatalf("write root.packedmsg: %v", err)
 	}
 
+	// Open the union and assert the space-id mismatch fails.
 	union, err := OpenMirrorUnion(ctx, nil, mirrorDir, spaceID)
 	if err == nil {
 		_ = union.Close()

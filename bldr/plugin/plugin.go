@@ -14,24 +14,33 @@ func ValidatePluginID(id string, allowEmpty bool) error {
 
 // BuildPluginRpcComponentID addresses a plugin binding and optional exact executable.
 func BuildPluginRpcComponentID(pluginID, instanceKey, manifestRoot string) string {
+	// Start the component ID with the plugin ID.
 	componentID := pluginID
+
+	// Append the escaped instance key when present.
 	if instanceKey != "" {
 		componentID += "/" + url.PathEscape(instanceKey)
 	}
+
+	// Append the manifest root as a query parameter when present.
 	if manifestRoot != "" {
 		componentID += "?manifest=" + url.QueryEscape(manifestRoot)
 	}
+
 	return componentID
 }
 
 // ParsePluginRpcComponentID keeps executable identity separate from instance routing.
 func ParsePluginRpcComponentID(componentID string) (pluginID, instanceKey, manifestRoot string, err error) {
+	// Split the component ID into path and query, then unescape the instance key.
 	path, query, _ := strings.Cut(componentID, "?")
 	pluginID, instanceKey, _ = strings.Cut(path, "/")
 	instanceKey, err = url.PathUnescape(instanceKey)
 	if err != nil {
 		return
 	}
+
+	// Parse the query parameters and read the manifest root.
 	values, err := url.ParseQuery(query)
 	if err != nil {
 		return

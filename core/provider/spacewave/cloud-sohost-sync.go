@@ -23,12 +23,17 @@ func (h *cloudSOHost) peerImportLock(ctx context.Context, _ string) (sobject.SOS
 	return sobject.NewSOStateLock(initial, func(ctx context.Context, next *sobject.SOState, changes ...*sobject.SOConfigChange) error {
 		// Peer imports require durable cache storage and never call PostRoot.
 		if h.persistVerifiedStateCache == nil {
+
 			return errors.New("peer import requires durable cloud cache")
 		}
+
+		// Build the verified cache and record the accepted configuration in it.
 		cache := h.buildVerifiedStateCache()
 		if cache == nil {
 			return sobject.ErrConfigHistoryUnavailable
 		}
+
+		// Record the accepted config, chain lineage, and queued changes in the cache.
 		cache.CurrentConfig = next.GetConfig().CloneVT()
 		cache.VerifiedConfigChainHash = bytes.Clone(next.GetConfig().GetConfigChainHash())
 		cache.VerifiedConfigChainSeqno = next.GetConfig().GetConfigChainSeqno()
@@ -38,8 +43,9 @@ func (h *cloudSOHost) peerImportLock(ctx context.Context, _ string) (sobject.SOS
 			return err
 		}
 
-		// Publish only the exact state and lineage already committed to storage.
+		// Publish the committed cache fields and state under the broadcast lock.
 		h.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+			// Commit the accepted config, lineage, and index into the host state.
 			h.verifiedConfig = cache.CurrentConfig
 			h.lastConfigChainHash = cache.VerifiedConfigChainHash
 			h.verifiedConfigChainSeqno = cache.VerifiedConfigChainSeqno
@@ -79,9 +85,12 @@ func (h *cloudSOHost) readConfigEntry(ctx context.Context, _ string, hash []byte
 // stateWithVerifiedConfig preserves the accepted root while fencing capabilities
 // and queued work that no longer have authority in the verified configuration.
 func (h *cloudSOHost) stateWithVerifiedConfig(state *sobject.SOState, config *sobject.SharedObjectConfig) *sobject.SOState {
+	// Reject a missing state and compute read access for each participant.
 	if state == nil {
 		return nil
 	}
+
+	// Clone the state and compute read access for each participant.
 	next := state.CloneVT()
 	next.Config = config.CloneVT()
 	participants := config.GetParticipants()

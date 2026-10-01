@@ -52,16 +52,19 @@ func (o *CreateComputersDashboardOp) ApplyWorldOp(
 	ws world.WorldState,
 	sender peer.ID,
 ) (sysErr bool, err error) {
+	// Validate the op and build the dashboard record.
 	if err := o.Validate(); err != nil {
 		return false, err
 	}
 
+	// Build the dashboard record from the op fields.
 	objKey := o.GetObjectKey()
 	dashboard := &ComputersDashboard{
 		Name:      o.GetName(),
 		CreatedAt: o.GetTimestamp(),
 	}
 
+	// Create the dashboard World object and set its object type.
 	var createdObject world.ObjectState
 	createdObject, _, err = world.CreateWorldObject(ctx, ws, objKey, func(bcs *block.Cursor) error {
 		bcs.SetBlock(dashboard, true)
@@ -72,6 +75,7 @@ func (o *CreateComputersDashboardOp) ApplyWorldOp(
 		return false, err
 	}
 
+	// Set the dashboard's object type.
 	if err := world_types.SetObjectType(ctx, ws, objKey, ComputersDashboardTypeID); err != nil {
 		return false, err
 	}

@@ -313,7 +313,10 @@ func classifyManifestRefStartupEligibility(
 
 	// Snapshot the manifest meta fields onto the candidate.
 	meta := manifestRef.GetMeta()
+
+	// Write the resolved meta fields and eligibility onto the candidate.
 	snapshotMeta := func(eligibility StartupManifestEligibility, reason string) {
+		// Apply the snapshot fields to the candidate.
 		candidate.ManifestID = meta.GetManifestId()
 		candidate.PlatformID = meta.GetPlatformId()
 		candidate.Rev = meta.GetRev()

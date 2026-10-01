@@ -31,6 +31,7 @@ func (s *ExecState) IsNil() bool {
 
 // Validate checks if the exec state looks valid.
 func (s *ExecState) Validate() error {
+	// Validate the execution state, peer ID, timestamp, value set, and result.
 	if err := s.GetExecutionState().Validate(false); err != nil {
 		return err
 	}

@@ -13,6 +13,7 @@ import (
 
 // TestReadOperationReleasesLocalTransaction checks the native scope boundary.
 func TestReadOperationReleasesLocalTransaction(t *testing.T) {
+	// Build a kvtx block store holding one retained block.
 	ctx := t.Context()
 	blocks := block_store_kvtx.NewKVTxBlock(
 		store_kvkey.NewDefaultKVKey(),

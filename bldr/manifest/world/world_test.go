@@ -47,31 +47,37 @@ func TestNewManifestQuadKeepsEmptyBundleLabel(t *testing.T) {
 }
 
 func TestCollectReleaseWorldManifestsForManifestID(t *testing.T) {
+	// Set up the test context and logger.
 	ctx := context.Background()
 	le := logrus.NewEntry(logrus.New())
 
+	// Start a testbed holding the mock World.
 	tb, err := testbed.NewTestbed(ctx, le)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	defer tb.Release()
 
+	// Build an empty cursor for the mock World state.
 	ocs, err := tb.BuildEmptyCursor(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	defer ocs.Release()
 
+	// Build the mock World state from the empty cursor.
 	ws, err := world_block.BuildMockWorldState(ctx, le, true, ocs, false)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Create the release manifest store in the World.
 	const releaseManifestKey = "spacewave/release/manifests"
 	if _, err := CreateManifestStore(ctx, ws, releaseManifestKey); err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Store a test manifest ref under the release manifest key.
 	ref := createTestManifestRef(t, ctx, tb, "spacewave-web", "js", 11)
 	if err := ExStoreManifestOp(
 		ctx,
@@ -83,6 +89,8 @@ func TestCollectReleaseWorldManifestsForManifestID(t *testing.T) {
 	); err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Look up the manifest graph quad written by the store op.
 	quads, err := ws.LookupGraphQuads(
 		ctx,
 		world.NewGraphQuadWithKeys(
@@ -96,6 +104,8 @@ func TestCollectReleaseWorldManifestsForManifestID(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Assert the graph edge exists with the manifest ID label.
 	if len(quads) != 1 {
 		t.Fatalf("manifest graph edge count = %d", len(quads))
 	}
@@ -104,6 +114,7 @@ func TestCollectReleaseWorldManifestsForManifestID(t *testing.T) {
 		t.Fatalf("manifest graph edge label = %q, want %q", quads[0].GetLabel(), wantLabel)
 	}
 
+	// Collect the manifests for the stored manifest ID.
 	got, errs, err := CollectManifestsForManifestID(
 		ctx,
 		ws,
@@ -114,6 +125,8 @@ func TestCollectReleaseWorldManifestsForManifestID(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Assert the collected manifest matches the stored ref.
 	if len(errs) != 0 {
 		t.Fatalf("manifest errors = %v", errs)
 	}
@@ -132,31 +145,38 @@ func TestCollectReleaseWorldManifestsForManifestID(t *testing.T) {
 }
 
 func TestCollectStartupManifestsForManifestIDsBoundsReleaseReads(t *testing.T) {
+
+	// Set up the test context and logger.
 	ctx := context.Background()
 	le := logrus.NewEntry(logrus.New())
 
+	// Start a testbed holding the mock World.
 	tb, err := testbed.NewTestbed(ctx, le)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	defer tb.Release()
 
+	// Build an empty cursor for the mock World state.
 	ocs, err := tb.BuildEmptyCursor(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	defer ocs.Release()
 
+	// Build the mock World state from the empty cursor.
 	ws, err := world_block.BuildMockWorldState(ctx, le, true, ocs, false)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Create the release manifest store in the World.
 	const storeKey = "release/manifests"
 	if _, err := CreateManifestStore(ctx, ws, storeKey); err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Store one release manifest ref per manifest ID.
 	manifestIDs := []string{
 		"spacewave-app",
 		"spacewave-cli",
@@ -186,6 +206,7 @@ func TestCollectStartupManifestsForManifestIDsBoundsReleaseReads(t *testing.T) {
 		}
 	}
 
+	// Collect startup manifests for a subset of the stored manifest IDs.
 	counted := &manifestSelectionCountingWorldState{WorldState: ws}
 	manifests, manifestErrs, err := CollectStartupManifestsForManifestIDs(
 		ctx,
@@ -213,6 +234,7 @@ func TestCollectStartupManifestsForManifestIDsBoundsReleaseReads(t *testing.T) {
 		t.Fatalf("selected manifest traversal used %d complete Cayley traversals", got)
 	}
 
+	// Collect all manifests with an empty manifest ID to force the full traversal.
 	all, allErrs, err := CollectStartupManifestsForManifestIDs(ctx, ws, []string{""}, nil, storeKey)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -278,31 +300,38 @@ func (s *manifestSelectionCountingObjectState) AccessWorldState(
 }
 
 func TestCollectManifestsResetsStoreWithUnsupportedHashRef(t *testing.T) {
+
+	// Set up the test context and logger.
 	ctx := context.Background()
 	le := logrus.NewEntry(logrus.New())
 
+	// Start a testbed holding the mock World.
 	tb, err := testbed.NewTestbed(ctx, le)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	defer tb.Release()
 
+	// Build an empty cursor for the mock World state.
 	ocs, err := tb.BuildEmptyCursor(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	defer ocs.Release()
 
+	// Build the mock World state from the empty cursor.
 	ws, err := world_block.BuildMockWorldState(ctx, le, true, ocs, false)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Create the plugin-host manifest store in the World.
 	const storeKey = "plugin-host"
 	if _, err := CreateManifestStore(ctx, ws, storeKey); err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Seed a manifest object backed by an unsupported hash type.
 	const badManifestKey = "plugin-host/manifest/bad"
 	badRef := &bucket.ObjectRef{
 		RootRef: block.NewBlockRef(hash.NewHash(hash.HashType(999), []byte{1, 2, 3})),
@@ -321,6 +350,7 @@ func TestCollectManifestsResetsStoreWithUnsupportedHashRef(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// Collect manifests, resetting the unsupported hash ref.
 	got, errs, err := CollectManifestsForManifestIDResettingUnsupportedHash(
 		ctx,
 		le,
@@ -332,6 +362,8 @@ func TestCollectManifestsResetsStoreWithUnsupportedHashRef(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Assert the reset removed the unsupported manifest.
 	if len(errs) != 0 {
 		t.Fatalf("manifest errors after reset = %v, want none", errs)
 	}
@@ -360,31 +392,38 @@ func TestCollectManifestsResetsStoreWithUnsupportedHashRef(t *testing.T) {
 }
 
 func TestCollectStartupManifestsSkipsUnreadableLinkedRef(t *testing.T) {
+
+	// Set up the test context and logger.
 	ctx := context.Background()
 	le := logrus.NewEntry(logrus.New())
 
+	// Start a testbed holding the mock World.
 	tb, err := testbed.NewTestbed(ctx, le)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	defer tb.Release()
 
+	// Build an empty cursor for the mock World state.
 	ocs, err := tb.BuildEmptyCursor(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	defer ocs.Release()
 
+	// Build the mock World state from the empty cursor.
 	ws, err := world_block.BuildMockWorldState(ctx, le, true, ocs, false)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Create the plugin-host manifest store in the World.
 	const storeKey = "plugin-host"
 	if _, err := CreateManifestStore(ctx, ws, storeKey); err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Store a readable good manifest ref and link its graph edge.
 	goodRef := createTestManifestRef(t, ctx, tb, "spacewave-web", "js", 7)
 	const goodRefKey = "plugin-host/ref/good"
 	storeTestManifestRefObject(t, ctx, ws, goodRefKey, goodRef)
@@ -392,6 +431,7 @@ func TestCollectStartupManifestsSkipsUnreadableLinkedRef(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// Store an unreadable bad manifest ref and link its graph edge.
 	badRef := createTestManifestRef(t, ctx, tb, "spacewave-web", "js", 9)
 	badRef.ManifestRef.RootRef.Hash.Hash[0] ^= 0xff
 	const badRefKey = "plugin-host/ref/missing"
@@ -400,6 +440,7 @@ func TestCollectStartupManifestsSkipsUnreadableLinkedRef(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// Collect manifests with the default collector.
 	defaultGot, defaultErrs, err := CollectManifestsForManifestID(
 		ctx,
 		ws,
@@ -417,6 +458,7 @@ func TestCollectStartupManifestsSkipsUnreadableLinkedRef(t *testing.T) {
 		t.Fatalf("default manifest count = %d", len(defaultGot))
 	}
 
+	// Collect manifests with the startup collector to surface the skip.
 	got, errs, err := CollectStartupManifestsForManifestID(
 		ctx,
 		ws,
@@ -427,6 +469,8 @@ func TestCollectStartupManifestsSkipsUnreadableLinkedRef(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Assert the startup collector reported the unreadable ref.
 	if len(errs) != 1 {
 		t.Fatalf("manifest errors = %v", errs)
 	}
@@ -439,6 +483,8 @@ func TestCollectStartupManifestsSkipsUnreadableLinkedRef(t *testing.T) {
 	if !errors.Is(errs[0], block.ErrNotFound) {
 		t.Fatalf("manifest error = %v, want block not found", errs[0])
 	}
+
+	// Assert the skip error carries the ref diagnostics.
 	var skipErr *StartupManifestSkipError
 	if !errors.As(errs[0], &skipErr) {
 		t.Fatalf("manifest error = %T, want StartupManifestSkipError", errs[0])
@@ -461,31 +507,38 @@ func TestCollectStartupManifestsSkipsUnreadableLinkedRef(t *testing.T) {
 }
 
 func TestCollectStartupManifestsSkipsUnavailableBucketRef(t *testing.T) {
+
+	// Set up the test context and logger.
 	ctx := context.Background()
 	le := logrus.NewEntry(logrus.New())
 
+	// Start a testbed holding the mock World.
 	tb, err := testbed.NewTestbed(ctx, le)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	defer tb.Release()
 
+	// Build an empty cursor for the mock World state.
 	ocs, err := tb.BuildEmptyCursor(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	defer ocs.Release()
 
+	// Build the mock World state from the empty cursor.
 	ws, err := world_block.BuildMockWorldState(ctx, le, true, ocs, false)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Create the plugin-host manifest store in the World.
 	const storeKey = "plugin-host"
 	if _, err := CreateManifestStore(ctx, ws, storeKey); err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Store a readable good manifest ref and link its graph edge.
 	goodRef := createTestManifestRef(t, ctx, tb, "spacewave-web", "js", 7)
 	const goodRefKey = "plugin-host/ref/good"
 	storeTestManifestRefObject(t, ctx, ws, goodRefKey, goodRef)
@@ -493,6 +546,7 @@ func TestCollectStartupManifestsSkipsUnavailableBucketRef(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// Store a bad manifest ref pointing at a missing bucket.
 	badRef := createTestManifestRef(t, ctx, tb, "spacewave-web", "js", 9)
 	badRef.GetManifestRef().BucketId = "missing-bucket"
 	const badRefKey = "plugin-host/ref/missing-bucket"
@@ -501,6 +555,7 @@ func TestCollectStartupManifestsSkipsUnavailableBucketRef(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// Collect startup manifests for the manifest ID.
 	got, errs, err := CollectStartupManifestsForManifestID(
 		ctx,
 		ws,
@@ -511,6 +566,8 @@ func TestCollectStartupManifestsSkipsUnavailableBucketRef(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Assert the skip error names the missing bucket.
 	if len(errs) != 1 {
 		t.Fatalf("manifest errors = %v", errs)
 	}
@@ -535,37 +592,45 @@ func TestCollectStartupManifestsSkipsUnavailableBucketRef(t *testing.T) {
 }
 
 func TestCollectStartupManifestsSkipsUnavailableLookupBucketBlockWithoutNetworkWait(t *testing.T) {
+
+	// Set up the test context and logger.
 	ctx := context.Background()
 	le := logrus.NewEntry(logrus.New())
 
+	// Start a testbed holding the mock World.
 	tb, err := testbed.NewTestbed(ctx, le)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	defer tb.Release()
 
+	// Add a controller that blocks network block lookups.
 	ctrlRel, err := tb.Bus.AddController(ctx, startupManifestBlockingLookupController{}, nil)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	defer ctrlRel()
 
+	// Build an empty cursor for the mock World state.
 	ocs, err := tb.BuildEmptyCursor(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	defer ocs.Release()
 
+	// Build the mock World state from the empty cursor.
 	ws, err := world_block.BuildMockWorldState(ctx, le, true, ocs, false)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Create the plugin-host manifest store in the World.
 	const storeKey = "plugin-host"
 	if _, err := CreateManifestStore(ctx, ws, storeKey); err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Store a readable good manifest ref and link its graph edge.
 	goodRef := createTestManifestRef(t, ctx, tb, "spacewave-web", "js", 7)
 	const goodRefKey = "plugin-host/ref/good"
 	storeTestManifestRefObject(t, ctx, ws, goodRefKey, goodRef)
@@ -573,6 +638,7 @@ func TestCollectStartupManifestsSkipsUnavailableLookupBucketBlockWithoutNetworkW
 		t.Fatal(err.Error())
 	}
 
+	// Configure a lookup-directive bucket that would block on the network.
 	const lookupBucketID = "startup-lookup-bucket"
 	bucketLkConfig, err := bucket.NewLookupConfig(configset.NewControllerConfig(1, &lookup_concurrent.Config{
 		NotFoundBehavior: lookup_concurrent.NotFoundBehavior_NotFoundBehavior_LOOKUP_DIRECTIVE,
@@ -584,6 +650,8 @@ func TestCollectStartupManifestsSkipsUnavailableLookupBucketBlockWithoutNetworkW
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Build the lookup bucket and confirm its config loaded.
 	_, _, _, err = tb.Volume.ApplyBucketConfig(ctx, bucketConf)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -599,6 +667,7 @@ func TestCollectStartupManifestsSkipsUnavailableLookupBucketBlockWithoutNetworkW
 		t.Fatal("lookup bucket config was not loaded")
 	}
 
+	// Store a bad manifest ref pointing at the lookup bucket.
 	badRef := createTestManifestRef(t, ctx, tb, "spacewave-web", "js", 9)
 	badRef.GetManifestRef().BucketId = lookupBucketID
 	badRef.GetManifestRef().RootRef.Hash.Hash[0] ^= 0xff
@@ -608,6 +677,7 @@ func TestCollectStartupManifestsSkipsUnavailableLookupBucketBlockWithoutNetworkW
 		t.Fatal(err.Error())
 	}
 
+	// Collect startup manifests under a short context deadline.
 	collectCtx, cancel := context.WithTimeout(ctx, 200*time.Millisecond)
 	defer cancel()
 	got, errs, err := CollectStartupManifestsForManifestID(
@@ -620,6 +690,8 @@ func TestCollectStartupManifestsSkipsUnavailableLookupBucketBlockWithoutNetworkW
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Assert the collection skipped without waiting for the network.
 	if len(errs) != 1 {
 		t.Fatalf("manifest errors = %v", errs)
 	}
@@ -638,31 +710,38 @@ func TestCollectStartupManifestsSkipsUnavailableLookupBucketBlockWithoutNetworkW
 }
 
 func TestDumpStartupManifestGraphForManifestIDIncludesRetainedRefDiagnostics(t *testing.T) {
+
+	// Set up the test context and logger.
 	ctx := context.Background()
 	le := logrus.NewEntry(logrus.New())
 
+	// Start a testbed holding the mock World.
 	tb, err := testbed.NewTestbed(ctx, le)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	defer tb.Release()
 
+	// Build an empty cursor for the mock World state.
 	ocs, err := tb.BuildEmptyCursor(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	defer ocs.Release()
 
+	// Build the mock World state from the empty cursor.
 	ws, err := world_block.BuildMockWorldState(ctx, le, true, ocs, false)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Create the plugin-host manifest store in the World.
 	const storeKey = "plugin-host"
 	if _, err := CreateManifestStore(ctx, ws, storeKey); err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Store a readable good manifest ref and link its graph edge.
 	goodRef := createTestManifestRef(t, ctx, tb, "spacewave-web", "js", 7)
 	const goodRefKey = "plugin-host/ref/good"
 	storeTestManifestRefObject(t, ctx, ws, goodRefKey, goodRef)
@@ -670,6 +749,7 @@ func TestDumpStartupManifestGraphForManifestIDIncludesRetainedRefDiagnostics(t *
 		t.Fatal(err.Error())
 	}
 
+	// Store a bad manifest ref pointing at a missing bucket.
 	badRef := createTestManifestRef(t, ctx, tb, "spacewave-web", "js", 9)
 	badRef.GetManifestRef().BucketId = "missing-bucket"
 	const badRefKey = "plugin-host/ref/missing-bucket"
@@ -678,6 +758,7 @@ func TestDumpStartupManifestGraphForManifestIDIncludesRetainedRefDiagnostics(t *
 		t.Fatal(err.Error())
 	}
 
+	// Store a legacy manifest ref with an empty graph label.
 	legacyRef := createTestManifestRef(t, ctx, tb, "spacewave-web", "js", 11)
 	legacyRef.GetManifestRef().BucketId = "legacy-missing-bucket"
 	const legacyRefKey = "plugin-host/ref/legacy-missing-bucket"
@@ -686,6 +767,7 @@ func TestDumpStartupManifestGraphForManifestIDIncludesRetainedRefDiagnostics(t *
 		t.Fatal(err.Error())
 	}
 
+	// Dump the startup manifest graph for the manifest ID.
 	dump, err := DumpStartupManifestGraphForManifestID(
 		ctx,
 		ws,
@@ -697,6 +779,7 @@ func TestDumpStartupManifestGraphForManifestIDIncludesRetainedRefDiagnostics(t *
 		t.Fatal(err.Error())
 	}
 
+	// Assert the dump contains the expected graph diagnostics.
 	for _, want := range []string{
 		"startup manifest graph manifest_id=spacewave-web platform_ids=js",
 		"root plugin-host type=bldr/manifest-store",
@@ -724,15 +807,19 @@ func TestDumpStartupManifestGraphForManifestIDIncludesRetainedRefDiagnostics(t *
 }
 
 func TestDumpStartupManifestGraphDirectCandidateStaysLocalOnly(t *testing.T) {
+
+	// Set up the test context and logger.
 	ctx := context.Background()
 	le := logrus.NewEntry(logrus.New())
 
+	// Start a testbed holding the mock World.
 	tb, err := testbed.NewTestbed(ctx, le)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	defer tb.Release()
 
+	// Add a lookup observer controller that records network lookups.
 	lookupObserver := &startupManifestGraphLookupObserver{called: make(chan struct{}, 1)}
 	observerRel, err := tb.Bus.AddController(ctx, lookupObserver, nil)
 	if err != nil {
@@ -740,17 +827,20 @@ func TestDumpStartupManifestGraphDirectCandidateStaysLocalOnly(t *testing.T) {
 	}
 	defer observerRel()
 
+	// Build an empty cursor for the mock World state.
 	ocs, err := tb.BuildEmptyCursor(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	defer ocs.Release()
 
+	// Build the mock World state from the empty cursor.
 	ws, err := world_block.BuildMockWorldState(ctx, le, true, ocs, false)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Configure a lookup-directive bucket for the diagnostic dump.
 	const lookupBucketID = "startup-graph-diagnostic-bucket"
 	bucketLkConfig, err := bucket.NewLookupConfig(configset.NewControllerConfig(1, &lookup_concurrent.Config{
 		NotFoundBehavior: lookup_concurrent.NotFoundBehavior_NotFoundBehavior_LOOKUP_DIRECTIVE,
@@ -766,6 +856,7 @@ func TestDumpStartupManifestGraphDirectCandidateStaysLocalOnly(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// Create the plugin-host manifest store in the World.
 	const storeKey = "plugin-host"
 	if _, err := CreateManifestStore(ctx, ws, storeKey); err != nil {
 		t.Fatal(err.Error())
@@ -780,6 +871,7 @@ func TestDumpStartupManifestGraphDirectCandidateStaysLocalOnly(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// Dump the startup manifest graph under a short context deadline.
 	dumpCtx, cancel := context.WithTimeout(ctx, 250*time.Millisecond)
 	defer cancel()
 	dump, err := DumpStartupManifestGraphForManifestID(
@@ -803,37 +895,45 @@ func TestDumpStartupManifestGraphDirectCandidateStaysLocalOnly(t *testing.T) {
 }
 
 func TestDumpStartupManifestGraphForManifestIDClassifiesProvenance(t *testing.T) {
+
+	// Set up the test context and logger.
 	ctx := context.Background()
 	le := logrus.NewEntry(logrus.New())
 
+	// Start a testbed holding the mock World.
 	tb, err := testbed.NewTestbed(ctx, le)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	defer tb.Release()
 
+	// Build an empty cursor for the mock World state.
 	ocs, err := tb.BuildEmptyCursor(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	defer ocs.Release()
 
+	// Build the mock World state from the empty cursor.
 	ws, err := world_block.BuildMockWorldState(ctx, le, true, ocs, false)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Create the plugin-host manifest store in the World.
 	const storeKey = "plugin-host"
 	if _, err := CreateManifestStore(ctx, ws, storeKey); err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Store a global release manifest candidate.
 	releaseRef := createTestManifestRef(t, ctx, tb, "spacewave-web", "js", 10)
 	const releaseKey = "release/manifests/spacewave-web/js"
 	if err := ExStoreManifestOp(ctx, ws, peer.ID("test"), releaseKey, []string{storeKey}, releaseRef); err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Store a project build manifest candidate with a build-result marker.
 	buildRef := createTestManifestRef(t, ctx, tb, "spacewave-web", "js", 9)
 	const buildKey = "project/build/spacewave-web/js"
 	if _, _, err := SetManifest(ctx, ws, peer.ID("test"), buildKey, buildRef.GetManifestRef()); err != nil {
@@ -846,6 +946,7 @@ func TestDumpStartupManifestGraphForManifestIDClassifiesProvenance(t *testing.T)
 		t.Fatal(err.Error())
 	}
 
+	// Store a space-local manifest candidate.
 	spaceLocalRef := createTestManifestRef(t, ctx, tb, "spacewave-web", "js", 8)
 	const spaceLocalKey = "spaces/test-space/plugins/generated/manifest"
 	if _, _, err := SetManifest(ctx, ws, peer.ID("test"), spaceLocalKey, spaceLocalRef.GetManifestRef()); err != nil {
@@ -855,6 +956,7 @@ func TestDumpStartupManifestGraphForManifestIDClassifiesProvenance(t *testing.T)
 		t.Fatal(err.Error())
 	}
 
+	// Store an unknown-provenance manifest candidate.
 	unknownRef := createTestManifestRef(t, ctx, tb, "spacewave-web", "js", 7)
 	const unknownKey = "plugin-host/ref/unknown"
 	storeTestManifestRefObject(t, ctx, ws, unknownKey, unknownRef)
@@ -862,6 +964,7 @@ func TestDumpStartupManifestGraphForManifestIDClassifiesProvenance(t *testing.T)
 		t.Fatal(err.Error())
 	}
 
+	// Dump the startup manifest graph for the manifest ID.
 	dump, err := DumpStartupManifestGraphForManifestID(
 		ctx,
 		ws,
@@ -873,6 +976,7 @@ func TestDumpStartupManifestGraphForManifestIDClassifiesProvenance(t *testing.T)
 		t.Fatal(err.Error())
 	}
 
+	// Assert each candidate carries its expected provenance classification.
 	assertStartupGraphDumpLine(t, dump, "candidate "+releaseKey, "provenance=global-release", "derived=true", "protected=false")
 	assertStartupGraphDumpLine(t, dump, "candidate "+buildKey, "provenance=project-build", "derived=true", "protected=false")
 	assertStartupGraphDumpLine(t, dump, "candidate "+spaceLocalKey, "provenance=space-local-or-ephemeral", "derived=false", "protected=true")
@@ -880,31 +984,38 @@ func TestDumpStartupManifestGraphForManifestIDClassifiesProvenance(t *testing.T)
 }
 
 func TestPruneStartupManifestCandidateRemovesOnlyProofGatedDerivedCandidate(t *testing.T) {
+
+	// Set up the test context and logger.
 	ctx := context.Background()
 	le := logrus.NewEntry(logrus.New())
 
+	// Start a testbed holding the mock World.
 	tb, err := testbed.NewTestbed(ctx, le)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	defer tb.Release()
 
+	// Build an empty cursor for the mock World state.
 	ocs, err := tb.BuildEmptyCursor(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	defer ocs.Release()
 
+	// Build the mock World state from the empty cursor.
 	ws, err := world_block.BuildMockWorldState(ctx, le, true, ocs, false)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Create the plugin-host manifest store in the World.
 	const storeKey = "plugin-host"
 	if _, err := CreateManifestStore(ctx, ws, storeKey); err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Store a wrong-manifest-ID candidate and link its graph edge.
 	wrongIDRef := createTestManifestRef(t, ctx, tb, "other-plugin", "js", 99)
 	const wrongIDKey = "release/manifests/other-plugin/js"
 	storeTestManifestRefObject(t, ctx, ws, wrongIDKey, wrongIDRef)
@@ -912,6 +1023,7 @@ func TestPruneStartupManifestCandidateRemovesOnlyProofGatedDerivedCandidate(t *t
 		t.Fatal(err.Error())
 	}
 
+	// Collect startup manifest eligibility for the manifest ID.
 	candidates, err := CollectStartupManifestEligibilityForManifestID(ctx, ws, "spacewave-web", []string{"js"}, storeKey)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -921,6 +1033,7 @@ func TestPruneStartupManifestCandidateRemovesOnlyProofGatedDerivedCandidate(t *t
 		t.Fatalf("candidate eligibility = %q, want quarantined", candidate.Eligibility)
 	}
 
+	// Prune the quarantined candidate with full proofs.
 	res, err := PruneStartupManifestCandidate(
 		ctx,
 		ws,
@@ -957,31 +1070,38 @@ func TestPruneStartupManifestCandidateRemovesOnlyProofGatedDerivedCandidate(t *t
 }
 
 func TestPruneStartupManifestCandidatePreservesProtectedAndUnprovenCandidates(t *testing.T) {
+
+	// Set up the test context and logger.
 	ctx := context.Background()
 	le := logrus.NewEntry(logrus.New())
 
+	// Start a testbed holding the mock World.
 	tb, err := testbed.NewTestbed(ctx, le)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	defer tb.Release()
 
+	// Build an empty cursor for the mock World state.
 	ocs, err := tb.BuildEmptyCursor(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	defer ocs.Release()
 
+	// Build the mock World state from the empty cursor.
 	ws, err := world_block.BuildMockWorldState(ctx, le, true, ocs, false)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Create the plugin-host manifest store in the World.
 	const storeKey = "plugin-host"
 	if _, err := CreateManifestStore(ctx, ws, storeKey); err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Store a protected space-local manifest candidate.
 	spaceLocalRef := createTestManifestRef(t, ctx, tb, "other-plugin", "js", 8)
 	const spaceLocalKey = "spaces/test-space/plugins/generated/manifest"
 	if _, _, err := SetManifest(ctx, ws, peer.ID("test"), spaceLocalKey, spaceLocalRef.GetManifestRef()); err != nil {
@@ -991,6 +1111,7 @@ func TestPruneStartupManifestCandidatePreservesProtectedAndUnprovenCandidates(t 
 		t.Fatal(err.Error())
 	}
 
+	// Store a derived release manifest candidate.
 	derivedRef := createTestManifestRef(t, ctx, tb, "other-plugin", "js", 9)
 	const derivedKey = "release/manifests/other-plugin/js"
 	storeTestManifestRefObject(t, ctx, ws, derivedKey, derivedRef)
@@ -998,6 +1119,7 @@ func TestPruneStartupManifestCandidatePreservesProtectedAndUnprovenCandidates(t 
 		t.Fatal(err.Error())
 	}
 
+	// Collect startup manifest eligibility for both candidates.
 	candidates, err := CollectStartupManifestEligibilityForManifestID(ctx, ws, "spacewave-web", []string{"js"}, storeKey)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -1005,6 +1127,7 @@ func TestPruneStartupManifestCandidatePreservesProtectedAndUnprovenCandidates(t 
 	spaceLocalCandidate := findStartupCandidateByKey(t, candidates, spaceLocalKey)
 	derivedCandidate := findStartupCandidateByKey(t, candidates, derivedKey)
 
+	// Prune the protected space-local candidate with full proofs.
 	res, err := PruneStartupManifestCandidate(
 		ctx,
 		ws,
@@ -1023,6 +1146,7 @@ func TestPruneStartupManifestCandidatePreservesProtectedAndUnprovenCandidates(t 
 		t.Fatalf("space-local prune result = %+v, want protected no-op", res)
 	}
 
+	// Prune the derived candidate without the relaunch proof.
 	res, err = PruneStartupManifestCandidate(
 		ctx,
 		ws,
@@ -1040,6 +1164,7 @@ func TestPruneStartupManifestCandidatePreservesProtectedAndUnprovenCandidates(t 
 		t.Fatalf("unproven derived prune result = %+v, want relaunch-proof no-op", res)
 	}
 
+	// Prune an unsafe candidate that is not quarantined.
 	unsafeCandidate := &StartupManifestCandidateEligibility{
 		ObjectKey:   derivedKey,
 		Eligibility: StartupManifestEligibilityUnsafe,
@@ -1062,6 +1187,7 @@ func TestPruneStartupManifestCandidatePreservesProtectedAndUnprovenCandidates(t 
 		t.Fatalf("unsafe prune result = %+v, want unsafe no-op", res)
 	}
 
+	// Assert both candidate objects remain in the World.
 	for _, key := range []string{spaceLocalKey, derivedKey} {
 		{
 			objectState, ok, err := ws.GetObject(ctx, key)
@@ -1076,26 +1202,32 @@ func TestPruneStartupManifestCandidatePreservesProtectedAndUnprovenCandidates(t 
 }
 
 func TestPruneStartupManifestCandidateRequiresExclusiveReachability(t *testing.T) {
+
+	// Set up the test context and logger.
 	ctx := context.Background()
 	le := logrus.NewEntry(logrus.New())
 
+	// Start a testbed holding the mock World.
 	tb, err := testbed.NewTestbed(ctx, le)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	defer tb.Release()
 
+	// Build an empty cursor for the mock World state.
 	ocs, err := tb.BuildEmptyCursor(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	defer ocs.Release()
 
+	// Build the mock World state from the empty cursor.
 	ws, err := world_block.BuildMockWorldState(ctx, le, true, ocs, false)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Create the plugin-host manifest store in the World.
 	const storeKey = "plugin-host"
 	if _, err := CreateManifestStore(ctx, ws, storeKey); err != nil {
 		t.Fatal(err.Error())
@@ -1105,6 +1237,7 @@ func TestPruneStartupManifestCandidateRequiresExclusiveReachability(t *testing.T
 		t.Fatal(err.Error())
 	}
 
+	// Store a wrong-manifest-ID candidate shared by two manifest stores.
 	wrongIDRef := createTestManifestRef(t, ctx, tb, "other-plugin", "js", 99)
 	const wrongIDKey = "release/manifests/shared-other-plugin/js"
 	storeTestManifestRefObject(t, ctx, ws, wrongIDKey, wrongIDRef)
@@ -1115,6 +1248,7 @@ func TestPruneStartupManifestCandidateRequiresExclusiveReachability(t *testing.T
 		t.Fatal(err.Error())
 	}
 
+	// Collect eligibility and prune the shared candidate with full proofs.
 	candidates, err := CollectStartupManifestEligibilityForManifestID(ctx, ws, "spacewave-web", []string{"js"}, storeKey)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -1149,31 +1283,38 @@ func TestPruneStartupManifestCandidateRequiresExclusiveReachability(t *testing.T
 }
 
 func TestCollectStartupManifestsForManifestIDNarrowsLabelsAndKeepsLegacyEmpty(t *testing.T) {
+
+	// Set up the test context and logger.
 	ctx := context.Background()
 	le := logrus.NewEntry(logrus.New())
 
+	// Start a testbed holding the mock World.
 	tb, err := testbed.NewTestbed(ctx, le)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	defer tb.Release()
 
+	// Build an empty cursor for the mock World state.
 	ocs, err := tb.BuildEmptyCursor(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	defer ocs.Release()
 
+	// Build the mock World state from the empty cursor.
 	ws, err := world_block.BuildMockWorldState(ctx, le, true, ocs, false)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Create the plugin-host manifest store in the World.
 	const storeKey = "plugin-host"
 	if _, err := CreateManifestStore(ctx, ws, storeKey); err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Store an exact-label manifest ref candidate.
 	exactRef := createTestManifestRef(t, ctx, tb, "spacewave-web", "js", 7)
 	const exactRefKey = "plugin-host/ref/exact"
 	storeTestManifestRefObject(t, ctx, ws, exactRefKey, exactRef)
@@ -1181,6 +1322,7 @@ func TestCollectStartupManifestsForManifestIDNarrowsLabelsAndKeepsLegacyEmpty(t 
 		t.Fatal(err.Error())
 	}
 
+	// Store a legacy empty-label manifest ref candidate.
 	legacyRef := createTestManifestRef(t, ctx, tb, "spacewave-web", "js", 5)
 	const legacyRefKey = "plugin-host/ref/legacy-empty"
 	storeTestManifestRefObject(t, ctx, ws, legacyRefKey, legacyRef)
@@ -1188,6 +1330,7 @@ func TestCollectStartupManifestsForManifestIDNarrowsLabelsAndKeepsLegacyEmpty(t 
 		t.Fatal(err.Error())
 	}
 
+	// Store an unrelated manifest ref candidate with a different label.
 	unrelatedRef := createTestManifestRef(t, ctx, tb, "other-plugin", "js", 11)
 	unrelatedRef.ManifestRef.RootRef.Hash.Hash[0] ^= 0xff
 	const unrelatedRefKey = "plugin-host/ref/unrelated"
@@ -1196,6 +1339,7 @@ func TestCollectStartupManifestsForManifestIDNarrowsLabelsAndKeepsLegacyEmpty(t 
 		t.Fatal(err.Error())
 	}
 
+	// Collect startup manifests for the manifest ID.
 	got, errs, err := CollectStartupManifestsForManifestID(
 		ctx,
 		ws,
@@ -1248,6 +1392,8 @@ func TestCollectStartupManifestsForManifestIDCoverageMatrix(t *testing.T) {
 				ws world.WorldState,
 				storeKey string,
 			) (*manifest.ManifestRef, string) {
+
+				// Store the direct manifest and link its exact-label graph edge.
 				ref := createTestManifestRef(t, ctx, tb, "spacewave-web", "js", 31)
 				const manifestKey = "plugin-host/direct/exact"
 				if _, _, err := SetManifest(ctx, ws, peer.ID("test"), manifestKey, ref.GetManifestRef()); err != nil {
@@ -1268,6 +1414,8 @@ func TestCollectStartupManifestsForManifestIDCoverageMatrix(t *testing.T) {
 				ws world.WorldState,
 				storeKey string,
 			) (*manifest.ManifestRef, string) {
+
+				// Store the direct manifest and link its legacy empty-label edge.
 				ref := createTestManifestRef(t, ctx, tb, "spacewave-web", "js", 32)
 				const manifestKey = "plugin-host/direct/legacy-empty"
 				if _, _, err := SetManifest(ctx, ws, peer.ID("test"), manifestKey, ref.GetManifestRef()); err != nil {
@@ -1305,6 +1453,8 @@ func TestCollectStartupManifestsForManifestIDCoverageMatrix(t *testing.T) {
 				ws world.WorldState,
 				storeKey string,
 			) (*manifest.ManifestRef, string) {
+
+				// Store the release-world manifest through the store op.
 				ref := createTestManifestRef(t, ctx, tb, "spacewave-web", "js", 34)
 				const manifestKey = "release/manifests/spacewave-web/js/legacy-empty"
 				if _, _, err := SetManifest(ctx, ws, peer.ID("test"), manifestKey, ref.GetManifestRef()); err != nil {
@@ -1325,6 +1475,8 @@ func TestCollectStartupManifestsForManifestIDCoverageMatrix(t *testing.T) {
 				ws world.WorldState,
 				storeKey string,
 			) (*manifest.ManifestRef, string) {
+
+				// Store the bundle manifest and link its exact-label bundle edge.
 				ref := createTestManifestRef(t, ctx, tb, "spacewave-web", "js", 35)
 				const manifestKey = "plugin-host/bundle/exact/manifest"
 				if _, _, err := SetManifest(ctx, ws, peer.ID("test"), manifestKey, ref.GetManifestRef()); err != nil {
@@ -1349,6 +1501,8 @@ func TestCollectStartupManifestsForManifestIDCoverageMatrix(t *testing.T) {
 				ws world.WorldState,
 				storeKey string,
 			) (*manifest.ManifestRef, string) {
+
+				// Store the bundle manifest and link its legacy empty-label edges.
 				ref := createTestManifestRef(t, ctx, tb, "spacewave-web", "js", 36)
 				const manifestKey = "plugin-host/bundle/legacy-empty/manifest"
 				if _, _, err := SetManifest(ctx, ws, peer.ID("test"), manifestKey, ref.GetManifestRef()); err != nil {
@@ -1358,6 +1512,8 @@ func TestCollectStartupManifestsForManifestIDCoverageMatrix(t *testing.T) {
 				if _, _, err := CreateManifestBundle(ctx, ws, bundleKey, []string{manifestKey}, timestamp.Now()); err != nil {
 					t.Fatal(err.Error())
 				}
+
+				// Rewire the bundle edges to the legacy empty label.
 				if err := ws.DeleteGraphQuad(ctx, NewManifestQuad(bundleKey, manifestKey, "spacewave-web")); err != nil {
 					t.Fatal(err.Error())
 				}
@@ -1374,31 +1530,38 @@ func TestCollectStartupManifestsForManifestIDCoverageMatrix(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
+
+			// Set up the test context and logger.
 			ctx := context.Background()
 			le := logrus.NewEntry(logrus.New())
 
+			// Start a testbed holding the mock World.
 			tb, err := testbed.NewTestbed(ctx, le)
 			if err != nil {
 				t.Fatal(err.Error())
 			}
 			defer tb.Release()
 
+			// Build an empty cursor for the mock World state.
 			ocs, err := tb.BuildEmptyCursor(ctx)
 			if err != nil {
 				t.Fatal(err.Error())
 			}
 			defer ocs.Release()
 
+			// Build the mock World state from the empty cursor.
 			ws, err := world_block.BuildMockWorldState(ctx, le, true, ocs, false)
 			if err != nil {
 				t.Fatal(err.Error())
 			}
 
+			// Create the plugin-host manifest store in the World.
 			const storeKey = "plugin-host"
 			if _, err := CreateManifestStore(ctx, ws, storeKey); err != nil {
 				t.Fatal(err.Error())
 			}
 
+			// Run the case setup and collect startup manifests for the manifest ID.
 			wantRef, wantManifestKey := tc.setup(t, ctx, tb, ws, storeKey)
 			got, errs, err := CollectStartupManifestsForManifestID(
 				ctx,
@@ -1427,31 +1590,38 @@ func TestCollectStartupManifestsForManifestIDCoverageMatrix(t *testing.T) {
 }
 
 func TestCollectStartupManifestsForManifestIDSkipsRefMetadataMismatchesBeforeOpen(t *testing.T) {
+
+	// Set up the test context and logger.
 	ctx := context.Background()
 	le := logrus.NewEntry(logrus.New())
 
+	// Start a testbed holding the mock World.
 	tb, err := testbed.NewTestbed(ctx, le)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	defer tb.Release()
 
+	// Build an empty cursor for the mock World state.
 	ocs, err := tb.BuildEmptyCursor(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	defer ocs.Release()
 
+	// Build the mock World state from the empty cursor.
 	ws, err := world_block.BuildMockWorldState(ctx, le, true, ocs, false)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Create the plugin-host manifest store in the World.
 	const storeKey = "plugin-host"
 	if _, err := CreateManifestStore(ctx, ws, storeKey); err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Store a readable good manifest ref and link its graph edge.
 	goodRef := createTestManifestRef(t, ctx, tb, "spacewave-web", "js", 7)
 	const goodRefKey = "plugin-host/ref/good"
 	storeTestManifestRefObject(t, ctx, ws, goodRefKey, goodRef)
@@ -1459,6 +1629,7 @@ func TestCollectStartupManifestsForManifestIDSkipsRefMetadataMismatchesBeforeOpe
 		t.Fatal(err.Error())
 	}
 
+	// Store a wrong-manifest-ID ref candidate and link its graph edge.
 	wrongIDRef := createTestManifestRef(t, ctx, tb, "other-plugin", "js", 11)
 	wrongIDRef.ManifestRef.RootRef.Hash.Hash[0] ^= 0xff
 	const wrongIDRefKey = "plugin-host/ref/wrong-id"
@@ -1467,6 +1638,7 @@ func TestCollectStartupManifestsForManifestIDSkipsRefMetadataMismatchesBeforeOpe
 		t.Fatal(err.Error())
 	}
 
+	// Store a wrong-platform ref candidate and link its graph edge.
 	wrongPlatformRef := createTestManifestRef(t, ctx, tb, "spacewave-web", "desktop/linux/amd64", 13)
 	wrongPlatformRef.ManifestRef.RootRef.Hash.Hash[0] ^= 0xff
 	const wrongPlatformRefKey = "plugin-host/ref/wrong-platform"
@@ -1475,6 +1647,7 @@ func TestCollectStartupManifestsForManifestIDSkipsRefMetadataMismatchesBeforeOpe
 		t.Fatal(err.Error())
 	}
 
+	// Collect startup manifests for the manifest ID.
 	got, errs, err := CollectStartupManifestsForManifestID(
 		ctx,
 		ws,
@@ -1497,26 +1670,32 @@ func TestCollectStartupManifestsForManifestIDSkipsRefMetadataMismatchesBeforeOpe
 }
 
 func TestCollectStartupManifestEligibilityClassifiesRetainedCandidates(t *testing.T) {
+
+	// Set up the test context and logger.
 	ctx := context.Background()
 	le := logrus.NewEntry(logrus.New())
 
+	// Start a testbed holding the mock World.
 	tb, err := testbed.NewTestbed(ctx, le)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	defer tb.Release()
 
+	// Build an empty cursor for the mock World state.
 	ocs, err := tb.BuildEmptyCursor(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	defer ocs.Release()
 
+	// Build the mock World state from the empty cursor.
 	ws, err := world_block.BuildMockWorldState(ctx, le, true, ocs, false)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Create the plugin-host manifest store in the World.
 	const storeKey = "plugin-host"
 	if _, err := CreateManifestStore(ctx, ws, storeKey); err != nil {
 		t.Fatal(err.Error())
@@ -1529,6 +1708,7 @@ func TestCollectStartupManifestEligibilityClassifiesRetainedCandidates(t *testin
 		t.Fatal(err.Error())
 	}
 
+	// Store an exact-label manifest ref candidate.
 	exactRef := createTestManifestRef(t, ctx, tb, "spacewave-web", "js", 7)
 	const exactRefKey = "plugin-host/ref/exact"
 	storeTestManifestRefObject(t, ctx, ws, exactRefKey, exactRef)
@@ -1536,6 +1716,7 @@ func TestCollectStartupManifestEligibilityClassifiesRetainedCandidates(t *testin
 		t.Fatal(err.Error())
 	}
 
+	// Store a legacy empty-label manifest ref candidate.
 	legacyRef := createTestManifestRef(t, ctx, tb, "spacewave-web", "js", 6)
 	const legacyRefKey = "plugin-host/ref/legacy"
 	storeTestManifestRefObject(t, ctx, ws, legacyRefKey, legacyRef)
@@ -1543,6 +1724,7 @@ func TestCollectStartupManifestEligibilityClassifiesRetainedCandidates(t *testin
 		t.Fatal(err.Error())
 	}
 
+	// Store a wrong-manifest-ID manifest ref candidate.
 	wrongIDRef := createTestManifestRef(t, ctx, tb, "other-plugin", "js", 5)
 	const wrongIDRefKey = "plugin-host/ref/wrong-id"
 	storeTestManifestRefObject(t, ctx, ws, wrongIDRefKey, wrongIDRef)
@@ -1550,6 +1732,7 @@ func TestCollectStartupManifestEligibilityClassifiesRetainedCandidates(t *testin
 		t.Fatal(err.Error())
 	}
 
+	// Store a wrong-platform manifest ref candidate.
 	wrongPlatformRef := createTestManifestRef(t, ctx, tb, "spacewave-web", "desktop/linux/amd64", 4)
 	const wrongPlatformRefKey = "plugin-host/ref/wrong-platform"
 	storeTestManifestRefObject(t, ctx, ws, wrongPlatformRefKey, wrongPlatformRef)
@@ -1557,6 +1740,7 @@ func TestCollectStartupManifestEligibilityClassifiesRetainedCandidates(t *testin
 		t.Fatal(err.Error())
 	}
 
+	// Store a missing-bucket manifest ref candidate.
 	missingBucketRef := createTestManifestRef(t, ctx, tb, "spacewave-web", "js", 3)
 	missingBucketRef.ManifestRef.BucketId = "missing-retained-bucket"
 	const missingBucketRefKey = "plugin-host/ref/missing-bucket"
@@ -1565,6 +1749,7 @@ func TestCollectStartupManifestEligibilityClassifiesRetainedCandidates(t *testin
 		t.Fatal(err.Error())
 	}
 
+	// Collect startup manifest eligibility for the manifest ID.
 	got, err := CollectStartupManifestEligibilityForManifestID(
 		ctx,
 		ws,
@@ -1576,6 +1761,7 @@ func TestCollectStartupManifestEligibilityClassifiesRetainedCandidates(t *testin
 		t.Fatal(err.Error())
 	}
 
+	// Index the collected candidates by object key.
 	byKey := make(map[string]*StartupManifestCandidateEligibility, len(got))
 	for _, candidate := range got {
 		byKey[candidate.ObjectKey] = candidate
@@ -1587,6 +1773,7 @@ func TestCollectStartupManifestEligibilityClassifiesRetainedCandidates(t *testin
 	assertStartupEligibility(t, byKey, nestedStoreKey, StartupManifestEligibilityIgnored, "intermediate:bldr/manifest-store")
 	assertStartupEligibility(t, byKey, missingBucketRefKey, StartupManifestEligibilityUnsafe, "manifest-ref-unreadable:")
 
+	// Summarize the eligibility classification results.
 	summary := SummarizeStartupManifestEligibility(got, 3)
 	if !strings.Contains(summary, "eligible exact-label") {
 		t.Fatalf("summary missing eligible item: %q", summary)
@@ -1597,31 +1784,38 @@ func TestCollectStartupManifestEligibilityClassifiesRetainedCandidates(t *testin
 }
 
 func TestCollectStartupManifestsForManifestIDRejectsDecodedMetadataMismatch(t *testing.T) {
+
+	// Set up the test context and logger.
 	ctx := context.Background()
 	le := logrus.NewEntry(logrus.New())
 
+	// Start a testbed holding the mock World.
 	tb, err := testbed.NewTestbed(ctx, le)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	defer tb.Release()
 
+	// Build an empty cursor for the mock World state.
 	ocs, err := tb.BuildEmptyCursor(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	defer ocs.Release()
 
+	// Build the mock World state from the empty cursor.
 	ws, err := world_block.BuildMockWorldState(ctx, le, true, ocs, false)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Create the plugin-host manifest store in the World.
 	const storeKey = "plugin-host"
 	if _, err := CreateManifestStore(ctx, ws, storeKey); err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Store a ref whose decoded metadata mismatches its manifest meta.
 	decodedOtherRef := createTestManifestRef(t, ctx, tb, "other-plugin", "js", 11)
 	refHint := manifest.NewManifestRef(
 		&manifest.ManifestMeta{
@@ -1638,6 +1832,7 @@ func TestCollectStartupManifestsForManifestIDRejectsDecodedMetadataMismatch(t *t
 		t.Fatal(err.Error())
 	}
 
+	// Collect startup manifests for the manifest ID.
 	got, errs, err := CollectStartupManifestsForManifestID(
 		ctx,
 		ws,
@@ -1660,31 +1855,38 @@ func TestCollectStartupManifestsForManifestIDRejectsDecodedMetadataMismatch(t *t
 }
 
 func TestCollectStartupManifestsRejectsInvalidDecodedMetadata(t *testing.T) {
+
+	// Set up the test context and logger.
 	ctx := context.Background()
 	le := logrus.NewEntry(logrus.New())
 
+	// Start a testbed holding the mock World.
 	tb, err := testbed.NewTestbed(ctx, le)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	defer tb.Release()
 
+	// Build an empty cursor for the mock World state.
 	ocs, err := tb.BuildEmptyCursor(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	defer ocs.Release()
 
+	// Build the mock World state from the empty cursor.
 	ws, err := world_block.BuildMockWorldState(ctx, le, true, ocs, false)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Create the plugin-host manifest store in the World.
 	const storeKey = "plugin-host"
 	if _, err := CreateManifestStore(ctx, ws, storeKey); err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Store a manifest with invalid decoded metadata.
 	invalidRef := createTestManifestRef(t, ctx, tb, "Spacewave-Web", "js", 11)
 	const invalidManifestKey = "plugin-host/manifest/invalid"
 	if _, _, err := SetManifest(ctx, ws, peer.ID("test"), invalidManifestKey, invalidRef.GetManifestRef()); err != nil {
@@ -1694,6 +1896,7 @@ func TestCollectStartupManifestsRejectsInvalidDecodedMetadata(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// Collect startup manifests across the store.
 	got, errs, err := CollectStartupManifests(ctx, ws, []string{"js"}, storeKey)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -1736,31 +1939,38 @@ func TestStartupContextErrorClassifiesFatalContextErrors(t *testing.T) {
 }
 
 func TestCollectManifestsReportsUnreadableManifestObject(t *testing.T) {
+
+	// Set up the test context and logger.
 	ctx := context.Background()
 	le := logrus.NewEntry(logrus.New())
 
+	// Start a testbed holding the mock World.
 	tb, err := testbed.NewTestbed(ctx, le)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	defer tb.Release()
 
+	// Build an empty cursor for the mock World state.
 	ocs, err := tb.BuildEmptyCursor(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	defer ocs.Release()
 
+	// Build the mock World state from the empty cursor.
 	ws, err := world_block.BuildMockWorldState(ctx, le, true, ocs, false)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Create the plugin-host manifest store in the World.
 	const storeKey = "plugin-host"
 	if _, err := CreateManifestStore(ctx, ws, storeKey); err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Store a bad manifest ref with a corrupted root hash.
 	badRef := createTestManifestRef(t, ctx, tb, "spacewave-web", "js", 9).GetManifestRef().CloneVT()
 	badRef.RootRef.Hash.Hash[0] ^= 0xff
 	const badManifestKey = "plugin-host/manifest/bad"
@@ -1771,6 +1981,7 @@ func TestCollectManifestsReportsUnreadableManifestObject(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// Collect manifests for the manifest ID.
 	got, errs, err := CollectManifestsForManifestID(
 		ctx,
 		ws,
@@ -1793,26 +2004,32 @@ func TestCollectManifestsReportsUnreadableManifestObject(t *testing.T) {
 }
 
 func TestCollectDirectManifestForManifestID(t *testing.T) {
+
+	// Set up the test context and logger.
 	ctx := context.Background()
 	le := logrus.NewEntry(logrus.New())
 
+	// Start a testbed holding the mock World.
 	tb, err := testbed.NewTestbed(ctx, le)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	defer tb.Release()
 
+	// Build an empty cursor for the mock World state.
 	ocs, err := tb.BuildEmptyCursor(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	defer ocs.Release()
 
+	// Build the mock World state from the empty cursor.
 	ws, err := world_block.BuildMockWorldState(ctx, le, true, ocs, false)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Store a direct manifest and link its self graph edge.
 	const manifestKey = "glados-core"
 	ref := createTestManifestRef(t, ctx, tb, manifestKey, "js", 7)
 	if _, _, err := SetManifest(ctx, ws, peer.ID("test"), manifestKey, ref.GetManifestRef()); err != nil {
@@ -1822,6 +2039,7 @@ func TestCollectDirectManifestForManifestID(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// Collect manifests for the manifest ID.
 	got, errs, err := CollectManifestsForManifestID(
 		ctx,
 		ws,
@@ -1847,15 +2065,19 @@ func TestCollectDirectManifestForManifestID(t *testing.T) {
 }
 
 func TestManifestObjectRefsSameExecutableMatchesInlineAndReferencedTransformConf(t *testing.T) {
+
+	// Set up the test context and logger.
 	ctx := context.Background()
 	le := logrus.NewEntry(logrus.New())
 
+	// Start a testbed holding the mock World.
 	tb, err := testbed.NewTestbed(ctx, le)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	defer tb.Release()
 
+	// Build the inline transform conf and a matching manifest ref.
 	transformConf := newTestManifestTransformConf(t)
 	inlineManifest := createTestManifestRefWithTransformConf(t, ctx, tb, "spacewave-web", "js", 7, transformConf)
 	inlineRef := inlineManifest.GetManifestRef().CloneVT()
@@ -1871,6 +2093,7 @@ func TestManifestObjectRefsSameExecutableMatchesInlineAndReferencedTransformConf
 		t.Fatalf("test setup: inline transform conf ref = %s, want empty", inlineRef.GetTransformConfRef().MarshalString())
 	}
 
+	// Build a referenced transform conf encoding of the same manifest.
 	referencedRef := inlineRef.CloneVT()
 	referencedRef.BucketId = "dist/spacewave"
 	referencedRef.TransformConfRef = writeTestTransformConfRef(t, ctx, tb, "dist/spacewave", inlineRef.GetTransformConf())
@@ -1885,27 +2108,33 @@ func TestManifestObjectRefsSameExecutableMatchesInlineAndReferencedTransformConf
 		t.Fatal("test setup: referenced manifest root differs from inline root")
 	}
 
+	// Assert both encodings count as the same executable.
 	if !ManifestObjectRefsSameExecutable(inlineRef, referencedRef) {
 		t.Fatal("same manifest root with local inline transform conf and external referenced transform conf was not treated as the same executable")
 	}
 }
 
 func TestSetManifestBucketRelocationDoesNotBumpLinkedRev(t *testing.T) {
+
+	// Set up the test context and logger.
 	ctx := context.Background()
 	le := logrus.NewEntry(logrus.New())
 
+	// Start a testbed holding the mock World.
 	tb, err := testbed.NewTestbed(ctx, le)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	defer tb.Release()
 
+	// Build an empty cursor for the mock World state.
 	ocs, err := tb.BuildEmptyCursor(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	defer ocs.Release()
 
+	// Build the mock World state from the empty cursor.
 	ws, err := world_block.BuildMockWorldState(ctx, le, true, ocs, false)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -1918,11 +2147,13 @@ func TestSetManifestBucketRelocationDoesNotBumpLinkedRev(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// Create the plugin-host manifest store in the World.
 	const storeKey = "plugin-host"
 	if _, err := CreateManifestStore(ctx, ws, storeKey); err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Create the manifest key and the shared transform conf.
 	const manifestKey = "plugin-host/ref/spacewave-web/js"
 	transformConf := newTestManifestTransformConf(t)
 
@@ -1952,6 +2183,8 @@ func TestSetManifestBucketRelocationDoesNotBumpLinkedRev(t *testing.T) {
 	fetchedManifestRef.BucketId = "dist/spacewave"
 	fetchedManifestRef.TransformConfRef = writeTestTransformConfRef(t, ctx, tb, "dist/spacewave", localManifestRef.GetTransformConf())
 	fetchedManifestRef.TransformConf = nil
+
+	// Assert the fetched ref keeps the same executable identity.
 	if fetchedManifestRef.GetTransformConfRef().GetEmpty() {
 		t.Fatal("test setup: fetched manifest transform conf ref is empty")
 	}
@@ -1967,11 +2200,15 @@ func TestSetManifestBucketRelocationDoesNotBumpLinkedRev(t *testing.T) {
 	if localManifestRef.EqualVT(fetchedManifestRef) {
 		t.Fatal("test setup: fetched manifest ref should differ by bucket and transform encoding")
 	}
+
+	// Apply the fetched ref and assert the linked rev is unchanged.
 	if _, changed, err := SetManifest(ctx, ws, peer.ID("test"), manifestKey, fetchedManifestRef); err != nil {
 		t.Fatal(err.Error())
 	} else if changed {
 		t.Fatal("identity-equal external manifest ref was reported as changed")
 	}
+
+	// Assert the stored ref kept the local inline encoding.
 	storedRef := objectRootRef(t, ctx, ws, manifestKey)
 	if !storedRef.GetRootRef().EqualsRef(localManifestRef.GetRootRef()) {
 		t.Fatal("stored manifest root ref changed after identity-equal external SetManifest")
@@ -1986,6 +2223,7 @@ func TestSetManifestBucketRelocationDoesNotBumpLinkedRev(t *testing.T) {
 		t.Fatal("stored manifest transform conf did not preserve local inline encoding after identity-equal external SetManifest")
 	}
 
+	// Store the fetched external ref and assert the linked rev is unchanged.
 	if err := ExStoreManifestOp(ctx, ws, peer.ID("test"), manifestKey, []string{storeKey}, fetchedRef); err != nil {
 		t.Fatal(err.Error())
 	}
@@ -2019,6 +2257,8 @@ func TestSetManifestBucketRelocationDoesNotBumpLinkedRev(t *testing.T) {
 	if err := ExStoreManifestOp(ctx, ws, peer.ID("test"), manifestKey, []string{storeKey}, newExecutableRef); err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Store the new executable and assert the linked rev bumps.
 	if got := objectRev(t, ctx, ws, storeKey); got <= seededRev {
 		t.Fatalf("linked store rev after executable change = %d, want > %d", got, seededRev)
 	}
@@ -2038,21 +2278,26 @@ func TestSetManifestBucketRelocationDoesNotBumpLinkedRev(t *testing.T) {
 }
 
 func TestSetManifestLocalCopyNotifiesLinkedStore(t *testing.T) {
+
+	// Set up the test context and logger.
 	ctx := context.Background()
 	le := logrus.NewEntry(logrus.New())
 
+	// Start a testbed holding the mock World.
 	tb, err := testbed.NewTestbed(ctx, le)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	defer tb.Release()
 
+	// Build an empty cursor for the mock World state.
 	ocs, err := tb.BuildEmptyCursor(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	defer ocs.Release()
 
+	// Build the mock World state from the empty cursor.
 	ws, err := world_block.BuildMockWorldState(ctx, le, true, ocs, false)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -2065,15 +2310,18 @@ func TestSetManifestLocalCopyNotifiesLinkedStore(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// Create the plugin-host manifest store in the World.
 	const storeKey = "plugin-host"
 	if _, err := CreateManifestStore(ctx, ws, storeKey); err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Create the manifest key and the shared transform conf.
 	const manifestKey = "plugin-host/ref/spacewave-web/js"
 	transformConf := newTestManifestTransformConf(t)
 	baseRef := createTestManifestRefWithTransformConf(t, ctx, tb, "spacewave-web", "js", 7, transformConf)
 
+	// Build the external referenced-transform encoding of the manifest.
 	externalRef := baseRef.CloneVT()
 	externalManifestRef := externalRef.GetManifestRef()
 	externalManifestRef.BucketId = "dist/spacewave"
@@ -2086,6 +2334,7 @@ func TestSetManifestLocalCopyNotifiesLinkedStore(t *testing.T) {
 		t.Fatal("test setup: external manifest transform conf should not be inline")
 	}
 
+	// Build the local inline-transform encoding of the manifest.
 	localRef := baseRef.CloneVT()
 	localManifestRef := localRef.GetManifestRef()
 	localManifestRef.BucketId = worldBucketID
@@ -2103,6 +2352,7 @@ func TestSetManifestLocalCopyNotifiesLinkedStore(t *testing.T) {
 		t.Fatal("test setup: local manifest ref should differ by bucket and transform encoding")
 	}
 
+	// Seed the external manifest and check its stored encoding.
 	if err := ExStoreManifestOp(ctx, ws, peer.ID("test"), manifestKey, []string{storeKey}, externalRef); err != nil {
 		t.Fatal(err.Error())
 	}
@@ -2115,6 +2365,7 @@ func TestSetManifestLocalCopyNotifiesLinkedStore(t *testing.T) {
 		t.Fatal("test setup: seeded manifest transform conf ref is empty")
 	}
 
+	// Store the local copy and assert the linked store rev bumps.
 	if err := ExStoreManifestOp(ctx, ws, peer.ID("test"), manifestKey, []string{storeKey}, localRef); err != nil {
 		t.Fatal(err.Error())
 	}
@@ -2147,8 +2398,11 @@ func createTestManifestRef(
 	platformID string,
 	rev uint64,
 ) *manifest.ManifestRef {
+
+	// Build the manifest meta for the test ref.
 	t.Helper()
 
+	// Build a cursor in the testbed bucket and write the manifest block.
 	meta := &manifest.ManifestMeta{
 		ManifestId: manifestID,
 		BuildType:  "production",
@@ -2161,6 +2415,7 @@ func createTestManifestRef(
 	}
 	defer oc.Release()
 
+	// Write the manifest block and return the manifest ref.
 	btx, bcs := oc.BuildTransaction(nil)
 	bcs.SetBlock(manifest.NewManifest(meta, "entrypoint"), true)
 	rootRef, _, err := btx.Write(ctx, true)
@@ -2192,8 +2447,11 @@ func createTestManifestRefWithTransformConf(
 	rev uint64,
 	transformConf *block_transform.Config,
 ) *manifest.ManifestRef {
+
+	// Build the manifest meta for the test ref.
 	t.Helper()
 
+	// Build a transformed cursor and write the manifest block.
 	meta := &manifest.ManifestMeta{
 		ManifestId: manifestID,
 		BuildType:  "production",
@@ -2215,6 +2473,7 @@ func createTestManifestRefWithTransformConf(
 	}
 	defer oc.Release()
 
+	// Write the manifest block and return the manifest ref.
 	btx, bcs := oc.BuildTransaction(nil)
 	bcs.SetBlock(manifest.NewManifest(meta, "entrypoint"), true)
 	rootRef, _, err := btx.Write(ctx, true)
@@ -2232,8 +2491,11 @@ func writeTestTransformConfRef(
 	bucketID string,
 	transformConf *block_transform.Config,
 ) *block.BlockRef {
+
+	// Apply the target bucket config to the testbed volume.
 	t.Helper()
 
+	// Build a cursor in the target bucket and write the transform conf.
 	if _, _, _, err := tb.Volume.ApplyBucketConfig(ctx, &bucket.Config{
 		Id:  bucketID,
 		Rev: 1,
@@ -2255,6 +2517,7 @@ func writeTestTransformConfRef(
 	}
 	defer oc.Release()
 
+	// Marshal the transform conf and store it as a block.
 	transformConfData, err := bucket_lookup.MarshalTransformConf(transformConf)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -2284,6 +2547,8 @@ func storeTestManifestRefObject(
 }
 
 func objectRev(t *testing.T, ctx context.Context, ws world.WorldState, objKey string) uint64 {
+
+	// Mark the helper as a test helper.
 	t.Helper()
 	obj, ok, err := ws.GetObject(ctx, objKey)
 	defer world.ReleaseObjectState(obj)
@@ -2301,6 +2566,8 @@ func objectRev(t *testing.T, ctx context.Context, ws world.WorldState, objKey st
 }
 
 func objectRootRef(t *testing.T, ctx context.Context, ws world.WorldState, objKey string) *bucket.ObjectRef {
+
+	// Mark the helper as a test helper.
 	t.Helper()
 	obj, ok, err := ws.GetObject(ctx, objKey)
 	defer world.ReleaseObjectState(obj)
@@ -2318,6 +2585,8 @@ func objectRootRef(t *testing.T, ctx context.Context, ws world.WorldState, objKe
 }
 
 func createStartupGraphBuildResultMarker(ctx context.Context, ws world.WorldState, manifestKey string) error {
+
+	// Write the build-result marker manifest as a World object.
 	ref, err := world.AccessObject(ctx, ws.AccessWorldState, nil, func(bcs *block.Cursor) error {
 		bcs.SetBlock(manifest.NewManifest(manifest.NewManifestMeta("build-result-marker", manifest.BuildType_DEV, "js", 1), "entrypoint"), true)
 		return nil
@@ -2374,8 +2643,11 @@ func assertStartupEligibility(
 	want StartupManifestEligibility,
 	reasonPrefix string,
 ) {
+
+	// Mark the helper as a test helper.
 	t.Helper()
 
+	// Look up the candidate by key and assert its classification.
 	candidate := byKey[key]
 	if candidate == nil {
 		t.Fatalf("missing startup manifest candidate %q", key)

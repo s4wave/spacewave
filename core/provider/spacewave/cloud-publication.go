@@ -16,9 +16,12 @@ import (
 // retainPublication commits accepted state and its cloud obligation atomically.
 // The caller holds acceptMu. No watched local success precedes this transaction.
 func (h *cloudSOHost) retainPublication(ctx context.Context, state *sobject.SOState, operation *sobject.SOOperation, root bool) error {
+	// Reject an operation that exceeds the cloud checkpoint limit.
 	if operation != nil && (&api.PostOpsRequest{Operations: []*sobject.SOOperation{operation}}).SizeVT() > 1<<20 {
 		return errors.New("operation exceeds the cloud checkpoint limit")
 	}
+
+	// Fence the local block store before recording the obligation.
 	if h.syncer != nil {
 		fenced, err := h.syncer.upper.Sync(ctx)
 		if err != nil {
@@ -32,6 +35,8 @@ func (h *cloudSOHost) retainPublication(ctx context.Context, state *sobject.SOSt
 	if cache == nil || h.persistVerifiedStateCache == nil {
 		return errors.New("local publication requires durable verified state")
 	}
+
+	// Extend the pending publication with the operation or new root.
 	pending := cache.GetPendingPublication()
 	if pending == nil {
 		pending = &api.PendingSOPublication{FirstPendingUnixMilli: time.Now().UnixMilli()}
@@ -46,6 +51,8 @@ func (h *cloudSOHost) retainPublication(ctx context.Context, state *sobject.SOSt
 	}
 	cache.PeerState = state.CloneVT()
 	cache.PendingPublication = pending
+
+	// Persist the accepted state and its obligation together.
 	if err := h.persistVerifiedStateCache(ctx, cache); err != nil {
 		return err
 	}
@@ -84,6 +91,8 @@ func (h *cloudSOHost) publishCheckpoint(ctx context.Context, sent *api.PendingSO
 	if sent == nil {
 		return nil
 	}
+
+	// Publish a validated root before the operation batch.
 	var config *sobject.SharedObjectConfig
 	h.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) { config = h.verifiedConfig.CloneVT() })
 	if config == nil {
@@ -101,6 +110,7 @@ func (h *cloudSOHost) publishCheckpoint(ctx context.Context, sent *api.PendingSO
 			return err
 		}
 	}
+
 	// Re-signing can move a recovered write beyond newer queued nonces.
 	// The cloud batch wire contract requires strictly increasing nonce order.
 	slices.SortStableFunc(sent.GetOperations(), func(a, b *sobject.SOOperation) int {
@@ -109,6 +119,7 @@ func (h *cloudSOHost) publishCheckpoint(ctx context.Context, sent *api.PendingSO
 		return cmp.Compare(aa.GetNonce(), bb.GetNonce())
 	})
 
+	// Post signed operations in bounded batches.
 	var batch []*sobject.SOOperation
 	for _, operation := range sent.GetOperations() {
 		if err := operation.ValidateSignature(h.soID, config.GetParticipants()); err != nil {
@@ -139,6 +150,8 @@ func (h *cloudSOHost) publishCheckpoint(ctx context.Context, sent *api.PendingSO
 	if cache == nil || h.persistVerifiedStateCache == nil {
 		return sobject.ErrConfigHistoryUnavailable
 	}
+
+	// Remove acknowledged work from the durable pending publication.
 	pending := cache.GetPendingPublication()
 	if pending == nil {
 		return nil
@@ -156,6 +169,8 @@ func (h *cloudSOHost) publishCheckpoint(ctx context.Context, sent *api.PendingSO
 		pending = nil
 	}
 	cache.PendingPublication = pending
+
+	// Persist the reduced obligation and update the host state.
 	if err := h.persistVerifiedStateCache(ctx, cache); err != nil {
 		return err
 	}
@@ -190,15 +205,20 @@ func (s *syncController) setPublication(h *cloudSOHost, pending *api.PendingSOPu
 // flushCheckpoint runs under flushMtx. Snapshotting roots before blocks prevents
 // a concurrent edit from publishing a root whose dependencies missed this flush.
 func (s *syncController) flushCheckpoint(ctx context.Context, orderBlocks bool) (retErr error) {
+	// Record sync errors in telemetry for the resource.
 	if s.telemetry != nil {
 		defer func() { s.telemetry.syncTelemetry.RecordError(s.resourceID, retErr) }()
 	}
+
+	// Snapshot each host's pending publication before flushing blocks.
 	var hosts []*cloudSOHost
 	s.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		for host := range s.publications {
 			hosts = append(hosts, host)
 		}
 	})
+
+	// Snapshot each host's durable obligation.
 	pending := make([]*api.PendingSOPublication, len(hosts))
 	for i, host := range hosts {
 		pending[i] = host.pendingPublication()
@@ -206,6 +226,8 @@ func (s *syncController) flushCheckpoint(ctx context.Context, orderBlocks bool) 
 	if err := s.flush(ctx, orderBlocks); err != nil {
 		return err
 	}
+
+	// Publish each host's checkpoint after its blocks are durable.
 	for i, host := range hosts {
 		if err := host.publishCheckpoint(ctx, pending[i]); err != nil {
 			return err
@@ -222,6 +244,7 @@ func (s *syncController) flushCheckpoint(ctx context.Context, orderBlocks bool) 
 // while preserving newer peer roots and unresolved local operations. The caller
 // holds acceptMu and has verified both cloud signatures and changelog progression.
 func (h *cloudSOHost) acceptCloudSnapshot(ctx context.Context, cloud *sobject.SOState, sequence uint64) error {
+	// Select the newer root between the cloud snapshot and the accepted state.
 	previous := h.stateCtr.GetValue()
 	next := cloud.CloneVT()
 	other := previous
@@ -307,6 +330,7 @@ func (h *cloudSOHost) acceptCloudSnapshot(ctx context.Context, cloud *sobject.SO
 		pending.Operations[i] = operation
 	}
 
+	// Persist the accepted state and its obligation to the verified cache.
 	cache := h.buildVerifiedStateCache()
 	if cache != nil && h.persistVerifiedStateCache != nil {
 		cache.PendingPublication = pending
@@ -317,13 +341,18 @@ func (h *cloudSOHost) acceptCloudSnapshot(ctx context.Context, cloud *sobject.SO
 			return err
 		}
 	}
+
+	// Publish the accepted state and detect a config chain change.
 	var configChanged bool
 	h.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		// Commit the accepted state, cursor, and obligation into the host.
 		h.pending = pending
 		h.peerState = next.CloneVT()
 		h.cloudState = cloud.CloneVT()
 		h.lastSeqno = sequence
 		h.initialStateErr = nil
+
+		// Detect a config chain change for downstream reactions.
 		configHash := cloud.GetConfig().GetConfigChainHash()
 		configChanged = len(configHash) != 0 && !bytes.Equal(configHash, h.lastConfigChainHash)
 		h.stateCtr.SetValue(next)

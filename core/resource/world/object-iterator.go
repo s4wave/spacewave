@@ -20,6 +20,7 @@ type ObjectIteratorResource struct {
 
 // NewObjectIteratorResource creates a new ObjectIteratorResource.
 func NewObjectIteratorResource(le *logrus.Entry, b bus.Bus, iter world.ObjectIterator) *ObjectIteratorResource {
+	// Construct the resource and register its service on the rpc mux.
 	iterResource := &ObjectIteratorResource{le: le, b: b, iter: iter}
 	mux := srpc.NewMux()
 	_ = s4wave_world.SRPCRegisterObjectIteratorResourceService(mux, iterResource)

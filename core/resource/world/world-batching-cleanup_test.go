@@ -24,6 +24,8 @@ import (
 // cursor count. Successful commits and discarded staged attempts must release
 // every transaction, object, and cursor handle back to the same baseline.
 func TestWorldBatchingResourceCleanupSyncedBolt(t *testing.T) {
+
+	// context ctx.
 	ctx := t.Context()
 	tb, err := world_testbed.WithTestbedOptions(ctx, []db_testbed.Option{db_testbed.WithVolumeConfig(&volume_bolt.Config{
 		Path: filepath.Join(t.TempDir(), "resources.bolt"), VolumeConfig: &volume_controller.Config{GcIntervalDur: "1h"},
@@ -32,11 +34,15 @@ func TestWorldBatchingResourceCleanupSyncedBolt(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer tb.Release()
+
+	// setupCountingResourceClient client,server,cleanup.
 	client, server, cleanup := setupCountingResourceClient(ctx, t, tb)
 	defer cleanup()
 	root := client.AccessRootResource()
 	defer root.Release()
 	rpc, err := root.GetClient()
+
+	// Abort if root getClient fails.
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -46,6 +52,8 @@ func TestWorldBatchingResourceCleanupSyncedBolt(t *testing.T) {
 	}
 	ref := client.CreateResourceReference(resp.ResourceId)
 	eng, err := sdk_world.NewEngine(client, ref)
+
+	// Abort if sdk_world newEngine fails.
 	if err != nil {
 		ref.Release()
 		t.Fatal(err)
@@ -66,12 +74,16 @@ func TestWorldBatchingResourceCleanupSyncedBolt(t *testing.T) {
 			t.Fatal(err)
 		}
 		err = sdk_cursor.AccessCursor(ctx, client, id, func(c *bucket_lookup.Cursor) error {
+
+			// buildTransaction tx,bcs via c.
 			tx, bcs := c.BuildTransaction(nil)
 			bcs.SetBlock(block_mock.NewExample(fmt.Sprintf("retained body %d", i)), true)
 			r, _, err := tx.Write(ctx, true)
 			if err != nil {
 				return err
 			}
+
+			// getRef ref via c.
 			ref := c.GetRef().Clone()
 			ref.RootRef = r
 			obj, err := w.CreateObject(ctx, fmt.Sprintf("object/%d", i), ref)

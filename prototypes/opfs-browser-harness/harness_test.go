@@ -24,6 +24,7 @@ import (
 var opfsBrowserEngines = []string{"chromium", "webkit"}
 
 func TestOpfsBrowserHarness(t *testing.T) {
+	// Prepare the dist directory with the harness page.
 	root := repositoryRoot(t)
 	distDir := filepath.Join(root, "prototypes", "opfs-browser-harness", ".tmp", "dist")
 	if err := os.RemoveAll(distDir); err != nil {
@@ -40,18 +41,23 @@ func TestOpfsBrowserHarness(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Build the browser bundle for the harness.
 	if err := buildBrowserBundle(t, root, distDir); err != nil {
 		t.Fatal(err)
 	}
 
+	// Serve the dist directory and launch playwright.
 	server := httptest.NewServer(http.FileServer(http.Dir(distDir)))
 	defer server.Close()
 
+	// Start a playwright instance for the engine subtests.
 	pw, err := playwright.Run()
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer pw.Stop()
+
+	// Run the OPFS durability proof in each browser engine.
 	for _, engine := range opfsBrowserEngines {
 		t.Run(engine, func(t *testing.T) {
 			runOpfsBrowserEngine(t, pw, server.URL+"/index.html", engine)
@@ -62,11 +68,15 @@ func TestOpfsBrowserHarness(t *testing.T) {
 // runOpfsBrowserEngine loads the harness page in one engine and waits for the
 // page to report the write, close, reopen, and read-back result.
 func runOpfsBrowserEngine(t *testing.T, pw *playwright.Playwright, pageURL string, engine string) {
+	// Launch a persistent browser context and open the harness page.
 	t.Helper()
+
+	// Launch a persistent browser context for the engine.
 	browserType, err := browserTypeByName(pw, engine)
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	// WebKit exposes OPFS only in a persistent session backed by a profile
 	// directory, so every engine launches through a persistent context.
 	browser, err := browserType.LaunchPersistentContext(t.TempDir(), playwright.BrowserTypeLaunchPersistentContextOptions{
@@ -76,6 +86,8 @@ func runOpfsBrowserEngine(t *testing.T, pw *playwright.Playwright, pageURL strin
 		t.Fatal(err)
 	}
 	defer browser.Close()
+
+	// Open the harness page with console logging attached.
 	page, err := browser.NewPage()
 	if err != nil {
 		t.Fatal(err)
@@ -96,6 +108,8 @@ func runOpfsBrowserEngine(t *testing.T, pw *playwright.Playwright, pageURL strin
 	}); err != nil {
 		t.Fatal(err)
 	}
+
+	// Read the page's OPFS result and fail if it did not pass.
 	value, err := page.Evaluate("() => window.__opfsResult", nil)
 	if err != nil {
 		t.Fatal(err)
@@ -124,6 +138,7 @@ func browserTypeByName(pw *playwright.Playwright, engine string) (playwright.Bro
 }
 
 func buildBrowserBundle(t *testing.T, root, distDir string) error {
+	// Compile the harness Go package to GoScript artifacts.
 	t.Helper()
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
 	defer cancel()
@@ -141,6 +156,8 @@ func buildBrowserBundle(t *testing.T, root, distDir string) error {
 	}); err != nil {
 		return fmt.Errorf("goscript compile: %w", err)
 	}
+
+	// Bundle the harness entrypoint into the dist directory.
 	entryPath := filepath.Join(root, "prototypes", "opfs-browser-harness", "browser.ts")
 	_, err := bldr_web_bundler_rolldown.Build(ctx, le,
 		filepath.Join(root, "prototypes", "opfs-browser-harness", ".tmp", "bun"),

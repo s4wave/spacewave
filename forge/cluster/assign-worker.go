@@ -57,13 +57,17 @@ func (o *ClusterAssignWorkerOp) ApplyWorldOp(
 	worldHandle world.WorldState,
 	sender peer.ID,
 ) (sysErr bool, err error) {
+
+	// Read the cluster and worker keys targeted by the operation.
 	clusterKey, workerKey := o.GetClusterKey(), o.GetWorkerKey()
 
+	// Confirm the cluster object type.
 	err = CheckClusterType(ctx, worldHandle, clusterKey)
 	if err != nil {
 		return false, err
 	}
 
+	// Confirm the worker object type.
 	err = forge_worker.CheckWorkerType(ctx, worldHandle, workerKey)
 	if err != nil {
 		return false, err

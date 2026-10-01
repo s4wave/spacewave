@@ -26,12 +26,15 @@ func (a *ProviderAccount) GetSelfEntityID(ctx context.Context) (string, error) {
 
 // ReadSharedObjectRecoveryEnvelope reads the recovery envelope for an SO.
 func (a *ProviderAccount) ReadSharedObjectRecoveryEnvelope(ctx context.Context, ref *sobject.SharedObjectRef) (*sobject.SOEntityRecoveryEnvelope, error) {
+	// Check the context and SharedObjectRef before dialing the cloud.
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
 	if ref == nil {
 		return nil, errors.New("shared object ref is required")
 	}
+
+	// Fetch the recovery envelope from the cloud Session client.
 	cli, _, _, err := a.getReadySessionClient(ctx)
 	if err != nil {
 		return nil, err
@@ -44,6 +47,7 @@ func (a *ProviderAccount) ReadSharedObjectRecoveryEnvelope(ctx context.Context, 
 
 // GetSharedObjectRecoveryDecoder returns a decoder backed by unlocked entity keys.
 func (a *ProviderAccount) GetSharedObjectRecoveryDecoder(ctx context.Context) (sobject.SharedObjectRecoveryDecoder, error) {
+	// Check the context and gather the unlocked entity keys for the decoder.
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}

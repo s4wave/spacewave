@@ -8,6 +8,8 @@ import (
 )
 
 func TestFactoryCopiesPoliciesToElectronInit(t *testing.T) {
+
+	// Construct the controller from a fully populated config.
 	factory := NewFactory(nil)
 	ctrl, err := factory.Construct(context.Background(), &Config{
 		ElectronPath:              "electron",
@@ -29,6 +31,7 @@ func TestFactoryCopiesPoliciesToElectronInit(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Assert the electron init carried the configured policies.
 	electronCtrl := ctrl.(*Controller)
 	init := electronCtrl.electronInit
 	if got := init.GetQuitPolicy(); got != QuitPolicy_QUIT_POLICY_EXIT {

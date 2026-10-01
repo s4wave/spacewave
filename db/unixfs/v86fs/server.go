@@ -71,6 +71,8 @@ func mountNotifyMsg(entry *MountEntry) *V86FsMessage {
 
 // AddMount registers a dynamic mount and sends MOUNT_NOTIFY to active sessions.
 func (s *Server) AddMount(name, path string, handle *unixfs.FSHandle) {
+
+	// Store the mount entry and snapshot the sessions.
 	entry := &MountEntry{Name: name, Path: path, Handle: handle}
 	s.mtx.Lock()
 	s.mounts[name] = entry
@@ -80,6 +82,7 @@ func (s *Server) AddMount(name, path string, handle *unixfs.FSHandle) {
 	}
 	s.mtx.Unlock()
 
+	// Notify each session of the new mount.
 	msg := mountNotifyMsg(entry)
 	if msg == nil {
 		return
@@ -91,6 +94,8 @@ func (s *Server) AddMount(name, path string, handle *unixfs.FSHandle) {
 
 // RemoveMount removes a dynamic mount and sends UMOUNT_NOTIFY to active sessions.
 func (s *Server) RemoveMount(name string) {
+
+	// Remove the mount entry and snapshot the sessions.
 	s.mtx.Lock()
 	entry := s.mounts[name]
 	delete(s.mounts, name)
@@ -100,10 +105,12 @@ func (s *Server) RemoveMount(name string) {
 	}
 	s.mtx.Unlock()
 
+	// Notify each session of the removed mount.
 	if entry == nil {
 		return
 	}
 
+	// Build the unmount notification message.
 	msg := &V86FsMessage{
 		Body: &V86FsMessage_UmountNotify{
 			UmountNotify: &V86FsUmountNotify{
@@ -118,6 +125,8 @@ func (s *Server) RemoveMount(name string) {
 
 // ListMounts returns the current dynamic mount table.
 func (s *Server) ListMounts() []*MountEntry {
+
+	// Copy the mount table under the server lock.
 	s.mtx.Lock()
 	defer s.mtx.Unlock()
 	result := make([]*MountEntry, 0, len(s.mounts))
@@ -129,12 +138,16 @@ func (s *Server) ListMounts() []*MountEntry {
 
 // resolveMountName resolves a mount name: dynamic table first, then fallback resolver.
 func (s *Server) resolveMountName(ctx context.Context, name string) (*unixfs.FSHandle, error) {
+
+	// Look up the mount in the dynamic table first.
 	s.mtx.Lock()
 	entry := s.mounts[name]
 	s.mtx.Unlock()
 	if entry != nil {
 		return entry.Handle.Clone(ctx)
 	}
+
+	// Fall back to the resolver or report the mount as missing.
 	if s.resolver != nil {
 		return s.resolver(ctx, name)
 	}
@@ -143,6 +156,8 @@ func (s *Server) resolveMountName(ctx context.Context, name string) (*unixfs.FSH
 
 // RelayV86Fs implements the bidirectional streaming RPC.
 func (s *Server) RelayV86Fs(strm SRPCV86FsService_RelayV86FsStream) error {
+
+	// Create the session state for the stream.
 	sess := &session{
 		server:  s,
 		ctx:     strm.Context(),
@@ -162,10 +177,13 @@ func (s *Server) RelayV86Fs(strm SRPCV86FsService_RelayV86FsStream) error {
 		}
 	}
 	s.mtx.Unlock()
+
+	// Seed the session with mount notifications.
 	for _, msg := range seed {
 		sess.queueNotification(msg)
 	}
 
+	// Deregister the session and release its handles on exit.
 	defer func() {
 		s.mtx.Lock()
 		delete(s.sessions, sess)
@@ -216,6 +234,8 @@ func (ss *session) queueNotification(msg *V86FsMessage) {
 // allocInodeID allocates a new inode ID and registers the FSHandle.
 // Starts a background goroutine to register change callbacks for push invalidation.
 func (ss *session) allocInodeID(h *unixfs.FSHandle) uint64 {
+
+	// Allocate the inode ID and register the handle.
 	ss.mtx.Lock()
 	ss.inodeCtr++
 	id := ss.inodeCtr
@@ -223,6 +243,8 @@ func (ss *session) allocInodeID(h *unixfs.FSHandle) uint64 {
 	ss.mtx.Unlock()
 
 	// Register change callback in background to avoid blocking the session.
+
+	// Register change callbacks that queue invalidation notifications.
 	go func() {
 		ctx := ss.context()
 		_ = h.AccessOps(ctx, func(cursor unixfs.FSCursor, _ unixfs.FSCursorOps) error {
@@ -250,6 +272,8 @@ func (ss *session) allocInodeID(h *unixfs.FSHandle) uint64 {
 
 // getInode returns the FSHandle for an inode ID.
 func (ss *session) getInode(id uint64) *unixfs.FSHandle {
+
+	// Look up the inode entry under the session lock.
 	ss.mtx.Lock()
 	defer ss.mtx.Unlock()
 	entry := ss.inodes[id]
@@ -261,6 +285,8 @@ func (ss *session) getInode(id uint64) *unixfs.FSHandle {
 
 // allocHandleID allocates a new file handle ID.
 func (ss *session) allocHandleID(inodeID uint64, h *unixfs.FSHandle) uint64 {
+
+	// Allocate the handle ID under the session lock.
 	ss.mtx.Lock()
 	defer ss.mtx.Unlock()
 	ss.handleCtr++
@@ -278,6 +304,8 @@ func (ss *session) getHandle(id uint64) *handleEntry {
 
 // removeHandle removes and returns the handle entry.
 func (ss *session) removeHandle(id uint64) *handleEntry {
+
+	// Remove and return the handle entry under the session lock.
 	ss.mtx.Lock()
 	defer ss.mtx.Unlock()
 	entry := ss.handles[id]
@@ -287,6 +315,8 @@ func (ss *session) removeHandle(id uint64) *handleEntry {
 
 // cleanup releases all tracked handles and inodes.
 func (ss *session) cleanup() {
+
+	// Release every tracked handle and inode under the session lock.
 	ss.mtx.Lock()
 	defer ss.mtx.Unlock()
 	for _, h := range ss.handles {
@@ -416,6 +446,7 @@ func (ss *session) dispatch(ctx context.Context, msg *V86FsMessage) (*V86FsMessa
 }
 
 func (ss *session) handleMount(ctx context.Context, tag uint32, req *V86FsMountRequest) (*V86FsMessage, error) {
+	// Resolve the mount name to a filesystem handle.
 	handle, err := ss.server.resolveMountName(ctx, req.GetName())
 	if err != nil {
 		ss.server.le.WithError(err).WithField("mount", req.GetName()).Debug("v86fs mount resolve failed")
@@ -441,6 +472,7 @@ func (ss *session) handleMount(ctx context.Context, tag uint32, req *V86FsMountR
 }
 
 func (ss *session) handleLookup(ctx context.Context, tag uint32, req *V86FsLookupRequest) (*V86FsMessage, error) {
+	// Look up the parent inode and resolve the child name.
 	parent := ss.getInode(req.GetParentId())
 	if parent == nil {
 		return nil, unixfs_errors.ErrNotExist
@@ -461,6 +493,8 @@ func (ss *session) handleLookup(ctx context.Context, tag uint32, req *V86FsLooku
 		}
 		return nil, err
 	}
+
+	// Read the child mode and size and allocate its inode.
 	mode, err := getNodeMode(ctx, child)
 	if err != nil {
 		child.Release()
@@ -486,6 +520,7 @@ func (ss *session) handleLookup(ctx context.Context, tag uint32, req *V86FsLooku
 }
 
 func (ss *session) handleGetattr(ctx context.Context, tag uint32, req *V86FsGetattrRequest) (*V86FsMessage, error) {
+	// Look up the inode and read its attributes.
 	h := ss.getInode(req.GetInodeId())
 	if h == nil {
 		return nil, unixfs_errors.ErrNotExist
@@ -498,6 +533,8 @@ func (ss *session) handleGetattr(ctx context.Context, tag uint32, req *V86FsGeta
 	if err != nil {
 		return nil, err
 	}
+
+	// Read the modification time and build the reply.
 	mtime, err := h.GetModTimestamp(ctx)
 	if err != nil {
 		return nil, err
@@ -517,13 +554,17 @@ func (ss *session) handleGetattr(ctx context.Context, tag uint32, req *V86FsGeta
 }
 
 func (ss *session) handleReaddir(ctx context.Context, tag uint32, req *V86FsReaddirRequest) (*V86FsMessage, error) {
+	// Look up the directory inode and enumerate its entries.
 	h := ss.getInode(req.GetDirId())
 	if h == nil {
 		return nil, unixfs_errors.ErrNotExist
 	}
 	var entries []*V86FsDirEntry
 	err := h.ReaddirAll(ctx, 0, func(ent unixfs.FSCursorDirent) error {
+		// Compute the entry type for the directory entry.
 		dtType := nodeTypeToDtType(ent)
+
+		// None
 		// Allocate an inode for this entry via lookup.
 		child, lerr := h.Lookup(ctx, ent.GetName())
 		if lerr != nil {
@@ -552,6 +593,7 @@ func (ss *session) handleReaddir(ctx context.Context, tag uint32, req *V86FsRead
 }
 
 func (ss *session) handleOpen(ctx context.Context, tag uint32, req *V86FsOpenRequest) (*V86FsMessage, error) {
+	// Look up the inode and allocate a file handle.
 	h := ss.getInode(req.GetInodeId())
 	if h == nil {
 		return nil, unixfs_errors.ErrNotExist
@@ -589,16 +631,21 @@ func (ss *session) handleClose(_ context.Context, tag uint32, req *V86FsCloseReq
 const maxReadSize = 1 << 20
 
 func (ss *session) handleRead(ctx context.Context, tag uint32, req *V86FsReadRequest) (*V86FsMessage, error) {
+	// Look up the read handle.
 	entry := ss.getHandle(req.GetHandleId())
 	if entry == nil {
 		return nil, unixfs_errors.ErrNotExist
 	}
+
+	// None
 	// Bound the guest-controlled read size: larger requests return a short read.
 	buf := make([]byte, min(req.GetSize(), maxReadSize))
 	offset := req.GetOffset()
 	if offset > math.MaxInt64 {
 		return nil, errors.New("read offset exceeds int64")
 	}
+
+	// Read from the handle and build the reply.
 	n, err := entry.handle.ReadAt(ctx, int64(offset), buf)
 	if err != nil && n == 0 {
 		return nil, err
@@ -615,6 +662,7 @@ func (ss *session) handleRead(ctx context.Context, tag uint32, req *V86FsReadReq
 }
 
 func (ss *session) handleCreate(ctx context.Context, tag uint32, req *V86FsCreateRequest) (*V86FsMessage, error) {
+	// Look up the parent inode and create the child file.
 	parent := ss.getInode(req.GetParentId())
 	if parent == nil {
 		return nil, unixfs_errors.ErrNotExist
@@ -624,6 +672,8 @@ func (ss *session) handleCreate(ctx context.Context, tag uint32, req *V86FsCreat
 	if err != nil {
 		return nil, err
 	}
+
+	// Look up the new child and allocate its inode.
 	child, err := parent.Lookup(ctx, req.GetName())
 	if err != nil {
 		return nil, err
@@ -646,6 +696,7 @@ func (ss *session) handleCreate(ctx context.Context, tag uint32, req *V86FsCreat
 }
 
 func (ss *session) handleWrite(ctx context.Context, tag uint32, req *V86FsWriteRequest) (*V86FsMessage, error) {
+	// Look up the inode and validate the write offset.
 	h := ss.getInode(req.GetInodeId())
 	if h == nil {
 		return nil, unixfs_errors.ErrNotExist
@@ -655,6 +706,8 @@ func (ss *session) handleWrite(ctx context.Context, tag uint32, req *V86FsWriteR
 	if offset > math.MaxInt64 {
 		return nil, errors.New("write offset exceeds int64")
 	}
+
+	// Write the data to the handle.
 	err := h.WriteAt(ctx, int64(offset), data, time.Now())
 	if err != nil {
 		return nil, err
@@ -674,6 +727,7 @@ func (ss *session) handleWrite(ctx context.Context, tag uint32, req *V86FsWriteR
 }
 
 func (ss *session) handleMkdir(ctx context.Context, tag uint32, req *V86FsMkdirRequest) (*V86FsMessage, error) {
+	// Look up the parent inode and create the child directory.
 	parent := ss.getInode(req.GetParentId())
 	if parent == nil {
 		return nil, unixfs_errors.ErrNotExist
@@ -683,6 +737,8 @@ func (ss *session) handleMkdir(ctx context.Context, tag uint32, req *V86FsMkdirR
 	if err != nil {
 		return nil, err
 	}
+
+	// Look up the new child and allocate its inode.
 	child, err := parent.Lookup(ctx, req.GetName())
 	if err != nil {
 		return nil, err
@@ -705,6 +761,7 @@ func (ss *session) handleMkdir(ctx context.Context, tag uint32, req *V86FsMkdirR
 }
 
 func (ss *session) handleSetattr(ctx context.Context, tag uint32, req *V86FsSetattrRequest) (*V86FsMessage, error) {
+	// Look up the inode and apply the requested attribute changes.
 	h := ss.getInode(req.GetInodeId())
 	if h == nil {
 		return nil, unixfs_errors.ErrNotExist
@@ -741,6 +798,7 @@ func (ss *session) handleFsync(_ context.Context, tag uint32, _ *V86FsFsyncReque
 }
 
 func (ss *session) handleUnlink(ctx context.Context, tag uint32, req *V86FsUnlinkRequest) (*V86FsMessage, error) {
+	// Look up the parent inode and remove the child.
 	parent := ss.getInode(req.GetParentId())
 	if parent == nil {
 		return nil, unixfs_errors.ErrNotExist
@@ -758,6 +816,7 @@ func (ss *session) handleUnlink(ctx context.Context, tag uint32, req *V86FsUnlin
 }
 
 func (ss *session) handleRename(ctx context.Context, tag uint32, req *V86FsRenameRequest) (*V86FsMessage, error) {
+	// Look up both parent inodes.
 	oldParent := ss.getInode(req.GetOldParentId())
 	if oldParent == nil {
 		return nil, unixfs_errors.ErrNotExist
@@ -766,6 +825,8 @@ func (ss *session) handleRename(ctx context.Context, tag uint32, req *V86FsRenam
 	if newParent == nil {
 		return nil, unixfs_errors.ErrNotExist
 	}
+
+	// Rename the source node into the new parent.
 	src, err := oldParent.Lookup(ctx, req.GetOldName())
 	if err != nil {
 		return nil, err
@@ -784,6 +845,7 @@ func (ss *session) handleRename(ctx context.Context, tag uint32, req *V86FsRenam
 }
 
 func (ss *session) handleSymlink(ctx context.Context, tag uint32, req *V86FsSymlinkRequest) (*V86FsMessage, error) {
+	// Look up the parent inode and create the symlink.
 	parent := ss.getInode(req.GetParentId())
 	if parent == nil {
 		return nil, unixfs_errors.ErrNotExist
@@ -795,6 +857,8 @@ func (ss *session) handleSymlink(ctx context.Context, tag uint32, req *V86FsSyml
 	if err != nil {
 		return nil, err
 	}
+
+	// Look up the new symlink and allocate its inode.
 	child, err := parent.Lookup(ctx, req.GetName())
 	if err != nil {
 		return nil, err
@@ -817,6 +881,7 @@ func (ss *session) handleSymlink(ctx context.Context, tag uint32, req *V86FsSyml
 }
 
 func (ss *session) handleReadlink(ctx context.Context, tag uint32, req *V86FsReadlinkRequest) (*V86FsMessage, error) {
+	// Look up the inode and read the link target.
 	h := ss.getInode(req.GetInodeId())
 	if h == nil {
 		return nil, unixfs_errors.ErrNotExist

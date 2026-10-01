@@ -52,8 +52,10 @@ func setupWorldResourceClient(ctx context.Context, t *testing.T, tb *world_testb
 	// Acquire the resource client and create a World engine.
 	resClient, clientCleanup := resource_testbed.SetupResourceClient(ctx, t, tb)
 
+	// accessRootResource rootRef via resClient.
 	rootRef := resClient.AccessRootResource()
 
+	// getClient srpcClient,err via rootRef.
 	srpcClient, err := rootRef.GetClient()
 	if err != nil {
 		rootRef.Release()
@@ -61,6 +63,7 @@ func setupWorldResourceClient(ctx context.Context, t *testing.T, tb *world_testb
 		t.Fatal(err.Error())
 	}
 
+	// newSRPCTestbedResourceServiceClient testbedClient via s4wave_testbed.
 	testbedClient := s4wave_testbed.NewSRPCTestbedResourceServiceClient(srpcClient)
 	createWorldResp, err := testbedClient.CreateWorld(ctx, &s4wave_testbed.CreateWorldRequest{})
 	if err != nil {
@@ -78,6 +81,7 @@ func setupWorldResourceClient(ctx context.Context, t *testing.T, tb *world_testb
 		t.Fatal(err.Error())
 	}
 
+	// Record cleanup.
 	cleanup := func() {
 		engine.Release()
 		rootRef.Release()
@@ -88,10 +92,14 @@ func setupWorldResourceClient(ctx context.Context, t *testing.T, tb *world_testb
 }
 
 func TestRemoteWorldPersistsIdentityKeypair(t *testing.T) {
+
+	// context ctx.
 	ctx := t.Context()
 	tb, cleanup := setupWorldTestbed(ctx, t)
 	defer cleanup()
 	resourceClient, resourceEngine, cleanupClient := setupWorldResourceClient(ctx, t, tb)
+
+	// cleanupClient.
 	defer cleanupClient()
 	engineRef := resourceClient.CreateResourceReference(resourceEngine.GetResourceRef().GetResourceID())
 	engine, err := sdk_world_engine.NewSDKEngine(resourceClient, engineRef)
@@ -101,6 +109,7 @@ func TestRemoteWorldPersistsIdentityKeypair(t *testing.T) {
 	}
 	defer engine.Release()
 
+	// generateEd25519Key _,publicKey,err via spacewave_crypto.
 	_, publicKey, err := spacewave_crypto.GenerateEd25519Key(rand.Reader)
 	if err != nil {
 		t.Fatal(err)
@@ -144,10 +153,13 @@ func (tx *countingTx) Commit(ctx context.Context) error {
 }
 
 func TestTxResourceCommitMutationsCommitsOnce(t *testing.T) {
+
+	// background ctx via context.
 	ctx := context.Background()
 	tb, cleanup := setupWorldTestbed(ctx, t)
 	defer cleanup()
 
+	// newTransaction baseTx,err via tb.
 	baseTx, err := tb.Engine.NewTransaction(ctx, true)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -203,11 +215,14 @@ func newTerminalGateTx(tx world.Tx, blockCommit bool) *terminalGateTx {
 }
 
 func (tx *terminalGateTx) CreateObject(ctx context.Context, key string, rootRef *bucket.ObjectRef) (world.ObjectState, error) {
+
+	// lock via tx.
 	tx.mux.Lock()
 	tx.createCalls++
 	blockMiddle := tx.createCalls == 2
 	tx.mux.Unlock()
 
+	// Check the condition before continuing.
 	if blockMiddle {
 		close(tx.middleStarted)
 		select {
@@ -245,10 +260,13 @@ func txMutationBatch() *s4wave_world.CommitMutationsRequest {
 }
 
 func TestTxResourceCommitWaitsForCommitMutations(t *testing.T) {
+
+	// background ctx via context.
 	ctx := context.Background()
 	tb, cleanup := setupWorldTestbed(ctx, t)
 	defer cleanup()
 
+	// newTransaction baseTx,err via tb.
 	baseTx, err := tb.Engine.NewTransaction(ctx, true)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -266,6 +284,7 @@ func TestTxResourceCommitWaitsForCommitMutations(t *testing.T) {
 		t.Fatal("batch did not reach its middle mutation")
 	}
 
+	// make commitStarted.
 	commitStarted := make(chan struct{})
 	commitDone := make(chan error, 1)
 	go func() {
@@ -280,6 +299,7 @@ func TestTxResourceCommitWaitsForCommitMutations(t *testing.T) {
 	default:
 	}
 
+	// close.
 	close(tx.unblockMiddle)
 	if err := <-batchDone; err != nil {
 		t.Fatalf("CommitMutations: %v", err)
@@ -290,10 +310,13 @@ func TestTxResourceCommitWaitsForCommitMutations(t *testing.T) {
 }
 
 func TestTxResourceDiscardWaitsForCommitMutations(t *testing.T) {
+
+	// background ctx via context.
 	ctx := context.Background()
 	tb, cleanup := setupWorldTestbed(ctx, t)
 	defer cleanup()
 
+	// newTransaction baseTx,err via tb.
 	baseTx, err := tb.Engine.NewTransaction(ctx, true)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -311,6 +334,7 @@ func TestTxResourceDiscardWaitsForCommitMutations(t *testing.T) {
 		t.Fatal("batch did not reach its middle mutation")
 	}
 
+	// make discardStarted.
 	discardStarted := make(chan struct{})
 	discardDone := make(chan error, 1)
 	go func() {
@@ -325,6 +349,7 @@ func TestTxResourceDiscardWaitsForCommitMutations(t *testing.T) {
 	default:
 	}
 
+	// close.
 	close(tx.unblockMiddle)
 	if err := <-batchDone; err != nil {
 		t.Fatalf("CommitMutations: %v", err)
@@ -335,11 +360,14 @@ func TestTxResourceDiscardWaitsForCommitMutations(t *testing.T) {
 }
 
 func TestTxResourceCommitMutationsCancellationDuringMutation(t *testing.T) {
+
+	// withCancel ctx,cancel via context.
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	tb, cleanup := setupWorldTestbed(context.Background(), t)
 	defer cleanup()
 
+	// newTransaction baseTx,err via tb.
 	baseTx, err := tb.Engine.NewTransaction(context.Background(), true)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -357,6 +385,7 @@ func TestTxResourceCommitMutationsCancellationDuringMutation(t *testing.T) {
 		t.Fatal("batch did not reach its middle mutation")
 	}
 
+	// cancel.
 	cancel()
 	if err := <-done; !errors.Is(err, context.Canceled) {
 		t.Fatalf("CommitMutations error = %v, want context.Canceled", err)
@@ -369,11 +398,14 @@ func TestTxResourceCommitMutationsCancellationDuringMutation(t *testing.T) {
 }
 
 func TestTxResourceCommitMutationsCancellationDuringCommit(t *testing.T) {
+
+	// withCancel ctx,cancel via context.
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	tb, cleanup := setupWorldTestbed(context.Background(), t)
 	defer cleanup()
 
+	// newTransaction baseTx,err via tb.
 	baseTx, err := tb.Engine.NewTransaction(context.Background(), true)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -391,6 +423,7 @@ func TestTxResourceCommitMutationsCancellationDuringCommit(t *testing.T) {
 		t.Fatal("batch did not reach commit")
 	}
 
+	// cancel.
 	cancel()
 	if err := <-done; !errors.Is(err, context.Canceled) {
 		t.Fatalf("CommitMutations error = %v, want context.Canceled", err)
@@ -404,11 +437,15 @@ func TestTxResourceCommitMutationsCancellationDuringCommit(t *testing.T) {
 
 // TestGraphPathQueryResourceClose tests path query resource paging and close behavior.
 func TestGraphPathQueryResourceClose(t *testing.T) {
+
+	// background ctx via context.
 	ctx := context.Background()
 
+	// setupWorldTestbed tb,tbCleanup.
 	tb, tbCleanup := setupWorldTestbed(ctx, t)
 	defer tbCleanup()
 
+	// setupWorldResourceClient resClient,engine,cleanup.
 	resClient, engine, cleanup := setupWorldResourceClient(ctx, t, tb)
 	defer cleanup()
 
@@ -419,6 +456,7 @@ func TestGraphPathQueryResourceClose(t *testing.T) {
 	}
 	defer tx.Release()
 
+	// Iterate the test cases.
 	for _, key := range []string{"query/a", "query/b", "query/c"} {
 		{
 			createdObject, err := tx.CreateObject(ctx, key, nil)
@@ -447,6 +485,7 @@ func TestGraphPathQueryResourceClose(t *testing.T) {
 	}
 	defer readTx.Release()
 
+	// getResourceRef srpcClient,err via readTx.
 	srpcClient, err := readTx.GetResourceRef().GetClient()
 	if err != nil {
 		t.Fatal(err.Error())
@@ -477,6 +516,8 @@ func TestGraphPathQueryResourceClose(t *testing.T) {
 	}
 	queryService := s4wave_world.NewSRPCGraphPathQueryResourceServiceClient(queryClient)
 	page, err := queryService.Next(ctx, &s4wave_world.NextGraphPathQueryRequest{})
+
+	// Abort if queryService next fails.
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -509,20 +550,26 @@ func TestGraphPathQueryResourceClose(t *testing.T) {
 }
 
 func TestWorldStateListGraphEdgeBuckets(t *testing.T) {
+
+	// background ctx via context.
 	ctx := context.Background()
 
+	// setupWorldTestbed tb,tbCleanup.
 	tb, tbCleanup := setupWorldTestbed(ctx, t)
 	defer tbCleanup()
 
+	// setupWorldResourceClient _,engine,cleanup.
 	_, engine, cleanup := setupWorldResourceClient(ctx, t, tb)
 	defer cleanup()
 
+	// newTransaction tx,err via engine.
 	tx, err := engine.NewTransaction(ctx, true)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	defer tx.Release()
 
+	// Iterate the test cases.
 	for _, key := range []string{
 		"bucket/origin",
 		"bucket/source-a",
@@ -554,12 +601,14 @@ func TestWorldStateListGraphEdgeBuckets(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// newTransaction readTx,err via engine.
 	readTx, err := engine.NewTransaction(ctx, false)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	defer readTx.Release()
 
+	// listGraphEdgeBuckets buckets,err via readTx.
 	buckets, err := readTx.ListGraphEdgeBuckets(ctx, &world.GraphEdgeBucketQuery{
 		OriginObjectKeys: []string{"bucket/origin"},
 		LimitPerOrigin:   2,
@@ -568,6 +617,7 @@ func TestWorldStateListGraphEdgeBuckets(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// Check the condition before continuing.
 	if len(buckets) != 1 {
 		t.Fatalf("expected one bucket, got %d", len(buckets))
 	}
@@ -590,6 +640,8 @@ func TestWorldStateListGraphEdgeBuckets(t *testing.T) {
 }
 
 func TestGraphPathQueryResourceReturnsQuadsWithoutObjectKeys(t *testing.T) {
+
+	// background ctx via context.
 	ctx := context.Background()
 	resource := resource_world.NewGraphPathQueryResource(nil, nil, &world.GraphPathQueryResult{
 		Quads: []world.GraphQuad{
@@ -597,6 +649,7 @@ func TestGraphPathQueryResourceReturnsQuadsWithoutObjectKeys(t *testing.T) {
 		},
 	}, 1)
 
+	// next page,err via resource.
 	page, err := resource.Next(ctx, &s4wave_world.NextGraphPathQueryRequest{})
 	if err != nil {
 		t.Fatal(err.Error())
@@ -611,6 +664,7 @@ func TestGraphPathQueryResourceReturnsQuadsWithoutObjectKeys(t *testing.T) {
 		t.Fatalf("expected traversed quad on terminal empty-key page, got %d", len(page.GetQuads()))
 	}
 
+	// next page,err via resource.
 	page, err = resource.Next(ctx, &s4wave_world.NextGraphPathQueryRequest{})
 	if err != nil {
 		t.Fatal(err.Error())
@@ -621,11 +675,15 @@ func TestGraphPathQueryResourceReturnsQuadsWithoutObjectKeys(t *testing.T) {
 }
 
 func TestWorldStateResourceOperationObserverLookupGraphQuadsBatch(t *testing.T) {
+
+	// background ctx via context.
 	ctx := context.Background()
 
+	// setupWorldTestbed tb,tbCleanup.
 	tb, tbCleanup := setupWorldTestbed(ctx, t)
 	defer tbCleanup()
 
+	// Iterate the test cases.
 	for _, key := range []string{"operation/a", "operation/b", "operation/c"} {
 		{
 			createdObject, err := tb.WorldState.CreateObject(ctx, key, nil)
@@ -644,6 +702,7 @@ func TestWorldStateResourceOperationObserverLookupGraphQuadsBatch(t *testing.T) 
 		}
 	}
 
+	// Perform the action.
 	var records []resource_world.WorldStateOperationRecord
 	resource := resource_world.NewWorldStateResource(nil, nil, tb.WorldState, nil, resource_world.WithWorldStateOperationObserver(func(record resource_world.WorldStateOperationRecord) {
 		records = append(records, record)
@@ -663,6 +722,8 @@ func TestWorldStateResourceOperationObserverLookupGraphQuadsBatch(t *testing.T) 
 	if len(resp.GetResults()) != 2 {
 		t.Fatalf("expected two result sets, got %d", len(resp.GetResults()))
 	}
+
+	// Check the condition before continuing.
 	if len(records) != 1 {
 		t.Fatalf("expected one operation record, got %d", len(records))
 	}
@@ -683,6 +744,7 @@ func TestWorldStateResourceOperationObserverLookupGraphQuadsBatch(t *testing.T) 
 		t.Fatalf("unexpected error record: %+v", record)
 	}
 
+	// Record records.
 	records = nil
 	if _, err := resource.LookupGraphQuadsBatch(ctx, &s4wave_world.LookupGraphQuadsBatchRequest{
 		Filters:        []*quad.Quad{{Subject: subjFilter.GetSubject(), Predicate: subjFilter.GetPredicate()}},
@@ -703,11 +765,15 @@ func TestWorldStateResourceOperationObserverLookupGraphQuadsBatch(t *testing.T) 
 }
 
 func TestWorldStateResourceGetObjectRootRefsBatch(t *testing.T) {
+
+	// background ctx via context.
 	ctx := context.Background()
 
+	// setupWorldTestbed tb,tbCleanup.
 	tb, tbCleanup := setupWorldTestbed(ctx, t)
 	defer tbCleanup()
 
+	// Record alphaRef.
 	alphaRef := &bucket.ObjectRef{BucketId: "alpha-bucket"}
 	betaRef := &bucket.ObjectRef{BucketId: "beta-bucket"}
 	{
@@ -725,6 +791,7 @@ func TestWorldStateResourceGetObjectRootRefsBatch(t *testing.T) {
 		}
 	}
 
+	// Perform the action.
 	var records []resource_world.WorldStateOperationRecord
 	resource := resource_world.NewWorldStateResource(nil, nil, tb.WorldState, nil, resource_world.WithWorldStateOperationObserver(func(record resource_world.WorldStateOperationRecord) {
 		records = append(records, record)
@@ -736,6 +803,7 @@ func TestWorldStateResourceGetObjectRootRefsBatch(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// getRootRefs refs via resp.
 	refs := resp.GetRootRefs()
 	if len(refs) != 4 {
 		t.Fatalf("expected 4 root refs, got %d", len(refs))
@@ -759,6 +827,7 @@ func TestWorldStateResourceGetObjectRootRefsBatch(t *testing.T) {
 	checkRootRef(refs[2], "root-ref/alpha", true, "alpha-bucket")
 	checkRootRef(refs[3], "root-ref/alpha", true, "alpha-bucket")
 
+	// Check the condition before continuing.
 	if len(records) != 1 {
 		t.Fatalf("expected one operation record, got %d", len(records))
 	}
@@ -775,11 +844,15 @@ func TestWorldStateResourceGetObjectRootRefsBatch(t *testing.T) {
 }
 
 func TestWorldStateResourceGetObjectBodiesBatch(t *testing.T) {
+
+	// background ctx via context.
 	ctx := context.Background()
 
+	// setupWorldTestbed tb,tbCleanup.
 	tb, tbCleanup := setupWorldTestbed(ctx, t)
 	defer tbCleanup()
 
+	// Iterate the test cases.
 	for _, entry := range []struct {
 		key string
 		msg string
@@ -798,6 +871,7 @@ func TestWorldStateResourceGetObjectBodiesBatch(t *testing.T) {
 		}
 	}
 
+	// Perform the action.
 	var records []resource_world.WorldStateOperationRecord
 	resource := resource_world.NewWorldStateResource(nil, nil, tb.WorldState, nil, resource_world.WithWorldStateOperationObserver(func(record resource_world.WorldStateOperationRecord) {
 		records = append(records, record)
@@ -812,10 +886,13 @@ func TestWorldStateResourceGetObjectBodiesBatch(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Check the condition before continuing.
 	if len(bodies) != 4 {
 		t.Fatalf("expected 4 bodies, got %d", len(bodies))
 	}
 	checkBody := func(index int, key string, msg string, exists bool) {
+
+		// helper.
 		t.Helper()
 		body := bodies[index]
 		if body.ObjectKey != key || body.Exists != exists {
@@ -840,6 +917,7 @@ func TestWorldStateResourceGetObjectBodiesBatch(t *testing.T) {
 	checkBody(2, "body/alpha", "alpha", true)
 	checkBody(3, "body/alpha", "alpha", true)
 
+	// Check the condition before continuing.
 	if len(records) != 1 {
 		t.Fatalf("expected one operation record, got %d", len(records))
 	}
@@ -853,8 +931,11 @@ func TestWorldStateResourceGetObjectBodiesBatch(t *testing.T) {
 }
 
 func TestWorldStateResourceLookupGraphQuadsBatchUsesOwnerOperation(t *testing.T) {
+
+	// background ctx via context.
 	ctx := context.Background()
 
+	// newGraphQuadWithKeys graphQuad via world.
 	graphQuad := world.NewGraphQuadWithKeys("owner-batch/a", "<owner-batch-rel>", "owner-batch/b", "")
 	ws := &worldStateOwnerBatchTestState{
 		results: [][]world.GraphQuad{{graphQuad}},
@@ -869,6 +950,8 @@ func TestWorldStateResourceLookupGraphQuadsBatchUsesOwnerOperation(t *testing.T)
 		},
 		LimitPerFilter: 10,
 	})
+
+	// Abort on the error.
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -887,11 +970,15 @@ func TestWorldStateResourceLookupGraphQuadsBatchUsesOwnerOperation(t *testing.T)
 }
 
 func TestWorldStateResourceOperationObserverQueryGraphPath(t *testing.T) {
+
+	// background ctx via context.
 	ctx := context.Background()
 
+	// setupWorldTestbed tb,tbCleanup.
 	tb, tbCleanup := setupWorldTestbed(ctx, t)
 	defer tbCleanup()
 
+	// Iterate the test cases.
 	for _, key := range []string{"operation-path/a", "operation-path/b", "operation-path/c"} {
 		{
 			createdObject, err := tb.WorldState.CreateObject(ctx, key, nil)
@@ -910,6 +997,7 @@ func TestWorldStateResourceOperationObserverQueryGraphPath(t *testing.T) {
 		}
 	}
 
+	// Perform the action.
 	var records []resource_world.WorldStateOperationRecord
 	resource := resource_world.NewWorldStateResource(nil, nil, tb.WorldState, nil, resource_world.WithWorldStateOperationObserver(func(record resource_world.WorldStateOperationRecord) {
 		records = append(records, record)
@@ -942,6 +1030,8 @@ func TestWorldStateResourceOperationObserverQueryGraphPath(t *testing.T) {
 	if len(records) != 1 {
 		t.Fatalf("expected one operation record, got %d", len(records))
 	}
+
+	// Record record.
 	record := records[0]
 	if record.Name != "QueryGraphPath" {
 		t.Fatalf("record name = %q", record.Name)
@@ -962,11 +1052,15 @@ func TestWorldStateResourceOperationObserverQueryGraphPath(t *testing.T) {
 }
 
 func TestEngineResourceOperationObserverPropagatesToTransactions(t *testing.T) {
+
+	// background ctx via context.
 	ctx := context.Background()
 
+	// setupWorldTestbed tb,tbCleanup.
 	tb, tbCleanup := setupWorldTestbed(ctx, t)
 	defer tbCleanup()
 
+	// Perform the action.
 	var records []resource_world.WorldStateOperationRecord
 	engineResource := resource_world.NewEngineResource(
 		nil,
@@ -981,6 +1075,7 @@ func TestEngineResourceOperationObserverPropagatesToTransactions(t *testing.T) {
 	resourceCtx := &worldStateOperationResourceContext{ctx: ctx}
 	ctx = resource_server.WithResourceClientContext(ctx, resourceCtx)
 
+	// newTransaction writeResp,err via engineResource.
 	writeResp, err := engineResource.NewTransaction(ctx, &s4wave_world.NewTransactionRequest{Write: true})
 	if err != nil {
 		t.Fatal(err.Error())
@@ -990,6 +1085,8 @@ func TestEngineResourceOperationObserverPropagatesToTransactions(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 	writeWorld := s4wave_world.NewSRPCWorldStateResourceServiceClient(writeClient)
+
+	// newSRPCTxResourceServiceClient writeTx via s4wave_world.
 	writeTx := s4wave_world.NewSRPCTxResourceServiceClient(writeClient)
 	for _, key := range []string{"engine-observer/a", "engine-observer/b"} {
 		resp, err := writeWorld.CreateObject(ctx, &s4wave_world.CreateObjectRequest{ObjectKey: key})
@@ -1013,12 +1110,14 @@ func TestEngineResourceOperationObserverPropagatesToTransactions(t *testing.T) {
 	}
 	resourceCtx.ReleaseResource(writeResp.GetResourceId())
 
+	// newTransaction readResp,err via engineResource.
 	readResp, err := engineResource.NewTransaction(ctx, &s4wave_world.NewTransactionRequest{})
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	defer resourceCtx.ReleaseResource(readResp.GetResourceId())
 
+	// getAttachedResource readClient,err via resourceCtx.
 	readClient, err := resourceCtx.GetAttachedResource(readResp.GetResourceId())
 	if err != nil {
 		t.Fatal(err.Error())
@@ -1036,6 +1135,8 @@ func TestEngineResourceOperationObserverPropagatesToTransactions(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Check the condition before continuing.
 	if len(resp.GetResults()) != 1 || len(resp.GetResults()[0].GetQuads()) != 1 {
 		t.Fatalf("expected one propagated transaction result, got %#v", resp.GetResults())
 	}
@@ -1067,6 +1168,8 @@ func (c *worldStateOperationResourceContext) AddResource(mux srpc.Invoker, relea
 }
 
 func (c *worldStateOperationResourceContext) AddResourceValue(mux srpc.Invoker, _ any, releaseFn func()) (uint32, error) {
+
+	// Perform the action.
 	c.nextID++
 	if c.releases == nil {
 		c.releases = make(map[uint32]func())
@@ -1083,6 +1186,8 @@ func (c *worldStateOperationResourceContext) AddResourceValue(mux srpc.Invoker, 
 }
 
 func (c *worldStateOperationResourceContext) ReleaseResource(resourceID uint32) bool {
+
+	// Record releaseFn,ok.
 	releaseFn, ok := c.releases[resourceID]
 	if !ok {
 		return false
@@ -1132,35 +1237,46 @@ func (s *worldStateOwnerBatchTestState) LookupGraphQuadsBatch(ctx context.Contex
 
 // TestWorldStateBasicOperations tests basic WorldState operations using the SDK.
 func TestWorldStateBasicOperations(t *testing.T) {
+
+	// background ctx via context.
 	ctx := context.Background()
 
+	// setupWorldTestbed tb,tbCleanup.
 	tb, tbCleanup := setupWorldTestbed(ctx, t)
 	defer tbCleanup()
 
+	// Run the CreateAndGetObject subtest.
 	t.Run("CreateAndGetObject", func(t *testing.T) {
+
+		// setupWorldResourceClient _,engine,cleanup.
 		_, engine, cleanup := setupWorldResourceClient(ctx, t, tb)
 		defer cleanup()
 
+		// newTransaction tx,err via engine.
 		tx, err := engine.NewTransaction(ctx, true)
 		if err != nil {
 			t.Fatalf("NewTransaction failed: %v", err)
 		}
 		defer tx.Release()
 
+		// name objKey.
 		objKey := "test-object-" + t.Name()
 		rootRef := &bucket.ObjectRef{}
 
+		// createObject obj,err via tx.
 		obj, err := tx.CreateObject(ctx, objKey, rootRef)
 		defer world.ReleaseObjectState(obj)
 		if err != nil {
 			t.Fatalf("CreateObject failed: %v", err)
 		}
 
+		// getKey key via obj.
 		key := obj.GetKey()
 		if key != objKey {
 			t.Fatalf("expected key %q, got %q", objKey, key)
 		}
 
+		// getObject retrievedObj,found,err via tx.
 		retrievedObj, found, err := tx.GetObject(ctx, objKey)
 		defer world.ReleaseObjectState(retrievedObj)
 		if err != nil {
@@ -1170,24 +1286,31 @@ func TestWorldStateBasicOperations(t *testing.T) {
 			t.Fatal("object not found")
 		}
 
+		// getKey retrievedKey via retrievedObj.
 		retrievedKey := retrievedObj.GetKey()
 		if retrievedKey != objKey {
 			t.Fatalf("expected retrieved key %q, got %q", objKey, retrievedKey)
 		}
 
+		// logf.
 		t.Logf("Successfully created and retrieved object with key: %s", objKey)
 	})
 
+	// Run the GetNonexistentObject subtest.
 	t.Run("GetNonexistentObject", func(t *testing.T) {
+
+		// setupWorldResourceClient _,engine,cleanup.
 		_, engine, cleanup := setupWorldResourceClient(ctx, t, tb)
 		defer cleanup()
 
+		// newTransaction tx,err via engine.
 		tx, err := engine.NewTransaction(ctx, true)
 		if err != nil {
 			t.Fatalf("NewTransaction failed: %v", err)
 		}
 		defer tx.Release()
 
+		// getObject obj,found,err via tx.
 		obj, found, err := tx.GetObject(ctx, "nonexistent-key")
 		if err != nil {
 			t.Fatalf("GetObject failed: %v", err)
@@ -1199,22 +1322,29 @@ func TestWorldStateBasicOperations(t *testing.T) {
 			t.Fatal("expected nil object for not found")
 		}
 
+		// Log.
 		t.Log("Correctly returned not found for nonexistent object")
 	})
 
+	// Run the DeleteObject subtest.
 	t.Run("DeleteObject", func(t *testing.T) {
+
+		// setupWorldResourceClient _,engine,cleanup.
 		_, engine, cleanup := setupWorldResourceClient(ctx, t, tb)
 		defer cleanup()
 
+		// newTransaction tx,err via engine.
 		tx, err := engine.NewTransaction(ctx, true)
 		if err != nil {
 			t.Fatalf("NewTransaction failed: %v", err)
 		}
 		defer tx.Release()
 
+		// name objKey.
 		objKey := "test-delete-" + t.Name()
 		rootRef := &bucket.ObjectRef{}
 
+		// Perform the action.
 		var createdObject world.ObjectState
 		createdObject, err = tx.CreateObject(ctx, objKey, rootRef)
 		world.ReleaseObjectState(createdObject)
@@ -1222,6 +1352,7 @@ func TestWorldStateBasicOperations(t *testing.T) {
 			t.Fatalf("CreateObject failed: %v", err)
 		}
 
+		// deleteObject deleted,err via tx.
 		deleted, err := tx.DeleteObject(ctx, objKey)
 		if err != nil {
 			t.Fatalf("DeleteObject failed: %v", err)
@@ -1230,6 +1361,7 @@ func TestWorldStateBasicOperations(t *testing.T) {
 			t.Fatal("expected deleted=true")
 		}
 
+		// getObject objectState,found,err via tx.
 		objectState, found, err := tx.GetObject(ctx, objKey)
 		world.ReleaseObjectState(objectState)
 		if err != nil {
@@ -1239,143 +1371,191 @@ func TestWorldStateBasicOperations(t *testing.T) {
 			t.Fatal("expected object not found after delete")
 		}
 
+		// logf.
 		t.Logf("Successfully deleted object: %s", objKey)
 	})
 
+	// Run the GetReadOnly subtest.
 	t.Run("GetReadOnly", func(t *testing.T) {
+
+		// setupWorldResourceClient _,engine,cleanup.
 		_, engine, cleanup := setupWorldResourceClient(ctx, t, tb)
 		defer cleanup()
 
+		// newTransaction tx,err via engine.
 		tx, err := engine.NewTransaction(ctx, true)
 		if err != nil {
 			t.Fatalf("NewTransaction failed: %v", err)
 		}
 		defer tx.Release()
 
+		// getReadOnly readOnly via tx.
 		readOnly := tx.GetReadOnly()
 		if readOnly {
 			t.Fatal("expected read-write transaction, got read-only")
 		}
 
+		// Log.
 		t.Log("Correctly returned read-only status")
 	})
 
+	// Run the GetSeqno subtest.
 	t.Run("GetSeqno", func(t *testing.T) {
+
+		// setupWorldResourceClient _,engine,cleanup.
 		_, engine, cleanup := setupWorldResourceClient(ctx, t, tb)
 		defer cleanup()
 
+		// newTransaction tx,err via engine.
 		tx, err := engine.NewTransaction(ctx, true)
 		if err != nil {
 			t.Fatalf("NewTransaction failed: %v", err)
 		}
 		defer tx.Release()
 
+		// getSeqno seqno,err via tx.
 		seqno, err := tx.GetSeqno(ctx)
 		if err != nil {
 			t.Fatalf("GetSeqno failed: %v", err)
 		}
 
+		// logf.
 		t.Logf("Current seqno: %d", seqno)
 	})
 
+	// Run the BuildStorageCursorOnTx subtest.
 	t.Run("BuildStorageCursorOnTx", func(t *testing.T) {
+
+		// setupWorldResourceClient resClient,engine,cleanup.
 		resClient, engine, cleanup := setupWorldResourceClient(ctx, t, tb)
 		defer cleanup()
 
+		// newTransaction tx,err via engine.
 		tx, err := engine.NewTransaction(ctx, false)
 		if err != nil {
 			t.Fatalf("NewTransaction failed: %v", err)
 		}
 		defer tx.Release()
 
+		// buildStorageCursor cursorResourceId,err via tx.
 		cursorResourceId, err := tx.BuildStorageCursor(ctx)
 		if err != nil {
 			t.Fatalf("BuildStorageCursor failed: %v", err)
 		}
 
+		// Check the condition before continuing.
 		if cursorResourceId == 0 {
 			t.Fatal("expected non-zero cursor resource ID")
 		}
 
+		// createResourceReference cursorRef via resClient.
 		cursorRef := resClient.CreateResourceReference(cursorResourceId)
 		defer cursorRef.Release()
 
+		// logf.
 		t.Logf("Successfully built storage cursor from transaction, resource_id: %d", cursorResourceId)
 	})
 
+	// Run the BuildStorageCursorOnEngine subtest.
 	t.Run("BuildStorageCursorOnEngine", func(t *testing.T) {
+
+		// setupWorldResourceClient resClient,engine,cleanup.
 		resClient, engine, cleanup := setupWorldResourceClient(ctx, t, tb)
 		defer cleanup()
 
+		// buildStorageCursor cursorResourceId,err via engine.
 		cursorResourceId, err := engine.BuildStorageCursor(ctx)
 		if err != nil {
 			t.Fatalf("BuildStorageCursor failed: %v", err)
 		}
 
+		// Check the condition before continuing.
 		if cursorResourceId == 0 {
 			t.Fatal("expected non-zero cursor resource ID")
 		}
 
+		// createResourceReference cursorRef via resClient.
 		cursorRef := resClient.CreateResourceReference(cursorResourceId)
 		defer cursorRef.Release()
 
+		// logf.
 		t.Logf("Successfully built storage cursor from engine, resource_id: %d", cursorResourceId)
 	})
 
+	// Run the AccessWorldStateOnTx subtest.
 	t.Run("AccessWorldStateOnTx", func(t *testing.T) {
+
+		// setupWorldResourceClient resClient,engine,cleanup.
 		resClient, engine, cleanup := setupWorldResourceClient(ctx, t, tb)
 		defer cleanup()
 
+		// newTransaction tx,err via engine.
 		tx, err := engine.NewTransaction(ctx, false)
 		if err != nil {
 			t.Fatalf("NewTransaction failed: %v", err)
 		}
 		defer tx.Release()
 
+		// accessWorldState cursorResourceId,err via tx.
 		cursorResourceId, err := tx.AccessWorldState(ctx, nil)
 		if err != nil {
 			t.Fatalf("AccessWorldState failed: %v", err)
 		}
 
+		// Check the condition before continuing.
 		if cursorResourceId == 0 {
 			t.Fatal("expected non-zero cursor resource ID")
 		}
 
+		// createResourceReference cursorRef via resClient.
 		cursorRef := resClient.CreateResourceReference(cursorResourceId)
 		defer cursorRef.Release()
 
+		// logf.
 		t.Logf("Successfully accessed world state from transaction, resource_id: %d", cursorResourceId)
 	})
 
+	// Run the AccessWorldStateOnEngine subtest.
 	t.Run("AccessWorldStateOnEngine", func(t *testing.T) {
+
+		// setupWorldResourceClient resClient,engine,cleanup.
 		resClient, engine, cleanup := setupWorldResourceClient(ctx, t, tb)
 		defer cleanup()
 
+		// accessWorldState cursorResourceId,err via engine.
 		cursorResourceId, err := engine.AccessWorldState(ctx, nil)
 		if err != nil {
 			t.Fatalf("AccessWorldState failed: %v", err)
 		}
 
+		// Check the condition before continuing.
 		if cursorResourceId == 0 {
 			t.Fatal("expected non-zero cursor resource ID")
 		}
 
+		// createResourceReference cursorRef via resClient.
 		cursorRef := resClient.CreateResourceReference(cursorResourceId)
 		defer cursorRef.Release()
 
+		// logf.
 		t.Logf("Successfully accessed world state from engine, resource_id: %d", cursorResourceId)
 	})
 }
 
 func TestEngineWorldRootSnapshots(t *testing.T) {
+
+	// background ctx via context.
 	ctx := context.Background()
 
+	// setupWorldTestbed tb,tbCleanup.
 	tb, tbCleanup := setupWorldTestbed(ctx, t)
 	defer tbCleanup()
 
+	// setupWorldResourceClient _,engine,cleanup.
 	_, engine, cleanup := setupWorldResourceClient(ctx, t, tb)
 	defer cleanup()
 
+	// getWorldRootSnapshot initial,err via engine.
 	initial, err := engine.GetWorldRootSnapshot(ctx)
 	if err != nil {
 		t.Fatalf("GetWorldRootSnapshot failed: %v", err)
@@ -1393,6 +1573,7 @@ func TestEngineWorldRootSnapshots(t *testing.T) {
 		t.Fatal("storage volume id is empty")
 	}
 
+	// newTransaction readTx,err via engine.
 	readTx, err := engine.NewTransaction(ctx, false)
 	if err != nil {
 		t.Fatalf("NewTransaction(read) failed: %v", err)
@@ -1406,6 +1587,7 @@ func TestEngineWorldRootSnapshots(t *testing.T) {
 		t.Fatalf("read-only transaction changed root: before=%#v after=%#v", initial, afterReadOnly)
 	}
 
+	// watchWorldRootSnapshots stream,err via engine.
 	stream, err := engine.WatchWorldRootSnapshots(ctx)
 	if err != nil {
 		t.Fatalf("WatchWorldRootSnapshots failed: %v", err)
@@ -1418,6 +1600,7 @@ func TestEngineWorldRootSnapshots(t *testing.T) {
 		t.Fatalf("initial stream snapshot mismatch: get=%#v watch=%#v", initial, watchedInitial)
 	}
 
+	// newTransaction writeTx,err via engine.
 	writeTx, err := engine.NewTransaction(ctx, true)
 	if err != nil {
 		t.Fatalf("NewTransaction(write) failed: %v", err)
@@ -1435,6 +1618,7 @@ func TestEngineWorldRootSnapshots(t *testing.T) {
 	}
 	writeTx.Release()
 
+	// recv next,err via stream.
 	next, err := stream.Recv()
 	if err != nil {
 		t.Fatalf("next root snapshot recv failed: %v", err)
@@ -1446,6 +1630,7 @@ func TestEngineWorldRootSnapshots(t *testing.T) {
 		t.Fatalf("root snapshot ref did not advance: before=%#v after=%#v", initial.GetRootRef(), next.GetRootRef())
 	}
 
+	// getWorldRootSnapshot current,err via engine.
 	current, err := engine.GetWorldRootSnapshot(ctx)
 	if err != nil {
 		t.Fatalf("GetWorldRootSnapshot after write failed: %v", err)
@@ -1457,41 +1642,56 @@ func TestEngineWorldRootSnapshots(t *testing.T) {
 
 // TestWatchWorldState tests the reactive WorldState watch functionality.
 func TestWatchWorldState(t *testing.T) {
+
+	// background ctx via context.
 	ctx := context.Background()
 
+	// setupWorldTestbed tb,tbCleanup.
 	tb, tbCleanup := setupWorldTestbed(ctx, t)
 	defer tbCleanup()
 
+	// Run the ReceivesInitialResourceId subtest.
 	t.Run("ReceivesInitialResourceId", func(t *testing.T) {
+
+		// setupWorldResourceClient _,engine,cleanup.
 		_, engine, cleanup := setupWorldResourceClient(ctx, t, tb)
 		defer cleanup()
 
+		// watchWorldState stream,err via engine.
 		stream, err := engine.WatchWorldState(ctx)
 		if err != nil {
 			t.Fatalf("WatchWorldState failed: %v", err)
 		}
 
+		// recv msg,err via stream.
 		msg, err := stream.Recv()
 		if err != nil {
 			t.Fatalf("Recv failed: %v", err)
 		}
 
+		// Check the condition before continuing.
 		if msg.ResourceId == 0 {
 			t.Fatal("expected non-zero resource_id")
 		}
 
+		// logf.
 		t.Logf("Received initial resource_id: %d", msg.ResourceId)
 	})
 
+	// Run the DetectsObjectChanges subtest.
 	t.Run("DetectsObjectChanges", func(t *testing.T) {
+
+		// setupWorldResourceClient resClient,engine,cleanup.
 		resClient, engine, cleanup := setupWorldResourceClient(ctx, t, tb)
 		defer cleanup()
 
+		// watchWorldState stream,err via engine.
 		stream, err := engine.WatchWorldState(ctx)
 		if err != nil {
 			t.Fatalf("WatchWorldState failed: %v", err)
 		}
 
+		// recv initialMsg,err via stream.
 		initialMsg, err := stream.Recv()
 		if err != nil {
 			t.Fatalf("Recv failed: %v", err)
@@ -1502,6 +1702,7 @@ func TestWatchWorldState(t *testing.T) {
 		trackedRef := resClient.CreateResourceReference(initialMsg.ResourceId)
 		defer trackedRef.Release()
 
+		// newWorldState trackedWs,err via s4wave_world.
 		trackedWs, err := s4wave_world.NewWorldState(resClient, trackedRef, false)
 		if err != nil {
 			t.Fatalf("NewWorldState failed: %v", err)
@@ -1532,6 +1733,7 @@ func TestWatchWorldState(t *testing.T) {
 			t.Fatalf("CreateObject failed: %v", err)
 		}
 
+		// incrementRev _,err via obj.
 		_, err = obj.IncrementRev(ctx)
 		if err != nil {
 			t.Fatalf("IncrementRev failed: %v", err)
@@ -1549,31 +1751,41 @@ func TestWatchWorldState(t *testing.T) {
 			t.Fatalf("Recv after change failed: %v", err)
 		}
 
+		// Check the condition before continuing.
 		if changeMsg.ResourceId == initialMsg.ResourceId {
 			t.Fatal("expected different resource_id after change")
 		}
 
+		// logf.
 		t.Logf("Detected change - new resource_id: %d", changeMsg.ResourceId)
 	})
 
+	// Run the ContextCancellation subtest.
 	t.Run("ContextCancellation", func(t *testing.T) {
+
+		// setupWorldResourceClient _,engine,cleanup.
 		_, engine, cleanup := setupWorldResourceClient(ctx, t, tb)
 		defer cleanup()
 
+		// withCancel watchCtx,watchCancel via context.
 		watchCtx, watchCancel := context.WithCancel(ctx)
 
+		// watchWorldState stream,err via engine.
 		stream, err := engine.WatchWorldState(watchCtx)
 		if err != nil {
 			t.Fatalf("WatchWorldState failed: %v", err)
 		}
 
+		// recv _,err via stream.
 		_, err = stream.Recv()
 		if err != nil {
 			t.Fatalf("Recv failed: %v", err)
 		}
 
+		// watchCancel.
 		watchCancel()
 
+		// recv _,err via stream.
 		_, err = stream.Recv()
 		if err == nil {
 			t.Fatal("expected error after context cancellation")
@@ -1582,30 +1794,39 @@ func TestWatchWorldState(t *testing.T) {
 			t.Logf("Got expected error: %v", err)
 		}
 
+		// Log.
 		t.Log("Correctly handled context cancellation")
 	})
 
+	// Run the UniqueResourceIds subtest.
 	t.Run("UniqueResourceIds", func(t *testing.T) {
+
+		// setupWorldResourceClient resClient,engine,cleanup.
 		resClient, engine, cleanup := setupWorldResourceClient(ctx, t, tb)
 		defer cleanup()
 
+		// watchWorldState stream,err via engine.
 		stream, err := engine.WatchWorldState(ctx)
 		if err != nil {
 			t.Fatalf("WatchWorldState failed: %v", err)
 		}
 
+		// recv msg1,err via stream.
 		msg1, err := stream.Recv()
 		if err != nil {
 			t.Fatalf("Recv failed: %v", err)
 		}
 
+		// Check the condition before continuing.
 		if msg1.ResourceId == 0 {
 			t.Fatal("expected non-zero initial resource_id")
 		}
 		t.Logf("Received initial resource_id: %d", msg1.ResourceId)
 
+		// Record seenIds.
 		seenIds := map[uint32]bool{msg1.ResourceId: true}
 
+		// createResourceReference trackedRef via resClient.
 		trackedRef := resClient.CreateResourceReference(msg1.ResourceId)
 		defer trackedRef.Release()
 		trackedWs, err := s4wave_world.NewWorldState(resClient, trackedRef, false)
@@ -1613,6 +1834,7 @@ func TestWatchWorldState(t *testing.T) {
 			t.Fatalf("NewWorldState failed: %v", err)
 		}
 
+		// Iterate the test cases.
 		for i := range 3 {
 			objKey := fmt.Sprintf("test-unique-%s-%d", t.Name(), i)
 
@@ -1670,10 +1892,12 @@ func TestWatchWorldState(t *testing.T) {
 			}
 		}
 
+		// Check the condition before continuing.
 		if len(seenIds) != 4 {
 			t.Fatalf("expected 4 unique resource_ids, got %d", len(seenIds))
 		}
 
+		// Log.
 		t.Log("Successfully received unique resource IDs for each change")
 	})
 }

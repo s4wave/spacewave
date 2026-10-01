@@ -13,10 +13,14 @@ import (
 
 // leanSyncJoinCases observes real routine cancellation, blocked body exit and joined return.
 func leanSyncJoinCases(t *testing.T, count, cut int) []leanSyncCase {
+
+	// helper.
 	t.Helper()
 	ctx, cancel := context.WithTimeout(t.Context(), 2*time.Second)
 	defer cancel()
 	workers := make([]*routine.RoutineContainer, count)
+
+	// make gates.
 	gates := make([]chan struct{}, count)
 	canceled := make([]chan struct{}, count)
 	var stopped, exited atomic.Int32
@@ -35,6 +39,8 @@ func leanSyncJoinCases(t *testing.T, count, cut int) []leanSyncCase {
 		})
 		started := make(chan struct{})
 		workers[i].SetRoutine(func(ctx context.Context) error {
+
+			// close.
 			close(started)
 			<-ctx.Done()
 			stopped.Add(1)
@@ -70,7 +76,10 @@ func leanSyncJoinCases(t *testing.T, count, cut int) []leanSyncCase {
 		<-joined
 	}()
 
+	// Record project.
 	project := func(done bool, ready int) leanSyncCase {
+
+		// Perform the action.
 		var a fastjson.Arena
 		input, expected, result, observations := a.NewObject(), a.NewObject(), a.NewObject(), a.NewArray()
 		for i := range workers {
@@ -81,6 +90,8 @@ func leanSyncJoinCases(t *testing.T, count, cut int) []leanSyncCase {
 		}
 		input.Set("op", a.NewString("joinSyncWorkers"))
 		input.Set("workers", observations)
+
+		// Set via result.
 		result.Set("stopped", a.NewNumberInt(int(stopped.Load())))
 		result.Set("joined", a.NewNumberInt(int(exited.Load())))
 		result.Set("done", leanSyncBool(&a, done))
@@ -116,6 +127,8 @@ func leanSyncJoinCases(t *testing.T, count, cut int) []leanSyncCase {
 
 // TestLeanSyncShutdownConformance checks every partial join boundary and the empty worker list.
 func TestLeanSyncShutdownConformance(t *testing.T) {
+
+	// leanSyncOracle oracle.
 	oracle := leanSyncOracle(t)
 	var cases []leanSyncCase
 	for cut := range 5 {

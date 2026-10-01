@@ -61,12 +61,15 @@ func (s *testBindingStream) Close() error { return nil }
 // that the keeper's reference follows approved, disabled, and deleted bindings
 // through the Session lifetime.
 func TestRetainApprovedForgeWorkerRuntimeReleasesOnDisableAndSessionEnd(t *testing.T) {
+	// Create the cancelable context, binding stream, and Space stub.
 	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
 	stream := &testBindingStream{
 		ctx: ctx, states: make(chan *s4wave_space.WatchProcessBindingsResponse),
 	}
 	space := &testBindingSpace{stream: stream}
+
+	// Create the event channel and run the keeper in the background.
 	events := make(chan string, 4)
 	done := make(chan struct{})
 	go func() {
@@ -76,6 +79,8 @@ func TestRetainApprovedForgeWorkerRuntimeReleasesOnDisableAndSessionEnd(t *testi
 			return func() { events <- "released" }, nil
 		})
 	}()
+
+	// Send one binding state and expect the given event sequence.
 	set := func(approved bool) {
 		t.Helper()
 		stream.states <- &s4wave_space.WatchProcessBindingsResponse{
@@ -84,6 +89,8 @@ func TestRetainApprovedForgeWorkerRuntimeReleasesOnDisableAndSessionEnd(t *testi
 			}},
 		}
 	}
+
+	// Expect the next keeper event within the timeout.
 	want := func(expected string) {
 		t.Helper()
 		select {
@@ -95,12 +102,16 @@ func TestRetainApprovedForgeWorkerRuntimeReleasesOnDisableAndSessionEnd(t *testi
 			t.Fatalf("keeper did not report %q", expected)
 		}
 	}
+
+	// Approve the binding, disable it, then approve it again.
 	set(true)
 	want("mounted")
 	set(false)
 	want("released")
 	set(true)
 	want("mounted")
+
+	// Delete the binding and confirm the contents mount is released.
 	stream.states <- &s4wave_space.WatchProcessBindingsResponse{}
 	want("released")
 	set(true)
@@ -118,15 +129,21 @@ func TestRetainApprovedForgeWorkerRuntimeReleasesOnDisableAndSessionEnd(t *testi
 // failed initial Space mount does not hide an approved binding after readiness
 // produces another Session resource-list snapshot.
 func TestReconcileLocalSpaceWatchesRetriesStoppedMountOnRevision(t *testing.T) {
+	// Reconcile the Space watches across snapshots.
 	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
 	spaces := make(map[string]*keeperSpaceWatch)
 	starts := 0
+
+	// Track the started Space watches and their retries.
 	start := func(spaceID string) *keeperSpaceWatch {
+		// Create the watch context and done channel for this attempt.
 		if spaceID != "space/test" {
 			t.Fatalf("started Space %q", spaceID)
 		}
 		starts++
+
+		// Create the watch context and done channel for this attempt.
 		watchCtx, stop := context.WithCancel(ctx)
 		done := make(chan struct{})
 		if starts == 1 {
@@ -164,12 +181,17 @@ func TestReconcileLocalSpaceWatchesRetriesFailedContentsMount(t *testing.T) {
 	streams := make(chan *testBindingStream, 2)
 	events := make(chan string, 2)
 	starts := 0
+
+	// Track the started Space watches and their retries.
 	start := func(spaceID string) *keeperSpaceWatch {
+		// Fail the first attempt so the retry path can be exercised.
 		if spaceID != "space/test" {
 			t.Fatalf("started Space %q", spaceID)
 		}
 		starts++
 		fail := starts == 1
+
+		// Create the watch context and stream for this attempt.
 		watchCtx, stop := context.WithCancel(ctx)
 		stream := &testBindingStream{
 			ctx: watchCtx, states: make(chan *s4wave_space.WatchProcessBindingsResponse),
@@ -244,6 +266,7 @@ func (m *testLocalSessionMount) Release() {
 // TestReconcileLocalSessionMountsRetainsConfiguredSession checks mount reuse
 // across snapshots and release after removal.
 func TestReconcileLocalSessionMountsRetainsConfiguredSession(t *testing.T) {
+	// Build the session entry, mount stub, and mount counter.
 	entry := &session.SessionListEntry{
 		SessionIndex: 1,
 		SessionRef: &session.SessionRef{ProviderResourceRef: &provider.ProviderResourceRef{
@@ -262,12 +285,14 @@ func TestReconcileLocalSessionMountsRetainsConfiguredSession(t *testing.T) {
 	}
 	le := logrus.NewEntry(logrus.New())
 
+	// Reconcile the configured session and confirm the mount is reused.
 	reconcileLocalSessionMounts(le, []*session.SessionListEntry{entry}, mounted, mountFunc)
 	reconcileLocalSessionMounts(le, []*session.SessionListEntry{entry}, mounted, mountFunc)
 	if mountCalls != 1 || mount.released {
 		t.Fatalf("configured session calls=%d released=%v", mountCalls, mount.released)
 	}
 
+	// Reconcile an empty session list and confirm the mount is released.
 	reconcileLocalSessionMounts(le, nil, mounted, mountFunc)
 	if !mount.released || len(mounted) != 0 {
 		t.Fatalf("removed session released=%v mounted=%d", mount.released, len(mounted))
@@ -277,6 +302,7 @@ func TestReconcileLocalSessionMountsRetainsConfiguredSession(t *testing.T) {
 // TestReconcileDeviceEnrollmentRestoresAndReleasesLocalSession covers the
 // persisted local completion across session snapshots and keeper shutdown.
 func TestReconcileDeviceEnrollmentRestoresAndReleasesLocalSession(t *testing.T) {
+	// Seed the device setup record and stub the local mount.
 	statePath := t.TempDir()
 	record := &deviceSetupRecord{
 		SetupState: deviceSetupStateSessionReady, Completion: deviceLocalCompletionPrefix + "stub",
@@ -291,8 +317,11 @@ func TestReconcileDeviceEnrollmentRestoresAndReleasesLocalSession(t *testing.T) 
 	}
 	t.Cleanup(func() { deviceMountLocalSession = oldMount })
 
+	// Create the local session mount stub and mount counter.
 	mount := &testLocalSessionMount{}
 	mountCalls := 0
+
+	// Mount the configured session index and count the calls.
 	mountFunc := func(index uint32) (localSessionMount, error) {
 		mountCalls++
 		if index != 3 {
@@ -300,6 +329,8 @@ func TestReconcileDeviceEnrollmentRestoresAndReleasesLocalSession(t *testing.T) 
 		}
 		return mount, nil
 	}
+
+	// Reconcile the configured session across snapshots.
 	entries := []*session.SessionListEntry{{SessionIndex: 3}}
 	le := logrus.NewEntry(logrus.New())
 	var cleanup func()
@@ -317,6 +348,7 @@ func TestReconcileDeviceEnrollmentRestoresAndReleasesLocalSession(t *testing.T) 
 // TestReconcileDeviceEnrollmentRetriesPendingProjection checks that a failed
 // World write remains pending until a later eligible session-list revision.
 func TestReconcileDeviceEnrollmentRetriesPendingProjection(t *testing.T) {
+	// Seed the pending device setup record and stub the projection.
 	statePath := t.TempDir()
 	if err := writeDeviceSetupRecord(statePath, &deviceSetupRecord{
 		SetupState: deviceSetupStateImported, SessionIndex: 3,
@@ -324,6 +356,8 @@ func TestReconcileDeviceEnrollmentRetriesPendingProjection(t *testing.T) {
 		t.Fatal(err)
 	}
 	attempts := 0
+
+	// Stub the Device object upsert to fail on the first attempt.
 	withDeviceObjectUpsertStub(t, func(context.Context, *sdkClient, string, *deviceSetupRecord) (string, error) {
 		attempts++
 		if attempts == 1 {
@@ -342,6 +376,7 @@ func TestReconcileDeviceEnrollmentRetriesPendingProjection(t *testing.T) {
 		t.Fatalf("projection before eligible revision: %d attempts", attempts)
 	}
 
+	// Seed the pending device setup record and stub the projection.
 	reconcileDeviceEnrollment(t.Context(), le, statePath, nil, []*session.SessionListEntry{{SessionIndex: 3}}, mount, &cleanup)
 	pending, err := readDeviceSetupRecord(statePath)
 	if err != nil {
@@ -351,6 +386,7 @@ func TestReconcileDeviceEnrollmentRetriesPendingProjection(t *testing.T) {
 		t.Fatalf("pending projection: attempts=%d record=%+v", attempts, pending)
 	}
 
+	// Stub the Device object upsert to fail on the first attempt.
 	reconcileDeviceEnrollment(t.Context(), le, statePath, nil, []*session.SessionListEntry{{SessionIndex: 3}, {SessionIndex: 4}}, mount, &cleanup)
 	ready, err := readDeviceSetupRecord(statePath)
 	if err != nil {

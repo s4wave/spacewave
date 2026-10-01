@@ -35,6 +35,7 @@ func newDebugCommand(_ func() cli_entrypoint.CliBus) *cli.Command {
 }
 
 func newDebugTraceCommand() *cli.Command {
+	// Declare the shared client and output flags.
 	var statePath string
 	var outputPath string
 	var label string
@@ -72,6 +73,7 @@ func newDebugTraceCommand() *cli.Command {
 }
 
 func newDebugCPUProfileCommand() *cli.Command {
+	// Declare the shared client and output flags.
 	var statePath string
 	var outputPath string
 	var label string
@@ -110,6 +112,7 @@ func newDebugCPUProfileCommand() *cli.Command {
 }
 
 func newDebugMemoryProfileCommand() *cli.Command {
+	// Declare the shared client and profile flags.
 	var statePath string
 	var outputPath string
 	var profile string
@@ -160,6 +163,7 @@ func runDebugTrace(
 	label string,
 	outputFormat string,
 ) error {
+	// Validate the duration and prepare the output path.
 	if duration <= 0 {
 		return errors.New("duration must be greater than zero")
 	}
@@ -170,18 +174,21 @@ func runDebugTrace(
 		return errors.Wrap(err, "create trace output directory")
 	}
 
+	// Connect to the daemon trace endpoint.
 	client, err := connectDebugTraceDaemon(c.Context, c, statePath, socketPath)
 	if err != nil {
 		return errors.Wrap(err, "connect daemon")
 	}
 	defer client.close()
 
+	// Create the trace output file.
 	f, err := os.Create(outputPath)
 	if err != nil {
 		return errors.Wrap(err, "create trace output")
 	}
 	defer f.Close()
 
+	// Capture the runtime trace into the output file.
 	traceClient := s4wave_trace.NewSRPCTraceServiceClient(client.srpc)
 	byteCount, err := trace_capture.CaptureRuntimeTrace(c.Context, traceClient, f, trace_capture.RuntimeTraceArgs{
 		Duration:    duration,
@@ -195,6 +202,7 @@ func runDebugTrace(
 		return errors.Wrap(err, "close trace output")
 	}
 
+	// Marshal the trace summary as JSON or YAML when requested.
 	if outputFormat == "json" || outputFormat == "yaml" {
 		buf, ms := newMarshalBuf()
 		ms.WriteObjectStart()
@@ -212,6 +220,7 @@ func runDebugTrace(
 		return formatOutput(buf.Bytes(), outputFormat)
 	}
 
+	// Print the trace summary fields.
 	writeFields(os.Stdout, [][2]string{
 		{"Trace", outputPath},
 		{"Duration", duration.String()},
@@ -229,6 +238,7 @@ func runDebugCPUProfile(
 	label string,
 	outputFormat string,
 ) error {
+	// Validate the duration and prepare the output path.
 	if duration <= 0 {
 		return errors.New("duration must be greater than zero")
 	}
@@ -239,18 +249,21 @@ func runDebugCPUProfile(
 		return errors.Wrap(err, "create CPU profile output directory")
 	}
 
+	// Connect to the daemon trace endpoint.
 	client, err := connectDebugTraceDaemon(c.Context, c, statePath, socketPath)
 	if err != nil {
 		return errors.Wrap(err, "connect daemon")
 	}
 	defer client.close()
 
+	// Create the CPU profile output file.
 	f, err := os.Create(outputPath)
 	if err != nil {
 		return errors.Wrap(err, "create CPU profile output")
 	}
 	defer f.Close()
 
+	// Capture the CPU profile into the output file.
 	traceClient := s4wave_trace.NewSRPCTraceServiceClient(client.srpc)
 	byteCount, err := trace_capture.CaptureCPUProfile(c.Context, traceClient, f, trace_capture.CPUProfileArgs{
 		Duration: duration,
@@ -263,6 +276,7 @@ func runDebugCPUProfile(
 		return errors.Wrap(err, "close CPU profile output")
 	}
 
+	// Marshal the profile summary as JSON or YAML when requested.
 	if outputFormat == "json" || outputFormat == "yaml" {
 		buf, ms := newMarshalBuf()
 		ms.WriteObjectStart()
@@ -280,6 +294,7 @@ func runDebugCPUProfile(
 		return formatOutput(buf.Bytes(), outputFormat)
 	}
 
+	// Print the profile summary fields.
 	writeFields(os.Stdout, [][2]string{
 		{"CPU Profile", outputPath},
 		{"Duration", duration.String()},
@@ -298,6 +313,7 @@ func runDebugMemoryProfile(
 	debug int,
 	outputFormat string,
 ) error {
+	// Validate the memory profile and debug arguments.
 	switch profile {
 	case "":
 		profile = "allocs"
@@ -318,18 +334,21 @@ func runDebugMemoryProfile(
 		return errors.Wrap(err, "create memory profile output directory")
 	}
 
+	// Connect to the daemon trace endpoint.
 	client, err := connectDebugTraceDaemon(c.Context, c, statePath, socketPath)
 	if err != nil {
 		return errors.Wrap(err, "connect daemon")
 	}
 	defer client.close()
 
+	// Create the memory profile output file.
 	f, err := os.Create(outputPath)
 	if err != nil {
 		return errors.Wrap(err, "create memory profile output")
 	}
 	defer f.Close()
 
+	// Capture the memory profile into the output file.
 	traceClient := s4wave_trace.NewSRPCTraceServiceClient(client.srpc)
 	byteCount, err := trace_capture.CaptureMemoryProfile(c.Context, traceClient, f, trace_capture.MemoryProfileArgs{
 		Profile: profile,
@@ -343,6 +362,7 @@ func runDebugMemoryProfile(
 		return errors.Wrap(err, "close memory profile output")
 	}
 
+	// Marshal the profile summary as JSON or YAML when requested.
 	if outputFormat == "json" || outputFormat == "yaml" {
 		buf, ms := newMarshalBuf()
 		ms.WriteObjectStart()
@@ -366,6 +386,7 @@ func runDebugMemoryProfile(
 		return formatOutput(buf.Bytes(), outputFormat)
 	}
 
+	// Print the profile summary fields.
 	writeFields(os.Stdout, [][2]string{
 		{"Memory Profile", outputPath},
 		{"Profile", profile},

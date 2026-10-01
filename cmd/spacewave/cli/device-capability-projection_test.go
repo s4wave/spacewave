@@ -49,6 +49,7 @@ func capsByID(caps []*s4wave_device.DeviceCapability) map[string]*s4wave_device.
 // TestComputeDevicePolicyCapabilitiesAuthorsAndRemovesForgeWorker pins the
 // authoring and removal rules for the declared envelope.
 func TestComputeDevicePolicyCapabilitiesAuthorsAndRemovesForgeWorker(t *testing.T) {
+	// Seed the existing capabilities with a Forge Worker entry.
 	existing := append(existingCaps(), &s4wave_device.DeviceCapability{
 		Id:   devicePolicyForgeWorkerCapabilityID,
 		Kind: s4wave_device.DeviceCapabilityKindForgeWorker,
@@ -85,6 +86,7 @@ func TestComputeDevicePolicyCapabilitiesAuthorsAndRemovesForgeWorker(t *testing.
 
 // newCapacityTestbed builds a local world engine for observer tests.
 func newCapacityTestbed(t *testing.T) (context.Context, *world_testbed.Testbed) {
+	// Create the hydra testbed for the local world engine.
 	ctx := context.Background()
 	btb, err := hydra_testbed.NewTestbed(ctx, logrus.NewEntry(logrus.New()))
 	if err != nil {

@@ -46,11 +46,14 @@ func CollectClusterJobs(
 	ws world.WorldState,
 	clusterKeys ...string,
 ) ([]*forge_job.Job, []string, error) {
+
+	// List the job keys linked to the clusters.
 	kpObjectKeys, err := ListClusterJobs(ctx, ws, clusterKeys...)
 	if err != nil {
 		return nil, nil, err
 	}
 
+	// Load and validate each linked job body.
 	states := make([]*forge_job.Job, len(kpObjectKeys))
 	for i, objKey := range kpObjectKeys {
 		states[i], err = forge_job.LookupJobBody(ctx, ws, objKey)
@@ -119,11 +122,14 @@ func CollectClusterWorkers(
 	ws world.WorldState,
 	clusterKeys ...string,
 ) ([]*forge_worker.Worker, []string, error) {
+
+	// List the worker keys linked to the clusters.
 	kpObjectKeys, err := ListClusterWorkers(ctx, ws, clusterKeys...)
 	if err != nil {
 		return nil, nil, err
 	}
 
+	// Load each linked worker body.
 	states := make([]*forge_worker.Worker, len(kpObjectKeys))
 	for i, objKey := range kpObjectKeys {
 		states[i], err = world.LookupObjectBody[*forge_worker.Worker](ctx, ws, objKey, forge_worker.NewWorkerBlock)

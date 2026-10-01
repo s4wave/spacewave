@@ -44,6 +44,8 @@ func (b *unattachedRuntimeBus) RemoveController(controller.Controller) {
 // TestControllerCancellationBeforeRuntimeAttachment verifies shutdown joins an
 // execution that has not attached to the bus.
 func TestControllerCancellationBeforeRuntimeAttachment(t *testing.T) {
+
+	// Build an unattached runtime bus and controller under a cancelable context.
 	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
 	b := &unattachedRuntimeBus{
@@ -57,6 +59,8 @@ func TestControllerCancellationBeforeRuntimeAttachment(t *testing.T) {
 	go func() { result <- r.executeRuntimeController(ctx, e, r) }()
 
 	// End the owning controller while runtime execution is still unattached.
+
+	// Wait for runtime execution to start, then cancel the context.
 	select {
 	case <-b.entered:
 	case <-time.After(time.Second):
@@ -65,6 +69,8 @@ func TestControllerCancellationBeforeRuntimeAttachment(t *testing.T) {
 	cancel()
 
 	// Removal alone cannot stop that execution; the derived context must end first.
+
+	// Assert the runtime execution stopped with cancellation.
 	select {
 	case err := <-result:
 		if err != context.Canceled {
@@ -73,6 +79,8 @@ func TestControllerCancellationBeforeRuntimeAttachment(t *testing.T) {
 	case <-time.After(time.Second):
 		t.Fatal("runtime execution did not stop after controller cancellation")
 	}
+
+	// Assert the runtime controller was removed with a canceled context.
 	select {
 	case err := <-b.removed:
 		if err != context.Canceled {
@@ -86,6 +94,8 @@ func TestControllerCancellationBeforeRuntimeAttachment(t *testing.T) {
 // TestControllerRuntimeResultCancelsBeforeRemoval verifies that a completed
 // execution is canceled before detachment while its parent context remains live.
 func TestControllerRuntimeResultCancelsBeforeRemoval(t *testing.T) {
+
+	// Build an unattached runtime bus and controller.
 	b := &unattachedRuntimeBus{
 		entered:  make(chan struct{}),
 		complete: make(chan struct{}),
@@ -97,6 +107,8 @@ func TestControllerRuntimeResultCancelsBeforeRemoval(t *testing.T) {
 	go func() { result <- r.executeRuntimeController(t.Context(), e, r) }()
 
 	// Finish execution while the owning context remains live.
+
+	// Wait for runtime execution to start, then complete it.
 	select {
 	case <-b.entered:
 	case <-time.After(time.Second):
@@ -105,6 +117,8 @@ func TestControllerRuntimeResultCancelsBeforeRemoval(t *testing.T) {
 	close(b.complete)
 
 	// The runtime context must be canceled before the controller is removed.
+
+	// Assert the runtime context was canceled before removal.
 	select {
 	case err := <-result:
 		if err != nil {

@@ -17,6 +17,7 @@ import (
 // TestCursorResourceEncodedBlocks checks transformed and stored bytes through
 // the real Resource pipe, including a batch larger than one decoded packet.
 func TestCursorResourceEncodedBlocks(t *testing.T) {
+	// Put a large block through the cursor and read it back decoded.
 	cursor, tb := newResourceCursor(t)
 	ctx := t.Context()
 	data := bytes.Repeat([]byte("compressed and encrypted block "), 40000)
@@ -33,6 +34,7 @@ func TestCursorResourceEncodedBlocks(t *testing.T) {
 	// The enclosing cursor alone applies the transform, so its raw read must
 	// already return the exact content-addressed ciphertext. Durability is a
 	// separate fence: construction must not require a physical write.
+	// Read the raw ciphertext through the cursor's effective store.
 	raw := cursor.GetBucket()
 	remote, found, err := raw.GetBlock(ctx, ref)
 	if err != nil || !found || bytes.Equal(remote, data) || len(remote) >= len(data) {
@@ -49,6 +51,7 @@ func TestCursorResourceEncodedBlocks(t *testing.T) {
 		t.Fatalf("stored payload after fence: found=%v bytes=%d err=%v", found, len(stored), err)
 	}
 
+	// Batch encoded blocks directly into the store and read them back.
 	entries := make([]*block.PutBatchEntry, 12)
 	for i := range entries {
 		plain := bytes.Repeat([]byte{byte(i)}, 1<<20)
@@ -79,6 +82,7 @@ func TestCursorResourceEncodedBlocks(t *testing.T) {
 // BenchmarkCursorResourceRoundTrip includes the real Resource transport,
 // compression, encryption, storage deduplication, and decoded readback.
 func BenchmarkCursorResourceRoundTrip(b *testing.B) {
+	// Round trip a large payload through the cursor for each iteration.
 	cursor, _ := newResourceCursor(b)
 	data := bytes.Repeat([]byte("transformed Resource payload "), 40000)
 	b.ReportAllocs()
@@ -99,11 +103,14 @@ func BenchmarkCursorResourceRoundTrip(b *testing.B) {
 // newResourceCursor uses the ordinary encrypted World engine and releases all
 // acquired handles before closing the testbed's Resource connection.
 func newResourceCursor(t testing.TB) (*bucket_lookup.Cursor, *world_testbed.Testbed) {
+	// Set up a Resource testbed and create an encrypted World engine.
 	t.Helper()
 	tb, client, cleanup := resource_testbed.SetupTestbedWithClient(t.Context(), t)
 	t.Cleanup(cleanup)
 	root := client.AccessRootResource()
 	t.Cleanup(root.Release)
+
+	// Connect to the Resource service and create a World resource.
 	rpc, err := root.GetClient()
 	if err != nil {
 		t.Fatal(err)
@@ -112,6 +119,8 @@ func newResourceCursor(t testing.TB) (*bucket_lookup.Cursor, *world_testbed.Test
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Build the storage cursor from the World resource reference.
 	ref := client.CreateResourceReference(created.ResourceId)
 	t.Cleanup(ref.Release)
 	engine, err := sdk_world_engine.NewSDKEngine(client, ref)
@@ -123,6 +132,8 @@ func newResourceCursor(t testing.TB) (*bucket_lookup.Cursor, *world_testbed.Test
 		t.Fatal(err)
 	}
 	t.Cleanup(cursor.Release)
+
+	// Verify the cursor carries a storage transform.
 	if cursor.GetTransformer() == nil {
 		t.Fatal("test cursor has no storage transform")
 	}

@@ -41,6 +41,7 @@ func sessionTransportUnauthorized(err error) bool {
 }
 
 func sessionTransportCleanupContext(ctx context.Context) (context.Context, context.CancelFunc) {
+	// Build a cleanup context that survives cancellation with a bounded deadline.
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -57,6 +58,7 @@ func newSessionTransportState(
 	sessionID string,
 	st *transport.SessionTransport,
 ) *sessionTransportState {
+	// Build the transport state with its run and readiness routines.
 	sts := &sessionTransportState{
 		sessionID: sessionID,
 		transport: st,
@@ -111,11 +113,14 @@ func (s *sessionTransportState) Start(ctx context.Context) {
 }
 
 func (s *sessionTransportState) Stop(ctx context.Context) error {
+	// Stop both routines and mark the transport exited.
 	readyWaitCh, _ := s.readyRc.SetRoutine(nil)
 	runWaitCh, _ := s.rc.SetRoutine(nil)
 	s.readyRc.ClearContext()
 	s.rc.ClearContext()
 	s.setExited(context.Canceled)
+
+	// Wait for both routines to exit before returning.
 	if readyWaitCh != nil {
 		select {
 		case <-readyWaitCh:
@@ -290,6 +295,7 @@ func (a *ProviderAccount) getSessionTransportForSession(sessionID string) *trans
 // getSessionChildBusForSession returns the live child bus, or nil when the
 // Session transport is absent, disabled, or already exited.
 func (a *ProviderAccount) getSessionChildBusForSession(sessionID string) bus.Bus {
+	// Return the live transport's child bus, or nil when it is gone.
 	var state *sessionTransportState
 	a.transportBcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		state = a.sessionTransports[sessionID]
@@ -330,6 +336,7 @@ func (a *ProviderAccount) GetTransportSnapshotWithWait() (bool, <-chan struct{})
 }
 
 func (a *ProviderAccount) getTransportSnapshotWithWaitForSession(sessionID string) (bool, <-chan struct{}) {
+	// Snapshot the transport presence and wait channel under the lock.
 	var running bool
 	var ch <-chan struct{}
 	a.transportBcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
@@ -351,6 +358,7 @@ func (a *ProviderAccount) stopSessionTransportForSession(
 	sessionID string,
 	target *sessionTransportState,
 ) error {
+	// Serialize transport replacement and stop under the cleanup context.
 	cleanupCtx, cleanupCancel := sessionTransportCleanupContext(ctx)
 	defer cleanupCancel()
 	rel, err := a.transportReplaceMtx.Lock(cleanupCtx)
@@ -366,6 +374,7 @@ func (a *ProviderAccount) stopSessionTransportLocked(
 	sessionID string,
 	target *sessionTransportState,
 ) error {
+	// Stop only the targeted transport state.
 	var sts *sessionTransportState
 	a.transportBcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		sts = a.sessionTransports[sessionID]
@@ -376,6 +385,8 @@ func (a *ProviderAccount) stopSessionTransportLocked(
 	if err := sts.Stop(ctx); err != nil {
 		return err
 	}
+
+	// Remove the stopped transport from the account map.
 	a.transportBcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		if a.sessionTransports[sessionID] == sts {
 			delete(a.sessionTransports, sessionID)

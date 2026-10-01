@@ -167,6 +167,8 @@ func adoptLegacyPendingUploads(ctx context.Context, tx kvtx.Tx) (bool, error) {
 	if summarized && !adopting {
 		return true, nil
 	}
+
+	// Load the queue summary to extend with adopted markers.
 	state := &PendingUploadState{}
 	if summarized {
 		if state, err = readPendingUploadState(ctx, tx); err != nil {
@@ -180,6 +182,8 @@ func adoptLegacyPendingUploads(ctx context.Context, tx kvtx.Tx) (bool, error) {
 		key  []byte
 		size int64
 	}
+
+	// Declare the legacy marker accumulator and start the dirty-marker iterator.
 	var legacy []legacyMarker
 	var last []byte
 	iter := tx.Iterate(ctx, []byte("dirty/"), true, false)
@@ -196,6 +200,8 @@ func adoptLegacyPendingUploads(ctx context.Context, tx kvtx.Tx) (bool, error) {
 			valid = iter.Next()
 		}
 	}
+
+	// Collect one batch of legacy markers before writing, so the iterator never observes its own mutations.
 	for valid && len(legacy) < pendingUploadMutationLimit {
 		last = bytes.Clone(iter.Key())
 		value, err := iter.Value()
@@ -213,6 +219,8 @@ func adoptLegacyPendingUploads(ctx context.Context, tx kvtx.Tx) (bool, error) {
 		}
 		valid = iter.Next()
 	}
+
+	// Close the iterator and stop when the queue has no unindexed markers.
 	err = iter.Err()
 	iter.Close()
 	if err != nil {
@@ -246,6 +254,8 @@ func adoptLegacyPendingUploads(ctx context.Context, tx kvtx.Tx) (bool, error) {
 		state.Count++
 		state.SizeBytes += marker.size
 	}
+
+	// Write the extended queue summary.
 	if err := writePendingUploadState(ctx, tx, state); err != nil {
 		return false, err
 	}

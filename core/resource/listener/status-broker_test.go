@@ -12,6 +12,8 @@ import (
 // zero-value state so a subscriber subscribing before the listener
 // controller runs sees listening=false and an empty socket path.
 func TestStatusBrokerInitialState(t *testing.T) {
+
+	// Create a fresh broker and read its initial snapshot.
 	b := NewStatusBroker()
 	snapshot, waitCh := b.Snapshot()
 	if snapshot.Listening {
@@ -34,6 +36,8 @@ func TestStatusBrokerInitialState(t *testing.T) {
 // can be published before Listening flips to true and that a single
 // subscriber observes the path + listening=false snapshot first.
 func TestStatusBrokerSetSocketPathBeforeListen(t *testing.T) {
+
+	// Create a broker and publish the socket path before listening.
 	b := NewStatusBroker()
 	b.SetSocketPath("/run/spacewave.sock")
 	snapshot, _ := b.Snapshot()
@@ -48,9 +52,12 @@ func TestStatusBrokerSetSocketPathBeforeListen(t *testing.T) {
 // TestStatusBrokerListenTransitions asserts the listen/stop
 // transitions broadcast and the snapshot reflects each step.
 func TestStatusBrokerListenTransitions(t *testing.T) {
+
+	// Create a broker with a published socket path.
 	b := NewStatusBroker()
 	b.SetSocketPath("/run/spacewave.sock")
 
+	// Subscribe, flip listening on, and expect the subscriber to wake.
 	_, waitCh := b.Snapshot()
 	b.SetListening(true)
 	select {
@@ -66,6 +73,7 @@ func TestStatusBrokerListenTransitions(t *testing.T) {
 		t.Fatalf("socket path lost: %q", snapshot.SocketPath)
 	}
 
+	// Add two clients and expect the subscriber to wake with count two.
 	b.AddClient()
 	b.AddClient()
 	select {
@@ -78,6 +86,7 @@ func TestStatusBrokerListenTransitions(t *testing.T) {
 		t.Fatalf("connected clients: %d", snapshot.ConnectedClients)
 	}
 
+	// Remove one client and expect the count to drop to one.
 	b.RemoveClient()
 	select {
 	case <-waitCh:
@@ -89,6 +98,7 @@ func TestStatusBrokerListenTransitions(t *testing.T) {
 		t.Fatalf("connected clients after one close: %d", snapshot.ConnectedClients)
 	}
 
+	// Stop listening and expect the state to reset.
 	b.SetListening(false)
 	select {
 	case <-waitCh:
@@ -107,6 +117,8 @@ func TestStatusBrokerListenTransitions(t *testing.T) {
 // TestStatusBrokerSetSocketPathIdempotent asserts that a no-op
 // SetSocketPath does not close the subscriber's wait channel.
 func TestStatusBrokerSetSocketPathIdempotent(t *testing.T) {
+
+	// Publish the socket path and subscribe before a no-op update.
 	b := NewStatusBroker()
 	b.SetSocketPath("/run/spacewave.sock")
 	_, waitCh := b.Snapshot()
@@ -121,6 +133,8 @@ func TestStatusBrokerSetSocketPathIdempotent(t *testing.T) {
 // TestStatusBrokerSetListeningIdempotent asserts that a no-op
 // SetListening does not close the subscriber's wait channel.
 func TestStatusBrokerSetListeningIdempotent(t *testing.T) {
+
+	// Enable listening and subscribe before a no-op update.
 	b := NewStatusBroker()
 	b.SetListening(true)
 	_, waitCh := b.Snapshot()
@@ -147,14 +161,19 @@ func TestStatusBrokerRemoveClientNoUnderflow(t *testing.T) {
 // subscribers each wake on state changes and observe consistent
 // snapshots.
 func TestStatusBrokerMultipleSubscribers(t *testing.T) {
+
+	// Create a broker with a published socket path.
 	b := NewStatusBroker()
 	b.SetSocketPath("/run/spacewave.sock")
 
+	// Subscribe two independent wait channels.
 	_, wA := b.Snapshot()
 	_, wB := b.Snapshot()
 
+	// Flip listening on and expect both subscribers to wake.
 	b.SetListening(true)
 
+	// Expect subscriber B to wake as well.
 	select {
 	case <-wA:
 	case <-time.After(time.Second):
@@ -166,6 +185,7 @@ func TestStatusBrokerMultipleSubscribers(t *testing.T) {
 		t.Fatalf("subscriber B did not wake")
 	}
 
+	// Compare the snapshots observed by both subscribers.
 	sA, _ := b.Snapshot()
 	sB, _ := b.Snapshot()
 	if sA != sB {
@@ -179,9 +199,12 @@ func TestStatusBrokerMultipleSubscribers(t *testing.T) {
 // TestStatusBrokerConcurrentClients asserts the counter stays
 // accurate under concurrent AddClient/RemoveClient pressure.
 func TestStatusBrokerConcurrentClients(t *testing.T) {
+
+	// Create a broker and enable listening.
 	b := NewStatusBroker()
 	b.SetListening(true)
 
+	// Add n clients concurrently and check the count.
 	const n = 200
 	var wg sync.WaitGroup
 	wg.Add(n)
@@ -197,6 +220,7 @@ func TestStatusBrokerConcurrentClients(t *testing.T) {
 		t.Fatalf("connected clients after %d adds: %d", n, snapshot.ConnectedClients)
 	}
 
+	// Remove n clients concurrently and check the count.
 	wg.Add(n)
 	for range n {
 		go func() {

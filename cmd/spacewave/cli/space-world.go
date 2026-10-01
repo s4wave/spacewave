@@ -48,6 +48,7 @@ func buildSpaceWorldChangelogCommand(statePath *string, sessionIdx *uint, spaceI
 			&cli.BoolFlag{Name: "show-changes", Usage: "print individual changes under each entry", Destination: &showChanges},
 		},
 		Action: func(c *cli.Context) error {
+			// Mount the space World engine on the daemon connection.
 			ctx := c.Context
 			engine, cleanup, sid, err := mountSpaceWorldEngine(ctx, c, *statePath, *sessionIdx, *spaceID)
 			if err != nil {
@@ -55,6 +56,7 @@ func buildSpaceWorldChangelogCommand(statePath *string, sessionIdx *uint, spaceI
 			}
 			defer cleanup()
 
+			// Read the current World root snapshot.
 			snapshot, err := engine.GetWorldRootSnapshot(ctx)
 			if err != nil {
 				return errors.Wrap(err, "get world root snapshot")
@@ -67,6 +69,7 @@ func buildSpaceWorldChangelogCommand(statePath *string, sessionIdx *uint, spaceI
 				return errors.Wrap(err, "read changelog")
 			}
 
+			// Mount the space World engine on the daemon connection.
 			w := os.Stdout
 			writeFields(w, [][2]string{
 				{"Space", sid},
@@ -88,6 +91,7 @@ func buildSpaceWorldChangelogCommand(statePath *string, sessionIdx *uint, spaceI
 			}
 			writeTable(w, "", rows)
 
+			// Mount the space World engine and read the World root snapshot.
 			if showChanges {
 				for _, entry := range entries {
 					w.WriteString("\nseqno " + strconv.FormatUint(entry.Seqno, 10) + " " + entry.ChangeType.String() + "\n")
@@ -122,6 +126,7 @@ func buildSpaceWorldRollbackPlanCommand(statePath *string, sessionIdx *uint, spa
 			&cli.BoolFlag{Name: "show-changes", Usage: "print individual changes needing attention", Destination: &showChanges},
 		},
 		Action: func(c *cli.Context) error {
+			// Connect to the daemon for the space World.
 			ctx := c.Context
 			engine, cleanup, sid, err := mountSpaceWorldEngine(ctx, c, *statePath, *sessionIdx, *spaceID)
 			if err != nil {
@@ -129,6 +134,7 @@ func buildSpaceWorldRollbackPlanCommand(statePath *string, sessionIdx *uint, spa
 			}
 			defer cleanup()
 
+			// Mount the requested session on the connection.
 			snapshot, err := engine.GetWorldRootSnapshot(ctx)
 			if err != nil {
 				return errors.Wrap(err, "get world root snapshot")
@@ -144,6 +150,7 @@ func buildSpaceWorldRollbackPlanCommand(statePath *string, sessionIdx *uint, spa
 				return errors.Wrap(err, "read changelog")
 			}
 
+			// Resolve the space ID and mount the space service.
 			stats := summarizeRollbackPlan(entries)
 			w := os.Stdout
 			writeFields(w, [][2]string{
@@ -166,6 +173,7 @@ func buildSpaceWorldRollbackPlanCommand(statePath *string, sessionIdx *uint, spa
 				w.WriteString("result: changelog entries are not sufficient for an exact forward revert plan\n")
 			}
 
+			// Access the World engine for the space.
 			if showChanges || stats.missing != 0 || stats.partial != 0 {
 				rows := [][]string{{"SEQNO", "TYPE", "KEY", "STATUS"}}
 				for _, entry := range entries {
@@ -197,17 +205,20 @@ func mountSpaceWorldEngine(
 	sessionIdx uint,
 	spaceID string,
 ) (*sdk_engine.SDKEngine, func(), string, error) {
+	// Summarize the undo-data status of each changelog change.
 	client, err := connectDaemonFromContext(ctx, c, statePath)
 	if err != nil {
 		return nil, nil, "", err
 	}
 
+	// Count the missing and partial undo-data statuses.
 	sess, err := client.mountSession(ctx, sessionIndex32(sessionIdx))
 	if err != nil {
 		client.close()
 		return nil, nil, "", err
 	}
 
+	// Summarize the undo-data status of each changelog change.
 	sid, err := client.resolveSpaceID(ctx, sess, spaceID)
 	if err != nil {
 		sess.Release()
@@ -221,6 +232,7 @@ func mountSpaceWorldEngine(
 		return nil, nil, "", err
 	}
 
+	// Summarize the undo-data status of each changelog change.
 	engine, engineCleanup, err := client.accessWorldEngine(ctx, spaceSvc)
 	if err != nil {
 		spaceCleanup()
@@ -263,6 +275,7 @@ func summarizeRollbackPlan(entries []*world_block.ChangeLogEntry) rollbackPlanSt
 }
 
 func changeLogEntryUndoDataStatus(entry *world_block.ChangeLogEntry) string {
+	// Summarize the undo-data status of each changelog change.
 	var missing, partial int
 	for _, change := range entry.Changes {
 		switch worldChangeUndoDataStatus(change) {

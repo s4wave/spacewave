@@ -59,16 +59,19 @@ func (w *FetchResponseWriter) WriteHeader(statusCode int) {
 
 // Write writes the data to the connection as part of an HTTP reply.
 func (w *FetchResponseWriter) Write(p []byte) (int, error) {
+	// Trace the body write when tracing is enabled.
 	if trace.IsEnabled() {
 		_, task := trace.NewTask(w.traceCtx, "bldr/web/fetch/serve-http/write-body")
 		defer task.End()
 	}
+
 	// write header if not already written
 	w.WriteHeader(200)
 	if w.err != nil {
 		return 0, w.err
 	}
 
+	// Stream the body in max-size data packets.
 	written := 0
 	for written < len(p) {
 		end := min(written+maxFetchResponseDataPacketBytes, len(p))

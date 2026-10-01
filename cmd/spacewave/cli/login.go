@@ -28,12 +28,14 @@ var (
 		username string,
 		password string,
 	) (*s4wave_provider_spacewave.LoginOrCreateAccountResponse, error) {
+		// Look up the Spacewave provider on the client.
 		swProv, cleanup, err := client.lookupSpacewaveProvider(ctx, providerID)
 		if err != nil {
 			return nil, errors.Wrap(err, "lookup spacewave provider")
 		}
 		defer cleanup()
 
+		// Log in or create the account with the username and password.
 		resp, err := swProv.LoginOrCreateAccount(ctx, username, password)
 		if err != nil {
 			return nil, err
@@ -46,12 +48,14 @@ var (
 		providerID string,
 		pemData []byte,
 	) (*session_pb.SessionListEntry, error) {
+		// Look up the Spacewave provider on the client.
 		swProv, cleanup, err := client.lookupSpacewaveProvider(ctx, providerID)
 		if err != nil {
 			return nil, errors.Wrap(err, "lookup spacewave provider")
 		}
 		defer cleanup()
 
+		// Log in with the PEM entity key.
 		resp, err := swProv.LoginWithEntityKey(ctx, pemData)
 		if err != nil {
 			return nil, err
@@ -64,12 +68,14 @@ var (
 		providerID string,
 		req *s4wave_provider_spacewave.StartBrowserHandoffRequest,
 	) (*session_pb.SessionListEntry, error) {
+		// Look up the Spacewave provider on the client.
 		swProv, cleanup, err := client.lookupSpacewaveProvider(ctx, providerID)
 		if err != nil {
 			return nil, errors.Wrap(err, "lookup spacewave provider")
 		}
 		defer cleanup()
 
+		// Start the browser handoff and return its session entry.
 		resp, err := swProv.StartBrowserHandoff(ctx, req)
 		if err != nil {
 			return nil, errors.Wrap(err, "start browser handoff")
@@ -80,6 +86,7 @@ var (
 
 // newLoginCommand builds the login command.
 func newLoginCommand(_ func() cli_entrypoint.CliBus) *cli.Command {
+	// Declare the shared client and PEM flags.
 	var statePath string
 	var sessionIdx uint
 	var useBrowser bool
@@ -135,10 +142,12 @@ func newLoginCommand(_ func() cli_entrypoint.CliBus) *cli.Command {
 }
 
 func runLoginChooser(c *cli.Context, statePath, outputFormat string) error {
+	// Reject non-interactive terminals before prompting.
 	if !term.IsTerminal(int(os.Stdin.Fd())) {
 		return errors.New("choose a login method: spacewave login browser, spacewave login local, spacewave login p2p, or spacewave login file <path>")
 	}
 
+	// Prompt the user to choose a login method and dispatch it.
 	choices := []string{
 		"Log in to Spacewave Cloud",
 		"Create a local account on this device",
@@ -203,6 +212,7 @@ func newLoginBrowserCommand() *cli.Command {
 
 // runLogin implements the login command logic.
 func runLogin(c *cli.Context, statePath, outputFormat, pemFile string) error {
+	// Dispatch to the PEM login flow when a PEM file is given.
 	providerID := c.String("provider-id")
 	if pemFile != "" {
 		if c.String("password") != "" {
@@ -215,6 +225,7 @@ func runLogin(c *cli.Context, statePath, outputFormat, pemFile string) error {
 		return runLoginWithEntityKey(c, statePath, outputFormat, providerID, pemData)
 	}
 
+	// Prompt for the username when not supplied.
 	username := c.String("username")
 	if username == "" {
 		os.Stderr.WriteString("Username: ")
@@ -232,6 +243,7 @@ func runLogin(c *cli.Context, statePath, outputFormat, pemFile string) error {
 		}
 	}
 
+	// Prompt for the password when not supplied.
 	password := c.String("password")
 	if password == "" {
 		os.Stderr.WriteString("Password: ")
@@ -246,18 +258,21 @@ func runLogin(c *cli.Context, statePath, outputFormat, pemFile string) error {
 		}
 	}
 
+	// Resolve the state path from the context or flag.
 	ctx := c.Context
 	resolved, err := loginResolveStatePath(c, statePath)
 	if err != nil {
 		return err
 	}
 
+	// Connect to the daemon with the resolved state path.
 	client, err := loginConnectDaemon(ctx, resolved)
 	if err != nil {
 		return err
 	}
 	defer loginCloseClient(client)
 
+	// Log in with the collected credentials.
 	resp, err := loginWithPassword(ctx, client, providerID, username, password)
 	if err != nil {
 		if isBrowserAuthRequired(err) {
@@ -273,11 +288,13 @@ func runLogin(c *cli.Context, statePath, outputFormat, pemFile string) error {
 		return errors.Wrap(err, "login")
 	}
 
+	// Extract the session list entry from the response.
 	entry := resp.GetSessionListEntry()
 	if outputFormat == "json" || outputFormat == "yaml" {
 		return printSessionListEntry(entry, outputFormat)
 	}
 
+	// Print the login result as text.
 	w := os.Stdout
 	action := "Logged in."
 	if resp.GetIsNewAccount() {
@@ -285,6 +302,7 @@ func runLogin(c *cli.Context, statePath, outputFormat, pemFile string) error {
 	}
 	w.WriteString(action + "\n\n")
 
+	// Print the session reference fields.
 	ref := entry.GetSessionRef().GetProviderResourceRef()
 	writeFields(w, [][2]string{
 		{"Provider", ref.GetProviderId()},
@@ -299,27 +317,32 @@ func runLoginWithEntityKey(
 	statePath, outputFormat, providerID string,
 	pemData []byte,
 ) error {
+	// Resolve the state path from the context or flag.
 	ctx := c.Context
 	resolved, err := loginResolveStatePath(c, statePath)
 	if err != nil {
 		return err
 	}
 
+	// Connect to the daemon with the resolved state path.
 	client, err := loginConnectDaemon(ctx, resolved)
 	if err != nil {
 		return err
 	}
 	defer loginCloseClient(client)
 
+	// Log in with the PEM entity key.
 	entry, err := loginWithEntityKey(ctx, client, providerID, pemData)
 	if err != nil {
 		return errors.Wrap(err, "login with entity key")
 	}
 
+	// Marshal the session entry as JSON or YAML when requested.
 	if outputFormat == "json" || outputFormat == "yaml" {
 		return printSessionListEntry(entry, outputFormat)
 	}
 
+	// Print the login result as text.
 	os.Stdout.WriteString("Logged in with PEM key.\n\n")
 	ref := entry.GetSessionRef().GetProviderResourceRef()
 	writeFields(os.Stdout, [][2]string{
@@ -349,24 +372,28 @@ func runLoginBrowserWithStreams(
 	statePath, outputFormat string,
 	stdout, stderr io.Writer,
 ) error {
+	// Resolve the state path from the context or flag.
 	ctx := c.Context
 	resolved, err := loginResolveStatePath(c, statePath)
 	if err != nil {
 		return err
 	}
 
+	// Connect to the daemon with the resolved state path.
 	client, err := loginConnectDaemon(ctx, resolved)
 	if err != nil {
 		return err
 	}
 	defer loginCloseClient(client)
 
+	// Read the provider ID and announce the browser flow.
 	providerID := c.String("provider-id")
 	_, err = stderr.Write([]byte("Opening browser for Spacewave CLI sign-in...\n"))
 	if err != nil {
 		return errors.Wrap(err, "write status")
 	}
 
+	// Start the browser handoff for login.
 	entry, err := loginBrowserHandoff(
 		ctx,
 		client,
@@ -381,15 +408,18 @@ func runLoginBrowserWithStreams(
 		return err
 	}
 
+	// Marshal the session entry as JSON or YAML when requested.
 	if outputFormat == "json" || outputFormat == "yaml" {
 		return printSessionListEntry(entry, outputFormat)
 	}
 
+	// Print the login result as text.
 	_, err = stdout.Write([]byte("Signed in via browser.\n\n"))
 	if err != nil {
 		return errors.Wrap(err, "write success")
 	}
 
+	// Print the session reference fields.
 	ref := entry.GetSessionRef().GetProviderResourceRef()
 	writeFields(stdout, [][2]string{
 		{"Provider", ref.GetProviderId()},
@@ -404,18 +434,21 @@ func runBrowserSignupWithStreams(
 	statePath, outputFormat string,
 	stdout, stderr io.Writer,
 ) error {
+	// Resolve the state path from the context or flag.
 	ctx := c.Context
 	resolved, err := loginResolveStatePath(c, statePath)
 	if err != nil {
 		return err
 	}
 
+	// Connect to the daemon with the resolved state path.
 	client, err := loginConnectDaemon(ctx, resolved)
 	if err != nil {
 		return err
 	}
 	defer loginCloseClient(client)
 
+	// Read the provider ID and announce the browser flow.
 	providerID := c.String("provider-id")
 	username := c.String("username")
 	_, err = stderr.Write([]byte("Opening browser for Spacewave CLI sign-up...\n"))
@@ -423,6 +456,7 @@ func runBrowserSignupWithStreams(
 		return errors.Wrap(err, "write status")
 	}
 
+	// Start the browser handoff for sign-up.
 	entry, err := loginBrowserHandoff(
 		ctx,
 		client,
@@ -437,15 +471,18 @@ func runBrowserSignupWithStreams(
 		return err
 	}
 
+	// Marshal the session entry as JSON or YAML when requested.
 	if outputFormat == "json" || outputFormat == "yaml" {
 		return printSessionListEntry(entry, outputFormat)
 	}
 
+	// Print the sign-up result as text.
 	_, err = stdout.Write([]byte("Browser sign-up complete.\n\n"))
 	if err != nil {
 		return errors.Wrap(err, "write success")
 	}
 
+	// Print the session reference fields.
 	ref := entry.GetSessionRef().GetProviderResourceRef()
 	writeFields(stdout, [][2]string{
 		{"Provider", ref.GetProviderId()},

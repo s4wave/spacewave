@@ -34,6 +34,7 @@ type TrackedWorldState struct {
 
 // NewTrackedWorldState creates a new TrackedWorldState.
 func NewTrackedWorldState(ws world.WorldState, watchWs world.WorldState, initialSeqno uint64, ctx context.Context) *TrackedWorldState {
+	// Construct the tracked state with an empty snapshot and change channel.
 	t := &TrackedWorldState{
 		ws:      ws,
 		watchWs: watchWs,
@@ -83,6 +84,7 @@ func (t *TrackedWorldState) WaitForChanges(ctx context.Context) error {
 // updateSnapshot publishes a deep copy of the current snapshot with updateFn applied.
 // The previously published snapshot is never mutated.
 func (t *TrackedWorldState) updateSnapshot(updateFn func(*s4wave_world.TrackedWorldStateSnapshot)) {
+	// Lock the snapshot for the copy-and-publish update.
 	t.mtx.Lock()
 	defer t.mtx.Unlock()
 
@@ -175,6 +177,7 @@ func (t *TrackedWorldState) GetSeqno(ctx context.Context) (uint64, error) {
 
 // GetObjectBodiesBatchPage forwards budgeted body paging to the wrapped state.
 func (t *TrackedWorldState) GetObjectBodiesBatchPage(ctx context.Context, keys []string, byteBudget int) ([]*world.ObjectBody, uint32, error) {
+	// Page bodies through the wrapped state's batcher when available.
 	var (
 		bodies   []*world.ObjectBody
 		consumed uint32
@@ -194,6 +197,7 @@ func (t *TrackedWorldState) GetObjectBodiesBatchPage(ctx context.Context, keys [
 
 // GetObjectBodiesBatchPageWithSeqno forwards body paging and the wrapped transaction seqno.
 func (t *TrackedWorldState) GetObjectBodiesBatchPageWithSeqno(ctx context.Context, keys []string, byteBudget int) ([]*world.ObjectBody, uint32, uint64, error) {
+	// Page bodies and read the wrapped transaction seqno.
 	var (
 		bodies   []*world.ObjectBody
 		consumed uint32
@@ -375,6 +379,7 @@ func watchTrackedChanges(ctx context.Context, snapshot *s4wave_world.TrackedWorl
 // checkTrackedChanges checks if any tracked resources have changed.
 // Returns true if any change detected, false if all unchanged.
 func checkTrackedChanges(ctx context.Context, snapshot *s4wave_world.TrackedWorldStateSnapshot, ws world.WorldState) (bool, error) {
+	// Collect the tracked object keys and read their current root refs.
 	keys := make([]string, len(snapshot.ObjectAccesses))
 	for i, objAccess := range snapshot.ObjectAccesses {
 		keys[i] = objAccess.Key

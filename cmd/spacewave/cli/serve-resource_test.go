@@ -17,6 +17,7 @@ import (
 // TestLookupLocalResourceInvokerSelectsRegisteredService pins the CLI path to
 // the in-process Resource service and retains its directive reference.
 func TestLookupLocalResourceInvokerSelectsRegisteredService(t *testing.T) {
+	// Create the controller bus.
 	ctx := t.Context()
 	le := logrus.NewEntry(logrus.New())
 	b, _, err := controllerbus_core.NewCoreBus(ctx, le)
@@ -24,6 +25,7 @@ func TestLookupLocalResourceInvokerSelectsRegisteredService(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Register the Resource server and invoker controller.
 	mux := srpc.NewMux()
 	if err := resource_server.NewResourceServer(nil).Register(mux); err != nil {
 		t.Fatal(err)
@@ -41,6 +43,7 @@ func TestLookupLocalResourceInvokerSelectsRegisteredService(t *testing.T) {
 	}
 	defer rel()
 
+	// Look up the local Resource invoker and release its reference.
 	invoker, invokerRef, err := lookupLocalResourceInvoker(ctx, b)
 	if err != nil {
 		t.Fatal(err)

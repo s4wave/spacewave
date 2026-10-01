@@ -15,12 +15,17 @@ import (
 func TestBlockDeletionInvalidatesPublicationProofs(t *testing.T) {
 	for _, batch := range []bool{false, true} {
 		t.Run(map[bool]string{false: "remove", true: "batch"}[batch], func(t *testing.T) {
+			// Build a BlockStore whose publication proofs live in a separate cache.
 			ctx := t.Context()
+
+			// Wrap a mock block store with a publication proof cache.
 			cache := newSyncTestKvStore()
 			store := &BlockStore{
 				store:     block_store.NewStore("test", block_mock.NewMockStore(0)),
 				retention: &blockPublicationRetention{store: cache},
 			}
+
+			// Put a block and record a false closure proof for its parent.
 			ref, _, err := store.PutBlock(ctx, []byte("retained"), nil)
 			if err != nil {
 				t.Fatal(err)
@@ -32,6 +37,8 @@ func TestBlockDeletionInvalidatesPublicationProofs(t *testing.T) {
 			}); err != nil {
 				t.Fatal(err)
 			}
+
+			// Delete the block through the batch or single-block entry point.
 			if batch {
 				err = store.PutBlockBatch(ctx, []*block.PutBatchEntry{{Ref: ref, Tombstone: true}})
 			} else {
@@ -40,6 +47,8 @@ func TestBlockDeletionInvalidatesPublicationProofs(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
+
+			// The proof for the deleted block's parent must be gone.
 			tx, err := cache.NewTransaction(ctx, false)
 			if err != nil {
 				t.Fatal(err)

@@ -69,18 +69,19 @@ func (t *TxObjectSet) ExecuteTx(
 	lookupWorldOp world.LookupOp,
 	worldInstance world.WorldState,
 ) (sysErr bool, rerr error) {
+	// Validate the transaction before touching the World.
 	if err := t.Validate(); err != nil {
 		return false, err
 	}
 
-	// get the object
+	// Fetch the target object and hold its state for release.
 	obj, err := world.MustGetObject(ctx, worldInstance, t.GetObjectKey())
 	defer world.ReleaseObjectState(obj)
 	if err != nil {
 		return false, err
 	}
 
-	// set the root ref
+	// Set the object's root reference to the transaction's root ref.
 	_, err = obj.SetRootRef(ctx, t.GetRootRef())
 	return false, err
 }

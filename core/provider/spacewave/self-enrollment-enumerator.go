@@ -21,11 +21,14 @@ type SelfEnrollmentSummary struct {
 }
 
 func (a *ProviderAccount) RefreshSelfEnrollmentSummary(ctx context.Context) (rerr error) {
+	// Clear the summary when the cloud reports an unauthenticated error.
 	defer func() {
 		if isUnauthCloudError(rerr) {
 			_ = a.setSelfEnrollmentSummary(nil)
 		}
 	}()
+
+	// Read the cached shared object list when the controller is available.
 	if err := ctx.Err(); err != nil {
 		return err
 	}
@@ -33,6 +36,8 @@ func (a *ProviderAccount) RefreshSelfEnrollmentSummary(ctx context.Context) (rer
 		return a.setSelfEnrollmentSummary(nil)
 	}
 	list := a.soListCtr.GetValue()
+
+	// Load the shared object list when it is not yet available.
 	if list == nil {
 		if !a.hasSharedObjectListAccess() {
 			return a.setSelfEnrollmentSummary(&SelfEnrollmentSummary{loaded: true})
@@ -45,6 +50,8 @@ func (a *ProviderAccount) RefreshSelfEnrollmentSummary(ctx context.Context) (rer
 			return a.setSelfEnrollmentSummary(nil)
 		}
 	}
+
+	// Enumerate enrollment candidates for the current session and entity.
 	sessionPeerID := a.GetCurrentSessionPeerID()
 	if sessionPeerID == "" {
 		return a.setSelfEnrollmentSummary(nil)
@@ -113,9 +120,12 @@ func (a *ProviderAccount) enumerateSelfEnrollmentCandidates(
 	sessionPeerID peer.ID,
 	entityID string,
 ) (*SelfEnrollmentSummary, error) {
+	// Check the context before enumerating candidates.
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
+
+	// Check the context and collect candidate shared object IDs.
 	loaded := true
 	var ids []string
 	for _, entry := range list.GetSharedObjects() {
@@ -142,6 +152,8 @@ func (a *ProviderAccount) enumerateSelfEnrollmentCandidates(
 		}
 		ids = append(ids, soID)
 	}
+
+	// Sort the IDs and build the generation key.
 	slices.Sort(ids)
 	var key string
 	if loaded {
@@ -165,6 +177,7 @@ func (a *ProviderAccount) refreshSelfEnrollmentSummary(ctx context.Context) {
 }
 
 func (a *ProviderAccount) setSelfEnrollmentSummary(summary *SelfEnrollmentSummary) error {
+	// Store the summary and auto-start a run when the set changed.
 	next := summary.clone()
 	var shouldRun bool
 	a.accountBcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
@@ -206,10 +219,13 @@ func equalSelfEnrollmentSummary(a, b *SelfEnrollmentSummary) bool {
 func (a *ProviderAccount) isSelfEnrollmentExcludedSharedObject(
 	entry *sobject.SharedObjectListEntry,
 ) bool {
+	// Exclude entries without a usable provider resource ref.
 	ref := entry.GetRef()
 	if ref == nil || ref.GetProviderResourceRef() == nil {
 		return true
 	}
+
+	// Exclude the CDN space and CDN-typed bodies.
 	soID := ref.GetProviderResourceRef().GetId()
 	if soID == "" || soID == cdn.SpaceID() {
 		return true
@@ -226,6 +242,7 @@ func (a *ProviderAccount) isSelfEnrollmentExcludedSharedObject(
 }
 
 func buildSelfEnrollmentGenerationKey(ids []string, sessionPeerID peer.ID) string {
+	// Hash each ID and the session peer into a generation key.
 	if len(ids) == 0 {
 		return ""
 	}

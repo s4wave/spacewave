@@ -61,6 +61,7 @@ func (m *MarkingStore) BeginReadOperation(ctx context.Context) (block.StoreOps, 
 
 // PutBlock stores a block and marks it, even when it already existed.
 func (m *MarkingStore) PutBlock(ctx context.Context, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
+	// Store the block, then mark it when the write landed.
 	ref, existed, err := m.store.PutBlock(ctx, data, opts)
 	if err == nil && !ref.GetEmpty() {
 		err = m.mark(ctx, []Mark{{Hash: ref.GetHash(), Size: int64(len(data))}})
@@ -71,10 +72,12 @@ func (m *MarkingStore) PutBlock(ctx context.Context, data []byte, opts *block.Pu
 // PutBlockBatch marks every successful non-tombstone write in one call.
 // A failed marker returns an error; repeating the batch repairs the markers.
 func (m *MarkingStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) error {
+	// Write the batch to the inner store first.
 	if err := m.store.PutBlockBatch(ctx, entries); err != nil {
 		return err
 	}
 
+	// Collect marks for every successful non-tombstone entry.
 	marks := make([]Mark, 0, len(entries))
 	for _, entry := range entries {
 		if entry == nil {

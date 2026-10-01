@@ -8,6 +8,8 @@ import (
 )
 
 func TestRemoteWebWorkerStatusCarriesGenerationState(t *testing.T) {
+
+	// Record r.
 	r := &Remote{
 		documentID:  "document-1",
 		le:          logrus.NewEntry(logrus.New()),
@@ -15,6 +17,7 @@ func TestRemoteWebWorkerStatusCarriesGenerationState(t *testing.T) {
 		snapshotCtr: ccontainer.NewCContainer[*WebDocumentStatus](nil),
 	}
 
+	// handleWebWorkerStatuses dirty,err.
 	dirty, err := r.handleWebWorkerStatuses(false, []*WebWorkerStatus{{
 		Id:              "worker-1",
 		Shared:          true,
@@ -27,6 +30,7 @@ func TestRemoteWebWorkerStatusCarriesGenerationState(t *testing.T) {
 		t.Fatal("expected worker generation status to dirty remote state")
 	}
 
+	// updateStatusSnapshot.
 	r.updateStatusSnapshot()
 	status := r.snapshotCtr.GetValue()
 	if got := len(status.GetWebWorkers()); got != 1 {
@@ -37,6 +41,7 @@ func TestRemoteWebWorkerStatusCarriesGenerationState(t *testing.T) {
 		t.Fatalf("unexpected generation state: got %s want %s", got, want)
 	}
 
+	// handleWebWorkerStatuses dirty,err.
 	dirty, err = r.handleWebWorkerStatuses(false, []*WebWorkerStatus{{
 		Id:              "worker-1",
 		Shared:          true,
@@ -50,6 +55,7 @@ func TestRemoteWebWorkerStatusCarriesGenerationState(t *testing.T) {
 		t.Fatal("expected running generation status to dirty remote state")
 	}
 
+	// updateStatusSnapshot.
 	r.updateStatusSnapshot()
 	status = r.snapshotCtr.GetValue()
 	worker = status.GetWebWorkers()[0]
@@ -62,6 +68,8 @@ func TestRemoteWebWorkerStatusCarriesGenerationState(t *testing.T) {
 }
 
 func TestRemoteWebWorkerStatusPreservesDeletedGenerationEventOnce(t *testing.T) {
+
+	// Record r.
 	r := &Remote{
 		documentID:  "document-1",
 		le:          logrus.NewEntry(logrus.New()),
@@ -69,6 +77,7 @@ func TestRemoteWebWorkerStatusPreservesDeletedGenerationEventOnce(t *testing.T) 
 		snapshotCtr: ccontainer.NewCContainer[*WebDocumentStatus](nil),
 	}
 
+	// Check the condition before continuing.
 	if _, err := r.handleWebWorkerStatuses(false, []*WebWorkerStatus{{
 		Id:              "worker-1",
 		GenerationState: WebWorkerGenerationState_WEB_WORKER_GENERATION_STATE_STARTUP_RUNNING,
@@ -76,6 +85,7 @@ func TestRemoteWebWorkerStatusPreservesDeletedGenerationEventOnce(t *testing.T) 
 		t.Fatal(err)
 	}
 
+	// handleWebWorkerStatuses dirty,err.
 	dirty, err := r.handleWebWorkerStatuses(false, []*WebWorkerStatus{{
 		Id:              "worker-1",
 		Deleted:         true,
@@ -89,6 +99,7 @@ func TestRemoteWebWorkerStatusPreservesDeletedGenerationEventOnce(t *testing.T) 
 		t.Fatal("expected deleted worker generation status to dirty remote state")
 	}
 
+	// updateStatusSnapshot.
 	r.updateStatusSnapshot()
 	status := r.snapshotCtr.GetValue()
 	if got := len(status.GetWebWorkers()); got != 1 {
@@ -108,6 +119,7 @@ func TestRemoteWebWorkerStatusPreservesDeletedGenerationEventOnce(t *testing.T) 
 		t.Fatalf("unexpected failure reason: got %q want %q", got, want)
 	}
 
+	// updateStatusSnapshot.
 	r.updateStatusSnapshot()
 	status = r.snapshotCtr.GetValue()
 	if got := len(status.GetWebWorkers()); got != 0 {
@@ -116,6 +128,8 @@ func TestRemoteWebWorkerStatusPreservesDeletedGenerationEventOnce(t *testing.T) 
 }
 
 func TestRemoteWebWorkerStaleGenerationDoesNotReplaceOrDeleteCurrentHandle(t *testing.T) {
+
+	// Record r.
 	r := &Remote{
 		documentID:  "document-1",
 		le:          logrus.NewEntry(logrus.New()),
@@ -123,6 +137,7 @@ func TestRemoteWebWorkerStaleGenerationDoesNotReplaceOrDeleteCurrentHandle(t *te
 		snapshotCtr: ccontainer.NewCContainer[*WebDocumentStatus](nil),
 	}
 
+	// Check the condition before continuing.
 	if _, err := r.handleWebWorkerStatuses(false, []*WebWorkerStatus{{
 		Id:         "worker-1",
 		Generation: "generation-a",
@@ -131,6 +146,7 @@ func TestRemoteWebWorkerStaleGenerationDoesNotReplaceOrDeleteCurrentHandle(t *te
 	}
 	_, stale := r.lookupRemoteWebWorker("worker-1")
 
+	// Check the condition before continuing.
 	if _, err := r.handleWebWorkerStatuses(false, []*WebWorkerStatus{{
 		Id:         "worker-1",
 		Generation: "generation-b",
@@ -148,6 +164,7 @@ func TestRemoteWebWorkerStaleGenerationDoesNotReplaceOrDeleteCurrentHandle(t *te
 		t.Fatalf("current handle generation = %q, want %q", got, want)
 	}
 
+	// Check the condition before continuing.
 	if _, err := r.handleWebWorkerStatuses(false, []*WebWorkerStatus{{
 		Id:         "worker-1",
 		Generation: "generation-a",

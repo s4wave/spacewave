@@ -43,12 +43,15 @@ func (o *CreateGitRepoWizardOp) ApplyWorldOp(
 	ws world.WorldState,
 	sender peer.ID,
 ) (sysErr bool, err error) {
+	// Read the target object key from the operation.
 	objKey := o.GetObjectKey()
 
+	// Reject clone requests until import support lands.
 	if o.GetClone() {
 		return false, errors.New("clone must be imported before applying create git repo op")
 	}
 
+	// Build the worktree and init operations for the new repository.
 	worktreeOp := &git_world.GitCreateWorktreeOp{
 		ObjectKey:       objKey + "/worktree",
 		CreateWorkdir:   true,

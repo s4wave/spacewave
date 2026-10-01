@@ -47,10 +47,13 @@ type messageStream struct {
 // newMessageStream binds the message plane of control and registers it to
 // receive the link's datagrams.
 func (l *Link) newMessageStream(control *quic.Stream) (*messageStream, error) {
+	// Reject the stream when either peer disabled QUIC datagrams.
 	state := l.sess.ConnectionState()
 	if !state.SupportsDatagrams.Local || !state.SupportsDatagrams.Remote {
 		return nil, ErrDatagramsUnsupported
 	}
+
+	// Build the message stream and register it by datagram prefix.
 	s := &messageStream{
 		link:          l,
 		control:       control,
@@ -60,6 +63,8 @@ func (l *Link) newMessageStream(control *quic.Stream) (*messageStream, error) {
 		readDeadline:  deadline.New(),
 		writeDeadline: deadline.New(),
 	}
+
+	// Start the datagram receiver once for the link.
 	l.messagesMtx.Lock()
 	l.messages[string(s.prefix)] = s
 	l.messagesMtx.Unlock()
@@ -170,6 +175,7 @@ func (s *messageStream) SetDeadline(t time.Time) error {
 // Close stops the message plane and closes the control stream.
 func (s *messageStream) Close() error {
 	s.closeOnce.Do(func() {
+		// Close the message plane and deregister the stream.
 		close(s.closed)
 		s.link.messagesMtx.Lock()
 		delete(s.link.messages, string(s.prefix))

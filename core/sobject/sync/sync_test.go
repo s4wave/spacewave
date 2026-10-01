@@ -9,6 +9,8 @@ import (
 )
 
 func TestSOSyncMessageSnapshotRoundtrip(t *testing.T) {
+
+	// Record msg.
 	msg := &SOSyncMessage{
 		Body: &SOSyncMessage_Snapshot{
 			Snapshot: &SOSyncSnapshot{
@@ -18,16 +20,19 @@ func TestSOSyncMessageSnapshotRoundtrip(t *testing.T) {
 		},
 	}
 
+	// marshalVT data,err via msg.
 	data, err := msg.MarshalVT()
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	// Record decoded.
 	decoded := &SOSyncMessage{}
 	if err := decoded.UnmarshalVT(data); err != nil {
 		t.Fatal(err)
 	}
 
+	// getSnapshot snap via decoded.
 	snap := decoded.GetSnapshot()
 	if snap == nil {
 		t.Fatal("expected snapshot body")
@@ -41,6 +46,8 @@ func TestSOSyncMessageSnapshotRoundtrip(t *testing.T) {
 }
 
 func TestSOSyncMessageOpRoundtrip(t *testing.T) {
+
+	// Record msg.
 	msg := &SOSyncMessage{
 		Body: &SOSyncMessage_Op{
 			Op: &SOSyncOp{
@@ -51,16 +58,19 @@ func TestSOSyncMessageOpRoundtrip(t *testing.T) {
 		},
 	}
 
+	// marshalVT data,err via msg.
 	data, err := msg.MarshalVT()
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	// Record decoded.
 	decoded := &SOSyncMessage{}
 	if err := decoded.UnmarshalVT(data); err != nil {
 		t.Fatal(err)
 	}
 
+	// getOp op via decoded.
 	op := decoded.GetOp()
 	if op == nil {
 		t.Fatal("expected op body")
@@ -77,6 +87,8 @@ func TestSOSyncMessageOpRoundtrip(t *testing.T) {
 }
 
 func TestSOSyncMessageAckRoundtrip(t *testing.T) {
+
+	// Record msg.
 	msg := &SOSyncMessage{
 		Body: &SOSyncMessage_Ack{
 			Ack: &SOSyncAck{
@@ -85,16 +97,19 @@ func TestSOSyncMessageAckRoundtrip(t *testing.T) {
 		},
 	}
 
+	// marshalVT data,err via msg.
 	data, err := msg.MarshalVT()
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	// Record decoded.
 	decoded := &SOSyncMessage{}
 	if err := decoded.UnmarshalVT(data); err != nil {
 		t.Fatal(err)
 	}
 
+	// getAck ack via decoded.
 	ack := decoded.GetAck()
 	if ack == nil {
 		t.Fatal("expected ack body")
@@ -135,6 +150,8 @@ func TestSOSyncMessageOneofDispatch(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+
+			// marshalVT data,err via tt.
 			data, err := tt.msg.MarshalVT()
 			if err != nil {
 				t.Fatal(err)
@@ -144,6 +161,7 @@ func TestSOSyncMessageOneofDispatch(t *testing.T) {
 				t.Fatal(err)
 			}
 
+			// Perform the action.
 			var got string
 			switch decoded.GetBody().(type) {
 			case *SOSyncMessage_Snapshot:
@@ -167,6 +185,8 @@ func TestSyncProtocolID(t *testing.T) {
 }
 
 func TestNewSOSync(t *testing.T) {
+
+	// newEntry le via logrus.
 	le := logrus.NewEntry(logrus.New())
 	le.Logger.SetOutput(io.Discard)
 	s := NewSOSync(le, nil, "test-so-id", peer.ID("test-peer"), nil, nil, nil)

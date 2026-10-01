@@ -25,6 +25,7 @@ func TestOpenNestedWorldResourceRelease(t *testing.T) {
 	tb, cleanup := setupWorldTestbed(ctx, t)
 	defer cleanup()
 
+	// importSnapshot snapshot,err via world_block.
 	snapshot, err := world_block.ImportSnapshot(ctx, tb.Engine, maps.All(map[string]block.Block{
 		"inner": block_mock.NewExample("content"),
 	}), nil)
@@ -34,6 +35,8 @@ func TestOpenNestedWorldResourceRelease(t *testing.T) {
 	const key = "other-app/outer"
 	const ordinaryKey = "other-app/ordinary"
 	if err := world.ExecTransaction(ctx, tb.Engine, true, func(ctx context.Context, state world.WorldState) error {
+
+		// accessWorldObject _,_,err via world.
 		_, _, err := world.AccessWorldObject(ctx, state, key, true, func(cursor *block.Cursor) error {
 			nested, err := world_block.NewNestedWorld(tb.EngineBucketID, snapshot, nil)
 			if err != nil {
@@ -68,6 +71,8 @@ func TestOpenNestedWorldResourceRelease(t *testing.T) {
 	resources := &worldStateOperationResourceContext{ctx: ctx}
 	resourceCtx := resource_server.WithResourceClientContext(ctx, resources)
 	r := resource_world.NewEngineWorldStateResource(tb.Logger, nil, tx, nil, tb.Engine)
+
+	// Abort if resource_world newEngineWorldStateResource fails.
 	if _, err := r.OpenNestedWorld(resourceCtx, &s4wave_world.OpenNestedWorldRequest{ObjectKey: ordinaryKey}); err == nil {
 		t.Fatal("opened ordinary typed object as nested World")
 	}
@@ -82,6 +87,7 @@ func TestOpenNestedWorldResourceRelease(t *testing.T) {
 	if len(resources.releases) != 1 {
 		t.Fatalf("nested resources = %d, want 1", len(resources.releases))
 	}
+
 	// The nested snapshot remains readable after its outer transaction ends.
 	client, err := resources.GetAttachedResource(resp.GetResourceId())
 	if err != nil {
@@ -98,6 +104,7 @@ func TestOpenNestedWorldResourceRelease(t *testing.T) {
 	if _, err := service.GetSeqno(resourceCtx, &s4wave_world.GetSeqnoRequest{}); err != nil {
 		t.Fatalf("nested state after outer discard: %v", err)
 	}
+
 	// Releasing the registered resource runs its snapshot cleanup.
 	if !resources.ReleaseResource(resp.GetResourceId()) || len(resources.releases) != 0 {
 		t.Fatalf("nested resource not released: %d retained", len(resources.releases))

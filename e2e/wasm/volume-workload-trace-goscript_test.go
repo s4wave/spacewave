@@ -18,22 +18,25 @@ const volumeWorkloadGCWait = 65 * time.Second
 // delete. Each trace carries the volume workload records the browser storage
 // engine replays; see db/volume/workload.
 func TestGoScriptVolumeWorkloadTraces(t *testing.T) {
+	// Skip the trace capture when the trace service is unavailable.
 	skipTraceServiceWhenDisabled(t)
 
+	// Open a clean session and watch its console for crashes.
 	sess := harness(t).NewCleanSession(t)
 	console, stopConsole := sess.WatchConsole()
 	defer stopConsole()
 
+	// Create a drive and wait for it to become ready.
 	scenario := CreateDriveScenario(t, harness(t), sess)
 	page := scenario.GetSession().Page()
 	WaitForDriveReady(t, harness(t), page)
-
 	ctx, cancel := context.WithTimeout(t.Context(), 110*time.Second)
 	defer cancel()
 
 	// capture brackets one interaction and writes its trace beside the
 	// test's other artifacts.
 	capture := func(name string, fn func()) {
+		// Capture the trace for the named interaction and write its artifact.
 		data, err := sess.CaptureTrace(ctx, "volume-workload-"+name, func(context.Context) error {
 			fn()
 			return nil
@@ -72,6 +75,7 @@ func TestGoScriptVolumeWorkloadTraces(t *testing.T) {
 		}
 	})
 
+	// The workload traces must not record a crash or an exited Go loop.
 	report := DrainCrashReport(console)
 	if report.HasCrash() {
 		t.Fatalf("unexpected browser/WASM crash report during workload traces: %+v", report)

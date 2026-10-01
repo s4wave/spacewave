@@ -10,6 +10,7 @@ import (
 )
 
 func TestLookupPassReleasesObjectState(t *testing.T) {
+	// Start a World testbed and create a Pass object.
 	ctx := t.Context()
 	wtb, err := world_testbed.Default(ctx, world_testbed.WithWorldVerbose(false))
 	if err != nil {
@@ -17,6 +18,7 @@ func TestLookupPassReleasesObjectState(t *testing.T) {
 	}
 	defer wtb.Release()
 
+	// Create a Pass object in the World.
 	const key = "forge/pass/lookup-release"
 	var createdObject world.ObjectState
 	createdObject, _, err = world.CreateWorldObject(ctx, wtb.WorldState, key, func(bcs *block.Cursor) error {
@@ -28,6 +30,7 @@ func TestLookupPassReleasesObjectState(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Verify repeated lookups release the object state each time.
 	wrapped := &lookupReleaseWorldState{WorldState: wtb.WorldState}
 	for range 3 {
 		pass, target, err := LookupPass(ctx, wrapped, key)
@@ -45,6 +48,7 @@ func TestLookupPassReleasesObjectState(t *testing.T) {
 		t.Fatalf("expected repeated lookups to release once each, got %d", wrapped.releases)
 	}
 
+	// Verify a decode error still releases the object state once.
 	const badKey = "forge/pass/lookup-release-bad"
 	var createdObject2 world.ObjectState
 	createdObject2, _, err = world.CreateWorldObject(ctx, wtb.WorldState, badKey, func(bcs *block.Cursor) error {
@@ -63,6 +67,7 @@ func TestLookupPassReleasesObjectState(t *testing.T) {
 		t.Fatalf("expected decode error to release once, got %d", wrapped.releases)
 	}
 
+	// Verify a missing object releases no object state.
 	wrapped.releases = 0
 	if _, _, err := LookupPass(ctx, wrapped, "forge/pass/lookup-release-missing"); err == nil {
 		t.Fatal("expected not-found error")

@@ -73,6 +73,7 @@ func NewWebHostController(
 	b bus.Bus,
 	c *Config,
 ) (*host_controller.Controller, *WebHost, error) {
+	// Validate the config and construct the WebHost controller.
 	if err := c.Validate(); err != nil {
 		return nil, nil, err
 	}
@@ -119,6 +120,7 @@ func (h *WebHost) ExecutePlugin(
 	hostMux srpc.Mux,
 	rpcInit plugin_host.PluginRpcInitCb,
 ) error {
+	// Set up the plugin execution context and the fatal error channel.
 	ctx, ctxCancel := context.WithCancel(rctx)
 	defer ctxCancel()
 	fatalErrCh := make(chan error, 1)
@@ -160,6 +162,7 @@ func (h *WebHost) ExecutePlugin(
 		WithField("entrypoint", entrypoint).
 		Debug("web plugin entrypoint lookup complete")
 
+	// Read the entrypoint file info and release the lookup handle.
 	le.
 		WithField("entrypoint", entrypoint).
 		Debug("reading web plugin entrypoint file info")
@@ -173,6 +176,7 @@ func (h *WebHost) ExecutePlugin(
 		WithField("mode", entrypointFi.Mode().String()).
 		Debug("web plugin entrypoint file info ready")
 
+	// Reject entrypoints that are not regular executable files.
 	entrypointFiMode := entrypointFi.Mode()
 	if !entrypointFiMode.IsRegular() {
 		return errors.Errorf("entrypoint must be an executable regular file: %s", entrypointFiMode.String())
@@ -195,6 +199,7 @@ func (h *WebHost) ExecutePlugin(
 	}
 	pluginWebWorkerPath := plugin.PluginDistHTTPPath(plugin.PluginArtifactID(pluginID, manifestRoot), entrypoint)
 
+	// Look up the web runtime and hold its reference for the plugin lifetime.
 	le.
 		WithField("web-runtime", h.webRuntimeID).
 		Debug("looking up web runtime for plugin")
@@ -207,6 +212,7 @@ func (h *WebHost) ExecutePlugin(
 		WithField("web-runtime", h.webRuntimeID).
 		Debug("web runtime lookup complete for plugin")
 
+	// Log the HTTP path the plugin entrypoint will execute from.
 	h.le.
 		WithField("entrypoint", entrypoint).
 		WithField("web-runtime", h.webRuntimeID).
@@ -250,6 +256,7 @@ func (h *WebHost) ExecutePlugin(
 	//    - When that 1 instance exits, mark not running, then restart all web doc trackers.
 	// If any web documents cannot create shared workers, assume all cannot.
 
+	// Track dedicated worker ownership and shared RPC readiness state.
 	var workerOwner dedicatedWorkerOwner
 	var rpcReadyPublished bool
 	var cmtx csync.Mutex
@@ -262,7 +269,9 @@ func (h *WebHost) ExecutePlugin(
 		})
 	}
 
+	// Create the web worker on one web document, publishing the RPC client once.
 	createWorkerWithDoc := func(ctx context.Context, doc web_document.WebDocument) error {
+		// Lock the shared creation mutex for the whole worker creation attempt.
 		unlock, err := cmtx.Lock(ctx)
 		if err != nil {
 			return err
@@ -274,6 +283,7 @@ func (h *WebHost) ExecutePlugin(
 			}
 		}()
 
+		// Ask the dedicatedWorkerOwner whether this document should create the worker.
 		webDocumentID := doc.GetWebDocumentUuid()
 		create, wake := workerOwner.beginCreate(webDocumentID)
 		if wake {
@@ -283,6 +293,7 @@ func (h *WebHost) ExecutePlugin(
 			return nil
 		}
 
+		// Build the per-document logger and select the requested worker mode.
 		le := h.le.
 			WithFields(logrus.Fields{
 				"web-document": webDocumentID,
@@ -290,6 +301,7 @@ func (h *WebHost) ExecutePlugin(
 				"web-worker":   pluginWebWorkerID,
 			})
 		le.Debug("creating web worker")
+
 		// When forceDedicatedWorkers is set, use DedicatedWorker.
 		// Otherwise, send WORKER_MODE_DEFAULT so the browser-side
 		// detectWorkerCommsConfig() selects the best mode.
@@ -297,6 +309,8 @@ func (h *WebHost) ExecutePlugin(
 		if h.forceDedicatedWorkers {
 			workerMode = web_document.WebWorkerMode_WORKER_MODE_DEDICATED
 		}
+
+		// Create the web worker on the document and handle creation failures.
 		createdWorker, err := doc.CreateWebWorker(ctx, &web_document.CreateWebWorkerRequest{
 			Id:         pluginWebWorkerID,
 			Path:       pluginWebWorkerPath,
@@ -309,22 +323,27 @@ func (h *WebHost) ExecutePlugin(
 			le.WithError(err).Warn("unable to create web worker")
 			return err
 		}
+
 		// A document without worker ownership waits for its next readiness update.
 		if createdWorker == nil {
 			workerOwner.observeCreateSkipped(webDocumentID, doc.GetWebDocumentStatusCtr().GetValue().GetHidden())
 			return nil
 		}
 
+		// Record the created worker and release the shared creation lock.
 		createdShared := createdWorker.GetShared()
 		le.
 			WithField("web-worker-shared", createdShared).
 			Debug("successfully created web worker")
 
+		// Record the created worker ownership and release the shared creation lock.
 		workerOwner.observeCreatedWorker(webDocumentID, createdShared)
 
+		// Release the shared creation mutex after the worker is recorded.
 		unlock()
 		locked = false
 
+		// Wait for the created worker to report readiness outside the lock.
 		ready, err := waitForCreatedWebWorkerReady(ctx, doc.GetWebDocumentStatusCtr(), createdWorker)
 		if err != nil {
 			return err
@@ -334,6 +353,7 @@ func (h *WebHost) ExecutePlugin(
 			return nil
 		}
 
+		// Reacquire the lock and publish the RPC client once.
 		unlock, err = cmtx.Lock(ctx)
 		if err != nil {
 			return err
@@ -361,6 +381,7 @@ func (h *WebHost) ExecutePlugin(
 		cleanupCtx, cleanupCtxCancel := context.WithTimeout(ctx, time.Second*3)
 		defer cleanupCtxCancel()
 
+		// Remove stale worker instances until the bounded cleanup window expires.
 		for cleanupCtx.Err() == nil {
 			removedInstances, err := removeStaleWebWorkerInstances(ctx, doc, h.le, h.webRuntimeID, pluginWebWorkerID, pluginInstanceID)
 			if err != nil {
@@ -376,6 +397,7 @@ func (h *WebHost) ExecutePlugin(
 			}
 		}
 
+		// Stop cleanup if the parent context was canceled during the loop.
 		cleanupCtxCancel()
 		if ctx.Err() != nil {
 			return context.Canceled
@@ -394,10 +416,12 @@ func (h *WebHost) ExecutePlugin(
 				}
 			}
 
+			// Wait for the next web document status update.
 			docStatus, err = docStatusCtr.WaitValueChange(ctx, docStatus, nil)
 			if err != nil {
 				return err
 			}
+			// Release the document's worker ownership when the document closes.
 			if docStatus.GetClosed() {
 				unlock, err := cmtx.Lock(ctx)
 				if err != nil {
@@ -409,6 +433,7 @@ func (h *WebHost) ExecutePlugin(
 				unlock()
 				return nil
 			}
+			// Update worker ownership with the document's latest visibility.
 			unlock, err := cmtx.Lock(ctx)
 			if err != nil {
 				return err
@@ -429,6 +454,7 @@ func (h *WebHost) ExecutePlugin(
 					break
 				}
 			}
+			// Report a failed worker instance and release its ownership.
 			if workerInstance != nil && workerInstance.GetFailed() {
 				unlock, err := cmtx.Lock(ctx)
 				if err != nil {
@@ -443,6 +469,7 @@ func (h *WebHost) ExecutePlugin(
 
 	// fully kill & wait for exit to be confirmed when returning
 	cleanupInstances := func() error {
+		// Remove this plugin's worker instances from every web document.
 		ctx, ctxCancel := context.WithTimeout(context.WithoutCancel(rctx), time.Second*3)
 		defer ctxCancel()
 
@@ -456,6 +483,7 @@ func (h *WebHost) ExecutePlugin(
 				return err
 			}
 
+			// Remove own worker instances on each document and count the removals.
 			var retErr error
 			var nOldInstances int
 			for _, doc := range docs {
@@ -469,6 +497,7 @@ func (h *WebHost) ExecutePlugin(
 				return retErr
 			}
 
+			// Wait briefly before rechecking for remaining old instances.
 			if nOldInstances == 0 {
 				// success
 				return nil
@@ -499,6 +528,8 @@ func (h *WebHost) ExecutePlugin(
 		},
 		h.le,
 	)
+
+	// Start the web document tracking routines under the plugin context.
 	webDocumentsKeyed.SetContext(ctx, true)
 	defer webDocumentsKeyed.ClearContext()
 
@@ -506,6 +537,7 @@ func (h *WebHost) ExecutePlugin(
 	webRuntimeStatusCtr := webRuntime.GetWebRuntimeStatusCtr()
 	var webRuntimeStatus *web_runtime.WebRuntimeStatus
 	for {
+		// Wait for the next web runtime status update and surface fatal errors.
 		webRuntimeStatus, err = webRuntimeStatusCtr.WaitValueChange(ctx, webRuntimeStatus, nil)
 		if err != nil {
 			if fatalErr := popFatalErr(); fatalErr != nil {
@@ -520,6 +552,7 @@ func (h *WebHost) ExecutePlugin(
 			return errors.New("web runtime is closed")
 		}
 
+		// Sync the tracked web document keys with the runtime status.
 		docs := webRuntimeStatus.GetWebDocuments()
 		docIDs := make([]string, len(docs))
 		for i, doc := range docs {
@@ -553,6 +586,7 @@ func (h *WebHost) DeletePlugin(ctx context.Context, pluginID string) error {
 }
 
 func parseWebHostPlatform(platformID string) (bldr_platform.Platform, error) {
+	// Parse the platform ID, defaulting to the built-in web host platform.
 	if platformID == "" {
 		platformID = defaultWebHostPlatformID
 	}

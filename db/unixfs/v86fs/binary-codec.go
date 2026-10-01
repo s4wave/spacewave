@@ -55,6 +55,8 @@ const (
 // DecodeBinaryFrame converts the guest v86fs binary protocol into the typed
 // relay message used by the UnixFS-backed server.
 func DecodeBinaryFrame(frame []byte) (*V86FsMessage, error) {
+
+	// Parse the frame header and start the message.
 	frame, typ, tag, err := parseBinaryFrameHeader(frame)
 	if err != nil {
 		return nil, err
@@ -62,6 +64,7 @@ func DecodeBinaryFrame(frame []byte) (*V86FsMessage, error) {
 	r := binaryFrameReader{data: frame[v86fsFrameHeaderSize:]}
 	msg := &V86FsMessage{Tag: uint32(tag)}
 
+	// Decode the message body by message type.
 	switch typ {
 	case v86fsMsgMount:
 		name, err := r.string()
@@ -387,6 +390,8 @@ func (r *binaryFrameReader) bytes(size int) ([]byte, error) {
 }
 
 func (r *binaryFrameReader) string() (string, error) {
+
+	// Read the string length and contents.
 	size, err := r.u16()
 	if err != nil {
 		return "", err
@@ -423,6 +428,8 @@ func (r *binaryFrameReader) u64() (uint64, error) {
 }
 
 func (r *binaryFrameReader) parentNameMode() (uint64, string, uint32, error) {
+
+	// Read the parent inode, name, and mode.
 	parentID, err := r.u64()
 	if err != nil {
 		return 0, "", 0, err
@@ -443,6 +450,8 @@ type binaryFrameWriter struct {
 }
 
 func newBinaryFrameWriter(typ byte, tag uint16, payloadSize int) *binaryFrameWriter {
+
+	// Initialize the frame header with the type and tag.
 	w := &binaryFrameWriter{data: make([]byte, v86fsFrameHeaderSize, v86fsFrameHeaderSize+payloadSize)}
 	binary.LittleEndian.PutUint32(w.data[:4], uint32(v86fsFrameHeaderSize+payloadSize)) //nolint:gosec // every frame payload is bounded by the uint32 guest frame length.
 	w.data[4] = typ
@@ -501,6 +510,8 @@ func encodeStatusReply(typ byte, tag uint16, status uint32) []byte {
 }
 
 func encodeInodeModeReply(typ byte, tag uint16, status uint32, inodeID uint64, mode uint32) []byte {
+
+	// Encode the status, inode, and mode into the reply frame.
 	w := newBinaryFrameWriter(typ, tag, 16)
 	w.u32(status)
 	w.u64(inodeID)
@@ -509,6 +520,8 @@ func encodeInodeModeReply(typ byte, tag uint16, status uint32, inodeID uint64, m
 }
 
 func encodeReaddirReply(tag uint16, reply *V86FsReaddirReply) ([]byte, error) {
+
+	// Size and encode the readdir reply frame.
 	payloadSize := 8
 	for _, ent := range reply.GetEntries() {
 		payloadSize += 8 + 1 + 2 + len(ent.GetName())

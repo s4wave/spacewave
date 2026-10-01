@@ -62,6 +62,7 @@ func Fetch(
 		return err
 	}
 
+	// Apply the response status and headers to the writer.
 	info := fetchResp.GetResponseInfo()
 	statusCode := info.GetStatus()
 	if statusCode == 0 {

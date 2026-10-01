@@ -8,9 +8,11 @@ import (
 
 // TestVerifyData tests verifying some data with each hash type.
 func TestVerifyData(t *testing.T) {
+	// Hash one fixed payload with every supported hash type.
 	data := []byte("hello world")
 	for _, ht := range SupportedHashTypes {
 		h, err := Sum(ht, data)
+		// Wrap verification errors with the hash type for diagnostics.
 		werr := func(e error) error {
 			return errors.Wrapf(e, "hash_type[%v]", ht)
 		}
@@ -31,6 +33,7 @@ func TestRecommendedHashType(t *testing.T) {
 }
 
 func TestUnsupportedHashTypeErrorClassifiesUnknownCodes(t *testing.T) {
+	// Validate an out-of-range hash type code.
 	err := HashType(999).Validate()
 	if err == nil {
 		t.Fatal("expected unsupported hash type error")
@@ -49,6 +52,7 @@ func TestUnsupportedHashTypeErrorClassifiesUnknownCodes(t *testing.T) {
 
 // TestJSON tests marshal and unmarshal hash from json.
 func TestJSON(t *testing.T) {
+	// Hash a fixed payload as the JSON round-trip subject.
 	h, err := Sum(HashType_HashType_SHA256, []byte("hello world"))
 	if err != nil {
 		t.Fatal(err.Error())
@@ -69,11 +73,13 @@ func TestJSON(t *testing.T) {
 
 // TestCompareHash tests hash equality across nil, type, length, and content.
 func TestCompareHash(t *testing.T) {
+	// Build hashes that differ by length, type, and content.
 	h1 := &Hash{HashType: HashType_HashType_BLAKE3, Hash: []byte{1, 2, 3}}
 	h1Copy := &Hash{HashType: h1.GetHashType(), Hash: []byte{1, 2, 3}}
 	h2 := &Hash{HashType: h1.GetHashType(), Hash: []byte{1, 2}}
 	h3 := &Hash{HashType: HashType_HashType_SHA256, Hash: []byte{1, 2, 3}}
 
+	// Build the comparison table.
 	cases := map[string]struct {
 		a, b  *Hash
 		equal bool

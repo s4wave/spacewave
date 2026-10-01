@@ -24,15 +24,19 @@ const (
 )
 
 func TestQuickstartV86BootSmoke(t *testing.T) {
+	// Skip the smoke test unless the v86 e2e flag is set.
 	if !strings.EqualFold(strings.TrimSpace(os.Getenv("RUN_V86_E2E")), "true") {
 		t.Skip("set RUN_V86_E2E=true to run the v86 boot smoke")
 	}
 
+	// Start a blank session with the CDN mirror env and load the app.
 	sess := harness(t).NewCleanBlankSession(t)
 	installV86CdnMirrorRuntimeEnv(t, sess)
 	if err := harness(t).loadAppPageURL(sess, harness(t).baseURL+"/#/"); err != nil {
 		t.Fatalf("load app: %v", err)
 	}
+
+	// Watch the console and fail on any browser or WASM crash report.
 	console, stopConsole := sess.WatchConsole()
 	defer stopConsole()
 	defer func() {
@@ -45,6 +49,7 @@ func TestQuickstartV86BootSmoke(t *testing.T) {
 		}
 	}()
 
+	// Keep the page handle and record the stage timeline on teardown.
 	page := sess.Page()
 	defer func() {
 		recordV86SmokeStage(t, page, "teardown")
@@ -52,6 +57,7 @@ func TestQuickstartV86BootSmoke(t *testing.T) {
 		releaseV86CdnProbe(t, page)
 	}()
 
+	// Wait for the app and probe the v86 CDN mount directly.
 	WaitForApp(t, page)
 	recordV86SmokeStage(t, page, "app ready")
 	AssertRootImportMap(t, harness(t), page)
@@ -62,6 +68,7 @@ func TestQuickstartV86BootSmoke(t *testing.T) {
 	}
 	recordV86SmokeStage(t, page, "cdn probe")
 
+	// Navigate to the v86 quickstart and wait for wizard stages.
 	NavigateHash(t, harness(t), page, "#/quickstart/v86")
 	recordV86SmokeStage(t, page, "quickstart navigation")
 	WaitForApp(t, page)
@@ -77,6 +84,8 @@ func TestQuickstartV86BootSmoke(t *testing.T) {
 		"catalog load",
 		"v86.wizard.catalog-loaded",
 	)
+
+	// Wait for the default image selection to render.
 	if err := page.Locator("text=/(?:Catalog image:|Will copy from catalog:)(?: Aperture Linux| v86image-01kszf4rsev1s7zkq2ms2y5r0w)/").First().WaitFor(
 		playwright.LocatorWaitForOptions{Timeout: playwright.Float(v86SmokeStageTimeoutMS)},
 	); err != nil {
@@ -94,16 +103,22 @@ func TestQuickstartV86BootSmoke(t *testing.T) {
 	); err != nil {
 		t.Fatalf("v86 stage name input render failed: %v\n%s", err, readV86WizardDebug(page))
 	}
+
+	// Wait for the name input to render.
 	recordV86SmokeStage(t, page, "name input visible")
 	if err := page.Locator("input[placeholder='e.g. debian-lab']").First().Fill("v86 smoke"); err != nil {
 		t.Fatalf("fill v86 VM name: %v", err)
 	}
+
+	// Click Create and retry with a DOM click if needed.
 	createButton := page.Locator("button:visible:has-text('Create'):not([disabled])").Last()
 	if err := createButton.Click(
 		playwright.LocatorClickOptions{Timeout: playwright.Float(v86SmokeStageTimeoutMS)},
 	); err != nil {
 		t.Fatalf("v86 stage create click failed: %v\n%s", err, readV86WizardDebug(page))
 	}
+
+	// Wait for the v86 plugin viewer to render a Start button.
 	if _, err := page.WaitForFunction(`() => {
 		const hash = window.location.hash || ''
 		if (hash.includes('/-/vm/v86/')) return true
@@ -125,8 +140,11 @@ func TestQuickstartV86BootSmoke(t *testing.T) {
 			t.Fatalf("retry create v86 VM click: %v\n%s", evalErr, readV86WizardDebug(page))
 		}
 	}
+
+	// Record the create stage.
 	recordV86SmokeStage(t, page, "create")
 
+	// Create the VM object, install the serial probe, and start it.
 	vmKey := waitForV86ObjectRoute(t, page)
 	t.Logf("created VmV86 object %s", vmKey)
 	if err := installV86SerialProbe(page, vmKey); err != nil {
@@ -141,6 +159,7 @@ func TestQuickstartV86BootSmoke(t *testing.T) {
 
 func recordV86SmokeStage(t testing.TB, page playwright.Page, stage string) {
 	t.Helper()
+	// Record a named stage timestamp in the browser timeline.
 	raw, err := page.Evaluate(`(stage) => {
 		const timeline = globalThis.__v86SmokeTimeline ?? {}
 		timeline[stage] = {
@@ -158,6 +177,7 @@ func recordV86SmokeStage(t testing.TB, page playwright.Page, stage string) {
 }
 
 func readV86SmokeTimeline(page playwright.Page) string {
+	// Read the recorded v86 smoke stage timeline.
 	raw, err := page.Evaluate(
 		`() => JSON.stringify(globalThis.__v86SmokeTimeline ?? {}, null, 2)`,
 		nil,
@@ -175,6 +195,7 @@ func waitForV86StartupStage(
 	label string,
 ) {
 	t.Helper()
+	// Wait for a named v86 startup stage to appear.
 	if _, err := page.WaitForFunction(`(label) => {
 		const marks = globalThis.__swStartupMarks ?? []
 		if (marks.some((mark) => mark.label === label)) return true
@@ -208,8 +229,10 @@ func waitForV86StartupStage(
 }
 
 func installV86CdnMirrorRuntimeEnv(t testing.TB, sess *TestSession) {
+	// Mark the function as a test helper.
 	t.Helper()
 
+	// Read the mirror directory and CDN Space ID from the environment.
 	mirrorDir := strings.TrimSpace(os.Getenv("V86_E2E_CDN_MIRROR_DIR"))
 	if mirrorDir == "" {
 		return
@@ -219,11 +242,13 @@ func installV86CdnMirrorRuntimeEnv(t testing.TB, sess *TestSession) {
 		spaceID = v86SmokeDefaultCdnSpaceID
 	}
 
+	// Serve the mirror directory over a local HTTP test server.
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		serveV86CdnMirrorHTTP(w, r, mirrorDir)
 	}))
 	t.Cleanup(srv.Close)
 
+	// Inject the CDN base URL and Space ID as a browser init script.
 	var arena fastjson.Arena
 	env := arena.NewObject()
 	env.Set("SPACEWAVE_CDN_BASE_URL", arena.NewString(srv.URL))
@@ -240,7 +265,10 @@ func installV86CdnMirrorRuntimeEnv(t testing.TB, sess *TestSession) {
 }
 
 func serveV86CdnMirrorHTTP(w http.ResponseWriter, r *http.Request, mirrorDir string) {
+	// Set the CDN mirror headers before handling the request.
 	setV86CdnMirrorHeaders(w.Header())
+
+	// Reject methods other than GET, HEAD, and OPTIONS.
 	if r.Method == http.MethodOptions {
 		w.WriteHeader(http.StatusNoContent)
 		return
@@ -250,6 +278,7 @@ func serveV86CdnMirrorHTTP(w http.ResponseWriter, r *http.Request, mirrorDir str
 		return
 	}
 
+	// Open the requested file and handle missing paths.
 	rel := strings.TrimPrefix(filepath.Clean("/"+r.URL.Path), string(filepath.Separator))
 	path := filepath.Join(mirrorDir, rel)
 	file, err := os.Open(path)
@@ -263,6 +292,7 @@ func serveV86CdnMirrorHTTP(w http.ResponseWriter, r *http.Request, mirrorDir str
 	}
 	defer file.Close()
 
+	// Handle empty files with a zero-length response.
 	stat, err := file.Stat()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -275,6 +305,7 @@ func serveV86CdnMirrorHTTP(w http.ResponseWriter, r *http.Request, mirrorDir str
 		return
 	}
 
+	// Resolve the requested byte range.
 	status := http.StatusOK
 	start := int64(0)
 	end := size - 1
@@ -290,6 +321,8 @@ func serveV86CdnMirrorHTTP(w http.ResponseWriter, r *http.Request, mirrorDir str
 		end = rangeEnd
 		w.Header().Set("Content-Range", fmt.Sprintf("bytes %d-%d/%d", start, end, size))
 	}
+
+	// Write the response headers and body.
 	length := end - start + 1
 	w.Header().Set("Content-Length", strconv.FormatInt(length, 10))
 	w.WriteHeader(status)
@@ -302,6 +335,7 @@ func serveV86CdnMirrorHTTP(w http.ResponseWriter, r *http.Request, mirrorDir str
 }
 
 func setV86CdnMirrorHeaders(headers http.Header) {
+	// Set the cross-origin and content headers for mirror responses.
 	headers.Set("Accept-Ranges", "bytes")
 	headers.Set("Access-Control-Allow-Origin", "*")
 	headers.Set("Access-Control-Allow-Headers", "Range,Content-Type")
@@ -313,6 +347,7 @@ func setV86CdnMirrorHeaders(headers http.Header) {
 }
 
 func parseV86CdnByteRange(header string, size int64) (int64, int64, bool) {
+	// Parse the bytes= prefix and validate the size.
 	const prefix = "bytes="
 	if size <= 0 || !strings.HasPrefix(header, prefix) {
 		return 0, 0, false
@@ -325,6 +360,8 @@ func parseV86CdnByteRange(header string, size int64) (int64, int64, bool) {
 	if err != nil || start64 < 0 || start64 >= size {
 		return 0, 0, false
 	}
+
+	// Parse the range end bound.
 	end := size - 1
 	if parts[1] != "" {
 		end64, err := strconv.ParseInt(parts[1], 10, 0)
@@ -339,8 +376,10 @@ func parseV86CdnByteRange(header string, size int64) (int64, int64, bool) {
 }
 
 func waitForV86ObjectRoute(t testing.TB, page playwright.Page) string {
+	// Mark the function as a test helper.
 	t.Helper()
 
+	// Wait for the hash to leave the wizard and name the VM object.
 	handle, err := page.WaitForFunction(`() => {
 		const hash = window.location.hash || ''
 		const marker = '/-/'
@@ -363,8 +402,11 @@ func waitForV86ObjectRoute(t testing.TB, page playwright.Page) string {
 	if !ok || strings.TrimSpace(vmKey) == "" {
 		t.Fatalf("unexpected v86 object key from route: %#v", raw)
 	}
+
+	// Record the VM route stage.
 	recordV86SmokeStage(t, page, "VM route")
 
+	// Wait for the v86 plugin viewer to render a Start button.
 	if _, err := page.WaitForFunction(`() => {
 		const body = document.body?.innerText || ''
 		if (/Runtime error|No installed viewer handles this object type/.test(body)) {
@@ -403,8 +445,10 @@ func installV86SerialProbe(page playwright.Page, vmKey string) error {
 }
 
 func waitForV86SerialOutput(t testing.TB, page playwright.Page) string {
+	// Mark the function as a test helper.
 	t.Helper()
 
+	// Wait for the first serial byte to arrive.
 	firstByte, err := page.WaitForFunction(`() => {
 		const text = globalThis.__v86SmokeSerial?.text || ''
 		if (text.length > 0) return text
@@ -422,6 +466,7 @@ func waitForV86SerialOutput(t testing.TB, page playwright.Page) string {
 	}
 	recordV86SmokeStage(t, page, "first serial byte")
 
+	// Wait for the guest to reach a recognizable boot stage.
 	guestReady, err := page.WaitForFunction(`() => {
 		const text = globalThis.__v86SmokeSerial?.text || ''
 		if (/login:|# |\$ |Welcome|Linux version|Kernel command line/.test(text)) {
@@ -445,6 +490,7 @@ func waitForV86SerialOutput(t testing.TB, page playwright.Page) string {
 }
 
 func probeV86CdnMount(page playwright.Page) string {
+	// Probe the CDN mount from the browser and report its state.
 	raw, err := page.Evaluate(fmt.Sprintf(`async () => {
 		const out = {
 			ok: false,
@@ -544,6 +590,7 @@ func probeV86CdnMount(page playwright.Page) string {
 
 func releaseV86CdnProbe(t testing.TB, page playwright.Page) {
 	t.Helper()
+	// Release the CDN probe resource held in the browser.
 	if _, err := page.Evaluate(`() => {
 		const cdn = globalThis.__v86SmokeHeldCdn
 		globalThis.__v86SmokeHeldCdn = undefined
@@ -554,6 +601,7 @@ func releaseV86CdnProbe(t testing.TB, page playwright.Page) {
 }
 
 func readV86WizardDebug(page playwright.Page) string {
+	// Collect v86 wizard debug state from the page.
 	raw, err := page.Evaluate(`() => {
 		const body = document.body
 		const text = body?.innerText || body?.textContent || ''
@@ -598,6 +646,7 @@ func readV86WizardDebug(page playwright.Page) string {
 }
 
 func asString(v any) string {
+	// Return the string value or an empty string.
 	if s, ok := v.(string); ok {
 		return s
 	}
@@ -605,6 +654,7 @@ func asString(v any) string {
 }
 
 func trimSerialSample(s string) string {
+	// Trim the serial sample to its last 1000 characters.
 	s = strings.ReplaceAll(s, "\r", "")
 	if len(s) <= 1000 {
 		return s

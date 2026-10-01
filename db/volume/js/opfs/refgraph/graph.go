@@ -28,11 +28,13 @@ func NewGraph(store kvtx.Store) *Graph {
 
 // graphKey encodes a record kind followed by unambiguous full node IRIs.
 func graphKey(kind byte, nodes ...string) []byte {
+	// Size the key buffer for the kind byte and each length-prefixed node.
 	size := 1
 	for _, node := range nodes {
 		size += 4 + len(node)
 	}
 
+	// Append the kind byte and each node with its 4-byte length prefix.
 	key := make([]byte, 1, size)
 	key[0] = kind
 	for _, node := range nodes {
@@ -154,13 +156,17 @@ func (g *Graph) HasIncomingRefs(ctx context.Context, node string) (bool, error) 
 
 // HasIncomingRefsExcluding stops at the first owner outside the caller's exclusions.
 func (g *Graph) HasIncomingRefsExcluding(ctx context.Context, node string, excluded ...string) (bool, error) {
+	// Build the exclusion set including the unreferenced root.
 	ignored := make(map[string]struct{}, len(excluded)+1)
 	ignored[block_gc.NodeUnreferenced] = struct{}{}
 	for _, source := range excluded {
 		ignored[source] = struct{}{}
 	}
+
+	// Scan incoming edges until a non-excluded owner is found.
 	found := false
 	err := g.transaction(ctx, false, func(ctx context.Context, tx kvtx.Tx) error {
+		// Reset the result and iterate the incoming-edge prefix.
 		found = false
 		it := tx.Iterate(ctx, graphKey('i', node), true, false)
 		defer it.Close()

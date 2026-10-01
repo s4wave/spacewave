@@ -198,6 +198,7 @@ func (b *bucketHandle) PutBlock(ctx context.Context, data []byte, opts *block.Pu
 	ctx, task := trace.NewTask(ctx, "hydra/volume/bucket-handle/put-block")
 	defer task.End()
 
+	// Reject writes on a failed or missing bucket and honor read scopes.
 	if b.err != nil {
 		return nil, false, b.err
 	}
@@ -289,6 +290,7 @@ func (b *bucketHandle) PutBlockBatch(ctx context.Context, entries []*block.PutBa
 	ctx, task := trace.NewTask(ctx, "hydra/volume/bucket-handle/put-block-batch")
 	defer task.End()
 
+	// Reject writes on a failed or missing bucket and honor read scopes.
 	if b.err != nil {
 		return b.err
 	}
@@ -302,6 +304,7 @@ func (b *bucketHandle) PutBlockBatch(ctx context.Context, entries []*block.PutBa
 		return b.readOps.PutBlockBatch(ctx, entries)
 	}
 
+	// Publish the batch atomically when the volume supports it.
 	if prepare, ok := b.v.(block.AtomicBlockPreparer); ok && b.SupportsAtomicPublication() {
 		owner := ""
 		if b.gcOps != nil {
@@ -313,6 +316,7 @@ func (b *bucketHandle) PutBlockBatch(ctx context.Context, entries []*block.PutBa
 		}
 	}
 
+	// Write the batch through GC tracking or the volume directly.
 	if b.gcOps != nil {
 		if err := b.gcOps.PutBlockBatch(ctx, entries); err != nil {
 			return err
@@ -347,6 +351,7 @@ func (b *bucketHandle) GetHashType() hash.HashType {
 
 // GetSupportedFeatures returns the native feature bitmask for the store.
 func (b *bucketHandle) GetSupportedFeatures() block.StoreFeature {
+	// Report unknown features without a backing volume.
 	if b == nil || b.v == nil {
 		return block.StoreFeature_STORE_FEATURE_UNKNOWN
 	}
@@ -526,12 +531,14 @@ func (b *bucketHandle) SupportsAtomicPublication() bool {
 // SubmitAtomic forwards admission to the underlying volume, scoping the
 // publication to this bucket's ownership.
 func (b *bucketHandle) SubmitAtomic(ctx context.Context, p *block.AtomicPublication) (*block.PublicationReceipt, error) {
+	// Reject publications the handle or volume cannot support.
 	if !b.SupportsAtomicPublication() {
 		return nil, block.ErrAtomicPublicationUnsupported
 	}
 	if p == nil {
 		return nil, block.ErrAtomicPublicationUnsupported
 	}
+
 	// Copy the envelope only. Entries remain borrowed until the returned receipt.
 	pub := *p
 	pub.BucketID = b.t.bucketID

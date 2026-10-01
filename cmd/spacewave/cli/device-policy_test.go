@@ -18,6 +18,7 @@ import (
 )
 
 func TestDevicePolicyCommandExposesSubcommandsAndFlags(t *testing.T) {
+	// Locate every device policy subcommand.
 	deviceCmd := newDeviceCommand(nil)
 	approveCmd := findTestSubcommand(t, deviceCmd, "approve")
 	policyCmd := findTestSubcommand(t, deviceCmd, "policy")
@@ -25,11 +26,14 @@ func TestDevicePolicyCommandExposesSubcommandsAndFlags(t *testing.T) {
 	checkoutRootCmd := findTestSubcommand(t, policyCmd, "checkout-root")
 	checkoutRootAddCmd := findTestSubcommand(t, checkoutRootCmd, "add")
 	checkoutRootRemoveCmd := findTestSubcommand(t, checkoutRootCmd, "remove")
+
+	// Locate the forge-worker subcommands.
 	forgeWorkerCmd := findTestSubcommand(t, policyCmd, "forge-worker")
 	forgeWorkerSetCmd := findTestSubcommand(t, forgeWorkerCmd, "set")
 	forgeWorkerShowCmd := findTestSubcommand(t, forgeWorkerCmd, "show")
 	forgeWorkerClearCmd := findTestSubcommand(t, forgeWorkerCmd, "clear")
 
+	// Check the flags of each located subcommand.
 	assertCommandFlags(t, approveCmd, "state-path", "socket-path", "session-index", "space", "ticket")
 	assertCommandFlags(t, enableShellCmd, "state-path", "socket-path", "disable")
 	assertCommandFlags(t, checkoutRootAddCmd, "state-path", "socket-path", "write")
@@ -40,6 +44,7 @@ func TestDevicePolicyCommandExposesSubcommandsAndFlags(t *testing.T) {
 }
 
 func TestComputeDevicePolicyCapabilitiesProjectsPolicyOwnedCapabilities(t *testing.T) {
+	// Seed the existing capabilities with an operator-owned entry.
 	existingLink := &s4wave_device.DeviceCapabilityLink{ObjectKey: "objects/skiffos", TypeId: "unixfs-root"}
 	existing := []*s4wave_device.DeviceCapability{
 		{
@@ -108,8 +113,11 @@ func TestComputeDevicePolicyCapabilitiesProjectsPolicyOwnedCapabilities(t *testi
 		},
 	}
 
+	// Project the policy onto the existing capabilities and index them.
 	got := computeDevicePolicyCapabilities(policy, existing)
 	byID := deviceCapabilitiesByID(got)
+
+	// Check the capability count and preserved non-policy entry.
 	if len(got) != 4 {
 		t.Fatalf("capability count = %d, want non-policy + remote shell + two policy roots", len(got))
 	}
@@ -120,6 +128,8 @@ func TestComputeDevicePolicyCapabilitiesProjectsPolicyOwnedCapabilities(t *testi
 	if nonPolicy == nil || !nonPolicy.EqualVT(existing[0]) {
 		t.Fatalf("non-policy capability = %v, want preserved %v", nonPolicy, existing[0])
 	}
+
+	// Check the projected remote-shell capability.
 	remoteShell := byID[devicePolicyRemoteShellCapabilityID]
 	if remoteShell == nil {
 		t.Fatal("remote-shell capability missing")
@@ -140,6 +150,7 @@ func TestComputeDevicePolicyCapabilitiesProjectsPolicyOwnedCapabilities(t *testi
 		t.Fatalf("remote-shell detail = %q", remoteShell.GetDetail())
 	}
 
+	// Check the preserved skiffos checkout-root capability.
 	skiffos := byID[devicePolicyCheckoutRootIDPrefix+"skiffos"]
 	if skiffos == nil {
 		t.Fatal("skiffos checkout-root capability missing")
@@ -147,6 +158,8 @@ func TestComputeDevicePolicyCapabilitiesProjectsPolicyOwnedCapabilities(t *testi
 	if skiffos.GetLink().GetObjectKey() != existingLink.GetObjectKey() || skiffos.GetLink().GetTypeId() != existingLink.GetTypeId() {
 		t.Fatalf("skiffos link = %v, want preserved %v", skiffos.GetLink(), existingLink)
 	}
+
+	// Check the skiffos policy references and availability.
 	if skiffos.GetPolicy().GetLocalPolicyRef() != "device-policy/13/checkout-root/skiffos" {
 		t.Fatalf("skiffos local policy ref = %q", skiffos.GetPolicy().GetLocalPolicyRef())
 	}
@@ -172,6 +185,7 @@ func TestComputeDevicePolicyCapabilitiesProjectsPolicyOwnedCapabilities(t *testi
 		t.Fatalf("skiffos availability read=%v write=%v", skiffos.GetCheckoutRoot().GetReadAvailable(), skiffos.GetCheckoutRoot().GetWriteAvailable())
 	}
 
+	// Check the alpha read-only checkout-root capability.
 	alpha := byID[devicePolicyCheckoutRootIDPrefix+"alpha"]
 	if alpha == nil {
 		t.Fatal("alpha checkout-root capability missing")
@@ -194,6 +208,7 @@ func TestComputeDevicePolicyCapabilitiesProjectsPolicyOwnedCapabilities(t *testi
 }
 
 func TestProjectDevicePolicyOntoDeviceUpdatesCapabilitiesAndTimestamp(t *testing.T) {
+	// Seed the device, policy, and timestamps.
 	created := time.Unix(1_700_000_000, 0)
 	updated := created.Add(time.Minute)
 	now := updated.Add(time.Minute)
@@ -223,10 +238,13 @@ func TestProjectDevicePolicyOntoDeviceUpdatesCapabilitiesAndTimestamp(t *testing
 		RemoteShell: &device_policy.RemoteShellPolicy{Enabled: true, Detail: "terminal enabled"},
 	}
 
+	// Project the policy and check the updated device fields.
 	next, changed, err := projectDevicePolicyOntoDevice(existing, policy, now)
 	if err != nil {
 		t.Fatalf("projectDevicePolicyOntoDevice() error = %v", err)
 	}
+
+	// Check the changed flag and the preserved non-policy device fields.
 	if !changed {
 		t.Fatal("changed = false, want policy capability projection to update device")
 	}
@@ -249,6 +267,7 @@ func TestProjectDevicePolicyOntoDeviceUpdatesCapabilitiesAndTimestamp(t *testing
 }
 
 func TestDevicePolicyEnableShellCommandWritesPolicyAndReloadsDaemon(t *testing.T) {
+	// Seed the state path and stub the daemon connection.
 	clearStatePathEnv(t)
 	clearSocketPathEnv(t)
 	statePath := t.TempDir()
@@ -269,6 +288,7 @@ func TestDevicePolicyEnableShellCommandWritesPolicyAndReloadsDaemon(t *testing.T
 		return nil
 	})
 
+	// Run the enable-shell command and verify the written policy.
 	if err := runDeviceCLI(t, "device", "policy", "enable-shell", "--state-path", statePath); err != nil {
 		t.Fatalf("device policy enable-shell: %v", err)
 	}
@@ -294,6 +314,7 @@ func TestDevicePolicyEnableShellCommandWritesPolicyAndReloadsDaemon(t *testing.T
 }
 
 func TestDevicePolicyEnableShellDisableWritesPolicyAndReloadsDaemon(t *testing.T) {
+	// Seed the state path and stub the daemon connection.
 	clearStatePathEnv(t)
 	clearSocketPathEnv(t)
 	statePath := t.TempDir()
@@ -315,6 +336,7 @@ func TestDevicePolicyEnableShellDisableWritesPolicyAndReloadsDaemon(t *testing.T
 		return nil
 	})
 
+	// Run the enable-shell --disable command and verify the written policy.
 	if err := runDeviceCLI(t, "device", "policy", "enable-shell", "--state-path", statePath, "--disable"); err != nil {
 		t.Fatalf("device policy enable-shell --disable: %v", err)
 	}
@@ -337,6 +359,7 @@ func TestDevicePolicyEnableShellDisableWritesPolicyAndReloadsDaemon(t *testing.T
 }
 
 func TestDevicePolicyCheckoutRootAddRemoveWritesPolicyAndReloadsDaemon(t *testing.T) {
+	// Seed the state path and stub the daemon connection.
 	clearStatePathEnv(t)
 	clearSocketPathEnv(t)
 	statePath := t.TempDir()
@@ -356,6 +379,7 @@ func TestDevicePolicyCheckoutRootAddRemoveWritesPolicyAndReloadsDaemon(t *testin
 		return nil
 	})
 
+	// Run the checkout-root add command and verify the written policy.
 	if err := runDeviceCLI(t, "device", "policy", "checkout-root", "add", "--state-path", statePath, "--write", "skiffos", checkoutPath); err != nil {
 		t.Fatalf("device policy checkout-root add: %v", err)
 	}
@@ -377,6 +401,7 @@ func TestDevicePolicyCheckoutRootAddRemoveWritesPolicyAndReloadsDaemon(t *testin
 		t.Fatalf("checkout root access = %s", root.GetAccess())
 	}
 
+	// Run the checkout-root remove command and verify the written policy.
 	if err := runDeviceCLI(t, "device", "policy", "checkout-root", "remove", "--state-path", statePath, "skiffos"); err != nil {
 		t.Fatalf("device policy checkout-root remove: %v", err)
 	}
@@ -427,12 +452,15 @@ func withDevicePolicyReloadStub(t *testing.T, reload func(context.Context, *sdkC
 }
 
 func TestDevicePolicyForgeWorkerSetAndClearValidateBeforeWriting(t *testing.T) {
+	// Seed the state path and stub the daemon connection.
 	clearStatePathEnv(t)
 	clearSocketPathEnv(t)
 	statePath := t.TempDir()
 	if err := device_policy.WriteFile(statePath, &device_policy.DevicePolicy{Revision: 30}); err != nil {
 		t.Fatalf("seed policy: %v", err)
 	}
+
+	// Stub the daemon connection and reload hooks.
 	withDeviceDaemonStub(t, func(string, int) (net.Conn, error) {
 		return newTestDaemonConn(t), nil
 	}, func(context.Context, string) error {
@@ -460,6 +488,7 @@ func TestDevicePolicyForgeWorkerSetAndClearValidateBeforeWriting(t *testing.T) {
 		return nil
 	}
 
+	// Run the forge-worker set command and verify the written policy.
 	if err := runDeviceCLI(t,
 		"device", "policy", "forge-worker", "set",
 		"--state-path", statePath,
@@ -486,6 +515,7 @@ func TestDevicePolicyForgeWorkerSetAndClearValidateBeforeWriting(t *testing.T) {
 		t.Fatalf("backends = %v, want canonical [docker fuse]", got)
 	}
 
+	// Stub the Forge Worker validation hook.
 	devicePolicyValidateForgeWorker = func(context.Context, string, *sdkClient, *device_policy.ForgeWorkerPolicy) error {
 		return errors.New("wrong Device session keypair")
 	}
@@ -507,6 +537,7 @@ func TestDevicePolicyForgeWorkerSetAndClearValidateBeforeWriting(t *testing.T) {
 		t.Fatalf("failed validation changed policy: %v", unchanged)
 	}
 
+	// Run the forge-worker set command and verify the written policy.
 	if err := runDeviceCLI(t,
 		"device", "policy", "forge-worker", "clear", "--state-path", statePath,
 	); err != nil {

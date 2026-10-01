@@ -76,16 +76,22 @@ func (c *Controller) buildViteCompilerTracker(key viteBundlerKey) (keyed.Routine
 
 // execute executes the tracker.
 func (t *viteBundlerTracker) execute(ctx context.Context) error {
+	// Reset the instance promise and log the process start.
 	t.instancePromiseCtr.SetPromise(nil)
 
+	// Log the compiler process start and exit.
 	t.le.Info("starting vite compiler process")
 	defer t.le.Debug("exited vite compiler process")
 
 	// Execute the Vite compiler with the necessary arguments
+
+	// Read the key paths and bundle ID.
 	sourcePath, distPath, bundleID := t.key.sourcePath, t.key.distPath, t.key.bundleID
 	workingPath := t.key.workingPath
 
 	// Set up the IPC making sure the pipe name is unique
+
+	// Derive the IPC pipe name from the key paths.
 	var pipeUuidBin [32]byte
 	blake3.DeriveKey(
 		"bldr vite-compiler pipe uuid",
@@ -96,9 +102,13 @@ func (t *viteBundlerTracker) execute(ctx context.Context) error {
 	)
 	// Include a unique instance suffix to prevent race conditions when restarting.
 	// Without this, the old instance's cleanup could delete the new instance's pipe file.
+
+	// Add a unique instance suffix to the pipe name.
 	pipeUuid := "vite-" + strings.ToLower(b58.Encode(pipeUuidBin[:]))[:4] + "-" + randstring.RandomIdentifier(4)
 
 	// Working path is typically .bldr/build/..., so state stays under .bldr/bun.
+
+	// Build the Vite service script under the bun state dir.
 	bunStateDir := filepath.Join(workingPath, "..", "..", "bun")
 	viteScriptPath := filepath.Join(workingPath, "bldr-"+pipeUuid+".mjs")
 	if _, err := bldr_vite.BuildServiceScript(
@@ -115,6 +125,7 @@ func (t *viteBundlerTracker) execute(ctx context.Context) error {
 		return err
 	}
 
+	// Listen on the pipe socket.
 	pipeListener, err := bldr_pipesock.Listen(t.le, workingPath, pipeUuid)
 	if err != nil {
 		if ctx.Err() == nil {
@@ -125,15 +136,21 @@ func (t *viteBundlerTracker) execute(ctx context.Context) error {
 	defer pipeListener.Close()
 
 	// Start the listener
+
+	// Start the connection pump for the pipe.
 	smc := singleton_muxed_conn.NewSingletonMuxedConn(ctx, true)
 	go smc.AcceptPump(pipeListener)
 	defer smc.Close()
 
 	// Cancel and join the process on every return path.
+
+	// Set up a cancellable process context.
 	processCtx, cancelProcess := context.WithCancel(ctx)
 	defer cancelProcess()
 
 	// Set up the bun process
+
+	// Start the bun process with the service script.
 	cmd, err := bun.BunExec(processCtx, t.le, bunStateDir, viteScriptPath, "--bundle-id", bundleID, "--pipe-uuid", pipeUuid, "--pipe-root", pipeListener.GetRootDir())
 	if err != nil {
 		if ctx.Err() == nil {
@@ -147,6 +164,8 @@ func (t *viteBundlerTracker) execute(ctx context.Context) error {
 	cmd.Stderr = t.le.WriterLevel(logrus.DebugLevel)
 
 	// Env vars
+
+	// Configure the environment for the Vite build.
 	cmd.Env = append(
 		cmd.Env,
 		"NO_COLOR=1",
@@ -157,11 +176,15 @@ func (t *viteBundlerTracker) execute(ctx context.Context) error {
 	)
 
 	// Check if canceled
+
+	// Abort if the context is already canceled.
 	if ctx.Err() != nil {
 		return context.Canceled
 	}
 
 	// Run the process
+
+	// Start the process and set up the wait goroutines.
 	err = cmd.Start()
 	if err != nil {
 		if ctx.Err() == nil {
@@ -170,6 +193,7 @@ func (t *viteBundlerTracker) execute(ctx context.Context) error {
 		return err
 	}
 
+	// Wait for the Vite connection or process exit.
 	timeoutCtx, timeoutCtxCancel := context.WithTimeoutCause(ctx, time.Second*30, errors.New("timeout waiting for vite to connect"))
 	defer timeoutCtxCancel()
 	connectionResult := make(chan error, 1)
@@ -185,6 +209,7 @@ func (t *viteBundlerTracker) execute(ctx context.Context) error {
 	}()
 	defer func() { cancelProcess(); <-processExited }()
 
+	// Wait for the Vite connection or process exit.
 	t.le.Debug("waiting for vite to connect")
 	select {
 	case err = <-connectionResult:
@@ -205,6 +230,7 @@ func (t *viteBundlerTracker) execute(ctx context.Context) error {
 		return err
 	}
 
+	// Build the RPC client and publish the instance.
 	srpcClient := srpc.NewClientWithMuxedConn(smc)
 	client, err := bldr_vite.NewBudgetClient(bldr_vite.NewSRPCViteBundlerClient(srpcClient))
 	if err != nil {
@@ -214,6 +240,7 @@ func (t *viteBundlerTracker) execute(ctx context.Context) error {
 	t.le.Debug("vite compiler connected")
 	t.instancePromiseCtr.SetResult(client, nil)
 
+	// Wait for the process to exit and publish the result.
 	<-processExited
 	err = processErr
 	if ctx.Err() != nil {
@@ -274,6 +301,7 @@ func BuildViteBundle(
 	// Create a temporary output directory for Vite
 	viteBundleMetaID := viteBundleMeta.GetId()
 
+	// Compute the output bundle directory and vite out dir.
 	outAssetsBundleDir := "./"
 	if viteBundleMetaID != "default" {
 		outAssetsBundleDir = "./b/" + viteBundleMetaID
@@ -336,6 +364,7 @@ func BuildViteBundle(
 	entrypoints := make([]*bldr_vite.ViteBuildRequestEntrypoint, 0)
 	usedNames := make(map[string]bool)
 
+	// Build the deconflicted entrypoint configs.
 	for _, entrypointConf := range viteBundleMeta.GetEntrypoints() {
 		// Validate entrypoint path
 		entrypointPath := entrypointConf.GetInputPath()

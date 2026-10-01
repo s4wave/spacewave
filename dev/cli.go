@@ -33,6 +33,8 @@ func BuildApp() *cli.App {
 	app.Name = CLIName
 	app.HideVersion = true
 	app.Usage = "downstream spacewave application development"
+
+	// Attach the devtool subcommands, flags, and lifecycle hooks.
 	app.Commands = args.BuildSubCommands()
 	app.Flags = args.BuildFlags()
 	app.Before = func(c *cli.Context) error {

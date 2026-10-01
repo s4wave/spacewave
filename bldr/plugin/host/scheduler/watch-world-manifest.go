@@ -23,6 +23,7 @@ import (
 // execWatchWorldManifest watches the world for the latest executable
 // manifest for the plugin.
 func (t *pluginInstance) execWatchWorldManifest(ctx context.Context, hosts *pluginHostSet) error {
+	// Build the world engine and watch loop for the plugin host object.
 	t.le.Debugf("starting watch world manifests")
 	engineID := t.c.conf.GetEngineId()
 	engine := world.NewBusEngine(ctx, t.c.bus, engineID)
@@ -57,25 +58,31 @@ func (t *pluginInstance) processManifestWorldStateCore(
 	ws world.WorldState,
 	obj world.ObjectState, // may be nil if not found
 ) (waitForChanges bool, err error) {
+	// Warn and wait for changes when the host object is missing.
 	if obj == nil {
 		le.Warnf("plugin host object not found: %v", t.c.objKey)
 		return true, nil
 	}
 
+	// Trace manifest selection and log accounting fields.
 	ctx, task := trace.NewTask(ctx, "bldr/plugin-host-scheduler/select-manifest")
 	defer task.End()
 	t.logPluginAccountingFields(ctx)
 	trace.Log(ctx, "host-object-key", t.c.objKey)
 
+	// Wrap the world state with a verbose logger when configured.
 	if t.c.conf.GetVerbose() {
 		ws = world_vlogger.NewWorldState(le, ws)
 	}
 
 	// Collect the plugin's linked manifests for currently available hosts.
+	// Build the sorted platform id list for the available hosts.
 	platformIDsMap := hosts.toPluginPlatformIDsMap(t.c.conf, t.pluginID)
 	platformIDs := slices.Collect(maps.Keys(platformIDsMap))
 	slices.Sort(platformIDs)
 	trace.Log(ctx, "platform-ids", strings.Join(platformIDs, ","))
+
+	// Collect startup manifest eligibility for those platforms at the root.
 	candidateEligibility, err := bldr_manifest_world.CollectStartupManifestEligibilityAtRoot(
 		ctx,
 		ws,
@@ -87,6 +94,8 @@ func (t *pluginInstance) processManifestWorldStateCore(
 	if err != nil {
 		return true, err
 	}
+
+	// Skip re-selection when the inputs match the stored fingerprint.
 	selectionFingerprint := manifestSelectionInputFingerprint(platformIDs, candidateEligibility)
 	if t.manifestSelectionInputUnchanged(hosts, selectionFingerprint) {
 		trace.Log(ctx, "manifest-selection-phase", "skipped-unchanged-inputs")
@@ -95,15 +104,21 @@ func (t *pluginInstance) processManifestWorldStateCore(
 	if ctx.Err() != nil {
 		return true, context.Canceled
 	}
+
+	// Filter the selectable manifests down to compatible ones.
 	manifests := bldr_manifest_world.SelectableStartupManifests(candidateEligibility)
 	selectable := len(manifests)
 	manifests = slices.DeleteFunc(manifests, func(m *bldr_manifest_world.CollectedManifest) bool {
 		return t.incompatibleManifest(m.ManifestRef)
 	})
+
+	// Log candidate counts and summarize skipped candidates.
 	trace.Logf(ctx, "candidate-count", "%d", len(candidateEligibility))
 	trace.Logf(ctx, "selectable-candidate-count", "%d", len(manifests))
 	trace.Logf(ctx, "skipped-candidate-count", "%d", countStartupManifestEligibilitySkips(candidateEligibility))
 	skipSummary := summarizeStartupManifestEligibilitySkips(candidateEligibility)
+
+	// Warn with a graph dump when candidates were skipped.
 	if skipSummary != "" {
 		logEntry := le.WithField("skipped-startup-manifest-refs", skipSummary)
 		graphDump, dumpErr := bldr_manifest_world.DumpStartupManifestGraphForManifestID(
@@ -156,7 +171,10 @@ func (t *pluginInstance) processManifestWorldStateCore(
 		}
 		return true, nil
 	}
+
+	// Sort manifests by platform preference, revision, and ref string.
 	slices.SortFunc(manifests, func(a, b *bldr_manifest_world.CollectedManifest) int {
+		// Rank by platform preference, then revision, then ref string.
 		aRank := platformPreferenceRank(a.Manifest.GetMeta().GetPlatformId())
 		bRank := platformPreferenceRank(b.Manifest.GetMeta().GetPlatformId())
 		if aRank != bRank {
@@ -273,6 +291,7 @@ func (t *pluginInstance) processManifestWorldStateCore(
 				}
 			}
 
+			// Record the copy accounting for the selected execute manifest.
 			if executeManifest != nil {
 				executeRef := executeManifest.GetManifestRef()
 				sourceBucketID := ""
@@ -285,6 +304,7 @@ func (t *pluginInstance) processManifestWorldStateCore(
 				t.manifestCopyAccounting.Store(nil)
 			}
 
+			// Clear the not-found flag and record recovery status.
 			if executeManifest != nil || downloadManifest != nil {
 				t.loggedNotFound.Store(false)
 			}
@@ -301,6 +321,7 @@ func (t *pluginInstance) processManifestWorldStateCore(
 				trace.Log(ctx, "download-manifest-copy-class", string(t.classifyManifestCopy(downloadManifest)))
 			}
 
+			// Apply the execute routine state for the selected manifest.
 			var anyChanged bool
 
 			// The routine container owns generation replacement and cancellation.
@@ -321,6 +342,7 @@ func (t *pluginInstance) processManifestWorldStateCore(
 			changed := t.setDownloadManifestState(ctx, downloadManifest, worldBucketID)
 			anyChanged = anyChanged || changed
 
+			// Log the new selection when any routine state changed.
 			if anyChanged {
 				fields := logrus.Fields{}
 				addManifestSelectionFields(fields, "download", downloadManifest)
@@ -328,6 +350,7 @@ func (t *pluginInstance) processManifestWorldStateCore(
 				le.WithFields(fields).Debug("selected download and execute manifests for plugin")
 			}
 
+			// Persist the selection input fingerprint for the next pass.
 			t.storeManifestSelectionInputFingerprint(hosts, selectionFingerprint)
 			return nil
 		},
@@ -367,6 +390,7 @@ func manifestSelectionInputFingerprint(
 	platformIDs []string,
 	candidates []*bldr_manifest_world.StartupManifestCandidateEligibility,
 ) string {
+	// Build the fingerprint with a length-prefixed field writer.
 	var fingerprint strings.Builder
 	writeField := func(value string) {
 		fingerprint.WriteByte(0)
@@ -426,10 +450,12 @@ const maxStartupManifestSkipSummaryItems = 3
 // summarizeStartupManifestEligibilitySkips builds a summary line of
 // skipped candidate counts by eligibility kind.
 func summarizeStartupManifestEligibilitySkips(candidates []*bldr_manifest_world.StartupManifestCandidateEligibility) string {
+	// Return an empty summary with no candidates.
 	if len(candidates) == 0 {
 		return ""
 	}
 
+	// Collect summaries for the first few skipped candidates.
 	items := make([]string, 0, maxStartupManifestSkipSummaryItems)
 	for _, candidate := range candidates {
 		if len(items) >= maxStartupManifestSkipSummaryItems {
@@ -444,6 +470,7 @@ func summarizeStartupManifestEligibilitySkips(candidates []*bldr_manifest_world.
 		return ""
 	}
 
+	// Join the summaries and append the remaining count.
 	summary := strings.Join(items, "; ")
 	if remaining := countStartupManifestEligibilitySkips(candidates) - len(items); remaining > 0 {
 		summary += "; +" + strconv.Itoa(remaining) + " more"
@@ -480,6 +507,7 @@ func addManifestSelectionFields(
 	prefix string,
 	manifest *bldr_manifest.ManifestSnapshot,
 ) {
+	// Fill in a none marker for a missing manifest.
 	if manifest == nil {
 		fields[prefix+"-manifest"] = "none"
 		return

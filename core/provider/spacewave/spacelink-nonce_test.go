@@ -13,12 +13,17 @@ import (
 // TestCachedSpaceLinkNoncePreservesConsumption verifies the persisted marker
 // format written before cloud replay protection, without creating new markers.
 func TestCachedSpaceLinkNoncePreservesConsumption(t *testing.T) {
+	// Build a ProviderAccount backed by an in-memory store and seed a legacy marker.
 	ctx := context.Background()
 	store := hashmap.NewHashmapKvtx(hashmap.NewHashmap[[]byte]())
 	account := &ProviderAccount{objStore: store}
+
+	// Seed a legacy consumption marker with a future expiry timestamp.
 	key := []byte("spacelink-nonce/agent=6167656e742d70656572/nonce=6e6f6e63652d31/payload=2e6709af8dbfe7cd5abb2f716924848e527b4486c30c4509b0e4aa8171987335")
 	marker := make([]byte, 8)
 	binary.BigEndian.PutUint64(marker, uint64(time.Now().Add(time.Minute).Unix()))
+
+	// Commit the legacy marker into the store.
 	tx, err := store.NewTransaction(ctx, true)
 	if err != nil {
 		t.Fatal(err)
@@ -31,6 +36,7 @@ func TestCachedSpaceLinkNoncePreservesConsumption(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// The cached nonce check must report the marker consumed.
 	if err := account.checkCachedSpaceLinkNonce(ctx, []byte("agent-peer"), []byte("nonce-1"), []byte("payload-1")); !errors.Is(err, ErrSpaceLinkNonceConsumed) {
 		t.Fatalf("persisted consumption = %v", err)
 	}

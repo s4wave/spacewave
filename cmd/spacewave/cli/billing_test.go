@@ -49,22 +49,30 @@ func TestRunBillingUsageTextOutput(t *testing.T) {
 	if requestedBA != "ba-selected" {
 		t.Fatalf("expected selected billing account, got %q", requestedBA)
 	}
+
+	// Check the account, storage, and pricing output fields.
 	assertContains(t, out, "Billing Account:")
 	assertContains(t, out, "ba-selected")
 	assertContains(t, out, "Storage:")
 	assertContains(t, out, "110.00 GB / 100.00 GB included")
 	assertContains(t, out, "Monthly Price:")
 	assertContains(t, out, "$5.00")
+
+	// Check the extra spending limit and usage charge fields.
 	assertContains(t, out, "Extra Spending Limit:")
 	assertContains(t, out, "$10.00")
 	assertContains(t, out, "Extra Usage Charges:")
 	assertContains(t, out, "$1.25")
 	assertContains(t, out, "Pending Extra Charges:")
 	assertContains(t, out, "<$0.01")
+
+	// Check the per-operation rates and billing period.
 	assertContains(t, out, "$0.000004 per write")
 	assertContains(t, out, "$0.000001 per uncached read")
 	assertContains(t, out, "Billing Period:")
 	assertContains(t, out, "2026-04-22 22:00 UTC to 2026-05-22 22:00 UTC")
+
+	// Check the operation usage allowances.
 	assertContains(t, out, "Write Ops:")
 	assertContains(t, out, "250 / 100 included")
 	assertContains(t, out, "Read Ops:")
@@ -90,6 +98,8 @@ func TestWriteBillingUsageJSONOutput(t *testing.T) {
 	assertContains(t, out, `"overageLimitCents":1000`)
 	assertContains(t, out, `"accruedOverageMicrodollars":"1250000"`)
 	assertContains(t, out, `"reservedOverageMicrodollars":"500"`)
+
+	// Check the offer, policy, and period contract fields.
 	assertContains(t, out, `"offerVersion":"offer-test"`)
 	assertContains(t, out, `"policyVersion":"policy-test"`)
 	assertContains(t, out, `"writeMicrodollars":4`)
@@ -158,6 +168,7 @@ func TestWriteBillingUsageNotApplicableJSON(t *testing.T) {
 
 // stubBillingTestHooks replaces daemon access and returns restoration for the caller.
 func stubBillingTestHooks(t *testing.T) func() {
+	// Retain the production hooks until this test releases its replacements.
 	t.Helper()
 
 	// Retain the production hooks until this test releases its replacements.

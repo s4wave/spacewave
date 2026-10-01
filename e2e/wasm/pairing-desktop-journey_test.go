@@ -16,9 +16,12 @@ import (
 // TestPairingBrowserDesktopJourney reads a browser-created file in the actual
 // desktop runtime, then restarts that runtime with the browser disconnected.
 func TestPairingBrowserDesktopJourney(t *testing.T) {
+	// Only the desktop runtime can run this journey.
 	if !electron.E2EElectronEnabled() {
 		t.Skip("set ENABLE_E2E_ELECTRON=true to include the desktop runtime")
 	}
+
+	// Create a browser drive session and upload a file through the UI.
 	h := harness(t)
 	a := h.NewCleanSession(t)
 	drive := CreateDriveScenario(t, h, a)
@@ -26,6 +29,8 @@ func TestPairingBrowserDesktopJourney(t *testing.T) {
 	file := playwright.InputFile{Name: "browser-to-desktop.md", MimeType: "text/markdown", Buffer: []byte("The desktop keeps its own copy after the browser leaves.\n")}
 	uploadDriveFileThroughUI(t, a.Page(), file)
 	waitForDriveEntry(t, a.Page(), file.Name)
+
+	// Mount the browser session and read its session info for the pairing copy.
 	ctx, cancel := context.WithTimeout(h.Context(), 12*time.Minute)
 	defer cancel()
 	source, err := a.MountSessionByIdx(ctx, drive.GetSessionIndex())
@@ -37,6 +42,8 @@ func TestPairingBrowserDesktopJourney(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Boot the desktop runtime and wait for its renderer page.
 	desktop, err := electron.Boot(ctx, logrus.NewEntry(logrus.New()))
 	if err != nil {
 		t.Fatal(err)
@@ -49,18 +56,24 @@ func TestPairingBrowserDesktopJourney(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Pair the browser and desktop runtimes through the pair-code flow.
 	WaitForApp(t, page)
 	startPairingPages(t, a.Page(), page, drive.GetSessionIndex(), "#/pair/{offer}")
 	confirmPairingPages(t, a.Page(), page)
 	if err := page.GetByRole("heading", playwright.PageGetByRoleOptions{Name: "Account connected", Exact: new(true)}).WaitFor(); err != nil {
 		t.Fatal(err)
 	}
+
+	// Wait for the desktop copy to become durable, then read the paired file.
 	index := waitPairingPageCopy(t, page, info.GetSessionRef().GetProviderResourceRef().GetProviderAccountId(), drive.GetSpaceID())
 	navigatePairingPage(t, page, fmt.Sprintf("#/u/%d/so/%s", index, drive.GetSpaceID()))
 	WaitForDriveShell(t, page)
 	driveURL := page.URL()
 	openDriveEntry(t, page, file.Name)
 	waitForUnixFSFileText(t, page, "desktop paired file", string(file.Buffer))
+
+	// Disconnect the browser and relaunch the desktop runtime.
 	a.release()
 	if err := desktop.Relaunch(ctx); err != nil {
 		t.Fatal(err)
@@ -69,6 +82,7 @@ func TestPairingBrowserDesktopJourney(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	// Boot the restarted renderer at the saved Drive route before session routing.
 	if _, err := page.Goto("about:blank"); err != nil {
 		t.Fatal(err)
@@ -78,6 +92,8 @@ func TestPairingBrowserDesktopJourney(t *testing.T) {
 	}
 	WaitForApp(t, page)
 	WaitForDriveShell(t, page)
+
+	// The restarted desktop must still read the file it kept locally.
 	openDriveEntry(t, page, file.Name)
 	waitForUnixFSFileText(t, page, "desktop file after restart", string(file.Buffer))
 }
@@ -86,7 +102,10 @@ func TestPairingBrowserDesktopJourney(t *testing.T) {
 // Account transitions can replace a mounted resource, so the watch remounts
 // within one deadline. Session totals must equal their peer breakdown.
 func waitPairingPageCopy(t *testing.T, page playwright.Page, accountID string, ids ...string) uint32 {
+	// Mark the copy helper as a test helper.
 	t.Helper()
+
+	// Poll the page's SDK stream until every shared object copy completes.
 	result, err := page.Evaluate(`async ({ accountID, ids }) => {
 		const deadline = Date.now() + 120000
 		let latest = null
@@ -149,6 +168,8 @@ func waitPairingPageCopy(t *testing.T, page playwright.Page, accountID string, i
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Decode the returned session index and fail on invalid results.
 	index, ok := result.(int)
 	if !ok || index <= 0 {
 		t.Fatalf("unexpected paired Session index: %T %v", result, result)

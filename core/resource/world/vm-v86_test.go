@@ -31,15 +31,22 @@ import (
 // TestVmV86TypedObject tests the VmV86 ObjectType factory, v86fs service
 // registration, and graph edge mount resolution.
 func TestVmV86TypedObject(t *testing.T) {
+
+	// context ctx.
 	ctx := t.Context()
 
+	// setupWorldTestbed tb,tbCleanup.
 	tb, tbCleanup := setupWorldTestbed(ctx, t)
 	defer tbCleanup()
 
+	// Run the AccessTypedObject subtest.
 	t.Run("AccessTypedObject", func(t *testing.T) {
+
+		// setupVmV86WorldEngine engine,cleanup.
 		engine, cleanup := setupVmV86WorldEngine(ctx, t, tb)
 		defer cleanup()
 
+		// Record vmKey.
 		vmKey := "vm-v86-test/vm"
 		rootfsKey := "vm-v86-test/rootfs"
 
@@ -53,6 +60,7 @@ func TestVmV86TypedObject(t *testing.T) {
 		}
 		defer readTx.Release()
 
+		// getResourceRef srpcClient,err via readTx.
 		srpcClient, err := readTx.GetResourceRef().GetClient()
 		if err != nil {
 			t.Fatalf("GetClient failed: %v", err)
@@ -73,14 +81,19 @@ func TestVmV86TypedObject(t *testing.T) {
 		t.Logf("AccessTypedObject: type=%s resourceId=%d", resp.TypeId, resp.ResourceId)
 	})
 
+	// Run the V86fsServiceOnMux subtest.
 	t.Run("V86fsServiceOnMux", func(t *testing.T) {
+
+		// setupVmV86WorldEngineWithClient resClient,engine,cleanup.
 		resClient, engine, cleanup := setupVmV86WorldEngineWithClient(ctx, t, tb)
 		defer cleanup()
 		_ = resClient
 
+		// Record vmKey.
 		vmKey := "vm-v86-test-v86fs/vm"
 		rootfsKey := "vm-v86-test-v86fs/rootfs"
 
+		// createVmV86WithRootfs.
 		createVmV86WithRootfs(ctx, t, engine, vmKey, rootfsKey)
 
 		// Access typed object to get resource mux.
@@ -90,6 +103,7 @@ func TestVmV86TypedObject(t *testing.T) {
 		}
 		defer readTx.Release()
 
+		// getResourceRef srpcClient,err via readTx.
 		srpcClient, err := readTx.GetResourceRef().GetClient()
 		if err != nil {
 			t.Fatalf("GetClient failed: %v", err)
@@ -106,6 +120,7 @@ func TestVmV86TypedObject(t *testing.T) {
 		vmRef := resClient.CreateResourceReference(resp.ResourceId)
 		defer vmRef.Release()
 
+		// getClient vmClient,err via vmRef.
 		vmClient, err := vmRef.GetClient()
 		if err != nil {
 			t.Fatalf("GetClient for vm resource failed: %v", err)
@@ -119,11 +134,13 @@ func TestVmV86TypedObject(t *testing.T) {
 		streamCtx, streamCancel := context.WithTimeout(ctx, 5*time.Second)
 		defer streamCancel()
 
+		// relayV86Fs stream,err via v86fsSvc.
 		stream, err := v86fsSvc.RelayV86Fs(streamCtx)
 		if err != nil {
 			t.Fatalf("RelayV86Fs failed: %v", err)
 		}
 
+		// Iterate the test cases.
 		for tag, name := range []string{"", "rootfs", "kernel", "seabios", "vgabios", "wasm"} {
 			err = stream.Send(&unixfs_v86fs.V86FsMessage{
 				Tag: uint32(tag + 1),
@@ -160,16 +177,22 @@ func TestVmV86TypedObject(t *testing.T) {
 				name, mountReply.GetRootInodeId(), mountReply.GetMode())
 		}
 
+		// streamCancel.
 		streamCancel()
 	})
 
+	// Run the V86ConfigMountsBecomeGuestMounts subtest.
 	t.Run("V86ConfigMountsBecomeGuestMounts", func(t *testing.T) {
+
+		// setupVmV86WorldEngineWithClient resClient,engine,cleanup.
 		resClient, engine, cleanup := setupVmV86WorldEngineWithClient(ctx, t, tb)
 		defer cleanup()
 
+		// Record vmKey.
 		vmKey := "vm-v86-test-config-mount/vm"
 		rootfsKey := "vm-v86-test-config-mount/rootfs"
 
+		// createVmV86WithRootfs.
 		createVmV86WithRootfs(ctx, t, engine, vmKey, rootfsKey)
 		setV86Config(ctx, t, engine, vmKey, &s4wave_vm.V86Config{
 			Mounts: []*s4wave_vm.VmMount{
@@ -177,12 +200,14 @@ func TestVmV86TypedObject(t *testing.T) {
 			},
 		})
 
+		// newTransaction readTx,err via engine.
 		readTx, err := engine.NewTransaction(ctx, false)
 		if err != nil {
 			t.Fatalf("NewTransaction failed: %v", err)
 		}
 		defer readTx.Release()
 
+		// getResourceRef srpcClient,err via readTx.
 		srpcClient, err := readTx.GetResourceRef().GetClient()
 		if err != nil {
 			t.Fatalf("GetClient failed: %v", err)
@@ -195,23 +220,28 @@ func TestVmV86TypedObject(t *testing.T) {
 			t.Fatalf("AccessTypedObject failed: %v", err)
 		}
 
+		// createResourceReference vmRef via resClient.
 		vmRef := resClient.CreateResourceReference(resp.ResourceId)
 		defer vmRef.Release()
 
+		// getClient vmClient,err via vmRef.
 		vmClient, err := vmRef.GetClient()
 		if err != nil {
 			t.Fatalf("GetClient for vm resource failed: %v", err)
 		}
 		v86fsSvc := unixfs_v86fs.NewSRPCV86FsServiceClient(vmClient)
 
+		// withTimeout streamCtx,streamCancel via context.
 		streamCtx, streamCancel := context.WithTimeout(ctx, 5*time.Second)
 		defer streamCancel()
 
+		// relayV86Fs stream,err via v86fsSvc.
 		stream, err := v86fsSvc.RelayV86Fs(streamCtx)
 		if err != nil {
 			t.Fatalf("RelayV86Fs failed: %v", err)
 		}
 
+		// recv notify,err via stream.
 		notify, err := stream.Recv()
 		if err != nil {
 			t.Fatalf("Recv seeded MOUNT_NOTIFY failed: %v", err)
@@ -225,6 +255,7 @@ func TestVmV86TypedObject(t *testing.T) {
 				mountNotify.GetName(), mountNotify.GetMountPath())
 		}
 
+		// Send err via stream.
 		err = stream.Send(&unixfs_v86fs.V86FsMessage{
 			Tag: 1,
 			Body: &unixfs_v86fs.V86FsMessage_MountRequest{
@@ -250,10 +281,14 @@ func TestVmV86TypedObject(t *testing.T) {
 		}
 	})
 
+	// Run the ConcurrentExecuteStreamsShareHomeMount subtest.
 	t.Run("ConcurrentExecuteStreamsShareHomeMount", func(t *testing.T) {
+
+		// setupVmV86WorldEngineWithClient resClient,engine,cleanup.
 		resClient, engine, cleanup := setupVmV86WorldEngineWithClient(ctx, t, tb)
 		defer cleanup()
 
+		// newTestV86PluginLoadController pluginCtrl.
 		pluginCtrl := newTestV86PluginLoadController()
 		releasePluginCtrl, err := tb.Bus.AddController(ctx, pluginCtrl, nil)
 		if err != nil {
@@ -261,10 +296,12 @@ func TestVmV86TypedObject(t *testing.T) {
 		}
 		defer releasePluginCtrl()
 
+		// Record vmKey.
 		vmKey := "vm-v86-test-home-mount/vm"
 		rootfsKey := "vm-v86-test-home-mount/rootfs"
 		createVmV86WithRootfs(ctx, t, engine, vmKey, rootfsKey)
 
+		// newTransaction readTx,err via engine.
 		readTx, err := engine.NewTransaction(ctx, false)
 		if err != nil {
 			t.Fatalf("NewTransaction failed: %v", err)
@@ -275,6 +312,8 @@ func TestVmV86TypedObject(t *testing.T) {
 			t.Fatalf("GetClient failed: %v", err)
 		}
 		typedSvc := s4wave_world.NewSRPCTypedObjectResourceServiceClient(srpcClient)
+
+		// accessTypedObject resp,err via typedSvc.
 		resp, err := typedSvc.AccessTypedObject(ctx, &s4wave_world.AccessTypedObjectRequest{ObjectKey: vmKey})
 		if err != nil {
 			t.Fatalf("AccessTypedObject failed: %v", err)
@@ -286,6 +325,7 @@ func TestVmV86TypedObject(t *testing.T) {
 			t.Fatalf("GetClient for vm resource failed: %v", err)
 		}
 
+		// newSRPCV86FsServiceClient v86fsSvc via unixfs_v86fs.
 		v86fsSvc := unixfs_v86fs.NewSRPCV86FsServiceClient(vmClient)
 		v86fsCtx, v86fsCancel := context.WithTimeout(ctx, 10*time.Second)
 		defer v86fsCancel()
@@ -294,6 +334,8 @@ func TestVmV86TypedObject(t *testing.T) {
 			t.Fatalf("RelayV86Fs failed: %v", err)
 		}
 		mountHome := func(tag uint32) {
+
+			// helper.
 			t.Helper()
 			if err := v86fsStream.Send(&unixfs_v86fs.V86FsMessage{
 				Tag: tag,
@@ -312,6 +354,7 @@ func TestVmV86TypedObject(t *testing.T) {
 			}
 		}
 
+		// applySetV86State.
 		applySetV86State(ctx, t, engine, vmKey, s4wave_vm.VmState_VmState_STARTING, "")
 		execSvc := s4wave_process.NewSRPCPersistentExecutionServiceClient(vmClient)
 		firstCtx, cancelFirst := context.WithCancel(ctx)
@@ -321,6 +364,7 @@ func TestVmV86TypedObject(t *testing.T) {
 		}
 		expectStatusSequence(t, firstStream, s4wave_process.ExecutionState_ExecutionState_STARTING)
 
+		// recv notify,err via v86fsStream.
 		notify, err := v86fsStream.Recv()
 		if err != nil {
 			t.Fatalf("Recv first-start home MOUNT_NOTIFY failed: %v", err)
@@ -330,6 +374,7 @@ func TestVmV86TypedObject(t *testing.T) {
 		}
 		pluginCtrl.expectLoad(t, ctx)
 
+		// withCancel secondCtx,cancelSecond via context.
 		secondCtx, cancelSecond := context.WithCancel(ctx)
 		secondStream, err := execSvc.Execute(secondCtx, &s4wave_process.ExecuteRequest{})
 		if err != nil {
@@ -338,12 +383,14 @@ func TestVmV86TypedObject(t *testing.T) {
 		expectStatusSequence(t, secondStream, s4wave_process.ExecutionState_ExecutionState_STARTING)
 		mountHome(1)
 
+		// cancelFirst.
 		cancelFirst()
 		if _, err := firstStream.Recv(); err == nil {
 			t.Fatal("first Execute remained open after cancellation")
 		}
 		mountHome(2)
 
+		// cancelSecond.
 		cancelSecond()
 		if _, err := secondStream.Recv(); err == nil {
 			t.Fatal("second Execute remained open after cancellation")
@@ -356,12 +403,15 @@ func TestVmV86TypedObject(t *testing.T) {
 			t.Fatalf("final notification = %#v, want /home UMOUNT_NOTIFY", unmount)
 		}
 
+		// withCancel restartCtx,cancelRestart via context.
 		restartCtx, cancelRestart := context.WithCancel(ctx)
 		defer cancelRestart()
 		restartStream, err := execSvc.Execute(restartCtx, &s4wave_process.ExecuteRequest{})
 		if err != nil {
 			t.Fatalf("restart Execute failed: %v", err)
 		}
+
+		// expectStatusSequence.
 		expectStatusSequence(t, restartStream, s4wave_process.ExecutionState_ExecutionState_STARTING)
 		restartNotify, err := v86fsStream.Recv()
 		if err != nil {
@@ -373,13 +423,18 @@ func TestVmV86TypedObject(t *testing.T) {
 		pluginCtrl.expectLoad(t, ctx)
 	})
 
+	// Run the SetV86ConfigOpApplies subtest.
 	t.Run("SetV86ConfigOpApplies", func(t *testing.T) {
+
+		// setupVmV86WorldEngine engine,cleanup.
 		engine, cleanup := setupVmV86WorldEngine(ctx, t, tb)
 		defer cleanup()
 
+		// Record vmKey.
 		vmKey := "vm-v86-test-setconfig/vm"
 		rootfsKey := "vm-v86-test-setconfig/rootfs"
 
+		// createVmV86WithRootfs.
 		createVmV86WithRootfs(ctx, t, engine, vmKey, rootfsKey)
 
 		// Apply SetV86ConfigOp with a populated Config; op type must be
@@ -400,6 +455,8 @@ func TestVmV86TypedObject(t *testing.T) {
 		}
 		setOp := s4wave_vm.NewSetV86ConfigOp(vmKey, newCfg)
 		setOpData, err := setOp.MarshalVT()
+
+		// Abort if setOp marshalVT fails.
 		if err != nil {
 			tx.Release()
 			t.Fatalf("MarshalVT (setconfig) failed: %v", err)
@@ -439,15 +496,22 @@ func TestVmV86TypedObject(t *testing.T) {
 		tx2.Release()
 	})
 
+	// Run the SetV86StateOpTransitions subtest.
 	t.Run("SetV86StateOpTransitions", func(t *testing.T) {
+
+		// setupVmV86WorldEngine engine,cleanup.
 		engine, cleanup := setupVmV86WorldEngine(ctx, t, tb)
 		defer cleanup()
 
+		// Record vmKey.
 		vmKey := "vm-v86-test-setstate/vm"
 		rootfsKey := "vm-v86-test-setstate/rootfs"
 		createVmV86WithRootfs(ctx, t, engine, vmKey, rootfsKey)
 
+		// Record apply.
 		apply := func(state s4wave_vm.VmState, expectOK bool) {
+
+			// helper.
 			t.Helper()
 			tx, err := engine.NewTransaction(ctx, true)
 			if err != nil {
@@ -455,6 +519,8 @@ func TestVmV86TypedObject(t *testing.T) {
 			}
 			op := s4wave_vm.NewSetV86StateOp(vmKey, state, "")
 			data, err := op.MarshalVT()
+
+			// Abort if op marshalVT fails.
 			if err != nil {
 				tx.Release()
 				t.Fatalf("MarshalVT failed: %v", err)
@@ -479,24 +545,32 @@ func TestVmV86TypedObject(t *testing.T) {
 
 		// STARTING is a compatibility alias that stores desired RUNNING.
 		apply(s4wave_vm.VmState_VmState_STARTING, true)
+
 		// A repeated RUNNING request is rejected until the observed runtime
 		// state changes or the caller requests STOPPED.
 		apply(s4wave_vm.VmState_VmState_RUNNING, false)
 		apply(s4wave_vm.VmState_VmState_STOPPING, true)
+
 		// STOPPING is a compatibility alias that stores desired STOPPED;
 		// STOPPED completes the observed stop.
 		apply(s4wave_vm.VmState_VmState_STOPPED, true)
+
 		// A new STARTING request creates a new run generation.
 		apply(s4wave_vm.VmState_VmState_STARTING, true)
 		apply(s4wave_vm.VmState_VmState_STOPPED, true)
+
 		// ERROR is an observed-only state and is not a desired-state request.
 		apply(s4wave_vm.VmState_VmState_ERROR, false)
 	})
 
+	// Run the V86ImageCreateAndSetMetadata subtest.
 	t.Run("V86ImageCreateAndSetMetadata", func(t *testing.T) {
+
+		// setupVmV86WorldEngine engine,cleanup.
 		engine, cleanup := setupVmV86WorldEngine(ctx, t, tb)
 		defer cleanup()
 
+		// Record imgKey.
 		imgKey := "vm-image-test/default"
 
 		// CreateV86ImageOp stores a fresh V86Image with the supplied metadata.
@@ -512,6 +586,8 @@ func TestVmV86TypedObject(t *testing.T) {
 			Distro:   "debian",
 			Tags:     []string{"default"},
 		}, createdAt)
+
+		// marshalVT createData,err via createOp.
 		createData, err := createOp.MarshalVT()
 		if err != nil {
 			tx.Release()
@@ -576,7 +652,10 @@ func TestVmV86TypedObject(t *testing.T) {
 		tx3.Release()
 	})
 
+	// Run the V86ImageCatalogMetadataUnmarshal subtest.
 	t.Run("V86ImageCatalogMetadataUnmarshal", func(t *testing.T) {
+
+		// newController blockTypeCtrl via blocktype_controller.
 		blockTypeCtrl := blocktype_controller.NewController(space_world.LookupBlockType)
 		releaseBlockTypeCtrl, err := tb.Bus.AddController(ctx, blockTypeCtrl, nil)
 		if err != nil {
@@ -584,9 +663,11 @@ func TestVmV86TypedObject(t *testing.T) {
 		}
 		defer releaseBlockTypeCtrl()
 
+		// setupVmV86WorldEngineWithClient resClient,engine,cleanup.
 		resClient, engine, cleanup := setupVmV86WorldEngineWithClient(ctx, t, tb)
 		defer cleanup()
 
+		// Perform the action.
 		const imageKey = "v86image-catalog/default"
 		tx, err := engine.NewTransaction(ctx, true)
 		if err != nil {
@@ -597,6 +678,8 @@ func TestVmV86TypedObject(t *testing.T) {
 			Platform: "v86",
 			Tags:     []string{"default"},
 		}, time.Now())
+
+		// marshalVT imageData,err via imageOp.
 		imageData, err := imageOp.MarshalVT()
 		if err != nil {
 			tx.Release()
@@ -612,12 +695,15 @@ func TestVmV86TypedObject(t *testing.T) {
 		}
 		tx.Release()
 
+		// newTransaction readTx,err via engine.
 		readTx, err := engine.NewTransaction(ctx, false)
 		if err != nil {
 			t.Fatalf("new read transaction: %v", err)
 		}
 		defer readTx.Release()
 		objectStateValue, found, err := readTx.GetObject(ctx, imageKey)
+
+		// releaseObjectState via world.
 		defer world.ReleaseObjectState(objectStateValue)
 		if err != nil {
 			t.Fatalf("get V86Image catalog object: %v", err)
@@ -630,6 +716,7 @@ func TestVmV86TypedObject(t *testing.T) {
 			t.Fatalf("V86Image object state type = %T", objectStateValue)
 		}
 
+		// getResourceRef objectClient,err via objectState.
 		objectClient, err := objectState.GetResourceRef().GetClient()
 		if err != nil {
 			t.Fatalf("get V86Image object client: %v", err)
@@ -642,6 +729,8 @@ func TestVmV86TypedObject(t *testing.T) {
 		cursorRef := resClient.CreateResourceReference(cursorResp.GetResourceId())
 		defer cursorRef.Release()
 		cursorClient, err := cursorRef.GetClient()
+
+		// Abort if cursorRef getClient fails.
 		if err != nil {
 			t.Fatalf("get V86Image cursor client: %v", err)
 		}
@@ -664,17 +753,23 @@ func TestVmV86TypedObject(t *testing.T) {
 		}
 	})
 
+	// Run the ExecuteEmitsInitialStopped subtest.
 	t.Run("ExecuteEmitsInitialStopped", func(t *testing.T) {
+
+		// setupVmV86WorldEngineWithClient resClient,engine,cleanup.
 		resClient, engine, cleanup := setupVmV86WorldEngineWithClient(ctx, t, tb)
 		defer cleanup()
 
+		// Record vmKey.
 		vmKey := "vm-v86-test-exec-stopped/vm"
 		rootfsKey := "vm-v86-test-exec-stopped/rootfs"
 		createVmV86WithRootfs(ctx, t, engine, vmKey, rootfsKey)
 
+		// openExecuteStream stream,execCancel.
 		stream, execCancel := openExecuteStream(ctx, t, resClient, engine, vmKey)
 		defer execCancel()
 
+		// recv status,err via stream.
 		status, err := stream.Recv()
 		if err != nil {
 			t.Fatalf("Recv status failed: %v", err)
@@ -684,10 +779,14 @@ func TestVmV86TypedObject(t *testing.T) {
 		}
 	})
 
+	// Run the ExecuteStartingReachesError subtest.
 	t.Run("ExecuteStartingReachesError", func(t *testing.T) {
+
+		// setupVmV86WorldEngineWithClient resClient,engine,cleanup.
 		resClient, engine, cleanup := setupVmV86WorldEngineWithClient(ctx, t, tb)
 		defer cleanup()
 
+		// Record vmKey.
 		vmKey := "vm-v86-test-exec-start/vm"
 		rootfsKey := "vm-v86-test-exec-start/rootfs"
 		createVmV86WithRootfs(ctx, t, engine, vmKey, rootfsKey)
@@ -695,6 +794,7 @@ func TestVmV86TypedObject(t *testing.T) {
 		// Request STARTING so the handler drives the plugin load path.
 		applySetV86State(ctx, t, engine, vmKey, s4wave_vm.VmState_VmState_STARTING, "")
 
+		// openExecuteStream stream,execCancel.
 		stream, execCancel := openExecuteStream(ctx, t, resClient, engine, vmKey)
 		defer execCancel()
 
@@ -706,15 +806,21 @@ func TestVmV86TypedObject(t *testing.T) {
 		)
 	})
 
+	// Run the ExecuteMountResolveError subtest.
 	t.Run("ExecuteMountResolveError", func(t *testing.T) {
+
+		// setupVmV86WorldEngineWithClient resClient,engine,cleanup.
 		resClient, engine, cleanup := setupVmV86WorldEngineWithClient(ctx, t, tb)
 		defer cleanup()
 
+		// Record vmKey.
 		vmKey := "vm-v86-test-exec-mountfail/vm"
 		createVmV86WithoutRootfs(ctx, t, engine, vmKey)
 
+		// applySetV86State.
 		applySetV86State(ctx, t, engine, vmKey, s4wave_vm.VmState_VmState_STARTING, "")
 
+		// openExecuteStream stream,execCancel.
 		stream, execCancel := openExecuteStream(ctx, t, resClient, engine, vmKey)
 		defer execCancel()
 
@@ -725,10 +831,14 @@ func TestVmV86TypedObject(t *testing.T) {
 		)
 	})
 
+	// Run the ExecuteStartingLoadsInstancedSpacewaveV86Plugin subtest.
 	t.Run("ExecuteStartingLoadsInstancedSpacewaveV86Plugin", func(t *testing.T) {
+
+		// setupVmV86WorldEngineWithClient resClient,engine,cleanup.
 		resClient, engine, cleanup := setupVmV86WorldEngineWithClient(ctx, t, tb)
 		defer cleanup()
 
+		// newTestV86PluginLoadController pluginCtrl.
 		pluginCtrl := newTestV86PluginLoadController()
 		releasePluginCtrl, err := tb.Bus.AddController(ctx, pluginCtrl, nil)
 		if err != nil {
@@ -736,17 +846,22 @@ func TestVmV86TypedObject(t *testing.T) {
 		}
 		defer releasePluginCtrl()
 
+		// Record vmKey.
 		vmKey := "vm-v86-test-exec-plugin/vm"
 		rootfsKey := "vm-v86-test-exec-plugin/rootfs"
 		createVmV86WithRootfs(ctx, t, engine, vmKey, rootfsKey)
 
+		// applySetV86State.
 		applySetV86State(ctx, t, engine, vmKey, s4wave_vm.VmState_VmState_STARTING, "")
 
+		// openExecuteStream stream,execCancel.
 		stream, execCancel := openExecuteStream(ctx, t, resClient, engine, vmKey)
 		defer execCancel()
 
+		// expectStatusSequence.
 		expectStatusSequence(t, stream, s4wave_process.ExecutionState_ExecutionState_STARTING)
 
+		// expectLoad req via pluginCtrl.
 		req := pluginCtrl.expectLoad(t, ctx)
 		if req.pluginID != "spacewave-v86" {
 			t.Fatalf("plugin id = %q, want spacewave-v86", req.pluginID)
@@ -758,6 +873,7 @@ func TestVmV86TypedObject(t *testing.T) {
 			t.Fatal("plugin directive closed while VM is still running")
 		}
 
+		// applySetV86State.
 		applySetV86State(ctx, t, engine, vmKey, s4wave_vm.VmState_VmState_STOPPED, "")
 		expectStatusSequence(t, stream, s4wave_process.ExecutionState_ExecutionState_STOPPED)
 		if !req.inst.CloseIfUnreferenced(false) {
@@ -765,10 +881,14 @@ func TestVmV86TypedObject(t *testing.T) {
 		}
 	})
 
+	// Run the ExecuteReleasesInstancedPluginWhenVmDisappears subtest.
 	t.Run("ExecuteReleasesInstancedPluginWhenVmDisappears", func(t *testing.T) {
+
+		// setupVmV86WorldEngineWithClient resClient,engine,cleanup.
 		resClient, engine, cleanup := setupVmV86WorldEngineWithClient(ctx, t, tb)
 		defer cleanup()
 
+		// newTestV86PluginLoadController pluginCtrl.
 		pluginCtrl := newTestV86PluginLoadController()
 		releasePluginCtrl, err := tb.Bus.AddController(ctx, pluginCtrl, nil)
 		if err != nil {
@@ -776,17 +896,22 @@ func TestVmV86TypedObject(t *testing.T) {
 		}
 		defer releasePluginCtrl()
 
+		// Record vmKey.
 		vmKey := "vm-v86-test-exec-plugin-delete/vm"
 		rootfsKey := "vm-v86-test-exec-plugin-delete/rootfs"
 		createVmV86WithRootfs(ctx, t, engine, vmKey, rootfsKey)
 
+		// applySetV86State.
 		applySetV86State(ctx, t, engine, vmKey, s4wave_vm.VmState_VmState_STARTING, "")
 
+		// openExecuteStream stream,execCancel.
 		stream, execCancel := openExecuteStream(ctx, t, resClient, engine, vmKey)
 		defer execCancel()
 
+		// expectStatusSequence.
 		expectStatusSequence(t, stream, s4wave_process.ExecutionState_ExecutionState_STARTING)
 
+		// expectLoad req via pluginCtrl.
 		req := pluginCtrl.expectLoad(t, ctx)
 		if req.pluginID != "spacewave-v86" {
 			t.Fatalf("plugin id = %q, want spacewave-v86", req.pluginID)
@@ -798,6 +923,7 @@ func TestVmV86TypedObject(t *testing.T) {
 			t.Fatal("plugin directive closed while VM is still running")
 		}
 
+		// deleteObject.
 		deleteObject(ctx, t, engine, vmKey)
 		if _, err := stream.Recv(); err == nil {
 			t.Fatal("expected Execute stream to close after VM deletion")
@@ -807,14 +933,19 @@ func TestVmV86TypedObject(t *testing.T) {
 		}
 	})
 
+	// Run the ExecuteReactsToSetStateStopped subtest.
 	t.Run("ExecuteReactsToSetStateStopped", func(t *testing.T) {
+
+		// setupVmV86WorldEngineWithClient resClient,engine,cleanup.
 		resClient, engine, cleanup := setupVmV86WorldEngineWithClient(ctx, t, tb)
 		defer cleanup()
 
+		// Record vmKey.
 		vmKey := "vm-v86-test-exec-reactive/vm"
 		rootfsKey := "vm-v86-test-exec-reactive/rootfs"
 		createVmV86WithRootfs(ctx, t, engine, vmKey, rootfsKey)
 
+		// openExecuteStream stream,execCancel.
 		stream, execCancel := openExecuteStream(ctx, t, resClient, engine, vmKey)
 		defer execCancel()
 
@@ -849,6 +980,8 @@ func openExecuteStream(
 	engine *s4wave_world.Engine,
 	vmKey string,
 ) (s4wave_process.SRPCPersistentExecutionService_ExecuteClient, context.CancelFunc) {
+
+	// helper.
 	t.Helper()
 	readTx, err := engine.NewTransaction(ctx, false)
 	if err != nil {
@@ -856,6 +989,7 @@ func openExecuteStream(
 	}
 	t.Cleanup(readTx.Release)
 
+	// getResourceRef srpcClient,err via readTx.
 	srpcClient, err := readTx.GetResourceRef().GetClient()
 	if err != nil {
 		t.Fatalf("GetClient failed: %v", err)
@@ -868,14 +1002,17 @@ func openExecuteStream(
 		t.Fatalf("AccessTypedObject failed: %v", err)
 	}
 
+	// createResourceReference vmRef via resClient.
 	vmRef := resClient.CreateResourceReference(resp.ResourceId)
 	t.Cleanup(vmRef.Release)
 
+	// getClient vmClient,err via vmRef.
 	vmClient, err := vmRef.GetClient()
 	if err != nil {
 		t.Fatalf("GetClient for vm resource failed: %v", err)
 	}
 
+	// newSRPCPersistentExecutionServiceClient execSvc via s4wave_process.
 	execSvc := s4wave_process.NewSRPCPersistentExecutionServiceClient(vmClient)
 	execCtx, execCancel := context.WithTimeout(ctx, 10*time.Second)
 	stream, err := execSvc.Execute(execCtx, &s4wave_process.ExecuteRequest{})
@@ -914,12 +1051,16 @@ func applySetV86State(
 	state s4wave_vm.VmState,
 	errorMessage string,
 ) {
+
+	// helper.
 	t.Helper()
 	tx, err := engine.NewTransaction(ctx, true)
 	if err != nil {
 		t.Fatalf("NewTransaction failed: %v", err)
 	}
 	op := s4wave_vm.NewSetV86StateOp(vmKey, state, errorMessage)
+
+	// marshalVT data,err via op.
 	data, err := op.MarshalVT()
 	if err != nil {
 		tx.Release()
@@ -938,6 +1079,8 @@ func applySetV86State(
 
 // deleteObject deletes an object and commits the write transaction.
 func deleteObject(ctx context.Context, t *testing.T, engine *s4wave_world.Engine, objKey string) {
+
+	// helper.
 	t.Helper()
 	tx, err := engine.NewTransaction(ctx, true)
 	if err != nil {
@@ -968,6 +1111,8 @@ func setupVmV86WorldEngine(ctx context.Context, t *testing.T, tb *world_testbed.
 // setupVmV86WorldEngineWithClient creates a world engine with VmV86 + UnixFS object types,
 // also returns the resource client for creating resource references.
 func setupVmV86WorldEngineWithClient(ctx context.Context, t *testing.T, tb *world_testbed.Testbed) (*resource_client.Client, *s4wave_world.Engine, func()) {
+
+	// Record objectTypes.
 	objectTypes := map[string]objecttype.ObjectType{
 		s4wave_vm.VmV86TypeID:            s4wave_vm_world.VmV86Type,
 		s4wave_vm.V86ImageTypeID:         s4wave_vm_world.V86ImageType,
@@ -982,8 +1127,10 @@ func setupVmV86WorldEngineWithClient(ctx context.Context, t *testing.T, tb *worl
 		t.Fatalf("Failed to add ObjectType controller: %v", err)
 	}
 
+	// setupWorldResourceClient resClient,engine,clientCleanup.
 	resClient, engine, clientCleanup := setupWorldResourceClient(ctx, t, tb)
 
+	// Record cleanup.
 	cleanup := func() {
 		engine.Release()
 		clientCleanup()
@@ -997,6 +1144,8 @@ func setupVmV86WorldEngineWithClient(ctx context.Context, t *testing.T, tb *worl
 // =v86image/rootfs= edge points at a UnixFS rootfs object. Mount resolution for
 // the empty/rootfs name flows VM -> v86/image -> V86Image -> v86image/rootfs.
 func createVmV86WithRootfs(ctx context.Context, t *testing.T, engine *s4wave_world.Engine, vmKey, rootfsKey string) {
+
+	// Record imageKey.
 	imageKey := vmKey + "-image"
 	tx, err := engine.NewTransaction(ctx, true)
 	if err != nil {
@@ -1061,12 +1210,14 @@ func createVmV86WithRootfs(ctx context.Context, t *testing.T, engine *s4wave_wor
 		t.Fatalf("ApplyWorldOp (create vm) failed: %v", err)
 	}
 
+	// Abort on the error.
 	if err := tx.Commit(ctx); err != nil {
 		tx.Release()
 		t.Fatalf("Commit failed: %v", err)
 	}
 	tx.Release()
 
+	// logf.
 	t.Logf("Created VmV86 %s via image %s with rootfs %s", vmKey, imageKey, rootfsKey)
 }
 
@@ -1074,12 +1225,15 @@ func createVmV86WithRootfs(ctx context.Context, t *testing.T, engine *s4wave_wor
 // =v86image/rootfs= edge, so the rootfs mount fails to resolve. Exercises the
 // mount-resolution ERROR path in the handler.
 func createVmV86WithoutRootfs(ctx context.Context, t *testing.T, engine *s4wave_world.Engine, vmKey string) {
+
+	// Record imageKey.
 	imageKey := vmKey + "-image"
 	tx, err := engine.NewTransaction(ctx, true)
 	if err != nil {
 		t.Fatalf("NewTransaction failed: %v", err)
 	}
 
+	// newCreateV86ImageOp imageOp via s4wave_vm.
 	imageOp := s4wave_vm.NewCreateV86ImageOp(imageKey, &s4wave_vm.V86Image{
 		Name:     "empty-image",
 		Platform: "v86",
@@ -1094,6 +1248,7 @@ func createVmV86WithoutRootfs(ctx context.Context, t *testing.T, engine *s4wave_
 		t.Fatalf("ApplyWorldOp (create image) failed: %v", err)
 	}
 
+	// newCreateVmV86Op createOp via s4wave_vm.
 	createOp := s4wave_vm.NewCreateVmV86Op(vmKey, "test-vm-noroot", imageKey, time.Now())
 	createOpData, err := createOp.MarshalVT()
 	if err != nil {
@@ -1105,22 +1260,28 @@ func createVmV86WithoutRootfs(ctx context.Context, t *testing.T, engine *s4wave_
 		t.Fatalf("ApplyWorldOp (create vm) failed: %v", err)
 	}
 
+	// Abort on the error.
 	if err := tx.Commit(ctx); err != nil {
 		tx.Release()
 		t.Fatalf("Commit failed: %v", err)
 	}
 	tx.Release()
 
+	// logf.
 	t.Logf("Created VmV86 %s via image %s without rootfs edge", vmKey, imageKey)
 }
 
 func setV86Config(ctx context.Context, t *testing.T, engine *s4wave_world.Engine, vmKey string, cfg *s4wave_vm.V86Config) {
+
+	// helper.
 	t.Helper()
 	tx, err := engine.NewTransaction(ctx, true)
 	if err != nil {
 		t.Fatalf("NewTransaction failed: %v", err)
 	}
 	op := s4wave_vm.NewSetV86ConfigOp(vmKey, cfg)
+
+	// marshalVT data,err via op.
 	data, err := op.MarshalVT()
 	if err != nil {
 		tx.Release()

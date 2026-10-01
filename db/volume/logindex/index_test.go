@@ -25,6 +25,7 @@ func TestKV(t *testing.T) {
 // TestCheckpointReopen commits enough to checkpoint several times, reopens,
 // and checks every key and that replaced files are gone.
 func TestCheckpointReopen(t *testing.T) {
+	// Open a foreground checkpointing index on an in-memory device.
 	ctx := t.Context()
 	d := device.NewMemory()
 	opts := Options{CheckpointBytes: 256, Foreground: true}
@@ -52,6 +53,8 @@ func TestCheckpointReopen(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
+
+	// Close the index so the final checkpoint is written.
 	if err := i.Close(); err != nil {
 		t.Fatal(err)
 	}
@@ -62,9 +65,14 @@ func TestCheckpointReopen(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer i.Close()
+
+	// Verify the manifest generation advanced across checkpoints.
 	if i.man.gen < 2 {
 		t.Fatalf("manifest generation %d, want at least 2", i.man.gen)
 	}
+
+	// Read every key back from the reopened index.
+	// Read every key back from the reopened index.
 	tx, err := i.NewTransaction(ctx, false)
 	if err != nil {
 		t.Fatal(err)
@@ -99,6 +107,7 @@ func TestCheckpointReopen(t *testing.T) {
 // TestBackgroundCheckpoint commits while background checkpoints run and a
 // reader walks snapshots, then reopens and checks every key.
 func TestBackgroundCheckpoint(t *testing.T) {
+	// Open a background checkpointing index on an in-memory device.
 	ctx := t.Context()
 	d := device.NewMemory()
 	opts := Options{CheckpointBytes: 256}
@@ -154,9 +163,13 @@ func TestBackgroundCheckpoint(t *testing.T) {
 		}
 	}
 	close(done)
+
+	// Stop the snapshot walker and wait for it to finish cleanly.
 	if err := <-walked; err != nil {
 		t.Fatal(err)
 	}
+
+	// Close the index so the final checkpoint is written.
 	if err := i.Close(); err != nil {
 		t.Fatal(err)
 	}
@@ -167,6 +180,9 @@ func TestBackgroundCheckpoint(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer i.Close()
+
+	// Reopen the index and count every committed key.
+	// Reopen the index and count every committed key.
 	tx, err := i.NewTransaction(ctx, false)
 	if err != nil {
 		t.Fatal(err)

@@ -33,6 +33,8 @@ func FuzzLeanSyncCatchup(f *testing.F) {
 
 // leanSyncConfig projects the configuration-chain model without admission decisions.
 func leanSyncConfig(arena *fastjson.Arena, config *sobject.SharedObjectConfig) *fastjson.Value {
+
+	// Check the condition before continuing.
 	if config == nil {
 		return arena.NewNull()
 	}
@@ -43,6 +45,8 @@ func leanSyncConfig(arena *fastjson.Arena, config *sobject.SharedObjectConfig) *
 			participants.GetArray()[index].Set("peer", arena.NewString(""))
 		}
 	}
+
+	// Set via value.
 	value.Set("participants", participants)
 	value.Set("mode", arena.NewNumberInt(int(config.GetConsensusMode())))
 	value.Set("hash", arena.NewString(hex.EncodeToString(config.GetConfigChainHash())))
@@ -52,6 +56,8 @@ func leanSyncConfig(arena *fastjson.Arena, config *sobject.SharedObjectConfig) *
 
 // leanSyncChange projects canonical bytes, signature verification and the decoded entry.
 func leanSyncChange(t *testing.T, arena *fastjson.Arena, change *sobject.SOConfigChange) *fastjson.Value {
+
+	// helper.
 	t.Helper()
 	var digest []byte
 	var hashOK bool
@@ -82,10 +88,14 @@ func leanSyncChange(t *testing.T, arena *fastjson.Arena, change *sobject.SOConfi
 	entry := arena.NewObject()
 	entry.Set("seqno", arena.NewNumberString(strconv.FormatUint(change.GetConfigSeqno(), 10)))
 	entry.Set("config", leanSyncConfig(arena, change.GetConfig()))
+
+	// Set via entry.
 	entry.Set("sig", signature)
 	entry.Set("prev", arena.NewString(hex.EncodeToString(change.GetPreviousHash())))
 	entry.Set("kind", arena.NewNumberInt(int(change.GetChangeType())))
 	entry.Set("hash", arena.NewString(hex.EncodeToString(digest)))
+
+	// newObject value via arena.
 	value := arena.NewObject()
 	value.Set("entry", entry)
 	value.Set("bytes", arena.NewNumberInt(change.SizeVT()))
@@ -105,6 +115,8 @@ func leanSyncChanges(t *testing.T, arena *fastjson.Arena, changes []*sobject.SOC
 
 // leanSyncHead retains every advertisement field used by the receiver.
 func leanSyncHead(arena *fastjson.Arena, head *SOSyncHead) *fastjson.Value {
+
+	// newObject value via arena.
 	value := arena.NewObject()
 	value.Set("revision", arena.NewNumberString(strconv.FormatUint(head.GetRevision(), 10)))
 	value.Set("configHash", arena.NewString(hex.EncodeToString(head.GetConfigHash())))
@@ -116,6 +128,8 @@ func leanSyncHead(arena *fastjson.Arena, head *SOSyncHead) *fastjson.Value {
 
 // leanSyncReceive projects only the buffer owned by syncReceive; it has no held host state.
 func leanSyncReceive(t *testing.T, arena *fastjson.Arena, receiving *syncReceive) *fastjson.Value {
+
+	// helper.
 	t.Helper()
 	value := arena.NewObject()
 	value.Set("head", leanSyncHead(arena, receiving.head))
@@ -128,12 +142,16 @@ func leanSyncReceive(t *testing.T, arena *fastjson.Arena, receiving *syncReceive
 
 // leanSyncPage measures the complete frame rather than only its history payload.
 func leanSyncPage(t *testing.T, arena *fastjson.Arena, message *SOSyncMessage) *fastjson.Value {
+
+	// helper.
 	t.Helper()
 	page := message.GetHistoryPage()
 	if page == nil {
 		return arena.NewNull()
 	}
 	value := arena.NewObject()
+
+	// Set via value.
 	value.Set("revision", arena.NewNumberString(strconv.FormatUint(page.GetRevision(), 10)))
 	value.Set("cursor", arena.NewString(hex.EncodeToString(page.GetCursor())))
 	value.Set("changes", leanSyncChanges(t, arena, page.GetChanges()))
@@ -143,6 +161,8 @@ func leanSyncPage(t *testing.T, arena *fastjson.Arena, message *SOSyncMessage) *
 
 // leanSyncSnapshot retains the bytes actually sent, including all response binding fields.
 func leanSyncSnapshot(arena *fastjson.Arena, snapshot *SOSyncSnapshot) *fastjson.Value {
+
+	// Check the condition before continuing.
 	if snapshot == nil {
 		return arena.NewNull()
 	}
@@ -156,6 +176,8 @@ func leanSyncSnapshot(arena *fastjson.Arena, snapshot *SOSyncSnapshot) *fastjson
 
 // leanSyncResponse projects the remaining suffix and pinned serialized snapshot.
 func leanSyncResponse(t *testing.T, arena *fastjson.Arena, response *syncResponse) *fastjson.Value {
+
+	// helper.
 	t.Helper()
 	value := arena.NewObject()
 	value.Set("revision", arena.NewNumberString(strconv.FormatUint(response.revision, 10)))
@@ -167,6 +189,8 @@ func leanSyncResponse(t *testing.T, arena *fastjson.Arena, response *syncRespons
 
 // leanSyncCatchupCases builds real signed host history, then exercises sender and receiver mutations.
 func leanSyncCatchupCases(t *testing.T, seed uint64) []leanSyncCase {
+
+	// helper.
 	t.Helper()
 	const objectID = "lean-paged-catchup"
 	owner, reader := mustKeyPair(t), mustKeyPair(t)
@@ -189,6 +213,8 @@ func leanSyncCatchupCases(t *testing.T, seed uint64) []leanSyncCase {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// prepareResponse response,err via sender.
 	response, err := sender.prepareResponse(t.Context(), target, &SOSyncHistoryRequest{Revision: seed + 1, BaseHash: initial.Config.ConfigChainHash})
 	if err != nil {
 		t.Fatal(err)
@@ -197,6 +223,8 @@ func leanSyncCatchupCases(t *testing.T, seed uint64) []leanSyncCase {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Record head.
 	head := &SOSyncHead{
 		Revision: response.revision, ConfigHash: target.Config.ConfigChainHash,
 		ConfigSeqno: target.Config.ConfigChainSeqno, RootSeqno: target.Root.InnerSeqno, StateHash: digest,

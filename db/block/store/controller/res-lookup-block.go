@@ -20,6 +20,7 @@ func (c *Controller) resolveLookupBlockFromNetwork(
 	di directive.Instance,
 	dir dex.LookupBlockFromNetwork,
 ) ([]directive.Resolver, error) {
+	// Skip directives for buckets this controller does not serve.
 	lookupBucketID := dir.LookupBlockFromNetworkBucketId()
 	if lookupBucketID == "" || !slices.Contains(c.bucketIDs, lookupBucketID) {
 		return nil, nil
@@ -36,16 +37,20 @@ func (c *Controller) resolveLookupBlockFromNetwork(
 // The resolver will not be retried after returning an error.
 // Values will be maintained from the previous call.
 func (r *lookupBlockFromNetworkResolver) Resolve(ctx context.Context, handler directive.ResolverHandler) error {
+	// Wait for the block store reference.
 	store, storeRef, err := r.c.WaitBlockStore(ctx)
 	if err != nil {
 		return err
 	}
 	defer storeRef.Release()
 
+	// Read the lookup value from the block store.
 	val, err := dex.ReadLookupBlockFromNetworkValue(ctx, store, r.d.LookupBlockFromNetworkRef())
 	if err != nil {
 		return err
 	}
+
+	// Clear stale values and emit the value unless it is missing and skipped.
 	handler.ClearValues()
 	if len(val.GetData()) != 0 || !r.c.skipNotFound {
 		_, _ = handler.AddValue(val)

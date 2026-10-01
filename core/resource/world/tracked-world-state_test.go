@@ -40,12 +40,15 @@ func (w *commitDuringCheckWorldState) GetObjectRootRefsBatch(ctx context.Context
 }
 
 func (w *commitDuringCheckWorldState) commitObjectRevision(ctx context.Context) error {
+
+	// newTransaction tx,err.
 	tx, err := w.engine.NewTransaction(ctx, true)
 	if err != nil {
 		return err
 	}
 	defer tx.Discard()
 
+	// getObject obj,found,err via tx.
 	obj, found, err := tx.GetObject(ctx, w.objectKey)
 	defer world.ReleaseObjectState(obj)
 	if err != nil {
@@ -61,10 +64,13 @@ func (w *commitDuringCheckWorldState) commitObjectRevision(ctx context.Context) 
 }
 
 func TestTrackedWorldStateCommitDuringRevisionCheck(t *testing.T) {
+
+	// context ctx.
 	ctx := t.Context()
 	tb, tbCleanup := setupWorldTestbed(ctx, t)
 	defer tbCleanup()
 
+	// Perform the action.
 	const objectKey = "tracked-watch/commit-during-check"
 	writeTx, err := tb.Engine.NewTransaction(ctx, true)
 	if err != nil {
@@ -84,6 +90,7 @@ func TestTrackedWorldStateCommitDuringRevisionCheck(t *testing.T) {
 	}
 	writeTx.Discard()
 
+	// newTransaction readTx,err via tb.
 	readTx, err := tb.Engine.NewTransaction(ctx, false)
 	if err != nil {
 		t.Fatalf("NewTransaction read: %v", err)
@@ -94,17 +101,20 @@ func TestTrackedWorldStateCommitDuringRevisionCheck(t *testing.T) {
 		t.Fatalf("GetSeqno read: %v", err)
 	}
 
+	// Record watchWs.
 	watchWs := &commitDuringCheckWorldState{
 		WorldState: world.NewEngineWorldState(tb.Engine, false),
 		engine:     tb.Engine,
 		objectKey:  objectKey,
 	}
 
+	// withCancel trackedCtx,trackedCancel via context.
 	trackedCtx, trackedCancel := context.WithCancel(ctx)
 	defer trackedCancel()
 	trackedWs := resource_world.NewTrackedWorldState(readTx, watchWs, seqno, trackedCtx)
 	defer trackedWs.Close()
 
+	// Perform the action.
 	{
 		objectState, _, err := trackedWs.GetObject(ctx, objectKey)
 		world.ReleaseObjectState(objectState)
@@ -113,6 +123,7 @@ func TestTrackedWorldStateCommitDuringRevisionCheck(t *testing.T) {
 		}
 	}
 
+	// withTimeout waitCtx,waitCancel via context.
 	waitCtx, waitCancel := context.WithTimeout(ctx, 10*time.Second)
 	defer waitCancel()
 	if err := trackedWs.WaitForChanges(waitCtx); err != nil {

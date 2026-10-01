@@ -33,6 +33,7 @@ func ExLookupProviderInfos(
 	id string,
 	waitOne bool,
 ) ([]LookupProviderInfoValue, error) {
+	// Collect the provider info values from the bus.
 	dir := NewLookupProviderInfo(id)
 	sess, _, dirRef, err := bus.ExecCollectValues[LookupProviderInfoValue](ctx, b, dir, waitOne, nil)
 	if err != nil {

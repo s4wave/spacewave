@@ -20,10 +20,13 @@ import (
 // TestMessageStream exchanges messages both ways on an unreliable stream and
 // checks that each message stream receives only its own messages.
 func TestMessageStream(t *testing.T) {
+
+	// Connect a link pair and open two unreliable streams on each side.
 	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
 	defer cancel()
 	links := newLinkPair(ctx, t, &Opts{DisablePathMtuDiscovery: true})
 
+	// Open and accept each message stream pair by its control marker.
 	var opened, accepted [2]stream.MessageStream
 	for i := range opened {
 		strm, err := links[0].OpenStream(stream.OpenOpts{Unreliable: true})
@@ -56,6 +59,7 @@ func TestMessageStream(t *testing.T) {
 		defer accepted[hello[0]].Close()
 	}
 
+	// Exchange one message in each direction on every stream pair.
 	for i := range opened {
 		for _, pair := range [][2]stream.MessageStream{{opened[i], accepted[i]}, {accepted[i], opened[i]}} {
 			want := []byte{'m', byte(i)}
@@ -74,7 +78,7 @@ func TestMessageStream(t *testing.T) {
 		}
 	}
 
-	// A message larger than one packet fails instead of fragmenting.
+	// Assert an oversized message fails instead of fragmenting.
 	var tooLarge *quic.DatagramTooLargeError
 	if _, err := opened[0].Write(make([]byte, 4096)); !errors.As(err, &tooLarge) {
 		t.Fatalf("oversized message: %v", err)
@@ -92,6 +96,8 @@ func TestMessageStream(t *testing.T) {
 // TestMessageStreamRequiresDatagrams refuses an unreliable stream on a link
 // without QUIC datagrams.
 func TestMessageStreamRequiresDatagrams(t *testing.T) {
+
+	// Connect a link pair with datagrams disabled and open an unreliable stream.
 	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
 	defer cancel()
 	links := newLinkPair(ctx, t, &Opts{DisablePathMtuDiscovery: true, DisableDatagrams: true})
@@ -102,8 +108,11 @@ func TestMessageStreamRequiresDatagrams(t *testing.T) {
 
 // newLinkPair connects two links over loopback UDP. Index 0 dialed.
 func newLinkPair(ctx context.Context, t *testing.T, opts *Opts) [2]*Link {
+	// Mark the helper and build the shared logger.
 	t.Helper()
 	le := logrus.NewEntry(logrus.New())
+
+	// Generate identities, peer IDs, and loopback endpoints for both sides.
 	var identities [2]*p2ptls.Identity
 	var peers [2]peer.ID
 	var endpoints [2]net.PacketConn
@@ -127,11 +136,14 @@ func newLinkPair(ctx context.Context, t *testing.T, opts *Opts) [2]*Link {
 		t.Cleanup(func() { _ = endpoints[i].Close() })
 	}
 
+	// Listen on one endpoint and dial the other to establish the QUIC session.
 	listener, err := quic.Listen(endpoints[1], BuildIncomingTlsConf(identities[1], peers[0]), BuildQuicConfig(opts))
 	if err != nil {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = listener.Close() })
+
+	// Dial the listener from the other endpoint.
 	dialer := &quic.Transport{Conn: endpoints[0]}
 	t.Cleanup(func() { _ = dialer.Close() })
 	outgoing, _, err := DialSessionViaTransport(ctx, le, opts, dialer, identities[0], endpoints[1].LocalAddr(), peers[1])
@@ -143,6 +155,7 @@ func newLinkPair(ctx context.Context, t *testing.T, opts *Opts) [2]*Link {
 		t.Fatal(err)
 	}
 
+	// Wrap each QUIC connection in a Link and clean it up with the test.
 	var links [2]*Link
 	for side, conn := range []*quic.Conn{outgoing, incoming} {
 		links[side], err = NewLink(ctx, le, opts, 0, peers[side], endpoints[side].LocalAddr(), conn, nil)

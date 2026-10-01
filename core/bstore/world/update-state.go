@@ -43,12 +43,15 @@ func (o *UpdateBlockStoreStateOp) ApplyWorldOp(
 	worldHandle world.WorldState,
 	sender peer.ID,
 ) (sysErr bool, err error) {
+	// Compute the World object key for the updated block store state.
 	bstoreRef := o.GetUpdatedState().GetRef()
 	objKey := NewBlockStoreStateKey(
 		bstoreRef.GetProviderResourceRef().GetProviderId(),
 		bstoreRef.GetProviderResourceRef().GetProviderAccountId(),
 		bstoreRef.GetProviderResourceRef().GetId(),
 	)
+
+	// Refuse to overwrite an existing block store state when requested.
 	if o.GetIfNotExists() {
 		objectState, exists, err := worldHandle.GetObject(ctx, objKey)
 		world.ReleaseObjectState(objectState)
@@ -60,6 +63,7 @@ func (o *UpdateBlockStoreStateOp) ApplyWorldOp(
 		}
 	}
 
+	// Update the stored block store state block when it differs.
 	_, _, err = world.AccessWorldObject(ctx, worldHandle, objKey, true, func(bcs *block.Cursor) error {
 		storedInfo, err := UnmarshalBlockStoreState(ctx, bcs)
 		if err != nil {

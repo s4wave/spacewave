@@ -30,19 +30,22 @@ import (
 //     within a bounded timeout, proving SO list state synced peer-to-peer
 //     over the bifrost link with no cloud provider involved.
 func TestNoCloudAnonymousParticipantSync(t *testing.T) {
+	// Skip the P2P sync journey until no-cloud resource-list discovery is wired.
 	t.Skip("no-cloud resource-list discovery is not wired yet; direct pairing coverage lives in TestNoCloudPairingDirect")
 
+	// Create two fresh browser sessions backed by local provider accounts.
 	sessA := harness(t).NewCleanSession(t)
 	sessB := harness(t).NewCleanSession(t)
-
 	ctx, cancel := context.WithTimeout(harness(t).Context(), 3*time.Minute)
 	t.Cleanup(cancel)
 
+	// Mount the SDK session for each browser session.
 	sdkA := mountFreshLocalSession(ctx, t, sessA)
 	defer sdkA.Release()
 	sdkB := mountFreshLocalSession(ctx, t, sessB)
 	defer sdkB.Release()
 
+	// Open pairing status watches on both sides.
 	watchA, err := sdkA.WatchPairingStatus(ctx)
 	if err != nil {
 		t.Fatalf("WatchPairingStatus A: %v", err)
@@ -54,9 +57,11 @@ func TestNoCloudAnonymousParticipantSync(t *testing.T) {
 	}
 	defer watchB.Close()
 
+	// Both sides must start in the idle pairing state.
 	expectInitialPairingStatus(t, "A", watchA, s4wave_session.PairingStatus_PairingStatus_IDLE)
 	expectInitialPairingStatus(t, "B", watchB, s4wave_session.PairingStatus_PairingStatus_IDLE)
 
+	// Exchange the local pairing offer, answer, and final answer.
 	offerResp, err := sdkA.CreateLocalPairingOffer(ctx)
 	if err != nil {
 		t.Fatalf("CreateLocalPairingOffer (A): %v", err)
@@ -84,6 +89,7 @@ func TestNoCloudAnonymousParticipantSync(t *testing.T) {
 		t.Fatal("expected B to learn remote peer ID during pairing verification")
 	}
 
+	// Fetch the SAS emoji code from both sides.
 	emojiA, err := sdkA.GetSASEmoji(ctx, remotePeerOnA)
 	if err != nil {
 		t.Fatalf("GetSASEmoji (A): %v", err)
@@ -92,6 +98,8 @@ func TestNoCloudAnonymousParticipantSync(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GetSASEmoji (B): %v", err)
 	}
+
+	// Both sides must display the identical non-empty emoji sequence.
 	if len(emojiA.GetEmoji()) == 0 || len(emojiB.GetEmoji()) == 0 {
 		t.Fatalf("SAS emoji empty: A=%v B=%v", emojiA.GetEmoji(), emojiB.GetEmoji())
 	}
@@ -99,6 +107,7 @@ func TestNoCloudAnonymousParticipantSync(t *testing.T) {
 		t.Fatalf("SAS emoji mismatch: A=%v B=%v", emojiA.GetEmoji(), emojiB.GetEmoji())
 	}
 
+	// Confirm the SAS match on both sides.
 	if err := sdkA.ConfirmSASMatch(ctx, true); err != nil {
 		t.Fatalf("ConfirmSASMatch (A): %v", err)
 	}
@@ -106,11 +115,14 @@ func TestNoCloudAnonymousParticipantSync(t *testing.T) {
 		t.Fatalf("ConfirmSASMatch (B): %v", err)
 	}
 
+	// Confirm the pairing from both peers concurrently.
 	confirmPairingBothSides(ctx, t, sdkA, remotePeerOnA, "device-b", sdkB, remotePeerOnB, "device-a")
 
+	// Both sides must reach the fully confirmed pairing state.
 	waitForPairingStatus(t, "A", watchA, s4wave_session.PairingStatus_PairingStatus_BOTH_CONFIRMED)
 	waitForPairingStatus(t, "B", watchB, s4wave_session.PairingStatus_PairingStatus_BOTH_CONFIRMED)
 
+	// Create a Space owned by peer A.
 	spaceName := "P2P Sync Space"
 	createResp, err := sdkA.CreateSpace(ctx, &s4wave_session.CreateSpaceRequest{SpaceName: spaceName})
 	if err != nil {
@@ -122,11 +134,14 @@ func TestNoCloudAnonymousParticipantSync(t *testing.T) {
 	}
 	t.Logf("owner A created space %s", spaceID)
 
+	// Participant B must observe the Space arrive over the P2P link.
 	if err := waitForSpaceInResourcesList(ctx, sdkB, spaceID); err != nil {
 		t.Fatalf("participant B did not observe space %s over P2P: %v", spaceID, err)
 	}
 }
 
+// confirmPairingBothSides confirms the pairing from both peers concurrently and
+// fails the test if either side errors.
 func confirmPairingBothSides(
 	ctx context.Context,
 	t *testing.T,
@@ -137,8 +152,10 @@ func confirmPairingBothSides(
 	remotePeerOnB string,
 	deviceNameB string,
 ) {
+	// Mark the pairing helper as a test helper.
 	t.Helper()
 
+	// Run both ConfirmPairing calls in parallel goroutines.
 	var wg sync.WaitGroup
 	var errA error
 	var errB error
@@ -153,6 +170,7 @@ func confirmPairingBothSides(
 	}()
 	wg.Wait()
 
+	// Fail the test if either side failed to confirm.
 	if errA != nil {
 		t.Fatalf("ConfirmPairing (A): %v", errA)
 	}
@@ -168,12 +186,14 @@ func waitForSpaceInResourcesList(
 	sdk *s4wave_session.Session,
 	spaceID string,
 ) error {
+	// Open the resources list watch stream.
 	stream, err := sdk.WatchResourcesList(ctx)
 	if err != nil {
 		return err
 	}
 	defer stream.Close()
 
+	// Consume snapshots until the requested space ID appears.
 	for {
 		resp, err := stream.Recv()
 		if err != nil {
@@ -198,6 +218,7 @@ func waitForPairingStatusRemotePeer(
 	want s4wave_session.PairingStatus,
 ) string {
 	t.Helper()
+	// Consume snapshots until the requested phase or a terminal failure arrives.
 	for {
 		resp, err := stream.Recv()
 		if err != nil {
@@ -225,7 +246,9 @@ func waitForPairingStatusRemotePeer(
 	}
 }
 
+// equalStringSlices reports whether the two slices match case-insensitively.
 func equalStringSlices(a, b []string) bool {
+	// Compare each element case-insensitively after checking lengths.
 	if len(a) != len(b) {
 		return false
 	}

@@ -18,11 +18,13 @@ func TestValidateRejectsOutOfRangeValueType(t *testing.T) {
 // TestValidateAcceptsKnownValueTypes pins the accepted value type set,
 // including world-object snapshots which carry no ref payload.
 func TestValidateAcceptsKnownValueTypes(t *testing.T) {
+	// Validate a block-ref value with a non-empty name.
 	blockRefVal := NewValueWithBlockRef("a", &block.BlockRef{})
 	if err := blockRefVal.Validate(false); err != nil {
 		t.Fatalf("block-ref value should validate: %v", err)
 	}
 
+	// Validate a world-object snapshot value, which carries no ref payload.
 	snapshotVal := &Value{ValueType: ValueType_ValueType_WORLD_OBJECT_SNAPSHOT}
 	if err := snapshotVal.Validate(true); err != nil {
 		t.Fatalf("world-object-snapshot value should validate: %v", err)

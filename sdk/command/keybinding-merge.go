@@ -19,6 +19,7 @@ var (
 func MergeKeybindingOverrideSet(
 	current, expected, replacement *KeybindingOverrideSet,
 ) (*KeybindingOverrideSet, error) {
+	// Validate the caller's expected snapshot and replacement set.
 	if expected == nil {
 		return nil, ErrKeybindingOverrideSetExpected
 	}
@@ -28,6 +29,8 @@ func MergeKeybindingOverrideSet(
 	if current == nil {
 		current = &KeybindingOverrideSet{}
 	}
+
+	// Return the replacement when the caller's set already matches the expected snapshot.
 	if current.EqualVT(expected) {
 		return replacement.CloneVT(), nil
 	}
@@ -35,7 +38,10 @@ func MergeKeybindingOverrideSet(
 		return current.CloneVT(), nil
 	}
 
+	// Clone the current set as the merge base.
 	merged := current.CloneVT()
+
+	// Merge the WEB partition when the caller did not change it independently.
 	if keybindingPartitionEqual(current.GetWebOverrides(), current.GetWebSettings(), expected.GetWebOverrides(), expected.GetWebSettings()) {
 		merged.WebOverrides = cloneKeybindingOverrides(replacement.GetWebOverrides())
 		merged.WebSettings = replacement.GetWebSettings().CloneVT()
@@ -43,6 +49,8 @@ func MergeKeybindingOverrideSet(
 		!keybindingPartitionEqual(expected.GetWebOverrides(), expected.GetWebSettings(), replacement.GetWebOverrides(), replacement.GetWebSettings()) {
 		return nil, ErrKeybindingOverrideSetChanged
 	}
+
+	// Merge the TUI partition when the caller did not change it independently.
 	if keybindingPartitionEqual(current.GetTuiOverrides(), current.GetTuiSettings(), expected.GetTuiOverrides(), expected.GetTuiSettings()) {
 		merged.TuiOverrides = cloneKeybindingOverrides(replacement.GetTuiOverrides())
 		merged.TuiSettings = replacement.GetTuiSettings().CloneVT()

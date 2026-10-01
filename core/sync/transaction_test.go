@@ -29,9 +29,12 @@ import (
 // writes atomically: discarded creates vanish, committed creates become visible
 // together through a separate Resource consumer and survive Sync, Close, reopen.
 func TestTransaction(t *testing.T) {
+	// Set up a bounded context and logger for the test.
 	ctx, cancel := context.WithTimeout(t.Context(), 20*time.Second)
 	defer cancel()
 	le := logrus.NewEntry(logrus.New())
+
+	// Open a sync engine over a BoltDB-backed storage volume.
 	backing := storage_native.NewBoltDB(false, t.TempDir())
 	engine, err := core_sync.Open(ctx, le, backing)
 	if err != nil {
@@ -39,6 +42,7 @@ func TestTransaction(t *testing.T) {
 	}
 	t.Cleanup(func() { _ = engine.Close() })
 
+	// Discarding the transaction must hide every create and write.
 	t.Run("DiscardRollsBackSuppliedWorldTransaction", func(t *testing.T) {
 		// Create two kv/store objects and commit one KV write to each inside
 		// the supplied World transaction.
@@ -74,6 +78,7 @@ func TestTransaction(t *testing.T) {
 		}
 	})
 
+	// Committing the transaction must publish all three stores together.
 	t.Run("CommitPublishesSuppliedWorldTransaction", func(t *testing.T) {
 		// Create two kv/store objects and one internal receipt store inside the
 		// supplied World transaction.
@@ -112,6 +117,8 @@ func TestTransaction(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
+
+		// Attach a Resource client over the committed engine state.
 		client, err := resource_client.NewClient(ctx, resource.NewSRPCResourceServiceClient(srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(mux)))))
 		if err != nil {
 			release()
@@ -137,6 +144,7 @@ func TestTransaction(t *testing.T) {
 			{"kv/tx-beta", "beta", "two"},
 			{"kv/tx-receipts", "receipt/op-1", "accepted"},
 		} {
+			// Check each committed value through the remote Resource consumer.
 			store, kvRef, err := accessKvResource(ctx, client, rootClient, want.objectKey)
 			if err != nil {
 				t.Fatalf("access %s: %v", want.objectKey, err)
@@ -158,7 +166,7 @@ func TestTransaction(t *testing.T) {
 			t.Fatalf("releasing the mount stopped the supplied engine: %v", err)
 		}
 
-		// Require the committed values to survive Sync, Close, and reopen.
+		// Sync, close, and reopen the engine over the same storage.
 		if _, err := engine.World.Sync(ctx); err != nil {
 			t.Fatalf("sync: %v", err)
 		}
@@ -177,6 +185,7 @@ func TestTransaction(t *testing.T) {
 			{"kv/tx-beta", "beta", "two"},
 			{"kv/tx-receipts", "receipt/op-1", "accepted"},
 		} {
+			// Read every committed value back from the reopened engine.
 			invoker, closeStore, err := kv_world.KvStoreFactory(ctx, le, reopened.Bus, reopened.World, reopened.State, want.objectKey)
 			if err != nil {
 				t.Fatalf("reopen %s: %v", want.objectKey, err)
@@ -213,11 +222,14 @@ func commitKvThroughFactory(
 	ws world.WorldState,
 	objectKey, key, value string,
 ) error {
+	// Open the kv/store object through KvStoreFactory against the World state.
 	invoker, closeStore, err := kv_world.KvStoreFactory(ctx, le, b, engine, ws, objectKey)
 	if err != nil {
 		return err
 	}
 	defer closeStore()
+
+	// Commit one key/value pair in an inner KVTX transaction.
 	store := kvtx_rpc_client.NewStore(kvtx_rpc.NewSRPCKvtxClient(srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(invoker)))))
 	tx, err := store.NewTransaction(ctx, true)
 	if err != nil {
@@ -238,6 +250,7 @@ func commitKvThroughFactory(
 // accessKvResource opens a kv/store object through the mounted engine Resource
 // and returns its KVTX RPC store with the reference the caller must release.
 func accessKvResource(ctx context.Context, client *resource_client.Client, rootClient srpc.Client, objectKey string) (kvtx.Store, resource_client.ResourceRef, error) {
+	// Access the typed object and build a KVTX RPC store over it.
 	typed, err := sdk_world.NewSRPCTypedObjectResourceServiceClient(rootClient).AccessTypedObject(ctx, &sdk_world.AccessTypedObjectRequest{ObjectKey: objectKey})
 	if err != nil {
 		return nil, nil, err
@@ -253,6 +266,7 @@ func accessKvResource(ctx context.Context, client *resource_client.Client, rootC
 
 // expectKvValue reads one key through a read-only KVTX transaction and requires the exact value.
 func expectKvValue(t *testing.T, ctx context.Context, store kvtx.Store, key, value string) {
+	// Read the key and require the exact value.
 	t.Helper()
 	read, err := store.NewTransaction(ctx, false)
 	if err != nil {

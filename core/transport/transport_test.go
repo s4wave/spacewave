@@ -39,7 +39,10 @@ func newTestSessionTransport(
 	signalingURL string,
 	opts ...transport.SessionTransportOption,
 ) (context.Context, *testbed.Testbed, *transport.SessionTransport) {
+	// Mark the helper and start a bounded testbed for the transport.
 	t.Helper()
+
+	// Start a bounded testbed for the transport.
 	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
 	t.Cleanup(cancel)
 	tb, err := testbed.Default(ctx)
@@ -47,6 +50,8 @@ func newTestSessionTransport(
 		t.Fatal(err)
 	}
 	t.Cleanup(tb.Release)
+
+	// Generate a key and construct the session transport.
 	privKey, _, err := crypto.GenerateEd25519Key(rand.Reader)
 	if err != nil {
 		t.Fatal(err)
@@ -69,6 +74,7 @@ func newTestSessionTransport(
 // only local controllers: a signal ticket request that never answers does not
 // delay it.
 func TestSessionTransportReadyWithStalledSignaling(t *testing.T) {
+	// Serve a signaling endpoint that stalls every ticket request.
 	requestStarted := make(chan struct{}, 1)
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		select {
@@ -79,6 +85,7 @@ func TestSessionTransportReadyWithStalledSignaling(t *testing.T) {
 	}))
 	defer server.Close()
 
+	// Start the transport and confirm it becomes ready while signaling stalls.
 	ctx, _, st := newTestSessionTransport(t, server.URL)
 	ctx, cancel := context.WithCancel(ctx)
 	done := make(chan error, 1)
@@ -86,15 +93,19 @@ func TestSessionTransportReadyWithStalledSignaling(t *testing.T) {
 		done <- st.Execute(ctx)
 	}()
 
+	// Start the transport and confirm it becomes ready while signaling stalls.
 	if err := st.AwaitReady(ctx); err != nil {
 		t.Fatalf("AwaitReady returned %v while signaling stalled", err)
 	}
+
+	// Confirm signaling requested a ticket.
 	select {
 	case <-requestStarted:
 	case <-ctx.Done():
 		t.Fatalf("signaling did not request a ticket: %v", ctx.Err())
 	}
 
+	// Cancel the transport and confirm a clean shutdown.
 	cancel()
 	if err := <-done; !errors.Is(err, context.Canceled) {
 		t.Fatalf("Execute returned %v after cancellation, want %v", err, context.Canceled)
@@ -107,6 +118,7 @@ func TestSessionTransportReadyWithStalledSignaling(t *testing.T) {
 // TestSessionTransportSignalingRetriesTicket checks that signaling retries a
 // failed ticket request in the background and then connects.
 func TestSessionTransportSignalingRetriesTicket(t *testing.T) {
+	// Serve a signaling endpoint that fails the first ticket request.
 	var ticketRequests atomic.Int32
 	wsAccepted := make(chan struct{}, 1)
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -140,12 +152,14 @@ func TestSessionTransportSignalingRetriesTicket(t *testing.T) {
 	}))
 	defer server.Close()
 
+	// Run the transport in a retrying routine container.
 	ctx, _, st := newTestSessionTransport(t, server.URL, transport.WithStartupRetry())
 	rc := routine.NewRoutineContainer(routine.WithBackoff(&cbackoff.ZeroBackOff{}))
 	rc.SetRoutine(st.Execute)
 	rc.SetContext(ctx, false)
 	defer rc.ClearContext()
 
+	// Confirm the transport became ready and signaling connected after retry.
 	if err := st.AwaitReady(ctx); err != nil {
 		t.Fatalf("transport did not become ready: %v", err)
 	}
@@ -169,12 +183,14 @@ func TestSessionTransportUnauthorizedTicketFailsTransport(t *testing.T) {
 
 	for _, retry := range []bool{false, true} {
 		t.Run("retry="+strconv.FormatBool(retry), func(t *testing.T) {
+			// Build the retry option set for this subtest.
 			var opts []transport.SessionTransportOption
 			if retry {
 				opts = append(opts, transport.WithStartupRetry())
 			}
 			ctx, _, st := newTestSessionTransport(t, server.URL, opts...)
 
+			// Execute the transport once and assert the unauthorized failure.
 			var statusErr signalTicketStatusError
 			executeErr := st.Execute(ctx)
 			if retry && executeErr != nil {
@@ -200,9 +216,11 @@ func TestSessionTransportUnauthorizedTicketFailsTransport(t *testing.T) {
 }
 
 func TestSessionTransportReadyClosesReady(t *testing.T) {
+	// Start the transport without executing it yet.
 	ctx, _, st := newTestSessionTransport(t, "")
 	ctx, cancel := context.WithCancel(ctx)
 
+	// Assert Ready stays open before startup.
 	readyCh := st.Ready()
 	select {
 	case <-readyCh:
@@ -210,6 +228,7 @@ func TestSessionTransportReadyClosesReady(t *testing.T) {
 	default:
 	}
 
+	// Execute the transport and confirm Ready closes after AwaitReady.
 	done := make(chan error, 1)
 	go func() {
 		done <- st.Execute(ctx)
@@ -229,9 +248,11 @@ func TestSessionTransportReadyClosesReady(t *testing.T) {
 }
 
 func TestSessionTransportRepeatedWaitersObserveReady(t *testing.T) {
+	// Start the transport under a cancellable context.
 	ctx, _, st := newTestSessionTransport(t, "")
 	ctx, cancel := context.WithCancel(ctx)
 
+	// Execute the transport and fan out repeated waiters.
 	done := make(chan error, 1)
 	go func() {
 		done <- st.Execute(ctx)
@@ -291,6 +312,7 @@ func (*establishLinkSpy) Close() error { return nil }
 // TestSessionTransportKeepsProtocolsOnChildBus prevents session protocol
 // controllers from splitting attached values across duplicate parent directives.
 func TestSessionTransportKeepsProtocolsOnChildBus(t *testing.T) {
+	// Start the testbed and register the directive spy on the parent bus.
 	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
 	defer cancel()
 	tb, err := testbed.Default(ctx)
@@ -302,6 +324,8 @@ func TestSessionTransportKeepsProtocolsOnChildBus(t *testing.T) {
 	if _, err := tb.Bus.AddController(ctx, spy, nil); err != nil {
 		t.Fatal(err)
 	}
+
+	// Generate local and remote identities for the session transport.
 	localKey, _, err := crypto.GenerateEd25519Key(rand.Reader)
 	if err != nil {
 		t.Fatal(err)
@@ -318,20 +342,28 @@ func TestSessionTransportKeepsProtocolsOnChildBus(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Start the session transport on the parent bus.
 	st, err := transport.NewSessionTransport(logrus.NewEntry(logrus.New()), tb.Bus, localKey, "", "")
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Execute the transport and wait for readiness.
 	done := make(chan error, 1)
 	go func() { done <- st.Execute(ctx) }()
 	if err := st.AwaitReady(ctx); err != nil {
 		t.Fatal(err)
 	}
+
+	// Add the link, protocol, and controller-load directives on the child bus.
 	_, ref, err := st.GetChildBus().AddDirective(link.NewEstablishLinkWithPeer(localID, remoteID), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer ref.Release()
+
+	// Add the protocol solicitation directive.
 	_, bridgeRef, err := st.GetChildBus().AddDirective(
 		link_solicit.NewSolicitProtocol(protocol.ID("test/bridge"), nil, "", 0),
 		nil,
@@ -340,6 +372,8 @@ func TestSessionTransportKeepsProtocolsOnChildBus(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer bridgeRef.Release()
+
+	// Add the controller load directive.
 	_, loadRef, err := st.GetChildBus().AddDirective(
 		resolver.NewLoadControllerWithConfig(&transport_webrtc.Config{}), nil,
 	)
@@ -347,6 +381,8 @@ func TestSessionTransportKeepsProtocolsOnChildBus(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer loadRef.Release()
+
+	// Assert the parent bus never observed the child-bus directives.
 	select {
 	case <-spy.bridgedSig:
 		t.Fatal("parent bus observed a session SolicitProtocol directive")

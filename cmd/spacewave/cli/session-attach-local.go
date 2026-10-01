@@ -42,10 +42,12 @@ func newSessionAttachLocalCommand() *cli.Command {
 // state root. The daemon owns catalog writes, including when it is already
 // running for another renderer.
 func runSessionAttachLocal(c *cli.Context, statePath, accountID string, list bool) error {
+	// Validate the list flag and account ID arguments.
 	if list == (accountID != "") {
 		return errors.New("use --list or provide one local account ID")
 	}
 
+	// Validate the local account volume before attaching.
 	resolved, err := resolveStatePathFromContext(c, statePath)
 	if err != nil {
 		return err
@@ -59,12 +61,14 @@ func runSessionAttachLocal(c *cli.Context, statePath, accountID string, list boo
 		}
 	}
 
+	// Connect to the daemon, autostarting it when needed.
 	client, err := connectDaemonWithAutostart(c.Context, resolved)
 	if err != nil {
 		return err
 	}
 	defer client.close()
 
+	// Attach the local account through the local provider.
 	if list {
 		return listUnattachedLocalAccounts(c, client, resolved)
 	}
@@ -73,6 +77,8 @@ func runSessionAttachLocal(c *cli.Context, statePath, accountID string, list boo
 		return err
 	}
 	defer release()
+
+	// Attach the account and report the resulting Session index.
 	resp, err := localProvider.AttachAccount(c.Context, accountID)
 	if err != nil {
 		return errors.Wrapf(err, "attach local account %s", accountID)
@@ -89,6 +95,7 @@ func runSessionAttachLocal(c *cli.Context, statePath, accountID string, list boo
 // checkLocalAccountVolume proves the target file exists before the daemon can
 // mount a local account, since a mount of a missing volume creates one.
 func checkLocalAccountVolume(statePath, accountID string) error {
+	// Check that the local account volume file exists and is regular.
 	path := filepath.Join(statePath, "p_local_"+accountID+".s4wave")
 	info, err := os.Stat(path)
 	if err != nil {
@@ -103,6 +110,7 @@ func checkLocalAccountVolume(statePath, accountID string) error {
 // listUnattachedLocalAccounts compares account-volume files with the daemon's
 // current Session catalog.
 func listUnattachedLocalAccounts(c *cli.Context, client *sdkClient, statePath string) error {
+	// Read the account volume files and the daemon Session catalog.
 	entries, err := os.ReadDir(statePath)
 	if err != nil {
 		return errors.Wrap(err, "read state root")
@@ -119,6 +127,7 @@ func listUnattachedLocalAccounts(c *cli.Context, client *sdkClient, statePath st
 		}
 	}
 
+	// Collect the unattached account IDs from the volume files.
 	var ids []string
 	for _, entry := range entries {
 		name := entry.Name()

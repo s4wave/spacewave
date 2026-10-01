@@ -14,14 +14,18 @@ import (
 func (a *ProviderAccount) ensureAccountSettingsSharedObject(
 	ctx context.Context,
 ) (*sobject.SharedObjectRef, error) {
+	// Fast-path: return an existing READY binding ref snapshot.
 	if ref := a.getAccountSettingsBindingRefSnapshot(); ref != nil {
 		return ref, nil
 	}
 
+	// Get a ready cloud session client for the account.
 	cli, _, _, err := a.getReadySessionClient(ctx)
 	if err != nil {
 		return nil, err
 	}
+
+	// Ensure the account settings binding exists in the cloud.
 	binding, err := cli.EnsureAccountSObjectBinding(
 		ctx,
 		account_settings.BindingPurpose,
@@ -29,11 +33,14 @@ func (a *ProviderAccount) ensureAccountSettingsSharedObject(
 	if err != nil {
 		return nil, err
 	}
+
+	// Build the SharedObjectRef for the new binding.
 	ref := a.buildSharedObjectRef(binding.GetSoId())
 	if binding.GetState() == api.AccountSObjectBindingState_ACCOUNT_SOBJECT_BINDING_STATE_READY {
 		return ref, nil
 	}
 
+	// Create the account settings SharedObject; tolerate an existing object.
 	_, err = a.CreateSharedObject(
 		ctx,
 		binding.GetSoId(),
@@ -48,6 +55,7 @@ func (a *ProviderAccount) ensureAccountSettingsSharedObject(
 		}
 	}
 
+	// Finalize the binding in the cloud and bump the local epoch.
 	if _, err := cli.FinalizeAccountSObjectBinding(
 		ctx,
 		account_settings.BindingPurpose,

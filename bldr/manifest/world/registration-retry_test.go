@@ -99,12 +99,15 @@ type registrationRetryEngine struct {
 
 // NewTransaction opens the real transaction except for an injected open failure.
 func (e *registrationRetryEngine) NewTransaction(ctx context.Context, write bool) (world.Tx, error) {
+	// Count write attempts and fail the first open when the stage is set.
 	if write {
 		e.attempts++
 		if e.attempts == 1 && e.stage == "open" {
 			return nil, kvtx.ErrInvalidSnapshot
 		}
 	}
+
+	// Open the real transaction from the wrapped engine.
 	tx, err := e.Engine.NewTransaction(ctx, write)
 	if err != nil {
 		return nil, err

@@ -11,6 +11,9 @@ import (
 )
 
 func TestTypedObjectResourceKeyString(t *testing.T) {
+	// Verify the key string form without an optional session peer.
+
+	// Check the condition before continuing.
 	if got, want := (typedObjectResourceKey{
 		typeID:    "unixfs/fs-node",
 		objectKey: "files",
@@ -19,6 +22,9 @@ func TestTypedObjectResourceKeyString(t *testing.T) {
 		t.Fatalf("String() = %q, want %q", got, want)
 	}
 
+	// Verify the key string form with a session peer and engine.
+
+	// Define sessionPeerID via peer.
 	sessionPeerID := peer.ID("session-peer")
 	got := (typedObjectResourceKey{
 		typeID:        "notes/doc",
@@ -35,6 +41,9 @@ func TestTypedObjectResourceKeyString(t *testing.T) {
 }
 
 func TestTypedObjectResourceExitLogUsesKeyName(t *testing.T) {
+	// Capture debug log output in an isolated logger.
+
+	// Perform the action.
 	var out bytes.Buffer
 	logger := logrus.New()
 	logger.SetOutput(&out)
@@ -44,6 +53,9 @@ func TestTypedObjectResourceExitLogUsesKeyName(t *testing.T) {
 		DisableTimestamp: true,
 	})
 
+	// Build the log-exited callback over the key string function.
+
+	// Record cb.
 	cb := keyed.NewLogExitedCallbackWithNameFn[typedObjectResourceKey, *typedObjectHandle](
 		logrus.NewEntry(logger),
 		typedObjectResourceKey.String,
@@ -54,6 +66,9 @@ func TestTypedObjectResourceExitLogUsesKeyName(t *testing.T) {
 		readOnly:  false,
 	}, nil, nil, nil)
 
+	// Verify the exit log names the key and leaks no struct internals.
+
+	// Format got via out.
 	got := out.String()
 	if !strings.Contains(got, "keyed: routine exited: typed-object type=unixfs/fs-node object=files readOnly=false") {
 		t.Fatalf("exit log = %q", got)

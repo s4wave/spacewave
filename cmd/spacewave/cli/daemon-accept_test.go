@@ -16,9 +16,11 @@ import (
 )
 
 func TestAcceptDaemonListenerServesConcurrentResourceClients(t *testing.T) {
+	// Listen on a short unix socket for the daemon.
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
+	// Register the resource server on the srpc mux.
 	dir := shortSocketDir(t)
 	sock := filepath.Join(dir, socketName)
 	lis, err := net.Listen("unix", sock)
@@ -27,6 +29,7 @@ func TestAcceptDaemonListenerServesConcurrentResourceClients(t *testing.T) {
 	}
 	defer lis.Close()
 
+	// Open two concurrent resource clients against the listener.
 	mux := srpc.NewMux()
 	resServer := resource_server.NewResourceServer(srpc.NewMux())
 	if err := resServer.Register(mux); err != nil {
@@ -40,16 +43,19 @@ func TestAcceptDaemonListenerServesConcurrentResourceClients(t *testing.T) {
 		errCh <- err
 	}()
 
+	// Stop the listener and confirm acceptDaemonListener returns.
 	first, firstConn := openDaemonResourceClient(t, ctx, sock)
 	defer firstConn.Close()
 	defer first.Release()
 
+	// Open a second concurrent resource client.
 	secondCtx, secondCancel := context.WithTimeout(ctx, time.Second)
 	defer secondCancel()
 	second, secondConn := openDaemonResourceClient(t, secondCtx, sock)
 	defer secondConn.Close()
 	defer second.Release()
 
+	// Shut down the listener and confirm acceptDaemonListener returns.
 	cancel()
 	lis.Close()
 	select {
@@ -64,14 +70,17 @@ func openDaemonResourceClient(
 	ctx context.Context,
 	sock string,
 ) (*resource_client.Client, net.Conn) {
+	// Dial the daemon socket.
 	t.Helper()
 
+	// Build the srpc client and resource service over the connection.
 	var d net.Dialer
 	conn, err := d.DialContext(ctx, "unix", sock)
 	if err != nil {
 		t.Fatalf("dial daemon: %v", err)
 	}
 
+	// Build the srpc client and resource service over the connection.
 	srpcClient, err := srpc.NewClientWithConn(conn, true, nil)
 	if err != nil {
 		conn.Close()

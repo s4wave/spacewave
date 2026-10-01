@@ -17,6 +17,8 @@ func TestSnapshotExchangeRequiresHeldAuthority(t *testing.T) {
 	reader := mustKeyPair(t)
 	local := mustKeyPair(t)
 	localID, err := peer.IDFromPrivateKey(local)
+
+	// Abort if peer iDFromPrivateKey fails.
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -68,6 +70,8 @@ func TestSnapshotExchangeRequiresHeldAuthority(t *testing.T) {
 		}, wantError: "root authority"},
 	} {
 		t.Run(test.name, func(t *testing.T) {
+
+			// cloneVT held via initial.
 			held := initial.CloneVT()
 			candidate := held.CloneVT()
 			candidate.Root.InnerSeqno = 5
@@ -78,6 +82,8 @@ func TestSnapshotExchangeRequiresHeldAuthority(t *testing.T) {
 			before := held.CloneVT()
 			host, ctr := newMemHost(soID, held)
 			t.Cleanup(host.ClearContext)
+
+			// newSOSync syncer.
 			syncer := NewSOSync(gateLogger(), nil, soID, localID, local, host, nil)
 			data, err := candidate.MarshalVT()
 			if err != nil {
@@ -113,6 +119,8 @@ func TestSnapshotExchangeRequiresHeldAuthority(t *testing.T) {
 // TestPeerSnapshotSameContentKeepsHeldProof accepts independently signed
 // identical state while rejecting changes to either signed content component.
 func TestPeerSnapshotSameContentKeepsHeldProof(t *testing.T) {
+
+	// Perform the action.
 	const soID = "same-content-independent-validators"
 	first, second := mustKeyPair(t), mustKeyPair(t)
 	localID, err := peer.IDFromPrivateKey(first)
@@ -128,6 +136,8 @@ func TestPeerSnapshotSameContentKeepsHeldProof(t *testing.T) {
 	}
 	trustSnapshotConfig(t, initial, first)
 	signSnapshotRoot(t, soID, initial, first)
+
+	// cloneVT candidate via initial.
 	candidate := initial.CloneVT()
 	signSnapshotRoot(t, soID, candidate, second)
 	if candidate.GetRoot().EqualVT(initial.GetRoot()) {

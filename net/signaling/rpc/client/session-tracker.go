@@ -24,6 +24,7 @@ type sessionTracker struct {
 // newSessionTracker constructs a new sessionTracker.
 func (c *Controller) newSessionTracker(peerIDStr string) (keyed.Routine, *sessionTracker) {
 	// note: we confirmed that parsePeerID is valid before adding the key
+	// Parse the peer id and attach it to the session logger.
 	peerID, _ := peer.IDB58Decode(peerIDStr)
 	le := c.le.WithField("remote-peer-id", peerIDStr)
 
@@ -44,6 +45,7 @@ func (s *sessionTracker) execute(ctx context.Context) error {
 		return err
 	}
 
+	// Hold a peer reference on the signaling client.
 	signalRef := client.AddPeerRef(s.peerID.String())
 	defer signalRef.Release()
 
@@ -64,6 +66,7 @@ func (s *sessionTracker) execute(ctx context.Context) error {
 		defer dirRef.Release()
 	}
 
+	// Wait for the controller context to end.
 	<-ctx.Done()
 	return context.Canceled
 }

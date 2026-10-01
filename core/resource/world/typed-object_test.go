@@ -46,15 +46,22 @@ import (
 
 // TestTypedObjectResource tests the TypedObjectResourceService.
 func TestTypedObjectResource(t *testing.T) {
+
+	// background ctx via context.
 	ctx := context.Background()
 
+	// setupWorldTestbed tb,tbCleanup.
 	tb, tbCleanup := setupWorldTestbed(ctx, t)
 	defer tbCleanup()
 
+	// Run the AccessTypedObjectNotFound subtest.
 	t.Run("AccessTypedObjectNotFound", func(t *testing.T) {
+
+		// setupWorldResourceClientWithObjectTypes _,engine,cleanup.
 		_, engine, cleanup := setupWorldResourceClientWithObjectTypes(ctx, t, tb)
 		defer cleanup()
 
+		// newTransaction tx,err via engine.
 		tx, err := engine.NewTransaction(ctx, false)
 		if err != nil {
 			t.Fatalf("NewTransaction failed: %v", err)
@@ -74,10 +81,14 @@ func TestTypedObjectResource(t *testing.T) {
 			t.Fatal("expected error for nonexistent object")
 		}
 
+		// logf.
 		t.Logf("Correctly returned error for nonexistent object: %v", err)
 	})
 
+	// Run the AccessTypedObjectNoType subtest.
 	t.Run("AccessTypedObjectNoType", func(t *testing.T) {
+
+		// setupWorldResourceClientWithObjectTypes resClient,engine,cleanup.
 		resClient, engine, cleanup := setupWorldResourceClientWithObjectTypes(ctx, t, tb)
 		defer cleanup()
 
@@ -87,6 +98,7 @@ func TestTypedObjectResource(t *testing.T) {
 			t.Fatalf("NewTransaction failed: %v", err)
 		}
 
+		// name objectKey.
 		objectKey := "test-untyped-object-" + t.Name()
 		obj, err := sdkTx.CreateObject(ctx, objectKey, &bucket.ObjectRef{})
 		defer world.ReleaseObjectState(obj)
@@ -133,14 +145,19 @@ func TestTypedObjectResource(t *testing.T) {
 			t.Fatal("expected error for object without type")
 		}
 
+		// logf.
 		t.Logf("Correctly returned error for object without type: %v", err)
 
 		// Cleanup: release the object reference
 
+		// Record _.
 		_ = resClient // referenced for cleanup func
 	})
 
+	// Run the AccessTypedObjectSharesFactoryHandleUntilLastRelease subtest.
 	t.Run("AccessTypedObjectSharesFactoryHandleUntilLastRelease", func(t *testing.T) {
+
+		// Perform the action.
 		var mu sync.Mutex
 		var opens int
 		var cleanups int
@@ -154,6 +171,8 @@ func TestTypedObjectResource(t *testing.T) {
 			ws world.WorldState,
 			objectKey string,
 		) (srpc.Invoker, func(), error) {
+
+			// lock via mu.
 			mu.Lock()
 			opens++
 			mu.Unlock()
@@ -162,6 +181,8 @@ func TestTypedObjectResource(t *testing.T) {
 				return nil, nil, err
 			}
 			return invoker, func() {
+
+				// lock via mu.
 				mu.Lock()
 				cleanups++
 				if cleanups == 1 {
@@ -176,12 +197,15 @@ func TestTypedObjectResource(t *testing.T) {
 		})
 		defer cleanup()
 
+		// Record objectKey.
 		objectKey := "object-layout/shared-handle"
 		sdkTx, err := engine.NewTransaction(ctx, true)
 		if err != nil {
 			t.Fatalf("NewTransaction failed: %v", err)
 		}
 		op := space_world_ops.NewInitObjectLayoutOp(objectKey, time.Now())
+
+		// marshalBlock opData,err via op.
 		opData, err := op.MarshalBlock()
 		if err != nil {
 			sdkTx.Release()
@@ -197,6 +221,7 @@ func TestTypedObjectResource(t *testing.T) {
 		}
 		sdkTx.Release()
 
+		// getResourceRef engineClient,err via engine.
 		engineClient, err := engine.GetResourceRef().GetClient()
 		if err != nil {
 			t.Fatalf("GetClient(engine) failed: %v", err)
@@ -211,6 +236,7 @@ func TestTypedObjectResource(t *testing.T) {
 			t.Fatalf("AccessTypedObject(second) failed: %v", err)
 		}
 
+		// lock via mu.
 		mu.Lock()
 		gotOpens := opens
 		mu.Unlock()
@@ -218,6 +244,7 @@ func TestTypedObjectResource(t *testing.T) {
 			t.Fatalf("factory opens = %d, want 1", gotOpens)
 		}
 
+		// createResourceReference firstRef via resClient.
 		firstRef := resClient.CreateResourceReference(first.GetResourceId())
 		secondRef := resClient.CreateResourceReference(second.GetResourceId())
 		firstRef.Release()
@@ -227,6 +254,8 @@ func TestTypedObjectResource(t *testing.T) {
 		default:
 		}
 		secondRef.Release()
+
+		// Handle the ready channel.
 		select {
 		case <-cleanupCh:
 		case <-time.After(5 * time.Second):
@@ -240,13 +269,17 @@ func TestTypedObjectResource(t *testing.T) {
 		}
 	})
 
+	// Run the AccessTypedObjectLayout subtest.
 	t.Run("AccessTypedObjectLayout", func(t *testing.T) {
+
+		// setupWorldResourceClientWithObjectTypes _,engine,cleanup.
 		_, engine, cleanup := setupWorldResourceClientWithObjectTypes(ctx, t, tb)
 		defer cleanup()
 
 		// Create an ObjectLayout using the InitObjectLayoutOp
 		objectKey := "object-layout/test-layout"
 
+		// newTransaction sdkTx,err via engine.
 		sdkTx, err := engine.NewTransaction(ctx, true)
 		if err != nil {
 			t.Fatalf("NewTransaction failed: %v", err)
@@ -314,19 +347,25 @@ func TestTypedObjectResource(t *testing.T) {
 			t.Fatal("expected non-zero resource ID")
 		}
 
+		// logf.
 		t.Logf("Successfully accessed typed object with type=%s resourceId=%d", resp.TypeId, resp.ResourceId)
 	})
 
+	// Run the AccessTypedObjectFromWatchedWorldState subtest.
 	t.Run("AccessTypedObjectFromWatchedWorldState", func(t *testing.T) {
+
+		// setupWorldResourceClientWithObjectTypes resClient,engine,cleanup.
 		resClient, engine, cleanup := setupWorldResourceClientWithObjectTypes(ctx, t, tb)
 		defer cleanup()
 
+		// Record objectKey.
 		objectKey := "object-layout/watched-layout"
 		sdkTx, err := engine.NewTransaction(ctx, true)
 		if err != nil {
 			t.Fatalf("NewTransaction failed: %v", err)
 		}
 
+		// newInitObjectLayoutOp op via space_world_ops.
 		op := space_world_ops.NewInitObjectLayoutOp(objectKey, time.Now())
 		opData, err := op.MarshalBlock()
 		if err != nil {
@@ -344,12 +383,14 @@ func TestTypedObjectResource(t *testing.T) {
 		}
 		sdkTx.Release()
 
+		// watchWorldState stream,err via engine.
 		stream, err := engine.WatchWorldState(ctx)
 		if err != nil {
 			t.Fatalf("WatchWorldState failed: %v", err)
 		}
 		defer stream.Close()
 
+		// recv msg,err via stream.
 		msg, err := stream.Recv()
 		if err != nil {
 			t.Fatalf("Recv failed: %v", err)
@@ -358,6 +399,7 @@ func TestTypedObjectResource(t *testing.T) {
 			t.Fatal("expected non-zero watched resource ID")
 		}
 
+		// createResourceReference trackedRef via resClient.
 		trackedRef := resClient.CreateResourceReference(msg.GetResourceId())
 		defer trackedRef.Release()
 		trackedClient, err := trackedRef.GetClient()
@@ -365,6 +407,7 @@ func TestTypedObjectResource(t *testing.T) {
 			t.Fatalf("GetClient failed: %v", err)
 		}
 
+		// newSRPCTypedObjectResourceServiceClient typedSvcClient via s4wave_world.
 		typedSvcClient := s4wave_world.NewSRPCTypedObjectResourceServiceClient(trackedClient)
 		resp, err := typedSvcClient.AccessTypedObject(ctx, &s4wave_world.AccessTypedObjectRequest{
 			ObjectKey: objectKey,
@@ -379,20 +422,26 @@ func TestTypedObjectResource(t *testing.T) {
 			t.Fatal("expected non-zero typed resource ID")
 		}
 
+		// createResourceReference typedRef via resClient.
 		typedRef := resClient.CreateResourceReference(resp.GetResourceId())
 		typedRef.Release()
 	})
 
+	// Run the AccessTypedObjectUnixFSEngineResource subtest.
 	t.Run("AccessTypedObjectUnixFSEngineResource", func(t *testing.T) {
+
+		// setupWorldResourceClientWithObjectTypes resClient,engine,cleanup.
 		resClient, engine, cleanup := setupWorldResourceClientWithObjectTypes(ctx, t, tb)
 		defer cleanup()
 
+		// Record objectKey.
 		objectKey := "fs/typed-object-engine"
 		sdkTx, err := engine.NewTransaction(ctx, true)
 		if err != nil {
 			t.Fatalf("NewTransaction failed: %v", err)
 		}
 
+		// newInitUnixFSOp op via space_world_ops.
 		op := space_world_ops.NewInitUnixFSOp(objectKey, time.Now())
 		opData, err := op.MarshalBlock()
 		if err != nil {
@@ -410,6 +459,7 @@ func TestTypedObjectResource(t *testing.T) {
 		}
 		sdkTx.Release()
 
+		// newTransaction readTx,err via engine.
 		readTx, err := engine.NewTransaction(ctx, false)
 		if err != nil {
 			t.Fatalf("NewTransaction failed: %v", err)
@@ -420,6 +470,8 @@ func TestTypedObjectResource(t *testing.T) {
 			readTx.Release()
 			t.Fatalf("GetObject failed: %v", err)
 		}
+
+		// Check the condition before continuing.
 		if !found {
 			readTx.Release()
 			t.Fatal("expected UnixFS object to exist")
@@ -435,6 +487,7 @@ func TestTypedObjectResource(t *testing.T) {
 		}
 		readTx.Release()
 
+		// getResourceRef engineClient,err via engine.
 		engineClient, err := engine.GetResourceRef().GetClient()
 		if err != nil {
 			t.Fatalf("GetClient(engine) failed: %v", err)
@@ -450,12 +503,15 @@ func TestTypedObjectResource(t *testing.T) {
 			t.Fatalf("expected type %q, got %q", s4wave_unixfs_world.UnixFSTypeID, resp.GetTypeId())
 		}
 
+		// createResourceReference fsRef via resClient.
 		fsRef := resClient.CreateResourceReference(resp.GetResourceId())
 		defer fsRef.Release()
 		fsClient, err := fsRef.GetClient()
 		if err != nil {
 			t.Fatalf("GetClient(unixfs) failed: %v", err)
 		}
+
+		// newSRPCFSHandleResourceServiceClient fsSvc via s4wave_unixfs.
 		fsSvc := s4wave_unixfs.NewSRPCFSHandleResourceServiceClient(fsClient)
 		nodeType, err := fsSvc.GetNodeType(ctx, &s4wave_unixfs.HandleGetNodeTypeRequest{})
 		if err != nil {
@@ -473,6 +529,7 @@ func TestTypedObjectResource(t *testing.T) {
 			t.Fatalf("Mknod failed: %v", err)
 		}
 
+		// lookup fileResp,err via fsSvc.
 		fileResp, err := fsSvc.Lookup(ctx, &s4wave_unixfs.HandleLookupRequest{Name: "probe.txt"})
 		if err != nil {
 			t.Fatalf("Lookup(probe.txt) failed: %v", err)
@@ -480,6 +537,8 @@ func TestTypedObjectResource(t *testing.T) {
 		fileRef := resClient.CreateResourceReference(fileResp.GetResourceId())
 		defer fileRef.Release()
 		fileClient, err := fileRef.GetClient()
+
+		// Abort if fileRef getClient fails.
 		if err != nil {
 			t.Fatalf("GetClient(probe.txt) failed: %v", err)
 		}
@@ -495,10 +554,14 @@ func TestTypedObjectResource(t *testing.T) {
 		}
 	})
 
+	// Run the AccessTypedObjectUnixFSWritableTxBeforeCommit subtest.
 	t.Run("AccessTypedObjectUnixFSWritableTxBeforeCommit", func(t *testing.T) {
+
+		// setupWorldResourceClientWithObjectTypes resClient,engine,cleanup.
 		resClient, engine, cleanup := setupWorldResourceClientWithObjectTypes(ctx, t, tb)
 		defer cleanup()
 
+		// Record objectKey.
 		objectKey := "fs/typed-object-write-tx"
 		sdkTx, err := engine.NewTransaction(ctx, true)
 		if err != nil {
@@ -506,6 +569,7 @@ func TestTypedObjectResource(t *testing.T) {
 		}
 		defer sdkTx.Release()
 
+		// newInitUnixFSOp op via space_world_ops.
 		op := space_world_ops.NewInitUnixFSOp(objectKey, time.Now())
 		opData, err := op.MarshalBlock()
 		if err != nil {
@@ -516,6 +580,7 @@ func TestTypedObjectResource(t *testing.T) {
 			t.Fatalf("ApplyWorldOp failed: %v", err)
 		}
 
+		// getResourceRef txClient,err via sdkTx.
 		txClient, err := sdkTx.GetResourceRef().GetClient()
 		if err != nil {
 			t.Fatalf("GetClient(tx) failed: %v", err)
@@ -531,6 +596,7 @@ func TestTypedObjectResource(t *testing.T) {
 			t.Fatalf("expected type %q, got %q", s4wave_unixfs_world.UnixFSTypeID, resp.GetTypeId())
 		}
 
+		// createResourceReference fsRef via resClient.
 		fsRef := resClient.CreateResourceReference(resp.GetResourceId())
 		defer fsRef.Release()
 		fsClient, err := fsRef.GetClient()
@@ -547,6 +613,8 @@ func TestTypedObjectResource(t *testing.T) {
 			t.Fatalf("Mknod before commit failed: %v", err)
 		}
 		fileResp, err := fsSvc.Lookup(ctx, &s4wave_unixfs.HandleLookupRequest{Name: "before-commit.txt"})
+
+		// Abort if fsSvc lookup fails.
 		if err != nil {
 			t.Fatalf("Lookup(before-commit.txt) failed: %v", err)
 		}
@@ -567,10 +635,14 @@ func TestTypedObjectResource(t *testing.T) {
 		}
 	})
 
+	// Run the AccessTypedObjectGitRepo subtest.
 	t.Run("AccessTypedObjectGitRepo", func(t *testing.T) {
+
+		// setupWorldResourceClientWithObjectTypes resClient,engine,cleanup.
 		resClient, engine, cleanup := setupWorldResourceClientWithObjectTypes(ctx, t, tb)
 		defer cleanup()
 
+		// newLookupOpController gitOpc via world.
 		gitOpc := world.NewLookupOpController("test-typed-object-git", tb.EngineID, git_world.LookupGitOp)
 		gitOpRelease, err := tb.Bus.AddController(ctx, gitOpc, nil)
 		if err != nil {
@@ -578,6 +650,7 @@ func TestTypedObjectResource(t *testing.T) {
 		}
 		defer gitOpRelease()
 
+		// Record objectKey.
 		objectKey := "repo/typed-object"
 		repoRef, err := core_git.CloneGitRepoToRef(ctx, tb.Engine, &git_block.CloneOpts{
 			Url: createTypedObjectSourceRepo(t),
@@ -590,6 +663,8 @@ func TestTypedObjectResource(t *testing.T) {
 			t.Fatalf("NewTransaction failed: %v", err)
 		}
 		op := git_world.NewGitInitOp(objectKey, repoRef, true, nil, nil)
+
+		// marshalBlock opData,err via op.
 		opData, err := op.MarshalBlock()
 		if err != nil {
 			sdkTx.Release()
@@ -606,12 +681,14 @@ func TestTypedObjectResource(t *testing.T) {
 		}
 		sdkTx.Release()
 
+		// newTransaction readTx,err via engine.
 		readTx, err := engine.NewTransaction(ctx, false)
 		if err != nil {
 			t.Fatalf("NewTransaction failed: %v", err)
 		}
 		defer readTx.Release()
 
+		// getResourceRef srpcClient,err via readTx.
 		srpcClient, err := readTx.GetResourceRef().GetClient()
 		if err != nil {
 			t.Fatalf("GetClient failed: %v", err)
@@ -627,6 +704,7 @@ func TestTypedObjectResource(t *testing.T) {
 			t.Fatalf("expected type %q, got %q", s4wave_git_world.GitRepoTypeID, resp.GetTypeId())
 		}
 
+		// createResourceReference gitRef via resClient.
 		gitRef := resClient.CreateResourceReference(resp.GetResourceId())
 		defer gitRef.Release()
 		gitClient, err := gitRef.GetClient()
@@ -638,6 +716,8 @@ func TestTypedObjectResource(t *testing.T) {
 		if err != nil {
 			t.Fatalf("GetRepoInfo: %v", err)
 		}
+
+		// Check the condition before continuing.
 		if info.GetIsEmpty() {
 			t.Fatal("expected imported repo with commits")
 		}
@@ -657,22 +737,28 @@ func TestTypedObjectResource(t *testing.T) {
 }
 
 func TestSqlTypedObjectResourceFirstTransactionFromEmptyRoot(t *testing.T) {
+
+	// background ctx via context.
 	ctx := context.Background()
 
+	// setupWorldTestbed tb,tbCleanup.
 	tb, tbCleanup := setupWorldTestbed(ctx, t)
 	defer tbCleanup()
 
+	// setupWorldResourceClientWithObjectTypesAndExtras resClient,engine,cleanup.
 	resClient, engine, cleanup := setupWorldResourceClientWithObjectTypesAndExtras(ctx, t, tb, map[string]objecttype.ObjectType{
 		s4wave_sql_world.SqlDbTypeID: s4wave_sql_world.SqlDbType,
 	})
 	defer cleanup()
 
+	// newTransaction tx,err via engine.
 	tx, err := engine.NewTransaction(ctx, true)
 	if err != nil {
 		t.Fatalf("NewTransaction failed: %v", err)
 	}
 	defer tx.Discard(ctx)
 
+	// Perform the action.
 	const objectKey = "sql/resource-empty-root"
 	var createdObject world.ObjectState
 	createdObject, err = tx.CreateObject(ctx, objectKey, nil)
@@ -680,6 +766,8 @@ func TestSqlTypedObjectResourceFirstTransactionFromEmptyRoot(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateObject(%s): %v", objectKey, err)
 	}
+
+	// buildTypeObjectKey typeObjectKey via world_types.
 	typeObjectKey := world_types.BuildTypeObjectKey(s4wave_sql_world.SqlDbTypeID)
 	{
 		createdObject2, err := tx.CreateObject(ctx, typeObjectKey, nil)
@@ -701,6 +789,7 @@ func TestSqlTypedObjectResourceFirstTransactionFromEmptyRoot(t *testing.T) {
 		t.Fatalf("Commit: %v", err)
 	}
 
+	// getResourceRef engineClient,err via engine.
 	engineClient, err := engine.GetResourceRef().GetClient()
 	if err != nil {
 		t.Fatalf("GetClient failed: %v", err)
@@ -716,6 +805,7 @@ func TestSqlTypedObjectResourceFirstTransactionFromEmptyRoot(t *testing.T) {
 		t.Fatalf("typed object type = %q, want %q", resp.GetTypeId(), s4wave_sql_world.SqlDbTypeID)
 	}
 
+	// createResourceReference sqlRef via resClient.
 	sqlRef := resClient.CreateResourceReference(resp.GetResourceId())
 	defer sqlRef.Release()
 	sqlClient, err := sqlRef.GetClient()
@@ -731,8 +821,11 @@ func TestSqlTypedObjectResourceFirstTransactionFromEmptyRoot(t *testing.T) {
 }
 
 func createTypedObjectSourceRepo(t *testing.T) string {
+
+	// helper.
 	t.Helper()
 
+	// tempDir dir.
 	dir := t.TempDir()
 	repo, err := git.PlainInit(dir, false)
 	if err != nil {
@@ -742,6 +835,8 @@ func createTypedObjectSourceRepo(t *testing.T) string {
 		t.Fatalf("WriteFile: %v", err)
 	}
 	wt, err := repo.Worktree()
+
+	// Abort if repo worktree fails.
 	if err != nil {
 		t.Fatalf("Worktree: %v", err)
 	}
@@ -789,10 +884,13 @@ func setupWorldResourceClientWithObjectTypesAndExtras(
 		t.Fatalf("Failed to add ObjectType controller: %v", err)
 	}
 
+	// setupResourceClient resClient,clientCleanup via resource_testbed.
 	resClient, clientCleanup := resource_testbed.SetupResourceClient(ctx, t, tb)
 
+	// accessRootResource rootRef via resClient.
 	rootRef := resClient.AccessRootResource()
 
+	// getClient srpcClient,err via rootRef.
 	srpcClient, err := rootRef.GetClient()
 	if err != nil {
 		objectTypeCtrlRelease()
@@ -801,6 +899,7 @@ func setupWorldResourceClientWithObjectTypesAndExtras(
 		t.Fatal(err.Error())
 	}
 
+	// newSRPCTestbedResourceServiceClient testbedClient via s4wave_testbed.
 	testbedClient := s4wave_testbed.NewSRPCTestbedResourceServiceClient(srpcClient)
 	createWorldResp, err := testbedClient.CreateWorld(ctx, &s4wave_testbed.CreateWorldRequest{})
 	if err != nil {
@@ -810,6 +909,7 @@ func setupWorldResourceClientWithObjectTypesAndExtras(
 		t.Fatal(err.Error())
 	}
 
+	// createResourceReference engineRef via resClient.
 	engineRef := resClient.CreateResourceReference(createWorldResp.ResourceId)
 	engine, err := s4wave_world.NewEngine(resClient, engineRef)
 	if err != nil {
@@ -819,6 +919,7 @@ func setupWorldResourceClientWithObjectTypesAndExtras(
 		t.Fatal(err.Error())
 	}
 
+	// Record cleanup.
 	cleanup := func() {
 		engine.Release()
 		rootRef.Release()

@@ -75,11 +75,13 @@ func (r *DeviceResource) ReportDeviceStatus(ctx context.Context, req *ReportDevi
 // FSHandle resource. Write access requires explicit capability and approval
 // metadata before Device creates a writer-backed UnixFS cursor.
 func (r *DeviceResource) AccessCheckoutRoot(ctx context.Context, req *AccessCheckoutRootRequest) (*AccessCheckoutRootResponse, error) {
+	// Resolve the caller's Resource client context and requested access mode.
 	resourceCtx, err := resource_server.MustGetResourceClientContext(ctx)
 	if err != nil {
 		return nil, err
 	}
 
+	// Select a write or read-only World state for the access request.
 	writeApprovalRef := strings.TrimSpace(req.GetWriteApprovalRef())
 	var accessWS world.WorldState
 	if req.GetWrite() {
@@ -94,6 +96,7 @@ func (r *DeviceResource) AccessCheckoutRoot(ctx context.Context, req *AccessChec
 		return nil, err
 	}
 
+	// Load the device object state from the selected World state.
 	stateWS := r.ws
 	if req.GetWrite() {
 		stateWS = accessWS
@@ -107,6 +110,7 @@ func (r *DeviceResource) AccessCheckoutRoot(ctx context.Context, req *AccessChec
 		return nil, world.ErrObjectNotFound
 	}
 
+	// Read the device object and find the requested checkout root capability.
 	state, err := readDeviceObject(ctx, objState)
 	if err != nil {
 		return nil, err
@@ -115,6 +119,7 @@ func (r *DeviceResource) AccessCheckoutRoot(ctx context.Context, req *AccessChec
 		return nil, errors.New("device is not selectable")
 	}
 
+	// Locate the requested checkout root capability and verify its link.
 	var capability *DeviceCapability
 	if req.GetWrite() {
 		capability = state.FindWritableCheckoutRoot(req.GetName())
@@ -132,6 +137,7 @@ func (r *DeviceResource) AccessCheckoutRoot(ctx context.Context, req *AccessChec
 		return nil, errors.Errorf("checkout root %q is not a unixfs owner", capability.GetId())
 	}
 
+	// Open an FS cursor over the checkout root and publish it as a resource.
 	fsType, _, err := unixfs_world.LookupFsType(ctx, accessWS, link.GetObjectKey())
 	if err != nil {
 		return nil, err
@@ -148,6 +154,7 @@ func (r *DeviceResource) AccessCheckoutRoot(ctx context.Context, req *AccessChec
 		return nil, err
 	}
 
+	// Publish the FS handle as a Resource owned by the caller.
 	fsResource := resource_unixfs.NewFSHandleObjectResource(
 		r.le,
 		fsh,

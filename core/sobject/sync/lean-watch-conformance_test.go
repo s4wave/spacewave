@@ -37,6 +37,8 @@ type leanSyncAuthorityWatch struct {
 
 // WaitValueChange publishes the next distinct value or injects its primitive wait failure.
 func (w *leanSyncAuthorityWatch) WaitValueChange(ctx context.Context, old *sobject.SOState, errCh <-chan error) (*sobject.SOState, error) {
+
+	// Check the condition before continuing.
 	if w.count == len(w.reads) {
 		return nil, errors.New("watch consumed beyond its finite trace")
 	}
@@ -65,6 +67,8 @@ type leanSyncAuthorityStream struct {
 
 // SetWriteDeadline retains the requested bound even when the primitive fails.
 func (s *leanSyncAuthorityStream) SetWriteDeadline(deadline time.Time) error {
+
+	// Perform the action.
 	s.deadline = deadline
 	if s.failDeadline {
 		return errors.New("injected write deadline failure")
@@ -117,11 +121,15 @@ func FuzzLeanSyncAuthorityWatch(f *testing.F) {
 
 // leanSyncAuthorityWatchCases includes blocked denial writes and unread regrants after termination.
 func leanSyncAuthorityWatchCases(t *testing.T, seed uint64) []leanSyncCase {
+
+	// helper.
 	t.Helper()
 	const objectID = "lean-sync-authority-watch"
 	owner, reader := mustKeyPair(t), mustKeyPair(t)
 	initial := authenticationState(t, objectID, owner, reader)
 	localID, err := peer.IDFromPrivateKey(owner)
+
+	// Abort if peer iDFromPrivateKey fails.
 	if err != nil {
 		t.Fatal(err)
 	}

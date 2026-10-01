@@ -23,8 +23,10 @@ import (
 // buildTestServer creates an in-process v86fs server with a mock filesystem.
 // Returns the SRPC client for the v86fs service and a cleanup function.
 func buildTestServer(t *testing.T, ctx context.Context) SRPCV86FsServiceClient {
+	// Mark the function as a test helper.
 	t.Helper()
 
+	// Build a mock IO FS cursor and release the handle at cleanup.
 	ifs, _ := iofs_mock.NewMockIoFS()
 	fsc, err := unixfs_iofs.NewFSCursor(ifs)
 	if err != nil {
@@ -36,6 +38,7 @@ func buildTestServer(t *testing.T, ctx context.Context) SRPCV86FsServiceClient {
 	}
 	t.Cleanup(handle.Release)
 
+	// Install a resolver that clones the root handle for known names.
 	resolver := func(_ context.Context, name string) (*unixfs.FSHandle, error) {
 		if name == "" || name == "root" {
 			return handle.Clone(ctx)
@@ -43,6 +46,7 @@ func buildTestServer(t *testing.T, ctx context.Context) SRPCV86FsServiceClient {
 		return nil, unixfs_errors.ErrNotExist
 	}
 
+	// Register the server over an SRPC pipe and return the client.
 	srv := NewServer(nil, resolver)
 	mux := srpc.NewMux()
 	if err := SRPCRegisterV86FsService(mux, srv); err != nil {
@@ -56,9 +60,13 @@ func buildTestServer(t *testing.T, ctx context.Context) SRPCV86FsServiceClient {
 
 // TestRelayMountLookupRead tests the basic MOUNT + LOOKUP + READ flow.
 func TestRelayMountLookupRead(t *testing.T) {
+	// Set up the test context.
 	ctx := context.Background()
+
+	// Set up the context and the test server client.
 	client := buildTestServer(t, ctx)
 
+	// Open the relay stream.
 	strm, err := client.RelayV86Fs(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -66,6 +74,8 @@ func TestRelayMountLookupRead(t *testing.T) {
 	defer strm.Close()
 
 	// MOUNT root
+
+	// Mount the root and check the reply.
 	err = strm.Send(&V86FsMessage{
 		Tag:  1,
 		Body: &V86FsMessage_MountRequest{MountRequest: &V86FsMountRequest{Name: ""}},
@@ -73,6 +83,8 @@ func TestRelayMountLookupRead(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Receive the mount reply and check it.
 	reply, err := strm.Recv()
 	if err != nil {
 		t.Fatal(err.Error())
@@ -90,6 +102,8 @@ func TestRelayMountLookupRead(t *testing.T) {
 	}
 
 	// LOOKUP test.txt
+
+	// Look up test.txt and check the reply.
 	err = strm.Send(&V86FsMessage{
 		Tag: 2,
 		Body: &V86FsMessage_LookupRequest{LookupRequest: &V86FsLookupRequest{
@@ -100,6 +114,8 @@ func TestRelayMountLookupRead(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Receive the lookup reply and check it.
 	reply, err = strm.Recv()
 	if err != nil {
 		t.Fatal(err.Error())
@@ -120,6 +136,8 @@ func TestRelayMountLookupRead(t *testing.T) {
 	}
 
 	// OPEN file
+
+	// Open the file and capture the handle ID.
 	err = strm.Send(&V86FsMessage{
 		Tag: 3,
 		Body: &V86FsMessage_OpenRequest{OpenRequest: &V86FsOpenRequest{
@@ -134,6 +152,8 @@ func TestRelayMountLookupRead(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Receive the open reply.
 	openReply := reply.GetOpenReply()
 	if openReply == nil {
 		t.Fatalf("expected open reply, got %T", reply.GetBody())
@@ -141,6 +161,8 @@ func TestRelayMountLookupRead(t *testing.T) {
 	handleID := openReply.GetHandleId()
 
 	// READ file
+
+	// Read the file and check the data.
 	err = strm.Send(&V86FsMessage{
 		Tag: 4,
 		Body: &V86FsMessage_ReadRequest{ReadRequest: &V86FsReadRequest{
@@ -156,6 +178,8 @@ func TestRelayMountLookupRead(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Receive the read reply and check it.
 	readReply := reply.GetReadReply()
 	if readReply == nil {
 		t.Fatalf("expected read reply, got %T", reply.GetBody())
@@ -169,6 +193,8 @@ func TestRelayMountLookupRead(t *testing.T) {
 	}
 
 	// CLOSE handle
+
+	// Close the handle and check the reply.
 	err = strm.Send(&V86FsMessage{
 		Tag: 5,
 		Body: &V86FsMessage_CloseRequest{CloseRequest: &V86FsCloseRequest{
@@ -182,6 +208,8 @@ func TestRelayMountLookupRead(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Receive the close reply and check it.
 	closeReply := reply.GetCloseReply()
 	if closeReply == nil {
 		t.Fatalf("expected close reply, got %T", reply.GetBody())
@@ -190,6 +218,7 @@ func TestRelayMountLookupRead(t *testing.T) {
 
 // sendRecv sends a message and returns the reply.
 func sendRecv(t *testing.T, strm SRPCV86FsService_RelayV86FsClient, msg *V86FsMessage) *V86FsMessage {
+	// Send the message and return the reply.
 	t.Helper()
 	if err := strm.Send(msg); err != nil {
 		t.Fatal(err.Error())
@@ -203,7 +232,10 @@ func sendRecv(t *testing.T, strm SRPCV86FsService_RelayV86FsClient, msg *V86FsMe
 
 // newBillyHandle creates an in-memory writable FSHandle backed by go-billy memfs.
 func newBillyHandle(t *testing.T) *unixfs.FSHandle {
+	// Mark the function as a test helper.
 	t.Helper()
+
+	// Create an in-memory billy filesystem and wrap it in an FSHandle.
 	bfs := memfs.New()
 	if err := bfs.MkdirAll("./", 0o755); err != nil {
 		t.Fatal(err.Error())
@@ -219,7 +251,10 @@ func newBillyHandle(t *testing.T) *unixfs.FSHandle {
 
 // buildMultiMountServer creates a server with "workspace" and "home" mounts.
 func buildMultiMountServer(t *testing.T, ctx context.Context, workspace, home *unixfs.FSHandle) SRPCV86FsServiceClient {
+	// Mark the function as a test helper.
 	t.Helper()
+
+	// Install a resolver that clones the named mount handle.
 	resolver := func(_ context.Context, name string) (*unixfs.FSHandle, error) {
 		switch name {
 		case "workspace":
@@ -229,6 +264,8 @@ func buildMultiMountServer(t *testing.T, ctx context.Context, workspace, home *u
 		}
 		return nil, unixfs_errors.ErrNotExist
 	}
+
+	// Register the server over an SRPC pipe and return the client.
 	srv := NewServer(nil, resolver)
 	mux := srpc.NewMux()
 	if err := SRPCRegisterV86FsService(mux, srv); err != nil {
@@ -242,21 +279,27 @@ func buildMultiMountServer(t *testing.T, ctx context.Context, workspace, home *u
 
 // TestRelayMultiMountIsolation tests full file lifecycle with multi-mount isolation.
 func TestRelayMultiMountIsolation(t *testing.T) {
+
+	// Set up the context, two mount handles, the server client, and the relay stream.
 	ctx := context.Background()
 	wsHandle := newBillyHandle(t)
 	homeHandle := newBillyHandle(t)
 	client := buildMultiMountServer(t, ctx, wsHandle, homeHandle)
 
+	// Open the relay stream and build a tag counter.
 	strm, err := client.RelayV86Fs(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	defer strm.Close()
 
+	// Build a tag counter for the stream messages.
 	tag := uint32(0)
 	nextTag := func() uint32 { tag++; return tag }
 
 	// Mount workspace
+
+	// Mount workspace and check the root.
 	reply := sendRecv(t, strm, &V86FsMessage{
 		Tag:  nextTag(),
 		Body: &V86FsMessage_MountRequest{MountRequest: &V86FsMountRequest{Name: "workspace"}},
@@ -266,6 +309,7 @@ func TestRelayMultiMountIsolation(t *testing.T) {
 		t.Fatal("expected workspace mount root")
 	}
 
+	// Mount home and check the root.
 	// Mount home
 	reply = sendRecv(t, strm, &V86FsMessage{
 		Tag:  nextTag(),
@@ -276,6 +320,7 @@ func TestRelayMultiMountIsolation(t *testing.T) {
 		t.Fatal("expected home mount root")
 	}
 
+	// Create a file in workspace and check the reply.
 	// CREATE file in workspace
 	reply = sendRecv(t, strm, &V86FsMessage{
 		Tag: nextTag(),
@@ -291,6 +336,7 @@ func TestRelayMultiMountIsolation(t *testing.T) {
 	}
 	fileID := createReply.GetInodeId()
 
+	// Write data to the file and check the reply.
 	// WRITE data to the created file
 	fileData := []byte("workspace-only content")
 	reply = sendRecv(t, strm, &V86FsMessage{
@@ -309,6 +355,7 @@ func TestRelayMultiMountIsolation(t *testing.T) {
 		t.Fatalf("expected %d bytes written, got %d", len(fileData), writeReply.GetBytesWritten())
 	}
 
+	// Read the file attributes and check the size.
 	// GETATTR the file
 	reply = sendRecv(t, strm, &V86FsMessage{
 		Tag: nextTag(),
@@ -324,6 +371,7 @@ func TestRelayMultiMountIsolation(t *testing.T) {
 		t.Fatalf("expected size %d, got %d", len(fileData), getattrReply.GetSize())
 	}
 
+	// Look up the file again through workspace.
 	// READ back from workspace to verify
 	reply = sendRecv(t, strm, &V86FsMessage{
 		Tag: nextTag(),
@@ -337,6 +385,7 @@ func TestRelayMultiMountIsolation(t *testing.T) {
 		t.Fatalf("lookup project.txt failed: %v", reply.GetBody())
 	}
 
+	// Open the file and read its data back.
 	// OPEN + READ the file via lookup inode
 	reply = sendRecv(t, strm, &V86FsMessage{
 		Tag: nextTag(),
@@ -346,6 +395,7 @@ func TestRelayMultiMountIsolation(t *testing.T) {
 	})
 	handleID := reply.GetOpenReply().GetHandleId()
 
+	// Read the file back through the open handle.
 	reply = sendRecv(t, strm, &V86FsMessage{
 		Tag: nextTag(),
 		Body: &V86FsMessage_ReadRequest{ReadRequest: &V86FsReadRequest{
@@ -358,11 +408,13 @@ func TestRelayMultiMountIsolation(t *testing.T) {
 		t.Fatalf("read-back mismatch: got %q", reply.GetReadReply().GetData())
 	}
 
+	// Close the handle.
 	sendRecv(t, strm, &V86FsMessage{
 		Tag:  nextTag(),
 		Body: &V86FsMessage_CloseRequest{CloseRequest: &V86FsCloseRequest{HandleId: handleID}},
 	})
 
+	// Read the workspace directory and check the file appears.
 	// READDIR on workspace should show the file
 	reply = sendRecv(t, strm, &V86FsMessage{
 		Tag: nextTag(),
@@ -384,6 +436,7 @@ func TestRelayMultiMountIsolation(t *testing.T) {
 		t.Fatal("project.txt not found in workspace readdir")
 	}
 
+	// Look up the file in home and check it is absent.
 	// LOOKUP project.txt in HOME should fail (isolation)
 	reply = sendRecv(t, strm, &V86FsMessage{
 		Tag: nextTag(),
@@ -392,6 +445,8 @@ func TestRelayMultiMountIsolation(t *testing.T) {
 			Name:     "project.txt",
 		}},
 	})
+
+	// None
 	// Should get an error reply (ENOENT)
 	if errReply := reply.GetErrorReply(); errReply != nil {
 		if errReply.GetStatus() != enoent {
@@ -403,6 +458,7 @@ func TestRelayMultiMountIsolation(t *testing.T) {
 		}
 	}
 
+	// Read the home directory and check it stays empty.
 	// READDIR on home should be empty
 	reply = sendRecv(t, strm, &V86FsMessage{
 		Tag: nextTag(),
@@ -420,6 +476,7 @@ func TestRelayMultiMountIsolation(t *testing.T) {
 		}
 	}
 
+	// Unlink the file from workspace and check the reply.
 	// UNLINK the file from workspace
 	reply = sendRecv(t, strm, &V86FsMessage{
 		Tag: nextTag(),
@@ -433,6 +490,7 @@ func TestRelayMultiMountIsolation(t *testing.T) {
 		t.Fatalf("unlink failed: %v", reply.GetBody())
 	}
 
+	// Read the workspace directory and check the file is gone.
 	// Verify file is gone from workspace
 	reply = sendRecv(t, strm, &V86FsMessage{
 		Tag: nextTag(),
@@ -453,21 +511,26 @@ func TestRelayMultiMountIsolation(t *testing.T) {
 // exercises this exact path; a guest-side fchmod EPERM is a guest v86fs driver
 // gap, not a server gap, because errnoFromError never produces EPERM (it maps
 // unknown errors to ENOSYS and read-only to EROFS).
+// Set up the context, two mount handles, the server client, and the relay stream.
 func TestRelaySetattrChmod(t *testing.T) {
+	// None
 	ctx := context.Background()
 	wsHandle := newBillyHandle(t)
 	homeHandle := newBillyHandle(t)
 	client := buildMultiMountServer(t, ctx, wsHandle, homeHandle)
 
+	// Open the relay stream and build a tag counter.
 	strm, err := client.RelayV86Fs(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	defer strm.Close()
 
+	// Build a tag counter for the stream messages.
 	tag := uint32(0)
 	nextTag := func() uint32 { tag++; return tag }
 
+	// Mount workspace and check the root.
 	reply := sendRecv(t, strm, &V86FsMessage{
 		Tag:  nextTag(),
 		Body: &V86FsMessage_MountRequest{MountRequest: &V86FsMountRequest{Name: "workspace"}},
@@ -477,6 +540,7 @@ func TestRelaySetattrChmod(t *testing.T) {
 		t.Fatal("expected workspace mount root")
 	}
 
+	// Create cache.bin and check the reply.
 	reply = sendRecv(t, strm, &V86FsMessage{
 		Tag: nextTag(),
 		Body: &V86FsMessage_CreateRequest{CreateRequest: &V86FsCreateRequest{
@@ -491,6 +555,7 @@ func TestRelaySetattrChmod(t *testing.T) {
 	}
 	fileID := createReply.GetInodeId()
 
+	// Set the file mode to 0600 and check the reply.
 	reply = sendRecv(t, strm, &V86FsMessage{
 		Tag: nextTag(),
 		Body: &V86FsMessage_SetattrRequest{SetattrRequest: &V86FsSetattrRequest{
@@ -504,6 +569,7 @@ func TestRelaySetattrChmod(t *testing.T) {
 		t.Fatalf("setattr chmod failed: %v", reply.GetBody())
 	}
 
+	// Read the attributes back and check the mode applied.
 	reply = sendRecv(t, strm, &V86FsMessage{
 		Tag: nextTag(),
 		Body: &V86FsMessage_GetattrRequest{GetattrRequest: &V86FsGetattrRequest{
@@ -522,9 +588,12 @@ func TestRelaySetattrChmod(t *testing.T) {
 // TestRelayPushInvalidation tests that change callbacks produce
 // INVALIDATE messages on the stream.
 func TestRelayPushInvalidation(t *testing.T) {
+	// Set up the test context.
 	ctx := context.Background()
 
 	// Use the block-based testbed for a cursor that fires change callbacks.
+
+	// Start a testbed holding the block-backed World.
 	le := logrus.NewEntry(logrus.New())
 	tb, err := testbed.NewTestbed(ctx, le)
 	if err != nil {
@@ -536,6 +605,8 @@ func TestRelayPushInvalidation(t *testing.T) {
 	}
 
 	// Initialize with a directory root.
+
+	// Initialize the cursor with a directory root and write it.
 	btx, bcs := oc.BuildTransaction(nil)
 	bcs.SetBlock(unixfs_block.NewFSNode(unixfs_block.NodeType_NodeType_DIRECTORY, 0, nil), true)
 	resRef, _, err := btx.Write(ctx, true)
@@ -544,11 +615,13 @@ func TestRelayPushInvalidation(t *testing.T) {
 	}
 	oc.SetRootRef(resRef)
 
+	// Build a block FS writer over the cursor and open the root handle.
 	writer := unixfs_block_fs.NewFSWriter()
 	blockFS := unixfs_block_fs.NewFS(ctx, unixfs_block.NodeType_NodeType_DIRECTORY, oc, writer)
 	writer.SetFS(blockFS)
 	writer.SetTimestamp(timestamp.Now())
 
+	// Open the root handle for the block FS.
 	rootHandle, err := unixfs.NewFSHandle(blockFS)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -556,6 +629,8 @@ func TestRelayPushInvalidation(t *testing.T) {
 	defer rootHandle.Release()
 
 	// Pre-create a file.
+
+	// Pre-create data.txt and write its initial contents.
 	now := time.Now()
 	err = rootHandle.Mknod(ctx, true, []string{"data.txt"}, unixfs.NewFSCursorNodeType_File(), 0o644, now)
 	if err != nil {
@@ -572,6 +647,8 @@ func TestRelayPushInvalidation(t *testing.T) {
 	}
 
 	// Build server with this block FS.
+
+	// Build a server over the block FS and open the relay stream.
 	resolver := func(_ context.Context, name string) (*unixfs.FSHandle, error) {
 		if name == "" || name == "workspace" {
 			return rootHandle.Clone(ctx)
@@ -586,17 +663,22 @@ func TestRelayPushInvalidation(t *testing.T) {
 	server := srpc.NewServer(mux)
 	pipe := srpc.NewServerPipe(server)
 	client := srpc.NewClient(pipe)
+
+	// Open the relay stream and build a tag counter.
 	v86Client := NewSRPCV86FsServiceClient(client)
 
+	// Open the relay stream and build a tag counter.
 	strm, err := v86Client.RelayV86Fs(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	defer strm.Close()
 
+	// Build a tag counter for the stream messages.
 	tag := uint32(0)
 	nextTag := func() uint32 { tag++; return tag }
 
+	// Mount workspace and look up data.txt to register the callback.
 	// Mount to register root inode.
 	reply := sendRecv(t, strm, &V86FsMessage{
 		Tag:  nextTag(),
@@ -617,13 +699,17 @@ func TestRelayPushInvalidation(t *testing.T) {
 		t.Fatal("expected non-zero inode for data.txt")
 	}
 
+	// Modify the file externally through the FSHandle.
 	// Modify file externally via FSHandle (bypassing the relay).
 	err = fileHandle.WriteAt(ctx, 0, []byte("modified content"), time.Now())
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Send a STATFS ping so the server loop drains notifications.
 	// Send a STATFS as a "ping" so the server loop has a chance to drain notifyCh.
+
+	// Send a STATFS ping so the UMOUNT_NOTIFY drains.
 	if err := strm.Send(&V86FsMessage{
 		Tag:  nextTag(),
 		Body: &V86FsMessage_StatfsRequest{StatfsRequest: &V86FsStatfsRequest{}},
@@ -631,6 +717,7 @@ func TestRelayPushInvalidation(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// Read messages until the INVALIDATE for the file arrives.
 	// Read messages. We should see INVALIDATE before or after the STATFS reply.
 	gotInvalidate := false
 	for range 10 {
@@ -657,9 +744,14 @@ func TestRelayPushInvalidation(t *testing.T) {
 
 // TestRelayMountManagement tests AddMount/RemoveMount with MOUNT_NOTIFY/UMOUNT_NOTIFY.
 func TestRelayMountManagement(t *testing.T) {
+
+	// Open the relay stream and build a tag counter.
 	ctx := context.Background()
+
+	// Set up the context and a writable workspace handle.
 	wsHandle := newBillyHandle(t)
 
+	// Pre-create readme.md in the workspace and write its contents.
 	// Pre-create a file in the workspace.
 	err := wsHandle.Mknod(ctx, true, []string{"readme.md"}, unixfs.NewFSCursorNodeType_File(), 0o644, time.Now())
 	if err != nil {
@@ -676,6 +768,8 @@ func TestRelayMountManagement(t *testing.T) {
 	}
 
 	// Create server with no static resolver, only dynamic mounts.
+
+	// Create a server with only dynamic mounts and open the relay stream.
 	srv := NewServer(nil, nil)
 	mux := srpc.NewMux()
 	if err := SRPCRegisterV86FsService(mux, srv); err != nil {
@@ -686,23 +780,28 @@ func TestRelayMountManagement(t *testing.T) {
 	client := srpc.NewClient(pipe)
 	v86Client := NewSRPCV86FsServiceClient(client)
 
+	// Open the relay stream and build a tag counter.
 	strm, err := v86Client.RelayV86Fs(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	defer strm.Close()
 
+	// Build a tag counter for the stream messages.
 	tag := uint32(0)
 	nextTag := func() uint32 { tag++; return tag }
 
 	// Sync: send a STATFS request to confirm the session is running
 	// before calling AddMount. Without this, AddMount races with
 	// session registration and the MOUNT_NOTIFY may be lost.
+
+	// Send a STATFS request to confirm the session is running.
 	sendRecv(t, strm, &V86FsMessage{
 		Tag:  nextTag(),
 		Body: &V86FsMessage_StatfsRequest{StatfsRequest: &V86FsStatfsRequest{}},
 	})
 
+	// Add the workspace mount dynamically and request it.
 	// AddMount dynamically.
 	srv.AddMount("workspace", "/workspace", wsHandle)
 	if err := strm.Send(&V86FsMessage{
@@ -712,6 +811,7 @@ func TestRelayMountManagement(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// Read messages until the MOUNT_NOTIFY and MOUNT reply arrive.
 	gotMountNotify := false
 	var mountReplyMsg *V86FsMessage
 	for range 5 {
@@ -740,6 +840,8 @@ func TestRelayMountManagement(t *testing.T) {
 	}
 
 	// Use the MOUNT reply.
+
+	// Check the MOUNT reply and capture the root inode.
 	reply := mountReplyMsg
 	mountReply := reply.GetMountReply()
 	if mountReply == nil || mountReply.GetStatus() != 0 {
@@ -747,6 +849,7 @@ func TestRelayMountManagement(t *testing.T) {
 	}
 	wsRootID := mountReply.GetRootInodeId()
 
+	// Read the workspace directory and check readme.md is visible.
 	// READDIR to confirm readme.md is visible.
 	reply = sendRecv(t, strm, &V86FsMessage{
 		Tag:  nextTag(),
@@ -763,12 +866,16 @@ func TestRelayMountManagement(t *testing.T) {
 	}
 
 	// ListMounts returns the mount.
+
+	// Check ListMounts returns the workspace mount.
 	mounts := srv.ListMounts()
 	if len(mounts) != 1 || mounts[0].Name != "workspace" {
 		t.Fatalf("expected 1 mount 'workspace', got %v", mounts)
 	}
 
 	// RemoveMount.
+
+	// Remove the workspace mount.
 	srv.RemoveMount("workspace")
 
 	// Verify UMOUNT_NOTIFY arrives.
@@ -779,6 +886,7 @@ func TestRelayMountManagement(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// Read messages until the UMOUNT_NOTIFY arrives.
 	gotUmountNotify := false
 	gotStatfs2 := false
 	for range 5 {
@@ -804,6 +912,8 @@ func TestRelayMountManagement(t *testing.T) {
 	}
 
 	// ListMounts should be empty now.
+
+	// Check ListMounts is empty after the removal.
 	mounts = srv.ListMounts()
 	if len(mounts) != 0 {
 		t.Fatalf("expected 0 mounts after RemoveMount, got %d", len(mounts))
@@ -813,7 +923,11 @@ func TestRelayMountManagement(t *testing.T) {
 // TestRelayReadCapsSize tests a read larger than maxReadSize returns a short
 // read instead of allocating the guest-requested size.
 func TestRelayReadCapsSize(t *testing.T) {
+
+	// Open the relay stream and build a tag counter.
 	ctx := context.Background()
+
+	// Set up the context and a large file in a billy filesystem.
 	bfs := memfs.New()
 	data := bytes.Repeat([]byte("0123456789abcdef"), (maxReadSize*2)/16)
 	f, err := bfs.Create("big.bin")
@@ -826,6 +940,8 @@ func TestRelayReadCapsSize(t *testing.T) {
 	if err := f.Close(); err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Open the FSHandle, the server client, and the relay stream.
 	h, err := unixfs.NewFSHandle(unixfs_billy.NewBillyFSCursor(bfs, ""))
 	if err != nil {
 		t.Fatal(err.Error())
@@ -838,6 +954,7 @@ func TestRelayReadCapsSize(t *testing.T) {
 	}
 	defer strm.Close()
 
+	// Mount the workspace, look up the file, and open it.
 	rootID := sendRecv(t, strm, &V86FsMessage{
 		Tag:  1,
 		Body: &V86FsMessage_MountRequest{MountRequest: &V86FsMountRequest{Name: "workspace"}},
@@ -851,6 +968,7 @@ func TestRelayReadCapsSize(t *testing.T) {
 		Body: &V86FsMessage_OpenRequest{OpenRequest: &V86FsOpenRequest{InodeId: fileID}},
 	}).GetOpenReply().GetHandleId()
 
+	// Read with oversized sizes and check each returns a capped short read.
 	for i, size := range []uint32{maxReadSize + 1, ^uint32(0)} {
 		readReply := sendRecv(t, strm, &V86FsMessage{
 			Tag: uint32(4 + i), //nolint:gosec

@@ -71,11 +71,15 @@ func CreatePassWithTarget(
 	placement *forge_worker.Placement,
 	ts *timestamp.Timestamp,
 ) (world.ObjectState, *bucket.ObjectRef, error) {
+	// Validate the placement when one is attached.
+	// Validate the placement when one is attached.
 	if placement != nil {
 		if err := placement.ValidateLinked(ctx, ws); err != nil {
 			return nil, nil, errors.Wrap(err, "placement")
 		}
 	}
+
+	// Prepare a copy of the value set without outputs.
 	if valueSet == nil {
 		valueSet = forge_target.NewValueSet()
 	} else {
@@ -83,6 +87,7 @@ func CreatePassWithTarget(
 	}
 	valueSet.Outputs = nil
 
+	// Construct and validate the pending Pass block.
 	ps := &Pass{
 		PassState: State_PassState_PENDING,
 		PeerId:    passPeerID,
@@ -99,7 +104,10 @@ func CreatePassWithTarget(
 	if err != nil {
 		return nil, nil, err
 	}
+
+	// Create the Pass World object with its linked Target block.
 	objState, rootRef, err := world.CreateWorldObject(ctx, ws, objKey, func(bcs *block.Cursor) error {
+		// Write the Pass block and its linked Target block.
 		bcs.ClearAllRefs()
 		bcs.SetBlock(ps, true)
 		tgtBcs := bcs.FollowRef(3, nil)
@@ -111,14 +119,14 @@ func CreatePassWithTarget(
 		return nil, nil, err
 	}
 
-	// create the <type> ref
+	// Set the Pass object's object type.
 	err = world_types.SetObjectType(ctx, ws, objKey, PassTypeID)
 	if err != nil {
 		world.ReleaseObjectState(objState)
 		return nil, nil, err
 	}
 
-	// create the keypair and link to it if necessary
+	// Link the Pass object to its keypair when a peer ID is set.
 	if len(peerID) != 0 {
 		_, _, err = identity_world.LinkObjectToKeypair(ctx, ws, sender, objKey, peerID, "", nil)
 		if err != nil {
@@ -137,6 +145,7 @@ func UnmarshalPass(ctx context.Context, bcs *block.Cursor) (*Pass, error) {
 
 // Validate performs cursory checks of the Pass object.
 func (e *Pass) Validate(allowEmptyRefs bool) error {
+	// Validate the placement, pass state, peer ID, and timestamp fields.
 	if p := e.GetPlacement(); p != nil {
 		if err := p.Validate(); err != nil {
 			return errors.Wrap(err, "placement")
@@ -151,6 +160,8 @@ func (e *Pass) Validate(allowEmptyRefs bool) error {
 	if err := e.GetTimestamp().Validate(false); err != nil {
 		return err
 	}
+
+	// Validate the value set and target reference.
 	if err := e.GetValueSet().Validate(); err != nil {
 		return errors.Wrap(err, "value_set")
 	}
@@ -166,6 +177,8 @@ func (e *Pass) Validate(allowEmptyRefs bool) error {
 	if e.GetPlacement() != nil && e.GetReplicas() != 1 {
 		return errors.New("placed pass must have one replica")
 	}
+
+	// Check the state-dependent result and exec state invariants.
 	switch e.GetPassState() {
 	case State_PassState_COMPLETE:
 		if err := e.GetResult().Validate(); err != nil {
@@ -201,7 +214,9 @@ func (e *Pass) Validate(allowEmptyRefs bool) error {
 		}
 	}
 
+	// Require checking-state exec states to match replicas and succeed.
 	if e.GetPassState() == State_PassState_CHECKING {
+		// Require checking-state exec states to match replicas and succeed.
 		execStates := e.GetExecStates()
 		if len(execStates) != int(e.GetReplicas()) {
 			return errors.New("exec_states len must match replicas in checking state")
@@ -274,6 +289,7 @@ func (e *Pass) ApplySubBlock(id uint32, next block.SubBlock) error {
 // GetSubBlocks returns all constructed sub-blocks by ID.
 // May return nil, and values may also be nil.
 func (e *Pass) GetSubBlocks() map[uint32]block.SubBlock {
+	// Collect the value set, result, and exec state sub-blocks.
 	m := make(map[uint32]block.SubBlock)
 	m[4] = e.GetValueSet()
 	m[5] = e.GetResult()
@@ -334,6 +350,7 @@ func ComputeOutputsWithStates(outputs []*forge_target.Output, execStates []*Exec
 		return nil, errors.Errorf("expected %d replicas but got %d", replicas, len(execStates))
 	}
 
+	// Validate each exec state and collect its output values.
 	execOutputValues := make([]forge_value.ValueSlice, len(execStates))
 	for i, execState := range execStates {
 		if err := execState.GetExecutionState().EnsureMatches(forge_execution.State_ExecutionState_COMPLETE); err != nil {
@@ -353,10 +370,12 @@ func (e *Pass) ApplyExecStates(
 	execObjKeys []string,
 	execObjs []*forge_execution.Execution,
 ) error {
+	// Build and validate an exec state for each execution.
 	if len(execObjKeys) != len(execObjs) {
 		return errors.New("apply exec states: exec objects slice len must match keys slice")
 	}
 
+	// Build an exec state for each execution and validate it.
 	states := make([]*ExecState, len(execObjs))
 	for i, obj := range execObjs {
 		if !e.GetPlacement().EqualVT(obj.GetPlacement()) {
@@ -369,11 +388,11 @@ func (e *Pass) ApplyExecStates(
 		}
 	}
 
+	// Clear the exec state sub-block refs and assign the new states.
 	if bcs != nil {
 		sbcs := bcs.FollowSubBlock(8)
 		sbcs.ClearAllRefs()
 	}
-
 	e.ExecStates = states
 	return nil
 }

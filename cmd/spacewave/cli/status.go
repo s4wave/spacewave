@@ -25,6 +25,7 @@ func newStatusCommand(_ func() cli_entrypoint.CliBus) *cli.Command {
 
 // getStatusMountSessionTimeout returns the configured status mount bound.
 func getStatusMountSessionTimeout() (time.Duration, error) {
+	// Fall back to the default timeout when the environment variable is unset.
 	raw := os.Getenv(statusMountSessionTimeoutEnvVar)
 	if raw == "" {
 		return defaultStatusMountSessionTimeout, nil

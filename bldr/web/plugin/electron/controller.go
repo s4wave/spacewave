@@ -136,7 +136,11 @@ func (r *Controller) Execute(ctx context.Context) error {
 		}
 
 		// Publish the terminal result only after the shell and private runtime are joined.
+
+		// Clear the runtime state and record the launch result.
 		r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+
+			// Reset the runtime state and record the terminal launch error.
 			r.runtime = nil
 			r.demand = false
 			r.launchErr = err
@@ -157,6 +161,8 @@ func (r *Controller) Execute(ctx context.Context) error {
 func (r *Controller) OpenOrFocusMainWindow(ctx context.Context, req *bldr_web_plugin.OpenOrFocusDesktopRequest) (uint64, error) {
 	// Join the current launch or signal the idle controller to start one.
 	var generation uint64
+
+	// Signal demand and take the new generation under the broadcast lock.
 	r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		if !r.demand {
 			r.demand = true
@@ -173,7 +179,11 @@ func (r *Controller) OpenOrFocusMainWindow(ctx context.Context, req *bldr_web_pl
 	for {
 		var wait <-chan struct{}
 		var launchErr error
+
+		// Read the launch state under the broadcast lock.
 		r.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
+
+			// Read the current launch error, runtime, and wait channel.
 			launchErr = r.launchErr
 			if r.generation != generation {
 				launchErr = errDesktopClosed

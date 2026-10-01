@@ -71,11 +71,13 @@ func (o *ClusterCreateOp) ApplyWorldOp(
 	worldHandle world.WorldState,
 	sender peer.ID,
 ) (sysErr bool, err error) {
+
 	// Default peer_id to sender when not specified.
 	if o.GetPeerId() == "" && sender != "" {
 		o.PeerId = sender.String()
 	}
 
+	// Build and validate the Cluster body from the operation.
 	clusterKey := o.GetClusterKey()
 	clstr := o.BuildCluster()
 	err = clstr.Validate()
@@ -83,6 +85,7 @@ func (o *ClusterCreateOp) ApplyWorldOp(
 		return false, err
 	}
 
+	// Create the Cluster world object and release its handle.
 	var createdObject world.ObjectState
 	createdObject, _, err = world.CreateWorldObject(ctx, worldHandle, clusterKey, func(bcs *block.Cursor) error {
 		bcs.ClearAllRefs()

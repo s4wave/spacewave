@@ -187,6 +187,7 @@ func validateFriendDmBootstrap(
 	targetAccountID string,
 	localPeerID string,
 ) error {
+	// Require a bootstrap response with two distinct accounts.
 	if bootstrap == nil {
 		return errors.New("friend dm response is missing")
 	}
@@ -196,6 +197,8 @@ func validateFriendDmBootstrap(
 	if len(bootstrap.Accounts) != 2 {
 		return errors.New("friend dm response must contain two accounts")
 	}
+
+	// Validate each account's sessions and recovery peers for uniqueness.
 	accountsByID := make(map[string]*api.FriendDmAccount, len(bootstrap.Accounts))
 	sessionPeers := make(map[string]struct{})
 	recoveryPeers := make(map[string]struct{})
@@ -245,6 +248,8 @@ func validateFriendDmBootstrap(
 			}
 		}
 	}
+
+	// Require both authenticated accounts and the local session in the response.
 	localAccount, localOK := accountsByID[localAccountID]
 	targetAccount, targetOK := accountsByID[targetAccountID]
 	if !localOK || !targetOK || len(accountsByID) != 2 {
@@ -260,6 +265,8 @@ func validateFriendDmBootstrap(
 	if !localPeerFound {
 		return errors.New("friend dm response does not contain the authenticated session")
 	}
+
+	// Verify the owner account and canonical shared object ID.
 	if bootstrap.OwnerAccountId != localAccountID &&
 		bootstrap.OwnerAccountId != targetAccountID {
 		return errors.New("friend dm owner is outside account pair")
@@ -290,6 +297,7 @@ func buildFriendDmParticipantPlan(
 	accounts []*api.FriendDmAccount,
 	localPeerID string,
 ) (friendDmParticipantPlan, error) {
+	// Map each active session peer to its account, rejecting duplicates.
 	desired := make(map[string]string)
 	for _, account := range accounts {
 		for _, sess := range account.Sessions {
@@ -303,6 +311,7 @@ func buildFriendDmParticipantPlan(
 		}
 	}
 
+	// Index current participants and verify the local owner is authoritative.
 	currentByPeer := make(map[string]*sobject.SOParticipantConfig, len(current))
 	for _, participant := range current {
 		currentByPeer[participant.GetPeerId()] = participant
@@ -317,6 +326,7 @@ func buildFriendDmParticipantPlan(
 		return friendDmParticipantPlan{}, errors.New("local owner participant is not authoritative")
 	}
 
+	// Remove current participants that no longer match the desired plan.
 	plan := friendDmParticipantPlan{}
 	for _, participant := range current {
 		accountID, ok := desired[participant.GetPeerId()]
@@ -335,6 +345,7 @@ func buildFriendDmParticipantPlan(
 		plan.removals = append(plan.removals, participant.GetPeerId())
 	}
 
+	// Add desired participants missing or changed in the current config.
 	for peerID, accountID := range desired {
 		role := sobject.SOParticipantRole_SOParticipantRole_WRITER
 		if accountID == localAccountID {
@@ -352,6 +363,8 @@ func buildFriendDmParticipantPlan(
 			role:      role,
 		})
 	}
+
+	// Return the plan with deterministic ordering.
 	slices.Sort(plan.removals)
 	slices.SortFunc(plan.additions, func(a, b friendDmParticipant) int {
 		return strings.Compare(a.peerID, b.peerID)
@@ -365,6 +378,7 @@ func reconcileFriendDmParticipants(
 	accounts []*api.FriendDmAccount,
 	localPeerID string,
 ) error {
+	// Read the verified config and build the participant plan.
 	state, err := swSO.GetSOHost().GetHostState(ctx)
 	if err != nil {
 		return err
@@ -380,6 +394,8 @@ func reconcileFriendDmParticipants(
 	if err != nil {
 		return err
 	}
+
+	// Parse public keys for the participants being added.
 	parsedPubs := make(map[string]crypto.PubKey, len(plan.additions))
 	for _, participant := range plan.additions {
 		targetPub, err := session.ExtractPublicKeyFromPeerID(participant.peerID)
@@ -388,6 +404,8 @@ func reconcileFriendDmParticipants(
 		}
 		parsedPubs[participant.peerID] = targetPub
 	}
+
+	// Remove stale participants with an owner revocation.
 	for _, peerID := range plan.removals {
 		if _, err := swSO.RemoveParticipantWithRevocation(
 			ctx,
@@ -399,6 +417,8 @@ func reconcileFriendDmParticipants(
 			return errors.Wrapf(err, "remove stale participant %s", peerID)
 		}
 	}
+
+	// Add each planned participant with its role and account.
 	for _, participant := range plan.additions {
 		if _, err := swSO.AddParticipant(
 			ctx,

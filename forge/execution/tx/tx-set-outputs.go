@@ -18,6 +18,7 @@ func NewTxSetOutputs(
 	clearOld bool,
 	claims ...*forge_execution.Claim,
 ) (*Tx, error) {
+	// Validate and clone each output, then sort the output set.
 	claim := claimOrImplicit(claims)
 	outSet := make(forge_value.ValueSlice, len(outputs))
 	for i, outp := range outputs {
@@ -54,6 +55,7 @@ func (t *TxSetOutputs) GetTxType() TxType {
 // Validate performs a cursory check of the transaction.
 // Note: this should not fetch network data.
 func (t *TxSetOutputs) Validate() error {
+	// Validate the output set and claim fields.
 	outputs := forge_value.ValueSlice(t.GetOutputs())
 	if err := outputs.Validate(false, true, true); err != nil {
 		return err
@@ -74,7 +76,7 @@ func (t *TxSetOutputs) ExecuteTx(
 	exCursor *block.Cursor,
 	root *forge_execution.Execution,
 ) error {
-	// check peer id if set
+	// Check the sender and claim against the execution root.
 	if len(sender) != 0 {
 		if err := root.CheckPeerID(sender); err != nil {
 			return err
@@ -94,6 +96,7 @@ func (t *TxSetOutputs) ExecuteTx(
 	}
 
 	// TODO: validate to ensure ObjectRefs point to valid locations
+	// Build the next output set, merging or replacing the old outputs.
 	var nextOutputs forge_value.ValueSlice
 	outputs := forge_value.ValueSlice(t.GetOutputs()).Clone()
 	if t.GetClearOld() {
@@ -106,6 +109,7 @@ func (t *TxSetOutputs) ExecuteTx(
 	// remove any outputs with type UNKNOWN (0)
 	nextOutputs = nextOutputs.RemoveUnknown()
 
+	// Write the updated value set into the execution root block.
 	if root.ValueSet == nil {
 		root.ValueSet = &forge_target.ValueSet{}
 	}
@@ -113,6 +117,7 @@ func (t *TxSetOutputs) ExecuteTx(
 	root.ValueSet.SortValues()
 	exCursor.SetBlock(root, true)
 
+	// Validate the updated execution root.
 	if err := root.Validate(); err != nil {
 		return err
 	}

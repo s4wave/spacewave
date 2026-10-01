@@ -36,8 +36,11 @@ func (f *fakeViteBundlerClient) BuildWebPkg(context.Context, *bldr_web_bundler_v
 // TestViteCompilerBootstrapBuild verifies the vite compiler bootstrap resolves
 // vendored @go imports from the generated dist source tree, not the app root.
 func TestViteCompilerBootstrapBuild(t *testing.T) {
+
+	// Set up the test context and dist source tree.
 	ctx := context.Background()
 
+	// Create the dist dir and a minimal source root.
 	distDir := filepath.Join(t.TempDir(), "src")
 	if err := os.MkdirAll(distDir, 0o755); err != nil {
 		t.Fatal(err)
@@ -51,10 +54,12 @@ func TestViteCompilerBootstrapBuild(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Sync the embedded dist sources into the temp dist dir.
 	le := logrus.NewEntry(logrus.New())
 	distSourcesHandle := bldr.BuildDistSourcesFSHandle(ctx, le)
 	defer distSourcesHandle.Release()
 
+	// Sync the embedded dist sources into the temp dist dir.
 	err := unixfs_sync.Sync(
 		ctx,
 		distDir,
@@ -79,6 +84,7 @@ export function startSocketSender() { return undefined }`),
 		t.Fatal(err)
 	}
 
+	// Build the service script and check it exists.
 	outputPath := filepath.Join(t.TempDir(), "vite-bootstrap.mjs")
 	if _, err := bldr_web_bundler_vite.BuildServiceScript(
 		ctx,
@@ -96,6 +102,8 @@ export function startSocketSender() { return undefined }`),
 }
 
 func TestResolveViteBaseConfigPathMonorepo(t *testing.T) {
+
+	// Create the nested vite base config in a temp dir.
 	tmpDir := t.TempDir()
 	configPath := filepath.Join(tmpDir, "bldr/web/bundler/vite/vite-base.config.ts")
 	if err := os.MkdirAll(filepath.Dir(configPath), 0o755); err != nil {
@@ -105,6 +113,7 @@ func TestResolveViteBaseConfigPathMonorepo(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Resolve the base config path and check it.
 	got := bldr_web_bundler_vite.ResolveViteBaseConfigPath(tmpDir)
 	if got != "bldr/web/bundler/vite/vite-base.config.ts" {
 		t.Fatalf("unexpected vite base config path: %q", got)
@@ -112,6 +121,8 @@ func TestResolveViteBaseConfigPathMonorepo(t *testing.T) {
 }
 
 func TestBuildViteBundleMetaMergesDuplicateBundleMetadata(t *testing.T) {
+
+	// Merge two duplicate bundle declarations.
 	got, err := BuildViteBundleMeta([]*ViteBundleMeta{
 		{
 			Id: "frontend",
@@ -139,6 +150,7 @@ func TestBuildViteBundleMetaMergesDuplicateBundleMetadata(t *testing.T) {
 		t.Fatalf("merged bundle count=%d want 1", len(got))
 	}
 
+	// Check the merged bundle fields.
 	bundle := got[0]
 	if bundle.GetId() != "frontend" {
 		t.Fatalf("merged bundle id=%q want frontend", bundle.GetId())
@@ -153,6 +165,8 @@ func TestBuildViteBundleMetaMergesDuplicateBundleMetadata(t *testing.T) {
 			entrypoints[1].GetInputPath(),
 		})
 	}
+
+	// Check the merged config paths and external packages.
 	if got, want := bundle.GetViteConfigPaths(), []string{"vite.project.config.ts", "vite.compiler.config.ts"}; len(got) != len(want) || got[0] != want[0] || got[1] != want[1] {
 		t.Fatalf("merged vite config paths=%v want %v", got, want)
 	}
@@ -168,12 +182,15 @@ func TestBuildViteBundleMetaMergesDuplicateBundleMetadata(t *testing.T) {
 }
 
 func TestBuildViteBundlePreservesWorkerPolicy(t *testing.T) {
+
+	// Set up the temp dirs and the fake bundler client.
 	codeRoot := t.TempDir()
 	distRoot := t.TempDir()
 	outAssets := t.TempDir()
 	workingPath := t.TempDir()
 	client := &fakeViteBundlerClient{}
 
+	// Build the bundle and check the request policy fields.
 	_, _, _, err := BuildViteBundle(
 		context.Background(),
 		logrus.NewEntry(logrus.New()),
@@ -221,12 +238,15 @@ func TestBuildViteBundlePreservesWorkerPolicy(t *testing.T) {
 }
 
 func TestBuildViteBundlePreservesExcludedWebPackageImports(t *testing.T) {
+
+	// Set up the temp dirs and the fake bundler client.
 	codeRoot := t.TempDir()
 	distRoot := t.TempDir()
 	outAssets := t.TempDir()
 	workingPath := t.TempDir()
 	client := &fakeViteBundlerClient{}
 
+	// Build the bundle with excluded web packages.
 	_, _, _, err := BuildViteBundle(
 		context.Background(),
 		logrus.NewEntry(logrus.New()),
@@ -260,6 +280,7 @@ func TestBuildViteBundlePreservesExcludedWebPackageImports(t *testing.T) {
 		t.Fatal("missing vite build request")
 	}
 
+	// Check the request preserves excluded package imports.
 	got := client.buildRequest.GetWebPkgs()
 	if len(got) != 3 {
 		t.Fatalf("request web package count=%d want 3: %v", len(got), got)
@@ -280,10 +301,13 @@ func TestBuildViteBundlePreservesExcludedWebPackageImports(t *testing.T) {
 }
 
 func TestBuildInputManifestDeduplicatesSharedSources(t *testing.T) {
+
+	// Build an input manifest with shared vite and web pkg sources.
 	sourcePath := t.TempDir()
 	sharedPath := filepath.Join(sourcePath, "app", "shared.ts")
 	viteOnlyPath := filepath.Join(sourcePath, "app", "vite.ts")
 
+	// Build the input manifest from the shared sources.
 	inputManifest, err := (&Controller{}).buildInputManifest(
 		sourcePath,
 		&viteBuildResult{viteSrcFiles: []string{
@@ -305,6 +329,7 @@ func TestBuildInputManifestDeduplicatesSharedSources(t *testing.T) {
 		t.Fatalf("input file count=%d want 2", len(inputManifest.GetFiles()))
 	}
 
+	// Check the deduplicated file kinds.
 	kinds := make(map[string]InputFileKind, len(inputManifest.GetFiles()))
 	for _, inputFile := range inputManifest.GetFiles() {
 		meta := &InputFileMeta{}
@@ -322,6 +347,8 @@ func TestBuildInputManifestDeduplicatesSharedSources(t *testing.T) {
 }
 
 func TestStopViteBundlersRemovesReleaseKeys(t *testing.T) {
+
+	// Register a release bundle key and stop the bundlers.
 	controller := &Controller{}
 	controller.viteBundlers = keyed.NewKeyedRefCount(
 		func(viteBundlerKey) (keyed.Routine, *viteBundlerTracker) {
@@ -329,14 +356,17 @@ func TestStopViteBundlersRemovesReleaseKeys(t *testing.T) {
 		},
 	)
 
+	// Register a release bundle key and stop the bundlers.
 	key := newViteBundlerKey("/dist", "/src", "/work", "fe")
 	ref, _, _ := controller.viteBundlers.AddKeyRef(key)
 
+	// Stop the bundlers and release the reference.
 	controller.stopViteBundlers("/dist", "/src", "/work", []*ViteBundleMeta{{
 		Id: "fe",
 	}})
 	ref.Release()
 
+	// Check the bundler key was removed.
 	if got := len(controller.viteBundlers.GetKeys()); got != 0 {
 		t.Fatalf("vite bundler keys after release cleanup=%d want 0", got)
 	}

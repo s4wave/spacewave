@@ -18,9 +18,12 @@ func TestLinkSessionUsesAuthorizerAndReceivingIdentity(t *testing.T) {
 	sourceKey, sourcePeer := generateTestKeypair(t)
 	_, receivingPeer := generateTestKeypair(t)
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Reject requests that do not match the enrollment route and source peer.
 		if r.Method != http.MethodPost || r.URL.Path != "/api/account/session/link" || r.Header.Get("X-Peer-ID") != sourcePeer.String() {
 			t.Errorf("unexpected Session enrollment request: %s %s by %s", r.Method, r.URL.Path, r.Header.Get("X-Peer-ID"))
 		}
+
+		// Decode the signed enrollment request body.
 		data, err := io.ReadAll(r.Body)
 		if err != nil {
 			t.Error(err)
@@ -33,9 +36,13 @@ func TestLinkSessionUsesAuthorizerAndReceivingIdentity(t *testing.T) {
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
+
+		// Verify the request preserves the receiving Session identity.
 		if request.GetSessionPeerId() != receivingPeer.String() || request.GetType() != session.SessionType_SESSION_TYPE_USER || request.GetLabel() != "Receiving client" {
 			t.Error("enrollment did not preserve the selected receiving Session")
 		}
+
+		// Reply with a successful registration.
 		response, err := (&api.RegisterSessionResponse{AccountId: "account", PeerId: receivingPeer.String()}).MarshalVT()
 		if err != nil {
 			t.Error(err)

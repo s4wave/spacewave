@@ -22,6 +22,7 @@ func CheckPassType(ctx context.Context, ws world.WorldState, objKey string) erro
 
 // LookupPass looks up a Pass in the world.
 func LookupPass(ctx context.Context, ws world.WorldState, objKey string) (*Pass, *forge_target.Target, error) {
+	// Unmarshal the Pass and its linked Target from the object block.
 	obj, err := world.MustGetObject(ctx, ws, objKey)
 	if err != nil {
 		world.ReleaseObjectState(obj)
@@ -56,6 +57,7 @@ func WaitPassComplete(
 		passObjectKey,
 		world_control.NewWaitForStateHandler(
 			func(ctx context.Context, ws world.WorldState, obj world.ObjectState, rootCs *block.Cursor, rev uint64) (bool, error) {
+				// Track the pass state and log failures until it completes.
 				if obj == nil {
 					return true, nil
 				}
@@ -105,11 +107,13 @@ func CollectPassExecutions(
 	ws world.WorldState,
 	passObjectKeys ...string,
 ) ([]*forge_execution.Execution, []string, error) {
+	// Look up each linked Execution object body.
 	kpObjectKeys, err := ListPassExecutions(ctx, ws, passObjectKeys...)
 	if err != nil {
 		return nil, nil, err
 	}
 
+	// Look up each linked Execution object body.
 	states := make([]*forge_execution.Execution, len(kpObjectKeys))
 	for i, objKey := range kpObjectKeys {
 		states[i], err = world.LookupObjectBody[*forge_execution.Execution](ctx, ws, objKey, forge_execution.NewExecutionBlock)

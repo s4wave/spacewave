@@ -7,19 +7,23 @@ import (
 )
 
 func TestLocalSessionMountWriteRead(t *testing.T) {
+	// Set up the test context, a writable handle, and a server with the workspace mount.
 	ctx := context.Background()
 	handle := newBillyHandle(t)
 	srv := NewServer(nil, nil)
 	srv.AddMount("workspace", "/mnt/workspace", handle)
 
+	// Open a local session against the server.
 	sess := NewLocalSession(ctx, srv)
 	defer sess.Close()
 
+	// Drain the seeded mount notification.
 	notifications := sess.DrainNotifications()
 	if len(notifications) != 1 || notifications[0].GetMountNotify().GetName() != "workspace" {
 		t.Fatalf("seed notifications = %#v", notifications)
 	}
 
+	// Mount the workspace and check the reply.
 	mountReply := handleLocal(t, sess, &V86FsMessage{
 		Tag: 1,
 		Body: &V86FsMessage_MountRequest{
@@ -30,6 +34,7 @@ func TestLocalSessionMountWriteRead(t *testing.T) {
 		t.Fatalf("mount reply = %#v", mountReply)
 	}
 
+	// Create a file and check the reply.
 	createReply := handleLocal(t, sess, &V86FsMessage{
 		Tag: 2,
 		Body: &V86FsMessage_CreateRequest{
@@ -44,6 +49,7 @@ func TestLocalSessionMountWriteRead(t *testing.T) {
 		t.Fatalf("create reply = %#v", createReply)
 	}
 
+	// Write data to the file and check the reply.
 	writeReply := handleLocal(t, sess, &V86FsMessage{
 		Tag: 3,
 		Body: &V86FsMessage_WriteRequest{
@@ -57,6 +63,7 @@ func TestLocalSessionMountWriteRead(t *testing.T) {
 		t.Fatalf("write reply = %#v", writeReply)
 	}
 
+	// Open the file and check the reply.
 	openReply := handleLocal(t, sess, &V86FsMessage{
 		Tag: 4,
 		Body: &V86FsMessage_OpenRequest{
@@ -67,6 +74,7 @@ func TestLocalSessionMountWriteRead(t *testing.T) {
 		t.Fatalf("open reply = %#v", openReply)
 	}
 
+	// Read the file back and check the data.
 	readReply := handleLocal(t, sess, &V86FsMessage{
 		Tag: 5,
 		Body: &V86FsMessage_ReadRequest{

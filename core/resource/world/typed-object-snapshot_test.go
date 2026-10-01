@@ -23,7 +23,11 @@ func TestTypedObjectSnapshotPreservesReadAuthority(t *testing.T) {
 	ctx := t.Context()
 	tb, release := setupWorldTestbed(ctx, t)
 	defer release()
+
+	// Perform the action.
 	const typeID = "test/snapshot"
+
+	// Perform the action.
 	const objectKey = "snapshot/object"
 	snapshotType := objecttype.NewObjectType(typeID, func(
 		ctx context.Context,
@@ -33,6 +37,8 @@ func TestTypedObjectSnapshotPreservesReadAuthority(t *testing.T) {
 		ws world.WorldState,
 		key string,
 	) (srpc.Invoker, func(), error) {
+
+		// Check the condition before continuing.
 		if !ws.GetReadOnly() {
 			return nil, nil, fmt.Errorf("snapshot was promoted to a writable World")
 		}
@@ -63,6 +69,8 @@ func TestTypedObjectSnapshotPreservesReadAuthority(t *testing.T) {
 	}
 	defer write.Discard()
 	obj, err := write.CreateObject(ctx, objectKey, nil)
+
+	// releaseObjectState via world.
 	world.ReleaseObjectState(obj)
 	if err != nil {
 		t.Fatal(err)
@@ -74,6 +82,8 @@ func TestTypedObjectSnapshotPreservesReadAuthority(t *testing.T) {
 		t.Fatal(err)
 	}
 	snapshot, err := engine.NewTransaction(ctx, false)
+
+	// Abort if engine newTransaction fails.
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -82,6 +92,8 @@ func TestTypedObjectSnapshotPreservesReadAuthority(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// discard via later.
 	defer later.Discard()
 	obj, err = later.CreateObject(ctx, "snapshot/later", nil)
 	world.ReleaseObjectState(obj)

@@ -24,6 +24,8 @@ func (w *objectBodyPageWorld) GetObjectBodiesBatchPage(
 	keys []string,
 	byteBudget int,
 ) ([]*world.ObjectBody, uint32, error) {
+
+	// make byKey.
 	byKey := make(map[string]*world.ObjectBody, len(w.bodies))
 	for _, body := range w.bodies {
 		byKey[body.ObjectKey] = body
@@ -51,6 +53,8 @@ func (w *objectBodyPageWorld) GetObjectBodiesBatchPageWithSeqno(
 	keys []string,
 	byteBudget int,
 ) ([]*world.ObjectBody, uint32, uint64, error) {
+
+	// getObjectBodiesBatchPage bodies,next,err.
 	bodies, next, err := w.GetObjectBodiesBatchPage(ctx, keys, byteBudget)
 	if err != nil {
 		return nil, 0, 0, err
@@ -92,6 +96,8 @@ func (s *objectBodiesPageStream) Send(resp *s4wave_world.GetObjectBodiesBatchRes
 }
 
 func TestStreamObjectBodyPagesSendsBoundedPagesInOrder(t *testing.T) {
+
+	// Record ws.
 	ws := &objectBodyPageWorld{}
 	keys := make([]string, 32)
 	for i := range keys {
@@ -103,6 +109,7 @@ func TestStreamObjectBodyPagesSendsBoundedPagesInOrder(t *testing.T) {
 		})
 	}
 
+	// Perform the action.
 	var pages []*s4wave_world.GetObjectBodiesBatchResponse
 	err := streamObjectBodyPages(context.Background(), ws, keys, 100, func(resp *s4wave_world.GetObjectBodiesBatchResponse) error {
 		pages = append(pages, resp)
@@ -115,6 +122,7 @@ func TestStreamObjectBodyPagesSendsBoundedPagesInOrder(t *testing.T) {
 		t.Fatalf("page count = %d, want multiple pages for many tiny bodies", len(pages))
 	}
 
+	// Perform the action.
 	var got []string
 	for i, page := range pages {
 		if size := page.SizeVT(); size > 100 {
@@ -128,6 +136,7 @@ func TestStreamObjectBodyPagesSendsBoundedPagesInOrder(t *testing.T) {
 		t.Fatalf("streamed keys = %v, want %v", got, keys)
 	}
 
+	// len remaining.
 	remaining := len(keys)
 	for i, read := range ws.readSizes {
 		if i < len(ws.readSizes)-1 && read >= remaining {
@@ -141,6 +150,8 @@ func TestStreamObjectBodyPagesSendsBoundedPagesInOrder(t *testing.T) {
 }
 
 func TestGetObjectBodiesBatchCarriesWorldSeqno(t *testing.T) {
+
+	// Record ws.
 	ws := &objectBodyPageWorld{
 		bodies: []*world.ObjectBody{
 			{ObjectKey: "body/one", Body: []byte("x"), Exists: true},
@@ -150,6 +161,7 @@ func TestGetObjectBodiesBatchCarriesWorldSeqno(t *testing.T) {
 	resource := &WorldStateResource{ws: ws}
 	strm := &objectBodiesPageStream{ctx: context.Background()}
 
+	// getObjectBodiesBatch err via resource.
 	err := resource.GetObjectBodiesBatch(&s4wave_world.GetObjectBodiesBatchRequest{
 		ObjectKeys: []string{"body/one"},
 	}, strm)
@@ -165,6 +177,8 @@ func TestGetObjectBodiesBatchCarriesWorldSeqno(t *testing.T) {
 }
 
 func TestGetObjectBodiesBatchCarriesObjectRevisions(t *testing.T) {
+
+	// Record ws.
 	ws := &objectBodyPageWorld{
 		bodies: []*world.ObjectBody{
 			{ObjectKey: "body/one", Body: []byte("x"), Exists: true, Rev: 7},
@@ -175,6 +189,7 @@ func TestGetObjectBodiesBatchCarriesObjectRevisions(t *testing.T) {
 	resource := &WorldStateResource{ws: ws}
 	strm := &objectBodiesPageStream{ctx: context.Background()}
 
+	// getObjectBodiesBatch err via resource.
 	err := resource.GetObjectBodiesBatch(&s4wave_world.GetObjectBodiesBatchRequest{
 		ObjectKeys: []string{"body/one", "body/two"},
 	}, strm)

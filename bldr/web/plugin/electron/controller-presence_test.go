@@ -15,6 +15,8 @@ func TestControllerPresenceRetainsShellFailure(t *testing.T) {
 	// Run a shell with a real desktop Resource acknowledgement and a controlled exit.
 	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
+
+	// Build the controller with a runtime that fails on exit.
 	r, err := NewController(logrus.NewEntry(logrus.New()), nil, "", "", "", "failure", nil, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -22,6 +24,8 @@ func TestControllerPresenceRetainsShellFailure(t *testing.T) {
 	rt := newOpenRuntime(t, &openService{})
 	exit := make(chan struct{})
 	want := errors.New("Electron exited with status 1")
+
+	// Attach the runtime and return the failure after the exit signal.
 	r.run = func(ctx context.Context) error {
 		r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 			r.runtime = rt
@@ -34,6 +38,8 @@ func TestControllerPresenceRetainsShellFailure(t *testing.T) {
 			return ctx.Err()
 		}
 	}
+
+	// Run the controller and register cleanup.
 	done := make(chan error, 1)
 	go func() { done <- r.Execute(ctx) }()
 	t.Cleanup(func() {
@@ -44,6 +50,8 @@ func TestControllerPresenceRetainsShellFailure(t *testing.T) {
 	})
 
 	// Capture the acknowledged shell before allowing its process to fail.
+
+	// Open the shell and assert its presence reports active.
 	generation, err := r.OpenOrFocusMainWindow(ctx, &bldr_web_plugin.OpenOrFocusDesktopRequest{})
 	if err != nil {
 		t.Fatal(err)
@@ -53,6 +61,8 @@ func TestControllerPresenceRetainsShellFailure(t *testing.T) {
 	if active.GetState() != bldr_web_plugin.DesktopPresenceState_DESKTOP_PRESENCE_STATE_ACTIVE {
 		t.Fatalf("acknowledged presence = %v", active)
 	}
+
+	// Close the shell and assert the terminal presence retains the failure.
 	close(exit)
 	ended, err := presence.WaitValueChange(ctx, active, nil)
 	if err != nil {
@@ -65,6 +75,7 @@ func TestControllerPresenceRetainsShellFailure(t *testing.T) {
 		t.Fatalf("shell failure = %q, want %q", ended.GetError(), want)
 	}
 
+	// Read the terminal presence again as a late observer.
 	// A late observer reads the same owner-confirmed terminal result.
 	late := r.DesktopPresence(generation).GetValue()
 	if !late.EqualVT(ended) {

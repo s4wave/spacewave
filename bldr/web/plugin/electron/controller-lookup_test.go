@@ -12,6 +12,8 @@ import (
 // TestControllerResolvesOnlyDesktopLookup proves the controller answers the
 // desktop lookup and leaves other directives on the plugin bus to their owners.
 func TestControllerResolvesOnlyDesktopLookup(t *testing.T) {
+
+	// Build a core bus for the controller under test.
 	ctx := t.Context()
 	le := logrus.NewEntry(logrus.New())
 	b, _, err := core.NewCoreBus(ctx, le)
@@ -20,6 +22,7 @@ func TestControllerResolvesOnlyDesktopLookup(t *testing.T) {
 	}
 	defer b.Close()
 
+	// Construct the controller and register it on the bus.
 	r, err := NewController(le, nil, "", "", "", "lookup", nil, nil)
 	if err != nil {
 		t.Fatal(err)

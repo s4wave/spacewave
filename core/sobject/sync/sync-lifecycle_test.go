@@ -55,6 +55,8 @@ func TestSOSyncExecuteRearmsRecoverableFailuresOnly(t *testing.T) {
 				defer cancel()
 				le := gateLogger()
 				b := bus_inmem.NewBus(directive_controller.NewController(ctx, le))
+
+				// Perform the action.
 				var admissions atomic.Int32
 				admitted := make(chan directive.Instance, 2)
 				info := controller.NewInfo(

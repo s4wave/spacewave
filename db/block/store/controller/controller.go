@@ -50,6 +50,7 @@ func NewController(
 	skipNotFound,
 	verbose bool,
 ) *Controller {
+	// Construct the controller with the block store containers and match lists.
 	h := &Controller{
 		info:          info,
 		storeCtr:      ccontainer.NewCContainer[block_store.Store](nil),
@@ -59,11 +60,17 @@ func NewController(
 		skipNotFound:  skipNotFound,
 		verbose:       verbose,
 	}
+
+	// Wrap the resolver with a verbose logger when requested.
 	if verbose && resolver != nil {
 		resolver = WrapVerboseBlockStoreBuilder(le, resolver)
 	}
+
+	// Build the refcount around the store container and resolver.
 	keepUnref := buildOnStart // never unreferenced if true, but set anyway.
 	h.rc = refcount.NewRefCount(nil, keepUnref, h.storeCtr, h.errCtr, resolver)
+
+	// Hold a reference on startup so the store always builds.
 	if buildOnStart {
 		_ = h.rc.AddRef(nil)
 	}
@@ -77,6 +84,7 @@ func (c *Controller) GetControllerInfo() *controller.Info {
 
 // WaitBlockStore adds a reference to the block store and waits for it to be constructed.
 func (c *Controller) WaitBlockStore(ctx context.Context) (block_store.Store, *refcount.Ref[block_store.Store], error) {
+	// Add a reference and wait for the store promise.
 	storePromise, storeRef := c.AddBlockStoreRef()
 	store, err := storePromise.Await(ctx)
 	if err != nil {
@@ -102,8 +110,10 @@ func (c *Controller) HandleDirective(
 	ctx context.Context,
 	inst directive.Instance,
 ) ([]directive.Resolver, error) {
+	// Match LookupBlockStore and LookupBlockFromNetwork directives.
 	switch d := inst.GetDirective().(type) {
 	case block_store.LookupBlockStore:
+		// Check whether the requested store ID matches the configured list.
 		storeID := d.LookupBlockStoreId()
 
 		var matched bool
@@ -119,6 +129,7 @@ func (c *Controller) HandleDirective(
 			return nil, nil
 		}
 
+		// Resolve the directive with a refcount resolver over the store.
 		return directive.R(
 			directive.NewRefCountResolverWithXfrm(
 				c.rc,

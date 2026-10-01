@@ -88,9 +88,11 @@ func (c *Conn) IsValid() bool {
 // if the connection has been used before. If the driver returns ErrBadConn
 // the connection is discarded.
 func (c *Conn) ResetSession(ctx context.Context) error {
+	// Reset the session state under the connection mutex.
 	c.mtx.Lock()
 	defer c.mtx.Unlock()
 
+	// Reject a released connection before resetting its session.
 	if c.released.Load() {
 		return driver.ErrBadConn
 	}
@@ -132,9 +134,11 @@ func (c *Conn) Exec(query string, args []driver.Value) (driver.Result, error) {
 
 // ExecContext executes a query in the Exec mode.
 func (c *Conn) ExecContext(ctx context.Context, query string, args []driver.NamedValue) (driver.Result, error) {
+	// Execute the query under a store transaction and track database switches.
 	c.mtx.Lock()
 	defer c.mtx.Unlock()
 
+	// Run the operation against the store transaction.
 	var res driver.Result
 	rerr := c.performOpLocked(ctx, func(tx SqlTransaction, ops SqlOps) error {
 		var err error
@@ -157,9 +161,11 @@ func (c *Conn) Query(query string, args []driver.Value) (driver.Rows, error) {
 
 // QueryContext executes a query in the Query mode.
 func (c *Conn) QueryContext(ctx context.Context, query string, args []driver.NamedValue) (driver.Rows, error) {
+	// Run the query under a store transaction and track database switches.
 	c.mtx.Lock()
 	defer c.mtx.Unlock()
 
+	// Run the operation against the store transaction.
 	var res driver.Rows
 	rerr := c.performOpLocked(ctx, func(tx SqlTransaction, ops SqlOps) error {
 		var err error
@@ -251,6 +257,7 @@ func (c *Conn) Release() {
 
 // beginTxLocked begins the transaction while mtx is locked, discarding any existing tx.
 func (c *Conn) beginTxLocked(ctx context.Context, opts driver.TxOptions) (driver.Tx, error) {
+	// Discard any existing transaction and open a new store transaction.
 	if storeTx := c.storeTx; storeTx != nil {
 		storeTx.Discard()
 		c.storeTx, c.storeTxCtx = nil, nil

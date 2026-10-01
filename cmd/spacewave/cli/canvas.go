@@ -79,22 +79,26 @@ func mountCanvasContext(c *cli.Context, statePath string, uri fsURI) (*canvasCon
 // discoverCanvasObject finds exactly one canvas-type object in the space.
 // Returns the object key or an error if zero or multiple canvas objects exist.
 func discoverCanvasObject(ctx context.Context, spaceSvc s4wave_space.SRPCSpaceResourceServiceClient) (string, error) {
+	// Open the space state watch stream.
 	strm, err := spaceSvc.WatchSpaceState(ctx, &s4wave_space.WatchSpaceStateRequest{})
 	if err != nil {
 		return "", errors.Wrap(err, "watch space state")
 	}
 	defer strm.Close()
 
+	// Receive one space state snapshot with the world contents.
 	resp, err := strm.Recv()
 	if err != nil {
 		return "", errors.Wrap(err, "recv space state")
 	}
 
+	// Reject a snapshot with no world contents.
 	wc := resp.GetWorldContents()
 	if wc == nil {
 		return "", errors.New("no canvas objects found; specify --canvas")
 	}
 
+	// Collect the object keys of canvas-type objects.
 	var canvasKeys []string
 	for _, obj := range wc.GetObjects() {
 		if obj.GetObjectType() == "canvas" {
@@ -102,6 +106,7 @@ func discoverCanvasObject(ctx context.Context, spaceSvc s4wave_space.SRPCSpaceRe
 		}
 	}
 
+	// Reject zero or multiple canvas objects.
 	if len(canvasKeys) == 0 {
 		return "", errors.New("no canvas objects found; specify --canvas")
 	}
@@ -200,6 +205,7 @@ func buildCanvasShowCommand() *cli.Command {
 		Usage: "show canvas state summary",
 		Flags: commonCanvasFlags(&canvasURI, &statePath, &spaceID, &sessIdx, &outputFormat),
 		Action: func(c *cli.Context) error {
+			// Parse the canvas URI from the flags.
 			uri, err := parseCanvasURI(canvasURI, spaceID, sessIdx)
 			if err != nil {
 				return err
@@ -210,17 +216,20 @@ func buildCanvasShowCommand() *cli.Command {
 			}
 			defer cleanup()
 
+			// Fetch the current canvas state.
 			ctx := c.Context
 			resp, err := cc.canvasSvc.GetCanvasState(ctx, &s4wave_canvas.GetCanvasStateRequest{})
 			if err != nil {
 				return errors.Wrap(err, "get canvas state")
 			}
 
+			// Unwrap the returned canvas state.
 			state := resp.GetState()
 			if state == nil {
 				return errors.New("no canvas state returned")
 			}
 
+			// Marshal the canvas state as JSON or YAML when requested.
 			if outputFormat == "json" || outputFormat == "yaml" {
 				data, err := state.MarshalJSON()
 				if err != nil {
@@ -229,26 +238,31 @@ func buildCanvasShowCommand() *cli.Command {
 				return formatOutput(data, outputFormat)
 			}
 
+			// Collect the nodes, edges, and hidden graph links for the summary.
 			nodes := state.GetNodes()
 			edges := state.GetEdges()
 			hiddenGraphLinks := state.GetHiddenGraphLinks()
 
+			// Print the canvas summary header.
 			w := os.Stdout
 			w.WriteString("Canvas: " + cc.objectKey + "\n")
 			w.WriteString("Nodes: " + strconv.Itoa(len(nodes)) + "\n")
 			w.WriteString("Edges: " + strconv.Itoa(len(edges)) + "\n")
 			w.WriteString("Hidden graph links: " + strconv.Itoa(len(hiddenGraphLinks)) + "\n")
 
+			// Print the nodes table when any nodes exist.
 			if len(nodes) > 0 {
 				w.WriteString("\nNODES:\n")
 				writeNodesTable(w, nodes)
 			}
 
+			// Print the edges table when any edges exist.
 			if len(edges) > 0 {
 				w.WriteString("\nEDGES:\n")
 				writeEdgesTable(w, edges)
 			}
 
+			// Print the hidden graph links table when any links exist.
 			if len(hiddenGraphLinks) > 0 {
 				w.WriteString("\nHIDDEN GRAPH LINKS:\n")
 				writeHiddenGraphLinksTable(w, hiddenGraphLinks)
@@ -289,28 +303,33 @@ func buildCanvasNodeListCommand() *cli.Command {
 			},
 		),
 		Action: func(c *cli.Context) error {
+			// Parse the canvas URI from the flags.
 			uri, err := parseCanvasURI(canvasURI, spaceID, sessIdx)
 			if err != nil {
 				return err
 			}
 
+			// Mount the canvas context on the daemon connection.
 			cc, cleanup, err := mountCanvasContext(c, statePath, uri)
 			if err != nil {
 				return err
 			}
 			defer cleanup()
 
+			// Fetch the current canvas state.
 			ctx := c.Context
 			resp, err := cc.canvasSvc.GetCanvasState(ctx, &s4wave_canvas.GetCanvasStateRequest{})
 			if err != nil {
 				return errors.Wrap(err, "get canvas state")
 			}
 
+			// Unwrap the returned canvas state.
 			state := resp.GetState()
 			if state == nil {
 				return errors.New("no canvas state returned")
 			}
 
+			// Read the nodes and apply the type filter when requested.
 			nodes := state.GetNodes()
 
 			// apply type filter
@@ -325,6 +344,7 @@ func buildCanvasNodeListCommand() *cli.Command {
 				nodes = filtered
 			}
 
+			// Marshal the filtered nodes as JSON or YAML when requested.
 			if outputFormat == "json" || outputFormat == "yaml" {
 				buf, ms := newMarshalBuf()
 				ms.WriteArrayStart()
@@ -339,6 +359,7 @@ func buildCanvasNodeListCommand() *cli.Command {
 				return formatOutput(buf.Bytes(), outputFormat)
 			}
 
+			// Print the nodes table as text.
 			w := os.Stdout
 			writeNodesTable(w, nodes)
 			return nil
@@ -368,30 +389,36 @@ func buildCanvasEdgeListCommand() *cli.Command {
 		Usage: "list canvas edges",
 		Flags: commonCanvasFlags(&canvasURI, &statePath, &spaceID, &sessIdx, &outputFormat),
 		Action: func(c *cli.Context) error {
+			// Parse the canvas URI from the flags.
 			uri, err := parseCanvasURI(canvasURI, spaceID, sessIdx)
 			if err != nil {
 				return err
 			}
 
+			// Mount the canvas context on the daemon connection.
 			cc, cleanup, err := mountCanvasContext(c, statePath, uri)
 			if err != nil {
 				return err
 			}
 			defer cleanup()
 
+			// Fetch the current canvas state.
 			ctx := c.Context
 			resp, err := cc.canvasSvc.GetCanvasState(ctx, &s4wave_canvas.GetCanvasStateRequest{})
 			if err != nil {
 				return errors.Wrap(err, "get canvas state")
 			}
 
+			// Unwrap the returned canvas state.
 			state := resp.GetState()
 			if state == nil {
 				return errors.New("no canvas state returned")
 			}
 
+			// Read the edges from the canvas state.
 			edges := state.GetEdges()
 
+			// Marshal the edges as JSON or YAML when requested.
 			if outputFormat == "json" || outputFormat == "yaml" {
 				buf, ms := newMarshalBuf()
 				ms.WriteArrayStart()
@@ -404,6 +431,7 @@ func buildCanvasEdgeListCommand() *cli.Command {
 				return formatOutput(buf.Bytes(), outputFormat)
 			}
 
+			// Print the edges table as text.
 			w := os.Stdout
 			writeEdgesTable(w, edges)
 			return nil
@@ -425,28 +453,33 @@ func buildCanvasExportCommand() *cli.Command {
 				outputFormat = "json"
 			}
 
+			// Parse the canvas URI from the flags.
 			uri, err := parseCanvasURI(canvasURI, spaceID, sessIdx)
 			if err != nil {
 				return err
 			}
 
+			// Mount the canvas context on the daemon connection.
 			cc, cleanup, err := mountCanvasContext(c, statePath, uri)
 			if err != nil {
 				return err
 			}
 			defer cleanup()
 
+			// Fetch the current canvas state.
 			ctx := c.Context
 			resp, err := cc.canvasSvc.GetCanvasState(ctx, &s4wave_canvas.GetCanvasStateRequest{})
 			if err != nil {
 				return errors.Wrap(err, "get canvas state")
 			}
 
+			// Unwrap the returned canvas state.
 			state := resp.GetState()
 			if state == nil {
 				return errors.New("no canvas state returned")
 			}
 
+			// Marshal the full canvas state as JSON.
 			data, err := state.MarshalJSON()
 			if err != nil {
 				return errors.Wrap(err, "marshal canvas state")
@@ -517,6 +550,7 @@ func writeHiddenGraphLinksTable(w *os.File, links []*s4wave_canvas.HiddenGraphLi
 
 // marshalNode writes a CanvasNode as JSON to the MarshalState.
 func marshalNode(ms *protojson.MarshalState, node *s4wave_canvas.CanvasNode) {
+	// Write the node fields to the JSON object.
 	ms.WriteObjectStart()
 	var f bool
 	writeJSONStringField(ms, &f, "id", node.GetId())
@@ -525,8 +559,12 @@ func marshalNode(ms *protojson.MarshalState, node *s4wave_canvas.CanvasNode) {
 	writeJSONFloat64Field(ms, &f, "y", node.GetY())
 	writeJSONFloat64Field(ms, &f, "width", node.GetWidth())
 	writeJSONFloat64Field(ms, &f, "height", node.GetHeight())
+
+	// Write the z-index and pinned fields.
 	writeJSONInt32Field(ms, &f, "zIndex", node.GetZIndex())
 	writeJSONBoolField(ms, &f, "pinned", node.GetPinned())
+
+	// Write the optional node reference and text fields.
 	writeJSONStringFieldIf(ms, &f, "objectKey", node.GetObjectKey())
 	writeJSONStringFieldIf(ms, &f, "textContent", node.GetTextContent())
 	ms.WriteObjectEnd()
@@ -534,6 +572,7 @@ func marshalNode(ms *protojson.MarshalState, node *s4wave_canvas.CanvasNode) {
 
 // marshalEdge writes a CanvasEdge as JSON to the MarshalState.
 func marshalEdge(ms *protojson.MarshalState, edge *s4wave_canvas.CanvasEdge) {
+	// Write the edge fields to the JSON object.
 	ms.WriteObjectStart()
 	var f bool
 	writeJSONStringField(ms, &f, "id", edge.GetId())
@@ -600,6 +639,7 @@ func nextEdgeID(edges []*s4wave_canvas.CanvasEdge) string {
 // autoPlaceNode computes position for a new node based on existing nodes of the same type.
 // Uses centroid-based placement, expanding down-right from the center of mass.
 func autoPlaceNode(nodes map[string]*s4wave_canvas.CanvasNode, nodeType s4wave_canvas.NodeType, width, height float64) (x, y float64) {
+	// Compute the centroid of existing nodes of the same type.
 	var cx, cy float64
 	var count int
 	for _, n := range nodes {
@@ -684,10 +724,13 @@ var canvasNodeAddSpecs = []canvasNodeAddSpec{
 		defaultHeight: 300,
 		nodeType:      s4wave_canvas.NodeType_NODE_TYPE_WORLD_OBJECT,
 		applyArg: func(c *cli.Context, cc *canvasContext, node *s4wave_canvas.CanvasNode) error {
+			// Verify the referenced world object exists before adding the node.
 			objKey := c.Args().First()
 			if objKey == "" {
 				return errors.New("object key required")
 			}
+
+			// Open a read transaction to check the object.
 			ctx := c.Context
 			tx, err := cc.engine.NewTransaction(ctx, false)
 			if err != nil {
@@ -699,9 +742,13 @@ var canvasNodeAddSpecs = []canvasNodeAddSpec{
 			if err != nil {
 				return errors.Wrap(err, "check object")
 			}
+
+			// Reject the add when the object does not exist.
 			if !found {
 				return errors.Errorf("object %q not found", objKey)
 			}
+
+			// Record the verified object key on the node.
 			node.ObjectKey = objKey
 			return nil
 		},
@@ -737,6 +784,7 @@ func buildCanvasNodeAddCommand() *cli.Command {
 
 // buildCanvasNodeAddSubcommand builds one canvas node add subcommand from a spec.
 func buildCanvasNodeAddSubcommand(spec canvasNodeAddSpec) *cli.Command {
+	// Declare the shared canvas and client flags.
 	var canvasURI, statePath, spaceID, outputFormat string
 	var sessIdx int
 	var nx, ny, nw, nh float64
@@ -753,12 +801,14 @@ func buildCanvasNodeAddSubcommand(spec canvasNodeAddSpec) *cli.Command {
 			&cli.IntFlag{Name: "z", Destination: &nz},
 		),
 		Action: func(c *cli.Context) error {
+			// Run the spec's pre-mount validation when present.
 			if spec.preMountValidate != nil {
 				if err := spec.preMountValidate(c); err != nil {
 					return err
 				}
 			}
 
+			// Parse the canvas URI and the node z-index.
 			uri, err := parseCanvasURI(canvasURI, spaceID, sessIdx)
 			if err != nil {
 				return err
@@ -768,12 +818,14 @@ func buildCanvasNodeAddSubcommand(spec canvasNodeAddSpec) *cli.Command {
 				return err
 			}
 
+			// Mount the canvas context on the daemon connection.
 			cc, cleanup, err := mountCanvasContext(c, statePath, uri)
 			if err != nil {
 				return err
 			}
 			defer cleanup()
 
+			// Build the new canvas node from the spec and flags.
 			ctx := c.Context
 			node := &s4wave_canvas.CanvasNode{
 				Width:  nw,
@@ -788,6 +840,7 @@ func buildCanvasNodeAddSubcommand(spec canvasNodeAddSpec) *cli.Command {
 				}
 			}
 
+			// Fetch the current canvas state to allocate the node ID.
 			resp, err := cc.canvasSvc.GetCanvasState(ctx, &s4wave_canvas.GetCanvasStateRequest{})
 			if err != nil {
 				return errors.Wrap(err, "get canvas state")
@@ -797,20 +850,24 @@ func buildCanvasNodeAddSubcommand(spec canvasNodeAddSpec) *cli.Command {
 				state = &s4wave_canvas.CanvasState{}
 			}
 
+			// Assign the node ID and auto-place position.
 			nodes := state.GetNodes()
 			node.Id = nextNodeID(nodes)
 
+			// Auto-place the node when no position flags are set.
 			if !c.IsSet("x") && !c.IsSet("y") {
 				nx, ny = autoPlaceNode(nodes, spec.nodeType, nw, nh)
 			}
 			node.X = nx
 			node.Y = ny
 
+			// Apply the canvas add-node op to the World.
 			op := space_world_ops.NewCanvasAddNodeOp(cc.objectKey, node)
 			if err := applyWorldOp(c, cc.engine, op); err != nil {
 				return err
 			}
 
+			// Print the new node ID.
 			os.Stdout.WriteString(node.Id + "\n")
 			return nil
 		},
@@ -827,22 +884,26 @@ func buildCanvasNodeRmCommand() *cli.Command {
 		ArgsUsage: "<node-id>...",
 		Flags:     commonCanvasFlags(&canvasURI, &statePath, &spaceID, &sessIdx, &outputFormat),
 		Action: func(c *cli.Context) error {
+			// Validate the node ID arguments.
 			ids := c.Args().Slice()
 			if len(ids) == 0 {
 				return errors.New("at least one node ID required")
 			}
 
+			// Parse the canvas URI from the flags.
 			uri, err := parseCanvasURI(canvasURI, spaceID, sessIdx)
 			if err != nil {
 				return err
 			}
 
+			// Mount the canvas context on the daemon connection.
 			cc, cleanup, err := mountCanvasContext(c, statePath, uri)
 			if err != nil {
 				return err
 			}
 			defer cleanup()
 
+			// Apply the canvas remove-node op to the World.
 			op := space_world_ops.NewCanvasRemoveNodeOp(cc.objectKey, ids)
 			return applyWorldOp(c, cc.engine, op)
 		},
@@ -851,6 +912,7 @@ func buildCanvasNodeRmCommand() *cli.Command {
 
 // buildCanvasNodeSetCommand builds the canvas node set subcommand.
 func buildCanvasNodeSetCommand() *cli.Command {
+	// Declare the shared canvas and node property flags.
 	var canvasURI, statePath, spaceID, outputFormat, nodeID, text string
 	var sessIdx int
 	var nx, ny, nw, nh float64
@@ -870,17 +932,20 @@ func buildCanvasNodeSetCommand() *cli.Command {
 			&cli.BoolFlag{Name: "pinned", Destination: &pinned},
 		),
 		Action: func(c *cli.Context) error {
+			// Parse the canvas URI from the flags.
 			uri, err := parseCanvasURI(canvasURI, spaceID, sessIdx)
 			if err != nil {
 				return err
 			}
 
+			// Mount the canvas context on the daemon connection.
 			cc, cleanup, err := mountCanvasContext(c, statePath, uri)
 			if err != nil {
 				return err
 			}
 			defer cleanup()
 
+			// Fetch the current canvas state and locate the node.
 			ctx := c.Context
 			resp, err := cc.canvasSvc.GetCanvasState(ctx, &s4wave_canvas.GetCanvasStateRequest{})
 			if err != nil {
@@ -891,6 +956,7 @@ func buildCanvasNodeSetCommand() *cli.Command {
 				return errors.Errorf("node %q not found", nodeID)
 			}
 
+			// Clone the existing node and merge the set flags.
 			existing, ok := state.GetNodes()[nodeID]
 			if !ok {
 				return errors.Errorf("node %q not found", nodeID)
@@ -924,6 +990,7 @@ func buildCanvasNodeSetCommand() *cli.Command {
 				node.Pinned = pinned
 			}
 
+			// Apply the canvas set-node op to the World.
 			op := space_world_ops.NewCanvasSetNodeOp(cc.objectKey, node)
 			return applyWorldOp(c, cc.engine, op)
 		},
@@ -946,17 +1013,20 @@ func buildCanvasEdgeAddCommand() *cli.Command {
 			&cli.StringFlag{Name: "style", Usage: "bezier or straight", Value: "bezier", Destination: &style},
 		),
 		Action: func(c *cli.Context) error {
+			// Parse the canvas URI from the flags.
 			uri, err := parseCanvasURI(canvasURI, spaceID, sessIdx)
 			if err != nil {
 				return err
 			}
 
+			// Mount the canvas context on the daemon connection.
 			cc, cleanup, err := mountCanvasContext(c, statePath, uri)
 			if err != nil {
 				return err
 			}
 			defer cleanup()
 
+			// Allocate the next edge ID when not supplied.
 			if edgeID == "" {
 				ctx := c.Context
 				resp, err := cc.canvasSvc.GetCanvasState(ctx, &s4wave_canvas.GetCanvasStateRequest{})
@@ -970,6 +1040,7 @@ func buildCanvasEdgeAddCommand() *cli.Command {
 				edgeID = nextEdgeID(state.GetEdges())
 			}
 
+			// Build the canvas edge from the flags.
 			edge := &s4wave_canvas.CanvasEdge{
 				Id:           edgeID,
 				SourceNodeId: source,
@@ -978,11 +1049,13 @@ func buildCanvasEdgeAddCommand() *cli.Command {
 				Style:        parseEdgeStyle(style),
 			}
 
+			// Apply the canvas add-edge op to the World.
 			op := space_world_ops.NewCanvasAddEdgeOp(cc.objectKey, edge)
 			if err := applyWorldOp(c, cc.engine, op); err != nil {
 				return err
 			}
 
+			// Print the new edge ID.
 			os.Stdout.WriteString(edgeID + "\n")
 			return nil
 		},
@@ -999,22 +1072,26 @@ func buildCanvasEdgeRmCommand() *cli.Command {
 		ArgsUsage: "<edge-id>...",
 		Flags:     commonCanvasFlags(&canvasURI, &statePath, &spaceID, &sessIdx, &outputFormat),
 		Action: func(c *cli.Context) error {
+			// Validate the edge ID arguments.
 			ids := c.Args().Slice()
 			if len(ids) == 0 {
 				return errors.New("at least one edge ID required")
 			}
 
+			// Parse the canvas URI from the flags.
 			uri, err := parseCanvasURI(canvasURI, spaceID, sessIdx)
 			if err != nil {
 				return err
 			}
 
+			// Mount the canvas context on the daemon connection.
 			cc, cleanup, err := mountCanvasContext(c, statePath, uri)
 			if err != nil {
 				return err
 			}
 			defer cleanup()
 
+			// Apply the canvas remove-edge op to the World.
 			op := space_world_ops.NewCanvasRemoveEdgeOp(cc.objectKey, ids)
 			return applyWorldOp(c, cc.engine, op)
 		},
@@ -1030,17 +1107,20 @@ func buildCanvasWatchCommand() *cli.Command {
 		Usage: "stream canvas state changes",
 		Flags: commonCanvasFlags(&canvasURI, &statePath, &spaceID, &sessIdx, &outputFormat),
 		Action: func(c *cli.Context) error {
+			// Parse the canvas URI from the flags.
 			uri, err := parseCanvasURI(canvasURI, spaceID, sessIdx)
 			if err != nil {
 				return err
 			}
 
+			// Mount the canvas context on the daemon connection.
 			cc, cleanup, err := mountCanvasContext(c, statePath, uri)
 			if err != nil {
 				return err
 			}
 			defer cleanup()
 
+			// Stream canvas state updates until the connection closes.
 			ctx := c.Context
 			strm, err := cc.canvasSvc.WatchCanvasState(ctx, &s4wave_canvas.WatchCanvasStateRequest{})
 			if err != nil {
@@ -1048,6 +1128,7 @@ func buildCanvasWatchCommand() *cli.Command {
 			}
 			defer strm.Close()
 
+			// Write each update as a JSON/YAML snapshot or a text diff.
 			w := os.Stdout
 			var prev *s4wave_canvas.CanvasState
 			for {
@@ -1099,6 +1180,7 @@ func formatNodeAddBody(id string, node *s4wave_canvas.CanvasNode) string {
 
 // formatNodeChangeBody formats the body of a "changed node" diff line.
 func formatNodeChangeBody(id string, old, node *s4wave_canvas.CanvasNode) string {
+	// Describe the node changes for the diff line.
 	body := "~" + id
 	if old.GetX() != node.GetX() || old.GetY() != node.GetY() {
 		body += " moved (" +
@@ -1134,6 +1216,7 @@ func formatEdgeAddBody(e *s4wave_canvas.CanvasEdge) string {
 
 // writeCanvasDiff writes compact text diff between two canvas states.
 func writeCanvasDiff(w *os.File, ts string, prev, curr *s4wave_canvas.CanvasState) {
+	// Snapshot the previous and current node maps.
 	prevNodes := make(map[string]*s4wave_canvas.CanvasNode)
 	currNodes := curr.GetNodes()
 	if prev != nil {
@@ -1255,22 +1338,26 @@ func buildCanvasNodeNavigateCommand() *cli.Command {
 			&cli.StringFlag{Name: "node", Usage: "node ID (required)", Destination: &nodeID, Required: true},
 		),
 		Action: func(c *cli.Context) error {
+			// Validate the path argument.
 			viewPath := c.Args().First()
 			if viewPath == "" {
 				return errors.New("path argument required")
 			}
 
+			// Parse the canvas URI from the flags.
 			uri, err := parseCanvasURI(canvasURI, spaceID, sessIdx)
 			if err != nil {
 				return err
 			}
 
+			// Mount the canvas context on the daemon connection.
 			cc, cleanup, err := mountCanvasContext(c, statePath, uri)
 			if err != nil {
 				return err
 			}
 			defer cleanup()
 
+			// Fetch the current canvas state and locate the node.
 			ctx := c.Context
 			resp, err := cc.canvasSvc.GetCanvasState(ctx, &s4wave_canvas.GetCanvasStateRequest{})
 			if err != nil {
@@ -1281,14 +1368,17 @@ func buildCanvasNodeNavigateCommand() *cli.Command {
 				return errors.Errorf("node %q not found", nodeID)
 			}
 
+			// Clone the existing node and set its viewer path.
 			existing, ok := state.GetNodes()[nodeID]
 			if !ok {
 				return errors.Errorf("node %q not found", nodeID)
 			}
 
+			// Clone the existing node and set its viewer path.
 			node := existing.CloneVT()
 			node.ViewPath = viewPath
 
+			// Apply the canvas set-node op to the World.
 			op := space_world_ops.NewCanvasSetNodeOp(cc.objectKey, node)
 			return applyWorldOp(c, cc.engine, op)
 		},
@@ -1306,17 +1396,20 @@ func buildCanvasApplyCommand() *cli.Command {
 			&cli.StringFlag{Name: "from", Usage: "read op from file instead of stdin", Destination: &fromFile},
 		),
 		Action: func(c *cli.Context) error {
+			// Parse the canvas URI from the flags.
 			uri, err := parseCanvasURI(canvasURI, spaceID, sessIdx)
 			if err != nil {
 				return err
 			}
 
+			// Mount the canvas context on the daemon connection.
 			cc, cleanup, err := mountCanvasContext(c, statePath, uri)
 			if err != nil {
 				return err
 			}
 			defer cleanup()
 
+			// Read the op payload from the file or stdin.
 			var data []byte
 			if fromFile != "" {
 				data, err = os.ReadFile(fromFile)
@@ -1336,6 +1429,7 @@ func buildCanvasApplyCommand() *cli.Command {
 				return errors.Wrap(err, "parse input as UpdateCanvasRequest JSON")
 			}
 
+			// Apply the UpdateCanvas request through the canvas service.
 			ctx := c.Context
 			_, err = cc.canvasSvc.UpdateCanvas(ctx, req)
 			if err != nil {

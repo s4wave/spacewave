@@ -56,6 +56,7 @@ func startLocalSessionKeeper(
 		return
 	}
 	go func() {
+		// Build the SDK client from the invoker.
 		client, err := buildSDKClientFromInvoker(ctx, invoker)
 		if err != nil {
 			if ctx.Err() == nil {
@@ -65,6 +66,7 @@ func startLocalSessionKeeper(
 		}
 		defer client.close()
 
+		// Watch the daemon's session list.
 		watch, err := client.root.WatchSessions(ctx)
 		if err != nil {
 			if ctx.Err() == nil {
@@ -74,6 +76,7 @@ func startLocalSessionKeeper(
 		}
 		defer watch.Close()
 
+		// Release every mounted session and the enrollment cleanup on exit.
 		mounted := make(map[uint32]localSessionMount)
 		var enrollmentCleanup func()
 		defer func() {
@@ -85,6 +88,7 @@ func startLocalSessionKeeper(
 			}
 		}()
 		mount := func(index uint32) (localSessionMount, error) {
+			// Mount a session with its own cancelable context.
 			session, err := client.mountSession(ctx, index)
 			if err != nil {
 				return nil, err
@@ -127,6 +131,7 @@ func reconcileDeviceEnrollment(
 	mount func(uint32) (localSessionMount, error),
 	enrollmentCleanup *func(),
 ) {
+	// Restore the local Device enrollment when missing.
 	if *enrollmentCleanup == nil {
 		cleanup, err := restoreLocalDeviceEnrollment(ctx, statePath, client, mount)
 		if err != nil {
@@ -136,6 +141,7 @@ func reconcileDeviceEnrollment(
 		*enrollmentCleanup = cleanup
 	}
 
+	// Restore the Device setup record for the imported session.
 	record, err := readDeviceSetupRecord(statePath)
 	if err != nil {
 		le.WithError(err).Warn("Device setup state unavailable")
@@ -195,6 +201,7 @@ func reconcileLocalSessionMounts(
 // A Space watch owns its contents reference only while a Forge Worker binding
 // is approved, independently of every command's temporary contents mount.
 func watchLocalSessionBindings(ctx context.Context, le *logrus.Entry, client *sdkClient, session *s4wave_session.Session) {
+	// Watch the session's resource list for Space bindings.
 	stream, err := session.WatchResourcesList(ctx)
 	if err != nil {
 		if ctx.Err() == nil {
@@ -204,6 +211,7 @@ func watchLocalSessionBindings(ctx context.Context, le *logrus.Entry, client *sd
 	}
 	defer stream.Close()
 
+	// Release every Space watch on exit.
 	spaces := make(map[string]*keeperSpaceWatch)
 	defer func() {
 		for _, watch := range spaces {
@@ -294,6 +302,7 @@ func retainApprovedForgeWorkerRuntime(
 	space s4wave_space.SRPCSpaceResourceServiceClient,
 	mountContents func() (func(), error),
 ) {
+	// Watch the Space's process bindings.
 	stream, err := space.WatchProcessBindings(ctx, &s4wave_space.WatchProcessBindingsRequest{})
 	if err != nil {
 		if ctx.Err() == nil {
@@ -303,6 +312,7 @@ func retainApprovedForgeWorkerRuntime(
 	}
 	defer stream.Close()
 
+	// Release the retained contents mount on exit.
 	var releaseContents func()
 	defer func() {
 		if releaseContents != nil {

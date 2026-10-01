@@ -15,6 +15,8 @@ import (
 // TestWriteMessagesWaitsDurable checks that no frame reaches the peer before
 // the host reports the local state durable.
 func TestWriteMessagesWaitsDurable(t *testing.T) {
+
+	// withTimeout ctx,cancel via context.
 	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
 	defer cancel()
 
@@ -29,6 +31,8 @@ func TestWriteMessagesWaitsDurable(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// newCContainerVT ctr via ccontainer.
 	ctr := ccontainer.NewCContainerVT(authenticationState(t, soID, owner, reader))
 	watch := func(context.Context, string, func()) (ccontainer.Watchable[*sobject.SOState], func(), error) {
 		return ctr, func() {}, nil

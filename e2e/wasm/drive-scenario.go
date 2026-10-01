@@ -13,14 +13,17 @@ type DriveScenario struct {
 
 // CreateDriveScenario creates a drive in a fresh harness session.
 func CreateDriveScenario(t testing.TB, h *Harness, session *TestSession) *DriveScenario {
+	// Mark the scenario helper as a test helper.
 	t.Helper()
 
+	// Drive the browser through the drive quickstart flow until the shell loads.
 	page := session.Page()
 	WaitForApp(t, page)
 	EnableQuickstartTimingLogs(t, page)
 	NavigateHash(t, h, page, "#/quickstart/drive")
 	WaitForDriveShell(t, page)
 
+	// Parse the created drive's identity out of the quickstart route.
 	sessionIndex, spaceID, err := parseQuickstartRoute(page.URL())
 	if err != nil {
 		t.Fatalf("parse drive route: %v", err)

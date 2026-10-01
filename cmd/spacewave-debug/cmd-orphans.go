@@ -26,12 +26,14 @@ func buildOrphansCommand() *cli.Command {
 			},
 		},
 		Action: func(c *cli.Context) error {
+			// Validate the selector argument and build the eval expression.
 			if c.NArg() < 1 {
 				return errors.New("usage: orphans <selector>")
 			}
 			sel := c.Args().First()
 			code := jsDetectLineBreaks + "(" + escapeJSString(sel) + ")"
 
+			// Evaluate the linebreaks script in the browser page.
 			var results []linebreaksEntry
 			if err := args.RunEvalJSON(c.Context, code, func(v *fastjson.Value) {
 				results = parseLinebreaksEntries(v)
@@ -42,6 +44,7 @@ func buildOrphansCommand() *cli.Command {
 				return errors.Errorf("no elements matched %q", sel)
 			}
 
+			// Inspect each matched element's last line and count orphans.
 			w := os.Stdout
 			count := 0
 			for _, r := range results {
@@ -63,6 +66,8 @@ func buildOrphansCommand() *cli.Command {
 					w.WriteString("OK     [" + r.selector + "] L" + lineNum + ": " + strconv.Quote(last) + " (" + charStr + " chars, " + wordStr + " word" + plural(words) + ")\n")
 				}
 			}
+
+			// Report the orphan count to stdout.
 			if count == 0 {
 				w.WriteString("no orphans found\n")
 			} else {

@@ -79,9 +79,11 @@ func (r *ReadSeekerAt) Seek(offset int64, whence int) (int64, error) {
 //
 // Implementations must not retain p.
 func (r *ReadSeekerAt) ReadAt(p []byte, off int64) (n int, err error) {
+	// Serialize the read with other operations on the underlying ReadSeeker.
 	r.mtx.Lock()
 	defer r.mtx.Unlock()
 
+	// Remember the current seek offset and restore it after the read.
 	startPos, err := r.rs.Seek(0, io.SeekCurrent)
 	if err != nil {
 		return 0, err
@@ -93,6 +95,7 @@ func (r *ReadSeekerAt) ReadAt(p []byte, off int64) (n int, err error) {
 		}
 	}()
 
+	// Seek to the requested offset and read the full buffer.
 	_, err = r.rs.Seek(off, io.SeekStart)
 	if err != nil {
 		return 0, err

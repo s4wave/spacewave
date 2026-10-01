@@ -35,13 +35,13 @@ func TestGoScriptDriveAccountDeleteRemovesOpfsSubtree(t *testing.T) {
 		t.Skipf("requires %s", E2EWasmCompilerGoScript)
 	}
 
-	// Create one account and record its OPFS subtree before deletion.
+	// Create one account through the drive quickstart.
 	sess := harness(t).NewCleanSession(t)
 	scenario := CreateDriveScenario(t, harness(t), sess)
 	page := scenario.GetSession().Page()
-
 	WaitForDriveReady(t, harness(t), page)
 
+	// Record the OPFS volume format markers present before deletion.
 	beforeMarkers := listOpfsFormatMarkers(t, page)
 	if len(beforeMarkers) == 0 {
 		t.Fatalf("expected an OPFS volume format marker after drive ready, found none")
@@ -50,13 +50,11 @@ func TestGoScriptDriveAccountDeleteRemovesOpfsSubtree(t *testing.T) {
 	// Delete through the account API that owns its volume lifetime.
 	ctx, cancel := context.WithTimeout(t.Context(), 3*time.Minute)
 	defer cancel()
-
 	s, err := sess.MountSessionByIdx(ctx, scenario.GetSessionIndex())
 	if err != nil {
 		t.Fatalf("MountSessionByIdx: %v", err)
 	}
 	defer s.Release()
-
 	if _, err := s.DeleteAccount(ctx, scenario.GetSessionIndex()); err != nil {
 		t.Fatalf("DeleteAccount: %v", err)
 	}
@@ -87,6 +85,7 @@ func TestGoScriptDriveAccountDeleteRemovesOpfsSubtree(t *testing.T) {
 // full paths of every volume format marker. It runs in the main-thread window
 // context where navigator.storage.getDirectory is available.
 func listOpfsFormatMarkers(t testing.TB, page playwright.Page) []string {
+	// Mark the marker helper as a test helper.
 	t.Helper()
 
 	// Inspect the origin's storage directly, independently of worker routing.

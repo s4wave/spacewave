@@ -9,6 +9,7 @@ import (
 
 // newLogoutCommand builds the logout command.
 func newLogoutCommand(_ func() cli_entrypoint.CliBus) *cli.Command {
+	// Declare the shared client and session target flags.
 	var statePath string
 	var sessionIdx uint
 	var yes bool

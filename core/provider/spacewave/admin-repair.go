@@ -14,13 +14,18 @@ func (c *SessionClient) ApplyPackMetadataRepair(
 	resourceID string,
 	req *api.PackMetadataRepairRequest,
 ) (*api.PackMetadataRepairResponse, error) {
+	// Reject an empty repair request.
 	if req == nil {
 		return nil, errors.New("pack metadata repair request is nil")
 	}
+
+	// Marshal the repair request into a binary body.
 	body, err := req.MarshalVT()
 	if err != nil {
 		return nil, errors.Wrap(err, "marshal pack metadata repair request")
 	}
+
+	// Post the body to the pack metadata repair route.
 	respBody, err := c.doPostBinary(
 		ctx,
 		adminrepair.Path(resourceID),
@@ -31,6 +36,8 @@ func (c *SessionClient) ApplyPackMetadataRepair(
 	if err != nil {
 		return nil, err
 	}
+
+	// Unmarshal the cloud response.
 	resp := &api.PackMetadataRepairResponse{}
 	if err := resp.UnmarshalVT(respBody); err != nil {
 		return nil, errors.Wrap(err, "unmarshal pack metadata repair response")

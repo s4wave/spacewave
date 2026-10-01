@@ -25,6 +25,8 @@ import (
 )
 
 func TestOpenPluginHostDesktopTrayUsesPluginHostResourceBoundary(t *testing.T) {
+
+	// Build a core bus for the plugin-host resource boundary.
 	ctx := t.Context()
 	le := logrus.NewEntry(logrus.New())
 	b, _, err := core.NewCoreBus(ctx, le)
@@ -32,6 +34,7 @@ func TestOpenPluginHostDesktopTrayUsesPluginHostResourceBoundary(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Construct a plugin host root and register its release.
 	hostRoot := plugin_host_root.NewRoot()
 	pluginRoot := plugin_host_resource.NewPluginHostRoot(
 		b,
@@ -47,6 +50,7 @@ func TestOpenPluginHostDesktopTrayUsesPluginHostResourceBoundary(t *testing.T) {
 	)
 	defer pluginRoot.Release()
 
+	// Register the resource server and its RPC client controller.
 	hostMux := srpc.NewMux()
 	resourceServer := resource_server.NewResourceServer(pluginRoot.GetMux())
 	if err := resourceServer.Register(hostMux); err != nil {
@@ -66,6 +70,7 @@ func TestOpenPluginHostDesktopTrayUsesPluginHostResourceBoundary(t *testing.T) {
 	}
 	defer rel()
 
+	// Watch the host tray and assert it starts empty.
 	hostTray := desktop_tray.NewSRPCDesktopTrayResourceServiceClient(
 		srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(hostRoot.GetMux()))),
 	)
@@ -77,11 +82,13 @@ func TestOpenPluginHostDesktopTrayUsesPluginHostResourceBoundary(t *testing.T) {
 		t.Fatalf("initial host tray entries = %d, want 0", len(state.GetEntries()))
 	}
 
+	// Open the plugin-host desktop tray source.
 	source, err := openPluginHostDesktopTray(ctx, b)
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	// Register a tray entry through the source.
 	_, err = source.tray.RegisterDesktopTrayEntry(ctx, &desktop_tray.RegisterDesktopTrayEntryRequest{
 		Entry: &desktop_tray.DesktopTrayEntry{
 			Id:      "status",
@@ -95,12 +102,14 @@ func TestOpenPluginHostDesktopTrayUsesPluginHostResourceBoundary(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Assert the host tray watch sees the registered entry.
 	state := recvDesktopTrayState(t, strm)
 	if len(state.GetEntries()) != 1 || state.GetEntries()[0].GetLabel() != "Runtime - Running" {
 		source.Release()
 		t.Fatalf("host tray entries after plugin-host registration = %#v", state.GetEntries())
 	}
 
+	// Release the source and assert the tray empties.
 	source.Release()
 	state = recvDesktopTrayState(t, strm)
 	if len(state.GetEntries()) != 0 {
@@ -109,6 +118,8 @@ func TestOpenPluginHostDesktopTrayUsesPluginHostResourceBoundary(t *testing.T) {
 }
 
 func TestDesktopTrayReconcilerPublishesHostTrayToElectronMainWithoutRenderer(t *testing.T) {
+
+	// Build a core bus for the reconciler test.
 	ctx := t.Context()
 	le := logrus.NewEntry(logrus.New())
 	b, _, err := core.NewCoreBus(ctx, le)
@@ -116,6 +127,7 @@ func TestDesktopTrayReconcilerPublishesHostTrayToElectronMainWithoutRenderer(t *
 		t.Fatal(err)
 	}
 
+	// Construct a plugin host root and register its release.
 	hostRoot := plugin_host_root.NewRoot()
 	pluginRoot := plugin_host_resource.NewPluginHostRoot(
 		b,
@@ -131,6 +143,7 @@ func TestDesktopTrayReconcilerPublishesHostTrayToElectronMainWithoutRenderer(t *
 	)
 	defer pluginRoot.Release()
 
+	// Register the resource server and its RPC client controller.
 	hostMux := srpc.NewMux()
 	resourceServer := resource_server.NewResourceServer(pluginRoot.GetMux())
 	if err := resourceServer.Register(hostMux); err != nil {
@@ -150,6 +163,7 @@ func TestDesktopTrayReconcilerPublishesHostTrayToElectronMainWithoutRenderer(t *
 	}
 	defer rel()
 
+	// Open the tray source and register an entry on it.
 	source, err := openPluginHostDesktopTray(ctx, b)
 	if err != nil {
 		t.Fatal(err)
@@ -167,6 +181,7 @@ func TestDesktopTrayReconcilerPublishesHostTrayToElectronMainWithoutRenderer(t *
 		t.Fatal(err)
 	}
 
+	// Watch a local target tray and assert it starts empty.
 	targetTray := desktop_tray.NewDesktopTray()
 	targetDirect := desktop_tray.NewSRPCDesktopTrayResourceServiceClient(
 		srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(targetTray.GetMux()))),
@@ -181,6 +196,7 @@ func TestDesktopTrayReconcilerPublishesHostTrayToElectronMainWithoutRenderer(t *
 		t.Fatalf("target tray initial entries = %d, want 0", len(state.GetEntries()))
 	}
 
+	// Run the reconciler against the desktop-runtime-only runtime.
 	runtime := newDesktopRuntimeOnlyWebRuntime(t, targetTray)
 	ctrl := &Controller{le: le, bus: b}
 	reconcileCtx, reconcileCancel := context.WithCancel(ctx)
@@ -189,6 +205,7 @@ func TestDesktopTrayReconcilerPublishesHostTrayToElectronMainWithoutRenderer(t *
 		errCh <- ctrl.reconcileDesktopTray(reconcileCtx, runtime)
 	}()
 
+	// Assert the reconciled target tray received the entry without a renderer.
 	state := recvDesktopTrayState(t, targetStream)
 	if len(state.GetEntries()) != 1 {
 		reconcileCancel()
@@ -207,6 +224,7 @@ func TestDesktopTrayReconcilerPublishesHostTrayToElectronMainWithoutRenderer(t *
 		t.Fatalf("renderer window creates = %d, want 0", runtime.createWebDocumentCount.Load())
 	}
 
+	// Cancel the reconciler and assert it stops with cancellation.
 	reconcileCancel()
 	if err := <-errCh; err != context.Canceled {
 		t.Fatalf("expected reconciler to stop on context cancel, got %v", err)
@@ -214,14 +232,19 @@ func TestDesktopTrayReconcilerPublishesHostTrayToElectronMainWithoutRenderer(t *
 }
 
 func TestDesktopTrayReconcilerRetriesSourceFailures(t *testing.T) {
+
+	// Build a cancelable context for the reconciler test.
 	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
 
+	// Build a reconciler whose first source attempt fails.
 	le := logrus.NewEntry(logrus.New())
 	var attempts atomic.Int32
 	var notified atomic.Bool
 	retried := make(chan struct{})
 	errCh := make(chan error, 1)
+
+	// Run the reconciler routine in the background.
 	go func() {
 		errCh <- runDesktopTrayReconcilerUntilCanceled(ctx, le, func(ctx context.Context) error {
 			if attempts.Add(1) == 1 {
@@ -235,6 +258,7 @@ func TestDesktopTrayReconcilerRetriesSourceFailures(t *testing.T) {
 		})
 	}()
 
+	// Assert the reconciler retried after the source failure.
 	select {
 	case err := <-errCh:
 		t.Fatalf("reconciler stopped after source failure: %v", err)
@@ -244,6 +268,7 @@ func TestDesktopTrayReconcilerRetriesSourceFailures(t *testing.T) {
 		t.Fatalf("reconciler attempts = %d, want 2", attempts.Load())
 	}
 
+	// Cancel and assert the reconciler stops with cancellation.
 	cancel()
 	select {
 	case err := <-errCh:
@@ -256,8 +281,12 @@ func TestDesktopTrayReconcilerRetriesSourceFailures(t *testing.T) {
 }
 
 func TestDesktopTrayMirroredRuntimeDoesNotExitOnTrayFailure(t *testing.T) {
+
+	// Build a mirrored runtime whose tray reconciler fails then retries.
 	ctx := t.Context()
 	le := logrus.NewEntry(logrus.New())
+
+	// Build the web runtime and the tray failure signals.
 	runtime := newDesktopRuntimeOnlyWebRuntime(t, desktop_tray.NewDesktopTray())
 	trayFailed := make(chan struct{})
 	secondAttempt := make(chan struct{})
@@ -269,6 +298,8 @@ func TestDesktopTrayMirroredRuntimeDoesNotExitOnTrayFailure(t *testing.T) {
 		WebRuntime: runtime,
 		controller: &Controller{le: le},
 		reconcileDesktopTrayRaw: func(ctx context.Context, rt web_runtime.WebRuntime) error {
+
+			// Fail the first attempt and block later attempts until released.
 			if attempts.Add(1) == 1 {
 				close(trayFailed)
 				return errors.New("source stream closed")
@@ -283,6 +314,7 @@ func TestDesktopTrayMirroredRuntimeDoesNotExitOnTrayFailure(t *testing.T) {
 		},
 	}
 
+	// Execute the mirrored runtime in the background.
 	runCtx, cancel := context.WithCancel(ctx)
 	defer cancel()
 	errCh := make(chan error, 1)
@@ -290,6 +322,7 @@ func TestDesktopTrayMirroredRuntimeDoesNotExitOnTrayFailure(t *testing.T) {
 		errCh <- mirrored.Execute(runCtx)
 	}()
 
+	// Assert the mirrored runtime survives the first tray failure.
 	select {
 	case err := <-errCh:
 		t.Fatalf("mirrored runtime exited after tray failure before parent cancel: %v", err)
@@ -298,6 +331,7 @@ func TestDesktopTrayMirroredRuntimeDoesNotExitOnTrayFailure(t *testing.T) {
 		t.Fatal("timed out waiting for tray reconciler failure")
 	}
 
+	// Assert the tray reconciler retried after the failure.
 	select {
 	case err := <-errCh:
 		t.Fatalf("mirrored runtime exited after tray failure before parent cancel: %v", err)
@@ -306,6 +340,7 @@ func TestDesktopTrayMirroredRuntimeDoesNotExitOnTrayFailure(t *testing.T) {
 		t.Fatal("timed out waiting for tray reconciler retry")
 	}
 
+	// Cancel and assert the mirrored runtime stops after cleanup.
 	cancel()
 	select {
 	case <-cancelObserved:
@@ -351,8 +386,11 @@ func newDesktopRuntimeOnlyWebRuntime(
 	t *testing.T,
 	tray *desktop_tray.DesktopTray,
 ) *desktopRuntimeOnlyWebRuntime {
+
+	// Register the tray resource server on a local pipe.
 	t.Helper()
 
+	// Build the desktop-runtime-only web runtime.
 	server := resource_server.NewResourceServer(tray.GetMux())
 	mux := srpc.NewMux()
 	if err := server.Register(mux); err != nil {

@@ -161,6 +161,8 @@ func runBillingUsage(
 		return err
 	}
 	defer billingCloseClient(client)
+
+	// Mount the requested Session on the daemon connection.
 	sess, err := billingMountSession(ctx, client, sessionIdx)
 	if err != nil {
 		return err

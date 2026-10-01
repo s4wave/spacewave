@@ -37,16 +37,20 @@ const (
 // A failed merge holds further merges until the next pull refreshes the
 // manifest. A replacement conflict pulls immediately.
 func (s *syncController) CompactNow(ctx context.Context) error {
+	// Hold the flush lock and skip when a pull must refresh the manifest first.
 	s.flushMtx.Lock()
 	defer s.flushMtx.Unlock()
 	if s.compactWaitPull.Load() {
 		return nil
 	}
+
+	// Plan the compaction inputs and merge them.
 	inputs := planCompaction(s.mfst.GetEntries())
 	if len(inputs) == 0 {
 		return nil
 	}
 
+	// Park further merges until the next pull on failure.
 	err := s.mergePacks(ctx, inputs)
 	if err == nil || ctx.Err() != nil {
 		return err
@@ -64,6 +68,7 @@ func (s *syncController) CompactNow(ctx context.Context) error {
 // compactMinPacks qualify. Packs without a sequence have not been pulled back
 // from the server and cannot be replaced yet.
 func planCompaction(entries []*packfile.PackfileEntry) []*packfile.PackfileEntry {
+	// Collect committed small packs in sequence order.
 	var small []*packfile.PackfileEntry
 	for _, entry := range entries {
 		if entry.GetSequence() == 0 || entry.GetSupersededBy() != "" {
@@ -77,10 +82,13 @@ func planCompaction(entries []*packfile.PackfileEntry) []*packfile.PackfileEntry
 	if len(small) < compactMinPacks {
 		return nil
 	}
+
+	// Sort the small packs by sequence.
 	slices.SortFunc(small, func(a, b *packfile.PackfileEntry) int {
 		return cmp.Compare(a.GetSequence(), b.GetSequence())
 	})
 
+	// Take the oldest packs that fit the sync pack target.
 	var total int64
 	n := 0
 	for n < len(small) && n < compactMaxPacks {
@@ -97,6 +105,7 @@ func planCompaction(entries []*packfile.PackfileEntry) []*packfile.PackfileEntry
 // mergePacks reads every input pack, writes their blocks into one pack, pushes
 // it as a replacement for the inputs, and commits the replacement locally.
 func (s *syncController) mergePacks(ctx context.Context, inputs []*packfile.PackfileEntry) error {
+	// Prepare the merged pack and push it as a replacement.
 	started := time.Now()
 	chunk, err := s.prepareMergedPack(ctx, inputs)
 	if err != nil {
@@ -106,6 +115,7 @@ func (s *syncController) mergePacks(ctx context.Context, inputs []*packfile.Pack
 		return err
 	}
 
+	// Apply the manifest delta and record merge telemetry.
 	event := &packfile.PackReplacementEvent{ReplacedPackIds: chunk.replaces}
 	if err := s.applyManifestDelta(ctx, []*packfile.PackfileEntry{chunk.entry}, []*packfile.PackReplacementEvent{event}); err != nil {
 		return errors.Wrap(err, "applying merge delta")
@@ -114,6 +124,7 @@ func (s *syncController) mergePacks(ctx context.Context, inputs []*packfile.Pack
 		t.addSyncTelemetryMerge(id, len(chunk.replaces))
 	})
 
+	// Log the completed merge.
 	s.le.WithField("pack-id", chunk.entry.GetId()).
 		WithField("replaced", len(chunk.replaces)).
 		WithField("blocks", chunk.entry.GetBlockCount()).
@@ -128,6 +139,7 @@ func (s *syncController) mergePacks(ctx context.Context, inputs []*packfile.Pack
 // checked against the union of the input key sets before the pack is returned,
 // so a replacement can never drop a block.
 func (s *syncController) prepareMergedPack(ctx context.Context, inputs []*packfile.PackfileEntry) (*preparedSyncChunk, error) {
+	// Read every input pack and collect unique blocks.
 	replaces := make([]string, len(inputs))
 	seen := make(map[string]struct{})
 	var blocks []packfile_store.PackBlock
@@ -147,6 +159,7 @@ func (s *syncController) prepareMergedPack(ctx context.Context, inputs []*packfi
 		}
 	}
 
+	// Pack the merged blocks and verify the key set.
 	var buf bytes.Buffer
 	idx := 0
 	result, err := writer.PackBlocks(&buf, func() (*hash.Hash, *block.StoredBlock, error) {
@@ -163,6 +176,8 @@ func (s *syncController) prepareMergedPack(ctx context.Context, inputs []*packfi
 	if err := checkPackKeys(buf.Bytes(), seen); err != nil {
 		return nil, err
 	}
+
+	// Build the merged pack entry.
 	packID, err := identity.BuildPackID(s.resourceID, result)
 	if err != nil {
 		return nil, errors.Wrap(err, "build merged pack id")
@@ -185,6 +200,7 @@ func (s *syncController) prepareMergedPack(ctx context.Context, inputs []*packfi
 
 // checkPackKeys verifies the written pack indexes exactly the want key set.
 func checkPackKeys(packData []byte, want map[string]struct{}) error {
+	// Scan the merged pack index and compare it to the wanted keys.
 	rd, err := kvfile.BuildReader(bytes.NewReader(packData), uint64(len(packData)))
 	if err != nil {
 		return errors.Wrap(err, "read merged pack index")

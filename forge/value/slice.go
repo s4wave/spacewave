@@ -12,10 +12,12 @@ type ValueSlice []*Value
 
 // GetValuesNames returns a sorted slice of all value names.
 func GetValuesNames(values ...ValueSlice) []string {
+	// Return nil when there are no value sets to inspect.
 	if len(values) == 0 {
 		return nil
 	}
 
+	// Collect each unseen value name across all value sets.
 	allNames := make([]string, 0, len(values[0]))
 	seenNames := make(map[string]struct{}, len(values[0]))
 	for _, valueSet := range values {
@@ -118,11 +120,14 @@ func (v ValueSlice) IsSorted() bool {
 // Note: we do not expect large value pointer sets.
 // Any large data-set should be held under a block DAG structure.
 func (v ValueSlice) Merge(vals ValueSlice) ValueSlice {
+	// Index the existing values by name.
 	var doSort bool
 	m := make(map[string]int)
 	for exi, ex := range v {
 		m[ex.GetName()] = exi
 	}
+
+	// Replace matching values and append the rest, marking a needed sort.
 	for _, val := range vals {
 		// replace existing matching
 		valName := val.GetName()

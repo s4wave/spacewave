@@ -204,6 +204,7 @@ func TestEncodeBinaryFrameMaxLengthStringSucceeds(t *testing.T) {
 }
 
 func frame(typ byte, tag uint16, parts ...[]byte) []byte {
+	// Size the frame, write the header, and append each part.
 	size := v86fsFrameHeaderSize
 	for _, part := range parts {
 		size += len(part)

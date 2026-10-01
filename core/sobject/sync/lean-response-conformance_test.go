@@ -61,12 +61,16 @@ func leanSyncNonces(a *fastjson.Arena, nonces []*sobject.SOAccountNonce) *fastjs
 // leanSyncRoot abstracts encoding and signature structure, retaining all root
 // progression, nonce-order, signer-authorization, and consensus decisions.
 func leanSyncRoot(t *testing.T, a *fastjson.Arena, objectID string, root *sobject.SORoot) *fastjson.Value {
+
+	// helper.
 	t.Helper()
 	data, err := root.BuildSignatureData()
 	if err != nil {
 		t.Fatal(err)
 	}
 	var digest []byte
+
+	// Check the condition before continuing.
 	if root != nil {
 		digest, err = sobject.DigestSOAuthoritativeRoot(root)
 		if err != nil {
@@ -87,6 +91,7 @@ func leanSyncRoot(t *testing.T, a *fastjson.Arena, objectID string, root *sobjec
 		}))
 	}
 
+	// newObject v via a.
 	v := a.NewObject()
 	encoded := "nil"
 	if root != nil {
@@ -95,6 +100,8 @@ func leanSyncRoot(t *testing.T, a *fastjson.Arena, objectID string, root *sobjec
 	v.Set("data", a.NewString(encoded))
 	v.Set("content", a.NewString(hex.EncodeToString(root.GetInner())))
 	v.Set("seqno", a.NewNumberString(strconv.FormatUint(root.GetInnerSeqno(), 10)))
+
+	// Set via v.
 	v.Set("digest", a.NewString(hex.EncodeToString(digest)))
 	v.Set("format", leanSyncBool(a, format))
 	v.Set("hasInner", leanSyncBool(a, len(root.GetInner()) != 0))
@@ -105,6 +112,8 @@ func leanSyncRoot(t *testing.T, a *fastjson.Arena, objectID string, root *sobjec
 
 // leanSyncOperation retains decoded identity and verifies the signed bytes.
 func leanSyncOperation(t *testing.T, a *fastjson.Arena, objectID string, operation *sobject.SOOperation) *fastjson.Value {
+
+	// helper.
 	t.Helper()
 	inner := &sobject.SOOperationInner{}
 	parsed := inner.UnmarshalVT(operation.GetInner()) == nil
@@ -114,6 +123,8 @@ func leanSyncOperation(t *testing.T, a *fastjson.Arena, objectID string, operati
 		data = hex.EncodeToString(leanSyncMarshal(t, operation))
 	}
 	v.Set("data", a.NewString(data))
+
+	// Set via v.
 	v.Set("peer", a.NewString(inner.GetPeerId()))
 	v.Set("localId", a.NewString(inner.GetLocalId()))
 	v.Set("nonce", a.NewNumberString(strconv.FormatUint(inner.GetNonce(), 10)))
@@ -166,6 +177,8 @@ func leanSyncRejections(t *testing.T, a *fastjson.Arena, objectID string, reject
 // leanSyncState retains all state fields, including grant authority and the
 // opaque invitation records that host imports preserve locally.
 func leanSyncState(t *testing.T, a *fastjson.Arena, objectID string, state *sobject.SOState) *fastjson.Value {
+
+	// helper.
 	t.Helper()
 	grants := a.NewArray()
 	for i, grant := range state.GetRootGrants() {
@@ -194,6 +207,7 @@ func leanSyncState(t *testing.T, a *fastjson.Arena, objectID string, state *sobj
 		groups.SetArrayItem(i, g)
 	}
 
+	// newObject v via a.
 	v := a.NewObject()
 	config := state.GetConfig()
 	if config == nil {
@@ -201,6 +215,8 @@ func leanSyncState(t *testing.T, a *fastjson.Arena, objectID string, state *sobj
 	}
 	v.Set("config", leanSyncConfig(a, config))
 	v.Set("root", leanSyncRoot(t, a, objectID, state.GetRoot()))
+
+	// Set via v.
 	v.Set("grants", grants)
 	v.Set("invites", invites)
 	v.Set("ops", leanSyncOperations(t, a, objectID, state.GetOps()))
@@ -211,6 +227,8 @@ func leanSyncState(t *testing.T, a *fastjson.Arena, objectID string, state *sobj
 
 // leanSyncInvite retains immutable bytes separately from the fields updated by invite.go.
 func leanSyncInvite(t *testing.T, a *fastjson.Arena, invite *sobject.SOInvite) *fastjson.Value {
+
+	// helper.
 	t.Helper()
 	data := "nil"
 	if invite != nil {
@@ -221,6 +239,8 @@ func leanSyncInvite(t *testing.T, a *fastjson.Arena, invite *sobject.SOInvite) *
 	}
 	v := a.NewObject()
 	v.Set("data", a.NewString(data))
+
+	// Set via v.
 	v.Set("id", a.NewString(invite.GetInviteId()))
 	v.Set("tokenHash", a.NewString(hex.EncodeToString(invite.GetTokenHash())))
 	v.Set("maxUses", a.NewNumberString(strconv.FormatUint(uint64(invite.GetMaxUses()), 10)))
@@ -250,12 +270,16 @@ func FuzzLeanSyncResponse(f *testing.F) {
 
 // leanSyncResponseCases compares response preparation and acceptance through their real owners.
 func leanSyncResponseCases(t *testing.T, seed uint64) []leanSyncCase {
+
+	// helper.
 	t.Helper()
 	const objectID = "lean-sync-response"
 	owner, reader := mustKeyPair(t), mustKeyPair(t)
 	initial := authenticationState(t, objectID, owner, reader)
 	initial.Invites = []*sobject.SOInvite{{InviteId: "local capability", TokenHash: []byte("local token")}}
 	sender := newAuthenticationPeer(t, objectID, owner, initial)
+
+	// Iterate the test cases.
 	for range maxHistoryPageEntries + 1 + int(seed%3) {
 		current, err := sender.soHost.GetHostState(t.Context())
 		if err != nil {
@@ -278,6 +302,8 @@ func leanSyncResponseCases(t *testing.T, seed uint64) []leanSyncCase {
 	signSnapshotRoot(t, objectID, target, owner)
 	target.Invites = []*sobject.SOInvite{{InviteId: "remote capability", TokenHash: []byte("secret token")}}
 	target.QueuedAccountNonces = []*sobject.SOAccountNonce{{PeerId: mustPeerIDStr(t, owner), Nonce: 42}}
+
+	// Record request.
 	request := &SOSyncHistoryRequest{Revision: seed + 1, BaseHash: initial.Config.ConfigChainHash}
 	response, err := sender.prepareResponse(t.Context(), target, request)
 	if err != nil {
@@ -288,6 +314,8 @@ func leanSyncResponseCases(t *testing.T, seed uint64) []leanSyncCase {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Record head.
 	head := &SOSyncHead{Revision: request.Revision, ConfigHash: target.Config.ConfigChainHash,
 		ConfigSeqno: target.Config.ConfigChainSeqno, RootSeqno: target.Root.InnerSeqno, StateHash: digest}
 	received := &syncReceive{head: head, base: request.BaseHash, cursor: request.BaseHash}

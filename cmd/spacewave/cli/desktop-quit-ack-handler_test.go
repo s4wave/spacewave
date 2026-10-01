@@ -23,6 +23,7 @@ func (*desktopQuitAckHandler) GetMethodIDs() []string { return []string{"Quit"} 
 
 // InvokeMethod claims listener shutdown and then acknowledges the requester.
 func (h *desktopQuitAckHandler) InvokeMethod(serviceID, methodID string, stream srpc.Stream) (bool, error) {
+	// Reject methods other than the Quit acknowledgement.
 	if serviceID != h.GetServiceID() || methodID != "Quit" {
 		return false, nil
 	}

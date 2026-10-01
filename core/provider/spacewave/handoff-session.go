@@ -24,6 +24,7 @@ func (p *Provider) MountHandoffSession(
 	sessionPriv crypto.PrivKey,
 	sessionCtrl session.SessionController,
 ) (*session.SessionListEntry, error) {
+	// Verify the handoff key identifies an enrolled Session in this account.
 	if sessionPriv == nil {
 		return nil, errors.New("session private key is required")
 	}
@@ -40,6 +41,7 @@ func (p *Provider) MountHandoffSession(
 		return nil, errors.New("enrolled Session belongs to another account")
 	}
 
+	// Access the provider account and skip mounting an already-registered Session.
 	provAccValue, relProvAcc, err := p.AccessProviderAccount(ctx, accountID, nil)
 	if err != nil {
 		return nil, errors.Wrap(err, "access provider account")
@@ -54,11 +56,13 @@ func (p *Provider) MountHandoffSession(
 		return existing, err
 	}
 
+	// Seed the handoff Session and mount it under the account.
 	sessProv, err := session.GetSessionProviderAccountFeature(ctx, provAcc)
 	if err != nil {
 		return nil, errors.Wrap(err, "get session provider")
 	}
 
+	// Build a fresh Session ref for the handoff identity.
 	sessRef := &session.SessionRef{
 		ProviderResourceRef: &provider.ProviderResourceRef{
 			Id:                ulid.NewULID(),
@@ -70,12 +74,14 @@ func (p *Provider) MountHandoffSession(
 		return nil, err
 	}
 
+	// Mount the Session with the session provider.
 	_, relSess, err := sessProv.MountSession(ctx, sessRef, nil)
 	if err != nil {
 		return nil, errors.Wrap(err, "mount session")
 	}
 	defer relSess()
 
+	// Register the Session with the session controller.
 	meta := &session.SessionMetadata{
 		DisplayName:         info.GetEntityId(),
 		ProviderDisplayName: "Cloud",
@@ -97,9 +103,11 @@ func (p *Provider) seedHandoffSession(
 	sessRef *session.SessionRef,
 	sessionPriv crypto.PrivKey,
 ) error {
+	// Open the account's Session object store handle for seeding.
 	ctx, ctxCancel := context.WithCancel(ctx)
 	defer ctxCancel()
 
+	// Build the object store handle for the Session's ID.
 	sessionID := sessRef.GetProviderResourceRef().GetId()
 	objStoreHandle, _, diRef, err := volume.ExBuildObjectStoreAPI(
 		ctx,
@@ -114,6 +122,7 @@ func (p *Provider) seedHandoffSession(
 	}
 	defer diRef.Release()
 
+	// Derive the storage key from the volume's private key.
 	volPeer, err := acc.vol.GetPeer(ctx, true)
 	if err != nil {
 		return errors.Wrap(err, "get volume peer")
@@ -127,12 +136,14 @@ func (p *Provider) seedHandoffSession(
 		return errors.Wrap(err, "derive storage key")
 	}
 
+	// Marshal the Session key and write its encrypted auto-unlock record.
 	privPEM, err := keypem.MarshalPrivKeyPem(sessionPriv)
 	if err != nil {
 		return errors.Wrap(err, "marshal session private key")
 	}
 	defer scrub.Scrub(privPEM)
 
+	// Encrypt the key with the storage key and write the auto-unlock record.
 	encPriv, err := session_lock.EncryptAutoUnlock(storageKey, privPEM)
 	if err != nil {
 		return errors.Wrap(err, "encrypt session private key")
@@ -146,11 +157,13 @@ func (p *Provider) seedHandoffSession(
 		return errors.Wrap(err, "write auto-unlock key")
 	}
 
+	// Record the Session's registered peer ID in the object store.
 	sessionPeerID, err := peer.IDFromPrivateKey(sessionPriv)
 	if err != nil {
 		return errors.Wrap(err, "derive session peer id")
 	}
 
+	// Write the registration marker in a committed transaction.
 	regKey := []byte(sessionID + "/registered")
 	err = kvtx.RunTransaction(ctx, true,
 		func(ctx context.Context) (kvtx.Tx, error) {
@@ -173,11 +186,14 @@ func (p *Provider) seedHandoffSession(
 // findRegisteredSession reads persisted public registration markers without
 // unlocking existing Sessions. Reusing the same key preserves its lock policy.
 func (a *ProviderAccount) findRegisteredSession(ctx context.Context, entries []*session.SessionListEntry, peerID peer.ID) (*session.SessionListEntry, error) {
+	// Open the account object store and scan registration markers.
 	handle, _, ref, err := volume.ExBuildObjectStoreAPI(ctx, a.p.b, false, SessionObjectStoreID(a.accountID), a.vol.GetID(), nil)
 	if err != nil {
 		return nil, err
 	}
 	defer ref.Release()
+
+	// Return the first entry whose marker matches the peer ID.
 	store := handle.GetObjectStore()
 	var existing *session.SessionListEntry
 	err = kvtx.RunTransaction(ctx, false, func(ctx context.Context) (kvtx.Tx, error) {

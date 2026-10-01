@@ -100,13 +100,18 @@ func (c *testBlockStoreClient) Sync(
 }
 
 func TestBlockStoreGetSupportedFeaturesMasksReadOnlyWrites(t *testing.T) {
+	// Configure a remote store that advertises batching and self-buffered features.
 	remote := block.StoreFeatureNativeBatchPut |
 		block.StoreFeatureNativeBatchExists |
 		block.StoreFeatureSelfBuffered
+
+	// Build the read-only block store over the test client.
 	client := &testBlockStoreClient{features: remote}
 	store := NewBlockStore(client, 0, true)
 
+	// Compare every read against the expected masked feature set.
 	expected := block.StoreFeatureNativeBatchExists | block.StoreFeatureSelfBuffered
+
 	// Concurrent first readers must wait for the same initialized feature set.
 	var readers sync.WaitGroup
 	for range 16 {
@@ -118,21 +123,26 @@ func TestBlockStoreGetSupportedFeaturesMasksReadOnlyWrites(t *testing.T) {
 	}
 	readers.Wait()
 
+	// Read the cached feature set once more after all concurrent readers finish.
 	got := store.GetSupportedFeatures()
 	if got != expected {
 		t.Fatalf("expected cached read-only feature set, got %v", got)
 	}
+
+	// Assert the remote was queried exactly once despite the concurrent readers.
 	if client.featureCalls != 1 {
 		t.Fatalf("expected one feature RPC call, got %d", client.featureCalls)
 	}
 }
 
 func TestBlockStorePutBlockBatchForwardsRefs(t *testing.T) {
+	// Build a write-through block store and batch entry with one forwarded ref.
 	client := &testBlockStoreClient{}
 	store := NewBlockStore(client, 0, false)
 	ref := &block.BlockRef{}
 	outRef := &block.BlockRef{}
 
+	// Send one batch entry carrying the ref and payload through the store.
 	if err := store.PutBlockBatch(context.Background(), []*block.PutBatchEntry{{
 		Ref:  ref,
 		Data: []byte("hello"),
@@ -141,9 +151,12 @@ func TestBlockStorePutBlockBatchForwardsRefs(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// Assert the batch request carried exactly one entry.
 	if len(client.batchEntries) != 1 {
 		t.Fatalf("expected one batch entry, got %d", len(client.batchEntries))
 	}
+
+	// Assert the block refs were forwarded verbatim through the batch request.
 	if got := client.batchEntries[0].GetRefs(); len(got) != 1 || got[0] != outRef {
 		t.Fatalf("expected refs to forward through batch request")
 	}

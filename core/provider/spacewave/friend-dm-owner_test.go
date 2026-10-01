@@ -55,6 +55,7 @@ func TestMarshalFriendDmChannelWorldOp(t *testing.T) {
 }
 
 func TestOpenFriendDMHiddenTargetDoesNotMutate(t *testing.T) {
+	// Count Cloud authorization requests served by the test server.
 	var requests int
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		requests++
@@ -65,19 +66,25 @@ func TestOpenFriendDMHiddenTargetDoesNotMutate(t *testing.T) {
 	}))
 	defer srv.Close()
 
+	// Opening a friend DM for a hidden target must fail without mutation.
 	acc := NewTestProviderAccount(t, srv.URL)
 	_, err := acc.OpenFriendDM(context.Background(), "acct-b")
 	if !stderrors.Is(err, ErrFriendDmNotFound) {
 		t.Fatalf("error = %v, want ErrFriendDmNotFound", err)
 	}
+
+	// Exactly one Cloud authorization request must have been served.
 	if requests != 1 {
 		t.Fatalf("requests = %d, want one Cloud authorization request", requests)
 	}
 }
 
 func TestOpenFriendDMProposedOtherOwnerRefusesBeforeCreate(t *testing.T) {
+	// Count Cloud authorization requests and capture the local peer.
 	var requests int
 	var localPeer string
+
+	// Build the local and target friend DM accounts and derive the SO ID.
 	_, targetPeer := generateTestKeypair(t)
 	local := &api.FriendDmAccount{AccountId: "test-account", EntityUuid: "entity-a"}
 	target := &api.FriendDmAccount{
@@ -86,6 +93,8 @@ func TestOpenFriendDMProposedOtherOwnerRefusesBeforeCreate(t *testing.T) {
 		Sessions:   []*api.FriendDmSessionPeer{{PeerId: targetPeer.String()}},
 	}
 	sharedObjectID := deriveFriendDmSharedObjectID(local, target)
+
+	// Serve a bootstrap that proposes the other account as owner.
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		requests++
 		writeFriendDmResponse(t, w, &api.GetFriendDmResponse{
@@ -105,18 +114,22 @@ func TestOpenFriendDMProposedOtherOwnerRefusesBeforeCreate(t *testing.T) {
 	}))
 	defer srv.Close()
 
+	// Opening the DM must refuse before creating the shared object.
 	acc := NewTestProviderAccount(t, srv.URL)
 	localPeer = acc.GetCurrentSessionPeerID().String()
 	_, err := acc.OpenFriendDM(context.Background(), "acct-b")
 	if err == nil {
 		t.Fatal("expected proposed-other-owner refusal")
 	}
+
+	// Exactly one GET must have been served with no create.
 	if requests != 1 {
 		t.Fatalf("requests = %d, want one GET and no create", requests)
 	}
 }
 
 func TestOpenFriendDMInvalidResponseDoesNotMutate(t *testing.T) {
+	// Count Cloud authorization requests served by the test server.
 	var requests int
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		requests++
@@ -124,19 +137,25 @@ func TestOpenFriendDMInvalidResponseDoesNotMutate(t *testing.T) {
 	}))
 	defer srv.Close()
 
+	// A malformed Cloud response must fail without mutation.
 	acc := NewTestProviderAccount(t, srv.URL)
 	_, err := acc.OpenFriendDM(context.Background(), "acct-b")
 	if err == nil {
 		t.Fatal("expected malformed Cloud response error")
 	}
+
+	// Exactly one Cloud authorization request must have been served.
 	if requests != 1 {
 		t.Fatalf("requests = %d, want one Cloud authorization request", requests)
 	}
 }
 
 func TestOpenFriendDMRejectsInvalidPeerBeforeInitialization(t *testing.T) {
+	// Count Cloud authorization requests and stage a two-phase response.
 	var requests int
 	var response *api.GetFriendDmResponse
+
+	// Serve an empty bootstrap first, then the staged response.
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		requests++
 		if response != nil {
@@ -147,6 +166,7 @@ func TestOpenFriendDMRejectsInvalidPeerBeforeInitialization(t *testing.T) {
 	}))
 	defer srv.Close()
 
+	// Build the account pair with an invalid target session peer.
 	acc := NewTestProviderAccount(t, srv.URL)
 	localPeerID := acc.GetCurrentSessionPeerID().String()
 	local := &api.FriendDmAccount{
@@ -167,17 +187,24 @@ func TestOpenFriendDMRejectsInvalidPeerBeforeInitialization(t *testing.T) {
 		OwnerType:      "account",
 		Accounts:       []*api.FriendDmAccount{local, target},
 	}
+
+	// Opening the DM must fail before initialization.
 	if _, err := acc.OpenFriendDM(context.Background(), target.AccountId); err == nil {
 		t.Fatal("expected invalid peer error")
 	}
+
+	// Exactly one Cloud request must have been served.
 	if requests != 1 {
 		t.Fatalf("requests = %d, want one Cloud request and no initialization", requests)
 	}
 }
 
 func TestOpenFriendDMRejectsNoncanonicalIDBeforeInitialization(t *testing.T) {
+	// Count Cloud authorization requests and stage a two-phase response.
 	var requests int
 	var response *api.GetFriendDmResponse
+
+	// Serve an empty bootstrap first, then the staged response.
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		requests++
 		if response != nil {
@@ -188,6 +215,7 @@ func TestOpenFriendDMRejectsNoncanonicalIDBeforeInitialization(t *testing.T) {
 	}))
 	defer srv.Close()
 
+	// Build the account pair with a noncanonical shared object ID.
 	_, targetPeer := generateTestKeypair(t)
 	acc := NewTestProviderAccount(t, srv.URL)
 	localPeerID := acc.GetCurrentSessionPeerID().String()
@@ -209,15 +237,20 @@ func TestOpenFriendDMRejectsNoncanonicalIDBeforeInitialization(t *testing.T) {
 		OwnerType:      "account",
 		Accounts:       []*api.FriendDmAccount{local, target},
 	}
+
+	// Opening the DM must fail before initialization.
 	if _, err := acc.OpenFriendDM(context.Background(), target.AccountId); err == nil {
 		t.Fatal("expected noncanonical ID error")
 	}
+
+	// Exactly one Cloud request must have been served.
 	if requests != 1 {
 		t.Fatalf("requests = %d, want one Cloud request and no initialization", requests)
 	}
 }
 
 func TestValidateFriendDmBootstrapAllowsEpochZero(t *testing.T) {
+	// Build two valid accounts and an epoch-zero bootstrap response.
 	_, localPeer := generateTestKeypair(t)
 	_, targetPeer := generateTestKeypair(t)
 	local := &api.FriendDmAccount{
@@ -238,6 +271,8 @@ func TestValidateFriendDmBootstrapAllowsEpochZero(t *testing.T) {
 		OwnerType:      "account",
 		Accounts:       []*api.FriendDmAccount{local, target},
 	}
+
+	// Validating the epoch-zero bootstrap must succeed.
 	if err := validateFriendDmBootstrap(
 		bootstrap,
 		local.AccountId,
@@ -249,6 +284,7 @@ func TestValidateFriendDmBootstrapAllowsEpochZero(t *testing.T) {
 }
 
 func TestBuildFriendDmParticipantPlanReconcilesActivePeers(t *testing.T) {
+	// Build current participants, desired accounts, and the expected plan.
 	current := []*sobject.SOParticipantConfig{
 		{PeerId: "peer-owner", EntityId: "acct-a", Role: sobject.SOParticipantRole_SOParticipantRole_OWNER},
 		{PeerId: "peer-stale", EntityId: "acct-old", Role: sobject.SOParticipantRole_SOParticipantRole_WRITER},
@@ -273,6 +309,7 @@ func TestBuildFriendDmParticipantPlanReconcilesActivePeers(t *testing.T) {
 		t.Fatalf("plan = %#v, want %#v", got, want)
 	}
 
+	// A converged config must produce a plan with no mutations.
 	converged := append([]*sobject.SOParticipantConfig(nil), current[:1]...)
 	converged = append(converged,
 		&sobject.SOParticipantConfig{PeerId: "peer-a-new", EntityId: "acct-a", Role: sobject.SOParticipantRole_SOParticipantRole_OWNER},
@@ -288,6 +325,7 @@ func TestBuildFriendDmParticipantPlanReconcilesActivePeers(t *testing.T) {
 }
 
 func TestBuildFriendDmParticipantPlanCorrectsRoles(t *testing.T) {
+	// Build a plan that corrects mismatched participant roles.
 	plan, err := buildFriendDmParticipantPlan(
 		[]*sobject.SOParticipantConfig{
 			{PeerId: "peer-owner", EntityId: "acct-a", Role: sobject.SOParticipantRole_SOParticipantRole_OWNER},

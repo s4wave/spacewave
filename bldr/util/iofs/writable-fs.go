@@ -27,6 +27,7 @@ func NewWritableFS(fs fs.FS) *WritableFS {
 // ValidPath(name), returning a *PathError with Err set to
 // ErrInvalid or ErrNotExist.
 func (w *WritableFS) Open(name string) (fs.File, error) {
+	// Open the underlying file and wrap it as a writable file.
 	f, err := w.FS.Open(name)
 	if err != nil {
 		return nil, err
@@ -51,10 +52,13 @@ func (w *WritableFS) Stat(name string) (fs.FileInfo, error) {
 // ReadDir reads the named directory and returns a list of directory entries
 // sorted by filename.
 func (w *WritableFS) ReadDir(name string) ([]fs.DirEntry, error) {
+	// Read the directory entries from the wrapped filesystem.
 	dirents, err := fs.ReadDir(w.FS, name)
 	if err != nil {
 		return nil, err
 	}
+
+	// Wrap each directory entry with a writable entry.
 	writableEnts := make([]fs.DirEntry, len(dirents))
 	for i, ent := range dirents {
 		writableEnts[i] = NewWritableDirEntry(ent)

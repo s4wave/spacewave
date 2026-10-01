@@ -15,6 +15,7 @@ var ConfigID = ControllerID
 
 // Validate does cursory validation of the config to see if the values "look correct."
 func (c *Config) Validate() error {
+	// Validate the bucket config and behavior enums.
 	if err := c.GetBucketConf().Validate(); err != nil {
 		return err
 	}

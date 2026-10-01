@@ -23,10 +23,13 @@ type ConfigTypeRegistryResource struct {
 
 // NewConfigTypeRegistryResource creates a new ConfigTypeRegistryResource.
 func NewConfigTypeRegistryResource() *ConfigTypeRegistryResource {
+	// Initialize the registry with its id counter and registration map.
 	r := &ConfigTypeRegistryResource{
 		nextID:        1,
 		registrations: make(map[uint32]*s4wave_configtype_registry.ConfigTypeRegistration),
 	}
+
+	// Register the resource service on a fresh rpc mux.
 	mux := srpc.NewMux()
 	_ = s4wave_configtype_registry.SRPCRegisterConfigTypeRegistryResourceService(mux, r)
 	r.mux = mux
@@ -43,6 +46,7 @@ func (r *ConfigTypeRegistryResource) RegisterConfigType(
 	ctx context.Context,
 	req *s4wave_configtype_registry.RegisterConfigTypeRequest,
 ) (*s4wave_configtype_registry.RegisterConfigTypeResponse, error) {
+	// Read and validate the registration request fields.
 	configID := req.GetConfigId()
 	pluginID := req.GetPluginId()
 	scriptPath := req.GetScriptPath()
@@ -56,11 +60,13 @@ func (r *ConfigTypeRegistryResource) RegisterConfigType(
 		return nil, ErrScriptPathRequired
 	}
 
+	// Acquire the caller's resource client context.
 	client, err := resource_server.MustGetResourceClientContext(ctx)
 	if err != nil {
 		return nil, err
 	}
 
+	// Allocate a registration id and store the registration under the lock.
 	var regID uint32
 	r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		regID = r.nextID
@@ -76,6 +82,7 @@ func (r *ConfigTypeRegistryResource) RegisterConfigType(
 		broadcast()
 	})
 
+	// Add a resource whose release removes the registration.
 	emptyMux := srpc.NewMux()
 	resourceID, err := client.AddResource(emptyMux, func() {
 		r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
@@ -103,6 +110,7 @@ func (r *ConfigTypeRegistryResource) WatchConfigTypes(
 ) error {
 	ctx := strm.Context()
 
+	// Stream a registration snapshot and wait for changes until the context ends.
 	for {
 		var regs []*s4wave_configtype_registry.ConfigTypeRegistration
 		var waitCh <-chan struct{}
@@ -131,6 +139,7 @@ func (r *ConfigTypeRegistryResource) LookupRegistration(
 	configID string,
 ) *s4wave_configtype_registry.ConfigTypeRegistration {
 	var reg *s4wave_configtype_registry.ConfigTypeRegistration
+	// Find the lowest-id registration matching the config id under the lock.
 	r.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		// Deterministic winner: lowest registration id on duplicate config IDs.
 		var bestID uint32

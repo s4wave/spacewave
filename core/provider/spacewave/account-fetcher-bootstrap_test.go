@@ -15,6 +15,7 @@ import (
 // TestAccountFetcherRefreshesCachedCoverageWithSigner verifies that a restarted
 // account discovers restored coverage without a server epoch change or raw key.
 func TestAccountFetcherRefreshesCachedCoverageWithSigner(t *testing.T) {
+	// Serve the account state, emails, and sessions endpoints.
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case "/api/account/state":
@@ -34,6 +35,7 @@ func TestAccountFetcherRefreshesCachedCoverageWithSigner(t *testing.T) {
 	}))
 	defer srv.Close()
 
+	// Build an account with a cached store and a signing session client.
 	acc := NewTestProviderAccount(t, srv.URL)
 	cacheStore := newAccountFetcherCacheStore()
 	acc.objStore = cacheStore
@@ -41,9 +43,13 @@ func TestAccountFetcherRefreshesCachedCoverageWithSigner(t *testing.T) {
 	acc.sessionClient = NewSessionClientSigner(http.DefaultClient, srv.URL, DefaultSigningEnvPrefix, id.String(), func(_ context.Context, data []byte) ([]byte, error) {
 		return key.Sign(data)
 	})
+
+	// Seed stale cached coverage for the account.
 	acc.state.info = &api.AccountStateResponse{Epoch: 7, SubscriptionStatus: sdk.BillingStatus_BillingStatus_NONE}
 	acc.state.lastFetchedEpoch = 7
 	acc.state.epoch = 1
+
+	// Start the account fetcher and stop it with the test context.
 	ctx, cancel := context.WithCancel(t.Context())
 	done := make(chan error, 1)
 	go func() { done <- acc.accountFetcher(ctx) }()
@@ -54,6 +60,7 @@ func TestAccountFetcherRefreshesCachedCoverageWithSigner(t *testing.T) {
 		}
 	}()
 
+	// The live fetch must refresh the cached coverage and persist it.
 	waitForAccountBootstrapFetched(t, acc, time.Second)
 	state, err := acc.GetAccountState(ctx)
 	if err != nil {
@@ -62,6 +69,8 @@ func TestAccountFetcherRefreshesCachedCoverageWithSigner(t *testing.T) {
 	if state.GetSubscriptionStatus() != sdk.BillingStatus_BillingStatus_ACTIVE {
 		t.Fatal("cached inactive coverage survived the live refresh")
 	}
+
+	// Verify the refreshed coverage was committed to the cache store.
 	waitForAccountFetcherSignal(t, cacheStore.committed, time.Second, "refreshed coverage cache")
 	cached, err := acc.loadAccountStateCache(ctx)
 	if err != nil {

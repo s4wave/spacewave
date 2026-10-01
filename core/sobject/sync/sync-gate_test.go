@@ -32,6 +32,8 @@ func gateLogger() *logrus.Entry {
 
 // newMemHost builds an SOHost backed by a state container and an optional successful-write observer.
 func newMemHost(soID string, initial *sobject.SOState, onWrite ...func()) (*sobject.SOHost, *ccontainer.CContainer[*sobject.SOState]) {
+
+	// Check the condition before continuing.
 	if initial == nil {
 		initial = &sobject.SOState{}
 	}
@@ -140,6 +142,8 @@ func buildGrant(t *testing.T, soID string, ownerPriv crypto.PrivKey, localPub cr
 // runSnapshotExchange drives the authenticated data protocol with a requested candidate.
 // Authentication itself is covered by runStream tests; this helper isolates host rejection.
 func runSnapshotExchange(t *testing.T, s *SOSync, ctx context.Context, peerSnap *SOSyncMessage) error {
+
+	// helper.
 	t.Helper()
 	ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
 	defer cancel()
@@ -160,6 +164,8 @@ func runSnapshotExchange(t *testing.T, s *SOSync, ctx context.Context, peerSnap 
 	if err := state.UnmarshalVT(peerSnap.GetSnapshot().GetSoState()); err != nil {
 		t.Fatal(err)
 	}
+
+	// sum256 digest via sha256.
 	digest := sha256.Sum256(peerSnap.GetSnapshot().GetSoState())
 	head := &SOSyncHead{Revision: 1, StateHash: digest[:], ConfigHash: state.GetConfig().GetConfigChainHash(), ConfigSeqno: state.GetConfig().GetConfigChainSeqno(), RootSeqno: peerSnap.GetSnapshot().GetRootSeqno()}
 	if err := remoteSess.SendMsg(&SOSyncMessage{Body: &SOSyncMessage_Head{Head: head}}); err != nil {
@@ -175,6 +181,8 @@ func runSnapshotExchange(t *testing.T, s *SOSync, ctx context.Context, peerSnap 
 		<-done
 		return errors.New("candidate not requested")
 	}
+
+	// getSnapshot snapshot via peerSnap.
 	snapshot := peerSnap.GetSnapshot().CloneVT()
 	snapshot.Revision = 1
 	snapshot.BaseHash = request.GetHistoryRequest().GetBaseHash()
@@ -182,6 +190,8 @@ func runSnapshotExchange(t *testing.T, s *SOSync, ctx context.Context, peerSnap 
 		return <-done
 	}
 	ack := &SOSyncMessage{}
+
+	// Abort on the error.
 	if err := remoteSess.RecvMsg(ack); err != nil {
 		return <-done
 	}
@@ -195,6 +205,8 @@ func runSnapshotExchange(t *testing.T, s *SOSync, ctx context.Context, peerSnap 
 }
 
 func TestSnapshotExchangeRejectsExcludedLocalPeer(t *testing.T) {
+
+	// background ctx via context.
 	ctx := context.Background()
 	soID := "gate-object"
 	localPriv := mustKeyPair(t)
@@ -206,6 +218,7 @@ func TestSnapshotExchangeRejectsExcludedLocalPeer(t *testing.T) {
 	ownerPriv := mustKeyPair(t)
 	ownerPeerStr := mustPeerIDStr(t, ownerPriv)
 
+	// Record held.
 	held := &sobject.SOState{
 		Config: &sobject.SharedObjectConfig{Participants: []*sobject.SOParticipantConfig{
 			participantCfg(ownerPeerStr, sobject.SOParticipantRole_SOParticipantRole_OWNER),
@@ -217,6 +230,7 @@ func TestSnapshotExchangeRejectsExcludedLocalPeer(t *testing.T) {
 	localHost, ctr := newMemHost(soID, held)
 	s := NewSOSync(gateLogger(), nil, soID, localPeer, localPriv, localHost, nil)
 
+	// Record peerState.
 	peerState := &sobject.SOState{
 		Config: &sobject.SharedObjectConfig{
 			Participants: []*sobject.SOParticipantConfig{participantCfg(ownerPeerStr, sobject.SOParticipantRole_SOParticipantRole_OWNER)},
@@ -239,10 +253,14 @@ func TestSnapshotExchangeRejectsExcludedLocalPeer(t *testing.T) {
 }
 
 func TestSnapshotExchangeRejectsSnapshotWithoutLocalGrant(t *testing.T) {
+
+	// background ctx via context.
 	ctx := context.Background()
 	soID := "gate-object-local-grant"
 	localPriv := mustKeyPair(t)
 	localPeer, err := peer.IDFromPrivateKey(localPriv)
+
+	// Abort if peer iDFromPrivateKey fails.
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -256,6 +274,8 @@ func TestSnapshotExchangeRejectsSnapshotWithoutLocalGrant(t *testing.T) {
 		Root: &sobject.SORoot{InnerSeqno: 1},
 	}
 	trustSnapshotConfig(t, held, ownerPriv)
+
+	// newMemHost localHost,ctr.
 	localHost, ctr := newMemHost(soID, held)
 	validateAccess := func(_ context.Context, state *sobject.SOState) error {
 		for _, grant := range state.GetRootGrants() {
@@ -273,6 +293,8 @@ func TestSnapshotExchangeRejectsSnapshotWithoutLocalGrant(t *testing.T) {
 		}},
 		Root: &sobject.SORoot{InnerSeqno: 5},
 	}
+
+	// marshalVT snapData,err via peerState.
 	snapData, err := peerState.MarshalVT()
 	if err != nil {
 		t.Fatal(err.Error())
@@ -289,6 +311,8 @@ func TestSnapshotExchangeRejectsSnapshotWithoutLocalGrant(t *testing.T) {
 }
 
 func TestSnapshotExchangeRejectsTamperedGrant(t *testing.T) {
+
+	// background ctx via context.
 	ctx := context.Background()
 	soID := "gate-object-grant"
 	localPriv, localPub, err := crypto.GenerateKeyPair(crypto.KeyType_Ed25519, 0)
@@ -302,6 +326,7 @@ func TestSnapshotExchangeRejectsTamperedGrant(t *testing.T) {
 	ownerPriv := mustKeyPair(t)
 	ownerPeerStr := mustPeerIDStr(t, ownerPriv)
 
+	// Record held.
 	held := &sobject.SOState{
 		Config: &sobject.SharedObjectConfig{Participants: []*sobject.SOParticipantConfig{
 			participantCfg(ownerPeerStr, sobject.SOParticipantRole_SOParticipantRole_OWNER),
@@ -313,9 +338,11 @@ func TestSnapshotExchangeRejectsTamperedGrant(t *testing.T) {
 	localHost, ctr := newMemHost(soID, held)
 	s := NewSOSync(gateLogger(), nil, soID, localPeer, localPriv, localHost, nil)
 
+	// buildGrant grant.
 	grant := buildGrant(t, soID, ownerPriv, localPub)
 	grant.InnerData[0] ^= 0xFF
 
+	// Record peerState.
 	peerState := &sobject.SOState{
 		Config: &sobject.SharedObjectConfig{
 			Participants: []*sobject.SOParticipantConfig{
@@ -342,6 +369,8 @@ func TestSnapshotExchangeRejectsTamperedGrant(t *testing.T) {
 }
 
 func TestSnapshotExchangeAcceptsObjectPeerDistinctFromTransportPeer(t *testing.T) {
+
+	// background ctx via context.
 	ctx := context.Background()
 	soID := "gate-object-valid"
 	transportPeer := mustPeerIDStr(t, mustKeyPair(t))
@@ -349,6 +378,8 @@ func TestSnapshotExchangeAcceptsObjectPeerDistinctFromTransportPeer(t *testing.T
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// iDFromPrivateKey localPeer,err via peer.
 	localPeer, err := peer.IDFromPrivateKey(localPriv)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -358,6 +389,8 @@ func TestSnapshotExchangeAcceptsObjectPeerDistinctFromTransportPeer(t *testing.T
 	}
 	ownerPriv := mustKeyPair(t)
 	ownerPeerStr := mustPeerIDStr(t, ownerPriv)
+
+	// Record participants.
 	participants := []*sobject.SOParticipantConfig{
 		participantCfg(ownerPeerStr, sobject.SOParticipantRole_SOParticipantRole_OWNER),
 		participantCfg(localPeer.String(), sobject.SOParticipantRole_SOParticipantRole_WRITER),
@@ -368,6 +401,8 @@ func TestSnapshotExchangeAcceptsObjectPeerDistinctFromTransportPeer(t *testing.T
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Record localState.
 	localState := &sobject.SOState{
 		Config:     &sobject.SharedObjectConfig{Participants: participants},
 		Root:       &sobject.SORoot{InnerSeqno: 1},
@@ -380,6 +415,7 @@ func TestSnapshotExchangeAcceptsObjectPeerDistinctFromTransportPeer(t *testing.T
 	localHost, ctr := newMemHost(soID, localState)
 	s := NewSOSync(gateLogger(), nil, soID, localPeer, localPriv, localHost, nil)
 
+	// Record peerState.
 	peerState := &sobject.SOState{
 		Config:     localState.GetConfig().CloneVT(),
 		Root:       &sobject.SORoot{InnerSeqno: 5},
@@ -396,6 +432,8 @@ func TestSnapshotExchangeAcceptsObjectPeerDistinctFromTransportPeer(t *testing.T
 		t.Fatalf("validated snapshot should converge: %v", err)
 	}
 	got := ctr.GetValue()
+
+	// Check the condition before continuing.
 	if got.GetRoot().GetInnerSeqno() != 5 {
 		t.Fatalf("expected converged root seqno 5, got %d", got.GetRoot().GetInnerSeqno())
 	}
@@ -416,6 +454,8 @@ func TestSnapshotExchangeAcceptsObjectPeerDistinctFromTransportPeer(t *testing.T
 
 // TestPeerImportDropsDemotedWriterQueue exercises queue merging under verified authority.
 func TestPeerImportDropsDemotedWriterQueue(t *testing.T) {
+
+	// Perform the action.
 	const soID = "gate-object-writer-demotion"
 	owner, writer := mustKeyPair(t), mustKeyPair(t)
 	writerID, err := peer.IDFromPrivateKey(writer)
@@ -429,6 +469,8 @@ func TestPeerImportDropsDemotedWriterQueue(t *testing.T) {
 		}},
 		Root: &sobject.SORoot{InnerSeqno: 1},
 	}
+
+	// trustSnapshotConfig.
 	trustSnapshotConfig(t, previous, owner)
 	signSnapshotRoot(t, soID, previous, owner)
 	operation, err := sobject.BuildSOOperation(soID, writer, []byte("pending-before-demotion"), 1, ulid.NewULID())
@@ -450,6 +492,8 @@ func TestPeerImportDropsDemotedWriterQueue(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Perform the action.
 	candidate.Ops = nil
 	candidate.QueuedAccountNonces = nil
 	host, state := newMemHost(soID, previous)
@@ -463,6 +507,8 @@ func TestPeerImportDropsDemotedWriterQueue(t *testing.T) {
 }
 
 func TestRemoteOpNonparticipantRejected(t *testing.T) {
+
+	// background ctx via context.
 	ctx := context.Background()
 	soID := "gate-object-op"
 	localPriv := mustKeyPair(t)
@@ -472,9 +518,11 @@ func TestRemoteOpNonparticipantRejected(t *testing.T) {
 	}
 	strangerPriv := mustKeyPair(t)
 
+	// mustKeyPair ownerPriv.
 	ownerPriv := mustKeyPair(t)
 	ownerPeerStr := mustPeerIDStr(t, ownerPriv)
 
+	// newMemHost host,ctr.
 	host, ctr := newMemHost(soID, &sobject.SOState{
 		Config: &sobject.SharedObjectConfig{
 			Participants: []*sobject.SOParticipantConfig{
@@ -486,6 +534,7 @@ func TestRemoteOpNonparticipantRejected(t *testing.T) {
 	})
 	s := NewSOSync(gateLogger(), nil, soID, localPeer, localPriv, host, nil)
 
+	// newULID opLocalID via ulid.
 	opLocalID := ulid.NewULID()
 	op, err := sobject.BuildSOOperation(soID, strangerPriv, []byte("op-data"), 1, opLocalID)
 	if err != nil {
@@ -499,6 +548,7 @@ func TestRemoteOpNonparticipantRejected(t *testing.T) {
 		return data
 	}()})
 
+	// Check the condition before continuing.
 	if got := len(ctr.GetValue().GetOps()); got != 0 {
 		t.Fatalf("nonparticipant op was queued (%d ops)", got)
 	}
@@ -514,10 +564,14 @@ func TestRemoteOpReplayIsIdempotent(t *testing.T) {
 		{name: "pending queue", queueFirst: true},
 	} {
 		t.Run(test.name, func(t *testing.T) {
+
+			// background ctx via context.
 			ctx := context.Background()
 			soID := "gate-object-op-replay"
 			writerPriv := mustKeyPair(t)
 			writerPeer, err := peer.IDFromPrivateKey(writerPriv)
+
+			// Abort if peer iDFromPrivateKey fails.
 			if err != nil {
 				t.Fatal(err.Error())
 			}
@@ -536,6 +590,8 @@ func TestRemoteOpReplayIsIdempotent(t *testing.T) {
 			if err != nil {
 				t.Fatal(err.Error())
 			}
+
+			// Check the condition before continuing.
 			if test.queueFirst {
 				if err := state.QueueOperation(soID, op); err != nil {
 					t.Fatal(err.Error())
@@ -544,6 +600,8 @@ func TestRemoteOpReplayIsIdempotent(t *testing.T) {
 			host, ctr := newMemHost(soID, state)
 			s := NewSOSync(gateLogger(), nil, soID, writerPeer, writerPriv, host, nil)
 			opData, err := op.MarshalVT()
+
+			// Abort if op marshalVT fails.
 			if err != nil {
 				t.Fatal(err.Error())
 			}
@@ -560,6 +618,8 @@ func TestRemoteOpReplayIsIdempotent(t *testing.T) {
 }
 
 func TestRemoteOpTamperedSignatureRejected(t *testing.T) {
+
+	// background ctx via context.
 	ctx := context.Background()
 	soID := "gate-object-optamper"
 	writerPriv := mustKeyPair(t)
@@ -568,6 +628,7 @@ func TestRemoteOpTamperedSignatureRejected(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// newMemHost host,ctr.
 	host, ctr := newMemHost(soID, &sobject.SOState{
 		Config: &sobject.SharedObjectConfig{
 			Participants: []*sobject.SOParticipantConfig{
@@ -578,6 +639,7 @@ func TestRemoteOpTamperedSignatureRejected(t *testing.T) {
 	})
 	s := NewSOSync(gateLogger(), nil, soID, writerPeer, writerPriv, host, nil)
 
+	// newULID opLocalID via ulid.
 	opLocalID := ulid.NewULID()
 	op, err := sobject.BuildSOOperation(soID, writerPriv, []byte("op-data"), 1, opLocalID)
 	if err != nil {
@@ -585,6 +647,7 @@ func TestRemoteOpTamperedSignatureRejected(t *testing.T) {
 	}
 	op.Inner[0] ^= 0xFF
 
+	// handleRemoteOp.
 	s.handleRemoteOp(ctx, gateLogger(), &SOSyncOp{Operation: func() []byte {
 		data, err := op.MarshalVT()
 		if err != nil {
@@ -593,6 +656,7 @@ func TestRemoteOpTamperedSignatureRejected(t *testing.T) {
 		return data
 	}()})
 
+	// Check the condition before continuing.
 	if got := len(ctr.GetValue().GetOps()); got != 0 {
 		t.Fatalf("tampered op was queued (%d ops)", got)
 	}
@@ -600,6 +664,8 @@ func TestRemoteOpTamperedSignatureRejected(t *testing.T) {
 
 // trustSnapshotConfig establishes a signed genesis checkpoint already held locally.
 func trustSnapshotConfig(t *testing.T, state *sobject.SOState, owner crypto.PrivKey) {
+
+	// helper.
 	t.Helper()
 	entry, err := sobject.BuildSOConfigChange(state.GetConfig(), state.GetConfig(), sobject.SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_GENESIS, owner, nil)
 	if err != nil {

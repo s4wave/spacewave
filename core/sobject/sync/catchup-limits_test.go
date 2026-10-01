@@ -36,6 +36,8 @@ func TestCatchupBudgetsRejectWithoutMutation(t *testing.T) {
 		{name: "snapshot frame", oversizedFrame: true},
 	} {
 		t.Run(test.name, func(t *testing.T) {
+
+			// withTimeout ctx,cancel via context.
 			ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
 			defer cancel()
 			const soID = "catchup-budget"
@@ -44,6 +46,8 @@ func TestCatchupBudgetsRejectWithoutMutation(t *testing.T) {
 			local := newAuthenticationPeer(t, soID, owner, initial)
 			remote := newAuthenticationPeer(t, soID, reader, initial)
 			left, right := net.Pipe()
+
+			// cleanup.
 			t.Cleanup(func() { left.Close(); right.Close() })
 			done := make(chan error, 1)
 			go func() { done <- local.runStream(ctx, gateLogger(), left, "transport-a", "transport-b") }()
@@ -130,15 +134,21 @@ func TestCatchupBudgetsRejectWithoutMutation(t *testing.T) {
 
 // TestCatchupRecoveryFencesTrailingSnapshot rejects further imports while its recovery response is blocked.
 func TestCatchupRecoveryFencesTrailingSnapshot(t *testing.T) {
+
+	// withTimeout ctx,cancel via context.
 	ctx, cancel := context.WithTimeout(t.Context(), 3*time.Second)
 	defer cancel()
 	const soID = "catchup-terminal-snapshot"
 	owner, reader := mustKeyPair(t), mustKeyPair(t)
+
+	// authenticationState initial.
 	initial := authenticationState(t, soID, owner, reader)
 	local := newAuthenticationPeer(t, soID, owner, initial)
 	remote := newAuthenticationPeer(t, soID, reader, initial)
 	left, right := net.Pipe()
 	observed := &authenticationStream{Conn: left, messages: make(chan *SOSyncMessage, 32)}
+
+	// Perform the action.
 	var streamErr error
 	done := make(chan struct{})
 	go func() {
@@ -155,6 +165,8 @@ func TestCatchupRecoveryFencesTrailingSnapshot(t *testing.T) {
 			t.Error("catch-up workers survived cancellation")
 		}
 	})
+
+	// Abort on the error.
 	if _, err := remote.authenticate(ctx, stream_packet.NewSession(right, 64*1024), "transport-b", "transport-a"); err != nil {
 		t.Fatal(err)
 	}
@@ -176,6 +188,8 @@ func TestCatchupRecoveryFencesTrailingSnapshot(t *testing.T) {
 		t.Fatal(err)
 	}
 	digest := sha256.Sum256(data)
+
+	// Check the condition before continuing.
 	if err := session.SendMsg(&SOSyncMessage{Body: &SOSyncMessage_Head{Head: &SOSyncHead{
 		Revision: 1, ConfigHash: candidate.Config.ConfigChainHash, ConfigSeqno: candidate.Config.ConfigChainSeqno,
 		RootSeqno: candidate.Root.InnerSeqno, StateHash: digest[:],

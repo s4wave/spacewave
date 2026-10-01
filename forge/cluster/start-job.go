@@ -58,6 +58,8 @@ func (o *ClusterStartJobOp) ApplyWorldOp(
 	worldHandle world.WorldState,
 	sender peer.ID,
 ) (sysErr bool, err error) {
+
+	// Read the cluster and job keys targeted by the operation.
 	clusterKey, jobKey := o.GetClusterKey(), o.GetJobKey()
 
 	// check the <type> of the cluster and job objects
@@ -65,6 +67,7 @@ func (o *ClusterStartJobOp) ApplyWorldOp(
 		return false, err
 	}
 
+	// Confirm the job object type.
 	if err := forge_job.CheckJobType(ctx, worldHandle, jobKey); err != nil {
 		return false, err
 	}
@@ -80,6 +83,8 @@ func (o *ClusterStartJobOp) ApplyWorldOp(
 
 	// transition job to running
 	_, _, err = world.AccessWorldObject(ctx, worldHandle, jobKey, true, func(bcs *block.Cursor) error {
+
+		// Decode and validate the job body.
 		job, err := forge_job.UnmarshalJob(ctx, bcs)
 		if err == nil {
 			err = job.Validate()
@@ -88,12 +93,14 @@ func (o *ClusterStartJobOp) ApplyWorldOp(
 			return err
 		}
 
+		// Transition the job to running and clear its result.
 		job.JobState = forge_job.State_JobState_RUNNING
 		job.Result = nil
 		if err := job.Validate(); err != nil {
 			return err
 		}
 
+		// Store the updated job block.
 		bcs.SetBlock(job, true)
 		return nil
 	})

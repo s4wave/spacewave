@@ -80,6 +80,7 @@ func NewLink(
 		return nil, err
 	}
 
+	// Generate the link identity and context for the new connection.
 	nctx, nctxCancel := context.WithCancel(ctx) //nolint:gosec // cancel stored on Link and called by Close
 	uuid := binary.LittleEndian.Uint64(linkID[:])
 	remoteTransportUUID := NewTransportUUID(remoteAddr.String(), remotePeerID)

@@ -11,6 +11,7 @@ import (
 )
 
 func TestCoordinatorPublishesGenerationRootAndPrefixEvents(t *testing.T) {
+	// Create a coordinator and the test scope.
 	ctx := context.Background()
 	c := NewCoordinator()
 	scope := coord.Scope{
@@ -19,6 +20,7 @@ func TestCoordinatorPublishesGenerationRootAndPrefixEvents(t *testing.T) {
 		ParticipantID: "process-a",
 	}
 
+	// Verify the coordinator reports in-memory capability for the scope.
 	capability, err := c.Capability(ctx, scope)
 	if err != nil {
 		t.Fatal(err)
@@ -27,12 +29,14 @@ func TestCoordinatorPublishesGenerationRootAndPrefixEvents(t *testing.T) {
 		t.Fatalf("unexpected capability: %#v", capability)
 	}
 
+	// Start a watch and acquire the write lease.
 	watch, err := c.Watch(ctx, scope, 0)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer watch.Close()
 
+	// Acquire the write lease for the scope.
 	lease, ok, err := c.TryAcquireWriteLease(ctx, scope)
 	if err != nil {
 		t.Fatal(err)
@@ -41,6 +45,7 @@ func TestCoordinatorPublishesGenerationRootAndPrefixEvents(t *testing.T) {
 		t.Fatal("lease unexpectedly busy")
 	}
 
+	// Publish a generation change and check the returned snapshot.
 	root := &bucket.ObjectRef{BucketId: "bucket-a"}
 	snapshot, err := lease.Publish(ctx, coord.Event{
 		RootChanged:      root,
@@ -56,6 +61,7 @@ func TestCoordinatorPublishesGenerationRootAndPrefixEvents(t *testing.T) {
 		t.Fatalf("unexpected snapshot root: %#v", snapshot.Root)
 	}
 
+	// Verify the watch delivers the published event.
 	event := <-watch.Events()
 	if event.ProcessID != "process-a" {
 		t.Fatalf("unexpected process id: %q", event.ProcessID)
@@ -77,6 +83,7 @@ func TestCoordinatorPublishesGenerationRootAndPrefixEvents(t *testing.T) {
 // TestCoordinatorReplayCarriesMissedKeyPrefix verifies that a watcher attaching
 // after a publish receives the missed key prefix in its replayed event.
 func TestCoordinatorReplayCarriesMissedKeyPrefix(t *testing.T) {
+	// Create a coordinator and the test scope.
 	ctx := context.Background()
 	c := NewCoordinator()
 	scope := coord.Scope{
@@ -85,6 +92,7 @@ func TestCoordinatorReplayCarriesMissedKeyPrefix(t *testing.T) {
 		ParticipantID: "process-a",
 	}
 
+	// Publish an event before any watcher attaches.
 	lease, ok, err := c.TryAcquireWriteLease(ctx, scope)
 	if err != nil {
 		t.Fatal(err)
@@ -100,12 +108,14 @@ func TestCoordinatorReplayCarriesMissedKeyPrefix(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Attach a watcher from generation 0 and read the replayed event.
 	watch, err := c.Watch(ctx, scope, 0)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer watch.Close()
 
+	// Attach a watcher from generation 0 and read the replayed event.
 	event := <-watch.Events()
 	if event.Generation != 1 {
 		t.Fatalf("unexpected replay generation: %d", event.Generation)
@@ -119,6 +129,7 @@ func TestCoordinatorReplayCarriesMissedKeyPrefix(t *testing.T) {
 }
 
 func TestCoordinatorLeaseWaitsForRelease(t *testing.T) {
+	// Create a coordinator and two participant scopes.
 	ctx := context.Background()
 	c := NewCoordinator()
 	scopeA := coord.Scope{
@@ -132,6 +143,7 @@ func TestCoordinatorLeaseWaitsForRelease(t *testing.T) {
 		ParticipantID: "process-b",
 	}
 
+	// Acquire the write lease for the first scope.
 	leaseA, ok, err := c.TryAcquireWriteLease(ctx, scopeA)
 	if err != nil {
 		t.Fatal(err)
@@ -140,6 +152,7 @@ func TestCoordinatorLeaseWaitsForRelease(t *testing.T) {
 		t.Fatal("first lease unexpectedly busy")
 	}
 
+	// Wait for the second lease in a goroutine.
 	waitErr := make(chan error, 1)
 	go func() {
 		leaseB, err := c.WaitAcquireWriteLease(ctx, scopeB)
@@ -149,10 +162,12 @@ func TestCoordinatorLeaseWaitsForRelease(t *testing.T) {
 		waitErr <- err
 	}()
 
+	// Release the first lease and let the waiter proceed.
 	if err := leaseA.Release(ctx); err != nil {
 		t.Fatal(err)
 	}
 
+	// Verify the waiter acquired and the released lease is invalid.
 	if err := <-waitErr; err != nil {
 		t.Fatal(err)
 	}
@@ -162,6 +177,7 @@ func TestCoordinatorLeaseWaitsForRelease(t *testing.T) {
 }
 
 func TestCoordinatorWatchClosesOnContextCancel(t *testing.T) {
+	// Create a coordinator, scope, and cancelable context.
 	ctx, cancel := context.WithCancel(context.Background())
 	c := NewCoordinator()
 	scope := coord.Scope{
@@ -170,12 +186,16 @@ func TestCoordinatorWatchClosesOnContextCancel(t *testing.T) {
 		ParticipantID: "process-a",
 	}
 
+	// Start a watch on the scope.
 	watch, err := c.Watch(ctx, scope, 0)
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Cancel the watch context.
 	cancel()
 
+	// Verify the watch closes and the watcher is removed.
 	select {
 	case _, ok := <-watch.Events():
 		if ok {
@@ -185,6 +205,7 @@ func TestCoordinatorWatchClosesOnContextCancel(t *testing.T) {
 		t.Fatal("watch did not close after context cancellation")
 	}
 
+	// Verify the watcher count returns to zero.
 	c.mu.Lock()
 	watcherCount := len(c.getScopeLocked(scope).watchers)
 	c.mu.Unlock()

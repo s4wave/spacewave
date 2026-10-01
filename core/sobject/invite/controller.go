@@ -33,6 +33,7 @@ func NewInviteController(
 	leaveFn LeaveFn,
 	peerIDs []string,
 ) (*InviteController, error) {
+	// Construct the invitation stream server and its SRPC controller.
 	srv := NewServer(le, lookupFn, enrollFn, leaveFn)
 	ctrl := &InviteController{}
 	var err error

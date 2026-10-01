@@ -39,6 +39,7 @@ type compactTestCloud struct {
 
 // ServeHTTP accepts pushes into packs and answers pulls with an empty delta.
 func (c *compactTestCloud) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	// Answer pulls with an empty delta under the lock.
 	c.mtx.Lock()
 	defer c.mtx.Unlock()
 	if strings.HasSuffix(r.URL.Path, "/sync/pull") {
@@ -46,6 +47,8 @@ func (c *compactTestCloud) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		return
 	}
+
+	// Record the push and reject it when configured.
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
@@ -57,6 +60,8 @@ func (c *compactTestCloud) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		_, _ = w.Write([]byte(c.rejectBody))
 		return
 	}
+
+	// Store the pushed pack and signal the push.
 	c.packs[r.Header.Get("X-Pack-ID")] = body
 	w.WriteHeader(http.StatusOK)
 	if c.pushed != nil {
@@ -66,6 +71,7 @@ func (c *compactTestCloud) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 // open returns a reader over a stored pack.
 func (c *compactTestCloud) open(packID string, size int64) (*packfile_store.PackReader, error) {
+	// Return a reader over the stored pack bytes.
 	c.mtx.Lock()
 	data := c.packs[packID]
 	c.mtx.Unlock()
@@ -75,17 +81,24 @@ func (c *compactTestCloud) open(packID string, size int64) (*packfile_store.Pack
 // newCompactTestController commits one small pack per block list, in order,
 // and returns a controller whose lower store reads them from cloud.
 func newCompactTestController(t *testing.T, cloud *compactTestCloud, packs [][]string) *syncController {
+	// Mark the helper and create a fresh pack manifest.
 	t.Helper()
+
+	// Create a fresh pack manifest.
 	ctx := t.Context()
 	mfst, err := packfile_manifest.New(ctx, newSyncTestKvStore())
 	if err != nil {
 		t.Fatalf("new manifest: %v", err)
 	}
+
+	// Pack each block list and register it with the cloud.
 	entries := make([]*packfile.PackfileEntry, len(packs))
 	for i, datas := range packs {
+		// Pack the block list into a new pack.
 		var buf bytes.Buffer
 		idx := 0
 		result, err := writer.PackBlocks(&buf, func() (*hash.Hash, *block.StoredBlock, error) {
+			// Yield each block in stored order.
 			if idx >= len(datas) {
 				return nil, nil, nil
 			}
@@ -97,6 +110,8 @@ func newCompactTestController(t *testing.T, cloud *compactTestCloud, packs [][]s
 		if err != nil {
 			t.Fatalf("pack %d: %v", i, err)
 		}
+
+		// Register the packed entry with the cloud.
 		id := "pack-" + strconv.Itoa(i)
 		cloud.packs[id] = buf.Bytes()
 		entries[i] = &packfile.PackfileEntry{
@@ -108,10 +123,13 @@ func newCompactTestController(t *testing.T, cloud *compactTestCloud, packs [][]s
 			Sequence:           uint64(i + 1), //nolint:gosec // small test index.
 		}
 	}
+
+	// Commit the entries to the manifest.
 	if err := mfst.ApplyDelta(ctx, entries, nil); err != nil {
 		t.Fatalf("apply entries: %v", err)
 	}
 
+	// Build a signed session client against the test cloud.
 	srv := httptest.NewServer(cloud)
 	t.Cleanup(srv.Close)
 	priv, pid := generateTestKeypair(t)
@@ -120,6 +138,7 @@ func newCompactTestController(t *testing.T, cloud *compactTestCloud, packs [][]s
 		return fn("ticket-push")
 	}
 
+	// Build the sync controller over the manifest and cloud-backed store.
 	lower := packfile_store.NewPackfileStore(cloud.open, nil)
 	lower.UpdateManifest(mfst.GetEntries())
 	return &syncController{
@@ -136,6 +155,7 @@ func newCompactTestController(t *testing.T, cloud *compactTestCloud, packs [][]s
 // compactTestPacks returns n single-block packs plus one block repeated in the
 // first two packs.
 func compactTestPacks(n int) [][]string {
+	// Build n single-block packs sharing one block between the first two.
 	packs := make([][]string, n)
 	for i := range packs {
 		packs[i] = []string{"block-" + strconv.Itoa(i)}
@@ -148,17 +168,21 @@ func compactTestPacks(n int) [][]string {
 // TestSyncControllerCompactMergesSmallPacks verifies a merge replaces every
 // small pack with one pack that serves every input block.
 func TestSyncControllerCompactMergesSmallPacks(t *testing.T) {
+	// Build a controller with more than compactMinPacks small packs.
 	ctx := t.Context()
 	cloud := &compactTestCloud{packs: make(map[string][]byte)}
 	packs := compactTestPacks(compactMinPacks + 1)
 	s := newCompactTestController(t, cloud, packs)
 
+	// Compaction must push one merged pack replacing every input.
 	if err := s.CompactNow(ctx); err != nil {
 		t.Fatalf("compact: %v", err)
 	}
 	if len(cloud.pushes) != 1 {
 		t.Fatalf("pushes = %d, want 1", len(cloud.pushes))
 	}
+
+	// The replacement list must name every input pack oldest first.
 	var want []string
 	for i := range packs {
 		want = append(want, "pack-"+strconv.Itoa(i))
@@ -167,10 +191,13 @@ func TestSyncControllerCompactMergesSmallPacks(t *testing.T) {
 		t.Fatalf("replaced = %q, want inputs oldest first", got)
 	}
 
+	// The manifest must hold one merged pack with every block.
 	entries := s.mfst.GetEntries()
 	if len(entries) != 1 || entries[0].GetBlockCount() != uint64(len(packs)+1) { //nolint:gosec // small test count.
 		t.Fatalf("manifest after merge = %v, want one pack of %d blocks", entries, len(packs)+1)
 	}
+
+	// Every input block must still be readable from the lower store.
 	for _, datas := range packs {
 		for _, data := range datas {
 			h, err := hash.Sum(hash.RecommendedHashType, []byte(data))
@@ -193,12 +220,14 @@ func TestSyncControllerCompactMergesSmallPacks(t *testing.T) {
 // TestSyncControllerCompactAfterOutsideFlush verifies the scheduler merges
 // after a flush it did not run, such as a caller waiting on its operation.
 func TestSyncControllerCompactAfterOutsideFlush(t *testing.T) {
+	// Build a controller and run its scheduler.
 	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
 	defer cancel()
 	cloud := &compactTestCloud{packs: make(map[string][]byte), pushed: make(chan struct{}, 1)}
 	s := newCompactTestController(t, cloud, compactTestPacks(compactMinPacks+1))
 	s.conf = &SyncConfig{}
 
+	// Flush from outside the controller and expect a merge to follow.
 	done := make(chan error, 1)
 	go func() { done <- s.Execute(ctx) }()
 	if err := s.FlushNowUnordered(ctx); err != nil {
@@ -218,8 +247,10 @@ func TestSyncControllerCompactAfterOutsideFlush(t *testing.T) {
 // TestSyncControllerCompactWaitsForMinimum verifies fewer than compactMinPacks
 // small packs are left alone.
 func TestSyncControllerCompactWaitsForMinimum(t *testing.T) {
+	// Build a controller with fewer than compactMinPacks small packs.
 	cloud := &compactTestCloud{packs: make(map[string][]byte)}
 	s := newCompactTestController(t, cloud, compactTestPacks(compactMinPacks-1))
+	// Compaction must not push anything below the minimum.
 	if err := s.CompactNow(t.Context()); err != nil {
 		t.Fatalf("compact: %v", err)
 	}
@@ -231,6 +262,7 @@ func TestSyncControllerCompactWaitsForMinimum(t *testing.T) {
 // TestSyncControllerCompactConflictPulls verifies a replacement conflict fails
 // once without retry and pulls before planning again.
 func TestSyncControllerCompactConflictPulls(t *testing.T) {
+	// Build a controller whose pushes answer with a replacement conflict.
 	ctx := t.Context()
 	cloud := &compactTestCloud{
 		packs:      make(map[string][]byte),
@@ -239,6 +271,7 @@ func TestSyncControllerCompactConflictPulls(t *testing.T) {
 	}
 	s := newCompactTestController(t, cloud, compactTestPacks(compactMinPacks))
 
+	// The conflicted merge must pull once and leave the manifest unchanged.
 	if err := s.CompactNow(ctx); err != nil {
 		t.Fatalf("compact: %v", err)
 	}
@@ -253,6 +286,7 @@ func TestSyncControllerCompactConflictPulls(t *testing.T) {
 // TestSyncControllerCompactFailureWaitsForPull verifies a failed merge is not
 // planned again until a pull refreshes the manifest.
 func TestSyncControllerCompactFailureWaitsForPull(t *testing.T) {
+	// Build a controller whose pushes answer with a generic failure.
 	ctx := t.Context()
 	cloud := &compactTestCloud{
 		packs:      make(map[string][]byte),
@@ -261,6 +295,7 @@ func TestSyncControllerCompactFailureWaitsForPull(t *testing.T) {
 	}
 	s := newCompactTestController(t, cloud, compactTestPacks(compactMinPacks))
 
+	// The failed merge must hold until a pull refreshes the manifest.
 	if err := s.CompactNow(ctx); err == nil {
 		t.Fatal("expected the rejected merge to fail")
 	}
@@ -268,6 +303,7 @@ func TestSyncControllerCompactFailureWaitsForPull(t *testing.T) {
 		t.Fatalf("held merge pushed again: pushes=%d err=%v", len(cloud.pushes), err)
 	}
 
+	// After a successful pull the merge must run again.
 	cloud.reject = 0
 	if err := s.PullNow(ctx); err != nil {
 		t.Fatalf("pull: %v", err)
@@ -283,10 +319,12 @@ func TestSyncControllerCompactFailureWaitsForPull(t *testing.T) {
 // TestCheckPackKeysRejectsMissingBlock verifies the key-set check catches a
 // merged pack that dropped an input block.
 func TestCheckPackKeysRejectsMissingBlock(t *testing.T) {
+	// Write a pack holding only key a and check it against a and b.
 	var buf bytes.Buffer
 	if err := kvfile.Write(&buf, [][]byte{[]byte("a")}, func(io.Writer, []byte) (uint64, error) { return 0, nil }); err != nil {
 		t.Fatal(err)
 	}
+	// The missing key must fail the key-set check.
 	want := map[string]struct{}{"a": {}, "b": {}}
 	if err := checkPackKeys(buf.Bytes(), want); err == nil {
 		t.Fatal("expected a missing key to fail the check")

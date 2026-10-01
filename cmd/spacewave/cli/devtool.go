@@ -60,18 +60,21 @@ func buildStepFactorySet() *block_transform.StepFactorySet {
 
 // loadDevtoolHeadRef reads the world engine head ref from the volume's object store.
 func loadDevtoolHeadRef(ctx context.Context, vol volume.Volume) (*bucket.ObjectRef, error) {
+	// Access the volume's object store for the engine.
 	store, rel, err := vol.AccessObjectStore(ctx, devtoolEngineObjStoreID, nil)
 	if err != nil {
 		return nil, errors.Wrap(err, "access object store")
 	}
 	defer rel()
 
+	// Open a read transaction on the object store.
 	tx, err := store.NewTransaction(ctx, false)
 	if err != nil {
 		return nil, errors.Wrap(err, "open object store tx")
 	}
 	defer tx.Discard()
 
+	// Read the world-head record from the object store.
 	data, found, err := tx.Get(ctx, []byte("world-head"))
 	if err != nil {
 		return nil, errors.Wrap(err, "read world-head")
@@ -80,6 +83,7 @@ func loadDevtoolHeadRef(ctx context.Context, vol volume.Volume) (*bucket.ObjectR
 		return nil, errors.Errorf("world-head not found in object store %s", devtoolEngineObjStoreID)
 	}
 
+	// Unmarshal the head state and return its head ref.
 	state := &world_block_engine.HeadState{}
 	if err := state.UnmarshalVT(data); err != nil {
 		return nil, errors.Wrap(err, "unmarshal head state")
@@ -92,6 +96,7 @@ func openDevtoolWorldEngine(
 	le *logrus.Entry,
 	vol volume.Volume,
 ) (*devtoolWorldEngine, error) {
+	// Load the head ref and reject an empty World.
 	headRef, err := loadDevtoolHeadRef(ctx, vol)
 	if err != nil {
 		return nil, errors.Wrap(err, "load head ref")
@@ -100,12 +105,15 @@ func openDevtoolWorldEngine(
 		return nil, errors.New("devtool world is empty (no head ref)")
 	}
 
+	// Default the bucket ID when unset.
 	if headRef.GetBucketId() == "" {
 		headRef.BucketId = devtoolEngineBucketID
 	}
 
+	// Build the step factory set.
 	sfs := buildStepFactorySet()
 
+	// Build the transform configuration.
 	transformConf, err := block_transform.NewConfig([]config.Config{
 		&transform_gzip.Config{},
 	})
@@ -113,6 +121,7 @@ func openDevtoolWorldEngine(
 		return nil, errors.Wrap(err, "build transform config")
 	}
 
+	// Build the block transformer over the step factories.
 	xfrm, err := block_transform.NewTransformer(
 		controller.ConstructOpts{Logger: le},
 		sfs,
@@ -122,6 +131,7 @@ func openDevtoolWorldEngine(
 		return nil, errors.Wrap(err, "build block transformer")
 	}
 
+	// Open the block lookup cursor over the World head.
 	cursor := bucket_lookup.NewCursor(
 		ctx,
 		nil,
@@ -136,28 +146,36 @@ func openDevtoolWorldEngine(
 		transformConf,
 	)
 
+	// Access the object store that persists the engine head.
 	store, rel, err := vol.AccessObjectStore(ctx, devtoolEngineObjStoreID, nil)
 	if err != nil {
 		return nil, errors.Wrap(err, "access object store")
 	}
 
+	// Write the new head ref in a committed transaction.
 	commitFn := func(ctx context.Context, _ *bucket.ObjectRef, nref *bucket.ObjectRef) error {
+		// Open a write transaction on the object store.
 		tx, err := store.NewTransaction(ctx, true)
 		if err != nil {
 			return errors.Wrap(err, "open object store tx")
 		}
 		defer tx.Discard()
+
+		// Marshal the new head state into the world-head record.
 		state := &world_block_engine.HeadState{HeadRef: nref}
 		data, err := state.MarshalVT()
 		if err != nil {
 			return errors.Wrap(err, "marshal head state")
 		}
+
+		// Store the record and commit the transaction.
 		if err := tx.Set(ctx, []byte("world-head"), data); err != nil {
 			return errors.Wrap(err, "write world-head")
 		}
 		return tx.Commit(ctx)
 	}
 
+	// Build the World block engine over the cursor.
 	eng, err := world_block.NewEngine(
 		ctx,
 		le,
@@ -194,6 +212,7 @@ func collectLatestManifestSet(
 	ws world.WorldState,
 	manifestID string,
 ) ([]*bldr_manifest.ManifestRef, error) {
+	// Validate the manifest ID and collect its candidates.
 	if err := bldr_manifest.ValidateManifestID(manifestID, false); err != nil {
 		return nil, err
 	}
@@ -204,10 +223,14 @@ func collectLatestManifestSet(
 	if len(manifestErrs) != 0 {
 		return nil, errors.Wrap(manifestErrs[0], "collect manifest set")
 	}
+
+	// Select the manifest's candidate references.
 	candidates := manifests[manifestID]
 	if len(candidates) == 0 {
 		return nil, errors.Errorf("manifest %q not found", manifestID)
 	}
+
+	// Validate each candidate and keep the latest per platform.
 	selected := make(map[string]*bldr_manifest.ManifestRef)
 	for _, candidate := range candidates {
 		meta := candidate.Manifest.GetMeta()
@@ -249,6 +272,7 @@ func collectLatestManifestSet(
 		result = append(result, ref)
 	}
 	slices.SortStableFunc(result, func(a, b *bldr_manifest.ManifestRef) int {
+		// Sort the selected references by ID, revision, platform, and ref.
 		if c := cmp.Compare(a.GetMeta().GetManifestId(), b.GetMeta().GetManifestId()); c != 0 {
 			return c
 		}
@@ -273,11 +297,14 @@ func lookupDevtoolManifestSet(
 	vol volume.Volume,
 	manifestID string,
 ) ([]*bldr_manifest.ManifestRef, error) {
+	// Open the devtool World engine and collect the manifest set.
 	eng, err := openDevtoolWorldEngine(ctx, le, vol)
 	if err != nil {
 		return nil, err
 	}
 	defer eng.Close()
+
+	// Collect the latest manifest set from the engine World state.
 	ws := world.NewEngineWorldState(eng, false)
 	refs, err := collectLatestManifestSet(ctx, ws, manifestID)
 	if err != nil {
@@ -293,19 +320,21 @@ func lookupDevtoolManifests(
 	vol volume.Volume,
 	manifestID string,
 ) ([]*bldr_manifest_world.CollectedManifest, error) {
+	// Open the devtool World engine.
 	eng, err := openDevtoolWorldEngine(ctx, le, vol)
 	if err != nil {
 		return nil, err
 	}
 	defer eng.Close()
 
+	// Collect the manifests for the plugin host object.
 	ws := world.NewEngineWorldState(eng, false)
-
 	manifests, _, err := bldr_manifest_world.CollectManifests(ctx, ws, nil, devtoolPluginHostObjectKey)
 	if err != nil {
 		return nil, errors.Wrap(err, "collect manifests")
 	}
 
+	// Reject an unknown manifest ID.
 	list, ok := manifests[manifestID]
 	if !ok || len(list) == 0 {
 		available := make([]string, 0, len(manifests))
@@ -315,6 +344,7 @@ func lookupDevtoolManifests(
 		return nil, errors.Errorf("manifest %q not found (available: %v)", manifestID, available)
 	}
 
+	// Filter the manifest list to the latest revision.
 	list = bldr_manifest_world.FilterCollectedManifestsByLatestRev(list)
 	return list, nil
 }

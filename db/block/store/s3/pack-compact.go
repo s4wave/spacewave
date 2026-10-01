@@ -69,15 +69,19 @@ func (s *PackStore) runCompaction(ctx context.Context) error {
 // merge deletes only inputs whose every block its output holds, so concurrent
 // passes on several devices lose no block.
 func (s *PackStore) compact(ctx context.Context) error {
+	// Acquire the compaction mutex so only one merge runs at a time.
 	release, err := s.compactMtx.Lock(ctx)
 	if err != nil {
 		return err
 	}
 	defer release()
 
+	// List the current packfile entries from the S3 bucket.
 	if err := s.listEntries(ctx, s.listings.Load()); err != nil {
 		return err
 	}
+
+	// Merge packfiles until no tier holds compactFanout of them.
 	for {
 		inputs := s.pickMerge()
 		if len(inputs) == 0 {
@@ -218,19 +222,26 @@ func (s *PackStore) replace(ctx context.Context, output *packfile.PackfileEntry,
 
 // readPack reads packfile id whole and returns its block values by key.
 func (s *PackStore) readPack(ctx context.Context, id string) (map[string][]byte, error) {
+	// Fetch the packfile object body from the S3 bucket.
 	body, err := s.client.GetObject(ctx, s.bucket, s.prefix+packDir+id)
 	if err != nil {
 		return nil, errors.Wrap(err, "read packfile "+id)
 	}
+
+	// Read the packfile bytes and close the object body.
 	data, err := io.ReadAll(body)
 	_ = body.Close()
 	if err != nil {
 		return nil, errors.Wrap(err, "read packfile "+id)
 	}
+
+	// Open a kvfile reader over the packfile bytes.
 	rd, err := kvfile.BuildReader(bytes.NewReader(data), uint64(len(data)))
 	if err != nil {
 		return nil, errors.Wrap(err, "open packfile "+id)
 	}
+
+	// Scan every key-value pair into the returned map.
 	values := make(map[string][]byte)
 	err = rd.ScanPrefix(nil, func(key, value []byte) error {
 		values[string(key)] = value

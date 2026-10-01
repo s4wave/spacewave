@@ -79,10 +79,12 @@ func TestHandoffBlocksActiveListener(t *testing.T) {
 }
 
 func TestServeOnceRefusesConnectableSocket(t *testing.T) {
+
 	// Initialize a cancelable listener test context.
 	ctx, cancel := context.WithTimeout(t.Context(), 100*time.Millisecond)
 	defer cancel()
 
+	// Prepare the .tmp parent directory for the temporary socket path.
 	if err := os.MkdirAll(".tmp", 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -104,6 +106,7 @@ func TestServeOnceRefusesConnectableSocket(t *testing.T) {
 	}
 	defer lis.Close()
 
+	// Serve once against the already-bound socket and expect a refusal.
 	_, err = (&Controller{}).serveOnce(
 		ctx,
 		logrus.NewEntry(logrus.New()),
@@ -125,6 +128,8 @@ func TestServeOnceRefusesConnectableSocket(t *testing.T) {
 }
 
 func TestAcceptCountingListenerKeepsExistingClientAfterPeerDeparts(t *testing.T) {
+
+	// Start a cancelable context and a TCP listener for the accept loop.
 	ctx, cancel := context.WithCancel(t.Context())
 	listener, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
@@ -132,6 +137,7 @@ func TestAcceptCountingListenerKeepsExistingClientAfterPeerDeparts(t *testing.T)
 		t.Fatal(err)
 	}
 
+	// Configure the status broker and the test service mux.
 	status := NewStatusBroker()
 	status.SetListening(true)
 	watchNext := make(chan struct{})
@@ -202,19 +208,24 @@ func TestAcceptCountingListenerKeepsExistingClientAfterPeerDeparts(t *testing.T)
 	pingListenerTestClient(t, clientB)
 	waitListenerClientCount(t, status, 2)
 
+	// Close client B and confirm the count drops while A stays connected.
 	closeB()
 	waitListenerClientCount(t, status, 1)
 	close(watchNext)
 	recvListenerTestWatch(t, watchA)
 
+	// Close client A and confirm the count drains to zero.
 	closeA()
 	waitListenerClientCount(t, status, 0)
 }
 
 func TestServeOnceReleasesSocketBeforeDrainingConcurrentClients(t *testing.T) {
+
+	// Start a cancelable context for the takeover test.
 	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
 
+	// Create the temporary socket directory for the handoff test.
 	if err := os.MkdirAll(".tmp", 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -227,6 +238,7 @@ func TestServeOnceReleasesSocketBeforeDrainingConcurrentClients(t *testing.T) {
 	})
 	sock := filepath.Join(dir, "d.sock")
 
+	// Start serveOnce in the background with a yield broker.
 	status := NewStatusBroker()
 	broker := yield_policy.NewBrokerWithTimeout(5 * time.Second)
 	type serveResult struct {
@@ -250,6 +262,7 @@ func TestServeOnceReleasesSocketBeforeDrainingConcurrentClients(t *testing.T) {
 		serveResultCh <- serveResult{yielded: yielded, err: err}
 	}()
 
+	// Connect a persistent client and wait for it to register.
 	waitListenerListening(t, status)
 	watchingClient, err := net.Dial("unix", sock)
 	if err != nil {
@@ -258,6 +271,7 @@ func TestServeOnceReleasesSocketBeforeDrainingConcurrentClients(t *testing.T) {
 	defer watchingClient.Close()
 	waitListenerClientCount(t, status, 1)
 
+	// Start the takeover and grant the yield prompt.
 	takeoverResult := make(chan error, 1)
 	go func() {
 		takeoverResult <- listener_control.TakeoverSocket(
@@ -268,6 +282,7 @@ func TestServeOnceReleasesSocketBeforeDrainingConcurrentClients(t *testing.T) {
 	}()
 	allowListenerTakeover(t, broker)
 
+	// Wait for the takeover to observe the released socket.
 	select {
 	case err := <-takeoverResult:
 		if err != nil {
@@ -327,6 +342,8 @@ func waitListenerListening(t *testing.T, status *StatusBroker) {
 }
 
 func dialListenerTestClient(t *testing.T, address string) (srpc.Client, func()) {
+
+	// Dial the test listener and wrap the connection in an SRPC client.
 	t.Helper()
 	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
 	defer cancel()

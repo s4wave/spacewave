@@ -34,6 +34,7 @@ func NewGraphPathQueryResource(
 	result *world.GraphPathQueryResult,
 	pageSize uint32,
 ) *GraphPathQueryResource {
+	// Normalize a nil result and resolve the default page size.
 	if result == nil {
 		result = &world.GraphPathQueryResult{}
 	}
@@ -47,6 +48,8 @@ func NewGraphPathQueryResource(
 			pageSize = 1
 		}
 	}
+
+	// Construct the resource and register its service on the rpc mux.
 	queryResource := &GraphPathQueryResource{
 		le:         le,
 		b:          b,
@@ -67,10 +70,12 @@ func (r *GraphPathQueryResource) GetMux() srpc.Invoker {
 
 // Next returns the next page of path query results.
 func (r *GraphPathQueryResource) Next(ctx context.Context, req *s4wave_world.NextGraphPathQueryRequest) (*s4wave_world.NextGraphPathQueryResponse, error) {
+	// Reject the request if the context is already canceled.
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
 
+	// Check the request context and lock the resource state.
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	if r.closed {
@@ -85,11 +90,13 @@ func (r *GraphPathQueryResource) Next(ctx context.Context, req *s4wave_world.Nex
 		}, nil
 	}
 
+	// Slice the next page of object keys and advance the offset.
 	end := min(r.offset+int(r.pageSize), len(r.objectKeys))
 	objectKeys := slices.Clone(r.objectKeys[r.offset:end])
 	done := end >= len(r.objectKeys)
 	r.offset = end
 
+	// Drain remaining quads once the final page is reached.
 	var quads []world.GraphQuad
 	if done {
 		quads = append([]world.GraphQuad(nil), r.quads...)
@@ -104,6 +111,7 @@ func (r *GraphPathQueryResource) Next(ctx context.Context, req *s4wave_world.Nex
 
 // Close closes the graph path query resource.
 func (r *GraphPathQueryResource) Close(ctx context.Context, req *s4wave_world.CloseGraphPathQueryRequest) (*s4wave_world.CloseGraphPathQueryResponse, error) {
+	// Clear the result set under the lock and mark it closed.
 	r.mu.Lock()
 	r.objectKeys = nil
 	r.quads = nil

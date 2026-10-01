@@ -34,6 +34,7 @@ func newStopCommand(_ func() cli_entrypoint.CliBus) *cli.Command {
 // runStop asks the daemon listening on sockPath to shut down and confirms its
 // listener is gone. It never starts a daemon.
 func runStop(ctx context.Context, sockPath string) error {
+	// Dial the daemon socket, treating a missing listener as already stopped.
 	conn, err := connectDaemonDial(ctx, sockPath)
 	if err != nil {
 		if handled, handleErr := handleUnavailableDaemonSocket(sockPath, err); handled {
@@ -43,6 +44,7 @@ func runStop(ctx context.Context, sockPath string) error {
 	}
 	defer conn.Close()
 
+	// Request shutdown and verify the listener no longer accepts connections.
 	if err := requestDaemonShutdown(ctx, conn); err != nil {
 		var denyErr *listener_control.DenyError
 		if stderrors.As(err, &denyErr) || ctx.Err() != nil {

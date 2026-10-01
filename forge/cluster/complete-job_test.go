@@ -20,13 +20,17 @@ import (
 
 // completeJobTestSetup builds a cluster with one linked job and one task.
 func completeJobTestSetup(t *testing.T, ws world.WorldState, peerID net_peer.ID) (string, string, string) {
+
+	// Mark the helper as a test helper and create a background context.
 	t.Helper()
 	ctx := context.Background()
 
+	// Create the test cluster.
 	if _, _, err := forge_cluster.CreateCluster(ctx, ws, "cluster/test-cluster", "test-cluster", peerID, peerID); err != nil {
 		t.Fatal(err)
 	}
 
+	// Create the job with one task and release the object handle.
 	jobKey := "job/test-job"
 	{
 		createdObject, _, err := forge_job.CreateJobWithTasks(ctx, ws, peerID, jobKey, map[string]*forge_target.Target{
@@ -39,6 +43,7 @@ func completeJobTestSetup(t *testing.T, ws world.WorldState, peerID net_peer.ID)
 	}
 	taskKey := forge_job.NewJobTaskKey(jobKey, "task-a")
 
+	// Link the job to the cluster and return the keys.
 	if err := ws.SetGraphQuad(ctx, world.NewGraphQuadWithKeys(
 		"cluster/test-cluster",
 		forge_cluster.PredClusterToJob.String(),
@@ -55,6 +60,8 @@ func setTaskResult(t *testing.T, ws world.WorldState, taskKey string, res *forge
 	t.Helper()
 	ctx := context.Background()
 	_, _, err := world.AccessWorldObject(ctx, ws, taskKey, true, func(bcs *block.Cursor) error {
+
+		// Decode the task and load its target object.
 		task, err := forge_task.UnmarshalTask(ctx, bcs)
 		if err != nil {
 			return err
@@ -64,10 +71,14 @@ func setTaskResult(t *testing.T, ws world.WorldState, taskKey string, res *forge
 		if err != nil {
 			return err
 		}
+
+		// Attach the target root reference to the task.
 		tgtRef, _, err := tgtObj.GetRootRef(ctx)
 		if err != nil {
 			return err
 		}
+
+		// Mark the task complete with the result and store it.
 		task.TargetRef = tgtRef.GetRootRef()
 		task.TaskState = forge_task.State_TaskState_COMPLETE
 		task.Result = res
@@ -85,6 +96,8 @@ func setTaskResult(t *testing.T, ws world.WorldState, taskKey string, res *forge
 // TestCompleteJobAggregatesFailedTask pins that completing a job records a
 // failure when a linked task failed.
 func TestCompleteJobAggregatesFailedTask(t *testing.T) {
+
+	// Start a world testbed and wrap its engine state.
 	ctx := context.Background()
 	wtb, err := world_testbed.Default(ctx, world_testbed.WithWorldVerbose(false))
 	if err != nil {
@@ -93,6 +106,7 @@ func TestCompleteJobAggregatesFailedTask(t *testing.T) {
 	defer wtb.Release()
 	ws := world.NewEngineWorldState(wtb.Engine, true)
 
+	// Generate an Ed25519 sender identity.
 	sk, _, err := net_crypto.GenerateEd25519Key(rand.Reader)
 	if err != nil {
 		t.Fatal(err)
@@ -102,13 +116,16 @@ func TestCompleteJobAggregatesFailedTask(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Set up the cluster and mark the task failed.
 	clusterKey, jobKey, taskKey := completeJobTestSetup(t, ws, sender)
 	setTaskResult(t, ws, taskKey, &forge_value.Result{Success: false, FailError: "boom"})
 
+	// Complete the job.
 	if _, _, err := forge_cluster.CompleteJob(ctx, ws, clusterKey, jobKey, sender); err != nil {
 		t.Fatal(err)
 	}
 
+	// Verify the job completed with a failed result.
 	job, err := forge_job.LookupJobBody(ctx, ws, jobKey)
 	if err != nil {
 		t.Fatal(err)

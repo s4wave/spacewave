@@ -37,6 +37,7 @@ type AferoFS struct {
 // if ts is nil, uses time.Now() on each call
 // basePath should contain the path to this FSHandle.
 func NewAferoFS(ctx context.Context, h *unixfs.FSHandle, basePath string, ts time.Time) *AferoFS {
+	// Construct the AferoFS with a cleaned base path and an optional fixed write timestamp.
 	if basePath == "" {
 		basePath = "/"
 	}
@@ -81,6 +82,7 @@ func (f *AferoFS) Mkdir(name string, perm os.FileMode) error {
 	ts := f.timestamp()
 	name = path.Clean(name)
 
+	// Compute the new directory name and its parent path from the cleaned name.
 	createDir := path.Base(name)
 	parentDir := path.Dir(name)
 
@@ -108,8 +110,10 @@ func (f *AferoFS) Mkdir(name string, perm os.FileMode) error {
 // MkdirAll creates a directory path and all parents that does not exist
 // yet.
 func (f *AferoFS) MkdirAll(mpath string, perm os.FileMode) error {
+	// Normalize the MkdirAll target path before cloning the handle.
 	mpath = path.Clean(mpath)
 
+	// Clone the filesystem handle so MkdirAllPath can create every missing parent.
 	fsh, err := f.h.Clone(f.ctx)
 	if err != nil {
 		return err
@@ -133,9 +137,11 @@ func (f *AferoFS) Open(name string) (afero.File, error) {
 
 // OpenFile opens a file using the given flags and the given mode.
 func (f *AferoFS) OpenFile(filepath string, flag int, perm os.FileMode) (afero.File, error) {
+	// Clean the target path and split it into its parent directory and filename.
 	filepath = path.Clean(filepath)
 	filedir, filename := path.Split(filepath)
 
+	// Resolve the parent directory handle, reusing the root handle for top-level files.
 	var h *unixfs.FSHandle
 	if filedir == "." {
 		h = f.h
@@ -151,6 +157,7 @@ func (f *AferoFS) OpenFile(filepath string, flag int, perm os.FileMode) (afero.F
 		h = dirHandle
 	}
 
+	// Look up the target file and reject conflicts when the exclusive flag is set.
 	fileHandle, err := h.Lookup(f.ctx, filename)
 	isExcl := unixfs.FlagIsExclusive(flag)
 	if isExcl {
@@ -165,6 +172,7 @@ func (f *AferoFS) OpenFile(filepath string, flag int, perm os.FileMode) (afero.F
 			return nil, err
 		}
 	}
+
 	// Note: symlinks are not resolved on this path.
 	// create the file if necessary
 	if err == unixfs_errors.ErrNotExist {

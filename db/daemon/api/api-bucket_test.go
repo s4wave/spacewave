@@ -36,18 +36,22 @@ func (s *applyBucketConfigTestStream) SendAndClose(*ApplyBucketConfigResponse) e
 // TestApplyBucketConfigResolverError checks that a resolver error surfaces to
 // the RPC caller instead of being discarded.
 func TestApplyBucketConfigResolverError(t *testing.T) {
+	// Bound the test and construct a debug logger.
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 	t.Cleanup(cancel)
 
+	// Construct the debug logger for the bus.
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
 
+	// Start the core bus for the test.
 	b, _, err := controllerbus_core.NewCoreBus(ctx, le)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Install a handler that resolves ApplyBucketConfig with a failure.
 	resolverErr := errors.New("apply bucket config resolver failed")
 	relHandler, err := b.AddHandler(directive.NewFuncHandler(
 		func(ctx context.Context, di directive.Instance) ([]directive.Resolver, error) {
@@ -66,11 +70,13 @@ func TestApplyBucketConfigResolverError(t *testing.T) {
 	}
 	t.Cleanup(relHandler)
 
+	// Construct the daemon API on the bus.
 	api, err := NewAPI(b, &Config{})
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Apply the bucket config and assert the resolver error surfaces.
 	err = api.ApplyBucketConfig(&ApplyBucketConfigRequest{
 		Config:       &bucket.Config{Id: "test-bucket", Rev: 1},
 		VolumeIdList: []string{"test-volume"},

@@ -18,16 +18,19 @@ import (
 
 // TestWorldState tests forking the world state and building a tx batch.
 func TestWorldState(t *testing.T) {
+	// Start a testbed and open an empty root cursor.
 	ctx := context.Background()
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
 
+	// Start the testbed and open an empty root cursor.
 	tb, err := testbed.NewTestbed(ctx, le)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Open an empty root cursor for the world state.
 	ocs, err := tb.BuildEmptyCursor(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -50,6 +53,7 @@ func TestWorldState(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// Commit the base state and record its root reference on the cursor.
 	err = ws.Commit(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -80,6 +84,9 @@ func TestWorldState(t *testing.T) {
 		}
 	}
 
+	// Apply a world op against the fork.
+
+	// Apply a world op against the fork.
 	secondMsg := "hello there #2"
 	_, _, err = forkedTx.ApplyWorldOp(
 		ctx,
@@ -136,6 +143,9 @@ func TestWorldState(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// Locate the transaction and execute it against the fresh state.
+
+	// Locate the transaction and execute it against the fresh state.
 	ttx, err := tx.LocateTx()
 	if err == nil {
 		_, err = ttx.ExecuteTx(
@@ -149,7 +159,7 @@ func TestWorldState(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	// ensure the change was applied to the object
+	// Verify the executed transaction applied the change.
 	obj, err = world.MustGetObject(ctx, ws, objKey)
 	defer world.ReleaseObjectState(obj)
 	if err != nil {
@@ -157,6 +167,7 @@ func TestWorldState(t *testing.T) {
 	}
 	checkRev(obj, 2)
 
+	// Fork the state again and apply an object-level op.
 	objectTx, err := ForkWorldState(ctx, ws, true)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -170,6 +181,8 @@ func TestWorldState(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Verify the object op recorded one transaction of the right type and sender.
 	txBatch = objectTx.GetTxBatch()
 	if l := len(txBatch.GetTxs()); l != 1 {
 		t.Fatalf("expected 1 object tx but got %d", l)
@@ -189,11 +202,13 @@ func TestWorldState(t *testing.T) {
 // TestWorldStateGetObjectBodiesBatchPageAfterDiscard verifies that discarded
 // transaction wrappers reject batched body reads.
 func TestWorldStateGetObjectBodiesBatchPageAfterDiscard(t *testing.T) {
+	// Start a testbed and open an empty root cursor.
 	ctx := context.Background()
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
 
+	// Start the testbed and open an empty root cursor.
 	tb, err := testbed.NewTestbed(ctx, le)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -204,6 +219,7 @@ func TestWorldStateGetObjectBodiesBatchPageAfterDiscard(t *testing.T) {
 	}
 	defer ocs.Release()
 
+	// Build a world state and fork it.
 	ws, err := world_block.BuildMockWorldState(ctx, le, true, ocs, false)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -212,8 +228,11 @@ func TestWorldStateGetObjectBodiesBatchPageAfterDiscard(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Discard the fork before reading through it.
 	txState.Discard()
 
+	// Expect a batched body read on the discarded fork to fail.
 	_, _, err = txState.GetObjectBodiesBatchPage(ctx, []string{"discarded"}, world.ObjectBodiesBatchByteBudget)
 	if err != dbtx.ErrDiscarded {
 		t.Fatalf("GetObjectBodiesBatchPage error = %v, want %v", err, dbtx.ErrDiscarded)

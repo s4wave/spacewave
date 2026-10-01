@@ -27,6 +27,7 @@ import (
 const statePathLeaseHolderEnv = "SPACEWAVE_TEST_STATE_PATH_LEASE_HOLDER"
 
 func TestRunServeCommandCompletesTakeoverBeforeBusInitialization(t *testing.T) {
+	// Replace the desktop listener with a shutdown-gated stub.
 	statePath := shortSocketDir(t)
 	sockPath := filepath.Join(statePath, socketName)
 	shutdownStarted := make(chan struct{})
@@ -36,6 +37,7 @@ func TestRunServeCommandCompletesTakeoverBeforeBusInitialization(t *testing.T) {
 		<-finishShutdown
 	})
 
+	// Build the parent and child CLI contexts.
 	app := cli.NewApp()
 	parentFlags := flag.NewFlagSet("spacewave", flag.ContinueOnError)
 	parentFlags.String("state-path", statePath, "state directory path")
@@ -45,6 +47,7 @@ func TestRunServeCommandCompletesTakeoverBeforeBusInitialization(t *testing.T) {
 	parent := cli.NewContext(app, parentFlags, nil)
 	child := cli.NewContext(app, flag.NewFlagSet("serve", flag.ContinueOnError), parent)
 
+	// Run the serve command and wait for bus initialization.
 	busInitialized := make(chan struct{})
 	commandErr := make(chan error, 1)
 	go func() {
@@ -54,6 +57,7 @@ func TestRunServeCommandCompletesTakeoverBeforeBusInitialization(t *testing.T) {
 		}, yield_policy.NewBroker(), "", true, 0)
 	}()
 
+	// Confirm the serve command waits for the shutdown to finish.
 	select {
 	case <-shutdownStarted:
 	case <-busInitialized:
@@ -67,6 +71,7 @@ func TestRunServeCommandCompletesTakeoverBeforeBusInitialization(t *testing.T) {
 	default:
 	}
 
+	// Release the shutdown gate and confirm the command completes.
 	close(finishShutdown)
 	select {
 	case <-busInitialized:
@@ -80,10 +85,12 @@ func TestRunServeCommandCompletesTakeoverBeforeBusInitialization(t *testing.T) {
 }
 
 func TestPrepareDaemonRuntimeRejectsHeldLeaseAfterPeerExit(t *testing.T) {
+	// Acquire a lease in another process and serve a peer on the socket.
 	statePath := shortSocketDir(t)
 	holderPID, holderStore := startStatePathLeaseHolder(t, statePath)
 	sockPath := filepath.Join(statePath, socketName)
 
+	// Accept and close one peer connection.
 	lis, err := net.Listen("unix", sockPath)
 	if err != nil {
 		t.Fatalf("listen: %v", err)
@@ -98,6 +105,7 @@ func TestPrepareDaemonRuntimeRejectsHeldLeaseAfterPeerExit(t *testing.T) {
 		}
 	}()
 
+	// Attempt to acquire the held lease and expect failure.
 	lease, err := prepareDaemonRuntime(t.Context(), logrus.NewEntry(logrus.New()), statePath, sockPath, true)
 	if lease != nil {
 		_ = lease.release()
@@ -120,6 +128,7 @@ func TestPrepareDaemonRuntimeRejectsHeldLeaseAfterPeerExit(t *testing.T) {
 }
 
 func TestPrepareDaemonRuntimeCleanHandoffAcquiresLease(t *testing.T) {
+	// Acquire the old runtime lease and serve the old listener.
 	statePath := shortSocketDir(t)
 	sockPath := filepath.Join(statePath, socketName)
 	oldLease, err := acquireStatePathLease(statePath)
@@ -137,6 +146,7 @@ func TestPrepareDaemonRuntimeCleanHandoffAcquiresLease(t *testing.T) {
 		}
 	})
 
+	// Hand off the lease to a new runtime and confirm acquisition.
 	lease, err := prepareDaemonRuntime(t.Context(), logrus.NewEntry(logrus.New()), statePath, sockPath, true)
 	if err != nil {
 		t.Fatalf("prepare daemon runtime: %v", err)
@@ -148,6 +158,7 @@ func TestPrepareDaemonRuntimeCleanHandoffAcquiresLease(t *testing.T) {
 	}()
 	<-old.done
 
+	// Confirm the new lease holds the state path after handoff.
 	replacement, err := net.Listen("unix", sockPath)
 	if err != nil {
 		t.Fatalf("listen after clean handoff: %v", err)
@@ -161,6 +172,7 @@ func TestPrepareDaemonRuntimeCleanHandoffAcquiresLease(t *testing.T) {
 }
 
 func TestPrepareDaemonRuntimeRemovesStaleExplicitSocket(t *testing.T) {
+	// Leave a stale explicit socket on the state path.
 	statePath := shortSocketDir(t)
 	sockPath := filepath.Join(shortSocketDir(t), "runtime.sock")
 	listener, err := net.Listen("unix", sockPath)
@@ -171,6 +183,7 @@ func TestPrepareDaemonRuntimeRemovesStaleExplicitSocket(t *testing.T) {
 		t.Fatalf("close stale listener: %v", err)
 	}
 
+	// Prepare the runtime and confirm the stale socket is removed.
 	lease, err := prepareDaemonRuntime(
 		t.Context(),
 		logrus.NewEntry(logrus.New()),
@@ -188,6 +201,7 @@ func TestPrepareDaemonRuntimeRemovesStaleExplicitSocket(t *testing.T) {
 }
 
 func TestAcquireStatePathLeaseFailsClosedOnUnknownStoreLock(t *testing.T) {
+	// Resolve and truncate the unknown provider store and its lock file.
 	statePath := shortSocketDir(t)
 	storePath, err := storage_native.BoltDBPath(statePath, "unknown")
 	if err != nil {
@@ -206,10 +220,13 @@ func TestAcquireStatePathLeaseFailsClosedOnUnknownStoreLock(t *testing.T) {
 }
 
 func TestStatePathLeaseHolderProcess(t *testing.T) {
+	// Exit early when not running as the lease holder subprocess.
 	statePath := os.Getenv(statePathLeaseHolderEnv)
 	if statePath == "" {
 		return
 	}
+
+	// Open the provider store and acquire the state path lease.
 	storePath, err := storage_native.BoltDBPath(statePath, "p_test")
 	if err != nil {
 		t.Fatalf("resolve provider store: %v", err)
@@ -233,9 +250,13 @@ func TestStatePathLeaseHolderProcess(t *testing.T) {
 }
 
 func startStatePathLeaseHolder(t *testing.T, statePath string) (int, string) {
+	// Build the holder subprocess command and pipe identity output.
 	t.Helper()
+
 	// The subprocess is this test binary; no external input reaches argv.
 	cmd := exec.Command(os.Args[0], "-test.run=^TestStatePathLeaseHolderProcess$") //nolint:gosec
+
+	// Wire the environment, stdout, and stdin pipes for the holder.
 	cmd.Env = append(os.Environ(), statePathLeaseHolderEnv+"="+statePath)
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
@@ -249,6 +270,8 @@ func startStatePathLeaseHolder(t *testing.T, statePath string) (int, string) {
 	if err := cmd.Start(); err != nil {
 		t.Fatalf("start holder: %v", err)
 	}
+
+	// Release the holder's stdin and wait for it on cleanup.
 	t.Cleanup(func() {
 		if err := stdin.Close(); err != nil {
 			t.Errorf("close holder stdin: %v", err)
@@ -258,6 +281,7 @@ func startStatePathLeaseHolder(t *testing.T, statePath string) (int, string) {
 		}
 	})
 
+	// Read the holder identity line and parse its PID and store path.
 	line, err := bufio.NewReader(stdout).ReadString('\n')
 	if err != nil {
 		t.Fatalf("read holder identity: %v", err)

@@ -57,6 +57,8 @@ func (o *ClusterAssignJobOp) ApplyWorldOp(
 	worldHandle world.WorldState,
 	sender peer.ID,
 ) (sysErr bool, err error) {
+
+	// Read the cluster and job keys targeted by the operation.
 	clusterKey, jobKey := o.GetClusterKey(), o.GetJobKey()
 
 	// Check the job and cluster objects by decoding their bodies rather than

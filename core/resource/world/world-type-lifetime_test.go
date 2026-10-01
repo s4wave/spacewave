@@ -27,11 +27,15 @@ func TestWorldTypeOperationsReleaseResources(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
+
+			// cleanup.
 			t.Cleanup(tb.Release)
 			client, server, cleanup := setupCountingResourceClient(ctx, t, tb)
 			t.Cleanup(cleanup)
 			root := client.AccessRootResource()
 			t.Cleanup(root.Release)
+
+			// getClient rpc,err via root.
 			rpc, err := root.GetClient()
 			if err != nil {
 				t.Fatal(err)
@@ -41,6 +45,8 @@ func TestWorldTypeOperationsReleaseResources(t *testing.T) {
 				t.Fatal(err)
 			}
 			ref := client.CreateResourceReference(created.GetResourceId())
+
+			// cleanup.
 			t.Cleanup(ref.Release)
 			engine, err := sdk_world_engine.NewSDKEngine(client, ref)
 			if err != nil {
@@ -54,6 +60,8 @@ func TestWorldTypeOperationsReleaseResources(t *testing.T) {
 			// Commit each operation, retaining only the root and engine resources.
 			for i := range 25 {
 				err := world.ExecTransaction(ctx, engine, true, func(ctx context.Context, ws world.WorldState) error {
+
+					// itoa key via strconv.
 					key := "resource-types/" + strconv.Itoa(i)
 					if mode == "types" {
 						if _, err := world_types.EnsureTypeExists(ctx, ws, key); err != nil {
@@ -67,6 +75,8 @@ func TestWorldTypeOperationsReleaseResources(t *testing.T) {
 					if err != nil {
 						return err
 					}
+
+					// hasObject found,err via ws.
 					found, err := ws.HasObject(ctx, key)
 					if err != nil {
 						return err

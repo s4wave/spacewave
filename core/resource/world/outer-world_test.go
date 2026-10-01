@@ -22,12 +22,15 @@ import (
 // TestOpenOuterWorld grants the enclosing Space Engine independently of its
 // nested snapshot, confines it to that Space, and applies World ops there.
 func TestOpenOuterWorld(t *testing.T) {
+
+	// context ctx.
 	ctx := t.Context()
 	tb, releaseTestbed := setupWorldTestbed(ctx, t)
 	defer releaseTestbed()
 	client, engine, cleanup := setupWorldResourceClient(ctx, t, tb)
 	defer cleanup()
 
+	// createResourceReference storageRef via client.
 	storageRef := client.CreateResourceReference(engine.GetResourceRef().GetResourceID())
 	storage, err := sdk_world_engine.NewSDKEngine(client, storageRef)
 	if err != nil {
@@ -36,6 +39,7 @@ func TestOpenOuterWorld(t *testing.T) {
 	}
 	defer storage.Release()
 
+	// importSnapshot snapshot,err via world_block.
 	snapshot, err := world_block.ImportSnapshot(ctx, storage, maps.All(map[string]block.Block{
 		"inner": block_mock.NewExample("nested"),
 	}), nil)
@@ -72,6 +76,8 @@ func TestOpenOuterWorld(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// createResourceReference otherRef via client.
 	otherRef := client.CreateResourceReference(otherResp.GetResourceId())
 	other, err := sdk_world_engine.NewSDKEngine(client, otherRef)
 	if err != nil {
@@ -173,6 +179,8 @@ func TestOpenOuterWorld(t *testing.T) {
 
 // requireObject fails unless the current state of eng has key exactly when want.
 func requireObject(ctx context.Context, t *testing.T, eng world.Engine, key string, want bool) {
+
+	// helper.
 	t.Helper()
 	var found bool
 	err := world.ExecTransaction(ctx, eng, false, func(ctx context.Context, state world.WorldState) error {

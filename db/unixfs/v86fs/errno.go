@@ -42,6 +42,8 @@ const (
 
 // errnoFromError maps a Go error to a v86fs errno value.
 func errnoFromError(err error) uint32 {
+
+	// Map nil and known filesystem errors to their errno values.
 	if err == nil {
 		return 0
 	}
@@ -102,6 +104,8 @@ func nodeTypeToDtType(ent interface {
 
 // getNodeMode returns the combined S_IF* mode and permission bits for an FSHandle.
 func getNodeMode(ctx context.Context, h *unixfs.FSHandle) (uint32, error) {
+
+	// Read the node type and permissions from the handle.
 	nodeType, err := h.GetNodeType(ctx)
 	if err != nil {
 		return 0, err
@@ -111,6 +115,7 @@ func getNodeMode(ctx context.Context, h *unixfs.FSHandle) (uint32, error) {
 	if err != nil {
 		return 0, err
 	}
+
 	// The S_IF* type comes from GetNodeType; mask the FSHandle FileMode to its
 	// permission bits so Go's high type flags (fs.ModeDir = 1<<31, ModeSymlink,
 	// ...) never leak into the wire mode. A polluted root mode wedges the guest

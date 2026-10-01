@@ -90,11 +90,14 @@ func (d *lookupWebDocument) LookupWebDocumentWait() bool {
 // directives are equivalent, and the new directive does not superceed the
 // old, then the new directive will be merged (de-duplicated) into the old.
 func (d *lookupWebDocument) IsEquivalent(other directive.Directive) bool {
+
+	// Record od,ok.
 	od, ok := other.(LookupWebDocument)
 	if !ok {
 		return false
 	}
 
+	// Check the condition before continuing.
 	if d.LookupWebDocumentID() != od.LookupWebDocumentID() {
 		return false
 	}

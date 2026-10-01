@@ -35,13 +35,19 @@ func TestObjectResourceRetiresUnderlyingHandle(t *testing.T) {
 	} {
 		for _, stage := range []string{"retirement", "acquisition error", "registration error"} {
 			t.Run(name+"/"+stage, func(t *testing.T) {
+
+				// background ctx via context.
 				ctx := context.Background()
 				obj := &rpcLifetimeObject{}
 				ws := &rpcLifetimeWorld{obj: obj}
+
+				// Record resources.
 				resources := &rpcLifetimeContext{worldStateOperationResourceContext: &worldStateOperationResourceContext{ctx: ctx}}
 				switch stage {
 				case "acquisition error":
 					ws.err = failure
+
+				// Perform the action.
 				case "registration error":
 					resources.err = failure
 				}

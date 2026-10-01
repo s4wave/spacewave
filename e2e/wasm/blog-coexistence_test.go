@@ -19,8 +19,10 @@ type blogScenario struct {
 }
 
 func createBlogScenario(t testing.TB, h *Harness, session *TestSession) *blogScenario {
+	// Load the blog quickstart page and wait for it to boot.
 	t.Helper()
 
+	// Prepare the page and enable quickstart timing logs.
 	page := session.Page()
 	WaitForApp(t, page)
 	EnableQuickstartTimingLogs(t, page)
@@ -33,8 +35,11 @@ func createBlogScenario(t testing.TB, h *Harness, session *TestSession) *blogSce
 		t.Fatalf("wait for blog quickstart: %v", err)
 	}
 	t.Logf("blog quickstart route: %s", page.URL())
+
+	// Wait for the blog reading view to render the seeded post.
 	waitForBlogReady(t, page, "Hello World")
 
+	// Parse the blog quickstart route into a scenario.
 	sessionIndex, spaceID, err := parseQuickstartRoute(page.URL())
 	if err != nil {
 		t.Fatalf("parse blog route: %v", err)
@@ -52,8 +57,10 @@ func (s *blogScenario) objectHash(objectKey string) string {
 }
 
 func waitForBlogReady(t testing.TB, page playwright.Page, title string) {
+	// Format the object route hash for the scenario.
 	t.Helper()
 
+	// Wait for the blog reading and editing buttons to appear.
 	wait := playwright.LocatorWaitForOptions{Timeout: playwright.Float(blogCoexistenceWaitMS)}
 	if err := page.Locator("button[title='Reading mode']").First().WaitFor(wait); err != nil {
 		t.Fatalf("wait for blog reading button: %v", err)
@@ -92,8 +99,10 @@ func waitForBlogReady(t testing.TB, page playwright.Page, title string) {
 }
 
 func waitForNotebookReady(t testing.TB, page playwright.Page, noteTitle string) {
+	// Wait for the notebook search input to appear.
 	t.Helper()
 
+	// Collect notebook debug state when the search input never appears.
 	wait := playwright.LocatorWaitForOptions{Timeout: playwright.Float(blogCoexistenceWaitMS)}
 	if err := page.Locator("input[placeholder='Search notes…']").First().WaitFor(wait); err != nil {
 		debug, debugErr := page.Evaluate(`() => JSON.stringify({
@@ -123,8 +132,10 @@ func waitForNotebookReady(t testing.TB, page playwright.Page, noteTitle string) 
 }
 
 func openNotebookNote(t testing.TB, page playwright.Page, noteTitle string) {
+	// Wait for the notebook row and open the note.
 	t.Helper()
 
+	// Locate the note row within the wait deadline.
 	wait := playwright.LocatorWaitForOptions{Timeout: playwright.Float(blogCoexistenceWaitMS)}
 	row := page.Locator("[data-testid='notes-note-row']:has-text('" + noteTitle + "')").First()
 	if err := row.WaitFor(wait); err != nil {
@@ -139,8 +150,10 @@ func openNotebookNote(t testing.TB, page playwright.Page, noteTitle string) {
 }
 
 func writeSourceNote(t testing.TB, page playwright.Page, content string) {
+	// Switch the note to source mode and fill its content.
 	t.Helper()
 
+	// Click the source toggle and wait for the editor.
 	wait := playwright.LocatorWaitForOptions{Timeout: playwright.Float(blogCoexistenceWaitMS)}
 	sourceBtn := page.Locator("[data-testid='notes-source-toggle'][title='Switch to source']").First()
 	if err := sourceBtn.WaitFor(wait); err != nil {
@@ -150,6 +163,7 @@ func writeSourceNote(t testing.TB, page playwright.Page, content string) {
 		t.Fatalf("click source button: %v", err)
 	}
 
+	// Fill the source editor with the note content.
 	editor := page.Locator("textarea").First()
 	if err := editor.WaitFor(wait); err != nil {
 		t.Fatalf("wait for source editor: %v", err)
@@ -158,6 +172,7 @@ func writeSourceNote(t testing.TB, page playwright.Page, content string) {
 		t.Fatalf("fill source editor: %v", err)
 	}
 
+	// Switch back to WYSIWYG mode to save the note.
 	saveBtn := page.Locator("[data-testid='notes-source-toggle'][title='Switch to WYSIWYG']").First()
 	if err := saveBtn.Click(); err != nil {
 		t.Fatalf("click WYSIWYG button: %v", err)
@@ -208,17 +223,21 @@ func collectNotebookDebug(page playwright.Page) any {
 }
 
 func TestBlogCoexistenceScenario(t *testing.T) {
+	// Start a clean page session and create the blog scenario.
 	sess := harness(t).NewCleanPageSession(t)
 	scenario := createBlogScenario(t, harness(t), sess)
 	page := sess.Page()
 
+	// Open the companion notebook and edit the hello world note.
 	t.Run("notebook edits appear in blog reading view", func(t *testing.T) {
+		// Navigate to the companion notebook.
 		t.Log("open companion notebook")
 		NavigateHash(t, harness(t), page, scenario.objectHash("blog/site-notebook"))
 		waitForNotebookReady(t, page, "Hello World")
 		t.Log("open hello world note")
 		openNotebookNote(t, page, "Hello World")
 
+		// Rewrite the hello world note in source mode.
 		t.Log("edit hello world note in source mode")
 		writeSourceNote(t, page, strings.Join([]string{
 			"---",
@@ -236,6 +255,7 @@ func TestBlogCoexistenceScenario(t *testing.T) {
 			"",
 		}, "\n"))
 
+		// Return to the blog reader and verify the updated post.
 		t.Log("return to blog reader")
 		NavigateHash(t, harness(t), page, scenario.objectHash("blog/site"))
 		waitForBlogReady(t, page, "Shared Update")
@@ -247,11 +267,14 @@ func TestBlogCoexistenceScenario(t *testing.T) {
 		}
 	})
 
+	// Create a new post from blog editing mode and verify it in the notebook.
 	t.Run("blog editor creates published post visible in notebook", func(t *testing.T) {
+		// Open the blog viewer.
 		t.Log("open blog viewer")
 		NavigateHash(t, harness(t), page, scenario.objectHash("blog/site"))
 		waitForBlogReady(t, page, "Shared Update")
 
+		// Create a new post and write it from the blog editor.
 		t.Log("create new post from blog editing mode")
 		if err := page.Locator("button[title='Editing mode']").First().Click(); err != nil {
 			t.Fatalf("switch blog to editing mode: %v", err)
@@ -268,6 +291,7 @@ func TestBlogCoexistenceScenario(t *testing.T) {
 			t.Fatalf("wait for new post editor: %v\ndebug: %v", err, collectNotebookDebug(page))
 		}
 
+		// Write the second post in source mode.
 		writeSourceNote(t, page, strings.Join([]string{
 			"---",
 			"title: Second Post",
@@ -287,26 +311,32 @@ func TestBlogCoexistenceScenario(t *testing.T) {
 			t.Fatalf("wait for edited post content: %v\ndebug: %v", err, collectNotebookDebug(page))
 		}
 
+		// Wait for the published post in the blog reader.
 		t.Log("wait for published post in blog reader")
 		NavigateHash(t, harness(t), page, scenario.objectHash("blog/site"))
 		waitForBlogReady(t, page, "Second Post")
 
+		// Verify the published post appears in the notebook.
 		t.Log("verify published post appears in notebook")
 		NavigateHash(t, harness(t), page, scenario.objectHash("blog/site-notebook"))
 		waitForNotebookReady(t, page, "Second Post")
 	})
 
+	// Verify plain notebook notes stay out of the blog reading view.
 	t.Run("non-blog files stay out of reading view but appear in blog editing mode", func(t *testing.T) {
+		// Create a plain notebook note.
 		t.Log("create plain notebook note")
 		NavigateHash(t, harness(t), page, scenario.objectHash("blog/site-notebook"))
 		waitForNotebookReady(t, page, "")
 
+		// Create a new untitled note in the notebook.
 		newNoteBtn := page.Locator("button[title='New note']").First()
 		if err := newNoteBtn.Click(); err != nil {
 			t.Fatalf("click notebook new note button: %v", err)
 		}
 		waitForNotebookReady(t, page, "untitled")
 
+		// Verify the plain note is hidden in reading mode.
 		t.Log("verify plain note hidden in reading mode")
 		NavigateHash(t, harness(t), page, scenario.objectHash("blog/site"))
 		if err := page.Locator("button[title='Reading mode']").First().Click(); err != nil {
@@ -324,6 +354,7 @@ func TestBlogCoexistenceScenario(t *testing.T) {
 		}
 		waitForBlogReady(t, page, "Second Post")
 
+		// Count untitled entries in the blog reading view.
 		count, err := page.Locator("article h3:has-text('untitled')").Count()
 		if err != nil {
 			t.Fatalf("count untitled entries in reading mode: %v", err)
@@ -332,6 +363,7 @@ func TestBlogCoexistenceScenario(t *testing.T) {
 			t.Fatalf("expected untitled note to be hidden in reading mode, found %d match(es)", count)
 		}
 
+		// Verify the plain note appears in blog editing mode.
 		if err := page.Locator("button[title='Editing mode']").First().Click(); err != nil {
 			t.Fatalf("switch blog to editing mode for note list: %v", err)
 		}

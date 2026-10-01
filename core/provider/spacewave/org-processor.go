@@ -27,6 +27,7 @@ func (a *ProviderAccount) buildOrgProcessorRoutine(orgID string) (keyed.Routine,
 		// Mount the organization shared object for processing.
 		ref := sobject.NewSharedObjectRef(a.GetProviderID(), a.accountID, orgID, SobjectBlockStoreID(orgID))
 
+		// Mount the shared object and stop on a terminal mount error.
 		so, soRef, err := sobject.ExMountSharedObject(ctx, a.p.b, ref, false, nil)
 		if err != nil {
 			if isTerminalSharedObjectMountError(err) {
@@ -184,15 +185,21 @@ func (d *orgProcessorDesiredKeys) syncLocked() {
 func (a *ProviderAccount) orgProcessorKeys(
 	soList *sobject.SharedObjectList,
 ) []string {
+	// Guard against a missing shared-object list.
 	if soList == nil {
 		return nil
 	}
 
+	// Declare the org snapshot read from the broadcast lock.
 	var orgs []*api.OrgResponse
 	var valid bool
+
+	// Snapshot the org list validity and entries under the broadcast lock.
 	a.orgBcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		valid = a.orgListValid
 		orgs = append(orgs, a.orgList...)
 	})
+
+	// Select the processor keys for the visible organizations.
 	return orgprocessor.Keys(soList, orgs, valid)
 }

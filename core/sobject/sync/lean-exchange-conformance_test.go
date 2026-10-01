@@ -18,16 +18,22 @@ import (
 
 // leanSyncExchangeFrame projects body tags and protobuf getter defaults without validating protocol state.
 func leanSyncExchangeFrame(t *testing.T, a *fastjson.Arena, message *SOSyncMessage) *fastjson.Value {
+
+	// helper.
 	t.Helper()
 	if message == nil {
 		return a.NewNull()
 	}
 	kind := leanSyncWriterKind(message)
+
+	// Switch on message.GetBody().(type).
 	switch message.GetBody().(type) {
 	case *SOSyncMessage_Op:
 		kind = 2
 	case *SOSyncMessage_Challenge:
 		kind = 4
+
+	// Perform the action.
 	case *SOSyncMessage_Proof:
 		kind = 5
 	case *SOSyncMessage_HistoryRequest:
@@ -38,12 +44,16 @@ func leanSyncExchangeFrame(t *testing.T, a *fastjson.Arena, message *SOSyncMessa
 	v.Set("head", leanSyncHead(a, message.GetHead()))
 	v.Set("hashBytes", a.NewNumberInt(len(message.GetHead().GetConfigHash())))
 	v.Set("stateHashBytes", a.NewNumberInt(len(message.GetHead().GetStateHash())))
+
+	// newObject request via a.
 	request := a.NewObject()
 	request.Set("revision", a.NewNumberString(strconv.FormatUint(message.GetHistoryRequest().GetRevision(), 10)))
 	request.Set("base", a.NewString(hex.EncodeToString(message.GetHistoryRequest().GetBaseHash())))
 	v.Set("request", request)
 	v.Set("baseBytes", a.NewNumberInt(len(message.GetHistoryRequest().GetBaseHash())))
 	v.Set("page", leanSyncPage(t, a, message))
+
+	// Set via v.
 	v.Set("snapshot", leanSyncSnapshot(a, message.GetSnapshot()))
 	revision := message.GetAck().GetRevision()
 	if message.GetRecoveryRequired() != nil {
@@ -68,6 +78,8 @@ func leanSyncTime(a *fastjson.Arena, value time.Time) *fastjson.Value {
 
 // leanSyncExchange projects the state held exclusively by the production loop.
 func leanSyncExchange(t *testing.T, a *fastjson.Arena, x *syncExchange) *fastjson.Value {
+
+	// helper.
 	t.Helper()
 	v := a.NewObject()
 	for name, state := range map[string]*sobject.SOState{"advertised": x.advertised, "lastAdvertised": x.lastAdvertised} {
@@ -78,6 +90,8 @@ func leanSyncExchange(t *testing.T, a *fastjson.Arena, x *syncExchange) *fastjso
 		v.Set(name, projected)
 	}
 	v.Set("revision", a.NewNumberString(strconv.FormatUint(x.revision, 10)))
+
+	// Set via v.
 	v.Set("remoteRevision", a.NewNumberString(strconv.FormatUint(x.remoteRevision, 10)))
 	v.Set("advertisementDeadline", leanSyncTime(a, x.advertisementDeadline))
 	v.Set("requested", leanSyncBool(a, x.requested))
@@ -86,6 +100,8 @@ func leanSyncExchange(t *testing.T, a *fastjson.Arena, x *syncExchange) *fastjso
 		receiving = leanSyncReceive(t, a, x.receiving)
 		deadline = leanSyncTime(a, x.receiving.deadline)
 	}
+
+	// Set via v.
 	v.Set("receiving", receiving)
 	v.Set("receiveDeadline", deadline)
 	response := a.NewNull()
@@ -93,6 +109,8 @@ func leanSyncExchange(t *testing.T, a *fastjson.Arena, x *syncExchange) *fastjso
 		response = leanSyncResponse(t, a, x.response)
 	}
 	v.Set("response", response)
+
+	// Set via v.
 	v.Set("control", leanSyncExchangeFrame(t, a, x.control))
 	v.Set("outgoing", leanSyncExchangeFrame(t, a, x.outgoing))
 	v.Set("inFlight", leanSyncExchangeFrame(t, a, x.inFlight))
@@ -104,6 +122,8 @@ func leanSyncExchange(t *testing.T, a *fastjson.Arena, x *syncExchange) *fastjso
 func leanSyncExchangeCheck(t *testing.T, x *syncExchange, current *sobject.SOState,
 	message *SOSyncMessage, pump bool, writes *int, name string, loop *leanSyncLoopRun,
 ) leanSyncCase {
+
+	// helper.
 	t.Helper()
 	var a fastjson.Arena
 	before := leanSyncExchange(t, &a, x)
@@ -113,6 +133,8 @@ func leanSyncExchangeCheck(t *testing.T, x *syncExchange, current *sobject.SOSta
 	}
 	var admission, recovery *bool
 	x.sync.peerAdmission = func(_ peer.ID, value bool) { admission = &value }
+
+	// func.
 	x.sync.peerRecovery = func(_ peer.ID, value bool) { recovery = &value }
 	input := a.NewObject()
 	input.Set("now", a.NewNumberInt(0))
@@ -123,6 +145,8 @@ func leanSyncExchangeCheck(t *testing.T, x *syncExchange, current *sobject.SOSta
 		wire = &sobject.SOState{}
 	}
 	wire.Invites, wire.QueuedAccountNonces = nil, nil
+
+	// leanSyncMarshal encoded.
 	encoded := leanSyncMarshal(t, wire)
 	digest := sha256.Sum256(encoded)
 	input.Set("stateBytes", a.NewNumberInt(wire.SizeVT()))
@@ -130,6 +154,8 @@ func leanSyncExchangeCheck(t *testing.T, x *syncExchange, current *sobject.SOSta
 	input.Set("digest", a.NewString(hex.EncodeToString(digest[:])))
 	history := a.NewNull()
 	advertisedEncoded := a.NewNull()
+
+	// Record snapshotBytes.
 	snapshotBytes := 0
 	if x.advertised != nil {
 		entries, err := x.sync.soHost.ReadConfigHistory(t.Context(), message.GetHistoryRequest().GetBaseHash(), x.advertised.GetConfig().GetConfigChainHash())
@@ -157,6 +183,8 @@ func leanSyncExchangeCheck(t *testing.T, x *syncExchange, current *sobject.SOSta
 		}
 	}
 	input.Set("sizes", sizes)
+
+	// Set via input.
 	input.Set("admissionObserver", a.NewTrue())
 	input.Set("recoveryObserver", a.NewTrue())
 	accepted := a.NewObject()
@@ -166,6 +194,8 @@ func leanSyncExchangeCheck(t *testing.T, x *syncExchange, current *sobject.SOSta
 		receiving = &syncReceive{}
 	}
 	accepted.Set("receiving", leanSyncReceive(t, &a, receiving))
+
+	// getSnapshot snapshot via message.
 	snapshot := message.GetSnapshot()
 	accepted.Set("snapshot", leanSyncSnapshot(&a, snapshot))
 	contentDigest := sha256.Sum256(snapshot.GetSoState())
@@ -176,6 +206,8 @@ func leanSyncExchangeCheck(t *testing.T, x *syncExchange, current *sobject.SOSta
 		decoded = leanSyncState(t, &a, x.sync.soID, candidate)
 	}
 	accepted.Set("decoded", decoded)
+
+	// Set via accepted.
 	accepted.Set("candidateBytes", a.NewNumberInt(candidate.SizeVT()))
 	accepted.Set("beforeRead", leanSyncState(t, &a, x.sync.soID, previous))
 	accepted.Set("localPeer", a.NewString(x.sync.localObjectPeerID.String()))
@@ -185,6 +217,8 @@ func leanSyncExchangeCheck(t *testing.T, x *syncExchange, current *sobject.SOSta
 	input.Set("acceptance", accepted)
 	oldAdvertisement := x.advertisementDeadline
 	var oldReceive time.Time
+
+	// Check the condition before continuing.
 	if x.receiving != nil {
 		oldReceive = x.receiving.deadline
 	}
@@ -223,6 +257,8 @@ func leanSyncExchangeCheck(t *testing.T, x *syncExchange, current *sobject.SOSta
 		input.Set("now", preparationNow)
 	}
 	after, readErr := x.sync.soHost.GetHostState(t.Context())
+
+	// Check the condition before continuing.
 	if readErr != nil {
 		t.Fatal(readErr)
 	}
@@ -235,6 +271,8 @@ func leanSyncExchangeCheck(t *testing.T, x *syncExchange, current *sobject.SOSta
 	}
 	request.Set("before", before)
 	projectedCurrent := a.NewNull()
+
+	// Check the condition before continuing.
 	if current != nil {
 		projectedCurrent = leanSyncState(t, &a, x.sync.soID, current)
 	}
@@ -277,6 +315,8 @@ func leanSyncExchangeCheck(t *testing.T, x *syncExchange, current *sobject.SOSta
 		expected.Set("handed", leanSyncExchangeFrame(t, &a, loop.handed))
 	}
 	result.Set("ok", leanSyncBool(&a, err == nil))
+
+	// Set via result.
 	result.Set("state", leanSyncExchange(t, &a, x))
 	dispatched := strings.Contains(logs.String(), "failed to unmarshal remote op")
 	result.Set("operation", leanSyncBool(&a, dispatched))
@@ -323,6 +363,8 @@ func FuzzLeanSyncExchange(f *testing.F) {
 
 // leanSyncExchangeCases exercises both directions using real signed retained history.
 func leanSyncExchangeCases(t *testing.T, seed uint64, withLoop bool) []leanSyncCase {
+
+	// helper.
 	t.Helper()
 	const soID = "lean-sync-exchange"
 	owner, reader := mustKeyPair(t), mustKeyPair(t)
@@ -330,6 +372,8 @@ func leanSyncExchangeCases(t *testing.T, seed uint64, withLoop bool) []leanSyncC
 	sender := newAuthenticationPeer(t, soID, owner, initial)
 	change, err := sobject.BuildSOConfigChange(initial.Config, initial.Config,
 		sobject.SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_ADD_INVITE, owner, nil)
+
+	// Abort on the error.
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -342,6 +386,8 @@ func leanSyncExchangeCases(t *testing.T, seed uint64, withLoop bool) []leanSyncC
 	}
 	target.Root.InnerSeqno = 2 + seed%4
 	signSnapshotRoot(t, soID, target, owner)
+
+	// iDFromPrivateKey localID,err via peer.
 	localID, err := peer.IDFromPrivateKey(reader)
 	if err != nil {
 		t.Fatal(err)
@@ -352,6 +398,8 @@ func leanSyncExchangeCases(t *testing.T, seed uint64, withLoop bool) []leanSyncC
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// syncStateHash digest,err.
 	digest, err := syncStateHash(target)
 	if err != nil {
 		t.Fatal(err)
@@ -381,6 +429,8 @@ func leanSyncExchangeCases(t *testing.T, seed uint64, withLoop bool) []leanSyncC
 			x.receiving = receiving
 		}
 		advertise := func() {
+
+			// Abort if the func fails.
 			if err := host.ApplyConfigChange(t.Context(), change, nil); err != nil {
 				t.Fatal(err)
 			}

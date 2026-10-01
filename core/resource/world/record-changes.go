@@ -17,8 +17,10 @@ func (r *WorldStateResource) CompareObjectRecords(ctx context.Context, req *sdk_
 	if len(req.GetBases()) > 256 {
 		return nil, errors.New("at most 256 watched objects are allowed")
 	}
+	// Initialize the response and iterate the requested watched objects.
 	result := &sdk_world.CompareObjectRecordsResponse{}
 	for _, base := range req.GetBases() {
+		// Start a change record for this watched object.
 		change := &sdk_world.ObjectRecordChanges{ObjectKey: base.GetObjectKey(), Unknown: true}
 		result.Changes = append(result.Changes, change)
 		object, found, err := r.ws.GetObject(ctx, base.GetObjectKey())
@@ -30,6 +32,7 @@ func (r *WorldStateResource) CompareObjectRecords(ctx context.Context, req *sdk_
 			world.ReleaseObjectState(object)
 			continue
 		}
+		// Read the current root reference and release the object state.
 		current, _, err := object.GetRootRef(ctx)
 		world.ReleaseObjectState(object)
 		if err != nil {
@@ -42,8 +45,10 @@ func (r *WorldStateResource) CompareObjectRecords(ctx context.Context, req *sdk_
 		if current.GetEmpty() {
 			continue
 		}
+		// Compare the before and after cursors to find changed keys.
 		err = r.ws.AccessWorldState(ctx, base.GetRootRef(), func(before *bucket_lookup.Cursor) error {
 			return r.ws.AccessWorldState(ctx, current, func(after *bucket_lookup.Cursor) error {
+				// Build transactions over both cursors and diff their keys.
 				_, left := before.BuildTransaction(nil)
 				_, right := after.BuildTransaction(nil)
 				keys, complete, err := kvtx_block.ChangedKeys(ctx, left, right, 16384)

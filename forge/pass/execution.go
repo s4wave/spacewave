@@ -24,6 +24,7 @@ func CreateExecutionWithPass(
 	passObj *Pass,
 	execPeerID peer.ID,
 ) (*bucket.ObjectRef, error) {
+	// Validate the peer ID and object keys.
 	if len(execPeerID) == 0 {
 		return nil, peer.ErrEmptyPeerID
 	}
@@ -31,6 +32,7 @@ func CreateExecutionWithPass(
 		return nil, world.ErrEmptyObjectKey
 	}
 
+	// Follow and validate the pass target reference.
 	tgt, _, err := passObj.FollowTargetRef(ctx, passObjBcs)
 	if err != nil {
 		return nil, err
@@ -39,6 +41,7 @@ func CreateExecutionWithPass(
 		return nil, err
 	}
 
+	// Create the Execution with a copy of the pass value set.
 	valueSet := passObj.GetValueSet().Clone()
 	valueSet.Outputs = nil
 

@@ -56,12 +56,15 @@ func (w *bodyPageTrackingRaceWorldState) GetObjectRootRefsBatch(ctx context.Cont
 }
 
 func (w *bodyPageTrackingRaceWorldState) commitObjectUpdate(ctx context.Context) error {
+
+	// newTransaction updateTx,err.
 	updateTx, err := w.engine.NewTransaction(ctx, true)
 	if err != nil {
 		return err
 	}
 	defer updateTx.Discard()
 
+	// byte body.
 	body := []byte("version-after-page-read")
 	_, _, err = world.AccessWorldObject(ctx, updateTx, w.objectKey, true, func(bcs *block.Cursor) error {
 		bcs.SetBlock(byteslice.NewByteSlice(&body), true)
@@ -74,13 +77,17 @@ func (w *bodyPageTrackingRaceWorldState) commitObjectUpdate(ctx context.Context)
 }
 
 func TestWatchWorldStateBatchedBodyReadTracksAccess(t *testing.T) {
+
+	// background ctx via context.
 	ctx := context.Background()
 	tb, tbCleanup := setupWorldTestbed(ctx, t)
 	defer tbCleanup()
 
+	// setupWorldResourceClient resClient,engine,cleanup.
 	resClient, engine, cleanup := setupWorldResourceClient(ctx, t, tb)
 	defer cleanup()
 
+	// newTransaction writeTx,err via engine.
 	writeTx, err := engine.NewTransaction(ctx, true)
 	if err != nil {
 		t.Fatalf("NewTransaction: %v", err)
@@ -110,6 +117,7 @@ func TestWatchWorldStateBatchedBodyReadTracksAccess(t *testing.T) {
 	defer stream.Close()
 	watchMsg := recvWatchWorldState(t, stream, "initial snapshot")
 
+	// createResourceReference trackedRef via resClient.
 	trackedRef := resClient.CreateResourceReference(watchMsg.GetResourceId())
 	defer trackedRef.Release()
 	trackedClient, err := trackedRef.GetClient()
@@ -117,6 +125,8 @@ func TestWatchWorldStateBatchedBodyReadTracksAccess(t *testing.T) {
 		t.Fatalf("tracked resource client: %v", err)
 	}
 	bodyService := s4wave_world.NewSRPCWorldStateResourceServiceClient(trackedClient)
+
+	// getObjectBodiesBatch bodyStream,err via bodyService.
 	bodyStream, err := bodyService.GetObjectBodiesBatch(ctx, &s4wave_world.GetObjectBodiesBatchRequest{
 		ObjectKeys: []string{objectKey},
 	})
@@ -128,6 +138,8 @@ func TestWatchWorldStateBatchedBodyReadTracksAccess(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GetObjectBodiesBatch page: %v", err)
 	}
+
+	// Check the condition before continuing.
 	if resp.GetWorldSeqno() == 0 {
 		t.Fatal("GetObjectBodiesBatch returned zero world_seqno for nonzero revision")
 	}
@@ -137,6 +149,8 @@ func TestWatchWorldStateBatchedBodyReadTracksAccess(t *testing.T) {
 	}
 	defer updateTx.Release()
 	obj, found, err := updateTx.GetObject(ctx, objectKey)
+
+	// releaseObjectState via world.
 	defer world.ReleaseObjectState(obj)
 	if err != nil {
 		t.Fatalf("GetObject update: %v", err)
@@ -151,6 +165,7 @@ func TestWatchWorldStateBatchedBodyReadTracksAccess(t *testing.T) {
 		t.Fatalf("Commit update: %v", err)
 	}
 
+	// recvWatchWorldState changed.
 	changed := recvWatchWorldState(t, stream, "update after the batched body read and commit")
 	if changed.GetResourceId() == watchMsg.GetResourceId() {
 		t.Fatal("batched body access did not track object changes")
@@ -170,6 +185,8 @@ func recvWatchWorldState(
 	stream s4wave_world.SRPCWatchWorldStateResourceService_WatchWorldStateClient,
 	what string,
 ) *s4wave_world.WatchWorldStateResponse {
+
+	// helper.
 	t.Helper()
 	type watchRecv struct {
 		msg *s4wave_world.WatchWorldStateResponse
@@ -193,10 +210,13 @@ func recvWatchWorldState(
 }
 
 func TestWatchWorldStateBatchedBodyReadTracksPageSnapshotRevision(t *testing.T) {
+
+	// context ctx.
 	ctx := t.Context()
 	tb, tbCleanup := setupWorldTestbed(ctx, t)
 	defer tbCleanup()
 
+	// Perform the action.
 	const objectKey = "batch-followup/snapshot-revision"
 	initialBody := []byte("version-before-page-read")
 	writeTx, err := tb.Engine.NewTransaction(ctx, true)
@@ -204,6 +224,8 @@ func TestWatchWorldStateBatchedBodyReadTracksPageSnapshotRevision(t *testing.T) 
 		t.Fatalf("NewTransaction initial: %v", err)
 	}
 	var createdObject world.ObjectState
+
+	// createWorldObject createdObject,_,err via world.
 	createdObject, _, err = world.CreateWorldObject(ctx, writeTx, objectKey, func(bcs *block.Cursor) error {
 		bcs.SetBlock(byteslice.NewByteSlice(&initialBody), true)
 		return nil
@@ -219,6 +241,7 @@ func TestWatchWorldStateBatchedBodyReadTracksPageSnapshotRevision(t *testing.T) 
 	}
 	writeTx.Discard()
 
+	// newTransaction readTx,err via tb.
 	readTx, err := tb.Engine.NewTransaction(ctx, false)
 	if err != nil {
 		t.Fatalf("NewTransaction read: %v", err)
@@ -229,6 +252,7 @@ func TestWatchWorldStateBatchedBodyReadTracksPageSnapshotRevision(t *testing.T) 
 		t.Fatalf("GetSeqno read: %v", err)
 	}
 
+	// newEngineWorldState liveWs via world.
 	liveWs := world.NewEngineWorldState(tb.Engine, false)
 	trackedCtx, trackedCancel := context.WithCancel(ctx)
 	defer trackedCancel()
@@ -245,6 +269,7 @@ func TestWatchWorldStateBatchedBodyReadTracksPageSnapshotRevision(t *testing.T) 
 	)
 	defer trackedWs.Close()
 
+	// getObjectBodiesBatchPageWithSeqno bodies,_,_,err via trackedWs.
 	bodies, _, _, err := trackedWs.GetObjectBodiesBatchPageWithSeqno(ctx, []string{objectKey}, world.ObjectBodiesBatchByteBudget)
 	if err != nil {
 		t.Fatalf("GetObjectBodiesBatchPageWithSeqno: %v", err)
@@ -253,6 +278,7 @@ func TestWatchWorldStateBatchedBodyReadTracksPageSnapshotRevision(t *testing.T) 
 		t.Fatalf("body page = %+v, want initial body", bodies)
 	}
 
+	// withTimeout waitCtx,waitCancel via context.
 	waitCtx, waitCancel := context.WithTimeout(ctx, time.Second)
 	defer waitCancel()
 	if err := trackedWs.WaitForChanges(waitCtx); err != nil {

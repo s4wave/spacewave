@@ -39,6 +39,7 @@ func (t *TxRetry) GetTxType() TxType {
 // Validate performs a cursory check of the transaction.
 // Note: this should not fetch network data.
 func (t *TxRetry) Validate() error {
+	// Validate the replacement inputs when provided.
 	nextInputs := t.GetNextInputs()
 	if nextInputs == nil {
 		return nil
@@ -61,6 +62,7 @@ func (t *TxRetry) ExecuteTx(
 	bcs *block.Cursor,
 	root *forge_task.Task,
 ) error {
+	// Validate the root task and transaction.
 	if root == nil {
 		return errors.New("unexpected empty root task object")
 	}
@@ -84,12 +86,14 @@ func (t *TxRetry) ExecuteTx(
 		return errors.Errorf("task state %s cannot be retried", root.GetTaskState().String())
 	}
 
+	// Collect the task's passes for the expected nonce.
 	expectedNonce := t.GetExpectedPassNonce()
 	passes, _, passKeys, err := forge_task.CollectTaskPasses(ctx, worldState, objKey)
 	if err != nil {
 		return err
 	}
 
+	// Find the predecessor pass at the expected nonce.
 	var predecessor *forge_pass.Pass
 	var predecessorKey string
 	for i, pass := range passes {
@@ -108,6 +112,7 @@ func (t *TxRetry) ExecuteTx(
 		return errors.Errorf("failed pass %d is not linked to task", expectedNonce)
 	}
 
+	// Require the predecessor pass to be terminal and failed.
 	if predecessor.GetPassState() != forge_pass.State_PassState_COMPLETE {
 		return errors.Errorf("pass %d is not terminal", expectedNonce)
 	}
@@ -115,6 +120,7 @@ func (t *TxRetry) ExecuteTx(
 		return errors.Errorf("pass %d did not fail", expectedNonce)
 	}
 
+	// Require every execution of the failed pass to be complete.
 	execObjs, _, err := forge_pass.CollectPassExecutions(ctx, worldState, predecessorKey)
 	if err != nil {
 		return err
@@ -124,6 +130,7 @@ func (t *TxRetry) ExecuteTx(
 			return errors.Errorf("pass %d execution %d is still live", expectedNonce, i)
 		}
 	}
+
 	// A replay after the transition is a no-op only for the same named inputs.
 	if root.GetTaskState() == forge_task.State_TaskState_PENDING {
 		if sameInputs(root.GetValueSet().GetInputs(), nextInputs.GetInputs()) {
@@ -132,6 +139,7 @@ func (t *TxRetry) ExecuteTx(
 		return errors.New("retry already applied with different inputs")
 	}
 
+	// Rebuild the value set with the retry's inputs.
 	valueSet := root.GetValueSet()
 	if valueSet == nil {
 		valueSet = forge_target.NewValueSet()
@@ -143,6 +151,8 @@ func (t *TxRetry) ExecuteTx(
 	valueSet.Outputs = nil
 	valueSet.SortValues()
 	root.ValueSet = valueSet
+
+	// Reset the task to pending with the retry's inputs and no result.
 	// Result describes the terminal attempt and is invalid on a pending Task.
 	// The failed predecessor retains its Result in the graph history.
 	root.Result = nil

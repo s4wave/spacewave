@@ -12,6 +12,8 @@ import (
 // Deduplicates and combines together multiple entrypoints for the same bundle.
 func BuildViteBundleMeta(bundles []*ViteBundleMeta) ([]*ViteBundleMeta, error) {
 	// bundleMap is the map of bundle-id to bundle-def
+
+	// Collect and merge the bundle declarations by ID.
 	bundleMap := make(map[string]*ViteBundleMeta)
 	for _, bundle := range bundles {
 		bundleID := bundle.GetId()
@@ -37,6 +39,7 @@ func BuildViteBundleMeta(bundles []*ViteBundleMeta) ([]*ViteBundleMeta, error) {
 		}
 	}
 
+	// Sort the merged bundles by ID.
 	out := slices.Collect(maps.Values(bundleMap))
 	slices.SortFunc(out, func(a, b *ViteBundleMeta) int {
 		return strings.Compare(a.GetId(), b.GetId())
@@ -45,6 +48,8 @@ func BuildViteBundleMeta(bundles []*ViteBundleMeta) ([]*ViteBundleMeta, error) {
 }
 
 func appendMissingStrings(base, extra []string) []string {
+
+	// Append each value missing from the base list.
 	for _, value := range extra {
 		if !slices.Contains(base, value) {
 			base = append(base, value)
