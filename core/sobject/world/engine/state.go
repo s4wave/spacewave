@@ -2,6 +2,7 @@ package sobject_world_engine
 
 import (
 	"context"
+	"errors"
 
 	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/s4wave/spacewave/core/sobject"
@@ -77,5 +78,27 @@ func (c *Controller) executeWatchSOStateOnce(
 	if err == nil {
 		c.notifyWrite()
 	}
+	return err
+}
+
+// isReadAccessLoss reports whether err means this participant cannot read the
+// accepted state, which readmission can restore.
+func isReadAccessLoss(err error) bool {
+	return errors.Is(err, sobject.ErrCannotDecode) || errors.Is(err, sobject.ErrNotParticipant)
+}
+
+// waitReadableSnapshot waits for a snapshot whose root this participant can
+// decode. Other snapshot errors end the wait so the caller surfaces them.
+func waitReadableSnapshot(ctx context.Context, soStateCtr ccontainer.Watchable[sobject.SharedObjectStateSnapshot]) error {
+	_, err := soStateCtr.WaitValueWithValidator(ctx, func(snap sobject.SharedObjectStateSnapshot) (bool, error) {
+		if snap == nil {
+			return false, nil
+		}
+		_, err := snap.GetParticipantConfig(ctx)
+		if err == nil {
+			_, err = snap.GetRootInner(ctx)
+		}
+		return !isReadAccessLoss(err), nil
+	}, nil)
 	return err
 }

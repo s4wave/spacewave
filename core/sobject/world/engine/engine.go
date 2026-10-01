@@ -26,16 +26,19 @@ import (
 // Engine is the world engine type.
 type Engine = world.Engine
 
-// StartEngineWithConfig starts the sobject world engine with a config.
-// Waits for the controller to start.
-// Returns a Release function to close the controller when done.
+// StartEngineWithConfig starts the sobject world engine with a config and
+// waits for the controller to run. A failed execution is transient, such as a
+// predecessor engine still holding the write lease or World blocks still in
+// transit, so the wait continues through the loader's retries until ctx ends.
+// rel is called when the controller stops running. Release the reference to
+// stop the controller.
 func StartEngineWithConfig(
 	ctx context.Context,
 	b bus.Bus,
 	conf *Config,
 	rel func(),
 ) (*Controller, directive.Instance, directive.Reference, error) {
-	return loader.WaitExecControllerRunningTyped[*Controller](
+	return loader.WaitExecControllerRunningRetryTyped[*Controller](
 		ctx,
 		b,
 		resolver.NewLoadControllerWithConfig(conf),

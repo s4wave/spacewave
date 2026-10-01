@@ -12,15 +12,18 @@ import (
 )
 
 func TestWorldEngineLeaseLifecycle(t *testing.T) {
+	// Bound the test.
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
+	// Start a testbed for the leases' volume.
 	tb, err := alpha_testbed.Default(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	defer tb.Release()
 
+	// The first engine acquires object-a.
 	soA := &leaseTestSharedObject{
 		blockStore: newTestBlockStore("provider-block-store-a", tb.Volume),
 		id:         "object-a",
@@ -32,12 +35,16 @@ func TestWorldEngineLeaseLifecycle(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// A second engine for object-a waits for the holder.
 	engineB := &Controller{bus: tb.Bus, engineID: "world-y"}
-	_, _, err = engineB.acquireWorldEngineLease(ctx, soA)
-	if err == nil {
-		t.Fatal("second acquisition for object-a succeeded")
+	waitCtx, waitCancel := context.WithTimeout(ctx, 50*time.Millisecond)
+	_, _, err = engineB.acquireWorldEngineLease(waitCtx, soA)
+	waitCancel()
+	if !errors.Is(err, context.DeadlineExceeded) {
+		t.Fatalf("second acquisition for object-a: got %v, want it to wait", err)
 	}
 
+	// The second engine acquires a different object without waiting.
 	soB := &leaseTestSharedObject{
 		blockStore: newTestBlockStore("provider-block-store-b", tb.Volume),
 		id:         "object-b",
@@ -51,14 +58,19 @@ func TestWorldEngineLeaseLifecycle(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// The waiting engine acquires object-a when the holder releases it.
+	acquired := make(chan error, 1)
+	go func() {
+		lease, _, err := engineB.acquireWorldEngineLease(ctx, soA)
+		if err == nil {
+			err = lease.Release(ctx)
+		}
+		acquired <- err
+	}()
 	if err := leaseA.Release(ctx); err != nil {
 		t.Fatal(err.Error())
 	}
-	leaseA, _, err = engineB.acquireWorldEngineLease(ctx, soA)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	if err := leaseA.Release(ctx); err != nil {
+	if err := <-acquired; err != nil {
 		t.Fatal(err.Error())
 	}
 }
@@ -129,11 +141,8 @@ func (v *leaseTestVolume) Capability(context.Context, coord.Scope) (*coord.Capab
 	return &coord.Capability{Supported: true, DetectsLoss: v.detectsLoss}, nil
 }
 
-func (v *leaseTestVolume) TryAcquireWriteLease(
-	context.Context,
-	coord.Scope,
-) (coord.WriteLease, bool, error) {
-	return v.lease, true, nil
+func (v *leaseTestVolume) WaitAcquireWriteLease(context.Context, coord.Scope) (coord.WriteLease, error) {
+	return v.lease, nil
 }
 
 type testWorldEngineLease struct {
