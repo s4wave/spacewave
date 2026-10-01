@@ -587,6 +587,13 @@ export interface GetSessionInfoResponse {
    * @generated from field: s4wave.session.SessionCryptoInfo crypto_info = 3;
    */
   cryptoInfo?: SessionCryptoInfo
+  /**
+   * Username is the verified Spacewave Cloud username of the session's account.
+   * Empty for sessions of other providers.
+   *
+   * @generated from field: string username = 4;
+   */
+  username?: string
 }
 
 export const GetSessionInfoResponse: MessageType<GetSessionInfoResponse> =
@@ -596,6 +603,7 @@ export const GetSessionInfoResponse: MessageType<GetSessionInfoResponse> =
       { no: 1, name: 'session_ref', kind: 'message', T: () => SessionRef },
       { no: 2, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 3, name: 'crypto_info', kind: 'message', T: SessionCryptoInfo },
+      { no: 4, name: 'username', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
   })
 

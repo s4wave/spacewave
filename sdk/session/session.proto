@@ -93,6 +93,9 @@ message GetSessionInfoResponse {
   string peer_id = 2;
   // CryptoInfo contains the session's cryptographic identity info.
   SessionCryptoInfo crypto_info = 3;
+  // Username is the verified Spacewave Cloud username of the session's account.
+  // Empty for sessions of other providers.
+  string username = 4;
 }
 
 // SessionCryptoInfo contains session crypto identity and storage summary.

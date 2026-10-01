@@ -270,12 +270,23 @@ func (r *SessionResource) AccessStateAtom(
 }
 
 // GetSessionInfo returns information about this session.
+// A Spacewave Cloud session reports its account username from the account
+// state, which the provider caches across restarts.
 func (r *SessionResource) GetSessionInfo(ctx context.Context, req *s4wave_session.GetSessionInfoRequest) (*s4wave_session.GetSessionInfoResponse, error) {
 	resp := &s4wave_session.GetSessionInfoResponse{
 		SessionRef: r.session.GetSessionRef(),
 		PeerId:     r.session.GetPeerId().String(),
+		CryptoInfo: r.buildCryptoInfo(),
 	}
-	resp.CryptoInfo = r.buildCryptoInfo()
+
+	// Report the verified username of a Cloud account.
+	if acc, ok := r.session.GetProviderAccount().(*provider_spacewave.ProviderAccount); ok {
+		state, err := acc.GetAccountState(ctx)
+		if err != nil {
+			return nil, errors.Wrap(err, "get account state")
+		}
+		resp.Username = state.GetEntityId()
+	}
 	return resp, nil
 }
 

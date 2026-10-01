@@ -467,6 +467,9 @@ type GetSessionInfoResponse struct {
 	PeerId string `protobuf:"bytes,2,opt,name=peer_id,json=peerId,proto3" json:"peerId,omitempty"`
 	// CryptoInfo contains the session's cryptographic identity info.
 	CryptoInfo *SessionCryptoInfo `protobuf:"bytes,3,opt,name=crypto_info,json=cryptoInfo,proto3" json:"cryptoInfo,omitempty"`
+	// Username is the verified Spacewave Cloud username of the session's account.
+	// Empty for sessions of other providers.
+	Username string `protobuf:"bytes,4,opt,name=username,proto3" json:"username,omitempty"`
 }
 
 func (x *GetSessionInfoResponse) Reset() {
@@ -494,6 +497,13 @@ func (x *GetSessionInfoResponse) GetCryptoInfo() *SessionCryptoInfo {
 		return x.CryptoInfo
 	}
 	return nil
+}
+
+func (x *GetSessionInfoResponse) GetUsername() string {
+	if x != nil {
+		return x.Username
+	}
+	return ""
 }
 
 // SessionCryptoInfo contains session crypto identity and storage summary.
@@ -3742,6 +3752,7 @@ func (m *GetSessionInfoResponse) CloneVT() *GetSessionInfoResponse {
 	}
 	r := new(GetSessionInfoResponse)
 	r.PeerId = m.PeerId
+	r.Username = m.Username
 	r.SessionRef = protobuf_go_lite.CloneVTValue(m.SessionRef)
 	r.CryptoInfo = protobuf_go_lite.CloneVTValue(m.CryptoInfo)
 	if len(m.unknownFields) > 0 {
@@ -5600,6 +5611,9 @@ func (this *GetSessionInfoResponse) EqualVT(that *GetSessionInfoResponse) bool {
 		return false
 	}
 	if !protobuf_go_lite.IsEqualVT(this.CryptoInfo, that.CryptoInfo) {
+		return false
+	}
+	if this.Username != that.Username {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -8466,6 +8480,11 @@ func (x *GetSessionInfoResponse) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("cryptoInfo")
 		x.CryptoInfo.MarshalProtoJSON(s.WithField("cryptoInfo"))
 	}
+	if x.Username != "" || s.HasField("username") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("username")
+		s.WriteString(x.Username)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -8500,6 +8519,9 @@ func (x *GetSessionInfoResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
 			}
 			x.CryptoInfo = &SessionCryptoInfo{}
 			x.CryptoInfo.UnmarshalProtoJSON(s.WithField("crypto_info", true))
+		case "username":
+			s.AddField("username")
+			x.Username = s.ReadString()
 		}
 	})
 }
@@ -14184,6 +14206,11 @@ func (m *GetSessionInfoResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if len(m.Username) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.Username)
+		i--
+		dAtA[i] = 0x22
+	}
 	if m.CryptoInfo != nil {
 		size, err := m.CryptoInfo.MarshalToSizedBufferVT(dAtA[:i])
 		if err != nil {
@@ -19043,6 +19070,7 @@ func (m *GetSessionInfoResponse) SizeVT() (n int) {
 		l = m.CryptoInfo.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Username)
 	n += len(m.unknownFields)
 	return n
 }
@@ -20485,6 +20513,10 @@ func (x *GetSessionInfoResponse) MarshalProtoText() string {
 	if x.CryptoInfo != nil {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "crypto_info")
 		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.CryptoInfo)
+	}
+	if x.Username != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "username")
+		protobuf_go_lite.TextWriteString(&sb, x.Username)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -22668,6 +22700,16 @@ func (m *GetSessionInfoResponse) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Username", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Username = v
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
