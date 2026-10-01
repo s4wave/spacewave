@@ -26,7 +26,6 @@ import (
 	"github.com/s4wave/spacewave/net/sim/tests"
 	stream_srpc_client "github.com/s4wave/spacewave/net/stream/srpc/client"
 	stream_srpc_server "github.com/s4wave/spacewave/net/stream/srpc/server"
-	transport_quic "github.com/s4wave/spacewave/net/transport/common/quic"
 	transport_controller "github.com/s4wave/spacewave/net/transport/controller"
 	"github.com/sirupsen/logrus"
 )
@@ -36,12 +35,13 @@ import (
 // SignalPeer / HandleSignalPeer directive instances, and asserts the
 // established link is retained and still carries traffic.
 func TestLinkSurvivesSignalTrackerRetirement(t *testing.T) {
+	// Log transport activity for diagnosis.
 	ctx := t.Context()
-
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
 
+	// Build the peer graph.
 	g := graph.NewGraph()
 	addPeer := func() *graph.Peer {
 		p, err := graph.GenerateAddPeer(ctx, g)
@@ -60,6 +60,7 @@ func TestLinkSurvivesSignalTrackerRetirement(t *testing.T) {
 		return NewFactory(b)
 	})
 
+	// p1 runs the signaling server.
 	p1 := addPeer()
 	p1.AddFactory(func(b bus.Bus) controller.Factory {
 		return signaling_server.NewFactory(b)
@@ -71,6 +72,7 @@ func TestLinkSurvivesSignalTrackerRetirement(t *testing.T) {
 		},
 	})
 
+	// p2 dials p0 over WebRTC.
 	p2 := addPeer()
 	p2.AddFactory(func(b bus.Bus) controller.Factory {
 		return NewFactory(b)
@@ -79,6 +81,7 @@ func TestLinkSurvivesSignalTrackerRetirement(t *testing.T) {
 		return signaling_rpc_client.NewFactory(b)
 	})
 
+	// Both WebRTC peers signal through p1.
 	signalingID := "webrtc-signaling"
 	signalClientConf := &signaling_rpc_client.Config{
 		SignalingId: signalingID,
@@ -89,6 +92,7 @@ func TestLinkSurvivesSignalTrackerRetirement(t *testing.T) {
 	p0.AddConfig("signaling-client", signalClientConf)
 	p2.AddConfig("signaling-client", signalClientConf)
 
+	// Both WebRTC peers accept any peer except the signaling server.
 	webrtcTptConf := &Config{
 		SignalingId: signalingID,
 		AllPeers:    true,
@@ -98,16 +102,16 @@ func TestLinkSurvivesSignalTrackerRetirement(t *testing.T) {
 	p0.AddConfig("webrtc-tpt", webrtcTptConf)
 	p2.AddConfig("webrtc-tpt", webrtcTptConf)
 
+	// p0 and p2 reach p1 on separate LANs.
 	lan1 := graph.AddLAN(g)
 	lan1.AddPeer(g, p0)
 	lan1.AddPeer(g, p1)
-
 	lan2 := graph.AddLAN(g)
 	lan2.AddPeer(g, p1)
 	lan2.AddPeer(g, p2)
 
+	// Start the simulation.
 	sim := tests.InitSimulator(t, ctx, le, g)
-
 	px0 := sim.GetPeerByID(p0.GetPeerID())
 	px2 := sim.GetPeerByID(p2.GetPeerID())
 
@@ -122,10 +126,12 @@ func TestLinkSurvivesSignalTrackerRetirement(t *testing.T) {
 	}
 	defer esRef.Release()
 
+	// Connect p0 to p2.
 	if err := simulate.TestConnectivity(ctx, px0, px2); err != nil {
 		t.Fatalf("initial connectivity failed: %v", err)
 	}
 
+	// Find p0's WebRTC transport.
 	getTransport := func(px *simulate.Peer) *WebRTC {
 		t.Helper()
 		ctrl, _, rel, err := loader.WaitExecControllerRunningTyped[*transport_controller.Controller](
@@ -153,7 +159,7 @@ func TestLinkSurvivesSignalTrackerRetirement(t *testing.T) {
 
 	// Snapshot the established link this peer is riding.
 	var linkDisposed bool
-	var established *transport_quic.Link
+	var established *Link
 	tpt0.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
 		if tkr, ok := tpt0.sessionTrackers.GetKey(remoteID); ok && tkr != nil {
 			established = tkr.link
@@ -161,6 +167,11 @@ func TestLinkSurvivesSignalTrackerRetirement(t *testing.T) {
 	})
 	if established == nil {
 		t.Fatal("no established link found after initial connectivity")
+	}
+
+	// The peers share host candidates and no relay, so the link is direct.
+	if path := link.GetPath(established); path != link.PathDirect {
+		t.Fatalf("established link path is %v, want direct", path)
 	}
 
 	// Force signal-tracker retirement on both peers: drop each peer's
@@ -212,6 +223,7 @@ func TestLinkSurvivesSignalTrackerRetirement(t *testing.T) {
 		}
 	}
 
+	// The tracker must still hold the established link.
 	if linkDisposed {
 		t.Fatal("established link was disposed when the signal tracker retired")
 	}

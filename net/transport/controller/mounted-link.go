@@ -59,6 +59,12 @@ func (l *mountedLink) GetRemotePeer() peer.ID {
 	return l.link.GetRemotePeer()
 }
 
+// GetPath returns the transport link's current path, or PathUnknown when the
+// transport does not report one.
+func (l *mountedLink) GetPath() link.Path {
+	return link.GetPath(l.link)
+}
+
 // OpenMountedStream opens a stream on the link, with the given parameters.
 func (l *mountedLink) OpenMountedStream(
 	ctx context.Context,
@@ -113,4 +119,7 @@ func (l *mountedLink) OpenMountedStream(
 }
 
 // _ is a type assertion.
-var _ link.MountedLink = (*mountedLink)(nil)
+var (
+	_ link.MountedLink = (*mountedLink)(nil)
+	_ link.PathLink    = (*mountedLink)(nil)
+)

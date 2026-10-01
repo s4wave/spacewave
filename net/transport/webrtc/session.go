@@ -50,7 +50,7 @@ type sessionTracker struct {
 	executionGeneration uint64
 	execution           *sessionTrackerExecution
 	// link contains the current link, if any
-	link *transport_quic.Link
+	link *Link
 	// linkRef holds the transport-owned tracker reference while a published
 	// link is live. The transport session, not the signal-ingress lease, owns
 	// the established-link reference: retiring the ingress lease must not
@@ -177,8 +177,12 @@ func (s *sessionTracker) executeXmitSignal(ctx context.Context, sig *outgoingSig
 	return nil
 }
 
-// executeLink executes the quic link with a data channel.
-func (s *sessionTracker) executeLink(ctx context.Context, dcRwc datachannel.ReadWriteCloser) error {
+// executeLink executes the quic link over a data channel of peerConn.
+func (s *sessionTracker) executeLink(
+	ctx context.Context,
+	peerConn *webrtc.PeerConnection,
+	dcRwc datachannel.ReadWriteCloser,
+) error {
 	// Packet conn: maximum packet size should be larger than the MTU quic uses.
 	// Use one that aligns with one memory page (4096 bytes)
 	// Buffer 8 packets at a time.
@@ -255,8 +259,9 @@ func (s *sessionTracker) executeLink(ctx context.Context, dcRwc datachannel.Read
 
 	// Prepare link-close signaling before constructing the QUIC link.
 	errCh := make(chan error, 1)
-	var nextLink *transport_quic.Link
+	var nextLink *Link
 	var wasClosed atomic.Bool
+
 	// publishedRef is the transport-owned tracker reference this publication
 	// established or reused. The link closure releases it only while it is
 	// still the tracker's owned reference.
@@ -281,7 +286,7 @@ func (s *sessionTracker) executeLink(ctx context.Context, dcRwc datachannel.Read
 	}
 
 	// Construct the link and report any construction failure.
-	nextLink, err = transport_quic.NewLink(
+	quicLink, err := transport_quic.NewLink(
 		ctx,
 		s.le,
 		&transport_quic.Opts{},
@@ -294,6 +299,7 @@ func (s *sessionTracker) executeLink(ctx context.Context, dcRwc datachannel.Read
 	if err != nil {
 		return pkgerrors.Wrap(err, "construct quic link")
 	}
+	nextLink = &Link{Link: quicLink, pc: peerConn}
 	s.le.WithField("quic-role", role).Info("webrtc quic phase: link constructed")
 
 	// Publish the link under the broadcast lock and notify the handler.
@@ -823,7 +829,9 @@ func (s *sessionTracker) execute(ctx context.Context) (err error) {
 			}
 		}),
 	)
-	_, _, _ = linkRoutine.SetStateRoutine(s.executeLink)
+	_, _, _ = linkRoutine.SetStateRoutine(func(ctx context.Context, dcRwc datachannel.ReadWriteCloser) error {
+		return s.executeLink(ctx, sess.pc, dcRwc)
+	})
 
 	xmitRoutine := routine.NewStateRoutineContainer[*outgoingSignal](
 		nil,

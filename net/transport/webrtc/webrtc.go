@@ -288,11 +288,14 @@ func (w *WebRTC) DialPeer(
 		return nil, false, nil
 	}
 
+	// The tracker reference, tracker, link and wait channel come from one
+	// snapshot under the broadcast lock.
 	var ref *keyed.KeyedRef[string, *sessionTracker]
 	var waitCh <-chan struct{}
 	var tkr *sessionTracker
-	var lnk *transport_quic.Link
+	var lnk *Link
 
+	// Add or reuse the session tracker and snapshot its current link.
 	w.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
 		// Add or reuse the keyed session tracker reference.
 		var existed bool
