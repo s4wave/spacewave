@@ -2,6 +2,7 @@ package kvtx
 
 import (
 	"context"
+	"crypto/rand"
 	"errors"
 	"sync"
 
@@ -16,6 +17,8 @@ import (
 	store_kvkey "github.com/s4wave/spacewave/db/store/kvkey"
 	store_kvtx "github.com/s4wave/spacewave/db/store/kvtx"
 	"github.com/s4wave/spacewave/db/volume"
+	"github.com/s4wave/spacewave/net/crypto"
+	"github.com/s4wave/spacewave/net/keypem"
 	"github.com/s4wave/spacewave/net/peer"
 )
 
@@ -238,37 +241,72 @@ func initVolumeSkipGC(
 	noGenerateKey,
 	noWriteKey bool,
 ) (*Volume, error) {
+	// Load the stored identity.
 	peerPriv, err := v.LoadPeerPriv(ctx)
 	if err != nil {
 		return nil, err
 	}
+
+	// Generate an identity when none is stored, and store it unless another
+	// mount of the same store committed one first.
 	if peerPriv == nil {
 		if noGenerateKey {
 			return nil, errors.New("peer private key doesn't exist")
 		}
+		peerPriv, _, err = crypto.GenerateEd25519Key(rand.Reader)
+		if err != nil {
+			return nil, err
+		}
+		if !noWriteKey {
+			peerPriv, err = v.claimPeerPriv(ctx, peerPriv)
+			if err != nil {
+				return nil, err
+			}
+		}
 	}
 
-	// generates private key w/ default type if peerPriv is nil
+	// Build the peer and derive the volume id from its peer id.
 	v.Peer, err = peer.NewPeer(peerPriv)
 	if err != nil {
 		return nil, err
 	}
-
-	npriv, err := v.GetPrivKey(ctx)
-	if err != nil {
-		return nil, err
-	}
-	if !noWriteKey && (peerPriv == nil || !npriv.Equals(peerPriv)) {
-		peerPriv = npriv
-		if err := v.StorePeerPriv(ctx, peerPriv); err != nil {
-			return nil, err
-		}
-	}
-
-	// calcuate the volume id based on the peer id
 	v.volumeID = volume.NewVolumeID(storeID, v.Peer.GetPeerID())
 
 	return v, nil
+}
+
+// claimPeerPriv stores priv as the volume identity unless one is already
+// stored, and returns the stored identity. The check and the write share one
+// write transaction, so concurrent mounts of one store agree on the identity
+// even when their earlier reads saw an older revision.
+func (v *Volume) claimPeerPriv(ctx context.Context, priv crypto.PrivKey) (crypto.PrivKey, error) {
+	// Read the identity under the writer.
+	tx, err := v.kvtxStore.NewTransaction(ctx, true)
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Discard()
+	key := v.kvKey.GetPeerPrivKey()
+	data, found, err := tx.Get(ctx, key)
+	if err != nil {
+		return nil, err
+	}
+	if found && len(data) != 0 {
+		return keypem.ParsePrivKeyPem(data)
+	}
+
+	// Store the new identity.
+	data, err = keypem.MarshalPrivKeyPem(priv)
+	if err != nil {
+		return nil, err
+	}
+	if err := tx.Set(ctx, key, data); err != nil {
+		return nil, err
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return nil, err
+	}
+	return priv, nil
 }
 
 // GetID returns the computed volume id.

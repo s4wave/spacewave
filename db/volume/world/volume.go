@@ -12,8 +12,6 @@ import (
 	"github.com/s4wave/spacewave/db/volume"
 	common_kvtx "github.com/s4wave/spacewave/db/volume/common/kvtx"
 	"github.com/s4wave/spacewave/db/world"
-	"github.com/s4wave/spacewave/net/keypem"
-	"github.com/s4wave/spacewave/net/peer"
 	"github.com/sirupsen/logrus"
 )
 
@@ -58,14 +56,6 @@ func NewVolumeWithEngine(
 	}
 	store := &worldStore{engine: engine, b: b, le: le, sfs: sfs, conf: conf.CloneVT()}
 
-	// Initialize identity while holding the writer that checks its absence.
-	// A second attachment must use the first committed identity.
-	if !conf.GetNoGenerateKey() && !conf.GetNoWriteKey() {
-		if err := initializeIdentity(ctx, store, keys.GetPeerPrivKey()); err != nil {
-			return nil, err
-		}
-	}
-
 	// Wrap the store in a logger when verbose logging is enabled.
 	var loggedStore kvtx.Store = store
 	if conf.GetVerbose() {
@@ -93,40 +83,6 @@ func NewVolumeWithEngine(
 		return nil, err
 	}
 	return &Volume{Volume: bvol, engine: engine}, nil
-}
-
-// initializeIdentity creates the durable identity once across concurrent mounts.
-func initializeIdentity(ctx context.Context, store kvtx.Store, key []byte) error {
-	// Open a write transaction and check the identity key's absence.
-	tx, err := store.NewTransaction(ctx, true)
-	if err != nil {
-		return err
-	}
-	defer tx.Discard()
-	data, found, err := tx.Get(ctx, key)
-	if err != nil || (found && len(data) != 0) {
-		return err
-	}
-
-	// Generate a new peer identity and marshal its private key.
-	p, err := peer.NewPeer(nil)
-	if err != nil {
-		return err
-	}
-	priv, err := p.GetPrivKey(ctx)
-	if err != nil {
-		return err
-	}
-	data, err = keypem.MarshalPrivKeyPem(priv)
-	if err != nil {
-		return err
-	}
-
-	// Store the identity and commit the transaction.
-	if err := tx.Set(ctx, key, data); err != nil {
-		return err
-	}
-	return tx.Commit(ctx)
 }
 
 // Sync fences both Volume blocks and the enclosing World's durable head.
