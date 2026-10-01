@@ -4,10 +4,8 @@ package spacewave_cli
 
 import (
 	"context"
-	"math"
 	"os"
 	"path/filepath"
-	"runtime/debug"
 	"time"
 
 	"github.com/aperturerobotics/cli"
@@ -157,13 +155,6 @@ func runServeCommand(
 			}
 		}
 	}()
-
-	// Bound the daemon's retained Go heap after busy periods while allowing
-	// an explicit GOMEMLIMIT to select a different budget.
-	_, hasMemoryLimit := os.LookupEnv("GOMEMLIMIT")
-	if !hasMemoryLimit && debug.SetMemoryLimit(-1) == math.MaxInt64 {
-		defer debug.SetMemoryLimit(debug.SetMemoryLimit(1 << 30))
-	}
 
 	// Transfer lease cleanup to the bus only after writable construction succeeds.
 	cliBus := getBus()
