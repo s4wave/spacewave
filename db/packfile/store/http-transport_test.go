@@ -341,6 +341,7 @@ func TestPackReaderCanceledLeaderDoesNotPoisonWaiter(t *testing.T) {
 
 // TestPackReaderCloseCancelsTransport verifies owner shutdown releases reads.
 func TestPackReaderCloseCancelsTransport(t *testing.T) {
+	// Hold the transport until the reader closes.
 	started := make(chan struct{})
 	transportDone := make(chan struct{})
 	var calls atomic.Int32
@@ -353,6 +354,7 @@ func TestPackReaderCloseCancelsTransport(t *testing.T) {
 	}))
 	eng.setTransportWindows(8, 8, 8)
 
+	// Close the reader during a read and expect the read to report it.
 	readDone := make(chan error, 1)
 	go func() {
 		_, err := eng.ReaderAt(t.Context()).ReadAt(make([]byte, 8), 0)
@@ -361,8 +363,8 @@ func TestPackReaderCloseCancelsTransport(t *testing.T) {
 	<-started
 	eng.Close()
 	<-transportDone
-	if err := <-readDone; !errors.Is(err, context.Canceled) {
-		t.Fatalf("read error = %v, want context canceled", err)
+	if err := <-readDone; !errors.Is(err, ErrPackReaderClosed) {
+		t.Fatalf("read error = %v, want ErrPackReaderClosed", err)
 	}
 	if got := calls.Load(); got != 1 {
 		t.Fatalf("transport calls = %d, want one", got)

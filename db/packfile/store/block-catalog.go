@@ -25,10 +25,12 @@ const defaultIndexTailInitialWindow = 256 * 1024
 // After a successful load any block already fully covered by resident spans is
 // handed to writeback.
 func (e *PackReader) ensureIndexLoaded(ctx context.Context) error {
+	// Reject canceled demand before touching the reader.
 	if err := ctx.Err(); err != nil {
 		return err
 	}
 
+	// Join the loaded index or an in-flight load, or start one.
 	var loaded, closed, started bool
 	var waitCh chan struct{}
 	var cache IndexCache
@@ -52,7 +54,7 @@ func (e *PackReader) ensureIndexLoaded(ctx context.Context) error {
 		started = true
 	})
 	if closed {
-		return context.Canceled
+		return ErrPackReaderClosed
 	}
 	if loaded {
 		return nil
@@ -61,11 +63,12 @@ func (e *PackReader) ensureIndexLoaded(ctx context.Context) error {
 		e.startIndexLoad(cache)
 	}
 
+	// Wait for the load to finish, the caller to cancel, or the reader to close.
 	select {
 	case <-ctx.Done():
 		return ctx.Err()
 	case <-e.ctx.Done():
-		return context.Canceled
+		return ErrPackReaderClosed
 	case <-waitCh:
 	}
 	var err error
@@ -78,8 +81,10 @@ func (e *PackReader) ensureIndexLoaded(ctx context.Context) error {
 // startIndexLoad loads and publishes the pack index under the PackReader lifetime.
 func (e *PackReader) startIndexLoad(cache IndexCache) {
 	startOwnerWork(func() {
+		// Hold the reader open until this job finishes.
 		defer e.finishOwnerWork()
 
+		// Read the index from the cache, or from the pack tail on a miss.
 		var tail []byte
 		var entries []*kvfile.IndexEntry
 		var err error
@@ -110,11 +115,13 @@ func (e *PackReader) startIndexLoad(cache IndexCache) {
 			}
 		}
 
+		// Publish the loaded index unless the reader closed during the load.
 		var writeback func()
 		e.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+			// A closed reader drops the index; otherwise publish it.
 			loadCh := e.indexLoadCh
 			if e.closed {
-				err = context.Canceled
+				err = ErrPackReaderClosed
 			}
 			if err == nil {
 				e.setIndexEntriesLocked(entries)

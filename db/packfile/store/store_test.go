@@ -712,6 +712,64 @@ func TestPackfileStoreGetBlockExistsHandlesBloomFalsePositive(t *testing.T) {
 	}
 }
 
+// TestPackfileStoreProbeSurvivesManifestChange verifies a lookup whose pack a
+// compaction replaces while the lookup reads it finds the block in the merged
+// pack instead of failing with the closed reader.
+func TestPackfileStoreProbeSurvivesManifestChange(t *testing.T) {
+	// Publish an old pack whose index read waits for its reader to close.
+	ctx := t.Context()
+	packBytes, bloomBytes := buildTestPack(t, map[string][]byte{"a": []byte("alpha-data")})
+	started := make(chan struct{})
+	opener := func(packID string, size int64) (*PackReader, error) {
+		if packID == "merged" {
+			return NewPackReader(packID, size, &bytesTransport{data: packBytes}), nil
+		}
+
+		// Hold the old pack's index read until its reader closes.
+		return NewPackReader(packID, size, TransportFunc(func(ctx context.Context, _ int64, _ int) ([]byte, error) {
+			close(started)
+			<-ctx.Done()
+			return nil, ctx.Err()
+		})), nil
+	}
+	store := NewPackfileStore(opener, nil)
+	entry := func(id string) *packfile.PackfileEntry {
+		return &packfile.PackfileEntry{
+			Id:          id,
+			BloomFilter: bloomBytes,
+			BlockCount:  1,
+			SizeBytes:   uint64(len(packBytes)),
+		}
+	}
+	store.UpdateManifest([]*packfile.PackfileEntry{entry("old")})
+
+	// Probe the old pack, then replace it while the probe reads its index.
+	h, err := hash.Sum(hash.HashType_HashType_SHA256, []byte("alpha-data"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	type result struct {
+		exists bool
+		err    error
+	}
+	done := make(chan result, 1)
+	go func() {
+		exists, err := store.GetBlockExists(ctx, &block.BlockRef{Hash: h})
+		done <- result{exists, err}
+	}()
+	<-started
+	store.UpdateManifest([]*packfile.PackfileEntry{entry("merged")})
+
+	// The probe restarts on the merged pack and finds the block.
+	res := <-done
+	if res.err != nil {
+		t.Fatalf("GetBlockExists: %v", res.err)
+	}
+	if !res.exists {
+		t.Fatal("expected the block in the merged pack")
+	}
+}
+
 func TestPackfileStoreReadsPackWithoutBloom(t *testing.T) {
 	ctx := t.Context()
 	alphaBytes, alphaBloom := buildTestPack(t, map[string][]byte{"alpha": []byte("alpha-data")})
