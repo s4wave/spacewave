@@ -8,12 +8,15 @@ import {
   CLOUD_FEATURES,
   OVERAGE_ITEMS,
   PLAN_PRICE_MONTHLY,
+  READ_OPS_BASELINE_DISPLAY,
+  STORAGE_BASELINE_GB,
+  WRITE_OPS_BASELINE_DISPLAY,
 } from '../provider/spacewave/pricing.js'
 
 export const metadata = {
   title: 'Spacewave Pricing',
   description:
-    'Spacewave is free forever. Add cloud sync, backup, and collaboration for $8/month. 100 GB encrypted storage. Cancel anytime.',
+    'Spacewave is free forever. Add cloud sync, backup, and collaboration for $8/month. 100 GiB encrypted storage. Cancel anytime.',
   canonicalPath: '/pricing',
   ogImage: 'https://cdn.spacewave.app/og-default.png',
   jsonLd: {
@@ -59,11 +62,13 @@ const FAQ_ITEMS = [
     question: 'How does usage-based pricing work?',
     answer: (
       <>
-        Your Cloud plan includes a generous baseline:{' '}
-        <strong className="text-foreground">100 GB</strong> cloud storage, 1
-        million writes, and 10 million cloud reads per month. Most users never
-        exceed this. If you do, overages are billed at cost-plus rates with no
-        surprises.
+        Your Cloud plan includes{' '}
+        <strong className="text-foreground">{STORAGE_BASELINE_GB} GiB</strong>{' '}
+        of cloud storage, {WRITE_OPS_BASELINE_DISPLAY} writes, and{' '}
+        {READ_OPS_BASELINE_DISPLAY} uncached cloud reads per month. Extra usage
+        is billed up to the monthly maximum you choose. When extra usage is off
+        or at its maximum, uploads pause and cloud reads slow down until the
+        allowance resets.
       </>
     ),
   },

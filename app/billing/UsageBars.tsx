@@ -186,18 +186,21 @@ export function UsageBars(props: { actions?: ReactNode }) {
         </p>
         <p>
           A cloud write is a successful sync upload or billed cloud mutation.
-          Many edits can share one upload. Peer-only traffic and cached reads do
-          not consume cloud operation allowances. One GiB is 1,073,741,824
-          bytes.
+          Many edits can share one upload. A cloud read is a sync download or
+          shared-state read answered from cloud storage. Peer-only traffic and
+          cached reads do not consume cloud operation allowances. One GiB is
+          1,073,741,824 bytes.
         </p>
         {accrued + reserved > overageLimit && (
           <p>
             Previously accrued charges and reserved work remain payable. Further
-            extra usage is paused.
+            extra writes are paused, and cloud reads slow to about ten per
+            minute.
           </p>
         )}
         {billingState.selfServiceAllowed && (
           <button
+            type="button"
             className="text-brand underline disabled:opacity-50"
             disabled={saving || !session}
             onClick={() => void changeLimit()}
