@@ -117,7 +117,7 @@ func (s *syncController) mergePacks(ctx context.Context, inputs []*packfile.Pack
 
 	// Apply the manifest delta and record merge telemetry.
 	event := &packfile.PackReplacementEvent{ReplacedPackIds: chunk.replaces}
-	if err := s.applyManifestDelta(ctx, []*packfile.PackfileEntry{chunk.entry}, []*packfile.PackReplacementEvent{event}); err != nil {
+	if err := s.applyManifestDelta(ctx, []*packfile.PackfileEntry{chunk.entry}, []*packfile.PackReplacementEvent{event}, 0); err != nil {
 		return errors.Wrap(err, "applying merge delta")
 	}
 	s.telemetrySafeCall(func(t *ProviderAccount, id string) {

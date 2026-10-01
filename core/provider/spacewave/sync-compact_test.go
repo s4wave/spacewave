@@ -125,7 +125,7 @@ func newCompactTestController(t *testing.T, cloud *compactTestCloud, packs [][]s
 	}
 
 	// Commit the entries to the manifest.
-	if err := mfst.ApplyDelta(ctx, entries, nil); err != nil {
+	if err := mfst.ApplyDelta(ctx, entries, nil, uint64(len(entries))); err != nil {
 		t.Fatalf("apply entries: %v", err)
 	}
 

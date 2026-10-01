@@ -795,19 +795,14 @@ func (a *ProviderAccount) EnumerateBlockRefs(ctx context.Context, bstoreID strin
 	if err != nil {
 		return nil, err
 	}
-	pullData, err := cli.SyncPull(ctx, bstoreID, "")
+
+	// Read every page of the cloud catalog.
+	resp, err := packfile.PullCatalog(ctx, cli, bstoreID)
 	if err != nil {
 		return nil, errors.Wrap(err, "sync pull")
 	}
-	if len(pullData) == 0 {
-		return nil, nil
-	}
 
-	resp := &packfile.PullResponse{}
-	if err := resp.UnmarshalVT(pullData); err != nil {
-		return nil, errors.Wrap(err, "unmarshal pull response")
-	}
-
+	// Collect the packs that replacement events removed.
 	replaced := make(map[string]bool)
 	for _, event := range resp.GetReplacementEvents() {
 		for _, id := range event.GetReplacedPackIds() {

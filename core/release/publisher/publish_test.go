@@ -39,8 +39,8 @@ type failingUpload struct {
 }
 
 // SyncPull returns the cloud pack inventory.
-func (c *failingUpload) SyncPull(context.Context, string, string) ([]byte, error) {
-	return (&packfile.PullResponse{Entries: c.existing}).MarshalVT()
+func (c *failingUpload) SyncPull(context.Context, string, uint64) (*packfile.PullResponse, error) {
+	return &packfile.PullResponse{Entries: c.existing}, nil
 }
 
 // SyncPushData fails before any release root may advance.

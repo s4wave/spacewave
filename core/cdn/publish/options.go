@@ -8,6 +8,7 @@ import (
 
 	spacewave_provider "github.com/s4wave/spacewave/core/provider/spacewave"
 	"github.com/s4wave/spacewave/core/sobject"
+	"github.com/s4wave/spacewave/db/packfile"
 	"github.com/sirupsen/logrus"
 )
 
@@ -15,7 +16,7 @@ import (
 type SessionClient interface {
 	Do(req *http.Request) (*http.Response, error)
 	GetSOState(ctx context.Context, soID string, since uint64, reason spacewave_provider.SeedReason) ([]byte, error)
-	SyncPull(ctx context.Context, resourceID string, since string) ([]byte, error)
+	SyncPull(ctx context.Context, resourceID string, since uint64) (*packfile.PullResponse, error)
 	SyncPushData(ctx context.Context, resourceID string, packID string, blockCount int, packData []byte, bodyHash []byte, bloomFilter []byte, bloomFormatVersion uint32) error
 	PostRoot(ctx context.Context, soID string, root *sobject.SORoot, rejectedOps []*sobject.SOOperationRejection) error
 }

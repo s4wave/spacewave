@@ -1668,8 +1668,9 @@ func TestSessionClientSeedReason(t *testing.T) {
 			name:   "SyncPull",
 			reason: SeedReasonColdSeed,
 			call: func(t *testing.T, cli *SessionClient) error {
-				_, err := cli.SyncPull(context.Background(), "res-1", "")
-				return err
+				// The stub body is not a catalog page; only the header matters.
+				_, _ = cli.SyncPull(context.Background(), "res-1", 0)
+				return nil
 			},
 		},
 		{

@@ -2,11 +2,12 @@
 // @generated from file github.com/s4wave/spacewave/db/packfile/packfile.proto (package packfile, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType } from '@aptre/protobuf-es-lite/message'
-import { createMessageType } from '@aptre/protobuf-es-lite/message'
-import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
-import { Timestamp } from '@aptre/protobuf-es-lite/google/protobuf/timestamp'
-import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
+import type { MessageType } from "@aptre/protobuf-es-lite/message";
+import { createMessageType } from "@aptre/protobuf-es-lite/message";
+import { ScalarType } from "@aptre/protobuf-es-lite/scalar";
+import { Timestamp } from "@aptre/protobuf-es-lite/google/protobuf/timestamp";
+import type { PartialFieldInfo } from "@aptre/protobuf-es-lite/field";
+
 
 /**
  * PackfileEntry describes a single packfile in the manifest.
@@ -19,31 +20,31 @@ export interface PackfileEntry {
    *
    * @generated from field: string id = 1;
    */
-  id?: string
+  id?: string;
   /**
    * BloomFilter is the serialized bloom filter for the packfile.
    *
    * @generated from field: bytes bloom_filter = 2;
    */
-  bloomFilter?: Uint8Array
+  bloomFilter?: Uint8Array;
   /**
    * BlockCount is the number of blocks in the packfile.
    *
    * @generated from field: uint64 block_count = 3;
    */
-  blockCount?: bigint
+  blockCount?: bigint;
   /**
    * SizeBytes is the size of the packfile in bytes.
    *
    * @generated from field: uint64 size_bytes = 4;
    */
-  sizeBytes?: bigint
+  sizeBytes?: bigint;
   /**
    * CreatedAt is the time the packfile was created.
    *
    * @generated from field: google.protobuf.Timestamp created_at = 5;
    */
-  createdAt?: Date
+  createdAt?: Date;
   /**
    * BloomFormatVersion is the encoding version of the bloom_filter bytes.
    * Version 1 means the current serialized Hydra BloomFilter bytes; future
@@ -53,7 +54,7 @@ export interface PackfileEntry {
    *
    * @generated from field: uint32 bloom_format_version = 6;
    */
-  bloomFormatVersion?: number
+  bloomFormatVersion?: number;
   /**
    * Sequence is the monotonic cursor anchor assigned by the cloud DO single
    * writer at insert time. Pull cursors advance over sequence > since. Local
@@ -61,43 +62,38 @@ export interface PackfileEntry {
    *
    * @generated from field: uint64 sequence = 7;
    */
-  sequence?: bigint
+  sequence?: bigint;
   /**
    * SupersededBy is the replacement packfile ID; empty when the row is
    * current.
    *
    * @generated from field: string superseded_by = 8;
    */
-  supersededBy?: string
+  supersededBy?: string;
   /**
    * SupersededAt is the time supersession was recorded; absent when the
    * row is current.
    *
    * @generated from field: google.protobuf.Timestamp superseded_at = 9;
    */
-  supersededAt?: Date
-}
+  supersededAt?: Date;
 
-export const PackfileEntry: MessageType<PackfileEntry> =
-  /* @__PURE__ */ createMessageType({
-    typeName: 'packfile.PackfileEntry',
+};
+
+export const PackfileEntry: MessageType<PackfileEntry> = /* @__PURE__ */ createMessageType({
+    typeName: "packfile.PackfileEntry",
     fields: [
-      { no: 1, name: 'id', kind: 'scalar', T: ScalarType.STRING },
-      { no: 2, name: 'bloom_filter', kind: 'scalar', T: ScalarType.BYTES },
-      { no: 3, name: 'block_count', kind: 'scalar', T: ScalarType.UINT64 },
-      { no: 4, name: 'size_bytes', kind: 'scalar', T: ScalarType.UINT64 },
-      { no: 5, name: 'created_at', kind: 'message', T: () => Timestamp },
-      {
-        no: 6,
-        name: 'bloom_format_version',
-        kind: 'scalar',
-        T: ScalarType.UINT32,
-      },
-      { no: 7, name: 'sequence', kind: 'scalar', T: ScalarType.UINT64 },
-      { no: 8, name: 'superseded_by', kind: 'scalar', T: ScalarType.STRING },
-      { no: 9, name: 'superseded_at', kind: 'message', T: () => Timestamp },
+        { no: 1, name: "id", kind: "scalar", T: ScalarType.STRING },
+        { no: 2, name: "bloom_filter", kind: "scalar", T: ScalarType.BYTES },
+        { no: 3, name: "block_count", kind: "scalar", T: ScalarType.UINT64 },
+        { no: 4, name: "size_bytes", kind: "scalar", T: ScalarType.UINT64 },
+        { no: 5, name: "created_at", kind: "message", T: () => Timestamp },
+        { no: 6, name: "bloom_format_version", kind: "scalar", T: ScalarType.UINT32 },
+        { no: 7, name: "sequence", kind: "scalar", T: ScalarType.UINT64 },
+        { no: 8, name: "superseded_by", kind: "scalar", T: ScalarType.STRING },
+        { no: 9, name: "superseded_at", kind: "message", T: () => Timestamp },
     ] satisfies readonly PartialFieldInfo[],
-  })
+});
 
 /**
  * PackReplacementEvent describes one atomic replacement sequence.
@@ -110,45 +106,35 @@ export interface PackReplacementEvent {
    *
    * @generated from field: uint64 sequence = 1;
    */
-  sequence?: bigint
+  sequence?: bigint;
   /**
    * ReplacedPackIds is the set of packs removed from the active manifest.
    *
    * @generated from field: repeated string replaced_pack_ids = 2;
    */
-  replacedPackIds?: string[]
+  replacedPackIds?: string[];
   /**
    * ReplacementPackIds is the set of packs added by the same replacement.
    *
    * @generated from field: repeated string replacement_pack_ids = 3;
    */
-  replacementPackIds?: string[]
-}
+  replacementPackIds?: string[];
 
-export const PackReplacementEvent: MessageType<PackReplacementEvent> =
-  /* @__PURE__ */ createMessageType({
-    typeName: 'packfile.PackReplacementEvent',
+};
+
+export const PackReplacementEvent: MessageType<PackReplacementEvent> = /* @__PURE__ */ createMessageType({
+    typeName: "packfile.PackReplacementEvent",
     fields: [
-      { no: 1, name: 'sequence', kind: 'scalar', T: ScalarType.UINT64 },
-      {
-        no: 2,
-        name: 'replaced_pack_ids',
-        kind: 'scalar',
-        T: ScalarType.STRING,
-        repeated: true,
-      },
-      {
-        no: 3,
-        name: 'replacement_pack_ids',
-        kind: 'scalar',
-        T: ScalarType.STRING,
-        repeated: true,
-      },
+        { no: 1, name: "sequence", kind: "scalar", T: ScalarType.UINT64 },
+        { no: 2, name: "replaced_pack_ids", kind: "scalar", T: ScalarType.STRING, repeated: true },
+        { no: 3, name: "replacement_pack_ids", kind: "scalar", T: ScalarType.STRING, repeated: true },
     ] satisfies readonly PartialFieldInfo[],
-  })
+});
 
 /**
- * PullResponse is the response to a pull request.
+ * PullResponse is one page of a block store catalog pull. A page holds every
+ * entry and replacement event at each sequence it covers, so the greatest
+ * sequence on the page is the cursor for the next page.
  *
  * @generated from message packfile.PullResponse
  */
@@ -158,43 +144,48 @@ export interface PullResponse {
    *
    * @generated from field: repeated packfile.PackfileEntry entries = 1;
    */
-  entries?: PackfileEntry[]
+  entries?: PackfileEntry[];
   /**
    * ReplacementEvents is the list of atomic replacement events.
    *
    * @generated from field: repeated packfile.PackReplacementEvent replacement_events = 2;
    */
-  replacementEvents?: PackReplacementEvent[]
+  replacementEvents?: PackReplacementEvent[];
   /**
    * LatestSequence is the current monotonic sequence head for the block store,
    * even when Entries and ReplacementEvents are empty for an up-to-date pull.
    *
    * @generated from field: uint64 latest_sequence = 3;
    */
-  latestSequence?: bigint
-}
+  latestSequence?: bigint;
+  /**
+   * More is set when entries or events after this page remain below
+   * LatestSequence.
+   *
+   * @generated from field: bool more = 4;
+   */
+  more?: boolean;
+  /**
+   * Restart is set when the server no longer holds the history after the
+   * requested cursor. The page then starts a full pull from sequence zero,
+   * and the reader drops every pulled pack the full pull does not list.
+   *
+   * @generated from field: bool restart = 5;
+   */
+  restart?: boolean;
 
-export const PullResponse: MessageType<PullResponse> =
-  /* @__PURE__ */ createMessageType({
-    typeName: 'packfile.PullResponse',
+};
+
+export const PullResponse: MessageType<PullResponse> = /* @__PURE__ */ createMessageType({
+    typeName: "packfile.PullResponse",
     fields: [
-      {
-        no: 1,
-        name: 'entries',
-        kind: 'message',
-        T: PackfileEntry,
-        repeated: true,
-      },
-      {
-        no: 2,
-        name: 'replacement_events',
-        kind: 'message',
-        T: PackReplacementEvent,
-        repeated: true,
-      },
-      { no: 3, name: 'latest_sequence', kind: 'scalar', T: ScalarType.UINT64 },
+        { no: 1, name: "entries", kind: "message", T: PackfileEntry, repeated: true },
+        { no: 2, name: "replacement_events", kind: "message", T: PackReplacementEvent, repeated: true },
+        { no: 3, name: "latest_sequence", kind: "scalar", T: ScalarType.UINT64 },
+        { no: 4, name: "more", kind: "scalar", T: ScalarType.BOOL },
+        { no: 5, name: "restart", kind: "scalar", T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-  })
+});
 
 /**
  * PushResponse is the response to a push request.
@@ -207,27 +198,28 @@ export interface PushResponse {
    *
    * @generated from field: string pack_id = 1;
    */
-  packId?: string
+  packId?: string;
   /**
    * AlreadyExists indicates the packfile already existed.
    *
    * @generated from field: bool already_exists = 2;
    */
-  alreadyExists?: boolean
+  alreadyExists?: boolean;
   /**
    * SizeBytes is the size of the packfile in bytes.
    *
    * @generated from field: uint64 size_bytes = 3;
    */
-  sizeBytes?: bigint
-}
+  sizeBytes?: bigint;
 
-export const PushResponse: MessageType<PushResponse> =
-  /* @__PURE__ */ createMessageType({
-    typeName: 'packfile.PushResponse',
+};
+
+export const PushResponse: MessageType<PushResponse> = /* @__PURE__ */ createMessageType({
+    typeName: "packfile.PushResponse",
     fields: [
-      { no: 1, name: 'pack_id', kind: 'scalar', T: ScalarType.STRING },
-      { no: 2, name: 'already_exists', kind: 'scalar', T: ScalarType.BOOL },
-      { no: 3, name: 'size_bytes', kind: 'scalar', T: ScalarType.UINT64 },
+        { no: 1, name: "pack_id", kind: "scalar", T: ScalarType.STRING },
+        { no: 2, name: "already_exists", kind: "scalar", T: ScalarType.BOOL },
+        { no: 3, name: "size_bytes", kind: "scalar", T: ScalarType.UINT64 },
     ] satisfies readonly PartialFieldInfo[],
-  })
+});
+

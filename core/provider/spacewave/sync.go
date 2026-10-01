@@ -6,7 +6,6 @@ import (
 	"encoding/binary"
 	"io"
 	"slices"
-	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -121,18 +120,22 @@ func (s *syncController) applyManifestDelta(
 	ctx context.Context,
 	entries []*packfile.PackfileEntry,
 	events []*packfile.PackReplacementEvent,
+	cursor uint64,
 ) error {
+	// Commit the delta to the manifest under the publication lock.
 	s.manifestMtx.Lock()
 	defer s.manifestMtx.Unlock()
-	if err := s.mfst.ApplyDelta(ctx, entries, events); err != nil {
+	if err := s.mfst.ApplyDelta(ctx, entries, events, cursor); err != nil {
 		return err
 	}
+
+	// Publish the whole catalog the first time.
 	if !s.manifestPublished {
 		s.publishManifestLocked()
 		return nil
 	}
 
-	// Resolve only changed IDs against the accepted local and remote catalogs.
+	// Collect the IDs the delta changed.
 	ids := make(map[string]bool, len(entries))
 	for _, entry := range entries {
 		ids[entry.GetId()] = true
@@ -142,6 +145,8 @@ func (s *syncController) applyManifestDelta(
 			ids[id] = true
 		}
 	}
+
+	// Resolve only changed IDs against the accepted local and remote catalogs.
 	var changed []*packfile.PackfileEntry
 	var removed []string
 	for id := range ids {
@@ -899,7 +904,7 @@ func (s *syncController) prepareLoadedBlocks(blocks []dirtyBlock, emit func(*pre
 // markers of its blocks, so a later failure in the same flush does not push the
 // same blocks again under a different pack.
 func (s *syncController) commitPushedChunk(ctx context.Context, chunk *preparedSyncChunk) error {
-	if err := s.applyManifestDelta(ctx, []*packfile.PackfileEntry{chunk.entry}, nil); err != nil {
+	if err := s.applyManifestDelta(ctx, []*packfile.PackfileEntry{chunk.entry}, nil, 0); err != nil {
 		return errors.Wrap(err, "applying push delta")
 	}
 
@@ -1024,66 +1029,86 @@ func (s *syncController) flush(ctx context.Context, orderBlocks bool) error {
 	return s.flushChunks(ctx, state.GetLastSequence(), orderBlocks)
 }
 
-// pull fetches new packfile entries from the server since the last pull. The
-// caller holds pullMtx or runs before Execute.
+// pull applies the catalog pages after the stored cursor. A restarted pull
+// lists the whole catalog, so it drops every pulled pack the listing omits
+// and stores its cursor only with the final page. The caller holds pullMtx or
+// runs before Execute.
 func (s *syncController) pull(ctx context.Context) error {
-	lastSeq, err := s.mfst.GetLastPullSequence(ctx)
+	since, err := s.mfst.GetLastPullSequence(ctx)
 	if err != nil {
 		return errors.Wrap(err, "getting last pull sequence")
 	}
-	since := ""
-	if lastSeq != 0 {
-		since = strconv.FormatUint(lastSeq, 10)
-	}
 
-	s.telemetrySafeCall(func(t *ProviderAccount, id string) {
-		t.startSyncTelemetryPull(id)
-	})
-	respData, err := s.client.SyncPull(ctx, s.resourceID, since)
-	s.telemetrySafeCall(func(t *ProviderAccount, id string) {
-		t.finishSyncTelemetryPull(id, err)
-	})
-	if err != nil {
-		return errors.Wrap(err, "pulling from server")
-	}
+	// listed holds the packs a restarted pull has listed so far.
+	var listed map[string]bool
+	for {
+		s.telemetrySafeCall(func(t *ProviderAccount, id string) {
+			t.startSyncTelemetryPull(id)
+		})
+		page, err := s.client.SyncPull(ctx, s.resourceID, since)
+		s.telemetrySafeCall(func(t *ProviderAccount, id string) {
+			t.finishSyncTelemetryPull(id, err)
+		})
+		if err != nil {
+			return errors.Wrap(err, "pulling from server")
+		}
+		s.compactWaitPull.Store(false)
 
-	s.compactWaitPull.Store(false)
-	if len(respData) == 0 {
-		return nil
-	}
-
-	resp := &packfile.PullResponse{}
-	if err := resp.UnmarshalVT(respData); err != nil {
-		return errors.Wrap(err, "unmarshaling pull response")
-	}
-
-	entries := resp.GetEntries()
-	events := resp.GetReplacementEvents()
-	latestSequence := resp.GetLatestSequence()
-	if len(entries) == 0 && len(events) == 0 {
-		if latestSequence > lastSeq {
-			if err := s.mfst.SetLastPullSequence(ctx, latestSequence); err != nil {
-				return errors.Wrap(err, "recording empty pull sequence")
+		// Choose the cursor this page completes. A restarted listing stores
+		// none until its final page drops the packs it omitted.
+		if page.GetRestart() {
+			listed = make(map[string]bool)
+		}
+		if listed != nil {
+			for _, entry := range page.GetEntries() {
+				listed[entry.GetId()] = true
 			}
 		}
-		s.recordSyncTelemetryRemoteSequence(latestSequence)
+		next := page.NextCursor()
+		if page.GetMore() && next <= since && !page.GetRestart() {
+			return errors.Errorf("catalog page after %d did not advance", since)
+		}
+		events := page.GetReplacementEvents()
+		var cursor uint64
+		switch {
+		case !page.GetMore():
+			cursor = page.GetLatestSequence()
+			if dropped := s.unlistedPacks(listed); len(dropped) != 0 {
+				events = append(events, &packfile.PackReplacementEvent{ReplacedPackIds: dropped})
+			}
+		case listed == nil:
+			cursor = next
+		}
+
+		if err := s.applyManifestDelta(ctx, page.GetEntries(), events, cursor); err != nil {
+			return errors.Wrap(err, "applying pull delta")
+		}
+		s.le.WithField("entries", len(page.GetEntries())).
+			WithField("replacement-events", len(events)).
+			WithField("restart", page.GetRestart()).
+			Debug("pulled packfile page")
+		if !page.GetMore() {
+			s.recordSyncTelemetryRemoteSequence(page.GetLatestSequence())
+			return nil
+		}
+		since = next
+	}
+}
+
+// unlistedPacks returns the pulled packs a restarted listing omitted. Locally
+// authored entries carry no sequence and stay until a pull replaces them. A
+// nil listing omits nothing.
+func (s *syncController) unlistedPacks(listed map[string]bool) []string {
+	if listed == nil {
 		return nil
 	}
-
-	if err := s.applyManifestDelta(ctx, entries, events); err != nil {
-		return errors.Wrap(err, "applying pull delta")
-	}
-	if latestSequence > lastSeq {
-		if err := s.mfst.SetLastPullSequence(ctx, latestSequence); err != nil {
-			return errors.Wrap(err, "recording pull sequence")
+	var unlisted []string
+	for _, entry := range s.mfst.GetEntries() {
+		if entry.GetSequence() != 0 && !listed[entry.GetId()] {
+			unlisted = append(unlisted, entry.GetId())
 		}
 	}
-	s.recordSyncTelemetryRemoteSequence(latestSequence)
-
-	s.le.WithField("entries", len(entries)).
-		WithField("replacement-events", len(events)).
-		Debug("pulled packfile delta")
-	return nil
+	return unlisted
 }
 
 func (s *syncController) recordSyncTelemetryRemoteSequence(sequence uint64) {

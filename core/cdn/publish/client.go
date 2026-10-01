@@ -15,18 +15,11 @@ import (
 
 // FetchPackEntries reads the pack manifest for a resource-scoped block store.
 func FetchPackEntries(ctx context.Context, client SessionClient, spaceID string) ([]*packfile.PackfileEntry, error) {
-	pullData, err := client.SyncPull(ctx, spaceID, "")
+	catalog, err := packfile.PullCatalog(ctx, client, spaceID)
 	if err != nil {
 		return nil, errors.Wrap(err, "sync pull pack manifest")
 	}
-	if len(pullData) == 0 {
-		return nil, nil
-	}
-	resp := &packfile.PullResponse{}
-	if err := resp.UnmarshalVT(pullData); err != nil {
-		return nil, errors.Wrap(err, "unmarshal pull response")
-	}
-	return resp.GetEntries(), nil
+	return catalog.GetEntries(), nil
 }
 
 // DecodeHeadRef decodes a World head ref from a shared-object state snapshot.

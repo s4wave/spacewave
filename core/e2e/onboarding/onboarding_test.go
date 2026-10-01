@@ -42,6 +42,7 @@ import (
 	"github.com/s4wave/spacewave/core/session"
 	session_controller "github.com/s4wave/spacewave/core/session/controller"
 	"github.com/s4wave/spacewave/core/space"
+	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/packfile"
 	packfile_writer "github.com/s4wave/spacewave/db/packfile/writer"
 	bifcrypto "github.com/s4wave/spacewave/net/crypto"
@@ -1272,6 +1273,7 @@ func TestOrganizationLifecycle(t *testing.T) {
 // pushing it to the cloud block store, and pulling the manifest to confirm
 // the packfile was received.
 func TestBlockStoreSyncPushPull(t *testing.T) {
+	// Scope the test to the shared environment.
 	ctx, cancel := context.WithCancel(env.ctx)
 	t.Cleanup(cancel)
 	b := env.tb.Bus
@@ -1337,13 +1339,13 @@ func TestBlockStoreSyncPushPull(t *testing.T) {
 
 	// Supply each block once to the pack writer.
 	idx := 0
-	iter := func() (*bifhash.Hash, []byte, error) {
+	iter := func() (*bifhash.Hash, *block.StoredBlock, error) {
 		if idx >= len(blocks) {
 			return nil, nil, nil
 		}
 		blk := blocks[idx]
 		idx++
-		return blk.hash, blk.data, nil
+		return blk.hash, &block.StoredBlock{Data: blk.data, RefsKnown: true}, nil
 	}
 
 	// Close the pack before uploading its path and digest.
@@ -1366,16 +1368,12 @@ func TestBlockStoreSyncPushPull(t *testing.T) {
 	t.Logf("pushed pack %s", packID)
 
 	// Pull manifest and verify the pack appears.
-	pullData, err := cli.SyncPull(ctx, bstoreID, "")
+	pullResp, err := cli.SyncPull(ctx, bstoreID, 0)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	// Decode the manifest and locate the uploaded pack.
-	pullResp := &packfile.PullResponse{}
-	if err := pullResp.UnmarshalJSON(pullData); err != nil {
-		t.Fatalf("unmarshal pull response: %v", err)
-	}
+	// Locate the uploaded pack.
 	if len(pullResp.GetEntries()) == 0 {
 		t.Fatal("SyncPull returned no entries after push")
 	}

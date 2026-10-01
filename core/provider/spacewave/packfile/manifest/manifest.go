@@ -155,16 +155,6 @@ func (m *Manifest) GetLastPullSequence(ctx context.Context) (uint64, error) {
 	return sequence, nil
 }
 
-// SetLastPullSequence advances the last-seen monotonic pull sequence cursor.
-func (m *Manifest) SetLastPullSequence(ctx context.Context, sequence uint64) error {
-	m.mtx.Lock()
-	defer m.mtx.Unlock()
-	return kvtx.RunTransaction(ctx, true,
-		func(ctx context.Context) (kvtx.Tx, error) { return m.store.NewTransaction(ctx, true) },
-		func(ctx context.Context, tx kvtx.Tx) error { return advancePullSequence(ctx, tx, sequence) },
-	)
-}
-
 // advancePullSequence atomically preserves the greatest accepted server cursor.
 func advancePullSequence(ctx context.Context, tx kvtx.Tx, sequence uint64) error {
 	if sequence == 0 {
@@ -187,17 +177,21 @@ func advancePullSequence(ctx context.Context, tx kvtx.Tx, sequence uint64) error
 }
 
 // ApplyDelta applies entries and replacement events to the manifest and
-// persists the highest pull sequence cursor. A locally authored entry, which
-// has no sequence, never overwrites a pulled entry for the same pack.
+// advances the pull cursor to cursor in the same transaction. A zero cursor
+// leaves it unchanged. A locally authored entry, which has no sequence, never
+// overwrites a pulled entry for the same pack.
 func (m *Manifest) ApplyDelta(
 	ctx context.Context,
 	entries []*packfile.PackfileEntry,
 	events []*packfile.PackReplacementEvent,
+	cursor uint64,
 ) error {
-	if len(entries) == 0 && len(events) == 0 {
+	// Skip a delta that changes neither the entries nor the cursor.
+	if len(entries) == 0 && len(events) == 0 && cursor == 0 {
 		return nil
 	}
 
+	// Commit the changed entries and the cursor in one store transaction.
 	m.mtx.Lock()
 	defer m.mtx.Unlock()
 	var changed map[string]*packfile.PackfileEntry
@@ -258,31 +252,14 @@ func (m *Manifest) ApplyDelta(
 				changed[entry.GetId()] = entry.CloneVT()
 			}
 
-			// Persist the maximum sequence across entries and replacement events as the
-			// new pull cursor. Locally authored entries carry sequence 0, which never
-			// advances the cursor.
-			var maxSequence uint64
-			for _, entry := range entries {
-				if seq := entry.GetSequence(); seq > maxSequence {
-					maxSequence = seq
-				}
-			}
-			for _, event := range events {
-				if seq := event.GetSequence(); seq > maxSequence {
-					maxSequence = seq
-				}
-			}
-			if err := advancePullSequence(ctx, tx, maxSequence); err != nil {
-				return errors.Wrap(err, "advance pull sequence")
-			}
-
-			return nil
+			return errors.Wrap(advancePullSequence(ctx, tx, cursor), "advance pull sequence")
 		},
 	)
 	if err != nil {
 		return errors.Wrap(err, "applying manifest delta")
 	}
-	// Publish only after the durable transaction succeeds.
+
+	// Publish the changes only after the durable transaction succeeds.
 	for id, entry := range changed {
 		if entry == nil {
 			delete(m.entries, id)
