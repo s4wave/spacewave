@@ -674,6 +674,13 @@ export interface UpdateReadPositionRequest {
    * @generated from field: uint64 next_index = 1;
    */
   nextIndex?: bigint
+  /**
+   * ThreadRootKey limits the position to one timeline when present: a thread
+   * root message key selects that thread, and the empty key the main timeline.
+   *
+   * @generated from field: optional string thread_root_key = 2;
+   */
+  threadRootKey?: string
 }
 
 export const UpdateReadPositionRequest: MessageType<UpdateReadPositionRequest> =
@@ -681,6 +688,13 @@ export const UpdateReadPositionRequest: MessageType<UpdateReadPositionRequest> =
     typeName: 'spacewave.chat.rpc.UpdateReadPositionRequest',
     fields: [
       { no: 1, name: 'next_index', kind: 'scalar', T: ScalarType.UINT64 },
+      {
+        no: 2,
+        name: 'thread_root_key',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+        opt: true,
+      },
     ] satisfies readonly PartialFieldInfo[],
   })
 

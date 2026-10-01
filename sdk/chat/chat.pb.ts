@@ -441,6 +441,13 @@ export interface UpdateChatReadPositionOp {
    * @generated from field: google.protobuf.Timestamp timestamp = 3;
    */
   timestamp?: Date
+  /**
+   * ThreadRootKey limits the receipt to one timeline when present, as in
+   * UpdateReadPositionRequest.
+   *
+   * @generated from field: optional string thread_root_key = 4;
+   */
+  threadRootKey?: string
 }
 
 export const UpdateChatReadPositionOp: MessageType<UpdateChatReadPositionOp> =
@@ -450,5 +457,12 @@ export const UpdateChatReadPositionOp: MessageType<UpdateChatReadPositionOp> =
       { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'next_index', kind: 'scalar', T: ScalarType.UINT64 },
       { no: 3, name: 'timestamp', kind: 'message', T: () => Timestamp },
+      {
+        no: 4,
+        name: 'thread_root_key',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+        opt: true,
+      },
     ] satisfies readonly PartialFieldInfo[],
   })

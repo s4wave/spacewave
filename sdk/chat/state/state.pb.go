@@ -7,6 +7,7 @@ package spacewave_chat_state
 import (
 	fmt "fmt"
 	io "io"
+	maps "maps"
 	slices "slices"
 
 	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
@@ -21,6 +22,11 @@ type ChatReadPosition struct {
 	NextIndex uint64 `protobuf:"varint,1,opt,name=next_index,json=nextIndex,proto3" json:"nextIndex,omitempty"`
 	// UpdatedAt records when this position last advanced.
 	UpdatedAt *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=updated_at,json=updatedAt,proto3" json:"updatedAt,omitempty"`
+	// ThreadPositions are positions that cover only one timeline, keyed by thread
+	// root message key. The empty key is the main timeline: every message outside
+	// a thread. Each advances independently of NextIndex, which covers every
+	// timeline.
+	ThreadPositions map[string]*ChatThreadReadPosition `protobuf:"bytes,3,rep,name=thread_positions,json=threadPositions,proto3" json:"threadPositions,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
 }
 
 func (x *ChatReadPosition) Reset() {
@@ -43,11 +49,91 @@ func (x *ChatReadPosition) GetUpdatedAt() *timestamppb.Timestamp {
 	return nil
 }
 
+func (x *ChatReadPosition) GetThreadPositions() map[string]*ChatThreadReadPosition {
+	if x != nil {
+		return x.ThreadPositions
+	}
+	return nil
+}
+
+// ChatThreadReadPosition is a person's monotonic position within one timeline.
+type ChatThreadReadPosition struct {
+	unknownFields []byte
+	// NextIndex is the first unread channel message index within the timeline.
+	NextIndex uint64 `protobuf:"varint,1,opt,name=next_index,json=nextIndex,proto3" json:"nextIndex,omitempty"`
+	// UpdatedAt records when this position last advanced.
+	UpdatedAt *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=updated_at,json=updatedAt,proto3" json:"updatedAt,omitempty"`
+}
+
+func (x *ChatThreadReadPosition) Reset() {
+	*x = ChatThreadReadPosition{}
+}
+
+func (*ChatThreadReadPosition) ProtoMessage() {}
+
+func (x *ChatThreadReadPosition) GetNextIndex() uint64 {
+	if x != nil {
+		return x.NextIndex
+	}
+	return 0
+}
+
+func (x *ChatThreadReadPosition) GetUpdatedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.UpdatedAt
+	}
+	return nil
+}
+
+type ChatReadPosition_ThreadPositionsEntry struct {
+	unknownFields []byte
+	Key           string                  `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
+	Value         *ChatThreadReadPosition `protobuf:"bytes,2,opt,name=value,proto3" json:"value,omitempty"`
+}
+
+func (x *ChatReadPosition_ThreadPositionsEntry) Reset() {
+	*x = ChatReadPosition_ThreadPositionsEntry{}
+}
+
+func (*ChatReadPosition_ThreadPositionsEntry) ProtoMessage() {}
+
+func (x *ChatReadPosition_ThreadPositionsEntry) GetKey() string {
+	if x != nil {
+		return x.Key
+	}
+	return ""
+}
+
+func (x *ChatReadPosition_ThreadPositionsEntry) GetValue() *ChatThreadReadPosition {
+	if x != nil {
+		return x.Value
+	}
+	return nil
+}
+
 func (m *ChatReadPosition) CloneVT() *ChatReadPosition {
 	if m == nil {
 		return (*ChatReadPosition)(nil)
 	}
 	r := new(ChatReadPosition)
+	r.NextIndex = m.NextIndex
+	r.UpdatedAt = protobuf_go_lite.CloneVTValue(m.UpdatedAt)
+	r.ThreadPositions = protobuf_go_lite.CloneVTMap(m.ThreadPositions)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *ChatReadPosition) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *ChatThreadReadPosition) CloneVT() *ChatThreadReadPosition {
+	if m == nil {
+		return (*ChatThreadReadPosition)(nil)
+	}
+	r := new(ChatThreadReadPosition)
 	r.NextIndex = m.NextIndex
 	r.UpdatedAt = protobuf_go_lite.CloneVTValue(m.UpdatedAt)
 	if len(m.unknownFields) > 0 {
@@ -56,7 +142,7 @@ func (m *ChatReadPosition) CloneVT() *ChatReadPosition {
 	return r
 }
 
-func (m *ChatReadPosition) CloneMessageVT() protobuf_go_lite.CloneMessage {
+func (m *ChatThreadReadPosition) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -72,6 +158,9 @@ func (this *ChatReadPosition) EqualVT(that *ChatReadPosition) bool {
 	if !protobuf_go_lite.IsEqualVT(this.UpdatedAt, that.UpdatedAt) {
 		return false
 	}
+	if !protobuf_go_lite.EqualVTMapImplicit(this.ThreadPositions, that.ThreadPositions, func() *ChatThreadReadPosition { return &ChatThreadReadPosition{} }) {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -81,6 +170,83 @@ func (this *ChatReadPosition) EqualMessageVT(thatMsg any) bool {
 		return false
 	}
 	return this.EqualVT(that)
+}
+
+func (this *ChatThreadReadPosition) EqualVT(that *ChatThreadReadPosition) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.NextIndex != that.NextIndex {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.UpdatedAt, that.UpdatedAt) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *ChatThreadReadPosition) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*ChatThreadReadPosition)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+// MarshalProtoJSON marshals the ChatReadPosition_ThreadPositionsEntry message to JSON.
+func (x *ChatReadPosition_ThreadPositionsEntry) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Key != "" || s.HasField("key") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("key")
+		s.WriteString(x.Key)
+	}
+	if x.Value != nil || s.HasField("value") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("value")
+		x.Value.MarshalProtoJSON(s.WithField("value"))
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the ChatReadPosition_ThreadPositionsEntry to JSON.
+func (x *ChatReadPosition_ThreadPositionsEntry) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the ChatReadPosition_ThreadPositionsEntry message from JSON.
+func (x *ChatReadPosition_ThreadPositionsEntry) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "key":
+			s.AddField("key")
+			x.Key = s.ReadString()
+		case "value":
+			if s.ReadNil() {
+				x.Value = nil
+				return
+			}
+			x.Value = &ChatThreadReadPosition{}
+			x.Value.UnmarshalProtoJSON(s.WithField("value", true))
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the ChatReadPosition_ThreadPositionsEntry from JSON.
+func (x *ChatReadPosition_ThreadPositionsEntry) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
 // MarshalProtoJSON marshals the ChatReadPosition message to JSON.
@@ -100,6 +266,19 @@ func (x *ChatReadPosition) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteMoreIf(&wroteField)
 		s.WriteObjectField("updatedAt")
 		x.UpdatedAt.MarshalProtoJSON(s.WithField("updatedAt"))
+	}
+	if x.ThreadPositions != nil || s.HasField("threadPositions") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("threadPositions")
+		s.WriteObjectStart()
+		var wroteElement bool
+		for _, k := range slices.Sorted(maps.Keys(x.ThreadPositions)) {
+			v := x.ThreadPositions[k]
+			s.WriteMoreIf(&wroteElement)
+			s.WriteObjectStringField(k)
+			v.MarshalProtoJSON(s.WithField("threadPositions"))
+		}
+		s.WriteObjectEnd()
 	}
 	s.WriteObjectEnd()
 }
@@ -128,12 +307,78 @@ func (x *ChatReadPosition) UnmarshalProtoJSON(s *json.UnmarshalState) {
 			}
 			x.UpdatedAt = &timestamppb.Timestamp{}
 			x.UpdatedAt.UnmarshalProtoJSON(s.WithField("updated_at", true))
+		case "thread_positions", "threadPositions":
+			s.AddField("thread_positions")
+			if s.ReadNil() {
+				x.ThreadPositions = nil
+				return
+			}
+			x.ThreadPositions = make(map[string]*ChatThreadReadPosition)
+			s.ReadStringMap(func(key string) {
+				var v ChatThreadReadPosition
+				v.UnmarshalProtoJSON(s)
+				x.ThreadPositions[key] = &v
+			})
 		}
 	})
 }
 
 // UnmarshalJSON unmarshals the ChatReadPosition from JSON.
 func (x *ChatReadPosition) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the ChatThreadReadPosition message to JSON.
+func (x *ChatThreadReadPosition) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.NextIndex != 0 || s.HasField("nextIndex") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("nextIndex")
+		s.WriteUint64(x.NextIndex)
+	}
+	if x.UpdatedAt != nil || s.HasField("updatedAt") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("updatedAt")
+		x.UpdatedAt.MarshalProtoJSON(s.WithField("updatedAt"))
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the ChatThreadReadPosition to JSON.
+func (x *ChatThreadReadPosition) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the ChatThreadReadPosition message from JSON.
+func (x *ChatThreadReadPosition) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "next_index", "nextIndex":
+			s.AddField("next_index")
+			x.NextIndex = s.ReadUint64()
+		case "updated_at", "updatedAt":
+			if s.ReadNil() {
+				x.UpdatedAt = nil
+				return
+			}
+			x.UpdatedAt = &timestamppb.Timestamp{}
+			x.UpdatedAt.UnmarshalProtoJSON(s.WithField("updated_at", true))
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the ChatThreadReadPosition from JSON.
+func (x *ChatThreadReadPosition) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -156,6 +401,73 @@ func (m *ChatReadPosition) MarshalToVT(dAtA []byte) (int, error) {
 }
 
 func (m *ChatReadPosition) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.ThreadPositions) > 0 {
+		for k := range m.ThreadPositions {
+			v := m.ThreadPositions[k]
+			baseI := i
+			size, err := v.MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x12
+			i = protobuf_go_lite.EncodeString(dAtA, i, k)
+			i--
+			dAtA[i] = 0xa
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(baseI-i))
+			i--
+			dAtA[i] = 0x1a
+		}
+	}
+	if m.UpdatedAt != nil {
+		size, err := m.UpdatedAt.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x12
+	}
+	if m.NextIndex != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.NextIndex))
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *ChatThreadReadPosition) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ChatThreadReadPosition) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *ChatThreadReadPosition) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m == nil {
 		return 0, nil
 	}
@@ -195,8 +507,51 @@ func (m *ChatReadPosition) SizeVT() (n int) {
 		l = m.UpdatedAt.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
+	for k, v := range m.ThreadPositions {
+		_ = k
+		_ = v
+		l = 0
+		if v != nil {
+			l = v.SizeVT()
+		}
+		mapEntrySize := protobuf_go_lite.SizeStringValue(1, k) + protobuf_go_lite.SizeMessage(1, l)
+		n += protobuf_go_lite.SizeMessage(1, mapEntrySize)
+	}
 	n += len(m.unknownFields)
 	return n
+}
+
+func (m *ChatThreadReadPosition) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.NextIndex)
+	if m.UpdatedAt != nil {
+		l = m.UpdatedAt.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (x *ChatReadPosition_ThreadPositionsEntry) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "ThreadPositionsEntry")
+	if x.Key != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "key")
+		protobuf_go_lite.TextWriteString(&sb, x.Key)
+	}
+	if x.Value != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "value")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Value)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *ChatReadPosition_ThreadPositionsEntry) String() string {
+	return x.MarshalProtoText()
 }
 
 func (x *ChatReadPosition) MarshalProtoText() string {
@@ -210,10 +565,43 @@ func (x *ChatReadPosition) MarshalProtoText() string {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "updated_at")
 		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.UpdatedAt)
 	}
+	if len(x.ThreadPositions) > 0 {
+		protobuf_go_lite.TextWriteMapStart(&sb, initialLen, "thread_positions")
+		for _, k := range slices.Sorted(maps.Keys(x.ThreadPositions)) {
+			v := x.ThreadPositions[k]
+			protobuf_go_lite.TextWriteMapEntryPrefix(&sb)
+			protobuf_go_lite.TextWriteString(&sb, k)
+			protobuf_go_lite.TextWriteMapKeyValueSeparator(&sb)
+			if v == nil {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, &ChatThreadReadPosition{})
+			} else {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, v)
+			}
+		}
+		protobuf_go_lite.TextWriteMapEnd(&sb)
+	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
 
 func (x *ChatReadPosition) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *ChatThreadReadPosition) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "ChatThreadReadPosition")
+	if x.NextIndex != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "next_index")
+		protobuf_go_lite.TextWriteUint(&sb, x.NextIndex)
+	}
+	if x.UpdatedAt != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "updated_at")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.UpdatedAt)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *ChatThreadReadPosition) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -235,6 +623,120 @@ func (m *ChatReadPosition) UnmarshalVT(dAtA []byte) error {
 		}
 		if fieldNum <= 0 {
 			return fmt.Errorf("proto: ChatReadPosition: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field NextIndex", wireType)
+			}
+			m.NextIndex = 0
+			m.NextIndex, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field UpdatedAt", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.UpdatedAt == nil {
+				m.UpdatedAt = &timestamppb.Timestamp{}
+			}
+			if err := m.UpdatedAt.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ThreadPositions", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			iNdEx = msgStart
+			if m.ThreadPositions == nil {
+				m.ThreadPositions = make(map[string]*ChatThreadReadPosition)
+			}
+			var mapkey string
+			var mapvalue *ChatThreadReadPosition
+			for iNdEx < postIndex {
+				entryPreIndex := iNdEx
+				var wire uint64
+				wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+				if err != nil {
+					return err
+				}
+				fieldNum := int32(wire >> 3)
+				if fieldNum == 1 {
+					mapkey, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+					if err != nil {
+						return err
+					}
+				} else if fieldNum == 2 {
+					msgStartmapvalue, postmsgIndexmapvalue, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+					if err != nil {
+						return err
+					}
+					mapvalue = &ChatThreadReadPosition{}
+					if err := mapvalue.UnmarshalVT(dAtA[msgStartmapvalue:postmsgIndexmapvalue]); err != nil {
+						return err
+					}
+					iNdEx = postmsgIndexmapvalue
+				} else {
+					iNdEx = entryPreIndex
+					iNdEx, err = protobuf_go_lite.SkipWithin(dAtA, iNdEx, postIndex)
+					if err != nil {
+						return err
+					}
+				}
+			}
+			m.ThreadPositions[mapkey] = mapvalue
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *ChatThreadReadPosition) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ChatThreadReadPosition: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ChatThreadReadPosition: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		case 1:

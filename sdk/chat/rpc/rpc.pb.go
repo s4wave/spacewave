@@ -618,6 +618,9 @@ type UpdateReadPositionRequest struct {
 	unknownFields []byte
 	// NextIndex is the first unread index, bounded by the channel's message count.
 	NextIndex uint64 `protobuf:"varint,1,opt,name=next_index,json=nextIndex,proto3" json:"nextIndex,omitempty"`
+	// ThreadRootKey limits the position to one timeline when present: a thread
+	// root message key selects that thread, and the empty key the main timeline.
+	ThreadRootKey *string `protobuf:"bytes,2,opt,name=thread_root_key,json=threadRootKey,proto3,oneof" json:"threadRootKey,omitempty"`
 }
 
 func (x *UpdateReadPositionRequest) Reset() {
@@ -631,6 +634,13 @@ func (x *UpdateReadPositionRequest) GetNextIndex() uint64 {
 		return x.NextIndex
 	}
 	return 0
+}
+
+func (x *UpdateReadPositionRequest) GetThreadRootKey() string {
+	if x != nil && x.ThreadRootKey != nil {
+		return *x.ThreadRootKey
+	}
+	return ""
 }
 
 // UpdateReadPositionResponse reports the retained position, including unchanged retries.
@@ -998,6 +1008,7 @@ func (m *UpdateReadPositionRequest) CloneVT() *UpdateReadPositionRequest {
 	}
 	r := new(UpdateReadPositionRequest)
 	r.NextIndex = m.NextIndex
+	r.ThreadRootKey = protobuf_go_lite.ClonePtr(m.ThreadRootKey)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -1466,6 +1477,9 @@ func (this *UpdateReadPositionRequest) EqualVT(that *UpdateReadPositionRequest) 
 		return false
 	}
 	if this.NextIndex != that.NextIndex {
+		return false
+	}
+	if !protobuf_go_lite.EqualPtr(this.ThreadRootKey, that.ThreadRootKey) {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -2660,6 +2674,11 @@ func (x *UpdateReadPositionRequest) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("nextIndex")
 		s.WriteUint64(x.NextIndex)
 	}
+	if x.ThreadRootKey != nil {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("threadRootKey")
+		s.WriteString(*x.ThreadRootKey)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -2680,6 +2699,14 @@ func (x *UpdateReadPositionRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "next_index", "nextIndex":
 			s.AddField("next_index")
 			x.NextIndex = s.ReadUint64()
+		case "thread_root_key", "threadRootKey":
+			s.AddField("thread_root_key")
+			if s.ReadNil() {
+				x.ThreadRootKey = nil
+				return
+			}
+			t := s.ReadString()
+			x.ThreadRootKey = &t
 		}
 	})
 }
@@ -3633,6 +3660,11 @@ func (m *UpdateReadPositionRequest) MarshalToSizedBufferVT(dAtA []byte) (int, er
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.ThreadRootKey != nil {
+		i = protobuf_go_lite.EncodeString(dAtA, i, *m.ThreadRootKey)
+		i--
+		dAtA[i] = 0x12
+	}
 	if m.NextIndex != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.NextIndex))
 		i--
@@ -3955,6 +3987,7 @@ func (m *UpdateReadPositionRequest) SizeVT() (n int) {
 	var l int
 	_ = l
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.NextIndex)
+	n += protobuf_go_lite.SizeStringPtr(1, m.ThreadRootKey)
 	n += len(m.unknownFields)
 	return n
 }
@@ -4392,6 +4425,10 @@ func (x *UpdateReadPositionRequest) MarshalProtoText() string {
 	if x.NextIndex != 0 {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "next_index")
 		protobuf_go_lite.TextWriteUint(&sb, x.NextIndex)
+	}
+	if x.ThreadRootKey != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "thread_root_key")
+		protobuf_go_lite.TextWriteString(&sb, *x.ThreadRootKey)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -5726,6 +5763,16 @@ func (m *UpdateReadPositionRequest) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ThreadRootKey", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.ThreadRootKey = &v
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

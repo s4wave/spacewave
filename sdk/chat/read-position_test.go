@@ -6,6 +6,7 @@ import (
 	"github.com/s4wave/spacewave/db/world"
 	world_testbed "github.com/s4wave/spacewave/db/world/testbed"
 	chat_rpc "github.com/s4wave/spacewave/sdk/chat/rpc"
+	chat_state "github.com/s4wave/spacewave/sdk/chat/state"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -83,5 +84,53 @@ func TestReadPositionFollowsPersonAcrossDevices(t *testing.T) {
 	}
 	if _, err := resumed.UpdateReadPosition(ctx, &chat_rpc.UpdateReadPositionRequest{NextIndex: 4}); err == nil {
 		t.Fatal("receipt advanced beyond the retained history")
+	}
+}
+
+// TestThreadReadPositions advances timeline positions independently of the
+// channel position, which drops the timeline positions it passes.
+func TestThreadReadPositions(t *testing.T) {
+	// Build a channel with a thread root, one reply, and a main message.
+	ctx := t.Context()
+	tb := world_testbed.MustDefault(t, ctx)
+	ws := world.NewEngineWorldState(tb.Engine, true)
+	createChatChannel(t, ctx, ws, GeneralChannelKey, "General")
+	alice := newChatResourceForPerson(t, ws, tb.Engine, GeneralChannelKey, "alice-device", "alice")
+	root := sendThreadTestEvent(t, ctx, alice, "root", nil)
+	sendThreadTestEvent(t, ctx, alice, "reply", &ChatRelation{Type: "m.thread", TargetKey: root})
+	sendThreadTestEvent(t, ctx, alice, "main", nil)
+
+	// Each update returns the person's retained position.
+	update := func(nextIndex uint64, threadRootKey *string) *chat_state.ChatReadPosition {
+		t.Helper()
+		response, err := alice.UpdateReadPosition(ctx, &chat_rpc.UpdateReadPositionRequest{NextIndex: nextIndex, ThreadRootKey: threadRootKey})
+		if err != nil {
+			t.Fatal(err)
+		}
+		return response.GetPosition()
+	}
+
+	// Main and thread positions advance without moving each other or the channel position.
+	main := ""
+	update(1, &main)
+	position := update(2, &root)
+	if position.GetNextIndex() != 0 || position.GetThreadPositions()[""].GetNextIndex() != 1 || position.GetThreadPositions()[root].GetNextIndex() != 2 {
+		t.Fatalf("timeline positions did not advance independently: %v", position)
+	}
+	if position := update(1, &root); position.GetThreadPositions()[root].GetNextIndex() != 2 {
+		t.Fatal("older thread receipt moved its position backwards")
+	}
+	other := GeneralChannelKey + "/message/missing"
+	if _, err := alice.UpdateReadPosition(ctx, &chat_rpc.UpdateReadPositionRequest{NextIndex: 1, ThreadRootKey: &other}); err == nil {
+		t.Fatal("receipt accepted a missing thread root")
+	}
+
+	// The channel position subsumes the main position it passes and keeps the thread ahead of it.
+	position = update(1, nil)
+	if position.GetNextIndex() != 1 || len(position.GetThreadPositions()) != 1 || position.GetThreadPositions()[root].GetNextIndex() != 2 {
+		t.Fatalf("channel receipt kept a subsumed timeline position: %v", position)
+	}
+	if position := update(1, &main); position.GetThreadPositions()[""] != nil {
+		t.Fatal("timeline receipt behind the channel position was retained")
 	}
 }

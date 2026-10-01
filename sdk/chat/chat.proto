@@ -121,4 +121,7 @@ message UpdateChatReadPositionOp {
   uint64 next_index = 2;
   // Timestamp is chosen when the receipt is submitted.
   .google.protobuf.Timestamp timestamp = 3;
+  // ThreadRootKey limits the receipt to one timeline when present, as in
+  // UpdateReadPositionRequest.
+  optional string thread_root_key = 4;
 }
