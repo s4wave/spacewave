@@ -108,14 +108,21 @@ type blockEventPub struct {
 // largeScenarioProgressEvery bounds progress-report frequency during large transfers.
 const largeScenarioProgressEvery = 8 * 1024 * 1024
 
-// main runs one selected worker scenario and reports its terminal result.
+// main runs one selected worker scenario, reports its terminal result, and
+// waits for the harness to terminate the worker.
 func main() {
+	// Run the selected scenario and publish its result.
 	start := time.Now()
 	c, err := parseConfig(testArgs())
 	if err == nil {
 		err = run(context.Background(), c)
 	}
 	postResult(c, time.Since(start), err)
+
+	// Stay alive until the harness terminates the worker on the result.
+	// Controllers a scenario started keep running, and a JS callback they
+	// await would throw "Go program has already exited" if main returned.
+	select {}
 }
 
 // testArgs returns process arguments or the browser harness fallback.
