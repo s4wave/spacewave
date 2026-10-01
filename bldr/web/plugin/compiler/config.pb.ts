@@ -39,6 +39,7 @@ export enum QuitPolicy {
 export const QuitPolicy_Enum = /* @__PURE__ */ createEnumType(
   'bldr.web.plugin.compiler.QuitPolicy',
   QuitPolicy,
+  'QUIT_POLICY_',
 )
 
 /**
@@ -74,6 +75,7 @@ export enum DesktopPresencePolicy {
 export const DesktopPresencePolicy_Enum = /* @__PURE__ */ createEnumType(
   'bldr.web.plugin.compiler.DesktopPresencePolicy',
   DesktopPresencePolicy,
+  'DESKTOP_PRESENCE_POLICY_',
 )
 
 /**

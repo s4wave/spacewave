@@ -82,6 +82,7 @@ export enum WebRenderer {
 export const WebRenderer_Enum = /* @__PURE__ */ createEnumType(
   'web.runtime.WebRenderer',
   WebRenderer,
+  'WEB_RENDERER_',
 )
 
 /**

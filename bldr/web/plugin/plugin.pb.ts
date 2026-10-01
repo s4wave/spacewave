@@ -41,6 +41,7 @@ export enum DesktopPresenceState {
 export const DesktopPresenceState_Enum = /* @__PURE__ */ createEnumType(
   'bldr.web.plugin.DesktopPresenceState',
   DesktopPresenceState,
+  'DESKTOP_PRESENCE_STATE_',
 )
 
 /**

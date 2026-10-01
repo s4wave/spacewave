@@ -61,6 +61,7 @@ export enum RbacGrantMutationAction {
 export const RbacGrantMutationAction_Enum = /* @__PURE__ */ createEnumType(
   'provider.spacewave.RbacGrantMutationAction',
   RbacGrantMutationAction,
+  'RBAC_GRANT_MUTATION_ACTION_',
 )
 
 /**
@@ -101,6 +102,7 @@ export enum RbacGrantMutationOutcome {
 export const RbacGrantMutationOutcome_Enum = /* @__PURE__ */ createEnumType(
   'provider.spacewave.RbacGrantMutationOutcome',
   RbacGrantMutationOutcome,
+  'RBAC_GRANT_MUTATION_OUTCOME_',
 )
 
 /**

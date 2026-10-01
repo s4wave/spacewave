@@ -54,6 +54,7 @@ export enum GoCompiler {
 export const GoCompiler_Enum = /* @__PURE__ */ createEnumType(
   'bldr.plugin.compiler.go.GoCompiler',
   GoCompiler,
+  'GO_COMPILER_',
 )
 
 /**

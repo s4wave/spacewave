@@ -32,6 +32,7 @@ export enum ExternalLinks {
 export const ExternalLinks_Enum = /* @__PURE__ */ createEnumType(
   'saucer.ExternalLinks',
   ExternalLinks,
+  'EXTERNAL_LINKS_',
 )
 
 /**

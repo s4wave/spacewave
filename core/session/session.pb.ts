@@ -47,6 +47,7 @@ export enum SessionType {
 export const SessionType_Enum = /* @__PURE__ */ createEnumType(
   'session.SessionType',
   SessionType,
+  'SESSION_TYPE_',
 )
 
 /**
@@ -73,6 +74,7 @@ export enum SessionLockMode {
 export const SessionLockMode_Enum = /* @__PURE__ */ createEnumType(
   'session.SessionLockMode',
   SessionLockMode,
+  'SESSION_LOCK_MODE_',
 )
 
 /**
@@ -106,6 +108,7 @@ export enum SessionRecoveryState {
 export const SessionRecoveryState_Enum = /* @__PURE__ */ createEnumType(
   'session.SessionRecoveryState',
   SessionRecoveryState,
+  'SESSION_RECOVERY_STATE_',
 )
 
 /**

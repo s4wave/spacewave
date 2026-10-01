@@ -43,6 +43,7 @@ export enum SshHostProbeState {
 export const SshHostProbeState_Enum = /* @__PURE__ */ createEnumType(
   's4wave.sshhost.SshHostProbeState',
   SshHostProbeState,
+  'SSH_HOST_PROBE_STATE_',
 )
 
 /**

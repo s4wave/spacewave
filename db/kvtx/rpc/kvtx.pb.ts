@@ -32,6 +32,7 @@ export enum KvtxRetryClass {
 export const KvtxRetryClass_Enum = /* @__PURE__ */ createEnumType(
   'kvtx.rpc.KvtxRetryClass',
   KvtxRetryClass,
+  'KVTX_RETRY_CLASS_',
 )
 
 /**

@@ -77,6 +77,7 @@ export enum FileStatusCode {
 export const FileStatusCode_Enum = /* @__PURE__ */ createEnumType(
   's4wave.git.FileStatusCode',
   FileStatusCode,
+  'FILE_STATUS_CODE_',
 )
 
 /**

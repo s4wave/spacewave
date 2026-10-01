@@ -39,6 +39,7 @@ export enum UpdateTarget {
 export const UpdateTarget_Enum = /* @__PURE__ */ createEnumType(
   'bldr.desktop.update.UpdateTarget',
   UpdateTarget,
+  'UPDATE_TARGET_',
 )
 
 /**

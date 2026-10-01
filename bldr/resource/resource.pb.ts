@@ -51,6 +51,7 @@ export enum ResourceFailureCode {
 export const ResourceFailureCode_Enum = /* @__PURE__ */ createEnumType(
   'resource.ResourceFailureCode',
   ResourceFailureCode,
+  'RESOURCE_FAILURE_CODE_',
 )
 
 /**

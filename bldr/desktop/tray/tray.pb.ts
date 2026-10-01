@@ -63,6 +63,7 @@ export enum DesktopTrayEntryKind {
 export const DesktopTrayEntryKind_Enum = /* @__PURE__ */ createEnumType(
   'bldr.desktop.tray.DesktopTrayEntryKind',
   DesktopTrayEntryKind,
+  'DESKTOP_TRAY_ENTRY_KIND_',
 )
 
 /**
@@ -124,6 +125,7 @@ export enum DesktopTrayActionKind {
 export const DesktopTrayActionKind_Enum = /* @__PURE__ */ createEnumType(
   'bldr.desktop.tray.DesktopTrayActionKind',
   DesktopTrayActionKind,
+  'DESKTOP_TRAY_ACTION_KIND_',
 )
 
 /**
@@ -178,6 +180,7 @@ export enum DesktopTrayIconState {
 export const DesktopTrayIconState_Enum = /* @__PURE__ */ createEnumType(
   'bldr.desktop.tray.DesktopTrayIconState',
   DesktopTrayIconState,
+  'DESKTOP_TRAY_ICON_STATE_',
 )
 
 /**
@@ -218,6 +221,7 @@ export enum DesktopTraySeverity {
 export const DesktopTraySeverity_Enum = /* @__PURE__ */ createEnumType(
   'bldr.desktop.tray.DesktopTraySeverity',
   DesktopTraySeverity,
+  'DESKTOP_TRAY_SEVERITY_',
 )
 
 /**

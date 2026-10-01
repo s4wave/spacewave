@@ -115,6 +115,7 @@ export enum WebWorkerGenerationState {
 export const WebWorkerGenerationState_Enum = /* @__PURE__ */ createEnumType(
   'web.document.WebWorkerGenerationState',
   WebWorkerGenerationState,
+  'WEB_WORKER_GENERATION_STATE_',
 )
 
 /**

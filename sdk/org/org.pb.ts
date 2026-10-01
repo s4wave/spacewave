@@ -50,6 +50,7 @@ export enum OrgInviteType {
 export const OrgInviteType_Enum = /* @__PURE__ */ createEnumType(
   's4wave.org.OrgInviteType',
   OrgInviteType,
+  'ORG_INVITE_TYPE_',
 )
 
 /**

@@ -38,6 +38,7 @@ export enum RbacScope {
 export const RbacScope_Enum = /* @__PURE__ */ createEnumType(
   'rbac.RbacScope',
   RbacScope,
+  'RBAC_SCOPE_',
 )
 
 /**

@@ -56,6 +56,7 @@ export enum NodeType {
 export const NodeType_Enum = /* @__PURE__ */ createEnumType(
   's4wave.canvas.NodeType',
   NodeType,
+  'NODE_TYPE_',
 )
 
 /**
@@ -82,6 +83,7 @@ export enum EdgeStyle {
 export const EdgeStyle_Enum = /* @__PURE__ */ createEnumType(
   's4wave.canvas.EdgeStyle',
   EdgeStyle,
+  'EDGE_STYLE_',
 )
 
 /**

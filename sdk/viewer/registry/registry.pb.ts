@@ -39,6 +39,7 @@ export enum ViewerSurface {
 export const ViewerSurface_Enum = /* @__PURE__ */ createEnumType(
   's4wave.viewer.registry.ViewerSurface',
   ViewerSurface,
+  'VIEWER_SURFACE_',
 )
 
 /**

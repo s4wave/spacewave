@@ -50,6 +50,7 @@ export enum PasskeyPrfWrapAlgorithm {
 export const PasskeyPrfWrapAlgorithm_Enum = /* @__PURE__ */ createEnumType(
   's4wave.provider.spacewave.PasskeyPrfWrapAlgorithm',
   PasskeyPrfWrapAlgorithm,
+  'PASSKEY_PRF_WRAP_ALGORITHM_',
 )
 
 /**
@@ -327,6 +328,7 @@ export enum SelfEnrollmentGateState {
 export const SelfEnrollmentGateState_Enum = /* @__PURE__ */ createEnumType(
   's4wave.provider.spacewave.SelfEnrollmentGateState',
   SelfEnrollmentGateState,
+  'SELF_ENROLLMENT_GATE_STATE_',
 )
 
 /**
@@ -361,6 +363,7 @@ export enum TargetedInvitePurpose {
 export const TargetedInvitePurpose_Enum = /* @__PURE__ */ createEnumType(
   's4wave.provider.spacewave.TargetedInvitePurpose',
   TargetedInvitePurpose,
+  'TARGETED_INVITE_PURPOSE_',
 )
 
 /**

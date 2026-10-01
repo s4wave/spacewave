@@ -64,6 +64,7 @@ export enum TerminalSessionState {
 export const TerminalSessionState_Enum = /* @__PURE__ */ createEnumType(
   's4wave.terminal.TerminalSessionState',
   TerminalSessionState,
+  'TERMINAL_SESSION_STATE_',
 )
 
 /**
@@ -153,6 +154,7 @@ export enum TerminalFrameKind {
 export const TerminalFrameKind_Enum = /* @__PURE__ */ createEnumType(
   's4wave.terminal.TerminalFrameKind',
   TerminalFrameKind,
+  'TERMINAL_FRAME_KIND_',
 )
 
 /**
@@ -186,6 +188,7 @@ export enum TerminalTargetKind {
 export const TerminalTargetKind_Enum = /* @__PURE__ */ createEnumType(
   's4wave.terminal.TerminalTargetKind',
   TerminalTargetKind,
+  'TERMINAL_TARGET_KIND_',
 )
 
 /**

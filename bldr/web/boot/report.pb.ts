@@ -53,6 +53,7 @@ export enum BootReportState {
 export const BootReportState_Enum = /* @__PURE__ */ createEnumType(
   'bldr.web.boot.BootReportState',
   BootReportState,
+  'BOOT_REPORT_STATE_',
 )
 
 /**
@@ -107,6 +108,7 @@ export enum BootPhase {
 export const BootPhase_Enum = /* @__PURE__ */ createEnumType(
   'bldr.web.boot.BootPhase',
   BootPhase,
+  'BOOT_PHASE_',
 )
 
 /**
@@ -168,6 +170,7 @@ export enum BootWorkClass {
 export const BootWorkClass_Enum = /* @__PURE__ */ createEnumType(
   'bldr.web.boot.BootWorkClass',
   BootWorkClass,
+  'BOOT_WORK_CLASS_',
 )
 
 /**
@@ -208,6 +211,7 @@ export enum BootSpanResult {
 export const BootSpanResult_Enum = /* @__PURE__ */ createEnumType(
   'bldr.web.boot.BootSpanResult',
   BootSpanResult,
+  'BOOT_SPAN_RESULT_',
 )
 
 /**
@@ -248,6 +252,7 @@ export enum BootRuntimeKind {
 export const BootRuntimeKind_Enum = /* @__PURE__ */ createEnumType(
   'bldr.web.boot.BootRuntimeKind',
   BootRuntimeKind,
+  'BOOT_RUNTIME_KIND_',
 )
 
 /**
@@ -288,6 +293,7 @@ export enum BootWorkerMode {
 export const BootWorkerMode_Enum = /* @__PURE__ */ createEnumType(
   'bldr.web.boot.BootWorkerMode',
   BootWorkerMode,
+  'BOOT_WORKER_MODE_',
 )
 
 /**
@@ -335,6 +341,7 @@ export enum BootEnvironmentClass {
 export const BootEnvironmentClass_Enum = /* @__PURE__ */ createEnumType(
   'bldr.web.boot.BootEnvironmentClass',
   BootEnvironmentClass,
+  'BOOT_ENVIRONMENT_CLASS_',
 )
 
 /**
@@ -375,6 +382,7 @@ export enum BootCacheState {
 export const BootCacheState_Enum = /* @__PURE__ */ createEnumType(
   'bldr.web.boot.BootCacheState',
   BootCacheState,
+  'BOOT_CACHE_STATE_',
 )
 
 /**
@@ -415,6 +423,7 @@ export enum BootCounterUnit {
 export const BootCounterUnit_Enum = /* @__PURE__ */ createEnumType(
   'bldr.web.boot.BootCounterUnit',
   BootCounterUnit,
+  'BOOT_COUNTER_UNIT_',
 )
 
 /**
@@ -448,6 +457,7 @@ export enum BootBuildType {
 export const BootBuildType_Enum = /* @__PURE__ */ createEnumType(
   'bldr.web.boot.BootBuildType',
   BootBuildType,
+  'BOOT_BUILD_TYPE_',
 )
 
 /**
@@ -502,6 +512,7 @@ export enum BootServiceWorkerState {
 export const BootServiceWorkerState_Enum = /* @__PURE__ */ createEnumType(
   'bldr.web.boot.BootServiceWorkerState',
   BootServiceWorkerState,
+  'BOOT_SERVICE_WORKER_STATE_',
 )
 
 /**
@@ -542,6 +553,7 @@ export enum BootRecoveryDecision {
 export const BootRecoveryDecision_Enum = /* @__PURE__ */ createEnumType(
   'bldr.web.boot.BootRecoveryDecision',
   BootRecoveryDecision,
+  'BOOT_RECOVERY_DECISION_',
 )
 
 /**
@@ -589,6 +601,7 @@ export enum BootAttachmentKind {
 export const BootAttachmentKind_Enum = /* @__PURE__ */ createEnumType(
   'bldr.web.boot.BootAttachmentKind',
   BootAttachmentKind,
+  'BOOT_ATTACHMENT_KIND_',
 )
 
 /**
@@ -629,6 +642,7 @@ export enum BootShareDestination {
 export const BootShareDestination_Enum = /* @__PURE__ */ createEnumType(
   'bldr.web.boot.BootShareDestination',
   BootShareDestination,
+  'BOOT_SHARE_DESTINATION_',
 )
 
 /**
@@ -697,6 +711,7 @@ export enum BootValidationViolationKind {
 export const BootValidationViolationKind_Enum = /* @__PURE__ */ createEnumType(
   'bldr.web.boot.BootValidationViolationKind',
   BootValidationViolationKind,
+  'BOOT_VALIDATION_VIOLATION_KIND_',
 )
 
 /**

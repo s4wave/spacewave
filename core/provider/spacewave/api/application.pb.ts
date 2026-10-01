@@ -46,6 +46,7 @@ export enum ApplicationState {
 export const ApplicationState_Enum = /* @__PURE__ */ createEnumType(
   'provider.spacewave.api.ApplicationState',
   ApplicationState,
+  'APPLICATION_STATE_',
 )
 
 /**
@@ -79,6 +80,7 @@ export enum ApplicationFunding {
 export const ApplicationFunding_Enum = /* @__PURE__ */ createEnumType(
   'provider.spacewave.api.ApplicationFunding',
   ApplicationFunding,
+  'APPLICATION_FUNDING_',
 )
 
 /**

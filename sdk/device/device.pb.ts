@@ -57,6 +57,7 @@ export enum DeviceSetupState {
 export const DeviceSetupState_Enum = /* @__PURE__ */ createEnumType(
   's4wave.device.DeviceSetupState',
   DeviceSetupState,
+  'DEVICE_SETUP_STATE_',
 )
 
 /**
@@ -118,6 +119,7 @@ export enum DeviceUpdateState {
 export const DeviceUpdateState_Enum = /* @__PURE__ */ createEnumType(
   's4wave.device.DeviceUpdateState',
   DeviceUpdateState,
+  'DEVICE_UPDATE_STATE_',
 )
 
 /**
@@ -158,6 +160,7 @@ export enum DeviceLiveness {
 export const DeviceLiveness_Enum = /* @__PURE__ */ createEnumType(
   's4wave.device.DeviceLiveness',
   DeviceLiveness,
+  'DEVICE_LIVENESS_',
 )
 
 /**
@@ -212,6 +215,7 @@ export enum DeviceCapabilityState {
 export const DeviceCapabilityState_Enum = /* @__PURE__ */ createEnumType(
   's4wave.device.DeviceCapabilityState',
   DeviceCapabilityState,
+  'DEVICE_CAPABILITY_STATE_',
 )
 
 /**
@@ -245,6 +249,7 @@ export enum DeviceCapabilityLocalState {
 export const DeviceCapabilityLocalState_Enum = /* @__PURE__ */ createEnumType(
   's4wave.device.DeviceCapabilityLocalState',
   DeviceCapabilityLocalState,
+  'DEVICE_CAPABILITY_LOCAL_STATE_',
 )
 
 /**
@@ -278,6 +283,7 @@ export enum DeviceCapabilityGrantState {
 export const DeviceCapabilityGrantState_Enum = /* @__PURE__ */ createEnumType(
   's4wave.device.DeviceCapabilityGrantState',
   DeviceCapabilityGrantState,
+  'DEVICE_CAPABILITY_GRANT_STATE_',
 )
 
 /**
@@ -311,6 +317,7 @@ export enum DeviceCheckoutRootAccess {
 export const DeviceCheckoutRootAccess_Enum = /* @__PURE__ */ createEnumType(
   's4wave.device.DeviceCheckoutRootAccess',
   DeviceCheckoutRootAccess,
+  'DEVICE_CHECKOUT_ROOT_ACCESS_',
 )
 
 /**

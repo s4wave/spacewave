@@ -40,6 +40,7 @@ export enum KvMutationKind {
 export const KvMutationKind_Enum = /* @__PURE__ */ createEnumType(
   's4wave.kv.world.KvMutationKind',
   KvMutationKind,
+  'KV_MUTATION_KIND_',
 )
 
 /**

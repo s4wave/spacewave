@@ -50,6 +50,7 @@ export enum GitCloneProgressState {
 export const GitCloneProgressState_Enum = /* @__PURE__ */ createEnumType(
   's4wave.wizard.GitCloneProgressState',
   GitCloneProgressState,
+  'GIT_CLONE_PROGRESS_STATE_',
 )
 
 /**
@@ -98,6 +99,7 @@ export enum IntroWizardRegion {
 export const IntroWizardRegion_Enum = /* @__PURE__ */ createEnumType(
   's4wave.wizard.IntroWizardRegion',
   IntroWizardRegion,
+  'INTRO_WIZARD_REGION_',
 )
 
 /**

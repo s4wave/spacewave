@@ -32,6 +32,7 @@ export enum ExternalLinks {
 export const ExternalLinks_Enum = /* @__PURE__ */ createEnumType(
   'electron.ExternalLinks',
   ExternalLinks,
+  'EXTERNAL_LINKS_',
 )
 
 /**
@@ -65,6 +66,7 @@ export enum QuitPolicy {
 export const QuitPolicy_Enum = /* @__PURE__ */ createEnumType(
   'electron.QuitPolicy',
   QuitPolicy,
+  'QUIT_POLICY_',
 )
 
 /**
@@ -99,6 +101,7 @@ export enum DesktopPresencePolicy {
 export const DesktopPresencePolicy_Enum = /* @__PURE__ */ createEnumType(
   'electron.DesktopPresencePolicy',
   DesktopPresencePolicy,
+  'DESKTOP_PRESENCE_POLICY_',
 )
 
 /**

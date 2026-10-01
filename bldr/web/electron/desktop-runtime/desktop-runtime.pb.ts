@@ -247,6 +247,7 @@ export enum DesktopRuntimeHealth {
 export const DesktopRuntimeHealth_Enum = /* @__PURE__ */ createEnumType(
   'electron.desktop_runtime.DesktopRuntimeHealth',
   DesktopRuntimeHealth,
+  'DESKTOP_RUNTIME_HEALTH_',
 )
 
 /**
@@ -294,6 +295,7 @@ export enum DesktopRuntimeLifecycle {
 export const DesktopRuntimeLifecycle_Enum = /* @__PURE__ */ createEnumType(
   'electron.desktop_runtime.DesktopRuntimeLifecycle',
   DesktopRuntimeLifecycle,
+  'DESKTOP_RUNTIME_LIFECYCLE_',
 )
 
 /**
@@ -334,6 +336,7 @@ export enum DesktopRuntimeReachability {
 export const DesktopRuntimeReachability_Enum = /* @__PURE__ */ createEnumType(
   'electron.desktop_runtime.DesktopRuntimeReachability',
   DesktopRuntimeReachability,
+  'DESKTOP_RUNTIME_REACHABILITY_',
 )
 
 /**
@@ -388,6 +391,7 @@ export enum DesktopRuntimeActivityState {
 export const DesktopRuntimeActivityState_Enum = /* @__PURE__ */ createEnumType(
   'electron.desktop_runtime.DesktopRuntimeActivityState',
   DesktopRuntimeActivityState,
+  'DESKTOP_RUNTIME_ACTIVITY_STATE_',
 )
 
 /**
@@ -470,6 +474,7 @@ export enum DesktopRuntimeAttentionKind {
 export const DesktopRuntimeAttentionKind_Enum = /* @__PURE__ */ createEnumType(
   'electron.desktop_runtime.DesktopRuntimeAttentionKind',
   DesktopRuntimeAttentionKind,
+  'DESKTOP_RUNTIME_ATTENTION_KIND_',
 )
 
 /**
@@ -510,6 +515,7 @@ export enum DesktopRuntimeSeverity {
 export const DesktopRuntimeSeverity_Enum = /* @__PURE__ */ createEnumType(
   'electron.desktop_runtime.DesktopRuntimeSeverity',
   DesktopRuntimeSeverity,
+  'DESKTOP_RUNTIME_SEVERITY_',
 )
 
 /**
@@ -564,6 +570,7 @@ export enum DesktopRuntimeActionKind {
 export const DesktopRuntimeActionKind_Enum = /* @__PURE__ */ createEnumType(
   'electron.desktop_runtime.DesktopRuntimeActionKind',
   DesktopRuntimeActionKind,
+  'DESKTOP_RUNTIME_ACTION_KIND_',
 )
 
 /**

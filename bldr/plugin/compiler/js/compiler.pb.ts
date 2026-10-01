@@ -53,6 +53,7 @@ export enum JsModuleKind {
 export const JsModuleKind_Enum = /* @__PURE__ */ createEnumType(
   'bldr.plugin.compiler.js.JsModuleKind',
   JsModuleKind,
+  'JS_MODULE_KIND_',
 )
 
 /**

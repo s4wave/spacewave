@@ -74,6 +74,7 @@ export enum CommandFocusContext {
 export const CommandFocusContext_Enum = /* @__PURE__ */ createEnumType(
   's4wave.command.CommandFocusContext',
   CommandFocusContext,
+  'COMMAND_FOCUS_CONTEXT_',
 )
 
 /**
@@ -107,6 +108,7 @@ export enum CommandSurface {
 export const CommandSurface_Enum = /* @__PURE__ */ createEnumType(
   's4wave.command.CommandSurface',
   CommandSurface,
+  'COMMAND_SURFACE_',
 )
 
 /**
@@ -140,6 +142,7 @@ export enum KeybindingDisplayMode {
 export const KeybindingDisplayMode_Enum = /* @__PURE__ */ createEnumType(
   's4wave.command.KeybindingDisplayMode',
   KeybindingDisplayMode,
+  'KEYBINDING_DISPLAY_MODE_',
 )
 
 /**

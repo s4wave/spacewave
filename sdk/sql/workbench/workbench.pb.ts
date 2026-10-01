@@ -36,6 +36,7 @@ export enum WorkbenchTabKind {
 export const WorkbenchTabKind_Enum = /* @__PURE__ */ createEnumType(
   's4wave.sql.workbench.WorkbenchTabKind',
   WorkbenchTabKind,
+  'WORKBENCH_TAB_KIND_',
 )
 
 /**

@@ -105,6 +105,7 @@ export enum MultiSigActionKind {
 export const MultiSigActionKind_Enum = /* @__PURE__ */ createEnumType(
   'provider.spacewave.api.MultiSigActionKind',
   MultiSigActionKind,
+  'MULTI_SIG_ACTION_KIND_',
 )
 
 /**
@@ -188,6 +189,7 @@ export enum AccountLifecycleState {
 export const AccountLifecycleState_Enum = /* @__PURE__ */ createEnumType(
   'provider.spacewave.api.AccountLifecycleState',
   AccountLifecycleState,
+  'ACCOUNT_LIFECYCLE_STATE_',
 )
 
 /**
@@ -222,6 +224,7 @@ export enum TargetedInvitePurpose {
 export const TargetedInvitePurpose_Enum = /* @__PURE__ */ createEnumType(
   'provider.spacewave.api.TargetedInvitePurpose',
   TargetedInvitePurpose,
+  'TARGETED_INVITE_PURPOSE_',
 )
 
 /**
@@ -283,6 +286,7 @@ export enum AccountAuthMethodKind {
 export const AccountAuthMethodKind_Enum = /* @__PURE__ */ createEnumType(
   'provider.spacewave.api.AccountAuthMethodKind',
   AccountAuthMethodKind,
+  'ACCOUNT_AUTH_METHOD_KIND_',
 )
 
 /**

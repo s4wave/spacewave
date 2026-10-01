@@ -41,6 +41,7 @@ export enum SqlStatementKind {
 export const SqlStatementKind_Enum = /* @__PURE__ */ createEnumType(
   's4wave.sql.world.SqlStatementKind',
   SqlStatementKind,
+  'SQL_STATEMENT_KIND_',
 )
 
 /**

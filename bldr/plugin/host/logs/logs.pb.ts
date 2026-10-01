@@ -68,6 +68,7 @@ export enum StructuredLogLevel {
 export const StructuredLogLevel_Enum = /* @__PURE__ */ createEnumType(
   'plugin.host.logs.StructuredLogLevel',
   StructuredLogLevel,
+  'STRUCTURED_LOG_LEVEL_',
 )
 
 /**
@@ -108,6 +109,7 @@ export enum StructuredLogStream {
 export const StructuredLogStream_Enum = /* @__PURE__ */ createEnumType(
   'plugin.host.logs.StructuredLogStream',
   StructuredLogStream,
+  'STRUCTURED_LOG_STREAM_',
 )
 
 /**

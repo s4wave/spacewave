@@ -46,6 +46,7 @@ export enum ObjectTypeVisibility {
 export const ObjectTypeVisibility_Enum = /* @__PURE__ */ createEnumType(
   's4wave.objecttype.registry.ObjectTypeVisibility',
   ObjectTypeVisibility,
+  'OBJECT_TYPE_VISIBILITY_',
 )
 
 /**

@@ -41,6 +41,7 @@ export enum AccessOrderFilesystem {
 export const AccessOrderFilesystem_Enum = /* @__PURE__ */ createEnumType(
   'packfile.order.AccessOrderFilesystem',
   AccessOrderFilesystem,
+  'ACCESS_ORDER_FILESYSTEM_',
 )
 
 /**
@@ -81,6 +82,7 @@ export enum AccessOrderReason {
 export const AccessOrderReason_Enum = /* @__PURE__ */ createEnumType(
   'packfile.order.AccessOrderReason',
   AccessOrderReason,
+  'ACCESS_ORDER_REASON_',
 )
 
 /**

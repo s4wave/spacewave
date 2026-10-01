@@ -60,6 +60,7 @@ export enum MigrationOperation {
 export const MigrationOperation_Enum = /* @__PURE__ */ createEnumType(
   'space.migration.MigrationOperation',
   MigrationOperation,
+  'MIGRATION_OPERATION_',
 )
 
 /**
@@ -107,6 +108,7 @@ export enum MigrationClassification {
 export const MigrationClassification_Enum = /* @__PURE__ */ createEnumType(
   'space.migration.MigrationClassification',
   MigrationClassification,
+  'MIGRATION_CLASSIFICATION_',
 )
 
 /**
@@ -168,6 +170,7 @@ export enum MigrationReferenceKind {
 export const MigrationReferenceKind_Enum = /* @__PURE__ */ createEnumType(
   'space.migration.MigrationReferenceKind',
   MigrationReferenceKind,
+  'MIGRATION_REFERENCE_KIND_',
 )
 
 /**
@@ -208,6 +211,7 @@ export enum MigrationConflictKind {
 export const MigrationConflictKind_Enum = /* @__PURE__ */ createEnumType(
   'space.migration.MigrationConflictKind',
   MigrationConflictKind,
+  'MIGRATION_CONFLICT_KIND_',
 )
 
 /**
@@ -250,6 +254,7 @@ export enum MigrationConflictResolution {
 export const MigrationConflictResolution_Enum = /* @__PURE__ */ createEnumType(
   'space.migration.MigrationConflictResolution',
   MigrationConflictResolution,
+  'MIGRATION_CONFLICT_RESOLUTION_',
 )
 
 /**
@@ -297,6 +302,7 @@ export enum MigrationTerminalState {
 export const MigrationTerminalState_Enum = /* @__PURE__ */ createEnumType(
   'space.migration.MigrationTerminalState',
   MigrationTerminalState,
+  'MIGRATION_TERMINAL_STATE_',
 )
 
 /**
