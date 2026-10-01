@@ -1,4 +1,4 @@
-//go:build !tinygo && !goscript
+//go:build !tinygo && !goscript && !js
 
 package s4wave_forge_world
 
