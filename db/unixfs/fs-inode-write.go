@@ -5,6 +5,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/aperturerobotics/util/csync"
 	unixfs_errors "github.com/s4wave/spacewave/db/unixfs/errors"
 )
 
@@ -17,9 +18,10 @@ const fsInodeIdleFlush = time.Second
 // committed. Every FSHandle at the inode shares it, so a read through any
 // handle sees the buffered bytes.
 type fsInodeWrites struct {
-	// mtx guards the fields below and is held across a flush.
+	// mtx guards the fields below and is held across a flush, so a waiter
+	// returns when its context ends.
 	// Lock order: mtx before fsInode.rmtx.
-	mtx sync.Mutex
+	mtx csync.Mutex
 	// off is the file offset of buf.
 	off int64
 	// buf is the extent not yet written. Empty when nothing is buffered.
@@ -49,8 +51,11 @@ type fsTreeWrites struct {
 func (i *fsInode) writeAt(ctx context.Context, offset int64, data []byte, ts time.Time) error {
 	// Hold the buffer for the whole write.
 	w := &i.w
-	w.mtx.Lock()
-	defer w.mtx.Unlock()
+	release, err := w.mtx.Lock(ctx)
+	if err != nil {
+		return err
+	}
+	defer release()
 
 	// Report an idle flush failure before accepting more data.
 	if err := w.takeErr(); err != nil {
@@ -136,8 +141,11 @@ func (i *fsInode) flushLocked(ctx context.Context) error {
 func (i *fsInode) idleFlush() {
 	// Commit under the buffer lock and keep the first failure.
 	w := &i.w
-	w.mtx.Lock()
-	defer w.mtx.Unlock()
+	release, err := w.mtx.Lock(context.Background())
+	if err != nil {
+		return
+	}
+	defer release()
 	if err := i.flushLocked(context.Background()); err != nil && w.err == nil {
 		w.err = err
 	}
@@ -148,8 +156,11 @@ func (i *fsInode) idleFlush() {
 func (i *fsInode) sync(ctx context.Context) error {
 	// Commit the extent, then report an earlier idle flush failure.
 	w := &i.w
-	w.mtx.Lock()
-	defer w.mtx.Unlock()
+	release, err := w.mtx.Lock(ctx)
+	if err != nil {
+		return err
+	}
+	defer release()
 	if err := i.flushLocked(ctx); err != nil {
 		return err
 	}
@@ -158,11 +169,14 @@ func (i *fsInode) sync(ctx context.Context) error {
 
 // buffered returns the end offset and timestamp of the buffered writes, or a
 // zero end when nothing is buffered, and any idle flush error.
-func (i *fsInode) buffered() (int64, time.Time, error) {
+func (i *fsInode) buffered(ctx context.Context) (int64, time.Time, error) {
 	// Report an earlier idle flush failure first.
 	w := &i.w
-	w.mtx.Lock()
-	defer w.mtx.Unlock()
+	release, err := w.mtx.Lock(ctx)
+	if err != nil {
+		return 0, time.Time{}, err
+	}
+	defer release()
 	if err := w.takeErr(); err != nil {
 		return 0, time.Time{}, err
 	}

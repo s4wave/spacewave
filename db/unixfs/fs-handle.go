@@ -173,7 +173,7 @@ func (h *FSHandle) GetOps(ctx context.Context) (FSCursor, FSCursorOps, error) {
 func (h *FSHandle) GetFileInfo(ctx context.Context) (fs.FileInfo, error) {
 	// Read the extent of buffered writes.
 	inode := h.i()
-	end, ts, err := inode.buffered()
+	end, ts, err := inode.buffered(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -221,7 +221,7 @@ func (h *FSHandle) GetNodeType(ctx context.Context) (FSCursorNodeType, error) {
 func (h *FSHandle) GetSize(ctx context.Context) (uint64, error) {
 	// Read the extent of buffered writes.
 	inode := h.i()
-	end, _, err := inode.buffered()
+	end, _, err := inode.buffered(ctx)
 	if err != nil {
 		return 0, err
 	}
@@ -252,7 +252,7 @@ func (h *FSHandle) GetOptimalWriteSize(ctx context.Context) (int64, error) {
 func (h *FSHandle) GetModTimestamp(ctx context.Context) (time.Time, error) {
 	// Read the timestamp of buffered writes.
 	inode := h.i()
-	_, ts, err := inode.buffered()
+	_, ts, err := inode.buffered(ctx)
 	if err != nil {
 		return time.Time{}, err
 	}
@@ -1008,7 +1008,9 @@ func (h *FSHandle) Clone(ctx context.Context) (*FSHandle, error) {
 }
 
 // Release commits the buffered writes at the handle's inode and releases the
-// FSHandle. Call Sync first to observe a commit error.
+// FSHandle. Releasing a root handle commits the buffered writes of the whole
+// tree, so its owner reads a complete root afterward. Call Sync first to
+// observe a commit error.
 func (h *FSHandle) Release() {
 	// Release once.
 	if h.isReleased.Swap(true) {
@@ -1018,7 +1020,11 @@ func (h *FSHandle) Release() {
 
 	// Commit buffered writes, then drop the reference and any inodes it kept.
 	inode := h.i()
-	_ = inode.sync(context.Background())
+	if inode.parent == nil {
+		_ = inode.syncTree(context.Background())
+	} else {
+		_ = inode.sync(context.Background())
+	}
 	rel, err := inode.rmtx.Lock(context.Background(), true)
 	if err == nil {
 		inode.removeRefLocked(h)

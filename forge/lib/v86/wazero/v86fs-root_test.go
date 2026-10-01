@@ -103,6 +103,7 @@ func TestOpenV86RootDeferredModes(t *testing.T) {
 }
 
 func assertV86RootServesIssue(t *testing.T, session *unixfs_v86fs.LocalSession) uint64 {
+	// Mount the root.
 	t.Helper()
 	mount := callV86Root(t, session, &unixfs_v86fs.V86FsMessage{
 		Body: &unixfs_v86fs.V86FsMessage_MountRequest{
@@ -113,6 +114,7 @@ func assertV86RootServesIssue(t *testing.T, session *unixfs_v86fs.LocalSession) 
 		t.Fatalf("mount root failed: %+v", mount)
 	}
 
+	// Walk to /etc/issue.
 	parent := mount.GetRootInodeId()
 	for _, name := range []string{"etc", "issue"} {
 		lookup := callV86Root(t, session, &unixfs_v86fs.V86FsMessage{
@@ -126,6 +128,7 @@ func assertV86RootServesIssue(t *testing.T, session *unixfs_v86fs.LocalSession) 
 		parent = lookup.GetInodeId()
 	}
 
+	// Open /etc/issue.
 	open := callV86Root(t, session, &unixfs_v86fs.V86FsMessage{
 		Body: &unixfs_v86fs.V86FsMessage_OpenRequest{
 			OpenRequest: &unixfs_v86fs.V86FsOpenRequest{InodeId: parent},
@@ -134,6 +137,8 @@ func assertV86RootServesIssue(t *testing.T, session *unixfs_v86fs.LocalSession) 
 	if open == nil || open.GetStatus() != 0 || open.GetHandleId() == 0 {
 		t.Fatalf("open /etc/issue failed: %+v", open)
 	}
+
+	// Read its contents.
 	read := callV86Root(t, session, &unixfs_v86fs.V86FsMessage{
 		Body: &unixfs_v86fs.V86FsMessage_ReadRequest{
 			ReadRequest: &unixfs_v86fs.V86FsReadRequest{HandleId: open.GetHandleId(), Size: 64},
@@ -146,6 +151,7 @@ func assertV86RootServesIssue(t *testing.T, session *unixfs_v86fs.LocalSession) 
 }
 
 func assertV86RootWritable(t *testing.T, session *unixfs_v86fs.LocalSession, rootID uint64, name string) {
+	// Create the file in the root.
 	t.Helper()
 	create := callV86Root(t, session, &unixfs_v86fs.V86FsMessage{
 		Body: &unixfs_v86fs.V86FsMessage_CreateRequest{
@@ -159,6 +165,8 @@ func assertV86RootWritable(t *testing.T, session *unixfs_v86fs.LocalSession, roo
 	if create == nil || create.GetStatus() != 0 || create.GetInodeId() == 0 {
 		t.Fatalf("create %q failed: %+v", name, create)
 	}
+
+	// Write the guest data.
 	write := callV86Root(t, session, &unixfs_v86fs.V86FsMessage{
 		Body: &unixfs_v86fs.V86FsMessage_WriteRequest{
 			WriteRequest: &unixfs_v86fs.V86FsWriteRequest{
@@ -170,6 +178,13 @@ func assertV86RootWritable(t *testing.T, session *unixfs_v86fs.LocalSession, roo
 	if write == nil || write.GetStatus() != 0 || write.GetBytesWritten() != uint32(len("guest-write")) {
 		t.Fatalf("write %q failed: %+v", name, write)
 	}
+
+	// Fsync commits the write as a guest's fsync or close would.
+	callV86Root(t, session, &unixfs_v86fs.V86FsMessage{
+		Body: &unixfs_v86fs.V86FsMessage_FsyncRequest{
+			FsyncRequest: &unixfs_v86fs.V86FsFsyncRequest{InodeId: create.GetInodeId()},
+		},
+	})
 }
 
 func callV86Root(t *testing.T, session *unixfs_v86fs.LocalSession, msg *unixfs_v86fs.V86FsMessage) *unixfs_v86fs.V86FsMessage {

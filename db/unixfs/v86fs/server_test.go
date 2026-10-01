@@ -628,9 +628,7 @@ func TestRelayPushInvalidation(t *testing.T) {
 	}
 	defer rootHandle.Release()
 
-	// Pre-create a file.
-
-	// Pre-create data.txt and write its initial contents.
+	// Pre-create data.txt.
 	now := time.Now()
 	err = rootHandle.Mknod(ctx, true, []string{"data.txt"}, unixfs.NewFSCursorNodeType_File(), 0o644, now)
 	if err != nil {
@@ -641,12 +639,15 @@ func TestRelayPushInvalidation(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 	defer fileHandle.Release()
+
+	// Write and commit its initial contents.
 	err = fileHandle.WriteAt(ctx, 0, []byte("initial"), now)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-
-	// Build server with this block FS.
+	if err := fileHandle.Sync(ctx); err != nil {
+		t.Fatal(err.Error())
+	}
 
 	// Build a server over the block FS and open the relay stream.
 	resolver := func(_ context.Context, name string) (*unixfs.FSHandle, error) {
@@ -699,17 +700,16 @@ func TestRelayPushInvalidation(t *testing.T) {
 		t.Fatal("expected non-zero inode for data.txt")
 	}
 
-	// Modify the file externally through the FSHandle.
-	// Modify file externally via FSHandle (bypassing the relay).
+	// Modify the file through the FSHandle, bypassing the relay, and commit it.
 	err = fileHandle.WriteAt(ctx, 0, []byte("modified content"), time.Now())
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+	if err := fileHandle.Sync(ctx); err != nil {
+		t.Fatal(err.Error())
+	}
 
 	// Send a STATFS ping so the server loop drains notifications.
-	// Send a STATFS as a "ping" so the server loop has a chance to drain notifyCh.
-
-	// Send a STATFS ping so the UMOUNT_NOTIFY drains.
 	if err := strm.Send(&V86FsMessage{
 		Tag:  nextTag(),
 		Body: &V86FsMessage_StatfsRequest{StatfsRequest: &V86FsStatfsRequest{}},
@@ -717,8 +717,8 @@ func TestRelayPushInvalidation(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	// Read messages until the INVALIDATE for the file arrives.
-	// Read messages. We should see INVALIDATE before or after the STATFS reply.
+	// Read messages until the INVALIDATE for the file arrives, before or
+	// after the STATFS reply.
 	gotInvalidate := false
 	for range 10 {
 		msg, err := strm.Recv()

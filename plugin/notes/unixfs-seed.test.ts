@@ -7,6 +7,7 @@ interface MockHandle {
   mkdirAll: MockFn
   mknod: MockFn
   writeAt: MockFn
+  sync: MockFn
   release: MockFn
   lookupPath: MockFn
   lookup: MockFn
@@ -21,6 +22,7 @@ vi.mock('@s4wave/sdk/unixfs/handle.js', () => {
     mkdirAll = vi.fn().mockResolvedValue(undefined)
     mknod = vi.fn().mockResolvedValue(undefined)
     writeAt = vi.fn().mockResolvedValue(0n)
+    sync = vi.fn().mockResolvedValue(undefined)
     release = vi.fn()
 
     constructor(readonly ref: unknown) {
@@ -91,6 +93,7 @@ describe('uploadSeedTree', () => {
       new TextEncoder().encode('hello'),
       undefined,
     )
+    expect(file.sync).toHaveBeenCalledWith(undefined)
     expect(file.release).toHaveBeenCalledTimes(1)
     expect(parent.release).toHaveBeenCalledTimes(1)
     expect(root.release).toHaveBeenCalledTimes(1)

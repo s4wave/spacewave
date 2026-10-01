@@ -231,10 +231,10 @@ func (ss *session) queueNotification(msg *V86FsMessage) {
 	})
 }
 
-// allocInodeID allocates a new inode ID and registers the FSHandle.
-// Starts a background goroutine to register change callbacks for push invalidation.
+// allocInodeID allocates a new inode ID and registers the FSHandle. The change
+// callback is registered before the ID reaches the guest, so every later
+// commit to the inode pushes an invalidation.
 func (ss *session) allocInodeID(h *unixfs.FSHandle) uint64 {
-
 	// Allocate the inode ID and register the handle.
 	ss.mtx.Lock()
 	ss.inodeCtr++
@@ -242,31 +242,25 @@ func (ss *session) allocInodeID(h *unixfs.FSHandle) uint64 {
 	ss.inodes[id] = &inodeEntry{id: id, handle: h}
 	ss.mtx.Unlock()
 
-	// Register change callback in background to avoid blocking the session.
-
-	// Register change callbacks that queue invalidation notifications.
-	go func() {
-		ctx := ss.context()
-		_ = h.AccessOps(ctx, func(cursor unixfs.FSCursor, _ unixfs.FSCursorOps) error {
-			cursor.AddChangeCb(func(ch *unixfs.FSCursorChange) bool {
-				if ch == nil {
-					return true
-				}
-				ss.queueNotification(&V86FsMessage{
-					Body: &V86FsMessage_Invalidate{
-						Invalidate: &V86FsInvalidate{
-							InodeId: id,
-							Offset:  ch.Offset,
-							Size:    ch.Size,
-						},
+	// Queue an invalidation notification for each change to the inode.
+	_ = h.AccessOps(ss.context(), func(cursor unixfs.FSCursor, _ unixfs.FSCursorOps) error {
+		cursor.AddChangeCb(func(ch *unixfs.FSCursorChange) bool {
+			if ch == nil {
+				return true
+			}
+			ss.queueNotification(&V86FsMessage{
+				Body: &V86FsMessage_Invalidate{
+					Invalidate: &V86FsInvalidate{
+						InodeId: id,
+						Offset:  ch.Offset,
+						Size:    ch.Size,
 					},
-				})
-				return !ch.Released
+				},
 			})
-			return nil
+			return !ch.Released
 		})
-	}()
-
+		return nil
+	})
 	return id
 }
 
@@ -564,7 +558,6 @@ func (ss *session) handleReaddir(ctx context.Context, tag uint32, req *V86FsRead
 		// Compute the entry type for the directory entry.
 		dtType := nodeTypeToDtType(ent)
 
-		// None
 		// Allocate an inode for this entry via lookup.
 		child, lerr := h.Lookup(ctx, ent.GetName())
 		if lerr != nil {
