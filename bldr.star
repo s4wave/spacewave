@@ -525,7 +525,7 @@ manifest("spacewave-web",
 # plugin that excludes these packages depends on spacewave-code.
 manifest("spacewave-code",
     builder="bldr/plugin/compiler/js",
-    rev=2,
+    rev=3,
     config={
         "webPluginId": "web",
         "modules": [
@@ -533,7 +533,8 @@ manifest("spacewave-code",
         ],
         "webPkgs": EXCLUDED_WEB_PKGS + [
             web_pkg("@s4wave/code", entrypoints=["./CodeBlock", "./markdown"]),
-            web_pkg("@pierre/diffs"),
+            # The app's git diff viewer imports the React bindings.
+            web_pkg("@pierre/diffs", entrypoints=["./react"]),
             web_pkg("@shikijs/core"),
             web_pkg("@shikijs/engine-javascript"),
             # @lexical/code-shiki imports the grammar and theme registries.

@@ -1,7 +1,7 @@
 // Entry module for the spacewave-code plugin.
 //
-// The plugin provides the packages below to other plugins. Importing them here
-// makes the web package build include each subpath a consumer imports.
+// The plugin provides the packages below to other plugins. The webPkgs entry
+// for each package in bldr.star declares the subpaths consumers import.
 
 import '@s4wave/code/CodeBlock.js'
 import '@s4wave/code/markdown.js'
