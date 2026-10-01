@@ -154,11 +154,13 @@ func TestSelectReleaseManifestRefRequiresNativeEntrypointIdentity(t *testing.T) 
 	}
 }
 
-func TestSelectCLIReleaseManifestRefRequiresCLIEntrypointIdentity(t *testing.T) {
+func TestSelectReleaseManifestsRequiresCLIEntrypointIdentity(t *testing.T) {
+	// Select both entrypoints from metadata that also carries a plugin.
 	platformID := nativeTestPlatformID()
 	desktop := testManifestRef(nativeEntrypointManifestID, platformID, 1)
 	cli := testManifestRef(cliEntrypointManifestID, platformID, 2)
-	selected, err := selectCLIReleaseManifestRef(&spacewave_release.ReleaseMetadata{
+	conf := &Config{}
+	selectedDesktop, selectedCLI, err := conf.SelectReleaseManifests(&spacewave_release.ReleaseMetadata{
 		ManifestRefs: []*bldr_manifest.ManifestRef{
 			testManifestRef("spacewave-plugin", platformID, 1),
 			desktop,
@@ -166,24 +168,25 @@ func TestSelectCLIReleaseManifestRefRequiresCLIEntrypointIdentity(t *testing.T) 
 		},
 	}, platformID)
 	if err != nil {
-		t.Fatalf("selectCLIReleaseManifestRef() error = %v", err)
+		t.Fatalf("SelectReleaseManifests() error = %v", err)
 	}
-	if selected != cli {
-		t.Fatal("selector did not return the cli entrypoint ref")
+	if selectedDesktop != desktop || selectedCLI != cli {
+		t.Fatal("selector did not return the desktop and cli entrypoint refs")
 	}
 
-	if _, err := selectCLIReleaseManifestRef(&spacewave_release.ReleaseMetadata{
+	// A missing or duplicated CLI entrypoint fails the selection.
+	if _, _, err := conf.SelectReleaseManifests(&spacewave_release.ReleaseMetadata{
 		ManifestRefs: []*bldr_manifest.ManifestRef{desktop},
 	}, platformID); err == nil || !strings.Contains(err.Error(), "missing spacewave-cli") {
 		t.Fatalf("wrong-identity error = %v", err)
 	}
-
-	if _, err := selectCLIReleaseManifestRef(&spacewave_release.ReleaseMetadata{
-		ManifestRefs: []*bldr_manifest.ManifestRef{cli, testManifestRef(cliEntrypointManifestID, platformID, 3)},
+	if _, _, err := conf.SelectReleaseManifests(&spacewave_release.ReleaseMetadata{
+		ManifestRefs: []*bldr_manifest.ManifestRef{desktop, cli, testManifestRef(cliEntrypointManifestID, platformID, 3)},
 	}, platformID); err == nil || !strings.Contains(err.Error(), "duplicate cli entrypoint manifest") {
 		t.Fatalf("duplicate error = %v", err)
 	}
 
+	// The CLI entrypoint never satisfies the desktop selector.
 	if _, err := selectReleaseManifestRef(&spacewave_release.ReleaseMetadata{
 		ManifestRefs: []*bldr_manifest.ManifestRef{cli},
 	}, platformID); err == nil || !strings.Contains(err.Error(), "missing spacewave-dist") {

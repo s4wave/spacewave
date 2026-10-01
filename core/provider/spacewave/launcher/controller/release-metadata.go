@@ -789,14 +789,6 @@ func selectReleaseManifestRef(
 	return selectReleaseManifestRefByID(metadata, platformID, nativeEntrypointManifestID, "native")
 }
 
-// selectCLIReleaseManifestRef selects the default Spacewave CLI entrypoint.
-func selectCLIReleaseManifestRef(
-	metadata *spacewave_release.ReleaseMetadata,
-	platformID string,
-) (*bldr_manifest.ManifestRef, error) {
-	return selectReleaseManifestRefByID(metadata, platformID, cliEntrypointManifestID, "cli")
-}
-
 // selectReleaseManifestRefByID requires exactly one matching manifest for a platform.
 func selectReleaseManifestRefByID(
 	metadata *spacewave_release.ReleaseMetadata,
