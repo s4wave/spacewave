@@ -70,3 +70,24 @@ func (c *JcArgs) ApplyArgs(other *JcArgs) {
 		c.ChunkingMaxSize = maxSize
 	}
 }
+
+// GetMaxChunkSize returns the largest chunk the configured chunker cuts.
+func (c *ChunkerArgs) GetMaxChunkSize() uint64 {
+	// Read the maximum the chunker would apply, as its builder adjusts it.
+	var maxSize uint64
+	switch c.GetChunkerType() {
+	case ChunkerType_ChunkerType_RABIN:
+		maxSize = c.GetRabinArgs().GetChunkingMaxSize()
+		if minSize := c.GetRabinArgs().GetChunkingMinSize(); maxSize != 0 && maxSize <= minSize {
+			maxSize = minSize + 1
+		}
+	default:
+		maxSize = c.GetJcArgs().GetChunkingMaxSize()
+	}
+
+	// Fall back to the default maximum when none is set.
+	if maxSize == 0 {
+		return DefChunkingMaxSize
+	}
+	return maxSize
+}

@@ -9,13 +9,14 @@ import (
 )
 
 // buildChunkIndexJC builds the jc-chunked block index.
-// appends if there are already chunks
+// appends if there are already chunks, recording them with chunks
 // returns new total size and error
 func buildChunkIndexJC(
 	ctx context.Context,
 	rdr io.Reader,
 	bcs *block.Cursor,
 	ci *ChunkIndex,
+	chunks *chunkAppender,
 ) (uint64, error) {
 	chunkerArgs := ci.GetChunkerArgs()
 	if chunkerArgs == nil {
@@ -24,7 +25,6 @@ func buildChunkIndexJC(
 	}
 	chunkerArgs.ChunkerType = ChunkerType_ChunkerType_JC
 
-	chunks := newChunkAppender(ctx, ci, ci.GetChunkSet(bcs))
 	jcArgs := chunkerArgs.GetJcArgs()
 	minChunkSize, targetChunkSize, maxChunkSize := jcArgs.GetChunkingMinSize(), jcArgs.GetChunkingTargetSize(), jcArgs.GetChunkingMaxSize()
 

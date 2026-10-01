@@ -22,13 +22,14 @@ import (
 const defRabinPol = chunker.Pol(16983672372569473)
 
 // buildChunkIndexRabin builds the rabin-chunked block index.
-// appends if there are already chunks
+// appends if there are already chunks, recording them with chunks
 // returns new total size and error
 func buildChunkIndexRabin(
 	ctx context.Context,
 	rdr io.Reader,
 	bcs *block.Cursor,
 	ci *ChunkIndex,
+	chunks *chunkAppender,
 ) (uint64, error) {
 	chunkerArgs := ci.GetChunkerArgs()
 	if chunkerArgs == nil {
@@ -51,7 +52,6 @@ func buildChunkIndexRabin(
 		poly = defRabinPol
 	}
 
-	chunks := newChunkAppender(ctx, ci, ci.GetChunkSet(bcs))
 	minChunkSize, maxChunkSize := rabinArgs.GetChunkingMinSize(), rabinArgs.GetChunkingMaxSize()
 	if minChunkSize == 0 {
 		minChunkSize = DefChunkingMinSize

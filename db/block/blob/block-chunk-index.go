@@ -31,10 +31,15 @@ func (r *ChunkIndex) IsNil() bool {
 
 // Validate checks the reference.
 func (r *ChunkIndex) Validate() error {
+	// Require at least one chunk.
 	if len(r.GetChunks()) == 0 {
 		return ErrEmptyChunk
 	}
+
+	// Check the chunks are valid and contiguous, and find the tail start.
+	tailStart := r.GetTailStart()
 	var totalSize uint64
+	var tailFound bool
 	for i, c := range r.GetChunks() {
 		if err := c.Validate(); err != nil {
 			return errors.Wrapf(err, "chunks[%d]", i)
@@ -47,9 +52,25 @@ func (r *ChunkIndex) Validate() error {
 				totalSize, st,
 			)
 		}
+		tailFound = tailFound || totalSize == tailStart
 		totalSize += chunkSize
 	}
+
+	// Require the tail to start at a chunk boundary.
+	if !tailFound && tailStart != totalSize {
+		return errors.Errorf("tail start %d is not a chunk boundary", tailStart)
+	}
 	return nil
+}
+
+// GetEnd returns the end of the last chunk.
+func (r *ChunkIndex) GetEnd() uint64 {
+	chunks := r.GetChunks()
+	if len(chunks) == 0 {
+		return 0
+	}
+	last := chunks[len(chunks)-1]
+	return last.GetStart() + last.GetSize()
 }
 
 // MarshalBlock marshals the block to binary.
