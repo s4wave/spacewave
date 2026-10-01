@@ -8,7 +8,7 @@ import (
 	"slices"
 
 	"github.com/aperturerobotics/controllerbus/bus"
-	"github.com/sirupsen/logrus"
+	"github.com/pkg/errors"
 
 	devtool_status "github.com/s4wave/spacewave/bldr/devtool/status"
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
@@ -163,25 +163,34 @@ func (a *DevtoolArgs) ExecuteNativeProject(ctx context.Context) (err error) {
 
 	// Start the project, open the desktop window, and publish the running status.
 	projCtrl.StartStartup(ctx)
-	go openDesktopWindow(ctx, le, b.GetBus())
+	desktopErr := make(chan error, 1)
+	go func() {
+		desktopErr <- openDesktopWindow(ctx, b.GetBus())
+	}()
 	b.setCommandRunningWithLogFile("start desktop", "desktop runtime active", commandLogFile)
 
-	// Block until the devtool bus context ends.
-	<-b.GetContext().Done()
-	return nil
+	// Block until the devtool bus context ends or the desktop window fails to
+	// open, since nothing else launches Electron.
+	select {
+	case <-b.GetContext().Done():
+		return nil
+	case err := <-desktopErr:
+		return err
+	}
 }
 
 // openDesktopWindow asks the web plugin to open the main window once it loads.
-// Electron starts only on demand, so the devtool supplies the demand a
-// launcher would. The plugin reference is held until ctx ends.
-func openDesktopWindow(ctx context.Context, le *logrus.Entry, b bus.Bus) {
+// Electron starts only on demand, so the devtool supplies the demand and holds
+// the web plugin reference until ctx ends. It returns nil when ctx ends and an
+// error when the web plugin cannot load or open the window.
+func openDesktopWindow(ctx context.Context, b bus.Bus) error {
 	// Wait for the web plugin to load and hold its client reference.
 	client, ref, err := bldr_plugin.ExPluginLoadWaitClient(ctx, b, "web", nil)
 	if err != nil {
-		if ctx.Err() == nil {
-			le.WithError(err).Warn("unable to load web plugin to open desktop window")
+		if ctx.Err() != nil {
+			return nil
 		}
-		return
+		return errors.Wrap(err, "load web plugin to open desktop window")
 	}
 	defer ref.Release()
 
@@ -189,14 +198,15 @@ func openDesktopWindow(ctx context.Context, le *logrus.Entry, b bus.Bus) {
 	_, err = bldr_web_plugin.NewSRPCWebPluginClient(client).
 		OpenOrFocusDesktop(ctx, &bldr_web_plugin.OpenOrFocusDesktopRequest{})
 	if err != nil {
-		if ctx.Err() == nil {
-			le.WithError(err).Warn("unable to open desktop window")
+		if ctx.Err() != nil {
+			return nil
 		}
-		return
+		return errors.Wrap(err, "open desktop window")
 	}
 
 	// Hold the reference until the context ends.
 	<-ctx.Done()
+	return nil
 }
 
 // nativeDesktopQuickJSPluginIDs returns the QuickJS plugin ids needed by a
