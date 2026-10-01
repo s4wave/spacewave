@@ -19,6 +19,10 @@ const (
 	// DefRawHighWaterMark is the default high water mark for a raw blob.
 	// define this to be the max size of a single chunk
 	DefRawHighWaterMark = DefChunkingMaxSize
+	// DefRawAppendLimit is the largest raw blob an append extends in place.
+	// Each append rewrites the raw data, so a larger blob moves to chunks,
+	// where an append stores only the new bytes.
+	DefRawAppendLimit = 64 << 10
 )
 
 // NewRawBlob constructs a new Raw blob.

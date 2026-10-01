@@ -32,8 +32,8 @@ message Blob {
 
 // BuildBlobOpts are options to control the BuildBlob process.
 message BuildBlobOpts {
-	// RawHighWaterMark is the limit for a raw block size.
-	// Defaults to 512KB if unset.
+  // RawHighWaterMark is the limit for a raw block size.
+  // Defaults to DefRawHighWaterMark (768 KiB) if unset.
   uint64 raw_high_water_mark = 1;
   // ChunkerArgs configures the chunker to use.
   ChunkerArgs chunker_args = 2;
@@ -47,6 +47,11 @@ message ChunkIndex {
 
   // ChunkerArgs are optional arguments for the chunker.
   ChunkerArgs chunker_args = 2;
+  // TailStart is the start of the tail: the chunks after the last boundary the
+  // chunker chose. Appends add tail chunks of any size until the tail would
+  // exceed the maximum chunk size, then the tail is chunked again.
+  // Equals the start of a chunk, or the end of the last chunk.
+  uint64 tail_start = 3;
 }
 
 // ChunkerArgs configures the chunking algorithm.

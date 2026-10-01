@@ -23,10 +23,26 @@ func BuildChunkIndex(
 	bcs *block.Cursor,
 	chunkerArgs *ChunkerArgs,
 ) (*ChunkIndex, uint64, error) {
+	ci, totalSize, _, err := buildChunkIndex(ctx, rdr, bcs, chunkerArgs, false)
+	return ci, totalSize, err
+}
+
+// buildChunkIndex chunks rdr onto the chunk index at bcs after its existing
+// chunks. With holdTail it does not store the last chunk, which ends at the end
+// of rdr rather than at a boundary, and returns it so the caller can keep its
+// bytes as tail chunks. Otherwise the last chunk starts the tail.
+func buildChunkIndex(
+	ctx context.Context,
+	rdr io.Reader,
+	bcs *block.Cursor,
+	chunkerArgs *ChunkerArgs,
+	holdTail bool,
+) (*ChunkIndex, uint64, *heldChunk, error) {
+	// Reuse the chunk index at the cursor and merge the chunker arguments.
 	ci, err := UnmarshalChunkIndex(ctx, bcs)
 	if err != nil {
 		if err != block.ErrUnexpectedType {
-			return nil, 0, err
+			return nil, 0, nil, err
 		}
 	}
 	if ci == nil {
@@ -37,22 +53,34 @@ func BuildChunkIndex(
 	}
 	ci.ChunkerArgs.ApplyArgs(chunkerArgs)
 
-	// TODO: support other chunk types
-	chunkerType := chunkerArgs.GetChunkerType()
+	// Cut and store the chunks with the configured chunker.
+	chunks := newChunkAppender(ctx, ci, ci.GetChunkSet(bcs))
+	chunks.holdLast = holdTail
+	chunkerType := ci.ChunkerArgs.GetChunkerType()
 	var totalSize uint64
 	switch chunkerType {
 	case ChunkerType_ChunkerType_JC, ChunkerType_ChunkerType_DEFAULT:
-		totalSize, err = buildChunkIndexJC(ctx, rdr, bcs, ci)
+		totalSize, err = buildChunkIndexJC(ctx, rdr, bcs, ci, chunks)
 	case ChunkerType_ChunkerType_RABIN:
-		totalSize, err = buildChunkIndexRabin(ctx, rdr, bcs, ci)
+		totalSize, err = buildChunkIndexRabin(ctx, rdr, bcs, ci, chunks)
 	default:
 		err = errors.Wrap(ErrUnknownChunkerType, chunkerType.String())
 	}
 	if err != nil {
-		return nil, 0, err
+		return nil, 0, nil, err
 	}
 
-	return ci, totalSize, err
+	// Start the tail at the held chunk or at the last stored chunk.
+	held := chunks.held
+	switch n := len(ci.Chunks); {
+	case held != nil:
+		ci.TailStart = held.start
+	case n != 0:
+		ci.TailStart = ci.Chunks[n-1].GetStart()
+	default:
+		ci.TailStart = 0
+	}
+	return ci, totalSize, held, nil
 }
 
 // AppendChunk appends a chunk with the given data.

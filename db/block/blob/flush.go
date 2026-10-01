@@ -31,6 +31,17 @@ type chunkAppender struct {
 	window int
 	// pending lists the chunks being encoded, oldest first.
 	pending []*pendingChunk
+	// holdLast keeps the latest chunk in held instead of storing it.
+	holdLast bool
+	// held is the latest chunk when holdLast is set.
+	held *heldChunk
+}
+
+// heldChunk is a chunk the appender has not stored.
+type heldChunk struct {
+	idx         int
+	size, start uint64
+	data        []byte
 }
 
 // pendingChunk is a chunk whose data block is being encoded.
@@ -59,6 +70,17 @@ func newChunkAppender(ctx context.Context, ci *ChunkIndex, chkSet *sbset.SubBloc
 // append records the chunk at idx. The appender does not retain data after
 // append returns. Call flush after the last chunk.
 func (a *chunkAppender) append(idx int, size, start uint64, data []byte) error {
+	// Hold the latest chunk back and store the one it replaces.
+	if a.holdLast {
+		prev := a.held
+		a.held = &heldChunk{idx: idx, size: size, start: start, data: bytes.Clone(data)}
+		if prev == nil {
+			return nil
+		}
+		idx, size, start, data = prev.idx, prev.size, prev.start, prev.data
+	}
+
+	// Store the chunk through the cursor graph without a staging transaction.
 	if a.tx == nil {
 		dataCopy := append([]byte(nil), data...)
 		recordMetric(a.ctx, Metric{
@@ -70,6 +92,7 @@ func (a *chunkAppender) append(idx int, size, start uint64, data []byte) error {
 		return flushChunkData(a.ctx, a.chkSet, idx)
 	}
 
+	// Encode the chunk inline, or in the background within the window.
 	chk := &pendingChunk{idx: idx, size: size, start: start}
 	if a.window == 1 {
 		chk.data, chk.err = a.encode(data)
@@ -86,6 +109,58 @@ func (a *chunkAppender) append(idx int, size, start uint64, data []byte) error {
 		return nil
 	}
 	return a.putOldest()
+}
+
+// appendStored records a chunk whose data block is already stored, after the
+// chunks still being encoded.
+func (a *chunkAppender) appendStored(chk *Chunk) error {
+	if err := a.flush(); err != nil {
+		return err
+	}
+	a.ci.Chunks = append(a.ci.Chunks, chk)
+	return nil
+}
+
+// appendTail stores the held chunk as tail chunks. Each old tail chunk the held
+// bytes cover whole keeps its stored block. The old chunk the last boundary
+// splits and the appended bytes are stored as new tail chunks.
+func (a *chunkAppender) appendTail(old []*Chunk, held *heldChunk) error {
+	// Walk the old tail chunks that end after the last boundary.
+	pos, end := held.start, held.start+held.size
+	for _, chk := range old {
+		chkStart, chkEnd := chk.GetStart(), chk.GetStart()+chk.GetSize()
+		if chkEnd <= pos {
+			continue
+		}
+
+		// Reuse a stored chunk the boundary did not split.
+		if chkStart == pos && !chk.GetDataRef().GetEmpty() {
+			if err := a.appendStored(NewChunk(chk.GetDataRef().Clone(), chk.GetSize(), chkStart)); err != nil {
+				return err
+			}
+			pos = chkEnd
+			continue
+		}
+
+		// Store the part after the boundary as a new chunk.
+		if err := a.append(a.next(), chkEnd-pos, pos, held.data[pos-held.start:chkEnd-held.start]); err != nil {
+			return err
+		}
+		pos = chkEnd
+	}
+
+	// Store the appended bytes after the old tail.
+	if pos < end {
+		if err := a.append(a.next(), end-pos, pos, held.data[pos-held.start:]); err != nil {
+			return err
+		}
+	}
+	return a.flush()
+}
+
+// next returns the index of the next chunk to append.
+func (a *chunkAppender) next() int {
+	return len(a.ci.Chunks) + len(a.pending)
 }
 
 // flush stages the chunks still being encoded.

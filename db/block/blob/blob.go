@@ -6,10 +6,10 @@ import (
 	"io"
 	"math"
 	"slices"
+	"sort"
 
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
-	"github.com/s4wave/spacewave/db/block/byteslice"
 )
 
 // NewBlobBlock builds a new blob root block.
@@ -295,7 +295,12 @@ func (b *Blob) WriteChunkIndex(ctx context.Context, bcs *block.Cursor, opts *Bui
 	return nil
 }
 
-// AppendData appends data to an existing blob.
+// AppendData appends dataLen bytes from rdr to the end of the blob.
+//
+// A small raw blob grows in place. A chunked blob keeps the bytes after its
+// last chunk boundary as tail chunks: an append that keeps the tail within the
+// maximum chunk size stores only its own bytes as one more tail chunk, and a
+// larger one chunks the tail together with the new bytes.
 func (b *Blob) AppendData(
 	ctx context.Context,
 	dataLen int64,
@@ -303,91 +308,139 @@ func (b *Blob) AppendData(
 	bcs *block.Cursor,
 	opts *BuildBlobOpts,
 ) error {
-	// Resolve append mode from the high-water mark and existing blob type.
+	switch b.GetBlobType() {
+	case BlobType_BlobType_RAW:
+		return b.appendRaw(ctx, dataLen, rdr, bcs, opts)
+	case BlobType_BlobType_CHUNKED:
+		return b.appendChunked(ctx, dataLen, rdr, bcs, opts)
+	default:
+		return errors.Errorf("cannot extend blob type: %s", b.GetBlobType().String())
+	}
+}
+
+// appendRaw appends to a raw blob. Each append rewrites the raw data, so only
+// the first write or a blob within DefRawAppendLimit stays raw.
+func (b *Blob) appendRaw(
+	ctx context.Context,
+	dataLen int64,
+	rdr io.Reader,
+	bcs *block.Cursor,
+	opts *BuildBlobOpts,
+) error {
+	// Resolve the high-water mark.
 	hwm := opts.GetRawHighWaterMark()
 	if hwm == 0 {
 		hwm = DefRawHighWaterMark
 	}
 
-	// Extend raw data in place when the next size stays below the high-water mark.
+	// Extend the raw data in place while the blob stays small.
 	oldLen := b.GetTotalSize()
-
 	nextLen := oldLen + uint64(dataLen) //nolint:gosec
-	if b.GetBlobType() == BlobType_BlobType_RAW {
-		if nextLen <= hwm {
-			// Extend the raw buffer while it remains below the high-water mark.
-			ndata := make([]byte, nextLen)
-			_, err := io.ReadAtLeast(rdr, ndata[oldLen:], int(dataLen))
-			if err != nil {
-				return err
-			}
-			copy(ndata[:oldLen], b.GetRawData())
-			b.RawData = ndata
-			b.TotalSize = nextLen
-		} else {
-			// Rechunk the existing raw bytes together with the appended reader.
-			mrdr := io.MultiReader(
-				bytes.NewReader(b.GetRawData()),
-				io.LimitReader(rdr, dataLen),
-			)
-			err := b.WriteChunkIndex(ctx, bcs, opts, mrdr)
-			if err != nil {
-				return err
-			}
-			b.RawData = nil
+	if nextLen <= hwm && (oldLen == 0 || nextLen <= DefRawAppendLimit) {
+		ndata := make([]byte, nextLen)
+		if _, err := io.ReadFull(rdr, ndata[oldLen:]); err != nil {
+			return err
 		}
+		copy(ndata, b.GetRawData())
+		b.RawData = ndata
+		b.TotalSize = nextLen
 		bcs.SetBlock(b, true)
 		return nil
 	}
 
-	// Reject unsupported types before preparing the existing chunk index.
-	if b.GetBlobType() != BlobType_BlobType_CHUNKED {
-		return errors.Errorf("cannot extend blob type: %s", b.GetBlobType().String())
+	// Chunk the raw data together with the appended bytes.
+	mrdr := io.MultiReader(bytes.NewReader(b.GetRawData()), io.LimitReader(rdr, dataLen))
+	if err := b.WriteChunkIndex(ctx, bcs, opts, mrdr); err != nil {
+		return err
 	}
+	b.RawData = nil
+	bcs.SetBlock(b, true)
+	return nil
+}
+
+// appendChunked appends to a chunked blob through its tail.
+func (b *Blob) appendChunked(
+	ctx context.Context,
+	dataLen int64,
+	rdr io.Reader,
+	bcs *block.Cursor,
+	opts *BuildBlobOpts,
+) error {
+	// Find the end of the chunked data and of the append.
 	if b.ChunkIndex == nil {
 		b.ChunkIndex = &ChunkIndex{}
 	}
+	ci := b.ChunkIndex
+	ciBcs := bcs.FollowSubBlock(4)
+	chunks := ci.GetChunks()
+	end := ci.GetEnd()
+	nextEnd := end + uint64(dataLen) //nolint:gosec
 
-	// XXX: this creates a lot of garbage, because multiple writes to the same
-	// chunk will create duplicate blocks containing the Chunk data.
+	// Find the first tail chunk.
+	tailStart := min(ci.GetTailStart(), end)
+	tailIdx := sort.Search(len(chunks), func(i int) bool {
+		return chunks[i].GetStart() >= tailStart
+	})
 
-	// append to existing chunked blob
-	chkIdxBcs := bcs.FollowSubBlock(4)
-	chunks := b.GetChunkIndex().GetChunks()
-	if len(chunks) == 0 {
-		return b.WriteChunkIndex(ctx, bcs, opts, io.LimitReader(rdr, dataLen))
+	// Store an append that fits in the tail as one more tail chunk.
+	args := ci.GetChunkerArgs().CloneVT()
+	if args == nil {
+		args = &ChunkerArgs{}
+	}
+	args.ApplyArgs(opts.GetChunkerArgs())
+	if nextEnd-tailStart <= args.GetMaxChunkSize() {
+		data := make([]byte, dataLen)
+		if _, err := io.ReadFull(rdr, data); err != nil {
+			return err
+		}
+		pieces := newChunkAppender(ctx, ci, ci.GetChunkSet(ciBcs))
+		if err := pieces.append(pieces.next(), uint64(dataLen), end, data); err != nil { //nolint:gosec
+			return err
+		}
+		if err := pieces.flush(); err != nil {
+			return err
+		}
+		ci.TailStart = tailStart
+		b.TotalSize = nextEnd
+		ciBcs.SetBlock(ci, true)
+		bcs.MarkDirty()
+		return nil
 	}
 
-	// Remove the final chunk so its data can be combined with appended input.
-	chunksSet := NewChunkSet(&chunks, chkIdxBcs.FollowSubBlock(1))
+	// Read the tail chunks, then remove them from the index.
+	tail := slices.Clone(chunks[tailIdx:])
+	chunkSet := ci.GetChunkSet(ciBcs)
+	rdrs := make([]io.Reader, 0, len(tail)+1)
+	for i, chk := range tail {
+		_, chkBcs := chunkSet.Get(tailIdx + i)
+		data, err := chk.FetchData(ctx, chkBcs, false)
+		if err != nil {
+			return err
+		}
+		rdrs = append(rdrs, bytes.NewReader(data))
+	}
+	rdrs = append(rdrs, io.LimitReader(rdr, dataLen))
+	for i := len(chunks) - 1; i >= tailIdx; i-- {
+		chunkSet.GetCursor().ClearRef(uint32(i)) //nolint:gosec
+	}
+	ci.Chunks = chunks[:tailIdx]
 
-	// Remove the last chunk so its bytes can be combined with new input.
-	lastChunkIdx := len(chunks) - 1
-	lastChunk := chunks[lastChunkIdx]
-	_, lastChunkBcs := chunksSet.Get(lastChunkIdx)
-
-	chunksSet.GetCursor().ClearRef(uint32(lastChunkIdx)) //nolint:gosec
-	chunks = chunks[:lastChunkIdx]
-	b.ChunkIndex.Chunks = chunks
-
-	// Fetch the removed tail and rebuild the chunk index with new input.
-	// Fetch the removed chunk before rebuilding the tail index.
-	lastChunkData, err := lastChunk.FetchData(ctx, lastChunkBcs, false)
+	// Chunk the tail and the appended bytes, holding back the bytes after the
+	// last boundary.
+	nci, _, held, err := buildChunkIndex(ctx, io.MultiReader(rdrs...), ciBcs, opts.GetChunkerArgs(), true)
 	if err != nil {
 		return err
 	}
 
-	// Rebuild the chunk index from the old tail and appended data.
-	chkIdx, totalSize, err := BuildChunkIndex(
-		ctx,
-		io.MultiReader(bytes.NewReader(lastChunkData), io.LimitReader(rdr, dataLen)),
-		chkIdxBcs,
-		opts.GetChunkerArgs(),
-	)
-	if err != nil {
-		return err
+	// Keep the held bytes as the new tail.
+	if held != nil {
+		pieces := newChunkAppender(ctx, nci, nci.GetChunkSet(ciBcs))
+		if err := pieces.appendTail(tail, held); err != nil {
+			return err
+		}
 	}
-	b.ChunkIndex, b.TotalSize = chkIdx, totalSize
+	b.ChunkIndex, b.TotalSize = nci, nextEnd
+	ciBcs.SetBlock(nci, true)
 	bcs.MarkDirty()
 	return nil
 }
@@ -400,143 +453,112 @@ func (b *Blob) Truncate(ctx context.Context, bcs *block.Cursor, blobOpts *BuildB
 	}
 
 	// Clear all references and metadata when truncating to an empty blob.
+	if nsize < 0 {
+		return errors.New("negative blob size")
+	}
 	oldSize := int64(b.GetTotalSize()) //nolint:gosec
 	if oldSize == nsize {
 		return nil
 	}
 	if nsize == 0 {
-		// Clear all root data and references for an empty blob.
 		b.RawData = nil
 		b.ChunkIndex = nil
 		b.BlobType = 0
-		b.TotalSize = uint64(nsize)
+		b.TotalSize = 0
 		bcs.ClearRef(4)
 		bcs.SetBlock(b, true)
 		return nil
 	}
 
+	// Resolve the high-water mark between raw and chunked storage.
 	hwm := blobOpts.GetRawHighWaterMark()
 	if hwm == 0 {
 		hwm = DefRawHighWaterMark
 	}
 
-	// Resize raw storage in place or promote it when the new size is large.
-	// Resize raw data in place or promote it to a chunk index.
+	// Resize raw data, zero filling growth, and chunk it past the high-water
+	// mark.
+	size := uint64(nsize) //nolint:gosec
 	if b.GetBlobType() == BlobType_BlobType_RAW {
-		oldSize = int64(len(b.RawData))
-
-		b.TotalSize = uint64(nsize) //nolint:gosec
-		if oldSize < nsize {
+		if nsize < int64(len(b.RawData)) {
 			b.RawData = b.RawData[:nsize]
-		} else if nsize > int64(hwm) { //nolint:gosec
-
-			// create a chunk index with the raw data
-			// the TotalSize will be used as a limit for reading RawData.
-			if err := b.TransformToChunked(ctx, bcs, blobOpts); err != nil {
-				return err
-			}
 		} else {
-			// extend buffer if possible
-			if cap(b.RawData) >= int(nsize) {
-				b.RawData = b.RawData[:nsize]
-
-				// note: optimized to memset by compiler
-				for i := int(oldSize); i < len(b.RawData); i++ {
-					b.RawData[i] = 0
-				}
-			} else {
-				nraw := make([]byte, nsize)
-				copy(nraw, b.RawData)
-				b.RawData = nraw
-			}
+			nraw := make([]byte, nsize)
+			copy(nraw, b.RawData)
+			b.RawData = nraw
 		}
-
-		// done
+		b.TotalSize = size
+		bcs.SetBlock(b, true)
+		if size > hwm {
+			return b.TransformToChunked(ctx, bcs, blobOpts)
+		}
 		return nil
 	}
 
-	// assume chunked for the rest of the func
+	// Reject unknown types, and move a chunked blob that fits under the
+	// high-water mark to raw storage.
 	if b.GetBlobType() != BlobType_BlobType_CHUNKED {
 		return errors.Wrap(ErrUnknownBlobType, b.GetBlobType().String())
 	}
-
-	// Convert small chunked blobs to raw storage when the high-water mark permits.
-	// if new size is below high water mark, move to raw blob.
-	if hwm >= uint64(nsize) { //nolint:gosec
-
-		return b.TransformToRaw(ctx, bcs, uint64(nsize)) //nolint:gosec
+	if hwm >= size {
+		return b.TransformToRaw(ctx, bcs, size)
 	}
 
-	// chunk index
-	ci := b.GetChunkIndex()
-	if ci == nil {
-		ci = &ChunkIndex{}
+	// Growth past the chunks reads as zeros, so only shrinking changes chunks.
+	b.TotalSize = size
+	bcs.MarkDirty()
+	if nsize > oldSize {
+		return nil
 	}
 
-	// Remove chunks beyond the new end and shorten the retained tail.
-	// Remove chunks outside the new end and shorten the final retained chunk.
+	// Count the chunks that start before the new end.
+	if b.ChunkIndex == nil {
+		b.ChunkIndex = &ChunkIndex{}
+	}
+	ci := b.ChunkIndex
 	ciBcs := bcs.FollowSubBlock(4)
-	ciChunks := ci.GetChunks()
-	ciChunksBcs := ciBcs.FollowSubBlock(1)
+	chunkSet := ci.GetChunkSet(ciBcs)
+	chunks := ci.GetChunks()
+	keep := sort.Search(len(chunks), func(i int) bool {
+		return chunks[i].GetStart() >= size
+	})
 
-	// delete any chunks that start outside the new size
-	for i, v := range slices.Backward(ciChunks) {
-		chk := v
-
-		if chk.GetStart() < uint64(nsize) { //nolint:gosec
-			break
-		}
-		ciChunks = ciChunks[:i]
-
-		ciChunksBcs.ClearRef(uint32(i)) //nolint:gosec
+	// Remove the chunks past the new end.
+	for i := len(chunks) - 1; i >= keep; i-- {
+		chunkSet.GetCursor().ClearRef(uint32(i)) //nolint:gosec
 	}
-	if len(ciChunks) != len(ci.Chunks) {
-		if len(ciChunks) == 0 {
-			ciChunks = nil
-		}
-		ci.Chunks = ciChunks
-		ciBcs.MarkDirty()
+	ci.Chunks = chunks[:keep]
+	ciBcs.MarkDirty()
+	if keep == 0 {
+		ci.TailStart = 0
+		return nil
 	}
 
-	// Fetch and rewrite the final chunk when it extends beyond the new size.
-	// shrink the last chunk
-	if len(ciChunks) != 0 {
-		lastChunkIdx := len(ciChunks) - 1
-		lastChunk := ciChunks[lastChunkIdx]
-		lastChunkStart, lastChunkSize := lastChunk.GetStart(), lastChunk.GetSize()
-		lastChunkEnd := lastChunkStart + lastChunkSize
-
-		if lastChunkEnd > uint64(nsize) { //nolint:gosec
-			if lastChunkStart > math.MaxInt64 {
-				return errors.New("chunk start exceeds maximum")
-			}
-			nlastChkLen := nsize - int64(lastChunkStart)
-
-			lastChkBcs := ciChunksBcs.FollowSubBlock(uint32(lastChunkIdx)) //nolint:gosec
-
-			// fetch last chunk data
-			lastChkData, err := lastChunk.FetchData(ctx, lastChkBcs, false)
-			if err != nil {
-				return err
-			}
-
-			// if necessary, shrink the data field.
-			if len(lastChkData) > int(nlastChkLen) {
-				lastChkDataBcs := lastChkBcs.FollowRef(1, nil)
-				lastChkData = lastChkData[:nlastChkLen]
-				lastChkDataBcs.SetBlock(byteslice.NewByteSlice(&lastChkData), true)
-			}
-
-			// update the length
-			lastChunk.Size = uint64(nlastChkLen) //nolint:gosec
-			lastChkBcs.MarkDirty()
-		}
+	// Start the tail no later than the last kept chunk, which may now end
+	// before its boundary.
+	last := chunks[keep-1]
+	lastStart, lastEnd := last.GetStart(), last.GetStart()+last.GetSize()
+	ci.TailStart = min(ci.GetTailStart(), lastStart)
+	if lastEnd <= size {
+		return nil
 	}
 
-	// Record the final truncated size after chunk references are reconciled.
-	// update total size
-	b.TotalSize = uint64(nsize) //nolint:gosec
-	return nil
+	// Read a last chunk that extends past the new end, and remove it.
+	_, lastBcs := chunkSet.Get(keep - 1)
+	data, err := last.FetchData(ctx, lastBcs, false)
+	if err != nil {
+		return err
+	}
+	chunkSet.GetCursor().ClearRef(uint32(keep - 1)) //nolint:gosec
+	ci.Chunks = chunks[:keep-1]
+
+	// Store its prefix in its place.
+	nlen := size - lastStart
+	pieces := newChunkAppender(ctx, ci, chunkSet)
+	if err := pieces.append(keep-1, nlen, lastStart, data[:nlen]); err != nil {
+		return err
+	}
+	return pieces.flush()
 }
 
 // TransformToChunked transforms a raw blob to a chunked blob.

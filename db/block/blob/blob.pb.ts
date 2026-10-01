@@ -281,6 +281,15 @@ export interface ChunkIndex {
    * @generated from field: blob.ChunkerArgs chunker_args = 2;
    */
   chunkerArgs?: ChunkerArgs
+  /**
+   * TailStart is the start of the tail: the chunks after the last boundary the
+   * chunker chose. Appends add tail chunks of any size until the tail would
+   * exceed the maximum chunk size, then the tail is chunked again.
+   * Equals the start of a chunk, or the end of the last chunk.
+   *
+   * @generated from field: uint64 tail_start = 3;
+   */
+  tailStart?: bigint
 }
 
 export const ChunkIndex: MessageType<ChunkIndex> =
@@ -289,6 +298,7 @@ export const ChunkIndex: MessageType<ChunkIndex> =
     fields: [
       { no: 1, name: 'chunks', kind: 'message', T: Chunk, repeated: true },
       { no: 2, name: 'chunker_args', kind: 'message', T: ChunkerArgs },
+      { no: 3, name: 'tail_start', kind: 'scalar', T: ScalarType.UINT64 },
     ] satisfies readonly PartialFieldInfo[],
   })
 
@@ -345,7 +355,7 @@ export const Blob: MessageType<Blob> = /* @__PURE__ */ createMessageType({
 export interface BuildBlobOpts {
   /**
    * RawHighWaterMark is the limit for a raw block size.
-   * Defaults to 512KB if unset.
+   * Defaults to DefRawHighWaterMark (768 KiB) if unset.
    *
    * @generated from field: uint64 raw_high_water_mark = 1;
    */

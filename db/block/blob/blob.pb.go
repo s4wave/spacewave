@@ -148,7 +148,7 @@ func (x *Blob) GetChunkIndex() *ChunkIndex {
 type BuildBlobOpts struct {
 	unknownFields []byte
 	// RawHighWaterMark is the limit for a raw block size.
-	// Defaults to 512KB if unset.
+	// Defaults to DefRawHighWaterMark (768 KiB) if unset.
 	RawHighWaterMark uint64 `protobuf:"varint,1,opt,name=raw_high_water_mark,json=rawHighWaterMark,proto3" json:"rawHighWaterMark,omitempty"`
 	// ChunkerArgs configures the chunker to use.
 	ChunkerArgs *ChunkerArgs `protobuf:"bytes,2,opt,name=chunker_args,json=chunkerArgs,proto3" json:"chunkerArgs,omitempty"`
@@ -182,6 +182,11 @@ type ChunkIndex struct {
 	Chunks []*Chunk `protobuf:"bytes,1,rep,name=chunks,proto3" json:"chunks,omitempty"`
 	// ChunkerArgs are optional arguments for the chunker.
 	ChunkerArgs *ChunkerArgs `protobuf:"bytes,2,opt,name=chunker_args,json=chunkerArgs,proto3" json:"chunkerArgs,omitempty"`
+	// TailStart is the start of the tail: the chunks after the last boundary the
+	// chunker chose. Appends add tail chunks of any size until the tail would
+	// exceed the maximum chunk size, then the tail is chunked again.
+	// Equals the start of a chunk, or the end of the last chunk.
+	TailStart uint64 `protobuf:"varint,3,opt,name=tail_start,json=tailStart,proto3" json:"tailStart,omitempty"`
 }
 
 func (x *ChunkIndex) Reset() {
@@ -202,6 +207,13 @@ func (x *ChunkIndex) GetChunkerArgs() *ChunkerArgs {
 		return x.ChunkerArgs
 	}
 	return nil
+}
+
+func (x *ChunkIndex) GetTailStart() uint64 {
+	if x != nil {
+		return x.TailStart
+	}
+	return 0
 }
 
 // ChunkerArgs configures the chunking algorithm.
@@ -435,6 +447,7 @@ func (m *ChunkIndex) CloneVT() *ChunkIndex {
 		return (*ChunkIndex)(nil)
 	}
 	r := new(ChunkIndex)
+	r.TailStart = m.TailStart
 	r.Chunks = protobuf_go_lite.CloneVTSlice(m.Chunks)
 	r.ChunkerArgs = protobuf_go_lite.CloneVTValue(m.ChunkerArgs)
 	if len(m.unknownFields) > 0 {
@@ -583,6 +596,9 @@ func (this *ChunkIndex) EqualVT(that *ChunkIndex) bool {
 		return false
 	}
 	if !protobuf_go_lite.IsEqualVT(this.ChunkerArgs, that.ChunkerArgs) {
+		return false
+	}
+	if this.TailStart != that.TailStart {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -934,6 +950,11 @@ func (x *ChunkIndex) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("chunkerArgs")
 		x.ChunkerArgs.MarshalProtoJSON(s.WithField("chunkerArgs"))
 	}
+	if x.TailStart != 0 || s.HasField("tailStart") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("tailStart")
+		s.WriteUint64(x.TailStart)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -976,6 +997,9 @@ func (x *ChunkIndex) UnmarshalProtoJSON(s *json.UnmarshalState) {
 			}
 			x.ChunkerArgs = &ChunkerArgs{}
 			x.ChunkerArgs.UnmarshalProtoJSON(s.WithField("chunker_args", true))
+		case "tail_start", "tailStart":
+			s.AddField("tail_start")
+			x.TailStart = s.ReadUint64()
 		}
 	})
 }
@@ -1378,6 +1402,11 @@ func (m *ChunkIndex) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.TailStart != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.TailStart))
+		i--
+		dAtA[i] = 0x18
+	}
 	if m.ChunkerArgs != nil {
 		size, err := m.ChunkerArgs.MarshalToSizedBufferVT(dAtA[:i])
 		if err != nil {
@@ -1662,6 +1691,7 @@ func (m *ChunkIndex) SizeVT() (n int) {
 		l = m.ChunkerArgs.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.TailStart)
 	n += len(m.unknownFields)
 	return n
 }
@@ -1799,6 +1829,10 @@ func (x *ChunkIndex) MarshalProtoText() string {
 	if x.ChunkerArgs != nil {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "chunker_args")
 		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.ChunkerArgs)
+	}
+	if x.TailStart != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "tail_start")
+		protobuf_go_lite.TextWriteUint(&sb, x.TailStart)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -2104,6 +2138,15 @@ func (m *ChunkIndex) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field TailStart", wireType)
+			}
+			m.TailStart = 0
+			m.TailStart, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
