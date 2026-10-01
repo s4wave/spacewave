@@ -293,13 +293,11 @@
         "react-doctor/design-no-three-period-ellipsis": "warn",
         "react-doctor/design-no-vague-button-label": "warn",
         "react-doctor/async-parallel": "warn",
-        "react-compiler/react-compiler": "off",
         "react/rules-of-hooks": "warn",
         "typescript/no-unnecessary-type-assertion": "warn"
       },
       "jsPlugins": [
-        { "name": "react-doctor", "specifier": "oxlint-plugin-react-doctor" },
-        "eslint-plugin-react-compiler"
+        { "name": "react-doctor", "specifier": "oxlint-plugin-react-doctor" }
       ]
     },
     {
