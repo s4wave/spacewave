@@ -12,9 +12,12 @@ import (
 	transform_blockenc "github.com/s4wave/spacewave/db/block/transform/blockenc"
 	transform_gzip "github.com/s4wave/spacewave/db/block/transform/gzip"
 	"github.com/s4wave/spacewave/db/bucket"
+	"github.com/s4wave/spacewave/db/world"
 	world_block "github.com/s4wave/spacewave/db/world/block"
 	world_block_tx "github.com/s4wave/spacewave/db/world/block/tx"
+	world_mock "github.com/s4wave/spacewave/db/world/mock"
 	"github.com/s4wave/spacewave/net/crypto"
+	bifhash "github.com/s4wave/spacewave/net/hash"
 	"github.com/s4wave/spacewave/net/peer"
 	alpha_testbed "github.com/s4wave/spacewave/testbed"
 	"github.com/sirupsen/logrus"
@@ -172,6 +175,75 @@ func TestProcessOpAppliesOrdinaryTx(t *testing.T) {
 		t.Fatalf("expected ordinary transaction success, got %#v", res)
 	}
 }
+
+// TestProcessOpReleasesRemotePayloads checks that replay releases the payloads
+// of another device's operations, whose local copies only serve the replay,
+// and leaves the payloads of this device's operations to their writer.
+func TestProcessOpReleasesRemotePayloads(t *testing.T) {
+	// Build a World holding the object the payload operation updates.
+	ctx := t.Context()
+	c, so, head := newProcessTestWorld(t, ctx)
+	head = applyTransactionTestObject(t, c, so, head, "payload-object")
+	payloadHash, err := bifhash.Sum(bifhash.HashType_HashType_SHA256, []byte("payload"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	payloadRef := &block.BlockRef{Hash: payloadHash}
+	c.SetStaticLookupOp(func(ctx context.Context, operationTypeID string) (world.Operation, error) {
+		if operationTypeID != world_mock.MockWorldOpId {
+			return nil, nil
+		}
+		return &payloadMockWorldOp{MockWorldOp: &world_mock.MockWorldOp{}, payload: payloadRef}, nil
+	})
+
+	// Record the roots replay releases.
+	store := &rootRecordingStore{testBlockStore: so.blockStore.(*testBlockStore)}
+	so.blockStore = store
+	so.peerID = newProcessTestPeerID(t)
+	opTx, err := world_block_tx.NewTxApplyWorldOp(world_mock.NewMockWorldOp("payload-object", "next"), "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	opData := marshalApplyTxOpForProcessTest(t, opTx)
+
+	// Replay the operation as each sender and check which payloads it released.
+	for _, sender := range []struct {
+		name    string
+		peerID  peer.ID
+		release bool
+	}{
+		{"local", so.peerID, false},
+		{"remote", newProcessTestPeerID(t), true},
+	} {
+		store.released = nil
+		_, res, err := c.processOp(ctx, c.le, so, opData, sender.name, sender.peerID, 2, 0, head)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !res.GetSuccess() {
+			t.Fatalf("%s operation rejected: %v", sender.name, res)
+		}
+		released := len(store.released) == 1 && store.released[0].EqualVT(payloadRef)
+		if released != sender.release || (!sender.release && len(store.released) != 0) {
+			t.Fatalf("%s operation released %v", sender.name, store.released)
+		}
+	}
+}
+
+// payloadMockWorldOp is a mock World operation carrying a payload root.
+type payloadMockWorldOp struct {
+	*world_mock.MockWorldOp
+	// payload is the payload root the operation reports.
+	payload *block.BlockRef
+}
+
+// GetPayloadRefs returns the payload root.
+func (o *payloadMockWorldOp) GetPayloadRefs() []*block.BlockRef {
+	return []*block.BlockRef{o.payload}
+}
+
+// _ is a type assertion
+var _ world.PayloadOperation = (*payloadMockWorldOp)(nil)
 
 func TestProcessOpCandidateRequiresSharedObjectRootUpdate(t *testing.T) {
 	ctx := context.Background()

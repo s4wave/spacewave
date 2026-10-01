@@ -113,8 +113,11 @@ func TestWriteTransactionRefreshesAcceptedBase(t *testing.T) {
 	if err := tx.Commit(ctx); err != nil {
 		t.Fatalf("commit after refreshing the accepted base: %v", err)
 	}
-	if len(store.released) != 0 {
-		t.Fatalf("released %d roots of an accepted candidate", len(store.released))
+
+	// The accepted head holds the candidate, so its staging ownership goes.
+	acceptedRoot := engine.bengine.GetRootRef().GetRootRef()
+	if len(store.released) != 1 || !store.released[0].EqualVT(acceptedRoot) {
+		t.Fatalf("released roots = %v, want the accepted candidate root", store.released)
 	}
 
 	// Read back both writes through the engine's newly accepted head.
