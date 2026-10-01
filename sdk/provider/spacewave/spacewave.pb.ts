@@ -367,6 +367,41 @@ export const TargetedInvitePurpose_Enum = /* @__PURE__ */ createEnumType(
 )
 
 /**
+ * PublicOriginState is where a public Space's packs live.
+ *
+ * @generated from enum s4wave.provider.spacewave.PublicOriginState
+ */
+export enum PublicOriginState {
+  /**
+   * PublicOriginState_NONE is no linked origin; packs stay on Spacewave's CDN.
+   *
+   * @generated from enum value: PublicOriginState_NONE = 0;
+   */
+  PublicOriginState_NONE = 0,
+
+  /**
+   * PublicOriginState_COPYING is a linked origin receiving the existing packs.
+   * Pushes still land on Spacewave's CDN until the copy completes.
+   *
+   * @generated from enum value: PublicOriginState_COPYING = 1;
+   */
+  PublicOriginState_COPYING = 1,
+
+  /**
+   * PublicOriginState_ACTIVE is a linked origin that stores every pack and the
+   * root pointer.
+   *
+   * @generated from enum value: PublicOriginState_ACTIVE = 2;
+   */
+  PublicOriginState_ACTIVE = 2,
+}
+
+export const PublicOriginState_Enum = /* @__PURE__ */ createEnumType(
+  's4wave.provider.spacewave.PublicOriginState',
+  PublicOriginState,
+)
+
+/**
  * SpaceLinkCompletionMode describes how the external actor receives approval
  * completion data after consent.
  *
@@ -6322,6 +6357,286 @@ export const RepairSharedObjectResponse: MessageType<RepairSharedObjectResponse>
     's4wave.provider.spacewave.RepairSharedObjectResponse',
     true,
   )
+
+/**
+ * PublicOriginLink is an owner-paid S3-compatible bucket and the HTTPS base
+ * URL that serves it anonymously, linked as a public Space's pack origin. It is
+ * the request body for POST /api/sobject/{id}/public-origin.
+ *
+ * @generated from message s4wave.provider.spacewave.PublicOriginLink
+ */
+export interface PublicOriginLink {
+  /**
+   * Endpoint is the bucket's S3 API endpoint, such as
+   * https://s3.us-west-004.backblazeb2.com.
+   *
+   * @generated from field: string endpoint = 1;
+   */
+  endpoint?: string
+  /**
+   * Region is the S3 signing region.
+   *
+   * @generated from field: string region = 2;
+   */
+  region?: string
+  /**
+   * Bucket is the bucket name.
+   *
+   * @generated from field: string bucket = 3;
+   */
+  bucket?: string
+  /**
+   * AccessKeyId identifies a key that can read, write and delete in the bucket.
+   *
+   * @generated from field: string access_key_id = 4;
+   */
+  accessKeyId?: string
+  /**
+   * SecretAccessKey is the key's secret. The cloud stores it sealed and never
+   * returns it.
+   *
+   * @generated from field: string secret_access_key = 5;
+   */
+  secretAccessKey?: string
+  /**
+   * PublicBaseUrl is the https URL whose path /<key> serves the bucket's key,
+   * normally the owner's CDN hostname.
+   *
+   * @generated from field: string public_base_url = 6;
+   */
+  publicBaseUrl?: string
+}
+
+export const PublicOriginLink: MessageType<PublicOriginLink> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.provider.spacewave.PublicOriginLink',
+    fields: [
+      { no: 1, name: 'endpoint', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'region', kind: 'scalar', T: ScalarType.STRING },
+      { no: 3, name: 'bucket', kind: 'scalar', T: ScalarType.STRING },
+      { no: 4, name: 'access_key_id', kind: 'scalar', T: ScalarType.STRING },
+      {
+        no: 5,
+        name: 'secret_access_key',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+      },
+      { no: 6, name: 'public_base_url', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+  })
+
+/**
+ * PublicOriginStatus describes a public Space's linked origin. It is the
+ * response body of the /api/sobject/{id}/public-origin routes.
+ *
+ * @generated from message s4wave.provider.spacewave.PublicOriginStatus
+ */
+export interface PublicOriginStatus {
+  /**
+   * State is where the Space's packs live.
+   *
+   * @generated from field: s4wave.provider.spacewave.PublicOriginState state = 1;
+   */
+  state?: PublicOriginState
+  /**
+   * Endpoint is the linked bucket's S3 API endpoint.
+   *
+   * @generated from field: string endpoint = 2;
+   */
+  endpoint?: string
+  /**
+   * Bucket is the linked bucket name.
+   *
+   * @generated from field: string bucket = 3;
+   */
+  bucket?: string
+  /**
+   * PublicBaseUrl is the URL that serves the linked bucket.
+   *
+   * @generated from field: string public_base_url = 4;
+   */
+  publicBaseUrl?: string
+  /**
+   * PacksCopied counts the existing packs copied to the origin so far.
+   *
+   * @generated from field: uint32 packs_copied = 5;
+   */
+  packsCopied?: number
+  /**
+   * PacksTotal counts the live packs the copy must reach.
+   *
+   * @generated from field: uint32 packs_total = 6;
+   */
+  packsTotal?: number
+  /**
+   * HostedCopies reports whether Spacewave's CDN still holds the Space's
+   * objects from before the cutover.
+   *
+   * @generated from field: bool hosted_copies = 7;
+   */
+  hostedCopies?: boolean
+  /**
+   * CopyError is the last copy failure, empty while the copy is healthy. The
+   * copy retries on its own.
+   *
+   * @generated from field: string copy_error = 8;
+   */
+  copyError?: string
+}
+
+export const PublicOriginStatus: MessageType<PublicOriginStatus> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.provider.spacewave.PublicOriginStatus',
+    fields: [
+      { no: 1, name: 'state', kind: 'enum', T: PublicOriginState_Enum },
+      { no: 2, name: 'endpoint', kind: 'scalar', T: ScalarType.STRING },
+      { no: 3, name: 'bucket', kind: 'scalar', T: ScalarType.STRING },
+      { no: 4, name: 'public_base_url', kind: 'scalar', T: ScalarType.STRING },
+      { no: 5, name: 'packs_copied', kind: 'scalar', T: ScalarType.UINT32 },
+      { no: 6, name: 'packs_total', kind: 'scalar', T: ScalarType.UINT32 },
+      { no: 7, name: 'hosted_copies', kind: 'scalar', T: ScalarType.BOOL },
+      { no: 8, name: 'copy_error', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+  })
+
+/**
+ * LinkSpacePublicOriginRequest is the request for LinkSpacePublicOrigin.
+ *
+ * @generated from message s4wave.provider.spacewave.LinkSpacePublicOriginRequest
+ */
+export interface LinkSpacePublicOriginRequest {
+  /**
+   * SpaceId is the public Space to link.
+   *
+   * @generated from field: string space_id = 1;
+   */
+  spaceId?: string
+  /**
+   * Link is the origin to link.
+   *
+   * @generated from field: s4wave.provider.spacewave.PublicOriginLink link = 2;
+   */
+  link?: PublicOriginLink
+}
+
+export const LinkSpacePublicOriginRequest: MessageType<LinkSpacePublicOriginRequest> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.provider.spacewave.LinkSpacePublicOriginRequest',
+    fields: [
+      { no: 1, name: 'space_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'link', kind: 'message', T: PublicOriginLink },
+    ] satisfies readonly PartialFieldInfo[],
+  })
+
+/**
+ * LinkSpacePublicOriginResponse is the response for LinkSpacePublicOrigin.
+ *
+ * @generated from message s4wave.provider.spacewave.LinkSpacePublicOriginResponse
+ */
+export interface LinkSpacePublicOriginResponse {
+  /**
+   * Status is the Space's origin after linking.
+   *
+   * @generated from field: s4wave.provider.spacewave.PublicOriginStatus status = 1;
+   */
+  status?: PublicOriginStatus
+}
+
+export const LinkSpacePublicOriginResponse: MessageType<LinkSpacePublicOriginResponse> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.provider.spacewave.LinkSpacePublicOriginResponse',
+    fields: [
+      { no: 1, name: 'status', kind: 'message', T: PublicOriginStatus },
+    ] satisfies readonly PartialFieldInfo[],
+  })
+
+/**
+ * GetSpacePublicOriginRequest is the request for GetSpacePublicOrigin.
+ *
+ * @generated from message s4wave.provider.spacewave.GetSpacePublicOriginRequest
+ */
+export interface GetSpacePublicOriginRequest {
+  /**
+   * SpaceId is the public Space to describe.
+   *
+   * @generated from field: string space_id = 1;
+   */
+  spaceId?: string
+}
+
+export const GetSpacePublicOriginRequest: MessageType<GetSpacePublicOriginRequest> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.provider.spacewave.GetSpacePublicOriginRequest',
+    fields: [
+      { no: 1, name: 'space_id', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+  })
+
+/**
+ * GetSpacePublicOriginResponse is the response for GetSpacePublicOrigin.
+ *
+ * @generated from message s4wave.provider.spacewave.GetSpacePublicOriginResponse
+ */
+export interface GetSpacePublicOriginResponse {
+  /**
+   * Status is the Space's origin.
+   *
+   * @generated from field: s4wave.provider.spacewave.PublicOriginStatus status = 1;
+   */
+  status?: PublicOriginStatus
+}
+
+export const GetSpacePublicOriginResponse: MessageType<GetSpacePublicOriginResponse> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.provider.spacewave.GetSpacePublicOriginResponse',
+    fields: [
+      { no: 1, name: 'status', kind: 'message', T: PublicOriginStatus },
+    ] satisfies readonly PartialFieldInfo[],
+  })
+
+/**
+ * ReleaseSpaceHostedCopiesRequest is the request for ReleaseSpaceHostedCopies.
+ *
+ * @generated from message s4wave.provider.spacewave.ReleaseSpaceHostedCopiesRequest
+ */
+export interface ReleaseSpaceHostedCopiesRequest {
+  /**
+   * SpaceId is the public Space whose hosted copies to delete.
+   *
+   * @generated from field: string space_id = 1;
+   */
+  spaceId?: string
+}
+
+export const ReleaseSpaceHostedCopiesRequest: MessageType<ReleaseSpaceHostedCopiesRequest> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.provider.spacewave.ReleaseSpaceHostedCopiesRequest',
+    fields: [
+      { no: 1, name: 'space_id', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+  })
+
+/**
+ * ReleaseSpaceHostedCopiesResponse is the response for ReleaseSpaceHostedCopies.
+ *
+ * @generated from message s4wave.provider.spacewave.ReleaseSpaceHostedCopiesResponse
+ */
+export interface ReleaseSpaceHostedCopiesResponse {
+  /**
+   * Status is the Space's origin after the release.
+   *
+   * @generated from field: s4wave.provider.spacewave.PublicOriginStatus status = 1;
+   */
+  status?: PublicOriginStatus
+}
+
+export const ReleaseSpaceHostedCopiesResponse: MessageType<ReleaseSpaceHostedCopiesResponse> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.provider.spacewave.ReleaseSpaceHostedCopiesResponse',
+    fields: [
+      { no: 1, name: 'status', kind: 'message', T: PublicOriginStatus },
+    ] satisfies readonly PartialFieldInfo[],
+  })
 
 /**
  * ReinitializeSharedObjectRequest is the request for ReinitializeSharedObject.

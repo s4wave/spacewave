@@ -1677,6 +1677,100 @@ message RepairSharedObjectRequest {
 // RepairSharedObjectResponse is the response for RepairSharedObject.
 message RepairSharedObjectResponse {}
 
+// PublicOriginLink is an owner-paid S3-compatible bucket and the HTTPS base
+// URL that serves it anonymously, linked as a public Space's pack origin. It is
+// the request body for POST /api/sobject/{id}/public-origin.
+message PublicOriginLink {
+  // Endpoint is the bucket's S3 API endpoint, such as
+  // https://s3.us-west-004.backblazeb2.com.
+  string endpoint = 1;
+  // Region is the S3 signing region.
+  string region = 2;
+  // Bucket is the bucket name.
+  string bucket = 3;
+  // AccessKeyId identifies a key that can read, write and delete in the bucket.
+  string access_key_id = 4;
+  // SecretAccessKey is the key's secret. The cloud stores it sealed and never
+  // returns it.
+  string secret_access_key = 5;
+  // PublicBaseUrl is the https URL whose path /<key> serves the bucket's key,
+  // normally the owner's CDN hostname.
+  string public_base_url = 6;
+}
+
+// PublicOriginState is where a public Space's packs live.
+enum PublicOriginState {
+  // PublicOriginState_NONE is no linked origin; packs stay on Spacewave's CDN.
+  PublicOriginState_NONE = 0;
+  // PublicOriginState_COPYING is a linked origin receiving the existing packs.
+  // Pushes still land on Spacewave's CDN until the copy completes.
+  PublicOriginState_COPYING = 1;
+  // PublicOriginState_ACTIVE is a linked origin that stores every pack and the
+  // root pointer.
+  PublicOriginState_ACTIVE = 2;
+}
+
+// PublicOriginStatus describes a public Space's linked origin. It is the
+// response body of the /api/sobject/{id}/public-origin routes.
+message PublicOriginStatus {
+  // State is where the Space's packs live.
+  PublicOriginState state = 1;
+  // Endpoint is the linked bucket's S3 API endpoint.
+  string endpoint = 2;
+  // Bucket is the linked bucket name.
+  string bucket = 3;
+  // PublicBaseUrl is the URL that serves the linked bucket.
+  string public_base_url = 4;
+  // PacksCopied counts the existing packs copied to the origin so far.
+  uint32 packs_copied = 5;
+  // PacksTotal counts the live packs the copy must reach.
+  uint32 packs_total = 6;
+  // HostedCopies reports whether Spacewave's CDN still holds the Space's
+  // objects from before the cutover.
+  bool hosted_copies = 7;
+  // CopyError is the last copy failure, empty while the copy is healthy. The
+  // copy retries on its own.
+  string copy_error = 8;
+}
+
+// LinkSpacePublicOriginRequest is the request for LinkSpacePublicOrigin.
+message LinkSpacePublicOriginRequest {
+  // SpaceId is the public Space to link.
+  string space_id = 1;
+  // Link is the origin to link.
+  PublicOriginLink link = 2;
+}
+
+// LinkSpacePublicOriginResponse is the response for LinkSpacePublicOrigin.
+message LinkSpacePublicOriginResponse {
+  // Status is the Space's origin after linking.
+  PublicOriginStatus status = 1;
+}
+
+// GetSpacePublicOriginRequest is the request for GetSpacePublicOrigin.
+message GetSpacePublicOriginRequest {
+  // SpaceId is the public Space to describe.
+  string space_id = 1;
+}
+
+// GetSpacePublicOriginResponse is the response for GetSpacePublicOrigin.
+message GetSpacePublicOriginResponse {
+  // Status is the Space's origin.
+  PublicOriginStatus status = 1;
+}
+
+// ReleaseSpaceHostedCopiesRequest is the request for ReleaseSpaceHostedCopies.
+message ReleaseSpaceHostedCopiesRequest {
+  // SpaceId is the public Space whose hosted copies to delete.
+  string space_id = 1;
+}
+
+// ReleaseSpaceHostedCopiesResponse is the response for ReleaseSpaceHostedCopies.
+message ReleaseSpaceHostedCopiesResponse {
+  // Status is the Space's origin after the release.
+  PublicOriginStatus status = 1;
+}
+
 // ReinitializeSharedObjectRequest is the request for ReinitializeSharedObject.
 message ReinitializeSharedObjectRequest {
   // SharedObjectId is the shared object to reinitialize in place.

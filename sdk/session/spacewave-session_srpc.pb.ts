@@ -51,12 +51,16 @@ import {
   EnrollSpaceMemberResponse,
   GetLinkedLocalSessionRequest,
   GetLinkedLocalSessionResponse,
+  GetSpacePublicOriginRequest,
+  GetSpacePublicOriginResponse,
   GetTargetedInvitationRequest,
   GetTargetedInvitationResponse,
   JoinOrganizationRequest,
   JoinOrganizationResponse,
   LeaveOrganizationRequest,
   LeaveOrganizationResponse,
+  LinkSpacePublicOriginRequest,
+  LinkSpacePublicOriginResponse,
   ListManagedBillingAccountsRequest,
   ListManagedBillingAccountsResponse,
   ListTargetedInvitationsRequest,
@@ -75,6 +79,8 @@ import {
   RefreshBillingStateResponse,
   ReinitializeSharedObjectRequest,
   ReinitializeSharedObjectResponse,
+  ReleaseSpaceHostedCopiesRequest,
+  ReleaseSpaceHostedCopiesResponse,
   RemoveEmailRequest,
   RemoveEmailResponse,
   RemoveOrgMemberRequest,
@@ -682,6 +688,41 @@ export const SpacewaveSessionResourceServiceDefinition = {
       name: 'ReinitializeSharedObject',
       I: ReinitializeSharedObjectRequest,
       O: ReinitializeSharedObjectResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * LinkSpacePublicOrigin links an owner-paid bucket as a public Space's pack
+     * origin and starts copying its existing packs there.
+     *
+     * @generated from rpc s4wave.session.SpacewaveSessionResourceService.LinkSpacePublicOrigin
+     */
+    LinkSpacePublicOrigin: {
+      name: 'LinkSpacePublicOrigin',
+      I: LinkSpacePublicOriginRequest,
+      O: LinkSpacePublicOriginResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * GetSpacePublicOrigin returns a public Space's linked origin.
+     *
+     * @generated from rpc s4wave.session.SpacewaveSessionResourceService.GetSpacePublicOrigin
+     */
+    GetSpacePublicOrigin: {
+      name: 'GetSpacePublicOrigin',
+      I: GetSpacePublicOriginRequest,
+      O: GetSpacePublicOriginResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * ReleaseSpaceHostedCopies deletes the Spacewave-hosted copies of a Space
+     * that moved to its linked origin.
+     *
+     * @generated from rpc s4wave.session.SpacewaveSessionResourceService.ReleaseSpaceHostedCopies
+     */
+    ReleaseSpaceHostedCopies: {
+      name: 'ReleaseSpaceHostedCopies',
+      I: ReleaseSpaceHostedCopiesRequest,
+      O: ReleaseSpaceHostedCopiesResponse,
       kind: MethodKind.Unary,
     },
     /**
@@ -1386,6 +1427,38 @@ export interface SpacewaveSessionResourceService {
     request: ReinitializeSharedObjectRequest,
     abortSignal?: AbortSignal,
   ): Promise<ReinitializeSharedObjectResponse>
+
+  /**
+   * LinkSpacePublicOrigin links an owner-paid bucket as a public Space's pack
+   * origin and starts copying its existing packs there.
+   *
+   * @generated from rpc s4wave.session.SpacewaveSessionResourceService.LinkSpacePublicOrigin
+   */
+  LinkSpacePublicOrigin(
+    request: LinkSpacePublicOriginRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<LinkSpacePublicOriginResponse>
+
+  /**
+   * GetSpacePublicOrigin returns a public Space's linked origin.
+   *
+   * @generated from rpc s4wave.session.SpacewaveSessionResourceService.GetSpacePublicOrigin
+   */
+  GetSpacePublicOrigin(
+    request: GetSpacePublicOriginRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<GetSpacePublicOriginResponse>
+
+  /**
+   * ReleaseSpaceHostedCopies deletes the Spacewave-hosted copies of a Space
+   * that moved to its linked origin.
+   *
+   * @generated from rpc s4wave.session.SpacewaveSessionResourceService.ReleaseSpaceHostedCopies
+   */
+  ReleaseSpaceHostedCopies(
+    request: ReleaseSpaceHostedCopiesRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<ReleaseSpaceHostedCopiesResponse>
 
   /**
    * MountSharedObjectSelfEnrollment mounts the self-enrollment resource.
@@ -2119,6 +2192,41 @@ export interface SpacewaveSessionResourceServiceHandler {
   ): Promise<ReinitializeSharedObjectResponse>
 
   /**
+   * LinkSpacePublicOrigin links an owner-paid bucket as a public Space's pack
+   * origin and starts copying its existing packs there.
+   *
+   * @generated from rpc s4wave.session.SpacewaveSessionResourceService.LinkSpacePublicOrigin
+   */
+  LinkSpacePublicOrigin(
+    request: LinkSpacePublicOriginRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<LinkSpacePublicOriginResponse>
+
+  /**
+   * GetSpacePublicOrigin returns a public Space's linked origin.
+   *
+   * @generated from rpc s4wave.session.SpacewaveSessionResourceService.GetSpacePublicOrigin
+   */
+  GetSpacePublicOrigin(
+    request: GetSpacePublicOriginRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<GetSpacePublicOriginResponse>
+
+  /**
+   * ReleaseSpaceHostedCopies deletes the Spacewave-hosted copies of a Space
+   * that moved to its linked origin.
+   *
+   * @generated from rpc s4wave.session.SpacewaveSessionResourceService.ReleaseSpaceHostedCopies
+   */
+  ReleaseSpaceHostedCopies(
+    request: ReleaseSpaceHostedCopiesRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<ReleaseSpaceHostedCopiesResponse>
+
+  /**
    * MountSharedObjectSelfEnrollment mounts the self-enrollment resource.
    *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.MountSharedObjectSelfEnrollment
@@ -2390,6 +2498,9 @@ export class SpacewaveSessionResourceServiceClient implements SpacewaveSessionRe
     this.TransferResource = this.TransferResource.bind(this)
     this.RepairSharedObject = this.RepairSharedObject.bind(this)
     this.ReinitializeSharedObject = this.ReinitializeSharedObject.bind(this)
+    this.LinkSpacePublicOrigin = this.LinkSpacePublicOrigin.bind(this)
+    this.GetSpacePublicOrigin = this.GetSpacePublicOrigin.bind(this)
+    this.ReleaseSpaceHostedCopies = this.ReleaseSpaceHostedCopies.bind(this)
     this.MountSharedObjectSelfEnrollment =
       this.MountSharedObjectSelfEnrollment.bind(this)
     this.WatchEmails = this.WatchEmails.bind(this)
@@ -3365,6 +3476,68 @@ export class SpacewaveSessionResourceServiceClient implements SpacewaveSessionRe
       abortSignal || undefined,
     )
     return ReinitializeSharedObjectResponse.fromBinary(result)
+  }
+
+  /**
+   * LinkSpacePublicOrigin links an owner-paid bucket as a public Space's pack
+   * origin and starts copying its existing packs there.
+   *
+   * @generated from rpc s4wave.session.SpacewaveSessionResourceService.LinkSpacePublicOrigin
+   */
+  async LinkSpacePublicOrigin(
+    request: LinkSpacePublicOriginRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<LinkSpacePublicOriginResponse> {
+    const requestMsg = LinkSpacePublicOriginRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      SpacewaveSessionResourceServiceDefinition.methods.LinkSpacePublicOrigin
+        .name,
+      LinkSpacePublicOriginRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return LinkSpacePublicOriginResponse.fromBinary(result)
+  }
+
+  /**
+   * GetSpacePublicOrigin returns a public Space's linked origin.
+   *
+   * @generated from rpc s4wave.session.SpacewaveSessionResourceService.GetSpacePublicOrigin
+   */
+  async GetSpacePublicOrigin(
+    request: GetSpacePublicOriginRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<GetSpacePublicOriginResponse> {
+    const requestMsg = GetSpacePublicOriginRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      SpacewaveSessionResourceServiceDefinition.methods.GetSpacePublicOrigin
+        .name,
+      GetSpacePublicOriginRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return GetSpacePublicOriginResponse.fromBinary(result)
+  }
+
+  /**
+   * ReleaseSpaceHostedCopies deletes the Spacewave-hosted copies of a Space
+   * that moved to its linked origin.
+   *
+   * @generated from rpc s4wave.session.SpacewaveSessionResourceService.ReleaseSpaceHostedCopies
+   */
+  async ReleaseSpaceHostedCopies(
+    request: ReleaseSpaceHostedCopiesRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<ReleaseSpaceHostedCopiesResponse> {
+    const requestMsg = ReleaseSpaceHostedCopiesRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      SpacewaveSessionResourceServiceDefinition.methods.ReleaseSpaceHostedCopies
+        .name,
+      ReleaseSpaceHostedCopiesRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return ReleaseSpaceHostedCopiesResponse.fromBinary(result)
   }
 
   /**

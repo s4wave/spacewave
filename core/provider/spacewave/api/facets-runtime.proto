@@ -29,14 +29,3 @@ message FacetsRuntimeResponse {
   // Generation identifies the current plugin process, empty after teardown.
   string generation = 3;
 }
-
-// FacetsRuntimeFlagRequest changes the current environment's developer runtime flag.
-// Only platform administrators may call POST /api/admin/facets/runtime-flag.
-message FacetsRuntimeFlagRequest {
-  bool enabled = 1;
-}
-
-// FacetsRuntimeFlagResponse reports the persisted admission setting.
-message FacetsRuntimeFlagResponse {
-  bool enabled = 1;
-}

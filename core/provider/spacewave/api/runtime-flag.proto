@@ -1,0 +1,18 @@
+syntax = "proto3";
+package provider.spacewave.api;
+
+// RuntimeCapabilityFlagRequest switches one runtime capability for the current
+// environment. Only platform administrators may call
+// POST /api/admin/runtime-flag, and only for a capability the Worker gates.
+message RuntimeCapabilityFlagRequest {
+  // Capability names the gated feature, such as runtime.worker-facet or
+  // storage.public-origin.
+  string capability = 1;
+  bool enabled = 2;
+}
+
+// RuntimeCapabilityFlagResponse reports the persisted setting.
+message RuntimeCapabilityFlagResponse {
+  string capability = 1;
+  bool enabled = 2;
+}

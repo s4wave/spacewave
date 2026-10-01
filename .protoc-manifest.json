@@ -1229,7 +1229,7 @@
       ]
     },
     "github.com/s4wave/spacewave/core/provider/spacewave/api": {
-      "hash": "2aaed019dab8d70d52e887d8e1e1b0325300f14c5f0eda61c8d49f4df7dac223",
+      "hash": "386feee2fbb07873384e1bda96dc60ce34185286be0602a1af961053f7180036",
       "generatedFiles": [
         "core/provider/spacewave/api/api.pb.go",
         "core/provider/spacewave/api/api.pb.ts",
@@ -1239,6 +1239,8 @@
         "core/provider/spacewave/api/facets-runtime.pb.ts",
         "core/provider/spacewave/api/rbac-admin.pb.go",
         "core/provider/spacewave/api/rbac-admin.pb.ts",
+        "core/provider/spacewave/api/runtime-flag.pb.go",
+        "core/provider/spacewave/api/runtime-flag.pb.ts",
         "core/provider/spacewave/api/spacelink-nonce.pb.go",
         "core/provider/spacewave/api/spacelink-nonce.pb.ts"
       ],
@@ -1247,6 +1249,7 @@
         "core/provider/spacewave/api/application.proto",
         "core/provider/spacewave/api/facets-runtime.proto",
         "core/provider/spacewave/api/rbac-admin.proto",
+        "core/provider/spacewave/api/runtime-flag.proto",
         "core/provider/spacewave/api/spacelink-nonce.proto"
       ]
     },
@@ -3801,7 +3804,7 @@
       ]
     },
     "github.com/s4wave/spacewave/sdk/provider/spacewave": {
-      "hash": "8c28a380e7b3e5a172f8fc276833f24c5950fc8405937a1ed673691d35c42d41",
+      "hash": "d05d9d94f4025b6602a603d5a8d46a62f6a7bf69bb01c238b29159023d0c4470",
       "generatedFiles": [
         "sdk/provider/spacewave/spacewave.pb.go",
         "sdk/provider/spacewave/spacewave.pb.ts",
@@ -3849,7 +3852,7 @@
       ]
     },
     "github.com/s4wave/spacewave/sdk/session": {
-      "hash": "5e44ffc2439af2baab43aa410d4c47aab22da413d0c0b80f206ae1be39557064",
+      "hash": "37820065e63ba1cea24b85e334c6059cd1a0d5f85ee4861fa74aefafcab0ec60",
       "generatedFiles": [
         "sdk/session/local-session.pb.go",
         "sdk/session/local-session.pb.ts",

@@ -137,45 +137,6 @@ func (x *FacetsRuntimeResponse) GetGeneration() string {
 	return ""
 }
 
-// FacetsRuntimeFlagRequest changes the current environment's developer runtime flag.
-// Only platform administrators may call POST /api/admin/facets/runtime-flag.
-type FacetsRuntimeFlagRequest struct {
-	unknownFields []byte
-	Enabled       bool `protobuf:"varint,1,opt,name=enabled,proto3" json:"enabled,omitempty"`
-}
-
-func (x *FacetsRuntimeFlagRequest) Reset() {
-	*x = FacetsRuntimeFlagRequest{}
-}
-
-func (*FacetsRuntimeFlagRequest) ProtoMessage() {}
-
-func (x *FacetsRuntimeFlagRequest) GetEnabled() bool {
-	if x != nil {
-		return x.Enabled
-	}
-	return false
-}
-
-// FacetsRuntimeFlagResponse reports the persisted admission setting.
-type FacetsRuntimeFlagResponse struct {
-	unknownFields []byte
-	Enabled       bool `protobuf:"varint,1,opt,name=enabled,proto3" json:"enabled,omitempty"`
-}
-
-func (x *FacetsRuntimeFlagResponse) Reset() {
-	*x = FacetsRuntimeFlagResponse{}
-}
-
-func (*FacetsRuntimeFlagResponse) ProtoMessage() {}
-
-func (x *FacetsRuntimeFlagResponse) GetEnabled() bool {
-	if x != nil {
-		return x.Enabled
-	}
-	return false
-}
-
 func (m *FacetsRuntimeRequest) CloneVT() *FacetsRuntimeRequest {
 	if m == nil {
 		return (*FacetsRuntimeRequest)(nil)
@@ -210,38 +171,6 @@ func (m *FacetsRuntimeResponse) CloneVT() *FacetsRuntimeResponse {
 }
 
 func (m *FacetsRuntimeResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
-	return m.CloneVT()
-}
-
-func (m *FacetsRuntimeFlagRequest) CloneVT() *FacetsRuntimeFlagRequest {
-	if m == nil {
-		return (*FacetsRuntimeFlagRequest)(nil)
-	}
-	r := new(FacetsRuntimeFlagRequest)
-	r.Enabled = m.Enabled
-	if len(m.unknownFields) > 0 {
-		r.unknownFields = slices.Clone(m.unknownFields)
-	}
-	return r
-}
-
-func (m *FacetsRuntimeFlagRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
-	return m.CloneVT()
-}
-
-func (m *FacetsRuntimeFlagResponse) CloneVT() *FacetsRuntimeFlagResponse {
-	if m == nil {
-		return (*FacetsRuntimeFlagResponse)(nil)
-	}
-	r := new(FacetsRuntimeFlagResponse)
-	r.Enabled = m.Enabled
-	if len(m.unknownFields) > 0 {
-		r.unknownFields = slices.Clone(m.unknownFields)
-	}
-	return r
-}
-
-func (m *FacetsRuntimeFlagResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -294,46 +223,6 @@ func (this *FacetsRuntimeResponse) EqualVT(that *FacetsRuntimeResponse) bool {
 
 func (this *FacetsRuntimeResponse) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*FacetsRuntimeResponse)
-	if !ok {
-		return false
-	}
-	return this.EqualVT(that)
-}
-
-func (this *FacetsRuntimeFlagRequest) EqualVT(that *FacetsRuntimeFlagRequest) bool {
-	if this == that {
-		return true
-	} else if this == nil || that == nil {
-		return false
-	}
-	if this.Enabled != that.Enabled {
-		return false
-	}
-	return string(this.unknownFields) == string(that.unknownFields)
-}
-
-func (this *FacetsRuntimeFlagRequest) EqualMessageVT(thatMsg any) bool {
-	that, ok := thatMsg.(*FacetsRuntimeFlagRequest)
-	if !ok {
-		return false
-	}
-	return this.EqualVT(that)
-}
-
-func (this *FacetsRuntimeFlagResponse) EqualVT(that *FacetsRuntimeFlagResponse) bool {
-	if this == that {
-		return true
-	} else if this == nil || that == nil {
-		return false
-	}
-	if this.Enabled != that.Enabled {
-		return false
-	}
-	return string(this.unknownFields) == string(that.unknownFields)
-}
-
-func (this *FacetsRuntimeFlagResponse) EqualMessageVT(thatMsg any) bool {
-	that, ok := thatMsg.(*FacetsRuntimeFlagResponse)
 	if !ok {
 		return false
 	}
@@ -504,90 +393,6 @@ func (x *FacetsRuntimeResponse) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
-// MarshalProtoJSON marshals the FacetsRuntimeFlagRequest message to JSON.
-func (x *FacetsRuntimeFlagRequest) MarshalProtoJSON(s *json.MarshalState) {
-	if x == nil {
-		s.WriteNil()
-		return
-	}
-	s.WriteObjectStart()
-	var wroteField bool
-	if x.Enabled || s.HasField("enabled") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("enabled")
-		s.WriteBool(x.Enabled)
-	}
-	s.WriteObjectEnd()
-}
-
-// MarshalJSON marshals the FacetsRuntimeFlagRequest to JSON.
-func (x *FacetsRuntimeFlagRequest) MarshalJSON() ([]byte, error) {
-	return json.DefaultMarshalerConfig.Marshal(x)
-}
-
-// UnmarshalProtoJSON unmarshals the FacetsRuntimeFlagRequest message from JSON.
-func (x *FacetsRuntimeFlagRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
-	if s.ReadNil() {
-		return
-	}
-	s.ReadObject(func(key string) {
-		switch key {
-		default:
-			s.Skip() // ignore unknown field
-		case "enabled":
-			s.AddField("enabled")
-			x.Enabled = s.ReadBool()
-		}
-	})
-}
-
-// UnmarshalJSON unmarshals the FacetsRuntimeFlagRequest from JSON.
-func (x *FacetsRuntimeFlagRequest) UnmarshalJSON(b []byte) error {
-	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
-}
-
-// MarshalProtoJSON marshals the FacetsRuntimeFlagResponse message to JSON.
-func (x *FacetsRuntimeFlagResponse) MarshalProtoJSON(s *json.MarshalState) {
-	if x == nil {
-		s.WriteNil()
-		return
-	}
-	s.WriteObjectStart()
-	var wroteField bool
-	if x.Enabled || s.HasField("enabled") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("enabled")
-		s.WriteBool(x.Enabled)
-	}
-	s.WriteObjectEnd()
-}
-
-// MarshalJSON marshals the FacetsRuntimeFlagResponse to JSON.
-func (x *FacetsRuntimeFlagResponse) MarshalJSON() ([]byte, error) {
-	return json.DefaultMarshalerConfig.Marshal(x)
-}
-
-// UnmarshalProtoJSON unmarshals the FacetsRuntimeFlagResponse message from JSON.
-func (x *FacetsRuntimeFlagResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
-	if s.ReadNil() {
-		return
-	}
-	s.ReadObject(func(key string) {
-		switch key {
-		default:
-			s.Skip() // ignore unknown field
-		case "enabled":
-			s.AddField("enabled")
-			x.Enabled = s.ReadBool()
-		}
-	})
-}
-
-// UnmarshalJSON unmarshals the FacetsRuntimeFlagResponse from JSON.
-func (x *FacetsRuntimeFlagResponse) UnmarshalJSON(b []byte) error {
-	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
-}
-
 func (m *FacetsRuntimeRequest) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -687,80 +492,6 @@ func (m *FacetsRuntimeResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error)
 	return len(dAtA) - i, nil
 }
 
-func (m *FacetsRuntimeFlagRequest) MarshalVT() (dAtA []byte, err error) {
-	if m == nil {
-		return nil, nil
-	}
-	size := m.SizeVT()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *FacetsRuntimeFlagRequest) MarshalToVT(dAtA []byte) (int, error) {
-	size := m.SizeVT()
-	return m.MarshalToSizedBufferVT(dAtA[:size])
-}
-
-func (m *FacetsRuntimeFlagRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
-	if m == nil {
-		return 0, nil
-	}
-	i := len(dAtA)
-	_ = i
-	var l int
-	_ = l
-	if m.unknownFields != nil {
-		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
-	}
-	if m.Enabled {
-		i = protobuf_go_lite.EncodeBool(dAtA, i, m.Enabled)
-		i--
-		dAtA[i] = 0x8
-	}
-	return len(dAtA) - i, nil
-}
-
-func (m *FacetsRuntimeFlagResponse) MarshalVT() (dAtA []byte, err error) {
-	if m == nil {
-		return nil, nil
-	}
-	size := m.SizeVT()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *FacetsRuntimeFlagResponse) MarshalToVT(dAtA []byte) (int, error) {
-	size := m.SizeVT()
-	return m.MarshalToSizedBufferVT(dAtA[:size])
-}
-
-func (m *FacetsRuntimeFlagResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
-	if m == nil {
-		return 0, nil
-	}
-	i := len(dAtA)
-	_ = i
-	var l int
-	_ = l
-	if m.unknownFields != nil {
-		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
-	}
-	if m.Enabled {
-		i = protobuf_go_lite.EncodeBool(dAtA, i, m.Enabled)
-		i--
-		dAtA[i] = 0x8
-	}
-	return len(dAtA) - i, nil
-}
-
 func (m *FacetsRuntimeRequest) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -784,28 +515,6 @@ func (m *FacetsRuntimeResponse) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Output)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.ModuleDigest)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Generation)
-	n += len(m.unknownFields)
-	return n
-}
-
-func (m *FacetsRuntimeFlagRequest) SizeVT() (n int) {
-	if m == nil {
-		return 0
-	}
-	var l int
-	_ = l
-	n += protobuf_go_lite.SizeBoolNonZero(1, m.Enabled)
-	n += len(m.unknownFields)
-	return n
-}
-
-func (m *FacetsRuntimeFlagResponse) SizeVT() (n int) {
-	if m == nil {
-		return 0
-	}
-	var l int
-	_ = l
-	n += protobuf_go_lite.SizeBoolNonZero(1, m.Enabled)
 	n += len(m.unknownFields)
 	return n
 }
@@ -859,34 +568,6 @@ func (x *FacetsRuntimeResponse) MarshalProtoText() string {
 }
 
 func (x *FacetsRuntimeResponse) String() string {
-	return x.MarshalProtoText()
-}
-
-func (x *FacetsRuntimeFlagRequest) MarshalProtoText() string {
-	var sb protobuf_go_lite.TextBuilder
-	initialLen := protobuf_go_lite.TextStartMessage(&sb, "FacetsRuntimeFlagRequest")
-	if x.Enabled != false {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "enabled")
-		protobuf_go_lite.TextWriteBool(&sb, x.Enabled)
-	}
-	return protobuf_go_lite.TextFinishMessage(&sb)
-}
-
-func (x *FacetsRuntimeFlagRequest) String() string {
-	return x.MarshalProtoText()
-}
-
-func (x *FacetsRuntimeFlagResponse) MarshalProtoText() string {
-	var sb protobuf_go_lite.TextBuilder
-	initialLen := protobuf_go_lite.TextStartMessage(&sb, "FacetsRuntimeFlagResponse")
-	if x.Enabled != false {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "enabled")
-		protobuf_go_lite.TextWriteBool(&sb, x.Enabled)
-	}
-	return protobuf_go_lite.TextFinishMessage(&sb)
-}
-
-func (x *FacetsRuntimeFlagResponse) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -1024,112 +705,6 @@ func (m *FacetsRuntimeResponse) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.Generation = v
-		default:
-			iNdEx = preIndex
-			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if (skippy < 0) || (iNdEx+skippy) < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-
-func (m *FacetsRuntimeFlagRequest) UnmarshalVT(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	var err error
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-		if err != nil {
-			return err
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: FacetsRuntimeFlagRequest: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: FacetsRuntimeFlagRequest: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Enabled", wireType)
-			}
-			var v bool
-			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-			m.Enabled = bool(v)
-		default:
-			iNdEx = preIndex
-			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if (skippy < 0) || (iNdEx+skippy) < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-
-func (m *FacetsRuntimeFlagResponse) UnmarshalVT(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	var err error
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-		if err != nil {
-			return err
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: FacetsRuntimeFlagResponse: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: FacetsRuntimeFlagResponse: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Enabled", wireType)
-			}
-			var v bool
-			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-			m.Enabled = bool(v)
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

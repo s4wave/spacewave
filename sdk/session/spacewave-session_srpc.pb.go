@@ -117,6 +117,14 @@ type SRPCSpacewaveSessionResourceServiceClient interface {
 	RepairSharedObject(ctx context.Context, in *s4wave_provider_spacewave.RepairSharedObjectRequest) (*s4wave_provider_spacewave.RepairSharedObjectResponse, error)
 	// ReinitializeSharedObject destructively rewrites a broken shared object in place.
 	ReinitializeSharedObject(ctx context.Context, in *s4wave_provider_spacewave.ReinitializeSharedObjectRequest) (*s4wave_provider_spacewave.ReinitializeSharedObjectResponse, error)
+	// LinkSpacePublicOrigin links an owner-paid bucket as a public Space's pack
+	// origin and starts copying its existing packs there.
+	LinkSpacePublicOrigin(ctx context.Context, in *s4wave_provider_spacewave.LinkSpacePublicOriginRequest) (*s4wave_provider_spacewave.LinkSpacePublicOriginResponse, error)
+	// GetSpacePublicOrigin returns a public Space's linked origin.
+	GetSpacePublicOrigin(ctx context.Context, in *s4wave_provider_spacewave.GetSpacePublicOriginRequest) (*s4wave_provider_spacewave.GetSpacePublicOriginResponse, error)
+	// ReleaseSpaceHostedCopies deletes the Spacewave-hosted copies of a Space
+	// that moved to its linked origin.
+	ReleaseSpaceHostedCopies(ctx context.Context, in *s4wave_provider_spacewave.ReleaseSpaceHostedCopiesRequest) (*s4wave_provider_spacewave.ReleaseSpaceHostedCopiesResponse, error)
 	// MountSharedObjectSelfEnrollment mounts the self-enrollment resource.
 	MountSharedObjectSelfEnrollment(ctx context.Context, in *MountSharedObjectSelfEnrollmentRequest) (*MountSharedObjectSelfEnrollmentResponse, error)
 	// WatchEmails streams the account's email list, emitting on changes.
@@ -784,6 +792,33 @@ func (c *srpcSpacewaveSessionResourceServiceClient) ReinitializeSharedObject(ctx
 	return out, nil
 }
 
+func (c *srpcSpacewaveSessionResourceServiceClient) LinkSpacePublicOrigin(ctx context.Context, in *s4wave_provider_spacewave.LinkSpacePublicOriginRequest) (*s4wave_provider_spacewave.LinkSpacePublicOriginResponse, error) {
+	out := new(s4wave_provider_spacewave.LinkSpacePublicOriginResponse)
+	err := c.cc.ExecCall(ctx, c.serviceID, "LinkSpacePublicOrigin", in, out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *srpcSpacewaveSessionResourceServiceClient) GetSpacePublicOrigin(ctx context.Context, in *s4wave_provider_spacewave.GetSpacePublicOriginRequest) (*s4wave_provider_spacewave.GetSpacePublicOriginResponse, error) {
+	out := new(s4wave_provider_spacewave.GetSpacePublicOriginResponse)
+	err := c.cc.ExecCall(ctx, c.serviceID, "GetSpacePublicOrigin", in, out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *srpcSpacewaveSessionResourceServiceClient) ReleaseSpaceHostedCopies(ctx context.Context, in *s4wave_provider_spacewave.ReleaseSpaceHostedCopiesRequest) (*s4wave_provider_spacewave.ReleaseSpaceHostedCopiesResponse, error) {
+	out := new(s4wave_provider_spacewave.ReleaseSpaceHostedCopiesResponse)
+	err := c.cc.ExecCall(ctx, c.serviceID, "ReleaseSpaceHostedCopies", in, out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *srpcSpacewaveSessionResourceServiceClient) MountSharedObjectSelfEnrollment(ctx context.Context, in *MountSharedObjectSelfEnrollmentRequest) (*MountSharedObjectSelfEnrollmentResponse, error) {
 	out := new(MountSharedObjectSelfEnrollmentResponse)
 	err := c.cc.ExecCall(ctx, c.serviceID, "MountSharedObjectSelfEnrollment", in, out)
@@ -1072,6 +1107,14 @@ type SRPCSpacewaveSessionResourceServiceServer interface {
 	RepairSharedObject(context.Context, *s4wave_provider_spacewave.RepairSharedObjectRequest) (*s4wave_provider_spacewave.RepairSharedObjectResponse, error)
 	// ReinitializeSharedObject destructively rewrites a broken shared object in place.
 	ReinitializeSharedObject(context.Context, *s4wave_provider_spacewave.ReinitializeSharedObjectRequest) (*s4wave_provider_spacewave.ReinitializeSharedObjectResponse, error)
+	// LinkSpacePublicOrigin links an owner-paid bucket as a public Space's pack
+	// origin and starts copying its existing packs there.
+	LinkSpacePublicOrigin(context.Context, *s4wave_provider_spacewave.LinkSpacePublicOriginRequest) (*s4wave_provider_spacewave.LinkSpacePublicOriginResponse, error)
+	// GetSpacePublicOrigin returns a public Space's linked origin.
+	GetSpacePublicOrigin(context.Context, *s4wave_provider_spacewave.GetSpacePublicOriginRequest) (*s4wave_provider_spacewave.GetSpacePublicOriginResponse, error)
+	// ReleaseSpaceHostedCopies deletes the Spacewave-hosted copies of a Space
+	// that moved to its linked origin.
+	ReleaseSpaceHostedCopies(context.Context, *s4wave_provider_spacewave.ReleaseSpaceHostedCopiesRequest) (*s4wave_provider_spacewave.ReleaseSpaceHostedCopiesResponse, error)
 	// MountSharedObjectSelfEnrollment mounts the self-enrollment resource.
 	MountSharedObjectSelfEnrollment(context.Context, *MountSharedObjectSelfEnrollmentRequest) (*MountSharedObjectSelfEnrollmentResponse, error)
 	// WatchEmails streams the account's email list, emitting on changes.
@@ -1195,6 +1238,9 @@ func (SRPCSpacewaveSessionResourceServiceHandler) GetMethodIDs() []string {
 		"TransferResource",
 		"RepairSharedObject",
 		"ReinitializeSharedObject",
+		"LinkSpacePublicOrigin",
+		"GetSpacePublicOrigin",
+		"ReleaseSpaceHostedCopies",
 		"MountSharedObjectSelfEnrollment",
 		"WatchEmails",
 		"SendVerificationEmail",
@@ -1321,6 +1367,12 @@ func (d *SRPCSpacewaveSessionResourceServiceHandler) InvokeMethod(
 		return true, d.InvokeMethod_RepairSharedObject(d.impl, strm)
 	case "ReinitializeSharedObject":
 		return true, d.InvokeMethod_ReinitializeSharedObject(d.impl, strm)
+	case "LinkSpacePublicOrigin":
+		return true, d.InvokeMethod_LinkSpacePublicOrigin(d.impl, strm)
+	case "GetSpacePublicOrigin":
+		return true, d.InvokeMethod_GetSpacePublicOrigin(d.impl, strm)
+	case "ReleaseSpaceHostedCopies":
+		return true, d.InvokeMethod_ReleaseSpaceHostedCopies(d.impl, strm)
 	case "MountSharedObjectSelfEnrollment":
 		return true, d.InvokeMethod_MountSharedObjectSelfEnrollment(d.impl, strm)
 	case "WatchEmails":
@@ -1911,6 +1963,42 @@ func (SRPCSpacewaveSessionResourceServiceHandler) InvokeMethod_ReinitializeShare
 		return err
 	}
 	out, err := impl.ReinitializeSharedObject(strm.Context(), req)
+	if err != nil {
+		return err
+	}
+	return strm.MsgSend(out)
+}
+
+func (SRPCSpacewaveSessionResourceServiceHandler) InvokeMethod_LinkSpacePublicOrigin(impl SRPCSpacewaveSessionResourceServiceServer, strm srpc.Stream) error {
+	req := new(s4wave_provider_spacewave.LinkSpacePublicOriginRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	out, err := impl.LinkSpacePublicOrigin(strm.Context(), req)
+	if err != nil {
+		return err
+	}
+	return strm.MsgSend(out)
+}
+
+func (SRPCSpacewaveSessionResourceServiceHandler) InvokeMethod_GetSpacePublicOrigin(impl SRPCSpacewaveSessionResourceServiceServer, strm srpc.Stream) error {
+	req := new(s4wave_provider_spacewave.GetSpacePublicOriginRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	out, err := impl.GetSpacePublicOrigin(strm.Context(), req)
+	if err != nil {
+		return err
+	}
+	return strm.MsgSend(out)
+}
+
+func (SRPCSpacewaveSessionResourceServiceHandler) InvokeMethod_ReleaseSpaceHostedCopies(impl SRPCSpacewaveSessionResourceServiceServer, strm srpc.Stream) error {
+	req := new(s4wave_provider_spacewave.ReleaseSpaceHostedCopiesRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	out, err := impl.ReleaseSpaceHostedCopies(strm.Context(), req)
 	if err != nil {
 		return err
 	}
@@ -2616,6 +2704,30 @@ type SRPCSpacewaveSessionResourceService_ReinitializeSharedObjectStream interfac
 }
 
 type srpcSpacewaveSessionResourceService_ReinitializeSharedObjectStream struct {
+	srpc.Stream
+}
+
+type SRPCSpacewaveSessionResourceService_LinkSpacePublicOriginStream interface {
+	srpc.Stream
+}
+
+type srpcSpacewaveSessionResourceService_LinkSpacePublicOriginStream struct {
+	srpc.Stream
+}
+
+type SRPCSpacewaveSessionResourceService_GetSpacePublicOriginStream interface {
+	srpc.Stream
+}
+
+type srpcSpacewaveSessionResourceService_GetSpacePublicOriginStream struct {
+	srpc.Stream
+}
+
+type SRPCSpacewaveSessionResourceService_ReleaseSpaceHostedCopiesStream interface {
+	srpc.Stream
+}
+
+type srpcSpacewaveSessionResourceService_ReleaseSpaceHostedCopiesStream struct {
 	srpc.Stream
 }
 

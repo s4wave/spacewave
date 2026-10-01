@@ -110,6 +110,14 @@ service SpacewaveSessionResourceService {
   rpc RepairSharedObject(.s4wave.provider.spacewave.RepairSharedObjectRequest) returns (.s4wave.provider.spacewave.RepairSharedObjectResponse);
   // ReinitializeSharedObject destructively rewrites a broken shared object in place.
   rpc ReinitializeSharedObject(.s4wave.provider.spacewave.ReinitializeSharedObjectRequest) returns (.s4wave.provider.spacewave.ReinitializeSharedObjectResponse);
+  // LinkSpacePublicOrigin links an owner-paid bucket as a public Space's pack
+  // origin and starts copying its existing packs there.
+  rpc LinkSpacePublicOrigin(.s4wave.provider.spacewave.LinkSpacePublicOriginRequest) returns (.s4wave.provider.spacewave.LinkSpacePublicOriginResponse);
+  // GetSpacePublicOrigin returns a public Space's linked origin.
+  rpc GetSpacePublicOrigin(.s4wave.provider.spacewave.GetSpacePublicOriginRequest) returns (.s4wave.provider.spacewave.GetSpacePublicOriginResponse);
+  // ReleaseSpaceHostedCopies deletes the Spacewave-hosted copies of a Space
+  // that moved to its linked origin.
+  rpc ReleaseSpaceHostedCopies(.s4wave.provider.spacewave.ReleaseSpaceHostedCopiesRequest) returns (.s4wave.provider.spacewave.ReleaseSpaceHostedCopiesResponse);
   // MountSharedObjectSelfEnrollment mounts the self-enrollment resource.
   rpc MountSharedObjectSelfEnrollment(MountSharedObjectSelfEnrollmentRequest) returns (MountSharedObjectSelfEnrollmentResponse);
 

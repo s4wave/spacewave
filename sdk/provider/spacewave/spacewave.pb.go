@@ -365,6 +365,48 @@ func (x TargetedInvitePurpose) String() string {
 	return strconv.Itoa(int(x))
 }
 
+// PublicOriginState is where a public Space's packs live.
+type PublicOriginState int32
+
+const (
+	// PublicOriginState_NONE is no linked origin; packs stay on Spacewave's CDN.
+	PublicOriginState_PublicOriginState_NONE PublicOriginState = 0
+	// PublicOriginState_COPYING is a linked origin receiving the existing packs.
+	// Pushes still land on Spacewave's CDN until the copy completes.
+	PublicOriginState_PublicOriginState_COPYING PublicOriginState = 1
+	// PublicOriginState_ACTIVE is a linked origin that stores every pack and the
+	// root pointer.
+	PublicOriginState_PublicOriginState_ACTIVE PublicOriginState = 2
+)
+
+// Enum value maps for PublicOriginState.
+var (
+	PublicOriginState_name = map[int32]string{
+		0: "PublicOriginState_NONE",
+		1: "PublicOriginState_COPYING",
+		2: "PublicOriginState_ACTIVE",
+	}
+	PublicOriginState_value = map[string]int32{
+		"PublicOriginState_NONE":    0,
+		"PublicOriginState_COPYING": 1,
+		"PublicOriginState_ACTIVE":  2,
+	}
+)
+
+func (x PublicOriginState) Enum() *PublicOriginState {
+	p := new(PublicOriginState)
+	*p = x
+	return p
+}
+
+func (x PublicOriginState) String() string {
+	name, valid := PublicOriginState_name[int32(x)]
+	if valid {
+		return name
+	}
+	return strconv.Itoa(int(x))
+}
+
 // SpaceLinkCompletionMode describes how the external actor receives approval
 // completion data after consent.
 type SpaceLinkCompletionMode int32
@@ -6144,6 +6186,291 @@ func (x *RepairSharedObjectResponse) Reset() {
 
 func (*RepairSharedObjectResponse) ProtoMessage() {}
 
+// PublicOriginLink is an owner-paid S3-compatible bucket and the HTTPS base
+// URL that serves it anonymously, linked as a public Space's pack origin. It is
+// the request body for POST /api/sobject/{id}/public-origin.
+type PublicOriginLink struct {
+	unknownFields []byte
+	// Endpoint is the bucket's S3 API endpoint, such as
+	// https://s3.us-west-004.backblazeb2.com.
+	Endpoint string `protobuf:"bytes,1,opt,name=endpoint,proto3" json:"endpoint,omitempty"`
+	// Region is the S3 signing region.
+	Region string `protobuf:"bytes,2,opt,name=region,proto3" json:"region,omitempty"`
+	// Bucket is the bucket name.
+	Bucket string `protobuf:"bytes,3,opt,name=bucket,proto3" json:"bucket,omitempty"`
+	// AccessKeyId identifies a key that can read, write and delete in the bucket.
+	AccessKeyId string `protobuf:"bytes,4,opt,name=access_key_id,json=accessKeyId,proto3" json:"accessKeyId,omitempty"`
+	// SecretAccessKey is the key's secret. The cloud stores it sealed and never
+	// returns it.
+	SecretAccessKey string `protobuf:"bytes,5,opt,name=secret_access_key,json=secretAccessKey,proto3" json:"secretAccessKey,omitempty"`
+	// PublicBaseUrl is the https URL whose path /<key> serves the bucket's key,
+	// normally the owner's CDN hostname.
+	PublicBaseUrl string `protobuf:"bytes,6,opt,name=public_base_url,json=publicBaseUrl,proto3" json:"publicBaseUrl,omitempty"`
+}
+
+func (x *PublicOriginLink) Reset() {
+	*x = PublicOriginLink{}
+}
+
+func (*PublicOriginLink) ProtoMessage() {}
+
+func (x *PublicOriginLink) GetEndpoint() string {
+	if x != nil {
+		return x.Endpoint
+	}
+	return ""
+}
+
+func (x *PublicOriginLink) GetRegion() string {
+	if x != nil {
+		return x.Region
+	}
+	return ""
+}
+
+func (x *PublicOriginLink) GetBucket() string {
+	if x != nil {
+		return x.Bucket
+	}
+	return ""
+}
+
+func (x *PublicOriginLink) GetAccessKeyId() string {
+	if x != nil {
+		return x.AccessKeyId
+	}
+	return ""
+}
+
+func (x *PublicOriginLink) GetSecretAccessKey() string {
+	if x != nil {
+		return x.SecretAccessKey
+	}
+	return ""
+}
+
+func (x *PublicOriginLink) GetPublicBaseUrl() string {
+	if x != nil {
+		return x.PublicBaseUrl
+	}
+	return ""
+}
+
+// PublicOriginStatus describes a public Space's linked origin. It is the
+// response body of the /api/sobject/{id}/public-origin routes.
+type PublicOriginStatus struct {
+	unknownFields []byte
+	// State is where the Space's packs live.
+	State PublicOriginState `protobuf:"varint,1,opt,name=state,proto3" json:"state,omitempty"`
+	// Endpoint is the linked bucket's S3 API endpoint.
+	Endpoint string `protobuf:"bytes,2,opt,name=endpoint,proto3" json:"endpoint,omitempty"`
+	// Bucket is the linked bucket name.
+	Bucket string `protobuf:"bytes,3,opt,name=bucket,proto3" json:"bucket,omitempty"`
+	// PublicBaseUrl is the URL that serves the linked bucket.
+	PublicBaseUrl string `protobuf:"bytes,4,opt,name=public_base_url,json=publicBaseUrl,proto3" json:"publicBaseUrl,omitempty"`
+	// PacksCopied counts the existing packs copied to the origin so far.
+	PacksCopied uint32 `protobuf:"varint,5,opt,name=packs_copied,json=packsCopied,proto3" json:"packsCopied,omitempty"`
+	// PacksTotal counts the live packs the copy must reach.
+	PacksTotal uint32 `protobuf:"varint,6,opt,name=packs_total,json=packsTotal,proto3" json:"packsTotal,omitempty"`
+	// HostedCopies reports whether Spacewave's CDN still holds the Space's
+	// objects from before the cutover.
+	HostedCopies bool `protobuf:"varint,7,opt,name=hosted_copies,json=hostedCopies,proto3" json:"hostedCopies,omitempty"`
+	// CopyError is the last copy failure, empty while the copy is healthy. The
+	// copy retries on its own.
+	CopyError string `protobuf:"bytes,8,opt,name=copy_error,json=copyError,proto3" json:"copyError,omitempty"`
+}
+
+func (x *PublicOriginStatus) Reset() {
+	*x = PublicOriginStatus{}
+}
+
+func (*PublicOriginStatus) ProtoMessage() {}
+
+func (x *PublicOriginStatus) GetState() PublicOriginState {
+	if x != nil {
+		return x.State
+	}
+	return PublicOriginState_PublicOriginState_NONE
+}
+
+func (x *PublicOriginStatus) GetEndpoint() string {
+	if x != nil {
+		return x.Endpoint
+	}
+	return ""
+}
+
+func (x *PublicOriginStatus) GetBucket() string {
+	if x != nil {
+		return x.Bucket
+	}
+	return ""
+}
+
+func (x *PublicOriginStatus) GetPublicBaseUrl() string {
+	if x != nil {
+		return x.PublicBaseUrl
+	}
+	return ""
+}
+
+func (x *PublicOriginStatus) GetPacksCopied() uint32 {
+	if x != nil {
+		return x.PacksCopied
+	}
+	return 0
+}
+
+func (x *PublicOriginStatus) GetPacksTotal() uint32 {
+	if x != nil {
+		return x.PacksTotal
+	}
+	return 0
+}
+
+func (x *PublicOriginStatus) GetHostedCopies() bool {
+	if x != nil {
+		return x.HostedCopies
+	}
+	return false
+}
+
+func (x *PublicOriginStatus) GetCopyError() string {
+	if x != nil {
+		return x.CopyError
+	}
+	return ""
+}
+
+// LinkSpacePublicOriginRequest is the request for LinkSpacePublicOrigin.
+type LinkSpacePublicOriginRequest struct {
+	unknownFields []byte
+	// SpaceId is the public Space to link.
+	SpaceId string `protobuf:"bytes,1,opt,name=space_id,json=spaceId,proto3" json:"spaceId,omitempty"`
+	// Link is the origin to link.
+	Link *PublicOriginLink `protobuf:"bytes,2,opt,name=link,proto3" json:"link,omitempty"`
+}
+
+func (x *LinkSpacePublicOriginRequest) Reset() {
+	*x = LinkSpacePublicOriginRequest{}
+}
+
+func (*LinkSpacePublicOriginRequest) ProtoMessage() {}
+
+func (x *LinkSpacePublicOriginRequest) GetSpaceId() string {
+	if x != nil {
+		return x.SpaceId
+	}
+	return ""
+}
+
+func (x *LinkSpacePublicOriginRequest) GetLink() *PublicOriginLink {
+	if x != nil {
+		return x.Link
+	}
+	return nil
+}
+
+// LinkSpacePublicOriginResponse is the response for LinkSpacePublicOrigin.
+type LinkSpacePublicOriginResponse struct {
+	unknownFields []byte
+	// Status is the Space's origin after linking.
+	Status *PublicOriginStatus `protobuf:"bytes,1,opt,name=status,proto3" json:"status,omitempty"`
+}
+
+func (x *LinkSpacePublicOriginResponse) Reset() {
+	*x = LinkSpacePublicOriginResponse{}
+}
+
+func (*LinkSpacePublicOriginResponse) ProtoMessage() {}
+
+func (x *LinkSpacePublicOriginResponse) GetStatus() *PublicOriginStatus {
+	if x != nil {
+		return x.Status
+	}
+	return nil
+}
+
+// GetSpacePublicOriginRequest is the request for GetSpacePublicOrigin.
+type GetSpacePublicOriginRequest struct {
+	unknownFields []byte
+	// SpaceId is the public Space to describe.
+	SpaceId string `protobuf:"bytes,1,opt,name=space_id,json=spaceId,proto3" json:"spaceId,omitempty"`
+}
+
+func (x *GetSpacePublicOriginRequest) Reset() {
+	*x = GetSpacePublicOriginRequest{}
+}
+
+func (*GetSpacePublicOriginRequest) ProtoMessage() {}
+
+func (x *GetSpacePublicOriginRequest) GetSpaceId() string {
+	if x != nil {
+		return x.SpaceId
+	}
+	return ""
+}
+
+// GetSpacePublicOriginResponse is the response for GetSpacePublicOrigin.
+type GetSpacePublicOriginResponse struct {
+	unknownFields []byte
+	// Status is the Space's origin.
+	Status *PublicOriginStatus `protobuf:"bytes,1,opt,name=status,proto3" json:"status,omitempty"`
+}
+
+func (x *GetSpacePublicOriginResponse) Reset() {
+	*x = GetSpacePublicOriginResponse{}
+}
+
+func (*GetSpacePublicOriginResponse) ProtoMessage() {}
+
+func (x *GetSpacePublicOriginResponse) GetStatus() *PublicOriginStatus {
+	if x != nil {
+		return x.Status
+	}
+	return nil
+}
+
+// ReleaseSpaceHostedCopiesRequest is the request for ReleaseSpaceHostedCopies.
+type ReleaseSpaceHostedCopiesRequest struct {
+	unknownFields []byte
+	// SpaceId is the public Space whose hosted copies to delete.
+	SpaceId string `protobuf:"bytes,1,opt,name=space_id,json=spaceId,proto3" json:"spaceId,omitempty"`
+}
+
+func (x *ReleaseSpaceHostedCopiesRequest) Reset() {
+	*x = ReleaseSpaceHostedCopiesRequest{}
+}
+
+func (*ReleaseSpaceHostedCopiesRequest) ProtoMessage() {}
+
+func (x *ReleaseSpaceHostedCopiesRequest) GetSpaceId() string {
+	if x != nil {
+		return x.SpaceId
+	}
+	return ""
+}
+
+// ReleaseSpaceHostedCopiesResponse is the response for ReleaseSpaceHostedCopies.
+type ReleaseSpaceHostedCopiesResponse struct {
+	unknownFields []byte
+	// Status is the Space's origin after the release.
+	Status *PublicOriginStatus `protobuf:"bytes,1,opt,name=status,proto3" json:"status,omitempty"`
+}
+
+func (x *ReleaseSpaceHostedCopiesResponse) Reset() {
+	*x = ReleaseSpaceHostedCopiesResponse{}
+}
+
+func (*ReleaseSpaceHostedCopiesResponse) ProtoMessage() {}
+
+func (x *ReleaseSpaceHostedCopiesResponse) GetStatus() *PublicOriginStatus {
+	if x != nil {
+		return x.Status
+	}
+	return nil
+}
+
 // ReinitializeSharedObjectRequest is the request for ReinitializeSharedObject.
 type ReinitializeSharedObjectRequest struct {
 	unknownFields []byte
@@ -11295,6 +11622,147 @@ func (m *RepairSharedObjectResponse) CloneVT() *RepairSharedObjectResponse {
 }
 
 func (m *RepairSharedObjectResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *PublicOriginLink) CloneVT() *PublicOriginLink {
+	if m == nil {
+		return (*PublicOriginLink)(nil)
+	}
+	r := new(PublicOriginLink)
+	r.Endpoint = m.Endpoint
+	r.Region = m.Region
+	r.Bucket = m.Bucket
+	r.AccessKeyId = m.AccessKeyId
+	r.SecretAccessKey = m.SecretAccessKey
+	r.PublicBaseUrl = m.PublicBaseUrl
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *PublicOriginLink) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *PublicOriginStatus) CloneVT() *PublicOriginStatus {
+	if m == nil {
+		return (*PublicOriginStatus)(nil)
+	}
+	r := new(PublicOriginStatus)
+	r.State = m.State
+	r.Endpoint = m.Endpoint
+	r.Bucket = m.Bucket
+	r.PublicBaseUrl = m.PublicBaseUrl
+	r.PacksCopied = m.PacksCopied
+	r.PacksTotal = m.PacksTotal
+	r.HostedCopies = m.HostedCopies
+	r.CopyError = m.CopyError
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *PublicOriginStatus) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *LinkSpacePublicOriginRequest) CloneVT() *LinkSpacePublicOriginRequest {
+	if m == nil {
+		return (*LinkSpacePublicOriginRequest)(nil)
+	}
+	r := new(LinkSpacePublicOriginRequest)
+	r.SpaceId = m.SpaceId
+	r.Link = protobuf_go_lite.CloneVTValue(m.Link)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *LinkSpacePublicOriginRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *LinkSpacePublicOriginResponse) CloneVT() *LinkSpacePublicOriginResponse {
+	if m == nil {
+		return (*LinkSpacePublicOriginResponse)(nil)
+	}
+	r := new(LinkSpacePublicOriginResponse)
+	r.Status = protobuf_go_lite.CloneVTValue(m.Status)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *LinkSpacePublicOriginResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *GetSpacePublicOriginRequest) CloneVT() *GetSpacePublicOriginRequest {
+	if m == nil {
+		return (*GetSpacePublicOriginRequest)(nil)
+	}
+	r := new(GetSpacePublicOriginRequest)
+	r.SpaceId = m.SpaceId
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *GetSpacePublicOriginRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *GetSpacePublicOriginResponse) CloneVT() *GetSpacePublicOriginResponse {
+	if m == nil {
+		return (*GetSpacePublicOriginResponse)(nil)
+	}
+	r := new(GetSpacePublicOriginResponse)
+	r.Status = protobuf_go_lite.CloneVTValue(m.Status)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *GetSpacePublicOriginResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *ReleaseSpaceHostedCopiesRequest) CloneVT() *ReleaseSpaceHostedCopiesRequest {
+	if m == nil {
+		return (*ReleaseSpaceHostedCopiesRequest)(nil)
+	}
+	r := new(ReleaseSpaceHostedCopiesRequest)
+	r.SpaceId = m.SpaceId
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *ReleaseSpaceHostedCopiesRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *ReleaseSpaceHostedCopiesResponse) CloneVT() *ReleaseSpaceHostedCopiesResponse {
+	if m == nil {
+		return (*ReleaseSpaceHostedCopiesResponse)(nil)
+	}
+	r := new(ReleaseSpaceHostedCopiesResponse)
+	r.Status = protobuf_go_lite.CloneVTValue(m.Status)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *ReleaseSpaceHostedCopiesResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -16843,6 +17311,205 @@ func (this *RepairSharedObjectResponse) EqualMessageVT(thatMsg any) bool {
 	return this.EqualVT(that)
 }
 
+func (this *PublicOriginLink) EqualVT(that *PublicOriginLink) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Endpoint != that.Endpoint {
+		return false
+	}
+	if this.Region != that.Region {
+		return false
+	}
+	if this.Bucket != that.Bucket {
+		return false
+	}
+	if this.AccessKeyId != that.AccessKeyId {
+		return false
+	}
+	if this.SecretAccessKey != that.SecretAccessKey {
+		return false
+	}
+	if this.PublicBaseUrl != that.PublicBaseUrl {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *PublicOriginLink) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*PublicOriginLink)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *PublicOriginStatus) EqualVT(that *PublicOriginStatus) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.State != that.State {
+		return false
+	}
+	if this.Endpoint != that.Endpoint {
+		return false
+	}
+	if this.Bucket != that.Bucket {
+		return false
+	}
+	if this.PublicBaseUrl != that.PublicBaseUrl {
+		return false
+	}
+	if this.PacksCopied != that.PacksCopied {
+		return false
+	}
+	if this.PacksTotal != that.PacksTotal {
+		return false
+	}
+	if this.HostedCopies != that.HostedCopies {
+		return false
+	}
+	if this.CopyError != that.CopyError {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *PublicOriginStatus) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*PublicOriginStatus)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *LinkSpacePublicOriginRequest) EqualVT(that *LinkSpacePublicOriginRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.SpaceId != that.SpaceId {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.Link, that.Link) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *LinkSpacePublicOriginRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*LinkSpacePublicOriginRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *LinkSpacePublicOriginResponse) EqualVT(that *LinkSpacePublicOriginResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.Status, that.Status) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *LinkSpacePublicOriginResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*LinkSpacePublicOriginResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *GetSpacePublicOriginRequest) EqualVT(that *GetSpacePublicOriginRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.SpaceId != that.SpaceId {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *GetSpacePublicOriginRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*GetSpacePublicOriginRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *GetSpacePublicOriginResponse) EqualVT(that *GetSpacePublicOriginResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.Status, that.Status) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *GetSpacePublicOriginResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*GetSpacePublicOriginResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *ReleaseSpaceHostedCopiesRequest) EqualVT(that *ReleaseSpaceHostedCopiesRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.SpaceId != that.SpaceId {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *ReleaseSpaceHostedCopiesRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*ReleaseSpaceHostedCopiesRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *ReleaseSpaceHostedCopiesResponse) EqualVT(that *ReleaseSpaceHostedCopiesResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.Status, that.Status) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *ReleaseSpaceHostedCopiesResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*ReleaseSpaceHostedCopiesResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
 func (this *ReinitializeSharedObjectRequest) EqualVT(that *ReinitializeSharedObjectRequest) bool {
 	if this == that {
 		return true
@@ -18923,6 +19590,46 @@ func (x *TargetedInvitePurpose) UnmarshalText(b []byte) error {
 
 // UnmarshalJSON unmarshals the TargetedInvitePurpose from JSON.
 func (x *TargetedInvitePurpose) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the PublicOriginState to JSON.
+func (x PublicOriginState) MarshalProtoJSON(s *json.MarshalState) {
+	s.WriteEnum(int32(x), PublicOriginState_name)
+}
+
+// MarshalText marshals the PublicOriginState to text.
+func (x PublicOriginState) MarshalText() ([]byte, error) {
+	return []byte(json.GetEnumString(int32(x), PublicOriginState_name)), nil
+}
+
+// MarshalJSON marshals the PublicOriginState to JSON.
+func (x PublicOriginState) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the PublicOriginState from JSON.
+func (x *PublicOriginState) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	v := s.ReadEnum(PublicOriginState_value)
+	if err := s.Err(); err != nil {
+		s.SetErrorf("could not read PublicOriginState enum: %v", err)
+		return
+	}
+	*x = PublicOriginState(v)
+}
+
+// UnmarshalText unmarshals the PublicOriginState from text.
+func (x *PublicOriginState) UnmarshalText(b []byte) error {
+	i, err := json.ParseEnumString(string(b), PublicOriginState_value)
+	if err != nil {
+		return err
+	}
+	*x = PublicOriginState(i)
+	return nil
+}
+
+// UnmarshalJSON unmarshals the PublicOriginState from JSON.
+func (x *PublicOriginState) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -27884,6 +28591,462 @@ func (x *RepairSharedObjectResponse) UnmarshalProtoJSON(s *json.UnmarshalState) 
 
 // UnmarshalJSON unmarshals the RepairSharedObjectResponse from JSON.
 func (x *RepairSharedObjectResponse) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the PublicOriginLink message to JSON.
+func (x *PublicOriginLink) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Endpoint != "" || s.HasField("endpoint") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("endpoint")
+		s.WriteString(x.Endpoint)
+	}
+	if x.Region != "" || s.HasField("region") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("region")
+		s.WriteString(x.Region)
+	}
+	if x.Bucket != "" || s.HasField("bucket") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("bucket")
+		s.WriteString(x.Bucket)
+	}
+	if x.AccessKeyId != "" || s.HasField("accessKeyId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("accessKeyId")
+		s.WriteString(x.AccessKeyId)
+	}
+	if x.SecretAccessKey != "" || s.HasField("secretAccessKey") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("secretAccessKey")
+		s.WriteString(x.SecretAccessKey)
+	}
+	if x.PublicBaseUrl != "" || s.HasField("publicBaseUrl") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("publicBaseUrl")
+		s.WriteString(x.PublicBaseUrl)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the PublicOriginLink to JSON.
+func (x *PublicOriginLink) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the PublicOriginLink message from JSON.
+func (x *PublicOriginLink) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "endpoint":
+			s.AddField("endpoint")
+			x.Endpoint = s.ReadString()
+		case "region":
+			s.AddField("region")
+			x.Region = s.ReadString()
+		case "bucket":
+			s.AddField("bucket")
+			x.Bucket = s.ReadString()
+		case "access_key_id", "accessKeyId":
+			s.AddField("access_key_id")
+			x.AccessKeyId = s.ReadString()
+		case "secret_access_key", "secretAccessKey":
+			s.AddField("secret_access_key")
+			x.SecretAccessKey = s.ReadString()
+		case "public_base_url", "publicBaseUrl":
+			s.AddField("public_base_url")
+			x.PublicBaseUrl = s.ReadString()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the PublicOriginLink from JSON.
+func (x *PublicOriginLink) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the PublicOriginStatus message to JSON.
+func (x *PublicOriginStatus) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.State != 0 || s.HasField("state") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("state")
+		x.State.MarshalProtoJSON(s)
+	}
+	if x.Endpoint != "" || s.HasField("endpoint") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("endpoint")
+		s.WriteString(x.Endpoint)
+	}
+	if x.Bucket != "" || s.HasField("bucket") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("bucket")
+		s.WriteString(x.Bucket)
+	}
+	if x.PublicBaseUrl != "" || s.HasField("publicBaseUrl") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("publicBaseUrl")
+		s.WriteString(x.PublicBaseUrl)
+	}
+	if x.PacksCopied != 0 || s.HasField("packsCopied") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("packsCopied")
+		s.WriteUint32(x.PacksCopied)
+	}
+	if x.PacksTotal != 0 || s.HasField("packsTotal") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("packsTotal")
+		s.WriteUint32(x.PacksTotal)
+	}
+	if x.HostedCopies || s.HasField("hostedCopies") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("hostedCopies")
+		s.WriteBool(x.HostedCopies)
+	}
+	if x.CopyError != "" || s.HasField("copyError") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("copyError")
+		s.WriteString(x.CopyError)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the PublicOriginStatus to JSON.
+func (x *PublicOriginStatus) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the PublicOriginStatus message from JSON.
+func (x *PublicOriginStatus) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "state":
+			s.AddField("state")
+			x.State.UnmarshalProtoJSON(s)
+		case "endpoint":
+			s.AddField("endpoint")
+			x.Endpoint = s.ReadString()
+		case "bucket":
+			s.AddField("bucket")
+			x.Bucket = s.ReadString()
+		case "public_base_url", "publicBaseUrl":
+			s.AddField("public_base_url")
+			x.PublicBaseUrl = s.ReadString()
+		case "packs_copied", "packsCopied":
+			s.AddField("packs_copied")
+			x.PacksCopied = s.ReadUint32()
+		case "packs_total", "packsTotal":
+			s.AddField("packs_total")
+			x.PacksTotal = s.ReadUint32()
+		case "hosted_copies", "hostedCopies":
+			s.AddField("hosted_copies")
+			x.HostedCopies = s.ReadBool()
+		case "copy_error", "copyError":
+			s.AddField("copy_error")
+			x.CopyError = s.ReadString()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the PublicOriginStatus from JSON.
+func (x *PublicOriginStatus) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the LinkSpacePublicOriginRequest message to JSON.
+func (x *LinkSpacePublicOriginRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.SpaceId != "" || s.HasField("spaceId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("spaceId")
+		s.WriteString(x.SpaceId)
+	}
+	if x.Link != nil || s.HasField("link") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("link")
+		x.Link.MarshalProtoJSON(s.WithField("link"))
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the LinkSpacePublicOriginRequest to JSON.
+func (x *LinkSpacePublicOriginRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the LinkSpacePublicOriginRequest message from JSON.
+func (x *LinkSpacePublicOriginRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "space_id", "spaceId":
+			s.AddField("space_id")
+			x.SpaceId = s.ReadString()
+		case "link":
+			if s.ReadNil() {
+				x.Link = nil
+				return
+			}
+			x.Link = &PublicOriginLink{}
+			x.Link.UnmarshalProtoJSON(s.WithField("link", true))
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the LinkSpacePublicOriginRequest from JSON.
+func (x *LinkSpacePublicOriginRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the LinkSpacePublicOriginResponse message to JSON.
+func (x *LinkSpacePublicOriginResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Status != nil || s.HasField("status") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("status")
+		x.Status.MarshalProtoJSON(s.WithField("status"))
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the LinkSpacePublicOriginResponse to JSON.
+func (x *LinkSpacePublicOriginResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the LinkSpacePublicOriginResponse message from JSON.
+func (x *LinkSpacePublicOriginResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "status":
+			if s.ReadNil() {
+				x.Status = nil
+				return
+			}
+			x.Status = &PublicOriginStatus{}
+			x.Status.UnmarshalProtoJSON(s.WithField("status", true))
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the LinkSpacePublicOriginResponse from JSON.
+func (x *LinkSpacePublicOriginResponse) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the GetSpacePublicOriginRequest message to JSON.
+func (x *GetSpacePublicOriginRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.SpaceId != "" || s.HasField("spaceId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("spaceId")
+		s.WriteString(x.SpaceId)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the GetSpacePublicOriginRequest to JSON.
+func (x *GetSpacePublicOriginRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the GetSpacePublicOriginRequest message from JSON.
+func (x *GetSpacePublicOriginRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "space_id", "spaceId":
+			s.AddField("space_id")
+			x.SpaceId = s.ReadString()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the GetSpacePublicOriginRequest from JSON.
+func (x *GetSpacePublicOriginRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the GetSpacePublicOriginResponse message to JSON.
+func (x *GetSpacePublicOriginResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Status != nil || s.HasField("status") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("status")
+		x.Status.MarshalProtoJSON(s.WithField("status"))
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the GetSpacePublicOriginResponse to JSON.
+func (x *GetSpacePublicOriginResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the GetSpacePublicOriginResponse message from JSON.
+func (x *GetSpacePublicOriginResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "status":
+			if s.ReadNil() {
+				x.Status = nil
+				return
+			}
+			x.Status = &PublicOriginStatus{}
+			x.Status.UnmarshalProtoJSON(s.WithField("status", true))
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the GetSpacePublicOriginResponse from JSON.
+func (x *GetSpacePublicOriginResponse) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the ReleaseSpaceHostedCopiesRequest message to JSON.
+func (x *ReleaseSpaceHostedCopiesRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.SpaceId != "" || s.HasField("spaceId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("spaceId")
+		s.WriteString(x.SpaceId)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the ReleaseSpaceHostedCopiesRequest to JSON.
+func (x *ReleaseSpaceHostedCopiesRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the ReleaseSpaceHostedCopiesRequest message from JSON.
+func (x *ReleaseSpaceHostedCopiesRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "space_id", "spaceId":
+			s.AddField("space_id")
+			x.SpaceId = s.ReadString()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the ReleaseSpaceHostedCopiesRequest from JSON.
+func (x *ReleaseSpaceHostedCopiesRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the ReleaseSpaceHostedCopiesResponse message to JSON.
+func (x *ReleaseSpaceHostedCopiesResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Status != nil || s.HasField("status") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("status")
+		x.Status.MarshalProtoJSON(s.WithField("status"))
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the ReleaseSpaceHostedCopiesResponse to JSON.
+func (x *ReleaseSpaceHostedCopiesResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the ReleaseSpaceHostedCopiesResponse message from JSON.
+func (x *ReleaseSpaceHostedCopiesResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "status":
+			if s.ReadNil() {
+				x.Status = nil
+				return
+			}
+			x.Status = &PublicOriginStatus{}
+			x.Status.UnmarshalProtoJSON(s.WithField("status", true))
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the ReleaseSpaceHostedCopiesResponse from JSON.
+func (x *ReleaseSpaceHostedCopiesResponse) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -39514,6 +40677,387 @@ func (m *RepairSharedObjectResponse) MarshalToSizedBufferVT(dAtA []byte) (int, e
 	return len(dAtA) - i, nil
 }
 
+func (m *PublicOriginLink) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *PublicOriginLink) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *PublicOriginLink) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.PublicBaseUrl) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.PublicBaseUrl)
+		i--
+		dAtA[i] = 0x32
+	}
+	if len(m.SecretAccessKey) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.SecretAccessKey)
+		i--
+		dAtA[i] = 0x2a
+	}
+	if len(m.AccessKeyId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.AccessKeyId)
+		i--
+		dAtA[i] = 0x22
+	}
+	if len(m.Bucket) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.Bucket)
+		i--
+		dAtA[i] = 0x1a
+	}
+	if len(m.Region) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.Region)
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.Endpoint) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.Endpoint)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *PublicOriginStatus) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *PublicOriginStatus) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *PublicOriginStatus) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.CopyError) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.CopyError)
+		i--
+		dAtA[i] = 0x42
+	}
+	if m.HostedCopies {
+		i = protobuf_go_lite.EncodeBool(dAtA, i, m.HostedCopies)
+		i--
+		dAtA[i] = 0x38
+	}
+	if m.PacksTotal != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.PacksTotal))
+		i--
+		dAtA[i] = 0x30
+	}
+	if m.PacksCopied != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.PacksCopied))
+		i--
+		dAtA[i] = 0x28
+	}
+	if len(m.PublicBaseUrl) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.PublicBaseUrl)
+		i--
+		dAtA[i] = 0x22
+	}
+	if len(m.Bucket) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.Bucket)
+		i--
+		dAtA[i] = 0x1a
+	}
+	if len(m.Endpoint) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.Endpoint)
+		i--
+		dAtA[i] = 0x12
+	}
+	if m.State != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.State))
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *LinkSpacePublicOriginRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *LinkSpacePublicOriginRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *LinkSpacePublicOriginRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.Link != nil {
+		size, err := m.Link.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.SpaceId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.SpaceId)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *LinkSpacePublicOriginResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *LinkSpacePublicOriginResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *LinkSpacePublicOriginResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.Status != nil {
+		size, err := m.Status.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *GetSpacePublicOriginRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *GetSpacePublicOriginRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *GetSpacePublicOriginRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.SpaceId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.SpaceId)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *GetSpacePublicOriginResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *GetSpacePublicOriginResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *GetSpacePublicOriginResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.Status != nil {
+		size, err := m.Status.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *ReleaseSpaceHostedCopiesRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ReleaseSpaceHostedCopiesRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *ReleaseSpaceHostedCopiesRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.SpaceId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.SpaceId)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *ReleaseSpaceHostedCopiesResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ReleaseSpaceHostedCopiesResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *ReleaseSpaceHostedCopiesResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.Status != nil {
+		size, err := m.Status.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *ReinitializeSharedObjectRequest) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -45225,6 +46769,119 @@ func (m *RepairSharedObjectResponse) SizeVT() (n int) {
 	return n
 }
 
+func (m *PublicOriginLink) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Endpoint)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Region)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Bucket)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.AccessKeyId)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.SecretAccessKey)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.PublicBaseUrl)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *PublicOriginStatus) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.State)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Endpoint)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Bucket)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.PublicBaseUrl)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.PacksCopied)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.PacksTotal)
+	n += protobuf_go_lite.SizeBoolNonZero(1, m.HostedCopies)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.CopyError)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *LinkSpacePublicOriginRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.SpaceId)
+	if m.Link != nil {
+		l = m.Link.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *LinkSpacePublicOriginResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Status != nil {
+		l = m.Status.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *GetSpacePublicOriginRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.SpaceId)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *GetSpacePublicOriginResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Status != nil {
+		l = m.Status.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *ReleaseSpaceHostedCopiesRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.SpaceId)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *ReleaseSpaceHostedCopiesResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Status != nil {
+		l = m.Status.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
 func (m *ReinitializeSharedObjectRequest) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -46241,6 +47898,10 @@ func (x SelfEnrollmentGateState) MarshalProtoText() string {
 }
 
 func (x TargetedInvitePurpose) MarshalProtoText() string {
+	return x.String()
+}
+
+func (x PublicOriginState) MarshalProtoText() string {
 	return x.String()
 }
 
@@ -49578,6 +51239,170 @@ func (x *RepairSharedObjectResponse) MarshalProtoText() string {
 }
 
 func (x *RepairSharedObjectResponse) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *PublicOriginLink) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "PublicOriginLink")
+	if x.Endpoint != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "endpoint")
+		protobuf_go_lite.TextWriteString(&sb, x.Endpoint)
+	}
+	if x.Region != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "region")
+		protobuf_go_lite.TextWriteString(&sb, x.Region)
+	}
+	if x.Bucket != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "bucket")
+		protobuf_go_lite.TextWriteString(&sb, x.Bucket)
+	}
+	if x.AccessKeyId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "access_key_id")
+		protobuf_go_lite.TextWriteString(&sb, x.AccessKeyId)
+	}
+	if x.SecretAccessKey != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "secret_access_key")
+		protobuf_go_lite.TextWriteString(&sb, x.SecretAccessKey)
+	}
+	if x.PublicBaseUrl != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "public_base_url")
+		protobuf_go_lite.TextWriteString(&sb, x.PublicBaseUrl)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *PublicOriginLink) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *PublicOriginStatus) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "PublicOriginStatus")
+	if x.State != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "state")
+		protobuf_go_lite.TextWriteStringer(&sb, PublicOriginState(x.State))
+	}
+	if x.Endpoint != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "endpoint")
+		protobuf_go_lite.TextWriteString(&sb, x.Endpoint)
+	}
+	if x.Bucket != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "bucket")
+		protobuf_go_lite.TextWriteString(&sb, x.Bucket)
+	}
+	if x.PublicBaseUrl != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "public_base_url")
+		protobuf_go_lite.TextWriteString(&sb, x.PublicBaseUrl)
+	}
+	if x.PacksCopied != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "packs_copied")
+		protobuf_go_lite.TextWriteUint(&sb, x.PacksCopied)
+	}
+	if x.PacksTotal != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "packs_total")
+		protobuf_go_lite.TextWriteUint(&sb, x.PacksTotal)
+	}
+	if x.HostedCopies != false {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "hosted_copies")
+		protobuf_go_lite.TextWriteBool(&sb, x.HostedCopies)
+	}
+	if x.CopyError != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "copy_error")
+		protobuf_go_lite.TextWriteString(&sb, x.CopyError)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *PublicOriginStatus) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *LinkSpacePublicOriginRequest) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "LinkSpacePublicOriginRequest")
+	if x.SpaceId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "space_id")
+		protobuf_go_lite.TextWriteString(&sb, x.SpaceId)
+	}
+	if x.Link != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "link")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Link)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *LinkSpacePublicOriginRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *LinkSpacePublicOriginResponse) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "LinkSpacePublicOriginResponse")
+	if x.Status != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "status")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Status)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *LinkSpacePublicOriginResponse) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *GetSpacePublicOriginRequest) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "GetSpacePublicOriginRequest")
+	if x.SpaceId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "space_id")
+		protobuf_go_lite.TextWriteString(&sb, x.SpaceId)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *GetSpacePublicOriginRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *GetSpacePublicOriginResponse) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "GetSpacePublicOriginResponse")
+	if x.Status != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "status")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Status)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *GetSpacePublicOriginResponse) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *ReleaseSpaceHostedCopiesRequest) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "ReleaseSpaceHostedCopiesRequest")
+	if x.SpaceId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "space_id")
+		protobuf_go_lite.TextWriteString(&sb, x.SpaceId)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *ReleaseSpaceHostedCopiesRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *ReleaseSpaceHostedCopiesResponse) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "ReleaseSpaceHostedCopiesResponse")
+	if x.Status != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "status")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Status)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *ReleaseSpaceHostedCopiesResponse) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -62051,6 +63876,579 @@ func (m *RepairSharedObjectResponse) UnmarshalVT(dAtA []byte) error {
 			return fmt.Errorf("proto: RepairSharedObjectResponse: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *PublicOriginLink) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: PublicOriginLink: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: PublicOriginLink: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Endpoint", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Endpoint = v
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Region", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Region = v
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Bucket", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Bucket = v
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field AccessKeyId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.AccessKeyId = v
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SecretAccessKey", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.SecretAccessKey = v
+		case 6:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PublicBaseUrl", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.PublicBaseUrl = v
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *PublicOriginStatus) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: PublicOriginStatus: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: PublicOriginStatus: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field State", wireType)
+			}
+			m.State = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.State = PublicOriginState(_v)
+			if err != nil {
+				return err
+			}
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Endpoint", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Endpoint = v
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Bucket", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Bucket = v
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PublicBaseUrl", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.PublicBaseUrl = v
+		case 5:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PacksCopied", wireType)
+			}
+			m.PacksCopied = 0
+			m.PacksCopied, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 6:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PacksTotal", wireType)
+			}
+			m.PacksTotal = 0
+			m.PacksTotal, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 7:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field HostedCopies", wireType)
+			}
+			var v bool
+			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.HostedCopies = bool(v)
+		case 8:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CopyError", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.CopyError = v
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *LinkSpacePublicOriginRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: LinkSpacePublicOriginRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: LinkSpacePublicOriginRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SpaceId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.SpaceId = v
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Link", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Link == nil {
+				m.Link = &PublicOriginLink{}
+			}
+			if err := m.Link.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *LinkSpacePublicOriginResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: LinkSpacePublicOriginResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: LinkSpacePublicOriginResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Status", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Status == nil {
+				m.Status = &PublicOriginStatus{}
+			}
+			if err := m.Status.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *GetSpacePublicOriginRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: GetSpacePublicOriginRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: GetSpacePublicOriginRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SpaceId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.SpaceId = v
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *GetSpacePublicOriginResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: GetSpacePublicOriginResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: GetSpacePublicOriginResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Status", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Status == nil {
+				m.Status = &PublicOriginStatus{}
+			}
+			if err := m.Status.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *ReleaseSpaceHostedCopiesRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ReleaseSpaceHostedCopiesRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ReleaseSpaceHostedCopiesRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SpaceId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.SpaceId = v
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *ReleaseSpaceHostedCopiesResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ReleaseSpaceHostedCopiesResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ReleaseSpaceHostedCopiesResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Status", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Status == nil {
+				m.Status = &PublicOriginStatus{}
+			}
+			if err := m.Status.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
