@@ -240,6 +240,11 @@ type PutOpts struct {
 	// enqueues the write, then calls the store Sync barrier so this write and all
 	// prior buffered writes for the store are durable before return.
 	Sync bool `protobuf:"varint,4,opt,name=sync,proto3" json:"sync,omitempty"`
+	// CacheFill marks a copy of a block read from another store. A GC-aware
+	// store records its outgoing refs but gives it no owner: a new block is
+	// staged as a garbage candidate, and an existing block keeps its edges. The
+	// copy then lives only while a retained root reaches it.
+	CacheFill bool `protobuf:"varint,5,opt,name=cache_fill,json=cacheFill,proto3" json:"cacheFill,omitempty"`
 }
 
 func (x *PutOpts) Reset() {
@@ -272,6 +277,13 @@ func (x *PutOpts) GetRefs() []*BlockRef {
 func (x *PutOpts) GetSync() bool {
 	if x != nil {
 		return x.Sync
+	}
+	return false
+}
+
+func (x *PutOpts) GetCacheFill() bool {
+	if x != nil {
+		return x.CacheFill
 	}
 	return false
 }
@@ -316,6 +328,7 @@ func (m *PutOpts) CloneVT() *PutOpts {
 	r := new(PutOpts)
 	r.HashType = m.HashType
 	r.Sync = m.Sync
+	r.CacheFill = m.CacheFill
 	r.ForceBlockRef = protobuf_go_lite.CloneVTValue(m.ForceBlockRef)
 	r.Refs = protobuf_go_lite.CloneVTSlice(m.Refs)
 	if len(m.unknownFields) > 0 {
@@ -387,6 +400,9 @@ func (this *PutOpts) EqualVT(that *PutOpts) bool {
 		return false
 	}
 	if this.Sync != that.Sync {
+		return false
+	}
+	if this.CacheFill != that.CacheFill {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -585,6 +601,11 @@ func (x *PutOpts) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("sync")
 		s.WriteBool(x.Sync)
 	}
+	if x.CacheFill || s.HasField("cacheFill") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("cacheFill")
+		s.WriteBool(x.CacheFill)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -633,6 +654,9 @@ func (x *PutOpts) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "sync":
 			s.AddField("sync")
 			x.Sync = s.ReadBool()
+		case "cache_fill", "cacheFill":
+			s.AddField("cache_fill")
+			x.CacheFill = s.ReadBool()
 		}
 	})
 }
@@ -762,6 +786,11 @@ func (m *PutOpts) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.CacheFill {
+		i = protobuf_go_lite.EncodeBool(dAtA, i, m.CacheFill)
+		i--
+		dAtA[i] = 0x28
+	}
 	if m.Sync {
 		i = protobuf_go_lite.EncodeBool(dAtA, i, m.Sync)
 		i--
@@ -842,6 +871,7 @@ func (m *PutOpts) SizeVT() (n int) {
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
 	n += protobuf_go_lite.SizeBoolNonZero(1, m.Sync)
+	n += protobuf_go_lite.SizeBoolNonZero(1, m.CacheFill)
 	n += len(m.unknownFields)
 	return n
 }
@@ -920,6 +950,10 @@ func (x *PutOpts) MarshalProtoText() string {
 	if x.Sync != false {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "sync")
 		protobuf_go_lite.TextWriteBool(&sb, x.Sync)
+	}
+	if x.CacheFill != false {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "cache_fill")
+		protobuf_go_lite.TextWriteBool(&sb, x.CacheFill)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -1119,6 +1153,16 @@ func (m *PutOpts) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.Sync = bool(v)
+		case 5:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CacheFill", wireType)
+			}
+			var v bool
+			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.CacheFill = bool(v)
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

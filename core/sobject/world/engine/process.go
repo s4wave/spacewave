@@ -10,7 +10,6 @@ import (
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
 	"github.com/s4wave/spacewave/db/bucket"
 	trace "github.com/s4wave/spacewave/db/traceutil"
-	"github.com/s4wave/spacewave/db/world"
 	world_block "github.com/s4wave/spacewave/db/world/block"
 	world_block_tx "github.com/s4wave/spacewave/db/world/block/tx"
 	"github.com/s4wave/spacewave/net/peer"
@@ -85,7 +84,6 @@ func (c *Controller) processOp(
 		nhs, res, err := c.processApplyTxOpWithEngine(
 			ctx,
 			ole,
-			so,
 			body.ApplyTxOp,
 			headState,
 			peerID,
@@ -232,7 +230,6 @@ func (c *Controller) writeInitialWorldRoot(
 func (c *Controller) processApplyTxOpWithEngine(
 	ctx context.Context,
 	le *logrus.Entry,
-	so sobject.SharedObject,
 	txOp *ApplyTxOp,
 	headState *InnerState,
 	peerID peer.ID,
@@ -242,20 +239,6 @@ func (c *Controller) processApplyTxOpWithEngine(
 	// Trace the application.
 	ctx, task := trace.NewTask(ctx, "alpha/so-engine/process-apply-tx-op")
 	defer task.End()
-
-	// Collect the payload operations of another device. Reading their payloads
-	// caches them in the local volume, and only the replay needs that copy.
-	lookupOp := ws.lookupOp
-	var payloadOps []world.PayloadOperation
-	if peerID != "" && peerID != so.GetPeerID() {
-		lookupOp = func(ctx context.Context, operationTypeID string) (world.Operation, error) {
-			op, err := ws.lookupOp(ctx, operationTypeID)
-			if payloadOp, ok := op.(world.PayloadOperation); ok {
-				payloadOps = append(payloadOps, payloadOp)
-			}
-			return op, err
-		}
-	}
 
 	// Execute the transaction on the World and commit it.
 	var nextRef *bucket.ObjectRef
@@ -288,7 +271,7 @@ func (c *Controller) processApplyTxOpWithEngine(
 		// Apply the operations as the signing sender.
 		{
 			taskCtx, task := trace.NewTask(ctx, "alpha/so-engine/process-apply-tx-op/execute-tx")
-			_, err := ttx.ExecuteTx(taskCtx, peerID, lookupOp, btx)
+			_, err := ttx.ExecuteTx(taskCtx, peerID, ws.lookupOp, btx)
 			task.End()
 			if err != nil {
 				return err
@@ -302,16 +285,6 @@ func (c *Controller) processApplyTxOpWithEngine(
 		task.End()
 		return err
 	}()
-
-	// Release the cached payloads. The committed World keeps any payload
-	// block it references.
-	var payloadRefs []*block.BlockRef
-	for _, payloadOp := range payloadOps {
-		payloadRefs = append(payloadRefs, payloadOp.GetPayloadRefs()...)
-	}
-	if err := block.ReleaseRoots(context.WithoutCancel(ctx), so.GetBlockStore(), payloadRefs); err != nil {
-		le.WithError(err).Warn("unable to release replayed operation payloads")
-	}
 
 	// A canceled context explains any failure.
 	if ctx.Err() != nil {

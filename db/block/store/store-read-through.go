@@ -170,15 +170,18 @@ func (s *StoreReadThrough) source(src StoreSource) block.StoreOps {
 }
 
 // readLower reads a block and its refs from lower. With writeback enabled, a
-// hit with known refs is written into primary with them; a block with unknown
-// refs would look like a leaf there, so it is served without the writeback.
+// hit with known refs is written into primary with them as a cache fill, which
+// takes no ownership; a block with unknown refs would look like a leaf there, so
+// it is served without the writeback.
 func (s *StoreReadThrough) readLower(ctx context.Context, primary, lower block.StoreOps, ref *block.BlockRef) (*block.StoredBlock, error) {
 	stored, err := lower.GetStoredBlock(ctx, ref)
 	if err != nil || stored == nil {
 		return nil, err
 	}
 	if s.writeback && primary != nil && stored.RefsKnown {
-		if _, _, err := primary.PutBlock(ctx, stored.Data, stored.PutOpts(ref)); err != nil {
+		opts := stored.PutOpts(ref)
+		opts.CacheFill = true
+		if _, _, err := primary.PutBlock(ctx, stored.Data, opts); err != nil {
 			return nil, err
 		}
 	}

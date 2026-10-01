@@ -41,6 +41,11 @@ message PutOpts {
   // enqueues the write, then calls the store Sync barrier so this write and all
   // prior buffered writes for the store are durable before return.
   bool sync = 4;
+  // CacheFill marks a copy of a block read from another store. A GC-aware
+  // store records its outgoing refs but gives it no owner: a new block is
+  // staged as a garbage candidate, and an existing block keeps its edges. The
+  // copy then lives only while a retained root reaches it.
+  bool cache_fill = 5;
 }
 
 // StoreFeature is a bitmask of native block store capabilities.
