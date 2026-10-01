@@ -14,6 +14,8 @@ export {
   HandleWriteAtResponse,
   HandleTruncateRequest,
   HandleTruncateResponse,
+  HandleSyncRequest,
+  HandleSyncResponse,
   HandleGetSizeRequest,
   HandleGetSizeResponse,
   HandleGetFileInfoRequest,

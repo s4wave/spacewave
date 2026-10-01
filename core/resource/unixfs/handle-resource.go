@@ -520,6 +520,17 @@ func (r *FSHandleResource) WriteAt(ctx context.Context, req *s4wave_unixfs.Handl
 	}, nil
 }
 
+// Sync commits buffered writes in the filesystem tree and returns the first
+// write that failed to commit.
+func (r *FSHandleResource) Sync(ctx context.Context, req *s4wave_unixfs.HandleSyncRequest) (*s4wave_unixfs.HandleSyncResponse, error) {
+	if err := r.mutate(func() error {
+		return r.handle.Sync(ctx)
+	}); err != nil {
+		return nil, err
+	}
+	return &s4wave_unixfs.HandleSyncResponse{}, nil
+}
+
 // Truncate truncates the file to the given size.
 func (r *FSHandleResource) Truncate(ctx context.Context, req *s4wave_unixfs.HandleTruncateRequest) (*s4wave_unixfs.HandleTruncateResponse, error) {
 	size := req.GetSize()

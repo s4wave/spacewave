@@ -42,6 +42,7 @@ export enum MknodType {
 export const MknodType_Enum = /* @__PURE__ */ createEnumType(
   's4wave.unixfs.MknodType',
   MknodType,
+  'MKNOD_TYPE_',
 )
 
 /**
@@ -507,6 +508,32 @@ export interface HandleTruncateResponse {}
 export const HandleTruncateResponse: MessageType<HandleTruncateResponse> =
   /* @__PURE__ */ createEmptyMessageType<HandleTruncateResponse>(
     's4wave.unixfs.HandleTruncateResponse',
+    true,
+  )
+
+/**
+ * HandleSyncRequest is the request for Sync.
+ *
+ * @generated from message s4wave.unixfs.HandleSyncRequest
+ */
+export interface HandleSyncRequest {}
+
+export const HandleSyncRequest: MessageType<HandleSyncRequest> =
+  /* @__PURE__ */ createEmptyMessageType<HandleSyncRequest>(
+    's4wave.unixfs.HandleSyncRequest',
+    true,
+  )
+
+/**
+ * HandleSyncResponse is the response for Sync.
+ *
+ * @generated from message s4wave.unixfs.HandleSyncResponse
+ */
+export interface HandleSyncResponse {}
+
+export const HandleSyncResponse: MessageType<HandleSyncResponse> =
+  /* @__PURE__ */ createEmptyMessageType<HandleSyncResponse>(
+    's4wave.unixfs.HandleSyncResponse',
     true,
   )
 

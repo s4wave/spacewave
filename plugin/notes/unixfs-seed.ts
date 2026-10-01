@@ -63,6 +63,7 @@ async function writeSeedFile(
     )
     fileHandle = await dirHandle.lookup(name, abortSignal)
     await fileHandle.writeAt(0n, data, abortSignal)
+    await fileHandle.sync(abortSignal)
   } finally {
     fileHandle?.release()
     parentHandle?.release()

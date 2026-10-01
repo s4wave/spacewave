@@ -443,10 +443,12 @@ func (i *Inode) Remove(ctx context.Context, req *fuse.RemoveRequest) error {
 	return err
 }
 
-// Fsync finishes and synchronizes any ongoing i/o ops.
+// Fsync commits buffered writes.
 func (i *Inode) Fsync(ctx context.Context, req *fuse.FsyncRequest) error {
-	// NOTE: Flush should also be called on the Handle.
-	// All other operations are SYNC by default.
+	if err := i.h.Sync(ctx); err != nil {
+		i.rfs.logFilesystemError(err)
+		return UnixfsErrorToSyscall(err)
+	}
 	return nil
 }
 

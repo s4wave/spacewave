@@ -300,11 +300,13 @@ func ReadFile(ctx context.Context, h *FSHandle) ([]byte, error) {
 	}
 }
 
-// WriteFile writes data to the filesystem handle, which must be a file.
+// WriteFile writes data to the filesystem handle, which must be a file, and
+// commits it.
 //
 // Since WriteFile requires multiple system calls to complete, a failure mid-operation
 // can leave the file in a partially written state.
 func WriteFile(ctx context.Context, fsh *FSHandle, data []byte, ts time.Time) error {
+	// Size chunks to the file's optimal write size.
 	optimalWriteSize, err := fsh.GetOptimalWriteSize(ctx)
 	if err != nil {
 		return err
@@ -314,13 +316,13 @@ func WriteFile(ctx context.Context, fsh *FSHandle, data []byte, ts time.Time) er
 		optimalWriteSize = 2048 * 125 // 256KB - blob.DefChunkingMinSize
 	}
 
-	// Truncate the file
+	// Truncate the file.
 	err = fsh.Truncate(ctx, 0, ts)
 	if err != nil {
 		return err
 	}
 
-	// Write data in chunks
+	// Write data in chunks.
 	for offset := int64(0); offset < int64(len(data)); offset += optimalWriteSize {
 		end := min(offset+optimalWriteSize, int64(len(data)))
 		chunk := data[offset:end]
@@ -331,5 +333,6 @@ func WriteFile(ctx context.Context, fsh *FSHandle, data []byte, ts time.Time) er
 		}
 	}
 
-	return nil
+	// Commit the buffered tail.
+	return fsh.Sync(ctx)
 }

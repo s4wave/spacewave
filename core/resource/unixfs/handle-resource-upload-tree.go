@@ -35,11 +35,13 @@ type uploadTreeState struct {
 func (r *FSHandleResource) UploadTree(
 	strm s4wave_unixfs.SRPCFSHandleResourceService_UploadTreeStream,
 ) (_ *s4wave_unixfs.HandleUploadTreeResponse, rerr error) {
+	// Require a handle attached to a World object.
 	ctx := strm.Context()
 	if r.ws == nil || r.objKey == "" {
 		return nil, errors.New("batch tree upload unavailable for detached handle resource")
 	}
 
+	// Require a directory handle.
 	handle, releaseHandle, err := r.borrowHandle(ctx)
 	if err != nil {
 		return nil, err
@@ -53,6 +55,7 @@ func (r *FSHandleResource) UploadTree(
 		return nil, errors.New("tree upload requires a directory handle")
 	}
 
+	// Start the batch and record an abort when it does not commit.
 	state := &uploadTreeState{
 		b:    unixfs_world.NewBatchFSWriter(r.ws, r.objKey, r.fsType, ""),
 		dirs: make(map[string]struct{}),
@@ -65,6 +68,7 @@ func (r *FSHandleResource) UploadTree(
 	}()
 	defer state.b.Release()
 
+	// Ingest the stream into the batch.
 	for {
 		msg, err := strm.Recv()
 		if err == io.EOF {
@@ -77,6 +81,7 @@ func (r *FSHandleResource) UploadTree(
 			return nil, err
 		}
 	}
+
 	// Blob ingestion can overlap, but the commit, handle reload, and change
 	// broadcast run under writeMtx so this root republication serializes against
 	// every other writer on this resource tree. The handle barrier additionally
@@ -89,6 +94,13 @@ func (r *FSHandleResource) UploadTree(
 	r.handleMtx.Lock()
 	defer r.handleMtx.Unlock()
 
+	// Commit buffered file writes first, so none lands on the root between the
+	// read and the publish below. WriteAt holds writeMtx, so none buffers more.
+	if err := r.handle.Sync(ctx); err != nil {
+		return nil, err
+	}
+
+	// Commit the batch onto the current root.
 	recordUploadMetric(ctx, UploadMetric{Stage: "commit-start"})
 	commitCtx := ctx
 	if state.ordered {
@@ -98,12 +110,15 @@ func (r *FSHandleResource) UploadTree(
 		return nil, err
 	}
 	recordUploadMetric(ctx, UploadMetric{Stage: "commit-complete"})
+
+	// Reload the handle onto the published root.
 	recordUploadMetric(ctx, UploadMetric{Stage: "reload-start"})
 	if err := r.reloadHandleLocked(ctx); err != nil {
 		return nil, err
 	}
 	recordUploadMetric(ctx, UploadMetric{Stage: "reload-complete"})
 
+	// Notify watchers of the new root.
 	r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) { broadcast() })
 	recordUploadMetric(ctx, UploadMetric{Stage: "broadcast"})
 	committed = true

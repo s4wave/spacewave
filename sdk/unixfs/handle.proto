@@ -32,6 +32,8 @@ service FSHandleResourceService {
 
   rpc Truncate(HandleTruncateRequest) returns (HandleTruncateResponse);
 
+  rpc Sync(HandleSyncRequest) returns (HandleSyncResponse);
+
   rpc GetSize(HandleGetSizeRequest) returns (HandleGetSizeResponse);
 
   rpc GetFileInfo(HandleGetFileInfoRequest) returns (HandleGetFileInfoResponse);
@@ -173,6 +175,12 @@ message HandleTruncateRequest {
 
 // HandleTruncateResponse is the response for Truncate.
 message HandleTruncateResponse {}
+
+// HandleSyncRequest is the request for Sync.
+message HandleSyncRequest {}
+
+// HandleSyncResponse is the response for Sync.
+message HandleSyncResponse {}
 
 // HandleGetSizeRequest is the request for GetSize.
 message HandleGetSizeRequest {}

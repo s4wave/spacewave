@@ -31,6 +31,8 @@ import {
   HandleRemoveResponse,
   HandleRenameRequest,
   HandleRenameResponse,
+  HandleSyncRequest,
+  HandleSyncResponse,
   HandleTruncateRequest,
   HandleTruncateResponse,
   HandleUploadFileRequest,
@@ -109,6 +111,15 @@ export const FSHandleResourceServiceDefinition = {
       name: 'Truncate',
       I: HandleTruncateRequest,
       O: HandleTruncateResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * @generated from rpc s4wave.unixfs.FSHandleResourceService.Sync
+     */
+    Sync: {
+      name: 'Sync',
+      I: HandleSyncRequest,
+      O: HandleSyncResponse,
       kind: MethodKind.Unary,
     },
     /**
@@ -284,6 +295,14 @@ export interface FSHandleResourceService {
   ): Promise<HandleTruncateResponse>
 
   /**
+   * @generated from rpc s4wave.unixfs.FSHandleResourceService.Sync
+   */
+  Sync(
+    request: HandleSyncRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<HandleSyncResponse>
+
+  /**
    * @generated from rpc s4wave.unixfs.FSHandleResourceService.GetSize
    */
   GetSize(
@@ -447,6 +466,15 @@ export interface FSHandleResourceServiceHandler {
   ): Promise<HandleTruncateResponse>
 
   /**
+   * @generated from rpc s4wave.unixfs.FSHandleResourceService.Sync
+   */
+  Sync(
+    request: HandleSyncRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<HandleSyncResponse>
+
+  /**
    * @generated from rpc s4wave.unixfs.FSHandleResourceService.GetSize
    */
   GetSize(
@@ -579,6 +607,7 @@ export class FSHandleResourceServiceClient implements FSHandleResourceService {
     this.ReadStream = this.ReadStream.bind(this)
     this.WriteAt = this.WriteAt.bind(this)
     this.Truncate = this.Truncate.bind(this)
+    this.Sync = this.Sync.bind(this)
     this.GetSize = this.GetSize.bind(this)
     this.GetFileInfo = this.GetFileInfo.bind(this)
     this.GetNodeType = this.GetNodeType.bind(this)
@@ -693,6 +722,23 @@ export class FSHandleResourceServiceClient implements FSHandleResourceService {
       abortSignal || undefined,
     )
     return HandleTruncateResponse.fromBinary(result)
+  }
+
+  /**
+   * @generated from rpc s4wave.unixfs.FSHandleResourceService.Sync
+   */
+  async Sync(
+    request: HandleSyncRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<HandleSyncResponse> {
+    const requestMsg = HandleSyncRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      FSHandleResourceServiceDefinition.methods.Sync.name,
+      HandleSyncRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return HandleSyncResponse.fromBinary(result)
   }
 
   /**

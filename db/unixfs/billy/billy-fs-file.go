@@ -321,10 +321,11 @@ func (f *BillyFSFile) Truncate(size int64) error {
 	return f.h.Truncate(f.ctx, uint64(size), f.timestamp()) //nolint:gosec
 }
 
-// Close closes the file handle.
+// Close commits buffered writes and closes the file handle.
 func (f *BillyFSFile) Close() error {
+	err := f.h.Sync(f.ctx)
 	f.h.Release()
-	return nil
+	return err
 }
 
 // Stat returns the FileInfo for the file.

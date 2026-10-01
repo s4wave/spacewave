@@ -1369,18 +1369,29 @@ func TestDoubleClunk(t *testing.T) {
 
 // --- Stub Handler Tests ---
 
+// TestFsync tests that TFSYNC on an attached fid succeeds.
 func TestFsync(t *testing.T) {
+	// Attach fid 0.
 	ctx := t.Context()
 	srv := newTestServer(t)
 	defer srv.ReleaseAll()
+	doVersion(t, ctx, srv)
+	doAttach(t, ctx, srv, 0)
 
-	resp, err := srv.HandleMessage(ctx, buildMessage(TFSYNC, 1, nil))
+	// Sync it.
+	payload := NewWriteBuffer(8)
+	payload.WriteU32(0) // fid
+	payload.WriteU32(0) // datasync
+	resp, err := srv.HandleMessage(ctx, buildMessage(TFSYNC, 1, payload.Bytes()))
 	if err != nil {
 		t.Fatal(err)
 	}
 	if resp[4] != RFSYNC {
 		t.Fatalf("expected RFSYNC, got %d", resp[4])
 	}
+
+	// Release the fid.
+	doClunk(t, ctx, srv, 0)
 }
 
 func TestLock(t *testing.T) {

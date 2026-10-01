@@ -14,9 +14,9 @@ import (
 
 // Handle wraps an Inode to provide FUSE file and directory handle calls.
 //
-// Reads and writes pass straight through to the inode: each write is
-// committed before FUSE reports it, so a canceled mount cannot lose an
-// acknowledged write.
+// Reads and writes pass straight through to the inode, which buffers small
+// contiguous writes. Flush, called on every close, and Fsync commit them, so
+// close reports a write that failed to commit.
 type Handle struct {
 	inode     *Inode
 	openFlags fuse.OpenFlags
@@ -57,7 +57,8 @@ func (h *Handle) Read(
 	return nil
 }
 
-// Write writes req.Data at req.Offset and returns once it is committed.
+// Write writes req.Data at req.Offset. A small write may return before it
+// commits; Flush and Fsync commit it.
 //
 // TODO O_APPEND: ensure data always is appended to file
 func (h *Handle) Write(
@@ -70,7 +71,7 @@ func (h *Handle) Write(
 		return syscall.EROFS
 	}
 
-	// Commit the write.
+	// Write through the inode.
 	if err := h.inode.h.WriteAt(ctx, req.Offset, req.Data, time.Now()); err != nil {
 		h.inode.rfs.logFilesystemError(err)
 		return UnixfsErrorToSyscall(err)
@@ -79,10 +80,20 @@ func (h *Handle) Write(
 	return nil
 }
 
+// Flush commits buffered writes when a file descriptor closes.
+func (h *Handle) Flush(ctx context.Context, req *fuse.FlushRequest) error {
+	if err := h.inode.h.Sync(ctx); err != nil {
+		h.inode.rfs.logFilesystemError(err)
+		return UnixfsErrorToSyscall(err)
+	}
+	return nil
+}
+
 // _ is a type assertion
 var (
 	_ fs.Handle = (*Handle)(nil)
 
+	_ fs.HandleFlusher      = (*Handle)(nil)
 	_ fs.HandleReadDirAller = (*Handle)(nil)
 	_ fs.HandleReader       = (*Handle)(nil)
 	_ fs.HandleWriter       = (*Handle)(nil)

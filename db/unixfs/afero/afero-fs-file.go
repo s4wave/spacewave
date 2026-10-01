@@ -195,8 +195,7 @@ func (f *AferoFSFile) Stat() (os.FileInfo, error) {
 
 // Sync waits for any writes to be flushed to storage.
 func (f *AferoFSFile) Sync() error {
-	// NOTE: the FSHandle is not write-buffered (yet).
-	return nil
+	return f.h.Sync(f.ctx)
 }
 
 // Truncate the file.
@@ -210,10 +209,11 @@ func (f *AferoFSFile) Truncate(size int64) error {
 	return f.h.Truncate(f.ctx, uint64(size), f.timestamp()) //nolint:gosec
 }
 
-// Close closes the file handle.
+// Close commits buffered writes and closes the file handle.
 func (f *AferoFSFile) Close() error {
+	err := f.h.Sync(f.ctx)
 	f.h.Release()
-	return nil
+	return err
 }
 
 // SetOpTimestamp sets the timestamp for FS write operations.

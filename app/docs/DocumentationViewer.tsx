@@ -178,6 +178,7 @@ export function DocumentationViewer({
     const template = `# ${title}\n`
     const encoded = new TextEncoder().encode(template)
     await child.writeAt(0n, encoded)
+    await child.sync()
     child.release()
     handleSelectPage(name)
   }, [rootHandle.value, mdEntries, handleSelectPage])

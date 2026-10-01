@@ -44,6 +44,7 @@ export default async function main(
     if (written === 0n) {
       throw new Error('writeAt reported zero bytes')
     }
+    await file.sync(abortSignal)
 
     await tx.commit(abortSignal)
     committed = true
