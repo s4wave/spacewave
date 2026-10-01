@@ -62,6 +62,7 @@ func TestChromiumLaunchOptions(t *testing.T) {
 	baseArgs := []string{
 		"--allow-loopback-in-peer-connection",
 		"--disable-features=WebRtcHideLocalIpsWithMdns",
+		"--blink-settings=primaryPointerType=4,availablePointerTypes=4,primaryHoverType=2,availableHoverTypes=2",
 	}
 	gpuArgs := append(append([]string{}, baseArgs...),
 		"--headless=new",

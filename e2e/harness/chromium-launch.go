@@ -68,16 +68,22 @@ func (p ChromiumGPUPreference) String() string {
 // Chromium launch mode. gpu requests acceleration in full Chromium using its
 // platform-selected backend; forcing Vulkan can select software on macOS.
 func ChromiumLaunchOptions(headless bool, gpu bool) playwright.BrowserTypeLaunchOptions {
+	// Allow loopback WebRTC peers and report a fine pointer that can hover.
+	// CI runners have no pointing device, so Chromium would otherwise match
+	// (pointer: none) and serve the touch layout to desktop tests.
 	opts := playwright.BrowserTypeLaunchOptions{
 		Headless: new(headless),
 		Args: []string{
 			"--allow-loopback-in-peer-connection",
 			"--disable-features=WebRtcHideLocalIpsWithMdns",
+			"--blink-settings=primaryPointerType=4,availablePointerTypes=4,primaryHoverType=2,availableHoverTypes=2",
 		},
 	}
 	if !gpu {
 		return opts
 	}
+
+	// Run full Chromium in new headless mode with hardware acceleration.
 	channel := "chromium"
 	opts.Channel = &channel
 	opts.Headless = new(false)
