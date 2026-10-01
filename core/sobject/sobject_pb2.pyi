@@ -328,14 +328,16 @@ class SOConfigChange(_message.Message):
     def __init__(self, config_seqno: _Optional[int] = ..., config: _Optional[_Union[SharedObjectConfig, _Mapping]] = ..., signed_by: _Optional[bytes] = ..., signature: _Optional[_Union[_peer_pb2.Signature, _Mapping]] = ..., previous_hash: _Optional[bytes] = ..., change_type: _Optional[_Union[SOConfigChangeType, str]] = ..., revocation_info: _Optional[_Union[SORevocationInfo, _Mapping]] = ...) -> None: ...
 
 class SOParticipantConfig(_message.Message):
-    __slots__ = ("peer_id", "role", "entity_id")
+    __slots__ = ("peer_id", "role", "entity_id", "username")
     PEER_ID_FIELD_NUMBER: _ClassVar[int]
     ROLE_FIELD_NUMBER: _ClassVar[int]
     ENTITY_ID_FIELD_NUMBER: _ClassVar[int]
+    USERNAME_FIELD_NUMBER: _ClassVar[int]
     peer_id: str
     role: SOParticipantRole
     entity_id: str
-    def __init__(self, peer_id: _Optional[str] = ..., role: _Optional[_Union[SOParticipantRole, str]] = ..., entity_id: _Optional[str] = ...) -> None: ...
+    username: str
+    def __init__(self, peer_id: _Optional[str] = ..., role: _Optional[_Union[SOParticipantRole, str]] = ..., entity_id: _Optional[str] = ..., username: _Optional[str] = ...) -> None: ...
 
 class SORoot(_message.Message):
     __slots__ = ("inner", "inner_seqno", "account_nonces", "validator_signatures")

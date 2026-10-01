@@ -143,14 +143,16 @@ class GetSessionInfoRequest(_message.Message):
     def __init__(self) -> None: ...
 
 class GetSessionInfoResponse(_message.Message):
-    __slots__ = ("session_ref", "peer_id", "crypto_info")
+    __slots__ = ("session_ref", "peer_id", "crypto_info", "username")
     SESSION_REF_FIELD_NUMBER: _ClassVar[int]
     PEER_ID_FIELD_NUMBER: _ClassVar[int]
     CRYPTO_INFO_FIELD_NUMBER: _ClassVar[int]
+    USERNAME_FIELD_NUMBER: _ClassVar[int]
     session_ref: _session_pb2.SessionRef
     peer_id: str
     crypto_info: SessionCryptoInfo
-    def __init__(self, session_ref: _Optional[_Union[_session_pb2.SessionRef, _Mapping]] = ..., peer_id: _Optional[str] = ..., crypto_info: _Optional[_Union[SessionCryptoInfo, _Mapping]] = ...) -> None: ...
+    username: str
+    def __init__(self, session_ref: _Optional[_Union[_session_pb2.SessionRef, _Mapping]] = ..., peer_id: _Optional[str] = ..., crypto_info: _Optional[_Union[SessionCryptoInfo, _Mapping]] = ..., username: _Optional[str] = ...) -> None: ...
 
 class SessionCryptoInfo(_message.Message):
     __slots__ = ("key_type", "public_key_base58", "space_count", "total_storage_bytes", "public_key_pem")
