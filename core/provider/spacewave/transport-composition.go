@@ -102,9 +102,12 @@ func (o *transportCompositionOwner) init(account *ProviderAccount) {
 	o.account = account
 	o.sessions = make(map[string]*transportCompositionSession)
 	o.startDirect = func(ctx context.Context, sessionID string, sessionKey crypto.PrivKey, signalingURL string) (transportCompositionLinkSource, error) {
+		// Start the Session transport and wait for readiness.
 		if err := account.createSessionTransportForSession(ctx, sessionID, sessionKey, signalingURL); err != nil {
 			return nil, err
 		}
+
+		// Read back the published transport, cleaning up if it vanished.
 		st := account.getSessionTransportForSession(sessionID)
 		if st == nil {
 			if err := account.stopSessionTransportForSession(ctx, sessionID, nil); err != nil {
@@ -112,7 +115,15 @@ func (o *transportCompositionOwner) init(account *ProviderAccount) {
 			}
 			return nil, errors.New("session transport missing after startup")
 		}
+
+		// Start P2P sync on the transport's child bus.
 		if err := account.startP2PSyncForSession(ctx, sessionID, st); err != nil {
+			// A transport failure closes the child bus under P2P startup. Report
+			// the failure itself so a rejected credential still reads as
+			// unauthorized and the Session re-registers.
+			if failed := st.Err(); failed != nil {
+				err = failed
+			}
 			account.stopP2PSyncForSession(sessionID)
 			if stopErr := account.stopSessionTransportForSession(ctx, sessionID, nil); stopErr != nil {
 				return nil, errors.Wrap(stopErr, "stop session transport after P2P startup failure")
