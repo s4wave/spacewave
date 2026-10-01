@@ -11,6 +11,7 @@ import (
 	"github.com/aperturerobotics/cli"
 	"github.com/pkg/errors"
 	provider_local "github.com/s4wave/spacewave/core/provider/local"
+	unixfs_errors "github.com/s4wave/spacewave/db/unixfs/errors"
 	unixfs_sync "github.com/s4wave/spacewave/db/unixfs/sync"
 	unixfs_world "github.com/s4wave/spacewave/db/unixfs/world"
 	"github.com/s4wave/spacewave/db/world"
@@ -77,17 +78,38 @@ func (a *FsSyncArgs) Run(c *cli.Context) error {
 	}
 	defer release()
 
-	// Write through the engine on upload and read from a snapshot on download.
-	ws := world.NewEngineWorldState(engine, upload)
-	if !upload {
-		tx, err := engine.NewTransaction(ctx, false)
-		if err != nil {
-			return err
-		}
-		defer tx.Discard()
-		ws = tx
+	// Apply an upload in one write transaction, so the World commits once and
+	// a failed copy changes nothing. Read a download from a snapshot.
+	tx, err := engine.NewTransaction(ctx, upload)
+	if err != nil {
+		return err
+	}
+	defer tx.Discard()
+
+	// Delete only after the complete copy succeeds, as in rclone sync.
+	mode := unixfs_sync.DeleteMode_DeleteMode_AFTER
+	if a.keepExtra {
+		mode = unixfs_sync.DeleteMode_DeleteMode_NONE
+	}
+	if err := syncFsDir(ctx, tx, uri, localPath, upload, mode); err != nil || !upload {
+		return err
 	}
 
+	// Commit the upload, then wait until the Space's storage has the new blocks.
+	if err := tx.Commit(ctx); err != nil {
+		return errors.Wrap(err, "commit synced World")
+	}
+	if _, err := engine.Sync(ctx); err != nil {
+		return errors.Wrap(err, "make synced World durable")
+	}
+	return withSession(c, a.statePath, uint(uri.sessionIdx), func(ctx context.Context, sess *s4wave_session.Session) error {
+		return waitSpaceStorageSynced(ctx, sess, resolvedSpaceID)
+	})
+}
+
+// syncFsDir mirrors the local directory and the UnixFS directory at uri in ws,
+// changing only the destination.
+func syncFsDir(ctx context.Context, ws world.WorldState, uri fsURI, localPath string, upload bool, mode unixfs_sync.DeleteMode) error {
 	// Open the UnixFS root object.
 	ref := &unixfs_world.UnixfsRef{ObjectKey: uri.objectKey}
 	root, err := unixfs_world.BuildFSFromUnixfsRef(ctx, nil, ws, "", ref, false, upload, time.Now())
@@ -99,14 +121,15 @@ func (a *FsSyncArgs) Run(c *cli.Context) error {
 	// Resolve the requested directory below the root; it must already exist.
 	handle := root
 	if uri.path != "" {
-		var missing []string
-		handle, missing, err = root.LookupPath(ctx, uri.path)
+		handle, _, err = root.LookupPath(ctx, uri.path)
+		if handle != nil {
+			defer handle.Release()
+		}
+		if errors.Is(err, unixfs_errors.ErrNotExist) {
+			return errors.Errorf("UnixFS directory does not exist: %s", uri.path)
+		}
 		if err != nil {
 			return err
-		}
-		defer handle.Release()
-		if len(missing) != 0 {
-			return errors.Errorf("UnixFS directory does not exist: %s", uri.path)
 		}
 	}
 	nodeType, err := handle.GetNodeType(ctx)
@@ -117,27 +140,11 @@ func (a *FsSyncArgs) Run(c *cli.Context) error {
 		return errors.New("UnixFS sync path must be a directory")
 	}
 
-	// Delete only after the complete copy succeeds, as in rclone sync.
-	mode := unixfs_sync.DeleteMode_DeleteMode_AFTER
-	if a.keepExtra {
-		mode = unixfs_sync.DeleteMode_DeleteMode_NONE
+	// Copy toward the destination.
+	if upload {
+		return unixfs_sync.SyncFromDisk(ctx, handle, localPath, mode, nil)
 	}
-
-	// Download by mirroring the UnixFS directory onto disk.
-	if !upload {
-		return unixfs_sync.Sync(ctx, localPath, handle, mode, nil)
-	}
-
-	// Upload the directory, then wait until the Space's storage has the new blocks.
-	if err := unixfs_sync.SyncFromDisk(ctx, handle, localPath, mode, nil); err != nil {
-		return err
-	}
-	if _, err := engine.Sync(ctx); err != nil {
-		return errors.Wrap(err, "make synced World durable")
-	}
-	return withSession(c, a.statePath, uint(uri.sessionIdx), func(ctx context.Context, sess *s4wave_session.Session) error {
-		return waitSpaceStorageSynced(ctx, sess, resolvedSpaceID)
-	})
+	return unixfs_sync.Sync(ctx, localPath, handle, mode, nil)
 }
 
 // newFsSyncCommand builds the directory mirror command.
@@ -147,7 +154,7 @@ func newFsSyncCommand() *cli.Command {
 		Name:        "sync",
 		Usage:       "mirror directory contents between disk and UnixFS, changing only the destination",
 		ArgsUsage:   "SOURCE DESTINATION",
-		Description: fsURIDescription("Prefix exactly one argument with spacewave:. The other is a local directory.\nThe UnixFS directory must exist. Destination-only entries are deleted after\na successful copy unless --keep-extra is set. Files match by size and mtime.\nA failed copy can leave partial updates; destination-only deletion is skipped.\nUploads wait for World storage durability before returning.", "  spacewave fs sync ./snapshot spacewave:backup\n  spacewave fs sync spacewave:backup ./restore"),
+		Description: fsURIDescription("Prefix exactly one argument with spacewave:. The other is a local directory.\nThe UnixFS directory must exist. Destination-only entries are deleted after\na successful copy unless --keep-extra is set. Files match by size and mtime.\nA failed upload changes nothing. A failed download can leave partial updates,\nand destination-only deletion is skipped.\nUploads wait for World storage durability before returning.", "  spacewave fs sync ./snapshot spacewave:backup\n  spacewave fs sync spacewave:backup ./restore"),
 		Flags:       args.BuildFlags(),
 		Action:      args.Run,
 	}

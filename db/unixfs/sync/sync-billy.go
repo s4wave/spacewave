@@ -17,6 +17,11 @@ import (
 	"github.com/s4wave/spacewave/db/util/mbuffer"
 )
 
+// copyBufferSize is the size of each file write. A UnixFS file rewrites its
+// last blob block, up to blob.DefChunkingMaxSize, on every write, so writes
+// smaller than that block rewrite it many times.
+const copyBufferSize = 4 << 20
+
 // BillyFS has the needed billy filesystem interfaces.
 type BillyFS interface {
 	billy.Basic
@@ -114,6 +119,7 @@ func syncToBillyOnce(
 	compareContents bool,
 	changeCb ChangeCb,
 ) error {
+	// Skip a released source or a missing destination.
 	if fsHandle.CheckReleased() {
 		return unixfs_errors.ErrReleased
 	}
@@ -121,6 +127,7 @@ func syncToBillyOnce(
 		return nil
 	}
 
+	// Stat destination symlinks themselves when the filesystem supports them.
 	bfsStat := bfs.Stat
 	bfsSymlink, bfsSymlinkOk := bfs.(billy.Symlink)
 	if bfsSymlinkOk {
@@ -137,6 +144,8 @@ func syncToBillyOnce(
 		outPath string
 	}
 
+	// Track the directories left to visit, releasing each handle the walk
+	// opened.
 	stack := make([]stackElem, 0, 10)
 	pushStack := func(fsHandle *unixfs.FSHandle, srcPath, outPath string) {
 		stack = append(stack, stackElem{
@@ -156,10 +165,8 @@ func syncToBillyOnce(
 		}
 	}()
 
-	// add initial stack element
+	// Start the walk at the source root with reusable copy buffers.
 	pushStack(fsHandle, "", "")
-
-	// copy buffer
 	var cpyBuffer, writeBuffer mbuffer.MBuffer
 
 	// recursively traverse filesystem
@@ -415,12 +422,12 @@ func syncToBillyOnce(
 			return &fs.PathError{Op: "openfile", Path: outPath, Err: err}
 		}
 
-		xferBuf := cpyBuffer.GetOrAllocate(32 * 1024)
+		xferBuf := cpyBuffer.GetOrAllocate(copyBufferSize)
 		changed := createTruncateFile
 		if createTruncateFile {
 			err = unixfs_billy.CopyToBillyFSFile(ctx, of, handle, xferBuf, 0)
 		} else {
-			wbuffer := writeBuffer.GetOrAllocate(32 * 1024)
+			wbuffer := writeBuffer.GetOrAllocate(copyBufferSize)
 			changed, err = unixfs_billy.SyncToBillyFSFile(ctx, of, handle, xferBuf, wbuffer)
 		}
 
