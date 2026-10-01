@@ -1,7 +1,7 @@
 import { useCallback, use } from 'react'
 import { LuChevronDown, LuChevronRight } from 'react-icons/lu'
 import { cn } from '@s4wave/web/style/utils.js'
-import { TreeNode } from './TreeNode.js'
+import { isExpandable, TreeNode } from './TreeNode.js'
 import { TreeStateContext, TreeDispatchContext } from './TreeState.js'
 
 interface TreeRowProps<T = void> {
@@ -24,7 +24,7 @@ export function TreeRow<T = void>({
   const state = use(TreeStateContext)
   const dispatch = use(TreeDispatchContext)
 
-  const hasChildren = node.children && node.children.length > 0
+  const hasChildren = isExpandable(node)
   const isExpanded = hasChildren && (state?.expandedIds.has(node.id) ?? false)
   const isSelected = state?.selectedIds.has(node.id) ?? false
   const isFocused = state?.focusedId === node.id
@@ -145,7 +145,7 @@ export function TreeRow<T = void>({
       aria-current={isFocused ? 'true' : undefined}
       aria-setsize={node.children?.length}
       aria-posinset={level + 1}
-      aria-label={`${node.name}${node.detail ? `, ${node.detail}` : ''}${hasChildren ? `, ${isExpanded ? 'expanded' : 'collapsed'}, ${node.children?.length} items` : ''}`}
+      aria-label={`${node.name}${node.detail ? `, ${node.detail}` : ''}${hasChildren ? `, ${isExpanded ? 'expanded' : 'collapsed'}${node.children ? `, ${node.children.length} items` : ''}` : ''}`}
       aria-description={`Level ${level + 1}${isSelected ? ', selected' : ''}${isFocused ? ', focused' : ''}`}
       tabIndex={isFocused ? 0 : -1}
       onFocus={handleTreeItemFocus}

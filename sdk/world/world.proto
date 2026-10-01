@@ -393,18 +393,28 @@ message ListObjectsRequest {
   // StartAfter resumes the listing after this object key. It must start with
   // prefix. Empty starts at the first key.
   string start_after = 2;
-  // Limit is the maximum number of objects in the page. It must be non-zero.
-  // The server may return a shorter page and set more.
+  // Limit is the maximum number of entries, objects plus prefixes, in the
+  // page. It must be non-zero. The server may return a shorter page and set
+  // more.
   uint32 limit = 3;
+  // Delimiter groups keys by the next path segment. When set, each key whose
+  // remainder after prefix contains the delimiter is listed once as its prefix
+  // up to and including the first delimiter, instead of as an object. Empty
+  // lists every key under prefix.
+  string delimiter = 4;
 }
 
 // ListObjectsResponse is the response type for ListObjects.
 message ListObjectsResponse {
   // Objects are the page's objects in ascending key order.
   repeated ObjectMetadata objects = 1;
-  // More reports that objects after the last one match the prefix. Pass the
-  // last object key as start_after to read the next page.
+  // More reports that entries after the last one match the prefix. Pass the
+  // greater of the last object key and the last prefix as start_after to read
+  // the next page.
   bool more = 2;
+  // Prefixes are the page's grouped key prefixes in ascending order. Each sorts
+  // where its first key would. Set only when the request has a delimiter.
+  repeated string prefixes = 3;
 }
 
 // SetGraphQuadRequest is the request type for SetGraphQuad.

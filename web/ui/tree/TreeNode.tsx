@@ -7,6 +7,8 @@ export interface TreeNode<T = void> {
   detail?: string
   icon?: React.ReactNode
   children?: TreeNode<T>[]
+  // hasChildren marks a node as expandable before its children are loaded.
+  hasChildren?: boolean
   data?: T
   draggable?: boolean
   onDragStart?: TreeNodeOnDragStart<T>
@@ -15,6 +17,11 @@ export interface TreeNode<T = void> {
     onClick?: (e: React.MouseEvent) => void
     tooltip?: string
   }[]
+}
+
+// isExpandable returns whether a node has loaded or not-yet-loaded children.
+export function isExpandable<T>(node: TreeNode<T>): boolean {
+  return !!node.children?.length || !!node.hasChildren
 }
 
 export type TreeNodeOnDragStart<T> = (

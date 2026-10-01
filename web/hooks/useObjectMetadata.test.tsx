@@ -2,13 +2,14 @@ import { cleanup, renderHook, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import type { Resource } from '@aptre/bldr-sdk/hooks/useResource.js'
+import type { ListObjectsRequest } from '@s4wave/sdk/world/world.pb.js'
 import type { IWorldState } from '@s4wave/sdk/world/world-state.js'
 
 import { useObjectMetadata } from './useObjectMetadata.js'
 
 // snapshotWorld is a World without an Engine whose listing holds keys.
 function snapshotWorld(keys: string[]): Resource<IWorldState> {
-  const listObjects = vi.fn(async (prefix: string) => ({
+  const listObjects = vi.fn(async ({ prefix = '' }: ListObjectsRequest) => ({
     objects: keys
       .filter((key) => key.startsWith(prefix))
       .slice(0, 1)

@@ -146,7 +146,7 @@ func listWorldContents(ctx context.Context, engine *sdk_engine.SDKEngine, prefix
 	wc := &space_world.WorldContents{}
 	var startAfter string
 	for {
-		objects, more, err := sdkTx.ListObjects(ctx, prefix, startAfter, listObjectsPageSize)
+		objects, _, more, err := sdkTx.ListObjects(ctx, prefix, "", startAfter, listObjectsPageSize)
 		if err != nil {
 			return nil, errors.Wrap(err, "list objects")
 		}

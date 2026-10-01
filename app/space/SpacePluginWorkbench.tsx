@@ -42,7 +42,10 @@ export function SpacePluginWorkbench({
   const objectKeys = useWorldQuery(
     spaceWorldResource,
     async (world, signal) => {
-      const page = await world.listObjects('', '', previewObjectLimit, signal)
+      const page = await world.listObjects(
+        { limit: previewObjectLimit },
+        signal,
+      )
       return (page.objects ?? []).map((object) => object.objectKey ?? '')
     },
     [],

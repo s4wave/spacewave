@@ -371,10 +371,12 @@ func (r *WorldStateResource) IterateObjects(ctx context.Context, req *s4wave_wor
 // under the RPC message size limit.
 const maxListObjectsLimit = 1000
 
-// ListObjects returns one page of objects and their metadata in key order.
+// ListObjects returns one page of objects and their metadata in key order. With
+// a delimiter, keys below the next path segment are grouped into prefixes, and
+// the iterator seeks past each group instead of reading its keys.
 func (r *WorldStateResource) ListObjects(ctx context.Context, req *s4wave_world.ListObjectsRequest) (*s4wave_world.ListObjectsResponse, error) {
 	// Validate the page bounds and cursor.
-	prefix, startAfter := req.GetPrefix(), req.GetStartAfter()
+	prefix, delimiter, startAfter := req.GetPrefix(), req.GetDelimiter(), req.GetStartAfter()
 	if req.GetLimit() == 0 {
 		return nil, errors.New("limit must be non-zero")
 	}
@@ -383,33 +385,92 @@ func (r *WorldStateResource) ListObjects(ctx context.Context, req *s4wave_world.
 	}
 	limit := min(int(req.GetLimit()), maxListObjectsLimit)
 
-	// Position the iterator on the first key after the cursor.
+	// Position the iterator on the first key after the cursor. A cursor inside
+	// a group resumes after the whole group.
 	it := r.ws.IterateObjects(ctx, prefix, false)
 	defer it.Close()
-	valid, err := advanceObjectIteratorPast(it, startAfter)
+	var valid bool
+	var err error
+	if group := delimitedGroup(prefix, delimiter, startAfter); group != "" {
+		valid, err = seekPastGroup(it, group)
+	} else {
+		valid, err = advanceObjectIteratorPast(it, startAfter)
+	}
 	if err != nil {
 		return nil, err
 	}
 
-	// Collect up to limit keys and note whether more remain.
-	keys := make([]string, 0, limit)
-	for valid && len(keys) < limit {
-		keys = append(keys, it.Key())
+	// Collect up to limit entries and note whether more remain.
+	var keys, prefixes []string
+	for valid && len(keys)+len(prefixes) < limit {
+		key := it.Key()
+		if group := delimitedGroup(prefix, delimiter, key); group != "" {
+			prefixes = append(prefixes, group)
+			valid, err = seekPastGroup(it, group)
+			if err != nil {
+				return nil, err
+			}
+			continue
+		}
+		keys = append(keys, key)
 		valid = it.Next()
 	}
 	if err := it.Err(); err != nil {
 		return nil, err
 	}
 
-	// Read the graph metadata for the page.
+	// Read the graph metadata for the page's objects.
 	metadata, err := world_types.GetObjectMetadataBatch(ctx, r.ws, keys)
 	if err != nil {
 		return nil, err
 	}
 	return &s4wave_world.ListObjectsResponse{
-		Objects: objectMetadataToProto(metadata),
-		More:    valid,
+		Objects:  objectMetadataToProto(metadata),
+		Prefixes: prefixes,
+		More:     valid,
 	}, nil
+}
+
+// delimitedGroup returns the group prefix of key: prefix plus the remainder up
+// to and including the first delimiter. It returns empty when delimiter is
+// empty or the remainder has no delimiter.
+func delimitedGroup(prefix, delimiter, key string) string {
+	if delimiter == "" || !strings.HasPrefix(key, prefix) {
+		return ""
+	}
+
+	// Cut the key after the first delimiter past the prefix.
+	i := strings.Index(key[len(prefix):], delimiter)
+	if i < 0 {
+		return ""
+	}
+	return key[:len(prefix)+i+len(delimiter)]
+}
+
+// seekPastGroup moves the iterator to the first key that does not start with
+// group, and reports whether it points at a key.
+func seekPastGroup(it world.ObjectIterator, group string) (bool, error) {
+	end, ok := prefixSuccessor(group)
+	if !ok {
+		return false, nil
+	}
+	if err := it.Seek(end); err != nil {
+		return false, err
+	}
+	return it.Valid(), nil
+}
+
+// prefixSuccessor returns the least string greater than every string that
+// starts with prefix. It reports false when no such string exists.
+func prefixSuccessor(prefix string) (string, bool) {
+	b := []byte(prefix)
+	for i := len(b) - 1; i >= 0; i-- {
+		if b[i] < 0xff {
+			b[i]++
+			return string(b[:i+1]), true
+		}
+	}
+	return "", false
 }
 
 // advanceObjectIteratorPast moves a fresh iterator to the first key after

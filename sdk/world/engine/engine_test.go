@@ -726,7 +726,7 @@ func TestSDKEngine_ListObjects(t *testing.T) {
 	var got []string
 	var startAfter string
 	for {
-		objects, more, err := sdkReadTx.ListObjects(ctx, "list/", startAfter, 2)
+		objects, _, more, err := sdkReadTx.ListObjects(ctx, "list/", "", startAfter, 2)
 		if err != nil {
 			t.Fatal(err.Error())
 		}
@@ -748,11 +748,92 @@ func TestSDKEngine_ListObjects(t *testing.T) {
 	}
 
 	// Reject a zero limit and a cursor outside the prefix.
-	if _, _, err := sdkReadTx.ListObjects(ctx, "list/", "", 0); err == nil {
+	if _, _, _, err := sdkReadTx.ListObjects(ctx, "list/", "", "", 0); err == nil {
 		t.Fatal("expected zero limit to fail")
 	}
-	if _, _, err := sdkReadTx.ListObjects(ctx, "list/", "other/x", 2); err == nil {
+	if _, _, _, err := sdkReadTx.ListObjects(ctx, "list/", "", "other/x", 2); err == nil {
 		t.Fatal("expected cursor outside the prefix to fail")
+	}
+}
+
+// TestSDKEngine_ListObjectsDelimiter tests listing one path level at a time.
+func TestSDKEngine_ListObjectsDelimiter(t *testing.T) {
+	// Start an SDK engine on a fresh testbed World.
+	ctx := context.Background()
+	engine, cleanup := setupSDKEngine(ctx, t)
+	defer cleanup()
+
+	// Create objects at two levels under the prefix and one outside it.
+	tx, err := engine.NewTransaction(ctx, true)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	keys := []string{
+		"tree/a",
+		"tree/a/x",
+		"tree/a/y",
+		"tree/b",
+		"tree/c/z/deep",
+		"tree/d",
+		"tree/e/w",
+		"treehouse",
+	}
+	for _, key := range keys {
+		createdObject, err := tx.CreateObject(ctx, key, nil)
+		world.ReleaseObjectState(createdObject)
+		if err != nil {
+			tx.Discard()
+			t.Fatal(err.Error())
+		}
+	}
+	if err := tx.Commit(ctx); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	// Open a read transaction on the SDK engine.
+	readTx, err := engine.NewTransaction(ctx, false)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer readTx.Discard()
+	sdkReadTx, ok := readTx.(*sdk_world_engine.SDKTx)
+	if !ok {
+		t.Fatal("expected SDKTx")
+	}
+
+	// Page through the first level two entries at a time.
+	var gotObjects, gotPrefixes []string
+	var startAfter string
+	for {
+		objects, prefixes, more, err := sdkReadTx.ListObjects(ctx, "tree/", "/", startAfter, 2)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+		if len(objects)+len(prefixes) > 2 {
+			t.Fatalf("expected at most 2 entries per page, got %d", len(objects)+len(prefixes))
+		}
+		for _, obj := range objects {
+			gotObjects = append(gotObjects, obj.ObjectKey)
+			startAfter = max(startAfter, obj.ObjectKey)
+		}
+		for _, prefix := range prefixes {
+			gotPrefixes = append(gotPrefixes, prefix)
+			startAfter = max(startAfter, prefix)
+		}
+		if !more {
+			break
+		}
+	}
+
+	// Each first-level object and group arrives once, and nothing outside the
+	// prefix leaks in after the last group.
+	wantObjects := []string{"tree/a", "tree/b", "tree/d"}
+	if !slices.Equal(gotObjects, wantObjects) {
+		t.Fatalf("expected objects %v, got %v", wantObjects, gotObjects)
+	}
+	wantPrefixes := []string{"tree/a/", "tree/c/", "tree/e/"}
+	if !slices.Equal(gotPrefixes, wantPrefixes) {
+		t.Fatalf("expected prefixes %v, got %v", wantPrefixes, gotPrefixes)
 	}
 }
 

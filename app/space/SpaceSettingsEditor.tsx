@@ -1,4 +1,4 @@
-import { useMemo, useCallback } from 'react'
+import { useCallback } from 'react'
 import { LuKeyboard, LuPencil, LuSettings } from 'react-icons/lu'
 
 import { DashboardButton } from '@s4wave/web/ui/DashboardButton.js'
@@ -7,7 +7,6 @@ import { ObjectKeySelector } from '@s4wave/web/ui/ObjectKeySelector.js'
 
 import { useInvokeCommand } from '@s4wave/web/command/index.js'
 import { SpaceContainerContext } from '@s4wave/web/contexts/SpaceContainerContext.js'
-import { buildObjectTree } from '@s4wave/web/space/object-tree.js'
 import { applySpaceIndexPath } from './space-settings.js'
 
 interface SpaceSettingsEditorProps {
@@ -26,15 +25,11 @@ export function SpaceSettingsEditor({
   embedded,
   onRenameStart,
 }: SpaceSettingsEditorProps) {
-  const { spaceState, spaceWorld } = SpaceContainerContext.useContext()
+  const { spaceState, spaceWorld, spaceWorldResource } =
+    SpaceContainerContext.useContext()
   const invokeCommand = useInvokeCommand()
 
   const indexPath = spaceState.settings?.indexPath ?? ''
-  const worldObjects = spaceState.worldContents?.objects
-  const treeNodes = useMemo(
-    () => buildObjectTree(worldObjects ?? []),
-    [worldObjects],
-  )
 
   const handleIndexPathChange = useCallback(
     async (newPath: string) => {
@@ -95,7 +90,7 @@ export function SpaceSettingsEditor({
             </span>
             {canEdit ? (
               <ObjectKeySelector
-                nodes={treeNodes}
+                world={spaceWorldResource}
                 value={indexPath}
                 onChange={(newPath) => void handleIndexPathChange(newPath)}
                 placeholder="No default view"

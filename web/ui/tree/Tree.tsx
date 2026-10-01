@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { TreeNode } from './TreeNode.js'
+import { isExpandable, TreeNode } from './TreeNode.js'
 import {
   findNodeById,
   findParentNode,
@@ -24,6 +24,7 @@ export interface TreeProps<T = void> {
   onRowDefaultAction?: (nodes: TreeNode<T>[]) => void
   onRowContextMenu?: (node: TreeNode<T>, event: React.MouseEvent) => void
   onSelectionChange?: (selectedIds: Set<string>) => void
+  onExpandedChange?: (expandedIds: Set<string>) => void
   defaultExpandedIds?: Set<string>
   defaultSelectedIds?: Set<string>
   namespace?: StateNamespace
@@ -39,6 +40,7 @@ export function Tree<T>({
   onRowDefaultAction,
   onRowContextMenu,
   onSelectionChange,
+  onExpandedChange,
   defaultExpandedIds,
   defaultSelectedIds,
   namespace,
@@ -85,6 +87,11 @@ export function Tree<T>({
     }
   }, [state.selectedIds, onSelectionChange])
 
+  // Report expansion so an owner can load the children of expanded nodes.
+  useEffect(() => {
+    onExpandedChange?.(state.expandedIds)
+  }, [state.expandedIds, onExpandedChange])
+
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
       const { key } = e
@@ -109,10 +116,7 @@ export function Tree<T>({
               if (selectedNodes.length > 0) {
                 onRowDefaultAction(selectedNodes)
               }
-            } else if (
-              focusedNode.children &&
-              focusedNode.children.length > 0
-            ) {
+            } else if (isExpandable(focusedNode)) {
               dispatch({ type: 'TOGGLE_EXPAND', id: focusedNode.id })
             }
           }
@@ -121,7 +125,7 @@ export function Tree<T>({
 
         case ' ': {
           if (focusedNode) {
-            if (focusedNode.children && focusedNode.children.length > 0) {
+            if (isExpandable(focusedNode)) {
               dispatch({ type: 'TOGGLE_EXPAND', id: focusedNode.id })
             } else {
               dispatch({
@@ -193,9 +197,9 @@ export function Tree<T>({
 
         case 'l':
         case 'ArrowRight': {
-          if (!focusedNode?.children?.length) break
+          if (!focusedNode || !isExpandable(focusedNode)) break
 
-          const firstChild = focusedNode.children[0]
+          const firstChild = focusedNode.children?.[0]
           if (!state.expandedIds.has(focusedNode.id)) {
             dispatch({ type: 'TOGGLE_EXPAND', id: focusedNode.id })
             if (firstChild) {

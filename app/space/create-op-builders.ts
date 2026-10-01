@@ -197,7 +197,10 @@ async function listObjectKeys(
   const keys = new Set<string>()
   let startAfter = ''
   for (;;) {
-    const page = await world.listObjects(prefix, startAfter, 1000, signal)
+    const page = await world.listObjects(
+      { prefix, startAfter, limit: 1000 },
+      signal,
+    )
     for (const object of page.objects ?? []) {
       if (object.objectKey) keys.add(object.objectKey)
     }

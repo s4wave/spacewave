@@ -22,6 +22,7 @@ import type {
   ObjectRecordBase,
   GraphEdgeBucketDirection,
   ListGraphEdgeBucketsResponse,
+  ListObjectsRequest,
   ListObjectsResponse,
   LookupGraphQuadsResponse,
   ObjectMetadata,
@@ -194,14 +195,13 @@ export interface IWorldState {
   ): Promise<string[]>
 
   /**
-   * listObjects returns one page of objects under prefix in key order, starting
-   * after startAfter. The server may return fewer than limit and sets more
-   * when keys remain.
+   * listObjects returns one page of objects under the request prefix in key
+   * order, starting after its cursor. A delimiter groups deeper keys into
+   * prefixes. The server may return fewer entries than the limit and sets more
+   * when entries remain.
    */
   listObjects(
-    prefix: string,
-    startAfter: string,
-    limit: number,
+    request: ListObjectsRequest,
     abortSignal?: AbortSignal,
   ): Promise<ListObjectsResponse>
 
@@ -609,12 +609,10 @@ export class WorldStateResource extends Resource implements IWorldState {
 
   /** listObjects returns one page of objects under prefix in key order. */
   public async listObjects(
-    prefix: string,
-    startAfter: string,
-    limit: number,
+    request: ListObjectsRequest,
     abortSignal?: AbortSignal,
   ): Promise<ListObjectsResponse> {
-    return this.service.ListObjects({ prefix, startAfter, limit }, abortSignal)
+    return this.service.ListObjects(request, abortSignal)
   }
 
   /** getObjectMetadataBatch returns the type and parent of each key, in request order. */

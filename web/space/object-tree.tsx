@@ -29,7 +29,8 @@ import {
   SPACE_SETTINGS_OBJECT_KEY,
 } from '@s4wave/core/space/world/world.js'
 import type { TreeNode } from '@s4wave/web/ui/tree/TreeNode.js'
-import type { WorldContentsObject } from '@s4wave/core/space/world/world.pb.js'
+import type { IWorldState } from '@s4wave/sdk/world/world-state.js'
+import type { ObjectMetadata } from '@s4wave/sdk/world/world.pb.js'
 import {
   ObjectTypeVisibility,
   type ObjectTypeMetadata,
@@ -43,6 +44,8 @@ export interface ObjectTreeNode {
   objectTypeLabel?: string
   objectTypeDescription?: string
   isVirtual: boolean
+  // morePrefix marks the node that reads the next page of this level.
+  morePrefix?: string
 }
 
 export interface SpaceObjectActionTarget {
@@ -227,18 +230,16 @@ export function getObjectDisplayName(objectKey: string): string {
 }
 
 export function buildSpaceObjectActionTargets(
-  objects: readonly WorldContentsObject[],
+  objects: readonly ObjectMetadata[],
   metadataById?: ObjectTypeMetadataById,
 ): SpaceObjectActionTarget[] {
   return objects
     .flatMap((object) => {
-      if (
-        isHiddenSpaceObject(object.objectKey, object.objectType, metadataById)
-      ) {
+      if (isHiddenSpaceObject(object.objectKey, object.typeId, metadataById)) {
         return []
       }
       const objectKey = object.objectKey ?? ''
-      const objectType = object.objectType ?? ''
+      const objectType = object.typeId ?? ''
       return [
         {
           objectKey,
@@ -280,87 +281,118 @@ function isHiddenObjectTypeMetadata(
   )
 }
 
-interface TreeMapEntry {
-  object?: SpaceObjectActionTarget
-  children: Map<string, TreeMapEntry>
+// OBJECT_KEY_DELIMITER separates the levels of the object tree.
+export const OBJECT_KEY_DELIMITER = '/'
+
+// ObjectLevel is one listed level of the object tree: its nodes in key order
+// and whether entries after them were left unread.
+export interface ObjectLevel {
+  nodes: TreeNode<ObjectTreeNode>[]
+  more: boolean
 }
 
-// buildObjectTree converts a flat list of WorldContentsObject into a TreeNode hierarchy.
-export function buildObjectTree(
-  objects: WorldContentsObject[],
-  metadataById?: ObjectTypeMetadataById,
-): TreeNode<ObjectTreeNode>[] {
-  const root: Map<string, TreeMapEntry> = new Map()
-
-  for (const obj of buildSpaceObjectActionTargets(objects, metadataById)) {
-    const key = obj.objectKey
-
-    const segments = key.split('/')
-    let current = root
-    for (let i = 0; i < segments.length; i++) {
-      const seg = segments[i]
-      if (!current.has(seg)) {
-        current.set(seg, { children: new Map() })
-      }
-      const entry = current.get(seg)!
-      if (i === segments.length - 1) {
-        entry.object = obj
-      }
-      current = entry.children
-    }
-  }
-
-  return mapToTreeNodes(root, '', metadataById)
+// objectLevelPrefix returns the key prefix listed under a tree node. The root
+// level is the empty prefix.
+export function objectLevelPrefix(nodeID: string): string {
+  return nodeID ? nodeID + OBJECT_KEY_DELIMITER : ''
 }
 
-function mapToTreeNodes(
-  entries: Map<string, TreeMapEntry>,
+// listObjectLevel reads at most limit entries directly under prefix and builds
+// their tree nodes. Deeper keys arrive grouped, so the read stays bounded by
+// limit however many objects lie below.
+export async function listObjectLevel(
+  world: IWorldState,
   prefix: string,
+  limit: number,
+  metadataById?: ObjectTypeMetadataById,
+  signal?: AbortSignal,
+): Promise<ObjectLevel> {
+  const objects: ObjectMetadata[] = []
+  const groups: string[] = []
+  let startAfter = ''
+  let more = true
+  while (more && objects.length + groups.length < limit) {
+    const page = await world.listObjects(
+      {
+        prefix,
+        delimiter: OBJECT_KEY_DELIMITER,
+        startAfter,
+        limit: limit - objects.length - groups.length,
+      },
+      signal,
+    )
+    objects.push(...(page.objects ?? []))
+    groups.push(...(page.prefixes ?? []))
+    more = !!page.more
+
+    // The next page starts after the page's greatest entry.
+    const lastObject = page.objects?.at(-1)?.objectKey ?? ''
+    const lastGroup = page.prefixes?.at(-1) ?? ''
+    const last = lastObject > lastGroup ? lastObject : lastGroup
+    if (!last) break
+    startAfter = last
+  }
+  return { nodes: buildObjectLevel(objects, groups, metadataById), more }
+}
+
+// buildObjectLevel builds the tree nodes of one level from its listed objects
+// and key groups. An object and the group of keys below it share one node.
+export function buildObjectLevel(
+  objects: readonly ObjectMetadata[],
+  groups: readonly string[],
   metadataById?: ObjectTypeMetadataById,
 ): TreeNode<ObjectTreeNode>[] {
-  const result: TreeNode<ObjectTreeNode>[] = []
-  const sorted = Array.from(entries.entries()).toSorted((a, b) =>
-    a[0].localeCompare(b[0]),
-  )
-
-  for (const [name, entry] of sorted) {
-    const fullKey = prefix ? `${prefix}/${name}` : name
-    const children = mapToTreeNodes(entry.children, fullKey, metadataById)
-    const isVirtual = !entry.object
-    const objectType = entry.object?.objectType ?? ''
-    const objectTypeLabel = isVirtual
-      ? ''
-      : getObjectTypeLabel(objectType, metadataById)
-    const objectTypeDescription = isVirtual
-      ? ''
-      : getObjectTypeDescription(objectType, metadataById)
-
-    const node: TreeNode<ObjectTreeNode> = {
-      id: fullKey,
-      name: isVirtual
-        ? humanizeObjectKeySegment(name)
-        : getObjectDisplayName(fullKey),
-      detail: objectTypeLabel,
-      icon: isVirtual ? (
-        <LuFolder className={iconSize} />
-      ) : (
-        getObjectTypeIcon(objectType, metadataById)
-      ),
-      data: {
-        objectKey: isVirtual ? fullKey : (entry.object?.objectKey ?? fullKey),
-        objectType,
-        objectTypeLabel,
-        objectTypeDescription,
-        isVirtual,
-      },
+  const entries = new Map<
+    string,
+    { object?: SpaceObjectActionTarget; hasChildren: boolean }
+  >()
+  for (const object of buildSpaceObjectActionTargets(objects, metadataById)) {
+    entries.set(object.objectKey, { object, hasChildren: false })
+  }
+  for (const group of groups) {
+    const id = group.slice(0, -OBJECT_KEY_DELIMITER.length)
+    if (!id) continue
+    const entry = entries.get(id)
+    if (entry) {
+      entry.hasChildren = true
+    } else {
+      entries.set(id, { hasChildren: true })
     }
-
-    if (children.length > 0) {
-      node.children = children
-    }
-
-    result.push(node)
   }
 
-  return result
+  return Array.from(entries.entries())
+    .toSorted((a, b) => a[0].localeCompare(b[0]))
+    .map(([id, { object, hasChildren }]) => {
+      const node: TreeNode<ObjectTreeNode> = object
+        ? {
+            id,
+            name: object.label,
+            detail: object.objectTypeLabel,
+            icon: getObjectTypeIcon(object.objectType, metadataById),
+            data: {
+              objectKey: id,
+              objectType: object.objectType,
+              objectTypeLabel: object.objectTypeLabel,
+              objectTypeDescription: object.objectTypeDescription,
+              isVirtual: false,
+            },
+          }
+        : {
+            id,
+            name: humanizeObjectKeySegment(
+              id.split(OBJECT_KEY_DELIMITER).at(-1) ?? id,
+            ),
+            detail: '',
+            icon: <LuFolder className={iconSize} />,
+            data: {
+              objectKey: id,
+              objectType: '',
+              objectTypeLabel: '',
+              objectTypeDescription: '',
+              isVirtual: true,
+            },
+          }
+      if (hasChildren) node.hasChildren = true
+      return node
+    })
 }

@@ -14,11 +14,8 @@ import {
 
 import { useOpenCommand } from '@s4wave/web/command/CommandContext.js'
 import { SpaceContainerContext } from '@s4wave/web/contexts/SpaceContainerContext.js'
-import {
-  buildSpaceObjectActionTargets,
-  buildObjectTree,
-  type ObjectTreeNode,
-} from '@s4wave/web/space/object-tree.js'
+import type { ObjectTreeNode } from '@s4wave/web/space/object-tree.js'
+import { useObjectTree } from '@s4wave/web/space/useObjectTree.js'
 import { RootContext } from '@s4wave/web/contexts/contexts.js'
 import { useObjectTypeMetadata } from '@s4wave/web/hooks/useObjectTypeMetadata.js'
 import { cn } from '@s4wave/web/style/utils.js'
@@ -53,6 +50,7 @@ function useSpaceObjectBrowserController() {
     spaceState,
     navigateToObjects,
     spaceWorld,
+    spaceWorldResource,
     canDeleteObjects,
     objectKey: currentObjectKey,
   } = SpaceContainerContext.useContext()
@@ -72,11 +70,8 @@ function useSpaceObjectBrowserController() {
   const [renameValue, setRenameValue] = useState('')
   const [renameSaving, setRenameSaving] = useState(false)
 
-  const objects = spaceState.worldContents?.objects
-  const objectCount = useMemo(() => {
-    if (!objects) return 0
-    return buildSpaceObjectActionTargets(objects, objectTypeMetadataById).length
-  }, [objects, objectTypeMetadataById])
+  const tree = useObjectTree(spaceWorldResource, objectTypeMetadataById)
+  const { loadMore, onExpandedChange } = tree
 
   const openObject = useCallback(
     (objectKey: string) => {
@@ -101,14 +96,19 @@ function useSpaceObjectBrowserController() {
   )
 
   const treeNodes = useMemo(() => {
-    const nodes = buildObjectTree(objects ?? [], objectTypeMetadataById)
-    const addIcons = (list: TreeNode<ObjectTreeNode>[]) => {
-      for (const node of list) {
-        if (!node.data?.isVirtual) {
-          const key = node.data?.objectKey ?? ''
-          const isCurrentObject = key === currentObjectKey
-          const isIndex = key === indexPath
-          node.icons = [
+    const withIcons = (
+      list: TreeNode<ObjectTreeNode>[],
+    ): TreeNode<ObjectTreeNode>[] =>
+      list.map((node) => {
+        const children = node.children && withIcons(node.children)
+        if (node.data?.isVirtual) return { ...node, children }
+        const key = node.data?.objectKey ?? ''
+        const isCurrentObject = key === currentObjectKey
+        const isIndex = key === indexPath
+        return {
+          ...node,
+          children,
+          icons: [
             {
               icon: (
                 <LuFolderOpen
@@ -127,16 +127,12 @@ function useSpaceObjectBrowserController() {
                 : 'Set as Index',
               onClick: isIndex ? undefined : () => handleSetAsIndexClick(key),
             },
-          ]
+          ],
         }
-        if (node.children) addIcons(node.children)
-      }
-    }
-    addIcons(nodes)
-    return nodes
+      })
+    return withIcons(tree.nodes ?? [])
   }, [
-    objects,
-    objectTypeMetadataById,
+    tree.nodes,
     openObject,
     handleSetAsIndexClick,
     indexPath,
@@ -146,10 +142,14 @@ function useSpaceObjectBrowserController() {
   const handleOpen = useCallback(
     (nodes: TreeNode<ObjectTreeNode>[]) => {
       const data = nodes[0]?.data
+      if (data?.morePrefix !== undefined) {
+        loadMore(data.morePrefix)
+        return
+      }
       if (!data || data.isVirtual) return
       openObject(data.objectKey)
     },
-    [openObject],
+    [loadMore, openObject],
   )
 
   const handleContextMenu = useCallback(
@@ -317,7 +317,7 @@ function useSpaceObjectBrowserController() {
     handleRenameInputRef,
     handleSetAsIndex,
     menuState,
-    objectCount,
+    onExpandedChange,
     openCommand,
     pendingDelete,
     pendingIndex,
@@ -361,7 +361,7 @@ function SpaceObjectBrowserView({
     handleRenameInputRef,
     handleSetAsIndex,
     menuState,
-    objectCount,
+    onExpandedChange,
     openCommand,
     pendingDelete,
     pendingIndex,
@@ -381,6 +381,7 @@ function SpaceObjectBrowserView({
           nodes={treeNodes}
           onRowDefaultAction={handleOpen}
           onRowContextMenu={handleContextMenu}
+          onExpandedChange={onExpandedChange}
           placeholder="No objects"
         />
       </div>
@@ -553,7 +554,6 @@ function SpaceObjectBrowserView({
         <h2 className="text-foreground flex items-center gap-1.5 text-xs font-medium select-none">
           <LuBox className="size-3.5" />
           Objects
-          <span className="text-foreground-alt">({objectCount})</span>
         </h2>
         <DashboardButton
           icon={<LuPlus className="size-3.5" />}

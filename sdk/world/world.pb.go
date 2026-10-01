@@ -1183,9 +1183,15 @@ type ListObjectsRequest struct {
 	// StartAfter resumes the listing after this object key. It must start with
 	// prefix. Empty starts at the first key.
 	StartAfter string `protobuf:"bytes,2,opt,name=start_after,json=startAfter,proto3" json:"startAfter,omitempty"`
-	// Limit is the maximum number of objects in the page. It must be non-zero.
-	// The server may return a shorter page and set more.
+	// Limit is the maximum number of entries, objects plus prefixes, in the
+	// page. It must be non-zero. The server may return a shorter page and set
+	// more.
 	Limit uint32 `protobuf:"varint,3,opt,name=limit,proto3" json:"limit,omitempty"`
+	// Delimiter groups keys by the next path segment. When set, each key whose
+	// remainder after prefix contains the delimiter is listed once as its prefix
+	// up to and including the first delimiter, instead of as an object. Empty
+	// lists every key under prefix.
+	Delimiter string `protobuf:"bytes,4,opt,name=delimiter,proto3" json:"delimiter,omitempty"`
 }
 
 func (x *ListObjectsRequest) Reset() {
@@ -1215,14 +1221,25 @@ func (x *ListObjectsRequest) GetLimit() uint32 {
 	return 0
 }
 
+func (x *ListObjectsRequest) GetDelimiter() string {
+	if x != nil {
+		return x.Delimiter
+	}
+	return ""
+}
+
 // ListObjectsResponse is the response type for ListObjects.
 type ListObjectsResponse struct {
 	unknownFields []byte
 	// Objects are the page's objects in ascending key order.
 	Objects []*ObjectMetadata `protobuf:"bytes,1,rep,name=objects,proto3" json:"objects,omitempty"`
-	// More reports that objects after the last one match the prefix. Pass the
-	// last object key as start_after to read the next page.
+	// More reports that entries after the last one match the prefix. Pass the
+	// greater of the last object key and the last prefix as start_after to read
+	// the next page.
 	More bool `protobuf:"varint,2,opt,name=more,proto3" json:"more,omitempty"`
+	// Prefixes are the page's grouped key prefixes in ascending order. Each sorts
+	// where its first key would. Set only when the request has a delimiter.
+	Prefixes []string `protobuf:"bytes,3,rep,name=prefixes,proto3" json:"prefixes,omitempty"`
 }
 
 func (x *ListObjectsResponse) Reset() {
@@ -1243,6 +1260,13 @@ func (x *ListObjectsResponse) GetMore() bool {
 		return x.More
 	}
 	return false
+}
+
+func (x *ListObjectsResponse) GetPrefixes() []string {
+	if x != nil {
+		return x.Prefixes
+	}
+	return nil
 }
 
 // SetGraphQuadRequest is the request type for SetGraphQuad.
@@ -3770,6 +3794,7 @@ func (m *ListObjectsRequest) CloneVT() *ListObjectsRequest {
 	r.Prefix = m.Prefix
 	r.StartAfter = m.StartAfter
 	r.Limit = m.Limit
+	r.Delimiter = m.Delimiter
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -3787,6 +3812,7 @@ func (m *ListObjectsResponse) CloneVT() *ListObjectsResponse {
 	r := new(ListObjectsResponse)
 	r.More = m.More
 	r.Objects = protobuf_go_lite.CloneVTSlice(m.Objects)
+	r.Prefixes = protobuf_go_lite.CloneSlice(m.Prefixes)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -5995,6 +6021,9 @@ func (this *ListObjectsRequest) EqualVT(that *ListObjectsRequest) bool {
 	if this.Limit != that.Limit {
 		return false
 	}
+	if this.Delimiter != that.Delimiter {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -6016,6 +6045,9 @@ func (this *ListObjectsResponse) EqualVT(that *ListObjectsResponse) bool {
 		return false
 	}
 	if this.More != that.More {
+		return false
+	}
+	if !protobuf_go_lite.EqualSlice(this.Prefixes, that.Prefixes) {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -9675,6 +9707,11 @@ func (x *ListObjectsRequest) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("limit")
 		s.WriteUint32(x.Limit)
 	}
+	if x.Delimiter != "" || s.HasField("delimiter") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("delimiter")
+		s.WriteString(x.Delimiter)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -9701,6 +9738,9 @@ func (x *ListObjectsRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "limit":
 			s.AddField("limit")
 			x.Limit = s.ReadUint32()
+		case "delimiter":
+			s.AddField("delimiter")
+			x.Delimiter = s.ReadString()
 		}
 	})
 }
@@ -9733,6 +9773,11 @@ func (x *ListObjectsResponse) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteMoreIf(&wroteField)
 		s.WriteObjectField("more")
 		s.WriteBool(x.More)
+	}
+	if len(x.Prefixes) > 0 || s.HasField("prefixes") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("prefixes")
+		s.WriteStringArray(x.Prefixes)
 	}
 	s.WriteObjectEnd()
 }
@@ -9772,6 +9817,13 @@ func (x *ListObjectsResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "more":
 			s.AddField("more")
 			x.More = s.ReadBool()
+		case "prefixes":
+			s.AddField("prefixes")
+			if s.ReadNil() {
+				x.Prefixes = nil
+				return
+			}
+			x.Prefixes = s.ReadStringArray()
 		}
 	})
 }
@@ -15186,6 +15238,11 @@ func (m *ListObjectsRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if len(m.Delimiter) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.Delimiter)
+		i--
+		dAtA[i] = 0x22
+	}
 	if m.Limit != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Limit))
 		i--
@@ -15232,6 +15289,13 @@ func (m *ListObjectsResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	_ = l
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.Prefixes) > 0 {
+		for iNdEx := len(m.Prefixes) - 1; iNdEx >= 0; iNdEx-- {
+			i = protobuf_go_lite.EncodeString(dAtA, i, m.Prefixes[iNdEx])
+			i--
+			dAtA[i] = 0x1a
+		}
 	}
 	if m.More {
 		i = protobuf_go_lite.EncodeBool(dAtA, i, m.More)
@@ -18780,6 +18844,7 @@ func (m *ListObjectsRequest) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Prefix)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.StartAfter)
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.Limit)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Delimiter)
 	n += len(m.unknownFields)
 	return n
 }
@@ -18795,6 +18860,7 @@ func (m *ListObjectsResponse) SizeVT() (n int) {
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
 	n += protobuf_go_lite.SizeBoolNonZero(1, m.More)
+	n += protobuf_go_lite.SizeStringSlice(1, m.Prefixes)
 	n += len(m.unknownFields)
 	return n
 }
@@ -20393,6 +20459,10 @@ func (x *ListObjectsRequest) MarshalProtoText() string {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "limit")
 		protobuf_go_lite.TextWriteUint(&sb, x.Limit)
 	}
+	if x.Delimiter != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "delimiter")
+		protobuf_go_lite.TextWriteString(&sb, x.Delimiter)
+	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
 
@@ -20418,6 +20488,14 @@ func (x *ListObjectsResponse) MarshalProtoText() string {
 	if x.More != false {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "more")
 		protobuf_go_lite.TextWriteBool(&sb, x.More)
+	}
+	if len(x.Prefixes) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "prefixes")
+		for i, v := range x.Prefixes {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			protobuf_go_lite.TextWriteString(&sb, v)
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -24277,6 +24355,16 @@ func (m *ListObjectsRequest) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Delimiter", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Delimiter = v
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -24343,6 +24431,16 @@ func (m *ListObjectsResponse) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.More = bool(v)
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Prefixes", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Prefixes = append(m.Prefixes, v)
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

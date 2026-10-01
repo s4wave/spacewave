@@ -179,24 +179,28 @@ func (ws *SDKWorldState) IterateObjects(ctx context.Context, prefix string, reve
 	return iter
 }
 
-// ListObjects returns one page of at most limit objects whose keys start with
-// prefix, in key order, beginning after startAfter. more reports that further
-// objects match; pass the last returned key as startAfter to read them.
+// ListObjects returns one page of at most limit entries whose keys start with
+// prefix, in key order, beginning after startAfter. A non-empty delimiter
+// groups keys below the next path segment into prefixes. more reports that
+// further entries match; pass the greater of the last object key and the last
+// prefix as startAfter to read them.
 func (ws *SDKWorldState) ListObjects(
 	ctx context.Context,
 	prefix string,
+	delimiter string,
 	startAfter string,
 	limit uint32,
-) (objects []*world_types.ObjectMetadata, more bool, err error) {
+) (objects []*world_types.ObjectMetadata, prefixes []string, more bool, err error) {
 	resp, err := ws.service.ListObjects(ctx, &s4wave_world.ListObjectsRequest{
 		Prefix:     prefix,
+		Delimiter:  delimiter,
 		StartAfter: startAfter,
 		Limit:      limit,
 	})
 	if err != nil {
-		return nil, false, err
+		return nil, nil, false, err
 	}
-	return objectMetadataFromProto(resp.GetObjects()), resp.GetMore(), nil
+	return objectMetadataFromProto(resp.GetObjects()), resp.GetPrefixes(), resp.GetMore(), nil
 }
 
 // RenameObject renames an object key and updates associated graph quads.

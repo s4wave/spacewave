@@ -1,25 +1,37 @@
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useCallback } from 'react'
 import { LuChevronLeft, LuChevronRight, LuCheck } from 'react-icons/lu'
 
+import type { Resource } from '@aptre/bldr-sdk/hooks/useResource.js'
+import type { IWorldState } from '@s4wave/sdk/world/world-state.js'
+import { useWorldQuery } from '@s4wave/web/hooks/useWorldQuery.js'
 import {
   Popover,
   PopoverTrigger,
   PopoverContent,
 } from '@s4wave/web/ui/Popover.js'
-import type { TreeNode } from '@s4wave/web/ui/tree/TreeNode.js'
-import type { ObjectTreeNode } from '@s4wave/web/space/object-tree.js'
+import {
+  listObjectLevel,
+  objectLevelPrefix,
+  type ObjectTypeMetadataById,
+} from '@s4wave/web/space/object-tree.js'
+
+// objectKeySelectorLimit bounds the entries listed for one level.
+const objectKeySelectorLimit = 500
 
 export interface ObjectKeySelectorProps {
-  nodes: TreeNode<ObjectTreeNode>[]
+  world: Resource<IWorldState>
+  metadataById?: ObjectTypeMetadataById
   value: string
   onChange: (objectKey: string) => void
   disabled?: boolean
   placeholder?: string
 }
 
-// ObjectKeySelector renders a drill-in picker for selecting an object key from a tree.
+// ObjectKeySelector renders a drill-in picker for selecting an object key. It
+// lists one level of the World's object tree at a time while open.
 export function ObjectKeySelector({
-  nodes,
+  world,
+  metadataById,
   value,
   onChange,
   disabled,
@@ -37,20 +49,25 @@ export function ObjectKeySelector({
     }
   }, [])
 
-  const currentNodes = useMemo(() => {
-    let current = nodes
-    for (const segment of path) {
-      const nodeByName = new Map(current.map((n) => [n.name, n]))
-      const found = nodeByName.get(segment)
-      if (found?.children) {
-        current = found.children
-      }
-    }
-    return current
-  }, [nodes, path])
+  const prefix = objectLevelPrefix(path.at(-1) ?? '')
+  const level = useWorldQuery(
+    world,
+    async (state, signal) =>
+      open
+        ? await listObjectLevel(
+            state,
+            prefix,
+            objectKeySelectorLimit,
+            metadataById,
+            signal,
+          )
+        : null,
+    [open, prefix, metadataById],
+  ).value
+  const currentNodes = level?.nodes ?? []
 
-  const handleDrillIn = useCallback((name: string) => {
-    setPath((prev) => [...prev, name])
+  const handleDrillIn = useCallback((id: string) => {
+    setPath((prev) => [...prev, id])
     setSelected(null)
   }, [])
 
@@ -89,19 +106,19 @@ export function ObjectKeySelector({
             className="border-foreground/8 flex w-full items-center gap-1 border-b px-3 py-2 text-xs"
           >
             <LuChevronLeft className="size-3.5" />
-            {path.join('/') + '/'}
+            {prefix}
           </button>
         )}
         <div className="max-h-[240px] overflow-auto">
           {currentNodes.map((node) => {
-            const isFolder = !!node.children?.length
+            const isFolder = !!node.hasChildren
             const key = node.data?.objectKey ?? node.id
             const isNodeSelected = selected === key
             return (
               <button
                 key={node.id}
                 onClick={() =>
-                  isFolder ? handleDrillIn(node.name) : handleSelect(key)
+                  isFolder ? handleDrillIn(node.id) : handleSelect(key)
                 }
                 className="hover:bg-foreground/6 flex w-full items-center gap-2 px-3 py-1.5 text-xs"
               >
@@ -116,6 +133,11 @@ export function ObjectKeySelector({
               </button>
             )
           })}
+          {level?.more && (
+            <div className="text-foreground-alt px-3 py-1.5 text-xs">
+              More objects not shown
+            </div>
+          )}
         </div>
         <div className="border-foreground/8 border-t px-3 py-2">
           <button

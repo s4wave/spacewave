@@ -1,21 +1,22 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { cleanup } from '@testing-library/react'
 import { LuBot, LuBox, LuGitBranch, LuPaintbrush } from 'react-icons/lu'
-import type { WorldContentsObject } from '@s4wave/core/space/world/world.pb.js'
 import {
   ObjectTypeVisibility,
   type ObjectTypeRegistration,
 } from '@s4wave/sdk/objecttype/registry/registry.pb.js'
 import {
   buildObjectTypeMetadataMap,
-  buildObjectTree,
+  buildObjectLevel,
   HIDDEN_OBJECT_TYPES,
   getObjectTypeLabel,
   getObjectTypeIcon,
   getObjectTypeIconComponent,
   getObjectDisplayName,
   isHiddenSpaceObject,
+  listObjectLevel,
 } from '@s4wave/web/space/object-tree.js'
+import { listingWorld } from '@s4wave/web/test/world-query.js'
 
 beforeEach(() => {
   cleanup()
@@ -196,19 +197,20 @@ describe('buildObjectTypeMetadataMap', () => {
   })
 })
 
-describe('buildObjectTree', () => {
+describe('buildObjectLevel', () => {
   it('returns empty array for empty input', () => {
-    expect(buildObjectTree([])).toEqual([])
+    expect(buildObjectLevel([], [])).toEqual([])
   })
 
-  it('creates flat nodes for single-segment keys', () => {
-    const objects: WorldContentsObject[] = [
-      { objectKey: 'readme', objectType: 'unixfs/fs-node' },
-    ]
-    const result = buildObjectTree(objects)
+  it('creates leaf nodes for listed objects', () => {
+    const result = buildObjectLevel(
+      [{ objectKey: 'readme', typeId: 'unixfs/fs-node' }],
+      [],
+    )
     expect(result).toHaveLength(1)
     expect(result[0].id).toBe('readme')
     expect(result[0].name).toBe('readme')
+    expect(result[0].hasChildren).toBeUndefined()
     expect(result[0].data?.objectKey).toBe('readme')
     expect(result[0].data?.objectType).toBe('unixfs/fs-node')
     expect(result[0].data?.objectTypeLabel).toBe('File System')
@@ -216,50 +218,46 @@ describe('buildObjectTree', () => {
     expect(result[0].data?.isVirtual).toBe(false)
   })
 
-  it('creates hierarchical nodes for slash-delimited keys', () => {
-    const objects: WorldContentsObject[] = [
-      { objectKey: 'dir/file', objectType: 'canvas' },
-    ]
-    const result = buildObjectTree(objects)
+  it('creates virtual folders for key groups', () => {
+    const result = buildObjectLevel([], ['dir/sub/'])
     expect(result).toHaveLength(1)
-    expect(result[0].id).toBe('dir')
-    expect(result[0].name).toBe('dir')
+    expect(result[0].id).toBe('dir/sub')
+    expect(result[0].name).toBe('sub')
+    expect(result[0].hasChildren).toBe(true)
     expect(result[0].data?.isVirtual).toBe(true)
+    expect(result[0].data?.objectKey).toBe('dir/sub')
     expect(result[0].data?.objectType).toBe('')
     expect(result[0].detail).toBe('')
-    expect(result[0].children).toHaveLength(1)
-    expect(result[0].children![0].id).toBe('dir/file')
-    expect(result[0].children![0].name).toBe('file')
-    expect(result[0].children![0].data?.objectKey).toBe('dir/file')
-    expect(result[0].children![0].data?.objectType).toBe('canvas')
-    expect(result[0].children![0].data?.isVirtual).toBe(false)
+  })
+
+  it('merges an object with the group of keys below it', () => {
+    const result = buildObjectLevel(
+      [{ objectKey: 'dir', typeId: 'canvas' }],
+      ['dir/'],
+    )
+    expect(result).toHaveLength(1)
+    expect(result[0].id).toBe('dir')
+    expect(result[0].hasChildren).toBe(true)
+    expect(result[0].data?.isVirtual).toBe(false)
+    expect(result[0].data?.objectType).toBe('canvas')
   })
 
   it('filters out hidden types', () => {
-    const objects: WorldContentsObject[] = [
-      { objectKey: 'settings', objectType: 'space/settings' },
-      { objectKey: 'doc', objectType: 'canvas' },
-    ]
-    const result = buildObjectTree(objects)
-    expect(result).toHaveLength(1)
-    expect(result[0].id).toBe('doc')
+    const result = buildObjectLevel(
+      [
+        { objectKey: 'settings', typeId: 'space/settings' },
+        {
+          objectKey: 'settings-block',
+          typeId: 'github.com/s4wave/spacewave/core/space/world.SpaceSettings',
+        },
+        { objectKey: 'doc', typeId: 'canvas' },
+      ],
+      [],
+    )
+    expect(result.map((node) => node.id)).toEqual(['doc'])
   })
 
-  it('filters out the SpaceSettings block type', () => {
-    const objects: WorldContentsObject[] = [
-      {
-        objectKey: 'settings',
-        objectType:
-          'github.com/s4wave/spacewave/core/space/world.SpaceSettings',
-      },
-      { objectKey: 'doc', objectType: 'canvas' },
-    ]
-    const result = buildObjectTree(objects)
-    expect(result).toHaveLength(1)
-    expect(result[0].id).toBe('doc')
-  })
-
-  it('uses metadata labels and descriptions in leaf node data', () => {
+  it('uses metadata labels and descriptions in node data', () => {
     const metadata = buildObjectTypeMetadataMap([
       {
         typeId: 'glados/operator-home',
@@ -270,10 +268,11 @@ describe('buildObjectTree', () => {
         },
       },
     ])
-    const objects: WorldContentsObject[] = [
-      { objectKey: 'glados-home', objectType: 'glados/operator-home' },
-    ]
-    const result = buildObjectTree(objects, metadata)
+    const result = buildObjectLevel(
+      [{ objectKey: 'glados-home', typeId: 'glados/operator-home' }],
+      [],
+      metadata,
+    )
     expect(result[0].name).toBe('Glados Home')
     expect(result[0].detail).toBe('GLaDOS Home')
     expect(result[0].data?.objectTypeLabel).toBe('GLaDOS Home')
@@ -290,100 +289,58 @@ describe('buildObjectTree', () => {
         metadata: { visibility: ObjectTypeVisibility.INTERNAL },
       },
     ])
-    const objects: WorldContentsObject[] = [
-      { objectKey: 'internal', objectType: 'plugin/internal' },
-      { objectKey: 'doc', objectType: 'canvas' },
-    ]
-    const result = buildObjectTree(objects, metadata)
-    expect(result).toHaveLength(1)
-    expect(result[0].id).toBe('doc')
-  })
-
-  it('sorts nodes alphabetically at each level', () => {
-    const objects: WorldContentsObject[] = [
-      { objectKey: 'zebra', objectType: 'canvas' },
-      { objectKey: 'apple', objectType: 'canvas' },
-      { objectKey: 'mango', objectType: 'canvas' },
-    ]
-    const result = buildObjectTree(objects)
-    expect(result).toHaveLength(3)
-    expect(result[0].name).toBe('apple')
-    expect(result[1].name).toBe('mango')
-    expect(result[2].name).toBe('zebra')
-  })
-
-  it('handles mixed flat and nested keys', () => {
-    const objects: WorldContentsObject[] = [
-      { objectKey: 'toplevel', objectType: 'canvas' },
-      { objectKey: 'folder/nested', objectType: 'unixfs/fs-node' },
-    ]
-    const result = buildObjectTree(objects)
-    expect(result).toHaveLength(2)
-    const folder = result.find((n) => n.name === 'folder')
-    const toplevel = result.find((n) => n.name === 'toplevel')
-    expect(folder).toBeDefined()
-    expect(toplevel).toBeDefined()
-    expect(folder!.data?.isVirtual).toBe(true)
-    expect(toplevel!.data?.isVirtual).toBe(false)
-    expect(folder!.children).toHaveLength(1)
-    expect(folder!.children![0].name).toBe('nested')
-  })
-
-  it('creates correct hierarchy for deep nesting', () => {
-    const objects: WorldContentsObject[] = [
-      { objectKey: 'a/b/c', objectType: 'git/repo' },
-    ]
-    const result = buildObjectTree(objects)
-    expect(result).toHaveLength(1)
-    expect(result[0].id).toBe('a')
-    expect(result[0].data?.isVirtual).toBe(true)
-    expect(result[0].children).toHaveLength(1)
-    expect(result[0].children![0].id).toBe('a/b')
-    expect(result[0].children![0].data?.isVirtual).toBe(true)
-    expect(result[0].children![0].children).toHaveLength(1)
-    expect(result[0].children![0].children![0].id).toBe('a/b/c')
-    expect(result[0].children![0].children![0].data?.objectType).toBe(
-      'git/repo',
+    const result = buildObjectLevel(
+      [
+        { objectKey: 'internal', typeId: 'plugin/internal' },
+        { objectKey: 'doc', typeId: 'canvas' },
+      ],
+      [],
+      metadata,
     )
-    expect(result[0].children![0].children![0].data?.isVirtual).toBe(false)
+    expect(result.map((node) => node.id)).toEqual(['doc'])
   })
 
-  it('uses full key path as node ID', () => {
-    const objects: WorldContentsObject[] = [
-      { objectKey: 'dir/file', objectType: 'canvas' },
-    ]
-    const result = buildObjectTree(objects)
-    expect(result[0].id).toBe('dir')
-    expect(result[0].children![0].id).toBe('dir/file')
+  it('sorts objects and folders together by key', () => {
+    const result = buildObjectLevel(
+      [
+        { objectKey: 'zebra', typeId: 'canvas' },
+        { objectKey: 'apple', typeId: 'canvas' },
+      ],
+      ['mango/'],
+    )
+    expect(result.map((node) => node.id)).toEqual(['apple', 'mango', 'zebra'])
+  })
+})
+
+describe('listObjectLevel', () => {
+  const objects = [
+    { objectKey: 'a', objectType: 'canvas' },
+    { objectKey: 'a/x', objectType: 'canvas' },
+    { objectKey: 'b', objectType: 'canvas' },
+    { objectKey: 'c/deep/key', objectType: 'canvas' },
+    { objectKey: 'd', objectType: 'canvas' },
+  ]
+
+  it('reads one level across listing pages', async () => {
+    const level = await listObjectLevel(listingWorld(objects), '', 100)
+    expect(level.more).toBe(false)
+    expect(level.nodes.map((node) => [node.id, !!node.hasChildren])).toEqual([
+      ['a', true],
+      ['b', false],
+      ['c', true],
+      ['d', false],
+    ])
   })
 
-  it('marks virtual nodes with isVirtual true and no objectType', () => {
-    const objects: WorldContentsObject[] = [
-      { objectKey: 'parent/child', objectType: 'canvas' },
-    ]
-    const result = buildObjectTree(objects)
-    expect(result[0].data?.isVirtual).toBe(true)
-    expect(result[0].data?.objectType).toBe('')
+  it('reads a nested level under its prefix', async () => {
+    const level = await listObjectLevel(listingWorld(objects), 'c/', 100)
+    expect(level.nodes.map((node) => node.id)).toEqual(['c/deep'])
+    expect(level.nodes[0].data?.isVirtual).toBe(true)
   })
 
-  it('marks leaf nodes with isVirtual false and correct objectType', () => {
-    const objects: WorldContentsObject[] = [
-      { objectKey: 'parent/child', objectType: 'git/repo' },
-    ]
-    const result = buildObjectTree(objects)
-    const leaf = result[0].children![0]
-    expect(leaf.data?.isVirtual).toBe(false)
-    expect(leaf.data?.objectType).toBe('git/repo')
-    expect(leaf.data?.objectKey).toBe('parent/child')
-  })
-
-  it('sorts children alphabetically within nested levels', () => {
-    const objects: WorldContentsObject[] = [
-      { objectKey: 'dir/zebra', objectType: 'canvas' },
-      { objectKey: 'dir/alpha', objectType: 'canvas' },
-    ]
-    const result = buildObjectTree(objects)
-    expect(result[0].children![0].name).toBe('alpha')
-    expect(result[0].children![1].name).toBe('zebra')
+  it('stops at the limit and reports more entries', async () => {
+    const level = await listObjectLevel(listingWorld(objects), '', 3)
+    expect(level.more).toBe(true)
+    expect(level.nodes.map((node) => node.id)).toEqual(['a', 'b'])
   })
 })

@@ -1285,12 +1285,22 @@ export interface ListObjectsRequest {
    */
   startAfter?: string
   /**
-   * Limit is the maximum number of objects in the page. It must be non-zero.
-   * The server may return a shorter page and set more.
+   * Limit is the maximum number of entries, objects plus prefixes, in the
+   * page. It must be non-zero. The server may return a shorter page and set
+   * more.
    *
    * @generated from field: uint32 limit = 3;
    */
   limit?: number
+  /**
+   * Delimiter groups keys by the next path segment. When set, each key whose
+   * remainder after prefix contains the delimiter is listed once as its prefix
+   * up to and including the first delimiter, instead of as an object. Empty
+   * lists every key under prefix.
+   *
+   * @generated from field: string delimiter = 4;
+   */
+  delimiter?: string
 }
 
 export const ListObjectsRequest: MessageType<ListObjectsRequest> =
@@ -1300,6 +1310,7 @@ export const ListObjectsRequest: MessageType<ListObjectsRequest> =
       { no: 1, name: 'prefix', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'start_after', kind: 'scalar', T: ScalarType.STRING },
       { no: 3, name: 'limit', kind: 'scalar', T: ScalarType.UINT32 },
+      { no: 4, name: 'delimiter', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
   })
 
@@ -1357,12 +1368,20 @@ export interface ListObjectsResponse {
    */
   objects?: ObjectMetadata[]
   /**
-   * More reports that objects after the last one match the prefix. Pass the
-   * last object key as start_after to read the next page.
+   * More reports that entries after the last one match the prefix. Pass the
+   * greater of the last object key and the last prefix as start_after to read
+   * the next page.
    *
    * @generated from field: bool more = 2;
    */
   more?: boolean
+  /**
+   * Prefixes are the page's grouped key prefixes in ascending order. Each sorts
+   * where its first key would. Set only when the request has a delimiter.
+   *
+   * @generated from field: repeated string prefixes = 3;
+   */
+  prefixes?: string[]
 }
 
 export const ListObjectsResponse: MessageType<ListObjectsResponse> =
@@ -1377,6 +1396,13 @@ export const ListObjectsResponse: MessageType<ListObjectsResponse> =
         repeated: true,
       },
       { no: 2, name: 'more', kind: 'scalar', T: ScalarType.BOOL },
+      {
+        no: 3,
+        name: 'prefixes',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+        repeated: true,
+      },
     ] satisfies readonly PartialFieldInfo[],
   })
 

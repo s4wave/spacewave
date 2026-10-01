@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { type DependencyList } from 'react'
 import { describe, it, expect, afterEach, vi } from 'vitest'
 import {
   fireEvent,
@@ -13,6 +13,23 @@ import type { Resource } from '@aptre/bldr-sdk/hooks/useResource.js'
 import type { SpaceState } from '@s4wave/sdk/space/space.pb.js'
 import type { EngineWorldState } from '@s4wave/sdk/world/engine-state.js'
 import { SetSpaceIndexPathOp } from '@s4wave/core/space/world/ops/ops.pb.js'
+import type { WorldQuery } from '@s4wave/sdk/world/world-query.js'
+import type { TypedObject } from '@s4wave/web/test/world-query.js'
+
+const h = vi.hoisted(() => ({ objects: [] as TypedObject[] }))
+
+vi.mock('@s4wave/web/hooks/useWorldQuery.js', async () => {
+  const { listingWorld, useFakeWorldQuery } =
+    await import('@s4wave/web/test/world-query.js')
+  const world = listingWorld(() => h.objects)
+  return {
+    useWorldQuery: <T,>(
+      _world: unknown,
+      query: WorldQuery<T>,
+      deps: DependencyList,
+    ) => useFakeWorldQuery(world, query, deps),
+  }
+})
 
 vi.mock('@s4wave/web/ui/toaster.js', () => ({
   toast: {
@@ -72,6 +89,12 @@ vi.mock('@s4wave/web/ui/DropdownMenu.js', () => ({
   DropdownMenuSeparator: () => <hr />,
 }))
 
+// BrowserSpace is a Space's World objects and settings.
+interface BrowserSpace {
+  objects: TypedObject[]
+  settings: SpaceState['settings']
+}
+
 describe('SpaceObjectBrowser', () => {
   const mockNavigateToObjects = vi.fn()
 
@@ -89,28 +112,26 @@ describe('SpaceObjectBrowser', () => {
     retry: vi.fn(),
   }
 
-  const mockSpaceState: SpaceState = {
-    ready: true,
-    worldContents: {
-      objects: [
-        { objectKey: 'object-layout/main', objectType: 'alpha/object-layout' },
-        { objectKey: 'files', objectType: 'unixfs/fs-node' },
-        { objectKey: 'canvas-1', objectType: 'canvas' },
-        { objectKey: 'settings', objectType: 'space/settings' },
-      ],
-    },
+  const mockSpace: BrowserSpace = {
+    objects: [
+      { objectKey: 'object-layout/main', objectType: 'alpha/object-layout' },
+      { objectKey: 'files', objectType: 'unixfs/fs-node' },
+      { objectKey: 'canvas-1', objectType: 'canvas' },
+      { objectKey: 'settings', objectType: 'space/settings' },
+    ],
     settings: { indexPath: 'object-layout/main' },
   }
 
   function renderBrowser(
-    spaceState: SpaceState = mockSpaceState,
+    space: BrowserSpace = mockSpace,
     props?: React.ComponentProps<typeof SpaceObjectBrowser>,
     canDeleteObjects = true,
   ) {
+    h.objects = space.objects
     return render(
       <SpaceContainerContext.Provider
         spaceId="test-space"
-        spaceState={spaceState}
+        spaceState={{ ready: true, settings: space.settings }}
         spaceWorldResource={mockWorldResource}
         spaceWorld={mockSpaceWorld}
         canDeleteObjects={canDeleteObjects}
@@ -135,15 +156,8 @@ describe('SpaceObjectBrowser', () => {
   })
 
   it('omits the outer heading when embedded', () => {
-    renderBrowser(mockSpaceState, { embedded: true })
+    renderBrowser(mockSpace, { embedded: true })
     expect(screen.queryByText('Objects')).toBeNull()
-    expect(screen.queryByText('3 objects')).toBeNull()
-  })
-
-  it('shows correct object count excluding hidden types', () => {
-    renderBrowser()
-    // 4 objects total, but space/settings is hidden, so count is 3
-    expect(screen.getByText('(3)')).toBeDefined()
   })
 
   it('opens the command palette from the create button', () => {
@@ -178,23 +192,19 @@ describe('SpaceObjectBrowser', () => {
     expect(screen.queryByText('settings')).toBeNull()
   })
 
-  it('hides the fully-qualified SpaceSettings type from the tree and count', async () => {
-    const fullyQualifiedSettingsState: SpaceState = {
-      ready: true,
-      worldContents: {
-        objects: [
-          {
-            objectKey: 'settings',
-            objectType:
-              'github.com/s4wave/spacewave/core/space/world.SpaceSettings',
-          },
-          { objectKey: 'canvas-1', objectType: 'canvas' },
-        ],
-      },
+  it('hides the fully-qualified SpaceSettings type from the tree', async () => {
+    const fullyQualifiedSettingsState: BrowserSpace = {
+      objects: [
+        {
+          objectKey: 'settings',
+          objectType:
+            'github.com/s4wave/spacewave/core/space/world.SpaceSettings',
+        },
+        { objectKey: 'canvas-1', objectType: 'canvas' },
+      ],
       settings: {},
     }
     renderBrowser(fullyQualifiedSettingsState)
-    expect(screen.getByText('(1)')).toBeDefined()
     await waitFor(() => {
       expect(
         screen.getByRole('treeitem', { name: /Canvas 1, Canvas/i }),
@@ -222,7 +232,7 @@ describe('SpaceObjectBrowser', () => {
   })
 
   it('hides object deletion without mutation permission', async () => {
-    renderBrowser(mockSpaceState, undefined, false)
+    renderBrowser(mockSpace, undefined, false)
 
     const node = await screen.findByText('files')
     fireEvent.contextMenu(node, { clientX: 120, clientY: 140 })
@@ -266,15 +276,12 @@ describe('SpaceObjectBrowser', () => {
   })
 
   it('renames descendant object keys with their parent prefix', async () => {
-    const gitState: SpaceState = {
-      ready: true,
-      worldContents: {
-        objects: [
-          { objectKey: 'repo-1', objectType: 'git/repo' },
-          { objectKey: 'repo-1/workdir', objectType: 'unixfs/fs-node' },
-          { objectKey: 'repo-1/worktree', objectType: 'git/worktree' },
-        ],
-      },
+    const gitState: BrowserSpace = {
+      objects: [
+        { objectKey: 'repo-1', objectType: 'git/repo' },
+        { objectKey: 'repo-1/workdir', objectType: 'unixfs/fs-node' },
+        { objectKey: 'repo-1/worktree', objectType: 'git/worktree' },
+      ],
       settings: { indexPath: 'repo-1', pluginIds: ['spacewave-app'] },
     }
     renderBrowser(gitState)
@@ -306,14 +313,11 @@ describe('SpaceObjectBrowser', () => {
   })
 
   it('sets the selected object as the index while preserving existing plugin settings', async () => {
-    const pluginState: SpaceState = {
-      ready: true,
-      worldContents: {
-        objects: [
-          { objectKey: 'repo-1', objectType: 'git/repo' },
-          { objectKey: 'files', objectType: 'unixfs/fs-node' },
-        ],
-      },
+    const pluginState: BrowserSpace = {
+      objects: [
+        { objectKey: 'repo-1', objectType: 'git/repo' },
+        { objectKey: 'files', objectType: 'unixfs/fs-node' },
+      ],
       settings: { indexPath: 'repo-1', pluginIds: ['spacewave-app'] },
     }
     renderBrowser(pluginState)
@@ -341,7 +345,7 @@ describe('SpaceObjectBrowser', () => {
     renderBrowser()
 
     fireEvent.click(
-      screen.getByRole('button', { name: /expand object layout/i }),
+      await screen.findByRole('button', { name: /expand object layout/i }),
     )
 
     const node = await screen.findByText('main')
@@ -359,20 +363,9 @@ describe('SpaceObjectBrowser', () => {
     expect(anchor.style.getPropertyValue('--dropdown-ghost-top')).toBe('140px')
   })
 
-  it('shows zero count when no objects exist', () => {
-    const emptyState: SpaceState = {
-      ready: true,
-      worldContents: { objects: [] },
-      settings: {},
-    }
-    renderBrowser(emptyState)
-    expect(screen.getByText('(0)')).toBeDefined()
-  })
-
   it('shows "No objects" placeholder when object list is empty', async () => {
-    const emptyState: SpaceState = {
-      ready: true,
-      worldContents: { objects: [] },
+    const emptyState: BrowserSpace = {
+      objects: [],
       settings: {},
     }
     renderBrowser(emptyState)

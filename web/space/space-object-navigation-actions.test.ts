@@ -6,9 +6,9 @@ import { createSpaceObjectNavigationActions } from './space-object-navigation-ac
 describe('space object navigation actions', () => {
   it('builds visible object targets from the Space object tree policy', () => {
     const targets = buildSpaceObjectActionTargets([
-      { objectKey: 'settings', objectType: 'space/settings' },
-      { objectKey: 'files', objectType: 'unixfs/fs-node' },
-      { objectKey: 'object-layout/main', objectType: 'alpha/object-layout' },
+      { objectKey: 'settings', typeId: 'space/settings' },
+      { objectKey: 'files', typeId: 'unixfs/fs-node' },
+      { objectKey: 'object-layout/main', typeId: 'alpha/object-layout' },
     ])
 
     expect(targets.map((target) => target.objectKey)).toEqual([
@@ -23,8 +23,8 @@ describe('space object navigation actions', () => {
     const openObject = vi.fn()
     const switchObjectHere = vi.fn()
     const targets = buildSpaceObjectActionTargets([
-      { objectKey: 'files', objectType: 'unixfs/fs-node' },
-      { objectKey: 'canvas-1', objectType: 'canvas' },
+      { objectKey: 'files', typeId: 'unixfs/fs-node' },
+      { objectKey: 'canvas-1', typeId: 'canvas' },
     ])
 
     const actions = createSpaceObjectNavigationActions({

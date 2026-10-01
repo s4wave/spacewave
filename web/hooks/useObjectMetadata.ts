@@ -18,7 +18,10 @@ export function useObjectMetadata(
       if (!objectKey) return null
       // A key sorts first among the keys it prefixes, so a one-object page
       // under the key answers both existence and metadata in one read.
-      const page = await state.listObjects(objectKey, '', 1, signal)
+      const page = await state.listObjects(
+        { prefix: objectKey, limit: 1 },
+        signal,
+      )
       const object = page.objects?.[0]
       return object?.objectKey === objectKey ? object : null
     },
