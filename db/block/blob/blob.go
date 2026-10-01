@@ -33,7 +33,7 @@ func NewBlobSubBlockCtor(r **Blob) block.SubBlockCtor {
 }
 
 // UnmarshalBlob unmarshals the Blob block.
-// Returns nil, nil if empty
+// Returns nil, nil if empty.
 func UnmarshalBlob(ctx context.Context, bcs *block.Cursor) (*Blob, error) {
 	return block.UnmarshalBlock[*Blob](ctx, bcs, NewBlobBlock)
 }
@@ -166,16 +166,14 @@ func (b *Blob) ComputeStorageSize(
 	ctx context.Context,
 	bcs *block.Cursor,
 ) (uint64, uint64, error) {
-	var storageSize uint64
-
 	// Fetch the root block so its encoded bytes contribute to storage size.
 	rootData, _, err := bcs.Fetch(ctx)
 	if err != nil {
 		return 0, 0, err
 	}
-	storageSize += uint64(len(rootData))
+	storageSize := uint64(len(rootData))
 
-	// Return root-only size for raw blobs and deduplicate chunk storage sizes.
+	// Raw blobs have no storage outside their root block.
 	if b.GetBlobType() != BlobType_BlobType_CHUNKED {
 		return storageSize, storageSize, nil
 	}
@@ -214,11 +212,13 @@ func (b *Blob) ValidateFull(ctx context.Context, bcs *block.Cursor) error {
 		return err
 	}
 
+	// Bound the declared length before converting it to the reader's signed size.
 	blobType := b.GetBlobType()
 	if b.GetTotalSize() > math.MaxInt64 {
 		return errors.New("total size exceeds maximum")
 	}
 
+	// Empty blobs retain their compact raw representation.
 	totalSize := int64(b.GetTotalSize()) //nolint:gosec
 	if totalSize == 0 {
 		if blobType != BlobType_BlobType_RAW {
@@ -248,14 +248,14 @@ func (b *Blob) ValidateFull(ctx context.Context, bcs *block.Cursor) error {
 		return nil
 	}
 
-	// Stream every chunk and enforce the declared total size.
-	// fetch all of the chunked data w/o errors
+	// Open a reader over the blob's existing chunk references.
 	rdr, err := NewReader(ctx, bcs)
 	if err != nil {
 		return err
 	}
 	defer rdr.Close()
 
+	// Count streamed bytes and reject an early end or data beyond the declared size.
 	buf := make([]byte, 4096)
 	var readn int64
 	for readn < totalSize {
@@ -264,7 +264,7 @@ func (b *Blob) ValidateFull(ctx context.Context, bcs *block.Cursor) error {
 			return err
 		}
 
-		// expect to read exactly totalSize
+		// Require progress within the declared total size.
 		if rn == 0 {
 			return errors.Errorf("blob: eof before end of blob: %d < expected %d", readn, totalSize)
 		}
@@ -561,46 +561,58 @@ func (b *Blob) Truncate(ctx context.Context, bcs *block.Cursor, blobOpts *BuildB
 	return pieces.flush()
 }
 
-// TransformToChunked transforms a raw blob to a chunked blob.
+// TransformToChunked converts a nonempty raw blob into chunks and marks its root dirty.
+// Empty raw blobs remain raw, and an existing chunked blob is unchanged.
 func (b *Blob) TransformToChunked(ctx context.Context, bcs *block.Cursor, blobOpts *BuildBlobOpts) error {
-	// Convert raw data into a chunk index while preserving the declared size.
-	if b.GetBlobType() == 0 || b.GetBlobType() == BlobType_BlobType_CHUNKED {
+	// Keep existing chunks and reject an unsupported representation.
+	if b.GetBlobType() == BlobType_BlobType_CHUNKED {
 		return nil
 	}
 	if b.GetBlobType() != BlobType_BlobType_RAW {
 		return errors.Wrap(ErrUnknownBlobType, b.GetBlobType().String())
 	}
 
-	// create a chunk index with the raw data with at most totalSize bytes
+	// Keep the empty representation raw and bound the input reader's size.
 	totalSize := b.TotalSize
+	if totalSize == 0 {
+		return nil
+	}
 	if totalSize > math.MaxInt64 {
 		return errors.New("total size exceeds maximum")
 	}
-	data := b.RawData
+
+	// Retain raw bytes until the complete chunk index has been built successfully.
+	rdr := io.LimitReader(bytes.NewReader(b.RawData), int64(totalSize))
+	if err := b.WriteChunkIndex(ctx, bcs, blobOpts, rdr); err != nil {
+		return err
+	}
 	b.RawData = nil
-	return b.WriteChunkIndex(ctx, bcs, blobOpts, io.LimitReader(bytes.NewReader(data), int64(totalSize)))
+	bcs.SetBlock(b, true)
+	return nil
 }
 
 // TransformToRaw transforms a chunked blob to a raw blob.
 func (b *Blob) TransformToRaw(ctx context.Context, bcs *block.Cursor, nsize uint64) error {
-	if b.GetBlobType() == 0 || b.GetBlobType() == BlobType_BlobType_RAW {
+	// Keep existing raw data and reject an unsupported representation.
+	if b.GetBlobType() == BlobType_BlobType_RAW {
 		return nil
 	}
 	if b.GetBlobType() != BlobType_BlobType_CHUNKED {
 		return errors.Wrap(ErrUnknownBlobType, b.GetBlobType().String())
 	}
 
-	// Read chunk data into contiguous raw storage and clear the chunk index.
-	// chunk index
+	// Resolve the chunk set through the blob's existing cursor.
 	ci := b.GetChunkIndex()
 	ciBcs := bcs.FollowSubBlock(4)
 	ciChunkSet := ci.GetChunkSet(ciBcs)
 
-	// Read chunk data into a contiguous raw buffer up to the requested size.
+	// Allocate zero-filled raw storage for the requested size, including any growth.
 	nraw := make([]byte, nsize)
 	pos := 0
 	var rn, chkIdx int
 	var err error
+
+	// Read available chunks up to the new end, leaving growth beyond them as zeros.
 	for pos < len(nraw) {
 		rn, chkIdx, err = ReadFromChunks(ctx, ciChunkSet, nraw[pos:], pos, chkIdx)
 		pos += rn
@@ -611,6 +623,8 @@ func (b *Blob) TransformToRaw(ctx context.Context, bcs *block.Cursor, nsize uint
 			return err
 		}
 	}
+
+	// Replace chunk metadata with the contiguous representation.
 	b.ChunkIndex = nil
 	b.RawData, b.TotalSize = nraw, nsize
 	b.BlobType = BlobType_BlobType_RAW
