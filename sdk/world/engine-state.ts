@@ -16,7 +16,9 @@ import { BucketLookupCursor } from '../bucket/lookup/lookup.js'
 import type {
   GetRootRefResponse,
   ListGraphEdgeBucketsResponse,
+  ListObjectsResponse,
   ObjectBody,
+  ObjectMetadata,
   SetRootRefResponse,
   ApplyObjectOpResponse,
   IncrementRevResponse,
@@ -294,6 +296,28 @@ export class EngineWorldState implements IWorldState {
   ): Promise<string[]> {
     return this.performOp(false, abortSignal, async (tx) => {
       return await tx.listObjectsWithType(typeID, abortSignal)
+    })
+  }
+
+  // listObjects returns one page of objects under prefix in key order.
+  public async listObjects(
+    prefix: string,
+    startAfter: string,
+    limit: number,
+    abortSignal?: AbortSignal,
+  ): Promise<ListObjectsResponse> {
+    return this.performOp(false, abortSignal, async (tx) => {
+      return await tx.listObjects(prefix, startAfter, limit, abortSignal)
+    })
+  }
+
+  // getObjectMetadataBatch returns the type and parent of each key, in request order.
+  public async getObjectMetadataBatch(
+    objectKeys: string[],
+    abortSignal?: AbortSignal,
+  ): Promise<ObjectMetadata[]> {
+    return this.performOp(false, abortSignal, async (tx) => {
+      return await tx.getObjectMetadataBatch(objectKeys, abortSignal)
     })
   }
 

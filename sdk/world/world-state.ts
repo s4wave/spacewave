@@ -22,7 +22,9 @@ import type {
   ObjectRecordBase,
   GraphEdgeBucketDirection,
   ListGraphEdgeBucketsResponse,
+  ListObjectsResponse,
   LookupGraphQuadsResponse,
+  ObjectMetadata,
 } from './world.pb.js'
 
 // maxObjectBodiesRevisionRetries bounds restarts when writes land between body pages.
@@ -190,6 +192,24 @@ export interface IWorldState {
     typeID: string,
     abortSignal?: AbortSignal,
   ): Promise<string[]>
+
+  /**
+   * listObjects returns one page of objects under prefix in key order, starting
+   * after startAfter. The server may return fewer than limit and sets more
+   * when keys remain.
+   */
+  listObjects(
+    prefix: string,
+    startAfter: string,
+    limit: number,
+    abortSignal?: AbortSignal,
+  ): Promise<ListObjectsResponse>
+
+  /** getObjectMetadataBatch returns the type and parent of each key, in request order. */
+  getObjectMetadataBatch(
+    objectKeys: string[],
+    abortSignal?: AbortSignal,
+  ): Promise<ObjectMetadata[]>
 
   /** getObjectBodies reads object root bodies from one World revision, in request order. */
   getObjectBodies(
@@ -585,6 +605,28 @@ export class WorldStateResource extends Resource implements IWorldState {
       abortSignal,
     )
     return response.objectKeys ?? []
+  }
+
+  /** listObjects returns one page of objects under prefix in key order. */
+  public async listObjects(
+    prefix: string,
+    startAfter: string,
+    limit: number,
+    abortSignal?: AbortSignal,
+  ): Promise<ListObjectsResponse> {
+    return this.service.ListObjects({ prefix, startAfter, limit }, abortSignal)
+  }
+
+  /** getObjectMetadataBatch returns the type and parent of each key, in request order. */
+  public async getObjectMetadataBatch(
+    objectKeys: string[],
+    abortSignal?: AbortSignal,
+  ): Promise<ObjectMetadata[]> {
+    const response = await this.service.GetObjectMetadataBatch(
+      { objectKeys },
+      abortSignal,
+    )
+    return response.metadata ?? []
   }
 
   // DeleteGraphObject removes all graph quads that reference the specified object key.
