@@ -80,6 +80,12 @@ class SessionResourceServiceClient:
     ) -> (
         _github_com_s4wave_spacewave_sdk_session_session_pb2.SetDirectP2PEnabledResponse
     ): ...
+    async def set_background_plugin(
+        self,
+        request: _github_com_s4wave_spacewave_sdk_session_session_pb2.SetBackgroundPluginRequest,
+    ) -> (
+        _github_com_s4wave_spacewave_sdk_session_session_pb2.SetBackgroundPluginResponse
+    ): ...
     async def unlock_session(
         self,
         request: _github_com_s4wave_spacewave_sdk_session_session_pb2.UnlockSessionRequest,
@@ -337,6 +343,12 @@ class SessionResourceServiceServer(Protocol):
         request: _github_com_s4wave_spacewave_sdk_session_session_pb2.SetDirectP2PEnabledRequest,
     ) -> (
         _github_com_s4wave_spacewave_sdk_session_session_pb2.SetDirectP2PEnabledResponse
+    ): ...
+    async def set_background_plugin(
+        self,
+        request: _github_com_s4wave_spacewave_sdk_session_session_pb2.SetBackgroundPluginRequest,
+    ) -> (
+        _github_com_s4wave_spacewave_sdk_session_session_pb2.SetBackgroundPluginResponse
     ): ...
     async def unlock_session(
         self,

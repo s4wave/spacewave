@@ -106,6 +106,13 @@ SESSIONRESOURCESERVICE_SERVICE = ServiceDescriptor(
             False,
         ),
         MethodDescriptor(
+            "SetBackgroundPlugin",
+            _github_com_s4wave_spacewave_sdk_session_session_pb2.SetBackgroundPluginRequest,
+            _github_com_s4wave_spacewave_sdk_session_session_pb2.SetBackgroundPluginResponse,
+            False,
+            False,
+        ),
+        MethodDescriptor(
             "UnlockSession",
             _github_com_s4wave_spacewave_sdk_session_session_pb2.UnlockSessionRequest,
             _github_com_s4wave_spacewave_sdk_session_session_pb2.UnlockSessionResponse,
@@ -636,6 +643,29 @@ class SessionResourceServiceClient:
             if data is None:
                 raise CallProtocolError("missing unary response")
             response = _github_com_s4wave_spacewave_sdk_session_session_pb2.SetDirectP2PEnabledResponse()
+            response.ParseFromString(data)
+            if await call.receive() is not None:
+                raise CallProtocolError("extra unary response")
+            return response
+        finally:
+            await call.aclose()
+
+    async def set_background_plugin(
+        self,
+        request: _github_com_s4wave_spacewave_sdk_session_session_pb2.SetBackgroundPluginRequest,
+    ) -> (
+        _github_com_s4wave_spacewave_sdk_session_session_pb2.SetBackgroundPluginResponse
+    ):
+        call = await self._client.open_call(
+            self._service,
+            "SetBackgroundPlugin",
+            request.SerializeToString(deterministic=True),
+        )
+        try:
+            data = await call.receive()
+            if data is None:
+                raise CallProtocolError("missing unary response")
+            response = _github_com_s4wave_spacewave_sdk_session_session_pb2.SetBackgroundPluginResponse()
             response.ParseFromString(data)
             if await call.receive() is not None:
                 raise CallProtocolError("extra unary response")
@@ -1499,6 +1529,12 @@ class SessionResourceServiceServer(Protocol):
     ) -> (
         _github_com_s4wave_spacewave_sdk_session_session_pb2.SetDirectP2PEnabledResponse
     ): ...
+    async def set_background_plugin(
+        self,
+        request: _github_com_s4wave_spacewave_sdk_session_session_pb2.SetBackgroundPluginRequest,
+    ) -> (
+        _github_com_s4wave_spacewave_sdk_session_session_pb2.SetBackgroundPluginResponse
+    ): ...
     async def unlock_session(
         self,
         request: _github_com_s4wave_spacewave_sdk_session_session_pb2.UnlockSessionRequest,
@@ -1852,6 +1888,17 @@ def register_session_resource_service(
         await call.send(response.SerializeToString(deterministic=True))
 
     registry.register(service, "SetDirectP2PEnabled", set_direct_p2_p_enabled_handler)
+
+    async def set_background_plugin_handler(call: Call) -> None:
+        first = await call.receive()
+        if first is None:
+            raise CallProtocolError("missing initial request")
+        request = _github_com_s4wave_spacewave_sdk_session_session_pb2.SetBackgroundPluginRequest()
+        request.ParseFromString(first)
+        response = await implementation.set_background_plugin(request)
+        await call.send(response.SerializeToString(deterministic=True))
+
+    registry.register(service, "SetBackgroundPlugin", set_background_plugin_handler)
 
     async def unlock_session_handler(call: Call) -> None:
         first = await call.receive()
