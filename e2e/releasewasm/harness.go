@@ -510,8 +510,8 @@ func (h *harness) newPersistentBrowserContext(t testing.TB, userDataDir string) 
 
 // attachPageDiagnostics fails the test on captured browser errors unless muted.
 func (h *harness) attachPageDiagnostics(t testing.TB, page playwright.Page) func() {
+	// Collect browser errors until the caller mutes diagnostics.
 	t.Helper()
-
 	var errs []string
 	var errsMu sync.Mutex
 	muted := false
@@ -530,6 +530,7 @@ func (h *harness) attachPageDiagnostics(t testing.TB, page playwright.Page) func
 	}
 	consoleTrace := os.Getenv("E2E_RELEASE_WASM_CONSOLE_TRACE") == "1"
 
+	// Log top-level navigations, and runtime requests when tracing HTTP.
 	page.OnFrameNavigated(func(frame playwright.Frame) {
 		if frame.ParentFrame() != nil {
 			return
@@ -552,6 +553,8 @@ func (h *harness) attachPageDiagnostics(t testing.TB, page playwright.Page) func
 			t.Logf("browser response: %d %s", resp.Status(), url)
 		})
 	}
+
+	// Record failed requests, keeping aborted ones in the log only.
 	page.OnRequestFailed(func(req playwright.Request) {
 		url := req.URL()
 		if !isRelevantReleaseWasmRequest(url) {
@@ -565,6 +568,8 @@ func (h *harness) attachPageDiagnostics(t testing.TB, page playwright.Page) func
 		}
 		recordBrowserError(msg)
 	})
+
+	// Record worker and page console errors and uncaught page errors.
 	page.OnWorker(func(worker playwright.Worker) {
 		if consoleTrace {
 			t.Logf("browser worker: %s", worker.URL())
@@ -614,20 +619,31 @@ func (h *harness) attachPageDiagnostics(t testing.TB, page playwright.Page) func
 			recordBrowserError("page error: " + msg)
 		}
 	})
+
+	// Record failed same-origin responses with the layer that answered.
+	var bodyReads sync.WaitGroup
 	page.On("response", func(resp playwright.Response) {
 		if resp.Status() < 400 {
 			return
 		}
 		url := resp.URL()
-		if strings.HasPrefix(url, h.baseURL) &&
-			!strings.HasSuffix(url, "/.vite/manifest.json") &&
-			!isExpectedReleaseWasmHTTPError(url) {
-			recordBrowserError("http " + resp.StatusText() + ": " + resp.URL())
+		if !strings.HasPrefix(url, h.baseURL) ||
+			strings.HasSuffix(url, "/.vite/manifest.json") ||
+			isExpectedReleaseWasmHTTPError(url) {
+			t.Logf("browser http warning: %d %s", resp.Status(), url)
 			return
 		}
-		t.Logf("browser http warning: %d %s", resp.Status(), url)
+
+		// Read the body off the event goroutine, which must stay free to
+		// deliver the Body reply.
+		bodyReads.Go(func() {
+			recordBrowserError(describeBrowserHTTPError(resp))
+		})
 	})
+
+	// Fail the test on the recorded errors once pending body reads finish.
 	t.Cleanup(func() {
+		bodyReads.Wait()
 		errsMu.Lock()
 		defer errsMu.Unlock()
 		if len(errs) != 0 {
@@ -635,6 +651,36 @@ func (h *harness) attachPageDiagnostics(t testing.TB, page playwright.Page) func
 		}
 	})
 	return muteDiagnostics
+}
+
+// describeBrowserHTTPError describes a failed response with the
+// ServiceWorker fetch classification headers and the start of its body. They
+// name the layer that answered: a classified ServiceWorker failure, the
+// runtime, or the origin.
+func describeBrowserHTTPError(resp playwright.Response) string {
+	// Name the status, URL, and any ServiceWorker classification.
+	var msg strings.Builder
+	msg.WriteString("http " + strconv.Itoa(resp.Status()) + ": " + resp.URL())
+	headers := resp.Headers()
+	for _, name := range []string{
+		"x-bldr-fetch-source",
+		"x-bldr-runtime-fetch-error",
+		"x-bldr-plugin-asset-fetch-result",
+	} {
+		if value := headers[name]; value != "" {
+			msg.WriteString(" " + name + "=" + value)
+		}
+	}
+
+	// Append the start of the body, which carries the runtime's message.
+	body, err := resp.Body()
+	if err != nil {
+		return msg.String() + " body unavailable: " + err.Error()
+	}
+	if len(body) > 512 {
+		body = body[:512]
+	}
+	return msg.String() + " body=" + strconv.Quote(string(body))
 }
 
 // browserPageErrorMessage preserves the browser stack when Playwright supplies it.
