@@ -244,6 +244,13 @@ func (e *engineWorldState) HasObject(ctx context.Context, key string) (bool, err
 	return found, err
 }
 
+// retryWorldOp reports whether a failed World operation may replay in a fresh
+// transaction: another writer moved the coordinated head, or the storage
+// snapshot became invalid.
+func retryWorldOp(err error) bool {
+	return errors.Is(err, coord.ErrStaleGeneration) || kvtx.RetryInvalidSnapshot(err)
+}
+
 // performOp replays a complete operation in a fresh transaction after either a
 // coordinated head change or an invalid storage snapshot. Each failed attempt
 // is discarded before the next transaction opens.
@@ -258,7 +265,7 @@ func (e *engineWorldState) performOp(ctx context.Context, write bool, cb func(tx
 			return err
 		}
 		err = e.performOpOnce(ctx, write, cb)
-		if !errors.Is(err, coord.ErrStaleGeneration) && !kvtx.RetryInvalidSnapshot(err) {
+		if !retryWorldOp(err) {
 			return err
 		}
 	}

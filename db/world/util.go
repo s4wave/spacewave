@@ -8,30 +8,52 @@ import (
 	"github.com/s4wave/spacewave/db/bucket"
 )
 
-// ExecTransaction executes a transaction inside a function callback.
-//
-// If a write transaction, calls Commit if the callback return nil.
-// Otherwise, discards the transaction.
+// ExecTransaction runs cb in a transaction and commits it when write is set
+// and cb succeeds. When another writer moves the World head or the storage
+// snapshot becomes invalid, it replays cb in a fresh transaction, up to
+// maxEngineWorldStateTries more times. cb must be safe to replay: it must
+// create or reset its per-attempt state and perform no external effects.
 func ExecTransaction(
 	ctx context.Context,
 	eng Engine,
 	write bool,
 	cb func(ctx context.Context, wtx WorldState) error,
 ) error {
+	// Replay the complete attempt while the failure permits a fresh transaction.
+	var err error
+	for range maxEngineWorldStateTries + 1 {
+		if err = ctx.Err(); err != nil {
+			return err
+		}
+		err = execTransactionOnce(ctx, eng, write, cb)
+		if !retryWorldOp(err) {
+			return err
+		}
+	}
+	return err
+}
+
+// execTransactionOnce runs one ExecTransaction attempt.
+func execTransactionOnce(
+	ctx context.Context,
+	eng Engine,
+	write bool,
+	cb func(ctx context.Context, wtx WorldState) error,
+) error {
+	// Open the attempt's transaction.
 	wtx, err := eng.NewTransaction(ctx, write)
 	if err != nil {
 		return err
 	}
 	defer wtx.Discard()
 
+	// Run the callback, then commit a write.
 	if err := cb(ctx, wtx); err != nil {
 		return err
 	}
-
 	if !write {
 		return nil
 	}
-
 	return wtx.Commit(ctx)
 }
 

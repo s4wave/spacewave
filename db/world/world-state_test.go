@@ -436,6 +436,36 @@ func TestEngineWorldStateRetriesStaleGenerationWriteOperation(t *testing.T) {
 	}
 }
 
+// TestExecTransactionReplaysStaleCommit checks that a multi-operation
+// transaction replays its callback when another writer moves the World head
+// between the callback and the commit.
+func TestExecTransactionReplaysStaleCommit(t *testing.T) {
+	// Reject the first two commits as stale.
+	ctx := context.Background()
+	eng := &staleRetryEngine{objects: make(map[string]*bucket.ObjectRef), staleCommit: 2}
+	key := "retry-object"
+	attempts := 0
+
+	// Create one object, counting callback runs.
+	err := world.ExecTransaction(ctx, eng, true, func(ctx context.Context, ws world.WorldState) error {
+		attempts++
+		createdObject, err := ws.CreateObject(ctx, key, &bucket.ObjectRef{BucketId: "bucket"})
+		world.ReleaseObjectState(createdObject)
+		return err
+	})
+
+	// The third attempt commits the object.
+	if err != nil {
+		t.Fatalf("ExecTransaction returned error after transient stale commits: %v", err)
+	}
+	if attempts != 3 {
+		t.Fatalf("callback attempts = %d, want 3", attempts)
+	}
+	if _, found := eng.objects[key]; !found {
+		t.Fatal("object written after transient stale commits was not committed")
+	}
+}
+
 type releaseCountingWorldState struct {
 	world.WorldState
 	releases int
