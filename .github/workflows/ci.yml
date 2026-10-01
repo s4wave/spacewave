@@ -243,9 +243,12 @@ jobs:
           bun run lint:go:db
 
       # wasmbrowsertest runs js/wasm Go test binaries in the runner's Chrome.
+      # Ubuntu 24.04 denies unprivileged user namespaces through AppArmor, which
+      # leaves Chrome no usable sandbox, so allow them for this job.
       - name: Install wasmbrowsertest
         if: ${{ matrix.stage.name == 'tests' }}
         run: |
+          sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
           go install github.com/agnivade/wasmbrowsertest@v0.11.1-0.20260609113502-ff350cc7eb28
           mv "$(go env GOPATH)/bin/wasmbrowsertest" "$(go env GOPATH)/bin/go_js_wasm_exec"
 
