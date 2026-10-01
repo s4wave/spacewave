@@ -7,7 +7,6 @@ import (
 	"context"
 	ofs "io/fs"
 	"sync"
-	"sync/atomic"
 	"syscall"
 	"time"
 
@@ -29,7 +28,6 @@ type Inode struct {
 	h        *unixfs.FSHandle
 	rfs      *RootFS
 	parent   *Inode
-	attrFn   atomic.Pointer[func(ctx context.Context, attr *fuse.Attr) error]
 	mtx      sync.Mutex
 	children map[string]*Inode
 }
@@ -71,12 +69,6 @@ func (i *Inode) GetNodeType(ctx context.Context) (unixfs.FSCursorNodeType, error
 // The result may be cached by the kernel for the duration set in Valid.
 func (i *Inode) Attr(ctx context.Context, attr *fuse.Attr) error {
 	err := FsOpsToAttr(ctx, i.h, attr)
-	// if a handle is active, be sure to include the Size from pending writes in the Attr.
-	if fn := i.attrFn.Load(); fn != nil {
-		if err := (*fn)(ctx, attr); err != nil {
-			return err
-		}
-	}
 	if err != nil {
 		i.rfs.logFilesystemError(err)
 		err = UnixfsErrorToSyscall(err)
@@ -271,34 +263,29 @@ func (i *Inode) Create(
 ) (fs.Node, fs.Handle, error) {
 	// Require each successful write to reach the World before FUSE reports it.
 	resp.Flags |= fuse.OpenDirectIO
-	openFlags := req.Flags | fuse.OpenSync
 
-	name := req.Name
-	mode := req.Mode
-
-	nodType, err := unixfs.FileModeToNodeType(mode)
+	// Resolve the node type from the requested mode.
+	nodType, err := unixfs.FileModeToNodeType(req.Mode)
 	if err != nil {
 		i.rfs.logFilesystemError(err)
 		return nil, nil, UnixfsErrorToSyscall(err)
 	}
 
-	flags := req.Flags
-	checkIfExists := flags&fuse.OpenExclusive != 0
-
-	ts := time.Now()
-	err = i.h.Mknod(ctx, checkIfExists, []string{name}, nodType, mode&ofs.ModePerm, ts)
+	// Create the entry, failing if it exists when the open is exclusive.
+	checkIfExists := req.Flags&fuse.OpenExclusive != 0
+	err = i.h.Mknod(ctx, checkIfExists, []string{req.Name}, nodType, req.Mode&ofs.ModePerm, time.Now())
 	if err != nil {
 		i.rfs.logFilesystemError(err)
 		return nil, nil, UnixfsErrorToSyscall(err)
 	}
 
-	childNode, err := i.lookupNodeByName(ctx, name, &resp.Attr)
+	// Look up the new node and open it. The lookup error is already a syscall
+	// error.
+	childNode, err := i.lookupNodeByName(ctx, req.Name, &resp.Attr)
 	if err != nil {
-		// already in syscall format
 		return nil, nil, err
 	}
-
-	return childNode, NewHandle(childNode, openFlags), nil
+	return childNode, NewHandle(childNode, req.Flags), nil
 }
 
 // Rename moves an inode from one location to another.
@@ -437,9 +424,10 @@ func (i *Inode) Open(
 	req *fuse.OpenRequest,
 	resp *fuse.OpenResponse,
 ) (fs.Handle, error) {
-	// Bypass the kernel page cache and the Handle's asynchronous write buffer.
+	// Bypass the kernel page cache so each write reaches the World before FUSE
+	// reports it.
 	resp.Flags |= fuse.OpenDirectIO
-	return NewHandle(i, req.Flags|fuse.OpenSync), nil
+	return NewHandle(i, req.Flags), nil
 }
 
 // Remove removes the entry with the given name from the receiver, which must be
