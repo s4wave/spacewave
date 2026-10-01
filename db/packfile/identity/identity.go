@@ -1,6 +1,7 @@
 package identity
 
 import (
+	"crypto/rand"
 	"crypto/sha256"
 	"encoding/binary"
 	"io"
@@ -51,6 +52,15 @@ func BuildPackID(resourceID string, result *writer.PackResult) (string, error) {
 	writePart(h, result.PackBytesDigest)
 	sum := h.Sum(nil)
 	return PackIDPrefix + b58.Encode(sum), nil
+}
+
+// NewPackID returns a random v1 packfile identifier. A store that deletes
+// packfiles names each one it writes this way, so writing the same blocks again
+// never reuses the identifier of a packfile being deleted.
+func NewPackID() string {
+	var suffix [packIDDigestLen]byte
+	_, _ = rand.Read(suffix[:])
+	return PackIDPrefix + b58.Encode(suffix[:])
 }
 
 // ValidatePackID validates the v1 packfile identifier shape.
