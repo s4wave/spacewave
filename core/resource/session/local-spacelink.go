@@ -97,11 +97,9 @@ func (r *LocalSessionResource) ApproveSpaceLink(
 	if err != nil {
 		return nil, errors.Wrap(err, "build targeted invite")
 	}
-	if err := ih.GetSOHost().CreateInvite(ctx, ih.GetPrivKey(), invite); err != nil {
-		return nil, errors.Wrap(err, "store targeted invite")
-	}
 
-	// Record the enrolled Device and start the invite-serving sync.
+	// Record the Device before storing its invite. Recording marks the Device
+	// pending enrollment, so an auto-start that sees the invite never dials it.
 	if err := localAcc.RecordPairedDevice(
 		ctx,
 		verified.agentPeerID.String(),
@@ -109,6 +107,11 @@ func (r *LocalSessionResource) ApproveSpaceLink(
 	); err != nil {
 		return nil, errors.Wrap(err, "record enrolled Device")
 	}
+	if err := ih.GetSOHost().CreateInvite(ctx, ih.GetPrivKey(), invite); err != nil {
+		return nil, errors.Wrap(err, "store targeted invite")
+	}
+
+	// Start the invite-serving sync.
 	ownerTransport := localAcc.GetSessionTransport()
 	if ownerTransport == nil {
 		return nil, errors.New("approving session transport is not available")
