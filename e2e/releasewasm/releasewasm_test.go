@@ -1329,6 +1329,7 @@ func TestQuickstartSecondTabReusesRuntimeAndCloseKeepsFirstTab(t *testing.T) {
 }
 
 func TestQuickstartShellTabsComposedBrowserProof(t *testing.T) {
+	// Seed an obsolete Shell snapshot into the first document.
 	pageA := testHarness.newDedicatedWorkerPage(t)
 	ctx := pageA.Context()
 	legacyShellState := `() => {
@@ -1341,11 +1342,14 @@ func TestQuickstartShellTabsComposedBrowserProof(t *testing.T) {
 		t.Fatalf("seed explicit old Shell snapshot reset case: %v", err)
 	}
 
+	// Boot the first document as the dedicated-worker host.
 	quickstartURL := testHarness.getBaseURL() + "/quickstart/drive"
 	openQuickstartReleasePage(t, pageA, quickstartURL)
 	assertRuntimeWorkerMode(t, pageA, "dedicated-worker")
 	hostGeneration, hostDocumentID := assertDedicatedWorkerHost(t, pageA)
 	assertWarmPresentation(t, pageA, hostGeneration, hostDocumentID, false)
+
+	// Check the obsolete snapshot was reset, not imported.
 	waitForShellRecordCount(t, pageA, 1)
 	initialSnapshot := readBrowserShellTabsSnapshot(t, pageA)
 	if len(initialSnapshot.Records) != 1 {
@@ -1354,6 +1358,8 @@ func TestQuickstartShellTabsComposedBrowserProof(t *testing.T) {
 	if initialSnapshot.Records[0].ID == "legacy-tab" || initialSnapshot.Records[0].Path == "/legacy" {
 		t.Fatalf("legacy Shell record was imported instead of reset: %#v", initialSnapshot.Records[0])
 	}
+
+	// Check the obsolete storage key was removed.
 	legacyAfterInit, err := pageA.Evaluate(`() => sessionStorage.getItem('shell-tabs-state')`)
 	if err != nil {
 		t.Fatalf("read obsolete Shell snapshot after clean initialization: %v", err)
@@ -1363,6 +1369,7 @@ func TestQuickstartShellTabsComposedBrowserProof(t *testing.T) {
 	}
 	firstURL := pageA.URL()
 
+	// Attach a second document to the warm host.
 	pageB := testHarness.newPageInContext(t, ctx)
 	openQuickstartReleasePage(t, pageB, quickstartURL)
 	assertRuntimeWorkerMode(t, pageB, "dedicated-worker")
@@ -1370,6 +1377,8 @@ func TestQuickstartShellTabsComposedBrowserProof(t *testing.T) {
 	waitForShellRecordCount(t, pageA, 2)
 	waitForShellRecordCount(t, pageB, 2)
 	logWarmAttachCorrectnessMetrics(t, pageB, hostGeneration)
+
+	// Check the second document added one shared record without taking the first URL.
 	afterB := readBrowserShellTabsSnapshot(t, pageB)
 	if len(afterB.Records) != 2 {
 		t.Fatalf("fresh second document did not create exactly one shared record: %#v", afterB)
@@ -1385,6 +1394,7 @@ func TestQuickstartShellTabsComposedBrowserProof(t *testing.T) {
 	}
 	assertNoRuntimeWorkerCreated(t, pageB)
 
+	// Move the shared record to /docs from the second document.
 	logShellDiagnostic(t, pageA, "before_docs_hash_page_a")
 	logShellDiagnostic(t, pageB, "before_docs_hash_page_b")
 	setShellHash(t, pageB, "#/docs")
@@ -1393,6 +1403,8 @@ func TestQuickstartShellTabsComposedBrowserProof(t *testing.T) {
 	if pageA.URL() != firstURL {
 		t.Fatalf("inactive shared path update changed first document hash: got %s want %s", pageA.URL(), firstURL)
 	}
+
+	// Rename the shared record and check both fields converge.
 	renameActiveShellTab(t, pageB, "Shared Docs")
 	waitForShellLabel(t, pageA, "Shared Docs")
 	sharedSnapshot := readBrowserShellTabsSnapshot(t, pageA)
@@ -1401,11 +1413,14 @@ func TestQuickstartShellTabsComposedBrowserProof(t *testing.T) {
 		t.Fatalf("shared path/name/customName did not converge: %#v", sharedSnapshot)
 	}
 
+	// Create one tab in each document at once.
 	beforeConcurrentA := readComposedShellProjection(t, pageA)
 	beforeConcurrentB := readComposedShellProjection(t, pageB)
 	concurrentCreateShellTabs(t, pageA, pageB)
 	waitForShellRecordCount(t, pageA, 4)
 	waitForShellRecordCount(t, pageB, 4)
+
+	// Check both documents hold the same four records.
 	concurrentSnapshot := readBrowserShellTabsSnapshot(t, pageA)
 	if len(concurrentSnapshot.Records) != 4 {
 		t.Fatalf("concurrent Shell creation lost a record: %#v", concurrentSnapshot)
@@ -1413,19 +1428,24 @@ func TestQuickstartShellTabsComposedBrowserProof(t *testing.T) {
 	if !sameBrowserShellRecordIDs(t, concurrentSnapshot, readBrowserShellTabsSnapshot(t, pageB)) {
 		t.Fatalf("A/B shared record inventories diverged after concurrent creation")
 	}
+
+	// Route each document's new tab to its own static page.
 	waitForBrowserShellActiveRecordChange(t, pageA, beforeConcurrentA.ActiveTabID)
 	waitForBrowserShellActiveRecordChange(t, pageB, beforeConcurrentB.ActiveTabID)
-	setShellHash(t, pageA, "#/a-only")
-	setShellHash(t, pageB, "#/b-only")
-	waitForBrowserShellActivePath(t, pageA, "/a-only")
-	waitForBrowserShellActivePath(t, pageB, "/b-only")
+	setShellHash(t, pageA, "#/pricing")
+	setShellHash(t, pageB, "#/licenses")
+	waitForBrowserShellActivePath(t, pageA, "/pricing")
+	waitForBrowserShellActivePath(t, pageB, "/licenses")
 	if pageA.URL() == pageB.URL() {
 		t.Fatalf("A/B active selection and hash are not independent: A=%s B=%s", pageA.URL(), pageB.URL())
 	}
+
+	// Record page A's settled projection.
 	waitForShellLabel(t, pageA, "Shared Docs")
 	waitForShellLabel(t, pageB, "Shared Docs")
 	independentProjectionA := readComposedShellProjection(t, pageA)
 
+	// Pop out the shared record with its retained Shell Tab ID.
 	selectShellTabByText(t, pageB, "Shared Docs")
 	retainedURL := ""
 	popup, err := ctx.ExpectPage(func() error {
@@ -1439,6 +1459,8 @@ func TestQuickstartShellTabsComposedBrowserProof(t *testing.T) {
 	}); err != nil {
 		t.Fatalf("wait for retained-ID popup navigation: %v", err)
 	}
+
+	// Check the popout kept the retained ID and the shared record.
 	openQuickstartReleasePage(t, popup, popup.URL())
 	retainedURL = popup.URL()
 	if !strings.Contains(retainedURL, "shellTabId="+secondRecordID) {
@@ -1447,6 +1469,7 @@ func TestQuickstartShellTabsComposedBrowserProof(t *testing.T) {
 	waitForShellRecordCount(t, popup, 4)
 	waitForShellLabel(t, popup, "Shared Docs")
 
+	// Open the retained-ID URL in a copied document.
 	copied := testHarness.newPageInContext(t, ctx)
 	if _, err := copied.Goto(retainedURL); err != nil {
 		t.Fatalf("goto copied retained-ID URL: %v", err)
@@ -1454,6 +1477,8 @@ func TestQuickstartShellTabsComposedBrowserProof(t *testing.T) {
 	openQuickstartReleasePage(t, copied, retainedURL)
 	waitForShellRecordCount(t, copied, 4)
 	waitForShellLabel(t, copied, "Shared Docs")
+
+	// Reload the copied document and check it keeps the shared record.
 	if _, err := copied.Reload(); err != nil {
 		t.Fatalf("reload copied retained-ID URL: %v", err)
 	}
@@ -1463,6 +1488,7 @@ func TestQuickstartShellTabsComposedBrowserProof(t *testing.T) {
 	waitForShellRecordCount(t, copied, 4)
 	waitForShellLabel(t, copied, "Shared Docs")
 
+	// Check the retained-ID transitions left page A unchanged.
 	beforeCloseA := readComposedShellProjection(t, pageA)
 	assertSameComposedShellProjection(
 		t,
@@ -1470,6 +1496,8 @@ func TestQuickstartShellTabsComposedBrowserProof(t *testing.T) {
 		independentProjectionA,
 		"retained-ID transitions changed page A",
 	)
+
+	// Close the shared record from page B while page A shows another tab.
 	closeShellTabByText(t, pageB, "Shared Docs")
 	waitForShellRecordCount(t, pageA, 3)
 	waitForShellRecordCount(t, pageB, 3)
@@ -1478,12 +1506,15 @@ func TestQuickstartShellTabsComposedBrowserProof(t *testing.T) {
 	assertShellLabelAbsent(t, pageA, "Shared Docs")
 	assertShellLabelAbsent(t, pageB, "Shared Docs")
 
+	// Open the retained URL after its record was removed.
 	removedIDURL := retainedURL
 	removed := testHarness.newPageInContext(t, ctx)
 	if _, err := removed.Goto(removedIDURL); err != nil {
 		t.Fatalf("goto removed-ID URL: %v", err)
 	}
 	openQuickstartReleasePage(t, removed, removedIDURL)
+
+	// Check the closed record stays closed and a fresh /docs record replaces it.
 	waitForShellRecordCount(t, removed, 4)
 	removedSnapshot := readBrowserShellTabsSnapshot(t, removed)
 	if findBrowserShellRecord(removedSnapshot, secondRecordID) != nil {
@@ -1492,6 +1523,8 @@ func TestQuickstartShellTabsComposedBrowserProof(t *testing.T) {
 	if removedSnapshot.Records[len(removedSnapshot.Records)-1].Path != "/docs" {
 		t.Fatalf("removed-ID fallback did not create a fresh /docs record: %#v", removedSnapshot)
 	}
+
+	// Open a malformed-ID URL, which falls back to a new record.
 	invalidURL := strings.Replace(retainedURL, "shellTabId="+secondRecordID, "shellTabId=!malformed", 1)
 	invalid := testHarness.newPageInContext(t, ctx)
 	if _, err := invalid.Goto(invalidURL); err != nil {
@@ -1500,6 +1533,8 @@ func TestQuickstartShellTabsComposedBrowserProof(t *testing.T) {
 	openQuickstartReleasePage(t, invalid, invalidURL)
 	waitForShellRecordCount(t, invalid, 5)
 	invalidHash := invalid.URL()
+
+	// Check a reload keeps the fallback URL stable.
 	if _, err := invalid.Reload(); err != nil {
 		t.Fatalf("reload malformed-ID fallback: %v", err)
 	}
@@ -1511,11 +1546,14 @@ func TestQuickstartShellTabsComposedBrowserProof(t *testing.T) {
 		t.Fatalf("malformed-ID fallback reload changed stable URL: got %s want %s", invalid.URL(), invalidHash)
 	}
 
+	// Close the retained-ID proof documents.
 	for _, page := range []playwright.Page{popup, copied, removed, invalid} {
 		if err := page.Close(); err != nil {
 			t.Fatalf("close completed retained-ID proof page: %v", err)
 		}
 	}
+
+	// Open a document that begins attaching to the host.
 	pageFail := testHarness.newPageInContext(t, ctx)
 	if _, err := pageFail.Goto(retainedURL); err != nil {
 		t.Fatalf("goto retained URL for relay-failure proof: %v", err)
@@ -1524,11 +1562,15 @@ func TestQuickstartShellTabsComposedBrowserProof(t *testing.T) {
 	waitForBootFunction(t, pageFail)
 	waitForLiveApp(t, pageFail)
 	waitForStartupMark(t, pageFail, "dedicated-host.attach-open-start")
+
+	// Close the host and check the attaching document fails over without a cold boot.
 	if err := pageA.Close(); err != nil {
 		t.Fatalf("close elected host document: %v", err)
 	}
 	waitForStartupMark(t, pageFail, "dedicated-host.attach-open-failed")
 	assertRelayFailureStayedCold(t, pageFail)
+
+	// Check the survivor is promoted and keeps the Shell inventory.
 	promotionGeneration := assertWarmPromotion(t, pageB, hostGeneration)
 	assertWarmPresentation(t, pageB, promotionGeneration, "", false)
 	waitForShellRecordCount(t, pageFail, 6)
@@ -1536,6 +1578,8 @@ func TestQuickstartShellTabsComposedBrowserProof(t *testing.T) {
 	if !sameStringSet(browserShellRecordIDs(readBrowserShellTabsSnapshot(t, pageB)), expectedInventory) {
 		t.Fatalf("Shell inventory did not survive host loss/promotion")
 	}
+
+	// Check the promoted survivor is usable.
 	if err := pageB.BringToFront(); err != nil {
 		t.Fatalf("bring survivor document to front: %v", err)
 	}
@@ -1544,6 +1588,8 @@ func TestQuickstartShellTabsComposedBrowserProof(t *testing.T) {
 	); err != nil {
 		t.Fatalf("wait for promoted survivor usability: %v", err)
 	}
+
+	// Close every document to reach zero documents.
 	preservedSnapshot := readBrowserShellTabsSnapshot(t, pageB)
 	for _, page := range ctx.Pages() {
 		if page.IsClosed() {
@@ -1553,6 +1599,8 @@ func TestQuickstartShellTabsComposedBrowserProof(t *testing.T) {
 			t.Fatalf("close document before zero-document retention check: %v", err)
 		}
 	}
+
+	// Reopen and check the retained records are unchanged plus one new route record.
 	reopen := testHarness.newPageInContext(t, ctx)
 	openQuickstartReleasePage(t, reopen, quickstartURL)
 	waitForShellRecordCount(t, reopen, len(preservedSnapshot.Records)+1)
@@ -1563,6 +1611,8 @@ func TestQuickstartShellTabsComposedBrowserProof(t *testing.T) {
 	if !sameBrowserShellRecordValues(preservedSnapshot, reopenedSnapshot) {
 		t.Fatalf("zero-document reopen changed existing Shell record fields: before=%#v after=%#v", preservedSnapshot, reopenedSnapshot)
 	}
+
+	// Reset Shell tabs and check the epoch advances to one record.
 	beforeReset := reopenedSnapshot
 	resetShellTabsVisibly(t, reopen)
 	waitForShellRecordCount(t, reopen, 1)
