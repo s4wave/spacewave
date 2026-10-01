@@ -20,24 +20,26 @@ func newTestStore() kvtx.Store {
 	return hashmap.NewHashmapKvtx(hashmap.NewHashmap[[]byte]())
 }
 
-// TestManifest tests ApplyDelta, GetEntries ordering, and
-
 // TestManifestApplyDeltaKeepsPulledSequence verifies a locally authored entry
 // committed after a pull of the same pack keeps the pulled sequence.
 func TestManifestApplyDeltaKeepsPulledSequence(t *testing.T) {
+	// Open an empty manifest.
 	ctx := t.Context()
 	store := newTestStore()
 	m, err := New(ctx, store)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := m.ApplyDelta(ctx, []*packfile.PackfileEntry{{Id: "pack-a", BlockCount: 1, Sequence: 7}}, nil); err != nil {
+
+	// Pull pack-a at sequence 7, then commit the same pack locally.
+	if err := m.ApplyDelta(ctx, []*packfile.PackfileEntry{{Id: "pack-a", BlockCount: 1, Sequence: 7}}, nil, 7); err != nil {
 		t.Fatal(err)
 	}
-	if err := m.ApplyDelta(ctx, []*packfile.PackfileEntry{{Id: "pack-a", BlockCount: 1}}, nil); err != nil {
+	if err := m.ApplyDelta(ctx, []*packfile.PackfileEntry{{Id: "pack-a", BlockCount: 1}}, nil, 0); err != nil {
 		t.Fatal(err)
 	}
 
+	// The pulled sequence survives in memory and in the store.
 	if got := m.GetEntries()[0].GetSequence(); got != 7 {
 		t.Fatalf("sequence = %d, want the pulled 7", got)
 	}
@@ -50,21 +52,19 @@ func TestManifestApplyDeltaKeepsPulledSequence(t *testing.T) {
 	}
 }
 
-// GetLastPullSequence.
+// TestManifest tests ApplyDelta, GetEntries ordering, GetLastPullSequence, and
+// the stored key layout.
 func TestManifest(t *testing.T) {
+	// Open an empty manifest with no pull cursor.
 	ctx := t.Context()
 	store := newTestStore()
-
 	m, err := New(ctx, store)
 	if err != nil {
 		t.Fatal(err)
 	}
-
-	// Empty manifest initially.
 	if len(m.GetEntries()) != 0 {
 		t.Fatal("expected empty manifest")
 	}
-
 	lastSeq, err := m.GetLastPullSequence(ctx)
 	if err != nil {
 		t.Fatal(err)
@@ -73,15 +73,16 @@ func TestManifest(t *testing.T) {
 		t.Fatalf("expected empty last pull sequence, got %d", lastSeq)
 	}
 
-	// Apply first delta.
+	// Apply the first delta.
 	entries1 := []*packfile.PackfileEntry{
 		{Id: "01ARZ3NDEKTSV4RRFFQ69G5FAV", BloomFilter: []byte("bf-1"), BloomFormatVersion: packfile.BloomFormatVersionV1, BlockCount: 10, SizeBytes: 1000, Sequence: 1},
 		{Id: "01ARZ3NDEKTSV4RRFFQ69G5FAW", BloomFilter: []byte("bf-2"), BloomFormatVersion: packfile.BloomFormatVersionV1, BlockCount: 20, SizeBytes: 2000, Sequence: 2},
 	}
-	if err := m.ApplyDelta(ctx, entries1, nil); err != nil {
+	if err := m.ApplyDelta(ctx, entries1, nil, 2); err != nil {
 		t.Fatal(err)
 	}
 
+	// The entries are listed in order with their bloom filters.
 	got := m.GetEntries()
 	if len(got) != 2 {
 		t.Fatalf("expected 2 entries, got %d", len(got))
@@ -93,6 +94,7 @@ func TestManifest(t *testing.T) {
 		t.Fatalf("unexpected first entry bloom filter: %q", got[0].GetBloomFilter())
 	}
 
+	// The cursor advances to the delta's cursor.
 	lastSeq, err = m.GetLastPullSequence(ctx)
 	if err != nil {
 		t.Fatal(err)
@@ -101,19 +103,16 @@ func TestManifest(t *testing.T) {
 		t.Fatalf("expected last pull sequence 2, got %d", lastSeq)
 	}
 
-	// Apply second delta (appends).
+	// A second delta appends an entry and advances the cursor.
 	entries2 := []*packfile.PackfileEntry{
 		{Id: "01ARZ3NDEKTSV4RRFFQ69G5FAX", BloomFilter: []byte("bf-3"), BlockCount: 5, SizeBytes: 500, Sequence: 3},
 	}
-	if err := m.ApplyDelta(ctx, entries2, nil); err != nil {
+	if err := m.ApplyDelta(ctx, entries2, nil, 3); err != nil {
 		t.Fatal(err)
 	}
-
-	got = m.GetEntries()
-	if len(got) != 3 {
+	if got = m.GetEntries(); len(got) != 3 {
 		t.Fatalf("expected 3 entries, got %d", len(got))
 	}
-
 	lastSeq, err = m.GetLastPullSequence(ctx)
 	if err != nil {
 		t.Fatal(err)
@@ -122,15 +121,15 @@ func TestManifest(t *testing.T) {
 		t.Fatalf("expected last pull sequence 3, got %d", lastSeq)
 	}
 
-	// Apply empty delta (no-op).
-	if err := m.ApplyDelta(ctx, nil, nil); err != nil {
+	// An empty delta changes nothing.
+	if err := m.ApplyDelta(ctx, nil, nil, 0); err != nil {
 		t.Fatal(err)
 	}
 	if len(m.GetEntries()) != 3 {
 		t.Fatal("empty delta should not change entries")
 	}
 
-	// Verify persistence: reload from same store.
+	// A reload from the same store lists the same entries.
 	m2, err := New(ctx, store)
 	if err != nil {
 		t.Fatal(err)
@@ -146,12 +145,14 @@ func TestManifest(t *testing.T) {
 		t.Fatalf("unexpected first reloaded bloom filter: %q", got2[0].GetBloomFilter())
 	}
 
+	// Open a read transaction to inspect the stored layout.
 	tx, err := store.NewTransaction(ctx, false)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer tx.Discard()
 
+	// Each pack is stored under its sharded key.
 	var keys []string
 	if err := tx.ScanPrefix(ctx, []byte("packs/"), func(key, value []byte) error {
 		keys = append(keys, string(key))
@@ -166,6 +167,7 @@ func TestManifest(t *testing.T) {
 		t.Fatalf("unexpected first stored pack key: %s", keys[0])
 	}
 
+	// The stored entry omits its bloom filter and keeps the format version.
 	data, found, err := tx.Get(ctx, manifestPackKey("01ARZ3NDEKTSV4RRFFQ69G5FAV"))
 	if err != nil {
 		t.Fatal(err)
@@ -184,6 +186,7 @@ func TestManifest(t *testing.T) {
 		t.Fatalf("expected persisted bloom_format_version v1, got %d", storedEntry.GetBloomFormatVersion())
 	}
 
+	// The bloom filter is stored under its own key.
 	bloomData, found, err := tx.Get(ctx, manifestBloomKey("01ARZ3NDEKTSV4RRFFQ69G5FAV"))
 	if err != nil {
 		t.Fatal(err)
@@ -196,16 +199,19 @@ func TestManifest(t *testing.T) {
 	}
 }
 
+// TestManifestLoadsLegacyInlineBloomFilter verifies an entry stored with an
+// inline bloom filter loads with that filter.
 func TestManifestLoadsLegacyInlineBloomFilter(t *testing.T) {
+	// Open a write transaction for the legacy layout.
 	ctx := t.Context()
 	store := newTestStore()
-
 	tx, err := store.NewTransaction(ctx, true)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer tx.Discard()
 
+	// Store one entry with its bloom filter inline.
 	entry := &packfile.PackfileEntry{
 		Id:          "01ARZ3NDEKTSV4RRFFQ69G5FAY",
 		BloomFilter: []byte("legacy-bloom"),
@@ -219,6 +225,8 @@ func TestManifestLoadsLegacyInlineBloomFilter(t *testing.T) {
 	if err := tx.Set(ctx, manifestPackKey(entry.GetId()), data); err != nil {
 		t.Fatal(err)
 	}
+
+	// Store the cursor and commit.
 	if err := tx.Set(ctx, metaLastPullSequenceKey, []byte("1")); err != nil {
 		t.Fatal(err)
 	}
@@ -226,6 +234,7 @@ func TestManifestLoadsLegacyInlineBloomFilter(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// The loaded entry carries the inline filter.
 	m, err := New(ctx, store)
 	if err != nil {
 		t.Fatal(err)
@@ -239,7 +248,11 @@ func TestManifestLoadsLegacyInlineBloomFilter(t *testing.T) {
 	}
 }
 
+// TestManifestApplyDeltaUpdatesByIDAndAppliesReplacementEvents verifies a
+// delta updates entries by id and a replacement event drops the replaced pack
+// and its cached index tail.
 func TestManifestApplyDeltaUpdatesByIDAndAppliesReplacementEvents(t *testing.T) {
+	// Open an empty manifest.
 	ctx := t.Context()
 	store := newTestStore()
 	m, err := New(ctx, store)
@@ -247,15 +260,18 @@ func TestManifestApplyDeltaUpdatesByIDAndAppliesReplacementEvents(t *testing.T) 
 		t.Fatal(err)
 	}
 
+	// Pull pack-a and pack-b, and cache pack-a's index tail.
 	if err := m.ApplyDelta(ctx, []*packfile.PackfileEntry{
 		{Id: "pack-a", BloomFilter: []byte("bf-a"), BloomFormatVersion: packfile.BloomFormatVersionV1, BlockCount: 1, SizeBytes: 10, Sequence: 1},
 		{Id: "pack-b", BloomFilter: []byte("bf-b"), BloomFormatVersion: packfile.BloomFormatVersionV1, BlockCount: 1, SizeBytes: 20, Sequence: 2},
-	}, nil); err != nil {
+	}, nil, 2); err != nil {
 		t.Fatal(err)
 	}
 	if err := NewIndexCache(store).Set(ctx, "pack-a", []byte("tail-a")); err != nil {
 		t.Fatal(err)
 	}
+
+	// Update pack-b, add pack-c, and replace pack-a.
 	if err := m.ApplyDelta(ctx, []*packfile.PackfileEntry{
 		{Id: "pack-b", BloomFilter: []byte("bf-b2"), BloomFormatVersion: packfile.BloomFormatVersionV1, BlockCount: 2, SizeBytes: 30, Sequence: 3},
 		{Id: "pack-c", BloomFilter: []byte("bf-c"), BloomFormatVersion: packfile.BloomFormatVersionV1, BlockCount: 3, SizeBytes: 40, Sequence: 4},
@@ -263,10 +279,11 @@ func TestManifestApplyDeltaUpdatesByIDAndAppliesReplacementEvents(t *testing.T) 
 		Sequence:           5,
 		ReplacedPackIds:    []string{"pack-a"},
 		ReplacementPackIds: []string{"pack-c"},
-	}}); err != nil {
+	}}, 5); err != nil {
 		t.Fatal(err)
 	}
 
+	// The active entries are the updated pack-b and pack-c.
 	got := m.GetEntries()
 	if len(got) != 2 {
 		t.Fatalf("expected 2 active entries, got %d", len(got))
@@ -277,6 +294,8 @@ func TestManifestApplyDeltaUpdatesByIDAndAppliesReplacementEvents(t *testing.T) 
 	if got[1].GetId() != "pack-c" {
 		t.Fatalf("pack-c missing: %+v", got[1])
 	}
+
+	// The cursor advances to the event sequence.
 	lastSeq, err := m.GetLastPullSequence(ctx)
 	if err != nil {
 		t.Fatal(err)
@@ -285,6 +304,7 @@ func TestManifestApplyDeltaUpdatesByIDAndAppliesReplacementEvents(t *testing.T) 
 		t.Fatalf("last sequence=%d want 5", lastSeq)
 	}
 
+	// A reload lists the same active entries.
 	reloaded, err := New(ctx, store)
 	if err != nil {
 		t.Fatal(err)
@@ -293,11 +313,15 @@ func TestManifestApplyDeltaUpdatesByIDAndAppliesReplacementEvents(t *testing.T) 
 	if len(got) != 2 || got[0].GetId() != "pack-b" || got[1].GetId() != "pack-c" {
 		t.Fatalf("unexpected reloaded active entries: %+v", got)
 	}
+
+	// Open a read transaction to inspect the stored keys.
 	tx, err := store.NewTransaction(ctx, false)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer tx.Discard()
+
+	// Neither pack-a's entry nor its index tail remains.
 	_, found, err := tx.Get(ctx, manifestPackKey("pack-a"))
 	if err != nil {
 		t.Fatal(err)
@@ -314,12 +338,18 @@ func TestManifestApplyDeltaUpdatesByIDAndAppliesReplacementEvents(t *testing.T) 
 	}
 }
 
+// TestManifestApplyDeltaReplaysIdentically verifies a delta replayed after a
+// fault before commit stores the same result as a clean apply.
 func TestManifestApplyDeltaReplaysIdentically(t *testing.T) {
+	// result is the stored catalog after a run.
 	type result struct {
 		entries  []*packfile.PackfileEntry
 		sequence uint64
 	}
+
+	// run applies two deltas and reloads the stored catalog.
 	run := func(t *testing.T, injectFault bool) (result, *kvtest.FaultStore) {
+		// Open a manifest holding pack-a and pack-b.
 		t.Helper()
 		ctx := t.Context()
 		backend := newTestStore()
@@ -330,10 +360,11 @@ func TestManifestApplyDeltaReplaysIdentically(t *testing.T) {
 		if err := m.ApplyDelta(ctx, []*packfile.PackfileEntry{
 			{Id: "pack-a", BloomFilter: []byte("bf-a"), BlockCount: 1, Sequence: 1},
 			{Id: "pack-b", BloomFilter: []byte("bf-b"), BlockCount: 2, Sequence: 2},
-		}, nil); err != nil {
+		}, nil, 2); err != nil {
 			t.Fatal(err)
 		}
 
+		// Apply the second delta, optionally through a store that faults first.
 		var faultStore *kvtest.FaultStore
 		if injectFault {
 			faultStore = kvtest.NewFaultStore(backend, kvtest.FaultBeforeCommit)
@@ -345,10 +376,11 @@ func TestManifestApplyDeltaReplaysIdentically(t *testing.T) {
 		}, []*packfile.PackReplacementEvent{{
 			Sequence:        5,
 			ReplacedPackIds: []string{"pack-a"},
-		}}); err != nil {
+		}}, 5); err != nil {
 			t.Fatal(err)
 		}
 
+		// Reload the stored result.
 		reloaded, err := New(ctx, backend)
 		if err != nil {
 			t.Fatal(err)
@@ -360,6 +392,7 @@ func TestManifestApplyDeltaReplaysIdentically(t *testing.T) {
 		return result{entries: reloaded.GetEntries(), sequence: sequence}, faultStore
 	}
 
+	// The faulted run stores the clean run's result.
 	want, _ := run(t, false)
 	got, faultStore := run(t, true)
 	if got.sequence != want.sequence {
@@ -373,6 +406,8 @@ func TestManifestApplyDeltaReplaysIdentically(t *testing.T) {
 			t.Fatalf("entry %d = %+v, want %+v", i, got.entries[i], want.entries[i])
 		}
 	}
+
+	// The fault retried once and committed once.
 	if got := faultStore.Opened(); got != 2 {
 		t.Fatalf("opened transactions = %d, want 2", got)
 	}

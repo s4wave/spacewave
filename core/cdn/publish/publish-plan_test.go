@@ -72,17 +72,22 @@ func TestBuildPublishPlanSkipsPackRepairWhenRootAlreadyMatches(t *testing.T) {
 	}
 }
 
+// TestPromoteNoOpWhenDestinationMatches verifies Promote pushes nothing when
+// the destination already holds the source packs and head.
 func TestPromoteNoOpWhenDestinationMatches(t *testing.T) {
+	// Give both spaces the same pack and head.
 	const srcSpaceID = "01SRCSPACE000000000000000000"
 	const dstSpaceID = "01DSTSPACE000000000000000000"
 	headRef := testPublishObjectRef(1)
 	client := &promoteTestClient{
 		state: testPublishStateBytes(t, headRef),
-		pulls: map[string][]byte{
-			srcSpaceID: testPublishPullBytes(t, []*packfile.PackfileEntry{{Id: "01PACKA"}}),
-			dstSpaceID: testPublishPullBytes(t, []*packfile.PackfileEntry{{Id: "01PACKA"}}),
+		pulls: map[string]*packfile.PullResponse{
+			srcSpaceID: {Entries: []*packfile.PackfileEntry{{Id: "01PACKA"}}},
+			dstSpaceID: {Entries: []*packfile.PackfileEntry{{Id: "01PACKA"}}},
 		},
 	}
+
+	// Serve the destination root pointer from the CDN.
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/"+dstSpaceID+"/root.packedmsg" {
 			http.NotFound(w, r)
@@ -92,6 +97,7 @@ func TestPromoteNoOpWhenDestinationMatches(t *testing.T) {
 	}))
 	defer srv.Close()
 
+	// Promote reports no changes.
 	var out strings.Builder
 	err := Promote(context.Background(), Options{
 		Client:     client,
@@ -106,6 +112,8 @@ func TestPromoteNoOpWhenDestinationMatches(t *testing.T) {
 	if out.String() != "publish-space: no changes (destination already matches source)\n" {
 		t.Fatalf("output = %q", out.String())
 	}
+
+	// Nothing was pushed and no root was posted.
 	if client.pushes != 0 {
 		t.Fatalf("pushes = %d", client.pushes)
 	}
@@ -210,15 +218,6 @@ func testPublishStateBytes(t *testing.T, headRef *bucket.ObjectRef) []byte {
 	return out
 }
 
-func testPublishPullBytes(t *testing.T, entries []*packfile.PackfileEntry) []byte {
-	t.Helper()
-	out, err := (&packfile.PullResponse{Entries: entries}).MarshalVT()
-	if err != nil {
-		t.Fatalf("MarshalVT() error = %v", err)
-	}
-	return out
-}
-
 func testPublishRootPointer(t *testing.T, spaceID string, headRef *bucket.ObjectRef) string {
 	t.Helper()
 	stateData, err := (&sobject_world_engine.InnerState{HeadRef: headRef}).MarshalVT()
@@ -247,7 +246,7 @@ func testPublishDigest(seed byte) []byte {
 
 type promoteTestClient struct {
 	state  []byte
-	pulls  map[string][]byte
+	pulls  map[string]*packfile.PullResponse
 	pushes int
 	roots  int
 }
@@ -260,7 +259,7 @@ func (c *promoteTestClient) GetSOState(context.Context, string, uint64, spacewav
 	return c.state, nil
 }
 
-func (c *promoteTestClient) SyncPull(_ context.Context, resourceID string, _ string) ([]byte, error) {
+func (c *promoteTestClient) SyncPull(_ context.Context, resourceID string, _ uint64) (*packfile.PullResponse, error) {
 	return c.pulls[resourceID], nil
 }
 

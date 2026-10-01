@@ -21,6 +21,7 @@ import (
 func TestSyncCatalogChangeScaling(t *testing.T) {
 	for _, count := range []int{1000, 10000, 100000} {
 		t.Run(strconv.Itoa(count), func(t *testing.T) {
+			// Open a bolt-backed catalog with a fixture key.
 			ctx := t.Context()
 			backend, err := store_kvtx_bolt.Open(filepath.Join(t.TempDir(), "catalog.db"), 0600, nil, []byte("metadata"))
 			if err != nil {
@@ -34,6 +35,8 @@ func TestSyncCatalogChangeScaling(t *testing.T) {
 			}); err != nil {
 				t.Fatal(err)
 			}
+
+			// Fill the catalog with count pulled packs.
 			catalog, err := manifest.New(ctx, backend)
 			if err != nil {
 				t.Fatal(err)
@@ -43,13 +46,15 @@ func TestSyncCatalogChangeScaling(t *testing.T) {
 			for n := range entries {
 				entries[n] = &packfile.PackfileEntry{Id: "pack-" + strconv.Itoa(n), Sequence: uint64(n + 1), BlockCount: 1, SizeBytes: 100}
 			}
-			if err := syncer.applyManifestDelta(ctx, entries, nil); err != nil {
+			if err := syncer.applyManifestDelta(ctx, entries, nil, uint64(count)); err != nil {
 				t.Fatal(err)
 			}
+
+			// Measure one local commit against the filled catalog.
 			var before, after runtime.MemStats
 			runtime.ReadMemStats(&before)
 			started := time.Now()
-			if err := syncer.applyManifestDelta(ctx, []*packfile.PackfileEntry{{Id: "new-pack", BlockCount: 1, SizeBytes: 100}}, nil); err != nil {
+			if err := syncer.applyManifestDelta(ctx, []*packfile.PackfileEntry{{Id: "new-pack", BlockCount: 1, SizeBytes: 100}}, nil, 0); err != nil {
 				t.Fatal(err)
 			}
 			elapsed := time.Since(started)

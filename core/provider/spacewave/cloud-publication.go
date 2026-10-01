@@ -13,11 +13,14 @@ import (
 	"github.com/s4wave/spacewave/core/sobject"
 )
 
+// cloudOpsBodyLimit is the largest operations request body the cloud accepts.
+const cloudOpsBodyLimit = 256 << 10
+
 // retainPublication commits accepted state and its cloud obligation atomically.
 // The caller holds acceptMu. No watched local success precedes this transaction.
 func (h *cloudSOHost) retainPublication(ctx context.Context, state *sobject.SOState, operation *sobject.SOOperation, root bool) error {
 	// Reject an operation that exceeds the cloud checkpoint limit.
-	if operation != nil && (&api.PostOpsRequest{Operations: []*sobject.SOOperation{operation}}).SizeVT() > 1<<20 {
+	if operation != nil && (&api.PostOpsRequest{Operations: []*sobject.SOOperation{operation}}).SizeVT() > cloudOpsBodyLimit {
 		return errors.New("operation exceeds the cloud checkpoint limit")
 	}
 
@@ -126,7 +129,7 @@ func (h *cloudSOHost) publishCheckpoint(ctx context.Context, sent *api.PendingSO
 			return err
 		}
 		candidate := append(batch, operation)
-		if len(candidate) > 50 || (&api.PostOpsRequest{Operations: candidate}).SizeVT() > 1<<20 {
+		if len(candidate) > 50 || (&api.PostOpsRequest{Operations: candidate}).SizeVT() > cloudOpsBodyLimit {
 			if err := h.client.PostOps(ctx, h.soID, batch); err != nil {
 				return err
 			}

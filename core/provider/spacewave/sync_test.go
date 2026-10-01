@@ -42,19 +42,23 @@ const (
 	syncExecuteStopTimeout    = 500 * time.Millisecond
 )
 
-// TestSyncPull_Success verifies SyncPull sends a GET to /sync/pull and returns the body.
+// TestSyncPull_Success verifies SyncPull sends a GET to /sync/pull and decodes
+// the binary page.
 func TestSyncPull_Success(t *testing.T) {
+	// Encode one page.
 	resp := &packfile.PullResponse{
 		Entries: []*packfile.PackfileEntry{
 			{Id: "pack-001", BlockCount: 5},
 			{Id: "pack-002", BlockCount: 3},
 		},
+		More: true,
 	}
-	respData, err := resp.MarshalJSON()
+	respData, err := resp.MarshalVT()
 	if err != nil {
 		t.Fatalf("marshal response: %v", err)
 	}
 
+	// Serve the page to a GET with no cursor.
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
 			t.Errorf("expected GET, got %s", r.Method)
@@ -70,43 +74,34 @@ func TestSyncPull_Success(t *testing.T) {
 	}))
 	defer srv.Close()
 
+	// Pull the page and compare it.
 	priv, pid := generateTestKeypair(t)
 	cli := NewSessionClient(http.DefaultClient, srv.URL, DefaultSigningEnvPrefix, priv, pid.String())
-
-	data, err := cli.SyncPull(context.Background(), "test-res", "")
+	page, err := cli.SyncPull(context.Background(), "test-res", 0)
 	if err != nil {
 		t.Fatalf("SyncPull: %v", err)
 	}
-
-	// Parse the returned data and verify it round-trips.
-	parsed := &packfile.PullResponse{}
-	if err := parsed.UnmarshalJSON(data); err != nil {
-		t.Fatalf("unmarshal pull response: %v", err)
-	}
-	if len(parsed.GetEntries()) != 2 {
-		t.Fatalf("expected 2 entries, got %d", len(parsed.GetEntries()))
-	}
-	if parsed.GetEntries()[0].GetId() != "pack-001" {
-		t.Fatalf("unexpected first entry ID: %s", parsed.GetEntries()[0].GetId())
+	if !page.EqualVT(resp) {
+		t.Fatalf("page = %v, want %v", page, resp)
 	}
 }
 
 // TestSyncPull_WithSince verifies SyncPull adds a since query parameter.
 func TestSyncPull_WithSince(t *testing.T) {
+	// Require since=5 on the request.
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		since := r.URL.Query().Get("since")
-		if since != "pack-005" {
-			t.Errorf("expected since=pack-005, got %q", since)
+		if since != "5" {
+			t.Errorf("expected since=5, got %q", since)
 		}
 		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte("{}"))
 	}))
 	defer srv.Close()
 
+	// Pull after cursor 5.
 	priv, pid := generateTestKeypair(t)
 	cli := NewSessionClient(http.DefaultClient, srv.URL, DefaultSigningEnvPrefix, priv, pid.String())
-
-	_, err := cli.SyncPull(context.Background(), "test-res", "pack-005")
+	_, err := cli.SyncPull(context.Background(), "test-res", 5)
 	if err != nil {
 		t.Fatalf("SyncPull with since: %v", err)
 	}
@@ -114,16 +109,17 @@ func TestSyncPull_WithSince(t *testing.T) {
 
 // TestSyncPull_ServerError verifies SyncPull returns an error on server failure.
 func TestSyncPull_ServerError(t *testing.T) {
+	// Fail every request.
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		_, _ = w.Write([]byte("internal error"))
 	}))
 	defer srv.Close()
 
+	// The pull returns the failure.
 	priv, pid := generateTestKeypair(t)
 	cli := NewSessionClient(http.DefaultClient, srv.URL, DefaultSigningEnvPrefix, priv, pid.String())
-
-	_, err := cli.SyncPull(context.Background(), "test-res", "")
+	_, err := cli.SyncPull(context.Background(), "test-res", 0)
 	if err == nil {
 		t.Fatal("expected error for 500 status")
 	}
@@ -415,6 +411,7 @@ func TestSyncPushData_EnableDirectWriteTickets(t *testing.T) {
 
 // TestSyncPull_BlockedError verifies SyncPull returns an error classified as blocked.
 func TestSyncPull_BlockedError(t *testing.T) {
+	// Encode a DMCA block error.
 	errResp := &api.ErrorResponse{
 		Code:    "dmca_blocked",
 		Message: "This resource has been disabled in response to a DMCA takedown notice.",
@@ -424,6 +421,7 @@ func TestSyncPull_BlockedError(t *testing.T) {
 		t.Fatalf("marshal error response: %v", err)
 	}
 
+	// Serve the error with status 451.
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(451)
@@ -431,10 +429,10 @@ func TestSyncPull_BlockedError(t *testing.T) {
 	}))
 	defer srv.Close()
 
+	// The pull fails as blocked and nothing else.
 	priv, pid := generateTestKeypair(t)
 	cli := NewSessionClient(http.DefaultClient, srv.URL, DefaultSigningEnvPrefix, priv, pid.String())
-
-	_, err = cli.SyncPull(context.Background(), "test-res", "")
+	_, err = cli.SyncPull(context.Background(), "test-res", 0)
 	if err == nil {
 		t.Fatal("expected error for 451 status")
 	}
@@ -451,6 +449,7 @@ func TestSyncPull_BlockedError(t *testing.T) {
 
 // TestSyncPull_BlockedError_NotRetryable verifies dmca_blocked errors are not retryable.
 func TestSyncPull_BlockedError_NotRetryable(t *testing.T) {
+	// Encode a DMCA block error.
 	errResp := &api.ErrorResponse{
 		Code:      "dmca_blocked",
 		Message:   "blocked",
@@ -461,6 +460,7 @@ func TestSyncPull_BlockedError_NotRetryable(t *testing.T) {
 		t.Fatalf("marshal error response: %v", err)
 	}
 
+	// Serve the error with status 451.
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(451)
@@ -468,10 +468,10 @@ func TestSyncPull_BlockedError_NotRetryable(t *testing.T) {
 	}))
 	defer srv.Close()
 
+	// The pull fails as not retryable.
 	priv, pid := generateTestKeypair(t)
 	cli := NewSessionClient(http.DefaultClient, srv.URL, DefaultSigningEnvPrefix, priv, pid.String())
-
-	_, err = cli.SyncPull(context.Background(), "test-res", "")
+	_, err = cli.SyncPull(context.Background(), "test-res", 0)
 	if err == nil {
 		t.Fatal("expected error for 451 status")
 	}

@@ -152,7 +152,9 @@ func (x *PackReplacementEvent) GetReplacementPackIds() []string {
 	return nil
 }
 
-// PullResponse is the response to a pull request.
+// PullResponse is one page of a block store catalog pull. A page holds every
+// entry and replacement event at each sequence it covers, so the greatest
+// sequence on the page is the cursor for the next page.
 type PullResponse struct {
 	unknownFields []byte
 	// Entries is the list of packfile entries.
@@ -162,6 +164,13 @@ type PullResponse struct {
 	// LatestSequence is the current monotonic sequence head for the block store,
 	// even when Entries and ReplacementEvents are empty for an up-to-date pull.
 	LatestSequence uint64 `protobuf:"varint,3,opt,name=latest_sequence,json=latestSequence,proto3" json:"latestSequence,omitempty"`
+	// More is set when entries or events after this page remain below
+	// LatestSequence.
+	More bool `protobuf:"varint,4,opt,name=more,proto3" json:"more,omitempty"`
+	// Restart is set when the server no longer holds the history after the
+	// requested cursor. The page then starts a full pull from sequence zero,
+	// and the reader drops every pulled pack the full pull does not list.
+	Restart bool `protobuf:"varint,5,opt,name=restart,proto3" json:"restart,omitempty"`
 }
 
 func (x *PullResponse) Reset() {
@@ -189,6 +198,20 @@ func (x *PullResponse) GetLatestSequence() uint64 {
 		return x.LatestSequence
 	}
 	return 0
+}
+
+func (x *PullResponse) GetMore() bool {
+	if x != nil {
+		return x.More
+	}
+	return false
+}
+
+func (x *PullResponse) GetRestart() bool {
+	if x != nil {
+		return x.Restart
+	}
+	return false
 }
 
 // PushResponse is the response to a push request.
@@ -277,6 +300,8 @@ func (m *PullResponse) CloneVT() *PullResponse {
 	}
 	r := new(PullResponse)
 	r.LatestSequence = m.LatestSequence
+	r.More = m.More
+	r.Restart = m.Restart
 	r.Entries = protobuf_go_lite.CloneVTSlice(m.Entries)
 	r.ReplacementEvents = protobuf_go_lite.CloneVTSlice(m.ReplacementEvents)
 	if len(m.unknownFields) > 0 {
@@ -390,6 +415,12 @@ func (this *PullResponse) EqualVT(that *PullResponse) bool {
 		return false
 	}
 	if this.LatestSequence != that.LatestSequence {
+		return false
+	}
+	if this.More != that.More {
+		return false
+	}
+	if this.Restart != that.Restart {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -644,6 +675,16 @@ func (x *PullResponse) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("latestSequence")
 		s.WriteUint64(x.LatestSequence)
 	}
+	if x.More || s.HasField("more") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("more")
+		s.WriteBool(x.More)
+	}
+	if x.Restart || s.HasField("restart") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("restart")
+		s.WriteBool(x.Restart)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -700,6 +741,12 @@ func (x *PullResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "latest_sequence", "latestSequence":
 			s.AddField("latest_sequence")
 			x.LatestSequence = s.ReadUint64()
+		case "more":
+			s.AddField("more")
+			x.More = s.ReadBool()
+		case "restart":
+			s.AddField("restart")
+			x.Restart = s.ReadBool()
 		}
 	})
 }
@@ -934,6 +981,16 @@ func (m *PullResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.Restart {
+		i = protobuf_go_lite.EncodeBool(dAtA, i, m.Restart)
+		i--
+		dAtA[i] = 0x28
+	}
+	if m.More {
+		i = protobuf_go_lite.EncodeBool(dAtA, i, m.More)
+		i--
+		dAtA[i] = 0x20
+	}
 	if m.LatestSequence != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.LatestSequence))
 		i--
@@ -1066,6 +1123,8 @@ func (m *PullResponse) SizeVT() (n int) {
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.LatestSequence)
+	n += protobuf_go_lite.SizeBoolNonZero(1, m.More)
+	n += protobuf_go_lite.SizeBoolNonZero(1, m.Restart)
 	n += len(m.unknownFields)
 	return n
 }
@@ -1189,6 +1248,14 @@ func (x *PullResponse) MarshalProtoText() string {
 	if x.LatestSequence != 0 {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "latest_sequence")
 		protobuf_go_lite.TextWriteUint(&sb, x.LatestSequence)
+	}
+	if x.More != false {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "more")
+		protobuf_go_lite.TextWriteBool(&sb, x.More)
+	}
+	if x.Restart != false {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "restart")
+		protobuf_go_lite.TextWriteBool(&sb, x.Restart)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -1483,6 +1550,26 @@ func (m *PullResponse) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field More", wireType)
+			}
+			var v bool
+			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.More = bool(v)
+		case 5:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Restart", wireType)
+			}
+			var v bool
+			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Restart = bool(v)
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

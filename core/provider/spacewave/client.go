@@ -1620,18 +1620,25 @@ func (c *SessionClient) syncPushDataWithProgress(
 	return nil
 }
 
-// SyncPull retrieves packfile entries from a resource-scoped block store since the given ID.
-func (c *SessionClient) SyncPull(ctx context.Context, resourceID string, since string) ([]byte, error) {
+// SyncPull reads one page of a resource-scoped block store catalog after the
+// since cursor. Since zero starts from the beginning.
+func (c *SessionClient) SyncPull(ctx context.Context, resourceID string, since uint64) (*packfile.PullResponse, error) {
+	// Address the page after the since cursor.
 	p := path.Join("/api/bstore", resourceID, "sync/pull")
-	if since != "" {
-		p += "?since=" + url.QueryEscape(since)
+	if since != 0 {
+		p += "?since=" + strconv.FormatUint(since, 10)
 	}
 
+	// Fetch and decode the binary catalog page.
 	data, err := c.doGet(ctx, p, SeedReasonColdSeed)
 	if err != nil {
 		return nil, errors.Wrap(err, "sync pull")
 	}
-	return data, nil
+	resp := &packfile.PullResponse{}
+	if err := resp.UnmarshalVT(data); err != nil {
+		return nil, errors.Wrap(err, "unmarshal pull response")
+	}
+	return resp, nil
 }
 
 // PostOp posts an operation to a shared object.
