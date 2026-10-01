@@ -668,18 +668,17 @@ jobs:
             ~/.cache/ms-playwright-go
           key: ${{ runner.os }}-${{ runner.arch }}-playwright-go-driver-${{ steps.playwright-go-version.outputs.version }}
 
-      - name: Install Playwright Chromium and OS dependencies
-        env:
-          PLAYWRIGHT_CACHE_HIT: ${{ steps.playwright-browser-cache.outputs.cache-hit }}
-        run: |
-          if [ "$PLAYWRIGHT_CACHE_HIT" = "true" ]; then
-            install=(install-deps chromium)
-          else
-            install=(install --with-deps chromium)
-          fi
+      # Killing apt-get mid-install would leave the dpkg lock held for a retry, so
+      # the OS packages get one attempt bounded by the step timeout.
+      - name: Install Playwright OS dependencies
+        timeout-minutes: 15
+        run: go run github.com/mxschmitt/playwright-go/cmd/playwright install-deps chromium
 
+      - name: Install Playwright Chromium
+        if: steps.playwright-browser-cache.outputs.cache-hit != 'true'
+        run: |
           for attempt in 1 2; do
-            if timeout --kill-after=30s 7m go run github.com/mxschmitt/playwright-go/cmd/playwright "${install[@]}"; then
+            if timeout --kill-after=30s 7m go run github.com/mxschmitt/playwright-go/cmd/playwright install chromium; then
               exit 0
             fi
             echo "Playwright install attempt $attempt failed."
