@@ -33,6 +33,33 @@ func newSpaceOriginCommand(statePath *string, sessionIdx *uint) *cli.Command {
 	}
 }
 
+// newSpacePublicCommand builds the hidden space public subcommand. Most
+// accounts cannot make a Space publicly readable, so the command stays out of
+// the help output.
+func newSpacePublicCommand(statePath *string, sessionIdx *uint) *cli.Command {
+	return &cli.Command{
+		Name:      "public",
+		Usage:     "make a space publicly readable",
+		ArgsUsage: "[space-id]",
+		Hidden:    true,
+		Action: func(c *cli.Context) error {
+			return runSpacewaveSpaceCommand(c, *statePath, *sessionIdx, func(
+				ctx context.Context,
+				svc s4wave_session.SRPCSpacewaveSessionResourceServiceClient,
+				spaceID string,
+			) error {
+				if _, err := svc.SetSpacePublicRead(ctx, &s4wave_provider_spacewave.SetSpacePublicReadRequest{
+					SpaceId: spaceID,
+				}); err != nil {
+					return errors.Wrap(err, "make space public")
+				}
+				os.Stdout.WriteString("space " + spaceID + " is publicly readable\n")
+				return nil
+			})
+		},
+	}
+}
+
 // newSpaceOriginLinkCommand builds the space origin link subcommand.
 func newSpaceOriginLinkCommand(statePath *string, sessionIdx *uint) *cli.Command {
 	link := &s4wave_provider_spacewave.PublicOriginLink{}
@@ -146,14 +173,47 @@ func newSpaceOriginReleaseHostedCommand(statePath *string, sessionIdx *uint) *cl
 	}
 }
 
-// runSpaceOriginCommand mounts the selected session, resolves the Space
-// argument, runs call against the session's cloud service and prints the
-// returned origin status.
+// runSpaceOriginCommand runs call against the selected Space and prints the
+// origin status it returns.
 func runSpaceOriginCommand(
 	c *cli.Context,
 	statePath string,
 	sessionIdx uint,
 	call func(context.Context, s4wave_session.SRPCSpacewaveSessionResourceServiceClient, string) (*s4wave_provider_spacewave.PublicOriginStatus, error),
+) error {
+	return runSpacewaveSpaceCommand(c, statePath, sessionIdx, func(
+		ctx context.Context,
+		svc s4wave_session.SRPCSpacewaveSessionResourceServiceClient,
+		spaceID string,
+	) error {
+		// Run the call.
+		status, err := call(ctx, svc, spaceID)
+		if err != nil {
+			return err
+		}
+
+		// Print the origin it reports.
+		switch c.String("output") {
+		case "json", "yaml":
+			data, err := status.MarshalJSON()
+			if err != nil {
+				return err
+			}
+			return formatOutput(data, c.String("output"))
+		default:
+			printPublicOriginStatus(spaceID, status)
+			return nil
+		}
+	})
+}
+
+// runSpacewaveSpaceCommand mounts the selected session, resolves the Space
+// argument and runs call against the session's cloud service.
+func runSpacewaveSpaceCommand(
+	c *cli.Context,
+	statePath string,
+	sessionIdx uint,
+	call func(context.Context, s4wave_session.SRPCSpacewaveSessionResourceServiceClient, string) error,
 ) error {
 	// Connect to the daemon.
 	ctx := c.Context
@@ -179,24 +239,7 @@ func runSpaceOriginCommand(
 	if err != nil {
 		return errors.Wrap(err, "session client")
 	}
-	svc := s4wave_session.NewSRPCSpacewaveSessionResourceServiceClient(sessionClient)
-
-	// Run the call and print the origin it reports.
-	status, err := call(ctx, svc, spaceID)
-	if err != nil {
-		return err
-	}
-	switch c.String("output") {
-	case "json", "yaml":
-		data, err := status.MarshalJSON()
-		if err != nil {
-			return err
-		}
-		return formatOutput(data, c.String("output"))
-	default:
-		printPublicOriginStatus(spaceID, status)
-		return nil
-	}
+	return call(ctx, s4wave_session.NewSRPCSpacewaveSessionResourceServiceClient(sessionClient), spaceID)
 }
 
 // readOriginSecret returns the origin secret key from the environment, or from

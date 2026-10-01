@@ -125,6 +125,8 @@ type SRPCSpacewaveSessionResourceServiceClient interface {
 	// ReleaseSpaceHostedCopies deletes the Spacewave-hosted copies of a Space
 	// that moved to its linked origin.
 	ReleaseSpaceHostedCopies(ctx context.Context, in *s4wave_provider_spacewave.ReleaseSpaceHostedCopiesRequest) (*s4wave_provider_spacewave.ReleaseSpaceHostedCopiesResponse, error)
+	// SetSpacePublicRead makes a Space publicly readable.
+	SetSpacePublicRead(ctx context.Context, in *s4wave_provider_spacewave.SetSpacePublicReadRequest) (*s4wave_provider_spacewave.SetSpacePublicReadResponse, error)
 	// MountSharedObjectSelfEnrollment mounts the self-enrollment resource.
 	MountSharedObjectSelfEnrollment(ctx context.Context, in *MountSharedObjectSelfEnrollmentRequest) (*MountSharedObjectSelfEnrollmentResponse, error)
 	// WatchEmails streams the account's email list, emitting on changes.
@@ -819,6 +821,15 @@ func (c *srpcSpacewaveSessionResourceServiceClient) ReleaseSpaceHostedCopies(ctx
 	return out, nil
 }
 
+func (c *srpcSpacewaveSessionResourceServiceClient) SetSpacePublicRead(ctx context.Context, in *s4wave_provider_spacewave.SetSpacePublicReadRequest) (*s4wave_provider_spacewave.SetSpacePublicReadResponse, error) {
+	out := new(s4wave_provider_spacewave.SetSpacePublicReadResponse)
+	err := c.cc.ExecCall(ctx, c.serviceID, "SetSpacePublicRead", in, out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *srpcSpacewaveSessionResourceServiceClient) MountSharedObjectSelfEnrollment(ctx context.Context, in *MountSharedObjectSelfEnrollmentRequest) (*MountSharedObjectSelfEnrollmentResponse, error) {
 	out := new(MountSharedObjectSelfEnrollmentResponse)
 	err := c.cc.ExecCall(ctx, c.serviceID, "MountSharedObjectSelfEnrollment", in, out)
@@ -1115,6 +1126,8 @@ type SRPCSpacewaveSessionResourceServiceServer interface {
 	// ReleaseSpaceHostedCopies deletes the Spacewave-hosted copies of a Space
 	// that moved to its linked origin.
 	ReleaseSpaceHostedCopies(context.Context, *s4wave_provider_spacewave.ReleaseSpaceHostedCopiesRequest) (*s4wave_provider_spacewave.ReleaseSpaceHostedCopiesResponse, error)
+	// SetSpacePublicRead makes a Space publicly readable.
+	SetSpacePublicRead(context.Context, *s4wave_provider_spacewave.SetSpacePublicReadRequest) (*s4wave_provider_spacewave.SetSpacePublicReadResponse, error)
 	// MountSharedObjectSelfEnrollment mounts the self-enrollment resource.
 	MountSharedObjectSelfEnrollment(context.Context, *MountSharedObjectSelfEnrollmentRequest) (*MountSharedObjectSelfEnrollmentResponse, error)
 	// WatchEmails streams the account's email list, emitting on changes.
@@ -1241,6 +1254,7 @@ func (SRPCSpacewaveSessionResourceServiceHandler) GetMethodIDs() []string {
 		"LinkSpacePublicOrigin",
 		"GetSpacePublicOrigin",
 		"ReleaseSpaceHostedCopies",
+		"SetSpacePublicRead",
 		"MountSharedObjectSelfEnrollment",
 		"WatchEmails",
 		"SendVerificationEmail",
@@ -1373,6 +1387,8 @@ func (d *SRPCSpacewaveSessionResourceServiceHandler) InvokeMethod(
 		return true, d.InvokeMethod_GetSpacePublicOrigin(d.impl, strm)
 	case "ReleaseSpaceHostedCopies":
 		return true, d.InvokeMethod_ReleaseSpaceHostedCopies(d.impl, strm)
+	case "SetSpacePublicRead":
+		return true, d.InvokeMethod_SetSpacePublicRead(d.impl, strm)
 	case "MountSharedObjectSelfEnrollment":
 		return true, d.InvokeMethod_MountSharedObjectSelfEnrollment(d.impl, strm)
 	case "WatchEmails":
@@ -1999,6 +2015,18 @@ func (SRPCSpacewaveSessionResourceServiceHandler) InvokeMethod_ReleaseSpaceHoste
 		return err
 	}
 	out, err := impl.ReleaseSpaceHostedCopies(strm.Context(), req)
+	if err != nil {
+		return err
+	}
+	return strm.MsgSend(out)
+}
+
+func (SRPCSpacewaveSessionResourceServiceHandler) InvokeMethod_SetSpacePublicRead(impl SRPCSpacewaveSessionResourceServiceServer, strm srpc.Stream) error {
+	req := new(s4wave_provider_spacewave.SetSpacePublicReadRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	out, err := impl.SetSpacePublicRead(strm.Context(), req)
 	if err != nil {
 		return err
 	}
@@ -2728,6 +2756,14 @@ type SRPCSpacewaveSessionResourceService_ReleaseSpaceHostedCopiesStream interfac
 }
 
 type srpcSpacewaveSessionResourceService_ReleaseSpaceHostedCopiesStream struct {
+	srpc.Stream
+}
+
+type SRPCSpacewaveSessionResourceService_SetSpacePublicReadStream interface {
+	srpc.Stream
+}
+
+type srpcSpacewaveSessionResourceService_SetSpacePublicReadStream struct {
 	srpc.Stream
 }
 

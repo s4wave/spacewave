@@ -118,6 +118,8 @@ service SpacewaveSessionResourceService {
   // ReleaseSpaceHostedCopies deletes the Spacewave-hosted copies of a Space
   // that moved to its linked origin.
   rpc ReleaseSpaceHostedCopies(.s4wave.provider.spacewave.ReleaseSpaceHostedCopiesRequest) returns (.s4wave.provider.spacewave.ReleaseSpaceHostedCopiesResponse);
+  // SetSpacePublicRead makes a Space publicly readable.
+  rpc SetSpacePublicRead(.s4wave.provider.spacewave.SetSpacePublicReadRequest) returns (.s4wave.provider.spacewave.SetSpacePublicReadResponse);
   // MountSharedObjectSelfEnrollment mounts the self-enrollment resource.
   rpc MountSharedObjectSelfEnrollment(MountSharedObjectSelfEnrollmentRequest) returns (MountSharedObjectSelfEnrollmentResponse);
 

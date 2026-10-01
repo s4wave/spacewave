@@ -6471,6 +6471,37 @@ func (x *ReleaseSpaceHostedCopiesResponse) GetStatus() *PublicOriginStatus {
 	return nil
 }
 
+// SetSpacePublicReadRequest is the request for SetSpacePublicRead.
+type SetSpacePublicReadRequest struct {
+	unknownFields []byte
+	// SpaceId is the Space to make publicly readable.
+	SpaceId string `protobuf:"bytes,1,opt,name=space_id,json=spaceId,proto3" json:"spaceId,omitempty"`
+}
+
+func (x *SetSpacePublicReadRequest) Reset() {
+	*x = SetSpacePublicReadRequest{}
+}
+
+func (*SetSpacePublicReadRequest) ProtoMessage() {}
+
+func (x *SetSpacePublicReadRequest) GetSpaceId() string {
+	if x != nil {
+		return x.SpaceId
+	}
+	return ""
+}
+
+// SetSpacePublicReadResponse is the response for SetSpacePublicRead.
+type SetSpacePublicReadResponse struct {
+	unknownFields []byte
+}
+
+func (x *SetSpacePublicReadResponse) Reset() {
+	*x = SetSpacePublicReadResponse{}
+}
+
+func (*SetSpacePublicReadResponse) ProtoMessage() {}
+
 // ReinitializeSharedObjectRequest is the request for ReinitializeSharedObject.
 type ReinitializeSharedObjectRequest struct {
 	unknownFields []byte
@@ -11763,6 +11794,37 @@ func (m *ReleaseSpaceHostedCopiesResponse) CloneVT() *ReleaseSpaceHostedCopiesRe
 }
 
 func (m *ReleaseSpaceHostedCopiesResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *SetSpacePublicReadRequest) CloneVT() *SetSpacePublicReadRequest {
+	if m == nil {
+		return (*SetSpacePublicReadRequest)(nil)
+	}
+	r := new(SetSpacePublicReadRequest)
+	r.SpaceId = m.SpaceId
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *SetSpacePublicReadRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *SetSpacePublicReadResponse) CloneVT() *SetSpacePublicReadResponse {
+	if m == nil {
+		return (*SetSpacePublicReadResponse)(nil)
+	}
+	r := new(SetSpacePublicReadResponse)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *SetSpacePublicReadResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -17504,6 +17566,43 @@ func (this *ReleaseSpaceHostedCopiesResponse) EqualVT(that *ReleaseSpaceHostedCo
 
 func (this *ReleaseSpaceHostedCopiesResponse) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*ReleaseSpaceHostedCopiesResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *SetSpacePublicReadRequest) EqualVT(that *SetSpacePublicReadRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.SpaceId != that.SpaceId {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *SetSpacePublicReadRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*SetSpacePublicReadRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *SetSpacePublicReadResponse) EqualVT(that *SetSpacePublicReadResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *SetSpacePublicReadResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*SetSpacePublicReadResponse)
 	if !ok {
 		return false
 	}
@@ -29047,6 +29146,78 @@ func (x *ReleaseSpaceHostedCopiesResponse) UnmarshalProtoJSON(s *json.UnmarshalS
 
 // UnmarshalJSON unmarshals the ReleaseSpaceHostedCopiesResponse from JSON.
 func (x *ReleaseSpaceHostedCopiesResponse) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the SetSpacePublicReadRequest message to JSON.
+func (x *SetSpacePublicReadRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.SpaceId != "" || s.HasField("spaceId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("spaceId")
+		s.WriteString(x.SpaceId)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the SetSpacePublicReadRequest to JSON.
+func (x *SetSpacePublicReadRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the SetSpacePublicReadRequest message from JSON.
+func (x *SetSpacePublicReadRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "space_id", "spaceId":
+			s.AddField("space_id")
+			x.SpaceId = s.ReadString()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the SetSpacePublicReadRequest from JSON.
+func (x *SetSpacePublicReadRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the SetSpacePublicReadResponse message to JSON.
+func (x *SetSpacePublicReadResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the SetSpacePublicReadResponse to JSON.
+func (x *SetSpacePublicReadResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the SetSpacePublicReadResponse message from JSON.
+func (x *SetSpacePublicReadResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		// no fields
+	})
+}
+
+// UnmarshalJSON unmarshals the SetSpacePublicReadResponse from JSON.
+func (x *SetSpacePublicReadResponse) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -41058,6 +41229,75 @@ func (m *ReleaseSpaceHostedCopiesResponse) MarshalToSizedBufferVT(dAtA []byte) (
 	return len(dAtA) - i, nil
 }
 
+func (m *SetSpacePublicReadRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *SetSpacePublicReadRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *SetSpacePublicReadRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.SpaceId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.SpaceId)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *SetSpacePublicReadResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *SetSpacePublicReadResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *SetSpacePublicReadResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *ReinitializeSharedObjectRequest) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -46882,6 +47122,27 @@ func (m *ReleaseSpaceHostedCopiesResponse) SizeVT() (n int) {
 	return n
 }
 
+func (m *SetSpacePublicReadRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.SpaceId)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *SetSpacePublicReadResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += len(m.unknownFields)
+	return n
+}
+
 func (m *ReinitializeSharedObjectRequest) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -51403,6 +51664,30 @@ func (x *ReleaseSpaceHostedCopiesResponse) MarshalProtoText() string {
 }
 
 func (x *ReleaseSpaceHostedCopiesResponse) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *SetSpacePublicReadRequest) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "SetSpacePublicReadRequest")
+	if x.SpaceId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "space_id")
+		protobuf_go_lite.TextWriteString(&sb, x.SpaceId)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *SetSpacePublicReadRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *SetSpacePublicReadResponse) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	protobuf_go_lite.TextStartMessage(&sb, "SetSpacePublicReadResponse")
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *SetSpacePublicReadResponse) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -64449,6 +64734,102 @@ func (m *ReleaseSpaceHostedCopiesResponse) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *SetSpacePublicReadRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: SetSpacePublicReadRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: SetSpacePublicReadRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SpaceId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.SpaceId = v
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *SetSpacePublicReadResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: SetSpacePublicReadResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: SetSpacePublicReadResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

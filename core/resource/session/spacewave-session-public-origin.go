@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/pkg/errors"
+	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
 	s4wave_provider_spacewave "github.com/s4wave/spacewave/sdk/provider/spacewave"
 )
 
@@ -58,4 +59,31 @@ func (r *SpacewaveSessionResource) ReleaseSpaceHostedCopies(
 		return nil, err
 	}
 	return &s4wave_provider_spacewave.ReleaseSpaceHostedCopiesResponse{Status: status}, nil
+}
+
+// SetSpacePublicRead makes a Space publicly readable. The cloud requires the
+// display name on every metadata update, so the current one is sent with it.
+func (r *SpacewaveSessionResource) SetSpacePublicRead(
+	ctx context.Context,
+	req *s4wave_provider_spacewave.SetSpacePublicReadRequest,
+) (*s4wave_provider_spacewave.SetSpacePublicReadResponse, error) {
+	// Require the Space.
+	if req.GetSpaceId() == "" {
+		return nil, errors.New("space id is required")
+	}
+
+	// Read the current display name to send back unchanged.
+	meta, err := r.swAcc.GetSharedObjectMetadata(ctx, req.GetSpaceId())
+	if err != nil {
+		return nil, errors.Wrap(err, "get space metadata")
+	}
+
+	// Set public_read.
+	if _, err := r.swAcc.UpdateSharedObjectMetadata(ctx, req.GetSpaceId(), &api.SpaceMetadataResponse{
+		DisplayName: meta.GetDisplayName(),
+		PublicRead:  true,
+	}); err != nil {
+		return nil, errors.Wrap(err, "update space metadata")
+	}
+	return &s4wave_provider_spacewave.SetSpacePublicReadResponse{}, nil
 }

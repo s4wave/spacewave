@@ -107,6 +107,8 @@ import {
   SetBillingSpendingLimitResponse,
   SetPrimaryEmailRequest,
   SetPrimaryEmailResponse,
+  SetSpacePublicReadRequest,
+  SetSpacePublicReadResponse,
   StartDesktopPasskeyReauthRequest,
   StartDesktopPasskeyReauthResponse,
   StartDesktopSSOLinkRequest,
@@ -723,6 +725,17 @@ export const SpacewaveSessionResourceServiceDefinition = {
       name: 'ReleaseSpaceHostedCopies',
       I: ReleaseSpaceHostedCopiesRequest,
       O: ReleaseSpaceHostedCopiesResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * SetSpacePublicRead makes a Space publicly readable.
+     *
+     * @generated from rpc s4wave.session.SpacewaveSessionResourceService.SetSpacePublicRead
+     */
+    SetSpacePublicRead: {
+      name: 'SetSpacePublicRead',
+      I: SetSpacePublicReadRequest,
+      O: SetSpacePublicReadResponse,
       kind: MethodKind.Unary,
     },
     /**
@@ -1459,6 +1472,16 @@ export interface SpacewaveSessionResourceService {
     request: ReleaseSpaceHostedCopiesRequest,
     abortSignal?: AbortSignal,
   ): Promise<ReleaseSpaceHostedCopiesResponse>
+
+  /**
+   * SetSpacePublicRead makes a Space publicly readable.
+   *
+   * @generated from rpc s4wave.session.SpacewaveSessionResourceService.SetSpacePublicRead
+   */
+  SetSpacePublicRead(
+    request: SetSpacePublicReadRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<SetSpacePublicReadResponse>
 
   /**
    * MountSharedObjectSelfEnrollment mounts the self-enrollment resource.
@@ -2227,6 +2250,17 @@ export interface SpacewaveSessionResourceServiceHandler {
   ): Promise<ReleaseSpaceHostedCopiesResponse>
 
   /**
+   * SetSpacePublicRead makes a Space publicly readable.
+   *
+   * @generated from rpc s4wave.session.SpacewaveSessionResourceService.SetSpacePublicRead
+   */
+  SetSpacePublicRead(
+    request: SetSpacePublicReadRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<SetSpacePublicReadResponse>
+
+  /**
    * MountSharedObjectSelfEnrollment mounts the self-enrollment resource.
    *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.MountSharedObjectSelfEnrollment
@@ -2501,6 +2535,7 @@ export class SpacewaveSessionResourceServiceClient implements SpacewaveSessionRe
     this.LinkSpacePublicOrigin = this.LinkSpacePublicOrigin.bind(this)
     this.GetSpacePublicOrigin = this.GetSpacePublicOrigin.bind(this)
     this.ReleaseSpaceHostedCopies = this.ReleaseSpaceHostedCopies.bind(this)
+    this.SetSpacePublicRead = this.SetSpacePublicRead.bind(this)
     this.MountSharedObjectSelfEnrollment =
       this.MountSharedObjectSelfEnrollment.bind(this)
     this.WatchEmails = this.WatchEmails.bind(this)
@@ -3538,6 +3573,25 @@ export class SpacewaveSessionResourceServiceClient implements SpacewaveSessionRe
       abortSignal || undefined,
     )
     return ReleaseSpaceHostedCopiesResponse.fromBinary(result)
+  }
+
+  /**
+   * SetSpacePublicRead makes a Space publicly readable.
+   *
+   * @generated from rpc s4wave.session.SpacewaveSessionResourceService.SetSpacePublicRead
+   */
+  async SetSpacePublicRead(
+    request: SetSpacePublicReadRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<SetSpacePublicReadResponse> {
+    const requestMsg = SetSpacePublicReadRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      SpacewaveSessionResourceServiceDefinition.methods.SetSpacePublicRead.name,
+      SetSpacePublicReadRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return SetSpacePublicReadResponse.fromBinary(result)
   }
 
   /**

@@ -1771,6 +1771,15 @@ message ReleaseSpaceHostedCopiesResponse {
   PublicOriginStatus status = 1;
 }
 
+// SetSpacePublicReadRequest is the request for SetSpacePublicRead.
+message SetSpacePublicReadRequest {
+  // SpaceId is the Space to make publicly readable.
+  string space_id = 1;
+}
+
+// SetSpacePublicReadResponse is the response for SetSpacePublicRead.
+message SetSpacePublicReadResponse {}
+
 // ReinitializeSharedObjectRequest is the request for ReinitializeSharedObject.
 message ReinitializeSharedObjectRequest {
   // SharedObjectId is the shared object to reinitialize in place.

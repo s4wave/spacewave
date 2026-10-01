@@ -6639,6 +6639,41 @@ export const ReleaseSpaceHostedCopiesResponse: MessageType<ReleaseSpaceHostedCop
   })
 
 /**
+ * SetSpacePublicReadRequest is the request for SetSpacePublicRead.
+ *
+ * @generated from message s4wave.provider.spacewave.SetSpacePublicReadRequest
+ */
+export interface SetSpacePublicReadRequest {
+  /**
+   * SpaceId is the Space to make publicly readable.
+   *
+   * @generated from field: string space_id = 1;
+   */
+  spaceId?: string
+}
+
+export const SetSpacePublicReadRequest: MessageType<SetSpacePublicReadRequest> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.provider.spacewave.SetSpacePublicReadRequest',
+    fields: [
+      { no: 1, name: 'space_id', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+  })
+
+/**
+ * SetSpacePublicReadResponse is the response for SetSpacePublicRead.
+ *
+ * @generated from message s4wave.provider.spacewave.SetSpacePublicReadResponse
+ */
+export interface SetSpacePublicReadResponse {}
+
+export const SetSpacePublicReadResponse: MessageType<SetSpacePublicReadResponse> =
+  /* @__PURE__ */ createEmptyMessageType<SetSpacePublicReadResponse>(
+    's4wave.provider.spacewave.SetSpacePublicReadResponse',
+    true,
+  )
+
+/**
  * ReinitializeSharedObjectRequest is the request for ReinitializeSharedObject.
  *
  * @generated from message s4wave.provider.spacewave.ReinitializeSharedObjectRequest
