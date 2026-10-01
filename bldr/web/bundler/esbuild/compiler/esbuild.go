@@ -153,13 +153,13 @@ func BuildEsbuildBundle(
 	// Build output metadata
 	esbuildOutputMeta := bldr_web_bundler_esbuild.BuildEsbuildOutputMetas(metaFile, entrypoints)
 	for _, meta := range esbuildOutputMeta {
-		// Transform paths to be relative to assets dir
+		// Record paths as slash paths relative to the assets root.
 		metaPath := filepath.Join(codeRootPath, meta.Path)
 		metaPath, err := filepath.Rel(outAssetsPath, metaPath)
 		if err != nil {
 			return nil, nil, nil, err
 		}
-		meta.Path = metaPath
+		meta.Path = filepath.ToSlash(metaPath)
 
 		if meta.GetCssBundlePath() != "" {
 			metaCssPath := filepath.Join(codeRootPath, meta.CssBundlePath)
@@ -167,7 +167,7 @@ func BuildEsbuildBundle(
 			if err != nil {
 				return nil, nil, nil, err
 			}
-			meta.CssBundlePath = metaCssPath
+			meta.CssBundlePath = filepath.ToSlash(metaCssPath)
 		}
 	}
 

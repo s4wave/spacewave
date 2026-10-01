@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"context"
 	"os"
+	"path"
 	"path/filepath"
 	"slices"
 	"strconv"
@@ -456,11 +457,11 @@ func BuildViteBundle(
 		}
 	}
 
-	// Process entrypoint outputs and create metadata
+	// Record entrypoint outputs as slash paths relative to the assets root.
 	for _, entrypoint := range buildResp.GetEntrypointOutputs() {
 		// Add JS output metadata
 		if entrypoint.JsOutput != "" {
-			outputPath := filepath.Join(outAssetsBundleDir, entrypoint.JsOutput)
+			outputPath := path.Join(outAssetsBundleDir, entrypoint.JsOutput)
 			outputMetas = append(outputMetas, &bldr_vite.ViteOutputMeta{
 				Path:           outputPath,
 				EntrypointPath: entrypoint.Entrypoint,
@@ -469,7 +470,7 @@ func BuildViteBundle(
 
 		// Add CSS output metadata
 		for _, cssOutput := range entrypoint.CssOutputs {
-			outputPath := filepath.Join(outAssetsBundleDir, cssOutput)
+			outputPath := path.Join(outAssetsBundleDir, cssOutput)
 			outputMetas = append(outputMetas, &bldr_vite.ViteOutputMeta{
 				Path:           outputPath,
 				EntrypointPath: entrypoint.Entrypoint,
@@ -479,7 +480,7 @@ func BuildViteBundle(
 
 	// Process global CSS files
 	for _, cssFile := range buildResp.GetGlobalCssFiles() {
-		outputPath := filepath.Join(outAssetsBundleDir, cssFile)
+		outputPath := path.Join(outAssetsBundleDir, cssFile)
 		outputMetas = append(outputMetas, &bldr_vite.ViteOutputMeta{
 			Path:           outputPath,
 			EntrypointPath: "", // Global CSS files don't have a specific entrypoint
