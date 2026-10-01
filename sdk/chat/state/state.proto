@@ -11,4 +11,17 @@ message ChatReadPosition {
   uint64 next_index = 1;
   // UpdatedAt records when this position last advanced.
   .google.protobuf.Timestamp updated_at = 2;
+  // ThreadPositions are positions that cover only one timeline, keyed by thread
+  // root message key. The empty key is the main timeline: every message outside
+  // a thread. Each advances independently of NextIndex, which covers every
+  // timeline.
+  map<string, ChatThreadReadPosition> thread_positions = 3;
+}
+
+// ChatThreadReadPosition is a person's monotonic position within one timeline.
+message ChatThreadReadPosition {
+  // NextIndex is the first unread channel message index within the timeline.
+  uint64 next_index = 1;
+  // UpdatedAt records when this position last advanced.
+  .google.protobuf.Timestamp updated_at = 2;
 }

@@ -40,7 +40,7 @@ func (o *UpdateChatReadPositionOp) ApplyWorldOp(ctx context.Context, _ *logrus.E
 	if err != nil {
 		return false, err
 	}
-	return false, resource.applyReadPosition(ctx, ws, o.GetNextIndex(), o.GetTimestamp())
+	return false, resource.applyReadPosition(ctx, ws, o.GetNextIndex(), o.ThreadRootKey, o.GetTimestamp())
 }
 
 // ApplyWorldObjectOp rejects object-only replay for channel receipts.

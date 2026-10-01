@@ -202,6 +202,9 @@ message GetReadPositionsResponse {
 message UpdateReadPositionRequest {
   // NextIndex is the first unread index, bounded by the channel's message count.
   uint64 next_index = 1;
+  // ThreadRootKey limits the position to one timeline when present: a thread
+  // root message key selects that thread, and the empty key the main timeline.
+  optional string thread_root_key = 2;
 }
 
 // UpdateReadPositionResponse reports the retained position, including unchanged retries.

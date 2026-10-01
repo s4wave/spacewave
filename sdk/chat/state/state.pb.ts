@@ -9,6 +9,35 @@ import { Timestamp } from '@aptre/protobuf-es-lite/google/protobuf/timestamp'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
 /**
+ * ChatThreadReadPosition is a person's monotonic position within one timeline.
+ *
+ * @generated from message spacewave.chat.ChatThreadReadPosition
+ */
+export interface ChatThreadReadPosition {
+  /**
+   * NextIndex is the first unread channel message index within the timeline.
+   *
+   * @generated from field: uint64 next_index = 1;
+   */
+  nextIndex?: bigint
+  /**
+   * UpdatedAt records when this position last advanced.
+   *
+   * @generated from field: google.protobuf.Timestamp updated_at = 2;
+   */
+  updatedAt?: Date
+}
+
+export const ChatThreadReadPosition: MessageType<ChatThreadReadPosition> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'spacewave.chat.ChatThreadReadPosition',
+    fields: [
+      { no: 1, name: 'next_index', kind: 'scalar', T: ScalarType.UINT64 },
+      { no: 2, name: 'updated_at', kind: 'message', T: () => Timestamp },
+    ] satisfies readonly PartialFieldInfo[],
+  })
+
+/**
  * ChatReadPosition is a person's monotonic position in a channel's retained history.
  *
  * @generated from message spacewave.chat.ChatReadPosition
@@ -26,6 +55,15 @@ export interface ChatReadPosition {
    * @generated from field: google.protobuf.Timestamp updated_at = 2;
    */
   updatedAt?: Date
+  /**
+   * ThreadPositions are positions that cover only one timeline, keyed by thread
+   * root message key. The empty key is the main timeline: every message outside
+   * a thread. Each advances independently of NextIndex, which covers every
+   * timeline.
+   *
+   * @generated from field: map<string, spacewave.chat.ChatThreadReadPosition> thread_positions = 3;
+   */
+  threadPositions?: { [key: string]: ChatThreadReadPosition }
 }
 
 export const ChatReadPosition: MessageType<ChatReadPosition> =
@@ -34,5 +72,12 @@ export const ChatReadPosition: MessageType<ChatReadPosition> =
     fields: [
       { no: 1, name: 'next_index', kind: 'scalar', T: ScalarType.UINT64 },
       { no: 2, name: 'updated_at', kind: 'message', T: () => Timestamp },
+      {
+        no: 3,
+        name: 'thread_positions',
+        kind: 'map',
+        K: ScalarType.STRING,
+        V: { kind: 'message', T: ChatThreadReadPosition },
+      },
     ] satisfies readonly PartialFieldInfo[],
   })

@@ -426,6 +426,9 @@ type UpdateChatReadPositionOp struct {
 	NextIndex uint64 `protobuf:"varint,2,opt,name=next_index,json=nextIndex,proto3" json:"nextIndex,omitempty"`
 	// Timestamp is chosen when the receipt is submitted.
 	Timestamp *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
+	// ThreadRootKey limits the receipt to one timeline when present, as in
+	// UpdateReadPositionRequest.
+	ThreadRootKey *string `protobuf:"bytes,4,opt,name=thread_root_key,json=threadRootKey,proto3,oneof" json:"threadRootKey,omitempty"`
 }
 
 func (x *UpdateChatReadPositionOp) Reset() {
@@ -453,6 +456,13 @@ func (x *UpdateChatReadPositionOp) GetTimestamp() *timestamppb.Timestamp {
 		return x.Timestamp
 	}
 	return nil
+}
+
+func (x *UpdateChatReadPositionOp) GetThreadRootKey() string {
+	if x != nil && x.ThreadRootKey != nil {
+		return *x.ThreadRootKey
+	}
+	return ""
 }
 
 type ChatChannel_ReadPositionsEntry struct {
@@ -629,6 +639,7 @@ func (m *UpdateChatReadPositionOp) CloneVT() *UpdateChatReadPositionOp {
 	r.ObjectKey = m.ObjectKey
 	r.NextIndex = m.NextIndex
 	r.Timestamp = protobuf_go_lite.CloneVTValue(m.Timestamp)
+	r.ThreadRootKey = protobuf_go_lite.ClonePtr(m.ThreadRootKey)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -876,6 +887,9 @@ func (this *UpdateChatReadPositionOp) EqualVT(that *UpdateChatReadPositionOp) bo
 		return false
 	}
 	if !protobuf_go_lite.IsEqualVT(this.Timestamp, that.Timestamp) {
+		return false
+	}
+	if !protobuf_go_lite.EqualPtr(this.ThreadRootKey, that.ThreadRootKey) {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -1559,6 +1573,11 @@ func (x *UpdateChatReadPositionOp) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("timestamp")
 		x.Timestamp.MarshalProtoJSON(s.WithField("timestamp"))
 	}
+	if x.ThreadRootKey != nil {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("threadRootKey")
+		s.WriteString(*x.ThreadRootKey)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -1589,6 +1608,14 @@ func (x *UpdateChatReadPositionOp) UnmarshalProtoJSON(s *json.UnmarshalState) {
 			}
 			x.Timestamp = &timestamppb.Timestamp{}
 			x.Timestamp.UnmarshalProtoJSON(s.WithField("timestamp", true))
+		case "thread_root_key", "threadRootKey":
+			s.AddField("thread_root_key")
+			if s.ReadNil() {
+				x.ThreadRootKey = nil
+				return
+			}
+			t := s.ReadString()
+			x.ThreadRootKey = &t
 		}
 	})
 }
@@ -2085,6 +2112,11 @@ func (m *UpdateChatReadPositionOp) MarshalToSizedBufferVT(dAtA []byte) (int, err
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.ThreadRootKey != nil {
+		i = protobuf_go_lite.EncodeString(dAtA, i, *m.ThreadRootKey)
+		i--
+		dAtA[i] = 0x22
+	}
 	if m.Timestamp != nil {
 		size, err := m.Timestamp.MarshalToSizedBufferVT(dAtA[:i])
 		if err != nil {
@@ -2258,6 +2290,7 @@ func (m *UpdateChatReadPositionOp) SizeVT() (n int) {
 		l = m.Timestamp.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
+	n += protobuf_go_lite.SizeStringPtr(1, m.ThreadRootKey)
 	n += len(m.unknownFields)
 	return n
 }
@@ -2527,6 +2560,10 @@ func (x *UpdateChatReadPositionOp) MarshalProtoText() string {
 	if x.Timestamp != nil {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "timestamp")
 		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Timestamp)
+	}
+	if x.ThreadRootKey != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "thread_root_key")
+		protobuf_go_lite.TextWriteString(&sb, *x.ThreadRootKey)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -3311,6 +3348,16 @@ func (m *UpdateChatReadPositionOp) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ThreadRootKey", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.ThreadRootKey = &v
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

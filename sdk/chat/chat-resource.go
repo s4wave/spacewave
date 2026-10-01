@@ -1,7 +1,9 @@
 package spacewave_chat
 
 import (
+	"cmp"
 	"context"
+	"maps"
 	"slices"
 	"strconv"
 	"strings"
@@ -25,6 +27,8 @@ const (
 	defaultMessageListLimit = 50
 	// maxMessageListLimit caps caller-selected page sizes.
 	maxMessageListLimit = 50
+	// maxThreadReadPositions bounds the timeline positions one person retains in a channel.
+	maxThreadReadPositions = 256
 	// chatMessagePageSize bounds each persisted history page.
 	chatMessagePageSize = 64
 )
@@ -711,9 +715,12 @@ func (r *ChatResource) UpdateReadPosition(ctx context.Context, req *spacewave_ch
 
 // commitReadPosition serializes receipt advancement and releases the transaction before Sync.
 func (r *ChatResource) commitReadPosition(ctx context.Context, req *spacewave_chat_rpc.UpdateReadPositionRequest) (*spacewave_chat_rpc.UpdateReadPositionResponse, error) {
+	// Only an attributed person may hold a read position.
 	if r.engine == nil || r.localPeerID == "" || r.personID == "" {
 		return nil, ErrChatAuthorIdentityRequired
 	}
+
+	// Read the current position inside the write transaction.
 	tx, err := r.engine.NewTransaction(ctx, true)
 	if err != nil {
 		return nil, err
@@ -726,15 +733,19 @@ func (r *ChatResource) commitReadPosition(ctx context.Context, req *spacewave_ch
 	if req.GetNextIndex() > channel.GetMessageCount() {
 		return nil, errors.New("read position exceeds channel message count")
 	}
+
+	// A receipt that does not advance its timeline returns the retained position.
 	prior := channel.GetReadPositions()[r.personID]
-	if req.GetNextIndex() <= prior.GetNextIndex() {
+	if req.GetNextIndex() <= readPositionIndex(prior, req.ThreadRootKey) {
 		position := prior.CloneVT()
 		if position == nil {
 			position = &chat_state.ChatReadPosition{}
 		}
 		return &spacewave_chat_rpc.UpdateReadPositionResponse{Position: position}, nil
 	}
-	op := &UpdateChatReadPositionOp{ObjectKey: r.objectKey, NextIndex: req.GetNextIndex(), Timestamp: timestamppb.Now()}
+
+	// Apply the advance as a replayable operation and return the committed position.
+	op := &UpdateChatReadPositionOp{ObjectKey: r.objectKey, NextIndex: req.GetNextIndex(), Timestamp: timestamppb.Now(), ThreadRootKey: req.ThreadRootKey}
 	ctx = world.WithOperationPerson(ctx, r.personID)
 	if _, _, err := tx.ApplyWorldOp(ctx, op, r.device); err != nil {
 		return nil, err
@@ -751,7 +762,10 @@ func (r *ChatResource) commitReadPosition(ctx context.Context, req *spacewave_ch
 }
 
 // applyReadPosition advances one accepted person's receipt in the replay transaction.
-func (r *ChatResource) applyReadPosition(ctx context.Context, tx world.WorldState, nextIndex uint64, timestamp *timestamppb.Timestamp) error {
+// A nil threadRootKey advances the whole-channel position and drops the timeline
+// positions it subsumes; otherwise only that timeline advances.
+func (r *ChatResource) applyReadPosition(ctx context.Context, tx world.WorldState, nextIndex uint64, threadRootKey *string, timestamp *timestamppb.Timestamp) error {
+	// Validate the receipt against the channel history and thread root.
 	channel, err := world.LookupObjectBody[*ChatChannel](ctx, tx, r.objectKey, NewChatChannelBlock)
 	if err != nil {
 		return err
@@ -759,10 +773,36 @@ func (r *ChatResource) applyReadPosition(ctx context.Context, tx world.WorldStat
 	if nextIndex > channel.GetMessageCount() {
 		return errors.New("read position exceeds channel message count")
 	}
-	if nextIndex <= channel.GetReadPositions()[r.personID].GetNextIndex() {
+	if threadRootKey != nil && *threadRootKey != "" {
+		if _, err := r.chatThreadKey(*threadRootKey); err != nil {
+			return err
+		}
+		if _, err := world.LookupObjectBody[*ChatMessage](ctx, tx, *threadRootKey, NewChatMessageBlock); err != nil {
+			return errors.Wrap(err, "resolve thread root")
+		}
+	}
+	prior := channel.GetReadPositions()[r.personID]
+	if nextIndex <= readPositionIndex(prior, threadRootKey) {
 		return nil
 	}
-	position := &chat_state.ChatReadPosition{NextIndex: nextIndex, UpdatedAt: timestamp}
+
+	// Advance the selected position, keeping only timeline positions ahead of the channel position.
+	position := prior.CloneVT()
+	if position == nil {
+		position = &chat_state.ChatReadPosition{}
+	}
+	if threadRootKey == nil {
+		position.NextIndex = nextIndex
+		position.UpdatedAt = timestamp
+	} else {
+		if position.ThreadPositions == nil {
+			position.ThreadPositions = make(map[string]*chat_state.ChatThreadReadPosition)
+		}
+		position.ThreadPositions[*threadRootKey] = &chat_state.ChatThreadReadPosition{NextIndex: nextIndex, UpdatedAt: timestamp}
+	}
+	pruneThreadReadPositions(position)
+
+	// Write the channel with the person's advanced position.
 	if channel.ReadPositions == nil {
 		channel.ReadPositions = make(map[string]*chat_state.ChatReadPosition)
 	}
@@ -782,6 +822,32 @@ func (r *ChatResource) applyReadPosition(ctx context.Context, tx world.WorldStat
 		return err
 	}
 	return nil
+}
+
+// readPositionIndex returns the first unread index of the timeline a receipt
+// selects. A timeline position never trails the whole-channel position.
+func readPositionIndex(position *chat_state.ChatReadPosition, threadRootKey *string) uint64 {
+	if threadRootKey == nil {
+		return position.GetNextIndex()
+	}
+	return max(position.GetNextIndex(), position.GetThreadPositions()[*threadRootKey].GetNextIndex())
+}
+
+// pruneThreadReadPositions drops timeline positions the whole-channel position
+// subsumes, then the furthest-behind positions beyond maxThreadReadPositions.
+func pruneThreadReadPositions(position *chat_state.ChatReadPosition) {
+	maps.DeleteFunc(position.ThreadPositions, func(_ string, thread *chat_state.ChatThreadReadPosition) bool {
+		return thread.GetNextIndex() <= position.GetNextIndex()
+	})
+	if len(position.ThreadPositions) <= maxThreadReadPositions {
+		return
+	}
+	keys := slices.SortedFunc(maps.Keys(position.ThreadPositions), func(a, b string) int {
+		return cmp.Or(cmp.Compare(position.ThreadPositions[a].GetNextIndex(), position.ThreadPositions[b].GetNextIndex()), cmp.Compare(a, b))
+	})
+	for _, key := range keys[:len(keys)-maxThreadReadPositions] {
+		delete(position.ThreadPositions, key)
+	}
 }
 
 // appendChannelMessageKey reserves one channel position and its stable message key.
