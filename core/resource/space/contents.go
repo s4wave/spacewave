@@ -37,7 +37,8 @@ import (
 var errSpaceContentsReleased = errors.New("space contents resource is released")
 
 // SpaceContentsResource provides streaming plugin status for one contents
-// mount of a Space. Every mount of the Space shares one plugin runtime.
+// mount of a Space. Every mount of the Space shares one plugin runtime, and
+// each mount keeps every plugin the Space lists running.
 type SpaceContentsResource struct {
 	le       *logrus.Entry
 	b        bus.Bus
@@ -51,6 +52,8 @@ type SpaceContentsResource struct {
 	runtime *plugin_space_runtime.Controller
 	// runtimeRef holds this mount's reference to runtime.
 	runtimeRef directive.Reference
+	// demand keeps every listed plugin of runtime running.
+	demand *plugin_space_runtime.PluginDemand
 	// ctx is canceled when the mount is released.
 	ctx       context.Context
 	ctxCancel context.CancelFunc
@@ -76,8 +79,9 @@ type SpaceContentsResource struct {
 	afterAttachedRpcServiceReady func()
 }
 
-// NewSpaceContentsResource creates a contents mount of the Space runtime.
-// The mount owns runtimeRef and releases it in Release.
+// NewSpaceContentsResource creates a contents mount of the Space runtime that
+// demands every plugin the Space lists. The mount owns runtimeRef and releases
+// it in Release.
 func NewSpaceContentsResource(
 	le *logrus.Entry,
 	b bus.Bus,
@@ -87,6 +91,7 @@ func NewSpaceContentsResource(
 	runtime *plugin_space_runtime.Controller,
 	runtimeRef directive.Reference,
 ) *SpaceContentsResource {
+	// Build the mount, demanding every listed plugin until Release.
 	ctx, cancel := context.WithCancel(context.Background()) //nolint:gosec // SpaceContentsResource.Release owns the stored cancellation function.
 	r := &SpaceContentsResource{
 		le:         le,
@@ -96,19 +101,23 @@ func NewSpaceContentsResource(
 		engineID:   engineID,
 		runtime:    runtime,
 		runtimeRef: runtimeRef,
+		demand:     runtime.DemandAllPlugins(),
 		ctx:        ctx,
 		ctxCancel:  cancel,
 	}
+
+	// Serve the contents service.
 	mux := srpc.NewMux()
 	_ = s4wave_space.SRPCRegisterSpaceContentsResourceService(mux, r)
 	r.mux = mux
 	return r
 }
 
-// Release ends the calls of the mount and drops its runtime reference. The
-// runtime stops after the last mount of the Space is released.
+// Release ends the calls of the mount and drops its demand and runtime
+// reference. The runtime stops after its last holder is released.
 func (r *SpaceContentsResource) Release() {
 	r.ctxCancel()
+	r.demand.Release()
 	r.runtimeRef.Release()
 }
 

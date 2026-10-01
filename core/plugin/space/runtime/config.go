@@ -30,12 +30,14 @@ func (c *Config) EqualsConfig(other config.Config) bool {
 		return false
 	}
 	return c.GetSpace().EqualVT(peer.GetSpace()) && slices.Equal(
-		canonicalAppPluginIDs(c.GetAppPluginIds()), canonicalAppPluginIDs(peer.GetAppPluginIds()),
+		canonicalPluginIDs(c.GetAppPluginIds()), canonicalPluginIDs(peer.GetAppPluginIds()),
 	)
 }
 
-// canonicalAppPluginIDs owns a sorted, duplicate-free application declaration.
-func canonicalAppPluginIDs(ids []string) []string {
+// canonicalPluginIDs returns a sorted, duplicate-free copy of ids without the
+// empty ID.
+func canonicalPluginIDs(ids []string) []string {
+	// Sort and deduplicate a copy, then drop the empty ID, which sorts first.
 	ids = slices.Clone(ids)
 	slices.Sort(ids)
 	ids = slices.Compact(ids)

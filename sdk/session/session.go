@@ -130,12 +130,14 @@ func (s *Session) SetDirectP2PEnabled(ctx context.Context, enabled bool) error {
 }
 
 // SetBackgroundPlugin confirms or withdraws running a plugin of a Space in the
-// background while this Session runs.
-func (s *Session) SetBackgroundPlugin(ctx context.Context, spaceID, pluginID string, enabled bool) error {
+// background while this Session runs. A suspended confirmation stays saved
+// while the plugin does not run in the background.
+func (s *Session) SetBackgroundPlugin(ctx context.Context, spaceID, pluginID string, enabled, suspended bool) error {
 	_, err := s.service.SetBackgroundPlugin(ctx, &SetBackgroundPluginRequest{
-		SpaceId:  spaceID,
-		PluginId: pluginID,
-		Enabled:  enabled,
+		SpaceId:   spaceID,
+		PluginId:  pluginID,
+		Enabled:   enabled,
+		Suspended: suspended,
 	})
 	return err
 }

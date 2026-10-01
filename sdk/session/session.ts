@@ -275,15 +275,17 @@ export class Session extends Resource {
   }
 
   // setBackgroundPlugin confirms or withdraws running a plugin of a Space in
-  // the background while this Session runs.
+  // the background while this Session runs. A suspended confirmation stays
+  // saved while the plugin does not run in the background.
   public async setBackgroundPlugin(
     spaceId: string,
     pluginId: string,
     enabled: boolean,
+    suspended: boolean,
     abortSignal?: AbortSignal,
   ): Promise<void> {
     await this.service.SetBackgroundPlugin(
-      { spaceId, pluginId, enabled },
+      { spaceId, pluginId, enabled, suspended },
       abortSignal,
     )
   }

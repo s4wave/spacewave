@@ -564,6 +564,10 @@ func buildPluginBackgroundCommand() *cli.Command {
 				Name:  "off",
 				Usage: "withdraw the confirmation and stop running in the background",
 			},
+			&cli.BoolFlag{
+				Name:  "suspend",
+				Usage: "keep the confirmation but stop running in the background",
+			},
 		),
 		Action: func(c *cli.Context) error {
 			// Require the plugin's manifest ID.
@@ -592,15 +596,21 @@ func buildPluginBackgroundCommand() *cli.Command {
 			}
 
 			// Record the choice in the Session.
-			enabled := !c.Bool("off")
-			if err := sess.SetBackgroundPlugin(ctx, spaceID, manifestID, enabled); err != nil {
+			enabled, suspended := !c.Bool("off"), c.Bool("suspend")
+			if !enabled && suspended {
+				return errors.New("--off and --suspend are exclusive")
+			}
+			if err := sess.SetBackgroundPlugin(ctx, spaceID, manifestID, enabled, suspended); err != nil {
 				return errors.Wrap(err, "set background plugin")
 			}
 
 			// Report the plugin's new mode.
-			if enabled {
+			switch {
+			case suspended:
+				os.Stdout.WriteString("suspended: " + manifestID + "\n")
+			case enabled:
 				os.Stdout.WriteString("background: " + manifestID + "\n")
-			} else {
+			default:
 				os.Stdout.WriteString("foreground: " + manifestID + "\n")
 			}
 			return nil

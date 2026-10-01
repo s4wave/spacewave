@@ -503,14 +503,16 @@ class SetDirectP2PEnabledResponse(_message.Message):
     def __init__(self) -> None: ...
 
 class SetBackgroundPluginRequest(_message.Message):
-    __slots__ = ("space_id", "plugin_id", "enabled")
+    __slots__ = ("space_id", "plugin_id", "enabled", "suspended")
     SPACE_ID_FIELD_NUMBER: _ClassVar[int]
     PLUGIN_ID_FIELD_NUMBER: _ClassVar[int]
     ENABLED_FIELD_NUMBER: _ClassVar[int]
+    SUSPENDED_FIELD_NUMBER: _ClassVar[int]
     space_id: str
     plugin_id: str
     enabled: bool
-    def __init__(self, space_id: _Optional[str] = ..., plugin_id: _Optional[str] = ..., enabled: _Optional[bool] = ...) -> None: ...
+    suspended: bool
+    def __init__(self, space_id: _Optional[str] = ..., plugin_id: _Optional[str] = ..., enabled: _Optional[bool] = ..., suspended: _Optional[bool] = ...) -> None: ...
 
 class SetBackgroundPluginResponse(_message.Message):
     __slots__ = ()

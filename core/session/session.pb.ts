@@ -190,6 +190,13 @@ export interface BackgroundPlugin {
    * @generated from field: string plugin_id = 2;
    */
   pluginId?: string
+  /**
+   * Suspended keeps the confirmation while the plugin does not run in the
+   * background.
+   *
+   * @generated from field: bool suspended = 3;
+   */
+  suspended?: boolean
 }
 
 export const BackgroundPlugin: MessageType<BackgroundPlugin> =
@@ -198,6 +205,7 @@ export const BackgroundPlugin: MessageType<BackgroundPlugin> =
     fields: [
       { no: 1, name: 'space_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'plugin_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 3, name: 'suspended', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
   })
 

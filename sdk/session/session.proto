@@ -517,6 +517,9 @@ message SetBackgroundPluginRequest {
   string plugin_id = 2;
   // Enabled confirms the plugin to run in the background, or withdraws it.
   bool enabled = 3;
+  // Suspended keeps an enabled confirmation while the plugin does not run in
+  // the background. Clearing it resumes the plugin.
+  bool suspended = 4;
 }
 
 // SetBackgroundPluginResponse acknowledges the persisted confirmation.

@@ -82,9 +82,9 @@ var processRetryBackoff = &backoff.Backoff{
 // Controller loads plugins for a Space and resolves FetchManifest directives by
 // watching the Space world.
 //
-// Watches SpaceSettings in the Space world reactively. When plugin_ids change
-// in SpaceSettings, reconciles LoadPlugin directives: adds directives for new
-// plugins and releases directives for removed plugins.
+// Watches SpaceSettings in the Space world reactively. When plugin_ids or the
+// plugin demand change, reconciles LoadPlugin directives: adds directives for
+// newly listed and demanded plugins and releases the others.
 //
 // For FetchManifest: resolves FetchManifest directives for manifest IDs
 // matching the current SpaceSettings plugin_ids. Uses a shared world watch
@@ -105,6 +105,8 @@ type Controller struct {
 	manifestSource bus.Bus
 	// loadTarget receives approved LoadPlugin directives when Space runs in a plugin.
 	loadTarget bus.Bus
+	// demanded reports whether a listed plugin should stay loaded.
+	demanded func(pluginID string) bool
 	// bindingsChanged is called after the controller deletes a process binding.
 	bindingsChanged func()
 	// resolvers is the set of active FetchManifest resolvers.
@@ -167,6 +169,7 @@ type FactoryOption func(*factoryConfig)
 type factoryConfig struct {
 	manifestSource  bus.Bus
 	loadTarget      bus.Bus
+	demanded        func(pluginID string) bool
 	bindingsChanged func()
 }
 
@@ -179,6 +182,13 @@ func WithManifestSource(source bus.Bus) FactoryOption {
 // WithLoadTarget sends approved Space plugin load directives to target.
 func WithLoadTarget(target bus.Bus) FactoryOption {
 	return func(conf *factoryConfig) { conf.loadTarget = target }
+}
+
+// WithPluginDemand keeps loaded only the listed plugins for which demanded
+// returns true. Without it, every listed plugin stays loaded. Call
+// NotifyChanged after the demand changes.
+func WithPluginDemand(demanded func(pluginID string) bool) FactoryOption {
+	return func(conf *factoryConfig) { conf.demanded = demanded }
 }
 
 // WithProcessBindingsChanged calls notify after the controller deletes the
@@ -207,6 +217,7 @@ func NewFactory(b bus.Bus, opts ...FactoryOption) controller.Factory {
 				BusController:   base,
 				manifestSource:  factoryConf.manifestSource,
 				loadTarget:      factoryConf.loadTarget,
+				demanded:        factoryConf.demanded,
 				bindingsChanged: factoryConf.bindingsChanged,
 				resolvers:       make(map[*resolverEntry]struct{}),
 				processConfigs:  make(map[string]processConfig),
@@ -447,7 +458,7 @@ func (c *Controller) runWorldWatchLoop(ctx context.Context, engineID string) err
 }
 
 // reconcilePlugins reads SpaceSettings from the world and reconciles
-// LoadPlugin directives based on the current plugin_ids.
+// LoadPlugin directives for the demanded plugin_ids.
 func (c *Controller) reconcilePlugins(ctx context.Context, ws world.WorldState, refs map[string]pluginReference) {
 	// Read SpaceSettings from the World state.
 	le := c.GetLogger()
@@ -472,7 +483,12 @@ func (c *Controller) reconcilePlugins(ctx context.Context, ws world.WorldState, 
 		}
 	})
 
-	// Build set of desired plugin IDs.
+	// Keep loaded only the demanded plugins.
+	if c.demanded != nil {
+		ids = slices.DeleteFunc(slices.Clone(ids), func(pid string) bool {
+			return !c.demanded(pid)
+		})
+	}
 	desired := make(map[string]struct{}, len(ids))
 	for _, pid := range ids {
 		desired[pid] = struct{}{}
@@ -481,7 +497,7 @@ func (c *Controller) reconcilePlugins(ctx context.Context, ws world.WorldState, 
 	// Reconcile the loaded plugin state tracker with the desired IDs.
 	c.loadedPlugins.Reconcile(ids)
 
-	// Release directives for plugins removed from SpaceSettings.
+	// Release directives for plugins no longer listed or demanded.
 	for pid, ref := range refs {
 		if _, ok := desired[pid]; !ok {
 			ref.release()

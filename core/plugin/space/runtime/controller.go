@@ -28,12 +28,13 @@ var controllerDescrip = "runs the shared plugin runtime of one Space"
 // with equal configs share one runtime, and it stops after the last mount
 // releases its reference.
 //
-// Host changes reconcile within the running scheduler. A composition failure
-// is published to every mount and retried with backoff.
+// The generation keeps loaded only the plugins some holder demands. Host
+// changes reconcile within the running scheduler. A composition failure is
+// published to every mount and retried with backoff.
 type Controller struct {
 	*bus.BusController[*Config]
 
-	// bcast guards gen, err, and prefixes.
+	// bcast guards gen, err, prefixes, and demands.
 	bcast broadcast.Broadcast
 	// gen is the running generation, or nil while none runs.
 	gen *Generation
@@ -42,6 +43,8 @@ type Controller struct {
 	err error
 	// prefixes is the set of attached RPC service ID prefixes bound by mounts.
 	prefixes map[string]struct{}
+	// demands is the set of holder plugin demands.
+	demands map[*PluginDemand]struct{}
 	// bindingRegistry reports binding writes and orphan deletions to Resource watches.
 	bindingRegistry *process_binding.BindingRegistry
 }
@@ -61,6 +64,7 @@ func NewFactory(b bus.Bus) controller.Factory {
 			return &Controller{
 				BusController: base,
 				prefixes:      make(map[string]struct{}),
+				demands:       make(map[*PluginDemand]struct{}),
 			}, nil
 		},
 	)
@@ -69,8 +73,9 @@ func NewFactory(b bus.Bus) controller.Factory {
 // StartControllerWithConfig acquires the shared runtime for conf on b.
 //
 // Mounts with equal configs share one runtime. It returns once the controller
-// is constructed, before its first generation starts. The runtime stops after
-// the last returned reference is released.
+// is constructed, before its first generation starts. The runtime loads no
+// Space plugin until a holder adds a PluginDemand, and it stops after the last
+// returned reference is released.
 func StartControllerWithConfig(
 	ctx context.Context,
 	b bus.Bus,
@@ -186,12 +191,24 @@ func (c *Controller) Execute(ctx context.Context) error {
 // runGeneration starts one generation, publishes it, and returns the reason it
 // ended. A generation that starts resets retry.
 func (c *Controller) runGeneration(ctx context.Context, retry backoff.BackOff) error {
-	gen, err := startGeneration(ctx, c.GetBus(), c.GetLogger(), c.GetConfig(), c.NotifyProcessBindingsChanged)
+	// Start the generation, publishing a startup failure to every mount.
+	gen, err := startGeneration(
+		ctx,
+		c.GetBus(),
+		c.GetLogger(),
+		c.GetConfig(),
+		c.IsPluginDemanded,
+		c.NotifyProcessBindingsChanged,
+	)
 	if err != nil {
 		c.publish(nil, err)
 		return err
 	}
+
+	// Publish the generation, then reconcile the demands that changed before
+	// updateDemands could see it.
 	c.publish(gen, nil)
+	gen.GetSpaceController().NotifyChanged()
 	retry.Reset()
 
 	// Withdraw the generation before stopping it so mounts stop installing routes.

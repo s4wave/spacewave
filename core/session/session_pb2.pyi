@@ -76,12 +76,14 @@ class SessionMetadata(_message.Message):
     def __init__(self, display_name: _Optional[str] = ..., provider_display_name: _Optional[str] = ..., provider_account_id: _Optional[str] = ..., lock_mode: _Optional[_Union[SessionLockMode, str]] = ..., created_at: _Optional[int] = ..., cloud_account_id: _Optional[str] = ..., cloud_entity_id: _Optional[str] = ..., provider_id: _Optional[str] = ..., recovery_state: _Optional[_Union[SessionRecoveryState, str]] = ..., direct_p2p_disabled: _Optional[bool] = ..., background_plugins: _Optional[_Iterable[_Union[BackgroundPlugin, _Mapping]]] = ...) -> None: ...
 
 class BackgroundPlugin(_message.Message):
-    __slots__ = ("space_id", "plugin_id")
+    __slots__ = ("space_id", "plugin_id", "suspended")
     SPACE_ID_FIELD_NUMBER: _ClassVar[int]
     PLUGIN_ID_FIELD_NUMBER: _ClassVar[int]
+    SUSPENDED_FIELD_NUMBER: _ClassVar[int]
     space_id: str
     plugin_id: str
-    def __init__(self, space_id: _Optional[str] = ..., plugin_id: _Optional[str] = ...) -> None: ...
+    suspended: bool
+    def __init__(self, space_id: _Optional[str] = ..., plugin_id: _Optional[str] = ..., suspended: _Optional[bool] = ...) -> None: ...
 
 class EntityKeypair(_message.Message):
     __slots__ = ("peer_id", "auth_method", "auth_params")

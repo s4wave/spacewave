@@ -11,8 +11,8 @@ import (
 	s4wave_session "github.com/s4wave/spacewave/sdk/session"
 )
 
-// SetBackgroundPlugin records or withdraws the user's confirmation that a
-// plugin of a Space runs in the background while this Session runs.
+// SetBackgroundPlugin records, suspends, or withdraws the user's confirmation
+// that a plugin of a Space runs in the background while this Session runs.
 func (r *SessionResource) SetBackgroundPlugin(
 	ctx context.Context,
 	req *s4wave_session.SetBackgroundPluginRequest,
@@ -24,6 +24,9 @@ func (r *SessionResource) SetBackgroundPlugin(
 	}
 	if pluginID == "" {
 		return nil, errors.New("plugin_id is required")
+	}
+	if req.GetSuspended() && !req.GetEnabled() {
+		return nil, errors.New("suspended requires enabled")
 	}
 
 	// Confirm only a plugin whose manifest in the Space declares background.
@@ -61,7 +64,15 @@ func (r *SessionResource) SetBackgroundPlugin(
 	if meta == nil {
 		meta = &session.SessionMetadata{}
 	}
-	meta.SetBackgroundPlugin(spaceID, pluginID, req.GetEnabled())
+	var bp *session.BackgroundPlugin
+	if req.GetEnabled() {
+		bp = &session.BackgroundPlugin{
+			SpaceId:   spaceID,
+			PluginId:  pluginID,
+			Suspended: req.GetSuspended(),
+		}
+	}
+	meta.SetBackgroundPlugin(spaceID, pluginID, bp)
 
 	// Persist the metadata, which wakes the background keeper.
 	if err := sessionCtrl.UpdateSessionMetadata(ctx, ref, meta); err != nil {

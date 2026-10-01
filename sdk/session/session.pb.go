@@ -1883,6 +1883,9 @@ type SetBackgroundPluginRequest struct {
 	PluginId string `protobuf:"bytes,2,opt,name=plugin_id,json=pluginId,proto3" json:"pluginId,omitempty"`
 	// Enabled confirms the plugin to run in the background, or withdraws it.
 	Enabled bool `protobuf:"varint,3,opt,name=enabled,proto3" json:"enabled,omitempty"`
+	// Suspended keeps an enabled confirmation while the plugin does not run in
+	// the background. Clearing it resumes the plugin.
+	Suspended bool `protobuf:"varint,4,opt,name=suspended,proto3" json:"suspended,omitempty"`
 }
 
 func (x *SetBackgroundPluginRequest) Reset() {
@@ -1908,6 +1911,13 @@ func (x *SetBackgroundPluginRequest) GetPluginId() string {
 func (x *SetBackgroundPluginRequest) GetEnabled() bool {
 	if x != nil {
 		return x.Enabled
+	}
+	return false
+}
+
+func (x *SetBackgroundPluginRequest) GetSuspended() bool {
+	if x != nil {
+		return x.Suspended
 	}
 	return false
 }
@@ -4360,6 +4370,7 @@ func (m *SetBackgroundPluginRequest) CloneVT() *SetBackgroundPluginRequest {
 	r.SpaceId = m.SpaceId
 	r.PluginId = m.PluginId
 	r.Enabled = m.Enabled
+	r.Suspended = m.Suspended
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -6552,6 +6563,9 @@ func (this *SetBackgroundPluginRequest) EqualVT(that *SetBackgroundPluginRequest
 		return false
 	}
 	if this.Enabled != that.Enabled {
+		return false
+	}
+	if this.Suspended != that.Suspended {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -10655,6 +10669,11 @@ func (x *SetBackgroundPluginRequest) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("enabled")
 		s.WriteBool(x.Enabled)
 	}
+	if x.Suspended || s.HasField("suspended") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("suspended")
+		s.WriteBool(x.Suspended)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -10681,6 +10700,9 @@ func (x *SetBackgroundPluginRequest) UnmarshalProtoJSON(s *json.UnmarshalState) 
 		case "enabled":
 			s.AddField("enabled")
 			x.Enabled = s.ReadBool()
+		case "suspended":
+			s.AddField("suspended")
+			x.Suspended = s.ReadBool()
 		}
 	})
 }
@@ -16120,6 +16142,11 @@ func (m *SetBackgroundPluginRequest) MarshalToSizedBufferVT(dAtA []byte) (int, e
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.Suspended {
+		i = protobuf_go_lite.EncodeBool(dAtA, i, m.Suspended)
+		i--
+		dAtA[i] = 0x20
+	}
 	if m.Enabled {
 		i = protobuf_go_lite.EncodeBool(dAtA, i, m.Enabled)
 		i--
@@ -19807,6 +19834,7 @@ func (m *SetBackgroundPluginRequest) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.SpaceId)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.PluginId)
 	n += protobuf_go_lite.SizeBoolNonZero(1, m.Enabled)
+	n += protobuf_go_lite.SizeBoolNonZero(1, m.Suspended)
 	n += len(m.unknownFields)
 	return n
 }
@@ -21638,6 +21666,10 @@ func (x *SetBackgroundPluginRequest) MarshalProtoText() string {
 	if x.Enabled != false {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "enabled")
 		protobuf_go_lite.TextWriteBool(&sb, x.Enabled)
+	}
+	if x.Suspended != false {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "suspended")
+		protobuf_go_lite.TextWriteBool(&sb, x.Suspended)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -25506,6 +25538,16 @@ func (m *SetBackgroundPluginRequest) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.Enabled = bool(v)
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Suspended", wireType)
+			}
+			var v bool
+			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Suspended = bool(v)
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

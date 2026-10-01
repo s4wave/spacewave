@@ -96,6 +96,9 @@ message BackgroundPlugin {
   string space_id = 1;
   // PluginId is the manifest ID of the plugin.
   string plugin_id = 2;
+  // Suspended keeps the confirmation while the plugin does not run in the
+  // background.
+  bool suspended = 3;
 }
 
 // EntityKeypair is a keypair associated with an entity for authentication.

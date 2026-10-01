@@ -16,7 +16,7 @@ import (
 
 // TestSetBackgroundPlugin checks that a Session confirms only a plugin whose
 // manifest in the Space declares background, and saves the choice in its
-// metadata until withdrawn.
+// metadata through suspend and resume until withdrawn.
 func TestSetBackgroundPlugin(t *testing.T) {
 	// Bound the test.
 	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
@@ -71,11 +71,12 @@ func TestSetBackgroundPlugin(t *testing.T) {
 	}
 
 	// Set choices through the resource and read them from the metadata.
-	set := func(pluginID string, enabled bool) error {
+	set := func(pluginID string, enabled, suspended bool) error {
 		_, err := sessResource.SetBackgroundPlugin(ctx, &s4wave_session.SetBackgroundPluginRequest{
-			SpaceId:  spaceID,
-			PluginId: pluginID,
-			Enabled:  enabled,
+			SpaceId:   spaceID,
+			PluginId:  pluginID,
+			Enabled:   enabled,
+			Suspended: suspended,
 		})
 		return err
 	}
@@ -89,7 +90,7 @@ func TestSetBackgroundPlugin(t *testing.T) {
 
 	// Refuse plugins that do not declare background or are absent.
 	for _, pluginID := range []string{"viewer", "absent"} {
-		if err := set(pluginID, true); err == nil {
+		if err := set(pluginID, true, false); err == nil {
 			t.Fatalf("confirmed %s, want error", pluginID)
 		}
 	}
@@ -97,15 +98,32 @@ func TestSetBackgroundPlugin(t *testing.T) {
 		t.Fatalf("background plugins after refusals = %v, want none", got)
 	}
 
-	// Confirm the background plugin, then withdraw it.
-	if err := set("server", true); err != nil {
+	// Confirm the background plugin.
+	want := &session.BackgroundPlugin{SpaceId: spaceID, PluginId: "server"}
+	if err := set("server", true, false); err != nil {
 		t.Fatalf("confirm server: %v", err)
 	}
-	want := &session.BackgroundPlugin{SpaceId: spaceID, PluginId: "server"}
 	if got := backgroundPlugins(); len(got) != 1 || !got[0].EqualVT(want) {
 		t.Fatalf("background plugins = %v, want [%v]", got, want)
 	}
-	if err := set("server", false); err != nil {
+
+	// Suspend it, keeping the entry, then resume it.
+	if err := set("server", true, true); err != nil {
+		t.Fatalf("suspend server: %v", err)
+	}
+	suspended := &session.BackgroundPlugin{SpaceId: spaceID, PluginId: "server", Suspended: true}
+	if got := backgroundPlugins(); len(got) != 1 || !got[0].EqualVT(suspended) {
+		t.Fatalf("background plugins after suspend = %v, want [%v]", got, suspended)
+	}
+	if err := set("server", true, false); err != nil {
+		t.Fatalf("resume server: %v", err)
+	}
+	if got := backgroundPlugins(); len(got) != 1 || !got[0].EqualVT(want) {
+		t.Fatalf("background plugins after resume = %v, want [%v]", got, want)
+	}
+
+	// Withdraw it.
+	if err := set("server", false, false); err != nil {
 		t.Fatalf("withdraw server: %v", err)
 	}
 	if got := backgroundPlugins(); len(got) != 0 {

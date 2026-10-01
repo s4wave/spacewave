@@ -2132,6 +2132,13 @@ export interface SetBackgroundPluginRequest {
    * @generated from field: bool enabled = 3;
    */
   enabled?: boolean
+  /**
+   * Suspended keeps an enabled confirmation while the plugin does not run in
+   * the background. Clearing it resumes the plugin.
+   *
+   * @generated from field: bool suspended = 4;
+   */
+  suspended?: boolean
 }
 
 export const SetBackgroundPluginRequest: MessageType<SetBackgroundPluginRequest> =
@@ -2141,6 +2148,7 @@ export const SetBackgroundPluginRequest: MessageType<SetBackgroundPluginRequest>
       { no: 1, name: 'space_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'plugin_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 3, name: 'enabled', kind: 'scalar', T: ScalarType.BOOL },
+      { no: 4, name: 'suspended', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
   })
 
