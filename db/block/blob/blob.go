@@ -300,7 +300,9 @@ func (b *Blob) WriteChunkIndex(ctx context.Context, bcs *block.Cursor, opts *Bui
 // A small raw blob grows in place. A chunked blob keeps the bytes after its
 // last chunk boundary as tail chunks: an append that keeps the tail within the
 // maximum chunk size stores only its own bytes as one more tail chunk, and a
-// larger one chunks the tail together with the new bytes.
+// larger one chunks the tail together with the new bytes. Implicit zero-filled
+// growth stays before the appended bytes. A zero-length append does no I/O;
+// negative lengths and logical sizes beyond signed reader offsets are rejected.
 func (b *Blob) AppendData(
 	ctx context.Context,
 	dataLen int64,
@@ -308,6 +310,15 @@ func (b *Blob) AppendData(
 	bcs *block.Cursor,
 	opts *BuildBlobOpts,
 ) error {
+	// Keep the logical size in the reader's signed domain before consuming input.
+	if dataLen < 0 || b.GetTotalSize() > math.MaxInt64 || uint64(dataLen) > math.MaxInt64-b.GetTotalSize() { //nolint:gosec // the nonnegative length is checked first.
+		return errors.New("invalid blob append size")
+	}
+	if dataLen == 0 {
+		return b.GetBlobType().Validate()
+	}
+
+	// Append through the existing representation while retaining its storage controls.
 	switch b.GetBlobType() {
 	case BlobType_BlobType_RAW:
 		return b.appendRaw(ctx, dataLen, rdr, bcs, opts)
@@ -366,40 +377,54 @@ func (b *Blob) appendChunked(
 	bcs *block.Cursor,
 	opts *BuildBlobOpts,
 ) error {
-	// Find the end of the chunked data and of the append.
+	// Preserve the logical end independently of the last stored payload.
 	if b.ChunkIndex == nil {
 		b.ChunkIndex = &ChunkIndex{}
 	}
 	ci := b.ChunkIndex
 	ciBcs := bcs.FollowSubBlock(4)
 	chunks := ci.GetChunks()
-	end := ci.GetEnd()
+	storedEnd, end := ci.GetEnd(), b.GetTotalSize()
+	if storedEnd > end {
+		return errors.New("stored chunks exceed blob size")
+	}
 	nextEnd := end + uint64(dataLen) //nolint:gosec
 
 	// Find the first tail chunk.
-	tailStart := min(ci.GetTailStart(), end)
+	tailStart := min(ci.GetTailStart(), storedEnd)
 	tailIdx := sort.Search(len(chunks), func(i int) bool {
 		return chunks[i].GetStart() >= tailStart
 	})
 
-	// Store an append that fits in the tail as one more tail chunk.
+	// Resolve the chunk size before deciding whether the logical tail still fits.
 	args := ci.GetChunkerArgs().CloneVT()
 	if args == nil {
 		args = &ChunkerArgs{}
 	}
 	args.ApplyArgs(opts.GetChunkerArgs())
 	if nextEnd-tailStart <= args.GetMaxChunkSize() {
+		// Read the new input before changing any chunk metadata.
 		data := make([]byte, dataLen)
 		if _, err := io.ReadFull(rdr, data); err != nil {
 			return err
 		}
+
+		// Store bounded zero growth before the new bytes at their logical position.
 		pieces := newChunkAppender(ctx, ci, ci.GetChunkSet(ciBcs))
+		if storedEnd < end {
+			zeros := make([]byte, end-storedEnd)
+			if err := pieces.append(pieces.next(), end-storedEnd, storedEnd, zeros); err != nil {
+				return err
+			}
+		}
 		if err := pieces.append(pieces.next(), uint64(dataLen), end, data); err != nil { //nolint:gosec
 			return err
 		}
 		if err := pieces.flush(); err != nil {
 			return err
 		}
+
+		// Publish the completed tail after every referenced payload is staged.
 		ci.TailStart = tailStart
 		b.TotalSize = nextEnd
 		ciBcs.SetBlock(ci, true)
@@ -407,10 +432,10 @@ func (b *Blob) appendChunked(
 		return nil
 	}
 
-	// Read the tail chunks, then remove them from the index.
+	// Read the existing tail payloads before changing their references.
 	tail := slices.Clone(chunks[tailIdx:])
 	chunkSet := ci.GetChunkSet(ciBcs)
-	rdrs := make([]io.Reader, 0, len(tail)+1)
+	rdrs := make([]io.Reader, 0, len(tail)+2)
 	for i, chk := range tail {
 		_, chkBcs := chunkSet.Get(tailIdx + i)
 		data, err := chk.FetchData(ctx, chkBcs, false)
@@ -419,7 +444,14 @@ func (b *Blob) appendChunked(
 		}
 		rdrs = append(rdrs, bytes.NewReader(data))
 	}
+
+	// Stream the implicit zero gap through the chunker without allocating the gap.
+	if storedEnd < end {
+		rdrs = append(rdrs, io.LimitReader(ZeroReader{}, int64(end-storedEnd))) //nolint:gosec // AppendData bounds the logical end by MaxInt64.
+	}
 	rdrs = append(rdrs, io.LimitReader(rdr, dataLen))
+
+	// Remove the tail only after its existing payloads have been acquired.
 	for i := len(chunks) - 1; i >= tailIdx; i-- {
 		chunkSet.GetCursor().ClearRef(uint32(i)) //nolint:gosec
 	}
