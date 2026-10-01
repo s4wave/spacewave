@@ -513,7 +513,6 @@ func TestEvaluateRootDesktopReleaseBuildsJsEmbeds(t *testing.T) {
 		`"spacewave-core"`,
 		`"spacewave-web"`,
 		`"spacewave-app"`,
-		`"web"`,
 	} {
 		if !strings.Contains(cliCfg, want) {
 			t.Fatalf("release cli override config missing %s: %s", want, cliCfg)
@@ -661,6 +660,7 @@ func TestEvaluateRootDesktopReleaseBuildsJsEmbeds(t *testing.T) {
 		"web/js/wasm",
 		distEmbedManifestWant{manifestID: "spacewave-core", platformID: "web/js/wasm"},
 		distEmbedManifestWant{manifestID: "spacewave-web", platformID: "js"},
+		distEmbedManifestWant{manifestID: "spacewave-code", platformID: "js"},
 		distEmbedManifestWant{manifestID: "spacewave-app", platformID: "js"},
 		distEmbedManifestWant{manifestID: "web", platformID: "web/js/wasm"},
 		distEmbedManifestWant{manifestID: "spacewave-notes", platformID: "js"},
@@ -738,6 +738,7 @@ func TestEvaluateRootDesktopReleaseBuildsJsEmbeds(t *testing.T) {
 		"web/js/wasm",
 		distEmbedManifestWant{manifestID: "spacewave-core", platformID: "web/js/wasm"},
 		distEmbedManifestWant{manifestID: "spacewave-web", platformID: "js"},
+		distEmbedManifestWant{manifestID: "spacewave-code", platformID: "js"},
 		distEmbedManifestWant{manifestID: "spacewave-app", platformID: "js"},
 		distEmbedManifestWant{manifestID: "web", platformID: "web/js/wasm"},
 		distEmbedManifestWant{manifestID: "spacewave-notes", platformID: "js"},
@@ -889,6 +890,7 @@ func TestEvaluateRootDesktopStatusProjectorPlatformBoundary(t *testing.T) {
 		"web/js/wasm",
 		distEmbedManifestWant{manifestID: "spacewave-core", platformID: "web/js/wasm"},
 		distEmbedManifestWant{manifestID: "spacewave-web", platformID: "js"},
+		distEmbedManifestWant{manifestID: "spacewave-code", platformID: "js"},
 		distEmbedManifestWant{manifestID: "spacewave-app", platformID: "js"},
 		distEmbedManifestWant{manifestID: "web", platformID: "web/js/wasm"},
 		distEmbedManifestWant{manifestID: "spacewave-notes", platformID: "js"},
@@ -937,6 +939,7 @@ func TestEvaluateRootDesktopStatusProjectorPlatformBoundary(t *testing.T) {
 		"js",
 		distEmbedManifestWant{manifestID: "spacewave-core", platformID: "js"},
 		distEmbedManifestWant{manifestID: "spacewave-web", platformID: "js"},
+		distEmbedManifestWant{manifestID: "spacewave-code", platformID: "js"},
 		distEmbedManifestWant{manifestID: "spacewave-app", platformID: "js"},
 		distEmbedManifestWant{manifestID: "web", platformID: "web/js/wasm"},
 		distEmbedManifestWant{manifestID: "spacewave-notes", platformID: "js"},
