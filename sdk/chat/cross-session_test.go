@@ -37,7 +37,7 @@ func TestChatResourceCrossSessionAppend(t *testing.T) {
 
 // testChatResourceCrossSessionAppend checks keyed and unkeyed sends through replica replay.
 func testChatResourceCrossSessionAppend(t *testing.T, transactionID string) {
-	// Give two authenticated Sessions independent account stores on a local network.
+	// Start a testbed for the provider and World engines.
 	ctx, cancel := context.WithTimeout(t.Context(), 45*time.Second)
 	defer cancel()
 	tb, err := testbed.Default(ctx)
@@ -45,6 +45,8 @@ func testChatResourceCrossSessionAppend(t *testing.T, transactionID string) {
 		t.Fatal(err)
 	}
 	t.Cleanup(tb.Release)
+
+	// Start the local provider that hosts both Sessions.
 	tb.StaticResolver.AddFactory(provider_local.NewFactory(tb.Bus))
 	tb.StaticResolver.AddFactory(sobject_world_engine.NewFactory(tb.Bus))
 	_, providerController, err := tb.Bus.AddDirective(resolver.NewLoadControllerWithConfig(&provider_local.Config{
@@ -54,6 +56,8 @@ func testChatResourceCrossSessionAppend(t *testing.T, transactionID string) {
 		t.Fatal(err)
 	}
 	t.Cleanup(providerController.Release)
+
+	// Give two authenticated Sessions independent account stores on a local network.
 	rawProvider, providerRef, err := provider.ExLookupProvider(ctx, tb.Bus, "local", false, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -63,7 +67,7 @@ func testChatResourceCrossSessionAppend(t *testing.T, transactionID string) {
 	owner, ownerSession := newChatSession(t, ctx, local)
 	writer, writerSession := newChatSession(t, ctx, local)
 
-	// Create the channel before inviting the second Session to its own replica.
+	// Create and mount the owner's Space.
 	ref, err := owner.CreateSharedObject(ctx, ulid.NewULID(), &sobject.SharedObjectMeta{BodyType: "space"}, "", "")
 	if err != nil {
 		t.Fatal(err)
@@ -73,6 +77,8 @@ func testChatResourceCrossSessionAppend(t *testing.T, transactionID string) {
 		t.Fatal(err)
 	}
 	t.Cleanup(releaseOwnerObject)
+
+	// Create the channel before inviting the second Session to its own replica.
 	ownerEngine := mountChatEngine(t, ctx, tb, ref, "chat-owner")
 	ownerWorld := world.NewEngineWorldState(ownerEngine, true)
 	if _, _, err := ownerWorld.ApplyWorldOp(ctx, &chat.CreateChatChannelOp{
@@ -80,16 +86,19 @@ func testChatResourceCrossSessionAppend(t *testing.T, transactionID string) {
 	}, ownerSession.GetPeerId()); err != nil {
 		t.Fatal(err)
 	}
+
+	// Seed history the writer will receive with its replica.
 	first, err := chat.NewChatResource(ctx, ownerWorld, ownerEngine, chat.GeneralChannelKey)
 	if err != nil {
 		t.Fatal(err)
 	}
 	t.Cleanup(first.Close)
-
 	seed, err := first.SendMessage(ctx, &chat_rpc.SendMessageRequest{Text: "shared history", TransactionId: "seed"})
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Invite the writer directly.
 	host := ownerObject.(sobject.InviteHost)
 	invite, err := host.CreateSOInviteOp(ctx, host.GetPrivKey(), sobject.SOParticipantRole_SOParticipantRole_WRITER, "local", writerSession.GetPeerId().String(), 1, nil)
 	if err != nil {
@@ -98,6 +107,8 @@ func testChatResourceCrossSessionAppend(t *testing.T, transactionID string) {
 	if err := owner.PrepareDirectInvite(ctx, ownerSession.GetPrivKey(), host.GetPrivKey(), invite); err != nil {
 		t.Fatal(err)
 	}
+
+	// Join as the writer and mount its replica.
 	joined, err := writer.JoinViaInvite(ctx, writerSession.GetPrivKey(), invite, "")
 	if err != nil {
 		t.Fatal(err)
@@ -108,20 +119,8 @@ func testChatResourceCrossSessionAppend(t *testing.T, transactionID string) {
 		t.Fatal(err)
 	}
 	t.Cleanup(releaseWriterObject)
-	writerEngine := mountChatEngine(t, ctx, tb, writerRef, "chat-writer")
-	writerWorld := world.NewEngineWorldState(writerEngine, true)
-	second, err := chat.NewChatResource(ctx, writerWorld, writerEngine, chat.GeneralChannelKey)
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(second.Close)
-	initial, err := second.ListMessages(ctx, &chat_rpc.ListMessagesRequest{})
-	if err != nil {
-		t.Fatal(err)
-	}
-	requireSessionHistory(t, initial.GetMessages(), []string{seed.GetMessageKey()})
 
-	// Retain the small seed graph so disconnected preparation needs no remote blocks.
+	// Retain the seed graph so replica reads and disconnected preparation need no remote blocks.
 	snapshot, err := ownerObject.GetSharedObjectState(ctx)
 	if err != nil {
 		t.Fatal(err)
@@ -138,6 +137,20 @@ func testChatResourceCrossSessionAppend(t *testing.T, transactionID string) {
 		t.Fatal(err)
 	}
 
+	// The writer's replica history starts with the seed.
+	writerEngine := mountChatEngine(t, ctx, tb, writerRef, "chat-writer")
+	writerWorld := world.NewEngineWorldState(writerEngine, true)
+	second, err := chat.NewChatResource(ctx, writerWorld, writerEngine, chat.GeneralChannelKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(second.Close)
+	initial, err := second.ListMessages(ctx, &chat_rpc.ListMessagesRequest{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	requireSessionHistory(t, initial.GetMessages(), []string{seed.GetMessageKey()})
+
 	// Keep the writer on the common history while the owner accepts its next send.
 	owner.StopP2PSync()
 	writer.StopP2PSync()
@@ -146,6 +159,8 @@ func testChatResourceCrossSessionAppend(t *testing.T, transactionID string) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// The writer has not observed the owner's send.
 	stale, err := second.GetChannelInfo(ctx, &chat_rpc.GetChannelInfoRequest{})
 	if err != nil {
 		t.Fatal(err)
@@ -154,12 +169,14 @@ func testChatResourceCrossSessionAppend(t *testing.T, transactionID string) {
 		t.Fatal("writer synchronized before preparing its append")
 	}
 
-	// Wait for the stale append to enter the real SharedObject queue before sync.
+	// Watch the writer's SharedObject state for its queued append.
 	states, releaseStates, err := writerObject.AccessSharedObjectState(ctx, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 	t.Cleanup(releaseStates)
+
+	// Send the writer's append with the owner's transaction identifier.
 	writerRequest := &chat_rpc.SendMessageRequest{Text: "writer message", TransactionId: request.GetTransactionId()}
 	var writerAccepted *chat_rpc.SendMessageResponse
 	var writerErr error
@@ -172,12 +189,16 @@ func testChatResourceCrossSessionAppend(t *testing.T, transactionID string) {
 		cancel()
 		<-done
 	}()
+
+	// Wait for the stale append to enter the real SharedObject queue before sync.
 	if _, err := states.WaitValueWithValidator(ctx, func(snapshot sobject.SharedObjectStateSnapshot) (bool, error) {
 		queued, local, err := snapshot.GetOpQueue(ctx)
 		return len(queued)+len(local) != 0, err
 	}, nil); err != nil {
 		t.Fatal(err)
 	}
+
+	// Resume sync so the writer replays its append on the owner's history.
 	if err := owner.StartPersistentP2PSync(ctx, owner.GetSessionTransport()); err != nil {
 		t.Fatal(err)
 	}
