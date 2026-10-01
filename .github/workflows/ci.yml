@@ -246,16 +246,16 @@ jobs:
       - name: Install wasmbrowsertest
         if: ${{ matrix.stage.name == 'tests' }}
         run: |
-          go install github.com/agnivade/wasmbrowsertest@v0.11.1-0.20260401060528-c1147604d97a
+          go install github.com/agnivade/wasmbrowsertest@v0.11.1-0.20260609113502-ff350cc7eb28
           mv "$(go env GOPATH)/bin/wasmbrowsertest" "$(go env GOPATH)/bin/go_js_wasm_exec"
 
-      # Go tests (about 266s with -p=1), the js-only Go tests in Chrome, and the
-      # JavaScript tests and lint.
+      # Go tests (about 266s with -p=1), the js-only Go tests of every product
+      # tree in Chrome, and the JavaScript tests and lint.
       - name: Test db
         if: ${{ matrix.stage.name == 'tests' }}
         run: |
           bun run test:go:db
-          bun run test:go:db:js
+          bun run test:go:js
           bun run test:js:db
           bun run lint:js:db
 

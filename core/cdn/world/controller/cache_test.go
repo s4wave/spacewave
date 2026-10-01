@@ -5,7 +5,6 @@ import (
 	"context"
 	"errors"
 	"net/http"
-	"net/http/httptest"
 	"strconv"
 	"strings"
 	"sync"
@@ -39,20 +38,20 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// notifyingBlockStore signals putCh after each successful write so a test can
+// wait for the CDN writeback to land in the cache.
 type notifyingBlockStore struct {
 	block.StoreOps
 	putCh chan struct{}
 }
 
+// PutBlock writes the block and signals one put.
 func (s *notifyingBlockStore) PutBlock(ctx context.Context, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
 	ref, existed, err := s.StoreOps.PutBlock(ctx, data, opts)
 	if err != nil {
 		return nil, false, err
 	}
-	select {
-	case s.putCh <- struct{}{}:
-	default:
-	}
+	s.signalPut()
 	return ref, existed, nil
 }
 
@@ -61,13 +60,19 @@ func (s *notifyingBlockStore) PutBlockBatch(ctx context.Context, entries []*bloc
 	if err := s.StoreOps.PutBlockBatch(ctx, entries); err != nil {
 		return err
 	}
+	s.signalPut()
+	return nil
+}
+
+// signalPut records a put without blocking when one is already pending.
+func (s *notifyingBlockStore) signalPut() {
 	select {
 	case s.putCh <- struct{}{}:
 	default:
 	}
-	return nil
 }
 
+// waitPut waits for a put or for ctx to end.
 func (s *notifyingBlockStore) waitPut(ctx context.Context) error {
 	select {
 	case <-s.putCh:
@@ -77,20 +82,16 @@ func (s *notifyingBlockStore) waitPut(ctx context.Context) error {
 	}
 }
 
-func TestConfiguredCacheWritebackSurvivesCdnRestart(t *testing.T) {
-	const (
-		spaceID = "01kpftest0000000000000002"
-		cacheID = "dist"
-		packID  = "01kcdnpack0000000000000007"
-	)
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
-	data := []byte("world controller durable cache")
+// packTestBlock packs data as the only block of a packfile with id packID. It
+// returns the block hash, the packfile bytes and the packfile entry.
+func packTestBlock(t *testing.T, packID string, data []byte) (*hash.Hash, []byte, *packfile.PackfileEntry) {
+	// Hash the block.
 	blockHash, err := hash.Sum(hash.HashType_HashType_SHA256, data)
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Write a packfile holding only that block.
 	var packData bytes.Buffer
 	packResult, err := writer.PackBlocks(&packData, func() (*hash.Hash, *block.StoredBlock, error) {
 		if packData.Len() != 0 {
@@ -101,24 +102,70 @@ func TestConfiguredCacheWritebackSurvivesCdnRestart(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	pointer, err := (&cdn.CdnRootPointer{
-		SpaceId: spaceID,
-		Packs: []*packfile.PackfileEntry{{
-			Id:          packID,
-			BloomFilter: packResult.BloomFilter,
-			BlockCount:  1,
-			SizeBytes:   uint64(packData.Len()),
-		}},
-	}).MarshalVT()
+
+	// Describe the packfile for the root pointer.
+	entry := &packfile.PackfileEntry{
+		Id:          packID,
+		BloomFilter: packResult.BloomFilter,
+		BlockCount:  1,
+		SizeBytes:   uint64(packData.Len()),
+	}
+	return blockHash, packData.Bytes(), entry
+}
+
+// encodeRootPointer encodes ptr as the packed message the CDN serves.
+func encodeRootPointer(t *testing.T, ptr *cdn.CdnRootPointer) []byte {
+	data, err := ptr.MarshalVT()
 	if err != nil {
 		t.Fatal(err)
 	}
-	pointer = []byte(packedmsg.EncodePackedMessage(pointer))
+	return []byte(packedmsg.EncodePackedMessage(data))
+}
 
+// writePackRange answers an HTTP Range request for "bytes=off-end" or
+// "bytes=off-" with the matching slice of pack.
+func writePackRange(w http.ResponseWriter, rangeHeader string, pack []byte) {
+	// Parse the requested span and clamp it to the pack.
+	parts := strings.SplitN(strings.TrimPrefix(rangeHeader, "bytes="), "-", 2)
+	off, _ := strconv.Atoi(parts[0])
+	end := len(pack) - 1
+	if len(parts) == 2 && parts[1] != "" {
+		end, _ = strconv.Atoi(parts[1])
+	}
+	end = min(end, len(pack)-1)
+
+	// Write the partial content.
+	w.Header().Set("Content-Range", "bytes "+strconv.Itoa(off)+"-"+strconv.Itoa(end)+"/"+strconv.Itoa(len(pack)))
+	w.WriteHeader(http.StatusPartialContent)
+	_, _ = w.Write(pack[off : end+1])
+}
+
+// TestConfiguredCacheWritebackSurvivesCdnRestart proves a block read from the
+// CDN is written back to the configured cache, and a restarted controller
+// serves it from that cache without another Range request.
+func TestConfiguredCacheWritebackSurvivesCdnRestart(t *testing.T) {
+	// Name the fixture and bound the test.
+	const (
+		spaceID = "01kpftest0000000000000002"
+		cacheID = "dist"
+		packID  = "01kcdnpack0000000000000007"
+	)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	// Publish one packed block under the Space root pointer.
+	data := []byte("world controller durable cache")
+	blockHash, packData, packEntry := packTestBlock(t, packID, data)
+	pointer := encodeRootPointer(t, &cdn.CdnRootPointer{
+		SpaceId: spaceID,
+		Packs:   []*packfile.PackfileEntry{packEntry},
+	})
+
+	// Serve the CDN, counting Range requests and failing them once blocked.
 	var reqMu sync.Mutex
 	var rangeRequests int
 	var packBlocked bool
-	httpServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	serveTestCDN(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch {
 		case r.URL.Path == "/"+spaceID+"/root.packedmsg":
 			_, _ = w.Write(pointer)
@@ -126,9 +173,10 @@ func TestConfiguredCacheWritebackSurvivesCdnRestart(t *testing.T) {
 			strings.HasSuffix(r.URL.Path, "/"+packID+".kvf"):
 			rangeHeader := r.Header.Get("Range")
 			if rangeHeader == "" {
-				_, _ = w.Write(packData.Bytes())
+				_, _ = w.Write(packData)
 				return
 			}
+
 			reqMu.Lock()
 			rangeRequests++
 			blocked := packBlocked
@@ -137,25 +185,13 @@ func TestConfiguredCacheWritebackSurvivesCdnRestart(t *testing.T) {
 				http.Error(w, "pack source blocked", http.StatusServiceUnavailable)
 				return
 			}
-			const prefix = "bytes="
-			parts := strings.SplitN(strings.TrimPrefix(rangeHeader, prefix), "-", 2)
-			off, _ := strconv.Atoi(parts[0])
-			end := len(packData.Bytes()) - 1
-			if parts[1] != "" {
-				end, _ = strconv.Atoi(parts[1])
-			}
-			if end >= len(packData.Bytes()) {
-				end = len(packData.Bytes()) - 1
-			}
-			w.Header().Set("Content-Range", "bytes "+strconv.Itoa(off)+"-"+strconv.Itoa(end)+"/"+strconv.Itoa(packData.Len()))
-			w.WriteHeader(http.StatusPartialContent)
-			_, _ = w.Write(packData.Bytes()[off : end+1])
+			writePackRange(w, rangeHeader, packData)
 		default:
 			http.NotFound(w, r)
 		}
 	}))
-	defer httpServer.Close()
 
+	// Start a bus with an in-memory volume to back the cache.
 	tb, err := testbed.NewTestbed(ctx, logrus.NewEntry(logrus.New()), testbed.WithVolumeConfig(
 		&volume_kvtxinmem.Config{
 			VolumeConfig: &volume_controller.Config{
@@ -169,6 +205,8 @@ func TestConfiguredCacheWritebackSurvivesCdnRestart(t *testing.T) {
 	}
 	defer tb.Release()
 	b := tb.Bus
+
+	// Expose the volume as the cache block store and observe its writes.
 	cacheStoreOps := &notifyingBlockStore{
 		StoreOps: tb.Volume,
 		putCh:    make(chan struct{}, 1),
@@ -191,9 +229,12 @@ func TestConfiguredCacheWritebackSurvivesCdnRestart(t *testing.T) {
 	}
 	defer cacheControllerRelease()
 
-	conf := NewConfig("release-world", spaceID, httpServer.URL)
+	// Configure the controller to write CDN reads back to the cache.
+	conf := NewConfig("release-world", spaceID, testCDNBaseURL)
 	conf.CacheBlockStoreId = cacheID
 	conf.WritebackWindowBytes = 1 << 20
+
+	// Read the block through the first controller's CDN store.
 	firstController := NewController(logrus.NewEntry(logrus.New()), b, conf)
 	firstStore, releaseFirst, err := firstController.newBlockStore(ctx)
 	if err != nil {
@@ -205,6 +246,7 @@ func TestConfiguredCacheWritebackSurvivesCdnRestart(t *testing.T) {
 		t.Fatalf("first CDN read found=%v err=%v data=%q", found, err, got)
 	}
 
+	// Wait for the writeback and check the cache holds the block.
 	if err := cacheStoreOps.waitPut(ctx); err != nil {
 		t.Fatalf("wait for CDN writeback: %v", err)
 	}
@@ -213,13 +255,12 @@ func TestConfiguredCacheWritebackSurvivesCdnRestart(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer cacheRef.Release()
-	cached, cachedFound, cacheErr := cacheStore.GetBlock(ctx, ref)
-	if cacheErr != nil {
-		t.Fatal(cacheErr)
+	cached, cachedFound, err := cacheStore.GetBlock(ctx, ref)
+	if err != nil || !cachedFound || !bytes.Equal(cached, data) {
+		t.Fatalf("cached block found=%v err=%v data=%q", cachedFound, err, cached)
 	}
-	if !cachedFound || !bytes.Equal(cached, data) {
-		t.Fatalf("cached block found=%v data=%q", cachedFound, cached)
-	}
+
+	// Block the pack source and stop the first controller's store.
 	reqMu.Lock()
 	firstRanges := rangeRequests
 	packBlocked = true
@@ -229,6 +270,7 @@ func TestConfiguredCacheWritebackSurvivesCdnRestart(t *testing.T) {
 	}
 	releaseFirst()
 
+	// Read the block again through a restarted controller.
 	secondController := NewController(logrus.NewEntry(logrus.New()), b, conf)
 	secondStore, releaseSecond, err := secondController.newBlockStore(ctx)
 	if err != nil {
@@ -238,13 +280,12 @@ func TestConfiguredCacheWritebackSurvivesCdnRestart(t *testing.T) {
 	if _, err := secondStore.Refresh(ctx); err != nil {
 		t.Fatalf("restart root refresh failed while pack source was blocked: %v", err)
 	}
-	cached, cachedFound, cacheErr = secondStore.GetBlock(ctx, ref)
-	if cacheErr != nil {
-		t.Fatal(cacheErr)
+	cached, cachedFound, err = secondStore.GetBlock(ctx, ref)
+	if err != nil || !cachedFound || !bytes.Equal(cached, data) {
+		t.Fatalf("restart cache read found=%v err=%v data=%q", cachedFound, err, cached)
 	}
-	if !cachedFound || !bytes.Equal(cached, data) {
-		t.Fatalf("restart cache read found=%v data=%q", cachedFound, cached)
-	}
+
+	// Check the restarted read came from the cache.
 	reqMu.Lock()
 	restartRanges := rangeRequests
 	reqMu.Unlock()
@@ -253,7 +294,11 @@ func TestConfiguredCacheWritebackSurvivesCdnRestart(t *testing.T) {
 	}
 }
 
+// TestReleaseWorldExternalBucketBuildAPIUsesCdnStoreMapping proves a bucket
+// API build resolves only through the CDN store mapping, and makes no CDN
+// request for a mapping to another store.
 func TestReleaseWorldExternalBucketBuildAPIUsesCdnStoreMapping(t *testing.T) {
+	// Name the fixture and bound the test.
 	const (
 		bucketID = "spacewave-release"
 		spaceID  = "01releaseworld00000000000001"
@@ -262,13 +307,10 @@ func TestReleaseWorldExternalBucketBuildAPIUsesCdnStoreMapping(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	pointer, err := (&cdn.CdnRootPointer{SpaceId: spaceID}).MarshalVT()
-	if err != nil {
-		t.Fatal(err)
-	}
-	pointer = []byte(packedmsg.EncodePackedMessage(pointer))
+	// Serve an empty root pointer and count its requests.
+	pointer := encodeRootPointer(t, &cdn.CdnRootPointer{SpaceId: spaceID})
 	var rootRequests atomic.Int32
-	hs := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	cdnClient := serveTestCDN(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/"+spaceID+"/root.packedmsg" {
 			http.NotFound(w, r)
 			return
@@ -276,12 +318,12 @@ func TestReleaseWorldExternalBucketBuildAPIUsesCdnStoreMapping(t *testing.T) {
 		rootRequests.Add(1)
 		_, _ = w.Write(pointer)
 	}))
-	defer hs.Close()
 
+	// Open the CDN block store.
 	cdnStore, err := cdn_bstore.NewCdnBlockStore(cdn_bstore.Options{
-		CdnBaseURL: hs.URL,
+		CdnBaseURL: testCDNBaseURL,
 		SpaceID:    spaceID,
-		HttpClient: hs.Client(),
+		HttpClient: cdnClient,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -289,6 +331,7 @@ func TestReleaseWorldExternalBucketBuildAPIUsesCdnStoreMapping(t *testing.T) {
 	defer cdnStore.Close()
 	cdnBlockStore := block_store.NewStore(storeID, cdnStore)
 
+	// Map the bucket to the CDN store on a fresh bus.
 	b, _, err := controllerbus_core.NewCoreBus(ctx, logrus.NewEntry(logrus.New()))
 	if err != nil {
 		t.Fatal(err)
@@ -310,31 +353,30 @@ func TestReleaseWorldExternalBucketBuildAPIUsesCdnStoreMapping(t *testing.T) {
 	}
 	defer releaseBucketCtrl()
 
+	// A build through another store waits and touches no CDN.
 	wrongCtx, wrongCancel := context.WithTimeout(ctx, 100*time.Millisecond)
-	_, _, wrongRef, wrongErr := bucket.ExBuildBucketAPI(
-		wrongCtx,
-		b,
-		false,
-		bucketID,
-		"entrypoint",
-		nil,
-	)
+	defer wrongCancel()
+	_, _, wrongRef, wrongErr := bucket.ExBuildBucketAPI(wrongCtx, b, false, bucketID, "entrypoint", nil)
 	if wrongRef != nil {
 		wrongRef.Release()
 	}
+
+	// The wait times out without a CDN request.
 	if wrongErr == nil || wrongCtx.Err() != context.DeadlineExceeded {
 		t.Fatalf("entrypoint bucket mapping error = %v context = %v, want timed-out wait", wrongErr, wrongCtx.Err())
 	}
-	wrongCancel()
 	if got := rootRequests.Load(); got != 0 {
 		t.Fatalf("entrypoint mapping made %d CDN requests before resolving a bucket", got)
 	}
 
+	// Build the bucket API through the CDN store.
 	handle, _, handleRef, err := bucket.ExBuildBucketAPI(ctx, b, false, bucketID, storeID, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer handleRef.Release()
+
+	// A read misses the empty root after one root request.
 	rootHash, err := hash.Sum(hash.HashType_HashType_SHA256, []byte("release root"))
 	if err != nil {
 		t.Fatal(err)
@@ -351,11 +393,14 @@ func TestReleaseWorldExternalBucketBuildAPIUsesCdnStoreMapping(t *testing.T) {
 	}
 }
 
+// retryingWorldController reports the first Execute result on firstErr and
+// runs Execute once more when it failed.
 type retryingWorldController struct {
 	*Controller
 	firstErr chan error
 }
 
+// Execute runs the controller, retrying once after a failure.
 func (c *retryingWorldController) Execute(ctx context.Context) error {
 	err := c.Controller.Execute(ctx)
 	c.firstErr <- err
@@ -365,18 +410,24 @@ func (c *retryingWorldController) Execute(ctx context.Context) error {
 	return c.Controller.Execute(ctx)
 }
 
+// observedContext closes done the first time a caller waits on Done.
 type observedContext struct {
 	context.Context
 	done chan struct{}
 	once sync.Once
 }
 
+// Done reports the wait and returns the wrapped context's channel.
 func (c *observedContext) Done() <-chan struct{} {
 	c.once.Do(func() { close(c.done) })
 	return c.Context.Done()
 }
 
+// TestReleaseWorldSharesTransportAndDurableCacheAcrossRpcBridge proves host
+// and plugin reads share one CDN transport and one durable cache across the
+// RPC bridge, and that the RPC authority follows each controller lifetime.
 func TestReleaseWorldSharesTransportAndDurableCacheAcrossRpcBridge(t *testing.T) {
+	// Name the fixture and bound the test.
 	const (
 		spaceID   = "01ksharedreleaseworld00000001"
 		cacheID   = "dist"
@@ -386,38 +437,17 @@ func TestReleaseWorldSharesTransportAndDurableCacheAcrossRpcBridge(t *testing.T)
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 
+	// Pack one block and build an invalid and a valid root pointer for it.
 	data := []byte("shared release world block")
-	blockHash, err := hash.Sum(hash.HashType_HashType_SHA256, data)
-	if err != nil {
-		t.Fatal(err)
-	}
-	var packData bytes.Buffer
-	packResult, err := writer.PackBlocks(&packData, func() (*hash.Hash, *block.StoredBlock, error) {
-		if packData.Len() != 0 {
-			return nil, nil, nil
-		}
-		return blockHash, &block.StoredBlock{Data: data, RefsKnown: true}, nil
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	packEntry := &packfile.PackfileEntry{
-		Id:          packID,
-		BloomFilter: packResult.BloomFilter,
-		BlockCount:  1,
-		SizeBytes:   uint64(packData.Len()),
-	}
-	invalidPointer, err := (&cdn.CdnRootPointer{
+	blockHash, packData, packEntry := packTestBlock(t, packID, data)
+	invalidPointer := encodeRootPointer(t, &cdn.CdnRootPointer{
 		SpaceId: spaceID,
 		Root: &sobject.SORoot{
 			Inner:      []byte("invalid root inner"),
 			InnerSeqno: 1,
 		},
 		Packs: []*packfile.PackfileEntry{packEntry},
-	}).MarshalVT()
-	if err != nil {
-		t.Fatal(err)
-	}
+	})
 	innerState, err := (&sobject_world_engine.InnerState{HeadRef: &bucket.ObjectRef{}}).MarshalVT()
 	if err != nil {
 		t.Fatal(err)
@@ -426,27 +456,24 @@ func TestReleaseWorldSharesTransportAndDurableCacheAcrossRpcBridge(t *testing.T)
 	if err != nil {
 		t.Fatal(err)
 	}
-	validPointer, err := (&cdn.CdnRootPointer{
+	validPointer := encodeRootPointer(t, &cdn.CdnRootPointer{
 		SpaceId: spaceID,
 		Root: &sobject.SORoot{
 			Inner:      rootInner,
 			InnerSeqno: 1,
 		},
 		Packs: []*packfile.PackfileEntry{packEntry},
-	}).MarshalVT()
-	if err != nil {
-		t.Fatal(err)
-	}
-	invalidPointer = []byte(packedmsg.EncodePackedMessage(invalidPointer))
-	validPointer = []byte(packedmsg.EncodePackedMessage(validPointer))
+	})
 
+	// Serve the invalid root first and hold the first Range request until
+	// released.
 	firstRoot := make(chan struct{})
 	releaseFirstRoot := make(chan struct{})
 	rangeStarted := make(chan struct{})
 	releaseRange := make(chan struct{})
 	var rootRequests atomic.Int32
 	var rangeRequests atomic.Int32
-	hs := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	serveTestCDN(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/"+spaceID+"/root.packedmsg" {
 			if rootRequests.Add(1) == 1 {
 				close(firstRoot)
@@ -465,21 +492,10 @@ func TestReleaseWorldSharesTransportAndDurableCacheAcrossRpcBridge(t *testing.T)
 			close(rangeStarted)
 			<-releaseRange
 		}
-		parts := strings.SplitN(strings.TrimPrefix(r.Header.Get("Range"), "bytes="), "-", 2)
-		off, _ := strconv.Atoi(parts[0])
-		end := len(packData.Bytes()) - 1
-		if len(parts) == 2 && parts[1] != "" {
-			end, _ = strconv.Atoi(parts[1])
-		}
-		if end >= packData.Len() {
-			end = packData.Len() - 1
-		}
-		w.Header().Set("Content-Range", "bytes "+strconv.Itoa(off)+"-"+strconv.Itoa(end)+"/"+strconv.Itoa(packData.Len()))
-		w.WriteHeader(http.StatusPartialContent)
-		_, _ = w.Write(packData.Bytes()[off : end+1])
+		writePackRange(w, r.Header.Get("Range"), packData)
 	}))
-	defer hs.Close()
 
+	// Start the host bus with a cache volume, and a separate plugin bus.
 	le := logrus.NewEntry(logrus.New())
 	host, err := testbed.NewTestbed(ctx, le, testbed.WithVolumeConfig(
 		&volume_kvtxinmem.Config{VolumeConfig: &volume_controller.Config{
@@ -496,6 +512,7 @@ func TestReleaseWorldSharesTransportAndDurableCacheAcrossRpcBridge(t *testing.T)
 		t.Fatal(err)
 	}
 
+	// Expose the host volume as the cache block store and observe its writes.
 	cacheStore := &notifyingBlockStore{StoreOps: host.Volume, putCh: make(chan struct{}, 1)}
 	cacheCtrl := block_store_controller.NewController(
 		le,
@@ -511,6 +528,7 @@ func TestReleaseWorldSharesTransportAndDurableCacheAcrossRpcBridge(t *testing.T)
 	}
 	defer releaseCache()
 
+	// Bridge plugin RPC lookups under the plugin-host/ prefix to the host bus.
 	client := srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(bifrost_rpc.NewInvoker(host.Bus, "", false))))
 	clientCtrl := bifrost_rpc.NewClientController(
 		le,
@@ -525,6 +543,7 @@ func TestReleaseWorldSharesTransportAndDurableCacheAcrossRpcBridge(t *testing.T)
 	}
 	defer releaseClient()
 
+	// A plugin store on the unprefixed service never resolves.
 	wrongConf := block_store_rpc.NewConfig("wrong-prefix", serviceID, true, nil)
 	wrongConf.LookupOnStart = true
 	wrongCtrl := block_store_rpc.NewController(pluginBus, le, wrongConf)
@@ -532,6 +551,8 @@ func TestReleaseWorldSharesTransportAndDurableCacheAcrossRpcBridge(t *testing.T)
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Its lookup times out.
 	wrongCtx, wrongCancel := context.WithTimeout(ctx, 50*time.Millisecond)
 	_, _, wrongRef, wrongErr := block_store.ExLookupFirstBlockStore(wrongCtx, pluginBus, "wrong-prefix", false, nil)
 	if wrongRef != nil {
@@ -543,6 +564,7 @@ func TestReleaseWorldSharesTransportAndDurableCacheAcrossRpcBridge(t *testing.T)
 		t.Fatalf("unprefixed RPC service lookup error = %v context = %v, want deadline", wrongErr, wrongCtx.Err())
 	}
 
+	// Open the plugin store on the prefixed service.
 	rpcConf := block_store_rpc.NewConfig(ReleaseBlockStoreID, "plugin-host/"+serviceID, true, []string{"spacewave-release"})
 	rpcConf.LookupOnStart = true
 	rpcCtrl := block_store_rpc.NewController(pluginBus, le, rpcConf)
@@ -551,12 +573,15 @@ func TestReleaseWorldSharesTransportAndDurableCacheAcrossRpcBridge(t *testing.T)
 		t.Fatal(err)
 	}
 	defer releaseRPC()
+
+	// Look up the plugin store.
 	pluginStore, _, pluginStoreRef, err := block_store.ExLookupFirstBlockStore(ctx, pluginBus, ReleaseBlockStoreID, false, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer pluginStoreRef.Release()
 
+	// Serve the host Release block store as the RPC service.
 	serverCtrl := block_store_rpc_server.NewController(host.Bus, block_store_rpc_server.NewConfig(
 		ReleaseBlockStoreID, false, serviceID, "", hash.HashType_HashType_UNKNOWN,
 	))
@@ -566,6 +591,7 @@ func TestReleaseWorldSharesTransportAndDurableCacheAcrossRpcBridge(t *testing.T)
 	}
 	defer releaseServer()
 
+	// Watch the RPC service authorities the server adds and removes.
 	serviceAdded := make(chan srpc.Invoker, 4)
 	serviceRemoved := make(chan srpc.Invoker, 4)
 	_, serviceRef, err := host.Bus.AddDirective(
@@ -581,10 +607,13 @@ func TestReleaseWorldSharesTransportAndDurableCacheAcrossRpcBridge(t *testing.T)
 	}
 	defer serviceRef.Release()
 
-	conf := NewConfig(releaseWorldEngineID, spaceID, hs.URL)
+	// Configure the world controller with the durable cache.
+	conf := NewConfig(releaseWorldEngineID, spaceID, testCDNBaseURL)
 	conf.CacheBlockStoreId = cacheID
 	conf.WritebackWindowBytes = 1 << 20
 	worldCtrl := NewController(le, host.Bus, conf)
+
+	// Run it until the first Execute fails.
 	retryingCtrl := &retryingWorldController{Controller: worldCtrl, firstErr: make(chan error, 1)}
 	releaseWorld, err := host.Bus.AddController(ctx, retryingCtrl, nil)
 	if err != nil {
@@ -596,6 +625,8 @@ func TestReleaseWorldSharesTransportAndDurableCacheAcrossRpcBridge(t *testing.T)
 	if err := <-retryingCtrl.firstErr; err == nil {
 		t.Fatal("invalid first root did not fail the first Execute attempt")
 	}
+
+	// The retry withdraws the first authority and adds a new one.
 	if removed := <-serviceRemoved; removed != firstService {
 		t.Fatal("RPC server withdrew a different first authority")
 	}
@@ -604,6 +635,7 @@ func TestReleaseWorldSharesTransportAndDurableCacheAcrossRpcBridge(t *testing.T)
 		t.Fatal("RPC server retained its first authority across Execute retry")
 	}
 
+	// Start a plugin read and hold it in the first Range request.
 	hostStore, _, hostStoreRef, err := block_store.ExLookupFirstBlockStore(ctx, host.Bus, ReleaseBlockStoreID, false, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -617,11 +649,13 @@ func TestReleaseWorldSharesTransportAndDurableCacheAcrossRpcBridge(t *testing.T)
 	}()
 	<-rangeStarted
 
+	// Join a host read to it, then cancel the plugin read.
 	hostCtx := &observedContext{Context: ctx, done: make(chan struct{})}
 	hostDone := make(chan error, 1)
 	var hostData []byte
 	var hostFound bool
 	go func() {
+		var err error
 		hostData, hostFound, err = hostStore.GetBlock(hostCtx, ref)
 		hostDone <- err
 	}()
@@ -630,6 +664,8 @@ func TestReleaseWorldSharesTransportAndDurableCacheAcrossRpcBridge(t *testing.T)
 	if err := <-pluginDone; err == nil {
 		t.Fatal("canceled plugin RPC read returned no error")
 	}
+
+	// The host read completes from the one shared Range request.
 	close(releaseRange)
 	if err := <-hostDone; err != nil {
 		t.Fatal(err)
@@ -640,6 +676,8 @@ func TestReleaseWorldSharesTransportAndDurableCacheAcrossRpcBridge(t *testing.T)
 	if got := rangeRequests.Load(); got != 1 {
 		t.Fatalf("joined host and plugin reads made %d Range requests, want one", got)
 	}
+
+	// The block reaches the durable cache.
 	if err := cacheStore.waitPut(ctx); err != nil {
 		t.Fatalf("wait for durable writeback: %v", err)
 	}
@@ -649,6 +687,7 @@ func TestReleaseWorldSharesTransportAndDurableCacheAcrossRpcBridge(t *testing.T)
 	}
 	hostStoreRef.Release()
 
+	// Replacing the controller withdraws its authority and adds a new one.
 	releaseWorld()
 	if removed := <-serviceRemoved; removed != secondService {
 		t.Fatal("RPC server withdrew a different teardown authority")
@@ -663,6 +702,8 @@ func TestReleaseWorldSharesTransportAndDurableCacheAcrossRpcBridge(t *testing.T)
 	if thirdService == secondService {
 		t.Fatal("RPC server retained its closed authority after controller replacement")
 	}
+
+	// The retained plugin client reads through the replacement.
 	got, found, err := pluginStore.GetBlock(ctx, ref)
 	if err != nil || !found || !bytes.Equal(got, data) {
 		t.Fatalf("retained plugin client after replacement found=%v err=%v data=%q", found, err, got)

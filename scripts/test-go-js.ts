@@ -1,9 +1,10 @@
 #!/usr/bin/env bun
 
 // test-go-js runs the Go tests that only build for js/wasm in a headless
-// browser. It selects every package under the given patterns (default ./db/...)
+// browser. It selects every package under the given patterns (default ./...)
 // with a test file that builds for GOOS=js but not for the host, so a new
-// js-tagged test package joins the run without a list to update. Running a js
+// js-tagged test package joins the run without a list to update. Prototype
+// packages are experiments, not product, and stay out of the run. Running a js
 // test binary needs wasmbrowsertest installed as go_js_wasm_exec on PATH.
 
 const jsEnv = { ...process.env, GOOS: 'js', GOARCH: 'wasm' }
@@ -45,6 +46,9 @@ function selectJSPackages(patterns: string[]): string[] {
 
   const pkgs: string[] = []
   for (const [pkg, names] of jsFiles) {
+    if (pkg.includes('/prototypes/')) {
+      continue
+    }
     const host = hostFiles.get(pkg)
     if ([...names].some((name) => !host?.has(name))) {
       pkgs.push(pkg)
@@ -56,7 +60,7 @@ function selectJSPackages(patterns: string[]): string[] {
 const args = process.argv.slice(2)
 const listOnly = args[0] === '--list'
 const patterns = listOnly ? args.slice(1) : args
-const pkgs = selectJSPackages(patterns.length > 0 ? patterns : ['./db/...'])
+const pkgs = selectJSPackages(patterns.length > 0 ? patterns : ['./...'])
 if (pkgs.length === 0) {
   console.error('test-go-js: no js-only test packages found')
   process.exit(1)
