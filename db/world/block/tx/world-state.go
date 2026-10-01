@@ -6,6 +6,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/bucket"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	"github.com/s4wave/spacewave/db/tx"
@@ -28,6 +29,9 @@ type WorldState struct {
 	discarded bool
 	// txBatch is the batch of applied txs so far
 	txBatch *TxBatch
+	// payloads are the payload roots of the operations applied so far,
+	// including failed ones
+	payloads []*block.BlockRef
 }
 
 // NewWorldState constructs a new world state without forking it.
@@ -140,27 +144,30 @@ func (w *WorldState) ApplyWorldOp(
 	op world.Operation,
 	opSender peer.ID,
 ) (uint64, bool, error) {
+	// Reject a read transaction.
 	if !w.write {
 		return 0, false, tx.ErrNotWrite
 	}
 
+	// Build the batch entry that records the op.
 	t, err := NewTxApplyWorldOp(op, opSender)
 	if err != nil {
 		return 0, false, err
 	}
 
+	// Hold the transaction open while the op applies.
 	w.mtx.Lock()
 	defer w.mtx.Unlock()
-
 	if w.discarded {
 		return 0, false, tx.ErrDiscarded
 	}
 
+	// Own the op's payload even if it fails, then apply and record it.
+	w.addPayloadsLocked(op)
 	seqno, sysErr, err := w.world.ApplyWorldOp(ctx, op, opSender)
 	if err == nil {
 		w.txBatch.Txs = append(w.txBatch.Txs, t)
 	}
-
 	return seqno, sysErr, err
 }
 
@@ -463,6 +470,25 @@ func (w *WorldState) GetTxBatch() *TxBatch {
 	defer w.mtx.Unlock()
 
 	return w.txBatch
+}
+
+// TakePayloadRefs returns the payload roots of the operations applied so far
+// and forgets them. The caller releases them once the transaction's outcome is
+// final; see world.PayloadOperation.
+func (w *WorldState) TakePayloadRefs() []*block.BlockRef {
+	// Hand the recorded roots to the caller.
+	w.mtx.Lock()
+	defer w.mtx.Unlock()
+	payloads := w.payloads
+	w.payloads = nil
+	return payloads
+}
+
+// addPayloadsLocked records op's payload roots. Caller holds mtx.
+func (w *WorldState) addPayloadsLocked(op world.Operation) {
+	if pop, ok := op.(world.PayloadOperation); ok {
+		w.payloads = append(w.payloads, pop.GetPayloadRefs()...)
+	}
 }
 
 // Commit commits the transaction to storage.

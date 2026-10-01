@@ -156,6 +156,11 @@ func (o *FsWriteAtOp) ApplyWorldObjectOp(
 	return false, err
 }
 
+// GetPayloadRefs returns the written data blob.
+func (o *FsWriteAtOp) GetPayloadRefs() []*block.BlockRef {
+	return []*block.BlockRef{o.GetBlobRef()}
+}
+
 // MarshalBlock marshals the block to binary.
 func (o *FsWriteAtOp) MarshalBlock() ([]byte, error) {
 	return o.MarshalVT()
@@ -167,4 +172,4 @@ func (o *FsWriteAtOp) UnmarshalBlock(data []byte) error {
 }
 
 // _ is a type assertion
-var _ world.Operation = (*FsWriteAtOp)(nil)
+var _ world.PayloadOperation = (*FsWriteAtOp)(nil)

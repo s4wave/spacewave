@@ -39,6 +39,18 @@ type Operation interface {
 	) (sysErr bool, err error)
 }
 
+// PayloadOperation is an Operation whose payload was written outside the World
+// tree before the operation was applied. Replay reads the payload through its
+// roots, so the transaction that applied the operation owns them until the
+// operation is accepted or rejected. A payload the accepted World references
+// survives through that reference.
+type PayloadOperation interface {
+	Operation
+
+	// GetPayloadRefs returns the roots of the operation's payload.
+	GetPayloadRefs() []*block.BlockRef
+}
+
 // LookupOp looks up an operation type for a op type id.
 //
 // returns nil, nil if not found.

@@ -113,6 +113,29 @@ func setBucketRoot(ctx context.Context, blocks block.StoreOps, rg *block_gc.RefG
 	return rg.ApplyRefBatch(ctx, adds, removes)
 }
 
+// ReleaseBucketRoots drops the bucket's staging edges to roots in one
+// transaction. A root another block, named root or pin holds survives; the
+// next sweep collects the rest. A lost release only leaves the roots staged.
+func (v *Volume) ReleaseBucketRoots(ctx context.Context, bucketID string, refs []*block.BlockRef) error {
+	// Collect the staging edges to remove.
+	bucket := block_gc.BucketIRI(bucketID)
+	removes := make([]block_gc.RefEdge, 0, len(refs))
+	for _, ref := range refs {
+		if !ref.GetEmpty() {
+			removes = append(removes, block_gc.RefEdge{Subject: bucket, Object: block_gc.BlockIRI(ref)})
+		}
+	}
+	if len(removes) == 0 {
+		return nil
+	}
+
+	// Remove them, marking roots left without an owner for the sweep.
+	return v.withDirectAtomic(ctx, func(_ block.StoreOps, rg *block_gc.RefGraph) (bool, error) {
+		err := rg.ApplyRefBatch(ctx, nil, removes)
+		return err == nil, err
+	})
+}
+
 // PinBucketRoot couples a durable reader edge to the volume's existing
 // cross-process lease. A process crash releases the lease; the next sweep
 // removes its abandoned edge without disturbing another process's readers.

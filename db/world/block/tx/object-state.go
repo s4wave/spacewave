@@ -91,6 +91,7 @@ func (t *ObjectState) SetRootRef(ctx context.Context, nref *bucket.ObjectRef) (u
 // Returns the revision following the operation execution.
 // If nil is returned for the error, implies success.
 func (t *ObjectState) ApplyObjectOp(ctx context.Context, op world.Operation, opSender peer.ID) (uint64, bool, error) {
+	// Reject a read transaction and an empty op.
 	if !t.w.write {
 		return 0, false, tx.ErrNotWrite
 	}
@@ -98,19 +99,22 @@ func (t *ObjectState) ApplyObjectOp(ctx context.Context, op world.Operation, opS
 		return 0, false, world.ErrEmptyOp
 	}
 
+	// Build the batch entry that records the op.
 	operationTypeID := op.GetOperationTypeId()
 	tt, err := NewTxApplyObjectOp(operationTypeID, op, t.key, opSender)
 	if err != nil {
 		return 0, false, err
 	}
 
+	// Hold the transaction open while the op applies.
 	t.w.mtx.Lock()
 	defer t.w.mtx.Unlock()
-
 	if t.w.discarded {
 		return 0, false, tx.ErrDiscarded
 	}
 
+	// Own the op's payload even if it fails, then apply and record it.
+	t.w.addPayloadsLocked(op)
 	objRev, sysErr, err := t.o.ApplyObjectOp(ctx, op, opSender)
 	if err == nil {
 		t.w.txBatch.Txs = append(t.w.txBatch.Txs, tt)

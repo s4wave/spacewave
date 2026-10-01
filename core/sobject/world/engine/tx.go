@@ -234,14 +234,23 @@ func (t *soEngineWriteTx) ApplyWorldOp(ctx context.Context, op world.Operation, 
 }
 
 // Discard cancels the transaction.
-// If called after Commit, does nothing.
+// If called after Commit, releases the payloads of its operations.
 // Cannot return an error.
 // Can be called unlimited times.
 // Always call Discard or Commit when done with a tx.
 func (t *soEngineWriteTx) Discard() {
+	// Drop the candidate and let the next writer start.
 	t.WorldState.Discard()
 	t.btx.Discard()
 	t.unlockWriteMtx()
+
+	// Commit has returned, so authority has accepted or rejected the
+	// operations and no replay needs their payloads. The accepted World keeps
+	// any payload it references.
+	payloads := t.TakePayloadRefs()
+	if err := block.ReleaseRoots(context.Background(), t.eng.so.GetBlockStore(), payloads); err != nil && t.eng.c != nil && t.eng.c.le != nil {
+		t.eng.c.le.WithError(err).Warn("unable to release operation payloads")
+	}
 }
 
 // finalizationDecisionError preserves the retryable stale-generation classification.

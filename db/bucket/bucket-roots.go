@@ -19,6 +19,11 @@ func (b *bucketRW) PinRoot(ctx context.Context, ref *block.BlockRef) (func(), er
 	return block.PinRoot(ctx, b.store, ref)
 }
 
+// ReleaseRoots forwards staging release to the underlying store.
+func (b *bucketRW) ReleaseRoots(ctx context.Context, refs []*block.BlockRef) error {
+	return block.ReleaseRoots(ctx, b.store, refs)
+}
+
 // MarkRootsComplete forwards the durable World proof.
 func (b *bucketRW) MarkRootsComplete(ctx context.Context, roots []*block.BlockRef) error {
 	return block.MarkRootsComplete(ctx, b.store, roots)

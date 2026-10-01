@@ -2,14 +2,16 @@ package block
 
 import "context"
 
-// RootRetainer owns durable named roots and temporary reader pins. Replacing a
-// named root releases its predecessor; immutable descendants remain protected
-// by their own edges, other named roots, and reader pins. Unsupported stores
-// keep their existing retention policy.
+// RootRetainer owns durable named roots, temporary reader pins, and the
+// staging ownership of roots written outside both. Replacing a named root
+// releases its predecessor; immutable descendants remain protected by their own
+// edges, other named roots, and reader pins. Unsupported stores keep their
+// existing retention policy.
 type RootRetainer interface {
 	SupportsRootRetention() bool
 	SetRetainedRoot(context.Context, string, *BlockRef) error
 	PinRoot(context.Context, *BlockRef) (func(), error)
+	ReleaseRoots(context.Context, []*BlockRef) error
 	MarkRootsComplete(context.Context, []*BlockRef) error
 	RootComplete(context.Context, *BlockRef) (bool, error)
 }
@@ -60,4 +62,14 @@ func PinRoot(ctx context.Context, store StoreOps, ref *BlockRef) (func(), error)
 		return func() {}, nil
 	}
 	return store.(RootRetainer).PinRoot(ctx, ref)
+}
+
+// ReleaseRoots drops the staging ownership the store holds for roots the caller
+// wrote outside any named root. Each root then survives only through another
+// block's reference, a named root, or a reader pin.
+func ReleaseRoots(ctx context.Context, store StoreOps, refs []*BlockRef) error {
+	if len(refs) == 0 || !SupportsRootRetention(store) {
+		return nil
+	}
+	return store.(RootRetainer).ReleaseRoots(ctx, refs)
 }

@@ -25,6 +25,15 @@ func (s *BufferedStore) PinRoot(ctx context.Context, ref *BlockRef) (func(), err
 	return PinRoot(ctx, s.inner, ref)
 }
 
+// ReleaseRoots fences prepared blocks so their staging edges exist before
+// they are released.
+func (s *BufferedStore) ReleaseRoots(ctx context.Context, refs []*BlockRef) error {
+	if _, err := s.Sync(ctx); err != nil {
+		return err
+	}
+	return ReleaseRoots(ctx, s.inner, refs)
+}
+
 // MarkRootsComplete forwards the durable World proof.
 func (s *BufferedStore) MarkRootsComplete(ctx context.Context, roots []*BlockRef) error {
 	return MarkRootsComplete(ctx, s.inner, roots)
