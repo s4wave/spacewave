@@ -11,8 +11,9 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-// TestPackStoreCompacts merges 200 one-block packfiles into a few, and a
-// reader that listed the packfiles before the merge still reads every block.
+// TestPackStoreCompacts merges 200 one-block packfiles into a few without
+// listing the bucket, and a reader that listed the packfiles before the merge
+// still reads every block.
 func TestPackStoreCompacts(t *testing.T) {
 
 	// Write 200 one-block packfiles into a fresh fake bucket.
@@ -31,10 +32,16 @@ func TestPackStoreCompacts(t *testing.T) {
 		t.Fatalf("missing exists = %v, %v", exists, err)
 	}
 
-	// Compact the writer store and count the remaining packfiles and entries.
+	// Compact the writer store, which knows every packfile it wrote.
+	lists := bucket.lists
 	if err := writer.compact(ctx); err != nil {
 		t.Fatal(err)
 	}
+	if bucket.lists != lists {
+		t.Fatalf("compaction listed the bucket %d times", bucket.lists-lists)
+	}
+
+	// Count the remaining packfiles and entries.
 	var packs, entries int
 	for _, key := range bucket.keys() {
 		switch {
@@ -68,6 +75,13 @@ func TestPackStoreConcurrentCompaction(t *testing.T) {
 	b := newTestPackStore(t, client)
 	aRefs := putBlocks(t, a, "a", 40)
 	bRefs := putBlocks(t, b, "b", 40)
+
+	// List the entries in both stores so their merges pick the same inputs.
+	for _, store := range []*PackStore{a, b} {
+		if err := store.listEntries(ctx, store.listings.Load()); err != nil {
+			t.Fatal(err)
+		}
+	}
 
 	// Compact both stores concurrently.
 	var eg errgroup.Group

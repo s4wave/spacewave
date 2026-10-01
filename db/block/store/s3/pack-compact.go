@@ -65,9 +65,11 @@ func (s *PackStore) runCompaction(ctx context.Context) error {
 // packfile of weight below 1, so each block is rewritten at most compactTiers
 // times and at most compactFanout-1 packfiles wait in each tier.
 //
-// The pass lists the entries first to see the packfiles other writers added. A
-// merge deletes only inputs whose every block its output holds, so concurrent
-// passes on several devices lose no block.
+// The pass merges the packfiles this store wrote or last listed, without
+// listing the bucket, so each writer keeps at most compactFanout-1 packfiles
+// waiting per tier. A merge deletes only inputs whose every block its output
+// holds, so concurrent passes on several devices lose no block. A merge that
+// finds an input gone lists the entries and chooses again.
 func (s *PackStore) compact(ctx context.Context) error {
 	// Acquire the compaction mutex so only one merge runs at a time.
 	release, err := s.compactMtx.Lock(ctx)
@@ -75,11 +77,6 @@ func (s *PackStore) compact(ctx context.Context) error {
 		return err
 	}
 	defer release()
-
-	// List the current packfile entries from the S3 bucket.
-	if err := s.listEntries(ctx, s.listings.Load()); err != nil {
-		return err
-	}
 
 	// Merge packfiles until no tier holds compactFanout of them.
 	for {
