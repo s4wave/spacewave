@@ -57,11 +57,23 @@ def importRoot (previous candidate : Root) (config : Config) : Option Root :=
 def replaySnapshotOps (s : State) (ops : List Operation) : Option State :=
   ops.foldlM queueOperation s
 
+/--
+consumeBelow reserves every nonce below a previously admitted local operation,
+since the held state admitted its operations in nonce order.
+-/
+def consumeBelow (s : State) (o : Operation) : State :=
+  if o.nonce = 0 then s
+  else {s with queued := updateQueuedAccountNonce s.queued o.peer (o.nonce - 1)}
+
+/-- consumeBelow changes only nonce reservations. -/
+theorem consumeBelow_ops (s : State) (o : Operation) : (consumeBelow s o).ops = s.ops := by
+  unfold consumeBelow; split <;> rfl
+
 /-- mergeLocalOperation retains one local operation precisely when queueing admits it. -/
 def mergeLocalOperation (s : State) (o : Operation) : Option State := do
   if !o.innerValid then none
   else if ← getOperationStatus s o.peer o.localId then some s
-  else some ((queueOperation s o).getD s)
+  else some ((queueOperation (consumeBelow s o) o).getD s)
 
 /-- mergeLocalOps visits pending local operations in their original order. -/
 def mergeLocalOps (s : State) (ops : List Operation) : Option State :=
@@ -284,9 +296,10 @@ theorem mergeLocalOperation_spec {s next : State} {o : Operation}
     (h : mergeLocalOperation s o = some next) :
     o.innerValid = true ∧
       ((next = s ∧ (getOperationStatus s o.peer o.localId = some true ∨
-        (getOperationStatus s o.peer o.localId = some false ∧ queueOperation s o = none))) ∨
+        (getOperationStatus s o.peer o.localId = some false ∧
+          queueOperation (consumeBelow s o) o = none))) ∨
       (getOperationStatus s o.peer o.localId = some false ∧
-        queueOperation s o = some next ∧ next.ops = s.ops ++ [o])) := by
+        queueOperation (consumeBelow s o) o = some next ∧ next.ops = s.ops ++ [o])) := by
   unfold mergeLocalOperation at h
   split at h
   · contradiction
@@ -298,7 +311,7 @@ theorem mergeLocalOperation_spec {s next : State} {o : Operation}
     | some found =>
       cases found
       · simp only [status] at h
-        cases queued : queueOperation s o with
+        cases queued : queueOperation (consumeBelow s o) o with
         | none =>
           simp [queued] at h
           exact Or.inl ⟨h.symm, Or.inr ⟨rfl, rfl⟩⟩
@@ -306,14 +319,14 @@ theorem mergeLocalOperation_spec {s next : State} {o : Operation}
           simp [queued] at h
           subst next
           obtain ⟨_, _, _, shape⟩ := queueOperation_spec queued
-          exact Or.inr ⟨rfl, rfl, by simp [shape]⟩
+          exact Or.inr ⟨rfl, rfl, by simp [shape, consumeBelow_ops]⟩
       · simp [status] at h
         exact Or.inl ⟨h.symm, Or.inl rfl⟩
 
 /-- Decoded local operations cannot fail import through a failed queue attempt. -/
 theorem mergeLocalOperation_admissible {s : State} {o : Operation}
     (valid : o.innerValid = true) (fresh : getOperationStatus s o.peer o.localId = some false) :
-    mergeLocalOperation s o = some ((queueOperation s o).getD s) := by
+    mergeLocalOperation s o = some ((queueOperation (consumeBelow s o) o).getD s) := by
   simp [mergeLocalOperation, valid, fresh]
 
 /-- Local replay preserves the selected root, configuration and invitations. -/
@@ -321,7 +334,8 @@ theorem mergeLocalOperation_hostFrame {s next : State} {o : Operation}
     (h : mergeLocalOperation s o = some next) : next.hostFrame = s.hostFrame := by
   obtain ⟨_, skipped | admitted⟩ := mergeLocalOperation_spec h
   · rw [skipped.1]
-  · exact queueOperation_hostFrame admitted.2.1
+  · rw [queueOperation_hostFrame admitted.2.1]
+    unfold consumeBelow; split <;> rfl
 
 /-- A fold preserves a projection when every accepted step preserves it. -/
 theorem foldlM_preserves {α β γ : Type} (f : α → β → Option α) (projection : α → γ)

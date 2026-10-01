@@ -630,7 +630,8 @@ func (l *LocalSOHost) localOperationInner(
 // WaitOperation waits for the operation to be confirmed or rejected by the provider.
 // Success waits until body readers can observe at least the accepted root nonce.
 // Returns the nonce of that published snapshot.
-// After ClearOperation has been called, this will return success even for failed ops!
+// An operation that left the host queue without a result, a rejection, or an
+// accepted root nonce covering it returns ErrDroppedOp.
 // If the operation was rejected, returns 0, true, error.
 // Any other error returns 0, false, error.
 func (l *LocalSOHost) WaitOperation(ctx context.Context, localID string) (uint64, bool, error) {
@@ -666,6 +667,7 @@ func (l *LocalSOHost) WaitOperation(ctx context.Context, localID string) (uint64
 
 	// Follow host transitions until this operation leaves its queue.
 	var current *sobject.SOState
+	var nonce uint64
 	for {
 		// Read each host snapshot once, retaining the wait across unchanged state.
 		next, err := soStateCtr.WaitValueChange(ctx, current, nil)
@@ -688,10 +690,10 @@ func (l *LocalSOHost) WaitOperation(ctx context.Context, localID string) (uint64
 				return 0, false, err
 			}
 
-			// Retain the matching operation while it remains pending.
-			opInnerLocalID := opInner.GetLocalId()
-			if opInnerLocalID == localID {
+			// Retain the matching operation and its nonce while it remains pending.
+			if opInner.GetLocalId() == localID {
 				queuedOp = op
+				nonce = opInner.GetNonce()
 				break
 			}
 		}
@@ -726,7 +728,7 @@ func (l *LocalSOHost) WaitOperation(ctx context.Context, localID string) (uint64
 
 				// Report the matching rejection using its stored error details.
 				if rejInner.GetLocalId() == localID {
-					errorDetails, err := rejInner.DecodeErrorDetails(l.privKey, l.soHost.GetSharedObjectID(), l.peerID)
+					errorDetails, err := l.decodeLocalRejectionError(rejection, rejInner)
 					if err != nil {
 						return 0, false, err
 					}
@@ -738,11 +740,28 @@ func (l *LocalSOHost) WaitOperation(ctx context.Context, localID string) (uint64
 			}
 		}
 
+		// An accepted root records the operation's nonce. Without it, the
+		// operation left the queue undecided and will never be accepted.
+		if nonce != 0 && !rootAccountNonceReached(current.GetRoot(), l.peerID.String(), nonce) {
+			return 0, false, sobject.ErrDroppedOp
+		}
+
 		// Acceptance must reach the snapshot used by GetSharedObjectState before
 		// the caller can treat the operation as complete.
 		seqno, err := l.waitForRootSeqno(ctx, current.GetRoot().GetInnerSeqno())
 		return seqno, false, err
 	}
+}
+
+// rootAccountNonceReached reports whether root accepted nonce or a later
+// operation from peerID.
+func rootAccountNonceReached(root *sobject.SORoot, peerID string, nonce uint64) bool {
+	for _, accountNonce := range root.GetAccountNonces() {
+		if accountNonce.GetPeerId() == peerID {
+			return accountNonce.GetNonce() >= nonce
+		}
+	}
+	return false
 }
 
 // waitForLocalOperationTransmission waits until the durable local queue no longer

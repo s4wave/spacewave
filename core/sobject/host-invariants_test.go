@@ -152,3 +152,39 @@ func TestPeerSnapshotExchangeConverges(t *testing.T) {
 		t.Fatal("snapshot exchange replaced local invitation capabilities")
 	}
 }
+
+// TestImportRequeuesAfterClearedRejection keeps a pending local operation
+// whose preceding nonce a since-cleared rejection consumed.
+func TestImportRequeuesAfterClearedRejection(t *testing.T) {
+	// Hold a single-writer state at an accepted root.
+	peers := createMockPeers(t, 1)
+	previous := createMockSOState(peers, nil)
+	previous.Config.ConfigChainHash = bytes.Repeat([]byte{1}, 32)
+	previous.Root = createMockSORoot(t, 1, peers[0])
+	priv, err := peers[0].GetPrivKey(t.Context())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Nonce 1 was rejected and cleared; nonce 2 waits for the validator.
+	previous.QueuedAccountNonces = []*SOAccountNonce{{PeerId: peers[0].GetPeerID().String(), Nonce: 1}}
+	op, err := BuildSOOperation(mockSharedObjectID, priv, []byte("two"), 2, NewSOOperationLocalID())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := previous.QueueOperation(mockSharedObjectID, op); err != nil {
+		t.Fatal(err)
+	}
+
+	// The validator's snapshot has neither the operation nor the rejection.
+	candidate := previous.CloneVT()
+	candidate.Ops = nil
+	candidate.QueuedAccountNonces = nil
+	host, current := newTestSOHost(t.Context(), previous)
+	if err := host.ImportPeerSnapshot(t.Context(), candidate, nil, peers[0].GetPeerID(), nil); err != nil {
+		t.Fatal(err)
+	}
+	if len((*current).GetOps()) != 1 || !(*current).GetOps()[0].EqualVT(op) {
+		t.Fatal("import dropped the pending local operation")
+	}
+}

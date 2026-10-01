@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"strings"
 	"testing"
 	"time"
 
@@ -88,6 +89,115 @@ func TestDecodeLocalRejectionUsesValidatorSigner(t *testing.T) {
 	}
 	if details.GetErrorMsg() != "rejected" {
 		t.Fatalf("error details = %q, want rejected", details.GetErrorMsg())
+	}
+}
+
+func TestWaitOperationDecodesHostRejection(t *testing.T) {
+	// Create the submitting host and a separate validator.
+	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
+	defer cancel()
+	host, localPeer := newTestLocalSOHost(t)
+	validator, err := peer.NewPeer(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	validatorKey, err := validator.GetPrivKey(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Reject the operation from the validator in the host state.
+	localID := sobject.NewSOOperationLocalID()
+	rejection, err := sobject.BuildSOOperationRejection(
+		validatorKey,
+		testSharedObjectID,
+		localPeer.GetPeerID(),
+		1,
+		localID,
+		&sobject.SOOperationRejectionErrorDetails{ErrorMsg: "storage generation is stale"},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	stateCtr := ccontainer.NewCContainer(&sobject.SOState{
+		OpRejections: []*sobject.SOPeerOpRejections{{
+			PeerId:     localPeer.GetPeerID().String(),
+			Rejections: []*sobject.SOOperationRejection{rejection},
+		}},
+	})
+	host.soHost = sobject.NewSOHost(
+		ctx,
+		func(context.Context, string, func()) (ccontainer.Watchable[*sobject.SOState], func(), error) {
+			return stateCtr, nil, nil
+		},
+		nil,
+		testSharedObjectID,
+	)
+
+	// The submitter decrypts the details under the validator's identity.
+	_, rejected, err := host.WaitOperation(ctx, localID)
+	if !rejected || !errors.Is(err, sobject.ErrRejectedOp) {
+		t.Fatalf("rejected = %v, err = %v, want a rejection", rejected, err)
+	}
+	if !strings.Contains(err.Error(), "storage generation is stale") {
+		t.Fatalf("err = %v, want the validator's message", err)
+	}
+}
+
+// queueWatch signals each wait for a change from a held host state.
+type queueWatch struct {
+	*ccontainer.CContainer[*sobject.SOState]
+	// waiting receives a signal when a waiter holds a state.
+	waiting chan struct{}
+}
+
+// WaitValueChange signals the waiter before waiting for a change from old.
+func (w *queueWatch) WaitValueChange(ctx context.Context, old *sobject.SOState, errCh <-chan error) (*sobject.SOState, error) {
+	if old != nil {
+		select {
+		case w.waiting <- struct{}{}:
+		default:
+		}
+	}
+	return w.CContainer.WaitValueChange(ctx, old, errCh)
+}
+
+// TestWaitOperationReportsDroppedOp fails an operation that leaves the host
+// queue with no result, no rejection and no accepted nonce.
+func TestWaitOperationReportsDroppedOp(t *testing.T) {
+	// Queue the operation in the host state.
+	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
+	defer cancel()
+	host, _ := newTestLocalSOHost(t)
+	localID := sobject.NewSOOperationLocalID()
+	op := buildTestOperation(t, host, localID, 2)
+	watch := &queueWatch{
+		CContainer: ccontainer.NewCContainer(&sobject.SOState{Ops: []*sobject.SOOperation{op}}),
+		waiting:    make(chan struct{}, 1),
+	}
+	host.soHost = sobject.NewSOHost(
+		ctx,
+		func(context.Context, string, func()) (ccontainer.Watchable[*sobject.SOState], func(), error) {
+			return watch, nil, nil
+		},
+		nil,
+		testSharedObjectID,
+	)
+
+	// Drop the operation once the waiter has seen it queued.
+	errCh := make(chan error, 1)
+	go func() {
+		_, _, err := host.WaitOperation(ctx, localID)
+		errCh <- err
+	}()
+	select {
+	case <-watch.waiting:
+	case <-ctx.Done():
+		t.Fatal(ctx.Err())
+	}
+	watch.SetValue(&sobject.SOState{Root: &sobject.SORoot{InnerSeqno: 2}})
+	if err := <-errCh; !errors.Is(err, sobject.ErrDroppedOp) {
+		t.Fatalf("err = %v, want ErrDroppedOp", err)
 	}
 }
 

@@ -333,9 +333,21 @@ func (s *SOHost) ImportPeerSnapshot(
 		if existing != nil || rejection != nil {
 			continue
 		}
-		// Committed, revoked or over-capacity local operations cannot be requeued.
+
+		// The held state admitted its operations in nonce order, so every
+		// nonce below this one was consumed, even when the candidate no
+		// longer shows the cleared rejection that consumed it. Committed,
+		// revoked or over-capacity local operations cannot be requeued, and
+		// keep the queued nonces they found.
+		queued := make([]*SOAccountNonce, 0, len(next.GetQueuedAccountNonces()))
+		for _, nonce := range next.GetQueuedAccountNonces() {
+			queued = append(queued, nonce.CloneVT())
+		}
+		if nonce := inner.GetNonce(); nonce != 0 {
+			next.updateQueuedAccountNonce(inner.GetPeerId(), nonce-1)
+		}
 		if err := next.QueueOperation(s.sharedObjectID, operation); err != nil {
-			continue
+			next.QueuedAccountNonces = queued
 		}
 	}
 
