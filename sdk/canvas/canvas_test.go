@@ -11,10 +11,8 @@ import (
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/s4wave/spacewave/db/block"
 	block_kvtx "github.com/s4wave/spacewave/db/kvtx/block"
-	db_testbed "github.com/s4wave/spacewave/db/testbed"
 	"github.com/s4wave/spacewave/db/world"
-	world_block "github.com/s4wave/spacewave/db/world/block"
-	"github.com/sirupsen/logrus"
+	world_testbed "github.com/s4wave/spacewave/db/world/testbed"
 )
 
 type canvasStateStream struct {
@@ -86,54 +84,39 @@ func recvCanvasTestValue[T any](t *testing.T, ch <-chan T, name string) T {
 	return zero
 }
 
+// setupCanvasWatchWorld creates objKey holding state in an engine-backed
+// World. Each write commits its own transaction, so a watcher observes the
+// seqno only after the change is readable.
 func setupCanvasWatchWorld(
 	t *testing.T,
 	ctx context.Context,
 	objKey string,
 	state *CanvasState,
-) (*world_block.WorldState, func()) {
+) (world.WorldState, func()) {
+	// Start an engine World with transactional writes.
 	t.Helper()
+	tb, err := world_testbed.Default(ctx, world_testbed.WithWorldVerbose(false))
+	if err != nil {
+		t.Fatal(err.Error())
+	}
 
-	log := logrus.New()
-	le := logrus.NewEntry(log)
-	tb, err := db_testbed.NewTestbed(ctx, le)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	ocs, err := tb.BuildEmptyCursor(ctx)
-	if err != nil {
-		tb.Release()
-		t.Fatal(err.Error())
-	}
-	ws, err := world_block.BuildMockWorldState(ctx, le, true, ocs, false)
-	if err != nil {
-		ocs.Release()
-		tb.Release()
-		t.Fatal(err.Error())
-	}
-	var createdObject world.ObjectState
-	createdObject, _, err = world.CreateWorldObject(ctx, ws, objKey, func(bcs *block.Cursor) error {
+	// Create the canvas object holding the initial state.
+	ws := tb.WorldState
+	createdObject, _, err := world.CreateWorldObject(ctx, ws, objKey, func(bcs *block.Cursor) error {
 		return WriteCanvasState(ctx, bcs, nil, state)
 	})
 	world.ReleaseObjectState(createdObject)
-	if err == nil {
-		err = ws.Commit(ctx)
-	}
 	if err != nil {
-		ocs.Release()
 		tb.Release()
 		t.Fatal(err.Error())
 	}
-	return ws, func() {
-		ocs.Release()
-		tb.Release()
-	}
+	return ws, tb.Release
 }
 
 func setCanvasWatchWorldState(
 	t *testing.T,
 	ctx context.Context,
-	ws *world_block.WorldState,
+	ws world.WorldState,
 	objKey string,
 	state *CanvasState,
 ) {
@@ -142,9 +125,6 @@ func setCanvasWatchWorldState(
 	_, _, err := world.AccessWorldObject(ctx, ws, objKey, true, func(bcs *block.Cursor) error {
 		return WriteCanvasState(ctx, bcs, nil, state)
 	})
-	if err == nil {
-		err = ws.Commit(ctx)
-	}
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -799,7 +779,7 @@ func TestCanvasStorageWritesNilMessageValues(t *testing.T) {
 func writeCanvasStorageTestState(
 	t *testing.T,
 	ctx context.Context,
-	ws *world_block.WorldState,
+	ws world.WorldState,
 	objKey string,
 	previous, next *CanvasState,
 ) {
@@ -807,9 +787,6 @@ func writeCanvasStorageTestState(
 	_, _, err := world.AccessWorldObject(ctx, ws, objKey, true, func(bcs *block.Cursor) error {
 		return WriteCanvasState(ctx, bcs, previous, next)
 	})
-	if err == nil {
-		err = ws.Commit(ctx)
-	}
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -818,7 +795,7 @@ func writeCanvasStorageTestState(
 func canvasStorageNodeDagRefs(
 	t *testing.T,
 	ctx context.Context,
-	ws *world_block.WorldState,
+	ws world.WorldState,
 	objKey string,
 ) map[string]struct{} {
 	t.Helper()
@@ -875,7 +852,7 @@ func canvasStorageNodeDagRefs(
 func canvasStorageNodeRefs(
 	t *testing.T,
 	ctx context.Context,
-	ws *world_block.WorldState,
+	ws world.WorldState,
 	objKey string,
 ) map[string]*block.BlockRef {
 	t.Helper()
