@@ -6,6 +6,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/core/sobject"
+	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/coord"
 	"github.com/s4wave/spacewave/db/world"
 	world_block_tx "github.com/s4wave/spacewave/db/world/block/tx"
@@ -55,7 +56,8 @@ func TestWatchStateKeepsAcceptedWorldBase(t *testing.T) {
 }
 
 // TestWriteTransactionRefreshesAcceptedBase checks that a lagging watcher cannot
-// make the first write after a remote acceptance use an older World.
+// make the first write after a remote acceptance use an older World, and that
+// the accepted candidate root stays owned.
 func TestWriteTransactionRefreshesAcceptedBase(t *testing.T) {
 	// Advance authority while leaving the local engine on its previous root.
 	ctx := t.Context()
@@ -70,6 +72,11 @@ func TestWriteTransactionRefreshesAcceptedBase(t *testing.T) {
 		testSharedObject: *so,
 		snapshot:         newTestFinalizationSnapshot(t, &sobject.SORoot{InnerSeqno: 2}, accepted.GetHeadRef()),
 	}
+
+	// Record the roots the write releases through the shared object.
+	store := &rootRecordingStore{testBlockStore: so.blockStore.(*testBlockStore)}
+	shared.blockStore = store
+	shared.localStore = newTestRejectedCandidateStore()
 	engine := newSoEngine(c, shared, ws.bengine)
 
 	// The write reads accepted remote data even before the watcher runs.
@@ -106,6 +113,9 @@ func TestWriteTransactionRefreshesAcceptedBase(t *testing.T) {
 	if err := tx.Commit(ctx); err != nil {
 		t.Fatalf("commit after refreshing the accepted base: %v", err)
 	}
+	if len(store.released) != 0 {
+		t.Fatalf("released %d roots of an accepted candidate", len(store.released))
+	}
 
 	// Read back both writes through the engine's newly accepted head.
 	read, err := engine.NewTransaction(ctx, false)
@@ -121,7 +131,8 @@ func TestWriteTransactionRefreshesAcceptedBase(t *testing.T) {
 }
 
 // TestWriteTransactionRetainsSharedObjectBase rejects an authority change during
-// the transaction even when that change leaves the World head unchanged.
+// the transaction even when that change leaves the World head unchanged, and
+// releases the rejected candidate root.
 func TestWriteTransactionRetainsSharedObjectBase(t *testing.T) {
 	// Open a write under one authority root.
 	ctx := t.Context()
@@ -135,7 +146,14 @@ func TestWriteTransactionRetainsSharedObjectBase(t *testing.T) {
 		testSharedObject: *so,
 		snapshot:         newTestFinalizationSnapshot(t, &sobject.SORoot{InnerSeqno: 1}, head.GetHeadRef()),
 	}
+
+	// Record the roots the write releases through the shared object.
+	store := &rootRecordingStore{testBlockStore: so.blockStore.(*testBlockStore)}
+	shared.blockStore = store
+	shared.localStore = newTestRejectedCandidateStore()
 	engine := newSoEngine(c, shared, ws.bengine)
+
+	// Create an object in a write transaction.
 	tx, err := engine.NewTransaction(ctx, true)
 	if err != nil {
 		t.Fatal(err)
@@ -156,6 +174,11 @@ func TestWriteTransactionRetainsSharedObjectBase(t *testing.T) {
 	}
 	if len(shared.queuedOps) != 0 {
 		t.Fatal("stale transaction reached the authority queue")
+	}
+
+	// The rejected candidate root loses its staging ownership.
+	if len(store.released) != 1 || store.released[0].EqualVT(head.GetHeadRef().GetRootRef()) {
+		t.Fatalf("released roots = %v, want the rejected candidate root", store.released)
 	}
 }
 
@@ -203,3 +226,42 @@ func (s *transactionSharedObject) GetSharedObjectState(context.Context) (sobject
 
 // _ is a type assertion
 var _ sobject.SharedObject = (*transactionSharedObject)(nil)
+
+// rootRecordingStore reports root retention and records the roots released
+// through it. Every root reads as complete, so retention copies nothing.
+type rootRecordingStore struct {
+	*testBlockStore
+	// released holds the roots ReleaseRoots received.
+	released []*block.BlockRef
+}
+
+// SupportsRootRetention reports root retention.
+func (s *rootRecordingStore) SupportsRootRetention() bool {
+	return true
+}
+
+// SetRetainedRoot accepts any named root.
+func (s *rootRecordingStore) SetRetainedRoot(context.Context, string, *block.BlockRef) error {
+	return nil
+}
+
+// PinRoot returns a no-op release.
+func (s *rootRecordingStore) PinRoot(context.Context, *block.BlockRef) (func(), error) {
+	return func() {}, nil
+}
+
+// ReleaseRoots records refs.
+func (s *rootRecordingStore) ReleaseRoots(_ context.Context, refs []*block.BlockRef) error {
+	s.released = append(s.released, refs...)
+	return nil
+}
+
+// MarkRootsComplete accepts any proof.
+func (s *rootRecordingStore) MarkRootsComplete(context.Context, []*block.BlockRef) error {
+	return nil
+}
+
+// RootComplete reports every root complete.
+func (s *rootRecordingStore) RootComplete(context.Context, *block.BlockRef) (bool, error) {
+	return true, nil
+}
