@@ -178,7 +178,6 @@
     "lint:go:alpha": "bun run go:aptre -- lint ./cmd/... ./core/... ./plugin/... ./sdk/...",
     "lint:go:auth": "bun run go:aptre -- lint ./auth/...",
     "bldr:lint:go": "bun run go:aptre -- lint ./bldr/...",
-    "lint:js:oxlint": "oxlint .",
     "lint:js:oxlint:type-aware": "oxlint -c .oxlintrc.type-aware.json --type-aware ./app ./web ./core ./sdk ./cmd",
     "check:go:startup-trace": "cross-env GOFLAGS=-mod=mod go build -tags bldr_startup_trace,purego ./bldr/... ./db/...",
     "lint:go:db": "bun run go:aptre -- lint ./db/... ./runtimeenv/...",
