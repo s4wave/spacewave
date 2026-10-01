@@ -5,6 +5,7 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/hex"
+	"io"
 	"math"
 	"slices"
 	"strings"
@@ -33,6 +34,11 @@ const ControlProtocolID = protocol.ID("bifrost/solicit")
 
 // SolicitStreamPrefix is the protocol ID prefix for solicited streams.
 const SolicitStreamPrefix = "solicit:"
+
+// solicitAcceptByte is written by the receiver of a solicited stream once it
+// accepts the stream's offer pair. The opener publishes the stream only after
+// reading it, because its view of the remote incarnation may be stale.
+const solicitAcceptByte = 1
 
 // solicitationIncarnationSize is the number of random bytes in an offer incarnation.
 const solicitationIncarnationSize = 16
@@ -695,14 +701,12 @@ func (c *Controller) computeExchange(
 	}
 }
 
-// resolveMatch emits a stream only to the currently active local incarnation
-// bound to the current remote incarnation.
-func (c *Controller) resolveMatch(
+// matchSolicitations returns the active local incarnations bound to the
+// current remote incarnation of match.
+func (c *Controller) matchSolicitations(
 	ls *linkState,
 	match solicitationMatch,
-	ms link.MountedStream,
-) bool {
-	// Select only live local offers matching the peer's current incarnation.
+) []*solicitState {
 	var matches []*solicitState
 	c.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		if !c.controlStreamLinkActiveLocked(ls) ||
@@ -731,8 +735,18 @@ func (c *Controller) resolveMatch(
 			matches = append(matches, ss)
 		}
 	})
+	return matches
+}
 
-	// Publish outside the lock because directive callbacks may re-enter us.
+// emitMatch publishes ms to each matched solicitation and reports whether any
+// accepted it. Call without the broadcast lock because directive callbacks may
+// re-enter the controller.
+func emitMatch(
+	ls *linkState,
+	match solicitationMatch,
+	ms link.MountedStream,
+	matches []*solicitState,
+) bool {
 	var emitted bool
 	for _, ss := range matches {
 		sms := link_solicit.NewSolicitMountedStream(ms)
@@ -772,7 +786,6 @@ func (c *Controller) openSolicitedStream(
 ) {
 	// Open a protocol bound to the exact bilateral offer pair.
 	pid := protocol.ID(SolicitStreamPrefix + encodeSolicitationMatch(ls, match))
-
 	ms, err := ls.ml.OpenMountedStream(ctx, pid, stream.OpenOpts{})
 	if err != nil {
 		ls.le.WithError(err).WithField("hash", hex.EncodeToString(match.hash)).
@@ -780,9 +793,23 @@ func (c *Controller) openSolicitedStream(
 		return
 	}
 
-	// A retired offer cannot retain a newly opened stream.
-	if !c.resolveMatch(ls, match, ms) {
-		ms.GetStream().Close()
+	// Wait for the receiver to accept the pair; it closes stale pairs.
+	strm := ms.GetStream()
+	stopClose := context.AfterFunc(ctx, func() { _ = strm.Close() })
+	var accept [1]byte
+	_, err = io.ReadFull(strm, accept[:])
+	stopClose()
+	if err != nil || accept[0] != solicitAcceptByte {
+		ls.le.WithError(err).WithField("hash", hex.EncodeToString(match.hash)).
+			Debug("solicited stream not accepted")
+		_ = strm.Close()
+		return
+	}
+
+	// A retired offer cannot retain a newly accepted stream.
+	matches := c.matchSolicitations(ls, match)
+	if !emitMatch(ls, match, ms, matches) {
+		_ = strm.Close()
 	}
 }
 
@@ -838,14 +865,11 @@ func (c *Controller) handleIncomingSolicitedStream(
 	ms link.MountedStream,
 ) {
 	// Locate the tracked physical link before interpreting the stream match.
-	lnk := ms.GetLink()
-	uuid := lnk.GetLinkUUID()
-
+	uuid := ms.GetLink().GetLinkUUID()
 	var ls *linkState
 	c.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		ls = c.links[uuid]
 	})
-
 	if ls == nil {
 		c.le.Warn("solicited stream for unknown link")
 		ms.GetStream().Close()
@@ -859,8 +883,24 @@ func (c *Controller) handleIncomingSolicitedStream(
 		ms.GetStream().Close()
 		return
 	}
-	if !c.resolveMatch(ls, match, ms) {
+
+	// Select the live local incarnations bound to the pair.
+	matches := c.matchSolicitations(ls, match)
+	if len(matches) == 0 {
 		ms.GetStream().Close()
+		return
+	}
+
+	// Accept the pair before publishing so the opener never holds a stream
+	// this side rejected.
+	strm := ms.GetStream()
+	if _, err := strm.Write([]byte{solicitAcceptByte}); err != nil {
+		c.le.WithError(err).Debug("failed to accept solicited stream")
+		strm.Close()
+		return
+	}
+	if !emitMatch(ls, match, ms, matches) {
+		strm.Close()
 	}
 }
 

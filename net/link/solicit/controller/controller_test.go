@@ -34,6 +34,8 @@ type testMountedLink struct {
 	localPeer     peer.ID
 	remotePeer    peer.ID
 	openCh        chan protocol.ID
+	// reject makes opened streams end as if the receiver closed them.
+	reject bool
 }
 
 func (l *testMountedLink) GetLinkUUID() uint64 {
@@ -68,6 +70,7 @@ func (l *testMountedLink) OpenMountedStream(
 		link:       l,
 		protocolID: protocolID,
 		opts:       opts,
+		rejected:   l.reject,
 	}, nil
 }
 
@@ -75,10 +78,11 @@ type testMountedStream struct {
 	link       link.MountedLink
 	protocolID protocol.ID
 	opts       stream.OpenOpts
+	rejected   bool
 }
 
 func (s *testMountedStream) GetStream() stream.Stream {
-	return testStream{}
+	return testStream{rejected: s.rejected}
 }
 
 func (s *testMountedStream) GetProtocolID() protocol.ID {
@@ -97,10 +101,20 @@ func (s *testMountedStream) GetLink() link.MountedLink {
 	return s.link
 }
 
-type testStream struct{}
+type testStream struct {
+	rejected bool
+}
 
-func (testStream) Read([]byte) (int, error) {
-	return 0, nil
+// Read reports the receiver's acceptance or rejection of a solicited stream.
+func (s testStream) Read(b []byte) (int, error) {
+	if s.rejected {
+		return 0, io.EOF
+	}
+	if len(b) == 0 {
+		return 0, nil
+	}
+	b[0] = solicitAcceptByte
+	return 1, nil
 }
 
 func (testStream) Write(b []byte) (int, error) {
@@ -704,6 +718,56 @@ func TestRetainedLinkPrunesRetiredIncarnationPairs(t *testing.T) {
 			t.Fatalf("generation %d matched entries = %d, want legacy plus current pair", generation, len(ls.matched))
 		}
 	}
+}
+
+// TestOpenSolicitedStreamWaitsForAccept verifies the opener publishes a stream
+// only after the receiver accepts its offer pair.
+func TestOpenSolicitedStreamWaitsForAccept(t *testing.T) {
+	// Build a lower-peer link and one solicitation entry.
+	c := newTestSolicitController(t)
+	ls := newTestLinkState(peer.ID("a"), peer.ID("b"))
+	handler := newTestResolverHandler()
+	entry := link_solicit.SolicitEntry{
+		ProtocolID: protocol.ID("test/accept"),
+		Context:    []byte("ctx"),
+	}
+	hash := link_solicit.ComputeProtocolHash(ls.sessionID, entry.ProtocolID, entry.Context)
+
+	// Bind the offer to fixed local and remote incarnations.
+	localIncarnation := bytes.Repeat([]byte{1}, solicitationIncarnationSize)
+	remoteIncarnation := bytes.Repeat([]byte{2}, solicitationIncarnationSize)
+	ss := &solicitState{
+		dir:         link_solicit.NewSolicitProtocol(entry.ProtocolID, entry.Context, "", 0),
+		handler:     handler,
+		incarnation: localIncarnation,
+	}
+
+	// Register it against the remote's last advertised offer.
+	c.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		c.links[ls.ml.GetLinkUUID()] = ls
+		c.solicitations[ss] = struct{}{}
+		ls.remoteExchange = incarnatedSolicitationExchange(hash, remoteIncarnation, 2, 2)
+		broadcast()
+	})
+	match := solicitationMatch{
+		hash:              hash,
+		localIncarnation:  localIncarnation,
+		remoteIncarnation: remoteIncarnation,
+		incarnated:        true,
+	}
+
+	// A receiver that already rotated its incarnation closes the stream.
+	ml := ls.ml.(*testMountedLink)
+	ml.reject = true
+	c.openSolicitedStream(t.Context(), ls, match)
+	recvTestValue(t, ml.openCh, "rejected opened protocol")
+	assertNoTestValue(t, handler.values, "rejected solicited stream")
+
+	// An accepted stream reaches the solicitation.
+	ml.reject = false
+	c.openSolicitedStream(t.Context(), ls, match)
+	recvTestValue(t, ml.openCh, "accepted opened protocol")
+	recvTestValue(t, handler.values, "accepted solicited stream")
 }
 
 // TestPruneRetiredMatchRemovesOpenBeforeRoutineStarts verifies withdrawal
