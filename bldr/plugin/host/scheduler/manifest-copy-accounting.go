@@ -29,9 +29,12 @@ type manifestCopyCounters struct {
 }
 
 func (c *manifestCopyCounters) foldActiveLocked() {
+	// Fold nothing without an active read counter.
 	if c == nil || c.active == nil {
 		return
 	}
+
+	// Add the counter delta since the last fold to the totals.
 	snapshot := c.active.Snapshot()
 	if snapshot.BlockReadCount > c.activeReadCount {
 		c.readCount += snapshot.BlockReadCount - c.activeReadCount
@@ -44,9 +47,12 @@ func (c *manifestCopyCounters) foldActiveLocked() {
 }
 
 func (c *manifestCopyCounters) register(counter *block.ReadCounter) {
+	// Register nothing without a counter.
 	if c == nil || counter == nil {
 		return
 	}
+
+	// Swap the active counter, folding the previous one first.
 	c.mtx.Lock()
 	defer c.mtx.Unlock()
 	if c.active == counter {
@@ -59,9 +65,12 @@ func (c *manifestCopyCounters) register(counter *block.ReadCounter) {
 }
 
 func (c *manifestCopyCounters) observe(counter *block.ReadCounter) {
+	// Observe nothing without a counter.
 	if c == nil || counter == nil {
 		return
 	}
+
+	// Fold the counter when it is still the active one.
 	c.mtx.Lock()
 	defer c.mtx.Unlock()
 	if c.active == counter {
@@ -70,9 +79,12 @@ func (c *manifestCopyCounters) observe(counter *block.ReadCounter) {
 }
 
 func (c *manifestCopyCounters) snapshot() (uint64, uint64) {
+	// Report zero totals for missing counters.
 	if c == nil {
 		return 0, 0
 	}
+
+	// Fold the active counter and return the totals.
 	c.mtx.Lock()
 	defer c.mtx.Unlock()
 	c.foldActiveLocked()
@@ -80,9 +92,12 @@ func (c *manifestCopyCounters) snapshot() (uint64, uint64) {
 }
 
 func (c *manifestCopyCounters) finish(counter *block.ReadCounter) {
+	// Finish nothing without a counter.
 	if c == nil || counter == nil {
 		return
 	}
+
+	// Fold and clear the active counter when it matches.
 	c.mtx.Lock()
 	defer c.mtx.Unlock()
 	if c.active != counter {
@@ -107,14 +122,19 @@ func newManifestCopyAccounting(
 	manifestSnapshot *bldr_manifest.ManifestSnapshot,
 	sourceBucketID, destinationBucketID string,
 ) *manifestCopyAccounting {
+	// Classify the source identity from the bucket IDs.
 	sourceIdentity := manifestCopyIdentityExternal
 	if sourceBucketID == "" || (destinationBucketID != "" && sourceBucketID == destinationBucketID) {
 		sourceIdentity = manifestCopyIdentityLocal
 	}
+
+	// Clone the manifest reference for executable comparison.
 	var manifestRef *bucket.ObjectRef
 	if manifestSnapshot != nil && manifestSnapshot.GetManifestRef() != nil {
 		manifestRef = manifestSnapshot.GetManifestRef().Clone()
 	}
+
+	// Build the accounting record with fresh counters.
 	return &manifestCopyAccounting{
 		manifestRef:         manifestRef,
 		sourceBucketID:      sourceBucketID,
@@ -144,9 +164,12 @@ func (a *manifestCopyAccounting) withBuckets(sourceBucketID, destinationBucketID
 }
 
 func (a *manifestCopyAccounting) apply(stats bucket_lookup.ObjectCopyStats) bucket_lookup.ObjectCopyStats {
+	// Apply nothing without counters.
 	if a == nil || a.counters == nil {
 		return stats
 	}
+
+	// Copy the demand read totals into the stats.
 	readCount, readBytes := a.counters.snapshot()
 	stats.DemandReadCount = int64(readCount) //nolint:gosec // copy statistics use signed counters; the read counter's monotonic values are bounded by the signed stats API.
 	stats.DemandReadBytes = int64(readBytes) //nolint:gosec // copy statistics use signed counters; the read counter's monotonic values are bounded by the signed stats API.
@@ -230,13 +253,18 @@ func (t *pluginInstance) updateManifestCopyBuckets(
 	expected *manifestCopyAccounting,
 	sourceBucketID, destinationBucketID string,
 ) *manifestCopyAccounting {
+	// Update nothing without an expected record.
 	if expected == nil {
 		return nil
 	}
+
+	// Swap in the updated buckets, keeping the expected record on conflict.
 	updated := expected.withBuckets(sourceBucketID, destinationBucketID)
 	if updated == nil || !t.manifestCopyAccounting.CompareAndSwap(expected, updated) {
 		return expected
 	}
+
+	// Log the new source and destination bucket identities.
 	trace.Log(ctx, "manifest-copy-source-bucket", sourceBucketID)
 	trace.Log(ctx, "manifest-copy-destination-bucket", destinationBucketID)
 	trace.Log(ctx, "manifest-copy-source-identity", string(updated.sourceIdentity))

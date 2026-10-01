@@ -74,6 +74,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 		base64.RawURLEncoding.EncodeToString([]byte(storageVolumeID))
 	hostVolumeID := "sv-" + hostName
 
+	// Clone the volume config for the host storage volume.
 	hostVolumeConf := c.GetConfig().GetVolumeConfig().CloneVT()
 	if hostVolumeConf == nil {
 		hostVolumeConf = &volume_controller.Config{}
@@ -94,6 +95,8 @@ func (c *Controller) Execute(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+
+	// Configure the volume rpc server for the host volume.
 	hostStorageVolumeServiceID := hostName + "/" + volume_rpc.SRPCAccessVolumesServiceID
 	hostStorageVolumeRpcServerConf := &volume_rpc_server.Config{
 		ServiceId:        hostStorageVolumeServiceID,
@@ -104,6 +107,8 @@ func (c *Controller) Execute(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+
+	// Load the storage volume and rpc server controllers on the plugin host.
 	hostConfigSet := &plugin_host_configset.Config{
 		ConfigSet: map[string]*configset_proto.ControllerConfig{
 			hostVolumeID + "-vol": hostStorageVolumeCtrlConf,
@@ -133,12 +138,14 @@ func (c *Controller) Execute(ctx context.Context) error {
 	}
 	defer rpcClientRef.Release()
 
+	// Load the proxy volume through the rpc client.
 	volCtrl, relVolCtrl, err := rpcClient.LoadProxyVolume(ctx, hostVolumeID)
 	if err != nil {
 		return err
 	}
 	defer relVolCtrl()
 
+	// Publish the volume controller to the promise.
 	c.volProm.SetResult(volCtrl, nil)
 	defer c.volProm.SetPromise(nil)
 

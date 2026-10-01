@@ -176,9 +176,12 @@ func ExPluginLoadAccess(
 	pluginID string,
 	cb func(ctx context.Context, rp RunningPlugin) error,
 ) error {
+	// Create a state routine container that deduplicates identical values.
 	routineCtr := routine.NewStateRoutineContainer(
 		func(t1, t2 LoadPluginValue) bool { return t1 == t2 },
 	)
+
+	// Start a one-off watch for the plugin load directive on the bus.
 	di, dirRef, err := bus.ExecOneOffWatchRoutine(
 		routineCtr,
 		b,
@@ -189,6 +192,7 @@ func ExPluginLoadAccess(
 	}
 	defer dirRef.Release()
 
+	// Forward the first resolution error to the wait channel when idle.
 	errCh := make(chan error, 1)
 	defer di.AddIdleCallback(func(isIdle bool, resErrs []error) {
 		if !isIdle {
@@ -205,6 +209,7 @@ func ExPluginLoadAccess(
 		}
 	})()
 
+	// Run the callback as the state routine until the watch exits.
 	routineCtr.SetContext(ctx, true)
 	routineCtr.SetStateRoutine(cb)
 	return routineCtr.WaitExited(ctx, false, errCh)
@@ -301,6 +306,7 @@ func (d *loadPlugin) GetName() string {
 // This should be something like param1="test", param2="test".
 // This is not necessarily unique, and is primarily intended for display.
 func (d *loadPlugin) GetDebugVals() directive.DebugValues {
+	// Collect the plugin identity and manifest fields for display.
 	vals := directive.DebugValues{}
 	vals["plugin-id"] = []string{d.LoadPluginID()}
 	if ik := d.LoadPluginInstanceKey(); ik != "" {

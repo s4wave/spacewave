@@ -12,17 +12,20 @@ import (
 // buildBuiltin implements the build() built-in function.
 // build(id, manifests=[], targets=[], platformIds=[], manifestOverrides={})
 func (e *evaluator) buildBuiltin(thread *starlark.Thread, fn *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+	// Read the positional id argument.
 	var id string
 	var manifests []string
 	var targets []string
 	var platformIDs []string
 	var manifestOverridesRaw starlark.IterableMapping
 
+	// Pop the positional id from the arguments.
 	id, kwargs, err := popPositionalID("build", args, kwargs)
 	if err != nil {
 		return nil, err
 	}
 
+	// Parse each keyword argument into the build config fields.
 	for _, kv := range kwargs {
 		key := string(kv[0].(starlark.String))
 		val := kv[1]
@@ -56,15 +59,18 @@ func (e *evaluator) buildBuiltin(thread *starlark.Thread, fn *starlark.Builtin, 
 		}
 	}
 
+	// Require a build id and parse the manifest overrides.
 	if id == "" {
 		return nil, errors.New("build(): id is required")
 	}
 
+	// Parse the manifest overrides mapping.
 	manifestOverrides, err := parseManifestOverrides(manifestOverridesRaw)
 	if err != nil {
 		return nil, err
 	}
 
+	// Store the build config in the project config by id.
 	bc := &bldr_project.BuildConfig{
 		Manifests:         manifests,
 		Targets:           targets,
@@ -72,6 +78,7 @@ func (e *evaluator) buildBuiltin(thread *starlark.Thread, fn *starlark.Builtin, 
 		ManifestOverrides: manifestOverrides,
 	}
 
+	// Register the build config in the project config map.
 	if e.config.Build == nil {
 		e.config.Build = make(map[string]*bldr_project.BuildConfig)
 	}
@@ -87,6 +94,7 @@ func (e *evaluator) buildBuiltin(thread *starlark.Thread, fn *starlark.Builtin, 
 // override's id is deliberately left empty because the manifest's declared
 // builder id wins at apply time (see project/controller/manifest-builder.go).
 func parseManifestOverrides(val starlark.IterableMapping) (map[string]*configset_proto.ControllerConfig, error) {
+	// Return nil for a missing or empty overrides mapping.
 	if val == nil {
 		return nil, nil
 	}
@@ -94,6 +102,8 @@ func parseManifestOverrides(val starlark.IterableMapping) (map[string]*configset
 	if len(items) == 0 {
 		return nil, nil
 	}
+
+	// Convert each manifest override dict into a controller config.
 	out := make(map[string]*configset_proto.ControllerConfig, len(items))
 	for _, item := range items {
 		keyStr, ok := item[0].(starlark.String)
@@ -119,6 +129,7 @@ func parseManifestOverrides(val starlark.IterableMapping) (map[string]*configset
 
 // toStringList converts a Starlark list or tuple to a Go string slice.
 func toStringList(val starlark.Value) ([]string, error) {
+	// Convert a list or tuple of strings to a Go string slice.
 	switch v := val.(type) {
 	case *starlark.List:
 		result := make([]string, v.Len())

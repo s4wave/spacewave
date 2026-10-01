@@ -46,6 +46,7 @@ func (c *Config) Validate() error {
 
 // CleanupPluginIds returns a sorted copy of the list of plugin IDs to load.
 func (c *Config) CleanupPluginIds() []string {
+	// Collect the plugin IDs and trim their whitespace.
 	ids := append([]string{c.GetPluginId()}, c.GetPluginIds()...)
 	for i := range ids {
 		ids[i] = strings.TrimSpace(ids[i])

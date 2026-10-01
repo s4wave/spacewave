@@ -57,6 +57,7 @@ func TestCommitDistDirManifestPacksAppBundle(t *testing.T) {
 		distFS *unixfs.FSHandle,
 		assetsFS *unixfs.FSHandle,
 	) error {
+		// Check the entrypoint and the executable's stored permissions.
 		if manifest.GetEntrypoint() != "Spacewave.app" {
 			t.Fatalf("entrypoint = %q", manifest.GetEntrypoint())
 		}

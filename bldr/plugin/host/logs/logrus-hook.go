@@ -37,9 +37,11 @@ func AttachHostLogrusHook(
 	logger *logrus.Logger,
 	hub *Hub,
 ) func() {
+	// Lock the shared hook attachment table for the attach.
 	hostLogrusHooks.Lock()
 	defer hostLogrusHooks.Unlock()
 
+	// Find or create the hook attachment for this bus.
 	if hostLogrusHooks.byBus == nil {
 		hostLogrusHooks.byBus = make(map[bus.Bus]*hostLogrusHookAttachment)
 	}
@@ -53,9 +55,12 @@ func AttachHostLogrusHook(
 		}
 		hostLogrusHooks.byBus[b] = att
 	}
+
+	// Ref the attachment and register the hub with the hook.
 	att.refs++
 	att.hook.addHub(hub)
 
+	// Return a release function that drops the hub's ref once.
 	var releaseOnce sync.Once
 	return func() {
 		releaseOnce.Do(func() {
@@ -67,15 +72,19 @@ func AttachHostLogrusHook(
 // releaseHostLogrusHook drops a hub's ref on the bus hook, detaching the
 // hook when the last ref goes away.
 func releaseHostLogrusHook(b bus.Bus, hub *Hub) {
+	// Lock the shared hook attachment table for the release.
 	hostLogrusHooks.Lock()
 	defer hostLogrusHooks.Unlock()
 
+	// Drop the hub's ref on the attachment.
 	att := hostLogrusHooks.byBus[b]
 	if att == nil {
 		return
 	}
 	att.hook.removeHub(hub)
 	att.refs--
+
+	// Detach the hook when the bus has no more refs.
 	if att.refs != 0 {
 		return
 	}
@@ -119,8 +128,10 @@ func (h *hostLogrusHook) Levels() []logrus.Level {
 
 // Fire implements logrus.Hook, forwarding the entry to attached hubs.
 func (h *hostLogrusHook) Fire(entry *logrus.Entry) error {
+	// Convert the logrus entry to a structured log event.
 	event := structuredLogEventFromLogrusEntry(entry)
 
+	// Snapshot the referenced hubs under the read lock.
 	h.mu.RLock()
 	hubs := make([]*Hub, 0, len(h.hubs))
 	for hub, refs := range h.hubs {
@@ -130,6 +141,7 @@ func (h *hostLogrusHook) Fire(entry *logrus.Entry) error {
 	}
 	h.mu.RUnlock()
 
+	// Emit the event to every referenced hub.
 	for _, hub := range hubs {
 		if _, err := hub.Emit(event); err != nil {
 			return err
@@ -140,6 +152,7 @@ func (h *hostLogrusHook) Fire(entry *logrus.Entry) error {
 
 // addHub adds a ref for the hub.
 func (h *hostLogrusHook) addHub(hub *Hub) {
+	// Add a ref for the hub under the write lock.
 	h.mu.Lock()
 	defer h.mu.Unlock()
 
@@ -148,9 +161,11 @@ func (h *hostLogrusHook) addHub(hub *Hub) {
 
 // removeHub drops the hub's ref, detaching it at zero refs.
 func (h *hostLogrusHook) removeHub(hub *Hub) {
+	// Lock the hook for the ref update.
 	h.mu.Lock()
 	defer h.mu.Unlock()
 
+	// Delete the hub at its last ref, otherwise decrement the ref.
 	refs := h.hubs[hub]
 	if refs <= 1 {
 		delete(h.hubs, hub)
@@ -162,6 +177,7 @@ func (h *hostLogrusHook) removeHub(hub *Hub) {
 // structuredLogEventFromLogrusEntry converts a logrus entry to a
 // structured log event.
 func structuredLogEventFromLogrusEntry(entry *logrus.Entry) *StructuredLogEvent {
+	// Collect the entry fields and detect the plugin identity fields.
 	fields := make(map[string]string, len(entry.Data))
 	pluginID := hostLogPluginID
 	var instanceKey string
@@ -177,12 +193,15 @@ func structuredLogEventFromLogrusEntry(entry *logrus.Entry) *StructuredLogEvent 
 			instanceKey = fieldValue
 		}
 	}
+
+	// Record the caller location when available.
 	if entry.Caller != nil {
 		fields["caller-file"] = entry.Caller.File
 		fields["caller-function"] = entry.Caller.Function
 		fields["caller-line"] = strconv.Itoa(entry.Caller.Line)
 	}
 
+	// Build the structured log event from the entry.
 	return &StructuredLogEvent{
 		PluginId:    pluginID,
 		InstanceKey: instanceKey,

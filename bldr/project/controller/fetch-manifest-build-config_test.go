@@ -21,7 +21,10 @@ import (
 
 // newFetchBuildConfigTestController starts the project with a real remote world.
 func newFetchBuildConfigTestController(t *testing.T) (context.Context, *Controller) {
+	// Mark the helper and bound the test context for cleanup.
 	t.Helper()
+
+	// Bound the test context and release it when the test ends.
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	t.Cleanup(cancel)
 
@@ -31,6 +34,8 @@ func newFetchBuildConfigTestController(t *testing.T) (context.Context, *Controll
 		t.Fatal(err)
 	}
 	t.Cleanup(tb.Release)
+
+	// Configure the project with the app manifest and the testbed remote.
 	projectConfig := &bldr_project.ProjectConfig{
 		Id: "fetch-build-config",
 		Manifests: map[string]*bldr_project.ManifestConfig{
@@ -44,6 +49,8 @@ func newFetchBuildConfigTestController(t *testing.T) (context.Context, *Controll
 			},
 		},
 	}
+
+	// Start the project controller with the remote configured.
 	sourcePath := t.TempDir()
 	conf := NewConfig(sourcePath, sourcePath, projectConfig, true, false)
 	conf.FetchManifestRemote = "devtool"
@@ -58,6 +65,7 @@ func newFetchBuildConfigTestController(t *testing.T) (context.Context, *Controll
 
 // TestFetchManifestUsesActiveBuildConfiguration preserves target overrides and policy.
 func TestFetchManifestUsesActiveBuildConfiguration(t *testing.T) {
+	// Start the project controller under test.
 	ctx, ctrl := newFetchBuildConfigTestController(t)
 
 	// Keep the configured build active while its dependency tuple is fetched.
@@ -68,6 +76,8 @@ func TestFetchManifestUsesActiveBuildConfiguration(t *testing.T) {
 	}
 	conf.BuilderConfigOverride = override
 	conf.BuildPolicy = manifest_build.NewBuildPolicy(enabled.Enabled_DISABLE, enabled.Enabled_ENABLE, enabled.Enabled_ENABLE)
+
+	// Register the active build configuration on the controller.
 	active, err := ctrl.AddManifestBuilderRef(conf)
 	if err != nil {
 		t.Fatal(err)
@@ -81,6 +91,8 @@ func TestFetchManifestUsesActiveBuildConfiguration(t *testing.T) {
 	}
 	defer fetched.Release()
 	defer remote.Release()
+
+	// Assert the fetched config keeps the override and build policy.
 	got := fetched.GetManifestBuilderConfig()
 	if !got.GetBuilderConfigOverride().EqualVT(conf.GetBuilderConfigOverride()) {
 		t.Fatalf("dependency lost its active builder override: %s", got.GetBuilderConfigOverride())
@@ -92,10 +104,12 @@ func TestFetchManifestUsesActiveBuildConfiguration(t *testing.T) {
 
 // TestFetchManifestRejectsConflictingActiveBuilds requires an unambiguous tuple.
 func TestFetchManifestRejectsConflictingActiveBuilds(t *testing.T) {
+	// Start the project controller under test.
 	ctx, ctrl := newFetchBuildConfigTestController(t)
 
 	// Both builds describe the same tuple but different executable inputs.
 	for _, webPluginID := range []string{"first", "second"} {
+		// Register one active build with its own builder override.
 		conf := NewManifestBuilderConfig("app", "release", "js", "devtool")
 		override, err := configset_proto.NewControllerConfig(configset.NewControllerConfig(1, &js_compiler.Config{WebPluginId: webPluginID}), false)
 		if err != nil {

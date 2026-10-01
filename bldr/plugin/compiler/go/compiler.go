@@ -61,6 +61,7 @@ var controllerDescrip = "go plugin compiler controller"
 // goScriptSharedWebPkgConfig checks the web pkg list for the GoScript shared
 // web pkg and reports whether this plugin provides or consumes it.
 func goScriptSharedWebPkgConfig(webPkgs []*bldr_web_bundler.WebPkgRefConfig) (string, bool, bool) {
+	// Scan the web pkg list for the GoScript shared pkg entry.
 	webPkgID := web_runtime_goscript_build.GoScriptSharedWebPkgID
 	var provider bool
 	var consumer bool
@@ -170,6 +171,7 @@ func (c *Controller) BuildManifest(
 	args *bldr_manifest_builder.BuildManifestArgs,
 	buildHost bldr_manifest_builder.BuildManifestHost,
 ) (*bldr_manifest_builder.BuilderResult, error) {
+	// Resolve the manifest meta and target build platform from the args.
 	conf := c.GetConfig()
 	builderConf := args.GetBuilderConfig()
 	meta, buildPlatform, err := builderConf.GetManifestMeta().Resolve()
@@ -177,16 +179,17 @@ func (c *Controller) BuildManifest(
 		return nil, err
 	}
 
+	// Read the identity, source path, and release mode from the meta.
 	platformID := meta.GetPlatformId()
 	pluginID := strings.TrimSpace(meta.GetManifestId())
 	sourcePath := builderConf.GetSourcePath()
 	buildType := bldr_manifest.ToBuildType(meta.GetBuildType())
 	isRelease := buildType.IsRelease()
 
-	// platform
+	// Detect a web build platform by its executable extension.
 	isWebBuildPlatform := buildPlatform.GetExecutableExt() == ".mjs"
 
-	// output paths
+	// Compute the working, dist, and assets output paths.
 	workingPath := builderConf.GetWorkingPath()
 	outDistPath := filepath.Join(workingPath, "dist")
 	outAssetsPath := filepath.Join(workingPath, "assets")
@@ -205,17 +208,19 @@ func (c *Controller) BuildManifest(
 		outBinName = outEntrypointName
 	}
 
-	// build output world engine
+	// Build the output world engine for this manifest build.
 	buildWorld := world.NewBusEngine(ctx, c.GetBus(), builderConf.GetEngineId())
 
+	// Attach the build identity fields to the controller logger.
 	le := c.GetLogger().
 		WithField("plugin-id", pluginID).
 		WithField("build-type", buildType).
 		WithField("platform-id", platformID)
 
+	// Log the start of the manifest build.
 	le.Debug("building plugin manifest")
 
-	// if we are in dev mode, use the dev info file for hot reload compatibility.
+	// Select the dev info file for hot reload compatibility in dev mode.
 	var devInfoFile string
 	if !isRelease {
 		devInfoFile = "dev-info.bin"
@@ -366,14 +371,15 @@ func (c *Controller) BuildManifest(
 		}
 	}
 
+	// Open a write transaction on the build world engine.
 	tx, err := buildWorld.NewTransaction(ctx, true)
 	if err != nil {
 		return nil, err
 	}
 	defer tx.Discard()
 
+	// Bundle the dist and assets filesystems into the manifest.
 	le.Debug("bundling plugin files")
-	// bundle dist and assets fs
 	timeStart := time.Now()
 	committedManifest, committedManifestRef, err := builderConf.CommitManifestWithPaths(
 		ctx,
@@ -388,6 +394,7 @@ func (c *Controller) BuildManifest(
 		return nil, err
 	}
 
+	// Assemble the builder result from the committed manifest.
 	le.Debugf(
 		"plugin build complete with %d input files",
 		len(updatedManifestMeta.Files),
@@ -397,6 +404,8 @@ func (c *Controller) BuildManifest(
 		committedManifestRef,
 		updatedManifestMeta,
 	)
+
+	// Commit the transaction and log the build duration.
 	if err := tx.Commit(ctx); err != nil {
 		return nil, err
 	}
@@ -414,10 +423,13 @@ func resolveBuildGoCompiler(
 	buildType bldr_manifest.BuildType,
 	goCompilerOpt GoCompiler,
 ) (gocompiler.GoCompiler, error) {
+	// Resolve the configured compiler option value.
 	resolvedModeOpt, err := goCompilerOpt.GoCompiler()
 	if err != nil {
 		return "", err
 	}
+
+	// Detect the TinyGo default for a native platform building a JS module.
 	defaultTinygoEnabled := false
 	if _, ok := buildPlatform.(*bldr_platform.NativePlatform); ok && buildPlatform.GetExecutableExt() == ".mjs" {
 		defaultTinygoEnabled = gocompiler.DefaultTinyGoEnabled(buildPlatform, buildType.IsRelease())
@@ -447,10 +459,13 @@ func validateGoCompilerPlatform(buildPlatform bldr_platform.Platform, goCompiler
 // goAnalysisEnv returns the GOOS/GOARCH values for the platform, used to make
 // analysis build-tag gating match the target compile.
 func goAnalysisEnv(buildPlatform bldr_platform.Platform) (string, string, error) {
+	// Convert the platform into its Go environment variables.
 	platformEnv, err := bldr_platform_go.PlatformToGoEnv(buildPlatform)
 	if err != nil {
 		return "", "", err
 	}
+
+	// Extract GOOS and GOARCH from the environment list.
 	var goos, goarch string
 	for _, env := range platformEnv {
 		if value, ok := strings.CutPrefix(env, "GOOS="); ok {
@@ -531,7 +546,7 @@ func (c *Controller) BuildPlugin(
 	buildPlatform bldr_platform.Platform,
 	opts BuildPluginOpts,
 ) (*bldr_manifest_builder.InputManifest, error) {
-	// extract the build options used more than once below
+	// Extract the build options used more than once below.
 	outBinName := opts.OutBinName
 	workingPath := opts.WorkingPath
 	sourcePath := opts.SourcePath
@@ -540,6 +555,8 @@ func (c *Controller) BuildPlugin(
 	outAssetsPath := opts.OutAssetsPath
 	devInfoFile := opts.DevInfoFile
 	jsMinification := opts.JsMinification
+
+	// Extract the remaining web, package, and compiler options.
 	jsSourcemaps := opts.JsSourcemaps
 	goPkgs := opts.GoPkgs
 	webPkgs := opts.WebPkgs
@@ -549,28 +566,33 @@ func (c *Controller) BuildPlugin(
 	goCompilerOpt := opts.GoCompilerOpt
 	baseEsbuildFlags := opts.BaseEsbuildFlags
 
-	// plugin id
+	// Read the plugin identity, release mode, and controller config.
 	pluginID := pluginMeta.GetPluginId()
 	isRelease := buildType.IsRelease()
 	conf := c.GetConfig()
 
-	// clone goPkgs and webPkgs
+	// Clone the go pkg and web pkg lists and split out the GoScript shared pkg.
 	goPkgs = slices.Clone(goPkgs)
 	webPkgs = protobuf_go_lite.CloneVTSlice(webPkgs)
 	goScriptSharedWebPkgID, buildGoScriptSharedProvider, consumeGoScriptSharedProvider := goScriptSharedWebPkgConfig(webPkgs)
 	bundleWebPkgs := filterGoScriptSharedWebPkgs(webPkgs)
 
-	// platform
+	// Detect a web build platform by its executable extension.
 	isWebBuildPlatform := buildPlatform.GetExecutableExt() == ".mjs"
 
-	// disable cgo on default (false means default value is false)
+	// Resolve the cgo and compression options for this build.
 	enableCgo := opts.EnableCgoOpt.IsEnabled(false)
+
 	// enable compression for release mode only on default (isRelease means default value depends on release mode)
 	enableCompression := opts.EnableCompressionOpt.IsEnabled(isRelease)
+
+	// Resolve the Go compiler to use for the platform and build type.
 	goCompiler, err := resolveBuildGoCompiler(buildPlatform, buildType, goCompilerOpt)
 	if err != nil {
 		return nil, err
 	}
+
+	// Reject a compiler that cannot target the requested platform.
 	supported, err := validateGoCompilerPlatform(buildPlatform, goCompiler)
 	if err != nil {
 		return nil, err
@@ -578,6 +600,8 @@ func (c *Controller) BuildPlugin(
 	if !supported {
 		return nil, errors.Errorf("go compiler %s does not support platform %s", goCompiler, buildPlatform.GetInputPlatformID())
 	}
+
+	// Record the resolved compiler mode and remaining feature options.
 	useGoScript := goCompiler == gocompiler.GoCompilerGoScript
 	resolvedGoCompiler, err := GoCompilerFromGoCompiler(goCompiler)
 	if err != nil {
@@ -586,13 +610,14 @@ func (c *Controller) BuildPlugin(
 	enableTinygo := goCompiler.IsTinyGo()
 	enableImportedFactoryDiscovery := opts.EnableImportedFactoryDiscoveryOpt.IsEnabled(false)
 
-	// build the config set based on configuration
+	// Start the embedded config set for the plugin startup controllers.
 	embedConfigSet := make(configset_proto.ConfigSetMap)
 
 	// applyToConfigSet applies the config to the target config set if it does not already exist
 	applyToConfigSet := func(id string, conf config.Config) error {
+		// Skip if this config ID already exists in the map
 		if _, ok := embedConfigSet[id]; ok {
-			return nil // Skip if this config ID already exists in the map
+			return nil
 		}
 		configBin, err := conf.MarshalVT()
 		if err != nil {
@@ -606,12 +631,14 @@ func (c *Controller) BuildPlugin(
 		return nil
 	}
 
+	// addGoPkg appends a Go package to the analyzed package list once.
 	addGoPkg := func(pkgName string) {
 		if !slices.Contains(goPkgs, pkgName) {
 			goPkgs = append(goPkgs, pkgName)
 		}
 	}
 
+	// Add the RPC fetch controller unless the build disables it.
 	if !opts.DisableRpcFetch {
 		addGoPkg("github.com/s4wave/spacewave/bldr/web/fetch/service")
 		if err := applyToConfigSet(
@@ -691,9 +718,10 @@ func (c *Controller) BuildPlugin(
 	slices.Sort(goPkgs)
 	goPkgs = slices.Compact(goPkgs)
 
-	// analyze go packages
+	// Analyze the go packages with target-matched build tags.
 	le.Info("analyzing go packages")
 	buildTagsForAnalyze := newBuildTagsForAnalyze(buildPlatform, buildType, goCompiler)
+
 	// Match analysis GOOS/GOARCH to the target so factories gated on
 	// platform-specific build tags (e.g. volume_bolt with "//go:build !js")
 	// are excluded from the generated factory list when targeting browser
@@ -727,11 +755,12 @@ func (c *Controller) BuildPlugin(
 	// for the Go compiler linker flags
 	var goVariableDefs []*vardef.PluginVar
 
+	// Read the parsed code files and file set from the analysis.
 	codeFiles := an.GetGoCodeFiles()
 	programCodeFiles := an.GetProgramSourceFiles()
 	fset := an.GetFileSet()
 
-	// build source files list with go files
+	// Build the source file list from all program packages.
 	var goSrcFiles []string
 	for _, pkgFiles := range programCodeFiles {
 		goSrcFiles = append(goSrcFiles, pkgFiles...)
@@ -973,7 +1002,7 @@ func (c *Controller) BuildPlugin(
 		}
 	}
 
-	// compile Go modules
+	// Generate the plugin module from the analyzed packages.
 	le.Debug("generating go packages")
 	moduleID := strings.Join([]string{pluginMeta.GetProjectId(), pluginMeta.GetPluginId()}, "-")
 	mc, err := NewModuleCompiler(le, workingPath, moduleID)
@@ -982,6 +1011,7 @@ func (c *Controller) BuildPlugin(
 	}
 	an.AddVariableDefImports(le, goVariableDefs)
 
+	// Generate the plugin source module and its dev info record.
 	pluginDevInfo, err := mc.GenerateModule(an, pluginMeta, configSetBin, goVariableDefs, devInfoFile)
 	if err != nil {
 		return nil, err
@@ -992,7 +1022,7 @@ func (c *Controller) BuildPlugin(
 		return nil, errors.Wrap(err, "write dev info file")
 	}
 
-	// Files to copy from the generated module directory to the output dist directory.
+	// List the files to copy from the generated module into the dist directory.
 	var copyFiles []string
 	var webRuntimeSrcFiles []string
 	var goScriptBuildFlags []string
@@ -1000,9 +1030,11 @@ func (c *Controller) BuildPlugin(
 	var goScriptOverrideDirRels []string
 	outDistBinary := filepath.Join(outDistPath, outBinName)
 
+	// Decide whether to compile a plugin binary or a dev wrapper.
 	compilePluginBinary := !useGoScript && (isRelease || delveAddr == "" || isWebBuildPlatform)
 	compileDevWrapper := !useGoScript && !compilePluginBinary
 
+	// Compile the plugin TypeScript package tree with GoScript.
 	if useGoScript {
 		le.Info("compiling plugin TypeScript package tree")
 		goScriptBuildFlags = newGoScriptBuildFlags(buildPlatform, buildType)
@@ -1166,17 +1198,20 @@ func (c *Controller) BuildPlugin(
 			Info("compiled web plugin entrypoint")
 	}
 
+	// copyFile copies one generated file into the dist directory.
 	copyFile := func(filename string) error {
+		// Skip empty filenames.
 		if filename == "" {
 			return nil
 		}
 
+		// Skip files that are empty or do not exist in the generated module.
 		srcPath := filepath.Join(mc.pluginCodegenPath, filename)
 		if _, err := os.Stat(srcPath); os.IsNotExist(err) {
 			return nil
 		}
 
-		// log relative to cwd
+		// Compute log paths relative to the current working directory.
 		relSrcPath, relOutDistPath := srcPath, outDistPath
 		if cwd, cwdErr := os.Getwd(); cwdErr == nil {
 			if rs, err := filepath.Rel(cwd, relSrcPath); err == nil {
@@ -1191,20 +1226,18 @@ func (c *Controller) BuildPlugin(
 		return fsutil.CopyFileToDir(outDistPath, srcPath, 0o644)
 	}
 
-	// copy some files to dist/ which the entrypoint will need
+	// Copy the files the entrypoint will need into dist.
 	for _, filename := range copyFiles {
 		if err := copyFile(filename); err != nil {
 			return nil, err
 		}
 	}
 
-	// sort
+	// Sort the web pkg references and compact the web pkg configs.
 	web_pkg.SortWebPkgRefs(webPkgRefs)
-
-	// sort and compact
 	webPkgs = bldr_web_bundler.CompactWebPkgRefConfigs(slices.Clone(webPkgs))
 
-	// build manifest metadata
+	// Build the input manifest metadata record.
 	inputManifestMeta := &InputManifestMeta{
 		DevInfo: pluginDevInfo,
 
@@ -1229,8 +1262,11 @@ func (c *Controller) BuildPlugin(
 		return nil, err
 	}
 
+	// Create the input manifest with the module source files.
 	inputManifest := &bldr_manifest_builder.InputManifest{Metadata: inputManifestMetaBin}
 	moduleSrcFiles := existingSourceFiles(sourcePath, "go.mod", "go.sum", "vendor/modules.txt")
+
+	// Record the Go and asset input files in the manifest.
 	if err := appendInputManifestFiles(
 		inputManifest,
 		sourcePath,
@@ -1247,6 +1283,8 @@ func (c *Controller) BuildPlugin(
 	); err != nil {
 		return nil, err
 	}
+
+	// Record the GoScript override source files in the manifest.
 	if useGoScript {
 		goScriptOverrideFiles, err := sourceFilesUnderDirs(sourcePath, goScriptOverrideDirRels)
 		if err != nil {
@@ -1306,20 +1344,24 @@ func appendInputManifestFiles(
 	kind InputFileKind,
 	srcPaths []string,
 ) error {
+	// Drop Go source files outside the source root.
 	if kind == InputFileKind_InputFileKind_GO {
 		srcPaths = filterPathsUnderBase(sourcePath, srcPaths)
 	}
 
+	// Encode the input file metadata once for all paths.
 	meta := &InputFileMeta{Kind: kind}
 	metaBin, err := meta.MarshalVT()
 	if err != nil {
 		return err
 	}
 
+	// Convert the paths to be relative to the source root.
 	if err := fsutil.ConvertPathsToRelative(sourcePath, srcPaths); err != nil {
 		return err
 	}
 
+	// Append one manifest file entry per source path.
 	for _, srcPath := range srcPaths {
 		inputManifest.Files = append(inputManifest.Files, &bldr_manifest_builder.InputManifest_File{
 			Path:     srcPath,
@@ -1333,6 +1375,7 @@ func appendInputManifestFiles(
 // Generated inputs are covered by their source and compiler inputs, and must
 // not make startup validation depend on disposable build output.
 func filterPathsUnderBase(basePath string, paths []string, generatedRoots ...string) []string {
+	// Keep only paths outside the generated build roots.
 	if len(paths) == 0 {
 		return nil
 	}
@@ -1372,10 +1415,15 @@ func newBuildTagsForAnalyze(
 	buildType bldr_manifest.BuildType,
 	goCompiler gocompiler.GoCompiler,
 ) []string {
+	// Start from the build type's base tags.
 	buildTags := gocompiler.NewBuildTags(buildType)
+
+	// Add the pure-Go tag for browser and non-desktop targets.
 	if goCompiler.IsTinyGo() || goCompiler.IsGoScript() || (buildPlatform != nil && buildPlatform.GetBasePlatformID() != bldr_platform.PlatformID_DESKTOP) {
 		buildTags = append(buildTags, gocompiler.PureGoBuildTag)
 	}
+
+	// Add the TinyGo-specific tags.
 	if goCompiler.IsTinyGo() {
 		buildTags = append(buildTags, "tinygo")
 		buildTags = append(buildTags, gocompiler.BldrTinyGoJSImportBuildTag)
@@ -1448,12 +1496,13 @@ func (c *Controller) FastRebuildPlugin(
 	// Perform fast rebuild by running the bundlers only.
 	le.Info("performing fast rebuild")
 
-	// Cleanup the web pkgs dir, we will re-build it below.
+	// Recreate the web pkgs assets directory for the rebuilt bundles.
 	outAssetsWebPkgPath := filepath.Join(outAssetsPath, bldr_plugin.PluginAssetsWebPkgsDir)
 	if err := fsutil.CleanCreateDir(outAssetsWebPkgPath); err != nil {
 		return nil, err
 	}
 
+	// Start the rebuilt web pkg refs and bundler output metadata lists.
 	prevWebPkgs := inputMeta.GetWebPkgs()
 	var updatedWebPkgRefs web_pkg.WebPkgRefSlice
 	var esbuildWebPkgRefs web_pkg.WebPkgRefSlice
@@ -1461,9 +1510,9 @@ func (c *Controller) FastRebuildPlugin(
 	var updatedEsbuildOutputs []*bldr_web_bundler_esbuild.EsbuildOutputMeta
 	var updatedViteOutputs []*bldr_vite.ViteOutputMeta
 
-	// Check for esbuild bundles to rebuild
+	// Rebuild the esbuild bundles recorded in the previous metadata.
 	if len(prevEsbuildBundles) > 0 {
-		// Build esbuild config based on previous metadata
+		// Build the esbuild bundler config from the previous metadata.
 		publicPath := bldr_plugin.PluginAssetHTTPPath(pluginID, bldr_plugin_compiler.EsbuildAssetSubdir)
 		esbuildBundlerConf, err := BuildEsbuildBundlerConfig(prevEsbuildBundles, prevWebPkgs, baseEsbuildFlags, sourcePath, publicPath)
 		if err == nil {
@@ -1477,8 +1526,7 @@ func (c *Controller) FastRebuildPlugin(
 			return nil, errors.Wrap(err, "failed to marshal esbuild bundler config for fast rebuild")
 		}
 
-		// Build and checkout the esbuild sub-manifest
-		// Capture the esbuild output metadata for later use.
+		// Build and checkout the esbuild sub-manifest, capturing its output metadata.
 		esbuildWebPkgRefs, _, updatedEsbuildOutputs, err = bldr_plugin_compiler.BuildAndCheckoutEsbuildSubManifest(
 			ctx,
 			le,
@@ -1491,16 +1539,17 @@ func (c *Controller) FastRebuildPlugin(
 			return nil, errors.Wrap(err, "failed to build and checkout esbuild sub-manifest during fast rebuild")
 		}
 
-		// Add to collected web pkg refs
+		// Add the esbuild web pkg refs to the collected list.
 		updatedWebPkgRefs = append(updatedWebPkgRefs, esbuildWebPkgRefs...)
 	}
 
-	// Check for vite bundles to rebuild
+	// Read the previous vite config inputs for the rebuild.
 	prevViteConfigPaths := inputMeta.GetViteConfigPaths()
 	prevViteDisableProjectConfig := inputMeta.GetViteDisableProjectConfig()
 
+	// Rebuild the vite bundles recorded in the previous metadata.
 	if len(prevViteBundles) > 0 {
-		// Build vite config based on previous metadata
+		// Build the vite config from the previous metadata.
 		publicPath := bldr_plugin.PluginAssetHTTPPath(pluginID, bldr_plugin_compiler.ViteAssetSubdir)
 		viteBundlerConf, err := BuildViteBundlerConfig(
 			prevViteBundles,
@@ -1551,7 +1600,7 @@ func (c *Controller) FastRebuildPlugin(
 	// Build the go variable bindings based on the *new* outputs and *old* bundle definitions
 	var nextGoVariableDefs []*vardef.PluginVar
 
-	// Process esbuild variable definitions if we have any
+	// Regenerate the esbuild variable definitions from the new outputs.
 	if len(prevEsbuildBundles) > 0 {
 		esbuildVarDefs, err := buildEsbuildGoVariableDefs(pluginID, prevEsbuildBundles, updatedEsbuildOutputs)
 		if err != nil {
@@ -1560,7 +1609,7 @@ func (c *Controller) FastRebuildPlugin(
 		nextGoVariableDefs = append(nextGoVariableDefs, esbuildVarDefs...)
 	}
 
-	// Process vite variable definitions if we have any
+	// Regenerate the vite variable definitions from the new outputs.
 	if len(prevViteBundles) > 0 {
 		viteVarDefs, err := buildViteGoVariableDefs(pluginID, prevViteBundles, updatedViteOutputs)
 		if err != nil {
@@ -1569,9 +1618,10 @@ func (c *Controller) FastRebuildPlugin(
 		nextGoVariableDefs = append(nextGoVariableDefs, viteVarDefs...)
 	}
 
+	// Sort the regenerated variable definitions.
 	vardef.SortPluginVars(nextGoVariableDefs)
 
-	// Build the updated input manifest
+	// Clone the previous input manifest and meta for the update.
 	updatedInputManifest := prevInputManifest.CloneVT()
 	updatedInputMeta := inputMeta.CloneVT()
 	if updatedInputMeta.DevInfo == nil {
@@ -1579,7 +1629,7 @@ func (c *Controller) FastRebuildPlugin(
 		updatedInputMeta.DevInfo = &vardef.PluginDevInfo{}
 	}
 
-	// Update outputs in the metadata
+	// Replace the bundler outputs in the metadata.
 	if len(updatedEsbuildOutputs) > 0 {
 		updatedInputMeta.EsbuildOutputs = updatedEsbuildOutputs
 	}
@@ -1589,7 +1639,7 @@ func (c *Controller) FastRebuildPlugin(
 
 	// WebPkgRefs are confirmed to be the same, no need to update updatedInputMeta.WebPkgRefs
 
-	// Drop all overwritten variable definitions from the DevInfo set (we will add them back next)
+	// Drop overwritten variable definitions from the DevInfo set before re-adding them.
 	type varDefKey struct {
 		pkgPath string
 		pkgVar  string
@@ -1603,14 +1653,14 @@ func (c *Controller) FastRebuildPlugin(
 		return overwritten
 	})
 
-	// Add the updated go variable defs to the list
+	// Append the updated variable definitions and sort the set.
 	updatedInputMeta.DevInfo.PluginVars = append(updatedInputMeta.DevInfo.PluginVars, nextGoVariableDefs...)
 	vardef.SortPluginVars(updatedInputMeta.DevInfo.PluginVars)
 
-	// Sort updated input manifest files (Go and Asset files remain)
+	// Sort the updated input manifest files.
 	updatedInputManifest.SortFiles()
 
-	// Encode the updated meta
+	// Encode the updated metadata into the manifest.
 	updMetaBin, err := updatedInputMeta.MarshalVT()
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to marshal updated input meta for fast rebuild")
@@ -1622,6 +1672,7 @@ func (c *Controller) FastRebuildPlugin(
 		return nil, errors.Wrap(err, "write updated dev info file")
 	}
 
+	// Log the completion of the fast rebuild.
 	le.Debug("fast rebuild complete")
 	return updatedInputManifest, nil
 }
@@ -1632,6 +1683,7 @@ func buildEsbuildGoVariableDefs(
 	esbuildBundleVarMeta []*EsbuildBundleVarMeta,
 	esbuildOutputMeta []*bldr_web_bundler_esbuild.EsbuildOutputMeta,
 ) ([]*vardef.PluginVar, error) {
+	// Match every bundle variable against the esbuild outputs.
 	var goVariableDefs []*vardef.PluginVar
 	for _, bundleVarDef := range esbuildBundleVarMeta {
 		// match each variable to a output entrypoint
@@ -1707,6 +1759,7 @@ func buildViteGoVariableDefs(
 	viteBundleVarMeta []*ViteBundleVarMeta,
 	viteOutputMeta []*bldr_vite.ViteOutputMeta,
 ) ([]*vardef.PluginVar, error) {
+	// Index the vite outputs by entrypoint path.
 	var goVariableDefs []*vardef.PluginVar
 	outputsByEntrypoint := make(map[string][]*bldr_vite.ViteOutputMeta)
 
@@ -1835,16 +1888,21 @@ func existingSourceDirs(sourcePath string, relPaths ...string) ([]string, []stri
 // sourceFilesUnderDirs walks the given source-relative directories and returns
 // the sorted relative paths of every file found beneath them.
 func sourceFilesUnderDirs(sourcePath string, relDirs []string) ([]string, error) {
+	// Walk each source-relative directory collecting file paths.
 	var files []string
 	for _, relDir := range relDirs {
+		// Walk the directory recording each non-directory entry's path.
 		absDir := filepath.Join(sourcePath, relDir)
 		if err := filepath.WalkDir(absDir, func(path string, entry os.DirEntry, err error) error {
+			// Propagate walk errors and skip directories.
 			if err != nil {
 				return err
 			}
 			if entry.IsDir() {
 				return nil
 			}
+
+			// Record the source-relative path of the file.
 			relPath, err := filepath.Rel(sourcePath, path)
 			if err != nil {
 				return err
@@ -1855,16 +1913,20 @@ func sourceFilesUnderDirs(sourcePath string, relDirs []string) ([]string, error)
 			return nil, err
 		}
 	}
+
+	// Sort the collected file paths.
 	slices.Sort(files)
 	return files, nil
 }
 
 // writeDevInfoFile writes the plugin development info file if the path is specified.
 func writeDevInfoFile(le *logrus.Entry, outDistPath, devInfoFile string, devInfo *vardef.PluginDevInfo) error {
+	// Skip when no dev info file is configured for this build.
 	if devInfoFile == "" || devInfo == nil {
 		return nil
 	}
 
+	// Marshal the dev info and write it into the dist directory.
 	devInfoBin, err := devInfo.MarshalVT()
 	if err != nil {
 		return errors.Wrap(err, "failed to marshal dev info")

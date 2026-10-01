@@ -40,9 +40,11 @@ func (t *Factory) Construct(
 	conf config.Config,
 	opts controller.ConstructOpts,
 ) (controller.Controller, error) {
+	// Read the typed config from the constructed config.
 	le := opts.GetLogger()
 	cc := conf.(*Config)
 
+	// Construct the web host controller.
 	hostCtrl, _, err := NewWebHostController(le, t.bus, cc)
 	if err != nil {
 		return nil, err

@@ -24,6 +24,7 @@ func (m *mockSRPCClient) NewStream(ctx context.Context, service, method string, 
 
 // newTestClient creates a RemoteResourceClient for attached resource tests.
 func newTestClient(t *testing.T) (*RemoteResourceClient, context.CancelFunc) {
+	// Build a client with a seeded root resource and register it with the server.
 	t.Helper()
 	s := NewResourceServer(nil)
 	ctx, cancel := context.WithCancel(context.Background())
@@ -64,15 +65,18 @@ func assertWaitChClosed(t *testing.T, waitCh <-chan struct{}) {
 }
 
 func TestAddAttachedResource_Success(t *testing.T) {
+	// Start a test client with a seeded root resource.
 	client, cancel := newTestClient(t)
 	defer cancel()
 
+	// Attach a mock resource and require success.
 	mc := &mockSRPCClient{id: 1}
 	err := client.AddAttachedResource(42, "test-resource", func() {}, mc, nil)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
+	// Fetch the resource and compare it to the added mock.
 	got, err := client.GetAttachedResource(42)
 	if err != nil {
 		t.Fatalf("unexpected error getting resource: %v", err)
@@ -83,9 +87,11 @@ func TestAddAttachedResource_Success(t *testing.T) {
 }
 
 func TestAddAttachedResource_InitializesMap(t *testing.T) {
+	// Start a test client with a seeded root resource.
 	client, cancel := newTestClient(t)
 	defer cancel()
 
+	// Attach a resource and require the attached map to initialize.
 	if len(client.attachedResources) != 0 {
 		t.Fatal("attachedResources should be empty before first AddAttachedResource")
 	}
@@ -99,6 +105,7 @@ func TestAddAttachedResource_InitializesMap(t *testing.T) {
 }
 
 func TestAddAttachedResource_ReleasedClient(t *testing.T) {
+	// Start a test client with a seeded root resource.
 	client, cancel := newTestClient(t)
 	defer cancel()
 
@@ -107,6 +114,7 @@ func TestAddAttachedResource_ReleasedClient(t *testing.T) {
 		client.released = true
 	})
 
+	// Require the released-client rejection.
 	mc := &mockSRPCClient{id: 1}
 	err := client.AddAttachedResource(1, "label", func() {}, mc, nil)
 	if err != resource.ErrClientReleased {
@@ -115,9 +123,11 @@ func TestAddAttachedResource_ReleasedClient(t *testing.T) {
 }
 
 func TestRemoveAttachedResource_Success(t *testing.T) {
+	// Start a test client with a seeded root resource.
 	client, cancel := newTestClient(t)
 	defer cancel()
 
+	// Attach a tracked resource and require success.
 	canceled := false
 	released := false
 	mc := &mockSRPCClient{id: 1}
@@ -132,8 +142,10 @@ func TestRemoveAttachedResource_Success(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
+	// Remove the attached resource.
 	client.RemoveAttachedResource(10)
 
+	// Assert both callbacks ran.
 	if !canceled {
 		t.Fatal("cancel function was not called")
 	}
@@ -141,6 +153,7 @@ func TestRemoveAttachedResource_Success(t *testing.T) {
 		t.Fatal("release function was not called")
 	}
 
+	// Require the resource lookup to fail.
 	_, err = client.GetAttachedResource(10)
 	if err != resource.ErrResourceNotFound {
 		t.Fatalf("got error %v, want %v", err, resource.ErrResourceNotFound)
@@ -148,9 +161,11 @@ func TestRemoveAttachedResource_Success(t *testing.T) {
 }
 
 func TestReleaseResourceRemovesAttachedResource(t *testing.T) {
+	// Start a test client with a seeded root resource.
 	client, cancel := newTestClient(t)
 	defer cancel()
 
+	// Attach a tracked resource and require success.
 	canceled := false
 	released := false
 	mc := &mockSRPCClient{id: 1}
@@ -165,6 +180,7 @@ func TestReleaseResourceRemovesAttachedResource(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
+	// Release the resource and require both callbacks.
 	if !client.ReleaseResource(10) {
 		t.Fatal("expected ReleaseResource to release attached resource")
 	}
@@ -175,6 +191,7 @@ func TestReleaseResourceRemovesAttachedResource(t *testing.T) {
 		t.Fatal("cancel function was not called")
 	}
 
+	// Require the resource lookup to fail.
 	_, err = client.GetAttachedResource(10)
 	if err != resource.ErrResourceNotFound {
 		t.Fatalf("got error %v, want %v", err, resource.ErrResourceNotFound)
@@ -182,9 +199,11 @@ func TestReleaseResourceRemovesAttachedResource(t *testing.T) {
 }
 
 func TestAddResourceValueWakesPendingScanner(t *testing.T) {
+	// Start a test client with a seeded root resource.
 	client, cancel := newTestClient(t)
 	defer cancel()
 
+	// Add a resource value and require the pending scanner wake.
 	waitCh := resourceServerWaitCh(client.server)
 	if _, err := client.AddResourceValue(srpc.NewMux(), &mockSRPCClient{id: 2}, nil); err != nil {
 		t.Fatalf("AddResourceValue: %v", err)
@@ -193,15 +212,18 @@ func TestAddResourceValueWakesPendingScanner(t *testing.T) {
 }
 
 func TestReleaseResourceWakesClientQueue(t *testing.T) {
+	// Start a test client with a seeded root resource.
 	client, cancel := newTestClient(t)
 	defer cancel()
 
+	// Add a server-owned resource and capture the server wait channel.
 	id, err := client.AddResource(srpc.NewMux(), nil)
 	if err != nil {
 		t.Fatalf("AddResource: %v", err)
 	}
 	waitCh := resourceServerWaitCh(client.server)
 
+	// Release the resource and require the client queue wake.
 	if !client.ReleaseResource(id) {
 		t.Fatal("expected ReleaseResource to release server-owned resource")
 	}
@@ -209,9 +231,11 @@ func TestReleaseResourceWakesClientQueue(t *testing.T) {
 }
 
 func TestReleaseAttachedResourceWakesClientQueue(t *testing.T) {
+	// Start a test client with a seeded root resource.
 	client, cancel := newTestClient(t)
 	defer cancel()
 
+	// Attach a mock resource and capture the server wait channel.
 	mc := &mockSRPCClient{id: 3}
 	err := client.AddAttachedResource(12, "attached", func() {}, mc, func() {})
 	if err != nil {
@@ -219,6 +243,7 @@ func TestReleaseAttachedResourceWakesClientQueue(t *testing.T) {
 	}
 	waitCh := resourceServerWaitCh(client.server)
 
+	// Release the attached resource and require the queued release notification.
 	if !client.ReleaseResource(12) {
 		t.Fatal("expected ReleaseResource to release attached resource")
 	}
@@ -238,14 +263,17 @@ func TestRemoveAttachedResource_NotFound(t *testing.T) {
 }
 
 func TestRemoveAttachedResourceDoesNotAffectOthers(t *testing.T) {
+	// Start a test client with a seeded root resource.
 	client, cancel := newTestClient(t)
 	defer cancel()
 
+	// Track two resources with separate cancel callbacks and clients.
 	canceled1 := false
 	canceled2 := false
 	mc1 := &mockSRPCClient{id: 1}
 	mc2 := &mockSRPCClient{id: 2}
 
+	// Attach both mock resources and require success.
 	err := client.AddAttachedResource(10, "res-1", func() { canceled1 = true }, mc1, nil)
 	if err != nil {
 		t.Fatalf("unexpected error adding resource 1: %v", err)
@@ -258,6 +286,7 @@ func TestRemoveAttachedResourceDoesNotAffectOthers(t *testing.T) {
 	// Remove resource 1 only.
 	client.RemoveAttachedResource(10)
 
+	// Assert only resource 1 was canceled.
 	if !canceled1 {
 		t.Fatal("cancel for resource 1 was not called")
 	}
@@ -282,15 +311,18 @@ func TestRemoveAttachedResourceDoesNotAffectOthers(t *testing.T) {
 }
 
 func TestGetAttachedResource_Success(t *testing.T) {
+	// Start a test client with a seeded root resource.
 	client, cancel := newTestClient(t)
 	defer cancel()
 
+	// Attach a mock resource and require success.
 	mc := &mockSRPCClient{id: 42}
 	err := client.AddAttachedResource(5, "my-resource", func() {}, mc, nil)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
+	// Fetch the resource and assert the mock identity.
 	got, err := client.GetAttachedResource(5)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -315,15 +347,18 @@ func TestGetAttachedResource_NotFound(t *testing.T) {
 }
 
 func TestAddResourceValueAndGetResourceValue(t *testing.T) {
+	// Start a test client with a seeded root resource.
 	client, cancel := newTestClient(t)
 	defer cancel()
 
+	// Add a mock resource value and require success.
 	want := &mockSRPCClient{id: 99}
 	id, err := client.AddResourceValue(srpc.NewMux(), want, nil)
 	if err != nil {
 		t.Fatalf("unexpected error adding resource: %v", err)
 	}
 
+	// Fetch the value and compare it to the added mock.
 	got, err := client.GetResourceValue(id)
 	if err != nil {
 		t.Fatalf("unexpected error getting resource value: %v", err)
@@ -344,9 +379,11 @@ func TestGetResourceValueNotFound(t *testing.T) {
 }
 
 func TestReleaseAllAttachedResources_CancelsAll(t *testing.T) {
+	// Start a test client with a seeded root resource.
 	client, cancel := newTestClient(t)
 	defer cancel()
 
+	// Attach three resources with tracked cancel callbacks.
 	canceled := make(map[uint32]bool)
 	for i := uint32(1); i <= 3; i++ {
 		id := i
@@ -357,8 +394,10 @@ func TestReleaseAllAttachedResources_CancelsAll(t *testing.T) {
 		}
 	}
 
+	// Release all attached resources.
 	client.releaseAllAttachedResources()
 
+	// Assert every cancel callback ran.
 	for i := uint32(1); i <= 3; i++ {
 		if !canceled[i] {
 			t.Fatalf("cancel for resource %d was not called", i)

@@ -42,9 +42,11 @@ func (t *Factory) Construct(
 	conf config.Config,
 	opts controller.ConstructOpts,
 ) (controller.Controller, error) {
+	// Read the typed config from the constructed config.
 	le := opts.GetLogger()
 	cc := conf.(*Config)
 
+	// Construct the wazero QuickJS host controller.
 	hostCtrl, _, err := NewWazeroQuickJsHostController(le, t.bus, cc)
 	if err != nil {
 		return nil, err

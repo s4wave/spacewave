@@ -40,6 +40,7 @@ func (t *Factory) Construct(
 	conf config.Config,
 	opts controller.ConstructOpts,
 ) (controller.Controller, error) {
+	// Read the logger and assert the volume configuration.
 	le := opts.GetLogger()
 	cc := conf.(*Config)
 

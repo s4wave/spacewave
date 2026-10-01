@@ -81,6 +81,7 @@ func AnalyzePackages(
 		return nil, err
 	}
 
+	// Acquire the build budget permit for the analysis work.
 	budget, err := bldr_buildbudget.Default()
 	if err != nil {
 		return nil, err
@@ -94,6 +95,7 @@ func AnalyzePackages(
 	// Resolve relative roots while retaining their caller-facing mappings.
 	packagePaths, packagePathMappings := UpdateRelativeGoPackagePaths(packagePaths, baseModFile.Module.Mod.Path)
 
+	// Initialize the analysis record with the resolved roots and imports.
 	res := &Analysis{
 		baseModFile:         baseModFile,
 		packagePaths:        packagePaths,
@@ -132,6 +134,7 @@ func AnalyzePackages(
 		return parser.ParseFile(fset, filename, src, parser.AllErrors|parser.ParseComments|parser.SkipObjectResolution)
 	}
 
+	// Point the loader at the source module and its build tags.
 	conf.Dir = workDir
 	conf.Logf = func(format string, args ...any) {
 		le.Debugf(format, args...)
@@ -154,20 +157,27 @@ func AnalyzePackages(
 	conf.Env = append(os.Environ(), gocompiler.GetDefaultEnv()...)
 	conf.Env = append(conf.Env, "GOOS="+goos, "GOARCH="+goarch)
 
+	// Load the roots together with the bundler output package.
 	packagesToLoad := append([]string{EsbuildOutputPkgPath}, packagePaths...)
 
+	// Load the target dependency graph without syntax or type checking.
 	loadedPackages, err := packages.Load(&conf, packagesToLoad...)
 	if err != nil {
 		return nil, err
 	}
-	// Metadata diagnostics include unresolved imports anywhere in the dependency graph.
+
+	// Collect every package in the metadata graph for diagnostics.
 	var metadataPackages []*packages.Package
 	packages.Visit(loadedPackages, nil, func(pkg *packages.Package) {
 		metadataPackages = append(metadataPackages, pkg)
 	})
+
+	// Fail the analysis when any package reports a load error.
 	if err := packageLoadFailureError(metadataPackages, packagesToLoad, buildTags, goos, goarch, workDir); err != nil {
 		return nil, err
 	}
+
+	// Keep the file set used to parse the discovery roots.
 	res.fset = conf.Fset
 
 	// Bound imported discovery and watched inputs to the explicit roots' modules.
@@ -214,6 +224,7 @@ func AnalyzePackages(
 		}
 	}
 
+	// Require at least one analyzed package before continuing.
 	le.Debugf("loaded %d init packages to analyze", len(res.packages))
 	if len(res.packages) == 0 {
 		return nil, errors.New("expected at least one package to be loaded")
@@ -257,8 +268,11 @@ func AnalyzePackages(
 			typedPaths = append(typedPaths, pkgPath)
 		}
 	}
+
 	// Load candidates together with the output reference for exact type identity.
 	if len(typedPaths) != 0 {
+		// Reload the candidate packages with type information enabled.
+
 		typedPaths = append(typedPaths, EsbuildOutputPkgPath)
 		slices.Sort(typedPaths)
 		typedPaths = slices.Compact(typedPaths)
@@ -304,6 +318,7 @@ func AnalyzePackages(
 
 // packageLoadFailureError adds target and pattern context to package diagnostics.
 func packageLoadFailureError(loadedPackages []*packages.Package, patterns []string, buildTags []string, goos, goarch, workDir string) error {
+	// Collect package diagnostics into one error message.
 	var details strings.Builder
 	if len(loadedPackages) == 0 {
 		details.WriteString("no packages loaded")

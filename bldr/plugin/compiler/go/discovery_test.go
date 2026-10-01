@@ -59,6 +59,7 @@ func TestDiscoveryConstructors(t *testing.T) {
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
+			// Resolve the analyzed package for this fixture.
 			pkg := an.GetPackages()["github.com/s4wave/spacewave/"+tc.name]
 			if tc.absent {
 				if pkg.Factory != nil {
@@ -124,11 +125,14 @@ func TestDiscoveryAnnotationTypes(t *testing.T) {
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
+			// Scan the package's files with both discovery scanners.
 			pkgPath := "github.com/s4wave/spacewave/" + tc.name
 			an.packagePaths = []string{pkgPath}
 			code := an.GetGoCodeFiles()
 			esbuild, esbuildErr := an.FindEsbuildVariables(code)
 			vite, viteErr := an.FindViteVariables(code)
+
+			// Reject invalid declaration types from both scanners.
 			if tc.invalid {
 				if !errors.Is(esbuildErr, ErrUnexpectedVarType) {
 					t.Fatalf("esbuild accepted invalid type: %v", esbuildErr)
@@ -138,6 +142,8 @@ func TestDiscoveryAnnotationTypes(t *testing.T) {
 				}
 				return
 			}
+
+			// Require exactly one typed binding from each scanner.
 			if esbuildErr != nil {
 				t.Fatal(esbuildErr)
 			}

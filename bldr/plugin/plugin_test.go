@@ -3,6 +3,7 @@ package bldr_plugin
 import "testing"
 
 func TestPluginRpcComponentID(t *testing.T) {
+	// Run the test in parallel with the other tests.
 	t.Parallel()
 
 	// Escape a slash-containing instance key into the component ID.
@@ -25,6 +26,7 @@ func TestPluginRpcComponentID(t *testing.T) {
 }
 
 func TestPluginRpcComponentIDShared(t *testing.T) {
+	// Run the test in parallel with the other tests.
 	t.Parallel()
 
 	// Build the shared plugin component ID without an instance key.

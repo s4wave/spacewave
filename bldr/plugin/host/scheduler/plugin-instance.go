@@ -114,11 +114,14 @@ func (t *pluginInstance) GetPluginLoadStateCtr() ccontainer.Watchable[bldr_plugi
 // newPluginInstance constructs a new execute plugin routine.
 // key is the composite key: pluginID or pluginID/instanceKey.
 func (c *Controller) newPluginInstance(key pluginReference) (keyed.Routine, *pluginInstance) {
+	// Build the plugin logger with the plugin and instance identity.
 	pluginID, instanceKey := key.pluginID, key.executionKey()
 	le := c.le.WithField("plugin-id", pluginID)
 	if instanceKey != "" {
 		le = le.WithField("instance-key", instanceKey)
 	}
+
+	// Construct the shared state and resolve the binding key.
 	tr := newPluginState(c, le, pluginID, instanceKey, key.manifestRoot)
 	tr.bindingKey = key.instanceKey
 	if tr.bindingKey == "" {
@@ -126,20 +129,25 @@ func (c *Controller) newPluginInstance(key pluginReference) (keyed.Routine, *plu
 	}
 	tr.executions = keyed.NewKeyedRefCountWithLogger(tr.newExecution, le)
 
+	// Build the retry backoff policies from the config.
 	fetchBackoff, execBackoff := c.conf.BuildFetchBackoff(), c.conf.BuildExecBackoff()
 
+	// Create the fetch, watch, and download manifest routines.
 	tr.fetchWorldManifestRoutine = routine.NewStateRoutineContainerWithLogger(pluginHostSetEqual, le, routine.WithRetry(fetchBackoff))
 	tr.fetchWorldManifestRoutine.SetStateRoutine(tr.execFetchWorldManifest)
 
+	// Create the watch and download manifest routines.
 	tr.watchWorldManifestRoutine = routine.NewStateRoutineContainerWithLogger(pluginHostSetEqual, le, routine.WithRetry(fetchBackoff))
 	tr.watchWorldManifestRoutine.SetStateRoutine(tr.execWatchWorldManifest)
 
+	// Create the download manifest routine.
 	tr.downloadManifestRoutine = routine.NewStateRoutineContainerWithLoggerVT[*bldr_manifest.ManifestSnapshot](
 		le,
 		routine.WithRetry(fetchBackoff),
 	)
 	tr.downloadManifestRoutine.SetStateRoutine(tr.execDownloadManifest)
 
+	// Create the execute and update plugin routines.
 	tr.executePluginRoutine = routine.NewStateRoutineContainerWithLogger(
 		executePluginArgsEqual,
 		le,
@@ -147,6 +155,7 @@ func (c *Controller) newPluginInstance(key pluginReference) (keyed.Routine, *plu
 	)
 	tr.executePluginRoutine.SetStateRoutine(tr.execSelectedPlugin)
 
+	// Create the guarded plugin update routine.
 	tr.updatePluginRoutine = routine.NewStateRoutineContainerWithLogger(executePluginArgsEqual, le, routine.WithRetry(fetchBackoff))
 	tr.updatePluginRoutine.SetStateRoutine(tr.execGuardedPluginUpdate)
 
@@ -178,6 +187,7 @@ func newPluginState(c *Controller, le *logrus.Entry, pluginID, instanceKey, mani
 
 // execute executes the routine.
 func (t *pluginInstance) execute(ctx context.Context) error {
+	// Wait for the start signal and ensure the manifest store exists.
 	if _, err := t.start.WaitValue(ctx, nil); err != nil {
 		return err
 	}
@@ -185,6 +195,7 @@ func (t *pluginInstance) execute(ctx context.Context) error {
 		return err
 	}
 
+	// Arm the startup wait budget for this execution.
 	startupWaitBudget, err := t.c.conf.BuildStartupWaitBudget()
 	if err != nil {
 		return err
@@ -192,6 +203,7 @@ func (t *pluginInstance) execute(ctx context.Context) error {
 	t.armStartupWaitBudget(startupWaitBudget)
 	defer t.stopStartupWaitBudget()
 
+	// Report the plugin as requested until the execution ends.
 	t.c.setPluginStatus(
 		t.pluginID,
 		t.instanceKey,
@@ -231,13 +243,15 @@ func (t *pluginInstance) execute(ctx context.Context) error {
 	defer t.executions.ClearContext()
 	defer t.closeExecutions()
 
-	// Set the context for the execute plugin routine.
+	// Set the context for the execute and update plugin routines.
 	t.executePluginRoutine.SetContext(ctx, true)
 	defer t.executePluginRoutine.ClearContext()
 
+	// Set the context for the update plugin routine.
 	t.updatePluginRoutine.SetContext(ctx, true)
 	defer t.updatePluginRoutine.ClearContext()
 
+	// Build the plugin dist access controller ID.
 	distFsID := bldr_plugin.PluginDistFsId(t.pluginID)
 	if t.manifestRoot != "" {
 		distFsID += "/manifest/" + t.manifestRoot
@@ -255,12 +269,14 @@ func (t *pluginInstance) execute(ctx context.Context) error {
 	)
 	defer distAccessCtrl.Close()
 
+	// Add the dist access controller to the bus.
 	relDistAccessCtrl, err := t.c.bus.AddController(ctx, distAccessCtrl, nil)
 	if err != nil {
 		return err
 	}
 	defer relDistAccessCtrl()
 
+	// Build the plugin assets access controller ID.
 	assetsFsID := bldr_plugin.PluginAssetsFsId(t.pluginID)
 	if t.manifestRoot != "" {
 		assetsFsID += "/manifest/" + t.manifestRoot
@@ -278,6 +294,7 @@ func (t *pluginInstance) execute(ctx context.Context) error {
 	)
 	defer assetsAccessCtrl.Close()
 
+	// Add the assets access controller to the bus.
 	relAssetsAccessCtrl, err := t.c.bus.AddController(ctx, assetsAccessCtrl, nil)
 	if err != nil {
 		return err
@@ -290,8 +307,11 @@ func (t *pluginInstance) execute(ctx context.Context) error {
 		nil,
 		t.c.pluginHostsCtr,
 		func(msg *pluginHostSet) error {
+			// Forward the plugin host set to the fetch and watch routines.
 			t.fetchWorldManifestRoutine.SetState(msg)
 			t.watchWorldManifestRoutine.SetState(msg)
+
+			// Re-select the installed manifests under the update lock.
 			t.pluginUpdateMtx.Lock()
 			t.selectInstalledManifestLocked(msg)
 			t.pluginUpdateMtx.Unlock()

@@ -33,6 +33,7 @@ func (s *PluginServer) PluginRpc(rpcStream SRPCPlugin_PluginRpcStream) error {
 			remotePluginID string,
 			released func(),
 		) (srpc.Invoker, func(), error) {
+			// Reject an empty remote plugin ID.
 			if remotePluginID == "" {
 				return nil, nil, errors.Wrap(ErrEmptyPluginID, "remote plugin rpc")
 			}

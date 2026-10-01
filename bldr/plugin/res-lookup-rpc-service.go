@@ -103,6 +103,7 @@ func (f *clientForwardingInvoker) InvokeMethod(serviceID, methodID string, strm 
 	// server-streaming RPCs. The caller (invokeRPC) handles stream completion
 	// by sending CallData(complete=true) and closing the writer.
 
+	// Relay each server message to the client stream until EOF.
 	writeServerToClient := func() error {
 		serverMsg := &srpc.RawMessage{}
 		for {
@@ -116,11 +117,13 @@ func (f *clientForwardingInvoker) InvokeMethod(serviceID, methodID string, strm 
 		}
 	}
 
+	// Run the server-to-client relay in the background.
 	serverDone := make(chan error, 1)
 	go func() {
 		serverDone <- writeServerToClient()
 	}()
 
+	// Relay each client message to the server stream until EOF.
 	writeClientToServer := func() error {
 		clientMsg := &srpc.RawMessage{}
 		for {
@@ -134,11 +137,13 @@ func (f *clientForwardingInvoker) InvokeMethod(serviceID, methodID string, strm 
 		}
 	}
 
+	// Run the client-to-server relay in the background.
 	clientDone := make(chan error, 1)
 	go func() {
 		clientDone <- writeClientToServer()
 	}()
 
+	// Treat a relay's EOF as a clean completion.
 	normalizeDone := func(err error) error {
 		if err == io.EOF {
 			return nil
@@ -146,6 +151,7 @@ func (f *clientForwardingInvoker) InvokeMethod(serviceID, methodID string, strm 
 		return err
 	}
 
+	// Return when either relay finishes, closing the send side on clean client EOF.
 	for {
 		select {
 		case writeErr := <-clientDone:
@@ -167,29 +173,36 @@ func (f *clientForwardingInvoker) InvokeMethod(serviceID, methodID string, strm 
 
 // Resolve resolves the values, emitting them to the handler.
 func (r *LookupRpcServiceResolver) Resolve(ctx context.Context, handler directive.ResolverHandler) error {
+	// Clear any previous values before resolving.
 	handler.ClearValues()
 
+	// Prepare the plugin client wait state.
 	var client srpc.Client
 	var rel func()
 	var err error
 
+	// Set up a channel that closes when the resolver value is released.
 	pluginID := r.pluginID
 	releasedCh := make(chan struct{})
 	releasedFn := sync.OnceFunc(func() {
 		close(releasedCh)
 	})
 
+	// Wait for the plugin-host or per-plugin client, or until release.
 	if pluginID == "" {
 		client, rel, err = r.h.WaitPluginHostClient(ctx, releasedFn)
 	} else {
 		client, rel, err = r.h.WaitPluginClient(ctx, releasedFn, pluginID)
 	}
+
+	// Release the client and fail when no client became available.
 	if err != nil || client == nil {
 		if rel != nil {
 			rel()
 		}
 		return err
 	}
+
 	// rel is nil for the loopback and plugin-host client paths
 	// (WaitPluginClient/WaitPluginHostClient return a nil release func there), so
 	// guard the deferred release to avoid a nil func call when the deferred runs.
@@ -199,10 +212,13 @@ func (r *LookupRpcServiceResolver) Resolve(ctx context.Context, handler directiv
 
 	// Create an invoker that forwards calls to the client and strips the service id prefix
 	invoker := newClientForwardingInvoker(client, r.stripServiceIDPrefix)
+
+	// Publish the invoker as the resolved value and mark idle.
 	value := invoker
 	valueID, valueOk := handler.AddValue(value)
 	handler.MarkIdle(true)
 
+	// Return on cancellation, or remove the value when the client is released.
 	select {
 	case <-ctx.Done():
 		return context.Canceled

@@ -100,14 +100,19 @@ func NewProcessHostController(
 	b bus.Bus,
 	c *Config,
 ) (*host_controller.Controller, *ProcessHost, error) {
+	// Validate the controller config before building the host.
 	if err := c.Validate(); err != nil {
 		return nil, nil, err
 	}
+
+	// Construct the process host from the configured state and dist dirs.
 	stateDir, distDir := c.GetStateDir(), c.GetDistDir()
 	processHost, err := NewProcessHost(le, stateDir, distDir)
 	if err != nil {
 		return nil, nil, err
 	}
+
+	// Register the process host as a host controller on the bus.
 	hctrl := host_controller.NewController(
 		le,
 		b,
@@ -135,6 +140,7 @@ func (h *ProcessHost) ListPlugins(ctx context.Context) ([]string, error) {
 		return nil, err
 	}
 
+	// Collect the valid plugin IDs from the dist directories.
 	var ids []string
 	for _, ent := range dirents {
 		if !ent.IsDir() {
@@ -164,10 +170,11 @@ func (h *ProcessHost) ExecutePlugin(
 	hostMux srpc.Mux,
 	rpcInit plugin_host.PluginRpcInitCb,
 ) error {
+	// Cancel the derived context when the plugin execution returns.
 	ctx, ctxCancel := context.WithCancel(rctx)
 	defer ctxCancel()
 
-	// double-check the entrypoint exists and is executable
+	// Resolve the entrypoint file inside the plugin dist handle.
 	entrypoint = filepath.Clean(entrypoint)
 	le := h.le.WithField("plugin-id", pluginID)
 	le.
@@ -180,6 +187,8 @@ func (h *ProcessHost) ExecutePlugin(
 	le.
 		WithField("entrypoint", entrypoint).
 		Debug("native plugin entrypoint lookup complete")
+
+	// Read the entrypoint file info and require an executable regular file.
 	le.
 		WithField("entrypoint", entrypoint).
 		Debug("reading native plugin entrypoint file info")
@@ -197,6 +206,7 @@ func (h *ProcessHost) ExecutePlugin(
 		return errors.Errorf("entrypoint must be an executable regular file: %s", entrypointFiMode.String())
 	}
 
+	// Create the plugin state directory.
 	pluginStateDir, err := h.ensurePluginStateDir(pluginID)
 	if err != nil {
 		return err
@@ -206,21 +216,19 @@ func (h *ProcessHost) ExecutePlugin(
 	releaseDist := h.acquirePluginDist(pluginID, manifestRoot)
 	defer releaseDist()
 
+	// Sync the plugin dist checkout to disk and prune unused checkouts.
 	pluginDistDir, err := h.syncPluginDist(ctx, pluginID, manifestRoot, entrypoint, pluginDist)
 	if err != nil {
 		return err
 	}
 	h.pruneUnusedPluginDists(pluginID)
-
 	entrypointPath := filepath.Join(pluginDistDir, entrypoint)
 
-	// configure entrypoint process
+	// Configure the entrypoint process to run from the plugin bin dir.
 	entrypointProc := exec.CommandContext(ctx, entrypointPath, "exec-plugin")
-
-	// set pwd to plugin bin dir
 	entrypointProc.Dir = pluginDistDir
 
-	// create unique plugin instance id
+	// Build the plugin start info and its JSON payload.
 	pluginInstanceID := randstring.RandomIdentifier(0)
 	pluginStartInfo := bldr_plugin.NewPluginStartInfo(pluginInstanceID, pluginID, instanceKey, manifestRoot)
 	pluginStartInfoJsonB64, err := pluginStartInfo.MarshalJsonBase64()
@@ -228,6 +236,7 @@ func (h *ProcessHost) ExecutePlugin(
 		return err
 	}
 
+	// Pass the start info and state path to the plugin environment.
 	// NOTE: the pluginID is validated to be a valid-dns-identifier
 	entrypointProc.Env = append(
 		os.Environ(),
@@ -238,24 +247,24 @@ func (h *ProcessHost) ExecutePlugin(
 		entrypointProc.Env = append(entrypointProc.Env, bldr_plugin.HostExecutableEnv+"="+exe)
 	}
 
-	// write start info to a file as well
+	// Write the start info to a file next to the entrypoint.
 	instanceDetailsPath := filepath.Join(pluginDistDir, ".plugin-start-info")
 	if err := os.WriteFile(instanceDetailsPath, []byte(pluginStartInfoJsonB64), 0o600); err != nil {
 		return err
 	}
 
-	// stderr: pipe to debug log and capture last lines for error reporting.
+	// Pipe stderr to the debug log and capture the last lines for error reporting.
 	debugWriter := le.WriterLevel(logrus.DebugLevel)
 	stderrTail := tailwriter.New(debugWriter, 20)
 	entrypointProc.Stderr = stderrTail
 
-	// call any os-specific pre-start adjustment
+	// Apply any os-specific pre-start adjustment.
 	preStartObj, err := preStartCmd(entrypointProc)
 	if err != nil {
 		return err
 	}
 
-	// attach to pipe
+	// Listen on the plugin pipe socket and advertise its root to the plugin.
 	pipeListener, err := bldr_pipesock.Listen(le, pluginDistDir, pluginInstanceID)
 	if err != nil {
 		return err
@@ -263,16 +272,18 @@ func (h *ProcessHost) ExecutePlugin(
 	defer pipeListener.Close()
 	entrypointProc.Env = append(entrypointProc.Env, "BLDR_PIPE_ROOT="+pipeListener.GetRootDir())
 
+	// Log the entrypoint command that is about to execute.
 	le.
 		WithField("entrypoint", entrypoint).
 		Debugf("executing plugin entrypoint: %s", entrypointProc.String())
 
+	// Start the plugin process.
 	startObj, err := startCmd(entrypointProc, preStartObj)
 	if err != nil {
 		return err
 	}
 
-	// execute ipc channel
+	// Accept plugin IPC connections until the context is canceled.
 	errCh := make(chan error, 5)
 	go func() {
 		// wait for sub-process to connect
@@ -311,21 +322,23 @@ func (h *ProcessHost) ExecutePlugin(
 		}
 	}()
 
-	// wait for a non-nil error
+	// Wait for the plugin process to exit and report through the error channel.
 	exited := make(chan struct{})
 	go func() {
 		errCh <- entrypointProc.Wait()
 		close(exited)
 	}()
 
-	// fully kill & wait for exit to be confirmed when returning
+	// Shut the plugin down gracefully, then kill it, before returning.
 	defer func() {
+		// Cancel the context and close the pipe listener.
 		ctxCancel()
 		_ = pipeListener.Close()
 
+		// Request a graceful shutdown of the plugin process.
 		_ = shutdownCmd(entrypointProc, preStartObj, startObj)
 
-		// wait graceful shutdown max duration
+		// Wait up to the graceful shutdown window for the process to exit.
 		shutdownTimeout := time.NewTimer(time.Second * 3)
 		select {
 		case <-exited:
@@ -333,13 +346,14 @@ func (h *ProcessHost) ExecutePlugin(
 		case <-shutdownTimeout.C:
 		}
 
+		// Kill the process after the graceful shutdown window expires.
 		_ = killCmd(entrypointProc, preStartObj, startObj)
 
-		// wait for full shutdown
+		// Wait for the process exit to be confirmed.
 		<-exited
 	}()
 
-	// wait for context canceled and/or error
+	// Return the first startup error, logging captured stderr lines.
 	select {
 	case <-ctx.Done():
 		return context.Canceled
@@ -364,18 +378,19 @@ func (h *ProcessHost) execPluginIPC(
 	hostMux srpc.Mux,
 	rpcInit plugin_host.PluginRpcInitCb,
 ) error {
+	// Close the muxed connection when the IPC session ends.
 	defer muxedConn.Close()
 
-	// construct srpc client
+	// Construct the srpc client over the muxed connection.
 	client := srpc.NewClientWithMuxedConn(muxedConn)
 
-	// init rpc
+	// Initialize the plugin rpc with the client.
 	err := rpcInit(client)
 	if err != nil {
 		return err
 	}
 
-	// construct srpc server & accept incoming requests until an error occurs
+	// Serve incoming requests on the host mux until an error occurs.
 	srv := srpc.NewServer(hostMux)
 	return srv.AcceptMuxedConn(ctx, muxedConn)
 }
@@ -392,6 +407,7 @@ func (h *ProcessHost) pluginStateDir(pluginID string) string {
 
 // ensurePluginStateDir creates the state directory for a plugin if missing.
 func (h *ProcessHost) ensurePluginStateDir(pluginID string) (string, error) {
+	// Create the plugin state directory if missing.
 	pluginStateDir := h.pluginStateDir(pluginID)
 	if err := os.MkdirAll(pluginStateDir, 0o755); err != nil {
 		return "", err
@@ -402,6 +418,7 @@ func (h *ProcessHost) ensurePluginStateDir(pluginID string) (string, error) {
 // acquirePluginDist marks the dist checkout for a manifest root as in use by
 // an executing instance. The returned func releases the reference.
 func (h *ProcessHost) acquirePluginDist(pluginID, manifestRoot string) func() {
+	// Count a reference on the plugin artifact under the lock.
 	artifactID := bldr_plugin.PluginArtifactID(pluginID, manifestRoot)
 	h.distRefsMtx.Lock()
 	if h.distRefs == nil {
@@ -410,6 +427,7 @@ func (h *ProcessHost) acquirePluginDist(pluginID, manifestRoot string) func() {
 	h.distRefs[artifactID]++
 	h.distRefsMtx.Unlock()
 
+	// Return a release function that drops the reference once.
 	var once sync.Once
 	return func() {
 		once.Do(func() {
@@ -425,6 +443,7 @@ func (h *ProcessHost) acquirePluginDist(pluginID, manifestRoot string) func() {
 // pruneUnusedPluginDists removes per-manifest-root dist checkouts for a
 // plugin that no executing instance of this host is using.
 func (h *ProcessHost) pruneUnusedPluginDists(pluginID string) {
+	// List the plugin's per-manifest-root dist checkouts under the lock.
 	manifestsDir := filepath.Join(h.pluginDistDir(pluginID), "manifest")
 	h.distRefsMtx.Lock()
 	defer h.distRefsMtx.Unlock()
@@ -435,6 +454,8 @@ func (h *ProcessHost) pruneUnusedPluginDists(pluginID string) {
 		}
 		return
 	}
+
+	// Remove each unreferenced checkout directory.
 	for _, ent := range dirents {
 		if !ent.IsDir() {
 			continue
@@ -456,12 +477,14 @@ func (h *ProcessHost) pruneUnusedPluginDists(pluginID string) {
 // syncPluginDist materializes or updates the plugin's dist checkout from
 // its FS handle and returns the directory.
 func (h *ProcessHost) syncPluginDist(ctx context.Context, pluginID, manifestRoot, entrypoint string, pluginDist *unixfs.FSHandle) (string, error) {
+	// Create the plugin's dist checkout directory.
 	pluginDistDir := h.pluginDistDir(bldr_plugin.PluginArtifactID(pluginID, manifestRoot))
 	if err := os.MkdirAll(pluginDistDir, 0o755); err != nil {
 		h.recordPluginPackageStatus(pluginID, pluginDistDir, false, false, "sync", err)
 		return "", err
 	}
 
+	// Sync the dist contents from the FS handle, keeping the entrypoint path.
 	h.le.
 		WithField("plugin-id", pluginID).
 		WithField("dist-dir", pluginDistDir).
@@ -478,10 +501,14 @@ func (h *ProcessHost) syncPluginDist(ctx context.Context, pluginID, manifestRoot
 		h.recordPluginPackageStatus(pluginID, pluginDistDir, false, false, "sync", err)
 		return "", err
 	}
+
+	// Materialize the entrypoint executable as a fresh inode.
 	if err := materializeEntrypoint(ctx, pluginDist, entrypoint, pluginDistDir); err != nil {
 		h.recordPluginPackageStatus(pluginID, pluginDistDir, false, false, "sync", err)
 		return "", err
 	}
+
+	// Record the completed sync status.
 	h.le.
 		WithField("plugin-id", pluginID).
 		WithField("dist-dir", pluginDistDir).
@@ -494,6 +521,7 @@ func (h *ProcessHost) syncPluginDist(ctx context.Context, pluginID, manifestRoot
 // Updating a previously executed inode in place leaves macOS code-signing caches
 // referring to its old contents, even when the replacement signature is valid.
 func materializeEntrypoint(ctx context.Context, dist *unixfs.FSHandle, entrypoint, dir string) error {
+	// Open the entrypoint contents from the dist handle.
 	handle, _, err := dist.LookupPath(ctx, entrypoint)
 	if err != nil {
 		return err
@@ -501,21 +529,26 @@ func materializeEntrypoint(ctx context.Context, dist *unixfs.FSHandle, entrypoin
 	source := unixfs_billy.NewBillyFSFile(ctx, entrypoint, handle, os.O_RDONLY, time.Time{})
 	defer source.Close()
 
+	// Stage the new file outside the checkout: another instance may sync its assets.
 	destination := filepath.Join(dir, entrypoint)
-	// Keep staging outside the checkout: another instance may sync its assets.
 	file, err := os.CreateTemp(filepath.Dir(dir), ".entrypoint-*")
 	if err != nil {
 		return err
 	}
 	defer os.Remove(file.Name())
 	defer file.Close()
+
+	// Copy the contents and restore the executable permission bits.
 	if _, err := io.Copy(file, source); err != nil {
 		return err
 	}
+
 	// Embedded distributions can omit executable permission bits.
 	if err := file.Chmod(0o755); err != nil {
 		return err
 	}
+
+	// Swap the staged file into place as a complete new inode.
 	if err := file.Close(); err != nil {
 		return err
 	}
@@ -525,6 +558,7 @@ func materializeEntrypoint(ctx context.Context, dist *unixfs.FSHandle, entrypoin
 // InvalidatePluginDist clears only the derived native plugin dist checkout.
 // Plugin-owned state under the state directory is a separate protected surface.
 func (h *ProcessHost) InvalidatePluginDist(ctx context.Context, pluginID string) error {
+	// Reject invalidation of a canceled context or invalid plugin ID.
 	if err := ctx.Err(); err != nil {
 		h.recordPluginPackageStatus(pluginID, h.pluginDistDir(pluginID), false, false, "invalidate", err)
 		return err
@@ -533,6 +567,8 @@ func (h *ProcessHost) InvalidatePluginDist(ctx context.Context, pluginID string)
 		h.recordPluginPackageStatus(pluginID, h.pluginDistDir(pluginID), false, false, "invalidate", err)
 		return err
 	}
+
+	// Remove the dist checkout and record the result.
 	pluginDistDir := h.pluginDistDir(pluginID)
 	err := os.RemoveAll(pluginDistDir)
 	h.recordPluginPackageStatus(pluginID, pluginDistDir, false, err == nil, "invalidate", err)
@@ -542,6 +578,7 @@ func (h *ProcessHost) InvalidatePluginDist(ctx context.Context, pluginID string)
 // PackageStatusSnapshot returns a read-only copy of native dist
 // materialization status. It never inspects or exposes plugin-owned state.
 func (h *ProcessHost) PackageStatusSnapshot() []PluginPackageStatus {
+	// Clone the recorded package statuses under the status lock.
 	h.packageStatusMtx.Lock()
 	defer h.packageStatusMtx.Unlock()
 	return h.packageStatusSnapshotLocked()
@@ -561,6 +598,7 @@ func (h *ProcessHost) recordPluginPackageStatus(
 	action string,
 	err error,
 ) {
+	// Record the status under the status lock.
 	h.packageStatusMtx.Lock()
 	if h.packageStatus == nil {
 		h.packageStatus = make(map[string]PluginPackageStatus)
@@ -579,6 +617,8 @@ func (h *ProcessHost) recordPluginPackageStatus(
 	h.packageStatus[pluginID] = status
 	snapshot := h.packageStatusSnapshotLocked()
 	h.packageStatusMtx.Unlock()
+
+	// Publish the new snapshot to the watchable container.
 	if h.packageStatusCtr != nil {
 		h.packageStatusCtr.SetValue(&PluginPackageStatusSnapshot{Packages: snapshot})
 	}
@@ -587,6 +627,7 @@ func (h *ProcessHost) recordPluginPackageStatus(
 // packageStatusSnapshotLocked clones the recorded package statuses. Caller
 // must hold the status lock.
 func (h *ProcessHost) packageStatusSnapshotLocked() []PluginPackageStatus {
+	// Clone the statuses and sort them by plugin ID.
 	out := make([]PluginPackageStatus, 0, len(h.packageStatus))
 	for _, status := range h.packageStatus {
 		out = append(out, status)
@@ -605,6 +646,7 @@ func (h *ProcessHost) packageStatusSnapshotLocked() []PluginPackageStatus {
 
 // pluginPackageStatusSnapshotEqual reports whether two snapshots are equal.
 func pluginPackageStatusSnapshotEqual(a, b *PluginPackageStatusSnapshot) bool {
+	// Compare the two snapshots field by field.
 	if a == nil || b == nil {
 		return a == b
 	}
@@ -621,6 +663,7 @@ func pluginPackageStatusSnapshotEqual(a, b *PluginPackageStatusSnapshot) bool {
 
 // DeletePlugin clears cached plugin data for the given plugin ID.
 func (h *ProcessHost) DeletePlugin(ctx context.Context, pluginID string) error {
+	// Remove the dist checkout and the state directory.
 	pluginDistDir := h.pluginDistDir(pluginID)
 	e1 := os.RemoveAll(pluginDistDir)
 	pluginStateDir := h.pluginStateDir(pluginID)

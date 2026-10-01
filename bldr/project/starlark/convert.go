@@ -12,6 +12,7 @@ import (
 // valueToJSON converts a Starlark value to JSON bytes.
 // Supports: string, int, float, bool, None, list, tuple, dict.
 func valueToJSON(val starlark.Value) ([]byte, error) {
+	// Append the JSON representation of the value.
 	var buf []byte
 	var err error
 	buf, err = appendJSON(buf, val)
@@ -98,6 +99,7 @@ func appendJSON(buf []byte, val starlark.Value) ([]byte, error) {
 
 // appendJSONString appends a JSON-encoded string to buf.
 func appendJSONString(buf []byte, s string) []byte {
+	// Escape each byte of the string for JSON.
 	buf = append(buf, '"')
 	for i := 0; i < len(s); i++ {
 		c := s[i]

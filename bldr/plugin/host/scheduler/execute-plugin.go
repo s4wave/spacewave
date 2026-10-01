@@ -29,6 +29,7 @@ type executePluginArgs struct {
 
 // executePluginArgsEqual compares two executePluginArgs for equality.
 func executePluginArgsEqual(a, b *executePluginArgs) bool {
+	// Compare nil args and the installation and fallback lists.
 	if a == nil || b == nil {
 		return a == b
 	}
@@ -41,6 +42,7 @@ func executePluginArgsEqual(a, b *executePluginArgs) bool {
 		}
 	}
 
+	// Compare the manifest snapshots by executable manifest reference.
 	manifestEqual := (a.manifestSnapshot == nil) == (b.manifestSnapshot == nil)
 	if manifestEqual && a.manifestSnapshot != nil {
 		manifestEqual = manifest_world.ManifestObjectRefsSameExecutable(
@@ -52,6 +54,7 @@ func executePluginArgsEqual(a, b *executePluginArgs) bool {
 		return false
 	}
 
+	// Compare the plugin host references.
 	pluginHostEqual := (a.pluginHost == nil) == (b.pluginHost == nil)
 	if pluginHostEqual && a.pluginHost != nil {
 		pluginHostEqual = a.pluginHost == b.pluginHost
@@ -62,12 +65,15 @@ func executePluginArgsEqual(a, b *executePluginArgs) bool {
 
 // execPlugin runs one immutable worker until its owned execution ends.
 func (t *pluginInstance) execPlugin(ctx context.Context, args *executePluginArgs) (rerr error) {
+	// Reject execution without a manifest snapshot and plugin host.
 	if args == nil ||
 		args.manifestSnapshot == nil ||
 		args.manifestSnapshot.GetManifestRef() == nil ||
 		args.pluginHost == nil {
 		return nil
 	}
+
+	// Trace the execution and publish its result when it ends.
 	ctx, task := trace.NewTask(ctx, "bldr/plugin-host-scheduler/execute-plugin")
 	defer task.End()
 	defer func() { t.finishExecution(rerr) }()
@@ -84,29 +90,35 @@ func (t *pluginInstance) execPlugin(ctx context.Context, args *executePluginArgs
 			t.c.clearPluginStatusError(t.pluginID, t.instanceKey)
 		}
 	}()
+
+	// Prepare the manifest copy accounting and demand observation state.
 	pluginManifest := args.manifestSnapshot
 	pluginID, le := t.pluginID, t.le
 	accounting := t.manifestCopyAccountingForExecution(ctx, pluginManifest)
 	accessCtx := ctx
 	var demandObservation *manifestDemandObservation
 	var finishDemand func(string)
+
+	// Log the plugin identity and startup fetch kind on the trace.
 	trace.Log(ctx, "plugin-id", pluginID)
 	trace.Log(ctx, "instance-key", t.instanceKey)
 	trace.Log(ctx, "manifest-ref", pluginManifest.GetManifestRef().MarshalString())
 	trace.Log(ctx, "startup-fetch-kind", "demand-plugin-execute")
 
-	// build proxy volume
+	// Build a proxy volume over the host volume for the plugin.
 	hostVol, err := t.c.hostVolumeCtr.WaitValue(ctx, nil)
 	if err != nil {
 		return err
 	}
 	proxyHostVol := volume_rpc_server.NewProxyVolume(ctx, hostVol.vol, false)
 
-	// build world state handle
+	// Wait for the World state handle.
 	ws, err := t.c.worldStateCtr.WaitValue(ctx, nil)
 	if err != nil {
 		return err
 	}
+
+	// Instrument the access context with block read accounting.
 	if accounting != nil {
 		var readCounter *block.ReadCounter
 		accessCtx, readCounter = block.WithReadCounter(accessCtx)
@@ -139,6 +151,7 @@ func (t *pluginInstance) execPlugin(ctx context.Context, args *executePluginArgs
 		demandObservation.finish()
 	}()
 
+	// Access the manifest and run the plugin inside its dist.
 	le.Infof("starting plugin with manifest: %s", pluginManifest.GetManifestRef().MarshalString())
 	accessErr := manifest_world.AccessManifest(accessCtx, le, ws.AccessWorldState, pluginManifest.GetManifestRef(), func(
 		ctx context.Context,
@@ -158,6 +171,7 @@ func (t *pluginInstance) execPlugin(ctx context.Context, args *executePluginArgs
 			}
 		}
 
+		// Report whether the first demanded block was read during access.
 		if demandObservation != nil {
 			snapshot := demandObservation.snapshot()
 			if snapshot.BlockReadCount != 0 {
@@ -166,12 +180,15 @@ func (t *pluginInstance) execPlugin(ctx context.Context, args *executePluginArgs
 				finishDemand("access-manifest-ready")
 			}
 		}
+
+		// Serve the dist and assets filesystems while the plugin runs.
 		t.distAccess.SetCurrent(unixfs_access.NewAccessUnixFSFunc(distFS))
 		defer t.distAccess.SetBlocked()
 		t.assetsAccess.SetCurrent(unixfs_access.NewAccessUnixFSFunc(assetsFS))
 		defer t.assetsAccess.SetBlocked()
 		manifestRoot := pluginManifest.GetManifestRef().GetRootRef().GetHash().MarshalString()
 
+		// Publish the immutable dist and assets file controllers.
 		// Current executions also publish immutable files. A viewer or module URL
 		// must never silently resolve to a later revision with the same plugin ID.
 		if t.manifestRoot == "" {
@@ -212,6 +229,7 @@ func (t *pluginInstance) execPlugin(ctx context.Context, args *executePluginArgs
 			defer depRef.Release()
 		}
 
+		// Resolve the plugin host root for the platform.
 		hostRoot, _, hostRootRef, err := plugin_host_root.ExLookupRootByPlatform(
 			ctx,
 			t.c.bus,
@@ -224,9 +242,10 @@ func (t *pluginInstance) execPlugin(ctx context.Context, args *executePluginArgs
 		}
 		defer hostRootRef.Release()
 
+		// Begin the initial capability registration window.
 		t.beginInitialCapabilityRegistration()
 
-		// build the mux for handling incoming RPCs from the plugin
+		// Build the mux for handling incoming RPCs from the plugin.
 		hostMux, relHostMux := t.c.buildPluginMux(
 			ctx,
 			pluginID,
@@ -243,6 +262,7 @@ func (t *pluginInstance) execPlugin(ctx context.Context, args *executePluginArgs
 		)
 		defer relHostMux()
 
+		// Execute the plugin on the resolved host until it stops.
 		execErr := args.pluginHost.ExecutePlugin(
 			ctx,
 			pluginID,
@@ -256,7 +276,7 @@ func (t *pluginInstance) execPlugin(ctx context.Context, args *executePluginArgs
 			func(client srpc.Client) error { t.updateRpcClient(client); return nil },
 		)
 
-		// handle if the plugin returned an error
+		// Map a canceled context to context.Canceled; otherwise surface the error.
 		if execErr != nil {
 			if ctx.Err() != nil {
 				return context.Canceled
@@ -268,6 +288,8 @@ func (t *pluginInstance) execPlugin(ctx context.Context, args *executePluginArgs
 
 		return nil
 	})
+
+	// Finalize the demand observation phase after access completes.
 	if demandObservation != nil {
 		demandObservation.snapshot()
 		if accessErr != nil {
@@ -282,6 +304,7 @@ func (t *pluginInstance) execPlugin(ctx context.Context, args *executePluginArgs
 // beginInitialCapabilityRegistration resets readiness for a new plugin
 // instance execution.
 func (t *pluginInstance) beginInitialCapabilityRegistration() {
+	// Reset the load state to the pending registration phase.
 	t.updatePluginLoadState(func(current bldr_plugin.PluginLoadState) bldr_plugin.PluginLoadState {
 		next := bldr_plugin.NewPluginLoadState(
 			nil,
@@ -296,10 +319,11 @@ func (t *pluginInstance) beginInitialCapabilityRegistration() {
 
 // updateRpcClient is called by the plugin when the RPC client changes.
 func (t *pluginInstance) updateRpcClient(client srpc.Client) {
+	// Publish the new rpc client, marking failed registration on disconnect.
 	t.updatePluginLoadState(func(current bldr_plugin.PluginLoadState) bldr_plugin.PluginLoadState {
-		registrationState := current.GetInitialCapabilityRegistrationState()
 		// A disconnect during registration precedes process Wait. Preserve pending
 		// until ExecutePlugin returns the diagnostic that decides retry policy.
+		registrationState := current.GetInitialCapabilityRegistrationState()
 		if client == nil && registrationState == bldr_plugin.InitialCapabilityRegistrationComplete {
 			registrationState = bldr_plugin.InitialCapabilityRegistrationFailed
 		}
@@ -313,6 +337,7 @@ func (t *pluginInstance) updateRpcClient(client srpc.Client) {
 
 // finishExecution publishes the execution result after the process has stopped.
 func (t *pluginInstance) finishExecution(err error) {
+	// Record the execution result in the load state.
 	t.updatePluginLoadState(func(current bldr_plugin.PluginLoadState) bldr_plugin.PluginLoadState {
 		return current.WithStartupError(err)
 	})
@@ -320,7 +345,9 @@ func (t *pluginInstance) finishExecution(err error) {
 
 // finishInitialCapabilityRegistration publishes the plugin's startup RPC result.
 func (t *pluginInstance) finishInitialCapabilityRegistration(complete bool) {
+	// Publish the registration result in the load state.
 	t.updatePluginLoadState(func(current bldr_plugin.PluginLoadState) bldr_plugin.PluginLoadState {
+		// Select the registration state from the completion flag.
 		registrationState := bldr_plugin.InitialCapabilityRegistrationFailed
 		if complete {
 			registrationState = bldr_plugin.InitialCapabilityRegistrationComplete
@@ -331,6 +358,8 @@ func (t *pluginInstance) finishInitialCapabilityRegistration(complete bool) {
 		}
 		return next
 	})
+
+	// Stop the startup wait budget once registration completes.
 	if complete {
 		t.stopStartupWaitBudget()
 	}
@@ -342,6 +371,7 @@ func (t *pluginInstance) finishInitialCapabilityRegistration(complete bool) {
 func (t *pluginInstance) updatePluginLoadState(
 	cb func(current bldr_plugin.PluginLoadState) bldr_plugin.PluginLoadState,
 ) bldr_plugin.PluginLoadState {
+	// Swap the load state and publish the projection in one critical section.
 	return t.pluginLoadStateCtr.SwapValue(func(current bldr_plugin.PluginLoadState) bldr_plugin.PluginLoadState {
 		next := cb(current)
 		t.publishPluginLoadState(next)
@@ -351,11 +381,14 @@ func (t *pluginInstance) updatePluginLoadState(
 
 // publishPluginLoadState updates the running projection inside the load-state lock.
 func (t *pluginInstance) publishPluginLoadState(state bldr_plugin.PluginLoadState) {
+	// Publish the running plugin and notify the load state listener.
 	running := state.GetRunningPlugin()
 	t.runningPluginCtr.SetValue(running)
 	if t.onLoadState != nil {
 		t.onLoadState(state)
 	}
+
+	// Report the plugin status for non-physical instances.
 	if t.physical {
 		return
 	}
@@ -368,6 +401,8 @@ func (t *pluginInstance) publishPluginLoadState(state bldr_plugin.PluginLoadStat
 		)
 		return
 	}
+
+	// Report the running status once the rpc client is ready.
 	t.le.Debug("plugin rpc client and initial capabilities are ready")
 	t.c.setPluginStatusClearingError(
 		t.pluginID,
