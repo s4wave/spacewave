@@ -158,6 +158,11 @@ func (o *FsMknodWithContentOp) ApplyWorldObjectOp(
 	return false, err
 }
 
+// GetPayloadRefs returns the file content blob.
+func (o *FsMknodWithContentOp) GetPayloadRefs() []*block.BlockRef {
+	return []*block.BlockRef{o.GetBlobRef()}
+}
+
 // MarshalBlock marshals the block to binary.
 func (o *FsMknodWithContentOp) MarshalBlock() ([]byte, error) {
 	return o.MarshalVT()
@@ -169,4 +174,4 @@ func (o *FsMknodWithContentOp) UnmarshalBlock(data []byte) error {
 }
 
 // _ is a type assertion
-var _ world.Operation = (*FsMknodWithContentOp)(nil)
+var _ world.PayloadOperation = (*FsMknodWithContentOp)(nil)

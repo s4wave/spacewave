@@ -217,3 +217,45 @@ func TestRootRetentionConcurrentPins(t *testing.T) {
 	}
 	release()
 }
+
+// TestReleaseBucketRootsKeepsReferencedRoots releases staged roots: a root no
+// one else holds is collected, a root another block references survives, and
+// a named root survives.
+func TestReleaseBucketRootsKeepsReferencedRoots(t *testing.T) {
+	// Stage a lone root, a root referenced by a staged parent, and a named root.
+	v, _ := newPublicationTestVolume(t)
+	ctx := t.Context()
+	prepare := func(data string, refs ...*block.BlockRef) *block.BlockRef {
+		t.Helper()
+		ref, _, err := v.PrepareOwnedBlock(ctx, "bucket", []byte(data), &block.PutOpts{Refs: refs})
+		if err != nil {
+			t.Fatal(err)
+		}
+		return ref
+	}
+	lone := prepare("lone payload")
+	spliced := prepare("spliced payload")
+	prepare("file range", spliced)
+	named := prepare("named payload")
+	if err := v.SetBucketRoot(ctx, "bucket", "head", named); err != nil {
+		t.Fatal(err)
+	}
+
+	// Release all three and collect.
+	if err := v.ReleaseBucketRoots(ctx, "bucket", []*block.BlockRef{lone, spliced, named}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := block_gc.NewCollector(v.GetRefGraph(), v, nil).Collect(ctx); err != nil {
+		t.Fatal(err)
+	}
+
+	// Only the lone root is gone.
+	for _, check := range []struct {
+		ref  *block.BlockRef
+		want bool
+	}{{lone, false}, {spliced, true}, {named, true}} {
+		if found, err := v.GetBlockExists(ctx, check.ref); err != nil || found != check.want {
+			t.Fatalf("block %s found=%v err=%v, want %v", check.ref.MarshalString(), found, err, check.want)
+		}
+	}
+}
