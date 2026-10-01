@@ -4,6 +4,7 @@ package spacewave_cli
 
 import (
 	"context"
+	"errors"
 	"io"
 	"net"
 	"os"
@@ -17,6 +18,7 @@ import (
 	resource_state "github.com/s4wave/spacewave/bldr/resource/state"
 	"github.com/s4wave/spacewave/core/daemon"
 	spacewave_launcher "github.com/s4wave/spacewave/core/provider/spacewave/launcher"
+	listener_control "github.com/s4wave/spacewave/core/resource/listener/control"
 )
 
 // TestAcceptedDaemonUpdateRelaunchesAfterFinalClient crosses the real Resource
@@ -228,6 +230,7 @@ func cleanupDaemonUpdateFixture(t *testing.T, statePath string) {
 	t.Helper()
 	socketPath := filepath.Join(statePath, socketName)
 	t.Cleanup(func() {
+		// Subscribe to the state root before requesting shutdown.
 		stopCtx, stopCancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer stopCancel()
 		stopWatcher, err := fsnotify.NewWatcher()
@@ -240,19 +243,27 @@ func cleanupDaemonUpdateFixture(t *testing.T, statePath string) {
 			t.Error(err)
 			return
 		}
+
+		// Name the stopped event of the last daemon process.
 		pid, err := os.ReadFile(filepath.Join(statePath, "runtime-identity"))
 		if err != nil {
 			t.Error(err)
 			return
 		}
 		stoppedPath := filepath.Join(statePath, "stopped-"+string(pid))
+
+		// The daemon releases its listener before acknowledging shutdown, so
+		// the acknowledgement can be lost; only a denial fails the request.
 		conn, err := (&net.Dialer{}).DialContext(stopCtx, "unix", socketPath)
 		if err == nil {
-			if err := requestDaemonShutdown(stopCtx, conn); err != nil {
+			err = requestDaemonShutdown(stopCtx, conn)
+			_ = conn.Close()
+			if _, ok := errors.AsType[*listener_control.DenyError](err); ok {
 				t.Error(err)
 			}
-			_ = conn.Close()
 		}
+
+		// Wait for the daemon's post-release event.
 		for {
 			if _, err := os.Stat(stoppedPath); err == nil {
 				return

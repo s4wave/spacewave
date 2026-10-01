@@ -17,6 +17,7 @@ import (
 	desktop_control "github.com/s4wave/spacewave/bldr/desktop/control"
 	resource_state "github.com/s4wave/spacewave/bldr/resource/state"
 	"github.com/s4wave/spacewave/core/daemon"
+	listener_control "github.com/s4wave/spacewave/core/resource/listener/control"
 )
 
 // TestAppBundleReplacementRetainsSharedDaemon starts from a separate app copy,
@@ -328,7 +329,7 @@ func sharedDaemonAtom(t *testing.T, client *daemon.Client) resource_state.SRPCSt
 // stopSharedDaemonFixture requests authorized fixture shutdown and waits for
 // the child's post-bus-release event, never inspecting unrelated processes.
 func stopSharedDaemonFixture(t *testing.T, statePath string, watcher *fsnotify.Watcher) {
-	// Request shutdown only through this fixture's isolated socket.
+	// Dial only this fixture's isolated socket.
 	t.Helper()
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -337,10 +338,15 @@ func stopSharedDaemonFixture(t *testing.T, statePath string, watcher *fsnotify.W
 		t.Error(err)
 		return
 	}
-	err = requestDaemonShutdown(ctx, conn)
+
+	// Request shutdown. The daemon releases its listener before acknowledging,
+	// so the acknowledgement can be lost; as in spacewave stop, only a denial
+	// fails the request outright.
+	shutdownErr := requestDaemonShutdown(ctx, conn)
 	_ = conn.Close()
-	if err != nil {
-		t.Error(err)
+	var denyErr *listener_control.DenyError
+	if errors.As(shutdownErr, &denyErr) {
+		t.Error(shutdownErr)
 		return
 	}
 
@@ -355,7 +361,7 @@ func stopSharedDaemonFixture(t *testing.T, statePath string, watcher *fsnotify.W
 			t.Error(err)
 			return
 		case <-ctx.Done():
-			t.Error("fixture did not release its bus and lease", ctx.Err())
+			t.Error("fixture did not release its bus and lease", ctx.Err(), shutdownErr)
 			return
 		}
 	}
