@@ -525,7 +525,14 @@ func (r *ChatResource) appendMessage(ctx context.Context, wtx world.WorldState, 
 		return nil, err
 	}
 
-	// Store the message body under its reserved key.
+	// Store the message body under its reserved key, linked to the state it replaces.
+	replacesKey := ""
+	if len(priorState) == 1 {
+		replacesKey, err = world.GraphValueToKey(priorState[0].GetObj())
+		if err != nil {
+			return nil, err
+		}
+	}
 	msg := &ChatMessage{
 		SenderPeerId: r.localPeerID,
 		PersonId:     r.personID,
@@ -533,6 +540,7 @@ func (r *ChatResource) appendMessage(ctx context.Context, wtx world.WorldState, 
 		CreatedAt:    timestamp.CloneVT(),
 		ReplyToKey:   req.GetReplyToKey(),
 		Index:        index,
+		ReplacesKey:  replacesKey,
 	}
 	obj, err := wtx.CreateObject(ctx, msgKey, nil)
 	defer world.ReleaseObjectState(obj)
@@ -969,6 +977,7 @@ func (r *ChatResource) readMessage(ctx context.Context, key string) (*spacewave_
 		ReplyToKey:    msg.GetReplyToKey(),
 		Index:         msg.GetIndex(),
 		RedactedByKey: msg.GetRedactedByKey(),
+		ReplacesKey:   msg.GetReplacesKey(),
 	}, nil
 }
 
