@@ -24,6 +24,8 @@ type fakeBucket struct {
 	objects map[string]string
 	// puts counts the PUT requests.
 	puts int
+	// lists counts the object listing requests.
+	lists int
 	// versioned enables versioning.
 	versioned bool
 	// hidden counts the hidden versions of each key.
@@ -60,6 +62,7 @@ func (b *fakeBucket) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 		b.listVersions(w, query.Get("prefix"))
 	case query.Get("list-type") == "2":
+		b.lists++
 		prefix := query.Get("prefix")
 		_, _ = io.WriteString(w, "<ListBucketResult><IsTruncated>false</IsTruncated>")
 		for _, key := range slices.Sorted(maps.Keys(b.objects)) {
