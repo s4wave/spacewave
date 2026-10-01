@@ -2426,6 +2426,8 @@ message EnrollMemberPeer {
 message EnrollMemberResponse {
   // Peers is the list of registered session peers for the target account.
   repeated EnrollMemberPeer peers = 1;
+  // EntityId is the target account's username.
+  string entity_id = 2;
 }
 
 // ResolveMemberParticipantsRequest is the request body for
@@ -2871,6 +2873,8 @@ message FriendDmAccount {
   repeated FriendDmSessionPeer sessions = 4;
   // RecoveryKeypairs lists the account's entity recovery keypair peers.
   repeated FriendDmRecoveryPeer recovery_keypairs = 5;
+  // EntityId is the account's username.
+  string entity_id = 6;
 }
 
 // GetFriendDmResponse is the response body for

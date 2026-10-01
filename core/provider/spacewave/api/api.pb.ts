@@ -8979,6 +8979,12 @@ export interface EnrollMemberResponse {
    * @generated from field: repeated provider.spacewave.api.EnrollMemberPeer peers = 1;
    */
   peers?: EnrollMemberPeer[]
+  /**
+   * EntityId is the target account's username.
+   *
+   * @generated from field: string entity_id = 2;
+   */
+  entityId?: string
 }
 
 export const EnrollMemberResponse: MessageType<EnrollMemberResponse> =
@@ -8992,6 +8998,7 @@ export const EnrollMemberResponse: MessageType<EnrollMemberResponse> =
         T: EnrollMemberPeer,
         repeated: true,
       },
+      { no: 2, name: 'entity_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
   })
 
@@ -10644,6 +10651,12 @@ export interface FriendDmAccount {
    * @generated from field: repeated provider.spacewave.api.FriendDmRecoveryPeer recovery_keypairs = 5;
    */
   recoveryKeypairs?: FriendDmRecoveryPeer[]
+  /**
+   * EntityId is the account's username.
+   *
+   * @generated from field: string entity_id = 6;
+   */
+  entityId?: string
 }
 
 export const FriendDmAccount: MessageType<FriendDmAccount> =
@@ -10667,6 +10680,7 @@ export const FriendDmAccount: MessageType<FriendDmAccount> =
         T: FriendDmRecoveryPeer,
         repeated: true,
       },
+      { no: 6, name: 'entity_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
   })
 

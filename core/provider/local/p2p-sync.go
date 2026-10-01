@@ -1147,6 +1147,7 @@ func (a *ProviderAccount) startInviteServer(ctx context.Context, childBus bus.Bu
 	}
 
 	enrollFn := func(ctx context.Context, result *sobject_invite.InviteLookupResult, inviteePeerID peer.ID, inviteePubKey crypto.PubKey) (*sobject.SOGrant, error) {
+		// Add the invitee under the owner key. Local participants have no entity.
 		ownerPeerIDStr, err := peer.IDFromPrivateKey(result.OwnerPrivKey)
 		if err != nil {
 			return nil, err
@@ -1161,10 +1162,13 @@ func (a *ProviderAccount) startInviteServer(ctx context.Context, childBus bus.Bu
 			inviteePubKey,
 			result.Invite.GetRole(),
 			"",
+			"",
 		)
 		if err != nil {
 			return nil, err
 		}
+
+		// Return the existing root grant when the invitee was already added.
 		if grant == nil {
 			state, err := result.Host.GetHostState(ctx)
 			if err != nil {
@@ -1180,6 +1184,8 @@ func (a *ProviderAccount) startInviteServer(ctx context.Context, childBus bus.Bu
 				return nil, errors.New("participant exists without a root grant")
 			}
 		}
+
+		// Keep a targeted invitee connected once enrolled.
 		if result.Invite.GetTargetPeerId() == inviteePeerID.String() {
 			a.clearP2PPendingEnrollPeer(inviteePeerID)
 			if err := a.RetainP2PPeer(ctx, inviteePeerID); err != nil {

@@ -950,6 +950,15 @@ func (a *ProviderAccount) GetSubscriptionStatus(ctx context.Context) (string, er
 	return state.GetSubscriptionStatus().NormalizedString(), nil
 }
 
+// getUsername returns the account's username from the cached account state.
+func (a *ProviderAccount) getUsername(ctx context.Context) (string, error) {
+	state, err := a.GetAccountState(ctx)
+	if err != nil {
+		return "", errors.Wrap(err, "get account state")
+	}
+	return state.GetEntityId(), nil
+}
+
 // GetAccountState returns cached account state, fetching GET /account/state on
 // cache miss. Uses a fetching flag to coalesce concurrent callers so only one
 // HTTP request is made; other goroutines wait on the broadcast for the result.

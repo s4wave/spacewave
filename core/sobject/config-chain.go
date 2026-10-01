@@ -313,6 +313,17 @@ func participantRoleForEntity(cfg *SharedObjectConfig, entityID string) SOPartic
 	return role
 }
 
+// EntityUsername returns the username recorded for an entity's participants,
+// or empty when none records one.
+func EntityUsername(cfg *SharedObjectConfig, entityID string) string {
+	for _, p := range cfg.GetParticipants() {
+		if p.GetEntityId() == entityID && p.GetUsername() != "" {
+			return p.GetUsername()
+		}
+	}
+	return ""
+}
+
 // validateSelfEnrollPeerChange checks enrollment shape and existing entity role bounds.
 // The caller must independently authenticate the peer-to-entity relationship.
 func validateSelfEnrollPeerChange(entry *SOConfigChange, cfg *SharedObjectConfig, signerPeerID string) error {
@@ -336,7 +347,6 @@ func validateSelfEnrollPeerChange(entry *SOConfigChange, cfg *SharedObjectConfig
 	if len(nextParticipants) != len(prevParticipants)+1 {
 		return errors.New("self-enroll must add exactly one participant")
 	}
-
 	prevByPeer := make(map[string]*SOParticipantConfig, len(prevParticipants))
 	for _, p := range prevParticipants {
 		prevByPeer[p.GetPeerId()] = p
@@ -357,11 +367,10 @@ func validateSelfEnrollPeerChange(entry *SOConfigChange, cfg *SharedObjectConfig
 		}
 	}
 
-	// Bind the sole added participant to the signature and an existing entity.
+	// Find the sole added participant, which must not already be a participant.
 	if _, exists := prevByPeer[signerPeerID]; exists {
 		return errors.New("self-enroll signer is already a participant")
 	}
-
 	addedParticipants := slices.DeleteFunc(
 		slices.Clone(nextParticipants),
 		func(p *SOParticipantConfig) bool {
@@ -373,6 +382,8 @@ func validateSelfEnrollPeerChange(entry *SOConfigChange, cfg *SharedObjectConfig
 		return errors.New("self-enroll must add exactly one new participant")
 	}
 	addedParticipant := addedParticipants[0]
+
+	// Bind the added participant to the signature and an existing entity.
 	if addedParticipant.GetPeerId() != signerPeerID {
 		return errors.New("self-enroll signer must match the added participant")
 	}
@@ -393,6 +404,11 @@ func validateSelfEnrollPeerChange(entry *SOConfigChange, cfg *SharedObjectConfig
 	}
 	if addedParticipant.GetRole() > currentRole {
 		return errors.New("self-enroll role escalation is not allowed")
+	}
+
+	// The enrolling peer may not rename its entity.
+	if addedParticipant.GetUsername() != EntityUsername(cfg, addedParticipant.GetEntityId()) {
+		return errors.New("self-enroll username must match the entity's recorded username")
 	}
 
 	return nil

@@ -130,7 +130,8 @@ func UnlockSOEntityRecoveryEnvelope(entityPrivKeys []bifrost_crypto.PrivKey, env
 }
 
 // BuildSelfEnrollPeerConfigChange builds a SELF_ENROLL_PEER config change for a
-// missing same-entity session peer.
+// missing same-entity session peer. The peer repeats the username the owner
+// recorded for its entity.
 func BuildSelfEnrollPeerConfigChange(
 	currentCfg *SharedObjectConfig,
 	signerPriv bifrost_crypto.PrivKey,
@@ -161,6 +162,7 @@ func BuildSelfEnrollPeerConfigChange(
 		PeerId:   signerPeerID,
 		Role:     role,
 		EntityId: entityID,
+		Username: EntityUsername(currentCfg, entityID),
 	})
 
 	// Sign the self-enrollment configuration change.

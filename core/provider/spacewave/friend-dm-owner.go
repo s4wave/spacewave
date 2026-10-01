@@ -75,6 +75,7 @@ func (a *ProviderAccount) OpenFriendDM(
 			cli,
 			a.GetLogger(),
 			localAccountID,
+			"",
 			bootstrap.SharedObjectId,
 			cli.priv,
 			buildStandaloneSpaceInitStepFactorySet(),
@@ -284,6 +285,7 @@ func validateFriendDmBootstrap(
 type friendDmParticipant struct {
 	peerID    string
 	accountID string
+	username  string
 	role      sobject.SOParticipantRole
 }
 
@@ -297,9 +299,12 @@ func buildFriendDmParticipantPlan(
 	accounts []*api.FriendDmAccount,
 	localPeerID string,
 ) (friendDmParticipantPlan, error) {
-	// Map each active session peer to its account, rejecting duplicates.
+	// Map each active session peer to its account and each account to its
+	// username, rejecting duplicate peers.
 	desired := make(map[string]string)
+	usernames := make(map[string]string, len(accounts))
 	for _, account := range accounts {
+		usernames[account.GetAccountId()] = account.GetEntityId()
 		for _, sess := range account.Sessions {
 			if _, ok := desired[sess.GetPeerId()]; ok {
 				return friendDmParticipantPlan{}, errors.Errorf(
@@ -354,12 +359,14 @@ func buildFriendDmParticipantPlan(
 		participant := currentByPeer[peerID]
 		if participant != nil &&
 			participant.GetEntityId() == accountID &&
-			participant.GetRole() == role {
+			participant.GetRole() == role &&
+			participant.GetUsername() == usernames[accountID] {
 			continue
 		}
 		plan.additions = append(plan.additions, friendDmParticipant{
 			peerID:    peerID,
 			accountID: accountID,
+			username:  usernames[accountID],
 			role:      role,
 		})
 	}
@@ -426,6 +433,7 @@ func reconcileFriendDmParticipants(
 			parsedPubs[participant.peerID],
 			participant.role,
 			participant.accountID,
+			participant.username,
 		); err != nil {
 			return errors.Wrapf(err, "add friend dm participant %s", participant.peerID)
 		}

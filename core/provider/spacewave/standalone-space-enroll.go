@@ -22,6 +22,7 @@ func (c *SessionClient) EnrollSpaceMember(
 	accountID string,
 	role sobject.SOParticipantRole,
 ) (*s4wave_provider_spacewave.EnrollSpaceMemberResponse, error) {
+	// Require the owner session, the Space and the member account.
 	if c == nil {
 		return nil, errors.New("session client is required")
 	}
@@ -41,6 +42,7 @@ func (c *SessionClient) EnrollSpaceMember(
 		return nil, errors.New("session peer id not available")
 	}
 
+	// Ask the Cloud for the member's session peers and username.
 	enrollResp, err := c.EnrollMember(ctx, spaceID, accountID, true)
 	if err != nil {
 		return nil, errors.Wrap(err, "resolve member peers")
@@ -50,11 +52,11 @@ func (c *SessionClient) EnrollSpaceMember(
 		return &s4wave_provider_spacewave.EnrollSpaceMemberResponse{}, nil
 	}
 
+	// Add each peer and record the outcome.
 	results := make([]*s4wave_provider_spacewave.EnrollSpaceMemberResult, 0, len(peers))
 	for _, p := range peers {
 		peerID := p.GetPeerId()
 		result := &s4wave_provider_spacewave.EnrollSpaceMemberResult{PeerId: peerID}
-
 		targetPub, err := session.ExtractPublicKeyFromPeerID(peerID)
 		if err != nil {
 			result.Error = errors.Wrap(err, "extract pubkey").Error()
@@ -65,6 +67,7 @@ func (c *SessionClient) EnrollSpaceMember(
 			ctx,
 			spaceID,
 			accountID,
+			enrollResp.GetEntityId(),
 			peerID,
 			targetPub,
 			role,
@@ -78,7 +81,6 @@ func (c *SessionClient) EnrollSpaceMember(
 		result.Enrolled = grant != nil
 		results = append(results, result)
 	}
-
 	return &s4wave_provider_spacewave.EnrollSpaceMemberResponse{Results: results}, nil
 }
 
@@ -118,40 +120,45 @@ func (c *SessionClient) EnrollSpacePeer(
 	return grant != nil, nil
 }
 
+// addStandaloneParticipant adds or updates a participant with a root grant.
+// It keeps a higher existing role and fills a missing entity or username.
+// Returns nil when the participant and its grant are already current.
 func (c *SessionClient) addStandaloneParticipant(
 	ctx context.Context,
 	spaceID string,
 	accountID string,
+	username string,
 	targetPeerID string,
 	targetPub crypto.PubKey,
 	role sobject.SOParticipantRole,
 ) (*sobject.SOGrant, error) {
+	// Write the change against the latest config, retrying on a conflict.
 	for attempt := range maxWriteRetries {
+		// Load the latest config, root grants and key epochs.
 		state, currentCfg, epochs, err := c.loadStandaloneConfigState(ctx, spaceID)
 		if err != nil {
 			return nil, err
 		}
-		participantNeedsUpdate := false
-		participantIdx := slices.IndexFunc(currentCfg.GetParticipants(), func(p *sobject.SOParticipantConfig) bool {
-			if p.GetPeerId() != targetPeerID {
-				return false
-			}
-			if p.GetRole() != role {
-				participantNeedsUpdate = true
-			}
-			if p.GetEntityId() == "" && accountID != "" {
-				participantNeedsUpdate = true
-			}
-			return true
-		})
-		participantExists := participantIdx >= 0
-		if existingRole := participantRoleForPeer(
+
+		// Find the participant and whether it lacks the role, entity or username.
+		role = max(role, participantRoleForPeer(
 			currentCfg,
 			targetPeerID,
 			sobject.SOParticipantRole_SOParticipantRole_UNKNOWN,
-		); existingRole > role {
-			role = existingRole
+		))
+		participantIdx := slices.IndexFunc(currentCfg.GetParticipants(), func(p *sobject.SOParticipantConfig) bool {
+			return p.GetPeerId() == targetPeerID
+		})
+		participantExists := participantIdx >= 0
+		participantNeedsUpdate := false
+		if participantExists {
+			current := currentCfg.GetParticipants()[participantIdx]
+			participantNeedsUpdate = current.GetRole() != role ||
+				(current.GetEntityId() == "" && accountID != "") ||
+				(current.GetUsername() == "" && username != "")
 		}
+
+		// Return early when the participant and its grant are current.
 		epoch := currentEpochWithFallback(state, epochs)
 		grantExists := soGrantSliceHasPeerID(state.GetRootGrants(), targetPeerID)
 		if !grantExists && epoch != nil {
@@ -161,6 +168,7 @@ func (c *SessionClient) addStandaloneParticipant(
 			return nil, nil
 		}
 
+		// Decrypt the local grant to re-encrypt it for the target.
 		localPeerIDStr := c.peerID.String()
 		localGrant := findSOGrantByPeerID(state.GetRootGrants(), localPeerIDStr)
 		if localGrant == nil && epoch != nil {
@@ -182,11 +190,15 @@ func (c *SessionClient) addStandaloneParticipant(
 				PeerId:   targetPeerID,
 				Role:     role,
 				EntityId: accountID,
+				Username: username,
 			}
 			if participantExists {
 				currentParticipant := currentCfg.GetParticipants()[participantIdx]
 				if nextParticipant.GetEntityId() == "" {
 					nextParticipant.EntityId = currentParticipant.GetEntityId()
+				}
+				if nextParticipant.GetUsername() == "" {
+					nextParticipant.Username = currentParticipant.GetUsername()
 				}
 				nextCfg.Participants[participantIdx] = nextParticipant
 			} else {

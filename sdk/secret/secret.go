@@ -378,12 +378,14 @@ func AddSecretParticipant(
 	role sobject.SOParticipantRole,
 	entityID string,
 ) (*sobject.SOGrant, error) {
+	// Mount the Secret's nested SharedObject as an invite host.
 	so, soRef, err := mountSecretInviteHost(ctx, b, secret)
 	if err != nil {
 		return nil, err
 	}
 	defer soRef()
 
+	// Add the peer under the local key. A nested Secret records no username.
 	ih := so.(sobject.InviteHost)
 	return sobject.AddSOParticipant(
 		ctx,
@@ -395,6 +397,7 @@ func AddSecretParticipant(
 		targetPub,
 		role,
 		entityID,
+		"",
 	)
 }
 

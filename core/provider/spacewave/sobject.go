@@ -539,6 +539,7 @@ func (a *ProviderAccount) AccessSharedObjectHealth(
 
 // CreateSharedObject creates a new shared object with the given details.
 func (a *ProviderAccount) CreateSharedObject(ctx context.Context, id string, meta *sobject.SharedObjectMeta, ownerType, ownerID string) (*sobject.SharedObjectRef, error) {
+	// Resolve the owner and display fields from the metadata.
 	if err := meta.Validate(); err != nil {
 		return nil, err
 	}
@@ -546,6 +547,7 @@ func (a *ProviderAccount) CreateSharedObject(ctx context.Context, id string, met
 	displayName := getSharedObjectDisplayName(meta)
 	objectType := meta.GetBodyType()
 
+	// Create the object in the Cloud catalog.
 	cli, sessionPriv, _, err := a.getReadySessionClient(ctx)
 	if err != nil {
 		return nil, err
@@ -563,7 +565,11 @@ func (a *ProviderAccount) CreateSharedObject(ctx context.Context, id string, met
 	}
 
 	// Initialize the object with the same authorized Session that created it.
-	if err := initializeCloudSharedObjectState(ctx, cli, a.le.WithField("sobject-id", id), a.accountID, id, sessionPriv, a.sfs, objectType == space.SpaceBodyType); err != nil {
+	username, err := a.getUsername(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if err := initializeCloudSharedObjectState(ctx, cli, a.le.WithField("sobject-id", id), a.accountID, username, id, sessionPriv, a.sfs, objectType == space.SpaceBodyType); err != nil {
 		return nil, errors.Wrap(err, "init shared object state")
 	}
 	ref := a.buildSharedObjectRef(id)
@@ -601,6 +607,7 @@ func (a *ProviderAccount) CreateSharedObject(ctx context.Context, id string, met
 		}
 	}
 
+	// Cache the new object's metadata and list entry.
 	a.SetSharedObjectMetadata(id, &api.SpaceMetadataResponse{
 		OwnerType:   ownerType,
 		OwnerId:     ownerID,
@@ -936,41 +943,55 @@ func SobjectBlockStoreID(soID string) string {
 	return soID
 }
 
-// AddParticipant adds a participant to the shared object.
-func (s *SharedObject) AddParticipant(ctx context.Context, targetPeerIDStr string, targetPub crypto.PubKey, role sobject.SOParticipantRole, entityID string) (*sobject.SOGrant, error) {
+// AddParticipant adds a participant to the shared object. username is the
+// provider username of entityID; it fills a missing username on an existing
+// participant.
+func (s *SharedObject) AddParticipant(
+	ctx context.Context,
+	targetPeerIDStr string,
+	targetPub crypto.PubKey,
+	role sobject.SOParticipantRole,
+	entityID string,
+	username string,
+) (*sobject.SOGrant, error) {
+	// Reject roles a participant add may not grant.
 	if err := sobject.ValidateSOParticipantRole(role, false); err != nil {
 		return nil, err
 	}
 
+	// Serialize writes to this object and take a write session.
 	relLock, err := s.host.writeMu.Lock(ctx)
 	if err != nil {
 		return nil, err
 	}
 	defer relLock()
-
 	cli, err := s.getReadyWriteSessionClient(ctx)
 	if err != nil {
 		return nil, err
 	}
+
+	// Write the change against the latest config, retrying on a conflict.
 	for attempt := range maxWriteRetries {
+		// Load the latest config, root grants and key epochs.
 		state, currentCfg, epochs, err := s.loadLatestConfigState(ctx)
 		if err != nil {
 			return nil, err
 		}
-		participantNeedsUpdate := false
+
+		// Find the participant and whether it lacks the role, entity or username.
 		participantIdx := slices.IndexFunc(currentCfg.GetParticipants(), func(p *sobject.SOParticipantConfig) bool {
-			if p.GetPeerId() != targetPeerIDStr {
-				return false
-			}
-			if p.GetRole() != sobject.MaxSOParticipantRole(p.GetRole(), role) {
-				participantNeedsUpdate = true
-			}
-			if p.GetEntityId() == "" && entityID != "" {
-				participantNeedsUpdate = true
-			}
-			return true
+			return p.GetPeerId() == targetPeerIDStr
 		})
 		participantExists := participantIdx >= 0
+		participantNeedsUpdate := false
+		if participantExists {
+			current := currentCfg.GetParticipants()[participantIdx]
+			participantNeedsUpdate = current.GetRole() != sobject.MaxSOParticipantRole(current.GetRole(), role) ||
+				(current.GetEntityId() == "" && entityID != "") ||
+				(current.GetUsername() == "" && username != "")
+		}
+
+		// Return early when the participant and its grant are current.
 		epoch := currentEpochWithFallback(state, epochs)
 		grantExists := soGrantSliceHasPeerID(state.GetRootGrants(), targetPeerIDStr)
 		if !grantExists && epoch != nil {
@@ -1006,11 +1027,15 @@ func (s *SharedObject) AddParticipant(ctx context.Context, targetPeerIDStr strin
 				PeerId:   targetPeerIDStr,
 				Role:     nextRole,
 				EntityId: entityID,
+				Username: username,
 			}
 			if participantExists {
 				currentParticipant := currentCfg.GetParticipants()[participantIdx]
 				if nextParticipant.GetEntityId() == "" {
 					nextParticipant.EntityId = currentParticipant.GetEntityId()
+				}
+				if nextParticipant.GetUsername() == "" {
+					nextParticipant.Username = currentParticipant.GetUsername()
 				}
 				nextCfg.Participants[participantIdx] = nextParticipant
 			} else {

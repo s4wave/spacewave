@@ -130,7 +130,7 @@ func (a *ProviderAccount) AcceptMigrationSessions(ctx context.Context, transitio
 		if err != nil {
 			return err
 		}
-		_, err = provider_migration.AuthorizeObject(ctx, object, transition.GetSessionPeerIds(), "")
+		_, err = provider_migration.AuthorizeObject(ctx, object, transition.GetSessionPeerIds(), "", "")
 		releaseObject()
 		if err != nil {
 			return err

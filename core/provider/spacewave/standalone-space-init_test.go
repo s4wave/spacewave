@@ -16,6 +16,7 @@ import (
 )
 
 func TestBuildFriendDmInitialStateIncludesBilateralRecovery(t *testing.T) {
+	// Describe two friend DM accounts with sessions and recovery keypairs.
 	localPriv, localPID := generateTestKeypair(t)
 	localSecondPriv, localSecondPID := generateTestKeypair(t)
 	localRecoveryPriv, localRecoveryPID := generateTestKeypair(t)
@@ -24,6 +25,7 @@ func TestBuildFriendDmInitialStateIncludesBilateralRecovery(t *testing.T) {
 	accounts := []*api.FriendDmAccount{
 		{
 			AccountId: "acct-a",
+			EntityId:  "alice",
 			Sessions: []*api.FriendDmSessionPeer{
 				{PeerId: localPID.String()},
 				{PeerId: localSecondPID.String()},
@@ -34,15 +36,19 @@ func TestBuildFriendDmInitialStateIncludesBilateralRecovery(t *testing.T) {
 		},
 		{
 			AccountId:        "acct-b",
+			EntityId:         "bob",
 			Sessions:         []*api.FriendDmSessionPeer{{PeerId: targetPID.String()}},
 			RecoveryKeypairs: []*api.FriendDmRecoveryPeer{{PeerId: targetRecoveryPID.String()}},
 		},
 	}
+
+	// Build the friend DM initial state owned by alice.
 	state, err := buildStandaloneSpaceInitState(
 		context.Background(),
 		nil,
 		logrus.New().WithField("test", "friend-dm"),
 		"acct-a",
+		"",
 		"friend-dm-so",
 		localPriv,
 		buildStandaloneSpaceInitStepFactorySet(),
@@ -52,6 +58,8 @@ func TestBuildFriendDmInitialStateIncludesBilateralRecovery(t *testing.T) {
 	if err != nil {
 		t.Fatalf("build friend dm state: %v", err)
 	}
+
+	// Decode the genesis participants.
 	change := &sobject.SOConfigChange{}
 	if err := change.UnmarshalVT(state.configData); err != nil {
 		t.Fatalf("unmarshal genesis config: %v", err)
@@ -60,9 +68,15 @@ func TestBuildFriendDmInitialStateIncludesBilateralRecovery(t *testing.T) {
 	if len(participants) != 3 {
 		t.Fatalf("participants = %d, want 3", len(participants))
 	}
+
+	// Check each participant's role and username.
 	rolesByPeer := make(map[string]sobject.SOParticipantRole, len(participants))
+	wantUsernames := map[string]string{"acct-a": "alice", "acct-b": "bob"}
 	for _, participant := range participants {
 		rolesByPeer[participant.GetPeerId()] = participant.GetRole()
+		if want := wantUsernames[participant.GetEntityId()]; participant.GetUsername() != want {
+			t.Fatalf("participant %s username = %q, want %q", participant.GetPeerId(), participant.GetUsername(), want)
+		}
 	}
 	if rolesByPeer[localPID.String()] !=
 		sobject.SOParticipantRole_SOParticipantRole_OWNER ||
@@ -72,6 +86,8 @@ func TestBuildFriendDmInitialStateIncludesBilateralRecovery(t *testing.T) {
 			sobject.SOParticipantRole_SOParticipantRole_WRITER {
 		t.Fatalf("unexpected participant roles: %#v", rolesByPeer)
 	}
+
+	// Check that every participant has a grant.
 	if len(state.keyEpoch.GetGrants()) != len(participants) {
 		t.Fatalf("grants = %d, want %d", len(state.keyEpoch.GetGrants()), len(participants))
 	}
@@ -80,6 +96,8 @@ func TestBuildFriendDmInitialStateIncludesBilateralRecovery(t *testing.T) {
 			t.Fatalf("missing grant for %s", participant.GetPeerId())
 		}
 	}
+
+	// Check that only each account's recovery key unlocks its envelope.
 	if len(state.recoveryEnvelopes) != 2 {
 		t.Fatalf("recovery envelopes = %d, want 2", len(state.recoveryEnvelopes))
 	}
@@ -109,6 +127,8 @@ func TestBuildFriendDmInitialStateIncludesBilateralRecovery(t *testing.T) {
 			t.Fatalf("recovery entity = %q, want %q", material.GetEntityId(), env.GetEntityId())
 		}
 	}
+
+	// Check the config and root request wrappers.
 	configData, rootData, err := marshalFriendDmInitialState(state)
 	if err != nil {
 		t.Fatalf("marshal friend dm wrappers: %v", err)
@@ -132,14 +152,13 @@ func TestBuildFriendDmInitialStateIncludesBilateralRecovery(t *testing.T) {
 }
 
 func TestSessionClientInitEmptyStandaloneSpace(t *testing.T) {
+	// Describe an owner config without a root.
 	const (
 		soID      = "so-standalone-init"
 		accountID = "test-account"
 	)
-
 	localPriv, localPID := generateTestKeypair(t)
 	otherPriv, _ := generateTestKeypair(t)
-
 	state := &sobject.SOState{
 		Config: &sobject.SharedObjectConfig{
 			Participants: []*sobject.SOParticipantConfig{{
@@ -154,6 +173,7 @@ func TestSessionClientInitEmptyStandaloneSpace(t *testing.T) {
 	keypairResp := buildRecoveryKeypairResponse(t, accountID, otherPriv)
 	keypairData := mustMarshalVT(t, keypairResp)
 
+	// Serve the object, recording the config, key epoch and root writes.
 	var (
 		postedConfig *api.PostConfigStateRequest
 		postedRoot   *sobject.SORoot
@@ -196,25 +216,13 @@ func TestSessionClientInitEmptyStandaloneSpace(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	cli := NewSessionClient(
-		http.DefaultClient,
-		srv.URL,
-		DefaultSigningEnvPrefix,
-		localPriv,
-		localPID.String(),
-	)
-	cli.executeWriteTicketAudience = func(
-		ctx context.Context,
-		resourceID string,
-		audience writeTicketAudience,
-		fn func(ticket string) error,
-	) error {
-		return fn("ticket-init-root")
-	}
+	// Initialize the Space through a session client.
+	cli := newStandaloneInitTestClient(srv.URL, localPriv, localPID)
 	changed, err := cli.InitEmptyStandaloneSpace(
 		context.Background(),
 		nil,
 		accountID,
+		"",
 		soID,
 	)
 	if err != nil {
@@ -223,6 +231,8 @@ func TestSessionClientInitEmptyStandaloneSpace(t *testing.T) {
 	if !changed {
 		t.Fatal("expected init mutation")
 	}
+
+	// Check that the config, root and key epoch were written.
 	if postedConfig == nil {
 		t.Fatal("expected config-state write")
 	}
@@ -233,6 +243,7 @@ func TestSessionClientInitEmptyStandaloneSpace(t *testing.T) {
 		t.Fatal("expected key-epoch write")
 	}
 
+	// Check the genesis owner, the root seqno and the owner grant.
 	change := &sobject.SOConfigChange{}
 	if err := change.UnmarshalVT(postedConfig.GetConfigChange()); err != nil {
 		t.Fatalf("unmarshal posted config change: %v", err)
@@ -256,14 +267,13 @@ func TestSessionClientInitEmptyStandaloneSpace(t *testing.T) {
 }
 
 func TestSessionClientInitEmptyStandaloneSpaceRepairsGrantlessGenesis(t *testing.T) {
+	// Describe an owner config with a root but an empty key epoch.
 	const (
 		soID      = "so-standalone-repair"
 		accountID = "test-account"
 	)
-
 	localPriv, localPID := generateTestKeypair(t)
 	otherPriv, _ := generateTestKeypair(t)
-
 	state := &sobject.SOState{
 		Config: &sobject.SharedObjectConfig{
 			Participants: []*sobject.SOParticipantConfig{{
@@ -287,6 +297,7 @@ func TestSessionClientInitEmptyStandaloneSpaceRepairsGrantlessGenesis(t *testing
 	keypairResp := buildRecoveryKeypairResponse(t, accountID, otherPriv)
 	keypairData := mustMarshalVT(t, keypairResp)
 
+	// Serve the object, recording the key epoch and root writes.
 	var (
 		postedRoot  *sobject.SORoot
 		postedEpoch *api.PostKeyEpochRequest
@@ -327,25 +338,13 @@ func TestSessionClientInitEmptyStandaloneSpaceRepairsGrantlessGenesis(t *testing
 	}))
 	defer srv.Close()
 
-	cli := NewSessionClient(
-		http.DefaultClient,
-		srv.URL,
-		DefaultSigningEnvPrefix,
-		localPriv,
-		localPID.String(),
-	)
-	cli.executeWriteTicketAudience = func(
-		ctx context.Context,
-		resourceID string,
-		audience writeTicketAudience,
-		fn func(ticket string) error,
-	) error {
-		return fn("ticket-init-root")
-	}
+	// Initialize the Space through a session client.
+	cli := newStandaloneInitTestClient(srv.URL, localPriv, localPID)
 	changed, err := cli.InitEmptyStandaloneSpace(
 		context.Background(),
 		nil,
 		accountID,
+		"",
 		soID,
 	)
 	if err != nil {
@@ -354,6 +353,8 @@ func TestSessionClientInitEmptyStandaloneSpaceRepairsGrantlessGenesis(t *testing
 	if !changed {
 		t.Fatal("expected repair mutation")
 	}
+
+	// Check that the repair wrote the next epoch with the owner grant and root.
 	if postedEpoch == nil {
 		t.Fatal("expected key-epoch repair write")
 	}
@@ -372,6 +373,21 @@ func TestSessionClientInitEmptyStandaloneSpaceRepairsGrantlessGenesis(t *testing
 	if postedRoot.GetInnerSeqno() != 2 {
 		t.Fatalf("root seqno = %d", postedRoot.GetInnerSeqno())
 	}
+}
+
+// newStandaloneInitTestClient returns a session client for endpoint that writes
+// with a fixed write ticket.
+func newStandaloneInitTestClient(endpoint string, priv crypto.PrivKey, pid peer.ID) *SessionClient {
+	cli := NewSessionClient(http.DefaultClient, endpoint, DefaultSigningEnvPrefix, priv, pid.String())
+	cli.executeWriteTicketAudience = func(
+		ctx context.Context,
+		resourceID string,
+		audience writeTicketAudience,
+		fn func(ticket string) error,
+	) error {
+		return fn("ticket-init-root")
+	}
+	return cli
 }
 
 func buildRecoveryKeypairResponse(

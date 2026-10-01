@@ -8690,6 +8690,8 @@ type EnrollMemberResponse struct {
 	unknownFields []byte
 	// Peers is the list of registered session peers for the target account.
 	Peers []*EnrollMemberPeer `protobuf:"bytes,1,rep,name=peers,proto3" json:"peers,omitempty"`
+	// EntityId is the target account's username.
+	EntityId string `protobuf:"bytes,2,opt,name=entity_id,json=entityId,proto3" json:"entityId,omitempty"`
 }
 
 func (x *EnrollMemberResponse) Reset() {
@@ -8703,6 +8705,13 @@ func (x *EnrollMemberResponse) GetPeers() []*EnrollMemberPeer {
 		return x.Peers
 	}
 	return nil
+}
+
+func (x *EnrollMemberResponse) GetEntityId() string {
+	if x != nil {
+		return x.EntityId
+	}
+	return ""
 }
 
 // ResolveMemberParticipantsRequest is the request body for
@@ -10348,6 +10357,8 @@ type FriendDmAccount struct {
 	Sessions []*FriendDmSessionPeer `protobuf:"bytes,4,rep,name=sessions,proto3" json:"sessions,omitempty"`
 	// RecoveryKeypairs lists the account's entity recovery keypair peers.
 	RecoveryKeypairs []*FriendDmRecoveryPeer `protobuf:"bytes,5,rep,name=recovery_keypairs,json=recoveryKeypairs,proto3" json:"recoveryKeypairs,omitempty"`
+	// EntityId is the account's username.
+	EntityId string `protobuf:"bytes,6,opt,name=entity_id,json=entityId,proto3" json:"entityId,omitempty"`
 }
 
 func (x *FriendDmAccount) Reset() {
@@ -10389,6 +10400,13 @@ func (x *FriendDmAccount) GetRecoveryKeypairs() []*FriendDmRecoveryPeer {
 		return x.RecoveryKeypairs
 	}
 	return nil
+}
+
+func (x *FriendDmAccount) GetEntityId() string {
+	if x != nil {
+		return x.EntityId
+	}
+	return ""
 }
 
 // GetFriendDmResponse is the response body for
@@ -14634,6 +14652,7 @@ func (m *EnrollMemberResponse) CloneVT() *EnrollMemberResponse {
 		return (*EnrollMemberResponse)(nil)
 	}
 	r := new(EnrollMemberResponse)
+	r.EntityId = m.EntityId
 	r.Peers = protobuf_go_lite.CloneVTSlice(m.Peers)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
@@ -15750,6 +15769,7 @@ func (m *FriendDmAccount) CloneVT() *FriendDmAccount {
 	r.AccountId = m.AccountId
 	r.EntityUuid = m.EntityUuid
 	r.Epoch = m.Epoch
+	r.EntityId = m.EntityId
 	r.Sessions = protobuf_go_lite.CloneVTSlice(m.Sessions)
 	r.RecoveryKeypairs = protobuf_go_lite.CloneVTSlice(m.RecoveryKeypairs)
 	if len(m.unknownFields) > 0 {
@@ -21655,6 +21675,9 @@ func (this *EnrollMemberResponse) EqualVT(that *EnrollMemberResponse) bool {
 	if !protobuf_go_lite.EqualVTSliceImplicit(this.Peers, that.Peers, func() *EnrollMemberPeer { return &EnrollMemberPeer{} }) {
 		return false
 	}
+	if this.EntityId != that.EntityId {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -23146,6 +23169,9 @@ func (this *FriendDmAccount) EqualVT(that *FriendDmAccount) bool {
 		return false
 	}
 	if !protobuf_go_lite.EqualVTSliceImplicit(this.RecoveryKeypairs, that.RecoveryKeypairs, func() *FriendDmRecoveryPeer { return &FriendDmRecoveryPeer{} }) {
+		return false
+	}
+	if this.EntityId != that.EntityId {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -36671,6 +36697,11 @@ func (x *EnrollMemberResponse) MarshalProtoJSON(s *json.MarshalState) {
 		}
 		s.WriteArrayEnd()
 	}
+	if x.EntityId != "" || s.HasField("entityId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("entityId")
+		s.WriteString(x.EntityId)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -36706,6 +36737,9 @@ func (x *EnrollMemberResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
 				}
 				x.Peers = append(x.Peers, v)
 			})
+		case "entity_id", "entityId":
+			s.AddField("entity_id")
+			x.EntityId = s.ReadString()
 		}
 	})
 }
@@ -39494,6 +39528,11 @@ func (x *FriendDmAccount) MarshalProtoJSON(s *json.MarshalState) {
 		}
 		s.WriteArrayEnd()
 	}
+	if x.EntityId != "" || s.HasField("entityId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("entityId")
+		s.WriteString(x.EntityId)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -39556,6 +39595,9 @@ func (x *FriendDmAccount) UnmarshalProtoJSON(s *json.UnmarshalState) {
 				}
 				x.RecoveryKeypairs = append(x.RecoveryKeypairs, v)
 			})
+		case "entity_id", "entityId":
+			s.AddField("entity_id")
+			x.EntityId = s.ReadString()
 		}
 	})
 }
@@ -50668,6 +50710,11 @@ func (m *EnrollMemberResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) 
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if len(m.EntityId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.EntityId)
+		i--
+		dAtA[i] = 0x12
+	}
 	if len(m.Peers) > 0 {
 		for iNdEx := len(m.Peers) - 1; iNdEx >= 0; iNdEx-- {
 			size, err := m.Peers[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
@@ -53290,6 +53337,11 @@ func (m *FriendDmAccount) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	_ = l
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.EntityId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.EntityId)
+		i--
+		dAtA[i] = 0x32
 	}
 	if len(m.RecoveryKeypairs) > 0 {
 		for iNdEx := len(m.RecoveryKeypairs) - 1; iNdEx >= 0; iNdEx-- {
@@ -56730,6 +56782,7 @@ func (m *EnrollMemberResponse) SizeVT() (n int) {
 		l = e.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.EntityId)
 	n += len(m.unknownFields)
 	return n
 }
@@ -57662,6 +57715,7 @@ func (m *FriendDmAccount) SizeVT() (n int) {
 		l = e.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.EntityId)
 	n += len(m.unknownFields)
 	return n
 }
@@ -62705,6 +62759,10 @@ func (x *EnrollMemberResponse) MarshalProtoText() string {
 		}
 		protobuf_go_lite.TextWriteListEnd(&sb)
 	}
+	if x.EntityId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "entity_id")
+		protobuf_go_lite.TextWriteString(&sb, x.EntityId)
+	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
 
@@ -63766,6 +63824,10 @@ func (x *FriendDmAccount) MarshalProtoText() string {
 			}
 		}
 		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
+	if x.EntityId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "entity_id")
+		protobuf_go_lite.TextWriteString(&sb, x.EntityId)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -79869,6 +79931,16 @@ func (m *EnrollMemberResponse) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field EntityId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.EntityId = v
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -83362,6 +83434,16 @@ func (m *FriendDmAccount) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		case 6:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field EntityId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.EntityId = v
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

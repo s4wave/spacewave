@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"path"
+	"slices"
 
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/controllerbus/controller"
@@ -23,7 +24,8 @@ import (
 )
 
 // InitEmptyStandaloneSpace bootstraps the initial owner config/root/grant for
-// an existing empty cloud shared object.
+// an existing empty cloud shared object. username is the owner account's
+// username.
 //
 // Returns true when initialization wrote the initial config/root state, or
 // false when the shared object was already initialized.
@@ -31,6 +33,7 @@ func (c *SessionClient) InitEmptyStandaloneSpace(
 	ctx context.Context,
 	le *logrus.Entry,
 	accountID string,
+	username string,
 	spaceID string,
 ) (bool, error) {
 	// Validate the authenticated client and initialization inputs.
@@ -82,6 +85,7 @@ func (c *SessionClient) InitEmptyStandaloneSpace(
 			c,
 			le,
 			accountID,
+			username,
 			spaceID,
 			c.priv,
 			buildStandaloneSpaceInitStepFactorySet(),
@@ -177,6 +181,7 @@ func initializeCloudSharedObjectState(
 	cli *SessionClient,
 	le *logrus.Entry,
 	accountID string,
+	username string,
 	sharedObjectID string,
 	localPriv crypto.PrivKey,
 	sfs *block_transform.StepFactorySet,
@@ -188,6 +193,7 @@ func initializeCloudSharedObjectState(
 		cli,
 		le,
 		accountID,
+		username,
 		sharedObjectID,
 		localPriv,
 		sfs,
@@ -228,23 +234,32 @@ type standaloneSpaceInitState struct {
 	root              *sobject.SORoot
 }
 
+// buildStandaloneGenesisParticipants builds the genesis participant list. A
+// single-owner Space names its owner with username; a friend DM takes each
+// account's username from friendAccounts.
 func buildStandaloneGenesisParticipants(
 	localPeerID peer.ID,
 	accountID string,
+	username string,
 	friendAccounts []*api.FriendDmAccount,
 ) ([]*sobject.SOParticipantConfig, error) {
+	// A single-owner Space holds only the local session.
 	if len(friendAccounts) == 0 {
 		return []*sobject.SOParticipantConfig{{
 			PeerId:   localPeerID.String(),
 			Role:     sobject.SOParticipantRole_SOParticipantRole_OWNER,
 			EntityId: accountID,
+			Username: username,
 		}}, nil
 	}
+
+	// Add every session of each friend DM account, with the local account as
+	// owner and the friend as writer.
 	participants := make([]*sobject.SOParticipantConfig, 0)
 	seenAccounts := make(map[string]struct{}, len(friendAccounts))
 	seenPeers := make(map[string]struct{})
-	ownerAccountFound := false
 	for _, account := range friendAccounts {
+		// Require a distinct account with active sessions.
 		if account.GetAccountId() == "" {
 			return nil, errors.New("friend dm account id is required")
 		}
@@ -258,10 +273,11 @@ func buildStandaloneGenesisParticipants(
 				account.GetAccountId(),
 			)
 		}
+
+		// Add each session peer once under the account's role and username.
 		role := sobject.SOParticipantRole_SOParticipantRole_WRITER
 		if account.GetAccountId() == accountID {
 			role = sobject.SOParticipantRole_SOParticipantRole_OWNER
-			ownerAccountFound = true
 		}
 		for _, session := range account.Sessions {
 			if session.GetPeerId() == "" {
@@ -278,32 +294,28 @@ func buildStandaloneGenesisParticipants(
 				PeerId:   session.GetPeerId(),
 				Role:     role,
 				EntityId: account.GetAccountId(),
+				Username: account.GetEntityId(),
 			})
 		}
 	}
+
+	// Require two accounts, one of which is the local owner.
 	if len(seenAccounts) != 2 {
 		return nil, errors.New("friend dm requires two accounts")
 	}
-	if !ownerAccountFound {
+	if _, ok := seenAccounts[accountID]; !ok {
 		return nil, errors.New("friend dm owner account is not present")
 	}
-	localPeerFound := false
-	localOwnerFound := false
-	for _, participant := range participants {
-		if participant.GetPeerId() != localPeerID.String() {
-			continue
-		}
-		localPeerFound = true
-		if participant.GetEntityId() == accountID &&
-			sobject.IsOwner(participant.GetRole()) {
-			localOwnerFound = true
-		}
-		break
-	}
-	if !localPeerFound {
+
+	// Require the local session among the participants as an owner.
+	localIdx := slices.IndexFunc(participants, func(p *sobject.SOParticipantConfig) bool {
+		return p.GetPeerId() == localPeerID.String()
+	})
+	if localIdx < 0 {
 		return nil, errors.New("friend dm owner session is not present")
 	}
-	if !localOwnerFound {
+	local := participants[localIdx]
+	if local.GetEntityId() != accountID || !sobject.IsOwner(local.GetRole()) {
 		return nil, errors.New("friend dm owner session has non-owner role")
 	}
 	return participants, nil
@@ -409,12 +421,14 @@ func buildStandaloneSpaceInitState(
 	cli *SessionClient,
 	le *logrus.Entry,
 	accountID string,
+	username string,
 	sharedObjectID string,
 	localPriv crypto.PrivKey,
 	sfs *block_transform.StepFactorySet,
 	seedWorldHead bool,
 	friendAccounts []*api.FriendDmAccount,
 ) (*standaloneSpaceInitState, error) {
+	// Create the object's encryption transform and grant secret.
 	localPeerID, err := peer.IDFromPrivateKey(localPriv)
 	if err != nil {
 		return nil, err
@@ -424,9 +438,11 @@ func buildStandaloneSpaceInitState(
 		return nil, err
 	}
 
+	// Sign the genesis config naming the participants.
 	participants, err := buildStandaloneGenesisParticipants(
 		localPeerID,
 		accountID,
+		username,
 		friendAccounts,
 	)
 	if err != nil {
@@ -450,6 +466,7 @@ func buildStandaloneSpaceInitState(
 		return nil, errors.Wrap(err, "marshal signed genesis config")
 	}
 
+	// Encrypt a grant for each participant in the first key epoch.
 	grants := make([]*sobject.SOGrant, 0, len(participants))
 	for _, participant := range participants {
 		targetPeer, peerErr := participant.ParsePeerID()
@@ -476,6 +493,8 @@ func buildStandaloneSpaceInitState(
 		SeqnoStart: 1,
 		Grants:     grants,
 	}
+
+	// Advance the config to the genesis head for recovery.
 	genesisHash, err := sobject.HashSOConfigChange(genesisEntry)
 	if err != nil {
 		return nil, errors.Wrap(err, "hash signed genesis config")
@@ -483,6 +502,8 @@ func buildStandaloneSpaceInitState(
 	genesisConfig = genesisConfig.CloneVT()
 	genesisConfig.ConfigChainSeqno = genesisEntry.GetConfigSeqno()
 	genesisConfig.ConfigChainHash = genesisHash
+
+	// Build recovery envelopes, skipping an owner that has no recovery keypairs.
 	var recoveryEnvelopes []*sobject.SOEntityRecoveryEnvelope
 	if len(friendAccounts) > 0 {
 		recoveryEnvelopes, err = buildFriendDmRecoveryEnvelopes(
@@ -513,6 +534,7 @@ func buildStandaloneSpaceInitState(
 		return nil, errors.Wrap(err, "build friend dm recovery envelopes")
 	}
 
+	// Encode the first root inner with the initial World state.
 	stateData, err := buildInitialWorldStateData(seedWorldHead)
 	if err != nil {
 		return nil, err
@@ -525,6 +547,8 @@ func buildStandaloneSpaceInitState(
 	if err != nil {
 		return nil, err
 	}
+
+	// Encrypt and sign the first root.
 	innerDataEnc, err := soTransform.EncodeBlock(innerDataDec)
 	if err != nil {
 		return nil, errors.Wrap(err, "encrypt root inner")

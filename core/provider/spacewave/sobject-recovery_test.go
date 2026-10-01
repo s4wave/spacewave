@@ -17,10 +17,10 @@ import (
 )
 
 func TestProviderAccountCreateSpaceSeedsWorldHead(t *testing.T) {
+	// Serve the Cloud routes a Space create uses, recording each call.
 	var calls []string
 	_, entityPID := generateTestKeypair(t)
 	const soID = "so-space-create"
-
 	var (
 		acc         *ProviderAccount
 		postedRoot  *sobject.SORoot
@@ -28,7 +28,6 @@ func TestProviderAccountCreateSpaceSeedsWorldHead(t *testing.T) {
 	)
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		calls = append(calls, r.Method+" "+r.URL.Path)
-
 		switch r.URL.Path {
 		case "/api/sobject/" + soID + "/create":
 			body, err := io.ReadAll(r.Body)
@@ -83,12 +82,15 @@ func TestProviderAccountCreateSpaceSeedsWorldHead(t *testing.T) {
 			}
 			postedRoot = req.GetRoot()
 			w.WriteHeader(http.StatusOK)
+		case "/api/account/state":
+			_, _ = w.Write(mustMarshalVT(t, &api.AccountStateResponse{EntityId: "alice"}))
 		default:
 			t.Fatalf("unexpected path: %s", r.URL.Path)
 		}
 	}))
 	defer srv.Close()
 
+	// Create a Space through the provider account.
 	acc = NewTestProviderAccount(t, srv.URL)
 	meta, err := space.NewSharedObjectMeta("Seeded Space")
 	if err != nil {
@@ -97,6 +99,8 @@ func TestProviderAccountCreateSpaceSeedsWorldHead(t *testing.T) {
 	if _, err := acc.CreateSharedObject(context.Background(), soID, meta, "", ""); err != nil {
 		t.Fatalf("CreateSharedObject: %v", err)
 	}
+
+	// Check that the posted root seeds a World head.
 	if postedRoot == nil {
 		t.Fatal("expected root write")
 	}
@@ -119,8 +123,10 @@ func TestProviderAccountCreateSpaceSeedsWorldHead(t *testing.T) {
 		t.Fatal("expected initialized world head ref")
 	}
 
+	// Check the Cloud call order.
 	expectedCalls := []string{
 		"POST /api/sobject/" + soID + "/create",
+		"GET /api/account/state",
 		"GET /api/sobject/" + soID + "/recovery-entity-keypairs",
 		"POST /api/sobject/" + soID + "/config-state",
 		"POST /api/session/write-tickets/" + soID,
@@ -132,10 +138,10 @@ func TestProviderAccountCreateSpaceSeedsWorldHead(t *testing.T) {
 }
 
 func TestEnsureAccountSettingsSharedObject_CreatesWhenMissing(t *testing.T) {
+	// Serve the Cloud routes a settings object create uses, recording each call.
 	var calls []string
 	_, entityPID := generateTestKeypair(t)
 	const soID = "so-123"
-
 	var (
 		acc         *ProviderAccount
 		postedRoot  *sobject.SORoot
@@ -143,7 +149,6 @@ func TestEnsureAccountSettingsSharedObject_CreatesWhenMissing(t *testing.T) {
 	)
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		calls = append(calls, r.Method+" "+r.URL.Path)
-
 		switch r.URL.Path {
 		case "/api/account/sobject-binding/ensure":
 			_, _ = w.Write(mustMarshalVT(t, &api.EnsureAccountSObjectBindingResponse{
@@ -224,15 +229,17 @@ func TestEnsureAccountSettingsSharedObject_CreatesWhenMissing(t *testing.T) {
 					State:   api.AccountSObjectBindingState_ACCOUNT_SOBJECT_BINDING_STATE_READY,
 				},
 			}))
+		case "/api/account/state":
+			_, _ = w.Write(mustMarshalVT(t, &api.AccountStateResponse{EntityId: "alice"}))
 		default:
 			t.Fatalf("unexpected path: %s", r.URL.Path)
 		}
 	}))
 	defer srv.Close()
 
+	// Ensure the settings object on an active account.
 	acc = NewTestProviderAccount(t, srv.URL)
 	acc.syncSharedObjectListAccess(s4wave_provider_spacewave.BillingStatus_BillingStatus_ACTIVE)
-
 	ref, err := acc.ensureAccountSettingsSharedObject(context.Background())
 	if err != nil {
 		t.Fatalf("ensureAccountSettingsSharedObject: %v", err)
@@ -244,9 +251,11 @@ func TestEnsureAccountSettingsSharedObject_CreatesWhenMissing(t *testing.T) {
 		t.Fatalf("unexpected block store ID: %q", ref.GetBlockStoreId())
 	}
 
+	// Check the Cloud call order.
 	expectedCalls := []string{
 		"POST /api/account/sobject-binding/ensure",
 		"POST /api/sobject/" + soID + "/create",
+		"GET /api/account/state",
 		"GET /api/sobject/" + soID + "/recovery-entity-keypairs",
 		"POST /api/sobject/" + soID + "/config-state",
 		"POST /api/session/write-tickets/" + soID,
@@ -257,6 +266,7 @@ func TestEnsureAccountSettingsSharedObject_CreatesWhenMissing(t *testing.T) {
 		t.Fatalf("unexpected call sequence: %v", calls)
 	}
 
+	// Check that the list cache holds the new object.
 	list := acc.soListCtr.GetValue()
 	if list == nil || len(list.GetSharedObjects()) != 1 {
 		t.Fatalf("expected account settings ensure to refresh SO list cache, got %#v", list)
@@ -265,6 +275,7 @@ func TestEnsureAccountSettingsSharedObject_CreatesWhenMissing(t *testing.T) {
 		t.Fatalf("expected cached SO id %q, got %q", soID, got)
 	}
 
+	// Check the cached metadata.
 	metadata, err := acc.GetSharedObjectMetadata(context.Background(), soID)
 	if err != nil {
 		t.Fatalf("get seeded shared object metadata: %v", err)
@@ -278,6 +289,8 @@ func TestEnsureAccountSettingsSharedObject_CreatesWhenMissing(t *testing.T) {
 	if metadata.GetObjectType() != "account-settings" {
 		t.Fatalf("unexpected cached object type: %q", metadata.GetObjectType())
 	}
+
+	// Check that the posted root holds empty settings state.
 	if postedRoot == nil {
 		t.Fatal("expected root write")
 	}

@@ -400,6 +400,7 @@ func (a *ProviderAccount) startInviteServer(
 			inviteePubKey,
 			result.Invite.GetRole(),
 			"",
+			"",
 		)
 	}
 

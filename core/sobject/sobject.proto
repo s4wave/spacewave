@@ -301,6 +301,11 @@ message SOParticipantConfig {
   // EntityId is the account ID of the entity that owns this participant's session.
   // Set when an owner adds a cloud participant. Empty for local-only participants.
   string entity_id = 3;
+
+  // Username is the provider username of entity_id, recorded by the owner
+  // who added the participant. A self-enrolled peer repeats the username
+  // already recorded for its entity. Empty when entity_id is empty.
+  string username = 4;
 }
 
 // SORoot is the signed root state on a SharedObject.

@@ -37,11 +37,14 @@ func (a *interruptedMigrationAccount) ImportMigrationObject(ctx context.Context,
 // TestAccountMergeInterruptedCopy preserves the source through a lost receipt,
 // then retries the committed resource without changing external reader access.
 func TestAccountMergeInterruptedCopy(t *testing.T) {
+	// Start source and target accounts on one in-process network.
 	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
 	t.Cleanup(cancel)
 	network := inproc.NewNetwork()
 	source, sourceSession, _ := setupMigrationClient(ctx, t, network)
 	target, targetSession, _ := setupMigrationClient(ctx, t, network)
+
+	// Create a source Space holding one data block.
 	ref, err := source.CreateSharedObject(ctx, ulid.NewULID(), &sobject.SharedObjectMeta{BodyType: "space"}, "", "")
 	if err != nil {
 		t.Fatal(err)
@@ -52,6 +55,8 @@ func TestAccountMergeInterruptedCopy(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer release()
+
+	// Add an external reader to the Space.
 	host := object.(sobject.InviteHost)
 	_, external, err := crypto.GenerateEd25519Key(rand.Reader)
 	if err != nil {
@@ -61,10 +66,11 @@ func TestAccountMergeInterruptedCopy(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := sobject.AddSOParticipant(ctx, host.GetSOHost(), object.GetSharedObjectID(), host.GetPrivKey(), object.GetPeerID().String(), externalID.String(), external, sobject.SOParticipantRole_SOParticipantRole_READER, "external-reader"); err != nil {
+	if _, err := sobject.AddSOParticipant(ctx, host.GetSOHost(), object.GetSharedObjectID(), host.GetPrivKey(), object.GetPeerID().String(), externalID.String(), external, sobject.SOParticipantRole_SOParticipantRole_READER, "external-reader", ""); err != nil {
 		t.Fatal(err)
 	}
 
+	// Interrupt the first merge and check that the source keeps its data.
 	interrupted := &interruptedMigrationAccount{ProviderAccount: target, interrupt: true}
 	if _, err := source.MergePairingAccount(ctx, sourceSession, interrupted, targetSession.GetSessionRef()); err == nil || !strings.Contains(err.Error(), context.Canceled.Error()) {
 		t.Fatalf("copy did not report interruption: %v", err)
@@ -77,6 +83,8 @@ func TestAccountMergeInterruptedCopy(t *testing.T) {
 	if err != nil || !found || !bytes.Equal(data, payload) {
 		t.Fatalf("interrupted copy lost source data: found=%v err=%v", found, err)
 	}
+
+	// Retry the merge and check the copied data on the target.
 	if _, err := source.MergePairingAccount(ctx, sourceSession, interrupted, targetSession.GetSessionRef()); err != nil {
 		t.Fatalf("retry: %v", err)
 	}
@@ -90,6 +98,8 @@ func TestAccountMergeInterruptedCopy(t *testing.T) {
 	if err != nil || !found || !bytes.Equal(data, payload) {
 		t.Fatalf("retry did not retain destination data: found=%v err=%v", found, err)
 	}
+
+	// Check that the copy kept the external reader's access.
 	state, err := copied.(sobject.InviteHost).GetSOHost().GetHostState(ctx)
 	if err != nil {
 		t.Fatal(err)
@@ -108,11 +118,14 @@ func TestAccountMergeInterruptedCopy(t *testing.T) {
 // TestAccountMergeExternalOwnerBlocker uses a signed ownership change to prove
 // that a reader cannot silently omit or grant a third party's Space.
 func TestAccountMergeExternalOwnerBlocker(t *testing.T) {
+	// Start source and target accounts on one in-process network.
 	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
 	t.Cleanup(cancel)
 	network := inproc.NewNetwork()
 	source, sourceSession, _ := setupMigrationClient(ctx, t, network)
 	target, targetSession, _ := setupMigrationClient(ctx, t, network)
+
+	// Create and mount a source Space.
 	ref, err := source.CreateSharedObject(ctx, ulid.NewULID(), &sobject.SharedObjectMeta{BodyType: "space"}, "", "")
 	if err != nil {
 		t.Fatal(err)
@@ -122,6 +135,8 @@ func TestAccountMergeExternalOwnerBlocker(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer release()
+
+	// Add an external owner to the Space.
 	host := object.(sobject.InviteHost)
 	_, external, err := crypto.GenerateEd25519Key(rand.Reader)
 	if err != nil {
@@ -131,9 +146,11 @@ func TestAccountMergeExternalOwnerBlocker(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := sobject.AddSOParticipant(ctx, host.GetSOHost(), object.GetSharedObjectID(), host.GetPrivKey(), object.GetPeerID().String(), externalID.String(), external, sobject.SOParticipantRole_SOParticipantRole_OWNER, "external-owner"); err != nil {
+	if _, err := sobject.AddSOParticipant(ctx, host.GetSOHost(), object.GetSharedObjectID(), host.GetPrivKey(), object.GetPeerID().String(), externalID.String(), external, sobject.SOParticipantRole_SOParticipantRole_OWNER, "external-owner", ""); err != nil {
 		t.Fatal(err)
 	}
+
+	// Demote every other participant to reader in a signed config change.
 	state, err := host.GetSOHost().GetHostState(ctx)
 	if err != nil {
 		t.Fatal(err)
@@ -151,6 +168,8 @@ func TestAccountMergeExternalOwnerBlocker(t *testing.T) {
 	if err := host.GetSOHost().ApplyConfigChange(ctx, change, nil); err != nil {
 		t.Fatal(err)
 	}
+
+	// Check that the merge stops on the external owner and changes nothing.
 	if _, err := source.MergePairingAccount(ctx, sourceSession, target, targetSession.GetSessionRef()); err == nil || !strings.Contains(err.Error(), "owner must authorize") || !strings.Contains(err.Error(), object.GetSharedObjectID()) {
 		t.Fatalf("migration did not identify the externally owned Space: %v", err)
 	}

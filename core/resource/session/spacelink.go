@@ -39,7 +39,7 @@ type spaceLinkSessionRegistrar interface {
 
 type spaceLinkTargetSpace interface {
 	requireApproverOwner(ctx context.Context, approverPeerID string) error
-	addParticipant(ctx context.Context, peerID string, pub crypto.PubKey, role sobject.SOParticipantRole, accountID string) error
+	addParticipant(ctx context.Context, peerID string, pub crypto.PubKey, role sobject.SOParticipantRole, accountID, username string) error
 }
 
 type mountedSpaceLinkTargetSpace struct {
@@ -56,8 +56,9 @@ func (m mountedSpaceLinkTargetSpace) addParticipant(
 	pub crypto.PubKey,
 	role sobject.SOParticipantRole,
 	accountID string,
+	username string,
 ) error {
-	_, err := m.swSO.AddParticipant(ctx, peerID, pub, role, accountID)
+	_, err := m.swSO.AddParticipant(ctx, peerID, pub, role, accountID, username)
 	return err
 }
 
@@ -180,6 +181,8 @@ func validateSpaceLinkLoopbackCallbackURL(raw string) error {
 	}
 }
 
+// approveVerifiedSpaceLink registers the agent session named by a verified
+// SpaceLink ticket and adds it to the target Space as a participant.
 func approveVerifiedSpaceLink(
 	ctx context.Context,
 	verified *verifiedSpaceLinkTicket,
@@ -189,12 +192,12 @@ func approveVerifiedSpaceLink(
 	registrar spaceLinkSessionRegistrar,
 	target spaceLinkTargetSpace,
 ) (*s4wave_provider_spacewave.ApproveSpaceLinkResponse, error) {
+	// Require the ticket, resource and collaborators.
 	if verified == nil || verified.payload == nil || verified.ticket == nil {
 		return nil, errors.New("verified spacelink ticket is required")
 	}
 	payload := verified.payload
-	resourceIDStr := string(resourceID)
-	if resourceIDStr == "" {
+	if len(resourceID) == 0 {
 		return nil, errors.New("resource_id is required")
 	}
 	if target == nil {
@@ -207,6 +210,7 @@ func approveVerifiedSpaceLink(
 		return nil, errors.New("entity client is not ready")
 	}
 
+	// Require an owner approver and consume the ticket nonce once.
 	if err := target.requireApproverOwner(ctx, approverPeerID); err != nil {
 		return nil, err
 	}
@@ -220,6 +224,7 @@ func approveVerifiedSpaceLink(
 		return nil, err
 	}
 
+	// Register the agent session with the Cloud.
 	sessionPeerID := verified.agentPeerID.String()
 	registerResp, err := registrar.RegisterSessionWithRequest(ctx, &api.RegisterSessionRequest{
 		SessionPeerId: sessionPeerID,
@@ -232,12 +237,15 @@ func approveVerifiedSpaceLink(
 	if registerResp == nil {
 		return nil, errors.New("session registration response is required")
 	}
+
+	// Add the session to the Space, rolling back a new registration on failure.
 	if err := target.addParticipant(
 		ctx,
 		sessionPeerID,
 		verified.agentPub,
 		payload.GetRequestedRole(),
 		registerResp.GetAccountId(),
+		registerResp.GetEntityId(),
 	); err != nil {
 		if registerResp.GetCreated() {
 			if rollbackErr := registrar.RollbackSessionRegistration(ctx, sessionPeerID); rollbackErr != nil {
@@ -247,6 +255,7 @@ func approveVerifiedSpaceLink(
 		return nil, err
 	}
 
+	// Report the approval and the callback completion.
 	completion := &s4wave_provider_spacewave.SpaceLinkCallback{
 		Status:        s4wave_provider_spacewave.SpaceLinkCallbackStatus_SpaceLinkCallbackStatus_OK,
 		Nonce:         payload.GetNonce(),

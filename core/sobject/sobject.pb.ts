@@ -960,6 +960,14 @@ export interface SOParticipantConfig {
    * @generated from field: string entity_id = 3;
    */
   entityId?: string
+  /**
+   * Username is the provider username of entity_id, recorded by the owner
+   * who added the participant. A self-enrolled peer repeats the username
+   * already recorded for its entity. Empty when entity_id is empty.
+   *
+   * @generated from field: string username = 4;
+   */
+  username?: string
 }
 
 export const SOParticipantConfig: MessageType<SOParticipantConfig> =
@@ -969,6 +977,7 @@ export const SOParticipantConfig: MessageType<SOParticipantConfig> =
       { no: 1, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'role', kind: 'enum', T: SOParticipantRole_Enum },
       { no: 3, name: 'entity_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 4, name: 'username', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
   })
 

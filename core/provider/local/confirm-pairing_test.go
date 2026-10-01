@@ -137,8 +137,8 @@ func TestRecordPairedDevicePersists(t *testing.T) {
 // TestUnlinkDevice verifies that UnlinkDevice removes the paired device from
 // the account settings SO and revokes the peer's SO participant access.
 func TestUnlinkDevice(t *testing.T) {
+	// Start a local provider account and session.
 	ctx := t.Context()
-
 	_, _, acc, _, release := setupProviderAndSessionInternal(ctx, t)
 	defer release()
 
@@ -159,7 +159,6 @@ func TestUnlinkDevice(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-
 	soList := acc.GetSOListCtr().GetValue()
 	if len(soList.GetSharedObjects()) != 2 {
 		t.Fatalf("expected 2 SOs, got %d", len(soList.GetSharedObjects()))
@@ -179,7 +178,7 @@ func TestUnlinkDevice(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		_, err = sobject.AddSOParticipant(ctx, so.(*SharedObject).soHost, entry.GetRef().GetProviderResourceRef().GetId(), storageKey, storagePeer.GetPeerID().String(), remotePeerIDStr, remotePriv.GetPublic(), sobject.SOParticipantRole_SOParticipantRole_OWNER, "")
+		_, err = sobject.AddSOParticipant(ctx, so.(*SharedObject).soHost, entry.GetRef().GetProviderResourceRef().GetId(), storageKey, storagePeer.GetPeerID().String(), remotePeerIDStr, remotePriv.GetPublic(), sobject.SOParticipantRole_SOParticipantRole_OWNER, "", "")
 		releaseSO()
 		if err != nil {
 			t.Fatal(err)

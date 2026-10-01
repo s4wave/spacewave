@@ -198,6 +198,8 @@ func TestReinitializeSharedObjectClearsVerifiedCacheBeforeReseed(t *testing.T) {
 			}
 			postedRoot = true
 			w.WriteHeader(http.StatusOK)
+		case "/api/account/state":
+			_, _ = w.Write(mustMarshalVT(t, &api.AccountStateResponse{EntityId: "alice"}))
 		default:
 			t.Fatalf("unexpected path: %s", r.URL.Path)
 		}
@@ -249,6 +251,8 @@ func TestRepairStandaloneEmptyRootClearsVerifiedCacheBeforeReseed(t *testing.T) 
 	var postedEpoch bool
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
+		case "/api/account/state":
+			_, _ = w.Write(mustMarshalVT(t, &api.AccountStateResponse{EntityId: "alice"}))
 		case "/api/sobject/" + soID + "/state":
 			writeEmptyOwnerState(t, w, acc)
 		case "/api/sobject/" + soID + "/config-chain":
@@ -376,6 +380,8 @@ func TestRepairOrganizationRootEmptyRootClearsVerifiedCacheBeforeReseed(t *testi
 	var postedEpoch bool
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
+		case "/api/account/state":
+			_, _ = w.Write(mustMarshalVT(t, &api.AccountStateResponse{EntityId: "alice"}))
 		case "/api/sobject/" + orgID + "/state":
 			writeEmptyOwnerState(t, w, acc)
 		case "/api/sobject/" + orgID + "/config-chain":

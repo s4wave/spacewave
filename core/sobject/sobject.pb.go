@@ -1168,6 +1168,10 @@ type SOParticipantConfig struct {
 	// EntityId is the account ID of the entity that owns this participant's session.
 	// Set when an owner adds a cloud participant. Empty for local-only participants.
 	EntityId string `protobuf:"bytes,3,opt,name=entity_id,json=entityId,proto3" json:"entityId,omitempty"`
+	// Username is the provider username of entity_id, recorded by the owner
+	// who added the participant. A self-enrolled peer repeats the username
+	// already recorded for its entity. Empty when entity_id is empty.
+	Username string `protobuf:"bytes,4,opt,name=username,proto3" json:"username,omitempty"`
 }
 
 func (x *SOParticipantConfig) Reset() {
@@ -1193,6 +1197,13 @@ func (x *SOParticipantConfig) GetRole() SOParticipantRole {
 func (x *SOParticipantConfig) GetEntityId() string {
 	if x != nil {
 		return x.EntityId
+	}
+	return ""
+}
+
+func (x *SOParticipantConfig) GetUsername() string {
+	if x != nil {
+		return x.Username
 	}
 	return ""
 }
@@ -3492,6 +3503,7 @@ func (m *SOParticipantConfig) CloneVT() *SOParticipantConfig {
 	r.PeerId = m.PeerId
 	r.Role = m.Role
 	r.EntityId = m.EntityId
+	r.Username = m.Username
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -4613,6 +4625,9 @@ func (this *SOParticipantConfig) EqualVT(that *SOParticipantConfig) bool {
 		return false
 	}
 	if this.EntityId != that.EntityId {
+		return false
+	}
+	if this.Username != that.Username {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -7230,6 +7245,11 @@ func (x *SOParticipantConfig) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("entityId")
 		s.WriteString(x.EntityId)
 	}
+	if x.Username != "" || s.HasField("username") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("username")
+		s.WriteString(x.Username)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -7256,6 +7276,9 @@ func (x *SOParticipantConfig) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "entity_id", "entityId":
 			s.AddField("entity_id")
 			x.EntityId = s.ReadString()
+		case "username":
+			s.AddField("username")
+			x.Username = s.ReadString()
 		}
 	})
 }
@@ -11053,6 +11076,11 @@ func (m *SOParticipantConfig) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if len(m.Username) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.Username)
+		i--
+		dAtA[i] = 0x22
+	}
 	if len(m.EntityId) > 0 {
 		i = protobuf_go_lite.EncodeString(dAtA, i, m.EntityId)
 		i--
@@ -13770,6 +13798,7 @@ func (m *SOParticipantConfig) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.PeerId)
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.Role)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.EntityId)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Username)
 	n += len(m.unknownFields)
 	return n
 }
@@ -14924,6 +14953,10 @@ func (x *SOParticipantConfig) MarshalProtoText() string {
 	if x.EntityId != "" {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "entity_id")
 		protobuf_go_lite.TextWriteString(&sb, x.EntityId)
+	}
+	if x.Username != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "username")
+		protobuf_go_lite.TextWriteString(&sb, x.Username)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -17022,6 +17055,16 @@ func (m *SOParticipantConfig) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.EntityId = v
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Username", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Username = v
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

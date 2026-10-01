@@ -109,9 +109,9 @@ func TestVerifyConfigChain(t *testing.T) {
 	})
 
 	t.Run("accepts add-participant followed by self-enroll peer", func(t *testing.T) {
+		// Create the owner, an added reader and the reader's rejoining device.
 		ctx := context.Background()
 		peers := createMockPeers(t, 3)
-
 		ownerPriv, err := peers[0].GetPrivKey(ctx)
 		if err != nil {
 			t.Fatalf("get owner private key: %v", err)
@@ -121,6 +121,7 @@ func TestVerifyConfigChain(t *testing.T) {
 			t.Fatalf("get rejoin private key: %v", err)
 		}
 
+		// Sign a genesis that holds only the owner.
 		genesisConfig := &SharedObjectConfig{
 			Participants: []*SOParticipantConfig{{
 				PeerId:   peers[0].GetPeerID().String(),
@@ -143,15 +144,18 @@ func TestVerifyConfigChain(t *testing.T) {
 			t.Fatalf("hash genesis entry: %v", err)
 		}
 
+		// Advance the config to the genesis head.
 		currentCfg := genesisConfig.CloneVT()
 		currentCfg.ConfigChainSeqno = genesisEntry.GetConfigSeqno()
 		currentCfg.ConfigChainHash = genesisHash
 
+		// Have the owner add the reader with its recorded username.
 		nextCfg := currentCfg.CloneVT()
 		nextCfg.Participants = append(nextCfg.GetParticipants(), &SOParticipantConfig{
 			PeerId:   peers[1].GetPeerID().String(),
 			Role:     SOParticipantRole_SOParticipantRole_READER,
 			EntityId: "acct-2",
+			Username: "bob",
 		})
 		addParticipantEntry, err := BuildSOConfigChange(
 			currentCfg,
@@ -168,6 +172,7 @@ func TestVerifyConfigChain(t *testing.T) {
 			t.Fatalf("hash add participant entry: %v", err)
 		}
 
+		// Self-enroll the reader's second device on the same entity.
 		rejoinCfg := nextCfg.CloneVT()
 		rejoinCfg.ConfigChainSeqno = addParticipantEntry.GetConfigSeqno()
 		rejoinCfg.ConfigChainHash = addParticipantHash
@@ -181,6 +186,8 @@ func TestVerifyConfigChain(t *testing.T) {
 		if err != nil {
 			t.Fatalf("build self-enroll entry: %v", err)
 		}
+
+		// Check that the self-enroll extends the chain and keeps the username.
 		if selfEnrollEntry.GetConfigSeqno() != 2 {
 			t.Fatalf("expected self-enroll seqno 2, got %d", selfEnrollEntry.GetConfigSeqno())
 		}
@@ -194,7 +201,38 @@ func TestVerifyConfigChain(t *testing.T) {
 		if !bytes.Equal(selfEnrollEntry.GetConfig().GetConfigChainHash(), addParticipantHash) {
 			t.Fatalf("expected self-enroll config hash to preserve prior head")
 		}
+		enrolled := selfEnrollEntry.GetConfig().GetParticipants()[2]
+		if enrolled.GetUsername() != "bob" {
+			t.Fatalf("self-enrolled username = %q, want bob", enrolled.GetUsername())
+		}
 
+		// A self-enrolling peer may not rename its entity.
+		renamedCfg := rejoinCfg.CloneVT()
+		renamedCfg.Participants = append(renamedCfg.GetParticipants(), &SOParticipantConfig{
+			PeerId:   peers[2].GetPeerID().String(),
+			Role:     SOParticipantRole_SOParticipantRole_READER,
+			EntityId: "acct-2",
+			Username: "mallory",
+		})
+		renamedEntry, err := BuildSOConfigChange(
+			rejoinCfg,
+			renamedCfg,
+			SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_SELF_ENROLL_PEER,
+			rejoinPriv,
+			nil,
+		)
+		if err != nil {
+			t.Fatalf("build renamed self-enroll entry: %v", err)
+		}
+		if err := VerifyConfigChain([]*SOConfigChange{
+			genesisEntry,
+			addParticipantEntry,
+			renamedEntry,
+		}); err == nil {
+			t.Fatal("VerifyConfigChain accepted a self-enroll rename")
+		}
+
+		// Verify the honest chain end to end.
 		if err := VerifyConfigChain([]*SOConfigChange{
 			genesisEntry,
 			addParticipantEntry,

@@ -72,6 +72,7 @@ func (a *ProviderAccount) ReinitializeSharedObject(
 	ctx context.Context,
 	sharedObjectID string,
 ) error {
+	// Require a live context, an object and a mutation-capable session.
 	if err := ctx.Err(); err != nil {
 		return err
 	}
@@ -81,12 +82,12 @@ func (a *ProviderAccount) ReinitializeSharedObject(
 	if !a.canMutateCloudObjects() {
 		return errors.New("mutation-capable cloud session is required")
 	}
-
 	cli, _, _, err := a.getReadySessionClient(ctx)
 	if err != nil {
 		return err
 	}
 
+	// Require that this account may rewrite the object.
 	meta, err := a.GetSharedObjectMetadata(ctx, sharedObjectID)
 	if err != nil {
 		return err
@@ -94,22 +95,16 @@ func (a *ProviderAccount) ReinitializeSharedObject(
 	if err := a.authorizeSharedObjectMutation(ctx, meta, sharedObjectID); err != nil {
 		return err
 	}
+
+	// Clear the object on the Cloud and write a fresh genesis.
 	if err := cli.ReinitializeSharedObject(ctx, sharedObjectID); err != nil {
 		return err
 	}
-	if err := a.clearSharedObjectRecoveryLocalState(ctx, sharedObjectID); err != nil {
+	if err := a.reseedEmptySharedObject(ctx, cli, sharedObjectID); err != nil {
 		return err
 	}
 
-	le := a.le.WithField("sobject-id", sharedObjectID)
-	if _, err := cli.InitEmptyStandaloneSpace(
-		ctx,
-		le,
-		a.accountID,
-		sharedObjectID,
-	); err != nil {
-		return err
-	}
+	// Restore the organization record in an organization root.
 	if isOrganizationRootSharedObject(meta, sharedObjectID) {
 		info, err := a.getOrganizationInfo(ctx, sharedObjectID)
 		if err != nil {
@@ -120,8 +115,31 @@ func (a *ProviderAccount) ReinitializeSharedObject(
 		}
 	}
 
+	// Drop the tracker so the next mount reads the new state.
 	a.sobjects.RemoveKey(sharedObjectID)
 	return nil
+}
+
+// reseedEmptySharedObject clears the local recovery state of a shared object
+// and writes a fresh standalone genesis owned by this account.
+func (a *ProviderAccount) reseedEmptySharedObject(
+	ctx context.Context,
+	cli *SessionClient,
+	sharedObjectID string,
+) error {
+	// Drop the verified chain and recovery state the new genesis replaces.
+	if err := a.clearSharedObjectRecoveryLocalState(ctx, sharedObjectID); err != nil {
+		return err
+	}
+
+	// Write a genesis that records this account's username.
+	username, err := a.getUsername(ctx)
+	if err != nil {
+		return err
+	}
+	le := a.le.WithField("sobject-id", sharedObjectID)
+	_, err = cli.InitEmptyStandaloneSpace(ctx, le, a.accountID, username, sharedObjectID)
+	return err
 }
 
 func isOrganizationRootSharedObject(
@@ -181,31 +199,25 @@ func (a *ProviderAccount) repairOrganizationRootSharedObject(
 	sessionPriv crypto.PrivKey,
 	orgID string,
 ) error {
+	// Repair a written root like any standalone object.
 	state, _, _, err := cli.loadStandaloneConfigState(ctx, orgID)
 	if err != nil {
 		return err
 	}
 	root := state.GetRoot()
-	if root == nil || root.GetInnerSeqno() == 0 {
-		le := a.le.WithField("sobject-id", orgID)
-		if err := a.clearSharedObjectRecoveryLocalState(ctx, orgID); err != nil {
-			return err
-		}
-		if _, err := cli.InitEmptyStandaloneSpace(
-			ctx,
-			le,
-			a.accountID,
-			orgID,
-		); err != nil {
-			return err
-		}
-		info, err := a.getOrganizationInfo(ctx, orgID)
-		if err != nil {
-			return err
-		}
-		return a.populateOrganizationSharedObject(ctx, orgID, info)
+	if root != nil && root.GetInnerSeqno() != 0 {
+		return a.repairStandaloneSharedObject(ctx, cli, sessionPriv, orgID)
 	}
-	return a.repairStandaloneSharedObject(ctx, cli, sessionPriv, orgID)
+
+	// Reseed an empty root and restore the organization record.
+	if err := a.reseedEmptySharedObject(ctx, cli, orgID); err != nil {
+		return err
+	}
+	info, err := a.getOrganizationInfo(ctx, orgID)
+	if err != nil {
+		return err
+	}
+	return a.populateOrganizationSharedObject(ctx, orgID, info)
 }
 
 func (a *ProviderAccount) repairStandaloneSharedObject(
@@ -214,25 +226,17 @@ func (a *ProviderAccount) repairStandaloneSharedObject(
 	sessionPriv crypto.PrivKey,
 	sharedObjectID string,
 ) error {
+	// Reseed an object whose root was never written.
 	state, _, _, err := cli.loadStandaloneConfigState(ctx, sharedObjectID)
 	if err != nil {
 		return err
 	}
 	root := state.GetRoot()
 	if root == nil || root.GetInnerSeqno() == 0 {
-		le := a.le.WithField("sobject-id", sharedObjectID)
-		if err := a.clearSharedObjectRecoveryLocalState(ctx, sharedObjectID); err != nil {
-			return err
-		}
-		_, err := cli.InitEmptyStandaloneSpace(
-			ctx,
-			le,
-			a.accountID,
-			sharedObjectID,
-		)
-		return err
+		return a.reseedEmptySharedObject(ctx, cli, sharedObjectID)
 	}
 
+	// Enroll this session with an unlocked entity key.
 	store := a.getEntityKeyStore()
 	if store == nil {
 		return sobject.ErrSharedObjectRecoveryCredentialRequired
@@ -250,6 +254,7 @@ func (a *ProviderAccount) repairStandaloneSharedObject(
 		return err
 	}
 
+	// Decode the root state with the recovered grant.
 	material, err := a.readSharedObjectRecoveryMaterial(
 		ctx,
 		cli,
@@ -267,6 +272,8 @@ func (a *ProviderAccount) repairStandaloneSharedObject(
 	if err != nil {
 		return err
 	}
+
+	// Post the same state under the next root seqno.
 	return a.postRepairedSharedObjectRoot(
 		ctx,
 		cli,

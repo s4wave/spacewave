@@ -131,6 +131,7 @@ Block-backed state forms a block DAG under its World object. Create a separate W
 - `sdk/` proto packages use the full `s4wave.` prefix; `core/` packages use shorter names. Cross-package type references are fully qualified with a leading dot.
 - Use `sdk/world/world.proto` and `sdk/world/` as references for resource services, request/response names, resource IDs, and SDK wrappers.
 - When using `aptre`, stage changed `.proto` files before `bun run gen`. Regenerate all affected sources; use `bun run gen:force` only for a required forced rebuild.
+- When the generator rewrites files outside your change, such as after a generator version update, commit every rewritten file with your change. Do not revert generated output.
 - Reuse generated codecs, enums, and domain types. Parse stable external payloads into typed fields; raw payloads may accompany them as debugging evidence.
 
 ## Storage And Controller Lifetimes

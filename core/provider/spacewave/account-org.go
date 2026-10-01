@@ -375,7 +375,7 @@ func (a *ProviderAccount) enrollMountedSpaceMember(
 			return errors.Wrapf(err, "extract pubkey for %s", p.GetPeerId())
 		}
 
-		if _, err := swSO.AddParticipant(ctx, p.GetPeerId(), targetPub, role, accountID); err != nil {
+		if _, err := swSO.AddParticipant(ctx, p.GetPeerId(), targetPub, role, accountID, enrollResp.GetEntityId()); err != nil {
 			return errors.Wrapf(err, "add participant %s", p.GetPeerId())
 		}
 	}

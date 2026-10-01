@@ -277,6 +277,7 @@ func (a *ProviderAccount) processMailboxEntry(
 		responderPub,
 		invite.GetRole(),
 		entry.GetAccountId(),
+		entry.GetEntityId(),
 	)
 	if err != nil {
 		return err

@@ -2066,29 +2066,29 @@ func (r *SpacewaveSessionResource) DetachBillingAccount(
 	return &s4wave_provider_spacewave.DetachBillingAccountResponse{}, nil
 }
 
-// resolveMemberPeersAndMountSO resolves an account's session peers and mounts
-// the space's shared object. Caller must defer releaseFn.
+// resolveMemberPeersAndMountSO resolves an account's session peers and
+// username, and mounts the space's shared object when the account has peers.
+// Caller must defer releaseFn.
 func (r *SpacewaveSessionResource) resolveMemberPeersAndMountSO(
 	ctx context.Context,
 	spaceID, accountID string,
-) (*provider_spacewave.SharedObject, func(), []*api.EnrollMemberPeer, error) {
+) (*provider_spacewave.SharedObject, func(), *api.EnrollMemberResponse, error) {
+	// Ask the Cloud for the member's session peers and username.
 	cli := r.swAcc.GetSessionClient()
 	enrollResp, err := cli.EnrollMember(ctx, spaceID, accountID, true)
 	if err != nil {
 		return nil, nil, nil, errors.Wrap(err, "resolve member peers")
 	}
-
-	peers := enrollResp.GetPeers()
-	if len(peers) == 0 {
-		return nil, func() {}, nil, nil
+	if len(enrollResp.GetPeers()) == 0 {
+		return nil, func() {}, enrollResp, nil
 	}
 
+	// Mount the Space SharedObject to enroll the peers.
 	swSO, rel, err := r.mountSpaceSO(ctx, spaceID)
 	if err != nil {
 		return nil, nil, nil, err
 	}
-
-	return swSO, rel, peers, nil
+	return swSO, rel, enrollResp, nil
 }
 
 // resolveMemberParticipantPeersAndMountSO resolves an account's existing SO
@@ -2122,6 +2122,7 @@ func (r *SpacewaveSessionResource) EnrollSpaceMember(
 	ctx context.Context,
 	req *s4wave_provider_spacewave.EnrollSpaceMemberRequest,
 ) (*s4wave_provider_spacewave.EnrollSpaceMemberResponse, error) {
+	// Require the Space and the member account.
 	spaceID := req.GetSpaceId()
 	if spaceID == "" {
 		return nil, errors.New("space_id is required")
@@ -2131,16 +2132,18 @@ func (r *SpacewaveSessionResource) EnrollSpaceMember(
 		return nil, errors.New("account_id is required")
 	}
 
-	swSO, relSO, peers, err := r.resolveMemberPeersAndMountSO(ctx, spaceID, accountID)
+	// Resolve the member's peers and mount the Space SharedObject.
+	swSO, relSO, member, err := r.resolveMemberPeersAndMountSO(ctx, spaceID, accountID)
 	if err != nil {
 		return nil, err
 	}
 	defer relSO()
+	peers := member.GetPeers()
 	if len(peers) == 0 {
 		return &s4wave_provider_spacewave.EnrollSpaceMemberResponse{}, nil
 	}
 
-	role := req.GetRole()
+	// Index the current participant roles by peer.
 	state, err := swSO.GetSOHost().GetHostState(ctx)
 	if err != nil {
 		return nil, errors.Wrap(err, "get current SO state")
@@ -2153,11 +2156,13 @@ func (r *SpacewaveSessionResource) EnrollSpaceMember(
 		}
 		existingRoles[peerID] = participant.GetRole()
 	}
+
+	// Add each peer, keeping a higher existing role, and record the outcome.
+	role := req.GetRole()
 	results := make([]*s4wave_provider_spacewave.EnrollSpaceMemberResult, 0, len(peers))
 	for _, p := range peers {
 		peerID := p.GetPeerId()
 		result := &s4wave_provider_spacewave.EnrollSpaceMemberResult{PeerId: peerID}
-
 		targetPub, err := session.ExtractPublicKeyFromPeerID(peerID)
 		if err != nil {
 			result.Error = errors.Wrap(err, "extract pubkey").Error()
@@ -2165,24 +2170,18 @@ func (r *SpacewaveSessionResource) EnrollSpaceMember(
 			continue
 		}
 
-		participantRole := role
-		if existingRole, ok := existingRoles[peerID]; ok {
-			if existingRole > participantRole {
-				participantRole = existingRole
-			}
-		}
-		grant, err := swSO.AddParticipant(ctx, peerID, targetPub, participantRole, accountID)
+		// Add the peer at the requested role or its higher existing role.
+		participantRole := max(role, existingRoles[peerID])
+		grant, err := swSO.AddParticipant(ctx, peerID, targetPub, participantRole, accountID, member.GetEntityId())
 		if err != nil {
 			result.Error = err.Error()
 			results = append(results, result)
 			continue
 		}
-
 		result.AlreadyParticipant = grant == nil
 		result.Enrolled = grant != nil
 		results = append(results, result)
 	}
-
 	return &s4wave_provider_spacewave.EnrollSpaceMemberResponse{Results: results}, nil
 }
 

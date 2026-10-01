@@ -124,23 +124,26 @@ func TestVerifySpaceLinkTicketDataRejectsInvalidInputs(t *testing.T) {
 }
 
 func TestApproveVerifiedSpaceLinkRegistersGrantsAndReturnsCompletion(t *testing.T) {
+	// Verify a fresh ticket.
 	now := time.Unix(100, 0)
 	ticketBytes, payload := buildTestSpaceLinkTicket(t, now, nil)
 	verified, err := verifySpaceLinkTicketData(ticketBytes, now)
 	if err != nil {
 		t.Fatalf("verify ticket: %v", err)
 	}
+
+	// Approve against a registrar that creates the session for alice.
 	var events []string
 	nonce := &testSpaceLinkNonceConsumer{events: &events}
 	registrar := &testSpaceLinkRegistrar{
 		events: &events,
 		resp: &api.RegisterSessionResponse{
 			AccountId: "acct-1",
+			EntityId:  "alice",
 			Created:   true,
 		},
 	}
 	target := &testSpaceLinkTarget{events: &events}
-
 	resp, err := approveVerifiedSpaceLink(
 		context.Background(),
 		verified,
@@ -153,6 +156,8 @@ func TestApproveVerifiedSpaceLinkRegistersGrantsAndReturnsCompletion(t *testing.
 	if err != nil {
 		t.Fatalf("approve: %v", err)
 	}
+
+	// Check the step order and the registered session.
 	requireSpaceLinkEvents(t, events, "owner", "consume", "register", "add")
 	if registrar.req.GetSessionPeerId() != verified.agentPeerID.String() {
 		t.Fatalf("registered peer = %q, want %q", registrar.req.GetSessionPeerId(), verified.agentPeerID.String())
@@ -163,6 +168,8 @@ func TestApproveVerifiedSpaceLinkRegistersGrantsAndReturnsCompletion(t *testing.
 	if registrar.req.GetLabel() != payload.GetLabel() {
 		t.Fatalf("registered label = %q, want %q", registrar.req.GetLabel(), payload.GetLabel())
 	}
+
+	// Check the participant added to the Space.
 	if target.addPeerID != verified.agentPeerID.String() {
 		t.Fatalf("grant peer = %q, want %q", target.addPeerID, verified.agentPeerID.String())
 	}
@@ -175,6 +182,11 @@ func TestApproveVerifiedSpaceLinkRegistersGrantsAndReturnsCompletion(t *testing.
 	if target.addAccountID != "acct-1" {
 		t.Fatalf("grant account = %q, want acct-1", target.addAccountID)
 	}
+	if target.addUsername != "alice" {
+		t.Fatalf("grant username = %q, want alice", target.addUsername)
+	}
+
+	// Check the response and its callback completion.
 	if resp.GetAccountId() != "acct-1" {
 		t.Fatalf("response account = %q, want acct-1", resp.GetAccountId())
 	}
@@ -450,6 +462,7 @@ type testSpaceLinkTarget struct {
 	addPub       crypto.PubKey
 	addRole      sobject.SOParticipantRole
 	addAccountID string
+	addUsername  string
 }
 
 func (t *testSpaceLinkTarget) requireApproverOwner(_ context.Context, approverPeerID string) error {
@@ -464,12 +477,15 @@ func (t *testSpaceLinkTarget) addParticipant(
 	pub crypto.PubKey,
 	role sobject.SOParticipantRole,
 	accountID string,
+	username string,
 ) error {
+	// Record the call and return the configured error.
 	appendSpaceLinkEvent(t.events, "add")
 	t.addPeerID = peerID
 	t.addPub = pub
 	t.addRole = role
 	t.addAccountID = accountID
+	t.addUsername = username
 	return t.addErr
 }
 

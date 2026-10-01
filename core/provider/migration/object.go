@@ -56,7 +56,7 @@ func CheckObject(ctx context.Context, object sobject.SharedObject, peers []strin
 
 // AuthorizeObject extends the existing signed lineage without replacing roles,
 // grants, roots, or external participants. Existing peers keep their exact role.
-func AuthorizeObject(ctx context.Context, object sobject.SharedObject, peers []string, entityID string) (*sobject.SOState, error) {
+func AuthorizeObject(ctx context.Context, object sobject.SharedObject, peers []string, entityID, username string) (*sobject.SOState, error) {
 	if err := CheckObject(ctx, object, peers); err != nil {
 		return nil, err
 	}
@@ -81,11 +81,11 @@ func AuthorizeObject(ctx context.Context, object sobject.SharedObject, peers []s
 			return nil, err
 		}
 		if remote, ok := object.(interface {
-			AddParticipant(context.Context, string, crypto.PubKey, sobject.SOParticipantRole, string) (*sobject.SOGrant, error)
+			AddParticipant(context.Context, string, crypto.PubKey, sobject.SOParticipantRole, string, string) (*sobject.SOGrant, error)
 		}); ok {
-			_, err = remote.AddParticipant(ctx, id, public, sobject.SOParticipantRole_SOParticipantRole_OWNER, entityID)
+			_, err = remote.AddParticipant(ctx, id, public, sobject.SOParticipantRole_SOParticipantRole_OWNER, entityID, username)
 		} else {
-			_, err = sobject.AddSOParticipant(ctx, host.GetSOHost(), object.GetSharedObjectID(), host.GetPrivKey(), object.GetPeerID().String(), id, public, sobject.SOParticipantRole_SOParticipantRole_OWNER, entityID)
+			_, err = sobject.AddSOParticipant(ctx, host.GetSOHost(), object.GetSharedObjectID(), host.GetPrivKey(), object.GetPeerID().String(), id, public, sobject.SOParticipantRole_SOParticipantRole_OWNER, entityID, username)
 		}
 		if err != nil {
 			return nil, err

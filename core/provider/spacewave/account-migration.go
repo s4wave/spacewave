@@ -32,6 +32,7 @@ func (a *ProviderAccount) migrationClient(key crypto.PrivKey) (*SessionClient, e
 
 // MigrationInfo uses the provider's authoritative Session set and settings binding.
 func (a *ProviderAccount) MigrationInfo(ctx context.Context, key crypto.PrivKey) (*provider_migration.Info, error) {
+	// Read the account behind the migration key and require that it is this one.
 	client, err := a.migrationClient(key)
 	if err != nil {
 		return nil, err
@@ -43,6 +44,8 @@ func (a *ProviderAccount) MigrationInfo(ctx context.Context, key crypto.PrivKey)
 	if info.GetAccountId() != a.accountID {
 		return nil, errors.New("this Session already belongs to another account")
 	}
+
+	// Read the settings binding and the account's Sessions.
 	ref, err := a.GetAccountSettingsRef(ctx)
 	if err != nil {
 		return nil, err
@@ -51,7 +54,14 @@ func (a *ProviderAccount) MigrationInfo(ctx context.Context, key crypto.PrivKey)
 	if err != nil {
 		return nil, err
 	}
-	result := &provider_migration.Info{Settings: ref, Endpoint: a.p.endpoint, ParticipantEntity: a.accountID}
+
+	// Describe the account, its Session peers and any transition it started.
+	result := &provider_migration.Info{
+		Settings:            ref,
+		Endpoint:            a.p.endpoint,
+		ParticipantEntity:   a.accountID,
+		ParticipantUsername: info.GetEntityId(),
+	}
 	for _, row := range rows {
 		result.SessionPeers = append(result.SessionPeers, row.GetPeerId())
 	}

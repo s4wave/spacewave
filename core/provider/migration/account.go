@@ -19,7 +19,9 @@ type Info struct {
 	Settings          *sobject.SharedObjectRef
 	Endpoint          string
 	ParticipantEntity string
-	SessionPeers      []string
+	// ParticipantUsername is the username of ParticipantEntity.
+	ParticipantUsername string
+	SessionPeers        []string
 	// PendingSessionPeers still need to attach after an earlier local migration.
 	PendingSessionPeers []string
 	ParticipantPeers    []string
@@ -148,7 +150,7 @@ func Merge(ctx context.Context, source Account, mounted session.Session, destina
 		if entry.GetRef().GetProviderResourceRef().GetId() == sourceInfo.Settings.GetProviderResourceRef().GetId() {
 			continue
 		}
-		state, err := AuthorizeObject(ctx, objects[i], targetInfo.ParticipantPeers, targetInfo.ParticipantEntity)
+		state, err := AuthorizeObject(ctx, objects[i], targetInfo.ParticipantPeers, targetInfo.ParticipantEntity, targetInfo.ParticipantUsername)
 		if err != nil {
 			return nil, errors.Wrapf(err, "authorize resource %s", objects[i].GetSharedObjectID())
 		}
@@ -176,7 +178,7 @@ func Merge(ctx context.Context, source Account, mounted session.Session, destina
 			if entry.GetRef().GetProviderResourceRef().GetId() != sourceInfo.Settings.GetProviderResourceRef().GetId() {
 				continue
 			}
-			state, err := AuthorizeObject(ctx, objects[i], targetInfo.ParticipantPeers, targetInfo.ParticipantEntity)
+			state, err := AuthorizeObject(ctx, objects[i], targetInfo.ParticipantPeers, targetInfo.ParticipantEntity, targetInfo.ParticipantUsername)
 			if err != nil {
 				return nil, err
 			}
