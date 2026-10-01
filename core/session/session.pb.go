@@ -216,6 +216,10 @@ type SessionMetadata struct {
 	// DirectP2PDisabled opts this Session out of direct peer transport.
 	// The zero value preserves direct P2P for existing Session metadata.
 	DirectP2PDisabled bool `protobuf:"varint,12,opt,name=direct_p2p_disabled,json=directP2pDisabled,proto3" json:"directP2pDisabled,omitempty"`
+	// BackgroundPlugins lists the plugins the user confirmed to run in the
+	// background, sorted by Space and plugin ID. The Session keeps each listed
+	// Space's plugins running while the Session runs.
+	BackgroundPlugins []*BackgroundPlugin `protobuf:"bytes,13,rep,name=background_plugins,json=backgroundPlugins,proto3" json:"backgroundPlugins,omitempty"`
 }
 
 func (x *SessionMetadata) Reset() {
@@ -292,6 +296,43 @@ func (x *SessionMetadata) GetDirectP2PDisabled() bool {
 		return x.DirectP2PDisabled
 	}
 	return false
+}
+
+func (x *SessionMetadata) GetBackgroundPlugins() []*BackgroundPlugin {
+	if x != nil {
+		return x.BackgroundPlugins
+	}
+	return nil
+}
+
+// BackgroundPlugin is a user's confirmation that one plugin of one Space may
+// run in the background.
+type BackgroundPlugin struct {
+	unknownFields []byte
+	// SpaceId is the shared object ID of the Space.
+	SpaceId string `protobuf:"bytes,1,opt,name=space_id,json=spaceId,proto3" json:"spaceId,omitempty"`
+	// PluginId is the manifest ID of the plugin.
+	PluginId string `protobuf:"bytes,2,opt,name=plugin_id,json=pluginId,proto3" json:"pluginId,omitempty"`
+}
+
+func (x *BackgroundPlugin) Reset() {
+	*x = BackgroundPlugin{}
+}
+
+func (*BackgroundPlugin) ProtoMessage() {}
+
+func (x *BackgroundPlugin) GetSpaceId() string {
+	if x != nil {
+		return x.SpaceId
+	}
+	return ""
+}
+
+func (x *BackgroundPlugin) GetPluginId() string {
+	if x != nil {
+		return x.PluginId
+	}
+	return ""
 }
 
 // EntityKeypair is a keypair associated with an entity for authentication.
@@ -436,6 +477,7 @@ func (m *SessionMetadata) CloneVT() *SessionMetadata {
 	r.ProviderId = m.ProviderId
 	r.RecoveryState = m.RecoveryState
 	r.DirectP2PDisabled = m.DirectP2PDisabled
+	r.BackgroundPlugins = protobuf_go_lite.CloneVTSlice(m.BackgroundPlugins)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -443,6 +485,23 @@ func (m *SessionMetadata) CloneVT() *SessionMetadata {
 }
 
 func (m *SessionMetadata) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *BackgroundPlugin) CloneVT() *BackgroundPlugin {
+	if m == nil {
+		return (*BackgroundPlugin)(nil)
+	}
+	r := new(BackgroundPlugin)
+	r.SpaceId = m.SpaceId
+	r.PluginId = m.PluginId
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *BackgroundPlugin) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -589,11 +648,37 @@ func (this *SessionMetadata) EqualVT(that *SessionMetadata) bool {
 	if this.DirectP2PDisabled != that.DirectP2PDisabled {
 		return false
 	}
+	if !protobuf_go_lite.EqualVTSliceImplicit(this.BackgroundPlugins, that.BackgroundPlugins, func() *BackgroundPlugin { return &BackgroundPlugin{} }) {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
 func (this *SessionMetadata) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*SessionMetadata)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *BackgroundPlugin) EqualVT(that *BackgroundPlugin) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.SpaceId != that.SpaceId {
+		return false
+	}
+	if this.PluginId != that.PluginId {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *BackgroundPlugin) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*BackgroundPlugin)
 	if !ok {
 		return false
 	}
@@ -967,6 +1052,17 @@ func (x *SessionMetadata) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("directP2pDisabled")
 		s.WriteBool(x.DirectP2PDisabled)
 	}
+	if len(x.BackgroundPlugins) > 0 || s.HasField("backgroundPlugins") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("backgroundPlugins")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.BackgroundPlugins {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("backgroundPlugins"))
+		}
+		s.WriteArrayEnd()
+	}
 	s.WriteObjectEnd()
 }
 
@@ -1014,12 +1110,80 @@ func (x *SessionMetadata) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "direct_p2p_disabled", "directP2pDisabled":
 			s.AddField("direct_p2p_disabled")
 			x.DirectP2PDisabled = s.ReadBool()
+		case "background_plugins", "backgroundPlugins":
+			s.AddField("background_plugins")
+			if s.ReadNil() {
+				x.BackgroundPlugins = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.BackgroundPlugins = append(x.BackgroundPlugins, nil)
+					return
+				}
+				v := &BackgroundPlugin{}
+				v.UnmarshalProtoJSON(s.WithField("background_plugins", false))
+				if s.Err() != nil {
+					return
+				}
+				x.BackgroundPlugins = append(x.BackgroundPlugins, v)
+			})
 		}
 	})
 }
 
 // UnmarshalJSON unmarshals the SessionMetadata from JSON.
 func (x *SessionMetadata) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the BackgroundPlugin message to JSON.
+func (x *BackgroundPlugin) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.SpaceId != "" || s.HasField("spaceId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("spaceId")
+		s.WriteString(x.SpaceId)
+	}
+	if x.PluginId != "" || s.HasField("pluginId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("pluginId")
+		s.WriteString(x.PluginId)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the BackgroundPlugin to JSON.
+func (x *BackgroundPlugin) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the BackgroundPlugin message from JSON.
+func (x *BackgroundPlugin) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "space_id", "spaceId":
+			s.AddField("space_id")
+			x.SpaceId = s.ReadString()
+		case "plugin_id", "pluginId":
+			s.AddField("plugin_id")
+			x.PluginId = s.ReadString()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the BackgroundPlugin from JSON.
+func (x *BackgroundPlugin) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -1255,6 +1419,18 @@ func (m *SessionMetadata) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if len(m.BackgroundPlugins) > 0 {
+		for iNdEx := len(m.BackgroundPlugins) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.BackgroundPlugins[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x6a
+		}
+	}
 	if m.DirectP2PDisabled {
 		i = protobuf_go_lite.EncodeBool(dAtA, i, m.DirectP2PDisabled)
 		i--
@@ -1302,6 +1478,48 @@ func (m *SessionMetadata) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	}
 	if len(m.DisplayName) > 0 {
 		i = protobuf_go_lite.EncodeString(dAtA, i, m.DisplayName)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *BackgroundPlugin) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *BackgroundPlugin) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *BackgroundPlugin) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.PluginId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.PluginId)
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.SpaceId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.SpaceId)
 		i--
 		dAtA[i] = 0xa
 	}
@@ -1467,6 +1685,22 @@ func (m *SessionMetadata) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.ProviderId)
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.RecoveryState)
 	n += protobuf_go_lite.SizeBoolNonZero(1, m.DirectP2PDisabled)
+	for _, e := range m.BackgroundPlugins {
+		l = e.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *BackgroundPlugin) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.SpaceId)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.PluginId)
 	n += len(m.unknownFields)
 	return n
 }
@@ -1604,10 +1838,40 @@ func (x *SessionMetadata) MarshalProtoText() string {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "direct_p2p_disabled")
 		protobuf_go_lite.TextWriteBool(&sb, x.DirectP2PDisabled)
 	}
+	if len(x.BackgroundPlugins) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "background_plugins")
+		for i, v := range x.BackgroundPlugins {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			if v == nil {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, &BackgroundPlugin{})
+			} else {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, v)
+			}
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
 
 func (x *SessionMetadata) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *BackgroundPlugin) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "BackgroundPlugin")
+	if x.SpaceId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "space_id")
+		protobuf_go_lite.TextWriteString(&sb, x.SpaceId)
+	}
+	if x.PluginId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "plugin_id")
+		protobuf_go_lite.TextWriteString(&sb, x.PluginId)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *BackgroundPlugin) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -1897,6 +2161,82 @@ func (m *SessionMetadata) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.DirectP2PDisabled = bool(v)
+		case 13:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field BackgroundPlugins", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.BackgroundPlugins = append(m.BackgroundPlugins, &BackgroundPlugin{})
+			if err := m.BackgroundPlugins[len(m.BackgroundPlugins)-1].UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *BackgroundPlugin) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: BackgroundPlugin: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: BackgroundPlugin: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SpaceId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.SpaceId = v
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PluginId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.PluginId = v
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

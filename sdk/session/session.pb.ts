@@ -2109,6 +2109,55 @@ export const SetDirectP2PEnabledResponse: MessageType<SetDirectP2PEnabledRespons
   )
 
 /**
+ * SetBackgroundPluginRequest is the request type for SetBackgroundPlugin.
+ *
+ * @generated from message s4wave.session.SetBackgroundPluginRequest
+ */
+export interface SetBackgroundPluginRequest {
+  /**
+   * SpaceId is the shared object ID of the Space.
+   *
+   * @generated from field: string space_id = 1;
+   */
+  spaceId?: string
+  /**
+   * PluginId is the manifest ID of the plugin.
+   *
+   * @generated from field: string plugin_id = 2;
+   */
+  pluginId?: string
+  /**
+   * Enabled confirms the plugin to run in the background, or withdraws it.
+   *
+   * @generated from field: bool enabled = 3;
+   */
+  enabled?: boolean
+}
+
+export const SetBackgroundPluginRequest: MessageType<SetBackgroundPluginRequest> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.session.SetBackgroundPluginRequest',
+    fields: [
+      { no: 1, name: 'space_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'plugin_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 3, name: 'enabled', kind: 'scalar', T: ScalarType.BOOL },
+    ] satisfies readonly PartialFieldInfo[],
+  })
+
+/**
+ * SetBackgroundPluginResponse acknowledges the persisted confirmation.
+ *
+ * @generated from message s4wave.session.SetBackgroundPluginResponse
+ */
+export interface SetBackgroundPluginResponse {}
+
+export const SetBackgroundPluginResponse: MessageType<SetBackgroundPluginResponse> =
+  /* @__PURE__ */ createEmptyMessageType<SetBackgroundPluginResponse>(
+    's4wave.session.SetBackgroundPluginResponse',
+    true,
+  )
+
+/**
  * UnlockSessionRequest is the request type for UnlockSession.
  *
  * @generated from message s4wave.session.UnlockSessionRequest

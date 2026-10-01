@@ -163,7 +163,7 @@ func (s *Session) SetDirectP2PEnabled(ctx context.Context, enabled bool) error {
 
 	// Resolve the session metadata record.
 	ref := s.GetSessionRef()
-	meta, err := lookupSessionMetadata(ctx, sessionCtrl, ref)
+	meta, err := session.LookupSessionMetadata(ctx, sessionCtrl, ref)
 	if err != nil {
 		return err
 	}
@@ -387,7 +387,7 @@ func (s *Session) updateSessionMetadata(ctx context.Context, mode session.Sessio
 
 	// Read the current record so unrelated metadata fields remain intact.
 	ref := s.GetSessionRef()
-	meta, err := lookupSessionMetadata(ctx, sessionCtrl, ref)
+	meta, err := session.LookupSessionMetadata(ctx, sessionCtrl, ref)
 	if err != nil {
 		return
 	}
@@ -401,28 +401,6 @@ func (s *Session) updateSessionMetadata(ctx context.Context, mode session.Sessio
 	// Submit the best-effort lock-mode projection to the metadata owner.
 	meta.LockMode = mode
 	_ = sessionCtrl.UpdateSessionMetadata(ctx, ref, meta)
-}
-
-// lookupSessionMetadata resolves metadata for one Session reference.
-func lookupSessionMetadata(
-	ctx context.Context,
-	ctrl session.SessionController,
-	ref *session.SessionRef,
-) (*session.SessionMetadata, error) {
-	// Snapshot the registered Sessions from the metadata owner.
-	entries, err := ctrl.ListSessions(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	// Resolve the matching entry through its controller-assigned index.
-	for _, entry := range entries {
-		if !entry.GetSessionRef().EqualVT(ref) {
-			continue
-		}
-		return ctrl.GetSessionMetadata(ctx, entry.GetSessionIndex())
-	}
-	return nil, nil
 }
 
 // directP2PEnabledFromMetadata applies the enabled-by-default transport policy.
@@ -545,7 +523,6 @@ func (t *sessionTracker) executeSessionTracker(rctx context.Context) (rerr error
 		return errors.Wrap(err, "mounting session object store")
 	}
 	defer diRef.Release()
-
 	objStore := objStoreHandle.GetObjectStore()
 
 	// Derive storage key from volume peer key.
@@ -571,7 +548,6 @@ func (t *sessionTracker) executeSessionTracker(rctx context.Context) (rerr error
 	// Load or create the private key according to the persisted lock mode.
 	var privPEM []byte
 	var sessionPriv crypto.PrivKey
-
 	if lockMode == session_lock.SessionLockMode_PIN_ENCRYPTED {
 		// Block until unlock RPC is called.
 		le.Debug("session is PIN-locked, waiting for unlock")
@@ -629,7 +605,6 @@ func (t *sessionTracker) executeSessionTracker(rctx context.Context) (rerr error
 	if err != nil {
 		return err
 	}
-
 	le.WithField("sess-peer-id", sessionPeerID.String()).Debug("loaded session peer")
 
 	// Check if this session peer ID is already registered with the cloud.
@@ -682,7 +657,7 @@ func (t *sessionTracker) executeSessionTracker(rctx context.Context) (rerr error
 	if err != nil {
 		return errors.Wrap(err, "lookup session metadata owner")
 	}
-	sessionMeta, err := lookupSessionMetadata(ctx, sessionCtrl, sessionRef)
+	sessionMeta, err := session.LookupSessionMetadata(ctx, sessionCtrl, sessionRef)
 	sessionCtrlRef.Release()
 	if err != nil {
 		return errors.Wrap(err, "load direct P2P policy")
@@ -707,6 +682,7 @@ func (t *sessionTracker) executeSessionTracker(rctx context.Context) (rerr error
 		lockMode:            lockMode,
 	}
 
+	// Prepare the account transition and transport authorization watchers.
 	so.transitionWatcher = routine.NewRoutineContainerWithLogger(le.WithField("routine", "account-transition"), routine.WithRetry(providerBackoff))
 	so.transitionWatcher.SetRoutine(so.watchAccountTransition)
 	so.transportAuthWatcher = routine.NewRoutineContainerWithLogger(le.WithField("routine", "transport-authorization"), routine.WithRetry(providerBackoff))
@@ -734,6 +710,7 @@ func (t *sessionTracker) executeSessionTracker(rctx context.Context) (rerr error
 	defer t.sessionProm.SetPromise(nil)
 	defer t.releasePinnedRef()
 
+	// Watch account transitions until the Session stops.
 	defer t.a.StopSessionTransportComposition(t.id)
 	transitionWatcher := so.transitionWatcher
 	transitionWatcher.SetContext(ctx, false)
@@ -765,6 +742,7 @@ func (t *sessionTracker) executeSessionTracker(rctx context.Context) (rerr error
 		}
 	}()
 
+	// Let callers waiting on startup proceed.
 	releaseStartup()
 
 	// Presentation writes may wait for account settings replication. Direct

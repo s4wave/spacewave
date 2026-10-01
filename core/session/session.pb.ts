@@ -172,6 +172,36 @@ export const SessionListEntry: MessageType<SessionListEntry> =
   })
 
 /**
+ * BackgroundPlugin is a user's confirmation that one plugin of one Space may
+ * run in the background.
+ *
+ * @generated from message session.BackgroundPlugin
+ */
+export interface BackgroundPlugin {
+  /**
+   * SpaceId is the shared object ID of the Space.
+   *
+   * @generated from field: string space_id = 1;
+   */
+  spaceId?: string
+  /**
+   * PluginId is the manifest ID of the plugin.
+   *
+   * @generated from field: string plugin_id = 2;
+   */
+  pluginId?: string
+}
+
+export const BackgroundPlugin: MessageType<BackgroundPlugin> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'session.BackgroundPlugin',
+    fields: [
+      { no: 1, name: 'space_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'plugin_id', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+  })
+
+/**
  * SessionMetadata contains display and pre-mount lock information for a session.
  * Stored in the session controller ObjectStore at sessions/meta/{sessionID}.
  *
@@ -242,6 +272,14 @@ export interface SessionMetadata {
    * @generated from field: bool direct_p2p_disabled = 12;
    */
   directP2pDisabled?: boolean
+  /**
+   * BackgroundPlugins lists the plugins the user confirmed to run in the
+   * background, sorted by Space and plugin ID. The Session keeps each listed
+   * Space's plugins running while the Session runs.
+   *
+   * @generated from field: repeated session.BackgroundPlugin background_plugins = 13;
+   */
+  backgroundPlugins?: BackgroundPlugin[]
 }
 
 export const SessionMetadata: MessageType<SessionMetadata> =
@@ -277,6 +315,13 @@ export const SessionMetadata: MessageType<SessionMetadata> =
         name: 'direct_p2p_disabled',
         kind: 'scalar',
         T: ScalarType.BOOL,
+      },
+      {
+        no: 13,
+        name: 'background_plugins',
+        kind: 'message',
+        T: BackgroundPlugin,
+        repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
   })

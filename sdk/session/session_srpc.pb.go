@@ -39,6 +39,10 @@ type SRPCSessionResourceServiceClient interface {
 	SetLockMode(ctx context.Context, in *SetLockModeRequest) (*SetLockModeResponse, error)
 
 	SetDirectP2PEnabled(ctx context.Context, in *SetDirectP2PEnabledRequest) (*SetDirectP2PEnabledResponse, error)
+	// SetBackgroundPlugin records or withdraws the user's confirmation that a
+	// Space plugin may run in the background. Confirming requires the plugin's
+	// manifest to declare that it can run in the background.
+	SetBackgroundPlugin(ctx context.Context, in *SetBackgroundPluginRequest) (*SetBackgroundPluginResponse, error)
 
 	UnlockSession(ctx context.Context, in *UnlockSessionRequest) (*UnlockSessionResponse, error)
 
@@ -371,6 +375,15 @@ func (c *srpcSessionResourceServiceClient) SetLockMode(ctx context.Context, in *
 func (c *srpcSessionResourceServiceClient) SetDirectP2PEnabled(ctx context.Context, in *SetDirectP2PEnabledRequest) (*SetDirectP2PEnabledResponse, error) {
 	out := new(SetDirectP2PEnabledResponse)
 	err := c.cc.ExecCall(ctx, c.serviceID, "SetDirectP2PEnabled", in, out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *srpcSessionResourceServiceClient) SetBackgroundPlugin(ctx context.Context, in *SetBackgroundPluginRequest) (*SetBackgroundPluginResponse, error) {
+	out := new(SetBackgroundPluginResponse)
+	err := c.cc.ExecCall(ctx, c.serviceID, "SetBackgroundPlugin", in, out)
 	if err != nil {
 		return nil, err
 	}
@@ -904,6 +917,10 @@ type SRPCSessionResourceServiceServer interface {
 	SetLockMode(context.Context, *SetLockModeRequest) (*SetLockModeResponse, error)
 
 	SetDirectP2PEnabled(context.Context, *SetDirectP2PEnabledRequest) (*SetDirectP2PEnabledResponse, error)
+	// SetBackgroundPlugin records or withdraws the user's confirmation that a
+	// Space plugin may run in the background. Confirming requires the plugin's
+	// manifest to declare that it can run in the background.
+	SetBackgroundPlugin(context.Context, *SetBackgroundPluginRequest) (*SetBackgroundPluginResponse, error)
 
 	UnlockSession(context.Context, *UnlockSessionRequest) (*UnlockSessionResponse, error)
 
@@ -1026,6 +1043,7 @@ func (SRPCSessionResourceServiceHandler) GetMethodIDs() []string {
 		"WatchLockState",
 		"SetLockMode",
 		"SetDirectP2PEnabled",
+		"SetBackgroundPlugin",
 		"UnlockSession",
 		"LockSession",
 		"GeneratePairingCode",
@@ -1101,6 +1119,8 @@ func (d *SRPCSessionResourceServiceHandler) InvokeMethod(
 		return true, d.InvokeMethod_SetLockMode(d.impl, strm)
 	case "SetDirectP2PEnabled":
 		return true, d.InvokeMethod_SetDirectP2PEnabled(d.impl, strm)
+	case "SetBackgroundPlugin":
+		return true, d.InvokeMethod_SetBackgroundPlugin(d.impl, strm)
 	case "UnlockSession":
 		return true, d.InvokeMethod_UnlockSession(d.impl, strm)
 	case "LockSession":
@@ -1315,6 +1335,18 @@ func (SRPCSessionResourceServiceHandler) InvokeMethod_SetDirectP2PEnabled(impl S
 		return err
 	}
 	out, err := impl.SetDirectP2PEnabled(strm.Context(), req)
+	if err != nil {
+		return err
+	}
+	return strm.MsgSend(out)
+}
+
+func (SRPCSessionResourceServiceHandler) InvokeMethod_SetBackgroundPlugin(impl SRPCSessionResourceServiceServer, strm srpc.Stream) error {
+	req := new(SetBackgroundPluginRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	out, err := impl.SetBackgroundPlugin(strm.Context(), req)
 	if err != nil {
 		return err
 	}
@@ -1920,6 +1952,14 @@ type SRPCSessionResourceService_SetDirectP2PEnabledStream interface {
 }
 
 type srpcSessionResourceService_SetDirectP2PEnabledStream struct {
+	srpc.Stream
+}
+
+type SRPCSessionResourceService_SetBackgroundPluginStream interface {
+	srpc.Stream
+}
+
+type srpcSessionResourceService_SetBackgroundPluginStream struct {
 	srpc.Stream
 }
 

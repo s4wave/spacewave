@@ -20,6 +20,9 @@ message ManifestMeta {
   uint64 rev = 4;
   // Description is a short human-readable description of the manifest.
   string description = 5;
+  // Background declares that the plugin can run without an open view.
+  // A Session runs it in the background only after its user confirms.
+  bool background = 6;
 }
 
 // Manifest contains metadata and contents.

@@ -888,6 +888,8 @@ type AvailablePlugin struct {
 	Description string `protobuf:"bytes,2,opt,name=description,proto3" json:"description,omitempty"`
 	// Revision is the highest manifest revision available for the plugin.
 	Revision string `protobuf:"bytes,3,opt,name=revision,proto3" json:"revision,omitempty"`
+	// Background reports that the plugin can run in the background.
+	Background bool `protobuf:"varint,4,opt,name=background,proto3" json:"background,omitempty"`
 }
 
 func (x *AvailablePlugin) Reset() {
@@ -915,6 +917,13 @@ func (x *AvailablePlugin) GetRevision() string {
 		return x.Revision
 	}
 	return ""
+}
+
+func (x *AvailablePlugin) GetBackground() bool {
+	if x != nil {
+		return x.Background
+	}
+	return false
 }
 
 // SpacePluginStatus contains runtime state for a single plugin.
@@ -1603,6 +1612,7 @@ func (m *AvailablePlugin) CloneVT() *AvailablePlugin {
 	r.PluginId = m.PluginId
 	r.Description = m.Description
 	r.Revision = m.Revision
+	r.Background = m.Background
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -2362,6 +2372,9 @@ func (this *AvailablePlugin) EqualVT(that *AvailablePlugin) bool {
 		return false
 	}
 	if this.Revision != that.Revision {
+		return false
+	}
+	if this.Background != that.Background {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -4088,6 +4101,11 @@ func (x *AvailablePlugin) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("revision")
 		s.WriteString(x.Revision)
 	}
+	if x.Background || s.HasField("background") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("background")
+		s.WriteBool(x.Background)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -4114,6 +4132,9 @@ func (x *AvailablePlugin) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "revision":
 			s.AddField("revision")
 			x.Revision = s.ReadString()
+		case "background":
+			s.AddField("background")
+			x.Background = s.ReadBool()
 		}
 	})
 }
@@ -5766,6 +5787,11 @@ func (m *AvailablePlugin) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.Background {
+		i = protobuf_go_lite.EncodeBool(dAtA, i, m.Background)
+		i--
+		dAtA[i] = 0x20
+	}
 	if len(m.Revision) > 0 {
 		i = protobuf_go_lite.EncodeString(dAtA, i, m.Revision)
 		i--
@@ -6546,6 +6572,7 @@ func (m *AvailablePlugin) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.PluginId)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Description)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Revision)
+	n += protobuf_go_lite.SizeBoolNonZero(1, m.Background)
 	n += len(m.unknownFields)
 	return n
 }
@@ -7230,6 +7257,10 @@ func (x *AvailablePlugin) MarshalProtoText() string {
 	if x.Revision != "" {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "revision")
 		protobuf_go_lite.TextWriteString(&sb, x.Revision)
+	}
+	if x.Background != false {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "background")
+		protobuf_go_lite.TextWriteBool(&sb, x.Background)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -9087,6 +9118,16 @@ func (m *AvailablePlugin) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.Revision = v
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Background", wireType)
+			}
+			var v bool
+			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Background = bool(v)
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

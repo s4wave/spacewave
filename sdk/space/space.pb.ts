@@ -995,6 +995,12 @@ export interface AvailablePlugin {
    * @generated from field: string revision = 3;
    */
   revision?: string
+  /**
+   * Background reports that the plugin can run in the background.
+   *
+   * @generated from field: bool background = 4;
+   */
+  background?: boolean
 }
 
 export const AvailablePlugin: MessageType<AvailablePlugin> =
@@ -1004,6 +1010,7 @@ export const AvailablePlugin: MessageType<AvailablePlugin> =
       { no: 1, name: 'plugin_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'description', kind: 'scalar', T: ScalarType.STRING },
       { no: 3, name: 'revision', kind: 'scalar', T: ScalarType.STRING },
+      { no: 4, name: 'background', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
   })
 

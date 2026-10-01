@@ -19,34 +19,23 @@ func (s *CoreRootServer) MountSession(
 	ctx context.Context,
 	req *s4wave_root.MountSessionRequest,
 ) (*s4wave_root.MountSessionResponse, error) {
+	// Validate the request and find the caller's resource client.
 	if err := req.GetSessionRef().Validate(); err != nil {
 		return nil, err
 	}
-
 	resourceCtx, err := resource_server.MustGetResourceClientContext(ctx)
 	if err != nil {
 		return nil, err
 	}
 
+	// Mount the Session.
 	sess, sessRef, err := session.ExMountSession(ctx, s.b, req.GetSessionRef(), false, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	le := sess.GetSessionRef().GetLogger(s.le)
-	sessResource := resource_session.NewSessionResourceWithHostPluginIDAndRecoveryStatus(
-		le,
-		s.b,
-		sess,
-		s.hostPluginID,
-		s.recoveryStatusRegistry,
-	)
-	sessResource.SetAppPluginIDs(s.appPluginIDs)
-	sessResource.SetBindingRegistry(s.bindingRegistry)
-	sessResource.SetCdnRootChangedHook(func(spaceID string) {
-		s.cdnRegistry.NotifyRootChanged(spaceID)
-	})
-	sessResource.SetCdnLookup(s.lookupCdnSharedObject)
+	// Serve the Session resource until the client releases it.
+	sessResource := s.newSessionResource(sess)
 	id, err := resourceCtx.AddResource(sessResource.GetMux(), func() {
 		sessResource.Close()
 		sessRef.Release()
@@ -56,7 +45,6 @@ func (s *CoreRootServer) MountSession(
 		sessRef.Release()
 		return nil, err
 	}
-
 	return &s4wave_root.MountSessionResponse{ResourceId: id}, nil
 }
 
@@ -65,17 +53,18 @@ func (s *CoreRootServer) MountSessionByIdx(
 	ctx context.Context,
 	req *s4wave_root.MountSessionByIdxRequest,
 ) (*s4wave_root.MountSessionByIdxResponse, error) {
+	// Find the caller's resource client.
 	resourceCtx, err := resource_server.MustGetResourceClientContext(ctx)
 	if err != nil {
 		return nil, err
 	}
 
+	// Resolve the Session at the index.
 	sessionCtrl, sessionCtrlRef, err := session.ExLookupSessionController(ctx, s.b, "", false, nil)
 	if err != nil {
 		return nil, err
 	}
 	defer sessionCtrlRef.Release()
-
 	sessInfo, err := sessionCtrl.GetSessionByIdx(ctx, req.GetSessionIdx())
 	if err != nil {
 		return nil, err
@@ -84,14 +73,35 @@ func (s *CoreRootServer) MountSessionByIdx(
 		return &s4wave_root.MountSessionByIdxResponse{NotFound: true}, nil
 	}
 
+	// Mount the Session.
 	sess, sessRef, err := session.ExMountSession(ctx, s.b, sessInfo.GetSessionRef(), false, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	le := sess.GetSessionRef().GetLogger(s.le)
+	// Serve the Session resource until the client releases it.
+	sessResource := s.newSessionResource(sess)
+	id, err := resourceCtx.AddResource(sessResource.GetMux(), func() {
+		sessResource.Close()
+		sessRef.Release()
+	})
+	if err != nil {
+		sessResource.Close()
+		sessRef.Release()
+		return nil, err
+	}
+	return &s4wave_root.MountSessionByIdxResponse{
+		ResourceId: id,
+		SessionRef: sessInfo.GetSessionRef(),
+	}, nil
+}
+
+// newSessionResource builds the SessionResource this root serves for sess.
+// Call Close when done.
+func (s *CoreRootServer) newSessionResource(sess session.Session) *resource_session.SessionResource {
+	// Configure the resource with this root's plugins, bindings, and CDN hooks.
 	sessResource := resource_session.NewSessionResourceWithHostPluginIDAndRecoveryStatus(
-		le,
+		sess.GetSessionRef().GetLogger(s.le),
 		s.b,
 		sess,
 		s.hostPluginID,
@@ -103,20 +113,7 @@ func (s *CoreRootServer) MountSessionByIdx(
 		s.cdnRegistry.NotifyRootChanged(spaceID)
 	})
 	sessResource.SetCdnLookup(s.lookupCdnSharedObject)
-	id, err := resourceCtx.AddResource(sessResource.GetMux(), func() {
-		sessResource.Close()
-		sessRef.Release()
-	})
-	if err != nil {
-		sessResource.Close()
-		sessRef.Release()
-		return nil, err
-	}
-
-	return &s4wave_root.MountSessionByIdxResponse{
-		ResourceId: id,
-		SessionRef: sessInfo.GetSessionRef(),
-	}, nil
+	return sessResource
 }
 
 // ListSessions lists the configured sessions.

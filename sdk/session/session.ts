@@ -274,6 +274,20 @@ export class Session extends Resource {
     await this.service.SetDirectP2PEnabled({ enabled }, abortSignal)
   }
 
+  // setBackgroundPlugin confirms or withdraws running a plugin of a Space in
+  // the background while this Session runs.
+  public async setBackgroundPlugin(
+    spaceId: string,
+    pluginId: string,
+    enabled: boolean,
+    abortSignal?: AbortSignal,
+  ): Promise<void> {
+    await this.service.SetBackgroundPlugin(
+      { spaceId, pluginId, enabled },
+      abortSignal,
+    )
+  }
+
   // lockSession locks a running session, scrubbing the privkey and
   // requiring PIN re-entry. Only works when PIN mode is configured.
   public async lockSession(abortSignal?: AbortSignal): Promise<void> {

@@ -67,6 +67,8 @@ import {
   RevokeSpaceInviteResponse,
   SelectPairingAccountRequest,
   SelectPairingAccountResponse,
+  SetBackgroundPluginRequest,
+  SetBackgroundPluginResponse,
   SetDefaultStorageBackendRequest,
   SetDefaultStorageBackendResponse,
   SetDirectP2PEnabledRequest,
@@ -235,6 +237,19 @@ export const SessionResourceServiceDefinition = {
       name: 'SetDirectP2PEnabled',
       I: SetDirectP2PEnabledRequest,
       O: SetDirectP2PEnabledResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * SetBackgroundPlugin records or withdraws the user's confirmation that a
+     * Space plugin may run in the background. Confirming requires the plugin's
+     * manifest to declare that it can run in the background.
+     *
+     * @generated from rpc s4wave.session.SessionResourceService.SetBackgroundPlugin
+     */
+    SetBackgroundPlugin: {
+      name: 'SetBackgroundPlugin',
+      I: SetBackgroundPluginRequest,
+      O: SetBackgroundPluginResponse,
       kind: MethodKind.Unary,
     },
     /**
@@ -711,6 +726,18 @@ export interface SessionResourceService {
   ): Promise<SetDirectP2PEnabledResponse>
 
   /**
+   * SetBackgroundPlugin records or withdraws the user's confirmation that a
+   * Space plugin may run in the background. Confirming requires the plugin's
+   * manifest to declare that it can run in the background.
+   *
+   * @generated from rpc s4wave.session.SessionResourceService.SetBackgroundPlugin
+   */
+  SetBackgroundPlugin(
+    request: SetBackgroundPluginRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<SetBackgroundPluginResponse>
+
+  /**
    * @generated from rpc s4wave.session.SessionResourceService.UnlockSession
    */
   UnlockSession(
@@ -1158,6 +1185,19 @@ export interface SessionResourceServiceHandler {
   ): Promise<SetDirectP2PEnabledResponse>
 
   /**
+   * SetBackgroundPlugin records or withdraws the user's confirmation that a
+   * Space plugin may run in the background. Confirming requires the plugin's
+   * manifest to declare that it can run in the background.
+   *
+   * @generated from rpc s4wave.session.SessionResourceService.SetBackgroundPlugin
+   */
+  SetBackgroundPlugin(
+    request: SetBackgroundPluginRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<SetBackgroundPluginResponse>
+
+  /**
    * @generated from rpc s4wave.session.SessionResourceService.UnlockSession
    */
   UnlockSession(
@@ -1540,6 +1580,7 @@ export class SessionResourceServiceClient implements SessionResourceService {
     this.WatchLockState = this.WatchLockState.bind(this)
     this.SetLockMode = this.SetLockMode.bind(this)
     this.SetDirectP2PEnabled = this.SetDirectP2PEnabled.bind(this)
+    this.SetBackgroundPlugin = this.SetBackgroundPlugin.bind(this)
     this.UnlockSession = this.UnlockSession.bind(this)
     this.LockSession = this.LockSession.bind(this)
     this.GeneratePairingCode = this.GeneratePairingCode.bind(this)
@@ -1799,6 +1840,27 @@ export class SessionResourceServiceClient implements SessionResourceService {
       abortSignal || undefined,
     )
     return SetDirectP2PEnabledResponse.fromBinary(result)
+  }
+
+  /**
+   * SetBackgroundPlugin records or withdraws the user's confirmation that a
+   * Space plugin may run in the background. Confirming requires the plugin's
+   * manifest to declare that it can run in the background.
+   *
+   * @generated from rpc s4wave.session.SessionResourceService.SetBackgroundPlugin
+   */
+  async SetBackgroundPlugin(
+    request: SetBackgroundPluginRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<SetBackgroundPluginResponse> {
+    const requestMsg = SetBackgroundPluginRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      SessionResourceServiceDefinition.methods.SetBackgroundPlugin.name,
+      SetBackgroundPluginRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return SetBackgroundPluginResponse.fromBinary(result)
   }
 
   /**

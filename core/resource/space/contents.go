@@ -656,15 +656,16 @@ func (r *SpaceContentsResource) getAvailablePlugins(
 	ctx context.Context,
 	ws world.WorldState,
 ) ([]*s4wave_space.AvailablePlugin, error) {
+	// Use the test override when set.
 	if r.buildAvailablePlugins != nil {
 		return r.buildAvailablePlugins(ctx, ws)
 	}
 
+	// Return the cached catalog while the manifest refs are unchanged.
 	manifestRefs, err := collectAvailablePluginManifestRefs(ctx, ws)
 	if err != nil {
 		return nil, err
 	}
-
 	var cached []*s4wave_space.AvailablePlugin
 	r.mu.Lock()
 	if slices.Equal(r.availablePluginManifestRefs, manifestRefs) {
@@ -675,11 +676,12 @@ func (r *SpaceContentsResource) getAvailablePlugins(
 		return cached, nil
 	}
 
-	availablePlugins, err := r.collectAvailablePlugins(ctx, ws, manifestRefs)
-	if err != nil {
-		return nil, err
+	// Rebuild the catalog and cache it.
+	lookupManifest := r.lookupManifest
+	if lookupManifest == nil {
+		lookupManifest = bldr_manifest_world.LookupManifest
 	}
-
+	availablePlugins := collectAvailablePlugins(ctx, ws, manifestRefs, lookupManifest)
 	r.mu.Lock()
 	r.availablePluginManifestRefs = slices.Clone(manifestRefs)
 	r.availablePlugins = cloneAvailablePlugins(availablePlugins)
@@ -716,19 +718,40 @@ func collectAvailablePluginManifestRefs(
 	return manifestRefs, nil
 }
 
+// LookupAvailablePlugin returns the highest revision catalog entry for pluginID
+// in the Space World, or nil if the World offers no such plugin.
+func (r *SpaceResource) LookupAvailablePlugin(ctx context.Context, pluginID string) (*s4wave_space.AvailablePlugin, error) {
+	// Read the catalog from one World snapshot.
+	tx, err := r.space.GetWorldEngine().NewTransaction(ctx, false)
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Discard()
+
+	// Build the catalog and select the plugin.
+	manifestRefs, err := collectAvailablePluginManifestRefs(ctx, tx)
+	if err != nil {
+		return nil, err
+	}
+	plugins := collectAvailablePlugins(ctx, tx, manifestRefs, bldr_manifest_world.LookupManifest)
+	idx := slices.IndexFunc(plugins, func(plugin *s4wave_space.AvailablePlugin) bool {
+		return plugin.GetPluginId() == pluginID
+	})
+	if idx == -1 {
+		return nil, nil
+	}
+	return plugins[idx], nil
+}
+
 // collectAvailablePlugins enumerates the manifest object content set and returns
 // the installable plugin catalog, keeping the highest revision for each manifest
-// ID.
-func (r *SpaceContentsResource) collectAvailablePlugins(
+// ID. Manifests that fail to load are skipped.
+func collectAvailablePlugins(
 	ctx context.Context,
 	ws world.WorldState,
 	manifestRefs []string,
-) ([]*s4wave_space.AvailablePlugin, error) {
-	lookupManifest := r.lookupManifest
-	if lookupManifest == nil {
-		lookupManifest = bldr_manifest_world.LookupManifest
-	}
-
+	lookupManifest func(context.Context, world.WorldState, string) (*bldr_manifest.Manifest, *bucket.ObjectRef, error),
+) []*s4wave_space.AvailablePlugin {
 	catalog := make(map[string]*bldr_manifest.ManifestMeta, len(manifestRefs))
 	for _, ref := range manifestRefs {
 		key, _, _ := strings.Cut(ref, "\x00")
@@ -739,7 +762,7 @@ func (r *SpaceContentsResource) collectAvailablePlugins(
 		addManifestToCatalog(catalog, m.GetMeta())
 	}
 
-	return availablePluginsFromCatalog(catalog), nil
+	return availablePluginsFromCatalog(catalog)
 }
 
 // addManifestToCatalog records the manifest meta under its manifest ID, keeping
@@ -764,6 +787,7 @@ func availablePluginsFromCatalog(catalog map[string]*bldr_manifest.ManifestMeta)
 			PluginId:    manifestID,
 			Description: meta.GetDescription(),
 			Revision:    strconv.FormatUint(meta.GetRev(), 10),
+			Background:  meta.GetBackground(),
 		})
 	}
 	slices.SortFunc(out, func(a, b *s4wave_space.AvailablePlugin) int {

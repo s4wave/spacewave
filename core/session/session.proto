@@ -83,6 +83,19 @@ message SessionMetadata {
   // DirectP2PDisabled opts this Session out of direct peer transport.
   // The zero value preserves direct P2P for existing Session metadata.
   bool direct_p2p_disabled = 12;
+  // BackgroundPlugins lists the plugins the user confirmed to run in the
+  // background, sorted by Space and plugin ID. The Session keeps each listed
+  // Space's plugins running while the Session runs.
+  repeated BackgroundPlugin background_plugins = 13;
+}
+
+// BackgroundPlugin is a user's confirmation that one plugin of one Space may
+// run in the background.
+message BackgroundPlugin {
+  // SpaceId is the shared object ID of the Space.
+  string space_id = 1;
+  // PluginId is the manifest ID of the plugin.
+  string plugin_id = 2;
 }
 
 // EntityKeypair is a keypair associated with an entity for authentication.

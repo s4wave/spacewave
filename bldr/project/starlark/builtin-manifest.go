@@ -11,7 +11,7 @@ import (
 )
 
 // manifestBuiltin implements the manifest() built-in function.
-// manifest(id, builder, rev=0, config=None, description="")
+// manifest(id, builder, rev=0, config=None, description="", background=False)
 func (e *evaluator) manifestBuiltin(thread *starlark.Thread, fn *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
 	// Declare the manifest arguments and pop the positional ID.
 	var id string
@@ -19,6 +19,7 @@ func (e *evaluator) manifestBuiltin(thread *starlark.Thread, fn *starlark.Builti
 	var rev int
 	var config starlark.Value
 	var description string
+	var background bool
 	id, kwargs, err := popPositionalID("manifest", args, kwargs)
 	if err != nil {
 		return nil, err
@@ -53,6 +54,12 @@ func (e *evaluator) manifestBuiltin(thread *starlark.Thread, fn *starlark.Builti
 				return nil, errExpectedString("manifest", "description")
 			}
 			description = string(s)
+		case "background":
+			b, ok := val.(starlark.Bool)
+			if !ok {
+				return nil, errExpectedBool("manifest", "background")
+			}
+			background = bool(b)
 		default:
 			return nil, errUnknownKwarg("manifest", key)
 		}
@@ -89,6 +96,7 @@ func (e *evaluator) manifestBuiltin(thread *starlark.Thread, fn *starlark.Builti
 		Builder:     ctrlConf,
 		Rev:         uint64(rev),
 		Description: description,
+		Background:  background,
 	}
 	if e.config.Manifests == nil {
 		e.config.Manifests = make(map[string]*bldr_project.ManifestConfig)

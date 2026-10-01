@@ -1874,6 +1874,55 @@ func (x *SetDirectP2PEnabledResponse) Reset() {
 
 func (*SetDirectP2PEnabledResponse) ProtoMessage() {}
 
+// SetBackgroundPluginRequest is the request type for SetBackgroundPlugin.
+type SetBackgroundPluginRequest struct {
+	unknownFields []byte
+	// SpaceId is the shared object ID of the Space.
+	SpaceId string `protobuf:"bytes,1,opt,name=space_id,json=spaceId,proto3" json:"spaceId,omitempty"`
+	// PluginId is the manifest ID of the plugin.
+	PluginId string `protobuf:"bytes,2,opt,name=plugin_id,json=pluginId,proto3" json:"pluginId,omitempty"`
+	// Enabled confirms the plugin to run in the background, or withdraws it.
+	Enabled bool `protobuf:"varint,3,opt,name=enabled,proto3" json:"enabled,omitempty"`
+}
+
+func (x *SetBackgroundPluginRequest) Reset() {
+	*x = SetBackgroundPluginRequest{}
+}
+
+func (*SetBackgroundPluginRequest) ProtoMessage() {}
+
+func (x *SetBackgroundPluginRequest) GetSpaceId() string {
+	if x != nil {
+		return x.SpaceId
+	}
+	return ""
+}
+
+func (x *SetBackgroundPluginRequest) GetPluginId() string {
+	if x != nil {
+		return x.PluginId
+	}
+	return ""
+}
+
+func (x *SetBackgroundPluginRequest) GetEnabled() bool {
+	if x != nil {
+		return x.Enabled
+	}
+	return false
+}
+
+// SetBackgroundPluginResponse acknowledges the persisted confirmation.
+type SetBackgroundPluginResponse struct {
+	unknownFields []byte
+}
+
+func (x *SetBackgroundPluginResponse) Reset() {
+	*x = SetBackgroundPluginResponse{}
+}
+
+func (*SetBackgroundPluginResponse) ProtoMessage() {}
+
 // UnlockSessionRequest is the request type for UnlockSession.
 type UnlockSessionRequest struct {
 	unknownFields []byte
@@ -4303,6 +4352,39 @@ func (m *SetDirectP2PEnabledResponse) CloneMessageVT() protobuf_go_lite.CloneMes
 	return m.CloneVT()
 }
 
+func (m *SetBackgroundPluginRequest) CloneVT() *SetBackgroundPluginRequest {
+	if m == nil {
+		return (*SetBackgroundPluginRequest)(nil)
+	}
+	r := new(SetBackgroundPluginRequest)
+	r.SpaceId = m.SpaceId
+	r.PluginId = m.PluginId
+	r.Enabled = m.Enabled
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *SetBackgroundPluginRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *SetBackgroundPluginResponse) CloneVT() *SetBackgroundPluginResponse {
+	if m == nil {
+		return (*SetBackgroundPluginResponse)(nil)
+	}
+	r := new(SetBackgroundPluginResponse)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *SetBackgroundPluginResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
 func (m *UnlockSessionRequest) CloneVT() *UnlockSessionRequest {
 	if m == nil {
 		return (*UnlockSessionRequest)(nil)
@@ -6451,6 +6533,49 @@ func (this *SetDirectP2PEnabledResponse) EqualVT(that *SetDirectP2PEnabledRespon
 
 func (this *SetDirectP2PEnabledResponse) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*SetDirectP2PEnabledResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *SetBackgroundPluginRequest) EqualVT(that *SetBackgroundPluginRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.SpaceId != that.SpaceId {
+		return false
+	}
+	if this.PluginId != that.PluginId {
+		return false
+	}
+	if this.Enabled != that.Enabled {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *SetBackgroundPluginRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*SetBackgroundPluginRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *SetBackgroundPluginResponse) EqualVT(that *SetBackgroundPluginResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *SetBackgroundPluginResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*SetBackgroundPluginResponse)
 	if !ok {
 		return false
 	}
@@ -10504,6 +10629,94 @@ func (x *SetDirectP2PEnabledResponse) UnmarshalProtoJSON(s *json.UnmarshalState)
 
 // UnmarshalJSON unmarshals the SetDirectP2PEnabledResponse from JSON.
 func (x *SetDirectP2PEnabledResponse) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the SetBackgroundPluginRequest message to JSON.
+func (x *SetBackgroundPluginRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.SpaceId != "" || s.HasField("spaceId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("spaceId")
+		s.WriteString(x.SpaceId)
+	}
+	if x.PluginId != "" || s.HasField("pluginId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("pluginId")
+		s.WriteString(x.PluginId)
+	}
+	if x.Enabled || s.HasField("enabled") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("enabled")
+		s.WriteBool(x.Enabled)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the SetBackgroundPluginRequest to JSON.
+func (x *SetBackgroundPluginRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the SetBackgroundPluginRequest message from JSON.
+func (x *SetBackgroundPluginRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "space_id", "spaceId":
+			s.AddField("space_id")
+			x.SpaceId = s.ReadString()
+		case "plugin_id", "pluginId":
+			s.AddField("plugin_id")
+			x.PluginId = s.ReadString()
+		case "enabled":
+			s.AddField("enabled")
+			x.Enabled = s.ReadBool()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the SetBackgroundPluginRequest from JSON.
+func (x *SetBackgroundPluginRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the SetBackgroundPluginResponse message to JSON.
+func (x *SetBackgroundPluginResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the SetBackgroundPluginResponse to JSON.
+func (x *SetBackgroundPluginResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the SetBackgroundPluginResponse message from JSON.
+func (x *SetBackgroundPluginResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		// no fields
+	})
+}
+
+// UnmarshalJSON unmarshals the SetBackgroundPluginResponse from JSON.
+func (x *SetBackgroundPluginResponse) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -15878,6 +16091,85 @@ func (m *SetDirectP2PEnabledResponse) MarshalToSizedBufferVT(dAtA []byte) (int, 
 	return len(dAtA) - i, nil
 }
 
+func (m *SetBackgroundPluginRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *SetBackgroundPluginRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *SetBackgroundPluginRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.Enabled {
+		i = protobuf_go_lite.EncodeBool(dAtA, i, m.Enabled)
+		i--
+		dAtA[i] = 0x18
+	}
+	if len(m.PluginId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.PluginId)
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.SpaceId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.SpaceId)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *SetBackgroundPluginResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *SetBackgroundPluginResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *SetBackgroundPluginResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *UnlockSessionRequest) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -19506,6 +19798,29 @@ func (m *SetDirectP2PEnabledResponse) SizeVT() (n int) {
 	return n
 }
 
+func (m *SetBackgroundPluginRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.SpaceId)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.PluginId)
+	n += protobuf_go_lite.SizeBoolNonZero(1, m.Enabled)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *SetBackgroundPluginResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += len(m.unknownFields)
+	return n
+}
+
 func (m *UnlockSessionRequest) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -21306,6 +21621,38 @@ func (x *SetDirectP2PEnabledResponse) MarshalProtoText() string {
 }
 
 func (x *SetDirectP2PEnabledResponse) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *SetBackgroundPluginRequest) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "SetBackgroundPluginRequest")
+	if x.SpaceId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "space_id")
+		protobuf_go_lite.TextWriteString(&sb, x.SpaceId)
+	}
+	if x.PluginId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "plugin_id")
+		protobuf_go_lite.TextWriteString(&sb, x.PluginId)
+	}
+	if x.Enabled != false {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "enabled")
+		protobuf_go_lite.TextWriteBool(&sb, x.Enabled)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *SetBackgroundPluginRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *SetBackgroundPluginResponse) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	protobuf_go_lite.TextStartMessage(&sb, "SetBackgroundPluginResponse")
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *SetBackgroundPluginResponse) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -25084,6 +25431,122 @@ func (m *SetDirectP2PEnabledResponse) UnmarshalVT(dAtA []byte) error {
 		}
 		if fieldNum <= 0 {
 			return fmt.Errorf("proto: SetDirectP2PEnabledResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *SetBackgroundPluginRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: SetBackgroundPluginRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: SetBackgroundPluginRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SpaceId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.SpaceId = v
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PluginId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.PluginId = v
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Enabled", wireType)
+			}
+			var v bool
+			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Enabled = bool(v)
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *SetBackgroundPluginResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: SetBackgroundPluginResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: SetBackgroundPluginResponse: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		default:

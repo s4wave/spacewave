@@ -36,6 +36,7 @@ func newPluginCommand(getBus func() cli_entrypoint.CliBus) *cli.Command {
 			buildPluginListCommand(),
 			buildPluginAddCommand(),
 			buildPluginRemoveCommand(),
+			buildPluginBackgroundCommand(),
 			buildPluginImportManifestCommand(getBus),
 		},
 	}
@@ -540,6 +541,68 @@ func buildPluginRemoveCommand() *cli.Command {
 			}
 
 			os.Stdout.WriteString("removed: " + manifestID + "\n")
+			return nil
+		},
+	}
+}
+
+// buildPluginBackgroundCommand builds the plugin background subcommand.
+func buildPluginBackgroundCommand() *cli.Command {
+	var statePath string
+	var sessionIdx uint
+	return &cli.Command{
+		Name:      "background",
+		Usage:     "run a plugin in the background while the session runs",
+		ArgsUsage: "<manifest-id>",
+		Flags: append(clientFlags(&statePath, &sessionIdx),
+			&cli.StringFlag{
+				Name:    "space",
+				Usage:   "space ID (auto-detected if only one space)",
+				EnvVars: []string{"SPACEWAVE_SPACE"},
+			},
+			&cli.BoolFlag{
+				Name:  "off",
+				Usage: "withdraw the confirmation and stop running in the background",
+			},
+		),
+		Action: func(c *cli.Context) error {
+			// Require the plugin's manifest ID.
+			manifestID := c.Args().First()
+			if manifestID == "" {
+				return errors.New("manifest ID required")
+			}
+
+			// Mount the Session through the daemon.
+			ctx := c.Context
+			client, err := connectDaemonFromContext(ctx, c, statePath)
+			if err != nil {
+				return err
+			}
+			defer client.close()
+			sess, err := client.mountSession(ctx, sessionIndex32(sessionIdx))
+			if err != nil {
+				return err
+			}
+			defer sess.Release()
+
+			// Resolve the Space holding the plugin.
+			spaceID, err := client.resolveSpaceID(ctx, sess, c.String("space"))
+			if err != nil {
+				return err
+			}
+
+			// Record the choice in the Session.
+			enabled := !c.Bool("off")
+			if err := sess.SetBackgroundPlugin(ctx, spaceID, manifestID, enabled); err != nil {
+				return errors.Wrap(err, "set background plugin")
+			}
+
+			// Report the plugin's new mode.
+			if enabled {
+				os.Stdout.WriteString("background: " + manifestID + "\n")
+			} else {
+				os.Stdout.WriteString("foreground: " + manifestID + "\n")
+			}
 			return nil
 		},
 	}

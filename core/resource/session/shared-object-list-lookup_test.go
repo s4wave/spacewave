@@ -161,7 +161,10 @@ func (s *testInviteSession) LockSession(context.Context) error {
 	panic("unexpected LockSession")
 }
 
+// TestLookupSharedObjectListEntryRefreshesFeature checks that a missing entry
+// refreshes the list once before the lookup gives up.
 func TestLookupSharedObjectListEntryRefreshesFeature(t *testing.T) {
+	// Serve the entry only after a refresh.
 	entry := &sobject.SharedObjectListEntry{
 		Ref: sobject.NewSharedObjectRef("spacewave", "account-1", "so-1", "so-1"),
 	}
@@ -170,7 +173,8 @@ func TestLookupSharedObjectListEntryRefreshesFeature(t *testing.T) {
 		entry: entry,
 	}
 
-	got, err := (&SessionResource{}).lookupSharedObjectListEntry(
+	// Look up the entry and check it came from one refresh.
+	got, err := lookupSharedObjectListEntry(
 		context.Background(),
 		provider,
 		provider.ctr,

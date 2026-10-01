@@ -6,11 +6,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/aperturerobotics/starpc/srpc"
 	provider_local "github.com/s4wave/spacewave/core/provider/local"
 	"github.com/s4wave/spacewave/core/space"
-	space_sobject "github.com/s4wave/spacewave/core/space/sobject"
 	space_world "github.com/s4wave/spacewave/core/space/world"
 	space_world_ops "github.com/s4wave/spacewave/core/space/world/ops"
 	"github.com/s4wave/spacewave/db/world"
@@ -28,14 +26,6 @@ var errResourcesListProjectionCaptured = errors.New("resources list projection c
 func TestWatchResourcesListProjectsDurableSpaceIndexObjectTypes(t *testing.T) {
 	ctx := context.Background()
 	env := setupTestEnv(ctx, t)
-	_, spaceSobjectControllerRef, loadErr := env.tb.Bus.AddDirective(
-		resolver.NewLoadControllerWithConfig(&space_sobject.Config{}),
-		nil,
-	)
-	if loadErr != nil {
-		t.Fatalf("load Space shared-object controller failed: %v", loadErr)
-	}
-	t.Cleanup(spaceSobjectControllerRef.Release)
 
 	sessRef, _ := env.createSession(ctx, t)
 	account := env.accessAccount(ctx, t, sessRef)

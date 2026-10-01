@@ -26,6 +26,10 @@ service SessionResourceService {
   rpc WatchLockState(WatchLockStateRequest) returns (stream WatchLockStateResponse);
   rpc SetLockMode(SetLockModeRequest) returns (SetLockModeResponse);
   rpc SetDirectP2PEnabled(SetDirectP2PEnabledRequest) returns (SetDirectP2PEnabledResponse);
+  // SetBackgroundPlugin records or withdraws the user's confirmation that a
+  // Space plugin may run in the background. Confirming requires the plugin's
+  // manifest to declare that it can run in the background.
+  rpc SetBackgroundPlugin(SetBackgroundPluginRequest) returns (SetBackgroundPluginResponse);
   rpc UnlockSession(UnlockSessionRequest) returns (UnlockSessionResponse);
   rpc LockSession(LockSessionRequest) returns (LockSessionResponse);
   rpc GeneratePairingCode(GeneratePairingCodeRequest) returns (GeneratePairingCodeResponse);
@@ -504,6 +508,19 @@ message SetDirectP2PEnabledRequest {
 
 // SetDirectP2PEnabledResponse acknowledges the persisted policy update.
 message SetDirectP2PEnabledResponse {}
+
+// SetBackgroundPluginRequest is the request type for SetBackgroundPlugin.
+message SetBackgroundPluginRequest {
+  // SpaceId is the shared object ID of the Space.
+  string space_id = 1;
+  // PluginId is the manifest ID of the plugin.
+  string plugin_id = 2;
+  // Enabled confirms the plugin to run in the background, or withdraws it.
+  bool enabled = 3;
+}
+
+// SetBackgroundPluginResponse acknowledges the persisted confirmation.
+message SetBackgroundPluginResponse {}
 
 // UnlockSessionRequest is the request type for UnlockSession.
 message UnlockSessionRequest {

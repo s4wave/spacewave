@@ -14,6 +14,7 @@ func (r *SessionResource) WatchSharedObjectHealth(
 	req *s4wave_session.WatchSharedObjectHealthRequest,
 	strm s4wave_session.SRPCSessionResourceService_WatchSharedObjectHealthStream,
 ) error {
+	// Require the SharedObject ID.
 	ctx := strm.Context()
 	sharedObjectID := req.GetSharedObjectId()
 	if sharedObjectID == "" {
@@ -21,24 +22,27 @@ func (r *SessionResource) WatchSharedObjectHealth(
 	}
 	sender := sharedObjectHealthStreamSender{strm: strm}
 
+	// Watch a CDN SharedObject directly.
 	if r.cdnLookup != nil {
 		if cdnSO, _ := r.cdnLookup(sharedObjectID); cdnSO != nil {
 			return r.watchMountedSharedObjectHealth(ctx, cdnSO, sender)
 		}
 	}
 
+	// Find the Session's SharedObject provider.
 	providerAcc := r.session.GetProviderAccount()
 	soProvider, err := sobject.GetSharedObjectProviderAccountFeature(ctx, providerAcc)
 	if err != nil {
 		return err
 	}
+
+	// Look up the SharedObject's list entry.
 	soListCtr, relSoListCtr, err := soProvider.AccessSharedObjectList(ctx, nil)
 	if err != nil {
 		return err
 	}
 	defer relSoListCtr()
-
-	soListEntry, err := r.lookupSharedObjectListEntry(
+	soListEntry, err := lookupSharedObjectListEntry(
 		ctx,
 		soProvider,
 		soListCtr,
@@ -55,6 +59,7 @@ func (r *SessionResource) WatchSharedObjectHealth(
 		)
 	}
 
+	// Build the SharedObject reference in the Session's account.
 	sessionProviderResourceRef := r.session.GetSessionRef().GetProviderResourceRef().CloneVT()
 	sessionProviderResourceRef.Id = sharedObjectID
 	if err := sessionProviderResourceRef.Validate(); err != nil {
@@ -67,6 +72,8 @@ func (r *SessionResource) WatchSharedObjectHealth(
 	if err := soRef.Validate(); err != nil {
 		return err
 	}
+
+	// Prefer the provider's health watch.
 	if healthProvider, ok := sobject.GetSharedObjectHealthProvider(providerAcc); ok {
 		healthCtr, relHealthCtr, err := healthProvider.AccessSharedObjectHealth(
 			ctx,
@@ -80,6 +87,7 @@ func (r *SessionResource) WatchSharedObjectHealth(
 		return sharedobjecthealth.StreamWatchable(ctx, sender, healthCtr)
 	}
 
+	// Otherwise mount the SharedObject and read its health.
 	mountedSo, mountedSoRef, err := sobject.ExMountSharedObject(
 		ctx,
 		r.session.GetBus(),
@@ -146,28 +154,32 @@ func (r *SessionResource) loadSharedObjectHealthSnapshot(
 	ctx context.Context,
 	sharedObjectID string,
 ) (*sobject.SharedObjectHealth, error) {
+	// Require the SharedObject ID.
 	if sharedObjectID == "" {
 		return nil, errors.New("shared object id is required")
 	}
 
+	// Snapshot a CDN SharedObject directly.
 	if r.cdnLookup != nil {
 		if cdnSO, _ := r.cdnLookup(sharedObjectID); cdnSO != nil {
 			return r.loadMountedSharedObjectHealthSnapshot(ctx, cdnSO)
 		}
 	}
 
+	// Find the Session's SharedObject provider.
 	providerAcc := r.session.GetProviderAccount()
 	soProvider, err := sobject.GetSharedObjectProviderAccountFeature(ctx, providerAcc)
 	if err != nil {
 		return nil, err
 	}
+
+	// Look up the SharedObject's list entry.
 	soListCtr, relSoListCtr, err := soProvider.AccessSharedObjectList(ctx, nil)
 	if err != nil {
 		return nil, err
 	}
 	defer relSoListCtr()
-
-	soListEntry, err := r.lookupSharedObjectListEntry(
+	soListEntry, err := lookupSharedObjectListEntry(
 		ctx,
 		soProvider,
 		soListCtr,
@@ -180,6 +192,7 @@ func (r *SessionResource) loadSharedObjectHealthSnapshot(
 		return sharedobjecthealth.Error(sobject.ErrSharedObjectNotFound), nil
 	}
 
+	// Build the SharedObject reference in the Session's account.
 	sessionProviderResourceRef := r.session.GetSessionRef().GetProviderResourceRef().CloneVT()
 	sessionProviderResourceRef.Id = sharedObjectID
 	if err := sessionProviderResourceRef.Validate(); err != nil {
@@ -192,6 +205,8 @@ func (r *SessionResource) loadSharedObjectHealthSnapshot(
 	if err := soRef.Validate(); err != nil {
 		return nil, err
 	}
+
+	// Prefer the provider's health watch.
 	if healthProvider, ok := sobject.GetSharedObjectHealthProvider(providerAcc); ok {
 		healthCtr, relHealthCtr, err := healthProvider.AccessSharedObjectHealth(
 			ctx,
@@ -205,6 +220,7 @@ func (r *SessionResource) loadSharedObjectHealthSnapshot(
 		return sharedobjecthealth.SnapshotWatchable(healthCtr), nil
 	}
 
+	// Otherwise mount the SharedObject and read its health.
 	mountedSo, mountedSoRef, err := sobject.ExMountSharedObject(
 		ctx,
 		r.session.GetBus(),

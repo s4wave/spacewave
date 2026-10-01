@@ -122,7 +122,6 @@ func ExMountSharedObjectBodyWithSource[T comparable](
 		return nil, nil, err
 	}
 	if av == nil {
-		avRef.Release()
 		return nil, nil, nil
 	}
 	return av.GetValue(), avRef, nil

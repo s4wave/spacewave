@@ -129,6 +129,17 @@ func (s *Session) SetDirectP2PEnabled(ctx context.Context, enabled bool) error {
 	return err
 }
 
+// SetBackgroundPlugin confirms or withdraws running a plugin of a Space in the
+// background while this Session runs.
+func (s *Session) SetBackgroundPlugin(ctx context.Context, spaceID, pluginID string, enabled bool) error {
+	_, err := s.service.SetBackgroundPlugin(ctx, &SetBackgroundPluginRequest{
+		SpaceId:  spaceID,
+		PluginId: pluginID,
+		Enabled:  enabled,
+	})
+	return err
+}
+
 // UnlockSession unlocks a PIN-locked session with the given PIN.
 func (s *Session) UnlockSession(ctx context.Context, pin []byte) error {
 	_, err := s.service.UnlockSession(ctx, &UnlockSessionRequest{Pin: pin})

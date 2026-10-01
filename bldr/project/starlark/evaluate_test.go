@@ -22,7 +22,7 @@ func TestEvaluateMinimal(t *testing.T) {
 	starFile := filepath.Join(dir, "bldr.star")
 	err := os.WriteFile(starFile, []byte(`
 project(id="test-project")
-manifest("test-manifest", builder="bldr/plugin/compiler/go", rev=1, config={"goPkgs": ["./pkg"]})
+manifest("test-manifest", builder="bldr/plugin/compiler/go", rev=1, config={"goPkgs": ["./pkg"]}, background=True)
 build("app", manifests=["test-manifest"], targets=["desktop"])
 `), 0o644)
 	if err != nil {
@@ -47,7 +47,7 @@ build("app", manifests=["test-manifest"], targets=["desktop"])
 		t.Fatal("manifest 'test-manifest' not found")
 	}
 
-	// Assert the manifest builder id, revisions, and the build target.
+	// Assert the manifest builder id, revisions, background, and the build target.
 	if mc.GetBuilder().GetId() != "bldr/plugin/compiler/go" {
 		t.Fatalf("expected builder id 'bldr/plugin/compiler/go', got %q", mc.GetBuilder().GetId())
 	}
@@ -56,6 +56,9 @@ build("app", manifests=["test-manifest"], targets=["desktop"])
 	}
 	if mc.GetRev() != 1 {
 		t.Fatalf("expected manifest rev 1, got %d", mc.GetRev())
+	}
+	if !mc.GetBackground() {
+		t.Fatal("expected manifest to declare background")
 	}
 	if len(result.Config.GetBuild()) != 1 {
 		t.Fatalf("expected 1 build target, got %d", len(result.Config.GetBuild()))

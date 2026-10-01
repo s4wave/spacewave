@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"slices"
 
-	"github.com/aperturerobotics/starpc/srpc"
 	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
 	resource_space "github.com/s4wave/spacewave/core/resource/space"
 	"github.com/s4wave/spacewave/core/sobject"
@@ -23,14 +22,13 @@ func (r *SharedObjectResource) MountSharedObjectBody(ctx context.Context, req *s
 		}
 	}()
 
+	// Find the caller's resource client.
 	resourceCtx, err := resource_server.MustGetResourceClientContext(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	var resource srpc.Invoker
-	var resourceValue any
-	var relResource func()
+	// Require a body type and a SharedObject bus to mount it on.
 	bodyType := r.meta.GetBodyType()
 	if bodyType == "" {
 		return mountSharedObjectBodyHealthResponse(sobject.WrapSharedObjectHealthError(
@@ -71,6 +69,7 @@ func (r *SharedObjectResource) MountSharedObjectBody(ctx context.Context, req *s
 		}
 	}
 
+	// Mount the Space body.
 	mountedSpace, mountedSpaceRef, err := sobject.ExMountSharedObjectBodyWithSource[space.SpaceSharedObjectBody](
 		ctx,
 		r.sharedObject.GetBus(),
@@ -93,22 +92,20 @@ func (r *SharedObjectResource) MountSharedObjectBody(ctx context.Context, req *s
 		)), nil
 	}
 
+	// Serve the Space resource until the client releases it.
 	body := mountedSpace.GetSharedObjectBody()
 	spaceResource := resource_space.NewSpaceResourceWithSessionPeerIDAndHostPluginID(
 		r.le,
 		r.b,
 		body,
-		mountedBodySessionPeerID(body, r.sessionPeerID),
+		resource_space.MountedBodySessionPeerID(body, r.sessionPeerID),
 		r.hostPluginID,
 	)
 	spaceResource.SetAppPluginIDs(r.appPluginIDs)
 	spaceResource.SetBindingRegistry(r.bindingRegistry)
-	resource, relResource = spaceResource.GetMux(), mountedSpaceRef.Release
-	resourceValue = spaceResource
-
-	id, err := resourceCtx.AddResourceValue(resource, resourceValue, relResource)
+	id, err := resourceCtx.AddResourceValue(spaceResource.GetMux(), spaceResource, mountedSpaceRef.Release)
 	if err != nil {
-		relResource()
+		mountedSpaceRef.Release()
 		return nil, err
 	}
 	return &s4wave_sobject.MountSharedObjectBodyResponse{
@@ -116,16 +113,6 @@ func (r *SharedObjectResource) MountSharedObjectBody(ctx context.Context, req *s
 			ResourceId: id,
 		},
 	}, nil
-}
-
-func mountedBodySessionPeerID(body space.SpaceSharedObjectBody, sessionPeerID string) string {
-	if body == nil {
-		return sessionPeerID
-	}
-	if so := body.GetSharedObject(); so != nil && so.GetPeerID() == "" {
-		return ""
-	}
-	return sessionPeerID
 }
 
 func mountSharedObjectBodyHealthResponse(err error) *s4wave_sobject.MountSharedObjectBodyResponse {

@@ -298,7 +298,8 @@ func updateSessionLockModeMetadata(
 	ref *session.SessionRef,
 	mode session.SessionLockMode,
 ) error {
-	meta, err := lookupSessionMetadata(ctx, ctrl, ref)
+	// Load the current metadata, or start one for an unregistered Session.
+	meta, err := session.LookupSessionMetadata(ctx, ctrl, ref)
 	if err != nil {
 		return err
 	}
@@ -310,27 +311,10 @@ func updateSessionLockModeMetadata(
 			ProviderAccountId:   providerRef.GetProviderAccountId(),
 		}
 	}
+
+	// Store the new lock mode.
 	meta.LockMode = mode
 	return ctrl.UpdateSessionMetadata(ctx, ref, meta)
-}
-
-// lookupSessionMetadata resolves metadata for one Session reference.
-func lookupSessionMetadata(
-	ctx context.Context,
-	ctrl session.SessionController,
-	ref *session.SessionRef,
-) (*session.SessionMetadata, error) {
-	entries, err := ctrl.ListSessions(ctx)
-	if err != nil {
-		return nil, err
-	}
-	for _, entry := range entries {
-		if !entry.GetSessionRef().EqualVT(ref) {
-			continue
-		}
-		return ctrl.GetSessionMetadata(ctx, entry.GetSessionIndex())
-	}
-	return nil, nil
 }
 
 // WatchLockState calls the callback with the current lock state and on changes.

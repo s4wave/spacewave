@@ -166,14 +166,19 @@ func NewFactory(b bus.Bus, opts ...Option) controller.Factory {
 
 // Execute registers child controllers for the root resource lifecycle.
 func (c *Controller) Execute(ctx context.Context) error {
+	// Inherit the host plugin ID from the parent root or the plugin context.
 	if c.parent != nil {
 		c.hostPluginID = c.parent.hostPluginID
 	} else if info := bldr_plugin.GetPluginContextInfo(ctx); info != nil {
 		c.hostPluginID = info.GetPluginMeta().GetPluginId()
 	}
 	c.rootResource.SetHostPluginID(c.hostPluginID)
+
+	// Run nested app roots until the controller stops.
 	c.apps.SetContext(ctx, true)
 	defer c.apps.ClearContext()
+
+	// Release the child controllers in reverse order of registration.
 	b := c.GetBus()
 	le := c.GetLogger()
 	var releases []func()
@@ -184,6 +189,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 		releases = nil
 	}
 
+	// Register the object type controller.
 	objectTypeCtrl := objecttype_controller.NewController(space_world_objecttypes.LookupObjectType)
 	objectTypeRel, err := b.AddController(ctx, objectTypeCtrl, nil)
 	if err != nil {
@@ -191,6 +197,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 	}
 	releases = append(releases, objectTypeRel)
 
+	// Bridge the object type registry onto the bus.
 	bridgeCtrl := resource_objecttype_registry.NewBridgeController(le, b, c.registries.objectType)
 	bridgeRel, err := b.AddController(ctx, bridgeCtrl, nil)
 	if err != nil {
@@ -199,6 +206,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 	}
 	releases = append(releases, bridgeRel)
 
+	// Bridge the world operation registry onto the bus.
 	worldOpBridgeCtrl := resource_worldop_registry.NewWorldOpRegistryBridgeController(le, b, c.registries.worldOp)
 	worldOpBridgeRel, err := b.AddController(ctx, worldOpBridgeCtrl, nil)
 	if err != nil {
@@ -208,6 +216,11 @@ func (c *Controller) Execute(ctx context.Context) error {
 	releases = append(releases, worldOpBridgeRel)
 	defer releaseAll()
 
+	// Run confirmed background plugins until the controller stops. A failure
+	// stops only the background plugins, not the resource root.
+	if err := c.rootResource.RunBackgroundPlugins(ctx); err != nil && ctx.Err() == nil {
+		le.WithError(err).Warn("background plugins stopped")
+	}
 	<-ctx.Done()
 	return nil
 }

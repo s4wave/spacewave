@@ -20,6 +20,7 @@ func TestPluginSubcommandsUseClientFlags(t *testing.T) {
 		{"list", buildPluginListCommand()},
 		{"add", buildPluginAddCommand()},
 		{"remove", buildPluginRemoveCommand()},
+		{"background", buildPluginBackgroundCommand()},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

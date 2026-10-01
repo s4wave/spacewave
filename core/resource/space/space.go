@@ -5,6 +5,7 @@ import (
 	"slices"
 
 	"github.com/aperturerobotics/controllerbus/bus"
+	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/pkg/errors"
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
@@ -82,6 +83,19 @@ func NewSpaceResourceWithSessionPeerIDAndHostPluginID(
 		},
 	)
 	return spaceResource
+}
+
+// MountedBodySessionPeerID returns the session peer ID a SpaceResource over
+// body acts as. A body whose SharedObject has no local peer is read-only, so
+// it acts as no session peer.
+func MountedBodySessionPeerID(body space.SpaceSharedObjectBody, sessionPeerID string) string {
+	if body == nil {
+		return sessionPeerID
+	}
+	if so := body.GetSharedObject(); so != nil && so.GetPeerID() == "" {
+		return ""
+	}
+	return sessionPeerID
 }
 
 // resolveHostPluginID returns the configured host plugin ID, or the plugin ID
@@ -339,29 +353,21 @@ func (r *SpaceResource) MountSpaceContents(
 	ctx context.Context,
 	req *s4wave_space.MountSpaceContentsRequest,
 ) (*s4wave_space.MountSpaceContentsResponse, error) {
+	// Find the caller's resource client.
 	resourceCtx, err := resource_server.MustGetResourceClientContext(ctx)
 	if err != nil {
 		r.le.WithError(err).Info("failed to mount space contents: missing client context")
 		return nil, err
 	}
 
-	// Acquire the shared runtime. The runtime may need to acquire
-	// document-owned plugin-host locks while applying forwarded block-store
-	// config, so this returns before its startup completes.
-	conf := r.contentsRuntimeConfig(ctx)
-	runtime, runtimeRef, err := plugin_space_runtime.StartControllerWithConfig(
-		ctx,
-		r.b,
-		&plugin_space_runtime.Config{Space: conf, AppPluginIds: r.appPluginIDs},
-	)
+	// Acquire the shared runtime.
+	conf, runtime, runtimeRef, err := r.AcquireContentsRuntime(ctx)
 	if err != nil {
 		r.le.WithError(err).Info("failed to mount space contents: could not start runtime")
 		return nil, err
 	}
-	if r.bindingRegistry != nil {
-		runtime.SetBindingRegistry(r.bindingRegistry)
-	}
 
+	// Serve the contents resource, which holds the runtime until released.
 	contentsResource := NewSpaceContentsResource(
 		r.le,
 		r.b,
@@ -381,8 +387,37 @@ func (r *SpaceResource) MountSpaceContents(
 		WithField("space-id", conf.GetSpaceId()).
 		WithField("resource-id", id).
 		Debug("mounted space contents")
-
 	return &s4wave_space.MountSpaceContentsResponse{ResourceId: id}, nil
+}
+
+// AcquireContentsRuntime acquires the shared plugin runtime of the Space.
+//
+// Every holder acquiring it through a SpaceResource with the same settings
+// shares one runtime, which stops after the last reference is released. It
+// returns before the runtime's startup completes, because startup may need
+// document-owned plugin-host locks while applying forwarded block-store config.
+func (r *SpaceResource) AcquireContentsRuntime(ctx context.Context) (
+	*plugin_space.Config,
+	*plugin_space_runtime.Controller,
+	directive.Reference,
+	error,
+) {
+	// Start or join the runtime keyed by the shared config.
+	conf := r.contentsRuntimeConfig(ctx)
+	runtime, runtimeRef, err := plugin_space_runtime.StartControllerWithConfig(
+		ctx,
+		r.b,
+		&plugin_space_runtime.Config{Space: conf, AppPluginIds: r.appPluginIDs},
+	)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	// Report process binding changes to the Resource root's watches.
+	if r.bindingRegistry != nil {
+		runtime.SetBindingRegistry(r.bindingRegistry)
+	}
+	return conf, runtime, runtimeRef, nil
 }
 
 // contentsRuntimeConfig builds the plugin/space config shared by every contents

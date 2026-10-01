@@ -120,6 +120,9 @@ type ManifestConfig struct {
 	Rev uint64 `protobuf:"varint,2,opt,name=rev,proto3" json:"rev,omitempty"`
 	// Description is a short human-readable description of the manifest.
 	Description string `protobuf:"bytes,3,opt,name=description,proto3" json:"description,omitempty"`
+	// Background declares that the plugin can run without an open view.
+	// Copied to the built manifest metadata.
+	Background bool `protobuf:"varint,4,opt,name=background,proto3" json:"background,omitempty"`
 }
 
 func (x *ManifestConfig) Reset() {
@@ -147,6 +150,13 @@ func (x *ManifestConfig) GetDescription() string {
 		return x.Description
 	}
 	return ""
+}
+
+func (x *ManifestConfig) GetBackground() bool {
+	if x != nil {
+		return x.Background
+	}
+	return false
 }
 
 // StartConfig configures starting the program.
@@ -679,6 +689,7 @@ func (m *ManifestConfig) CloneVT() *ManifestConfig {
 	r := new(ManifestConfig)
 	r.Rev = m.Rev
 	r.Description = m.Description
+	r.Background = m.Background
 	r.Builder = protobuf_go_lite.CloneVTValue(m.Builder)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
@@ -840,6 +851,9 @@ func (this *ManifestConfig) EqualVT(that *ManifestConfig) bool {
 		return false
 	}
 	if this.Description != that.Description {
+		return false
+	}
+	if this.Background != that.Background {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -1415,6 +1429,11 @@ func (x *ManifestConfig) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("description")
 		s.WriteString(x.Description)
 	}
+	if x.Background || s.HasField("background") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("background")
+		s.WriteBool(x.Background)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -1445,6 +1464,9 @@ func (x *ManifestConfig) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "description":
 			s.AddField("description")
 			x.Description = s.ReadString()
+		case "background":
+			s.AddField("background")
+			x.Background = s.ReadBool()
 		}
 	})
 }
@@ -2248,6 +2270,11 @@ func (m *ManifestConfig) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.Background {
+		i = protobuf_go_lite.EncodeBool(dAtA, i, m.Background)
+		i--
+		dAtA[i] = 0x20
+	}
 	if len(m.Description) > 0 {
 		i = protobuf_go_lite.EncodeString(dAtA, i, m.Description)
 		i--
@@ -2707,6 +2734,7 @@ func (m *ManifestConfig) SizeVT() (n int) {
 	}
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.Rev)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Description)
+	n += protobuf_go_lite.SizeBoolNonZero(1, m.Background)
 	n += len(m.unknownFields)
 	return n
 }
@@ -2999,6 +3027,10 @@ func (x *ManifestConfig) MarshalProtoText() string {
 	if x.Description != "" {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "description")
 		protobuf_go_lite.TextWriteString(&sb, x.Description)
+	}
+	if x.Background != false {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "background")
+		protobuf_go_lite.TextWriteBool(&sb, x.Background)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -3596,6 +3628,16 @@ func (m *ManifestConfig) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.Description = v
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Background", wireType)
+			}
+			var v bool
+			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Background = bool(v)
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

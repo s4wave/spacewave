@@ -90,6 +90,13 @@ export interface ManifestConfig {
    * @generated from field: string description = 3;
    */
   description?: string
+  /**
+   * Background declares that the plugin can run without an open view.
+   * Copied to the built manifest metadata.
+   *
+   * @generated from field: bool background = 4;
+   */
+  background?: boolean
 }
 
 export const ManifestConfig: MessageType<ManifestConfig> =
@@ -99,6 +106,7 @@ export const ManifestConfig: MessageType<ManifestConfig> =
       { no: 1, name: 'builder', kind: 'message', T: () => ControllerConfig },
       { no: 2, name: 'rev', kind: 'scalar', T: ScalarType.UINT64 },
       { no: 3, name: 'description', kind: 'scalar', T: ScalarType.STRING },
+      { no: 4, name: 'background', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
   })
 

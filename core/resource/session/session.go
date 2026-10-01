@@ -850,17 +850,18 @@ func (r *SessionResource) MountSharedObject(
 		}
 	}()
 
+	// Build the SharedObject's resource reference in the Session's account.
 	sessionProviderResourceRef := r.session.GetSessionRef().GetProviderResourceRef()
 	if err := sessionProviderResourceRef.Validate(); err != nil {
 		return nil, err
 	}
-
 	soProviderResourceRef := sessionProviderResourceRef.CloneVT()
 	soProviderResourceRef.Id = req.GetSharedObjectId()
 	if err := soProviderResourceRef.Validate(); err != nil {
 		return nil, err
 	}
 
+	// Find the caller's resource client.
 	resourceCtx, err := resource_server.MustGetResourceClientContext(ctx)
 	if err != nil {
 		return nil, err
@@ -884,14 +885,13 @@ func (r *SessionResource) MountSharedObject(
 		return nil, err
 	}
 
-	// TODO: pass released here?
+	// Look up the SharedObject's list entry.
 	soListCtr, relSoListCtr, err := soProvider.AccessSharedObjectList(ctx, nil)
 	if err != nil {
 		return nil, err
 	}
 	defer relSoListCtr()
-
-	soListEntry, err := r.lookupSharedObjectListEntry(
+	soListEntry, err := lookupSharedObjectListEntry(
 		ctx,
 		soProvider,
 		soListCtr,
@@ -904,6 +904,7 @@ func (r *SessionResource) MountSharedObject(
 		return nil, sobject.ErrSharedObjectNotFound
 	}
 
+	// Serve the SharedObject resource.
 	soRef := &sobject.SharedObjectRef{
 		ProviderResourceRef: soProviderResourceRef,
 		BlockStoreId:        soListEntry.GetRef().GetBlockStoreId(),
@@ -911,7 +912,6 @@ func (r *SessionResource) MountSharedObject(
 	if err := soRef.Validate(); err != nil {
 		return nil, err
 	}
-
 	return r.addSharedObjectResource(ctx, resourceCtx, soRef, soListEntry.GetMeta())
 }
 
@@ -1275,22 +1275,23 @@ func (r *SessionResource) mountInviteHost(
 	ctx context.Context,
 	spaceID string,
 ) (sobject.InviteHost, func(), error) {
+	// Look up the Space's list entry.
 	providerAcc := r.session.GetProviderAccount()
 	soFeature, err := sobject.GetSharedObjectProviderAccountFeature(ctx, providerAcc)
 	if err != nil {
 		return nil, nil, err
 	}
-
 	soListCtr, relSoListCtr, err := soFeature.AccessSharedObjectList(ctx, nil)
 	if err != nil {
 		return nil, nil, err
 	}
 	defer relSoListCtr()
-
-	soListEntry, err := r.lookupSharedObjectListEntry(ctx, soFeature, soListCtr, spaceID)
+	soListEntry, err := lookupSharedObjectListEntry(ctx, soFeature, soListCtr, spaceID)
 	if err != nil {
 		return nil, nil, err
 	}
+
+	// Use the listed block store, or derive the cloud one for an unlisted Space.
 	var blockStoreID string
 	if soListEntry != nil {
 		blockStoreID = soListEntry.GetRef().GetBlockStoreId()
@@ -1302,6 +1303,8 @@ func (r *SessionResource) mountInviteHost(
 			"lookup shared object list entry",
 		)
 	}
+
+	// Mount the SharedObject in the Session's account.
 	sessRef := r.session.GetSessionRef().GetProviderResourceRef()
 	soRef := &sobject.SharedObjectRef{
 		ProviderResourceRef: &provider.ProviderResourceRef{
@@ -1311,24 +1314,23 @@ func (r *SessionResource) mountInviteHost(
 		},
 		BlockStoreId: blockStoreID,
 	}
-
 	mountedSo, mountedSoRef, err := sobject.ExMountSharedObject(ctx, r.session.GetBus(), soRef, false, nil)
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "mount shared object")
 	}
 
+	// Require the invite host interface.
 	ih, ok := mountedSo.(sobject.InviteHost)
 	if !ok {
 		mountedSoRef.Release()
 		return nil, nil, errors.New("shared object does not support invites")
 	}
-
 	return ih, mountedSoRef.Release, nil
 }
 
 // lookupSharedObjectListEntry resolves a shared object list entry and forces a
 // fresh cloud snapshot before returning not found.
-func (r *SessionResource) lookupSharedObjectListEntry(
+func lookupSharedObjectListEntry(
 	ctx context.Context,
 	soFeature sobject.SharedObjectProvider,
 	soListCtr ccontainer.Watchable[*sobject.SharedObjectList],

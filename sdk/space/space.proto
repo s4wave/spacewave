@@ -282,6 +282,8 @@ message AvailablePlugin {
   string description = 2;
   // Revision is the highest manifest revision available for the plugin.
   string revision = 3;
+  // Background reports that the plugin can run in the background.
+  bool background = 4;
 }
 
 // SpacePluginLifecycleState is the app-facing lifecycle projection for a plugin.

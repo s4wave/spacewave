@@ -18,28 +18,29 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// testEnv is a testbed with a local provider and a Session controller.
 type testEnv struct {
 	tb       *testbed.Testbed
 	prov     *provider_local.Provider
 	sessCtrl session.SessionController
 }
 
+// setupTestEnv builds a testEnv whose controllers stop with the test.
 func setupTestEnv(ctx context.Context, t *testing.T) *testEnv {
+	// Start the testbed.
 	t.Helper()
-
 	tb, err := testbed.Default(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	// Register the controller factories.
 	tb.StaticResolver.AddFactory(session_controller.NewFactory(tb.Bus))
 	tb.StaticResolver.AddFactory(provider_local.NewFactory(tb.Bus))
 	tb.StaticResolver.AddFactory(space_sobject.NewFactory(tb.Bus))
 	tb.StaticResolver.AddFactory(sobject_world_engine.NewFactory(tb.Bus))
 
-	peerID := tb.Volume.GetPeerID()
-	providerID := "local"
-
+	// Load the Session controller.
 	_, sessCtrlRef, err := tb.Bus.AddDirective(resolver.NewLoadControllerWithConfig(&session_controller.Config{
 		VolumeId: tb.EngineVolumeID,
 	}), nil)
@@ -48,6 +49,9 @@ func setupTestEnv(ctx context.Context, t *testing.T) *testEnv {
 	}
 	t.Cleanup(sessCtrlRef.Release)
 
+	// Load the local provider on the testbed volume.
+	peerID := tb.Volume.GetPeerID()
+	providerID := "local"
 	_, provCtrlRef, err := tb.Bus.AddDirective(resolver.NewLoadControllerWithConfig(&provider_local.Config{
 		ProviderId: providerID,
 		PeerId:     peerID.String(),
@@ -58,18 +62,24 @@ func setupTestEnv(ctx context.Context, t *testing.T) *testEnv {
 	}
 	t.Cleanup(provCtrlRef.Release)
 
+	// Load the Space body controller.
+	_, spaceCtrlRef, err := tb.Bus.AddDirective(resolver.NewLoadControllerWithConfig(&space_sobject.Config{}), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(spaceCtrlRef.Release)
+
+	// Look up the provider and Session controller.
 	prov, provRef, err := provider.ExLookupProvider(ctx, tb.Bus, providerID, false, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 	t.Cleanup(provRef.Release)
-
 	sessCtrl, sessCtrlLookupRef, err := session.ExLookupSessionController(ctx, tb.Bus, "", false, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 	t.Cleanup(sessCtrlLookupRef.Release)
-
 	return &testEnv{
 		tb:       tb,
 		prov:     prov.(*provider_local.Provider),

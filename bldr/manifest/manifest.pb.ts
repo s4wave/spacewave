@@ -49,6 +49,13 @@ export interface ManifestMeta {
    * @generated from field: string description = 5;
    */
   description?: string
+  /**
+   * Background declares that the plugin can run without an open view.
+   * A Session runs it in the background only after its user confirms.
+   *
+   * @generated from field: bool background = 6;
+   */
+  background?: boolean
 }
 
 export const ManifestMeta: MessageType<ManifestMeta> =
@@ -60,6 +67,7 @@ export const ManifestMeta: MessageType<ManifestMeta> =
       { no: 3, name: 'platform_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 4, name: 'rev', kind: 'scalar', T: ScalarType.UINT64 },
       { no: 5, name: 'description', kind: 'scalar', T: ScalarType.STRING },
+      { no: 6, name: 'background', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
   })
 
