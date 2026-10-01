@@ -3532,6 +3532,7 @@ self.onmessage = async (event) => {
     go.importObject.gojs['bldr.opfs.acquireWebLock'] ??= (opID, namePtr, nameLen, exclusive, ifAvailable) => {
       const resolve = self.__BLDR_TINYGO_EXPORT(go, 'BLDR_OPFS_WEB_LOCK_RESOLVE')
       const reject = self.__BLDR_TINYGO_EXPORT(go, 'BLDR_OPFS_WEB_LOCK_REJECT')
+      const released = self.__BLDR_TINYGO_EXPORT(go, 'BLDR_OPFS_WEB_LOCK_RELEASED')
       const locks = self.navigator?.locks
       if (!locks) {
         self.__BLDR_TINYGO_DEFER(() => self.__BLDR_TINYGO_CALL_EXPORT(go, reject, opID, 0))
@@ -3548,6 +3549,7 @@ self.onmessage = async (event) => {
       const name = self.__BLDR_TINYGO_READ_STRING(go, namePtr, nameLen)
       const request = { abort }
       self.__BLDR_TINYGO_WEB_LOCK_REQUESTS.set(opID, request)
+      let acquired = false
       locks.request(name, opts, (lock) => {
         if (ifAvailable && !lock) {
           self.__BLDR_TINYGO_WEB_LOCK_REQUESTS.delete(opID)
@@ -3560,9 +3562,14 @@ self.onmessage = async (event) => {
             self.__BLDR_TINYGO_WEB_LOCK_REQUESTS.delete(opID)
             return
           }
+          acquired = true
           const releaseID = self.__BLDR_TINYGO_STORE_WEB_LOCK_RELEASE(releaseLock, opID)
           self.__BLDR_TINYGO_DEFER(() => self.__BLDR_TINYGO_CALL_EXPORT(go, resolve, opID, releaseID, 1))
         })
+      }).then(() => {
+        if (acquired) {
+          self.__BLDR_TINYGO_DEFER(() => self.__BLDR_TINYGO_CALL_EXPORT(go, released, opID))
+        }
       }).catch((reason) => {
         self.__BLDR_TINYGO_WEB_LOCK_REQUESTS.delete(opID)
         if (request.canceled) {

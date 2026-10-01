@@ -1684,7 +1684,7 @@ export function installTinyGoJSHelpers(go: TinyGoRuntime): void {
       name: string,
       mode: LockMode,
       ifAvailable: boolean,
-      resolve: (release: () => void, acquired: boolean) => void,
+      resolve: (release: () => Promise<void>, acquired: boolean) => void,
       reject: (code: number) => void,
     ) => void
     BLDR_TINYGO_PUSH_BYTES?: (
@@ -1760,7 +1760,7 @@ export function installTinyGoJSHelpers(go: TinyGoRuntime): void {
     name: string,
     mode: LockMode,
     ifAvailable: boolean,
-    resolve: (release: () => void, acquired: boolean) => void,
+    resolve: (release: () => Promise<void>, acquired: boolean) => void,
     reject: (code: number) => void,
   ) => {
     const locks = (globalThis.navigator as NavigatorWithLocks | undefined)
@@ -1785,27 +1785,33 @@ export function installTinyGoJSHelpers(go: TinyGoRuntime): void {
       released = true
       releaseTinyGoBudgetOwnerCount(generation, 'web-lock-requests')
     }
-    locks
-      .request(name, lockOptions, (lock) => {
-        if (ifAvailable && !lock) {
-          releaseBudget()
-          deferTinyGoCallback(() => resolve(() => {}, false))
-          return undefined
-        }
-        return new Promise<void>((releaseLock) => {
-          deferTinyGoCallback(() =>
-            resolve(() => {
-              releaseBudget()
-              releaseLock()
-            }, true),
-          )
-        })
-      })
-      .catch((reason) => {
+    // The request promise settles after the browser frees the lock, so the
+    // release callback returns it as the freed signal.
+    const request = locks.request(name, lockOptions, (lock) => {
+      if (ifAvailable && !lock) {
         releaseBudget()
-        const code = tinyGoPromiseErrorCode(reason)
-        deferTinyGoCallback(() => reject(code))
+        deferTinyGoCallback(() => resolve(() => Promise.resolve(), false))
+        return undefined
+      }
+      return new Promise<void>((releaseLock) => {
+        deferTinyGoCallback(() =>
+          resolve(() => {
+            releaseBudget()
+            releaseLock()
+            return freed
+          }, true),
+        )
       })
+    })
+    const freed = request.then(
+      () => undefined,
+      () => undefined,
+    )
+    request.catch((reason) => {
+      releaseBudget()
+      const code = tinyGoPromiseErrorCode(reason)
+      deferTinyGoCallback(() => reject(code))
+    })
   }
   g.BLDR_TINYGO_PUSH_BYTES ??= (
     sink: { push: (message: Uint8Array) => void },
@@ -2105,7 +2111,8 @@ export function patchTinyGoRuntimeImports(go: TinyGoRuntime) {
   ) => {
     const resolve = tinyGoExport(go, 'BLDR_OPFS_WEB_LOCK_RESOLVE')
     const reject = tinyGoExport(go, 'BLDR_OPFS_WEB_LOCK_REJECT')
-    if (!resolve || !reject) {
+    const released = tinyGoExport(go, 'BLDR_OPFS_WEB_LOCK_RELEASED')
+    if (!resolve || !reject || !released) {
       throw new Error('TinyGo WebLock callback exports are not initialized')
     }
     const locks = (globalThis.navigator as NavigatorWithLocks | undefined)
@@ -2138,6 +2145,7 @@ export function patchTinyGoRuntimeImports(go: TinyGoRuntime) {
       tinyGoWebLockRequestGenerations.set(opID, generation)
       addTinyGoBudgetOwnerCount(generation, 'web-lock-requests')
     }
+    let acquired = false
     locks
       .request(name, lockOptions, (lock) => {
         if (ifAvailable && !lock) {
@@ -2155,11 +2163,18 @@ export function patchTinyGoRuntimeImports(go: TinyGoRuntime) {
             releaseTinyGoBudgetOwnerCount(generation, 'web-lock-requests')
             return
           }
+          acquired = true
           const releaseID = storeTinyGoWebLockRelease(releaseLock, opID)
           deferTinyGoCallback(() =>
             callTinyGoExport(go, resolve, opID, releaseID, 1),
           )
         })
+      })
+      .then(() => {
+        // The request promise settles after the browser frees the lock.
+        if (acquired) {
+          deferTinyGoCallback(() => callTinyGoExport(go, released, opID))
+        }
       })
       .catch((reason) => {
         tinyGoWebLockRequests.delete(opID)

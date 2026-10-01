@@ -32,7 +32,7 @@ type TinyGoHelperGlobal = typeof globalThis & {
     name: string,
     mode: LockMode,
     ifAvailable: boolean,
-    resolve: (release: () => void, acquired: boolean) => void,
+    resolve: (release: () => Promise<void>, acquired: boolean) => void,
     reject: (code: number) => void,
   ) => void
   BLDR_TINYGO_PUSH_BYTES?: (
@@ -296,6 +296,10 @@ describe('patchTinyGoRuntimeImports', () => {
       acquired: number
     }> = []
     const rejected: Array<{ opID: number; code: number }> = []
+    let lockReleased!: (opID: number) => void
+    const lockReleasedDone = new Promise<number>((resolve) => {
+      lockReleased = resolve
+    })
     const callbackOrder: string[] = []
     let exportMicrotask!: () => void
     let schedulerCallback!: () => void
@@ -311,8 +315,7 @@ describe('patchTinyGoRuntimeImports', () => {
         _options: LockOptions,
         callback: (lock: Lock | null) => unknown,
       ) => {
-        callback({ name: lockName, mode: 'exclusive' })
-        return Promise.resolve()
+        return Promise.resolve(callback({ name: lockName, mode: 'exclusive' }))
       },
     )
     vi.stubGlobal('navigator', { locks: { request } })
@@ -339,6 +342,7 @@ describe('patchTinyGoRuntimeImports', () => {
           BLDR_OPFS_WEB_LOCK_REJECT: (opID: number, code: number) => {
             rejected.push({ opID, code })
           },
+          BLDR_OPFS_WEB_LOCK_RELEASED: (opID: number) => lockReleased(opID),
           go_scheduler: () => {
             callbackOrder.push('scheduler')
             schedulerCallback()
@@ -386,6 +390,7 @@ describe('patchTinyGoRuntimeImports', () => {
     ])
     expect(release(1)).toBe(1)
     expect(release(1)).toBe(0)
+    await expect(lockReleasedDone).resolves.toBe(17)
   })
 
   it('adds TinyGo OPFS imports backed by wasm memory and js.Value refs', async () => {

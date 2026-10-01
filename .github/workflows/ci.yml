@@ -242,13 +242,20 @@ jobs:
           bun run check:go:startup-trace
           bun run lint:go:db
 
-      # Go tests (about 266s with -p=1), the js/wasm vet, and the JavaScript
-      # tests and lint.
+      # wasmbrowsertest runs js/wasm Go test binaries in the runner's Chrome.
+      - name: Install wasmbrowsertest
+        if: ${{ matrix.stage.name == 'tests' }}
+        run: |
+          go install github.com/agnivade/wasmbrowsertest@v0.11.1-0.20260401060528-c1147604d97a
+          mv "$(go env GOPATH)/bin/wasmbrowsertest" "$(go env GOPATH)/bin/go_js_wasm_exec"
+
+      # Go tests (about 266s with -p=1), the js-only Go tests in Chrome, and the
+      # JavaScript tests and lint.
       - name: Test db
         if: ${{ matrix.stage.name == 'tests' }}
         run: |
           bun run test:go:db
-          GOOS=js GOARCH=wasm go vet ./db/block/gc/...
+          bun run test:go:db:js
           bun run test:js:db
           bun run lint:js:db
 

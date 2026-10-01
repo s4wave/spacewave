@@ -5,19 +5,28 @@ package opfs
 import (
 	"context"
 	"sync"
-	"syscall/js"
 
 	"github.com/s4wave/spacewave/db/coord"
+	db_opfs "github.com/s4wave/spacewave/db/opfs"
 )
 
+// lease is a logical write lease held under an exclusive Web Lock.
 type lease struct {
-	c              *Coordinator
-	scope          coord.Scope
-	inner          coord.WriteLease
-	releaseWebLock func()
-	mtx            sync.Mutex
-	released       bool
-	releaseErr     error
+	// c is the coordinator that granted the lease.
+	c *Coordinator
+	// scope is the leased write scope.
+	scope coord.Scope
+	// inner is the local logical lease.
+	inner coord.WriteLease
+	// webLock is the exclusive Web Lock that spans contexts.
+	webLock *db_opfs.WebLockResult
+
+	// mtx guards released and releaseErr.
+	mtx sync.Mutex
+	// released is set by the first Release.
+	released bool
+	// releaseErr is the result of the first Release.
+	releaseErr error
 }
 
 // Done returns the inner lease channel, closed when Release completes the
@@ -69,28 +78,25 @@ func (l *lease) Publish(ctx context.Context, event coord.Event) (*coord.Snapshot
 	return snapshot, nil
 }
 
+// Release frees the Web Lock and the inner lease. It returns after the browser
+// frees the Web Lock, so another context can acquire the lease at once. A
+// canceled ctx does not stop the release.
 func (l *lease) Release(ctx context.Context) error {
+	// Release once, returning the first result on later calls.
 	l.mtx.Lock()
 	defer l.mtx.Unlock()
 	if l.released {
 		return l.releaseErr
 	}
 	l.released = true
-	l.releaseWebLock()
-	waitForWebLockRelease()
+
+	// Free the Web Lock and wait until the browser has freed it.
+	l.webLock.Release()
+	<-l.webLock.Released
+
+	// Release the local logical lease.
 	l.releaseErr = l.inner.Release(context.Background())
 	return l.releaseErr
-}
-
-func waitForWebLockRelease() {
-	done := make(chan struct{})
-	callback := js.FuncOf(func(js.Value, []js.Value) any {
-		close(done)
-		return nil
-	})
-	defer callback.Release()
-	js.Global().Call("queueMicrotask", callback)
-	<-done
 }
 
 // _ is a type assertion

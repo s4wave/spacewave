@@ -5,9 +5,11 @@ package opfs
 import (
 	"context"
 
+	"github.com/pkg/errors"
+
 	"github.com/s4wave/spacewave/db/coord"
 	coord_inmem "github.com/s4wave/spacewave/db/coord/inmem"
-	"github.com/s4wave/spacewave/db/opfs/filelock"
+	db_opfs "github.com/s4wave/spacewave/db/opfs"
 )
 
 // GenerationSource reads the latest committed storage generation.
@@ -121,18 +123,18 @@ func (c *Coordinator) TryAcquireWriteLease(ctx context.Context, scope coord.Scop
 	}
 
 	// Acquire the Web Lock before claiming the inner logical lease.
-	releaseWebLock, acquired, err := filelock.AcquireWebLockIfAvailable(writeLockName(c.lockPrefix, scope), true)
-	if err != nil || !acquired {
-		return nil, acquired, err
+	webLock, err := db_opfs.DefaultDriver.AcquireWebLockIfAvailable(ctx, writeLockName(c.lockPrefix, scope), true)
+	if err != nil || webLock.Outcome != db_opfs.WebLockOutcomeAcquired {
+		return nil, false, err
 	}
 
 	// Claim the inner lease and release Web Lock state on failure.
 	inner, ok, err := c.inner.TryAcquireWriteLease(ctx, scope)
 	if err != nil || !ok {
-		releaseWebLock()
+		webLock.Release()
 		return nil, ok, err
 	}
-	return &lease{c: c, scope: scope, inner: inner, releaseWebLock: releaseWebLock}, true, nil
+	return &lease{c: c, scope: scope, inner: inner, webLock: webLock}, true, nil
 }
 
 // WaitAcquireWriteLease waits until the OPFS logical write lease is available.
@@ -144,12 +146,15 @@ func (c *Coordinator) WaitAcquireWriteLease(ctx context.Context, scope coord.Sco
 	}
 
 	// Acquire the Web Lock and roll back the inner lease on failure.
-	releaseWebLock, err := filelock.AcquireWebLockContext(ctx, writeLockName(c.lockPrefix, scope), true)
+	webLock, err := db_opfs.DefaultDriver.AcquireWebLock(ctx, writeLockName(c.lockPrefix, scope), true)
+	if err == nil && webLock.Outcome != db_opfs.WebLockOutcomeAcquired {
+		err = errors.Errorf("write lease Web Lock request ended with outcome %d", webLock.Outcome)
+	}
 	if err != nil {
 		_ = inner.Release(context.Background())
 		return nil, err
 	}
-	return &lease{c: c, scope: scope, inner: inner, releaseWebLock: releaseWebLock}, nil
+	return &lease{c: c, scope: scope, inner: inner, webLock: webLock}, nil
 }
 
 // generation reads the durable logical revision or the standalone local source.

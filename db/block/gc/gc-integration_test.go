@@ -81,8 +81,15 @@ func (h *testHarness) cleanup() {
 }
 
 // newGCStoreOps creates a GCStoreOps wired to the harness block store,
-// GC graph, and journal appender, under the given parent IRI.
+// GC graph, and journal appender, under the given parent IRI. It roots the
+// parent as a bucket handle does, so the marker reaches the parent's blocks.
 func (h *testHarness) newGCStoreOps(parentIRI string) *block_gc.GCStoreOps {
+	// Root the parent node.
+	if err := h.gcGraph.AddRef(context.Background(), block_gc.NodeGCRoot, parentIRI); err != nil {
+		h.t.Errorf("root %s: %v", parentIRI, err)
+	}
+
+	// Track the parent's block writes in the graph and journal.
 	ops := block_gc.NewGCStoreOpsWithParentAndTraceTask(
 		h.blkStore,
 		h.gcGraph,
@@ -117,10 +124,10 @@ func (s *sweepTarget) DeleteObject(_ context.Context, _ string) error {
 // runs a sweep cycle, and verifies unreachable blocks are deleted
 // while reachable blocks survive.
 func TestGCIntegrationSweepUnreachable(t *testing.T) {
+	// Open a harness with a rooted bucket.
 	h := newTestHarness(t, "test-gc-integ-sweep")
 	defer h.cleanup()
 	ctx := context.Background()
-
 	bucketIRI := block_gc.BucketIRI("test-bucket")
 	ops := h.newGCStoreOps(bucketIRI)
 
@@ -166,6 +173,9 @@ func TestGCIntegrationSweepUnreachable(t *testing.T) {
 	if err := ops.RmBlock(ctx, ref2); err != nil {
 		t.Fatal(err)
 	}
+	if err := ops.FlushPending(ctx); err != nil {
+		t.Fatal(err)
+	}
 
 	// Run sweep.
 	target := &sweepTarget{blk: h.blkStore}
@@ -179,6 +189,7 @@ func TestGCIntegrationSweepUnreachable(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Log the sweep counts.
 	t.Logf("sweep result: WAL1=%d WAL2=%d candidates=%d rescued=%d swept=%d",
 		result.WALEntriesPhase1, result.WALEntriesPhase2,
 		result.SweepCandidates, result.Rescued, result.Swept)
