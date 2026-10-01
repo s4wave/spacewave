@@ -146,7 +146,11 @@ if [ "$#" -gt 0 ]; then
 	# The compile check (tests included) and the aptre lint both read the same
 	# packages and share the purego build cache that go fix above just warmed, so
 	# run them in parallel. Capture each output and fail the commit if either
-	# fails, printing both logs.
+	# fails, printing both logs. The lint loads packages from vendor/
+	# (.golangci.yml), which a linked worktree lacks until it is vendored.
+	if [ ! -d vendor ]; then
+		go mod vendor
+	fi
 	compile_out=$(mktemp)
 	lint_out=$(mktemp)
 	GOFLAGS="-mod=mod -tags=purego" go test -run '^$' "$@" >"$compile_out" 2>&1 &
