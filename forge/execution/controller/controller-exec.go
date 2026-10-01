@@ -7,6 +7,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
+	"github.com/aperturerobotics/util/backoff"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/world"
 	forge_execution "github.com/s4wave/spacewave/forge/execution"
@@ -38,13 +39,54 @@ func (c *Controller) executeWithConfig(rctx context.Context, execConf *ExecConfi
 		return context.Canceled
 	}
 
-	completeTx, err := c.busEngine.NewTransaction(rctx, true)
+	// Retry the durable completion until it commits. A failed write, such as
+	// a full disk, must not leave the Execution running with no routine.
+	bo := (&backoff.Backoff{}).Construct()
+	for {
+		err := c.completeExecution(rctx, execConf, execErr)
+		var drainErr *drainError
+		if err == nil || errors.As(err, &drainErr) {
+			return err
+		}
+		if rctx.Err() != nil {
+			return context.Canceled
+		}
+		c.le.WithError(err).Warn("retrying execution completion")
+		select {
+		case <-rctx.Done():
+			return context.Canceled
+		case <-time.After(bo.NextBackOff()):
+		}
+	}
+}
+
+// drainError reports a canceled execution whose target failed while draining.
+// Retrying its completion cannot succeed.
+type drainError struct {
+	err error
+}
+
+// Error returns the drain failure message.
+func (e *drainError) Error() string {
+	return "drain canceled execution: " + e.err.Error()
+}
+
+// Unwrap returns the target failure.
+func (e *drainError) Unwrap() error {
+	return e.err
+}
+
+// completeExecution records the execution result in one World transaction.
+func (c *Controller) completeExecution(ctx context.Context, execConf *ExecConfig, execErr error) error {
+	// Open the write transaction that records the result.
+	completeTx, err := c.busEngine.NewTransaction(ctx, true)
 	if err != nil {
 		return err
 	}
 	defer completeTx.Discard()
 
-	exec, execObjState, err := forge_execution.LookupExecution(rctx, completeTx, c.conf.GetObjectKey())
+	// Read the durable Execution state.
+	exec, execObjState, err := forge_execution.LookupExecution(ctx, completeTx, c.conf.GetObjectKey())
 	defer world.ReleaseObjectState(execObjState)
 	if err != nil {
 		return err
@@ -61,30 +103,31 @@ func (c *Controller) executeWithConfig(rctx context.Context, execConf *ExecConfi
 		}
 	}
 
+	// Choose the result from the cancellation state and the target outcome.
 	var res *forge_value.Result
-	if canceling {
-		if execErr != nil && !errors.Is(execErr, context.Canceled) {
-			return errors.Wrap(execErr, "drain canceled execution")
-		}
+	switch {
+	case canceling && execErr != nil && !errors.Is(execErr, context.Canceled):
+		return &drainError{err: execErr}
+	case canceling:
 		c.le.Info("marking execution as canceled after drain")
 		res = forge_value.NewResultWithCanceled(errors.New("execution canceled"))
-	} else if execErr != nil {
+	case execErr != nil:
 		c.le.WithError(execErr).Warn("marking execution as failed w/ error")
 		res = forge_value.NewResultWithError(execErr)
-	} else {
+	default:
 		c.le.Info("marking execution as complete")
 		res = forge_value.NewResultWithSuccess()
 	}
 
+	// Apply the completion under the execution's claim and commit it.
 	txd := execution_transaction.NewTxComplete(
 		res,
 		execConf.GetExecution().GetClaim(),
 	)
-	if _, _, err := execObjState.ApplyObjectOp(rctx, txd, c.peerID); err != nil {
+	if _, _, err := execObjState.ApplyObjectOp(ctx, txd, c.peerID); err != nil {
 		return err
 	}
-
-	return completeTx.Commit(rctx)
+	return completeTx.Commit(ctx)
 }
 
 // processExec processes the exec portion of the Target config.
