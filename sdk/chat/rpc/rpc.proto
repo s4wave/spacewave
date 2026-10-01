@@ -58,6 +58,8 @@ message ChatMessageInfo {
   .spacewave.chat.ChatMessageContent content = 7;
   // PersonId is the accepted entity ID or local-only device ID.
   string person_id = 8;
+  // RedactedByKey is the redaction message that removed this body, empty while intact.
+  string redacted_by_key = 9;
 }
 
 // GetChannelInfoRequest is a request for channel info.

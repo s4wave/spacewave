@@ -144,6 +144,36 @@ export const ChatAnnotation: MessageType<ChatAnnotation> =
   })
 
 /**
+ * ChatRedaction removes the body of an earlier message by the same person.
+ * The redaction is public metadata even when message bodies require encryption.
+ *
+ * @generated from message spacewave.chat.ChatRedaction
+ */
+export interface ChatRedaction {
+  /**
+   * TargetKey identifies the message whose body is removed.
+   *
+   * @generated from field: string target_key = 1;
+   */
+  targetKey?: string
+  /**
+   * Reason is an optional public explanation.
+   *
+   * @generated from field: string reason = 2;
+   */
+  reason?: string
+}
+
+export const ChatRedaction: MessageType<ChatRedaction> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'spacewave.chat.ChatRedaction',
+    fields: [
+      { no: 1, name: 'target_key', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'reason', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+  })
+
+/**
  * ChatStateChange replaces one channel state value while retaining its history.
  *
  * @generated from message spacewave.chat.ChatStateChange
@@ -276,6 +306,15 @@ export interface ChatMessageContent {
         value: ChatEvent
         case: 'event'
       }
+    | {
+        /**
+         * Redaction removes an earlier body while keeping its history position.
+         *
+         * @generated from field: spacewave.chat.ChatRedaction redaction = 6;
+         */
+        value: ChatRedaction
+        case: 'redaction'
+      }
 }
 
 export const ChatMessageContent: MessageType<ChatMessageContent> =
@@ -311,5 +350,12 @@ export const ChatMessageContent: MessageType<ChatMessageContent> =
         oneof: 'content',
       },
       { no: 5, name: 'event', kind: 'message', T: ChatEvent, oneof: 'content' },
+      {
+        no: 6,
+        name: 'redaction',
+        kind: 'message',
+        T: ChatRedaction,
+        oneof: 'content',
+      },
     ] satisfies readonly PartialFieldInfo[],
   })

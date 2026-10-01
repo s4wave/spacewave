@@ -34,3 +34,9 @@ type ChatEvent = spacewave_chat_content.ChatEvent
 
 // ChatMessageContent_Event carries a protocol message in channel history.
 type ChatMessageContent_Event = spacewave_chat_content.ChatMessageContent_Event
+
+// ChatRedaction removes an earlier body by the same person.
+type ChatRedaction = spacewave_chat_content.ChatRedaction
+
+// ChatMessageContent_Redaction carries a public redaction in channel history.
+type ChatMessageContent_Redaction = spacewave_chat_content.ChatMessageContent_Redaction
