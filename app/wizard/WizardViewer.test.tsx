@@ -8,6 +8,7 @@ import { ClusterCreateOp } from '@go/github.com/s4wave/spacewave/forge/cluster/c
 import type { ObjectWizard } from '@s4wave/sdk/world/wizard/wizard.pb.js'
 import { SpaceContext } from '@s4wave/web/contexts/contexts.js'
 import { SpaceContainerContext } from '@s4wave/web/contexts/SpaceContainerContext.js'
+import { keysWorld } from '@s4wave/web/test/world-query.js'
 import {
   EXPERIMENTAL_CREATORS_STORAGE_KEY,
   setExperimentalCreatorsEnabled,
@@ -88,6 +89,7 @@ describe('WizardViewer', () => {
   const mockSpace = {}
 
   const mockSpaceWorld = {
+    ...keysWorld([]),
     applyWorldOp: mocks.applyWorldOp,
     deleteObject: mocks.deleteObject,
   }

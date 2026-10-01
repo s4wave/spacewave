@@ -13,6 +13,7 @@ import { CREATE_WIZARD_OBJECT_OP_ID } from '@s4wave/sdk/world/wizard/create-wiza
 import { DeviceTypeID } from '@s4wave/sdk/device/device.js'
 import { SshHostTypeID } from '@s4wave/sdk/sshhost/sshhost.js'
 import type { WorldQuery } from '@s4wave/sdk/world/world-query.js'
+import { keysWorld } from '@s4wave/web/test/world-query.js'
 
 import {
   AddDeviceDefaultName,
@@ -46,9 +47,11 @@ const h = vi.hoisted<{
 vi.mock('@s4wave/web/contexts/SpaceContainerContext.js', () => ({
   SpaceContainerContext: {
     useContext: () => ({
-      spaceState: { worldContents: { objects: h.objects } },
       spaceWorldResource: {},
-      spaceWorld: { applyWorldOp: h.applyWorldOp },
+      spaceWorld: {
+        ...keysWorld(() => h.objects.map((obj) => obj.objectKey)),
+        applyWorldOp: h.applyWorldOp,
+      },
       navigateToObjects: h.navigateToObjects,
     }),
   },
@@ -160,10 +163,12 @@ describe('ComputersDashboardViewer', () => {
     expect(await screen.findByText('No computers added')).toBeTruthy()
     fireEvent.click(getHeaderAddDeviceButton())
 
-    expect(h.applyWorldOp).toHaveBeenCalledWith(
-      CREATE_WIZARD_OBJECT_OP_ID,
-      expect.any(Uint8Array),
-      '',
+    await waitFor(() =>
+      expect(h.applyWorldOp).toHaveBeenCalledWith(
+        CREATE_WIZARD_OBJECT_OP_ID,
+        expect.any(Uint8Array),
+        '',
+      ),
     )
     const opData: unknown = h.applyWorldOp.mock.calls[0]?.[1]
     if (!(opData instanceof Uint8Array)) {

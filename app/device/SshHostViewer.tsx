@@ -87,8 +87,7 @@ export function SshHostViewer({
   worldState,
 }: ObjectViewerComponentProps) {
   const objectKey = getObjectKey(objectInfo)
-  const { navigateToObjects, spaceState, spaceWorld } =
-    SpaceContainerContext.useContext()
+  const { navigateToObjects, spaceWorld } = SpaceContainerContext.useContext()
   const handle = useAccessTypedHandle(
     worldState,
     objectKey,
@@ -106,19 +105,16 @@ export function SshHostViewer({
     stateResource.loading,
   )
   const pins = state?.hostKeyPins ?? []
-  const existingObjectKeys = spaceState.worldContents?.objects?.map(
-    (obj) => obj.objectKey ?? '',
-  )
 
   const handleOpenTerminal = async () => {
     if (!state) return
-    const terminalOp = buildCreateSshHostTerminalOpData({
-      host: state,
-      hostObjectKey: objectKey,
-      existingObjectKeys,
-    })
-    if (!terminalOp) return
     try {
+      const terminalOp = await buildCreateSshHostTerminalOpData({
+        host: state,
+        hostObjectKey: objectKey,
+        world: spaceWorld,
+      })
+      if (!terminalOp) return
       await spaceWorld.applyWorldOp(
         CREATE_TERMINAL_OP_ID,
         terminalOp.opData,

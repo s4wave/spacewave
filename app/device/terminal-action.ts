@@ -8,8 +8,15 @@ import {
   CreateTerminalOp,
   TerminalTargetKind,
 } from '@s4wave/sdk/terminal/terminal.pb.js'
+import type { IWorldState } from '@s4wave/sdk/world/world-state.js'
 
 import { buildObjectKey } from '../space/create-op-builders.js'
+
+// TerminalOpData is an encoded CreateTerminalOp and the key it creates.
+export interface TerminalOpData {
+  objectKey: string
+  opData: Uint8Array
+}
 
 export function findOpenableTerminalCapability(
   device?: Device,
@@ -30,8 +37,9 @@ export function isOpenableTerminalCapability(
 }
 
 // buildTerminalOpData encodes one CreateTerminalOp for a resolved terminal
-// target; labelFallback names the target kind when the source has no label.
-function buildTerminalOpData({
+// target, named with a free key read from world; labelFallback names the
+// target kind when the source has no label.
+async function buildTerminalOpData({
   label,
   labelFallback,
   targetKind,
@@ -39,7 +47,7 @@ function buildTerminalOpData({
   sshHostObjectKey,
   deviceObjectKey,
   command,
-  existingObjectKeys,
+  world,
 }: {
   label: string
   labelFallback: string
@@ -48,10 +56,10 @@ function buildTerminalOpData({
   sshHostObjectKey?: string
   deviceObjectKey?: string
   command?: string
-  existingObjectKeys?: Iterable<string | undefined>
-}): { objectKey: string; opData: Uint8Array } {
+  world: IWorldState
+}): Promise<TerminalOpData> {
   const name = `${label || labelFallback} Terminal`
-  const objectKey = buildObjectKey('terminal/', name, existingObjectKeys)
+  const objectKey = await buildObjectKey(world, 'terminal/', name)
   return {
     objectKey,
     opData: CreateTerminalOp.toBinary({
@@ -69,15 +77,15 @@ function buildTerminalOpData({
   }
 }
 
-export function buildCreateTerminalOpData({
+export async function buildCreateTerminalOpData({
   device,
   deviceObjectKey,
-  existingObjectKeys,
+  world,
 }: {
   device: Device
   deviceObjectKey: string
-  existingObjectKeys?: Iterable<string | undefined>
-}): { objectKey: string; opData: Uint8Array } | undefined {
+  world: IWorldState
+}): Promise<TerminalOpData | undefined> {
   if (!device.peerId) return undefined
   return buildTerminalOpData({
     label: device.label ?? '',
@@ -85,21 +93,21 @@ export function buildCreateTerminalOpData({
     targetKind: TerminalTargetKind.DEVICE,
     devicePeerId: device.peerId,
     deviceObjectKey,
-    existingObjectKeys,
+    world,
   })
 }
 
-export function buildCreateSshHostTerminalOpData({
+export async function buildCreateSshHostTerminalOpData({
   host,
   hostObjectKey,
-  existingObjectKeys,
+  world,
   command,
 }: {
   host: SshHost
   hostObjectKey: string
-  existingObjectKeys?: Iterable<string | undefined>
+  world: IWorldState
   command?: string
-}): { objectKey: string; opData: Uint8Array } | undefined {
+}): Promise<TerminalOpData | undefined> {
   if (!hostObjectKey) return undefined
   return buildTerminalOpData({
     label: host.label ?? '',
@@ -107,6 +115,6 @@ export function buildCreateSshHostTerminalOpData({
     targetKind: TerminalTargetKind.SSH_HOST,
     sshHostObjectKey: hostObjectKey,
     command,
-    existingObjectKeys,
+    world,
   })
 }

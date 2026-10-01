@@ -64,8 +64,7 @@ export function ForgeDashboardViewer({
     ForgeDashboardTypeID,
     ForgeDashboard,
   )
-  const { navigateToObjects, spaceState, spaceWorld } =
-    SpaceContainerContext.useContext()
+  const { navigateToObjects, spaceWorld } = SpaceContainerContext.useContext()
   const visibleWizardTypeSet = useVisibleObjectWizardTypeSet()
 
   const { entities, loading: entitiesLoading } = useForgeLinkedEntities(
@@ -148,12 +147,6 @@ export function ForgeDashboardViewer({
   const [creationError, setCreationError] = useState('')
   const canCreateCluster = visibleWizardTypeSet.has('forge/cluster')
   const canCreateJob = visibleWizardTypeSet.has('forge/job')
-  const existingObjectKeys = useMemo(
-    () =>
-      spaceState.worldContents?.objects?.map((obj) => obj.objectKey ?? '') ??
-      [],
-    [spaceState.worldContents?.objects],
-  )
 
   const openWizard = useCallback(
     async (
@@ -166,7 +159,7 @@ export function ForgeDashboardViewer({
         initialConfigData?: Uint8Array
       },
     ) => {
-      const wizardKey = buildWizardObjectKey(name, existingObjectKeys)
+      const wizardKey = await buildWizardObjectKey(spaceWorld, name)
       const opData = CreateWizardObjectOp.toBinary({
         objectKey: wizardKey,
         wizardTypeId,
@@ -180,7 +173,7 @@ export function ForgeDashboardViewer({
       await spaceWorld.applyWorldOp(CREATE_WIZARD_OBJECT_OP_ID, opData, '')
       navigateToObjects([wizardKey])
     },
-    [existingObjectKeys, navigateToObjects, spaceWorld],
+    [navigateToObjects, spaceWorld],
   )
 
   const handleToggle = useCallback(

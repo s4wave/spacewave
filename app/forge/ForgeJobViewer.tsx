@@ -65,8 +65,7 @@ export function ForgeJobViewer({
 }: ObjectViewerComponentProps) {
   const objectKey = getObjectKey(objectInfo)
   const job = useForgeBlockData(objectState, ForgeJobTypeID, Job)
-  const { spaceState, spaceWorld, navigateToObjects } =
-    SpaceContainerContext.useContext()
+  const { spaceWorld, navigateToObjects } = SpaceContainerContext.useContext()
   const [creatingTask, setCreatingTask] = useState(false)
   const [tasksView, setTasksView] = useState<'list' | 'dag'>('list')
   const visibleWizardTypeSet = useVisibleObjectWizardTypeSet()
@@ -102,17 +101,11 @@ export function ForgeJobViewer({
     if (tasks.length === 0) return 0
     return Math.round((completeTaskCount / tasks.length) * 100)
   }, [completeTaskCount, tasks.length])
-  const existingObjectKeys = useMemo(
-    () =>
-      spaceState.worldContents?.objects?.map((obj) => obj.objectKey ?? '') ??
-      [],
-    [spaceState.worldContents?.objects],
-  )
 
   const handleAddTask = useCallback(async () => {
     setCreatingTask(true)
     try {
-      const wizardKey = buildWizardObjectKey('Task', existingObjectKeys)
+      const wizardKey = await buildWizardObjectKey(spaceWorld, 'Task')
       const configData = ForgeTaskCreateOp.toBinary({
         taskKey: '',
         name: '',
@@ -138,7 +131,7 @@ export function ForgeJobViewer({
     } finally {
       setCreatingTask(false)
     }
-  }, [existingObjectKeys, spaceWorld, navigateToObjects, objectKey])
+  }, [spaceWorld, navigateToObjects, objectKey])
 
   const tasksContent = useMemo(() => {
     if (tasksView === 'list') {

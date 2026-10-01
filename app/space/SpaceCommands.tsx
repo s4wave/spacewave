@@ -47,8 +47,7 @@ export function SpaceCommands({
   const navigateSession = useSessionNavigate()
   const isTabActive = useIsTabActive()
   const openCommand = useOpenCommand()
-  const { spaceState, spaceWorld, navigateToObjects } =
-    SpaceContainerContext.useContext()
+  const { spaceWorld, navigateToObjects } = SpaceContainerContext.useContext()
   const experimentalCreatorsEnabled = useExperimentalCreatorsEnabled()
   const wizardState = useObjectWizards()
   const listWizards = useListObjectWizards()
@@ -68,12 +67,6 @@ export function SpaceCommands({
         experimentalCreatorsEnabled,
       ),
     [experimentalCreatorsEnabled, listWizards],
-  )
-  const existingObjectKeys = useMemo(
-    () =>
-      spaceState.worldContents?.objects?.map((obj) => obj.objectKey ?? '') ??
-      [],
-    [spaceState.worldContents?.objects],
   )
 
   const handleCloseSpace = useCallback(() => {
@@ -184,7 +177,7 @@ export function SpaceCommands({
 
       if (wizard.persistent && wizard.wizardTypeId) {
         const name = wizard.defaultNamePattern || wizard.displayName || 'Wizard'
-        const wizardKey = buildWizardObjectKey(name, existingObjectKeys)
+        const wizardKey = await buildWizardObjectKey(spaceWorld, name)
         const opData = CreateWizardObjectOp.toBinary({
           objectKey: wizardKey,
           wizardTypeId: wizard.wizardTypeId,
@@ -202,17 +195,13 @@ export function SpaceCommands({
       const builder = lookupCreateOpBuilder(wizard.createOpId)
       if (!builder) return
       const name = wizard.defaultNamePattern || wizard.displayName || 'Untitled'
-      const objectKey = buildObjectKey(
-        wizard.keyPrefix,
-        name,
-        existingObjectKeys,
-      )
+      const objectKey = await buildObjectKey(spaceWorld, wizard.keyPrefix, name)
       const opData = builder(objectKey, name)
       await spaceWorld.applyWorldOp(wizard.createOpId, opData, '')
       toast.success(`Created ${name}`)
       navigateToObjects([objectKey])
     },
-    [existingObjectKeys, spaceWorld, navigateToObjects, wizards, loadWizards],
+    [spaceWorld, navigateToObjects, wizards, loadWizards],
   )
 
   const handleCreateObject = useCallback(

@@ -29,7 +29,7 @@ type InventoryFilter = 'all' | 'devices' | 'hosts'
 const noKeys: string[] = []
 
 export function ComputersDashboardViewer(_props: ObjectViewerComponentProps) {
-  const { navigateToObjects, spaceState, spaceWorld, spaceWorldResource } =
+  const { navigateToObjects, spaceWorld, spaceWorldResource } =
     SpaceContainerContext.useContext()
   const visibleWizardTypeSet = useVisibleObjectWizardTypeSet()
   const computers = useWorldQuery(
@@ -47,11 +47,6 @@ export function ComputersDashboardViewer(_props: ObjectViewerComponentProps) {
   const devices = computers?.devices ?? noKeys
   const hosts = computers?.hosts ?? noKeys
   const seededAddDeviceWizardKey = computers?.wizards[0] ?? ''
-  const rawObjects = spaceState.worldContents?.objects
-  const existingObjectKeys = useMemo(
-    () => rawObjects?.map((obj) => obj.objectKey ?? '') ?? [],
-    [rawObjects],
-  )
   const canCreateAddDeviceWizard = visibleWizardTypeSet.has(DeviceTypeID)
   // Until the World answers, a click could not tell a seeded wizard apart from
   // none and would create a duplicate.
@@ -74,19 +69,19 @@ export function ComputersDashboardViewer(_props: ObjectViewerComponentProps) {
       setOpening(false)
       return
     }
-    const wizardKey = buildWizardObjectKey(
-      AddDeviceDefaultName,
-      existingObjectKeys,
-    )
-    const opData = CreateWizardObjectOp.toBinary({
-      objectKey: wizardKey,
-      wizardTypeId: AddDeviceWizardTypeID,
-      targetTypeId: DeviceTypeID,
-      targetKeyPrefix: AddDeviceWizardTargetKeyPrefix,
-      name: AddDeviceDefaultName,
-      timestamp: new Date(),
-    })
     try {
+      const wizardKey = await buildWizardObjectKey(
+        spaceWorld,
+        AddDeviceDefaultName,
+      )
+      const opData = CreateWizardObjectOp.toBinary({
+        objectKey: wizardKey,
+        wizardTypeId: AddDeviceWizardTypeID,
+        targetTypeId: DeviceTypeID,
+        targetKeyPrefix: AddDeviceWizardTargetKeyPrefix,
+        name: AddDeviceDefaultName,
+        timestamp: new Date(),
+      })
       await spaceWorld.applyWorldOp(CREATE_WIZARD_OBJECT_OP_ID, opData, '')
       navigateToObjects([wizardKey])
     } catch {
@@ -98,7 +93,6 @@ export function ComputersDashboardViewer(_props: ObjectViewerComponentProps) {
     }
   }, [
     canCreateAddDeviceWizard,
-    existingObjectKeys,
     navigateToObjects,
     opening,
     seededAddDeviceWizardKey,

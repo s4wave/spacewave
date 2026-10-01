@@ -23,7 +23,6 @@ export interface UseWizardStateResult {
   sessionPeerId: string
   spaceWorld: ReturnType<typeof SpaceContainerContext.useContext>['spaceWorld']
   spaceSettings: SpaceSettings | undefined
-  existingObjectKeys: string[]
   navigateToObjects: ReturnType<
     typeof SpaceContainerContext.useContext
   >['navigateToObjects']
@@ -163,9 +162,6 @@ export function useWizardState(
     sessionPeerId,
     spaceWorld,
     spaceSettings: spaceState.settings,
-    existingObjectKeys:
-      spaceState.worldContents?.objects?.map((obj) => obj.objectKey ?? '') ??
-      [],
     navigateToObjects,
     wizardResource,
     configEditor,

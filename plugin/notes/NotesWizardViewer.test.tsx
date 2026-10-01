@@ -3,6 +3,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 
+import { keysWorld } from '@s4wave/web/test/world-query.js'
+
 const h = vi.hoisted(() => ({
   createNotebookClientSide: vi.fn().mockResolvedValue(undefined),
   createDocsClientSide: vi.fn().mockResolvedValue(undefined),
@@ -23,7 +25,7 @@ const h = vi.hoisted(() => ({
     name: 'Notebook',
   },
   localName: 'Notebook',
-  existingObjectKeys: [] as string[],
+  worldKeys: [] as string[],
 }))
 
 vi.mock('@s4wave/app/wizard/useWizardState.js', () => ({
@@ -34,9 +36,9 @@ vi.mock('@s4wave/app/wizard/useWizardState.js', () => ({
     creating: false,
     setCreating: h.setCreating,
     spaceWorld: {
+      ...keysWorld(() => h.worldKeys),
       deleteObject: h.deleteObject,
     },
-    existingObjectKeys: h.existingObjectKeys,
     navigateToObjects: h.navigateToObjects,
     persistDraftState: h.persistDraftState,
     handleUpdateName: h.handleUpdateName,
@@ -100,7 +102,7 @@ describe('NotesWizardViewer', () => {
       name: 'Notebook',
     }
     h.localName = 'Notebook'
-    h.existingObjectKeys = []
+    h.worldKeys = []
   })
 
   afterEach(() => {
@@ -152,7 +154,7 @@ describe('NotesWizardViewer', () => {
       name: 'Documentation',
     }
     h.localName = 'Documentation'
-    h.existingObjectKeys = ['documentation-1']
+    h.worldKeys = ['documentation-1']
     renderViewer()
 
     await user.click(screen.getByRole('button', { name: 'create' }))

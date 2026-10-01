@@ -42,6 +42,7 @@ import {
   CreateTerminalOp,
   TerminalTargetKind,
 } from '@s4wave/sdk/terminal/terminal.pb.js'
+import { keysWorld } from '@s4wave/web/test/world-query.js'
 
 import { ComputersDashboardTypeID } from './computers.js'
 
@@ -84,6 +85,7 @@ vi.mock('../wizard/useWizardState.js', () => ({
     setCreating: h.setCreating,
     sessionPeerId: '12D3KooWSession',
     spaceWorld: {
+      ...keysWorld(() => h.worldObjects.map((obj) => obj.objectKey)),
       applyWorldOp: h.applyWorldOp,
       deleteObject: h.deleteObject,
     },
@@ -91,7 +93,6 @@ vi.mock('../wizard/useWizardState.js', () => ({
       indexPath: h.spaceSettingsIndexPath,
       pluginIds: ['spacewave-web'],
     },
-    existingObjectKeys: h.worldObjects.map((obj) => obj.objectKey),
     navigateToObjects: h.navigateToObjects,
     wizardResource: { value: { updateState: h.updateState } },
     configEditor: { element: null, value: undefined },

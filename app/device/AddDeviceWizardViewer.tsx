@@ -37,6 +37,7 @@ import {
 } from '@s4wave/sdk/secret/secret.js'
 import type { Session } from '@s4wave/sdk/session/session.js'
 import type { Space } from '@s4wave/sdk/space/space.js'
+import type { IWorldState } from '@s4wave/sdk/world/world-state.js'
 import { CREATE_SSH_HOST_OP_ID } from '@s4wave/sdk/sshhost/create-ssh-host.js'
 import {
   CreateSshHostOp,
@@ -271,20 +272,18 @@ function useAddDeviceWizardController(props: ObjectViewerComponentProps) {
 
       const label = (ws.localName || state.name || 'SSH Host').trim()
       const timestamp = new Date()
-      const existingObjectKeys = new Set(ws.existingObjectKeys)
-      const hostObjectKey = buildObjectKey(
+      const hostObjectKey = await buildObjectKey(
+        ws.spaceWorld,
         'ssh-host/',
         label,
-        existingObjectKeys,
       )
-      existingObjectKeys.add(hostObjectKey)
 
       const credentials = await createSshCredentialSecrets({
         space,
         label,
         config: sshConfig,
         draft: sshCredentialDraft,
-        existingObjectKeys,
+        world: ws.spaceWorld,
         readerPublicKeyPem,
       })
       const hostKeyPins = buildSshHostKeyPins(
@@ -318,14 +317,13 @@ function useAddDeviceWizardController(props: ObjectViewerComponentProps) {
         ws.sessionPeerId,
       )
 
-      const terminal = buildCreateSshHostTerminalOpData({
+      const terminal = await buildCreateSshHostTerminalOpData({
         host,
         hostObjectKey,
-        existingObjectKeys,
+        world: ws.spaceWorld,
         command: terminalCommand,
       })
       if (terminal) {
-        existingObjectKeys.add(terminal.objectKey)
         await ws.spaceWorld.applyWorldOp(
           CREATE_TERMINAL_OP_ID,
           terminal.opData,
@@ -1326,14 +1324,14 @@ async function createSshCredentialSecrets({
   label,
   config,
   draft,
-  existingObjectKeys,
+  world,
   readerPublicKeyPem,
 }: {
   space: Space
   label: string
   config: SshHostWizardConfig
   draft: SshCredentialDraft
-  existingObjectKeys: Set<string>
+  world: IWorldState
   readerPublicKeyPem: string
 }): Promise<SshHostCredentialRefs> {
   const authMode = config.authMode ?? 'password'
@@ -1346,7 +1344,7 @@ async function createSshCredentialSecrets({
       kind: SecretKindSSHPrivateKey,
       contentType: SSHPrivateKeyContentType,
       value: draft.privateKey,
-      existingObjectKeys,
+      world,
       readerPublicKeyPem,
     })
     if (draft.passphrase.trim()) {
@@ -1357,7 +1355,7 @@ async function createSshCredentialSecrets({
         kind: SecretKindSSHPassphrase,
         contentType: SSHTextCredentialContentType,
         value: draft.passphrase,
-        existingObjectKeys,
+        world,
         readerPublicKeyPem,
       })
     }
@@ -1371,7 +1369,7 @@ async function createSshCredentialSecrets({
     kind: SecretKindSSHPassword,
     contentType: SSHTextCredentialContentType,
     value: draft.password,
-    existingObjectKeys,
+    world,
     readerPublicKeyPem,
   })
   return credentials
@@ -1384,7 +1382,7 @@ async function createSshCredentialSecret({
   kind,
   contentType,
   value,
-  existingObjectKeys,
+  world,
   readerPublicKeyPem,
 }: {
   space: Space
@@ -1393,15 +1391,14 @@ async function createSshCredentialSecret({
   kind: string
   contentType: string
   value: string
-  existingObjectKeys: Set<string>
+  world: IWorldState
   readerPublicKeyPem: string
 }): Promise<string> {
-  const objectKey = buildObjectKey(
+  const objectKey = await buildObjectKey(
+    world,
     'secret/',
     `${label} SSH ${suffix}`,
-    existingObjectKeys,
   )
-  existingObjectKeys.add(objectKey)
   await space.createSecret({
     objectKey,
     displayName: `${label} SSH ${suffix}`,

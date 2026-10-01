@@ -14,6 +14,7 @@ import {
   TerminalTargetKind,
 } from '@s4wave/sdk/terminal/terminal.pb.js'
 import { CREATE_TERMINAL_OP_ID } from '@s4wave/sdk/terminal/create-terminal.js'
+import { keysWorld } from '@s4wave/web/test/world-query.js'
 
 const h = vi.hoisted(() => ({
   applyWorldOp: vi.fn().mockResolvedValue({ seqno: 1n, sysErr: false }),
@@ -85,8 +86,10 @@ vi.mock('@aptre/bldr-sdk/hooks/useStreamingResource.js', () => ({
 vi.mock('@s4wave/web/contexts/SpaceContainerContext.js', () => ({
   SpaceContainerContext: {
     useContext: () => ({
-      spaceState: { worldContents: { objects: h.objects } },
-      spaceWorld: { applyWorldOp: h.applyWorldOp },
+      spaceWorld: {
+        ...keysWorld(() => h.objects.map((obj) => obj.objectKey)),
+        applyWorldOp: h.applyWorldOp,
+      },
       navigateToObjects: h.navigateToObjects,
     }),
   },

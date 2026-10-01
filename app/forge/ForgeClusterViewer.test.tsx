@@ -7,6 +7,7 @@ import { CreateWizardObjectOp } from '@s4wave/sdk/world/wizard/wizard.pb.js'
 import { CREATE_WIZARD_OBJECT_OP_ID } from '@s4wave/sdk/world/wizard/create-wizard.js'
 import { ForgeJobCreateOp } from '@s4wave/core/forge/job/job.pb.js'
 import { SpaceContainerContext } from '@s4wave/web/contexts/SpaceContainerContext.js'
+import { keysWorld } from '@s4wave/web/test/world-query.js'
 import { ForgeClusterViewer } from './ForgeClusterViewer.js'
 
 const mockVisibleWizardTypeSet = new Set(['forge/job'])
@@ -76,6 +77,7 @@ vi.mock('../space/useVisibleObjectWizardTypeSet.js', () => ({
 
 describe('ForgeClusterViewer', () => {
   const mockSpaceWorld = {
+    ...keysWorld([]),
     applyWorldOp: vi.fn().mockResolvedValue({ seqno: 1n, sysErr: false }),
   }
   const mockNavigateToObjects = vi.fn()

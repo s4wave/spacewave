@@ -64,7 +64,7 @@ import { getRootEnvironment } from '@s4wave/web/sdk/app/environment.js'
 import { getDebugContext } from '@s4wave/sdk/debug/context.js'
 import { markInteracted } from '@s4wave/web/state/interaction.js'
 import { mountSpace } from '@s4wave/app/space/space.js'
-import { buildWizardObjectKey } from '@s4wave/app/space/create-op-builders.js'
+import { wizardObjectKey } from '@s4wave/app/space/create-op-builders.js'
 import {
   buildV86QuickstartWizardConfig,
   buildV86QuickstartWizardKey,
@@ -1483,9 +1483,7 @@ async function initGitQuickstart(
   abortSignal?: AbortSignal,
 ): Promise<void> {
   const now = new Date()
-  const wizardKey = buildWizardObjectKey(
-    'Repository ' + now.getTime().toString(36),
-  )
+  const wizardKey = wizardObjectKey('Repository ' + now.getTime().toString(36))
   const op: CreateWizardObjectOp = {
     objectKey: wizardKey,
     wizardTypeId: 'wizard/git/repo',
@@ -1556,9 +1554,7 @@ async function initDeviceQuickstart(
   timing?: QuickstartSetupTiming,
 ): Promise<void> {
   const now = new Date()
-  const wizardKey = buildWizardObjectKey(
-    'Add Device ' + now.getTime().toString(36),
-  )
+  const wizardKey = wizardObjectKey('Add Device ' + now.getTime().toString(36))
   // eslint-disable-next-line react-doctor/async-parallel -- quickstart world ops stay ordered so routing observes the dashboard before the wizard.
   await applyQuickstartWorldOp(
     setup.spaceWorld,

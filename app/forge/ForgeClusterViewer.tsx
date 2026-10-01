@@ -71,8 +71,7 @@ export function ForgeClusterViewer({
 }: ObjectViewerComponentProps) {
   const objectKey = getObjectKey(objectInfo)
   const cluster = useForgeBlockData(objectState, ForgeClusterTypeID, Cluster)
-  const { spaceState, spaceWorld, navigateToObjects } =
-    SpaceContainerContext.useContext()
+  const { spaceWorld, navigateToObjects } = SpaceContainerContext.useContext()
   const [creatingJob, setCreatingJob] = useState(false)
   const visibleWizardTypeSet = useVisibleObjectWizardTypeSet()
   const canCreateJob = visibleWizardTypeSet.has('forge/job')
@@ -122,17 +121,11 @@ export function ForgeClusterViewer({
     }
     return map
   }, [snapshotTasks])
-  const existingObjectKeys = useMemo(
-    () =>
-      spaceState.worldContents?.objects?.map((obj) => obj.objectKey ?? '') ??
-      [],
-    [spaceState.worldContents?.objects],
-  )
 
   const handleCreateJob = useCallback(async () => {
     setCreatingJob(true)
     try {
-      const wizardKey = buildWizardObjectKey('Job', existingObjectKeys)
+      const wizardKey = await buildWizardObjectKey(spaceWorld, 'Job')
       const configData = ForgeJobCreateOp.toBinary({
         jobKey: '',
         clusterKey: objectKey,
@@ -158,7 +151,7 @@ export function ForgeClusterViewer({
     } finally {
       setCreatingJob(false)
     }
-  }, [existingObjectKeys, spaceWorld, navigateToObjects, objectKey])
+  }, [spaceWorld, navigateToObjects, objectKey])
   const handleStartJob = useCallback(
     async (jobKey: string) => {
       try {

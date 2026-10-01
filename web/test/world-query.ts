@@ -23,6 +23,28 @@ export function typedObjectsWorld(getObjects: () => TypedObject[]) {
   } as Partial<IWorldState> as IWorldState
 }
 
+// keysWorld answers listing pages from a key list. Getting keys may be a
+// function so a test can reseed between renders. Its small pages exercise
+// cursors.
+export function keysWorld(
+  keys: string[] | (() => string[]),
+  pageSize = 2,
+): IWorldState {
+  return {
+    listObjects: (prefix: string, startAfter: string, limit: number) => {
+      const sorted = [...(typeof keys === 'function' ? keys() : keys)].sort()
+      const under = sorted.filter(
+        (key) => key.startsWith(prefix) && key > startAfter,
+      )
+      const page = under.slice(0, Math.min(limit, pageSize))
+      return Promise.resolve({
+        objects: page.map((objectKey) => ({ objectKey })),
+        more: under.length > page.length,
+      })
+    },
+  } as Partial<IWorldState> as IWorldState
+}
+
 // useFakeWorldQuery stands in for useWorldQuery: it runs the query against
 // world when deps change and settles to its answer.
 export function useFakeWorldQuery<T>(

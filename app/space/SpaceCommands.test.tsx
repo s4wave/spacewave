@@ -10,6 +10,7 @@ import { DeviceTypeID } from '@s4wave/sdk/device/device.js'
 import type { SubItemsCallback } from '@s4wave/web/command/CommandContext.js'
 import { SharedObjectContext } from '@s4wave/web/contexts/contexts.js'
 import { SpaceContainerContext } from '@s4wave/web/contexts/SpaceContainerContext.js'
+import { keysWorld } from '@s4wave/web/test/world-query.js'
 import {
   EXPERIMENTAL_CREATORS_STORAGE_KEY,
   setExperimentalCreatorsEnabled,
@@ -200,7 +201,9 @@ describe('SpaceCommands', () => {
             error: null,
             retry: vi.fn(),
           }}
-          spaceWorld={{ applyWorldOp: h.applyWorldOp } as never}
+          spaceWorld={
+            { ...keysWorld([]), applyWorldOp: h.applyWorldOp } as never
+          }
           navigateToRoot={vi.fn()}
           navigateToObjects={h.navigateToObjects}
           buildObjectUrls={vi.fn()}

@@ -46,7 +46,6 @@ vi.mock('./useWizardState.js', () => ({
       indexPath: h.spaceSettingsIndexPath,
       pluginIds: ['spacewave-web'],
     },
-    existingObjectKeys: [],
     navigateToObjects: h.navigateToObjects,
     wizardResource: { value: {} },
     configEditor: { element: null, value: undefined },

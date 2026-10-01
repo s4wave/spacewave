@@ -41,10 +41,10 @@ export function ForgeJobWizardViewer(props: ObjectViewerComponentProps) {
     ws.setCreating(true)
     try {
       await ws.persistDraftState()
-      const jobKey = buildForgeObjectKey(
+      const jobKey = await buildForgeObjectKey(
+        ws.spaceWorld,
         'forge/job/',
         ws.localName,
-        ws.existingObjectKeys,
       )
       const opData = ForgeJobCreateOp.toBinary({
         jobKey,

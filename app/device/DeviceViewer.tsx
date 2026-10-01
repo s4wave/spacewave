@@ -31,8 +31,7 @@ export function DeviceViewer({
   worldState,
 }: ObjectViewerComponentProps) {
   const deviceObjectKey = getObjectKey(objectInfo)
-  const { navigateToObjects, spaceState, spaceWorld } =
-    SpaceContainerContext.useContext()
+  const { navigateToObjects, spaceWorld } = SpaceContainerContext.useContext()
 
   const handle = useAccessTypedHandle(
     worldState,
@@ -50,19 +49,15 @@ export function DeviceViewer({
   const state: Device | undefined = stateResource.value ?? undefined
   const capabilities = state?.capabilities ?? []
   const terminalCapability = findOpenableTerminalCapability(state)
-  const existingObjectKeys = spaceState.worldContents?.objects?.map(
-    (obj) => obj.objectKey ?? '',
-  )
-
   const handleOpenTerminal = async () => {
     if (!state || !terminalCapability) return
-    const terminalOp = buildCreateTerminalOpData({
-      device: state,
-      deviceObjectKey,
-      existingObjectKeys,
-    })
-    if (!terminalOp) return
     try {
+      const terminalOp = await buildCreateTerminalOpData({
+        device: state,
+        deviceObjectKey,
+        world: spaceWorld,
+      })
+      if (!terminalOp) return
       await spaceWorld.applyWorldOp(
         CREATE_TERMINAL_OP_ID,
         terminalOp.opData,

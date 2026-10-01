@@ -70,11 +70,11 @@ export function WizardViewer(props: ObjectViewerComponentProps) {
     ws.setCreating(true)
     try {
       await ws.persistDraftState()
-      const targetKey = (
+      const targetKey = await (
         state.targetTypeId?.startsWith('forge/')
           ? buildForgeObjectKey
           : buildObjectKey
-      )(targetKeyPrefix, name, ws.existingObjectKeys)
+      )(ws.spaceWorld, targetKeyPrefix, name)
       const opData = builder(targetKey, name, state.configData)
       await ws.spaceWorld.applyWorldOp(
         targetWizard.createOpId,

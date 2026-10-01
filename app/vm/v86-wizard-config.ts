@@ -2,7 +2,7 @@ import type { V86Image } from '@s4wave/sdk/vm/v86.pb.js'
 import type { V86WizardConfig } from '@s4wave/sdk/vm/v86-wizard.pb.js'
 import { V86WizardConfig_Source } from '@s4wave/sdk/vm/v86-wizard.pb.js'
 
-import { buildWizardObjectKey } from '@s4wave/app/space/create-op-builders.js'
+import { wizardObjectKey } from '@s4wave/app/space/create-op-builders.js'
 
 export interface ExistingV86ImageSource {
   imageKey: string
@@ -40,7 +40,7 @@ export function buildV86QuickstartWizardConfig(): V86WizardConfig {
 }
 
 export function buildV86QuickstartWizardKey(now: Date): string {
-  return buildWizardObjectKey('V86 VM ' + now.getTime().toString(36))
+  return wizardObjectKey('V86 VM ' + now.getTime().toString(36))
 }
 
 export function seedV86WizardConfig(

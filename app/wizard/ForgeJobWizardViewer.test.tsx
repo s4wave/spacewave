@@ -4,6 +4,7 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 
 import { ForgeJobCreateOp } from '@s4wave/core/forge/job/job.pb.js'
+import { keysWorld } from '@s4wave/web/test/world-query.js'
 import { ForgeJobWizardViewer } from './ForgeJobWizardViewer.js'
 
 const h = vi.hoisted(() => ({
@@ -35,6 +36,7 @@ vi.mock('./useWizardState.js', () => ({
     setCreating: h.setCreating,
     sessionPeerId: '12D3KooWJobPeer',
     spaceWorld: {
+      ...keysWorld(() => []),
       applyWorldOp: h.applyWorldOp,
       deleteObject: h.deleteObject,
     },

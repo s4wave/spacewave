@@ -438,7 +438,7 @@ export function VmV86WizardViewer({
   objectInfo,
   worldState,
 }: ObjectViewerComponentProps) {
-  const { spaceState, spaceWorldResource, spaceId } =
+  const { spaceWorld, spaceWorldResource, spaceId } =
     SpaceContainerContext.useContext()
   const sessionIndex = use(SessionIndexContext)
 
@@ -466,12 +466,6 @@ export function VmV86WizardViewer({
   const [operationError, setOperationError] = useState('')
   const [creationRequest, setCreationRequest] =
     useState<VmCreationRequest | null>(null)
-  const existingObjectKeys = useMemo(
-    () =>
-      spaceState.worldContents?.objects?.map((obj) => obj.objectKey ?? '') ??
-      [],
-    [spaceState.worldContents?.objects],
-  )
 
   const cfg = useMemo(() => decodeConfig(configData), [configData])
   const wizardResourceStageRef = useRef(false)
@@ -754,7 +748,7 @@ export function VmV86WizardViewer({
         imageObjectKey: cfg.imageObjectKey,
         sessionIndex,
         spaceId,
-        vmKey: buildObjectKey('vm/v86/', localName, existingObjectKeys),
+        vmKey: await buildObjectKey(spaceWorld, 'vm/v86/', localName),
         vmName: localName,
         memoryMb: cfg.memoryMb || DEFAULT_V86_MEMORY_MB,
         vgaMemoryMb: cfg.vgaMemoryMb || DEFAULT_V86_VGA_MEMORY_MB,
@@ -779,7 +773,7 @@ export function VmV86WizardViewer({
     spaceId,
     sessionIndex,
     objectKey,
-    existingObjectKeys,
+    spaceWorld,
     persistDraftState,
   ])
 

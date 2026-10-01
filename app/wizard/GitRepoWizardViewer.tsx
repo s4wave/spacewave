@@ -87,10 +87,10 @@ export function GitRepoWizardViewer(props: ObjectViewerComponentProps) {
     try {
       await ws.persistDraftState()
       const handle = ws.wizardResource.value
-      const repoKey = buildObjectKey(
+      const repoKey = await buildObjectKey(
+        ws.spaceWorld,
         'git/repo/',
         ws.localName,
-        ws.existingObjectKeys,
       )
       const opData = CreateGitRepoWizardOp.toBinary({
         objectKey: repoKey,

@@ -10,6 +10,7 @@ import {
   GitCloneProgressState,
   type GitCloneProgress,
 } from '@s4wave/sdk/world/wizard/wizard.pb.js'
+import { keysWorld } from '@s4wave/web/test/world-query.js'
 
 import { GitRepoWizardViewer } from './GitRepoWizardViewer.js'
 
@@ -63,6 +64,7 @@ vi.mock('./useWizardState.js', () => ({
     setCreating: h.setCreating,
     sessionPeerId: '12D3KooWGitPeer',
     spaceWorld: {
+      ...keysWorld(() => []),
       applyWorldOp: h.applyWorldOp,
       deleteObject: h.deleteObject,
     },
@@ -70,7 +72,6 @@ vi.mock('./useWizardState.js', () => ({
       indexPath: spaceSettingsIndexPath,
       pluginIds: ['spacewave-web'],
     },
-    existingObjectKeys: [],
     navigateToObjects: h.navigateToObjects,
     wizardResource: {
       value: {

@@ -4,6 +4,7 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 
 import { ForgeTaskCreateOp } from '@s4wave/core/forge/task/task.pb.js'
+import { keysWorld } from '@s4wave/web/test/world-query.js'
 import { ForgeTaskWizardViewer } from './ForgeTaskWizardViewer.js'
 
 const h = vi.hoisted(() => ({
@@ -35,6 +36,7 @@ vi.mock('./useWizardState.js', () => ({
     setCreating: h.setCreating,
     sessionPeerId: '12D3KooWTaskPeer',
     spaceWorld: {
+      ...keysWorld(() => []),
       applyWorldOp: h.applyWorldOp,
       deleteObject: h.deleteObject,
     },

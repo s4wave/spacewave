@@ -42,10 +42,10 @@ export function ForgeTaskWizardViewer(props: ObjectViewerComponentProps) {
     ws.setCreating(true)
     try {
       await ws.persistDraftState()
-      const taskKey = buildForgeObjectKey(
+      const taskKey = await buildForgeObjectKey(
+        ws.spaceWorld,
         'forge/task/',
         ws.localName,
-        ws.existingObjectKeys,
       )
       const opData = ForgeTaskCreateOp.toBinary({
         taskKey,

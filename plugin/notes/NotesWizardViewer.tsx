@@ -54,10 +54,10 @@ export function NotesWizardViewer(props: ObjectViewerComponentProps) {
     ws.setCreating(true)
     try {
       await ws.persistDraftState()
-      const targetKey = buildObjectKey(
+      const targetKey = await buildObjectKey(
+        ws.spaceWorld,
         state.targetKeyPrefix ?? '',
         name,
-        ws.existingObjectKeys,
       )
       if (targetTypeId === 'notes/notebook') {
         await createNotebookClientSide(
