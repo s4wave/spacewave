@@ -41,6 +41,15 @@ message ChatAnnotation {
   string key = 2;
 }
 
+// ChatRedaction removes the body of an earlier message by the same person.
+// The redaction is public metadata even when message bodies require encryption.
+message ChatRedaction {
+  // TargetKey identifies the message whose body is removed.
+  string target_key = 1;
+  // Reason is an optional public explanation.
+  string reason = 2;
+}
+
 // ChatStateChange replaces one channel state value while retaining its history.
 message ChatStateChange {
   // Type is an open protocol vocabulary identifying the state schema.
@@ -76,5 +85,7 @@ message ChatMessageContent {
     ChatStateChange state_change = 4;
     // Event is a protocol message body subject to channel encryption policy.
     ChatEvent event = 5;
+    // Redaction removes an earlier body while keeping its history position.
+    ChatRedaction redaction = 6;
   }
 }

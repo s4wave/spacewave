@@ -152,6 +152,13 @@ export interface ChatMessage {
    * @generated from field: string person_id = 6;
    */
   personId?: string
+  /**
+   * RedactedByKey is the redaction message that removed this body, empty while intact.
+   * A redacted body keeps only its variant, event type, and relation routing.
+   *
+   * @generated from field: string redacted_by_key = 7;
+   */
+  redactedByKey?: string
 }
 
 export const ChatMessage: MessageType<ChatMessage> =
@@ -164,6 +171,7 @@ export const ChatMessage: MessageType<ChatMessage> =
       { no: 4, name: 'reply_to_key', kind: 'scalar', T: ScalarType.STRING },
       { no: 5, name: 'index', kind: 'scalar', T: ScalarType.UINT64 },
       { no: 6, name: 'person_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 7, name: 'redacted_by_key', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
   })
 

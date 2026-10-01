@@ -48,6 +48,9 @@ message ChatMessage {
   uint64 index = 5;
   // PersonId is the accepted entity ID, or the signing device for local-only participants.
   string person_id = 6;
+  // RedactedByKey is the redaction message that removed this body, empty while intact.
+  // A redacted body keeps only its variant, event type, and relation routing.
+  string redacted_by_key = 7;
 }
 
 // ChatMessagePage stores a bounded page of channel message keys.

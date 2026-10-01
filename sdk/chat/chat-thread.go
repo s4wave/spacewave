@@ -409,7 +409,13 @@ func (r *ChatResource) writeThread(ctx context.Context, ws world.WorldState, key
 
 // writeChannel replaces channel metadata inside the caller's transaction.
 func (r *ChatResource) writeChannel(ctx context.Context, ws world.WorldState, channel *ChatChannel) error {
-	object, found, err := ws.GetObject(ctx, r.objectKey)
+	return writeObjectBody(ctx, ws, r.objectKey, channel)
+}
+
+// writeObjectBody replaces the body of an existing object.
+func writeObjectBody(ctx context.Context, ws world.WorldState, key string, body block.Block) error {
+	// Require the object to exist, then replace its root block.
+	object, found, err := ws.GetObject(ctx, key)
 	defer world.ReleaseObjectState(object)
 	if err != nil {
 		return err
@@ -418,7 +424,7 @@ func (r *ChatResource) writeChannel(ctx context.Context, ws world.WorldState, ch
 		return world.ErrObjectNotFound
 	}
 	_, _, err = world.AccessObjectState(ctx, object, true, func(cursor *block.Cursor) error {
-		cursor.SetBlock(channel, true)
+		cursor.SetBlock(body, true)
 		return nil
 	})
 	return err

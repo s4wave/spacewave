@@ -32,6 +32,9 @@ const (
 // ErrChatAuthorIdentityRequired is returned when a message has no authenticated author.
 var ErrChatAuthorIdentityRequired = errors.New("chat author identity required")
 
+// ErrChatRedactionForbidden is returned when a redaction targets another person's message.
+var ErrChatRedactionForbidden = errors.New("chat redaction targets another person's message")
+
 // errChatStateConflict indicates that current state no longer matches a write condition.
 var errChatStateConflict = errors.New("chat state write condition conflicts with current state")
 
@@ -456,7 +459,8 @@ func (r *ChatResource) appendMessage(ctx context.Context, wtx world.WorldState, 
 		}
 		if prior != nil {
 			personID := prior.GetPersonId()
-			if prior.GetSenderPeerId() != r.localPeerID || personID != r.personID || !req.GetReuseAcceptedTransaction() && (!prior.GetContent().EqualVT(content) || prior.GetReplyToKey() != req.GetReplyToKey()) {
+			// A redacted body no longer matches its retry; the accepted identity still does.
+			if prior.GetSenderPeerId() != r.localPeerID || personID != r.personID || !req.GetReuseAcceptedTransaction() && prior.GetRedactedByKey() == "" && (!prior.GetContent().EqualVT(content) || prior.GetReplyToKey() != req.GetReplyToKey()) {
 				return nil, errors.New("chat send transaction conflicts with its accepted message")
 			}
 			return &spacewave_chat_rpc.SendMessageResponse{MessageKey: msgKey}, nil
@@ -466,7 +470,7 @@ func (r *ChatResource) appendMessage(ctx context.Context, wtx world.WorldState, 
 	// Resolve relationships only for new writes; accepted retries retain their original targets.
 	relation := content.GetCiphertext().GetRelation()
 	eventRelation := content.GetEvent().GetRelation()
-	for _, key := range []string{relation.GetTargetKey(), relation.GetReplyToKey(), eventRelation.GetTargetKey(), eventRelation.GetReplyToKey(), content.GetAnnotation().GetTargetKey()} {
+	for _, key := range []string{relation.GetTargetKey(), relation.GetReplyToKey(), eventRelation.GetTargetKey(), eventRelation.GetReplyToKey(), content.GetAnnotation().GetTargetKey(), content.GetRedaction().GetTargetKey()} {
 		if key == "" {
 			continue
 		}
@@ -479,8 +483,23 @@ func (r *ChatResource) appendMessage(ctx context.Context, wtx world.WorldState, 
 		}
 	}
 
+	// A person redacts only their own message bodies; state and redactions are permanent history.
+	var redacted *ChatMessage
+	if redaction := content.GetRedaction(); redaction != nil {
+		redacted, err = world.LookupObjectBody[*ChatMessage](ctx, wtx, redaction.GetTargetKey(), NewChatMessageBlock)
+		if err != nil {
+			return nil, err
+		}
+		if redacted.GetPersonId() != r.personID {
+			return nil, ErrChatRedactionForbidden
+		}
+		if redacted.GetContent().GetStateChange() != nil || redacted.GetContent().GetRedaction() != nil {
+			return nil, errors.New("chat state and redactions cannot be redacted")
+		}
+	}
+
 	// New bodies follow current encryption policy; accepted retries retain their original result.
-	if algorithm := channel.GetEncryptionAlgorithm(); algorithm != "" && content.GetAnnotation() == nil && content.GetStateChange() == nil && content.GetCiphertext().GetAlgorithm() != algorithm {
+	if algorithm := channel.GetEncryptionAlgorithm(); algorithm != "" && content.GetAnnotation() == nil && content.GetStateChange() == nil && content.GetRedaction() == nil && content.GetCiphertext().GetAlgorithm() != algorithm {
 		return nil, errors.New("chat message ciphertext algorithm does not match channel")
 	}
 
@@ -505,6 +524,8 @@ func (r *ChatResource) appendMessage(ctx context.Context, wtx world.WorldState, 
 	if err != nil {
 		return nil, err
 	}
+
+	// Store the message body under its reserved key.
 	msg := &ChatMessage{
 		SenderPeerId: r.localPeerID,
 		PersonId:     r.personID,
@@ -525,6 +546,8 @@ func (r *ChatResource) appendMessage(ctx context.Context, wtx world.WorldState, 
 	if err != nil {
 		return nil, err
 	}
+
+	// Type the message and link it into the channel's history.
 	if err := world_types.SetObjectType(ctx, wtx, msgKey, ChatMessageTypeID); err != nil {
 		return nil, err
 	}
@@ -559,7 +582,47 @@ func (r *ChatResource) appendMessage(ctx context.Context, wtx world.WorldState, 
 	if err := r.indexAppendedMessage(ctx, wtx, msgKey, msg); err != nil {
 		return nil, err
 	}
+
+	// The first redaction strips the target body in place; its history position remains.
+	if redacted != nil && redacted.GetRedactedByKey() == "" {
+		redacted.Content = redactChatMessageContent(redacted.GetContent())
+		redacted.RedactedByKey = msgKey
+		if err := writeObjectBody(ctx, wtx, content.GetRedaction().GetTargetKey(), redacted); err != nil {
+			return nil, err
+		}
+	}
 	return &spacewave_chat_rpc.SendMessageResponse{MessageKey: msgKey}, nil
+}
+
+// redactChatMessageContent keeps only the variant, event type, and relation routing of a body.
+// Thread and annotation indexes built from the routing stay valid after redaction.
+func redactChatMessageContent(content *ChatMessageContent) *ChatMessageContent {
+	switch value := content.GetContent().(type) {
+	case *ChatMessageContent_Ciphertext:
+		return &ChatMessageContent{Content: &ChatMessageContent_Ciphertext{Ciphertext: &ChatCiphertext{
+			Relation: redactChatRelation(value.Ciphertext.GetRelation()),
+		}}}
+	case *ChatMessageContent_Annotation:
+		return &ChatMessageContent{Content: &ChatMessageContent_Annotation{Annotation: &ChatAnnotation{
+			TargetKey: value.Annotation.GetTargetKey(),
+		}}}
+	case *ChatMessageContent_Event:
+		return &ChatMessageContent{Content: &ChatMessageContent_Event{Event: &ChatEvent{
+			Type:        value.Event.GetType(),
+			ContentJson: "{}",
+			Relation:    redactChatRelation(value.Event.GetRelation()),
+		}}}
+	default:
+		return &ChatMessageContent{Content: &ChatMessageContent_Text{}}
+	}
+}
+
+// redactChatRelation keeps the relationship type and target that index the message.
+func redactChatRelation(relation *ChatRelation) *ChatRelation {
+	if relation == nil {
+		return nil
+	}
+	return &ChatRelation{Type: relation.GetType(), TargetKey: relation.GetTargetKey()}
 }
 
 // resolveMessageState checks current-state conditions and unchanged unkeyed writes.
@@ -872,11 +935,14 @@ func (r *ChatResource) readMessage(ctx context.Context, key string) (*spacewave_
 		return nil, err
 	}
 
-	// Return the shared client projection.
+	// Summarize bodies without a plain text form for the shared client projection.
 	personID := msg.GetPersonId()
 	text := msg.GetContent().GetText()
 	if msg.GetContent().GetEvent() != nil {
 		text = "Unsupported message"
+	}
+	if msg.GetRedactedByKey() != "" {
+		text = "Message deleted"
 	}
 	if state := msg.GetContent().GetStateChange(); state != nil {
 		text = "Channel settings updated"
@@ -894,14 +960,15 @@ func (r *ChatResource) readMessage(ctx context.Context, key string) (*spacewave_
 		}
 	}
 	return &spacewave_chat_rpc.ChatMessageInfo{
-		ObjectKey:    key,
-		SenderPeerId: msg.GetSenderPeerId(),
-		PersonId:     personID,
-		Text:         text,
-		Content:      msg.GetContent().CloneVT(),
-		CreatedAt:    msg.GetCreatedAt().CloneVT(),
-		ReplyToKey:   msg.GetReplyToKey(),
-		Index:        msg.GetIndex(),
+		ObjectKey:     key,
+		SenderPeerId:  msg.GetSenderPeerId(),
+		PersonId:      personID,
+		Text:          text,
+		Content:       msg.GetContent().CloneVT(),
+		CreatedAt:     msg.GetCreatedAt().CloneVT(),
+		ReplyToKey:    msg.GetReplyToKey(),
+		Index:         msg.GetIndex(),
+		RedactedByKey: msg.GetRedactedByKey(),
 	}, nil
 }
 
@@ -946,6 +1013,10 @@ func normalizeSendMessageContent(req *spacewave_chat_rpc.SendMessageRequest) (*C
 		}
 		if err := value.Event.Validate(); err != nil {
 			return nil, err
+		}
+	case *ChatMessageContent_Redaction:
+		if value == nil || value.Redaction.GetTargetKey() == "" || len(value.Redaction.GetTargetKey()) > 4096 || len(value.Redaction.GetReason()) > 4096 {
+			return nil, errors.New("chat redaction requires a bounded target and reason")
 		}
 	default:
 		return nil, errors.New("chat message content is missing")
