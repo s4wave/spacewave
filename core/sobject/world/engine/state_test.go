@@ -27,9 +27,11 @@ import (
 )
 
 func TestExecuteProcessOpsWaitsForValidatorRole(t *testing.T) {
+	// Bound the test.
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 
+	// Start the validator routine on a writer's snapshot.
 	inspected := make(chan struct{}, 1)
 	processCalled := make(chan struct{}, 1)
 	writer := &testSharedObjectSnapshot{
@@ -48,6 +50,7 @@ func TestExecuteProcessOpsWaitsForValidatorRole(t *testing.T) {
 		done <- controller.executeProcessOpsWhenValidator(ctx, so, state)
 	}()
 
+	// The writer snapshot is inspected without validating.
 	select {
 	case <-inspected:
 	case <-ctx.Done():
@@ -59,11 +62,60 @@ func TestExecuteProcessOpsWaitsForValidatorRole(t *testing.T) {
 	default:
 	}
 
+	// Promotion to validator starts processing.
 	state.SetValue(&testSharedObjectSnapshot{
 		participant: &sobject.SOParticipantConfig{Role: sobject.SOParticipantRole_SOParticipantRole_VALIDATOR},
 	})
 	select {
 	case <-processCalled:
+	case <-ctx.Done():
+		t.Fatal(ctx.Err())
+	}
+	cancel()
+	if err := <-done; !errors.Is(err, context.Canceled) {
+		t.Fatalf("validator routine returned %v", err)
+	}
+}
+
+// TestExecuteProcessOpsWaitsForReadmission keeps the validator routine waiting
+// while its participant is removed and validates again once readmitted.
+func TestExecuteProcessOpsWaitsForReadmission(t *testing.T) {
+	// Bound the test.
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
+	// Start the validator routine on a departed participant's snapshot.
+	inspected := make(chan struct{}, 1)
+	processCalled := make(chan struct{}, 1)
+	departed := &testSharedObjectSnapshot{readErr: sobject.ErrNotParticipant, inspected: inspected}
+	state := ccontainer.NewCContainer[sobject.SharedObjectStateSnapshot](departed)
+	so := &testSharedObject{processOperations: func(ctx context.Context, _ bool, _ sobject.ProcessOpsFunc) error {
+		processCalled <- struct{}{}
+		<-ctx.Done()
+		return ctx.Err()
+	}}
+	done := make(chan error, 1)
+	go func() {
+		done <- (&Controller{}).executeProcessOpsWhenValidator(ctx, so, state)
+	}()
+
+	// The departed snapshot is inspected without ending the routine.
+	select {
+	case <-inspected:
+	case err := <-done:
+		t.Fatalf("departed participant ended the validator routine: %v", err)
+	case <-ctx.Done():
+		t.Fatal(ctx.Err())
+	}
+
+	// Readmission as a validator resumes processing.
+	state.SetValue(&testSharedObjectSnapshot{
+		participant: &sobject.SOParticipantConfig{Role: sobject.SOParticipantRole_SOParticipantRole_VALIDATOR},
+	})
+	select {
+	case <-processCalled:
+	case err := <-done:
+		t.Fatalf("validator routine returned %v", err)
 	case <-ctx.Done():
 		t.Fatal(ctx.Err())
 	}
@@ -305,13 +357,14 @@ type testSharedObjectSnapshot struct {
 	participant  *sobject.SOParticipantConfig
 	participants map[string]*sobject.SOParticipantConfig
 	inspected    chan<- struct{}
+	readErr      error
 }
 
 func (s *testSharedObjectSnapshot) GetParticipantConfig(ctx context.Context) (*sobject.SOParticipantConfig, error) {
 	if s.inspected != nil {
 		s.inspected <- struct{}{}
 	}
-	return s.participant, nil
+	return s.participant, s.readErr
 }
 
 func (s *testSharedObjectSnapshot) GetParticipantConfigForPeer(ctx context.Context, peerID string) (*sobject.SOParticipantConfig, error) {

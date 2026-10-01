@@ -30,11 +30,12 @@ func (c *Controller) executeProcessOpsWhenValidator(
 			}
 			continue
 		}
+		// A departed participant waits for readmission like a non-validator.
 		participant, err := snapshot.GetParticipantConfig(ctx)
-		if err != nil {
+		if err != nil && !isReadAccessLoss(err) {
 			return err
 		}
-		if sobject.IsValidatorOrOwner(participant.GetRole()) {
+		if err == nil && sobject.IsValidatorOrOwner(participant.GetRole()) {
 			return c.executeProcessOpsAsValidator(ctx, so)
 		}
 		if _, err := state.WaitValueChange(ctx, snapshot, nil); err != nil {

@@ -191,44 +191,62 @@ func (c *Controller) Execute(ctx context.Context) error {
 	_ = c.processOpsAsValidator.SetContext(rctx, true)
 	defer c.processOpsAsValidator.ClearContext()
 
-	// init the shared object if necessary
-	headState, err := c.loadOrInitHeadFromSharedObject(rctx, so, soStateCtr)
+	// Serve the World while this participant can read it. A participant that
+	// loses read access waits for readmission here: restarting through the
+	// controller backoff would report the stale denial to body mounts made
+	// after readmission.
+	for {
+		err := c.executeWorld(rctx, so, soStateCtr)
+		if !isReadAccessLoss(err) {
+			return err
+		}
+		le.WithError(err).Debug("waiting for read access to the shared object")
+		if err := waitReadableSnapshot(rctx, soStateCtr); err != nil {
+			return err
+		}
+	}
+}
+
+// executeWorld builds the World from the accepted head, publishes its engine,
+// and follows accepted state until an error ends it.
+func (c *Controller) executeWorld(
+	ctx context.Context,
+	so sobject.SharedObject,
+	soStateCtr ccontainer.Watchable[sobject.SharedObjectStateSnapshot],
+) error {
+	// Initialize the shared object if necessary.
+	le := c.le
+	headState, err := c.loadOrInitHeadFromSharedObject(ctx, so, soStateCtr)
 	if err != nil {
 		return err
 	}
 
-	// last check if nil
+	// The World bucket is the SharedObject block store.
 	if headState.HeadRef == nil {
 		headState.HeadRef = &bucket.ObjectRef{}
 	}
+	headState.HeadRef.BucketId = so.GetBlockStore().GetID()
 
-	// the bucket ID is equivalent to the block store id
-	bucketID := so.GetBlockStore().GetID()
-	headState.HeadRef.BucketId = bucketID
-
-	// verify transform config is not empty
+	// Blocks are unreadable without the head's transform configuration.
 	transformConf := headState.HeadRef.GetTransformConf()
 	if len(transformConf.GetSteps()) == 0 {
 		return sobject.ErrEmptyTransformConfig
 	}
 
-	// Build world state with engine
-	blkEngine, err := c.buildBlkEngine(rctx, le, so, headState.HeadRef, transformConf)
+	// Bind the head to the block store.
+	blkEngine, err := c.buildBlkEngine(ctx, le, so, headState.HeadRef, transformConf)
 	if err != nil {
 		return err
 	}
 	defer blkEngine.Release()
 
-	// Log the initial root when verbose.
-	verbose := c.conf.GetVerbose()
-	if verbose {
+	// Log the bound root and read the World sequence number.
+	if c.conf.GetVerbose() {
 		le.
 			WithField("world-root", headState.HeadRef.MarshalB58()).
 			Debug("initialized world root")
 	}
-
-	// get initial seqno
-	seqno, err := blkEngine.bengine.GetSeqno(rctx)
+	seqno, err := blkEngine.bengine.GetSeqno(ctx)
 	if err != nil {
 		return err
 	}
@@ -240,7 +258,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 		wengine = world_vlogger.NewEngine(le, wengine)
 	}
 
-	// Engine ready
+	// Publish the engine for the lifetime of this World.
 	le.WithField("world-seqno", seqno).Info("world engine ready")
 	c.engineCtr.SetValue(&wengine)
 	defer c.engineCtr.SetValue(nil)
@@ -249,11 +267,11 @@ func (c *Controller) Execute(ctx context.Context) error {
 	_, _ = c.storageReclaim.SetRoutine(func(ctx context.Context) error {
 		return c.executeStorageReclaim(ctx, so)
 	})
-	_ = c.storageReclaim.SetContext(rctx, true)
+	_ = c.storageReclaim.SetContext(ctx, true)
 	defer c.storageReclaim.ClearContext()
 
-	// Watch the SOState for changes.
-	return c.executeWatchSOState(rctx, soStateCtr, engine)
+	// Follow accepted state into the World.
+	return c.executeWatchSOState(ctx, soStateCtr, engine)
 }
 
 // HandleDirective asks if the handler can resolve the directive.
@@ -275,6 +293,15 @@ func (c *Controller) GetWorldEngine(ctx context.Context) (Engine, error) {
 		return nil, err
 	}
 	return *val, nil
+}
+
+// WaitWorldEngineReplaced waits until eng is no longer the published engine.
+// The controller replaces its engine when read access is lost and regained.
+func (c *Controller) WaitWorldEngineReplaced(ctx context.Context, eng Engine) error {
+	_, err := c.engineCtr.WaitValueWithValidator(ctx, func(current *Engine) (bool, error) {
+		return current == nil || *current != eng, nil
+	}, nil)
+	return err
 }
 
 // Close releases any resources used by the controller.

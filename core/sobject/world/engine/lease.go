@@ -13,10 +13,14 @@ type worldEngineLeaseVolumeProvider interface {
 	GetBackingVolume() volume.Volume
 }
 
+// acquireWorldEngineLease waits for the write lease on the shared object's
+// storage, which excludes concurrent World writers. It reports whether the
+// lease signals its loss.
 func (c *Controller) acquireWorldEngineLease(
 	ctx context.Context,
 	so sobject.SharedObject,
 ) (coord.WriteLease, bool, error) {
+	// Resolve the shared object's backing volume.
 	volumeProvider, ok := so.(worldEngineLeaseVolumeProvider)
 	if !ok {
 		return nil, false, errors.New("shared object does not expose its backing volume")
@@ -26,6 +30,7 @@ func (c *Controller) acquireWorldEngineLease(
 		return nil, false, errors.New("shared object backing volume is nil")
 	}
 
+	// Check that the volume supports keyed write leases.
 	scope := coord.Scope{
 		VolumeID: vol.GetID(),
 		Key:      so.GetSharedObjectID(),
@@ -37,12 +42,11 @@ func (c *Controller) acquireWorldEngineLease(
 	if capability == nil || !capability.Supported {
 		return nil, false, coord.ErrUnsupported
 	}
-	lease, acquired, err := vol.TryAcquireWriteLease(ctx, scope)
+
+	// A predecessor engine for this object releases the lease as it stops.
+	lease, err := vol.WaitAcquireWriteLease(ctx, scope)
 	if err != nil {
 		return nil, false, err
-	}
-	if !acquired {
-		return nil, false, errors.New("world engine write lease held")
 	}
 	return lease, capability.DetectsLoss, nil
 }

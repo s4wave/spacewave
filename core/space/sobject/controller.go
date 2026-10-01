@@ -61,6 +61,7 @@ func (c *Controller) HandleDirective(ctx context.Context, di directive.Instance)
 // resolveMountSharedObjectBody builds the space sobject body resolver.
 func (c *Controller) resolveMountSharedObjectBody(dir sobject.MountSharedObjectBody) ([]directive.Resolver, error) {
 	return directive.R(directive.NewAccessResolver(func(ctx context.Context, released func()) (space.MountSharedObjectBodyValue, func(), error) {
+		// Build and validate the engine configuration for this body.
 		mountRef := dir.MountSharedObjectBodyRef()
 		engineID := space.SpaceEngineId(mountRef)
 		conf := newSpaceWorldEngineConfig(mountRef, c.GetConfig())
@@ -68,19 +69,23 @@ func (c *Controller) resolveMountSharedObjectBody(dir sobject.MountSharedObjectB
 			return nil, nil, err
 		}
 
-		// mount the shared object first
+		// Mount the shared object first.
 		so, soRef, err := sobject.ExMountSharedObject(ctx, c.GetBus(), mountRef, false, released)
 		if err != nil {
 			return nil, nil, err
 		}
 
-		ctrl, _, ref, err := sobject_world_engine.StartEngineWithConfig(ctx, c.GetBus(), conf, released)
+		// The body follows the published engine below rather than the
+		// controller's run state: a restart that fails before publishing
+		// leaves the body's engine untouched.
+		ctrl, _, ref, err := sobject_world_engine.StartEngineWithConfig(ctx, c.GetBus(), conf, nil)
 		if err != nil {
 			soRef.Release()
 			return nil, nil, err
 		}
 		ctrl.SetStaticLookupOp(space_world_optypes.LookupWorldOp)
 
+		// Wait for the controller to publish its engine.
 		eng, err := ctrl.GetWorldEngine(ctx)
 		if err != nil {
 			ref.Release()
@@ -88,17 +93,22 @@ func (c *Controller) resolveMountSharedObjectBody(dir sobject.MountSharedObjectB
 			return nil, nil, err
 		}
 
-		// get bucket ID and volume ID from the shared object's block store
+		// The bucket and volume are the shared object's block store.
 		bucketID := so.GetBlockStore().GetID()
 		volumeID := so.GetBlockStore().GetID()
-
-		// construct the space body
 		body := NewSpaceBody(mountRef, engineID, bucketID, volumeID, so, eng)
-
-		// construct the mount value with the space body
 		ret := sobject.NewMountSharedObjectBodyValue(mountRef, space.SpaceBodyType, so, body)
 
+		// The body serves one engine. Resolve again when the controller
+		// unpublishes it, such as after losing read access.
+		bodyCtx, bodyCancel := context.WithCancel(ctx)
+		go func() {
+			if ctrl.WaitWorldEngineReplaced(bodyCtx, eng) == nil {
+				released()
+			}
+		}()
 		return ret, func() {
+			bodyCancel()
 			ref.Release()
 			soRef.Release()
 		}, nil
