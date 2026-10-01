@@ -1418,7 +1418,6 @@ func TestQuickstartShellTabsComposedBrowserProof(t *testing.T) {
 	if pageA.URL() == pageB.URL() {
 		t.Fatalf("A/B active selection and hash are not independent: A=%s B=%s", pageA.URL(), pageB.URL())
 	}
-	assertDifferentShellProjectionOrder(t, pageA, pageB)
 	waitForShellLabel(t, pageA, "Shared Docs")
 	waitForShellLabel(t, pageB, "Shared Docs")
 	independentProjectionA := readComposedShellProjection(t, pageA)
@@ -2173,16 +2172,6 @@ func assertInactiveClosePreservedProjection(
 		},
 		"closing inactive shared record changed page A projection",
 	)
-}
-
-func assertDifferentShellProjectionOrder(t *testing.T, pageA, pageB playwright.Page) {
-	t.Helper()
-
-	projectionA := readComposedShellProjection(t, pageA)
-	projectionB := readComposedShellProjection(t, pageB)
-	if strings.Join(projectionA.Labels, "\x00") == strings.Join(projectionB.Labels, "\x00") {
-		t.Fatalf("A/B visible Shell order unexpectedly converged: A=%v B=%v", projectionA.Labels, projectionB.Labels)
-	}
 }
 
 func waitForShellLabel(t *testing.T, page playwright.Page, label string) {

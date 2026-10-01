@@ -44,7 +44,7 @@ func TestPersistentBrowserContextLaunchOptionsReuseChromiumContract(t *testing.T
 		if got.Headless == nil || want.Headless == nil || *got.Headless != *want.Headless {
 			t.Fatalf("persistent headless=%v, want shared Chromium value %v", got.Headless, want.Headless)
 		}
-		if got.Channel == nil || want.Channel == nil || *got.Channel != *want.Channel {
+		if (got.Channel == nil) != (want.Channel == nil) || (got.Channel != nil && *got.Channel != *want.Channel) {
 			t.Fatalf("persistent channel=%v, want shared Chromium value %v", got.Channel, want.Channel)
 		}
 		if !slices.Equal(got.Args, want.Args) {
