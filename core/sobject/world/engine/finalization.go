@@ -5,6 +5,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/core/sobject"
+	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/bucket"
 )
 
@@ -32,33 +33,97 @@ func (e *soEngine) finalizeSpaceWorldCandidate(
 		return e.retainRejection(ctx, packet, SpaceWorldFinalizationStatus_SPACE_WORLD_FINALIZATION_STATUS_STALE_BASE, err)
 	}
 
-	// Submit the operation and wait for authority's decision.
-	localOpID, err := e.so.QueueOperation(ctx, opData)
-	if err != nil {
-		return nil, err
-	}
-	acceptedSeqno, rejected, err := e.so.WaitOperation(ctx, localOpID)
-	if err != nil && !rejected {
-		return nil, err
-	}
+	// Submit the operation and wait for authority's decision. A validator that
+	// finds a candidate block in no store rejects it as missing: store the
+	// candidate's blocks again and resubmit once.
+	for restored := false; ; restored = true {
+		acceptedSeqno, rejected, err := e.submitFinalization(ctx, opData)
+		if err != nil && !rejected {
+			return nil, err
+		}
+		if !rejected {
+			return e.acceptFinalization(ctx, packet, acceptedSeqno)
+		}
 
-	// A storage generation advance rejects candidates built on the older
-	// generation. The validator publishes the advance no later than the
-	// rejection, so the snapshot shows it and the follower rebuilds the
-	// candidate, uploading its blocks again.
-	if rejected {
-		_ = e.so.ClearOperationResult(ctx, localOpID)
+		// A storage generation advance rejects candidates built on the older
+		// generation. The validator publishes the advance no later than the
+		// rejection, so the snapshot shows it and the follower rebuilds the
+		// candidate, uploading its blocks again.
 		advanced, aerr := e.storageGenerationAdvanced(ctx, packet.GetOp())
 		if aerr != nil {
 			return nil, aerr
 		}
-		status := SpaceWorldFinalizationStatus_SPACE_WORLD_FINALIZATION_STATUS_REJECTED
 		if advanced {
-			status = SpaceWorldFinalizationStatus_SPACE_WORLD_FINALIZATION_STATUS_STALE_BASE
+			return e.retainRejection(ctx, packet, SpaceWorldFinalizationStatus_SPACE_WORLD_FINALIZATION_STATUS_STALE_BASE, err)
 		}
-		return e.retainRejection(ctx, packet, status, err)
+		if !errors.Is(err, block.ErrNotFound) {
+			return e.retainRejection(ctx, packet, SpaceWorldFinalizationStatus_SPACE_WORLD_FINALIZATION_STATUS_REJECTED, err)
+		}
+
+		// Restore the candidate's blocks once; a second miss stays missing.
+		missing := SpaceWorldFinalizationStatus_SPACE_WORLD_FINALIZATION_STATUS_MISSING_BLOCK
+		if restored {
+			return e.retainRejection(ctx, packet, missing, err)
+		}
+		if rerr := e.restoreCandidateBlocks(ctx, packet); rerr != nil {
+			return e.retainRejection(ctx, packet, missing, errors.Wrap(rerr, "restore candidate blocks"))
+		}
+	}
+}
+
+// submitFinalization queues opData and waits for authority's decision. It
+// clears the result of a rejected operation.
+func (e *soEngine) submitFinalization(ctx context.Context, opData []byte) (uint64, bool, error) {
+	// Queue the operation and wait for its decision.
+	localOpID, err := e.so.QueueOperation(ctx, opData)
+	if err != nil {
+		return 0, false, err
+	}
+	acceptedSeqno, rejected, err := e.so.WaitOperation(ctx, localOpID)
+
+	// Clear the persisted rejection; the returned error carries it.
+	if rejected {
+		_ = e.so.ClearOperationResult(ctx, localOpID)
+	}
+	return acceptedSeqno, rejected, err
+}
+
+// uploadWaiter is a block store that uploads writes to a storage backend
+// after they land locally.
+type uploadWaiter interface {
+	// WaitUploaded waits until every block written so far is uploaded.
+	WaitUploaded(ctx context.Context) error
+}
+
+// restoreCandidateBlocks writes every block of the candidate World again, so
+// a store that uploads its writes uploads them again, and waits for the
+// upload. Recovery copies without completion proofs: the proofs say the blocks
+// are local, not that the validator can read them.
+func (e *soEngine) restoreCandidateBlocks(ctx context.Context, packet *SpaceWorldFinalizationPacket) error {
+	// Write the candidate graph onto itself and make the writes durable.
+	store := e.so.GetBlockStore()
+	root := packet.GetCandidateWorldRoot().GetRootRef()
+	if err := block.CopyGraph(ctx, store, store, root, nil); err != nil {
+		return err
+	}
+	if _, err := store.Sync(ctx); err != nil {
+		return err
 	}
 
+	// Wait for the storage backend to hold them.
+	if w, ok := store.(uploadWaiter); ok {
+		return w.WaitUploaded(ctx)
+	}
+	return nil
+}
+
+// acceptFinalization reports the accepted roots that include the packet's
+// operation.
+func (e *soEngine) acceptFinalization(
+	ctx context.Context,
+	packet *SpaceWorldFinalizationPacket,
+	acceptedSeqno uint64,
+) (*SpaceWorldFinalizationDecision, error) {
 	// Report the accepted roots that include the operation.
 	root, worldRoot, err := e.waitFinalizationAcceptedRoot(ctx, packet, acceptedSeqno)
 	if err != nil {

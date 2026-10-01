@@ -60,6 +60,7 @@ export enum SharedObjectHealthStatus {
 export const SharedObjectHealthStatus_Enum = /* @__PURE__ */ createEnumType(
   'sobject.SharedObjectHealthStatus',
   SharedObjectHealthStatus,
+  'SHARED_OBJECT_HEALTH_STATUS_',
 )
 
 /**
@@ -93,6 +94,7 @@ export enum SharedObjectHealthLayer {
 export const SharedObjectHealthLayer_Enum = /* @__PURE__ */ createEnumType(
   'sobject.SharedObjectHealthLayer',
   SharedObjectHealthLayer,
+  'SHARED_OBJECT_HEALTH_LAYER_',
 )
 
 /**
@@ -155,6 +157,7 @@ export const SharedObjectHealthCommonReason_Enum =
   /* @__PURE__ */ createEnumType(
     'sobject.SharedObjectHealthCommonReason',
     SharedObjectHealthCommonReason,
+    'SHARED_OBJECT_HEALTH_COMMON_REASON_',
   )
 
 /**
@@ -210,6 +213,7 @@ export const SharedObjectHealthRemediationHint_Enum =
   /* @__PURE__ */ createEnumType(
     'sobject.SharedObjectHealthRemediationHint',
     SharedObjectHealthRemediationHint,
+    'SHARED_OBJECT_HEALTH_REMEDIATION_HINT_',
   )
 
 /**
@@ -1446,6 +1450,13 @@ export interface SOOperationRejectionErrorDetails {
    * @generated from field: string error_msg = 1;
    */
   errorMsg?: string
+  /**
+   * MissingBlock is set when the validator found a block the operation needs
+   * in no store. The submitter may store its blocks again and resubmit.
+   *
+   * @generated from field: bool missing_block = 2;
+   */
+  missingBlock?: boolean
 }
 
 export const SOOperationRejectionErrorDetails: MessageType<SOOperationRejectionErrorDetails> =
@@ -1453,6 +1464,7 @@ export const SOOperationRejectionErrorDetails: MessageType<SOOperationRejectionE
     typeName: 'sobject.SOOperationRejectionErrorDetails',
     fields: [
       { no: 1, name: 'error_msg', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'missing_block', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
   })
 

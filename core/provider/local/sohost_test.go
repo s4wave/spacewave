@@ -9,6 +9,7 @@ import (
 
 	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/s4wave/spacewave/core/sobject"
+	"github.com/s4wave/spacewave/db/block"
 	kvtest "github.com/s4wave/spacewave/db/kvtx/kvtest"
 	"github.com/s4wave/spacewave/db/object"
 	store_kvtx_inmem "github.com/s4wave/spacewave/db/store/kvtx/inmem"
@@ -331,6 +332,7 @@ func TestWaitOperationUsesPersistedAcceptedLocalResultAfterRestart(t *testing.T)
 }
 
 func TestWaitOperationUsesRejectedLocalResult(t *testing.T) {
+	// Persist a plain rejection.
 	ctx := context.Background()
 	host, localPeer := newTestLocalSOHost(t)
 	localID := sobject.NewSOOperationLocalID()
@@ -347,12 +349,37 @@ func TestWaitOperationUsesRejectedLocalResult(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// The rejection matches only ErrRejectedOp.
 	_, rejected, err := host.WaitOperation(ctx, localID)
 	if !rejected {
 		t.Fatal("rejected local result did not return rejected")
 	}
-	if !errors.Is(err, sobject.ErrRejectedOp) {
-		t.Fatalf("err = %v, want ErrRejectedOp", err)
+	if !errors.Is(err, sobject.ErrRejectedOp) || errors.Is(err, block.ErrNotFound) {
+		t.Fatalf("err = %v, want only ErrRejectedOp", err)
+	}
+}
+
+func TestWaitOperationReportsMissingBlockRejection(t *testing.T) {
+	// Persist a rejection for a block the validator could not read.
+	ctx := context.Background()
+	host, localPeer := newTestLocalSOHost(t)
+	localID := sobject.NewSOOperationLocalID()
+	if err := host.writeLocalOpResult(ctx, &LocalSOOperationResult{
+		LocalId: localID,
+		Result: sobject.BuildSOOperationResult(
+			localPeer.GetPeerID().String(),
+			3,
+			false,
+			&sobject.SOOperationRejectionErrorDetails{ErrorMsg: "world block is missing", MissingBlock: true},
+		),
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	// The rejection also matches block.ErrNotFound.
+	_, rejected, err := host.WaitOperation(ctx, localID)
+	if !rejected || !errors.Is(err, sobject.ErrRejectedOp) || !errors.Is(err, block.ErrNotFound) {
+		t.Fatalf("rejected = %v, err = %v, want a missing-block rejection", rejected, err)
 	}
 }
 

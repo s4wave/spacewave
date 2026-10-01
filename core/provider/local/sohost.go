@@ -3,6 +3,7 @@ package provider_local
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"slices"
 	"sync/atomic"
 
@@ -10,6 +11,7 @@ import (
 	"github.com/aperturerobotics/util/scrub"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/core/sobject"
+	"github.com/s4wave/spacewave/db/block"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
 	"github.com/s4wave/spacewave/db/kvtx"
 	"github.com/s4wave/spacewave/db/object"
@@ -818,13 +820,17 @@ func (l *LocalSOHost) localOpResultOutcome(
 		return 0, false, nil, false
 	}
 
-	// Preserve the rejection's error details for the caller.
+	// Preserve the rejection's error details for the caller. A missing block
+	// also matches block.ErrNotFound.
 	if errorDetails := localOpResult.GetResult().GetErrorDetails(); errorDetails != nil {
-		errorMsg := errorDetails.GetErrorMsg()
-		if errorMsg != "" {
-			return 0, true, errors.Wrap(sobject.ErrRejectedOp, errorMsg), true
+		rerr := sobject.ErrRejectedOp
+		if errorDetails.GetMissingBlock() {
+			rerr = fmt.Errorf("%w: %w", sobject.ErrRejectedOp, block.ErrNotFound)
 		}
-		return 0, true, sobject.ErrRejectedOp, true
+		if errorMsg := errorDetails.GetErrorMsg(); errorMsg != "" {
+			rerr = errors.Wrap(rerr, errorMsg)
+		}
+		return 0, true, rerr, true
 	}
 
 	// Legacy success records without a root sequence require host reconciliation.

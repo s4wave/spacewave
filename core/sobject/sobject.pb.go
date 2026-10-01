@@ -1565,6 +1565,9 @@ type SOOperationRejectionErrorDetails struct {
 	unknownFields []byte
 	// ErrorMsg is the error message.
 	ErrorMsg string `protobuf:"bytes,1,opt,name=error_msg,json=errorMsg,proto3" json:"errorMsg,omitempty"`
+	// MissingBlock is set when the validator found a block the operation needs
+	// in no store. The submitter may store its blocks again and resubmit.
+	MissingBlock bool `protobuf:"varint,2,opt,name=missing_block,json=missingBlock,proto3" json:"missingBlock,omitempty"`
 }
 
 func (x *SOOperationRejectionErrorDetails) Reset() {
@@ -1578,6 +1581,13 @@ func (x *SOOperationRejectionErrorDetails) GetErrorMsg() string {
 		return x.ErrorMsg
 	}
 	return ""
+}
+
+func (x *SOOperationRejectionErrorDetails) GetMissingBlock() bool {
+	if x != nil {
+		return x.MissingBlock
+	}
+	return false
 }
 
 // SOGrant is a grant of a transform configuration to a peer.
@@ -3687,6 +3697,7 @@ func (m *SOOperationRejectionErrorDetails) CloneVT() *SOOperationRejectionErrorD
 	}
 	r := new(SOOperationRejectionErrorDetails)
 	r.ErrorMsg = m.ErrorMsg
+	r.MissingBlock = m.MissingBlock
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -4890,6 +4901,9 @@ func (this *SOOperationRejectionErrorDetails) EqualVT(that *SOOperationRejection
 		return false
 	}
 	if this.ErrorMsg != that.ErrorMsg {
+		return false
+	}
+	if this.MissingBlock != that.MissingBlock {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -7834,6 +7848,11 @@ func (x *SOOperationRejectionErrorDetails) MarshalProtoJSON(s *json.MarshalState
 		s.WriteObjectField("errorMsg")
 		s.WriteString(x.ErrorMsg)
 	}
+	if x.MissingBlock || s.HasField("missingBlock") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("missingBlock")
+		s.WriteBool(x.MissingBlock)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -7854,6 +7873,9 @@ func (x *SOOperationRejectionErrorDetails) UnmarshalProtoJSON(s *json.UnmarshalS
 		case "error_msg", "errorMsg":
 			s.AddField("error_msg")
 			x.ErrorMsg = s.ReadString()
+		case "missing_block", "missingBlock":
+			s.AddField("missing_block")
+			x.MissingBlock = s.ReadBool()
 		}
 	})
 }
@@ -11556,6 +11578,11 @@ func (m *SOOperationRejectionErrorDetails) MarshalToSizedBufferVT(dAtA []byte) (
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.MissingBlock {
+		i = protobuf_go_lite.EncodeBool(dAtA, i, m.MissingBlock)
+		i--
+		dAtA[i] = 0x10
+	}
 	if len(m.ErrorMsg) > 0 {
 		i = protobuf_go_lite.EncodeString(dAtA, i, m.ErrorMsg)
 		i--
@@ -13910,6 +13937,7 @@ func (m *SOOperationRejectionErrorDetails) SizeVT() (n int) {
 	var l int
 	_ = l
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.ErrorMsg)
+	n += protobuf_go_lite.SizeBoolNonZero(1, m.MissingBlock)
 	n += len(m.unknownFields)
 	return n
 }
@@ -15120,6 +15148,10 @@ func (x *SOOperationRejectionErrorDetails) MarshalProtoText() string {
 	if x.ErrorMsg != "" {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "error_msg")
 		protobuf_go_lite.TextWriteString(&sb, x.ErrorMsg)
+	}
+	if x.MissingBlock != false {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "missing_block")
+		protobuf_go_lite.TextWriteBool(&sb, x.MissingBlock)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -17694,6 +17726,16 @@ func (m *SOOperationRejectionErrorDetails) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.ErrorMsg = v
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field MissingBlock", wireType)
+			}
+			var v bool
+			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.MissingBlock = bool(v)
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

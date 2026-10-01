@@ -3,6 +3,7 @@ package provider_local
 import (
 	"context"
 	"errors"
+	"fmt"
 	"sync/atomic"
 	"time"
 
@@ -95,6 +96,29 @@ func (b *BlockStore) InvalidateDecodedBlockRef(ctx context.Context, ref *block.B
 func (b *BlockStore) GetUploadStatus() (UploadStatus, <-chan struct{}) {
 	status, changed := b.placement.wb.GetStatus()
 	return UploadStatus{Backend: b.placement.backend.Load(), Status: status}, changed
+}
+
+// WaitUploaded waits until the storage backend holds every block written so
+// far. Returns immediately when no storage backend is open, and returns the
+// upload error while uploads fail. Concurrent writes extend the wait.
+func (b *BlockStore) WaitUploaded(ctx context.Context) error {
+	for {
+		// Finish when nothing waits for upload.
+		status, changed := b.placement.wb.GetStatus()
+		if !status.Enabled || status.Pending == 0 {
+			return nil
+		}
+		if status.Err != nil {
+			return fmt.Errorf("upload blocks: %w", status.Err)
+		}
+
+		// Wait for the upload status to change.
+		select {
+		case <-ctx.Done():
+			return context.Cause(ctx)
+		case <-changed:
+		}
+	}
 }
 
 // ReclaimStorage drops the blocks the local store no longer holds from the
