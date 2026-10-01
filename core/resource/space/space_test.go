@@ -37,7 +37,9 @@ func spaceResourceClient(t *testing.T, mux srpc.Invoker) srpc.Client {
 	return srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(mux)))
 }
 
-func TestSpaceResourceChatSenderUsesMountedSessionPeer(t *testing.T) {
+// TestSpaceResourceChatSenderUsesWorldSigner checks that a Space's chat sends
+// carry its World signer, whatever session peer the request names.
+func TestSpaceResourceChatSenderUsesWorldSigner(t *testing.T) {
 	// Initialize the testbed and channel object.
 	ctx := t.Context()
 	tb, err := testbed.Default(ctx)
@@ -46,6 +48,7 @@ func TestSpaceResourceChatSenderUsesMountedSessionPeer(t *testing.T) {
 	}
 	t.Cleanup(tb.Release)
 
+	// Create the chat channel object.
 	const channelKey = "chat/channel/space-resource"
 	createSpaceResourceChatChannel(t, ctx, tb.WorldState, channelKey)
 
@@ -68,6 +71,7 @@ func TestSpaceResourceChatSenderUsesMountedSessionPeer(t *testing.T) {
 	}
 	t.Cleanup(objectTypeRelease)
 
+	// Present the testbed World without an operation author.
 	body := &spaceResourceChatBody{
 		engine:   tb.BusEngine,
 		engineID: tb.EngineID,
@@ -78,12 +82,14 @@ func TestSpaceResourceChatSenderUsesMountedSessionPeer(t *testing.T) {
 	resources := newSpaceRecordingResourceClient(ctx)
 	ctx = resource_server.WithResourceClientContext(ctx, resources)
 
+	// Reject an invalid mounted peer ID.
 	invalidSpace := NewSpaceResourceWithSessionPeerID(tb.Logger, tb.Bus, body, "not-a-peer-id")
 	invalidClient := s4wave_space.NewSRPCSpaceResourceServiceClient(spaceResourceClient(t, invalidSpace.GetMux()))
 	if _, err := invalidClient.AccessWorld(ctx, &s4wave_space.AccessWorldRequest{}); err == nil {
 		t.Fatal("AccessWorld accepted an invalid mounted peer ID")
 	}
 
+	// Generate a second signing peer.
 	peerA := tb.Volume.GetPeerID()
 	peerBPriv, _, err := crypto.GenerateEd25519Key(rand.Reader)
 	if err != nil {
@@ -94,22 +100,29 @@ func TestSpaceResourceChatSenderUsesMountedSessionPeer(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Access the World through an anonymous Space.
 	anonymousSpace := NewSpaceResourceWithSessionPeerID(tb.Logger, tb.Bus, body, "")
 	anonymousClient := s4wave_space.NewSRPCSpaceResourceServiceClient(spaceResourceClient(t, anonymousSpace.GetMux()))
 	anonymousWorld, err := anonymousClient.AccessWorld(ctx, &s4wave_space.AccessWorldRequest{})
 	if err != nil {
 		t.Fatalf("AccessWorld(anonymous): %v", err)
 	}
+
+	// Open the channel through the anonymous World.
 	anonymousTyped := s4wave_world.NewSRPCTypedObjectResourceServiceClient(resources.client(t, anonymousWorld.GetResourceId()))
 	anonymousCtx := objecttype.WithSessionPeerID(ctx, peerA)
 	anonymousChannel, err := anonymousTyped.AccessTypedObject(anonymousCtx, &s4wave_world.AccessTypedObjectRequest{ObjectKey: channelKey})
 	if err != nil {
 		t.Fatalf("AccessTypedObject(anonymous): %v", err)
 	}
+
+	// Verify an anonymous send requires an author identity.
 	anonymousChat := spacewave_chat_rpc.NewSRPCChatResourceServiceClient(resources.client(t, anonymousChannel.GetResourceId()))
 	if _, err := anonymousChat.SendMessage(anonymousCtx, &spacewave_chat_rpc.SendMessageRequest{Text: "anonymous"}); err == nil || !strings.Contains(err.Error(), spacewave_chat.ErrChatAuthorIdentityRequired.Error()) {
 		t.Fatalf("anonymous SendMessage error = %v, want %v", err, spacewave_chat.ErrChatAuthorIdentityRequired)
 	}
+
+	// Release the anonymous channel and wait for its factory cleanup.
 	resources.ReleaseResource(anonymousChannel.GetResourceId())
 	select {
 	case <-factory.cleanupCh:
@@ -117,13 +130,15 @@ func TestSpaceResourceChatSenderUsesMountedSessionPeer(t *testing.T) {
 		t.Fatal("timed out waiting for anonymous factory cleanup")
 	}
 
-	// Create peer-bound resources and resolve typed channels.
-	spaceA := NewSpaceResourceWithSessionPeerID(tb.Logger, tb.Bus, body, peerA.String())
-	spaceB := NewSpaceResourceWithSessionPeerID(tb.Logger, tb.Bus, body, peerB.String())
+	// Mount one Space per signing peer and resolve typed channels.
+	spaceA := NewSpaceResourceWithSessionPeerID(tb.Logger, tb.Bus, newSignerChatBody(tb, peerA), peerA.String())
+	spaceB := NewSpaceResourceWithSessionPeerID(tb.Logger, tb.Bus, newSignerChatBody(tb, peerB), peerB.String())
 
+	// Connect a client to each Space.
 	spaceAClient := s4wave_space.NewSRPCSpaceResourceServiceClient(spaceResourceClient(t, spaceA.GetMux()))
 	spaceBClient := s4wave_space.NewSRPCSpaceResourceServiceClient(spaceResourceClient(t, spaceB.GetMux()))
 
+	// Access the World of each Space.
 	worldA, err := spaceAClient.AccessWorld(ctx, &s4wave_space.AccessWorldRequest{})
 	if err != nil {
 		t.Fatalf("AccessWorld(A): %v", err)
@@ -133,10 +148,11 @@ func TestSpaceResourceChatSenderUsesMountedSessionPeer(t *testing.T) {
 		t.Fatalf("AccessWorld(B): %v", err)
 	}
 
+	// Open a typed-object client on each World.
 	engineA := s4wave_world.NewSRPCTypedObjectResourceServiceClient(resources.client(t, worldA.GetResourceId()))
 	engineB := s4wave_world.NewSRPCTypedObjectResourceServiceClient(resources.client(t, worldB.GetResourceId()))
 
-	// Verify mounted peer identity overrides request context.
+	// Verify the World signer overrides the request's session peer.
 	ctxWithPeerB := objecttype.WithSessionPeerID(ctx, peerB)
 	typedA, err := engineA.AccessTypedObject(ctxWithPeerB, &s4wave_world.AccessTypedObjectRequest{ObjectKey: channelKey})
 	if err != nil {
@@ -162,6 +178,7 @@ func TestSpaceResourceChatSenderUsesMountedSessionPeer(t *testing.T) {
 	}
 	assertSpaceChatSender(t, ctx, tb.BusEngine, sendB.GetMessageKey(), peerB.String())
 
+	// Verify one factory handle per peer after the anonymous open.
 	factory.mu.Lock()
 	if got := len(factory.peers); got != 3 {
 		factory.mu.Unlock()
@@ -187,6 +204,8 @@ func TestSpaceResourceChatSenderUsesMountedSessionPeer(t *testing.T) {
 	if typedAAgain.GetResourceId() == typedA.GetResourceId() {
 		t.Fatal("reacquiring A returned the same child resource ID")
 	}
+
+	// Verify the reacquire opened and cleaned no handle.
 	factory.mu.Lock()
 	opens := len(factory.peers)
 	cleanups := len(factory.cleanups)
@@ -198,6 +217,7 @@ func TestSpaceResourceChatSenderUsesMountedSessionPeer(t *testing.T) {
 		t.Fatalf("factory cleanups while A and B are live = %d, want 1", cleanups)
 	}
 
+	// Release one A reference while the other keeps A open.
 	resources.ReleaseResource(typedA.GetResourceId())
 	factory.mu.Lock()
 	cleanups = len(factory.cleanups)
@@ -205,6 +225,8 @@ func TestSpaceResourceChatSenderUsesMountedSessionPeer(t *testing.T) {
 	if cleanups != 1 {
 		t.Fatalf("factory cleanups after first A release = %d, want 1", cleanups)
 	}
+
+	// Release the remaining references and wait for both cleanups.
 	resources.ReleaseResource(typedAAgain.GetResourceId())
 	resources.ReleaseResource(typedB.GetResourceId())
 	for range 2 {
@@ -214,6 +236,8 @@ func TestSpaceResourceChatSenderUsesMountedSessionPeer(t *testing.T) {
 			t.Fatal("timed out waiting for A/B factory cleanup")
 		}
 	}
+
+	// Verify every handle was cleaned up.
 	factory.mu.Lock()
 	cleanups = len(factory.cleanups)
 	factory.mu.Unlock()
@@ -293,19 +317,6 @@ func TestTypedObjectResourceCacheSeparatesPeerIdentities(t *testing.T) {
 		t.Fatalf("AccessTypedObject(B2): %v", err)
 	}
 
-	chatA := spacewave_chat_rpc.NewSRPCChatResourceServiceClient(resources.client(t, typedA1.GetResourceId()))
-	sendA, err := chatA.SendMessage(ctxA, &spacewave_chat_rpc.SendMessageRequest{Text: "owner A"})
-	if err != nil {
-		t.Fatalf("SendMessage(A): %v", err)
-	}
-	assertSpaceChatSender(t, ctx, tb.BusEngine, sendA.GetMessageKey(), peerA.String())
-	chatB := spacewave_chat_rpc.NewSRPCChatResourceServiceClient(resources.client(t, typedB1.GetResourceId()))
-	sendB, err := chatB.SendMessage(ctxB, &spacewave_chat_rpc.SendMessageRequest{Text: "owner B"})
-	if err != nil {
-		t.Fatalf("SendMessage(B): %v", err)
-	}
-	assertSpaceChatSender(t, ctx, tb.BusEngine, sendB.GetMessageKey(), peerB.String())
-
 	factory.mu.Lock()
 	opens := len(factory.peers)
 	distinct := len(factory.handles) == 2 && factory.handles[0] != factory.handles[1]
@@ -353,6 +364,7 @@ func TestTypedObjectResourceCacheSeparatesPeerIdentities(t *testing.T) {
 }
 
 func TestSpaceResourceChatSenderPropagatesThroughChildWorldResources(t *testing.T) {
+	// Initialize the testbed.
 	ctx := t.Context()
 	tb, err := testbed.Default(ctx)
 	if err != nil {
@@ -360,8 +372,11 @@ func TestSpaceResourceChatSenderPropagatesThroughChildWorldResources(t *testing.
 	}
 	t.Cleanup(tb.Release)
 
+	// Create the chat channel object.
 	const channelKey = "chat/channel/child-world-resources"
 	createSpaceResourceChatChannel(t, ctx, tb.WorldState, channelKey)
+
+	// Install a recording object-type factory.
 	factory := &recordingChatFactory{
 		base:      spacewave_chat_world.ChatChannelType.GetFactory(),
 		cleanupCh: make(chan int, 4),
@@ -379,6 +394,7 @@ func TestSpaceResourceChatSenderPropagatesThroughChildWorldResources(t *testing.
 	}
 	t.Cleanup(objectTypeRelease)
 
+	// Generate a second signing peer.
 	peerA := tb.Volume.GetPeerID()
 	peerBPriv, _, err := crypto.GenerateEd25519Key(rand.Reader)
 	if err != nil {
@@ -388,17 +404,18 @@ func TestSpaceResourceChatSenderPropagatesThroughChildWorldResources(t *testing.
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Record the child resources the Spaces create.
 	resources := newSpaceRecordingResourceClient(ctx)
 	ctx = resource_server.WithResourceClientContext(ctx, resources)
-	body := &spaceResourceChatBody{
-		engine:   tb.BusEngine,
-		engineID: tb.EngineID,
-		bucketID: tb.EngineBucketID,
-	}
-	spaceA := NewSpaceResourceWithSessionPeerID(tb.Logger, tb.Bus, body, peerA.String())
-	spaceB := NewSpaceResourceWithSessionPeerID(tb.Logger, tb.Bus, body, peerB.String())
+
+	// Mount one Space per signing peer.
+	spaceA := NewSpaceResourceWithSessionPeerID(tb.Logger, tb.Bus, newSignerChatBody(tb, peerA), peerA.String())
+	spaceB := NewSpaceResourceWithSessionPeerID(tb.Logger, tb.Bus, newSignerChatBody(tb, peerB), peerB.String())
 	spaceAClient := s4wave_space.NewSRPCSpaceResourceServiceClient(spaceResourceClient(t, spaceA.GetMux()))
 	spaceBClient := s4wave_space.NewSRPCSpaceResourceServiceClient(spaceResourceClient(t, spaceB.GetMux()))
+
+	// Access the World of each Space.
 	worldA, err := spaceAClient.AccessWorld(ctx, &s4wave_space.AccessWorldRequest{})
 	if err != nil {
 		t.Fatalf("AccessWorld(A): %v", err)
@@ -408,6 +425,7 @@ func TestSpaceResourceChatSenderPropagatesThroughChildWorldResources(t *testing.
 		t.Fatalf("AccessWorld(B): %v", err)
 	}
 
+	// Open the engine of A and the World-state watch of B, naming the other peer in each request.
 	engineARaw := resources.client(t, worldA.GetResourceId())
 	engineBRaw := resources.client(t, worldB.GetResourceId())
 	engineA := s4wave_world.NewSRPCEngineResourceServiceClient(engineARaw)
@@ -415,6 +433,7 @@ func TestSpaceResourceChatSenderPropagatesThroughChildWorldResources(t *testing.
 	ctxWithPeerB := objecttype.WithSessionPeerID(ctx, peerB)
 	ctxWithPeerA := objecttype.WithSessionPeerID(ctx, peerA)
 
+	// Open the channel in a read transaction on A.
 	txResp, err := engineA.NewTransaction(ctxWithPeerB, &s4wave_world.NewTransactionRequest{Write: false})
 	if err != nil {
 		t.Fatalf("NewTransaction(A): %v", err)
@@ -425,17 +444,22 @@ func TestSpaceResourceChatSenderPropagatesThroughChildWorldResources(t *testing.
 	if err != nil {
 		t.Fatalf("AccessTypedObject(A tx): %v", err)
 	}
+
+	// Verify a send through the transaction carries the signer of A.
 	txChat := spacewave_chat_rpc.NewSRPCChatResourceServiceClient(resources.client(t, txChannel.GetResourceId()))
 	txSend, err := txChat.SendMessage(ctxWithPeerB, &spacewave_chat_rpc.SendMessageRequest{Text: "from A tx"})
 	if err != nil {
 		t.Fatalf("SendMessage(A tx): %v", err)
 	}
 	assertSpaceChatSender(t, ctx, tb.BusEngine, txSend.GetMessageKey(), peerA.String())
+
+	// Discard the transaction.
 	txService := s4wave_world.NewSRPCTxResourceServiceClient(txRaw)
 	if _, err := txService.Discard(ctxWithPeerB, &s4wave_world.DiscardRequest{}); err != nil {
 		t.Fatalf("Discard(A tx): %v", err)
 	}
 
+	// Watch the World state of B and take its first tracked state.
 	watchCtx, cancelWatch := context.WithCancel(ctxWithPeerA)
 	watch, err := engineBWatch.WatchWorldState(watchCtx, &s4wave_world.WatchWorldStateRequest{})
 	if err != nil {
@@ -446,14 +470,20 @@ func TestSpaceResourceChatSenderPropagatesThroughChildWorldResources(t *testing.
 	if err != nil {
 		t.Fatalf("WatchWorldState(B) Recv: %v", err)
 	}
+
+	// Open the channel through the tracked state.
 	trackedTyped := s4wave_world.NewSRPCTypedObjectResourceServiceClient(resources.client(t, tracked.GetResourceId()))
 	trackedChannel, err := trackedTyped.AccessTypedObject(ctxWithPeerA, &s4wave_world.AccessTypedObjectRequest{ObjectKey: channelKey})
 	if err != nil {
 		t.Fatalf("AccessTypedObject(B tracked): %v", err)
 	}
 	trackedChat := spacewave_chat_rpc.NewSRPCChatResourceServiceClient(resources.client(t, trackedChannel.GetResourceId()))
+
+	// Close the watch; the channel resource stays open.
 	cancelWatch()
 	_ = watch.Close()
+
+	// Verify a send through the tracked state carries the signer of B.
 	trackedSend, err := trackedChat.SendMessage(ctxWithPeerA, &spacewave_chat_rpc.SendMessageRequest{Text: "from B tracked"})
 	if err != nil {
 		t.Fatalf("SendMessage(B tracked): %v", err)
@@ -461,9 +491,35 @@ func TestSpaceResourceChatSenderPropagatesThroughChildWorldResources(t *testing.
 	assertSpaceChatSender(t, ctx, tb.BusEngine, trackedSend.GetMessageKey(), peerB.String())
 }
 
+// newSignerChatBody presents the testbed World under one signing device, as
+// each session's mounted SharedObject engine does.
+func newSignerChatBody(tb *testbed.Testbed, device peer.ID) *spaceResourceChatBody {
+	return &spaceResourceChatBody{
+		engine:   &signerEngine{Engine: tb.BusEngine, device: device},
+		engineID: tb.EngineID,
+		bucketID: tb.EngineBucketID,
+	}
+}
+
+// signerEngine is a World engine whose operations one device signs.
+type signerEngine struct {
+	world.Engine
+	// device signs every operation and is its own person.
+	device peer.ID
+}
+
+// OperationAuthor returns the signing device as both device and person.
+func (e *signerEngine) OperationAuthor(context.Context) (peer.ID, string, error) {
+	return e.device, e.device.String(), nil
+}
+
+// spaceResourceChatBody presents one World engine as a mounted Space body.
 type spaceResourceChatBody struct {
-	engine   world.Engine
+	// engine is the mounted Space World.
+	engine world.Engine
+	// engineID names that World on the bus.
 	engineID string
+	// bucketID names the World's bucket.
 	bucketID string
 }
 

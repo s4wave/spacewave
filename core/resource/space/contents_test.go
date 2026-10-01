@@ -440,17 +440,22 @@ func waitForForgeExecutionState(
 }
 
 func TestSpaceContentsResource_ForgeWizardChainStartsApprovedWorker(t *testing.T) {
+	// Bound the test by the package timeout.
 	ctx, cancel := context.WithTimeout(t.Context(), spaceContentsTestTimeout)
 	defer cancel()
 
+	// Initialize the testbed.
 	tb, err := testbed.Default(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	// Name the session signer.
 	pid := generateSpaceContentsTestPeerID(t)
 	sender := pid.String()
 	ts := timestamppb.Now()
+
+	// Name the Forge objects and their wizards.
 	clusterKey := "forge/cluster/wizard-test"
 	jobKey := "forge/job/wizard-test"
 	taskKey := "forge/task/wizard-extra"
@@ -459,6 +464,7 @@ func TestSpaceContentsResource_ForgeWizardChainStartsApprovedWorker(t *testing.T
 	jobWizardKey := "wizard/forge/job/wizard-test"
 	taskWizardKey := "wizard/forge/task/wizard-test"
 
+	// Finalize the cluster wizard.
 	clusterOp := &forge_cluster.ClusterCreateOp{
 		ClusterKey: clusterKey,
 		Name:       "wizard-cluster",
@@ -476,6 +482,7 @@ func TestSpaceContentsResource_ForgeWizardChainStartsApprovedWorker(t *testing.T
 		pid,
 	)
 
+	// Finalize the job wizard with one task.
 	jobOp := &forge_job_ops.ForgeJobCreateOp{
 		JobKey:     jobKey,
 		ClusterKey: clusterKey,
@@ -497,6 +504,7 @@ func TestSpaceContentsResource_ForgeWizardChainStartsApprovedWorker(t *testing.T
 		pid,
 	)
 
+	// Finalize a task wizard that adds a second task to the job.
 	taskOp := &forge_task_ops.ForgeTaskCreateOp{
 		TaskKey:   taskKey,
 		Name:      "verify",
@@ -516,6 +524,7 @@ func TestSpaceContentsResource_ForgeWizardChainStartsApprovedWorker(t *testing.T
 		pid,
 	)
 
+	// Create the session Worker, bind it to the signer keypair, and assign it to the cluster.
 	workerOp := forge_worker.NewWorkerCreateOp(workerKey, "session-worker", nil)
 	if _, _, err := tb.WorldState.ApplyWorldOp(ctx, workerOp, pid); err != nil {
 		t.Fatalf("ApplyWorldOp(worker create): %v", err)
@@ -531,6 +540,7 @@ func TestSpaceContentsResource_ForgeWizardChainStartsApprovedWorker(t *testing.T
 		t.Fatalf("ApplyWorldOp(assign worker): %v", err)
 	}
 
+	// Verify the job links both tasks.
 	taskKeys, err := forge_job.ListJobTasks(ctx, tb.WorldState, jobKey)
 	if err != nil {
 		t.Fatalf("ListJobTasks: %v", err)
@@ -544,6 +554,7 @@ func TestSpaceContentsResource_ForgeWizardChainStartsApprovedWorker(t *testing.T
 		}
 	}
 
+	// Verify finalization deleted every wizard object.
 	readTx, err := tb.Engine.NewTransaction(ctx, false)
 	if err != nil {
 		t.Fatalf("NewTransaction(verify wizard cleanup): %v", err)
@@ -560,6 +571,7 @@ func TestSpaceContentsResource_ForgeWizardChainStartsApprovedWorker(t *testing.T
 		}
 	}
 
+	// Open the Space contents resource with a Worker policy host.
 	resource := newTestSpaceContentsResource(t, tb.Logger, tb.Bus, tb.Engine, &plugin_space.Config{
 		SpaceId:       "space-test",
 		VolumeId:      tb.EngineVolumeID,
@@ -569,7 +581,9 @@ func TestSpaceContentsResource_ForgeWizardChainStartsApprovedWorker(t *testing.T
 	})
 	resource.volumeID = tb.EngineVolumeID
 	resource.storeID = "platform-account"
+	addBindingTestWorkerPolicyHost(t, ctx, tb, workerKey)
 
+	// Verify no task has a pass before approval.
 	for _, linkedTaskKey := range taskKeys {
 		passKeys, err := forge_task.ListTaskPasses(ctx, tb.WorldState, linkedTaskKey)
 		if err != nil {
@@ -580,6 +594,7 @@ func TestSpaceContentsResource_ForgeWizardChainStartsApprovedWorker(t *testing.T
 		}
 	}
 
+	// Approve the process binding of the Worker.
 	_, err = resource.SetProcessBinding(ctx, &s4wave_space.SetProcessBindingRequest{
 		ObjectKey: workerKey,
 		TypeId:    forge_worker.WorkerTypeID,
@@ -589,6 +604,7 @@ func TestSpaceContentsResource_ForgeWizardChainStartsApprovedWorker(t *testing.T
 		t.Fatalf("SetProcessBinding: %v", err)
 	}
 
+	// Wait for the job to complete.
 	jobState, err := forge_job.WaitJobComplete(
 		ctx,
 		logrus.NewEntry(logrus.StandardLogger()),
@@ -602,6 +618,7 @@ func TestSpaceContentsResource_ForgeWizardChainStartsApprovedWorker(t *testing.T
 		t.Fatalf("expected complete job, got %s", jobState.GetJobState().String())
 	}
 
+	// Verify each task completed a pass and its execution.
 	for _, linkedTaskKey := range taskKeys {
 		passKeys, err := forge_task.ListTaskPasses(ctx, tb.WorldState, linkedTaskKey)
 		if err != nil {
