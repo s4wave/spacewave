@@ -424,10 +424,12 @@ class SOOperationRejectionInner(_message.Message):
     def __init__(self, peer_id: _Optional[str] = ..., op_nonce: _Optional[int] = ..., local_id: _Optional[str] = ..., error_details: _Optional[bytes] = ...) -> None: ...
 
 class SOOperationRejectionErrorDetails(_message.Message):
-    __slots__ = ("error_msg",)
+    __slots__ = ("error_msg", "missing_block")
     ERROR_MSG_FIELD_NUMBER: _ClassVar[int]
+    MISSING_BLOCK_FIELD_NUMBER: _ClassVar[int]
     error_msg: str
-    def __init__(self, error_msg: _Optional[str] = ...) -> None: ...
+    missing_block: bool
+    def __init__(self, error_msg: _Optional[str] = ..., missing_block: _Optional[bool] = ...) -> None: ...
 
 class SOGrant(_message.Message):
     __slots__ = ("peer_id", "inner_data", "signature")

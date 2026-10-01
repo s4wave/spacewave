@@ -3,12 +3,14 @@ package sobject_world_engine
 import (
 	"context"
 	"errors"
+	"fmt"
 	"slices"
 	"strings"
 	"testing"
 
 	"github.com/s4wave/spacewave/core/sobject"
 	"github.com/s4wave/spacewave/db/block"
+	block_mock "github.com/s4wave/spacewave/db/block/mock"
 	"github.com/s4wave/spacewave/db/bucket"
 	"github.com/s4wave/spacewave/db/coord"
 	"github.com/s4wave/spacewave/db/kvtx"
@@ -247,6 +249,103 @@ func TestFinalizeSpaceWorldCandidateRejectedClearsAuthorityResult(t *testing.T) 
 	assertTestRejectedCandidateMissing(t, ctx, so.localStore, "candidate-op")
 }
 
+func TestFinalizeSpaceWorldCandidateMissingBlockRestoresAndResubmits(t *testing.T) {
+	// Build a two-block candidate World.
+	ctx := context.Background()
+	leafData := []byte("leaf")
+	leaf, err := block.BuildBlockRef(leafData, nil)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	rootData := []byte("root")
+	rootRef, err := block.BuildBlockRef(rootData, nil)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	// Store it in a store that counts writes.
+	puts := &testPutCountStore{StoreOps: block_mock.NewMockStore(0)}
+	err = puts.PutBlockBatch(ctx, []*block.PutBatchEntry{
+		{Ref: leaf, Data: leafData},
+		{Ref: rootRef, Data: rootData, Refs: []*block.BlockRef{leaf}},
+	})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	puts.n = 0
+	store := &testUploadBlockStore{testBlockStore: newTestBlockStore("world", puts)}
+
+	// Reject the first submission as missing a block and accept the second.
+	baseRoot := &sobject.SORoot{InnerSeqno: 1}
+	baseWorldRoot := testFinalizationObjectRef(t, "base-world")
+	candidateWorldRoot := &bucket.ObjectRef{BucketId: "world", RootRef: rootRef}
+	snap := newTestFinalizationSnapshot(t, baseRoot, baseWorldRoot)
+	so := &testFinalizationSharedObject{
+		testSharedObject: testSharedObject{blockStore: store},
+		snapshot:         snap,
+		localStore:       newTestRejectedCandidateStore(),
+		waitRejected:     true,
+		waitErr:          fmt.Errorf("%w: %w", sobject.ErrRejectedOp, block.ErrNotFound),
+	}
+	so.afterWait = func() {
+		if len(so.queuedOps) == 2 {
+			so.waitRejected, so.waitErr = false, nil
+			snap.setRoot(t, &sobject.SORoot{InnerSeqno: 2}, candidateWorldRoot)
+		}
+	}
+	eng := &soEngine{so: so}
+
+	// Finalize: the candidate's blocks are written again and uploaded.
+	decision, err := eng.finalizeSpaceWorldCandidate(
+		ctx,
+		newTestFinalizationPacket(t, baseRoot, baseWorldRoot, candidateWorldRoot, "candidate-op"),
+		[]byte("serialized-world-op"),
+	)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if decision.GetStatus() != SpaceWorldFinalizationStatus_SPACE_WORLD_FINALIZATION_STATUS_ACCEPTED {
+		t.Fatalf("expected accepted decision, got %s: %s", decision.GetStatus().String(), decision.GetError())
+	}
+	if len(so.queuedOps) != 2 || !slices.Equal(so.clearedIDs, []string{"authority-op"}) {
+		t.Fatalf("expected one cleared rejection and a resubmit, got %d ops and cleared %v", len(so.queuedOps), so.clearedIDs)
+	}
+	if puts.n != 2 || store.waited != 1 {
+		t.Fatalf("expected both blocks re-put and one upload wait, got %d puts and %d waits", puts.n, store.waited)
+	}
+}
+
+func TestFinalizeSpaceWorldCandidateUnrestorableMissingBlock(t *testing.T) {
+	// Reject every submission as missing a block the follower cannot restore.
+	ctx := context.Background()
+	baseRoot := &sobject.SORoot{InnerSeqno: 1}
+	baseWorldRoot := testFinalizationObjectRef(t, "base-world")
+	so := &testFinalizationSharedObject{
+		testSharedObject: testSharedObject{blockStore: newTestBlockStore("world", block_mock.NewMockStore(0))},
+		snapshot:         newTestFinalizationSnapshot(t, baseRoot, baseWorldRoot),
+		localStore:       newTestRejectedCandidateStore(),
+		waitRejected:     true,
+		waitErr:          fmt.Errorf("%w: %w", sobject.ErrRejectedOp, block.ErrNotFound),
+	}
+	eng := &soEngine{so: so}
+
+	// Finalize: the restore fails and the decision is a retryable miss.
+	decision, err := eng.finalizeSpaceWorldCandidate(
+		ctx,
+		newTestFinalizationPacket(t, baseRoot, baseWorldRoot, testFinalizationObjectRef(t, "candidate-world"), "candidate-op"),
+		[]byte("serialized-world-op"),
+	)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if decision.GetStatus() != SpaceWorldFinalizationStatus_SPACE_WORLD_FINALIZATION_STATUS_MISSING_BLOCK || !decision.GetRetryable() {
+		t.Fatalf("expected retryable missing-block decision, got %s", decision.GetStatus().String())
+	}
+	if len(so.queuedOps) != 1 {
+		t.Fatalf("expected no resubmit after a failed restore, got %d ops", len(so.queuedOps))
+	}
+}
+
 func testFinalizationObjectRef(t *testing.T, seed string) *bucket.ObjectRef {
 	t.Helper()
 	h, err := bifhash.Sum(bifhash.HashType_HashType_SHA256, []byte(seed))
@@ -401,4 +500,44 @@ func assertTestRejectedCandidateMissing(
 	if found {
 		t.Fatalf("expected rejected candidate record %q to be cleared", localOperationID)
 	}
+}
+
+// testPutCountStore counts the blocks written through it and keeps their refs,
+// as a volume does.
+type testPutCountStore struct {
+	block.StoreOps
+	n    int
+	refs map[string][]*block.BlockRef
+}
+
+func (s *testPutCountStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) error {
+	// Record each entry's refs before writing it.
+	if s.refs == nil {
+		s.refs = make(map[string][]*block.BlockRef)
+	}
+	for _, entry := range entries {
+		s.refs[entry.Ref.MarshalString()] = entry.Refs
+	}
+	s.n += len(entries)
+	return s.StoreOps.PutBlockBatch(ctx, entries)
+}
+
+func (s *testPutCountStore) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*block.StoredBlock, error) {
+	// Attach the recorded refs to the stored bytes.
+	data, found, err := s.GetBlock(ctx, ref)
+	if err != nil || !found {
+		return nil, err
+	}
+	return &block.StoredBlock{Data: data, Refs: s.refs[ref.MarshalString()], RefsKnown: true}, nil
+}
+
+// testUploadBlockStore counts upload waits.
+type testUploadBlockStore struct {
+	*testBlockStore
+	waited int
+}
+
+func (s *testUploadBlockStore) WaitUploaded(context.Context) error {
+	s.waited++
+	return nil
 }

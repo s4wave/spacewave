@@ -422,6 +422,9 @@ message SOOperationRejectionInner {
 message SOOperationRejectionErrorDetails {
   // ErrorMsg is the error message.
   string error_msg = 1;
+  // MissingBlock is set when the validator found a block the operation needs
+  // in no store. The submitter may store its blocks again and resubmit.
+  bool missing_block = 2;
 }
 
 // SOGrant is a grant of a transform configuration to a peer.

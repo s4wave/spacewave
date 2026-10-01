@@ -97,7 +97,15 @@ func (c *Controller) executeProcessOpsAsValidator(ctx context.Context, so sobjec
 					if err != nil {
 						le.WithError(err).Warn("rejecting op: world block is missing")
 						nhs = nil
-						res = opRejection(opPeerID, opInner.GetNonce(), "world block is missing: "+err.Error())
+						res = sobject.BuildSOOperationResult(
+							opPeerID.String(),
+							opInner.GetNonce(),
+							false,
+							&sobject.SOOperationRejectionErrorDetails{
+								ErrorMsg:     "world block is missing: " + err.Error(),
+								MissingBlock: true,
+							},
+						)
 					}
 				}
 				if res != nil {
