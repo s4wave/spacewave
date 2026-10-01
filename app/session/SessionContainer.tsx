@@ -125,17 +125,13 @@ interface SessionContainerProps {
   metadata?: SessionMetadata
 }
 
-// useSessionContainerController owns Session status, account overlays,
-// document state access, and navigation callbacks.
-function useSessionContainerController(props: SessionContainerProps) {
+// useSessionArrival marks that this browser has product state to return to and
+// opens a join code stashed before the Session mounted.
+function useSessionArrival(session: Session | null) {
   const environment = useAppEnvironment()
-  const session = props.sessionResource.value
-  const providerId =
-    session?.sessionRef?.providerResourceRef?.providerId ??
-    props.metadata?.providerId
+  const navigate = useNavigate()
 
-  // Signal to bootstrap.ts that this user has product state to return to.
-  // Return visitors with hasSession see the loading screen instead of landing.
+  // Return visitors with the flag see the loading screen instead of landing.
   useEffect(() => {
     if (session && !environment.storage.getItem('spacewave-has-session')) {
       environment.storage.setItem('spacewave-has-session', '1')
@@ -143,7 +139,6 @@ function useSessionContainerController(props: SessionContainerProps) {
   }, [session, environment.storage])
 
   // Pick up a pending join code stashed by JoinRedirect (no-session path).
-  const navigate = useNavigate()
   useEffect(() => {
     if (!session) return
     const code = consumePendingJoin(environment.documentStorage)
@@ -151,24 +146,22 @@ function useSessionContainerController(props: SessionContainerProps) {
       navigate({ path: `./join/${code}`, replace: true })
     }
   }, [session, navigate, environment.documentStorage])
+}
 
-  const { peerId: peerIdRaw } = useSessionInfo(session)
-  const peerId = peerIdRaw || null
-
-  const path = usePath()
-  const parentPaths = useParentPaths()
-  const currentLevelPath = parentPaths[parentPaths.length - 1] ?? path
-
-  const stateNamespace = useStateNamespace(['session'])
-
-  const sessionStateAccessor: StateAtomAccessor = useMemo(() => {
-    if (!session)
+// useSessionStateAccessor reads the Session's state atoms once it mounts.
+function useSessionStateAccessor(
+  sessionResource: Resource<Session>,
+): StateAtomAccessor {
+  const session = sessionResource.value
+  return useMemo(() => {
+    if (!session) {
       return {
         value: null,
         loading: true,
         error: null,
-        retry: () => props.sessionResource.retry(),
+        retry: () => sessionResource.retry(),
       }
+    }
     return {
       value: (storeId: string, signal?: AbortSignal) =>
         session.accessStateAtom({ storeId }, signal),
@@ -176,125 +169,140 @@ function useSessionContainerController(props: SessionContainerProps) {
       error: null,
       retry: () => {},
     }
-  }, [session, props.sessionResource])
+  }, [session, sessionResource])
+}
 
-  const setOpenMenu = useBottomBarSetOpenMenu()
+// useSessionAccountOverlay returns the full-page overlay that replaces the
+// Session for a deleted, unauthenticated, dormant, or locked account, or null.
+// It removes a deleted account's Session once the root resource is ready.
+function useSessionAccountOverlay(
+  props: SessionContainerProps,
+  accountStatus: ProviderAccountStatus | undefined,
+  path: string,
+): ReactNode {
+  const session = props.sessionResource.value
+  const metadata = props.metadata
+  const navigate = useNavigate()
+  const root = useRootResource().value
+  const sessionIdx = useSessionIndex()
+  const deletedRemovalStarted = useRef(false)
 
-  const handleCloseDetails = useCallback(() => {
-    setOpenMenu?.('')
-  }, [setOpenMenu])
-
-  const spacewaveSessionResource = useMemo<Resource<Session>>(
-    () =>
-      providerId === 'spacewave'
-        ? props.sessionResource
-        : {
-            value: null,
-            loading: props.sessionResource.loading,
-            error: props.sessionResource.error,
-            retry: props.sessionResource.retry,
-          },
-    [providerId, props.sessionResource],
-  )
-
-  const onboardingState = useStreamingResource(
-    spacewaveSessionResource,
-    (session, signal) => session.spacewave.watchOnboardingStatus(signal),
-    [],
-  )
-  const lockStateResource = useStreamingResource(
+  const lockState = useStreamingResource(
     props.sessionResource,
     (session, signal) => session.watchLockState({}, signal),
     [],
-  )
-  const lockState = lockStateResource.value
-  const isMountedPinLocked =
-    lockState?.mode === SessionLockMode.PIN_ENCRYPTED &&
-    (lockState?.locked ?? false)
-
-  // Account status from Onboarding Status, the reactive cloud route-status
-  // projection. Do not read stale session metadata for overlay routing.
-  const accountStatus = onboardingState.value?.accountStatus
+  ).value
+  const isLocked =
+    lockState?.mode === SessionLockMode.PIN_ENCRYPTED && !!lockState.locked
   const isDeleted =
     accountStatus === ProviderAccountStatus.ProviderAccountStatus_DELETED
-  const isUnauthenticated =
-    accountStatus ===
-    ProviderAccountStatus.ProviderAccountStatus_UNAUTHENTICATED
-  const isDormant =
-    accountStatus === ProviderAccountStatus.ProviderAccountStatus_DORMANT
 
-  const rootResource = useRootResource()
-  const sessionIdx = useSessionIndex()
-  const deletedRemovalStarted = useRef(false)
-  const accountLabel =
-    props.metadata?.displayName ||
-    props.metadata?.cloudEntityId ||
-    (sessionIdx != null ? `Session ${sessionIdx}` : null) ||
-    peerId?.slice(-8) ||
-    '?'
-
-  const handleRemoveSession = useCallback(async () => {
-    const root = rootResource.value
+  const handleRemove = useCallback(async () => {
     if (!root || !sessionIdx) return
     await root.deleteSession(sessionIdx)
-  }, [rootResource.value, sessionIdx])
+  }, [root, sessionIdx])
 
   const handleReauth = useCallback(
     async (request: ReauthenticateSessionRequest) => {
-      const root = rootResource.value
       if (!root) return
       using provider = await root.lookupProvider('spacewave')
       const sw = new SpacewaveProvider(provider.resourceRef)
       await sw.reauthenticateSession(request)
     },
-    [rootResource.value],
+    [root],
   )
-  const handleMountedUnlock = useCallback(
+
+  const handleUnlock = useCallback(
     async (pin: Uint8Array) => {
-      if (!session) return
-      await session.unlockSession(pin)
+      await session?.unlockSession(pin)
     },
     [session],
   )
+
   const handleReset = useCallback(
     async (idx: number, credential: EntityCredential) => {
-      const root = rootResource.value
-      if (!root) return
-      await root.resetSession(idx, credential)
+      await root?.resetSession(idx, credential)
     },
-    [rootResource.value],
+    [root],
   )
 
+  // Remove a deleted account's Session once, retrying after a failure.
   useEffect(() => {
     if (!isDeleted || deletedRemovalStarted.current) return
-    if (!rootResource.value || !sessionIdx) return
+    if (!root || !sessionIdx) return
     deletedRemovalStarted.current = true
-    void handleRemoveSession()
+    void handleRemove()
       .then(() => {
         navigate({ path: '/sessions', replace: true })
       })
       .catch(() => {
         deletedRemovalStarted.current = false
       })
-  }, [handleRemoveSession, isDeleted, navigate, rootResource.value, sessionIdx])
+  }, [handleRemove, isDeleted, navigate, root, sessionIdx])
 
-  const isCloudProvider = providerId === 'spacewave'
+  if (!metadata) return null
+  switch (accountStatus) {
+    case ProviderAccountStatus.ProviderAccountStatus_DELETED:
+      return (
+        <DeletedAccountOverlay metadata={metadata} onRemove={handleRemove} />
+      )
+    case ProviderAccountStatus.ProviderAccountStatus_UNAUTHENTICATED:
+      return (
+        <ReAuthOverlay
+          metadata={metadata}
+          onReauth={handleReauth}
+          onLogout={handleRemove}
+        />
+      )
+    case ProviderAccountStatus.ProviderAccountStatus_DORMANT:
+      // The /plan/ subtree stays reachable so the user can reactivate.
+      // SpacewaveRootRouter also redirects the root route into /plan/upgrade.
+      if (!path.startsWith('/plan/')) {
+        return <DormantOverlay metadata={metadata} />
+      }
+  }
+  if (isLocked && sessionIdx != null) {
+    return (
+      <PinUnlockOverlay
+        metadata={metadata}
+        onUnlock={handleUnlock}
+        onReset={handleReset}
+      />
+    )
+  }
+  return null
+}
 
-  const badgeLabel = isCloudProvider
-    ? isDormant
-      ? 'INACTIVE'
-      : 'CLOUD'
-    : 'LOCAL'
-  const badgeClass = isDormant
-    ? 'bg-warning/15 text-warning'
-    : isCloudProvider
-      ? 'bg-brand/15 text-brand'
-      : 'bg-foreground/10 text-foreground-alt/70'
+// AccountButton is the account bottom-bar item and the key that refreshes it.
+interface AccountButton {
+  button: (
+    selected: boolean,
+    onClick: () => void,
+    className?: string,
+  ) => ReactNode
+  buttonKey: string
+  label: string
+}
 
-  // Refresh the registered button when metadata arrives or its badge changes.
-  const accountButtonKey = `${peerId ?? '?'}/${props.metadata ? badgeLabel : ''}`
+// useAccountButton renders the account bottom-bar item with the account label
+// and its provider badge.
+function useAccountButton(
+  props: SessionContainerProps,
+  isCloudProvider: boolean,
+  isDormant: boolean,
+): AccountButton {
+  const metadata = props.metadata
+  const sessionIdx = useSessionIndex()
+  const peerId = useSessionInfo(props.sessionResource.value).peerId || null
+  const label =
+    metadata?.displayName ||
+    metadata?.cloudEntityId ||
+    (sessionIdx != null ? `Session ${sessionIdx}` : null) ||
+    peerId?.slice(-8) ||
+    '?'
 
-  const accountButton = useCallback(
+  const badge = accountBadge(isCloudProvider, isDormant)
+  const button = useCallback(
     (selected: boolean, onClick: () => void, className?: string) => (
       <BottomBarItem
         selected={selected}
@@ -308,129 +316,95 @@ function useSessionContainerController(props: SessionContainerProps) {
         ) : (
           <LuPersonStanding {...bottomBarIconProps} aria-hidden="true" />
         )}
-        <div className="max-w-36 truncate">{accountLabel}</div>
-        {props.metadata && (
+        <div className="max-w-36 truncate">{label}</div>
+        {metadata && (
           <span
             data-testid="session-account-provider-badge"
             className={cn(
               'ml-1.5 rounded-full px-1.5 py-0.5 micro-nine font-semibold tracking-wider uppercase',
-              badgeClass,
+              badge.className,
             )}
           >
-            {badgeLabel}
+            {badge.label}
           </span>
         )}
       </BottomBarItem>
     ),
-    [accountLabel, badgeLabel, badgeClass, props.metadata],
+    [label, badge.label, badge.className, metadata],
   )
 
-  const handleChangeAccount = useCallback(() => {
-    navigate({ path: '/sessions' })
-  }, [navigate])
+  // Refresh the registered button when metadata arrives or its badge changes.
+  const buttonKey = `${peerId ?? '?'}/${metadata ? badge.label : ''}`
+  return { button, buttonKey, label }
+}
 
-  const handleAccountBreadcrumb = useCallback(() => {
-    navigate({ path: currentLevelPath })
-  }, [navigate, currentLevelPath])
-
-  const handleGoHome = useCallback(() => {
-    navigate({ path: currentLevelPath, replace: true })
-  }, [navigate, currentLevelPath])
-
+// accountBadge names the account's provider, or marks a dormant cloud account.
+function accountBadge(isCloudProvider: boolean, isDormant: boolean) {
+  if (isDormant) {
+    return { label: 'INACTIVE', className: 'bg-warning/15 text-warning' }
+  }
+  if (isCloudProvider) {
+    return { label: 'CLOUD', className: 'bg-brand/15 text-brand' }
+  }
   return {
-    accountButton,
-    accountButtonKey,
-    accountLabel,
-    currentLevelPath,
-    handleAccountBreadcrumb,
-    handleChangeAccount,
-    handleCloseDetails,
-    handleGoHome,
-    handleMountedUnlock,
-    handleReauth,
-    handleRemoveSession,
-    handleReset,
-    isCloudProvider,
-    isDeleted,
-    isDormant,
-    isMountedPinLocked,
-    isUnauthenticated,
-    onboardingState,
-    path,
-    providerId,
-    session,
-    sessionIdx,
-    sessionStateAccessor,
-    spacewaveSessionResource,
-    stateNamespace,
+    label: 'LOCAL',
+    className: 'bg-foreground/10 text-foreground-alt/70',
   }
 }
 
 // SessionContainer is the top-level URL router for a Session. Nested routes
 // register their own items under the account bottom-bar level.
 export function SessionContainer(props: SessionContainerProps) {
-  const {
-    accountButton,
-    accountButtonKey,
-    accountLabel,
-    currentLevelPath,
-    handleAccountBreadcrumb,
-    handleChangeAccount,
-    handleCloseDetails,
-    handleGoHome,
-    handleMountedUnlock,
-    handleReauth,
-    handleRemoveSession,
-    handleReset,
-    isCloudProvider,
-    isDeleted,
-    isDormant,
-    isMountedPinLocked,
-    isUnauthenticated,
-    onboardingState,
-    path,
-    providerId,
-    session,
-    sessionIdx,
-    sessionStateAccessor,
-    spacewaveSessionResource,
-    stateNamespace,
-  } = useSessionContainerController(props)
+  const session = props.sessionResource.value
+  const providerId =
+    session?.sessionRef?.providerResourceRef?.providerId ??
+    props.metadata?.providerId
+  const isCloudProvider = providerId === 'spacewave'
+  useSessionArrival(session)
 
-  // Show full-page overlays for deleted or unauthenticated accounts.
-  if (isDeleted && props.metadata) {
-    return (
-      <DeletedAccountOverlay
-        metadata={props.metadata}
-        onRemove={handleRemoveSession}
-      />
-    )
-  }
-  if (isUnauthenticated && props.metadata) {
-    return (
-      <ReAuthOverlay
-        metadata={props.metadata}
-        onReauth={handleReauth}
-        onLogout={handleRemoveSession}
-      />
-    )
-  }
-  // Dormant sessions get the DormantOverlay gate, except on the /plan/
-  // subtree so the user can actually reach UpgradeRouter to reactivate.
-  // SpacewaveRootRouter also redirects the root route into /plan/upgrade
-  // when dormant so bookmarked or direct entries converge on the same path.
-  if (isDormant && props.metadata && !path.startsWith('/plan/')) {
-    return <DormantOverlay metadata={props.metadata} />
-  }
-  if (isMountedPinLocked && props.metadata && sessionIdx != null) {
-    return (
-      <PinUnlockOverlay
-        metadata={props.metadata}
-        onUnlock={handleMountedUnlock}
-        onReset={handleReset}
-      />
-    )
-  }
+  // Only cloud Sessions watch Onboarding Status, the reactive account status.
+  // Do not read stale session metadata for overlay routing.
+  const spacewaveSessionResource = useMemo<Resource<Session>>(
+    () =>
+      isCloudProvider
+        ? props.sessionResource
+        : { ...props.sessionResource, value: null },
+    [isCloudProvider, props.sessionResource],
+  )
+  const onboardingState = useStreamingResource(
+    spacewaveSessionResource,
+    (session, signal) => session.spacewave.watchOnboardingStatus(signal),
+    [],
+  )
+  const accountStatus = onboardingState.value?.accountStatus
+  const isDormant =
+    accountStatus === ProviderAccountStatus.ProviderAccountStatus_DORMANT
+
+  const path = usePath()
+  const parentPaths = useParentPaths()
+  const currentLevelPath = parentPaths[parentPaths.length - 1] ?? path
+  const overlay = useSessionAccountOverlay(props, accountStatus, path)
+  const accountButton = useAccountButton(props, isCloudProvider, isDormant)
+  const stateNamespace = useStateNamespace(['session'])
+  const sessionStateAccessor = useSessionStateAccessor(props.sessionResource)
+
+  // Navigate from the account menu and the not-found page.
+  const navigate = useNavigate()
+  const setOpenMenu = useBottomBarSetOpenMenu()
+  const handleCloseDetails = useCallback(() => {
+    setOpenMenu?.('')
+  }, [setOpenMenu])
+  const handleChangeAccount = useCallback(() => {
+    navigate({ path: '/sessions' })
+  }, [navigate])
+  const handleAccountBreadcrumb = useCallback(() => {
+    navigate({ path: currentLevelPath })
+  }, [navigate, currentLevelPath])
+  const handleGoHome = useCallback(() => {
+    navigate({ path: currentLevelPath, replace: true })
+  }, [navigate, currentLevelPath])
+
+  if (overlay) return overlay
 
   return (
     <SessionContext.Provider resource={props.sessionResource}>
@@ -446,15 +420,15 @@ export function SessionContainer(props: SessionContainerProps) {
             <SessionUploadManagerProvider>
               <BottomBarLevel
                 id="account"
-                button={accountButton}
+                button={accountButton.button}
                 overlay={
                   <SessionDetails
                     onCloseClick={handleCloseDetails}
                     onChangeAccountClick={handleChangeAccount}
                   />
                 }
-                buttonKey={accountButtonKey}
-                menuLabel={accountLabel}
+                buttonKey={accountButton.buttonKey}
+                menuLabel={accountButton.label}
                 onBreadcrumbClick={handleAccountBreadcrumb}
               >
                 <SessionSelfEnrollmentStatusScope enabled={isCloudProvider}>
@@ -605,6 +579,8 @@ export function SessionContainer(props: SessionContainerProps) {
   )
 }
 
+// SessionSelfEnrollmentStatusScope provides self-enrollment status to cloud
+// Sessions only.
 function SessionSelfEnrollmentStatusScope({
   enabled,
   children,
@@ -621,6 +597,8 @@ function SessionSelfEnrollmentStatusScope({
   )
 }
 
+// TargetedInvitationInbox lists pending targeted invitations from the watched
+// inbox with Accept and Decline.
 function TargetedInvitationInbox(props: {
   sessionResource: Resource<Session>
 }) {
@@ -757,6 +735,7 @@ function TargetedInvitationInbox(props: {
   )
 }
 
+// targetedInvitationTitle names what a targeted invitation joins.
 function targetedInvitationTitle(inv: TargetedInvitationInfo): string {
   if (inv.purpose === TargetedInvitePurpose.SPACE) {
     return `Space invite: ${inv.contextId || 'unknown space'}`
