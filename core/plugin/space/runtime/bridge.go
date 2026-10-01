@@ -43,13 +43,16 @@ func parentFilter(instanceKey string, appPluginIDs []string) func(directive.Inst
 // parentDirective reports whether dir on the parent bus resolves in the
 // generation: LookupPluginScheduler, so session status sees its scheduler, and
 // loads of this Space's plugin installation, so the daemon can reach a Space
-// plugin that registered a handler. App plugin loads stay on the parent.
+// plugin that registered a handler. An empty instanceKey forwards no loads.
+// App plugin loads stay on the parent.
 func parentDirective(dir directive.Directive, instanceKey string, appPluginIDs []string) bool {
 	switch d := dir.(type) {
 	case bldr_plugin.LookupPluginScheduler:
 		return true
 	case bldr_plugin.LoadPlugin:
-		return d.LoadPluginInstanceKey() == instanceKey && !slices.Contains(appPluginIDs, d.LoadPluginID())
+		return instanceKey != "" &&
+			d.LoadPluginInstanceKey() == instanceKey &&
+			!slices.Contains(appPluginIDs, d.LoadPluginID())
 	default:
 		return false
 	}

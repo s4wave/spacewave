@@ -142,15 +142,20 @@ func (g *Generation) start(
 		return err
 	}
 
-	// Start the scheduler and expose it and this installation's plugin loads
-	// to the parent.
+	// Start the scheduler and expose it to the parent. A Space that runs its own
+	// plugins also answers the parent's loads of its installation; a Space
+	// hosted in a plugin sends those loads to the parent, which answers them.
 	scheduler := plugin_host_scheduler.NewController(le, child, schedulerConf)
 	scheduler.SetPluginHostBus(parent)
 	if err := g.addController(ctx, child, scheduler); err != nil {
 		return err
 	}
 	g.scheduler = scheduler
-	if err := g.addController(ctx, parent, bus_bridge.NewBusBridge(child, parentFilter(schedulerConf.GetInstanceKey(), appPluginIDs))); err != nil {
+	loadInstanceKey := schedulerConf.GetInstanceKey()
+	if conf.GetHostPluginId() != "" {
+		loadInstanceKey = ""
+	}
+	if err := g.addController(ctx, parent, bus_bridge.NewBusBridge(child, parentFilter(loadInstanceKey, appPluginIDs))); err != nil {
 		return err
 	}
 
