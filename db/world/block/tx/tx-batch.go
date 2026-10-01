@@ -6,6 +6,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/block/sbset"
+	"github.com/s4wave/spacewave/db/bucket"
 	"github.com/s4wave/spacewave/db/world"
 	"github.com/s4wave/spacewave/net/peer"
 )
@@ -83,6 +84,33 @@ func (t *TxBatch) Clone() *TxBatch {
 		txs[i] = t.Txs[i].Clone()
 	}
 	return &TxBatch{Txs: txs}
+}
+
+// ClearBucketID removes bucketID from the object roots the batch sets. A
+// bucket ID names one participant's local store. Another participant replaying
+// the batch keeps a bucket-qualified root out of its World DAG, so its World
+// would not own the root's blocks.
+func (t *TxBatch) ClearBucketID(bucketID string) {
+	for _, tx := range t.GetTxs() {
+		if create := tx.GetTxCreateObject(); create != nil {
+			create.RootRef = clearRefBucketID(create.GetRootRef(), bucketID)
+		}
+		if set := tx.GetTxObjectSet(); set != nil {
+			set.RootRef = clearRefBucketID(set.GetRootRef(), bucketID)
+		}
+		tx.GetTxBatch().ClearBucketID(bucketID)
+	}
+}
+
+// clearRefBucketID returns ref without bucketID, cloning instead of changing
+// the caller's ref.
+func clearRefBucketID(ref *bucket.ObjectRef, bucketID string) *bucket.ObjectRef {
+	if bucketID == "" || ref.GetBucketId() != bucketID {
+		return ref
+	}
+	local := ref.Clone()
+	local.BucketId = ""
+	return local
 }
 
 // ExecuteTx executes the transaction against a world instance.

@@ -184,7 +184,7 @@ func projectDevicePolicyCapabilities(
 	objState, found, err := tx.GetObject(ctx, record.DeviceObjectKey)
 	defer world.ReleaseObjectState(objState)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "get device object")
 	}
 	if !found {
 		return world.ErrObjectNotFound
@@ -193,7 +193,7 @@ func projectDevicePolicyCapabilities(
 	// Check its identity and compute its projected capabilities.
 	existing, err := readDeviceBlock(ctx, objState)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "read device block")
 	}
 	if existing.GetPeerId() != record.PeerID {
 		return errors.New("device object peer_id does not match setup state")
@@ -209,9 +209,9 @@ func projectDevicePolicyCapabilities(
 		return nil
 	})
 	if err != nil {
-		return err
+		return errors.Wrap(err, "write device block")
 	}
-	return tx.Commit(ctx)
+	return errors.Wrap(tx.Commit(ctx), "commit")
 }
 
 func projectDevicePolicyOntoDevice(

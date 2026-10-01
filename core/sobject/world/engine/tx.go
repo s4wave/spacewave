@@ -113,6 +113,9 @@ func (t *soEngineWriteTx) Commit(ctx context.Context) error {
 	}
 
 	// Serialize the complete mutation as one replayable transaction batch.
+	// Object roots in this participant's bucket replay into the bucket of the
+	// replaying participant, whose World then owns their blocks.
+	txBatch.ClearBucketID(t.eng.so.GetBlockStore().GetID())
 	var tx *world_block_tx.Tx
 	{
 		_, task := trace.NewTask(ctx, "alpha/so-engine/write-tx/build-tx-batch")
