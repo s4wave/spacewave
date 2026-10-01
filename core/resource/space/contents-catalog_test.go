@@ -112,23 +112,24 @@ func TestSpaceContentsResourceWatchStateCachesAvailablePluginCatalogForUnchanged
 	}
 }
 
+// TestSpaceContentsResourceWatchStateInvalidatesAvailablePluginCatalogWhenManifestRootRefChanges
+// checks that changing a manifest root ref looks up every manifest again and
+// emits the updated catalog.
 func TestSpaceContentsResourceWatchStateInvalidatesAvailablePluginCatalogWhenManifestRootRefChanges(t *testing.T) {
+	// Bound the test and seed the manifests.
 	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
 	defer cancel()
-
 	_, tb := newSpaceRuntimeTestbed(t)
-
 	manifestSpecs := catalogCacheTestManifestSpecs()
 	manifests := seedCatalogCacheTestManifests(t, ctx, tb.Engine, manifestSpecs)
 
+	// Mount the Space contents and wait for its runtime.
 	resource := newTestSpaceContentsResource(t, tb.Logger, tb.Bus, tb.Engine, newSpaceRuntimeConfig(tb))
 	resource.volumeID = tb.EngineVolumeID
 	resource.storeID = "platform-account"
-
-	// Start watching after the runtime starts so its first generation does not
-	// wake the watch.
 	waitSpaceRuntimeGeneration(t, resource.runtime, nil)
 
+	// Count the manifest lookups.
 	var lookupCalls atomic.Int64
 	resource.lookupManifest = func(
 		_ context.Context,
@@ -139,55 +140,62 @@ func TestSpaceContentsResourceWatchStateInvalidatesAvailablePluginCatalogWhenMan
 		return manifests[key], nil, nil
 	}
 
+	// Start the watch.
 	watchCtx, watchCancel := context.WithCancel(ctx)
+	defer watchCancel()
 	stream := newTestWatchSpaceContentsStateStream(watchCtx)
 	errCh := make(chan error, 1)
 	go func() {
 		errCh <- resource.WatchState(&s4wave_space.WatchSpaceContentsStateRequest{}, stream)
 	}()
 
+	// The first emission looks up every manifest.
 	initial := receiveTestSpaceContentsState(t, ctx, stream)
 	if got := int(lookupCalls.Load()); got != len(manifestSpecs) {
-		watchCancel()
 		t.Fatalf("initial emission looked up %d manifests, want %d", got, len(manifestSpecs))
 	}
 	assertCatalogCacheTestAvailablePlugins(t, initial.GetAvailablePlugins(), manifestSpecs)
 
+	// Update the beta manifest body served by lookups.
 	updatedSpec := manifestSpecs[1]
 	updatedSpec.description = "beta catalog entry after root ref update"
 	updatedSpec.revision = 12
 	manifestSpecs[1] = updatedSpec
 	manifests[updatedSpec.key] = catalogCacheTestManifest(updatedSpec)
 
+	// Change the beta manifest root ref.
 	rootRefTx, err := tb.Engine.NewTransaction(ctx, true)
 	if err != nil {
-		watchCancel()
 		t.Fatalf("NewTransaction(update manifest root ref): %v", err)
 	}
 	defer rootRefTx.Discard()
 	manifestObject, err := world.MustGetObject(ctx, rootRefTx, updatedSpec.key)
 	defer world.ReleaseObjectState(manifestObject)
 	if err != nil {
-		watchCancel()
 		t.Fatalf("MustGetObject(%s): %v", updatedSpec.key, err)
 	}
 	if _, err := manifestObject.SetRootRef(ctx, catalogCacheTestObjectRef(t, updatedSpec.key+"/updated-root")); err != nil {
-		watchCancel()
 		t.Fatalf("SetRootRef(%s): %v", updatedSpec.key, err)
 	}
 	if err := rootRefTx.Commit(ctx); err != nil {
-		watchCancel()
 		t.Fatalf("Commit(update manifest root ref): %v", err)
 	}
 
+	// Skip emissions from unrelated wakes, such as the first plugin
+	// reconcile, which reuse the cached catalog.
 	next := receiveTestSpaceContentsState(t, ctx, stream)
+	for !catalogCacheTestHasDescription(next.GetAvailablePlugins(), updatedSpec) {
+		next = receiveTestSpaceContentsState(t, ctx, stream)
+	}
+
+	// The root ref change looked up every manifest again.
 	expectedLookups := len(manifestSpecs) * 2
 	if got := int(lookupCalls.Load()); got != expectedLookups {
-		watchCancel()
 		t.Fatalf("root-ref change performed %d total lookups, want %d", got, expectedLookups)
 	}
 	assertCatalogCacheTestAvailablePlugins(t, next.GetAvailablePlugins(), manifestSpecs)
 
+	// Stop the watch.
 	watchCancel()
 	select {
 	case err := <-errCh:
@@ -290,6 +298,20 @@ func receiveTestSpaceContentsState(
 		t.Fatal("timed out waiting for space contents state")
 		return nil
 	}
+}
+
+// catalogCacheTestHasDescription reports whether got lists spec's plugin with
+// spec's description.
+func catalogCacheTestHasDescription(
+	got []*s4wave_space.AvailablePlugin,
+	spec catalogCacheTestManifestSpec,
+) bool {
+	for _, plugin := range got {
+		if plugin.GetPluginId() == spec.pluginID {
+			return plugin.GetDescription() == spec.description
+		}
+	}
+	return false
 }
 
 // assertCatalogCacheTestAvailablePlugins checks the available plugin catalog
