@@ -21,6 +21,7 @@ import { ObjectViewer } from '@s4wave/web/object/ObjectViewer.js'
 import { ObjectViewerLoadingState } from '@s4wave/web/object/ObjectViewerLoadingState.js'
 import type { ObjectInfo } from '@s4wave/web/object/object.pb.js'
 import { getQuickstartInitialObjectHandoff } from '@s4wave/app/quickstart/session-handoff.js'
+import { useObjectMetadata } from '@s4wave/web/hooks/useObjectMetadata.js'
 
 // The outer route's viewer subpath is world/-/<inner-key>/-/<viewer-path>.
 const nestedRoutePrefix = 'world/-/'
@@ -158,7 +159,6 @@ export function SpaceObjectContainer() {
     spaceId,
     objectKey,
     objectPath,
-    spaceState,
     spaceWorldResource,
     navigateToRoot,
     navigateToSubPath,
@@ -193,12 +193,11 @@ export function SpaceObjectContainer() {
     [navigate, routerPath, objectKey, navigateToSubPath],
   )
 
+  const worldObjectType = useObjectMetadata(spaceWorldResource, objectKey ?? '')
+    .value?.typeId
   const objectType = useMemo(() => {
-    const stateType = spaceState.worldContents?.objects?.find(
-      (obj) => obj.objectKey === objectKey,
-    )?.objectType
-    if (stateType) {
-      return stateType
+    if (worldObjectType) {
+      return worldObjectType
     }
     return (
       getQuickstartInitialObjectHandoff(
@@ -212,7 +211,7 @@ export function SpaceObjectContainer() {
     objectKey,
     sessionIndex,
     spaceId,
-    spaceState.worldContents?.objects,
+    worldObjectType,
     environment.instanceKey,
   ])
 

@@ -25,6 +25,7 @@ import {
   WatchResourcesListResponse,
 } from '@s4wave/sdk/session/session.pb.js'
 import type { EngineWorldState } from '@s4wave/sdk/world/engine-state.js'
+import { useObjectMetadata } from '@s4wave/web/hooks/useObjectMetadata.js'
 import { useRootResource } from '@s4wave/web/hooks/useRootResource.js'
 import {
   SessionContext,
@@ -323,14 +324,12 @@ function useDisplayController() {
     spaceContentsResource,
   ])
 
-  const objectEntry = useMemo(
-    () =>
-      spaceState?.worldContents?.objects?.find(
-        (obj) => obj.objectKey === parsedPath.objectKey,
-      ),
-    [parsedPath.objectKey, spaceState?.worldContents?.objects],
+  const objectEntryResource = useObjectMetadata(
+    spaceWorldResource,
+    parsedPath.objectKey,
   )
-  const objectType = objectEntry?.objectType ?? ''
+  const objectEntry = objectEntryResource.value
+  const objectType = objectEntry?.typeId ?? ''
   const objectInfo: ObjectInfo = useMemo(
     () => ({
       info: parsedPath.objectKey
@@ -465,6 +464,7 @@ function useDisplayController() {
     navigateToSubPath,
     navigateViewerPath,
     objectEntry,
+    objectEntryResource,
     objectInfo,
     parsedPath,
     renderMissingDisplayComponent,
@@ -503,6 +503,7 @@ function DisplayContent({ controller }: { controller: DisplayController }) {
     navigateToSubPath,
     navigateViewerPath,
     objectEntry,
+    objectEntryResource,
     objectInfo,
     parsedPath,
     renderMissingDisplayComponent,
@@ -581,6 +582,7 @@ function DisplayContent({ controller }: { controller: DisplayController }) {
     spaceResource.loading ||
     spaceWorldResource.loading ||
     spaceContentsResource.loading ||
+    objectEntryResource.loading ||
     !sharedObjectResource.value ||
     !sharedObjectBodyResource.value ||
     !spaceResource.value ||

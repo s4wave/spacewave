@@ -29,15 +29,11 @@ const h = vi.hoisted(() => ({
   navigateToRoot: vi.fn(),
   navigateToSubPath: vi.fn(),
   getQuickstartInitialObjectHandoff: vi.fn(),
+  worldObjectType: '',
   spaceContext: {
     spaceId: 'space/git',
     objectKey: 'repo/demo',
     objectPath: '',
-    spaceState: {
-      worldContents: {
-        objects: [] as { objectKey?: string; objectType?: string }[],
-      },
-    },
     spaceWorldResource: { value: null, loading: false, error: null },
   },
   spaceContentsResource: {
@@ -80,6 +76,15 @@ vi.mock('@s4wave/web/contexts/SpaceContainerContext.js', () => ({
   },
 }))
 
+vi.mock('@s4wave/web/hooks/useObjectMetadata.js', () => ({
+  useObjectMetadata: () => ({
+    value: h.worldObjectType ? { typeId: h.worldObjectType } : null,
+    loading: false,
+    error: null,
+    retry: vi.fn(),
+  }),
+}))
+
 vi.mock('@s4wave/app/quickstart/session-handoff.js', () => ({
   getQuickstartInitialObjectHandoff: h.getQuickstartInitialObjectHandoff,
 }))
@@ -91,11 +96,11 @@ describe('SpaceObjectContainer', () => {
     h.navigateToRoot.mockClear()
     h.navigateToSubPath.mockClear()
     h.getQuickstartInitialObjectHandoff.mockReset()
+    h.worldObjectType = ''
     h.spaceContext = {
       spaceId: 'space/git',
       objectKey: 'repo/demo',
       objectPath: '',
-      spaceState: { worldContents: { objects: [] } },
       spaceWorldResource: { value: null, loading: false, error: null },
     }
   })
@@ -113,12 +118,8 @@ describe('SpaceObjectContainer', () => {
     expect(props?.stateNamespace).toEqual(['objectViewer', 'repo/demo'])
   })
 
-  it('passes the current space object type to the viewer when space state has it', () => {
-    h.spaceContext.spaceState = {
-      worldContents: {
-        objects: [{ objectKey: 'repo/demo', objectType: 'git/repo' }],
-      },
-    }
+  it('passes the World object type to the viewer', () => {
+    h.worldObjectType = 'git/repo'
 
     render(<SpaceObjectContainer />)
 

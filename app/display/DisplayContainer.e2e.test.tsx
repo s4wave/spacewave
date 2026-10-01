@@ -60,6 +60,7 @@ const h = vi.hoisted(() => ({
   watches: [] as unknown[],
   rootResource: undefined as TestResource | undefined,
   sessionList: undefined as TestResource | undefined,
+  objects: [] as Array<{ objectKey: string; objectType: string }>,
   useObjectViewer: vi.fn(),
   objectViewerContent: vi.fn(),
   historyRouter: vi.fn(),
@@ -90,6 +91,18 @@ vi.mock('@aptre/bldr-sdk/hooks/useResource.js', () => ({
 
 vi.mock('@s4wave/app/hooks/useSessionList.js', () => ({
   useSessionList: () => h.sessionList,
+}))
+
+vi.mock('@s4wave/web/hooks/useObjectMetadata.js', () => ({
+  useObjectMetadata: (_world: unknown, objectKey: string) => {
+    const object = h.objects.find((obj) => obj.objectKey === objectKey)
+    return {
+      value: object ? { objectKey, typeId: object.objectType } : null,
+      loading: false,
+      error: null,
+      retry: vi.fn(),
+    }
+  },
 }))
 
 vi.mock('@s4wave/web/hooks/useRootResource.js', () => ({
@@ -313,16 +326,12 @@ function setupDisplayRoute(options: {
         },
       ],
     },
+    { ready: true },
+  ]
+  h.objects = options.objects ?? [
     {
-      ready: true,
-      worldContents: {
-        objects: options.objects ?? [
-          {
-            objectKey: 'docs/hello',
-            objectType: 'spacewave/document',
-          },
-        ],
-      },
+      objectKey: 'docs/hello',
+      objectType: 'spacewave/document',
     },
   ]
   h.useObjectViewer.mockImplementation(viewerForRequestedComponent)

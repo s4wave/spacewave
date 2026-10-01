@@ -39,11 +39,6 @@ const h = vi.hoisted(() => ({
     spaceId: 'space-1',
     objectKey: 'wizard',
     objectPath: 'device-1',
-    spaceState: {
-      worldContents: {
-        objects: [{ objectKey: 'wizard', objectType: 'spacewave/wizard' }],
-      },
-    },
     spaceWorldResource: {
       value: null as null | {
         openNestedWorld: (key: string, signal: AbortSignal) => Promise<unknown>
@@ -98,6 +93,15 @@ vi.mock('@s4wave/web/contexts/SpaceContainerContext.js', () => ({
       navigateToSubPath: h.navigateToSubPath,
     }),
   },
+}))
+
+vi.mock('@s4wave/web/hooks/useObjectMetadata.js', () => ({
+  useObjectMetadata: () => ({
+    value: 'spacewave/wizard',
+    loading: false,
+    error: null,
+    retry: vi.fn(),
+  }),
 }))
 
 vi.mock('@s4wave/app/quickstart/session-handoff.js', () => ({
