@@ -41,6 +41,7 @@ func StartPluginHost(
 	pluginsDistRoot string,
 	webRuntimeID string,
 ) (ctrl *PluginHostController, rel func(), err error) {
+	// Start the process-based plugin host controller and wait for it to run.
 	pluginHostProcessConf := plugin_host_process.NewConfig(pluginsStateRoot, pluginsDistRoot)
 	processPluginHostCtrl, _, processPluginHostRef, err := loader.WaitExecControllerRunningTyped[*plugin_host_controller.Controller](
 		ctx,
@@ -52,6 +53,8 @@ func StartPluginHost(
 		return nil, nil, err
 	}
 
+	// Start the QuickJS plugin host controller, releasing the process host on
+	// failure.
 	pluginHostQuickjsConf := plugin_host_quickjs.NewConfig()
 	quickjsHostCtrl, _, quickjsHostRef, err := loader.WaitExecControllerRunningTyped[*plugin_host_controller.Controller](
 		ctx,
@@ -64,6 +67,7 @@ func StartPluginHost(
 		return nil, nil, err
 	}
 
+	// Return the controller with a release function for both host references.
 	ctrl = &PluginHostController{
 		ProcessHost: processPluginHostCtrl,
 		QuickjsHost: quickjsHostCtrl,

@@ -80,6 +80,7 @@ func (bc *bundleCache) build(
 	extraDigest []byte,
 	doBuild func() (*bundleBuildOutput, error),
 ) (*bundleBuildOutput, error) {
+	// Build directly when the spec is not cacheable.
 	configDigest, cacheable := bc.configDigest(spec, extraDigest)
 	if !cacheable {
 		out, err := doBuild()
@@ -89,12 +90,14 @@ func (bc *bundleCache) build(
 		return out, err
 	}
 
+	// Take the exclusive cache lock for this bundle name.
 	lock, err := acquireBundleCacheLock(filepath.Join(bc.dir, name+".lock"))
 	if err != nil {
 		return nil, err
 	}
 	defer func() { _ = lock.Close() }()
 
+	// Reuse the cached output when its provenance still matches.
 	if cached := bc.load(name, spec.compilerID, configDigest); cached != nil {
 		bc.reuses.Add(1)
 		bc.le.WithField("bundle", name).Debug("reusing cached browser bundle")
@@ -102,11 +105,14 @@ func (bc *bundleCache) build(
 	}
 	bc.removeRecordedOutputs(name)
 
+	// Run the build and count it against the cache statistics.
 	out, err := doBuild()
 	if err != nil {
 		return nil, err
 	}
 	bc.builds.Add(1)
+
+	// Store the build provenance when the output records are complete.
 	if len(out.inputs) == 0 || len(out.verify) == 0 {
 		bc.le.WithField("bundle", name).Debug("not caching browser bundle: incomplete provenance")
 		return out, nil
@@ -118,6 +124,7 @@ func (bc *bundleCache) build(
 }
 
 func (bc *bundleCache) removeRecordedOutputs(name string) {
+	// Read and parse the recorded provenance, ignoring missing records.
 	data, err := os.ReadFile(bc.recordPath(name))
 	if err != nil {
 		return
@@ -126,6 +133,8 @@ func (bc *bundleCache) removeRecordedOutputs(name string) {
 	if err != nil {
 		return
 	}
+
+	// Remove each recorded output path that stays inside the build directory.
 	for _, output := range record.outputs {
 		relativePath := filepath.Clean(output.path)
 		if relativePath == "." ||
@@ -139,9 +148,12 @@ func (bc *bundleCache) removeRecordedOutputs(name string) {
 }
 
 func (bc *bundleCache) configDigest(spec bundleCacheSpec, extraDigest []byte) ([]byte, bool) {
+	// Skip caching when the spec lacks a compiler ID or request payload.
 	if spec.compilerID == "" || len(spec.request) == 0 {
 		return nil, false
 	}
+
+	// Hash the cache format, compiler ID, request, and extra digest.
 	h := sha256.New()
 	_, _ = h.Write([]byte("bldr browser bundle cache v" + strconv.Itoa(bundleCacheFormatVersion)))
 	_, _ = h.Write([]byte{0})
@@ -150,12 +162,15 @@ func (bc *bundleCache) configDigest(spec bundleCacheSpec, extraDigest []byte) ([
 	_, _ = h.Write(spec.request)
 	_, _ = h.Write([]byte{0})
 	_, _ = h.Write(extraDigest)
+
+	// Return the hex-encoded digest.
 	return h.Sum(nil), true
 }
 
 // load returns the reusable output for name, or nil if provenance is missing,
 // stale, incomplete, or its recorded outputs are gone.
 func (bc *bundleCache) load(name, compilerID string, configDigest []byte) *bundleBuildOutput {
+	// Read and parse the provenance record, ignoring missing records.
 	data, err := os.ReadFile(bc.recordPath(name))
 	if err != nil {
 		return nil
@@ -165,6 +180,8 @@ func (bc *bundleCache) load(name, compilerID string, configDigest []byte) *bundl
 		bc.le.WithField("bundle", name).WithError(err).Debug("ignoring unreadable bundle provenance")
 		return nil
 	}
+
+	// Reject records with a different format, compiler, digest, or provenance.
 	if record.formatVersion != bundleCacheFormatVersion || record.compilerID != compilerID {
 		return nil
 	}
@@ -174,6 +191,8 @@ func (bc *bundleCache) load(name, compilerID string, configDigest []byte) *bundl
 	if len(record.inputs) == 0 || len(record.outputs) == 0 {
 		return nil
 	}
+
+	// Verify every recorded input still matches the source file.
 	for _, input := range record.inputs {
 		if input.identity == nil {
 			return nil
@@ -183,6 +202,8 @@ func (bc *bundleCache) load(name, compilerID string, configDigest []byte) *bundl
 			return nil
 		}
 	}
+
+	// Verify every recorded config input against its identity or absence.
 	for _, input := range record.configInputs {
 		path := filepath.Join(bc.baseRoot, input.path)
 		if input.identity == nil {
@@ -218,6 +239,7 @@ func (bc *bundleCache) load(name, compilerID string, configDigest []byte) *bundl
 
 // store captures source, configuration, and output identities atomically.
 func (bc *bundleCache) store(name string, spec bundleCacheSpec, configDigest []byte, out *bundleBuildOutput) error {
+	// Create the cache directory and start the provenance record.
 	if err := os.MkdirAll(bc.dir, 0o755); err != nil {
 		return err
 	}
@@ -285,6 +307,7 @@ type bundleRecord struct {
 
 // marshal encodes the record as JSON using typed fields.
 func (r *bundleRecord) marshal() []byte {
+	// Encode the record header and input lists into a JSON object.
 	var a fastjson.Arena
 	obj := a.NewObject()
 	obj.Set("formatVersion", a.NewNumberInt(r.formatVersion))
@@ -293,6 +316,7 @@ func (r *bundleRecord) marshal() []byte {
 	obj.Set("inputs", marshalBundleInputs(&a, r.inputs))
 	obj.Set("configInputs", marshalBundleInputs(&a, r.configInputs))
 
+	// Encode each output path with its file identity.
 	outputs := a.NewArray()
 	for i, output := range r.outputs {
 		item := a.NewObject()
@@ -302,12 +326,14 @@ func (r *bundleRecord) marshal() []byte {
 	}
 	obj.Set("outputs", outputs)
 
+	// Encode the values map with sorted keys.
 	values := a.NewObject()
 	for _, key := range sortedStringKeys(r.values) {
 		values.Set(key, a.NewString(r.values[key]))
 	}
 	obj.Set("values", values)
 
+	// Encode the output list paths.
 	list := a.NewArray()
 	for i, item := range r.list {
 		list.SetArrayItem(i, a.NewString(item))
@@ -318,6 +344,7 @@ func (r *bundleRecord) marshal() []byte {
 
 // parseBundleRecord decodes a persisted provenance record.
 func parseBundleRecord(data []byte) (*bundleRecord, error) {
+	// Parse the record header and input lists.
 	var p fastjson.Parser
 	v, err := p.ParseBytes(data)
 	if err != nil {
@@ -337,6 +364,8 @@ func parseBundleRecord(data []byte) (*bundleRecord, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "parse bundle config inputs")
 	}
+
+	// Parse each output path with its file identity.
 	for _, item := range v.GetArray("outputs") {
 		identity, err := parseIdentity(item)
 		if err != nil {
@@ -347,6 +376,8 @@ func parseBundleRecord(data []byte) (*bundleRecord, error) {
 			identity: identity,
 		})
 	}
+
+	// Parse the values map and output list paths.
 	if values := v.GetObject("values"); values != nil {
 		values.Visit(func(k []byte, item *fastjson.Value) {
 			record.values[string(k)] = string(item.GetStringBytes())
@@ -358,7 +389,9 @@ func parseBundleRecord(data []byte) (*bundleRecord, error) {
 	return record, nil
 }
 
+// marshalBundleInputs encodes input paths and identities as a JSON array.
 func marshalBundleInputs(a *fastjson.Arena, inputs []bundleInput) *fastjson.Value {
+	// Encode each input path with its file identity.
 	items := a.NewArray()
 	for i, input := range inputs {
 		item := a.NewObject()
@@ -369,11 +402,15 @@ func marshalBundleInputs(a *fastjson.Arena, inputs []bundleInput) *fastjson.Valu
 	return items
 }
 
+// marshalIdentity encodes a file identity into a JSON object.
 func marshalIdentity(a *fastjson.Arena, item *fastjson.Value, identity *bldr_manifest_builder.InputManifest_FileIdentity) {
+	// Mark missing identities as non-existent.
 	if identity == nil {
 		item.Set("exists", a.NewFalse())
 		return
 	}
+
+	// Encode the size, modification time, and sha256 identity fields.
 	item.Set("exists", a.NewTrue())
 	item.Set("size", a.NewString(strconv.FormatUint(identity.GetSizeBytes(), 10)))
 	item.Set("modTimeUnixNano", a.NewString(strconv.FormatInt(identity.GetModTimeUnixNano(), 10)))
@@ -395,10 +432,14 @@ func parseBundleInputs(values []*fastjson.Value) ([]bundleInput, error) {
 	return inputs, nil
 }
 
+// parseIdentity decodes a file identity from a JSON object.
 func parseIdentity(item *fastjson.Value) (*bldr_manifest_builder.InputManifest_FileIdentity, error) {
+	// Treat a missing identity as a non-existent file.
 	if !item.GetBool("exists") {
 		return nil, nil
 	}
+
+	// Decode the sha256, size, and modification time identity fields.
 	sha, err := hex.DecodeString(string(item.GetStringBytes("sha256")))
 	if err != nil {
 		return nil, errors.Wrap(err, "decode input sha256")
@@ -418,7 +459,9 @@ func parseIdentity(item *fastjson.Value) (*bldr_manifest_builder.InputManifest_F
 	}, nil
 }
 
+// cacheRelativePath relativizes a path against the cache base root.
 func cacheRelativePath(baseRoot, path string) (string, error) {
+	// Resolve the path against the base root and relativize it.
 	absolutePath := path
 	if !filepath.IsAbs(absolutePath) {
 		absolutePath = filepath.Join(baseRoot, absolutePath)
@@ -430,7 +473,9 @@ func cacheRelativePath(baseRoot, path string) (string, error) {
 	return filepath.Clean(relativePath), nil
 }
 
+// captureBundleConfigInputs captures identities for the deduplicated config files.
 func captureBundleConfigInputs(configFiles []string, baseRoot string) ([]bundleInput, error) {
+	// Deduplicate the config file paths relative to the base root.
 	paths := make([]string, 0, len(configFiles))
 	seen := make(map[string]struct{}, len(configFiles))
 	for _, configFile := range configFiles {
@@ -460,7 +505,9 @@ func captureBundleConfigInputs(configFiles []string, baseRoot string) ([]bundleI
 	return inputs, nil
 }
 
+// browserBundleConfigFiles lists the dist files that affect browser bundles.
 func browserBundleConfigFiles(bldrDistRoot, compilerID string) []string {
+	// Locate the tool root containing the web bundler sources.
 	toolRoot := bldrDistRoot
 	if _, err := os.Stat(filepath.Join(toolRoot, "web", "bundler")); err != nil {
 		toolRoot = filepath.Join(bldrDistRoot, "bldr")
@@ -508,6 +555,7 @@ func viteBrowserCompilerConfigFiles(toolRoot string) []string {
 }
 
 func writeBundleRecordAtomic(recordPath string, data []byte) error {
+	// Create a temp file that is removed unless the rename succeeds.
 	tempFile, err := os.CreateTemp(filepath.Dir(recordPath), ".bundle-record-*")
 	if err != nil {
 		return errors.Wrap(err, "create bundle provenance temp file")
@@ -519,6 +567,8 @@ func writeBundleRecordAtomic(recordPath string, data []byte) error {
 			_ = os.Remove(tempPath)
 		}
 	}()
+
+	// Write and sync the record data to the temp file.
 	if _, err := tempFile.Write(data); err != nil {
 		_ = tempFile.Close()
 		return errors.Wrap(err, "write bundle provenance temp file")
@@ -606,6 +656,7 @@ func buildSingleFileWorkerCached(
 	buildDir string,
 	scriptSpec browserScriptSpec,
 ) (string, error) {
+	// Marshal the worker cache request and build through the cache.
 	request := browserScriptRequest(bldrDistRoot, buildDir, scriptSpec)
 	requestJSON, err := request.MarshalJSON()
 	if err != nil {
@@ -651,6 +702,7 @@ func buildRendererCached(
 	browserIceServersEndpoint string,
 	webPkgImportMap web_entrypoint_index.ImportMap,
 ) ([]string, error) {
+	// Render the index HTML and build the renderer spec.
 	indexHTML, err := renderIndexHTML(rendererBootPath, webPkgImportMap)
 	if err != nil {
 		return nil, err
@@ -666,6 +718,8 @@ func buildRendererCached(
 	if err != nil {
 		return nil, err
 	}
+
+	// Marshal the direct and config-free renderer cache requests.
 	directJSON, err := directRendererRequest(bldrDistRoot, buildDir, rendererOpts).MarshalJSON()
 	if err != nil {
 		return nil, errors.Wrap(err, "marshal direct renderer cache request")
@@ -678,6 +732,8 @@ func buildRendererCached(
 	if err != nil {
 		return nil, errors.Wrap(err, "marshal Vite renderer cache request")
 	}
+
+	// Build the renderer through the cache with the combined request digest.
 	requestJSON := append(append(directJSON, 0), viteJSON...)
 	indexDigest := sha256.Sum256(indexHTML)
 	out, err := cache.build(

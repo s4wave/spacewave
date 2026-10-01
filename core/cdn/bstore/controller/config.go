@@ -23,6 +23,7 @@ func NewConfig(blockStoreID, spaceID, cdnBaseURL string) *Config {
 
 // Validate validates the configuration.
 func (c *Config) Validate() error {
+	// Check the required identifiers and numeric limits in order.
 	if c.GetBlockStoreId() == "" {
 		return block_store.ErrBlockStoreIDEmpty
 	}

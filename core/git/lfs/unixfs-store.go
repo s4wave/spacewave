@@ -43,6 +43,7 @@ func NewUnixFSStore(
 // apart from another lookup failure. Every failure reports the object as
 // missing; the Put that follows surfaces a real failure.
 func (s *UnixFSStore) Has(ctx context.Context, oid string, size int64) (bool, error) {
+	// Look up the object path and adopt its resource reference.
 	resp, err := s.root.LookupPath(ctx, &s4wave_unixfs.HandleLookupPathRequest{Path: ObjectPath(oid)})
 	if err != nil {
 		return false, nil

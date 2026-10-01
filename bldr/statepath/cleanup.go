@@ -13,6 +13,7 @@ import (
 // preserveStartupBuildCache is false it also removes the durable startup build
 // cache and the synced dist sources with their vendor tree. Unrecognized entries and state-root lock anchors are always preserved.
 func ClearBuildState(root string, preserveStartupBuildCache bool) error {
+	// Read the state root entries, tolerating a missing root.
 	entries, err := os.ReadDir(root)
 	if os.IsNotExist(err) {
 		return nil

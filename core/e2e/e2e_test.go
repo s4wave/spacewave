@@ -32,10 +32,12 @@ import (
 // TestSpacewaveCoreE2E runs the TypeScript fixture against native core services.
 // TIER: pr
 func TestSpacewaveCoreE2E(t *testing.T) {
+	// Skip unless the core E2E suite is explicitly enabled.
 	if os.Getenv("RUN_CORE_E2E") == "" {
 		t.Skip("set RUN_CORE_E2E=1 to run the core E2E test")
 	}
 
+	// Build a debug-level logger and background context for the test.
 	ctx := context.Background()
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
@@ -79,6 +81,8 @@ func TestSpacewaveCoreE2E(t *testing.T) {
 
 	// add the controllers we will need
 	b, sr := tb.GetBus(), tb.GetStaticResolver()
+
+	// Register the plugin host, project, and compiler factories.
 	sr.AddFactory(plugin_host_process.NewFactory(b))
 	sr.AddFactory(plugin_host_wazero_quickjs.NewFactory(b))
 	sr.AddFactory(bldr_project_controller.NewFactory(b))
@@ -86,6 +90,8 @@ func TestSpacewaveCoreE2E(t *testing.T) {
 	sr.AddFactory(bldr_plugin_compiler_go.NewFactory(b))
 	sr.AddFactory(bldr_plugin_compiler_js.NewFactory(b))
 	sr.AddFactory(bldr_web_bundler_vite_compiler.NewFactory(b))
+
+	// Register the volume RPC and world block engine factories.
 	sr.AddFactory(volume_rpc_server.NewFactory(b))
 	sr.AddFactory(world_block_engine.NewFactory(b))
 
@@ -210,7 +216,11 @@ func TestSpacewaveCoreE2E(t *testing.T) {
 		testResultCh <- testResult{success: success, errorMsg: errorMsg, err: err}
 	}()
 
+	// Log progress while awaiting the fixture's terminal result.
 	le.Info("waiting for test to complete...")
+
+	// Wait for either plugin startup or the fixture's terminal result,
+	// failing fast if the startup plugins fail before the fixture finishes.
 	for startupErrCh != nil {
 		select {
 		case err := <-startupErrCh:
@@ -231,6 +241,7 @@ func TestSpacewaveCoreE2E(t *testing.T) {
 		}
 	}
 
+	// Consume the fixture's result after the startup wait has settled.
 	result := <-testResultCh
 	if result.err != nil {
 		t.Fatalf("error waiting for test result: %v", result.err)
@@ -239,5 +250,6 @@ func TestSpacewaveCoreE2E(t *testing.T) {
 		t.Fatalf("test failed: %s", result.errorMsg)
 	}
 
+	// Report the fixture's successful completion.
 	le.Info("test completed successfully")
 }

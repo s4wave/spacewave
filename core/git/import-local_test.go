@@ -27,9 +27,11 @@ import (
 )
 
 func TestImportLocalRepoToRefRoundTrip(t *testing.T) {
+	// Build the World testbed and a local repository to import.
 	ctx, ws := localImportWorld(t)
 	path, repo, head := createLocalRepo(t)
 
+	// Import the local repository and verify the head and branch.
 	ref, gotHead, branch, err := ImportLocalRepoToRef(ctx, ws, path)
 	if err != nil {
 		t.Fatalf("ImportLocalRepoToRef: %v", err)
@@ -41,6 +43,7 @@ func TestImportLocalRepoToRefRoundTrip(t *testing.T) {
 		t.Fatalf("branch = %q, want master", branch)
 	}
 
+	// Open the imported store and verify its HEAD and references.
 	withImportedStore(t, ctx, ws, ref, func(store *git_block.Store) {
 		got, err := storer.ResolveReference(store, plumbing.HEAD)
 		if err != nil {
@@ -62,6 +65,7 @@ func TestImportLocalRepoToRefRoundTrip(t *testing.T) {
 }
 
 func TestImportLocalRepoToRefExcludesDirtyFiles(t *testing.T) {
+	// Build the World testbed and a repository with dirty and untracked files.
 	ctx, ws := localImportWorld(t)
 	path, _, head := createLocalRepo(t)
 	if err := os.WriteFile(filepath.Join(path, "tracked.txt"), []byte("dirty\n"), 0o600); err != nil {
@@ -71,11 +75,13 @@ func TestImportLocalRepoToRefExcludesDirtyFiles(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Import the repository and verify only committed content was copied.
 	ref, _, _, err := ImportLocalRepoToRef(ctx, ws, path)
 	if err != nil {
 		t.Fatalf("ImportLocalRepoToRef: %v", err)
 	}
 	withImportedStore(t, ctx, ws, ref, func(store *git_block.Store) {
+		// Read the imported commit and verify its tracked contents.
 		commit, err := object.GetCommit(store, head)
 		if err != nil {
 			t.Fatalf("read imported commit: %v", err)
@@ -95,12 +101,14 @@ func TestImportLocalRepoToRefExcludesDirtyFiles(t *testing.T) {
 }
 
 func TestImportLocalRepoToRefDetachedHead(t *testing.T) {
+	// Build the testbed and detach the repository's HEAD.
 	ctx, ws := localImportWorld(t)
 	path, repo, head := createLocalRepo(t)
 	if err := repo.Storer.SetReference(plumbing.NewHashReference(plumbing.HEAD, head)); err != nil {
 		t.Fatalf("detach HEAD: %v", err)
 	}
 
+	// Import the detached repository and verify the empty branch and head.
 	ref, gotHead, branch, err := ImportLocalRepoToRef(ctx, ws, path)
 	if err != nil {
 		t.Fatalf("ImportLocalRepoToRef: %v", err)
@@ -120,12 +128,14 @@ func TestImportLocalRepoToRefDetachedHead(t *testing.T) {
 }
 
 func TestImportLocalRepoToRefRejectsUnbornHead(t *testing.T) {
+	// Build the testbed and initialize a repository with no commits.
 	ctx, ws := localImportWorld(t)
 	path := t.TempDir()
 	if _, err := git.PlainInit(path, false); err != nil {
 		t.Fatal(err)
 	}
 
+	// Import the unborn repository and expect a nil ref with an error.
 	ref, _, _, err := ImportLocalRepoToRef(ctx, ws, path)
 	if err == nil || ref != nil {
 		t.Fatalf("unborn import = (%v, %v), want nil ref and error", ref, err)
@@ -133,12 +143,14 @@ func TestImportLocalRepoToRefRejectsUnbornHead(t *testing.T) {
 }
 
 func TestImportOpenedLocalRepoCancellationDoesNotPublish(t *testing.T) {
+	// Build the testbed, repository, and a cancellable context.
 	ctx, cancel := context.WithCancel(t.Context())
 	t.Cleanup(cancel)
 	_, ws := localImportWorld(t)
 	_, repo, _ := createLocalRepo(t)
 	copied := 0
 
+	// Cancel during the first copied object and expect no published ref.
 	ref, _, _, err := importOpenedLocalRepo(ctx, ws, repo, func() {
 		copied++
 		cancel()
@@ -152,11 +164,13 @@ func TestImportOpenedLocalRepoCancellationDoesNotPublish(t *testing.T) {
 }
 
 func TestImportOpenedLocalRepoRejectsHeadDrift(t *testing.T) {
+	// Build the testbed and a storer whose HEAD drifts after repeated reads.
 	_, ws := localImportWorld(t)
 	_, repo, _ := createLocalRepo(t)
 	drifting := &headDriftingStorer{Storer: repo.Storer}
 	driftingRepo := &git.Repository{Storer: drifting}
 
+	// Import the drifting repository and expect a nil ref with an error.
 	ref, _, _, err := importOpenedLocalRepo(t.Context(), ws, driftingRepo, nil)
 	if err == nil || ref != nil {
 		t.Fatalf("drifting import = (%v, %v), want nil ref and error", ref, err)
@@ -164,6 +178,7 @@ func TestImportOpenedLocalRepoRejectsHeadDrift(t *testing.T) {
 }
 
 func TestImportLocalRepoToRefPreservesAnnotatedTagAndShallowBoundary(t *testing.T) {
+	// Build the testbed and add an annotated tag plus shallow boundary.
 	ctx, ws := localImportWorld(t)
 	path, repo, head := createLocalRepo(t)
 	signature := &object.Signature{Name: "Test", Email: "test@example.com", When: time.Unix(2, 0).UTC()}
@@ -175,6 +190,7 @@ func TestImportLocalRepoToRefPreservesAnnotatedTagAndShallowBoundary(t *testing.
 		t.Fatalf("set shallow boundary: %v", err)
 	}
 
+	// Import the repository and verify the tag and shallow boundary survived.
 	ref, _, _, err := ImportLocalRepoToRef(ctx, ws, path)
 	if err != nil {
 		t.Fatalf("ImportLocalRepoToRef: %v", err)
@@ -194,6 +210,7 @@ func TestImportLocalRepoToRefPreservesAnnotatedTagAndShallowBoundary(t *testing.
 }
 
 func TestImportLocalRepoToRefDoesNotMutatePackedReadOnlyGitDir(t *testing.T) {
+	// Pack the source repository and snapshot its read-only Git directory.
 	ctx, ws := localImportWorld(t)
 	path, _, _ := createLocalRepo(t)
 	cmd := exec.CommandContext(ctx, "git", "-C", path, "gc", "--prune=now")
@@ -204,6 +221,7 @@ func TestImportLocalRepoToRefDoesNotMutatePackedReadOnlyGitDir(t *testing.T) {
 	makeTreeReadOnly(t, gitDir)
 	before := snapshotTree(t, gitDir)
 
+	// Import the packed repository and verify the Git directory is unchanged.
 	if _, _, _, err := ImportLocalRepoToRef(ctx, ws, path); err != nil {
 		t.Fatalf("ImportLocalRepoToRef: %v", err)
 	}
@@ -251,6 +269,7 @@ func TestImportLocalRepoToRefReadsLinkedWorktree(t *testing.T) {
 }
 
 func TestImportLocalRepoToRefDoesNotCopyConfiguration(t *testing.T) {
+	// Build the testbed and add a remote with credentials to the source repo.
 	ctx, ws := localImportWorld(t)
 	path, repo, _ := createLocalRepo(t)
 	if _, err := repo.CreateRemote(&config.RemoteConfig{
@@ -260,6 +279,7 @@ func TestImportLocalRepoToRefDoesNotCopyConfiguration(t *testing.T) {
 		t.Fatalf("create source remote: %v", err)
 	}
 
+	// Import the repository and verify no remotes were copied.
 	ref, _, _, err := ImportLocalRepoToRef(ctx, ws, path)
 	if err != nil {
 		t.Fatalf("ImportLocalRepoToRef: %v", err)
@@ -276,6 +296,7 @@ func TestImportLocalRepoToRefDoesNotCopyConfiguration(t *testing.T) {
 }
 
 func TestImportLocalRepoToRefReadsAlternatesObjectClosure(t *testing.T) {
+	// Build the testbed and move the source objects into an alternates holder.
 	ctx, ws := localImportWorld(t)
 	path, _, head := createLocalRepo(t)
 	sourceObjects := filepath.Join(path, ".git", "objects")
@@ -284,6 +305,8 @@ func TestImportLocalRepoToRefReadsAlternatesObjectClosure(t *testing.T) {
 	if err := os.Rename(sourceObjects, holderObjects); err != nil {
 		t.Fatal(err)
 	}
+
+	// Point the source objects directory at the holder via an alternates file.
 	if err := os.MkdirAll(filepath.Join(sourceObjects, "info"), 0o700); err != nil {
 		t.Fatal(err)
 	}
@@ -294,11 +317,14 @@ func TestImportLocalRepoToRefReadsAlternatesObjectClosure(t *testing.T) {
 	); err != nil {
 		t.Fatal(err)
 	}
+
+	// Verify reference Git can read the alternate object database.
 	cmd := exec.CommandContext(ctx, "git", "-C", path, "cat-file", "-e", "HEAD")
 	if output, err := cmd.CombinedOutput(); err != nil {
 		t.Fatalf("reference Git cannot read alternate object database: %v: %s", err, output)
 	}
 
+	// Import through the alternates file and verify the head resolves.
 	ref, gotHead, _, err := ImportLocalRepoToRef(ctx, ws, path)
 	if err != nil {
 		t.Fatalf("ImportLocalRepoToRef: %v", err)
@@ -314,6 +340,7 @@ func TestImportLocalRepoToRefReadsAlternatesObjectClosure(t *testing.T) {
 }
 
 func TestImportLocalRepoToRefSkipsMissingSubmoduleCommit(t *testing.T) {
+	// Build the testbed and encode a tree with a missing submodule gitlink.
 	ctx, ws := localImportWorld(t)
 	path, repo, _ := createLocalRepo(t)
 	signature := object.Signature{Name: "Test", Email: "test@example.com", When: time.Unix(3, 0).UTC()}
@@ -330,6 +357,8 @@ func TestImportLocalRepoToRefSkipsMissingSubmoduleCommit(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Encode the gitlink commit and point master at it.
 	commit := &object.Commit{
 		Author: signature, Committer: signature, Message: "gitlink", TreeHash: treeHash,
 	}
@@ -346,6 +375,7 @@ func TestImportLocalRepoToRefSkipsMissingSubmoduleCommit(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Import the repository and verify the gitlink commit was stored.
 	ref, gotHead, _, err := ImportLocalRepoToRef(ctx, ws, path)
 	if err != nil {
 		t.Fatalf("ImportLocalRepoToRef: %v", err)
@@ -369,6 +399,7 @@ func localImportWorld(t *testing.T) (context.Context, world.WorldState) {
 }
 
 func localImportWorldWithContext(t *testing.T, ctx context.Context) (context.Context, world.WorldState) {
+	// Start a default World testbed for the import tests.
 	t.Helper()
 	tb, err := world_testbed.Default(ctx)
 	if err != nil {
@@ -379,6 +410,7 @@ func localImportWorldWithContext(t *testing.T, ctx context.Context) (context.Con
 }
 
 func createLocalRepo(t *testing.T) (string, *git.Repository, plumbing.Hash) {
+	// Initialize a repository and write a tracked file.
 	t.Helper()
 	path := t.TempDir()
 	repo, err := git.PlainInit(path, false)
@@ -395,6 +427,8 @@ func createLocalRepo(t *testing.T) (string, *git.Repository, plumbing.Hash) {
 	if _, err := worktree.Add("tracked.txt"); err != nil {
 		t.Fatal(err)
 	}
+
+	// Commit the tracked file and return the head hash.
 	signature := &object.Signature{Name: "Test", Email: "test@example.com", When: time.Unix(1, 0).UTC()}
 	head, err := worktree.Commit("initial", &git.CommitOptions{Author: signature, Committer: signature})
 	if err != nil {
@@ -411,7 +445,9 @@ func withImportedStore(
 	cb func(*git_block.Store),
 ) {
 	t.Helper()
+	// Open the imported repository through the object ref and run the callback.
 	_, err := world.AccessObject(ctx, ws.AccessWorldState, ref, func(bcs *block.Cursor) error {
+		// Unmarshal the repository and open a git_block.Store over its cursor.
 		if _, err := git_block.UnmarshalRepo(ctx, bcs); err != nil {
 			return err
 		}
@@ -429,6 +465,7 @@ func withImportedStore(
 }
 
 func forEachReference(t *testing.T, refs storer.ReferenceStorer, cb func(*plumbing.Reference)) {
+	// Iterate every reference and invoke the callback for each.
 	t.Helper()
 	iter, err := refs.IterReferences()
 	if err != nil {
@@ -449,6 +486,7 @@ type headDriftingStorer struct {
 }
 
 func (s *headDriftingStorer) Reference(name plumbing.ReferenceName) (*plumbing.Reference, error) {
+	// Serve HEAD reads that drift to a symbolic ref after repeated lookups.
 	ref, err := s.Storer.Reference(name)
 	if err != nil || name != plumbing.HEAD {
 		return ref, err
@@ -462,6 +500,8 @@ func (s *headDriftingStorer) Reference(name plumbing.ReferenceName) (*plumbing.R
 
 func makeTreeReadOnly(t *testing.T, root string) {
 	t.Helper()
+
+	// Walk the tree and revoke write permission from every entry.
 	var paths []string
 	if err := filepath.WalkDir(root, func(path string, entry os.DirEntry, err error) error {
 		if err != nil {
@@ -475,6 +515,8 @@ func makeTreeReadOnly(t *testing.T, root string) {
 	}); err != nil {
 		t.Fatal(err)
 	}
+
+	// Restore write permission to every entry after the test.
 	t.Cleanup(func() {
 		for _, path := range slices.Backward(paths) {
 			_ = os.Chmod(path, 0o700)
@@ -484,8 +526,10 @@ func makeTreeReadOnly(t *testing.T, root string) {
 
 func snapshotTree(t *testing.T, root string) map[string]string {
 	t.Helper()
+	// Walk the tree and record a digest for every entry.
 	out := make(map[string]string)
 	if err := filepath.WalkDir(root, func(path string, entry os.DirEntry, err error) error {
+		// Resolve each entry relative to the root and digest its contents.
 		if err != nil {
 			return err
 		}
@@ -497,6 +541,8 @@ func snapshotTree(t *testing.T, root string) map[string]string {
 			out[rel] = "directory"
 			return nil
 		}
+
+		// Read each file's contents and record its SHA-256 digest.
 		contents, err := os.ReadFile(path)
 		if err != nil {
 			return err

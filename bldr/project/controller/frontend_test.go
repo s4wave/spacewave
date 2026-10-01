@@ -46,6 +46,7 @@ func (s *frontendWatchStream) SendAndClose(event *frontend.Event) error {
 // TestFrontendWatchWaitsForConfiguration keeps an early attachment from
 // mistaking a not-yet-configured compiler for a disabled frontend.
 func TestFrontendWatchWaitsForConfiguration(t *testing.T) {
+	// Start a Watch stream before any compiler configuration exists.
 	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
 	service := newFrontendService(nil, nil)

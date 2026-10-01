@@ -343,6 +343,8 @@ func (t *pluginInstance) execDownloadManifest(
 		return err
 	}
 	defer src.Release()
+
+	// Record the source and destination bucket IDs in the copy accounting.
 	destBucketID := dest.GetOpArgs().GetBucketId()
 	accounting = t.updateManifestCopyBuckets(ctx, accounting, src.GetOpArgs().GetBucketId(), destBucketID)
 	trace.Log(ctx, "world-bucket-id", destBucketID)
@@ -355,6 +357,9 @@ func (t *pluginInstance) execDownloadManifest(
 	copyCtx, copyTask := trace.NewTask(ctx, "bldr/plugin-host-scheduler/download-manifest/copy-dag")
 	copyCtx = block.WithReadAhead(copyCtx, materializerReadAhead)
 	trace.Log(copyCtx, "accounting-phase", "decode-verify-deserialize-block-publish")
+
+	// Copy through the materializer plugin when configured, otherwise with
+	// the in-process copy engine.
 	var localRef *bucket.ObjectRef
 	var stats bucket_lookup.ObjectCopyStats
 	if pluginID := t.c.conf.GetMaterializerPluginId(); pluginID != "" {
@@ -370,6 +375,8 @@ func (t *pluginInstance) execDownloadManifest(
 			nil,
 		)
 	}
+
+	// Apply the copy statistics and end the copy task before failing.
 	copyStats = accounting.apply(stats)
 	copyTask.End()
 	if err != nil {
@@ -383,6 +390,7 @@ func (t *pluginInstance) execDownloadManifest(
 		return err
 	}
 
+	// Store the copied manifest reference in the World unless disabled.
 	if !t.c.conf.GetDisableStoreManifest() {
 		storeCtx, storeTask := trace.NewTask(ctx, "bldr/plugin-host-scheduler/download-manifest/store-local-ref")
 		trace.Log(storeCtx, "accounting-phase", "world-op-store-local-manifest-ref")
@@ -410,6 +418,8 @@ func (t *pluginInstance) execDownloadManifest(
 		syncTask.End()
 		return errors.Wrap(syncErr, "sync local manifest blocks")
 	}
+
+	// Record the destination durable bytes for an untransformed durable sync.
 	if synced && dest.GetTransformer() == nil {
 		copyStats.DestinationDurableBytes = copyStats.LogicalSourceBytes
 		copyStats.DestinationDurableBytesKnown = true

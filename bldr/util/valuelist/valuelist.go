@@ -53,14 +53,17 @@ func WatchDirective[T any, R WatchDirectiveResponse[T]](
 	send func(msg R) error,
 	errCh <-chan error,
 ) error {
+	// Create the broadcast and an initial send queue.
 	var bcast broadcast.Broadcast
 	var sendQueue []R
 
+	// Snapshot the initial wait channel under the broadcast lock.
 	var waitCh <-chan struct{}
 	bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
 		waitCh = getWaitCh()
 	})
 
+	// Queue send messages, replacing any queued message with the same value ID.
 	queueSend := func(msg R) {
 		bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
 			for i := 0; i < len(sendQueue); i++ {
@@ -75,6 +78,7 @@ func WatchDirective[T any, R WatchDirectiveResponse[T]](
 		})
 	}
 
+	// Add the directive with callbacks that queue added and removed values.
 	di, dirRef, err := b.AddDirective(
 		dir,
 		bus.NewCallbackHandler(
@@ -104,8 +108,10 @@ func WatchDirective[T any, R WatchDirectiveResponse[T]](
 	}
 	defer dirRef.Release()
 
+	// Queue an idle-state message whenever the directive idle state changes.
 	var wasIdle atomic.Bool
 	defer di.AddIdleCallback(func(isIdle bool, _ []error) {
+		// Skip repeated idle callbacks and encode the new idle state.
 		if wasIdle.Swap(isIdle) == isIdle {
 			return
 		}
@@ -118,6 +124,7 @@ func WatchDirective[T any, R WatchDirectiveResponse[T]](
 		queueSend(msg)
 	})()
 
+	// Wait for queue updates and forward each queued message to the stream.
 	for {
 		select {
 		case <-ctx.Done():

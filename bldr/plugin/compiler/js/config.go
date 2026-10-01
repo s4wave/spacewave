@@ -51,6 +51,7 @@ func UpdateRelativeGoPackagePaths(jsPkgsList []string, rootModule string) ([]str
 
 // Validate validates the configuration.
 func (c *Config) Validate() error {
+	// Validate each module config and the host config set.
 	for i, moduleConf := range c.GetModules() {
 		if err := moduleConf.Validate(); err != nil {
 			return errors.Wrapf(err, "modules[%d]", i)
@@ -59,6 +60,8 @@ func (c *Config) Validate() error {
 	if err := configset_proto.ConfigSetMap(c.GetHostConfigSet()).Validate(); err != nil {
 		return errors.Wrap(err, "host_config_set")
 	}
+
+	// Validate the esbuild flags and each entrypoint config.
 	if _, err := c.ParseEsbuildFlags(); err != nil {
 		return errors.Wrap(err, "esbuild_flags")
 	}
@@ -120,6 +123,7 @@ func (c *Config) Alloc() {
 
 // Merge merges the given build config into c.
 func (c *Config) Merge(o *Config) {
+	// Merge nothing when the source config is nil.
 	if o == nil {
 		return
 	}
@@ -141,10 +145,12 @@ func (c *Config) Merge(o *Config) {
 		c.WebPluginId = webPluginID
 	}
 
+	// Override DisableRpcFetch when the source sets it.
 	if o.GetDisableRpcFetch() {
 		c.DisableRpcFetch = true
 	}
 
+	// Append the source esbuild flags.
 	if esbuildFlags := o.GetEsbuildFlags(); len(esbuildFlags) != 0 {
 		c.EsbuildFlags = append(c.EsbuildFlags, esbuildFlags...)
 	}
@@ -204,21 +210,24 @@ func (c *Config) FlattenBuildTypes(filterBuildType bldr_manifest.BuildType) {
 // platform ID (e.g., "desktop"). Full ID match is applied first, then base ID.
 // Clears the PlatformTypes field and applies all relevant overrides to c.
 func (c *Config) FlattenPlatformTypes(buildPlatform bldr_platform.Platform) {
+	// Take the platform type overrides and stop when there are none.
 	platformTypes := c.GetPlatformTypes()
 	c.PlatformTypes = nil
 	if len(platformTypes) == 0 {
 		return
 	}
 
+	// Compute the full and base platform IDs.
 	fullID := buildPlatform.GetPlatformID()
 	baseID := buildPlatform.GetBasePlatformID()
 
-	// Apply full platform ID match first.
+	// Apply the full platform ID match first.
 	if conf, ok := platformTypes[fullID]; ok {
 		conf.PlatformTypes = nil
 		c.Merge(conf)
 	}
-	// Apply base platform ID match second (if different from full).
+
+	// Apply the base platform ID match second, when it differs from the full ID.
 	if baseID != fullID {
 		if conf, ok := platformTypes[baseID]; ok {
 			conf.PlatformTypes = nil
@@ -241,16 +250,19 @@ func (m *JsModule) Validate() error {
 
 // Validate validates the BackendEntrypoint configuration.
 func (m *BackendEntrypoint) Validate() error {
+	// Require a non-empty import path.
 	importPath := m.GetImportPath()
 	if importPath == "" {
 		return errors.New("backend entrypoint import path cannot be empty")
 	}
+
 	// Clean the path and check for path traversal attempts.
 	// Note: path.Clean uses forward slashes regardless of OS.
 	cleanedPath := path.Clean(importPath)
 	if strings.HasPrefix(cleanedPath, "../") {
 		return errors.Errorf("backend entrypoint import path cannot start with '..': %s", importPath)
 	}
+
 	// ImportName defaults to "default" if empty, so no validation needed.
 	return nil
 }

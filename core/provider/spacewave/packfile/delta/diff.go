@@ -38,6 +38,7 @@ func DiffBlockStoresWithRefGraph(
 	mirror ExistsChecker,
 	graph packfile_order.RefGraph,
 ) (writer.BlockIterator, error) {
+	// Reject a missing source pack before scanning its index.
 	if src == nil {
 		return nil, errors.New("src kvfile reader is nil")
 	}
@@ -49,8 +50,10 @@ func DiffBlockStoresWithRefGraph(
 		hash  *hash.Hash
 	}
 
+	// Scan the src pack index, probing the mirror and collecting missing blocks.
 	var entries []diffEntry
 	err := src.ScanPrefixEntries(nil, func(ie *kvfile.IndexEntry, _ int) error {
+		// Skip non-block keys and blocks the mirror already holds.
 		h, err := packfile.ParseBlockKey(ie.GetKey())
 		if err != nil {
 			return nil
@@ -74,6 +77,7 @@ func DiffBlockStoresWithRefGraph(
 		return nil, errors.Wrap(err, "scan src kvfile entries")
 	}
 
+	// Reorder the collected entries by GC graph locality.
 	refs := make([]*block.BlockRef, 0, len(entries))
 	byKey := make(map[string]diffEntry, len(entries))
 	for _, entry := range entries {
@@ -93,6 +97,7 @@ func DiffBlockStoresWithRefGraph(
 		}
 	}
 
+	// Return an iterator that reads each ordered entry from the src pack.
 	idx := 0
 	return func() (*hash.Hash, *block.StoredBlock, error) {
 		for idx < len(entries) {

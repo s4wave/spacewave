@@ -28,6 +28,7 @@ import (
 // TestImmutablePluginFilesHTTP keeps old modules and relative chunks independent
 // of the current plugin, and never falls back when the exact binding is absent.
 func TestImmutablePluginFilesHTTP(t *testing.T) {
+	// Start a testbed and derive the old and missing plugin artifact IDs.
 	ctx := t.Context()
 	le := logrus.NewEntry(logrus.New())
 	tb, err := hydra_testbed.NewTestbed(ctx, le)
@@ -35,6 +36,8 @@ func TestImmutablePluginFilesHTTP(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer tb.Release()
+
+	// Derive the old and missing plugin artifact roots.
 	oldRoot, err := hash.Sum(hash.RecommendedHashType, []byte("old"))
 	if err != nil {
 		t.Fatal(err)
@@ -44,6 +47,8 @@ func TestImmutablePluginFilesHTTP(t *testing.T) {
 		t.Fatal(err)
 	}
 	oldID := bldr_plugin.PluginArtifactID("colors", oldRoot.MarshalString())
+
+	// Register an asset root controller for each immutable binding.
 	for binding, contents := range map[string]string{"colors": "new", oldID: "old"} {
 		root, err := newTestPluginAssetsRoot(ctx, map[string][]byte{
 			"/entry.mjs": []byte(contents), "/chunks/shared.mjs": []byte(contents + " chunk"),
@@ -64,6 +69,8 @@ func TestImmutablePluginFilesHTTP(t *testing.T) {
 		defer release()
 	}
 	runtime := &Controller{le: le, bus: tb.Bus}
+
+	// Serve each immutable path through both HTTP prefixes.
 	for _, prefix := range []string{bldr_plugin.PluginDistHttpPrefix, bldr_plugin.PluginAssetsHttpPrefix} {
 		for path, want := range map[string]string{
 			"colors/entry.mjs": "new", oldID + "/entry.mjs": "old", oldID + "/chunks/shared.mjs": "old chunk",
@@ -74,6 +81,8 @@ func TestImmutablePluginFilesHTTP(t *testing.T) {
 				t.Fatalf("%s: status=%d body=%q, want %q", path, rw.Code, rw.Body.String(), want)
 			}
 		}
+
+		// Check a missing artifact does not fall back to the current plugin.
 		rw := httptest.NewRecorder()
 		path := prefix + bldr_plugin.PluginArtifactID("colors", missingRoot.MarshalString()) + "/entry.mjs"
 		runtime.ServeServiceWorkerHTTP(rw, httptest.NewRequest(http.MethodGet, path, nil).WithContext(ctx))
@@ -84,14 +93,17 @@ func TestImmutablePluginFilesHTTP(t *testing.T) {
 }
 
 func TestServeServiceWorkerHTTPServesBrowserIndexSeed(t *testing.T) {
+	// Request the browser index seed from the service worker handler.
 	rtCtrl := &Controller{
 		le: logrus.NewEntry(logrus.New()),
 	}
 	rw := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/b/__index.html", nil)
 
+	// Serve the index seed request.
 	rtCtrl.ServeServiceWorkerHTTP(rw, req)
 
+	// Check the status and content type of the rendered index.
 	res := rw.Result()
 	if res.StatusCode != http.StatusOK {
 		t.Fatalf("status code = %d, want 200", res.StatusCode)
@@ -99,6 +111,8 @@ func TestServeServiceWorkerHTTPServesBrowserIndexSeed(t *testing.T) {
 	if got := res.Header.Get("Content-Type"); got != "text/html; charset=utf-8" {
 		t.Fatalf("content type = %q, want text/html; charset=utf-8", got)
 	}
+
+	// Check the document shell, boot wiring, and root element.
 	body, err := io.ReadAll(res.Body)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -116,17 +130,21 @@ func TestServeServiceWorkerHTTPServesBrowserIndexSeed(t *testing.T) {
 }
 
 func TestServeServiceWorkerHTTPServesWebPackageModule(t *testing.T) {
+	// Start a core bus with a mock web pkg controller.
 	ctx := t.Context()
 
+	// Configure a debug-level logger.
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
 
+	// Start the core bus.
 	b, _, err := core.NewCoreBus(ctx, le)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Register the mock web pkg controller on the bus.
 	mockWebPkg := web_pkg_mock.NewMockWebPkg()
 	ctrl := web_pkg_controller.NewControllerWithWebPkg(
 		le,
@@ -139,6 +157,7 @@ func TestServeServiceWorkerHTTPServesWebPackageModule(t *testing.T) {
 	}
 	defer rel()
 
+	// Serve a file inside the mock web pkg through the runtime handler.
 	rtCtrl := &Controller{
 		le:        le,
 		bus:       b,
@@ -147,8 +166,10 @@ func TestServeServiceWorkerHTTPServesWebPackageModule(t *testing.T) {
 	rw := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/b/pkg/"+mockWebPkg.GetId()+"/testdir/testing.txt", nil)
 
+	// Serve the web pkg file request.
 	rtCtrl.ServeServiceWorkerHTTP(rw, req)
 
+	// Check the cross-origin headers and body of the response.
 	res := rw.Result()
 	if res.StatusCode != http.StatusOK {
 		t.Fatalf("status code = %d, want 200", res.StatusCode)
@@ -169,6 +190,7 @@ func TestServeServiceWorkerHTTPServesWebPackageModule(t *testing.T) {
 }
 
 func TestServePluginFilesHTTPDisablesBrowserCaching(t *testing.T) {
+	// Start a testbed for the cache header checks.
 	ctx := t.Context()
 	le := logrus.NewEntry(logrus.New())
 	btb, err := hydra_testbed.NewTestbed(ctx, le)
@@ -176,6 +198,7 @@ func TestServePluginFilesHTTPDisablesBrowserCaching(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// Publish a plugin asset root on the testbed bus.
 	const pluginID = "cache-header-test"
 	rootRef, err := newTestPluginAssetsRoot(ctx, map[string][]byte{
 		"/entry.mjs": []byte("export const cached = false\n"),
@@ -200,6 +223,7 @@ func TestServePluginFilesHTTPDisablesBrowserCaching(t *testing.T) {
 	}
 	defer accessRel()
 
+	// Serve the plugin file through each HTTP surface.
 	rtCtrl := &Controller{
 		le:  btb.Logger,
 		bus: btb.Bus,
@@ -228,18 +252,18 @@ func TestServePluginFilesHTTPDisablesBrowserCaching(t *testing.T) {
 }
 
 func TestServePluginAssetsFsHTTPRebindsPendingFrontendAssets(t *testing.T) {
+	// Start a debug-logging testbed.
 	ctx := t.Context()
-
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
-
 	btb, err := hydra_testbed.NewTestbed(ctx, le)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-
 	tb := btb
+
+	// Build two generations of the frontend asset roots.
 	moduleBody1 := []byte("export const generation = 'first'\n")
 	styleBody1 := []byte(".app{color:red}\n")
 	rootRef1, err := newTestPluginAssetsRoot(ctx, map[string][]byte{
@@ -250,6 +274,8 @@ func TestServePluginAssetsFsHTTPRebindsPendingFrontendAssets(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 	defer rootRef1.Release()
+
+	// Build the second generation of the frontend asset roots.
 	moduleBody2 := []byte("export const generation = 'second'\n")
 	styleBody2 := []byte(".app{color:blue}\n")
 	rootRef2, err := newTestPluginAssetsRoot(ctx, map[string][]byte{
@@ -261,6 +287,7 @@ func TestServePluginAssetsFsHTTPRebindsPendingFrontendAssets(t *testing.T) {
 	}
 	defer rootRef2.Release()
 
+	// Register the rotating access controller on the testbed bus.
 	pluginID := "spacewave-app"
 	unixFsID := bldr_plugin.PluginAssetsFsId(pluginID)
 	rotating := unixfs_access.NewRotatingAccess()
@@ -277,11 +304,13 @@ func TestServePluginAssetsFsHTTPRebindsPendingFrontendAssets(t *testing.T) {
 	}
 	defer accessRel()
 
+	// Build the runtime controller and the served path cases.
 	rtCtrl := &Controller{
 		le:  tb.Logger,
 		bus: tb.Bus,
 	}
 
+	// Define the served path cases for the second generation.
 	tests := []struct {
 		name string
 		path string
@@ -299,18 +328,24 @@ func TestServePluginAssetsFsHTTPRebindsPendingFrontendAssets(t *testing.T) {
 		},
 	}
 
+	// Exercise each path case through the pending-fetch rebind sequence.
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			// Start a pending fetch against a blocked provider.
 			runPendingFetch := func(body []byte, replacement *unixfs.FSHandle) {
+				// Start a request context that bounds the pending fetch.
 				reqCtx, reqCancel := context.WithTimeout(ctx, 5*time.Second)
 				defer reqCancel()
 
+				// Install a provider that blocks until the request context ends.
 				started := make(chan struct{})
 				rotating.SetCurrent(func(ctx context.Context, released func()) (*unixfs.FSHandle, func(), error) {
 					close(started)
 					<-ctx.Done()
 					return nil, nil, ctx.Err()
 				})
+
+				// Serve the request in the background.
 				rw := httptest.NewRecorder()
 				req := httptest.NewRequest("GET", tt.path, nil).WithContext(reqCtx)
 				done := make(chan struct{})
@@ -319,23 +354,28 @@ func TestServePluginAssetsFsHTTPRebindsPendingFrontendAssets(t *testing.T) {
 					close(done)
 				}()
 
+				// Wait for the blocked provider to start.
 				select {
 				case <-started:
 				case <-reqCtx.Done():
 					t.Fatalf("blocked provider did not start: %v", reqCtx.Err())
 				}
 
+				// Swap in the replacement provider and wait for the request.
 				rotating.SetCurrent(unixfs_access.NewAccessUnixFSFunc(replacement))
 
+				// Wait for the request to complete against the replacement provider.
 				select {
 				case <-done:
 				case <-reqCtx.Done():
 					t.Fatalf("request did not complete after replacement provider: %v", reqCtx.Err())
 				}
 
+				// Check that the response served the expected body.
 				assertHTTPAssetResponse(t, rw, body)
 			}
 
+			// Rebind twice: first generation, then the replacement.
 			firstBody := moduleBody1
 			if tt.path == "/v/b/fe/app/App-next.css" {
 				firstBody = styleBody1
@@ -343,6 +383,7 @@ func TestServePluginAssetsFsHTTPRebindsPendingFrontendAssets(t *testing.T) {
 			runPendingFetch(firstBody, rootRef1)
 			runPendingFetch(tt.body, rootRef2)
 
+			// Serve the final generation directly.
 			rw := httptest.NewRecorder()
 			req := httptest.NewRequest("GET", tt.path, nil)
 			rtCtrl.ServePluginAssetsFsHTTP(pluginID, rw, req)
@@ -352,10 +393,13 @@ func TestServePluginAssetsFsHTTPRebindsPendingFrontendAssets(t *testing.T) {
 }
 
 func newTestPluginAssetsRoot(ctx context.Context, files map[string][]byte) (*unixfs.FSHandle, error) {
+	// Open an in-memory FS handle for the plugin assets.
 	rootRef, err := unixfs.NewFSHandle(unixfs_billy.NewBillyFSCursor(memfs.New(), ""))
 	if err != nil {
 		return nil, err
 	}
+
+	// Write each file into the billy filesystem.
 	rbfs := unixfs_billy.NewBillyFS(ctx, rootRef, "", time.Now())
 	for path, body := range files {
 		if err := billy_util.WriteFile(rbfs, path, body, 0o644); err != nil {
@@ -367,8 +411,10 @@ func newTestPluginAssetsRoot(ctx context.Context, files map[string][]byte) (*uni
 }
 
 func assertHTTPAssetResponse(t *testing.T, rw *httptest.ResponseRecorder, wantBody []byte) {
+	// Assert the asset response serves the expected body and cache headers.
 	t.Helper()
 
+	// Check the status, body, and cache headers of the asset response.
 	res := rw.Result()
 	if res.StatusCode != 200 {
 		t.Fatalf("status code: %d", res.StatusCode)

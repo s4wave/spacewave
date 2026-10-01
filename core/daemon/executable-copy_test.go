@@ -14,6 +14,7 @@ import (
 // TestPrepareVerifiedExecutableRejectsChangedSource prevents a staged path
 // from supplying different bytes after the launcher accepts its digest.
 func TestPrepareVerifiedExecutableRejectsChangedSource(t *testing.T) {
+	// Stage a state root, a source executable, and the accepted bytes.
 	root := daemonTestRoot(t)
 	state := filepath.Join(root, "state")
 	if err := os.Mkdir(state, 0o700); err != nil {
@@ -24,17 +25,23 @@ func TestPrepareVerifiedExecutableRejectsChangedSource(t *testing.T) {
 	if err := os.WriteFile(source, accepted, 0o700); err != nil {
 		t.Fatal(err)
 	}
+
+	// Record the accepted digest and replace the source with different bytes.
 	digest := sha256.Sum256(accepted)
 	selected := hex.EncodeToString(digest[:])
 	if err := os.WriteFile(source, []byte("different executable"), 0o700); err != nil {
 		t.Fatal(err)
 	}
+
+	// A changed source must fail the accepted digest check.
 	if _, err := PrepareVerifiedExecutable(state, source, selected); err == nil || !strings.Contains(err.Error(), "fails accepted digest") {
 		t.Fatalf("changed source accepted: %v", err)
 	}
 	if err := os.WriteFile(source, accepted, 0o700); err != nil {
 		t.Fatal(err)
 	}
+
+	// Restoring the accepted bytes must verify and copy successfully.
 	if _, err := PrepareVerifiedExecutable(state, source, selected); err != nil {
 		t.Fatalf("accepted source rejected: %v", err)
 	}
@@ -114,6 +121,7 @@ func TestCopyExecutablePublishesVerifiedVersions(t *testing.T) {
 // TestCopyExecutableRejectsBundleState prevents a configured state root from
 // placing the daemon inside the bundle that an app update replaces.
 func TestCopyExecutableRejectsBundleState(t *testing.T) {
+	// Stage a state root inside an application bundle with a source outside it.
 	root := daemonTestRoot(t)
 	bundle := filepath.Join(root, "Spacewave.app")
 	state := filepath.Join(bundle, "state")

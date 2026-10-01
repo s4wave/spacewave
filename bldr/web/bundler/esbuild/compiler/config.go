@@ -33,6 +33,7 @@ func (c *Config) EqualsConfig(other config.Config) bool {
 
 // Validate validates the configuration.
 func (c *Config) Validate() error {
+	// Validate the raw esbuild flags and each build type configuration.
 	if _, err := c.ParseEsbuildFlags(); err != nil {
 		return errors.Wrap(err, "esbuild_flags")
 	}
@@ -44,6 +45,8 @@ func (c *Config) Validate() error {
 			return errors.Wrapf(err, "build_types[%s]", buildTypeStr)
 		}
 	}
+
+	// Validate each platform type configuration.
 	for platformTypeStr, platformTypeConf := range c.GetPlatformTypes() {
 		if platformTypeStr == "" {
 			return errors.New("platform_types key cannot be empty")
@@ -52,6 +55,8 @@ func (c *Config) Validate() error {
 			return errors.Wrapf(err, "platform_types[%s]", platformTypeStr)
 		}
 	}
+
+	// Validate each bundle configuration.
 	for _, bundle := range c.GetBundles() {
 		if err := bundle.Validate(); err != nil {
 			return errors.Wrap(err, "bundle")
@@ -69,6 +74,7 @@ func (c *Config) ParseEsbuildFlags() (*esbuild_api.BuildOptions, error) {
 
 // Merge merges the given build config into c.
 func (c *Config) Merge(o *Config) {
+	// Skip merging a nil config.
 	if o == nil {
 		return
 	}
@@ -152,21 +158,24 @@ func (c *Config) FlattenBuildTypes(filterBuildType bldr_manifest.BuildType) {
 // platform ID (e.g., "desktop"). Full ID match is applied first, then base ID.
 // Clears the PlatformTypes field and applies all relevant overrides to c.
 func (c *Config) FlattenPlatformTypes(buildPlatform bldr_platform.Platform) {
+	// Take the platform type overrides and clear the field to avoid recursion.
 	platformTypes := c.GetPlatformTypes()
 	c.PlatformTypes = nil
 	if len(platformTypes) == 0 {
 		return
 	}
 
+	// Compute the full and base platform IDs for the override lookup.
 	fullID := buildPlatform.GetPlatformID()
 	baseID := buildPlatform.GetBasePlatformID()
 
-	// Apply full platform ID match first.
+	// Apply the full platform ID match first.
 	if conf, ok := platformTypes[fullID]; ok {
 		conf.PlatformTypes = nil
 		c.Merge(conf)
 	}
-	// Apply base platform ID match second (if different from full).
+
+	// Apply the base platform ID match second (if different from full).
 	if baseID != fullID {
 		if conf, ok := platformTypes[baseID]; ok {
 			conf.PlatformTypes = nil

@@ -67,6 +67,7 @@ func (s *ResourceServer) ResourceClient(strm resource.SRPCResourceService_Resour
 	var clientHandleID uint32
 	var waitCh <-chan struct{}
 	s.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
+		// Allocate the next client generation under the server lock.
 		s.clientHandleIDCtr++
 		clientHandleID = s.clientHandleIDCtr
 		client = &RemoteResourceClient{
@@ -89,6 +90,7 @@ func (s *ResourceServer) ResourceClient(strm resource.SRPCResourceService_Resour
 	// Retain the root for the generation and publish its identity.
 	var rootID uint32
 	s.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		// Allocate the root resource ID and retain the root resource.
 		s.resourceIDCtr++
 		rootID = s.resourceIDCtr
 		client.rootResourceID = rootID
@@ -171,11 +173,14 @@ func (s *ResourceServer) releaseClientGeneration(client *RemoteResourceClient) {
 	// Remove the retained root tree and any detached resources child-first.
 	var releaseFns []func()
 	s.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		// Mark the generation released and collect child-first release callbacks.
 		client.released = true
 		delete(s.clients, client.clientID)
 		if client.rootResourceID != 0 {
 			client.releaseAllChildrenLocked(client.rootResourceID, &releaseFns)
 		}
+
+		// Release every remaining resource child-first in ID order.
 		remaining := make([]uint32, 0, len(client.resources))
 		for id := range client.resources {
 			remaining = append(remaining, id)
@@ -184,6 +189,8 @@ func (s *ResourceServer) releaseClientGeneration(client *RemoteResourceClient) {
 		for _, id := range remaining {
 			client.releaseAllChildrenLocked(id, &releaseFns)
 		}
+
+		// Clear the generation lifecycle maps and wake the waiters.
 		clear(client.resources)
 		clear(client.children)
 		clear(client.tombstones)
@@ -201,9 +208,12 @@ func (s *ResourceServer) releaseClientGeneration(client *RemoteResourceClient) {
 // ResourceRpc routes one ResourceRpc stream to its generation-owned resource.
 func (s *ResourceServer) ResourceRpc(strm resource.SRPCResourceService_ResourceRpcStream) error {
 	return resource.HandleResourceRpc(strm, func(ctx context.Context, resourceID uint32) (srpc.Invoker, error) {
+		// Reject the zero resource ID before resolving the generation.
 		if resourceID == 0 {
 			return nil, resource.ErrInvalidResourceID
 		}
+
+		// Resolve the owning generation and invoker under the server lock.
 		var mux srpc.Invoker
 		var client *RemoteResourceClient
 		s.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
@@ -221,6 +231,8 @@ func (s *ResourceServer) ResourceRpc(strm resource.SRPCResourceService_ResourceR
 				}
 			}
 		})
+
+		// Fail when no live generation owns the resource.
 		if mux == nil {
 			return nil, resource.ErrResourceOrClientReleased
 		}
@@ -302,7 +314,10 @@ func (s *ResourceServer) ResourceAttach(
 	// after attachCtx is canceled, so the mutex is required for the sync edge.
 	var attachedMtx sync.Mutex
 	var attachedIDs []uint32
+
+	// Remove every still-attached resource when the attach session ends.
 	defer func() {
+		// Snapshot the attached IDs and clear the cleanup list under the mutex.
 		attachedMtx.Lock()
 		ids := attachedIDs
 		attachedIDs = nil
@@ -318,7 +333,10 @@ func (s *ResourceServer) ResourceAttach(
 	var openStream srpc.OpenStreamFunc
 	var openStreamMtx sync.Mutex
 	openStreamReady := make(chan struct{})
+
+	// Wait for the yamux connection inside the SRPC client's packet writer.
 	srpcClient := srpc.NewClient(func(ctx context.Context, msgHandler srpc.PacketDataHandler, closeHandler srpc.CloseHandler) (srpc.PacketWriter, error) {
+		// Wait until the yamux connection is bound or the contexts end.
 		select {
 		case <-openStreamReady:
 		case <-ctx.Done():

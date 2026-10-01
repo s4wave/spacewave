@@ -89,6 +89,7 @@ func BuildTestbedWithSchedulerConfig(
 	le *logrus.Entry,
 	buildSchedulerConfig SchedulerConfigBuilder,
 ) (*Testbed, error) {
+	// Build the shared release function and cancellable base context.
 	ctx, ctxCancel := context.WithCancel(rctx)
 	var rels []func()
 	rel := func() {
@@ -98,6 +99,7 @@ func BuildTestbedWithSchedulerConfig(
 		ctxCancel()
 	}
 
+	// Start the core bus and service registry.
 	b, sr, err := core.NewCoreBus(ctx, le)
 	if err != nil {
 		rel()
@@ -135,6 +137,7 @@ func BuildTestbedWithSchedulerConfig(
 	}
 	rels = append(rels, relStorageCtrl)
 
+	// Start the storage volume controller for the devtool volume.
 	volCtrl, volCtrlRef, err := storage_volume.ExecVolumeController(ctx, b, &storage_volume.Config{
 		StorageId:       storageID,
 		StorageVolumeId: "devtool",
@@ -148,12 +151,14 @@ func BuildTestbedWithSchedulerConfig(
 	}
 	rels = append(rels, volCtrlRef.Release)
 
+	// Wait for the devtool volume to load.
 	vol, err := volCtrl.GetVolume(ctx)
 	if err != nil {
 		rel()
 		return nil, err
 	}
 
+	// Build the volume info for the loaded volume.
 	volInfo, err := volume.NewVolumeInfo(ctx, volCtrl.GetControllerInfo(), vol)
 	if err != nil {
 		rel()
@@ -186,6 +191,7 @@ func BuildTestbedWithSchedulerConfig(
 		return nil, err
 	}
 
+	// Configure the devtool world block engine.
 	initRef := &bucket.ObjectRef{BucketId: engineBucketID}
 	engConf := world_block_engine.NewConfig(
 		engineID,
@@ -196,6 +202,7 @@ func BuildTestbedWithSchedulerConfig(
 		false,
 	)
 
+	// Start the world block engine controller.
 	worldCtrl, worldCtrlRef, err := world_block_engine.StartEngineWithConfig(
 		ctx,
 		b,
@@ -207,6 +214,7 @@ func BuildTestbedWithSchedulerConfig(
 	}
 	rels = append(rels, worldCtrlRef.Release)
 
+	// Wait for the world engine and build its World state.
 	eng, err := worldCtrl.GetWorldEngine(ctx)
 	if err != nil {
 		rel()
@@ -391,20 +399,25 @@ func (d *Testbed) CreateManifestWithBilly(
 	distFs, assetsFs billy.Filesystem,
 	ts *timestamppb.Timestamp,
 ) (manifest *bldr_manifest.Manifest, manifestRef *bldr_manifest.ManifestRef, err error) {
+	// Write the manifest into the World state and capture its block reference.
 	err = d.GetWorldEngine().AccessWorldState(ctx, nil, func(bls *bucket_lookup.Cursor) error {
+		// Open a transaction on the World state bucket cursor.
 		btx, bcs := bls.BuildTransactionAtRef(nil, nil)
 
+		// Create the manifest and write it into the transaction.
 		manifest = bldr_manifest.NewManifest(manifestMeta, entrypoint)
 		err := bldr_manifest.CreateManifestWithBilly(ctx, bcs, manifest, distFs, assetsFs, ts)
 		if err != nil {
 			return err
 		}
 
+		// Commit the manifest block to the store.
 		manifestBlockRef, _, err := btx.Write(ctx, true)
 		if err != nil {
 			return err
 		}
 
+		// Return the manifest reference rooted at the written block.
 		manifestObjRef := bls.GetRef().Clone()
 		manifestObjRef.RootRef = manifestBlockRef
 		manifestRef = bldr_manifest.NewManifestRef(manifestMeta, manifestObjRef)

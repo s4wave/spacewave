@@ -53,6 +53,7 @@ func GetProcessBinding(ctx context.Context, store kvtx.Store, spaceID, objectKey
 			return store.NewTransaction(ctx, false)
 		},
 		func(ctx context.Context, tx kvtx.Tx) error {
+			// Read the stored binding and decode it when present.
 			data, found, err := tx.Get(ctx, key)
 			if err != nil {
 				return err
@@ -80,6 +81,7 @@ func DeleteProcessBinding(ctx context.Context, store kvtx.Store, spaceID string,
 			return store.NewTransaction(ctx, true)
 		},
 		func(ctx context.Context, tx kvtx.Tx) error {
+			// Delete the key only when the stored binding still matches.
 			data, found, err := tx.Get(ctx, key)
 			if err != nil || !found {
 				return err

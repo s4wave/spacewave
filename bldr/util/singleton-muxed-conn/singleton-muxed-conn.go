@@ -52,6 +52,7 @@ func (l *SingletonMuxedConn) IsClosed() bool {
 // SetConnection sets the latest MuxedConn and clears old streams.
 // returns an error if the Singleton is closed.
 func (l *SingletonMuxedConn) SetConnection(conn srpc.MuxedConn) error {
+	// Swap the connection under the lock, closing the old or rejected connection.
 	l.mtx.Lock()
 	if l.conn != nil {
 		_ = l.conn.Close()
@@ -124,6 +125,7 @@ func (l *SingletonMuxedConn) Close() error {
 // CloseWithErr closes with an error.
 // returns the l.closedErr
 func (l *SingletonMuxedConn) CloseWithErr(closeErr error) error {
+	// Record the close error under the lock, defaulting to io.EOF.
 	var err error
 	l.mtx.Lock()
 	if l.closedErr == nil {
@@ -133,6 +135,8 @@ func (l *SingletonMuxedConn) CloseWithErr(closeErr error) error {
 		l.closedErr = io.EOF
 	}
 	err = l.closedErr
+
+	// Cancel the context and close the active connection, if any.
 	l.ctxCancel()
 	if l.conn != nil {
 		cerr := l.conn.Close()

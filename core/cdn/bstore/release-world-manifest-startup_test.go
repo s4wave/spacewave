@@ -42,11 +42,14 @@ var releaseWorldStartupManifestIDs = []string{
 // startup read without building a release, staging app, or browser. It is
 // opt-in because it reads the supplied public CDN Space.
 func TestReleaseWorldManifestStartupRangeBudget(t *testing.T) {
+	// Load the probe configuration and skip unless explicitly enabled.
 	baseURL, spaceID := releaseWorldManifestProbeConfig(t)
 
+	// Bound the probe with a two-minute context.
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 	defer cancel()
 
+	// Open a CDN block store against the public Release World.
 	store, err := NewCdnBlockStore(Options{
 		CdnBaseURL: baseURL,
 		SpaceID:    spaceID,
@@ -57,21 +60,26 @@ func TestReleaseWorldManifestStartupRangeBudget(t *testing.T) {
 	}
 	t.Cleanup(store.Close)
 
+	// Build the world engine over the CDN block store and snapshot the baseline.
 	beforeEngine := store.pfs.SnapshotStats()
 	engine, releaseEngine := newReleaseWorldProbeEngine(t, ctx, store)
 	t.Cleanup(releaseEngine)
 	beforeCold := store.pfs.SnapshotStats()
 
+	// Collect the startup manifests cold, logging each phase and the totals.
 	coldPhases := newReleaseWorldProbePhases(store, beforeCold)
 	coldManifests, coldManifestErrs := collectReleaseWorldStartupManifests(t, ctx, engine, coldPhases)
 	coldPhases.finish()
 	cold := store.pfs.SnapshotStats()
 	coldStats := releaseWorldProbeStatsDelta(cold, beforeEngine)
+
+	// Log the cold totals and phase breakdown.
 	logReleaseWorldProbeStats(t, "engine", releaseWorldProbeStatsDelta(beforeCold, beforeEngine), beforeCold.EngineCount)
 	coldPhases.log(t)
 	logReleaseWorldProbeStats(t, "cold", coldStats, cold.EngineCount)
 	logReleaseWorldManifestResult(t, "cold", coldManifests, coldManifestErrs)
 
+	// Collect the startup manifests warm and log the resulting totals.
 	beforeWarm := cold
 	warmManifests, warmManifestErrs := collectReleaseWorldStartupManifests(t, ctx, engine, nil)
 	warm := store.pfs.SnapshotStats()
@@ -79,6 +87,7 @@ func TestReleaseWorldManifestStartupRangeBudget(t *testing.T) {
 	logReleaseWorldProbeStats(t, "warm", warmStats, warm.EngineCount)
 	logReleaseWorldManifestResult(t, "warm", warmManifests, warmManifestErrs)
 
+	// Assert the cold and warm Range-request budgets.
 	if coldStats.rangeRequests > releaseWorldColdRangeBudget {
 		t.Errorf(
 			"cold Release World startup used %d Range requests, want at most %d",
@@ -92,6 +101,7 @@ func TestReleaseWorldManifestStartupRangeBudget(t *testing.T) {
 }
 
 func releaseWorldManifestProbeConfig(t *testing.T) (string, string) {
+	// Skip unless the probe is explicitly enabled, then require the URL and Space.
 	t.Helper()
 	if os.Getenv(releaseWorldManifestProbeEnv) != "1" {
 		t.Skipf(
@@ -119,6 +129,7 @@ func newReleaseWorldProbeEngine(
 	ctx context.Context,
 	store *CdnBlockStore,
 ) (*world_block.Engine, func()) {
+	// Refresh the CDN root pointer and require a shared-object root.
 	t.Helper()
 	if _, err := store.Refresh(ctx); err != nil {
 		t.Fatalf("refresh CDN root pointer: %v", err)
@@ -128,6 +139,7 @@ func newReleaseWorldProbeEngine(
 		t.Fatal("CDN root pointer has no shared-object root")
 	}
 
+	// Decode the shared-object root into the world engine head state.
 	soRootInner := &sobject.SORootInner{}
 	if err := soRootInner.UnmarshalVT(pointer.GetRoot().GetInner()); err != nil {
 		t.Fatalf("decode CDN shared-object root: %v", err)
@@ -140,6 +152,7 @@ func newReleaseWorldProbeEngine(
 		t.Fatal("CDN shared object has no published world head")
 	}
 
+	// Build the block transformer described by the head's transform config.
 	logger := logrus.NewEntry(logrus.New())
 	headRef := inner.GetHeadRef().CloneVT()
 	bucketID := store.GetID()
@@ -159,6 +172,7 @@ func newReleaseWorldProbeEngine(
 		}
 	}
 
+	// Construct the bucket cursor and world engine over the CDN store.
 	cursor := bucket_lookup.NewCursor(
 		ctx,
 		nil,
@@ -186,6 +200,7 @@ func collectReleaseWorldStartupManifests(
 	engine *world_block.Engine,
 	phases *releaseWorldProbePhases,
 ) (map[string][]*bldr_manifest_world.CollectedManifest, []error) {
+	// Collect the startup manifests inside one read transaction.
 	t.Helper()
 	var manifests map[string][]*bldr_manifest_world.CollectedManifest
 	var manifestErrs []error
@@ -224,6 +239,7 @@ func (s *releaseWorldProbeState) LookupGraphQuadsBatch(
 	filters []world.GraphQuad,
 	limitPerFilter uint32,
 ) ([][]world.GraphQuad, error) {
+	// Record a candidate-graph batch lookup with its packfile stats.
 	s.phases.enter("candidate-graph")
 	before := s.phases.store.pfs.SnapshotStats()
 	results, err := s.WorldState.LookupGraphQuadsBatch(ctx, filters, limitPerFilter)
@@ -297,6 +313,7 @@ func newReleaseWorldProbePhases(
 }
 
 func (p *releaseWorldProbePhases) enter(phase string) {
+	// Fold the current phase's stats delta into the accumulated totals.
 	if p.current == phase {
 		return
 	}
@@ -380,6 +397,7 @@ func releaseWorldProbeStatsDelta(
 }
 
 func (s releaseWorldProbeStats) add(other releaseWorldProbeStats) releaseWorldProbeStats {
+	// Accumulate another stats delta into this totals record.
 	s.lookups += other.lookups
 	s.candidates += other.candidates
 	s.openedPacks += other.openedPacks

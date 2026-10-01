@@ -62,6 +62,7 @@ func (b *BusBridge) Execute(ctx context.Context) error {
 // The passed context is canceled when the directive instance expires.
 // NOTE: the passed context is not canceled when the handler is removed.
 func (b *BusBridge) HandleDirective(ctx context.Context, di directive.Instance) ([]directive.Resolver, error) {
+	// Filter the directive or fall back to the directive itself.
 	var dirs []directive.Directive
 	if b.filter != nil {
 		var err error
@@ -73,6 +74,7 @@ func (b *BusBridge) HandleDirective(ctx context.Context, di directive.Instance) 
 		dirs = []directive.Directive{di.GetDirective()}
 	}
 
+	// Build a bus bridge resolver for each filtered directive.
 	res := make([]directive.Resolver, len(dirs))
 	for i, dir := range dirs {
 		res[i] = NewBusBridgeResolver(b.bus, dir)

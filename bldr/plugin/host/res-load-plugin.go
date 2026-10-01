@@ -30,6 +30,8 @@ func NewLoadPluginResolver(c PluginHostScheduler, pluginID, instanceKey, manifes
 
 // Resolve resolves the values, emitting them to the handler.
 func (r *LoadPluginResolver) Resolve(ctx context.Context, handler directive.ResolverHandler) error {
+	// Add the plugin reference matching the requested manifests, manifest
+	// root, or plain plugin ID, releasing it when resolution ends.
 	var ref bldr_plugin.RunningPluginRef
 	var relRef func()
 	if len(r.manifests) != 0 {
@@ -41,6 +43,8 @@ func (r *LoadPluginResolver) Resolve(ctx context.Context, handler directive.Reso
 	}
 	defer relRef()
 
+	// Stream each plugin load state change to the handler until the context
+	// is canceled or the load fails.
 	stateCtr := ref.GetPluginLoadStateCtr()
 	var current bldr_plugin.PluginLoadState
 	for {
@@ -49,7 +53,6 @@ func (r *LoadPluginResolver) Resolve(ctx context.Context, handler directive.Reso
 		if err != nil {
 			return err
 		}
-
 		current = next
 		if running := next.GetRunningPlugin(); running != nil {
 			_, _ = handler.AddValue(running)

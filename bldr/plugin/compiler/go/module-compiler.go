@@ -241,6 +241,8 @@ func relocateModuleReplaces(modFile *modfile.File, sourceDir, moduleDir string) 
 // Go resolves the path from the physical module directory, so both directories
 // are resolved through symbolic links first.
 func localReplacePath(moduleDir, targetDir string) string {
+	// Resolve both directories through symbolic links and compute the
+	// relative path between them.
 	moduleDir = resolveDir(moduleDir)
 	targetDir = resolveDir(targetDir)
 	rel, err := filepath.Rel(moduleDir, targetDir)
@@ -383,6 +385,7 @@ func (m *ModuleCompiler) CompilePluginDevWrapper(
 	// Carry compiler and target flags into the wrapper's runtime build command.
 	goArgs := gocompiler.GetDefaultArgs()
 
+	// Add the build type's tags to the wrapper build.
 	buildTags := gocompiler.NewBuildTags(buildType)
 	if len(buildTags) != 0 {
 		goArgs = append(goArgs, "-tags="+strings.Join(buildTags, ","))
@@ -422,6 +425,7 @@ func (m *ModuleCompiler) CompilePluginDevWrapper(
 	// Compile the wrapper with an optional validated debugger address.
 	args := append([]string{"build", "-trimpath", "-o", outFile}, gocompiler.GetDefaultArgs()...)
 
+	// Validate the optional debugger address and link it into the wrapper.
 	if dlvAddr != "" {
 		if err := ValidateDelveAddr(dlvAddr); err != nil {
 			return errors.Wrap(err, "dlv_addr")
@@ -432,6 +436,7 @@ func (m *ModuleCompiler) CompilePluginDevWrapper(
 	// Run in the generated wrapper module and retain the host's environment.
 	args = append(args, ".")
 
+	// Build the wrapper with the host Go toolchain.
 	ecmd := gocompiler.NewGoCompilerCmd(ctx, "go", args...)
 	ecmd.Env = append(ecmd.Env, "GOOS=", "GOARCH=") // host, ignore cgo-enabled
 	ecmd.Dir = devSrcDir

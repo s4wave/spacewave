@@ -9,6 +9,7 @@ import (
 )
 
 func TestListenProtectedUnixProtectsParentAndSocket(t *testing.T) {
+	// Create the socket parent under a short local temp root.
 	if err := os.MkdirAll(".tmp", 0o700); err != nil {
 		t.Fatal(err)
 	}
@@ -19,11 +20,15 @@ func TestListenProtectedUnixProtectsParentAndSocket(t *testing.T) {
 	t.Cleanup(func() { _ = os.RemoveAll(root) })
 	parent := filepath.Join(root, "state")
 	sock := filepath.Join(parent, "debug.sock")
+
+	// Listen on the protected socket.
 	lis, err := ListenProtectedUnix(sock)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer lis.Close()
+
+	// Verify the parent and socket file modes.
 	parentInfo, err := os.Stat(parent)
 	if err != nil {
 		t.Fatal(err)
@@ -41,6 +46,7 @@ func TestListenProtectedUnixProtectsParentAndSocket(t *testing.T) {
 }
 
 func TestListenProtectedUnixClosesOnProtectionFailure(t *testing.T) {
+	// Create the socket parent under a short local temp root.
 	if err := os.MkdirAll(".tmp", 0o700); err != nil {
 		t.Fatal(err)
 	}
@@ -51,6 +57,8 @@ func TestListenProtectedUnixClosesOnProtectionFailure(t *testing.T) {
 	t.Cleanup(func() { _ = os.RemoveAll(root) })
 	parent := filepath.Join(root, "state")
 	sock := filepath.Join(parent, "debug.sock")
+
+	// Fail the socket chmod and verify the listener is cleaned up.
 	lis, err := listenProtectedUnix(sock, func(string, os.FileMode) error {
 		return os.ErrPermission
 	})

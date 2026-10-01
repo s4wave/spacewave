@@ -33,6 +33,8 @@ func TestNativeBundleResources(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Prepare a scratch work directory and the distribution output directory.
 	scratch := filepath.Join(root, ".tmp")
 	if err := os.MkdirAll(scratch, 0o755); err != nil {
 		t.Fatal(err)

@@ -16,6 +16,7 @@ type nativeRootPointerResponse struct {
 }
 
 func fetchRootPointerResponse(ctx context.Context, httpCli *http.Client, url string) (rootPointerResponse, error) {
+	// Build and send the root pointer request over the native HTTP client.
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		return nil, errors.Wrap(err, "building root pointer request")

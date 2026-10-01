@@ -66,10 +66,12 @@ func (c *Controller) resolveHandleWebView(
 	di directive.Instance,
 	d web_view.HandleWebView,
 ) ([]directive.Resolver, error) {
+	// Read the web view identity from the directive.
 	webView := d.HandleWebView()
 	webViewID := webView.GetId()
 	webViewParentID := webView.GetParentId()
 
+	// Match the web view against the registered handlers.
 	handlers := c.handlers.GetMatchingHandlers(webViewID, webViewParentID)
 	if len(handlers) == 0 {
 		c.le.WithField("web-view", webViewID).

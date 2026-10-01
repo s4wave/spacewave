@@ -39,13 +39,14 @@ func BuildSignedRootForHeadRef(
 		return nil, nil, errors.Wrap(err, "marshal inner state")
 	}
 
+	// Marshal the seqno-bound SORootInner payload.
 	sori := &sobject.SORootInner{Seqno: seqno, StateData: stateData}
 	innerBytes, err := sori.MarshalVT()
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "marshal SORootInner")
 	}
 
-	// Read existing signing material without generating a replacement identity.
+	// Read the validator keypair and sign the root for this Space and seqno.
 	root := &sobject.SORoot{Inner: innerBytes, InnerSeqno: seqno}
 	pemBytes, err := os.ReadFile(validatorKeyPem)
 	if err != nil {
@@ -60,6 +61,8 @@ func BuildSignedRootForHeadRef(
 		return nil, nil, errors.Wrap(err, "sign SORoot inner data")
 	}
 	rootBytes, err := root.MarshalVT()
+
+	// Marshal the signed SORoot envelope for posting.
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "marshal signed SORoot")
 	}

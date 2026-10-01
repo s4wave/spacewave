@@ -54,6 +54,7 @@ func listenProtectedUnix(path string, chmodSocket func(string, os.FileMode) erro
 	if err != nil {
 		return nil, err
 	}
+
 	// Restrict the socket before returning it to the RPC server.
 	if err := chmodSocket(path, 0o600); err != nil {
 		_ = lis.Close()
@@ -64,6 +65,7 @@ func listenProtectedUnix(path string, chmodSocket func(string, os.FileMode) erro
 
 // Listen creates a short, private Unix socket owned by the returned listener.
 func Listen(le *logrus.Entry, ownerDir, pipeUuid string) (*PipeListener, error) {
+	// Validate the owner directory and pipe UUID.
 	ownerDir, err := filepath.Abs(ownerDir)
 	if err != nil {
 		return nil, errors.Wrap(err, "resolve pipe owner directory")
@@ -72,6 +74,7 @@ func Listen(le *logrus.Entry, ownerDir, pipeUuid string) (*PipeListener, error) 
 		return nil, errors.New("invalid pipe UUID")
 	}
 
+	// Create a private temp directory keyed by the owner directory hash.
 	sum := sha256.Sum256([]byte(filepath.Clean(ownerDir)))
 	prefix := "bldr-" + hex.EncodeToString(sum[:6]) + "-"
 	rootDir, err := os.MkdirTemp(shortTempDir(), prefix)
@@ -84,6 +87,7 @@ func Listen(le *logrus.Entry, ownerDir, pipeUuid string) (*PipeListener, error) 
 		return nil, errors.Wrap(err, "secure pipe directory")
 	}
 
+	// Build the pipe listener inside the private directory.
 	path := filepath.Join(rootDir, ".pipe-"+pipeUuid)
 	if len(path) > maxSocketPathLength {
 		_ = cleanup()

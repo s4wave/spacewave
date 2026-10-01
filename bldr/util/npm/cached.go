@@ -235,6 +235,7 @@ func EnsureBunAdd(ctx context.Context, le *logrus.Entry, stateDir, targetDir, pk
 		if err := fsutil.CleanCreateDir(targetDir); err != nil {
 			return err
 		}
+
 		// #nosec G703 -- targetDir is a managed cache directory created by the caller.
 		if err := os.WriteFile(filepath.Join(targetDir, "package.json"), []byte("{}"), 0o644); err != nil {
 			return err

@@ -24,6 +24,7 @@ func main() {
 }
 
 func generate(ctx context.Context, le *logrus.Entry) error {
+	// Resolve the working directory, bldr root, and a temporary state dir.
 	workingDir, err := os.Getwd()
 	if err != nil {
 		return err
@@ -35,6 +36,7 @@ func generate(ctx context.Context, le *logrus.Entry) error {
 	}
 	defer os.RemoveAll(stateDir)
 
+	// Remove any stale intermediate bundle before building.
 	if err := os.Remove(filepath.Join(workingDir, intermediateFilename)); err != nil && !os.IsNotExist(err) {
 		return err
 	}

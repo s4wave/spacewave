@@ -72,6 +72,7 @@ func buildPreviewTextCommand() *cli.Command {
 		Usage:     "preview how text would render in an element",
 		ArgsUsage: "<selector> <text>",
 		Action: func(c *cli.Context) error {
+			// Validate the arguments and build the eval code.
 			if c.NArg() < 2 {
 				return errors.New("usage: preview-text <selector> <text>")
 			}
@@ -79,6 +80,7 @@ func buildPreviewTextCommand() *cli.Command {
 			text := c.Args().Get(1)
 			code := jsPreviewText + "(" + escapeJSString(sel) + ", " + escapeJSString(text) + ")"
 
+			// Evaluate the preview script and collect the lines.
 			var lines []string
 			var evalErr string
 			if err := args.RunEvalJSON(c.Context, code, func(v *fastjson.Value) {
@@ -92,6 +94,8 @@ func buildPreviewTextCommand() *cli.Command {
 			if evalErr != "" {
 				return errors.New(evalErr)
 			}
+
+			// Print the preview lines and orphan report.
 			w := os.Stdout
 			w.WriteString("Preview (" + strconv.Itoa(len(lines)) + " lines):\n")
 			for i, line := range lines {

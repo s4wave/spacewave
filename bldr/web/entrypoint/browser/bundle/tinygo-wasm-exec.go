@@ -51,6 +51,7 @@ func LoadTinyGoWasmExecSource(wasmExecFile string) (string, error) {
 }
 
 func patchTinyGoWasmExecSource(source string) (string, error) {
+	// Define the source and patched memory accessor snippets.
 	const dataViewSource = "return new DataView(this._inst.exports.memory.buffer);"
 	const dataViewPatched = "return new TinyGoWasmDataView(this._inst.exports.memory.buffer);"
 	const sliceSource = "new Uint8Array(this._inst.exports.memory.buffer, array, len)"
@@ -58,11 +59,14 @@ func patchTinyGoWasmExecSource(source string) (string, error) {
 	const stringSource = "new DataView(this._inst.exports.memory.buffer, ptr, len)"
 	const stringPatched = "new DataView(this._inst.exports.memory.buffer, ptr >>> 0, len)"
 
+	// Return the source unchanged if it is already patched.
 	if strings.Contains(source, dataViewPatched) &&
 		strings.Contains(source, slicePatched) &&
 		strings.Contains(source, stringPatched) {
 		return source, nil
 	}
+
+	// Reject sources with unexpected memory accessor implementations.
 	if !strings.Contains(source, dataViewSource) {
 		return "", errors.New("TinyGo wasm_exec.js memory view source is unsupported")
 	}
@@ -73,6 +77,7 @@ func patchTinyGoWasmExecSource(source string) (string, error) {
 		return "", errors.New("TinyGo wasm_exec.js string source is unsupported")
 	}
 
+	// Apply the memory view and integer coercion patches.
 	source = strings.Replace(source, "const mem = () => {", tinyGoWasmDataView+"const mem = () => {", 1)
 	source = strings.Replace(source, dataViewSource, dataViewPatched, 1)
 	source = strings.Replace(source, sliceSource, slicePatched, 1)

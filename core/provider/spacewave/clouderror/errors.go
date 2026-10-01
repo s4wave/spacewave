@@ -77,6 +77,7 @@ const PackReplacementConflictCode = "pack_replacement_conflict"
 // permanentCodes is the union of unauthCodes, deletedCodes, blockedCodes, and
 // the pack replacement conflict.
 var permanentCodes = func() map[string]bool {
+	// Build the permanentCodes map from every permanent code set.
 	m := make(map[string]bool, len(unauthCodes)+len(deletedCodes)+len(blockedCodes)+1)
 	for k := range unauthCodes {
 		m[k] = true
@@ -93,6 +94,7 @@ var permanentCodes = func() map[string]bool {
 
 // Parse parses a cloud API error response body into an Error.
 func Parse(statusCode int, body []byte) *Error {
+	// Unmarshal the api.ErrorResponse body and override retryability for permanent codes.
 	ce := &Error{StatusCode: statusCode}
 	var resp api.ErrorResponse
 	if err := resp.UnmarshalJSON(body); err == nil {
@@ -109,6 +111,7 @@ func Parse(statusCode int, body []byte) *Error {
 
 // ParseResponse parses a cloud API error response and retry hints.
 func ParseResponse(resp *http.Response, body []byte) *Error {
+	// Parse the body error and apply the Retry-After header delay when it is longer.
 	ce := Parse(resp.StatusCode, body)
 	headerDelay := ParseRetryAfterHeader(resp.Header.Get("Retry-After"), time.Now())
 	if headerDelay <= 0 {
@@ -134,6 +137,7 @@ func retryAfterSeconds(delay time.Duration) uint32 {
 
 // ParseRetryAfterHeader parses a Retry-After header as delay seconds or date.
 func ParseRetryAfterHeader(header string, now time.Time) time.Duration {
+	// Trim the header and parse it as a seconds value or an HTTP date.
 	header = strings.TrimSpace(header)
 	if header == "" {
 		return 0

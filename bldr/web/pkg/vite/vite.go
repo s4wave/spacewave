@@ -69,6 +69,7 @@ func BuildWebPkgsViteWithManagedRoot(
 	viteBundler bldr_vite.SRPCViteBundlerClient,
 	cacheDir string,
 ) (webPkgIDs, sourcePaths []string, importMapEntries []ImportMapEntry, err error) {
+	// Canonicalize the code root and prepare the managed source root.
 	canonicalCodeRoot, err := filepath.Abs(codeRootPath)
 	if err != nil {
 		return nil, nil, nil, err
@@ -84,13 +85,14 @@ func BuildWebPkgsViteWithManagedRoot(
 		}
 	}
 
-	// Build list of web pkg IDs.
+	// Build the deduplicated list of web pkg IDs.
 	for _, ref := range webPkgsRefs {
 		webPkgIDs = append(webPkgIDs, ref.GetWebPkgId())
 	}
 	slices.Sort(webPkgIDs)
 	webPkgIDs = slices.Compact(webPkgIDs)
 
+	// Build each web pkg bundle with Vite and collect its provenance.
 	var sourceFilesList []string
 	for _, webPkgRef := range webPkgsRefs {
 		webPkgID := webPkgRef.GetWebPkgId()
@@ -180,9 +182,11 @@ func BuildWebPkgsViteWithManagedRoot(
 		}
 	}
 
+	// Return the deduplicated web pkg IDs and source paths.
 	slices.Sort(sourceFilesList)
 	sourceFilesList = slices.Compact(sourceFilesList)
 
+	// Deduplicate the web pkg ID list.
 	slices.Sort(webPkgIDs)
 	webPkgIDs = slices.Compact(webPkgIDs)
 
@@ -195,17 +199,20 @@ func BuildWebPkgsViteWithManagedRoot(
 // through the import map instead. It leaves the rest of the .vite directory,
 // which holds debug output when enabled.
 func removeViteManifest(pkgOutputPath string) error {
+	// Delete the manifest, tolerating a missing file.
 	viteDir := filepath.Join(pkgOutputPath, ".vite")
 	err := os.Remove(filepath.Join(viteDir, "manifest.json"))
 	if err != nil && !os.IsNotExist(err) {
 		return err
 	}
+
 	// Remove the directory only when the manifest was its last file.
 	_ = os.Remove(viteDir)
 	return nil
 }
 
 func canonicalSourcePath(rootPath, sourcePath string) (string, error) {
+	// Canonicalize the root path, following symlinks when possible.
 	rootAbs, err := filepath.Abs(rootPath)
 	if err != nil {
 		return "", err
@@ -213,6 +220,8 @@ func canonicalSourcePath(rootPath, sourcePath string) (string, error) {
 	if canonicalRoot, canonicalErr := filepath.EvalSymlinks(rootAbs); canonicalErr == nil {
 		rootAbs = canonicalRoot
 	}
+
+	// Canonicalize the source path against the resolved root.
 	path := sourcePath
 	if !filepath.IsAbs(path) {
 		path = filepath.Join(rootAbs, path)
@@ -237,11 +246,13 @@ func generateCjsWrappers(
 	wrapperDir string,
 	isRelease bool,
 ) ([]string, []string, map[string]struct{}, error) {
+	// Start from the original imports and track wrapper provenance.
 	result := make([]string, len(imports))
 	var sources []string
 	generated := make(map[string]struct{})
 	copy(result, imports)
 
+	// Analyze each import and replace CJS modules with generated wrappers.
 	for i, imp := range imports {
 		ext := filepath.Ext(imp)
 		if !determine_cjs_exports.SupportsExtension(ext) {

@@ -56,16 +56,19 @@ func (o *CreateForgeDashboardOp) ApplyWorldOp(
 	ws world.WorldState,
 	sender peer.ID,
 ) (sysErr bool, err error) {
+	// Validate the operation before creating any world objects.
 	if err := o.Validate(); err != nil {
 		return false, err
 	}
 
+	// Read the target object key and build the dashboard record.
 	objKey := o.GetObjectKey()
 	dashboard := &ForgeDashboard{
 		Name:      o.GetName(),
 		CreatedAt: o.GetTimestamp(),
 	}
 
+	// Create the dashboard object and release its handle.
 	var createdObject world.ObjectState
 	createdObject, _, err = world.CreateWorldObject(ctx, ws, objKey, func(bcs *block.Cursor) error {
 		bcs.SetBlock(dashboard, true)
@@ -76,6 +79,7 @@ func (o *CreateForgeDashboardOp) ApplyWorldOp(
 		return false, err
 	}
 
+	// Record the object type for the dashboard object.
 	if err := world_types.SetObjectType(ctx, ws, objKey, ForgeDashboardTypeID); err != nil {
 		return false, err
 	}

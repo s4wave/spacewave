@@ -99,6 +99,7 @@ func WriteBuildManifest(dir string, manifest *BuildManifest) error {
 		return err
 	}
 
+	// Encode the manifest fields into a JSON object.
 	var a fastjson.Arena
 	obj := a.NewObject()
 	obj.Set("entrypoint", a.NewString(manifest.Entrypoint))
@@ -113,6 +114,8 @@ func WriteBuildManifest(dir string, manifest *BuildManifest) error {
 	if manifest.OpfsWorker != "" {
 		obj.Set("opfsWorker", a.NewString(manifest.OpfsWorker))
 	}
+
+	// Encode the CSS and required static asset path lists.
 	css := a.NewArray()
 	for _, path := range manifest.CSS {
 		css.SetArrayItem(len(css.GetArray()), a.NewString(path))
@@ -123,16 +126,20 @@ func WriteBuildManifest(dir string, manifest *BuildManifest) error {
 		assets.SetArrayItem(len(assets.GetArray()), a.NewString(path))
 	}
 	obj.Set("requiredStaticAssets", assets)
+
+	// Write the manifest JSON into the build directory.
 	data := obj.MarshalTo(nil)
 	return os.WriteFile(filepath.Join(dir, "manifest.json"), data, 0o644)
 }
 
 func writeBrowserReleaseManifest(dir string, manifest *BuildManifest) error {
+	// Hash the release generation ID from the cached file set.
 	generationID, err := browserReleaseGenerationID(dir, manifest)
 	if err != nil {
 		return err
 	}
 
+	// Encode the release header and shell asset fields.
 	var a fastjson.Arena
 	obj := a.NewObject()
 	obj.Set("schemaVersion", a.NewNumberInt(1))
@@ -141,6 +148,7 @@ func writeBrowserReleaseManifest(dir string, manifest *BuildManifest) error {
 		obj.Set("autoStart", a.NewTrue())
 	}
 
+	// Encode the shell asset paths and CSS list.
 	shellAssets := a.NewObject()
 	shellAssets.Set("entrypoint", a.NewString(manifest.Entrypoint))
 	if manifest.EntrypointDecompressedSize > 0 {
@@ -154,6 +162,8 @@ func writeBrowserReleaseManifest(dir string, manifest *BuildManifest) error {
 	if manifest.OpfsWorker != "" {
 		shellAssets.Set("opfsWorker", a.NewString(manifest.OpfsWorker))
 	}
+
+	// Encode the CSS list into the shell assets object.
 	css := a.NewArray()
 	for _, path := range manifest.CSS {
 		css.SetArrayItem(len(css.GetArray()), a.NewString(path))
@@ -161,6 +171,7 @@ func writeBrowserReleaseManifest(dir string, manifest *BuildManifest) error {
 	shellAssets.Set("css", css)
 	obj.Set("shellAssets", shellAssets)
 
+	// Encode the prerendered routes and required static assets.
 	routes := a.NewArray()
 	routes.SetArrayItem(0, a.NewString("/"))
 	obj.Set("prerenderedRoutes", routes)
@@ -169,6 +180,8 @@ func writeBrowserReleaseManifest(dir string, manifest *BuildManifest) error {
 		assets.SetArrayItem(len(assets.GetArray()), a.NewString(path))
 	}
 	obj.Set("requiredStaticAssets", assets)
+
+	// Encode the default manifest bundle, if present.
 	if manifest.DefaultManifestBundle != nil {
 		bundle := a.NewObject()
 		bundle.Set("metadata", a.NewString(manifest.DefaultManifestBundle.Metadata))
@@ -176,6 +189,7 @@ func writeBrowserReleaseManifest(dir string, manifest *BuildManifest) error {
 		obj.Set("defaultManifestBundle", bundle)
 	}
 
+	// Write the release manifest JSON into the build directory.
 	data := obj.MarshalTo(nil)
 	return os.WriteFile(filepath.Join(dir, "browser-release.json"), data, 0o644)
 }
@@ -186,6 +200,7 @@ func writeBrowserReleaseManifest(dir string, manifest *BuildManifest) error {
 // produce a new ID. Paths served outside dir, such as a dev frontend, are
 // hashed by path alone.
 func browserReleaseGenerationID(dir string, manifest *BuildManifest) (string, error) {
+	// Collect the service worker's cached asset paths from the build manifest.
 	paths := []string{
 		manifest.Entrypoint,
 		manifest.ServiceWorker,
@@ -194,6 +209,8 @@ func browserReleaseGenerationID(dir string, manifest *BuildManifest) (string, er
 		manifest.Wasm,
 		"index.html",
 	}
+
+	// Collect the cached asset paths from the build manifest.
 	paths = append(paths, manifest.CSS...)
 	paths = append(paths, manifest.RequiredStaticAssets...)
 	if bundle := manifest.DefaultManifestBundle; bundle != nil {
@@ -205,6 +222,7 @@ func browserReleaseGenerationID(dir string, manifest *BuildManifest) (string, er
 	slices.Sort(paths)
 	paths = slices.Compact(paths)
 
+	// Hash each path header and asset file content into the generation ID.
 	h := sha256.New()
 	for _, path := range paths {
 		if path == "" {
@@ -837,6 +855,7 @@ func buildWorkerBundle(
 	buildDir string,
 	spec browserScriptSpec,
 ) (string, *bldr_web_bundler_rolldown.BuildResult, error) {
+	// Build the worker script and check its entrypoint output location.
 	result, err := buildBrowserScript(ctx, le, stateDir, bldrDistRoot, buildDir, spec)
 	if err != nil {
 		return "", nil, err
@@ -980,6 +999,7 @@ func browserRendererSpec(
 	browserIceServers []BrowserIceServer,
 	browserIceServersEndpoint string,
 ) (ConfigFreeRendererOpts, error) {
+	// Resolve the renderer output directory, public path, and ICE server list.
 	outputDir := filepath.Join(buildDir, "entrypoint")
 	publicPath := "/entrypoint/"
 	if entrypointHash != "" {
@@ -987,10 +1007,14 @@ func browserRendererSpec(
 		publicPath = "/entrypoint/" + entrypointHash + "/"
 	}
 	browserIceServers = resolveBrowserIceServers(browserIceServers)
+
+	// Start the defines map the renderer build injects into the bundle.
 	defines := map[string]string{
 		"BLDR_IS_BROWSER": "true",
 		"BLDR_DEBUG":      strconv.FormatBool(devMode),
 	}
+
+	// Define the runtime worker script paths the shell can locate.
 	if runtimeJsPath != "" {
 		defines["BLDR_RUNTIME_JS"] = strconv.Quote(runtimeJsPath)
 	}
@@ -1003,6 +1027,8 @@ func browserRendererSpec(
 	if runtimeOpfsWorkerPath != "" {
 		defines["BLDR_OPFS_WORKER_JS"] = strconv.Quote(runtimeOpfsWorkerPath)
 	}
+
+	// Point the startup module define at the dist-relative sources path.
 	if webStartupSrcPath != "" {
 		distSourcesDirToSourcesRoot, err := filepath.Rel(bldrDistRoot, sourcesRoot)
 		if err != nil {
@@ -1012,6 +1038,8 @@ func browserRendererSpec(
 			filepath.Join(distSourcesDirToSourcesRoot, "../..", webStartupSrcPath),
 		)
 	}
+
+	// Define the worker communication and ICE server feature flags.
 	if forceDedicatedWorkers {
 		defines["BLDR_FORCE_DEDICATED_WORKERS"] = "true"
 	}
@@ -1054,10 +1082,13 @@ func BuildRendererBundle(
 	browserIceServersEndpoint string,
 	webPkgImportMap web_entrypoint_index.ImportMap,
 ) ([]string, error) {
+	// Render the renderer index.html into the build directory.
 	le.Debug("generating web renderer bundle")
 	if err := BuildRendererIndex(buildDir, rendererBootPath, webPkgImportMap); err != nil {
 		return nil, err
 	}
+
+	// Build the config-free renderer spec from the runtime paths.
 	spec, err := browserRendererSpec(
 		sourcesRoot,
 		bldrDistRoot,
@@ -1079,6 +1110,8 @@ func BuildRendererBundle(
 	if err != nil {
 		return nil, err
 	}
+
+	// Build the renderer bundle with the spec.
 	output, err := BuildRenderer(
 		context.Background(),
 		le,
@@ -1118,12 +1151,15 @@ func BuildBrowserBundle(
 	browserIceServers []BrowserIceServer,
 	browserIceServersEndpoint string,
 ) (*BrowserBundleResult, error) {
+	// Create the build directory and stop early on a cancelled context.
 	if err := os.MkdirAll(buildDir, 0o755); err != nil {
 		return nil, err
 	}
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
+
+	// Take the exclusive build lock, releasing it when the bundle completes.
 	buildLock, err := acquireBundleCacheLock(filepath.Join(buildDir, bundleCacheDirName, "build.lock"))
 	if err != nil {
 		return nil, err
@@ -1133,6 +1169,7 @@ func BuildBrowserBundle(
 		return nil, err
 	}
 
+	// Install the shared dist dependencies into the state directory.
 	buildPkgsDir, err := EnsureBldrDistDepsInstall(ctx, le, stateDir, bldrDistRoot)
 	if err != nil {
 		return nil, err
@@ -1167,34 +1204,38 @@ func BuildBrowserBundle(
 
 	// replace the filename in runtimeSwPath with the sw filename
 	runtimeSwPath = filepath.Join(filepath.Dir(runtimeSwPath), swFilename)
+
 	// replace the filename in runtimeShwPath with the shw filename
 	runtimeShwPath = filepath.Join(filepath.Dir(runtimeShwPath), shwFilename)
+
 	// place the OPFS worker beside sw.mjs/shw.mjs at the build root
 	runtimeOpfsWorkerPath := filepath.Join(filepath.Dir(runtimeShwPath), opfsWorkerFilename)
 
-	// web pkgs
-	// use platform for linux -> node.js (react and react-dom don't care.)
+	// Parse the native platform the web packages are built for.
 	bldrNativePlatform, err := bldr_platform.ParseNativePlatform("desktop/linux/amd64")
 	if err != nil {
 		return nil, err
 	}
 
+	// Prefix the web package paths with the entrypoint hash directory.
 	pkgsPathPrefix := "/entrypoint"
 	if entrypointHash != "" {
 		pkgsPathPrefix += "/" + entrypointHash
 	}
 
+	// Point the entrypoint directory at the hashed output tree.
 	entrypointDir := filepath.Join(buildDir, "entrypoint")
 	if entrypointHash != "" {
 		entrypointDir = filepath.Join(entrypointDir, entrypointHash)
 	}
 
+	// Build the web packages and collect their import map entries.
 	webPkgImportMap, err := BuildWebPkgsBundle(ctx, le, stateDir, bldrNativePlatform, bldrDistRoot, entrypointDir, pkgsPathPrefix, minify, sourcemaps, devMode)
 	if err != nil {
 		return nil, err
 	}
 
-	// renderer bundle
+	// Build the renderer bundle and measure the cached phase.
 	rendererStart := time.Now()
 	cssPaths, err := buildRendererCached(ctx, stateDir, cache, sourcesRoot, bldrDistRoot, buildDir, runtimeJsPath, runtimeSwPath, runtimeShwPath, runtimeOpfsWorkerPath, webStartupSrcPath, entrypointHash, minify, sourcemaps, forceDedicatedWorkers, forceMessagePortWorkerComms, devMode, browserIceServers, browserIceServersEndpoint, webPkgImportMap)
 	if err != nil {
@@ -1217,6 +1258,7 @@ func BuildBrowserBundle(
 	}
 	entrypointPath += "/entrypoint.mjs"
 
+	// Stat the built entrypoint bundle to report its size.
 	entrypointInfo, err := os.Stat(filepath.Join(buildDir, entrypointPath))
 	if err != nil {
 		return nil, errors.Wrap(err, "stat browser entrypoint bundle")
@@ -1261,6 +1303,7 @@ func BuildWebPkgsBundle(ctx context.Context, le *logrus.Entry, stateDir string, 
 		}
 	}
 
+	// Run a one-shot Vite build that produces the web pkg import map.
 	var importMap web_entrypoint_index.ImportMap
 	viteWorkingPath := filepath.Join(stateDir, "vite-web-pkgs")
 	err = web_pkg_vite.RunOneShot(ctx, le, bldrDistRoot, bldrDistRoot, viteWorkingPath, func(ctx context.Context, client bldr_vite.SRPCViteBundlerClient) error {

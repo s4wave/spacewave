@@ -47,9 +47,11 @@ func run() error {
 }
 
 func runExportKVFile(args []string) error {
+	// Parse the export flags.
 	fs := flag.NewFlagSet("export-kvfile", flag.ContinueOnError)
 	fs.SetOutput(io.Discard)
 
+	// Declare and parse the bolt and output paths.
 	var boltPath string
 	var outPath string
 	if err := func() error {
@@ -65,6 +67,7 @@ func runExportKVFile(args []string) error {
 		)
 	}
 
+	// Export the bolt store and verify the result.
 	if err := exportBoltToKVFile(context.Background(), boltPath, outPath); err != nil {
 		return err
 	}
@@ -75,10 +78,12 @@ func runExportKVFile(args []string) error {
 }
 
 func exportBoltToKVFile(ctx context.Context, boltPath, outPath string) error {
+	// Create the output directory.
 	if err := os.MkdirAll(filepath.Dir(outPath), 0o755); err != nil {
 		return errors.Wrap(err, "mkdir output dir")
 	}
 
+	// Open the bolt store read-only.
 	store, err := store_kvtx_bolt.Open(
 		boltPath,
 		0o644,
@@ -90,6 +95,7 @@ func exportBoltToKVFile(ctx context.Context, boltPath, outPath string) error {
 	}
 	defer store.Close()
 
+	// Write the store into the kvfile output.
 	f, err := os.Create(outPath)
 	if err != nil {
 		return errors.Wrap(err, "create kvfile")
@@ -114,6 +120,7 @@ func writeStoreKVFile(ctx context.Context, wr io.Writer, store kvtx.Store) error
 	}
 	defer tx.Discard()
 
+	// Iterate every transaction value into the kvfile writer.
 	kvwr := kvfile.NewWriter(wr)
 	it := tx.Iterate(ctx, nil, true, false)
 	defer it.Close()
@@ -137,12 +144,14 @@ func writeStoreKVFile(ctx context.Context, wr io.Writer, store kvtx.Store) error
 }
 
 func verifyKVFile(path string) (uint64, error) {
+	// Open the kvfile and build a reader over it.
 	f, err := os.Open(path)
 	if err != nil {
 		return 0, errors.Wrap(err, "open kvfile")
 	}
 	defer f.Close()
 
+	// Require the kvfile to be non-empty.
 	rd, err := kvfile.BuildReaderWithFile(f)
 	if err != nil {
 		return 0, errors.Wrap(err, "build kvfile reader")

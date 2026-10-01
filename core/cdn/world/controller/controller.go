@@ -146,6 +146,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 		return err
 	}
 
+	// Run the shared-object snapshot refresh loop for this engine.
 	c.refresh.SetRoutine(so.RefreshSnapshot)
 	c.refresh.SetContext(ctx, false)
 	defer c.refresh.ClearContext()

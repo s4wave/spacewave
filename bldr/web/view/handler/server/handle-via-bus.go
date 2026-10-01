@@ -67,6 +67,7 @@ func (h *HandleWebViewViaBus) HandleWebView(
 	ctx context.Context,
 	req *web_view_handler.HandleWebViewRequest,
 ) (*web_view_handler.HandleWebViewResponse, error) {
+	// Open a proxy web view for the request over the access client.
 	webView := web_view_client.NewProxyWebViewViaAccess(
 		ctx,
 		req.GetId(),
@@ -75,6 +76,8 @@ func (h *HandleWebViewViaBus) HandleWebView(
 		req.GetPermanent(),
 		h.accessClient,
 	)
+
+	// Handle the web view and convert failures into a response error.
 	err := web_view.ExHandleWebView(ctx, h.le, h.b, webView, true)
 	var errStr string
 	if err != nil {

@@ -65,6 +65,7 @@ func ResolveGoCompiler(
 	goCompiler GoCompiler,
 	defaultTinygoEnabled bool,
 ) (GoCompiler, error) {
+	// Read the compiler override from the environment when unset.
 	if goCompiler == GoCompilerDefault {
 		envMode, err := ParseGoCompiler(os.Getenv(GoCompilerEnv))
 		if err != nil {
@@ -75,6 +76,7 @@ func ResolveGoCompiler(
 		}
 	}
 
+	// Validate the explicit compiler choice against the platform.
 	switch goCompiler {
 	case GoCompilerDefault:
 	case GoCompilerGo:
@@ -90,10 +92,12 @@ func ResolveGoCompiler(
 		return "", errors.Errorf("unknown Go compiler %q", goCompiler)
 	}
 
+	// Route web platforms to the GoScript compiler.
 	if _, cloudflare := buildPlatform.(*bldr_platform.CloudflarePlatform); cloudflare || bldr_platform.IsWebPlatform(buildPlatform) {
 		return GoCompilerGoScript, nil
 	}
 
+	// Fall back to TinyGo when enabled and the platform supports it.
 	if !defaultTinygoEnabled {
 		return GoCompilerGo, nil
 	}

@@ -108,6 +108,7 @@ func TestNativeStagingAuthority(t *testing.T) {
 
 // TestPrepareRequiresStagingExport rejects a missing export without production fallback.
 func TestPrepareRequiresStagingExport(t *testing.T) {
+	// Clear the environment and reject a project with no release export.
 	t.Setenv("SPACEWAVE_RELEASE_ENV", "")
 	dir := t.TempDir()
 	if err := os.WriteFile(filepath.Join(dir, "bldr.star"), nil, 0o644); err != nil {

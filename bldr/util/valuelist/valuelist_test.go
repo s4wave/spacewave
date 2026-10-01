@@ -67,6 +67,7 @@ func (h *testHandler) RemoveValue(id uint32) (directive.Value, bool) {
 // TestWatchDirectiveViaStreamRemoveMapsIDs checks removals use the local ID
 // returned by AddValue instead of the remote value ID.
 func TestWatchDirectiveViaStreamRemoveMapsIDs(t *testing.T) {
+	// Replay a stream of adds and one removal into a test handler.
 	strm := &testStream{msgs: []*testResponse{
 		{valueID: 1, value: "a"},
 		{valueID: 2, value: "b"},

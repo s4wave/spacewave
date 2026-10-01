@@ -37,7 +37,9 @@ type daemonServiceHold struct {
 }
 
 // release removes this exact service hold once.
+// Mark the hold released and update the tracker under its lock.
 func (h *daemonServiceHold) release() {
+	// Take the tracker lock for this hold.
 	t := h.tracker
 	t.mu.Lock()
 	defer t.mu.Unlock()
@@ -45,6 +47,7 @@ func (h *daemonServiceHold) release() {
 		return
 	}
 
+	// Clear the hold and rearm idle shutdown.
 	h.released = true
 	if t.desktop == h {
 		t.desktop = nil
@@ -111,8 +114,11 @@ func (t *daemonIdleTracker) clientAttached() bool {
 // trackedClientAttached admits a socket and records its identity for a later
 // stop claim by that connection.
 func (t *daemonIdleTracker) trackedClientAttached(conn *trackedConn) bool {
+	// Take the tracker lock and reject when shutdown is claimed.
 	t.mu.Lock()
 	defer t.mu.Unlock()
+
+	// Reject attachment when shutdown has been claimed.
 	if t.stopping {
 		return false
 	}
@@ -135,7 +141,10 @@ func (t *daemonIdleTracker) clientDetached() {
 
 // trackedClientDetached releases an admitted socket and its claim identity.
 func (t *daemonIdleTracker) trackedClientDetached(conn *trackedConn) {
+	// Take the tracker lock and remove the connection hold.
 	t.mu.Lock()
+
+	// Remove the tracked connection and release its client hold.
 	defer t.mu.Unlock()
 	if conn != nil {
 		if _, ok := t.connections[conn]; !ok {
@@ -149,6 +158,8 @@ func (t *daemonIdleTracker) trackedClientDetached(conn *trackedConn) {
 	t.clients--
 	t.active--
 	t.publishLocked()
+
+	// Release the client hold and rearm idle shutdown.
 	t.armIdleLocked()
 }
 
@@ -159,9 +170,13 @@ func (t *daemonIdleTracker) serviceAttached() func() {
 }
 
 // attachService returns the identity and release operation for one service.
+// Take the tracker lock and create the hold.
 func (t *daemonIdleTracker) attachService() *daemonServiceHold {
+	// Take the tracker lock and create the hold.
 	t.mu.Lock()
 	defer t.mu.Unlock()
+
+	// Create the hold and reject it when stopping.
 	hold := &daemonServiceHold{tracker: t}
 	if t.stopping {
 		hold.released = true
@@ -169,6 +184,7 @@ func (t *daemonIdleTracker) attachService() *daemonServiceHold {
 	}
 
 	// Cancel the deadline while the persistent service is active.
+	// Count the service and publish the new hold.
 	t.cancelIdleLocked()
 	t.services++
 	t.active++
@@ -180,6 +196,7 @@ func (t *daemonIdleTracker) attachService() *daemonServiceHold {
 // setDesktop marks a live service hold as the desktop shell's hold until it
 // is released. Stop decisions for the desktop exclude that hold.
 func (t *daemonIdleTracker) setDesktop(hold *daemonServiceHold) {
+	// Mark the hold as the desktop shell under the tracker lock.
 	t.mu.Lock()
 	defer t.mu.Unlock()
 	if hold.tracker != t || hold.released || t.desktop == hold {
@@ -193,18 +210,29 @@ func (t *daemonIdleTracker) setDesktop(hold *daemonServiceHold) {
 // Only the identified requester and live desktop hold are excluded. A winning
 // claim fences later admission; teardown waits for the shell and RPC reply.
 func (t *daemonIdleTracker) claimDesktopQuit(requester *trackedConn) (bool, daemonIdleSnapshot) {
+	// Take the tracker lock for the claim decision.
 	t.mu.Lock()
 	defer t.mu.Unlock()
+
+	// Snapshot the other holds.
 	snapshot := t.otherHoldsLocked()
+
+	// Reject the claim when stopping or the desktop is gone.
 	if t.stopping || !snapshot.desktop {
 		return false, snapshot
 	}
+
+	// Exclude the requester from its own client hold.
 	if _, ok := t.connections[requester]; requester != nil && ok {
 		snapshot.clients--
 	}
+
+	// Reject the claim while other holds remain.
 	if snapshot.clients != 0 || snapshot.services != 0 {
 		return false, snapshot
 	}
+
+	// Claim shutdown and report success.
 	t.claimStopLocked()
 	snapshot.stopping = true
 	return true, snapshot
@@ -214,13 +242,19 @@ func (t *daemonIdleTracker) claimDesktopQuit(requester *trackedConn) (bool, daem
 // except the desktop shell is released, or at once when restartNow is set.
 // The handoff reopens the desktop. The snapshot counts only the other holds,
 // and the returned channel closes on the tracker's next change.
+// Take the tracker lock for the claim decision.
 func (t *daemonIdleTracker) claimDaemonUpdate(restartNow bool) (bool, daemonIdleSnapshot, <-chan struct{}) {
+	// Take the tracker lock for the claim decision.
 	t.mu.Lock()
 	defer t.mu.Unlock()
+
+	// Snapshot the other holds and reject while they remain.
 	snapshot := t.otherHoldsLocked()
 	if t.stopping || (!restartNow && (snapshot.clients != 0 || snapshot.services != 0)) {
 		return false, snapshot, t.changed
 	}
+
+	// Claim shutdown and report success.
 	t.claimStopLocked()
 	snapshot.stopping = true
 	return true, snapshot, t.changed
@@ -277,6 +311,7 @@ func (t *daemonIdleTracker) armIdleLocked() {
 	}
 	generation := t.idleGeneration
 	t.idleTimer = time.AfterFunc(t.idleTimeout, func() {
+		// Take the tracker lock and check the idle generation.
 		t.mu.Lock()
 		if t.stopping || t.active != 0 || t.idleGeneration != generation {
 			t.mu.Unlock()
@@ -304,6 +339,7 @@ func (t *daemonIdleTracker) close() {
 
 // getDaemonIdleTimeout returns the configured idle timeout.
 func getDaemonIdleTimeout() (time.Duration, error) {
+	// Read the idle timeout from the environment.
 	raw := os.Getenv(daemonIdleTimeoutEnvVar)
 	if raw == "" {
 		return defaultDaemonIdleTimeout, nil

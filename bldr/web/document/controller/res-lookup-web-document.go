@@ -26,13 +26,16 @@ type lookupWebDocumentResolver struct {
 
 // Resolve resolves the values, emitting them to the handler.
 func (r *lookupWebDocumentResolver) Resolve(ctx context.Context, handler directive.ResolverHandler) error {
+	// Load the registered web document from the controller.
 	doc := r.c.GetWebDocument()
 
+	// Skip when the directive targets a different web document ID.
 	lookupWebDocID := r.d.LookupWebDocumentID()
 	if lookupWebDocID != "" && lookupWebDocID != doc.GetWebDocumentUuid() {
 		return nil
 	}
 
+	// Emit the resolved web document value to the handler.
 	val := doc
 	_, _ = handler.AddValue(val)
 	return nil

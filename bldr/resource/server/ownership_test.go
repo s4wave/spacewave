@@ -10,6 +10,7 @@ import (
 )
 
 func ownershipTestClient(t *testing.T) (*ResourceServer, *RemoteResourceClient) {
+	// Build a server and one registered client with a seeded root resource.
 	t.Helper()
 	server := NewResourceServer(nil)
 	client := &RemoteResourceClient{
@@ -32,6 +33,7 @@ func ownershipTestClient(t *testing.T) (*ResourceServer, *RemoteResourceClient) 
 }
 
 func TestPendingChildrenReleasePostorderAndRootRetention(t *testing.T) {
+	// Add a pending child and grandchild invocation resource with release recorders.
 	_, client := ownershipTestClient(t)
 	var order []uint32
 	releaseChild := func() { order = append(order, 2) }
@@ -48,6 +50,8 @@ func TestPendingChildrenReleasePostorderAndRootRetention(t *testing.T) {
 	if err != nil || grandchild != 3 {
 		t.Fatalf("grandchild = %d/%v", grandchild, err)
 	}
+
+	// Release the root and verify descendants drain postorder while it stays.
 	if _, err := client.releaseClientControl(1); err != nil {
 		t.Fatalf("root release: %v", err)
 	}
@@ -66,6 +70,7 @@ func TestPendingChildrenReleasePostorderAndRootRetention(t *testing.T) {
 }
 
 func TestGenerationCleanupReleasesAdoptedTreeChildFirst(t *testing.T) {
+	// Add and adopt a pending child invocation resource.
 	_, client := ownershipTestClient(t)
 	var order []uint32
 	releaseChild := func() { order = append(order, 2) }
@@ -78,6 +83,8 @@ func TestGenerationCleanupReleasesAdoptedTreeChildFirst(t *testing.T) {
 	if !client.adoptResource(child) {
 		t.Fatal("adopt rejected")
 	}
+
+	// Add and adopt a grandchild under the adopted child.
 	releaseGrandchild := func() { order = append(order, 3) }
 	grandchild, err := client.addInvocationResource(
 		child, "svc", "method", srpc.NewMux(), nil, releaseGrandchild,
@@ -88,6 +95,8 @@ func TestGenerationCleanupReleasesAdoptedTreeChildFirst(t *testing.T) {
 	if !client.adoptResource(grandchild) {
 		t.Fatal("grandchild adopt rejected")
 	}
+
+	// Run generation cleanup and verify the child releases before the root.
 	var releaseFns []func()
 	client.releaseAllChildrenLocked(1, &releaseFns)
 	for _, releaseFn := range releaseFns {
@@ -102,6 +111,7 @@ func TestGenerationCleanupReleasesAdoptedTreeChildFirst(t *testing.T) {
 }
 
 func TestAdoptedChildSurvivesParentReleaseAndTombstoneNotifies(t *testing.T) {
+	// Add and adopt a pending child invocation resource.
 	_, client := ownershipTestClient(t)
 	child, err := client.addInvocationResource(1, "svc", "method", srpc.NewMux(), nil, nil)
 	if err != nil {
@@ -110,18 +120,24 @@ func TestAdoptedChildSurvivesParentReleaseAndTombstoneNotifies(t *testing.T) {
 	if !client.adoptResource(child) {
 		t.Fatal("adopt rejected")
 	}
+
+	// Release the root and verify the adopted child survives it.
 	if _, err := client.releaseClientControl(1); err != nil {
 		t.Fatal(err)
 	}
 	if client.resources[child] == nil {
 		t.Fatal("adopted child was released with parent")
 	}
+
+	// Release the child server-side and verify the tombstone notification.
 	if !client.ReleaseResource(child) {
 		t.Fatal("server release rejected")
 	}
 	if len(client.txQueue) != 1 {
 		t.Fatalf("server release notifications = %d, want 1", len(client.txQueue))
 	}
+
+	// Re-adopt the tombstoned child and verify the stale notification.
 	client.txQueue = nil
 	if !client.adoptResource(child) {
 		t.Fatal("stale adopt did not succeed")
@@ -142,6 +158,7 @@ func TestForeignAndNeverAllocatedControlsTerminate(t *testing.T) {
 }
 
 func TestPendingWarningRunsOnceWithoutChangingLifetime(t *testing.T) {
+	// Configure the server to report pending resources immediately.
 	server, client := ownershipTestClient(t)
 	server.pendingWarningAge = 0
 	warnings := make(chan pendingResourceWarning, 1)
@@ -149,6 +166,7 @@ func TestPendingWarningRunsOnceWithoutChangingLifetime(t *testing.T) {
 		warnings <- warning
 	}
 
+	// Start the pending resource scanner in the background.
 	ctx, cancel := context.WithCancel(t.Context())
 	t.Cleanup(cancel)
 	scanDone := make(chan struct{})
@@ -157,6 +175,7 @@ func TestPendingWarningRunsOnceWithoutChangingLifetime(t *testing.T) {
 		close(scanDone)
 	}()
 
+	// Add the first pending resource and verify its warning fires once.
 	firstID, err := client.addInvocationResource(1, "svc", "first", srpc.NewMux(), nil, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -170,6 +189,7 @@ func TestPendingWarningRunsOnceWithoutChangingLifetime(t *testing.T) {
 		t.Fatal("first pending resource warning was not reported")
 	}
 
+	// Add a second pending resource and verify its warning fires once.
 	secondID, err := client.addInvocationResource(1, "svc", "second", srpc.NewMux(), nil, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -183,6 +203,7 @@ func TestPendingWarningRunsOnceWithoutChangingLifetime(t *testing.T) {
 		t.Fatal("second pending resource warning was not reported")
 	}
 
+	// Stop the scanner and verify no duplicate warnings were reported.
 	cancel()
 	<-scanDone
 	select {
@@ -191,6 +212,7 @@ func TestPendingWarningRunsOnceWithoutChangingLifetime(t *testing.T) {
 	default:
 	}
 
+	// Verify the scanner did not change the client's resource set.
 	var resourceCount int
 	server.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		resourceCount = len(client.resources)

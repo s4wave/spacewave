@@ -30,6 +30,7 @@ func (o *InitForgeQuickstartOp) GetOperationTypeId() string {
 
 // Validate performs cursory checks on the op.
 func (o *InitForgeQuickstartOp) Validate() error {
+	// Reject empty layout, dashboard, cluster, or session peer identifiers.
 	if len(o.GetLayoutKey()) == 0 {
 		return world.ErrEmptyObjectKey
 	}
@@ -52,6 +53,7 @@ func (o *InitForgeQuickstartOp) ApplyWorldOp(
 	ws world.WorldState,
 	sender peer.ID,
 ) (sysErr bool, err error) {
+	// Validate the operation before applying any world state changes.
 	if err := o.Validate(); err != nil {
 		return false, err
 	}
@@ -62,6 +64,7 @@ func (o *InitForgeQuickstartOp) ApplyWorldOp(
 		return false, err
 	}
 
+	// Read the dashboard and cluster keys the op targets.
 	dashKey := o.GetDashboardKey()
 	clusterKey := o.GetClusterKey()
 

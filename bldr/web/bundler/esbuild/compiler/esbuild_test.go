@@ -17,6 +17,7 @@ import (
 )
 
 func TestBuildEsbuildBundlePreservesConfiguredPluginContract(t *testing.T) {
+	// Write the entrypoint and sentinel values into a temporary code root.
 	root := t.TempDir()
 	assets := filepath.Join(root, "assets")
 	writeEsbuildControlFile(t, filepath.Join(root, "entry.ts"), `
@@ -28,6 +29,7 @@ export const used = 'retained-sentinel'
 export const unused = 'unused-sentinel'
 `)
 
+	// Build the bundle with the configured entrypoint and extension override.
 	webPkgs, outputs, inputs, err := BuildEsbuildBundle(
 		logrus.NewEntry(logrus.New()),
 		root,
@@ -48,6 +50,8 @@ export const unused = 'unused-sentinel'
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Verify the source inputs were reported and no web packages were added.
 	if len(webPkgs) != 0 {
 		t.Fatalf("web package refs = %v, want none", webPkgs)
 	}
@@ -57,6 +61,7 @@ export const unused = 'unused-sentinel'
 		}
 	}
 
+	// Validate the output metadata for the configured entrypoint.
 	outputIndex := slices.IndexFunc(outputs, func(output *bldr_web_bundler_esbuild.EsbuildOutputMeta) bool {
 		return output.GetEntrypointId() == "control-entrypoint"
 	})
@@ -70,6 +75,8 @@ export const unused = 'unused-sentinel'
 	if filepath.IsAbs(output.GetPath()) || strings.HasPrefix(filepath.ToSlash(output.GetPath()), "../") {
 		t.Fatalf("output path = %q, want asset-root-relative path", output.GetPath())
 	}
+
+	// Read the bundled output and verify the retained and unused exports.
 	outputPath := filepath.Join(assets, output.GetPath())
 	code, err := os.ReadFile(outputPath)
 	if err != nil {
@@ -85,6 +92,7 @@ export const unused = 'unused-sentinel'
 		t.Fatalf("metadata length = %d, output length = %d", output.GetLength(), len(code))
 	}
 
+	// Report the compressed output size for the build log.
 	var compressed bytes.Buffer
 	gzipWriter := gzip.NewWriter(&compressed)
 	if _, err := gzipWriter.Write(code); err != nil {

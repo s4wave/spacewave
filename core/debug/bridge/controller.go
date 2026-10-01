@@ -88,6 +88,7 @@ func (c *Controller) getEvalOutputDir() (string, error) {
 
 // Execute executes the controller.
 func (c *Controller) Execute(ctx context.Context) error {
+	// Get the controller's logger and controller bus.
 	le := c.GetLogger()
 	b := c.GetBus()
 
@@ -125,6 +126,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 	// Remove stale socket.
 	_ = os.Remove(absPath)
 
+	// Listen on a protected Unix socket that cleans up after itself.
 	lis, err := bldr_pipesock.ListenProtectedUnix(absPath)
 	if err != nil {
 		return err
@@ -134,6 +136,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 		_ = os.Remove(absPath)
 	}()
 
+	// Log the listening socket path for operators.
 	le.Infof("debug bridge listening on %s", absPath)
 
 	// Close listener when context is cancelled.
@@ -142,6 +145,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 		lis.Close()
 	}()
 
+	// Serve the muxed RPC server on the Unix listener until cancellation.
 	srv := srpc.NewServer(mux)
 	return srpc.AcceptMuxedListener(ctx, lis, srv, nil)
 }
@@ -174,6 +178,7 @@ func isExpression(code string) bool {
 // StoreEvalScript stores a script and returns the URL path to import it.
 // When isModule is true, the code is stored as-is (already a full ES module).
 func (c *Controller) StoreEvalScript(id, code string, isModule bool) string {
+	// Wrap expression code in an async module returning its value.
 	stored := code
 	if !isModule {
 		body := code
@@ -182,12 +187,15 @@ func (c *Controller) StoreEvalScript(id, code string, isModule bool) string {
 		}
 		stored = "export default await (async () => {\n" + body + "\n})()\n"
 	}
+
+	// Store the script under its id in the eval script map.
 	c.mtx.Lock()
 	if c.evalScripts == nil {
 		c.evalScripts = make(map[string]string)
 	}
 	c.evalScripts[id] = stored
 	c.mtx.Unlock()
+
 	// Return the full path the browser uses; the /p/spacewave-debug/ prefix
 	// is stripped by the web runtime before reaching our ServeHTTP.
 	return "/p/spacewave-debug" + evalPathPrefix + id + ".js"
@@ -202,16 +210,21 @@ func (c *Controller) RemoveEvalScript(id string) {
 
 // ServeHTTP serves eval scripts via HTTP.
 func (c *Controller) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
+	// Reject paths outside the eval script prefix.
 	path := req.URL.Path
 	if !strings.HasPrefix(path, evalPathPrefix) {
 		http.NotFound(rw, req)
 		return
 	}
+
+	// Look up the requested script id in the eval script map.
 	name := strings.TrimPrefix(path, evalPathPrefix)
 	id := strings.TrimSuffix(name, ".js")
 	c.mtx.Lock()
 	script, ok := c.evalScripts[id]
 	c.mtx.Unlock()
+
+	// Serve stored scripts from memory and other files from the eval output dir.
 	if !ok {
 		outDir, err := c.getEvalOutputDir()
 		if err != nil {
@@ -226,6 +239,8 @@ func (c *Controller) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		http.ServeFile(rw, req, filepath.Join(outDir, base))
 		return
 	}
+
+	// Write the stored script as JavaScript to the response.
 	rw.Header().Set("Content-Type", "application/javascript")
 	rw.WriteHeader(http.StatusOK)
 	_, _ = rw.Write([]byte(script))

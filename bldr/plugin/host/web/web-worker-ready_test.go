@@ -39,6 +39,7 @@ func TestWaitForWebWorkerReadyReturnsWhenWorkerDeleted(t *testing.T) {
 }
 
 func TestWaitForWebWorkerReadyReturnsWhenWorkerFailed(t *testing.T) {
+	// Publish a deleted, failed worker status.
 	ctr := ccontainer.NewCContainer[*web_document.WebDocumentStatus](nil)
 	ctr.SetValue(&web_document.WebDocumentStatus{
 		WebWorkers: []*web_document.WebWorkerStatus{{
@@ -49,6 +50,7 @@ func TestWaitForWebWorkerReadyReturnsWhenWorkerFailed(t *testing.T) {
 		}},
 	})
 
+	// Wait for readiness and check the failure error and its classification.
 	err := waitForWebWorkerReady(context.Background(), ctr, "plugin/test")
 	if err == nil {
 		t.Fatal("expected failed worker error")
@@ -99,6 +101,7 @@ func TestWaitForWebWorkerReadyConsumesGenerationState(t *testing.T) {
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
+			// Publish the worker status for this generation state.
 			ctr := ccontainer.NewCContainer[*web_document.WebDocumentStatus](nil)
 			ctr.SetValue(&web_document.WebDocumentStatus{
 				WebWorkers: []*web_document.WebWorkerStatus{{
@@ -109,6 +112,7 @@ func TestWaitForWebWorkerReadyConsumesGenerationState(t *testing.T) {
 				}},
 			})
 
+			// Check the readiness error and its failure classification.
 			err := waitForWebWorkerReady(context.Background(), ctr, "plugin/test")
 			if err == nil {
 				t.Fatal("expected generation state error")
@@ -147,6 +151,7 @@ func TestWaitForWebWorkerReadyReturnsWhenDocumentClosed(t *testing.T) {
 }
 
 func TestWaitForCreatedWebWorkerReadyRemovesUnreadyWorker(t *testing.T) {
+	// Publish an unready worker status and a test worker.
 	ctr := ccontainer.NewCContainer[*web_document.WebDocumentStatus](nil)
 	ctr.SetValue(&web_document.WebDocumentStatus{
 		WebWorkers: []*web_document.WebWorkerStatus{{
@@ -155,6 +160,7 @@ func TestWaitForCreatedWebWorkerReadyRemovesUnreadyWorker(t *testing.T) {
 	})
 	worker := &testWebWorker{id: "plugin/test"}
 
+	// Wait with a short timeout and expect the worker to be removed.
 	ready, err := waitForCreatedWebWorkerReadyWithTimeout(context.Background(), ctr, worker, time.Millisecond)
 	if err != nil {
 		t.Fatal(err)
@@ -214,10 +220,12 @@ func TestWaitForCreatedWebWorkerReadyRecreatesTransientStartupInterruptions(t *t
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
+			// Publish the interrupted startup status and a test worker.
 			ctr := ccontainer.NewCContainer[*web_document.WebDocumentStatus](nil)
 			ctr.SetValue(tc.status)
 			worker := &testWebWorker{id: "plugin/test"}
 
+			// Wait and expect the worker to be removed for recreation.
 			ready, err := waitForCreatedWebWorkerReadyWithTimeout(context.Background(), ctr, worker, time.Second)
 			if err != nil {
 				t.Fatalf("transient startup interruption should recreate worker without closing plugin runtime: %v", err)
@@ -233,6 +241,7 @@ func TestWaitForCreatedWebWorkerReadyRecreatesTransientStartupInterruptions(t *t
 }
 
 func TestWaitForCreatedWebWorkerReadyDoesNotRemoveReadyWorker(t *testing.T) {
+	// Publish a ready worker status and a test worker.
 	ctr := ccontainer.NewCContainer[*web_document.WebDocumentStatus](nil)
 	ctr.SetValue(&web_document.WebDocumentStatus{
 		WebWorkers: []*web_document.WebWorkerStatus{{
@@ -242,6 +251,7 @@ func TestWaitForCreatedWebWorkerReadyDoesNotRemoveReadyWorker(t *testing.T) {
 	})
 	worker := &testWebWorker{id: "plugin/test"}
 
+	// Wait and expect the ready worker to be kept.
 	ready, err := waitForCreatedWebWorkerReadyWithTimeout(context.Background(), ctr, worker, time.Millisecond)
 	if err != nil {
 		t.Fatal(err)
@@ -288,12 +298,14 @@ func TestWaitForCreatedWebWorkerReadyReturnsWorkerFailureWithoutRemovingWorker(t
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
+			// Publish the failed worker status and a test worker.
 			ctr := ccontainer.NewCContainer[*web_document.WebDocumentStatus](nil)
 			ctr.SetValue(&web_document.WebDocumentStatus{
 				WebWorkers: []*web_document.WebWorkerStatus{tc.worker},
 			})
 			worker := &testWebWorker{id: "plugin/test"}
 
+			// Wait and check the failure error, readiness, and classification.
 			ready, err := waitForCreatedWebWorkerReadyWithTimeout(context.Background(), ctr, worker, time.Second)
 			if err == nil {
 				t.Fatal("expected failed worker error")

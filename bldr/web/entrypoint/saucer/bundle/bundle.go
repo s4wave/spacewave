@@ -52,8 +52,10 @@ func BuildSaucerJSBundle(
 	sourcemaps bool,
 	importMap web_entrypoint_index.ImportMap,
 ) (*SaucerJSBundle, error) {
+	// Prepare the saucer build directory and bundle options.
 	le.Debug("generating saucer JS runtime bundle")
 
+	// Prepare the saucer build directory and bundle options.
 	devMode := !minify
 	saucerBuildDir := filepath.Join(buildDir, "saucer-js")
 	if err := fsutil.CleanCreateDir(saucerBuildDir); err != nil {
@@ -63,6 +65,8 @@ func BuildSaucerJSBundle(
 	if sourcemaps {
 		sourceMap = "inline"
 	}
+
+	// Bundle the saucer entrypoint with the rolldown bundler.
 	result, err := bldr_web_bundler_rolldown.Build(
 		ctx,
 		le,
@@ -99,6 +103,8 @@ func BuildSaucerJSBundle(
 	if err != nil {
 		return nil, errors.Wrap(err, "building entrypoint")
 	}
+
+	// Verify the entrypoint output name and read the bundled module.
 	if result.GetEntrypointOutputs()["entrypoint"] != "entrypoint.mjs" {
 		return nil, errors.Errorf("Saucer entrypoint output is %q", result.GetEntrypointOutputs()["entrypoint"])
 	}
@@ -151,11 +157,13 @@ func BuildSaucerFromSource(
 	outDir string,
 	platform bldr_platform.Platform,
 ) error {
+	// Resolve the saucer source and dependency directories from the vendor tree.
 	binName := GetSaucerBinName(platform)
 	sourceDir := filepath.Join(vendorDir, "github.com/aperturerobotics/bldr-saucer")
 	saucerDir := filepath.Join(vendorDir, "github.com/aperturerobotics/saucer")
 	yamuxDir := filepath.Join(vendorDir, "github.com/aperturerobotics/cpp-yamux")
 
+	// Create the cmake build directory.
 	if err := os.MkdirAll(buildDir, 0o755); err != nil {
 		return err
 	}
@@ -200,6 +208,7 @@ func ResolveSaucerBinary(
 	platform bldr_platform.Platform,
 	npmPkg string,
 ) error {
+	// Resolve the output binary name and path for the platform.
 	binName := GetSaucerBinName(platform)
 	destBinPath := filepath.Join(outDir, binName)
 
@@ -224,6 +233,7 @@ func ResolveSaucerBinary(
 		return err
 	}
 
+	// Download the package with bun add and wait for it to finish.
 	le.WithField("npm-pkg", npmPkg).Info("downloading saucer binary via npm")
 	cmd, err := npm.BunAdd(ctx, le, stateDir, "--cwd", npmDir, npmPkg)
 	if err != nil {
@@ -258,12 +268,14 @@ func ResolveSaucerBinary(
 	// Clean up npm download directory.
 	_ = os.RemoveAll(npmDir)
 
+	// Report the resolved binary.
 	le.Debug("successfully resolved saucer binary")
 	return nil
 }
 
 // findSaucerBinary looks for the saucer binary in node_modules after npm install.
 func findSaucerBinary(npmDir string, platform bldr_platform.Platform) string {
+	// Resolve the binary name and the @aptre node_modules directory.
 	binName := GetSaucerBinName(platform)
 	nodeModules := filepath.Join(npmDir, "node_modules", "@aptre")
 
@@ -288,6 +300,7 @@ func findSaucerBinary(npmDir string, platform bldr_platform.Platform) string {
 
 // getSaucerPlatformPkgName returns the npm platform-specific package name.
 func getSaucerPlatformPkgName(np *bldr_platform.NativePlatform) string {
+	// Read the platform OS and architecture.
 	goos := np.GetGOOS()
 	goarch := np.GetGOARCH()
 

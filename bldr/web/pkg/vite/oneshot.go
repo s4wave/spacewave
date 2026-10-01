@@ -35,6 +35,7 @@ func RunOneShot(
 	workingPath string,
 	fn func(ctx context.Context, client bldr_vite.SRPCViteBundlerClient) error,
 ) error {
+	// Name the one-shot Vite bundle.
 	bundleID := "web-pkg-oneshot"
 
 	// Derive a pipe UUID for IPC.
@@ -74,6 +75,7 @@ func RunOneShot(
 	}
 	defer pipeListener.Close()
 
+	// Pump accepted connections through the singleton muxed connection.
 	smc := singleton_muxed_conn.NewSingletonMuxedConn(ctx, true)
 	go smc.AcceptPump(pipeListener)
 	defer smc.Close()
@@ -88,7 +90,7 @@ func RunOneShot(
 	cmd.Stdout = le.WriterLevel(logrus.DebugLevel)
 	cmd.Stderr = le.WriterLevel(logrus.DebugLevel)
 
-	// Env vars
+	// Configure the color and root environment variables.
 	cmd.Env = append(
 		cmd.Env,
 		"NO_COLOR=1",
@@ -98,18 +100,21 @@ func RunOneShot(
 		"BLDR_DIST_ROOT="+distSourcePath,
 	)
 
+	// Stop before starting when the context is already done.
 	if ctx.Err() != nil {
 		return context.Canceled
 	}
 
+	// Start the bun process.
 	if err := cmd.Start(); err != nil {
 		return errors.Wrap(err, "start vite process")
 	}
 
-	// Wait for vite to connect.
+	// Wait for vite to connect, killing the process on timeout.
 	timeoutCtx, timeoutCancel := context.WithTimeoutCause(ctx, 30*time.Second, errors.New("timeout waiting for vite to connect"))
 	defer timeoutCancel()
 
+	// Log the wait and block until the Vite process connects.
 	le.Debug("waiting for vite oneshot to connect")
 	_, err = smc.WaitConn(timeoutCtx)
 	if err != nil {
@@ -118,7 +123,7 @@ func RunOneShot(
 		return err
 	}
 
-	// Create the SRPC client.
+	// Create the budgeted SRPC client over the muxed connection.
 	srpcClient := srpc.NewClientWithMuxedConn(smc)
 	client, err := bldr_vite.NewBudgetClient(bldr_vite.NewSRPCViteBundlerClient(srpcClient))
 	if err != nil {
@@ -128,9 +133,10 @@ func RunOneShot(
 		return err
 	}
 
+	// Report the connected Vite process.
 	le.Debug("vite oneshot connected")
 
-	// Run the caller's function.
+	// Run the caller's function with the budgeted Vite client.
 	fnErr := fn(ctx, client)
 
 	// Tear down the process.

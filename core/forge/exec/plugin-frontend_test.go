@@ -34,11 +34,14 @@ import (
 // TestPluginFrontendSource runs a real Forge compiler across authenticated peers.
 // An accepted World source edit must reach Vite without rebuilding an artifact.
 func TestPluginFrontendSource(t *testing.T) {
+	// Set up the test context, connect the peer testbeds, and pick the author, device, and stranger.
 	ctx, cancel := context.WithTimeout(t.Context(), 100*time.Second)
 	defer cancel()
 	peers := pluginFrontendPeers(t, ctx)
 	author, device, stranger := peers[0], peers[1], peers[2]
 	tb, _ := setupIntegrationTest(t, NewDefaultRegistryWithBus(device.Bus))
+
+	// Register the authoring native peer on the device bus.
 	nativePeer, err := peer.NewPeer(device.PrivKey)
 	if err != nil {
 		t.Fatal(err)
@@ -49,6 +52,8 @@ func TestPluginFrontendSource(t *testing.T) {
 	}
 	defer releasePeer()
 	sender := device.PeerID
+
+	// Seed the plugin config and frontend source files into the source object.
 	const sourceKey = "projects/live-colors"
 	const config = `{"id":"colors","manifests":{"colors":{"builder":{"id":"bldr/plugin/compiler/js","config":{"modules":[{"kind":"JS_MODULE_KIND_FRONTEND","path":"./Viewer.ts"}]}}}}}`
 	createTestFS(t, ctx, tb.WorldState, sender, sourceKey, "bldr.yaml", []byte(config))
@@ -57,6 +62,8 @@ func TestPluginFrontendSource(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer world.ReleaseObjectState(object)
+
+	// Write each source file into the object's filesystem with a fixed stamp.
 	stamp := time.Unix(1000, 0)
 	for name, data := range map[string]string{
 		"Viewer.ts":  `import "./viewer.css"; export const label = "colors"`,
@@ -68,6 +75,8 @@ func TestPluginFrontendSource(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
+
+	// Snapshot the source object as the execution's input value.
 	source, err := forge_value.NewWorldObjectSnapshot(ctx, object, tb.WorldState)
 	if err != nil {
 		t.Fatal(err)
@@ -79,10 +88,14 @@ func TestPluginFrontendSource(t *testing.T) {
 		ManifestId: "colors", FrontendId: id, FrontendPeerId: author.PeerID.String(),
 		FrontendRoutePrefix: frontend.ServiceRoutePrefix("test/" + frontend.SRPCFrontendServiceID),
 	}
+
+	// Marshal the plugin build config to JSON for the execution record.
 	data, err := buildConfig.MarshalJSON()
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Create the plugin-build execution with the source snapshot as its input.
 	const executionKey = "plugin-builds/live"
 	createTestExecutionWithValueSet(t, ctx, tb.WorldState, sender, executionKey, BuildPluginConfigID, data,
 		&forge_target.ValueSet{Inputs: forge_value.ValueSlice{forge_value.NewValueWithWorldObjectSnapshot("source", source)}})
@@ -92,7 +105,11 @@ func TestPluginFrontendSource(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer executionRef.Release()
+
+	// Build the frontend SRPC client on the author's bus.
 	client := frontend.NewSRPCFrontendClient(srpc.NewClient(stream_srpc.NewOpenStreamFunc(author.Bus, PluginFrontendProtocol(id), author.PeerID, device.PeerID, 0)))
+
+	// Watch the frontend service and verify the session route prefix.
 	watchCtx, closeWatch := context.WithCancel(ctx)
 	defer closeWatch()
 	watch, err := client.Watch(watchCtx, &frontend.WatchRequest{})
@@ -100,6 +117,8 @@ func TestPluginFrontendSource(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer watch.Close()
+
+	// Receive the initial watch snapshot and verify the session route prefix.
 	snapshot, err := watch.Recv()
 	if err != nil {
 		t.Fatal(err)
@@ -108,7 +127,10 @@ func TestPluginFrontendSource(t *testing.T) {
 	if !strings.HasPrefix(prefix, buildConfig.GetFrontendRoutePrefix()) {
 		t.Fatalf("compiler lost its attachment route: %q", prefix)
 	}
+
+	// Fetch a module through the frontend service and assert a successful response.
 	fetchModule := func(filename string) string {
+		// Mark the helper before issuing the module fetch.
 		t.Helper()
 		response := httptest.NewRecorder()
 		request := httptest.NewRequest(http.MethodGet, "http://space.test"+prefix+filename, nil).WithContext(ctx)
@@ -120,6 +142,8 @@ func TestPluginFrontendSource(t *testing.T) {
 		}
 		return response.Body.String()
 	}
+
+	// Assert the initial module and stylesheet are served with the authored content.
 	if !strings.Contains(fetchModule("Viewer.ts"), "colors") {
 		t.Fatal("initial source module was not served")
 	}
@@ -169,6 +193,7 @@ func TestPluginFrontendSource(t *testing.T) {
 
 // pluginFrontendPeers connects the real encrypted transport between two Sessions.
 func pluginFrontendPeers(t *testing.T, ctx context.Context) []*net_testbed.Testbed {
+	// Mark the helper and create the three peer testbeds.
 	t.Helper()
 	le := logrus.NewEntry(logrus.New())
 	var peers []*net_testbed.Testbed
@@ -181,6 +206,8 @@ func pluginFrontendPeers(t *testing.T, ctx context.Context) []*net_testbed.Testb
 		t.Cleanup(peer.Release)
 		peers = append(peers, peer)
 	}
+
+	// Wire each peer's inproc transport with dialers to the other peers.
 	for _, peer := range peers {
 		dialers := make(map[string]*dialer.DialerOpts)
 		for _, other := range peers {
@@ -203,6 +230,8 @@ func pluginFrontendPeers(t *testing.T, ctx context.Context) []*net_testbed.Testb
 		}
 		transports = append(transports, transport.(*inproc.Inproc))
 	}
+
+	// Connect every transport pair so the peers form a mesh.
 	for _, transport := range transports {
 		for _, other := range transports {
 			if transport != other {

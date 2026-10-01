@@ -111,9 +111,9 @@ func (c *failingFetchManifestBuilder) GetSupportedPlatforms() []string {
 }
 
 func TestFetchManifestPropagatesBuilderErrorInWatchMode(t *testing.T) {
+	// Build a testbed with a bounded context.
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-
 	rootLogger := logrus.New()
 	rootLogger.SetLevel(logrus.DebugLevel)
 	tb, err := testbed.BuildTestbed(ctx, logrus.NewEntry(rootLogger))
@@ -122,9 +122,11 @@ func TestFetchManifestPropagatesBuilderErrorInWatchMode(t *testing.T) {
 	}
 	defer tb.Release()
 
+	// Register the manifest builder and the failing fetch builder factories.
 	tb.GetStaticResolver().AddFactory(manifest_builder_controller.NewFactory(tb.GetBus()))
 	tb.GetStaticResolver().AddFactory(newFailingFetchManifestBuilderFactory(tb.GetBus()))
 
+	// Configure the failing builder as a controller config.
 	builderControllerConfig, err := configset_proto.NewControllerConfig(
 		configset.NewControllerConfig(1, &failingFetchManifestBuilderConfig{}),
 		true,
@@ -133,6 +135,7 @@ func TestFetchManifestPropagatesBuilderErrorInWatchMode(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Declare a project with one broken-plugin manifest and the devtool remote.
 	projectConfig := &bldr_project.ProjectConfig{
 		Id: "test-project",
 		Manifests: map[string]*bldr_project.ManifestConfig{
@@ -149,6 +152,7 @@ func TestFetchManifestPropagatesBuilderErrorInWatchMode(t *testing.T) {
 		},
 	}
 
+	// Start the project controller against the devtool remote.
 	sourcePath := t.TempDir()
 	ctrlConf := NewConfig(sourcePath, sourcePath, projectConfig, true, false)
 	ctrlConf.FetchManifestRemote = "devtool"
@@ -159,6 +163,7 @@ func TestFetchManifestPropagatesBuilderErrorInWatchMode(t *testing.T) {
 	}
 	defer relProjectCtrl()
 
+	// Fetch the broken plugin manifest and expect the builder error.
 	_, _, ref, err := bus.ExecWaitValue[*bldr_manifest.FetchManifestValue](
 		ctx,
 		tb.GetBus(),
@@ -227,6 +232,7 @@ func (c *recordingFetchManifestBuilder) BuildManifest(
 	args *bldr_manifest_builder.BuildManifestArgs,
 	host bldr_manifest_builder.BuildManifestHost,
 ) (*bldr_manifest_builder.BuilderResult, error) {
+	// Record the manifest ID and its declared dependencies.
 	builderConfig := args.GetBuilderConfig()
 	meta := builderConfig.GetManifestMeta().CloneVT()
 	c.state.mtx.Lock()
@@ -251,19 +257,21 @@ func (c *recordingFetchManifestBuilder) GetSupportedPlatforms() []string {
 // build neither starts nor waits for the provider build. The plugin host loads
 // the provider from the recorded dependency.
 func TestAddFetchManifestBuilderRefBuildsWebPkgConsumerAlone(t *testing.T) {
+	// Build a testbed with a bounded context.
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-
 	tb, err := testbed.BuildTestbed(ctx, logrus.NewEntry(logrus.New()))
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer tb.Release()
 
+	// Register the manifest builder and the recording fetch builder factories.
 	state := &recordingFetchManifestBuilderState{built: make(map[string][]string)}
 	tb.GetStaticResolver().AddFactory(manifest_builder_controller.NewFactory(tb.GetBus()))
 	tb.GetStaticResolver().AddFactory(newRecordingFetchManifestBuilderFactory(tb.GetBus(), state))
 
+	// Declare a provider and a consumer web package that excludes the provider.
 	projectConfig := &bldr_project.ProjectConfig{
 		Id: "test-project",
 		Manifests: map[string]*bldr_project.ManifestConfig{
@@ -285,6 +293,7 @@ func TestAddFetchManifestBuilderRefBuildsWebPkgConsumerAlone(t *testing.T) {
 		},
 	}
 
+	// Start the project controller against the devtool remote.
 	sourcePath := t.TempDir()
 	ctrlConf := NewConfig(sourcePath, sourcePath, projectConfig, true, false)
 	ctrlConf.FetchManifestRemote = "devtool"
@@ -295,6 +304,7 @@ func TestAddFetchManifestBuilderRefBuildsWebPkgConsumerAlone(t *testing.T) {
 	}
 	defer relProjectCtrl()
 
+	// Fetch only the consumer manifest and await its build result.
 	builderRef, remoteRef, err := projectCtrl.AddFetchManifestBuilderRef(
 		ctx,
 		bldr_manifest.NewManifestMeta("consumer", bldr_manifest.BuildType_DEV, "web/js/wasm", 0),
@@ -308,6 +318,7 @@ func TestAddFetchManifestBuilderRefBuildsWebPkgConsumerAlone(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Check the provider was not built and the consumer keeps its dep.
 	state.mtx.Lock()
 	defer state.mtx.Unlock()
 	if _, ok := state.built["provider"]; ok {

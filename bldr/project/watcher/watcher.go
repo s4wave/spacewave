@@ -69,6 +69,7 @@ func (c *Controller) GetProjectController() ccontainer.Watchable[*bldr_project_c
 // Returning nil ends execution.
 // Returning an error triggers a retry with backoff.
 func (c *Controller) Execute(rctx context.Context) error {
+	// Run the controller under a context that cancels with the lifecycle.
 	ctx, subCtxCancel := context.WithCancel(rctx)
 	defer subCtxCancel()
 
@@ -90,12 +91,14 @@ func (c *Controller) Execute(rctx context.Context) error {
 	}
 	defer ctrlRef.Release()
 
+	// Publish the running project controller.
 	projCtrl, ok := ctrl.(*bldr_project_controller.Controller)
 	if !ok {
 		return errors.New("project controller returned with unknown type")
 	}
 	c.projCtrlCtr.SetValue(projCtrl)
 
+	// Block until canceled when watching is disabled or no config path set.
 	configPath := c.GetConfig().GetConfigPath()
 	if c.GetConfig().GetDisableWatch() || configPath == "" {
 		<-ctx.Done()
@@ -109,8 +112,10 @@ func (c *Controller) Execute(rctx context.Context) error {
 	}
 	defer watcher.Close()
 
+	// Resolve the bldr.star path beside the config path.
 	starPath := ResolveStarlarkPath(configPath)
 
+	// Watch the config files and restart the project controller on changes.
 	for {
 		// Missing paths are expected here: bldr.star and loaded files may not
 		// exist yet. Other Add failures (e.g. too many watches) are dropped
@@ -157,6 +162,7 @@ func (c *Controller) Execute(rctx context.Context) error {
 
 // loadProjectControllerConfig loads a merged copy of the project controller config.
 func (c *Controller) loadProjectControllerConfig(ctx context.Context) (*bldr_project_controller.Config, error) {
+	// Start from a clone of the configured project controller config.
 	ctrlConfig := c.GetConfig().GetProjectControllerConfig().CloneVT()
 	if ctrlConfig == nil {
 		ctrlConfig = &bldr_project_controller.Config{}
@@ -165,6 +171,7 @@ func (c *Controller) loadProjectControllerConfig(ctx context.Context) (*bldr_pro
 		ctrlConfig.ProjectConfig = &bldr_project.ProjectConfig{}
 	}
 
+	// Merge the bldr.yaml and bldr.star configs when a config path is set.
 	configPath := c.GetConfig().GetConfigPath()
 	if configPath != "" {
 		starPath := ResolveStarlarkPath(configPath)
@@ -233,6 +240,7 @@ func (c *Controller) loadProjectControllerConfig(ctx context.Context) (*bldr_pro
 		}
 	}
 
+	// Overlay the controller's bound remotes onto the project config.
 	if len(c.GetConfig().GetBoundRemotes()) != 0 {
 		if ctrlConfig.ProjectConfig.Remotes == nil {
 			ctrlConfig.ProjectConfig.Remotes = make(map[string]*bldr_project.RemoteConfig)

@@ -19,6 +19,7 @@ func checkPluginLoaded(ctx context.Context, b bus.Bus, pluginID string) bool {
 // fetchManifestInfo fetches manifest metadata for a plugin via FetchManifest.
 // Returns nil if no manifest is found or on error.
 func fetchManifestInfo(ctx context.Context, b bus.Bus, pluginID string) *ManifestInfo {
+	// Execute a one-off FetchManifest directive on the bus.
 	dir := bldr_manifest.NewFetchManifest(pluginID, nil, nil, 0)
 	val, _, ref, err := bus.ExecOneOffTyped[*bldr_manifest.FetchManifestValue](
 		ctx, b, dir, bus.ReturnWhenIdle(), nil,
@@ -30,6 +31,7 @@ func fetchManifestInfo(ctx context.Context, b bus.Bus, pluginID string) *Manifes
 		return nil
 	}
 
+	// Read the manifest refs carried by the fetched value.
 	fmv := val.GetValue()
 	refs := fmv.GetManifestRefs()
 	if len(refs) == 0 {
@@ -97,11 +99,13 @@ func NewResolver(
 
 // Resolve resolves the values, emitting them to the handler.
 func (r *listAvailablePluginsResolver) Resolve(ctx context.Context, handler directive.ResolverHandler) error {
+	// Emit an empty list when no plugin IDs are declared.
 	if len(r.pluginIDs) == 0 {
 		handler.AddValue(&AvailablePluginList{})
 		return nil
 	}
 
+	// Build an AvailablePlugin for each declared plugin ID.
 	plugins := make([]*AvailablePlugin, 0, len(r.pluginIDs))
 	for _, pid := range r.pluginIDs {
 		loaded := checkPluginLoaded(ctx, r.b, pid)
@@ -113,6 +117,7 @@ func (r *listAvailablePluginsResolver) Resolve(ctx context.Context, handler dire
 		})
 	}
 
+	// Emit the assembled plugin list.
 	handler.AddValue(&AvailablePluginList{Plugins: plugins})
 	return nil
 }

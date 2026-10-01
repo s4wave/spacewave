@@ -52,6 +52,7 @@ func WaitForDesktopPasskeyRegister(
 	wsTicket string,
 	openURL string,
 ) (*api.DesktopPasskeyRegisterResult, error) {
+	// Run the register relay and unwrap its register payload.
 	result, err := waitForDesktopPasskeyRegisterRelay(
 		ctx,
 		httpCli,
@@ -83,6 +84,7 @@ func WaitForDesktopPasskeyReauth(
 	wsTicket string,
 	openURL string,
 ) (*api.DesktopPasskeyReauthResult, error) {
+	// Run the reauth relay and unwrap its reauth payload.
 	result, err := waitForDesktopPasskeyReauthRelay(
 		ctx,
 		httpCli,
@@ -105,6 +107,7 @@ func WaitForDesktopPasskeyReauth(
 // validatePasskeyOpenURL validates the passkey ceremony URL against the
 // configured account endpoint host.
 func validatePasskeyOpenURL(openURL string, accountEndpoint string) error {
+	// Parse the account endpoint and require the open URL to match its host.
 	accountURL, err := url.Parse(accountEndpoint)
 	if err != nil || accountURL.Host == "" {
 		return errors.New("desktop passkey requires a valid account_endpoint")
@@ -122,6 +125,8 @@ func validatePasskeyOpenURL(openURL string, accountEndpoint string) error {
 			accountURL.Host,
 		)
 	}
+
+	// Allow https, or http only for a localhost account endpoint pair.
 	if openParsed.Scheme == "https" {
 		return nil
 	}
@@ -139,6 +144,7 @@ func startDesktopPasskey(
 	httpCli *http.Client,
 	endpoint string,
 ) (*api.DesktopPasskeyStartResponse, error) {
+	// Marshal the api.DesktopPasskeyStartRequest and build its POST request.
 	startReq := &api.DesktopPasskeyStartRequest{}
 	startBody, err := startReq.MarshalVT()
 	if err != nil {
@@ -151,6 +157,8 @@ func startDesktopPasskey(
 	}
 	httpReq.Header.Set("Content-Type", "application/octet-stream")
 	httpReq.Header.Set("Accept", "application/octet-stream")
+
+	// Send the start POST and read the response body.
 	httpResp, err := httpCli.Do(httpReq)
 	if err != nil {
 		return nil, errors.Wrap(err, "start desktop passkey")
@@ -164,6 +172,7 @@ func startDesktopPasskey(
 		return nil, errors.Errorf("desktop passkey start failed: %d: %s", httpResp.StatusCode, string(respBody))
 	}
 
+	// Parse the api.DesktopPasskeyStartResponse body.
 	var startResp api.DesktopPasskeyStartResponse
 	if err := startResp.UnmarshalVT(respBody); err != nil {
 		return nil, errors.Wrap(err, "parse desktop passkey start response")
@@ -180,6 +189,7 @@ func waitForDesktopPasskeyResult(
 	wsTicket string,
 	openURL string,
 ) (*api.DesktopPasskeyRelayResult, error) {
+	// Require the relay inputs returned by the start call.
 	if nonce == "" {
 		return nil, errors.New("server did not return a desktop passkey nonce")
 	}
@@ -190,6 +200,7 @@ func waitForDesktopPasskeyResult(
 		return nil, errors.New("server did not return a desktop passkey browser url")
 	}
 
+	// Arm the auth-session cleanup and connect the auth-session WebSocket.
 	cleanupSession := func() {
 		cleanupAuthSession(httpCli, endpoint, nonce, wsTicket)
 	}
@@ -197,6 +208,9 @@ func waitForDesktopPasskeyResult(
 		cleanupSession()
 	}()
 
+	// Connect the auth-session WebSocket with the returned wsTicket.
+	// Connect the auth-session WebSocket with the returned wsTicket.
+	// Connect the auth-session WebSocket with the returned wsTicket.
 	wsURL := strings.Replace(endpoint, "https://", "wss://", 1)
 	wsURL = strings.Replace(wsURL, "http://", "ws://", 1)
 	wsURL += "/api/auth/session/ws?tk=" + wsTicket
@@ -206,6 +220,9 @@ func waitForDesktopPasskeyResult(
 	}
 	defer conn.Close(websocket.StatusNormalClosure, "")
 
+	// Validate and open the browser at the passkey reauth ceremony URL.
+
+	// Validate and open the browser at the passkey ceremony URL.
 	if openErr := validatePasskeyOpenURL(openURL, accountEndpoint); openErr != nil {
 		return nil, errors.Wrap(openErr, "open browser for passkey")
 	}
@@ -213,11 +230,13 @@ func waitForDesktopPasskeyResult(
 		return nil, errors.Wrap(openErr, "open browser for passkey")
 	}
 
+	// Read the browser's relay result from the WebSocket.
 	_, msg, err := conn.Read(ctx)
 	if err != nil {
 		return nil, errors.Wrap(err, "read desktop passkey result")
 	}
 
+	// Parse the api.WsAuthSessionServerFrame and extract the PasskeyRelay result.
 	var frame api.WsAuthSessionServerFrame
 	if err := frame.UnmarshalVT(msg); err != nil {
 		return nil, errors.Wrap(err, "parse desktop passkey frame")
@@ -243,6 +262,7 @@ func waitForDesktopPasskeyRegisterRelay(
 	wsTicket string,
 	openURL string,
 ) (*api.DesktopPasskeyRegisterRelayResult, error) {
+	// Require the relay inputs returned by the register start call.
 	if nonce == "" {
 		return nil, errors.New("server did not return a desktop passkey nonce")
 	}
@@ -253,6 +273,7 @@ func waitForDesktopPasskeyRegisterRelay(
 		return nil, errors.New("server did not return a desktop passkey browser url")
 	}
 
+	// Arm the auth-session cleanup and connect the auth-session WebSocket.
 	cleanupSession := func() {
 		cleanupAuthSession(httpCli, endpoint, nonce, wsTicket)
 	}
@@ -260,6 +281,7 @@ func waitForDesktopPasskeyRegisterRelay(
 		cleanupSession()
 	}()
 
+	// Connect the auth-session WebSocket with the returned wsTicket.
 	wsURL := strings.Replace(endpoint, "https://", "wss://", 1)
 	wsURL = strings.Replace(wsURL, "http://", "ws://", 1)
 	wsURL += "/api/auth/session/ws?tk=" + wsTicket
@@ -269,6 +291,7 @@ func waitForDesktopPasskeyRegisterRelay(
 	}
 	defer conn.Close(websocket.StatusNormalClosure, "")
 
+	// Validate and open the browser at the passkey register ceremony URL.
 	if openErr := validatePasskeyOpenURL(openURL, accountEndpoint); openErr != nil {
 		return nil, errors.Wrap(openErr, "open browser for passkey register")
 	}
@@ -276,11 +299,13 @@ func waitForDesktopPasskeyRegisterRelay(
 		return nil, errors.Wrap(openErr, "open browser for passkey register")
 	}
 
+	// Read the browser's relay result from the WebSocket.
 	_, msg, err := conn.Read(ctx)
 	if err != nil {
 		return nil, errors.Wrap(err, "read desktop passkey register result")
 	}
 
+	// Parse the api.WsAuthSessionServerFrame and extract the PasskeyRelay result.
 	var frame api.WsAuthSessionServerFrame
 	if err := frame.UnmarshalVT(msg); err != nil {
 		return nil, errors.Wrap(err, "parse desktop passkey register frame")
@@ -306,6 +331,7 @@ func waitForDesktopPasskeyReauthRelay(
 	wsTicket string,
 	openURL string,
 ) (*api.DesktopPasskeyReauthRelayResult, error) {
+	// Require the relay inputs returned by the reauth start call.
 	if nonce == "" {
 		return nil, errors.New("server did not return a desktop passkey nonce")
 	}
@@ -316,6 +342,7 @@ func waitForDesktopPasskeyReauthRelay(
 		return nil, errors.New("server did not return a desktop passkey browser url")
 	}
 
+	// Arm the auth-session cleanup and connect the auth-session WebSocket.
 	cleanupSession := func() {
 		cleanupAuthSession(httpCli, endpoint, nonce, wsTicket)
 	}
@@ -323,6 +350,7 @@ func waitForDesktopPasskeyReauthRelay(
 		cleanupSession()
 	}()
 
+	// Connect the auth-session WebSocket with the returned wsTicket.
 	wsURL := strings.Replace(endpoint, "https://", "wss://", 1)
 	wsURL = strings.Replace(wsURL, "http://", "ws://", 1)
 	wsURL += "/api/auth/session/ws?tk=" + wsTicket
@@ -332,6 +360,7 @@ func waitForDesktopPasskeyReauthRelay(
 	}
 	defer conn.Close(websocket.StatusNormalClosure, "")
 
+	// Validate and open the browser at the passkey reauth ceremony URL.
 	if openErr := validatePasskeyOpenURL(openURL, accountEndpoint); openErr != nil {
 		return nil, errors.Wrap(openErr, "open browser for passkey reauth")
 	}
@@ -339,11 +368,13 @@ func waitForDesktopPasskeyReauthRelay(
 		return nil, errors.Wrap(openErr, "open browser for passkey reauth")
 	}
 
+	// Read the browser's relay result from the WebSocket.
 	_, msg, err := conn.Read(ctx)
 	if err != nil {
 		return nil, errors.Wrap(err, "read desktop passkey reauth result")
 	}
 
+	// Parse the api.WsAuthSessionServerFrame and extract the PasskeyRelay result.
 	var frame api.WsAuthSessionServerFrame
 	if err := frame.UnmarshalVT(msg); err != nil {
 		return nil, errors.Wrap(err, "parse desktop passkey reauth frame")

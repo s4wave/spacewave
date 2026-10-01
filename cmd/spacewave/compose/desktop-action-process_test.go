@@ -45,6 +45,8 @@ func TestMain(m *testing.M) {
 // private startup acknowledgement used by production detached daemons.
 func runCopiedDaemonFixture(statePath, pipeID string) (retErr error) {
 	// Give the first child exclusive fixture ownership of this state root.
+
+	// Start the daemon.StartupNotifier before any other fixture state exists.
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer cancel()
 	notifier, err := daemon.NewStartupNotifier(ctx, statePath, pipeID)
@@ -57,10 +59,14 @@ func runCopiedDaemonFixture(statePath, pipeID string) (retErr error) {
 		}
 		notifier.Close()
 	}()
+
+	// Claim the fixture owner file so concurrent children fail fast.
 	ownerPath := filepath.Join(statePath, "fixture-owner")
 	owner, err := os.OpenFile(ownerPath, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0o600)
 	if errors.Is(err, os.ErrExist) {
 		return daemon.ErrStarting
+
+		// Claim the fixture owner file so concurrent children fail fast.
 	}
 	if err != nil {
 		return err
@@ -73,6 +79,8 @@ func runCopiedDaemonFixture(statePath, pipeID string) (retErr error) {
 			retErr = err
 		}
 	}()
+
+	// Record the owning child's pid in the owner file and release it.
 	if _, err := owner.WriteString(strconv.Itoa(os.Getpid())); err != nil {
 		_ = owner.Close()
 		return err
@@ -80,6 +88,8 @@ func runCopiedDaemonFixture(statePath, pipeID string) (retErr error) {
 	if err := owner.Close(); err != nil {
 		return err
 	}
+
+	// Apply the injected startup failure before publishing any readiness.
 	if os.Getenv(copiedDaemonFixtureFailEnv) == "1" {
 		return errors.New("injected fixture startup failure")
 	}
@@ -90,6 +100,8 @@ func runCopiedDaemonFixture(statePath, pipeID string) (retErr error) {
 		return err
 	}
 	defer listener.Close()
+
+	// Register the Resource and DesktopControl services on the fixture mux.
 	rootMux := srpc.NewMux()
 	if err := rootMux.Register(&fixtureResourceWatch{events: make(chan struct{})}); err != nil {
 		return err
@@ -101,6 +113,8 @@ func runCopiedDaemonFixture(statePath, pipeID string) (retErr error) {
 	if err := desktop_control.SRPCRegisterDesktopControlService(mux, &fixtureDesktopControl{}); err != nil {
 		return err
 	}
+
+	// Acknowledge fixture readiness and publish the daemon socket.
 	if err := notifier.Ready(ctx); err != nil {
 		return err
 	}
@@ -142,6 +156,8 @@ func TestDesktopStarterUsesCopiedBundle(t *testing.T) {
 		t.Fatal(err)
 	}
 	source := filepath.Join(bundle, "spacewave")
+
+	// Copy this test executable itself into the bundle as the daemon binary.
 	self, err := os.Executable()
 	if err != nil {
 		t.Fatal(err)
@@ -151,6 +167,8 @@ func TestDesktopStarterUsesCopiedBundle(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer input.Close()
+
+	// Write the copied executable and fail if the copy is incomplete.
 	output, err := os.OpenFile(source, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0o700)
 	if err != nil {
 		t.Fatal(err)
@@ -173,6 +191,7 @@ func TestDesktopStarterUsesCopiedBundle(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() {
+		// Read the owning child's pid from the fixture owner file.
 		data, err := os.ReadFile(filepath.Join(statePath, "fixture-owner"))
 		if err != nil {
 			return
@@ -182,6 +201,8 @@ func TestDesktopStarterUsesCopiedBundle(t *testing.T) {
 			t.Error(err)
 			return
 		}
+
+		// Signal the owning child to shut down the fixture daemon.
 		process, err := os.FindProcess(pid)
 		if err != nil {
 			t.Error(err)
@@ -193,6 +214,8 @@ func TestDesktopStarterUsesCopiedBundle(t *testing.T) {
 		}
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
+
+		// Wait for the fixture-stopped marker or fail the cleanup.
 		for {
 			if _, err := os.Stat(filepath.Join(statePath, "fixture-stopped")); err == nil {
 				return
@@ -215,6 +238,8 @@ func TestDesktopStarterUsesCopiedBundle(t *testing.T) {
 	connector := daemon.NewConnector(nil, func(ctx context.Context, root string) error {
 		return daemon.StartCopiedProcess(ctx, root, source)
 	})
+
+	// Launch two concurrent desktop opens against the same copied bundle.
 	results := make(chan error, 2)
 	for range 2 {
 		go func() { results <- openDesktopWithConnector(ctx, connector) }()
@@ -224,11 +249,15 @@ func TestDesktopStarterUsesCopiedBundle(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
+
+	// Attach a client and verify the daemon identity and artifact reference.
 	client, err := connector.Connect(ctx, statePath, "")
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer client.Close()
+
+	// Open the desktop once and check the daemon pid and executable path.
 	first, err := desktop_control.NewSRPCDesktopControlServiceClient(client.RPC()).OpenOrFocusDesktop(ctx, &desktop_control.OpenOrFocusDesktopRequest{})
 	if err != nil {
 		t.Fatal(err)
@@ -260,6 +289,7 @@ func TestDesktopStarterUsesCopiedBundle(t *testing.T) {
 // TestDesktopStarterFailureLeavesVerifiedCopy checks that failed startup joins
 // its child and leaves no published readiness or damaged executable behind.
 func TestDesktopStarterFailureLeavesVerifiedCopy(t *testing.T) {
+	// Set up a state root and point the starter at this executable.
 	statePath := desktopActionStatePath(t)
 	t.Setenv(copiedDaemonFixtureEnv, "1")
 	t.Setenv(copiedDaemonFixtureFailEnv, "1")
@@ -268,6 +298,8 @@ func TestDesktopStarterFailureLeavesVerifiedCopy(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Start the failing child and confirm no ownership, readiness, or partial copies remain.
 	ctx, cancel := context.WithTimeout(t.Context(), 15*time.Second)
 	defer cancel()
 	if err := daemon.StartCopiedProcess(ctx, statePath, source); err == nil || !strings.Contains(err.Error(), "injected fixture startup failure") {

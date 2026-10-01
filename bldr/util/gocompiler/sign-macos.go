@@ -41,6 +41,7 @@ func MacOSSignStartupCacheEnvKeys() []string {
 // No-op when BLDR_MACOS_SIGN_IDENTITY is unset. Fails the caller when
 // codesign exits non-zero. Caller is responsible for gating on GOOS=darwin.
 func CodesignMacOS(ctx context.Context, le *logrus.Entry, binPath string) error {
+	// Resolve the signing identity and options from the environment.
 	identity := os.Getenv(MacOSSignIdentityEnv)
 	if identity == "" {
 		return nil
@@ -49,6 +50,8 @@ func CodesignMacOS(ctx context.Context, le *logrus.Entry, binPath string) error 
 	if options == "" {
 		options = defaultMacOSSignOptions
 	}
+
+	// Assemble the codesign arguments, adding entitlements when configured.
 	args := []string{
 		"--force",
 		"--sign", identity,
@@ -58,6 +61,8 @@ func CodesignMacOS(ctx context.Context, le *logrus.Entry, binPath string) error 
 		args = append(args, "--entitlements", entitlements)
 	}
 	args = append(args, binPath)
+
+	// Sign the binary and verify the signature strictly.
 	cmd := uexec.NewCmd(ctx, "codesign", args...)
 	cmd.Env = os.Environ()
 	if err := uexec.ExecCmd(le, cmd); err != nil {

@@ -34,6 +34,7 @@ func StartHandoff(
 	authIntent string,
 	username string,
 ) (crypto.PrivKey, string, string, error) {
+	// Track the auth session cleanup, defaulting to a no-op until the session exists.
 	var nonce string
 	var wsTicket string
 	cleanupSession := func() {}
@@ -47,12 +48,15 @@ func StartHandoff(
 		return nil, "", "", errors.Wrap(err, "generate ephemeral keypair")
 	}
 
+	// Derive the raw ephemeral public key bytes for the HandoffRequest.
 	ephPubRaw, err := ephPub.Raw()
 	if err != nil {
 		return nil, "", "", errors.Wrap(err, "get ephemeral public key bytes")
 	}
 
-	// 2. Build HandoffRequest proto.
+	// Derive the raw ephemeral public key bytes for the HandoffRequest.
+	// Derive the raw ephemeral public key bytes for the HandoffRequest.
+	// Build the session_handoff.HandoffRequest proto describing this device.
 	nonce = ulid.NewULID()
 	deviceName := getDeviceName()
 	if clientType == "" {
@@ -66,7 +70,7 @@ func StartHandoff(
 		ProtocolVersion: 1,
 	}
 
-	// 3. POST /auth/session/create -> {nonce, wsTicket}.
+	// Marshal the api.AuthSessionCreateRequest and build its POST request.
 	createReq := &api.AuthSessionCreateRequest{Nonce: nonce}
 	createBody, err := createReq.MarshalVT()
 	if err != nil {
@@ -78,6 +82,8 @@ func StartHandoff(
 		return nil, "", "", errors.Wrap(err, "build create request")
 	}
 	httpReq.Header.Set("Content-Type", "application/octet-stream")
+
+	// Send the create-session POST and read the response body.
 	httpResp, err := httpCli.Do(httpReq)
 	if err != nil {
 		return nil, "", "", errors.Wrap(err, "create auth session")
@@ -90,6 +96,8 @@ func StartHandoff(
 	if httpResp.StatusCode != http.StatusOK {
 		return nil, "", "", errors.Errorf("create auth session failed: %d: %s", httpResp.StatusCode, string(respBody))
 	}
+
+	// Parse the api.AuthSessionCreateResponse and arm the auth-session cleanup.
 	var createResp api.AuthSessionCreateResponse
 	if err := createResp.UnmarshalVT(respBody); err != nil {
 		return nil, "", "", errors.Wrap(err, "parse create response")
@@ -102,7 +110,7 @@ func StartHandoff(
 		cleanupAuthSession(httpCli, apiEndpoint, nonce, wsTicket)
 	}
 
-	// 4. Open browser with handoff URL.
+	// Open the browser at the handoff URL carrying the encoded HandoffRequest.
 	reqData, err := handoffReq.MarshalVT()
 	if err != nil {
 		return nil, "", "", errors.Wrap(err, "marshal handoff request")
@@ -113,7 +121,7 @@ func StartHandoff(
 		return nil, "", "", errors.Wrap(openErr, "open browser")
 	}
 
-	// 5. Connect WebSocket.
+	// Connect the auth-session WebSocket with the returned wsTicket.
 	wsURL := buildHandoffWSURL(apiEndpoint, wsTicket)
 	conn, _, err := websocket.Dial(ctx, wsURL, nil)
 	if err != nil {
@@ -127,7 +135,7 @@ func StartHandoff(
 		return nil, "", "", errors.Wrap(err, "read handoff completion")
 	}
 
-	// 7. Parse HandoffCompletion.
+	// Parse the api.WsAuthSessionServerFrame and extract the HandoffCompletion.
 	var frame api.WsAuthSessionServerFrame
 	if err := frame.UnmarshalVT(msg); err != nil {
 		return nil, "", "", errors.Wrap(err, "unmarshal auth-session frame")
@@ -138,6 +146,7 @@ func StartHandoff(
 	}
 	completion := completionFrame.Completion
 
+	// Verify the completion authorizes this client's receiving Session key.
 	receivingPeer, err := peer.IDFromPublicKey(ephPub)
 	if err != nil {
 		return nil, "", "", err
@@ -146,7 +155,7 @@ func StartHandoff(
 		return nil, "", "", errors.New("browser did not authorize this client's Session key; update both clients and link again")
 	}
 
-	// 10. Send HandoffAck.
+	// Send the session_handoff.HandoffAck over the WebSocket.
 	ack := &session_handoff.HandoffAck{}
 	ackData, err := ack.MarshalVT()
 	if err != nil {
@@ -156,6 +165,7 @@ func StartHandoff(
 		return nil, "", "", errors.Wrap(err, "send handoff ack")
 	}
 
+	// Stop the session cleanup and return the provider account to mount.
 	cleanupSession = func() {}
 	return ephPriv, completion.GetAccountId(), completion.GetEntityId(), nil
 }
@@ -186,6 +196,7 @@ func openBrowserValidated(rawURL string, allowedHosts []string) error {
 // loopback-only http, and has a host matching one of allowedHosts
 // (case-insensitive, exact). An empty allowedHosts list skips the host check.
 func validateOpenURL(rawURL string, allowedHosts []string) error {
+	// Parse the URL and reject empty, hostless, or non-https targets.
 	if rawURL == "" {
 		return errors.New("empty browser url")
 	}
@@ -204,6 +215,8 @@ func validateOpenURL(rawURL string, allowedHosts []string) error {
 			)
 		}
 	}
+
+	// Reject hosts outside the allowlist when one is configured.
 	if len(allowedHosts) == 0 {
 		return nil
 	}
@@ -254,6 +267,7 @@ func buildHandoffBrowserURL(
 	authIntent string,
 	username string,
 ) string {
+	// Build the hash-route URL and append optional intent and username params.
 	base := strings.TrimRight(publicBaseURL, "/") + "/#/auth/link/" + payload
 	q := url.Values{}
 	if authIntent != "" {

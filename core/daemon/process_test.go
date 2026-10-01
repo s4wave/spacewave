@@ -67,6 +67,8 @@ func TestUnreadyChildStopJoins(t *testing.T) {
 				}
 				t.Cleanup(func() { _ = stdout.Close() })
 				t.Cleanup(func() { _ = output.Close() })
+
+				// Start an unready child fixture wired to the pipe's writer.
 				cmd := exec.Command(os.Args[0], "-test.run=^TestUnreadyChildProcess$", "-test.timeout=30s")
 				cmd.Env = append(os.Environ(), "SPACEWAVE_TEST_UNREADY_CHILD="+mode)
 				cmd.Stdout, cmd.Stderr = output, os.Stderr
@@ -78,6 +80,8 @@ func TestUnreadyChildStopJoins(t *testing.T) {
 				if err := prepareDaemonStart(cmd); err != nil {
 					t.Fatal(err)
 				}
+
+				// Start the child and arrange its termination at cleanup.
 				child, err := startProcess(cmd)
 				if err != nil {
 					t.Fatal(err)
@@ -89,6 +93,8 @@ func TestUnreadyChildStopJoins(t *testing.T) {
 						}
 					}
 				})
+
+				// Close the writer so EOF marks the end of fixture output.
 				if err := output.Close(); err != nil {
 					t.Fatal(err)
 				}

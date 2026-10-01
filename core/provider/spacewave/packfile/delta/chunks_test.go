@@ -31,7 +31,9 @@ func TestEmitDeltaChunksEncodedLimit(t *testing.T) {
 		if err != nil {
 			return err
 		}
+		// Walk each packed block entry and record its decoded value.
 		return packed.ScanPrefixEntries(nil, func(entry *kvfile.IndexEntry, _ int) error {
+			// Parse the block key and decode the stored value.
 			h, err := packfile.ParseBlockKey(entry.GetKey())
 			if err != nil {
 				return err
@@ -40,6 +42,8 @@ func TestEmitDeltaChunksEncodedLimit(t *testing.T) {
 			if _, exists := seen[key]; exists {
 				t.Fatalf("duplicate block %s", key)
 			}
+
+			// Read each block value from the packed file and record it once.
 			value, found, err := packed.Get(entry.GetKey())
 			if err != nil {
 				return err

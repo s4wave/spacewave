@@ -45,6 +45,7 @@ func (c *Config) EqualsConfig(c2 config.Config) bool {
 
 // Validate validates the configuration.
 func (c *Config) Validate() error {
+	// Require absolute source and working paths.
 	if c.GetSourcePath() == "" {
 		return errors.Wrap(bldr_manifest.ErrEmptyPath, "source path")
 	}
@@ -57,6 +58,8 @@ func (c *Config) Validate() error {
 	if !filepath.IsAbs(c.GetWorkingPath()) {
 		return errors.New("working path must be absolute")
 	}
+
+	// Validate the project configuration.
 	if err := c.GetProjectConfig().Validate(); err != nil {
 		return errors.Wrap(err, "project_config")
 	}

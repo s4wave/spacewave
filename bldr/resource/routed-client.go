@@ -88,6 +88,7 @@ func (r *RoutedInvoker) RemoveMux(resourceID uint32) {
 
 // InvokeMethod parses the resource ID prefix from serviceID and dispatches.
 func (r *RoutedInvoker) InvokeMethod(serviceID, methodID string, strm srpc.Stream) (bool, error) {
+	// Parse the resource ID prefix from the service ID.
 	prefix, rest, ok := strings.Cut(serviceID, "/")
 	if !ok {
 		return false, nil
@@ -96,6 +97,8 @@ func (r *RoutedInvoker) InvokeMethod(serviceID, methodID string, strm srpc.Strea
 	if err != nil {
 		return false, nil
 	}
+
+	// Look up the mux and context override for the resource ID.
 	r.mu.Lock()
 	mux := r.muxes[uint32(id)]
 	contextFn := r.contextFn
@@ -103,6 +106,8 @@ func (r *RoutedInvoker) InvokeMethod(serviceID, methodID string, strm srpc.Strea
 	if mux == nil {
 		return false, ErrResourceNotFound
 	}
+
+	// Wrap the stream context and dispatch to the mux.
 	if contextFn != nil {
 		strm = srpc.NewStreamWithContext(strm, contextFn(strm.Context(), uint32(id)))
 	}

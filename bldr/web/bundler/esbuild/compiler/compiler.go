@@ -120,6 +120,7 @@ func (c *Controller) BuildManifest(
 	args *bldr_manifest_builder.BuildManifestArgs,
 	host bldr_manifest_builder.BuildManifestHost,
 ) (*bldr_manifest_builder.BuilderResult, error) {
+	// Resolve the manifest metadata from the builder configuration.
 	conf := c.GetConfig()
 	builderConf := args.GetBuilderConfig()
 	meta, _, err := builderConf.GetManifestMeta().Resolve()
@@ -131,6 +132,7 @@ func (c *Controller) BuildManifest(
 	buildPlatform := bldr_platform.NewNonePlatform()
 	meta.PlatformId = buildPlatform.GetPlatformID()
 
+	// Read the manifest ID, source path, build type, and minification policy.
 	platformID := meta.GetPlatformId()
 	manifestID := strings.TrimSpace(meta.GetManifestId())
 	sourcePath := builderConf.GetSourcePath()
@@ -148,6 +150,7 @@ func (c *Controller) BuildManifest(
 	// build output world engine
 	busEngine := world.NewBusEngine(ctx, c.GetBus(), builderConf.GetEngineId())
 
+	// Build the logger entry with the manifest identity fields.
 	le := c.GetLogger().
 		WithField("manifest-id", manifestID).
 		WithField("build-type", buildType).
@@ -374,14 +377,15 @@ func (c *Controller) BuildManifest(
 		updatedManifestMeta.SortFiles()
 	}
 
+	// Start the manifest transaction for the commit.
 	tx, err := busEngine.NewTransaction(ctx, true)
 	if err != nil {
 		return nil, err
 	}
 	defer tx.Discard()
 
+	// Commit the bundled dist and assets directories into the manifest.
 	le.Debug("committing files to manifest")
-	// bundle dist and assets fs
 	committedManifest, committedManifestRef, err := builderConf.CommitManifestWithPaths(
 		ctx,
 		le,
@@ -395,6 +399,7 @@ func (c *Controller) BuildManifest(
 		return nil, err
 	}
 
+	// Construct the builder result from the committed manifest and metadata.
 	le.Debugf(
 		"build complete with %d input files",
 		len(updatedManifestMeta.Files),
@@ -444,6 +449,7 @@ func (c *Controller) FastRebuildBundle(
 		return nil, errors.Wrap(err, "unmarshal input metadata")
 	}
 
+	// Read the web packages and esbuild options from the previous metadata.
 	webPkgs := inputMeta.GetWebPkgs()
 	baseEsbuildOpts, err := bldr_esbuild_build.ParseEsbuildFlags(inputMeta.GetEsbuildFlags())
 	if err != nil {
@@ -568,6 +574,7 @@ func (c *Controller) FastRebuildBundle(
 
 	// drop all esbuild files from the set (we will add them back next)
 	updatedInputManifest.Files = slices.DeleteFunc(updatedInputManifest.Files, func(f *bldr_manifest_builder.InputManifest_File) bool {
+		// Match files whose metadata kind is the esbuild kind.
 		meta.Reset()
 		err := meta.UnmarshalVT(f.GetMetadata())
 		if err != nil {
@@ -601,6 +608,7 @@ func (c *Controller) FastRebuildBundle(
 	}
 	updatedInputManifest.Metadata = updMeta
 
+	// Log the completed fast rebuild and return the updated manifest.
 	le.Debug("fast rebuild complete")
 	return updatedInputManifest, nil
 }

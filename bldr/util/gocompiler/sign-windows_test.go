@@ -24,6 +24,7 @@ func TestSignWindowsNoOpWhenUnset(t *testing.T) {
 // TestSignWindowsRejectsProfileWithoutAccount verifies SignWindows errors when
 // profile is set but account is missing.
 func TestSignWindowsRejectsProfileWithoutAccount(t *testing.T) {
+	// Configure a profile without an account and expect an error.
 	t.Setenv(WindowsSignCommandEnv, "")
 	t.Setenv(WindowsSignProfileEnv, "some-profile")
 	t.Setenv(WindowsSignAccountEnv, "")
@@ -39,12 +40,16 @@ func TestSignWindowsExternalCommand(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		t.Skip("POSIX callback fixture")
 	}
+
+	// Write a POSIX signing callback fixture with a path containing spaces.
 	dir := t.TempDir()
 	command := filepath.Join(dir, "sign")
 	binary := filepath.Join(dir, "app with spaces; literal.exe")
 	if err := os.WriteFile(command, []byte("#!/bin/sh\n[ \"$#\" -eq 1 ] || exit 2\nprintf signed > \"$1\"\n"), 0o700); err != nil {
 		t.Fatal(err)
 	}
+
+	// Configure the external signing command and identity.
 	t.Setenv(WindowsSignCommandEnv, command)
 	t.Setenv(WindowsSignIdentityEnv, "example-product/publisher")
 	t.Setenv(WindowsSignProfileEnv, "")

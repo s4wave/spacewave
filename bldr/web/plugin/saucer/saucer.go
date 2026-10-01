@@ -53,11 +53,14 @@ func RunSaucer(
 	smc := singleton_muxed_conn.NewSingletonMuxedConn(ctx, false)
 	go smc.AcceptPump(pipeListener)
 
+	// Make the binary executable.
 	_ = os.Chmod(saucerPath, 0o755) // try to chmod
 
+	// Assemble the launch arguments.
 	var saucerArgs []string
 	saucerArgs = append(saucerArgs, extraSaucerFlags...)
 
+	// Configure the saucer command with the pipe directory and runtime env.
 	cmd := exec.NewCmd(ctx, saucerPath, saucerArgs...)
 	cmd.Dir = pipeListener.GetRootDir()
 	cmd.Env = append(cmd.Env, "BLDR_RUNTIME_ID="+runtimeUuid)
@@ -82,9 +85,11 @@ func RunSaucer(
 		cmd.Env = append(cmd.Env, "BLDR_SAUCER_INIT="+base64.StdEncoding.EncodeToString(initBytes))
 	}
 
+	// Wire the process output to the debug log.
 	cmd.Stdout = le.WriterLevel(logrus.DebugLevel)
 	cmd.Stderr = le.WriterLevel(logrus.DebugLevel)
 
+	// Start the saucer process, closing the pipe on failure.
 	le.Debugf("starting saucer: %s", cmd.String())
 	err = cmd.Start()
 	if err != nil {

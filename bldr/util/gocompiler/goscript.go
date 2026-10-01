@@ -70,6 +70,7 @@ func GoScriptCompilerCacheRootFromEnv(buildPath string) (string, error) {
 // Absolute roots are used directly; relative roots live under the Bldr state
 // root that owns the build path.
 func ResolveGoScriptCompilerCacheRoot(buildPath, rawRoot string) (string, error) {
+	// Return an empty root or use absolute roots directly.
 	rawRoot = strings.TrimSpace(rawRoot)
 	if rawRoot == "" {
 		return "", nil
@@ -77,6 +78,8 @@ func ResolveGoScriptCompilerCacheRoot(buildPath, rawRoot string) (string, error)
 	if filepath.IsAbs(rawRoot) {
 		return filepath.Clean(rawRoot), nil
 	}
+
+	// Reject relative roots that escape the .bldr state root.
 	cleanRoot := filepath.Clean(rawRoot)
 	if cleanRoot == "." || cleanRoot == ".." || strings.HasPrefix(cleanRoot, ".."+string(filepath.Separator)) {
 		return "", errors.Errorf("%s relative path escapes .bldr state root: %s", GoScriptCompilerCacheRootEnv, rawRoot)
@@ -111,6 +114,7 @@ func isGoScriptBldrStateRootName(name string) bool {
 // GoScriptBindingRoots returns dependency module roots containing protobuf
 // TypeScript siblings. The main module is covered by GoScript's source root.
 func GoScriptBindingRoots(ctx context.Context, workDir string, env ...string) ([]string, error) {
+	// List all non-main module directories under the work dir.
 	cmd := exec.CommandContext(ctx, "go", "list", "-mod=readonly", "-m", "-f", "{{if not .Main}}{{.Dir}}{{end}}", "all")
 	cmd.Env = append(os.Environ(), GetDefaultEnv()...)
 	cmd.Env = append(cmd.Env, env...)
@@ -123,6 +127,8 @@ func GoScriptBindingRoots(ctx context.Context, workDir string, env ...string) ([
 		}
 		return nil, err
 	}
+
+	// Keep module directories that contain protobuf TypeScript siblings.
 	var roots []string
 	seen := make(map[string]struct{})
 	for moduleDir := range strings.SplitSeq(string(out), "\n") {
@@ -137,6 +143,8 @@ func GoScriptBindingRoots(ctx context.Context, workDir string, env ...string) ([
 		seen[dir] = struct{}{}
 		roots = append(roots, dir)
 	}
+
+	// Return the roots in a stable order.
 	slices.Sort(roots)
 	return roots, nil
 }
@@ -144,6 +152,7 @@ func GoScriptBindingRoots(ctx context.Context, workDir string, env ...string) ([
 func goScriptBindingRootHasProtobufTypeScript(root string) bool {
 	found := false
 	_ = filepath.WalkDir(root, func(path string, entry os.DirEntry, err error) error {
+		// Stop the walk on errors or once a sibling is found.
 		if err != nil {
 			return err
 		}
@@ -177,6 +186,7 @@ func goScriptBindingRootHasProtobufTypeScript(root string) bool {
 
 // GoListImportPath returns the import path for the package in workDir under the given build flags.
 func GoListImportPath(ctx context.Context, workDir string, buildFlags []string, env ...string) (string, error) {
+	// Assemble the go list arguments with validated build flags.
 	args := []string{"list"}
 	for _, flag := range buildFlags {
 		flag = strings.TrimSpace(flag)
@@ -186,6 +196,8 @@ func GoListImportPath(ctx context.Context, workDir string, buildFlags []string, 
 		args = append(args, flag)
 	}
 	args = append(args, "-f", "{{.ImportPath}}", ".")
+
+	// Run go list in the work dir and extract the import path.
 	cmd := exec.CommandContext(ctx, "go", args...)
 	cmd.Env = append(os.Environ(), GetDefaultEnv()...)
 	cmd.Env = append(cmd.Env, env...)
@@ -198,6 +210,8 @@ func GoListImportPath(ctx context.Context, workDir string, buildFlags []string, 
 		}
 		return "", err
 	}
+
+	// Return the trimmed import path from the go list output.
 	importPath := strings.TrimSpace(string(out))
 	if importPath == "" {
 		return "", errors.New("go list import path returned empty path")
@@ -207,6 +221,7 @@ func GoListImportPath(ctx context.Context, workDir string, buildFlags []string, 
 
 // ExecGoScriptCompile compiles Go packages to a GoScript TypeScript package tree.
 func ExecGoScriptCompile(ctx context.Context, le *logrus.Entry, opts GoScriptCompileOptions) error {
+	// Validate the required compile options.
 	if strings.TrimSpace(opts.WorkDir) == "" {
 		return errors.New("goscript work dir cannot be empty")
 	}
@@ -222,6 +237,7 @@ func ExecGoScriptCompile(ctx context.Context, le *logrus.Entry, opts GoScriptCom
 		}
 	}
 
+	// Build the compiler configuration from the options.
 	conf := &goscript_compiler.Config{
 		Dir:                       opts.WorkDir,
 		DeferredFunctions:         slices.Clone(opts.DeferredFunctions),
@@ -266,6 +282,7 @@ func ExecGoScriptCompile(ctx context.Context, le *logrus.Entry, opts GoScriptCom
 		conf.AdditionalBindingRoots = append(conf.AdditionalBindingRoots, root)
 	}
 
+	// Acquire a compile permit from the build budget.
 	budget, err := bldr_buildbudget.Default()
 	if err != nil {
 		return err
@@ -277,6 +294,7 @@ func ExecGoScriptCompile(ctx context.Context, le *logrus.Entry, opts GoScriptCom
 	}
 	defer permit.Release()
 
+	// Run the GoScript compiler over the packages and log the duration.
 	timeStart := time.Now()
 	comp, err := goscript_compiler.NewCompiler(conf, le, nil)
 	if err != nil {

@@ -56,6 +56,7 @@ func TestClearBuildStatePartition(t *testing.T) {
 }
 
 func newPartitionFixture(t *testing.T) string {
+	// Create the state root with removable and preserved fixture entries.
 	t.Helper()
 	root := t.TempDir()
 	for _, name := range []string{"logs", "src", "plugin", "cli", "build", "artifacts"} {

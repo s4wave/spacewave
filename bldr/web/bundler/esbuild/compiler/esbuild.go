@@ -49,6 +49,7 @@ func BuildEsbuildBundle(
 	minify bool,
 	sourcemaps bool,
 ) ([]*web_pkg.WebPkgRef, []*bldr_web_bundler_esbuild.EsbuildOutputMeta, []string, error) {
+	// Collect web package references discovered by the bundler plugin.
 	var sourceFilesList []string
 	var webPkgRefs []*web_pkg.WebPkgRef
 	addWebPkgRef := func(webPkgID, webPkgRoot, webPkgSubPath string) {
@@ -138,6 +139,7 @@ func BuildEsbuildBundle(
 		return nil, nil, nil, errors.New("esbuild: expected at least one output file but got none")
 	}
 
+	// Parse the esbuild metafile emitted with the build result.
 	metaFile, err := bldr_esbuild_build.ParseEsbuildMetafile([]byte(result.Metafile))
 	if err != nil {
 		return nil, nil, nil, errors.Wrap(err, "parse esbuild metafile")
@@ -195,6 +197,7 @@ func BuildEsbuildBundleMeta(bundles []*EsbuildBundleMeta) ([]*EsbuildBundleMeta,
 		}
 	}
 
+	// Sort the deduplicated bundles by bundle ID.
 	out := slices.Collect(maps.Values(bundleMap))
 	slices.SortFunc(out, func(a, b *EsbuildBundleMeta) int {
 		return strings.Compare(a.GetId(), b.GetId())

@@ -12,14 +12,17 @@ import (
 )
 
 func TestAddControllerSendReadyAndWaitIgnoresNilControllerExit(t *testing.T) {
+	// Create a cancellable context for the wait.
 	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
 
+	// Start the wait on a bus whose controller exits with nil.
 	bus := &nilExitBus{released: make(chan struct{})}
 	ctrl := NewController(nil, bus, nil)
 	ready := make(chan struct{}, 1)
 	done := make(chan error, 1)
 
+	// Run the wait in the background and signal when it is ready.
 	go func() {
 		done <- ctrl.addControllerSendReadyAndWait(ctx, noopController{}, func() error {
 			ready <- struct{}{}
@@ -27,12 +30,14 @@ func TestAddControllerSendReadyAndWaitIgnoresNilControllerExit(t *testing.T) {
 		})
 	}()
 
+	// Wait for the ready signal.
 	select {
 	case <-ready:
 	case <-time.After(time.Second):
 		t.Fatal("ready was not sent")
 	}
 
+	// Check the nil exit neither returns nor releases the controller.
 	select {
 	case err := <-done:
 		t.Fatalf("addControllerSendReadyAndWait returned after nil controller exit: %v", err)
@@ -41,8 +46,10 @@ func TestAddControllerSendReadyAndWaitIgnoresNilControllerExit(t *testing.T) {
 	case <-time.After(20 * time.Millisecond):
 	}
 
+	// Cancel the context and check the wait returns context.Canceled.
 	cancel()
 
+	// Check the wait returns context.Canceled.
 	select {
 	case err := <-done:
 		if err != context.Canceled {
@@ -54,12 +61,13 @@ func TestAddControllerSendReadyAndWaitIgnoresNilControllerExit(t *testing.T) {
 }
 
 func TestAddControllerSendReadyAndWaitReturnsControllerError(t *testing.T) {
+	// Start the wait on a bus whose controller exits with an error.
 	ctx := t.Context()
-
 	wantErr := errors.New("controller failed")
 	bus := &nilExitBus{exitErr: wantErr, released: make(chan struct{})}
 	ctrl := NewController(nil, bus, nil)
 
+	// Check the wait returns the controller's exit error.
 	err := ctrl.addControllerSendReadyAndWait(ctx, noopController{}, func() error {
 		return nil
 	})

@@ -17,28 +17,35 @@ func main() {
 }
 
 func run() error {
+	// Resolve the repository directory from the arguments.
 	rootDir, err := repoDir(os.Args[1:])
 	if err != nil {
 		return err
 	}
 
+	// Read the CHANGELOG.org file from the repository.
 	orgPath := filepath.Join(rootDir, "CHANGELOG.org")
+
 	// #nosec G703 -- rootDir is the operator-provided repository directory.
 	orgData, err := os.ReadFile(orgPath)
 	if err != nil {
 		return errors.Wrap(err, "read CHANGELOG.org")
 	}
 
+	// Parse the changelog from the org source.
 	cl, err := changelog.ParseOrgChangelog(orgData)
 	if err != nil {
 		return errors.Wrap(err, "parse CHANGELOG.org")
 	}
 
+	// Marshal the changelog to its binary form.
 	binData, err := cl.MarshalVT()
 	if err != nil {
 		return errors.Wrap(err, "marshal changelog binary")
 	}
+
 	// #nosec G703 -- rootDir is the operator-provided repository directory.
+	// Write the binary changelog into the core package.
 	if err := os.WriteFile(
 		filepath.Join(rootDir, "core", "changelog", "changelog.bin"),
 		binData,

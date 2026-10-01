@@ -25,10 +25,12 @@ func NewBusBridgeResolver(target bus.Bus, dir directive.Directive) *BusBridgeRes
 
 // Resolve resolves the values, emitting them to the handler.
 func (r *BusBridgeResolver) Resolve(ctx context.Context, handler directive.ResolverHandler) error {
+	// Skip resolution when the bridge has no target or directive.
 	if r.target == nil || r.dir == nil {
 		return nil
 	}
 
+	// Register the directive with a pass-through handler that clears values on dispose.
 	disposedCb := func() {
 		_ = handler.ClearValues()
 	}

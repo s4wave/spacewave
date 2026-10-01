@@ -46,6 +46,7 @@ func startCrossRuntimeProcess(
 	name string,
 	args ...string,
 ) *crossRuntimeProcess {
+	// Resolve the repository root and build the subprocess command.
 	t.Helper()
 	root, err := filepath.Abs("../..")
 	if err != nil {
@@ -54,6 +55,8 @@ func startCrossRuntimeProcess(
 	command := exec.CommandContext(ctx, name, args...)
 	command.Dir = root
 	command.Env = os.Environ()
+
+	// Open the subprocess stdin and stdout pipes.
 	input, err := command.StdinPipe()
 	if err != nil {
 		t.Fatalf("%s stdin: %v", name, err)
@@ -62,6 +65,8 @@ func startCrossRuntimeProcess(
 	if err != nil {
 		t.Fatalf("%s stdout: %v", name, err)
 	}
+
+	// Start the subprocess with stderr captured under the output lock.
 	process := &crossRuntimeProcess{
 		cmd:   command,
 		input: input,
@@ -72,6 +77,8 @@ func startCrossRuntimeProcess(
 	if err := command.Start(); err != nil {
 		t.Fatalf("start %s: %v", name, err)
 	}
+
+	// Scan stdout lines into the process output and line channel.
 	scanDone := make(chan struct{})
 	go func() {
 		defer close(scanDone)
@@ -84,6 +91,8 @@ func startCrossRuntimeProcess(
 			process.lines <- line
 		}
 	}()
+
+	// Wait for the subprocess and close the done channel after scanning ends.
 	go func() {
 		process.err = command.Wait()
 		<-scanDone
@@ -144,6 +153,7 @@ func (p *crossRuntimeProcess) waitExit(t *testing.T, ctx context.Context) {
 }
 
 func (p *crossRuntimeProcess) logs() string {
+	// Join the captured stdout and stderr under the output lock.
 	p.outputMtx.Lock()
 	defer p.outputMtx.Unlock()
 	logs := strings.Join(p.output, "\n")
@@ -154,6 +164,7 @@ func (p *crossRuntimeProcess) logs() string {
 }
 
 func TestPythonClientResourceLifecycleAgainstTypeScriptServer(t *testing.T) {
+	// Start the TypeScript server subprocess with a bounded context.
 	ctx, cancel := context.WithTimeout(t.Context(), crossRuntimeFixtureTimeout)
 	defer cancel()
 	server := startCrossRuntimeProcess(
@@ -176,11 +187,14 @@ func TestPythonClientResourceLifecycleAgainstTypeScriptServer(t *testing.T) {
 		address,
 	)
 
+	// Drive the Python client through adopt and release against the TypeScript server.
 	server.waitLine(t, ctx, "ADOPT_ACK_HELD")
 	server.send(t, "ALLOW_ADOPT")
 	server.waitLine(t, ctx, "HANDLER_FINALLY")
 	server.waitLine(t, ctx, "RELEASE_COMPLETE")
 	server.waitLine(t, ctx, "HANDLER_FINALLY")
+
+	// Invalidate the TypeScript server and wait for both runtimes to drain.
 	client.waitLine(t, ctx, "PY_CLIENT_READY_TO_INVALIDATE")
 	server.send(t, "INVALIDATE")
 	server.waitLine(t, ctx, "TS_SERVER_OWNER_ZERO")
@@ -190,6 +204,7 @@ func TestPythonClientResourceLifecycleAgainstTypeScriptServer(t *testing.T) {
 }
 
 func TestTypeScriptClientResourceLifecycleAgainstPythonServer(t *testing.T) {
+	// Start the Python server subprocess with a bounded context.
 	ctx, cancel := context.WithTimeout(t.Context(), crossRuntimeFixtureTimeout)
 	defer cancel()
 	server := startCrossRuntimeProcess(
@@ -202,6 +217,8 @@ func TestTypeScriptClientResourceLifecycleAgainstPythonServer(t *testing.T) {
 		"--listen",
 		"127.0.0.1:0",
 	)
+
+	// Start the TypeScript client subprocess against the Python server address.
 	ready := server.waitLine(t, ctx, "READY ")
 	client := startCrossRuntimeProcess(
 		t,
@@ -212,6 +229,7 @@ func TestTypeScriptClientResourceLifecycleAgainstPythonServer(t *testing.T) {
 		strings.TrimPrefix(ready, "READY "),
 	)
 
+	// Drive the TypeScript client through adopt and release against the Python server.
 	server.waitLine(t, ctx, "ADOPT_ACK_HELD")
 	server.send(t, "ALLOW_ADOPT")
 	server.waitLine(t, ctx, "HANDLER_FINALLY")
@@ -219,6 +237,8 @@ func TestTypeScriptClientResourceLifecycleAgainstPythonServer(t *testing.T) {
 	server.waitLine(t, ctx, "RELEASE_ENTERED")
 	server.send(t, "ALLOW_RELEASE")
 	server.waitLine(t, ctx, "RELEASE_COMPLETE")
+
+	// Invalidate the Python server and wait for both runtimes to drain.
 	client.waitLine(t, ctx, "TS_CLIENT_READY_TO_INVALIDATE")
 	server.send(t, "INVALIDATE")
 	server.waitLine(t, ctx, "PY_SERVER_OWNER_ZERO")
@@ -228,6 +248,7 @@ func TestTypeScriptClientResourceLifecycleAgainstPythonServer(t *testing.T) {
 }
 
 func TestGoClientResourceLifecycleAgainstPythonServer(t *testing.T) {
+	// Start the Python server subprocess with a bounded context.
 	ctx, cancel := context.WithTimeout(t.Context(), crossRuntimeFixtureTimeout)
 	defer cancel()
 	server := startCrossRuntimeProcess(
@@ -240,6 +261,8 @@ func TestGoClientResourceLifecycleAgainstPythonServer(t *testing.T) {
 		"--listen",
 		"127.0.0.1:0",
 	)
+
+	// Build the Go ResourceClient against the Python server listener.
 	ready := server.waitLine(t, ctx, "READY ")
 	service := resource.NewSRPCResourceServiceClient(
 		newCrossRuntimeTCPClient(strings.TrimPrefix(ready, "READY ")),
@@ -253,6 +276,8 @@ func TestGoClientResourceLifecycleAgainstPythonServer(t *testing.T) {
 	if err != nil {
 		t.Fatalf("get Go root client: %v", err)
 	}
+
+	// Open the Go root resource and start the nested Spawn call in the background.
 	spawnResult := make(chan struct {
 		data []byte
 		err  error
@@ -271,12 +296,15 @@ func TestGoClientResourceLifecycleAgainstPythonServer(t *testing.T) {
 		}{data, callErr}
 	}()
 
+	// Hold the delayed acknowledgement and confirm the Spawn call stays blocked.
 	server.waitLine(t, ctx, "ADOPT_ACK_HELD")
 	select {
 	case result := <-spawnResult:
 		t.Fatalf("Go nested route opened before delayed acknowledgement: %q/%v", result.data, result.err)
 	default:
 	}
+
+	// Allow the adopt and collect the spawned child reference.
 	server.send(t, "ALLOW_ADOPT")
 	var childData []byte
 	select {
@@ -288,6 +316,8 @@ func TestGoClientResourceLifecycleAgainstPythonServer(t *testing.T) {
 	case <-ctx.Done():
 		t.Fatal("timed out opening Go root route after acknowledgement")
 	}
+
+	// Validate the spawned child ID length and value.
 	if len(childData) != 4 {
 		t.Fatalf("child ID length = %d, want 4", len(childData))
 	}
@@ -295,6 +325,8 @@ func TestGoClientResourceLifecycleAgainstPythonServer(t *testing.T) {
 	if childID == 0 {
 		t.Fatal("Spawn returned an empty child ID")
 	}
+
+	// Stream through the Python child resource and check the response.
 	child := client.CreateResourceReference(childID)
 	childClient, err := child.GetClient()
 	if err != nil {
@@ -308,6 +340,7 @@ func TestGoClientResourceLifecycleAgainstPythonServer(t *testing.T) {
 		t.Fatalf("stream data = %q, want later", data)
 	}
 
+	// Open a cancellable child stream and verify the active data before canceling it.
 	canceled, err := childClient.NewStream(
 		ctx,
 		"test.Child",
@@ -329,6 +362,7 @@ func TestGoClientResourceLifecycleAgainstPythonServer(t *testing.T) {
 	}
 	server.waitLine(t, ctx, "HANDLER_FINALLY")
 
+	// Open a second child stream and release the child while it is active.
 	released, err := childClient.NewStream(
 		ctx,
 		"test.Child",
@@ -344,6 +378,8 @@ func TestGoClientResourceLifecycleAgainstPythonServer(t *testing.T) {
 	child.Release()
 	server.waitLine(t, ctx, "HANDLER_FINALLY")
 	server.waitLine(t, ctx, "RELEASE_ENTERED")
+
+	// Start a root Echo call that must stay blocked behind the child release barrier.
 	echoResult := make(chan struct {
 		data []byte
 		err  error
@@ -366,6 +402,8 @@ func TestGoClientResourceLifecycleAgainstPythonServer(t *testing.T) {
 		t.Fatalf("root route passed the child release barrier: %q/%v", result.data, result.err)
 	default:
 	}
+
+	// Release the child barrier and verify the root Echo completes afterwards.
 	server.send(t, "ALLOW_RELEASE")
 	server.waitLine(t, ctx, "RELEASE_COMPLETE")
 	select {
@@ -383,6 +421,7 @@ func TestGoClientResourceLifecycleAgainstPythonServer(t *testing.T) {
 		t.Fatalf("close released child stream: %v", err)
 	}
 
+	// Release the root and verify a fresh reference reuses the retained route.
 	root.Release()
 	reused := client.AccessRootResource()
 	reusedClient, err := reused.GetClient()
@@ -398,6 +437,7 @@ func TestGoClientResourceLifecycleAgainstPythonServer(t *testing.T) {
 	}
 	reused.Release()
 
+	// Invalidate the server generation and confirm the client and stale reference fail.
 	server.send(t, "INVALIDATE")
 	select {
 	case <-client.Done():
@@ -413,6 +453,7 @@ func TestGoClientResourceLifecycleAgainstPythonServer(t *testing.T) {
 }
 
 func TestGoAttachedResourceTwoHopLifecycleAgainstTypeScriptServer(t *testing.T) {
+	// Start the TypeScript attached-server subprocess with a bounded context.
 	ctx, cancel := context.WithTimeout(t.Context(), crossRuntimeFixtureTimeout)
 	defer cancel()
 	server := startCrossRuntimeProcess(
@@ -424,6 +465,8 @@ func TestGoAttachedResourceTwoHopLifecycleAgainstTypeScriptServer(t *testing.T) 
 		"127.0.0.1:0",
 		"attached",
 	)
+
+	// Build the Go ResourceClient against the TypeScript server listener.
 	ready := server.waitLine(t, ctx, "READY ")
 	service := resource.NewSRPCResourceServiceClient(
 		newCrossRuntimeTCPClient(strings.TrimPrefix(ready, "READY ")),
@@ -433,6 +476,7 @@ func TestGoAttachedResourceTwoHopLifecycleAgainstTypeScriptServer(t *testing.T) 
 		t.Fatalf("start Go ResourceClient: %v", err)
 	}
 
+	// Prepare the attached child channels and the fake Engine invoker.
 	var childReleaseCount atomic.Int32
 	var childAbortCount atomic.Int32
 	childIDCh := make(chan uint32, 1)
@@ -440,9 +484,12 @@ func TestGoAttachedResourceTwoHopLifecycleAgainstTypeScriptServer(t *testing.T) 
 	childAborted := make(chan struct{}, 1)
 	childReleased := make(chan struct{}, 1)
 	attachedMux := srpc.InvokerFunc(func(serviceID, methodID string, strm srpc.Stream) (bool, error) {
+		// Handle only the attached Engine Construct method.
 		if serviceID != "test.AttachedEngine" || methodID != "Construct" {
 			return false, nil
 		}
+
+		// Receive and validate the construct request payload.
 		request := srpc.NewRawMessage(nil, true)
 		if err := strm.MsgRecv(request); err != nil {
 			return true, err
@@ -450,18 +497,23 @@ func TestGoAttachedResourceTwoHopLifecycleAgainstTypeScriptServer(t *testing.T) 
 		if string(request.GetData()) != "construct" {
 			return true, errors.New("attached construct request mismatch")
 		}
+
+		// Add the fake attached child resource under the requesting client owner.
 		owner, err := resource_server.MustGetResourceClientContext(strm.Context())
 		if err != nil {
 			return true, err
 		}
 		childID, err := owner.AddResource(srpc.InvokerFunc(func(serviceID, methodID string, strm srpc.Stream) (bool, error) {
+			// Handle only the attached child service.
 			if serviceID != "test.AttachedChild" {
 				return false, nil
 			}
+			// Receive the child request payload before dispatching the method.
 			request := srpc.NewRawMessage(nil, true)
 			if err := strm.MsgRecv(request); err != nil {
 				return true, err
 			}
+			// Dispatch the child Invoke and Block methods.
 			switch methodID {
 			case "Invoke":
 				if string(request.GetData()) != "invoke" {
@@ -472,6 +524,7 @@ func TestGoAttachedResourceTwoHopLifecycleAgainstTypeScriptServer(t *testing.T) 
 				if string(request.GetData()) != "block" {
 					return true, errors.New("attached child block request mismatch")
 				}
+				// Send the active frame and hold until the stream context aborts.
 				if err := strm.MsgSend(srpc.NewRawMessage([]byte("active"), true)); err != nil {
 					return true, err
 				}
@@ -487,12 +540,16 @@ func TestGoAttachedResourceTwoHopLifecycleAgainstTypeScriptServer(t *testing.T) 
 			childReleaseCount.Add(1)
 			childReleased <- struct{}{}
 		})
+
+		// Report the child ID to the test and answer the construct call.
 		if err != nil {
 			return true, err
 		}
 		childIDCh <- childID
 		return true, strm.MsgSend(srpc.NewRawMessage(encodeCrossRuntimeID(childID), true))
 	})
+
+	// Attach the fake Engine tree to the client and validate the returned root ID.
 	attachedRootID, err := client.AttachResourceTree(ctx, "fake-engine", attachedMux)
 	if err != nil {
 		t.Fatalf("attach fake Engine tree: %v\n%s", err, server.logs())
@@ -501,6 +558,7 @@ func TestGoAttachedResourceTwoHopLifecycleAgainstTypeScriptServer(t *testing.T) 
 		t.Fatal("AddAck returned an empty attached root ID")
 	}
 
+	// Open the TypeScript root resource and construct the attached object through it.
 	root := client.AccessRootResource()
 	rootClient, err := root.GetClient()
 	if err != nil {
@@ -516,6 +574,8 @@ func TestGoAttachedResourceTwoHopLifecycleAgainstTypeScriptServer(t *testing.T) 
 	if err != nil {
 		t.Fatalf("construct TypeScript ObjectType-like child: %v\n%s", err, server.logs())
 	}
+
+	// Match the TypeScript AddAck marker against the attached root ID.
 	if len(objectData) != 4 {
 		t.Fatalf("object ID length = %d, want 4", len(objectData))
 	}
@@ -524,6 +584,8 @@ func TestGoAttachedResourceTwoHopLifecycleAgainstTypeScriptServer(t *testing.T) 
 	if strings.TrimPrefix(addAck, "ATTACHED_ADD_ACK ") != strconv.FormatUint(uint64(attachedRootID), 10) {
 		t.Fatalf("TypeScript AddAck ID marker = %q, Go AddAck ID = %d", addAck, attachedRootID)
 	}
+
+	// Match the child-added marker against the ID reported by the fake Engine.
 	childMarker := server.waitLine(t, ctx, "ATTACHED_CHILD_ADDED ")
 	var childID uint32
 	select {
@@ -534,6 +596,8 @@ func TestGoAttachedResourceTwoHopLifecycleAgainstTypeScriptServer(t *testing.T) 
 	if strings.TrimPrefix(childMarker, "ATTACHED_CHILD_ADDED ") != strconv.FormatUint(uint64(childID), 10) {
 		t.Fatalf("TypeScript child ID marker = %q, Go child ID = %d", childMarker, childID)
 	}
+
+	// Use the constructed object and confirm the nested child handled the call.
 	object := client.CreateResourceReference(objectID)
 	objectClient, err := object.GetClient()
 	if err != nil {
@@ -546,6 +610,8 @@ func TestGoAttachedResourceTwoHopLifecycleAgainstTypeScriptServer(t *testing.T) 
 	if string(data) != "nested-success" {
 		t.Fatalf("nested response = %q, want nested-success", data)
 	}
+
+	// Verify the child stayed attached and the client generation stayed live.
 	server.waitLine(t, ctx, "ATTACHED_USE_COMPLETE")
 	if got := childReleaseCount.Load(); got != 0 {
 		t.Fatalf("attached child detached before response: release count = %d", got)
@@ -558,6 +624,7 @@ func TestGoAttachedResourceTwoHopLifecycleAgainstTypeScriptServer(t *testing.T) 
 	default:
 	}
 
+	// Start the nested Block call and wait for the fake child to become active.
 	blockResult := make(chan error, 1)
 	go func() {
 		_, callErr := crossRuntimeCall(ctx, objectClient, "test.AttachedObject", "Block", []byte("block"))
@@ -568,6 +635,8 @@ func TestGoAttachedResourceTwoHopLifecycleAgainstTypeScriptServer(t *testing.T) 
 	case <-ctx.Done():
 		t.Fatalf("nested attached method did not become active\n%s", server.logs())
 	}
+
+	// Detach the attached child and confirm both sides observed the abort.
 	server.send(t, "DETACH_ATTACHED_CHILD")
 	server.waitLine(t, ctx, "ATTACHED_CHILD_DETACHED")
 	select {
@@ -581,6 +650,8 @@ func TestGoAttachedResourceTwoHopLifecycleAgainstTypeScriptServer(t *testing.T) 
 	case <-ctx.Done():
 		t.Fatal("nested attached Go handler did not observe detach")
 	}
+
+	// Verify the detached call failed exactly once and the child released once.
 	select {
 	case err := <-blockResult:
 		if err == nil {
@@ -598,6 +669,7 @@ func TestGoAttachedResourceTwoHopLifecycleAgainstTypeScriptServer(t *testing.T) 
 	server.send(t, "CHECK_ABORT_ONCE")
 	server.waitLine(t, ctx, "ATTACHED_ABORT_ONCE")
 
+	// Release the object, root, and client, then confirm the generation ends.
 	object.Release()
 	root.Release()
 	client.Release()
@@ -609,6 +681,8 @@ func TestGoAttachedResourceTwoHopLifecycleAgainstTypeScriptServer(t *testing.T) 
 	if got := childReleaseCount.Load(); got != 1 {
 		t.Fatalf("attached child release count after client Done = %d, want 1", got)
 	}
+
+	// Verify the TypeScript server drains to owner zero and exits cleanly.
 	server.send(t, "CHECK_CLEAN")
 	server.waitLine(t, ctx, "TS_SERVER_OWNER_ZERO")
 	if got := childReleaseCount.Load(); got != 1 {
@@ -632,6 +706,7 @@ func newCrossRuntimeTCPClient(address string) srpc.Client {
 		handler srpc.PacketDataHandler,
 		closeHandler srpc.CloseHandler,
 	) (srpc.PacketWriter, error) {
+		// Dial the cross-runtime server and start its packet read pump.
 		connection, err := (&net.Dialer{}).DialContext(ctx, "tcp", address)
 		if err != nil {
 			return nil, err

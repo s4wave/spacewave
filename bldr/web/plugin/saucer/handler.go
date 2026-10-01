@@ -58,8 +58,10 @@ func (h *RequestHandler) AcceptStreams(ctx context.Context, mc srpc.MuxedConn) e
 
 // handleStream handles a single yamux stream carrying FetchRequest/FetchResponse.
 func (h *RequestHandler) handleStream(ctx context.Context, rwc io.ReadWriteCloser) {
+	// Close the stream when the request completes.
 	defer rwc.Close()
 
+	// Derive the request context from the stream context.
 	subCtx, subCtxCancel := context.WithCancel(ctx)
 	defer subCtxCancel()
 
@@ -70,12 +72,14 @@ func (h *RequestHandler) handleStream(ctx context.Context, rwc io.ReadWriteClose
 		return
 	}
 
+	// Unmarshal the fetch request.
 	req := &web_fetch.FetchRequest{}
 	if err := req.UnmarshalVT(reqMsg); err != nil {
 		h.le.WithError(err).Debug("failed to unmarshal fetch request")
 		return
 	}
 
+	// Validate the request info is present.
 	info := req.GetRequestInfo()
 	if info == nil {
 		h.le.Debug("first fetch request frame missing request_info")
@@ -88,6 +92,7 @@ func (h *RequestHandler) handleStream(ctx context.Context, rwc io.ReadWriteClose
 		body = &fetchBodyReader{rwc: rwc}
 	}
 
+	// Build the http request from the fetch info.
 	httpReq, err := info.ToHttpRequest(subCtx, body)
 	if err != nil {
 		h.le.WithError(err).Debug("failed to build http request from fetch info")
@@ -102,9 +107,10 @@ func (h *RequestHandler) handleStream(ctx context.Context, rwc io.ReadWriteClose
 	rw.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
 	rw.Header().Set("Access-Control-Allow-Headers", "*")
 
-	// Route the request.
+	// Route the request by path and method.
 	path := httpReq.URL.Path
 
+	// Serve the bootstrap, entrypoint, OPTIONS, or handler route.
 	switch {
 	case path == "/" || path == "" || path == "/index.html":
 		h.serveBootstrapHTML(rw, httpReq)
@@ -162,6 +168,7 @@ func (r *fetchBodyReader) Read(p []byte) (int, error) {
 		return n, nil
 	}
 
+	// Report EOF when the body is already complete.
 	if r.done {
 		return 0, io.EOF
 	}
@@ -172,23 +179,28 @@ func (r *fetchBodyReader) Read(p []byte) (int, error) {
 		return 0, err
 	}
 
+	// Unmarshal the request data frame.
 	msg := &web_fetch.FetchRequest{}
 	if err := msg.UnmarshalVT(frame); err != nil {
 		return 0, err
 	}
 
+	// Report EOF when the frame carries no request data.
 	data := msg.GetRequestData()
 	if data == nil {
 		return 0, io.EOF
 	}
 
+	// Record the done flag and buffer the frame data.
 	if data.GetDone() {
 		r.done = true
 	}
 
+	// Buffer the frame data for reads.
 	r.buf = data.GetData()
 	r.bufOff = 0
 
+	// Copy the buffered data into the caller's buffer.
 	n := copy(p, r.buf)
 	r.bufOff = n
 	if n == 0 && r.done {
@@ -220,11 +232,13 @@ func (rw *framedResponseWriter) Header() http.Header {
 
 // WriteHeader sends the response headers as a FetchResponse_ResponseInfo frame.
 func (rw *framedResponseWriter) WriteHeader(statusCode int) {
+	// Skip duplicate header writes.
 	if rw.sent {
 		return
 	}
 	rw.sent = true
 
+	// Marshal and send the response info frame.
 	resp := web_fetch.BuildFetchResponse_Info(rw.header, statusCode)
 	data, err := resp.MarshalVT()
 	if err != nil {
@@ -238,6 +252,7 @@ func (rw *framedResponseWriter) WriteHeader(statusCode int) {
 
 // Write writes response body data as FetchResponse_ResponseData frames.
 func (rw *framedResponseWriter) Write(p []byte) (int, error) {
+	// Send the implicit 200 header before the first body write.
 	if !rw.sent {
 		rw.WriteHeader(200)
 	}
@@ -245,6 +260,7 @@ func (rw *framedResponseWriter) Write(p []byte) (int, error) {
 		return 0, rw.err
 	}
 
+	// Marshal and send the response data frame.
 	resp := web_fetch.BuildFetchResponse_Data(p, false)
 	data, err := resp.MarshalVT()
 	if err != nil {
@@ -258,10 +274,12 @@ func (rw *framedResponseWriter) Write(p []byte) (int, error) {
 
 // finish sends the final done frame.
 func (rw *framedResponseWriter) finish() {
+	// Send the implicit 200 header before the final frame.
 	if !rw.sent {
 		rw.WriteHeader(200)
 	}
 
+	// Marshal and send the final done frame.
 	resp := web_fetch.BuildFetchResponse_Data(nil, true)
 	data, err := resp.MarshalVT()
 	if err != nil {
@@ -272,6 +290,7 @@ func (rw *framedResponseWriter) finish() {
 
 // readFrame reads a LittleEndian uint32 length-prefixed frame.
 func readFrame(r io.Reader) ([]byte, error) {
+	// Read the length prefix and validate the frame size.
 	lenBuf := make([]byte, 4)
 	if _, err := io.ReadFull(r, lenBuf); err != nil {
 		return nil, err
@@ -280,6 +299,8 @@ func readFrame(r io.Reader) ([]byte, error) {
 	if msgLen > MaxFrameSize {
 		return nil, io.ErrShortBuffer
 	}
+
+	// Read the frame payload.
 	data := make([]byte, msgLen)
 	if _, err := io.ReadFull(r, data); err != nil {
 		return nil, err
@@ -289,9 +310,12 @@ func readFrame(r io.Reader) ([]byte, error) {
 
 // writeFrame writes a LittleEndian uint32 length-prefixed frame.
 func writeFrame(w io.Writer, data []byte) error {
+	// Reject frames larger than the wire format allows.
 	if uint64(len(data)) > math.MaxUint32 {
 		return io.ErrShortBuffer
 	}
+
+	// Write the length prefix, then the payload.
 	lenBuf := make([]byte, 4)
 	binary.LittleEndian.PutUint32(lenBuf, uint32(len(data))) //nolint:gosec
 	if _, err := w.Write(lenBuf); err != nil {

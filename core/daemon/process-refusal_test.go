@@ -28,11 +28,15 @@ func TestUnreadyChildTerminationRefused(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = stdin.Close() })
+
+	// Capture the child's stdout to observe its readiness line.
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = stdout.Close() })
+
+	// Start the child and join it at cleanup only if it is still running.
 	if err := cmd.Start(); err != nil {
 		t.Fatal(err)
 	}
@@ -54,6 +58,8 @@ func TestUnreadyChildTerminationRefused(t *testing.T) {
 	if _, err := bufio.NewReader(stdout).ReadString('\n'); err != nil {
 		t.Fatal(err)
 	}
+
+	// Retain a second handle to the child process the test keeps alive.
 	retained, err := os.FindProcess(cmd.Process.Pid)
 	if err != nil {
 		t.Fatal(err)
@@ -66,6 +72,8 @@ func TestUnreadyChildTerminationRefused(t *testing.T) {
 	childErr := errors.New("child termination refused")
 	detachErr := errors.New("tracking close failed")
 	var calls []string
+
+	// Build a process whose termination hooks record calls and fail.
 	child := &process{
 		cmd: &exec.Cmd{Process: retained},
 		kill: func() error {
@@ -82,6 +90,8 @@ func TestUnreadyChildTerminationRefused(t *testing.T) {
 		},
 	}
 	err = child.stop()
+
+	// Stop must surface every refusal and release the retained handle.
 	for _, cause := range []error{treeErr, childErr, detachErr} {
 		if !errors.Is(err, cause) {
 			t.Fatalf("cleanup lost %v: %v", cause, err)
@@ -96,6 +106,8 @@ func TestUnreadyChildTerminationRefused(t *testing.T) {
 	if child.cmd.ProcessState != nil {
 		t.Fatal("cleanup reaped a child whose termination was refused")
 	}
+
+	// The retained handle must be released on every platform.
 	if runtime.GOOS == "windows" {
 		if err := retained.WithHandle(func(uintptr) {}); err == nil {
 			t.Error("cleanup retained the process handle")

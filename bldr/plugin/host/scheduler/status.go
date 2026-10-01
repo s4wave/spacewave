@@ -77,6 +77,7 @@ func (c *Controller) IsPluginRunning(pluginID string) bool {
 // WaitPluginsRunning waits until all shared instances in pluginIDs report
 // running, or returns the first scheduler error recorded for one of them.
 func (c *Controller) WaitPluginsRunning(ctx context.Context, pluginIDs []string) error {
+	// Return immediately with no plugin IDs and fail without a status watch.
 	if len(pluginIDs) == 0 {
 		return nil
 	}
@@ -84,6 +85,7 @@ func (c *Controller) WaitPluginsRunning(ctx context.Context, pluginIDs []string)
 		return errors.New("plugin status controller is not initialized")
 	}
 
+	// Collect the non-empty required plugin IDs.
 	required := make(map[string]struct{}, len(pluginIDs))
 	for _, pluginID := range pluginIDs {
 		if pluginID != "" {
@@ -94,6 +96,8 @@ func (c *Controller) WaitPluginsRunning(ctx context.Context, pluginIDs []string)
 		return nil
 	}
 
+	// Wait for each status snapshot until every required plugin runs or one
+	// reports an error.
 	var current *bldr_plugin.PluginStatusSnapshot
 	for {
 		next, err := c.pluginStatusCtr.WaitValueChange(ctx, current, nil)
@@ -101,7 +105,6 @@ func (c *Controller) WaitPluginsRunning(ctx context.Context, pluginIDs []string)
 			return err
 		}
 		current = next
-
 		running, err := pluginsRunningOrError(current, required)
 		if err != nil || running {
 			return err
@@ -112,10 +115,12 @@ func (c *Controller) WaitPluginsRunning(ctx context.Context, pluginIDs []string)
 // pluginsRunningOrError reports whether every required plugin is running,
 // returning an error naming any missing one.
 func pluginsRunningOrError(snapshot *bldr_plugin.PluginStatusSnapshot, required map[string]struct{}) (bool, error) {
+	// A missing snapshot reports nothing running.
 	if snapshot == nil {
 		return false, nil
 	}
 
+	// Collect the running required plugins and fail on a recorded error.
 	running := make(map[string]struct{}, len(required))
 	for _, plugin := range snapshot.Plugins {
 		if plugin == nil || plugin.GetInstanceKey() != "" {
@@ -133,6 +138,7 @@ func pluginsRunningOrError(snapshot *bldr_plugin.PluginStatusSnapshot, required 
 		}
 	}
 
+	// Report false when any required plugin is not running.
 	for pluginID := range required {
 		if _, ok := running[pluginID]; !ok {
 			return false, nil
@@ -167,6 +173,7 @@ func (c *Controller) recordPluginStatusError(
 	stage string,
 	err error,
 ) {
+	// Ignore nil errors and cancellations.
 	if err == nil || errors.Is(err, context.Canceled) {
 		return
 	}
@@ -201,6 +208,7 @@ func (c *Controller) clearPluginStatusError(pluginID, instanceKey string) {
 // clearPluginStatusErrorStage clears a plugin's error once its stage
 // advances past the failed stage.
 func (c *Controller) clearPluginStatusErrorStage(pluginID, instanceKey, stage string) {
+	// Read the plugin's current status entry.
 	key := pluginInstanceKey(pluginID, instanceKey)
 	c.pluginStatusMtx.Lock()
 	current := c.pluginStatus[key]
@@ -208,6 +216,8 @@ func (c *Controller) clearPluginStatusErrorStage(pluginID, instanceKey, stage st
 	if current == nil {
 		return
 	}
+
+	// Clear the error only when the recorded stage still matches.
 	if stage != "" && !strings.HasPrefix(current.GetLastErrorMessage(), stage+": ") {
 		return
 	}
@@ -223,6 +233,7 @@ func (c *Controller) recordPluginManifestRecoveryStatus(
 	downloadManifest *bldr_manifest.ManifestSnapshot,
 	candidates []*bldr_manifest_world.StartupManifestCandidateEligibility,
 ) {
+	// Record the manifest selection facts for this plugin instance.
 	key := pluginInstanceKey(pluginID, instanceKey)
 	c.pluginStatusMtx.Lock()
 	if c.pluginManifestRecoveryStatus == nil {
@@ -257,6 +268,7 @@ func (c *Controller) updatePluginStatus(
 	recordError,
 	clearError bool,
 ) {
+	// Apply the status mutation under the status mutex.
 	key := pluginInstanceKey(pluginID, instanceKey)
 	c.pluginStatusMtx.Lock()
 	if c.pluginStatus == nil {
@@ -304,6 +316,7 @@ func (c *Controller) updatePluginStatus(
 // buildPluginStatusSnapshotLocked builds the current snapshot. Caller must
 // hold pluginStatusMtx.
 func (c *Controller) buildPluginStatusSnapshotLocked() *bldr_plugin.PluginStatusSnapshot {
+	// Clone the plugin statuses and sort them by plugin and instance key.
 	plugins := make([]*bldr_plugin.PluginStatus, 0, len(c.pluginStatus))
 	for _, plugin := range c.pluginStatus {
 		if plugin == nil {
@@ -311,7 +324,10 @@ func (c *Controller) buildPluginStatusSnapshotLocked() *bldr_plugin.PluginStatus
 		}
 		plugins = append(plugins, plugin.CloneVT())
 	}
+
+	// Sort the plugin statuses by plugin and instance key.
 	slices.SortFunc(plugins, func(a, b *bldr_plugin.PluginStatus) int {
+		// Compare by plugin ID, then instance key.
 		if a.PluginId < b.PluginId {
 			return -1
 		}
@@ -326,6 +342,8 @@ func (c *Controller) buildPluginStatusSnapshotLocked() *bldr_plugin.PluginStatus
 		}
 		return 0
 	})
+
+	// Clone the manifest recovery statuses and sort them the same way.
 	recovery := make([]*bldr_plugin.PluginManifestRecoveryStatus, 0, len(c.pluginManifestRecoveryStatus))
 	for _, row := range c.pluginManifestRecoveryStatus {
 		if row == nil {
@@ -333,7 +351,10 @@ func (c *Controller) buildPluginStatusSnapshotLocked() *bldr_plugin.PluginStatus
 		}
 		recovery = append(recovery, row.CloneVT())
 	}
+
+	// Sort the recovery statuses by plugin and instance key.
 	slices.SortFunc(recovery, func(a, b *bldr_plugin.PluginManifestRecoveryStatus) int {
+		// Compare by plugin ID, then instance key.
 		if a.PluginId < b.PluginId {
 			return -1
 		}

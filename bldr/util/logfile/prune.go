@@ -25,6 +25,7 @@ const DefaultKeepLogs = 8
 // followed; their own metadata is consulted via os.Lstat semantics from
 // os.ReadDir's DirEntry.
 func PruneOldLogs(dir string, maxAge time.Duration, keep int, now time.Time) (int, error) {
+	// Read the log directory, treating a missing directory as empty.
 	entries, err := os.ReadDir(dir)
 	if err != nil {
 		if os.IsNotExist(err) {

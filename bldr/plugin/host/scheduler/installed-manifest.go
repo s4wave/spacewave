@@ -16,16 +16,21 @@ type installedManifests struct {
 // addManifestSelection retains the caller's installation choice. Replacing a
 // LoadPlugin demand adds the new selection before releasing the old demand.
 func (t *pluginInstance) addManifestSelection(refs ...*manifest.ManifestRef) func() {
+	// Clone the caller's manifest references into a new selection.
 	selection := &installedManifests{refs: make([]*manifest.ManifestRef, len(refs))}
 	for i, ref := range refs {
 		selection.refs[i] = ref.CloneVT()
 	}
+
+	// Register the selection under the next sequence number and project it.
 	t.pluginUpdateMtx.Lock()
 	t.selectionSequence++
 	id := t.selectionSequence
 	t.selections[id] = selection
 	t.updateManifestSelectionLocked()
 	t.pluginUpdateMtx.Unlock()
+
+	// Return the release function that removes this selection again.
 	return sync.OnceFunc(func() {
 		t.pluginUpdateMtx.Lock()
 		delete(t.selections, id)
@@ -36,6 +41,7 @@ func (t *pluginInstance) addManifestSelection(refs ...*manifest.ManifestRef) fun
 
 // updateManifestSelectionLocked projects the newest retained installation demand.
 func (t *pluginInstance) updateManifestSelectionLocked() {
+	// Find the selection with the highest sequence number.
 	var latest uint64
 	var selected *installedManifests
 	for id, ref := range t.selections {
@@ -43,6 +49,8 @@ func (t *pluginInstance) updateManifestSelectionLocked() {
 			latest, selected = id, ref
 		}
 	}
+
+	// Store it and reselect the installed manifest for the current hosts.
 	t.selectedManifest.Store(selected)
 	t.selectInstalledManifestLocked(t.c.pluginHostsCtr.GetValue())
 }

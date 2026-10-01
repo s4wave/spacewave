@@ -152,14 +152,18 @@ func (a *ClientArgs) BuildSrpcClient() (srpc.Client, error) {
 
 // BuildClient builds or returns the cached debug bridge client.
 func (a *ClientArgs) BuildClient() (s4wave_debug.SRPCDebugBridgeServiceClient, error) {
+	// Return the cached client when present.
 	if a.client != nil {
 		return a.client, nil
 	}
 
+	// Locate the debug socket and dial it.
 	sockPath, err := findSocket()
 	if err != nil {
 		return nil, err
 	}
+
+	// Dial the socket and build the SRPC client.
 	conn, err := net.Dial("unix", sockPath)
 	if err != nil {
 		return nil, errors.Wrapf(err, "connect to %s", sockPath)
@@ -194,17 +198,20 @@ func (a *ClientArgs) BuildCoreClient() (srpc.Client, error) {
 // a session by index via the root resource, and returns the Session SDK wrapper
 // along with a cleanup function.
 func (a *ClientArgs) MountSession(ctx context.Context, sessionIdx uint32) (*s4wave_session.Session, func(), error) {
+	// Dial the core plugin and open a resource client.
 	pluginClient, err := a.DialPluginRpc(corePluginID)
 	if err != nil {
 		return nil, nil, err
 	}
 
+	// Open the resource client over the plugin RPC stream.
 	resourceSvc := resource.NewSRPCResourceServiceClient(pluginClient)
 	resClient, err := resource_client.NewClient(ctx, resourceSvc)
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "resource client")
 	}
 
+	// Access the root resource and mount the session.
 	rootRef := resClient.AccessRootResource()
 	root, err := s4wave_root.NewRoot(resClient, rootRef)
 	if err != nil {
@@ -213,6 +220,7 @@ func (a *ClientArgs) MountSession(ctx context.Context, sessionIdx uint32) (*s4wa
 		return nil, nil, errors.Wrap(err, "root resource")
 	}
 
+	// Mount the session by index.
 	resp, err := root.MountSessionByIdx(ctx, sessionIdx)
 	if err != nil {
 		root.Release()
@@ -225,6 +233,7 @@ func (a *ClientArgs) MountSession(ctx context.Context, sessionIdx uint32) (*s4wa
 		return nil, nil, errors.Errorf("no session found at index %d", sessionIdx)
 	}
 
+	// Wrap the session resource and build the cleanup.
 	sessRef := resClient.CreateResourceReference(resp.GetResourceId())
 	sess, err := s4wave_session.NewSession(resClient, sessRef)
 	if err != nil {
@@ -234,6 +243,7 @@ func (a *ClientArgs) MountSession(ctx context.Context, sessionIdx uint32) (*s4wa
 		return nil, nil, errors.Wrap(err, "session resource")
 	}
 
+	// Return the session with a cleanup that releases its resources.
 	cleanup := func() {
 		sess.Release()
 		root.Release()
@@ -244,10 +254,13 @@ func (a *ClientArgs) MountSession(ctx context.Context, sessionIdx uint32) (*s4wa
 
 // RunEvalJSON evaluates code via EvalJS and parses the JSON result with fastjson.
 func (a *ClientArgs) RunEvalJSON(ctx context.Context, code string, fn func(*fastjson.Value)) error {
+	// Build the debug bridge client.
 	svc, err := a.BuildClient()
 	if err != nil {
 		return err
 	}
+
+	// Evaluate the code and validate the response.
 	resp, err := svc.EvalJS(ctx, &s4wave_debug.EvalJSRequest{Code: code})
 	if err != nil {
 		return err
@@ -255,6 +268,8 @@ func (a *ClientArgs) RunEvalJSON(ctx context.Context, code string, fn func(*fast
 	if resp.GetError() != "" {
 		return errors.Errorf("eval: %s", resp.GetError())
 	}
+
+	// Parse the JSON result and call the handler.
 	result := resp.GetResult()
 	if result == "" {
 		return errors.New("eval returned empty result")
@@ -288,6 +303,7 @@ func findProjectRoot() (string, error) {
 }
 
 func findSocket() (string, error) {
+	// Prefer the explicit debug socket path from the environment.
 	if p := os.Getenv("SPACEWAVE_DEBUG_SOCK"); p != "" {
 		if _, err := os.Stat(p); err == nil { //nolint:gosec // The operator selects the debug socket path.
 			return p, nil
@@ -295,6 +311,7 @@ func findSocket() (string, error) {
 		return "", errors.Errorf("socket not found at SPACEWAVE_DEBUG_SOCK=%s", p)
 	}
 
+	// Walk upward from the cwd looking for the socket.
 	dir, err := os.Getwd()
 	if err != nil {
 		return "", err

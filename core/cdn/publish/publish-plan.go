@@ -21,12 +21,15 @@ func BuildPublishPlan(
 	srcHeadRef *bucket.ObjectRef,
 	dstHeadRef *bucket.ObjectRef,
 ) *PublishPlan {
+	// Post the root unless both heads are nil or already identical.
 	needRootPost := true
 	if srcHeadRef == nil && dstHeadRef == nil {
 		needRootPost = false
 	} else if srcHeadRef != nil && dstHeadRef != nil && srcHeadRef.EqualVT(dstHeadRef) {
 		needRootPost = false
 	}
+
+	// Collect every source pack ID when the root must be updated.
 	missingPackIDs := make([]string, 0, len(srcPacks))
 	if needRootPost {
 		for _, entry := range srcPacks {

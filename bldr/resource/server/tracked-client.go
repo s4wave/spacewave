@@ -33,6 +33,7 @@ type RemoteResourceClient struct {
 func (c *RemoteResourceClient) Context() context.Context { return c.ctx }
 
 func (c *RemoteResourceClient) applyControl(req *resource.ResourceClientRequest) (uint32, error) {
+	// Reject nil controls and out-of-order control IDs.
 	if req == nil {
 		return 0, errors.New("nil ResourceClient control")
 	}
@@ -40,6 +41,8 @@ func (c *RemoteResourceClient) applyControl(req *resource.ResourceClientRequest)
 	if controlID == 0 || controlID != c.lastControlID+1 {
 		return 0, errors.Errorf("unexpected ResourceClient control ID %d after %d", controlID, c.lastControlID)
 	}
+
+	// Apply the Adopt or Release control to the tracked resources.
 	switch body := req.GetBody().(type) {
 	case *resource.ResourceClientRequest_Adopt:
 		if body.Adopt == nil {
@@ -58,6 +61,8 @@ func (c *RemoteResourceClient) applyControl(req *resource.ResourceClientRequest)
 	default:
 		return 0, errors.New("unexpected ResourceClient init/control packet")
 	}
+
+	// Record the control ID as applied and acknowledge it.
 	c.lastControlID = controlID
 	return controlID, nil
 }
@@ -82,9 +87,11 @@ func (c *RemoteResourceClient) addResource(
 	releaseFn func(),
 	pending bool,
 ) (uint32, error) {
+	// Allocate the resource ID and register it under the server lock.
 	var id uint32
 	var rejected bool
 	c.server.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		// Reject registration once the client generation is released.
 		if c.released {
 			rejected = true
 			return
@@ -110,6 +117,8 @@ func (c *RemoteResourceClient) addResource(
 		}
 		broadcast()
 	})
+
+	// Report a rejected registration after the released generation check.
 	if rejected {
 		return 0, resource.ErrClientReleased
 	}
@@ -160,14 +169,19 @@ func (c *RemoteResourceClient) queueControlAck(controlID uint32) {
 // descendants. It appends callbacks and notifications while under the server
 // lock; callbacks are always invoked by the caller after unlocking.
 func (c *RemoteResourceClient) releaseLocked(id uint32, notify bool, keepRoot bool, releaseFns *[]func(), releasedIDs *[]uint32) bool {
+	// Look up the resource and reject unknown IDs.
 	res := c.resources[id]
 	if res == nil {
 		return false
 	}
+
+	// Release only the pending descendants when the root itself is kept.
 	if keepRoot && id == c.rootResourceID {
 		c.releasePendingChildrenLocked(id, releaseFns, releasedIDs)
 		return true
 	}
+
+	// Release pending descendants and unlink the resource from its parent.
 	c.releasePendingChildrenLocked(id, releaseFns, releasedIDs)
 	delete(c.resources, id)
 	if kids := c.children[res.parentResourceID]; kids != nil {
@@ -178,6 +192,8 @@ func (c *RemoteResourceClient) releaseLocked(id uint32, notify bool, keepRoot bo
 	}
 	delete(c.children, id)
 	c.tombstones[id] = struct{}{}
+
+	// Queue the release callback and the released notification.
 	if res.releaseFn != nil {
 		*releaseFns = append(*releaseFns, res.releaseFn)
 	}
@@ -188,6 +204,7 @@ func (c *RemoteResourceClient) releaseLocked(id uint32, notify bool, keepRoot bo
 }
 
 func (c *RemoteResourceClient) releasePendingChildrenLocked(parentID uint32, releaseFns *[]func(), releasedIDs *[]uint32) {
+	// Release each pending child of the parent in ID order.
 	kids := c.children[parentID]
 	if len(kids) == 0 {
 		return
@@ -210,6 +227,7 @@ func (c *RemoteResourceClient) releasePendingChildrenLocked(parentID uint32, rel
 // parent-controlled Release, disconnect cleanup releases adopted descendants
 // too, in deterministic child-first order.
 func (c *RemoteResourceClient) releaseAllChildrenLocked(id uint32, releaseFns *[]func()) {
+	// Release each descendant child-first, then the resource itself.
 	kids := c.children[id]
 	ids := make([]uint32, 0, len(kids))
 	for childID := range kids {
@@ -378,9 +396,11 @@ func (c *RemoteResourceClient) RemoveAttachedResource(id uint32) {
 }
 
 func (c *RemoteResourceClient) removeAttachedResource(id uint32, notify bool) {
+	// Remove the attached resource from the generation under the server lock.
 	var cancel context.CancelFunc
 	var releaseFn func()
 	c.server.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		// Skip resources that are not attached.
 		ar := c.attachedResources[id]
 		if ar == nil {
 			return

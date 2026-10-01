@@ -21,9 +21,11 @@ import (
 // process-shared broker from the composition root; nil builds commands with
 // a private broker for tests and read-only command trees.
 func NewCliCommands(getBus func() cli_entrypoint.CliBus, yieldBroker *yield_policy.Broker) []*cli.Command {
+	// Default to a private yield broker when none is provided.
 	if yieldBroker == nil {
 		yieldBroker = yield_policy.NewBroker()
 	}
+	// Assemble the command tree in display order.
 	commands := []*cli.Command{
 		// Tier 1: entry points
 		newLoginCommand(getBus),
@@ -105,6 +107,7 @@ func newBifrostCommand() *cli.Command {
 
 // newHydraCommand embeds the hydra storage CLI command set.
 func newHydraCommand() *cli.Command {
+	// Build the hydra command and attach the util subcommands.
 	var clientArgs hydra_cli.ClientArgs
 	var utilArgs hydra_cliutil.UtilArgs
 	cmd := clientArgs.BuildHydraCommand()

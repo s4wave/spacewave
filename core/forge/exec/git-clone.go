@@ -38,16 +38,19 @@ type gitCloneHandler struct {
 
 // Execute runs the git clone handler.
 func (h *gitCloneHandler) Execute(ctx context.Context) error {
+	// Read the sender peer ID, timestamp, and target repo object key.
 	sender := h.handle.GetPeerId()
 	ts := h.handle.GetTimestamp()
 	repoObjKey := h.conf.GetObjectKey()
 
+	// Load the existing repo object, releasing its handle when done.
 	alreadyExistsObj, alreadyExists, err := h.ws.GetObject(ctx, repoObjKey)
 	defer world.ReleaseObjectState(alreadyExistsObj)
 	if err != nil {
 		return err
 	}
 
+	// Read the clone options and stamp the repo key and timestamp into the worktree options.
 	cloneOpts := h.conf.GetCloneOpts()
 	worktreeOpts := h.conf.GetWorktreeOpts().CloneVT()
 	if worktreeOpts != nil {
@@ -55,6 +58,7 @@ func (h *gitCloneHandler) Execute(ctx context.Context) error {
 		worktreeOpts.Timestamp = ts
 	}
 
+	// Reuse the existing repo revision or clone the repository into world state.
 	var repoRef *bucket.ObjectRef
 	if alreadyExists {
 		var repoRev uint64
@@ -99,6 +103,7 @@ func (h *gitCloneHandler) Execute(ctx context.Context) error {
 		}
 	}
 
+	// Publish the repo snapshot reference as the handler output.
 	outps := forge_value.ValueSlice{
 		forge_value.NewValueWithBucketRef(outputNameRepo, repoRef),
 	}
@@ -109,6 +114,7 @@ func (h *gitCloneHandler) Execute(ctx context.Context) error {
 // Supports username-only SSH auth for public repos. Peer-ID-based private key
 // auth requires the caller to provide a pre-resolved key and is not yet wired.
 func resolveAuthWithoutBus(a *git_block.AuthOpts) (client.SSHAuth, error) {
+	// Reject peer-ID auth and fall back to username-only or anonymous SSH auth.
 	if a == nil {
 		return nil, nil
 	}

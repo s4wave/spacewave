@@ -54,6 +54,7 @@ func (c *controlAckGateConn) Write(data []byte) (int, error) {
 }
 
 func (c *controlAckGateConn) isControlAck(data []byte) bool {
+	// Reject frames that do not carry a complete srpc packet.
 	if len(data) < 4 {
 		return false
 	}
@@ -68,6 +69,8 @@ func (c *controlAckGateConn) isControlAck(data []byte) bool {
 		c.holdMtx.Unlock()
 		return false
 	}
+
+	// Match a ResourceClient control acknowledgement payload.
 	callData := packet.GetCallData()
 	if callData == nil {
 		return false
@@ -86,9 +89,11 @@ func (c *controlAckGateConn) err() error {
 }
 
 func TestPythonClientResourceLifecycleAgainstGoServer(t *testing.T) {
+	// Bound the fixture with a 20 second context.
 	ctx, cancel := context.WithTimeout(t.Context(), 20*time.Second)
 	defer cancel()
 
+	// Build the root mux with the Spawn and Echo handlers and release gates.
 	rootEntered := make(chan struct{}, 1)
 	handlerFinally := make(chan struct{}, 2)
 	releaseEntered := make(chan struct{}, 1)
@@ -97,6 +102,8 @@ func TestPythonClientResourceLifecycleAgainstGoServer(t *testing.T) {
 	rootMux := srpc.NewMux(srpc.InvokerFunc(func(serviceID, methodID string, strm srpc.Stream) (bool, error) {
 		switch {
 		case serviceID == pythonCrossRuntimeRootService && methodID == "Spawn":
+
+			// Signal the root route and receive the spawn request payload.
 			select {
 			case rootEntered <- struct{}{}:
 			default:
@@ -108,6 +115,8 @@ func TestPythonClientResourceLifecycleAgainstGoServer(t *testing.T) {
 			if string(request.GetData()) != "spawn" {
 				t.Errorf("Spawn request = %q, want spawn", request.GetData())
 			}
+
+			// Add the child resource with the Echo, Stream, and Block handlers.
 			owner, err := MustGetResourceClientContext(strm.Context())
 			if err != nil {
 				return true, err
@@ -153,6 +162,8 @@ func TestPythonClientResourceLifecycleAgainstGoServer(t *testing.T) {
 			if err != nil {
 				return true, err
 			}
+
+			// Answer the spawn call with the encoded child ID.
 			response := make([]byte, 4)
 			binary.BigEndian.PutUint32(response, childID)
 			return true, strm.MsgSend(srpc.NewRawMessage(response, true))
@@ -165,6 +176,8 @@ func TestPythonClientResourceLifecycleAgainstGoServer(t *testing.T) {
 		}
 		return false, nil
 	}))
+
+	// Register the ResourceServer on an srpc server.
 	server := NewResourceServer(rootMux)
 	resourceMux := srpc.NewMux()
 	if err := server.Register(resourceMux); err != nil {
@@ -172,6 +185,7 @@ func TestPythonClientResourceLifecycleAgainstGoServer(t *testing.T) {
 	}
 	srpcServer := srpc.NewServer(resourceMux)
 
+	// Listen locally and accept gated control connections until the context ends.
 	listener, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
 		t.Fatalf("listen: %v", err)
@@ -202,6 +216,7 @@ func TestPythonClientResourceLifecycleAgainstGoServer(t *testing.T) {
 		}
 	}()
 
+	// Resolve the repository root and build the Python client command.
 	repositoryRoot, err := filepath.Abs("../../..")
 	if err != nil {
 		t.Fatalf("resolve repository root: %v", err)
@@ -218,6 +233,8 @@ func TestPythonClientResourceLifecycleAgainstGoServer(t *testing.T) {
 	)
 	command.Dir = repositoryRoot
 	command.Env = os.Environ()
+
+	// Wire stderr and stdout and start the Python client subprocess.
 	var stderr bytes.Buffer
 	stdout, err := command.StdoutPipe()
 	if err != nil {
@@ -227,6 +244,8 @@ func TestPythonClientResourceLifecycleAgainstGoServer(t *testing.T) {
 	if err := command.Start(); err != nil {
 		t.Fatalf("start python client: %v", err)
 	}
+
+	// Scan the client stdout into the output channel and log buffer.
 	output := make(chan string, 64)
 	var outputMtx sync.Mutex
 	var outputLines []string
@@ -247,9 +266,12 @@ func TestPythonClientResourceLifecycleAgainstGoServer(t *testing.T) {
 		defer outputMtx.Unlock()
 		return strings.Join(outputLines, "\n")
 	}
+
+	// Wait for the Python client to exit in the background.
 	wait := make(chan error, 1)
 	go func() { wait <- command.Wait() }()
 
+	// Wait for the control connection and hold the first acknowledgement.
 	var gate *controlAckGateConn
 	select {
 	case gate = <-gates:
@@ -272,6 +294,7 @@ func TestPythonClientResourceLifecycleAgainstGoServer(t *testing.T) {
 	}
 	close(gate.release)
 
+	// Verify the child release barrier holds until both handlers finish.
 	select {
 	case <-releaseEntered:
 	case err := <-wait:
@@ -293,6 +316,7 @@ func TestPythonClientResourceLifecycleAgainstGoServer(t *testing.T) {
 		t.Fatal("child release callback did not complete")
 	}
 
+	// Wait for the client to exit and verify owner zero and a clean gate.
 	select {
 	case err := <-wait:
 		if err != nil {

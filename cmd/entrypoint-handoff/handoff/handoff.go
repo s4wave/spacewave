@@ -114,6 +114,7 @@ func (a *Args) FillDefaults() {
 
 // Run runs the entrypoint handoff command.
 func Run(ctx context.Context, args *Args) error {
+	// Validate the arguments and apply defaults before running.
 	if args == nil {
 		return errors.New("args is nil")
 	}
@@ -121,6 +122,8 @@ func Run(ctx context.Context, args *Args) error {
 	if args.WriteHandoffManifest && args.WriteCLIHandoffManifest {
 		return errors.New("--write-handoff-manifest and --write-cli-handoff-manifest cannot be combined")
 	}
+
+	// Write the entrypoint handoff manifest when requested.
 	if args.WriteHandoffManifest {
 		return WriteEntrypointHandoffManifest(EntrypointHandoffOptions{
 			RootDir:            args.OutDir,
@@ -137,11 +140,15 @@ func Run(ctx context.Context, args *Args) error {
 			Workflow:           args.Workflow,
 		})
 	}
+
+	// Resolve the repository directory and the shared logger.
 	repoDir, err := os.Getwd()
 	if err != nil {
 		return errors.Wrap(err, "resolve repo dir")
 	}
 	le := logrus.NewEntry(logrus.StandardLogger())
+
+	// Write the CLI handoff manifest when requested.
 	if args.WriteCLIHandoffManifest {
 		return WriteCLIHandoffManifest(ctx, le, repoDir, CLIHandoffOptions{
 			RootDir:             args.OutDir,
@@ -157,6 +164,8 @@ func Run(ctx context.Context, args *Args) error {
 			Workflow:            args.Workflow,
 		})
 	}
+
+	// Validate the flag combinations for the build path.
 	if args.Version == "" || args.OutDir == "" {
 		return errors.New(usageText)
 	}
@@ -173,6 +182,7 @@ func Run(ctx context.Context, args *Args) error {
 		return errors.New("--manifest-pack-produce cannot be combined with remote/browser/platform packaging flags")
 	}
 
+	// Split the platform list and require at least one desktop platform.
 	platforms := splitCSV(args.PlatformsCSV)
 	if !args.BrowserOnly && !args.ManifestPackProduce && len(platforms) == 0 {
 		return errors.New("at least one platform is required")
@@ -184,13 +194,17 @@ func Run(ctx context.Context, args *Args) error {
 		return err
 	}
 
+	// Log the planned handoff slice.
 	le.WithField("platforms", strings.Join(platforms, ",")).
 		WithField("include_browser", args.IncludeBrowser).
 		Info("building entrypoint handoff slice")
 
+	// Clean the output directory.
 	if err := os.RemoveAll(args.OutDir); err != nil {
 		return errors.Wrap(err, "clean out dir")
 	}
+
+	// Run the manifest-pack production phase when requested.
 	if args.ManifestPackProduce {
 		return runPhase(le, "produce-manifest-pack", func() error {
 			return produceManifestPack(
@@ -211,6 +225,8 @@ func Run(ctx context.Context, args *Args) error {
 			)
 		})
 	}
+
+	// Run the browser-only build, verify, and staging phases.
 	if args.BrowserOnly {
 		if err := runPhase(le, "build-browser", func() error {
 			return buildBrowser(ctx, repoDir, args.ReactDev)
@@ -229,6 +245,8 @@ func Run(ctx context.Context, args *Args) error {
 		}
 		return nil
 	}
+
+	// Clean the per-platform desktop build outputs.
 	for _, rel := range []string{
 		filepath.Join(".tmp", "dist"),
 		filepath.Join(".tmp", "Spacewave.app"),
@@ -249,11 +267,14 @@ func Run(ctx context.Context, args *Args) error {
 		}
 	}
 
+	// Generate the desktop support files for the platforms.
 	if err := runPhase(le, "prepare-support-files", func() error {
 		return prepareSupportFiles(ctx, repoDir, platforms)
 	}); err != nil {
 		return err
 	}
+
+	// Ensure the builder image when cross-building linux or windows.
 	if !args.SkipBuild && needsBuilderImage(runtime.GOOS, platforms) {
 		if err := runPhase(le, "ensure-builder-image", func() error {
 			return runScript(ctx, repoDir, filepath.Join("scripts", "release", "ensure-builder-image.sh"))
@@ -261,6 +282,8 @@ func Run(ctx context.Context, args *Args) error {
 			return errors.Wrap(err, "ensure builder image")
 		}
 	}
+
+	// Import prebuilt manifest packs when directories are provided.
 	if args.ManifestPackImportDirsCSV != "" {
 		if err := runPhase(le, "import-manifest-packs", func() error {
 			return importManifestPacks(ctx, le, repoDir, splitCSV(args.ManifestPackImportDirsCSV))
@@ -268,6 +291,8 @@ func Run(ctx context.Context, args *Args) error {
 			return err
 		}
 	}
+
+	// Build the helper, desktop, CLI, and macOS CLI binaries.
 	if !args.SkipBuild {
 		if err := runPhase(le, "build-helpers", func() error {
 			return buildHelpers(ctx, repoDir, platforms)
@@ -290,11 +315,15 @@ func Run(ctx context.Context, args *Args) error {
 			return err
 		}
 	}
+
+	// Verify the built platform bundle inputs.
 	if err := runPhase(le, "verify-build-artifacts", func() error {
 		return validatePlatformBundleInputs(repoDir, platforms)
 	}); err != nil {
 		return err
 	}
+
+	// Stage raw build inputs when requested.
 	if args.StageBuildInputs {
 		if err := runPhase(le, "stage-build-inputs", func() error {
 			return stageBuildInputsTree(repoDir, args.OutDir, platforms)
@@ -302,34 +331,48 @@ func Run(ctx context.Context, args *Args) error {
 			return err
 		}
 	}
+
+	// Stop before packaging when SkipPackage is set.
 	if args.SkipPackage {
 		return nil
 	}
+
+	// Build the platform bundles.
 	if err := runPhase(le, "build-bundles", func() error {
 		return buildBundles(repoDir, platforms)
 	}); err != nil {
 		return err
 	}
+
+	// Package the platform installers.
 	if err := runPhase(le, "package-installers", func() error {
 		return packageInstallers(ctx, repoDir, args.Version, platforms, args.SkipNotarize)
 	}); err != nil {
 		return err
 	}
+
+	// Package the CLI archives.
 	if err := runPhase(le, "package-cli-artifacts", func() error {
 		return packageCliArtifacts(repoDir, platforms)
 	}); err != nil {
 		return err
 	}
+
+	// Notarize the macOS CLI archives.
 	if err := runPhase(le, "notarize-macos-cli-archives", func() error {
 		return notarizeMacOSCliArchives(ctx, repoDir, platforms, args.SkipNotarize)
 	}); err != nil {
 		return err
 	}
+
+	// Verify the packaged artifacts.
 	if err := runPhase(le, "verify-package-artifacts", func() error {
 		return validatePackagedArtifacts(repoDir, platforms)
 	}); err != nil {
 		return err
 	}
+
+	// Build and verify browser outputs when included.
 	if args.IncludeBrowser {
 		if err := runPhase(le, "build-browser", func() error {
 			return buildBrowser(ctx, repoDir, args.ReactDev)
@@ -342,6 +385,8 @@ func Run(ctx context.Context, args *Args) error {
 			return err
 		}
 	}
+
+	// Stage the handoff outputs.
 	if err := runPhase(le, "stage-outputs", func() error {
 		return stageOutputs(repoDir, args.OutDir, args.IncludeBrowser)
 	}); err != nil {
@@ -351,6 +396,7 @@ func Run(ctx context.Context, args *Args) error {
 }
 
 func runPhase(le *logrus.Entry, name string, fn func() error) error {
+	// Record the phase start and log that it began.
 	start := time.Now()
 	le.WithField("phase", name).Info("entrypoint handoff phase started")
 	if err := fn(); err != nil {
@@ -360,6 +406,8 @@ func runPhase(le *logrus.Entry, name string, fn func() error) error {
 			Error("entrypoint handoff phase failed")
 		return err
 	}
+
+	// Log the phase completion with its duration.
 	le.WithField("phase", name).
 		WithField("duration", time.Since(start).String()).
 		Info("entrypoint handoff phase completed")
@@ -401,6 +449,7 @@ func splitPlatform(platform string) (string, string) {
 }
 
 func prepareSupportFiles(ctx context.Context, repoDir string, platforms []string) error {
+	// Generate the desktop scripts and icon assets for the platforms.
 	if err := runScript(ctx, repoDir, filepath.Join("scripts", "release", "gen-desktop.sh")); err != nil {
 		return errors.Wrap(err, "gen-desktop")
 	}
@@ -484,6 +533,7 @@ func produceManifestPack(
 	distDir string,
 	entrypoint string,
 ) error {
+	// Validate the manifest-pack arguments and start the devtool bus.
 	if manifestID == "" || platformID == "" || objectKey == "" || producerTarget == "" {
 		return errors.New("--manifest-pack-produce requires --manifest-id, --manifest-platform, --manifest-object-key, and --manifest-producer-target")
 	}
@@ -500,6 +550,7 @@ func produceManifestPack(
 	}
 	defer busHandle.Release()
 
+	// Start the project controller and wait for it to be ready.
 	projWatcher, projWatcherRef, err := busHandle.StartProjectController(
 		ctx,
 		busHandle.GetBus(),
@@ -516,11 +567,14 @@ func produceManifestPack(
 		return errors.Wrap(err, "wait project controller")
 	}
 
+	// Create the manifest pack file.
 	packPath := filepath.Join(outDir, manifestPackFilename)
 	packFile, err := os.Create(packPath)
 	if err != nil {
 		return errors.Wrap(err, "create manifest pack")
 	}
+
+	// Produce the manifest pack and close the file.
 	meta, produceErr := bldr_manifest_pack.ProduceManifestPack(ctx, &bldr_manifest_pack.ProducerConfig{
 		Bus:        busHandle.GetBus(),
 		WorldState: busHandle.GetWorldState(),
@@ -547,6 +601,8 @@ func produceManifestPack(
 	if closeErr != nil {
 		return errors.Wrap(closeErr, "close manifest pack")
 	}
+
+	// Write the manifest-pack metadata.
 	data, err := meta.MarshalVT()
 	if err != nil {
 		return errors.Wrap(err, "marshal manifest-pack metadata")
@@ -558,6 +614,7 @@ func produceManifestPack(
 }
 
 func importManifestPacks(ctx context.Context, le *logrus.Entry, repoDir string, dirs []string) error {
+	// Import the manifest-pack artifacts into a devtool bus.
 	if len(dirs) == 0 {
 		return errors.New("--manifest-pack-import-dirs is empty")
 	}
@@ -638,17 +695,22 @@ func startDevtoolBus(
 	repoDir string,
 	watch bool,
 ) (*bldr_devtool.DevtoolBus, error) {
+	// Configure the devtool args and build the bus.
 	args := bldr_devtool.NewDevtoolArgs()
 	args.Logger = le
 	args.BuildType = "release"
 	args.Watch = watch
 	args.UseGitRoot = false
 	defer args.CloseLogFiles()
+
+	// Build the devtool bus for the repository.
 	stateDir := filepath.Join(repoDir, ".bldr")
 	busHandle, err := bldr_devtool.BuildDevtoolBus(ctx, le, repoDir, stateDir, watch)
 	if err != nil {
 		return nil, errors.Wrap(err, "build devtool bus")
 	}
+
+	// Sync the dist sources into the bus.
 	if err := busHandle.SyncDistSources(args.BldrVersion, args.BldrVersionSum, args.BldrSrcPath); err != nil {
 		busHandle.Release()
 		return nil, errors.Wrap(err, "sync dist sources")
@@ -657,10 +719,13 @@ func startDevtoolBus(
 }
 
 func currentGitSHA(ctx context.Context) (string, error) {
+	// Prefer the GITHUB_SHA environment variable.
 	sha := strings.TrimSpace(os.Getenv("GITHUB_SHA"))
 	if sha != "" {
 		return sha, nil
 	}
+
+	// Fall back to the local git revision.
 	out, err := exec.CommandContext(ctx, "git", "rev-parse", "HEAD").Output()
 	if err != nil {
 		return "", errors.Wrap(err, "resolve git sha")
@@ -669,6 +734,7 @@ func currentGitSHA(ctx context.Context) (string, error) {
 }
 
 func fileSHA256(path string) (string, error) {
+	// Open the file and hash its contents.
 	f, err := os.Open(path)
 	if err != nil {
 		return "", errors.Wrap(err, "open "+path)
@@ -763,6 +829,7 @@ func signMacOSCliEntrypoints(ctx context.Context, repoDir string, platforms []st
 }
 
 func buildBundles(repoDir string, platforms []string) error {
+	// Clean and create the bundles directory.
 	bundlesDir := filepath.Join(repoDir, ".tmp", "dist", "bundles")
 	if err := os.RemoveAll(bundlesDir); err != nil {
 		return errors.Wrap(err, "clean bundles dir")
@@ -771,6 +838,7 @@ func buildBundles(repoDir string, platforms []string) error {
 		return errors.Wrap(err, "mkdir bundles dir")
 	}
 
+	// Archive each platform dist directory.
 	for _, platform := range platforms {
 		goos, _ := splitPlatform(platform)
 		srcDir := filepath.Join(repoDir, ".tmp", "dist", platform)
@@ -789,17 +857,20 @@ func buildBundles(repoDir string, platforms []string) error {
 }
 
 func generateHostIcons(ctx context.Context, repoDir, iconPath string) error {
+	// Open the source icon image.
 	f, err := os.Open(iconPath)
 	if err != nil {
 		return errors.Wrap(err, "open icon source")
 	}
 	defer f.Close()
 
+	// Decode the source icon.
 	src, _, err := image.Decode(f)
 	if err != nil {
 		return errors.Wrap(err, "decode icon source")
 	}
 
+	// Create the icons directory and write each resized PNG icon.
 	iconsDir := filepath.Join(repoDir, ".tmp", "icons")
 	if err := os.MkdirAll(iconsDir, 0o755); err != nil {
 		return errors.Wrap(err, "mkdir icons dir")
@@ -846,6 +917,7 @@ func generateHostIcons(ctx context.Context, repoDir, iconPath string) error {
 }
 
 func resizeImage(src image.Image, size int) *image.RGBA {
+	// Allocate the destination and sample each source pixel.
 	dst := image.NewRGBA(image.Rect(0, 0, size, size))
 	bounds := src.Bounds()
 	sw := bounds.Dx()
@@ -895,6 +967,7 @@ func userFacingPlatformLabel(goos, platform string) string {
 // buildCliEntrypoints into the named archive expected by the public
 // /download manifest. Output lands in dist/cli/.
 func packageCliArtifacts(repoDir string, platforms []string) error {
+	// Clean and create the CLI output directory.
 	cliDir := filepath.Join(repoDir, "dist", "cli")
 	if err := os.RemoveAll(cliDir); err != nil {
 		return errors.Wrap(err, "clean cli dir")
@@ -903,6 +976,7 @@ func packageCliArtifacts(repoDir string, platforms []string) error {
 		return errors.Wrap(err, "mkdir cli dir")
 	}
 
+	// Archive each platform CLI dist directory.
 	for _, platform := range platforms {
 		goos, _ := splitPlatform(platform)
 		srcDir := filepath.Join(repoDir, ".tmp", "dist-cli", platform)
@@ -924,6 +998,7 @@ func packageCliArtifacts(repoDir string, platforms []string) error {
 // notarization. Plain command-line tools cannot be stapled like .app/.dmg/.pkg
 // payloads, so the distributable zip is the notarized artifact.
 func notarizeMacOSCliArchives(ctx context.Context, repoDir string, platforms []string, skipNotarize bool) error {
+	// Resolve the notarization profile and submit each macOS archive.
 	if skipNotarize {
 		return nil
 	}
@@ -1099,6 +1174,7 @@ func validateBrowserBundleArtifacts(repoDir string) error {
 }
 
 func requireNonEmptyFile(path, label string) error {
+	// Require a non-empty regular file at the path.
 	info, err := os.Stat(path)
 	if err != nil {
 		return errors.Wrap(err, "missing "+label)
@@ -1113,12 +1189,14 @@ func requireNonEmptyFile(path, label string) error {
 }
 
 func buildBrowser(ctx context.Context, repoDir string, reactDev bool) error {
+	// Clean the previous browser build outputs.
 	for _, rel := range []string{".bldr-dist", filepath.Join("app", "prerender", "dist")} {
 		if err := os.RemoveAll(filepath.Join(repoDir, rel)); err != nil {
 			return errors.Wrap(err, "clean "+rel)
 		}
 	}
 
+	// Run the release web, hydrate, and prerender builds.
 	buildScript := "build:release:web"
 	if reactDev {
 		buildScript = "build:release:web:debug"
@@ -1133,11 +1211,13 @@ func buildBrowser(ctx context.Context, repoDir string, reactDev bool) error {
 		return errors.Wrap(err, "build prerender bundle")
 	}
 
+	// Run the prerender over the built dist.
 	bldrDistDir := filepath.Join(repoDir, ".bldr-dist", "build", "js", "spacewave-browser", "dist")
 	if err := runBun(ctx, repoDir, "./app/prerender/ssr-dist/build.js", "--dist-dir", bldrDistDir); err != nil {
 		return errors.Wrap(err, "prerender")
 	}
 
+	// Stage the web dist and static HTML.
 	stagingDir := filepath.Join(repoDir, "staging")
 	if err := os.RemoveAll(stagingDir); err != nil {
 		return errors.Wrap(err, "clean staging")
@@ -1152,6 +1232,7 @@ func buildBrowser(ctx context.Context, repoDir string, reactDev bool) error {
 }
 
 func stageOutputs(repoDir, outDir string, includeBrowser bool) error {
+	// Create the output directories.
 	installersOut := filepath.Join(outDir, "installers")
 	bundlesOut := filepath.Join(outDir, "bundles")
 	cliOut := filepath.Join(outDir, "cli")
@@ -1164,18 +1245,24 @@ func stageOutputs(repoDir, outDir string, includeBrowser bool) error {
 	if err := os.MkdirAll(cliOut, 0o755); err != nil {
 		return errors.Wrap(err, "mkdir cli out")
 	}
+
+	// Copy the installers and bundles into the output.
 	if err := copyDirContents(filepath.Join(repoDir, "dist", "installers"), installersOut); err != nil {
 		return errors.Wrap(err, "stage installers")
 	}
 	if err := copyDirContents(filepath.Join(repoDir, ".tmp", "dist", "bundles"), bundlesOut); err != nil {
 		return errors.Wrap(err, "stage bundles")
 	}
+
+	// Copy the CLI archives when present.
 	cliDir := filepath.Join(repoDir, "dist", "cli")
 	if _, err := os.Stat(cliDir); err == nil {
 		if err := copyDirContents(cliDir, cliOut); err != nil {
 			return errors.Wrap(err, "stage cli")
 		}
 	}
+
+	// Stage the browser outputs when included.
 	if !includeBrowser {
 		return nil
 	}
@@ -1226,6 +1313,7 @@ func stageBuildInputsTree(repoDir, outDir string, platforms []string) error {
 }
 
 func runScript(ctx context.Context, repoDir, script string, args ...string) error {
+	// Build the bash command and log its start.
 	cmdArgs := append([]string{script}, args...)
 	logCommandStart("script", append([]string{"bash"}, cmdArgs...))
 	start := time.Now()
@@ -1234,12 +1322,15 @@ func runScript(ctx context.Context, repoDir, script string, args ...string) erro
 	cmd.Env = os.Environ()
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
+
+	// Run the script and log its completion.
 	err := cmd.Run()
 	logCommandFinish("script", append([]string{"bash"}, cmdArgs...), start, err)
 	return err
 }
 
 func runBldr(ctx context.Context, repoDir string, args ...string) error {
+	// Build the go run command and log its start.
 	cmdArgs := append([]string{"run", "github.com/s4wave/spacewave/bldr/cmd/bldr"}, args...)
 	logCommandStart("bldr", append([]string{"go"}, cmdArgs...))
 	start := time.Now()
@@ -1248,12 +1339,15 @@ func runBldr(ctx context.Context, repoDir string, args ...string) error {
 	cmd.Env = os.Environ()
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
+
+	// Run bldr and log its completion.
 	err := cmd.Run()
 	logCommandFinish("bldr", append([]string{"go"}, cmdArgs...), start, err)
 	return err
 }
 
 func runBun(ctx context.Context, repoDir string, args ...string) error {
+	// Build the bun command and log its start.
 	logCommandStart("bun", append([]string{"bun"}, args...))
 	start := time.Now()
 	cmd := exec.CommandContext(ctx, "bun", args...)
@@ -1261,6 +1355,8 @@ func runBun(ctx context.Context, repoDir string, args ...string) error {
 	cmd.Env = os.Environ()
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
+
+	// Run bun and log its completion.
 	err := cmd.Run()
 	logCommandFinish("bun", append([]string{"bun"}, args...), start, err)
 	return err
@@ -1284,12 +1380,14 @@ func logCommandFinish(kind string, args []string, start time.Time, err error) {
 }
 
 func copyFile(src, dst string) error {
+	// Open the source file.
 	in, err := os.Open(src)
 	if err != nil {
 		return errors.Wrap(err, "open "+src)
 	}
 	defer in.Close()
 
+	// Create the destination directory and file.
 	if err := os.MkdirAll(filepath.Dir(dst), 0o755); err != nil {
 		return errors.Wrap(err, "mkdir "+filepath.Dir(dst))
 	}
@@ -1299,6 +1397,7 @@ func copyFile(src, dst string) error {
 	}
 	defer out.Close()
 
+	// Copy the bytes and close the destination.
 	if _, err := io.Copy(out, in); err != nil {
 		return errors.Wrap(err, "copy "+src)
 	}
@@ -1328,6 +1427,7 @@ func copyDirContents(srcDir, dstDir string) error {
 
 func copyTree(srcRoot, dstRoot string) error {
 	return filepath.Walk(srcRoot, func(path string, info fs.FileInfo, err error) error {
+		// Propagate walk errors and resolve the entry path.
 		if err != nil {
 			return errors.Wrap(err, "walk "+path)
 		}
@@ -1338,6 +1438,8 @@ func copyTree(srcRoot, dstRoot string) error {
 		if rel == "." {
 			return os.MkdirAll(dstRoot, 0o755)
 		}
+
+		// Recreate directories and symlinks at the destination.
 		dst := filepath.Join(dstRoot, rel)
 		if info.IsDir() {
 			return os.MkdirAll(dst, 0o755)
@@ -1359,6 +1461,8 @@ func copyTree(srcRoot, dstRoot string) error {
 			}
 			return nil
 		}
+
+		// Copy regular files and preserve their mode.
 		if err := copyFile(path, dst); err != nil {
 			return err
 		}
@@ -1379,23 +1483,28 @@ const (
 // zip share the same walk + per-entry contract; only the writer
 // construction and entry-header layout differ.
 func archiveDir(srcDir, destPath string, format archiveFormat) (string, error) {
+	// Create the output archive file.
 	outFile, err := os.Create(destPath)
 	if err != nil {
 		return "", errors.Wrap(err, "create output")
 	}
 	defer outFile.Close()
 
+	// Set up the hash and multiwriter for the archive.
 	hash := sha256.New()
 	mw := io.MultiWriter(outFile, hash)
 
+	// Declare the entry writer and archive closer.
 	var writeEntry func(relPath string, info fs.FileInfo, path string) error
 	var closeArchive func() error
 
+	// Build the writers for the requested archive format.
 	switch format {
 	case archiveTarGz:
 		gw := gzip.NewWriter(mw)
 		tw := tar.NewWriter(gw)
 		writeEntry = func(relPath string, info fs.FileInfo, path string) error {
+			// Write the tar header and contents for each entry.
 			header, err := tar.FileInfoHeader(info, "")
 			if err != nil {
 				return errors.Wrap(err, "file info header")
@@ -1424,6 +1533,7 @@ func archiveDir(srcDir, destPath string, format archiveFormat) (string, error) {
 	case archiveZip:
 		zw := zip.NewWriter(mw)
 		writeEntry = func(relPath string, info fs.FileInfo, path string) error {
+			// Create directory entries and copy files into the zip.
 			if info.IsDir() {
 				_, err := zw.Create(relPath + "/")
 				return err
@@ -1450,7 +1560,9 @@ func archiveDir(srcDir, destPath string, format archiveFormat) (string, error) {
 		return "", errors.Errorf("unsupported archive format: %d", format)
 	}
 
+	// Walk the source directory and write each entry.
 	err = filepath.Walk(srcDir, func(path string, info fs.FileInfo, walkErr error) error {
+		// Resolve each entry path relative to the source.
 		if walkErr != nil {
 			return walkErr
 		}
@@ -1477,6 +1589,7 @@ func archiveDir(srcDir, destPath string, format archiveFormat) (string, error) {
 
 // copyFileTo opens path and copies its bytes into w with wrapped error context.
 func copyFileTo(w io.Writer, path, relPath string) error {
+	// Open the source file and copy it into the writer.
 	f, err := os.Open(path)
 	if err != nil {
 		return errors.Wrap(err, "open "+relPath)
@@ -1490,6 +1603,7 @@ func copyFileTo(w io.Writer, path, relPath string) error {
 
 func stageWebDist(distDir, stagingDir string) error {
 	return filepath.WalkDir(distDir, func(path string, d os.DirEntry, err error) error {
+		// Copy each dist file into the staging tree.
 		if err != nil {
 			return errors.Wrap(err, "walk "+path)
 		}
@@ -1497,12 +1611,14 @@ func stageWebDist(distDir, stagingDir string) error {
 			return nil
 		}
 
+		// Resolve the destination path for each file.
 		relPath, err := filepath.Rel(distDir, path)
 		if err != nil {
 			return errors.Wrap(err, "rel path")
 		}
 		relPath = filepath.ToSlash(relPath)
 
+		// Route packed messages into the dist tree.
 		destPath := filepath.Join(stagingDir, "app", relPath)
 		if strings.HasSuffix(d.Name(), ".packedmsg") {
 			destPath = filepath.Join(stagingDir, "dist", d.Name())
@@ -1513,6 +1629,7 @@ func stageWebDist(distDir, stagingDir string) error {
 
 func stageStaticHTML(prerenderDir, stagingDir string) error {
 	return filepath.WalkDir(prerenderDir, func(path string, d os.DirEntry, err error) error {
+		// Filter the walked files to static assets.
 		if err != nil {
 			return errors.Wrap(err, "walk "+path)
 		}
@@ -1520,12 +1637,14 @@ func stageStaticHTML(prerenderDir, stagingDir string) error {
 			return nil
 		}
 
+		// Skip files outside the static asset extensions.
 		switch filepath.Ext(d.Name()) {
 		case ".html", ".css", ".js", ".woff2", ".png", ".svg", ".ico", ".xml", ".txt":
 		default:
 			return nil
 		}
 
+		// Copy the asset into the static staging tree.
 		relPath, err := filepath.Rel(prerenderDir, path)
 		if err != nil {
 			return errors.Wrap(err, "rel path")

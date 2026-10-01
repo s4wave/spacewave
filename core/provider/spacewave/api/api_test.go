@@ -17,6 +17,8 @@ func jsonHasField(data []byte, field string) bool {
 
 func TestCloudOfferUint32RejectsOverflow(t *testing.T) {
 	t.Helper()
+
+	// Assert the recover guard fires when cloudOfferUint32 overflows uint32.
 	defer func() {
 		if recover() == nil {
 			t.Fatal("cloudOfferUint32 accepted a value above uint32 range")
@@ -28,6 +30,7 @@ func TestCloudOfferUint32RejectsOverflow(t *testing.T) {
 // jsonFieldStringValue extracts a string value for a given JSON field.
 // Returns empty string if not found. Only works for simple string values.
 func jsonFieldStringValue(data []byte, field string) string {
+	// Scan for the field's opening quote and slice to its closing quote.
 	needle := []byte(`"` + field + `":"`)
 	idx := bytes.Index(data, needle)
 	if idx < 0 {
@@ -43,12 +46,14 @@ func jsonFieldStringValue(data []byte, field string) string {
 
 // TestCheckoutRequest_ProtoJSON verifies proto-JSON roundtrip for CheckoutRequest.
 func TestCheckoutRequest_ProtoJSON(t *testing.T) {
+	// Build a CheckoutRequest with every scalar field set.
 	msg := &CheckoutRequest{
 		SuccessUrl:      "https://example.com/success",
 		CancelUrl:       "https://example.com/cancel",
 		BillingInterval: s4wave_provider_spacewave.BillingInterval_BillingInterval_MONTH,
 	}
 
+	// Marshal the CheckoutRequest to proto-JSON.
 	data, err := msg.MarshalJSON()
 	if err != nil {
 		t.Fatalf("MarshalJSON: %v", err)
@@ -90,8 +95,8 @@ func TestCheckoutRequest_ProtoJSON(t *testing.T) {
 
 // TestCheckoutRequest_ZeroValues verifies proto3 zero-value omission.
 func TestCheckoutRequest_ZeroValues(t *testing.T) {
+	// Marshal an empty CheckoutRequest and assert proto3 zero-value omission.
 	msg := &CheckoutRequest{}
-
 	data, err := msg.MarshalJSON()
 	if err != nil {
 		t.Fatalf("MarshalJSON: %v", err)
@@ -116,6 +121,7 @@ func TestCheckoutRequest_ZeroValues(t *testing.T) {
 
 // TestBillingStateResponse_ProtoJSON verifies int64 fields serialize as strings.
 func TestBillingStateResponse_ProtoJSON(t *testing.T) {
+	// Build a BillingStateResponse with int64 timestamp fields set.
 	msg := &BillingStateResponse{
 		Status:           s4wave_provider_spacewave.BillingStatus_BillingStatus_ACTIVE,
 		BillingInterval:  s4wave_provider_spacewave.BillingInterval_BillingInterval_YEAR,
@@ -124,6 +130,7 @@ func TestBillingStateResponse_ProtoJSON(t *testing.T) {
 		CurrentPeriodEnd: 1720000000000,
 	}
 
+	// Marshal the BillingStateResponse to proto-JSON.
 	data, err := msg.MarshalJSON()
 	if err != nil {
 		t.Fatalf("MarshalJSON: %v", err)
@@ -164,11 +171,13 @@ func TestBillingStateResponse_ProtoJSON(t *testing.T) {
 
 // TestBillingStateResponse_ZeroInt64Omitted verifies zero int64 fields are omitted.
 func TestBillingStateResponse_ZeroInt64Omitted(t *testing.T) {
+	// Build a BillingStateResponse leaving int64 fields zero.
 	msg := &BillingStateResponse{
 		Status:          s4wave_provider_spacewave.BillingStatus_BillingStatus_ACTIVE,
 		BillingInterval: s4wave_provider_spacewave.BillingInterval_BillingInterval_MONTH,
 	}
 
+	// Marshal the BillingStateResponse to proto-JSON.
 	data, err := msg.MarshalJSON()
 	if err != nil {
 		t.Fatalf("MarshalJSON: %v", err)
@@ -188,12 +197,14 @@ func TestBillingStateResponse_ZeroInt64Omitted(t *testing.T) {
 
 // TestBillingUsageResponse_ProtoJSON verifies double + int64 field serialization.
 func TestBillingUsageResponse_ProtoJSON(t *testing.T) {
+	// Build a BillingUsageResponse with double and int64 fields set.
 	msg := &BillingUsageResponse{
 		StorageBytes: 1073741824.5,
 		WriteOps:     42000,
 		ReadOps:      100000,
 	}
 
+	// Marshal the BillingUsageResponse to proto-JSON.
 	data, err := msg.MarshalJSON()
 	if err != nil {
 		t.Fatalf("MarshalJSON: %v", err)
@@ -224,6 +235,7 @@ func TestBillingUsageResponse_ProtoJSON(t *testing.T) {
 
 // TestListOrgsResponse_ProtoJSON verifies repeated nested message serialization.
 func TestListOrgsResponse_ProtoJSON(t *testing.T) {
+	// Build a ListOrgsResponse with two nested OrgResponse entries.
 	msg := &ListOrgsResponse{
 		Organizations: []*OrgResponse{
 			{Id: "org-1", DisplayName: "Org One", Role: "admin"},
@@ -231,6 +243,7 @@ func TestListOrgsResponse_ProtoJSON(t *testing.T) {
 		},
 	}
 
+	// Marshal the ListOrgsResponse to proto-JSON.
 	data, err := msg.MarshalJSON()
 	if err != nil {
 		t.Fatalf("MarshalJSON: %v", err)
@@ -266,6 +279,7 @@ func TestListOrgsResponse_ProtoJSON(t *testing.T) {
 
 // TestListOrgsResponse_Empty verifies empty repeated field serialization.
 func TestListOrgsResponse_Empty(t *testing.T) {
+	// Marshal an empty ListOrgsResponse.
 	msg := &ListOrgsResponse{}
 
 	data, err := msg.MarshalJSON()
@@ -281,6 +295,7 @@ func TestListOrgsResponse_Empty(t *testing.T) {
 
 // TestGetOrgResponse_ProtoJSON verifies nested repeated OrgMember serialization.
 func TestGetOrgResponse_ProtoJSON(t *testing.T) {
+	// Build a GetOrgResponse with two nested OrgMember entries.
 	msg := &GetOrgResponse{
 		Id:               "org-123",
 		DisplayName:      "Test Org",
@@ -303,6 +318,7 @@ func TestGetOrgResponse_ProtoJSON(t *testing.T) {
 		},
 	}
 
+	// Marshal the GetOrgResponse to proto-JSON.
 	data, err := msg.MarshalJSON()
 	if err != nil {
 		t.Fatalf("MarshalJSON: %v", err)
@@ -347,6 +363,7 @@ func TestGetOrgResponse_ProtoJSON(t *testing.T) {
 
 // TestAccountInfoResponse_ProtoJSON verifies mixed string + uint32 + int64 fields.
 func TestAccountInfoResponse_ProtoJSON(t *testing.T) {
+	// Build an AccountInfoResponse with string, uint32, and int64 fields.
 	msg := &AccountInfoResponse{
 		AccountId:          "acct-789",
 		EntityId:           "alice",
@@ -358,6 +375,7 @@ func TestAccountInfoResponse_ProtoJSON(t *testing.T) {
 		BillingAccountId:   "billing-xyz",
 	}
 
+	// Marshal the AccountInfoResponse to proto-JSON.
 	data, err := msg.MarshalJSON()
 	if err != nil {
 		t.Fatalf("MarshalJSON: %v", err)
@@ -401,11 +419,13 @@ func TestAccountInfoResponse_ProtoJSON(t *testing.T) {
 
 // TestAccountInfoResponse_ZeroUint32Omitted verifies zero uint32 fields are omitted.
 func TestAccountInfoResponse_ZeroUint32Omitted(t *testing.T) {
+	// Build an AccountInfoResponse leaving numeric fields zero.
 	msg := &AccountInfoResponse{
 		AccountId: "acct-789",
 		EntityId:  "alice",
 	}
 
+	// Marshal the AccountInfoResponse to proto-JSON.
 	data, err := msg.MarshalJSON()
 	if err != nil {
 		t.Fatalf("MarshalJSON: %v", err)
@@ -428,6 +448,7 @@ func TestAccountInfoResponse_ZeroUint32Omitted(t *testing.T) {
 
 // TestListKeypairsResponse_ProtoJSON verifies repeated EntityKeypair serialization.
 func TestListKeypairsResponse_ProtoJSON(t *testing.T) {
+	// Build a ListKeypairsResponse with two EntityKeypair entries.
 	msg := &ListKeypairsResponse{
 		Keypairs: []*session.EntityKeypair{
 			{
@@ -442,6 +463,7 @@ func TestListKeypairsResponse_ProtoJSON(t *testing.T) {
 		},
 	}
 
+	// Marshal the ListKeypairsResponse to proto-JSON.
 	data, err := msg.MarshalJSON()
 	if err != nil {
 		t.Fatalf("MarshalJSON: %v", err)
@@ -470,6 +492,7 @@ func TestListKeypairsResponse_ProtoJSON(t *testing.T) {
 
 // TestAccountAuthMethod_ProtoJSON verifies auth-method metadata serialization.
 func TestAccountAuthMethod_ProtoJSON(t *testing.T) {
+	// Build an AccountAuthMethod with a nested EntityKeypair.
 	msg := &AccountAuthMethod{
 		PeerId:         "peer-google",
 		Kind:           AccountAuthMethodKind_ACCOUNT_AUTH_METHOD_KIND_GOOGLE_SSO,
@@ -482,11 +505,13 @@ func TestAccountAuthMethod_ProtoJSON(t *testing.T) {
 		},
 	}
 
+	// Marshal the AccountAuthMethod to proto-JSON.
 	data, err := msg.MarshalJSON()
 	if err != nil {
 		t.Fatalf("MarshalJSON: %v", err)
 	}
 
+	// Verify the metadata field names.
 	if !jsonHasField(data, "secondaryLabel") {
 		t.Fatalf("expected camelCase field 'secondaryLabel' in JSON: %s", data)
 	}
@@ -497,6 +522,7 @@ func TestAccountAuthMethod_ProtoJSON(t *testing.T) {
 		t.Fatalf("expected field 'keypair' in JSON: %s", data)
 	}
 
+	// Roundtrip.
 	got := &AccountAuthMethod{}
 	if err := got.UnmarshalJSON(data); err != nil {
 		t.Fatalf("UnmarshalJSON: %v", err)
@@ -508,6 +534,7 @@ func TestAccountAuthMethod_ProtoJSON(t *testing.T) {
 
 // TestPasskeyRegisterVerifyRequest_ProtoJSON verifies string field for opaque JSON.
 func TestPasskeyRegisterVerifyRequest_ProtoJSON(t *testing.T) {
+	// Build a PasskeyRegisterVerifyRequest carrying opaque credential JSON.
 	credJSON := `{"id":"abc123","type":"public-key","response":{"attestationObject":"base64data"}}`
 	msg := &PasskeyRegisterVerifyRequest{
 		CredentialJson:   credJSON,
@@ -517,6 +544,7 @@ func TestPasskeyRegisterVerifyRequest_ProtoJSON(t *testing.T) {
 		AuthParams:       "base64-auth-params",
 	}
 
+	// Marshal the PasskeyRegisterVerifyRequest to proto-JSON.
 	data, err := msg.MarshalJSON()
 	if err != nil {
 		t.Fatalf("MarshalJSON: %v", err)
@@ -555,6 +583,7 @@ func TestPasskeyRegisterVerifyRequest_ProtoJSON(t *testing.T) {
 
 // TestPasskeyAuthVerifyResponse_ProtoJSON verifies mixed bool + string fields.
 func TestPasskeyAuthVerifyResponse_ProtoJSON(t *testing.T) {
+	// Build a PasskeyAuthVerifyResponse with bool and string fields set.
 	msg := &PasskeyAuthVerifyResponse{
 		Verified:      true,
 		AccountId:     "acct-456",
@@ -566,6 +595,7 @@ func TestPasskeyAuthVerifyResponse_ProtoJSON(t *testing.T) {
 		PinWrapped:    true,
 	}
 
+	// Marshal the PasskeyAuthVerifyResponse to proto-JSON.
 	data, err := msg.MarshalJSON()
 	if err != nil {
 		t.Fatalf("MarshalJSON: %v", err)
@@ -604,11 +634,13 @@ func TestPasskeyAuthVerifyResponse_ProtoJSON(t *testing.T) {
 
 // TestPasskeyAuthVerifyResponse_FalseBoolOmitted verifies false bools are omitted.
 func TestPasskeyAuthVerifyResponse_FalseBoolOmitted(t *testing.T) {
+	// Build a PasskeyAuthVerifyResponse leaving bool fields false.
 	msg := &PasskeyAuthVerifyResponse{
 		AccountId: "acct-456",
 		EntityId:  "bob",
 	}
 
+	// Marshal the PasskeyAuthVerifyResponse to proto-JSON.
 	data, err := msg.MarshalJSON()
 	if err != nil {
 		t.Fatalf("MarshalJSON: %v", err)
@@ -628,6 +660,7 @@ func TestPasskeyAuthVerifyResponse_FalseBoolOmitted(t *testing.T) {
 
 // TestRecoverExecuteRequest_ProtoJSON verifies nested message serialization.
 func TestRecoverExecuteRequest_ProtoJSON(t *testing.T) {
+	// Build a RecoverExecuteRequest with nested keypair and signature entries.
 	msg := &RecoverExecuteRequest{
 		Token: "recovery-token-abc",
 		AddKeypair: &RecoverExecuteKeypair{
@@ -648,6 +681,7 @@ func TestRecoverExecuteRequest_ProtoJSON(t *testing.T) {
 		RemovePeerId: "peer-old",
 	}
 
+	// Marshal the RecoverExecuteRequest to proto-JSON.
 	data, err := msg.MarshalJSON()
 	if err != nil {
 		t.Fatalf("MarshalJSON: %v", err)
@@ -703,10 +737,12 @@ func TestRecoverExecuteRequest_ProtoJSON(t *testing.T) {
 
 // TestRecoverExecuteRequest_NilNested verifies nil nested message is omitted.
 func TestRecoverExecuteRequest_NilNested(t *testing.T) {
+	// Build a RecoverExecuteRequest with only the token set.
 	msg := &RecoverExecuteRequest{
 		Token: "token-only",
 	}
 
+	// Marshal the RecoverExecuteRequest to proto-JSON.
 	data, err := msg.MarshalJSON()
 	if err != nil {
 		t.Fatalf("MarshalJSON: %v", err)
@@ -716,6 +752,7 @@ func TestRecoverExecuteRequest_NilNested(t *testing.T) {
 	if jsonHasField(data, "addKeypair") {
 		t.Fatalf("nil nested message 'addKeypair' should be omitted: %s", data)
 	}
+
 	// Nil repeated field should be omitted.
 	if jsonHasField(data, "signatures") {
 		t.Fatalf("nil repeated field 'signatures' should be omitted: %s", data)
@@ -725,9 +762,10 @@ func TestRecoverExecuteRequest_NilNested(t *testing.T) {
 // TestUnmarshalAcceptsSnakeCase verifies unmarshal accepts both camelCase and
 // snake_case.
 func TestUnmarshalAcceptsSnakeCase(t *testing.T) {
-	// Proto-JSON unmarshal should accept both forms.
+	// Build a CheckoutRequest JSON payload using snake_case field names.
 	snakeJSON := []byte(`{"success_url":"https://example.com","cancel_url":"https://cancel.com","billing_interval":"BillingInterval_YEAR"}`)
 
+	// Unmarshal the snake_case JSON into a CheckoutRequest.
 	got := &CheckoutRequest{}
 	if err := got.UnmarshalJSON(snakeJSON); err != nil {
 		t.Fatalf("UnmarshalJSON with snake_case: %v", err)
@@ -745,12 +783,14 @@ func TestUnmarshalAcceptsSnakeCase(t *testing.T) {
 
 // TestBillingUsageResponse_DoubleVsInt64Types verifies type distinction in JSON.
 func TestBillingUsageResponse_DoubleVsInt64Types(t *testing.T) {
+	// Build a BillingUsageResponse with equal double and int64 values.
 	msg := &BillingUsageResponse{
 		StorageBytes: 1024.0,
 		WriteOps:     1024,
 		ReadOps:      2048,
 	}
 
+	// Marshal the BillingUsageResponse to proto-JSON.
 	data, err := msg.MarshalJSON()
 	if err != nil {
 		t.Fatalf("MarshalJSON: %v", err)

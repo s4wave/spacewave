@@ -15,6 +15,8 @@ func HandleLoadPluginRpc(
 	req *bldr_plugin.LoadPluginRequest,
 	strm bldr_plugin.SRPCPluginHost_LoadPluginStream,
 ) error {
+	// Build the LoadPlugin directive from the request's manifests, manifest
+	// root, or instance key, and hold the streamed response container.
 	pluginID := req.GetPluginId()
 	instanceKey := req.GetInstanceKey()
 	var dir bldr_plugin.LoadPlugin
@@ -29,6 +31,7 @@ func HandleLoadPluginRpc(
 	}
 	resp := ccontainer.NewCContainerVT[*bldr_plugin.LoadPluginResponse](nil)
 
+	// Create the error channel and the push helper for directive errors.
 	errCh := make(chan error, 1)
 	pushErr := func(err error) {
 		select {
@@ -37,10 +40,12 @@ func HandleLoadPluginRpc(
 		}
 	}
 
+	// Derive the request context from the stream and cancel it on return.
 	ctx := strm.Context()
 	reqCtx, reqCtxCancel := context.WithCancel(ctx)
 	defer reqCtxCancel()
 
+	// Track the attached directive values and publish the plugin status.
 	var vals []directive.AttachedValue
 	updResp := func() {
 		resp.SetValue(&bldr_plugin.LoadPluginResponse{
@@ -51,6 +56,7 @@ func HandleLoadPluginRpc(
 		})
 	}
 
+	// Add the LoadPlugin directive with value add and remove callbacks.
 	di, ref, err := b.AddDirective(
 		dir,
 		bus.NewCallbackHandler(
@@ -79,6 +85,8 @@ func HandleLoadPluginRpc(
 	}
 	defer ref.Release()
 
+	// Push the first directive error or the idle status when the directive
+	// goes idle.
 	defer di.AddIdleCallback(func(isIdle bool, errs []error) {
 		if !isIdle {
 			return
@@ -92,13 +100,14 @@ func HandleLoadPluginRpc(
 		updResp()
 	})()
 
+	// Stream each response value change back over the RPC until the request
+	// context is canceled.
 	var prevTx *bldr_plugin.LoadPluginResponse
 	for {
 		val, err := resp.WaitValueChange(reqCtx, prevTx, errCh)
 		if err != nil {
 			return err
 		}
-
 		prevTx = val
 		if val != nil {
 			if err := strm.Send(val); err != nil {

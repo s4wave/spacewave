@@ -23,6 +23,7 @@ func FilePath(stateRoot string) string {
 
 // ReadFile reads the Device policy file under stateRoot.
 func ReadFile(stateRoot string) (*DevicePolicy, error) {
+	// Read the policy file, treating a missing file as an empty policy.
 	data, err := os.ReadFile(FilePath(stateRoot))
 	if os.IsNotExist(err) {
 		return &DevicePolicy{}, nil
@@ -30,6 +31,8 @@ func ReadFile(stateRoot string) (*DevicePolicy, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "read device policy")
 	}
+
+	// Parse and validate the persisted Device policy.
 	policy := &DevicePolicy{}
 	if err := policy.UnmarshalJSON(data); err != nil {
 		return nil, errors.Wrap(err, "parse device policy")
@@ -42,17 +45,22 @@ func ReadFile(stateRoot string) (*DevicePolicy, error) {
 
 // WriteFile writes the Device policy file under stateRoot.
 func WriteFile(stateRoot string, policy *DevicePolicy) error {
+	// Substitute an empty policy for nil and validate the result.
 	if policy == nil {
 		policy = &DevicePolicy{}
 	}
 	if err := Validate(policy); err != nil {
 		return err
 	}
+
+	// Marshal the policy with a trailing newline.
 	data, err := policy.MarshalJSON()
 	if err != nil {
 		return errors.Wrap(err, "marshal device policy")
 	}
 	data = append(data, '\n')
+
+	// Write the policy file into its state directory.
 	path := FilePath(stateRoot)
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		return errors.Wrap(err, "create device policy state directory")
@@ -65,9 +73,12 @@ func WriteFile(stateRoot string, policy *DevicePolicy) error {
 
 // Validate checks the persisted Device policy shape.
 func Validate(policy *DevicePolicy) error {
+	// Treat a nil policy as valid.
 	if policy == nil {
 		return nil
 	}
+
+	// Reject checkout roots with missing, duplicate, or unqualified fields.
 	seen := make(map[string]struct{}, len(policy.GetCheckoutRoot()))
 	for _, root := range policy.GetCheckoutRoot() {
 		if root == nil {
@@ -91,6 +102,8 @@ func Validate(policy *DevicePolicy) error {
 			return errors.Errorf("device policy checkout-root %q access is required", name)
 		}
 	}
+
+	// Require the forge-worker's object key and resource limits.
 	if fw := policy.GetForgeWorker(); fw != nil {
 		if strings.TrimSpace(fw.GetWorkerObjectKey()) == "" {
 			return errors.New("device policy forge-worker worker object key is required")
@@ -104,6 +117,7 @@ func Validate(policy *DevicePolicy) error {
 		if len(fw.GetBackends()) == 0 {
 			return errors.New("device policy forge-worker backends must not be empty")
 		}
+		// Reject empty, whitespace-containing, or duplicate backends.
 		seenBackends := make(map[string]struct{}, len(fw.GetBackends()))
 		for _, backend := range fw.GetBackends() {
 			if strings.TrimSpace(backend) == "" {

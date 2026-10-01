@@ -21,27 +21,34 @@ func ConstructChildResource[T any](
 	ctx context.Context,
 	buildFn func(subCtx context.Context) (mux srpc.Invoker, result T, releaseFn func(), err error),
 ) (T, uint32, error) {
+	// Initialize the zero result returned on the error paths.
 	var zero T
 
+	// Resolve the client generation that owns the new sub-resource.
 	client, err := MustGetResourceClientContext(ctx)
 	if err != nil {
 		return zero, 0, err
 	}
 
+	// Derive the sub-resource context from the client session context.
 	subCtx, subCancel := context.WithCancel(client.Context())
 
+	// Build the sub-resource with the derived context.
 	mux, result, releaseFn, err := buildFn(subCtx)
 	if err != nil {
 		subCancel()
 		return zero, 0, err
 	}
 
+	// Register the sub-resource, releasing it with the client generation.
 	resourceID, err := client.AddResourceValue(mux, result, func() {
 		if releaseFn != nil {
 			releaseFn()
 		}
 		subCancel()
 	})
+
+	// Release the build result and cancel the context on registration failure.
 	if err != nil {
 		if releaseFn != nil {
 			releaseFn()

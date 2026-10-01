@@ -21,6 +21,7 @@ const webPluginBrowserPkg = "web/plugin/browser"
 //
 // builds to outFile
 func BuildWebPluginBrowserEntrypoint(ctx context.Context, le *logrus.Entry, bldrDistRoot, outFile string, minify, sourcemaps bool) error {
+	// Resolve the output name, sourcemap mode, and entrypoint name.
 	outFilename := filepath.Base(outFile)
 	le.Infof("building %v", outFilename)
 	sourceMap := "none"
@@ -29,6 +30,8 @@ func BuildWebPluginBrowserEntrypoint(ctx context.Context, le *logrus.Entry, bldr
 	}
 	outputRoot := filepath.Dir(outFile)
 	entrypointName := strings.TrimSuffix(outFilename, filepath.Ext(outFilename))
+
+	// Bundle the browser plugin shim with the rolldown bundler.
 	result, err := bldr_web_bundler_rolldown.Build(
 		ctx,
 		le,
@@ -68,6 +71,8 @@ func BuildWebPluginBrowserEntrypoint(ctx context.Context, le *logrus.Entry, bldr
 	if err != nil {
 		return err
 	}
+
+	// Check the entrypoint landed at the expected output name.
 	if result.GetEntrypointOutputs()[entrypointName] != outFilename {
 		return errors.Errorf("browser plugin output is %q, expected %q", result.GetEntrypointOutputs()[entrypointName], outFilename)
 	}
