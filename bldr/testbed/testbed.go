@@ -2,6 +2,7 @@ package testbed
 
 import (
 	"context"
+	"slices"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
@@ -70,6 +71,8 @@ type Testbed struct {
 	rpcServiceCtrl *bifrost_rpc.RpcServiceController
 	// rels are the release funcs
 	rels []func()
+	// ctxCancel cancels ctx
+	ctxCancel context.CancelFunc
 }
 
 // SchedulerConfigBuilder constructs the plugin scheduler configuration after the
@@ -91,13 +94,9 @@ func BuildTestbedWithSchedulerConfig(
 ) (*Testbed, error) {
 	// Build the shared release function and cancellable base context.
 	ctx, ctxCancel := context.WithCancel(rctx)
+	var b bus.Bus
 	var rels []func()
-	rel := func() {
-		for _, fn := range rels {
-			fn()
-		}
-		ctxCancel()
-	}
+	rel := func() { release(b, rels, ctxCancel) }
 
 	// Start the core bus and service registry.
 	b, sr, err := core.NewCoreBus(ctx, le)
@@ -311,6 +310,7 @@ func BuildTestbedWithSchedulerConfig(
 		mux:                 mux,
 		rpcServiceCtrl:      rpcServiceCtrl,
 		rels:                rels,
+		ctxCancel:           ctxCancel,
 	}, nil
 }
 
@@ -443,9 +443,20 @@ func (d *Testbed) CreateManifestWithBilly(
 	return manifest, manifestRef, nil
 }
 
-// Release releases the devtool bus.
+// Release releases the devtool bus and waits for every controller on it,
+// including controllers loaded by directives, to exit.
 func (d *Testbed) Release() {
-	for _, rel := range d.rels {
+	release(d.b, d.rels, d.ctxCancel)
+}
+
+// release calls rels newest first, cancels the base context, and closes b,
+// which joins every controller still attached. b may be nil.
+func release(b bus.Bus, rels []func(), cancel context.CancelFunc) {
+	for _, rel := range slices.Backward(rels) {
 		rel()
+	}
+	cancel()
+	if b != nil {
+		_ = b.Close()
 	}
 }
