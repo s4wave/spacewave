@@ -4,6 +4,7 @@ import (
 	"context"
 
 	resource_client "github.com/s4wave/spacewave/bldr/resource/client"
+	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/bucket"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	"github.com/s4wave/spacewave/db/world"
@@ -99,6 +100,13 @@ func (e *SDKEngine) WaitObjectRev(ctx context.Context, key string, rev uint64, i
 // GetWorldRootSnapshot returns the current committed World root snapshot.
 func (e *SDKEngine) GetWorldRootSnapshot(ctx context.Context) (*s4wave_world.WorldRootSnapshot, error) {
 	return e.service.GetWorldRootSnapshot(ctx, &s4wave_world.GetWorldRootSnapshotRequest{})
+}
+
+// SetRetainedRoot retains the accepted World root ref under name in the
+// World's shared state. An empty ref releases the name.
+func (e *SDKEngine) SetRetainedRoot(ctx context.Context, name string, ref *block.BlockRef) error {
+	_, err := e.service.SetRetainedRoot(ctx, &s4wave_world.SetRetainedRootRequest{Name: name, RootRef: ref})
+	return err
 }
 
 // WatchWorldRootSnapshots streams committed World root snapshots.

@@ -3,6 +3,7 @@ package sobject_world_engine
 import (
 	"bytes"
 	"context"
+	"slices"
 
 	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/pkg/errors"
@@ -87,11 +88,14 @@ func (c *Controller) executeProcessOpsAsValidator(ctx context.Context, so sobjec
 					return nil, nil, err
 				}
 
-				// Retain the World before it can become the accepted root. A
-				// block missing locally and from storage rejects only its
-				// operation.
+				// Retain the World and any changed retained roots before they
+				// can become accepted. A block missing locally and from storage
+				// rejects only its operation.
 				if nhs != nil {
 					err := c.retainPublicationWorld(ctx, so, nhs.GetHeadRef())
+					if err == nil && !slices.EqualFunc(nhs.GetRetainedRoots(), headState.GetRetainedRoots(), (*RetainedRoot).EqualVT) {
+						err = c.retainRoots(ctx, so, nhs.GetRetainedRoots())
+					}
 					if err != nil && !errors.Is(err, block.ErrNotFound) {
 						return nil, nil, err
 					}

@@ -124,7 +124,9 @@ func (c *Controller) reclaimStorage(ctx context.Context, so sobject.SharedObject
 //
 // The local store is the liveness test of the reclaim pass. While the accepted
 // World is still copying into it, its missing blocks would look dead, so the
-// fence returns errStorageReclaimNotReady instead.
+// fence returns errStorageReclaimNotReady instead. The fence copies the
+// retained roots into it, and a lost retained root fails the pass until the
+// root is released.
 func (c *Controller) advanceStorageGeneration(ctx context.Context, so sobject.SharedObject) error {
 	rejected, err := c.commitMaintenanceOp(ctx, so, func(state *InnerState) (*SOWorldOp, error) {
 		// Check the accepted World is completely local.
@@ -134,6 +136,14 @@ func (c *Controller) advanceStorageGeneration(ctx context.Context, so sobject.Sh
 		}
 		if !complete {
 			return nil, errStorageReclaimNotReady
+		}
+
+		// Hold the retained roots locally.
+		if err := c.retainRoots(ctx, so, state.GetRetainedRoots()); err != nil {
+			if errors.Is(err, block.ErrNotFound) {
+				return nil, errors.Wrap(err, "retained root is lost, release it to resume storage reclaim")
+			}
+			return nil, err
 		}
 
 		// Advance the generation the World was accepted on.

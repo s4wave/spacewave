@@ -14,6 +14,7 @@ import (
 	json "github.com/aperturerobotics/protobuf-go-lite/json"
 	backoff "github.com/aperturerobotics/util/backoff"
 	sobject "github.com/s4wave/spacewave/core/sobject"
+	block "github.com/s4wave/spacewave/db/block"
 	transform "github.com/s4wave/spacewave/db/block/transform"
 	bucket "github.com/s4wave/spacewave/db/bucket"
 	tx "github.com/s4wave/spacewave/db/world/block/tx"
@@ -175,6 +176,9 @@ type InnerState struct {
 	// The Space authority advances it before reclaiming unreachable blocks from
 	// the storage bucket. Transactions built on an older generation are rejected.
 	StorageGeneration uint64 `protobuf:"varint,2,opt,name=storage_generation,json=storageGeneration,proto3" json:"storageGeneration,omitempty"`
+	// RetainedRoots are past World roots the Space keeps restorable, sorted by
+	// name. Storage reclaim treats every block they reach as live.
+	RetainedRoots []*RetainedRoot `protobuf:"bytes,3,rep,name=retained_roots,json=retainedRoots,proto3" json:"retainedRoots,omitempty"`
 }
 
 func (x *InnerState) Reset() {
@@ -197,6 +201,63 @@ func (x *InnerState) GetStorageGeneration() uint64 {
 	return 0
 }
 
+func (x *InnerState) GetRetainedRoots() []*RetainedRoot {
+	if x != nil {
+		return x.RetainedRoots
+	}
+	return nil
+}
+
+// RetainedRoot is a past World root kept restorable under a name.
+type RetainedRoot struct {
+	unknownFields []byte
+	// Name identifies the root within the Space.
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	// RootRef is the World root block. It uses the head's transform config.
+	RootRef *block.BlockRef `protobuf:"bytes,2,opt,name=root_ref,json=rootRef,proto3" json:"rootRef,omitempty"`
+}
+
+func (x *RetainedRoot) Reset() {
+	*x = RetainedRoot{}
+}
+
+func (*RetainedRoot) ProtoMessage() {}
+
+func (x *RetainedRoot) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *RetainedRoot) GetRootRef() *block.BlockRef {
+	if x != nil {
+		return x.RootRef
+	}
+	return nil
+}
+
+// RetainedRootSet is the block the validator keeps as its one local named root
+// for all retained roots. Its outgoing refs are the retained World roots.
+type RetainedRootSet struct {
+	unknownFields []byte
+	// Roots are the retained roots, sorted by name.
+	Roots []*RetainedRoot `protobuf:"bytes,1,rep,name=roots,proto3" json:"roots,omitempty"`
+}
+
+func (x *RetainedRootSet) Reset() {
+	*x = RetainedRootSet{}
+}
+
+func (*RetainedRootSet) ProtoMessage() {}
+
+func (x *RetainedRootSet) GetRoots() []*RetainedRoot {
+	if x != nil {
+		return x.Roots
+	}
+	return nil
+}
+
 // SOWorldOp is the outer wrapper for a shared object operation against a world InnerState.
 type SOWorldOp struct {
 	unknownFields []byte
@@ -206,6 +267,7 @@ type SOWorldOp struct {
 	//	*SOWorldOp_InitWorld
 	//	*SOWorldOp_ApplyTxOp
 	//	*SOWorldOp_AdvanceStorageGeneration
+	//	*SOWorldOp_SetRetainedRoot
 	Body isSOWorldOp_Body `protobuf_oneof:"body"`
 }
 
@@ -243,6 +305,13 @@ func (x *SOWorldOp) GetAdvanceStorageGeneration() *AdvanceStorageGenerationOp {
 	return nil
 }
 
+func (x *SOWorldOp) GetSetRetainedRoot() *SetRetainedRootOp {
+	if x, ok := x.GetBody().(*SOWorldOp_SetRetainedRoot); ok {
+		return x.SetRetainedRoot
+	}
+	return nil
+}
+
 type isSOWorldOp_Body interface {
 	isSOWorldOp_Body()
 }
@@ -262,11 +331,18 @@ type SOWorldOp_AdvanceStorageGeneration struct {
 	AdvanceStorageGeneration *AdvanceStorageGenerationOp `protobuf:"bytes,3,opt,name=advance_storage_generation,json=advanceStorageGeneration,proto3,oneof"`
 }
 
+type SOWorldOp_SetRetainedRoot struct {
+	// SetRetainedRoot retains or releases a past World root.
+	SetRetainedRoot *SetRetainedRootOp `protobuf:"bytes,4,opt,name=set_retained_root,json=setRetainedRoot,proto3,oneof"`
+}
+
 func (*SOWorldOp_InitWorld) isSOWorldOp_Body() {}
 
 func (*SOWorldOp_ApplyTxOp) isSOWorldOp_Body() {}
 
 func (*SOWorldOp_AdvanceStorageGeneration) isSOWorldOp_Body() {}
+
+func (*SOWorldOp_SetRetainedRoot) isSOWorldOp_Body() {}
 
 // InitWorldOp is the operation to initialize the inner state.
 type InitWorldOp struct {
@@ -345,6 +421,48 @@ func (x *AdvanceStorageGenerationOp) Reset() {
 func (*AdvanceStorageGenerationOp) ProtoMessage() {}
 
 func (x *AdvanceStorageGenerationOp) GetStorageGeneration() uint64 {
+	if x != nil {
+		return x.StorageGeneration
+	}
+	return 0
+}
+
+// SetRetainedRootOp retains a past World root under a name, replacing a root
+// with the same name, or releases the name when root_ref is empty.
+type SetRetainedRootOp struct {
+	unknownFields []byte
+	// Name identifies the root within the Space.
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	// RootRef is the World root block to retain, or empty to release.
+	RootRef *block.BlockRef `protobuf:"bytes,2,opt,name=root_ref,json=rootRef,proto3" json:"rootRef,omitempty"`
+	// StorageGeneration is the generation of the accepted state whose head is
+	// root_ref. The validator rejects an older one: a reclaim pass that advanced
+	// past it may have judged the root's blocks dead before the validator copied
+	// them.
+	StorageGeneration uint64 `protobuf:"varint,3,opt,name=storage_generation,json=storageGeneration,proto3" json:"storageGeneration,omitempty"`
+}
+
+func (x *SetRetainedRootOp) Reset() {
+	*x = SetRetainedRootOp{}
+}
+
+func (*SetRetainedRootOp) ProtoMessage() {}
+
+func (x *SetRetainedRootOp) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *SetRetainedRootOp) GetRootRef() *block.BlockRef {
+	if x != nil {
+		return x.RootRef
+	}
+	return nil
+}
+
+func (x *SetRetainedRootOp) GetStorageGeneration() uint64 {
 	if x != nil {
 		return x.StorageGeneration
 	}
@@ -579,6 +697,7 @@ func (m *InnerState) CloneVT() *InnerState {
 	r := new(InnerState)
 	r.StorageGeneration = m.StorageGeneration
 	r.HeadRef = protobuf_go_lite.CloneVTValue(m.HeadRef)
+	r.RetainedRoots = protobuf_go_lite.CloneVTSlice(m.RetainedRoots)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -586,6 +705,39 @@ func (m *InnerState) CloneVT() *InnerState {
 }
 
 func (m *InnerState) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *RetainedRoot) CloneVT() *RetainedRoot {
+	if m == nil {
+		return (*RetainedRoot)(nil)
+	}
+	r := new(RetainedRoot)
+	r.Name = m.Name
+	r.RootRef = protobuf_go_lite.CloneVTValue(m.RootRef)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *RetainedRoot) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *RetainedRootSet) CloneVT() *RetainedRootSet {
+	if m == nil {
+		return (*RetainedRootSet)(nil)
+	}
+	r := new(RetainedRootSet)
+	r.Roots = protobuf_go_lite.CloneVTSlice(m.Roots)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *RetainedRootSet) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -646,6 +798,19 @@ func (m *SOWorldOp_AdvanceStorageGeneration) CloneOneofVT() isSOWorldOp_Body {
 	return m.CloneVT()
 }
 
+func (m *SOWorldOp_SetRetainedRoot) CloneVT() *SOWorldOp_SetRetainedRoot {
+	if m == nil {
+		return (*SOWorldOp_SetRetainedRoot)(nil)
+	}
+	r := new(SOWorldOp_SetRetainedRoot)
+	r.SetRetainedRoot = protobuf_go_lite.CloneVTValue(m.SetRetainedRoot)
+	return r
+}
+
+func (m *SOWorldOp_SetRetainedRoot) CloneOneofVT() isSOWorldOp_Body {
+	return m.CloneVT()
+}
+
 func (m *InitWorldOp) CloneVT() *InitWorldOp {
 	if m == nil {
 		return (*InitWorldOp)(nil)
@@ -693,6 +858,24 @@ func (m *AdvanceStorageGenerationOp) CloneVT() *AdvanceStorageGenerationOp {
 }
 
 func (m *AdvanceStorageGenerationOp) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *SetRetainedRootOp) CloneVT() *SetRetainedRootOp {
+	if m == nil {
+		return (*SetRetainedRootOp)(nil)
+	}
+	r := new(SetRetainedRootOp)
+	r.Name = m.Name
+	r.StorageGeneration = m.StorageGeneration
+	r.RootRef = protobuf_go_lite.CloneVTValue(m.RootRef)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *SetRetainedRootOp) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -812,11 +995,57 @@ func (this *InnerState) EqualVT(that *InnerState) bool {
 	if this.StorageGeneration != that.StorageGeneration {
 		return false
 	}
+	if !protobuf_go_lite.EqualVTSliceImplicit(this.RetainedRoots, that.RetainedRoots, func() *RetainedRoot { return &RetainedRoot{} }) {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
 func (this *InnerState) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*InnerState)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *RetainedRoot) EqualVT(that *RetainedRoot) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Name != that.Name {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.RootRef, that.RootRef) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *RetainedRoot) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*RetainedRoot)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *RetainedRootSet) EqualVT(that *RetainedRootSet) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTSliceImplicit(this.Roots, that.Roots, func() *RetainedRoot { return &RetainedRoot{} }) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *RetainedRootSet) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*RetainedRootSet)
 	if !ok {
 		return false
 	}
@@ -901,6 +1130,23 @@ func (this *SOWorldOp_AdvanceStorageGeneration) EqualVT(thatIface isSOWorldOp_Bo
 	return true
 }
 
+func (this *SOWorldOp_SetRetainedRoot) EqualVT(thatIface isSOWorldOp_Body) bool {
+	that, ok := thatIface.(*SOWorldOp_SetRetainedRoot)
+	if !ok {
+		return false
+	}
+	if this == that {
+		return true
+	}
+	if this == nil && that != nil || this != nil && that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTImplicit(this.SetRetainedRoot, that.SetRetainedRoot, func() *SetRetainedRootOp { return &SetRetainedRootOp{} }) {
+		return false
+	}
+	return true
+}
+
 func (this *InitWorldOp) EqualVT(that *InitWorldOp) bool {
 	if this == that {
 		return true
@@ -961,6 +1207,32 @@ func (this *AdvanceStorageGenerationOp) EqualVT(that *AdvanceStorageGenerationOp
 
 func (this *AdvanceStorageGenerationOp) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*AdvanceStorageGenerationOp)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *SetRetainedRootOp) EqualVT(that *SetRetainedRootOp) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Name != that.Name {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.RootRef, that.RootRef) {
+		return false
+	}
+	if this.StorageGeneration != that.StorageGeneration {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *SetRetainedRootOp) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*SetRetainedRootOp)
 	if !ok {
 		return false
 	}
@@ -1240,6 +1512,17 @@ func (x *InnerState) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("storageGeneration")
 		s.WriteUint64(x.StorageGeneration)
 	}
+	if len(x.RetainedRoots) > 0 || s.HasField("retainedRoots") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("retainedRoots")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.RetainedRoots {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("retainedRoots"))
+		}
+		s.WriteArrayEnd()
+	}
 	s.WriteObjectEnd()
 }
 
@@ -1267,12 +1550,147 @@ func (x *InnerState) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "storage_generation", "storageGeneration":
 			s.AddField("storage_generation")
 			x.StorageGeneration = s.ReadUint64()
+		case "retained_roots", "retainedRoots":
+			s.AddField("retained_roots")
+			if s.ReadNil() {
+				x.RetainedRoots = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.RetainedRoots = append(x.RetainedRoots, nil)
+					return
+				}
+				v := &RetainedRoot{}
+				v.UnmarshalProtoJSON(s.WithField("retained_roots", false))
+				if s.Err() != nil {
+					return
+				}
+				x.RetainedRoots = append(x.RetainedRoots, v)
+			})
 		}
 	})
 }
 
 // UnmarshalJSON unmarshals the InnerState from JSON.
 func (x *InnerState) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the RetainedRoot message to JSON.
+func (x *RetainedRoot) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Name != "" || s.HasField("name") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("name")
+		s.WriteString(x.Name)
+	}
+	if x.RootRef != nil || s.HasField("rootRef") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("rootRef")
+		x.RootRef.MarshalProtoJSON(s.WithField("rootRef"))
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the RetainedRoot to JSON.
+func (x *RetainedRoot) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the RetainedRoot message from JSON.
+func (x *RetainedRoot) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "name":
+			s.AddField("name")
+			x.Name = s.ReadString()
+		case "root_ref", "rootRef":
+			if s.ReadNil() {
+				x.RootRef = nil
+				return
+			}
+			x.RootRef = &block.BlockRef{}
+			x.RootRef.UnmarshalProtoJSON(s.WithField("root_ref", true))
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the RetainedRoot from JSON.
+func (x *RetainedRoot) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the RetainedRootSet message to JSON.
+func (x *RetainedRootSet) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if len(x.Roots) > 0 || s.HasField("roots") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("roots")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.Roots {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("roots"))
+		}
+		s.WriteArrayEnd()
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the RetainedRootSet to JSON.
+func (x *RetainedRootSet) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the RetainedRootSet message from JSON.
+func (x *RetainedRootSet) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "roots":
+			s.AddField("roots")
+			if s.ReadNil() {
+				x.Roots = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.Roots = append(x.Roots, nil)
+					return
+				}
+				v := &RetainedRoot{}
+				v.UnmarshalProtoJSON(s.WithField("roots", false))
+				if s.Err() != nil {
+					return
+				}
+				x.Roots = append(x.Roots, v)
+			})
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the RetainedRootSet from JSON.
+func (x *RetainedRootSet) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -1298,6 +1716,10 @@ func (x *SOWorldOp) MarshalProtoJSON(s *json.MarshalState) {
 			s.WriteMoreIf(&wroteField)
 			s.WriteObjectField("advanceStorageGeneration")
 			ov.AdvanceStorageGeneration.MarshalProtoJSON(s.WithField("advanceStorageGeneration"))
+		case *SOWorldOp_SetRetainedRoot:
+			s.WriteMoreIf(&wroteField)
+			s.WriteObjectField("setRetainedRoot")
+			ov.SetRetainedRoot.MarshalProtoJSON(s.WithField("setRetainedRoot"))
 		}
 	}
 	s.WriteObjectEnd()
@@ -1344,6 +1766,15 @@ func (x *SOWorldOp) UnmarshalProtoJSON(s *json.UnmarshalState) {
 			}
 			ov.AdvanceStorageGeneration = &AdvanceStorageGenerationOp{}
 			ov.AdvanceStorageGeneration.UnmarshalProtoJSON(s.WithField("advance_storage_generation", true))
+		case "set_retained_root", "setRetainedRoot":
+			ov := &SOWorldOp_SetRetainedRoot{}
+			x.Body = ov
+			if s.ReadNil() {
+				ov.SetRetainedRoot = nil
+				return
+			}
+			ov.SetRetainedRoot = &SetRetainedRootOp{}
+			ov.SetRetainedRoot.UnmarshalProtoJSON(s.WithField("set_retained_root", true))
 		}
 	})
 }
@@ -1500,6 +1931,68 @@ func (x *AdvanceStorageGenerationOp) UnmarshalProtoJSON(s *json.UnmarshalState) 
 
 // UnmarshalJSON unmarshals the AdvanceStorageGenerationOp from JSON.
 func (x *AdvanceStorageGenerationOp) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the SetRetainedRootOp message to JSON.
+func (x *SetRetainedRootOp) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Name != "" || s.HasField("name") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("name")
+		s.WriteString(x.Name)
+	}
+	if x.RootRef != nil || s.HasField("rootRef") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("rootRef")
+		x.RootRef.MarshalProtoJSON(s.WithField("rootRef"))
+	}
+	if x.StorageGeneration != 0 || s.HasField("storageGeneration") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("storageGeneration")
+		s.WriteUint64(x.StorageGeneration)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the SetRetainedRootOp to JSON.
+func (x *SetRetainedRootOp) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the SetRetainedRootOp message from JSON.
+func (x *SetRetainedRootOp) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "name":
+			s.AddField("name")
+			x.Name = s.ReadString()
+		case "root_ref", "rootRef":
+			if s.ReadNil() {
+				x.RootRef = nil
+				return
+			}
+			x.RootRef = &block.BlockRef{}
+			x.RootRef.UnmarshalProtoJSON(s.WithField("root_ref", true))
+		case "storage_generation", "storageGeneration":
+			s.AddField("storage_generation")
+			x.StorageGeneration = s.ReadUint64()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the SetRetainedRootOp from JSON.
+func (x *SetRetainedRootOp) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -1897,6 +2390,18 @@ func (m *InnerState) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if len(m.RetainedRoots) > 0 {
+		for iNdEx := len(m.RetainedRoots) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.RetainedRoots[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x1a
+		}
+	}
 	if m.StorageGeneration != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.StorageGeneration))
 		i--
@@ -1911,6 +2416,97 @@ func (m *InnerState) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
 		i--
 		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *RetainedRoot) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *RetainedRoot) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *RetainedRoot) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.RootRef != nil {
+		size, err := m.RootRef.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.Name) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.Name)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *RetainedRootSet) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *RetainedRootSet) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *RetainedRootSet) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.Roots) > 0 {
+		for iNdEx := len(m.Roots) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.Roots[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0xa
+		}
 	}
 	return len(dAtA) - i, nil
 }
@@ -2024,6 +2620,30 @@ func (m *SOWorldOp_AdvanceStorageGeneration) MarshalToSizedBufferVT(dAtA []byte)
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, 0)
 		i--
 		dAtA[i] = 0x1a
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *SOWorldOp_SetRetainedRoot) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *SOWorldOp_SetRetainedRoot) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	if m.SetRetainedRoot != nil {
+		size, err := m.SetRetainedRoot.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x22
+	} else {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, 0)
+		i--
+		dAtA[i] = 0x22
 	}
 	return len(dAtA) - i, nil
 }
@@ -2155,6 +2775,58 @@ func (m *AdvanceStorageGenerationOp) MarshalToSizedBufferVT(dAtA []byte) (int, e
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.StorageGeneration))
 		i--
 		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *SetRetainedRootOp) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *SetRetainedRootOp) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *SetRetainedRootOp) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.StorageGeneration != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.StorageGeneration))
+		i--
+		dAtA[i] = 0x18
+	}
+	if m.RootRef != nil {
+		size, err := m.RootRef.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.Name) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.Name)
+		i--
+		dAtA[i] = 0xa
 	}
 	return len(dAtA) - i, nil
 }
@@ -2423,6 +3095,39 @@ func (m *InnerState) SizeVT() (n int) {
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.StorageGeneration)
+	for _, e := range m.RetainedRoots {
+		l = e.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *RetainedRoot) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Name)
+	if m.RootRef != nil {
+		l = m.RootRef.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *RetainedRootSet) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	for _, e := range m.Roots {
+		l = e.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -2485,6 +3190,21 @@ func (m *SOWorldOp_AdvanceStorageGeneration) SizeVT() (n int) {
 	return n
 }
 
+func (m *SOWorldOp_SetRetainedRoot) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.SetRetainedRoot != nil {
+		l = m.SetRetainedRoot.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	} else {
+		n += 2
+	}
+	return n
+}
+
 func (m *InitWorldOp) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -2521,6 +3241,22 @@ func (m *AdvanceStorageGenerationOp) SizeVT() (n int) {
 	}
 	var l int
 	_ = l
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.StorageGeneration)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *SetRetainedRootOp) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Name)
+	if m.RootRef != nil {
+		l = m.RootRef.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.StorageGeneration)
 	n += len(m.unknownFields)
 	return n
@@ -2655,10 +3391,62 @@ func (x *InnerState) MarshalProtoText() string {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "storage_generation")
 		protobuf_go_lite.TextWriteUint(&sb, x.StorageGeneration)
 	}
+	if len(x.RetainedRoots) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "retained_roots")
+		for i, v := range x.RetainedRoots {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			if v == nil {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, &RetainedRoot{})
+			} else {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, v)
+			}
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
 
 func (x *InnerState) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *RetainedRoot) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "RetainedRoot")
+	if x.Name != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "name")
+		protobuf_go_lite.TextWriteString(&sb, x.Name)
+	}
+	if x.RootRef != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "root_ref")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.RootRef)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *RetainedRoot) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *RetainedRootSet) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "RetainedRootSet")
+	if len(x.Roots) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "roots")
+		for i, v := range x.Roots {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			if v == nil {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, &RetainedRoot{})
+			} else {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, v)
+			}
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *RetainedRootSet) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -2686,6 +3474,13 @@ func (x *SOWorldOp) MarshalProtoText() string {
 			protobuf_go_lite.TextWriteTextMarshaler(&sb, &AdvanceStorageGenerationOp{})
 		} else {
 			protobuf_go_lite.TextWriteTextMarshaler(&sb, body.AdvanceStorageGeneration)
+		}
+	case *SOWorldOp_SetRetainedRoot:
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "set_retained_root")
+		if body.SetRetainedRoot == nil {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, &SetRetainedRootOp{})
+		} else {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, body.SetRetainedRoot)
 		}
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
@@ -2742,6 +3537,28 @@ func (x *AdvanceStorageGenerationOp) MarshalProtoText() string {
 }
 
 func (x *AdvanceStorageGenerationOp) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *SetRetainedRootOp) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "SetRetainedRootOp")
+	if x.Name != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "name")
+		protobuf_go_lite.TextWriteString(&sb, x.Name)
+	}
+	if x.RootRef != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "root_ref")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.RootRef)
+	}
+	if x.StorageGeneration != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "storage_generation")
+		protobuf_go_lite.TextWriteUint(&sb, x.StorageGeneration)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *SetRetainedRootOp) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -3029,6 +3846,143 @@ func (m *InnerState) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RetainedRoots", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.RetainedRoots = append(m.RetainedRoots, &RetainedRoot{})
+			if err := m.RetainedRoots[len(m.RetainedRoots)-1].UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *RetainedRoot) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: RetainedRoot: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: RetainedRoot: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Name", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Name = v
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RootRef", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.RootRef == nil {
+				m.RootRef = &block.BlockRef{}
+			}
+			if err := m.RootRef.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *RetainedRootSet) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: RetainedRootSet: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: RetainedRootSet: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Roots", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Roots = append(m.Roots, &RetainedRoot{})
+			if err := m.Roots[len(m.Roots)-1].UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -3130,6 +4084,26 @@ func (m *SOWorldOp) UnmarshalVT(dAtA []byte) error {
 					return err
 				}
 				m.Body = &SOWorldOp_AdvanceStorageGeneration{AdvanceStorageGeneration: v}
+			}
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SetRetainedRoot", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if oneof, ok := m.Body.(*SOWorldOp_SetRetainedRoot); ok {
+				if err := oneof.SetRetainedRoot.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+			} else {
+				v := &SetRetainedRootOp{}
+				if err := v.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+				m.Body = &SOWorldOp_SetRetainedRoot{SetRetainedRoot: v}
 			}
 			iNdEx = postIndex
 		default:
@@ -3311,6 +4285,83 @@ func (m *AdvanceStorageGenerationOp) UnmarshalVT(dAtA []byte) error {
 		}
 		switch fieldNum {
 		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field StorageGeneration", wireType)
+			}
+			m.StorageGeneration = 0
+			m.StorageGeneration, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *SetRetainedRootOp) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: SetRetainedRootOp: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: SetRetainedRootOp: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Name", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Name = v
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RootRef", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.RootRef == nil {
+				m.RootRef = &block.BlockRef{}
+			}
+			if err := m.RootRef.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 3:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field StorageGeneration", wireType)
 			}

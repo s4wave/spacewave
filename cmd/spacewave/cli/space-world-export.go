@@ -15,11 +15,19 @@ import (
 
 // newSpaceWorldExportCommand exports one durable root, including its decryption configuration.
 func newSpaceWorldExportCommand(statePath *string, sessionIdx *uint, spaceID *string) *cli.Command {
+	var retainName string
 	return &cli.Command{
 		Name:        "export-root",
 		Usage:       "save a recovery root after local persistence and remote uploads complete",
 		ArgsUsage:   "NEW_FILE",
-		Description: "Writes a binary WorldRootSnapshot with mode 0600, refusing to overwrite a file.\nThe file contains decryption material: encrypt it before storing it offsite.\nKeep the Space's S3 endpoint, bucket, and block-store prefix with the recovery file.\nThe referenced packfiles must remain available; this file does not contain them.\nExporting does not register a permanent garbage-collection retention root.",
+		Description: "Writes a binary WorldRootSnapshot with mode 0600, refusing to overwrite a file.\nThe file contains decryption material: encrypt it before storing it offsite.\nKeep the Space's S3 endpoint, bucket, and block-store prefix with the recovery file.\nThe referenced packfiles must remain available; this file does not contain them.\nWith --retain, the Space keeps the root's blocks through storage reclaim until\nrelease-root releases the name. A Space holds at most 16 retained roots.\nWithout it, storage reclaim may delete blocks the root alone references.",
+		Flags: []cli.Flag{
+			&cli.StringFlag{
+				Name:        "retain",
+				Usage:       "retain the root in the Space under this name, replacing the root the name held",
+				Destination: &retainName,
+			},
+		},
 		Action: func(c *cli.Context) error {
 			// Require one new output path and mount the Space's World.
 			if c.NArg() != 1 {
@@ -64,6 +72,13 @@ func newSpaceWorldExportCommand(statePath *string, sessionIdx *uint, spaceID *st
 				return err
 			}
 
+			// Keep the uploaded root's blocks through storage reclaim.
+			if retainName != "" {
+				if err := engine.SetRetainedRoot(ctx, retainName, snapshot.GetRootRef().GetRootRef()); err != nil {
+					return errors.Wrap(err, "retain recovery root")
+				}
+			}
+
 			// Write secrets only into a newly created private file.
 			data, err := snapshot.MarshalVT()
 			if err != nil {
@@ -93,6 +108,31 @@ func newSpaceWorldExportCommand(statePath *string, sessionIdx *uint, spaceID *st
 			}
 			complete = true
 			return nil
+		},
+	}
+}
+
+// newSpaceWorldReleaseRootCommand releases a root export-root retained.
+func newSpaceWorldReleaseRootCommand(statePath *string, sessionIdx *uint, spaceID *string) *cli.Command {
+	return &cli.Command{
+		Name:        "release-root",
+		Usage:       "release a retained recovery root",
+		ArgsUsage:   "NAME",
+		Description: "Releases the root export-root --retain kept under NAME.\nThe next storage reclaim pass may delete blocks only that root referenced,\nso recovery files of the root stop restoring.",
+		Action: func(c *cli.Context) error {
+			// Require one name and mount the Space's World.
+			if c.NArg() != 1 {
+				return errors.New("one retained root name is required")
+			}
+			ctx := c.Context
+			engine, release, _, err := mountSpaceWorldEngine(ctx, c, *statePath, *sessionIdx, *spaceID)
+			if err != nil {
+				return err
+			}
+			defer release()
+
+			// Release the name.
+			return engine.SetRetainedRoot(ctx, c.Args().First(), nil)
 		},
 	}
 }

@@ -1,6 +1,7 @@
 syntax = "proto3";
 package s4wave.world;
 
+import "github.com/s4wave/spacewave/db/block/block.proto";
 import "github.com/s4wave/spacewave/db/bucket/bucket.proto";
 import "github.com/s4wave/spacewave/db/block/quad/quad.proto";
 
@@ -10,6 +11,11 @@ service EngineResourceService {
   rpc GetWorldRootSnapshot(GetWorldRootSnapshotRequest) returns (WorldRootSnapshot);
 
   rpc WatchWorldRootSnapshots(WatchWorldRootSnapshotsRequest) returns (stream WorldRootSnapshot);
+
+  // SetRetainedRoot retains the accepted World root under a name in the World's
+  // shared state, so storage reclaim keeps its blocks. An empty root releases
+  // the name.
+  rpc SetRetainedRoot(SetRetainedRootRequest) returns (SetRetainedRootResponse);
 
   rpc NewTransaction(NewTransactionRequest) returns (NewTransactionResponse);
 
@@ -73,6 +79,17 @@ message GetWorldRootSnapshotRequest {}
 
 // WatchWorldRootSnapshotsRequest is the request type for WatchWorldRootSnapshots.
 message WatchWorldRootSnapshotsRequest {}
+
+// SetRetainedRootRequest is the request type for SetRetainedRoot.
+message SetRetainedRootRequest {
+  // Name identifies the retained root, 1 to 64 bytes.
+  string name = 1;
+  // RootRef is the accepted World root to retain, or empty to release the name.
+  .block.BlockRef root_ref = 2;
+}
+
+// SetRetainedRootResponse is the response type for SetRetainedRoot.
+message SetRetainedRootResponse {}
 
 // NewTransactionRequest is the request type for NewTransaction.
 message NewTransactionRequest {

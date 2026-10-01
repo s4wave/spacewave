@@ -106,6 +106,8 @@ func (c *Controller) processOp(
 			peerID,
 			nonce,
 		)
+	case *SOWorldOp_SetRetainedRoot:
+		return processSetRetainedRootOp(ole, body.SetRetainedRoot, headState, peerID, nonce)
 	default:
 		ole.Warn("rejecting op: unknown op type")
 		return nil, opRejection(peerID, nonce, "unknown operation type"), nil

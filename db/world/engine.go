@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/aperturerobotics/util/refcount"
+	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/net/peer"
 )
 
@@ -38,6 +39,15 @@ type Engine interface {
 	// ignoreNotFound is set, in which case it waits for the object to appear.
 	// Use WaitObjectRevBySeqno when the engine cannot watch individual keys.
 	WaitObjectRev(ctx context.Context, key string, rev uint64, ignoreNotFound bool) (uint64, error)
+}
+
+// RootRetainingEngine is an Engine that retains named World roots in its
+// shared state, so storage reclaim keeps their blocks for recovery.
+type RootRetainingEngine interface {
+	// SetRetainedRoot retains the World root ref under name, replacing the
+	// root the name held. ref must be the accepted head, with its blocks in
+	// the World's storage. An empty ref releases the name.
+	SetRetainedRoot(ctx context.Context, name string, ref *block.BlockRef) error
 }
 
 // EngineResolver is a function which resolves an engine for a ref count.

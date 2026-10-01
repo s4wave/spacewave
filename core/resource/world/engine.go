@@ -5,6 +5,7 @@ import (
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/starpc/srpc"
+	"github.com/pkg/errors"
 	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
 	resource_bucket_lookup "github.com/s4wave/spacewave/core/resource/bucket/lookup"
 	"github.com/s4wave/spacewave/db/bucket"
@@ -107,6 +108,18 @@ func (r *EngineResource) ExecuteWorldOp(ctx context.Context, req *s4wave_world.A
 // GetWorldRootSnapshot returns the current committed World root.
 func (r *EngineResource) GetWorldRootSnapshot(ctx context.Context, req *s4wave_world.GetWorldRootSnapshotRequest) (*s4wave_world.WorldRootSnapshot, error) {
 	return r.loadWorldRootSnapshot(ctx)
+}
+
+// SetRetainedRoot retains a World root in an engine that supports retention.
+func (r *EngineResource) SetRetainedRoot(ctx context.Context, req *s4wave_world.SetRetainedRootRequest) (*s4wave_world.SetRetainedRootResponse, error) {
+	retainer, ok := r.engine.(world.RootRetainingEngine)
+	if !ok {
+		return nil, errors.New("world engine does not retain roots")
+	}
+	if err := retainer.SetRetainedRoot(ctx, req.GetName(), req.GetRootRef()); err != nil {
+		return nil, err
+	}
+	return &s4wave_world.SetRetainedRootResponse{}, nil
 }
 
 // WatchWorldRootSnapshots streams committed World root snapshots.
