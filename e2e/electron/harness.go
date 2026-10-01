@@ -21,7 +21,6 @@ import (
 	playwright "github.com/mxschmitt/playwright-go"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/bldr/devtool"
-	resource_listener "github.com/s4wave/spacewave/core/resource/listener"
 	"github.com/sirupsen/logrus"
 )
 
@@ -30,10 +29,6 @@ const (
 	defaultCDPConnectRetry = 45 * time.Second
 	cdpReadyTimeoutEnv     = "E2E_ELECTRON_CDP_READY_TIMEOUT"
 	cdpShutdownTimeout     = 15 * time.Second
-
-	// spacewaveProjectID matches the storageProjectId the native listener
-	// config carries in bldr.star.
-	spacewaveProjectID = "spacewave"
 )
 
 // Harness owns a Bldr desktop runtime plus a Playwright CDP attachment to the
@@ -47,7 +42,6 @@ type Harness struct {
 	stateRoot         string
 	artifactDir       string
 	spacewaveDataRoot string
-	cliSocketPath     string
 	cdpPort           int
 	controlPort       int
 	bldrSrc           string
@@ -128,15 +122,6 @@ func Boot(ctx context.Context, le *logrus.Entry) (_ *Harness, retErr error) {
 		setEnv("BLDR_PLUGIN_STATE_PATH", filepath.Join(stateRoot, "electron-user-data")),
 		setEnv("SPACEWAVE_DATA_DIR", spacewaveDataRoot),
 	)
-
-	// Resolve the socket through the listener config so the harness reads the
-	// same path the daemon does, after SPACEWAVE_DATA_DIR is exported.
-	listenerConf := &resource_listener.Config{StorageProjectId: spacewaveProjectID}
-	cliSocketPath, err := listenerConf.DetermineSocketPath()
-	if err != nil {
-		return nil, errors.Wrap(err, "determine daemon socket path")
-	}
-	h.cliSocketPath = cliSocketPath
 
 	if err := h.startDesktopRuntime(ctx, hctx, cancel); err != nil {
 		return nil, err
@@ -250,13 +235,6 @@ func (h *Harness) LastLogFilePath() string {
 
 // RepoRoot returns the project repository root used by the harness.
 func (h *Harness) RepoRoot() string { return h.repoRoot }
-
-// CLISocketPath returns the Spacewave daemon socket path for this harness.
-//
-// The native listener and the CLI both derive the socket from the project
-// storage root, so it follows the SPACEWAVE_DATA_DIR the harness exports rather
-// than the repository checkout.
-func (h *Harness) CLISocketPath() string { return h.cliSocketPath }
 
 // pageContextReady reports whether the page has a live JavaScript execution
 // context over a parsed document.

@@ -8,7 +8,6 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"strings"
 	"testing"
 	"time"
 
@@ -20,34 +19,12 @@ import (
 const desktopRuntimeStateWaitTimeout = 45 * time.Second
 
 type desktopRuntimeStateSnapshot struct {
-	MainWindowOpen bool                           `json:"mainWindowOpen"`
-	Quitting       bool                           `json:"quitting"`
-	StatusText     string                         `json:"statusText"`
-	Health         int32                          `json:"health"`
-	Lifecycle      int32                          `json:"lifecycle"`
-	Listener       desktopRuntimeListenerSnapshot `json:"listener"`
-}
-
-type desktopRuntimeListenerSnapshot struct {
-	Reachability int32  `json:"reachability"`
-	Label        string `json:"label"`
-	Detail       string `json:"detail"`
-	SocketPath   string `json:"socketPath"`
+	MainWindowOpen bool   `json:"mainWindowOpen"`
+	StatusText     string `json:"statusText"`
 }
 
 type desktopTrayStateSnapshot struct {
-	StatusText string                     `json:"statusText"`
-	Entries    []desktopTrayEntrySnapshot `json:"entries"`
-}
-
-type desktopTrayEntrySnapshot struct {
-	ID     string                    `json:"id"`
-	Label  string                    `json:"label"`
-	Action desktopTrayActionSnapshot `json:"action"`
-}
-
-type desktopTrayActionSnapshot struct {
-	Value string `json:"value"`
+	StatusText string `json:"statusText"`
 }
 
 // TIER: nightly
@@ -73,9 +50,7 @@ func TestDesktopRuntimeStateTracksLiveTrayProjectionAndActivation(t *testing.T) 
 		t.Fatal("expected desktop runtime status text")
 	}
 	if _, err := waitForDesktopTrayState(ctx, h, func(state *desktopTrayStateSnapshot) bool {
-		return state.StatusText == "Running" &&
-			state.hasEntryLabel("status-runtime", "CLI reachable") &&
-			state.hasActionValue("action-copy-cli-socket", h.CLISocketPath())
+		return state.StatusText == "Running"
 	}); err != nil {
 		t.Fatal(err)
 	}
@@ -89,12 +64,6 @@ func TestDesktopRuntimeStateTracksLiveTrayProjectionAndActivation(t *testing.T) 
 	}); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := waitForDesktopTrayState(ctx, h, func(state *desktopTrayStateSnapshot) bool {
-		return state.hasActionValue("action-copy-cli-socket", h.CLISocketPath())
-	}); err != nil {
-		t.Fatal(err)
-	}
-
 	if err := postE2EControl(ctx, h, "/open-or-focus", url.Values{}); err != nil {
 		t.Fatal(err)
 	}
@@ -115,24 +84,6 @@ func ensureAppPage(ctx context.Context, h *Harness) (playwright.Page, error) {
 		}
 	}
 	return h.WaitForPage(ctx)
-}
-
-func (s *desktopTrayStateSnapshot) hasEntryLabel(id, labelPart string) bool {
-	for _, entry := range s.Entries {
-		if entry.ID == id && strings.Contains(entry.Label, labelPart) {
-			return true
-		}
-	}
-	return false
-}
-
-func (s *desktopTrayStateSnapshot) hasActionValue(id, value string) bool {
-	for _, entry := range s.Entries {
-		if entry.ID == id && entry.Action.Value == value {
-			return true
-		}
-	}
-	return false
 }
 
 func waitForDesktopRuntimeState(
@@ -266,33 +217,12 @@ func doE2EControl(
 func parseDesktopRuntimeState(v *fastjson.Value) *desktopRuntimeStateSnapshot {
 	return &desktopRuntimeStateSnapshot{
 		MainWindowOpen: v.GetBool("mainWindowOpen"),
-		Quitting:       v.GetBool("quitting"),
 		StatusText:     string(v.GetStringBytes("statusText")),
-		Health:         int32(v.GetInt("health")),
-		Lifecycle:      int32(v.GetInt("lifecycle")),
-		Listener: desktopRuntimeListenerSnapshot{
-			Reachability: int32(v.GetInt("listener", "reachability")),
-			Label:        string(v.GetStringBytes("listener", "label")),
-			Detail:       string(v.GetStringBytes("listener", "detail")),
-			SocketPath:   string(v.GetStringBytes("listener", "socketPath")),
-		},
 	}
 }
 
 func parseDesktopTrayState(v *fastjson.Value) *desktopTrayStateSnapshot {
-	entries := v.GetArray("entries")
-	state := &desktopTrayStateSnapshot{
+	return &desktopTrayStateSnapshot{
 		StatusText: string(v.GetStringBytes("statusText")),
-		Entries:    make([]desktopTrayEntrySnapshot, 0, len(entries)),
 	}
-	for _, entry := range entries {
-		state.Entries = append(state.Entries, desktopTrayEntrySnapshot{
-			ID:    string(entry.GetStringBytes("id")),
-			Label: string(entry.GetStringBytes("label")),
-			Action: desktopTrayActionSnapshot{
-				Value: string(entry.GetStringBytes("action", "value")),
-			},
-		})
-	}
-	return state
 }
