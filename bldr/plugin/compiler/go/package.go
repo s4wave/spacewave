@@ -15,6 +15,8 @@ type Package struct {
 	Name string
 	// SourceFiles are the target-selected compiled Go files to watch.
 	SourceFiles []string
+	// EmbedFiles are the files the package embeds with go:embed.
+	EmbedFiles []string
 	// Factory describes NewFactory, or is nil when it is absent.
 	Factory *Constructor
 	// CliCommands describes NewCliCommands, or is nil when it is absent.

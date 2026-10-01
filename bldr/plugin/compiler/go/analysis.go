@@ -128,8 +128,8 @@ func AnalyzePackages(
 	var conf packages.Config
 	conf.Context = ctx
 	conf.Fset = token.NewFileSet()
-	conf.Mode = packages.NeedName | packages.NeedCompiledGoFiles |
-		packages.NeedFiles | packages.NeedImports | packages.NeedDeps | packages.NeedModule
+	conf.Mode = packages.NeedName | packages.NeedCompiledGoFiles | packages.NeedFiles |
+		packages.NeedEmbedFiles | packages.NeedImports | packages.NeedDeps | packages.NeedModule
 	conf.ParseFile = func(fset *token.FileSet, filename string, src []byte) (*ast.File, error) {
 		return parser.ParseFile(fset, filename, src, parser.AllErrors|parser.ParseComments|parser.SkipObjectResolution)
 	}
@@ -210,7 +210,12 @@ func AnalyzePackages(
 		if _, ok := programModulePaths[pkg.Module.Path]; !ok {
 			continue
 		}
-		res.packages[pkg.PkgPath] = &Package{Path: pkg.PkgPath, Name: pkg.Name, SourceFiles: pkg.CompiledGoFiles}
+		res.packages[pkg.PkgPath] = &Package{
+			Path:        pkg.PkgPath,
+			Name:        pkg.Name,
+			SourceFiles: pkg.CompiledGoFiles,
+			EmbedFiles:  pkg.EmbedFiles,
+		}
 		programPackages[pkg.PkgPath] = pkg
 
 		// add other packages from the same module as well
@@ -380,11 +385,12 @@ func (a *Analysis) GetGoCodeFiles() map[string][]*ast.File {
 	return res
 }
 
-// GetProgramSourceFiles returns target-selected files for the same-module closure.
+// GetProgramSourceFiles returns the target-selected Go files and embedded
+// files of the same-module closure. Both change the compiled program.
 func (a *Analysis) GetProgramSourceFiles() map[string][]string {
 	res := make(map[string][]string, len(a.packages))
 	for pkgPath, pkg := range a.packages {
-		res[pkgPath] = pkg.SourceFiles
+		res[pkgPath] = slices.Concat(pkg.SourceFiles, pkg.EmbedFiles)
 	}
 	return res
 }

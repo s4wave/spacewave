@@ -208,7 +208,8 @@ func NewFactory() {}
 	}
 }
 
-// TestAnalysisProgramGoCodeFilesIncludesDependencies lists same-module dependency files as program sources.
+// TestAnalysisProgramGoCodeFilesIncludesDependencies lists same-module
+// dependency files and their embedded files as program sources.
 func TestAnalysisProgramGoCodeFilesIncludesDependencies(t *testing.T) {
 	// Write the module and root/dep package fixture files.
 	ctx := context.Background()
@@ -231,8 +232,12 @@ var Value = dep.Value
 `)
 	writeFile(t, workDir, "lib/dep/dep.go", `package dep
 
-const Value = "dep"
+import _ "embed"
+
+//go:embed version.txt
+var Value string
 `)
+	writeFile(t, workDir, "lib/dep/version.txt", "1.0.0\n")
 
 	// Analyze the root package with its same-module dependency.
 	le := logrus.NewEntry(logrus.New())
@@ -250,7 +255,7 @@ const Value = "dep"
 		t.Fatal(err)
 	}
 
-	// The program sources must include the root and dependency files.
+	// The program sources must include the root, dependency, and embedded files.
 	programFiles := an.GetProgramSourceFiles()
 	var programRelPaths []string
 	for _, pkgFiles := range programFiles {
@@ -262,7 +267,7 @@ const Value = "dep"
 			programRelPaths = append(programRelPaths, filepath.ToSlash(relPath))
 		}
 	}
-	for _, want := range []string{"plugin/root/root.go", "lib/dep/dep.go"} {
+	for _, want := range []string{"plugin/root/root.go", "lib/dep/dep.go", "lib/dep/version.txt"} {
 		if !slices.Contains(programRelPaths, want) {
 			t.Fatalf("program files missing %q: %v", want, programRelPaths)
 		}
