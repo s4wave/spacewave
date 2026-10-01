@@ -88,8 +88,35 @@ func TestBuildDesktopRuntimeStateFromListenerDisconnected(t *testing.T) {
 	}
 }
 
+// TestBuildDesktopRuntimeStateWithoutListener checks a process that owns no
+// listener, such as a hosted plugin, projects a running runtime instead of a
+// disconnected listener.
+func TestBuildDesktopRuntimeStateWithoutListener(t *testing.T) {
+	// Project a runtime whose process owns no listener.
+	state := BuildDesktopRuntimeState(nil, nil)
+
+	// The runtime reads as running and healthy with no listener section.
+	if state.GetStatusText() != "Running" {
+		t.Fatalf("status text = %q, want Running", state.GetStatusText())
+	}
+	if state.GetHealth() != desktop_runtime.DesktopRuntimeHealth_DESKTOP_RUNTIME_HEALTH_HEALTHY {
+		t.Fatalf("health = %v, want healthy", state.GetHealth())
+	}
+	if state.GetListener() != nil {
+		t.Fatalf("listener = %v, want none", state.GetListener())
+	}
+
+	// The tray offers no socket path to copy.
+	for _, entry := range BuildDesktopTrayEntriesFromRuntimeState(state) {
+		if entry.GetId() == "action-copy-cli-socket" {
+			t.Fatal("tray offers a socket path without a listener")
+		}
+	}
+}
+
 func TestBuildDesktopTrayEntriesFromRuntimeStateIncludesNavigationRows(t *testing.T) {
-	state := BuildDesktopRuntimeState(resource_listener.ListenerStatus{
+	// Project a reachable runtime with one session and one space.
+	state := BuildDesktopRuntimeState(&resource_listener.ListenerStatus{
 		SocketPath: "/run/spacewave.sock",
 		Listening:  true,
 	}, &SessionProjection{
@@ -111,6 +138,7 @@ func TestBuildDesktopTrayEntriesFromRuntimeStateIncludesNavigationRows(t *testin
 		},
 	})
 
+	// The tray lists both rows and no empty placeholders.
 	entries := BuildDesktopTrayEntriesFromRuntimeState(state)
 	if !hasTrayEntryLabel(entries, "coolguy@spacewave.app - Cloud - Ready") {
 		t.Fatalf("expected session row in tray entries")
@@ -124,7 +152,8 @@ func TestBuildDesktopTrayEntriesFromRuntimeStateIncludesNavigationRows(t *testin
 }
 
 func TestBuildDesktopTrayEntriesFromRuntimeStateRoutesSettingsToActiveSession(t *testing.T) {
-	state := BuildDesktopRuntimeState(resource_listener.ListenerStatus{
+	// Project two sessions where the second is active.
+	state := BuildDesktopRuntimeState(&resource_listener.ListenerStatus{
 		SocketPath: "/run/spacewave.sock",
 		Listening:  true,
 	}, &SessionProjection{
@@ -144,6 +173,7 @@ func TestBuildDesktopTrayEntriesFromRuntimeStateRoutesSettingsToActiveSession(t 
 		},
 	})
 
+	// The settings entry opens the active session's CLI settings.
 	entries := BuildDesktopTrayEntriesFromRuntimeState(state)
 	entry := findTrayEntryByID(entries, "settings")
 	if entry == nil {
@@ -208,6 +238,7 @@ func TestBuildDesktopTrayEntriesFromRuntimeStateOrdersMenuSections(t *testing.T)
 }
 
 func TestBuildSessionProjectionSortsAndFlagsAuth(t *testing.T) {
+	// Project an older ready session and a newer unauthenticated one.
 	projection := BuildSessionProjection([]*SessionProjectionRow{
 		{
 			Entry: testSessionEntry(1, "spacewave", "acct-1"),
@@ -228,6 +259,8 @@ func TestBuildSessionProjectionSortsAndFlagsAuth(t *testing.T) {
 			AccountStatus: provider.ProviderAccountStatus_ProviderAccountStatus_UNAUTHENTICATED,
 		},
 	})
+
+	// The newest session sorts first and raises one sign-in attention item.
 	if len(projection.Sessions) != 2 {
 		t.Fatalf("session rows = %d, want 2", len(projection.Sessions))
 	}
@@ -248,7 +281,8 @@ func TestBuildSessionProjectionSortsAndFlagsAuth(t *testing.T) {
 		t.Fatalf("attention route = %q, want session route", attention.GetRoute())
 	}
 
-	state := BuildDesktopRuntimeState(resource_listener.ListenerStatus{
+	// The attention item marks a reachable runtime as needing attention.
+	state := BuildDesktopRuntimeState(&resource_listener.ListenerStatus{
 		SocketPath: "/run/spacewave.sock",
 		Listening:  true,
 	}, projection)
@@ -376,7 +410,7 @@ func TestBuildSessionProjectionUsesSharedSelfEnrollmentProjection(t *testing.T) 
 }
 
 func TestBuildDesktopRuntimeStateMarksRunningActivity(t *testing.T) {
-	state := BuildDesktopRuntimeState(resource_listener.ListenerStatus{
+	state := BuildDesktopRuntimeState(&resource_listener.ListenerStatus{
 		SocketPath: "/run/spacewave.sock",
 		Listening:  true,
 	}, &SessionProjection{

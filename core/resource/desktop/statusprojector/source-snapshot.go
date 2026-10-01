@@ -12,8 +12,9 @@ import (
 )
 
 type desktopTraySourceSnapshot struct {
-	// listener is the current background listener state
-	listener resource_listener.ListenerStatus
+	// listener is the current background listener state, or nil when this
+	// process owns no listener
+	listener *resource_listener.ListenerStatus
 	// projection is the current Spacewave semantic tray projection
 	projection *SessionProjection
 	// waitChs wake the next projector loop after a source changes
@@ -29,12 +30,23 @@ func snapshotDesktopTraySources(
 	sessionCtrl session.SessionController,
 	launcher *spacewave_launcher.InfoWatcher,
 ) (*desktopTraySourceSnapshot, error) {
-	listener, listenerWaitCh := broker.Snapshot()
+	// Read the listener status when this process owns a listener.
+	var listener *resource_listener.ListenerStatus
+	var listenerWaitCh <-chan struct{}
+	if broker != nil {
+		var status resource_listener.ListenerStatus
+		status, listenerWaitCh = broker.Snapshot()
+		listener = &status
+	}
+
+	// Read the session projection.
 	projection, sessionWaitChs, releases, err := snapshotSessionProjection(ctx, b, sessionCtrl)
 	if err != nil {
 		releaseAll(releases)
 		return nil, err
 	}
+
+	// Fold the launcher update state into the projection.
 	launcherInfo, launcherWaitCh := launcher.Snapshot()
 	update, updateAttention := updatepolicy.Build(launcherInfo)
 	projection.Update = update
@@ -42,8 +54,11 @@ func snapshotDesktopTraySources(
 		projection.AttentionItems = append(projection.AttentionItems, updateAttention)
 	}
 
+	// Wake the next projection when any source changes.
 	waitChs := make([]<-chan struct{}, 0, len(sessionWaitChs)+2)
-	waitChs = append(waitChs, listenerWaitCh)
+	if listenerWaitCh != nil {
+		waitChs = append(waitChs, listenerWaitCh)
+	}
 	waitChs = append(waitChs, launcherWaitCh)
 	waitChs = append(waitChs, sessionWaitChs...)
 	return &desktopTraySourceSnapshot{

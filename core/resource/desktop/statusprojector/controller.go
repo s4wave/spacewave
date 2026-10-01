@@ -21,7 +21,8 @@ type Controller struct {
 
 	// statusBroker is shared with the resource listener controller through
 	// the composition root so the tray projection reads the same listener
-	// state the controller publishes.
+	// state the controller publishes. It is nil in a process that owns no
+	// listener.
 	statusBroker *resource_listener.StatusBroker
 }
 
@@ -33,9 +34,9 @@ func WithListenerStatusBroker(broker *resource_listener.StatusBroker) Option {
 	return func(c *Controller) { c.statusBroker = broker }
 }
 
-// NewFactory constructs the component factory. Hosted plugins have no local
-// listener and start with an inactive status broker; a process that owns a
-// listener injects its shared broker through WithListenerStatusBroker.
+// NewFactory constructs the component factory. A process that owns a listener
+// injects its shared broker through WithListenerStatusBroker; a hosted plugin
+// owns none and projects the runtime without listener status.
 func NewFactory(b bus.Bus, opts ...Option) controller.Factory {
 	return bus.NewBusControllerFactory(
 		b,
@@ -47,10 +48,7 @@ func NewFactory(b bus.Bus, opts ...Option) controller.Factory {
 			return &Config{}
 		},
 		func(base *bus.BusController[*Config]) (*Controller, error) {
-			c := &Controller{
-				BusController: base,
-				statusBroker:  resource_listener.NewStatusBroker(),
-			}
+			c := &Controller{BusController: base}
 			for _, opt := range opts {
 				opt(c)
 			}

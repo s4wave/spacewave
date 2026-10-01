@@ -9,14 +9,19 @@ import (
 
 // BuildDesktopRuntimeStateFromListener maps listener status into tray status state.
 func BuildDesktopRuntimeStateFromListener(status resource_listener.ListenerStatus) *desktop_runtime.DesktopRuntimeState {
-	return BuildDesktopRuntimeState(status, nil)
+	return BuildDesktopRuntimeState(&status, nil)
 }
 
 // BuildDesktopRuntimeState maps Spacewave runtime status into tray status state.
+//
+// A nil listener means this process owns no resource listener: a hosted plugin
+// publishes its Resource service through the process host, so the runtime is
+// running and the tray has no listener to describe.
 func BuildDesktopRuntimeState(
-	status resource_listener.ListenerStatus,
+	listener *resource_listener.ListenerStatus,
 	projection *SessionProjection,
 ) *desktop_runtime.DesktopRuntimeState {
+	// Start from a starting runtime carrying the session projection.
 	if projection == nil {
 		projection = &SessionProjection{}
 	}
@@ -24,7 +29,6 @@ func BuildDesktopRuntimeState(
 		StatusText:     "Starting",
 		Health:         desktop_runtime.DesktopRuntimeHealth_DESKTOP_RUNTIME_HEALTH_STARTING,
 		Lifecycle:      desktop_runtime.DesktopRuntimeLifecycle_DESKTOP_RUNTIME_LIFECYCLE_STARTING,
-		Listener:       buildDesktopRuntimeListenerStatus(status),
 		Sessions:       projection.Sessions,
 		Spaces:         projection.Spaces,
 		Activity:       projection.Activity,
@@ -35,15 +39,23 @@ func BuildDesktopRuntimeState(
 	if state.Update == nil {
 		state.Update = &desktop_runtime.DesktopRuntimeUpdateStatus{}
 	}
-	if status.Listening {
+
+	// Describe the listener when this process owns one. The runtime is running
+	// once the listener binds, or at once when there is no listener to wait on.
+	if listener != nil {
+		state.Listener = buildDesktopRuntimeListenerStatus(*listener)
+	}
+	if listener == nil || listener.Listening {
 		state.StatusText = "Running"
 		state.Health = desktop_runtime.DesktopRuntimeHealth_DESKTOP_RUNTIME_HEALTH_HEALTHY
 		state.Lifecycle = desktop_runtime.DesktopRuntimeLifecycle_DESKTOP_RUNTIME_LIFECYCLE_RUNNING
-	} else if status.SocketPath == "" {
+	} else if listener.SocketPath == "" {
 		state.StatusText = "Disconnected"
 		state.Health = desktop_runtime.DesktopRuntimeHealth_DESKTOP_RUNTIME_HEALTH_DISCONNECTED
 		state.Lifecycle = desktop_runtime.DesktopRuntimeLifecycle_DESKTOP_RUNTIME_LIFECYCLE_DISCONNECTED
 	}
+
+	// Running activity and attention items override a healthy status.
 	if hasRunningActivity(state.GetActivity()) &&
 		state.GetHealth() == desktop_runtime.DesktopRuntimeHealth_DESKTOP_RUNTIME_HEALTH_HEALTHY {
 		state.StatusText = "Syncing"

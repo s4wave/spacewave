@@ -26,14 +26,17 @@ func TestFactoryListenerStatus(t *testing.T) {
 		{name: "shared listener", opts: []Option{WithListenerStatusBroker(shared)}},
 	} {
 		t.Run(test.name, func(t *testing.T) {
+			// Construct the projector with the case's options.
 			ctrl, err := NewFactory(b, test.opts...).Construct(t.Context(), &Config{}, controller_api.ConstructOpts{Logger: le})
 			if err != nil {
 				t.Fatal(err)
 			}
 			defer ctrl.Close()
+
+			// A hosted plugin has no listener broker; an injected broker is kept.
 			projector := ctrl.(*Controller)
-			if projector.statusBroker == nil {
-				t.Fatal("hosted plugin has no listener status broker")
+			if len(test.opts) == 0 && projector.statusBroker != nil {
+				t.Fatal("hosted plugin projector has a listener status broker")
 			}
 			if len(test.opts) != 0 && projector.statusBroker != shared {
 				t.Fatal("factory replaced the injected listener status broker")

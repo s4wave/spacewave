@@ -15,9 +15,10 @@ func BuildDesktopRuntimeStateFromListener(status resource_listener.ListenerStatu
 }
 
 // BuildDesktopRuntimeState maps Spacewave runtime status into tray status state.
+// A nil listener means this process owns no resource listener.
 func BuildDesktopRuntimeState(
-	status resource_listener.ListenerStatus,
+	listener *resource_listener.ListenerStatus,
 	proj *SessionProjection,
 ) *desktop_runtime.DesktopRuntimeState {
-	return projection.BuildDesktopRuntimeState(status, proj)
+	return projection.BuildDesktopRuntimeState(listener, proj)
 }
