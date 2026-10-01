@@ -4,6 +4,7 @@ import (
 	"cmp"
 	"context"
 	stderrors "errors"
+	"math"
 	"slices"
 	"strings"
 
@@ -551,12 +552,9 @@ func listStartupManifestCandidatesForManifestIDs(
 		for i, objKey := range frontier {
 			filters[i] = world.NewGraphQuadWithKeys(objKey, PredManifest.String(), "", "")
 		}
-		results, err := ws.LookupGraphQuadsBatch(ctx, filters, 0)
+		results, err := lookupManifestEdgesBatch(ctx, ws, filters)
 		if err != nil {
 			return nil, err
-		}
-		if len(results) != len(frontier) {
-			return nil, errors.Errorf("manifest graph lookup returned %d results for %d filters", len(results), len(frontier))
 		}
 
 		// Record exact and legacy candidates and queue unseen keys.
@@ -605,6 +603,61 @@ func listStartupManifestCandidatesForManifestIDs(
 		out = append(out, *candidate)
 	}
 	return out, nil
+}
+
+// manifestEdgeLookupLimit is the first per-filter limit for a batched
+// <manifest> edge lookup. Remote World states reject an unbounded batch.
+const manifestEdgeLookupLimit = 64
+
+// lookupManifestEdgesBatch returns every quad matching each filter through
+// bounded batch lookups. A filter whose result fills the limit may have more
+// matches, so it is looked up again with twice the limit until it comes back
+// short. The batch API has no cursor, so each retry reads from the start.
+func lookupManifestEdgesBatch(
+	ctx context.Context,
+	ws world.WorldState,
+	filters []world.GraphQuad,
+) ([][]world.GraphQuad, error) {
+	// Every filter starts pending at the first limit.
+	results := make([][]world.GraphQuad, len(filters))
+	pending := make([]int, len(filters))
+	for i := range pending {
+		pending[i] = i
+	}
+	limit := uint32(manifestEdgeLookupLimit)
+
+	// Repeat until every filter has a result shorter than its limit.
+	for len(pending) != 0 {
+		// Look up the pending filters with the current limit.
+		batch := make([]world.GraphQuad, len(pending))
+		for i, idx := range pending {
+			batch[i] = filters[idx]
+		}
+		found, err := ws.LookupGraphQuadsBatch(ctx, batch, limit)
+		if err != nil {
+			return nil, err
+		}
+		if len(found) != len(batch) {
+			return nil, errors.Errorf("manifest graph lookup returned %d results for %d filters", len(found), len(batch))
+		}
+
+		// Keep each short result and queue the full ones for another round.
+		next := pending[:0]
+		for i, idx := range pending {
+			results[idx] = found[i]
+			if uint64(len(found[i])) >= uint64(limit) {
+				next = append(next, idx)
+			}
+		}
+		pending = next
+
+		// Double the limit for the next round.
+		if len(pending) != 0 && limit > math.MaxUint32/2 {
+			return nil, errors.Errorf("manifest graph lookup exceeded %d edges for one object", limit)
+		}
+		limit *= 2
+	}
+	return results, nil
 }
 
 func listManifestCandidatesByLabels(

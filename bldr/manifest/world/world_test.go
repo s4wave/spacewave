@@ -3,6 +3,7 @@ package bldr_manifest_world
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -244,11 +245,81 @@ func TestCollectStartupManifestsForManifestIDsBoundsReleaseReads(t *testing.T) {
 	}
 }
 
+func TestCollectStartupManifestsForManifestIDsPagesLargeStores(t *testing.T) {
+	// Set up the test context and logger.
+	ctx := context.Background()
+	le := logrus.NewEntry(logrus.New())
+
+	// Start a testbed holding the mock World.
+	tb, err := testbed.NewTestbed(ctx, le)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer tb.Release()
+
+	// Build the mock World state from an empty cursor.
+	ocs, err := tb.BuildEmptyCursor(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer ocs.Release()
+	ws, err := world_block.BuildMockWorldState(ctx, le, true, ocs, false)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	// Store more manifest refs than the first batch limit returns.
+	const storeKey = "release/manifests"
+	if _, err := CreateManifestStore(ctx, ws, storeKey); err != nil {
+		t.Fatal(err.Error())
+	}
+	manifestIDs := make([]string, manifestEdgeLookupLimit+manifestEdgeLookupLimit/2)
+	for i := range manifestIDs {
+		manifestIDs[i] = fmt.Sprintf("app-%03d", i)
+		ref := createTestManifestRef(t, ctx, tb, manifestIDs[i], "js", uint64(i+1))
+		if err := ExStoreManifestOp(
+			ctx,
+			ws,
+			peer.ID("test"),
+			"release/manifests/"+manifestIDs[i],
+			[]string{storeKey},
+			ref,
+		); err != nil {
+			t.Fatal(err.Error())
+		}
+	}
+
+	// Collect every manifest through bounded batch lookups.
+	counted := &manifestSelectionCountingWorldState{WorldState: ws}
+	manifests, manifestErrs, err := CollectStartupManifestsForManifestIDs(
+		ctx,
+		counted,
+		manifestIDs,
+		nil,
+		storeKey,
+	)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	// Every stored manifest is collected after the full first page.
+	if len(manifestErrs) != 0 {
+		t.Fatalf("manifest errors = %v", manifestErrs)
+	}
+	if len(manifests) != len(manifestIDs) {
+		t.Fatalf("collected %d manifests, want %d", len(manifests), len(manifestIDs))
+	}
+	if got := counted.maxBatchLimit.Load(); got <= manifestEdgeLookupLimit {
+		t.Fatalf("largest batch limit = %d, want a retry above %d", got, manifestEdgeLookupLimit)
+	}
+}
+
 type manifestSelectionCountingWorldState struct {
 	world.WorldState
 
 	manifestReads    atomic.Int64
 	batchLookups     atomic.Int64
+	maxBatchLimit    atomic.Uint32
 	cayleyTraversals atomic.Int64
 }
 
@@ -271,7 +342,19 @@ func (w *manifestSelectionCountingWorldState) LookupGraphQuadsBatch(
 	filters []world.GraphQuad,
 	limitPerFilter uint32,
 ) ([][]world.GraphQuad, error) {
+	// Reject an unbounded batch as the remote World API does.
+	if limitPerFilter == 0 {
+		return nil, errors.New("limit_per_filter must be non-zero")
+	}
+
+	// Count the lookup and record the largest limit requested.
 	w.batchLookups.Add(1)
+	for {
+		prev := w.maxBatchLimit.Load()
+		if limitPerFilter <= prev || w.maxBatchLimit.CompareAndSwap(prev, limitPerFilter) {
+			break
+		}
+	}
 	return w.WorldState.LookupGraphQuadsBatch(ctx, filters, limitPerFilter)
 }
 
