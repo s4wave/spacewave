@@ -560,15 +560,16 @@ func buildFsWriteCommand() *cli.Command {
 			},
 		),
 		Action: func(c *cli.Context) error {
+			// parse the target path
 			uri, err := parseFsURI(c.Args().First(), spaceID, sessIdx)
 			if err != nil {
 				return err
 			}
-
 			if uri.path == "" {
 				return errors.New("path required for write")
 			}
 
+			// mount the filesystem
 			fc, cleanup, err := mountFsContext(c, statePath, uri)
 			if err != nil {
 				return err
@@ -578,7 +579,7 @@ func buildFsWriteCommand() *cli.Command {
 			// navigate to the target file, creating it if it doesn't exist
 			svc, pathCleanup, err := fc.lookupPath(c, uri.path)
 			if err != nil {
-				// file doesn't exist — create it via Mknod on the parent, then lookup
+				// file doesn't exist: create it via Mknod on the parent, then lookup
 				parentSvc, baseName, parentCleanup, parentErr := fc.lookupParentAndName(c, uri.path)
 				if parentErr != nil {
 					return errors.Wrap(err, "lookup path "+uri.path)
@@ -620,6 +621,7 @@ func buildFsWriteCommand() *cli.Command {
 				return errors.Wrap(err, "truncate before write")
 			}
 
+			// copy the input in chunks
 			buf := make([]byte, writeChunkSize)
 			var pos int64
 			for {
@@ -642,6 +644,10 @@ func buildFsWriteCommand() *cli.Command {
 				}
 			}
 
+			// commit the buffered tail of the file
+			if _, err := svc.Sync(ctx, &s4wave_unixfs.HandleSyncRequest{}); err != nil {
+				return errors.Wrap(err, "sync")
+			}
 			return nil
 		},
 	}

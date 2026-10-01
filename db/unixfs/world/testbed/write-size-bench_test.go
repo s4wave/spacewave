@@ -74,10 +74,13 @@ func writeBenchFile(b *testing.B, ctx context.Context, root *unixfs.FSHandle, na
 	}
 	defer h.Release()
 
-	// Write the content in order.
+	// Write the content in order and commit it.
 	for off := 0; off < len(data); off += size {
 		if err := h.WriteAt(ctx, int64(off), data[off:min(off+size, len(data))], ts); err != nil {
 			b.Fatal(err)
 		}
+	}
+	if err := h.Sync(ctx); err != nil {
+		b.Fatal(err)
 	}
 }

@@ -787,8 +787,15 @@ func (ss *session) handleSetattr(ctx context.Context, tag uint32, req *V86FsSeta
 	}, nil
 }
 
-func (ss *session) handleFsync(_ context.Context, tag uint32, _ *V86FsFsyncRequest) (*V86FsMessage, error) {
-	// Fsync is a no-op for block storage (writes are synchronous).
+func (ss *session) handleFsync(ctx context.Context, tag uint32, req *V86FsFsyncRequest) (*V86FsMessage, error) {
+	// Commit the buffered writes of the inode's tree.
+	h := ss.getInode(req.GetInodeId())
+	if h == nil {
+		return nil, unixfs_errors.ErrNotExist
+	}
+	if err := h.Sync(ctx); err != nil {
+		return nil, err
+	}
 	return &V86FsMessage{
 		Tag: tag,
 		Body: &V86FsMessage_FsyncReply{

@@ -765,8 +765,24 @@ func (s *Server) handleLink(tag uint16, _ []byte) ([]byte, error) {
 	return buildErrorResponse(tag, ENOTSUP), nil
 }
 
-// handleFsync processes TFSYNC: no-op.
-func (s *Server) handleFsync(tag uint16, _ []byte) ([]byte, error) {
+// handleFsync processes TFSYNC: commit the buffered writes of the fid's tree.
+func (s *Server) handleFsync(ctx context.Context, tag uint16, payload []byte) ([]byte, error) {
+	// Parse the fid; datasync commits the same writes.
+	buf := NewReadBuffer(payload)
+	fidID := buf.ReadU32()
+	_ = buf.ReadU32() // datasync
+	if buf.Err() != nil {
+		return nil, buf.Err()
+	}
+
+	// Commit the buffered writes.
+	fid, err := s.fids.Get(fidID)
+	if err != nil {
+		return nil, err
+	}
+	if err := fid.handle.Sync(ctx); err != nil {
+		return nil, err
+	}
 	return buildMessage(RFSYNC, tag, nil), nil
 }
 

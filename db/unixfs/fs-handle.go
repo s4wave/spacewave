@@ -136,6 +136,7 @@ func (h *FSHandle) AddReleaseCallback(rcb func()) {
 }
 
 // AccessOps accesses the FSCursor and FSCursorOps handles at the inode.
+// It commits buffered writes at the inode first, so the ops see every write.
 // It may take some time for the handles to be resolved.
 // The handle and/or cursor may be released at any time and return unixfs_errors.ErrReleased.
 //
@@ -144,7 +145,11 @@ func (h *FSHandle) AddReleaseCallback(rcb func()) {
 // If cb returns any other value, returns that value.
 // Note: do not call Release() on the FSCursorOps object.
 func (h *FSHandle) AccessOps(ctx context.Context, cb func(cursor FSCursor, ops FSCursorOps) error) error {
-	return h.i().accessInode(ctx, cb)
+	inode := h.i()
+	if err := inode.sync(ctx); err != nil {
+		return err
+	}
+	return inode.accessInode(ctx, cb)
 }
 
 // GetOps resolves and returns the FSCursor and FSCursorOps once.
@@ -164,10 +169,19 @@ func (h *FSHandle) GetOps(ctx context.Context) (FSCursor, FSCursorOps, error) {
 }
 
 // GetFileInfo constructs a file info object and creation time for the inode at handle.
+// The size and modification time include buffered writes.
 func (h *FSHandle) GetFileInfo(ctx context.Context) (fs.FileInfo, error) {
+	// Read the extent of buffered writes.
+	inode := h.i()
+	end, ts, err := inode.buffered()
+	if err != nil {
+		return nil, err
+	}
+
 	// Read permissions, size, and timestamps from the cursor.
 	var fileInfo fs.FileInfo
-	err := h.i().accessInode(ctx, func(cursor FSCursor, ops FSCursorOps) error {
+	err = inode.accessInode(ctx, func(cursor FSCursor, ops FSCursorOps) error {
+		// Read the committed attributes.
 		permissions, err := ops.GetPermissions(ctx)
 		if err != nil {
 			return err
@@ -182,7 +196,11 @@ func (h *FSHandle) GetFileInfo(ctx context.Context) (fs.FileInfo, error) {
 			return err
 		}
 
-		fileInfo = NewFileInfo(ops.GetName(), int64(size), mode, modTime) //nolint:gosec
+		// Extend them by the buffered writes.
+		if ts.After(modTime) {
+			modTime = ts
+		}
+		fileInfo = NewFileInfo(ops.GetName(), max(int64(size), end), mode, modTime) //nolint:gosec
 		return nil
 	})
 	return fileInfo, err
@@ -198,16 +216,24 @@ func (h *FSHandle) GetNodeType(ctx context.Context) (FSCursorNodeType, error) {
 	return nodeType, err
 }
 
-// GetSize returns the size of the inode (in bytes).
+// GetSize returns the size of the inode (in bytes), including buffered writes.
 // Usually applicable only if this is a FILE.
 func (h *FSHandle) GetSize(ctx context.Context) (uint64, error) {
+	// Read the extent of buffered writes.
+	inode := h.i()
+	end, _, err := inode.buffered()
+	if err != nil {
+		return 0, err
+	}
+
+	// Read the committed size and extend it by the buffered writes.
 	var size uint64
-	err := h.i().accessInode(ctx, func(cursor FSCursor, ops FSCursorOps) error {
+	err = inode.accessInode(ctx, func(cursor FSCursor, ops FSCursorOps) error {
 		var err error
 		size, err = ops.GetSize(ctx)
 		return err
 	})
-	return size, err
+	return max(size, uint64(end)), err //nolint:gosec
 }
 
 // GetOptimalWriteSize returns the optimal write size for the node.
@@ -222,14 +248,26 @@ func (h *FSHandle) GetOptimalWriteSize(ctx context.Context) (int64, error) {
 	return size, err
 }
 
-// GetModTimestamp returns the creation time and modification time.
-func (h *FSHandle) GetModTimestamp(ctx context.Context) (mtime time.Time, err error) {
-	err = h.i().accessInode(ctx, func(cursor FSCursor, ops FSCursorOps) error {
+// GetModTimestamp returns the modification time, including buffered writes.
+func (h *FSHandle) GetModTimestamp(ctx context.Context) (time.Time, error) {
+	// Read the timestamp of buffered writes.
+	inode := h.i()
+	_, ts, err := inode.buffered()
+	if err != nil {
+		return time.Time{}, err
+	}
+
+	// Read the committed timestamp and keep the later one.
+	var mtime time.Time
+	err = inode.accessInode(ctx, func(cursor FSCursor, ops FSCursorOps) error {
 		var err error
 		mtime, err = ops.GetModTimestamp(ctx)
 		return err
 	})
-	return
+	if ts.After(mtime) {
+		mtime = ts
+	}
+	return mtime, err
 }
 
 // GetPermissions returns the permissions bits of the file mode.
@@ -253,7 +291,7 @@ func (h *FSHandle) SetPermissions(ctx context.Context, permissions fs.FileMode, 
 
 // SetModTimestamp updates the modification timestamp of the node.
 func (h *FSHandle) SetModTimestamp(ctx context.Context, mtime time.Time) error {
-	return h.i().accessInode(ctx, func(cursor FSCursor, ops FSCursorOps) error {
+	return h.AccessOps(ctx, func(cursor FSCursor, ops FSCursorOps) error {
 		return ops.SetModTimestamp(ctx, mtime)
 	})
 }
@@ -261,7 +299,7 @@ func (h *FSHandle) SetModTimestamp(ctx context.Context, mtime time.Time) error {
 // ReadAt reads from a location in a File node.
 func (h *FSHandle) ReadAt(ctx context.Context, offset int64, data []byte) (int64, error) {
 	var read int64
-	err := h.i().accessInode(ctx, func(cursor FSCursor, ops FSCursorOps) error {
+	err := h.AccessOps(ctx, func(cursor FSCursor, ops FSCursorOps) error {
 		if !ops.GetIsFile() {
 			return unixfs_errors.ErrNotFile
 		}
@@ -273,23 +311,28 @@ func (h *FSHandle) ReadAt(ctx context.Context, offset int64, data []byte) (int64
 	return read, err
 }
 
-// WriteAt writes to an offset in a file node synchronously.
-// The change will be fully written to the file before returning.
+// WriteAt writes to an offset in a file node.
+//
+// Contiguous writes smaller than the file's optimal write size are buffered
+// at the inode, as in a page cache, and may return before they commit. Every
+// handle at the inode reads them. Sync and Release commit them; an idle
+// writer's buffer commits after a short delay, and a failure of that commit
+// is returned by the next operation on the inode.
 // If this isn't a file node, returns ErrNotFile.
 func (h *FSHandle) WriteAt(ctx context.Context, offset int64, data []byte, ts time.Time) error {
-	return h.i().accessInode(ctx, func(cursor FSCursor, ops FSCursorOps) error {
-		if !ops.GetIsFile() {
-			return unixfs_errors.ErrNotFile
-		}
+	return h.i().writeAt(ctx, offset, data, ts)
+}
 
-		return ops.WriteAt(ctx, offset, data, ts)
-	})
+// Sync commits every buffered write in the tree holding the handle and
+// returns the first error, including an earlier commit that failed.
+func (h *FSHandle) Sync(ctx context.Context) error {
+	return h.i().syncTree(ctx)
 }
 
 // Truncate shrinks or extends a file to the specified size.
 // The extended part will be a sparse range (hole) reading as zeros.
 func (h *FSHandle) Truncate(ctx context.Context, nsize uint64, ts time.Time) error {
-	return h.i().accessInode(ctx, func(cursor FSCursor, ops FSCursorOps) error {
+	return h.AccessOps(ctx, func(cursor FSCursor, ops FSCursorOps) error {
 		if !ops.GetIsFile() {
 			return unixfs_errors.ErrNotFile
 		}
@@ -642,6 +685,11 @@ func (h *FSHandle) Copy(ctx context.Context, dest *FSHandle, destName string, ts
 		return nil
 	}
 
+	// Commit buffered writes the copy may read or replace.
+	if err := h.i().syncTree(ctx); err != nil {
+		return err
+	}
+
 	// access source inode
 	return h.i().accessInode(ctx, func(_ FSCursor, srcOps FSCursorOps) error {
 		// access destination inode
@@ -669,8 +717,15 @@ func (h *FSHandle) Copy(ctx context.Context, dest *FSHandle, destName string, ts
 //
 // The source and destination must be from the same inode tree.
 func (h *FSHandle) Rename(ctx context.Context, dest *FSHandle, destName string, ts time.Time) error {
+	// Both handles must be live.
 	if h == nil || dest == nil || dest.CheckReleased() || h.CheckReleased() {
 		return unixfs_errors.ErrReleased
+	}
+
+	// Commit buffered writes under the moved or replaced locations, whose
+	// inodes the rename releases.
+	if err := h.i().syncTree(ctx); err != nil {
+		return err
 	}
 
 	// attempt to lock src and destination
@@ -925,7 +980,13 @@ func (h *FSHandle) Remove(ctx context.Context, names []string, ts time.Time) err
 	if len(names) == 0 {
 		return nil
 	}
-	return h.i().accessInode(ctx, func(cursor FSCursor, ops FSCursorOps) error {
+
+	// Commit buffered writes before their inodes are released.
+	inode := h.i()
+	if err := inode.syncTree(ctx); err != nil {
+		return err
+	}
+	return inode.accessInode(ctx, func(cursor FSCursor, ops FSCursorOps) error {
 		return ops.Remove(ctx, names, ts)
 	})
 }
@@ -946,19 +1007,26 @@ func (h *FSHandle) Clone(ctx context.Context) (*FSHandle, error) {
 	return inode.addReferenceLocked(true)
 }
 
-// Release releases the FSHandle.
+// Release commits the buffered writes at the handle's inode and releases the
+// FSHandle. Call Sync first to observe a commit error.
 func (h *FSHandle) Release() {
+	// Release once.
 	if h.isReleased.Swap(true) {
 		// already released
 		return
 	}
+
+	// Commit buffered writes, then drop the reference and any inodes it kept.
 	inode := h.i()
+	_ = inode.sync(context.Background())
 	rel, err := inode.rmtx.Lock(context.Background(), true)
 	if err == nil {
 		inode.removeRefLocked(h)
 		rel()
 		inode.releaseParentsIfNecessary()
 	}
+
+	// Run the release callbacks.
 	for {
 		relCb := h.relCbs.Pop()
 		if relCb == nil {

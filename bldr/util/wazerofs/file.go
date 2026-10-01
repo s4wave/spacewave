@@ -620,6 +620,12 @@ func (f *File) Truncate(size int64) wazero_sys.Errno {
 //   - This returns with no error instead of ENOSYS when
 //     unimplemented. This prevents fake filesystems from erring.
 func (f *File) Sync() wazero_sys.Errno {
+	if f.handle == nil {
+		return wazero_sys.EBADF
+	}
+	if err := f.handle.Sync(f.ctx); err != nil {
+		return UnixfsErrorToWazeroErrno(err)
+	}
 	return 0
 }
 
@@ -638,7 +644,7 @@ func (f *File) Sync() wazero_sys.Errno {
 //     unimplemented. This prevents fake filesystems from erring.
 //   - As this is commonly missing, some implementations dispatch to Sync.
 func (f *File) Datasync() wazero_sys.Errno {
-	return 0
+	return f.Sync()
 }
 
 // Utimens set file access and modification times of this file, at
@@ -693,9 +699,17 @@ func (f *File) Utimens(atim, mtim int64) wazero_sys.Errno {
 //   - This is like syscall.Close and `close` in POSIX. See
 //     https://pubs.opengroup.org/onlinepubs/9699919799/functions/close.html
 func (f *File) Close() wazero_sys.Errno {
-	if f.handle != nil {
-		f.handle.Release()
-		f.handle = nil
+	// Closing a closed file does nothing.
+	if f.handle == nil {
+		return 0
+	}
+
+	// Commit buffered writes, then release the handle either way.
+	err := f.handle.Sync(f.ctx)
+	f.handle.Release()
+	f.handle = nil
+	if err != nil {
+		return UnixfsErrorToWazeroErrno(err)
 	}
 	return 0
 }

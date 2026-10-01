@@ -124,7 +124,7 @@ func (s *Server) dispatch(ctx context.Context, msgType uint8, tag uint16, payloa
 	case TLINK:
 		return s.handleLink(tag, payload)
 	case TFSYNC:
-		return s.handleFsync(tag, payload)
+		return s.handleFsync(ctx, tag, payload)
 	case TLOCK:
 		return s.handleLock(tag, payload)
 	case TGETLOCK:

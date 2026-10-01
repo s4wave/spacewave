@@ -78,6 +78,7 @@ func (o *InitUnixFSDemoOp) ApplyWorldOp(
 	worldHandle world.WorldState,
 	sender peer.ID,
 ) (sysErr bool, err error) {
+	// Default the object key.
 	objKey := o.GetObjectKey()
 	if objKey == "" {
 		objKey = DefaultUnixFSObjectKey
@@ -134,12 +135,10 @@ func (o *InitUnixFSDemoOp) ApplyWorldOp(
 		return false, err
 	}
 	defer helloTxtFsh.Release()
-
 	if err := helloTxtFsh.WriteAt(ctx, 0, []byte("Hello world from Go!\n"), ts); err != nil {
 		return false, err
 	}
-
-	return false, nil
+	return false, helloTxtFsh.Sync(ctx)
 }
 
 // ApplyWorldObjectOp applies the operation to a world object handle.

@@ -141,6 +141,9 @@ export interface IFSHandle {
     abortSignal?: AbortSignal,
   ): Promise<bigint>
 
+  // sync commits buffered writes in the filesystem tree.
+  sync(abortSignal?: AbortSignal): Promise<void>
+
   // truncate truncates the file to the given size.
   truncate(size: bigint, abortSignal?: AbortSignal): Promise<void>
 
@@ -378,6 +381,12 @@ export class FSHandle extends Resource implements IFSHandle {
   ): Promise<bigint> {
     const resp = await this.service.WriteAt({ offset, data }, abortSignal)
     return resp.bytesWritten ?? 0n
+  }
+
+  // sync commits buffered writes in the filesystem tree. It rejects with the
+  // first write that failed to commit.
+  public async sync(abortSignal?: AbortSignal): Promise<void> {
+    await this.service.Sync({}, abortSignal)
   }
 
   // truncate truncates the file to the given size.

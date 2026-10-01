@@ -34,6 +34,11 @@ type fsInode struct {
 
 	// relCbs is an atomic last-in-first-out set of callbacks
 	relCbs cqueue.AtomicLIFO[func()]
+	// w holds buffered writes to a file inode.
+	w fsInodeWrites
+	// treeWrites tracks the inodes of the tree with buffered writes.
+	// used on the root inode only
+	treeWrites fsTreeWrites
 
 	// rmtx is the read/write mutex for the inode (fields below) and children.
 	// always lock parent -> child in breath-first order sorted by name.
