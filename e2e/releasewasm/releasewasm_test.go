@@ -693,6 +693,9 @@ const (
 	webPkgArtifactRelDir = ".bldr-dist/build/js/spacewave-web/assets/bldr-web-pkgs"
 )
 
+// waitForPluginWorkersRunning waits for a plugin.running mark from each
+// logical plugin worker. A physical worker id extends the logical id with its
+// instance and manifest generation, so the logical id matches as a path prefix.
 func waitForPluginWorkersRunning(t *testing.T, page playwright.Page, workerIDs []string) {
 	t.Helper()
 
@@ -701,7 +704,8 @@ func waitForPluginWorkersRunning(t *testing.T, page playwright.Page, workerIDs [
 		return workerIds.every((workerId) =>
 			marks.some((mark) =>
 				mark.label === 'plugin.running' &&
-				mark.detail?.workerId === workerId,
+				(mark.detail?.workerId === workerId ||
+					mark.detail?.workerId?.startsWith(workerId + '/')),
 			),
 		)
 	}`, workerIDs, playwright.PageWaitForFunctionOptions{

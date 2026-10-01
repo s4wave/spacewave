@@ -132,7 +132,7 @@ func waitForMaterializerPluginRunningMark(t *testing.T, page playwright.Page) {
 		const marks = globalThis.__swStartupMarks ?? []
 		return marks.some((mark) =>
 			mark.name === 'spacewave.startup.plugin.running' &&
-			mark.detail?.workerId === 'plugin/bldr-materializer',
+			mark.detail?.workerId?.startsWith('plugin/bldr-materializer/'),
 		)
 	}`, nil, playwright.PageWaitForFunctionOptions{Timeout: playwright.Float(browserWaitMS)}); err != nil {
 		dumpPageState(t, page)
