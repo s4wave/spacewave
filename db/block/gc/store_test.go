@@ -70,8 +70,11 @@ func (e *gcTestEnv) flush(t *testing.T) {
 	}
 }
 
+// recordRefs buffers the edges a writer's put of source records.
 func (e *gcTestEnv) recordRefs(source *block.BlockRef, targets []*block.BlockRef) {
-	e.gcStore.bufferBlockRefs(source, targets)
+	e.gcStore.mu.Lock()
+	e.gcStore.bufferRefEdgesLocked(source, targets, true)
+	e.gcStore.mu.Unlock()
 }
 
 // blockExists checks if a block exists in the raw store.
@@ -747,6 +750,7 @@ func TestGCStoreOps_ParentIRI_FlushPendingRemovesConcurrentUnref(t *testing.T) {
 // TestGCStoreOps_RemoveGCRefDoesNotReviveStagingAfterParentBatch verifies
 // that orphan marking waits inside the ownership transition.
 func TestGCStoreOps_RemoveGCRefDoesNotReviveStagingAfterParentBatch(t *testing.T) {
+	// Give the block an old owner the remover will release.
 	env := newGCTestEnv(t)
 	ref := env.putBlock(t, "orphan-transition")
 	object := BlockIRI(ref)
@@ -754,6 +758,7 @@ func TestGCStoreOps_RemoveGCRefDoesNotReviveStagingAfterParentBatch(t *testing.T
 		t.Fatal(err.Error())
 	}
 
+	// Start the removal and hold it inside the ownership transition.
 	raceGraph := &orphanRaceRefGraph{
 		RefGraphOps:    env.refGraph,
 		removerStarted: make(chan struct{}),
@@ -766,8 +771,11 @@ func TestGCStoreOps_RemoveGCRefDoesNotReviveStagingAfterParentBatch(t *testing.T
 	}()
 	<-raceGraph.removerStarted
 
+	// Flush a parent edge while the removal waits.
 	parent := NewGCStoreOps(env.rawStore, raceGraph)
-	parent.bufferBlockRefs(ref, []*block.BlockRef{ref})
+	parent.mu.Lock()
+	parent.bufferRefEdgesLocked(ref, []*block.BlockRef{ref}, true)
+	parent.mu.Unlock()
 	if err := parent.FlushPending(env.ctx); err != nil {
 		t.Fatal(err.Error())
 	}
@@ -775,6 +783,7 @@ func TestGCStoreOps_RemoveGCRefDoesNotReviveStagingAfterParentBatch(t *testing.T
 		t.Fatal(err.Error())
 	}
 
+	// The parent keeps the block and its staging edge stays removed.
 	if _, err := NewCollector(env.refGraph, env.rawStore, nil).Collect(env.ctx); err != nil {
 		t.Fatal(err.Error())
 	}
@@ -1044,6 +1053,52 @@ func (s flushingStore) PutBlockBatch(ctx context.Context, entries []*block.PutBa
 		return err
 	}
 	return s.FlushPending(ctx)
+}
+
+// TestGCStoreOps_ParentIRI_CacheFillTakesNoOwnership tests that a cache fill
+// leaves ownership alone: an existing block keeps its owner, a new copy stays a
+// garbage candidate, and the copy does not adopt a block the owner staged.
+func TestGCStoreOps_ParentIRI_CacheFillTakesNoOwnership(t *testing.T) {
+	// Stage a written block under the bucket.
+	parent := BucketIRI("fill-bucket")
+	env := newGCTestEnvWithParent(t, parent)
+	put := func(data string, opts *block.PutOpts) *block.BlockRef {
+		ref, _, err := env.gcStore.PutBlock(env.ctx, []byte(data), opts)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+		env.flush(t)
+		return ref
+	}
+	written := put("written", nil)
+
+	// Fill the written block again and a new block that references it.
+	put("written", &block.PutOpts{CacheFill: true})
+	cached := put("cached", &block.PutOpts{Refs: []*block.BlockRef{written}, CacheFill: true})
+
+	// The bucket still owns only the written block.
+	owned, err := env.refGraph.GetOutgoingRefs(env.ctx, parent)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if !slices.Equal(owned, []string{BlockIRI(written)}) {
+		t.Fatalf("bucket owns %v, want only %s", owned, BlockIRI(written))
+	}
+	nodes, err := env.refGraph.GetUnreferencedNodes(env.ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if !slices.Equal(nodes, []string{BlockIRI(cached)}) {
+		t.Fatalf("unreferenced nodes = %v, want only the cached copy", nodes)
+	}
+
+	// Collection sweeps the unreachable copy and keeps the written block.
+	if _, err := NewCollector(env.refGraph, env.rawStore, nil).Collect(env.ctx); err != nil {
+		t.Fatal(err.Error())
+	}
+	if env.blockExists(t, cached) || !env.blockExists(t, written) {
+		t.Fatal("collection should sweep only the cached copy")
+	}
 }
 
 // TestGCStoreOps_ParentIRI_CopyGraphHandsChildrenToParents tests that a graph

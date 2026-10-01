@@ -49,14 +49,15 @@ type GCStoreOps struct {
 	deferFlush atomic.Int64
 
 	// flushMu preserves delivery order and joins overlapping flushes.
-	flushMu         csync.Mutex
-	mu              sync.Mutex
-	pendingReleases map[string]struct{} // latest parent releases, canceled by a later put
-	pendingUnref    []string            // block IRIs needing parent/unreferenced -> block edges
-	pendingRefs     []pendingRef        // source -> target block ref edges
-	pendingUnunref  []string            // block IRIs to remove from unreferenced
-	pendingAdds     []RefEdge           // normalized add edges left by a failed direct flush
-	pendingRemoves  []RefEdge           // normalized remove edges left by a failed direct flush
+	flushMu           csync.Mutex
+	mu                sync.Mutex
+	pendingReleases   map[string]struct{} // latest parent releases, canceled by a later put
+	pendingUnref      []string            // block IRIs needing parent/unreferenced -> block edges
+	pendingCandidates []string            // cache-filled block IRIs needing unreferenced -> block edges
+	pendingRefs       []pendingRef        // source -> target block ref edges
+	pendingUnunref    []string            // block IRIs to remove from unreferenced
+	pendingAdds       []RefEdge           // normalized add edges left by a failed direct flush
+	pendingRemoves    []RefEdge           // normalized remove edges left by a failed direct flush
 }
 
 type storeTrackingDisabledContextKey struct{}
@@ -179,9 +180,11 @@ func (g *GCStoreOps) BeginReadOperation(ctx context.Context) (block.StoreOps, fu
 // flush. A parent owns every non-empty block it writes. Without a parent, only
 // new blocks are staged under unreferenced.
 func (g *GCStoreOps) PutBlock(ctx context.Context, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
+	// Trace the put and its ownership buffering as one task.
 	ctx, task := trace.NewTask(ctx, "hydra/block-gc/store/put-block")
 	defer task.End()
 
+	// Defer a requested sync until the ref edges are buffered.
 	putOpts, syncRequested := block.PutOptsWithoutSync(opts)
 	finish := func(ref *block.BlockRef, existed bool) (*block.BlockRef, bool, error) {
 		if syncRequested {
@@ -192,31 +195,45 @@ func (g *GCStoreOps) PutBlock(ctx context.Context, data []byte, opts *block.PutO
 		return ref, existed, nil
 	}
 
+	// Write the block to the inner store.
 	taskCtx, subtask := trace.NewTask(ctx, "hydra/block-gc/store/put-block/store-put-block")
 	ref, existed, err := g.store.PutBlock(taskCtx, data, putOpts)
 	subtask.End()
 	if err != nil {
 		return nil, false, err
 	}
+
+	// Untracked writes and empty blocks take no ref edges.
 	if storeTrackingDisabled(ctx) {
 		return finish(ref, existed)
 	}
-	if ref != nil && !ref.GetEmpty() && (g.parentIRI != "" || !existed) {
-		_, subtask = trace.NewTask(ctx, "hydra/block-gc/store/put-block/buffer-pending-unref")
-		iri := BlockIRI(ref)
+	if ref == nil || ref.GetEmpty() {
+		return finish(ref, existed)
+	}
+
+	// A cache fill records its outgoing refs and changes no ownership. A new
+	// copy is a garbage candidate until a retained root reaches it.
+	if putOpts.GetCacheFill() {
 		g.mu.Lock()
+		if !existed {
+			g.pendingCandidates = append(g.pendingCandidates, BlockIRI(ref))
+		}
+		g.bufferRefEdgesLocked(ref, putOpts.GetRefs(), false)
+		g.mu.Unlock()
+		return finish(ref, existed)
+	}
+
+	// The writer's owner takes the block and adopts the blocks it references.
+	_, subtask = trace.NewTask(ctx, "hydra/block-gc/store/put-block/buffer-pending-unref")
+	g.mu.Lock()
+	if g.parentIRI != "" || !existed {
+		iri := BlockIRI(ref)
 		g.pendingUnref = append(g.pendingUnref, iri)
 		delete(g.pendingReleases, iri)
-		g.mu.Unlock()
-		subtask.End()
 	}
-	var refs []*block.BlockRef
-	if putOpts != nil {
-		refs = putOpts.GetRefs()
-	}
-	if ref != nil && !ref.GetEmpty() && len(refs) != 0 {
-		g.bufferBlockRefs(ref, refs)
-	}
+	g.bufferRefEdgesLocked(ref, putOpts.GetRefs(), true)
+	g.mu.Unlock()
+	subtask.End()
 	return finish(ref, existed)
 }
 
@@ -228,24 +245,27 @@ func (g *GCStoreOps) PutBlock(ctx context.Context, data []byte, opts *block.PutO
 // The collector owns outgoing edges and physical deletion. Existing entries
 // skip unreferenced staging; a configured parent owns every block it writes.
 func (g *GCStoreOps) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) error {
+	// Trace the batch and its ownership buffering as one task.
 	ctx, task := trace.NewTask(ctx, "hydra/block-gc/store/put-block-batch")
 	defer task.End()
 
+	// Untracked batches pass straight through.
 	if storeTrackingDisabled(ctx) {
 		return g.store.PutBlockBatch(ctx, entries)
 	}
 
-	var puts []*block.PutBatchEntry
+	// Tombstones release ownership below and write nothing.
+	puts := make([]*block.PutBatchEntry, 0, len(entries))
 	for _, entry := range entries {
 		if !entry.Tombstone {
 			puts = append(puts, entry)
 		}
 	}
 
+	// Staging an existing block under unreferenced could revive a block that
+	// already has real parents, so a parentless batch checks existence first.
 	var existing []bool
 	if g.parentIRI == "" && len(puts) != 0 {
-		// Staging an existing block under unreferenced could revive a block
-		// that already has real parents.
 		checkCtx, checkTask := trace.NewTask(ctx, "hydra/block-gc/store/put-block-batch/check-existing")
 		refs := make([]*block.BlockRef, len(puts))
 		for i, entry := range puts {
@@ -263,6 +283,7 @@ func (g *GCStoreOps) PutBlockBatch(ctx context.Context, entries []*block.PutBatc
 		checkTask.End()
 	}
 
+	// Write the batch to the inner store.
 	writeCtx, writeTask := trace.NewTask(ctx, "hydra/block-gc/store/put-block-batch/inner-put-block-batch")
 	if err := g.store.PutBlockBatch(writeCtx, puts); err != nil {
 		writeTask.End()
@@ -270,6 +291,7 @@ func (g *GCStoreOps) PutBlockBatch(ctx context.Context, entries []*block.PutBatc
 	}
 	writeTask.End()
 
+	// Buffer releases for tombstones and ownership for each written block.
 	_, subtask := trace.NewTask(ctx, "hydra/block-gc/store/put-block-batch/buffer-pending-unref")
 	g.mu.Lock()
 	putIndex := 0
@@ -290,9 +312,7 @@ func (g *GCStoreOps) PutBlockBatch(ctx context.Context, entries []*block.PutBatc
 			g.pendingUnref = append(g.pendingUnref, iri)
 			delete(g.pendingReleases, iri)
 		}
-		if len(entry.Refs) != 0 {
-			g.bufferBlockRefsLocked(entry.Ref, entry.Refs)
-		}
+		g.bufferRefEdgesLocked(entry.Ref, entry.Refs, true)
 	}
 	g.mu.Unlock()
 	subtask.End()
@@ -353,13 +373,10 @@ func (g *GCStoreOps) Sync(ctx context.Context) (bool, error) {
 	return g.store.Sync(ctx)
 }
 
-func (g *GCStoreOps) bufferBlockRefs(source *block.BlockRef, targets []*block.BlockRef) {
-	g.mu.Lock()
-	g.bufferBlockRefsLocked(source, targets)
-	g.mu.Unlock()
-}
-
-func (g *GCStoreOps) bufferBlockRefsLocked(source *block.BlockRef, targets []*block.BlockRef) {
+// bufferRefEdgesLocked buffers the source -> target edges of a put. With adopt
+// set, each target also leaves the staging of this store's owner, since the
+// source now holds it.
+func (g *GCStoreOps) bufferRefEdgesLocked(source *block.BlockRef, targets []*block.BlockRef, adopt bool) {
 	sourceIRI := BlockIRI(source)
 	for _, t := range targets {
 		if t == nil || t.GetEmpty() {
@@ -367,7 +384,9 @@ func (g *GCStoreOps) bufferBlockRefsLocked(source *block.BlockRef, targets []*bl
 		}
 		targetIRI := BlockIRI(t)
 		g.pendingRefs = append(g.pendingRefs, pendingRef{sourceIRI, targetIRI})
-		g.pendingUnunref = append(g.pendingUnunref, targetIRI)
+		if adopt {
+			g.pendingUnunref = append(g.pendingUnunref, targetIRI)
+		}
 	}
 }
 
@@ -414,6 +433,7 @@ func (g *GCStoreOps) EndDeferFlush(ctx context.Context) error {
 // returns nil without flushing. The pending operations accumulate
 // and are flushed when EndDeferFlush closes the outermost scope.
 func (g *GCStoreOps) FlushPending(ctx context.Context) error {
+	// Serialize flushes, and leave the buffer to an open deferred scope.
 	release, err := g.flushMu.Lock(ctx)
 	if err != nil {
 		return err
@@ -423,6 +443,7 @@ func (g *GCStoreOps) FlushPending(ctx context.Context) error {
 		return nil
 	}
 
+	// Trace the flush under the configured task name.
 	taskName := g.flushTask
 	if taskName == "" {
 		taskName = defaultFlushTask
@@ -441,19 +462,17 @@ func (g *GCStoreOps) FlushPending(ctx context.Context) error {
 		}
 	}
 
+	// Take the buffered ownership changes.
 	g.mu.Lock()
-	unrefs := g.pendingUnref
-	refs := g.pendingRefs
-	ununrefs := g.pendingUnunref
-	releases := g.pendingReleases
-	g.pendingUnref = nil
-	g.pendingRefs = nil
-	g.pendingUnunref = nil
-	g.pendingReleases = nil
+	unrefs, candidates, refs := g.pendingUnref, g.pendingCandidates, g.pendingRefs
+	ununrefs, releases := g.pendingUnunref, g.pendingReleases
+	g.pendingUnref, g.pendingCandidates, g.pendingRefs = nil, nil, nil
+	g.pendingUnunref, g.pendingReleases = nil, nil
 	g.mu.Unlock()
 
-	if len(unrefs) == 0 && len(refs) == 0 && len(ununrefs) == 0 &&
-		len(releases) == 0 {
+	// Record the pending counts, or stop when nothing is buffered.
+	if len(unrefs) == 0 && len(candidates) == 0 && len(refs) == 0 &&
+		len(ununrefs) == 0 && len(releases) == 0 {
 		return nil
 	}
 	path := "direct"
@@ -471,13 +490,15 @@ func (g *GCStoreOps) FlushPending(ctx context.Context) error {
 		len(releases),
 	)
 
+	// Writes without a parent stage their blocks under unreferenced.
 	parent := g.parentIRI
 	if parent == "" {
 		parent = NodeUnreferenced
 	}
+
 	// Parent-backed writes remove their staging edge in the same batch as the
 	// parent edge. RefGraph treats removal of a missing edge as a no-op.
-	adds := make([]RefEdge, 0, len(unrefs)+len(refs)+len(releases))
+	adds := make([]RefEdge, 0, len(unrefs)+len(candidates)+len(refs)+len(releases))
 	removes := make([]RefEdge, 0, len(ununrefs)+len(unrefs)+len(releases))
 	for _, iri := range unrefs {
 		adds = append(adds, RefEdge{Subject: parent, Object: iri})
@@ -485,19 +506,28 @@ func (g *GCStoreOps) FlushPending(ctx context.Context) error {
 			removes = append(removes, RefEdge{Subject: NodeUnreferenced, Object: iri})
 		}
 	}
+
+	// Stage cache-fill candidates and record the buffered ref edges.
+	for _, iri := range candidates {
+		adds = append(adds, RefEdge{Subject: NodeUnreferenced, Object: iri})
+	}
 	for _, r := range refs {
 		adds = append(adds, RefEdge{Subject: r.source, Object: r.target})
 	}
 	for _, iri := range ununrefs {
 		removes = append(removes, RefEdge{Subject: parent, Object: iri})
 	}
+
+	// Materialize and release each released owner together, so a
+	// never-published put also receives an orphan mark after the final owner
+	// check.
 	for iri := range releases {
-		// Materialize and release the owner together, so a never-published
-		// put also receives an orphan mark after the final owner check.
 		edge := RefEdge{Subject: parent, Object: iri}
 		adds = append(adds, edge)
 		removes = append(removes, edge)
 	}
+
+	// Drop duplicate edges before delivery.
 	preNormalizeAdds := len(adds)
 	preNormalizeRemoves := len(removes)
 	_, normalizeTask := trace.NewTask(ctx, "hydra/block-gc/store/flush-pending/normalize")
@@ -513,10 +543,11 @@ func (g *GCStoreOps) FlushPending(ctx context.Context) error {
 		len(adds),
 		len(removes),
 	)
+
+	// Deliver the remaining edges.
 	if len(adds) == 0 && len(removes) == 0 {
 		return nil
 	}
-
 	return g.flushRefEdges(ctx, adds, removes)
 }
 

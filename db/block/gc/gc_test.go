@@ -75,8 +75,11 @@ func (e *testEnv) flush(t *testing.T) {
 	}
 }
 
+// recordRefs buffers the edges a writer's put of source records.
 func (e *testEnv) recordRefs(source *block.BlockRef, targets []*block.BlockRef) {
-	e.gcStore.bufferBlockRefs(source, targets)
+	e.gcStore.mu.Lock()
+	e.gcStore.bufferRefEdgesLocked(source, targets, true)
+	e.gcStore.mu.Unlock()
 }
 
 // blockExists checks if a block exists in the raw store.

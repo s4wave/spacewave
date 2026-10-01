@@ -56,6 +56,7 @@ export enum StoreFeature {
 export const StoreFeature_Enum = /* @__PURE__ */ createEnumType(
   'block.StoreFeature',
   StoreFeature,
+  'STORE_FEATURE_',
 )
 
 /**
@@ -266,6 +267,15 @@ export interface PutOpts {
    * @generated from field: bool sync = 4;
    */
   sync?: boolean
+  /**
+   * CacheFill marks a copy of a block read from another store. A GC-aware
+   * store records its outgoing refs but gives it no owner: a new block is
+   * staged as a garbage candidate, and an existing block keeps its edges. The
+   * copy then lives only while a retained root reaches it.
+   *
+   * @generated from field: bool cache_fill = 5;
+   */
+  cacheFill?: boolean
 }
 
 export const PutOpts: MessageType<PutOpts> = /* @__PURE__ */ createMessageType({
@@ -275,5 +285,6 @@ export const PutOpts: MessageType<PutOpts> = /* @__PURE__ */ createMessageType({
     { no: 2, name: 'force_block_ref', kind: 'message', T: BlockRef },
     { no: 3, name: 'refs', kind: 'message', T: BlockRef, repeated: true },
     { no: 4, name: 'sync', kind: 'scalar', T: ScalarType.BOOL },
+    { no: 5, name: 'cache_fill', kind: 'scalar', T: ScalarType.BOOL },
   ] satisfies readonly PartialFieldInfo[],
 })
