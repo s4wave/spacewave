@@ -1,3 +1,5 @@
+//go:build !js
+
 package forge_lib_docker
 
 import (
@@ -8,16 +10,6 @@ import (
 
 	"github.com/pkg/errors"
 )
-
-// DockerRunner executes one docker CLI command and returns its stdout.
-// The env parameter is the complete subprocess environment; implementations
-// must not inherit the host environment.
-type DockerRunner interface {
-	// Run executes the named binary with args and env, returning stdout.
-	Run(ctx context.Context, name string, args []string, env []string) ([]byte, error)
-	// Logs reads both output streams from a completed container.
-	Logs(ctx context.Context, name, containerID string, env []string) ([]byte, []byte, error)
-}
 
 // ExecDockerRunner runs docker CLI commands as subprocesses with an
 // explicitly constructed environment. Run returns stdout for parsing and
