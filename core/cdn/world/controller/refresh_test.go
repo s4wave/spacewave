@@ -39,7 +39,7 @@ func TestRefreshRPCRefetchesMountedWorld(t *testing.T) {
 	// Serve the pointer and signal each fetch after the first.
 	var requests atomic.Int32
 	refetched := make(chan struct{}, 1)
-	serveTestCDN(t, http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+	cdnURL := serveTestCDN(t, http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		if requests.Add(1) > 1 {
 			select {
 			case refetched <- struct{}{}:
@@ -50,7 +50,7 @@ func TestRefreshRPCRefetchesMountedWorld(t *testing.T) {
 	}))
 
 	// Mount the world.
-	ctrl := NewController(logrus.NewEntry(logrus.New()), nil, NewConfig("release", "release-space", testCDNBaseURL))
+	ctrl := NewController(logrus.NewEntry(logrus.New()), nil, NewConfig("release", "release-space", cdnURL))
 	done := make(chan error, 1)
 	go func() { done <- ctrl.Execute(ctx) }()
 	defer func() { cancel(); <-done }()

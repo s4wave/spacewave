@@ -146,10 +146,17 @@ func (c *Controller) Execute(ctx context.Context) error {
 		return err
 	}
 
-	// Run the shared-object snapshot refresh loop for this engine.
+	// The refresh routine owns pointer fetches, including the first one, so
+	// mounting fetches the pointer once.
 	c.refresh.SetRoutine(so.RefreshSnapshot)
 	c.refresh.SetContext(ctx, false)
 	defer c.refresh.ClearContext()
+	if err := c.refresh.WaitExited(ctx, false, nil); err != nil {
+		if ctx.Err() != nil {
+			return nil
+		}
+		return err
+	}
 
 	// Wait for a readable head, then publish one engine until cancellation.
 	for {

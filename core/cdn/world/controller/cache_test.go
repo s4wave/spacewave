@@ -165,7 +165,7 @@ func TestConfiguredCacheWritebackSurvivesCdnRestart(t *testing.T) {
 	var reqMu sync.Mutex
 	var rangeRequests int
 	var packBlocked bool
-	serveTestCDN(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	cdnURL := serveTestCDN(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch {
 		case r.URL.Path == "/"+spaceID+"/root.packedmsg":
 			_, _ = w.Write(pointer)
@@ -230,7 +230,7 @@ func TestConfiguredCacheWritebackSurvivesCdnRestart(t *testing.T) {
 	defer cacheControllerRelease()
 
 	// Configure the controller to write CDN reads back to the cache.
-	conf := NewConfig("release-world", spaceID, testCDNBaseURL)
+	conf := NewConfig("release-world", spaceID, cdnURL)
 	conf.CacheBlockStoreId = cacheID
 	conf.WritebackWindowBytes = 1 << 20
 
@@ -310,7 +310,7 @@ func TestReleaseWorldExternalBucketBuildAPIUsesCdnStoreMapping(t *testing.T) {
 	// Serve an empty root pointer and count its requests.
 	pointer := encodeRootPointer(t, &cdn.CdnRootPointer{SpaceId: spaceID})
 	var rootRequests atomic.Int32
-	cdnClient := serveTestCDN(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	cdnURL := serveTestCDN(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/"+spaceID+"/root.packedmsg" {
 			http.NotFound(w, r)
 			return
@@ -321,9 +321,9 @@ func TestReleaseWorldExternalBucketBuildAPIUsesCdnStoreMapping(t *testing.T) {
 
 	// Open the CDN block store.
 	cdnStore, err := cdn_bstore.NewCdnBlockStore(cdn_bstore.Options{
-		CdnBaseURL: testCDNBaseURL,
+		CdnBaseURL: cdnURL,
 		SpaceID:    spaceID,
-		HttpClient: cdnClient,
+		HttpClient: http.DefaultClient,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -473,7 +473,7 @@ func TestReleaseWorldSharesTransportAndDurableCacheAcrossRpcBridge(t *testing.T)
 	releaseRange := make(chan struct{})
 	var rootRequests atomic.Int32
 	var rangeRequests atomic.Int32
-	serveTestCDN(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	cdnURL := serveTestCDN(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/"+spaceID+"/root.packedmsg" {
 			if rootRequests.Add(1) == 1 {
 				close(firstRoot)
@@ -608,7 +608,7 @@ func TestReleaseWorldSharesTransportAndDurableCacheAcrossRpcBridge(t *testing.T)
 	defer serviceRef.Release()
 
 	// Configure the world controller with the durable cache.
-	conf := NewConfig(releaseWorldEngineID, spaceID, testCDNBaseURL)
+	conf := NewConfig(releaseWorldEngineID, spaceID, cdnURL)
 	conf.CacheBlockStoreId = cacheID
 	conf.WritebackWindowBytes = 1 << 20
 	worldCtrl := NewController(le, host.Bus, conf)

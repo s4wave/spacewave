@@ -23,10 +23,10 @@ func TestExecuteWaitsForMissingPublishedHead(t *testing.T) {
 	mux.HandleFunc("/"+testSpaceID+"/root.packedmsg", func(w http.ResponseWriter, _ *http.Request) {
 		_, _ = w.Write(encoded)
 	})
-	serveTestCDN(t, mux)
+	cdnURL := serveTestCDN(t, mux)
 
 	// Execute stays running.
-	ctrl := NewController(logrus.NewEntry(logrus.New()), nil, NewConfig("release-world", testSpaceID, testCDNBaseURL))
+	ctrl := NewController(logrus.NewEntry(logrus.New()), nil, NewConfig("release-world", testSpaceID, cdnURL))
 	ctx, cancel := context.WithCancel(context.Background())
 	done := make(chan error, 1)
 	go func() {
