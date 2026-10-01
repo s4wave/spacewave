@@ -210,7 +210,7 @@ func (e *Engine) loadRoot(ctx context.Context) (*Root, error) {
 		if err == nil {
 			err = decode(data, root)
 		}
-		if err == nil && (root.Format != formatVersion || root.Generation == 0 || root.Catalogue == "" || root.ReclaimNext == 0) {
+		if err == nil && (root.Format != FormatVersion || root.Generation == 0 || root.Catalogue == "" || root.ReclaimNext == 0) {
 			err = ErrCorrupt
 		}
 		if err == nil {

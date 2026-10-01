@@ -7,8 +7,10 @@ import (
 )
 
 const (
-	// formatVersion identifies the clean immutable volume format.
-	formatVersion = 4
+	// FormatVersion identifies the immutable volume format. The volume runtime
+	// frames each root with it, so a root written in another format opens as a
+	// replacement instead of failing as corrupt.
+	FormatVersion = 4
 	// maxKeyBytes bounds comparison, routing, and catalogue page sizes.
 	maxKeyBytes = 4096
 	// MaxValueBytes preserves the supported maximum block and metadata value.

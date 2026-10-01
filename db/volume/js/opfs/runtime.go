@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"context"
 	"slices"
+	"strconv"
 	"strings"
 	"syscall/js"
 
@@ -13,18 +14,23 @@ import (
 	"github.com/s4wave/spacewave/db/opfs"
 	"github.com/s4wave/spacewave/db/unixfs"
 	"github.com/s4wave/spacewave/db/volume"
+	"github.com/s4wave/spacewave/db/volume/js/opfs/engine"
 	"github.com/sirupsen/logrus"
 )
 
+// StorageFormatVersion is the engine format the runtime frames each root with.
+const StorageFormatVersion uint32 = engine.FormatVersion
+
+var (
+	// formatMarker is fixed framing, not a second mutable storage descriptor.
+	formatMarker = "spacewave-opfs-volume/" + strconv.Itoa(engine.FormatVersion) + "\n"
+	// recoverySuffix reserves a sibling root while preserving incompatible data.
+	recoverySuffix = ".spacewave-opfs-v" + strconv.Itoa(engine.FormatVersion)
+)
+
 const (
-	// currentStorageFormatVersion identifies the clean immutable volume format.
-	currentStorageFormatVersion uint32 = 3
 	// formatMarkerName distinguishes initialized roots from preexisting data.
 	formatMarkerName = ".spacewave-opfs-format"
-	// formatMarker is fixed framing, not a second mutable storage descriptor.
-	formatMarker = "spacewave-opfs-volume/3\n"
-	// recoverySuffix reserves a sibling root while preserving incompatible data.
-	recoverySuffix = ".spacewave-opfs-v3"
 	// driverModeAuto selects the current runtime's supported browser driver.
 	driverModeAuto = "auto"
 	// driverModeStandardWasm selects standard Go's browser driver ABI.

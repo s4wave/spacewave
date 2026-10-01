@@ -166,20 +166,21 @@ func (r *BenchmarkRunner) GetResults(ctx context.Context) (*s4wave_debugdb.Bench
 
 // allocateVolume creates a throw-away OPFS volume for benchmarking.
 func (r *BenchmarkRunner) allocateVolume(ctx context.Context) (*volume_opfs.Opfs, func() error, error) {
+	// Open a new volume under a unique root.
 	rootPath := "debugdb-bench-" + time.Now().Format("20060102-150405.000000000")
 	conf := &volume_opfs.Config{
 		RootPath:             rootPath,
 		LockPrefix:           rootPath,
 		DriverMode:           "auto",
-		StorageFormatVersion: 3,
+		StorageFormatVersion: volume_opfs.StorageFormatVersion,
 	}
-
 	le := r.le.WithField("volume", rootPath)
 	vol, err := volume_opfs.NewOpfs(ctx, le, conf)
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "create benchmark volume")
 	}
 
+	// Delete the whole root when the benchmark ends.
 	deleteVol := func() error {
 		root, err := opfs.GetRoot()
 		if err != nil {
@@ -188,6 +189,7 @@ func (r *BenchmarkRunner) allocateVolume(ctx context.Context) (*volume_opfs.Opfs
 		return opfs.DeleteEntry(root, rootPath, true)
 	}
 
+	// Yield before the benchmark starts timing.
 	runtime.Gosched()
 	return vol, deleteVol, nil
 }

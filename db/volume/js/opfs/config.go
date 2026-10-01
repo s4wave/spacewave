@@ -15,7 +15,7 @@ func (c *Config) Validate() error {
 	if c.GetRootPath() == "" {
 		return errors.New("root_path required")
 	}
-	if version := c.GetStorageFormatVersion(); version != 0 && version != currentStorageFormatVersion {
+	if version := c.GetStorageFormatVersion(); version != 0 && version != StorageFormatVersion {
 		return errors.Errorf("unsupported storage_format_version %d", version)
 	}
 	switch runtimeDriverMode(c) {

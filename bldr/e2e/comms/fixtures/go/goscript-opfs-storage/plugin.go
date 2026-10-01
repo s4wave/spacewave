@@ -148,6 +148,8 @@ func readProofData() error {
 		return err
 	}
 	defer vol.Close()
+
+	// The replacement keeps its volume identity.
 	id, err := opfs.ReadFile(dir, "volume-id")
 	if err != nil {
 		return err
@@ -155,6 +157,8 @@ func readProofData() error {
 	if string(id) != vol.GetID() {
 		return errors.New("replacement volume identity changed on remount")
 	}
+
+	// The replacement keeps the metadata written before the restart.
 	tx, err := vol.GetKvtxStore().NewTransaction(ctx, false)
 	if err != nil {
 		return err
@@ -172,7 +176,7 @@ func readProofData() error {
 	if err := vol.Delete(); err != nil {
 		return err
 	}
-	if _, err := opfs.GetDirectory(dir, "volume.spacewave-opfs-v3", false); !opfs.IsNotFound(err) {
+	if _, err := opfs.GetDirectory(dir, "volume.spacewave-opfs-v4", false); !opfs.IsNotFound(err) {
 		return errors.Errorf("replacement remains after Delete: %v", err)
 	}
 
@@ -184,13 +188,15 @@ func readProofData() error {
 	if err := reopened.Close(); err != nil {
 		return err
 	}
+
+	// DeleteRoot removes the replacement and is safe to repeat.
 	if err := volume_opfs.DeleteRoot(dirName + "/volume"); err != nil {
 		return err
 	}
 	if err := volume_opfs.DeleteRoot(dirName + "/volume"); err != nil {
 		return errors.Wrap(err, "repeat replacement deletion")
 	}
-	if _, err := opfs.GetDirectory(dir, "volume.spacewave-opfs-v3", false); !opfs.IsNotFound(err) {
+	if _, err := opfs.GetDirectory(dir, "volume.spacewave-opfs-v4", false); !opfs.IsNotFound(err) {
 		return errors.Errorf("replacement remains after DeleteRoot: %v", err)
 	}
 
@@ -206,6 +212,8 @@ func readProofData() error {
 	if string(data) != payload {
 		return errors.New("legacy data changed")
 	}
+
+	// The legacy root keeps its original format marker.
 	marker, err := opfs.ReadFile(legacy, ".spacewave-opfs-format")
 	if err != nil {
 		return err

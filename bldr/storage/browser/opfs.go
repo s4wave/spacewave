@@ -39,7 +39,7 @@ func (s *OpfsStorage) BuildVolumeConfig(id string, baseVolCtrlConf *volume_contr
 		RootPath:             rootPath,
 		LockPrefix:           rootPath,
 		DriverMode:           "auto",
-		StorageFormatVersion: 3,
+		StorageFormatVersion: volume_opfs.StorageFormatVersion,
 		VolumeConfig:         baseVolCtrlConf,
 	}, nil
 }

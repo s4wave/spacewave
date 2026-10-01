@@ -53,7 +53,7 @@ func newPublication(e *Engine, base *Root) *publication {
 	// crypto/rand.Read fills the buffer or terminates the process.
 	_, _ = rand.Read(nonce[:])
 	root := base.CloneVT()
-	root.Format = formatVersion
+	root.Format = FormatVersion
 	root.Generation++
 	root.Publication = hex.EncodeToString(nonce[:])
 	return &publication{engine: e, root: root, retired: make(map[string]struct{})}
