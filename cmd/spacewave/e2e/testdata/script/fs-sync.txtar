@@ -32,4 +32,9 @@ stderr "exactly one path"
 # Recovery keys go to a new file, never over an existing record.
 spacewave --state-path $WORK/state space world export-root $WORK/root.pb
 ! spacewave --state-path $WORK/state space world export-root $WORK/root.pb
+
+# A retained root survives storage reclaim until its name is released.
+spacewave --state-path $WORK/state space world export-root --retain nightly $WORK/retained.pb
+spacewave --state-path $WORK/state space world export-root --retain nightly $WORK/retained-next.pb
+spacewave --state-path $WORK/state space world release-root nightly
 spacewave --state-path $WORK/state stop

@@ -10,6 +10,7 @@ import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 import { SharedObjectRef, SORoot } from '../../sobject.pb.js'
 import { Backoff } from '@go/github.com/aperturerobotics/util/backoff/backoff.pb.js'
+import { BlockRef } from '../../../../db/block/block.pb.js'
 import { ObjectRef } from '../../../../db/bucket/bucket.pb.js'
 import { Tx } from '../../../../db/world/block/tx/tx.pb.js'
 
@@ -193,6 +194,35 @@ export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
 })
 
 /**
+ * RetainedRoot is a past World root kept restorable under a name.
+ *
+ * @generated from message sobject.world.engine.RetainedRoot
+ */
+export interface RetainedRoot {
+  /**
+   * Name identifies the root within the Space.
+   *
+   * @generated from field: string name = 1;
+   */
+  name?: string
+  /**
+   * RootRef is the World root block. It uses the head's transform config.
+   *
+   * @generated from field: block.BlockRef root_ref = 2;
+   */
+  rootRef?: BlockRef
+}
+
+export const RetainedRoot: MessageType<RetainedRoot> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'sobject.world.engine.RetainedRoot',
+    fields: [
+      { no: 1, name: 'name', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'root_ref', kind: 'message', T: () => BlockRef },
+    ] satisfies readonly PartialFieldInfo[],
+  })
+
+/**
  * InnerState contains the inner state object for the SharedObject.
  * Note that the SharedObject inner state thas a very small size limit.
  *
@@ -217,6 +247,13 @@ export interface InnerState {
    * @generated from field: uint64 storage_generation = 2;
    */
   storageGeneration?: bigint
+  /**
+   * RetainedRoots are past World roots the Space keeps restorable, sorted by
+   * name. Storage reclaim treats every block they reach as live.
+   *
+   * @generated from field: repeated sobject.world.engine.RetainedRoot retained_roots = 3;
+   */
+  retainedRoots?: RetainedRoot[]
 }
 
 export const InnerState: MessageType<InnerState> =
@@ -229,6 +266,42 @@ export const InnerState: MessageType<InnerState> =
         name: 'storage_generation',
         kind: 'scalar',
         T: ScalarType.UINT64,
+      },
+      {
+        no: 3,
+        name: 'retained_roots',
+        kind: 'message',
+        T: RetainedRoot,
+        repeated: true,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+  })
+
+/**
+ * RetainedRootSet is the block the validator keeps as its one local named root
+ * for all retained roots. Its outgoing refs are the retained World roots.
+ *
+ * @generated from message sobject.world.engine.RetainedRootSet
+ */
+export interface RetainedRootSet {
+  /**
+   * Roots are the retained roots, sorted by name.
+   *
+   * @generated from field: repeated sobject.world.engine.RetainedRoot roots = 1;
+   */
+  roots?: RetainedRoot[]
+}
+
+export const RetainedRootSet: MessageType<RetainedRootSet> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'sobject.world.engine.RetainedRootSet',
+    fields: [
+      {
+        no: 1,
+        name: 'roots',
+        kind: 'message',
+        T: RetainedRoot,
+        repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
   })
@@ -297,6 +370,51 @@ export const AdvanceStorageGenerationOp: MessageType<AdvanceStorageGenerationOp>
   })
 
 /**
+ * SetRetainedRootOp retains a past World root under a name, replacing a root
+ * with the same name, or releases the name when root_ref is empty.
+ *
+ * @generated from message sobject.world.engine.SetRetainedRootOp
+ */
+export interface SetRetainedRootOp {
+  /**
+   * Name identifies the root within the Space.
+   *
+   * @generated from field: string name = 1;
+   */
+  name?: string
+  /**
+   * RootRef is the World root block to retain, or empty to release.
+   *
+   * @generated from field: block.BlockRef root_ref = 2;
+   */
+  rootRef?: BlockRef
+  /**
+   * StorageGeneration is the generation of the accepted state whose head is
+   * root_ref. The validator rejects an older one: a reclaim pass that advanced
+   * past it may have judged the root's blocks dead before the validator copied
+   * them.
+   *
+   * @generated from field: uint64 storage_generation = 3;
+   */
+  storageGeneration?: bigint
+}
+
+export const SetRetainedRootOp: MessageType<SetRetainedRootOp> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'sobject.world.engine.SetRetainedRootOp',
+    fields: [
+      { no: 1, name: 'name', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'root_ref', kind: 'message', T: () => BlockRef },
+      {
+        no: 3,
+        name: 'storage_generation',
+        kind: 'scalar',
+        T: ScalarType.UINT64,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+  })
+
+/**
  * SOWorldOp is the outer wrapper for a shared object operation against a world InnerState.
  *
  * @generated from message sobject.world.engine.SOWorldOp
@@ -339,6 +457,15 @@ export interface SOWorldOp {
         value: AdvanceStorageGenerationOp
         case: 'advanceStorageGeneration'
       }
+    | {
+        /**
+         * SetRetainedRoot retains or releases a past World root.
+         *
+         * @generated from field: sobject.world.engine.SetRetainedRootOp set_retained_root = 4;
+         */
+        value: SetRetainedRootOp
+        case: 'setRetainedRoot'
+      }
 }
 
 export const SOWorldOp: MessageType<SOWorldOp> =
@@ -364,6 +491,13 @@ export const SOWorldOp: MessageType<SOWorldOp> =
         name: 'advance_storage_generation',
         kind: 'message',
         T: AdvanceStorageGenerationOp,
+        oneof: 'body',
+      },
+      {
+        no: 4,
+        name: 'set_retained_root',
+        kind: 'message',
+        T: SetRetainedRootOp,
         oneof: 'body',
       },
     ] satisfies readonly PartialFieldInfo[],

@@ -12,6 +12,7 @@ import (
 
 	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
 	json "github.com/aperturerobotics/protobuf-go-lite/json"
+	block "github.com/s4wave/spacewave/db/block"
 	quad "github.com/s4wave/spacewave/db/block/quad"
 	bucket "github.com/s4wave/spacewave/db/bucket"
 )
@@ -306,6 +307,46 @@ func (x *WatchWorldRootSnapshotsRequest) Reset() {
 }
 
 func (*WatchWorldRootSnapshotsRequest) ProtoMessage() {}
+
+// SetRetainedRootRequest is the request type for SetRetainedRoot.
+type SetRetainedRootRequest struct {
+	unknownFields []byte
+	// Name identifies the retained root, 1 to 64 bytes.
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	// RootRef is the accepted World root to retain, or empty to release the name.
+	RootRef *block.BlockRef `protobuf:"bytes,2,opt,name=root_ref,json=rootRef,proto3" json:"rootRef,omitempty"`
+}
+
+func (x *SetRetainedRootRequest) Reset() {
+	*x = SetRetainedRootRequest{}
+}
+
+func (*SetRetainedRootRequest) ProtoMessage() {}
+
+func (x *SetRetainedRootRequest) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *SetRetainedRootRequest) GetRootRef() *block.BlockRef {
+	if x != nil {
+		return x.RootRef
+	}
+	return nil
+}
+
+// SetRetainedRootResponse is the response type for SetRetainedRoot.
+type SetRetainedRootResponse struct {
+	unknownFields []byte
+}
+
+func (x *SetRetainedRootResponse) Reset() {
+	*x = SetRetainedRootResponse{}
+}
+
+func (*SetRetainedRootResponse) ProtoMessage() {}
 
 // NewTransactionRequest is the request type for NewTransaction.
 type NewTransactionRequest struct {
@@ -3105,6 +3146,38 @@ func (m *WatchWorldRootSnapshotsRequest) CloneMessageVT() protobuf_go_lite.Clone
 	return m.CloneVT()
 }
 
+func (m *SetRetainedRootRequest) CloneVT() *SetRetainedRootRequest {
+	if m == nil {
+		return (*SetRetainedRootRequest)(nil)
+	}
+	r := new(SetRetainedRootRequest)
+	r.Name = m.Name
+	r.RootRef = protobuf_go_lite.CloneVTValue(m.RootRef)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *SetRetainedRootRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *SetRetainedRootResponse) CloneVT() *SetRetainedRootResponse {
+	if m == nil {
+		return (*SetRetainedRootResponse)(nil)
+	}
+	r := new(SetRetainedRootResponse)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *SetRetainedRootResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
 func (m *NewTransactionRequest) CloneVT() *NewTransactionRequest {
 	if m == nil {
 		return (*NewTransactionRequest)(nil)
@@ -5131,6 +5204,46 @@ func (this *WatchWorldRootSnapshotsRequest) EqualVT(that *WatchWorldRootSnapshot
 
 func (this *WatchWorldRootSnapshotsRequest) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*WatchWorldRootSnapshotsRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *SetRetainedRootRequest) EqualVT(that *SetRetainedRootRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Name != that.Name {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.RootRef, that.RootRef) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *SetRetainedRootRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*SetRetainedRootRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *SetRetainedRootResponse) EqualVT(that *SetRetainedRootResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *SetRetainedRootResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*SetRetainedRootResponse)
 	if !ok {
 		return false
 	}
@@ -8011,6 +8124,90 @@ func (x *WatchWorldRootSnapshotsRequest) UnmarshalProtoJSON(s *json.UnmarshalSta
 
 // UnmarshalJSON unmarshals the WatchWorldRootSnapshotsRequest from JSON.
 func (x *WatchWorldRootSnapshotsRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the SetRetainedRootRequest message to JSON.
+func (x *SetRetainedRootRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Name != "" || s.HasField("name") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("name")
+		s.WriteString(x.Name)
+	}
+	if x.RootRef != nil || s.HasField("rootRef") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("rootRef")
+		x.RootRef.MarshalProtoJSON(s.WithField("rootRef"))
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the SetRetainedRootRequest to JSON.
+func (x *SetRetainedRootRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the SetRetainedRootRequest message from JSON.
+func (x *SetRetainedRootRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "name":
+			s.AddField("name")
+			x.Name = s.ReadString()
+		case "root_ref", "rootRef":
+			if s.ReadNil() {
+				x.RootRef = nil
+				return
+			}
+			x.RootRef = &block.BlockRef{}
+			x.RootRef.UnmarshalProtoJSON(s.WithField("root_ref", true))
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the SetRetainedRootRequest from JSON.
+func (x *SetRetainedRootRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the SetRetainedRootResponse message to JSON.
+func (x *SetRetainedRootResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the SetRetainedRootResponse to JSON.
+func (x *SetRetainedRootResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the SetRetainedRootResponse message from JSON.
+func (x *SetRetainedRootResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		// no fields
+	})
+}
+
+// UnmarshalJSON unmarshals the SetRetainedRootResponse from JSON.
+func (x *SetRetainedRootResponse) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -13644,6 +13841,85 @@ func (m *WatchWorldRootSnapshotsRequest) MarshalToSizedBufferVT(dAtA []byte) (in
 	return len(dAtA) - i, nil
 }
 
+func (m *SetRetainedRootRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *SetRetainedRootRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *SetRetainedRootRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.RootRef != nil {
+		size, err := m.RootRef.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.Name) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.Name)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *SetRetainedRootResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *SetRetainedRootResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *SetRetainedRootResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *NewTransactionRequest) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -18316,6 +18592,31 @@ func (m *WatchWorldRootSnapshotsRequest) SizeVT() (n int) {
 	return n
 }
 
+func (m *SetRetainedRootRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Name)
+	if m.RootRef != nil {
+		l = m.RootRef.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *SetRetainedRootResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += len(m.unknownFields)
+	return n
+}
+
 func (m *NewTransactionRequest) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -19857,6 +20158,34 @@ func (x *WatchWorldRootSnapshotsRequest) MarshalProtoText() string {
 }
 
 func (x *WatchWorldRootSnapshotsRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *SetRetainedRootRequest) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "SetRetainedRootRequest")
+	if x.Name != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "name")
+		protobuf_go_lite.TextWriteString(&sb, x.Name)
+	}
+	if x.RootRef != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "root_ref")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.RootRef)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *SetRetainedRootRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *SetRetainedRootResponse) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	protobuf_go_lite.TextStartMessage(&sb, "SetRetainedRootResponse")
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *SetRetainedRootResponse) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -22183,6 +22512,117 @@ func (m *WatchWorldRootSnapshotsRequest) UnmarshalVT(dAtA []byte) error {
 		}
 		if fieldNum <= 0 {
 			return fmt.Errorf("proto: WatchWorldRootSnapshotsRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *SetRetainedRootRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: SetRetainedRootRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: SetRetainedRootRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Name", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Name = v
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RootRef", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.RootRef == nil {
+				m.RootRef = &block.BlockRef{}
+			}
+			if err := m.RootRef.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *SetRetainedRootResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: SetRetainedRootResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: SetRetainedRootResponse: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		default:

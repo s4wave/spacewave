@@ -29,6 +29,7 @@ func newSpaceWorldCommand(statePath *string, sessionIdx *uint) *cli.Command {
 		},
 		Subcommands: []*cli.Command{
 			newSpaceWorldExportCommand(statePath, sessionIdx, &spaceID),
+			newSpaceWorldReleaseRootCommand(statePath, sessionIdx, &spaceID),
 			buildSpaceWorldChangelogCommand(statePath, sessionIdx, &spaceID),
 			buildSpaceWorldRollbackPlanCommand(statePath, sessionIdx, &spaceID),
 		},
@@ -198,6 +199,8 @@ func buildSpaceWorldRollbackPlanCommand(statePath *string, sessionIdx *uint, spa
 	}
 }
 
+// mountSpaceWorldEngine mounts the World engine of a Space in the selected
+// session. Returns the engine, its cleanup, and the resolved Space ID.
 func mountSpaceWorldEngine(
 	ctx context.Context,
 	c *cli.Context,
@@ -205,20 +208,20 @@ func mountSpaceWorldEngine(
 	sessionIdx uint,
 	spaceID string,
 ) (*sdk_engine.SDKEngine, func(), string, error) {
-	// Summarize the undo-data status of each changelog change.
+	// Connect to the daemon.
 	client, err := connectDaemonFromContext(ctx, c, statePath)
 	if err != nil {
 		return nil, nil, "", err
 	}
 
-	// Count the missing and partial undo-data statuses.
+	// Mount the session.
 	sess, err := client.mountSession(ctx, sessionIndex32(sessionIdx))
 	if err != nil {
 		client.close()
 		return nil, nil, "", err
 	}
 
-	// Summarize the undo-data status of each changelog change.
+	// Resolve and mount the Space.
 	sid, err := client.resolveSpaceID(ctx, sess, spaceID)
 	if err != nil {
 		sess.Release()
@@ -232,7 +235,7 @@ func mountSpaceWorldEngine(
 		return nil, nil, "", err
 	}
 
-	// Summarize the undo-data status of each changelog change.
+	// Access its World engine.
 	engine, engineCleanup, err := client.accessWorldEngine(ctx, spaceSvc)
 	if err != nil {
 		spaceCleanup()

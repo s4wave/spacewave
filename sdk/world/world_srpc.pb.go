@@ -19,6 +19,10 @@ type SRPCEngineResourceServiceClient interface {
 	GetWorldRootSnapshot(ctx context.Context, in *GetWorldRootSnapshotRequest) (*WorldRootSnapshot, error)
 
 	WatchWorldRootSnapshots(ctx context.Context, in *WatchWorldRootSnapshotsRequest) (SRPCEngineResourceService_WatchWorldRootSnapshotsClient, error)
+	// SetRetainedRoot retains the accepted World root under a name in the World's
+	// shared state, so storage reclaim keeps its blocks. An empty root releases
+	// the name.
+	SetRetainedRoot(ctx context.Context, in *SetRetainedRootRequest) (*SetRetainedRootResponse, error)
 
 	NewTransaction(ctx context.Context, in *NewTransactionRequest) (*NewTransactionResponse, error)
 	// ExecuteWorldOp accepts a complete operation, retrying stale bases through World.
@@ -105,6 +109,15 @@ func (x *srpcEngineResourceService_WatchWorldRootSnapshotsClient) RecvTo(m *Worl
 	return x.MsgRecv(m)
 }
 
+func (c *srpcEngineResourceServiceClient) SetRetainedRoot(ctx context.Context, in *SetRetainedRootRequest) (*SetRetainedRootResponse, error) {
+	out := new(SetRetainedRootResponse)
+	err := c.cc.ExecCall(ctx, c.serviceID, "SetRetainedRoot", in, out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *srpcEngineResourceServiceClient) NewTransaction(ctx context.Context, in *NewTransactionRequest) (*NewTransactionResponse, error) {
 	out := new(NewTransactionResponse)
 	err := c.cc.ExecCall(ctx, c.serviceID, "NewTransaction", in, out)
@@ -174,6 +187,10 @@ type SRPCEngineResourceServiceServer interface {
 	GetWorldRootSnapshot(context.Context, *GetWorldRootSnapshotRequest) (*WorldRootSnapshot, error)
 
 	WatchWorldRootSnapshots(*WatchWorldRootSnapshotsRequest, SRPCEngineResourceService_WatchWorldRootSnapshotsStream) error
+	// SetRetainedRoot retains the accepted World root under a name in the World's
+	// shared state, so storage reclaim keeps its blocks. An empty root releases
+	// the name.
+	SetRetainedRoot(context.Context, *SetRetainedRootRequest) (*SetRetainedRootResponse, error)
 
 	NewTransaction(context.Context, *NewTransactionRequest) (*NewTransactionResponse, error)
 	// ExecuteWorldOp accepts a complete operation, retrying stale bases through World.
@@ -220,6 +237,7 @@ func (SRPCEngineResourceServiceHandler) GetMethodIDs() []string {
 		"GetEngineInfo",
 		"GetWorldRootSnapshot",
 		"WatchWorldRootSnapshots",
+		"SetRetainedRoot",
 		"NewTransaction",
 		"ExecuteWorldOp",
 		"Sync",
@@ -245,6 +263,8 @@ func (d *SRPCEngineResourceServiceHandler) InvokeMethod(
 		return true, d.InvokeMethod_GetWorldRootSnapshot(d.impl, strm)
 	case "WatchWorldRootSnapshots":
 		return true, d.InvokeMethod_WatchWorldRootSnapshots(d.impl, strm)
+	case "SetRetainedRoot":
+		return true, d.InvokeMethod_SetRetainedRoot(d.impl, strm)
 	case "NewTransaction":
 		return true, d.InvokeMethod_NewTransaction(d.impl, strm)
 	case "ExecuteWorldOp":
@@ -295,6 +315,18 @@ func (SRPCEngineResourceServiceHandler) InvokeMethod_WatchWorldRootSnapshots(imp
 	}
 	serverStrm := &srpcEngineResourceService_WatchWorldRootSnapshotsStream{strm}
 	return impl.WatchWorldRootSnapshots(req, serverStrm)
+}
+
+func (SRPCEngineResourceServiceHandler) InvokeMethod_SetRetainedRoot(impl SRPCEngineResourceServiceServer, strm srpc.Stream) error {
+	req := new(SetRetainedRootRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	out, err := impl.SetRetainedRoot(strm.Context(), req)
+	if err != nil {
+		return err
+	}
+	return strm.MsgSend(out)
 }
 
 func (SRPCEngineResourceServiceHandler) InvokeMethod_NewTransaction(impl SRPCEngineResourceServiceServer, strm srpc.Stream) error {
@@ -418,6 +450,14 @@ func (x *srpcEngineResourceService_WatchWorldRootSnapshotsStream) SendAndClose(m
 		}
 	}
 	return x.CloseSend()
+}
+
+type SRPCEngineResourceService_SetRetainedRootStream interface {
+	srpc.Stream
+}
+
+type srpcEngineResourceService_SetRetainedRootStream struct {
+	srpc.Stream
 }
 
 type SRPCEngineResourceService_NewTransactionStream interface {

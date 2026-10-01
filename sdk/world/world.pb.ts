@@ -11,6 +11,7 @@ import {
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 import { ObjectRef } from '../../db/bucket/bucket.pb.js'
+import { BlockRef } from '../../db/block/block.pb.js'
 import { Quad } from '../../db/block/quad/quad.pb.js'
 
 /**
@@ -295,6 +296,48 @@ export interface WatchWorldRootSnapshotsRequest {}
 export const WatchWorldRootSnapshotsRequest: MessageType<WatchWorldRootSnapshotsRequest> =
   /* @__PURE__ */ createEmptyMessageType<WatchWorldRootSnapshotsRequest>(
     's4wave.world.WatchWorldRootSnapshotsRequest',
+    true,
+  )
+
+/**
+ * SetRetainedRootRequest is the request type for SetRetainedRoot.
+ *
+ * @generated from message s4wave.world.SetRetainedRootRequest
+ */
+export interface SetRetainedRootRequest {
+  /**
+   * Name identifies the retained root, 1 to 64 bytes.
+   *
+   * @generated from field: string name = 1;
+   */
+  name?: string
+  /**
+   * RootRef is the accepted World root to retain, or empty to release the name.
+   *
+   * @generated from field: block.BlockRef root_ref = 2;
+   */
+  rootRef?: BlockRef
+}
+
+export const SetRetainedRootRequest: MessageType<SetRetainedRootRequest> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.world.SetRetainedRootRequest',
+    fields: [
+      { no: 1, name: 'name', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'root_ref', kind: 'message', T: () => BlockRef },
+    ] satisfies readonly PartialFieldInfo[],
+  })
+
+/**
+ * SetRetainedRootResponse is the response type for SetRetainedRoot.
+ *
+ * @generated from message s4wave.world.SetRetainedRootResponse
+ */
+export interface SetRetainedRootResponse {}
+
+export const SetRetainedRootResponse: MessageType<SetRetainedRootResponse> =
+  /* @__PURE__ */ createEmptyMessageType<SetRetainedRootResponse>(
+    's4wave.world.SetRetainedRootResponse',
     true,
   )
 

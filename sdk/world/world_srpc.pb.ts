@@ -88,6 +88,8 @@ import {
   SeekResponse,
   SetGraphQuadRequest,
   SetGraphQuadResponse,
+  SetRetainedRootRequest,
+  SetRetainedRootResponse,
   SetRootRefRequest,
   SetRootRefResponse,
   SyncRequest,
@@ -145,6 +147,19 @@ export const EngineResourceServiceDefinition = {
       I: WatchWorldRootSnapshotsRequest,
       O: WorldRootSnapshot,
       kind: MethodKind.ServerStreaming,
+    },
+    /**
+     * SetRetainedRoot retains the accepted World root under a name in the World's
+     * shared state, so storage reclaim keeps its blocks. An empty root releases
+     * the name.
+     *
+     * @generated from rpc s4wave.world.EngineResourceService.SetRetainedRoot
+     */
+    SetRetainedRoot: {
+      name: 'SetRetainedRoot',
+      I: SetRetainedRootRequest,
+      O: SetRetainedRootResponse,
+      kind: MethodKind.Unary,
     },
     /**
      * @generated from rpc s4wave.world.EngineResourceService.NewTransaction
@@ -244,6 +259,18 @@ export interface EngineResourceService {
   ): MessageStream<WorldRootSnapshot>
 
   /**
+   * SetRetainedRoot retains the accepted World root under a name in the World's
+   * shared state, so storage reclaim keeps its blocks. An empty root releases
+   * the name.
+   *
+   * @generated from rpc s4wave.world.EngineResourceService.SetRetainedRoot
+   */
+  SetRetainedRoot(
+    request: SetRetainedRootRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<SetRetainedRootResponse>
+
+  /**
    * @generated from rpc s4wave.world.EngineResourceService.NewTransaction
    */
   NewTransaction(
@@ -332,6 +359,19 @@ export interface EngineResourceServiceHandler {
   ): MessageStream<WorldRootSnapshot>
 
   /**
+   * SetRetainedRoot retains the accepted World root under a name in the World's
+   * shared state, so storage reclaim keeps its blocks. An empty root releases
+   * the name.
+   *
+   * @generated from rpc s4wave.world.EngineResourceService.SetRetainedRoot
+   */
+  SetRetainedRoot(
+    request: SetRetainedRootRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<SetRetainedRootResponse>
+
+  /**
    * @generated from rpc s4wave.world.EngineResourceService.NewTransaction
    */
   NewTransaction(
@@ -410,6 +450,7 @@ export class EngineResourceServiceClient implements EngineResourceService {
     this.GetEngineInfo = this.GetEngineInfo.bind(this)
     this.GetWorldRootSnapshot = this.GetWorldRootSnapshot.bind(this)
     this.WatchWorldRootSnapshots = this.WatchWorldRootSnapshots.bind(this)
+    this.SetRetainedRoot = this.SetRetainedRoot.bind(this)
     this.NewTransaction = this.NewTransaction.bind(this)
     this.ExecuteWorldOp = this.ExecuteWorldOp.bind(this)
     this.Sync = this.Sync.bind(this)
@@ -467,6 +508,27 @@ export class EngineResourceServiceClient implements EngineResourceService {
       abortSignal || undefined,
     )
     return buildDecodeMessageTransform(WorldRootSnapshot)(result)
+  }
+
+  /**
+   * SetRetainedRoot retains the accepted World root under a name in the World's
+   * shared state, so storage reclaim keeps its blocks. An empty root releases
+   * the name.
+   *
+   * @generated from rpc s4wave.world.EngineResourceService.SetRetainedRoot
+   */
+  async SetRetainedRoot(
+    request: SetRetainedRootRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<SetRetainedRootResponse> {
+    const requestMsg = SetRetainedRootRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      EngineResourceServiceDefinition.methods.SetRetainedRoot.name,
+      SetRetainedRootRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return SetRetainedRootResponse.fromBinary(result)
   }
 
   /**

@@ -57,6 +57,10 @@ type Controller struct {
 	// only one of the two activities will be active at a time.
 	writeMtx csync.Mutex
 
+	// retainMtx serializes retainRoots, which owns the retained roots' proof
+	// store and local named root.
+	retainMtx sync.Mutex
+
 	// lastCommitResult caches the latest foreground commit for replay adoption.
 	// Written during foreground writes under writeMtx and read by the
 	// validator without writeMtx.
