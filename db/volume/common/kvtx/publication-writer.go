@@ -12,18 +12,24 @@ import (
 )
 
 const (
+	// publicationMaxPending bounds admitted work through physical completion.
 	publicationMaxPending = 64
-	publicationMaxBytes   = 32 << 20
+	// publicationMaxBytes bounds retained payloads and reference metadata.
+	publicationMaxBytes = 32 << 20
+	// publicationMaxEntries bounds the aggregate queued block operations.
 	publicationMaxEntries = 32768
+	// publicationGroupLimit bounds publications sharing one physical commit.
 	publicationGroupLimit = 16
 )
 
 // publicationRequest is one admitted publication awaiting a physical group.
 type publicationRequest struct {
 	// ctx is the uncancelled admission context retained for the physical write.
-	ctx         context.Context
+	ctx context.Context
+	// publication is the caller's immutable unit retained until completion.
 	publication *block.AtomicPublication
-	receipt     *block.PublicationReceipt
+	// receipt resolves only after this request has its final physical result.
+	receipt *block.PublicationReceipt
 	// bytes is the computed admission cost of the publication.
 	bytes int
 	// rootOwner keeps this revision alive until its consumer takes a reader pin.
@@ -33,14 +39,18 @@ type publicationRequest struct {
 // publicationWriter serializes atomic publications into bounded physical groups.
 // It owns the queue, admission budget, and completion statistics for a volume.
 type publicationWriter struct {
+	// volume owns the shared physical block and metadata transaction domain.
 	volume *Volume
 	// bcast guards the queue, budget, statistics, and lifecycle state below.
-	bcast   broadcast.Broadcast
-	queue   []*publicationRequest
+	bcast broadcast.Broadcast
+	// queue retains requests in their admission order until a group takes them.
+	queue []*publicationRequest
+	// closing rejects new admission while accepted work drains.
 	closing bool
 	// finished records that the drain goroutine exited after closing.
 	finished bool
-	stats    PublicationStats
+	// stats retains admitted work in its budget until its group resolves.
+	stats PublicationStats
 }
 
 // newPublicationWriter constructs the writer and starts its drain goroutine.
@@ -52,12 +62,15 @@ func newPublicationWriter(v *Volume) *publicationWriter {
 
 // publicationSize computes the bounded admission cost of a publication.
 func publicationSize(p *block.AtomicPublication) (int, error) {
+	// Require a bounded block delta and a head replacement in one volume domain.
 	if p == nil || p.Head == nil || p.Head.Replace == nil || p.Head.ObjectStoreID == "" || len(p.Head.Key) == 0 || (p.TrackGC && p.BucketID == "") {
 		return 0, errInvalidPublication
 	}
 	if len(p.Entries) > publicationMaxEntries {
 		return 0, block.ErrPublicationTooLarge
 	}
+
+	// Account for every retained payload and reference before queue admission.
 	size := len(p.Head.Key) + len(p.Head.ObjectStoreID) + len(p.BucketID) + len(p.RootName) + p.Root.SizeVT() + 128
 	for _, entry := range p.Entries {
 		if entry == nil {
@@ -81,10 +94,13 @@ func publicationSize(p *block.AtomicPublication) (int, error) {
 // submit admits a publication under the bounded budget, returning its receipt.
 // It blocks while the queue is full and the admission context stays live.
 func (w *publicationWriter) submit(ctx context.Context, p *block.AtomicPublication, rootOwner string, release func()) (*block.PublicationReceipt, error) {
+	// Validate the publication and its complete admission cost before waiting.
 	size, err := publicationSize(p)
 	if err != nil {
 		return nil, err
 	}
+
+	// Wait on the queue owner's broadcast until this complete request fits.
 	for {
 		var waitCh <-chan struct{}
 		var receipt *block.PublicationReceipt
@@ -100,7 +116,11 @@ func (w *publicationWriter) submit(ctx context.Context, p *block.AtomicPublicati
 			if w.stats.Pending < publicationMaxPending && w.stats.PendingBytes+size <= publicationMaxBytes && w.stats.PendingEntries+len(p.Entries) <= publicationMaxEntries {
 				receipt = block.NewRetainedPublicationReceipt(release)
 				w.queue = append(w.queue, &publicationRequest{
-					ctx: context.WithoutCancel(ctx), publication: p, receipt: receipt, bytes: size, rootOwner: rootOwner,
+					ctx:         context.WithoutCancel(ctx),
+					publication: p,
+					receipt:     receipt,
+					bytes:       size,
+					rootOwner:   rootOwner,
 				})
 				w.stats.Accepted++
 				w.stats.Pending++
@@ -111,6 +131,8 @@ func (w *publicationWriter) submit(ctx context.Context, p *block.AtomicPublicati
 			}
 			waitCh = getWaitCh()
 		})
+
+		// Return the admission result, or await a capacity or lifetime change.
 		if err != nil || receipt != nil {
 			return receipt, err
 		}
@@ -124,9 +146,12 @@ func (w *publicationWriter) submit(ctx context.Context, p *block.AtomicPublicati
 
 // popLocked removes the next queued request. The caller holds bcast.
 func (w *publicationWriter) popLocked() *publicationRequest {
+	// Leave an idle queue available for later admissions.
 	if len(w.queue) == 0 {
 		return nil
 	}
+
+	// Release the consumed slot while preserving the remaining admission order.
 	r := w.queue[0]
 	w.queue[0] = nil
 	w.queue = w.queue[1:]
@@ -139,6 +164,7 @@ func (w *publicationWriter) popLocked() *publicationRequest {
 // run drains queued publications one physical group at a time until closing.
 func (w *publicationWriter) run() {
 	for {
+		// Take the next request or publish final shutdown while holding queue state.
 		var first *publicationRequest
 		var waitCh <-chan struct{}
 		w.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
@@ -153,6 +179,8 @@ func (w *publicationWriter) run() {
 			}
 			waitCh = getWaitCh()
 		})
+
+		// An idle writer waits on its owner event; a closed empty writer exits.
 		if first == nil {
 			if waitCh == nil {
 				return
@@ -160,6 +188,8 @@ func (w *publicationWriter) run() {
 			<-waitCh
 			continue
 		}
+
+		// Resolve the physical group before releasing its admission budget.
 		group, results, committed := w.applyGroup(first)
 		w.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 			if committed {
@@ -177,6 +207,8 @@ func (w *publicationWriter) run() {
 			}
 			broadcast()
 		})
+
+		// Notify volume observers only after successful physical publication.
 		if committed {
 			w.volume.broadcastStorageStatsChanged()
 		}
@@ -188,12 +220,15 @@ func (w *publicationWriter) run() {
 // that request; any error after mutations start aborts the entire physical group.
 // Ready requests are collected opportunistically, with no latency timer.
 func (w *publicationWriter) applyGroup(first *publicationRequest) (group []*publicationRequest, results []error, committed bool) {
+	// Open the physical writer before constructing any transaction-scoped consumer.
 	group = []*publicationRequest{first}
 	tx, err := w.volume.kvtxStore.NewTransaction(first.ctx, true)
 	if err != nil {
 		return group, []error{err}, false
 	}
 	defer tx.Discard()
+
+	// Share that transaction across addressed blocks and lazily opened graph indexes.
 	store := kvtx.NewTxStore(tx)
 	blocks := block_store_kvtx.NewKVTxBlock(w.volume.kvKey, store, w.volume.GetHashType(), w.volume.atomicHashGet)
 	var rg *block_gc.RefGraph
@@ -202,6 +237,8 @@ func (w *publicationWriter) applyGroup(first *publicationRequest) (group []*publ
 			_ = rg.Close()
 		}
 	}()
+
+	// Preflight each request against prior accepted changes in this physical group.
 	accepted := 0
 	prior := make(map[*block.PublicationReceipt]error)
 	for i := 0; i < len(group); i++ {
@@ -298,10 +335,14 @@ func (w *publicationWriter) applyGroup(first *publicationRequest) (group []*publ
 			})
 		}
 	}
+
+	// Publish all accepted requests together, or discard the entire physical group.
 	if err == nil && accepted != 0 {
 		err = tx.Commit(first.ctx)
 		committed = err == nil
 	}
+
+	// Preserve preflight rejections while assigning physical failure to accepted work.
 	if err != nil {
 		for i := range results {
 			if results[i] == nil {
@@ -317,23 +358,25 @@ func (w *publicationWriter) applyGroup(first *publicationRequest) (group []*publ
 // unrelated writers or future fences on this volume. The store fence below
 // reports physical durability failures.
 func (w *publicationWriter) fence(ctx context.Context) error {
-	return w.bcast.Wait(ctx, func(broadcast func(), getWaitCh func() <-chan struct{}) (bool, error) {
-		return w.stats.Completed >= w.stats.Accepted, nil
+	// Capture this fence's admitted prefix before later submissions can extend it.
+	locked := w.bcast.Lock()
+	accepted := w.stats.Accepted
+	locked.Unlock()
+
+	// Wait for that prefix to resolve without including unrelated later work.
+	return w.bcast.Wait(ctx, func(_ func(), _ func() <-chan struct{}) (bool, error) {
+		return w.stats.Completed >= accepted, nil
 	})
 }
 
 // close stops admission and waits for the drain goroutine to exit.
 func (w *publicationWriter) close() {
-	var done <-chan struct{}
-	w.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
-		if w.finished {
-			return
+	// Close admission once, then recheck writer completion after every broadcast.
+	_ = w.bcast.Wait(context.Background(), func(broadcast func(), _ func() <-chan struct{}) (bool, error) {
+		if !w.closing {
+			w.closing = true
+			broadcast()
 		}
-		w.closing = true
-		broadcast()
-		done = getWaitCh()
+		return w.finished, nil
 	})
-	if done != nil {
-		<-done
-	}
 }
