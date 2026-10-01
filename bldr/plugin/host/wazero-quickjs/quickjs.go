@@ -197,16 +197,12 @@ func (h *WazeroQuickJsHost) ListPlugins(ctx context.Context) ([]string, error) {
 // Should expect to be called only once (at a time) for a plugin ID.
 // pluginDist contains the plugin distribution files (binaries and assets).
 func (h *WazeroQuickJsHost) ExecutePlugin(
-	rctx context.Context,
+	ctx context.Context,
 	pluginID, instanceKey, _, manifestRoot, entrypoint string,
 	pluginDist, pluginAssets *unixfs.FSHandle,
 	hostMux srpc.Mux,
 	rpcInit plugin_host.PluginRpcInitCb,
 ) error {
-	// Derive the execution context from the lifecycle context.
-	ctx, ctxCancel := context.WithCancel(rctx)
-	defer ctxCancel()
-
 	// restrict to .mjs and .js only
 	if !strings.HasSuffix(entrypoint, ".mjs") && !strings.HasSuffix(entrypoint, ".js") {
 		return errors.Errorf("entrypoint must have a .mjs or .js extension: %q", entrypoint)
@@ -295,6 +291,11 @@ func (h *WazeroQuickJsHost) ExecutePlugin(
 
 	// this restarts if the quickjs vm is reloaded or unloaded
 	return h.quickjsVmRc.Access(ctx, func(ctx context.Context, val *quickjsVm) error {
+		// Scope cancellation to this run. Canceling the Access context would make
+		// Access report context.Canceled and discard the run's own error.
+		ctx, cancelRun := context.WithCancel(ctx)
+		defer cancelRun()
+
 		// Log the runtime creation.
 		le.Debug("creating quickjs plugin runtime")
 
@@ -391,7 +392,7 @@ func (h *WazeroQuickJsHost) ExecutePlugin(
 			err := srv.AcceptMuxedConn(ctx, muxedConn)
 			if err != nil && ctx.Err() == nil {
 				acceptStreamErr.Store(&err)
-				ctxCancel()
+				cancelRun()
 			}
 		}()
 
