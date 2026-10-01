@@ -113,6 +113,10 @@ func (v *Volume) PrepareOwnedBlockBatch(ctx context.Context, bucketID string, en
 // Current owners, outgoing edges, orphan markers, and physical deletion for the
 // whole batch share one raw transaction with the same serialization as grouped
 // head publication.
+//
+// The batch releases its edges in one ownership transition. The orphan marker
+// owns every candidate, so releasing nodes one at a time rewrites its posting
+// list once per node, which is quadratic in the number of orphans.
 func (v *Volume) SweepUnreferenced(ctx context.Context, graph block_gc.RefGraphOps, nodes []string) ([]string, error) {
 	actual, ok := v.refGraph.(*transactionRefGraph)
 	given, sameType := graph.(*transactionRefGraph)
@@ -121,16 +125,51 @@ func (v *Volume) SweepUnreferenced(ctx context.Context, graph block_gc.RefGraphO
 	}
 	var swept []string
 	err := v.withDirectAtomic(ctx, func(blocks block.StoreOps, rg *block_gc.RefGraph) (bool, error) {
+		// Collect the candidates the marker still owns alone, with their edges.
+		swept = swept[:0]
+		var removes []block_gc.RefEdge
+		seen := make(map[string]struct{}, len(nodes))
 		for _, node := range nodes {
-			removed, err := sweepOrphan(ctx, blocks, rg, node)
+			if _, dup := seen[node]; dup {
+				continue
+			}
+			seen[node] = struct{}{}
+			orphan, err := isMarkedOrphan(ctx, rg, node)
 			if err != nil {
 				return false, err
 			}
-			if removed {
-				swept = append(swept, node)
+			if !orphan {
+				continue
+			}
+			targets, err := rg.GetOutgoingRefs(ctx, node)
+			if err != nil {
+				return false, err
+			}
+			for _, target := range targets {
+				removes = append(removes, block_gc.RefEdge{Subject: node, Object: target})
+			}
+			removes = append(removes, block_gc.RefEdge{Subject: block_gc.NodeUnreferenced, Object: node})
+			swept = append(swept, node)
+		}
+		if len(swept) == 0 {
+			return false, nil
+		}
+
+		// Release the edges together. Removing a node's own marker keeps it
+		// unmarked, and each child left without an owner gains a marker.
+		if err := rg.ApplyRefBatch(ctx, nil, removes); err != nil {
+			return false, err
+		}
+
+		// Delete the swept blocks.
+		for _, node := range swept {
+			if ref, ok := block_gc.ParseBlockIRI(node); ok {
+				if err := blocks.RmBlock(ctx, ref); err != nil {
+					return false, err
+				}
 			}
 		}
-		return len(swept) != 0, nil
+		return true, nil
 	})
 	// A failed physical transaction must not report a successful sweep.
 	if err != nil {
@@ -139,12 +178,16 @@ func (v *Volume) SweepUnreferenced(ctx context.Context, graph block_gc.RefGraphO
 	return swept, nil
 }
 
-// sweepOrphan removes node inside the sweep transaction when its only current
-// owner is the unreferenced marker.
-func sweepOrphan(ctx context.Context, blocks block.StoreOps, rg *block_gc.RefGraph, node string) (bool, error) {
+// isMarkedOrphan reports whether the unreferenced marker is the only current
+// owner of node.
+func isMarkedOrphan(ctx context.Context, rg *block_gc.RefGraph, node string) (bool, error) {
+	// A permanent root is never swept.
 	if block_gc.IsPermanentRoot(node) {
 		return false, nil
 	}
+
+	// Any other owner rescued the node after the collector took its snapshot.
+	// Without the marker it was already swept or never a candidate.
 	incoming, err := rg.GetIncomingRefs(ctx, node)
 	if err != nil {
 		return false, err
@@ -152,25 +195,11 @@ func sweepOrphan(ctx context.Context, blocks block.StoreOps, rg *block_gc.RefGra
 	marked := false
 	for _, owner := range incoming {
 		if owner != block_gc.NodeUnreferenced {
-			return false, nil // rescued after the collector took its snapshot
+			return false, nil
 		}
 		marked = true
 	}
-	if !marked {
-		return false, nil // already swept, or not an orphan candidate
-	}
-	if _, err := rg.RemoveNodeRefs(ctx, node, true); err != nil {
-		return false, err
-	}
-	if err := rg.RemoveRef(ctx, block_gc.NodeUnreferenced, node); err != nil {
-		return false, err
-	}
-	if ref, ok := block_gc.ParseBlockIRI(node); ok {
-		if err := blocks.RmBlock(ctx, ref); err != nil {
-			return false, err
-		}
-	}
-	return true, nil
+	return marked, nil
 }
 
 var (

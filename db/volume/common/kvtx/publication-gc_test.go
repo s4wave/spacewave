@@ -47,6 +47,51 @@ func TestPublicationSweepRechecksRescuedCandidate(t *testing.T) {
 	assertHead(t, v, "sweep", "two")
 }
 
+// TestPublicationSweepBatchMarksReleasedChildren checks that one sweep batch
+// marks each child it leaves without an owner, leaves a child another owner
+// keeps unmarked, and leaves no marker on the nodes it removes.
+func TestPublicationSweepBatchMarksReleasedChildren(t *testing.T) {
+	// Mark two orphans: one shares a child with a kept node, both own another.
+	v, _ := newPublicationTestVolume(t)
+	ctx := t.Context()
+	rg := v.GetRefGraph()
+	unref := block_gc.NodeUnreferenced
+	err := rg.ApplyRefBatch(ctx, []block_gc.RefEdge{
+		{Subject: block_gc.NodeGCRoot, Object: "keep"},
+		{Subject: "keep", Object: "shared"},
+		{Subject: unref, Object: "o1"},
+		{Subject: unref, Object: "o2"},
+		{Subject: "o1", Object: "child"},
+		{Subject: "o1", Object: "shared"},
+		{Subject: "o2", Object: "child"},
+	}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Sweep both in one batch, with a duplicate candidate.
+	removed, err := v.SweepUnreferenced(ctx, rg, []string{"o1", "o2", "o1"})
+	if err != nil || !slices.Equal(removed, []string{"o1", "o2"}) {
+		t.Fatalf("sweep: removed=%v err=%v", removed, err)
+	}
+
+	// Only the released child gains a marker.
+	for node, want := range map[string][]string{
+		"o1":     nil,
+		"o2":     nil,
+		"child":  {unref},
+		"shared": {"keep"},
+	} {
+		got, err := rg.GetIncomingRefs(ctx, node)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !slices.Equal(got, want) {
+			t.Errorf("%s owners = %v, want %v", node, got, want)
+		}
+	}
+}
+
 type rescueSweepStore struct {
 	*Volume
 	rescue func() error

@@ -6,7 +6,9 @@ import (
 	"io"
 	"io/fs"
 	"os"
+	"strings"
 	"testing"
+	"testing/iotest"
 	"time"
 
 	"github.com/go-git/go-billy/v6/memfs"
@@ -190,6 +192,42 @@ func TestBillyFS_FileRoundtrip(t *testing.T) {
 	_, err = billyFS.Stat("testfile")
 	if !os.IsNotExist(err) {
 		t.Errorf("Stat after remove: expected os.IsNotExist, got %v", err)
+	}
+}
+
+// TestBillyFS_ReadFromShortReads copies a reader that returns one byte per
+// Read, which ReadFrom gathers into full writes.
+func TestBillyFS_ReadFromShortReads(t *testing.T) {
+	// Copy the content into a new file.
+	billyFS, _ := newTestBillyFS(t)
+	content := strings.Repeat("0123456789", 300)
+	f, err := billyFS.OpenFile("testfile", os.O_CREATE|os.O_WRONLY, 0o644)
+	if err != nil {
+		t.Fatal(err)
+	}
+	n, err := io.Copy(f, iotest.OneByteReader(strings.NewReader(content)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := f.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	// Check the count and the file content.
+	if n != int64(len(content)) {
+		t.Fatalf("copied %d bytes, want %d", n, len(content))
+	}
+	f, err = billyFS.Open("testfile")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer f.Close()
+	got, err := io.ReadAll(f)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(got) != content {
+		t.Fatalf("content has %d bytes, want %d", len(got), len(content))
 	}
 }
 

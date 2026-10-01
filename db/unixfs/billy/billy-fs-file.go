@@ -230,39 +230,33 @@ func (f *BillyFSFile) WriteAt(p []byte, off int64) (n int, err error) {
 // The return value n is the number of bytes read.
 // Any error except EOF encountered during the read is also returned.
 //
+// Each write is a full buffer of the file's optimal write size, however
+// little each Read returns: a file rewrites its last blob chunk on every
+// write, so small writes multiply the bytes stored.
+//
 // The Copy function uses ReaderFrom if available.
 func (f *BillyFSFile) ReadFrom(r io.Reader) (n int64, err error) {
+	// Size the buffer to the optimal write size within sane bounds.
 	writeSize, err := f.h.GetOptimalWriteSize(f.ctx)
 	if err != nil {
 		return 0, err
 	}
-	// force it to a reasonable minimum / maximum
-	if writeSize < 1024 {
-		writeSize = 1024
-	}
-	writeSizeMax := int64(512e3 * 5)
-	if writeSize > writeSizeMax {
-		writeSize = writeSizeMax
-	}
+	writeSize = min(max(writeSize, 1024), 512e3*5)
 	buf := make([]byte, writeSize)
+
+	// Fill the buffer before each write.
 	for {
-		rn, err := r.Read(buf)
+		rn, err := io.ReadFull(r, buf)
 		if rn != 0 {
-			nw := 0
-			wrBuf := buf[:rn]
-			for nw < rn {
-				wr, werr := f.Write(wrBuf[nw:])
-				if werr != nil {
-					return n, werr
-				}
-				nw += wr
+			if _, werr := f.Write(buf[:rn]); werr != nil {
+				return n, werr
 			}
-			n += int64(nw)
+			n += int64(rn)
+		}
+		if err == io.EOF || err == io.ErrUnexpectedEOF {
+			return n, nil
 		}
 		if err != nil {
-			if err == io.EOF {
-				err = nil
-			}
 			return n, err
 		}
 	}
