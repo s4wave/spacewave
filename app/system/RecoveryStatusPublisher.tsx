@@ -1,4 +1,4 @@
-import { useCallback, useEffect } from 'react'
+import { useEffect } from 'react'
 
 import { readBrowserBootRecoveryStatus } from '@s4wave/app/prerender/boot-status.js'
 import type { Session } from '@s4wave/sdk/session/session.js'
@@ -6,7 +6,7 @@ import type {
   BrowserBootRecoveryStatus,
   RuntimeAssetRecoveryStatus,
 } from '@s4wave/sdk/status/status.pb.js'
-import { useLatestRef, webViewRootAssetStatusEvent } from '@aptre/bldr-react'
+import { webViewRootAssetStatusEvent } from '@aptre/bldr-react'
 
 declare global {
   var __bldrWebViewRootAssetStatus:
@@ -24,32 +24,35 @@ declare global {
     | undefined
 }
 
+// RecoveryStatusPublisher reports renderer recovery facts to the session
+// whenever the boot or root asset status changes.
 export function RecoveryStatusPublisher(props: { session: Session }) {
-  const publish = useCallback(() => {
-    const boot = readBootRecoveryStatus()
-    const runtimeAsset = readRuntimeAssetRecoveryStatus()
-    if (!boot && !runtimeAsset) return
-    props.session.systemStatus
-      .reportRecoveryStatus({ boot, runtimeAsset })
-      .catch((err: unknown) => {
-        console.error('failed to publish runtime recovery status', err)
-      })
-  }, [props.session])
-  const publishRef = useLatestRef(publish)
+  const { session } = props
 
   useEffect(() => {
-    publish()
-  }, [publish])
-
-  useEffect(() => {
-    const publishLatest = () => publishRef.current()
-    window.addEventListener('spacewave:boot-status', publishLatest)
-    window.addEventListener(webViewRootAssetStatusEvent, publishLatest)
-    return () => {
-      window.removeEventListener('spacewave:boot-status', publishLatest)
-      window.removeEventListener(webViewRootAssetStatusEvent, publishLatest)
+    // Reports still in flight when the session is released are abandoned.
+    const ctrl = new AbortController()
+    const publish = () => {
+      const boot = readBootRecoveryStatus()
+      const runtimeAsset = readRuntimeAssetRecoveryStatus()
+      if (!boot && !runtimeAsset) return
+      session.systemStatus
+        .reportRecoveryStatus({ boot, runtimeAsset }, ctrl.signal)
+        .catch((err: unknown) => {
+          if (ctrl.signal.aborted) return
+          console.error('failed to publish runtime recovery status', err)
+        })
     }
-  }, [publishRef])
+
+    publish()
+    window.addEventListener('spacewave:boot-status', publish)
+    window.addEventListener(webViewRootAssetStatusEvent, publish)
+    return () => {
+      ctrl.abort()
+      window.removeEventListener('spacewave:boot-status', publish)
+      window.removeEventListener(webViewRootAssetStatusEvent, publish)
+    }
+  }, [session])
 
   return null
 }
