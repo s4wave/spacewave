@@ -217,48 +217,6 @@ type syncPushPack struct {
 	replacedPackIDs []string
 }
 
-// syncPushReplacesHeader names the packs a push replaces, comma separated.
-const syncPushReplacesHeader = "X-Replaces-Pack-IDs"
-
-// marshalSyncPushWriteTicketProofPayload builds the canonical proof payload for
-// sync/push hot writes. The signed metadata binds the precomputed body hash and
-// the critical push headers without requiring the caller to re-hash the body.
-func marshalSyncPushWriteTicketProofPayload(
-	ticket string,
-	method string,
-	reqPath string,
-	contentType string,
-	contentLength int64,
-	pack *syncPushPack,
-	timestampMs int64,
-) ([]byte, error) {
-	signedHeaders := map[string]string{
-		"content-type":  contentType,
-		"x-pack-id":     pack.packID,
-		"x-block-count": strconv.Itoa(pack.blockCount),
-	}
-	if len(pack.bloomFilter) != 0 {
-		signedHeaders["x-bloom-filter"] = base64.StdEncoding.EncodeToString(
-			pack.bloomFilter,
-		)
-	}
-	if len(pack.replacedPackIDs) != 0 {
-		signedHeaders[strings.ToLower(syncPushReplacesHeader)] = strings.Join(
-			pack.replacedPackIDs,
-			",",
-		)
-	}
-	return marshalWriteTicketProofPayload(WriteTicketProofPayloadFields{
-		Ticket:        ticket,
-		Method:        method,
-		Path:          reqPath,
-		TimestampMs:   timestampMs,
-		ContentLength: contentLength,
-		BodyHashHex:   hex.EncodeToString(pack.bodyHash),
-		SignedHeaders: signedHeaders,
-	})
-}
-
 // signedHeaders is the list of headers that are signed when present on a request.
 var signedHeaders = []string{
 	"content-type",
@@ -371,7 +329,8 @@ const (
 // Do signs and executes an HTTP request. The Cloud rejects a rate_limited
 // request before acting on it, so Do resends it after the delay the Cloud
 // names, up to rateLimitRetries times while that delay is within
-// rateLimitMaxWait. Otherwise the 429 response is returned to the caller.
+// rateLimitMaxWait. Otherwise, or when the request context ends during the
+// delay, the 429 response is returned to the caller.
 func (c *SignedHTTPClient) Do(req *http.Request) (*http.Response, error) {
 	// Read the body once so each attempt can sign and send it.
 	var body []byte
@@ -408,7 +367,7 @@ func (c *SignedHTTPClient) Do(req *http.Request) (*http.Response, error) {
 		// Wait out the delay before resending.
 		select {
 		case <-req.Context().Done():
-			return nil, req.Context().Err()
+			return resp, nil
 		case <-time.After(delay):
 		}
 	}
@@ -1469,149 +1428,30 @@ func (c *SessionClient) executeRequiredWriteTicketAudience(
 	return c.executeWriteTicketAudience(ctx, resourceID, audience, fn)
 }
 
-func (c *SessionClient) postSyncPushWithTicket(
-	ctx context.Context,
-	resourceID string,
-	pack *syncPushPack,
-	body io.Reader,
-	contentLength int64,
-	ticket string,
-) ([]byte, error) {
-	if ticket == "" {
-		return nil, errors.New("missing write ticket")
-	}
-	if len(pack.bloomFilter) == 0 {
-		return nil, errors.New("sync push bloom filter required")
-	}
-	if pack.bloomFormatVersion == 0 {
-		return nil, errors.New("sync push bloom_format_version required")
-	}
-
-	reqPath := path.Join("/api/bstore", resourceID, "sync/push")
-	reqURL, err := url.JoinPath(c.baseURL, reqPath)
-	if err != nil {
-		return nil, errors.Wrap(err, "build URL")
-	}
-
-	payload, err := marshalSyncPushWriteTicketProofPayload(
-		ticket,
-		http.MethodPost,
-		reqPath,
-		"application/octet-stream",
-		contentLength,
-		pack,
-		time.Now().UnixMilli(),
-	)
-	if err != nil {
-		return nil, errors.Wrap(err, "marshal write ticket proof payload")
-	}
-	proof, err := buildWriteTicketProof(payload, c.priv)
-	if err != nil {
-		return nil, errors.Wrap(err, "build write ticket proof")
-	}
-	proofData, err := proof.MarshalVT()
-	if err != nil {
-		return nil, errors.Wrap(err, "marshal write ticket proof")
-	}
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, reqURL, body)
-	if err != nil {
-		return nil, errors.Wrap(err, "create request")
-	}
-	req.ContentLength = contentLength
-	req.Header.Set("Content-Type", "application/octet-stream")
-	req.Header.Set("X-Sw-Hash", hex.EncodeToString(pack.bodyHash))
-	req.Header.Set("X-Pack-ID", pack.packID)
-	req.Header.Set("X-Block-Count", strconv.Itoa(pack.blockCount))
-	req.Header.Set(
-		"X-Bloom-Filter",
-		base64.StdEncoding.EncodeToString(pack.bloomFilter),
-	)
-	req.Header.Set(
-		"X-Bloom-Format-Version",
-		strconv.FormatUint(uint64(pack.bloomFormatVersion), 10),
-	)
-	if len(pack.replacedPackIDs) != 0 {
-		req.Header.Set(
-			syncPushReplacesHeader,
-			strings.Join(pack.replacedPackIDs, ","),
-		)
-	}
-	req.Header.Set("X-Write-Ticket", ticket)
-	req.Header.Set(
-		"X-Write-Proof",
-		base64.StdEncoding.EncodeToString(proofData),
-	)
-	req.Header.Set(SeedReasonHeader, string(SeedReasonMutation))
-
-	resp, err := c.httpCli.Do(req)
-	if err != nil {
-		return nil, errors.Wrap(err, "post sync push")
-	}
-	defer resp.Body.Close()
-
-	respBody, err := readResponseBody(resp)
-	if err != nil {
-		return nil, err
-	}
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return nil, parseCloudResponseError(resp, respBody)
-	}
-	return respBody, nil
-}
-
 // SyncPush uploads a packfile to a resource-scoped block store.
 // bodyHash is the pre-computed SHA-256 hash of the file contents.
 // bloomFormatVersion identifies the bloom encoding (currently
 // packfile.BloomFormatVersionV1).
 func (c *SessionClient) SyncPush(ctx context.Context, resourceID string, packID string, blockCount int, packfilePath string, bodyHash []byte, bloomFilter []byte, bloomFormatVersion uint32) error {
+	// Open the packfile and read its size.
 	f, err := os.Open(packfilePath)
 	if err != nil {
 		return errors.Wrap(err, "open packfile")
 	}
 	defer f.Close()
-
 	stat, err := f.Stat()
 	if err != nil {
 		return errors.Wrap(err, "stat packfile")
 	}
 
-	var respData []byte
-	err = c.executeRequiredWriteTicketAudience(
-		ctx,
-		resourceID,
-		writeTicketAudienceBstoreSyncPush,
-		func(ticket string) error {
-			var postErr error
-			respData, postErr = c.postSyncPushWithTicket(
-				ctx,
-				resourceID,
-				&syncPushPack{
-					packID:             packID,
-					blockCount:         blockCount,
-					bodyHash:           bodyHash,
-					bloomFilter:        bloomFilter,
-					bloomFormatVersion: bloomFormatVersion,
-				},
-				// Read the packfile from the start on each attempt.
-				io.NewSectionReader(f, 0, stat.Size()),
-				stat.Size(),
-				ticket,
-			)
-			return postErr
-		},
-	)
-	if err != nil {
-		return errors.Wrap(err, "sync push")
-	}
-
-	if len(respData) > 0 {
-		resp := &packfile.PushResponse{}
-		if err := resp.UnmarshalVT(respData); err != nil {
-			return errors.Wrap(err, "unmarshal push response")
-		}
-	}
-	return nil
+	// Push the file contents.
+	return c.syncPush(ctx, resourceID, &syncPushPack{
+		packID:             packID,
+		blockCount:         blockCount,
+		bodyHash:           bodyHash,
+		bloomFilter:        bloomFilter,
+		bloomFormatVersion: bloomFormatVersion,
+	}, io.NewSectionReader(f, 0, stat.Size()), stat.Size())
 }
 
 // SyncPushData uploads an in-memory packfile to a resource-scoped block store.
@@ -1637,37 +1477,89 @@ func (c *SessionClient) syncPushDataWithProgress(
 	packData []byte,
 	progress func(int64),
 ) error {
-	var respData []byte
-	err := c.executeRequiredWriteTicketAudience(
-		ctx,
-		resourceID,
-		writeTicketAudienceBstoreSyncPush,
-		func(ticket string) error {
-			var postErr error
-			var body io.Reader = bytes.NewReader(packData)
-			if progress != nil {
-				body = syncprogress.NewReader(body, progress)
-			}
-			respData, postErr = c.postSyncPushWithTicket(
-				ctx,
-				resourceID,
-				pack,
-				body,
-				int64(len(packData)),
-				ticket,
-			)
-			return postErr
-		},
-	)
+	var body io.Reader = bytes.NewReader(packData)
+	if progress != nil {
+		body = syncprogress.NewReader(body, progress)
+	}
+	return c.syncPush(ctx, resourceID, pack, body, int64(len(packData)))
+}
+
+// syncPush pushes a pack of size bytes read from body in three steps: the
+// cloud admits the pack and returns a signed upload, the bytes go straight to
+// storage, and the commit adds the pack to the catalog once the cloud has
+// checked the stored size and digest. A pack the catalog already holds skips
+// the upload.
+func (c *SessionClient) syncPush(ctx context.Context, resourceID string, pack *syncPushPack, body io.Reader, size int64) error {
+	// Require the bloom filter the catalog indexes the pack by.
+	if len(pack.bloomFilter) == 0 {
+		return errors.New("sync push bloom filter required")
+	}
+	if pack.bloomFormatVersion == 0 {
+		return errors.New("sync push bloom_format_version required")
+	}
+
+	// Encode the push request that admits the pack.
+	reqData, err := (&packfile.PushRequest{
+		PackId:             pack.packID,
+		BlockCount:         uint64(pack.blockCount), //nolint:gosec // block counts are positive
+		BloomFilter:        pack.bloomFilter,
+		BloomFormatVersion: pack.bloomFormatVersion,
+		SizeBytes:          uint64(size), //nolint:gosec // sizes are positive
+		Sha256:             pack.bodyHash,
+		ReplacesPackIds:    pack.replacedPackIDs,
+	}).MarshalVT()
+	if err != nil {
+		return errors.Wrap(err, "marshal push request")
+	}
+
+	// Admit the pack, learning whether the catalog needs its bytes.
+	pushPath := path.Join("/api/bstore", resourceID, "sync/push")
+	respData, err := c.doPostBinary(ctx, pushPath, reqData, nil, SeedReasonMutation)
 	if err != nil {
 		return errors.Wrap(err, "sync push")
 	}
+	resp := &packfile.PushResponse{}
+	if err := resp.UnmarshalVT(respData); err != nil {
+		return errors.Wrap(err, "unmarshal push response")
+	}
+	upload := resp.GetUpload()
+	if upload == nil {
+		return nil
+	}
 
-	if len(respData) > 0 {
-		resp := &packfile.PushResponse{}
-		if err := resp.UnmarshalVT(respData); err != nil {
-			return errors.Wrap(err, "unmarshal push response")
-		}
+	// Upload the bytes to storage.
+	if err := c.uploadPack(ctx, upload, body, size); err != nil {
+		return errors.Wrap(err, "sync push upload")
+	}
+
+	// Commit the stored pack to the catalog.
+	if _, err := c.doPostBinary(ctx, path.Join(pushPath, pack.packID, "commit"), nil, nil, SeedReasonMutation); err != nil {
+		return errors.Wrap(err, "sync push commit")
+	}
+	return nil
+}
+
+// uploadPack sends size bytes of body to the signed upload URL.
+func (c *SessionClient) uploadPack(ctx context.Context, upload *packfile.PushUpload, body io.Reader, size int64) error {
+	// Build the PUT with the exact length and headers the URL was signed for.
+	req, err := http.NewRequestWithContext(ctx, http.MethodPut, upload.GetUrl(), body)
+	if err != nil {
+		return err
+	}
+	req.ContentLength = size
+	for k, v := range upload.GetHeaders() {
+		req.Header.Set(k, v)
+	}
+
+	// Send the upload and report a storage refusal with its reason.
+	resp, err := c.httpCli.Do(req)
+	if err != nil {
+		return err
+	}
+	defer httpclient.DrainAndCloseResponseBody(resp)
+	if resp.StatusCode/100 != 2 {
+		msg, _ := io.ReadAll(io.LimitReader(resp.Body, 512))
+		return errors.Errorf("storage refused the upload: %s: %s", resp.Status, strings.TrimSpace(string(msg)))
 	}
 	return nil
 }

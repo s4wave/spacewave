@@ -4,6 +4,7 @@ package block_store_s3
 
 import (
 	"net/http"
+	"net/url"
 	"testing"
 	"time"
 )
@@ -66,5 +67,32 @@ func TestSignV4ListObjects(t *testing.T) {
 	got := req.Header.Get("Authorization")
 	if got != want {
 		t.Fatalf("Authorization mismatch:\n want: %s\n  got: %s", want, got)
+	}
+}
+
+// TestPresignV4GetObject verifies the query signer against the AWS S3 SigV4
+// example "GET Object" with query parameters.
+//
+// Reference: https://docs.aws.amazon.com/AmazonS3/latest/API/sigv4-query-string-auth.html
+func TestPresignV4GetObject(t *testing.T) {
+	// Address the example object with the example credentials.
+	c := &Client{
+		region:    "us-east-1",
+		accessKey: "AKIAIOSFODNN7EXAMPLE",
+		secretKey: "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
+	}
+	u, err := url.Parse("https://examplebucket.s3.amazonaws.com/test.txt")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Presign a GET valid for one day at the example time.
+	now := time.Date(2013, 5, 24, 0, 0, 0, 0, time.UTC)
+	c.presignV4(http.MethodGet, u, nil, 24*time.Hour, now)
+
+	// The signature matches the published example.
+	want := "aeeed9bbccd4d02ee5c0109b86d86835f995330da4c265957d157751f604d404"
+	if got := u.Query().Get("X-Amz-Signature"); got != want {
+		t.Fatalf("signature mismatch:\n want: %s\n  got: %s", want, got)
 	}
 }

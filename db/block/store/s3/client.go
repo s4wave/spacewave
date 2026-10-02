@@ -5,6 +5,7 @@ package block_store_s3
 import (
 	"bytes"
 	"context"
+	"encoding/base64"
 	"html"
 	"io"
 	"maps"
@@ -80,7 +81,6 @@ func (c *Client) GetObject(ctx context.Context, bucket, key string) (io.ReadClos
 // is shorter than length when the object ends first.
 // Returns ErrNotFound if the object does not exist.
 func (c *Client) GetObjectRange(ctx context.Context, bucket, key string, off int64, length int) ([]byte, error) {
-	// Request the object byte range and reject unsuccessful responses.
 	rng := "bytes=" + strconv.FormatInt(off, 10) + "-" + strconv.FormatInt(off+int64(length)-1, 10)
 	resp, err := c.do(ctx, http.MethodGet, bucket, key, nil, nil, http.Header{"Range": {rng}})
 	if err != nil {
@@ -93,8 +93,6 @@ func (c *Client) GetObjectRange(ctx context.Context, bucket, key string, off int
 	if err := checkStatus(resp, bucket, key, http.MethodGet); err != nil {
 		return nil, err
 	}
-
-	// Read only the requested object bytes when the server ignores the range.
 	// A server may ignore the range and send the whole object.
 	if resp.StatusCode != http.StatusPartialContent {
 		if _, err := io.CopyN(io.Discard, resp.Body, off); err != nil {
@@ -107,19 +105,54 @@ func (c *Client) GetObjectRange(ctx context.Context, bucket, key string, off int
 	return io.ReadAll(io.LimitReader(resp.Body, int64(length)))
 }
 
-// HeadObject returns the object's content length.
+// ObjectStat describes a stored object.
+type ObjectStat struct {
+	// Size is the content length in bytes.
+	Size int64
+	// ChecksumSHA256 is the SHA-256 the service verified when the object was
+	// uploaded with one, or nil.
+	ChecksumSHA256 []byte
+}
+
+// HeadObject returns the object's size and upload checksum.
 // Returns ErrNotFound if the object does not exist.
-func (c *Client) HeadObject(ctx context.Context, bucket, key string) (int64, error) {
-	// Read the object headers and require a successful S3 response.
-	resp, err := c.do(ctx, http.MethodHead, bucket, key, nil, nil, nil)
+func (c *Client) HeadObject(ctx context.Context, bucket, key string) (*ObjectStat, error) {
+	// Ask for the object's metadata with its stored checksum.
+	resp, err := c.do(ctx, http.MethodHead, bucket, key, nil, nil, http.Header{"X-Amz-Checksum-Mode": {"ENABLED"}})
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
 	defer resp.Body.Close()
 	if err := checkStatus(resp, bucket, key, http.MethodHead); err != nil {
-		return 0, err
+		return nil, err
 	}
-	return resp.ContentLength, nil
+
+	// Read the size and decode the checksum when the service reports one.
+	stat := &ObjectStat{Size: resp.ContentLength}
+	if sum := resp.Header.Get(ChecksumSHA256Header); sum != "" {
+		stat.ChecksumSHA256, err = base64.StdEncoding.DecodeString(sum)
+		if err != nil {
+			return nil, errors.Wrap(err, "decode object checksum")
+		}
+	}
+	return stat, nil
+}
+
+// ChecksumSHA256Header carries the base64 SHA-256 of an object's body. The
+// service refuses an upload whose body does not match it.
+const ChecksumSHA256Header = "X-Amz-Checksum-Sha256"
+
+// PresignPut returns a URL that uploads the object without credentials until
+// expires from now, and the headers the upload must send. The service refuses
+// an upload whose length or SHA-256 differs from size and sum.
+func (c *Client) PresignPut(bucket, key string, size int64, sum []byte, expires time.Duration, now time.Time) (string, http.Header) {
+	header := http.Header{
+		"Content-Length":     {strconv.FormatInt(size, 10)},
+		ChecksumSHA256Header: {base64.StdEncoding.EncodeToString(sum)},
+	}
+	u := c.objectURL(bucket, key, nil)
+	c.presignV4(http.MethodPut, u, header, expires, now)
+	return u.String(), header
 }
 
 // DeleteObject removes every version of an object, so a bucket with
@@ -313,7 +346,33 @@ func (c *Client) do(ctx context.Context, method, bucket, key string, query url.V
 
 // send builds, signs, and sends one attempt of an S3 request.
 func (c *Client) send(ctx context.Context, method, bucket, key string, query url.Values, data []byte, header http.Header) (*http.Response, error) {
-	// Address the S3 bucket and object using the configured endpoint.
+	// Hash the payload the signature covers.
+	var body io.Reader
+	payloadHash := emptyPayloadHash
+	if data != nil {
+		body = bytes.NewReader(data)
+		payloadHash = hexSHA256(data)
+	}
+
+	// Build the request for the object URL.
+	req, err := http.NewRequestWithContext(ctx, method, c.objectURL(bucket, key, query).String(), body)
+	if err != nil {
+		return nil, err
+	}
+	if data != nil {
+		req.ContentLength = int64(len(data))
+	}
+	maps.Copy(req.Header, header)
+
+	// Sign and send the request.
+	c.signV4(req, payloadHash, time.Now())
+	return c.httpClient.Do(req)
+}
+
+// objectURL returns the path-style URL of an object. An empty key addresses
+// the bucket.
+func (c *Client) objectURL(bucket, key string, query url.Values) *url.URL {
+	// Choose the scheme and the path-style object path.
 	scheme := "http"
 	if c.useSSL {
 		scheme = "https"
@@ -322,32 +381,14 @@ func (c *Client) send(ctx context.Context, method, bucket, key string, query url
 	if key != "" {
 		path += "/" + key
 	}
-	u := &url.URL{
+
+	// Join them with the endpoint and canonical query.
+	return &url.URL{
 		Scheme:   scheme,
 		Host:     c.endpoint,
 		Path:     path,
 		RawQuery: canonicalQuery(query),
 	}
-
-	// Prepare the request body and its payload hash.
-	var body io.Reader
-	payloadHash := emptyPayloadHash
-	if data != nil {
-		body = bytes.NewReader(data)
-		payloadHash = hexSHA256(data)
-	}
-
-	// Build and sign the HTTP request before sending it to S3.
-	req, err := http.NewRequestWithContext(ctx, method, u.String(), body)
-	if err != nil {
-		return nil, err
-	}
-	if data != nil {
-		req.ContentLength = int64(len(data))
-	}
-	maps.Copy(req.Header, header)
-	c.signV4(req, payloadHash, time.Now())
-	return c.httpClient.Do(req)
 }
 
 // isTransient reports whether a request failed in transit or with a status
@@ -370,12 +411,9 @@ func isTransient(resp *http.Response, err error) bool {
 // checkStatus maps a missing bucket to ErrBucketNotFound, another 404 to
 // ErrNotFound, and any other non-success status to a StatusError.
 func checkStatus(resp *http.Response, bucket, key, method string) error {
-	// Accept successful S3 responses before decoding error details.
 	if resp.StatusCode/100 == 2 {
 		return nil
 	}
-
-	// Map missing buckets and objects to the client lookup errors.
 	serr := newStatusError(resp, method, bucket, key)
 	if serr.Code == "NoSuchBucket" {
 		return errors.Wrap(ErrBucketNotFound, serr.Error())
