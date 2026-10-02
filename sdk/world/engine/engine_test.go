@@ -73,20 +73,23 @@ func setupSDKEngineWithResourceClient(
 	return engine, cleanup
 }
 
-// TestSDKEngine_NewTransaction tests creating and discarding transactions.
+// TestSDKEngine_NewTransaction checks that each transaction reports the mode it
+// was opened with.
 func TestSDKEngine_NewTransaction(t *testing.T) {
 	ctx := context.Background()
 	engine, cleanup := setupSDKEngine(ctx, t)
 	defer cleanup()
 
-	tx, err := engine.NewTransaction(ctx, true)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	defer tx.Discard()
-
-	if tx.GetReadOnly() {
-		t.Fatal("expected write transaction")
+	for _, write := range []bool{true, false} {
+		tx, err := engine.NewTransaction(ctx, write)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+		readOnly := tx.GetReadOnly()
+		tx.Discard()
+		if readOnly == write {
+			t.Fatalf("NewTransaction(write=%v) reported read-only %v", write, readOnly)
+		}
 	}
 }
 

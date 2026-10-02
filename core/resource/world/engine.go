@@ -219,7 +219,10 @@ func (r *EngineResource) NewTransaction(ctx context.Context, req *s4wave_world.N
 		return nil, err
 	}
 
-	return &s4wave_world.NewTransactionResponse{ResourceId: id}, nil
+	return &s4wave_world.NewTransactionResponse{
+		ResourceId: id,
+		ReadOnly:   !req.GetWrite(),
+	}, nil
 }
 
 // BuildStorageCursor builds a cursor to the world storage with an empty ref.
