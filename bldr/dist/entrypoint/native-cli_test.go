@@ -10,7 +10,10 @@ import (
 	"github.com/s4wave/spacewave/db/bucket"
 )
 
+// TestDistVersionCommandReportsManagedCLIIdentity checks that version --json
+// reports the role, channel, platform and manifest of a managed CLI.
 func TestDistVersionCommandReportsManagedCLIIdentity(t *testing.T) {
+	// Run version --json against a stable CLI entrypoint.
 	meta := bldr_dist.NewDistEntrypointMeta(
 		"spacewave",
 		"desktop/darwin/arm64",
@@ -30,6 +33,7 @@ func TestDistVersionCommandReportsManagedCLIIdentity(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Parse the output and compare each identity field.
 	var parser fastjson.Parser
 	got, err := parser.ParseBytes(buf.Bytes())
 	if err != nil {

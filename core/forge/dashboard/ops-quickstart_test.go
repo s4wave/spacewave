@@ -13,9 +13,10 @@ import (
 	"github.com/s4wave/spacewave/testbed"
 )
 
+// generateQuickstartTestPeerID returns the peer ID of a new Ed25519 key.
 func generateQuickstartTestPeerID(t *testing.T) peer.ID {
+	// Generate a key and derive its peer ID.
 	t.Helper()
-
 	priv, _, err := crypto.GenerateEd25519Key(rand.Reader)
 	if err != nil {
 		t.Fatal(err)
@@ -27,13 +28,17 @@ func generateQuickstartTestPeerID(t *testing.T) peer.ID {
 	return pid
 }
 
+// TestInitForgeQuickstartSeedsExecutableTargets checks that the quickstart
+// seeds three tasks that run on the noop exec controller.
 func TestInitForgeQuickstartSeedsExecutableTargets(t *testing.T) {
+	// Start a testbed World.
 	ctx := t.Context()
 	tb, err := testbed.Default(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	// Apply the quickstart operation as a new Session peer.
 	pid := generateQuickstartTestPeerID(t)
 	op := &InitForgeQuickstartOp{
 		LayoutKey:     "forge",
@@ -48,6 +53,7 @@ func TestInitForgeQuickstartSeedsExecutableTargets(t *testing.T) {
 		t.Fatalf("ApplyWorldOp: %v", err)
 	}
 
+	// The sample job holds three tasks.
 	taskKeys, err := forge_job.ListJobTasks(ctx, tb.WorldState, "sample-job")
 	if err != nil {
 		t.Fatalf("ListJobTasks: %v", err)
@@ -56,6 +62,7 @@ func TestInitForgeQuickstartSeedsExecutableTargets(t *testing.T) {
 		t.Fatalf("expected 3 quickstart tasks, got %d", len(taskKeys))
 	}
 
+	// Each task target is enabled and uses the noop controller.
 	for _, taskKey := range taskKeys {
 		target, _, err := forge_task.LookupTaskTarget(ctx, tb.WorldState, taskKey)
 		if err != nil {
