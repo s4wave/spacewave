@@ -9,7 +9,8 @@ import (
 )
 
 // Store is a read-only block store view owned by a solicitation Controller.
-// Reads snapshot the controller's current peer sessions and fan out directly.
+// Reads wait for the solicitation to settle, then fan out to the controller's
+// peer sessions.
 type Store struct {
 	controller *Controller
 }
@@ -49,22 +50,21 @@ func (*Store) RmBlock(context.Context, *block.BlockRef) error {
 // Sync reports that the read-only view has no durability barrier.
 func (*Store) Sync(context.Context) (bool, error) { return true, nil }
 
-// GetBlock fans the request out to the controller's current peer sessions.
+// GetBlock fans the request out to the controller's peer sessions.
 func (s *Store) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {
-	found := s.fetch(ctx, ref)
-	if found == nil {
-		return nil, false, nil
+	found, err := s.fetch(ctx, ref)
+	if found == nil || err != nil {
+		return nil, false, err
 	}
 	return found.GetData(), true, nil
 }
 
-// GetStoredBlock fans the request out to the controller's current peer
-// sessions. RefsKnown is unset when the answering peer held the block without
-// its refs.
+// GetStoredBlock fans the request out to the controller's peer sessions.
+// RefsKnown is unset when the answering peer held the block without its refs.
 func (s *Store) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*block.StoredBlock, error) {
-	found := s.fetch(ctx, ref)
-	if found == nil {
-		return nil, nil
+	found, err := s.fetch(ctx, ref)
+	if found == nil || err != nil {
+		return nil, err
 	}
 	return &block.StoredBlock{
 		Data:      found.GetData(),
@@ -73,22 +73,28 @@ func (s *Store) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*block
 	}, nil
 }
 
-// fetch requests a block from the current peer sessions. Returns nil when no
+// fetch requests a block from the settled peer sessions. Returns nil when no
 // peer has the block.
-func (s *Store) fetch(ctx context.Context, ref *block.BlockRef) *DexMessage {
-	sessions := s.controller.snapshotSessions()
+func (s *Store) fetch(ctx context.Context, ref *block.BlockRef) (*DexMessage, error) {
+	// Ask the settled peer sessions for the block.
+	sessions, err := s.controller.waitSessions(ctx, nil)
+	if err != nil {
+		return nil, err
+	}
 	found := peerBlockFanout{
 		sessions: sessions,
 		ref:      ref,
 		hops:     s.controller.cc.GetMaxForwardHops(),
 	}.run(ctx)
+
+	// Log a miss with the number of peers asked.
 	if found == nil {
 		s.controller.le.
 			WithField("session-count", len(sessions)).
 			WithField("ref", ref.String()).
 			Debug("dex block unavailable")
 	}
-	return found
+	return found, nil
 }
 
 // GetBlockExists checks whether any connected peer has the block.

@@ -293,7 +293,7 @@ func newTestLinkState(local, remote peer.ID) *linkState {
 		ml:           ml,
 		sessionID:    link_solicit.ComputeSessionID(local, remote),
 		localIsLower: local < remote,
-		matched:      make(map[string]struct{}),
+		matched:      make(map[string]bool),
 	}
 }
 
@@ -307,6 +307,16 @@ func recvLocalSnapshot(t *testing.T, ch <-chan *controlStreamLocalSnapshot) *con
 	return snap
 }
 
+// matchedCount returns the number of matched pairs recorded on ls.
+func matchedCount(c *Controller, ls *linkState) int {
+	var n int
+	c.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		n = len(ls.matched)
+	})
+	return n
+}
+
+// recvTestValue receives one value from ch or fails the test after a timeout.
 func recvTestValue[T any](t *testing.T, ch <-chan T, name string) T {
 	t.Helper()
 
@@ -573,9 +583,11 @@ func TestControlStreamLocalSnapshotRejectsReplacedLink(t *testing.T) {
 	}
 }
 
+// TestEvaluateMatchesSuppressesDuplicateOpens verifies that a repeated match
+// evaluation does not open a second stream for the same pair.
 func TestEvaluateMatchesSuppressesDuplicateOpens(t *testing.T) {
+	// Register one solicitation on a lower-side link.
 	ctx := t.Context()
-
 	c := newTestSolicitController(t)
 	ls := newTestLinkState(peer.ID("a"), peer.ID("b"))
 	handler := newTestResolverHandler()
@@ -594,17 +606,19 @@ func TestEvaluateMatchesSuppressesDuplicateOpens(t *testing.T) {
 		broadcast()
 	})
 
+	// Match the offer once and expect one stream.
 	exchange := legacySolicitationExchange(hashes)
 	c.evaluateMatches(ctx, ls, exchange, exchange)
 	recvTestValue(t, ls.ml.(*testMountedLink).openCh, "opened protocol")
 	recvTestValue(t, handler.values, "solicit value")
-	if len(ls.matched) != 1 {
-		t.Fatalf("matched count = %d, want 1", len(ls.matched))
+	if n := matchedCount(c, ls); n != 1 {
+		t.Fatalf("matched count = %d, want 1", n)
 	}
 
+	// Match it again and expect no second stream.
 	c.evaluateMatches(ctx, ls, exchange, exchange)
-	if len(ls.matched) != 1 {
-		t.Fatalf("matched count after duplicate = %d, want 1", len(ls.matched))
+	if n := matchedCount(c, ls); n != 1 {
+		t.Fatalf("matched count after duplicate = %d, want 1", n)
 	}
 	assertNoTestValue(t, ls.ml.(*testMountedLink).openCh, "duplicate opened protocol")
 	assertNoTestValue(t, handler.values, "duplicate solicit value")
@@ -657,6 +671,7 @@ func TestEvaluateMatchesStreamCloseDoesNotRearmIncarnatedPair(t *testing.T) {
 // TestRetainedLinkPrunesRetiredIncarnationPairs verifies bounded suppression
 // across repeated local and remote offer rotations.
 func TestRetainedLinkPrunesRetiredIncarnationPairs(t *testing.T) {
+	// Register one solicitation with a legacy match already recorded.
 	c := newTestSolicitController(t)
 	ls := newTestLinkState(peer.ID("a"), peer.ID("b"))
 	handler := newTestResolverHandler()
@@ -672,11 +687,13 @@ func TestRetainedLinkPrunesRetiredIncarnationPairs(t *testing.T) {
 	c.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		c.links[ls.ml.GetLinkUUID()] = ls
 		c.solicitations[ss] = struct{}{}
-		ls.matched[hex.EncodeToString(hash)] = struct{}{}
+		ls.matched[hex.EncodeToString(hash)] = true
 		broadcast()
 	})
 
+	// Rotate both incarnations and expect only the legacy and current pairs.
 	for generation := uint64(1); generation <= 8; generation++ {
+		// Build this generation's exchanges and adopt its local incarnation.
 		localIncarnation := bytes.Repeat([]byte{byte(generation)}, solicitationIncarnationSize)
 		remoteIncarnation := bytes.Repeat([]byte{byte(generation + 16)}, solicitationIncarnationSize)
 		local := incarnatedSolicitationExchange(
@@ -695,27 +712,30 @@ func TestRetainedLinkPrunesRetiredIncarnationPairs(t *testing.T) {
 			ss.incarnation = localIncarnation
 			broadcast()
 		})
+
+		// Prune pairs retired by the local rotation.
 		if generation > 1 {
 			previousRemote, removed := c.currentControlStreamRemoteExchange(ls)
 			if removed {
 				t.Fatal("retained link was removed")
 			}
 			c.pruneRetiredMatches(ls, local, previousRemote)
-			if len(ls.matched) != 1 {
-				t.Fatalf("generation %d local rotation retained %d matches, want legacy only", generation, len(ls.matched))
+			if n := matchedCount(c, ls); n != 1 {
+				t.Fatalf("generation %d local rotation retained %d matches, want legacy only", generation, n)
 			}
 		}
+
+		// Adopt the remote rotation and match the new pair.
 		c.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 			ls.remoteExchange = remote
 			broadcast()
 		})
-
 		c.pruneRetiredMatches(ls, local, remote)
 		c.evaluateMatches(t.Context(), ls, local, remote)
 		recvTestValue(t, ls.ml.(*testMountedLink).openCh, "rotated opened protocol")
 		recvTestValue(t, handler.values, "rotated solicitation value")
-		if len(ls.matched) != 2 {
-			t.Fatalf("generation %d matched entries = %d, want legacy plus current pair", generation, len(ls.matched))
+		if n := matchedCount(c, ls); n != 2 {
+			t.Fatalf("generation %d matched entries = %d, want legacy plus current pair", generation, n)
 		}
 	}
 }
@@ -773,10 +793,13 @@ func TestOpenSolicitedStreamWaitsForAccept(t *testing.T) {
 // TestPruneRetiredMatchRemovesOpenBeforeRoutineStarts verifies withdrawal
 // cleanup when the keyed manager has no running context.
 func TestPruneRetiredMatchRemovesOpenBeforeRoutineStarts(t *testing.T) {
+	// Build a controller whose keyed manager has no running context.
 	c, err := NewController(logrus.NewEntry(logrus.New()), &Config{})
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Build one incarnated pair.
 	ls := newTestLinkState(peer.ID("a"), peer.ID("b"))
 	hash := link_solicit.ComputeProtocolHash(ls.sessionID, protocol.ID("test/pending"), nil)
 	localIncarnation := bytes.Repeat([]byte{1}, solicitationIncarnationSize)
@@ -787,23 +810,27 @@ func TestPruneRetiredMatchRemovesOpenBeforeRoutineStarts(t *testing.T) {
 		remoteIncarnation: remoteIncarnation,
 		incarnated:        true,
 	}
+
+	// Register a pending open for the pair.
 	matchKey := encodeSolicitationMatch(ls, match)
 	openKey := solicitationOpenKey{linkUUID: ls.ml.GetLinkUUID(), match: matchKey}
 	c.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		c.links[ls.ml.GetLinkUUID()] = ls
-		ls.matched[matchKey] = struct{}{}
+		ls.matched[matchKey] = false
 		c.opens[openKey] = solicitationOpen{ls: ls, match: match}
 		broadcast()
 	})
 	c.openRoutines.SetKey(openKey, true)
 
+	// Rotate both incarnations to retire the pair.
 	replacement := bytes.Repeat([]byte{3}, solicitationIncarnationSize)
 	local := incarnatedSolicitationExchange(hash, replacement, 2, 2)
 	remote := incarnatedSolicitationExchange(hash, replacement, 2, 2)
 	c.pruneRetiredMatches(ls, local, remote)
 
-	if len(ls.matched) != 0 {
-		t.Fatalf("matched entries = %d, want 0", len(ls.matched))
+	// Expect the match, its metadata, and its routine removed.
+	if n := matchedCount(c, ls); n != 0 {
+		t.Fatalf("matched entries = %d, want 0", n)
 	}
 	c.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		if _, exists := c.opens[openKey]; exists {
@@ -818,10 +845,13 @@ func TestPruneRetiredMatchRemovesOpenBeforeRoutineStarts(t *testing.T) {
 // TestStartOpenRoutineRejectsLinkRemovedBeforeRegistration covers link removal
 // between pending-open publication and keyed registration.
 func TestStartOpenRoutineRejectsLinkRemovedBeforeRegistration(t *testing.T) {
+	// Build a controller whose keyed manager has no running context.
 	c, err := NewController(logrus.NewEntry(logrus.New()), &Config{})
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Publish a pending open, then remove its link before registration.
 	ls := newTestLinkState(peer.ID("a"), peer.ID("b"))
 	match := solicitationMatch{
 		hash:              bytes.Repeat([]byte{1}, link_solicit.HashSize),
@@ -832,15 +862,17 @@ func TestStartOpenRoutineRejectsLinkRemovedBeforeRegistration(t *testing.T) {
 	matchKey := encodeSolicitationMatch(ls, match)
 	openKey := solicitationOpenKey{linkUUID: ls.ml.GetLinkUUID(), match: matchKey}
 	c.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		// Hold the link with one reference and publish the open.
 		ls.refCount = 1
 		c.links[ls.ml.GetLinkUUID()] = ls
-		ls.matched[matchKey] = struct{}{}
+		ls.matched[matchKey] = false
 		c.opens[openKey] = solicitationOpen{ls: ls, match: match}
 		broadcast()
 	})
 	c.removeLink(ls.ml.GetLinkUUID())
 	c.startOpenRoutine(openKey)
 
+	// Expect neither metadata nor a routine for the removed link.
 	c.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		if _, exists := c.opens[openKey]; exists {
 			t.Fatal("removed link retained open metadata")
@@ -895,9 +927,11 @@ func TestIncomingSolicitedStreamRejectsStaleIncarnation(t *testing.T) {
 	recvTestValue(t, handler.values, "current incarnation stream")
 }
 
+// TestEvaluateMatchesHigherPeerDoesNotOpenStream verifies that the higher peer
+// records a match but leaves opening the stream to the lower peer.
 func TestEvaluateMatchesHigherPeerDoesNotOpenStream(t *testing.T) {
+	// Register one solicitation on a higher-side link.
 	ctx := t.Context()
-
 	c := newTestSolicitController(t)
 	ls := newTestLinkState(peer.ID("b"), peer.ID("a"))
 	handler := newTestResolverHandler()
@@ -916,10 +950,11 @@ func TestEvaluateMatchesHigherPeerDoesNotOpenStream(t *testing.T) {
 		broadcast()
 	})
 
+	// Match the offer and expect a recorded pair without an open.
 	exchange := legacySolicitationExchange(hashes)
 	c.evaluateMatches(ctx, ls, exchange, exchange)
-	if len(ls.matched) != 1 {
-		t.Fatalf("matched count = %d, want 1", len(ls.matched))
+	if n := matchedCount(c, ls); n != 1 {
+		t.Fatalf("matched count = %d, want 1", n)
 	}
 	assertNoTestValue(t, ls.ml.(*testMountedLink).openCh, "higher-peer opened protocol")
 	assertNoTestValue(t, handler.values, "higher-peer solicit value")

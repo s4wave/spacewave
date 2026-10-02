@@ -644,6 +644,7 @@ func newTestDexSolicitController() *Controller {
 		le:       logrus.NewEntry(logger),
 		cc:       &Config{MaxForwardHops: 1},
 		sessions: make(map[string]*peerSession),
+		settled:  true,
 	}
 }
 

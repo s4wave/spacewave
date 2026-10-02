@@ -47,6 +47,9 @@ type Controller struct {
 	// key: remote peer ID string
 	// guarded by bcast
 	sessions map[string]*peerSession
+	// settled reports that the solicitation has delivered a session for every
+	// peer it matched, guarded by bcast.
+	settled bool
 	// transfer counts block payloads that actually crossed a peer stream.
 	transfer      TransferSnapshot
 	peerTransfers map[string]PeerTransferSnapshot
@@ -130,7 +133,6 @@ func NewController(le *logrus.Entry, b bus.Bus, cc *Config) (*Controller, error)
 func (c *Controller) Execute(ctx context.Context) error {
 	// Resolve the local peer identity.
 	c.le.Debug("dex solicit controller running")
-
 	peerID, err := c.cc.ParsePeerID()
 	if err != nil {
 		return err
@@ -144,8 +146,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 		peerID,
 		c.cc.GetTransportId(),
 	)
-
-	_, solicitRef, err := c.b.AddDirective(
+	di, solicitRef, err := c.b.AddDirective(
 		dir,
 		directive.NewTypedCallbackHandler[link_solicit.SolicitMountedStream](
 			func(v directive.TypedAttachedValue[link_solicit.SolicitMountedStream]) {
@@ -158,6 +159,15 @@ func (c *Controller) Execute(ctx context.Context) error {
 		return errors.Wrap(err, "add solicit protocol directive")
 	}
 	defer solicitRef.Release()
+
+	// Track settlement. Idle callbacks follow the value callbacks queued
+	// before them, so an idle solicitation has registered its sessions. Once
+	// the controller stops, no session can arrive.
+	defer c.setSettled(true)
+	releaseIdle := di.AddIdleCallback(func(idle bool, _ []error) {
+		c.setSettled(idle)
+	})
+	defer releaseIdle()
 
 	// Wait for controller cancellation.
 	<-ctx.Done()
@@ -196,6 +206,16 @@ func (c *Controller) handleSolicitedStream(ctx context.Context, sms link_solicit
 	sess.start(ctx)
 }
 
+// setSettled records whether the solicitation has settled.
+func (c *Controller) setSettled(settled bool) {
+	c.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		if c.settled != settled {
+			c.settled = settled
+			broadcast()
+		}
+	})
+}
+
 func (c *Controller) removeSessionIfCurrent(remotePeer string, sess *peerSession) {
 	c.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		if cur, ok := c.sessions[remotePeer]; ok && cur == sess {
@@ -209,25 +229,30 @@ func (c *Controller) removeSessionIfCurrent(remotePeer string, sess *peerSession
 // excluding the session that originated the request. Returns the first
 // verified response, or nil when no peer has the block.
 func (c *Controller) forwardToPeers(ctx context.Context, ref *block.BlockRef, hops uint32, exclude *peerSession) *DexMessage {
+	sessions, err := c.waitSessions(ctx, exclude)
+	if err != nil {
+		return nil
+	}
+	return peerBlockFanout{sessions: sessions, ref: ref, hops: hops}.run(ctx)
+}
+
+// waitSessions waits until the solicitation has settled and returns the peer
+// sessions other than exclude. A peer the solicitation is still negotiating
+// with may hold the block, so a read must not report a miss before then.
+func (c *Controller) waitSessions(ctx context.Context, exclude *peerSession) ([]*peerSession, error) {
 	var sessions []*peerSession
-	c.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+	err := c.bcast.Wait(ctx, func(_ func(), _ func() <-chan struct{}) (bool, error) {
+		if !c.settled {
+			return false, nil
+		}
 		for _, s := range c.sessions {
 			if s != exclude {
 				sessions = append(sessions, s)
 			}
 		}
+		return true, nil
 	})
-	return peerBlockFanout{sessions: sessions, ref: ref, hops: hops}.run(ctx)
-}
-
-func (c *Controller) snapshotSessions() []*peerSession {
-	var sessions []*peerSession
-	c.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-		for _, s := range c.sessions {
-			sessions = append(sessions, s)
-		}
-	})
-	return sessions
+	return sessions, err
 }
 
 // HandleDirective asks if the handler can resolve the directive.
@@ -263,11 +288,18 @@ type lookupResolver struct {
 
 // Resolve resolves the values, emitting them to the handler.
 func (r *lookupResolver) Resolve(ctx context.Context, handler directive.ResolverHandler) error {
+	// Ask the settled peer sessions for the block.
+	sessions, err := r.c.waitSessions(ctx, nil)
+	if err != nil {
+		return err
+	}
 	found := peerBlockFanout{
-		sessions: r.c.snapshotSessions(),
+		sessions: sessions,
 		ref:      r.ref,
 		hops:     r.c.cc.GetMaxForwardHops(),
 	}.run(ctx)
+
+	// Emit the result, including a miss.
 	switch {
 	case found == nil:
 		handler.AddValue(dex.NewLookupBlockFromNetworkValue(nil, nil))

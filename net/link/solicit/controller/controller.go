@@ -9,6 +9,7 @@ import (
 	"math"
 	"slices"
 	"strings"
+	"sync"
 
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
@@ -71,6 +72,9 @@ type Controller struct {
 	links map[uint64]*linkState
 	// opens owns pending solicited stream openings, guarded by bcast.
 	opens map[solicitationOpenKey]solicitationOpen
+	// settledMtx serializes settlement reports so the last report carries
+	// the latest state.
+	settledMtx sync.Mutex
 }
 
 // solicitState tracks a single SolicitProtocol directive resolver.
@@ -98,12 +102,21 @@ type linkState struct {
 	// refCount counts active users of this state, guarded by Controller.bcast.
 	refCount int
 
-	// remoteExchange is the peer's most recently advertised offer generation.
-	// It is guarded by Controller.bcast.
+	// controlStreams counts running control streams, guarded by Controller.bcast.
+	controlStreams int
+	// controlEnded records that a control stream ended or failed to open,
+	// guarded by Controller.bcast. Until then the link is still negotiating.
+	controlEnded bool
+	// localExchange is the offer generation this side last sent on the current
+	// control stream. It is guarded by Controller.bcast.
+	localExchange *solicitationExchange
+	// remoteExchange is the peer's most recently advertised offer generation
+	// on the current control stream. It is guarded by Controller.bcast.
 	remoteExchange *solicitationExchange
-	// matched suppresses duplicate streams for each bilateral incarnation pair.
-	// It is guarded by Controller.bcast.
-	matched map[string]struct{}
+	// matched suppresses duplicate streams for each bilateral incarnation pair
+	// and records whether the pair's stream was delivered or refused. It is
+	// guarded by Controller.bcast.
+	matched map[string]bool
 }
 
 // controlStreamLocalSnapshot captures one local offer-set observation.
@@ -252,7 +265,48 @@ func (c *Controller) Execute(ctx context.Context) error {
 	c.le.Debug("solicitation controller running")
 	c.linkRoutines.SetContext(ctx, true)
 	c.openRoutines.SetContext(ctx, true)
-	return nil
+
+	// Report settlement whenever solicitation state changes.
+	for {
+		var waitCh <-chan struct{}
+		c.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
+			waitCh = getWaitCh()
+		})
+		c.reportSettled()
+		select {
+		case <-ctx.Done():
+			return nil
+		case <-waitCh:
+		}
+	}
+}
+
+// reportSettled marks each solicitation resolver idle exactly while it has
+// settled on every link.
+func (c *Controller) reportSettled() {
+	// Serialize reports so the last one published carries the latest state.
+	c.settledMtx.Lock()
+	defer c.settledMtx.Unlock()
+
+	// Snapshot settlement under the state lock.
+	type report struct {
+		handler directive.ResolverHandler
+		settled bool
+	}
+	var reports []report
+	c.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		for ss := range c.solicitations {
+			reports = append(reports, report{
+				handler: ss.handler,
+				settled: c.solicitationSettledLocked(ss),
+			})
+		}
+	})
+
+	// Publish outside the state lock because the bus may call back into it.
+	for _, r := range reports {
+		r.handler.MarkIdle(r.settled)
+	}
 }
 
 // HandleDirective asks if the handler can resolve the directive.
@@ -305,11 +359,70 @@ func (c *Controller) handleSolicitProtocol(
 		})
 		defer c.removeSolicitation(ss)
 
-		// Keep the resolver idle until its context is canceled.
-		rh.MarkIdle(true)
+		// Execute reports idle while every link has settled this offer.
 		<-rctx.Done()
 		return nil
 	})), nil
+}
+
+// solicitationSettledLocked reports whether ss has settled on every link it
+// may be offered on. Caller must hold bcast lock.
+func (c *Controller) solicitationSettledLocked(ss *solicitState) bool {
+	for _, ls := range c.links {
+		if ss.offeredOn(ls.ml) && !c.linkSettledLocked(ls, ss) {
+			return false
+		}
+	}
+	return true
+}
+
+// linkSettledLocked reports whether ss needs no further work on ls: both
+// peers acknowledged an exchange that carries its offer, and every stream that
+// exchange matched was delivered or refused. A link with no running control
+// stream since one ended has nothing left to negotiate. Caller must hold bcast
+// lock.
+func (c *Controller) linkSettledLocked(ls *linkState, ss *solicitState) bool {
+	// Settle a link that is not negotiating.
+	if ls.controlStreams == 0 {
+		return ls.controlEnded
+	}
+
+	// Wait for both peers to observe the exchange carrying this offer.
+	local, remote := ls.localExchange, ls.remoteExchange
+	if local == nil || remote == nil || !exchangesAcknowledged(local, remote) {
+		return false
+	}
+	idx := slices.IndexFunc(local.offers, func(offer solicitationOffer) bool {
+		return bytes.Equal(offer.incarnation, ss.incarnation)
+	})
+	if idx < 0 {
+		// An offer beyond the hash limit is never sent.
+		return len(local.offers) >= int(c.maxHashes)
+	}
+
+	// Wait for every stream matched to this offer.
+	hash := local.offers[idx].hash
+	for _, match := range findSolicitationMatches(local, remote) {
+		if !bytes.Equal(match.hash, hash) ||
+			(match.incarnated && !bytes.Equal(match.localIncarnation, ss.incarnation)) {
+			continue
+		}
+		if !ls.matched[encodeSolicitationMatch(ls, match)] {
+			return false
+		}
+	}
+	return true
+}
+
+// offeredOn reports whether the peer and transport constraints of ss admit ml.
+func (ss *solicitState) offeredOn(ml link.MountedLink) bool {
+	if pid := ss.dir.SolicitProtocolPeerID(); len(pid) != 0 && pid != ml.GetRemotePeer() {
+		return false
+	}
+	if tid := ss.dir.SolicitProtocolTransportID(); tid != 0 && tid != ml.GetTransportUUID() {
+		return false
+	}
+	return true
 }
 
 // removeSolicitation synchronously and idempotently withdraws an offer.
@@ -383,10 +496,8 @@ func (c *Controller) addLink(ml link.MountedLink) {
 	uuid := ml.GetLinkUUID()
 	localPeer := ml.GetLocalPeer()
 	remotePeer := ml.GetRemotePeer()
-
 	sessionID := link_solicit.ComputeSessionID(localPeer, remotePeer)
 	isLower := localPeer < remotePeer
-
 	le := c.le.WithField("link-uuid", uuid).
 		WithField("remote-peer", remotePeer.String()).
 		WithField("is-lower", isLower)
@@ -397,7 +508,7 @@ func (c *Controller) addLink(ml link.MountedLink) {
 		ml:           ml,
 		sessionID:    sessionID,
 		localIsLower: isLower,
-		matched:      make(map[string]struct{}),
+		matched:      make(map[string]bool),
 	}
 
 	// Publish the link once while retaining references for duplicates.
@@ -413,14 +524,18 @@ func (c *Controller) addLink(ml link.MountedLink) {
 		broadcast()
 	})
 
+	// Withdraw settlement before the link's discoverer continues, so a read
+	// that follows the link waits for its negotiation. A duplicate registration
+	// may overtake the first, so it reports too.
+	c.reportSettled()
+
 	// Ignore duplicate link registrations.
 	if !added {
 		return
 	}
 
-	le.Debug("link added for solicitation")
-
 	// Start the keyed control routine for a newly published link.
+	le.Debug("link added for solicitation")
 	c.linkRoutines.SetKey(uuid, true)
 }
 
@@ -482,9 +597,11 @@ func (c *Controller) initiateControlStream(ctx context.Context, ls *linkState) e
 	ms, err := ls.ml.OpenMountedStream(ctx, ControlProtocolID, stream.OpenOpts{})
 	if err != nil {
 		ls.le.WithError(err).Warn("failed to open control stream")
+		c.endControlStream(ls, false)
 		return err
 	}
 
+	// Run the exchange loop over a packet session on the stream.
 	sess := stream_packet.NewSession(ms.GetStream(), maxExchangeMessageSize(c.maxHashes))
 	c.runControlStream(ctx, ls, sess)
 	return nil
@@ -494,15 +611,9 @@ func (c *Controller) initiateControlStream(ctx context.Context, ls *linkState) e
 // peer and transport constraints.
 // Caller must hold bcast lock.
 func (c *Controller) getSolicitationOffers(ml link.MountedLink) []solicitationOffer {
-	remotePeer := ml.GetRemotePeer()
-	transportUUID := ml.GetTransportUUID()
-
 	var offers []solicitationOffer
 	for ss := range c.solicitations {
-		if pid := ss.dir.SolicitProtocolPeerID(); len(pid) != 0 && pid != remotePeer {
-			continue
-		}
-		if tid := ss.dir.SolicitProtocolTransportID(); tid != 0 && tid != transportUUID {
+		if !ss.offeredOn(ml) {
 			continue
 		}
 		offers = append(offers, solicitationOffer{
@@ -572,14 +683,47 @@ func (c *Controller) setControlStreamRemoteExchange(
 	ls *linkState,
 	exchange *solicitationExchange,
 ) bool {
+	// Record the exchange only for the active link state.
 	locked := c.bcast.Lock()
 	defer locked.Unlock()
-
 	if !c.controlStreamLinkActiveLocked(ls) {
 		return false
 	}
 	ls.remoteExchange = cloneSolicitationExchange(exchange)
+	locked.Broadcast()
 	return true
+}
+
+// setControlStreamLocalExchange records the exchange this side sent on a link.
+func (c *Controller) setControlStreamLocalExchange(
+	ls *linkState,
+	exchange *solicitationExchange,
+) {
+	c.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		ls.localExchange = exchange
+		broadcast()
+	})
+}
+
+// beginControlStream starts negotiation on a link from empty exchanges.
+func (c *Controller) beginControlStream(ls *linkState) {
+	c.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		ls.controlStreams++
+		ls.localExchange, ls.remoteExchange = nil, nil
+		broadcast()
+	})
+}
+
+// endControlStream records that a control stream ended. started reports
+// whether beginControlStream counted it.
+func (c *Controller) endControlStream(ls *linkState, started bool) {
+	c.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		if started {
+			ls.controlStreams--
+		}
+		ls.controlEnded = true
+		broadcast()
+	})
 }
 
 // controlStreamLinkActiveLocked returns true if ls is still the tracked
@@ -714,10 +858,7 @@ func (c *Controller) matchSolicitations(
 			return
 		}
 		for ss := range c.solicitations {
-			if pid := ss.dir.SolicitProtocolPeerID(); len(pid) != 0 && pid != ls.ml.GetRemotePeer() {
-				continue
-			}
-			if tid := ss.dir.SolicitProtocolTransportID(); tid != 0 && tid != ls.ml.GetTransportUUID() {
+			if !ss.offeredOn(ls.ml) {
 				continue
 			}
 
@@ -784,6 +925,9 @@ func (c *Controller) openSolicitedStream(
 	ls *linkState,
 	match solicitationMatch,
 ) {
+	// Resolve the match however the open ends.
+	defer c.resolveMatch(ls, match)
+
 	// Open a protocol bound to the exact bilateral offer pair.
 	pid := protocol.ID(SolicitStreamPrefix + encodeSolicitationMatch(ls, match))
 	ms, err := ls.ml.OpenMountedStream(ctx, pid, stream.OpenOpts{})
@@ -885,6 +1029,7 @@ func (c *Controller) handleIncomingSolicitedStream(
 	}
 
 	// Select the live local incarnations bound to the pair.
+	defer c.resolveMatch(ls, match)
 	matches := c.matchSolicitations(ls, match)
 	if len(matches) == 0 {
 		ms.GetStream().Close()
@@ -904,6 +1049,19 @@ func (c *Controller) handleIncomingSolicitedStream(
 	}
 }
 
+// resolveMatch records that the stream of a matched pair was delivered or
+// refused. Recording an unregistered pair suppresses a later duplicate open.
+func (c *Controller) resolveMatch(ls *linkState, match solicitationMatch) {
+	matchKey := encodeSolicitationMatch(ls, match)
+	c.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		if !c.controlStreamLinkActiveLocked(ls) || ls.matched[matchKey] {
+			return
+		}
+		ls.matched[matchKey] = true
+		broadcast()
+	})
+}
+
 // runControlStream manages the control stream exchange for a link.
 //
 // The loop follows the standard broadcast wait pattern: all state is
@@ -918,6 +1076,8 @@ func (c *Controller) runControlStream(
 	le := ls.le.WithField("phase", "control-stream")
 	le.Debug("control stream started")
 	defer sess.Close()
+	c.beginControlStream(ls)
+	defer c.endControlStream(ls, true)
 	watchCtx, cancelWatch := context.WithCancel(ctx)
 	defer cancelWatch()
 
@@ -966,12 +1126,14 @@ func (c *Controller) runControlStream(
 	var localExchange *solicitationExchange
 	var peerSupportsOfferIncarnations bool
 	sendLocalExchange := func(exchange *solicitationExchange) bool {
+		// Send the exchange and record it as this side's current offer.
 		le.WithField("hash-count", len(exchange.hashes)).Debug("sending exchange")
 		if err := c.sendExchange(sess, exchange, peerSupportsOfferIncarnations); err != nil {
 			le.WithError(err).Debug("failed to send exchange")
 			return false
 		}
 		localExchange = exchange
+		c.setControlStreamLocalExchange(ls, exchange)
 		return true
 	}
 	handleLocalWake := func() bool {
@@ -1142,7 +1304,7 @@ func (c *Controller) evaluateMatches(
 			}
 			_, exists = ls.matched[matchKey]
 			if !exists {
-				ls.matched[matchKey] = struct{}{}
+				ls.matched[matchKey] = false
 				if ls.localIsLower {
 					key := solicitationOpenKey{
 						linkUUID: ls.ml.GetLinkUUID(),
@@ -1276,6 +1438,10 @@ func solicitationOfferSetsEqual(a, b *solicitationExchange) bool {
 func findSolicitationMatches(
 	local, remote *solicitationExchange,
 ) []solicitationMatch {
+	if !exchangesAcknowledged(local, remote) {
+		return nil
+	}
+
 	// Legacy peers suppress matches by stable hash for the physical link lifetime.
 	if !local.supportsOfferIncarnations || !remote.supportsOfferIncarnations {
 		hashes := link_solicit.FindMatchingHashes(local.hashes, remote.hashes)
@@ -1285,13 +1451,18 @@ func findSolicitationMatches(
 		}
 		return matches
 	}
-
-	// Both sides must have observed the other's complete offer generation.
-	if local.acknowledgedGeneration != remote.generation ||
-		remote.acknowledgedGeneration != local.generation {
-		return nil
-	}
 	return findOfferPairs(local.offers, remote.offers)
+}
+
+// exchangesAcknowledged reports whether the exchanges may admit matches.
+// Legacy peers do not acknowledge generations; upgraded peers must each have
+// observed the other's complete offer generation.
+func exchangesAcknowledged(local, remote *solicitationExchange) bool {
+	if !local.supportsOfferIncarnations || !remote.supportsOfferIncarnations {
+		return true
+	}
+	return local.acknowledgedGeneration == remote.generation &&
+		remote.acknowledgedGeneration == local.generation
 }
 
 // findOfferPairs returns every matching stable hash bound to both incarnations.

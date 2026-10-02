@@ -216,6 +216,17 @@ func newTestRelayNode(
 	}
 }
 
+// snapshotSessions returns the controller's current peer sessions.
+func (c *Controller) snapshotSessions() []*peerSession {
+	var sessions []*peerSession
+	c.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		for _, s := range c.sessions {
+			sessions = append(sessions, s)
+		}
+	})
+	return sessions
+}
+
 // connectTestRelayNodes creates and dials one direct inproc star edge.
 func connectTestRelayNodes(t *testing.T, ctx context.Context, from, to *testRelayNode) {
 	t.Helper()
