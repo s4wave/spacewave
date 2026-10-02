@@ -1229,7 +1229,7 @@
       ]
     },
     "github.com/s4wave/spacewave/core/provider/spacewave/api": {
-      "hash": "4579561e1b8188c4ce7ee35d5d1af8c312ca1dc187329e2b3faf1a5799088158",
+      "hash": "bc1bcc8db6f5a59717df754dbbba2f03b3aa3dd2aba5f543528c5b614838285f",
       "generatedFiles": [
         "core/provider/spacewave/api/api.pb.go",
         "core/provider/spacewave/api/api.pb.ts",

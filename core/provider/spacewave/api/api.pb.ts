@@ -1955,7 +1955,9 @@ export interface SONotifyEventPayload {
   seqno?: bigint
   /**
    * ChangeType identifies the mutation category ("op", "root",
-   * "configChanged", "metadata", "delete").
+   * "configChanged", "metadata", "delete", "access_changed").
+   * "access_changed" means the receiving account gained or lost access, so
+   * its shared object list must be refetched.
    *
    * @generated from field: string change_type = 2;
    */

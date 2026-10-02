@@ -1585,7 +1585,9 @@ type SONotifyEventPayload struct {
 	// mutation that triggered this notify.
 	Seqno uint64 `protobuf:"varint,1,opt,name=seqno,proto3" json:"seqno,omitempty"`
 	// ChangeType identifies the mutation category ("op", "root",
-	// "configChanged", "metadata", "delete").
+	// "configChanged", "metadata", "delete", "access_changed").
+	// "access_changed" means the receiving account gained or lost access, so
+	// its shared object list must be refetched.
 	ChangeType string `protobuf:"bytes,2,opt,name=change_type,json=changeType,proto3" json:"changeType,omitempty"`
 	// StateMessage carries the inline delta or snapshot fallback. When the
 	// receiver's cached lastSeqno does not match StateMessage.delta.since the
