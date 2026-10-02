@@ -224,12 +224,18 @@ func (h *cloudSOHost) execute(ctx context.Context, ready func(context.Context) e
 	defer h.configChangedRoutine.ClearContext()
 
 	// Seed the local SO state immediately so first mount does not depend on a
-	// later websocket notification to populate the state containers.
+	// later websocket notification to populate the state containers. A state
+	// restored from the verified cache serves the mount at once, and a
+	// background pull catches up on changes made while this host was away.
+	cached := h.stateCtr.GetValue() != nil
 	if err := h.ensureInitialState(ctx, SeedReasonColdSeed); err != nil {
 		if ctx.Err() != nil {
 			return context.Canceled
 		}
 		return errors.Wrap(err, "initial state pull")
+	}
+	if cached {
+		h.triggerPull()
 	}
 	h.triggerConfigChanged()
 	if ready != nil {
@@ -785,7 +791,8 @@ func (h *cloudSOHost) handleStateDelta(ctx context.Context, msg *api.SOStateMess
 		return h.acceptCloudSnapshot(ctx, next, entries[len(entries)-1].GetSeqno())
 
 	case msg.GetConfigChanged() != nil:
-		h.triggerConfigChanged()
+		// The new configuration arrives with the next pulled state.
+		h.triggerPull()
 		return nil
 
 	case msg.GetError() != nil:

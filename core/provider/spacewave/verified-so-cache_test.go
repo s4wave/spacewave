@@ -454,6 +454,31 @@ func TestHandleSONotifyIgnoresMetadataOnly(t *testing.T) {
 	}
 }
 
+// TestHandleSONotifyConfigChangedPullsState checks that a configuration change,
+// which carries no state, pulls the state that holds the new participant list.
+func TestHandleSONotifyConfigChangedPullsState(t *testing.T) {
+	priv, pid := generateTestKeypair(t)
+	host := newCloudSOHost(
+		logrus.New().WithField("test", t.Name()),
+		NewSessionClient(http.DefaultClient, "http://example.invalid", DefaultSigningEnvPrefix, priv, pid.String()),
+		"so-1",
+		"",
+		newWSTracker(logrus.New().WithField("test", t.Name()), func() *SessionClient { return nil }),
+		priv,
+		pid,
+		nil,
+		nil,
+		nil,
+		nil,
+	)
+
+	host.handleSONotify(&api.SONotifyEventPayload{ChangeType: "configChanged"})
+
+	if !host.pullRoutine.Pending() {
+		t.Fatal("config change notify should signal the pull routine")
+	}
+}
+
 func TestApplyConfigMutationPersistsVerifiedStateCache(t *testing.T) {
 	// Open a host with a cached verified head.
 	priv, pid := generateTestKeypair(t)
