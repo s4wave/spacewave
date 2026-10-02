@@ -340,6 +340,7 @@ func (h *buildPluginHandler) retainSource(ctx context.Context, ws world.WorldSta
 	}
 	return ws.AccessWorldState(ctx, nil, func(dest *bucket_lookup.Cursor) error {
 		return h.handle.AccessStorage(ctx, h.source.GetRootRef(), func(source *bucket_lookup.Cursor) error {
+			// Copy the source DAG into the World bucket when it lives elsewhere.
 			ref := source.GetRef().Clone()
 			if source.GetOpArgs().GetBucketId() != dest.GetOpArgs().GetBucketId() {
 				var err error
@@ -361,6 +362,7 @@ func (h *buildPluginHandler) retainSource(ctx context.Context, ws world.WorldSta
 // The Execution retains queued input; accepted build provenance retains its local DAG.
 func (h *buildPluginHandler) materializeSource(ctx context.Context, directory string) (*forge_value.WorldObjectSnapshot, error) {
 	err := h.handle.AccessStorage(ctx, h.source.GetRootRef(), func(cursor *bucket_lookup.Cursor) error {
+		// Sync the source tree into the build directory.
 		filesystem := unixfs_block_fs.NewFS(ctx, unixfs_block.NodeType_NodeType_DIRECTORY, cursor.Clone(), nil)
 		handle, err := unixfs.NewFSHandle(filesystem)
 		if err != nil {
