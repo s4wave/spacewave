@@ -497,7 +497,7 @@ func TestApplyConfigMutationPersistsVerifiedStateCache(t *testing.T) {
 	}
 
 	// Applying persists the new verified head.
-	if err := host.applyConfigMutation(context.Background(), entry, nil, nil); err != nil {
+	if err := host.applyConfigMutation(context.Background(), entry, nil, nil, nil); err != nil {
 		t.Fatalf("apply config mutation: %v", err)
 	}
 	if persisted == nil {

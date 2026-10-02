@@ -1141,7 +1141,7 @@ func (s *SharedObject) AddParticipant(
 			}
 		}
 		if entry != nil {
-			if err := s.host.applyConfigMutation(ctx, entry, nil, postedEpoch); err != nil {
+			if err := s.host.applyConfigMutation(ctx, entry, nil, postedEpoch, nil); err != nil {
 				return nil, err
 			}
 		} else if postedEpoch != nil {
@@ -1451,7 +1451,7 @@ func (s *SharedObject) applyInviteMutation(
 			}
 			continue
 		}
-		if err := s.host.applyConfigMutation(ctx, entry, nextInvites, nil); err != nil {
+		if err := s.host.applyConfigMutation(ctx, entry, nextInvites, nil, nil); err != nil {
 			return err
 		}
 		return nil
@@ -1580,123 +1580,32 @@ func (s *SharedObject) RemoveParticipantWithRevocation(
 	targetPeerIDStr string,
 	revInfo *sobject.SORevocationInfo,
 ) (bool, error) {
-	// Validate the target, serialize with local writes and connect a write session.
 	if targetPeerIDStr == "" {
 		return false, errors.New("target peer id is required")
 	}
-	relLock, err := s.host.writeMu.Lock(ctx)
-	if err != nil {
-		return false, err
-	}
-	defer relLock()
-	cli, err := s.getReadyWriteSessionClient(ctx)
-	if err != nil {
-		return false, err
-	}
+	var removed bool
+	err := s.retryConfigConflicts(ctx, func() error {
+		var err error
+		removed, err = sobject.RemoveSOParticipant(ctx, s.GetSOHost(), targetPeerIDStr, s.privKey, revInfo)
+		return err
+	})
+	return removed, err
+}
 
-	// Write against the latest config, retrying when another writer advances it.
+// retryConfigConflicts runs a configuration write against the latest cloud
+// state, retrying when another writer advances the configuration first.
+func (s *SharedObject) retryConfigConflicts(ctx context.Context, write func() error) error {
 	for attempt := range maxWriteRetries {
-		state, currentCfg, epochs, err := s.loadLatestConfigState(ctx)
-		if err != nil {
-			return false, err
+		if _, _, _, err := s.loadLatestConfigState(ctx); err != nil {
+			return err
 		}
-
-		var (
-			foundParticipant bool
-			nextParticipants []*sobject.SOParticipantConfig
-		)
-		for _, participant := range currentCfg.GetParticipants() {
-			if participant.GetPeerId() == targetPeerIDStr {
-				foundParticipant = true
-				continue
-			}
-			nextParticipants = append(nextParticipants, participant.CloneVT())
+		err := write()
+		var ce *cloudError
+		if err == nil || !errors.As(err, &ce) || ce.StatusCode != 409 || attempt+1 == maxWriteRetries {
+			return err
 		}
-		if !foundParticipant {
-			return false, nil
-		}
-
-		nextCfg := currentCfg.CloneVT()
-		nextCfg.Participants = nextParticipants
-		entry, err := sobject.BuildSOConfigChange(
-			s.GetSharedObjectID(),
-			currentCfg,
-			nextCfg,
-			sobject.SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_REMOVE_PARTICIPANT,
-			s.privKey,
-			revInfo,
-		)
-		if err != nil {
-			return false, errors.Wrap(err, "build config change")
-		}
-		entryData, err := entry.MarshalVT()
-		if err != nil {
-			return false, errors.Wrap(err, "marshal config change")
-		}
-
-		epoch := currentEpochWithFallback(state, epochs)
-		var grantRemoved bool
-		if epoch != nil {
-			filteredGrants := make([]*sobject.SOGrant, 0, len(epoch.GetGrants()))
-			for _, grant := range epoch.GetGrants() {
-				if grant.GetPeerId() == targetPeerIDStr {
-					grantRemoved = true
-					continue
-				}
-				filteredGrants = append(filteredGrants, grant.CloneVT())
-			}
-			epoch.Grants = filteredGrants
-		}
-
-		var postedEpoch *sobject.SOKeyEpoch
-		if grantRemoved {
-			if epoch == nil {
-				return false, errors.New("current key epoch missing for participant removal")
-			}
-			postedEpoch = epoch
-		}
-
-		recoveryCfg, err := recoveryConfigSnapshot(currentCfg, entry)
-		if err != nil {
-			return false, errors.Wrap(err, "build recovery config snapshot")
-		}
-		recoveryKeyEpoch := sobject.CurrentEpochNumber(epochs)
-		if postedEpoch != nil {
-			recoveryKeyEpoch = postedEpoch.GetEpoch()
-		}
-		recoveryEnvelopes, err := s.buildRecoveryEnvelopesForConfig(
-			ctx,
-			cli,
-			state,
-			epoch,
-			recoveryCfg,
-			recoveryKeyEpoch,
-		)
-		if err != nil {
-			return false, err
-		}
-
-		if err := cli.PostConfigState(
-			ctx,
-			s.GetSharedObjectID(),
-			entryData,
-			nil,
-			postedEpoch,
-			recoveryEnvelopes,
-		); err != nil {
-			var ce *cloudError
-			if !errors.As(err, &ce) || ce.StatusCode != 409 || attempt+1 == maxWriteRetries {
-				return false, err
-			}
-			continue
-		}
-		if err := s.host.applyConfigMutation(ctx, entry, nil, postedEpoch); err != nil {
-			return false, err
-		}
-		return true, nil
 	}
-
-	return false, errors.New("remove participant failed after max retries due to config conflicts")
+	return nil
 }
 
 // GetSOHost returns the SOHost for invite operations.

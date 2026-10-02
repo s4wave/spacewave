@@ -101,20 +101,26 @@ func applySOOwnerPromotion(
 
 // CompleteSOOwnershipTransfer commits the departure carried by an ownership
 // transfer at the configuration head, signed by a remaining owner. The same
-// change raises promote to OWNER unless it is empty, so the successor's account
-// can sign as host as soon as the departure settles. It reports false without
+// change raises each peer in promote to OWNER, so the successor's account can
+// sign as host as soon as the departure settles. It reports false without
 // changes when the head carries no departure or owner is departing, so a host
 // may call it after each configuration change it accepts.
-func CompleteSOOwnershipTransfer(ctx context.Context, host *SOHost, owner crypto.PrivKey, promote string) (bool, error) {
-	// Only the transition at the head carries a pending departure.
+func CompleteSOOwnershipTransfer(ctx context.Context, host *SOHost, owner crypto.PrivKey, promote ...string) (bool, error) {
+	// Only an owner at the head can commit the departure it carries.
 	state, err := host.GetHostState(ctx)
 	if err != nil {
 		return false, err
 	}
+	ownerID, err := peer.IDFromPrivateKey(owner)
+	if err != nil {
+		return false, err
+	}
 	head := state.GetConfig().GetConfigChainHash()
-	if len(head) == 0 {
+	if len(head) == 0 || !isOwnerPeer(state.GetConfig(), ownerID.String()) {
 		return false, nil
 	}
+
+	// Read the departure the head transition carries.
 	entry, err := host.ReadConfigEntry(ctx, head)
 	if err != nil {
 		return false, err
@@ -125,11 +131,7 @@ func CompleteSOOwnershipTransfer(ctx context.Context, host *SOHost, owner crypto
 	}
 
 	// A departing owner cannot re-sign the proofs that outlive it.
-	ownerID, err := peer.IDFromPrivateKey(owner)
-	if err != nil {
-		return false, err
-	}
-	if slices.Contains(peers, ownerID.String()) || !isOwnerPeer(state.GetConfig(), ownerID.String()) {
+	if slices.Contains(peers, ownerID.String()) {
 		return false, nil
 	}
 	if _, err := leaveSOParticipants(ctx, host, owner, entry.GetLeaveRequest(), promote); err != nil {

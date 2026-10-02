@@ -980,7 +980,9 @@ func (r *SessionResource) DeleteSpace(ctx context.Context, req *s4wave_session.D
 	return &s4wave_session.DeleteSpaceResponse{}, nil
 }
 
-// LeaveSpace relinquishes the calling device and local storage identities through native authority.
+// LeaveSpace removes the caller from a Space through its provider: the calling
+// device and local storage identities of a local Space, or the account of a
+// cloud Space.
 func (r *SessionResource) LeaveSpace(ctx context.Context, req *s4wave_session.LeaveSpaceRequest) (*s4wave_session.LeaveSpaceResponse, error) {
 	// Only a mounted, unlocked Session can produce the departure proofs.
 	if req.GetSharedObjectId() == "" {
@@ -990,13 +992,18 @@ func (r *SessionResource) LeaveSpace(ctx context.Context, req *s4wave_session.Le
 	if key == nil {
 		return nil, errors.New("session is locked")
 	}
-	account, ok := r.session.GetProviderAccount().(*provider_local.ProviderAccount)
-	if !ok {
-		return nil, errors.New("provider does not support voluntary departure")
-	}
 
 	// The provider owns both the remote acknowledgment and retained local access state.
-	if err := account.LeaveSharedObject(ctx, key, req.GetSharedObjectId(), req.GetSuccessorPeerId()); err != nil {
+	var err error
+	switch account := r.session.GetProviderAccount().(type) {
+	case *provider_local.ProviderAccount:
+		err = account.LeaveSharedObject(ctx, key, req.GetSharedObjectId(), req.GetSuccessorPeerId())
+	case *provider_spacewave.ProviderAccount:
+		err = account.LeaveSharedObject(ctx, req.GetSharedObjectId(), req.GetSuccessorPeerId())
+	default:
+		err = errors.New("provider does not support voluntary departure")
+	}
+	if err != nil {
 		return nil, err
 	}
 	return &s4wave_session.LeaveSpaceResponse{}, nil
