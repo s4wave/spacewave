@@ -114,25 +114,43 @@ function buildTestBinaries(pkgs: string[], binDir: string): TestBinary[] {
   return bins
 }
 
+// launchTimeout is wasmbrowsertest's report that Chrome never published its
+// DevTools endpoint, so the binary exited before any test ran.
+const launchTimeout = 'websocket url timeout reached'
+
 // runTestBinary runs one binary in its package directory, as go test does, and
-// prints go test's summary line. It returns whether the tests passed.
+// prints go test's summary line. A binary whose Chrome never launched runs once
+// more, since no test ran and a slow cold launch is not a test failure. It
+// returns whether the tests passed.
 async function runTestBinary(bin: TestBinary): Promise<boolean> {
   const start = performance.now()
-  const proc = Bun.spawn(
-    ['go_js_wasm_exec', bin.path, '-test.paniconexit0', '-test.timeout=110s'],
-    { cwd: bin.dir, env: jsEnv, stdout: 'pipe', stderr: 'pipe' },
-  )
-  const [stdout, stderr, code] = await Promise.all([
-    new Response(proc.stdout).text(),
-    new Response(proc.stderr).text(),
-    proc.exited,
-  ])
+  let output = ''
+  let code = 0
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const proc = Bun.spawn(
+      ['go_js_wasm_exec', bin.path, '-test.paniconexit0', '-test.timeout=110s'],
+      { cwd: bin.dir, env: jsEnv, stdout: 'pipe', stderr: 'pipe' },
+    )
+    const [stdout, stderr, exitCode] = await Promise.all([
+      new Response(proc.stdout).text(),
+      new Response(proc.stderr).text(),
+      proc.exited,
+    ])
+    output = stdout + stderr
+    code = exitCode
+    if (code === 0 || !output.includes(launchTimeout)) {
+      break
+    }
+    console.log(`test-go-js: ${bin.pkg}: Chrome did not launch; running again`)
+  }
+
+  // Print go test's summary line, with the output of a failure.
   const elapsed = ((performance.now() - start) / 1000).toFixed(3)
   if (code === 0) {
     console.log(`ok  \t${bin.pkg}\t${elapsed}s`)
     return true
   }
-  process.stdout.write(stdout + stderr)
+  process.stdout.write(output)
   console.log(`FAIL\t${bin.pkg}\t${elapsed}s`)
   return false
 }
