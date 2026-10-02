@@ -218,6 +218,66 @@ func (x *BlockObject) GetRefs() []*BlockRef {
 	return nil
 }
 
+// AccessLog lists the blocks an operation read, once each, in the order of
+// first use.
+type AccessLog struct {
+	unknownFields []byte
+	// Accesses are the first reads of each block.
+	Accesses []*Access `protobuf:"bytes,1,rep,name=accesses,proto3" json:"accesses,omitempty"`
+}
+
+func (x *AccessLog) Reset() {
+	*x = AccessLog{}
+}
+
+func (*AccessLog) ProtoMessage() {}
+
+func (x *AccessLog) GetAccesses() []*Access {
+	if x != nil {
+		return x.Accesses
+	}
+	return nil
+}
+
+// Access is the first read of one block.
+type Access struct {
+	unknownFields []byte
+	// Ref is the block read.
+	Ref *BlockRef `protobuf:"bytes,1,opt,name=ref,proto3" json:"ref,omitempty"`
+	// Size is the stored size of the block in bytes.
+	Size uint32 `protobuf:"varint,2,opt,name=size,proto3" json:"size,omitempty"`
+	// ElapsedUs is the time from the start of the log to the read, in
+	// microseconds.
+	ElapsedUs uint64 `protobuf:"varint,3,opt,name=elapsed_us,json=elapsedUs,proto3" json:"elapsedUs,omitempty"`
+}
+
+func (x *Access) Reset() {
+	*x = Access{}
+}
+
+func (*Access) ProtoMessage() {}
+
+func (x *Access) GetRef() *BlockRef {
+	if x != nil {
+		return x.Ref
+	}
+	return nil
+}
+
+func (x *Access) GetSize() uint32 {
+	if x != nil {
+		return x.Size
+	}
+	return 0
+}
+
+func (x *Access) GetElapsedUs() uint64 {
+	if x != nil {
+		return x.ElapsedUs
+	}
+	return 0
+}
+
 // PutOpts are options that can be passed to PutBlock.
 type PutOpts struct {
 	unknownFields []byte
@@ -321,6 +381,40 @@ func (m *BlockObject) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
+func (m *AccessLog) CloneVT() *AccessLog {
+	if m == nil {
+		return (*AccessLog)(nil)
+	}
+	r := new(AccessLog)
+	r.Accesses = protobuf_go_lite.CloneVTSlice(m.Accesses)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *AccessLog) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *Access) CloneVT() *Access {
+	if m == nil {
+		return (*Access)(nil)
+	}
+	r := new(Access)
+	r.Size = m.Size
+	r.ElapsedUs = m.ElapsedUs
+	r.Ref = protobuf_go_lite.CloneVTValue(m.Ref)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *Access) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
 func (m *PutOpts) CloneVT() *PutOpts {
 	if m == nil {
 		return (*PutOpts)(nil)
@@ -378,6 +472,52 @@ func (this *BlockObject) EqualVT(that *BlockObject) bool {
 
 func (this *BlockObject) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*BlockObject)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *AccessLog) EqualVT(that *AccessLog) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTSliceImplicit(this.Accesses, that.Accesses, func() *Access { return &Access{} }) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *AccessLog) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*AccessLog)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *Access) EqualVT(that *Access) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.Ref, that.Ref) {
+		return false
+	}
+	if this.Size != that.Size {
+		return false
+	}
+	if this.ElapsedUs != that.ElapsedUs {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *Access) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*Access)
 	if !ok {
 		return false
 	}
@@ -564,6 +704,131 @@ func (x *BlockObject) UnmarshalProtoJSON(s *json.UnmarshalState) {
 
 // UnmarshalJSON unmarshals the BlockObject from JSON.
 func (x *BlockObject) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the AccessLog message to JSON.
+func (x *AccessLog) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if len(x.Accesses) > 0 || s.HasField("accesses") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("accesses")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.Accesses {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("accesses"))
+		}
+		s.WriteArrayEnd()
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the AccessLog to JSON.
+func (x *AccessLog) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the AccessLog message from JSON.
+func (x *AccessLog) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "accesses":
+			s.AddField("accesses")
+			if s.ReadNil() {
+				x.Accesses = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.Accesses = append(x.Accesses, nil)
+					return
+				}
+				v := &Access{}
+				v.UnmarshalProtoJSON(s.WithField("accesses", false))
+				if s.Err() != nil {
+					return
+				}
+				x.Accesses = append(x.Accesses, v)
+			})
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the AccessLog from JSON.
+func (x *AccessLog) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the Access message to JSON.
+func (x *Access) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Ref != nil || s.HasField("ref") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("ref")
+		x.Ref.MarshalProtoJSON(s.WithField("ref"))
+	}
+	if x.Size != 0 || s.HasField("size") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("size")
+		s.WriteUint32(x.Size)
+	}
+	if x.ElapsedUs != 0 || s.HasField("elapsedUs") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("elapsedUs")
+		s.WriteUint64(x.ElapsedUs)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the Access to JSON.
+func (x *Access) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the Access message from JSON.
+func (x *Access) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "ref":
+			if s.ReadNil() {
+				x.Ref = nil
+				return
+			}
+			x.Ref = &BlockRef{}
+			x.Ref.UnmarshalProtoJSON(s.WithField("ref", true))
+		case "size":
+			s.AddField("size")
+			x.Size = s.ReadUint32()
+		case "elapsed_us", "elapsedUs":
+			s.AddField("elapsed_us")
+			x.ElapsedUs = s.ReadUint64()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the Access from JSON.
+func (x *Access) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -757,6 +1022,102 @@ func (m *BlockObject) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
+func (m *AccessLog) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *AccessLog) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *AccessLog) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.Accesses) > 0 {
+		for iNdEx := len(m.Accesses) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.Accesses[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0xa
+		}
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *Access) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *Access) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *Access) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.ElapsedUs != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.ElapsedUs))
+		i--
+		dAtA[i] = 0x18
+	}
+	if m.Size != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Size))
+		i--
+		dAtA[i] = 0x10
+	}
+	if m.Ref != nil {
+		size, err := m.Ref.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *PutOpts) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -855,6 +1216,36 @@ func (m *BlockObject) SizeVT() (n int) {
 	return n
 }
 
+func (m *AccessLog) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	for _, e := range m.Accesses {
+		l = e.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *Access) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Ref != nil {
+		l = m.Ref.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Size)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.ElapsedUs)
+	n += len(m.unknownFields)
+	return n
+}
+
 func (m *PutOpts) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -921,6 +1312,50 @@ func (x *BlockObject) MarshalProtoText() string {
 }
 
 func (x *BlockObject) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *AccessLog) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "AccessLog")
+	if len(x.Accesses) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "accesses")
+		for i, v := range x.Accesses {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			if v == nil {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, &Access{})
+			} else {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, v)
+			}
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *AccessLog) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *Access) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "Access")
+	if x.Ref != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "ref")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Ref)
+	}
+	if x.Size != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "size")
+		protobuf_go_lite.TextWriteUint(&sb, x.Size)
+	}
+	if x.ElapsedUs != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "elapsed_us")
+		protobuf_go_lite.TextWriteUint(&sb, x.ElapsedUs)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *Access) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -1061,6 +1496,138 @@ func (m *BlockObject) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *AccessLog) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: AccessLog: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: AccessLog: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Accesses", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Accesses = append(m.Accesses, &Access{})
+			if err := m.Accesses[len(m.Accesses)-1].UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *Access) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: Access: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: Access: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Ref", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Ref == nil {
+				m.Ref = &BlockRef{}
+			}
+			if err := m.Ref.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Size", wireType)
+			}
+			m.Size = 0
+			m.Size, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ElapsedUs", wireType)
+			}
+			m.ElapsedUs = 0
+			m.ElapsedUs, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

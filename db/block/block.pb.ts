@@ -227,6 +227,65 @@ export const BlockObject: MessageType<BlockObject> =
   })
 
 /**
+ * Access is the first read of one block.
+ *
+ * @generated from message block.Access
+ */
+export interface Access {
+  /**
+   * Ref is the block read.
+   *
+   * @generated from field: block.BlockRef ref = 1;
+   */
+  ref?: BlockRef
+  /**
+   * Size is the stored size of the block in bytes.
+   *
+   * @generated from field: uint32 size = 2;
+   */
+  size?: number
+  /**
+   * ElapsedUs is the time from the start of the log to the read, in
+   * microseconds.
+   *
+   * @generated from field: uint64 elapsed_us = 3;
+   */
+  elapsedUs?: bigint
+}
+
+export const Access: MessageType<Access> = /* @__PURE__ */ createMessageType({
+  typeName: 'block.Access',
+  fields: [
+    { no: 1, name: 'ref', kind: 'message', T: BlockRef },
+    { no: 2, name: 'size', kind: 'scalar', T: ScalarType.UINT32 },
+    { no: 3, name: 'elapsed_us', kind: 'scalar', T: ScalarType.UINT64 },
+  ] satisfies readonly PartialFieldInfo[],
+})
+
+/**
+ * AccessLog lists the blocks an operation read, once each, in the order of
+ * first use.
+ *
+ * @generated from message block.AccessLog
+ */
+export interface AccessLog {
+  /**
+   * Accesses are the first reads of each block.
+   *
+   * @generated from field: repeated block.Access accesses = 1;
+   */
+  accesses?: Access[]
+}
+
+export const AccessLog: MessageType<AccessLog> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'block.AccessLog',
+    fields: [
+      { no: 1, name: 'accesses', kind: 'message', T: Access, repeated: true },
+    ] satisfies readonly PartialFieldInfo[],
+  })
+
+/**
  * PutOpts are options that can be passed to PutBlock.
  *
  * @generated from message block.PutOpts

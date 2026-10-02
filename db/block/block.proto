@@ -20,6 +20,24 @@ message BlockObject {
   repeated BlockRef refs = 2;
 }
 
+// AccessLog lists the blocks an operation read, once each, in the order of
+// first use.
+message AccessLog {
+  // Accesses are the first reads of each block.
+  repeated Access accesses = 1;
+}
+
+// Access is the first read of one block.
+message Access {
+  // Ref is the block read.
+  BlockRef ref = 1;
+  // Size is the stored size of the block in bytes.
+  uint32 size = 2;
+  // ElapsedUs is the time from the start of the log to the read, in
+  // microseconds.
+  uint64 elapsed_us = 3;
+}
+
 // PutOpts are options that can be passed to PutBlock.
 message PutOpts {
   // HashType is the hash type to use.
