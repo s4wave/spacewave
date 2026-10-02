@@ -139,8 +139,10 @@ func (s *testSyncStatusSession) LockSession(context.Context) error {
 }
 
 func TestWatchSyncStatusInitialSnapshots(t *testing.T) {
+	// Run the initial snapshot cases in parallel.
 	t.Parallel()
 
+	// Project an initial synced snapshot for each account kind.
 	spacewaveAcc := &provider_spacewave.ProviderAccount{}
 	spacewaveAcc.SetAccountStatus(provider.ProviderAccountStatus_ProviderAccountStatus_READY)
 	tests := []struct {
@@ -161,8 +163,10 @@ func TestWatchSyncStatusInitialSnapshots(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
+			// Run this account case in parallel.
 			t.Parallel()
 
+			// Watch sync status for this account.
 			ctx, cancel := context.WithCancel(context.Background())
 			strm := newTestWatchSyncStatusStream(ctx)
 			res := &SessionResource{
@@ -173,6 +177,7 @@ func TestWatchSyncStatusInitialSnapshots(t *testing.T) {
 				errCh <- res.WatchSyncStatus(&s4wave_session.WatchSyncStatusRequest{}, strm)
 			}()
 
+			// Require a synced, idle snapshot with no transfer rate.
 			resp := recvSyncStatusResponse(t, strm.msgs)
 			if resp.GetState() != s4wave_session.SyncStatusState_SyncStatusState_SYNCED {
 				t.Fatalf("state = %v, want synced", resp.GetState())
@@ -194,6 +199,7 @@ func TestWatchSyncStatusInitialSnapshots(t *testing.T) {
 				)
 			}
 
+			// Cancel the watch and expect the stream to end.
 			cancel()
 			if err := <-errCh; err != context.Canceled {
 				t.Fatalf("WatchSyncStatus() = %v, want context canceled", err)
@@ -203,13 +209,16 @@ func TestWatchSyncStatusInitialSnapshots(t *testing.T) {
 }
 
 func TestBuildLocalSyncStatusSnapshotWaitsForP2P(t *testing.T) {
+	// Run the P2P wait check in parallel.
 	t.Parallel()
 
+	// Build a local sync snapshot with no pairing engine.
 	acc := &provider_local.ProviderAccount{}
 	res := &SessionResource{
 		session: &testSyncStatusSession{acc: acc},
 	}
 
+	// Wait on pairing, transport, P2P, copy, and transfer sources.
 	_, waitChs := res.buildLocalSyncStatusSnapshot(acc, nil, time.Now())
 	if len(waitChs) != 5 {
 		t.Fatalf("wait channel count = %d, want 5", len(waitChs))
@@ -221,22 +230,27 @@ func TestWaitSyncStatusWaitsForEverySource(t *testing.T) {
 
 	for sourceIdx := range 5 {
 		t.Run(fmt.Sprintf("source-%d", sourceIdx), func(t *testing.T) {
+			// Run this wait case in parallel.
 			t.Parallel()
 
+			// Start a wait over the sync-status channels.
 			waitChs, closeSource := testWaitChannels(5, sourceIdx)
 			done := make(chan error, 1)
 			go func() {
 				done <- waitSyncStatus(t.Context(), waitChs)
 			}()
 
+			// Time out while every source is still open.
 			select {
 			case err := <-done:
 				t.Fatalf("waitSyncStatus returned before source %d woke: %v", sourceIdx, err)
 			case <-time.After(10 * time.Millisecond):
 			}
 
+			// Close one source.
 			closeSource()
 
+			// Confirm the wait returned.
 			select {
 			case err := <-done:
 				if err != nil {
@@ -303,8 +317,10 @@ func TestSyncStatusSpacewaveAggregation(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
+			// Run this telemetry case in parallel.
 			t.Parallel()
 
+			// Project Spacewave telemetry into the expected sync state.
 			resp := syncStatusFromSpacewaveTelemetry(test.telemetry, status, provider_spacewave.TransportCompositionSnapshot{}, &syncStatusRateState{}, time.Unix(20, 0))
 			if resp.GetState() != test.state {
 				t.Fatalf("state = %v, want %v", resp.GetState(), test.state)
@@ -328,8 +344,10 @@ func TestSyncStatusSpacewaveAggregation(t *testing.T) {
 }
 
 func TestSyncStatusLocalNoPeerAggregation(t *testing.T) {
+	// Run the no-peer aggregation in parallel.
 	t.Parallel()
 
+	// Project an unavailable local transport as synced with no peers.
 	resp := syncStatusFromLocalState(
 		pairing.Snapshot{Status: pairing.StatusIdle},
 		false,
@@ -394,8 +412,10 @@ func TestSyncStatusLocalP2PLifecycleAggregation(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
+			// Run this lifecycle case in parallel.
 			t.Parallel()
 
+			// Project the local pairing and transport into the expected P2P state.
 			resp := syncStatusFromLocalState(test.pairing, test.transport, test.p2pRunning)
 			if resp.GetState() != test.state {
 				t.Fatalf("state = %v, want %v", resp.GetState(), test.state)
@@ -418,8 +438,10 @@ func TestSyncStatusLocalP2PLifecycleAggregation(t *testing.T) {
 }
 
 func TestSyncStatusRateStateLimitsRateUpdates(t *testing.T) {
+	// Run the rate-window check in parallel.
 	t.Parallel()
 
+	// Keep the first active sample at zero until the window elapses.
 	rate := &syncStatusRateState{}
 	first := syncStatusFromSpacewaveTelemetry(provider_spacewave.SyncTelemetrySnapshot{
 		InFlightPushes: 1,
@@ -429,6 +451,7 @@ func TestSyncStatusRateStateLimitsRateUpdates(t *testing.T) {
 		t.Fatalf("initial upload rate = %d, want 0", first.GetUploadBytesPerSecond())
 	}
 
+	// Ignore a sample inside the rate window.
 	limited := syncStatusFromSpacewaveTelemetry(provider_spacewave.SyncTelemetrySnapshot{
 		InFlightPushes: 1,
 		PushedBytes:    512,
@@ -437,6 +460,7 @@ func TestSyncStatusRateStateLimitsRateUpdates(t *testing.T) {
 		t.Fatalf("limited upload rate = %d, want previous 0", limited.GetUploadBytesPerSecond())
 	}
 
+	// Publish the rate after the window elapses.
 	updated := syncStatusFromSpacewaveTelemetry(provider_spacewave.SyncTelemetrySnapshot{
 		InFlightPushes: 1,
 		PushedBytes:    1024,
@@ -447,8 +471,10 @@ func TestSyncStatusRateStateLimitsRateUpdates(t *testing.T) {
 }
 
 func TestSyncStatusRateStateIncludesActiveUploadProgress(t *testing.T) {
+	// Run the active-upload rate check in parallel.
 	t.Parallel()
 
+	// Start the rate window from the first upload sample.
 	rate := &syncStatusRateState{}
 	_ = syncStatusFromSpacewaveTelemetry(provider_spacewave.SyncTelemetrySnapshot{
 		InFlightPushes:               1,
@@ -456,6 +482,7 @@ func TestSyncStatusRateStateIncludesActiveUploadProgress(t *testing.T) {
 		ActiveUploadTransferredBytes: 0,
 	}, provider.ProviderAccountStatus_ProviderAccountStatus_READY, provider_spacewave.TransportCompositionSnapshot{}, rate, time.Unix(40, 0))
 
+	// Include in-flight upload progress in the next rate.
 	resp := syncStatusFromSpacewaveTelemetry(provider_spacewave.SyncTelemetrySnapshot{
 		InFlightPushes:               1,
 		ActiveUploadBytes:            4096,
@@ -467,8 +494,10 @@ func TestSyncStatusRateStateIncludesActiveUploadProgress(t *testing.T) {
 }
 
 func TestSyncStatusSpacewavePackTelemetryFields(t *testing.T) {
+	// Run the pack telemetry check in parallel.
 	t.Parallel()
 
+	// Copy pack, bloom, lookup, and index counters onto the snapshot.
 	resp := syncStatusFromSpacewaveTelemetry(provider_spacewave.SyncTelemetrySnapshot{
 		RangeRequestCount:         3,
 		RangeResponseBytes:        3072,
@@ -538,8 +567,10 @@ func TestSyncStatusSpacewavePackTelemetryFields(t *testing.T) {
 }
 
 func TestSyncStatusProjectsCloudCompositionAndSourceMechanics(t *testing.T) {
+	// Run the composition projection in parallel.
 	t.Parallel()
 
+	// Project cloud composition and block-store source counters.
 	resp := syncStatusFromSpacewaveTelemetry(
 		provider_spacewave.SyncTelemetrySnapshot{
 			BlockStores: []provider_spacewave.SyncTelemetryBlockStoreSnapshot{{
@@ -601,6 +632,7 @@ func recvSyncStatusResponse(
 }
 
 func testWaitChannels(count int, sourceIdx int) ([]<-chan struct{}, func()) {
+	// Build wait channels and a closer for one of them.
 	chans := make([]chan struct{}, count)
 	waitChs := make([]<-chan struct{}, 0, count+2)
 	waitChs = append(waitChs, nil)

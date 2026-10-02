@@ -20,17 +20,20 @@ func (r *SpacewaveSessionResource) StartDesktopSSOLink(
 	ctx context.Context,
 	req *s4wave_provider_spacewave.StartDesktopSSOLinkRequest,
 ) (*s4wave_provider_spacewave.StartDesktopSSOLinkResponse, error) {
+	// Reject an SSO provider other than Google or GitHub.
 	provider := req.GetSsoProvider()
 	if provider != "google" && provider != "github" {
 		return nil, errors.Errorf("unsupported sso provider %q", provider)
 	}
 
+	// Ask the session client to start the desktop SSO link.
 	cli := r.swAcc.GetSessionClient()
 	startResp, err := cli.StartDesktopSSOLink(ctx, provider)
 	if err != nil {
 		return nil, errors.Wrap(err, "start desktop sso link")
 	}
 
+	// Wait for the browser OAuth result on the auth-session WebSocket.
 	p := r.swAcc.GetProvider()
 	result, err := provider_spacewave_handoff.WaitForDesktopSSOLink(
 		ctx,

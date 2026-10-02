@@ -17,9 +17,11 @@ import (
 )
 
 func TestVerifySpaceLinkTicketData(t *testing.T) {
+	// Build a valid SpaceLink ticket at a fixed time.
 	now := time.Unix(100, 0)
 	ticketBytes, payload := buildTestSpaceLinkTicket(t, now, func(req *s4wave_provider_spacewave.SpaceLinkAuthRequest) {})
 
+	// Verify the ticket and keep its label and agent peer ID.
 	verified, err := verifySpaceLinkTicketData(ticketBytes, now)
 	if err != nil {
 		t.Fatalf("verify ticket: %v", err)
@@ -52,6 +54,7 @@ func TestVerifySpaceLinkTicketDataRejectsInvalidInputs(t *testing.T) {
 		{
 			name: "bad signature",
 			tamper: func(ticketBytes []byte) []byte {
+				// Flip the agent signature and return the mutated ticket.
 				ticket := &s4wave_provider_spacewave.SpaceLinkAuthTicket{}
 				if err := ticket.UnmarshalVT(ticketBytes); err != nil {
 					t.Fatalf("unmarshal ticket: %v", err)
@@ -205,6 +208,7 @@ func TestApproveVerifiedSpaceLinkRegistersGrantsAndReturnsCompletion(t *testing.
 }
 
 func TestApproveVerifiedSpaceLinkRejectsNonOwnerBeforeMutation(t *testing.T) {
+	// Build a ticket and collaborators that reject a non-owner.
 	now := time.Unix(100, 0)
 	ticketBytes, _ := buildTestSpaceLinkTicket(t, now, nil)
 	verified, err := verifySpaceLinkTicketData(ticketBytes, now)
@@ -222,6 +226,7 @@ func TestApproveVerifiedSpaceLinkRejectsNonOwnerBeforeMutation(t *testing.T) {
 		ownerErr: errors.New("not owner"),
 	}
 
+	// Reject the approval before nonce, registration, or grant.
 	_, err = approveVerifiedSpaceLink(
 		context.Background(),
 		verified,
@@ -238,6 +243,7 @@ func TestApproveVerifiedSpaceLinkRejectsNonOwnerBeforeMutation(t *testing.T) {
 }
 
 func TestApproveVerifiedSpaceLinkStopsOnReplayBeforeRegistration(t *testing.T) {
+	// Build a ticket whose nonce was already consumed.
 	now := time.Unix(100, 0)
 	ticketBytes, _ := buildTestSpaceLinkTicket(t, now, nil)
 	verified, err := verifySpaceLinkTicketData(ticketBytes, now)
@@ -255,6 +261,7 @@ func TestApproveVerifiedSpaceLinkStopsOnReplayBeforeRegistration(t *testing.T) {
 	}
 	target := &testSpaceLinkTarget{events: &events}
 
+	// Stop on the replay before registration or grant.
 	_, err = approveVerifiedSpaceLink(
 		context.Background(),
 		verified,
@@ -271,6 +278,7 @@ func TestApproveVerifiedSpaceLinkStopsOnReplayBeforeRegistration(t *testing.T) {
 }
 
 func TestApproveVerifiedSpaceLinkRegistrationFailureDoesNotGrantOrRollback(t *testing.T) {
+	// Build a ticket whose registration fails.
 	now := time.Unix(100, 0)
 	ticketBytes, _ := buildTestSpaceLinkTicket(t, now, nil)
 	verified, err := verifySpaceLinkTicketData(ticketBytes, now)
@@ -285,6 +293,7 @@ func TestApproveVerifiedSpaceLinkRegistrationFailureDoesNotGrantOrRollback(t *te
 	}
 	target := &testSpaceLinkTarget{events: &events}
 
+	// Stop after registration and do not roll back or grant.
 	_, err = approveVerifiedSpaceLink(
 		context.Background(),
 		verified,
@@ -304,6 +313,7 @@ func TestApproveVerifiedSpaceLinkRegistrationFailureDoesNotGrantOrRollback(t *te
 }
 
 func TestApproveVerifiedSpaceLinkRollsBackOnlyNewRowsOnGrantFailure(t *testing.T) {
+	// Roll back only invitations that created a new registration row.
 	now := time.Unix(100, 0)
 	ticketBytes, _ := buildTestSpaceLinkTicket(t, now, nil)
 	verified, err := verifySpaceLinkTicketData(ticketBytes, now)
@@ -330,6 +340,7 @@ func TestApproveVerifiedSpaceLinkRollsBackOnlyNewRowsOnGrantFailure(t *testing.T
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			// Build collaborators for this rollback case.
 			var events []string
 			nonce := &testSpaceLinkNonceConsumer{events: &events}
 			registrar := &testSpaceLinkRegistrar{
@@ -344,6 +355,7 @@ func TestApproveVerifiedSpaceLinkRollsBackOnlyNewRowsOnGrantFailure(t *testing.T
 				addErr: errors.New("grant failed"),
 			}
 
+			// Expect a grant failure and the case's rollback behavior.
 			_, err = approveVerifiedSpaceLink(
 				context.Background(),
 				verified,
@@ -372,6 +384,7 @@ func buildTestSpaceLinkTicket(
 	now time.Time,
 	mutate func(*s4wave_provider_spacewave.SpaceLinkAuthRequest),
 ) ([]byte, *s4wave_provider_spacewave.SpaceLinkAuthRequest) {
+	// Generate an Ed25519 agent key.
 	t.Helper()
 	priv, _, err := crypto.GenerateEd25519Key(nil)
 	if err != nil {
@@ -381,6 +394,8 @@ func buildTestSpaceLinkTicket(
 	if err != nil {
 		t.Fatalf("peer id: %v", err)
 	}
+
+	// Build the auth request and apply the test mutation.
 	payload := &s4wave_provider_spacewave.SpaceLinkAuthRequest{
 		Version:        spaceLinkAuthRequestVersion,
 		SessionType:    session.SessionType_SESSION_TYPE_DEVICE,
@@ -395,6 +410,8 @@ func buildTestSpaceLinkTicket(
 	if mutate != nil {
 		mutate(payload)
 	}
+
+	// Sign the payload.
 	payloadBytes, err := payload.MarshalVT()
 	if err != nil {
 		t.Fatalf("marshal payload: %v", err)
@@ -403,6 +420,8 @@ func buildTestSpaceLinkTicket(
 	if err != nil {
 		t.Fatalf("sign payload: %v", err)
 	}
+
+	// Marshal the ticket.
 	ticket := &s4wave_provider_spacewave.SpaceLinkAuthTicket{
 		Payload:        payloadBytes,
 		AgentSignature: sig,

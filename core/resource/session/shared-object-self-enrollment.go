@@ -79,9 +79,12 @@ func (r *SharedObjectSelfEnrollmentResource) Skip(
 	ctx context.Context,
 	req *s4wave_session.SkipSharedObjectSelfEnrollmentRequest,
 ) (*s4wave_session.SkipSharedObjectSelfEnrollmentResponse, error) {
+	// Reject a canceled context before recording the skip.
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
+
+	// Use the request generation, or the account summary's current generation.
 	key := req.GetGenerationKey()
 	if key == "" {
 		accountBcast := r.swAcc.GetAccountBroadcast()
@@ -91,6 +94,8 @@ func (r *SharedObjectSelfEnrollmentResource) Skip(
 			}
 		})
 	}
+
+	// Record the skipped generation on the account.
 	r.swAcc.SetSelfEnrollmentSkippedGenerationKey(key)
 	return &s4wave_session.SkipSharedObjectSelfEnrollmentResponse{}, nil
 }

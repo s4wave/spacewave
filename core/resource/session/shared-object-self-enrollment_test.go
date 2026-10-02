@@ -19,6 +19,7 @@ func TestSharedObjectSelfEnrollmentStartRequiresCredential(t *testing.T) {
 }
 
 func TestSharedObjectSelfEnrollmentSkipRecordsGeneration(t *testing.T) {
+	// Record the skipped generation on the account.
 	acc := &provider_spacewave.ProviderAccount{}
 	res := NewSharedObjectSelfEnrollmentResource(acc)
 	_, err := res.Skip(context.Background(), &s4wave_session.SkipSharedObjectSelfEnrollmentRequest{
@@ -45,6 +46,7 @@ func TestSharedObjectSelfEnrollmentCategorizesFailures(t *testing.T) {
 }
 
 func TestSharedObjectSelfEnrollmentStateResponseSerializesProjectionAgreement(t *testing.T) {
+	// Build a state response from a projection that records agreement.
 	resp := buildStateResponse(&provider_spacewave.SelfEnrollmentProjection{
 		SharedObjectIDs:          []string{"so-1", "so-2"},
 		GenerationKey:            "gen-1",
@@ -61,6 +63,7 @@ func TestSharedObjectSelfEnrollmentStateResponseSerializesProjectionAgreement(t 
 		}},
 	})
 
+	// Round-trip the state response through proto bytes.
 	data, err := resp.MarshalVT()
 	if err != nil {
 		t.Fatalf("MarshalVT: %v", err)
@@ -72,6 +75,8 @@ func TestSharedObjectSelfEnrollmentStateResponseSerializesProjectionAgreement(t 
 	if !resp.EqualVT(&got) {
 		t.Fatalf("round trip response = %+v, want %+v", &got, resp)
 	}
+
+	// Check the projected generation, IDs, and failures.
 	if got.GetGenerationKey() != "gen-1" ||
 		got.GetCount() != 2 ||
 		!got.GetCredentialRequired() ||

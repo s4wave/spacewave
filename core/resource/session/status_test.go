@@ -23,9 +23,11 @@ import (
 )
 
 func TestReportRecoveryStatusPublishesRendererFacts(t *testing.T) {
+	// Build a status resource on an in-memory bus.
 	b := inmem.NewBus(cdc.NewController(context.Background(), logrus.NewEntry(logrus.New())))
 	statusRes := NewStatusResource(b, nil)
 
+	// Report boot and runtime asset as not reported before any fact arrives.
 	initial := statusRes.buildRecoveryStatus(nil, nil)
 	if initial.GetBoot().GetStatus() != "not-reported" {
 		t.Fatalf("initial boot status = %q, want not-reported", initial.GetBoot().GetStatus())
@@ -34,6 +36,7 @@ func TestReportRecoveryStatusPublishesRendererFacts(t *testing.T) {
 		t.Fatalf("initial asset status = %q, want not-reported", initial.GetRuntimeAsset().GetStatus())
 	}
 
+	// Store renderer boot and runtime-asset facts.
 	_, err := statusRes.ReportRecoveryStatus(context.Background(), &s4wave_status.ReportRecoveryStatusRequest{
 		Boot: &s4wave_status.BrowserBootRecoveryStatus{
 			CompatibilityVersion: "1000000",
@@ -49,6 +52,7 @@ func TestReportRecoveryStatusPublishesRendererFacts(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// Publish those facts on the composed recovery status.
 	status := statusRes.buildRecoveryStatus(nil, nil)
 	if status.GetBoot().GetCompatibilityVersion() != "1000000" ||
 		status.GetBoot().GetLastResetDecision() != "reset-complete" ||
@@ -64,6 +68,7 @@ func TestReportRecoveryStatusPublishesRendererFacts(t *testing.T) {
 }
 
 func TestRecoveryStatusRegistrySharesRendererFactsAcrossResources(t *testing.T) {
+	// Share one recovery registry between a publisher and a reader.
 	b := inmem.NewBus(cdc.NewController(context.Background(), logrus.NewEntry(logrus.New())))
 	registry := NewRecoveryStatusRegistry()
 	ref := &session.SessionRef{
@@ -76,6 +81,7 @@ func TestRecoveryStatusRegistrySharesRendererFactsAcrossResources(t *testing.T) 
 	publisher := NewStatusResource(b, registry.getSessionRecoveryStatusCtrForRef(ref))
 	reader := NewStatusResource(b, registry.getSessionRecoveryStatusCtrForRef(ref))
 
+	// Store renderer facts on the publisher.
 	_, err := publisher.ReportRecoveryStatus(context.Background(), &s4wave_status.ReportRecoveryStatusRequest{
 		Boot: &s4wave_status.BrowserBootRecoveryStatus{
 			CompatibilityVersion: "1000000",
@@ -86,6 +92,7 @@ func TestRecoveryStatusRegistrySharesRendererFactsAcrossResources(t *testing.T) 
 		t.Fatal(err.Error())
 	}
 
+	// Read those facts from the other resource.
 	status := reader.buildRecoveryStatus(nil, nil)
 	if status.GetBoot().GetCompatibilityVersion() != "1000000" ||
 		status.GetBoot().GetLastResetDecision() != "reset-complete" ||
@@ -95,9 +102,11 @@ func TestRecoveryStatusRegistrySharesRendererFactsAcrossResources(t *testing.T) 
 }
 
 func TestReportRecoveryStatusReplacesRendererSnapshot(t *testing.T) {
+	// Build a status resource on an in-memory bus.
 	b := inmem.NewBus(cdc.NewController(context.Background(), logrus.NewEntry(logrus.New())))
 	statusRes := NewStatusResource(b, nil)
 
+	// Store an initial renderer snapshot.
 	_, err := statusRes.ReportRecoveryStatus(context.Background(), &s4wave_status.ReportRecoveryStatusRequest{
 		Boot: &s4wave_status.BrowserBootRecoveryStatus{
 			CompatibilityVersion: "1000000",
@@ -113,6 +122,7 @@ func TestReportRecoveryStatusReplacesRendererSnapshot(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// Replace it with a boot-only report.
 	_, err = statusRes.ReportRecoveryStatus(context.Background(), &s4wave_status.ReportRecoveryStatusRequest{
 		Boot: &s4wave_status.BrowserBootRecoveryStatus{
 			CompatibilityVersion: "1000000",
@@ -123,6 +133,7 @@ func TestReportRecoveryStatusReplacesRendererSnapshot(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// Keep the new boot fact and clear the previous runtime asset.
 	status := statusRes.buildRecoveryStatus(nil, nil)
 	if status.GetBoot().GetLastResetDecision() != "current" {
 		t.Fatalf("boot decision = %q, want current", status.GetBoot().GetLastResetDecision())
@@ -227,6 +238,7 @@ func TestRecoveryStatusKeepsEntrypointAndPluginFactsSeparate(t *testing.T) {
 }
 
 func TestBuildNetworkStatsResponseGroupsAndSortsLinksByRemotePeer(t *testing.T) {
+	// Build unsorted links for two remote peers.
 	localPeerID := peer.ID("local-peer")
 	remotePeerA := peer.ID("remote-peer-a")
 	remotePeerB := peer.ID("remote-peer-b")
@@ -255,8 +267,10 @@ func TestBuildNetworkStatsResponseGroupsAndSortsLinksByRemotePeer(t *testing.T) 
 	}
 	slices.SortFunc(links, compareNetworkLinkSnapshots)
 
+	// Group the links into a network stats response.
 	resp := buildNetworkStatsResponse(&s4wave_status.WatchNetworkStatsResponse{}, links)
 
+	// Sort peers and links by remote identity.
 	if resp.GetPeerCount() != 2 {
 		t.Fatalf("peer count = %d, want 2", resp.GetPeerCount())
 	}
@@ -291,6 +305,7 @@ func requireNetworkPeerInfo(
 	peerID string,
 	linkCount uint32,
 ) *s4wave_status.NetworkPeerInfo {
+	// Require the peer at this index to match the expected ID and link count.
 	t.Helper()
 	if len(peers) <= index {
 		t.Fatalf("missing peer at index %d: %#v", index, peers)
@@ -315,6 +330,7 @@ func requireNetworkLinkInfo(
 	localPeerID string,
 	remotePeerID string,
 ) {
+	// Require the link at this index to match the expected identifiers.
 	t.Helper()
 	if len(links) <= index {
 		t.Fatalf("missing link at index %d: %#v", index, links)
@@ -358,9 +374,11 @@ func (s *watchPluginsStream) SendAndClose(resp *s4wave_status.WatchPluginsRespon
 }
 
 func TestWatchPluginsWithoutSchedulerSendsEmptySnapshot(t *testing.T) {
+	// Cancel the plugin watch when the test ends.
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
+	// Watch plugins on a bus with no scheduler.
 	b := inmem.NewBus(cdc.NewController(ctx, logrus.NewEntry(logrus.New())))
 	statusRes := NewStatusResource(b, nil)
 	strm := &watchPluginsStream{
@@ -372,6 +390,7 @@ func TestWatchPluginsWithoutSchedulerSendsEmptySnapshot(t *testing.T) {
 		errCh <- statusRes.WatchPlugins(&s4wave_status.WatchPluginsRequest{}, strm)
 	}()
 
+	// Accept the empty snapshot.
 	select {
 	case resp := <-strm.sent:
 		if resp.GetPluginCount() != 0 || len(resp.GetPlugins()) != 0 {
@@ -381,6 +400,7 @@ func TestWatchPluginsWithoutSchedulerSendsEmptySnapshot(t *testing.T) {
 		t.Fatal("WatchPlugins sent nothing without a scheduler")
 	}
 
+	// Cancel the watch and expect the stream to end.
 	cancel()
 	if err := <-errCh; err != context.Canceled {
 		t.Fatalf("WatchPlugins returned %v, want context.Canceled", err)
@@ -422,11 +442,14 @@ func (s *testPluginScheduler) HandleDirective(
 }
 
 func TestWatchPluginsMergesSpaceRuntimeSchedulers(t *testing.T) {
+	// Cancel the plugin watch when the test ends.
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
+	// Register a root scheduler and its notes plugin.
 	le := logrus.NewEntry(logrus.New())
 	b := inmem.NewBus(cdc.NewController(ctx, le))
+
 	// The root host also runs Space plugin instances keyed by Space engine ID.
 	const rootSpaceID = "space/local/account/s0"
 	root := newTestPluginScheduler("", &bldr_plugin.PluginStatus{
@@ -441,6 +464,7 @@ func TestWatchPluginsMergesSpaceRuntimeSchedulers(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Watch plugins and accept the root snapshot.
 	statusRes := NewStatusResource(b, nil)
 	strm := &watchPluginsStream{
 		ctx:  ctx,
@@ -472,6 +496,7 @@ func TestWatchPluginsMergesSpaceRuntimeSchedulers(t *testing.T) {
 	}
 	requirePlugins(t, strm, "/spacewave-core:running", rootSpaceID+"/notes:running", spaceID+"/notes:requested")
 
+	// Publish a Space runtime plugin and accept the merged snapshot.
 	spaceScheduler.statusCtr.SetValue(&bldr_plugin.PluginStatusSnapshot{
 		Plugins: []*bldr_plugin.PluginStatus{{
 			PluginId: "notes",
@@ -480,9 +505,11 @@ func TestWatchPluginsMergesSpaceRuntimeSchedulers(t *testing.T) {
 	})
 	requirePlugins(t, strm, "/spacewave-core:running", rootSpaceID+"/notes:running", spaceID+"/notes:running")
 
+	// Drop the Space bridge and return to the root snapshot.
 	bridgeRelease()
 	requirePlugins(t, strm, "/spacewave-core:running", rootSpaceID+"/notes:running")
 
+	// Cancel the watch and expect the stream to end.
 	cancel()
 	if err := <-errCh; err != context.Canceled {
 		t.Fatalf("WatchPlugins returned %v, want context.Canceled", err)
@@ -492,6 +519,7 @@ func TestWatchPluginsMergesSpaceRuntimeSchedulers(t *testing.T) {
 // requirePlugins waits for the next WatchPlugins response and checks it lists
 // want as "<space_id>/<id>:<state>" in order.
 func requirePlugins(t *testing.T, strm *watchPluginsStream, want ...string) {
+	// Require the next plugin snapshot to list these plugins.
 	t.Helper()
 	var resp *s4wave_status.WatchPluginsResponse
 	select {

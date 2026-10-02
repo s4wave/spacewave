@@ -24,12 +24,15 @@ var errResourcesListProjectionCaptured = errors.New("resources list projection c
 // listed Space carries the ObjectType selected inside its own durable world,
 // while a Space without an index object remains generic.
 func TestWatchResourcesListProjectsDurableSpaceIndexObjectTypes(t *testing.T) {
+	// Start a test environment.
 	ctx := context.Background()
 	env := setupTestEnv(ctx, t)
 
+	// Create a session and open its account.
 	sessRef, _ := env.createSession(ctx, t)
 	account := env.accessAccount(ctx, t, sessRef)
 
+	// Create Spaces with durable index object types.
 	createSpaceWithIndexObjectType(
 		ctx,
 		t,
@@ -61,6 +64,7 @@ func TestWatchResourcesListProjectsDurableSpaceIndexObjectTypes(t *testing.T) {
 		"",
 	)
 
+	// Watch the session resource list, including index types.
 	resource := env.buildSessionResource(ctx, t, sessRef)
 	stream := &captureResourcesListStream{
 		ctx: ctx,
@@ -74,6 +78,7 @@ func TestWatchResourcesListProjectsDurableSpaceIndexObjectTypes(t *testing.T) {
 		},
 	}
 
+	// Capture one non-empty projection.
 	err := resource.WatchResourcesList(&s4wave_session.WatchResourcesListRequest{IncludeIndexObjectTypes: true}, stream)
 	if !errors.Is(err, errResourcesListProjectionCaptured) {
 		t.Fatalf("WatchResourcesList returned %v, want capture sentinel", err)
@@ -82,6 +87,7 @@ func TestWatchResourcesListProjectsDurableSpaceIndexObjectTypes(t *testing.T) {
 		t.Fatalf("responses with projected index ObjectTypes = %d, want 1 enriched snapshot", got)
 	}
 
+	// Match each Space name to its index object type.
 	got := indexObjectTypesBySpaceName(stream.response)
 	want := map[string]string{
 		"Canvas":  s4wave_canvas_world.CanvasTypeID,
@@ -108,8 +114,10 @@ func createSpaceWithIndexObjectType(
 	indexPath string,
 	typeID string,
 ) {
+	// Report failures at the caller.
 	t.Helper()
 
+	// Create the Space SharedObject.
 	meta, err := space.NewSharedObjectMeta(name)
 	if err != nil {
 		t.Fatalf("NewSharedObjectMeta(%q) failed: %v", name, err)
@@ -119,16 +127,19 @@ func createSpaceWithIndexObjectType(
 		t.Fatalf("CreateSharedObject(%q) failed: %v", name, err)
 	}
 
+	// Mount the Space body.
 	mounted, mountedRef, err := space.ExMountSpaceSoBody(ctx, env.tb.Bus, ref, false, nil)
 	if err != nil {
 		t.Fatalf("ExMountSpaceSoBody(%q) failed: %v", name, err)
 	}
 	t.Cleanup(mountedRef.Release)
 
+	// Skip the index write when the test Space has no index path.
 	if indexPath == "" {
 		return
 	}
 
+	// Write the index object type into the Space World.
 	ws := world.NewEngineWorldState(mounted.GetSharedObjectBody().GetWorldEngine(), true)
 	{
 		createdObject, err := ws.CreateObject(ctx, indexPath, nil)

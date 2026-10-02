@@ -94,6 +94,7 @@ func (a *testStorageStatsAccount) GetStorageStatsSnapshotWithWait(
 }
 
 func (a *testStorageStatsAccount) setStats(stats *volume.StorageStats) {
+	// Replace the stats and wake waiters.
 	a.mtx.Lock()
 	waitCh := a.waitCh
 	a.stats = stats
@@ -112,8 +113,10 @@ func (a *testUnsupportedStorageStatsAccount) GetProviderAccountFeature(
 }
 
 func TestWatchStorageStatsUnsupportedProvider(t *testing.T) {
+	// Run the unsupported-provider watch in parallel.
 	t.Parallel()
 
+	// Watch storage stats on a session with no storage provider.
 	ctx, cancel := context.WithCancel(context.Background())
 	strm := newTestWatchStorageStatsStream(ctx)
 	res := &SessionResource{
@@ -124,11 +127,13 @@ func TestWatchStorageStatsUnsupportedProvider(t *testing.T) {
 		errCh <- res.WatchStorageStats(&s4wave_session.WatchStorageStatsRequest{}, strm)
 	}()
 
+	// Send an unsupported snapshot.
 	resp := recvStorageStatsResponse(t, strm.msgs)
 	if resp.GetSupported() {
 		t.Fatalf("supported = true, want false")
 	}
 
+	// Cancel the watch and expect the stream to end.
 	cancel()
 	if err := <-errCh; err != context.Canceled {
 		t.Fatalf("WatchStorageStats() = %v, want context canceled", err)
@@ -136,8 +141,10 @@ func TestWatchStorageStatsUnsupportedProvider(t *testing.T) {
 }
 
 func TestWatchStorageStatsEmitsInitialAndChangedSnapshots(t *testing.T) {
+	// Run the snapshot watch in parallel.
 	t.Parallel()
 
+	// Watch a provider that already has storage stats.
 	acc := newTestStorageStatsAccount(&volume.StorageStats{TotalBytes: 1024, BlockCount: 2})
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -150,20 +157,24 @@ func TestWatchStorageStatsEmitsInitialAndChangedSnapshots(t *testing.T) {
 		errCh <- res.WatchStorageStats(&s4wave_session.WatchStorageStatsRequest{}, strm)
 	}()
 
+	// Send the initial snapshot.
 	resp := recvStorageStatsResponse(t, strm.msgs)
 	if !resp.GetSupported() || resp.GetTotalBytes() != 1024 || resp.GetBlockCount() != 2 {
 		t.Fatalf("initial stats = %+v, want supported 1024/2", resp)
 	}
 
+	// Ignore a repeated snapshot.
 	acc.setStats(&volume.StorageStats{TotalBytes: 1024, BlockCount: 2})
 	assertNoStorageStatsResponse(t, strm.msgs)
 
+	// Send the changed snapshot.
 	acc.setStats(&volume.StorageStats{TotalBytes: 2048, BlockCount: 3})
 	resp = recvStorageStatsResponse(t, strm.msgs)
 	if !resp.GetSupported() || resp.GetTotalBytes() != 2048 || resp.GetBlockCount() != 3 {
 		t.Fatalf("changed stats = %+v, want supported 2048/3", resp)
 	}
 
+	// Cancel the watch and expect the stream to end.
 	cancel()
 	if err := <-errCh; err != context.Canceled {
 		t.Fatalf("WatchStorageStats() = %v, want context canceled", err)

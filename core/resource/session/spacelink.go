@@ -63,6 +63,7 @@ func (m mountedSpaceLinkTargetSpace) addParticipant(
 }
 
 func verifySpaceLinkTicketData(data []byte, now time.Time) (*verifiedSpaceLinkTicket, error) {
+	// Unmarshal the ticket and reject an unsupported payload version.
 	ticket, err := unmarshalSpaceLinkAuthTicket(data)
 	if err != nil {
 		return nil, err
@@ -75,6 +76,7 @@ func verifySpaceLinkTicketData(data []byte, now time.Time) (*verifiedSpaceLinkTi
 		return nil, errors.New("unsupported spacelink version")
 	}
 
+	// Verify the agent signature over the ticket payload.
 	agentPeerID, err := peer.IDFromBytes(payload.GetAgentPeerId())
 	if err != nil {
 		return nil, errors.Wrap(err, "parse spacelink agent peer id")
@@ -91,6 +93,7 @@ func verifySpaceLinkTicketData(data []byte, now time.Time) (*verifiedSpaceLinkTi
 		return nil, errors.New("invalid spacelink agent signature")
 	}
 
+	// Reject an expired, malformed, or incomplete ticket.
 	if payload.GetExpiresAt() <= now.Unix() {
 		return nil, errors.New("spacelink ticket expired")
 	}
@@ -153,13 +156,18 @@ func validateSpaceLinkCompletion(
 }
 
 func validateSpaceLinkLoopbackCallbackURL(raw string) error {
+	// Require a callback URL.
 	if raw == "" {
 		return errors.New("spacelink callback_url is required")
 	}
+
+	// Parse the callback URL.
 	u, err := url.Parse(raw)
 	if err != nil {
 		return errors.Wrap(err, "parse spacelink callback_url")
 	}
+
+	// Require plain HTTP without userinfo, a fragment, or an implicit port.
 	if u.Scheme != "http" {
 		return errors.New("spacelink callback_url must use http")
 	}
@@ -172,6 +180,8 @@ func validateSpaceLinkLoopbackCallbackURL(raw string) error {
 	if u.Port() == "" {
 		return errors.New("spacelink callback_url must include an explicit port")
 	}
+
+	// Accept only a loopback host.
 	host := strings.ToLower(u.Hostname())
 	switch host {
 	case "localhost", "127.0.0.1", "::1":
@@ -279,12 +289,15 @@ func requireSpaceLinkApproverOwner(
 	swSO *provider_spacewave.SharedObject,
 	approverPeerID string,
 ) error {
+	// Require the target space and the approver peer ID.
 	if swSO == nil {
 		return errors.New("target space is required")
 	}
 	if approverPeerID == "" {
 		return errors.New("approver peer id is required")
 	}
+
+	// Accept the approver only when that peer is an owner participant.
 	state, err := swSO.GetSOHost().GetHostState(ctx)
 	if err != nil {
 		return errors.Wrap(err, "get target space state")

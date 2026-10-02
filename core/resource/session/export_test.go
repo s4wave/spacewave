@@ -16,6 +16,7 @@ func ReadLinkedCloudAccountID(ctx context.Context, b bus.Bus, entry *session.Ses
 // WaitTransferDone waits for the transfer goroutine to finish completely
 // (including post-transfer cleanup like session deletion).
 func (r *SessionResource) WaitTransferDone(ctx context.Context) error {
+	// Wait for the transfer routine to exit, ignoring cancellation after it has stopped.
 	r.transferMgr.mtx.Lock()
 	rc := r.transferMgr.rc
 	r.transferMgr.mtx.Unlock()

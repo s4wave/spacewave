@@ -88,13 +88,16 @@ func setupTestEnv(ctx context.Context, t *testing.T) *testEnv {
 }
 
 func (e *testEnv) createSession(ctx context.Context, t *testing.T) (*session.SessionRef, uint32) {
+	// Report failures at the caller.
 	t.Helper()
 
+	// Create a local account and session.
 	sessRef, err := e.prov.CreateLocalAccountAndSession(ctx, "")
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	// Register the session and return its list index.
 	entry, err := e.sessCtrl.RegisterSession(ctx, sessRef, &session.SessionMetadata{
 		ProviderDisplayName: "Local",
 		ProviderId:          "local",
@@ -108,8 +111,10 @@ func (e *testEnv) createSession(ctx context.Context, t *testing.T) (*session.Ses
 }
 
 func (e *testEnv) accessAccount(ctx context.Context, t *testing.T, sessRef *session.SessionRef) *provider_local.ProviderAccount {
+	// Report failures at the caller.
 	t.Helper()
 
+	// Open the local provider account for the session.
 	accountID := sessRef.GetProviderResourceRef().GetProviderAccountId()
 	accIface, accRel, err := e.prov.AccessProviderAccount(ctx, accountID, nil)
 	if err != nil {
@@ -120,8 +125,10 @@ func (e *testEnv) accessAccount(ctx context.Context, t *testing.T, sessRef *sess
 }
 
 func (e *testEnv) createSpaceOnAccount(ctx context.Context, t *testing.T, acc *provider_local.ProviderAccount, spaceName string) {
+	// Report failures at the caller.
 	t.Helper()
 
+	// Create a Space SharedObject on the account.
 	meta, err := space.NewSharedObjectMeta(spaceName)
 	if err != nil {
 		t.Fatal(err)
@@ -133,14 +140,17 @@ func (e *testEnv) createSpaceOnAccount(ctx context.Context, t *testing.T, acc *p
 }
 
 func (e *testEnv) buildSessionResource(ctx context.Context, t *testing.T, sessRef *session.SessionRef) *resource_session.SessionResource {
+	// Report failures at the caller.
 	t.Helper()
 
+	// Mount the session on the test bus.
 	sess, sessRelRef, err := session.ExMountSession(ctx, e.tb.Bus, sessRef, false, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 	t.Cleanup(sessRelRef.Release)
 
+	// Return a session resource for that mount.
 	le := logrus.NewEntry(logrus.StandardLogger())
 	return resource_session.NewSessionResource(le, e.tb.Bus, sess)
 }

@@ -23,6 +23,7 @@ func (r *SessionResource) getPairingEngine() (*pairing.Engine, error) {
 // getPairingRelay returns the relay endpoint and signing context that must be
 // used as one contract; staging rejects prod-context signatures.
 func (r *SessionResource) getPairingRelay(ctx context.Context) (pairing.Relay, error) {
+	// Look up the Spacewave cloud provider for the pairing relay.
 	swProv, swProvRef, err := provider.ExLookupProvider(ctx, r.b, "spacewave", false, nil)
 	if err != nil {
 		return pairing.Relay{}, errors.Wrap(err, "lookup cloud provider for pairing relay")
@@ -31,6 +32,8 @@ func (r *SessionResource) getPairingRelay(ctx context.Context) (pairing.Relay, e
 		return pairing.Relay{}, errors.New("no cloud provider configured for pairing relay")
 	}
 	defer swProvRef.Release()
+
+	// Read the endpoint and signing context from the Spacewave provider.
 	swp, ok := swProv.(*provider_spacewave.Provider)
 	if !ok {
 		return pairing.Relay{}, errors.New("unexpected spacewave provider type")
@@ -48,21 +51,25 @@ func (r *SessionResource) getPairingRelay(ctx context.Context) (pairing.Relay, e
 
 // GeneratePairingCode creates an 8-char pairing code for P2P device linking.
 func (r *SessionResource) GeneratePairingCode(ctx context.Context, _ *s4wave_session.GeneratePairingCodeRequest) (*s4wave_session.GeneratePairingCodeResponse, error) {
+	// Refuse a pairing code while the Session is locked.
 	privKey := r.session.GetPrivKey()
 	if privKey == nil {
 		return nil, errors.New("session is locked")
 	}
 
+	// Open the pairing engine for the mounted Session.
 	engine, err := r.getPairingEngine()
 	if err != nil {
 		return nil, err
 	}
 
+	// Resolve the relay endpoint and signing context together.
 	relay, err := r.getPairingRelay(ctx)
 	if err != nil {
 		return nil, err
 	}
 
+	// Generate the pairing code through that relay.
 	code, err := engine.GenerateCode(ctx, relay)
 	if err != nil {
 		return nil, err
@@ -121,21 +128,25 @@ func (r *SessionResource) SelectPairingAccount(ctx context.Context, req *s4wave_
 
 // GetSASEmoji derives SAS emoji for verifying a P2P link with a remote peer.
 func (r *SessionResource) GetSASEmoji(ctx context.Context, req *s4wave_session.GetSASEmojiRequest) (*s4wave_session.GetSASEmojiResponse, error) {
+	// Refuse SAS derivation while the Session is locked.
 	privKey := r.session.GetPrivKey()
 	if privKey == nil {
 		return nil, errors.New("session is locked")
 	}
 
+	// Decode the remote peer ID from the request.
 	remotePeerID, err := peer.IDB58Decode(req.GetRemotePeerId())
 	if err != nil {
 		return nil, errors.Wrap(err, "decode remote peer ID")
 	}
 
+	// Extract the remote public key from that peer ID.
 	remotePub, err := remotePeerID.ExtractPublicKey()
 	if err != nil {
 		return nil, errors.Wrap(err, "extract remote public key")
 	}
 
+	// Derive the SAS emoji from both peer keys.
 	emoji, err := pairing.DeriveSASEmoji(
 		privKey, remotePub,
 		r.session.GetPeerId(), remotePeerID,

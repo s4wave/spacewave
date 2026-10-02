@@ -18,14 +18,17 @@ func (r *SessionResource) WatchPairedDevices(
 	req *s4wave_session.WatchPairedDevicesRequest,
 	strm s4wave_session.SRPCSessionResourceService_WatchPairedDevicesStream,
 ) error {
+	// Cancel the watch when the stream handler returns.
 	ctx, ctxCancel := context.WithCancel(strm.Context())
 	defer ctxCancel()
 
+	// Paired devices exist only on a local provider account.
 	localAcc, ok := r.session.GetProviderAccount().(*provider_local.ProviderAccount)
 	if !ok || localAcc == nil {
 		return errors.New("paired devices require local provider account")
 	}
 
+	// Resolve the account-settings SharedObject for that account.
 	var soRef *sobject.SharedObjectRef
 	var err error
 	soRef, err = localAcc.GetAccountSettingsRef(ctx)
@@ -47,10 +50,12 @@ func (r *SessionResource) WatchPairedDevices(
 	}
 	defer relStateCtr()
 
+	// Watch account-settings state on a separate goroutine.
 	stateCh := make(chan sobject.SharedObjectStateSnapshot, 1)
 	errCh := make(chan error, 1)
 	go watchPairedDeviceState(ctx, stateCtr, stateCh, errCh)
 
+	// Send a paired-devices snapshot whenever the list or online set changes.
 	var snap sobject.SharedObjectStateSnapshot
 	var prev *s4wave_session.WatchPairedDevicesResponse
 	for {
@@ -79,6 +84,7 @@ func (r *SessionResource) buildPairedDevicesResponse(
 	localAcc *provider_local.ProviderAccount,
 	snap sobject.SharedObjectStateSnapshot,
 ) (*s4wave_session.WatchPairedDevicesResponse, []<-chan struct{}, error) {
+	// Return no snapshot until the account-settings state arrives.
 	if snap == nil {
 		return nil, nil, nil
 	}
@@ -105,6 +111,8 @@ func (r *SessionResource) buildPairedDevicesResponse(
 		}
 		devices = append(devices, &account_settings.PairedDevice{PeerId: member.GetPeerId(), DisplayName: label})
 	}
+
+	// Attach the online peer IDs for the collected devices.
 	var onlinePeerIDs []string
 	var waitChs []<-chan struct{}
 	if len(devices) > 0 {

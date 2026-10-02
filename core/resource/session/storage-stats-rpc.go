@@ -35,6 +35,7 @@ func (r *SessionResource) WatchStorageStats(
 func (r *SessionResource) buildStorageStatsSnapshot(
 	ctx context.Context,
 ) (*s4wave_session.WatchStorageStatsResponse, <-chan struct{}, error) {
+	// Read the provider storage-stats snapshot, or an empty response when storage is not watched.
 	acc, ok := r.session.GetProviderAccount().(provider.StorageStatsWatchProvider)
 	if !ok {
 		return &s4wave_session.WatchStorageStatsResponse{}, nil, nil
@@ -47,6 +48,7 @@ func (r *SessionResource) buildStorageStatsSnapshot(
 }
 
 func storageStatsToProto(stats *volume.StorageStats) *s4wave_session.WatchStorageStatsResponse {
+	// Copy the volume storage stats into a supported snapshot.
 	resp := &s4wave_session.WatchStorageStatsResponse{Supported: true}
 	if stats == nil {
 		return resp

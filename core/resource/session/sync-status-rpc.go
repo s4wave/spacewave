@@ -89,6 +89,7 @@ func (r *SessionResource) buildSpacewaveSyncStatusSnapshot(
 	rate *syncStatusRateState,
 	now time.Time,
 ) (*s4wave_session.WatchSyncStatusResponse, []<-chan struct{}) {
+	// Read the account status under the account broadcast.
 	var accountCh <-chan struct{}
 	var status provider.ProviderAccountStatus
 	acc.GetAccountBroadcast().HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
@@ -96,6 +97,7 @@ func (r *SessionResource) buildSpacewaveSyncStatusSnapshot(
 		status = acc.GetAccountStatus()
 	})
 
+	// Read sync telemetry and transport composition for this session.
 	telemetry, telemetryCh := acc.GetSyncTelemetrySnapshotWithWait()
 	sessionID := ""
 	if ref := r.session.GetSessionRef(); ref != nil && ref.GetProviderResourceRef() != nil {
@@ -111,15 +113,20 @@ func (r *SessionResource) buildLocalSyncStatusSnapshot(
 	rate *syncStatusRateState,
 	now time.Time,
 ) (*s4wave_session.WatchSyncStatusResponse, []<-chan struct{}) {
+	// Read the pairing snapshot when the Session has a pairing engine.
 	var pairingCh <-chan struct{}
 	var pairingSnapshot pairing.Snapshot
 	if engine, err := r.getPairingEngine(); err == nil {
 		pairingSnapshot, pairingCh = engine.Snapshot()
 	}
+
+	// Start the local snapshot from those running flags.
 	transportRunning, transportCh := acc.GetTransportSnapshotWithWait()
 	p2pRunning, p2pCh := acc.GetP2PSyncSnapshotWithWait()
 	resp := syncStatusFromLocalState(pairingSnapshot, transportRunning, p2pRunning)
 	resp.LocalAccount = true
+
+	// List Space copies from the inventory while P2P sync is running.
 	progress, copyCh := acc.GetAccountCopyProgress()
 	var inventory *sobject.SharedObjectList
 	if p2pRunning {
@@ -155,6 +162,8 @@ func (r *SessionResource) buildLocalSyncStatusSnapshot(
 		}
 		return strings.Compare(a.SharedObjectId, b.SharedObjectId)
 	})
+
+	// Attach peer transfer traffic to the snapshot.
 	traffic, waits := acc.GetAccountTransferSnapshot()
 	for _, peer := range traffic.Peers {
 		if peer.Connected {
@@ -168,6 +177,8 @@ func (r *SessionResource) buildLocalSyncStatusSnapshot(
 	if !traffic.LastActivity.IsZero() {
 		resp.LastActivityAt = timestamppb.New(traffic.LastActivity)
 	}
+
+	// Mark the snapshot active, apply rates, and set direction and P2P state.
 	if resp.PendingDownloadCount > 0 || now.Sub(traffic.LastActivity) < 2*syncStatusRateWindow {
 		resp.State = s4wave_session.SyncStatusState_SyncStatusState_ACTIVE
 	}
@@ -197,6 +208,7 @@ func syncStatusFromSpacewaveTelemetry(
 	rate *syncStatusRateState,
 	now time.Time,
 ) *s4wave_session.WatchSyncStatusResponse {
+	// Copy Spacewave telemetry into a synced snapshot.
 	resp := &s4wave_session.WatchSyncStatusResponse{
 		State:                             s4wave_session.SyncStatusState_SyncStatusState_SYNCED,
 		Direction:                         syncStatusDirection(telemetry),
@@ -250,6 +262,8 @@ func syncStatusFromSpacewaveTelemetry(
 		PackIndexTailFetchBytes:           nonNegativeUint64(telemetry.IndexTailFetchBytes),
 		PackIndexTailResponseBytes:        nonNegativeUint64(telemetry.IndexTailResponseBytes),
 	}
+
+	// Copy block-store hit counters onto the snapshot.
 	resp.BlockStores = make([]*s4wave_session.SyncBlockStoreStatus, 0, len(telemetry.BlockStores))
 	for _, store := range telemetry.BlockStores {
 		resp.BlockStores = append(resp.BlockStores, &s4wave_session.SyncBlockStoreStatus{
@@ -263,6 +277,8 @@ func syncStatusFromSpacewaveTelemetry(
 			CloudRemoteSequence:       store.CloudRemoteSequence,
 		})
 	}
+
+	// Overlay the composition error, activity, direction, and transfer rates.
 	if composition.LastError != "" {
 		resp.LastError = composition.LastError
 	}
@@ -323,6 +339,7 @@ func syncStatusFromLocalState(
 func syncStatusDirection(
 	telemetry provider_spacewave.SyncTelemetrySnapshot,
 ) s4wave_session.SyncActivityDirection {
+	// Classify telemetry as upload, download, both, or idle.
 	uploading := telemetry.PendingUploadBytes > 0 ||
 		telemetry.PendingUploadCount > 0 ||
 		telemetry.InFlightPushes > 0
@@ -444,6 +461,7 @@ func (s *syncStatusRateState) apply(
 	counters syncStatusCounters,
 	now time.Time,
 ) {
+	// Reset the rate window when sync is not active.
 	if resp.State != s4wave_session.SyncStatusState_SyncStatusState_ACTIVE {
 		s.lastAt = now
 		s.lastUploadBytes = counters.uploadBytes
@@ -452,12 +470,16 @@ func (s *syncStatusRateState) apply(
 		s.downloadRate = 0
 		return
 	}
+
+	// Start the window on the first active sample.
 	if s.lastAt.IsZero() {
 		s.lastAt = now
 		s.lastUploadBytes = counters.uploadBytes
 		s.lastDownloadBytes = counters.downloadBytes
 		return
 	}
+
+	// Advance the window and copy the rates onto the response.
 	elapsed := now.Sub(s.lastAt)
 	if elapsed >= syncStatusRateWindow {
 		s.uploadRate = bytesPerSecond(counters.uploadBytes-s.lastUploadBytes, elapsed)

@@ -15,6 +15,7 @@ import (
 // TestGetTransferInventory verifies that GetTransferInventory returns the space list
 // for a given session index.
 func TestGetTransferInventory(t *testing.T) {
+	// Start a test environment.
 	ctx := context.Background()
 	env := setupTestEnv(ctx, t)
 
@@ -36,6 +37,7 @@ func TestGetTransferInventory(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Return both Spaces from the source session.
 	if len(resp.GetSpaces()) != 2 {
 		t.Fatalf("expected 2 spaces, got %d", len(resp.GetSpaces()))
 	}
@@ -52,17 +54,21 @@ func TestGetTransferInventory(t *testing.T) {
 
 // TestStartTransfer verifies that StartTransfer initiates a merge between sessions.
 func TestStartTransfer(t *testing.T) {
+	// Start a test environment.
 	ctx := context.Background()
 	env := setupTestEnv(ctx, t)
 
+	// Create a source session with one Space.
 	srcRef, srcIdx := env.createSession(ctx, t)
 	srcAcc := env.accessAccount(ctx, t, srcRef)
 	env.createSpaceOnAccount(ctx, t, srcAcc, "MySpace")
 
+	// Create the target session and its resource.
 	tgtRef, tgtIdx := env.createSession(ctx, t)
 	_ = env.accessAccount(ctx, t, tgtRef) // keep alive
 	resource := env.buildSessionResource(ctx, t, tgtRef)
 
+	// Start a local-to-local transfer.
 	_, err := resource.StartTransfer(ctx, &s4wave_session.StartTransferRequest{
 		SourceSessionIndex: srcIdx,
 		TargetSessionIndex: tgtIdx,
@@ -102,17 +108,21 @@ func TestStartTransfer(t *testing.T) {
 
 // TestWatchTransferProgress verifies that WatchTransferProgress receives phase transitions.
 func TestWatchTransferProgress(t *testing.T) {
+	// Start a test environment.
 	ctx := context.Background()
 	env := setupTestEnv(ctx, t)
 
+	// Create a source session with one Space.
 	srcRef, srcIdx := env.createSession(ctx, t)
 	srcAcc := env.accessAccount(ctx, t, srcRef)
 	env.createSpaceOnAccount(ctx, t, srcAcc, "WatchSpace")
 
+	// Create the target session and its resource.
 	tgtRef, tgtIdx := env.createSession(ctx, t)
 	_ = env.accessAccount(ctx, t, tgtRef) // keep alive
 	resource := env.buildSessionResource(ctx, t, tgtRef)
 
+	// Start a local-to-local transfer.
 	_, err := resource.StartTransfer(ctx, &s4wave_session.StartTransferRequest{
 		SourceSessionIndex: srcIdx,
 		TargetSessionIndex: tgtIdx,
@@ -153,17 +163,21 @@ done:
 
 // TestCancelTransfer verifies that CancelTransfer stops a mid-copy transfer.
 func TestCancelTransfer(t *testing.T) {
+	// Start a test environment.
 	ctx := context.Background()
 	env := setupTestEnv(ctx, t)
 
+	// Create a source session with one Space.
 	srcRef, srcIdx := env.createSession(ctx, t)
 	srcAcc := env.accessAccount(ctx, t, srcRef)
 	env.createSpaceOnAccount(ctx, t, srcAcc, "CancelSpace")
 
+	// Create the target session and its resource.
 	tgtRef, tgtIdx := env.createSession(ctx, t)
 	_ = env.accessAccount(ctx, t, tgtRef) // keep alive
 	resource := env.buildSessionResource(ctx, t, tgtRef)
 
+	// Start a local-to-local transfer.
 	_, err := resource.StartTransfer(ctx, &s4wave_session.StartTransferRequest{
 		SourceSessionIndex: srcIdx,
 		TargetSessionIndex: tgtIdx,
@@ -187,6 +201,7 @@ func TestCancelTransfer(t *testing.T) {
 	}
 	state := xfer.GetState()
 	phase := state.GetPhase()
+
 	// After cancellation, transfer may be COMPLETE (if it finished fast) or FAILED (if canceled mid-operation).
 	if phase != provider_transfer.TransferPhase_TransferPhase_COMPLETE &&
 		phase != provider_transfer.TransferPhase_TransferPhase_FAILED {
@@ -197,17 +212,21 @@ func TestCancelTransfer(t *testing.T) {
 // TestLocalToCloudMigrate verifies MIGRATE mode transfers spaces and cleans up source.
 // Uses local-to-local as a stand-in; the cloud target is tested separately.
 func TestLocalToCloudMigrate(t *testing.T) {
+	// Start a test environment.
 	ctx := context.Background()
 	env := setupTestEnv(ctx, t)
 
+	// Create a source session with one Space.
 	srcRef, srcIdx := env.createSession(ctx, t)
 	srcAcc := env.accessAccount(ctx, t, srcRef)
 	env.createSpaceOnAccount(ctx, t, srcAcc, "MigrateSpace")
 
+	// Create the target session and its resource.
 	tgtRef, tgtIdx := env.createSession(ctx, t)
 	_ = env.accessAccount(ctx, t, tgtRef) // keep alive
 	resource := env.buildSessionResource(ctx, t, tgtRef)
 
+	// Start a migrate transfer.
 	_, err := resource.StartTransfer(ctx, &s4wave_session.StartTransferRequest{
 		SourceSessionIndex: srcIdx,
 		TargetSessionIndex: tgtIdx,
@@ -255,17 +274,21 @@ func TestLocalToCloudMigrate(t *testing.T) {
 
 // TestMirror verifies MIRROR mode copies spaces without deleting the source.
 func TestMirror(t *testing.T) {
+	// Start a test environment.
 	ctx := context.Background()
 	env := setupTestEnv(ctx, t)
 
+	// Create a source session with one Space.
 	srcRef, srcIdx := env.createSession(ctx, t)
 	srcAcc := env.accessAccount(ctx, t, srcRef)
 	env.createSpaceOnAccount(ctx, t, srcAcc, "MirrorSpace")
 
+	// Create the target session and its resource.
 	tgtRef, tgtIdx := env.createSession(ctx, t)
 	_ = env.accessAccount(ctx, t, tgtRef)
 	resource := env.buildSessionResource(ctx, t, tgtRef)
 
+	// Start a mirror transfer.
 	_, err := resource.StartTransfer(ctx, &s4wave_session.StartTransferRequest{
 		SourceSessionIndex: srcIdx,
 		TargetSessionIndex: tgtIdx,
@@ -275,6 +298,7 @@ func TestMirror(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Wait until the mirror completes.
 	xfer := resource.GetActiveTransfer()
 	if xfer == nil {
 		t.Fatal("expected active transfer")
@@ -316,9 +340,11 @@ func TestMirror(t *testing.T) {
 // TestReadLinkedCloudAccountID verifies that readLinkedCloudAccountID detects
 // a linked-cloud key on a local session.
 func TestReadLinkedCloudAccountID(t *testing.T) {
+	// Start a test environment.
 	ctx := context.Background()
 	env := setupTestEnv(ctx, t)
 
+	// Create a local session and open its account.
 	sessRef, sessIdx := env.createSession(ctx, t)
 	acc := env.accessAccount(ctx, t, sessRef)
 
@@ -330,12 +356,14 @@ func TestReadLinkedCloudAccountID(t *testing.T) {
 	objectStoreID := provider_local.SessionObjectStoreID(provID, accountID)
 	volID := acc.GetVolume().GetID()
 
+	// Open the session object store.
 	objStoreHandle, _, diRef, err := volume.ExBuildObjectStoreAPI(ctx, env.tb.Bus, false, objectStoreID, volID, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer diRef.Release()
 
+	// Store a linked-cloud account ID.
 	otx, err := objStoreHandle.GetObjectStore().NewTransaction(ctx, true)
 	if err != nil {
 		t.Fatal(err)
@@ -374,6 +402,8 @@ func TestReadLinkedCloudAccountID(t *testing.T) {
 	}
 	otherProvRef := otherRef.GetProviderResourceRef()
 	otherSrc := provider_transfer.NewLocalTransferSource(otherAcc, otherProvRef.GetProviderId(), otherProvRef.GetProviderAccountId(), env.tb.Bus)
+
+	// Read the other session, which has no linked-cloud key.
 	got2, err := resource_session.ReadLinkedCloudAccountID(ctx, env.tb.Bus, otherEntry, otherSrc)
 	if err != nil {
 		t.Fatal(err)
@@ -387,9 +417,11 @@ func TestReadLinkedCloudAccountID(t *testing.T) {
 // session with a linked-cloud key returns the cleanup failure through transfer
 // state when the linked cloud session is unavailable.
 func TestMergeLinkedSessionReportsCleanupFailure(t *testing.T) {
+	// Start a test environment.
 	ctx := context.Background()
 	env := setupTestEnv(ctx, t)
 
+	// Create a source session with one Space.
 	srcRef, srcIdx := env.createSession(ctx, t)
 	srcAcc := env.accessAccount(ctx, t, srcRef)
 	env.createSpaceOnAccount(ctx, t, srcAcc, "LinkedSpace")
@@ -402,6 +434,7 @@ func TestMergeLinkedSessionReportsCleanupFailure(t *testing.T) {
 	objectStoreID := provider_local.SessionObjectStoreID(provID, accountID)
 	volID := srcAcc.GetVolume().GetID()
 
+	// Store a linked-cloud account ID on the source session.
 	objStoreHandle, _, diRef, err := volume.ExBuildObjectStoreAPI(ctx, env.tb.Bus, false, objectStoreID, volID, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -441,6 +474,7 @@ func TestMergeLinkedSessionReportsCleanupFailure(t *testing.T) {
 	_ = env.accessAccount(ctx, t, tgtRef)
 	resource := env.buildSessionResource(ctx, t, tgtRef)
 
+	// Start the merge transfer.
 	_, err = resource.StartTransfer(ctx, &s4wave_session.StartTransferRequest{
 		SourceSessionIndex: srcIdx,
 		TargetSessionIndex: tgtIdx,

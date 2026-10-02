@@ -144,6 +144,7 @@ func watchPluginSchedulers(
 	b bus.Bus,
 	cb func([]bldr_plugin.PluginScheduler, []*bldr_plugin.PluginStatusSnapshot) error,
 ) error {
+	// Cancel the scheduler watch when this function returns.
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
@@ -177,6 +178,7 @@ func watchPluginSchedulers(
 	}
 	defer release()
 
+	// Deliver each collected scheduler set to the callback until the watch ends.
 	for {
 		var current []bldr_plugin.PluginScheduler
 		var ready bool
@@ -266,6 +268,7 @@ func (r *StatusResource) ReportRecoveryStatus(
 	_ context.Context,
 	req *s4wave_status.ReportRecoveryStatusRequest,
 ) (*s4wave_status.ReportRecoveryStatusResponse, error) {
+	// Store a clone of the renderer recovery report, marking a missing status as reported.
 	if req == nil {
 		return &s4wave_status.ReportRecoveryStatusResponse{}, nil
 	}
@@ -291,6 +294,7 @@ func (r *StatusResource) WatchRecoveryStatus(
 	_ *s4wave_status.WatchRecoveryStatusRequest,
 	strm s4wave_status.SRPCSystemStatusService_WatchRecoveryStatusStream,
 ) error {
+	// Notify the stream when any recovery source changes.
 	ctx := strm.Context()
 	changeCh := make(chan struct{}, 1)
 	notify := func() {
@@ -299,6 +303,8 @@ func (r *StatusResource) WatchRecoveryStatus(
 		default:
 		}
 	}
+
+	// Watch owner, renderer, plugin, and launcher recovery sources.
 	rootPlugins := ccontainer.NewCContainer[*bldr_plugin.PluginStatusSnapshot](nil)
 	launcher := spacewave_launcher.NewInfoWatcher(nil, r.b)
 	launcher.SetContext(ctx)
@@ -307,6 +313,7 @@ func (r *StatusResource) WatchRecoveryStatus(
 	go watchRecoveryPluginChanges(ctx, r.b, rootPlugins, notify)
 	go watchRecoveryLauncherChanges(ctx, launcher, notify)
 
+	// Send a recovery snapshot whenever one of those sources changes.
 	var last *s4wave_status.RecoveryStatus
 	for {
 		launcherInfo, _ := launcher.Snapshot()
@@ -371,6 +378,7 @@ func watchRecoveryPluginChanges(
 		schedulers []bldr_plugin.PluginScheduler,
 		snapshots []*bldr_plugin.PluginStatusSnapshot,
 	) error {
+		// Publish the root plugin host snapshot and wake the recovery stream.
 		var root *bldr_plugin.PluginStatusSnapshot
 		for i, scheduler := range schedulers {
 			if scheduler.GetInstanceKey() == "" {
@@ -480,14 +488,19 @@ type networkStatusProvider interface {
 
 // buildNetworkStatsResponse projects live transport links into network status records.
 func (r *StatusResource) buildNetworkStatsResponse() (*s4wave_status.WatchNetworkStatsResponse, []<-chan struct{}) {
+	// Return an empty snapshot when the session has no provider account.
 	resp := &s4wave_status.WatchNetworkStatsResponse{}
 	if r.sess == nil || r.sess.GetProviderAccount() == nil {
 		return resp, nil
 	}
+
+	// Return that snapshot when the account does not expose transport status.
 	provider, ok := r.sess.GetProviderAccount().(networkStatusProvider)
 	if !ok {
 		return resp, nil
 	}
+
+	// Read the transport running state and its wait channel.
 	transportRunning, transportWaitCh := provider.GetTransportSnapshotWithWait()
 	resp.TransportRunning = transportRunning
 	waitChs := []<-chan struct{}{transportWaitCh}
@@ -495,6 +508,8 @@ func (r *StatusResource) buildNetworkStatsResponse() (*s4wave_status.WatchNetwor
 	if st == nil {
 		return resp, waitChs
 	}
+
+	// Attach the local peer, sorted link snapshots, and their wait channels.
 	resp.LocalPeerId = st.GetPeerID().String()
 	links, linkWaitChs := st.GetLinkSnapshotsWithWait()
 	waitChs = append(waitChs, linkWaitChs...)
@@ -515,6 +530,7 @@ func buildNetworkStatsResponse(
 	resp *s4wave_status.WatchNetworkStatsResponse,
 	links []transport_controller.LinkSnapshot,
 ) *s4wave_status.WatchNetworkStatsResponse {
+	// Group link snapshots by remote peer.
 	peersByID := make(map[string]*s4wave_status.NetworkPeerInfo)
 	for _, link := range links {
 		peerID := link.RemotePeerID.String()
@@ -531,6 +547,8 @@ func buildNetworkStatsResponse(
 			RemoteTransportId: link.RemoteTransportID,
 		})
 	}
+
+	// Sort the peers and record peer and link counts.
 	resp.Peers = make([]*s4wave_status.NetworkPeerInfo, 0, len(peersByID))
 	for _, peerInfo := range peersByID {
 		peerInfo.LinkCount = uint32(len(peerInfo.Links)) //nolint:gosec // links are the bounded peer response collection.
@@ -563,6 +581,7 @@ func (r *StatusResource) buildRecoveryStatus(
 // buildLauncherRecoveryStatus projects the launcher metadata and update state,
 // or returns nil when no launcher is reachable.
 func buildLauncherRecoveryStatus(info *spacewave_launcher.LauncherInfo) *s4wave_status.LauncherRecoveryStatus {
+	// Return nil when no launcher is reachable, otherwise project its fetch and update state.
 	if info == nil {
 		return nil
 	}

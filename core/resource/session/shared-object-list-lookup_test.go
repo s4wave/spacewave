@@ -192,6 +192,7 @@ func TestLookupSharedObjectListEntryRefreshesFeature(t *testing.T) {
 }
 
 func TestCreateSpaceInviteReportsListEntryMiss(t *testing.T) {
+	// Build a session whose SharedObject list misses the invite target.
 	provider := &testSOListProvider{
 		ctr: ccontainer.NewCContainer[*sobject.SharedObjectList](&sobject.SharedObjectList{}),
 		entry: &sobject.SharedObjectListEntry{
@@ -200,6 +201,7 @@ func TestCreateSpaceInviteReportsListEntryMiss(t *testing.T) {
 	}
 	res := NewSessionResource(nil, nil, &testInviteSession{provider: provider})
 
+	// Report the list-entry miss from CreateSpaceInvite.
 	_, err := res.CreateSpaceInvite(context.Background(), &s4wave_session.CreateSpaceInviteRequest{
 		SpaceId: "missing-so",
 	})
@@ -212,8 +214,10 @@ func TestCreateSpaceInviteReportsListEntryMiss(t *testing.T) {
 }
 
 func TestAcceptedCloudInviteRefreshesSharedObjectList(t *testing.T) {
+	// Use an account that records SharedObject list refreshes.
 	acc := &testAcceptedCloudInviteAccount{}
 
+	// Refresh the list and return the accepted invite's SharedObject.
 	resp, err := acceptedCloudInviteJoinResponse(context.Background(), acc, "so-1")
 	if err != nil {
 		t.Fatalf("acceptedCloudInviteJoinResponse: %v", err)
@@ -228,8 +232,10 @@ func TestAcceptedCloudInviteRefreshesSharedObjectList(t *testing.T) {
 }
 
 func TestAcceptedCloudInviteReportsRefreshError(t *testing.T) {
+	// Use an account whose list refresh fails.
 	acc := &testAcceptedCloudInviteAccount{err: errors.New("refresh boom")}
 
+	// Report the refresh error after one refresh attempt.
 	_, err := acceptedCloudInviteJoinResponse(context.Background(), acc, "so-1")
 	if err == nil {
 		t.Fatal("expected refresh error")

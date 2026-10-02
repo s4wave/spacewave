@@ -123,6 +123,7 @@ func (r *SessionResource) watchMountedSharedObjectHealth(
 	so sobject.SharedObject,
 	sender sharedobjecthealth.Sender,
 ) error {
+	// Stream the health accessor when the SharedObject exposes one.
 	if healthAccessor, ok := so.(sobject.SharedObjectHealthAccessor); ok {
 		healthCtr, relHealthCtr, err := healthAccessor.AccessSharedObjectHealth(ctx, nil)
 		if err != nil {
@@ -136,6 +137,7 @@ func (r *SessionResource) watchMountedSharedObjectHealth(
 		return sharedobjecthealth.StreamWatchable(ctx, sender, healthCtr)
 	}
 
+	// Otherwise stream health derived from SharedObject state.
 	stateCtr, relStateCtr, err := so.AccessSharedObjectState(ctx, nil)
 	if err != nil {
 		return sharedobjecthealth.Wait(
@@ -241,6 +243,7 @@ func (r *SessionResource) loadMountedSharedObjectHealthSnapshot(
 	ctx context.Context,
 	so sobject.SharedObject,
 ) (*sobject.SharedObjectHealth, error) {
+	// Read the health accessor when the SharedObject exposes one.
 	if healthAccessor, ok := so.(sobject.SharedObjectHealthAccessor); ok {
 		healthCtr, relHealthCtr, err := healthAccessor.AccessSharedObjectHealth(ctx, nil)
 		if err != nil {
@@ -250,6 +253,7 @@ func (r *SessionResource) loadMountedSharedObjectHealthSnapshot(
 		return sharedobjecthealth.SnapshotWatchable(healthCtr), nil
 	}
 
+	// Otherwise snapshot health derived from SharedObject state.
 	stateCtr, relStateCtr, err := so.AccessSharedObjectState(ctx, nil)
 	if err != nil {
 		return sharedobjecthealth.Error(err), nil
