@@ -14,9 +14,11 @@ import (
 )
 
 func TestWatchStateCoalescesNearSimultaneousChanges(t *testing.T) {
+	// Bound the watch by the test.
 	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
 
+	// Start from an owner alone in the configuration.
 	state := NewState(
 		&sobject.SOState{
 			Config: &sobject.SharedObjectConfig{
@@ -27,8 +29,10 @@ func TestWatchStateCoalescesNearSimultaneousChanges(t *testing.T) {
 		},
 		nil,
 		nil,
+		nil,
 	)
 
+	// Record each emission.
 	var (
 		emissionsMu sync.Mutex
 		emissions   []*SharingState
@@ -36,6 +40,7 @@ func TestWatchStateCoalescesNearSimultaneousChanges(t *testing.T) {
 	released := make(chan struct{})
 	emitted := make(chan struct{}, 8)
 
+	// Hold the first send until both sources have changed.
 	send := func(s *SharingState) error {
 		emissionsMu.Lock()
 		idx := len(emissions)
@@ -48,13 +53,16 @@ func TestWatchStateCoalescesNearSimultaneousChanges(t *testing.T) {
 		return nil
 	}
 
+	// Run the watch loop.
 	loopErr := make(chan error, 1)
 	go func() {
 		loopErr <- state.RunWatchLoop(ctx, "peer-1", send)
 	}()
 
+	// Wait for the initial emission.
 	<-emitted
 
+	// Change both sources while the first send is held.
 	state.SetSOState(&sobject.SOState{
 		Config: &sobject.SharedObjectConfig{
 			Participants: []*sobject.SOParticipantConfig{
@@ -62,20 +70,24 @@ func TestWatchStateCoalescesNearSimultaneousChanges(t *testing.T) {
 				{PeerId: "peer-2", Role: sobject.SOParticipantRole_SOParticipantRole_WRITER},
 			},
 		},
-	})
+	}, nil)
 	state.SetMailboxEntries([]*MailboxEntry{
 		{ID: 1, PeerID: "peer-3", Status: "pending"},
 	})
 
+	// Release the held send and wait for the coalesced emission.
 	close(released)
 	<-emitted
 
+	// Stop the loop.
 	cancel()
 	<-loopErr
 
+	// Inspect the recorded emissions.
 	emissionsMu.Lock()
 	defer emissionsMu.Unlock()
 
+	// Both changes arrive in one emission.
 	if got := len(emissions); got != 2 {
 		t.Fatalf("expected 2 emissions (initial + coalesced), got %d", got)
 	}
@@ -91,9 +103,11 @@ func TestWatchStateCoalescesNearSimultaneousChanges(t *testing.T) {
 }
 
 func TestWatchStateEqualityGateSuppressesDuplicates(t *testing.T) {
+	// Bound the watch by the test.
 	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
 
+	// Build equal snapshots as distinct values.
 	makeInitialSO := func() *sobject.SOState {
 		return &sobject.SOState{
 			Config: &sobject.SharedObjectConfig{
@@ -104,8 +118,10 @@ func TestWatchStateEqualityGateSuppressesDuplicates(t *testing.T) {
 		}
 	}
 
-	state := NewState(makeInitialSO(), nil, nil)
+	// Start from an owner alone in the configuration.
+	state := NewState(makeInitialSO(), nil, nil, nil)
 
+	// Count emissions.
 	var (
 		emissionsMu sync.Mutex
 		emissions   int
@@ -113,6 +129,7 @@ func TestWatchStateEqualityGateSuppressesDuplicates(t *testing.T) {
 	released := make(chan struct{})
 	emitted := make(chan struct{}, 8)
 
+	// Hold the first send while duplicates are written.
 	send := func(s *SharingState) error {
 		emissionsMu.Lock()
 		idx := emissions
@@ -125,19 +142,24 @@ func TestWatchStateEqualityGateSuppressesDuplicates(t *testing.T) {
 		return nil
 	}
 
+	// Run the watch loop.
 	loopErr := make(chan error, 1)
 	go func() {
 		loopErr <- state.RunWatchLoop(ctx, "peer-1", send)
 	}()
 
+	// Wait for the initial emission.
 	<-emitted
 
+	// Write snapshots equal to the initial one.
 	for range 2 {
-		state.SetSOState(makeInitialSO())
+		state.SetSOState(makeInitialSO(), nil)
 	}
 
+	// Release the held send.
 	close(released)
 
+	// Write a real change.
 	state.SetSOState(&sobject.SOState{
 		Config: &sobject.SharedObjectConfig{
 			Participants: []*sobject.SOParticipantConfig{
@@ -145,16 +167,20 @@ func TestWatchStateEqualityGateSuppressesDuplicates(t *testing.T) {
 				{PeerId: "peer-2", Role: sobject.SOParticipantRole_SOParticipantRole_WRITER},
 			},
 		},
-	})
+	}, nil)
 
+	// Wait for its emission.
 	<-emitted
 
+	// Stop the loop.
 	cancel()
 	<-loopErr
 
+	// Inspect the emission count.
 	emissionsMu.Lock()
 	defer emissionsMu.Unlock()
 
+	// The duplicates emitted nothing.
 	if emissions != 2 {
 		t.Fatalf("expected 2 emissions (initial + one real change after duplicate writes), got %d", emissions)
 	}
@@ -164,9 +190,11 @@ func TestWatchStateEqualityGateSuppressesDuplicates(t *testing.T) {
 // metadata is part of the sharing projection and that an exact repeated
 // snapshot remains suppressed after the metadata change has been emitted.
 func TestWatchStateConfigRevisionEmitsAndDeduplicates(t *testing.T) {
+	// Bound the watch by the test.
 	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
 
+	// Build snapshots that differ only in configuration revision.
 	participants := []*sobject.SOParticipantConfig{{
 		PeerId: "peer-1",
 		Role:   sobject.SOParticipantRole_SOParticipantRole_OWNER,
@@ -179,7 +207,8 @@ func TestWatchStateConfigRevisionEmitsAndDeduplicates(t *testing.T) {
 		}}
 	}
 
-	state := NewState(makeState("config-1", 1), nil, nil)
+	// Run the watch loop, holding the first send.
+	state := NewState(makeState("config-1", 1), nil, nil, nil)
 	emitted := make(chan *SharingState, 4)
 	releaseFirst := make(chan struct{})
 	loopErr := make(chan error, 1)
@@ -197,6 +226,7 @@ func TestWatchStateConfigRevisionEmitsAndDeduplicates(t *testing.T) {
 		})
 	}()
 
+	// The initial emission carries the first revision.
 	first := <-emitted
 	if first.ConfigChainSeqno != 1 {
 		t.Fatalf("initial config seqno = %d, want 1", first.ConfigChainSeqno)
@@ -204,8 +234,8 @@ func TestWatchStateConfigRevisionEmitsAndDeduplicates(t *testing.T) {
 	if first.ViewerPeerID != "peer-1" {
 		t.Fatalf("initial viewer peer id = %q, want peer-1", first.ViewerPeerID)
 	}
-	state.SetSOState(makeState("config-2", 2))
-	state.SetSOState(makeState("config-2", 2))
+	state.SetSOState(makeState("config-2", 2), nil)
+	state.SetSOState(makeState("config-2", 2), nil)
 	close(releaseFirst)
 	second := <-emitted
 	if second.ConfigChainSeqno != 2 || string(second.ConfigChainHash) != "config-2" {
@@ -214,19 +244,58 @@ func TestWatchStateConfigRevisionEmitsAndDeduplicates(t *testing.T) {
 
 	// Keep the loop alive long enough to observe the duplicate wakeup; a
 	// third emission would violate suppression of equal source snapshots.
-	state.SetSOState(makeState("config-2", 2))
+	state.SetSOState(makeState("config-2", 2), nil)
 	select {
 	case <-emitted:
 		t.Fatal("exact duplicate config revision emitted a third snapshot")
 	case <-time.After(100 * time.Millisecond):
 	}
 
+	// Stop the loop and count emissions.
 	cancel()
 	if err := <-loopErr; err != context.Canceled {
 		t.Fatalf("watch loop error = %v, want context canceled", err)
 	}
 	if emissions != 2 {
 		t.Fatalf("emissions = %d, want initial plus one revision", emissions)
+	}
+}
+
+// TestWatchStateOmitsDepartingPeers checks that a viewer whose leave the head
+// ownership transfer carries sees itself departed while the configuration
+// still lists it as owner.
+func TestWatchStateOmitsDepartingPeers(t *testing.T) {
+	// Bound the watch by the test.
+	ctx, cancel := context.WithCancel(t.Context())
+	defer cancel()
+
+	// The viewer is an owner whose leave the head transfer carries.
+	state := NewState(&sobject.SOState{
+		Config: &sobject.SharedObjectConfig{
+			Participants: []*sobject.SOParticipantConfig{
+				{PeerId: "peer-1", Role: sobject.SOParticipantRole_SOParticipantRole_OWNER},
+				{PeerId: "peer-2", Role: sobject.SOParticipantRole_SOParticipantRole_OWNER},
+			},
+		},
+	}, []string{"peer-1"}, nil, nil)
+
+	// Read the first emission.
+	var got *SharingState
+	err := state.RunWatchLoop(ctx, "peer-1", func(s *SharingState) error {
+		got = s
+		return context.Canceled
+	})
+	if err != context.Canceled {
+		t.Fatalf("RunWatchLoop: %v", err)
+	}
+	if got.ViewerRole != sobject.SOParticipantRole_SOParticipantRole_UNKNOWN || got.CanManage {
+		t.Fatalf("departing viewer role = %v, can manage = %v", got.ViewerRole, got.CanManage)
+	}
+	if len(got.Participants) != 1 || got.Participants[0].GetPeerId() != "peer-2" {
+		t.Fatalf("participants = %v, want only peer-2", got.Participants)
+	}
+	if len(got.ParticipantInfo) != 1 || got.ParticipantInfo[0].IsSelf {
+		t.Fatalf("participant info = %+v, want only peer-2", got.ParticipantInfo)
 	}
 }
 
@@ -364,9 +433,11 @@ func awaitSignal(t *testing.T, ch <-chan struct{}, what string) {
 }
 
 func TestCoalescingEndToEnd(t *testing.T) {
+	// Bound the watch by the test.
 	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
 
+	// Start from an owner alone in the configuration.
 	initialParticipants := []*sobject.SOParticipantConfig{
 		{PeerId: "peer-1", Role: sobject.SOParticipantRole_SOParticipantRole_OWNER},
 	}
@@ -376,6 +447,7 @@ func TestCoalescingEndToEnd(t *testing.T) {
 		},
 	}
 
+	// Key participant sets for comparison.
 	participantKey := func(participants []*sobject.SOParticipantConfig) string {
 		keys := make([]string, 0, len(participants))
 		for _, participant := range participants {
@@ -387,11 +459,13 @@ func TestCoalescingEndToEnd(t *testing.T) {
 		return strings.Join(keys, ",")
 	}
 
-	state := NewState(initialSO, nil, nil)
+	// Fold the initial state and gate the bridge.
+	state := NewState(initialSO, nil, nil, nil)
 	ctr := ccontainer.NewCContainer[*sobject.SOState](initialSO)
 	bridgeObserved := make(chan struct{}, 1)
 	bridgeRelease := make(chan struct{})
 
+	// Record each emission.
 	var (
 		emissionsMu sync.Mutex
 		emissions   []*SharingState
@@ -401,6 +475,7 @@ func TestCoalescingEndToEnd(t *testing.T) {
 	finalPeer := "peer-4"
 	finalEmitted := make(chan struct{})
 
+	// Hold the first send and signal the final participant set.
 	send := func(s *SharingState) error {
 		emissionsMu.Lock()
 		idx := len(emissions)
@@ -417,20 +492,25 @@ func TestCoalescingEndToEnd(t *testing.T) {
 		return nil
 	}
 
+	// Bridge the gated container into the state.
 	bridgeCtx, cancelBridge := context.WithCancel(ctx)
 	defer cancelBridge()
 	go state.BridgeSOState(bridgeCtx, &gatedWatchable{
 		Watchable: ctr,
 		observed:  bridgeObserved,
 		release:   bridgeRelease,
+	}, func(context.Context, *sobject.SOState) ([]string, error) {
+		return nil, nil
 	})
 
+	// Run the watch loop.
 	loopErr := make(chan error, 1)
 	go func() {
 		loopErr <- state.RunWatchLoop(ctx, "peer-1", send)
 	}()
 	awaitSignal(t, emitted, "the first emission to block the send")
 
+	// Write three participant sets while the bridge is gated.
 	written := map[string]struct{}{
 		participantKey(initialParticipants): {},
 	}
@@ -452,16 +532,19 @@ func TestCoalescingEndToEnd(t *testing.T) {
 		}
 	}
 
+	// Release the bridge and the held send.
 	close(bridgeRelease)
 	close(released)
 	awaitSignal(t, finalEmitted, "the loop to converge on the final participant set")
 
+	// Stop the loop and the bridge.
 	cancel()
 	cancelBridge()
 	if err := <-loopErr; err != context.Canceled {
 		t.Fatalf("watch loop returned %v, want context canceled", err)
 	}
 
+	// The last emission is the final set, and every emission was written.
 	emissionsMu.Lock()
 	defer emissionsMu.Unlock()
 	last := emissions[len(emissions)-1]

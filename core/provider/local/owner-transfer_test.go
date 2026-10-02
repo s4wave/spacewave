@@ -77,8 +77,24 @@ func TestNativeOwnerTransfer(t *testing.T) {
 	remaining := mountJoined(ctx, t, second, id)
 
 	// The owner leaves while both invitees remain.
+	before, err := object.GetSOHost().GetHostState(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
 	if err := owner.LeaveSharedObject(ctx, ownerSession.GetPrivKey(), id, ""); err != nil {
 		t.Fatal(err)
+	}
+
+	// The departed owner retains the last root it could read, before the transfer.
+	checkpoint, err := object.GetSharedObjectReadCheckpoint(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if checkpoint == nil {
+		t.Fatal("departed owner retained no read checkpoint")
+	}
+	if seqno := checkpoint.Config.GetConfigChainSeqno(); seqno != before.GetConfig().GetConfigChainSeqno() {
+		t.Fatalf("read checkpoint config seqno = %d, want %d", seqno, before.GetConfig().GetConfigChainSeqno())
 	}
 
 	// The successor's account commits the departure and owns the object as host.
