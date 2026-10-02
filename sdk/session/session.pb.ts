@@ -3454,6 +3454,46 @@ export const ResolveSpaceJoinRequestResponse: MessageType<ResolveSpaceJoinReques
   })
 
 /**
+ * WithdrawSpaceJoinRequestRequest is the request for WithdrawSpaceJoinRequest.
+ *
+ * @generated from message s4wave.session.WithdrawSpaceJoinRequestRequest
+ */
+export interface WithdrawSpaceJoinRequestRequest {
+  /**
+   * InviteMessage is the invite whose redemption is waiting for approval.
+   *
+   * @generated from field: sobject.SOInviteMessage invite_message = 1;
+   */
+  inviteMessage?: SOInviteMessage
+}
+
+export const WithdrawSpaceJoinRequestRequest: MessageType<WithdrawSpaceJoinRequestRequest> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.session.WithdrawSpaceJoinRequestRequest',
+    fields: [
+      {
+        no: 1,
+        name: 'invite_message',
+        kind: 'message',
+        T: () => SOInviteMessage,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+  })
+
+/**
+ * WithdrawSpaceJoinRequestResponse is the response for WithdrawSpaceJoinRequest.
+ *
+ * @generated from message s4wave.session.WithdrawSpaceJoinRequestResponse
+ */
+export interface WithdrawSpaceJoinRequestResponse {}
+
+export const WithdrawSpaceJoinRequestResponse: MessageType<WithdrawSpaceJoinRequestResponse> =
+  /* @__PURE__ */ createEmptyMessageType<WithdrawSpaceJoinRequestResponse>(
+    's4wave.session.WithdrawSpaceJoinRequestResponse',
+    true,
+  )
+
+/**
  * JoinSpaceViaInviteRequest is the request for JoinSpaceViaInvite.
  *
  * @generated from message s4wave.session.JoinSpaceViaInviteRequest

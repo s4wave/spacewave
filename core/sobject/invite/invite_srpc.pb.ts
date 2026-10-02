@@ -2,13 +2,19 @@
 // @generated from file github.com/s4wave/spacewave/core/sobject/invite/invite.proto (package sobject.invite, syntax proto3)
 /* eslint-disable */
 
-import { AcceptInviteRequest, AcceptInviteResponse } from './invite.pb.js'
+import {
+  AcceptInviteRequest,
+  AcceptInviteResponse,
+  WithdrawJoinRequestRequest,
+  WithdrawJoinRequestResponse,
+} from './invite.pb.js'
 import { MethodKind } from '@aptre/protobuf-es-lite'
 import { SOLeaveRequest, SOLeaveResponse } from '../sobject.pb.js'
 import { ProtoRpc, ServerContext } from 'starpc'
 
 /**
- * SOInviteService admits invitees and acknowledges voluntary departures through native authority.
+ * SOInviteService admits invitees, withdraws their join requests and
+ * acknowledges voluntary departures through native authority.
  *
  * @generated from service sobject.invite.SOInviteService
  */
@@ -27,6 +33,17 @@ export const SOInviteServiceDefinition = {
       kind: MethodKind.Unary,
     },
     /**
+     * WithdrawJoinRequest removes the caller's pending join request.
+     *
+     * @generated from rpc sobject.invite.SOInviteService.WithdrawJoinRequest
+     */
+    WithdrawJoinRequest: {
+      name: 'WithdrawJoinRequest',
+      I: WithdrawJoinRequestRequest,
+      O: WithdrawJoinRequestResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
      * Leave verifies signed consent and returns the owner's committed removal proof.
      *
      * @generated from rpc sobject.invite.SOInviteService.Leave
@@ -41,7 +58,8 @@ export const SOInviteServiceDefinition = {
 } as const
 
 /**
- * SOInviteService admits invitees and acknowledges voluntary departures through native authority.
+ * SOInviteService admits invitees, withdraws their join requests and
+ * acknowledges voluntary departures through native authority.
  *
  * @generated from service sobject.invite.SOInviteService
  */
@@ -57,6 +75,16 @@ export interface SOInviteService {
   ): Promise<AcceptInviteResponse>
 
   /**
+   * WithdrawJoinRequest removes the caller's pending join request.
+   *
+   * @generated from rpc sobject.invite.SOInviteService.WithdrawJoinRequest
+   */
+  WithdrawJoinRequest(
+    request: WithdrawJoinRequestRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<WithdrawJoinRequestResponse>
+
+  /**
    * Leave verifies signed consent and returns the owner's committed removal proof.
    *
    * @generated from rpc sobject.invite.SOInviteService.Leave
@@ -68,7 +96,8 @@ export interface SOInviteService {
 }
 
 /**
- * SOInviteService admits invitees and acknowledges voluntary departures through native authority.
+ * SOInviteService admits invitees, withdraws their join requests and
+ * acknowledges voluntary departures through native authority.
  *
  * @generated from service sobject.invite.SOInviteService
  */
@@ -83,6 +112,17 @@ export interface SOInviteServiceHandler {
     abortSignal: AbortSignal,
     context: ServerContext,
   ): Promise<AcceptInviteResponse>
+
+  /**
+   * WithdrawJoinRequest removes the caller's pending join request.
+   *
+   * @generated from rpc sobject.invite.SOInviteService.WithdrawJoinRequest
+   */
+  WithdrawJoinRequest(
+    request: WithdrawJoinRequestRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<WithdrawJoinRequestResponse>
 
   /**
    * Leave verifies signed consent and returns the owner's committed removal proof.
@@ -105,6 +145,7 @@ export class SOInviteServiceClient implements SOInviteService {
     this.service = opts?.service || SOInviteServiceServiceName
     this.rpc = rpc
     this.AcceptInvite = this.AcceptInvite.bind(this)
+    this.WithdrawJoinRequest = this.WithdrawJoinRequest.bind(this)
     this.Leave = this.Leave.bind(this)
   }
   /**
@@ -124,6 +165,25 @@ export class SOInviteServiceClient implements SOInviteService {
       abortSignal || undefined,
     )
     return AcceptInviteResponse.fromBinary(result)
+  }
+
+  /**
+   * WithdrawJoinRequest removes the caller's pending join request.
+   *
+   * @generated from rpc sobject.invite.SOInviteService.WithdrawJoinRequest
+   */
+  async WithdrawJoinRequest(
+    request: WithdrawJoinRequestRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<WithdrawJoinRequestResponse> {
+    const requestMsg = WithdrawJoinRequestRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      SOInviteServiceDefinition.methods.WithdrawJoinRequest.name,
+      WithdrawJoinRequestRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return WithdrawJoinRequestResponse.fromBinary(result)
   }
 
   /**

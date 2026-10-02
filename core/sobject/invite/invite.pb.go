@@ -115,6 +115,39 @@ func (x *AcceptInviteResponse) GetPending() bool {
 	return false
 }
 
+// WithdrawJoinRequestRequest is sent by a requester to the owner. The owner
+// identifies the requester by the authenticated stream peer.
+type WithdrawJoinRequestRequest struct {
+	unknownFields []byte
+	// SharedObjectId is the shared object the request asks to join.
+	SharedObjectId string `protobuf:"bytes,1,opt,name=shared_object_id,json=sharedObjectId,proto3" json:"sharedObjectId,omitempty"`
+}
+
+func (x *WithdrawJoinRequestRequest) Reset() {
+	*x = WithdrawJoinRequestRequest{}
+}
+
+func (*WithdrawJoinRequestRequest) ProtoMessage() {}
+
+func (x *WithdrawJoinRequestRequest) GetSharedObjectId() string {
+	if x != nil {
+		return x.SharedObjectId
+	}
+	return ""
+}
+
+// WithdrawJoinRequestResponse is returned once no request from the caller
+// remains.
+type WithdrawJoinRequestResponse struct {
+	unknownFields []byte
+}
+
+func (x *WithdrawJoinRequestResponse) Reset() {
+	*x = WithdrawJoinRequestResponse{}
+}
+
+func (*WithdrawJoinRequestResponse) ProtoMessage() {}
+
 func (m *AcceptInviteRequest) CloneVT() *AcceptInviteRequest {
 	if m == nil {
 		return (*AcceptInviteRequest)(nil)
@@ -150,6 +183,37 @@ func (m *AcceptInviteResponse) CloneVT() *AcceptInviteResponse {
 }
 
 func (m *AcceptInviteResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *WithdrawJoinRequestRequest) CloneVT() *WithdrawJoinRequestRequest {
+	if m == nil {
+		return (*WithdrawJoinRequestRequest)(nil)
+	}
+	r := new(WithdrawJoinRequestRequest)
+	r.SharedObjectId = m.SharedObjectId
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *WithdrawJoinRequestRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *WithdrawJoinRequestResponse) CloneVT() *WithdrawJoinRequestResponse {
+	if m == nil {
+		return (*WithdrawJoinRequestResponse)(nil)
+	}
+	r := new(WithdrawJoinRequestResponse)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *WithdrawJoinRequestResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -205,6 +269,43 @@ func (this *AcceptInviteResponse) EqualVT(that *AcceptInviteResponse) bool {
 
 func (this *AcceptInviteResponse) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*AcceptInviteResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *WithdrawJoinRequestRequest) EqualVT(that *WithdrawJoinRequestRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.SharedObjectId != that.SharedObjectId {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *WithdrawJoinRequestRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*WithdrawJoinRequestRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *WithdrawJoinRequestResponse) EqualVT(that *WithdrawJoinRequestResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *WithdrawJoinRequestResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*WithdrawJoinRequestResponse)
 	if !ok {
 		return false
 	}
@@ -363,6 +464,78 @@ func (x *AcceptInviteResponse) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
+// MarshalProtoJSON marshals the WithdrawJoinRequestRequest message to JSON.
+func (x *WithdrawJoinRequestRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.SharedObjectId != "" || s.HasField("sharedObjectId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("sharedObjectId")
+		s.WriteString(x.SharedObjectId)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the WithdrawJoinRequestRequest to JSON.
+func (x *WithdrawJoinRequestRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the WithdrawJoinRequestRequest message from JSON.
+func (x *WithdrawJoinRequestRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "shared_object_id", "sharedObjectId":
+			s.AddField("shared_object_id")
+			x.SharedObjectId = s.ReadString()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the WithdrawJoinRequestRequest from JSON.
+func (x *WithdrawJoinRequestRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the WithdrawJoinRequestResponse message to JSON.
+func (x *WithdrawJoinRequestResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the WithdrawJoinRequestResponse to JSON.
+func (x *WithdrawJoinRequestResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the WithdrawJoinRequestResponse message from JSON.
+func (x *WithdrawJoinRequestResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		// no fields
+	})
+}
+
+// UnmarshalJSON unmarshals the WithdrawJoinRequestResponse from JSON.
+func (x *WithdrawJoinRequestResponse) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
 func (m *AcceptInviteRequest) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -492,6 +665,75 @@ func (m *AcceptInviteResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) 
 	return len(dAtA) - i, nil
 }
 
+func (m *WithdrawJoinRequestRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *WithdrawJoinRequestRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *WithdrawJoinRequestRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.SharedObjectId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.SharedObjectId)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *WithdrawJoinRequestResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *WithdrawJoinRequestResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *WithdrawJoinRequestResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *AcceptInviteRequest) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -531,6 +773,27 @@ func (m *AcceptInviteResponse) SizeVT() (n int) {
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
 	n += protobuf_go_lite.SizeBoolNonZero(1, m.Pending)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *WithdrawJoinRequestRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.SharedObjectId)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *WithdrawJoinRequestResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
 	n += len(m.unknownFields)
 	return n
 }
@@ -584,6 +847,30 @@ func (x *AcceptInviteResponse) MarshalProtoText() string {
 }
 
 func (x *AcceptInviteResponse) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *WithdrawJoinRequestRequest) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "WithdrawJoinRequestRequest")
+	if x.SharedObjectId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "shared_object_id")
+		protobuf_go_lite.TextWriteString(&sb, x.SharedObjectId)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *WithdrawJoinRequestRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *WithdrawJoinRequestResponse) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	protobuf_go_lite.TextStartMessage(&sb, "WithdrawJoinRequestResponse")
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *WithdrawJoinRequestResponse) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -753,6 +1040,102 @@ func (m *AcceptInviteResponse) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.Pending = bool(v)
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *WithdrawJoinRequestRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: WithdrawJoinRequestRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: WithdrawJoinRequestRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SharedObjectId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.SharedObjectId = v
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *WithdrawJoinRequestResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: WithdrawJoinRequestResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: WithdrawJoinRequestResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

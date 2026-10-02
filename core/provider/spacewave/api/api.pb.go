@@ -9002,6 +9002,28 @@ func (x *ProcessMailboxEntryResponse) GetStatus() string {
 	return ""
 }
 
+// WithdrawMailboxEntriesResponse is the response body for POST
+// /sobject/:id/invite-mailbox/withdraw. The request has no body: the
+// authenticated peer withdraws its own pending entries.
+type WithdrawMailboxEntriesResponse struct {
+	unknownFields []byte
+	// Withdrawn is the number of pending entries the peer withdrew.
+	Withdrawn uint32 `protobuf:"varint,1,opt,name=withdrawn,proto3" json:"withdrawn,omitempty"`
+}
+
+func (x *WithdrawMailboxEntriesResponse) Reset() {
+	*x = WithdrawMailboxEntriesResponse{}
+}
+
+func (*WithdrawMailboxEntriesResponse) ProtoMessage() {}
+
+func (x *WithdrawMailboxEntriesResponse) GetWithdrawn() uint32 {
+	if x != nil {
+		return x.Withdrawn
+	}
+	return 0
+}
+
 // KeypairAddResult is the multi-sig response payload for keypair add.
 type KeypairAddResult struct {
 	unknownFields []byte
@@ -14571,6 +14593,22 @@ func (m *ProcessMailboxEntryResponse) CloneVT() *ProcessMailboxEntryResponse {
 }
 
 func (m *ProcessMailboxEntryResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *WithdrawMailboxEntriesResponse) CloneVT() *WithdrawMailboxEntriesResponse {
+	if m == nil {
+		return (*WithdrawMailboxEntriesResponse)(nil)
+	}
+	r := new(WithdrawMailboxEntriesResponse)
+	r.Withdrawn = m.Withdrawn
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *WithdrawMailboxEntriesResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -21518,6 +21556,26 @@ func (this *ProcessMailboxEntryResponse) EqualVT(that *ProcessMailboxEntryRespon
 
 func (this *ProcessMailboxEntryResponse) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*ProcessMailboxEntryResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *WithdrawMailboxEntriesResponse) EqualVT(that *WithdrawMailboxEntriesResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Withdrawn != that.Withdrawn {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *WithdrawMailboxEntriesResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*WithdrawMailboxEntriesResponse)
 	if !ok {
 		return false
 	}
@@ -36796,6 +36854,48 @@ func (x *ProcessMailboxEntryResponse) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
+// MarshalProtoJSON marshals the WithdrawMailboxEntriesResponse message to JSON.
+func (x *WithdrawMailboxEntriesResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Withdrawn != 0 || s.HasField("withdrawn") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("withdrawn")
+		s.WriteUint32(x.Withdrawn)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the WithdrawMailboxEntriesResponse to JSON.
+func (x *WithdrawMailboxEntriesResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the WithdrawMailboxEntriesResponse message from JSON.
+func (x *WithdrawMailboxEntriesResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "withdrawn":
+			s.AddField("withdrawn")
+			x.Withdrawn = s.ReadUint32()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the WithdrawMailboxEntriesResponse from JSON.
+func (x *WithdrawMailboxEntriesResponse) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
 // MarshalProtoJSON marshals the KeypairAddResult message to JSON.
 func (x *KeypairAddResult) MarshalProtoJSON(s *json.MarshalState) {
 	if x == nil {
@@ -50204,6 +50304,43 @@ func (m *ProcessMailboxEntryResponse) MarshalToSizedBufferVT(dAtA []byte) (int, 
 	return len(dAtA) - i, nil
 }
 
+func (m *WithdrawMailboxEntriesResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *WithdrawMailboxEntriesResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *WithdrawMailboxEntriesResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.Withdrawn != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Withdrawn))
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *KeypairAddResult) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -55604,6 +55741,17 @@ func (m *ProcessMailboxEntryResponse) SizeVT() (n int) {
 	var l int
 	_ = l
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Status)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *WithdrawMailboxEntriesResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Withdrawn)
 	n += len(m.unknownFields)
 	return n
 }
@@ -61580,6 +61728,20 @@ func (x *ProcessMailboxEntryResponse) MarshalProtoText() string {
 }
 
 func (x *ProcessMailboxEntryResponse) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *WithdrawMailboxEntriesResponse) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "WithdrawMailboxEntriesResponse")
+	if x.Withdrawn != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "withdrawn")
+		protobuf_go_lite.TextWriteUint(&sb, x.Withdrawn)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *WithdrawMailboxEntriesResponse) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -78978,6 +79140,58 @@ func (m *ProcessMailboxEntryResponse) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.Status = v
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *WithdrawMailboxEntriesResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: WithdrawMailboxEntriesResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: WithdrawMailboxEntriesResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Withdrawn", wireType)
+			}
+			m.Withdrawn = 0
+			m.Withdrawn, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

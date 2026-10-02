@@ -30,6 +30,10 @@ type LeaveFn func(context.Context, *sobject.SOLeaveRequest) (*sobject.SOLeaveRes
 // QueueFn holds a redemption as a join request for an owner to grant or refuse.
 type QueueFn func(ctx context.Context, result *InviteLookupResult, joinResp *sobject.SOJoinResponse) error
 
+// WithdrawFn removes the pending join request of peerID to join the shared
+// object, succeeding when none remains.
+type WithdrawFn func(ctx context.Context, sharedObjectID string, peerID peer.ID) error
+
 // HeldConfigFn returns the host's own configuration of a Space, or nil when
 // the host does not hold it.
 type HeldConfigFn func(ctx context.Context, sharedObjectID string) (*sobject.SharedObjectConfig, error)
@@ -44,6 +48,8 @@ type Handlers struct {
 	Leave LeaveFn
 	// Queue holds join requests; nil refuses redemptions that need approval.
 	Queue QueueFn
+	// Withdraw removes join requests; nil holds none to remove.
+	Withdraw WithdrawFn
 	// HeldConfig reads the Spaces a participant_of invite names; nil holds none.
 	HeldConfig HeldConfigFn
 }
@@ -81,6 +87,30 @@ func (s *Server) Leave(ctx context.Context, request *sobject.SOLeaveRequest) (*s
 		return nil, errors.New("voluntary departure is unavailable")
 	}
 	return s.h.Leave(ctx, request)
+}
+
+// WithdrawJoinRequest removes the stream peer's pending join request.
+func (s *Server) WithdrawJoinRequest(ctx context.Context, req *WithdrawJoinRequestRequest) (*WithdrawJoinRequestResponse, error) {
+	// Validate the request.
+	soID := req.GetSharedObjectId()
+	if soID == "" {
+		return nil, errors.New("shared_object_id is required")
+	}
+
+	// Only the authenticated requester withdraws its own request.
+	stream := link.GetMountedStreamContext(ctx)
+	if stream == nil {
+		return nil, errors.New("no mounted stream context")
+	}
+
+	// A host that holds no join requests has none to remove.
+	if s.h.Withdraw == nil {
+		return &WithdrawJoinRequestResponse{}, nil
+	}
+	if err := s.h.Withdraw(ctx, soID, stream.GetPeerID()); err != nil {
+		return nil, err
+	}
+	return &WithdrawJoinRequestResponse{}, nil
 }
 
 // AcceptInvite processes a join request from an invitee.

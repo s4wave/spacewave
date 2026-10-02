@@ -9236,6 +9236,30 @@ export const ProcessMailboxEntryResponse: MessageType<ProcessMailboxEntryRespons
   })
 
 /**
+ * WithdrawMailboxEntriesResponse is the response body for POST
+ * /sobject/:id/invite-mailbox/withdraw. The request has no body: the
+ * authenticated peer withdraws its own pending entries.
+ *
+ * @generated from message provider.spacewave.api.WithdrawMailboxEntriesResponse
+ */
+export interface WithdrawMailboxEntriesResponse {
+  /**
+   * Withdrawn is the number of pending entries the peer withdrew.
+   *
+   * @generated from field: uint32 withdrawn = 1;
+   */
+  withdrawn?: number
+}
+
+export const WithdrawMailboxEntriesResponse: MessageType<WithdrawMailboxEntriesResponse> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'provider.spacewave.api.WithdrawMailboxEntriesResponse',
+    fields: [
+      { no: 1, name: 'withdrawn', kind: 'scalar', T: ScalarType.UINT32 },
+    ] satisfies readonly PartialFieldInfo[],
+  })
+
+/**
  * KeypairAddResult is the multi-sig response payload for keypair add.
  *
  * @generated from message provider.spacewave.api.KeypairAddResult

@@ -1217,6 +1217,19 @@ func (a *ProviderAccount) startInviteServer(ctx context.Context, childBus bus.Bu
 		return so.QueueJoinRequest(ctx, joinResp)
 	}
 
+	// Build withdraw function: drop a requester's held redemption.
+	withdrawFn := func(ctx context.Context, sharedObjectID string, peerID peer.ID) error {
+		// Mount the shared object; one this account does not hold has no requests.
+		so, relSO, err := a.mountListedSharedObject(ctx, sharedObjectID)
+		if err != nil || so == nil {
+			return err
+		}
+		defer relSO()
+
+		// Remove the request, if one is still pending.
+		return so.WithdrawJoinRequest(ctx, peerID.String())
+	}
+
 	// Build held config function: read the config of a Space this account holds.
 	heldConfigFn := func(ctx context.Context, sharedObjectID string) (*sobject.SharedObjectConfig, error) {
 		// Mount the shared object, or report nothing when it is not held.
@@ -1243,6 +1256,7 @@ func (a *ProviderAccount) startInviteServer(ctx context.Context, childBus bus.Bu
 			Enroll:     enrollFn,
 			Leave:      a.acceptSharedObjectLeave,
 			Queue:      queueFn,
+			Withdraw:   withdrawFn,
 			HeldConfig: heldConfigFn,
 		},
 		[]string{localPeerID},

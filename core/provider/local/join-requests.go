@@ -64,6 +64,15 @@ func (s *SharedObject) RemoveJoinRequest(ctx context.Context, peerID string) err
 	})
 }
 
+// WithdrawJoinRequest removes the pending request of peerID, if any.
+func (s *SharedObject) WithdrawJoinRequest(ctx context.Context, peerID string) error {
+	return s.updateJoinRequests(ctx, func(requests []*sobject.SOJoinRequest) ([]*sobject.SOJoinRequest, error) {
+		return slices.DeleteFunc(requests, func(req *sobject.SOJoinRequest) bool {
+			return req.GetJoinResponse().GetResponderPeerId() == peerID
+		}), nil
+	})
+}
+
 // updateJoinRequests persists an edit of the pending requests, then publishes it.
 func (s *SharedObject) updateJoinRequests(
 	ctx context.Context,
