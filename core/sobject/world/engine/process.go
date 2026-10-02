@@ -63,9 +63,6 @@ func (c *Controller) processOp(
 		if headState.GetHeadRef().GetEmpty() {
 			return rejectOp(ole, peerID, nonce, "world is not initialized")
 		}
-		if body.ApplyTxOp.GetStorageGeneration() != headState.GetStorageGeneration() {
-			return rejectOp(ole, peerID, nonce, "storage generation is stale")
-		}
 
 		// Build world state with engine once for all operations
 		var ws *blkEngine
@@ -97,15 +94,6 @@ func (c *Controller) processOp(
 			ole.Debugf("applied world txn op: %v", body.ApplyTxOp.GetTx().GetTxType().String())
 		}
 		return nhs, res, nil
-	case *SOWorldOp_AdvanceStorageGeneration:
-		return c.processAdvanceStorageGenerationOp(
-			ole,
-			so,
-			body.AdvanceStorageGeneration,
-			headState,
-			peerID,
-			nonce,
-		)
 	case *SOWorldOp_SetRetainedRoot:
 		return processSetRetainedRootOp(ole, body.SetRetainedRoot, headState, peerID, nonce)
 	default:
@@ -139,37 +127,6 @@ func (c *Controller) processInitWorldOp(
 		return nil, nil, err
 	}
 	return finalState, sobject.BuildSOOperationResult(peerID.String(), nonce, true, nil), nil
-}
-
-// processAdvanceStorageGenerationOp advances the storage generation. Only the
-// validator processing the operation may submit it, so the device reclaiming
-// storage also decides which candidates the new generation rejects.
-func (c *Controller) processAdvanceStorageGenerationOp(
-	le *logrus.Entry,
-	so sobject.SharedObject,
-	advanceOp *AdvanceStorageGenerationOp,
-	headState *InnerState,
-	peerID peer.ID,
-	nonce uint64,
-) (*InnerState, *sobject.SOOperationResult, error) {
-	// Accept only the validator's advance of the accepted generation.
-	if so == nil || peerID != so.GetPeerID() {
-		le.Warn("rejecting storage generation advance: not submitted by the validator")
-		return nil, opRejection(peerID, nonce, "storage generation advance must come from the validator"), nil
-	}
-	if headState.GetHeadRef().GetEmpty() {
-		le.Warn("rejecting storage generation advance: world is not initialized")
-		return nil, opRejection(peerID, nonce, "world is not initialized"), nil
-	}
-	if advanceOp.GetStorageGeneration() != headState.GetStorageGeneration() {
-		le.Warn("rejecting storage generation advance: storage generation is stale")
-		return nil, opRejection(peerID, nonce, "storage generation is stale"), nil
-	}
-
-	// Advance it.
-	nextHeadState := headState.CloneVT()
-	nextHeadState.StorageGeneration++
-	return nextHeadState, sobject.BuildSOOperationResult(peerID.String(), nonce, true, nil), nil
 }
 
 // rejectOp rejects the operation nonce submitted by peerID with msg, or

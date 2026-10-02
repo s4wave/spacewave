@@ -71,13 +71,10 @@ func (c *Controller) executeWatchSOStateOnce(
 	}
 	head := state.GetHeadRef()
 
-	// Publish the accepted head and wake maintenance after successful adoption.
+	// Publish the accepted head.
 	taskCtx, task2 := trace.NewTask(ctx, "alpha/watch-state/update-engine-state")
 	err = soEngine.updateEngineState(taskCtx, head)
 	task2.End()
-	if err == nil {
-		c.notifyWrite()
-	}
 	return err
 }
 

@@ -9,7 +9,6 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/util/backoff"
-	"github.com/aperturerobotics/util/broadcast"
 	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/aperturerobotics/util/csync"
 	"github.com/aperturerobotics/util/routine"
@@ -39,8 +38,6 @@ type Controller struct {
 
 	// processOpsAsValidator is the routine to process incoming operations as a validator.
 	processOpsAsValidator *routine.RoutineContainer
-	// storageReclaim is the routine that schedules storage reclaim passes.
-	storageReclaim *routine.RoutineContainer
 
 	// sfs constructs the World block transformers.
 	sfs *block_transform.StepFactorySet
@@ -48,10 +45,6 @@ type Controller struct {
 	staticLookupOpMu sync.RWMutex
 	// staticLookupOp supplies built-in operations before bus lookup.
 	staticLookupOp world.LookupOp
-
-	// writeBcast is broadcast after local commits and authoritative state updates.
-	// The storage reclaim routine schedules a pass after each broadcast.
-	writeBcast broadcast.Broadcast
 
 	// writeMtx guards write transactions / updating local state due to watching SOState.
 	// only one of the two activities will be active at a time.
@@ -68,14 +61,12 @@ type Controller struct {
 }
 
 // commitResult caches a foreground commit result for replay adoption.
-// Replay consumers can adopt this result when the base root ref, storage
-// generation, and op bytes match, avoiding expensive re-execution of processOp.
+// Replay consumers can adopt this result when the base root ref and op bytes
+// match, avoiding expensive re-execution of processOp.
 // It is immutable once published to the validator.
 type commitResult struct {
 	// baseRootRef identifies the accepted World used to compute the candidate.
 	baseRootRef *block.BlockRef
-	// storageGeneration is the storage generation the candidate was built on.
-	storageGeneration uint64
 	// opData is the exact encoded operation used to compute the candidate.
 	opData []byte
 	// resultRef is the candidate World head.
@@ -102,10 +93,6 @@ func NewController(
 		engineID:  conf.GetEngineId(),
 
 		processOpsAsValidator: routine.NewRoutineContainer(
-			routine.WithExitLogger(le),
-			routine.WithRetry(processBackoff),
-		),
-		storageReclaim: routine.NewRoutineContainer(
 			routine.WithExitLogger(le),
 			routine.WithRetry(processBackoff),
 		),
@@ -266,13 +253,6 @@ func (c *Controller) executeWorld(
 	le.WithField("world-seqno", seqno).Info("world engine ready")
 	c.engineCtr.SetValue(&wengine)
 	defer c.engineCtr.SetValue(nil)
-
-	// Start the storage reclaim routine, gated on the validator or owner role.
-	_, _ = c.storageReclaim.SetRoutine(func(ctx context.Context) error {
-		return c.executeStorageReclaim(ctx, so)
-	})
-	_ = c.storageReclaim.SetContext(ctx, true)
-	defer c.storageReclaim.ClearContext()
 
 	// Follow accepted state into the World.
 	return c.executeWatchSOState(ctx, soStateCtr, engine)

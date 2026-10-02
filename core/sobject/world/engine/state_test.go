@@ -125,67 +125,6 @@ func TestExecuteProcessOpsWaitsForReadmission(t *testing.T) {
 	}
 }
 
-// TestExecuteWatchSOStateOnceSignalsGCSweepMaintenance verifies that
-// authoritative watch-state updates wake the GC maintenance routine.
-func TestExecuteWatchSOStateOnceSignalsGCSweepMaintenance(t *testing.T) {
-	ctx := context.Background()
-
-	tb, err := alpha_testbed.Default(ctx)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	defer tb.Release()
-
-	ocs, err := tb.BuildEmptyCursor(ctx)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	defer ocs.Release()
-
-	bengine, err := world_block.NewEngine(ctx, tb.Logger, ocs, world_mock.LookupMockOp, nil, false)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-
-	headRef := bengine.GetRootRef().CloneVT()
-	headRef.BucketId = ""
-	stateData, err := (&InnerState{HeadRef: headRef}).MarshalVT()
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-
-	c := &Controller{le: tb.Logger}
-	so := &testSharedObject{
-		blockStore: newTestBlockStore(tb.EngineBucketID, tb.Volume),
-	}
-	soEngine := &soEngine{
-		c:       c,
-		so:      so,
-		bengine: bengine,
-	}
-	snap := &testSharedObjectSnapshot{
-		rootInner: &sobject.SORootInner{
-			Seqno:     1,
-			StateData: stateData,
-		},
-	}
-
-	var waitCh <-chan struct{}
-	c.writeBcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
-		waitCh = getWaitCh()
-	})
-
-	if err := c.executeWatchSOStateOnce(ctx, snap, soEngine); err != nil {
-		t.Fatal(err.Error())
-	}
-
-	select {
-	case <-waitCh:
-	default:
-		t.Fatal("expected watch-state update to signal gc sweep maintenance")
-	}
-}
-
 func TestBuildLookupWorldOpObservesStaticLookupSetAfterBuild(t *testing.T) {
 	ctx := context.Background()
 	c := &Controller{conf: &Config{DisableLookup: true}}

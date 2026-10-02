@@ -243,9 +243,8 @@ func (e *soEngine) NewTransaction(ctx context.Context, write bool) (world.Tx, er
 	_, holdWriteMtxTask := trace.NewTask(ctx, "alpha/so-engine/write-tx/hold-write-mtx")
 	unlockWriteMtx = wrapReleaseWithTask(unlockWriteMtx, holdWriteMtxTask)
 
-	// Refresh the transaction bases and storage generation from one accepted
-	// snapshot. The watcher may still be waiting for writeMtx after a remote
-	// root has advanced.
+	// Refresh the transaction bases from one accepted snapshot. The watcher
+	// may still be waiting for writeMtx after a remote root has advanced.
 	snapshot, err := e.so.GetSharedObjectState(ctx)
 	if err != nil {
 		unlockWriteMtx()
@@ -298,7 +297,7 @@ func (e *soEngine) NewTransaction(ctx context.Context, write bool) (world.Tx, er
 	}
 
 	// Return the txn wrapper.
-	return newSoEngineWriteTx(ttx, btx, e, baseRoot.CloneVT(), state.GetStorageGeneration(), unlockWriteMtx), nil
+	return newSoEngineWriteTx(ttx, btx, e, baseRoot.CloneVT(), unlockWriteMtx), nil
 }
 
 // BuildStorageCursor builds a cursor to the world storage with an empty ref.

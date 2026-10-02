@@ -25,8 +25,6 @@ type soEngineWriteTx struct {
 	eng *soEngine
 	// baseRoot is the accepted SharedObject root captured before the write fork.
 	baseRoot *sobject.SORoot
-	// storageGeneration is the accepted storage generation captured with baseRoot.
-	storageGeneration uint64
 	// unlockWriteMtx releases the write mutex once, including repeated Discard calls.
 	unlockWriteMtx func()
 	// candidateRoot is the committed candidate World root whose staging
@@ -44,16 +42,14 @@ func newSoEngineWriteTx(
 	btx *world_block.Tx,
 	eng *soEngine,
 	baseRoot *sobject.SORoot,
-	storageGeneration uint64,
 	unlockWriteMtx func(),
 ) *soEngineWriteTx {
 	return &soEngineWriteTx{
-		WorldState:        worldState,
-		btx:               btx,
-		eng:               eng,
-		baseRoot:          baseRoot,
-		storageGeneration: storageGeneration,
-		unlockWriteMtx:    unlockWriteMtx,
+		WorldState:     worldState,
+		btx:            btx,
+		eng:            eng,
+		baseRoot:       baseRoot,
+		unlockWriteMtx: unlockWriteMtx,
 	}
 }
 
@@ -134,7 +130,7 @@ func (t *soEngineWriteTx) Commit(ctx context.Context) error {
 	// generation fences the candidate against bucket reclamation.
 	op := &SOWorldOp{
 		Body: &SOWorldOp_ApplyTxOp{
-			ApplyTxOp: &ApplyTxOp{Tx: tx, StorageGeneration: t.storageGeneration},
+			ApplyTxOp: &ApplyTxOp{Tx: tx},
 		},
 	}
 
@@ -185,12 +181,11 @@ func (t *soEngineWriteTx) Commit(ctx context.Context) error {
 
 	// Cache the commit result for validator replay adoption. The validator
 	// can adopt this instead of re-executing processOp when the base root
-	// ref, storage generation, and op bytes match.
+	// ref and op bytes match.
 	t.eng.c.lastCommitResult.Store(&commitResult{
-		baseRootRef:       baseObjRef.GetRootRef(),
-		storageGeneration: t.storageGeneration,
-		opData:            opData,
-		resultRef:         nextStoredObjRef.CloneVT(),
+		baseRootRef: baseObjRef.GetRootRef(),
+		opData:      opData,
+		resultRef:   nextStoredObjRef.CloneVT(),
 	})
 
 	// Wait for authority without allowing the watcher to replace the write base.
@@ -244,9 +239,6 @@ func (t *soEngineWriteTx) Commit(ctx context.Context) error {
 	// authority can no longer accept them.
 	t.candidateRoot = nroot
 	t.settledRoots, t.eng.unsettled = t.eng.unsettled, nil
-
-	// Wake maintenance only after the accepted World is visible locally.
-	t.eng.c.notifyWrite()
 	return nil
 }
 

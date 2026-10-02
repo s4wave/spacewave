@@ -158,12 +158,10 @@ func (c *Controller) replayOp(
 	opIdx int,
 	headState *InnerState,
 ) (*InnerState, *sobject.SOOperationResult, error) {
-	// Adopt the foreground result of the same operation on the same base and
-	// storage generation.
+	// Adopt the foreground result of the same operation on the same base.
 	cached := c.lastCommitResult.Load()
 	if cached != nil &&
 		cached.baseRootRef.EqualsRef(headState.GetHeadRef().GetRootRef()) &&
-		cached.storageGeneration == headState.GetStorageGeneration() &&
 		bytes.Equal(cached.opData, opInner.GetOpData()) {
 		next := headState.CloneVT()
 		next.HeadRef = cached.resultRef.CloneVT()

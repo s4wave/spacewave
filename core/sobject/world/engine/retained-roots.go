@@ -28,63 +28,30 @@ const retainedRootsName = "retained-roots"
 // proofs of the retained roots.
 const retainedRootsProofStoreID = "retained-root-retention"
 
-// setRetainedRootAttempts bounds the resubmissions of a SetRetainedRootOp
-// rejected because a storage reclaim pass advanced the generation.
-const setRetainedRootAttempts = 3
-
 // errRetainedRootNotHead is returned when the root to retain is no longer the
 // accepted World head.
 var errRetainedRootNotHead = errors.New("root is not the accepted World head, export it again")
 
 // SetRetainedRoot submits a SetRetainedRootOp and waits for the validator's
-// decision. ref must be the accepted head, so the operation names the
-// generation the head was accepted on: until that generation advances, no
-// reclaim pass has judged the head's blocks. A rejection caused by a
-// concurrent advance resubmits while ref is still the head, which the
-// validator holds through the pass.
+// decision. ref must be the accepted head or empty.
 func (e *soEngine) SetRetainedRoot(ctx context.Context, name string, ref *block.BlockRef) error {
 	if err := validateRetainedRootName(name); err != nil {
 		return err
 	}
-	for attempt := 1; ; attempt++ {
-		var generation uint64
-		rejected, err := e.c.commitMaintenanceOp(ctx, e.so, func(state *InnerState) (*SOWorldOp, error) {
-			if !ref.GetEmpty() && !ref.EqualVT(state.GetHeadRef().GetRootRef()) {
-				return nil, errRetainedRootNotHead
-			}
-			generation = state.GetStorageGeneration()
-			return &SOWorldOp{
-				Body: &SOWorldOp_SetRetainedRoot{
-					SetRetainedRoot: &SetRetainedRootOp{
-						Name:              name,
-						RootRef:           ref,
-						StorageGeneration: generation,
-					},
-				},
-			}, nil
-		})
-		if !rejected || attempt == setRetainedRootAttempts {
-			return err
+	_, err := e.c.commitMaintenanceOp(ctx, e.so, func(state *InnerState) (*SOWorldOp, error) {
+		if !ref.GetEmpty() && !ref.EqualVT(state.GetHeadRef().GetRootRef()) {
+			return nil, errRetainedRootNotHead
 		}
-
-		// Resubmit only when the generation moved past the operation.
-		snap, serr := e.so.GetSharedObjectState(ctx)
-		if serr != nil {
-			return serr
-		}
-		state, serr := ReadInnerState(ctx, snap)
-		if serr != nil {
-			return serr
-		}
-		if state.GetStorageGeneration() == generation {
-			return err
-		}
-	}
+		return &SOWorldOp{
+			Body: &SOWorldOp_SetRetainedRoot{
+				SetRetainedRoot: &SetRetainedRootOp{Name: name, RootRef: ref},
+			},
+		}, nil
+	})
+	return err
 }
 
-// processSetRetainedRootOp sets or releases one retained root. The operation
-// must name the accepted storage generation: after an advance, the reclaim
-// pass may be deleting packs that hold blocks the validator has not copied.
+// processSetRetainedRootOp sets or releases one retained root.
 func processSetRetainedRootOp(
 	le *logrus.Entry,
 	setOp *SetRetainedRootOp,
@@ -92,12 +59,9 @@ func processSetRetainedRootOp(
 	peerID peer.ID,
 	nonce uint64,
 ) (*InnerState, *sobject.SOOperationResult, error) {
-	// Check the name and the generation.
+	// Check the name.
 	if err := validateRetainedRootName(setOp.GetName()); err != nil {
 		return rejectOp(le, peerID, nonce, err.Error())
-	}
-	if setOp.GetStorageGeneration() != headState.GetStorageGeneration() {
-		return rejectOp(le, peerID, nonce, "storage generation is stale")
 	}
 
 	// Replace, add, or remove the entry, keeping the list sorted by name.
@@ -133,9 +97,8 @@ func validateRetainedRootName(name string) error {
 
 // retainRoots copies every retained root's World graph into the local store
 // and holds the set under one local named root, releasing roots no longer in
-// the set. The local store is the liveness test of storage reclaim, so the
-// participant running reclaim calls this before each pass. Returns
-// block.ErrNotFound when a root's block is missing locally and from storage.
+// the set. Returns block.ErrNotFound when a root's block is missing locally
+// and from storage.
 func (c *Controller) retainRoots(ctx context.Context, so sobject.SharedObject, roots []*RetainedRoot) error {
 	// Serialize with other retainRoots calls.
 	c.retainMtx.Lock()
@@ -176,6 +139,55 @@ func (c *Controller) retainRoots(ctx context.Context, so sobject.SharedObject, r
 		return err
 	}
 	return block.SetRetainedRoot(ctx, store, retainedRootsName, setRef)
+}
+
+// commitMaintenanceOp builds an operation on the accepted World state, queues
+// it, and waits for the validator's decision. A rejection is cleared from the
+// SharedObject state and returned as rejected with its error.
+//
+// The operation advances the SharedObject root like a foreground write, so it
+// holds writeMtx from building until the decision. Otherwise a write
+// transaction open across it would commit against a stale base.
+func (c *Controller) commitMaintenanceOp(
+	ctx context.Context,
+	so sobject.SharedObject,
+	build func(state *InnerState) (*SOWorldOp, error),
+) (bool, error) {
+	// Exclude write transactions until the decision.
+	unlockWriteMtx, err := c.writeMtx.Lock(ctx)
+	if err != nil {
+		return false, err
+	}
+	defer unlockWriteMtx()
+
+	// Build the operation on the accepted World state.
+	snap, err := so.GetSharedObjectState(ctx)
+	if err != nil {
+		return false, err
+	}
+	state, err := ReadInnerState(ctx, snap)
+	if err != nil {
+		return false, err
+	}
+	op, err := build(state)
+	if err != nil {
+		return false, err
+	}
+
+	// Queue it and wait for the decision.
+	opData, err := op.MarshalVT()
+	if err != nil {
+		return false, err
+	}
+	localOpID, err := so.QueueOperation(ctx, opData)
+	if err != nil {
+		return false, err
+	}
+	_, rejected, err := so.WaitOperation(ctx, localOpID)
+	if rejected {
+		_ = so.ClearOperationResult(ctx, localOpID)
+	}
+	return rejected, err
 }
 
 // _ is a type assertion

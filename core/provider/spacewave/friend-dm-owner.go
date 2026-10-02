@@ -443,9 +443,8 @@ func reconcileFriendDmParticipants(
 
 // marshalFriendDmChannelWorldOp builds the channel creation operation. It is
 // an authenticated World operation, so replay takes the sender from the
-// verified SharedObject signer rather than the transaction. storageGeneration
-// is the accepted storage generation of the World.
-func marshalFriendDmChannelWorldOp(storageGeneration uint64) ([]byte, error) {
+// verified SharedObject signer rather than the transaction.
+func marshalFriendDmChannelWorldOp() ([]byte, error) {
 	// Build the transaction that creates the channel.
 	op := &spacewave_chat.CreateChatChannelOp{
 		ObjectKey: FriendDmChannelObjectKey,
@@ -457,10 +456,10 @@ func marshalFriendDmChannelWorldOp(storageGeneration uint64) ([]byte, error) {
 		return nil, errors.Wrap(err, "build friend dm channel transaction")
 	}
 
-	// Wrap it in a World operation on storageGeneration.
+	// Wrap it in a World operation.
 	worldOp := &sobject_world_engine.SOWorldOp{
 		Body: &sobject_world_engine.SOWorldOp_ApplyTxOp{
-			ApplyTxOp: &sobject_world_engine.ApplyTxOp{Tx: tx, StorageGeneration: storageGeneration},
+			ApplyTxOp: &sobject_world_engine.ApplyTxOp{Tx: tx},
 		},
 	}
 	opData, err := worldOp.MarshalVT()
@@ -499,16 +498,8 @@ func ensureFriendDmChannel(
 		return nil
 	}
 
-	// Build the creation on the accepted storage generation.
-	snap, err := swSO.GetSharedObjectState(ctx)
-	if err != nil {
-		return err
-	}
-	state, err := sobject_world_engine.ReadInnerState(ctx, snap)
-	if err != nil {
-		return err
-	}
-	opData, err := marshalFriendDmChannelWorldOp(state.GetStorageGeneration())
+	// Build the creation.
+	opData, err := marshalFriendDmChannelWorldOp()
 	if err != nil {
 		return err
 	}

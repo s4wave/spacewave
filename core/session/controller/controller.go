@@ -122,14 +122,17 @@ func (c *Controller) GetSessionBroadcast() *broadcast.Broadcast {
 // GetSessionByIdx looks up the given session index.
 // Returns nil, nil if not found.
 func (c *Controller) GetSessionByIdx(ctx context.Context, idx uint32) (*session.SessionListEntry, error) {
+	// Serialize access to the session list.
 	c.mtx.Lock()
 	defer c.mtx.Unlock()
 
+	// Open the sessions object store.
 	objStore, err := c.buildObjectStoreLocked(ctx)
 	if err != nil {
 		return nil, err
 	}
 
+	// Read the session entry at the index.
 	var val *session.SessionListEntry
 	err = kvtx.RunTransaction(ctx, false,
 		func(ctx context.Context) (kvtx.Tx, error) {
@@ -221,9 +224,11 @@ func sessionMetaKey(idx uint32) []byte {
 // RegisterSession registers a session ref in storage or returns the existing matching entry.
 // If metadata is non-nil, it is written to the session controller ObjectStore.
 func (c *Controller) RegisterSession(ctx context.Context, ref *session.SessionRef, metadata *session.SessionMetadata) (*session.SessionListEntry, error) {
+	// Serialize access to the session list.
 	c.mtx.Lock()
 	defer c.mtx.Unlock()
 
+	// Open the sessions object store.
 	objStore, err := c.buildObjectStoreLocked(ctx)
 	if err != nil {
 		return nil, err
@@ -242,7 +247,7 @@ func (c *Controller) RegisterSession(ctx context.Context, ref *session.SessionRe
 		defer scrub.Scrub(metadataData)
 	}
 
-	// Replay the complete census and write against one storage generation.
+	// Replay the complete census and write in one transaction.
 	var result *session.SessionListEntry
 	var created bool
 	var resultData []byte
@@ -311,6 +316,7 @@ func (c *Controller) RegisterSession(ctx context.Context, ref *session.SessionRe
 		c.GetLogger().WithError(invalidEntryErr).Warn("ignoring invalid session list entry")
 	}
 
+	// Wake session list watchers.
 	if created {
 		c.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 			broadcast()
@@ -322,14 +328,17 @@ func (c *Controller) RegisterSession(ctx context.Context, ref *session.SessionRe
 // GetSessionMetadata returns the metadata for a session by index.
 // Returns nil, nil if not found.
 func (c *Controller) GetSessionMetadata(ctx context.Context, idx uint32) (*session.SessionMetadata, error) {
+	// Serialize access to the session list.
 	c.mtx.Lock()
 	defer c.mtx.Unlock()
 
+	// Open the sessions object store.
 	objStore, err := c.buildObjectStoreLocked(ctx)
 	if err != nil {
 		return nil, err
 	}
 
+	// Read the session metadata at the index.
 	var val *session.SessionMetadata
 	err = kvtx.RunTransaction(ctx, false,
 		func(ctx context.Context) (kvtx.Tx, error) {
@@ -359,21 +368,24 @@ func (c *Controller) GetSessionMetadata(ctx context.Context, idx uint32) (*sessi
 // UpdateSessionMetadata updates the metadata for a session by ref.
 // Does nothing if no session entry matches the ref.
 func (c *Controller) UpdateSessionMetadata(ctx context.Context, ref *session.SessionRef, metadata *session.SessionMetadata) error {
+	// Serialize access to the session list.
 	c.mtx.Lock()
 	defer c.mtx.Unlock()
 
+	// Open the sessions object store.
 	objStore, err := c.buildObjectStoreLocked(ctx)
 	if err != nil {
 		return err
 	}
 
+	// Encode the metadata once before the transaction can replay.
 	metaData, err := metadata.MarshalVT()
 	if err != nil {
 		return err
 	}
 	defer scrub.Scrub(metaData)
 
-	// Replay the ref lookup and write against one storage generation.
+	// Replay the ref lookup and write in one transaction.
 	var updated bool
 	err = kvtx.RunTransaction(ctx, true,
 		func(ctx context.Context) (kvtx.Tx, error) {
@@ -411,6 +423,7 @@ func (c *Controller) UpdateSessionMetadata(ctx context.Context, ref *session.Ses
 		return err
 	}
 
+	// Wake session list watchers.
 	if updated {
 		c.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 			broadcast()
@@ -422,15 +435,17 @@ func (c *Controller) UpdateSessionMetadata(ctx context.Context, ref *session.Ses
 // DeleteSession removes the matching session ref from the list.
 // Returns nil if not found.
 func (c *Controller) DeleteSession(ctx context.Context, ref *session.SessionRef) error {
+	// Serialize access to the session list.
 	c.mtx.Lock()
 	defer c.mtx.Unlock()
 
+	// Open the sessions object store.
 	objStore, err := c.buildObjectStoreLocked(ctx)
 	if err != nil {
 		return err
 	}
 
-	// Replay the scan and delete against one storage generation.
+	// Replay the scan and delete in one transaction.
 	var deleted bool
 	var invalidEntryErrs []error
 	err = kvtx.RunTransaction(ctx, true,
@@ -480,6 +495,7 @@ func (c *Controller) DeleteSession(ctx context.Context, ref *session.SessionRef)
 		c.GetLogger().WithError(invalidEntryErr).Warn("ignoring invalid session list entry")
 	}
 
+	// Wake session list watchers.
 	if deleted {
 		c.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 			broadcast()

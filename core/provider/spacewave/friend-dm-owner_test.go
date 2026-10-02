@@ -15,11 +15,10 @@ import (
 	spacewave_chat "github.com/s4wave/spacewave/sdk/chat"
 )
 
-// TestMarshalFriendDmChannelWorldOp builds an authenticated channel creation
-// on the given storage generation.
+// TestMarshalFriendDmChannelWorldOp builds an authenticated channel creation.
 func TestMarshalFriendDmChannelWorldOp(t *testing.T) {
 	// Decode the World operation.
-	data, err := marshalFriendDmChannelWorldOp(7)
+	data, err := marshalFriendDmChannelWorldOp()
 	if err != nil {
 		t.Fatalf("marshalFriendDmChannelWorldOp: %v", err)
 	}
@@ -28,13 +27,10 @@ func TestMarshalFriendDmChannelWorldOp(t *testing.T) {
 		t.Fatalf("unmarshal world op: %v", err)
 	}
 
-	// Check the transaction envelope and its storage generation.
+	// Check the transaction envelope.
 	apply := worldOp.GetApplyTxOp()
 	if apply == nil || apply.GetTx() == nil {
 		t.Fatal("expected ApplyTxOp envelope")
-	}
-	if apply.GetStorageGeneration() != 7 {
-		t.Fatalf("storage generation = %d", apply.GetStorageGeneration())
 	}
 	tx := apply.GetTx()
 	if tx.GetTxType() != world_block_tx.TxType_TxType_APPLY_WORLD_OP {

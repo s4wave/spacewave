@@ -240,16 +240,8 @@ export interface InnerState {
    */
   headRef?: ObjectRef
   /**
-   * StorageGeneration is the storage generation of the accepted World.
-   * The Space authority advances it before reclaiming unreachable blocks from
-   * the storage bucket. Transactions built on an older generation are rejected.
-   *
-   * @generated from field: uint64 storage_generation = 2;
-   */
-  storageGeneration?: bigint
-  /**
    * RetainedRoots are past World roots the Space keeps restorable, sorted by
-   * name. Storage reclaim treats every block they reach as live.
+   * name.
    *
    * @generated from field: repeated sobject.world.engine.RetainedRoot retained_roots = 3;
    */
@@ -261,12 +253,6 @@ export const InnerState: MessageType<InnerState> =
     typeName: 'sobject.world.engine.InnerState',
     fields: [
       { no: 1, name: 'head_ref', kind: 'message', T: () => ObjectRef },
-      {
-        no: 2,
-        name: 'storage_generation',
-        kind: 'scalar',
-        T: ScalarType.UINT64,
-      },
       {
         no: 3,
         name: 'retained_roots',
@@ -318,12 +304,6 @@ export interface ApplyTxOp {
    * @generated from field: world.block.tx.Tx tx = 1;
    */
   tx?: Tx
-  /**
-   * StorageGeneration is the storage generation the transaction was built on.
-   *
-   * @generated from field: uint64 storage_generation = 2;
-   */
-  storageGeneration?: bigint
 }
 
 export const ApplyTxOp: MessageType<ApplyTxOp> =
@@ -331,41 +311,6 @@ export const ApplyTxOp: MessageType<ApplyTxOp> =
     typeName: 'sobject.world.engine.ApplyTxOp',
     fields: [
       { no: 1, name: 'tx', kind: 'message', T: () => Tx },
-      {
-        no: 2,
-        name: 'storage_generation',
-        kind: 'scalar',
-        T: ScalarType.UINT64,
-      },
-    ] satisfies readonly PartialFieldInfo[],
-  })
-
-/**
- * AdvanceStorageGenerationOp advances the storage generation of the World.
- * Only the validator submits it, after listing the storage bucket and before
- * dropping unreachable blocks from the listed packs.
- *
- * @generated from message sobject.world.engine.AdvanceStorageGenerationOp
- */
-export interface AdvanceStorageGenerationOp {
-  /**
-   * StorageGeneration is the storage generation the operation advances from.
-   *
-   * @generated from field: uint64 storage_generation = 1;
-   */
-  storageGeneration?: bigint
-}
-
-export const AdvanceStorageGenerationOp: MessageType<AdvanceStorageGenerationOp> =
-  /* @__PURE__ */ createMessageType({
-    typeName: 'sobject.world.engine.AdvanceStorageGenerationOp',
-    fields: [
-      {
-        no: 1,
-        name: 'storage_generation',
-        kind: 'scalar',
-        T: ScalarType.UINT64,
-      },
     ] satisfies readonly PartialFieldInfo[],
   })
 
@@ -388,15 +333,6 @@ export interface SetRetainedRootOp {
    * @generated from field: block.BlockRef root_ref = 2;
    */
   rootRef?: BlockRef
-  /**
-   * StorageGeneration is the generation of the accepted state whose head is
-   * root_ref. The validator rejects an older one: a reclaim pass that advanced
-   * past it may have judged the root's blocks dead before the validator copied
-   * them.
-   *
-   * @generated from field: uint64 storage_generation = 3;
-   */
-  storageGeneration?: bigint
 }
 
 export const SetRetainedRootOp: MessageType<SetRetainedRootOp> =
@@ -405,12 +341,6 @@ export const SetRetainedRootOp: MessageType<SetRetainedRootOp> =
     fields: [
       { no: 1, name: 'name', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'root_ref', kind: 'message', T: () => BlockRef },
-      {
-        no: 3,
-        name: 'storage_generation',
-        kind: 'scalar',
-        T: ScalarType.UINT64,
-      },
     ] satisfies readonly PartialFieldInfo[],
   })
 
@@ -450,15 +380,6 @@ export interface SOWorldOp {
       }
     | {
         /**
-         * AdvanceStorageGeneration advances the storage generation.
-         *
-         * @generated from field: sobject.world.engine.AdvanceStorageGenerationOp advance_storage_generation = 3;
-         */
-        value: AdvanceStorageGenerationOp
-        case: 'advanceStorageGeneration'
-      }
-    | {
-        /**
          * SetRetainedRoot retains or releases a past World root.
          *
          * @generated from field: sobject.world.engine.SetRetainedRootOp set_retained_root = 4;
@@ -484,13 +405,6 @@ export const SOWorldOp: MessageType<SOWorldOp> =
         name: 'apply_tx_op',
         kind: 'message',
         T: ApplyTxOp,
-        oneof: 'body',
-      },
-      {
-        no: 3,
-        name: 'advance_storage_generation',
-        kind: 'message',
-        T: AdvanceStorageGenerationOp,
         oneof: 'body',
       },
       {

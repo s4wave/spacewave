@@ -114,7 +114,7 @@ func TestWaitOperationDecodesHostRejection(t *testing.T) {
 		localPeer.GetPeerID(),
 		1,
 		localID,
-		&sobject.SOOperationRejectionErrorDetails{ErrorMsg: "storage generation is stale"},
+		&sobject.SOOperationRejectionErrorDetails{ErrorMsg: "object already exists"},
 	)
 	if err != nil {
 		t.Fatal(err)
@@ -139,7 +139,7 @@ func TestWaitOperationDecodesHostRejection(t *testing.T) {
 	if !rejected || !errors.Is(err, sobject.ErrRejectedOp) {
 		t.Fatalf("rejected = %v, err = %v, want a rejection", rejected, err)
 	}
-	if !strings.Contains(err.Error(), "storage generation is stale") {
+	if !strings.Contains(err.Error(), "object already exists") {
 		t.Fatalf("err = %v, want the validator's message", err)
 	}
 }

@@ -45,17 +45,6 @@ func (e *soEngine) finalizeSpaceWorldCandidate(
 			return e.acceptFinalization(ctx, packet, acceptedSeqno)
 		}
 
-		// A storage generation advance rejects candidates built on the older
-		// generation. The validator publishes the advance no later than the
-		// rejection, so the snapshot shows it and the follower rebuilds the
-		// candidate, uploading its blocks again.
-		advanced, aerr := e.storageGenerationAdvanced(ctx, packet.GetOp())
-		if aerr != nil {
-			return nil, aerr
-		}
-		if advanced {
-			return e.retainRejection(ctx, packet, SpaceWorldFinalizationStatus_SPACE_WORLD_FINALIZATION_STATUS_STALE_BASE, err)
-		}
 		if !errors.Is(err, block.ErrNotFound) {
 			return e.retainRejection(ctx, packet, SpaceWorldFinalizationStatus_SPACE_WORLD_FINALIZATION_STATUS_REJECTED, err)
 		}
@@ -297,27 +286,6 @@ func snapshotWorldState(ctx context.Context, snap sobject.SharedObjectStateSnaps
 		return nil, errors.New("World root head ref is missing")
 	}
 	return state, nil
-}
-
-// storageGenerationAdvanced reports whether the accepted storage generation is
-// newer than the one op was built on.
-func (e *soEngine) storageGenerationAdvanced(ctx context.Context, op *SOWorldOp) (bool, error) {
-	// Only a transaction carries a storage generation.
-	txOp := op.GetApplyTxOp()
-	if txOp == nil {
-		return false, nil
-	}
-
-	// Compare it with the accepted generation.
-	snap, err := e.so.GetSharedObjectState(ctx)
-	if err != nil {
-		return false, err
-	}
-	state, err := ReadInnerState(ctx, snap)
-	if err != nil {
-		return false, err
-	}
-	return state.GetStorageGeneration() > txOp.GetStorageGeneration(), nil
 }
 
 // refreshFinalizationWorldRoot adopts the current accepted World root.

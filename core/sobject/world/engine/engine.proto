@@ -38,7 +38,7 @@ message Config {
   .backoff.Backoff process_ops_backoff = 8;
 
   // Fields 9 and 10 timed the World-local GC sweep. Field 11 enabled storage
-  // reclaim, which now always runs.
+  // reclaim.
   reserved 9, 10, 11;
 }
 
@@ -51,12 +51,8 @@ message InnerState {
   // The bucket ID should be set to empty.
   // The object referenced is a .world.block.World block.
   .bucket.ObjectRef head_ref = 1;
-  // StorageGeneration is the storage generation of the accepted World.
-  // The Space authority advances it before reclaiming unreachable blocks from
-  // the storage bucket. Transactions built on an older generation are rejected.
-  uint64 storage_generation = 2;
   // RetainedRoots are past World roots the Space keeps restorable, sorted by
-  // name. Storage reclaim treats every block they reach as live.
+  // name.
   repeated RetainedRoot retained_roots = 3;
 }
 
@@ -83,8 +79,6 @@ message SOWorldOp {
     InitWorldOp init_world = 1;
     // ApplyTxOp applies a world transaction.
     ApplyTxOp apply_tx_op = 2;
-    // AdvanceStorageGeneration advances the storage generation.
-    AdvanceStorageGenerationOp advance_storage_generation = 3;
     // SetRetainedRoot retains or releases a past World root.
     SetRetainedRootOp set_retained_root = 4;
   }
@@ -105,16 +99,6 @@ message InitWorldOp {
 message ApplyTxOp {
   // tx is the tx or tx batch to apply
   .world.block.tx.Tx tx = 1;
-  // StorageGeneration is the storage generation the transaction was built on.
-  uint64 storage_generation = 2;
-}
-
-// AdvanceStorageGenerationOp advances the storage generation of the World.
-// Only the validator submits it, after listing the storage bucket and before
-// dropping unreachable blocks from the listed packs.
-message AdvanceStorageGenerationOp {
-  // StorageGeneration is the storage generation the operation advances from.
-  uint64 storage_generation = 1;
 }
 
 // SetRetainedRootOp retains a past World root under a name, replacing a root
@@ -124,11 +108,6 @@ message SetRetainedRootOp {
   string name = 1;
   // RootRef is the World root block to retain, or empty to release.
   .block.BlockRef root_ref = 2;
-  // StorageGeneration is the generation of the accepted state whose head is
-  // root_ref. The validator rejects an older one: a reclaim pass that advanced
-  // past it may have judged the root's blocks dead before the validator copied
-  // them.
-  uint64 storage_generation = 3;
 }
 
 // SpaceWorldFinalizationPacket is submitted by a follower after it has produced
