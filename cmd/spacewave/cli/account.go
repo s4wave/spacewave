@@ -24,6 +24,7 @@ func newAccountCommand(_ func() cli_entrypoint.CliBus) *cli.Command {
 			newAccountListCommand(),
 			newAccountInfoCommand(),
 			newAccountCreateCommand(),
+			newAccountEmailCommand(),
 		},
 	}
 }
