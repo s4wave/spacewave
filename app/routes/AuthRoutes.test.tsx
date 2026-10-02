@@ -51,6 +51,11 @@ vi.mock('@s4wave/app/auth/HandoffPage.js', () => ({
   HandoffPage: () => null,
 }))
 
+vi.mock('@s4wave/app/auth/HandoffSessionWatch.js', () => ({
+  HandoffSessionWatch: ({ children }: { children: React.ReactNode }) =>
+    children,
+}))
+
 vi.mock('@s4wave/app/auth/LaunchLoginPage.js', () => ({
   LaunchLoginPage: () => <div data-testid="launch-login-page" />,
 }))
