@@ -61,8 +61,13 @@ func (s *Session) DeleteSpace(ctx context.Context, sharedObjectID string) (*Dele
 }
 
 // LeaveSpace relinquishes native participation while retaining existing local data.
-func (s *Session) LeaveSpace(ctx context.Context, sharedObjectID string) (*LeaveSpaceResponse, error) {
-	return s.service.LeaveSpace(ctx, &LeaveSpaceRequest{SharedObjectId: sharedObjectID})
+// When this account hosts the Space and others remain, successorPeerID names the
+// participant promoted to owner; empty selects the default successor.
+func (s *Session) LeaveSpace(ctx context.Context, sharedObjectID, successorPeerID string) (*LeaveSpaceResponse, error) {
+	return s.service.LeaveSpace(ctx, &LeaveSpaceRequest{
+		SharedObjectId:  sharedObjectID,
+		SuccessorPeerId: successorPeerID,
+	})
 }
 
 // DeleteAccount deletes the provider account for a session index, removing its
