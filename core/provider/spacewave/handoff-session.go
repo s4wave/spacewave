@@ -41,7 +41,7 @@ func (p *Provider) MountHandoffSession(
 		return nil, errors.New("enrolled Session belongs to another account")
 	}
 
-	// Access the provider account and skip mounting an already-registered Session.
+	// Access the provider account and read its local Sessions' registered peers.
 	provAccValue, relProvAcc, err := p.AccessProviderAccount(ctx, accountID, nil)
 	if err != nil {
 		return nil, errors.Wrap(err, "access provider account")
@@ -52,8 +52,21 @@ func (p *Provider) MountHandoffSession(
 	if err != nil {
 		return nil, err
 	}
-	if existing, err := provAcc.findRegisteredSession(ctx, entries, peerID); err != nil || existing != nil {
-		return existing, err
+	accountSessions, err := provAcc.readAccountSessions(ctx, entries)
+	if err != nil {
+		return nil, err
+	}
+
+	// Return the Session already registered with the handoff key.
+	for _, sess := range accountSessions {
+		if sess.peerID == peerID.String() {
+			return sess.entry, nil
+		}
+	}
+
+	// A repeat sign-in joins the account's existing Session instead of adding one.
+	if len(accountSessions) != 0 {
+		return provAcc.joinAccountSession(ctx, client, accountSessions, sessionPriv)
 	}
 
 	// Seed the handoff Session and mount it under the account.
@@ -183,19 +196,26 @@ func (p *Provider) seedHandoffSession(
 	return nil
 }
 
-// findRegisteredSession reads persisted public registration markers without
-// unlocking existing Sessions. Reusing the same key preserves its lock policy.
-func (a *ProviderAccount) findRegisteredSession(ctx context.Context, entries []*session.SessionListEntry, peerID peer.ID) (*session.SessionListEntry, error) {
-	// Open the account object store and scan registration markers.
+// accountSession is a local Session of the account and the peer ID in its
+// registration marker. The peer ID is empty when the Session never registered.
+type accountSession struct {
+	entry  *session.SessionListEntry
+	peerID string
+}
+
+// readAccountSessions reads the registration markers of the account's Sessions
+// without unlocking them. Reusing the same key preserves its lock policy.
+func (a *ProviderAccount) readAccountSessions(ctx context.Context, entries []*session.SessionListEntry) ([]accountSession, error) {
+	// Open the account object store holding the registration markers.
 	handle, _, ref, err := volume.ExBuildObjectStoreAPI(ctx, a.p.b, false, SessionObjectStoreID(a.accountID), a.vol.GetID(), nil)
 	if err != nil {
 		return nil, err
 	}
 	defer ref.Release()
 
-	// Return the first entry whose marker matches the peer ID.
+	// Collect each of the account's entries with its marker.
 	store := handle.GetObjectStore()
-	var existing *session.SessionListEntry
+	var sessions []accountSession
 	err = kvtx.RunTransaction(ctx, false, func(ctx context.Context) (kvtx.Tx, error) {
 		return store.NewTransaction(ctx, false)
 	}, func(ctx context.Context, tx kvtx.Tx) error {
@@ -204,16 +224,52 @@ func (a *ProviderAccount) findRegisteredSession(ctx context.Context, entries []*
 			if ref.GetProviderAccountId() != a.accountID || ref.GetProviderId() != a.GetProviderID() {
 				continue
 			}
-			data, found, err := tx.Get(ctx, []byte(ref.GetId()+"/registered"))
+			data, _, err := tx.Get(ctx, []byte(ref.GetId()+"/registered"))
 			if err != nil {
 				return err
 			}
-			if found && string(data) == peerID.String() {
-				existing = entry
-				return nil
-			}
+			sessions = append(sessions, accountSession{entry: entry, peerID: string(data)})
 		}
 		return nil
 	})
-	return existing, err
+	return sessions, err
+}
+
+// joinAccountSession returns one of the account's local Sessions for a handoff
+// key that none of them holds. A Session whose key the cloud still lists keeps
+// that key, and the redundant handoff key is revoked. Otherwise the first
+// Session takes the handoff key and its tracker restarts with it.
+func (a *ProviderAccount) joinAccountSession(
+	ctx context.Context,
+	client *SessionClient,
+	sessions []accountSession,
+	sessionPriv crypto.PrivKey,
+) (*session.SessionListEntry, error) {
+	// List the keys the cloud still accepts for the account.
+	enrolled, err := client.ListSessions(ctx)
+	if err != nil {
+		return nil, errors.Wrap(err, "list enrolled Sessions")
+	}
+	enrolledPeers := make(map[string]struct{}, len(enrolled))
+	for _, info := range enrolled {
+		enrolledPeers[info.GetPeerId()] = struct{}{}
+	}
+
+	// Keep an enrolled local Session and withdraw the handoff key.
+	for _, sess := range sessions {
+		if _, ok := enrolledPeers[sess.peerID]; ok && sess.peerID != "" {
+			if err := client.SelfRevoke(ctx); err != nil {
+				return nil, errors.Wrap(err, "revoke redundant handoff key")
+			}
+			return sess.entry, nil
+		}
+	}
+
+	// Rekey the first Session and restart its tracker with the handoff key.
+	target := sessions[0].entry
+	if err := a.p.seedHandoffSession(ctx, a, target.GetSessionRef(), sessionPriv); err != nil {
+		return nil, err
+	}
+	a.sessions.RemoveKey(target.GetSessionRef().GetProviderResourceRef().GetId())
+	return target, nil
 }
