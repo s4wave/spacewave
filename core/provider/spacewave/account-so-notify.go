@@ -15,9 +15,12 @@ func (a *ProviderAccount) handleAccountSONotify(
 	soID string,
 	payload *api.SONotifyEventPayload,
 ) {
+	// A notify without an object has nothing to apply.
 	if soID == "" {
 		return
 	}
+
+	// A deleted object leaves the account entirely.
 	if payload.GetChangeType() == "delete" {
 		a.DeleteSharedObjectMetadata(soID)
 		a.RemoveSharedObjectListEntry(soID)
@@ -28,15 +31,23 @@ func (a *ProviderAccount) handleAccountSONotify(
 		a.triggerGCCleanup()
 		return
 	}
+
+	// Patch cached metadata in place.
 	if payload.GetChangeType() == "metadata" && payload.GetMetadata() != nil {
 		a.SetSharedObjectMetadata(soID, payload.GetMetadata())
 		a.PatchSharedObjectListMetadata(soID, payload.GetMetadata())
 	}
+
+	// The cloud list now decides membership, even for an object this account
+	// created.
 	if payload.GetChangeType() == "access_changed" {
+		a.settleCreatedSharedObjectListEntry(soID)
 		a.le.WithField("sobject-id", soID).Debug("invalidating shared object list after access change")
 		a.invalidateSharedObjectList()
 		return
 	}
+
+	// Refetch the list for an object the account does not know yet.
 	if a.HasCachedSharedObject(soID) {
 		return
 	}

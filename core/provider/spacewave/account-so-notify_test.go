@@ -161,3 +161,28 @@ func TestHandleAccountSONotifyAccessChangedInvalidatesList(t *testing.T) {
 		t.Fatalf("expected one list invalidation, got %d", invalidated)
 	}
 }
+
+func TestHandleAccountSONotifyAccessChangedSettlesCreatedEntry(t *testing.T) {
+	// Cache an entry this account created.
+	acc := NewTestProviderAccount(t, "http://example.invalid")
+	meta, err := space.NewSharedObjectMeta("Created Space")
+	if err != nil {
+		t.Fatalf("build shared object metadata: %v", err)
+	}
+	acc.cacheSharedObjectListEntry(&sobject.SharedObjectListEntry{
+		Ref:    acc.buildSharedObjectRef("so-1"),
+		Meta:   meta,
+		Source: "created",
+	})
+
+	// Revoke access to it.
+	acc.handleAccountSONotify(context.Background(), "so-1", &api.SONotifyEventPayload{
+		ChangeType: "access_changed",
+	})
+
+	// A cloud snapshot without the object now drops it.
+	merged := mergeSharedObjectListSnapshot(&sobject.SharedObjectList{}, acc.soListCtr.GetValue())
+	if n := len(merged.GetSharedObjects()); n != 0 {
+		t.Fatalf("expected the created entry to leave with the snapshot, got %d entries", n)
+	}
+}
