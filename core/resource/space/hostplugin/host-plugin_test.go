@@ -12,6 +12,7 @@ func TestResolveUsesStoredResourceOwner(t *testing.T) {
 		context.Background(),
 		bldr_plugin.NewPluginContextInfo(
 			bldr_plugin.NewPluginMeta("spacewave", "context-plugin", "desktop/darwin/arm64", "dev"),
+			"",
 		),
 	)
 
@@ -25,6 +26,7 @@ func TestResolveFallsBackToContext(t *testing.T) {
 		context.Background(),
 		bldr_plugin.NewPluginContextInfo(
 			bldr_plugin.NewPluginMeta("spacewave", "context-plugin", "desktop/darwin/arm64", "dev"),
+			"",
 		),
 	)
 

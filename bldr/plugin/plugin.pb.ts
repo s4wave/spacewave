@@ -665,6 +665,14 @@ export interface PluginContextInfo {
    * @generated from field: bldr.plugin.PluginMeta plugin_meta = 1;
    */
   pluginMeta?: PluginMeta
+  /**
+   * InstanceKey identifies the plugin installation the host runs.
+   * Empty for a singleton plugin; a Space uses its World engine ID.
+   * State private to one installation is scoped by this key.
+   *
+   * @generated from field: string instance_key = 2;
+   */
+  instanceKey?: string
 }
 
 export const PluginContextInfo: MessageType<PluginContextInfo> =
@@ -672,5 +680,6 @@ export const PluginContextInfo: MessageType<PluginContextInfo> =
     typeName: 'bldr.plugin.PluginContextInfo',
     fields: [
       { no: 1, name: 'plugin_meta', kind: 'message', T: PluginMeta },
+      { no: 2, name: 'instance_key', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
   })

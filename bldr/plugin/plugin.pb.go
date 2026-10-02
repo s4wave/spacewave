@@ -637,6 +637,10 @@ type PluginContextInfo struct {
 	unknownFields []byte
 	// PluginMeta is the plugin metadata.
 	PluginMeta *PluginMeta `protobuf:"bytes,1,opt,name=plugin_meta,json=pluginMeta,proto3" json:"pluginMeta,omitempty"`
+	// InstanceKey identifies the plugin installation the host runs.
+	// Empty for a singleton plugin; a Space uses its World engine ID.
+	// State private to one installation is scoped by this key.
+	InstanceKey string `protobuf:"bytes,2,opt,name=instance_key,json=instanceKey,proto3" json:"instanceKey,omitempty"`
 }
 
 func (x *PluginContextInfo) Reset() {
@@ -650,6 +654,13 @@ func (x *PluginContextInfo) GetPluginMeta() *PluginMeta {
 		return x.PluginMeta
 	}
 	return nil
+}
+
+func (x *PluginContextInfo) GetInstanceKey() string {
+	if x != nil {
+		return x.InstanceKey
+	}
+	return ""
 }
 
 func (m *PluginStatus) CloneVT() *PluginStatus {
@@ -953,6 +964,7 @@ func (m *PluginContextInfo) CloneVT() *PluginContextInfo {
 		return (*PluginContextInfo)(nil)
 	}
 	r := new(PluginContextInfo)
+	r.InstanceKey = m.InstanceKey
 	r.PluginMeta = protobuf_go_lite.CloneVTValue(m.PluginMeta)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
@@ -1383,6 +1395,9 @@ func (this *PluginContextInfo) EqualVT(that *PluginContextInfo) bool {
 		return false
 	}
 	if !protobuf_go_lite.IsEqualVT(this.PluginMeta, that.PluginMeta) {
+		return false
+	}
+	if this.InstanceKey != that.InstanceKey {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -2406,6 +2421,11 @@ func (x *PluginContextInfo) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("pluginMeta")
 		x.PluginMeta.MarshalProtoJSON(s.WithField("pluginMeta"))
 	}
+	if x.InstanceKey != "" || s.HasField("instanceKey") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("instanceKey")
+		s.WriteString(x.InstanceKey)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -2430,6 +2450,9 @@ func (x *PluginContextInfo) UnmarshalProtoJSON(s *json.UnmarshalState) {
 			}
 			x.PluginMeta = &PluginMeta{}
 			x.PluginMeta.UnmarshalProtoJSON(s.WithField("plugin_meta", true))
+		case "instance_key", "instanceKey":
+			s.AddField("instance_key")
+			x.InstanceKey = s.ReadString()
 		}
 	})
 }
@@ -3263,6 +3286,11 @@ func (m *PluginContextInfo) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if len(m.InstanceKey) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.InstanceKey)
+		i--
+		dAtA[i] = 0x12
+	}
 	if m.PluginMeta != nil {
 		size, err := m.PluginMeta.MarshalToSizedBufferVT(dAtA[:i])
 		if err != nil {
@@ -3521,6 +3549,7 @@ func (m *PluginContextInfo) SizeVT() (n int) {
 		l = m.PluginMeta.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.InstanceKey)
 	n += len(m.unknownFields)
 	return n
 }
@@ -3893,6 +3922,10 @@ func (x *PluginContextInfo) MarshalProtoText() string {
 	if x.PluginMeta != nil {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "plugin_meta")
 		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.PluginMeta)
+	}
+	if x.InstanceKey != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "instance_key")
+		protobuf_go_lite.TextWriteString(&sb, x.InstanceKey)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -5109,6 +5142,16 @@ func (m *PluginContextInfo) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field InstanceKey", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.InstanceKey = v
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

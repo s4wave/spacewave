@@ -70,10 +70,15 @@ func ExecutePluginEntrypoint(
 	ctx, ctxCancel := context.WithCancel(rctx)
 	defer ctxCancel()
 
-	// attach the plugin info to the context
+	// Look up the plugin information and attach it to the context.
+	pluginHost := bldr_plugin.NewSRPCPluginHostClient(pluginHostClient)
+	pluginInfo, err := pluginHost.GetPluginInfo(ctx, &bldr_plugin.GetPluginInfoRequest{})
+	if err != nil {
+		return err
+	}
 	ctx = bldr_plugin.WithPluginContextInfo(
 		ctx,
-		bldr_plugin.NewPluginContextInfo(meta.CloneVT()),
+		bldr_plugin.NewPluginContextInfo(meta.CloneVT(), pluginInfo.GetInstanceKey()),
 	)
 
 	// Start the core controller bus.
@@ -131,7 +136,6 @@ func ExecutePluginEntrypoint(
 	}
 
 	// start the plugin entrypoint controller
-	pluginHost := bldr_plugin.NewSRPCPluginHostClient(pluginHostClient)
 	pluginEntryCtrl := plugin_entrypoint_controller.NewController(b, le, meta, pluginHost)
 	pluginEntryCtrlRel, err := b.AddController(ctx, pluginEntryCtrl, nil)
 	if err != nil {
@@ -150,13 +154,6 @@ func ExecutePluginEntrypoint(
 		return err
 	}
 	rels = append(rels, webFetchViaBusRel)
-
-	// lookup the plugin information
-	pluginInfo, err := pluginHost.GetPluginInfo(ctx, &bldr_plugin.GetPluginInfoRequest{})
-	if err != nil {
-		rel()
-		return err
-	}
 
 	// Record the manifest ref and the host storage id.
 	pluginManifestRef := pluginInfo.GetManifestRef()

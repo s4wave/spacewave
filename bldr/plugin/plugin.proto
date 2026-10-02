@@ -243,4 +243,8 @@ message PluginStartInfo {
 message PluginContextInfo {
   // PluginMeta is the plugin metadata.
   PluginMeta plugin_meta = 1;
+  // InstanceKey identifies the plugin installation the host runs.
+  // Empty for a singleton plugin; a Space uses its World engine ID.
+  // State private to one installation is scoped by this key.
+  string instance_key = 2;
 }

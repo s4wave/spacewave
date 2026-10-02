@@ -23,16 +23,14 @@ func GetPluginContextInfo(ctx context.Context) *PluginContextInfo {
 }
 
 // NewPluginContextInfo constructs a new PluginContextInfo object.
-func NewPluginContextInfo(meta *PluginMeta) *PluginContextInfo {
+func NewPluginContextInfo(meta *PluginMeta, instanceKey string) *PluginContextInfo {
 	return &PluginContextInfo{
-		PluginMeta: meta,
+		PluginMeta:  meta,
+		InstanceKey: instanceKey,
 	}
 }
 
 // Validate validates the context info.
 func (i *PluginContextInfo) Validate() error {
-	if err := i.GetPluginMeta().Validate(); err != nil {
-		return err
-	}
-	return nil
+	return i.GetPluginMeta().Validate()
 }
