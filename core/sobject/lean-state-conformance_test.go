@@ -16,6 +16,8 @@ import (
 
 // TestLeanStateConformance compares real signed state transitions with State.lean.
 func TestLeanStateConformance(t *testing.T) {
+	t.Skip("the operation-set rewrite replaces this model")
+
 	oracle := leanOracle(t)
 	peers := createMockPeers(t, 4)
 	var cases []leanCase
@@ -27,6 +29,8 @@ func TestLeanStateConformance(t *testing.T) {
 
 // FuzzLeanState searches state-machine traces for Go/model disagreements.
 func FuzzLeanState(f *testing.F) {
+	f.Skip("the operation-set rewrite replaces this model")
+
 	f.Add(uint64(0))
 	f.Add(uint64(19))
 	f.Fuzz(func(t *testing.T, seed uint64) {

@@ -275,7 +275,11 @@ func (s *configChainScenario) genesis() *SOConfigChange {
 	}
 
 	// Perturb the genesis fields that VerifyConfigChain checks.
-	entry := &SOConfigChange{Config: cfg, ChangeType: SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_GENESIS}
+	entry := &SOConfigChange{
+		SharedObjectId: mockSharedObjectID,
+		Config:         cfg,
+		ChangeType:     SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_GENESIS,
+	}
 	switch s.rng.IntN(12) {
 	case 0:
 		entry.ConfigSeqno = 1
@@ -287,7 +291,7 @@ func (s *configChainScenario) genesis() *SOConfigChange {
 		entry.Config = nil
 	}
 
-	// Sign as the owner, a random peer, or not at all, as cloud bootstrap does.
+	// Sign as the owner, a random peer, or not at all.
 	switch s.rng.IntN(4) {
 	case 0:
 	case 1:

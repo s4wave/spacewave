@@ -1,6 +1,7 @@
 package sobject_sync
 
 import (
+	"bytes"
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
@@ -301,7 +302,11 @@ func leanSyncResponseCases(t *testing.T, seed uint64) []leanSyncCase {
 	target.Root.InnerSeqno = 2 + seed%4
 	signSnapshotRoot(t, objectID, target, owner)
 	target.Invites = []*sobject.SOInvite{{InviteId: "remote capability", TokenHash: []byte("secret token")}}
-	target.QueuedAccountNonces = []*sobject.SOAccountNonce{{PeerId: mustPeerIDStr(t, owner), Nonce: 42}}
+	target.QueuedAccountNonces = []*sobject.SOAccountNonce{{
+		PeerId: mustPeerIDStr(t, owner),
+		Nonce:  42,
+		OpHash: bytes.Repeat([]byte{1}, sha256.Size),
+	}}
 
 	// Record request.
 	request := &SOSyncHistoryRequest{Revision: seed + 1, BaseHash: initial.Config.ConfigChainHash}

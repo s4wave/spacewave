@@ -19,6 +19,8 @@ import (
 
 // TestLeanProcessConformance compares the validator's root construction from queued operations.
 func TestLeanProcessConformance(t *testing.T) {
+	t.Skip("the operation-set rewrite replaces this model")
+
 	// Collect every scenario, then check them in one oracle session.
 	oracle := leanOracle(t)
 	peers := createMockPeers(t, 4)

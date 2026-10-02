@@ -225,7 +225,7 @@ def genesisValid (g : Entry) (c : Config) : Bool :=
   g.seqno == 0 && g.prev == "" && g.kind == ChangeType.genesis &&
     !c.participants.isEmpty && c.validate &&
     match g.sig with
-    | none => true
+    | none => false
     | some _ => verifySignature g c
 
 /--
