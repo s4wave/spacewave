@@ -3,6 +3,7 @@ import { pushable } from 'it-pushable'
 import type { PacketStream } from 'starpc'
 import type { BackendAPI, BackendEntrypointLifecycle } from '@aptre/bldr-sdk'
 import { PluginStartInfo } from '../../../plugin/plugin.pb.js'
+import { messagePortPacketStream } from '../../entrypoint/browser/message-port-packet-stream.js'
 
 type GoPushableSink = {
   push: (message: Uint8Array) => void
@@ -37,7 +38,7 @@ const baseURL = import.meta?.url
 globalScope.BLDR_BASE_URL = baseURL
 
 class GoScriptPluginGeneration {
-  private readonly activeAcceptedStreams = new Set<BrowserMessagePortDuplex>()
+  private readonly activeAcceptedStreams = new Set<PacketStream>()
   private readonly startup = Promise.withResolvers<void>()
   private readonly done = Promise.withResolvers<void>()
   private terminalError?: Error
@@ -109,13 +110,15 @@ class GoScriptPluginGeneration {
         }
       }
 
-      const duplex = new BrowserMessagePortDuplex(messageChannel.port2)
-      this.activeAcceptedStreams.add(duplex)
+      // The Go reader ends only on the null write EOF, so close through the
+      // shared stream, which sends it before releasing the port.
+      const stream = messagePortPacketStream(messageChannel.port2)
+      this.activeAcceptedStreams.add(stream)
       try {
-        await pipe(channel, duplex, channel)
+        await pipe(channel, stream, channel)
       } finally {
-        this.activeAcceptedStreams.delete(duplex)
-        closeMessagePortDuplex(duplex)
+        this.activeAcceptedStreams.delete(stream)
+        void stream.close()
       }
     })
     this.markReady()
@@ -139,8 +142,8 @@ class GoScriptPluginGeneration {
   }
 
   private closeActiveAcceptedStreams() {
-    for (const duplex of this.activeAcceptedStreams) {
-      closeMessagePortDuplex(duplex)
+    for (const stream of this.activeAcceptedStreams) {
+      void stream.close()
     }
     this.activeAcceptedStreams.clear()
   }
@@ -234,50 +237,6 @@ export default function main(
   return generation.start(api.startInfo, loadPluginMain, env)
 }
 
-class BrowserMessagePortDuplex {
-  public readonly source: AsyncIterable<Uint8Array>
-  private readonly outbound: ReturnType<typeof pushable<Uint8Array>>
-
-  public constructor(private readonly port: MessagePort) {
-    this.outbound = pushable<Uint8Array>({ objectMode: true })
-    this.source = this.outbound
-    this.port.onmessage = (ev: MessageEvent<Uint8Array | null>) => {
-      if (ev.data === null) {
-        this.close()
-        return
-      }
-      this.outbound.push(copyUint8Array(ev.data))
-    }
-    this.port.onmessageerror = () => {
-      this.close()
-    }
-    this.port.start()
-  }
-
-  public async sink(source: AsyncIterable<Uint8Array>): Promise<void> {
-    try {
-      for await (const message of source) {
-        this.port.postMessage(copyUint8Array(message))
-      }
-    } finally {
-      this.close()
-    }
-  }
-
-  public close(): void {
-    this.outbound.end()
-    this.port.close()
-  }
-}
-
-function closeMessagePortDuplex(duplex: BrowserMessagePortDuplex) {
-  try {
-    duplex.close()
-  } catch {
-    // ignored: the port may already be closed by the pipe.
-  }
-}
-
 function castToError(err: unknown, fallback = 'unknown error'): Error {
   if (err instanceof Error) {
     return err
@@ -286,10 +245,4 @@ function castToError(err: unknown, fallback = 'unknown error'): Error {
     return new Error(err)
   }
   return new Error(fallback)
-}
-
-function copyUint8Array(bytes: Uint8Array): Uint8Array<ArrayBuffer> {
-  const copy = new Uint8Array(bytes.byteLength)
-  copy.set(bytes)
-  return copy
 }

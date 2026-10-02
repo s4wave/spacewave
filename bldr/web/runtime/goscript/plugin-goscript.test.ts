@@ -168,6 +168,8 @@ describe('plugin-goscript generation lifecycle', () => {
     await Promise.resolve()
     await Promise.resolve()
 
+    // The null write EOF is the only close signal the Go reader sees.
+    expect(acceptedChannel.port2.postMessage).toHaveBeenCalledWith(null)
     expect(acceptedChannel.port2.close).toHaveBeenCalledTimes(1)
     await expect(
       api.handleStreamCtr.handleStreamFunc(buildPacketStream()),
@@ -218,6 +220,8 @@ function buildMessagePort(): MessagePort {
     postMessage: vi.fn(),
     close: vi.fn(),
     start: vi.fn(),
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
   } as unknown as MessagePort
 }
 
