@@ -107,9 +107,10 @@ var (
 func newBillingCommand(_ func() cli_entrypoint.CliBus) *cli.Command {
 	return &cli.Command{
 		Name:  "billing",
-		Usage: "inspect billing and usage",
+		Usage: "inspect billing and usage, and create billing accounts",
 		Subcommands: []*cli.Command{
 			newBillingUsageCommand(),
+			newBillingCreateCommand(),
 		},
 	}
 }

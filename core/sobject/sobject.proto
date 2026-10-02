@@ -267,19 +267,15 @@ message SORevocationInfo {
   bytes leave_request_hash = 4;
 }
 
-// SOConfigChange represents a signed config change in the config chain.
+// SOConfigChange is a control record: one signed change in the config chain.
+// Its identity is the hash of the record with signatures cleared.
 message SOConfigChange {
   // ConfigSeqno is the sequence number of this config change.
   uint64 config_seqno = 1;
   // Config is the new config after this change.
   SharedObjectConfig config = 2;
-  // Deprecated: was string change_type. Use change_type (field 7) instead.
-  reserved 3;
-  // SignedBy is the peer_id of the OWNER who signed this change.
-  bytes signed_by = 4;
-  // Signature is the signature over the serialized SOConfigChange (without this field).
-  .peer.Signature signature = 5;
-  // PreviousHash is the hash of the previous SOConfigChange entry in the chain.
+  // PreviousHash is the hash of the parent control record.
+  // Empty only on genesis.
   bytes previous_hash = 6;
   // ChangeType describes the kind of mutation in this config chain entry.
   SOConfigChangeType change_type = 7;
@@ -289,6 +285,12 @@ message SOConfigChange {
   // LeaveRequest is the departing peers' consent that the promoted owner commits.
   // Only populated on a TRANSFER_OWNERSHIP made for an owner's departure.
   SOLeaveRequest leave_request = 9;
+  // SharedObjectId binds the record to one shared object.
+  string shared_object_id = 10;
+  // Signatures sign the record with signatures cleared.
+  // Each signer is distinct and authorized by the parent config;
+  // genesis is signed by an owner of its own config.
+  repeated .peer.Signature signatures = 11;
 }
 
 // SOParticipantConfig contains a listing of an entity associated with a shared object.
@@ -332,14 +334,17 @@ message SORoot {
   repeated .peer.Signature validator_signatures = 4;
 }
 
-// SOAccountNonce contains the current nonce for an account.
+// SOAccountNonce contains the head of an account's operation chain.
 // The accounts are sorted lexicographically by peer_id.
 message SOAccountNonce {
   // PeerId is the identifier of the account.
   string peer_id = 1;
 
-  // Nonce is the current nonce for the account.
+  // Nonce is the author sequence of the account's latest operation.
   uint64 nonce = 2;
+
+  // OpHash is the hash of the account's operation at nonce.
+  bytes op_hash = 3;
 }
 
 // SORootInner is the inner signed message on SORoot.
@@ -361,9 +366,11 @@ message SOOperation {
   .peer.Signature signature = 2;
 }
 
-// SOOperationInner is the inner message of SOOperation.
+// SOOperationInner is the signed body of an operation: one step in its
+// author's chain and one node of the shared object's operation DAG.
+// The operation's identity is the hash of this encoded body.
 message SOOperationInner {
-  // PeerId is the identifier of the participant submitting the operation.
+  // PeerId is the identifier of the author.
   string peer_id = 1;
 
   // LocalId is the locally-assigned ulid for the operation.
@@ -371,11 +378,29 @@ message SOOperationInner {
   // Must be lower-case.
   string local_id = 2;
 
-  // Nonce is the nonce for the operation; must increment from the previous.
+  // Nonce is the author sequence: 1 for the author's first operation,
+  // then one more than the operation named by prev_op_hash.
   uint64 nonce = 3;
 
   // OpData is the operation data, transformed with the same transform config as root.
   bytes op_data = 4;
+
+  // SharedObjectId binds the operation to one shared object.
+  string shared_object_id = 5;
+
+  // ProtocolVersion is the operation format version.
+  uint32 protocol_version = 6;
+
+  // PrevOpHash is the hash of the author's previous operation.
+  // Empty only when nonce is 1.
+  bytes prev_op_hash = 7;
+
+  // ParentHashes are the other heads the author knew, strictly sorted.
+  // Excludes prev_op_hash.
+  repeated bytes parent_hashes = 8;
+
+  // ConfigHash is the config chain hash the operation was written under.
+  bytes config_hash = 9;
 }
 
 // SOOperationRef is a reference to an operation that was queued.
