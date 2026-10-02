@@ -790,7 +790,7 @@
     },
     {
       "name": "github.com/aperturerobotics/bbolt",
-      "version": "v0.0.0-20261001214648-22e8393e6a95",
+      "version": "v0.0.0-20261002002154-906e04dd11b9",
       "spdx": "MIT",
       "source": "go",
       "repo": "https://github.com/etcd-io/bbolt",
@@ -941,7 +941,7 @@
     },
     {
       "name": "github.com/aperturerobotics/starpc",
-      "version": "v0.52.2-0.20261001142944-1379b4c47855",
+      "version": "v0.52.2-0.20261002002112-963692aa6b77",
       "spdx": "MIT",
       "source": "go",
       "repo": "https://github.com/aperturerobotics/starpc",
