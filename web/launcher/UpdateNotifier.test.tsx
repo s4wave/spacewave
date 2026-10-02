@@ -202,7 +202,13 @@ describe('UpdateNotifier', () => {
             version: '1.2.3',
             target: UpdateTarget.DAEMON,
           },
-          daemonUpdateWait: { otherClients: 2, otherServices: 1 },
+          daemonUpdateWait: {
+            otherWork: [
+              'glados',
+              'spacewave (2)',
+              'web listener at http://127.0.0.1:8080',
+            ],
+          },
         }),
       ),
     )
@@ -213,7 +219,7 @@ describe('UpdateNotifier', () => {
     expect(title).toBe('Daemon update accepted')
     expect(options?.id).toBe('daemon-update')
     expect(options?.description).toBe(
-      'Waiting for 2 other clients and 1 service to finish before restarting.',
+      'Waiting for glados, spacewave (2), and web listener at http://127.0.0.1:8080 to finish before restarting.',
     )
     const action = options?.action
     if (!action || typeof action !== 'object' || !('onClick' in action)) {

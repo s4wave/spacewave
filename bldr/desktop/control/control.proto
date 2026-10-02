@@ -42,10 +42,10 @@ message QuitDesktopRequest {
 
 // QuitDesktopResponse reports demand outside this shell and the requesting connection.
 message QuitDesktopResponse {
-  // OtherClients counts admitted Resource connections apart from the requester.
-  int64 other_clients = 1;
-  // OtherServices counts persistent services apart from this desktop shell.
-  int64 other_services = 2;
+  // OtherWork names the Resource clients and persistent services apart from
+  // the requester and this desktop shell, sorted, with a count suffix on a
+  // repeated name.
+  repeated string other_work = 1;
 }
 
 // WatchDesktopStatusRequest subscribes to the daemon's desktop observation.

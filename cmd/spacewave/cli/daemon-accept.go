@@ -20,12 +20,22 @@ type daemonConnCtxKey struct{}
 // closes done when its serving goroutine exits.
 type trackedConn struct {
 	net.Conn
+	// peer is the executable name of the connecting process, if known.
+	peer string
 	// done closes when the serving goroutine exits.
 	done chan struct{}
 	// closeOnce ensures the idle hold is released once.
 	closeOnce sync.Once
 	// onClose releases the admitted client's idle hold.
 	onClose func()
+}
+
+// describe names the connection to a person waiting on it.
+func (c *trackedConn) describe() string {
+	if c.peer == "" {
+		return unnamedClient
+	}
+	return c.peer
 }
 
 // Close closes the connection and runs the close callback once.
@@ -110,6 +120,7 @@ func acceptDaemonListener(
 	srv *srpc.Server,
 	idleTracker *daemonIdleTracker,
 ) (func(), error) {
+	// Track admitted connections so the drain can close and await them.
 	var clients sync.WaitGroup
 	var connsMtx sync.Mutex
 	conns := make(map[*trackedConn]struct{})
@@ -126,14 +137,19 @@ func acceptDaemonListener(
 		clients.Wait()
 	}
 
+	// Serve clients until the listener closes.
 	for {
+		// Accept the next client.
 		nc, err := lis.Accept()
 		if err != nil {
 			return closeClients, err
 		}
 
+		// Admit the client under its peer process name, or reject it once
+		// shutdown is claimed.
 		tc := &trackedConn{
 			Conn: nc,
+			peer: peerProcessName(nc),
 			done: make(chan struct{}),
 		}
 		if idleTracker != nil {

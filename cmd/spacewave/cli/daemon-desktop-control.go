@@ -197,8 +197,7 @@ func (d *daemonDesktopControl) QuitDesktop(
 
 	// Return the final decision before Electron begins exiting.
 	return &desktop_control.QuitDesktopResponse{
-		OtherClients:  int64(snapshot.clients),
-		OtherServices: int64(snapshot.services),
+		OtherWork: snapshot.others,
 	}, nil
 }
 
@@ -211,7 +210,7 @@ func (d *daemonDesktopControl) retainDesktop(
 	release func(),
 ) (bool, error) {
 	// Protect the acknowledged shell while transferring its demand to the daemon.
-	hold := d.idleTracker.attachService()
+	hold := d.idleTracker.attachService("desktop app")
 	if hold.released {
 		return false, errors.New("desktop daemon is shutting down")
 	}

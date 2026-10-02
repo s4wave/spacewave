@@ -755,8 +755,7 @@ export class BldrElectronApp {
       // Ask the daemon to decide stop or busy before this shell begins exiting.
       const daemonSocket = process.env[desktopDaemonSocketEnv];
       if (daemonSocket) {
-        let clients = 0n;
-        let services = 0n;
+        let otherWork: string[] = [];
 
         // Release the requesting connection before Electron begins its exit.
         {
@@ -767,17 +766,16 @@ export class BldrElectronApp {
           const result = await new DesktopControlServiceClient(
             connection.rpc,
           ).QuitDesktop({});
-          clients = result.otherClients ?? 0n;
-          services = result.otherServices ?? 0n;
+          otherWork = result.otherWork ?? [];
         }
 
         // Explain any retained work while the desktop can still show a dialog.
-        if (clients || services) {
+        if (otherWork.length) {
           await dialog.showMessageBox({
             type: "info",
             title: "Spacewave daemon is in use",
             message: "The desktop will close. Other work is still running.",
-            detail: `${clients} other client(s) and ${services} other service(s) are using it.`,
+            detail: `Still using it: ${new Intl.ListFormat("en", { type: "conjunction" }).format(otherWork)}.`,
             buttons: ["Quit desktop"],
           });
         }

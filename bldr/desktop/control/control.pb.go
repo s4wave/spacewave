@@ -105,10 +105,10 @@ func (*QuitDesktopRequest) ProtoMessage() {}
 // QuitDesktopResponse reports demand outside this shell and the requesting connection.
 type QuitDesktopResponse struct {
 	unknownFields []byte
-	// OtherClients counts admitted Resource connections apart from the requester.
-	OtherClients int64 `protobuf:"varint,1,opt,name=other_clients,json=otherClients,proto3" json:"otherClients,omitempty"`
-	// OtherServices counts persistent services apart from this desktop shell.
-	OtherServices int64 `protobuf:"varint,2,opt,name=other_services,json=otherServices,proto3" json:"otherServices,omitempty"`
+	// OtherWork names the Resource clients and persistent services apart from
+	// the requester and this desktop shell, sorted, with a count suffix on a
+	// repeated name.
+	OtherWork []string `protobuf:"bytes,1,rep,name=other_work,json=otherWork,proto3" json:"otherWork,omitempty"`
 }
 
 func (x *QuitDesktopResponse) Reset() {
@@ -117,18 +117,11 @@ func (x *QuitDesktopResponse) Reset() {
 
 func (*QuitDesktopResponse) ProtoMessage() {}
 
-func (x *QuitDesktopResponse) GetOtherClients() int64 {
+func (x *QuitDesktopResponse) GetOtherWork() []string {
 	if x != nil {
-		return x.OtherClients
+		return x.OtherWork
 	}
-	return 0
-}
-
-func (x *QuitDesktopResponse) GetOtherServices() int64 {
-	if x != nil {
-		return x.OtherServices
-	}
-	return 0
+	return nil
 }
 
 // WatchDesktopStatusRequest subscribes to the daemon's desktop observation.
@@ -238,8 +231,7 @@ func (m *QuitDesktopResponse) CloneVT() *QuitDesktopResponse {
 		return (*QuitDesktopResponse)(nil)
 	}
 	r := new(QuitDesktopResponse)
-	r.OtherClients = m.OtherClients
-	r.OtherServices = m.OtherServices
+	r.OtherWork = protobuf_go_lite.CloneSlice(m.OtherWork)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -358,10 +350,7 @@ func (this *QuitDesktopResponse) EqualVT(that *QuitDesktopResponse) bool {
 	} else if this == nil || that == nil {
 		return false
 	}
-	if this.OtherClients != that.OtherClients {
-		return false
-	}
-	if this.OtherServices != that.OtherServices {
+	if !protobuf_go_lite.EqualSlice(this.OtherWork, that.OtherWork) {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -572,15 +561,10 @@ func (x *QuitDesktopResponse) MarshalProtoJSON(s *json.MarshalState) {
 	}
 	s.WriteObjectStart()
 	var wroteField bool
-	if x.OtherClients != 0 || s.HasField("otherClients") {
+	if len(x.OtherWork) > 0 || s.HasField("otherWork") {
 		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("otherClients")
-		s.WriteInt64(x.OtherClients)
-	}
-	if x.OtherServices != 0 || s.HasField("otherServices") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("otherServices")
-		s.WriteInt64(x.OtherServices)
+		s.WriteObjectField("otherWork")
+		s.WriteStringArray(x.OtherWork)
 	}
 	s.WriteObjectEnd()
 }
@@ -599,12 +583,13 @@ func (x *QuitDesktopResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		switch key {
 		default:
 			s.Skip() // ignore unknown field
-		case "other_clients", "otherClients":
-			s.AddField("other_clients")
-			x.OtherClients = s.ReadInt64()
-		case "other_services", "otherServices":
-			s.AddField("other_services")
-			x.OtherServices = s.ReadInt64()
+		case "other_work", "otherWork":
+			s.AddField("other_work")
+			if s.ReadNil() {
+				x.OtherWork = nil
+				return
+			}
+			x.OtherWork = s.ReadStringArray()
 		}
 	})
 }
@@ -861,15 +846,12 @@ func (m *QuitDesktopResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
-	if m.OtherServices != 0 {
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.OtherServices))
-		i--
-		dAtA[i] = 0x10
-	}
-	if m.OtherClients != 0 {
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.OtherClients))
-		i--
-		dAtA[i] = 0x8
+	if len(m.OtherWork) > 0 {
+		for iNdEx := len(m.OtherWork) - 1; iNdEx >= 0; iNdEx-- {
+			i = protobuf_go_lite.EncodeString(dAtA, i, m.OtherWork[iNdEx])
+			i--
+			dAtA[i] = 0xa
+		}
 	}
 	return len(dAtA) - i, nil
 }
@@ -1000,8 +982,7 @@ func (m *QuitDesktopResponse) SizeVT() (n int) {
 	}
 	var l int
 	_ = l
-	n += protobuf_go_lite.SizeVarintNonZero(1, m.OtherClients)
-	n += protobuf_go_lite.SizeVarintNonZero(1, m.OtherServices)
+	n += protobuf_go_lite.SizeStringSlice(1, m.OtherWork)
 	n += len(m.unknownFields)
 	return n
 }
@@ -1089,13 +1070,13 @@ func (x *QuitDesktopRequest) String() string {
 func (x *QuitDesktopResponse) MarshalProtoText() string {
 	var sb protobuf_go_lite.TextBuilder
 	initialLen := protobuf_go_lite.TextStartMessage(&sb, "QuitDesktopResponse")
-	if x.OtherClients != 0 {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "other_clients")
-		protobuf_go_lite.TextWriteInt(&sb, x.OtherClients)
-	}
-	if x.OtherServices != 0 {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "other_services")
-		protobuf_go_lite.TextWriteInt(&sb, x.OtherServices)
+	if len(x.OtherWork) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "other_work")
+		for i, v := range x.OtherWork {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			protobuf_go_lite.TextWriteString(&sb, v)
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -1345,23 +1326,15 @@ func (m *QuitDesktopResponse) UnmarshalVT(dAtA []byte) error {
 		}
 		switch fieldNum {
 		case 1:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field OtherClients", wireType)
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field OtherWork", wireType)
 			}
-			m.OtherClients = 0
-			m.OtherClients, iNdEx, err = protobuf_go_lite.DecodeVarintInt64(dAtA, iNdEx)
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
 			if err != nil {
 				return err
 			}
-		case 2:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field OtherServices", wireType)
-			}
-			m.OtherServices = 0
-			m.OtherServices, iNdEx, err = protobuf_go_lite.DecodeVarintInt64(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
+			m.OtherWork = append(m.OtherWork, v)
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

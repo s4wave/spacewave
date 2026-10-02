@@ -115,19 +115,22 @@ func (c *Controller) setAcceptedDaemonUpdateError(selected *spacewave_launcher.U
 
 // setDaemonUpdateWait publishes the other work the accepted selection waits
 // for. A report for any other selection changes nothing.
-func (c *Controller) setDaemonUpdateWait(selected *spacewave_launcher.UpdateState, clients, services uint32) bool {
+func (c *Controller) setDaemonUpdateWait(selected *spacewave_launcher.UpdateState, otherWork []string) bool {
+	// Replace the wait only while the reported selection is still applying.
 	var current bool
 	_, _, _ = c.modifyLauncherInfo(func(info *spacewave_launcher.LauncherInfo) (bool, error) {
+		// Skip a report for a selection that is no longer applying.
 		current = selected.GetPhase() == spacewave_launcher.UpdatePhase_UPDATE_PHASE_APPLYING &&
 			info.GetDaemonUpdateState().EqualVT(selected)
 		if !current {
 			return false, nil
 		}
+
+		// Publish the reported work.
 		if info.DaemonUpdateWait == nil {
 			info.DaemonUpdateWait = &spacewave_launcher.DaemonUpdateWait{}
 		}
-		info.DaemonUpdateWait.OtherClients = clients
-		info.DaemonUpdateWait.OtherServices = services
+		info.DaemonUpdateWait.OtherWork = otherWork
 		return true, nil
 	})
 	return current

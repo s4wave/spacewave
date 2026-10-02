@@ -4,6 +4,7 @@ package spacewave_cli
 
 import (
 	"context"
+	"slices"
 	"sync"
 	"testing"
 	"time"
@@ -18,7 +19,7 @@ func TestDaemonIdleTrackerOrdinaryFinalReleaseUsesThirtySeconds(t *testing.T) {
 		idleCh <- struct{}{}
 	})
 	t.Cleanup(tracker.close)
-	releaseDesktop := tracker.serviceAttached()
+	releaseDesktop := tracker.serviceAttached("service")
 
 	// Observe the owner's expiry event after ordinary final service release.
 	start := time.Now()
@@ -46,16 +47,19 @@ func TestDaemonIdleTrackerClaimDesktopQuit(t *testing.T) {
 	t.Cleanup(tracker.clientDetached)
 
 	// Attach the desktop service and one other service hold.
-	desktop := tracker.attachService()
+	desktop := tracker.attachService("desktop app")
 	tracker.setDesktop(desktop)
-	releaseOther := tracker.serviceAttached()
+	releaseOther := tracker.serviceAttached("other service")
 	t.Cleanup(releaseOther)
 	t.Cleanup(desktop.release)
 
-	// Count only the client and service outside the requesting desktop.
+	// Count and name only the client and service outside the requesting desktop.
 	claimed, snapshot := tracker.claimDesktopQuit(requester)
 	if claimed || snapshot.clients != 1 || snapshot.services != 1 {
 		t.Fatalf("admitted requester demand = %+v", snapshot)
+	}
+	if want := []string{"other service", unnamedClient}; !slices.Equal(snapshot.others, want) {
+		t.Fatalf("admitted requester names = %q, want %q", snapshot.others, want)
 	}
 
 	// A disconnected requester must not subtract a different live client.
@@ -73,7 +77,7 @@ func TestDaemonIdleTrackerDesktopClaimFencesAdmission(t *testing.T) {
 		tracker := newDaemonIdleTracker(time.Minute, nil)
 		requester := &trackedConn{}
 		tracker.trackedClientAttached(requester)
-		desktop := tracker.attachService()
+		desktop := tracker.attachService("desktop app")
 		tracker.setDesktop(desktop)
 		start := make(chan struct{})
 		var workers sync.WaitGroup
@@ -129,7 +133,7 @@ func TestDaemonIdleTrackerReportsHoldsAndChanges(t *testing.T) {
 	if client.clients != 1 || client.services != 0 || client.revision != initial.revision+1 {
 		t.Fatalf("client snapshot = %+v", client)
 	}
-	release := tracker.serviceAttached()
+	release := tracker.serviceAttached("service")
 	select {
 	case <-changed:
 	default:
@@ -174,13 +178,13 @@ func TestDaemonUpdateClaimWaitsForOtherHolds(t *testing.T) {
 	// Create the idle tracker and attach the desktop hold.
 	tracker := newDaemonIdleTracker(time.Minute, nil)
 	t.Cleanup(tracker.close)
-	desktop := tracker.attachService()
+	desktop := tracker.attachService("desktop app")
 	tracker.setDesktop(desktop)
 	client := &trackedConn{}
 	if !tracker.trackedClientAttached(client) {
 		t.Fatal("initial client was rejected")
 	}
-	service := tracker.attachService()
+	service := tracker.attachService("service")
 
 	// Both other holds keep the old daemon serving.
 	claimed, others, changed := tracker.claimDaemonUpdate(false)
@@ -397,7 +401,7 @@ func TestDaemonIdleTrackerWaitsForServiceRelease(t *testing.T) {
 
 	// Attach a client and service and confirm the channel stays closed.
 	tracker.clientAttached()
-	releaseService := tracker.serviceAttached()
+	releaseService := tracker.serviceAttached("service")
 	tracker.clientDetached()
 
 	// Confirm the idle channel stays closed while both hold.
@@ -427,7 +431,7 @@ func TestDaemonIdleTrackerServiceReleaseIsIdempotent(t *testing.T) {
 	defer tracker.close()
 
 	// Attach a service hold before any client.
-	releaseService := tracker.serviceAttached()
+	releaseService := tracker.serviceAttached("service")
 	releaseService()
 	releaseService()
 

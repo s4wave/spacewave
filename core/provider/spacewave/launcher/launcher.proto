@@ -57,12 +57,11 @@ message LauncherInfo {
 // DaemonUpdateWait reports the work keeping an accepted daemon update from
 // its handoff. The desktop shell is not counted: the handoff reopens it.
 message DaemonUpdateWait {
-  // OtherClients is the number of connected daemon clients.
-  uint32 other_clients = 1;
-  // OtherServices is the number of persistent services besides the desktop.
-  uint32 other_services = 2;
+  // OtherWork names the clients and services besides the desktop, sorted,
+  // with a count suffix on a repeated name.
+  repeated string other_work = 1;
   // RestartNow asks the daemon to hand off without waiting for other work.
-  bool restart_now = 3;
+  bool restart_now = 2;
 }
 
 // FetchStatus describes the launcher's DistConfig fetch and Release World
@@ -231,10 +230,9 @@ service Launcher {
 message ReportDaemonUpdateWaitRequest {
   // Selection is the APPLYING state observed by the serving daemon.
   UpdateState selection = 1;
-  // OtherClients is the number of connected daemon clients.
-  uint32 other_clients = 2;
-  // OtherServices is the number of persistent services besides the desktop.
-  uint32 other_services = 3;
+  // OtherWork names the clients and services besides the desktop, sorted,
+  // with a count suffix on a repeated name.
+  repeated string other_work = 2;
 }
 
 // ReportDaemonUpdateWaitResponse says whether the current selection was updated.

@@ -90,7 +90,7 @@ func reconcileWebListenerHolds(
 		id := info.GetListenerId()
 		present[id] = struct{}{}
 		if _, ok := held[id]; !ok {
-			held[id] = idleTracker.serviceAttached()
+			held[id] = idleTracker.serviceAttached("web listener at " + info.GetUrl())
 		}
 	}
 	for id, release := range held {

@@ -4,6 +4,8 @@ package spacewave_cli
 
 import (
 	"os"
+	"slices"
+	"strconv"
 	"sync"
 	"time"
 
@@ -26,12 +28,17 @@ type daemonIdleSnapshot struct {
 	stopping bool
 	// desktop indicates that the desktop shell holds the daemon.
 	desktop bool
+	// others names the holds a claim waits for, sorted, with a count suffix on
+	// repeated names. Only the claims fill it.
+	others []string
 }
 
 // daemonServiceHold identifies one persistent service in the idle tracker.
 type daemonServiceHold struct {
-	// tracker owns the service count and guards released.
+	// tracker owns the service set and guards released.
 	tracker *daemonIdleTracker
+	// name describes the service to a person waiting on it.
+	name string
 	// released prevents this hold from releasing another service.
 	released bool
 }
@@ -52,7 +59,7 @@ func (h *daemonServiceHold) release() {
 	if t.desktop == h {
 		t.desktop = nil
 	}
-	t.services--
+	delete(t.services, h)
 	t.active--
 	t.publishLocked()
 	t.armIdleLocked()
@@ -68,8 +75,8 @@ type daemonIdleTracker struct {
 	clients int
 	// connections identifies admitted socket clients for requester exclusion.
 	connections map[*trackedConn]struct{}
-	// services counts persistent daemon services.
-	services int
+	// services identifies persistent daemon services.
+	services map[*daemonServiceHold]struct{}
 	// desktop identifies the desktop shell's service hold, if any.
 	desktop *daemonServiceHold
 	// revision increases on each observable state change.
@@ -93,6 +100,7 @@ func newDaemonIdleTracker(idleTimeout time.Duration, onIdle func()) *daemonIdleT
 	return &daemonIdleTracker{
 		changed:     make(chan struct{}),
 		connections: make(map[*trackedConn]struct{}),
+		services:    make(map[*daemonServiceHold]struct{}),
 		idleTimeout: idleTimeout,
 		onIdle:      onIdle,
 	}
@@ -163,21 +171,21 @@ func (t *daemonIdleTracker) trackedClientDetached(conn *trackedConn) {
 	t.armIdleLocked()
 }
 
-// serviceAttached holds the daemon for a persistent service and returns an
-// idempotent release callback.
-func (t *daemonIdleTracker) serviceAttached() func() {
-	return t.attachService().release
+// serviceAttached holds the daemon for the named persistent service and
+// returns an idempotent release callback.
+func (t *daemonIdleTracker) serviceAttached(name string) func() {
+	return t.attachService(name).release
 }
 
-// attachService returns the identity and release operation for one service.
-// Take the tracker lock and create the hold.
-func (t *daemonIdleTracker) attachService() *daemonServiceHold {
+// attachService returns the identity and release operation for the named
+// service.
+func (t *daemonIdleTracker) attachService(name string) *daemonServiceHold {
 	// Take the tracker lock and create the hold.
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
 	// Create the hold and reject it when stopping.
-	hold := &daemonServiceHold{tracker: t}
+	hold := &daemonServiceHold{tracker: t, name: name}
 	if t.stopping {
 		hold.released = true
 		return hold
@@ -186,7 +194,7 @@ func (t *daemonIdleTracker) attachService() *daemonServiceHold {
 	// Cancel the deadline while the persistent service is active.
 	// Count the service and publish the new hold.
 	t.cancelIdleLocked()
-	t.services++
+	t.services[hold] = struct{}{}
 	t.active++
 	t.publishLocked()
 
@@ -214,21 +222,12 @@ func (t *daemonIdleTracker) claimDesktopQuit(requester *trackedConn) (bool, daem
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
-	// Snapshot the other holds.
-	snapshot := t.otherHoldsLocked()
+	// Snapshot the holds other than the desktop and the requester.
+	snapshot := t.otherHoldsLocked(requester)
 
-	// Reject the claim when stopping or the desktop is gone.
-	if t.stopping || !snapshot.desktop {
-		return false, snapshot
-	}
-
-	// Exclude the requester from its own client hold.
-	if _, ok := t.connections[requester]; requester != nil && ok {
-		snapshot.clients--
-	}
-
-	// Reject the claim while other holds remain.
-	if snapshot.clients != 0 || snapshot.services != 0 {
+	// Reject the claim when stopping, when the desktop is gone, or while other
+	// holds remain.
+	if t.stopping || !snapshot.desktop || snapshot.clients != 0 || snapshot.services != 0 {
 		return false, snapshot
 	}
 
@@ -242,14 +241,13 @@ func (t *daemonIdleTracker) claimDesktopQuit(requester *trackedConn) (bool, daem
 // except the desktop shell is released, or at once when restartNow is set.
 // The handoff reopens the desktop. The snapshot counts only the other holds,
 // and the returned channel closes on the tracker's next change.
-// Take the tracker lock for the claim decision.
 func (t *daemonIdleTracker) claimDaemonUpdate(restartNow bool) (bool, daemonIdleSnapshot, <-chan struct{}) {
 	// Take the tracker lock for the claim decision.
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
 	// Snapshot the other holds and reject while they remain.
-	snapshot := t.otherHoldsLocked()
+	snapshot := t.otherHoldsLocked(nil)
 	if t.stopping || (!restartNow && (snapshot.clients != 0 || snapshot.services != 0)) {
 		return false, snapshot, t.changed
 	}
@@ -260,14 +258,55 @@ func (t *daemonIdleTracker) claimDaemonUpdate(restartNow bool) (bool, daemonIdle
 	return true, snapshot, t.changed
 }
 
-// otherHoldsLocked returns the current state without the desktop hold while
-// mu is held.
-func (t *daemonIdleTracker) otherHoldsLocked() daemonIdleSnapshot {
+// otherHoldsLocked returns the current state without the desktop hold and the
+// requester's connection, naming the holds that remain, while mu is held.
+func (t *daemonIdleTracker) otherHoldsLocked(requester *trackedConn) daemonIdleSnapshot {
+	// Name the identified clients, then the connections admitted without one.
 	snapshot := t.snapshotLocked()
-	if snapshot.desktop {
-		snapshot.services--
+	names := make([]string, 0, snapshot.clients+snapshot.services)
+	for conn := range t.connections {
+		if conn == requester {
+			snapshot.clients--
+			continue
+		}
+		names = append(names, conn.describe())
 	}
+	for range snapshot.clients - len(names) {
+		names = append(names, unnamedClient)
+	}
+
+	// Name the services other than the desktop shell.
+	for hold := range t.services {
+		if hold == t.desktop {
+			snapshot.services--
+			continue
+		}
+		names = append(names, hold.name)
+	}
+	snapshot.others = countNames(names)
 	return snapshot
+}
+
+// unnamedClient describes a client whose process is unknown.
+const unnamedClient = "unnamed client"
+
+// countNames sorts names and folds each repeat into a count suffix.
+func countNames(names []string) []string {
+	slices.Sort(names)
+	var counted []string
+	for i := 0; i < len(names); {
+		n := 1
+		for i+n < len(names) && names[i+n] == names[i] {
+			n++
+		}
+		name := names[i]
+		if n > 1 {
+			name += " (" + strconv.Itoa(n) + ")"
+		}
+		counted = append(counted, name)
+		i += n
+	}
+	return counted
 }
 
 // claimStopLocked fences admission and cancels the deadline while mu is held.
@@ -281,7 +320,7 @@ func (t *daemonIdleTracker) claimStopLocked() {
 func (t *daemonIdleTracker) snapshotLocked() daemonIdleSnapshot {
 	return daemonIdleSnapshot{
 		clients:  t.clients,
-		services: t.services,
+		services: len(t.services),
 		revision: t.revision,
 		stopping: t.stopping,
 		desktop:  t.desktop != nil,

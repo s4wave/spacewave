@@ -109,25 +109,26 @@ export const QuitDesktopRequest: MessageType<QuitDesktopRequest> =
  */
 export interface QuitDesktopResponse {
   /**
-   * OtherClients counts admitted Resource connections apart from the requester.
+   * OtherWork names the Resource clients and persistent services apart from
+   * the requester and this desktop shell, sorted, with a count suffix on a
+   * repeated name.
    *
-   * @generated from field: int64 other_clients = 1;
+   * @generated from field: repeated string other_work = 1;
    */
-  otherClients?: bigint
-  /**
-   * OtherServices counts persistent services apart from this desktop shell.
-   *
-   * @generated from field: int64 other_services = 2;
-   */
-  otherServices?: bigint
+  otherWork?: string[]
 }
 
 export const QuitDesktopResponse: MessageType<QuitDesktopResponse> =
   /* @__PURE__ */ createMessageType({
     typeName: 'bldr.desktop.control.QuitDesktopResponse',
     fields: [
-      { no: 1, name: 'other_clients', kind: 'scalar', T: ScalarType.INT64 },
-      { no: 2, name: 'other_services', kind: 'scalar', T: ScalarType.INT64 },
+      {
+        no: 1,
+        name: 'other_work',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+        repeated: true,
+      },
     ] satisfies readonly PartialFieldInfo[],
   })
 

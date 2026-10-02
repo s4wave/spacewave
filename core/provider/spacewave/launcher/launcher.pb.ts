@@ -601,21 +601,16 @@ export const FetchStatus: MessageType<FetchStatus> =
  */
 export interface DaemonUpdateWait {
   /**
-   * OtherClients is the number of connected daemon clients.
+   * OtherWork names the clients and services besides the desktop, sorted,
+   * with a count suffix on a repeated name.
    *
-   * @generated from field: uint32 other_clients = 1;
+   * @generated from field: repeated string other_work = 1;
    */
-  otherClients?: number
-  /**
-   * OtherServices is the number of persistent services besides the desktop.
-   *
-   * @generated from field: uint32 other_services = 2;
-   */
-  otherServices?: number
+  otherWork?: string[]
   /**
    * RestartNow asks the daemon to hand off without waiting for other work.
    *
-   * @generated from field: bool restart_now = 3;
+   * @generated from field: bool restart_now = 2;
    */
   restartNow?: boolean
 }
@@ -624,9 +619,14 @@ export const DaemonUpdateWait: MessageType<DaemonUpdateWait> =
   /* @__PURE__ */ createMessageType({
     typeName: 'spacewave.launcher.DaemonUpdateWait',
     fields: [
-      { no: 1, name: 'other_clients', kind: 'scalar', T: ScalarType.UINT32 },
-      { no: 2, name: 'other_services', kind: 'scalar', T: ScalarType.UINT32 },
-      { no: 3, name: 'restart_now', kind: 'scalar', T: ScalarType.BOOL },
+      {
+        no: 1,
+        name: 'other_work',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+        repeated: true,
+      },
+      { no: 2, name: 'restart_now', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
   })
 
@@ -707,17 +707,12 @@ export interface ReportDaemonUpdateWaitRequest {
    */
   selection?: UpdateState
   /**
-   * OtherClients is the number of connected daemon clients.
+   * OtherWork names the clients and services besides the desktop, sorted,
+   * with a count suffix on a repeated name.
    *
-   * @generated from field: uint32 other_clients = 2;
+   * @generated from field: repeated string other_work = 2;
    */
-  otherClients?: number
-  /**
-   * OtherServices is the number of persistent services besides the desktop.
-   *
-   * @generated from field: uint32 other_services = 3;
-   */
-  otherServices?: number
+  otherWork?: string[]
 }
 
 export const ReportDaemonUpdateWaitRequest: MessageType<ReportDaemonUpdateWaitRequest> =
@@ -725,8 +720,13 @@ export const ReportDaemonUpdateWaitRequest: MessageType<ReportDaemonUpdateWaitRe
     typeName: 'spacewave.launcher.ReportDaemonUpdateWaitRequest',
     fields: [
       { no: 1, name: 'selection', kind: 'message', T: UpdateState },
-      { no: 2, name: 'other_clients', kind: 'scalar', T: ScalarType.UINT32 },
-      { no: 3, name: 'other_services', kind: 'scalar', T: ScalarType.UINT32 },
+      {
+        no: 2,
+        name: 'other_work',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+        repeated: true,
+      },
     ] satisfies readonly PartialFieldInfo[],
   })
 

@@ -224,6 +224,8 @@ func runServeCommand(
 	if err != nil {
 		return err
 	}
+
+	// Find the native plugin host root when no native core plugin host owns it.
 	if nativeHostRoot == nil {
 		var hostRef directive.Reference
 		nativeHostRoot, _, hostRef, err = plugin_host_root.ExLookupRootByPlatform(
@@ -278,7 +280,7 @@ func runServeCommand(
 		lis.Close()
 	})
 	defer idleTracker.close()
-	releaseStartupDemand := idleTracker.serviceAttached()
+	releaseStartupDemand := idleTracker.serviceAttached("daemon startup")
 	defer releaseStartupDemand()
 
 	// Persistent services participate in the same idle count as public clients.

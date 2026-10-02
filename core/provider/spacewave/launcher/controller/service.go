@@ -126,7 +126,7 @@ func (l *LauncherServer) ReportDaemonUpdateWait(
 	req *spacewave_launcher.ReportDaemonUpdateWaitRequest,
 ) (*spacewave_launcher.ReportDaemonUpdateWaitResponse, error) {
 	return &spacewave_launcher.ReportDaemonUpdateWaitResponse{
-		Reported: l.c.setDaemonUpdateWait(req.GetSelection(), req.GetOtherClients(), req.GetOtherServices()),
+		Reported: l.c.setDaemonUpdateWait(req.GetSelection(), req.GetOtherWork()),
 	}, nil
 }
 

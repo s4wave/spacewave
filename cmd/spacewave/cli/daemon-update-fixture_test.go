@@ -166,17 +166,19 @@ func (f *fixtureLauncher) ClaimDaemonUpdate(_ context.Context, req *spacewave_la
 
 // ReportDaemonUpdateWait publishes the old daemon's other work.
 func (f *fixtureLauncher) ReportDaemonUpdateWait(_ context.Context, req *spacewave_launcher.ReportDaemonUpdateWaitRequest) (*spacewave_launcher.ReportDaemonUpdateWaitResponse, error) {
+	// Ignore a report for a selection that is no longer applying.
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	info := f.state.GetValue().CloneVT()
 	if !info.GetDaemonUpdateState().EqualVT(req.GetSelection()) {
 		return &spacewave_launcher.ReportDaemonUpdateWaitResponse{}, nil
 	}
+
+	// Publish the reported work.
 	if info.DaemonUpdateWait == nil {
 		info.DaemonUpdateWait = &spacewave_launcher.DaemonUpdateWait{}
 	}
-	info.DaemonUpdateWait.OtherClients = req.GetOtherClients()
-	info.DaemonUpdateWait.OtherServices = req.GetOtherServices()
+	info.DaemonUpdateWait.OtherWork = req.GetOtherWork()
 	f.state.SetValue(info)
 	return &spacewave_launcher.ReportDaemonUpdateWaitResponse{Reported: true}, nil
 }
@@ -201,7 +203,7 @@ func (f *fixtureLauncher) RestartDaemonUpdateNow(context.Context, *spacewave_lau
 // requests Restart now and returns the reported wait.
 func (f *fixtureLauncher) restartWhenBusy(ctx context.Context) (*spacewave_launcher.DaemonUpdateWait, error) {
 	info, err := f.state.WaitValueWithValidator(ctx, func(info *spacewave_launcher.LauncherInfo) (bool, error) {
-		return info.GetDaemonUpdateWait().GetOtherClients() != 0, nil
+		return len(info.GetDaemonUpdateWait().GetOtherWork()) != 0, nil
 	}, nil)
 	if err != nil {
 		return nil, err

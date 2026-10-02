@@ -179,27 +179,20 @@ function UpdateNotifierInner() {
 
   const daemonPhase = info?.daemonUpdateState?.phase
   const daemonVersion = info?.daemonUpdateState?.version
-  const otherClients = info?.daemonUpdateWait?.otherClients
-  const otherServices = info?.daemonUpdateWait?.otherServices
+  const otherWork = info?.daemonUpdateWait?.otherWork?.join('\n')
   const restartNow = info?.daemonUpdateWait?.restartNow
   useEffect(() => {
     announceDaemon(daemonPhase)
-  }, [daemonPhase, daemonVersion, otherClients, otherServices, restartNow])
+  }, [daemonPhase, daemonVersion, otherWork, restartNow])
 
   return null
 }
 
+// daemonWaitList joins the names of the work a daemon update waits for.
+const daemonWaitList = new Intl.ListFormat('en', { type: 'conjunction' })
+
 // describeDaemonWait names the other work an accepted daemon update waits for,
 // or returns an empty string when nothing else holds the daemon.
 function describeDaemonWait(wait: DaemonUpdateWait | undefined): string {
-  const parts: string[] = []
-  const clients = wait?.otherClients ?? 0
-  const services = wait?.otherServices ?? 0
-  if (clients) {
-    parts.push(`${clients} other ${clients === 1 ? 'client' : 'clients'}`)
-  }
-  if (services) {
-    parts.push(`${services} ${services === 1 ? 'service' : 'services'}`)
-  }
-  return parts.join(' and ')
+  return daemonWaitList.format(wait?.otherWork ?? [])
 }

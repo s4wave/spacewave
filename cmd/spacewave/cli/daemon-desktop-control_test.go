@@ -8,6 +8,8 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"runtime"
+	"slices"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -305,10 +307,12 @@ func TestDesktopControlSocketKeepsResourceAndPluginPresence(t *testing.T) {
 // TestDesktopControlQuitWaitsForPresenceAndOtherClients verifies that Quit
 // decides busy or stop while the shell is visible and tears down after exit.
 func TestDesktopControlQuitWaitsForPresenceAndOtherClients(t *testing.T) {
-	// Install a plugin Electron owner and the daemon's desktop control service.
+	// Start the daemon idle tracker.
 	ctx := t.Context()
 	idle := newDaemonIdleTracker(0, nil)
 	defer idle.close()
+
+	// Build a scripted desktop and the core bus.
 	gate := make(chan struct{})
 	close(gate)
 	desktop := &socketDesktop{entered: make(chan string, 2), gate: gate}
@@ -318,17 +322,23 @@ func TestDesktopControlQuitWaitsForPresenceAndOtherClients(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer b.Close()
+
+	// Register the scripted desktop on the bus.
 	releaseDesktop, err := b.AddHandler(desktop)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer releaseDesktop()
+
+	// Serve the Electron owner through the daemon desktop control.
 	plugin := web_plugin_controller.NewController(le, b, &web_plugin_controller.Config{})
 	pluginClient := srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(plugin)))
 	control := &daemonDesktopControl{ctx: ctx, idleTracker: idle}
 	control.load = func(context.Context) (bldr_web_plugin.SRPCWebPluginClient, string, func(), error) {
 		return bldr_web_plugin.NewSRPCWebPluginClient(pluginClient), "artifact/test", func() {}, nil
 	}
+
+	// Record the stop requests the control makes.
 	stopped := make(chan struct{}, 1)
 	control.shutdown = func(*trackedConn) { stopped <- struct{}{} }
 	defer control.close()
@@ -341,6 +351,8 @@ func TestDesktopControlQuitWaitsForPresenceAndOtherClients(t *testing.T) {
 	other, otherResources, otherConn := desktopSocketClient(t, socket)
 	defer otherResources.Release()
 	defer otherConn.Close()
+
+	// Watch desktop status and Resources through both connections.
 	otherStatus := desktopStatusWatch(t, other)
 	defer otherStatus.Close()
 	watch := desktopWatch(t, otherResources)
@@ -356,9 +368,11 @@ func TestDesktopControlQuitWaitsForPresenceAndOtherClients(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if resp.GetOtherClients() != 1 || resp.GetOtherServices() != 0 {
-		t.Fatalf("busy Quit = %v, want one other client", resp)
+	if want := []string{testPeerName(t)}; !slices.Equal(resp.GetOtherWork(), want) {
+		t.Fatalf("busy Quit = %v, want other work %q", resp, want)
 	}
+
+	// Close the shell; the other client keeps the daemon running.
 	desktop.closeShell("")
 	recvDesktopStatus(t, status, func(state *desktop_control.WatchDesktopStatusResponse) bool {
 		return state.GetPresence().GetState() == bldr_web_plugin.DesktopPresenceState_DESKTOP_PRESENCE_STATE_ENDED
@@ -366,6 +380,8 @@ func TestDesktopControlQuitWaitsForPresenceAndOtherClients(t *testing.T) {
 	if snapshot, _ := idle.observe(); snapshot.stopping {
 		t.Fatal("busy Quit stopped the daemon")
 	}
+
+	// Release the other client.
 	if err := watch.CloseSend(); err != nil {
 		t.Fatal(err)
 	}
@@ -382,12 +398,14 @@ func TestDesktopControlQuitWaitsForPresenceAndOtherClients(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if resp.GetOtherClients() != 0 || resp.GetOtherServices() != 0 {
+	if len(resp.GetOtherWork()) != 0 {
 		t.Fatalf("unused Quit = %v, want no other demand", resp)
 	}
 	if snapshot, _ := idle.observe(); !snapshot.stopping || snapshot.services != 1 {
 		t.Fatalf("pre-exit Quit claim = %+v", snapshot)
 	}
+
+	// The claimed stop waits for the shell to exit.
 	select {
 	case <-stopped:
 		t.Fatal("daemon stopped before shell exit")
@@ -431,7 +449,7 @@ func TestDesktopControlLostQuitReply(t *testing.T) {
 	if !idle.trackedClientAttached(requester) {
 		t.Fatal("requester was not admitted")
 	}
-	hold := idle.attachService()
+	hold := idle.attachService("desktop app")
 	idle.setDesktop(hold)
 	stopped := make(chan *trackedConn, 1)
 	control := &daemonDesktopControl{
@@ -452,7 +470,7 @@ func TestDesktopControlLostQuitReply(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if response.GetOtherClients() != 0 || response.GetOtherServices() != 0 {
+	if len(response.GetOtherWork()) != 0 {
 		t.Fatalf("unused Quit = %v", response)
 	}
 	idle.trackedClientDetached(requester)
@@ -669,10 +687,13 @@ func TestDesktopControlStreamFailureKeepsDemand(t *testing.T) {
 func TestDesktopControlOwnerExitAfterStreamFailure(t *testing.T) {
 	for _, quit := range []bool{false, true} {
 		t.Run(map[bool]string{false: "ordinary-exit", true: "quit"}[quit], func(t *testing.T) {
+			// Create the idle tracker and the desktop control.
 			idle := newDaemonIdleTracker(0, nil)
 			defer idle.close()
 			control := &daemonDesktopControl{ctx: t.Context(), idleTracker: idle}
 			defer control.close()
+
+			// Script an owner whose status stream fails and whose exit wait is gated.
 			failed := make(chan struct{})
 			exited := make(chan struct{})
 			waitStarted := make(chan struct{})
@@ -686,8 +707,12 @@ func TestDesktopControlOwnerExitAfterStreamFailure(t *testing.T) {
 			control.load = func(context.Context) (bldr_web_plugin.SRPCWebPluginClient, string, func(), error) {
 				return client, "artifact/test", func() {}, nil
 			}
+
+			// Record the stop requests the control makes.
 			stopped := make(chan struct{}, 1)
 			control.shutdown = func(*trackedConn) { stopped <- struct{}{} }
+
+			// Connect a launcher and watch desktop status.
 			socket := desktopSocket(t, control, make(chan struct{}))
 			launcher, resources, conn := desktopSocketClient(t, socket)
 			defer resources.Release()
@@ -713,7 +738,7 @@ func TestDesktopControlOwnerExitAfterStreamFailure(t *testing.T) {
 				if err != nil {
 					t.Fatal(err)
 				}
-				if result.GetOtherClients() != 0 || result.GetOtherServices() != 0 {
+				if len(result.GetOtherWork()) != 0 {
 					t.Fatalf("unused Quit = %v", result)
 				}
 			}
@@ -775,4 +800,16 @@ func recvDesktopStatus(t *testing.T, stream desktop_control.SRPCDesktopControlSe
 			return state
 		}
 	}
+}
+
+// testPeerName returns the name the daemon gives a client in this test process.
+func testPeerName(t *testing.T) string {
+	if runtime.GOOS != "darwin" && runtime.GOOS != "linux" {
+		return unnamedClient
+	}
+	exe, err := os.Executable()
+	if err != nil {
+		t.Fatal(err)
+	}
+	return filepath.Base(exe)
 }

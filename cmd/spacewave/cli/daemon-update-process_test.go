@@ -120,6 +120,7 @@ func testAcceptedDaemonUpdateRelaunchesAfterFinalClient(t *testing.T, mode strin
 // TestDaemonUpdateRestartNowReplacesBusyDaemon hands off while a client still
 // holds the old daemon, after it reports that client to the launcher.
 func TestDaemonUpdateRestartNowReplacesBusyDaemon(t *testing.T) {
+	// Run the fixture daemon in a private state directory.
 	statePath := shortSocketDir(t)
 	t.Setenv(sharedDaemonFixtureMode, "native")
 	t.Setenv("SPACEWAVE_STATE_PATH", statePath)
@@ -128,6 +129,8 @@ func TestDaemonUpdateRestartNowReplacesBusyDaemon(t *testing.T) {
 	t.Setenv(daemon.StartupTimeoutEnvVar, "15s")
 	ctx, cancel := context.WithTimeout(t.Context(), 25*time.Second)
 	defer cancel()
+
+	// Watch the state directory for the replacement daemon.
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
 		t.Fatal(err)
@@ -136,6 +139,8 @@ func TestDaemonUpdateRestartNowReplacesBusyDaemon(t *testing.T) {
 	if err := watcher.Add(statePath); err != nil {
 		t.Fatal(err)
 	}
+
+	// Start the old daemon with a staged update beside it.
 	for _, name := range []string{"old-spacewave", "staged-cli"} {
 		copyFixtureExecutable(t, filepath.Join(statePath, name))
 	}
@@ -147,13 +152,15 @@ func TestDaemonUpdateRestartNowReplacesBusyDaemon(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Accept the update through a client that stays connected.
+	// Connect a client that stays connected.
 	connector := daemon.NewConnector(nil, nil)
 	client, err := connector.Connect(ctx, statePath, socketPath)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer client.Close()
+
+	// Accept the update while the client stays connected.
 	oldPID, err := os.ReadFile(filepath.Join(statePath, "runtime-identity"))
 	if err != nil {
 		t.Fatal(err)
@@ -170,7 +177,7 @@ func TestDaemonUpdateRestartNowReplacesBusyDaemon(t *testing.T) {
 
 	// Restart now drains the busy daemon, so its reply may be cut off.
 	wait := &spacewave_launcher.DaemonUpdateWait{}
-	if err := rpc.ExecCall(ctx, "test.DaemonUpdate", "Restart", &spacewave_launcher.RestartDaemonUpdateNowRequest{}, wait); err == nil && wait.GetOtherClients() == 0 {
+	if err := rpc.ExecCall(ctx, "test.DaemonUpdate", "Restart", &spacewave_launcher.RestartDaemonUpdateNowRequest{}, wait); err == nil && len(wait.GetOtherWork()) == 0 {
 		t.Fatalf("reported wait = %v, want the retained client", wait)
 	}
 	waitDaemonReplacement(ctx, t, watcher, connector, statePath, string(oldPID))

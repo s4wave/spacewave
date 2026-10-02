@@ -6,6 +6,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -215,6 +216,7 @@ func TestApplyUpdateAcceptsVerifiedDaemonSelection(t *testing.T) {
 // TestDaemonUpdateWaitAndRestartNow publishes the work an accepted update
 // waits for and records the user's request to restart without waiting.
 func TestDaemonUpdateWaitAndRestartNow(t *testing.T) {
+	// Stage a daemon update that the user has not accepted yet.
 	selected := &spacewave_launcher.UpdateState{
 		Phase:        spacewave_launcher.UpdatePhase_UPDATE_PHASE_APPLYING,
 		Target:       desktop_update.UpdateTarget_UPDATE_TARGET_DAEMON,
@@ -235,17 +237,19 @@ func TestDaemonUpdateWaitAndRestartNow(t *testing.T) {
 	if _, err := server.RestartDaemonUpdateNow(t.Context(), &spacewave_launcher.RestartDaemonUpdateNowRequest{}); err == nil {
 		t.Fatal("restart now succeeded without an accepted update")
 	}
-	report := &spacewave_launcher.ReportDaemonUpdateWaitRequest{Selection: selected, OtherClients: 2, OtherServices: 1}
+	report := &spacewave_launcher.ReportDaemonUpdateWaitRequest{Selection: selected, OtherWork: []string{"glados", "spacewave (2)"}}
 	if resp, err := server.ReportDaemonUpdateWait(t.Context(), report); err != nil || resp.GetReported() {
 		t.Fatalf("wait report before acceptance: response=%v error=%v", resp, err)
 	}
 
-	// The accepted selection publishes its counts and the restart request.
+	// Accept the staged selection.
 	releaseWatch := ctrl.attachDaemonUpdateWatcher()
 	defer releaseWatch()
 	if err := ctrl.setDaemonUpdateApplying(ctrl.launcherInfoCtr.GetValue().GetDaemonUpdateState()); err != nil {
 		t.Fatal(err)
 	}
+
+	// The accepted selection publishes its waiting work and the restart request.
 	if resp, err := server.ReportDaemonUpdateWait(t.Context(), report); err != nil || !resp.GetReported() {
 		t.Fatalf("wait report after acceptance: response=%v error=%v", resp, err)
 	}
@@ -254,7 +258,7 @@ func TestDaemonUpdateWaitAndRestartNow(t *testing.T) {
 	}
 	info := ctrl.launcherInfoCtr.GetValue()
 	wait := info.GetDaemonUpdateWait()
-	if wait.GetOtherClients() != 2 || wait.GetOtherServices() != 1 || !wait.GetRestartNow() {
+	if !slices.Equal(wait.GetOtherWork(), report.GetOtherWork()) || !wait.GetRestartNow() {
 		t.Fatalf("daemon update wait = %v", wait)
 	}
 	if !info.GetDaemonUpdateState().EqualVT(selected) {

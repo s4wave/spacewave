@@ -469,10 +469,7 @@ describe("BldrElectronApp", () => {
     const started = new Promise<void>((resolve) => {
       requestStarted = resolve;
     });
-    let decide!: (value: {
-      otherClients: bigint;
-      otherServices: bigint;
-    }) => void;
+    let decide!: (value: { otherWork: string[] }) => void;
     daemonQuitMocks.quit.mockImplementation(
       () =>
         new Promise((resolve) => {
@@ -522,11 +519,11 @@ describe("BldrElectronApp", () => {
     expect(daemonQuitMocks.quit).toHaveBeenCalledOnce();
     expect(mockElectronApp.quit).not.toHaveBeenCalled();
 
-    decide({ otherClients: 1n, otherServices: 0n });
+    decide({ otherWork: ["glados"] });
     await requested;
     expect(electron.dialog.showMessageBox).toHaveBeenCalledWith(
       expect.objectContaining({
-        detail: "1 other client(s) and 0 other service(s) are using it.",
+        detail: "Still using it: glados.",
       }),
     );
     expect(mockElectronApp.quit).toHaveBeenCalledOnce();
@@ -539,10 +536,7 @@ describe("BldrElectronApp", () => {
       rpc: {},
       [Symbol.dispose]: daemonQuitMocks.dispose,
     });
-    daemonQuitMocks.quit.mockResolvedValue({
-      otherClients: 0n,
-      otherServices: 0n,
-    });
+    daemonQuitMocks.quit.mockResolvedValue({ otherWork: [] });
     const [electron, { BldrElectronApp }] = await Promise.all([
       import("electron"),
       import("./app.js"),
@@ -593,10 +587,7 @@ describe("BldrElectronApp", () => {
       rpc: {},
       [Symbol.dispose]: daemonQuitMocks.dispose,
     });
-    let decide!: (value: {
-      otherClients: bigint;
-      otherServices: bigint;
-    }) => void;
+    let decide!: (value: { otherWork: string[] }) => void;
     daemonQuitMocks.quit.mockReturnValue(
       new Promise((resolve) => {
         decide = resolve;
@@ -615,7 +606,13 @@ describe("BldrElectronApp", () => {
       [],
     );
     expect(mockElectronApp.quit).not.toHaveBeenCalled();
-    decide({ otherClients: 1n, otherServices: 2n });
+    decide({
+      otherWork: [
+        "glados",
+        "spacewave (2)",
+        "web listener at http://127.0.0.1:8080",
+      ],
+    });
     await quitting;
 
     expect(daemonQuitMocks.connect).toHaveBeenCalledWith(
@@ -627,7 +624,8 @@ describe("BldrElectronApp", () => {
     const { dialog } = await import("electron");
     expect(dialog.showMessageBox).toHaveBeenCalledWith(
       expect.objectContaining({
-        detail: "1 other client(s) and 2 other service(s) are using it.",
+        detail:
+          "Still using it: glados, spacewave (2), and web listener at http://127.0.0.1:8080.",
       }),
     );
     expect(mockElectronApp.quit).toHaveBeenCalledOnce();

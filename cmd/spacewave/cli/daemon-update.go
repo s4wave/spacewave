@@ -5,6 +5,7 @@ package spacewave_cli
 import (
 	"context"
 	"os"
+	"slices"
 	"sync"
 	"time"
 
@@ -127,12 +128,11 @@ func watchDaemonUpdate(
 				idleChanged = changed
 
 				// Publish the other work the handoff waits for.
-				if reported == nil || reported.clients != others.clients || reported.services != others.services {
+				if reported == nil || !slices.Equal(reported.others, others.others) {
 					reportCtx, reportCancel := context.WithTimeout(serviceCtx, ownerRPCTimeout)
 					_, reportErr := client.ReportDaemonUpdateWait(reportCtx, &spacewave_launcher.ReportDaemonUpdateWaitRequest{
-						Selection:     observed,
-						OtherClients:  uint32(others.clients),  // #nosec G115 -- hold counts are non-negative
-						OtherServices: uint32(others.services), // #nosec G115 -- hold counts are non-negative
+						Selection: observed,
+						OtherWork: others.others,
 					})
 					reportCancel()
 					if reportErr != nil {
