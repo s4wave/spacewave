@@ -1,5 +1,4 @@
 //go:build linux
-// +build linux
 
 package fuse
 
@@ -13,16 +12,10 @@ import (
 	"github.com/s4wave/spacewave/db/unixfs"
 )
 
-const (
-	// nodeValidTime is the amount of time the kernel will keep a inode in cache.
-	// we notify the kernel of changes, so this is a larger value.
-	// the kernel may still forget some parts of the tree under memory pressure
-	nodeValidTime = time.Minute * 5
-)
-
-// FsOpsToAttr computes inode attributes for a FSCursorOps.
-func FsOpsToAttr(ctx context.Context, node *unixfs.FSHandle, out *fuse.Attr) error {
-	// TODO: many values are defaulted for now.
+// FsOpsToAttr computes inode attributes for a FSCursorOps, which the kernel
+// may cache for valid.
+func FsOpsToAttr(ctx context.Context, node *unixfs.FSHandle, valid time.Duration, out *fuse.Attr) error {
+	// Read the node type and file info. Many attributes are defaulted.
 	nt, err := node.GetNodeType(ctx)
 	if err != nil {
 		return err
@@ -32,9 +25,11 @@ func FsOpsToAttr(ctx context.Context, node *unixfs.FSHandle, out *fuse.Attr) err
 		return err
 	}
 
+	// Set the mode and how long the kernel may cache the attributes.
 	out.Mode = fileInfo.Mode()
-	out.Valid = nodeValidTime
+	out.Valid = valid
 
+	// Set the size and block count of a file.
 	if nt.GetIsFile() {
 		size := fileInfo.Size()
 		if size < 0 {

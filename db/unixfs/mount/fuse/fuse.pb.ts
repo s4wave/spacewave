@@ -46,6 +46,22 @@ export interface Config {
    * @generated from field: bool allow_suid = 5;
    */
   allowSuid?: boolean
+  /**
+   * ReadOnly mounts an unchanging tree read-only through the kernel page cache.
+   * The kernel rejects writes, keeps file pages across opens, and permits
+   * memory-mapping files.
+   * Volume attribute: read_only=true
+   *
+   * @generated from field: bool read_only = 6;
+   */
+  readOnly?: boolean
+  /**
+   * MaxReadahead limits kernel readahead for sequential reads in bytes.
+   * Zero keeps the kernel default.
+   *
+   * @generated from field: uint32 max_readahead = 7;
+   */
+  maxReadahead?: number
 }
 
 export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
@@ -56,5 +72,7 @@ export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
     { no: 3, name: 'allow_other', kind: 'scalar', T: ScalarType.BOOL },
     { no: 4, name: 'allow_dev', kind: 'scalar', T: ScalarType.BOOL },
     { no: 5, name: 'allow_suid', kind: 'scalar', T: ScalarType.BOOL },
+    { no: 6, name: 'read_only', kind: 'scalar', T: ScalarType.BOOL },
+    { no: 7, name: 'max_readahead', kind: 'scalar', T: ScalarType.UINT32 },
   ] satisfies readonly PartialFieldInfo[],
 })

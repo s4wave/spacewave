@@ -48,10 +48,13 @@ func (c *Config) SetMountPath(npath string) {
 
 // BuildFuseMountOptions builds the fuse mount options.
 func (c *Config) BuildFuseMountOptions() []fuse.MountOption {
+	// Start from the options every mount uses.
 	mountOpts := []fuse.MountOption{
 		bfuse.DefaultPermissions(),
 		bfuse.AllowNonEmptyMount(),
 	}
+
+	// Add the options the config enables.
 	if c.GetAllowOther() {
 		mountOpts = append(mountOpts, bfuse.AllowOther())
 	}
@@ -60,6 +63,9 @@ func (c *Config) BuildFuseMountOptions() []fuse.MountOption {
 	}
 	if c.GetAllowSuid() {
 		mountOpts = append(mountOpts, bfuse.AllowSUID())
+	}
+	if readahead := c.GetMaxReadahead(); readahead != 0 {
+		mountOpts = append(mountOpts, bfuse.MaxReadahead(readahead))
 	}
 	return mountOpts
 }
@@ -76,6 +82,7 @@ func (c *Config) ApplyVolumeMountAttributes(attrs map[string]string) error {
 	return checkerrs.AnyErrors(
 		unixfs_mount.ApplyBoolVolumeAttribute(attrs, &c.Verbose, "verbose"),
 		unixfs_mount.ApplyBoolVolumeAttribute(attrs, &c.AllowOther, "allow_other"),
+		unixfs_mount.ApplyBoolVolumeAttribute(attrs, &c.ReadOnly, "read_only"),
 	)
 }
 

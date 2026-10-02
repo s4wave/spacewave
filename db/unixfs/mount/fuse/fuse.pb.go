@@ -29,6 +29,14 @@ type Config struct {
 	AllowDev bool `protobuf:"varint,4,opt,name=allow_dev,json=allowDev,proto3" json:"allowDev,omitempty"`
 	// AllowSuid allows set-user-identifier or set-group-identifier bits to take effect.
 	AllowSuid bool `protobuf:"varint,5,opt,name=allow_suid,json=allowSuid,proto3" json:"allowSuid,omitempty"`
+	// ReadOnly mounts an unchanging tree read-only through the kernel page cache.
+	// The kernel rejects writes, keeps file pages across opens, and permits
+	// memory-mapping files.
+	// Volume attribute: read_only=true
+	ReadOnly bool `protobuf:"varint,6,opt,name=read_only,json=readOnly,proto3" json:"readOnly,omitempty"`
+	// MaxReadahead limits kernel readahead for sequential reads in bytes.
+	// Zero keeps the kernel default.
+	MaxReadahead uint32 `protobuf:"varint,7,opt,name=max_readahead,json=maxReadahead,proto3" json:"maxReadahead,omitempty"`
 }
 
 func (x *Config) Reset() {
@@ -72,6 +80,20 @@ func (x *Config) GetAllowSuid() bool {
 	return false
 }
 
+func (x *Config) GetReadOnly() bool {
+	if x != nil {
+		return x.ReadOnly
+	}
+	return false
+}
+
+func (x *Config) GetMaxReadahead() uint32 {
+	if x != nil {
+		return x.MaxReadahead
+	}
+	return 0
+}
+
 func (m *Config) CloneVT() *Config {
 	if m == nil {
 		return (*Config)(nil)
@@ -82,6 +104,8 @@ func (m *Config) CloneVT() *Config {
 	r.AllowOther = m.AllowOther
 	r.AllowDev = m.AllowDev
 	r.AllowSuid = m.AllowSuid
+	r.ReadOnly = m.ReadOnly
+	r.MaxReadahead = m.MaxReadahead
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -111,6 +135,12 @@ func (this *Config) EqualVT(that *Config) bool {
 		return false
 	}
 	if this.AllowSuid != that.AllowSuid {
+		return false
+	}
+	if this.ReadOnly != that.ReadOnly {
+		return false
+	}
+	if this.MaxReadahead != that.MaxReadahead {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -157,6 +187,16 @@ func (x *Config) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("allowSuid")
 		s.WriteBool(x.AllowSuid)
 	}
+	if x.ReadOnly || s.HasField("readOnly") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("readOnly")
+		s.WriteBool(x.ReadOnly)
+	}
+	if x.MaxReadahead != 0 || s.HasField("maxReadahead") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("maxReadahead")
+		s.WriteUint32(x.MaxReadahead)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -189,6 +229,12 @@ func (x *Config) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "allow_suid", "allowSuid":
 			s.AddField("allow_suid")
 			x.AllowSuid = s.ReadBool()
+		case "read_only", "readOnly":
+			s.AddField("read_only")
+			x.ReadOnly = s.ReadBool()
+		case "max_readahead", "maxReadahead":
+			s.AddField("max_readahead")
+			x.MaxReadahead = s.ReadUint32()
 		}
 	})
 }
@@ -226,6 +272,16 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	_ = l
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.MaxReadahead != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.MaxReadahead))
+		i--
+		dAtA[i] = 0x38
+	}
+	if m.ReadOnly {
+		i = protobuf_go_lite.EncodeBool(dAtA, i, m.ReadOnly)
+		i--
+		dAtA[i] = 0x30
 	}
 	if m.AllowSuid {
 		i = protobuf_go_lite.EncodeBool(dAtA, i, m.AllowSuid)
@@ -266,6 +322,8 @@ func (m *Config) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeBoolNonZero(1, m.AllowOther)
 	n += protobuf_go_lite.SizeBoolNonZero(1, m.AllowDev)
 	n += protobuf_go_lite.SizeBoolNonZero(1, m.AllowSuid)
+	n += protobuf_go_lite.SizeBoolNonZero(1, m.ReadOnly)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.MaxReadahead)
 	n += len(m.unknownFields)
 	return n
 }
@@ -292,6 +350,14 @@ func (x *Config) MarshalProtoText() string {
 	if x.AllowSuid != false {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "allow_suid")
 		protobuf_go_lite.TextWriteBool(&sb, x.AllowSuid)
+	}
+	if x.ReadOnly != false {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "read_only")
+		protobuf_go_lite.TextWriteBool(&sb, x.ReadOnly)
+	}
+	if x.MaxReadahead != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "max_readahead")
+		protobuf_go_lite.TextWriteUint(&sb, x.MaxReadahead)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -370,6 +436,25 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.AllowSuid = bool(v)
+		case 6:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ReadOnly", wireType)
+			}
+			var v bool
+			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.ReadOnly = bool(v)
+		case 7:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field MaxReadahead", wireType)
+			}
+			m.MaxReadahead = 0
+			m.MaxReadahead, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

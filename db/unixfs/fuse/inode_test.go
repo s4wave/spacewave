@@ -16,8 +16,8 @@ import (
 
 // TestInodeOpenUsesSynchronousDirectIO checks the existing-file open path.
 func TestInodeOpenUsesSynchronousDirectIO(t *testing.T) {
-	// Open an existing inode.
-	inode := &Inode{}
+	// Open an existing inode of a writable mount.
+	inode := &Inode{rfs: &RootFS{}}
 	request := &fuse.OpenRequest{Flags: fuse.OpenReadWrite}
 	response := &fuse.OpenResponse{}
 	handle, err := inode.Open(context.Background(), request, response)
@@ -31,6 +31,25 @@ func TestInodeOpenUsesSynchronousDirectIO(t *testing.T) {
 	}
 	if response.Flags&fuse.OpenDirectIO == 0 {
 		t.Fatal("expected OpenDirectIO response flag")
+	}
+}
+
+// TestInodeOpenReadOnlyKeepsCache checks that a read-only mount serves opens
+// through the kernel page cache, which memory-mapped files need.
+func TestInodeOpenReadOnlyKeepsCache(t *testing.T) {
+	// Open an existing inode of a read-only mount.
+	inode := &Inode{rfs: &RootFS{readOnly: true}}
+	response := &fuse.OpenResponse{}
+	if _, err := inode.Open(context.Background(), &fuse.OpenRequest{}, response); err != nil {
+		t.Fatal(err)
+	}
+
+	// The open keeps cached pages and does not bypass the cache.
+	if response.Flags&fuse.OpenKeepCache == 0 {
+		t.Fatal("expected OpenKeepCache response flag")
+	}
+	if response.Flags&fuse.OpenDirectIO != 0 {
+		t.Fatal("expected no OpenDirectIO response flag")
 	}
 }
 

@@ -2285,7 +2285,7 @@
       ]
     },
     "github.com/s4wave/spacewave/db/unixfs/mount/fuse": {
-      "hash": "e8d50fbfc3f3e6cb9d5121a0dd789077d356fadb7e0858a79ab3c580f589e171",
+      "hash": "cc267bd97ee0f3837b8b5a771eca451d012b6274fef428759f0e262957beaf3b",
       "generatedFiles": [
         "db/unixfs/mount/fuse/fuse.pb.go",
         "db/unixfs/mount/fuse/fuse.pb.ts"

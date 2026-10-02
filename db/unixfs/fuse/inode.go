@@ -1,5 +1,4 @@
 //go:build linux
-// +build linux
 
 package fuse
 
@@ -68,7 +67,7 @@ func (i *Inode) GetNodeType(ctx context.Context) (unixfs.FSCursorNodeType, error
 //
 // The result may be cached by the kernel for the duration set in Valid.
 func (i *Inode) Attr(ctx context.Context, attr *fuse.Attr) error {
-	err := FsOpsToAttr(ctx, i.h, attr)
+	err := FsOpsToAttr(ctx, i.h, i.rfs.validTime(), attr)
 	if err != nil {
 		i.rfs.logFilesystemError(err)
 		err = UnixfsErrorToSyscall(err)
@@ -112,8 +111,8 @@ func (i *Inode) Lookup(
 	req *fuse.LookupRequest,
 	resp *fuse.LookupResponse,
 ) (fs.Node, error) {
-	name := req.Name
-	return i.lookupNodeByName(ctx, name, &resp.Attr)
+	resp.EntryValid = i.rfs.validTime()
+	return i.lookupNodeByName(ctx, req.Name, &resp.Attr)
 }
 
 // lookupNodeByName looks up a child node by name.
@@ -137,7 +136,7 @@ func (i *Inode) lookupNodeByName(
 	i.mtx.Unlock()
 	if ciOk {
 		if attr != nil {
-			if err := FsOpsToAttr(ctx, ci.h, attr); err != nil {
+			if err := FsOpsToAttr(ctx, ci.h, i.rfs.validTime(), attr); err != nil {
 				i.rfs.logFilesystemError(err)
 				return nil, UnixfsErrorToSyscall(err)
 			}
@@ -145,6 +144,7 @@ func (i *Inode) lookupNodeByName(
 		return ci, nil
 	}
 
+	// look up the child in the filesystem
 	childRef, err := i.h.Lookup(ctx, name)
 	if err != nil {
 		if err == unixfs_errors.ErrNotExist {
@@ -157,7 +157,7 @@ func (i *Inode) lookupNodeByName(
 
 	// determine information for Entryout
 	if attr != nil {
-		if err := FsOpsToAttr(ctx, childRef, attr); err != nil {
+		if err := FsOpsToAttr(ctx, childRef, i.rfs.validTime(), attr); err != nil {
 			childRef.Release()
 			if err == unixfs_errors.ErrNotExist {
 				return nil, syscall.ENOENT
@@ -167,6 +167,7 @@ func (i *Inode) lookupNodeByName(
 		}
 	}
 
+	// store the child unless a concurrent lookup stored a live one first
 	i.mtx.Lock()
 	ci, ciOk = i.children[name]
 	if ciOk {
@@ -247,10 +248,14 @@ func (i *Inode) Symlink(ctx context.Context, req *fuse.SymlinkRequest) (fs.Node,
 
 // Readlink reads a symbolic link.
 func (i *Inode) Readlink(ctx context.Context, req *fuse.ReadlinkRequest) (string, error) {
+	// Read the link target from the inode.
 	linkPath, linkAbsolute, err := i.h.Readlink(ctx, "")
 	if err != nil {
-		return "", nil
+		i.rfs.logFilesystemError(err)
+		return "", UnixfsErrorToSyscall(err)
 	}
+
+	// Join the target into one path.
 	return unixfs.JoinPath(linkPath, linkAbsolute), nil
 }
 
@@ -424,9 +429,13 @@ func (i *Inode) Open(
 	req *fuse.OpenRequest,
 	resp *fuse.OpenResponse,
 ) (fs.Handle, error) {
-	// Bypass the kernel page cache so each write reaches the World before FUSE
-	// reports it.
-	resp.Flags |= fuse.OpenDirectIO
+	// Keep the page cache of an unchanging tree across opens. A writable mount
+	// bypasses it so each write reaches the World before FUSE reports it.
+	flags := fuse.OpenDirectIO
+	if i.rfs.readOnly {
+		flags = fuse.OpenKeepCache
+	}
+	resp.Flags |= flags
 	return NewHandle(i, req.Flags), nil
 }
 
@@ -462,19 +471,21 @@ func (i *Inode) Forget() {
 	go i.releaseRecursive()
 }
 
-// releaseRecursive releases the FSHandles recursively.
+// releaseRecursive releases the FSHandles of the inode and its descendants.
 func (i *Inode) releaseRecursive() {
+	// Collect the handles of the subtree, parents before children.
 	stk := []*Inode{i}
 	var toRelease []*unixfs.FSHandle
 	for len(stk) != 0 {
 		v := stk[len(stk)-1]
 		stk = stk[:len(stk)-1]
-
-		toRelease = append(toRelease, i.h)
+		toRelease = append(toRelease, v.h)
 		for _, child := range v.children {
 			stk = append(stk, child)
 		}
 	}
+
+	// Release children before their parents.
 	for i := len(toRelease) - 1; i >= 0; i-- {
 		toRelease[i].Release()
 	}

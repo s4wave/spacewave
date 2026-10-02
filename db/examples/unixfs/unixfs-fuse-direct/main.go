@@ -80,18 +80,22 @@ func main() {
 }
 
 func execute(rctx context.Context) error {
+	// Cancel the program context on return.
 	ctx, ctxCancel := context.WithCancel(rctx)
 	defer ctxCancel()
 
+	// Build the debug logger.
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
 	testbed.Verbose = verbose
 
+	// Serve the profiler when requested.
 	if profListen != "" {
 		go prof.ListenProf(le, profListen)
 	}
 
+	// Build the storage and World testbeds.
 	volConfig := daemonFlags.BuildSingleVolume("", nil)
 	tb, err := testbed.NewTestbed(
 		ctx,
@@ -101,35 +105,26 @@ func execute(rctx context.Context) error {
 	if err != nil {
 		return err
 	}
-
 	wtb, err := world_testbed.NewTestbed(tb)
 	if err != nil {
 		return err
 	}
+	sender := tb.Volume.GetPeerID()
 
-	vol := tb.Volume
-	engineID := wtb.EngineID
-	sender := vol.GetPeerID()
-
-	// provide op handlers to bus
-	opc := world.NewLookupOpController("test-fs-ops", engineID, unixfs_world.LookupFsOp)
+	// Provide the filesystem op handlers to the bus. Starting the controller
+	// has no completion signal, so wait briefly.
+	opc := world.NewLookupOpController("test-fs-ops", wtb.EngineID, unixfs_world.LookupFsOp)
 	go tb.Bus.ExecuteController(ctx, opc)
-	// hack: wait for it to start
 	<-time.After(time.Millisecond * 100)
 
-	// initialize filesystem if it doesn't exist
-
-	// NOTE: BusEngine looks up the engine on the bus for every call (slow)
-	// use a wrapper around the Engine directly to avoid this slowdown:
-	// ws := wtb.WorldState
-	eng := wtb.Engine
-	ws := world.NewEngineWorldState(eng, true)
-
-	// verbose logger
+	// Use the Engine directly: BusEngine looks up the engine on the bus for
+	// every call, which is slow.
+	ws := world.NewEngineWorldState(wtb.Engine, true)
 	if verbose {
 		ws = world_vlogger.NewWorldState(le, ws)
 	}
 
+	// Initialize the filesystem if it does not exist.
 	objKey := "test-filesystem"
 	obj, exists, err := ws.GetObject(ctx, objKey)
 	if err != nil {
@@ -225,14 +220,16 @@ func execute(rctx context.Context) error {
 		return err
 	}
 
+	// Open a handle to the filesystem root.
 	rref, err := unixfs.NewFSHandle(rootFSCursor)
 	if err != nil {
 		return err
 	}
 	defer rref.Release()
 
+	// Mount the root over FUSE.
 	le.Debug("mounting rootfs fuse")
-	rootFS, err := fuse.Mount(ctx, le, fuseRoot, rref, verbose, []fuse.MountOption{
+	rootFS, err := fuse.Mount(ctx, le, fuseRoot, rref, verbose, false, []fuse.MountOption{
 		bfuse.AllowOther(),
 		bfuse.DefaultPermissions(),
 	})
@@ -240,6 +237,7 @@ func execute(rctx context.Context) error {
 		return errors.Wrap(err, "build rootfs fuse")
 	}
 
+	// Serve requests, stopping the program when the server exits.
 	go func() {
 		err := rootFS.Serve()
 		if err != nil {
@@ -252,9 +250,11 @@ func execute(rctx context.Context) error {
 		ctxCancel()
 	}()
 
+	// Run until the program stops.
 	le.Info("startup complete")
 	<-ctx.Done()
 
+	// Close and unmount the filesystem.
 	le.Info("shutting down")
 	rootFS.Close()
 	_ = fuse.Unmount(fuseRoot)
