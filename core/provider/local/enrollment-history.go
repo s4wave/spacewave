@@ -17,8 +17,9 @@ func (a *ProviderAccount) retainEnrollmentHistory(ctx context.Context, checkpoin
 	if base == nil {
 		return nil
 	}
+	soID := checkpoint.GetEntry().GetRef().GetProviderResourceRef().GetId()
 	next := checkpoint.GetState().GetConfig()
-	if err := sobject.VerifyConfigChainSuffix(base, next, checkpoint.GetHistory()); err != nil {
+	if err := sobject.VerifyConfigChainSuffix(soID, base, next, checkpoint.GetHistory()); err != nil {
 		return err
 	}
 
@@ -34,7 +35,7 @@ func (a *ProviderAccount) retainEnrollmentHistory(ctx context.Context, checkpoin
 	}, func(ctx context.Context, tx kvtx.Tx) error {
 		// Verify and store the genesis entry when the checkpoint carries one.
 		if genesis := checkpoint.GetGenesis(); genesis != nil {
-			if err := sobject.VerifyConfigChain([]*sobject.SOConfigChange{genesis}); err != nil {
+			if err := sobject.VerifyConfigChain(soID, []*sobject.SOConfigChange{genesis}); err != nil {
 				return err
 			}
 			hash, err := sobject.HashSOConfigChange(genesis)

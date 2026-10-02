@@ -35,7 +35,7 @@ func TestAuthenticatedCatchupPinsPagesAndContinues(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		change, err := sobject.BuildSOConfigChange(current.Config, current.Config, sobject.SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_ADD_INVITE, owner, nil)
+		change, err := sobject.BuildSOConfigChange(soID, current.Config, current.Config, sobject.SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_ADD_INVITE, owner, nil)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -98,7 +98,7 @@ func TestAuthenticatedCatchupPinsPagesAndContinues(t *testing.T) {
 	}
 
 	// The same open stream must notice a configuration change without a newer root.
-	change, err := sobject.BuildSOConfigChange(target.Config, target.Config, sobject.SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_ADD_INVITE, owner, nil)
+	change, err := sobject.BuildSOConfigChange(soID, target.Config, target.Config, sobject.SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_ADD_INVITE, owner, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -210,11 +210,11 @@ func TestCatchupMissingHistoryRequiresRecovery(t *testing.T) {
 
 	// cloneVT candidate via initial.
 	candidate := initial.CloneVT()
-	change, err := sobject.BuildSOConfigChange(initial.Config, initial.Config, sobject.SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_ADD_INVITE, owner, nil)
+	change, err := sobject.BuildSOConfigChange(soID, initial.Config, initial.Config, sobject.SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_ADD_INVITE, owner, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	candidate.Config, err = sobject.VerifyConfigChange(initial.Config, change)
+	candidate.Config, err = sobject.VerifyConfigChange(soID, initial.Config, change)
 	if err != nil {
 		t.Fatal(err)
 	}

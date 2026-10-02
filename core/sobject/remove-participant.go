@@ -19,6 +19,7 @@ func RemoveSOParticipants(
 	signerPriv crypto.PrivKey,
 	revInfo *SORevocationInfo,
 ) ([]string, error) {
+	// Collect the requested peers.
 	targets := make(map[string]struct{}, len(targetPeerIDs))
 	for _, peerID := range targetPeerIDs {
 		if peerID != "" {
@@ -29,6 +30,7 @@ func RemoveSOParticipants(
 		return nil, nil
 	}
 
+	// Read the current config.
 	state, err := host.GetHostState(ctx)
 	if err != nil {
 		return nil, errors.Wrap(err, "get current SO state")
@@ -38,6 +40,7 @@ func RemoveSOParticipants(
 		return nil, nil
 	}
 
+	// Remove only peers that currently participate.
 	var removed []string
 	for _, participant := range currentCfg.GetParticipants() {
 		if _, ok := targets[participant.GetPeerId()]; ok {
@@ -48,12 +51,13 @@ func RemoveSOParticipants(
 		return nil, nil
 	}
 
+	// Sign the removal and prune the removed peers' grants with it.
 	nextCfg := currentCfg.CloneVT()
 	nextCfg.Participants = slices.DeleteFunc(nextCfg.Participants, func(participant *SOParticipantConfig) bool {
 		_, ok := targets[participant.GetPeerId()]
 		return ok
 	})
-	entry, err := BuildSOConfigChange(currentCfg, nextCfg, SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_REMOVE_PARTICIPANT, signerPriv, revInfo)
+	entry, err := BuildSOConfigChange(host.GetSharedObjectID(), currentCfg, nextCfg, SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_REMOVE_PARTICIPANT, signerPriv, revInfo)
 	if err != nil {
 		return nil, errors.Wrap(err, "build config change")
 	}

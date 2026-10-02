@@ -38,6 +38,7 @@ func FuzzLeanReencrypt(f *testing.F) {
 
 // runLeanReencryptScenario uses actual encrypted source data and verifies every destination key.
 func runLeanReencryptScenario(t *testing.T, peers []peer.Peer, seed uint64) []leanCase {
+	// Prepare the block encryption step and every peer key.
 	t.Helper()
 	var arena fastjson.Arena
 	a := &arena
@@ -52,6 +53,8 @@ func runLeanReencryptScenario(t *testing.T, peers []peer.Peer, seed uint64) []le
 		}
 		keys[p.GetPeerID().String()] = key
 	}
+
+	// Hold an owner, reader and validator at a fixed config head.
 	owner := keys[peers[0].GetPeerID().String()]
 	base := createMockSOState(peers[:3], []SOParticipantRole{
 		SOParticipantRole_SOParticipantRole_OWNER,
@@ -60,6 +63,8 @@ func runLeanReencryptScenario(t *testing.T, peers []peer.Peer, seed uint64) []le
 	})
 	base.Config.ConfigChainHash = bytes.Repeat([]byte{byte(seed%254 + 1)}, 32)
 	base.Config.ConfigChainSeqno = 12
+
+	// Encrypt a root under freshly rotated grants.
 	material, grants, _, err := RotateTransformKey(owner, mockSharedObjectID, base.Config.Participants, 4, 7)
 	if err != nil {
 		t.Fatal(err)
@@ -73,19 +78,24 @@ func runLeanReencryptScenario(t *testing.T, peers []peer.Peer, seed uint64) []le
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Sign the root as the owner.
 	base.Root = &SORoot{
 		Inner: ciphertext, InnerSeqno: 7,
-		AccountNonces: []*SOAccountNonce{{PeerId: peers[0].GetPeerID().String(), Nonce: 9}},
+		AccountNonces: []*SOAccountNonce{{PeerId: peers[0].GetPeerID().String(), Nonce: 9, OpHash: mockPrevOpHash}},
 	}
 	if err := base.Root.SignInnerData(owner, mockSharedObjectID, 7, hash.RecommendedHashType); err != nil {
 		t.Fatal(err)
 	}
+
+	// Carry local records the reencryption must drop.
 	base.RootGrants = grants
 	base.Invites = []*SOInvite{{InviteId: "local invitation"}}
 	base.Ops = []*SOOperation{{Inner: []byte{0xff}}}
-	base.QueuedAccountNonces = []*SOAccountNonce{{PeerId: peers[0].GetPeerID().String(), Nonce: 10}}
+	base.QueuedAccountNonces = []*SOAccountNonce{{PeerId: peers[0].GetPeerID().String(), Nonce: 10, OpHash: mockPrevOpHash}}
 	base.OpRejections = []*SOPeerOpRejections{{PeerId: peers[0].GetPeerID().String()}}
 
+	// Reencrypt each variant into a fresh destination.
 	var cases []leanCase
 	for variant := range 34 {
 		source := base.CloneVT()

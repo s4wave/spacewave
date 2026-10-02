@@ -148,12 +148,12 @@ func (s *SharedObject) QueueOperation(ctx context.Context, op []byte) (string, e
 	}
 
 	id := sobject.NewSOOperationLocalID()
-	err = s.host.QueueOperation(ctx, s.localPid, func(nonce uint64) (*sobject.SOOperation, error) {
+	err = s.host.QueueOperation(ctx, s.localPid, func(link *sobject.SOOperationLink) (*sobject.SOOperation, error) {
 		return sobject.BuildSOOperation(
 			s.host.soHost.GetSharedObjectID(),
 			s.privKey,
 			encOp,
-			nonce,
+			link,
 			id,
 		)
 	})
@@ -1030,6 +1030,7 @@ func (s *SharedObject) AddParticipant(
 				nextCfg.Participants = append(nextCfg.Participants, nextParticipant)
 			}
 			entry, err = sobject.BuildSOConfigChange(
+				s.GetSharedObjectID(),
 				currentCfg,
 				nextCfg,
 				sobject.SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_ADD_PARTICIPANT,
@@ -1372,22 +1373,26 @@ func (s *SharedObject) loadLatestConfigState(ctx context.Context) (*sobject.SOSt
 	return state, currentCfg, epochs, nil
 }
 
+// applyInviteMutation writes the config change that updateFn makes to the
+// invite list, retrying when another writer advances the config.
 func (s *SharedObject) applyInviteMutation(
 	ctx context.Context,
 	signerPrivKey crypto.PrivKey,
 	changeType sobject.SOConfigChangeType,
 	updateFn func(invites []*sobject.SOInvite) ([]*sobject.SOInvite, error),
 ) error {
+	// Serialize with local writes and connect a write session.
 	relLock, err := s.host.writeMu.Lock(ctx)
 	if err != nil {
 		return err
 	}
 	defer relLock()
-
 	cli, err := s.getReadyWriteSessionClient(ctx)
 	if err != nil {
 		return err
 	}
+
+	// Write against the latest config, retrying when another writer advances it.
 	for attempt := range maxWriteRetries {
 		state, currentCfg, epochs, err := s.loadLatestConfigState(ctx)
 		if err != nil {
@@ -1401,6 +1406,7 @@ func (s *SharedObject) applyInviteMutation(
 		}
 
 		entry, err := sobject.BuildSOConfigChange(
+			s.GetSharedObjectID(),
 			currentCfg,
 			currentCfg,
 			changeType,
@@ -1574,20 +1580,21 @@ func (s *SharedObject) RemoveParticipantWithRevocation(
 	targetPeerIDStr string,
 	revInfo *sobject.SORevocationInfo,
 ) (bool, error) {
+	// Validate the target, serialize with local writes and connect a write session.
 	if targetPeerIDStr == "" {
 		return false, errors.New("target peer id is required")
 	}
-
 	relLock, err := s.host.writeMu.Lock(ctx)
 	if err != nil {
 		return false, err
 	}
 	defer relLock()
-
 	cli, err := s.getReadyWriteSessionClient(ctx)
 	if err != nil {
 		return false, err
 	}
+
+	// Write against the latest config, retrying when another writer advances it.
 	for attempt := range maxWriteRetries {
 		state, currentCfg, epochs, err := s.loadLatestConfigState(ctx)
 		if err != nil {
@@ -1612,6 +1619,7 @@ func (s *SharedObject) RemoveParticipantWithRevocation(
 		nextCfg := currentCfg.CloneVT()
 		nextCfg.Participants = nextParticipants
 		entry, err := sobject.BuildSOConfigChange(
+			s.GetSharedObjectID(),
 			currentCfg,
 			nextCfg,
 			sobject.SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_REMOVE_PARTICIPANT,

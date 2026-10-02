@@ -148,7 +148,7 @@ func leaveSOParticipants(ctx context.Context, host *SOHost, owner crypto.PrivKey
 		if index := slices.IndexFunc(next.Participants, func(p *SOParticipantConfig) bool { return p.GetPeerId() == promote }); index != -1 {
 			next.Participants[index].Role = SOParticipantRole_SOParticipantRole_OWNER
 		}
-		change, err := BuildSOConfigChange(current, next, SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_REMOVE_PARTICIPANT, owner, &SORevocationInfo{LeaveRequestHash: requestHash[:]})
+		change, err := BuildSOConfigChange(host.GetSharedObjectID(), current, next, SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_REMOVE_PARTICIPANT, owner, &SORevocationInfo{LeaveRequestHash: requestHash[:]})
 		if err != nil {
 			return nil, err
 		}

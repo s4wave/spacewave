@@ -33,7 +33,7 @@ func (s *configHistoryFaultStore) NewTransaction(ctx context.Context, write bool
 // TestSOConfigHistoryRetainsHostChanges proves the real host persists signed
 // lineage with configuration-only changes and reopens the committed state.
 func TestSOConfigHistoryRetainsHostChanges(t *testing.T) {
-	// Seed a signed root and locally trusted configuration in the real in-memory store.
+	// Generate the owner key.
 	ctx := t.Context()
 	priv, _, err := crypto.GenerateKeyPair(crypto.KeyType_Ed25519, 0)
 	if err != nil {
@@ -43,6 +43,8 @@ func TestSOConfigHistoryRetainsHostChanges(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Generate the reader key.
 	readerKey, _, err := crypto.GenerateKeyPair(crypto.KeyType_Ed25519, 0)
 	if err != nil {
 		t.Fatal(err)
@@ -51,6 +53,8 @@ func TestSOConfigHistoryRetainsHostChanges(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Sign a root under an owner and a reader.
 	initial := &sobject.SOState{
 		Config: &sobject.SharedObjectConfig{Participants: []*sobject.SOParticipantConfig{{
 			PeerId: pid.String(), Role: sobject.SOParticipantRole_SOParticipantRole_OWNER,
@@ -62,12 +66,16 @@ func TestSOConfigHistoryRetainsHostChanges(t *testing.T) {
 	if err := initial.Root.SignInnerData(priv, testSharedObjectID, 1, hash.RecommendedHashType); err != nil {
 		t.Fatal(err)
 	}
+
+	// Seed the state in the real in-memory store.
 	backend := store_inmem.NewStore()
 	seed, err := backend.NewTransaction(ctx, true)
 	if err != nil {
 		t.Fatal(err)
 	}
 	t.Cleanup(seed.Discard)
+
+	// Commit the encoded state.
 	data, err := initial.MarshalVT()
 	if err != nil {
 		t.Fatal(err)
@@ -80,13 +88,15 @@ func TestSOConfigHistoryRetainsHostChanges(t *testing.T) {
 	}
 	seed.Discard()
 
-	// Apply a real host change through the provider transaction and its retry boundary.
+	// Open a host over a store whose first commit fails.
 	faults := kvtest.NewFaultStore(backend, kvtest.FaultBeforeCommit)
 	store := &configHistoryFaultStore{backend: backend, writes: faults}
 	watch, lock, syncFuncs := NewObjectStoreSOStateFuncs(ctx, store, "")
 	host := sobject.NewSOHost(ctx, watch, lock, testSharedObjectID, syncFuncs)
 	t.Cleanup(host.ClearContext)
-	entry, err := sobject.BuildSOConfigChange(initial.GetConfig(), initial.GetConfig(), sobject.SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_GENESIS, priv, nil)
+
+	// Apply a signed genesis through one retry.
+	entry, err := sobject.BuildSOConfigChange(testSharedObjectID, initial.GetConfig(), initial.GetConfig(), sobject.SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_GENESIS, priv, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -96,6 +106,8 @@ func TestSOConfigHistoryRetainsHostChanges(t *testing.T) {
 	if faults.Opened() != 2 || faults.DelegatedCommits() != 1 {
 		t.Fatalf("write attempts = %d, commits = %d", faults.Opened(), faults.DelegatedCommits())
 	}
+
+	// The config-only change keeps the signed root.
 	accepted, err := host.GetHostState(ctx)
 	if err != nil {
 		t.Fatal(err)
@@ -121,6 +133,8 @@ func TestSOConfigHistoryRetainsHostChanges(t *testing.T) {
 	if !checkpoint.EqualVT(accepted.GetConfig()) {
 		t.Fatal("bootstrap checkpoint does not match accepted configuration")
 	}
+
+	// The retained entry is the signed change.
 	entryData, found, err := read.Get(ctx, SOConfigHistoryEntryKey(testSharedObjectID, accepted.GetConfig().GetConfigChainHash()))
 	if err != nil || !found {
 		t.Fatalf("entry found = %v, error = %v", found, err)
@@ -147,7 +161,7 @@ func TestSOConfigHistoryRetainsHostChanges(t *testing.T) {
 	}
 
 	// Reject callback configuration tampering before publishing state or history.
-	next, err := sobject.BuildSOConfigChange(accepted.GetConfig(), accepted.GetConfig(), sobject.SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_ADD_INVITE, priv, nil)
+	next, err := sobject.BuildSOConfigChange(testSharedObjectID, accepted.GetConfig(), accepted.GetConfig(), sobject.SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_ADD_INVITE, priv, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -173,9 +187,11 @@ func TestSOConfigHistoryRetainsHostChanges(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := sobject.VerifyConfigChainSuffix(checkpoint, got.GetConfig(), []*sobject.SOConfigChange{next}); err != nil {
+	if err := sobject.VerifyConfigChainSuffix(testSharedObjectID, checkpoint, got.GetConfig(), []*sobject.SOConfigChange{next}); err != nil {
 		t.Fatal(err)
 	}
+
+	// The checkpoint is unchanged.
 	read, err = backend.NewTransaction(ctx, false)
 	if err != nil {
 		t.Fatal(err)
@@ -192,6 +208,8 @@ func TestSOConfigHistoryRetainsHostChanges(t *testing.T) {
 	if !retainedCheckpoint.EqualVT(checkpoint) {
 		t.Fatal("later mutation replaced the history checkpoint")
 	}
+
+	// The new entry is retained.
 	entryData, found, err = read.Get(ctx, SOConfigHistoryEntryKey(testSharedObjectID, got.GetConfig().GetConfigChainHash()))
 	if err != nil || !found {
 		t.Fatalf("later entry found = %v, error = %v", found, err)
@@ -207,7 +225,7 @@ func TestSOConfigHistoryRetainsHostChanges(t *testing.T) {
 
 	// Cloud projections may reorder membership without changing signed authority.
 	ordered := got.GetConfig().CloneVT()
-	projection, err := sobject.BuildSOConfigChange(ordered, ordered, sobject.SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_ADD_INVITE, priv, nil)
+	projection, err := sobject.BuildSOConfigChange(testSharedObjectID, ordered, ordered, sobject.SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_ADD_INVITE, priv, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -221,7 +239,7 @@ func TestSOConfigHistoryRetainsHostChanges(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := sobject.VerifyConfigChainSuffix(ordered, projected.GetConfig(), []*sobject.SOConfigChange{projection}); err != nil {
+	if err := sobject.VerifyConfigChainSuffix(testSharedObjectID, ordered, projected.GetConfig(), []*sobject.SOConfigChange{projection}); err != nil {
 		t.Fatal(err)
 	}
 }

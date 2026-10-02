@@ -205,14 +205,13 @@ func runLeanLeaveScenario(t *testing.T, peers []peer.Peer, seed uint64) []leanCa
 		requestHash := sha256.Sum256(mustMarshalVT(t, request))
 		var history []*SOConfigChange
 		advance := func(next *SharedObjectConfig, kind SOConfigChangeType, consent []byte) {
-			t.Helper()
-
 			// Verify the owner transition before adopting its audience and grants.
-			entry, err := BuildSOConfigChange(previous.Config, next, kind, keys[0], &SORevocationInfo{LeaveRequestHash: consent})
+			t.Helper()
+			entry, err := BuildSOConfigChange(mockSharedObjectID, previous.Config, next, kind, keys[0], &SORevocationInfo{LeaveRequestHash: consent})
 			if err != nil {
 				t.Fatal(err)
 			}
-			config, err := VerifyConfigChange(previous.Config, entry)
+			config, err := VerifyConfigChange(mockSharedObjectID, previous.Config, entry)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -269,7 +268,7 @@ func runLeanLeaveScenario(t *testing.T, peers []peer.Peer, seed uint64) []leanCa
 		next.Participants = slices.DeleteFunc(next.Participants, func(p *SOParticipantConfig) bool {
 			return slices.Contains(rawPeers, p.GetPeerId())
 		})
-		entry, err := BuildSOConfigChange(snapshot.Config, next, SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_REMOVE_PARTICIPANT,
+		entry, err := BuildSOConfigChange(mockSharedObjectID, snapshot.Config, next, SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_REMOVE_PARTICIPANT,
 			signer, &SORevocationInfo{LeaveRequestHash: requestHash[:]})
 		if err != nil {
 			t.Fatal(err)
@@ -538,13 +537,13 @@ func projectLeanLeaveRequest(t *testing.T, a *fastjson.Arena, request *SOLeaveRe
 // leanLeaveSignedHead addresses a seeded configuration by a retained entry, as
 // provider history does for every head a participant can sign.
 func leanLeaveSignedHead(t *testing.T, config *SharedObjectConfig) *SOConfigChange {
-	t.Helper()
-
 	// Address the retained entry by its content hash before any consent is signed.
+	t.Helper()
 	entry := &SOConfigChange{
-		ConfigSeqno: config.GetConfigChainSeqno(),
-		Config:      config.CloneVT(),
-		ChangeType:  SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_ADD_INVITE,
+		SharedObjectId: mockSharedObjectID,
+		ConfigSeqno:    config.GetConfigChainSeqno(),
+		Config:         config.CloneVT(),
+		ChangeType:     SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_ADD_INVITE,
 	}
 	entry.Config.ConfigChainHash = nil
 	hash, err := HashSOConfigChange(entry)
@@ -581,9 +580,8 @@ func leanLeavePeers(a *fastjson.Arena, peers []string) *fastjson.Value {
 func runLeanLeaveRetry(t *testing.T, projection *configChainScenario, config *SharedObjectConfig,
 	signed *SOConfigChange, owner, departing crypto.PrivKey, seed uint64,
 ) []leanCase {
-	t.Helper()
-
 	// Sign consent at the retained head before a concurrent owner update.
+	t.Helper()
 	a := &projection.arena
 	host, state := newLeaveTestHost(t, config, signed)
 	request, err := BuildSOLeaveRequest(mockSharedObjectID, config.GetConfigChainHash(), departing)
@@ -591,7 +589,7 @@ func runLeanLeaveRetry(t *testing.T, projection *configChainScenario, config *Sh
 		t.Fatal(err)
 	}
 	requestHash := sha256.Sum256(mustMarshalVT(t, request))
-	advance, err := BuildSOConfigChange(config, config, SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_ADD_INVITE, owner, nil)
+	advance, err := BuildSOConfigChange(mockSharedObjectID, config, config, SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_ADD_INVITE, owner, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -633,7 +631,7 @@ func runLeanLeaveRetry(t *testing.T, projection *configChainScenario, config *Sh
 		next.Participants = slices.DeleteFunc(next.Participants, func(p *SOParticipantConfig) bool {
 			return p.GetPeerId() == departingID.String()
 		})
-		entry, err := BuildSOConfigChange(snapshot, next, SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_REMOVE_PARTICIPANT,
+		entry, err := BuildSOConfigChange(mockSharedObjectID, snapshot, next, SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_REMOVE_PARTICIPANT,
 			owner, &SORevocationInfo{LeaveRequestHash: requestHash[:]})
 		if err != nil {
 			t.Fatal(err)
@@ -655,7 +653,7 @@ func runLeanLeaveRetry(t *testing.T, projection *configChainScenario, config *Sh
 		attempts.SetArrayItem(i, attempt)
 	}
 
-	// Compare the completed publication and the exact response history.
+	// Project the completed publication.
 	result := a.NewObject()
 	result.Set("retry", a.NewFalse())
 	result.Set("changes", projectLeanLeaveChanges(projection, response.GetChanges()))
@@ -664,15 +662,21 @@ func runLeanLeaveRetry(t *testing.T, projection *configChainScenario, config *Sh
 	outcome.Set("revoked", a.NewFalse())
 	outcome.Set("wrote", a.NewTrue())
 	result.Set("outcome", outcome)
+
+	// Expect the completed trace.
 	trace := a.NewObject()
 	trace.Set("pending", a.NewFalse())
 	trace.Set("result", result)
+
+	// Record the request.
 	req := a.NewObject()
 	req.Set("op", a.NewString("leaveTrace"))
 	req.Set("request", projectLeanLeaveRequest(t, a, request))
 	req.Set("hostId", a.NewString(mockSharedObjectID))
 	req.Set("requestHash", a.NewString(hex.EncodeToString(requestHash[:])))
 	req.Set("attempts", attempts)
+
+	// Compare against the exact response history.
 	cases := []leanCase{{
 		name: "leaveTrace retry seed " + strconv.FormatUint(seed, 10), request: req.MarshalTo(nil),
 		ok: true, field: "leave", value: trace.MarshalTo(nil),

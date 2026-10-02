@@ -727,9 +727,8 @@ func buildRejoinTestFixtures(
 	*api.GetSORecoveryEnvelopeResponse,
 	*api.ListSORecoveryEntityKeypairsResponse,
 ) {
-	t.Helper()
-
 	// Build the encrypted block transform carried by participant grants.
+	t.Helper()
 	transformConf, err := block_transform.NewConfig([]config.Config{
 		&transform_blockenc.Config{
 			BlockEnc: blockenc.BlockEnc_BlockEnc_XCHACHA20_POLY1305,
@@ -750,6 +749,7 @@ func buildRejoinTestFixtures(
 		}},
 	}
 	genesisEntry, err := sobject.BuildSOConfigChange(
+		soID,
 		&sobject.SharedObjectConfig{},
 		cfg,
 		sobject.SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_GENESIS,
@@ -865,9 +865,8 @@ func buildRejoinMissingGrantFixtures(
 	*api.GetSORecoveryEnvelopeResponse,
 	*api.ListSORecoveryEntityKeypairsResponse,
 ) {
-	t.Helper()
-
 	// Build the encrypted block transform carried by participant grants.
+	t.Helper()
 	transformConf, err := block_transform.NewConfig([]config.Config{
 		&transform_blockenc.Config{
 			BlockEnc: blockenc.BlockEnc_BlockEnc_XCHACHA20_POLY1305,
@@ -888,6 +887,7 @@ func buildRejoinMissingGrantFixtures(
 		}},
 	}
 	genesisEntry, err := sobject.BuildSOConfigChange(
+		soID,
 		&sobject.SharedObjectConfig{},
 		cfg,
 		sobject.SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_GENESIS,
@@ -907,6 +907,7 @@ func buildRejoinMissingGrantFixtures(
 
 	// Add the recovering peer to the signed configuration without its grant.
 	selfEnrollEntry, err := sobject.BuildSelfEnrollPeerConfigChange(
+		soID,
 		cfg,
 		newPriv,
 		newPID.String(),

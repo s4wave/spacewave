@@ -84,7 +84,9 @@ func runLeanProcessScenario(t *testing.T, peers []peer.Peer, seed uint64) leanCa
 			t.Fatal(err)
 		}
 		state.Root = &SORoot{Inner: inner, InnerSeqno: seqno}
-		state.Root.updateAccountNonce(peers[2].GetPeerID().String(), rng.Uint64N(3))
+		if nonce := rng.Uint64N(3); nonce != 0 {
+			state.Root.AccountNonces = advanceAccountNonce(state.Root.AccountNonces, peers[2].GetPeerID().String(), nonce, mockPrevOpHash)
+		}
 		if rng.IntN(8) == 0 {
 			state.Root.InnerSeqno++
 		}
@@ -102,14 +104,14 @@ func runLeanProcessScenario(t *testing.T, peers []peer.Peer, seed uint64) leanCa
 				t.Fatal(err)
 			}
 		}
-		op, err := BuildSOOperation(mockSharedObjectID, keys[submitter], data, nonce, NewSOOperationLocalID())
+		op, err := BuildSOOperation(mockSharedObjectID, keys[submitter], data, linkAt(state, keys[submitter], nonce), NewSOOperationLocalID())
 		if err != nil {
 			t.Fatal(err)
 		}
 		ops = append(ops, op)
 	}
 	if rng.IntN(12) == 0 {
-		ops = append(ops, signedLeanOperation(t, keys[0], peers[0].GetPeerID().String(), 0, NewSOOperationLocalID()))
+		ops = append(ops, signedLeanOperation(t, keys[0], peers[0].GetPeerID().String(), linkAt(state, keys[0], 0), NewSOOperationLocalID()))
 	}
 
 	// Answer with accepted, rejected, absent, malformed and unknown references.

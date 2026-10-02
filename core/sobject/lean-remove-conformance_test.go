@@ -148,7 +148,7 @@ func runLeanRemovalScenario(t *testing.T, peers []peer.Peer, seed uint64) []lean
 				return targeted(p.GetPeerId())
 			})
 		}
-		entry, err := BuildSOConfigChange(snapshot.Config, nextCfg, SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_REMOVE_PARTICIPANT, key, nil)
+		entry, err := BuildSOConfigChange(mockSharedObjectID, snapshot.Config, nextCfg, SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_REMOVE_PARTICIPANT, key, nil)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -265,7 +265,7 @@ func leanPrunablePending(t *testing.T, peers []peer.Peer) ([]*SOOperation, []*SO
 			t.Fatal(err)
 		}
 		keys[i] = key
-		ops = append(ops, signedLeanOperation(t, key, p.GetPeerID().String(), 1, NewSOOperationLocalID()))
+		ops = append(ops, signedLeanOperation(t, key, p.GetPeerID().String(), linkAt(nil, key, 1), NewSOOperationLocalID()))
 	}
 
 	// Reject each peer's operation from every other peer, including non-validators.

@@ -30,7 +30,7 @@ func TestSnapshotExchangeRequiresHeldAuthority(t *testing.T) {
 		}},
 		Root: &sobject.SORoot{InnerSeqno: 1},
 	}
-	trustSnapshotConfig(t, initial, owner)
+	trustSnapshotConfig(t, soID, initial, owner)
 	signSnapshotRoot(t, soID, initial, owner)
 	initial.RootGrants = append(initial.RootGrants, buildGrant(t, soID, owner, local.GetPublic()))
 
@@ -134,7 +134,7 @@ func TestPeerSnapshotSameContentKeepsHeldProof(t *testing.T) {
 		}},
 		Root: &sobject.SORoot{InnerSeqno: 1},
 	}
-	trustSnapshotConfig(t, initial, first)
+	trustSnapshotConfig(t, soID, initial, first)
 	signSnapshotRoot(t, soID, initial, first)
 
 	// cloneVT candidate via initial.

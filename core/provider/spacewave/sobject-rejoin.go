@@ -16,6 +16,7 @@ func (t *sobjectTracker) tryRecoverMissingSharedObjectPeer(
 	so *SharedObject,
 	cli *SessionClient,
 ) error {
+	// Only sessions that may self-enroll can repair access.
 	if !t.a.canSelfEnrollCloudObjects() {
 		return nil
 	}
@@ -38,16 +39,17 @@ func (t *sobjectTracker) tryRecoverMissingSharedObjectPeer(
 		return nil
 	}
 
+	// Load the initial state and serialize with local writes.
 	if err := so.host.ensureInitialState(ctx, SeedReasonRejoin); err != nil {
 		return errors.Wrap(err, "initial state pull")
 	}
-
 	relLock, err := so.host.writeMu.Lock(ctx)
 	if err != nil {
 		return err
 	}
 	defer relLock()
 
+	// Enroll against the latest config, retrying when another writer advances it.
 	for attempt := range maxWriteRetries {
 		state, currentCfg, epochs, err := so.loadLatestConfigState(ctx)
 		if err != nil {
@@ -108,6 +110,7 @@ func (t *sobjectTracker) tryRecoverMissingSharedObjectPeer(
 		recoveryCfg := currentCfg
 		if localParticipant == nil {
 			entry, err = sobject.BuildSelfEnrollPeerConfigChange(
+				so.GetSharedObjectID(),
 				currentCfg,
 				so.privKey,
 				localPeerID,

@@ -66,7 +66,8 @@ func leanSyncChange(t *testing.T, arena *fastjson.Arena, change *sobject.SOConfi
 		var err error
 		digest, err = sobject.HashSOConfigChange(change)
 		hashOK = err == nil
-		if sig := change.GetSignature(); sig != nil {
+		if sigs := change.GetSignatures(); len(sigs) != 0 {
+			sig := sigs[0]
 			signature = arena.NewObject()
 			var signer string
 			var valid bool
@@ -74,7 +75,7 @@ func leanSyncChange(t *testing.T, arena *fastjson.Arena, change *sobject.SOConfi
 			if err == nil && public != nil {
 				id, idErr := peer.IDFromPublicKey(public)
 				unsigned := change.CloneVT()
-				unsigned.Signature = nil
+				unsigned.Signatures = nil
 				data, encodeErr := unsigned.MarshalVT()
 				if idErr == nil && encodeErr == nil {
 					verified, verifyErr := sig.VerifyWithPublic("sobject config change", public, data)
@@ -201,7 +202,7 @@ func leanSyncCatchupCases(t *testing.T, seed uint64) []leanSyncCase {
 		if err != nil {
 			t.Fatal(err)
 		}
-		change, err := sobject.BuildSOConfigChange(current.Config, current.Config, sobject.SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_ADD_INVITE, owner, nil)
+		change, err := sobject.BuildSOConfigChange(objectID, current.Config, current.Config, sobject.SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_ADD_INVITE, owner, nil)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -245,7 +246,7 @@ func leanSyncCatchupCases(t *testing.T, seed uint64) []leanSyncCase {
 		case 4:
 			page.Changes[1].PreviousHash = nil
 		case 5:
-			page.Changes[0].Signature.SigData = make([]byte, maxHistoryPageBytes)
+			page.Changes[0].Signatures[0].SigData = make([]byte, maxHistoryPageBytes)
 		case 6:
 			page.Changes = response.changes[:maxHistoryPageEntries+1]
 		case 7:
@@ -286,14 +287,14 @@ func leanSyncCatchupCases(t *testing.T, seed uint64) []leanSyncCase {
 		}
 		switch variant {
 		case 1:
-			pending.changes[0].Signature.SigData = make([]byte, maxHistoryPageBytes)
+			pending.changes[0].Signatures[0].SigData = make([]byte, maxHistoryPageBytes)
 		case 2:
-			pending.changes[1].Signature.SigData = make([]byte, maxHistoryPageBytes)
+			pending.changes[1].Signatures[0].SigData = make([]byte, maxHistoryPageBytes)
 		case 3:
 			pending.changes = pending.changes[:maxHistoryPageEntries]
 		case 4:
 			for _, change := range pending.changes[:4] {
-				change.Signature.SigData = make([]byte, 400*1024)
+				change.Signatures[0].SigData = make([]byte, 400*1024)
 			}
 		case 7:
 			pending.snapshot = nil
@@ -302,8 +303,8 @@ func leanSyncCatchupCases(t *testing.T, seed uint64) []leanSyncCase {
 				Revision: pending.revision, Cursor: pending.cursor, Changes: pending.changes[:1],
 			}}}
 			for range 3 {
-				padding := len(pending.changes[0].Signature.SigData) + maxHistoryPageBytes + variant - 5 - message.SizeVT()
-				pending.changes[0].Signature.SigData = make([]byte, padding)
+				padding := len(pending.changes[0].Signatures[0].SigData) + maxHistoryPageBytes + variant - 5 - message.SizeVT()
+				pending.changes[0].Signatures[0].SigData = make([]byte, padding)
 			}
 			if message.SizeVT() != maxHistoryPageBytes+variant-5 {
 				t.Fatal("failed to construct the exact frame-size boundary")

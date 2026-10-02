@@ -603,11 +603,20 @@ func buildTestOperation(
 		testSharedObjectID,
 		host.privKey,
 		[]byte("encoded op"),
-		nonce,
+		testOperationLink(nonce),
 		localID,
 	)
 	if err != nil {
 		t.Fatal(err)
 	}
 	return op
+}
+
+// testOperationLink places an operation at nonce under fixed chain hashes.
+func testOperationLink(nonce uint64) *sobject.SOOperationLink {
+	link := &sobject.SOOperationLink{Nonce: nonce, ConfigHash: bytes.Repeat([]byte{0xc0}, 32)}
+	if nonce > 1 {
+		link.PrevOpHash = bytes.Repeat([]byte{0xa0}, 32)
+	}
+	return link
 }

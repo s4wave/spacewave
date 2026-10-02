@@ -455,6 +455,7 @@ func TestHandleSONotifyIgnoresMetadataOnly(t *testing.T) {
 }
 
 func TestApplyConfigMutationPersistsVerifiedStateCache(t *testing.T) {
+	// Open a host with a cached verified head.
 	priv, pid := generateTestKeypair(t)
 	var persisted *api.VerifiedSOStateCache
 	host := newCloudSOHost(
@@ -478,6 +479,7 @@ func TestApplyConfigMutationPersistsVerifiedStateCache(t *testing.T) {
 		nil,
 	)
 
+	// Hold the owner at that head and sign a change.
 	host.stateCtr.SetValue(&sobject.SOState{
 		Config: &sobject.SharedObjectConfig{
 			Participants: []*sobject.SOParticipantConfig{{
@@ -489,11 +491,12 @@ func TestApplyConfigMutationPersistsVerifiedStateCache(t *testing.T) {
 		},
 	})
 	currentConfig := host.stateCtr.GetValue().GetConfig()
-	entry, err := sobject.BuildSOConfigChange(currentConfig, currentConfig, sobject.SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_ADD_PARTICIPANT, priv, nil)
+	entry, err := sobject.BuildSOConfigChange("so-1", currentConfig, currentConfig, sobject.SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_ADD_PARTICIPANT, priv, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	// Applying persists the new verified head.
 	if err := host.applyConfigMutation(context.Background(), entry, nil, nil); err != nil {
 		t.Fatalf("apply config mutation: %v", err)
 	}

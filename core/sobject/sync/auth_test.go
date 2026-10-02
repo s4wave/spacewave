@@ -119,7 +119,7 @@ func authenticationState(t *testing.T, soID string, owner, reader crypto.PrivKey
 		}},
 		Root: &sobject.SORoot{InnerSeqno: 1},
 	}
-	trustSnapshotConfig(t, state, owner)
+	trustSnapshotConfig(t, soID, state, owner)
 	signSnapshotRoot(t, soID, state, owner)
 	return state
 }

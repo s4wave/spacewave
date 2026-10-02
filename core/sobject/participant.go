@@ -267,6 +267,7 @@ func (s *SOStateParticipantHandle) ProcessOperations(
 	opMatches := make(map[string]map[uint64]operationMatch, len(ops))
 	var rejectedOps []*SOOperationRejection
 	var acceptedOps []*SOOperation
+	var undecodable []*SOOperation
 
 	// Process each operation
 	for _, op := range ops {
@@ -302,6 +303,7 @@ func (s *SOStateParticipantHandle) ProcessOperations(
 					return nil, nil, nil, rerr
 				}
 				rejectedOps = append(rejectedOps, rejection)
+				undecodable = append(undecodable, op)
 				continue
 			}
 			inner.OpData = opDataDec
@@ -361,7 +363,6 @@ func (s *SOStateParticipantHandle) ProcessOperations(
 	if err != nil {
 		return nil, nil, nil, err
 	}
-
 	encodedInnerData, err := xfrm.EncodeBlock(innerData)
 	if err != nil {
 		return nil, nil, nil, err
@@ -375,6 +376,15 @@ func (s *SOStateParticipantHandle) ProcessOperations(
 	nextRoot.Inner = encodedInnerData
 	nextRoot.InnerSeqno = nextInner.GetSeqno()
 	nextRoot.ValidatorSignatures = nil
+
+	// A rejected operation still ends its author's chain: the next one names it.
+	for _, op := range undecodable {
+		inner, err := op.UnmarshalInner()
+		if err != nil {
+			return nil, nil, nil, err
+		}
+		nextRoot.AccountNonces = advanceAccountNonce(nextRoot.AccountNonces, inner.GetPeerId(), inner.GetNonce(), op.Hash())
+	}
 
 	// Process operation results
 	for _, result := range opResults {
@@ -415,8 +425,8 @@ func (s *SOStateParticipantHandle) ProcessOperations(
 			rejectedOps = append(rejectedOps, rejection)
 		default:
 			acceptedOps = append(acceptedOps, match.op)
-			nextRoot.updateAccountNonce(opRef.GetPeerId(), opRef.GetNonce())
 		}
+		nextRoot.AccountNonces = advanceAccountNonce(nextRoot.AccountNonces, opRef.GetPeerId(), opRef.GetNonce(), match.op.Hash())
 	}
 
 	// Sign the root state

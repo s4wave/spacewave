@@ -28,7 +28,7 @@ func TestCloudHostRejectsConfigChangesThroughRootWrite(t *testing.T) {
 	host.stateCtr.SetValue(initial)
 
 	// A valid signed transition still requires the cloud config-state operation.
-	entry, err := sobject.BuildSOConfigChange(initial.GetConfig(), initial.GetConfig(), sobject.SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_GENESIS, priv, nil)
+	entry, err := sobject.BuildSOConfigChange(testSharedObjectID, initial.GetConfig(), initial.GetConfig(), sobject.SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_GENESIS, priv, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

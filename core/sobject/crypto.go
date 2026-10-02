@@ -54,21 +54,6 @@ func BuildValidatorRootSignatureContext(sharedObjectID string, seqno uint64) str
 	return b.String()
 }
 
-// BuildSOOperationSignatureContext builds the context string for a participant signature on a shared object operation.
-func BuildSOOperationSignatureContext(sharedObjectID string, peerID string, nonce uint64, localID string) string {
-	var b strings.Builder
-	b.WriteString(baseCryptoContext)
-	b.WriteString("participant_operation_signature ")
-	b.WriteString(sharedObjectID)
-	b.WriteString(" peer ")
-	b.WriteString(peerID)
-	b.WriteString(" local-id ")
-	b.WriteString(localID)
-	hashNonce(&b, nonce)
-
-	return b.String()
-}
-
 // hashNonce derives a nonce token using sb's contents as its crypto context and
 // appends the token to sb.
 func hashNonce(sb *strings.Builder, nonce uint64) {
@@ -325,60 +310,6 @@ func (g *SOGrant) DecryptInnerData(privKey crypto.PrivKey, sharedObjectID string
 	}
 
 	return innerDataObj, nil
-}
-
-// ValidateSignature binds a SOOperation to its signing writer and object.
-func (op *SOOperation) ValidateSignature(sharedObjectID string, participants []*SOParticipantConfig) error {
-	if len(op.GetInner()) == 0 {
-		return ErrEmptyInnerData
-	}
-
-	sig := op.GetSignature()
-	pubKey, err := sig.ParsePubKey()
-	if err != nil {
-		return err
-	}
-	if pubKey == nil {
-		return peer.ErrEmptyPeerID
-	}
-
-	peerID, err := peer.IDFromPublicKey(pubKey)
-	if err != nil {
-		return errors.Wrap(err, "invalid peer ID in signature")
-	}
-
-	peerIDStr := peerID.String()
-
-	var seen bool
-	for _, p := range participants {
-		if p.GetPeerId() == peerIDStr && CanWriteOps(p.GetRole()) {
-			seen = true
-			break
-		}
-	}
-	if !seen {
-		return ErrNotParticipant
-	}
-
-	// Bind the operation's nonce and local-ID namespace to its signing peer.
-	inner := &SOOperationInner{}
-	if err := inner.UnmarshalVT(op.GetInner()); err != nil {
-		return errors.Wrap(err, "failed to unmarshal inner data")
-	}
-	if inner.GetPeerId() != peerIDStr {
-		return errors.New("signer peer ID does not match inner peer ID")
-	}
-
-	encContext := BuildSOOperationSignatureContext(sharedObjectID, peerIDStr, inner.GetNonce(), inner.GetLocalId())
-	valid, err := sig.VerifyWithPublic(encContext, pubKey, op.GetInner())
-	if err != nil {
-		return errors.Wrap(err, "failed to verify signature")
-	}
-	if !valid {
-		return peer.ErrSignatureInvalid
-	}
-
-	return nil
 }
 
 // ValidateSignature validates the signature on a SOGrant.

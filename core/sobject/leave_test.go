@@ -14,6 +14,7 @@ import (
 // TestLeaveSOParticipantsRebasesIndependentDeparture proves that one person's
 // stale replica can leave after another participant advances the owner config.
 func TestLeaveSOParticipantsRebasesIndependentDeparture(t *testing.T) {
+	// Make one owner and two writers.
 	ctx := t.Context()
 	peers := createMockPeers(t, 3)
 	keys := make([]crypto.PrivKey, len(peers))
@@ -30,17 +31,20 @@ func TestLeaveSOParticipantsRebasesIndependentDeparture(t *testing.T) {
 		}
 		participants[i] = &SOParticipantConfig{PeerId: candidate.GetPeerID().String(), Role: role}
 	}
+
+	// Record the owner genesis.
 	initial := &SharedObjectConfig{Participants: participants}
-	genesis, err := BuildSOConfigChange(initial, initial, SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_GENESIS, keys[0], nil)
+	genesis, err := BuildSOConfigChange(mockSharedObjectID, initial, initial, SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_GENESIS, keys[0], nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	checkpoint, err := VerifyConfigChange(initial, genesis)
+	checkpoint, err := VerifyConfigChange(mockSharedObjectID, initial, genesis)
 	if err != nil {
 		t.Fatal(err)
 	}
 	host, state := newLeaveTestHost(t, checkpoint, genesis)
 
+	// Both writers ask to leave at the same checkpoint.
 	first, err := BuildSOLeaveRequest(mockSharedObjectID, checkpoint.GetConfigChainHash(), keys[1])
 	if err != nil {
 		t.Fatal(err)
@@ -49,6 +53,8 @@ func TestLeaveSOParticipantsRebasesIndependentDeparture(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// The owner applies the first departure, then rebases the second.
 	if _, err := LeaveSOParticipants(ctx, host, keys[0], first); err != nil {
 		t.Fatal(err)
 	}
@@ -59,11 +65,13 @@ func TestLeaveSOParticipantsRebasesIndependentDeparture(t *testing.T) {
 	if len(response.GetChanges()) != 2 {
 		t.Fatalf("rebased leave returned %d changes, want 2", len(response.GetChanges()))
 	}
+
+	// Only the owner remains, proven from the checkpoint.
 	current := (*state).GetConfig()
 	if len(current.GetParticipants()) != 1 || current.GetParticipants()[0].GetPeerId() != peers[0].GetPeerID().String() {
 		t.Fatalf("independent departures left audience %v", current.GetParticipants())
 	}
-	if err := VerifyConfigChainSuffix(checkpoint, current, response.GetChanges()); err != nil {
+	if err := VerifyConfigChainSuffix(mockSharedObjectID, checkpoint, current, response.GetChanges()); err != nil {
 		t.Fatalf("rebased response does not prove departure: %v", err)
 	}
 }
@@ -71,6 +79,7 @@ func TestLeaveSOParticipantsRebasesIndependentDeparture(t *testing.T) {
 // TestLeaveSOParticipantsRebasesAcrossAdmission proves that a replica which
 // has not yet observed another participant's admission can still leave.
 func TestLeaveSOParticipantsRebasesAcrossAdmission(t *testing.T) {
+	// Make three keys.
 	ctx := t.Context()
 	peers := createMockPeers(t, 3)
 	keys := make([]crypto.PrivKey, len(peers))
@@ -81,15 +90,17 @@ func TestLeaveSOParticipantsRebasesAcrossAdmission(t *testing.T) {
 		}
 		keys[i] = key
 	}
+
+	// Record genesis with an owner and one writer, and the writer's leave request.
 	initial := &SharedObjectConfig{Participants: []*SOParticipantConfig{
 		{PeerId: peers[0].GetPeerID().String(), Role: SOParticipantRole_SOParticipantRole_OWNER},
 		{PeerId: peers[1].GetPeerID().String(), Role: SOParticipantRole_SOParticipantRole_WRITER},
 	}}
-	genesis, err := BuildSOConfigChange(initial, initial, SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_GENESIS, keys[0], nil)
+	genesis, err := BuildSOConfigChange(mockSharedObjectID, initial, initial, SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_GENESIS, keys[0], nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	checkpoint, err := VerifyConfigChange(initial, genesis)
+	checkpoint, err := VerifyConfigChange(mockSharedObjectID, initial, genesis)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -99,12 +110,13 @@ func TestLeaveSOParticipantsRebasesAcrossAdmission(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// The owner admits the third peer first.
 	admitted := checkpoint.CloneVT()
 	admitted.Participants = append(admitted.Participants, &SOParticipantConfig{
 		PeerId: peers[2].GetPeerID().String(),
 		Role:   SOParticipantRole_SOParticipantRole_WRITER,
 	})
-	admission, err := BuildSOConfigChange(checkpoint, admitted, SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_ADD_PARTICIPANT, keys[0], nil)
+	admission, err := BuildSOConfigChange(mockSharedObjectID, checkpoint, admitted, SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_ADD_PARTICIPANT, keys[0], nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -112,12 +124,13 @@ func TestLeaveSOParticipantsRebasesAcrossAdmission(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// The stale leave rebases across the admission.
 	response, err := LeaveSOParticipants(ctx, host, keys[0], request)
 	if err != nil {
 		t.Fatal(err)
 	}
 	current := (*state).GetConfig()
-	if err := VerifyConfigChainSuffix(checkpoint, current, response.GetChanges()); err != nil {
+	if err := VerifyConfigChainSuffix(mockSharedObjectID, checkpoint, current, response.GetChanges()); err != nil {
 		t.Fatalf("rebased response does not prove departure: %v", err)
 	}
 	if slices.ContainsFunc(current.GetParticipants(), func(p *SOParticipantConfig) bool {
@@ -130,6 +143,7 @@ func TestLeaveSOParticipantsRebasesAcrossAdmission(t *testing.T) {
 // TestLeaveSOParticipantsRejectsPriorAdmissionConsent keeps an old request from
 // removing the same cryptographic identity after removal and readmission.
 func TestLeaveSOParticipantsRejectsPriorAdmissionConsent(t *testing.T) {
+	// Use an owner and a departing writer.
 	ctx := t.Context()
 	peers := createMockPeers(t, 2)
 	owner, err := peers[0].GetPrivKey(ctx)
@@ -140,15 +154,17 @@ func TestLeaveSOParticipantsRejectsPriorAdmissionConsent(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Record genesis and the writer's leave request.
 	initial := &SharedObjectConfig{Participants: []*SOParticipantConfig{
 		{PeerId: peers[0].GetPeerID().String(), Role: SOParticipantRole_SOParticipantRole_OWNER},
 		{PeerId: peers[1].GetPeerID().String(), Role: SOParticipantRole_SOParticipantRole_WRITER},
 	}}
-	genesis, err := BuildSOConfigChange(initial, initial, SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_GENESIS, owner, nil)
+	genesis, err := BuildSOConfigChange(mockSharedObjectID, initial, initial, SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_GENESIS, owner, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	checkpoint, err := VerifyConfigChange(initial, genesis)
+	checkpoint, err := VerifyConfigChange(mockSharedObjectID, initial, genesis)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -158,18 +174,21 @@ func TestLeaveSOParticipantsRejectsPriorAdmissionConsent(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// The owner removes the writer.
 	removed := checkpoint.CloneVT()
 	removed.Participants = removed.Participants[:1]
-	removal, err := BuildSOConfigChange(checkpoint, removed, SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_REMOVE_PARTICIPANT, owner, nil)
+	removal, err := BuildSOConfigChange(mockSharedObjectID, checkpoint, removed, SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_REMOVE_PARTICIPANT, owner, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if err := host.ApplyConfigChange(ctx, removal, nil); err != nil {
 		t.Fatal(err)
 	}
+
+	// The owner readmits the same key.
 	readmitted := (*state).GetConfig().CloneVT()
 	readmitted.Participants = append(readmitted.Participants, initial.GetParticipants()[1].CloneVT())
-	admission, err := BuildSOConfigChange((*state).GetConfig(), readmitted, SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_ADD_PARTICIPANT, owner, nil)
+	admission, err := BuildSOConfigChange(mockSharedObjectID, (*state).GetConfig(), readmitted, SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_ADD_PARTICIPANT, owner, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -177,6 +196,7 @@ func TestLeaveSOParticipantsRejectsPriorAdmissionConsent(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// The old request cannot remove the readmitted writer.
 	if _, err := LeaveSOParticipants(ctx, host, owner, request); err == nil {
 		t.Fatal("prior-admission consent removed a rejoined participant")
 	}

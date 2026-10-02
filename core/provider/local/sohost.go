@@ -378,12 +378,12 @@ func (l *LocalSOHost) executeQueueOp(
 
 	// Queue the operation, validating it in the same write when the local
 	// validator runs.
-	qerr := l.soHost.QueueOperationAndProcess(ctx, l.peerID, func(nonce uint64) (*sobject.SOOperation, error) {
+	qerr := l.soHost.QueueOperationAndProcess(ctx, l.peerID, func(link *sobject.SOOperationLink) (*sobject.SOOperation, error) {
 		return sobject.BuildSOOperation(
 			l.soHost.GetSharedObjectID(),
 			l.privKey,
 			encOpData,
-			nonce,
+			link,
 			writeOp.GetLocalId(),
 		)
 	}, l.queuedOpsProcessor())
@@ -458,7 +458,7 @@ func (l *LocalSOHost) waitPublishedConfig(ctx context.Context, target *sobject.S
 		if err != nil {
 			return false, err
 		}
-		if err := sobject.VerifyConfigChainSuffix(target, current, changes); err != nil {
+		if err := sobject.VerifyConfigChainSuffix(l.sharedObjectID, target, current, changes); err != nil {
 			return false, err
 		}
 		return true, nil

@@ -863,7 +863,8 @@ export const SORevocationInfo: MessageType<SORevocationInfo> =
   })
 
 /**
- * SOConfigChange represents a signed config change in the config chain.
+ * SOConfigChange is a control record: one signed change in the config chain.
+ * Its identity is the hash of the record with signatures cleared.
  *
  * @generated from message sobject.SOConfigChange
  */
@@ -881,19 +882,8 @@ export interface SOConfigChange {
    */
   config?: SharedObjectConfig
   /**
-   * SignedBy is the peer_id of the OWNER who signed this change.
-   *
-   * @generated from field: bytes signed_by = 4;
-   */
-  signedBy?: Uint8Array
-  /**
-   * Signature is the signature over the serialized SOConfigChange (without this field).
-   *
-   * @generated from field: peer.Signature signature = 5;
-   */
-  signature?: Signature
-  /**
-   * PreviousHash is the hash of the previous SOConfigChange entry in the chain.
+   * PreviousHash is the hash of the parent control record.
+   * Empty only on genesis.
    *
    * @generated from field: bytes previous_hash = 6;
    */
@@ -918,6 +908,20 @@ export interface SOConfigChange {
    * @generated from field: sobject.SOLeaveRequest leave_request = 9;
    */
   leaveRequest?: SOLeaveRequest
+  /**
+   * SharedObjectId binds the record to one shared object.
+   *
+   * @generated from field: string shared_object_id = 10;
+   */
+  sharedObjectId?: string
+  /**
+   * Signatures sign the record with signatures cleared.
+   * Each signer is distinct and authorized by the parent config;
+   * genesis is signed by an owner of its own config.
+   *
+   * @generated from field: repeated peer.Signature signatures = 11;
+   */
+  signatures?: Signature[]
 }
 
 export const SOConfigChange: MessageType<SOConfigChange> =
@@ -926,12 +930,23 @@ export const SOConfigChange: MessageType<SOConfigChange> =
     fields: [
       { no: 1, name: 'config_seqno', kind: 'scalar', T: ScalarType.UINT64 },
       { no: 2, name: 'config', kind: 'message', T: SharedObjectConfig },
-      { no: 4, name: 'signed_by', kind: 'scalar', T: ScalarType.BYTES },
-      { no: 5, name: 'signature', kind: 'message', T: () => Signature },
       { no: 6, name: 'previous_hash', kind: 'scalar', T: ScalarType.BYTES },
       { no: 7, name: 'change_type', kind: 'enum', T: SOConfigChangeType_Enum },
       { no: 8, name: 'revocation_info', kind: 'message', T: SORevocationInfo },
       { no: 9, name: 'leave_request', kind: 'message', T: SOLeaveRequest },
+      {
+        no: 10,
+        name: 'shared_object_id',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+      },
+      {
+        no: 11,
+        name: 'signatures',
+        kind: 'message',
+        T: () => Signature,
+        repeated: true,
+      },
     ] satisfies readonly PartialFieldInfo[],
   })
 
@@ -964,7 +979,7 @@ export const SOLeaveResponse: MessageType<SOLeaveResponse> =
   })
 
 /**
- * SOAccountNonce contains the current nonce for an account.
+ * SOAccountNonce contains the head of an account's operation chain.
  * The accounts are sorted lexicographically by peer_id.
  *
  * @generated from message sobject.SOAccountNonce
@@ -977,11 +992,17 @@ export interface SOAccountNonce {
    */
   peerId?: string
   /**
-   * Nonce is the current nonce for the account.
+   * Nonce is the author sequence of the account's latest operation.
    *
    * @generated from field: uint64 nonce = 2;
    */
   nonce?: bigint
+  /**
+   * OpHash is the hash of the account's operation at nonce.
+   *
+   * @generated from field: bytes op_hash = 3;
+   */
+  opHash?: Uint8Array
 }
 
 export const SOAccountNonce: MessageType<SOAccountNonce> =
@@ -990,6 +1011,7 @@ export const SOAccountNonce: MessageType<SOAccountNonce> =
     fields: [
       { no: 1, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'nonce', kind: 'scalar', T: ScalarType.UINT64 },
+      { no: 3, name: 'op_hash', kind: 'scalar', T: ScalarType.BYTES },
     ] satisfies readonly PartialFieldInfo[],
   })
 
@@ -1110,13 +1132,15 @@ export const SOOperation: MessageType<SOOperation> =
   })
 
 /**
- * SOOperationInner is the inner message of SOOperation.
+ * SOOperationInner is the signed body of an operation: one step in its
+ * author's chain and one node of the shared object's operation DAG.
+ * The operation's identity is the hash of this encoded body.
  *
  * @generated from message sobject.SOOperationInner
  */
 export interface SOOperationInner {
   /**
-   * PeerId is the identifier of the participant submitting the operation.
+   * PeerId is the identifier of the author.
    *
    * @generated from field: string peer_id = 1;
    */
@@ -1130,7 +1154,8 @@ export interface SOOperationInner {
    */
   localId?: string
   /**
-   * Nonce is the nonce for the operation; must increment from the previous.
+   * Nonce is the author sequence: 1 for the author's first operation,
+   * then one more than the operation named by prev_op_hash.
    *
    * @generated from field: uint64 nonce = 3;
    */
@@ -1141,6 +1166,38 @@ export interface SOOperationInner {
    * @generated from field: bytes op_data = 4;
    */
   opData?: Uint8Array
+  /**
+   * SharedObjectId binds the operation to one shared object.
+   *
+   * @generated from field: string shared_object_id = 5;
+   */
+  sharedObjectId?: string
+  /**
+   * ProtocolVersion is the operation format version.
+   *
+   * @generated from field: uint32 protocol_version = 6;
+   */
+  protocolVersion?: number
+  /**
+   * PrevOpHash is the hash of the author's previous operation.
+   * Empty only when nonce is 1.
+   *
+   * @generated from field: bytes prev_op_hash = 7;
+   */
+  prevOpHash?: Uint8Array
+  /**
+   * ParentHashes are the other heads the author knew, strictly sorted.
+   * Excludes prev_op_hash.
+   *
+   * @generated from field: repeated bytes parent_hashes = 8;
+   */
+  parentHashes?: Uint8Array[]
+  /**
+   * ConfigHash is the config chain hash the operation was written under.
+   *
+   * @generated from field: bytes config_hash = 9;
+   */
+  configHash?: Uint8Array
 }
 
 export const SOOperationInner: MessageType<SOOperationInner> =
@@ -1151,6 +1208,17 @@ export const SOOperationInner: MessageType<SOOperationInner> =
       { no: 2, name: 'local_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 3, name: 'nonce', kind: 'scalar', T: ScalarType.UINT64 },
       { no: 4, name: 'op_data', kind: 'scalar', T: ScalarType.BYTES },
+      { no: 5, name: 'shared_object_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 6, name: 'protocol_version', kind: 'scalar', T: ScalarType.UINT32 },
+      { no: 7, name: 'prev_op_hash', kind: 'scalar', T: ScalarType.BYTES },
+      {
+        no: 8,
+        name: 'parent_hashes',
+        kind: 'scalar',
+        T: ScalarType.BYTES,
+        repeated: true,
+      },
+      { no: 9, name: 'config_hash', kind: 'scalar', T: ScalarType.BYTES },
     ] satisfies readonly PartialFieldInfo[],
   })
 

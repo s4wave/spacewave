@@ -37,9 +37,8 @@ func FuzzLeanState(f *testing.F) {
 // runLeanStateScenario mixes valid operations, root updates, and result clearing
 // with replays, conflicting IDs, stale counters, and invalid authority.
 func runLeanStateScenario(t *testing.T, peers []peer.Peer, seed uint64) []leanCase {
+	// Keep keys fixed within a trace.
 	t.Helper()
-
-	// Keep keys fixed within a trace and begin at a valid signed root.
 	rng := rand.New(rand.NewPCG(seed, 0x50a7e))
 	privs := make([]crypto.PrivKey, len(peers))
 	for i, p := range peers {
@@ -49,6 +48,8 @@ func runLeanStateScenario(t *testing.T, peers []peer.Peer, seed uint64) []leanCa
 			t.Fatal(err)
 		}
 	}
+
+	// Begin at a valid signed root.
 	state := createMockSOState(peers[:3], []SOParticipantRole{
 		SOParticipantRole_SOParticipantRole_OWNER,
 		SOParticipantRole_SOParticipantRole_WRITER,
@@ -75,13 +76,13 @@ func runLeanStateScenario(t *testing.T, peers []peer.Peer, seed uint64) []leanCa
 			if rng.IntN(10) == 0 {
 				id = peers[(signer+1)%len(peers)].GetPeerID().String()
 			}
-			nonce := state.GetNextAccountNonce(id)
+			link := state.NextOperationLink(id)
 			localID := NewSOOperationLocalID()
 			switch rng.IntN(8) {
 			case 0:
-				nonce++
+				link.Nonce++
 			case 1:
-				nonce--
+				link.Nonce--
 			case 2:
 				if len(state.Ops) != 0 {
 					inner, decodeErr := state.Ops[0].UnmarshalInner()
@@ -91,7 +92,7 @@ func runLeanStateScenario(t *testing.T, peers []peer.Peer, seed uint64) []leanCa
 					localID = inner.GetLocalId()
 				}
 			}
-			operation := signedLeanOperation(t, privs[signer], id, nonce, localID)
+			operation := signedLeanOperation(t, privs[signer], id, link, localID)
 			if rng.IntN(10) == 0 {
 				operation.Signature.SigData[0] ^= 1
 			}
@@ -113,7 +114,7 @@ func runLeanStateScenario(t *testing.T, peers []peer.Peer, seed uint64) []leanCa
 				switch rng.IntN(3) {
 				case 0:
 					accepted = []*SOOperation{operation}
-					root.updateAccountNonce(inner.GetPeerId(), inner.GetNonce())
+					root.AccountNonces = advanceAccountNonce(root.AccountNonces, inner.GetPeerId(), inner.GetNonce(), operation.Hash())
 				case 1:
 					accepted = []*SOOperation{operation}
 				case 2:
@@ -223,7 +224,7 @@ func runLeanStateScenario(t *testing.T, peers []peer.Peer, seed uint64) []leanCa
 			validation.Set("peer", arena.NewString(p.GetPeerID().String()))
 			cases = append(cases, leanCase{
 				name: "getNextAccountNonce", request: validation.MarshalTo(nil), ok: true,
-				field: "nonce", value: []byte(strconv.FormatUint(state.GetNextAccountNonce(p.GetPeerID().String()), 10)),
+				field: "nonce", value: []byte(strconv.FormatUint(state.NextOperationLink(p.GetPeerID().String()).Nonce, 10)),
 			})
 		}
 	}
@@ -242,15 +243,15 @@ func runLeanStateScenario(t *testing.T, peers []peer.Peer, seed uint64) []leanCa
 		case 3:
 			candidate.Root.ValidatorSignatures = nil
 		case 4:
-			candidate.QueuedAccountNonces = []*SOAccountNonce{{PeerId: "", Nonce: 1}}
+			candidate.QueuedAccountNonces = []*SOAccountNonce{{PeerId: "", Nonce: 1, OpHash: mockPrevOpHash}}
 		case 5:
 			candidate.QueuedAccountNonces = []*SOAccountNonce{
-				{PeerId: peers[0].GetPeerID().String(), Nonce: ^uint64(0)},
-				{PeerId: peers[0].GetPeerID().String(), Nonce: 1},
+				{PeerId: peers[0].GetPeerID().String(), Nonce: ^uint64(0), OpHash: mockPrevOpHash},
+				{PeerId: peers[0].GetPeerID().String(), Nonce: 1, OpHash: mockPrevOpHash},
 			}
 		case 6:
 			candidate.Root.AccountNonces = append(candidate.Root.AccountNonces,
-				&SOAccountNonce{PeerId: peers[0].GetPeerID().String(), Nonce: ^uint64(0)})
+				&SOAccountNonce{PeerId: peers[0].GetPeerID().String(), Nonce: ^uint64(0), OpHash: mockPrevOpHash})
 		case 7:
 			candidate.Root.Inner = nil
 		case 8:
@@ -258,13 +259,13 @@ func runLeanStateScenario(t *testing.T, peers []peer.Peer, seed uint64) []leanCa
 		case 9:
 			localID := NewSOOperationLocalID()
 			candidate.Ops = []*SOOperation{
-				signedLeanOperation(t, privs[0], peers[0].GetPeerID().String(), 1, localID),
-				signedLeanOperation(t, privs[0], peers[0].GetPeerID().String(), 2, localID),
+				signedLeanOperation(t, privs[0], peers[0].GetPeerID().String(), linkAt(candidate, privs[0], 1), localID),
+				signedLeanOperation(t, privs[0], peers[0].GetPeerID().String(), linkAt(candidate, privs[0], 2), localID),
 			}
 		case 10:
-			candidate.Ops = []*SOOperation{signedLeanOperation(t, privs[0], peers[0].GetPeerID().String(), 0, NewSOOperationLocalID())}
+			candidate.Ops = []*SOOperation{signedLeanOperation(t, privs[0], peers[0].GetPeerID().String(), linkAt(candidate, privs[0], 0), NewSOOperationLocalID())}
 		case 11:
-			candidate.QueuedAccountNonces = []*SOAccountNonce{{PeerId: peers[0].GetPeerID().String(), Nonce: ^uint64(0)}}
+			candidate.QueuedAccountNonces = []*SOAccountNonce{{PeerId: peers[0].GetPeerID().String(), Nonce: ^uint64(0), OpHash: mockPrevOpHash}}
 		}
 		req := arena.NewObject()
 		req.Set("state", projectLeanState(t, &arena, candidate))
@@ -278,7 +279,7 @@ func runLeanStateScenario(t *testing.T, peers []peer.Peer, seed uint64) []leanCa
 		cases = append(cases, leanCase{
 			name:    "getNextAccountNonce boundary " + strconv.Itoa(mutation),
 			request: req.MarshalTo(nil), ok: true, field: "nonce",
-			value: []byte(strconv.FormatUint(candidate.GetNextAccountNonce(peers[0].GetPeerID().String()), 10)),
+			value: []byte(strconv.FormatUint(candidate.NextOperationLink(peers[0].GetPeerID().String()).Nonce, 10)),
 		})
 		if mutation != 11 {
 			continue
@@ -287,7 +288,7 @@ func runLeanStateScenario(t *testing.T, peers []peer.Peer, seed uint64) []leanCa
 		// Exhaustion rejects both zero and every attempted reusable nonce.
 		req.Set("op", arena.NewString("queueOperation"))
 		for _, nonce := range []uint64{0, 1, ^uint64(0)} {
-			operation := signedLeanOperation(t, privs[0], peers[0].GetPeerID().String(), nonce, NewSOOperationLocalID())
+			operation := signedLeanOperation(t, privs[0], peers[0].GetPeerID().String(), linkAt(candidate, privs[0], nonce), NewSOOperationLocalID())
 			req.Set("operation", projectLeanOperation(t, &arena, operation))
 			cases = append(cases, leanCase{
 				name: "queueOperation exhausted", request: req.MarshalTo(nil),
@@ -309,10 +310,14 @@ func runLeanStateScenario(t *testing.T, peers []peer.Peer, seed uint64) []leanCa
 	}
 	id := peers[0].GetPeerID().String()
 	exhausted.OpRejections = []*SOPeerOpRejections{{PeerId: id, Rejections: []*SOOperationRejection{rejection}}}
+
+	// Sign the clear of that rejection.
 	clear, err := BuildSOClearOperationResult(mockSharedObjectID, privs[0], localID)
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Record the request.
 	req := arena.NewObject()
 	req.Set("op", arena.NewString("clearOperationResult"))
 	req.Set("state", projectLeanState(t, &arena, exhausted))
@@ -322,6 +327,8 @@ func runLeanStateScenario(t *testing.T, peers []peer.Peer, seed uint64) []leanCa
 	req.Set("sig", projectLeanSig(&arena, clear.Signature, clear.Inner, func(signer string) string {
 		return BuildSOClearOperationResultSignatureContext(mockSharedObjectID, signer, localID)
 	}))
+
+	// Clearing keeps the account exhausted.
 	if err := exhausted.ClearOperationResult(mockSharedObjectID, clear); err != nil {
 		t.Fatal(err)
 	}
@@ -333,22 +340,28 @@ func runLeanStateScenario(t *testing.T, peers []peer.Peer, seed uint64) []leanCa
 	req.Set("state", projectLeanState(t, &arena, exhausted))
 	cases = append(cases, leanCase{
 		name: "getNextAccountNonce after exhaustion clear", request: req.MarshalTo(nil), ok: true,
-		field: "nonce", value: []byte(strconv.FormatUint(exhausted.GetNextAccountNonce(id), 10)),
+		field: "nonce", value: []byte(strconv.FormatUint(exhausted.NextOperationLink(id).Nonce, 10)),
 	})
 	return cases
 }
 
 // signedLeanOperation can sign structurally invalid inputs for adversarial cases.
-func signedLeanOperation(t *testing.T, priv crypto.PrivKey, id string, nonce uint64, localID string) *SOOperation {
+func signedLeanOperation(t *testing.T, priv crypto.PrivKey, id string, link *SOOperationLink, localID string) *SOOperation {
+	// Encode and sign the body exactly as given.
 	t.Helper()
-	inner := &SOOperationInner{PeerId: id, LocalId: localID, Nonce: nonce, OpData: []byte("operation")}
-	data := mustMarshalVT(t, inner)
-	signer, err := peer.IDFromPrivateKey(priv)
-	if err != nil {
-		t.Fatal(err)
+	inner := &SOOperationInner{
+		PeerId:          id,
+		LocalId:         localID,
+		Nonce:           link.Nonce,
+		OpData:          []byte("operation"),
+		SharedObjectId:  mockSharedObjectID,
+		ProtocolVersion: SOOperationProtocolVersion,
+		PrevOpHash:      link.PrevOpHash,
+		ParentHashes:    sortedOperationHashes(link.ParentHashes, link.PrevOpHash),
+		ConfigHash:      link.ConfigHash,
 	}
-	sig, err := peer.NewSignature(BuildSOOperationSignatureContext(mockSharedObjectID, signer.String(), nonce, localID),
-		priv, hash.RecommendedHashType, data, true)
+	data := mustMarshalVT(t, inner)
+	sig, err := peer.NewSignature(SOOperationSignatureContext, priv, hash.RecommendedHashType, data, true)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -451,8 +464,8 @@ func projectLeanOperation(t *testing.T, a *fastjson.Arena, operation *SOOperatio
 	v.Set("parsed", leanBool(a, parsed))
 	v.Set("innerValid", leanBool(a, parsed && inner.Validate() == nil))
 	v.Set("format", leanBool(a, operation.Validate() == nil))
-	v.Set("sig", projectLeanSig(a, operation.GetSignature(), operation.GetInner(), func(id string) string {
-		return BuildSOOperationSignatureContext(mockSharedObjectID, id, inner.GetNonce(), inner.GetLocalId())
+	v.Set("sig", projectLeanSig(a, operation.GetSignature(), operation.GetInner(), func(string) string {
+		return SOOperationSignatureContext
 	}))
 	return v
 }

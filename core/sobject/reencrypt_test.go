@@ -13,6 +13,7 @@ import (
 )
 
 func TestReencryptSOState(t *testing.T) {
+	// Use an actor, a selected reader and an excluded peer.
 	ctx := context.Background()
 	peers := createMockPeers(t, 3)
 	actor, reader, excluded := peers[0], peers[1], peers[2]
@@ -25,6 +26,7 @@ func TestReencryptSOState(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Name both objects and the source audience.
 	sfs := block_transform.NewStepFactorySet()
 	sfs.AddStepFactory(transform_blockenc.NewStepFactory())
 	le := logrus.New().WithField("test", t.Name())
@@ -34,6 +36,8 @@ func TestReencryptSOState(t *testing.T) {
 		{PeerId: actor.GetPeerID().String(), Role: SOParticipantRole_SOParticipantRole_OWNER},
 		{PeerId: reader.GetPeerID().String(), Role: SOParticipantRole_SOParticipantRole_READER},
 	}
+
+	// Build the source transformer from a rotated key.
 	sourceTransformConf, sourceGrants, _, err := RotateTransformKey(
 		actorPriv,
 		sourceID,
@@ -50,6 +54,8 @@ func TestReencryptSOState(t *testing.T) {
 	if err != nil {
 		t.Fatalf("build source transformer: %v", err)
 	}
+
+	// Sign an encrypted source root with an author head.
 	sourceInner := &SORootInner{Seqno: 7, StateData: []byte("source payload")}
 	sourceInnerData := mustMarshalVT(t, sourceInner)
 	sourceInnerEnc, err := sourceTransform.EncodeBlock(sourceInnerData)
@@ -62,11 +68,14 @@ func TestReencryptSOState(t *testing.T) {
 		AccountNonces: []*SOAccountNonce{{
 			PeerId: actor.GetPeerID().String(),
 			Nonce:  9,
+			OpHash: mockPrevOpHash,
 		}},
 	}
 	if err := sourceRoot.SignInnerData(actorPriv, sourceID, 7, hash.RecommendedHashType); err != nil {
 		t.Fatalf("sign source root: %v", err)
 	}
+
+	// Hold source state with history the destination must not copy.
 	sourceState := &SOState{
 		Config: &SharedObjectConfig{
 			Participants:     sourceParticipants,
@@ -83,11 +92,13 @@ func TestReencryptSOState(t *testing.T) {
 		QueuedAccountNonces: []*SOAccountNonce{{
 			PeerId: actor.GetPeerID().String(),
 			Nonce:  10,
+			OpHash: mockPrevOpHash,
 		}},
 		Invites: []*SOInvite{{InviteId: "source invite"}},
 	}
 	sourceBefore := mustMarshalVT(t, sourceState)
 
+	// Re-encrypt the source twice for the same audience.
 	destinationParticipants := []*SOParticipantConfig{
 		{PeerId: actor.GetPeerID().String(), Role: SOParticipantRole_SOParticipantRole_OWNER},
 		{PeerId: reader.GetPeerID().String(), Role: SOParticipantRole_SOParticipantRole_READER},
@@ -121,6 +132,7 @@ func TestReencryptSOState(t *testing.T) {
 		t.Fatalf("reencrypt source state second run: %v", err)
 	}
 
+	// The source is unchanged and the destination starts fresh.
 	if got := mustMarshalVT(t, sourceState); !bytes.Equal(got, sourceBefore) {
 		t.Fatal("re-encryption mutated source state")
 	}
@@ -133,6 +145,8 @@ func TestReencryptSOState(t *testing.T) {
 	if len(first.GetOps()) != 0 || len(first.GetOpRejections()) != 0 || len(first.GetQueuedAccountNonces()) != 0 || len(first.GetInvites()) != 0 {
 		t.Fatal("destination operational history was copied")
 	}
+
+	// The destination root carries a fresh signature and fresh ciphertext.
 	if len(first.GetRoot().GetValidatorSignatures()) != 1 {
 		t.Fatalf("destination root should have one fresh validator signature, got %d", len(first.GetRoot().GetValidatorSignatures()))
 	}
@@ -145,6 +159,7 @@ func TestReencryptSOState(t *testing.T) {
 		t.Fatal("two runs reused root ciphertext")
 	}
 
+	// The actor and the selected reader can decode the root.
 	firstActor := NewSOStateParticipantHandle(le, sfs, destinationID, first, actorPriv, actor.GetPeerID())
 	firstActorInner, err := firstActor.GetRootInner(ctx)
 	if err != nil {
@@ -157,6 +172,8 @@ func TestReencryptSOState(t *testing.T) {
 	if _, err := firstReader.GetRootInner(ctx); err != nil {
 		t.Fatalf("selected reader could not decode destination root: %v", err)
 	}
+
+	// Only the actor and the reader hold grants.
 	if len(first.GetRootGrants()) != 2 {
 		t.Fatalf("expected grants for actor and selected reader, got %d", len(first.GetRootGrants()))
 	}
@@ -171,6 +188,8 @@ func TestReencryptSOState(t *testing.T) {
 			t.Fatal("destination included a non-selected participant grant")
 		}
 	}
+
+	// Each run uses a new key.
 	firstGrantInner, err := first.GetRootGrants()[0].DecryptInnerData(actorPriv, destinationID)
 	if err != nil {
 		t.Fatal(err)
@@ -184,6 +203,8 @@ func TestReencryptSOState(t *testing.T) {
 	if bytes.Equal(firstTransformData, secondTransformData) {
 		t.Fatal("two runs reused transform key material")
 	}
+
+	// The destination state validates.
 	if err := first.Validate(destinationID); err != nil {
 		t.Fatalf("destination state validation: %v", err)
 	}

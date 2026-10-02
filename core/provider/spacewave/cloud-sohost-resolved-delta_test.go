@@ -20,13 +20,16 @@ func TestDelayedOperationDeltaKeepsOperationsResolved(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	op := buildTestSOOperation(t, priv, 1)
+	op := buildTestSOOperation(t, priv, testOperationLink(1))
 	root := buildTestSORoot(t, priv, 2, []*sobject.SOAccountNonce{{
 		PeerId: writer.GetPeerID().String(),
 		Nonce:  1,
+		OpHash: op.Hash(),
 	}})
-	rejected := buildTestSOOperation(t, priv, 2)
-	pending := buildTestSOOperation(t, priv, 3)
+
+	// Reject the next operation and queue the one after it.
+	rejected := buildTestSOOperation(t, priv, &sobject.SOOperationLink{Nonce: 2, PrevOpHash: op.Hash(), ConfigHash: testConfigHash})
+	pending := buildTestSOOperation(t, priv, &sobject.SOOperationLink{Nonce: 3, PrevOpHash: rejected.Hash(), ConfigHash: testConfigHash})
 	state := &sobject.SOState{
 		Root: root,
 		OpRejections: []*sobject.SOPeerOpRejections{{

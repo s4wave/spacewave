@@ -370,7 +370,7 @@ func leanSyncExchangeCases(t *testing.T, seed uint64, withLoop bool) []leanSyncC
 	owner, reader := mustKeyPair(t), mustKeyPair(t)
 	initial := authenticationState(t, soID, owner, reader)
 	sender := newAuthenticationPeer(t, soID, owner, initial)
-	change, err := sobject.BuildSOConfigChange(initial.Config, initial.Config,
+	change, err := sobject.BuildSOConfigChange(soID, initial.Config, initial.Config,
 		sobject.SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_ADD_INVITE, owner, nil)
 
 	// Abort on the error.
@@ -459,7 +459,7 @@ func leanSyncExchangeCases(t *testing.T, seed uint64, withLoop bool) []leanSyncC
 			response.changes, response.snapshot = nil, nil
 			x.response = response
 		case 7:
-			response.changes[0].Signature.SigData = bytes.Repeat([]byte{0x12}, maxHistoryPageBytes)
+			response.changes[0].Signatures[0].SigData = bytes.Repeat([]byte{0x12}, maxHistoryPageBytes)
 			x.response = response
 		case 8:
 			current = nil

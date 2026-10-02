@@ -1,6 +1,7 @@
 package sobject
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"slices"
@@ -20,8 +21,8 @@ import (
 // createMockSOState creates a mock SOState for testing.
 // Unspecified roles default to OWNER for the first peer and VALIDATOR otherwise.
 func createMockSOState(peers []peer.Peer, roles []SOParticipantRole) *SOState {
+	// Assign each peer its default or requested role.
 	participants := make([]*SOParticipantConfig, len(peers))
-
 	for i, p := range peers {
 		peerIDStr := p.GetPeerID().String()
 		role := SOParticipantRole_SOParticipantRole_VALIDATOR
@@ -37,6 +38,7 @@ func createMockSOState(peers []peer.Peer, roles []SOParticipantRole) *SOState {
 		}
 	}
 
+	// Start from an unsigned root at seqno 1.
 	initialInner := &SORootInner{
 		Seqno:     1,
 		StateData: []byte("initial state"),
@@ -45,7 +47,8 @@ func createMockSOState(peers []peer.Peer, roles []SOParticipantRole) *SOState {
 
 	return &SOState{
 		Config: &SharedObjectConfig{
-			Participants: participants,
+			Participants:    participants,
+			ConfigChainHash: bytes.Clone(mockConfigHash),
 		},
 		Root: &SORoot{
 			Inner:      initialInnerData,
@@ -56,6 +59,7 @@ func createMockSOState(peers []peer.Peer, roles []SOParticipantRole) *SOState {
 
 // createMockSORoot creates a mock SORoot for testing
 func createMockSORoot(t *testing.T, seqno uint64, signers ...peer.Peer) *SORoot {
+	// Encode the inner root at seqno.
 	innerRoot := &SORootInner{
 		Seqno:     seqno,
 		StateData: []byte("new state"),
@@ -65,23 +69,10 @@ func createMockSORoot(t *testing.T, seqno uint64, signers ...peer.Peer) *SORoot 
 		t.Fatalf("Failed to marshal inner root: %v", err)
 	}
 
-	// Create account nonces for all signers
-	accountNonces := make([]*SOAccountNonce, len(signers))
-	for i, signer := range signers {
-		accountNonces[i] = &SOAccountNonce{
-			PeerId: signer.GetPeerID().String(),
-			Nonce:  0,
-		}
-	}
-	// Sort account nonces by peer ID
-	slices.SortFunc(accountNonces, func(a, b *SOAccountNonce) int {
-		return strings.Compare(a.GetPeerId(), b.GetPeerId())
-	})
-
+	// Wrap it in an unsigned root.
 	root := &SORoot{
-		Inner:         innerData,
-		InnerSeqno:    seqno,
-		AccountNonces: accountNonces,
+		Inner:      innerData,
+		InnerSeqno: seqno,
 	}
 
 	// Sign with each signer
@@ -99,48 +90,32 @@ func createMockSORoot(t *testing.T, seqno uint64, signers ...peer.Peer) *SORoot 
 	return root
 }
 
-// createMockSOOperation creates a mock SOOperation for testing
+// createMockSOOperation signs an operation by privKey at nonce with no
+// other heads.
 func createMockSOOperation(t *testing.T, privKey crypto.PrivKey, nonce uint64) (*SOOperation, *SOOperationInner) {
+	// Sign at nonce with no other heads and decode the body.
 	peerID, err := peer.IDFromPrivateKey(privKey)
 	if err != nil {
 		t.Fatalf("Failed to get peer ID from private key: %v", err)
 	}
-	peerIDStr := peerID.String()
-
-	localID := NewSOOperationLocalID()
-	inner := &SOOperationInner{
-		PeerId:  peerIDStr,
-		LocalId: localID,
-		Nonce:   nonce,
-		OpData:  []byte("test operation"),
-	}
-	innerData, err := inner.MarshalVT()
+	op := signedLeanOperation(t, privKey, peerID.String(), linkAt(nil, privKey, nonce), NewSOOperationLocalID())
+	inner, err := op.UnmarshalInner()
 	if err != nil {
-		t.Fatalf("Failed to marshal operation inner: %v", err)
+		t.Fatalf("Failed to unmarshal operation inner: %v", err)
 	}
-
-	encContext := BuildSOOperationSignatureContext(mockSharedObjectID, peerIDStr, nonce, localID)
-	sig, err := peer.NewSignature(encContext, privKey, hash.RecommendedHashType, innerData, true)
-	if err != nil {
-		t.Fatalf("Failed to create operation signature: %v", err)
-	}
-
-	return &SOOperation{
-		Inner:     innerData,
-		Signature: sig,
-	}, inner
+	return op, inner
 }
 
 func TestUpdateRootState(t *testing.T) {
 	// Create test peers
 	peers := createMockPeers(t, 3)
-	peer1, peer2, peer3 := peers[0], peers[1], peers[2]
+	peer1, peer2 := peers[0], peers[1]
 
 	// Get peer ID strings
 	peer1IDStr := peer1.GetPeerID().String()
 	peer2IDStr := peer2.GetPeerID().String()
-	peer3IDStr := peer3.GetPeerID().String()
 
+	// A validator-signed next root replaces the root and clears the queue.
 	t.Run("Valid update", func(t *testing.T) {
 		state := createMockSOState(peers, nil)
 		nextRoot := createMockSORoot(t, 2, peer1)
@@ -197,7 +172,10 @@ func TestUpdateRootState(t *testing.T) {
 			{
 				name: "Invalid account nonces order",
 				buildRoot: func(t *testing.T) *SORoot {
+					// Order the account nonces backwards and re-sign.
 					nr := createMockSORoot(t, 2, peer1, peer2)
+					nr.AccountNonces = advanceAccountNonce(nr.AccountNonces, peer1IDStr, 1, mockPrevOpHash)
+					nr.AccountNonces = advanceAccountNonce(nr.AccountNonces, peer2IDStr, 1, mockPrevOpHash)
 					nr.AccountNonces[0], nr.AccountNonces[1] = nr.AccountNonces[1], nr.AccountNonces[0]
 					mustResign(t, nr)
 					return nr
@@ -268,6 +246,7 @@ func TestUpdateRootState(t *testing.T) {
 		}
 	})
 
+	// Either validator that signed the root may present it.
 	t.Run("Multiple valid signatures", func(t *testing.T) {
 		state := createMockSOState(peers, nil) // Default to all validators
 		nextRoot := createMockSORoot(t, 2, peer1, peer2)
@@ -285,11 +264,12 @@ func TestUpdateRootState(t *testing.T) {
 		}
 	})
 
+	// A corrupted operation signature is refused.
 	t.Run("Invalid operation signature", func(t *testing.T) {
+		// Sign an operation as the writer.
 		state := createMockSOState(peers, []SOParticipantRole{SOParticipantRole_SOParticipantRole_VALIDATOR, SOParticipantRole_SOParticipantRole_WRITER})
 		writerPrivKey, _ := peers[1].GetPrivKey(context.Background())
-
-		op, err := BuildSOOperation(mockSharedObjectID, writerPrivKey, []byte("test operation"), 1, NewSOOperationLocalID())
+		op, err := BuildSOOperation(mockSharedObjectID, writerPrivKey, []byte("test operation"), linkAt(state, writerPrivKey, 1), NewSOOperationLocalID())
 		if err != nil {
 			t.Fatalf("Unexpected error building operation: %v", err)
 		}
@@ -297,6 +277,7 @@ func TestUpdateRootState(t *testing.T) {
 		// Corrupt the signature
 		op.Signature.SigData[0] ^= 0xFF
 
+		// Queueing it fails signature verification.
 		err = state.QueueOperation(mockSharedObjectID, op)
 		if err == nil {
 			t.Fatal("Expected an error for signature invalid, got nil")
@@ -306,6 +287,7 @@ func TestUpdateRootState(t *testing.T) {
 		}
 	})
 
+	// A root signed only by an outsider is refused.
 	t.Run("Non-validator signature", func(t *testing.T) {
 		state := createMockSOState(peers, nil)
 
@@ -322,6 +304,7 @@ func TestUpdateRootState(t *testing.T) {
 		}
 	})
 
+	// A root with no signatures is refused.
 	t.Run("Empty validator signatures", func(t *testing.T) {
 		state := createMockSOState(peers, nil)
 		nextRoot := createMockSORoot(t, 2)
@@ -333,6 +316,7 @@ func TestUpdateRootState(t *testing.T) {
 		}
 	})
 
+	// A root that does not advance the seqno is refused.
 	t.Run("Identical root state", func(t *testing.T) {
 		// Kept as its own run because the next-root is constructed by cloning
 		// state.Root rather than via createMockSORoot.
@@ -345,13 +329,16 @@ func TestUpdateRootState(t *testing.T) {
 		}
 	})
 
+	// A root that accepts a queued operation records its author head.
 	t.Run("Accept new operation", func(t *testing.T) {
+		// Queue one owner operation.
 		state := createMockSOState(peers, nil)
 		ctx := context.Background()
 		peer1PrivKey, _ := peer1.GetPrivKey(ctx)
 		op, _ := createMockSOOperation(t, peer1PrivKey, 1)
 		state.Ops = append(state.Ops, op)
 
+		// Encode the next root inner state.
 		nextInner := &SORootInner{
 			Seqno:     2,
 			StateData: []byte("new state with applied operation"),
@@ -361,12 +348,11 @@ func TestUpdateRootState(t *testing.T) {
 			t.Fatalf("Failed to marshal next inner: %v", err)
 		}
 
+		// Record the operation as the owner head.
 		nextRoot := &SORoot{
 			Inner: nextInnerData,
 			AccountNonces: []*SOAccountNonce{
-				{PeerId: peer1IDStr, Nonce: 1},
-				{PeerId: peer2IDStr, Nonce: 0},
-				{PeerId: peer3IDStr, Nonce: 0},
+				{PeerId: peer1IDStr, Nonce: 1, OpHash: op.Hash()},
 			},
 			InnerSeqno: 2,
 		}
@@ -388,6 +374,7 @@ func TestUpdateRootState(t *testing.T) {
 			}
 		}
 
+		// Accepting the operation applies the root and empties the queue.
 		err = state.UpdateRootState(mockSharedObjectID, nextRoot, peer1IDStr, nil, []*SOOperation{op})
 		if err != nil {
 			t.Fatalf("Unexpected error: %v", err)
@@ -403,6 +390,7 @@ func TestUpdateRootState(t *testing.T) {
 		}
 	})
 
+	// A rejected operation leaves the queue and is recorded.
 	t.Run("Reject operation", func(t *testing.T) {
 		state := createMockSOState(peers, nil)
 		ctx := context.Background()
@@ -443,6 +431,7 @@ func TestUpdateRootState(t *testing.T) {
 		}
 	})
 
+	// A rejection of an unqueued operation is still recorded.
 	t.Run("Reject non-existent operation", func(t *testing.T) {
 		state := createMockSOState(peers, nil)
 		ctx := context.Background()
@@ -475,6 +464,7 @@ func TestUpdateRootState(t *testing.T) {
 		}
 	})
 
+	// A rejection delivered twice is recorded once.
 	t.Run("Replayed rejection is recorded once", func(t *testing.T) {
 		state := createMockSOState(peers, nil)
 		ctx := context.Background()
@@ -498,6 +488,7 @@ func TestUpdateRootState(t *testing.T) {
 		}
 	})
 
+	// Two rejections of one nonce are refused.
 	t.Run("Conflicting rejection for one nonce is invalid", func(t *testing.T) {
 		state := createMockSOState(peers, nil)
 		ctx := context.Background()
@@ -518,6 +509,7 @@ func TestUpdateRootState(t *testing.T) {
 		}
 	})
 
+	// Rejection details decode only with the author key.
 	t.Run("Decode error details", func(t *testing.T) {
 		state := createMockSOState(peers, nil)
 		ctx := context.Background()
@@ -649,6 +641,7 @@ func TestUpdateRootState(t *testing.T) {
 		}
 	})
 
+	// Accepting every queued operation leaves no rejections.
 	t.Run("Accept all operations", func(t *testing.T) {
 		state := createMockSOState(peers, nil)
 		ctx := context.Background()
@@ -683,13 +676,16 @@ func TestUpdateRootState(t *testing.T) {
 		}
 	})
 
+	// Consecutive nonces queue in order.
 	t.Run("Queue multiple operations", func(t *testing.T) {
+		// Start with an owner signer.
 		state := createMockSOState(peers, nil)
 		ctx := context.Background()
 		peer1PrivKey, _ := peer1.GetPrivKey(ctx)
 
+		// Queue three operations at consecutive nonces.
 		for i := uint64(1); i <= 3; i++ {
-			op, err := BuildSOOperation(mockSharedObjectID, peer1PrivKey, fmt.Appendf(nil, "test operation %d", i), i, NewSOOperationLocalID())
+			op, err := BuildSOOperation(mockSharedObjectID, peer1PrivKey, fmt.Appendf(nil, "test operation %d", i), linkAt(state, peer1PrivKey, i), NewSOOperationLocalID())
 			if err != nil {
 				t.Fatalf("Unexpected error building operation %d: %v", i, err)
 			}
@@ -700,23 +696,28 @@ func TestUpdateRootState(t *testing.T) {
 			}
 		}
 
+		// All three are held.
 		if len(state.Ops) != 3 {
 			t.Fatalf("Expected 3 operations, got %d", len(state.Ops))
 		}
 	})
 
+	// A second operation at a queued nonce is refused.
 	t.Run("Queue operation with duplicate nonce", func(t *testing.T) {
+		// Start with an owner signer.
 		state := createMockSOState(peers, nil)
 		ctx := context.Background()
 		peer1PrivKey, _ := peer1.GetPrivKey(ctx)
 
-		op1, _ := BuildSOOperation(mockSharedObjectID, peer1PrivKey, []byte("test operation 1"), 1, NewSOOperationLocalID())
+		// Queue the first operation.
+		op1, _ := BuildSOOperation(mockSharedObjectID, peer1PrivKey, []byte("test operation 1"), linkAt(state, peer1PrivKey, 1), NewSOOperationLocalID())
 		err := state.QueueOperation(mockSharedObjectID, op1)
 		if err != nil {
 			t.Fatalf("Unexpected error queueing first operation: %v", err)
 		}
 
-		op2, _ := BuildSOOperation(mockSharedObjectID, peer1PrivKey, []byte("test operation 2"), 1, NewSOOperationLocalID()) // Same nonce
+		// Queueing another at the same nonce fails.
+		op2, _ := BuildSOOperation(mockSharedObjectID, peer1PrivKey, []byte("test operation 2"), linkAt(state, peer1PrivKey, 1), NewSOOperationLocalID()) // Same nonce
 		err = state.QueueOperation(mockSharedObjectID, op2)
 		if err == nil {
 			t.Fatal("Expected an error for duplicate nonce, got nil")
@@ -768,8 +769,9 @@ func TestBuildSOOperation(t *testing.T) {
 	peer1 := peers[0]
 
 	t.Run("Valid operation", func(t *testing.T) {
+		// Build an operation at the first nonce and check its parts.
 		peer1PrivKey, _ := peer1.GetPrivKey(ctx)
-		op, err := BuildSOOperation(mockSharedObjectID, peer1PrivKey, []byte("test operation"), 1, NewSOOperationLocalID())
+		op, err := BuildSOOperation(mockSharedObjectID, peer1PrivKey, []byte("test operation"), linkAt(nil, peer1PrivKey, 1), NewSOOperationLocalID())
 		if err != nil {
 			t.Fatalf("Unexpected error: %v", err)
 		}
@@ -786,7 +788,7 @@ func TestBuildSOOperation(t *testing.T) {
 
 	t.Run("Empty operation data", func(t *testing.T) {
 		peer1PrivKey, _ := peer1.GetPrivKey(ctx)
-		_, err := BuildSOOperation(mockSharedObjectID, peer1PrivKey, []byte{}, 1, NewSOOperationLocalID())
+		_, err := BuildSOOperation(mockSharedObjectID, peer1PrivKey, []byte{}, linkAt(nil, peer1PrivKey, 1), NewSOOperationLocalID())
 		if err == nil {
 			t.Fatal("Expected an error for empty operation data, got nil")
 		}
@@ -794,7 +796,7 @@ func TestBuildSOOperation(t *testing.T) {
 
 	t.Run("Zero nonce", func(t *testing.T) {
 		peer1PrivKey, _ := peer1.GetPrivKey(ctx)
-		_, err := BuildSOOperation(mockSharedObjectID, peer1PrivKey, []byte("test operation"), 0, NewSOOperationLocalID())
+		_, err := BuildSOOperation(mockSharedObjectID, peer1PrivKey, []byte("test operation"), linkAt(nil, peer1PrivKey, 0), NewSOOperationLocalID())
 		if err == nil {
 			t.Fatal("Expected an error for zero nonce, got nil")
 		}
@@ -803,7 +805,7 @@ func TestBuildSOOperation(t *testing.T) {
 	t.Run("Large operation data", func(t *testing.T) {
 		peer1PrivKey, _ := peer1.GetPrivKey(ctx)
 		largeData := make([]byte, MaxInnerDataSize+1)
-		_, err := BuildSOOperation(mockSharedObjectID, peer1PrivKey, largeData, 1, NewSOOperationLocalID())
+		_, err := BuildSOOperation(mockSharedObjectID, peer1PrivKey, largeData, linkAt(nil, peer1PrivKey, 1), NewSOOperationLocalID())
 		if err == nil {
 			t.Fatal("Expected an error for large operation data, got nil")
 		}
@@ -817,18 +819,19 @@ func TestNonceTracking(t *testing.T) {
 
 	t.Run("Initial nonce state", func(t *testing.T) {
 		state := createMockSOState(peers, nil)
-		nextNonce := state.GetNextAccountNonce(peer1.GetPeerID().String())
+		nextNonce := state.NextOperationLink(peer1.GetPeerID().String()).Nonce
 		if nextNonce != 1 {
 			t.Fatalf("Expected initial nonce to be 1, got %d", nextNonce)
 		}
 	})
 
 	t.Run("Queued nonce tracking", func(t *testing.T) {
+		// Start with an owner signer.
 		state := createMockSOState(peers, nil)
 		peer1PrivKey, _ := peer1.GetPrivKey(ctx)
 
 		// Queue first operation
-		op1, err := BuildSOOperation(mockSharedObjectID, peer1PrivKey, []byte("test operation 1"), 1, NewSOOperationLocalID())
+		op1, err := BuildSOOperation(mockSharedObjectID, peer1PrivKey, []byte("test operation 1"), linkAt(state, peer1PrivKey, 1), NewSOOperationLocalID())
 		if err != nil {
 			t.Fatalf("Unexpected error building operation: %v", err)
 		}
@@ -852,19 +855,20 @@ func TestNonceTracking(t *testing.T) {
 		}
 
 		// Next nonce should be 2
-		nextNonce := state.GetNextAccountNonce(peer1.GetPeerID().String())
+		nextNonce := state.NextOperationLink(peer1.GetPeerID().String()).Nonce
 		if nextNonce != 2 {
 			t.Fatalf("Expected next nonce to be 2, got %d", nextNonce)
 		}
 	})
 
 	t.Run("Multiple peer nonce tracking", func(t *testing.T) {
+		// Start with two signers.
 		state := createMockSOState(peers, nil)
 		peer1PrivKey, _ := peer1.GetPrivKey(ctx)
 		peer2PrivKey, _ := peer2.GetPrivKey(ctx)
 
 		// Queue operations for both peers
-		op1, err := BuildSOOperation(mockSharedObjectID, peer1PrivKey, []byte("test operation 1"), 1, NewSOOperationLocalID())
+		op1, err := BuildSOOperation(mockSharedObjectID, peer1PrivKey, []byte("test operation 1"), linkAt(state, peer1PrivKey, 1), NewSOOperationLocalID())
 		if err != nil {
 			t.Fatalf("Unexpected error building operation: %v", err)
 		}
@@ -872,7 +876,8 @@ func TestNonceTracking(t *testing.T) {
 			t.Fatalf("Unexpected error queueing operation: %v", err)
 		}
 
-		op2, err := BuildSOOperation(mockSharedObjectID, peer2PrivKey, []byte("test operation 2"), 1, NewSOOperationLocalID())
+		// Queue an operation from the second peer.
+		op2, err := BuildSOOperation(mockSharedObjectID, peer2PrivKey, []byte("test operation 2"), linkAt(state, peer2PrivKey, 1), NewSOOperationLocalID())
 		if err != nil {
 			t.Fatalf("Unexpected error building operation: %v", err)
 		}
@@ -893,11 +898,12 @@ func TestNonceTracking(t *testing.T) {
 	})
 
 	t.Run("Nonce cleanup after root update", func(t *testing.T) {
+		// Start with an owner signer.
 		state := createMockSOState(peers, nil)
 		peer1PrivKey, _ := peer1.GetPrivKey(ctx)
 
 		// Queue operation
-		op, err := BuildSOOperation(mockSharedObjectID, peer1PrivKey, []byte("test operation"), 1, NewSOOperationLocalID())
+		op, err := BuildSOOperation(mockSharedObjectID, peer1PrivKey, []byte("test operation"), linkAt(state, peer1PrivKey, 1), NewSOOperationLocalID())
 		if err != nil {
 			t.Fatalf("Unexpected error building operation: %v", err)
 		}
@@ -910,7 +916,9 @@ func TestNonceTracking(t *testing.T) {
 		nextRoot.AccountNonces = []*SOAccountNonce{{
 			PeerId: peer1.GetPeerID().String(),
 			Nonce:  1,
+			OpHash: mockPrevOpHash,
 		}}
+
 		// Re-sign after updating account nonces
 		nextRoot.ValidatorSignatures = nil
 		if err := nextRoot.SignInnerData(peer1PrivKey, mockSharedObjectID, 2, hash.RecommendedHashType); err != nil {
@@ -932,12 +940,13 @@ func TestNonceTracking(t *testing.T) {
 	})
 
 	t.Run("Nonce skipping with rejected operations", func(t *testing.T) {
+		// Start with an owner signer and a rejecting validator.
 		state := createMockSOState(peers, nil)
 		peer1PrivKey, _ := peer1.GetPrivKey(ctx)
 		peer2PrivKey, _ := peer2.GetPrivKey(ctx)
 
 		// Queue two operations
-		op1, err := BuildSOOperation(mockSharedObjectID, peer1PrivKey, []byte("test operation 1"), 1, NewSOOperationLocalID())
+		op1, err := BuildSOOperation(mockSharedObjectID, peer1PrivKey, []byte("test operation 1"), linkAt(state, peer1PrivKey, 1), NewSOOperationLocalID())
 		if err != nil {
 			t.Fatalf("Unexpected error building operation: %v", err)
 		}
@@ -945,7 +954,8 @@ func TestNonceTracking(t *testing.T) {
 			t.Fatalf("Unexpected error queueing operation: %v", err)
 		}
 
-		op2, err := BuildSOOperation(mockSharedObjectID, peer1PrivKey, []byte("test operation 2"), 2, NewSOOperationLocalID())
+		// Queue the second operation.
+		op2, err := BuildSOOperation(mockSharedObjectID, peer1PrivKey, []byte("test operation 2"), linkAt(state, peer1PrivKey, 2), NewSOOperationLocalID())
 		if err != nil {
 			t.Fatalf("Unexpected error building operation: %v", err)
 		}
@@ -975,7 +985,9 @@ func TestNonceTracking(t *testing.T) {
 		nextRoot.AccountNonces = []*SOAccountNonce{{
 			PeerId: peer1.GetPeerID().String(),
 			Nonce:  2,
+			OpHash: mockPrevOpHash,
 		}}
+
 		// Re-sign after updating account nonces
 		nextRoot.ValidatorSignatures = nil
 		if err := nextRoot.SignInnerData(peer1PrivKey, mockSharedObjectID, 2, hash.RecommendedHashType); err != nil {
@@ -995,18 +1007,19 @@ func TestNonceTracking(t *testing.T) {
 		}
 
 		// Verify nonce state
-		nextNonce := state.GetNextAccountNonce(peer1.GetPeerID().String())
+		nextNonce := state.NextOperationLink(peer1.GetPeerID().String()).Nonce
 		if nextNonce != 3 {
 			t.Fatalf("Expected next nonce to be 3, got %d", nextNonce)
 		}
 	})
 
 	t.Run("Invalid nonce order", func(t *testing.T) {
+		// Start with an owner signer.
 		state := createMockSOState(peers, nil)
 		peer1PrivKey, _ := peer1.GetPrivKey(ctx)
 
 		// Try to queue operation with nonce 2 first
-		op1, err := BuildSOOperation(mockSharedObjectID, peer1PrivKey, []byte("test operation 1"), 2, NewSOOperationLocalID())
+		op1, err := BuildSOOperation(mockSharedObjectID, peer1PrivKey, []byte("test operation 1"), linkAt(state, peer1PrivKey, 2), NewSOOperationLocalID())
 		if err != nil {
 			t.Fatalf("Unexpected error building operation: %v", err)
 		}
@@ -1028,14 +1041,17 @@ func TestQueueOperation(t *testing.T) {
 	peer1, peer2 := peers[0], peers[1]
 
 	t.Run("Valid operation", func(t *testing.T) {
+		// Start with an owner signer.
 		state := createMockSOState(peers, nil)
 		peer1PrivKey, _ := peer1.GetPrivKey(ctx)
 
-		op, err := BuildSOOperation(mockSharedObjectID, peer1PrivKey, []byte("test operation"), 1, NewSOOperationLocalID())
+		// Sign at the first nonce.
+		op, err := BuildSOOperation(mockSharedObjectID, peer1PrivKey, []byte("test operation"), linkAt(state, peer1PrivKey, 1), NewSOOperationLocalID())
 		if err != nil {
 			t.Fatalf("Unexpected error building operation: %v", err)
 		}
 
+		// The operation joins the queue.
 		err = state.QueueOperation(mockSharedObjectID, op)
 		if err != nil {
 			t.Fatalf("Unexpected error queueing operation: %v", err)
@@ -1046,14 +1062,17 @@ func TestQueueOperation(t *testing.T) {
 	})
 
 	t.Run("Invalid nonce", func(t *testing.T) {
+		// Start with an owner signer.
 		state := createMockSOState(peers, nil)
 		peer1PrivKey, _ := peer1.GetPrivKey(ctx)
 
-		op, err := BuildSOOperation(mockSharedObjectID, peer1PrivKey, []byte("test operation"), 2, NewSOOperationLocalID()) // Should be 1
+		// Sign at nonce 2 before nonce 1.
+		op, err := BuildSOOperation(mockSharedObjectID, peer1PrivKey, []byte("test operation"), linkAt(state, peer1PrivKey, 2), NewSOOperationLocalID()) // Should be 1
 		if err != nil {
 			t.Fatalf("Unexpected error building operation: %v", err)
 		}
 
+		// The gap is refused.
 		err = state.QueueOperation(mockSharedObjectID, op)
 		if err == nil {
 			t.Fatal("Expected an error for invalid nonce, got nil")
@@ -1064,6 +1083,7 @@ func TestQueueOperation(t *testing.T) {
 	})
 
 	t.Run("Unauthorized peer", func(t *testing.T) {
+		// Start with a key outside the participants.
 		state := createMockSOState(peers, []SOParticipantRole{
 			SOParticipantRole_SOParticipantRole_VALIDATOR,
 			SOParticipantRole_SOParticipantRole_WRITER,
@@ -1071,11 +1091,13 @@ func TestQueueOperation(t *testing.T) {
 		unauthorizedPeer := createMockPeers(t, 1)[0]
 		unauthorizedPrivKey, _ := unauthorizedPeer.GetPrivKey(ctx)
 
-		op, err := BuildSOOperation(mockSharedObjectID, unauthorizedPrivKey, []byte("test operation"), 1, NewSOOperationLocalID())
+		// Sign an operation with it.
+		op, err := BuildSOOperation(mockSharedObjectID, unauthorizedPrivKey, []byte("test operation"), linkAt(state, unauthorizedPrivKey, 1), NewSOOperationLocalID())
 		if err != nil {
 			t.Fatalf("Unexpected error building operation: %v", err)
 		}
 
+		// The outsider is refused.
 		err = state.QueueOperation(mockSharedObjectID, op)
 		if err == nil {
 			t.Fatal("Expected an error for unauthorized peer, got nil")
@@ -1086,29 +1108,35 @@ func TestQueueOperation(t *testing.T) {
 	})
 
 	t.Run("Valid writer submitting operation", func(t *testing.T) {
+		// Start with a writer signer.
 		state := createMockSOState(peers, []SOParticipantRole{SOParticipantRole_SOParticipantRole_VALIDATOR, SOParticipantRole_SOParticipantRole_WRITER})
 		writerPrivKey, _ := peers[1].GetPrivKey(ctx)
 
-		op, err := BuildSOOperation(mockSharedObjectID, writerPrivKey, []byte("test operation"), 1, NewSOOperationLocalID())
+		// Sign at the writer first nonce.
+		op, err := BuildSOOperation(mockSharedObjectID, writerPrivKey, []byte("test operation"), linkAt(state, writerPrivKey, 1), NewSOOperationLocalID())
 		if err != nil {
 			t.Fatalf("Unexpected error building operation: %v", err)
 		}
 
+		// The writer may queue it.
 		err = state.QueueOperation(mockSharedObjectID, op)
 		if err != nil {
 			t.Fatalf("Unexpected error queueing operation: %v", err)
 		}
 
+		// The operation joins the queue.
 		if len(state.Ops) != 1 {
 			t.Fatalf("Expected 1 operation in queue, got %d", len(state.Ops))
 		}
 	})
 
 	t.Run("Invalid operation signature", func(t *testing.T) {
+		// Start with a writer signer.
 		state := createMockSOState(peers, []SOParticipantRole{SOParticipantRole_SOParticipantRole_VALIDATOR, SOParticipantRole_SOParticipantRole_WRITER})
 		writerPrivKey, _ := peers[1].GetPrivKey(ctx)
 
-		op, err := BuildSOOperation(mockSharedObjectID, writerPrivKey, []byte("test operation"), 1, NewSOOperationLocalID())
+		// Sign at the writer first nonce.
+		op, err := BuildSOOperation(mockSharedObjectID, writerPrivKey, []byte("test operation"), linkAt(state, writerPrivKey, 1), NewSOOperationLocalID())
 		if err != nil {
 			t.Fatalf("Unexpected error building operation: %v", err)
 		}
@@ -1116,6 +1144,7 @@ func TestQueueOperation(t *testing.T) {
 		// Corrupt the signature
 		op.Signature.SigData[0] ^= 0xFF
 
+		// Queueing it fails signature verification.
 		err = state.QueueOperation(mockSharedObjectID, op)
 		if err == nil {
 			t.Fatal("Expected an error for signature invalid, got nil")
@@ -1126,11 +1155,13 @@ func TestQueueOperation(t *testing.T) {
 	})
 
 	t.Run("Maximum operations reached", func(t *testing.T) {
+		// Start with an owner signer.
 		state := createMockSOState(peers, nil)
 		peer1PrivKey, _ := peer1.GetPrivKey(ctx)
 
+		// Fill the queue.
 		for i := uint64(1); i <= MaxOperations; i++ {
-			op, err := BuildSOOperation(mockSharedObjectID, peer1PrivKey, []byte("test operation "+strconv.Itoa(int(i))), i, NewSOOperationLocalID())
+			op, err := BuildSOOperation(mockSharedObjectID, peer1PrivKey, []byte("test operation "+strconv.Itoa(int(i))), linkAt(state, peer1PrivKey, i), NewSOOperationLocalID())
 			if err != nil {
 				t.Fatalf("Unexpected error building operation %d: %v", i, err)
 			}
@@ -1141,11 +1172,13 @@ func TestQueueOperation(t *testing.T) {
 			}
 		}
 
-		overflowOp, err := BuildSOOperation(mockSharedObjectID, peer1PrivKey, []byte("test operation overflow"), uint64(MaxOperations+1), NewSOOperationLocalID())
+		// Sign one more operation.
+		overflowOp, err := BuildSOOperation(mockSharedObjectID, peer1PrivKey, []byte("test operation overflow"), linkAt(state, peer1PrivKey, uint64(MaxOperations+1)), NewSOOperationLocalID())
 		if err != nil {
 			t.Fatalf("Unexpected error building overflow operation: %v", err)
 		}
 
+		// The full queue refuses it.
 		err = state.QueueOperation(mockSharedObjectID, overflowOp)
 		if err == nil {
 			t.Fatal("Expected an error when maximum operations reached, got nil")
@@ -1160,7 +1193,7 @@ func TestQueueOperation(t *testing.T) {
 		peer1PrivKey, _ := peer1.GetPrivKey(ctx)
 
 		for i := uint64(1); i <= 3; i++ {
-			op, err := BuildSOOperation(mockSharedObjectID, peer1PrivKey, fmt.Appendf(nil, "test operation %d", i), i, NewSOOperationLocalID())
+			op, err := BuildSOOperation(mockSharedObjectID, peer1PrivKey, fmt.Appendf(nil, "test operation %d", i), linkAt(state, peer1PrivKey, i), NewSOOperationLocalID())
 			if err != nil {
 				t.Fatalf("Unexpected error building operation %d: %v", i, err)
 			}
@@ -1177,16 +1210,19 @@ func TestQueueOperation(t *testing.T) {
 	})
 
 	t.Run("Operation with non-incremental nonce", func(t *testing.T) {
+		// Start with an owner signer.
 		state := createMockSOState(peers, nil)
 		peer1PrivKey, _ := peer1.GetPrivKey(ctx)
 
-		op1, _ := BuildSOOperation(mockSharedObjectID, peer1PrivKey, []byte("test operation 1"), 1, NewSOOperationLocalID())
+		// Queue the first operation.
+		op1, _ := BuildSOOperation(mockSharedObjectID, peer1PrivKey, []byte("test operation 1"), linkAt(state, peer1PrivKey, 1), NewSOOperationLocalID())
 		err := state.QueueOperation(mockSharedObjectID, op1)
 		if err != nil {
 			t.Fatalf("Unexpected error queueing first operation: %v", err)
 		}
 
-		op2, _ := BuildSOOperation(mockSharedObjectID, peer1PrivKey, []byte("test operation 2"), 3, NewSOOperationLocalID()) // Should be 2
+		// Skipping nonce 2 is refused.
+		op2, _ := BuildSOOperation(mockSharedObjectID, peer1PrivKey, []byte("test operation 2"), linkAt(state, peer1PrivKey, 3), NewSOOperationLocalID()) // Should be 2
 		err = state.QueueOperation(mockSharedObjectID, op2)
 		if err == nil {
 			t.Fatal("Expected an error for non-incremental nonce, got nil")

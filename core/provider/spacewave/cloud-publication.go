@@ -291,9 +291,12 @@ func (h *cloudSOHost) acceptCloudSnapshot(ctx context.Context, cloud *sobject.SO
 	}
 
 	// A signed rejection consumes its nonce even when an older cache reused it
-	// for different local work. Re-sign only that provably unpublished collision;
-	// retain the operation ID, encrypted contents, and original flush deadline.
+	// for different local work. Re-sign that provably unpublished collision and
+	// every later local operation, which named the replaced operation as its
+	// predecessor. Retain operation IDs, encrypted contents, and the original
+	// flush deadline.
 	pending := h.pendingPublication()
+	var rechain bool
 	for i, operation := range pending.GetOperations() {
 		inner, err := operation.UnmarshalInner()
 		if err != nil {
@@ -302,28 +305,16 @@ func (h *cloudSOHost) acceptCloudSnapshot(ctx context.Context, cloud *sobject.SO
 		if inner.GetPeerId() != h.peerID.String() {
 			continue
 		}
-		collision := false
-		for _, group := range next.GetOpRejections() {
-			if group.GetPeerId() != inner.GetPeerId() {
-				continue
-			}
-			for _, rejection := range group.GetRejections() {
-				rejected, err := rejection.UnmarshalInner()
-				if err != nil {
-					return err
-				}
-				if rejected.GetOpNonce() == inner.GetNonce() && rejected.GetLocalId() != inner.GetLocalId() {
-					collision = true
-				}
-			}
+		if !rechain {
+			rechain = rejectionCollides(next, inner)
 		}
-		if !collision {
+		if !rechain {
 			continue
 		}
 		if err := operation.ValidateSignature(h.soID, next.GetConfig().GetParticipants()); err != nil {
 			return err
 		}
-		operation, err = sobject.BuildSOOperation(h.soID, h.privKey, inner.GetOpData(), next.GetNextAccountNonce(inner.GetPeerId()), inner.GetLocalId())
+		operation, err = sobject.BuildSOOperation(h.soID, h.privKey, inner.GetOpData(), next.NextOperationLink(inner.GetPeerId()), inner.GetLocalId())
 		if err != nil {
 			return err
 		}
@@ -366,4 +357,21 @@ func (h *cloudSOHost) acceptCloudSnapshot(ctx context.Context, cloud *sobject.SO
 	}
 	h.logNewOpRejections(previous, next, "cloud-checkpoint")
 	return nil
+}
+
+// rejectionCollides reports whether state holds a signed rejection of different
+// work at the operation's nonce.
+func rejectionCollides(state *sobject.SOState, inner *sobject.SOOperationInner) bool {
+	for _, group := range state.GetOpRejections() {
+		if group.GetPeerId() != inner.GetPeerId() {
+			continue
+		}
+		for _, rejection := range group.GetRejections() {
+			rejected, err := rejection.UnmarshalInner()
+			if err == nil && rejected.GetOpNonce() == inner.GetNonce() && rejected.GetLocalId() != inner.GetLocalId() {
+				return true
+			}
+		}
+	}
+	return false
 }

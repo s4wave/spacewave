@@ -88,7 +88,7 @@ func applySOOwnerPromotion(
 	next.Participants[index].Role = SOParticipantRole_SOParticipantRole_OWNER
 
 	// Sign the promotion together with the consent it carries.
-	change := newSOConfigChange(current, next, SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_TRANSFER_OWNERSHIP)
+	change := newSOConfigChange(host.GetSharedObjectID(), current, next, SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_TRANSFER_OWNERSHIP)
 	change.LeaveRequest = request.CloneVT()
 	if err := signSOConfigChange(change, owner); err != nil {
 		return nil, err

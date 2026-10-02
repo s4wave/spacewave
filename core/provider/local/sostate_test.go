@@ -1,6 +1,7 @@
 package provider_local
 
 import (
+	"bytes"
 	"context"
 	"testing"
 
@@ -52,7 +53,7 @@ func (t *commitCountTx) CommitOrdered(ctx context.Context) error {
 // TestSOStateWriteOrderedOperation checks that only an operation marked with
 // sobject.WithOrderedOperation writes the host state with an ordered commit.
 func TestSOStateWriteOrderedOperation(t *testing.T) {
-	// Seed a signed root owned by the local peer.
+	// Generate the local peer key.
 	ctx := t.Context()
 	priv, _, err := crypto.GenerateKeyPair(crypto.KeyType_Ed25519, 0)
 	if err != nil {
@@ -62,15 +63,22 @@ func TestSOStateWriteOrderedOperation(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Sign a root owned by the local peer.
 	initial := &sobject.SOState{
-		Config: &sobject.SharedObjectConfig{Participants: []*sobject.SOParticipantConfig{{
-			PeerId: pid.String(), Role: sobject.SOParticipantRole_SOParticipantRole_OWNER,
-		}}},
+		Config: &sobject.SharedObjectConfig{
+			Participants: []*sobject.SOParticipantConfig{{
+				PeerId: pid.String(), Role: sobject.SOParticipantRole_SOParticipantRole_OWNER,
+			}},
+			ConfigChainHash: bytes.Repeat([]byte{0xc0}, 32),
+		},
 		Root: &sobject.SORoot{InnerSeqno: 1, Inner: []byte("root")},
 	}
 	if err := initial.Root.SignInnerData(priv, testSharedObjectID, 1, hash.RecommendedHashType); err != nil {
 		t.Fatal(err)
 	}
+
+	// Seed the encoded state into a commit-counting store.
 	data, err := initial.MarshalVT()
 	if err != nil {
 		t.Fatal(err)
@@ -84,14 +92,16 @@ func TestSOStateWriteOrderedOperation(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Open a host and queue one operation per call.
 	watch, lock, syncFuncs := NewObjectStoreSOStateFuncs(ctx, store, "")
 	host := sobject.NewSOHost(ctx, watch, lock, testSharedObjectID, syncFuncs)
 	t.Cleanup(host.ClearContext)
 	queue := func(ctx context.Context) {
+		// Reset the counters and queue one operation.
 		t.Helper()
 		store.full, store.ordered = 0, 0
-		err := host.QueueOperation(ctx, pid, func(nonce uint64) (*sobject.SOOperation, error) {
-			return sobject.BuildSOOperation(testSharedObjectID, priv, []byte("op"), nonce, ulid.NewULID())
+		err := host.QueueOperation(ctx, pid, func(link *sobject.SOOperationLink) (*sobject.SOOperation, error) {
+			return sobject.BuildSOOperation(testSharedObjectID, priv, []byte("op"), link, ulid.NewULID())
 		})
 		if err != nil {
 			t.Fatal(err)

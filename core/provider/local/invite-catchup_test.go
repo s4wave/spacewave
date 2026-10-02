@@ -14,6 +14,7 @@ import (
 // TestInvitedProviderCatchup proves invitation checkpoint installation and
 // encrypted content convergence through the account-owned sync compositions.
 func TestInvitedProviderCatchup(t *testing.T) {
+	// Start an owner and a reader provider.
 	skipFullP2PSyncUnderGoScript(t)
 	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
 	defer cancel()
@@ -21,6 +22,8 @@ func TestInvitedProviderCatchup(t *testing.T) {
 	defer releaseOwner()
 	_, _, reader, readerSession, releaseReader := setupProviderAndSession(ctx, t)
 	defer releaseReader()
+
+	// The owner creates and mounts an object.
 	ref, err := owner.CreateSharedObject(ctx, "invited-catchup", &sobject.SharedObjectMeta{BodyType: "space"}, "", "")
 	if err != nil {
 		t.Fatal(err)
@@ -31,6 +34,8 @@ func TestInvitedProviderCatchup(t *testing.T) {
 	}
 	defer releaseObject()
 	ownerObject := object.(*provider_local.SharedObject)
+
+	// The owner prepares an invitation for the reader.
 	invite, err := ownerObject.CreateSOInviteOp(ctx, ownerObject.GetPrivKey(), sobject.SOParticipantRole_SOParticipantRole_READER, "local", "", 1, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -45,6 +50,7 @@ func TestInvitedProviderCatchup(t *testing.T) {
 	}
 	defer reader.StopSessionTransport()
 	defer reader.StopP2PSync()
+
 	// The invitation establishes the link. Preparing both backends avoids two
 	// competing dials replacing the stream during the enrollment RPC.
 	prepareSessionTransportBackends(ctx, t, owner.GetSessionTransport(), reader.GetSessionTransport())
@@ -52,6 +58,8 @@ func TestInvitedProviderCatchup(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Find the joined object in the reader's list.
 	var readerRef *sobject.SharedObjectRef
 	for _, entry := range reader.GetSOListCtr().GetValue().GetSharedObjects() {
 		if entry.GetRef().GetProviderResourceRef().GetId() == joined.SharedObjectID {
@@ -61,6 +69,8 @@ func TestInvitedProviderCatchup(t *testing.T) {
 	if readerRef == nil {
 		t.Fatal("invitation did not persist the shared object")
 	}
+
+	// Mount the replica and watch its state.
 	replica, releaseReplica, err := reader.MountSharedObject(ctx, readerRef, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -73,20 +83,22 @@ func TestInvitedProviderCatchup(t *testing.T) {
 	}
 	defer releaseStates()
 
-	// Retire sync while the owner makes a signed configuration change and edits.
+	// Retire sync while the owner makes a signed configuration change.
 	reader.StopP2PSync()
 	checkpoint := states.GetValue().GetConfig().CloneVT()
 	current, err := ownerObject.GetSOHostState(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
-	change, err := sobject.BuildSOConfigChange(current.Config, current.Config, sobject.SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_ADD_INVITE, ownerObject.GetPrivKey(), nil)
+	change, err := sobject.BuildSOConfigChange(joined.SharedObjectID, current.Config, current.Config, sobject.SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_ADD_INVITE, ownerObject.GetPrivKey(), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if err := ownerObject.GetSOHost().ApplyConfigChange(ctx, change, nil); err != nil {
 		t.Fatal(err)
 	}
+
+	// Load the owner's transformer.
 	snapshot, err := ownerObject.GetSharedObjectState(ctx)
 	if err != nil {
 		t.Fatal(err)
@@ -95,6 +107,8 @@ func TestInvitedProviderCatchup(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Encrypt new content into the next root.
 	want := []byte("readable content written while the other device is offline")
 	root := current.Root.CloneVT()
 	root.InnerSeqno++
@@ -106,6 +120,8 @@ func TestInvitedProviderCatchup(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Sign and publish the root.
 	root.ValidatorSignatures = nil
 	if err := root.SignInnerData(ownerObject.GetPrivKey(), joined.SharedObjectID, root.InnerSeqno, hash.RecommendedHashType); err != nil {
 		t.Fatal(err)
@@ -113,6 +129,8 @@ func TestInvitedProviderCatchup(t *testing.T) {
 	if err := ownerObject.GetSOHost().UpdateRootState(ctx, root, ownerObject.GetPeerID().String(), nil, nil); err != nil {
 		t.Fatal(err)
 	}
+
+	// Restart sync; the reader accepts the root and the config change.
 	if err := reader.StartPersistentP2PSync(ctx, reader.GetSessionTransport()); err != nil {
 		t.Fatal(err)
 	}
@@ -125,6 +143,8 @@ func TestInvitedProviderCatchup(t *testing.T) {
 	if _, err := readerObject.GetSOHost().ReadConfigHistory(ctx, checkpoint.GetConfigChainHash(), accepted.GetConfig().GetConfigChainHash()); err != nil {
 		t.Fatal(err)
 	}
+
+	// The new content becomes readable.
 	readableStates, releaseReadable, err := readerObject.AccessSharedObjectState(ctx, nil)
 	if err != nil {
 		t.Fatal(err)

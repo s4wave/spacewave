@@ -1,6 +1,7 @@
 package sobject_sync
 
 import (
+	"bytes"
 	"context"
 	"crypto/sha256"
 	"errors"
@@ -99,6 +100,11 @@ func mustPeerIDStr(t *testing.T, priv crypto.PrivKey) string {
 // participantCfg constructs a participant with the requested role.
 func participantCfg(peerIDStr string, role sobject.SOParticipantRole) *sobject.SOParticipantConfig {
 	return &sobject.SOParticipantConfig{PeerId: peerIDStr, Role: role}
+}
+
+// testOperationLink places an operation at nonce under a fixed config hash.
+func testOperationLink(nonce uint64) *sobject.SOOperationLink {
+	return &sobject.SOOperationLink{Nonce: nonce, ConfigHash: bytes.Repeat([]byte{0xc0}, 32)}
 }
 
 // pipeSessions builds a paired send/receive packet session.
@@ -226,7 +232,7 @@ func TestSnapshotExchangeRejectsExcludedLocalPeer(t *testing.T) {
 		}},
 		Root: &sobject.SORoot{InnerSeqno: 1},
 	}
-	trustSnapshotConfig(t, held, ownerPriv)
+	trustSnapshotConfig(t, soID, held, ownerPriv)
 	localHost, ctr := newMemHost(soID, held)
 	s := NewSOSync(gateLogger(), nil, soID, localPeer, localPriv, localHost, nil)
 
@@ -273,7 +279,7 @@ func TestSnapshotExchangeRejectsSnapshotWithoutLocalGrant(t *testing.T) {
 		}},
 		Root: &sobject.SORoot{InnerSeqno: 1},
 	}
-	trustSnapshotConfig(t, held, ownerPriv)
+	trustSnapshotConfig(t, soID, held, ownerPriv)
 
 	// newMemHost localHost,ctr.
 	localHost, ctr := newMemHost(soID, held)
@@ -334,7 +340,7 @@ func TestSnapshotExchangeRejectsTamperedGrant(t *testing.T) {
 		}},
 		Root: &sobject.SORoot{InnerSeqno: 1},
 	}
-	trustSnapshotConfig(t, held, ownerPriv)
+	trustSnapshotConfig(t, soID, held, ownerPriv)
 	localHost, ctr := newMemHost(soID, held)
 	s := NewSOSync(gateLogger(), nil, soID, localPeer, localPriv, localHost, nil)
 
@@ -397,7 +403,7 @@ func TestSnapshotExchangeAcceptsObjectPeerDistinctFromTransportPeer(t *testing.T
 	}
 	grant := buildGrant(t, soID, ownerPriv, localPub)
 	pendingID := ulid.NewULID()
-	pending, err := sobject.BuildSOOperation(soID, localPriv, []byte("pending-local-write"), 1, pendingID)
+	pending, err := sobject.BuildSOOperation(soID, localPriv, []byte("pending-local-write"), testOperationLink(1), pendingID)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -408,7 +414,7 @@ func TestSnapshotExchangeAcceptsObjectPeerDistinctFromTransportPeer(t *testing.T
 		Root:       &sobject.SORoot{InnerSeqno: 1},
 		RootGrants: []*sobject.SOGrant{grant},
 	}
-	trustSnapshotConfig(t, localState, ownerPriv)
+	trustSnapshotConfig(t, soID, localState, ownerPriv)
 	if err := localState.QueueOperation(soID, pending); err != nil {
 		t.Fatal(err.Error())
 	}
@@ -471,9 +477,9 @@ func TestPeerImportDropsDemotedWriterQueue(t *testing.T) {
 	}
 
 	// trustSnapshotConfig.
-	trustSnapshotConfig(t, previous, owner)
+	trustSnapshotConfig(t, soID, previous, owner)
 	signSnapshotRoot(t, soID, previous, owner)
-	operation, err := sobject.BuildSOOperation(soID, writer, []byte("pending-before-demotion"), 1, ulid.NewULID())
+	operation, err := sobject.BuildSOOperation(soID, writer, []byte("pending-before-demotion"), testOperationLink(1), ulid.NewULID())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -484,11 +490,11 @@ func TestPeerImportDropsDemotedWriterQueue(t *testing.T) {
 	// The owner demotes the writer without changing the accepted root.
 	candidate := previous.CloneVT()
 	candidate.Config.Participants[1].Role = sobject.SOParticipantRole_SOParticipantRole_READER
-	change, err := sobject.BuildSOConfigChange(previous.Config, candidate.Config, sobject.SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_ADD_PARTICIPANT, owner, nil)
+	change, err := sobject.BuildSOConfigChange(soID, previous.Config, candidate.Config, sobject.SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_ADD_PARTICIPANT, owner, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	candidate.Config, err = sobject.VerifyConfigChange(previous.Config, change)
+	candidate.Config, err = sobject.VerifyConfigChange(soID, previous.Config, change)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -536,7 +542,7 @@ func TestRemoteOpNonparticipantRejected(t *testing.T) {
 
 	// newULID opLocalID via ulid.
 	opLocalID := ulid.NewULID()
-	op, err := sobject.BuildSOOperation(soID, strangerPriv, []byte("op-data"), 1, opLocalID)
+	op, err := sobject.BuildSOOperation(soID, strangerPriv, []byte("op-data"), testOperationLink(1), opLocalID)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -581,14 +587,14 @@ func TestRemoteOpReplayIsIdempotent(t *testing.T) {
 				}},
 				Root: &sobject.SORoot{InnerSeqno: 2},
 			}
-			if test.rootNonce != 0 {
-				state.Root.AccountNonces = []*sobject.SOAccountNonce{{
-					PeerId: writerPeer.String(), Nonce: test.rootNonce,
-				}}
-			}
-			op, err := sobject.BuildSOOperation(soID, writerPriv, []byte("replayed"), 1, ulid.NewULID())
+			op, err := sobject.BuildSOOperation(soID, writerPriv, []byte("replayed"), testOperationLink(1), ulid.NewULID())
 			if err != nil {
 				t.Fatal(err.Error())
+			}
+			if test.rootNonce != 0 {
+				state.Root.AccountNonces = []*sobject.SOAccountNonce{{
+					PeerId: writerPeer.String(), Nonce: test.rootNonce, OpHash: op.Hash(),
+				}}
 			}
 
 			// Check the condition before continuing.
@@ -641,7 +647,7 @@ func TestRemoteOpTamperedSignatureRejected(t *testing.T) {
 
 	// newULID opLocalID via ulid.
 	opLocalID := ulid.NewULID()
-	op, err := sobject.BuildSOOperation(soID, writerPriv, []byte("op-data"), 1, opLocalID)
+	op, err := sobject.BuildSOOperation(soID, writerPriv, []byte("op-data"), testOperationLink(1), opLocalID)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -663,15 +669,15 @@ func TestRemoteOpTamperedSignatureRejected(t *testing.T) {
 }
 
 // trustSnapshotConfig establishes a signed genesis checkpoint already held locally.
-func trustSnapshotConfig(t *testing.T, state *sobject.SOState, owner crypto.PrivKey) {
+func trustSnapshotConfig(t *testing.T, soID string, state *sobject.SOState, owner crypto.PrivKey) {
 
 	// helper.
 	t.Helper()
-	entry, err := sobject.BuildSOConfigChange(state.GetConfig(), state.GetConfig(), sobject.SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_GENESIS, owner, nil)
+	entry, err := sobject.BuildSOConfigChange(soID, state.GetConfig(), state.GetConfig(), sobject.SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_GENESIS, owner, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	state.Config, err = sobject.VerifyConfigChange(state.GetConfig(), entry)
+	state.Config, err = sobject.VerifyConfigChange(soID, state.GetConfig(), entry)
 	if err != nil {
 		t.Fatal(err)
 	}

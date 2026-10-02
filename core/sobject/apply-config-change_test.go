@@ -5,25 +5,15 @@ import (
 	"testing"
 
 	"github.com/s4wave/spacewave/net/crypto"
-	"github.com/s4wave/spacewave/net/hash"
-	"github.com/s4wave/spacewave/net/peer"
 )
 
-// signConfigChange signs a SOConfigChange with the given private key.
-// Sets the Signature field on the entry.
+// signConfigChange replaces the signatures of entry with one by privKey.
 func signConfigChange(t *testing.T, entry *SOConfigChange, privKey crypto.PrivKey) {
 	t.Helper()
-	clone := entry.CloneVT()
-	clone.Signature = nil
-	data, err := clone.MarshalVT()
-	if err != nil {
-		t.Fatalf("marshal config change: %v", err)
-	}
-	sig, err := peer.NewSignature("sobject config change", privKey, hash.RecommendedHashType, data, true)
-	if err != nil {
+	entry.Signatures = nil
+	if err := signSOConfigChange(entry, privKey); err != nil {
 		t.Fatalf("sign config change: %v", err)
 	}
-	entry.Signature = sig
 }
 
 func TestApplyConfigChange(t *testing.T) {
@@ -49,6 +39,7 @@ func TestApplyConfigChange(t *testing.T) {
 			},
 		}
 
+		// Host the state and capture the written state.
 		var written *SOState
 		host := NewSOHost(nil, nil, func(_ context.Context, _ string) (SOStateLock, error) {
 			return NewSOStateLock(state, func(_ context.Context, s *SOState, _ ...*SOConfigChange) error {
@@ -59,7 +50,8 @@ func TestApplyConfigChange(t *testing.T) {
 
 		// Build genesis config change (seqno 0, empty previous_hash).
 		entry := &SOConfigChange{
-			ConfigSeqno: 0,
+			SharedObjectId: mockSharedObjectID,
+			ConfigSeqno:    0,
 			Config: &SharedObjectConfig{
 				Participants: []*SOParticipantConfig{
 					{PeerId: ownerIDStr, Role: SOParticipantRole_SOParticipantRole_OWNER},
@@ -69,6 +61,7 @@ func TestApplyConfigChange(t *testing.T) {
 		}
 		signConfigChange(t, entry, ownerPriv)
 
+		// The host applies the change and writes the new config.
 		if err := host.ApplyConfigChange(ctx, entry, nil); err != nil {
 			t.Fatalf("ApplyConfigChange: %v", err)
 		}
@@ -86,7 +79,8 @@ func TestApplyConfigChange(t *testing.T) {
 	t.Run("add participant via config change", func(t *testing.T) {
 		// State with an existing chain hash from a prior genesis.
 		genesisEntry := &SOConfigChange{
-			ConfigSeqno: 0,
+			SharedObjectId: mockSharedObjectID,
+			ConfigSeqno:    0,
 			Config: &SharedObjectConfig{
 				Participants: []*SOParticipantConfig{
 					{PeerId: ownerIDStr, Role: SOParticipantRole_SOParticipantRole_OWNER},
@@ -100,6 +94,7 @@ func TestApplyConfigChange(t *testing.T) {
 			t.Fatal(err)
 		}
 
+		// Start from an owner-only config.
 		state := &SOState{
 			Config: &SharedObjectConfig{
 				Participants: []*SOParticipantConfig{
@@ -109,6 +104,7 @@ func TestApplyConfigChange(t *testing.T) {
 			},
 		}
 
+		// Host the state and capture the written state.
 		var written *SOState
 		host := NewSOHost(nil, nil, func(_ context.Context, _ string) (SOStateLock, error) {
 			return NewSOStateLock(state, func(_ context.Context, s *SOState, _ ...*SOConfigChange) error {
@@ -119,7 +115,8 @@ func TestApplyConfigChange(t *testing.T) {
 
 		// Build entry that adds a second participant.
 		entry := &SOConfigChange{
-			ConfigSeqno: 1,
+			SharedObjectId: mockSharedObjectID,
+			ConfigSeqno:    1,
 			Config: &SharedObjectConfig{
 				Participants: []*SOParticipantConfig{
 					{PeerId: ownerIDStr, Role: SOParticipantRole_SOParticipantRole_OWNER},
@@ -131,6 +128,7 @@ func TestApplyConfigChange(t *testing.T) {
 		}
 		signConfigChange(t, entry, ownerPriv)
 
+		// The host applies the change and adds the participant.
 		if err := host.ApplyConfigChange(ctx, entry, nil); err != nil {
 			t.Fatalf("ApplyConfigChange: %v", err)
 		}
@@ -140,6 +138,7 @@ func TestApplyConfigChange(t *testing.T) {
 		if len(written.GetConfig().GetParticipants()) != 2 {
 			t.Fatalf("expected 2 participants, got %d", len(written.GetConfig().GetParticipants()))
 		}
+
 		// Chain hash should advance.
 		entryHash, _ := HashSOConfigChange(entry)
 		if string(written.GetConfig().GetConfigChainHash()) != string(entryHash) {
@@ -148,6 +147,7 @@ func TestApplyConfigChange(t *testing.T) {
 	})
 
 	t.Run("reject wrong previous_hash", func(t *testing.T) {
+		// Start from an owner-only config.
 		state := &SOState{
 			Config: &SharedObjectConfig{
 				Participants: []*SOParticipantConfig{
@@ -157,6 +157,7 @@ func TestApplyConfigChange(t *testing.T) {
 			},
 		}
 
+		// Host the state and fail on any write.
 		host := NewSOHost(nil, nil, func(_ context.Context, _ string) (SOStateLock, error) {
 			return NewSOStateLock(state, func(_ context.Context, _ *SOState, _ ...*SOConfigChange) error {
 				t.Fatal("should not write on rejection")
@@ -164,14 +165,17 @@ func TestApplyConfigChange(t *testing.T) {
 			}, func() {}), nil
 		}, mockSharedObjectID)
 
+		// Build a change that names no previous hash.
 		entry := &SOConfigChange{
-			ConfigSeqno:  1,
-			Config:       state.GetConfig().CloneVT(),
-			ChangeType:   SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_UNKNOWN,
-			PreviousHash: []byte("wrong-hash"),
+			SharedObjectId: mockSharedObjectID,
+			ConfigSeqno:    1,
+			Config:         state.GetConfig().CloneVT(),
+			ChangeType:     SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_UNKNOWN,
+			PreviousHash:   []byte("wrong-hash"),
 		}
 		signConfigChange(t, entry, ownerPriv)
 
+		// The host refuses it.
 		err := host.ApplyConfigChange(ctx, entry, nil)
 		if err == nil {
 			t.Fatal("expected error for wrong previous_hash")
@@ -181,7 +185,8 @@ func TestApplyConfigChange(t *testing.T) {
 	t.Run("reject wrong seqno", func(t *testing.T) {
 		// Build a genesis entry so we have a real chain hash.
 		genesisEntry := &SOConfigChange{
-			ConfigSeqno: 0,
+			SharedObjectId: mockSharedObjectID,
+			ConfigSeqno:    0,
 			Config: &SharedObjectConfig{
 				Participants: []*SOParticipantConfig{
 					{PeerId: ownerIDStr, Role: SOParticipantRole_SOParticipantRole_OWNER},
@@ -195,6 +200,7 @@ func TestApplyConfigChange(t *testing.T) {
 			t.Fatal(err)
 		}
 
+		// Start from an owner-only config.
 		state := &SOState{
 			Config: &SharedObjectConfig{
 				Participants: []*SOParticipantConfig{
@@ -205,6 +211,7 @@ func TestApplyConfigChange(t *testing.T) {
 			},
 		}
 
+		// Host the state and fail on any write.
 		host := NewSOHost(nil, nil, func(_ context.Context, _ string) (SOStateLock, error) {
 			return NewSOStateLock(state, func(_ context.Context, _ *SOState, _ ...*SOConfigChange) error {
 				t.Fatal("should not write on seqno rejection")
@@ -214,13 +221,15 @@ func TestApplyConfigChange(t *testing.T) {
 
 		// Entry with seqno 5 when expected is 1.
 		entry := &SOConfigChange{
-			ConfigSeqno:  5,
-			Config:       state.GetConfig().CloneVT(),
-			ChangeType:   SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_UNKNOWN,
-			PreviousHash: genesisHash,
+			SharedObjectId: mockSharedObjectID,
+			ConfigSeqno:    5,
+			Config:         state.GetConfig().CloneVT(),
+			ChangeType:     SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_UNKNOWN,
+			PreviousHash:   genesisHash,
 		}
 		signConfigChange(t, entry, ownerPriv)
 
+		// The host refuses the skipped seqno.
 		err = host.ApplyConfigChange(ctx, entry, nil)
 		if err == nil {
 			t.Fatal("expected error for wrong seqno")
@@ -228,6 +237,7 @@ func TestApplyConfigChange(t *testing.T) {
 	})
 
 	t.Run("seqno advances after apply", func(t *testing.T) {
+		// Start from an owner-only config.
 		state := &SOState{
 			Config: &SharedObjectConfig{
 				Participants: []*SOParticipantConfig{
@@ -236,6 +246,7 @@ func TestApplyConfigChange(t *testing.T) {
 			},
 		}
 
+		// Host the state and keep each written state.
 		var written *SOState
 		host := NewSOHost(nil, nil, func(_ context.Context, _ string) (SOStateLock, error) {
 			return NewSOStateLock(state, func(_ context.Context, s *SOState, _ ...*SOConfigChange) error {
@@ -247,7 +258,8 @@ func TestApplyConfigChange(t *testing.T) {
 
 		// Genesis: seqno 0.
 		entry0 := &SOConfigChange{
-			ConfigSeqno: 0,
+			SharedObjectId: mockSharedObjectID,
+			ConfigSeqno:    0,
 			Config: &SharedObjectConfig{
 				Participants: []*SOParticipantConfig{
 					{PeerId: ownerIDStr, Role: SOParticipantRole_SOParticipantRole_OWNER},
@@ -265,6 +277,7 @@ func TestApplyConfigChange(t *testing.T) {
 
 		// Entry 1: seqno 1.
 		entry1, err := BuildSOConfigChange(
+			mockSharedObjectID,
 			written.GetConfig(),
 			written.GetConfig(),
 			SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_UNKNOWN,
@@ -286,11 +299,13 @@ func TestApplyConfigChange(t *testing.T) {
 	})
 
 	t.Run("reject non-owner signer", func(t *testing.T) {
+		// Sign as the writer.
 		newPeerPriv, err := newPeer.GetPrivKey(ctx)
 		if err != nil {
 			t.Fatal(err)
 		}
 
+		// Start from an owner and a writer.
 		state := &SOState{
 			Config: &SharedObjectConfig{
 				Participants: []*SOParticipantConfig{
@@ -300,6 +315,7 @@ func TestApplyConfigChange(t *testing.T) {
 			},
 		}
 
+		// Host the state and fail on any write.
 		host := NewSOHost(nil, nil, func(_ context.Context, _ string) (SOStateLock, error) {
 			return NewSOStateLock(state, func(_ context.Context, _ *SOState, _ ...*SOConfigChange) error {
 				t.Fatal("should not write when signer is not OWNER")
@@ -307,14 +323,18 @@ func TestApplyConfigChange(t *testing.T) {
 			}, func() {}), nil
 		}, mockSharedObjectID)
 
+		// Build a change.
 		entry := &SOConfigChange{
-			ConfigSeqno: 0,
-			Config:      state.GetConfig().CloneVT(),
-			ChangeType:  SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_UNKNOWN,
+			SharedObjectId: mockSharedObjectID,
+			ConfigSeqno:    0,
+			Config:         state.GetConfig().CloneVT(),
+			ChangeType:     SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_UNKNOWN,
 		}
+
 		// Sign with WRITER, not OWNER.
 		signConfigChange(t, entry, newPeerPriv)
 
+		// The host refuses the writer signature.
 		err = host.ApplyConfigChange(ctx, entry, nil)
 		if err == nil {
 			t.Fatal("expected error for non-owner signer")
@@ -322,13 +342,16 @@ func TestApplyConfigChange(t *testing.T) {
 	})
 
 	t.Run("allow self-enroll peer for same entity", func(t *testing.T) {
+		// Sign as the new peer of the same entity.
 		newPeerPriv, err := newPeer.GetPrivKey(ctx)
 		if err != nil {
 			t.Fatal(err)
 		}
 
+		// Record the owner genesis.
 		genesisEntry := &SOConfigChange{
-			ConfigSeqno: 0,
+			SharedObjectId: mockSharedObjectID,
+			ConfigSeqno:    0,
 			Config: &SharedObjectConfig{
 				Participants: []*SOParticipantConfig{
 					{
@@ -346,6 +369,7 @@ func TestApplyConfigChange(t *testing.T) {
 			t.Fatal(err)
 		}
 
+		// Start from the genesis config.
 		state := &SOState{
 			Config: &SharedObjectConfig{
 				Participants: []*SOParticipantConfig{
@@ -360,6 +384,7 @@ func TestApplyConfigChange(t *testing.T) {
 			},
 		}
 
+		// Host the state and capture the written state.
 		var written *SOState
 		host := NewSOHost(nil, nil, func(_ context.Context, _ string) (SOStateLock, error) {
 			return NewSOStateLock(state, func(_ context.Context, s *SOState, _ ...*SOConfigChange) error {
@@ -368,8 +393,10 @@ func TestApplyConfigChange(t *testing.T) {
 			}, func() {}), nil
 		}, mockSharedObjectID)
 
+		// The new peer enrolls itself as a reader.
 		entry := &SOConfigChange{
-			ConfigSeqno: 1,
+			SharedObjectId: mockSharedObjectID,
+			ConfigSeqno:    1,
 			Config: &SharedObjectConfig{
 				Participants: []*SOParticipantConfig{
 					{
@@ -391,6 +418,7 @@ func TestApplyConfigChange(t *testing.T) {
 		}
 		signConfigChange(t, entry, newPeerPriv)
 
+		// The host applies the enrollment.
 		if err := host.ApplyConfigChange(ctx, entry, nil); err != nil {
 			t.Fatalf("ApplyConfigChange: %v", err)
 		}
@@ -403,11 +431,13 @@ func TestApplyConfigChange(t *testing.T) {
 	})
 
 	t.Run("reject self-enroll role escalation", func(t *testing.T) {
+		// Sign as the new peer of the same entity.
 		newPeerPriv, err := newPeer.GetPrivKey(ctx)
 		if err != nil {
 			t.Fatal(err)
 		}
 
+		// Start with a writer of the entity.
 		state := &SOState{
 			Config: &SharedObjectConfig{
 				Participants: []*SOParticipantConfig{
@@ -420,6 +450,7 @@ func TestApplyConfigChange(t *testing.T) {
 			},
 		}
 
+		// Host the state and fail on any write.
 		host := NewSOHost(nil, nil, func(_ context.Context, _ string) (SOStateLock, error) {
 			return NewSOStateLock(state, func(_ context.Context, _ *SOState, _ ...*SOConfigChange) error {
 				t.Fatal("should not write on self-enroll escalation")
@@ -427,8 +458,10 @@ func TestApplyConfigChange(t *testing.T) {
 			}, func() {}), nil
 		}, mockSharedObjectID)
 
+		// The new peer enrolls itself above its entity role.
 		entry := &SOConfigChange{
-			ConfigSeqno: 0,
+			SharedObjectId: mockSharedObjectID,
+			ConfigSeqno:    0,
 			Config: &SharedObjectConfig{
 				Participants: []*SOParticipantConfig{
 					{
@@ -447,6 +480,7 @@ func TestApplyConfigChange(t *testing.T) {
 		}
 		signConfigChange(t, entry, newPeerPriv)
 
+		// The host refuses the escalation.
 		err = host.ApplyConfigChange(ctx, entry, nil)
 		if err == nil {
 			t.Fatal("expected self-enroll escalation error")
@@ -454,11 +488,13 @@ func TestApplyConfigChange(t *testing.T) {
 	})
 
 	t.Run("reject self-enroll cross entity", func(t *testing.T) {
+		// Sign as a peer of another entity.
 		newPeerPriv, err := newPeer.GetPrivKey(ctx)
 		if err != nil {
 			t.Fatal(err)
 		}
 
+		// Start from an owner-only config.
 		state := &SOState{
 			Config: &SharedObjectConfig{
 				Participants: []*SOParticipantConfig{
@@ -471,6 +507,7 @@ func TestApplyConfigChange(t *testing.T) {
 			},
 		}
 
+		// Host the state and fail on any write.
 		host := NewSOHost(nil, nil, func(_ context.Context, _ string) (SOStateLock, error) {
 			return NewSOStateLock(state, func(_ context.Context, _ *SOState, _ ...*SOConfigChange) error {
 				t.Fatal("should not write on cross-entity self-enroll")
@@ -478,8 +515,10 @@ func TestApplyConfigChange(t *testing.T) {
 			}, func() {}), nil
 		}, mockSharedObjectID)
 
+		// The peer enrolls itself under the owner entity.
 		entry := &SOConfigChange{
-			ConfigSeqno: 0,
+			SharedObjectId: mockSharedObjectID,
+			ConfigSeqno:    0,
 			Config: &SharedObjectConfig{
 				Participants: []*SOParticipantConfig{
 					{
@@ -498,6 +537,7 @@ func TestApplyConfigChange(t *testing.T) {
 		}
 		signConfigChange(t, entry, newPeerPriv)
 
+		// The host refuses the enrollment.
 		err = host.ApplyConfigChange(ctx, entry, nil)
 		if err == nil {
 			t.Fatal("expected cross-entity self-enroll error")

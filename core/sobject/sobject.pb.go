@@ -793,18 +793,16 @@ func (x *SORevocationInfo) GetLeaveRequestHash() []byte {
 	return nil
 }
 
-// SOConfigChange represents a signed config change in the config chain.
+// SOConfigChange is a control record: one signed change in the config chain.
+// Its identity is the hash of the record with signatures cleared.
 type SOConfigChange struct {
 	unknownFields []byte
 	// ConfigSeqno is the sequence number of this config change.
 	ConfigSeqno uint64 `protobuf:"varint,1,opt,name=config_seqno,json=configSeqno,proto3" json:"configSeqno,omitempty"`
 	// Config is the new config after this change.
 	Config *SharedObjectConfig `protobuf:"bytes,2,opt,name=config,proto3" json:"config,omitempty"`
-	// SignedBy is the peer_id of the OWNER who signed this change.
-	SignedBy []byte `protobuf:"bytes,4,opt,name=signed_by,json=signedBy,proto3" json:"signedBy,omitempty"`
-	// Signature is the signature over the serialized SOConfigChange (without this field).
-	Signature *peer.Signature `protobuf:"bytes,5,opt,name=signature,proto3" json:"signature,omitempty"`
-	// PreviousHash is the hash of the previous SOConfigChange entry in the chain.
+	// PreviousHash is the hash of the parent control record.
+	// Empty only on genesis.
 	PreviousHash []byte `protobuf:"bytes,6,opt,name=previous_hash,json=previousHash,proto3" json:"previousHash,omitempty"`
 	// ChangeType describes the kind of mutation in this config chain entry.
 	ChangeType SOConfigChangeType `protobuf:"varint,7,opt,name=change_type,json=changeType,proto3" json:"changeType,omitempty"`
@@ -814,6 +812,12 @@ type SOConfigChange struct {
 	// LeaveRequest is the departing peers' consent that the promoted owner commits.
 	// Only populated on a TRANSFER_OWNERSHIP made for an owner's departure.
 	LeaveRequest *SOLeaveRequest `protobuf:"bytes,9,opt,name=leave_request,json=leaveRequest,proto3" json:"leaveRequest,omitempty"`
+	// SharedObjectId binds the record to one shared object.
+	SharedObjectId string `protobuf:"bytes,10,opt,name=shared_object_id,json=sharedObjectId,proto3" json:"sharedObjectId,omitempty"`
+	// Signatures sign the record with signatures cleared.
+	// Each signer is distinct and authorized by the parent config;
+	// genesis is signed by an owner of its own config.
+	Signatures []*peer.Signature `protobuf:"bytes,11,rep,name=signatures,proto3" json:"signatures,omitempty"`
 }
 
 func (x *SOConfigChange) Reset() {
@@ -832,20 +836,6 @@ func (x *SOConfigChange) GetConfigSeqno() uint64 {
 func (x *SOConfigChange) GetConfig() *SharedObjectConfig {
 	if x != nil {
 		return x.Config
-	}
-	return nil
-}
-
-func (x *SOConfigChange) GetSignedBy() []byte {
-	if x != nil {
-		return x.SignedBy
-	}
-	return nil
-}
-
-func (x *SOConfigChange) GetSignature() *peer.Signature {
-	if x != nil {
-		return x.Signature
 	}
 	return nil
 }
@@ -874,6 +864,20 @@ func (x *SOConfigChange) GetRevocationInfo() *SORevocationInfo {
 func (x *SOConfigChange) GetLeaveRequest() *SOLeaveRequest {
 	if x != nil {
 		return x.LeaveRequest
+	}
+	return nil
+}
+
+func (x *SOConfigChange) GetSharedObjectId() string {
+	if x != nil {
+		return x.SharedObjectId
+	}
+	return ""
+}
+
+func (x *SOConfigChange) GetSignatures() []*peer.Signature {
+	if x != nil {
+		return x.Signatures
 	}
 	return nil
 }
@@ -983,14 +987,16 @@ func (x *SORoot) GetValidatorSignatures() []*peer.Signature {
 	return nil
 }
 
-// SOAccountNonce contains the current nonce for an account.
+// SOAccountNonce contains the head of an account's operation chain.
 // The accounts are sorted lexicographically by peer_id.
 type SOAccountNonce struct {
 	unknownFields []byte
 	// PeerId is the identifier of the account.
 	PeerId string `protobuf:"bytes,1,opt,name=peer_id,json=peerId,proto3" json:"peerId,omitempty"`
-	// Nonce is the current nonce for the account.
+	// Nonce is the author sequence of the account's latest operation.
 	Nonce uint64 `protobuf:"varint,2,opt,name=nonce,proto3" json:"nonce,omitempty"`
+	// OpHash is the hash of the account's operation at nonce.
+	OpHash []byte `protobuf:"bytes,3,opt,name=op_hash,json=opHash,proto3" json:"opHash,omitempty"`
 }
 
 func (x *SOAccountNonce) Reset() {
@@ -1011,6 +1017,13 @@ func (x *SOAccountNonce) GetNonce() uint64 {
 		return x.Nonce
 	}
 	return 0
+}
+
+func (x *SOAccountNonce) GetOpHash() []byte {
+	if x != nil {
+		return x.OpHash
+	}
+	return nil
 }
 
 // SORootInner is the inner signed message on SORoot.
@@ -1072,19 +1085,34 @@ func (x *SOOperation) GetSignature() *peer.Signature {
 	return nil
 }
 
-// SOOperationInner is the inner message of SOOperation.
+// SOOperationInner is the signed body of an operation: one step in its
+// author's chain and one node of the shared object's operation DAG.
+// The operation's identity is the hash of this encoded body.
 type SOOperationInner struct {
 	unknownFields []byte
-	// PeerId is the identifier of the participant submitting the operation.
+	// PeerId is the identifier of the author.
 	PeerId string `protobuf:"bytes,1,opt,name=peer_id,json=peerId,proto3" json:"peerId,omitempty"`
 	// LocalId is the locally-assigned ulid for the operation.
 	// Must be a valid ulid.
 	// Must be lower-case.
 	LocalId string `protobuf:"bytes,2,opt,name=local_id,json=localId,proto3" json:"localId,omitempty"`
-	// Nonce is the nonce for the operation; must increment from the previous.
+	// Nonce is the author sequence: 1 for the author's first operation,
+	// then one more than the operation named by prev_op_hash.
 	Nonce uint64 `protobuf:"varint,3,opt,name=nonce,proto3" json:"nonce,omitempty"`
 	// OpData is the operation data, transformed with the same transform config as root.
 	OpData []byte `protobuf:"bytes,4,opt,name=op_data,json=opData,proto3" json:"opData,omitempty"`
+	// SharedObjectId binds the operation to one shared object.
+	SharedObjectId string `protobuf:"bytes,5,opt,name=shared_object_id,json=sharedObjectId,proto3" json:"sharedObjectId,omitempty"`
+	// ProtocolVersion is the operation format version.
+	ProtocolVersion uint32 `protobuf:"varint,6,opt,name=protocol_version,json=protocolVersion,proto3" json:"protocolVersion,omitempty"`
+	// PrevOpHash is the hash of the author's previous operation.
+	// Empty only when nonce is 1.
+	PrevOpHash []byte `protobuf:"bytes,7,opt,name=prev_op_hash,json=prevOpHash,proto3" json:"prevOpHash,omitempty"`
+	// ParentHashes are the other heads the author knew, strictly sorted.
+	// Excludes prev_op_hash.
+	ParentHashes [][]byte `protobuf:"bytes,8,rep,name=parent_hashes,json=parentHashes,proto3" json:"parentHashes,omitempty"`
+	// ConfigHash is the config chain hash the operation was written under.
+	ConfigHash []byte `protobuf:"bytes,9,opt,name=config_hash,json=configHash,proto3" json:"configHash,omitempty"`
 }
 
 func (x *SOOperationInner) Reset() {
@@ -1117,6 +1145,41 @@ func (x *SOOperationInner) GetNonce() uint64 {
 func (x *SOOperationInner) GetOpData() []byte {
 	if x != nil {
 		return x.OpData
+	}
+	return nil
+}
+
+func (x *SOOperationInner) GetSharedObjectId() string {
+	if x != nil {
+		return x.SharedObjectId
+	}
+	return ""
+}
+
+func (x *SOOperationInner) GetProtocolVersion() uint32 {
+	if x != nil {
+		return x.ProtocolVersion
+	}
+	return 0
+}
+
+func (x *SOOperationInner) GetPrevOpHash() []byte {
+	if x != nil {
+		return x.PrevOpHash
+	}
+	return nil
+}
+
+func (x *SOOperationInner) GetParentHashes() [][]byte {
+	if x != nil {
+		return x.ParentHashes
+	}
+	return nil
+}
+
+func (x *SOOperationInner) GetConfigHash() []byte {
+	if x != nil {
+		return x.ConfigHash
 	}
 	return nil
 }
@@ -2193,12 +2256,12 @@ func (m *SOConfigChange) CloneVT() *SOConfigChange {
 	r := new(SOConfigChange)
 	r.ConfigSeqno = m.ConfigSeqno
 	r.ChangeType = m.ChangeType
+	r.SharedObjectId = m.SharedObjectId
 	r.Config = protobuf_go_lite.CloneVTValue(m.Config)
-	r.SignedBy = protobuf_go_lite.CloneBytes(m.SignedBy)
-	r.Signature = protobuf_go_lite.CloneVTValue(m.Signature)
 	r.PreviousHash = protobuf_go_lite.CloneBytes(m.PreviousHash)
 	r.RevocationInfo = protobuf_go_lite.CloneVTValue(m.RevocationInfo)
 	r.LeaveRequest = protobuf_go_lite.CloneVTValue(m.LeaveRequest)
+	r.Signatures = protobuf_go_lite.CloneVTSlice(m.Signatures)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -2254,6 +2317,7 @@ func (m *SOAccountNonce) CloneVT() *SOAccountNonce {
 	r := new(SOAccountNonce)
 	r.PeerId = m.PeerId
 	r.Nonce = m.Nonce
+	r.OpHash = protobuf_go_lite.CloneBytes(m.OpHash)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -2306,7 +2370,12 @@ func (m *SOOperationInner) CloneVT() *SOOperationInner {
 	r.PeerId = m.PeerId
 	r.LocalId = m.LocalId
 	r.Nonce = m.Nonce
+	r.SharedObjectId = m.SharedObjectId
+	r.ProtocolVersion = m.ProtocolVersion
 	r.OpData = protobuf_go_lite.CloneBytes(m.OpData)
+	r.PrevOpHash = protobuf_go_lite.CloneBytes(m.PrevOpHash)
+	r.ParentHashes = protobuf_go_lite.CloneBytesSlice(m.ParentHashes)
+	r.ConfigHash = protobuf_go_lite.CloneBytes(m.ConfigHash)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -2956,12 +3025,6 @@ func (this *SOConfigChange) EqualVT(that *SOConfigChange) bool {
 	if !protobuf_go_lite.IsEqualVT(this.Config, that.Config) {
 		return false
 	}
-	if !protobuf_go_lite.EqualBytes(this.SignedBy, that.SignedBy) {
-		return false
-	}
-	if !protobuf_go_lite.IsEqualVT(this.Signature, that.Signature) {
-		return false
-	}
 	if !protobuf_go_lite.EqualBytes(this.PreviousHash, that.PreviousHash) {
 		return false
 	}
@@ -2972,6 +3035,12 @@ func (this *SOConfigChange) EqualVT(that *SOConfigChange) bool {
 		return false
 	}
 	if !protobuf_go_lite.IsEqualVT(this.LeaveRequest, that.LeaveRequest) {
+		return false
+	}
+	if this.SharedObjectId != that.SharedObjectId {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTSliceImplicit(this.Signatures, that.Signatures, func() *peer.Signature { return &peer.Signature{} }) {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -3055,6 +3124,9 @@ func (this *SOAccountNonce) EqualVT(that *SOAccountNonce) bool {
 	if this.Nonce != that.Nonce {
 		return false
 	}
+	if !protobuf_go_lite.EqualBytes(this.OpHash, that.OpHash) {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -3128,6 +3200,21 @@ func (this *SOOperationInner) EqualVT(that *SOOperationInner) bool {
 		return false
 	}
 	if !protobuf_go_lite.EqualBytes(this.OpData, that.OpData) {
+		return false
+	}
+	if this.SharedObjectId != that.SharedObjectId {
+		return false
+	}
+	if this.ProtocolVersion != that.ProtocolVersion {
+		return false
+	}
+	if !protobuf_go_lite.EqualBytes(this.PrevOpHash, that.PrevOpHash) {
+		return false
+	}
+	if !protobuf_go_lite.EqualBytesSlice(this.ParentHashes, that.ParentHashes) {
+		return false
+	}
+	if !protobuf_go_lite.EqualBytes(this.ConfigHash, that.ConfigHash) {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -4706,16 +4793,6 @@ func (x *SOConfigChange) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("config")
 		x.Config.MarshalProtoJSON(s.WithField("config"))
 	}
-	if len(x.SignedBy) > 0 || s.HasField("signedBy") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("signedBy")
-		s.WriteBytes(x.SignedBy)
-	}
-	if x.Signature != nil || s.HasField("signature") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("signature")
-		x.Signature.MarshalProtoJSON(s.WithField("signature"))
-	}
 	if len(x.PreviousHash) > 0 || s.HasField("previousHash") {
 		s.WriteMoreIf(&wroteField)
 		s.WriteObjectField("previousHash")
@@ -4735,6 +4812,22 @@ func (x *SOConfigChange) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteMoreIf(&wroteField)
 		s.WriteObjectField("leaveRequest")
 		x.LeaveRequest.MarshalProtoJSON(s.WithField("leaveRequest"))
+	}
+	if x.SharedObjectId != "" || s.HasField("sharedObjectId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("sharedObjectId")
+		s.WriteString(x.SharedObjectId)
+	}
+	if len(x.Signatures) > 0 || s.HasField("signatures") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("signatures")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.Signatures {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("signatures"))
+		}
+		s.WriteArrayEnd()
 	}
 	s.WriteObjectEnd()
 }
@@ -4763,16 +4856,6 @@ func (x *SOConfigChange) UnmarshalProtoJSON(s *json.UnmarshalState) {
 			}
 			x.Config = &SharedObjectConfig{}
 			x.Config.UnmarshalProtoJSON(s.WithField("config", true))
-		case "signed_by", "signedBy":
-			s.AddField("signed_by")
-			x.SignedBy = s.ReadBytes()
-		case "signature":
-			if s.ReadNil() {
-				x.Signature = nil
-				return
-			}
-			x.Signature = &peer.Signature{}
-			x.Signature.UnmarshalProtoJSON(s.WithField("signature", true))
 		case "previous_hash", "previousHash":
 			s.AddField("previous_hash")
 			x.PreviousHash = s.ReadBytes()
@@ -4793,6 +4876,27 @@ func (x *SOConfigChange) UnmarshalProtoJSON(s *json.UnmarshalState) {
 			}
 			x.LeaveRequest = &SOLeaveRequest{}
 			x.LeaveRequest.UnmarshalProtoJSON(s.WithField("leave_request", true))
+		case "shared_object_id", "sharedObjectId":
+			s.AddField("shared_object_id")
+			x.SharedObjectId = s.ReadString()
+		case "signatures":
+			s.AddField("signatures")
+			if s.ReadNil() {
+				x.Signatures = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.Signatures = append(x.Signatures, nil)
+					return
+				}
+				v := &peer.Signature{}
+				v.UnmarshalProtoJSON(s.WithField("signatures", false))
+				if s.Err() != nil {
+					return
+				}
+				x.Signatures = append(x.Signatures, v)
+			})
 		}
 	})
 }
@@ -4994,6 +5098,11 @@ func (x *SOAccountNonce) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("nonce")
 		s.WriteUint64(x.Nonce)
 	}
+	if len(x.OpHash) > 0 || s.HasField("opHash") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("opHash")
+		s.WriteBytes(x.OpHash)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -5017,6 +5126,9 @@ func (x *SOAccountNonce) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "nonce":
 			s.AddField("nonce")
 			x.Nonce = s.ReadUint64()
+		case "op_hash", "opHash":
+			s.AddField("op_hash")
+			x.OpHash = s.ReadBytes()
 		}
 	})
 }
@@ -5158,6 +5270,31 @@ func (x *SOOperationInner) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("opData")
 		s.WriteBytes(x.OpData)
 	}
+	if x.SharedObjectId != "" || s.HasField("sharedObjectId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("sharedObjectId")
+		s.WriteString(x.SharedObjectId)
+	}
+	if x.ProtocolVersion != 0 || s.HasField("protocolVersion") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("protocolVersion")
+		s.WriteUint32(x.ProtocolVersion)
+	}
+	if len(x.PrevOpHash) > 0 || s.HasField("prevOpHash") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("prevOpHash")
+		s.WriteBytes(x.PrevOpHash)
+	}
+	if len(x.ParentHashes) > 0 || s.HasField("parentHashes") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("parentHashes")
+		s.WriteBytesArray(x.ParentHashes)
+	}
+	if len(x.ConfigHash) > 0 || s.HasField("configHash") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("configHash")
+		s.WriteBytes(x.ConfigHash)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -5187,6 +5324,25 @@ func (x *SOOperationInner) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "op_data", "opData":
 			s.AddField("op_data")
 			x.OpData = s.ReadBytes()
+		case "shared_object_id", "sharedObjectId":
+			s.AddField("shared_object_id")
+			x.SharedObjectId = s.ReadString()
+		case "protocol_version", "protocolVersion":
+			s.AddField("protocol_version")
+			x.ProtocolVersion = s.ReadUint32()
+		case "prev_op_hash", "prevOpHash":
+			s.AddField("prev_op_hash")
+			x.PrevOpHash = s.ReadBytes()
+		case "parent_hashes", "parentHashes":
+			s.AddField("parent_hashes")
+			if s.ReadNil() {
+				x.ParentHashes = nil
+				return
+			}
+			x.ParentHashes = s.ReadBytesArray()
+		case "config_hash", "configHash":
+			s.AddField("config_hash")
+			x.ConfigHash = s.ReadBytes()
 		}
 	})
 }
@@ -7168,6 +7324,23 @@ func (m *SOConfigChange) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if len(m.Signatures) > 0 {
+		for iNdEx := len(m.Signatures) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.Signatures[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x5a
+		}
+	}
+	if len(m.SharedObjectId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.SharedObjectId)
+		i--
+		dAtA[i] = 0x52
+	}
 	if m.LeaveRequest != nil {
 		size, err := m.LeaveRequest.MarshalToSizedBufferVT(dAtA[:i])
 		if err != nil {
@@ -7197,21 +7370,6 @@ func (m *SOConfigChange) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i = protobuf_go_lite.EncodeBytes(dAtA, i, m.PreviousHash)
 		i--
 		dAtA[i] = 0x32
-	}
-	if m.Signature != nil {
-		size, err := m.Signature.MarshalToSizedBufferVT(dAtA[:i])
-		if err != nil {
-			return 0, err
-		}
-		i -= size
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
-		i--
-		dAtA[i] = 0x2a
-	}
-	if len(m.SignedBy) > 0 {
-		i = protobuf_go_lite.EncodeBytes(dAtA, i, m.SignedBy)
-		i--
-		dAtA[i] = 0x22
 	}
 	if m.Config != nil {
 		size, err := m.Config.MarshalToSizedBufferVT(dAtA[:i])
@@ -7378,6 +7536,11 @@ func (m *SOAccountNonce) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if len(m.OpHash) > 0 {
+		i = protobuf_go_lite.EncodeBytes(dAtA, i, m.OpHash)
+		i--
+		dAtA[i] = 0x1a
+	}
 	if m.Nonce != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Nonce))
 		i--
@@ -7508,6 +7671,33 @@ func (m *SOOperationInner) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	_ = l
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.ConfigHash) > 0 {
+		i = protobuf_go_lite.EncodeBytes(dAtA, i, m.ConfigHash)
+		i--
+		dAtA[i] = 0x4a
+	}
+	if len(m.ParentHashes) > 0 {
+		for iNdEx := len(m.ParentHashes) - 1; iNdEx >= 0; iNdEx-- {
+			i = protobuf_go_lite.EncodeBytes(dAtA, i, m.ParentHashes[iNdEx])
+			i--
+			dAtA[i] = 0x42
+		}
+	}
+	if len(m.PrevOpHash) > 0 {
+		i = protobuf_go_lite.EncodeBytes(dAtA, i, m.PrevOpHash)
+		i--
+		dAtA[i] = 0x3a
+	}
+	if m.ProtocolVersion != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.ProtocolVersion))
+		i--
+		dAtA[i] = 0x30
+	}
+	if len(m.SharedObjectId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.SharedObjectId)
+		i--
+		dAtA[i] = 0x2a
 	}
 	if len(m.OpData) > 0 {
 		i = protobuf_go_lite.EncodeBytes(dAtA, i, m.OpData)
@@ -8804,11 +8994,6 @@ func (m *SOConfigChange) SizeVT() (n int) {
 		l = m.Config.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
-	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.SignedBy)
-	if m.Signature != nil {
-		l = m.Signature.SizeVT()
-		n += protobuf_go_lite.SizeMessage(1, l)
-	}
 	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.PreviousHash)
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.ChangeType)
 	if m.RevocationInfo != nil {
@@ -8817,6 +9002,11 @@ func (m *SOConfigChange) SizeVT() (n int) {
 	}
 	if m.LeaveRequest != nil {
 		l = m.LeaveRequest.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.SharedObjectId)
+	for _, e := range m.Signatures {
+		l = e.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
 	n += len(m.unknownFields)
@@ -8865,6 +9055,7 @@ func (m *SOAccountNonce) SizeVT() (n int) {
 	_ = l
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.PeerId)
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.Nonce)
+	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.OpHash)
 	n += len(m.unknownFields)
 	return n
 }
@@ -8906,6 +9097,11 @@ func (m *SOOperationInner) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.LocalId)
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.Nonce)
 	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.OpData)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.SharedObjectId)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.ProtocolVersion)
+	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.PrevOpHash)
+	n += protobuf_go_lite.SizeBytesSlice(1, m.ParentHashes)
+	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.ConfigHash)
 	n += len(m.unknownFields)
 	return n
 }
@@ -9552,14 +9748,6 @@ func (x *SOConfigChange) MarshalProtoText() string {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "config")
 		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Config)
 	}
-	if len(x.SignedBy) != 0 {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "signed_by")
-		protobuf_go_lite.TextWriteBytes(&sb, x.SignedBy)
-	}
-	if x.Signature != nil {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "signature")
-		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Signature)
-	}
 	if len(x.PreviousHash) != 0 {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "previous_hash")
 		protobuf_go_lite.TextWriteBytes(&sb, x.PreviousHash)
@@ -9575,6 +9763,22 @@ func (x *SOConfigChange) MarshalProtoText() string {
 	if x.LeaveRequest != nil {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "leave_request")
 		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.LeaveRequest)
+	}
+	if x.SharedObjectId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "shared_object_id")
+		protobuf_go_lite.TextWriteString(&sb, x.SharedObjectId)
+	}
+	if len(x.Signatures) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "signatures")
+		for i, v := range x.Signatures {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			if v == nil {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, &peer.Signature{})
+			} else {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, v)
+			}
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -9662,6 +9866,10 @@ func (x *SOAccountNonce) MarshalProtoText() string {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "nonce")
 		protobuf_go_lite.TextWriteUint(&sb, x.Nonce)
 	}
+	if len(x.OpHash) != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "op_hash")
+		protobuf_go_lite.TextWriteBytes(&sb, x.OpHash)
+	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
 
@@ -9723,6 +9931,30 @@ func (x *SOOperationInner) MarshalProtoText() string {
 	if len(x.OpData) != 0 {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "op_data")
 		protobuf_go_lite.TextWriteBytes(&sb, x.OpData)
+	}
+	if x.SharedObjectId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "shared_object_id")
+		protobuf_go_lite.TextWriteString(&sb, x.SharedObjectId)
+	}
+	if x.ProtocolVersion != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "protocol_version")
+		protobuf_go_lite.TextWriteUint(&sb, x.ProtocolVersion)
+	}
+	if len(x.PrevOpHash) != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "prev_op_hash")
+		protobuf_go_lite.TextWriteBytes(&sb, x.PrevOpHash)
+	}
+	if len(x.ParentHashes) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "parent_hashes")
+		for i, v := range x.ParentHashes {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			protobuf_go_lite.TextWriteBytes(&sb, v)
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
+	if len(x.ConfigHash) != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "config_hash")
+		protobuf_go_lite.TextWriteBytes(&sb, x.ConfigHash)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -11034,29 +11266,6 @@ func (m *SOConfigChange) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
-		case 4:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field SignedBy", wireType)
-			}
-			m.SignedBy, iNdEx, err = protobuf_go_lite.DecodeBytesAppend(m.SignedBy, dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-		case 5:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Signature", wireType)
-			}
-			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-			if m.Signature == nil {
-				m.Signature = &peer.Signature{}
-			}
-			if err := m.Signature.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
 		case 6:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field PreviousHash", wireType)
@@ -11103,6 +11312,29 @@ func (m *SOConfigChange) UnmarshalVT(dAtA []byte) error {
 				m.LeaveRequest = &SOLeaveRequest{}
 			}
 			if err := m.LeaveRequest.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 10:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SharedObjectId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.SharedObjectId = v
+		case 11:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Signatures", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Signatures = append(m.Signatures, &peer.Signature{})
+			if err := m.Signatures[len(m.Signatures)-1].UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
@@ -11338,6 +11570,14 @@ func (m *SOAccountNonce) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field OpHash", wireType)
+			}
+			m.OpHash, iNdEx, err = protobuf_go_lite.DecodeBytesAppend(m.OpHash, dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -11541,6 +11781,51 @@ func (m *SOOperationInner) UnmarshalVT(dAtA []byte) error {
 				return fmt.Errorf("proto: wrong wireType = %d for field OpData", wireType)
 			}
 			m.OpData, iNdEx, err = protobuf_go_lite.DecodeBytesAppend(m.OpData, dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SharedObjectId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.SharedObjectId = v
+		case 6:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ProtocolVersion", wireType)
+			}
+			m.ProtocolVersion = 0
+			m.ProtocolVersion, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 7:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PrevOpHash", wireType)
+			}
+			m.PrevOpHash, iNdEx, err = protobuf_go_lite.DecodeBytesAppend(m.PrevOpHash, dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 8:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ParentHashes", wireType)
+			}
+			var v []byte
+			v, iNdEx, err = protobuf_go_lite.DecodeBytes(dAtA, iNdEx, true)
+			if err != nil {
+				return err
+			}
+			m.ParentHashes = append(m.ParentHashes, v)
+		case 9:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ConfigHash", wireType)
+			}
+			m.ConfigHash, iNdEx, err = protobuf_go_lite.DecodeBytesAppend(m.ConfigHash, dAtA, iNdEx)
 			if err != nil {
 				return err
 			}

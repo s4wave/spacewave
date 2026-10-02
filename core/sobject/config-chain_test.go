@@ -9,11 +9,11 @@ import (
 )
 
 func TestVerifyConfigChain(t *testing.T) {
-	t.Run("accepts unsigned legacy genesis", func(t *testing.T) {
+	t.Run("rejects unsigned genesis", func(t *testing.T) {
 		peers := createMockPeers(t, 1)
 		ownerID := peers[0].GetPeerID().String()
 
-		err := VerifyConfigChain([]*SOConfigChange{{
+		err := VerifyConfigChain(mockSharedObjectID, []*SOConfigChange{{
 			ConfigSeqno: 0,
 			Config: &SharedObjectConfig{
 				Participants: []*SOParticipantConfig{{
@@ -23,8 +23,8 @@ func TestVerifyConfigChain(t *testing.T) {
 			},
 			ChangeType: SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_GENESIS,
 		}})
-		if err != nil {
-			t.Fatalf("VerifyConfigChain returned error: %v", err)
+		if err == nil {
+			t.Fatal("VerifyConfigChain accepted an unsigned genesis")
 		}
 	})
 
@@ -32,7 +32,7 @@ func TestVerifyConfigChain(t *testing.T) {
 		peers := createMockPeers(t, 1)
 		ownerID := peers[0].GetPeerID().String()
 
-		err := VerifyConfigChain([]*SOConfigChange{
+		err := VerifyConfigChain(mockSharedObjectID, []*SOConfigChange{
 			{
 				ConfigSeqno: 0,
 				Config: &SharedObjectConfig{
@@ -63,7 +63,7 @@ func TestVerifyConfigChain(t *testing.T) {
 		peers := createMockPeers(t, 1)
 		ownerID := peers[0].GetPeerID().String()
 
-		err := VerifyConfigChain([]*SOConfigChange{{
+		err := VerifyConfigChain(mockSharedObjectID, []*SOConfigChange{{
 			ConfigSeqno: 0,
 			Config: &SharedObjectConfig{
 				Participants: []*SOParticipantConfig{{
@@ -79,6 +79,7 @@ func TestVerifyConfigChain(t *testing.T) {
 	})
 
 	t.Run("rejects signed first entry without genesis change type", func(t *testing.T) {
+		// Sign as the only owner.
 		ctx := context.Background()
 		peers := createMockPeers(t, 1)
 		ownerPriv, err := peers[0].GetPrivKey(ctx)
@@ -86,6 +87,7 @@ func TestVerifyConfigChain(t *testing.T) {
 			t.Fatalf("get owner private key: %v", err)
 		}
 
+		// Sign an add-participant change as the first entry.
 		cfg := &SharedObjectConfig{
 			Participants: []*SOParticipantConfig{{
 				PeerId: peers[0].GetPeerID().String(),
@@ -93,6 +95,7 @@ func TestVerifyConfigChain(t *testing.T) {
 			}},
 		}
 		entry, err := BuildSOConfigChange(
+			mockSharedObjectID,
 			&SharedObjectConfig{},
 			cfg,
 			SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_ADD_PARTICIPANT,
@@ -103,7 +106,8 @@ func TestVerifyConfigChain(t *testing.T) {
 			t.Fatalf("build first entry: %v", err)
 		}
 
-		if err := VerifyConfigChain([]*SOConfigChange{entry}); err == nil {
+		// A chain must open with a genesis change.
+		if err := VerifyConfigChain(mockSharedObjectID, []*SOConfigChange{entry}); err == nil {
 			t.Fatal("expected VerifyConfigChain to reject signed non-genesis first entry")
 		}
 	})
@@ -130,6 +134,7 @@ func TestVerifyConfigChain(t *testing.T) {
 			}},
 		}
 		genesisEntry, err := BuildSOConfigChange(
+			mockSharedObjectID,
 			&SharedObjectConfig{},
 			genesisConfig,
 			SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_GENESIS,
@@ -158,6 +163,7 @@ func TestVerifyConfigChain(t *testing.T) {
 			Username: "bob",
 		})
 		addParticipantEntry, err := BuildSOConfigChange(
+			mockSharedObjectID,
 			currentCfg,
 			nextCfg,
 			SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_ADD_PARTICIPANT,
@@ -177,6 +183,7 @@ func TestVerifyConfigChain(t *testing.T) {
 		rejoinCfg.ConfigChainSeqno = addParticipantEntry.GetConfigSeqno()
 		rejoinCfg.ConfigChainHash = addParticipantHash
 		selfEnrollEntry, err := BuildSelfEnrollPeerConfigChange(
+			mockSharedObjectID,
 			rejoinCfg,
 			rejoinPriv,
 			peers[2].GetPeerID().String(),
@@ -215,6 +222,7 @@ func TestVerifyConfigChain(t *testing.T) {
 			Username: "mallory",
 		})
 		renamedEntry, err := BuildSOConfigChange(
+			mockSharedObjectID,
 			rejoinCfg,
 			renamedCfg,
 			SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_SELF_ENROLL_PEER,
@@ -224,7 +232,7 @@ func TestVerifyConfigChain(t *testing.T) {
 		if err != nil {
 			t.Fatalf("build renamed self-enroll entry: %v", err)
 		}
-		if err := VerifyConfigChain([]*SOConfigChange{
+		if err := VerifyConfigChain(mockSharedObjectID, []*SOConfigChange{
 			genesisEntry,
 			addParticipantEntry,
 			renamedEntry,
@@ -233,7 +241,7 @@ func TestVerifyConfigChain(t *testing.T) {
 		}
 
 		// Verify the honest chain end to end.
-		if err := VerifyConfigChain([]*SOConfigChange{
+		if err := VerifyConfigChain(mockSharedObjectID, []*SOConfigChange{
 			genesisEntry,
 			addParticipantEntry,
 			selfEnrollEntry,
@@ -244,6 +252,7 @@ func TestVerifyConfigChain(t *testing.T) {
 }
 
 func TestVerifyConfigChangeRequiresOwner(t *testing.T) {
+	// Load the owner key.
 	ctx := context.Background()
 	peers := createMockPeers(t, 2)
 	ownerPriv, err := peers[0].GetPrivKey(ctx)
@@ -262,6 +271,7 @@ func TestVerifyConfigChangeRequiresOwner(t *testing.T) {
 	}
 	genesisConfig := &SharedObjectConfig{Participants: []*SOParticipantConfig{owner, writer}}
 	genesis, err := BuildSOConfigChange(
+		mockSharedObjectID,
 		&SharedObjectConfig{},
 		genesisConfig,
 		SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_GENESIS,
@@ -279,9 +289,11 @@ func TestVerifyConfigChangeRequiresOwner(t *testing.T) {
 
 	// buildRemoval signs a REMOVE_PARTICIPANT change leaving the given participants.
 	buildRemoval := func(remaining ...*SOParticipantConfig) *SOConfigChange {
+		// Remove every participant not kept.
 		next := current.CloneVT()
 		next.Participants = remaining
 		entry, err := BuildSOConfigChange(
+			mockSharedObjectID,
 			current,
 			next,
 			SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_REMOVE_PARTICIPANT,
@@ -294,18 +306,20 @@ func TestVerifyConfigChangeRequiresOwner(t *testing.T) {
 		return entry
 	}
 
+	// The last owner may not leave while others remain.
 	t.Run("rejects removing the last owner while others remain", func(t *testing.T) {
 		entry := buildRemoval(writer)
-		if _, err := VerifyConfigChange(current, entry); !errors.Is(err, ErrNoOwner) {
+		if _, err := VerifyConfigChange(mockSharedObjectID, current, entry); !errors.Is(err, ErrNoOwner) {
 			t.Fatalf("expected ErrNoOwner, got %v", err)
 		}
-		if err := VerifyConfigChain([]*SOConfigChange{genesis, entry}); !errors.Is(err, ErrNoOwner) {
+		if err := VerifyConfigChain(mockSharedObjectID, []*SOConfigChange{genesis, entry}); !errors.Is(err, ErrNoOwner) {
 			t.Fatalf("expected chain to reject ownerless result, got %v", err)
 		}
 	})
 
+	// Everyone may leave together.
 	t.Run("accepts a terminal empty configuration", func(t *testing.T) {
-		if _, err := VerifyConfigChange(current, buildRemoval()); err != nil {
+		if _, err := VerifyConfigChange(mockSharedObjectID, current, buildRemoval()); err != nil {
 			t.Fatalf("expected terminal departure to verify: %v", err)
 		}
 	})

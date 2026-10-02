@@ -14,6 +14,7 @@ import (
 )
 
 func TestSOStateParticipantHandleProcessOperationsBlankRoot(t *testing.T) {
+	// Use one owner key.
 	ctx := context.Background()
 	p := createMockPeers(t, 1)[0]
 	priv, err := p.GetPrivKey(ctx)
@@ -25,6 +26,7 @@ func TestSOStateParticipantHandleProcessOperationsBlankRoot(t *testing.T) {
 		t.Fatalf("extract peer pubkey: %v", err)
 	}
 
+	// Grant the owner a root encryption key.
 	transformConf := &block_transform.Config{
 		Steps: []*block_transform.StepConfig{{
 			Id: transform_blockenc.ConfigID,
@@ -44,10 +46,10 @@ func TestSOStateParticipantHandleProcessOperationsBlankRoot(t *testing.T) {
 		t.Fatalf("EncryptSOGrant: %v", err)
 	}
 
+	// Build the block transformer from the grant config.
 	sfs := block_transform.NewStepFactorySet()
 	sfs.AddStepFactory(transform_gzip.NewStepFactory())
 	sfs.AddStepFactory(transform_blockenc.NewStepFactory())
-
 	le := logrus.New().WithField("test", t.Name())
 	xfrm, err := block_transform.NewTransformer(
 		controller.ConstructOpts{Logger: le},
@@ -58,16 +60,18 @@ func TestSOStateParticipantHandleProcessOperationsBlankRoot(t *testing.T) {
 		t.Fatalf("NewTransformer: %v", err)
 	}
 
+	// Sign an encrypted operation at the first nonce.
 	opData := []byte("init world")
 	opDataEnc, err := xfrm.EncodeBlock(opData)
 	if err != nil {
 		t.Fatalf("EncodeBlock: %v", err)
 	}
-	op, err := BuildSOOperation(mockSharedObjectID, priv, opDataEnc, 1, NewSOOperationLocalID())
+	op, err := BuildSOOperation(mockSharedObjectID, priv, opDataEnc, linkAt(nil, priv, 1), NewSOOperationLocalID())
 	if err != nil {
 		t.Fatalf("BuildSOOperation: %v", err)
 	}
 
+	// Hold the owner state with the grant and no root.
 	state := &SOState{
 		Config: &SharedObjectConfig{
 			Participants: []*SOParticipantConfig{{
@@ -79,6 +83,7 @@ func TestSOStateParticipantHandleProcessOperationsBlankRoot(t *testing.T) {
 	}
 	snap := NewSOStateParticipantHandle(le, sfs, mockSharedObjectID, state, priv, p.GetPeerID())
 
+	// Process the operation against the blank root.
 	nextStateData := []byte("next state")
 	nextRoot, rejectedOps, acceptedOps, err := snap.ProcessOperations(
 		ctx,
@@ -101,6 +106,8 @@ func TestSOStateParticipantHandleProcessOperationsBlankRoot(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ProcessOperations: %v", err)
 	}
+
+	// The owner accepts it in a root it signs at seqno 1.
 	if len(rejectedOps) != 0 {
 		t.Fatalf("expected no rejections, got %d", len(rejectedOps))
 	}
@@ -123,6 +130,7 @@ func TestSOStateParticipantHandleProcessOperationsBlankRoot(t *testing.T) {
 		t.Fatalf("expected accepted nonce 1, got %d", nextRoot.GetAccountNonces()[0].GetNonce())
 	}
 
+	// The root inner holds the next state.
 	innerDataDec, err := xfrm.DecodeBlock(nextRoot.GetInner())
 	if err != nil {
 		t.Fatalf("DecodeBlock(next root): %v", err)
@@ -138,6 +146,7 @@ func TestSOStateParticipantHandleProcessOperationsBlankRoot(t *testing.T) {
 		t.Fatalf("unexpected next state data: %q", rootInner.GetStateData())
 	}
 
+	// The owner signature validates.
 	validSigs, err := nextRoot.ValidateSignatures(mockSharedObjectID, state.GetConfig().GetParticipants())
 	if err != nil {
 		t.Fatalf("ValidateSignatures: %v", err)
@@ -151,6 +160,7 @@ func TestSOStateParticipantHandleProcessOperationsBlankRoot(t *testing.T) {
 // batch whose operations all fail to decode advances the root so the
 // rejections commit and the queue drains.
 func TestSOStateParticipantHandleProcessOperationsAllRejected(t *testing.T) {
+	// Use one owner key.
 	ctx := context.Background()
 	p := createMockPeers(t, 1)[0]
 	priv, err := p.GetPrivKey(ctx)
@@ -161,6 +171,8 @@ func TestSOStateParticipantHandleProcessOperationsAllRejected(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Grant the owner a root encryption key.
 	transformConf := &block_transform.Config{
 		Steps: []*block_transform.StepConfig{{
 			Id: transform_blockenc.ConfigID,
@@ -174,10 +186,13 @@ func TestSOStateParticipantHandleProcessOperationsAllRejected(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Build a transformer that cannot decode plaintext.
 	sfs := block_transform.NewStepFactorySet()
 	sfs.AddStepFactory(transform_blockenc.NewStepFactory())
 	le := logrus.New().WithField("test", t.Name())
 
+	// Queue an unencrypted owner operation.
 	state := &SOState{
 		Config: &SharedObjectConfig{Participants: []*SOParticipantConfig{{
 			PeerId: p.GetPeerID().String(),
@@ -185,7 +200,7 @@ func TestSOStateParticipantHandleProcessOperationsAllRejected(t *testing.T) {
 		}}},
 		RootGrants: []*SOGrant{grant},
 	}
-	op, err := BuildSOOperation(mockSharedObjectID, priv, []byte("not encrypted"), 1, NewSOOperationLocalID())
+	op, err := BuildSOOperation(mockSharedObjectID, priv, []byte("not encrypted"), linkAt(nil, priv, 1), NewSOOperationLocalID())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -193,6 +208,7 @@ func TestSOStateParticipantHandleProcessOperationsAllRejected(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Processing rejects it and still advances the root.
 	snap := NewSOStateParticipantHandle(le, sfs, mockSharedObjectID, state, priv, p.GetPeerID())
 	nextRoot, rejectedOps, acceptedOps, err := snap.ProcessOperations(
 		ctx,

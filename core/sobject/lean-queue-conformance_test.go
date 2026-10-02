@@ -48,7 +48,7 @@ func runLeanQueueScenario(t *testing.T, peers []peer.Peer, seed uint64) []leanCa
 	base.Config.ConfigChainHash = bytes.Repeat([]byte{byte(seed%254 + 1)}, 32)
 	base.Root = createMockSORoot(t, 1+seed%5, peers[0])
 	if seed%2 == 1 {
-		pending := signedLeanOperation(t, keys[1], peers[1].GetPeerID().String(), 1, NewSOOperationLocalID())
+		pending := signedLeanOperation(t, keys[1], peers[1].GetPeerID().String(), linkAt(base, keys[1], 1), NewSOOperationLocalID())
 		if err := base.QueueOperation(mockSharedObjectID, pending); err != nil {
 			t.Fatal(err)
 		}
@@ -87,11 +87,12 @@ func runLeanQueueVariant(t *testing.T, peers []peer.Peer, keys []crypto.PrivKey,
 	var arena fastjson.Arena
 	a := &arena
 	var built *SOOperation
-	cb := func(nonce uint64) (*SOOperation, error) {
+	cb := func(link *SOOperationLink) (*SOOperation, error) {
 		if !callbackOK {
 			return nil, errors.New("injected callback failure")
 		}
-		built = signedLeanOperation(t, keys[queuer], peers[queuer].GetPeerID().String(), nonce+nonceDelta, NewSOOperationLocalID())
+		link.Nonce += nonceDelta
+		built = signedLeanOperation(t, keys[queuer], peers[queuer].GetPeerID().String(), link, NewSOOperationLocalID())
 		return built, nil
 	}
 
@@ -130,7 +131,7 @@ func runLeanQueueVariant(t *testing.T, peers []peer.Peer, keys []crypto.PrivKey,
 				continue
 			}
 			accepted = append(accepted, operation)
-			root.updateAccountNonce(inner.GetPeerId(), inner.GetNonce())
+			root.AccountNonces = advanceAccountNonce(root.AccountNonces, inner.GetPeerId(), inner.GetNonce(), operation.Hash())
 		}
 
 		// Sign the root, sometimes by a non-validator.

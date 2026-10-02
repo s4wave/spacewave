@@ -194,6 +194,7 @@ func (s *SOHost) CreateInvite(
 	signerPrivKey crypto.PrivKey,
 	invite *SOInvite,
 ) error {
+	// Check the invite is well formed.
 	if invite == nil {
 		return errors.New("invite is nil")
 	}
@@ -207,17 +208,18 @@ func (s *SOHost) CreateInvite(
 		return errors.New("invite uses exceeds max uses")
 	}
 
+	// Sign the change against the current config.
 	currentState, err := s.GetHostState(ctx)
 	if err != nil {
 		return errors.Wrap(err, "get current state")
 	}
-
 	currentCfg := currentState.GetConfig()
-	entry, err := BuildSOConfigChange(currentCfg, currentCfg, SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_ADD_INVITE, signerPrivKey, nil)
+	entry, err := BuildSOConfigChange(s.sharedObjectID, currentCfg, currentCfg, SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_ADD_INVITE, signerPrivKey, nil)
 	if err != nil {
 		return errors.Wrap(err, "build config change")
 	}
 
+	// Apply it with the state change it authorizes.
 	return s.ApplyConfigChange(ctx, entry, func(state *SOState) error {
 		if FindInvite(state, invite.GetInviteId()) != nil {
 			return errors.New("invite_id already exists")
@@ -234,21 +236,23 @@ func (s *SOHost) RevokeInvite(
 	signerPrivKey crypto.PrivKey,
 	inviteID string,
 ) error {
+	// Name the invite.
 	if inviteID == "" {
 		return errors.New("invite_id is required")
 	}
 
+	// Sign the change against the current config.
 	currentState, err := s.GetHostState(ctx)
 	if err != nil {
 		return errors.Wrap(err, "get current state")
 	}
-
 	currentCfg := currentState.GetConfig()
-	entry, err := BuildSOConfigChange(currentCfg, currentCfg, SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_REVOKE_INVITE, signerPrivKey, nil)
+	entry, err := BuildSOConfigChange(s.sharedObjectID, currentCfg, currentCfg, SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_REVOKE_INVITE, signerPrivKey, nil)
 	if err != nil {
 		return errors.Wrap(err, "build config change")
 	}
 
+	// Apply it with the state change it authorizes.
 	return s.ApplyConfigChange(ctx, entry, func(state *SOState) error {
 		inv := FindInvite(state, inviteID)
 		if inv == nil {
@@ -271,21 +275,23 @@ func (s *SOHost) IncrementInviteUses(
 	signerPrivKey crypto.PrivKey,
 	inviteID string,
 ) error {
+	// Name the invite.
 	if inviteID == "" {
 		return errors.New("invite_id is required")
 	}
 
+	// Sign the change against the current config.
 	currentState, err := s.GetHostState(ctx)
 	if err != nil {
 		return errors.Wrap(err, "get current state")
 	}
-
 	currentCfg := currentState.GetConfig()
-	entry, err := BuildSOConfigChange(currentCfg, currentCfg, SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_INCREMENT_INVITE_USES, signerPrivKey, nil)
+	entry, err := BuildSOConfigChange(s.sharedObjectID, currentCfg, currentCfg, SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_INCREMENT_INVITE_USES, signerPrivKey, nil)
 	if err != nil {
 		return errors.Wrap(err, "build config change")
 	}
 
+	// Apply it with the state change it authorizes.
 	return s.ApplyConfigChange(ctx, entry, func(state *SOState) error {
 		inv := FindInvite(state, inviteID)
 		if inv == nil {

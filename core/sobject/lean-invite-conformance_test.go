@@ -37,6 +37,7 @@ func FuzzLeanInvite(f *testing.F) {
 
 // runLeanInviteScenario retains real invitation bytes, signatures and provider publication.
 func runLeanInviteScenario(t *testing.T, peers []peer.Peer, seed uint64) []leanCase {
+	// Hold an owner and a reader with one invitation.
 	t.Helper()
 	rng := rand.New(rand.NewPCG(seed, 0x1a71))
 	projection := &configChainScenario{t: t}
@@ -49,6 +50,7 @@ func runLeanInviteScenario(t *testing.T, peers []peer.Peer, seed uint64) []leanC
 	base.Root = createMockSORoot(t, 1, peers[0])
 	base.Invites = []*SOInvite{{InviteId: "target", TokenHash: []byte{1}, MaxUses: 2}}
 
+	// Try each variant against fresh copies.
 	var cases []leanCase
 	for variant := range 30 {
 		previous, snapshot := base.CloneVT(), base.CloneVT()
@@ -145,7 +147,7 @@ func runLeanInviteScenario(t *testing.T, peers []peer.Peer, seed uint64) []leanC
 				}
 				return watch, func() {}, nil
 			}, store.lock, mockSharedObjectID)
-			entry, err := BuildSOConfigChange(snapshot.Config, snapshot.Config, kind, key, nil)
+			entry, err := BuildSOConfigChange(mockSharedObjectID, snapshot.Config, snapshot.Config, kind, key, nil)
 			if err != nil {
 				t.Fatal(err)
 			}

@@ -142,6 +142,7 @@ func (a *ProviderAccount) migrationRecoveryEnvelopes(ctx context.Context, client
 
 // ReadSharedObjectFullConfigHistory returns the provider's verified immutable chain.
 func (s *SharedObject) ReadSharedObjectFullConfigHistory(ctx context.Context, target *sobject.SharedObjectConfig) ([]*sobject.SOConfigChange, error) {
+	// Fetch the provider's chain.
 	data, err := s.tkr.a.GetSessionClient().GetConfigChain(ctx, s.GetSharedObjectID())
 	if err != nil {
 		return nil, err
@@ -150,13 +151,17 @@ func (s *SharedObject) ReadSharedObjectFullConfigHistory(ctx context.Context, ta
 	if err := chain.UnmarshalVT(data); err != nil {
 		return nil, err
 	}
+
+	// Trim it to the target and verify it from genesis.
 	changes := chain.GetConfigChanges()
 	for len(changes) > 0 && changes[len(changes)-1].GetConfigSeqno() > target.GetConfigChainSeqno() {
 		changes = changes[:len(changes)-1]
 	}
-	if err := sobject.VerifyConfigChain(changes); err != nil {
+	if err := sobject.VerifyConfigChain(s.GetSharedObjectID(), changes); err != nil {
 		return nil, err
 	}
+
+	// The last entry must be the accepted configuration.
 	last := changes[len(changes)-1]
 	hash, err := sobject.HashSOConfigChange(last)
 	if err != nil {

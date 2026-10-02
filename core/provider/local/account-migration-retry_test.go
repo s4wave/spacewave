@@ -161,7 +161,7 @@ func TestAccountMergeExternalOwnerBlocker(t *testing.T) {
 			participant.Role = sobject.SOParticipantRole_SOParticipantRole_READER
 		}
 	}
-	change, err := sobject.BuildSOConfigChange(state.GetConfig(), next, sobject.SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_ADD_PARTICIPANT, host.GetPrivKey(), nil)
+	change, err := sobject.BuildSOConfigChange(object.GetSharedObjectID(), state.GetConfig(), next, sobject.SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_ADD_PARTICIPANT, host.GetPrivKey(), nil)
 	if err != nil {
 		t.Fatal(err)
 	}

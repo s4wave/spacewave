@@ -29,11 +29,11 @@ func TestTransferSOOwnershipOwnerDeparture(t *testing.T) {
 		SOParticipantRole_SOParticipantRole_WRITER,
 		SOParticipantRole_SOParticipantRole_WRITER,
 	}).GetConfig()
-	genesis, err := BuildSOConfigChange(initial, initial, SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_GENESIS, keys[0], nil)
+	genesis, err := BuildSOConfigChange(mockSharedObjectID, initial, initial, SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_GENESIS, keys[0], nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	checkpoint, err := VerifyConfigChange(initial, genesis)
+	checkpoint, err := VerifyConfigChange(mockSharedObjectID, initial, genesis)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -102,7 +102,7 @@ func TestTransferSOOwnershipOwnerDeparture(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := VerifyConfigChainSuffix(checkpoint, current.GetConfig(), history); err != nil {
+	if err := VerifyConfigChainSuffix(mockSharedObjectID, checkpoint, current.GetConfig(), history); err != nil {
 		t.Fatalf("peers cannot verify the transfer: %v", err)
 	}
 
@@ -125,8 +125,8 @@ func TestTransferSOOwnershipOwnerDeparture(t *testing.T) {
 	}
 
 	// A remaining participant submits under the new configuration.
-	if err := host.QueueOperation(ctx, peers[2].GetPeerID(), func(nonce uint64) (*SOOperation, error) {
-		return BuildSOOperation(mockSharedObjectID, keys[2], []byte("after transfer"), nonce, NewSOOperationLocalID())
+	if err := host.QueueOperation(ctx, peers[2].GetPeerID(), func(link *SOOperationLink) (*SOOperation, error) {
+		return BuildSOOperation(mockSharedObjectID, keys[2], []byte("after transfer"), link, NewSOOperationLocalID())
 	}); err != nil {
 		t.Fatal(err)
 	}

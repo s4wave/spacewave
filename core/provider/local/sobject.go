@@ -676,11 +676,11 @@ func (t *sobjectTracker) initSharedObjectState(
 
 		// Pin new objects to their creator's signed genesis in the state transaction.
 		initialConfig := val.Config
-		genesis, err := sobject.BuildSOConfigChange(initialConfig, initialConfig, sobject.SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_GENESIS, localPriv, nil)
+		genesis, err := sobject.BuildSOConfigChange(sharedObjectID, initialConfig, initialConfig, sobject.SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_GENESIS, localPriv, nil)
 		if err != nil {
 			return err
 		}
-		val.Config, err = sobject.VerifyConfigChange(initialConfig, genesis)
+		val.Config, err = sobject.VerifyConfigChange(sharedObjectID, initialConfig, genesis)
 		if err != nil {
 			return err
 		}

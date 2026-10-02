@@ -323,6 +323,7 @@ func projectLeanRecoveryPublicKeys(t *testing.T, a *fastjson.Arena, keys []crypt
 func runLeanRecoveryEnrollment(t *testing.T, projection *configChainScenario, peers []peer.Peer,
 	keys []crypto.PrivKey, checkpoint *SharedObjectConfig, base *SOEntityRecoveryMaterial, seed uint64,
 ) []leanCase {
+	// Run each variant against a fresh checkpoint.
 	t.Helper()
 	a := &projection.arena
 	var cases []leanCase
@@ -390,7 +391,7 @@ func runLeanRecoveryEnrollment(t *testing.T, projection *configChainScenario, pe
 		case 25:
 			material.GrantInner.TransformConf = &block_transform.Config{}
 		}
-		entry, buildErr := BuildSelfEnrollPeerConfigChange(current, signer, peerID, entity, role)
+		entry, buildErr := BuildSelfEnrollPeerConfigChange(mockSharedObjectID, current, signer, peerID, entity, role)
 		// Generate the signature/hash primitive even when argument admission rejected.
 		primitive := entry
 		if primitive == nil && signer != nil {
@@ -401,7 +402,7 @@ func runLeanRecoveryEnrollment(t *testing.T, projection *configChainScenario, pe
 			next := previous.CloneVT()
 			next.Participants = append(next.Participants, &SOParticipantConfig{PeerId: peerID, Role: role, EntityId: entity})
 			var err error
-			primitive, err = BuildSOConfigChange(previous, next, SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_SELF_ENROLL_PEER, signer, nil)
+			primitive, err = BuildSOConfigChange(mockSharedObjectID, previous, next, SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_SELF_ENROLL_PEER, signer, nil)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -436,11 +437,11 @@ func runLeanRecoveryEnrollment(t *testing.T, projection *configChainScenario, pe
 		var admitted *SharedObjectConfig
 		admitErr := buildErr
 		if buildErr == nil {
-			admitted, admitErr = VerifyConfigChange(current, entry)
+			admitted, admitErr = VerifyConfigChange(mockSharedObjectID, current, entry)
 			// An omitted embedded key must reject without changing the checkpoint.
 			missingSigner := entry.CloneVT()
-			missingSigner.Signature.PubKey = nil
-			next, err := VerifyConfigChange(current, missingSigner)
+			missingSigner.Signatures[0].PubKey = nil
+			next, err := VerifyConfigChange(mockSharedObjectID, current, missingSigner)
 			projection.checkChange(variant, current, missingSigner, next, err)
 		}
 		if current != nil && signer != nil {

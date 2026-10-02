@@ -236,7 +236,7 @@ func (s *SOHost) ImportPeerSnapshot(
 	if err != nil {
 		return err
 	}
-	if err := VerifyConfigChainSuffix(previous.GetConfig(), candidate.GetConfig(), changes); err != nil {
+	if err := VerifyConfigChainSuffix(s.sharedObjectID, previous.GetConfig(), candidate.GetConfig(), changes); err != nil {
 		return errors.Wrap(err, "peer snapshot configuration authority")
 	}
 	readable := false
@@ -334,17 +334,17 @@ func (s *SOHost) ImportPeerSnapshot(
 			continue
 		}
 
-		// The held state admitted its operations in nonce order, so every
-		// nonce below this one was consumed, even when the candidate no
-		// longer shows the cleared rejection that consumed it. Committed,
-		// revoked or over-capacity local operations cannot be requeued, and
-		// keep the queued nonces they found.
+		// The held state admitted its operations in chain order, so the
+		// operation's predecessor was resolved or queued, even when the
+		// candidate no longer shows it. Committed, revoked or over-capacity
+		// local operations cannot be requeued, and keep the queued heads
+		// they found.
 		queued := make([]*SOAccountNonce, 0, len(next.GetQueuedAccountNonces()))
 		for _, nonce := range next.GetQueuedAccountNonces() {
 			queued = append(queued, nonce.CloneVT())
 		}
-		if nonce := inner.GetNonce(); nonce != 0 {
-			next.updateQueuedAccountNonce(inner.GetPeerId(), nonce-1)
+		if nonce := inner.GetNonce(); nonce > 1 {
+			next.QueuedAccountNonces = advanceAccountNonce(next.QueuedAccountNonces, inner.GetPeerId(), nonce-1, inner.GetPrevOpHash())
 		}
 		if err := next.QueueOperation(s.sharedObjectID, operation); err != nil {
 			next.QueuedAccountNonces = queued
@@ -468,7 +468,7 @@ func (s *SOHost) ApplyConfigChange(ctx context.Context, entry *SOConfigChange, f
 	nextState := prevState.CloneVT()
 
 	// Verify the transition against the configuration held under this lock.
-	nextState.Config, err = VerifyConfigChange(nextState.GetConfig(), entry)
+	nextState.Config, err = VerifyConfigChange(s.sharedObjectID, nextState.GetConfig(), entry)
 	if err != nil {
 		return err
 	}
@@ -499,7 +499,7 @@ type QueuedOpsProcessor = func(
 func (s *SOHost) QueueOperation(
 	ctx context.Context,
 	peerID peer.ID,
-	cb func(nonce uint64) (*SOOperation, error),
+	cb func(link *SOOperationLink) (*SOOperation, error),
 ) error {
 	return s.QueueOperationAndProcess(ctx, peerID, cb, nil)
 }
@@ -512,7 +512,7 @@ func (s *SOHost) QueueOperation(
 func (s *SOHost) QueueOperationAndProcess(
 	ctx context.Context,
 	peerID peer.ID,
-	cb func(nonce uint64) (*SOOperation, error),
+	cb func(link *SOOperationLink) (*SOOperation, error),
 	process QueuedOpsProcessor,
 ) error {
 	// Serialize nonce selection and operation acceptance under the provider lock.
@@ -526,11 +526,8 @@ func (s *SOHost) QueueOperationAndProcess(
 	prevState := lk.GetSOState()
 	nextState := prevState.CloneVT()
 
-	// Select the next nonce for this peer's queued operation.
-	nextAccNonce := nextState.GetNextAccountNonce(peerID.String())
-
-	// Build the operation with the selected nonce.
-	op, err := cb(nextAccNonce)
+	// Build the operation at the head of this peer's chain.
+	op, err := cb(nextState.NextOperationLink(peerID.String()))
 	if err != nil {
 		return err
 	}

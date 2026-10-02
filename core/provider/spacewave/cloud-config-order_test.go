@@ -16,20 +16,22 @@ import (
 // TestCloudConfigParticipantOrder accepts reordered membership without accepting
 // changes to signed authority, and retains that state across cache hydration.
 func TestCloudConfigParticipantOrder(t *testing.T) {
-	// Build a real signed root and a signed membership transition.
+	// Build a real signed root.
 	owner, ownerID := generateTestKeypair(t)
 	entity, _ := generateTestKeypair(t)
 	_, readerID := generateTestKeypair(t)
 	state, chain, _, _ := buildRejoinTestFixtures(t, testSharedObjectID, "owner-account", owner, ownerID, entity, 1)
+
+	// Add a reader through a signed change.
 	next := state.GetConfig().CloneVT()
 	next.Participants = append(next.Participants, &sobject.SOParticipantConfig{
 		PeerId: readerID.String(), Role: sobject.SOParticipantRole_SOParticipantRole_READER, EntityId: "reader-account",
 	})
-	change, err := sobject.BuildSOConfigChange(state.GetConfig(), next, sobject.SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_ADD_PARTICIPANT, owner, nil)
+	change, err := sobject.BuildSOConfigChange(testSharedObjectID, state.GetConfig(), next, sobject.SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_ADD_PARTICIPANT, owner, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	state.Config, err = sobject.VerifyConfigChange(state.GetConfig(), change)
+	state.Config, err = sobject.VerifyConfigChange(testSharedObjectID, state.GetConfig(), change)
 	if err != nil {
 		t.Fatal(err)
 	}

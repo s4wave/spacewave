@@ -205,6 +205,7 @@ func (c *SessionClient) addStandaloneParticipant(
 				nextCfg.Participants = append(nextCfg.Participants, nextParticipant)
 			}
 			entry, err = sobject.BuildSOConfigChange(
+				spaceID,
 				currentCfg,
 				nextCfg,
 				sobject.SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_ADD_PARTICIPANT,
@@ -379,6 +380,7 @@ func (c *SessionClient) addStandalonePeerParticipant(
 			}
 			nextCfg.Participants = append(nextCfg.Participants, nextParticipant)
 			entry, err = sobject.BuildSOConfigChange(
+				spaceID,
 				currentCfg,
 				nextCfg,
 				sobject.SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_ADD_PARTICIPANT,

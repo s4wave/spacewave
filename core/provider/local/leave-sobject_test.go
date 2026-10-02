@@ -95,7 +95,7 @@ func TestNativeSpaceLeave(t *testing.T) {
 	if err != nil || len(changes) == 0 {
 		t.Fatalf("owner lost native departure history: %v", err)
 	}
-	if err := sobject.VerifyConfigChainSuffix(base, after.GetConfig(), changes); err != nil {
+	if err := sobject.VerifyConfigChainSuffix(id, base, after.GetConfig(), changes); err != nil {
 		t.Fatalf("owner history does not prove current participation: %v", err)
 	}
 

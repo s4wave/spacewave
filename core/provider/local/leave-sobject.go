@@ -96,7 +96,7 @@ func (a *ProviderAccount) LeaveSharedObject(ctx context.Context, sessionKey cryp
 	// Adopt only the owner's signed proof, with no remote channel content or renewed grant.
 	current := state.GetConfig()
 	for _, change := range response.GetChanges() {
-		current, err = sobject.VerifyConfigChange(current, change)
+		current, err = sobject.VerifyConfigChange(id, current, change)
 		if err != nil {
 			return err
 		}

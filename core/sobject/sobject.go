@@ -2,6 +2,7 @@ package sobject
 
 import (
 	"context"
+	"crypto/sha256"
 	"slices"
 	"strings"
 
@@ -217,60 +218,6 @@ func (c *SharedObjectConfig) Validate() error {
 	return nil
 }
 
-// BuildSOOperation constructs a new SOOperation for a writer or validator.
-// The privKey must belong to a writer or validator participant.
-// opDataEnc should be opData encoded with the root state transform.
-func BuildSOOperation(
-	sharedObjectID string,
-	privKey crypto.PrivKey,
-	opDataEnc []byte,
-	opNonce uint64,
-	opLocalID string,
-) (*SOOperation, error) {
-	// Get the peer ID from the private key
-	peerID, err := peer.IDFromPrivateKey(privKey)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to get peer ID from private key")
-	}
-	peerIDStr := peerID.String()
-
-	// Create the operation
-	inner := &SOOperationInner{
-		PeerId:  peerIDStr,
-		LocalId: opLocalID,
-		Nonce:   opNonce,
-		OpData:  opDataEnc,
-	}
-	if err := inner.Validate(); err != nil {
-		return nil, err
-	}
-
-	innerData, err := inner.MarshalVT()
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to marshal operation inner data")
-	}
-
-	// Sign the operation
-	encContext := BuildSOOperationSignatureContext(sharedObjectID, peerIDStr, opNonce, opLocalID)
-	sig, err := peer.NewSignature(encContext, privKey, hash.RecommendedHashType, innerData, true)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to sign operation")
-	}
-
-	// Create the operation
-	op := &SOOperation{
-		Inner:     innerData,
-		Signature: sig,
-	}
-
-	// Validate the operation
-	if err := op.Validate(); err != nil {
-		return nil, errors.Wrap(err, "invalid operation")
-	}
-
-	return op, nil
-}
-
 // BuildSOOperationRejection constructs a new SOOperationRejection.
 // The privKey is used to sign the rejection.
 // The sharedObjectID is used to build the signature context.
@@ -401,18 +348,18 @@ func (op *SOOperation) Validate() error {
 
 // Validate performs cursory checks on the SOOperationInner.
 func (i *SOOperationInner) Validate() error {
+	// The author, local ID, and sequence identify the operation.
 	if _, err := i.ParsePeerID(); err != nil {
 		return err
 	}
-
 	if _, err := ParseSOOperationLocalID(i.GetLocalId()); err != nil {
 		return err
 	}
-
 	if i.GetNonce() == 0 {
 		return ErrInvalidNonce
 	}
 
+	// The payload is present and bounded.
 	if len(i.GetOpData()) == 0 {
 		return ErrEmptyInnerData
 	}
@@ -420,7 +367,8 @@ func (i *SOOperationInner) Validate() error {
 		return ErrMaxSizeExceeded
 	}
 
-	return nil
+	// The links place the operation in its chain.
+	return i.validateLinks()
 }
 
 // parsePeerIDField parses a peer id string from a proto field. Returns
@@ -458,27 +406,43 @@ func (i *SOOperationInner) ParsePeerID() (peer.ID, error) {
 	return parsePeerIDField(i.GetPeerId())
 }
 
-// updateAccountNonce updates the account nonce if the new nonce is higher.
-func (r *SORoot) updateAccountNonce(peerID string, nonce uint64) {
-	for i, accNonce := range r.AccountNonces {
+// Validate checks the account names a peer and the hash of an operation.
+func (n *SOAccountNonce) Validate() error {
+	if _, err := n.ParsePeerID(); err != nil {
+		return err
+	}
+	if n.GetNonce() == 0 {
+		return ErrInvalidNonce
+	}
+	if len(n.GetOpHash()) != sha256.Size {
+		return errors.New("account op_hash must be a 32-byte hash")
+	}
+	return nil
+}
+
+// advanceAccountNonce raises the head of peerID's chain in nonces to the
+// operation at nonce with opHash, keeping nonces sorted by peer ID.
+// A head at or past nonce is kept.
+func advanceAccountNonce(nonces []*SOAccountNonce, peerID string, nonce uint64, opHash []byte) []*SOAccountNonce {
+	for _, accNonce := range nonces {
 		if accNonce.GetPeerId() == peerID {
 			if nonce > accNonce.GetNonce() {
-				r.AccountNonces[i].Nonce = nonce
+				accNonce.Nonce = nonce
+				accNonce.OpHash = opHash
 			}
-			return
+			return nonces
 		}
 	}
-	r.AccountNonces = append(r.AccountNonces, &SOAccountNonce{
-		PeerId: peerID,
-		Nonce:  nonce,
-	})
-	slices.SortFunc(r.AccountNonces, func(a, b *SOAccountNonce) int {
+	nonces = append(nonces, &SOAccountNonce{PeerId: peerID, Nonce: nonce, OpHash: opHash})
+	slices.SortFunc(nonces, func(a, b *SOAccountNonce) int {
 		return strings.Compare(a.GetPeerId(), b.GetPeerId())
 	})
+	return nonces
 }
 
 // Validate checks the root envelope, ordered participant nonces, and signature structure.
 func (r *SORoot) Validate() error {
+	// The envelope carries a sequence, bounded state, and bounded signatures.
 	if r.GetInnerSeqno() == 0 {
 		return ErrInvalidSeqno
 	}
@@ -498,8 +462,7 @@ func (r *SORoot) Validate() error {
 	// Validate account nonces are sorted and unique by peer ID
 	var prevPeerID string
 	for i, nonce := range r.GetAccountNonces() {
-		// Parse and validate the peer ID
-		if _, err := nonce.ParsePeerID(); err != nil {
+		if err := nonce.Validate(); err != nil {
 			return errors.Wrapf(err, "account_nonces[%d]", i)
 		}
 		nPeerID := nonce.GetPeerId()

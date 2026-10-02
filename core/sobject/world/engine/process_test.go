@@ -174,6 +174,7 @@ func TestProcessOpAppliesOrdinaryTx(t *testing.T) {
 }
 
 func TestProcessOpCandidateRequiresSharedObjectRootUpdate(t *testing.T) {
+	// Use one owner key.
 	ctx := context.Background()
 	sharedObjectID := "test-candidate-finalization"
 	priv, _, err := crypto.GenerateEd25519Key(nil)
@@ -189,11 +190,14 @@ func TestProcessOpCandidateRequiresSharedObjectRootUpdate(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// Start a world and encode its head.
 	c, so, headState := newProcessTestWorld(t, ctx)
 	baseStateData, err := headState.MarshalVT()
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Grant the owner a root key.
 	transformConf := newStateTestTransformConfig(t, &transform_gzip.Config{})
 	grant, err := sobject.EncryptSOGrant(
 		priv,
@@ -204,6 +208,8 @@ func TestProcessOpCandidateRequiresSharedObjectRootUpdate(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Build the transformer.
 	sfs := block_transform.NewStepFactorySet()
 	sfs.AddStepFactory(transform_gzip.NewStepFactory())
 	sfs.AddStepFactory(transform_blockenc.NewStepFactory())
@@ -213,6 +219,8 @@ func TestProcessOpCandidateRequiresSharedObjectRootUpdate(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Encrypt the head as root seqno 1.
 	rootInnerData, err := (&sobject.SORootInner{
 		Seqno:     1,
 		StateData: baseStateData,
@@ -225,12 +233,14 @@ func TestProcessOpCandidateRequiresSharedObjectRootUpdate(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// Hold the owner state and a participant handle.
 	state := &sobject.SOState{
 		Config: &sobject.SharedObjectConfig{
 			Participants: []*sobject.SOParticipantConfig{{
 				PeerId: pid.String(),
 				Role:   sobject.SOParticipantRole_SOParticipantRole_OWNER,
 			}},
+			ConfigChainHash: bytes.Repeat([]byte{1}, 32),
 		},
 		Root: &sobject.SORoot{
 			Inner:      encodedStateData,
@@ -247,6 +257,7 @@ func TestProcessOpCandidateRequiresSharedObjectRootUpdate(t *testing.T) {
 		pid,
 	)
 
+	// Queue an operation that creates an object.
 	objectTx, err := world_block_tx.NewTxCreateObject("candidate-object", headState.GetHeadRef())
 	if err != nil {
 		t.Fatal(err.Error())
@@ -259,7 +270,7 @@ func TestProcessOpCandidateRequiresSharedObjectRootUpdate(t *testing.T) {
 		sharedObjectID,
 		priv,
 		encodedOpData,
-		1,
+		state.NextOperationLink(pid.String()),
 		sobject.NewSOOperationLocalID(),
 	)
 	if err != nil {
@@ -269,6 +280,7 @@ func TestProcessOpCandidateRequiresSharedObjectRootUpdate(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// Processing the candidate leaves the root unchanged.
 	nextRoot, rejectedOps, acceptedOps, err := snap.ProcessOperations(
 		ctx,
 		[]*sobject.SOOperation{op},
@@ -318,6 +330,7 @@ func TestProcessOpCandidateRequiresSharedObjectRootUpdate(t *testing.T) {
 		t.Fatal("candidate processing must not update the SharedObject root before UpdateRootState")
 	}
 
+	// Applying the candidate root changes the state.
 	if err := state.UpdateRootState(sharedObjectID, nextRoot, pid.String(), rejectedOps, acceptedOps); err != nil {
 		t.Fatal(err.Error())
 	}

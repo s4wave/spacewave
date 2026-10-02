@@ -1,6 +1,7 @@
 package sobject
 
 import (
+	"bytes"
 	"context"
 	"slices"
 	"strings"
@@ -110,8 +111,8 @@ func (s *SOState) Validate(sharedObjectID string) error {
 	}
 	seenQueuedPeerIDs := make(map[string]struct{}, len(s.GetQueuedAccountNonces()))
 	for i, nonce := range s.GetQueuedAccountNonces() {
-		if nonce.GetPeerId() == "" {
-			return errors.Wrapf(peer.ErrEmptyPeerID, "queued_account_nonces[%d].peer_id", i)
+		if err := nonce.Validate(); err != nil {
+			return errors.Wrapf(err, "queued_account_nonces[%d]", i)
 		}
 		if _, ok := seenQueuedPeerIDs[nonce.GetPeerId()]; ok {
 			return errors.Errorf("queued_account_nonces[%d]: duplicate peer id", i)
@@ -216,8 +217,9 @@ func (s *SOState) UpdateRootState(
 
 	// Preserve consumed nonces even when an explicitly accepted batch is ahead
 	// of the root's account nonce projection.
-	for _, inner := range innerAcceptedOps {
-		s.updateQueuedAccountNonce(inner.GetPeerId(), inner.GetNonce())
+	for i, ao := range acceptedOps {
+		inner := innerAcceptedOps[i]
+		s.QueuedAccountNonces = advanceAccountNonce(s.QueuedAccountNonces, inner.GetPeerId(), inner.GetNonce(), ao.Hash())
 	}
 
 	// Advance the root and drop pending state it resolves.
@@ -374,58 +376,74 @@ func (s *SOState) GetOperationStatus(peerID, localID string) (*SOOperation, *SOO
 	return nil, nil, nil
 }
 
-// GetNextAccountNonce advances past every queued, committed, or rejected write.
-// Zero means the uint64 nonce space is exhausted; QueueOperation rejects it.
-func (s *SOState) GetNextAccountNonce(peerID string) uint64 {
-	var current uint64
-	for _, op := range s.GetOps() {
-		inner, err := op.UnmarshalInner()
-		if err == nil && inner.GetPeerId() == peerID {
-			current = max(current, inner.GetNonce())
+// NextOperationLink returns where peerID's next operation goes: one past the
+// head of its chain, with every other participant's head as a parent, under
+// the current config. The head is the latest operation that is pending,
+// queued, or resolved by the root, applied or rejected.
+func (s *SOState) NextOperationLink(peerID string) *SOOperationLink {
+	// Extend the author's own head.
+	heads := s.authorHeads()
+	link := &SOOperationLink{ConfigHash: s.GetConfig().GetConfigChainHash()}
+	if head, ok := heads[peerID]; ok {
+		link.Nonce = head.GetNonce() + 1
+		link.PrevOpHash = head.GetOpHash()
+	} else {
+		link.Nonce = 1
+	}
+
+	// Name the head of every other current participant.
+	for _, p := range s.GetConfig().GetParticipants() {
+		if head, ok := heads[p.GetPeerId()]; ok && p.GetPeerId() != peerID {
+			link.ParentHashes = append(link.ParentHashes, head.GetOpHash())
 		}
+	}
+	return link
+}
+
+// authorHeads returns the latest known operation of each author.
+func (s *SOState) authorHeads() map[string]*SOAccountNonce {
+	// Keep the highest sequence seen for each author.
+	heads := make(map[string]*SOAccountNonce)
+	advance := func(peerID string, nonce uint64, opHash []byte) {
+		if head, ok := heads[peerID]; !ok || nonce > head.GetNonce() {
+			heads[peerID] = &SOAccountNonce{PeerId: peerID, Nonce: nonce, OpHash: opHash}
+		}
+	}
+
+	// Resolved, queued, and pending operations all advance a head.
+	for _, nonce := range s.GetRoot().GetAccountNonces() {
+		advance(nonce.GetPeerId(), nonce.GetNonce(), nonce.GetOpHash())
 	}
 	for _, nonce := range s.GetQueuedAccountNonces() {
-		if nonce.GetPeerId() == peerID {
-			current = max(current, nonce.GetNonce())
+		advance(nonce.GetPeerId(), nonce.GetNonce(), nonce.GetOpHash())
+	}
+	for _, op := range s.GetOps() {
+		inner, err := op.UnmarshalInner()
+		if err == nil {
+			advance(inner.GetPeerId(), inner.GetNonce(), op.Hash())
 		}
 	}
-	for _, nonce := range s.GetRoot().GetAccountNonces() {
-		if nonce.GetPeerId() == peerID {
-			current = max(current, nonce.GetNonce())
-		}
-	}
-	for _, group := range s.GetOpRejections() {
-		if group.GetPeerId() != peerID {
-			continue
-		}
-		for _, rejection := range group.GetRejections() {
-			inner, err := rejection.UnmarshalInner()
-			if err == nil {
-				current = max(current, inner.GetOpNonce())
-			}
-		}
-	}
-	return current + 1
+	return heads
 }
 
 // QueueOperation queues a signed operation from a writer or validator.
-// The operation must carry the peer's next account nonce and a local ID that
-// is neither pending nor rejected.
+// The operation must extend the head of its author's chain and carry a local
+// ID that is neither pending nor rejected.
 func (s *SOState) QueueOperation(sharedObjectID string, op *SOOperation) error {
 	// Admit only a signed, next-in-sequence, unique operation.
 	inner, err := s.validateOperation(sharedObjectID, op)
 	if err != nil {
 		return err
 	}
-	if err := s.validateOperationNonce(inner); err != nil {
+	if err := s.validateOperationChain(inner); err != nil {
 		return err
 	}
 	if err := s.validateOperationUnique(inner); err != nil {
 		return err
 	}
 
-	// Reserve the nonce and queue the operation.
-	s.updateQueuedAccountNonce(inner.GetPeerId(), inner.GetNonce())
+	// Advance the author's head and queue the operation.
+	s.QueuedAccountNonces = advanceAccountNonce(s.QueuedAccountNonces, inner.GetPeerId(), inner.GetNonce(), op.Hash())
 	s.Ops = append(s.Ops, op)
 	return nil
 }
@@ -452,11 +470,15 @@ func (s *SOState) validateOperation(
 	return inner, nil
 }
 
-// validateOperationNonce checks that the operation carries the peer's next nonce.
-func (s *SOState) validateOperationNonce(inner *SOOperationInner) error {
-	expectedNonce := s.GetNextAccountNonce(inner.GetPeerId())
-	if inner.GetNonce() != expectedNonce {
-		return errors.Wrapf(ErrInvalidNonce, "expected %d, got %d", expectedNonce, inner.GetNonce())
+// validateOperationChain checks that the operation directly follows the head
+// of its author's chain.
+func (s *SOState) validateOperationChain(inner *SOOperationInner) error {
+	next := s.NextOperationLink(inner.GetPeerId())
+	if inner.GetNonce() != next.Nonce {
+		return errors.Wrapf(ErrInvalidNonce, "expected %d, got %d", next.Nonce, inner.GetNonce())
+	}
+	if !bytes.Equal(inner.GetPrevOpHash(), next.PrevOpHash) {
+		return errors.Wrap(ErrInvalidNonce, "operation does not follow its author's previous operation")
 	}
 	return nil
 }
@@ -475,27 +497,6 @@ func (s *SOState) validateOperationUnique(inner *SOOperationInner) error {
 		return errors.Errorf("rejection with localID %s already exists for peer %s", localID, peerID)
 	}
 	return nil
-}
-
-// updateQueuedAccountNonce raises the queued account nonce for a peer,
-// keeping QueuedAccountNonces sorted by peer ID.
-func (s *SOState) updateQueuedAccountNonce(peerID string, nonce uint64) {
-	// Raise an existing entry without lowering it.
-	for _, qNonce := range s.QueuedAccountNonces {
-		if qNonce.GetPeerId() == peerID {
-			qNonce.Nonce = max(qNonce.GetNonce(), nonce)
-			return
-		}
-	}
-
-	// Insert a new entry in peer ID order.
-	s.QueuedAccountNonces = append(s.QueuedAccountNonces, &SOAccountNonce{
-		PeerId: peerID,
-		Nonce:  nonce,
-	})
-	slices.SortFunc(s.QueuedAccountNonces, func(a, b *SOAccountNonce) int {
-		return strings.Compare(a.GetPeerId(), b.GetPeerId())
-	})
 }
 
 // ClearOperationResult removes a rejection at the request of the peer that
@@ -553,8 +554,6 @@ func (s *SOState) ClearOperationResult(sharedObjectID string, clearOp *SOClearOp
 				continue
 			}
 
-			// Keep the consumed nonce after its visible rejection is cleared.
-			s.updateQueuedAccountNonce(signerPeerIDStr, rejInner.GetOpNonce())
 			peerRejections.Rejections = slices.Delete(peerRejections.Rejections, j, j+1)
 			if len(peerRejections.GetRejections()) == 0 {
 				s.OpRejections = slices.Delete(s.OpRejections, i, i+1)

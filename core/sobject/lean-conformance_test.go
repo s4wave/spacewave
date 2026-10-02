@@ -180,7 +180,7 @@ func (s *configChainScenario) run() {
 	// Propose changes, checking each alone, within the chain, and as a suffix.
 	for i := range leanScenarioSteps {
 		entry := s.change(cur)
-		next, err := VerifyConfigChange(cur, entry)
+		next, err := VerifyConfigChange(mockSharedObjectID, cur, entry)
 		s.checkChange(i, cur, entry, next, err)
 		s.checkChain(append(slices.Clone(chain), entry))
 		if err == nil {
@@ -215,11 +215,13 @@ func (s *configChainScenario) checkChange(
 
 // checkChain records one VerifyConfigChain decision and returns it.
 func (s *configChainScenario) checkChain(chain []*SOConfigChange) bool {
+	// Record the request.
 	req := s.arena.NewObject()
 	req.Set("op", s.arena.NewString("verifyChain"))
 	req.Set("entries", s.entriesJSON(chain))
 
-	ok := VerifyConfigChain(chain) == nil
+	// Record the Go decision as the expected result.
+	ok := VerifyConfigChain(mockSharedObjectID, chain) == nil
 	name := "verifyChain length " + strconv.Itoa(len(chain))
 	s.cases = append(s.cases, leanCase{name: name, request: req.MarshalTo(nil), ok: ok})
 	return ok
@@ -246,13 +248,15 @@ func (s *configChainScenario) checkSuffix(heads []*SharedObjectConfig, chain []*
 		candidate = heads[s.rng.IntN(len(heads))].CloneVT()
 	}
 
+	// Record the request.
 	req := s.arena.NewObject()
 	req.Set("op", s.arena.NewString("verifySuffix"))
 	req.Set("current", projectLeanConfig(heads[from]).json(&s.arena))
 	req.Set("candidate", projectLeanConfig(candidate).json(&s.arena))
 	req.Set("entries", s.entriesJSON(entries))
 
-	ok := VerifyConfigChainSuffix(heads[from], candidate, entries) == nil
+	// Record the Go decision as the expected result.
+	ok := VerifyConfigChainSuffix(mockSharedObjectID, heads[from], candidate, entries) == nil
 	name := "verifySuffix from " + strconv.Itoa(from)
 	s.cases = append(s.cases, leanCase{name: name, request: req.MarshalTo(nil), ok: ok})
 }
@@ -326,10 +330,11 @@ func (s *configChainScenario) change(cur *SharedObjectConfig) *SOConfigChange {
 
 	// Link the entry to the held head, sometimes wrongly.
 	entry := &SOConfigChange{
-		ConfigSeqno:  cur.GetConfigChainSeqno() + 1,
-		Config:       next,
-		ChangeType:   kind,
-		PreviousHash: cur.GetConfigChainHash(),
+		SharedObjectId: mockSharedObjectID,
+		ConfigSeqno:    cur.GetConfigChainSeqno() + 1,
+		Config:         next,
+		ChangeType:     kind,
+		PreviousHash:   cur.GetConfigChainHash(),
 	}
 	switch s.rng.IntN(16) {
 	case 0:
@@ -468,6 +473,7 @@ func (s *configChainScenario) entriesJSON(entries []*SOConfigChange) *fastjson.V
 // entryJSON projects a config change entry into the Lean Entry structure. The
 // signature becomes its signer and whether it verifies over the entry.
 func (s *configChainScenario) entryJSON(entry *SOConfigChange) *fastjson.Value {
+	// Project the sequence and config.
 	a := &s.arena
 	v := a.NewObject()
 	v.Set("seqno", a.NewNumberString(strconv.FormatUint(entry.GetConfigSeqno(), 10)))
@@ -475,24 +481,29 @@ func (s *configChainScenario) entryJSON(entry *SOConfigChange) *fastjson.Value {
 	if entry.GetConfig() != nil {
 		v.Set("config", projectLeanConfig(entry.GetConfig()).json(a))
 	}
+
+	// Project the first signature.
 	v.Set("sig", a.NewNull())
-	if entry.GetSignature() != nil {
+	if len(entry.GetSignatures()) != 0 {
 		signer, valid := projectLeanSignature(entry)
 		sig := a.NewObject()
 		sig.Set("signer", a.NewString(signer))
 		sig.Set("valid", leanBool(a, valid))
 		v.Set("sig", sig)
 	}
+
+	// Project the links and identity.
 	v.Set("prev", a.NewString(hex.EncodeToString(entry.GetPreviousHash())))
 	v.Set("kind", a.NewNumberInt(int(entry.GetChangeType())))
 	v.Set("hash", a.NewString(hex.EncodeToString(s.hash(entry))))
 	return v
 }
 
-// projectLeanSignature returns the peer that produced the entry signature and
-// whether it verifies over the entry without its signature field.
+// projectLeanSignature returns the peer that produced the entry's first
+// signature and whether it verifies over the entry's signed body.
 func projectLeanSignature(entry *SOConfigChange) (string, bool) {
-	sig := entry.GetSignature()
+	// Identify the signer.
+	sig := entry.GetSignatures()[0]
 	pub, err := sig.ParsePubKey()
 	if err != nil || pub == nil {
 		return "", false
@@ -502,10 +513,8 @@ func projectLeanSignature(entry *SOConfigChange) (string, bool) {
 		return "", false
 	}
 
-	// Verify over the same bytes verifyConfigChangeSignature checks.
-	clone := entry.CloneVT()
-	clone.Signature = nil
-	data, err := clone.MarshalVT()
+	// Verify over the same bytes verifyConfigChangeSignatures checks.
+	data, err := configChangeSignedBody(entry)
 	if err != nil {
 		return "", false
 	}

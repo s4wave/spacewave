@@ -43,7 +43,7 @@ func WriteSOConfigHistory(
 	// Verify every transition against the state held under the provider lock.
 	checkpoint := current.CloneVT()
 	for _, change := range changes {
-		accepted, err := sobject.VerifyConfigChange(current, change)
+		accepted, err := sobject.VerifyConfigChange(sharedObjectID, current, change)
 		if err != nil {
 			return err
 		}
@@ -192,7 +192,7 @@ func (s *SharedObject) ReadSharedObjectConfigHistory(ctx context.Context, target
 	if err != nil {
 		return nil, nil, err
 	}
-	if err := sobject.VerifyConfigChainSuffix(base, target, changes); err != nil {
+	if err := sobject.VerifyConfigChainSuffix(s.GetSharedObjectID(), base, target, changes); err != nil {
 		return nil, nil, err
 	}
 	return base, changes, nil
@@ -227,7 +227,7 @@ func (s *SharedObject) ReadSharedObjectGenesis(ctx context.Context, base *sobjec
 	if !bytes.Equal(hash, base.GetConfigChainHash()) {
 		return nil, sobject.ErrConfigHistoryUnavailable
 	}
-	return entry, sobject.VerifyConfigChain([]*sobject.SOConfigChange{entry})
+	return entry, sobject.VerifyConfigChain(s.GetSharedObjectID(), []*sobject.SOConfigChange{entry})
 }
 
 // ReadSharedObjectFullConfigHistory proves an imported object's original lineage.

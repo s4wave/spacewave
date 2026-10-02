@@ -11,28 +11,40 @@ import (
 	"github.com/s4wave/spacewave/net/peer"
 )
 
-// HashSOConfigChange computes the SHA-256 hash of a serialized SOConfigChange.
-// The signature field is excluded from the hash by zeroing it before marshaling.
-func HashSOConfigChange(entry *SOConfigChange) ([]byte, error) {
-	// Exclude the signature from the content-addressed chain entry.
-	clone := entry.CloneVT()
-	clone.Signature = nil
-	data, err := clone.MarshalVT()
-	if err != nil {
-		return nil, errors.Wrap(err, "marshal config change for hash")
-	}
+// soConfigChangeSignatureContext is the signature context of every control record.
+// The signed body binds the object, so the context needs no per-record data.
+const soConfigChangeSignatureContext = "sobject config change"
 
-	// Hash the canonical generated encoding.
+// HashSOConfigChange returns the identity of a control record: the SHA-256 of
+// its encoding with signatures cleared, which is also the signed body.
+func HashSOConfigChange(entry *SOConfigChange) ([]byte, error) {
+	data, err := configChangeSignedBody(entry)
+	if err != nil {
+		return nil, err
+	}
 	h := sha256.Sum256(data)
 	return h[:], nil
 }
 
+// configChangeSignedBody encodes the record with signatures cleared.
+func configChangeSignedBody(entry *SOConfigChange) ([]byte, error) {
+	// Encode a copy without its signatures.
+	clone := entry.CloneVT()
+	clone.Signatures = nil
+	data, err := clone.MarshalVT()
+	if err != nil {
+		return nil, errors.Wrap(err, "marshal config change body")
+	}
+	return data, nil
+}
+
 // VerifyConfigChain verifies a config change chain from genesis to current.
 // Each entry must have:
-// 1. Monotonically increasing config_seqno (starting from 0)
-// 2. previous_hash matching the hash of the prior entry (genesis has zero previous_hash)
-// 3. Valid authorization according to the change type
-func VerifyConfigChain(entries []*SOConfigChange) error {
+// 1. The shared object ID
+// 2. Monotonically increasing config_seqno (starting from 0)
+// 3. previous_hash matching the hash of the prior entry (genesis has zero previous_hash)
+// 4. Signatures authorized by the prior config; genesis by an owner of its own config
+func VerifyConfigChain(sharedObjectID string, entries []*SOConfigChange) error {
 	// Require a chain before validating its bootstrap entry.
 	if len(entries) == 0 {
 		return errors.New("config chain is empty")
@@ -40,6 +52,9 @@ func VerifyConfigChain(entries []*SOConfigChange) error {
 
 	// Genesis entry must have seqno 0.
 	genesis := entries[0]
+	if genesis.GetSharedObjectId() != sharedObjectID {
+		return errors.New("genesis entry is bound to another shared object")
+	}
 	if genesis.GetConfigSeqno() != 0 {
 		return errors.Errorf("genesis entry has seqno %d, expected 0", genesis.GetConfigSeqno())
 	}
@@ -61,14 +76,8 @@ func VerifyConfigChain(entries []*SOConfigChange) error {
 	if err := currentConfig.Validate(); err != nil {
 		return errors.Wrap(err, "genesis entry")
 	}
-
-	// Cloud bootstrap currently emits an unsigned genesis entry before any
-	// client-signed config changes exist. Accept that legacy shape, but keep
-	// requiring signatures for every subsequent config change.
-	if genesis.GetSignature() != nil {
-		if err := verifyConfigChangeSignature(genesis, currentConfig); err != nil {
-			return errors.Wrap(err, "genesis entry")
-		}
+	if err := verifyConfigChangeSignatures(genesis, currentConfig); err != nil {
+		return errors.Wrap(err, "genesis entry")
 	}
 
 	// Establish the effective genesis head before verifying later transitions.
@@ -84,7 +93,7 @@ func VerifyConfigChain(entries []*SOConfigChange) error {
 
 	// Verify each transition under the preceding configuration.
 	for i := 1; i < len(entries); i++ {
-		currentConfig, err = VerifyConfigChange(currentConfig, entries[i])
+		currentConfig, err = VerifyConfigChange(sharedObjectID, currentConfig, entries[i])
 		if err != nil {
 			return errors.Wrapf(err, "entry[%d]", i)
 		}
@@ -98,10 +107,13 @@ func VerifyConfigChain(entries []*SOConfigChange) error {
 // The resulting configuration must pass Validate, so a nonempty result keeps an OWNER.
 // An empty held head permits sequence zero for locally authorized bootstrap.
 // SELF_ENROLL_PEER requires a separate authenticated peer-to-entity binding.
-func VerifyConfigChange(current *SharedObjectConfig, entry *SOConfigChange) (*SharedObjectConfig, error) {
+func VerifyConfigChange(sharedObjectID string, current *SharedObjectConfig, entry *SOConfigChange) (*SharedObjectConfig, error) {
 	// Require both configurations before checking the chain and its authority.
 	if current == nil || entry.GetConfig() == nil {
 		return nil, errors.New("config change requires current and next configurations")
+	}
+	if entry.GetSharedObjectId() != sharedObjectID {
+		return nil, errors.New("config change is bound to another shared object")
 	}
 	if !bytes.Equal(entry.GetPreviousHash(), current.GetConfigChainHash()) {
 		return nil, errors.New("config change previous_hash does not match current config_chain_hash")
@@ -116,7 +128,7 @@ func VerifyConfigChange(current *SharedObjectConfig, entry *SOConfigChange) (*Sh
 	if entry.GetConfigSeqno() != expected {
 		return nil, errors.Errorf("config change seqno %d does not match expected %d", entry.GetConfigSeqno(), expected)
 	}
-	if err := verifyConfigChangeSignature(entry, current); err != nil {
+	if err := verifyConfigChangeSignatures(entry, current); err != nil {
 		return nil, errors.Wrap(err, "verify config change")
 	}
 
@@ -140,7 +152,7 @@ func VerifyConfigChange(current *SharedObjectConfig, entry *SOConfigChange) (*Sh
 // Empty suffixes require every candidate field to equal the checkpoint,
 // independent of participant order.
 // This verifies configuration authority only, not root or content acceptance.
-func VerifyConfigChainSuffix(current, candidate *SharedObjectConfig, entries []*SOConfigChange) error {
+func VerifyConfigChainSuffix(sharedObjectID string, current, candidate *SharedObjectConfig, entries []*SOConfigChange) error {
 	// Trust must already exist at the receiver before remote history is examined.
 	if len(current.GetConfigChainHash()) == 0 {
 		return errors.New("config suffix requires a nonempty trusted checkpoint")
@@ -161,7 +173,7 @@ func VerifyConfigChainSuffix(current, candidate *SharedObjectConfig, entries []*
 		default:
 			return errors.Errorf("entry[%d]: unsupported peer config change %s", i, entry.GetChangeType())
 		}
-		next, err := VerifyConfigChange(current, entry)
+		next, err := VerifyConfigChange(sharedObjectID, current, entry)
 		if err != nil {
 			return errors.Wrapf(err, "entry[%d]", i)
 		}
@@ -202,13 +214,14 @@ func configWithAppliedConfigChainHead(
 // self-enrolling peer for SELF_ENROLL_PEER changes.
 // revInfo is optional revocation metadata (only for REMOVE_PARTICIPANT changes).
 func BuildSOConfigChange(
+	sharedObjectID string,
 	currentConfig *SharedObjectConfig,
 	nextConfig *SharedObjectConfig,
 	changeType SOConfigChangeType,
 	signerPrivKey crypto.PrivKey,
 	revInfo *SORevocationInfo,
 ) (*SOConfigChange, error) {
-	entry := newSOConfigChange(currentConfig, nextConfig, changeType)
+	entry := newSOConfigChange(sharedObjectID, currentConfig, nextConfig, changeType)
 	entry.RevocationInfo = revInfo
 	if err := signSOConfigChange(entry, signerPrivKey); err != nil {
 		return nil, err
@@ -218,82 +231,97 @@ func BuildSOConfigChange(
 
 // newSOConfigChange links an unsigned entry to the head of the current configuration.
 // An empty head yields the genesis sequence number zero.
-func newSOConfigChange(currentConfig, nextConfig *SharedObjectConfig, changeType SOConfigChangeType) *SOConfigChange {
+func newSOConfigChange(
+	sharedObjectID string,
+	currentConfig, nextConfig *SharedObjectConfig,
+	changeType SOConfigChangeType,
+) *SOConfigChange {
 	var nextSeqno uint64
 	if len(currentConfig.GetConfigChainHash()) != 0 {
 		nextSeqno = currentConfig.GetConfigChainSeqno() + 1
 	}
 	return &SOConfigChange{
-		ConfigSeqno:  nextSeqno,
-		Config:       nextConfig.CloneVT(),
-		ChangeType:   changeType,
-		PreviousHash: currentConfig.GetConfigChainHash(),
+		SharedObjectId: sharedObjectID,
+		ConfigSeqno:    nextSeqno,
+		Config:         nextConfig.CloneVT(),
+		ChangeType:     changeType,
+		PreviousHash:   currentConfig.GetConfigChainHash(),
 	}
 }
 
-// signSOConfigChange signs every field of an unsigned entry.
+// signSOConfigChange adds a signature over the entry body.
 func signSOConfigChange(entry *SOConfigChange, signerPrivKey crypto.PrivKey) error {
-	// The signature covers the marshaled entry before its signature field is set.
-	data, err := entry.MarshalVT()
+	// Sign the body and append the signature.
+	data, err := configChangeSignedBody(entry)
 	if err != nil {
-		return errors.Wrap(err, "marshal config change for signing")
+		return err
 	}
-	sig, err := peer.NewSignature("sobject config change", signerPrivKey, hash.HashType_HashType_SHA256, data, true)
+	sig, err := peer.NewSignature(soConfigChangeSignatureContext, signerPrivKey, hash.HashType_HashType_SHA256, data, true)
 	if err != nil {
 		return errors.Wrap(err, "sign config change")
 	}
-	entry.Signature = sig
+	entry.Signatures = append(entry.Signatures, sig)
 	return nil
 }
 
-// verifyConfigChangeSignature verifies that the SOConfigChange is authorized by
-// the given config.
-func verifyConfigChangeSignature(entry *SOConfigChange, cfg *SharedObjectConfig) error {
-	// Recover the signing peer from the supplied signature.
-	sig := entry.GetSignature()
-	if sig == nil {
+// verifyConfigChangeSignatures checks that cfg authorizes the entry: at least
+// one signature, each valid over the body, from a distinct signer, and each
+// signer an OWNER of cfg. A SELF_ENROLL_PEER entry carries exactly one
+// signature, by the enrolling peer.
+func verifyConfigChangeSignatures(entry *SOConfigChange, cfg *SharedObjectConfig) error {
+	// Require signatures in the count the change type allows.
+	sigs := entry.GetSignatures()
+	if len(sigs) == 0 {
 		return errors.New("missing signature")
 	}
+	selfEnroll := entry.GetChangeType() == SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_SELF_ENROLL_PEER
+	if selfEnroll && len(sigs) != 1 {
+		return errors.New("self-enroll must carry exactly one signature")
+	}
 
-	sigPubKey, err := sig.ParsePubKey()
+	// Verify each signature over the body from a distinct authorized signer.
+	data, err := configChangeSignedBody(entry)
 	if err != nil {
-		return errors.Wrap(err, "parse signature public key")
+		return err
 	}
-	if sigPubKey == nil {
-		return peer.ErrEmptyPeerID
-	}
-
-	sigPeerID, err := peer.IDFromPublicKey(sigPubKey)
-	if err != nil {
-		return errors.Wrap(err, "derive peer ID from signature")
-	}
-	sigPeerIDStr := sigPeerID.String()
-
-	// Check the signing peer against the preceding configuration's authority.
-	if entry.GetChangeType() == SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_SELF_ENROLL_PEER {
-		if err := validateSelfEnrollPeerChange(entry, cfg, sigPeerIDStr); err != nil {
-			return err
+	seen := make(map[string]struct{}, len(sigs))
+	for i, sig := range sigs {
+		// Recover the signing peer from the supplied signature.
+		sigPubKey, err := sig.ParsePubKey()
+		if err != nil {
+			return errors.Wrapf(err, "signatures[%d]: parse public key", i)
 		}
-	} else if !isOwnerPeer(cfg, sigPeerIDStr) {
-		return errors.Errorf("signer %s is not an OWNER in the config", sigPeerIDStr)
-	}
+		if sigPubKey == nil {
+			return errors.Errorf("signatures[%d]: missing public key", i)
+		}
+		sigPeerID, err := peer.IDFromPublicKey(sigPubKey)
+		if err != nil {
+			return errors.Wrapf(err, "signatures[%d]: derive peer ID", i)
+		}
+		signer := sigPeerID.String()
+		if _, ok := seen[signer]; ok {
+			return errors.Errorf("signatures[%d]: duplicate signer %s", i, signer)
+		}
+		seen[signer] = struct{}{}
 
-	// Verify the signature over the entry without the signature field.
-	clone := entry.CloneVT()
-	clone.Signature = nil
-	data, err := clone.MarshalVT()
-	if err != nil {
-		return errors.Wrap(err, "marshal entry for signature verification")
-	}
+		// Check the signer against the authorizing configuration.
+		if selfEnroll {
+			if err := validateSelfEnrollPeerChange(entry, cfg, signer); err != nil {
+				return err
+			}
+		} else if !isOwnerPeer(cfg, signer) {
+			return errors.Errorf("signer %s is not an OWNER in the config", signer)
+		}
 
-	valid, err := sig.VerifyWithPublic("sobject config change", sigPubKey, data)
-	if err != nil {
-		return errors.Wrap(err, "verify signature")
+		// Check the signature over the body.
+		valid, err := sig.VerifyWithPublic(soConfigChangeSignatureContext, sigPubKey, data)
+		if err != nil {
+			return errors.Wrapf(err, "signatures[%d]: verify", i)
+		}
+		if !valid {
+			return errors.Errorf("signatures[%d]: invalid signature", i)
+		}
 	}
-	if !valid {
-		return errors.New("invalid signature")
-	}
-
 	return nil
 }
 

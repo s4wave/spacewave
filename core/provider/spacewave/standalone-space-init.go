@@ -452,6 +452,7 @@ func buildStandaloneSpaceInitState(
 		Participants: participants,
 	}
 	genesisEntry, err := sobject.BuildSOConfigChange(
+		sharedObjectID,
 		&sobject.SharedObjectConfig{},
 		genesisConfig,
 		sobject.SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_GENESIS,

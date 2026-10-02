@@ -62,6 +62,7 @@ func (s *leanHostStore) lock(context.Context, string) (SOStateLock, error) {
 
 // runLeanHostScenario compares all four host admission paths on related real states.
 func runLeanHostScenario(t *testing.T, peers []peer.Peer, seed uint64) []leanCase {
+	// Load the owner key.
 	t.Helper()
 	rng := rand.New(rand.NewPCG(seed, 0x4057))
 	projection := &configChainScenario{t: t}
@@ -70,6 +71,8 @@ func runLeanHostScenario(t *testing.T, peers []peer.Peer, seed uint64) []leanCas
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Hold two owners and a reader with a granted root and a queued operation.
 	base := createMockSOState(peers[:3], []SOParticipantRole{
 		SOParticipantRole_SOParticipantRole_OWNER,
 		SOParticipantRole_SOParticipantRole_OWNER,
@@ -82,7 +85,7 @@ func runLeanHostScenario(t *testing.T, peers []peer.Peer, seed uint64) []leanCas
 		t.Fatal(err)
 	}
 	base.Invites = []*SOInvite{{InviteId: "local invitation"}}
-	operation := signedLeanOperation(t, owner, peers[0].GetPeerID().String(), 1, NewSOOperationLocalID())
+	operation := signedLeanOperation(t, owner, peers[0].GetPeerID().String(), linkAt(base, owner, 1), NewSOOperationLocalID())
 	if err := base.QueueOperation(mockSharedObjectID, operation); err != nil {
 		t.Fatal(err)
 	}
@@ -96,13 +99,14 @@ func runLeanHostScenario(t *testing.T, peers []peer.Peer, seed uint64) []leanCas
 		lockOK, writeOK, accessOK := true, true, true
 		var entries []*SOConfigChange
 		change := func(config *SharedObjectConfig) {
+			// Remove under the owner and adopt the verified config.
 			t.Helper()
-			entry, err := BuildSOConfigChange(previous.Config, config,
+			entry, err := BuildSOConfigChange(mockSharedObjectID, previous.Config, config,
 				SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_REMOVE_PARTICIPANT, owner, nil)
 			if err != nil {
 				t.Fatal(err)
 			}
-			candidate.Config, err = VerifyConfigChange(previous.Config, entry)
+			candidate.Config, err = VerifyConfigChange(mockSharedObjectID, previous.Config, entry)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -143,7 +147,7 @@ func runLeanHostScenario(t *testing.T, peers []peer.Peer, seed uint64) []leanCas
 			entries = nil
 		case 9:
 			change(candidate.Config)
-			entries[0].Signature.SigData[0] ^= 1
+			entries[0].Signatures[0].SigData[0] ^= 1
 		case 10:
 			accessOK = false
 		case 11:
@@ -167,21 +171,21 @@ func runLeanHostScenario(t *testing.T, peers []peer.Peer, seed uint64) []leanCas
 		case 18:
 			candidate.RootGrants[0].Signature.SigData[0] ^= 1
 		case 19:
-			previous.Root.AccountNonces[0].Nonce = 7
+			previous.Root.AccountNonces = []*SOAccountNonce{{PeerId: peers[0].GetPeerID().String(), Nonce: 7, OpHash: mockPrevOpHash}}
 			signRoot(previous.Root)
 			candidate.Root.InnerSeqno++
-			candidate.Root.AccountNonces[0].Nonce = rng.Uint64N(7)
+			candidate.Root.AccountNonces = []*SOAccountNonce{{PeerId: peers[0].GetPeerID().String(), Nonce: rng.Uint64N(7), OpHash: mockPrevOpHash}}
 			signRoot(candidate.Root)
 		case 20:
 			localPeer = peers[3].GetPeerID()
 		case 21:
-			candidate.Ops = []*SOOperation{signedLeanOperation(t, owner, peers[0].GetPeerID().String(), 2, NewSOOperationLocalID())}
+			candidate.Ops = []*SOOperation{signedLeanOperation(t, owner, peers[0].GetPeerID().String(), linkAt(candidate, owner, 2), NewSOOperationLocalID())}
 		case 22:
 			previous.Ops[0].Inner = []byte{0xff}
 			candidate.Ops, candidate.QueuedAccountNonces = nil, nil
 		case 23:
 			candidate.Root.InnerSeqno++
-			candidate.Root.AccountNonces[0].Nonce = 1
+			candidate.Root.AccountNonces = []*SOAccountNonce{{PeerId: peers[0].GetPeerID().String(), Nonce: 1, OpHash: mockPrevOpHash}}
 			candidate.Ops, candidate.QueuedAccountNonces = nil, nil
 			signRoot(candidate.Root)
 		case 24:
@@ -222,7 +226,7 @@ func runLeanHostScenario(t *testing.T, peers []peer.Peer, seed uint64) []leanCas
 		// Local callbacks may fail after modifying their independent working copy.
 		store = &leanHostStore{state: previous.CloneVT(), lockOK: lockOK, writeOK: writeOK}
 		host = NewSOHost(nil, nil, store.lock, mockSharedObjectID)
-		entry, buildErr := BuildSOConfigChange(previous.Config, previous.Config,
+		entry, buildErr := BuildSOConfigChange(mockSharedObjectID, previous.Config, previous.Config,
 			SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_ADD_INVITE, owner, nil)
 		if buildErr != nil {
 			t.Fatal(buildErr)
@@ -232,7 +236,7 @@ func runLeanHostScenario(t *testing.T, peers []peer.Peer, seed uint64) []leanCas
 			entry.ConfigSeqno--
 			signConfigChange(t, entry, owner)
 		case 2:
-			entry.Signature.SigData[0] ^= 1
+			entry.Signatures[0].SigData[0] ^= 1
 		case 3:
 			entry = nil
 		}

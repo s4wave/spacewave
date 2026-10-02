@@ -20,6 +20,7 @@ func (c *SessionClient) SelfEnrollSpacePeer(
 	entityID string,
 	spaceID string,
 ) (bool, error) {
+	// Require the inputs and the session identity.
 	if c == nil {
 		return false, errors.New("session client is required")
 	}
@@ -39,6 +40,7 @@ func (c *SessionClient) SelfEnrollSpacePeer(
 		return false, errors.New("session peer id not available")
 	}
 
+	// Enroll against the latest config, retrying when another writer advances it.
 	for attempt := range maxWriteRetries {
 		state, currentCfg, epochs, err := c.loadStandaloneConfigState(ctx, spaceID)
 		if err != nil {
@@ -102,6 +104,7 @@ func (c *SessionClient) SelfEnrollSpacePeer(
 		)
 		if localParticipant == nil {
 			entry, err = sobject.BuildSelfEnrollPeerConfigChange(
+				spaceID,
 				currentCfg,
 				c.priv,
 				localPeerID,

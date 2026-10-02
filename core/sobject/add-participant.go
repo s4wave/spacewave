@@ -63,7 +63,7 @@ func AddSOParticipant(
 		EntityId: entityID,
 		Username: username,
 	})
-	entry, err := BuildSOConfigChange(currentCfg, nextCfg, SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_ADD_PARTICIPANT, localPriv, nil)
+	entry, err := BuildSOConfigChange(soID, currentCfg, nextCfg, SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_ADD_PARTICIPANT, localPriv, nil)
 	if err != nil {
 		return nil, errors.Wrap(err, "build config change")
 	}

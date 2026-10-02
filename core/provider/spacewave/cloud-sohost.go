@@ -1029,6 +1029,7 @@ func (h *cloudSOHost) applyConfigMutation(
 	nextInvites []*sobject.SOInvite,
 	epoch *sobject.SOKeyEpoch,
 ) error {
+	// Serialize with peer imports.
 	release, err := h.acceptMu.Lock(ctx)
 	if err != nil {
 		return err
@@ -1046,7 +1047,7 @@ func (h *cloudSOHost) applyConfigMutation(
 		if bytes.Equal(current.GetConfig().GetConfigChainHash(), newHash) {
 			return nil
 		}
-		if _, err := sobject.VerifyConfigChange(current.GetConfig(), entry); err != nil {
+		if _, err := sobject.VerifyConfigChange(h.soID, current.GetConfig(), entry); err != nil {
 			return err
 		}
 	}
@@ -1055,7 +1056,6 @@ func (h *cloudSOHost) applyConfigMutation(
 	nextCfg := entry.GetConfig().CloneVT()
 	nextCfg.ConfigChainHash = bytes.Clone(newHash)
 	nextCfg.ConfigChainSeqno = entry.GetConfigSeqno()
-
 	localPeerIDStr := h.peerID.String()
 	var localFound bool
 	for _, participant := range nextCfg.GetParticipants() {
@@ -1078,6 +1078,8 @@ func (h *cloudSOHost) applyConfigMutation(
 	if epoch != nil {
 		cache.KeyEpochs = mergeSOKeyEpochs(cache.KeyEpochs, epoch)
 	}
+
+	// Carry the new invites and the epoch's root grants into the next state.
 	if next != nil {
 		if nextInvites != nil {
 			next.Invites = cloneVTSlice(nextInvites)
@@ -1092,6 +1094,8 @@ func (h *cloudSOHost) applyConfigMutation(
 			cache.PeerState = next.CloneVT()
 		}
 	}
+
+	// Persist the cache before publishing it.
 	if h.persistVerifiedStateCache != nil {
 		if err := h.persistVerifiedStateCache(ctx, cache); err != nil {
 			return err
@@ -1112,6 +1116,8 @@ func (h *cloudSOHost) applyConfigMutation(
 		}
 		broadcast()
 	})
+
+	// A peer removed from the object stops hosting it.
 	if !localFound && h.ctxCancel != nil {
 		h.ctxCancel()
 	}
@@ -1119,7 +1125,8 @@ func (h *cloudSOHost) applyConfigMutation(
 }
 
 // QueueOperation signs and durably accepts local work before live peer delivery.
-func (h *cloudSOHost) QueueOperation(ctx context.Context, peerID peer.ID, cb func(nonce uint64) (*sobject.SOOperation, error)) error {
+func (h *cloudSOHost) QueueOperation(ctx context.Context, peerID peer.ID, cb func(link *sobject.SOOperationLink) (*sobject.SOOperation, error)) error {
+	// Serialize local writes and load the accepted state.
 	releaseWrite, err := h.writeMu.Lock(ctx)
 	if err != nil {
 		return err
@@ -1128,6 +1135,8 @@ func (h *cloudSOHost) QueueOperation(ctx context.Context, peerID peer.ID, cb fun
 	if err := h.ensureInitialState(ctx, SeedReasonColdSeed); err != nil {
 		return err
 	}
+
+	// Hold the accepted state while the operation is signed and queued.
 	release, err := h.acceptMu.Lock(ctx)
 	if err != nil {
 		return err
@@ -1137,7 +1146,9 @@ func (h *cloudSOHost) QueueOperation(ctx context.Context, peerID peer.ID, cb fun
 	if state == nil {
 		return errors.New("no accepted shared object state")
 	}
-	operation, err := cb(state.GetNextAccountNonce(peerID.String()))
+
+	// Sign at the author's next link and retain it for publication.
+	operation, err := cb(state.NextOperationLink(peerID.String()))
 	if err != nil {
 		return err
 	}
@@ -1234,8 +1245,9 @@ func (h *cloudSOHost) syncConfigChainResponse(
 	resp *sobject.SOConfigChainResponse,
 	newHash []byte,
 ) error {
+	// Verify the chain from genesis.
 	entries := resp.GetConfigChanges()
-	if err := sobject.VerifyConfigChain(entries); err != nil {
+	if err := sobject.VerifyConfigChain(h.soID, entries); err != nil {
 		return errors.Wrap(err, "verify config chain")
 	}
 	if len(entries) == 0 {

@@ -131,8 +131,8 @@ func leanSyncOperation(t *testing.T, a *fastjson.Arena, objectID string, operati
 	v.Set("parsed", leanSyncBool(a, parsed))
 	v.Set("innerValid", leanSyncBool(a, parsed && inner.Validate() == nil))
 	v.Set("format", leanSyncBool(a, operation.Validate() == nil))
-	v.Set("sig", leanSyncSig(a, operation.GetSignature(), operation.GetInner(), func(id string) string {
-		return sobject.BuildSOOperationSignatureContext(objectID, id, inner.GetNonce(), inner.GetLocalId())
+	v.Set("sig", leanSyncSig(a, operation.GetSignature(), operation.GetInner(), func(string) string {
+		return sobject.SOOperationSignatureContext
 	}))
 	return v
 }
@@ -285,7 +285,7 @@ func leanSyncResponseCases(t *testing.T, seed uint64) []leanSyncCase {
 		if err != nil {
 			t.Fatal(err)
 		}
-		change, err := sobject.BuildSOConfigChange(current.Config, current.Config,
+		change, err := sobject.BuildSOConfigChange(objectID, current.Config, current.Config,
 			sobject.SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_ADD_INVITE, owner, nil)
 		if err != nil {
 			t.Fatal(err)
@@ -386,7 +386,7 @@ func leanSyncResponseCases(t *testing.T, seed uint64) []leanSyncCase {
 		case 10:
 			receiving.changes = receiving.changes[1:]
 		case 11:
-			receiving.changes[0].Signature.SigData = []byte("invalid signature")
+			receiving.changes[0].Signatures[0].SigData = []byte("invalid signature")
 		case 12:
 			candidate.Root.ValidatorSignatures[0].SigData = []byte("invalid root proof")
 		case 13:
@@ -418,12 +418,12 @@ func leanSyncResponseCases(t *testing.T, seed uint64) []leanSyncCase {
 		case 23:
 			config := candidate.Config.CloneVT()
 			config.Participants = config.Participants[:1]
-			change, err := sobject.BuildSOConfigChange(candidate.Config, config,
+			change, err := sobject.BuildSOConfigChange(objectID, candidate.Config, config,
 				sobject.SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_REMOVE_PARTICIPANT, owner, nil)
 			if err != nil {
 				t.Fatal(err)
 			}
-			candidate.Config, err = sobject.VerifyConfigChange(candidate.Config, change)
+			candidate.Config, err = sobject.VerifyConfigChange(objectID, candidate.Config, change)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -563,13 +563,13 @@ func leanSyncPreparedCases(t *testing.T, objectID string, sender *SOSync, target
 			readOK = false
 			req.BaseHash = state.Config.ConfigChainHash
 		case 3:
-			history[0].Signature.SigData = make([]byte, maxHistoryPageBytes)
+			history[0].Signatures[0].SigData = make([]byte, maxHistoryPageBytes)
 		case 4:
 			state.Config.ConfigChainHash = nil
 		case 5:
 			for range 3 {
-				padding := len(history[0].Signature.SigData) + maxHistoryPageBytes - 256 - history[0].SizeVT()
-				history[0].Signature.SigData = make([]byte, padding)
+				padding := len(history[0].Signatures[0].SigData) + maxHistoryPageBytes - 256 - history[0].SizeVT()
+				history[0].Signatures[0].SigData = make([]byte, padding)
 			}
 			if history[0].SizeVT()+256 != maxHistoryPageBytes {
 				t.Fatal("failed to construct prepareResponse entry boundary")

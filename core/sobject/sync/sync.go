@@ -492,7 +492,7 @@ func (s *SOSync) handleRemoteOp(ctx context.Context, le *logrus.Entry, syncOp *S
 
 	// Queue the signed operation directly against the SOHost.
 	// The SOHost validates signatures and nonces.
-	if err := s.soHost.QueueOperation(ctx, peerID, func(nonce uint64) (*sobject.SOOperation, error) {
+	if err := s.soHost.QueueOperation(ctx, peerID, func(link *sobject.SOOperationLink) (*sobject.SOOperation, error) {
 		return op, nil
 	}); err != nil {
 		le.WithError(err).Debug("failed to queue remote op")

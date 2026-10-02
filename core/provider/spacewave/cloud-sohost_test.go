@@ -297,6 +297,7 @@ func TestCloudSOHostTriggersPullWhenAdvancedBlockManifestRefreshFails(t *testing
 }
 
 func TestCloudSOHostUsesInlineConfigChainWhenPulledStateHashChanges(t *testing.T) {
+	// Load rejoin fixtures for one owner.
 	const accountID = "acct-inline-chain"
 	soID := testSharedObjectID
 	entityPriv, _ := generateTestKeypair(t)
@@ -310,13 +311,14 @@ func TestCloudSOHostUsesInlineConfigChainWhenPulledStateHashChanges(t *testing.T
 		entityPriv,
 		1,
 	)
+
 	// The inline response advances a real trusted checkpoint rather than replacing a fork.
 	previousConfig := state.GetConfig().CloneVT()
-	change, err := sobject.BuildSOConfigChange(previousConfig, previousConfig, sobject.SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_ADD_INVITE, ownerPriv, nil)
+	change, err := sobject.BuildSOConfigChange(soID, previousConfig, previousConfig, sobject.SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_ADD_INVITE, ownerPriv, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	state.Config, err = sobject.VerifyConfigChange(previousConfig, change)
+	state.Config, err = sobject.VerifyConfigChange(soID, previousConfig, change)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -329,6 +331,7 @@ func TestCloudSOHostUsesInlineConfigChainWhenPulledStateHashChanges(t *testing.T
 		},
 	})
 
+	// Serve the state and fail any separate chain request.
 	var configChainRequests int
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
@@ -343,6 +346,7 @@ func TestCloudSOHostUsesInlineConfigChainWhenPulledStateHashChanges(t *testing.T
 	}))
 	defer srv.Close()
 
+	// Pulling uses the inline chain and accepts the state.
 	host := &cloudSOHost{
 		le:                  logrus.New().WithField("test", t.Name()),
 		client:              NewSessionClient(http.DefaultClient, srv.URL, DefaultSigningEnvPrefix, ownerPriv, ownerPID.String()),
@@ -393,6 +397,7 @@ func waitAsyncCallbackJobsEmpty(t *testing.T, jobs *asyncCallbackJobs) {
 }
 
 func TestApplyChangeLogEntryRootPrunesAcceptedAndRejectedOps(t *testing.T) {
+	// Create a validator and two writers.
 	validator, err := peer.NewPeer(nil)
 	if err != nil {
 		t.Fatalf("validator peer: %v", err)
@@ -406,6 +411,7 @@ func TestApplyChangeLogEntryRootPrunesAcceptedAndRejectedOps(t *testing.T) {
 		t.Fatalf("writer2 peer: %v", err)
 	}
 
+	// Load their keys.
 	validatorPriv, err := validator.GetPrivKey(context.Background())
 	if err != nil {
 		t.Fatalf("validator privkey: %v", err)
@@ -419,9 +425,10 @@ func TestApplyChangeLogEntryRootPrunesAcceptedAndRejectedOps(t *testing.T) {
 		t.Fatalf("writer2 privkey: %v", err)
 	}
 
-	op1 := buildTestSOOperation(t, writer1Priv, 1)
-	op2 := buildTestSOOperation(t, writer1Priv, 2)
-	op3 := buildTestSOOperation(t, writer2Priv, 1)
+	// Reject writer 1's second operation and keep writer 2's pending; the root accepts writer 1's first.
+	op1 := buildTestSOOperation(t, writer1Priv, testOperationLink(1))
+	op2 := buildTestSOOperation(t, writer1Priv, &sobject.SOOperationLink{Nonce: 2, PrevOpHash: op1.Hash(), ConfigHash: testConfigHash})
+	op3 := buildTestSOOperation(t, writer2Priv, testOperationLink(1))
 	rejection := buildTestSOOperationRejection(t, validatorPriv, writer1.GetPeerID(), 2, op2)
 	state := &sobject.SOState{
 		Config: buildTestSharedObjectConfig(validator, writer1, writer2),
@@ -435,12 +442,14 @@ func TestApplyChangeLogEntryRootPrunesAcceptedAndRejectedOps(t *testing.T) {
 	root := buildTestSORoot(t, validatorPriv, 2, []*sobject.SOAccountNonce{{
 		PeerId: writer1.GetPeerID().String(),
 		Nonce:  1,
+		OpHash: op1.Hash(),
 	}})
 	rootData, err := (&api.PostRootRequest{Root: root}).MarshalVT()
 	if err != nil {
 		t.Fatalf("marshal post root request: %v", err)
 	}
 
+	// Applying the root prunes the accepted and rejected operations.
 	err = applyChangeLogEntry(testSharedObjectID, state, &api.SOStateDeltaEntry{
 		ChangeType: "root",
 		ChangeData: rootData,
@@ -452,6 +461,7 @@ func TestApplyChangeLogEntryRootPrunesAcceptedAndRejectedOps(t *testing.T) {
 		t.Fatalf("expected 1 pending op after prune, got %d", len(state.GetOps()))
 	}
 
+	// Only writer 2's operation remains.
 	inner, err := state.GetOps()[0].UnmarshalInner()
 	if err != nil {
 		t.Fatalf("unmarshal remaining op: %v", err)
@@ -573,7 +583,7 @@ func buildTestSharedObjectConfig(
 func buildTestSOOperation(
 	t *testing.T,
 	privKey crypto.PrivKey,
-	nonce uint64,
+	link *sobject.SOOperationLink,
 ) *sobject.SOOperation {
 	t.Helper()
 
@@ -581,7 +591,7 @@ func buildTestSOOperation(
 		testSharedObjectID,
 		privKey,
 		[]byte("op"),
-		nonce,
+		link,
 		sobject.NewSOOperationLocalID(),
 	)
 	if err != nil {
@@ -646,4 +656,16 @@ func buildTestSORoot(
 		t.Fatalf("sign root: %v", err)
 	}
 	return root
+}
+
+// testConfigHash is the config chain hash test operations are written under.
+var testConfigHash = bytes.Repeat([]byte{0xc0}, 32)
+
+// testOperationLink places an operation at nonce under fixed chain hashes.
+func testOperationLink(nonce uint64) *sobject.SOOperationLink {
+	link := &sobject.SOOperationLink{Nonce: nonce, ConfigHash: testConfigHash}
+	if nonce > 1 {
+		link.PrevOpHash = bytes.Repeat([]byte{0xa0}, 32)
+	}
+	return link
 }

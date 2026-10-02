@@ -26,6 +26,8 @@ func TestCloudPeerImportCommitsWithoutPublication(t *testing.T) {
 		w.WriteHeader(http.StatusInternalServerError)
 	}))
 	t.Cleanup(server.Close)
+
+	// Sign a genesis and root as the only owner.
 	ctx := t.Context()
 	priv, pid := generateTestKeypair(t)
 	client := NewSessionClient(server.Client(), server.URL, DefaultSigningEnvPrefix, priv, pid.String())
@@ -35,17 +37,21 @@ func TestCloudPeerImportCommitsWithoutPublication(t *testing.T) {
 		}}},
 		Root: &sobject.SORoot{InnerSeqno: 1, Inner: []byte("trusted-root")},
 	}
-	genesis, err := sobject.BuildSOConfigChange(initial.Config, initial.Config, sobject.SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_GENESIS, priv, nil)
+
+	// Verify the genesis and sign the root.
+	genesis, err := sobject.BuildSOConfigChange(testSharedObjectID, initial.Config, initial.Config, sobject.SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_GENESIS, priv, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	initial.Config, err = sobject.VerifyConfigChange(initial.Config, genesis)
+	initial.Config, err = sobject.VerifyConfigChange(testSharedObjectID, initial.Config, genesis)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if err := initial.Root.SignInnerData(priv, testSharedObjectID, 1, hash.RecommendedHashType); err != nil {
 		t.Fatal(err)
 	}
+
+	// Save the verified cache in a real account store.
 	cache := &api.VerifiedSOStateCache{
 		GenesisHash: initial.Config.ConfigChainHash, VerifiedConfigChainHash: initial.Config.ConfigChainHash,
 		CurrentConfig: initial.Config, ConfigHistory: []*sobject.SOConfigChange{genesis},
@@ -54,6 +60,8 @@ func TestCloudPeerImportCommitsWithoutPublication(t *testing.T) {
 	if err := account.writeVerifiedSOStateCache(ctx, testSharedObjectID, cache); err != nil {
 		t.Fatal(err)
 	}
+
+	// Open a host whose cache writes fail until released.
 	failed := errors.New("injected cache write failure")
 	var failWrite atomic.Bool
 	failWrite.Store(true)
@@ -68,13 +76,13 @@ func TestCloudPeerImportCommitsWithoutPublication(t *testing.T) {
 	host.soHost.SetContext(ctx)
 	t.Cleanup(host.soHost.ClearContext)
 
-	// Failure leaves the held authority, watched state and saved cache unchanged.
-	change, err := sobject.BuildSOConfigChange(initial.Config, initial.Config, sobject.SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_ADD_INVITE, priv, nil)
+	// Sign a newer root under an invite change.
+	change, err := sobject.BuildSOConfigChange(testSharedObjectID, initial.Config, initial.Config, sobject.SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_ADD_INVITE, priv, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 	candidate := initial.CloneVT()
-	candidate.Config, err = sobject.VerifyConfigChange(initial.Config, change)
+	candidate.Config, err = sobject.VerifyConfigChange(testSharedObjectID, initial.Config, change)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -83,6 +91,8 @@ func TestCloudPeerImportCommitsWithoutPublication(t *testing.T) {
 	if err := candidate.Root.SignInnerData(priv, testSharedObjectID, 5, hash.RecommendedHashType); err != nil {
 		t.Fatal(err)
 	}
+
+	// Failure leaves the held authority, watched state and saved cache unchanged.
 	if err := host.soHost.ImportPeerSnapshot(ctx, candidate, []*sobject.SOConfigChange{change}, pid, nil); !errors.Is(err, failed) {
 		t.Fatalf("failed import = %v", err)
 	}
@@ -91,7 +101,7 @@ func TestCloudPeerImportCommitsWithoutPublication(t *testing.T) {
 		t.Fatalf("failed import changed accepted data: %v", err)
 	}
 
-	// Commit through the real account store and reopen without HTTP seeding.
+	// Commit through the real account store.
 	failWrite.Store(false)
 	if err := host.soHost.ImportPeerSnapshot(ctx, candidate, []*sobject.SOConfigChange{change}, pid, nil); err != nil {
 		t.Fatal(err)
@@ -100,6 +110,8 @@ func TestCloudPeerImportCommitsWithoutPublication(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Reopen without HTTP seeding.
 	reopened := newCloudSOHost(logrus.New().WithField("test", t.Name()), client, testSharedObjectID, "", nil, priv, pid, nil, saved, persist, nil)
 	reopened.soHost.SetContext(ctx)
 	t.Cleanup(reopened.soHost.ClearContext)
@@ -121,6 +133,7 @@ func TestCloudPeerImportCommitsWithoutPublication(t *testing.T) {
 	if !reopened.stateCtr.GetValue().EqualVT(candidate) {
 		t.Fatal("stale cloud response changed accepted peer state")
 	}
+
 	// Hold peer persistence while a cloud completion tries to publish an older root.
 	persisting, allowCommit := make(chan struct{}), make(chan struct{})
 	var blocked bool
@@ -136,6 +149,8 @@ func TestCloudPeerImportCommitsWithoutPublication(t *testing.T) {
 		}
 		return persist(ctx, cache)
 	}
+
+	// Sign a newer peer root and an older cloud root.
 	newer := candidate.CloneVT()
 	newer.Root = &sobject.SORoot{InnerSeqno: 9, Inner: []byte("newer peer root")}
 	if err := newer.Root.SignInnerData(priv, testSharedObjectID, 9, hash.RecommendedHashType); err != nil {
@@ -146,6 +161,8 @@ func TestCloudPeerImportCommitsWithoutPublication(t *testing.T) {
 	if err := late.Root.SignInnerData(priv, testSharedObjectID, 8, hash.RecommendedHashType); err != nil {
 		t.Fatal(err)
 	}
+
+	// The peer import blocks in persistence before it becomes visible.
 	peerDone, cloudDone := make(chan error, 1), make(chan error, 1)
 	go func() { peerDone <- reopened.soHost.ImportPeerSnapshot(ctx, newer, nil, pid, nil) }()
 	select {
@@ -156,6 +173,8 @@ func TestCloudPeerImportCommitsWithoutPublication(t *testing.T) {
 	if !reopened.stateCtr.GetValue().EqualVT(candidate) {
 		t.Fatal("peer state became visible before persistence")
 	}
+
+	// A cloud completion races the peer commit and loses.
 	cloudStarted := make(chan struct{})
 	go func() {
 		close(cloudStarted)

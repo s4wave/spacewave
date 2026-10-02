@@ -16,7 +16,7 @@ import (
 // TestPeerImportRetainsAuthority exercises host acceptance through real local
 // transactions, including failed access, retry, reopening and signed revocation.
 func TestPeerImportRetainsAuthority(t *testing.T) {
-	// Seed a locally trusted, signed genesis and root.
+	// Generate the owner key.
 	ctx := t.Context()
 	owner, _, err := crypto.GenerateKeyPair(crypto.KeyType_Ed25519, 0)
 	if err != nil {
@@ -26,6 +26,8 @@ func TestPeerImportRetainsAuthority(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Generate the reader key.
 	reader, _, err := crypto.GenerateKeyPair(crypto.KeyType_Ed25519, 0)
 	if err != nil {
 		t.Fatal(err)
@@ -34,6 +36,8 @@ func TestPeerImportRetainsAuthority(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Sign a genesis and root under an owner and a reader.
 	initial := &sobject.SOState{
 		Config: &sobject.SharedObjectConfig{Participants: []*sobject.SOParticipantConfig{
 			{PeerId: ownerID.String(), Role: sobject.SOParticipantRole_SOParticipantRole_OWNER},
@@ -41,23 +45,27 @@ func TestPeerImportRetainsAuthority(t *testing.T) {
 		}},
 		Root: &sobject.SORoot{InnerSeqno: 1, Inner: []byte("held-root")},
 	}
-	genesis, err := sobject.BuildSOConfigChange(initial.Config, initial.Config, sobject.SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_GENESIS, owner, nil)
+	genesis, err := sobject.BuildSOConfigChange(testSharedObjectID, initial.Config, initial.Config, sobject.SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_GENESIS, owner, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	initial.Config, err = sobject.VerifyConfigChange(initial.Config, genesis)
+	initial.Config, err = sobject.VerifyConfigChange(testSharedObjectID, initial.Config, genesis)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if err := initial.Root.SignInnerData(owner, testSharedObjectID, 1, hash.RecommendedHashType); err != nil {
 		t.Fatal(err)
 	}
+
+	// Seed the state in the real in-memory store.
 	backend := store_inmem.NewStore()
 	seed, err := backend.NewTransaction(ctx, true)
 	if err != nil {
 		t.Fatal(err)
 	}
 	t.Cleanup(seed.Discard)
+
+	// Commit the encoded state.
 	data, err := initial.MarshalVT()
 	if err != nil {
 		t.Fatal(err)
@@ -70,21 +78,25 @@ func TestPeerImportRetainsAuthority(t *testing.T) {
 	}
 	seed.Discard()
 
-	// Reject inaccessible candidates before any durable or watched state changes.
+	// Open a host over a store whose first commit fails.
 	faults := kvtest.NewFaultStore(backend, kvtest.FaultBeforeCommit)
 	store := &configHistoryFaultStore{backend: backend, writes: faults}
 	watch, lock, syncFuncs := NewObjectStoreSOStateFuncs(ctx, store, readerID)
 	host := sobject.NewSOHost(ctx, watch, lock, testSharedObjectID, syncFuncs)
 	t.Cleanup(host.ClearContext)
-	change, err := sobject.BuildSOConfigChange(initial.Config, initial.Config, sobject.SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_ADD_INVITE, owner, nil)
+
+	// Verify an invite change into a candidate.
+	change, err := sobject.BuildSOConfigChange(testSharedObjectID, initial.Config, initial.Config, sobject.SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_ADD_INVITE, owner, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 	candidate := initial.CloneVT()
-	candidate.Config, err = sobject.VerifyConfigChange(initial.Config, change)
+	candidate.Config, err = sobject.VerifyConfigChange(testSharedObjectID, initial.Config, change)
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Reject inaccessible candidates before any durable or watched state changes.
 	denied := errors.New("cannot decode root")
 	if err := host.ImportPeerSnapshot(ctx, candidate, []*sobject.SOConfigChange{change}, readerID, func(context.Context, *sobject.SOState) error {
 		return denied
@@ -103,6 +115,8 @@ func TestPeerImportRetainsAuthority(t *testing.T) {
 	if faults.Opened() != 2 || faults.DelegatedCommits() != 1 {
 		t.Fatalf("attempts = %d, commits = %d", faults.Opened(), faults.DelegatedCommits())
 	}
+
+	// A reopened host holds the candidate and its suffix.
 	watchAgain, lockAgain, syncAgain := NewObjectStoreSOStateFuncs(ctx, backend, readerID)
 	reopened := sobject.NewSOHost(ctx, watchAgain, lockAgain, testSharedObjectID, syncAgain)
 	t.Cleanup(reopened.ClearContext)
@@ -114,22 +128,24 @@ func TestPeerImportRetainsAuthority(t *testing.T) {
 	if err != nil || len(suffix) != 1 || !suffix[0].EqualVT(change) {
 		t.Fatalf("reopened suffix = %v: %v", suffix, err)
 	}
-	if err := sobject.VerifyConfigChainSuffix(initial.Config, got.Config, suffix); err != nil {
+	if err := sobject.VerifyConfigChainSuffix(testSharedObjectID, initial.Config, got.Config, suffix); err != nil {
 		t.Fatal(err)
 	}
 
 	// A proven local removal commits without requiring a new root or decryptable grant.
 	nextConfig := candidate.Config.CloneVT()
 	nextConfig.Participants = nextConfig.Participants[:1]
-	removal, err := sobject.BuildSOConfigChange(candidate.Config, nextConfig, sobject.SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_REMOVE_PARTICIPANT, owner, nil)
+	removal, err := sobject.BuildSOConfigChange(testSharedObjectID, candidate.Config, nextConfig, sobject.SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_REMOVE_PARTICIPANT, owner, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 	revoked := candidate.CloneVT()
-	revoked.Config, err = sobject.VerifyConfigChange(candidate.Config, removal)
+	revoked.Config, err = sobject.VerifyConfigChange(testSharedObjectID, candidate.Config, removal)
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Import the removal without a root; it reports the revocation.
 	revoked.Root = nil
 	if err := host.ImportPeerSnapshot(ctx, revoked, []*sobject.SOConfigChange{removal}, readerID, func(context.Context, *sobject.SOState) error {
 		t.Error("revocation requested decryption")
@@ -163,17 +179,19 @@ func TestPeerImportRetainsAuthority(t *testing.T) {
 	// Explicit invitation authority replaces the upgrade checkpoint with its accepted head.
 	rejoined := got.CloneVT()
 	rejoined.Config = initial.Config.CloneVT()
-	reauthorization, err := sobject.BuildSOConfigChange(got.Config, rejoined.Config, sobject.SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_ADD_PARTICIPANT, owner, nil)
+	reauthorization, err := sobject.BuildSOConfigChange(testSharedObjectID, got.Config, rejoined.Config, sobject.SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_ADD_PARTICIPANT, owner, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	rejoined.Config, err = sobject.VerifyConfigChange(got.Config, reauthorization)
+	rejoined.Config, err = sobject.VerifyConfigChange(testSharedObjectID, got.Config, reauthorization)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if err := host.InstallInviteSnapshot(ctx, rejoined); err != nil {
 		t.Fatal(err)
 	}
+
+	// The read checkpoint is gone.
 	read, err := backend.NewTransaction(ctx, false)
 	if err != nil {
 		t.Fatal(err)
@@ -182,6 +200,8 @@ func TestPeerImportRetainsAuthority(t *testing.T) {
 	if _, found, err := read.Get(ctx, readCheckpointKey(testSharedObjectID)); err != nil || found {
 		t.Fatalf("readmission retained obsolete read checkpoint: found=%v err=%v", found, err)
 	}
+
+	// The invitation head is the new checkpoint.
 	checkpointData, found, err := read.Get(ctx, SOConfigHistoryCheckpointKey(testSharedObjectID))
 	if err != nil || !found {
 		t.Fatalf("invitation checkpoint missing: %v", err)
@@ -193,6 +213,8 @@ func TestPeerImportRetainsAuthority(t *testing.T) {
 	if !checkpoint.EqualVT(rejoined.Config) {
 		t.Fatal("invitation state retained the previous trust checkpoint")
 	}
+
+	// The stored state matches the invitation.
 	stateData, found, err := read.Get(ctx, SobjectObjectStoreHostStateKey(testSharedObjectID))
 	if err != nil || !found {
 		t.Fatalf("invitation state missing: %v", err)
