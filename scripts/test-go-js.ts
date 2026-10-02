@@ -160,8 +160,16 @@ try {
   const bins = buildTestBinaries(pkgs, binDir)
   ok = bins.length === pkgs.length
 
-  // Run up to one binary per CPU, as go test -p does.
+  // Chrome's first launches on a fresh runner are slow, and several started
+  // together can all miss the DevTools limit. One binary runs alone first so
+  // the rest start against a warm Chrome.
   const queue = [...bins]
+  const first = queue.shift()
+  if (first) {
+    ok = (await runTestBinary(first)) && ok
+  }
+
+  // Run up to one binary per CPU, as go test -p does.
   const workers = Array.from(
     { length: Math.min(availableParallelism(), queue.length) },
     async () => {
