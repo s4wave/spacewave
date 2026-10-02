@@ -49,7 +49,7 @@ func (t *httpTransport) Fetch(ctx context.Context, off int64, length int) ([]byt
 
 // fetchOnce issues one HTTP range request.
 func (t *httpTransport) fetchOnce(ctx context.Context, off int64, length int) ([]byte, error) {
-	// Build and sign the HTTP request for the requested pack byte range.
+	// Build and sign the range request.
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, t.url, nil)
 	if err != nil {
 		return nil, errors.Wrap(err, "build range request")
@@ -62,7 +62,7 @@ func (t *httpTransport) fetchOnce(ctx context.Context, off int64, length int) ([
 		}
 	}
 
-	// Open the range response and drain its body when the fetch finishes.
+	// Send it and report the response.
 	resp, err := t.cli.Do(req)
 	if err != nil {
 		return nil, &transientError{err: errors.Wrap(err, "range request")}
@@ -72,12 +72,9 @@ func (t *httpTransport) fetchOnce(ctx context.Context, off int64, length int) ([
 	}
 	defer httpclient.DrainAndCloseResponseBody(resp)
 
-	// Require a successful full or partial pack response.
-	if resp.StatusCode >= http.StatusInternalServerError {
-		return nil, &transientError{err: errors.Errorf("range request returned status %d", resp.StatusCode)}
-	}
+	// Refuse a failed response, and skip the prefix of a full response.
 	if resp.StatusCode != http.StatusPartialContent && resp.StatusCode != http.StatusOK {
-		return nil, errors.Errorf("range request returned status %d", resp.StatusCode)
+		return nil, responseError(resp.StatusCode, resp.Header.Get("Retry-After"))
 	}
 	if resp.StatusCode == http.StatusOK && off > 0 {
 		if _, err := io.CopyN(io.Discard, resp.Body, off); err != nil {
@@ -89,7 +86,7 @@ func (t *httpTransport) fetchOnce(ctx context.Context, off int64, length int) ([
 		t.recordFullResponseFallback(off)
 	}
 
-	// Read the requested pack bytes and retain a short final response.
+	// Read the range; a short read is the end of the pack.
 	buf := make([]byte, length)
 	n, err := io.ReadFull(resp.Body, buf)
 	if err == io.ErrUnexpectedEOF {

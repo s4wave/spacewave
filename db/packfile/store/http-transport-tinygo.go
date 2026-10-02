@@ -81,11 +81,7 @@ func (t *httpTransport) fetchOnce(ctx context.Context, off int64, length int) ([
 	case http.StatusNotFound:
 		return nil, errors.New("not found")
 	}
-	err = errors.Errorf("unexpected response status: %d", resp.StatusCode)
-	if resp.StatusCode >= http.StatusInternalServerError {
-		return nil, &transientError{err: err}
-	}
-	return nil, err
+	return nil, responseError(resp.StatusCode, http.Header(resp.Header).Get("Retry-After"))
 }
 
 func readTinyGoPackRangeBody(r io.Reader, length int) ([]byte, error) {
