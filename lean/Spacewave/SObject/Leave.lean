@@ -4,7 +4,9 @@ import Spacewave.SObject.RemoveParticipant
 # Voluntary SharedObject departure
 
 Mirrors `core/sobject/leave.go`. Each authenticated identity
-consents only to its own removal; publication still requires a current owner.
+consents only to its own removal; publication still requires a current owner,
+and that owner must remain while anyone remains, because its key re-signs the
+departed peers' proofs. An ownership transfer promotes a successor first.
 Retained history, the retained configuration at the signed head, watched
 snapshots and primitive signature/hash outcomes are provider inputs. The model
 computes membership, rebasing and retry decisions. Proof pruning uses the same
@@ -69,12 +71,11 @@ def leaveProofsRemainCurrent (peers : List String) (signed : Config)
 def leaveConfig (config : Config) (peers : List String) : Config :=
   {config with participants := config.participants.filter fun p => !peers.contains p.peer}
 
-/-- leaveAllowed requires a real departure and prior ownership transfer if anyone remains. -/
-def leaveAllowed (config : Config) (peers : List String) : Bool :=
+/-- leaveAllowed requires a real departure and a remaining signer if anyone remains. -/
+def leaveAllowed (config : Config) (peers : List String) (signer : String) : Bool :=
   let next := leaveConfig config peers
   next.participants.length != config.participants.length &&
-    (next.participants.isEmpty ||
-      !config.participants.any (fun p => p.role == Role.owner && peers.contains p.peer))
+    (next.participants.isEmpty || !peers.contains signer)
 
 /-- leaveEntry binds a concrete filtered audience to the watched head and consent hash. -/
 def leaveEntry (config : Config) (peers : List String) (sig : Sig)
@@ -107,7 +108,7 @@ structure LeaveResult where
 /-- publishLeave checks the watched audience and publishes under the lock-held authority. -/
 def publishLeave (attempt : LeaveAttempt) (snapshot : Config) (peers : List String)
     (requestHash : String) (history : List LeaveChange) : Option LeaveResult :=
-  if !leaveAllowed snapshot peers || !attempt.buildOK then none
+  if !leaveAllowed snapshot peers attempt.sig.signer || !attempt.buildOK then none
   else
     let change := leaveEntry snapshot peers attempt.sig attempt.hash requestHash
     match applyConfigChange attempt.previous (some change.entry)
@@ -339,19 +340,13 @@ theorem leaveTrace_completed {request : LeaveRequest} {hostId requestHash : Stri
         cases h
         exact ⟨attempt, by simp, tried, by simpa using finished⟩
 
-/-- A departing owner cannot leave any other participant dependent on its proofs. -/
-theorem leaveAllowed_owners {config : Config} {peers : List String} {p : Participant}
-    (h : leaveAllowed config peers = true)
-    (remaining : (leaveConfig config peers).participants.isEmpty = false)
-    (member : p ∈ config.participants) (owner : p.role = Role.owner) : p.peer ∉ peers := by
+/-- A departure that leaves anyone keeps the signer whose key re-signs their proofs. -/
+theorem leaveAllowed_signer {config : Config} {peers : List String} {signer : String}
+    (h : leaveAllowed config peers signer = true)
+    (remaining : (leaveConfig config peers).participants.isEmpty = false) : signer ∉ peers := by
   intro departed
-  have found : config.participants.any
-      (fun p => p.role == Role.owner && peers.contains p.peer) = true :=
-    List.any_eq_true.mpr ⟨p, member, by simp [owner, departed]⟩
   unfold leaveAllowed at h
-  dsimp only at h
-  rw [remaining, found] at h
-  simp at h
+  simp [remaining, departed] at h
 
 /-- Published leave uses the concrete proof-pruning callback exactly once. -/
 theorem publishLeave_applied {attempt : LeaveAttempt} {snapshot : Config}

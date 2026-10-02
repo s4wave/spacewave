@@ -236,6 +236,9 @@ enum SOConfigChangeType {
   SO_CONFIG_CHANGE_TYPE_INCREMENT_INVITE_USES = 6;
   // SO_CONFIG_CHANGE_TYPE_SELF_ENROLL_PEER lets a same-entity session add itself.
   SO_CONFIG_CHANGE_TYPE_SELF_ENROLL_PEER = 7;
+  // SO_CONFIG_CHANGE_TYPE_TRANSFER_OWNERSHIP promotes a successor to OWNER and
+  // carries the departing owner's leave consent for the successor to commit.
+  SO_CONFIG_CHANGE_TYPE_TRANSFER_OWNERSHIP = 8;
 }
 
 // SORevocationReason describes why a participant was removed.
@@ -283,6 +286,9 @@ message SOConfigChange {
   // RevocationInfo contains metadata about why a participant was removed.
   // Only populated when change_type is REMOVE_PARTICIPANT.
   SORevocationInfo revocation_info = 8;
+  // LeaveRequest is the departing peers' consent that the promoted owner commits.
+  // Only populated when change_type is TRANSFER_OWNERSHIP.
+  SOLeaveRequest leave_request = 9;
 }
 
 // SOParticipantConfig contains a listing of an entity associated with a shared object.

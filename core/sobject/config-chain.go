@@ -156,7 +156,8 @@ func VerifyConfigChainSuffix(current, candidate *SharedObjectConfig, entries []*
 			SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_REMOVE_PARTICIPANT,
 			SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_ADD_INVITE,
 			SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_REVOKE_INVITE,
-			SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_INCREMENT_INVITE_USES:
+			SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_INCREMENT_INVITE_USES,
+			SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_TRANSFER_OWNERSHIP:
 		default:
 			return errors.Errorf("entry[%d]: unsupported peer config change %s", i, entry.GetChangeType())
 		}
@@ -207,35 +208,42 @@ func BuildSOConfigChange(
 	signerPrivKey crypto.PrivKey,
 	revInfo *SORevocationInfo,
 ) (*SOConfigChange, error) {
-	// Compute the next seqno from the current chain state.
-	// If config_chain_hash is empty this is a genesis entry (seqno 0).
-	// Otherwise the next seqno is config_chain_seqno + 1.
+	entry := newSOConfigChange(currentConfig, nextConfig, changeType)
+	entry.RevocationInfo = revInfo
+	if err := signSOConfigChange(entry, signerPrivKey); err != nil {
+		return nil, err
+	}
+	return entry, nil
+}
+
+// newSOConfigChange links an unsigned entry to the head of the current configuration.
+// An empty head yields the genesis sequence number zero.
+func newSOConfigChange(currentConfig, nextConfig *SharedObjectConfig, changeType SOConfigChangeType) *SOConfigChange {
 	var nextSeqno uint64
 	if len(currentConfig.GetConfigChainHash()) != 0 {
 		nextSeqno = currentConfig.GetConfigChainSeqno() + 1
 	}
-
-	// Capture the new configuration without changing the caller's signed data.
-	entry := &SOConfigChange{
-		ConfigSeqno:    nextSeqno,
-		Config:         nextConfig.CloneVT(),
-		ChangeType:     changeType,
-		PreviousHash:   currentConfig.GetConfigChainHash(),
-		RevocationInfo: revInfo,
+	return &SOConfigChange{
+		ConfigSeqno:  nextSeqno,
+		Config:       nextConfig.CloneVT(),
+		ChangeType:   changeType,
+		PreviousHash: currentConfig.GetConfigChainHash(),
 	}
+}
 
-	// Sign the entry.
+// signSOConfigChange signs every field of an unsigned entry.
+func signSOConfigChange(entry *SOConfigChange, signerPrivKey crypto.PrivKey) error {
+	// The signature covers the marshaled entry before its signature field is set.
 	data, err := entry.MarshalVT()
 	if err != nil {
-		return nil, errors.Wrap(err, "marshal config change for signing")
+		return errors.Wrap(err, "marshal config change for signing")
 	}
 	sig, err := peer.NewSignature("sobject config change", signerPrivKey, hash.HashType_HashType_SHA256, data, true)
 	if err != nil {
-		return nil, errors.Wrap(err, "sign config change")
+		return errors.Wrap(err, "sign config change")
 	}
 	entry.Signature = sig
-
-	return entry, nil
+	return nil
 }
 
 // verifyConfigChangeSignature verifies that the SOConfigChange is authorized by
