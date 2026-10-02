@@ -1,6 +1,12 @@
 /* eslint-disable react-doctor/rerender-state-only-in-handlers */
 import { useCallback, useMemo, useState } from 'react'
-import { LuMonitor, LuTerminal, LuCheck } from 'react-icons/lu'
+import {
+  LuCheck,
+  LuLaptop,
+  LuMonitor,
+  LuTerminal,
+  LuUser,
+} from 'react-icons/lu'
 
 import { Spinner } from '@s4wave/web/ui/loading/Spinner.js'
 import AnimatedLogo from '@s4wave/app/landing/AnimatedLogo.js'
@@ -58,6 +64,38 @@ function ClientTypeIcon({ clientType }: { clientType: string }) {
     return <LuTerminal className="text-brand size-6" />
   }
   return <LuMonitor className="text-brand size-6" />
+}
+
+// detailChipClassName styles one handoff detail chip.
+const detailChipClassName =
+  'border-foreground/10 bg-foreground/5 text-foreground-alt inline-flex items-center gap-1.5 rounded-full border px-3 py-1 whitespace-nowrap'
+
+// HandoffDetails renders the account and device of a handoff as chips that
+// wrap whole, so a long username or host name never splits across lines.
+function HandoffDetails({
+  username,
+  deviceName,
+}: {
+  username?: string
+  deviceName: string
+}) {
+  if (!username && !deviceName) return null
+  return (
+    <div className="flex flex-wrap items-center justify-center gap-2 text-sm">
+      {username && (
+        <span className={detailChipClassName}>
+          <LuUser className="size-3.5" />
+          <span className="text-foreground font-medium">{username}</span>
+        </span>
+      )}
+      {deviceName && (
+        <span className={detailChipClassName}>
+          <LuLaptop className="size-3.5" />
+          {deviceName}
+        </span>
+      )}
+    </div>
+  )
 }
 
 // HandoffPage handles browser-delegated auth for desktop/CLI clients.
@@ -238,11 +276,7 @@ export function HandoffPage() {
           <p className="text-foreground-alt text-sm">
             You can close this tab and return to Spacewave {label}.
           </p>
-          {request.deviceName && (
-            <p className="text-foreground-alt/60 text-xs">
-              Device: {request.deviceName}
-            </p>
-          )}
+          <HandoffDetails deviceName={request.deviceName ?? ''} />
         </div>
       </div>
     )
@@ -261,20 +295,12 @@ export function HandoffPage() {
                 : `Signing in to Spacewave ${label}`}
             </h1>
           </div>
-          {routeHints.authIntent === 'signup' && routeHints.username && (
-            <p className="text-foreground-alt max-w-sm text-center text-sm">
-              Continue with passkey or use password to create{' '}
-              <span className="text-foreground font-medium">
-                {routeHints.username}
-              </span>
-              .
-            </p>
-          )}
-          {request.deviceName && (
-            <p className="text-foreground-alt/70 text-xs">
-              Device: {request.deviceName}
-            </p>
-          )}
+          <HandoffDetails
+            username={
+              routeHints.authIntent === 'signup' ? routeHints.username : ''
+            }
+            deviceName={request.deviceName ?? ''}
+          />
         </>
       }
     >
