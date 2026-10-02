@@ -38,8 +38,9 @@ exec:
 
 // TestUtilWait tests the wait controller.
 //
-// Also tests mechanics of waiting for the world object to exist,
+// Also tests mechanics of waiting for the world object to exist.
 func TestUtilWait(t *testing.T) {
+	// Start a Forge testbed with the wait controller factory.
 	tb, err := testbed.Default(context.Background(), world_testbed.WithWorldVerbose(true))
 	if err != nil {
 		t.Fatal(err.Error())
@@ -47,17 +48,19 @@ func TestUtilWait(t *testing.T) {
 	ctx := tb.Context
 	tb.StaticResolver.AddFactory(NewFactory(tb.Bus))
 
+	// Resolve the target into a one-task map.
 	tgt, err := target_json.ResolveYAML(ctx, tb.Bus, []byte(testYAML))
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-
 	taskMap := map[string]*forge_target.Target{
 		"test-wait": tgt,
 	}
 
+	// Create the input object a second after the job starts.
 	var setInputObject atomic.Bool
 	go func() {
+		// Wait, then write the input object.
 		<-time.After(time.Second)
 		tb.Logger.Info("creating input object for test: input/example")
 		var createdObject world.ObjectState
@@ -66,10 +69,13 @@ func TestUtilWait(t *testing.T) {
 			bcs.SetBlock(byteslice.NewByteSlice(&bsl), true)
 			return nil
 		})
+
+		// Release the object and mark it created.
 		world.ReleaseObjectState(createdObject)
 		setInputObject.Store(true)
 	}()
 
+	// Run the job; it completes only after the input exists.
 	ts := timestamp.Now()
 	jobKey := "job/1"
 	clusterKey := "cluster/1"
@@ -93,6 +99,7 @@ func TestUtilWait(t *testing.T) {
 		t.Fatalf("expected %d job tasks but found %d", 1, len(jobTasks))
 	}
 
+	// Build the output map of the task.
 	finalState := jobTasks[0]
 	outputs := forge_value.ValueSlice(finalState.GetValueSet().GetOutputs())
 	valMap, err := outputs.BuildValueMap(true, false)
