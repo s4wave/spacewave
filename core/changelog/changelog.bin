@@ -1,4 +1,12 @@
 
+÷
+0.57.21
+2026-10-01áSpacewave 0.57.21 restores key browser connections and improves plugin startup, local storage reliability, and sign-in handoff clarity."áSpacewave 0.57.21 restores key browser connections and improves plugin startup, local storage reliability, and sign-in handoff clarity.2˛
+ºBrowser builds now connect cloud requests to the correct Spacewave origin, restoring passkey signup handoff, live session and checkout updates, and reads of Space data stored in the cloud.ºBrowser builds now connect cloud requests to the correct Spacewave origin, restoring passkey signup handoff, live session and checkout updates, and reads of Space data stored in the cloud.2Ã
+dSpaces with many local stores no longer stall or fail to open after exhausting system file watchers.dSpaces with many local stores no longer stall or fail to open after exhausting system file watchers.2û
+MPlugins now start promptly even while a Space is receiving sustained updates.MPlugins now start promptly even while a Space is receiving sustained updates.:Í
+sLocal Space storage now returns freed database space to disk as data is deleted instead of retaining its peak size.sLocal Space storage now returns freed database space to disk as data is deleted instead of retaining its peak size.:Ã
+dSign-in handoff screens show the account and device in compact labels that keep long names readable.dSign-in handoff screens show the account and device in compact labels that keep long names readable.
 Õ
 0.57.20
 2026-10-01ùSpacewave 0.57.20 restores browser startup for existing storage, adds controls for background plugins, and improves large-Space and file-storage reliability."ùSpacewave 0.57.20 restores browser startup for existing storage, adds controls for background plugins, and improves large-Space and file-storage reliability.*™

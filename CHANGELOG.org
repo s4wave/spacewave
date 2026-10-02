@@ -1,5 +1,25 @@
 #+TITLE: Spacewave Changelog
 
+* v0.57.21
+<2026-10-01 Thu>
+
+Spacewave 0.57.21 restores key browser connections and improves plugin startup,
+local storage reliability, and sign-in handoff clarity.
+
+** Fixes
+- Browser builds now connect cloud requests to the correct Spacewave origin,
+  restoring passkey signup handoff, live session and checkout updates, and reads
+  of Space data stored in the cloud.
+- Spaces with many local stores no longer stall or fail to open after exhausting
+  system file watchers.
+- Plugins now start promptly even while a Space is receiving sustained updates.
+
+** Improvements
+- Local Space storage now returns freed database space to disk as data is
+  deleted instead of retaining its peak size.
+- Sign-in handoff screens show the account and device in compact labels that
+  keep long names readable.
+
 * v0.57.20
 <2026-10-01 Thu>
 
