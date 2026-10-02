@@ -1,5 +1,21 @@
 #+TITLE: Spacewave Changelog
 
+* v0.57.22
+<2026-10-01 Thu>
+
+Spacewave 0.57.22 keeps signup handoffs available through interruptions, reduces
+Drive upload memory use, and lets Spaces continue when an owner leaves.
+
+** Features
+- Spaces now transfer ownership to a remaining member when their owner leaves.
+
+** Fixes
+- Signup handoff pages now show when a signup session has ended or been
+  canceled, and command-line signup reconnects after a dropped connection.
+- Signup sessions now stay open while you finish signing up.
+- Drive uploads no longer cause the browser tab’s memory use to grow with each
+  uploaded file.
+
 * v0.57.21
 <2026-10-01 Thu>
 
