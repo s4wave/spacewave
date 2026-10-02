@@ -28,6 +28,14 @@ type DecodedBlockCacheTransformer interface {
 	DecodedBlockCacheTransformKey() string
 }
 
+// DecodedBlockHeapSizer reports the heap bytes a decoded block retains. The
+// decoded-block cache charges this size against its budget. Implement it for
+// block types whose decoded form is much larger than their encoding, such as
+// pages of many small messages.
+type DecodedBlockHeapSizer interface {
+	DecodedHeapSize() int
+}
+
 // decodedBlockCacheSizer reports a decoded block's size without marshaling it.
 type decodedBlockCacheSizer interface {
 	SizeVT() int
@@ -442,9 +450,20 @@ func decodedBlockFrontCacheFromContext(ctx context.Context) *decodedBlockFrontCa
 }
 
 // decodedBlockCacheCost computes the cost of a cached entry: its pool key, the
-// raw and decoded sizes, and a fixed charge for Ristretto's bookkeeping. It
-// returns false when either block size is unknown.
+// heap its decoded block retains, and a fixed charge for Ristretto's
+// bookkeeping. A block without DecodedBlockHeapSizer is charged its raw plus
+// encoded decoded size as a heap estimate. It returns false when the block
+// size is unknown.
 func decodedBlockCacheCost(cacheKey string, blk Block, data []byte) (int64, bool) {
+	// Charge the reported heap size when the block knows it.
+	keyCost := int64(len(cacheKey)) + decodedBlockCacheEntryOverheadCost
+	if sizer, ok := blk.(DecodedBlockHeapSizer); ok {
+		if heapCost := int64(sizer.DecodedHeapSize()); heapCost > 0 {
+			return keyCost + heapCost, true
+		}
+	}
+
+	// Otherwise estimate the heap from the raw and decoded sizes.
 	rawCost := int64(len(data))
 	if rawCost <= 0 {
 		return 0, false
@@ -463,7 +482,7 @@ func decodedBlockCacheCost(cacheKey string, blk Block, data []byte) (int64, bool
 	if decodedCost <= 0 {
 		return 0, false
 	}
-	return int64(len(cacheKey)) + rawCost + decodedCost + decodedBlockCacheEntryOverheadCost, true
+	return keyCost + rawCost + decodedCost, true
 }
 
 // decodedBlockCacheKeyFor builds the cache key for a block, or false
