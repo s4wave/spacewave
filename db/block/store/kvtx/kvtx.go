@@ -2,6 +2,7 @@ package block_store_kvtx
 
 import (
 	"context"
+	"errors"
 	"sync"
 
 	"github.com/s4wave/spacewave/db/block"
@@ -11,7 +12,6 @@ import (
 	"github.com/s4wave/spacewave/net/hash"
 )
 
-// KVTxBlock is a block store on top of a kvtx store.
 // KVTxBlock implements a block store on top of a kvtx store.
 type KVTxBlock struct {
 	// kvkey namespaces the block keys in the store.
@@ -130,11 +130,15 @@ func (k *KVTxBlock) PutBlock(ctx context.Context, data []byte, opts *block.PutOp
 	return ref, exists, err
 }
 
-// PutBlockBatch writes all entries in one lower kvtx transaction.
+// PutBlockBatch writes all entries in one lower kvtx transaction, starting
+// another where the store reports the transaction full. Blocks are
+// independent, so a batch split across transactions is safe.
 func (k *KVTxBlock) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) error {
+	// Trace the batch.
 	ctx, task := trace.NewTask(ctx, "hydra/block-store/kvtx/put-block-batch")
 	defer task.End()
 
+	// Prepare every entry before writing any.
 	ops := make([]putBlockBatchOp, 0, len(entries))
 	for _, entry := range entries {
 		op, err := k.preparePutBlockBatchOp(entry)
@@ -143,39 +147,38 @@ func (k *KVTxBlock) PutBlockBatch(ctx context.Context, entries []*block.PutBatch
 		}
 		ops = append(ops, op)
 	}
-	if len(ops) == 0 {
-		return nil
-	}
 
-	return kvtx.RunTransaction(ctx, true,
-		func(ctx context.Context) (kvtx.Tx, error) {
-			taskCtx, subtask := trace.NewTask(ctx, "hydra/block-store/kvtx/put-block-batch/new-transaction")
-			tx, err := k.store.NewTransaction(taskCtx, true)
-			subtask.End()
-			return tx, err
-		},
-		func(ctx context.Context, tx kvtx.Tx) error {
-			for _, op := range ops {
-				if op.tombstone {
-					if err := tx.Delete(ctx, op.key); err != nil {
+	// Write the ops, committing each transaction once it is full.
+	for len(ops) != 0 {
+		var written int
+		err := kvtx.RunTransaction(ctx, true,
+			func(ctx context.Context) (kvtx.Tx, error) {
+				taskCtx, subtask := trace.NewTask(ctx, "hydra/block-store/kvtx/put-block-batch/new-transaction")
+				tx, err := k.store.NewTransaction(taskCtx, true)
+				subtask.End()
+				return tx, err
+			},
+			func(ctx context.Context, tx kvtx.Tx) error {
+				written = 0
+				for _, op := range ops {
+					err := applyPutBlockBatchOp(ctx, tx, op)
+					if errors.Is(err, kvtx.ErrTxTooBig) && written != 0 {
+						return nil
+					}
+					if err != nil {
 						return err
 					}
-					continue
+					written++
 				}
-				exists, err := tx.Exists(ctx, op.key)
-				if err != nil {
-					return err
-				}
-				if exists {
-					continue
-				}
-				if err := tx.Set(ctx, op.key, op.data); err != nil {
-					return err
-				}
-			}
-			return nil
-		},
-	)
+				return nil
+			},
+		)
+		if err != nil {
+			return err
+		}
+		ops = ops[written:]
+	}
+	return nil
 }
 
 // GetBlock looks up a block in the store.
@@ -445,6 +448,18 @@ type putBlockBatchOp struct {
 	key       []byte
 	data      []byte
 	tombstone bool
+}
+
+// applyPutBlockBatchOp writes one prepared op unless its block is stored.
+func applyPutBlockBatchOp(ctx context.Context, tx kvtx.Tx, op putBlockBatchOp) error {
+	if op.tombstone {
+		return tx.Delete(ctx, op.key)
+	}
+	exists, err := tx.Exists(ctx, op.key)
+	if err != nil || exists {
+		return err
+	}
+	return tx.Set(ctx, op.key, op.data)
 }
 
 // preparePutBlockBatchOp marshals one batch entry into its stored form.

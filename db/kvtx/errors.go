@@ -22,6 +22,9 @@ var (
 	// ErrInvalidSnapshot is returned when a transaction's storage snapshot can
 	// no longer be trusted and the caller must reopen at a fresh generation.
 	ErrInvalidSnapshot = errors.New("kvtx snapshot is invalid")
+	// ErrTxTooBig is returned by a write when the transaction cannot hold it.
+	// The write was not applied, and the transaction can still commit.
+	ErrTxTooBig = errors.New("kvtx transaction is too big")
 	// ErrWatchUnsupported is returned when a store cannot stream committed changes.
 	ErrWatchUnsupported = errors.New("kvtx store does not support watch")
 	// ErrWatchLimit is returned when a watched snapshot exceeds its limits.

@@ -1,11 +1,14 @@
 package store_kvtx_badger
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"testing"
 
 	bdb "github.com/dgraph-io/badger/v4"
+	"github.com/s4wave/spacewave/db/block"
+	block_store_kvtx "github.com/s4wave/spacewave/db/block/store/kvtx"
 	"github.com/s4wave/spacewave/db/kvtx"
 	store_kvkey "github.com/s4wave/spacewave/db/store/kvkey"
 	store_kvtx "github.com/s4wave/spacewave/db/store/kvtx"
@@ -81,5 +84,40 @@ func TestCommitConflictIsInvalidSnapshot(t *testing.T) {
 	err = first.Commit(ctx)
 	if !errors.Is(err, kvtx.ErrInvalidSnapshot) {
 		t.Fatalf("commit error = %v, want ErrInvalidSnapshot", err)
+	}
+}
+
+// TestPutBlockBatchSplitsFullTransaction writes a block batch larger than one
+// Badger transaction holds and checks that every block is stored.
+func TestPutBlockBatchSplitsFullTransaction(t *testing.T) {
+	// Open a store whose transactions hold about 150 KiB.
+	ctx := context.Background()
+	db, err := Open(bdb.DefaultOptions("").WithInMemory(true).WithMemTableSize(1 << 20).WithValueThreshold(64 << 10).WithLogger(nil))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.db.Close()
+	blocks := block_store_kvtx.NewKVTxBlock(store_kvkey.NewDefaultKVKey(), db, 0, false)
+
+	// Write 1 MiB of distinct blocks in one batch.
+	entries := make([]*block.PutBatchEntry, 64)
+	for i := range entries {
+		data := bytes.Repeat([]byte{byte(i)}, 16<<10)
+		ref, err := block.BuildBlockRef(data, &block.PutOpts{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		entries[i] = &block.PutBatchEntry{Ref: ref, Data: data}
+	}
+	if err := blocks.PutBlockBatch(ctx, entries); err != nil {
+		t.Fatal(err)
+	}
+
+	// Every block reads back.
+	for i, entry := range entries {
+		data, found, err := blocks.GetBlock(ctx, entry.Ref)
+		if err != nil || !found || !bytes.Equal(data, entry.Data) {
+			t.Fatalf("block %d: found=%v err=%v", i, found, err)
+		}
 	}
 }
