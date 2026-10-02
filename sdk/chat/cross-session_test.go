@@ -100,7 +100,7 @@ func testChatResourceCrossSessionAppend(t *testing.T, transactionID string) {
 
 	// Invite the writer directly.
 	host := ownerObject.(sobject.InviteHost)
-	invite, err := host.CreateSOInviteOp(ctx, host.GetPrivKey(), sobject.SOParticipantRole_SOParticipantRole_WRITER, "local", writerSession.GetPeerId().String(), 1, nil)
+	invite, err := host.CreateSOInviteOp(ctx, host.GetPrivKey(), "local", &sobject.SOInvite{Role: sobject.SOParticipantRole_SOParticipantRole_WRITER, TargetPeerId: writerSession.GetPeerId().String(), MaxUses: 1})
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -24,6 +24,7 @@ import {
   SharedObjectRef,
   SOInvite,
   SOInviteMessage,
+  SOInviteParticipation,
   SOParticipantConfig,
   SOParticipantRole_Enum,
 } from '../../core/sobject/sobject.pb.js'
@@ -3113,6 +3114,19 @@ export interface CreateSpaceInviteRequest {
    * @generated from field: google.protobuf.Timestamp expires_at = 5;
    */
   expiresAt?: Date
+  /**
+   * ApprovalRequired queues redemptions the invite does not otherwise admit
+   * as join requests.
+   *
+   * @generated from field: bool approval_required = 6;
+   */
+  approvalRequired?: boolean
+  /**
+   * ParticipantOf admits participants of the named Spaces.
+   *
+   * @generated from field: sobject.SOInviteParticipation participant_of = 7;
+   */
+  participantOf?: SOInviteParticipation
 }
 
 export const CreateSpaceInviteRequest: MessageType<CreateSpaceInviteRequest> =
@@ -3124,6 +3138,13 @@ export const CreateSpaceInviteRequest: MessageType<CreateSpaceInviteRequest> =
       { no: 3, name: 'target_peer_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 4, name: 'max_uses', kind: 'scalar', T: ScalarType.UINT32 },
       { no: 5, name: 'expires_at', kind: 'message', T: () => Timestamp },
+      { no: 6, name: 'approval_required', kind: 'scalar', T: ScalarType.BOOL },
+      {
+        no: 7,
+        name: 'participant_of',
+        kind: 'message',
+        T: () => SOInviteParticipation,
+      },
     ] satisfies readonly PartialFieldInfo[],
   })
 
@@ -3367,6 +3388,70 @@ export const RevokeSpaceInviteResponse: MessageType<RevokeSpaceInviteResponse> =
     's4wave.session.RevokeSpaceInviteResponse',
     true,
   )
+
+/**
+ * ResolveSpaceJoinRequestRequest is the request for ResolveSpaceJoinRequest.
+ *
+ * @generated from message s4wave.session.ResolveSpaceJoinRequestRequest
+ */
+export interface ResolveSpaceJoinRequestRequest {
+  /**
+   * SpaceId is the shared object ULID for the space.
+   *
+   * @generated from field: string space_id = 1;
+   */
+  spaceId?: string
+  /**
+   * PeerId is the requesting peer (b58).
+   *
+   * @generated from field: string peer_id = 2;
+   */
+  peerId?: string
+  /**
+   * Grant issues the requester a personal invite; false refuses the request.
+   *
+   * @generated from field: bool grant = 3;
+   */
+  grant?: boolean
+}
+
+export const ResolveSpaceJoinRequestRequest: MessageType<ResolveSpaceJoinRequestRequest> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.session.ResolveSpaceJoinRequestRequest',
+    fields: [
+      { no: 1, name: 'space_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 3, name: 'grant', kind: 'scalar', T: ScalarType.BOOL },
+    ] satisfies readonly PartialFieldInfo[],
+  })
+
+/**
+ * ResolveSpaceJoinRequestResponse is the response for ResolveSpaceJoinRequest.
+ *
+ * @generated from message s4wave.session.ResolveSpaceJoinRequestResponse
+ */
+export interface ResolveSpaceJoinRequestResponse {
+  /**
+   * InviteMessage is the granted personal invite for delivery to the
+   * requester. Empty when the request was refused.
+   *
+   * @generated from field: sobject.SOInviteMessage invite_message = 1;
+   */
+  inviteMessage?: SOInviteMessage
+}
+
+export const ResolveSpaceJoinRequestResponse: MessageType<ResolveSpaceJoinRequestResponse> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.session.ResolveSpaceJoinRequestResponse',
+    fields: [
+      {
+        no: 1,
+        name: 'invite_message',
+        kind: 'message',
+        T: () => SOInviteMessage,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+  })
 
 /**
  * JoinSpaceViaInviteRequest is the request for JoinSpaceViaInvite.

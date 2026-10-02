@@ -6,7 +6,6 @@ import (
 	"crypto/sha256"
 	"testing"
 
-	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/core/sobject"
 	"github.com/s4wave/spacewave/net/peer"
 )
@@ -122,29 +121,6 @@ func TestHashInviteTokenMatchesCreateSOInviteOp(t *testing.T) {
 	got := HashInviteToken(token)
 	if !bytes.Equal(got, expected) {
 		t.Fatal("HashInviteToken should match sha256.Sum256")
-	}
-}
-
-func TestLookupFnNoMatch(t *testing.T) {
-	lookupFn := func(_ context.Context, _ []byte) (*InviteLookupResult, error) {
-		return nil, nil
-	}
-	result, err := lookupFn(context.Background(), []byte("unknown"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	if result != nil {
-		t.Fatal("expected nil result for unknown token hash")
-	}
-}
-
-func TestLookupFnError(t *testing.T) {
-	lookupFn := func(_ context.Context, _ []byte) (*InviteLookupResult, error) {
-		return nil, errors.New("storage error")
-	}
-	_, err := lookupFn(context.Background(), []byte("any"))
-	if err == nil {
-		t.Fatal("expected error")
 	}
 }
 

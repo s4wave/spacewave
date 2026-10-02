@@ -85,15 +85,12 @@ func (r *LocalSessionResource) ApproveSpaceLink(
 	// owner peer ID is the session transport peer that serves the SO invite
 	// server. The one-use invite itself is stored on the Space signed by the
 	// account's shared-object key, which holds the OWNER role.
-	inviteMsg, invite, err := sobject.BuildSOInviteMessage(
-		resourceID,
-		sessionPriv,
-		payload.GetRequestedRole(),
-		ih.GetProviderID(),
-		verified.agentPeerID.String(),
-		1,
-		timestamppb.New(time.Now().Add(localSpaceLinkInviteTTL)),
-	)
+	inviteMsg, invite, err := sobject.BuildSOInviteMessage(resourceID, sessionPriv, ih.GetProviderID(), &sobject.SOInvite{
+		Role:         payload.GetRequestedRole(),
+		TargetPeerId: verified.agentPeerID.String(),
+		MaxUses:      1,
+		ExpiresAt:    timestamppb.New(time.Now().Add(localSpaceLinkInviteTTL)),
+	})
 	if err != nil {
 		return nil, errors.Wrap(err, "build targeted invite")
 	}

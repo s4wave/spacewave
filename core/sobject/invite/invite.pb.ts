@@ -90,6 +90,13 @@ export interface AcceptInviteResponse {
    * @generated from field: sobject.SOState shared_object_state = 4;
    */
   sharedObjectState?: SOState
+  /**
+   * Pending reports that the owner queued the redemption as a join request
+   * instead of admitting it. Every other field is empty.
+   *
+   * @generated from field: bool pending = 5;
+   */
+  pending?: boolean
 }
 
 export const AcceptInviteResponse: MessageType<AcceptInviteResponse> =
@@ -100,5 +107,6 @@ export const AcceptInviteResponse: MessageType<AcceptInviteResponse> =
       { no: 2, name: 'shared_object_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 3, name: 'owner_grant', kind: 'message', T: () => SOGrant },
       { no: 4, name: 'shared_object_state', kind: 'message', T: () => SOState },
+      { no: 5, name: 'pending', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
   })

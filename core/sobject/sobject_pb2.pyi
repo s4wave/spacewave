@@ -394,7 +394,7 @@ class SOEntityRecoveryMaterial(_message.Message):
     def __init__(self, entity_id: _Optional[str] = ..., role: _Optional[_Union[SOParticipantRole, str]] = ..., grant_inner: _Optional[_Union[SOGrantInner, _Mapping]] = ...) -> None: ...
 
 class SOInvite(_message.Message):
-    __slots__ = ("invite_id", "token_hash", "role", "target_peer_id", "max_uses", "uses", "expires_at", "revoked", "target_account_id")
+    __slots__ = ("invite_id", "token_hash", "role", "target_peer_id", "max_uses", "uses", "expires_at", "revoked", "target_account_id", "approval_required", "participant_of")
     INVITE_ID_FIELD_NUMBER: _ClassVar[int]
     TOKEN_HASH_FIELD_NUMBER: _ClassVar[int]
     ROLE_FIELD_NUMBER: _ClassVar[int]
@@ -404,6 +404,8 @@ class SOInvite(_message.Message):
     EXPIRES_AT_FIELD_NUMBER: _ClassVar[int]
     REVOKED_FIELD_NUMBER: _ClassVar[int]
     TARGET_ACCOUNT_ID_FIELD_NUMBER: _ClassVar[int]
+    APPROVAL_REQUIRED_FIELD_NUMBER: _ClassVar[int]
+    PARTICIPANT_OF_FIELD_NUMBER: _ClassVar[int]
     invite_id: str
     token_hash: bytes
     role: SOParticipantRole
@@ -413,7 +415,29 @@ class SOInvite(_message.Message):
     expires_at: _timestamp_pb2.Timestamp
     revoked: bool
     target_account_id: str
-    def __init__(self, invite_id: _Optional[str] = ..., token_hash: _Optional[bytes] = ..., role: _Optional[_Union[SOParticipantRole, str]] = ..., target_peer_id: _Optional[str] = ..., max_uses: _Optional[int] = ..., uses: _Optional[int] = ..., expires_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., revoked: _Optional[bool] = ..., target_account_id: _Optional[str] = ...) -> None: ...
+    approval_required: bool
+    participant_of: SOInviteParticipation
+    def __init__(self, invite_id: _Optional[str] = ..., token_hash: _Optional[bytes] = ..., role: _Optional[_Union[SOParticipantRole, str]] = ..., target_peer_id: _Optional[str] = ..., max_uses: _Optional[int] = ..., uses: _Optional[int] = ..., expires_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., revoked: _Optional[bool] = ..., target_account_id: _Optional[str] = ..., approval_required: _Optional[bool] = ..., participant_of: _Optional[_Union[SOInviteParticipation, _Mapping]] = ...) -> None: ...
+
+class SOInviteParticipation(_message.Message):
+    __slots__ = ("shared_object_ids",)
+    SHARED_OBJECT_IDS_FIELD_NUMBER: _ClassVar[int]
+    shared_object_ids: _containers.RepeatedScalarFieldContainer[str]
+    def __init__(self, shared_object_ids: _Optional[_Iterable[str]] = ...) -> None: ...
+
+class SOJoinRequest(_message.Message):
+    __slots__ = ("join_response", "created_at")
+    JOIN_RESPONSE_FIELD_NUMBER: _ClassVar[int]
+    CREATED_AT_FIELD_NUMBER: _ClassVar[int]
+    join_response: SOJoinResponse
+    created_at: _timestamp_pb2.Timestamp
+    def __init__(self, join_response: _Optional[_Union[SOJoinResponse, _Mapping]] = ..., created_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ...) -> None: ...
+
+class SOJoinRequestList(_message.Message):
+    __slots__ = ("requests",)
+    REQUESTS_FIELD_NUMBER: _ClassVar[int]
+    requests: _containers.RepeatedCompositeFieldContainer[SOJoinRequest]
+    def __init__(self, requests: _Optional[_Iterable[_Union[SOJoinRequest, _Mapping]]] = ...) -> None: ...
 
 class SOState(_message.Message):
     __slots__ = ("config", "root", "root_grants", "ops", "op_rejections", "queued_account_nonces", "invites")

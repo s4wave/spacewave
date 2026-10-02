@@ -378,6 +378,9 @@ type SpaceSharingState struct {
 	// DeparturePending is true while the head ownership transfer carries a
 	// departure its successor has not committed. Roles change when it commits.
 	DeparturePending bool `protobuf:"varint,10,opt,name=departure_pending,json=departurePending,proto3" json:"departurePending,omitempty"`
+	// JoinRequests are the join requests this host holds for an owner to grant
+	// or refuse.
+	JoinRequests []*sobject.SOJoinRequest `protobuf:"bytes,11,rep,name=join_requests,json=joinRequests,proto3" json:"joinRequests,omitempty"`
 }
 
 func (x *SpaceSharingState) Reset() {
@@ -454,6 +457,13 @@ func (x *SpaceSharingState) GetDeparturePending() bool {
 		return x.DeparturePending
 	}
 	return false
+}
+
+func (x *SpaceSharingState) GetJoinRequests() []*sobject.SOJoinRequest {
+	if x != nil {
+		return x.JoinRequests
+	}
+	return nil
 }
 
 // TransformInfo contains redacted transform configuration for display.
@@ -1342,6 +1352,7 @@ func (m *SpaceSharingState) CloneVT() *SpaceSharingState {
 	r.MailboxEntries = protobuf_go_lite.CloneVTSlice(m.MailboxEntries)
 	r.ParticipantInfo = protobuf_go_lite.CloneVTSlice(m.ParticipantInfo)
 	r.ConfigChainHash = protobuf_go_lite.CloneBytes(m.ConfigChainHash)
+	r.JoinRequests = protobuf_go_lite.CloneVTSlice(m.JoinRequests)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -2008,6 +2019,9 @@ func (this *SpaceSharingState) EqualVT(that *SpaceSharingState) bool {
 		return false
 	}
 	if this.DeparturePending != that.DeparturePending {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTSliceImplicit(this.JoinRequests, that.JoinRequests, func() *sobject.SOJoinRequest { return &sobject.SOJoinRequest{} }) {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -3145,6 +3159,17 @@ func (x *SpaceSharingState) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("departurePending")
 		s.WriteBool(x.DeparturePending)
 	}
+	if len(x.JoinRequests) > 0 || s.HasField("joinRequests") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("joinRequests")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.JoinRequests {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("joinRequests"))
+		}
+		s.WriteArrayEnd()
+	}
 	s.WriteObjectEnd()
 }
 
@@ -3252,6 +3277,24 @@ func (x *SpaceSharingState) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "departure_pending", "departurePending":
 			s.AddField("departure_pending")
 			x.DeparturePending = s.ReadBool()
+		case "join_requests", "joinRequests":
+			s.AddField("join_requests")
+			if s.ReadNil() {
+				x.JoinRequests = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.JoinRequests = append(x.JoinRequests, nil)
+					return
+				}
+				v := &sobject.SOJoinRequest{}
+				v.UnmarshalProtoJSON(s.WithField("join_requests", false))
+				if s.Err() != nil {
+					return
+				}
+				x.JoinRequests = append(x.JoinRequests, v)
+			})
 		}
 	})
 }
@@ -5004,6 +5047,18 @@ func (m *SpaceSharingState) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if len(m.JoinRequests) > 0 {
+		for iNdEx := len(m.JoinRequests) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.JoinRequests[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x5a
+		}
+	}
 	if m.DeparturePending {
 		i = protobuf_go_lite.EncodeBool(dAtA, i, m.DeparturePending)
 		i--
@@ -6349,6 +6404,10 @@ func (m *SpaceSharingState) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.ConfigChainSeqno)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.ViewerPeerId)
 	n += protobuf_go_lite.SizeBoolNonZero(1, m.DeparturePending)
+	for _, e := range m.JoinRequests {
+		l = e.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -6926,6 +6985,18 @@ func (x *SpaceSharingState) MarshalProtoText() string {
 	if x.DeparturePending != false {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "departure_pending")
 		protobuf_go_lite.TextWriteBool(&sb, x.DeparturePending)
+	}
+	if len(x.JoinRequests) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "join_requests")
+		for i, v := range x.JoinRequests {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			if v == nil {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, &sobject.SOJoinRequest{})
+			} else {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, v)
+			}
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -8087,6 +8158,19 @@ func (m *SpaceSharingState) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.DeparturePending = bool(v)
+		case 11:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field JoinRequests", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.JoinRequests = append(m.JoinRequests, &sobject.SOJoinRequest{})
+			if err := m.JoinRequests[len(m.JoinRequests)-1].UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

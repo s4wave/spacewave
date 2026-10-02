@@ -57,6 +57,7 @@ service SessionResourceService {
   rpc ListSpaceParticipants(ListSpaceParticipantsRequest) returns (ListSpaceParticipantsResponse);
   rpc RemoveSpaceParticipants(RemoveSpaceParticipantsRequest) returns (RemoveSpaceParticipantsResponse);
   rpc RevokeSpaceInvite(RevokeSpaceInviteRequest) returns (RevokeSpaceInviteResponse);
+  rpc ResolveSpaceJoinRequest(ResolveSpaceJoinRequestRequest) returns (ResolveSpaceJoinRequestResponse);
   rpc JoinSpaceViaInvite(JoinSpaceViaInviteRequest) returns (JoinSpaceViaInviteResponse);
   rpc CreateLocalPairingOffer(CreateLocalPairingOfferRequest) returns (CreateLocalPairingOfferResponse);
   rpc AcceptLocalPairingOffer(AcceptLocalPairingOfferRequest) returns (AcceptLocalPairingOfferResponse);
@@ -810,6 +811,11 @@ message CreateSpaceInviteRequest {
   // ExpiresAt is the time after which the invite is invalid.
   // Unset means no expiry.
   .google.protobuf.Timestamp expires_at = 5;
+  // ApprovalRequired queues redemptions the invite does not otherwise admit
+  // as join requests.
+  bool approval_required = 6;
+  // ParticipantOf admits participants of the named Spaces.
+  .sobject.SOInviteParticipation participant_of = 7;
 }
 
 // CreateSpaceInviteResponse is the response for CreateSpaceInvite.
@@ -870,6 +876,23 @@ message RevokeSpaceInviteRequest {
 
 // RevokeSpaceInviteResponse is the response for RevokeSpaceInvite.
 message RevokeSpaceInviteResponse {}
+
+// ResolveSpaceJoinRequestRequest is the request for ResolveSpaceJoinRequest.
+message ResolveSpaceJoinRequestRequest {
+  // SpaceId is the shared object ULID for the space.
+  string space_id = 1;
+  // PeerId is the requesting peer (b58).
+  string peer_id = 2;
+  // Grant issues the requester a personal invite; false refuses the request.
+  bool grant = 3;
+}
+
+// ResolveSpaceJoinRequestResponse is the response for ResolveSpaceJoinRequest.
+message ResolveSpaceJoinRequestResponse {
+  // InviteMessage is the granted personal invite for delivery to the
+  // requester. Empty when the request was refused.
+  .sobject.SOInviteMessage invite_message = 1;
+}
 
 // JoinSpaceViaInviteRequest is the request for JoinSpaceViaInvite.
 message JoinSpaceViaInviteRequest {

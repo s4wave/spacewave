@@ -214,6 +214,10 @@ class SessionResourceServiceClient:
     ) -> (
         _github_com_s4wave_spacewave_sdk_session_session_pb2.RevokeSpaceInviteResponse
     ): ...
+    async def resolve_space_join_request(
+        self,
+        request: _github_com_s4wave_spacewave_sdk_session_session_pb2.ResolveSpaceJoinRequestRequest,
+    ) -> _github_com_s4wave_spacewave_sdk_session_session_pb2.ResolveSpaceJoinRequestResponse: ...
     async def join_space_via_invite(
         self,
         request: _github_com_s4wave_spacewave_sdk_session_session_pb2.JoinSpaceViaInviteRequest,
@@ -478,6 +482,10 @@ class SessionResourceServiceServer(Protocol):
     ) -> (
         _github_com_s4wave_spacewave_sdk_session_session_pb2.RevokeSpaceInviteResponse
     ): ...
+    async def resolve_space_join_request(
+        self,
+        request: _github_com_s4wave_spacewave_sdk_session_session_pb2.ResolveSpaceJoinRequestRequest,
+    ) -> _github_com_s4wave_spacewave_sdk_session_session_pb2.ResolveSpaceJoinRequestResponse: ...
     async def join_space_via_invite(
         self,
         request: _github_com_s4wave_spacewave_sdk_session_session_pb2.JoinSpaceViaInviteRequest,

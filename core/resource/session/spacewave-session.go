@@ -1087,6 +1087,7 @@ func (r *SpacewaveSessionResource) CreateSpaceTargetedInvitationByUsername(
 	ctx context.Context,
 	req *s4wave_provider_spacewave.CreateSpaceTargetedInvitationByUsernameRequest,
 ) (*s4wave_provider_spacewave.CreateSpaceTargetedInvitationByUsernameResponse, error) {
+	// Validate the request and resolve the role.
 	username := req.GetUsername()
 	spaceID := req.GetSpaceId()
 	if username == "" {
@@ -1104,6 +1105,7 @@ func (r *SpacewaveSessionResource) CreateSpaceTargetedInvitationByUsername(
 		return nil, err
 	}
 
+	// Resolve the username to an account the cloud lets this Space invite.
 	cli := r.swAcc.GetSessionClient()
 	resolve, err := cli.ResolveUsername(ctx, &api.ResolveUsernameRequest{
 		Username: username,
@@ -1113,10 +1115,11 @@ func (r *SpacewaveSessionResource) CreateSpaceTargetedInvitationByUsername(
 	if err != nil {
 		return nil, err
 	}
-	if !resolve.GetFound() || !resolve.GetCanInvite() {
+	if !resolve.GetFound() || !resolve.GetCanInvite() || resolve.GetAccountId() == "" {
 		return nil, errors.New("username is not available for this space invite")
 	}
 
+	// Read the inviting account and mount the Space's invite host.
 	account, err := cli.GetAccountInfo(ctx)
 	if err != nil {
 		return nil, errors.Wrap(err, "get account info")
@@ -1127,22 +1130,24 @@ func (r *SpacewaveSessionResource) CreateSpaceTargetedInvitationByUsername(
 	}
 	defer rel()
 
-	inviteMsg, err := ih.GetSOHost().CreateTargetedAccountSOInviteOp(
-		ctx,
-		ih.GetPrivKey(),
-		role,
-		ih.GetProviderID(),
-		resolve.GetAccountId(),
-		1,
-		targetedInvitationExpiresAt(req.GetExpiresAt()),
-	)
+	// Sign a single-use invite for the resolved account.
+	inviteMsg, err := ih.GetSOHost().CreateSOInviteOp(ctx, ih.GetPrivKey(), ih.GetProviderID(), &sobject.SOInvite{
+		Role:            role,
+		TargetAccountId: resolve.GetAccountId(),
+		MaxUses:         1,
+		ExpiresAt:       targetedInvitationExpiresAt(req.GetExpiresAt()),
+	})
 	if err != nil {
 		return nil, errors.Wrap(err, "create targeted space invite")
 	}
+
+	// Encode the invite as the envelope payload.
 	payload, err := inviteMsg.MarshalVT()
 	if err != nil {
 		return nil, errors.Wrap(err, "marshal space invite payload")
 	}
+
+	// Build and sign the envelope under a fresh nonce.
 	nonce := make([]byte, 16)
 	if _, err := cryptorand.Read(nonce); err != nil {
 		return nil, errors.Wrap(err, "generate nonce")
@@ -1170,6 +1175,8 @@ func (r *SpacewaveSessionResource) CreateSpaceTargetedInvitationByUsername(
 	if err := cli.SignTargetedInvitationEnvelope(envelope); err != nil {
 		return nil, err
 	}
+
+	// Store the invitation in the recipient's inbox.
 	resp, err := cli.CreateTargetedInvitation(ctx, &api.CreateTargetedInvitationRequest{
 		TargetAccountId: envelope.GetTargetAccountId(),
 		Purpose:         api.TargetedInvitePurpose_TARGETED_INVITE_PURPOSE_SPACE,

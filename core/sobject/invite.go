@@ -7,7 +7,6 @@ import (
 	"slices"
 	"time"
 
-	"github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	"github.com/aperturerobotics/util/ulid"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/net/crypto"
@@ -17,171 +16,69 @@ import (
 // BuildSOInviteMessage builds and signs the SOInviteMessage for out-of-band
 // distribution along with the on-chain SOInvite metadata.
 //
+// terms supplies the role, targets, use limit, expiry and admission conditions.
 // Generates a random 32-byte token and SHA256 hashes it for on-chain storage.
 // The returned SOInvite is stored separately via a signed config chain entry.
 func BuildSOInviteMessage(
 	sharedObjectID string,
 	ownerPrivKey crypto.PrivKey,
-	role SOParticipantRole,
 	providerID string,
-	targetPeerID string,
-	maxUses uint32,
-	expiresAt *timestamppb.Timestamp,
+	terms *SOInvite,
 ) (*SOInviteMessage, *SOInvite, error) {
-	return buildSOInviteMessage(
-		sharedObjectID,
-		ownerPrivKey,
-		role,
-		providerID,
-		targetPeerID,
-		"",
-		maxUses,
-		expiresAt,
-	)
-}
-
-// BuildTargetedAccountSOInviteMessage builds an invite that requires a targeted
-// provider-account proof before a cloud owner may accept the mailbox entry.
-func BuildTargetedAccountSOInviteMessage(
-	sharedObjectID string,
-	ownerPrivKey crypto.PrivKey,
-	role SOParticipantRole,
-	providerID string,
-	targetAccountID string,
-	maxUses uint32,
-	expiresAt *timestamppb.Timestamp,
-) (*SOInviteMessage, *SOInvite, error) {
-	if targetAccountID == "" {
-		return nil, nil, errors.New("target_account_id is required")
-	}
-	return buildSOInviteMessage(
-		sharedObjectID,
-		ownerPrivKey,
-		role,
-		providerID,
-		"",
-		targetAccountID,
-		maxUses,
-		expiresAt,
-	)
-}
-
-// buildSOInviteMessage binds a fresh token to the invite metadata and owner's signature.
-func buildSOInviteMessage(
-	sharedObjectID string,
-	ownerPrivKey crypto.PrivKey,
-	role SOParticipantRole,
-	providerID string,
-	targetPeerID string,
-	targetAccountID string,
-	maxUses uint32,
-	expiresAt *timestamppb.Timestamp,
-) (*SOInviteMessage, *SOInvite, error) {
+	// Derive the owner peer that signs the invite.
 	ownerPeerID, err := peer.IDFromPrivateKey(ownerPrivKey)
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "derive owner peer ID")
 	}
 
-	inviteID := ulid.NewULID()
-
+	// Bind a fresh token to a new invite.
 	token := make([]byte, 32)
 	if _, err := rand.Read(token); err != nil {
 		return nil, nil, errors.Wrap(err, "generate invite token")
 	}
+	tokenHash := sha256.Sum256(token)
+	invite := terms.CloneVT()
+	invite.InviteId = ulid.NewULID()
+	invite.TokenHash = tokenHash[:]
+	invite.Uses = 0
+	invite.Revoked = false
 
-	tokenHashArr := sha256.Sum256(token)
-	tokenHash := tokenHashArr[:]
-
+	// Sign the message that carries the token out of band.
 	msg := &SOInviteMessage{
-		InviteId:       inviteID,
+		InviteId:       invite.GetInviteId(),
 		SharedObjectId: sharedObjectID,
 		OwnerPeerId:    ownerPeerID.String(),
 		ProviderId:     providerID,
 		Token:          token,
-		Role:           role,
-		TargetPeerId:   targetPeerID,
-		ExpiresAt:      expiresAt,
-		MaxUses:        maxUses,
+		Role:           invite.GetRole(),
+		TargetPeerId:   invite.GetTargetPeerId(),
+		ExpiresAt:      invite.GetExpiresAt(),
+		MaxUses:        invite.GetMaxUses(),
 	}
-
 	if err := msg.Sign(ownerPrivKey); err != nil {
 		return nil, nil, err
 	}
-
-	return msg, &SOInvite{
-		InviteId:        inviteID,
-		TokenHash:       tokenHash,
-		Role:            role,
-		TargetPeerId:    targetPeerID,
-		TargetAccountId: targetAccountID,
-		MaxUses:         maxUses,
-		ExpiresAt:       expiresAt,
-	}, nil
+	return msg, invite, nil
 }
 
 // CreateSOInviteOp creates an invite on the shared object and returns the
 // signed SOInviteMessage for out-of-band distribution.
 //
-// Generates a random 32-byte token, SHA256 hashes it for on-chain storage,
-// builds and signs the SOInviteMessage, then stores the invite metadata in
-// SOState.invites via a signed config chain entry.
+// Builds the invite from terms with BuildSOInviteMessage, then stores its
+// metadata in SOState.invites via a signed config chain entry.
 func (s *SOHost) CreateSOInviteOp(
 	ctx context.Context,
 	ownerPrivKey crypto.PrivKey,
-	role SOParticipantRole,
 	providerID string,
-	targetPeerID string,
-	maxUses uint32,
-	expiresAt *timestamppb.Timestamp,
+	terms *SOInvite,
 ) (*SOInviteMessage, error) {
-	msg, invite, err := BuildSOInviteMessage(
-		s.sharedObjectID,
-		ownerPrivKey,
-		role,
-		providerID,
-		targetPeerID,
-		maxUses,
-		expiresAt,
-	)
+	msg, invite, err := BuildSOInviteMessage(s.sharedObjectID, ownerPrivKey, providerID, terms)
 	if err != nil {
 		return nil, err
 	}
-
 	if err := s.CreateInvite(ctx, ownerPrivKey, invite); err != nil {
 		return nil, errors.Wrap(err, "store invite on-chain")
 	}
-
-	return msg, nil
-}
-
-// CreateTargetedAccountSOInviteOp creates an invite that requires a targeted
-// provider-account proof before a cloud owner may accept the mailbox entry.
-func (s *SOHost) CreateTargetedAccountSOInviteOp(
-	ctx context.Context,
-	ownerPrivKey crypto.PrivKey,
-	role SOParticipantRole,
-	providerID string,
-	targetAccountID string,
-	maxUses uint32,
-	expiresAt *timestamppb.Timestamp,
-) (*SOInviteMessage, error) {
-	msg, invite, err := BuildTargetedAccountSOInviteMessage(
-		s.sharedObjectID,
-		ownerPrivKey,
-		role,
-		providerID,
-		targetAccountID,
-		maxUses,
-		expiresAt,
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	if err := s.CreateInvite(ctx, ownerPrivKey, invite); err != nil {
-		return nil, errors.Wrap(err, "store invite on-chain")
-	}
-
 	return msg, nil
 }
 
@@ -318,6 +215,47 @@ func ValidateInviteUsable(inv *SOInvite) error {
 		return errors.New("invite has reached max uses")
 	}
 	return nil
+}
+
+// InviteRedemption is how a host treats the redemption of a usable invite.
+type InviteRedemption int
+
+const (
+	// InviteRedemptionRefuse admits nobody and queues nothing.
+	InviteRedemptionRefuse InviteRedemption = iota
+	// InviteRedemptionAdmit adds the redeemer as a participant.
+	InviteRedemptionAdmit
+	// InviteRedemptionQueue holds the redemption as a join request.
+	InviteRedemptionQueue
+)
+
+// RedeemInvite decides the redemption of a usable invite by peerID.
+//
+// An invite without conditions admits everyone. A participant_of invite admits
+// a peer that participates in one of the named Spaces in held, the host's own
+// configuration of each Space it holds. An approval_required invite queues
+// every redemption it does not admit; otherwise the redemption is refused.
+func RedeemInvite(inv *SOInvite, peerID string, held map[string]*SharedObjectConfig) InviteRedemption {
+	// An invite without conditions admits everyone.
+	participation := inv.GetParticipantOf()
+	if participation == nil && !inv.GetApprovalRequired() {
+		return InviteRedemptionAdmit
+	}
+
+	// A participant of a named held Space is admitted.
+	if slices.ContainsFunc(participation.GetSharedObjectIds(), func(id string) bool {
+		return slices.ContainsFunc(held[id].GetParticipants(), func(p *SOParticipantConfig) bool {
+			return p.GetPeerId() == peerID
+		})
+	}) {
+		return InviteRedemptionAdmit
+	}
+
+	// Approval queues everyone else; without it they are refused.
+	if inv.GetApprovalRequired() {
+		return InviteRedemptionQueue
+	}
+	return InviteRedemptionRefuse
 }
 
 // FindInvite returns the invite with the given ID from the state, or nil.

@@ -45,6 +45,71 @@ def editInvite (id : String) (kind : ChangeType) (expired : Bool) :
       else (changeInvite kind expired inv).map (· :: rest)
     else (editInvite id kind expired rest).map (inv :: ·)
 
+/-- Redemption is how a host treats the redemption of a usable invite. -/
+inductive Redemption where
+  | refuse
+  | admit
+  | queue
+  deriving DecidableEq, Repr
+
+/-- Redemption.code is the Go InviteRedemption value. -/
+def Redemption.code : Redemption → Nat
+  | .refuse => 0
+  | .admit => 1
+  | .queue => 2
+
+/-- heldParticipant holds when the host's copy of Space `id` lists `peer`. -/
+def heldParticipant (held : List (String × List String)) (peer id : String) : Bool :=
+  ((held.lookup id).getD []).contains peer
+
+/-- redeemInvite mirrors RedeemInvite. `participantOf` is none when the invite
+names no Spaces, and `held` lists the participant peers of each Space the host
+holds. -/
+def redeemInvite (approvalRequired : Bool) (participantOf : Option (List String))
+    (held : List (String × List String)) (peer : String) : Redemption :=
+  match participantOf with
+  | none => if approvalRequired then .queue else .admit
+  | some ids =>
+    if ids.any (heldParticipant held peer) then .admit
+    else if approvalRequired then .queue else .refuse
+
+/-- Only an invite without conditions admits a peer the host holds no participation for. -/
+theorem redeemInvite_admit {approvalRequired : Bool} {participantOf : Option (List String)}
+    {held : List (String × List String)} {peer : String}
+    (h : redeemInvite approvalRequired participantOf held peer = .admit) :
+    (participantOf = none ∧ approvalRequired = false) ∨
+      ∃ ids, participantOf = some ids ∧ ∃ id ∈ ids, heldParticipant held peer id = true := by
+  unfold redeemInvite at h
+  split at h
+  · cases approvalRequired <;> simp_all
+  · rename_i ids
+    split at h
+    · rename_i member
+      exact Or.inr ⟨ids, rfl, List.any_eq_true.mp member⟩
+    · split at h <;> contradiction
+
+/-- An empty participation list admits nobody. -/
+theorem redeemInvite_empty {approvalRequired : Bool} {held : List (String × List String)}
+    {peer : String} : redeemInvite approvalRequired (some []) held peer ≠ .admit := by
+  cases approvalRequired <;> simp [redeemInvite]
+
+/-- A Space the host does not hold admits nobody by participation. -/
+theorem heldParticipant_unheld {held : List (String × List String)} {peer id : String}
+    (h : held.lookup id = none) : heldParticipant held peer id = false := by
+  simp [heldParticipant, h]
+
+/-- Only an approval_required invite queues a redemption. -/
+theorem redeemInvite_queue {approvalRequired : Bool} {participantOf : Option (List String)}
+    {held : List (String × List String)} {peer : String}
+    (h : redeemInvite approvalRequired participantOf held peer = .queue) :
+    approvalRequired = true := by
+  unfold redeemInvite at h
+  split at h
+  · cases approvalRequired <;> simp_all
+  · split at h
+    · contradiction
+    · cases approvalRequired <;> simp_all
+
 /-- inviteCallback runs all mutable invitation checks against the held checkpoint. -/
 def inviteCallback (kind : ChangeType) (inv : Invite) (id : String) (expired : Bool)
     (s : State) : Option State :=

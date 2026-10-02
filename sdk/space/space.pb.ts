@@ -15,6 +15,7 @@ import { SpaceSettings } from '../../core/space/world/world.pb.js'
 import type { SOParticipantRole } from '../../core/sobject/sobject.pb.js'
 import {
   SOInvite,
+  SOJoinRequest,
   SOParticipantConfig,
   SOParticipantRole_Enum,
 } from '../../core/sobject/sobject.pb.js'
@@ -461,6 +462,13 @@ export interface SpaceSharingState {
    * @generated from field: bool departure_pending = 10;
    */
   departurePending?: boolean
+  /**
+   * JoinRequests are the join requests this host holds for an owner to grant
+   * or refuse.
+   *
+   * @generated from field: repeated sobject.SOJoinRequest join_requests = 11;
+   */
+  joinRequests?: SOJoinRequest[]
 }
 
 export const SpaceSharingState: MessageType<SpaceSharingState> =
@@ -506,6 +514,13 @@ export const SpaceSharingState: MessageType<SpaceSharingState> =
       },
       { no: 9, name: 'viewer_peer_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 10, name: 'departure_pending', kind: 'scalar', T: ScalarType.BOOL },
+      {
+        no: 11,
+        name: 'join_requests',
+        kind: 'message',
+        T: () => SOJoinRequest,
+        repeated: true,
+      },
     ] satisfies readonly PartialFieldInfo[],
   })
 

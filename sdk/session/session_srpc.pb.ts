@@ -63,6 +63,8 @@ import {
   RemoveStorageBackendResponse,
   RenameSpaceRequest,
   RenameSpaceResponse,
+  ResolveSpaceJoinRequestRequest,
+  ResolveSpaceJoinRequestResponse,
   RevokeSpaceInviteRequest,
   RevokeSpaceInviteResponse,
   SelectPairingAccountRequest,
@@ -479,6 +481,15 @@ export const SessionResourceServiceDefinition = {
       name: 'RevokeSpaceInvite',
       I: RevokeSpaceInviteRequest,
       O: RevokeSpaceInviteResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * @generated from rpc s4wave.session.SessionResourceService.ResolveSpaceJoinRequest
+     */
+    ResolveSpaceJoinRequest: {
+      name: 'ResolveSpaceJoinRequest',
+      I: ResolveSpaceJoinRequestRequest,
+      O: ResolveSpaceJoinRequestResponse,
       kind: MethodKind.Unary,
     },
     /**
@@ -940,6 +951,14 @@ export interface SessionResourceService {
     request: RevokeSpaceInviteRequest,
     abortSignal?: AbortSignal,
   ): Promise<RevokeSpaceInviteResponse>
+
+  /**
+   * @generated from rpc s4wave.session.SessionResourceService.ResolveSpaceJoinRequest
+   */
+  ResolveSpaceJoinRequest(
+    request: ResolveSpaceJoinRequestRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<ResolveSpaceJoinRequestResponse>
 
   /**
    * @generated from rpc s4wave.session.SessionResourceService.JoinSpaceViaInvite
@@ -1427,6 +1446,15 @@ export interface SessionResourceServiceHandler {
   ): Promise<RevokeSpaceInviteResponse>
 
   /**
+   * @generated from rpc s4wave.session.SessionResourceService.ResolveSpaceJoinRequest
+   */
+  ResolveSpaceJoinRequest(
+    request: ResolveSpaceJoinRequestRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<ResolveSpaceJoinRequestResponse>
+
+  /**
    * @generated from rpc s4wave.session.SessionResourceService.JoinSpaceViaInvite
    */
   JoinSpaceViaInvite(
@@ -1606,6 +1634,7 @@ export class SessionResourceServiceClient implements SessionResourceService {
     this.ListSpaceParticipants = this.ListSpaceParticipants.bind(this)
     this.RemoveSpaceParticipants = this.RemoveSpaceParticipants.bind(this)
     this.RevokeSpaceInvite = this.RevokeSpaceInvite.bind(this)
+    this.ResolveSpaceJoinRequest = this.ResolveSpaceJoinRequest.bind(this)
     this.JoinSpaceViaInvite = this.JoinSpaceViaInvite.bind(this)
     this.CreateLocalPairingOffer = this.CreateLocalPairingOffer.bind(this)
     this.AcceptLocalPairingOffer = this.AcceptLocalPairingOffer.bind(this)
@@ -2290,6 +2319,23 @@ export class SessionResourceServiceClient implements SessionResourceService {
       abortSignal || undefined,
     )
     return RevokeSpaceInviteResponse.fromBinary(result)
+  }
+
+  /**
+   * @generated from rpc s4wave.session.SessionResourceService.ResolveSpaceJoinRequest
+   */
+  async ResolveSpaceJoinRequest(
+    request: ResolveSpaceJoinRequestRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<ResolveSpaceJoinRequestResponse> {
+    const requestMsg = ResolveSpaceJoinRequestRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      SessionResourceServiceDefinition.methods.ResolveSpaceJoinRequest.name,
+      ResolveSpaceJoinRequestRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return ResolveSpaceJoinRequestResponse.fromBinary(result)
   }
 
   /**

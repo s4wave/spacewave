@@ -178,7 +178,7 @@ func (r *SpaceResource) WatchSpaceState(
 
 // WatchSpaceSharingState watches the sharing snapshot for the space.
 //
-// All change sources (SO state, mailbox metadata) are folded into one local
+// All change sources (SO state, mailbox metadata, join requests) are folded into one local
 // broadcast so the watch loop reads every input snapshot under the same
 // HoldLock that obtains the wait channel. This eliminates the missed-wakeup
 // race that the previous dual-channel select had to defend against with
@@ -246,6 +246,9 @@ func (r *SpaceResource) WatchSpaceSharingState(
 	go state.BridgeSOState(bridgeCtx, soStateCtr, readDeparting)
 	if swAcc != nil {
 		go bridgeSharingMailbox(bridgeCtx, state, swAcc, soID)
+	}
+	if jrh, ok := inviteHost.(sobject.JoinRequestHost); ok {
+		go state.BridgeJoinRequests(bridgeCtx, jrh.GetJoinRequestsCtr())
 	}
 
 	// Send each changed snapshot to the stream.
@@ -485,6 +488,7 @@ func sharingStateToProto(state *sharingstate.SharingState) *s4wave_space.SpaceSh
 		Participants:     state.Participants,
 		Invites:          state.Invites,
 		MailboxEntries:   sharingMailboxEntriesToProto(state.MailboxEntries),
+		JoinRequests:     state.JoinRequests,
 		ViewerRole:       state.ViewerRole,
 		CanManage:        state.CanManage,
 		ParticipantInfo:  sharingParticipantInfoToProto(state.ParticipantInfo),

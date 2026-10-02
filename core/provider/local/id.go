@@ -73,6 +73,17 @@ func SobjectObjectStoreLocalStateKey(sharedObjectID string) []byte {
 	}, "/"))
 }
 
+// SobjectObjectStoreJoinRequestsKey returns the object store key for the
+// pending join requests of a shared object.
+func SobjectObjectStoreJoinRequestsKey(sharedObjectID string) []byte {
+	return []byte(strings.Join([]string{
+		"so",
+		sharedObjectID,
+		ProviderID,
+		"join-requests",
+	}, "/"))
+}
+
 // SobjectObjectStoreLocalOpResultKey returns the object store key for a shared object op result.
 func SobjectObjectStoreLocalOpResultKey(sharedObjectID, opLocalID string) []byte {
 	return []byte(strings.Join([]string{

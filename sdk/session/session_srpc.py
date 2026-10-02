@@ -288,6 +288,13 @@ SESSIONRESOURCESERVICE_SERVICE = ServiceDescriptor(
             False,
         ),
         MethodDescriptor(
+            "ResolveSpaceJoinRequest",
+            _github_com_s4wave_spacewave_sdk_session_session_pb2.ResolveSpaceJoinRequestRequest,
+            _github_com_s4wave_spacewave_sdk_session_session_pb2.ResolveSpaceJoinRequestResponse,
+            False,
+            False,
+        ),
+        MethodDescriptor(
             "JoinSpaceViaInvite",
             _github_com_s4wave_spacewave_sdk_session_session_pb2.JoinSpaceViaInviteRequest,
             _github_com_s4wave_spacewave_sdk_session_session_pb2.JoinSpaceViaInviteResponse,
@@ -1200,6 +1207,27 @@ class SessionResourceServiceClient:
         finally:
             await call.aclose()
 
+    async def resolve_space_join_request(
+        self,
+        request: _github_com_s4wave_spacewave_sdk_session_session_pb2.ResolveSpaceJoinRequestRequest,
+    ) -> _github_com_s4wave_spacewave_sdk_session_session_pb2.ResolveSpaceJoinRequestResponse:
+        call = await self._client.open_call(
+            self._service,
+            "ResolveSpaceJoinRequest",
+            request.SerializeToString(deterministic=True),
+        )
+        try:
+            data = await call.receive()
+            if data is None:
+                raise CallProtocolError("missing unary response")
+            response = _github_com_s4wave_spacewave_sdk_session_session_pb2.ResolveSpaceJoinRequestResponse()
+            response.ParseFromString(data)
+            if await call.receive() is not None:
+                raise CallProtocolError("extra unary response")
+            return response
+        finally:
+            await call.aclose()
+
     async def join_space_via_invite(
         self,
         request: _github_com_s4wave_spacewave_sdk_session_session_pb2.JoinSpaceViaInviteRequest,
@@ -1663,6 +1691,10 @@ class SessionResourceServiceServer(Protocol):
     ) -> (
         _github_com_s4wave_spacewave_sdk_session_session_pb2.RevokeSpaceInviteResponse
     ): ...
+    async def resolve_space_join_request(
+        self,
+        request: _github_com_s4wave_spacewave_sdk_session_session_pb2.ResolveSpaceJoinRequestRequest,
+    ) -> _github_com_s4wave_spacewave_sdk_session_session_pb2.ResolveSpaceJoinRequestResponse: ...
     async def join_space_via_invite(
         self,
         request: _github_com_s4wave_spacewave_sdk_session_session_pb2.JoinSpaceViaInviteRequest,
@@ -2192,6 +2224,19 @@ def register_session_resource_service(
         await call.send(response.SerializeToString(deterministic=True))
 
     registry.register(service, "RevokeSpaceInvite", revoke_space_invite_handler)
+
+    async def resolve_space_join_request_handler(call: Call) -> None:
+        first = await call.receive()
+        if first is None:
+            raise CallProtocolError("missing initial request")
+        request = _github_com_s4wave_spacewave_sdk_session_session_pb2.ResolveSpaceJoinRequestRequest()
+        request.ParseFromString(first)
+        response = await implementation.resolve_space_join_request(request)
+        await call.send(response.SerializeToString(deterministic=True))
+
+    registry.register(
+        service, "ResolveSpaceJoinRequest", resolve_space_join_request_handler
+    )
 
     async def join_space_via_invite_handler(call: Call) -> None:
         first = await call.receive()

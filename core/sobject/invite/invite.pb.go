@@ -69,6 +69,9 @@ type AcceptInviteResponse struct {
 	// SharedObjectState is the owner's authorized state after enrollment. The
 	// invitee installs this state so both copies use the same root transform.
 	SharedObjectState *sobject.SOState `protobuf:"bytes,4,opt,name=shared_object_state,json=sharedObjectState,proto3" json:"sharedObjectState,omitempty"`
+	// Pending reports that the owner queued the redemption as a join request
+	// instead of admitting it. Every other field is empty.
+	Pending bool `protobuf:"varint,5,opt,name=pending,proto3" json:"pending,omitempty"`
 }
 
 func (x *AcceptInviteResponse) Reset() {
@@ -105,6 +108,13 @@ func (x *AcceptInviteResponse) GetSharedObjectState() *sobject.SOState {
 	return nil
 }
 
+func (x *AcceptInviteResponse) GetPending() bool {
+	if x != nil {
+		return x.Pending
+	}
+	return false
+}
+
 func (m *AcceptInviteRequest) CloneVT() *AcceptInviteRequest {
 	if m == nil {
 		return (*AcceptInviteRequest)(nil)
@@ -129,6 +139,7 @@ func (m *AcceptInviteResponse) CloneVT() *AcceptInviteResponse {
 	}
 	r := new(AcceptInviteResponse)
 	r.SharedObjectId = m.SharedObjectId
+	r.Pending = m.Pending
 	r.Grant = protobuf_go_lite.CloneVTValue(m.Grant)
 	r.OwnerGrant = protobuf_go_lite.CloneVTValue(m.OwnerGrant)
 	r.SharedObjectState = protobuf_go_lite.CloneVTValue(m.SharedObjectState)
@@ -184,6 +195,9 @@ func (this *AcceptInviteResponse) EqualVT(that *AcceptInviteResponse) bool {
 		return false
 	}
 	if !protobuf_go_lite.IsEqualVT(this.SharedObjectState, that.SharedObjectState) {
+		return false
+	}
+	if this.Pending != that.Pending {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -291,6 +305,11 @@ func (x *AcceptInviteResponse) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("sharedObjectState")
 		x.SharedObjectState.MarshalProtoJSON(s.WithField("sharedObjectState"))
 	}
+	if x.Pending || s.HasField("pending") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("pending")
+		s.WriteBool(x.Pending)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -332,6 +351,9 @@ func (x *AcceptInviteResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
 			}
 			x.SharedObjectState = &sobject.SOState{}
 			x.SharedObjectState.UnmarshalProtoJSON(s.WithField("shared_object_state", true))
+		case "pending":
+			s.AddField("pending")
+			x.Pending = s.ReadBool()
 		}
 	})
 }
@@ -427,6 +449,11 @@ func (m *AcceptInviteResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) 
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.Pending {
+		i = protobuf_go_lite.EncodeBool(dAtA, i, m.Pending)
+		i--
+		dAtA[i] = 0x28
+	}
 	if m.SharedObjectState != nil {
 		size, err := m.SharedObjectState.MarshalToSizedBufferVT(dAtA[:i])
 		if err != nil {
@@ -503,6 +530,7 @@ func (m *AcceptInviteResponse) SizeVT() (n int) {
 		l = m.SharedObjectState.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
+	n += protobuf_go_lite.SizeBoolNonZero(1, m.Pending)
 	n += len(m.unknownFields)
 	return n
 }
@@ -547,6 +575,10 @@ func (x *AcceptInviteResponse) MarshalProtoText() string {
 	if x.SharedObjectState != nil {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "shared_object_state")
 		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.SharedObjectState)
+	}
+	if x.Pending != false {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "pending")
+		protobuf_go_lite.TextWriteBool(&sb, x.Pending)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -711,6 +743,16 @@ func (m *AcceptInviteResponse) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		case 5:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Pending", wireType)
+			}
+			var v bool
+			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Pending = bool(v)
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

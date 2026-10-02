@@ -153,6 +153,9 @@ message SpaceSharingState {
   // DeparturePending is true while the head ownership transfer carries a
   // departure its successor has not committed. Roles change when it commits.
   bool departure_pending = 10;
+  // JoinRequests are the join requests this host holds for an owner to grant
+  // or refuse.
+  repeated .sobject.SOJoinRequest join_requests = 11;
 }
 
 // TransformInfo contains redacted transform configuration for display.

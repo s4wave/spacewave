@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/aperturerobotics/fastjson"
 	"github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/s4wave/spacewave/net/peer"
@@ -24,6 +25,74 @@ func TestLeanInviteConformance(t *testing.T) {
 		cases = append(cases, runLeanInviteScenario(t, peers, seed)...)
 	}
 	checkLeanCases(t, oracle, cases)
+}
+
+// TestLeanRedeemInviteConformance compares invite redemption conditions.
+func TestLeanRedeemInviteConformance(t *testing.T) {
+	// The host holds Space a with one participant and Space c with none.
+	held := map[string]*SharedObjectConfig{
+		"a": {Participants: []*SOParticipantConfig{{PeerId: "member"}}},
+		"c": {},
+	}
+	participations := []*SOInviteParticipation{
+		nil,
+		{},
+		{SharedObjectIds: []string{"a"}},
+		{SharedObjectIds: []string{"b"}},
+		{SharedObjectIds: []string{"c"}},
+		{SharedObjectIds: []string{"b", "a"}},
+	}
+
+	// Project the held configs as (Space, participants) pairs.
+	var a fastjson.Arena
+	heldValue := a.NewArray()
+	for j, id := range []string{"a", "c"} {
+		var peers []string
+		for _, p := range held[id].GetParticipants() {
+			peers = append(peers, p.GetPeerId())
+		}
+		pair := a.NewArray()
+		pair.SetArrayItem(0, a.NewString(id))
+		pair.SetArrayItem(1, leanStrings(&a, peers))
+		heldValue.SetArrayItem(j, pair)
+	}
+
+	// Redeem every condition combination as a member and as a stranger.
+	var cases []leanCase
+	for _, approval := range []bool{false, true} {
+		for i, participation := range participations {
+			for _, peerID := range []string{"member", "stranger"} {
+				req := a.NewObject()
+				req.Set("op", a.NewString("redeemInvite"))
+				req.Set("approvalRequired", leanBool(&a, approval))
+				req.Set("participantOf", a.NewNull())
+				if participation != nil {
+					req.Set("participantOf", leanStrings(&a, participation.GetSharedObjectIds()))
+				}
+				req.Set("held", heldValue)
+				req.Set("peer", a.NewString(peerID))
+				inv := &SOInvite{ApprovalRequired: approval, ParticipantOf: participation}
+				redemption := RedeemInvite(inv, peerID, held)
+				cases = append(cases, leanCase{
+					name:    "redeemInvite approval " + strconv.FormatBool(approval) + " participation " + strconv.Itoa(i) + " " + peerID,
+					request: req.MarshalTo(nil), ok: true,
+					field: "redemption", value: strconv.AppendInt(nil, int64(redemption), 10),
+				})
+			}
+		}
+	}
+
+	// The Lean oracle must decide each redemption the same way.
+	checkLeanCases(t, leanOracle(t), cases)
+}
+
+// leanStrings projects a string list.
+func leanStrings(a *fastjson.Arena, values []string) *fastjson.Value {
+	out := a.NewArray()
+	for i, v := range values {
+		out.SetArrayItem(i, a.NewString(v))
+	}
+	return out
 }
 
 // FuzzLeanInvite searches finite capacity, stale checkpoints and authority boundaries.

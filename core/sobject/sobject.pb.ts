@@ -1574,6 +1574,35 @@ export const SOEntityRecoveryMaterial: MessageType<SOEntityRecoveryMaterial> =
   })
 
 /**
+ * SOInviteParticipation names the Spaces whose participants an invite admits.
+ * An empty list admits nobody by participation.
+ *
+ * @generated from message sobject.SOInviteParticipation
+ */
+export interface SOInviteParticipation {
+  /**
+   * SharedObjectIds are the named Spaces.
+   *
+   * @generated from field: repeated string shared_object_ids = 1;
+   */
+  sharedObjectIds?: string[]
+}
+
+export const SOInviteParticipation: MessageType<SOInviteParticipation> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'sobject.SOInviteParticipation',
+    fields: [
+      {
+        no: 1,
+        name: 'shared_object_ids',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+        repeated: true,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+  })
+
+/**
  * SOInvite is a pending invite on a SharedObject.
  * Stored in plaintext on SOState (not in encrypted SORoot).
  *
@@ -1639,6 +1668,20 @@ export interface SOInvite {
    * @generated from field: string target_account_id = 9;
    */
   targetAccountId?: string
+  /**
+   * ApprovalRequired queues a redemption the invite does not otherwise admit
+   * as a join request, which an owner grants or refuses.
+   *
+   * @generated from field: bool approval_required = 10;
+   */
+  approvalRequired?: boolean
+  /**
+   * ParticipantOf admits a redeemer who participates in one of the named
+   * Spaces, as the redeeming host holds them. Unset applies no condition.
+   *
+   * @generated from field: sobject.SOInviteParticipation participant_of = 11;
+   */
+  participantOf?: SOInviteParticipation
 }
 
 export const SOInvite: MessageType<SOInvite> =
@@ -1658,6 +1701,119 @@ export const SOInvite: MessageType<SOInvite> =
         name: 'target_account_id',
         kind: 'scalar',
         T: ScalarType.STRING,
+      },
+      { no: 10, name: 'approval_required', kind: 'scalar', T: ScalarType.BOOL },
+      {
+        no: 11,
+        name: 'participant_of',
+        kind: 'message',
+        T: SOInviteParticipation,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+  })
+
+/**
+ * SOJoinResponse is a signed response from an invitee requesting to join.
+ *
+ * @generated from message sobject.SOJoinResponse
+ */
+export interface SOJoinResponse {
+  /**
+   * InviteId is the invite being accepted.
+   *
+   * @generated from field: string invite_id = 1;
+   */
+  inviteId?: string
+  /**
+   * ResponderPeerId is the peer ID of the responder (b58).
+   *
+   * @generated from field: string responder_peer_id = 2;
+   */
+  responderPeerId?: string
+  /**
+   * ResponderPubkey is the DER-encoded public key of the responder.
+   *
+   * @generated from field: bytes responder_pubkey = 3;
+   */
+  responderPubkey?: Uint8Array
+  /**
+   * Signature is the responder's signature over this message (without this field).
+   *
+   * @generated from field: peer.Signature signature = 4;
+   */
+  signature?: Signature
+}
+
+export const SOJoinResponse: MessageType<SOJoinResponse> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'sobject.SOJoinResponse',
+    fields: [
+      { no: 1, name: 'invite_id', kind: 'scalar', T: ScalarType.STRING },
+      {
+        no: 2,
+        name: 'responder_peer_id',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+      },
+      { no: 3, name: 'responder_pubkey', kind: 'scalar', T: ScalarType.BYTES },
+      { no: 4, name: 'signature', kind: 'message', T: () => Signature },
+    ] satisfies readonly PartialFieldInfo[],
+  })
+
+/**
+ * SOJoinRequest is a redemption waiting for an owner to grant or refuse it.
+ *
+ * @generated from message sobject.SOJoinRequest
+ */
+export interface SOJoinRequest {
+  /**
+   * JoinResponse is the requester's signed redemption.
+   *
+   * @generated from field: sobject.SOJoinResponse join_response = 1;
+   */
+  joinResponse?: SOJoinResponse
+  /**
+   * CreatedAt is when the host queued the request.
+   *
+   * @generated from field: google.protobuf.Timestamp created_at = 2;
+   */
+  createdAt?: Date
+}
+
+export const SOJoinRequest: MessageType<SOJoinRequest> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'sobject.SOJoinRequest',
+    fields: [
+      { no: 1, name: 'join_response', kind: 'message', T: SOJoinResponse },
+      { no: 2, name: 'created_at', kind: 'message', T: () => Timestamp },
+    ] satisfies readonly PartialFieldInfo[],
+  })
+
+/**
+ * SOJoinRequestList is a host's pending join requests for one Space, at most
+ * one per requesting peer.
+ *
+ * @generated from message sobject.SOJoinRequestList
+ */
+export interface SOJoinRequestList {
+  /**
+   * Requests are ordered by arrival.
+   *
+   * @generated from field: repeated sobject.SOJoinRequest requests = 1;
+   */
+  requests?: SOJoinRequest[]
+}
+
+export const SOJoinRequestList: MessageType<SOJoinRequestList> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'sobject.SOJoinRequestList',
+    fields: [
+      {
+        no: 1,
+        name: 'requests',
+        kind: 'message',
+        T: SOJoinRequest,
+        repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
   })
@@ -2057,53 +2213,5 @@ export const SOInviteMessage: MessageType<SOInviteMessage> =
         kind: 'scalar',
         T: ScalarType.STRING,
       },
-    ] satisfies readonly PartialFieldInfo[],
-  })
-
-/**
- * SOJoinResponse is a signed response from an invitee requesting to join.
- *
- * @generated from message sobject.SOJoinResponse
- */
-export interface SOJoinResponse {
-  /**
-   * InviteId is the invite being accepted.
-   *
-   * @generated from field: string invite_id = 1;
-   */
-  inviteId?: string
-  /**
-   * ResponderPeerId is the peer ID of the responder (b58).
-   *
-   * @generated from field: string responder_peer_id = 2;
-   */
-  responderPeerId?: string
-  /**
-   * ResponderPubkey is the DER-encoded public key of the responder.
-   *
-   * @generated from field: bytes responder_pubkey = 3;
-   */
-  responderPubkey?: Uint8Array
-  /**
-   * Signature is the responder's signature over this message (without this field).
-   *
-   * @generated from field: peer.Signature signature = 4;
-   */
-  signature?: Signature
-}
-
-export const SOJoinResponse: MessageType<SOJoinResponse> =
-  /* @__PURE__ */ createMessageType({
-    typeName: 'sobject.SOJoinResponse',
-    fields: [
-      { no: 1, name: 'invite_id', kind: 'scalar', T: ScalarType.STRING },
-      {
-        no: 2,
-        name: 'responder_peer_id',
-        kind: 'scalar',
-        T: ScalarType.STRING,
-      },
-      { no: 3, name: 'responder_pubkey', kind: 'scalar', T: ScalarType.BYTES },
-      { no: 4, name: 'signature', kind: 'message', T: () => Signature },
     ] satisfies readonly PartialFieldInfo[],
   })
