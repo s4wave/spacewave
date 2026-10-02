@@ -375,6 +375,9 @@ type SpaceSharingState struct {
 	ConfigChainSeqno uint64 `protobuf:"varint,8,opt,name=config_chain_seqno,json=configChainSeqno,proto3" json:"configChainSeqno,omitempty"`
 	// ViewerPeerId identifies the authenticated mounted shared-object participant peer.
 	ViewerPeerId string `protobuf:"bytes,9,opt,name=viewer_peer_id,json=viewerPeerId,proto3" json:"viewerPeerId,omitempty"`
+	// DeparturePending is true while the head ownership transfer carries a
+	// departure its successor has not committed. Roles change when it commits.
+	DeparturePending bool `protobuf:"varint,10,opt,name=departure_pending,json=departurePending,proto3" json:"departurePending,omitempty"`
 }
 
 func (x *SpaceSharingState) Reset() {
@@ -444,6 +447,13 @@ func (x *SpaceSharingState) GetViewerPeerId() string {
 		return x.ViewerPeerId
 	}
 	return ""
+}
+
+func (x *SpaceSharingState) GetDeparturePending() bool {
+	if x != nil {
+		return x.DeparturePending
+	}
+	return false
 }
 
 // TransformInfo contains redacted transform configuration for display.
@@ -1326,6 +1336,7 @@ func (m *SpaceSharingState) CloneVT() *SpaceSharingState {
 	r.CanManage = m.CanManage
 	r.ConfigChainSeqno = m.ConfigChainSeqno
 	r.ViewerPeerId = m.ViewerPeerId
+	r.DeparturePending = m.DeparturePending
 	r.Participants = protobuf_go_lite.CloneVTSlice(m.Participants)
 	r.Invites = protobuf_go_lite.CloneVTSlice(m.Invites)
 	r.MailboxEntries = protobuf_go_lite.CloneVTSlice(m.MailboxEntries)
@@ -1994,6 +2005,9 @@ func (this *SpaceSharingState) EqualVT(that *SpaceSharingState) bool {
 		return false
 	}
 	if this.ViewerPeerId != that.ViewerPeerId {
+		return false
+	}
+	if this.DeparturePending != that.DeparturePending {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -3126,6 +3140,11 @@ func (x *SpaceSharingState) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("viewerPeerId")
 		s.WriteString(x.ViewerPeerId)
 	}
+	if x.DeparturePending || s.HasField("departurePending") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("departurePending")
+		s.WriteBool(x.DeparturePending)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -3230,6 +3249,9 @@ func (x *SpaceSharingState) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "viewer_peer_id", "viewerPeerId":
 			s.AddField("viewer_peer_id")
 			x.ViewerPeerId = s.ReadString()
+		case "departure_pending", "departurePending":
+			s.AddField("departure_pending")
+			x.DeparturePending = s.ReadBool()
 		}
 	})
 }
@@ -4982,6 +5004,11 @@ func (m *SpaceSharingState) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.DeparturePending {
+		i = protobuf_go_lite.EncodeBool(dAtA, i, m.DeparturePending)
+		i--
+		dAtA[i] = 0x50
+	}
 	if len(m.ViewerPeerId) > 0 {
 		i = protobuf_go_lite.EncodeString(dAtA, i, m.ViewerPeerId)
 		i--
@@ -6321,6 +6348,7 @@ func (m *SpaceSharingState) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.ConfigChainHash)
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.ConfigChainSeqno)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.ViewerPeerId)
+	n += protobuf_go_lite.SizeBoolNonZero(1, m.DeparturePending)
 	n += len(m.unknownFields)
 	return n
 }
@@ -6894,6 +6922,10 @@ func (x *SpaceSharingState) MarshalProtoText() string {
 	if x.ViewerPeerId != "" {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "viewer_peer_id")
 		protobuf_go_lite.TextWriteString(&sb, x.ViewerPeerId)
+	}
+	if x.DeparturePending != false {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "departure_pending")
+		protobuf_go_lite.TextWriteBool(&sb, x.DeparturePending)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -8045,6 +8077,16 @@ func (m *SpaceSharingState) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.ViewerPeerId = v
+		case 10:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field DeparturePending", wireType)
+			}
+			var v bool
+			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.DeparturePending = bool(v)
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

@@ -58,6 +58,8 @@ type SharingState struct {
 	ConfigChainSeqno uint64
 	// ViewerPeerID is the authenticated participant of the mounted SharedObject.
 	ViewerPeerID string
+	// DeparturePending reports a departure the successor has not committed.
+	DeparturePending bool
 }
 
 // State carries every input snapshot the sharing watch reads per emission.
@@ -191,6 +193,7 @@ func (s *State) RunWatchLoop(
 				),
 				ConfigChainHash:  soState.GetConfig().GetConfigChainHash(),
 				ConfigChainSeqno: soState.GetConfig().GetConfigChainSeqno(),
+				DeparturePending: len(s.departing) != 0,
 			}
 			waitCh = getWaitCh()
 		})
@@ -340,6 +343,7 @@ func (s *SharingState) Equal(that *SharingState) bool {
 	return s.ViewerRole == that.ViewerRole &&
 		s.CanManage == that.CanManage &&
 		s.ViewerPeerID == that.ViewerPeerID &&
+		s.DeparturePending == that.DeparturePending &&
 		bytes.Equal(s.ConfigChainHash, that.ConfigChainHash) &&
 		s.ConfigChainSeqno == that.ConfigChainSeqno &&
 		slices.EqualFunc(s.Participants, that.Participants, func(a, b *sobject.SOParticipantConfig) bool {

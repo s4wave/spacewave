@@ -42,10 +42,11 @@ func (a *ProviderAccount) watchSOHosting(ctx context.Context, soID string, so *S
 }
 
 // reconcileSOHosting moves hosting of so to follow its latest ownership
-// transfer. The account holding the successor commits the carried departure,
-// promotes its storage identity so it signs as host, and stops naming a remote
-// endpoint. Every other account routes to the successor. An object without a
-// departure transfer keeps the endpoint its enrollment recorded.
+// transfer. The account holding the successor commits the carried departure
+// and promotes its storage identity in one change, so it signs as host once the
+// departure settles, and stops naming a remote endpoint. Every other account
+// routes to the successor. An object without a departure transfer keeps the
+// endpoint its enrollment recorded.
 func (a *ProviderAccount) reconcileSOHosting(ctx context.Context, soID string, so *SharedObject) error {
 	// The storage identity always signs; the session identity signs while its transport runs.
 	keys := map[string]crypto.PrivKey{so.localPid.String(): so.localPriv}
@@ -53,9 +54,10 @@ func (a *ProviderAccount) reconcileSOHosting(ctx context.Context, soID string, s
 		keys[st.GetPeerID().String()] = st.GetPrivKey()
 	}
 
-	// A remaining local owner commits a departure carried at the head.
+	// A remaining local owner commits a departure carried at the head and
+	// promotes the storage identity in the same change.
 	for _, key := range keys {
-		if _, err := sobject.CompleteSOOwnershipTransfer(ctx, so.soHost, key); err != nil {
+		if _, err := sobject.CompleteSOOwnershipTransfer(ctx, so.soHost, key, so.localPid.String()); err != nil {
 			return err
 		}
 	}

@@ -491,6 +491,7 @@ func sharingStateToProto(state *sharingstate.SharingState) *s4wave_space.SpaceSh
 		ConfigChainHash:  state.ConfigChainHash,
 		ConfigChainSeqno: state.ConfigChainSeqno,
 		ViewerPeerId:     state.ViewerPeerID,
+		DeparturePending: state.DeparturePending,
 	}
 }
 

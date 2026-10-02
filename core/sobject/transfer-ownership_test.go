@@ -65,13 +65,13 @@ func TestTransferSOOwnershipOwnerDeparture(t *testing.T) {
 	if _, err := TransferSOOwnership(ctx, host, keys[0], "", request); err != nil {
 		t.Fatal(err)
 	}
-	if done, err := CompleteSOOwnershipTransfer(ctx, host, keys[0]); done || err != nil {
+	if done, err := CompleteSOOwnershipTransfer(ctx, host, keys[0], ""); done || err != nil {
 		t.Fatalf("departing owner completed its transfer: %v %v", done, err)
 	}
-	if done, err := CompleteSOOwnershipTransfer(ctx, host, keys[1]); !done || err != nil {
+	if done, err := CompleteSOOwnershipTransfer(ctx, host, keys[1], ""); !done || err != nil {
 		t.Fatalf("successor did not complete the transfer: %v %v", done, err)
 	}
-	if done, err := CompleteSOOwnershipTransfer(ctx, host, keys[1]); done || err != nil {
+	if done, err := CompleteSOOwnershipTransfer(ctx, host, keys[1], ""); done || err != nil {
 		t.Fatalf("completed transfer ran again: %v %v", done, err)
 	}
 
@@ -117,7 +117,7 @@ func TestTransferSOOwnershipOwnerDeparture(t *testing.T) {
 	if !IsOwner((*state).GetConfig().GetParticipants()[1].GetRole()) {
 		t.Fatal("promotion did not raise the participant to owner")
 	}
-	if done, err := CompleteSOOwnershipTransfer(ctx, host, keys[2]); done || err != nil {
+	if done, err := CompleteSOOwnershipTransfer(ctx, host, keys[2], ""); done || err != nil {
 		t.Fatalf("promotion without departure completed a transfer: %v %v", done, err)
 	}
 	if successor, err := ReadSOOwnershipSuccessor(ctx, host); err != nil || successor != peers[1].GetPeerID().String() {
