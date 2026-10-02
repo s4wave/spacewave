@@ -217,6 +217,13 @@ func (s *Session) JoinSpaceViaInvite(ctx context.Context, req *JoinSpaceViaInvit
 	return s.service.JoinSpaceViaInvite(ctx, req)
 }
 
+// WithdrawSpaceJoinRequest withdraws this session's pending request to join
+// through the invite. Withdrawing a request that no longer waits succeeds.
+func (s *Session) WithdrawSpaceJoinRequest(ctx context.Context, inviteMessage *sobject.SOInviteMessage) error {
+	_, err := s.service.WithdrawSpaceJoinRequest(ctx, &WithdrawSpaceJoinRequestRequest{InviteMessage: inviteMessage})
+	return err
+}
+
 // GeneratePairingCode generates a short pairing code for cloud-relay device linking.
 func (s *Session) GeneratePairingCode(ctx context.Context) (*GeneratePairingCodeResponse, error) {
 	return s.service.GeneratePairingCode(ctx, &GeneratePairingCodeRequest{})
