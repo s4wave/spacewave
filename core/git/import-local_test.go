@@ -26,6 +26,7 @@ import (
 	world_testbed "github.com/s4wave/spacewave/db/world/testbed"
 )
 
+// TestImportLocalRepoToRefRoundTrip preserves HEAD and every committed reference.
 func TestImportLocalRepoToRefRoundTrip(t *testing.T) {
 	// Build the World testbed and a local repository to import.
 	ctx, ws := localImportWorld(t)
@@ -64,6 +65,7 @@ func TestImportLocalRepoToRefRoundTrip(t *testing.T) {
 	})
 }
 
+// TestImportLocalRepoToRefExcludesDirtyFiles imports only committed file contents.
 func TestImportLocalRepoToRefExcludesDirtyFiles(t *testing.T) {
 	// Build the World testbed and a repository with dirty and untracked files.
 	ctx, ws := localImportWorld(t)
@@ -100,6 +102,7 @@ func TestImportLocalRepoToRefExcludesDirtyFiles(t *testing.T) {
 	})
 }
 
+// TestImportLocalRepoToRefDetachedHead preserves a detached HEAD without inventing a branch.
 func TestImportLocalRepoToRefDetachedHead(t *testing.T) {
 	// Build the testbed and detach the repository's HEAD.
 	ctx, ws := localImportWorld(t)
@@ -127,6 +130,7 @@ func TestImportLocalRepoToRefDetachedHead(t *testing.T) {
 	})
 }
 
+// TestImportLocalRepoToRefRejectsUnbornHead rejects repositories with no committed HEAD.
 func TestImportLocalRepoToRefRejectsUnbornHead(t *testing.T) {
 	// Build the testbed and initialize a repository with no commits.
 	ctx, ws := localImportWorld(t)
@@ -142,6 +146,7 @@ func TestImportLocalRepoToRefRejectsUnbornHead(t *testing.T) {
 	}
 }
 
+// TestImportOpenedLocalRepoCancellationDoesNotPublish rejects partially encoded imports.
 func TestImportOpenedLocalRepoCancellationDoesNotPublish(t *testing.T) {
 	// Build the testbed, repository, and a cancellable context.
 	ctx, cancel := context.WithCancel(t.Context())
@@ -151,7 +156,7 @@ func TestImportOpenedLocalRepoCancellationDoesNotPublish(t *testing.T) {
 	copied := 0
 
 	// Cancel during the first copied object and expect no published ref.
-	ref, _, _, err := importOpenedLocalRepo(ctx, ws, repo, func() {
+	ref, _, _, err := importOpenedLocalRepo(ctx, ws, repo, "git/local-import/canceled", func() {
 		copied++
 		cancel()
 	})
@@ -163,6 +168,7 @@ func TestImportOpenedLocalRepoCancellationDoesNotPublish(t *testing.T) {
 	}
 }
 
+// TestImportOpenedLocalRepoRejectsHeadDrift fences publication against a source checkout change.
 func TestImportOpenedLocalRepoRejectsHeadDrift(t *testing.T) {
 	// Build the testbed and a storer whose HEAD drifts after repeated reads.
 	_, ws := localImportWorld(t)
@@ -171,12 +177,13 @@ func TestImportOpenedLocalRepoRejectsHeadDrift(t *testing.T) {
 	driftingRepo := &git.Repository{Storer: drifting}
 
 	// Import the drifting repository and expect a nil ref with an error.
-	ref, _, _, err := importOpenedLocalRepo(t.Context(), ws, driftingRepo, nil)
+	ref, _, _, err := importOpenedLocalRepo(t.Context(), ws, driftingRepo, "git/local-import/drifted", nil)
 	if err == nil || ref != nil {
 		t.Fatalf("drifting import = (%v, %v), want nil ref and error", ref, err)
 	}
 }
 
+// TestImportLocalRepoToRefPreservesAnnotatedTagAndShallowBoundary preserves tags and shallow boundaries.
 func TestImportLocalRepoToRefPreservesAnnotatedTagAndShallowBoundary(t *testing.T) {
 	// Build the testbed and add an annotated tag plus shallow boundary.
 	ctx, ws := localImportWorld(t)
@@ -209,6 +216,7 @@ func TestImportLocalRepoToRefPreservesAnnotatedTagAndShallowBoundary(t *testing.
 	})
 }
 
+// TestImportLocalRepoToRefDoesNotMutatePackedReadOnlyGitDir keeps the source object database read-only.
 func TestImportLocalRepoToRefDoesNotMutatePackedReadOnlyGitDir(t *testing.T) {
 	// Pack the source repository and snapshot its read-only Git directory.
 	ctx, ws := localImportWorld(t)
@@ -268,6 +276,7 @@ func TestImportLocalRepoToRefReadsLinkedWorktree(t *testing.T) {
 	})
 }
 
+// TestImportLocalRepoToRefDoesNotCopyConfiguration excludes local remotes and their configuration.
 func TestImportLocalRepoToRefDoesNotCopyConfiguration(t *testing.T) {
 	// Build the testbed and add a remote with credentials to the source repo.
 	ctx, ws := localImportWorld(t)
@@ -295,6 +304,7 @@ func TestImportLocalRepoToRefDoesNotCopyConfiguration(t *testing.T) {
 	})
 }
 
+// TestImportLocalRepoToRefReadsAlternatesObjectClosure includes objects supplied by alternates.
 func TestImportLocalRepoToRefReadsAlternatesObjectClosure(t *testing.T) {
 	// Build the testbed and move the source objects into an alternates holder.
 	ctx, ws := localImportWorld(t)
@@ -339,6 +349,7 @@ func TestImportLocalRepoToRefReadsAlternatesObjectClosure(t *testing.T) {
 	})
 }
 
+// TestImportLocalRepoToRefSkipsMissingSubmoduleCommit treats gitlinks as external repository roots.
 func TestImportLocalRepoToRefSkipsMissingSubmoduleCommit(t *testing.T) {
 	// Build the testbed and encode a tree with a missing submodule gitlink.
 	ctx, ws := localImportWorld(t)
@@ -393,11 +404,13 @@ func TestImportLocalRepoToRefSkipsMissingSubmoduleCommit(t *testing.T) {
 	})
 }
 
+// localImportWorld starts an import testbed bound to the test lifetime.
 func localImportWorld(t *testing.T) (context.Context, world.WorldState) {
 	t.Helper()
 	return localImportWorldWithContext(t, t.Context())
 }
 
+// localImportWorldWithContext starts a writable World for retained source imports.
 func localImportWorldWithContext(t *testing.T, ctx context.Context) (context.Context, world.WorldState) {
 	// Start a default World testbed for the import tests.
 	t.Helper()
@@ -409,6 +422,7 @@ func localImportWorldWithContext(t *testing.T, ctx context.Context) (context.Con
 	return ctx, world.NewEngineWorldState(tb.Engine, true)
 }
 
+// createLocalRepo creates a committed local repository fixture.
 func createLocalRepo(t *testing.T) (string, *git.Repository, plumbing.Hash) {
 	// Initialize a repository and write a tracked file.
 	t.Helper()
@@ -437,6 +451,7 @@ func createLocalRepo(t *testing.T) (string, *git.Repository, plumbing.Hash) {
 	return path, repo, head
 }
 
+// withImportedStore opens an immutable import snapshot for assertions.
 func withImportedStore(
 	t *testing.T,
 	ctx context.Context,
@@ -464,6 +479,7 @@ func withImportedStore(
 	}
 }
 
+// forEachReference visits all references and releases its iterator.
 func forEachReference(t *testing.T, refs storer.ReferenceStorer, cb func(*plumbing.Reference)) {
 	// Iterate every reference and invoke the callback for each.
 	t.Helper()
@@ -480,11 +496,15 @@ func forEachReference(t *testing.T, refs storer.ReferenceStorer, cb func(*plumbi
 	}
 }
 
+// headDriftingStorer changes HEAD during import to test the publication fence.
 type headDriftingStorer struct {
+	// Storer supplies the stable source graph.
 	storage.Storer
+	// headReads counts observations before changing HEAD.
 	headReads int
 }
 
+// Reference changes HEAD after the snapshot has been captured.
 func (s *headDriftingStorer) Reference(name plumbing.ReferenceName) (*plumbing.Reference, error) {
 	// Serve HEAD reads that drift to a symbolic ref after repeated lookups.
 	ref, err := s.Storer.Reference(name)
@@ -498,6 +518,7 @@ func (s *headDriftingStorer) Reference(name plumbing.ReferenceName) (*plumbing.R
 	return ref, nil
 }
 
+// makeTreeReadOnly revokes writes and restores permissions during cleanup.
 func makeTreeReadOnly(t *testing.T, root string) {
 	t.Helper()
 
@@ -524,6 +545,7 @@ func makeTreeReadOnly(t *testing.T, root string) {
 	})
 }
 
+// snapshotTree records filesystem contents for read-only import assertions.
 func snapshotTree(t *testing.T, root string) map[string]string {
 	t.Helper()
 	// Walk the tree and record a digest for every entry.
