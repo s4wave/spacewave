@@ -1,12 +1,6 @@
 /* eslint-disable react-doctor/rerender-state-only-in-handlers */
 import { useCallback, useMemo, useState } from 'react'
-import {
-  LuCheck,
-  LuLaptop,
-  LuMonitor,
-  LuTerminal,
-  LuUser,
-} from 'react-icons/lu'
+import { LuMonitor, LuTerminal } from 'react-icons/lu'
 
 import { Spinner } from '@s4wave/web/ui/loading/Spinner.js'
 import AnimatedLogo from '@s4wave/app/landing/AnimatedLogo.js'
@@ -18,6 +12,7 @@ import { SpacewaveProvider } from '@s4wave/sdk/provider/spacewave/spacewave.js'
 import { AuthScreenLayout } from '@s4wave/app/auth/AuthScreenLayout.js'
 import { useCloudProviderConfig } from '@s4wave/app/provider/spacewave/useSpacewaveAuth.js'
 import { setSSOStartIntent } from '@s4wave/app/provider/spacewave/sso-start-intent.js'
+import { HandoffComplete, HandoffDetails } from './HandoffComplete.js'
 import {
   clearStoredHandoffPayload,
   clientTypeLabel,
@@ -45,7 +40,10 @@ function parseHandoffRouteHints(): HandoffRouteHints {
 }
 
 // HandoffState tracks the handoff page lifecycle.
-type HandoffState = 'auth' | 'completing' | 'complete'
+type HandoffState =
+  | { step: 'auth' }
+  | { step: 'completing' }
+  | { step: 'complete'; sessionIndex: number }
 
 // ClientTypeIcon renders the icon for the client type.
 function ClientTypeIcon({ clientType }: { clientType: string }) {
@@ -53,38 +51,6 @@ function ClientTypeIcon({ clientType }: { clientType: string }) {
     return <LuTerminal className="text-brand size-6" />
   }
   return <LuMonitor className="text-brand size-6" />
-}
-
-// detailChipClassName styles one handoff detail chip.
-const detailChipClassName =
-  'border-foreground/10 bg-foreground/5 text-foreground-alt inline-flex items-center gap-1.5 rounded-full border px-3 py-1 whitespace-nowrap'
-
-// HandoffDetails renders the account and device of a handoff as chips that
-// wrap whole, so a long username or host name never splits across lines.
-function HandoffDetails({
-  username,
-  deviceName,
-}: {
-  username?: string
-  deviceName: string
-}) {
-  if (!username && !deviceName) return null
-  return (
-    <div className="flex flex-wrap items-center justify-center gap-2 text-sm">
-      {username && (
-        <span className={detailChipClassName}>
-          <LuUser className="size-3.5" />
-          <span className="text-foreground font-medium">{username}</span>
-        </span>
-      )}
-      {deviceName && (
-        <span className={detailChipClassName}>
-          <LuLaptop className="size-3.5" />
-          {deviceName}
-        </span>
-      )}
-    </div>
-  )
 }
 
 // HandoffPage handles browser-delegated auth for desktop/CLI clients.
@@ -95,7 +61,7 @@ export function HandoffPage() {
   const rootResource = useRootResource()
   const root = useResourceValue(rootResource)
   const cloudProviderConfig = useCloudProviderConfig()
-  const [state, setState] = useState<HandoffState>('auth')
+  const [state, setState] = useState<HandoffState>({ step: 'auth' })
 
   const handoffPayload = params.payload ?? ''
   const request = useMemo(
@@ -134,10 +100,10 @@ export function HandoffPage() {
       switch (resp.result?.case) {
         case 'session': {
           const idx = resp.result.value?.sessionIndex ?? 0
-          setState('completing')
+          setState({ step: 'completing' })
           await enrollHandoffSession(root, idx, request)
           clearStoredHandoffPayload()
-          setState('complete')
+          setState({ step: 'complete', sessionIndex: idx })
           return { type: 'session', sessionIndex: idx }
         }
         case 'isNewAccount':
@@ -175,10 +141,10 @@ export function HandoffPage() {
       })
       const sessionIndex = resp.sessionListEntry?.sessionIndex ?? 0
 
-      setState('completing')
+      setState({ step: 'completing' })
       await enrollHandoffSession(root, sessionIndex, request)
       clearStoredHandoffPayload()
-      setState('complete')
+      setState({ step: 'complete', sessionIndex })
 
       return { sessionIndex }
     },
@@ -209,10 +175,10 @@ export function HandoffPage() {
       const sw = new SpacewaveProvider(provider.resourceRef)
       const resp = await sw.loginWithEntityKey(pemPrivateKey)
       const sessionIndex = resp.sessionListEntry?.sessionIndex ?? 0
-      setState('completing')
+      setState({ step: 'completing' })
       await enrollHandoffSession(root, sessionIndex, request)
       clearStoredHandoffPayload()
-      setState('complete')
+      setState({ step: 'complete', sessionIndex })
       return { sessionIndex }
     },
     [request, root],
@@ -236,7 +202,7 @@ export function HandoffPage() {
     )
   }
 
-  if (state === 'completing') {
+  if (state.step === 'completing') {
     return (
       <div className="bg-background-landing relative flex flex-1 flex-col items-center justify-center gap-6 p-6">
         <div className="relative z-10 flex flex-col items-center gap-4">
@@ -252,22 +218,9 @@ export function HandoffPage() {
     )
   }
 
-  if (state === 'complete') {
+  if (state.step === 'complete') {
     return (
-      <div className="bg-background-landing relative flex flex-1 flex-col items-center justify-center gap-6 p-6">
-        <div className="relative z-10 flex flex-col items-center gap-4">
-          <div className="bg-brand/10 border-brand/30 flex size-16 items-center justify-center rounded-full border">
-            <LuCheck className="text-brand size-8" />
-          </div>
-          <h1 className="text-xl font-semibold tracking-wide">
-            Sign-in complete
-          </h1>
-          <p className="text-foreground-alt text-sm">
-            You can close this tab and return to Spacewave {label}.
-          </p>
-          <HandoffDetails deviceName={request.deviceName ?? ''} />
-        </div>
-      </div>
+      <HandoffComplete request={request} sessionIndex={state.sessionIndex} />
     )
   }
 

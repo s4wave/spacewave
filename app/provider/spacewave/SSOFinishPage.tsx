@@ -8,7 +8,9 @@ import { useRootResource } from '@s4wave/web/hooks/useRootResource.js'
 import { usePromise } from '@s4wave/web/hooks/usePromise.js'
 import { useResourceValue } from '@aptre/bldr-sdk/hooks/useResource.js'
 import type { SSOCodeExchangeResponse } from '@s4wave/sdk/provider/spacewave/spacewave.pb.js'
+import type { HandoffRequest } from '@s4wave/core/session/handoff/handoff.pb.js'
 import { AuthScreenLayout } from '@s4wave/app/auth/AuthScreenLayout.js'
+import { HandoffComplete } from '@s4wave/app/auth/HandoffComplete.js'
 import {
   completeStoredHandoff,
   getAuthReturnPath,
@@ -29,6 +31,7 @@ type SSOFinishState =
   | { step: 'pin_prompt'; result: SSOCodeExchangeResponse }
   | { step: 'logging_in' }
   | { step: 'complete' }
+  | { step: 'handoff_complete'; request: HandoffRequest; sessionIndex: number }
   | { step: 'error'; message: string }
 
 // SSOFinishPage handles the OAuth redirect return.
@@ -149,9 +152,10 @@ export function SSOFinishPage() {
         if (controller.signal.aborted) return
 
         const sessionIndex = loginResp.sessionListEntry?.sessionIndex ?? 0
-        if (await completeStoredHandoff(root, sessionIndex)) {
+        const handoff = await completeStoredHandoff(root, sessionIndex)
+        if (handoff) {
           clearSSOBrowserBinding()
-          setState({ step: 'complete' })
+          setState({ step: 'handoff_complete', request: handoff, sessionIndex })
           return
         }
         clearSSOBrowserBinding()
@@ -192,9 +196,10 @@ export function SSOFinishPage() {
       })
       const sessionIndex = loginResp.sessionListEntry?.sessionIndex ?? 0
 
-      if (await completeStoredHandoff(root, sessionIndex)) {
+      const handoff = await completeStoredHandoff(root, sessionIndex)
+      if (handoff) {
         clearSSOBrowserBinding()
-        setState({ step: 'complete' })
+        setState({ step: 'handoff_complete', request: handoff, sessionIndex })
         return
       }
       clearSSOBrowserBinding()
@@ -225,11 +230,20 @@ export function SSOFinishPage() {
       case 'logging_in':
         return 'Mounting session...'
       case 'complete':
-        return 'Sign-in complete. Return to Spacewave CLI.'
+        return 'Welcome to Spacewave!'
       default:
         return ''
     }
   }, [state.step])
+
+  if (state.step === 'handoff_complete') {
+    return (
+      <HandoffComplete
+        request={state.request}
+        sessionIndex={state.sessionIndex}
+      />
+    )
+  }
 
   // Error state.
   if (state.step === 'error') {
@@ -244,6 +258,7 @@ export function SSOFinishPage() {
             {state.message}
           </p>
           <button
+            type="button"
             onClick={() => {
               clearSSOBrowserBinding()
               navigate({ path: getAuthReturnPath() })

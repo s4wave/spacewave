@@ -56,10 +56,9 @@ vi.mock('@simplewebauthn/browser', () => ({
 
 vi.mock('@s4wave/app/auth/handoff-state.js', () => ({
   clearStoredHandoffPayload: vi.fn(),
-  completeStoredHandoff: (...args: [unknown, number]): Promise<boolean> =>
-    mockCompleteStoredHandoff(...args) as Promise<boolean>,
-  hasStoredHandoffRequest: (): boolean =>
-    mockHasStoredHandoffRequest() as boolean,
+  clientTypeLabel: () => 'CLI',
+  completeStoredHandoff: (...args: [unknown, number]): Promise<unknown> =>
+    mockCompleteStoredHandoff(...args) as Promise<unknown>,
   getAuthReturnPath: () =>
     mockHasStoredHandoffRequest() ? '/auth/link/payload-123' : '/login',
 }))
@@ -133,7 +132,7 @@ describe('PasskeyPage', () => {
     mockStartRegistration.mockReset()
     mockCompleteStoredHandoff.mockReset()
     mockHasStoredHandoffRequest.mockReset()
-    mockCompleteStoredHandoff.mockResolvedValue(false)
+    mockCompleteStoredHandoff.mockResolvedValue(null)
     mockHasStoredHandoffRequest.mockReturnValue(false)
   })
 
@@ -144,7 +143,10 @@ describe('PasskeyPage', () => {
 
   it('keeps web passkey on stored handoff completion instead of desktop relay', async () => {
     mockHasStoredHandoffRequest.mockReturnValue(true)
-    mockCompleteStoredHandoff.mockResolvedValue(true)
+    mockCompleteStoredHandoff.mockResolvedValue({
+      clientType: 'cli',
+      deviceName: 'Terminal',
+    })
     mockPasskeyCheckUsername.mockResolvedValue({ ok: true })
     mockPasskeyAuthOptions.mockResolvedValue({ optionsJson: '{}' })
     mockStartAuthentication.mockResolvedValue({
@@ -173,6 +175,9 @@ describe('PasskeyPage', () => {
       expect(mockCompleteStoredHandoff).toHaveBeenCalled()
     })
     expect(mockNavigate).not.toHaveBeenCalledWith({ path: '/u/5' })
+
+    fireEvent.click(await screen.findByText('Open Spacewave'))
+    expect(mockNavigate).toHaveBeenCalledWith({ path: '/u/5' })
   })
 
   it('prefills the username from the hash query', () => {

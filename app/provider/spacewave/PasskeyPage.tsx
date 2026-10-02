@@ -9,11 +9,12 @@ import { useNavigate } from '@s4wave/web/router/router.js'
 import { useRootResource } from '@s4wave/web/hooks/useRootResource.js'
 import { useResourceValue } from '@aptre/bldr-sdk/hooks/useResource.js'
 import { cn } from '@s4wave/web/style/utils.js'
+import type { HandoffRequest } from '@s4wave/core/session/handoff/handoff.pb.js'
 import { AuthScreenLayout } from '@s4wave/app/auth/AuthScreenLayout.js'
+import { HandoffComplete } from '@s4wave/app/auth/HandoffComplete.js'
 import {
   completeStoredHandoff,
   getAuthReturnPath,
-  hasStoredHandoffRequest,
 } from '@s4wave/app/auth/handoff-state.js'
 import { base64ToBytes, generateAuthKeypairs } from './keypair-utils.js'
 import {
@@ -43,6 +44,7 @@ type PasskeyState =
   | { step: 'creating'; username: string }
   | { step: 'logging_in' }
   | { step: 'complete' }
+  | { step: 'handoff_complete'; request: HandoffRequest; sessionIndex: number }
   | { step: 'error'; message: string }
 
 function getInitialPasskeyUsername(): string {
@@ -62,7 +64,6 @@ export function PasskeyPage() {
   const rootResource = useRootResource()
   const root = useResourceValue(rootResource)
   const [state, setState] = useState<PasskeyState>({ step: 'username' })
-  const [isHandoffFlow] = useState(() => hasStoredHandoffRequest())
   const [username, setUsername] = useState(() => getInitialPasskeyUsername())
   const [usernameError, setUsernameError] = useState('')
   const [choiceMessage, setChoiceMessage] = useState('')
@@ -141,10 +142,12 @@ export function PasskeyPage() {
         }
         const sessionIndex = await loginWithEntityPem(root, pemBytes)
 
-        setState({ step: 'complete' })
-        if (await completeStoredHandoff(root, sessionIndex)) {
+        const handoff = await completeStoredHandoff(root, sessionIndex)
+        if (handoff) {
+          setState({ step: 'handoff_complete', request: handoff, sessionIndex })
           return
         }
+        setState({ step: 'complete' })
         navigate({ path: `/u/${sessionIndex}` })
       })
     } catch (e) {
@@ -239,10 +242,12 @@ export function PasskeyPage() {
           new TextEncoder().encode(entity.pem),
         )
 
-        setState({ step: 'complete' })
-        if (await completeStoredHandoff(root, sessionIndex)) {
+        const handoff = await completeStoredHandoff(root, sessionIndex)
+        if (handoff) {
+          setState({ step: 'handoff_complete', request: handoff, sessionIndex })
           return
         }
+        setState({ step: 'complete' })
         navigate({ path: `/u/${sessionIndex}` })
       })
     } catch (e) {
@@ -275,11 +280,20 @@ export function PasskeyPage() {
       case 'logging_in':
         return 'Mounting session...'
       case 'complete':
-        return isHandoffFlow ? 'Sign-in complete' : 'Welcome to Spacewave!'
+        return 'Welcome to Spacewave!'
       default:
         return ''
     }
-  }, [isHandoffFlow, state.step])
+  }, [state.step])
+
+  if (state.step === 'handoff_complete') {
+    return (
+      <HandoffComplete
+        request={state.request}
+        sessionIndex={state.sessionIndex}
+      />
+    )
+  }
 
   if (state.step === 'error') {
     return (
@@ -293,6 +307,7 @@ export function PasskeyPage() {
             {state.message}
           </p>
           <button
+            type="button"
             onClick={() => {
               setState({ step: 'username' })
               setUsernameError('')
@@ -302,6 +317,7 @@ export function PasskeyPage() {
             Try again
           </button>
           <button
+            type="button"
             onClick={handleBackToLogin}
             className="text-foreground-alt hover:text-foreground text-xs transition-colors"
           >
@@ -335,6 +351,7 @@ export function PasskeyPage() {
             </div>
           )}
           <button
+            type="button"
             onClick={() => void handleExistingPasskey()}
             className={cn(
               'flex w-full items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-colors',
@@ -345,6 +362,7 @@ export function PasskeyPage() {
             Sign in with Passkey
           </button>
           <button
+            type="button"
             onClick={() => void handleCreateAccount()}
             className={cn(
               'border-foreground/20 text-foreground hover:border-foreground/30 hover:bg-background/40',
@@ -355,6 +373,7 @@ export function PasskeyPage() {
             Create New Passkey Account
           </button>
           <button
+            type="button"
             onClick={() => {
               setChoiceMessage('')
               setState({ step: 'username' })
@@ -364,6 +383,7 @@ export function PasskeyPage() {
             Use a different username
           </button>
           <button
+            type="button"
             onClick={handleBackToLogin}
             className="text-foreground-alt hover:text-foreground text-xs transition-colors"
           >
@@ -418,6 +438,7 @@ export function PasskeyPage() {
           </div>
 
           <button
+            type="button"
             onClick={() => void handleContinue()}
             disabled={!username || !!usernameError}
             className={cn(
@@ -431,6 +452,7 @@ export function PasskeyPage() {
           </button>
 
           <button
+            type="button"
             onClick={handleBackToLogin}
             className="text-foreground-alt hover:text-foreground text-xs transition-colors"
           >

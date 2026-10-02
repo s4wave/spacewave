@@ -15,7 +15,9 @@ import {
   DialogTitle,
 } from '@s4wave/web/ui/dialog.js'
 import AnimatedLogo from '@s4wave/app/landing/AnimatedLogo.js'
+import type { HandoffRequest } from '@s4wave/core/session/handoff/handoff.pb.js'
 import { AuthScreenLayout } from '@s4wave/app/auth/AuthScreenLayout.js'
+import { HandoffComplete } from '@s4wave/app/auth/HandoffComplete.js'
 import {
   completeStoredHandoff,
   getAuthReturnPath,
@@ -48,7 +50,7 @@ type SSOConfirmState =
   | { step: 'confirm'; username: string }
   | { step: 'creating' }
   | { step: 'logging_in' }
-  | { step: 'complete' }
+  | { step: 'handoff_complete'; request: HandoffRequest; sessionIndex: number }
   | { step: 'error'; message: string }
 
 const SIGNUP_HIGHLIGHTS = ['End-to-end encrypted', 'Local-first', 'Open source']
@@ -175,9 +177,10 @@ export function SSOConfirmPage() {
           root,
           new TextEncoder().encode(entity.pem),
         )
-        if (await completeStoredHandoff(root, sessionIndex)) {
+        const handoff = await completeStoredHandoff(root, sessionIndex)
+        if (handoff) {
           clearPendingSSOState()
-          setState({ step: 'complete' })
+          setState({ step: 'handoff_complete', request: handoff, sessionIndex })
           return
         }
         clearPendingSSOState()
@@ -196,11 +199,12 @@ export function SSOConfirmPage() {
     }
   }, [pendingState, username, pin, confirmPin, root, navigate])
 
-  if (state.step === 'complete') {
+  if (state.step === 'handoff_complete') {
     return (
-      <AuthScreenLayout intro={<h2>Sign-in complete</h2>}>
-        <p>You can close this tab and return to Spacewave CLI.</p>
-      </AuthScreenLayout>
+      <HandoffComplete
+        request={state.request}
+        sessionIndex={state.sessionIndex}
+      />
     )
   }
 

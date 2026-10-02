@@ -65,10 +65,6 @@ export function getAuthReturnPath(): string {
   return getStoredHandoffPath() ?? '/login'
 }
 
-export function hasStoredHandoffRequest(): boolean {
-  return getStoredHandoffRequest() != null
-}
-
 export async function enrollHandoffSession(
   root: Root,
   sessionIdx: number,
@@ -92,13 +88,15 @@ export async function enrollHandoffSession(
   }
 }
 
+// completeStoredHandoff completes the handoff stored for this tab, if any,
+// with the given browser Session and returns the completed request.
 export async function completeStoredHandoff(
   root: Root,
   sessionIdx: number,
-): Promise<boolean> {
+): Promise<HandoffRequest | null> {
   const request = getStoredHandoffRequest()
-  if (!request) return false
+  if (!request) return null
   await enrollHandoffSession(root, sessionIdx, request)
   clearStoredHandoffPayload()
-  return true
+  return request
 }

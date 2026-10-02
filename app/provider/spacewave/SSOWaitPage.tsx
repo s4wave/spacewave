@@ -5,7 +5,9 @@ import { LuArrowLeft } from 'react-icons/lu'
 
 import { useResourceValue } from '@aptre/bldr-sdk/hooks/useResource.js'
 import AnimatedLogo from '@s4wave/app/landing/AnimatedLogo.js'
+import type { HandoffRequest } from '@s4wave/core/session/handoff/handoff.pb.js'
 import { AuthScreenLayout } from '@s4wave/app/auth/AuthScreenLayout.js'
+import { HandoffComplete } from '@s4wave/app/auth/HandoffComplete.js'
 import {
   completeStoredHandoff,
   getAuthReturnPath,
@@ -37,7 +39,7 @@ type SSOWaitState =
   | { step: 'logging_in' }
   | { step: 'redirecting' }
   | { step: 'pin_prompt'; encryptedBlob: string; username: string }
-  | { step: 'complete' }
+  | { step: 'handoff_complete'; request: HandoffRequest; sessionIndex: number }
   | { step: 'error'; message: string }
 
 // SSOWaitPage handles the SSO in-progress state.
@@ -93,8 +95,13 @@ export function SSOWaitPage() {
             }
             setState({ step: 'logging_in' })
             const sessionIndex = await loginWithEntityPem(root, pemPrivateKey)
-            if (await completeStoredHandoff(root, sessionIndex)) {
-              setState({ step: 'complete' })
+            const handoff = await completeStoredHandoff(root, sessionIndex)
+            if (handoff) {
+              setState({
+                step: 'handoff_complete',
+                request: handoff,
+                sessionIndex,
+              })
               return
             }
             navigate({ path: `/u/${sessionIndex}` })
@@ -208,8 +215,9 @@ export function SSOWaitPage() {
         unwrapPemWithPin(spacewave, state.encryptedBlob, pin),
       )
       const sessionIndex = await loginWithEntityPem(root, pemBytes)
-      if (await completeStoredHandoff(root, sessionIndex)) {
-        setState({ step: 'complete' })
+      const handoff = await completeStoredHandoff(root, sessionIndex)
+      if (handoff) {
+        setState({ step: 'handoff_complete', request: handoff, sessionIndex })
         return
       }
       navigate({ path: `/u/${sessionIndex}` })
@@ -239,11 +247,12 @@ export function SSOWaitPage() {
     )
   }
 
-  if (state.step === 'complete') {
+  if (state.step === 'handoff_complete') {
     return (
-      <AuthScreenLayout intro={<h2>Sign-in complete</h2>}>
-        <p>You can close this tab and return to Spacewave CLI.</p>
-      </AuthScreenLayout>
+      <HandoffComplete
+        request={state.request}
+        sessionIndex={state.sessionIndex}
+      />
     )
   }
 
