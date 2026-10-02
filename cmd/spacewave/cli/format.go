@@ -65,15 +65,18 @@ func writeFields(w io.Writer, pairs [][2]string) {
 // writeTable writes tabwriter-aligned rows to w.
 // The first row is treated as ALL CAPS headers.
 // indent is prepended to each row (use "" for no indent, "  " for section content).
-func writeTable(w *os.File, indent string, rows [][]string) {
+// Lines carry no trailing spaces, even when the last cell is empty.
+func writeTable(w io.Writer, indent string, rows [][]string) {
+	// An empty table writes nothing.
 	if len(rows) == 0 {
 		return
 	}
-	tw := tabwriter.NewWriter(w, 0, 0, 2, ' ', 0)
+
+	// Align the rows into a buffer.
+	var buf bytes.Buffer
+	tw := tabwriter.NewWriter(&buf, 0, 0, 2, ' ', 0)
 	for _, row := range rows {
-		if indent != "" {
-			tw.Write([]byte(indent))
-		}
+		tw.Write([]byte(indent))
 		for j, cell := range row {
 			if j > 0 {
 				tw.Write([]byte("\t"))
@@ -83,6 +86,11 @@ func writeTable(w *os.File, indent string, rows [][]string) {
 		tw.Write([]byte("\n"))
 	}
 	tw.Flush()
+
+	// Drop the padding an empty last cell leaves behind.
+	for line := range bytes.Lines(buf.Bytes()) {
+		w.Write(append(bytes.TrimRight(line[:len(line)-1], " "), '\n'))
+	}
 }
 
 // truncateID truncates an ID string to max characters, appending "..." if truncated.
