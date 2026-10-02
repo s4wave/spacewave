@@ -28,14 +28,18 @@ type accountFetcherRetryOwner struct {
 	bo cbackoff.BackOff
 }
 
+// newAccountFetcherRetryOwner constructs a retry owner with the provider backoff.
 func newAccountFetcherRetryOwner() *accountFetcherRetryOwner {
 	return &accountFetcherRetryOwner{bo: providerBackoff.Construct()}
 }
 
+// Reset restarts the backoff after a successful fetch.
 func (r *accountFetcherRetryOwner) Reset() {
 	r.bo.Reset()
 }
 
+// WaitTransient waits the next backoff delay for err, returning early when
+// wakeCh closes.
 func (r *accountFetcherRetryOwner) WaitTransient(
 	ctx context.Context,
 	wakeCh <-chan struct{},
@@ -45,6 +49,8 @@ func (r *accountFetcherRetryOwner) WaitTransient(
 	return waitAccountFetcherRetryDelay(ctx, wakeCh, delay)
 }
 
+// waitAccountFetcherRetryDelay waits for delay, wakeCh, or ctx, whichever comes
+// first, and returns ctx's error only when ctx ends the wait.
 func waitAccountFetcherRetryDelay(
 	ctx context.Context,
 	wakeCh <-chan struct{},
@@ -64,7 +70,7 @@ func waitAccountFetcherRetryDelay(
 }
 
 // accountFetcher refreshes persisted state on startup and after account epoch
-// changes. Cached state provides immediate reads but never replaces the first
+// changes, with one account state request per refresh. Cached state provides immediate reads but never replaces the first
 // live refresh. One goroutine waits for changes through accountBcast.
 func (a *ProviderAccount) accountFetcher(ctx context.Context) error {
 	// Initialize account-fetcher logging and retry state.
@@ -116,53 +122,13 @@ func (a *ProviderAccount) accountFetcher(ctx context.Context) error {
 				continue
 			}
 
-			// Fetch the account email snapshot for the same epoch.
+			// Stop when the account moved to another attachment.
 			if a.observeAccountTransition(state.GetTransition(), state.GetAccountId(), cli.peerID.String()) {
 				<-ctx.Done()
 				return ctx.Err()
 			}
 
-			// Fetch the account email snapshot for the same epoch.
-			emailResp, err := cli.ListEmails(ctx)
-			if err != nil {
-				if isNonRetryableCloudError(err) {
-					if isUnauthCloudError(err) {
-						if err := a.waitAccountFetcherReauth(ctx, err); err != nil {
-							return err
-						}
-						continue
-					}
-					le.WithError(err).Warn("permanent error fetching emails")
-					return err
-				}
-				le.WithError(err).Warn("failed to fetch emails, will retry")
-				if err := retry.WaitTransient(ctx, ch, err); err != nil {
-					return err
-				}
-				continue
-			}
-
-			// Fetch the account session snapshot for the same epoch.
-			sessionRows, err := cli.ListSessions(ctx)
-			if err != nil {
-				if isNonRetryableCloudError(err) {
-					if isUnauthCloudError(err) {
-						if err := a.waitAccountFetcherReauth(ctx, err); err != nil {
-							return err
-						}
-						continue
-					}
-					le.WithError(err).Warn("permanent error fetching sessions")
-					return err
-				}
-				le.WithError(err).Warn("failed to fetch sessions, will retry")
-				if err := retry.WaitTransient(ctx, ch, err); err != nil {
-					return err
-				}
-				continue
-			}
-
-			// Apply the fetched snapshots and reset transient retries.
+			// Apply the fetched state and reset transient retries.
 			retry.Reset()
 
 			le.WithFields(logrus.Fields{
@@ -174,7 +140,7 @@ func (a *ProviderAccount) accountFetcher(ctx context.Context) error {
 			prevKeypairs = state.GetKeypairs()
 
 			// Publish fetched state and refresh dependent access state.
-			a.applyFetchedAccountState(epoch, state, emailResp.GetEmails(), sessionRows)
+			a.applyFetchedAccountState(epoch, state)
 			a.syncSharedObjectListAccess(state.GetSubscriptionStatus())
 			a.refreshSelfRejoinSweepState()
 
@@ -203,7 +169,11 @@ func (a *ProviderAccount) accountFetcher(ctx context.Context) error {
 	}
 }
 
+// waitAccountFetcherReauth marks the account unauthenticated after err and
+// waits until its status changes. It returns err when the account was deleted
+// and nil when the account is usable again.
 func (a *ProviderAccount) waitAccountFetcherReauth(ctx context.Context, err error) error {
+	// Publish the unauthenticated status once.
 	var rejoinState *selfRejoinSweepState
 	a.accountBcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		if a.state.status != provider.ProviderAccountStatus_ProviderAccountStatus_UNAUTHENTICATED {
@@ -213,6 +183,8 @@ func (a *ProviderAccount) waitAccountFetcherReauth(ctx context.Context, err erro
 		}
 	})
 	a.setSelfRejoinSweepState(rejoinState)
+
+	// Wait for a status other than unauthenticated.
 	for {
 		var ch <-chan struct{}
 		var status provider.ProviderAccountStatus
@@ -234,7 +206,8 @@ func (a *ProviderAccount) waitAccountFetcherReauth(ctx context.Context, err erro
 	}
 }
 
-// applyFetchedAccountState stores freshly fetched account state.
+// applyFetchedAccountState stores freshly fetched account state, including the
+// email and session lists it carries.
 //
 // If no newer invalidation arrived while the fetch was in flight, collapse the
 // local trigger epoch back down to the fetched server epoch. This lets a
@@ -243,15 +216,22 @@ func (a *ProviderAccount) waitAccountFetcherReauth(ctx context.Context, err erro
 func (a *ProviderAccount) applyFetchedAccountState(
 	startEpoch uint64,
 	state *api.AccountStateResponse,
-	emails []*api.AccountEmailInfo,
-	sessionRows []*api.AccountSessionInfo,
 ) {
+	// Store the fetched state under the account lock.
 	var reconcileState *sessionPresentationReconcileState
 	var rejoinState *selfRejoinSweepState
 	a.accountBcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		// Store the state with its email and session lists.
 		a.state.info = state
 		a.state.status = accountstatus.Loaded(state)
 		a.state.accountBootstrapFetched = true
+		a.state.cachedEmails = state.GetEmails()
+		a.state.cachedEmailsValid = true
+		a.state.sessions = state.GetSessions()
+		a.state.sessionsValid = true
+		a.state.infoFetching = false
+
+		// Settle the epoch unless a newer invalidation arrived.
 		fetchedEpoch := uint64(state.GetEpoch())
 		if a.state.epoch == startEpoch {
 			a.state.epoch = fetchedEpoch
@@ -259,15 +239,14 @@ func (a *ProviderAccount) applyFetchedAccountState(
 		if fetchedEpoch > a.state.lastFetchedEpoch {
 			a.state.lastFetchedEpoch = fetchedEpoch
 		}
-		a.state.cachedEmails = emails
-		a.state.cachedEmailsValid = true
-		a.state.sessions = sessionRows
-		a.state.sessionsValid = true
-		a.state.infoFetching = false
+
+		// Snapshot the routine states and wake watchers.
 		reconcileState = a.buildSessionPresentationReconcileStateLocked()
 		rejoinState = a.buildSelfRejoinSweepStateLocked()
 		broadcast()
 	})
+
+	// Hand the new snapshots to the reconcile and rejoin routines.
 	a.setSessionPresentationReconcileState(reconcileState)
 	a.setSelfRejoinSweepState(rejoinState)
 }

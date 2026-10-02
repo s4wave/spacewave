@@ -5445,8 +5445,53 @@ export const FinalizeAccountSObjectBindingResponse: MessageType<FinalizeAccountS
   })
 
 /**
+ * AccountEmailInfo is a single email entry from accountEmails.
+ *
+ * @generated from message provider.spacewave.api.AccountEmailInfo
+ */
+export interface AccountEmailInfo {
+  /**
+   * Email is the email address.
+   *
+   * @generated from field: string email = 1;
+   */
+  email?: string
+  /**
+   * Verified is true if the email has been verified.
+   *
+   * @generated from field: bool verified = 2;
+   */
+  verified?: boolean
+  /**
+   * Source is the origin of the email (manual, stripe, sso, test).
+   *
+   * @generated from field: string source = 3;
+   */
+  source?: string
+  /**
+   * Primary is true if this is the primary email.
+   *
+   * @generated from field: bool primary = 4;
+   */
+  primary?: boolean
+}
+
+export const AccountEmailInfo: MessageType<AccountEmailInfo> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'provider.spacewave.api.AccountEmailInfo',
+    fields: [
+      { no: 1, name: 'email', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'verified', kind: 'scalar', T: ScalarType.BOOL },
+      { no: 3, name: 'source', kind: 'scalar', T: ScalarType.STRING },
+      { no: 4, name: 'primary', kind: 'scalar', T: ScalarType.BOOL },
+    ] satisfies readonly PartialFieldInfo[],
+  })
+
+/**
  * AccountStateResponse is the response body for GET /account/state.
- * Combined endpoint returning both account info and keypairs in one request.
+ * It returns the account's info, keypairs, emails and live sessions in one
+ * request, so a client refreshes its account snapshot with one request per
+ * account epoch.
  *
  * @generated from message provider.spacewave.api.AccountStateResponse
  */
@@ -5560,6 +5605,18 @@ export interface AccountStateResponse {
    * @generated from field: repeated provider.AccountTransition accepted_migrations = 18;
    */
   acceptedMigrations?: AccountTransition[]
+  /**
+   * Emails lists the account's email addresses, newest first.
+   *
+   * @generated from field: repeated provider.spacewave.api.AccountEmailInfo emails = 19;
+   */
+  emails?: AccountEmailInfo[]
+  /**
+   * Sessions lists the account's live sessions, oldest first.
+   *
+   * @generated from field: repeated provider.spacewave.api.AccountSessionInfo sessions = 20;
+   */
+  sessions?: AccountSessionInfo[]
 }
 
 export const AccountStateResponse: MessageType<AccountStateResponse> =
@@ -5631,6 +5688,20 @@ export const AccountStateResponse: MessageType<AccountStateResponse> =
         name: 'accepted_migrations',
         kind: 'message',
         T: () => AccountTransition,
+        repeated: true,
+      },
+      {
+        no: 19,
+        name: 'emails',
+        kind: 'message',
+        T: AccountEmailInfo,
+        repeated: true,
+      },
+      {
+        no: 20,
+        name: 'sessions',
+        kind: 'message',
+        T: AccountSessionInfo,
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
@@ -6436,49 +6507,6 @@ export const CreateBlockStoreResponse: MessageType<CreateBlockStoreResponse> =
     fields: [
       { no: 1, name: 'id', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'account_id', kind: 'scalar', T: ScalarType.STRING },
-    ] satisfies readonly PartialFieldInfo[],
-  })
-
-/**
- * AccountEmailInfo is a single email entry from accountEmails.
- *
- * @generated from message provider.spacewave.api.AccountEmailInfo
- */
-export interface AccountEmailInfo {
-  /**
-   * Email is the email address.
-   *
-   * @generated from field: string email = 1;
-   */
-  email?: string
-  /**
-   * Verified is true if the email has been verified.
-   *
-   * @generated from field: bool verified = 2;
-   */
-  verified?: boolean
-  /**
-   * Source is the origin of the email (manual, stripe, sso, test).
-   *
-   * @generated from field: string source = 3;
-   */
-  source?: string
-  /**
-   * Primary is true if this is the primary email.
-   *
-   * @generated from field: bool primary = 4;
-   */
-  primary?: boolean
-}
-
-export const AccountEmailInfo: MessageType<AccountEmailInfo> =
-  /* @__PURE__ */ createMessageType({
-    typeName: 'provider.spacewave.api.AccountEmailInfo',
-    fields: [
-      { no: 1, name: 'email', kind: 'scalar', T: ScalarType.STRING },
-      { no: 2, name: 'verified', kind: 'scalar', T: ScalarType.BOOL },
-      { no: 3, name: 'source', kind: 'scalar', T: ScalarType.STRING },
-      { no: 4, name: 'primary', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
   })
 

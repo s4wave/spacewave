@@ -18,14 +18,17 @@ import (
 )
 
 func TestApplyFetchedAccountState_BootstrapDoesNotConsumeFutureServerEpoch(t *testing.T) {
+	// Start with a local trigger epoch ahead of the server.
 	acc := &ProviderAccount{}
 	acc.state.epoch = 1
 
+	// Apply a bootstrap fetch at server epoch 0.
 	acc.applyFetchedAccountState(1, &api.AccountStateResponse{
 		Epoch:        0,
 		KeypairCount: 1,
-	}, nil, nil)
+	})
 
+	// The local epoch settles to the server epoch.
 	if acc.state.epoch != 0 {
 		t.Fatalf("expected settled epoch 0 after bootstrap fetch, got %d", acc.state.epoch)
 	}
@@ -33,6 +36,7 @@ func TestApplyFetchedAccountState_BootstrapDoesNotConsumeFutureServerEpoch(t *te
 		t.Fatalf("expected last fetched epoch 0 after bootstrap fetch, got %d", acc.state.lastFetchedEpoch)
 	}
 
+	// A later remote epoch 1 still triggers a refetch.
 	acc.setEpoch(1)
 	if acc.state.epoch != 1 {
 		t.Fatalf("expected remote epoch 1 to trigger after bootstrap fetch, got %d", acc.state.epoch)
@@ -40,14 +44,17 @@ func TestApplyFetchedAccountState_BootstrapDoesNotConsumeFutureServerEpoch(t *te
 }
 
 func TestApplyFetchedAccountState_PreservesConcurrentInvalidation(t *testing.T) {
+	// Start with an invalidation that arrived during the fetch.
 	acc := &ProviderAccount{}
 	acc.state.epoch = 2
 
+	// Apply the fetch that started at epoch 1.
 	acc.applyFetchedAccountState(1, &api.AccountStateResponse{
 		Epoch:        0,
 		KeypairCount: 1,
-	}, nil, nil)
+	})
 
+	// The newer invalidation survives.
 	if acc.state.epoch != 2 {
 		t.Fatalf("expected concurrent invalidation epoch 2 to be preserved, got %d", acc.state.epoch)
 	}
@@ -57,8 +64,8 @@ func TestApplyFetchedAccountState_PreservesConcurrentInvalidation(t *testing.T) 
 }
 
 func TestApplyFetchedAccountState_PreservesAccountSObjectBindings(t *testing.T) {
+	// Apply a fetched state with one reserved binding.
 	acc := &ProviderAccount{}
-
 	state := &api.AccountStateResponse{
 		Epoch: 3,
 		AccountSobjectBindings: []*api.AccountSObjectBinding{
@@ -69,8 +76,9 @@ func TestApplyFetchedAccountState_PreservesAccountSObjectBindings(t *testing.T) 
 			},
 		},
 	}
-	acc.applyFetchedAccountState(3, state, nil, nil)
+	acc.applyFetchedAccountState(3, state)
 
+	// The stored state keeps the binding unchanged.
 	if acc.state.info == nil {
 		t.Fatal("expected fetched account state to be stored")
 	}
@@ -95,7 +103,7 @@ func TestApplyFetchedAccountState_SetsReadyStatus(t *testing.T) {
 	acc.applyFetchedAccountState(1, &api.AccountStateResponse{
 		Epoch:          1,
 		LifecycleState: api.AccountLifecycleState_ACCOUNT_LIFECYCLE_STATE_ACTIVE,
-	}, nil, nil)
+	})
 
 	if acc.state.status != provider.ProviderAccountStatus_ProviderAccountStatus_READY {
 		t.Fatalf("expected ready status after successful fetch, got %v", acc.state.status)
@@ -108,7 +116,7 @@ func TestApplyFetchedAccountState_PreservesDeletedStatus(t *testing.T) {
 	acc.applyFetchedAccountState(1, &api.AccountStateResponse{
 		Epoch:          1,
 		LifecycleState: api.AccountLifecycleState_ACCOUNT_LIFECYCLE_STATE_DELETED,
-	}, nil, nil)
+	})
 
 	if acc.state.status != provider.ProviderAccountStatus_ProviderAccountStatus_DELETED {
 		t.Fatalf("expected deleted status after deleted fetch, got %v", acc.state.status)
@@ -129,10 +137,6 @@ func TestAccountFetcherResumesAfterUnauthStatusClears(t *testing.T) {
 				Epoch:          1,
 				LifecycleState: api.AccountLifecycleState_ACCOUNT_LIFECYCLE_STATE_ACTIVE,
 			}))
-		case "/api/account/emails":
-			_, _ = w.Write(mustMarshalVT(t, &api.ListAccountEmailsResponse{}))
-		case "/api/account/sessions":
-			_, _ = w.Write(mustMarshalVT(t, &api.ListAccountSessionsResponse{}))
 		default:
 			t.Fatalf("unexpected path: %s", r.URL.Path)
 		}
@@ -219,10 +223,6 @@ func TestAccountFetcherRetryWakesOnEpochChangeAndWritesCache(t *testing.T) {
 				Epoch:          2,
 				LifecycleState: api.AccountLifecycleState_ACCOUNT_LIFECYCLE_STATE_ACTIVE,
 			}))
-		case "/api/account/emails":
-			_, _ = w.Write(mustMarshalVT(t, &api.ListAccountEmailsResponse{}))
-		case "/api/account/sessions":
-			_, _ = w.Write(mustMarshalVT(t, &api.ListAccountSessionsResponse{}))
 		default:
 			t.Fatalf("unexpected path: %s", r.URL.Path)
 		}
@@ -283,10 +283,6 @@ func TestAccountFetcherRetryWakesOnSessionClientChange(t *testing.T) {
 				Epoch:          1,
 				LifecycleState: api.AccountLifecycleState_ACCOUNT_LIFECYCLE_STATE_ACTIVE,
 			}))
-		case "/api/account/emails":
-			_, _ = w.Write(mustMarshalVT(t, &api.ListAccountEmailsResponse{}))
-		case "/api/account/sessions":
-			_, _ = w.Write(mustMarshalVT(t, &api.ListAccountSessionsResponse{}))
 		default:
 			t.Fatalf("unexpected path: %s", r.URL.Path)
 		}

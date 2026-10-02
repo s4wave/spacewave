@@ -93,11 +93,13 @@ func TestBuildSessionPresentationReconcileStateLockedSkipsReadOnlyLifecycle(t *t
 }
 
 func TestApplyFetchedAccountStateUpdatesSessionPresentationReconcileState(t *testing.T) {
+	// Build an account with a reconcile routine container.
 	acc := &ProviderAccount{}
 	acc.sessionPresentationReconcile = routine.NewStateRoutineContainer(
 		equalSessionPresentationReconcileState,
 	)
 
+	// Apply a fetched state with the settings binding and one live session.
 	acc.applyFetchedAccountState(2, &api.AccountStateResponse{
 		Epoch: 2,
 		AccountSobjectBindings: []*api.AccountSObjectBinding{
@@ -107,10 +109,12 @@ func TestApplyFetchedAccountStateUpdatesSessionPresentationReconcileState(t *tes
 				State:   api.AccountSObjectBindingState_ACCOUNT_SOBJECT_BINDING_STATE_READY,
 			},
 		},
-	}, nil, []*api.AccountSessionInfo{
-		{PeerId: "peer-live"},
+		Sessions: []*api.AccountSessionInfo{
+			{PeerId: "peer-live"},
+		},
 	})
 
+	// The reconcile state names the settings Space and the live session.
 	got := acc.sessionPresentationReconcile.GetState()
 	if got == nil {
 		t.Fatal("expected reconcile state to be stored")

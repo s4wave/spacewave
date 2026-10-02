@@ -15,7 +15,7 @@ import (
 // TestAccountFetcherRefreshesCachedCoverageWithSigner verifies that a restarted
 // account discovers restored coverage without a server epoch change or raw key.
 func TestAccountFetcherRefreshesCachedCoverageWithSigner(t *testing.T) {
-	// Serve the account state, emails, and sessions endpoints.
+	// Serve only the account state endpoint, which carries emails and sessions.
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case "/api/account/state":
@@ -23,11 +23,9 @@ func TestAccountFetcherRefreshesCachedCoverageWithSigner(t *testing.T) {
 				Epoch:              7,
 				SubscriptionStatus: sdk.BillingStatus_BillingStatus_ACTIVE,
 				LifecycleState:     api.AccountLifecycleState_ACCOUNT_LIFECYCLE_STATE_ACTIVE,
+				Emails:             []*api.AccountEmailInfo{{Email: "a@example.com", Primary: true}},
+				Sessions:           []*api.AccountSessionInfo{{PeerId: "peer-live"}},
 			}))
-		case "/api/account/emails":
-			_, _ = w.Write(mustMarshalVT(t, &api.ListAccountEmailsResponse{}))
-		case "/api/account/sessions":
-			_, _ = w.Write(mustMarshalVT(t, &api.ListAccountSessionsResponse{}))
 		default:
 			t.Errorf("unexpected request: %s", r.URL.Path)
 			w.WriteHeader(http.StatusNotFound)
@@ -69,6 +67,16 @@ func TestAccountFetcherRefreshesCachedCoverageWithSigner(t *testing.T) {
 	if state.GetSubscriptionStatus() != sdk.BillingStatus_BillingStatus_ACTIVE {
 		t.Fatal("cached inactive coverage survived the live refresh")
 	}
+
+	// The same response publishes the account's emails and sessions.
+	acc.accountBcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		if !acc.state.cachedEmailsValid || len(acc.state.cachedEmails) != 1 {
+			t.Errorf("emails = %v, want the fetched email", acc.state.cachedEmails)
+		}
+		if !acc.state.sessionsValid || len(acc.state.sessions) != 1 {
+			t.Errorf("sessions = %v, want the fetched session", acc.state.sessions)
+		}
+	})
 
 	// Verify the refreshed coverage was committed to the cache store.
 	waitForAccountFetcherSignal(t, cacheStore.committed, time.Second, "refreshed coverage cache")

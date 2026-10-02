@@ -1454,7 +1454,9 @@ message FinalizeAccountSObjectBindingResponse {
 }
 
 // AccountStateResponse is the response body for GET /account/state.
-// Combined endpoint returning both account info and keypairs in one request.
+// It returns the account's info, keypairs, emails and live sessions in one
+// request, so a client refreshes its account snapshot with one request per
+// account epoch.
 message AccountStateResponse {
   // AccountId is the account ID.
   string account_id = 1;
@@ -1493,6 +1495,10 @@ message AccountStateResponse {
   .provider.AccountTransition transition = 17;
   // AcceptedMigrations retain source redirects that destination replicas deliver.
   repeated .provider.AccountTransition accepted_migrations = 18;
+  // Emails lists the account's email addresses, newest first.
+  repeated AccountEmailInfo emails = 19;
+  // Sessions lists the account's live sessions, oldest first.
+  repeated AccountSessionInfo sessions = 20;
 }
 
 // AccountStateCache is the local cache of account state for ObjectStore persistence.

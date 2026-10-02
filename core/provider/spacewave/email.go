@@ -7,19 +7,6 @@ import (
 	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
 )
 
-// ListEmails returns the account's email addresses.
-func (c *SessionClient) ListEmails(ctx context.Context) (*api.ListAccountEmailsResponse, error) {
-	data, err := c.doGetBinary(ctx, "/api/account/emails", SeedReasonColdSeed)
-	if err != nil {
-		return nil, errors.Wrap(err, "list emails")
-	}
-	var resp api.ListAccountEmailsResponse
-	if err := resp.UnmarshalVT(data); err != nil {
-		return nil, errors.Wrap(err, "unmarshal list emails response")
-	}
-	return &resp, nil
-}
-
 // VerifyEmailCode verifies a 6-digit code for in-app email verification.
 func (c *SessionClient) VerifyEmailCode(ctx context.Context, email, code string) error {
 	body, err := (&api.EmailVerifyCodeRequest{Email: email, Code: code}).MarshalVT()

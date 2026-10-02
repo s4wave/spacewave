@@ -236,7 +236,7 @@ type accountState struct {
 	info *api.AccountStateResponse
 	// infoFetching indicates a GET /account/state fetch is in flight.
 	infoFetching bool
-	// sessions is the cached cloud auth session set from GET /account/sessions.
+	// sessions is the cached cloud auth session set from GET /account/state.
 	sessions []*api.AccountSessionInfo
 	// sessionsValid indicates sessions has been populated at least once.
 	sessionsValid bool
@@ -262,8 +262,7 @@ type accountState struct {
 	// status is the current account status (READY, UNAUTHENTICATED, DELETED).
 	status provider.ProviderAccountStatus
 
-	// cachedEmails is the cached email list from GET /account/emails.
-	// Refreshed alongside account state when epoch changes.
+	// cachedEmails is the cached email list from GET /account/state.
 	cachedEmails []*api.AccountEmailInfo
 	// cachedEmailsValid indicates cachedEmails has been populated at least once.
 	cachedEmailsValid bool

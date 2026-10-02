@@ -5215,7 +5215,9 @@ func (x *FinalizeAccountSObjectBindingResponse) GetBinding() *AccountSObjectBind
 }
 
 // AccountStateResponse is the response body for GET /account/state.
-// Combined endpoint returning both account info and keypairs in one request.
+// It returns the account's info, keypairs, emails and live sessions in one
+// request, so a client refreshes its account snapshot with one request per
+// account epoch.
 type AccountStateResponse struct {
 	unknownFields []byte
 	// AccountId is the account ID.
@@ -5255,6 +5257,10 @@ type AccountStateResponse struct {
 	Transition *provider.AccountTransition `protobuf:"bytes,17,opt,name=transition,proto3" json:"transition,omitempty"`
 	// AcceptedMigrations retain source redirects that destination replicas deliver.
 	AcceptedMigrations []*provider.AccountTransition `protobuf:"bytes,18,rep,name=accepted_migrations,json=acceptedMigrations,proto3" json:"acceptedMigrations,omitempty"`
+	// Emails lists the account's email addresses, newest first.
+	Emails []*AccountEmailInfo `protobuf:"bytes,19,rep,name=emails,proto3" json:"emails,omitempty"`
+	// Sessions lists the account's live sessions, oldest first.
+	Sessions []*AccountSessionInfo `protobuf:"bytes,20,rep,name=sessions,proto3" json:"sessions,omitempty"`
 }
 
 func (x *AccountStateResponse) Reset() {
@@ -5385,6 +5391,20 @@ func (x *AccountStateResponse) GetTransition() *provider.AccountTransition {
 func (x *AccountStateResponse) GetAcceptedMigrations() []*provider.AccountTransition {
 	if x != nil {
 		return x.AcceptedMigrations
+	}
+	return nil
+}
+
+func (x *AccountStateResponse) GetEmails() []*AccountEmailInfo {
+	if x != nil {
+		return x.Emails
+	}
+	return nil
+}
+
+func (x *AccountStateResponse) GetSessions() []*AccountSessionInfo {
+	if x != nil {
+		return x.Sessions
 	}
 	return nil
 }
@@ -12716,6 +12736,8 @@ func (m *AccountStateResponse) CloneVT() *AccountStateResponse {
 	r.AuthMethods = protobuf_go_lite.CloneVTSlice(m.AuthMethods)
 	r.Transition = protobuf_go_lite.CloneVTValue(m.Transition)
 	r.AcceptedMigrations = protobuf_go_lite.CloneVTSlice(m.AcceptedMigrations)
+	r.Emails = protobuf_go_lite.CloneVTSlice(m.Emails)
+	r.Sessions = protobuf_go_lite.CloneVTSlice(m.Sessions)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -18912,6 +18934,12 @@ func (this *AccountStateResponse) EqualVT(that *AccountStateResponse) bool {
 		return false
 	}
 	if !protobuf_go_lite.EqualVTSliceImplicit(this.AcceptedMigrations, that.AcceptedMigrations, func() *provider.AccountTransition { return &provider.AccountTransition{} }) {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTSliceImplicit(this.Emails, that.Emails, func() *AccountEmailInfo { return &AccountEmailInfo{} }) {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTSliceImplicit(this.Sessions, that.Sessions, func() *AccountSessionInfo { return &AccountSessionInfo{} }) {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -30579,6 +30607,28 @@ func (x *AccountStateResponse) MarshalProtoJSON(s *json.MarshalState) {
 		}
 		s.WriteArrayEnd()
 	}
+	if len(x.Emails) > 0 || s.HasField("emails") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("emails")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.Emails {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("emails"))
+		}
+		s.WriteArrayEnd()
+	}
+	if len(x.Sessions) > 0 || s.HasField("sessions") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("sessions")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.Sessions {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("sessions"))
+		}
+		s.WriteArrayEnd()
+	}
 	s.WriteObjectEnd()
 }
 
@@ -30713,6 +30763,42 @@ func (x *AccountStateResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
 					return
 				}
 				x.AcceptedMigrations = append(x.AcceptedMigrations, v)
+			})
+		case "emails":
+			s.AddField("emails")
+			if s.ReadNil() {
+				x.Emails = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.Emails = append(x.Emails, nil)
+					return
+				}
+				v := &AccountEmailInfo{}
+				v.UnmarshalProtoJSON(s.WithField("emails", false))
+				if s.Err() != nil {
+					return
+				}
+				x.Emails = append(x.Emails, v)
+			})
+		case "sessions":
+			s.AddField("sessions")
+			if s.ReadNil() {
+				x.Sessions = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.Sessions = append(x.Sessions, nil)
+					return
+				}
+				v := &AccountSessionInfo{}
+				v.UnmarshalProtoJSON(s.WithField("sessions", false))
+				if s.Err() != nil {
+					return
+				}
+				x.Sessions = append(x.Sessions, v)
 			})
 		}
 	})
@@ -45098,6 +45184,34 @@ func (m *AccountStateResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) 
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if len(m.Sessions) > 0 {
+		for iNdEx := len(m.Sessions) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.Sessions[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x1
+			i--
+			dAtA[i] = 0xa2
+		}
+	}
+	if len(m.Emails) > 0 {
+		for iNdEx := len(m.Emails) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.Emails[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x1
+			i--
+			dAtA[i] = 0x9a
+		}
+	}
 	if len(m.AcceptedMigrations) > 0 {
 		for iNdEx := len(m.AcceptedMigrations) - 1; iNdEx >= 0; iNdEx-- {
 			size, err := m.AcceptedMigrations[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
@@ -54050,6 +54164,14 @@ func (m *AccountStateResponse) SizeVT() (n int) {
 		l = e.SizeVT()
 		n += protobuf_go_lite.SizeMessage(2, l)
 	}
+	for _, e := range m.Emails {
+		l = e.SizeVT()
+		n += protobuf_go_lite.SizeMessage(2, l)
+	}
+	for _, e := range m.Sessions {
+		l = e.SizeVT()
+		n += protobuf_go_lite.SizeMessage(2, l)
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -59214,6 +59336,30 @@ func (x *AccountStateResponse) MarshalProtoText() string {
 			protobuf_go_lite.TextWriteListSeparator(&sb, i)
 			if v == nil {
 				protobuf_go_lite.TextWriteTextMarshaler(&sb, &provider.AccountTransition{})
+			} else {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, v)
+			}
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
+	if len(x.Emails) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "emails")
+		for i, v := range x.Emails {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			if v == nil {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, &AccountEmailInfo{})
+			} else {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, v)
+			}
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
+	if len(x.Sessions) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "sessions")
+		for i, v := range x.Sessions {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			if v == nil {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, &AccountSessionInfo{})
 			} else {
 				protobuf_go_lite.TextWriteTextMarshaler(&sb, v)
 			}
@@ -71624,6 +71770,32 @@ func (m *AccountStateResponse) UnmarshalVT(dAtA []byte) error {
 			}
 			m.AcceptedMigrations = append(m.AcceptedMigrations, &provider.AccountTransition{})
 			if err := m.AcceptedMigrations[len(m.AcceptedMigrations)-1].UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 19:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Emails", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Emails = append(m.Emails, &AccountEmailInfo{})
+			if err := m.Emails[len(m.Emails)-1].UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 20:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Sessions", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Sessions = append(m.Sessions, &AccountSessionInfo{})
+			if err := m.Sessions[len(m.Sessions)-1].UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex

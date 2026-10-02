@@ -1796,16 +1796,6 @@ func TestSessionClientSeedReason(t *testing.T) {
 			},
 		},
 		{
-			name:   "ListEmails",
-			reason: SeedReasonColdSeed,
-			call: func(t *testing.T, cli *SessionClient) error {
-				_, err := cli.ListEmails(context.Background())
-				// Stubbed body is not a valid proto; tolerate any error.
-				_ = err
-				return nil
-			},
-		},
-		{
 			name:   "DeleteOrganization",
 			reason: SeedReasonMutation,
 			call: func(t *testing.T, cli *SessionClient) error {
