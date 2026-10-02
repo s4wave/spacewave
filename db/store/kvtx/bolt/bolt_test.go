@@ -7,6 +7,7 @@ import (
 	"errors"
 	"os"
 	"path"
+	"strconv"
 	"testing"
 	"time"
 
@@ -105,5 +106,56 @@ func TestExecuteClosesWhenDatabaseRemoved(t *testing.T) {
 	}
 	if err := <-errCh; !errors.Is(err, bdberrors.ErrLockFileChanged) {
 		t.Fatalf("execute error = %v, want ErrLockFileChanged", err)
+	}
+}
+
+// TestExecuteManyStores tests that more executing stores than the default
+// Linux inotify instance limit keep running, and that removing one database
+// stops only its Store.
+func TestExecuteManyStores(t *testing.T) {
+	// Bound the whole test.
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	// Open more stores than the default limit of 128 inotify instances, split
+	// across two directories.
+	const count = 200
+	dirs := []string{t.TempDir(), t.TempDir()}
+	stores := make([]*Store, count)
+	dbPaths := make([]string, count)
+	for i := range stores {
+		dbPaths[i] = path.Join(dirs[i%len(dirs)], strconv.Itoa(i)+".boltdb")
+		store, err := Open(dbPaths[i], 0o644, nil, []byte("test-bucket"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer store.db.Close()
+		stores[i] = store
+	}
+
+	// Execute every store until the context ends.
+	execCtx, execCancel := context.WithCancel(ctx)
+	defer execCancel()
+	errChs := make([]chan error, count)
+	for i, store := range stores {
+		errChs[i] = make(chan error, 1)
+		go func() { errChs[i] <- store.Execute(execCtx) }()
+	}
+
+	// Removing the first database stops only its Store.
+	if err := os.Remove(dbPaths[0]); err != nil {
+		t.Fatal(err)
+	}
+	if err := <-errChs[0]; !errors.Is(err, bdberrors.ErrLockFileChanged) {
+		t.Fatalf("execute error = %v, want ErrLockFileChanged", err)
+	}
+
+	// Canceling the context stops the remaining stores without a watcher
+	// error.
+	execCancel()
+	for i, errCh := range errChs[1:] {
+		if err := <-errCh; !errors.Is(err, context.Canceled) {
+			t.Fatalf("store %d execute error = %v, want context.Canceled", i+1, err)
+		}
 	}
 }

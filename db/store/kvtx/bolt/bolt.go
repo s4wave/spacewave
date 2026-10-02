@@ -13,7 +13,6 @@ import (
 
 	bdb "github.com/aperturerobotics/bbolt"
 	bdberrors "github.com/aperturerobotics/bbolt/errors"
-	"github.com/aperturerobotics/fsnotify"
 	"github.com/aperturerobotics/util/broadcast"
 	"github.com/s4wave/spacewave/db/kvtx"
 )
@@ -99,67 +98,38 @@ func (s *Store) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, error)
 	return tx, nil
 }
 
-// Execute executes the given store.
+// Execute closes the database and returns ErrLockFileChanged once the
+// database or lock file path no longer exists.
 // Returning nil ends execution.
 // Returning an error triggers a retry with backoff.
 func (s *Store) Execute(ctx context.Context) error {
-	watcher, err := fsnotify.NewWatcher()
-	if err != nil {
-		return err
-	}
-	defer watcher.Close()
-
+	// Bolt keeps its lock file beside the database file.
 	dbPath := s.db.Path()
 	lockPath := dbPath + "-lock"
-	if err := checkBoltPaths(dbPath, lockPath); err != nil {
-		_ = s.db.Close()
+
+	// Watch the directory holding both paths before checking them, so a change
+	// after the first check still wakes this Store.
+	sub, err := sharedDirWatcher.watch(filepath.Dir(dbPath))
+	if err != nil {
+		if pathErr := checkBoltPaths(dbPath, lockPath); pathErr != nil {
+			_ = s.db.Close()
+			return pathErr
+		}
 		return err
 	}
-	for _, path := range []string{dbPath, lockPath} {
-		if err := watcher.Add(path); err != nil {
-			if pathErr := checkBoltPaths(dbPath, lockPath); pathErr != nil {
-				_ = s.db.Close()
-				return pathErr
-			}
-			return err
-		}
-	}
+	defer sharedDirWatcher.release(sub)
 
-	dirs := make(map[string]struct{})
-	for _, path := range []string{dbPath, lockPath} {
-		dirs[filepath.Dir(path)] = struct{}{}
-	}
-	for dir := range dirs {
-		if err := watcher.Add(dir); err != nil {
-			if pathErr := checkBoltPaths(dbPath, lockPath); pathErr != nil {
-				_ = s.db.Close()
-				return pathErr
-			}
-			return err
-		}
-	}
-
+	// Check both paths after every entry change in the directory.
 	for {
+		if err := checkBoltPaths(dbPath, lockPath); err != nil {
+			_ = s.db.Close()
+			return err
+		}
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
-		case ev, ok := <-watcher.Events:
-			if !ok {
-				return nil
-			}
-			// Every commit writes the database file; only creating, removing,
-			// or renaming an entry can change what the paths refer to.
-			if !ev.Has(fsnotify.Create | fsnotify.Remove | fsnotify.Rename) {
-				continue
-			}
-			if err := checkBoltPaths(dbPath, lockPath); err != nil {
-				_ = s.db.Close()
-				return err
-			}
-		case err, ok := <-watcher.Errors:
-			if !ok {
-				return nil
-			}
+		case <-sub.changed:
+		case err := <-sub.errs:
 			if pathErr := checkBoltPaths(dbPath, lockPath); pathErr != nil {
 				_ = s.db.Close()
 				return pathErr
