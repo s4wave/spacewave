@@ -20,6 +20,8 @@ github.com/aperturerobotics/bbolt v0.0.0-20261001005900-847bb6c1d9ea h1:iPkDQDaO
 github.com/aperturerobotics/bbolt v0.0.0-20261001005900-847bb6c1d9ea/go.mod h1:uP4X3ycuVlQftt6tTDe6smymYXZ9hf/TtUScVRn4760=
 github.com/aperturerobotics/bbolt v0.0.0-20261001214648-22e8393e6a95 h1:7Lz9SjiMOpCRzwjjRFTTKF6hSXuR60nFtn/cnJIzdzY=
 github.com/aperturerobotics/bbolt v0.0.0-20261001214648-22e8393e6a95/go.mod h1:uP4X3ycuVlQftt6tTDe6smymYXZ9hf/TtUScVRn4760=
+github.com/aperturerobotics/bbolt v0.0.0-20261002002154-906e04dd11b9 h1:qciXLZF64ND3mUSU0yVRDL3yN1DeJhFrL+JxiEsqkaE=
+github.com/aperturerobotics/bbolt v0.0.0-20261002002154-906e04dd11b9/go.mod h1:uP4X3ycuVlQftt6tTDe6smymYXZ9hf/TtUScVRn4760=
 github.com/aperturerobotics/bldr-saucer v0.4.4 h1:kQvjAAQcdydvX2EYWipQW1vOBUe88F/27WaVU7mKRoE=
 github.com/aperturerobotics/bldr-saucer v0.4.4/go.mod h1:yH40259UVahR/9DU9c+Sg0+HGm5OtTWHV7CeEzneVho=
 github.com/aperturerobotics/cayley v0.15.1-0.20260922044400-0559a321408f h1:mRUzUapHOtMsghRvKXnCJCWVLjXmNl50W0V0b3NOQFE=
@@ -86,6 +88,8 @@ github.com/aperturerobotics/saucer v0.0.0-20260317232052-4db05a4e0b4c h1:32+9phq
 github.com/aperturerobotics/saucer v0.0.0-20260317232052-4db05a4e0b4c/go.mod h1:L9/rUdjzzI9mMWKJcbh7T8LSQ43JKwrxYv4I2i2YsY4=
 github.com/aperturerobotics/starpc v0.52.2-0.20261001142944-1379b4c47855 h1:LzS4TyjyuNeaiYOLlxBO+KtX0E40ABbE2XR8EcM3fWE=
 github.com/aperturerobotics/starpc v0.52.2-0.20261001142944-1379b4c47855/go.mod h1:RuRFctJOFKaEqxvTufdpGR4r7uiW2Z0wta2iIJkyL0Q=
+github.com/aperturerobotics/starpc v0.52.2-0.20261002002112-963692aa6b77 h1:naSVqwbCTEmxOP3IBdaAkkLNZhHALMN8q8N82Vvelc0=
+github.com/aperturerobotics/starpc v0.52.2-0.20261002002112-963692aa6b77/go.mod h1:RuRFctJOFKaEqxvTufdpGR4r7uiW2Z0wta2iIJkyL0Q=
 github.com/aperturerobotics/util v1.34.10-0.20260924000454-918a9e70b357 h1:JEAoOhgohIkgxFMBqL9zxthEFf7OSJcShqhQKUUKTtk=
 github.com/aperturerobotics/util v1.34.10-0.20260924000454-918a9e70b357/go.mod h1:2uIQA8dHn5EQgEtRqcTS4zxJ51dEVehY9O++bJfU2hs=
 github.com/aperturerobotics/vitess v0.0.0-20260922203758-a3c6c653303d h1:9UIhsGTL9o/dBAi60BRp8mWOmG2RkX5ik08aZHDU3zQ=
