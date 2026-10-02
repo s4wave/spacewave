@@ -37,6 +37,11 @@ var (
 	// ErrEmptyInnerData is returned if the inner data was empty.
 	ErrEmptyInnerData = errors.New("empty inner data")
 
+	// ErrConfigChainHeadMismatch is returned if a config change does not
+	// extend the held config chain head. The writer read a stale head and may
+	// rebuild the change against the current one.
+	ErrConfigChainHeadMismatch = errors.New("config change previous_hash does not match current config_chain_hash")
+
 	// ErrInvalidSeqno is returned if the root seqno was unexpected.
 	ErrInvalidSeqno = errors.New("invalid shared object root seqno")
 

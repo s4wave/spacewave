@@ -116,7 +116,7 @@ func VerifyConfigChange(sharedObjectID string, current *SharedObjectConfig, entr
 		return nil, errors.New("config change is bound to another shared object")
 	}
 	if !bytes.Equal(entry.GetPreviousHash(), current.GetConfigChainHash()) {
-		return nil, errors.New("config change previous_hash does not match current config_chain_hash")
+		return nil, ErrConfigChainHeadMismatch
 	}
 	var expected uint64
 	if len(current.GetConfigChainHash()) != 0 {

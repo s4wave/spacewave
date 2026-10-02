@@ -1593,19 +1593,30 @@ func (s *SharedObject) RemoveParticipantsWithRevocation(
 }
 
 // retryConfigConflicts runs a configuration write against the latest cloud
-// state, retrying when another writer advances the configuration first.
+// state, retrying when another writer advances the configuration first. The
+// cloud reports a conflict with 409; a local head advanced between reading
+// the config and locking it fails verification with a head mismatch.
 func (s *SharedObject) retryConfigConflicts(ctx context.Context, write func() error) error {
 	for attempt := range maxWriteRetries {
 		if _, _, _, err := s.loadLatestConfigState(ctx); err != nil {
 			return err
 		}
 		err := write()
-		var ce *cloudError
-		if err == nil || !errors.As(err, &ce) || ce.StatusCode != 409 || attempt+1 == maxWriteRetries {
+		if err == nil || !isConfigConflict(err) || attempt+1 == maxWriteRetries {
 			return err
 		}
 	}
 	return nil
+}
+
+// isConfigConflict reports whether a config write lost a race with another
+// writer and may be rebuilt against the current head.
+func isConfigConflict(err error) bool {
+	var ce *cloudError
+	if errors.As(err, &ce) && ce.StatusCode == 409 {
+		return true
+	}
+	return errors.Is(err, sobject.ErrConfigChainHeadMismatch)
 }
 
 // GetSOHost returns the SOHost for invite operations.
