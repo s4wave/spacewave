@@ -2348,9 +2348,20 @@ func concurrentCreateShellTabs(t *testing.T, pageA, pageB playwright.Page) {
 	}
 }
 
+// resetShellTabsVisibly resets the Shell tabs through the View menu of a
+// quickstart Drive page.
 func resetShellTabsVisibly(t *testing.T, page playwright.Page) {
 	t.Helper()
 
+	// Wait for the quickstart to settle on the Drive file browser. Its route
+	// change closes an open menu, detaching the item before the click.
+	if err := page.Locator("[data-testid='unixfs-browser']:visible").First().WaitFor(
+		playwright.LocatorWaitForOptions{Timeout: playwright.Float(browserWaitMS)},
+	); err != nil {
+		t.Fatalf("wait for Drive file browser before Shell reset: %v", err)
+	}
+
+	// Open the View menu and invoke the reset.
 	if err := page.Locator("button:visible:has-text('View')").First().Click(); err != nil {
 		t.Fatalf("open visible View menu: %v", err)
 	}
