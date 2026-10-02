@@ -80,6 +80,8 @@ func (r *coalescedTriggerRoutine) execute(ctx context.Context) error {
 	}
 }
 
+// asyncCallbackJobs runs independent jobs bound to one lifecycle context.
+// Clearing or replacing the context stops the running jobs and waits for them.
 type asyncCallbackJobs struct {
 	mtx  sync.Mutex
 	ctx  context.Context
@@ -88,6 +90,7 @@ type asyncCallbackJobs struct {
 	jobs map[uint64]*routine.RoutineContainer
 }
 
+// newAsyncCallbackJobs builds jobs whose Trigger runs run.
 func newAsyncCallbackJobs(run func(context.Context)) *asyncCallbackJobs {
 	if run == nil {
 		run = func(context.Context) {}
@@ -98,6 +101,7 @@ func newAsyncCallbackJobs(run func(context.Context)) *asyncCallbackJobs {
 	}
 }
 
+// SetContext binds new jobs to ctx and stops the jobs of the prior context.
 func (j *asyncCallbackJobs) SetContext(ctx context.Context) {
 	var stop []*routine.RoutineContainer
 	j.mtx.Lock()
@@ -113,16 +117,27 @@ func (j *asyncCallbackJobs) SetContext(ctx context.Context) {
 	stopAsyncCallbackJobs(stop)
 }
 
+// ClearContext stops every job and drops later ones until the next context.
 func (j *asyncCallbackJobs) ClearContext() {
 	j.SetContext(nil)
 }
 
+// Trigger starts one run of the configured callback.
 func (j *asyncCallbackJobs) Trigger() {
+	j.Go(j.run)
+}
+
+// Go starts run as one job on the current context. It is dropped when no
+// context is bound.
+func (j *asyncCallbackJobs) Go(run func(context.Context)) {
+	// Drop the job when no live context is bound.
 	j.mtx.Lock()
 	defer j.mtx.Unlock()
 	if j.ctx == nil || j.ctx.Err() != nil {
 		return
 	}
+
+	// Track the job until it exits so a context change can stop it.
 	j.next++
 	key := j.next
 	rc := routine.NewRoutineContainer(routine.WithExitCb(func(error) {
@@ -131,13 +146,14 @@ func (j *asyncCallbackJobs) Trigger() {
 		j.mtx.Unlock()
 	}))
 	rc.SetRoutine(func(ctx context.Context) error {
-		j.run(ctx)
+		run(ctx)
 		return nil
 	})
 	j.jobs[key] = rc
 	rc.SetContext(j.ctx, false)
 }
 
+// Pending returns the number of running jobs.
 func (j *asyncCallbackJobs) Pending() int {
 	j.mtx.Lock()
 	defer j.mtx.Unlock()

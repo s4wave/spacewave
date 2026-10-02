@@ -119,6 +119,8 @@ type ProviderAccount struct {
 	orgProcessors *routine.RoutineContainer
 	// launcherRecheckJobs schedules update_available launcher recheck work.
 	launcherRecheckJobs *asyncCallbackJobs
+	// presentationJobs mirrors Session presentation metadata off the caller's path.
+	presentationJobs *asyncCallbackJobs
 	// entityKeyStore holds unlocked entity keypairs shared across account
 	// resources for this provider account.
 	entityKeyStore *EntityKeyStore
@@ -290,9 +292,9 @@ func (p *Provider) buildProviderAccountTracker(accountID string) (keyed.Routine,
 
 // executeProviderAccountTracker executes the provider account tracker routine.
 func (t *providerAccountTracker) executeProviderAccountTracker(rctx context.Context) error {
+	// Bound the account's routines to this tracker run.
 	ctx, ctxCancel := context.WithCancel(rctx)
 	defer ctxCancel()
-
 	le := t.p.le.WithField("account-id", t.accountID)
 
 	// Mount the storage volume for this account.
@@ -315,6 +317,7 @@ func (t *providerAccountTracker) executeProviderAccountTracker(rctx context.Cont
 	}
 	defer volCtrlRef.Release()
 
+	// Resolve the mounted storage volume.
 	vol, err := volCtrl.GetVolume(ctx)
 	if err != nil {
 		return err
@@ -362,6 +365,7 @@ func (t *providerAccountTracker) executeProviderAccountTracker(rctx context.Cont
 		"",
 	)
 
+	// Construct the account around its clients and storage.
 	acc := &ProviderAccount{
 		t:              t,
 		le:             le,
@@ -376,11 +380,15 @@ func (t *providerAccountTracker) executeProviderAccountTracker(rctx context.Cont
 		soListCtr:      t.p.getSOListCtr(t.accountID),
 		entityKeyStore: entityKeyStore,
 	}
+
+	// Wire the session client, Self-Enrollment state and SharedObject list.
 	acc.sessionClient = acc.configureSessionClient(sessionCli)
 	acc.selfEnrollmentRun = newSelfEnrollmentRunState(acc)
 	acc.soListCtr.SetValue(nil)
 	acc.soListRc = refcount.NewRefCount(nil, true, nil, nil, acc.resolveSharedObjectList)
 	acc.entityKeypairStepUp = entitykeystore.NewEntityKeypairStepUp(ctx, acc.getEntityKeyStore)
+
+	// Build the self-rejoin sweep, primed from the unlocked entity keys.
 	acc.selfRejoinSweep = routine.NewStateRoutineContainerWithLogger(
 		equalSelfRejoinSweepState,
 		le.WithField("component", "self-rejoin-sweep"),
@@ -388,6 +396,8 @@ func (t *providerAccountTracker) executeProviderAccountTracker(rctx context.Cont
 	)
 	acc.selfRejoinSweep.SetStateRoutine(acc.runSelfRejoinSweep)
 	acc.primeSelfRejoinSweepFromUnlockedEntityKeys()
+
+	// Build the explicit Self-Enrollment run and presentation reconcile routines.
 	acc.selfEnrollmentRunRoutine = routine.NewStateRoutineContainerWithLogger[*selfenrollmentrun.Request](
 		nil,
 		le.WithField("component", "self-enrollment-run"),
@@ -399,6 +409,8 @@ func (t *providerAccountTracker) executeProviderAccountTracker(rctx context.Cont
 		routine.WithRetry(providerBackoff),
 	)
 	acc.sessionPresentationReconcile.SetStateRoutine(acc.runSessionPresentationReconcile)
+
+	// Build the garbage collection cleanup routine.
 	acc.gcCleanupRunner = provider_gccleanup.NewRunner(
 		le.WithField("component", "gc-cleanup-runner"),
 		"GC swept nodes after provider account cleanup",
@@ -409,6 +421,8 @@ func (t *providerAccountTracker) executeProviderAccountTracker(rctx context.Cont
 		routine.WithRetry(providerBackoff),
 	)
 	acc.gcCleanup.SetRoutine(acc.gcCleanupRunner.Run)
+
+	// Build the account fetcher and organization processor routines.
 	acc.accountFetcherRoutine = routine.NewRoutineContainerWithLogger(
 		le.WithField("component", "account-fetcher"),
 		routine.WithExitCb(func(err error) {
@@ -423,12 +437,16 @@ func (t *providerAccountTracker) executeProviderAccountTracker(rctx context.Cont
 		routine.WithRetry(providerBackoff),
 	)
 	acc.orgProcessors.SetRoutine(acc.watchOrgProcessors)
+
+	// Build the launcher recheck and presentation jobs.
 	acc.launcherRecheckJobs = newAsyncCallbackJobs(func(jobCtx context.Context) {
 		if err := spacewave_launcher.ExRecheckDistConfig(jobCtx, t.p.b, ""); err != nil && !errors.Is(err, context.Canceled) {
 			le.WithError(err).Warn("launcher recheck failed")
 		}
 	})
+	acc.presentationJobs = newAsyncCallbackJobs(nil)
 
+	// Refetch account state when a checkout completes.
 	acc.checkoutWatcher = newCheckoutWatcher(
 		le.WithField("component", "checkout-watcher"),
 		acc.currentSessionClient,
@@ -439,10 +457,13 @@ func (t *providerAccountTracker) executeProviderAccountTracker(rctx context.Cont
 		},
 	)
 
+	// Track the Session websocket and resync on each connect.
 	acc.wsTracker = newWSTracker(
 		le.WithField("component", "session-tracker"),
 		acc.currentSessionClient,
 	)
+
+	// Refetch account and organization state on their change events.
 	acc.wsTracker.accountBcast = &acc.accountBcast
 	acc.wsTracker.onAccountChanged = func(epoch uint64) {
 		le.WithField("epoch", epoch).Debug("account changed via ws notify")
@@ -457,6 +478,8 @@ func (t *providerAccountTracker) executeProviderAccountTracker(rctx context.Cont
 		acc.InvalidateBillingSnapshot("")
 		acc.QueueOrganizationSync(orgID)
 	}
+
+	// Sync participants and member Sessions as the cloud reports them.
 	acc.wsTracker.onPendingParticipant = func(soID, accountID string) {
 		le.WithField("sobject-id", soID).
 			WithField("target-account-id", accountID).
@@ -479,6 +502,8 @@ func (t *providerAccountTracker) executeProviderAccountTracker(rctx context.Cont
 			added:         added,
 		}, true)
 	}
+
+	// Apply SharedObject notifications and list updates.
 	acc.wsTracker.onSONotify = func(soID string, payload *api.SONotifyEventPayload) {
 		acc.handleAccountSONotify(ctx, soID, payload)
 	}
@@ -486,6 +511,8 @@ func (t *providerAccountTracker) executeProviderAccountTracker(rctx context.Cont
 		acc.soListCtr.SetValue(list)
 		acc.refreshSelfEnrollmentSummary(ctx)
 	}
+
+	// Resync after every authenticated connect.
 	acc.wsTracker.onConnected = func() {
 		// Refetch account state and the caches that events would update.
 		le.Debug("session ws connected; invalidating event-driven caches")
@@ -501,6 +528,8 @@ func (t *providerAccountTracker) executeProviderAccountTracker(rctx context.Cont
 		// storms.
 		acc.bumpSelfRejoinSweepGeneration()
 	}
+
+	// Process invite mailbox entries and targeted invitations.
 	acc.wsTracker.onInviteMailbox = func(soID string, entry *api.MailboxEntry, updatedAt int64) {
 		if soID == "" || entry == nil {
 			return
@@ -530,6 +559,8 @@ func (t *providerAccountTracker) executeProviderAccountTracker(rctx context.Cont
 			broadcast()
 		})
 	}
+
+	// Handle release, CDN root and dormancy events.
 	acc.wsTracker.onUpdateAvailable = func() {
 		le.Debug("dispatching launcher recheck after update_available notify")
 		acc.launcherRecheckJobs.Trigger()
@@ -560,6 +591,8 @@ func (t *providerAccountTracker) executeProviderAccountTracker(rctx context.Cont
 		// state fetch so onboarding reflects the restored subscription.
 		acc.BumpLocalEpoch()
 	}
+
+	// Handle a revoked Session or deleted account.
 	acc.wsTracker.onSessionUnauthenticated = func() {
 		acc.accountBcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 			acc.state.status = accountstatus.Unauthenticated(acc.state.info)
@@ -580,6 +613,7 @@ func (t *providerAccountTracker) executeProviderAccountTracker(rctx context.Cont
 		acc.p.accountRc.RestartRoutine(acc.accountID)
 	}
 
+	// Build the block store and organization sync managers.
 	acc.bstores = keyed.NewKeyedRefCountWithLogger(
 		acc.buildBlockStoreTracker,
 		le,
@@ -597,6 +631,8 @@ func (t *providerAccountTracker) executeProviderAccountTracker(rctx context.Cont
 		}),
 	)
 	acc.orgSyncs = orgSyncs
+
+	// Build the pending participant and member Session sync managers.
 	var pendingParticipantSyncs *keyed.Keyed[pendingParticipantSyncKey, struct{}]
 	pendingParticipantSyncs = keyed.NewKeyedWithLogger(
 		acc.buildPendingParticipantSyncRoutine,
@@ -621,6 +657,8 @@ func (t *providerAccountTracker) executeProviderAccountTracker(rctx context.Cont
 		}),
 	)
 	acc.memberSessionSyncs = memberSessionSyncs
+
+	// Build the SharedObject and mailbox auto-processing managers.
 	acc.sobjects = keyed.NewKeyedRefCountWithLogger(
 		acc.buildSharedObjectTracker,
 		le,
@@ -639,66 +677,87 @@ func (t *providerAccountTracker) executeProviderAccountTracker(rctx context.Cont
 		}),
 	)
 	acc.mailboxAutoProcessors = mailboxAutoProcessors
+
+	// Build the Session tracker manager.
 	acc.sessions = keyed.NewKeyedRefCountWithLogger(
 		acc.buildSessionTracker,
 		le,
 		keyed.WithRetry[string, *sessionTracker](providerBackoff),
 	)
 
-	// Start keyed managers.
+	// Start the block store trackers.
 	acc.bstores.SetContext(ctx, true)
 	defer acc.bstores.ClearContext()
 
+	// Start the organization syncs.
 	acc.orgSyncs.SetContext(ctx, true)
 	defer acc.orgSyncs.ClearContext()
 
+	// Start the pending participant syncs.
 	acc.pendingParticipantSyncs.SetContext(ctx, true)
 	defer acc.pendingParticipantSyncs.ClearContext()
 
+	// Start the member Session syncs.
 	acc.memberSessionSyncs.SetContext(ctx, true)
 	defer acc.memberSessionSyncs.ClearContext()
 
+	// Start the SharedObject trackers.
 	acc.sobjects.SetContext(ctx, true)
 	defer acc.sobjects.ClearContext()
 
+	// Start mailbox auto-processing.
 	acc.mailboxAutoProcessors.SetContext(ctx, true)
 	defer acc.mailboxAutoProcessors.ClearContext()
 
+	// Start the Session trackers.
 	acc.sessions.SetContext(ctx, true)
 	defer acc.sessions.ClearContext()
 
+	// Start the checkout watcher.
 	acc.checkoutWatcher.SetContext(ctx)
 	defer acc.checkoutWatcher.ClearContext()
 
+	// Start the launcher recheck and presentation jobs.
 	acc.launcherRecheckJobs.SetContext(ctx)
 	defer acc.launcherRecheckJobs.ClearContext()
+	acc.presentationJobs.SetContext(ctx)
+	defer acc.presentationJobs.ClearContext()
 
+	// Start the Session websocket and hold it for the account.
 	acc.wsTracker.SetContext(ctx)
 	defer acc.wsTracker.ClearContext()
 	wsTrackerRef := acc.wsTracker.AddRef()
 	defer wsTrackerRef.Release()
 
+	// Start the SharedObject list routine.
 	_ = acc.soListRc.SetContext(ctx)
 	defer acc.soListRc.ClearContext()
 
+	// Start the write ticket owners.
 	acc.setWriteTicketOwnersContext(ctx)
 	defer acc.setWriteTicketOwnersContext(nil)
 
+	// Start the self-rejoin sweep.
 	acc.selfRejoinSweep.SetContext(ctx, true)
 	defer acc.selfRejoinSweep.ClearContext()
 
+	// Start explicit Self-Enrollment runs.
 	acc.selfEnrollmentRunRoutine.SetContext(ctx, true)
 	defer acc.selfEnrollmentRunRoutine.ClearContext()
 
+	// Start pruning orphaned Session presentation metadata.
 	acc.sessionPresentationReconcile.SetContext(ctx, true)
 	defer acc.sessionPresentationReconcile.ClearContext()
 
+	// Start garbage collection cleanup.
 	acc.gcCleanup.SetContext(ctx, true)
 	defer acc.gcCleanup.ClearContext()
 
+	// Start the account state fetcher.
 	acc.accountFetcherRoutine.SetContext(ctx, false)
 	defer acc.accountFetcherRoutine.ClearContext()
 
+	// Start the organization processors.
 	acc.orgProcessors.SetContext(ctx, true)
 	defer acc.orgProcessors.ClearContext()
 
@@ -727,6 +786,7 @@ func (t *providerAccountTracker) executeProviderAccountTracker(rctx context.Cont
 	t.accCtr.SetValue(acc)
 	defer t.accCtr.SetValue(nil)
 
+	// Hold the account until its lifetime ends.
 	<-ctx.Done()
 	return context.Canceled
 }

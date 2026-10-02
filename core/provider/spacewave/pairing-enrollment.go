@@ -129,6 +129,7 @@ func (a *ProviderAccount) PreparePairingReceiver(ctx context.Context, offer *pai
 
 // EnrollPairingReceiver registers the approved receiving Session with the cloud.
 func (a *ProviderAccount) EnrollPairingReceiver(ctx context.Context, stream *stream_packet.Session, enrollment *pairing.Enrollment, sourceKey crypto.PrivKey, sourcePeer, receivingPeer peer.ID) error {
+	// Resolve the receiving peer from the validated enrollment identity.
 	offer, identity := enrollment.Offer, enrollment.Identity
 	if err := pairing.ValidateIdentity(offer, identity, sourcePeer, receivingPeer); err != nil {
 		return err
@@ -137,6 +138,8 @@ func (a *ProviderAccount) EnrollPairingReceiver(ctx context.Context, stream *str
 	if err != nil {
 		return err
 	}
+
+	// Link the receiving Session into this account under its label.
 	label := enrollment.RemoteLabel
 	if label == "" {
 		label = "Paired Session"
@@ -146,13 +149,19 @@ func (a *ProviderAccount) EnrollPairingReceiver(ctx context.Context, stream *str
 	}
 
 	// The cloud observes this client's request, so name the linked Session
-	// from its own label. The Session list falls back to its peer ID.
+	// from its own label. The Session list falls back to its peer ID. The
+	// write waits for account settings replication, so it runs on the
+	// account's lifetime instead of holding the enrollment exchange open.
 	if enrollment.RemoteLabel != "" {
 		observed := &api.ObservedSessionMetadata{Label: label, DeviceType: "linked"}
-		if err := a.UpsertSessionPresentation(ctx, remotePeer.String(), observed); err != nil {
-			a.le.WithError(err).Warn("failed to name paired Session")
-		}
+		a.presentationJobs.Go(func(ctx context.Context) {
+			if err := a.UpsertSessionPresentation(ctx, remotePeer.String(), observed); err != nil && ctx.Err() == nil {
+				a.le.WithError(err).Warn("failed to name paired Session")
+			}
+		})
 	}
+
+	// Release the receiving client to verify its enrollment.
 	return stream.SendMsg(&pairing.Frame{Body: &pairing.Frame_Complete{Complete: true}})
 }
 
