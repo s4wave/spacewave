@@ -68,7 +68,8 @@ func prepareDaemonRuntime(
 	return lease, nil
 }
 
-// acquireStatePathLease reserves a canonical root in this process and in bbolt.
+// acquireStatePathLease reserves a canonical root locally and with bbolt's
+// kernel coordination lock, which the OS releases when the process exits.
 func acquireStatePathLease(statePath string) (*statePathLease, error) {
 	// Create only the requested root before canonicalizing its filesystem identity.
 	statePath, err := filepath.Abs(statePath)
@@ -130,41 +131,21 @@ func acquireStatePathLease(statePath string) (*statePathLease, error) {
 		return nil, errors.Wrap(err, "acquire writable state path lease")
 	}
 	if !acquired {
-		holderPID, holderErr := findWritableStoreLeaseHolderAt(leasePath, os.Getpid())
-		if closeErr := db.Close(); closeErr != nil {
-			holderErr = stderrors.Join(holderErr, closeErr)
-		}
-		if holderErr != nil {
-			return nil, errors.Wrap(holderErr, "read writable state path lease holder")
-		}
-		return nil, &StatePathLeaseHeldError{
-			StatePath: statePath,
-			HolderPID: holderPID,
-			StorePath: leasePath,
-		}
-	}
-
-	// Inspect older writable stores only after reserving the daemon lease. A
-	// concurrent daemon must report its runtime lease, even after opening stores.
-	holderPID, holderStore, err := findWritableStoreLeaseHolder(statePath)
-	if err != nil {
-		return nil, stderrors.Join(err, db.ReleaseCoordinationLock(), db.Close())
-	}
-	if holderStore != "" {
 		return nil, stderrors.Join(&StatePathLeaseHeldError{
 			StatePath: statePath,
-			HolderPID: holderPID,
-			StorePath: holderStore,
-		}, db.ReleaseCoordinationLock(), db.Close())
+			StorePath: leasePath,
+		}, db.Close())
 	}
 
-	// Transfer the local reservation and database lock to the runtime.
+	// Transfer the local reservation and kernel lock to the runtime. Store
+	// sidecar PIDs can be reused after a crash and do not establish ownership.
 	claimed = false
 	return &statePathLease{db: db, path: leasePath}, nil
 }
 
 // release relinquishes the coordination lock after all writable bus state closes.
 func (l *statePathLease) release() error {
+	// Allow setup cleanup before a lease has been acquired.
 	if l == nil {
 		return nil
 	}
