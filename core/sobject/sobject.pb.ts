@@ -349,6 +349,14 @@ export enum SOConfigChangeType {
    * @generated from enum value: SO_CONFIG_CHANGE_TYPE_SELF_ENROLL_PEER = 7;
    */
   SO_CONFIG_CHANGE_TYPE_SELF_ENROLL_PEER = 7,
+
+  /**
+   * SO_CONFIG_CHANGE_TYPE_TRANSFER_OWNERSHIP promotes a successor to OWNER and
+   * carries the departing owner's leave consent for the successor to commit.
+   *
+   * @generated from enum value: SO_CONFIG_CHANGE_TYPE_TRANSFER_OWNERSHIP = 8;
+   */
+  SO_CONFIG_CHANGE_TYPE_TRANSFER_OWNERSHIP = 8,
 }
 
 export const SOConfigChangeType_Enum = /* @__PURE__ */ createEnumType(
@@ -1183,6 +1191,13 @@ export interface SOConfigChange {
    * @generated from field: sobject.SORevocationInfo revocation_info = 8;
    */
   revocationInfo?: SORevocationInfo
+  /**
+   * LeaveRequest is the departing peers' consent that the promoted owner commits.
+   * Only populated when change_type is TRANSFER_OWNERSHIP.
+   *
+   * @generated from field: sobject.SOLeaveRequest leave_request = 9;
+   */
+  leaveRequest?: SOLeaveRequest
 }
 
 export const SOConfigChange: MessageType<SOConfigChange> =
@@ -1196,6 +1211,7 @@ export const SOConfigChange: MessageType<SOConfigChange> =
       { no: 6, name: 'previous_hash', kind: 'scalar', T: ScalarType.BYTES },
       { no: 7, name: 'change_type', kind: 'enum', T: SOConfigChangeType_Enum },
       { no: 8, name: 'revocation_info', kind: 'message', T: SORevocationInfo },
+      { no: 9, name: 'leave_request', kind: 'message', T: SOLeaveRequest },
     ] satisfies readonly PartialFieldInfo[],
   })
 

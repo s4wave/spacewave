@@ -78,6 +78,7 @@ func (r *SOLeaveRequest) Verify() ([]string, error) {
 }
 
 // LeaveSOParticipants commits a proven voluntary removal under the owner's existing signing authority.
+// The committing owner re-signs the departed peers' proofs, so it must remain while anyone remains.
 // Retries return only the original removal proof; an old request cannot remove a rejoined participant.
 func LeaveSOParticipants(ctx context.Context, host *SOHost, owner crypto.PrivKey, request *SOLeaveRequest) (*SOLeaveResponse, error) {
 	// Consent is bound to the selected host before its state can be read or changed.
@@ -93,6 +94,10 @@ func LeaveSOParticipants(ctx context.Context, host *SOHost, owner crypto.PrivKey
 		return nil, err
 	}
 	requestHash := sha256.Sum256(data)
+	committer, err := peer.IDFromPrivateKey(owner)
+	if err != nil {
+		return nil, err
+	}
 
 	// Rebase the removal onto the current configuration until it applies.
 	for {
@@ -129,9 +134,7 @@ func LeaveSOParticipants(ctx context.Context, host *SOHost, owner crypto.PrivKey
 		if len(next.Participants) == len(current.GetParticipants()) {
 			return nil, errors.New("leave proofs name no current participant")
 		}
-		if len(next.Participants) != 0 && slices.ContainsFunc(current.GetParticipants(), func(p *SOParticipantConfig) bool {
-			return IsOwner(p.GetRole()) && slices.Contains(peers, p.GetPeerId())
-		}) {
+		if len(next.Participants) != 0 && slices.Contains(peers, committer.String()) {
 			return nil, errors.New("remaining root grants require ownership transfer before owner departure")
 		}
 		change, err := BuildSOConfigChange(current, next, SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_REMOVE_PARTICIPANT, owner, &SORevocationInfo{LeaveRequestHash: requestHash[:]})

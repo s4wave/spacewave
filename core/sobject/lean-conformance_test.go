@@ -302,7 +302,7 @@ func (s *configChainScenario) change(cur *SharedObjectConfig) *SOConfigChange {
 		SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_ADD_PARTICIPANT,
 		SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_REMOVE_PARTICIPANT,
 		SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_SELF_ENROLL_PEER,
-		SOConfigChangeType(s.rng.IntN(9)),
+		SOConfigChangeType(s.rng.IntN(10)),
 	}
 	kind := kinds[s.rng.IntN(len(kinds))]
 

@@ -316,6 +316,9 @@ const (
 	SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_INCREMENT_INVITE_USES SOConfigChangeType = 6
 	// SO_CONFIG_CHANGE_TYPE_SELF_ENROLL_PEER lets a same-entity session add itself.
 	SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_SELF_ENROLL_PEER SOConfigChangeType = 7
+	// SO_CONFIG_CHANGE_TYPE_TRANSFER_OWNERSHIP promotes a successor to OWNER and
+	// carries the departing owner's leave consent for the successor to commit.
+	SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_TRANSFER_OWNERSHIP SOConfigChangeType = 8
 )
 
 // Enum value maps for SOConfigChangeType.
@@ -329,6 +332,7 @@ var (
 		5: "SO_CONFIG_CHANGE_TYPE_REVOKE_INVITE",
 		6: "SO_CONFIG_CHANGE_TYPE_INCREMENT_INVITE_USES",
 		7: "SO_CONFIG_CHANGE_TYPE_SELF_ENROLL_PEER",
+		8: "SO_CONFIG_CHANGE_TYPE_TRANSFER_OWNERSHIP",
 	}
 	SOConfigChangeType_value = map[string]int32{
 		"SO_CONFIG_CHANGE_TYPE_UNKNOWN":               0,
@@ -339,6 +343,7 @@ var (
 		"SO_CONFIG_CHANGE_TYPE_REVOKE_INVITE":         5,
 		"SO_CONFIG_CHANGE_TYPE_INCREMENT_INVITE_USES": 6,
 		"SO_CONFIG_CHANGE_TYPE_SELF_ENROLL_PEER":      7,
+		"SO_CONFIG_CHANGE_TYPE_TRANSFER_OWNERSHIP":    8,
 	}
 )
 
@@ -1096,6 +1101,9 @@ type SOConfigChange struct {
 	// RevocationInfo contains metadata about why a participant was removed.
 	// Only populated when change_type is REMOVE_PARTICIPANT.
 	RevocationInfo *SORevocationInfo `protobuf:"bytes,8,opt,name=revocation_info,json=revocationInfo,proto3" json:"revocationInfo,omitempty"`
+	// LeaveRequest is the departing peers' consent that the promoted owner commits.
+	// Only populated when change_type is TRANSFER_OWNERSHIP.
+	LeaveRequest *SOLeaveRequest `protobuf:"bytes,9,opt,name=leave_request,json=leaveRequest,proto3" json:"leaveRequest,omitempty"`
 }
 
 func (x *SOConfigChange) Reset() {
@@ -1149,6 +1157,13 @@ func (x *SOConfigChange) GetChangeType() SOConfigChangeType {
 func (x *SOConfigChange) GetRevocationInfo() *SORevocationInfo {
 	if x != nil {
 		return x.RevocationInfo
+	}
+	return nil
+}
+
+func (x *SOConfigChange) GetLeaveRequest() *SOLeaveRequest {
+	if x != nil {
+		return x.LeaveRequest
 	}
 	return nil
 }
@@ -3485,6 +3500,7 @@ func (m *SOConfigChange) CloneVT() *SOConfigChange {
 	r.Signature = protobuf_go_lite.CloneVTValue(m.Signature)
 	r.PreviousHash = protobuf_go_lite.CloneBytes(m.PreviousHash)
 	r.RevocationInfo = protobuf_go_lite.CloneVTValue(m.RevocationInfo)
+	r.LeaveRequest = protobuf_go_lite.CloneVTValue(m.LeaveRequest)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -4599,6 +4615,9 @@ func (this *SOConfigChange) EqualVT(that *SOConfigChange) bool {
 		return false
 	}
 	if !protobuf_go_lite.IsEqualVT(this.RevocationInfo, that.RevocationInfo) {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.LeaveRequest, that.LeaveRequest) {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -7163,6 +7182,11 @@ func (x *SOConfigChange) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("revocationInfo")
 		x.RevocationInfo.MarshalProtoJSON(s.WithField("revocationInfo"))
 	}
+	if x.LeaveRequest != nil || s.HasField("leaveRequest") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("leaveRequest")
+		x.LeaveRequest.MarshalProtoJSON(s.WithField("leaveRequest"))
+	}
 	s.WriteObjectEnd()
 }
 
@@ -7213,6 +7237,13 @@ func (x *SOConfigChange) UnmarshalProtoJSON(s *json.UnmarshalState) {
 			}
 			x.RevocationInfo = &SORevocationInfo{}
 			x.RevocationInfo.UnmarshalProtoJSON(s.WithField("revocation_info", true))
+		case "leave_request", "leaveRequest":
+			if s.ReadNil() {
+				x.LeaveRequest = nil
+				return
+			}
+			x.LeaveRequest = &SOLeaveRequest{}
+			x.LeaveRequest.UnmarshalProtoJSON(s.WithField("leave_request", true))
 		}
 	})
 }
@@ -10994,6 +11025,16 @@ func (m *SOConfigChange) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.LeaveRequest != nil {
+		size, err := m.LeaveRequest.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x4a
+	}
 	if m.RevocationInfo != nil {
 		size, err := m.RevocationInfo.MarshalToSizedBufferVT(dAtA[:i])
 		if err != nil {
@@ -13785,6 +13826,10 @@ func (m *SOConfigChange) SizeVT() (n int) {
 		l = m.RevocationInfo.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
+	if m.LeaveRequest != nil {
+		l = m.LeaveRequest.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -14931,6 +14976,10 @@ func (x *SOConfigChange) MarshalProtoText() string {
 	if x.RevocationInfo != nil {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "revocation_info")
 		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.RevocationInfo)
+	}
+	if x.LeaveRequest != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "leave_request")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.LeaveRequest)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -16978,6 +17027,21 @@ func (m *SOConfigChange) UnmarshalVT(dAtA []byte) error {
 				m.RevocationInfo = &SORevocationInfo{}
 			}
 			if err := m.RevocationInfo.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 9:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field LeaveRequest", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.LeaveRequest == nil {
+				m.LeaveRequest = &SOLeaveRequest{}
+			}
+			if err := m.LeaveRequest.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex

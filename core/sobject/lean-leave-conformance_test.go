@@ -82,7 +82,7 @@ func runLeanLeaveScenario(t *testing.T, peers []peer.Peer, seed uint64) []leanCa
 
 	// Preserve each rejected checkpoint and compare every successful publication.
 	var cases []leanCase
-	for variant := range 37 {
+	for variant := range 39 {
 		// Select the host, consent identities and provider outcomes independently.
 		previous := base.CloneVT()
 		requestKeys := []crypto.PrivKey{keys[1]}
@@ -125,6 +125,11 @@ func runLeanLeaveScenario(t *testing.T, peers []peer.Peer, seed uint64) []leanCa
 			}
 		case 36:
 			previous.Root.ValidatorSignatures = nil
+		case 37:
+			requestKeys = keys[:1]
+			signer = keys[1]
+		case 38:
+			requestKeys = keys[:1]
 		}
 
 		// Compare a foreign-object root with valid roots at the UTF-8 byte boundary.
@@ -244,6 +249,10 @@ func runLeanLeaveScenario(t *testing.T, peers []peer.Peer, seed uint64) []leanCa
 			next.Participants = next.Participants[:2]
 			advance(next, SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_REMOVE_PARTICIPANT, nil)
 			advance(previous.Config, SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_REVOKE_INVITE, nil)
+		case 37, 38:
+			next := previous.Config.CloneVT()
+			next.Participants[1].Role = SOParticipantRole_SOParticipantRole_OWNER
+			advance(next, SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_TRANSFER_OWNERSHIP, nil)
 		}
 
 		// Bind the proposed entry to the observed snapshot and independently verified consent.
@@ -310,11 +319,11 @@ func runLeanLeaveScenario(t *testing.T, peers []peer.Peer, seed uint64) []leanCa
 
 		// Pin acceptance independently of the oracle for object and proof regressions.
 		switch variant {
-		case 30, 33, 34:
+		case 30, 33, 34, 38:
 			if callErr == nil {
-				t.Fatalf("variant %d accepted an invalid object or root proof", variant)
+				t.Fatalf("variant %d accepted an invalid object, root proof or departing signer", variant)
 			}
-		case 31, 32, 35, 36:
+		case 31, 32, 35, 36, 37:
 			if callErr != nil {
 				t.Fatalf("variant %d rejected valid leave: %v", variant, callErr)
 			}

@@ -68,6 +68,7 @@ class SOConfigChangeType(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     SO_CONFIG_CHANGE_TYPE_REVOKE_INVITE: _ClassVar[SOConfigChangeType]
     SO_CONFIG_CHANGE_TYPE_INCREMENT_INVITE_USES: _ClassVar[SOConfigChangeType]
     SO_CONFIG_CHANGE_TYPE_SELF_ENROLL_PEER: _ClassVar[SOConfigChangeType]
+    SO_CONFIG_CHANGE_TYPE_TRANSFER_OWNERSHIP: _ClassVar[SOConfigChangeType]
 
 class SORevocationReason(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     __slots__ = ()
@@ -168,6 +169,7 @@ SO_CONFIG_CHANGE_TYPE_ADD_INVITE: SOConfigChangeType
 SO_CONFIG_CHANGE_TYPE_REVOKE_INVITE: SOConfigChangeType
 SO_CONFIG_CHANGE_TYPE_INCREMENT_INVITE_USES: SOConfigChangeType
 SO_CONFIG_CHANGE_TYPE_SELF_ENROLL_PEER: SOConfigChangeType
+SO_CONFIG_CHANGE_TYPE_TRANSFER_OWNERSHIP: SOConfigChangeType
 SO_REVOCATION_REASON_UNKNOWN: SORevocationReason
 SO_REVOCATION_REASON_SESSION_REVOKED: SORevocationReason
 SO_REVOCATION_REASON_ORG_REMOVED: SORevocationReason
@@ -310,7 +312,7 @@ class SORevocationInfo(_message.Message):
     def __init__(self, reason: _Optional[_Union[SORevocationReason, str]] = ..., timestamp: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., nonce: _Optional[int] = ..., leave_request_hash: _Optional[bytes] = ...) -> None: ...
 
 class SOConfigChange(_message.Message):
-    __slots__ = ("config_seqno", "config", "signed_by", "signature", "previous_hash", "change_type", "revocation_info")
+    __slots__ = ("config_seqno", "config", "signed_by", "signature", "previous_hash", "change_type", "revocation_info", "leave_request")
     CONFIG_SEQNO_FIELD_NUMBER: _ClassVar[int]
     CONFIG_FIELD_NUMBER: _ClassVar[int]
     SIGNED_BY_FIELD_NUMBER: _ClassVar[int]
@@ -318,6 +320,7 @@ class SOConfigChange(_message.Message):
     PREVIOUS_HASH_FIELD_NUMBER: _ClassVar[int]
     CHANGE_TYPE_FIELD_NUMBER: _ClassVar[int]
     REVOCATION_INFO_FIELD_NUMBER: _ClassVar[int]
+    LEAVE_REQUEST_FIELD_NUMBER: _ClassVar[int]
     config_seqno: int
     config: SharedObjectConfig
     signed_by: bytes
@@ -325,7 +328,8 @@ class SOConfigChange(_message.Message):
     previous_hash: bytes
     change_type: SOConfigChangeType
     revocation_info: SORevocationInfo
-    def __init__(self, config_seqno: _Optional[int] = ..., config: _Optional[_Union[SharedObjectConfig, _Mapping]] = ..., signed_by: _Optional[bytes] = ..., signature: _Optional[_Union[_peer_pb2.Signature, _Mapping]] = ..., previous_hash: _Optional[bytes] = ..., change_type: _Optional[_Union[SOConfigChangeType, str]] = ..., revocation_info: _Optional[_Union[SORevocationInfo, _Mapping]] = ...) -> None: ...
+    leave_request: SOLeaveRequest
+    def __init__(self, config_seqno: _Optional[int] = ..., config: _Optional[_Union[SharedObjectConfig, _Mapping]] = ..., signed_by: _Optional[bytes] = ..., signature: _Optional[_Union[_peer_pb2.Signature, _Mapping]] = ..., previous_hash: _Optional[bytes] = ..., change_type: _Optional[_Union[SOConfigChangeType, str]] = ..., revocation_info: _Optional[_Union[SORevocationInfo, _Mapping]] = ..., leave_request: _Optional[_Union[SOLeaveRequest, _Mapping]] = ...) -> None: ...
 
 class SOParticipantConfig(_message.Message):
     __slots__ = ("peer_id", "role", "entity_id", "username")
