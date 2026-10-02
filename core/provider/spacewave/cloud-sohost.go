@@ -399,6 +399,11 @@ func (h *cloudSOHost) pullState(ctx context.Context, reason SeedReason) error {
 		return nil
 	}
 	if err := h.verifyPulledState(state); err != nil {
+		// A config chain sync can advance the held head meanwhile. The
+		// verifier already signaled the sync, which carries state forward.
+		if errors.Is(err, errSOConfigChainChanged) {
+			return nil
+		}
 		return err
 	}
 
