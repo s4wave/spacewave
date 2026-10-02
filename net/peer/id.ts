@@ -1,6 +1,6 @@
 import { PublicKey, KeyType } from '../crypto/crypto.pb.js'
 
-import { base58Decode } from './base58.js'
+import { base58Decode, base58Encode } from './base58.js'
 
 const MULTIHASH_IDENTITY_CODE = 0
 
@@ -42,6 +42,29 @@ export function extractPublicKeyFromPeerID(
   }
 
   return parsePublicKeyFromProtobuf(multihash.subarray(digestStart, digestEnd))
+}
+
+// peerIDFromPublicKey returns the base58 peer ID of a libp2p PublicKey
+// protobuf, or null when the bytes are not a canonical public key.
+// Peer IDs embed the key in an identity multihash, matching Go IDFromPublicKey.
+export function peerIDFromPublicKey(data: Uint8Array): string | null {
+  // Re-encode the parsed key so only canonical bytes name a peer.
+  const decoded = parsePublicKeyFromProtobuf(data)
+  if (!decoded) {
+    return null
+  }
+  const canonical = PublicKey.toBinary({
+    keyType: decoded.keyType,
+    data: decoded.keyData,
+  })
+
+  // Frame the key as an identity multihash.
+  const length = writeUvarint(canonical.length)
+  const multihash = new Uint8Array(1 + length.length + canonical.length)
+  multihash[0] = MULTIHASH_IDENTITY_CODE
+  multihash.set(length, 1)
+  multihash.set(canonical, 1 + length.length)
+  return base58Encode(multihash)
 }
 
 // parsePublicKeyFromProtobuf extracts key type and key bytes from a libp2p
@@ -139,4 +162,15 @@ function readUvarint(
   }
 
   return null
+}
+
+// writeUvarint encodes value as an unsigned LEB128 varint.
+function writeUvarint(value: number): Uint8Array {
+  const bytes: number[] = []
+  while (value > 0x7f) {
+    bytes.push((value & 0x7f) | 0x80)
+    value >>>= 7
+  }
+  bytes.push(value)
+  return new Uint8Array(bytes)
 }
