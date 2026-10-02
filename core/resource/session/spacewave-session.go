@@ -6,6 +6,7 @@ import (
 	cryptorand "crypto/rand"
 	"encoding/base64"
 	"net/http"
+	"net/url"
 	"time"
 
 	"github.com/aperturerobotics/controllerbus/bus"
@@ -2318,6 +2319,7 @@ func (r *SpacewaveSessionResource) EnrollForHandoff(
 	ctx context.Context,
 	req *s4wave_provider_spacewave.EnrollForHandoffRequest,
 ) (*s4wave_provider_spacewave.EnrollForHandoffResponse, error) {
+	// Validate the request.
 	devicePubRaw := req.GetDevicePublicKey()
 	if len(devicePubRaw) == 0 {
 		return nil, errors.New("device_public_key is required")
@@ -2327,6 +2329,7 @@ func (r *SpacewaveSessionResource) EnrollForHandoff(
 		return nil, errors.New("session_nonce is required")
 	}
 
+	// Mount this Session to sign the registration.
 	sessRef := r.getSessionRef()
 	sess, relSess, err := r.swAcc.MountSession(ctx, sessRef, nil)
 	if err != nil {
@@ -2334,20 +2337,23 @@ func (r *SpacewaveSessionResource) EnrollForHandoff(
 	}
 	defer relSess()
 
+	// A locked Session cannot sign.
 	sessionPrivKey := sess.GetPrivKey()
 	if sessionPrivKey == nil {
 		return nil, errors.New("session is locked")
 	}
 
+	// Derive the receiving client's peer ID from its public key.
 	devicePubKey, err := crypto.UnmarshalEd25519PublicKey(devicePubRaw)
 	if err != nil {
 		return nil, errors.Wrap(err, "parse device public key")
 	}
-
 	receivingPeer, err := peer.IDFromPublicKey(devicePubKey)
 	if err != nil {
 		return nil, err
 	}
+
+	// Register the receiving Session on the account.
 	registration, err := r.swAcc.LinkSession(ctx, sessionPrivKey, receivingPeer, req.GetDeviceName())
 	if err != nil {
 		return nil, errors.Wrap(err, "register receiving Session")
@@ -2364,13 +2370,20 @@ func (r *SpacewaveSessionResource) EnrollForHandoff(
 		return nil, errors.Wrap(err, "marshal handoff completion")
 	}
 
+	// Build the relay request. The endpoint may be the serving origin "/",
+	// so join rather than concatenate.
 	endpoint := r.swAcc.GetProvider().GetEndpoint()
-	completeURL := endpoint + "/api/auth/session/" + nonce + "/complete"
+	completeURL, err := url.JoinPath(endpoint, "/api/auth/session", nonce, "complete")
+	if err != nil {
+		return nil, errors.Wrap(err, "build completion URL")
+	}
 	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, completeURL, bytes.NewReader(completionData))
 	if err != nil {
 		return nil, errors.Wrap(err, "build completion request")
 	}
 	httpReq.Header.Set("Content-Type", "application/octet-stream")
+
+	// Relay the completion to the waiting client's auth session.
 	httpResp, err := r.swAcc.GetProvider().GetHTTPClient().Do(httpReq)
 	if err != nil {
 		return nil, errors.Wrap(err, "relay handoff completion")

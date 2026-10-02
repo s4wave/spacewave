@@ -283,6 +283,7 @@ func buildHandoffBrowserURL(
 	return base + "?" + qs
 }
 
+// buildHandoffWSURL returns the auth-session WebSocket URL for the endpoint.
 func buildHandoffWSURL(apiEndpoint string, wsTicket string) string {
 	wsURL := strings.Replace(apiEndpoint, "https://", "wss://", 1)
 	wsURL = strings.Replace(wsURL, "http://", "ws://", 1)

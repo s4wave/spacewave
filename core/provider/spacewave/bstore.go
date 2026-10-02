@@ -4,6 +4,7 @@ import (
 	"context"
 	"math"
 	"net/http"
+	"net/url"
 	"sync"
 	"time"
 
@@ -627,6 +628,7 @@ func (s *sourceTrackingStore) track(ctx context.Context, ref *block.BlockRef, re
 // The size is taken from the manifest entry, so no HEAD request is issued.
 func (a *ProviderAccount) BuildBlockStoreOpener(bstoreID string) packfile_store.Opener {
 	return func(packID string, size int64) (*packfile_store.PackReader, error) {
+		// Range reads need the manifest size and a session to sign them.
 		if size <= 0 {
 			return nil, errors.New("pack size must be known from the manifest")
 		}
@@ -635,10 +637,14 @@ func (a *ProviderAccount) BuildBlockStoreOpener(bstoreID string) packfile_store.
 			return nil, errors.New("session client not available")
 		}
 
-		url := a.p.endpoint + "/api/bstore/" + bstoreID + "/pack/" + packID
+		// Read the pack through signed Range requests on the API endpoint.
+		packURL, err := url.JoinPath(a.p.endpoint, "/api/bstore", bstoreID, "pack", packID)
+		if err != nil {
+			return nil, errors.Wrap(err, "build pack URL")
+		}
 		return packfile_store.NewHTTPRangeReader(
 			a.p.httpCli,
-			url,
+			packURL,
 			size,
 			httpReaderAtReadAheadSize,
 			func(req *http.Request) error {

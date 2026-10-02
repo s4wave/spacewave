@@ -224,6 +224,7 @@ func (t *wsTracker) waitForAccountChanged(ctx context.Context) error {
 
 // runWebSocket dials the session WS and runs the read loop.
 func (t *wsTracker) runWebSocket(ctx context.Context, reconnect bool) (bool, error) {
+	// Require a ready session client with its signing key.
 	client := t.getClient()
 	if client == nil || client.priv == nil {
 		return false, errors.New("session client not ready")
@@ -235,9 +236,15 @@ func (t *wsTracker) runWebSocket(ctx context.Context, reconnect bool) (bool, err
 		return false, errors.Wrap(err, "get session ticket")
 	}
 
-	// Build WS URL with ticket as query param.
-	wsURL := client.baseURL + "/api/session/ws?tk=" + url.QueryEscape(ticket)
+	// Build WS URL with ticket as query param. The endpoint may be the
+	// serving origin "/", so join rather than concatenate.
+	wsPath, err := url.JoinPath(client.baseURL, "/api/session/ws")
+	if err != nil {
+		return false, errors.Wrap(err, "build session websocket URL")
+	}
+	wsURL := wsPath + "?tk=" + url.QueryEscape(ticket)
 
+	// Dial the session websocket.
 	conn, err := dialSessionWS(ctx, wsURL)
 	if err != nil {
 		return false, err
@@ -258,7 +265,6 @@ func (t *wsTracker) runWebSocket(ctx context.Context, reconnect bool) (bool, err
 	payload := make([]byte, len(ticketBytes)+32)
 	copy(payload, ticketBytes)
 	copy(payload[len(ticketBytes):], challenge)
-
 	sig, err := client.priv.Sign(payload)
 	if err != nil {
 		return false, errors.Wrap(err, "sign challenge")
@@ -268,9 +274,9 @@ func (t *wsTracker) runWebSocket(ctx context.Context, reconnect bool) (bool, err
 	if err := conn.Write(ctx, ws.MessageBinary, sig); err != nil {
 		return false, errors.Wrap(err, "send challenge response")
 	}
-
 	t.le.Debug("session websocket authenticated")
 
+	// An authenticated connection ends any dormant state.
 	if t.dormant {
 		t.dormant = false
 		if t.onDormantChanged != nil {
@@ -278,10 +284,12 @@ func (t *wsTracker) runWebSocket(ctx context.Context, reconnect bool) (bool, err
 		}
 	}
 
+	// Let the owner resync state missed while disconnected.
 	if reconnect && t.onReconnected != nil {
 		t.onReconnected()
 	}
 
+	// Keep the connection alive with pings for its lifetime.
 	pingRoutine := routine.NewRoutineContainer()
 	pingRoutine.SetRoutine(func(rctx context.Context) error {
 		return runWebSocketPing(rctx, conn, sessionWebSocketPingInterval, sessionWebSocketPingTimeout)

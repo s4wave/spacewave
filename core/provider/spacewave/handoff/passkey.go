@@ -209,11 +209,7 @@ func waitForDesktopPasskeyResult(
 	}()
 
 	// Connect the auth-session WebSocket with the returned wsTicket.
-	// Connect the auth-session WebSocket with the returned wsTicket.
-	// Connect the auth-session WebSocket with the returned wsTicket.
-	wsURL := strings.Replace(endpoint, "https://", "wss://", 1)
-	wsURL = strings.Replace(wsURL, "http://", "ws://", 1)
-	wsURL += "/api/auth/session/ws?tk=" + wsTicket
+	wsURL := buildHandoffWSURL(endpoint, wsTicket)
 	conn, _, err := websocket.Dial(ctx, wsURL, nil)
 	if err != nil {
 		return nil, errors.Wrap(err, "connect websocket")
@@ -282,9 +278,7 @@ func waitForDesktopPasskeyRegisterRelay(
 	}()
 
 	// Connect the auth-session WebSocket with the returned wsTicket.
-	wsURL := strings.Replace(endpoint, "https://", "wss://", 1)
-	wsURL = strings.Replace(wsURL, "http://", "ws://", 1)
-	wsURL += "/api/auth/session/ws?tk=" + wsTicket
+	wsURL := buildHandoffWSURL(endpoint, wsTicket)
 	conn, _, err := websocket.Dial(ctx, wsURL, nil)
 	if err != nil {
 		return nil, errors.Wrap(err, "connect websocket")
@@ -351,9 +345,7 @@ func waitForDesktopPasskeyReauthRelay(
 	}()
 
 	// Connect the auth-session WebSocket with the returned wsTicket.
-	wsURL := strings.Replace(endpoint, "https://", "wss://", 1)
-	wsURL = strings.Replace(wsURL, "http://", "ws://", 1)
-	wsURL += "/api/auth/session/ws?tk=" + wsTicket
+	wsURL := buildHandoffWSURL(endpoint, wsTicket)
 	conn, _, err := websocket.Dial(ctx, wsURL, nil)
 	if err != nil {
 		return nil, errors.Wrap(err, "connect websocket")

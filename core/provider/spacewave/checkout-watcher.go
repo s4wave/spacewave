@@ -3,7 +3,6 @@ package provider_spacewave
 import (
 	"context"
 	"net/url"
-	"strings"
 
 	websocket "github.com/aperturerobotics/go-websocket"
 	"github.com/aperturerobotics/util/broadcast"
@@ -124,10 +123,13 @@ func (w *checkoutWatcher) runWebSocket(ctx context.Context, ticket string) error
 		return errors.New("session client not ready")
 	}
 
-	// Build WS URL: replace http(s) with ws(s).
-	wsBase := strings.Replace(client.baseURL, "https://", "wss://", 1)
-	wsBase = strings.Replace(wsBase, "http://", "ws://", 1)
-	wsURL := wsBase + "/api/billing/checkout/ws?tk=" + url.QueryEscape(ticket)
+	// Build WS URL with ticket as query param. The dialer maps http(s) to
+	// ws(s), and the endpoint may be the serving origin "/".
+	wsPath, err := url.JoinPath(client.baseURL, "/api/billing/checkout/ws")
+	if err != nil {
+		return errors.Wrap(err, "build checkout websocket URL")
+	}
+	wsURL := wsPath + "?tk=" + url.QueryEscape(ticket)
 
 	// Dial the checkout websocket and hold the connection open.
 	conn, _, err := websocket.Dial(ctx, wsURL, nil)
