@@ -22,7 +22,7 @@ require (
 	filippo.io/age v1.3.2
 	filippo.io/edwards25519 v1.2.0
 	github.com/Microsoft/go-winio v0.6.2
-	github.com/aperturerobotics/bbolt v0.0.0-20261002002154-906e04dd11b9 // master
+	github.com/aperturerobotics/bbolt v0.0.0-20261002044708-7722106b637a // master
 	github.com/aperturerobotics/bldr-saucer v0.4.4
 	github.com/aperturerobotics/cayley v0.15.1-0.20260922044400-0559a321408f // master
 	github.com/aperturerobotics/cli v1.1.1-0.20260925195436-da3cdca4d143 // master
@@ -42,7 +42,7 @@ require (
 	github.com/aperturerobotics/go-winjob v0.0.0-20260705010911-656e088d1b05
 	github.com/aperturerobotics/json-iterator-lite v1.1.0 // latest
 	github.com/aperturerobotics/protobuf-go-lite v0.19.1-0.20260926160815-9337dc7c6cda // master
-	github.com/aperturerobotics/starpc v0.52.2-0.20261002002112-963692aa6b77 // master
+	github.com/aperturerobotics/starpc v0.52.2-0.20261002012525-997e5e5b919b // master
 	github.com/aperturerobotics/util v1.34.10-0.20261002030236-9b993d4c208f // master
 	github.com/cloudflare/circl v1.6.5
 	github.com/creack/pty v1.1.24

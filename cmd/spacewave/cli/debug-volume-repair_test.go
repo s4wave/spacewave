@@ -3,6 +3,7 @@
 package spacewave_cli
 
 import (
+	"os"
 	"path/filepath"
 	"testing"
 
@@ -15,7 +16,9 @@ import (
 
 // TestDebugVolumeRepair checks that the repair sweeps the blocks a bucket with
 // named roots owns only directly, keeps the blocks its roots reach and the
-// blocks of a bucket without named roots, and deletes the local proof keys.
+// blocks of a bucket without named roots, and deletes the local proof keys. It
+// also checks that the repair refuses an open volume and that compaction leaves
+// no files of its copy behind.
 func TestDebugVolumeRepair(t *testing.T) {
 	// Open a fresh volume.
 	ctx := t.Context()
@@ -57,6 +60,11 @@ func TestDebugVolumeRepair(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// The repair refuses the volume while it is open.
+	if err := runDebugVolumeRepair(ctx, path, true, "json"); err == nil {
+		t.Fatal("repair ran on an open volume")
+	}
 	if err := vol.Close(); err != nil {
 		t.Fatal(err)
 	}
@@ -64,6 +72,11 @@ func TestDebugVolumeRepair(t *testing.T) {
 	// Repair and compact the stopped volume.
 	if err := runDebugVolumeRepair(ctx, path, true, "json"); err != nil {
 		t.Fatal(err)
+	}
+	for _, suffix := range []string{".compact", ".compact-lock", ".compact-lock-coord"} {
+		if _, err := os.Stat(path + suffix); !os.IsNotExist(err) {
+			t.Errorf("%s remains after the repair", path+suffix)
+		}
 	}
 
 	// Only the leaked root is gone.

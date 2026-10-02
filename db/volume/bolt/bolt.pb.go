@@ -48,6 +48,10 @@ type Config struct {
 	// Dramatically reduces fsync overhead for bulk write workloads.
 	// 0 or 1 disables batching (default). Typical value: 100-1000.
 	BatchSize uint32 `protobuf:"varint,11,opt,name=batch_size,json=batchSize,proto3" json:"batchSize,omitempty"`
+	// Exclusive opens the volume file for this process alone. Opens of the file
+	// in other processes wait until the volume closes, then open any file that
+	// replaced it. Offline maintenance that rewrites the file sets it.
+	Exclusive bool `protobuf:"varint,12,opt,name=exclusive,proto3" json:"exclusive,omitempty"`
 }
 
 func (x *Config) Reset() {
@@ -126,6 +130,13 @@ func (x *Config) GetBatchSize() uint32 {
 	return 0
 }
 
+func (x *Config) GetExclusive() bool {
+	if x != nil {
+		return x.Exclusive
+	}
+	return false
+}
+
 func (m *Config) CloneVT() *Config {
 	if m == nil {
 		return (*Config)(nil)
@@ -138,6 +149,7 @@ func (m *Config) CloneVT() *Config {
 	r.Sync = m.Sync
 	r.FreelistSync = m.FreelistSync
 	r.BatchSize = m.BatchSize
+	r.Exclusive = m.Exclusive
 	r.KvKeyOpts = protobuf_go_lite.CloneVTValue(m.KvKeyOpts)
 	r.VolumeConfig = protobuf_go_lite.CloneVTValue(m.VolumeConfig)
 	r.StoreConfig = protobuf_go_lite.CloneVTValue(m.StoreConfig)
@@ -185,6 +197,9 @@ func (this *Config) EqualVT(that *Config) bool {
 		return false
 	}
 	if this.BatchSize != that.BatchSize {
+		return false
+	}
+	if this.Exclusive != that.Exclusive {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -256,6 +271,11 @@ func (x *Config) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("batchSize")
 		s.WriteUint32(x.BatchSize)
 	}
+	if x.Exclusive || s.HasField("exclusive") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("exclusive")
+		s.WriteBool(x.Exclusive)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -315,6 +335,9 @@ func (x *Config) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "batch_size", "batchSize":
 			s.AddField("batch_size")
 			x.BatchSize = s.ReadUint32()
+		case "exclusive":
+			s.AddField("exclusive")
+			x.Exclusive = s.ReadBool()
 		}
 	})
 }
@@ -352,6 +375,11 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	_ = l
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.Exclusive {
+		i = protobuf_go_lite.EncodeBool(dAtA, i, m.Exclusive)
+		i--
+		dAtA[i] = 0x60
 	}
 	if m.BatchSize != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.BatchSize))
@@ -446,6 +474,7 @@ func (m *Config) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeBoolNonZero(1, m.FreelistSync)
 	n += protobuf_go_lite.SizeBoolNonZero(1, m.NoWriteKey)
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.BatchSize)
+	n += protobuf_go_lite.SizeBoolNonZero(1, m.Exclusive)
 	n += len(m.unknownFields)
 	return n
 }
@@ -492,6 +521,10 @@ func (x *Config) MarshalProtoText() string {
 	if x.BatchSize != 0 {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "batch_size")
 		protobuf_go_lite.TextWriteUint(&sb, x.BatchSize)
+	}
+	if x.Exclusive != false {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "exclusive")
+		protobuf_go_lite.TextWriteBool(&sb, x.Exclusive)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -634,6 +667,16 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
+		case 12:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Exclusive", wireType)
+			}
+			var v bool
+			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Exclusive = bool(v)
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

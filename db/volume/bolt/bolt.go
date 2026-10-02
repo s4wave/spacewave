@@ -37,31 +37,25 @@ func NewBolt(
 	le *logrus.Entry,
 	conf *Config,
 ) (*Bolt, error) {
+	// Build the key encoder.
 	kvkey, err := kvkey.NewKVKey(conf.GetKvKeyOpts())
 	if err != nil {
 		return nil, err
 	}
 
-	// bbolt multi-process access requires a synced freelist. Keeping the
-	// freelist in memory only is unsafe once another process opens the same DB.
+	// Open the database, waiting for the file lock without a deadline. Keep
+	// the default synced freelist: bbolt multi-process access is unsafe once
+	// another process opens a DB whose freelist lives only in memory.
 	bdbOpts := &bdb.Options{
-		Timeout:        0,
-		NoFreelistSync: false,
-		NoGrowSync:     false,
-		FreelistType:   bdb.FreelistMapType,
-		NoSync:         false,
+		FreelistType: bdb.FreelistMapType,
+		Exclusive:    conf.GetExclusive(),
 	}
-
-	store, err := sbolt.Open(
-		conf.GetPath(),
-		0o644,
-		bdbOpts,
-		[]byte("hydra"),
-	)
+	store, err := sbolt.Open(conf.GetPath(), 0o644, bdbOpts, []byte("hydra"))
 	if err != nil {
 		return nil, err
 	}
 
+	// Wrap the store with the configured batching and logging.
 	var vstore skvtx.Store = store
 	var batchStore *sbolt.BatchStore
 	if batchSize := conf.GetBatchSize(); batchSize > 1 {
@@ -72,17 +66,19 @@ func NewBolt(
 		vstore = kvtx_vlogger.NewVLogger(le, vstore)
 	}
 
+	// Flush pending batched writes before closing the database.
 	closeFn := store.Close
 	if batchStore != nil {
-		origClose := closeFn
 		closeFn = func() error {
 			if err := batchStore.Flush(); err != nil {
 				return err
 			}
-			return origClose()
+			return store.Close()
 		}
 	}
 
+	// Build the volume, reporting the file size and block count as its
+	// storage stats.
 	boltDB := store.GetDB()
 	path := conf.GetPath()
 	vol, err := kvtx.NewVolume(
@@ -121,6 +117,8 @@ func NewBolt(
 	if err != nil {
 		return nil, err
 	}
+
+	// Coordinate writers across processes through the volume file lock.
 	vol.Coordinator = coord_filelock.NewCoordinator(
 		filepath.Dir(path),
 		path,

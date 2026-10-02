@@ -85,6 +85,14 @@ export interface Config {
    * @generated from field: uint32 batch_size = 11;
    */
   batchSize?: number
+  /**
+   * Exclusive opens the volume file for this process alone. Opens of the file
+   * in other processes wait until the volume closes, then open any file that
+   * replaced it. Offline maintenance that rewrites the file sets it.
+   *
+   * @generated from field: bool exclusive = 12;
+   */
+  exclusive?: boolean
 }
 
 export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
@@ -100,5 +108,6 @@ export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
     { no: 8, name: 'sync', kind: 'scalar', T: ScalarType.BOOL },
     { no: 9, name: 'freelist_sync', kind: 'scalar', T: ScalarType.BOOL },
     { no: 11, name: 'batch_size', kind: 'scalar', T: ScalarType.UINT32 },
+    { no: 12, name: 'exclusive', kind: 'scalar', T: ScalarType.BOOL },
   ] satisfies readonly PartialFieldInfo[],
 })

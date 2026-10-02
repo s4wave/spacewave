@@ -2399,7 +2399,7 @@
       ]
     },
     "github.com/s4wave/spacewave/db/volume/bolt": {
-      "hash": "4d66ae5d509d8158aeb2ca5cc8d2887da0219b50712ed5ce1bad421a4a7c6841",
+      "hash": "eca91794b07f749378a992398663296e2a7ca5895acc24414640ab736b29651a",
       "generatedFiles": [
         "db/volume/bolt/bolt.pb.go",
         "db/volume/bolt/bolt.pb.ts"

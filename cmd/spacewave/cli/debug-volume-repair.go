@@ -90,11 +90,11 @@ func runDebugVolumeRepair(ctx context.Context, path string, compact bool, output
 	}
 	res := &volumeRepairResult{bytesBefore: uint64(fi.Size())} //nolint:gosec // Stat sizes are never negative.
 
-	// Refuse a volume a daemon holds before opening it for writing, which
-	// would otherwise wait for the lock forever.
-	probe, err := bbolt.Open(path, 0o400, &bbolt.Options{ReadOnly: true, Timeout: volumeOpenTimeout})
+	// Refuse a volume another process has open before holding it
+	// exclusively, which would otherwise wait for that process to exit.
+	probe, err := bbolt.Open(path, 0o400, &bbolt.Options{ReadOnly: true, Exclusive: true, Timeout: volumeOpenTimeout})
 	if errors.Is(err, bbolt_errors.ErrTimeout) {
-		return errors.Errorf("%s is locked by a running daemon; stop it first", path)
+		return errors.Errorf("%s is open in another process; stop the daemon first", path)
 	}
 	if err != nil {
 		return errors.Wrap(err, "open volume")
@@ -103,18 +103,10 @@ func runDebugVolumeRepair(ctx context.Context, path string, compact bool, output
 		return err
 	}
 
-	// Release the leaked history and its proofs through the volume.
+	// Release the leaked history and its proofs, and compact when asked.
 	le := logrus.NewEntry(logrus.New())
-	if err := repairVolume(ctx, le, path, res); err != nil {
+	if err := repairVolume(ctx, le, path, compact, fi.Mode().Perm(), res); err != nil {
 		return err
-	}
-
-	// Compact into a fresh file and swap it in.
-	if compact {
-		le.Info("compacting volume")
-		if err := compactVolume(path, fi.Mode().Perm()); err != nil {
-			return err
-		}
 	}
 	fi, err = os.Stat(path)
 	if err != nil {
@@ -151,14 +143,17 @@ func runDebugVolumeRepair(ctx context.Context, path string, compact bool, output
 	return nil
 }
 
-// repairVolume opens the volume, releases its leaked bucket edges, sweeps the
-// blocks they held and deletes the obsolete local proofs.
-func repairVolume(ctx context.Context, le *logrus.Entry, path string, res *volumeRepairResult) error {
-	// Open the volume without creating or rewriting its peer key.
+// repairVolume holds the volume exclusively, releases its leaked bucket edges,
+// sweeps the blocks they held, deletes the obsolete local proofs and, with
+// compact, replaces the file with a compacted copy.
+func repairVolume(ctx context.Context, le *logrus.Entry, path string, compact bool, mode os.FileMode, res *volumeRepairResult) error {
+	// Hold the volume exclusively without creating or rewriting its peer key.
+	// A daemon started meanwhile waits for the repair to end.
 	vol, err := volume_bolt.NewBolt(ctx, le, &volume_bolt.Config{
 		Path:          path,
 		NoGenerateKey: true,
 		NoWriteKey:    true,
+		Exclusive:     true,
 	})
 	if err != nil {
 		return errors.Wrap(err, "open volume")
@@ -212,7 +207,14 @@ func repairVolume(ctx context.Context, le *logrus.Entry, path string, res *volum
 		return errors.New("volume is not bolt-backed")
 	}
 	res.proofKeysDeleted, err = deleteLocalProofKeys(le, db)
-	return err
+	if err != nil || !compact {
+		return err
+	}
+
+	// Compact while the volume is still held, so no process opens the file
+	// before the compacted copy replaces it.
+	le.Info("compacting volume")
+	return compactVolume(db, path, mode)
 }
 
 // releaseBucketBlockEdges removes each direct bucket block edge of the buckets
@@ -318,9 +320,10 @@ func deleteLocalProofKeys(le *logrus.Entry, db *bbolt.DB) (uint64, error) {
 	return deleted, nil
 }
 
-// compactVolume copies the volume at path into a fresh file and renames it
-// over path, returning the pages bbolt freed to the filesystem.
-func compactVolume(path string, mode os.FileMode) error {
+// compactVolume copies src, the held volume at path, into a fresh file and
+// renames it over path, returning the pages bbolt freed to the filesystem.
+// Opens waiting for src follow the rename once src closes.
+func compactVolume(src *bbolt.DB, path string, mode os.FileMode) error {
 	// Refuse to overwrite the output of an interrupted compaction.
 	dstPath := path + ".compact"
 	if _, err := os.Stat(dstPath); err == nil {
@@ -330,11 +333,6 @@ func compactVolume(path string, mode os.FileMode) error {
 	}
 
 	// Copy every bucket into the fresh file.
-	src, err := bbolt.Open(path, 0o400, &bbolt.Options{ReadOnly: true, Timeout: volumeOpenTimeout})
-	if err != nil {
-		return errors.Wrap(err, "open volume")
-	}
-	defer src.Close()
 	dst, err := bbolt.Open(dstPath, mode, &bbolt.Options{FreelistType: bbolt.FreelistMapType})
 	if err != nil {
 		return errors.Wrap(err, "create compacted volume")
@@ -349,9 +347,14 @@ func compactVolume(path string, mode os.FileMode) error {
 		return err
 	}
 
-	// Swap the compacted file in once the source is closed.
-	if err := src.Close(); err != nil {
+	// Swap the copy in and drop the lock files its open created.
+	if err := os.Rename(dstPath, path); err != nil {
 		return err
 	}
-	return os.Rename(dstPath, path)
+	for _, suffix := range []string{"-lock", "-lock-coord"} {
+		if err := os.Remove(dstPath + suffix); err != nil && !os.IsNotExist(err) {
+			return err
+		}
+	}
+	return nil
 }
