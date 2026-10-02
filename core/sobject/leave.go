@@ -125,12 +125,14 @@ func leaveSOParticipants(ctx context.Context, host *SOHost, owner crypto.PrivKey
 					return &SOLeaveResponse{Changes: changes[:i+1]}, nil
 				}
 			}
-			signed, err := host.ReadConfigEntry(ctx, request.GetConfigHash())
-			if err != nil {
-				return nil, err
-			}
-			if !leaveProofsRemainCurrent(peers, signed.GetConfig(), changes) {
-				return nil, errors.New("leave configuration changed before removal")
+			if !carriesLeaveRequest(changes, request) {
+				signed, err := host.ReadConfigEntry(ctx, request.GetConfigHash())
+				if err != nil {
+					return nil, err
+				}
+				if !leaveProofsRemainCurrent(peers, signed.GetConfig(), changes) {
+					return nil, errors.New("leave configuration changed before removal")
+				}
 			}
 		}
 
@@ -168,6 +170,18 @@ func leaveSOParticipants(ctx context.Context, host *SOHost, owner crypto.PrivKey
 			return nil, err
 		}
 	}
+}
+
+// carriesLeaveRequest reports whether changes is the single ownership transfer
+// that carries request from the configuration it was signed at. Its owner
+// already checked the consent there, so the departure commits without reading
+// the entry that produced that configuration, which a replica that joined at
+// it does not hold.
+func carriesLeaveRequest(changes []*SOConfigChange, request *SOLeaveRequest) bool {
+	return len(changes) == 1 &&
+		isSODepartureTransfer(changes[0]) &&
+		bytes.Equal(changes[0].GetPreviousHash(), request.GetConfigHash()) &&
+		changes[0].GetLeaveRequest().EqualVT(request)
 }
 
 // leaveProofsRemainCurrent permits rebasing consent only when every signer was

@@ -66,22 +66,23 @@ func TestNativeOwnerTransfer(t *testing.T) {
 	prepareSessionTransportBackends(ctx, t, owner.GetSessionTransport(), second.GetSessionTransport())
 	prepareSessionTransportBackends(ctx, t, first.GetSessionTransport(), second.GetSessionTransport())
 
-	// Both invitees join in order, so the first one's session is the default successor.
+	// Both invitees join in order. The last joiner holds the configuration the
+	// owner leaves at, but not the entry that produced it.
 	if _, err := first.JoinViaInvite(ctx, firstSession.GetPrivKey(), invite, ""); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := second.JoinViaInvite(ctx, secondSession.GetPrivKey(), invite, ""); err != nil {
 		t.Fatal(err)
 	}
-	successor := mountJoined(ctx, t, first, id)
-	remaining := mountJoined(ctx, t, second, id)
+	successor := mountJoined(ctx, t, second, id)
+	remaining := mountJoined(ctx, t, first, id)
 
-	// The owner leaves while both invitees remain.
+	// The owner leaves to the last joiner while both invitees remain.
 	before, err := object.GetSOHost().GetHostState(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := owner.LeaveSharedObject(ctx, ownerSession.GetPrivKey(), id, ""); err != nil {
+	if err := owner.LeaveSharedObject(ctx, ownerSession.GetPrivKey(), id, secondSession.GetPeerId().String()); err != nil {
 		t.Fatal(err)
 	}
 
@@ -118,8 +119,8 @@ func TestNativeOwnerTransfer(t *testing.T) {
 	}) {
 		t.Fatal("departure committed before the successor's storage identity became owner")
 	}
-	waitSOEndpoint(ctx, t, first, id, "")
-	waitSOEndpoint(ctx, t, second, id, firstSession.GetPeerId().String())
+	waitSOEndpoint(ctx, t, second, id, "")
+	waitSOEndpoint(ctx, t, first, id, secondSession.GetPeerId().String())
 
 	// The remaining writer's operation is admitted by the new host.
 	localID, err := remaining.QueueOperation(ctx, []byte("after transfer"))
