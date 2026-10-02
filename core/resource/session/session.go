@@ -1,6 +1,7 @@
 package resource_session
 
 import (
+	"cmp"
 	"context"
 	"crypto/rand"
 	"encoding/base64"
@@ -39,6 +40,7 @@ import (
 	"github.com/s4wave/spacewave/db/world"
 	bifrost_crypto "github.com/s4wave/spacewave/net/crypto"
 	"github.com/s4wave/spacewave/net/util/confparse"
+	s4wave_provider_spacewave "github.com/s4wave/spacewave/sdk/provider/spacewave"
 	s4wave_session "github.com/s4wave/spacewave/sdk/session"
 	s4wave_space "github.com/s4wave/spacewave/sdk/space"
 	s4wave_status "github.com/s4wave/spacewave/sdk/status"
@@ -1575,37 +1577,27 @@ func (r *SessionResource) ResolveSpaceJoinRequest(
 		return nil, errors.New("peer_id is required")
 	}
 
-	// Mount the Space's invite host, which holds its join requests.
+	// Mount the Space's invite host and find the peer's pending request.
 	ih, rel, err := r.mountInviteHost(ctx, spaceID)
 	if err != nil {
 		return nil, errors.Wrap(err, "mount invite host")
 	}
 	defer rel()
-	jrh, ok := ih.(sobject.JoinRequestHost)
-	if !ok {
-		return nil, errors.New("shared object does not hold join requests")
-	}
-
-	// Find the peer's pending request.
-	var request *sobject.SOJoinRequest
-	for _, candidate := range jrh.GetJoinRequestsCtr().GetValue().GetRequests() {
-		if candidate.GetJoinResponse().GetResponderPeerId() == peerID {
-			request = candidate
-			break
-		}
-	}
-	if request == nil {
-		return nil, errors.New("no pending join request from peer")
+	inviteID, remove, err := r.findJoinRequest(ctx, ih, spaceID, peerID)
+	if err != nil {
+		return nil, err
 	}
 
 	// On grant, invite the peer personally with the redeemed invite's role.
+	// A revoked invite stays in the host state, so its role outlives a change
+	// of the Space's admission terms.
 	resp := &s4wave_session.ResolveSpaceJoinRequestResponse{}
 	if req.GetGrant() {
 		state, err := ih.GetSOHost().GetHostState(ctx)
 		if err != nil {
 			return nil, err
 		}
-		redeemed := sobject.FindInvite(state, request.GetJoinResponse().GetInviteId())
+		redeemed := sobject.FindInvite(state, inviteID)
 		if redeemed == nil {
 			return nil, errors.New("redeemed invite no longer exists")
 		}
@@ -1620,11 +1612,65 @@ func (r *SessionResource) ResolveSpaceJoinRequest(
 	}
 
 	// Remove the resolved request.
-	if err := jrh.RemoveJoinRequest(ctx, peerID); err != nil {
+	if err := remove(ctx); err != nil {
 		return nil, err
 	}
 
 	return resp, nil
+}
+
+// findJoinRequest returns the invite redeemed by the pending request of peerID
+// to join spaceID, and a function that removes the request.
+//
+// A local Space holds the request on its host. A cloud Space holds it as the
+// peer's pending mailbox entries, which removal rejects: a grant supersedes
+// them with a personal invite.
+func (r *SessionResource) findJoinRequest(
+	ctx context.Context,
+	ih sobject.InviteHost,
+	spaceID string,
+	peerID string,
+) (string, func(context.Context) error, error) {
+	// Cloud requests wait in the Space's mailbox; the newest names the invite.
+	if acc, ok := r.session.GetProviderAccount().(*provider_spacewave.ProviderAccount); ok {
+		entries, err := acc.GetPendingMailboxEntriesCached(ctx, spaceID)
+		if err != nil {
+			return "", nil, err
+		}
+		entries = slices.DeleteFunc(slices.Clone(entries), func(entry *s4wave_provider_spacewave.MailboxEntryInfo) bool {
+			return entry.GetPeerId() != peerID
+		})
+		if len(entries) == 0 {
+			return "", nil, errors.New("no pending join request from peer")
+		}
+		newest := slices.MaxFunc(entries, func(a, b *s4wave_provider_spacewave.MailboxEntryInfo) int {
+			return cmp.Compare(a.GetId(), b.GetId())
+		})
+		remove := func(ctx context.Context) error {
+			for _, entry := range entries {
+				if err := acc.ProcessMailboxEntry(ctx, spaceID, entry.GetId(), false); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+		return newest.GetInviteId(), remove, nil
+	}
+
+	// Local requests are held by the Space host, at most one per peer.
+	jrh, ok := ih.(sobject.JoinRequestHost)
+	if !ok {
+		return "", nil, errors.New("shared object does not hold join requests")
+	}
+	for _, request := range jrh.GetJoinRequestsCtr().GetValue().GetRequests() {
+		if request.GetJoinResponse().GetResponderPeerId() == peerID {
+			remove := func(ctx context.Context) error {
+				return jrh.RemoveJoinRequest(ctx, peerID)
+			}
+			return request.GetJoinResponse().GetInviteId(), remove, nil
+		}
+	}
+	return "", nil, errors.New("no pending join request from peer")
 }
 
 // createInvite adds an invite with terms to the Space and returns its message.

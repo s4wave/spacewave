@@ -143,10 +143,23 @@ func TestJoinRequestApproval(t *testing.T) {
 		t.Fatal("refusal left a request or a participant")
 	}
 
-	// Asking again makes a new request, which the owner grants by personal invite.
+	// Asking again makes a new request. Revoking the invite it redeemed, as a
+	// change of admission terms does, keeps the role a grant reads.
 	if !h.redeem(knock) {
 		t.Fatal("repeat request was not queued")
 	}
+	if err := space.RevokeInvite(ctx, space.GetPrivKey(), knock.GetInviteId()); err != nil {
+		t.Fatal(err)
+	}
+	state, err := space.GetSOHostState(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if role := sobject.FindInvite(state, knock.GetInviteId()).GetRole(); role != sobject.SOParticipantRole_SOParticipantRole_WRITER {
+		t.Fatalf("revoked invite grants role %v", role)
+	}
+
+	// The owner grants the request by personal invite.
 	personal := h.invite(space, &sobject.SOInvite{TargetPeerId: readerPeer, MaxUses: 1})
 	if err := space.RemoveJoinRequest(ctx, readerPeer); err != nil {
 		t.Fatal(err)
