@@ -117,15 +117,12 @@ func CompleteSOOwnershipTransfer(ctx context.Context, host *SOHost, owner crypto
 	if err != nil {
 		return false, err
 	}
-	if !isSODepartureTransfer(entry) {
-		return false, nil
+	peers, err := SODepartingPeers(entry)
+	if err != nil || len(peers) == 0 {
+		return false, err
 	}
 
 	// A departing owner cannot re-sign the proofs that outlive it.
-	peers, err := entry.GetLeaveRequest().Verify()
-	if err != nil {
-		return false, err
-	}
 	ownerID, err := peer.IDFromPrivateKey(owner)
 	if err != nil {
 		return false, err
@@ -176,6 +173,35 @@ func ReadSOOwnershipSuccessor(ctx context.Context, host *SOHost) (string, error)
 		}
 	}
 	return "", nil
+}
+
+// SODepartingPeers returns the peers whose verified leave consent the change
+// carries when it is an ownership transfer, or nil for any other change. Each
+// has departed in its own view before the successor commits its removal.
+func SODepartingPeers(entry *SOConfigChange) ([]string, error) {
+	if !isSODepartureTransfer(entry) {
+		return nil, nil
+	}
+	return entry.GetLeaveRequest().Verify()
+}
+
+// ReadSODepartingPeers returns SODepartingPeers for the retained change that
+// produced head, or nil when head is empty or its change is not retained.
+func ReadSODepartingPeers(ctx context.Context, host *SOHost, head []byte) ([]string, error) {
+	// Read the retained change that produced head.
+	if len(head) == 0 {
+		return nil, nil
+	}
+	entry, err := host.ReadConfigEntry(ctx, head)
+	if errors.Is(err, ErrConfigHistoryUnavailable) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	// Return the leave consent it carries.
+	return SODepartingPeers(entry)
 }
 
 // isSODepartureTransfer reports whether entry is a transfer that carries a departure.

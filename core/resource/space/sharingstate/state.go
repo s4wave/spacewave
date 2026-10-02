@@ -63,29 +63,39 @@ type SharingState struct {
 // State carries every input snapshot the sharing watch reads per emission.
 type State struct {
 	soState                 *sobject.SOState
+	departing               []string
 	mailboxEntries          []*MailboxEntry
 	participantPresentation *ParticipantPresentation
 	err                     error
 	bcast                   broadcast.Broadcast
 }
 
+// DepartingFunc returns the peers that have left in their own view at state,
+// though the configuration still lists them.
+type DepartingFunc func(ctx context.Context, state *sobject.SOState) ([]string, error)
+
 // NewState constructs a State from the first sharing snapshot.
+// The sharing state omits the departing peers.
 func NewState(
 	soState *sobject.SOState,
+	departing []string,
 	mailboxEntries []*MailboxEntry,
 	presentation *ParticipantPresentation,
 ) *State {
 	return &State{
 		soState:                 soState,
+		departing:               departing,
 		mailboxEntries:          mailboxEntries,
 		participantPresentation: presentation,
 	}
 }
 
-// SetSOState updates the shared object state snapshot and wakes watchers.
-func (s *State) SetSOState(next *sobject.SOState) {
+// SetSOState updates the shared object state snapshot and its departing
+// peers, and wakes watchers.
+func (s *State) SetSOState(next *sobject.SOState, departing []string) {
 	s.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		s.soState = next
+		s.departing = departing
 		broadcast()
 	})
 }
@@ -99,22 +109,18 @@ func (s *State) SetMailboxEntries(entries []*MailboxEntry) {
 }
 
 // BridgeSOState forwards SO state container updates into the local broadcast.
+// It reads the departing peers again only when the configuration head changes.
 func (s *State) BridgeSOState(
 	ctx context.Context,
 	soStateCtr ccontainer.Watchable[*sobject.SOState],
+	readDeparting DepartingFunc,
 ) {
-	current := s.soState
+	current, departing := s.soState, s.departing
 	for {
+		// Wait for the latest state after the current one.
 		next, err := soStateCtr.WaitValueChange(ctx, current, nil)
 		if err != nil {
-			if ctx.Err() == nil {
-				s.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
-					if s.err == nil {
-						s.err = err
-					}
-					broadcast()
-				})
-			}
+			s.fail(ctx, err)
 			return
 		}
 		for {
@@ -124,9 +130,32 @@ func (s *State) BridgeSOState(
 			}
 			next = latest
 		}
+
+		// Read the departing peers of a new configuration head.
+		head := next.GetConfig().GetConfigChainHash()
+		if !bytes.Equal(head, current.GetConfig().GetConfigChainHash()) {
+			departing, err = readDeparting(ctx, next)
+			if err != nil {
+				s.fail(ctx, err)
+				return
+			}
+		}
 		current = next
-		s.SetSOState(next)
+		s.SetSOState(next, departing)
 	}
+}
+
+// fail ends the watch with err unless ctx was canceled.
+func (s *State) fail(ctx context.Context, err error) {
+	if ctx.Err() != nil {
+		return
+	}
+	s.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		if s.err == nil {
+			s.err = err
+		}
+		broadcast()
+	})
 }
 
 // RunWatchLoop emits a fresh SpaceSharingState whenever any folded source changes.
@@ -137,31 +166,36 @@ func (s *State) RunWatchLoop(
 ) error {
 	var prevResp *SharingState
 	for {
+		// Project every input and the wait channel under one lock.
 		var (
 			resp      *SharingState
 			bridgeErr error
 			waitCh    <-chan struct{}
 		)
 		s.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
+			// Departing peers are absent from the projected audience.
 			bridgeErr = s.err
-			viewerRole := ViewerRole(s.soState, peerID)
+			soState := withoutPeers(s.soState, s.departing)
+			viewerRole := ViewerRole(soState, peerID)
 			resp = &SharingState{
-				Participants:   s.soState.GetConfig().GetParticipants(),
-				Invites:        s.soState.GetInvites(),
+				Participants:   soState.GetConfig().GetParticipants(),
+				Invites:        soState.GetInvites(),
 				MailboxEntries: s.mailboxEntries,
 				ViewerPeerID:   peerID,
 				ViewerRole:     viewerRole,
 				CanManage:      sobject.IsOwner(viewerRole),
 				ParticipantInfo: BuildParticipantInfo(
-					s.soState,
+					soState,
 					peerID,
 					s.participantPresentation,
 				),
-				ConfigChainHash:  s.soState.GetConfig().GetConfigChainHash(),
-				ConfigChainSeqno: s.soState.GetConfig().GetConfigChainSeqno(),
+				ConfigChainHash:  soState.GetConfig().GetConfigChainHash(),
+				ConfigChainSeqno: soState.GetConfig().GetConfigChainSeqno(),
 			}
 			waitCh = getWaitCh()
 		})
+
+		// Send the projection when it changed.
 		if bridgeErr != nil {
 			return bridgeErr
 		}
@@ -171,12 +205,26 @@ func (s *State) RunWatchLoop(
 			}
 			prevResp = resp
 		}
+
+		// Wait for the next source change.
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
 		case <-waitCh:
 		}
 	}
+}
+
+// withoutPeers returns state with the peers omitted from its participants.
+func withoutPeers(state *sobject.SOState, peers []string) *sobject.SOState {
+	if len(peers) == 0 || state.GetConfig() == nil {
+		return state
+	}
+	view := state.CloneVT()
+	view.Config.Participants = slices.DeleteFunc(view.Config.Participants, func(p *sobject.SOParticipantConfig) bool {
+		return slices.Contains(peers, p.GetPeerId())
+	})
+	return view
 }
 
 // ViewerRole returns the current viewer's effective participant role.

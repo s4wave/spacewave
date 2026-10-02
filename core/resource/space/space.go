@@ -188,23 +188,35 @@ func (r *SpaceResource) WatchSpaceSharingState(
 	req *s4wave_space.WatchSpaceSharingStateRequest,
 	strm s4wave_space.SRPCSpaceResourceService_WatchSpaceSharingStateStream,
 ) error {
+	// Only a shared object that hosts invitations has sharing state.
 	ctx := strm.Context()
 	inviteHost, ok := r.space.GetSharedObject().(sobject.InviteHost)
 	if !ok {
 		return nil
 	}
 
-	soStateCtr, relSoStateCtr, err := inviteHost.GetSOHost().GetSOStateCtr(ctx, nil)
+	// Watch the shared object state.
+	soHost := inviteHost.GetSOHost()
+	soStateCtr, relSoStateCtr, err := soHost.GetSOStateCtr(ctx, nil)
 	if err != nil {
 		return err
 	}
 	defer relSoStateCtr()
 
+	// A peer whose leave the head ownership transfer carries has left in its own view.
+	readDeparting := func(ctx context.Context, state *sobject.SOState) ([]string, error) {
+		return sobject.ReadSODepartingPeers(ctx, soHost, state.GetConfig().GetConfigChainHash())
+	}
 	soState, err := soStateCtr.WaitValue(ctx, nil)
 	if err != nil {
 		return err
 	}
+	departing, err := readDeparting(ctx, soState)
+	if err != nil {
+		return err
+	}
 
+	// Prime the mailbox cache and participant labels from the account.
 	swAcc, releaseMailboxAcc, err := r.accessMailboxProviderAccount(ctx)
 	if err != nil {
 		return err
@@ -220,20 +232,23 @@ func (r *SpaceResource) WatchSpaceSharingState(
 	}
 	presentationState := loadSharingParticipantPresentationState(ctx, r.le, swAcc, soID)
 
+	// Fold the first snapshot of every source into one state.
 	var mailboxEntries []*sharingstate.MailboxEntry
 	if swAcc != nil {
 		snapshot, _ := swAcc.GetPendingMailboxEntriesSnapshot(soID)
 		mailboxEntries = sharingMailboxEntriesFromProto(snapshot)
 	}
-	state := sharingstate.NewState(soState, mailboxEntries, presentationState)
+	state := sharingstate.NewState(soState, departing, mailboxEntries, presentationState)
 
+	// Bridge later source changes into the state.
 	bridgeCtx, cancelBridges := context.WithCancel(ctx)
 	defer cancelBridges()
-	go state.BridgeSOState(bridgeCtx, soStateCtr)
+	go state.BridgeSOState(bridgeCtx, soStateCtr, readDeparting)
 	if swAcc != nil {
 		go bridgeSharingMailbox(bridgeCtx, state, swAcc, soID)
 	}
 
+	// Send each changed snapshot to the stream.
 	peerID := r.space.GetSharedObject().GetPeerID().String()
 	return state.RunWatchLoop(ctx, peerID, func(state *sharingstate.SharingState) error {
 		return strm.Send(sharingStateToProto(state))
