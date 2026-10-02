@@ -64,7 +64,7 @@ func (t *Tx) Set(ctx context.Context, key, value []byte) error {
 		return kvtx.ErrEmptyKey
 	}
 	if err := t.txn.Set(key, value); err != nil {
-		return err
+		return mapTxError(err)
 	}
 	t.s.recordWrite(len(key) + len(value))
 	return nil
@@ -175,7 +175,15 @@ func (t *Tx) Delete(ctx context.Context, key []byte) error {
 	if len(key) == 0 {
 		return kvtx.ErrEmptyKey
 	}
-	return t.txn.Delete(key)
+	return mapTxError(t.txn.Delete(key))
+}
+
+// mapTxError maps a full Badger transaction to kvtx.ErrTxTooBig.
+func mapTxError(err error) error {
+	if errors.Is(err, bdb.ErrTxnTooBig) {
+		return kvtx.ErrTxTooBig
+	}
+	return err
 }
 
 // Commit commits the transaction to storage.
