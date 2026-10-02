@@ -117,6 +117,8 @@ spacewave space create <name>        Create a new space
 spacewave space info <space-id>      Show space state, objects, plugins
 spacewave space resolve <name>       Resolve a space name to its ID
 spacewave space settings             Show space settings (index path, plugins)
+spacewave space invite <space>       Create an invite code another account joins with
+spacewave space join <invite>        Join a space with an invite code, link or token
 spacewave space import-git <url>     Import a git repo into a space
 spacewave space deploy               Deploy a manifest from a .bldr devtool DB
 ```
