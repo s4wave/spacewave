@@ -927,6 +927,14 @@ export interface LeaveSpaceRequest {
    * @generated from field: string shared_object_id = 1;
    */
   sharedObjectId?: string
+  /**
+   * SuccessorPeerId names the participant promoted to owner when the leaving
+   * account hosts the Space and others remain. Empty selects the remaining
+   * participant with the highest role, then the earliest admitted.
+   *
+   * @generated from field: string successor_peer_id = 2;
+   */
+  successorPeerId?: string
 }
 
 export const LeaveSpaceRequest: MessageType<LeaveSpaceRequest> =
@@ -934,6 +942,12 @@ export const LeaveSpaceRequest: MessageType<LeaveSpaceRequest> =
     typeName: 's4wave.session.LeaveSpaceRequest',
     fields: [
       { no: 1, name: 'shared_object_id', kind: 'scalar', T: ScalarType.STRING },
+      {
+        no: 2,
+        name: 'successor_peer_id',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+      },
     ] satisfies readonly PartialFieldInfo[],
   })
 

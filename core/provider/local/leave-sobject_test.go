@@ -21,6 +21,8 @@ func TestNativeSpaceLeave(t *testing.T) {
 	t.Cleanup(releaseOwner)
 	_, _, reader, readerSession, releaseReader := setupProviderAndSession(ctx, t)
 	t.Cleanup(releaseReader)
+
+	// The owner hosts a Space.
 	ref, err := owner.CreateSharedObject(ctx, "leave-space", &sobject.SharedObjectMeta{BodyType: "space"}, "", "")
 	if err != nil {
 		t.Fatal(err)
@@ -32,6 +34,8 @@ func TestNativeSpaceLeave(t *testing.T) {
 	t.Cleanup(releaseObject)
 	object := mounted.(*provider_local.SharedObject)
 	id := object.GetSharedObjectID()
+
+	// The owner serves a direct invitation over its session transport.
 	invite, err := object.CreateSOInviteOp(ctx, object.GetPrivKey(), sobject.SOParticipantRole_SOParticipantRole_WRITER, "local", "", 0, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -41,6 +45,8 @@ func TestNativeSpaceLeave(t *testing.T) {
 	}
 	t.Cleanup(owner.StopSessionTransport)
 	t.Cleanup(owner.StopP2PSync)
+
+	// The reader joins through a reachable transport.
 	if err := reader.EnsureConfiguredSessionTransport(ctx, readerSession.GetPrivKey()); err != nil {
 		t.Fatal(err)
 	}
@@ -50,20 +56,9 @@ func TestNativeSpaceLeave(t *testing.T) {
 	if _, err := reader.JoinViaInvite(ctx, readerSession.GetPrivKey(), invite, ""); err != nil {
 		t.Fatal(err)
 	}
-	entries := reader.GetSOListCtr().GetValue().GetSharedObjects()
-	index := slices.IndexFunc(entries, func(entry *sobject.SharedObjectListEntry) bool {
-		return entry.GetRef().GetProviderResourceRef().GetId() == id
-	})
-	if index == -1 {
-		t.Fatal("joined object is absent from native provider list")
-	}
-	entry := entries[index]
-	replica, releaseReplica, err := reader.MountSharedObject(ctx, entry.GetRef(), nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(releaseReplica)
-	copy := replica.(*provider_local.SharedObject)
+	copy := mountJoined(ctx, t, reader, id)
+
+	// The joined copy enrolled both reader identities.
 	before, err := copy.GetSOHostState(ctx)
 	if err != nil {
 		t.Fatal(err)
@@ -71,6 +66,8 @@ func TestNativeSpaceLeave(t *testing.T) {
 	if len(before.GetConfig().GetParticipants()) != 3 {
 		t.Fatalf("expected owner, device, and storage participants: %v", before.GetConfig().GetParticipants())
 	}
+
+	// A leave proof cannot be redirected to another object.
 	consent, err := sobject.BuildSOLeaveRequest(id, before.GetConfig().GetConfigChainHash(), copy.GetPrivKey(), readerSession.GetPrivKey())
 	if err != nil {
 		t.Fatal(err)
@@ -80,12 +77,9 @@ func TestNativeSpaceLeave(t *testing.T) {
 	if _, err := sobject.LeaveSOParticipants(ctx, object.GetSOHost(), object.GetPrivKey(), redirected); err == nil {
 		t.Fatal("a leave proof was accepted for a different object")
 	}
-	if err := owner.LeaveSharedObject(ctx, ownerSession.GetPrivKey(), id); err == nil {
-		t.Fatal("owner departure invalidated grants still needed by other participants")
-	}
 
 	// The owner acknowledges both removals, and the local provider adopts native revocation.
-	if err := reader.LeaveSharedObject(ctx, readerSession.GetPrivKey(), id); err != nil {
+	if err := reader.LeaveSharedObject(ctx, readerSession.GetPrivKey(), id, ""); err != nil {
 		t.Fatal(err)
 	}
 	after, err := object.GetSOHostState(ctx)
@@ -95,6 +89,8 @@ func TestNativeSpaceLeave(t *testing.T) {
 	if len(after.GetConfig().GetParticipants()) != 1 || after.GetConfig().GetParticipants()[0].GetPeerId() != object.GetPeerID().String() {
 		t.Fatalf("departure did not preserve only the remaining owner: %v", after.GetConfig().GetParticipants())
 	}
+
+	// The owner's retained history proves the departure.
 	base, changes, err := object.ReadSharedObjectConfigHistory(ctx, after.GetConfig())
 	if err != nil || len(changes) == 0 {
 		t.Fatalf("owner lost native departure history: %v", err)
@@ -102,6 +98,8 @@ func TestNativeSpaceLeave(t *testing.T) {
 	if err := sobject.VerifyConfigChainSuffix(base, after.GetConfig(), changes); err != nil {
 		t.Fatalf("owner history does not prove current participation: %v", err)
 	}
+
+	// The departed copy holds the owner's configuration and no grants.
 	retired, err := copy.GetSOHostState(ctx)
 	if err != nil {
 		t.Fatal(err)
@@ -109,6 +107,8 @@ func TestNativeSpaceLeave(t *testing.T) {
 	if !retired.GetConfig().EqualVT(after.GetConfig()) || len(retired.GetRootGrants()) != 0 {
 		t.Fatal("departing copy retained native authority after acknowledgment")
 	}
+
+	// The departed copy loses live participation and decryption.
 	readable, releaseReadable, err := copy.AccessSharedObjectState(ctx, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -129,6 +129,8 @@ func TestNativeSpaceLeave(t *testing.T) {
 	}, nil); err != nil {
 		t.Fatal(err)
 	}
+
+	// The read checkpoint keeps the history the reader could read before leaving.
 	checkpoint, err := copy.GetSharedObjectReadCheckpoint(ctx)
 	if err != nil || checkpoint == nil {
 		t.Fatalf("departed copy lost read checkpoint: %v", err)
@@ -139,7 +141,9 @@ func TestNativeSpaceLeave(t *testing.T) {
 	if _, err := checkpoint.Snapshot.GetTransformer(ctx); err != nil {
 		t.Fatalf("checkpoint lost its historical decryption grant: %v", err)
 	}
-	if err := reader.LeaveSharedObject(ctx, readerSession.GetPrivKey(), id); err != nil {
+
+	// Leaving again succeeds and keeps the local data.
+	if err := reader.LeaveSharedObject(ctx, readerSession.GetPrivKey(), id, ""); err != nil {
 		t.Fatalf("repeated departure failed: %v", err)
 	}
 	if !slices.ContainsFunc(reader.GetSOListCtr().GetValue().GetSharedObjects(), func(entry *sobject.SharedObjectListEntry) bool {
@@ -148,7 +152,7 @@ func TestNativeSpaceLeave(t *testing.T) {
 		t.Fatal("leave deleted retained local data")
 	}
 
-	// A fresh native invitation can grant access again without an old departure undoing it.
+	// A fresh native invitation can grant access again.
 	if _, err := reader.JoinViaInvite(ctx, readerSession.GetPrivKey(), invite, ""); err != nil {
 		t.Fatal(err)
 	}
@@ -159,6 +163,8 @@ func TestNativeSpaceLeave(t *testing.T) {
 	if !slices.ContainsFunc(rejoined.GetConfig().GetParticipants(), func(p *sobject.SOParticipantConfig) bool { return p.GetPeerId() == readerSession.GetPeerId().String() }) {
 		t.Fatal("fresh invitation did not restore native device participation")
 	}
+
+	// A retried old departure acknowledges without undoing the new grant.
 	acknowledged, err := sobject.LeaveSOParticipants(ctx, object.GetSOHost(), object.GetPrivKey(), consent)
 	if err != nil {
 		t.Fatalf("lost acknowledgment could not be recovered: %v", err)
@@ -173,12 +179,12 @@ func TestNativeSpaceLeave(t *testing.T) {
 	if !unchanged.EqualVT(rejoined) {
 		t.Fatal("an old departure removed newly granted participation")
 	}
-	if err := reader.LeaveSharedObject(ctx, readerSession.GetPrivKey(), id); err != nil {
+	if err := reader.LeaveSharedObject(ctx, readerSession.GetPrivKey(), id, ""); err != nil {
 		t.Fatal(err)
 	}
 
 	// The sole remaining owner can leave a terminal signed configuration without deleting data.
-	if err := owner.LeaveSharedObject(ctx, ownerSession.GetPrivKey(), id); err != nil {
+	if err := owner.LeaveSharedObject(ctx, ownerSession.GetPrivKey(), id, ""); err != nil {
 		t.Fatal(err)
 	}
 	closed, err := object.GetSOHostState(ctx)
@@ -191,7 +197,7 @@ func TestNativeSpaceLeave(t *testing.T) {
 	if err := closed.GetConfig().Validate(); err != nil {
 		t.Fatalf("terminal signed configuration is invalid: %v", err)
 	}
-	if err := owner.LeaveSharedObject(ctx, ownerSession.GetPrivKey(), id); err != nil {
+	if err := owner.LeaveSharedObject(ctx, ownerSession.GetPrivKey(), id, ""); err != nil {
 		t.Fatal(err)
 	}
 }

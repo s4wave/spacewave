@@ -316,8 +316,8 @@ const (
 	SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_INCREMENT_INVITE_USES SOConfigChangeType = 6
 	// SO_CONFIG_CHANGE_TYPE_SELF_ENROLL_PEER lets a same-entity session add itself.
 	SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_SELF_ENROLL_PEER SOConfigChangeType = 7
-	// SO_CONFIG_CHANGE_TYPE_TRANSFER_OWNERSHIP promotes a successor to OWNER and
-	// carries the departing owner's leave consent for the successor to commit.
+	// SO_CONFIG_CHANGE_TYPE_TRANSFER_OWNERSHIP promotes a participant to OWNER.
+	// When an owner departs, it carries the leave consent the successor commits.
 	SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_TRANSFER_OWNERSHIP SOConfigChangeType = 8
 )
 
@@ -1102,7 +1102,7 @@ type SOConfigChange struct {
 	// Only populated when change_type is REMOVE_PARTICIPANT.
 	RevocationInfo *SORevocationInfo `protobuf:"bytes,8,opt,name=revocation_info,json=revocationInfo,proto3" json:"revocationInfo,omitempty"`
 	// LeaveRequest is the departing peers' consent that the promoted owner commits.
-	// Only populated when change_type is TRANSFER_OWNERSHIP.
+	// Only populated on a TRANSFER_OWNERSHIP made for an owner's departure.
 	LeaveRequest *SOLeaveRequest `protobuf:"bytes,9,opt,name=leave_request,json=leaveRequest,proto3" json:"leaveRequest,omitempty"`
 }
 

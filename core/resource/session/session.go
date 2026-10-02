@@ -996,7 +996,7 @@ func (r *SessionResource) LeaveSpace(ctx context.Context, req *s4wave_session.Le
 	}
 
 	// The provider owns both the remote acknowledgment and retained local access state.
-	if err := account.LeaveSharedObject(ctx, key, req.GetSharedObjectId()); err != nil {
+	if err := account.LeaveSharedObject(ctx, key, req.GetSharedObjectId(), req.GetSuccessorPeerId()); err != nil {
 		return nil, err
 	}
 	return &s4wave_session.LeaveSpaceResponse{}, nil
