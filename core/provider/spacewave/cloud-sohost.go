@@ -49,6 +49,9 @@ type cloudSOHost struct {
 	lastSeqno uint64
 	// lastConfigChainHash tracks the last known config chain hash.
 	lastConfigChainHash []byte
+	// rotatedConfigChainHash is the head whose participant removal this peer
+	// last rotated the key for.
+	rotatedConfigChainHash []byte
 	// verifiedConfigChainSeqno tracks the seqno of the last verified config chain head.
 	verifiedConfigChainSeqno uint64
 	// keyEpochs stores the key epochs fetched from the config chain.
@@ -394,8 +397,10 @@ func (h *cloudSOHost) pullState(ctx context.Context, reason SeedReason) error {
 		return err
 	}
 	defer release()
+
+	// An inline update or local configuration write can advance state while
+	// this HTTP response is in flight; the host then already holds newer state.
 	if err := h.verifyChangeLogSeqno(lastSeqno); err != nil {
-		// An inline update can advance state while this HTTP response is in flight.
 		return nil
 	}
 	if err := h.verifyPulledState(state); err != nil {
@@ -452,9 +457,18 @@ func (h *cloudSOHost) syncEmbeddedConfigChain(
 	state *sobject.SOState,
 	chain *sobject.SOConfigChainResponse,
 ) bool {
+	// A response without an embedded chain has nothing to verify.
 	if state == nil || chain == nil {
 		return false
 	}
+
+	// Note the head before this sync to detect an advance.
+	var prevHash []byte
+	h.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		prevHash = h.lastConfigChainHash
+	})
+
+	// Verify the chain up to the response's head.
 	newHash := state.GetConfig().GetConfigChainHash()
 	if err := h.chainSeed.Run(ctx, &h.bcast, func(ctx context.Context) error {
 		return h.syncConfigChainResponse(ctx, chain, newHash)
@@ -462,10 +476,19 @@ func (h *cloudSOHost) syncEmbeddedConfigChain(
 		h.le.WithError(err).Warn("failed to verify embedded config chain from state response")
 		return false
 	}
+
+	// Check that the verified head matches the response.
 	var synced bool
 	h.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		synced = bytes.Equal(h.lastConfigChainHash, newHash)
 	})
+
+	// The verifier never sees a head advanced here, so wake the config
+	// reaction for changes such as a departure handed to this peer.
+	if synced && len(prevHash) != 0 && !bytes.Equal(prevHash, newHash) {
+		h.triggerConfigChanged()
+	}
+
 	return synced
 }
 
@@ -587,9 +610,9 @@ func (h *cloudSOHost) handleSONotify(payload *api.SONotifyEventPayload) {
 
 // handleSONotifyWithContext processes an SONotifyEventPayload delivered via so_notify.
 // When the payload carries an inline SOStateMessage, the host applies it
-// directly without issuing an HTTP /state pull. configChanged events trigger
-// a config-chain re-verify only; the state pull fallback only fires for
-// genuine gap or cold-cache cases.
+// directly without issuing an HTTP /state pull. A configChanged event pulls
+// the state holding the new configuration, which another peer's change does
+// not otherwise deliver.
 func (h *cloudSOHost) handleSONotifyWithContext(ctx context.Context, payload *api.SONotifyEventPayload) {
 	// Ignore absent notifications before inspecting their state payload.
 	if payload == nil {
@@ -630,14 +653,13 @@ func (h *cloudSOHost) handleSONotifyWithContext(ctx context.Context, payload *ap
 		return
 	}
 
-	// Configuration-only notifications wake their verifier without fetching state.
+	// A configuration notification carries no state, so pull the state that
+	// holds the new configuration; applying it wakes the chain verifier.
 	switch payload.GetChangeType() {
 	case "configChanged":
-		h.triggerConfigChanged()
-	case "metadata":
-		// Metadata updates are handled by account-level notification routing.
-	case "delete":
-		// SO is being deleted; no inline state to apply.
+		h.triggerPull()
+	case "metadata", "ownershipChanged", "access_changed", "delete":
+		// Account-level notification routing handles these.
 	default:
 		// Bare notify with no state payload. Cloud should always attach an
 		// inline SOStateMessage for op/root mutations, so this indicates a
@@ -1383,16 +1405,25 @@ func (h *cloudSOHost) syncConfigChainResponse(
 	}
 
 	// Store epochs and update the last known config chain hash.
+	var rotate bool
 	h.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		// Rotate the key at most once per configuration head.
+		rotate = !bytes.Equal(h.rotatedConfigChainHash, newHash)
+
+		// Adopt the verified peer state and projected state.
 		h.genesisHash = cache.GenesisHash
 		h.peerState = cache.PeerState
 		if nextState != nil {
 			h.stateCtr.SetValue(nextState)
 		}
+
+		// Record the verified chain head and its history.
 		h.configHistory = cache.ConfigHistory
 		h.historyIndex = indexConfigHistory(cache.ConfigHistory)
 		h.lastConfigChainHash = bytes.Clone(newHash)
 		h.verifiedConfigChainSeqno = entries[len(entries)-1].GetConfigSeqno()
+
+		// Publish the epochs and latest configuration to waiters.
 		h.keyEpochs = cloneVTSlice(resp.GetKeyEpochs())
 		if latestConfig != nil {
 			h.verifiedConfig = latestConfig.CloneVT()
@@ -1425,14 +1456,17 @@ func (h *cloudSOHost) syncConfigChainResponse(
 		return sobject.ErrNotParticipant
 	}
 
-	// If local peer is OWNER, check whether participants were removed by
+	// If local peer is OWNER, check whether the head removed participants by
 	// comparing the previous and latest config entries. This is computed
-	// locally rather than trusting the server-supplied changeType field.
-	if localIsOwner && len(entries) >= 2 {
+	// locally rather than trusting the server-supplied changeType field. Every
+	// state pull re-verifies the same head, which rotates the key only once.
+	if rotate && localIsOwner && len(entries) >= 2 {
 		prevParticipants := entries[len(entries)-2].GetConfig().GetParticipants()
 		currParticipants := latestConfig.GetParticipants()
-		if participantsRemoved(prevParticipants, currParticipants) {
-			h.rotateKeyOnRevocation(ctx, currParticipants)
+		if participantsRemoved(prevParticipants, currParticipants) && h.rotateKeyOnRevocation(ctx, currParticipants) {
+			h.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+				h.rotatedConfigChainHash = bytes.Clone(newHash)
+			})
 		}
 	}
 
@@ -1495,13 +1529,14 @@ func participantsRemoved(prev, curr []*sobject.SOParticipantConfig) bool {
 	return false
 }
 
-// rotateKeyOnRevocation generates a new transform key and posts the epoch to the server.
+// rotateKeyOnRevocation generates a new transform key and posts the epoch to
+// the server, reporting whether the rotation completed.
 // Note: old epoch grants remain on the server for historical decryption by remaining
 // participants. This is by design -- forward secrecy means the revoked participant
 // cannot decrypt NEW content, but historical content up to the rotation point remains
 // accessible to anyone who had the old key. The server is trusted to serve epochs
 // only to authorized participants (via rbac_role_bindings).
-func (h *cloudSOHost) rotateKeyOnRevocation(ctx context.Context, participants []*sobject.SOParticipantConfig) {
+func (h *cloudSOHost) rotateKeyOnRevocation(ctx context.Context, participants []*sobject.SOParticipantConfig) bool {
 	// Snapshot the current epoch and configuration together.
 	var currentEpoch uint64
 	var currentSeqno uint64
@@ -1519,7 +1554,7 @@ func (h *cloudSOHost) rotateKeyOnRevocation(ctx context.Context, participants []
 	})
 	if currentCfg == nil {
 		h.le.Warn("failed to rotate transform key: current config missing")
-		return
+		return false
 	}
 
 	// Build the new encryption epoch and authorized recovery envelopes.
@@ -1532,7 +1567,7 @@ func (h *cloudSOHost) rotateKeyOnRevocation(ctx context.Context, participants []
 	)
 	if err != nil {
 		h.le.WithError(err).Warn("failed to rotate transform key")
-		return
+		return false
 	}
 	recoveryEnvelopes, err := buildSORecoveryEnvelopes(
 		ctx,
@@ -1544,10 +1579,10 @@ func (h *cloudSOHost) rotateKeyOnRevocation(ctx context.Context, participants []
 	)
 	if err != nil {
 		if ctx.Err() != nil {
-			return
+			return false
 		}
 		h.le.WithError(err).Warn("failed to build recovery envelopes for key rotation")
-		return
+		return false
 	}
 
 	// Post the new epoch to the server.
@@ -1558,15 +1593,16 @@ func (h *cloudSOHost) rotateKeyOnRevocation(ctx context.Context, participants []
 		recoveryEnvelopes,
 	); err != nil {
 		if ctx.Err() != nil {
-			return
+			return false
 		}
 		h.le.WithError(err).Warn("failed to post key epoch to server")
-		return
+		return false
 	}
 
 	// Project the successful rotation into the accepted local state.
 	h.applyKeyEpoch(ctx, epoch)
 	h.le.WithField("epoch", epoch.GetEpoch()).Info("key rotation complete after participant revocation")
+	return true
 }
 
 // GetKeyEpochs returns the current key epochs.
