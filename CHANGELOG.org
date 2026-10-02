@@ -1,5 +1,32 @@
 #+TITLE: Spacewave Changelog
 
+* v0.57.20
+<2026-10-01 Thu>
+
+Spacewave 0.57.20 restores browser startup for existing storage, adds controls
+for background plugins, and improves large-Space and file-storage reliability.
+
+** Features
+- Spacewave now asks permission before allowing a plugin to keep running after
+  its Space closes, with Suspend and Resume controls in the bottom bar.
+- Successful Space plugin builds are now installed automatically.
+
+** Fixes
+- Browsers holding storage from an earlier format can start Spacewave again.
+  Existing storage is preserved beside a fresh storage volume.
+- Saved multi-pane layouts no longer revert when overlapping updates finish out
+  of order.
+- File synchronization now completes more reliably during large writes and cloud
+  storage maintenance.
+
+** Improvements
+- Large Spaces now load and browse objects in bounded groups instead of loading
+  every object at once, improving responsiveness as Spaces grow.
+- File storage handles many small writes more efficiently, improving upload and
+  synchronization performance.
+- Exported Space recovery snapshots remain available while unused storage is
+  reclaimed.
+
 * v0.57.19
 <2026-09-29 Tue>
 

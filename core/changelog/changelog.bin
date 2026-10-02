@@ -1,4 +1,15 @@
 
+Õ
+0.57.20
+2026-10-01ùSpacewave 0.57.20 restores browser startup for existing storage, adds controls for background plugins, and improves large-Space and file-storage reliability."ùSpacewave 0.57.20 restores browser startup for existing storage, adds controls for background plugins, and improves large-Space and file-storage reliability.*™
+íSpacewave now asks permission before allowing a plugin to keep running after its Space closes, with Suspend and Resume controls in the bottom bar.íSpacewave now asks permission before allowing a plugin to keep running after its Space closes, with Suspend and Resume controls in the bottom bar.*Ç
+?Successful Space plugin builds are now installed automatically.?Successful Space plugin builds are now installed automatically.2î
+áBrowsers holding storage from an earlier format can start Spacewave again. Existing storage is preserved beside a fresh storage volume.áBrowsers holding storage from an earlier format can start Spacewave again. Existing storage is preserved beside a fresh storage volume.2≤
+WSaved multi-pane layouts no longer revert when overlapping updates finish out of order.WSaved multi-pane layouts no longer revert when overlapping updates finish out of order.2 
+cFile synchronization now completes more reliably during large writes and cloud storage maintenance.cFile synchronization now completes more reliably during large writes and cloud storage maintenance.:û
+åLarge Spaces now load and browse objects in bounded groups instead of loading every object at once, improving responsiveness as Spaces grow.åLarge Spaces now load and browse objects in bounded groups instead of loading every object at once, improving responsiveness as Spaces grow.:ÿ
+jFile storage handles many small writes more efficiently, improving upload and synchronization performance.jFile storage handles many small writes more efficiently, improving upload and synchronization performance.:Æ
+UExported Space recovery snapshots remain available while unused storage is reclaimed.UExported Space recovery snapshots remain available while unused storage is reclaimed.
 ˝
 0.57.19
 2026-09-29\Spacewave 0.57.19 improves desktop updates, update discovery, and Space dashboard usability."\Spacewave 0.57.19 improves desktop updates, update discovery, and Space dashboard usability.2Ï
