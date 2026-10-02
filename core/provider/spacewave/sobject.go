@@ -738,6 +738,22 @@ func (a *ProviderAccount) RemoveSharedObjectListEntry(
 	a.refreshSelfEnrollmentSummary(context.Background())
 }
 
+// settleCreatedSharedObjectListEntry clears the created source of soID's
+// cached entry, so the next cloud list snapshot decides whether it stays.
+func (a *ProviderAccount) settleCreatedSharedObjectListEntry(soID string) {
+	a.soListCtr.SwapValue(func(list *sobject.SharedObjectList) *sobject.SharedObjectList {
+		for i, entry := range list.GetSharedObjects() {
+			if entry.GetRef().GetProviderResourceRef().GetId() != soID || entry.GetSource() != "created" {
+				continue
+			}
+			next := list.CloneVT()
+			next.SharedObjects[i].Source = ""
+			return next
+		}
+		return list
+	})
+}
+
 // sharedObjectListMetaFromMetadata builds typed metadata for a supported object.
 func sharedObjectListMetaFromMetadata(
 	metadata *api.SpaceMetadataResponse,
