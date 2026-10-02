@@ -3,8 +3,11 @@ package s4wave_git
 import (
 	"cmp"
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	stderrors "errors"
 	"io"
+	"path/filepath"
 	"slices"
 
 	"github.com/go-git/go-git/v6"
@@ -21,10 +24,13 @@ import (
 )
 
 // ImportLocalRepoToRef imports the committed graph of a local Git repository
-// into a World repo ref without copying configuration or contacting remotes.
+// into an immutable World repo ref without copying configuration or contacting remotes.
+// The World must be writable. It retains a verified repo for the canonical source
+// path so subsequent imports reuse its packs and encode only missing objects.
+// Previously returned refs keep their captured HEAD and references as the source advances.
 func ImportLocalRepoToRef(
 	ctx context.Context,
-	ws worldStorageAccessor,
+	ws world.WorldState,
 	localPath string,
 ) (repoRef *bucket.ObjectRef, headHash, branchName string, err error) {
 	// Open the source and bind its file handles to this import.
@@ -42,17 +48,47 @@ func ImportLocalRepoToRef(
 		}
 	}()
 
-	// Import only committed objects and references into the World.
-	return importOpenedLocalRepo(ctx, ws, repo, nil)
+	// Identify the source without publishing its host path in the World.
+	key, err := localRepoImportKey(localPath)
+	if err != nil {
+		return nil, "", "", err
+	}
+
+	// Import only committed objects and references into the retained repository.
+	return importOpenedLocalRepo(ctx, ws, repo, key, nil)
 }
 
-// importOpenedLocalRepo captures, copies, and verifies a committed repository graph.
+// localRepoImportKey identifies the retained import of a canonical source directory.
+// The key contains a hash of the absolute, symlink-resolved path, never the path itself.
+func localRepoImportKey(localPath string) (string, error) {
+	// Resolve equivalent spellings of the same source directory.
+	abs, err := filepath.Abs(localPath)
+	if err != nil {
+		return "", errors.Wrap(err, "resolve local repository path")
+	}
+	canonical, err := filepath.EvalSymlinks(abs)
+	if err != nil {
+		return "", errors.Wrap(err, "resolve local repository symlinks")
+	}
+
+	// Keep source identity separate from the returned immutable repository snapshot.
+	digest := sha256.Sum256([]byte(canonical))
+	return "git/local-import/" + hex.EncodeToString(digest[:]), nil
+}
+
+// importOpenedLocalRepo extends a verified source import and returns its immutable snapshot.
 func importOpenedLocalRepo(
 	ctx context.Context,
-	ws worldStorageAccessor,
+	ws world.WorldState,
 	repo *git.Repository,
+	sourceKey string,
 	afterObject func(),
 ) (repoRef *bucket.ObjectRef, headHash, branchName string, err error) {
+	// Require publication so the next import can reuse the verified object graph.
+	if ws.GetReadOnly() {
+		return nil, "", "", errors.New("local repository import requires a writable World")
+	}
+
 	// Freeze the reference roots and HEAD identity before reading objects.
 	snapshot, err := captureLocalRepo(repo)
 	if err != nil {
@@ -63,18 +99,13 @@ func importOpenedLocalRepo(
 		branchName = snapshot.resolvedHead.Name().Short()
 	}
 
-	// Resolve the complete reachable closure, including non-HEAD references.
-	wanted, err := revlist.Objects(repo.Storer, snapshot.wants, nil)
-	if err != nil {
-		return nil, "", "", errors.Wrap(err, "walk local repository objects")
-	}
-	wantedSet := makeHashSet(wanted)
-
-	// Publish the repository only after its pack and references verify.
-	repoRef, err = world.AccessObject(ctx, ws.AccessWorldState, nil, func(bcs *block.Cursor) (cbErr error) {
-		// Construct a repository inside the World object transaction.
-		root := git_block.NewRepo()
-		bcs.SetBlock(root, true)
+	// Extend the retained source only after its objects and references verify.
+	repoRef, _, err = world.AccessWorldObject(ctx, ws, sourceKey, true, func(bcs *block.Cursor) (cbErr error) {
+		// Open the retained packs or initialize the source's first import.
+		fresh := bcs.GetRef().GetEmpty()
+		if fresh {
+			bcs.SetBlock(git_block.NewRepo(), true)
+		}
 		store, err := git_block.NewStore(ctx, nil, bcs, &memory.IndexStorage{}, nil)
 		if err != nil {
 			return err
@@ -85,29 +116,116 @@ func importOpenedLocalRepo(
 			}
 		}()
 
-		// Keep Git's existing deltas instead of expanding the graph into one
-		// block tree per object. A one-object window avoids an expensive search
-		// for new deltas while retaining the source's existing compression.
-		writer, err := store.PackfileWriter()
+		// Reuse only closures verified for the prior roots and shallow boundary.
+		// This case reads indexes, never source or destination pack data.
+		shallow, err := store.Shallow()
 		if err != nil {
 			return err
 		}
-		source := &importObjectStore{Storer: repo.Storer, ctx: ctx, afterObject: afterObject}
-		if _, err := packfile.NewEncoder(writer, source, false).Encode(wanted, 1); err != nil {
-			return errors.Wrap(err, "encode local repository pack")
-		}
-		if err := writer.Close(); err != nil {
-			return errors.Wrap(err, "store local repository pack")
+		known := !fresh && slices.Equal(shallow, snapshot.shallow)
+		if known {
+			// Only the prior captured roots promise a complete closure under this
+			// shallow boundary; older retained objects can come from another boundary.
+			prior, err := captureLocalRepo(&git.Repository{Storer: store})
+			if err != nil {
+				return err
+			}
+			verified := makeHashSet(prior.wants)
+			for _, hash := range snapshot.wants {
+				if _, ok := verified[hash]; !ok {
+					known = false
+					break
+				}
+			}
 		}
 
-		// Restore the captured reference names and shallow boundary.
+		// Confirm captured roots through the object index without opening packs.
+		for _, hash := range snapshot.wants {
+			if err := store.HasEncodedObject(hash); err != nil {
+				if !errors.Is(err, plumbing.ErrObjectNotFound) {
+					return err
+				}
+				known = false
+				break
+			}
+		}
+
+		// Walk changed source graphs and select only objects absent from the index.
+		var wantedSet map[plumbing.Hash]struct{}
+		var missing []plumbing.Hash
+		if !known {
+			// Capture the new closure before extending the retained pack set.
+			wanted, err := revlist.Objects(repo.Storer, snapshot.wants, nil)
+			if err != nil {
+				return errors.Wrap(err, "walk local repository objects")
+			}
+			wantedSet = makeHashSet(wanted)
+			missing = make([]plumbing.Hash, 0, len(wanted))
+
+			// Preserve every indexed object, including objects from deleted refs.
+			for _, hash := range wanted {
+				if err := ctx.Err(); err != nil {
+					return err
+				}
+				if err := store.HasEncodedObject(hash); err != nil {
+					if !errors.Is(err, plumbing.ErrObjectNotFound) {
+						return err
+					}
+					missing = append(missing, hash)
+				}
+			}
+		}
+
+		// Retain source deltas when their bases are also missing. The encoder
+		// expands deltas against indexed bases, keeping the new pack self-contained.
+		if len(missing) != 0 {
+			// Encode only the missing graph; an unchanged import creates no pack.
+			writer, err := store.PackfileWriter()
+			if err != nil {
+				return err
+			}
+			source := &importObjectStore{Storer: repo.Storer, ctx: ctx, afterObject: afterObject}
+			if _, err := packfile.NewEncoder(writer, source, false).Encode(missing, 1); err != nil {
+				return errors.Wrap(err, "encode local repository pack")
+			}
+			if err := writer.Close(); err != nil {
+				return errors.Wrap(err, "store local repository pack")
+			}
+		}
+
+		// Replace source references, including names deleted since the prior import.
+		refs := make(map[plumbing.ReferenceName]*plumbing.Reference, len(snapshot.refs))
 		for _, ref := range snapshot.refs {
+			refs[ref.Name()] = ref
+		}
+		iter, err := store.IterReferences()
+		if err != nil {
+			return err
+		}
+		defer iter.Close()
+		if err := iter.ForEach(func(ref *plumbing.Reference) error {
+			if current := refs[ref.Name()]; sameReference(ref, current) {
+				delete(refs, ref.Name())
+				return nil
+			}
+			if refs[ref.Name()] == nil {
+				return store.RemoveReference(ref.Name())
+			}
+			return nil
+		}); err != nil {
+			return errors.Wrap(err, "remove obsolete local Git references")
+		}
+
+		// Publish changed reference values and shallow history boundaries.
+		for _, ref := range refs {
 			if err := store.SetReference(ref); err != nil {
 				return errors.Wrapf(err, "store local Git reference %s", ref.Name())
 			}
 		}
-		if err := store.SetShallow(snapshot.shallow); err != nil {
-			return errors.Wrap(err, "store local shallow boundary")
+		if !slices.Equal(shallow, snapshot.shallow) {
+			if err := store.SetShallow(snapshot.shallow); err != nil {
+				return errors.Wrap(err, "store local shallow boundary")
+			}
 		}
 
 		// Reject incomplete graphs, source HEAD drift, and canceled imports.
@@ -119,8 +237,11 @@ func importOpenedLocalRepo(
 		}
 		return store.Commit()
 	})
-	// Return the published reference together with the captured checkout identity.
-	if err != nil {
+
+	// Concurrent first imports can finish before either creates the retained
+	// object. AccessWorldObject still returns the completed immutable snapshot
+	// when another importer wins creation; that snapshot is valid for this caller.
+	if err != nil && !errors.Is(err, world.ErrObjectExists) {
 		return nil, "", "", errors.Wrap(err, "import local repository")
 	}
 	return repoRef, headHash, branchName, nil
@@ -218,14 +339,17 @@ func verifyImportedRepo(
 	snapshot *localRepoSnapshot,
 	wantedSet map[plumbing.Hash]struct{},
 ) error {
-	// Require the destination to resolve the complete captured object closure.
-	got, err := revlist.Objects(destination, snapshot.wants, nil)
-	if err != nil {
-		return errors.Wrap(err, "walk imported repository objects")
+	// Verify new closures in full; indexed roots retain the prior verification.
+	if wantedSet != nil {
+		got, err := revlist.Objects(destination, snapshot.wants, nil)
+		if err != nil {
+			return errors.Wrap(err, "walk imported repository objects")
+		}
+		if !sameHashSet(wantedSet, got) {
+			return errors.New("imported repository object closure differs from source")
+		}
 	}
-	if !sameHashSet(wantedSet, got) {
-		return errors.New("imported repository object closure differs from source")
-	}
+
 	// Verify the destination preserves resolved and symbolic HEAD identity.
 	destinationHead, err := storer.ResolveReference(destination, plumbing.HEAD)
 	if err != nil {
@@ -338,5 +462,5 @@ func (s *importObjectStore) DeltaObject(typ plumbing.ObjectType, hash plumbing.H
 	return s.EncodedObject(typ, hash)
 }
 
-// _ is a type assertion
+// Compile-time interface assertion.
 var _ storer.DeltaObjectStorer = (*importObjectStore)(nil)
