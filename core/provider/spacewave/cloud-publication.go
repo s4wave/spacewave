@@ -375,3 +375,95 @@ func rejectionCollides(state *sobject.SOState, inner *sobject.SOOperationInner) 
 	}
 	return false
 }
+
+// publishConfigChange posts a signed configuration change with the state it
+// changes through the cloud config-state transaction, then accepts the result.
+// prev is the state held under the write lock and next is that state after the
+// change. The caller holds writeMu.
+func (h *cloudSOHost) publishConfigChange(ctx context.Context, prev, next *sobject.SOState, entry *sobject.SOConfigChange) error {
+	// Settle accepted local work so the cloud holds the locked root.
+	if h.syncer != nil {
+		if err := h.syncer.FlushNow(ctx); err != nil {
+			return errors.Wrap(err, "flush pending publication")
+		}
+	}
+
+	// The cloud accepts only a newer root. When the change replaced the root's
+	// proofs, sign the unchanged contents at the next seqno and publish that
+	// root first, so the stored root verifies under the next configuration.
+	var root *sobject.SORoot
+	if !next.GetRoot().EqualVT(prev.GetRoot()) {
+		snap := sobject.NewSOStateParticipantHandle(h.le, h.sfs, h.soID, prev, h.privKey, h.peerID)
+		var err error
+		root, _, _, err = snap.ProcessOperations(ctx, nil, func(_ context.Context, stateData []byte, _ []*sobject.SOOperationInner) (*[]byte, []*sobject.SOOperationResult, error) {
+			return &stateData, nil, nil
+		})
+		if err != nil {
+			return errors.Wrap(err, "advance root")
+		}
+		valid, err := root.ValidateSignatures(h.soID, next.GetConfig().GetParticipants())
+		if err != nil {
+			return err
+		}
+		if err := sobject.CheckConsensusAcceptance(next.GetConfig().GetConsensusMode(), valid); err != nil {
+			return err
+		}
+		if err := h.client.PostRoot(ctx, h.soID, root, nil); err != nil {
+			return err
+		}
+	}
+
+	// Carry changed grants in the current key epoch and changed invites.
+	var epochs []*sobject.SOKeyEpoch
+	h.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) { epochs = cloneVTSlice(h.keyEpochs) })
+	current := currentEpochWithFallback(prev, epochs)
+	var epoch *sobject.SOKeyEpoch
+	if !slices.EqualFunc(prev.GetRootGrants(), next.GetRootGrants(), (*sobject.SOGrant).EqualVT) {
+		if current == nil {
+			return errors.New("current key epoch missing for grant change")
+		}
+		epoch = current
+		epoch.Grants = cloneVTSlice(next.GetRootGrants())
+	}
+	var invites []*sobject.SOInvite
+	if !slices.EqualFunc(prev.GetInvites(), next.GetInvites(), (*sobject.SOInvite).EqualVT) {
+		invites = cloneVTSlice(next.GetInvites())
+	}
+
+	// Recover the read key from the local grant.
+	grant := findSOGrantByPeerID(prev.GetRootGrants(), h.peerID.String())
+	if grant == nil && current != nil {
+		grant = findSOGrantByPeerID(current.GetGrants(), h.peerID.String())
+	}
+	if grant == nil {
+		return errors.New("local grant not found")
+	}
+	grantInner, err := grant.DecryptInnerData(h.privKey, h.soID)
+	if err != nil {
+		return errors.Wrap(err, "decrypt local grant")
+	}
+
+	// Seal the read key for each entity of the next configuration.
+	cfg, err := configWithConfigChangeHash(entry)
+	if err != nil {
+		return err
+	}
+	keyEpoch := sobject.CurrentEpochNumber(epochs)
+	if epoch != nil {
+		keyEpoch = epoch.GetEpoch()
+	}
+	envelopes, err := buildSORecoveryEnvelopes(ctx, h.client, h.soID, cfg, keyEpoch, grantInner)
+	if err != nil {
+		return errors.Wrap(err, "build recovery envelopes")
+	}
+
+	// Commit the change, then accept it with the published root.
+	entryData, err := entry.MarshalVT()
+	if err != nil {
+		return err
+	}
+	if err := h.client.PostConfigState(ctx, h.soID, entryData, invites, epoch, envelopes); err != nil {
+		return err
+	}
+	return h.applyConfigMutation(ctx, entry, invites, epoch, root)
+}

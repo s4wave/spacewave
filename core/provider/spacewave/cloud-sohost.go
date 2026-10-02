@@ -175,11 +175,13 @@ func newCloudSOHost(
 		// Bind the local snapshot to durable acceptance and the acquired write lock.
 		initialState := state.CloneVT()
 		writeFn := func(ctx context.Context, state *sobject.SOState, changes ...*sobject.SOConfigChange) error {
-			// Cloud configuration mutations use the server's config-state transaction.
-			if len(changes) != 0 {
-				return errors.New("configuration changes require cloud config-state publication")
+			if len(changes) == 0 {
+				return h.acceptLocalState(ctx, state)
 			}
-			return h.acceptLocalState(ctx, state)
+			if len(changes) != 1 {
+				return errors.New("cloud publishes one configuration change per write")
+			}
+			return h.publishConfigChange(ctx, initialState, state, changes[0])
 		}
 
 		return sobject.NewSOStateLock(initialState, writeFn, relLock), nil
@@ -203,6 +205,7 @@ func (h *cloudSOHost) execute(ctx context.Context, ready func(context.Context) e
 	h.ctxCancel = cancel
 	defer cancel()
 
+	// Receive notifications for the host's lifetime.
 	h.soHost.SetContext(ctx)
 	h.tracker.RegisterNotifyCallback(h.soID, func(payload *api.SONotifyEventPayload) {
 		h.handleSONotifyWithContext(ctx, payload)
@@ -225,6 +228,7 @@ func (h *cloudSOHost) execute(ctx context.Context, ready func(context.Context) e
 		}
 		return errors.Wrap(err, "initial state pull")
 	}
+	h.triggerConfigChanged()
 	if ready != nil {
 		if err := ready(ctx); err != nil {
 			return err
@@ -1022,12 +1026,14 @@ func (h *cloudSOHost) applyKeyEpoch(ctx context.Context, epoch *sobject.SOKeyEpo
 	})
 }
 
-// applyConfigMutation updates the cached state after a successful config-state write.
+// applyConfigMutation updates the cached state after a successful config-state
+// write. root is a root the write published first, or nil.
 func (h *cloudSOHost) applyConfigMutation(
 	ctx context.Context,
 	entry *sobject.SOConfigChange,
 	nextInvites []*sobject.SOInvite,
 	epoch *sobject.SOKeyEpoch,
+	root *sobject.SORoot,
 ) error {
 	// Serialize with peer imports.
 	release, err := h.acceptMu.Lock(ctx)
@@ -1079,8 +1085,12 @@ func (h *cloudSOHost) applyConfigMutation(
 		cache.KeyEpochs = mergeSOKeyEpochs(cache.KeyEpochs, epoch)
 	}
 
-	// Carry the new invites and the epoch's root grants into the next state.
+	// Carry the published root, new invites and the epoch's root grants into
+	// the next state. A newer root imported meanwhile stays.
 	if next != nil {
+		if root.GetInnerSeqno() > next.GetRoot().GetInnerSeqno() {
+			next.Root = root.CloneVT()
+		}
 		if nextInvites != nil {
 			next.Invites = cloneVTSlice(nextInvites)
 		}
@@ -1194,16 +1204,28 @@ func (h *cloudSOHost) handleConfigChanged(ctx context.Context) {
 			h.verifiedConfigChainSeqno,
 		)
 	})
-	if !changed {
-		return
-	}
 
 	// Join the existing verifier request when the observed head is newer.
-	if err := h.syncConfigChainSingleflight(ctx, newHash); err != nil {
-		if ctx.Err() != nil {
+	if changed {
+		if err := h.syncConfigChainSingleflight(ctx, newHash); err != nil {
+			if ctx.Err() != nil {
+				return
+			}
+			h.le.WithError(err).Warn("failed to sync config chain")
 			return
 		}
-		h.le.WithError(err).Warn("failed to sync config chain")
+	}
+
+	// Commit a departure the verified head hands to this peer, promoting this
+	// account's other peers so any of its sessions can sign afterward.
+	var promote []string
+	for _, p := range h.stateCtr.GetValue().GetConfig().GetParticipants() {
+		if p.GetEntityId() == h.selfEntityID && p.GetPeerId() != h.peerID.String() {
+			promote = append(promote, p.GetPeerId())
+		}
+	}
+	if _, err := sobject.CompleteSOOwnershipTransfer(ctx, h.soHost, h.privKey, promote...); err != nil && ctx.Err() == nil {
+		h.le.WithError(err).Warn("failed to complete ownership transfer")
 	}
 }
 

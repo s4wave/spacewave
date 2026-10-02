@@ -81,12 +81,12 @@ func (r *SOLeaveRequest) Verify() ([]string, error) {
 // The committing owner re-signs the departed peers' proofs, so it must remain while anyone remains.
 // Retries return only the original removal proof; an old request cannot remove a rejoined participant.
 func LeaveSOParticipants(ctx context.Context, host *SOHost, owner crypto.PrivKey, request *SOLeaveRequest) (*SOLeaveResponse, error) {
-	return leaveSOParticipants(ctx, host, owner, request, "")
+	return leaveSOParticipants(ctx, host, owner, request, nil)
 }
 
-// leaveSOParticipants is LeaveSOParticipants that also raises the remaining
-// participant promote to OWNER in the removal, unless promote is empty.
-func leaveSOParticipants(ctx context.Context, host *SOHost, owner crypto.PrivKey, request *SOLeaveRequest, promote string) (*SOLeaveResponse, error) {
+// leaveSOParticipants is LeaveSOParticipants that also raises each remaining
+// participant in promote to OWNER in the removal.
+func leaveSOParticipants(ctx context.Context, host *SOHost, owner crypto.PrivKey, request *SOLeaveRequest, promote []string) (*SOLeaveResponse, error) {
 	// Consent is bound to the selected host before its state can be read or changed.
 	peers, err := request.Verify()
 	if err != nil {
@@ -145,8 +145,10 @@ func leaveSOParticipants(ctx context.Context, host *SOHost, owner crypto.PrivKey
 		if len(next.Participants) != 0 && slices.Contains(peers, committer.String()) {
 			return nil, errors.New("remaining root grants require ownership transfer before owner departure")
 		}
-		if index := slices.IndexFunc(next.Participants, func(p *SOParticipantConfig) bool { return p.GetPeerId() == promote }); index != -1 {
-			next.Participants[index].Role = SOParticipantRole_SOParticipantRole_OWNER
+		for _, p := range next.Participants {
+			if slices.Contains(promote, p.GetPeerId()) {
+				p.Role = SOParticipantRole_SOParticipantRole_OWNER
+			}
 		}
 		change, err := BuildSOConfigChange(host.GetSharedObjectID(), current, next, SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_REMOVE_PARTICIPANT, owner, &SORevocationInfo{LeaveRequestHash: requestHash[:]})
 		if err != nil {

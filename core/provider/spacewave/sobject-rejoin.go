@@ -189,7 +189,7 @@ func (t *sobjectTracker) tryRecoverMissingSharedObjectPeer(
 			continue
 		}
 		t.persistOwnRecoveryEnvelope(ctx, so.GetSharedObjectID(), recoveryEnvelopes)
-		return so.host.applyConfigMutation(ctx, entry, nil, epoch)
+		return so.host.applyConfigMutation(ctx, entry, nil, epoch, nil)
 	}
 
 	return errors.New("self-enroll recovery failed after max retries due to config conflicts")
