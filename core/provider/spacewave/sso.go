@@ -9,7 +9,6 @@ import (
 	"net/url"
 	"path"
 
-	"filippo.io/age"
 	"github.com/pkg/errors"
 	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
 	provider_spacewave_handoff "github.com/s4wave/spacewave/core/provider/spacewave/handoff"
@@ -277,24 +276,10 @@ func (a *ProviderAccount) LinkSSOProvider(
 	// Optional Layer 1: wrap with age scrypt if PIN provided.
 	encrypted := pemData
 	if len(pin) > 0 {
-		r, err := age.NewScryptRecipient(string(pin))
+		encrypted, err = WrapPemWithPin(pemData, string(pin))
 		if err != nil {
-			return errors.Wrap(err, "create scrypt recipient")
+			return err
 		}
-		r.SetWorkFactor(18)
-
-		var buf bytes.Buffer
-		w, err := age.Encrypt(&buf, r)
-		if err != nil {
-			return errors.Wrap(err, "create age encryptor")
-		}
-		if _, err := w.Write(pemData); err != nil {
-			return errors.Wrap(err, "write to age encryptor")
-		}
-		if err := w.Close(); err != nil {
-			return errors.Wrap(err, "close age encryptor")
-		}
-		encrypted = buf.Bytes()
 		params.PinWrapped = true
 	}
 
@@ -314,6 +299,7 @@ func (a *ProviderAccount) LinkSSOProvider(
 		AuthParams:       authParams,
 	}
 
+	// Submit the signed link action.
 	_, err = a.entityCli.LinkSSO(
 		ctx,
 		a.accountID,

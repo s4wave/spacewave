@@ -6,17 +6,20 @@ import (
 	"context"
 	"os"
 	"strconv"
+	"strings"
 
 	"github.com/aperturerobotics/cli"
 	"github.com/pkg/errors"
 	auth_password "github.com/s4wave/spacewave/auth/method/password"
 	cli_entrypoint "github.com/s4wave/spacewave/bldr/cli/entrypoint"
 	provider_local "github.com/s4wave/spacewave/core/provider/local"
+	provider_spacewave "github.com/s4wave/spacewave/core/provider/spacewave"
 	spacewave_api "github.com/s4wave/spacewave/core/provider/spacewave/api"
 	session_pb "github.com/s4wave/spacewave/core/session"
 	"github.com/s4wave/spacewave/net/keypem"
 	"github.com/s4wave/spacewave/net/peer"
 	s4wave_account "github.com/s4wave/spacewave/sdk/account"
+	s4wave_provider_spacewave "github.com/s4wave/spacewave/sdk/provider/spacewave"
 	s4wave_session "github.com/s4wave/spacewave/sdk/session"
 	"golang.org/x/term"
 )
@@ -29,20 +32,27 @@ const (
 type authSessionHandle interface {
 	Release()
 	GetSessionInfo(context.Context) (*s4wave_session.GetSessionInfoResponse, error)
+	GetSession() *s4wave_session.Session
 }
 
-type authAccountService interface {
-	WatchAuthMethods(
-		context.Context,
-		*s4wave_account.WatchAuthMethodsRequest,
-	) (s4wave_account.SRPCAccountResourceService_WatchAuthMethodsClient, error)
+// credentialAccount lists the account's entity keypairs and their lock state.
+type credentialAccount interface {
 	WatchEntityKeypairs(
 		context.Context,
 		*s4wave_account.WatchEntityKeypairsRequest,
 	) (s4wave_account.SRPCAccountResourceService_WatchEntityKeypairsClient, error)
 }
 
+type authAccountService interface {
+	credentialAccount
+	WatchAuthMethods(
+		context.Context,
+		*s4wave_account.WatchAuthMethodsRequest,
+	) (s4wave_account.SRPCAccountResourceService_WatchAuthMethodsClient, error)
+}
+
 type authThresholdAccountService interface {
+	credentialAccount
 	WatchAccountInfo(
 		context.Context,
 		*s4wave_account.WatchAccountInfoRequest,
@@ -64,6 +74,10 @@ func (s *mountedAuthSession) Release() {
 
 func (s *mountedAuthSession) GetSessionInfo(ctx context.Context) (*s4wave_session.GetSessionInfoResponse, error) {
 	return s.session.GetSessionInfo(ctx)
+}
+
+func (s *mountedAuthSession) GetSession() *s4wave_session.Session {
+	return s.session
 }
 
 var (
@@ -148,15 +162,9 @@ func runAuthBackupGenerate(c *cli.Context, statePath string, sessionIdx uint32, 
 // the PEM to outFile, and print a confirmation line. Used by both the
 // auth backup generate and auth method add backup subcommands.
 func generateAndSaveBackupKey(c *cli.Context, statePath string, sessionIdx uint32, authPemFile, outFile string) error {
-	// Resolve the state path and collect the account credential.
+	// Resolve the state path.
 	ctx := c.Context
 	resolved, err := authResolveStatePath(c, statePath)
-	if err != nil {
-		return err
-	}
-
-	// Collect the account credential from the PEM file or password prompt.
-	cred, err := promptCredential(authPemFile)
 	if err != nil {
 		return err
 	}
@@ -190,6 +198,12 @@ func generateAndSaveBackupKey(c *cli.Context, statePath string, sessionIdx uint3
 	}
 	defer acctCleanup()
 
+	// Collect the credential that authorizes the change.
+	cred, err := resolveCredential(ctx, sess, acctSvc, authPemFile)
+	if err != nil {
+		return err
+	}
+
 	// Generate and persist the backup key through the account service.
 	resp, err := acctSvc.GenerateBackupKey(ctx, &s4wave_account.GenerateBackupKeyRequest{
 		Credential: cred,
@@ -212,12 +226,21 @@ func generateAndSaveBackupKey(c *cli.Context, statePath string, sessionIdx uint3
 	return nil
 }
 
-// promptCredential prompts for an entity credential (password or PEM file).
-// If pemFile is non-empty, reads the PEM file. Otherwise prompts for password.
-func promptCredential(pemFile string) (*session_pb.EntityCredential, error) {
+// passkeyAuthMethod is the auth method of a passkey entity keypair.
+const passkeyAuthMethod = "passkey"
+
+// resolveCredential selects the credential that authorizes an account change,
+// in the order the app uses: the PEM file, keypairs already unlocked in the
+// daemon, the account password, then a passkey confirmed in the browser. A nil
+// credential tells the daemon to sign with its unlocked keypairs.
+func resolveCredential(
+	ctx context.Context,
+	sess *s4wave_session.Session,
+	acct credentialAccount,
+	pemFile string,
+) (*session_pb.EntityCredential, error) {
 	// Read and wrap the supplied PEM credential when a file is given.
 	if pemFile != "" {
-		// Read and wrap the supplied PEM credential.
 		data, err := os.ReadFile(pemFile)
 		if err != nil {
 			return nil, errors.Wrap(err, "read PEM file")
@@ -227,52 +250,108 @@ func promptCredential(pemFile string) (*session_pb.EntityCredential, error) {
 		}, nil
 	}
 
-	// Prompt for and validate the account password.
-	os.Stderr.WriteString("Account password: ")
-	pw, err := term.ReadPassword(int(os.Stdin.Fd()))
-	os.Stderr.WriteString("\n")
+	// Read the account's keypairs; unlocked keypairs sign in the daemon.
+	strm, err := acct.WatchEntityKeypairs(ctx, &s4wave_account.WatchEntityKeypairsRequest{})
 	if err != nil {
-		return nil, errors.Wrap(err, "read password")
+		return nil, errors.Wrap(err, "watch entity keypairs")
 	}
-	if len(pw) == 0 {
-		return nil, errors.New("password must not be empty")
+	defer strm.Close()
+	keypairs, err := strm.Recv()
+	if err != nil {
+		return nil, errors.Wrap(err, "recv entity keypairs")
+	}
+	if keypairs.GetUnlockedCount() != 0 {
+		return nil, nil
+	}
+
+	// Prefer the password and fall back to the first passkey.
+	var passkeyPeerID string
+	for _, state := range keypairs.GetKeypairs() {
+		switch kp := state.GetKeypair(); kp.GetAuthMethod() {
+		case auth_password.MethodID:
+			pw, err := readSecret("Account password")
+			if err != nil {
+				return nil, err
+			}
+			return &session_pb.EntityCredential{
+				Credential: &session_pb.EntityCredential_Password{Password: pw},
+			}, nil
+		case passkeyAuthMethod:
+			if passkeyPeerID == "" {
+				passkeyPeerID = kp.GetPeerId()
+			}
+		}
+	}
+	if passkeyPeerID == "" {
+		return nil, errors.New("the account has no password or passkey; pass --pem-file")
+	}
+	return passkeyCredential(ctx, sess, passkeyPeerID)
+}
+
+// passkeyCredential confirms the passkey in the browser and recovers the
+// entity key it protects.
+func passkeyCredential(ctx context.Context, sess *s4wave_session.Session, peerID string) (*session_pb.EntityCredential, error) {
+	// Run the passkey ceremony in the system browser through the daemon.
+	sessionClient, err := sess.GetResourceRef().GetClient()
+	if err != nil {
+		return nil, errors.Wrap(err, "session client")
+	}
+	svc := s4wave_session.NewSRPCSpacewaveSessionResourceServiceClient(sessionClient)
+	os.Stderr.WriteString("Confirm with your passkey in the browser window.\n")
+	reauth, err := svc.StartDesktopPasskeyReauth(ctx, &s4wave_provider_spacewave.StartDesktopPasskeyReauthRequest{PeerId: peerID})
+	if err != nil {
+		return nil, errors.Wrap(err, "passkey reauth")
+	}
+
+	// Recover the entity PEM, asking for the PIN only when the key has one.
+	pem, err := provider_spacewave.RecoverPasskeyEntityPem(reauth, func() (string, error) {
+		return readSecret("Passkey PIN")
+	})
+	if err != nil {
+		return nil, err
 	}
 	return &session_pb.EntityCredential{
-		Credential: &session_pb.EntityCredential_Password{Password: string(pw)},
+		Credential: &session_pb.EntityCredential_PemPrivateKey{PemPrivateKey: pem},
 	}, nil
+}
+
+// readSecret reads a non-empty secret from the terminal without echo.
+func readSecret(label string) (string, error) {
+	// Prompt on stderr and read without echo.
+	os.Stderr.WriteString(label + ": ")
+	secret, err := term.ReadPassword(int(os.Stdin.Fd()))
+	os.Stderr.WriteString("\n")
+	if err != nil {
+		return "", errors.Wrapf(err, "read %s", strings.ToLower(label))
+	}
+	if len(secret) == 0 {
+		return "", errors.Errorf("%s must not be empty", label)
+	}
+	return string(secret), nil
 }
 
 // promptNewPassword prompts for a new password with confirmation.
 func promptNewPassword(label string) (string, error) {
-	// Prompt for the new password.
-	os.Stderr.WriteString(label + ": ")
-	pw, err := term.ReadPassword(int(os.Stdin.Fd()))
-	os.Stderr.WriteString("\n")
+	// Read the password and its confirmation.
+	pw, err := readSecret(label)
 	if err != nil {
-		return "", errors.Wrap(err, "read password")
+		return "", err
 	}
-
-	// Prompt for the confirmation password.
-	os.Stderr.WriteString("Retype " + label + ": ")
-	pw2, err := term.ReadPassword(int(os.Stdin.Fd()))
-	os.Stderr.WriteString("\n")
+	confirm, err := readSecret("Retype " + label)
 	if err != nil {
-		return "", errors.Wrap(err, "read password")
+		return "", err
 	}
-	if string(pw) != string(pw2) {
+	if pw != confirm {
 		return "", errors.New("passwords do not match")
 	}
-	if len(pw) == 0 {
-		return "", errors.New("password must not be empty")
-	}
-	return string(pw), nil
+	return pw, nil
 }
 
 // pemFileFlag returns the common --pem-file flag.
 func pemFileFlag(dest *string) cli.Flag {
 	return &cli.StringFlag{
 		Name:        "pem-file",
-		Usage:       "PEM key file for authentication (instead of password)",
+		Usage:       "PEM key file that authorizes the change, instead of a password or passkey",
 		Destination: dest,
 	}
 }
@@ -411,17 +490,14 @@ func newAuthMethodAddPasswordCommand() *cli.Command {
 
 // runAuthMethodAddPassword implements the auth method add password command.
 func runAuthMethodAddPassword(c *cli.Context, statePath string, sessionIdx uint32, pemFile string) error {
-	// Prompt for the existing credential and the new password.
-	cred, err := promptCredential(pemFile)
-	if err != nil {
-		return err
-	}
-	newPassword, err := promptNewPassword("New password")
-	if err != nil {
-		return err
-	}
-	return addAuthMethodFlow(c, statePath, sessionIdx, cred,
+	return addAuthMethodFlow(c, statePath, sessionIdx, pemFile,
 		func(acctInfo *s4wave_account.WatchAccountInfoResponse) (*session_pb.EntityKeypair, string, error) {
+			// Prompt for the new password once the current credential is in hand.
+			newPassword, err := promptNewPassword("New password")
+			if err != nil {
+				return nil, "", err
+			}
+
 			// Derive the new password keypair from the entity ID and password.
 			_, newPriv, err := auth_password.BuildParametersWithUsernamePassword(acctInfo.GetEntityId(), []byte(newPassword))
 			if err != nil {
@@ -478,16 +554,12 @@ func runAuthMethodAddPem(c *cli.Context, statePath string, sessionIdx uint32, au
 		return errors.Wrap(err, "derive peer ID")
 	}
 
-	// Collect the account credential from the PEM file or password prompt.
-	cred, err := promptCredential(authPemFile)
-	if err != nil {
-		return err
-	}
+	// Register the key through the shared flow.
 	pidStr := peerID.String()
 	if len(pidStr) > 16 {
 		pidStr = pidStr[:16] + "..."
 	}
-	return addAuthMethodFlow(c, statePath, sessionIdx, cred,
+	return addAuthMethodFlow(c, statePath, sessionIdx, authPemFile,
 		func(_ *s4wave_account.WatchAccountInfoResponse) (*session_pb.EntityKeypair, string, error) {
 			kp := &session_pb.EntityKeypair{
 				PeerId:     peerID.String(),
@@ -498,13 +570,14 @@ func runAuthMethodAddPem(c *cli.Context, statePath string, sessionIdx uint32, au
 }
 
 // addAuthMethodFlow performs the shared connect/mount/access/add-auth-method
-// flow. The buildKeypair callback runs after WatchAccountInfo recv and
-// returns the keypair to register plus the success message to write.
+// flow. The buildKeypair callback runs after the credential is collected and
+// WatchAccountInfo recv, and returns the keypair to register plus the success
+// message to write.
 func addAuthMethodFlow(
 	c *cli.Context,
 	statePath string,
 	sessionIdx uint32,
-	cred *session_pb.EntityCredential,
+	authPemFile string,
 	buildKeypair func(*s4wave_account.WatchAccountInfoResponse) (*session_pb.EntityKeypair, string, error),
 ) error {
 	// Resolve the state path from the context or flag.
@@ -542,6 +615,12 @@ func addAuthMethodFlow(
 		return err
 	}
 	defer acctCleanup()
+
+	// Collect the credential that authorizes the change.
+	cred, err := resolveCredential(ctx, sess, acctSvc, authPemFile)
+	if err != nil {
+		return err
+	}
 
 	// Receive one account info snapshot from the watch stream.
 	infoStrm, err := acctSvc.WatchAccountInfo(ctx, &s4wave_account.WatchAccountInfoRequest{})
@@ -630,12 +709,6 @@ func runAuthMethodRemove(c *cli.Context, statePath string, sessionIdx uint32, au
 		return err
 	}
 
-	// Collect the account credential from the PEM file or password prompt.
-	cred, err := promptCredential(authPemFile)
-	if err != nil {
-		return err
-	}
-
 	// Connect to the daemon with the resolved state path.
 	client, err := connectDaemonWithResolvedFallback(ctx, c, resolved)
 	if err != nil {
@@ -664,6 +737,12 @@ func runAuthMethodRemove(c *cli.Context, statePath string, sessionIdx uint32, au
 		return err
 	}
 	defer acctCleanup()
+
+	// Collect the credential that authorizes the change.
+	cred, err := resolveCredential(ctx, sess, acctSvc, authPemFile)
+	if err != nil {
+		return err
+	}
 
 	// Remove the auth method matching the peer ID.
 	_, err = acctSvc.RemoveAuthMethod(ctx, &s4wave_account.RemoveAuthMethodRequest{
@@ -1013,15 +1092,10 @@ func runAuthUnlock(c *cli.Context, statePath string, sessionIdx uint32) error {
 		return err
 	}
 
-	// Prompt for and validate the unlock PIN.
-	os.Stderr.WriteString("PIN: ")
-	pin, err := term.ReadPassword(int(os.Stdin.Fd()))
-	os.Stderr.WriteString("\n")
+	// Prompt for the unlock PIN.
+	pin, err := readSecret("PIN")
 	if err != nil {
-		return errors.Wrap(err, "read pin")
-	}
-	if len(pin) == 0 {
-		return errors.New("PIN must not be empty")
+		return err
 	}
 
 	// Connect to the daemon with the resolved state path.
@@ -1032,7 +1106,7 @@ func runAuthUnlock(c *cli.Context, statePath string, sessionIdx uint32) error {
 	defer client.close()
 
 	// Unlock the session with the PIN.
-	err = client.root.UnlockSession(ctx, sessionIdx, pin)
+	err = client.root.UnlockSession(ctx, sessionIdx, []byte(pin))
 	if err != nil {
 		return errors.Wrap(err, "unlock session")
 	}
@@ -1179,18 +1253,18 @@ func runAuthThresholdSet(c *cli.Context, statePath string, sessionIdx uint32, au
 	provID := info.GetSessionRef().GetProviderResourceRef().GetProviderId()
 	acctID := info.GetSessionRef().GetProviderResourceRef().GetProviderAccountId()
 
-	// Collect the account credential from the PEM file or password prompt.
-	cred, err := promptCredential(authPemFile)
-	if err != nil {
-		return err
-	}
-
 	// Access the account service for the session's provider account.
 	acctSvc, acctCleanup, err := authAccessThresholdAccount(ctx, client, provID, acctID)
 	if err != nil {
 		return err
 	}
 	defer acctCleanup()
+
+	// Collect the credential that authorizes the change.
+	cred, err := resolveCredential(ctx, sess.GetSession(), acctSvc, authPemFile)
+	if err != nil {
+		return err
+	}
 
 	// Set the auth threshold through the account service.
 	_, err = acctSvc.SetSecurityLevel(ctx, &s4wave_account.SetSecurityLevelRequest{

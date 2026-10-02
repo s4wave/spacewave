@@ -404,6 +404,7 @@ func newSessionRevokeCommand() *cli.Command {
 
 // runSessionRevoke implements the session revoke command.
 func runSessionRevoke(c *cli.Context, statePath string, sessionIdx uint32, authPemFile, sessionPeerID string) error {
+	// Resolve the state path and validate the target peer ID.
 	ctx := c.Context
 	resolved, err := resolveStatePathFromContext(c, statePath)
 	if err != nil {
@@ -413,18 +414,21 @@ func runSessionRevoke(c *cli.Context, statePath string, sessionIdx uint32, authP
 		return err
 	}
 
+	// Connect to the daemon.
 	client, err := connectDaemonWithResolvedFallback(ctx, c, resolved)
 	if err != nil {
 		return err
 	}
 	defer client.close()
 
+	// Mount the session that authorizes the revoke.
 	sess, err := client.mountSession(ctx, sessionIdx)
 	if err != nil {
 		return err
 	}
 	defer sess.Release()
 
+	// Identify the session's provider account.
 	info, err := sess.GetSessionInfo(ctx)
 	if err != nil {
 		return errors.Wrap(err, "get session info")
@@ -432,17 +436,20 @@ func runSessionRevoke(c *cli.Context, statePath string, sessionIdx uint32, authP
 	provID := info.GetSessionRef().GetProviderResourceRef().GetProviderId()
 	acctID := info.GetSessionRef().GetProviderResourceRef().GetProviderAccountId()
 
+	// Access the account service.
 	acctSvc, acctCleanup, err := client.accessAccount(ctx, provID, acctID)
 	if err != nil {
 		return err
 	}
 	defer acctCleanup()
 
-	cred, err := promptCredential(authPemFile)
+	// Collect the credential that authorizes the revoke.
+	cred, err := resolveCredential(ctx, sess, acctSvc, authPemFile)
 	if err != nil {
 		return err
 	}
 
+	// Revoke the target session.
 	_, err = acctSvc.RevokeSession(ctx, &s4wave_account.RevokeSessionRequest{
 		SessionPeerId: sessionPeerID,
 		Credential:    cred,
@@ -451,6 +458,7 @@ func runSessionRevoke(c *cli.Context, statePath string, sessionIdx uint32, authP
 		return errors.Wrap(err, "revoke session")
 	}
 
+	// Report the revoked peer.
 	pidStr := sessionPeerID
 	if len(pidStr) > 16 {
 		pidStr = pidStr[:16] + "..."

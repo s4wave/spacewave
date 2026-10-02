@@ -266,6 +266,8 @@ type fakeAuthSessionHandle struct {
 
 func (s *fakeAuthSessionHandle) Release() {}
 
+func (s *fakeAuthSessionHandle) GetSession() *s4wave_session.Session { return nil }
+
 func (s *fakeAuthSessionHandle) GetSessionInfo(context.Context) (*s4wave_session.GetSessionInfoResponse, error) {
 	if s.infoErr != nil {
 		return nil, s.infoErr

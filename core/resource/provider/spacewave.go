@@ -1,17 +1,13 @@
 package resource_provider
 
 import (
-	"bytes"
 	"context"
-	"crypto/aes"
-	"crypto/cipher"
 	"crypto/ecdh"
 	crand "crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
 	"io"
 
-	"filippo.io/age"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/util/scrub"
 	"github.com/pkg/errors"
@@ -37,8 +33,7 @@ import (
 const recoveryContext = "spacewave 2026-03-19 account recovery v1."
 
 const (
-	passkeyPrfOutputSize = 32
-	passkeyPrfSaltSize   = 32
+	passkeyPrfSaltSize = 32
 )
 
 // SpacewaveProviderResource implements the SpacewaveProviderResourceService.
@@ -346,6 +341,7 @@ func (s *SpacewaveProviderResource) WrapPemWithPin(
 	ctx context.Context,
 	req *s4wave_provider_spacewave.WrapPemWithPinRequest,
 ) (*s4wave_provider_spacewave.WrapPemWithPinResponse, error) {
+	// Require the PEM and the PIN.
 	pem := req.GetPemPrivateKey()
 	if pem == "" {
 		return nil, errors.New("pem_private_key is required")
@@ -354,28 +350,17 @@ func (s *SpacewaveProviderResource) WrapPemWithPin(
 	if pin == "" {
 		return nil, errors.New("pin is required")
 	}
-	r, err := age.NewScryptRecipient(pin)
-	if err != nil {
-		return nil, errors.Wrap(err, "create age scrypt recipient")
-	}
-	r.SetWorkFactor(18)
 
-	var buf bytes.Buffer
-	w, err := age.Encrypt(&buf, r)
+	// Wrap the PEM and encode the result.
+	wrapped, err := provider_spacewave.WrapPemWithPin([]byte(pem), pin)
 	if err != nil {
-		return nil, errors.Wrap(err, "create age encryptor")
-	}
-	if _, err := w.Write([]byte(pem)); err != nil {
-		return nil, errors.Wrap(err, "write age payload")
-	}
-	if err := w.Close(); err != nil {
-		return nil, errors.Wrap(err, "close age encryptor")
+		return nil, err
 	}
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
 	return &s4wave_provider_spacewave.WrapPemWithPinResponse{
-		WrappedPemBase64: base64.StdEncoding.EncodeToString(buf.Bytes()),
+		WrappedPemBase64: base64.StdEncoding.EncodeToString(wrapped),
 	}, nil
 }
 
@@ -384,6 +369,7 @@ func (s *SpacewaveProviderResource) UnwrapPemWithPin(
 	ctx context.Context,
 	req *s4wave_provider_spacewave.UnwrapPemWithPinRequest,
 ) (*s4wave_provider_spacewave.UnwrapPemWithPinResponse, error) {
+	// Require the wrapped PEM and the PIN.
 	wrapped := req.GetWrappedPemBase64()
 	if wrapped == "" {
 		return nil, errors.New("wrapped_pem_base64 is required")
@@ -392,21 +378,15 @@ func (s *SpacewaveProviderResource) UnwrapPemWithPin(
 	if pin == "" {
 		return nil, errors.New("pin is required")
 	}
+
+	// Decode and unwrap the PEM.
 	encrypted, err := base64.StdEncoding.DecodeString(wrapped)
 	if err != nil {
 		return nil, errors.Wrap(err, "decode wrapped PEM")
 	}
-	id, err := age.NewScryptIdentity(pin)
+	pem, err := provider_spacewave.UnwrapPemWithPin(encrypted, pin)
 	if err != nil {
-		return nil, errors.Wrap(err, "create age scrypt identity")
-	}
-	r, err := age.Decrypt(bytes.NewReader(encrypted), id)
-	if err != nil {
-		return nil, errors.Wrap(err, "decrypt wrapped PEM")
-	}
-	pem, err := io.ReadAll(r)
-	if err != nil {
-		return nil, errors.Wrap(err, "read decrypted PEM")
+		return nil, err
 	}
 	if err := ctx.Err(); err != nil {
 		return nil, err
@@ -438,32 +418,19 @@ func (s *SpacewaveProviderResource) WrapWithPasskeyPrf(
 	ctx context.Context,
 	req *s4wave_provider_spacewave.WrapWithPasskeyPrfRequest,
 ) (*s4wave_provider_spacewave.WrapWithPasskeyPrfResponse, error) {
+	// Require the plaintext.
 	plaintext := req.GetPlaintext()
 	if len(plaintext) == 0 {
 		return nil, errors.New("plaintext is required")
 	}
-	prfOutput := req.GetPrfOutput()
-	if len(prfOutput) != passkeyPrfOutputSize {
-		return nil, errors.Errorf("prf_output must be %d bytes", passkeyPrfOutputSize)
-	}
-	block, err := aes.NewCipher(prfOutput)
+
+	// Seal the plaintext.
+	ciphertext, params, err := provider_spacewave.WrapWithPasskeyPrf(plaintext, req.GetPrfOutput(), req.GetPinWrapped())
 	if err != nil {
-		return nil, errors.Wrap(err, "create passkey PRF cipher")
+		return nil, err
 	}
-	gcm, err := cipher.NewGCM(block)
-	if err != nil {
-		return nil, errors.Wrap(err, "create passkey PRF gcm")
-	}
-	nonce := make([]byte, gcm.NonceSize())
-	if _, err := io.ReadFull(crand.Reader, nonce); err != nil {
-		return nil, errors.Wrap(err, "generate passkey PRF nonce")
-	}
-	ciphertext := gcm.Seal(nil, nonce, plaintext, nil)
-	params := &s4wave_provider_spacewave.PasskeyPrfAuthParams{
-		Algorithm:  s4wave_provider_spacewave.PasskeyPrfWrapAlgorithm_PASSKEY_PRF_WRAP_ALGORITHM_AES_256_GCM_V1,
-		Nonce:      nonce,
-		PinWrapped: req.GetPinWrapped(),
-	}
+
+	// Encode the blob and its parameters.
 	authParams, err := params.MarshalVT()
 	if err != nil {
 		return nil, errors.Wrap(err, "marshal passkey PRF auth params")
@@ -482,6 +449,7 @@ func (s *SpacewaveProviderResource) UnwrapWithPasskeyPrf(
 	ctx context.Context,
 	req *s4wave_provider_spacewave.UnwrapWithPasskeyPrfRequest,
 ) (*s4wave_provider_spacewave.UnwrapWithPasskeyPrfResponse, error) {
+	// Require the blob and its parameters.
 	encryptedBlob := req.GetEncryptedBlobBase64()
 	if encryptedBlob == "" {
 		return nil, errors.New("encrypted_blob_base64 is required")
@@ -490,10 +458,8 @@ func (s *SpacewaveProviderResource) UnwrapWithPasskeyPrf(
 	if authParams == "" {
 		return nil, errors.New("auth_params_base64 is required")
 	}
-	prfOutput := req.GetPrfOutput()
-	if len(prfOutput) != passkeyPrfOutputSize {
-		return nil, errors.Errorf("prf_output must be %d bytes", passkeyPrfOutputSize)
-	}
+
+	// Decode the blob and its parameters.
 	ciphertext, err := base64.StdEncoding.DecodeString(encryptedBlob)
 	if err != nil {
 		return nil, errors.Wrap(err, "decode passkey PRF encrypted blob")
@@ -502,27 +468,15 @@ func (s *SpacewaveProviderResource) UnwrapWithPasskeyPrf(
 	if err != nil {
 		return nil, errors.Wrap(err, "decode passkey PRF auth params")
 	}
-	var params s4wave_provider_spacewave.PasskeyPrfAuthParams
+	params := &s4wave_provider_spacewave.PasskeyPrfAuthParams{}
 	if err := params.UnmarshalVT(authParamsBytes); err != nil {
 		return nil, errors.Wrap(err, "unmarshal passkey PRF auth params")
 	}
-	if params.GetAlgorithm() != s4wave_provider_spacewave.PasskeyPrfWrapAlgorithm_PASSKEY_PRF_WRAP_ALGORITHM_AES_256_GCM_V1 {
-		return nil, errors.New("unsupported passkey PRF wrap algorithm")
-	}
-	block, err := aes.NewCipher(prfOutput)
+
+	// Open the blob with the PRF output.
+	plaintext, err := provider_spacewave.UnwrapWithPasskeyPrf(ciphertext, params, req.GetPrfOutput())
 	if err != nil {
-		return nil, errors.Wrap(err, "create passkey PRF cipher")
-	}
-	gcm, err := cipher.NewGCM(block)
-	if err != nil {
-		return nil, errors.Wrap(err, "create passkey PRF gcm")
-	}
-	if len(params.GetNonce()) != gcm.NonceSize() {
-		return nil, errors.Errorf("passkey PRF nonce must be %d bytes", gcm.NonceSize())
-	}
-	plaintext, err := gcm.Open(nil, params.GetNonce(), ciphertext, nil)
-	if err != nil {
-		return nil, errors.Wrap(err, "decrypt passkey PRF blob")
+		return nil, err
 	}
 	if err := ctx.Err(); err != nil {
 		return nil, err
