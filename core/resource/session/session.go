@@ -1603,6 +1603,46 @@ func (r *SessionResource) ResolveSpaceJoinRequest(
 	return resp, nil
 }
 
+// WithdrawSpaceJoinRequest withdraws this session's pending request to join
+// through the invite. Withdrawing a request that no longer waits succeeds.
+func (r *SessionResource) WithdrawSpaceJoinRequest(
+	ctx context.Context,
+	req *s4wave_session.WithdrawSpaceJoinRequestRequest,
+) (*s4wave_session.WithdrawSpaceJoinRequestResponse, error) {
+	// Validate the request.
+	inviteMsg := req.GetInviteMessage()
+	if inviteMsg.GetSharedObjectId() == "" {
+		return nil, errors.New("invite_message with shared_object_id is required")
+	}
+
+	// Withdraw through the provider that holds the request.
+	switch acc := r.session.GetProviderAccount().(type) {
+	case *provider_local.ProviderAccount:
+		// The owner's host holds a local request.
+		sessionKey := r.session.GetPrivKey()
+		if sessionKey == nil {
+			return nil, errors.New("session is locked")
+		}
+		if err := acc.WithdrawJoinRequest(ctx, sessionKey, inviteMsg); err != nil {
+			return nil, err
+		}
+	case *provider_spacewave.ProviderAccount:
+		// The Space's mailbox holds a cloud request.
+		cli := acc.GetSessionClient()
+		if cli == nil {
+			return nil, errors.New("session client not ready")
+		}
+		soID := inviteMsg.GetSharedObjectId()
+		if _, err := cli.WithdrawMailboxEntries(ctx, soID); err != nil {
+			return nil, err
+		}
+		acc.TrackMailboxRequest(soID, inviteMsg.GetInviteId(), r.session.GetPeerId().String(), "withdrawn")
+	default:
+		return nil, errors.New("unsupported provider type for join request withdrawal")
+	}
+	return &s4wave_session.WithdrawSpaceJoinRequestResponse{}, nil
+}
+
 // findJoinRequest returns the invite redeemed by the pending request of peerID
 // to join spaceID, and a function that removes the request.
 //

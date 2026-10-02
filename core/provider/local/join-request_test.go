@@ -114,7 +114,8 @@ func requesters(space *provider_local.SharedObject) []string {
 	return peers
 }
 
-// TestJoinRequestApproval queues a redemption, refuses it, and grants a repeat by personal invite.
+// TestJoinRequestApproval queues a redemption, refuses it, lets the requester
+// withdraw a repeat, and grants another by personal invite.
 func TestJoinRequestApproval(t *testing.T) {
 	// Offer a Space by an invite that requires approval.
 	ctx, cancel := context.WithTimeout(t.Context(), 60*time.Second)
@@ -141,6 +142,20 @@ func TestJoinRequestApproval(t *testing.T) {
 	}
 	if len(requesters(space)) != 0 || h.participates(space) {
 		t.Fatal("refusal left a request or a participant")
+	}
+
+	// The requester withdraws a request it no longer wants. Withdrawing again
+	// finds nothing left and still succeeds.
+	if !h.redeem(knock) {
+		t.Fatal("request to withdraw was not queued")
+	}
+	for range 2 {
+		if err := h.reader.WithdrawJoinRequest(ctx, h.readerKey.GetPrivKey(), knock); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if len(requesters(space)) != 0 || h.participates(space) {
+		t.Fatal("withdrawal left a request or a participant")
 	}
 
 	// Asking again makes a new request. Revoking the invite it redeemed, as a

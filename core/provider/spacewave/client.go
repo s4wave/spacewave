@@ -2181,6 +2181,23 @@ func (c *SessionClient) ProcessMailboxEntry(
 	return resp, nil
 }
 
+// WithdrawMailboxEntries withdraws this peer's pending mailbox entries on soID
+// and returns how many it withdrew.
+func (c *SessionClient) WithdrawMailboxEntries(ctx context.Context, soID string) (uint32, error) {
+	// The route identifies the peer by its signed request, so it has no body.
+	respBody, err := c.doPost(ctx, "/api/sobject/"+soID+"/invite-mailbox/withdraw", "application/octet-stream", nil, nil, SeedReasonMutation)
+	if err != nil {
+		return 0, errors.Wrap(err, "withdraw mailbox entries")
+	}
+
+	// Decode how many pending entries the peer withdrew.
+	resp := &api.WithdrawMailboxEntriesResponse{}
+	if err := resp.UnmarshalVT(respBody); err != nil {
+		return 0, errors.Wrap(err, "unmarshal withdraw mailbox response")
+	}
+	return resp.GetWithdrawn(), nil
+}
+
 // CreateCheckoutSession submits the customer's explicit monthly-offer consent.
 func (c *SessionClient) CreateCheckoutSession(ctx context.Context, req *s4wave_provider_spacewave.CreateCheckoutSessionRequest) (*api.CheckoutResponse, error) {
 	body, err := (&api.CheckoutRequest{

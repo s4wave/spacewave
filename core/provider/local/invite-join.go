@@ -10,6 +10,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/core/sobject"
 	sobject_invite "github.com/s4wave/spacewave/core/sobject/invite"
+	"github.com/s4wave/spacewave/core/transport"
 	"github.com/s4wave/spacewave/net/crypto"
 	"github.com/s4wave/spacewave/net/link"
 	"github.com/s4wave/spacewave/net/peer"
@@ -39,45 +40,14 @@ func (a *ProviderAccount) JoinViaInvite(
 	inviteMsg *sobject.SOInviteMessage,
 	signalingURL string,
 ) (*sobject_invite.JoinResult, error) {
-	// Verify the owner peer the invite names.
-	if inviteMsg == nil {
-		return nil, errors.New("invite message is nil")
-	}
-	ownerPeerID, err := inviteMsg.VerifyTransportPeer()
+	// Reach the owner the invite names.
+	st, ownerPeerID, err := a.reachInviteOwner(ctx, sessionKey, inviteMsg, signalingURL)
 	if err != nil {
-		return nil, errors.Wrap(err, "parse invite owner peer id")
-	}
-
-	// A local account with no explicit signaling URL rendezvouses through the
-	// configured trusted cloud endpoint so WebRTC reconnects after restarts.
-	signingEnvPrefix := ""
-	if signalingURL == "" {
-		relay := a.fallbackSignalingEndpoint()
-		signalingURL = relay.url
-		signingEnvPrefix = relay.signingEnvPrefix
-	}
-
-	// Enrollment outlives this RPC. Bind its transport to the mounted account
-	// rather than to the invite request that happened to create it.
-	ownerCtx := a.lifecycleCtx
-	if ownerCtx == nil {
-		ownerCtx = ctx
-	}
-	if _, _, err := a.ensureSessionTransportWithOwner(
-		ctx, ownerCtx, sessionKey, signalingURL, signingEnvPrefix, true,
-	); err != nil {
-		return nil, errors.Wrap(err, "start session transport")
+		return nil, err
 	}
 
 	// Wait for the owner to be reachable on the session transport.
-	st := a.GetSessionTransport()
-	if st == nil {
-		return nil, errors.New("session transport not available")
-	}
 	childBus := st.GetChildBus()
-	if childBus == nil {
-		return nil, errors.New("session transport child bus not available")
-	}
 	joinCtx, joinCancel := context.WithTimeout(ctx, directInviteOwnerWaitTimeout)
 	defer joinCancel()
 	if err := a.waitDirectInviteOwnerOnline(
@@ -138,6 +108,93 @@ func (a *ProviderAccount) JoinViaInvite(
 	return result, nil
 }
 
+// WithdrawJoinRequest asks the owner the invite names to drop this session's
+// pending request to join the invite's shared object. The owner must be
+// reachable on the live transport.
+func (a *ProviderAccount) WithdrawJoinRequest(
+	ctx context.Context,
+	sessionKey crypto.PrivKey,
+	inviteMsg *sobject.SOInviteMessage,
+) error {
+	// Reach the owner the invite names.
+	st, ownerPeerID, err := a.reachInviteOwner(ctx, sessionKey, inviteMsg, "")
+	if err != nil {
+		return err
+	}
+
+	// Wait for the owner to be reachable on the session transport.
+	withdrawCtx, withdrawCancel := context.WithTimeout(ctx, directInviteOwnerWaitTimeout)
+	defer withdrawCancel()
+	if err := a.waitDirectInviteOwnerOnline(
+		withdrawCtx,
+		st.GetChildBus(),
+		st.GetPeerID(),
+		ownerPeerID.String(),
+	); err != nil {
+		return err
+	}
+
+	// Withdraw the request on the owner's host.
+	return sobject_invite.WithdrawJoinRequest(
+		withdrawCtx,
+		st.GetChildBus(),
+		st.GetPeerID(),
+		ownerPeerID,
+		inviteMsg.GetSharedObjectId(),
+	)
+}
+
+// reachInviteOwner verifies the owner peer inviteMsg names and starts the
+// session transport that reaches it.
+func (a *ProviderAccount) reachInviteOwner(
+	ctx context.Context,
+	sessionKey crypto.PrivKey,
+	inviteMsg *sobject.SOInviteMessage,
+	signalingURL string,
+) (*transport.SessionTransport, peer.ID, error) {
+	// Verify the owner peer the invite names.
+	if inviteMsg == nil {
+		return nil, "", errors.New("invite message is nil")
+	}
+	ownerPeerID, err := inviteMsg.VerifyTransportPeer()
+	if err != nil {
+		return nil, "", errors.Wrap(err, "parse invite owner peer id")
+	}
+
+	// A local account with no explicit signaling URL rendezvouses through the
+	// configured trusted cloud endpoint so WebRTC reconnects after restarts.
+	signingEnvPrefix := ""
+	if signalingURL == "" {
+		relay := a.fallbackSignalingEndpoint()
+		signalingURL = relay.url
+		signingEnvPrefix = relay.signingEnvPrefix
+	}
+
+	// Enrollment outlives this RPC. Bind its transport to the mounted account
+	// rather than to the invite request that happened to create it.
+	ownerCtx := a.lifecycleCtx
+	if ownerCtx == nil {
+		ownerCtx = ctx
+	}
+	if _, _, err := a.ensureSessionTransportWithOwner(
+		ctx, ownerCtx, sessionKey, signalingURL, signingEnvPrefix, true,
+	); err != nil {
+		return nil, "", errors.Wrap(err, "start session transport")
+	}
+
+	// Return the transport the session reaches the owner on.
+	st := a.GetSessionTransport()
+	if st == nil {
+		return nil, "", errors.New("session transport not available")
+	}
+	if st.GetChildBus() == nil {
+		return nil, "", errors.New("session transport child bus not available")
+	}
+	return st, ownerPeerID, nil
+}
+
+// waitDirectInviteOwnerOnline establishes a link to the owner, returning
+// ErrDirectInviteOwnerMustBeOnline when the owner is unreachable.
 func (a *ProviderAccount) waitDirectInviteOwnerOnline(
 	ctx context.Context,
 	childBus bus.Bus,

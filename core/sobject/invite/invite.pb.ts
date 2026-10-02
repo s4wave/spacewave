@@ -4,7 +4,10 @@
 
 import { SOGrant, SOJoinResponse, SOState } from '../sobject.pb.js'
 import type { MessageType } from '@aptre/protobuf-es-lite/message'
-import { createMessageType } from '@aptre/protobuf-es-lite/message'
+import {
+  createEmptyMessageType,
+  createMessageType,
+} from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
@@ -110,3 +113,40 @@ export const AcceptInviteResponse: MessageType<AcceptInviteResponse> =
       { no: 5, name: 'pending', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
   })
+
+/**
+ * WithdrawJoinRequestRequest is sent by a requester to the owner. The owner
+ * identifies the requester by the authenticated stream peer.
+ *
+ * @generated from message sobject.invite.WithdrawJoinRequestRequest
+ */
+export interface WithdrawJoinRequestRequest {
+  /**
+   * SharedObjectId is the shared object the request asks to join.
+   *
+   * @generated from field: string shared_object_id = 1;
+   */
+  sharedObjectId?: string
+}
+
+export const WithdrawJoinRequestRequest: MessageType<WithdrawJoinRequestRequest> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'sobject.invite.WithdrawJoinRequestRequest',
+    fields: [
+      { no: 1, name: 'shared_object_id', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+  })
+
+/**
+ * WithdrawJoinRequestResponse is returned once no request from the caller
+ * remains.
+ *
+ * @generated from message sobject.invite.WithdrawJoinRequestResponse
+ */
+export interface WithdrawJoinRequestResponse {}
+
+export const WithdrawJoinRequestResponse: MessageType<WithdrawJoinRequestResponse> =
+  /* @__PURE__ */ createEmptyMessageType<WithdrawJoinRequestResponse>(
+    'sobject.invite.WithdrawJoinRequestResponse',
+    true,
+  )

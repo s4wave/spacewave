@@ -528,6 +528,15 @@ export class Session extends Resource {
     )
   }
 
+  // withdrawSpaceJoinRequest withdraws this session's pending request to join
+  // through inviteMessage. Withdrawing a request that no longer waits succeeds.
+  public async withdrawSpaceJoinRequest(
+    inviteMessage: SOInviteMessage,
+    abortSignal?: AbortSignal,
+  ): Promise<void> {
+    await this.service.WithdrawSpaceJoinRequest({ inviteMessage }, abortSignal)
+  }
+
   // leaveSpace relinquishes the session account's grants on a space. When the
   // account owns the space and others remain, successorPeerId names the new
   // owner; empty selects one.

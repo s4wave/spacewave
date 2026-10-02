@@ -107,6 +107,8 @@ import {
   WatchSyncStatusResponse,
   WatchTransferProgressRequest,
   WatchTransferProgressResponse,
+  WithdrawSpaceJoinRequestRequest,
+  WithdrawSpaceJoinRequestResponse,
 } from './session.pb.js'
 import { MethodKind } from '@aptre/protobuf-es-lite'
 import {
@@ -490,6 +492,15 @@ export const SessionResourceServiceDefinition = {
       name: 'ResolveSpaceJoinRequest',
       I: ResolveSpaceJoinRequestRequest,
       O: ResolveSpaceJoinRequestResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * @generated from rpc s4wave.session.SessionResourceService.WithdrawSpaceJoinRequest
+     */
+    WithdrawSpaceJoinRequest: {
+      name: 'WithdrawSpaceJoinRequest',
+      I: WithdrawSpaceJoinRequestRequest,
+      O: WithdrawSpaceJoinRequestResponse,
       kind: MethodKind.Unary,
     },
     /**
@@ -959,6 +970,14 @@ export interface SessionResourceService {
     request: ResolveSpaceJoinRequestRequest,
     abortSignal?: AbortSignal,
   ): Promise<ResolveSpaceJoinRequestResponse>
+
+  /**
+   * @generated from rpc s4wave.session.SessionResourceService.WithdrawSpaceJoinRequest
+   */
+  WithdrawSpaceJoinRequest(
+    request: WithdrawSpaceJoinRequestRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<WithdrawSpaceJoinRequestResponse>
 
   /**
    * @generated from rpc s4wave.session.SessionResourceService.JoinSpaceViaInvite
@@ -1455,6 +1474,15 @@ export interface SessionResourceServiceHandler {
   ): Promise<ResolveSpaceJoinRequestResponse>
 
   /**
+   * @generated from rpc s4wave.session.SessionResourceService.WithdrawSpaceJoinRequest
+   */
+  WithdrawSpaceJoinRequest(
+    request: WithdrawSpaceJoinRequestRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<WithdrawSpaceJoinRequestResponse>
+
+  /**
    * @generated from rpc s4wave.session.SessionResourceService.JoinSpaceViaInvite
    */
   JoinSpaceViaInvite(
@@ -1635,6 +1663,7 @@ export class SessionResourceServiceClient implements SessionResourceService {
     this.RemoveSpaceParticipants = this.RemoveSpaceParticipants.bind(this)
     this.RevokeSpaceInvite = this.RevokeSpaceInvite.bind(this)
     this.ResolveSpaceJoinRequest = this.ResolveSpaceJoinRequest.bind(this)
+    this.WithdrawSpaceJoinRequest = this.WithdrawSpaceJoinRequest.bind(this)
     this.JoinSpaceViaInvite = this.JoinSpaceViaInvite.bind(this)
     this.CreateLocalPairingOffer = this.CreateLocalPairingOffer.bind(this)
     this.AcceptLocalPairingOffer = this.AcceptLocalPairingOffer.bind(this)
@@ -2336,6 +2365,23 @@ export class SessionResourceServiceClient implements SessionResourceService {
       abortSignal || undefined,
     )
     return ResolveSpaceJoinRequestResponse.fromBinary(result)
+  }
+
+  /**
+   * @generated from rpc s4wave.session.SessionResourceService.WithdrawSpaceJoinRequest
+   */
+  async WithdrawSpaceJoinRequest(
+    request: WithdrawSpaceJoinRequestRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<WithdrawSpaceJoinRequestResponse> {
+    const requestMsg = WithdrawSpaceJoinRequestRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      SessionResourceServiceDefinition.methods.WithdrawSpaceJoinRequest.name,
+      WithdrawSpaceJoinRequestRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return WithdrawSpaceJoinRequestResponse.fromBinary(result)
   }
 
   /**

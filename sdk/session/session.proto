@@ -58,6 +58,7 @@ service SessionResourceService {
   rpc RemoveSpaceParticipants(RemoveSpaceParticipantsRequest) returns (RemoveSpaceParticipantsResponse);
   rpc RevokeSpaceInvite(RevokeSpaceInviteRequest) returns (RevokeSpaceInviteResponse);
   rpc ResolveSpaceJoinRequest(ResolveSpaceJoinRequestRequest) returns (ResolveSpaceJoinRequestResponse);
+  rpc WithdrawSpaceJoinRequest(WithdrawSpaceJoinRequestRequest) returns (WithdrawSpaceJoinRequestResponse);
   rpc JoinSpaceViaInvite(JoinSpaceViaInviteRequest) returns (JoinSpaceViaInviteResponse);
   rpc CreateLocalPairingOffer(CreateLocalPairingOfferRequest) returns (CreateLocalPairingOfferResponse);
   rpc AcceptLocalPairingOffer(AcceptLocalPairingOfferRequest) returns (AcceptLocalPairingOfferResponse);
@@ -893,6 +894,15 @@ message ResolveSpaceJoinRequestResponse {
   // requester. Empty when the request was refused.
   .sobject.SOInviteMessage invite_message = 1;
 }
+
+// WithdrawSpaceJoinRequestRequest is the request for WithdrawSpaceJoinRequest.
+message WithdrawSpaceJoinRequestRequest {
+  // InviteMessage is the invite whose redemption is waiting for approval.
+  .sobject.SOInviteMessage invite_message = 1;
+}
+
+// WithdrawSpaceJoinRequestResponse is the response for WithdrawSpaceJoinRequest.
+message WithdrawSpaceJoinRequestResponse {}
 
 // JoinSpaceViaInviteRequest is the request for JoinSpaceViaInvite.
 message JoinSpaceViaInviteRequest {

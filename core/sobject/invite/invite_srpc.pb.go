@@ -17,6 +17,8 @@ type SRPCSOInviteServiceClient interface {
 
 	// AcceptInvite verifies admission proofs and issues native participant grants.
 	AcceptInvite(ctx context.Context, in *AcceptInviteRequest) (*AcceptInviteResponse, error)
+	// WithdrawJoinRequest removes the caller's pending join request.
+	WithdrawJoinRequest(ctx context.Context, in *WithdrawJoinRequestRequest) (*WithdrawJoinRequestResponse, error)
 	// Leave verifies signed consent and returns the owner's committed removal proof.
 	Leave(ctx context.Context, in *sobject.SOLeaveRequest) (*sobject.SOLeaveResponse, error)
 }
@@ -48,6 +50,15 @@ func (c *srpcSOInviteServiceClient) AcceptInvite(ctx context.Context, in *Accept
 	return out, nil
 }
 
+func (c *srpcSOInviteServiceClient) WithdrawJoinRequest(ctx context.Context, in *WithdrawJoinRequestRequest) (*WithdrawJoinRequestResponse, error) {
+	out := new(WithdrawJoinRequestResponse)
+	err := c.cc.ExecCall(ctx, c.serviceID, "WithdrawJoinRequest", in, out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *srpcSOInviteServiceClient) Leave(ctx context.Context, in *sobject.SOLeaveRequest) (*sobject.SOLeaveResponse, error) {
 	out := new(sobject.SOLeaveResponse)
 	err := c.cc.ExecCall(ctx, c.serviceID, "Leave", in, out)
@@ -60,6 +71,8 @@ func (c *srpcSOInviteServiceClient) Leave(ctx context.Context, in *sobject.SOLea
 type SRPCSOInviteServiceServer interface {
 	// AcceptInvite verifies admission proofs and issues native participant grants.
 	AcceptInvite(context.Context, *AcceptInviteRequest) (*AcceptInviteResponse, error)
+	// WithdrawJoinRequest removes the caller's pending join request.
+	WithdrawJoinRequest(context.Context, *WithdrawJoinRequestRequest) (*WithdrawJoinRequestResponse, error)
 	// Leave verifies signed consent and returns the owner's committed removal proof.
 	Leave(context.Context, *sobject.SOLeaveRequest) (*sobject.SOLeaveResponse, error)
 }
@@ -91,6 +104,7 @@ func (d *SRPCSOInviteServiceHandler) GetServiceID() string { return d.serviceID 
 func (SRPCSOInviteServiceHandler) GetMethodIDs() []string {
 	return []string{
 		"AcceptInvite",
+		"WithdrawJoinRequest",
 		"Leave",
 	}
 }
@@ -106,6 +120,8 @@ func (d *SRPCSOInviteServiceHandler) InvokeMethod(
 	switch methodID {
 	case "AcceptInvite":
 		return true, d.InvokeMethod_AcceptInvite(d.impl, strm)
+	case "WithdrawJoinRequest":
+		return true, d.InvokeMethod_WithdrawJoinRequest(d.impl, strm)
 	case "Leave":
 		return true, d.InvokeMethod_Leave(d.impl, strm)
 	default:
@@ -119,6 +135,18 @@ func (SRPCSOInviteServiceHandler) InvokeMethod_AcceptInvite(impl SRPCSOInviteSer
 		return err
 	}
 	out, err := impl.AcceptInvite(strm.Context(), req)
+	if err != nil {
+		return err
+	}
+	return strm.MsgSend(out)
+}
+
+func (SRPCSOInviteServiceHandler) InvokeMethod_WithdrawJoinRequest(impl SRPCSOInviteServiceServer, strm srpc.Stream) error {
+	req := new(WithdrawJoinRequestRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	out, err := impl.WithdrawJoinRequest(strm.Context(), req)
 	if err != nil {
 		return err
 	}
@@ -142,6 +170,14 @@ type SRPCSOInviteService_AcceptInviteStream interface {
 }
 
 type srpcSOInviteService_AcceptInviteStream struct {
+	srpc.Stream
+}
+
+type SRPCSOInviteService_WithdrawJoinRequestStream interface {
+	srpc.Stream
+}
+
+type srpcSOInviteService_WithdrawJoinRequestStream struct {
 	srpc.Stream
 }
 

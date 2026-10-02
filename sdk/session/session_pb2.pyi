@@ -846,6 +846,16 @@ class ResolveSpaceJoinRequestResponse(_message.Message):
     invite_message: _sobject_pb2.SOInviteMessage
     def __init__(self, invite_message: _Optional[_Union[_sobject_pb2.SOInviteMessage, _Mapping]] = ...) -> None: ...
 
+class WithdrawSpaceJoinRequestRequest(_message.Message):
+    __slots__ = ("invite_message",)
+    INVITE_MESSAGE_FIELD_NUMBER: _ClassVar[int]
+    invite_message: _sobject_pb2.SOInviteMessage
+    def __init__(self, invite_message: _Optional[_Union[_sobject_pb2.SOInviteMessage, _Mapping]] = ...) -> None: ...
+
+class WithdrawSpaceJoinRequestResponse(_message.Message):
+    __slots__ = ()
+    def __init__(self) -> None: ...
+
 class JoinSpaceViaInviteRequest(_message.Message):
     __slots__ = ("invite_message", "targeted_invitation_envelope")
     INVITE_MESSAGE_FIELD_NUMBER: _ClassVar[int]

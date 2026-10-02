@@ -100,6 +100,16 @@ func LeaveSharedObject(ctx context.Context, childBus bus.Bus, localPeerID, owner
 	return NewSRPCSOInviteServiceClient(srpc.NewClient(open)).Leave(ctx, request)
 }
 
+// WithdrawJoinRequest asks the owner to remove the caller's pending request to
+// join the shared object.
+func WithdrawJoinRequest(ctx context.Context, childBus bus.Bus, localPeerID, ownerPeerID peer.ID, sharedObjectID string) error {
+	open := stream_srpc.NewOpenStreamFunc(childBus, ProtocolID, localPeerID, ownerPeerID, 0)
+	_, err := NewSRPCSOInviteServiceClient(srpc.NewClient(open)).WithdrawJoinRequest(ctx, &WithdrawJoinRequestRequest{
+		SharedObjectId: sharedObjectID,
+	})
+	return err
+}
+
 // BuildJoinResponse constructs and signs a SOJoinResponse for an invite.
 // The invitee calls this with their private key and the invite details.
 func BuildJoinResponse(inviteID string, privKey crypto.PrivKey) (*sobject.SOJoinResponse, error) {

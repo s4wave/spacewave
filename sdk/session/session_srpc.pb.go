@@ -96,6 +96,8 @@ type SRPCSessionResourceServiceClient interface {
 
 	ResolveSpaceJoinRequest(ctx context.Context, in *ResolveSpaceJoinRequestRequest) (*ResolveSpaceJoinRequestResponse, error)
 
+	WithdrawSpaceJoinRequest(ctx context.Context, in *WithdrawSpaceJoinRequestRequest) (*WithdrawSpaceJoinRequestResponse, error)
+
 	JoinSpaceViaInvite(ctx context.Context, in *JoinSpaceViaInviteRequest) (*JoinSpaceViaInviteResponse, error)
 
 	CreateLocalPairingOffer(ctx context.Context, in *CreateLocalPairingOfferRequest) (*CreateLocalPairingOfferResponse, error)
@@ -722,6 +724,15 @@ func (c *srpcSessionResourceServiceClient) ResolveSpaceJoinRequest(ctx context.C
 	return out, nil
 }
 
+func (c *srpcSessionResourceServiceClient) WithdrawSpaceJoinRequest(ctx context.Context, in *WithdrawSpaceJoinRequestRequest) (*WithdrawSpaceJoinRequestResponse, error) {
+	out := new(WithdrawSpaceJoinRequestResponse)
+	err := c.cc.ExecCall(ctx, c.serviceID, "WithdrawSpaceJoinRequest", in, out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *srpcSessionResourceServiceClient) JoinSpaceViaInvite(ctx context.Context, in *JoinSpaceViaInviteRequest) (*JoinSpaceViaInviteResponse, error) {
 	out := new(JoinSpaceViaInviteResponse)
 	err := c.cc.ExecCall(ctx, c.serviceID, "JoinSpaceViaInvite", in, out)
@@ -985,6 +996,8 @@ type SRPCSessionResourceServiceServer interface {
 
 	ResolveSpaceJoinRequest(context.Context, *ResolveSpaceJoinRequestRequest) (*ResolveSpaceJoinRequestResponse, error)
 
+	WithdrawSpaceJoinRequest(context.Context, *WithdrawSpaceJoinRequestRequest) (*WithdrawSpaceJoinRequestResponse, error)
+
 	JoinSpaceViaInvite(context.Context, *JoinSpaceViaInviteRequest) (*JoinSpaceViaInviteResponse, error)
 
 	CreateLocalPairingOffer(context.Context, *CreateLocalPairingOfferRequest) (*CreateLocalPairingOfferResponse, error)
@@ -1083,6 +1096,7 @@ func (SRPCSessionResourceServiceHandler) GetMethodIDs() []string {
 		"RemoveSpaceParticipants",
 		"RevokeSpaceInvite",
 		"ResolveSpaceJoinRequest",
+		"WithdrawSpaceJoinRequest",
 		"JoinSpaceViaInvite",
 		"CreateLocalPairingOffer",
 		"AcceptLocalPairingOffer",
@@ -1187,6 +1201,8 @@ func (d *SRPCSessionResourceServiceHandler) InvokeMethod(
 		return true, d.InvokeMethod_RevokeSpaceInvite(d.impl, strm)
 	case "ResolveSpaceJoinRequest":
 		return true, d.InvokeMethod_ResolveSpaceJoinRequest(d.impl, strm)
+	case "WithdrawSpaceJoinRequest":
+		return true, d.InvokeMethod_WithdrawSpaceJoinRequest(d.impl, strm)
 	case "JoinSpaceViaInvite":
 		return true, d.InvokeMethod_JoinSpaceViaInvite(d.impl, strm)
 	case "CreateLocalPairingOffer":
@@ -1663,6 +1679,18 @@ func (SRPCSessionResourceServiceHandler) InvokeMethod_ResolveSpaceJoinRequest(im
 		return err
 	}
 	out, err := impl.ResolveSpaceJoinRequest(strm.Context(), req)
+	if err != nil {
+		return err
+	}
+	return strm.MsgSend(out)
+}
+
+func (SRPCSessionResourceServiceHandler) InvokeMethod_WithdrawSpaceJoinRequest(impl SRPCSessionResourceServiceServer, strm srpc.Stream) error {
+	req := new(WithdrawSpaceJoinRequestRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	out, err := impl.WithdrawSpaceJoinRequest(strm.Context(), req)
 	if err != nil {
 		return err
 	}
@@ -2256,6 +2284,14 @@ type SRPCSessionResourceService_ResolveSpaceJoinRequestStream interface {
 }
 
 type srpcSessionResourceService_ResolveSpaceJoinRequestStream struct {
+	srpc.Stream
+}
+
+type SRPCSessionResourceService_WithdrawSpaceJoinRequestStream interface {
+	srpc.Stream
+}
+
+type srpcSessionResourceService_WithdrawSpaceJoinRequestStream struct {
 	srpc.Stream
 }
 

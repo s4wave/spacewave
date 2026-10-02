@@ -5,10 +5,13 @@ option go_package = "github.com/s4wave/spacewave/core/sobject/invite;sobject_inv
 
 import "github.com/s4wave/spacewave/core/sobject/sobject.proto";
 
-// SOInviteService admits invitees and acknowledges voluntary departures through native authority.
+// SOInviteService admits invitees, withdraws their join requests and
+// acknowledges voluntary departures through native authority.
 service SOInviteService {
   // AcceptInvite verifies admission proofs and issues native participant grants.
   rpc AcceptInvite(AcceptInviteRequest) returns (AcceptInviteResponse);
+  // WithdrawJoinRequest removes the caller's pending join request.
+  rpc WithdrawJoinRequest(WithdrawJoinRequestRequest) returns (WithdrawJoinRequestResponse);
   // Leave verifies signed consent and returns the owner's committed removal proof.
   rpc Leave(.sobject.SOLeaveRequest) returns (.sobject.SOLeaveResponse);
 }
@@ -43,3 +46,14 @@ message AcceptInviteResponse {
   // instead of admitting it. Every other field is empty.
   bool pending = 5;
 }
+
+// WithdrawJoinRequestRequest is sent by a requester to the owner. The owner
+// identifies the requester by the authenticated stream peer.
+message WithdrawJoinRequestRequest {
+  // SharedObjectId is the shared object the request asks to join.
+  string shared_object_id = 1;
+}
+
+// WithdrawJoinRequestResponse is returned once no request from the caller
+// remains.
+message WithdrawJoinRequestResponse {}

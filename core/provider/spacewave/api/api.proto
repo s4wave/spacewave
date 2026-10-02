@@ -2508,6 +2508,14 @@ message ProcessMailboxEntryResponse {
   string status = 1;
 }
 
+// WithdrawMailboxEntriesResponse is the response body for POST
+// /sobject/:id/invite-mailbox/withdraw. The request has no body: the
+// authenticated peer withdraws its own pending entries.
+message WithdrawMailboxEntriesResponse {
+  // Withdrawn is the number of pending entries the peer withdrew.
+  uint32 withdrawn = 1;
+}
+
 // -- Multi-sig action response envelope --
 
 // KeypairAddResult is the multi-sig response payload for keypair add.
