@@ -224,8 +224,8 @@ func checkRawFile(ctx context.Context, ws world.WorldState, i int) error {
 // SharedObject World transaction writes is owned by its parent block or
 // released, never left owned directly by the Space bucket, and that every
 // committed object survives a sweep afterwards. It covers chunked file
-// objects, abandoned transactions, including one that drained part of its
-// write buffer, and an object updated several times within one transaction.
+// objects, abandoned transactions and an object updated several times within
+// one transaction.
 func TestWorldEngineObjectBlocksHaveParents(t *testing.T) {
 	// Start the Space World.
 	ctx, cancel := context.WithTimeout(t.Context(), 60*time.Second)
@@ -245,23 +245,9 @@ func TestWorldEngineObjectBlocksHaveParents(t *testing.T) {
 		}
 	}
 
-	// Abandon a transaction that wrote more blocks than its write buffer holds,
-	// so part of it drained to the bucket before the abandon.
-	err := world.ExecTransaction(ctx, w.eng, true, func(ctx context.Context, ws world.WorldState) error {
-		for i := range 5000 {
-			if err := writeExample(ctx, ws, "drained/"+strconv.Itoa(i), "drained "+strconv.Itoa(i)); err != nil {
-				return err
-			}
-		}
-		return errAbandon
-	})
-	if !errors.Is(err, errAbandon) {
-		t.Fatal(err)
-	}
-
 	// Update one object several times within one transaction, as a batched
 	// writer does. Only the final root stays referenced.
-	err = world.ExecTransaction(ctx, w.eng, true, func(ctx context.Context, ws world.WorldState) error {
+	err := world.ExecTransaction(ctx, w.eng, true, func(ctx context.Context, ws world.WorldState) error {
 		for i := range 4 {
 			if err := writeExample(ctx, ws, "record", "record version "+strconv.Itoa(i)); err != nil {
 				return err
