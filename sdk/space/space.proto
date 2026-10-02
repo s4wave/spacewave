@@ -150,6 +150,9 @@ message SpaceSharingState {
   uint64 config_chain_seqno = 8;
   // ViewerPeerId identifies the authenticated mounted shared-object participant peer.
   string viewer_peer_id = 9;
+  // DeparturePending is true while the head ownership transfer carries a
+  // departure its successor has not committed. Roles change when it commits.
+  bool departure_pending = 10;
 }
 
 // TransformInfo contains redacted transform configuration for display.

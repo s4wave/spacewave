@@ -454,6 +454,13 @@ export interface SpaceSharingState {
    * @generated from field: string viewer_peer_id = 9;
    */
   viewerPeerId?: string
+  /**
+   * DeparturePending is true while the head ownership transfer carries a
+   * departure its successor has not committed. Roles change when it commits.
+   *
+   * @generated from field: bool departure_pending = 10;
+   */
+  departurePending?: boolean
 }
 
 export const SpaceSharingState: MessageType<SpaceSharingState> =
@@ -498,6 +505,7 @@ export const SpaceSharingState: MessageType<SpaceSharingState> =
         T: ScalarType.UINT64,
       },
       { no: 9, name: 'viewer_peer_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 10, name: 'departure_pending', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
   })
 

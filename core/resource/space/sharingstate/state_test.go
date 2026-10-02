@@ -288,8 +288,8 @@ func TestWatchStateOmitsDepartingPeers(t *testing.T) {
 	if err != context.Canceled {
 		t.Fatalf("RunWatchLoop: %v", err)
 	}
-	if got.ViewerRole != sobject.SOParticipantRole_SOParticipantRole_UNKNOWN || got.CanManage {
-		t.Fatalf("departing viewer role = %v, can manage = %v", got.ViewerRole, got.CanManage)
+	if got.ViewerRole != sobject.SOParticipantRole_SOParticipantRole_UNKNOWN || got.CanManage || !got.DeparturePending {
+		t.Fatalf("departing viewer role = %v, can manage = %v, pending = %v", got.ViewerRole, got.CanManage, got.DeparturePending)
 	}
 	if len(got.Participants) != 1 || got.Participants[0].GetPeerId() != "peer-2" {
 		t.Fatalf("participants = %v, want only peer-2", got.Participants)

@@ -97,23 +97,26 @@ func TestNativeOwnerTransfer(t *testing.T) {
 		t.Fatalf("read checkpoint config seqno = %d, want %d", seqno, before.GetConfig().GetConfigChainSeqno())
 	}
 
-	// The successor's account commits the departure and owns the object as host.
+	// The successor's account commits the departure.
 	states, releaseStates, err := successor.GetSOHost().GetSOStateCtr(ctx, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer releaseStates()
-	if _, err := states.WaitValueWithValidator(ctx, func(state *sobject.SOState) (bool, error) {
-		participants := state.GetConfig().GetParticipants()
-		departed := slices.ContainsFunc(participants, func(p *sobject.SOParticipantConfig) bool {
+	departed, err := states.WaitValueWithValidator(ctx, func(state *sobject.SOState) (bool, error) {
+		return !slices.ContainsFunc(state.GetConfig().GetParticipants(), func(p *sobject.SOParticipantConfig) bool {
 			return p.GetPeerId() == object.GetPeerID().String()
-		})
-		hosting := slices.ContainsFunc(participants, func(p *sobject.SOParticipantConfig) bool {
-			return p.GetPeerId() == successor.GetPeerID().String() && sobject.IsOwner(p.GetRole())
-		})
-		return !departed && hosting, nil
-	}, nil); err != nil {
-		t.Fatalf("successor did not take ownership: %v", err)
+		}), nil
+	}, nil)
+	if err != nil {
+		t.Fatalf("successor did not commit the departure: %v", err)
+	}
+
+	// The same change makes the successor's storage identity the owning host.
+	if !slices.ContainsFunc(departed.GetConfig().GetParticipants(), func(p *sobject.SOParticipantConfig) bool {
+		return p.GetPeerId() == successor.GetPeerID().String() && sobject.IsOwner(p.GetRole())
+	}) {
+		t.Fatal("departure committed before the successor's storage identity became owner")
 	}
 	waitSOEndpoint(ctx, t, first, id, "")
 	waitSOEndpoint(ctx, t, second, id, firstSession.GetPeerId().String())

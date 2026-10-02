@@ -100,10 +100,12 @@ func applySOOwnerPromotion(
 }
 
 // CompleteSOOwnershipTransfer commits the departure carried by an ownership
-// transfer at the configuration head, signed by a remaining owner. It reports
-// false without changes when the head carries no departure or owner is
-// departing, so a host may call it after each configuration change it accepts.
-func CompleteSOOwnershipTransfer(ctx context.Context, host *SOHost, owner crypto.PrivKey) (bool, error) {
+// transfer at the configuration head, signed by a remaining owner. The same
+// change raises promote to OWNER unless it is empty, so the successor's account
+// can sign as host as soon as the departure settles. It reports false without
+// changes when the head carries no departure or owner is departing, so a host
+// may call it after each configuration change it accepts.
+func CompleteSOOwnershipTransfer(ctx context.Context, host *SOHost, owner crypto.PrivKey, promote string) (bool, error) {
 	// Only the transition at the head carries a pending departure.
 	state, err := host.GetHostState(ctx)
 	if err != nil {
@@ -130,7 +132,7 @@ func CompleteSOOwnershipTransfer(ctx context.Context, host *SOHost, owner crypto
 	if slices.Contains(peers, ownerID.String()) || !isOwnerPeer(state.GetConfig(), ownerID.String()) {
 		return false, nil
 	}
-	if _, err := LeaveSOParticipants(ctx, host, owner, entry.GetLeaveRequest()); err != nil {
+	if _, err := leaveSOParticipants(ctx, host, owner, entry.GetLeaveRequest(), promote); err != nil {
 		return false, err
 	}
 	return true, nil
