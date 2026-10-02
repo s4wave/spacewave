@@ -49,6 +49,7 @@ func newSessionListCommand() *cli.Command {
 
 // runSessionList implements the session list command logic.
 func runSessionList(c *cli.Context, statePath, outputFormat string) error {
+	// Connect to the daemon.
 	ctx := c.Context
 	client, err := connectDaemonFromContext(ctx, c, statePath)
 	if err != nil {
@@ -56,11 +57,13 @@ func runSessionList(c *cli.Context, statePath, outputFormat string) error {
 	}
 	defer client.close()
 
+	// List the registered Sessions.
 	sessions, err := client.root.ListSessions(ctx)
 	if err != nil {
 		return errors.Wrap(err, "list sessions")
 	}
 
+	// Print structured output as is.
 	if outputFormat == "json" || outputFormat == "yaml" {
 		data, err := protojson.MarshalSlice(protojson.MarshalerConfig{}, sessions)
 		if err != nil {
@@ -69,18 +72,31 @@ func runSessionList(c *cli.Context, statePath, outputFormat string) error {
 		return formatOutput(data, outputFormat)
 	}
 
+	// Print the table, or a note when there are no Sessions.
 	if len(sessions) == 0 {
 		os.Stdout.WriteString("no sessions\n")
 		return nil
 	}
-	rows := [][]string{{"INDEX", "SESSION", "PROVIDER", "ACCOUNT"}}
+	rows := [][]string{{"INDEX", "SESSION", "PROVIDER", "ACCOUNT", "USERNAME"}}
 	for _, s := range sessions {
+		// Spacewave Sessions store the account username as their display name.
 		ref := s.GetSessionRef().GetProviderResourceRef()
+		var username string
+		if ref.GetProviderId() == "spacewave" {
+			meta, _, err := client.root.GetSessionMetadata(ctx, s.GetSessionIndex())
+			if err != nil {
+				return errors.Wrap(err, "get session metadata")
+			}
+			username = meta.GetDisplayName()
+		}
+
+		// Add the Session row.
 		rows = append(rows, []string{
 			strconv.FormatUint(uint64(s.GetSessionIndex()), 10),
 			truncateID(ref.GetId(), 8),
 			ref.GetProviderId(),
 			ref.GetProviderAccountId(),
+			username,
 		})
 	}
 	writeTable(os.Stdout, "", rows)
