@@ -173,6 +173,10 @@ message DeleteSpaceResponse {}
 message LeaveSpaceRequest {
   // SharedObjectId identifies the external shared object whose native grants are relinquished.
   string shared_object_id = 1;
+  // SuccessorPeerId names the participant promoted to owner when the leaving
+  // account hosts the Space and others remain. Empty selects the remaining
+  // participant with the highest role, then the earliest admitted.
+  string successor_peer_id = 2;
 }
 
 // LeaveSpaceResponse acknowledges the owner's committed removal and local revocation.

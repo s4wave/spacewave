@@ -13,8 +13,11 @@ import (
 
 // LeaveSharedObject relinquishes this account's storage and calling device grants.
 // The native owner acknowledges removal before this account installs revocation.
+// A hosting owner that others depend on first transfers ownership to successor,
+// or the default successor when empty, and returns once the promotion commits;
+// the successor commits the departure and takes over hosting.
 // Existing local data stays retained; this operation does not delete the shared object.
-func (a *ProviderAccount) LeaveSharedObject(ctx context.Context, sessionKey crypto.PrivKey, id string) error {
+func (a *ProviderAccount) LeaveSharedObject(ctx context.Context, sessionKey crypto.PrivKey, id, successor string) error {
 	// Resolve only an object already held by this provider account.
 	list := a.soListCtr.GetValue()
 	index := slices.IndexFunc(list.GetSharedObjects(), func(entry *sobject.SharedObjectListEntry) bool {
@@ -63,10 +66,19 @@ func (a *ProviderAccount) LeaveSharedObject(ctx context.Context, sessionKey cryp
 		return err
 	}
 
-	// An owned object commits locally through the same signed removal operation.
+	// A hosted object commits a final departure locally and hands others to a successor.
 	if entry.GetTransportPeerId() == "" {
-		_, err := sobject.LeaveSOParticipants(ctx, local.soHost, local.localPriv, request)
-		return err
+		remains := slices.ContainsFunc(state.GetConfig().GetParticipants(), func(p *sobject.SOParticipantConfig) bool {
+			return !slices.Contains(departing, p.GetPeerId())
+		})
+		if !remains {
+			_, err := sobject.LeaveSOParticipants(ctx, local.soHost, local.localPriv, request)
+			return err
+		}
+		if _, err := sobject.TransferSOOwnership(ctx, local.soHost, local.localPriv, successor, request); err != nil {
+			return err
+		}
+		return a.reconcileSOHosting(ctx, id, local)
 	}
 	ownerID, err := peer.IDB58Decode(entry.GetTransportPeerId())
 	if err != nil {

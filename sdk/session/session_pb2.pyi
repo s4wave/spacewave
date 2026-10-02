@@ -219,10 +219,12 @@ class DeleteSpaceResponse(_message.Message):
     def __init__(self) -> None: ...
 
 class LeaveSpaceRequest(_message.Message):
-    __slots__ = ("shared_object_id",)
+    __slots__ = ("shared_object_id", "successor_peer_id")
     SHARED_OBJECT_ID_FIELD_NUMBER: _ClassVar[int]
+    SUCCESSOR_PEER_ID_FIELD_NUMBER: _ClassVar[int]
     shared_object_id: str
-    def __init__(self, shared_object_id: _Optional[str] = ...) -> None: ...
+    successor_peer_id: str
+    def __init__(self, shared_object_id: _Optional[str] = ..., successor_peer_id: _Optional[str] = ...) -> None: ...
 
 class LeaveSpaceResponse(_message.Message):
     __slots__ = ()

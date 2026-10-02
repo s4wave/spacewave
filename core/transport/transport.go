@@ -159,6 +159,11 @@ func (t *SessionTransport) GetPeerID() peer.ID {
 	return t.peerID
 }
 
+// GetPrivKey returns the session key that identifies the transport peer.
+func (t *SessionTransport) GetPrivKey() bifrost_crypto.PrivKey {
+	return t.sessionKey
+}
+
 // GetChildBus returns the active session bus, or nil outside Execute.
 func (t *SessionTransport) GetChildBus() bus.Bus {
 	var childBus bus.Bus

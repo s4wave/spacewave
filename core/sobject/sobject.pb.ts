@@ -351,8 +351,8 @@ export enum SOConfigChangeType {
   SO_CONFIG_CHANGE_TYPE_SELF_ENROLL_PEER = 7,
 
   /**
-   * SO_CONFIG_CHANGE_TYPE_TRANSFER_OWNERSHIP promotes a successor to OWNER and
-   * carries the departing owner's leave consent for the successor to commit.
+   * SO_CONFIG_CHANGE_TYPE_TRANSFER_OWNERSHIP promotes a participant to OWNER.
+   * When an owner departs, it carries the leave consent the successor commits.
    *
    * @generated from enum value: SO_CONFIG_CHANGE_TYPE_TRANSFER_OWNERSHIP = 8;
    */
@@ -1193,7 +1193,7 @@ export interface SOConfigChange {
   revocationInfo?: SORevocationInfo
   /**
    * LeaveRequest is the departing peers' consent that the promoted owner commits.
-   * Only populated when change_type is TRANSFER_OWNERSHIP.
+   * Only populated on a TRANSFER_OWNERSHIP made for an owner's departure.
    *
    * @generated from field: sobject.SOLeaveRequest leave_request = 9;
    */

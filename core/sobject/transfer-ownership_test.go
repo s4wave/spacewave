@@ -9,7 +9,7 @@ import (
 // TestTransferSOOwnershipOwnerDeparture proves that a Space continues after its
 // owner leaves: the default successor commits the carried departure, every
 // remaining grant and the root verify under the new configuration, and a
-// remaining writer can still submit operations.
+// remaining participant can still submit operations.
 func TestTransferSOOwnershipOwnerDeparture(t *testing.T) {
 	// Load keys for an owner and two writers.
 	ctx := t.Context()
@@ -106,7 +106,25 @@ func TestTransferSOOwnershipOwnerDeparture(t *testing.T) {
 		t.Fatalf("peers cannot verify the transfer: %v", err)
 	}
 
-	// A remaining writer submits under the new configuration.
+	// Hosts route to the successor, which can promote its other identity.
+	successor, err := ReadSOOwnershipSuccessor(ctx, host)
+	if err != nil || successor != peers[1].GetPeerID().String() {
+		t.Fatalf("read successor %q: %v", successor, err)
+	}
+	if err := PromoteSOOwner(ctx, host, keys[1], peers[2].GetPeerID().String()); err != nil {
+		t.Fatal(err)
+	}
+	if !IsOwner((*state).GetConfig().GetParticipants()[1].GetRole()) {
+		t.Fatal("promotion did not raise the participant to owner")
+	}
+	if done, err := CompleteSOOwnershipTransfer(ctx, host, keys[2]); done || err != nil {
+		t.Fatalf("promotion without departure completed a transfer: %v %v", done, err)
+	}
+	if successor, err := ReadSOOwnershipSuccessor(ctx, host); err != nil || successor != peers[1].GetPeerID().String() {
+		t.Fatalf("promotion without departure moved the successor to %q: %v", successor, err)
+	}
+
+	// A remaining participant submits under the new configuration.
 	if err := host.QueueOperation(ctx, peers[2].GetPeerID(), func(nonce uint64) (*SOOperation, error) {
 		return BuildSOOperation(mockSharedObjectID, keys[2], []byte("after transfer"), nonce, NewSOOperationLocalID())
 	}); err != nil {

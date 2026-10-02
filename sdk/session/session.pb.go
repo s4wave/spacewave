@@ -754,6 +754,10 @@ type LeaveSpaceRequest struct {
 	unknownFields []byte
 	// SharedObjectId identifies the external shared object whose native grants are relinquished.
 	SharedObjectId string `protobuf:"bytes,1,opt,name=shared_object_id,json=sharedObjectId,proto3" json:"sharedObjectId,omitempty"`
+	// SuccessorPeerId names the participant promoted to owner when the leaving
+	// account hosts the Space and others remain. Empty selects the remaining
+	// participant with the highest role, then the earliest admitted.
+	SuccessorPeerId string `protobuf:"bytes,2,opt,name=successor_peer_id,json=successorPeerId,proto3" json:"successorPeerId,omitempty"`
 }
 
 func (x *LeaveSpaceRequest) Reset() {
@@ -765,6 +769,13 @@ func (*LeaveSpaceRequest) ProtoMessage() {}
 func (x *LeaveSpaceRequest) GetSharedObjectId() string {
 	if x != nil {
 		return x.SharedObjectId
+	}
+	return ""
+}
+
+func (x *LeaveSpaceRequest) GetSuccessorPeerId() string {
+	if x != nil {
+		return x.SuccessorPeerId
 	}
 	return ""
 }
@@ -3953,6 +3964,7 @@ func (m *LeaveSpaceRequest) CloneVT() *LeaveSpaceRequest {
 	}
 	r := new(LeaveSpaceRequest)
 	r.SharedObjectId = m.SharedObjectId
+	r.SuccessorPeerId = m.SuccessorPeerId
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -5900,6 +5912,9 @@ func (this *LeaveSpaceRequest) EqualVT(that *LeaveSpaceRequest) bool {
 		return false
 	}
 	if this.SharedObjectId != that.SharedObjectId {
+		return false
+	}
+	if this.SuccessorPeerId != that.SuccessorPeerId {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -9094,6 +9109,11 @@ func (x *LeaveSpaceRequest) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("sharedObjectId")
 		s.WriteString(x.SharedObjectId)
 	}
+	if x.SuccessorPeerId != "" || s.HasField("successorPeerId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("successorPeerId")
+		s.WriteString(x.SuccessorPeerId)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -9114,6 +9134,9 @@ func (x *LeaveSpaceRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "shared_object_id", "sharedObjectId":
 			s.AddField("shared_object_id")
 			x.SharedObjectId = s.ReadString()
+		case "successor_peer_id", "successorPeerId":
+			s.AddField("successor_peer_id")
+			x.SuccessorPeerId = s.ReadString()
 		}
 	})
 }
@@ -14839,6 +14862,11 @@ func (m *LeaveSpaceRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if len(m.SuccessorPeerId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.SuccessorPeerId)
+		i--
+		dAtA[i] = 0x12
+	}
 	if len(m.SharedObjectId) > 0 {
 		i = protobuf_go_lite.EncodeString(dAtA, i, m.SharedObjectId)
 		i--
@@ -19501,6 +19529,7 @@ func (m *LeaveSpaceRequest) SizeVT() (n int) {
 	var l int
 	_ = l
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.SharedObjectId)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.SuccessorPeerId)
 	n += len(m.unknownFields)
 	return n
 }
@@ -21024,6 +21053,10 @@ func (x *LeaveSpaceRequest) MarshalProtoText() string {
 	if x.SharedObjectId != "" {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "shared_object_id")
 		protobuf_go_lite.TextWriteString(&sb, x.SharedObjectId)
+	}
+	if x.SuccessorPeerId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "successor_peer_id")
+		protobuf_go_lite.TextWriteString(&sb, x.SuccessorPeerId)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -23637,6 +23670,16 @@ func (m *LeaveSpaceRequest) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.SharedObjectId = v
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SuccessorPeerId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.SuccessorPeerId = v
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
