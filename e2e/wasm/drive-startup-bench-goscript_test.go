@@ -37,18 +37,19 @@ import (
 // Chromium CDP storage control and is skipped on other browsers. The bench is
 // opt-in via E2E_WASM_DRIVE_BENCH so routine e2e does not pay its cost.
 func TestGoScriptDriveStartupBench(t *testing.T) {
+	// Skip unless the bench is enabled, and resolve the compiler under test.
 	skipDriveBenchWhenDisabled(t)
-
 	compiler, err := ResolveE2EWasmCompiler()
 	if err != nil {
 		t.Fatalf("resolve compiler: %v", err)
 	}
 
+	// Bound the whole bench.
 	ctx, cancel := context.WithTimeout(t.Context(), 15*time.Minute)
 	defer cancel()
 
-	h := harness(t)
 	// One run stamp groups every cell's artifacts under a single run directory.
+	h := harness(t)
 	runStamp := time.Now().UTC().Format("20060102-150405")
 
 	// cold: a fresh isolated context boots over empty storage. The session owns
@@ -67,11 +68,10 @@ func TestGoScriptDriveStartupBench(t *testing.T) {
 
 	// warm: a return visitor reboots in the same context with the HTTP cache and
 	// OPFS Space state still present. The reboot reuses the persisted browser
-	// peer identity, so the harness peer watcher waits for the prior session's
-	// mount observation to expire before observing the new one; that wait lands
-	// in resourceConnection.durationMs, not the Drive route. The comparable
-	// Drive-boot signal across cells is the route-accepted to content-ready
-	// segment, where warm Space-state reuse skips content regeneration.
+	// peer identity, so the harness reconnects to that known peer. The
+	// comparable Drive-boot signal across cells is the route-accepted to
+	// content-ready segment, where warm Space-state reuse skips content
+	// regeneration.
 	navStart = time.Now()
 	rebootDriveBenchPage(t, ctx, sess)
 	runDriveBenchCell(t, ctx, h, sess, compiler, driveBenchCellInput{

@@ -26,6 +26,7 @@ var browserProtocolID = devtool_web.BrowserProtocolID
 // TestSession through the bifrost link between the devtool bus and the
 // browser context's WASM process.
 func (h *Harness) connectSessionResources(ctx context.Context, s *TestSession, afterSeq uint64) error {
+	// Record the whole connection, including peer discovery, in the session timing.
 	le := h.le.WithField("component", "harness")
 	startedAt := time.Now()
 	s.beginResourceConnectionTiming(startedAt)
@@ -34,6 +35,7 @@ func (h *Harness) connectSessionResources(ctx context.Context, s *TestSession, a
 		s.finishResourceConnectionTiming(time.Now(), retErr)
 	}()
 
+	// Bound each attempt, the retry backoff, and the startup reloads.
 	var lastErr error
 	attemptTimeout := 15 * time.Second
 	maxBackoff := 5 * time.Second
@@ -41,18 +43,19 @@ func (h *Harness) connectSessionResources(ctx context.Context, s *TestSession, a
 	maxStartupReloads := 2
 	startupReloads := 0
 
+	// Discover the browser peer and connect, retrying until the page answers.
 	for {
-		if s.retainedState {
-			retainedPeer := h.getRetainedStateResourcePeer()
-			if len(retainedPeer) != 0 {
-				connected, err := h.tryConnectRetainedStatePeer(ctx, s, retainedPeer, startedAt, le)
-				if err != nil {
-					retErr = err
-					return retErr
-				}
-				if connected {
-					return nil
-				}
+		// A rebooted page keeps its context's peer identity, and its new
+		// stream mount can merge into the prior page's lingering directive,
+		// so connect to the known peer before waiting for a fresh mount.
+		if knownPeer := h.knownBrowserPeer(s, afterSeq); len(knownPeer) != 0 {
+			connected, err := h.tryConnectKnownPeer(ctx, s, knownPeer, startedAt, le)
+			if err != nil {
+				retErr = err
+				return retErr
+			}
+			if connected {
+				return nil
 			}
 		}
 
@@ -99,9 +102,7 @@ func (h *Harness) connectSessionResources(ctx context.Context, s *TestSession, a
 				s.resClient = conn.resClient
 				s.root = conn.root
 				s.browserPeer = browserPeer
-				if s.retainedState {
-					h.setRetainedStateResourcePeer(browserPeer)
-				}
+				h.setKnownBrowserPeer(s, browserPeer)
 				le.WithFields(logrus.Fields{
 					"peer":                 browserPeer.String(),
 					"startup-elapsed-ms":   attemptCompletedAt.Sub(startedAt).Milliseconds(),
@@ -159,17 +160,44 @@ func (h *Harness) connectSessionResources(ctx context.Context, s *TestSession, a
 	}
 }
 
-func (h *Harness) tryConnectRetainedStatePeer(
+// knownBrowserPeer returns the browser peer the session's BrowserContext last
+// connected: the harness-wide peer for retained sessions, or the session's own.
+// It returns empty when a different peer has mounted since afterSeq, because
+// the context's identity changed, for example after its storage was cleared.
+func (h *Harness) knownBrowserPeer(s *TestSession, afterSeq uint64) peer.ID {
+	known := s.contextPeer
+	if s.retainedState {
+		known = h.getRetainedStateResourcePeer()
+	}
+	if latest, ok := h.getPeerWatcher().LatestPeerAfter(afterSeq); ok && latest != known {
+		return peer.ID("")
+	}
+	return known
+}
+
+// setKnownBrowserPeer records p as the peer of the session's BrowserContext.
+// An empty p forgets it.
+func (h *Harness) setKnownBrowserPeer(s *TestSession, p peer.ID) {
+	if s.retainedState {
+		h.setRetainedStateResourcePeer(p)
+		return
+	}
+	s.contextPeer = p
+}
+
+func (h *Harness) tryConnectKnownPeer(
 	ctx context.Context,
 	s *TestSession,
 	browserPeer peer.ID,
 	startedAt time.Time,
 	le *logrus.Entry,
 ) (bool, error) {
+	// Lease the peer so no other session connects to it concurrently.
 	if err := h.waitBrowserPeerLease(ctx, s, browserPeer); err != nil {
-		return false, errors.Wrap(err, "lease retained-state browser peer")
+		return false, errors.Wrap(err, "lease known browser peer")
 	}
 
+	// Make one bounded connection attempt and record its timing.
 	attemptTimeout := 15 * time.Second
 	attemptCtx, attemptCancel := context.WithTimeout(ctx, attemptTimeout)
 	clientCtx, clientLifetime := newSessionResourceClientContext(ctx)
@@ -178,6 +206,8 @@ func (h *Harness) tryConnectRetainedStatePeer(
 	attemptCompletedAt := time.Now()
 	s.recordResourceConnectionAttemptTiming(attemptStartedAt, attemptCompletedAt, browserPeer, err)
 	attemptCancel()
+
+	// Keep the connection on success.
 	if err == nil {
 		clientLifetime.Retain()
 		s.browserClient = conn.browserClient
@@ -188,21 +218,25 @@ func (h *Harness) tryConnectRetainedStatePeer(
 			"peer":               browserPeer.String(),
 			"startup-elapsed-ms": attemptCompletedAt.Sub(startedAt).Milliseconds(),
 			"attempt-elapsed-ms": attemptCompletedAt.Sub(attemptStartedAt).Milliseconds(),
-		}).Info("connected retained-state browser resources")
+		}).Info("connected known browser peer resources")
 		return true, nil
 	}
+
+	// Release the failed attempt's client and the peer lease.
 	clientLifetime.Cancel()
 	h.releaseBrowserPeerLease(s, browserPeer)
 
+	// Forget a peer that is gone or not ready so the caller waits for a mount.
 	entry := le.WithField("peer", browserPeer.String()).WithError(err)
 	if shouldAbandonBrowserPeer(err) || isBrowserPeerStartupErr(err) {
-		h.setRetainedStateResourcePeer(peer.ID(""))
-		entry.Info("retained-state browser peer unavailable, waiting for new peer")
+		h.setKnownBrowserPeer(s, peer.ID(""))
+		entry.Info("known browser peer unavailable, waiting for new peer")
 		return false, nil
 	}
 
-	entry.Info("retained-state browser peer connection failed")
-	return false, errors.Wrap(err, "connect retained-state browser peer")
+	// Any other failure ends the connection.
+	entry.Info("known browser peer connection failed")
+	return false, errors.Wrap(err, "connect known browser peer")
 }
 
 type sessionResourceConnection struct {

@@ -22,6 +22,7 @@ type PeerWatcher struct {
 	pending chan BrowserPeerObservation
 	mu      sync.Mutex
 	nextSeq uint64
+	latest  BrowserPeerObservation
 	rel     func()
 }
 
@@ -71,6 +72,7 @@ func (pw *PeerWatcher) HandleDirective(_ context.Context, di directive.Instance)
 }
 
 func (pw *PeerWatcher) observePeer(remotePeer peer.ID) {
+	// Sequence the observation and keep it as the latest.
 	pw.mu.Lock()
 	pw.nextSeq++
 	obs := BrowserPeerObservation{
@@ -78,8 +80,10 @@ func (pw *PeerWatcher) observePeer(remotePeer peer.ID) {
 		Sequence:   pw.nextSeq,
 		ObservedAt: time.Now(),
 	}
+	pw.latest = obs
 	pw.mu.Unlock()
 
+	// Queue it, dropping the oldest pending observation when the queue is full.
 	select {
 	case pw.pending <- obs:
 	default:
@@ -133,6 +137,17 @@ func (pw *PeerWatcher) LatestSequence() uint64 {
 	pw.mu.Lock()
 	defer pw.mu.Unlock()
 	return pw.nextSeq
+}
+
+// LatestPeerAfter returns the peer of the newest observation, without
+// consuming it, if that observation's sequence is greater than afterSeq.
+func (pw *PeerWatcher) LatestPeerAfter(afterSeq uint64) (peer.ID, bool) {
+	pw.mu.Lock()
+	defer pw.mu.Unlock()
+	if pw.latest.Sequence <= afterSeq {
+		return peer.ID(""), false
+	}
+	return pw.latest.PeerID, true
 }
 
 // WaitForPeerObservationAfter blocks until a browser peer mount event with a

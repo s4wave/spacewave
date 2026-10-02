@@ -39,6 +39,10 @@ type TestSession struct {
 	browserPeer    peer.ID
 	peerAfterSeq   uint64
 	resourceTiming ResourceConnectionTiming
+
+	// contextPeer is the browser peer last connected in a clean session's
+	// BrowserContext. A page replaced in the same context keeps that identity.
+	contextPeer peer.ID
 }
 
 // NewSession creates an isolated browser session for a single test.
