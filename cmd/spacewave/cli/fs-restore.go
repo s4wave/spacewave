@@ -4,6 +4,7 @@ package spacewave_cli
 
 import (
 	"os"
+	"strings"
 	"time"
 
 	"github.com/aperturerobotics/cli"
@@ -30,6 +31,8 @@ type FsRestoreArgs struct {
 	prefix string
 	// objectKey is the UnixFS object to restore.
 	objectKey string
+	// insecure connects without TLS, as a local MinIO server needs.
+	insecure bool
 }
 
 // BuildFlags builds the recovery location flags.
@@ -39,8 +42,9 @@ func (a *FsRestoreArgs) BuildFlags() []cli.Flag {
 		&cli.StringFlag{Name: "endpoint", Usage: "S3 endpoint hostname", Required: true, Destination: &a.endpoint},
 		&cli.StringFlag{Name: "region", Usage: "S3 signing region", Required: true, Destination: &a.region},
 		&cli.StringFlag{Name: "bucket", Usage: "S3 bucket", Required: true, Destination: &a.bucket},
-		&cli.StringFlag{Name: "prefix", Usage: "block-store prefix containing packs/ and entries/", Required: true, Destination: &a.prefix},
+		&cli.StringFlag{Name: "prefix", Usage: "block-store prefix containing packs/ and entries/, with or without its trailing slash", Required: true, Destination: &a.prefix},
 		&cli.StringFlag{Name: "object", Usage: "UnixFS object key in the snapshot", Required: true, Destination: &a.objectKey},
+		&cli.BoolFlag{Name: "insecure", Usage: "connect without TLS", Destination: &a.insecure},
 	}
 }
 
@@ -68,18 +72,26 @@ func (a *FsRestoreArgs) Run(c *cli.Context) error {
 		return errors.Wrap(err, "read recovery root")
 	}
 
-	// Read packfiles directly with the existing S3 client and World reader.
+	// Connect to the bucket with credentials from the environment.
 	credentials, err := readS3Credentials()
 	if err != nil {
 		return err
 	}
-	client, err := block_store_s3.BuildClient(&block_store_s3.ClientConfig{Endpoint: a.endpoint, Region: a.region, Credentials: credentials})
+	client, err := block_store_s3.BuildClient(&block_store_s3.ClientConfig{
+		Endpoint:    a.endpoint,
+		Region:      a.region,
+		Credentials: credentials,
+		DisableSsl:  a.insecure,
+	})
 	if err != nil {
 		return err
 	}
+
+	// Read packfiles directly from the block-store prefix.
 	ctx := c.Context
 	le := logrus.NewEntry(logrus.New())
-	store := block_store_s3.NewPackStore(le, client, a.bucket, a.prefix, nil)
+	prefix := strings.TrimSuffix(a.prefix, "/") + "/"
+	store := block_store_s3.NewPackStore(le, client, a.bucket, prefix, nil)
 	defer store.Close()
 
 	// Open the saved World root and a read transaction on it.
