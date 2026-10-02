@@ -15,6 +15,7 @@ import (
 // GetObject looks up an object by key.
 // Returns nil, false if not found.
 func (t *WorldState) GetObject(ctx context.Context, key string) (world.ObjectState, bool, error) {
+	// Preserve the interface's nil result when the concrete object is absent.
 	val, ok, err := t.getObject(ctx, key)
 	if val == nil {
 		return nil, ok, err
@@ -25,9 +26,12 @@ func (t *WorldState) GetObject(ctx context.Context, key string) (world.ObjectSta
 // getObject looks up an object by key.
 // Returns nil, false if not found.
 func (t *WorldState) getObject(ctx context.Context, key string) (*ObjectState, bool, error) {
+	// Reject a discarded transaction before accessing its object tree.
 	if t.discarded.Load() {
 		return nil, false, tx.ErrDiscarded
 	}
+
+	// Resolve the object's stored metadata through the existing tree cursor.
 	ot := t.objTree
 	k := []byte(objectKeyPrefix + key)
 	bcs, err := ot.GetCursorAtKey(ctx, k)
@@ -43,6 +47,7 @@ func (t *WorldState) getObject(ctx context.Context, key string) (*ObjectState, b
 
 // mustGetObject returns an error if not found.
 func (t *WorldState) mustGetObject(ctx context.Context, key string) (*ObjectState, error) {
+	// Turn an absent object into the required-object contract's error.
 	obj, found, err := t.getObject(ctx, key)
 	if err == nil && !found {
 		err = world.ErrObjectNotFound
@@ -63,10 +68,11 @@ func (t *WorldState) IterateObjects(ctx context.Context, prefix string, reversed
 	return NewObjectIterator(t, ctx, prefix, reversed)
 }
 
-// CreateObject creates a object with a key and initial root ref.
+// CreateObject creates an object with a key and initial root ref.
 // Returns ErrObjectExists if the object already exists.
-// Appends a OBJECT_SET change to the changelog.
+// Appends an OBJECT_SET change to the changelog.
 func (t *WorldState) CreateObject(ctx context.Context, key string, rootRef *bucket.ObjectRef) (world.ObjectState, error) {
+	// Require an active writer before changing the object index.
 	if !t.write {
 		return nil, tx.ErrNotWrite
 	}
@@ -74,6 +80,7 @@ func (t *WorldState) CreateObject(ctx context.Context, key string, rootRef *buck
 		return nil, tx.ErrDiscarded
 	}
 
+	// Reject an existing key before constructing new object metadata.
 	ot := t.objTree
 	k := []byte(objectKeyPrefix + key)
 	exists, err := ot.Exists(ctx, k)
@@ -83,6 +90,8 @@ func (t *WorldState) CreateObject(ctx context.Context, key string, rootRef *buck
 	if exists {
 		return nil, world.ErrObjectExists
 	}
+
+	// Insert the initial object and retain its cursor for the change record.
 	obj := NewObject(key, t.localObjectRef(rootRef))
 	nbcs := t.bcs.Detach(false)
 	nbcs.ClearAllRefs()
@@ -95,6 +104,8 @@ func (t *WorldState) CreateObject(ctx context.Context, key string, rootRef *buck
 	if err != nil {
 		return nil, err
 	}
+
+	// Record the new object's exact metadata in the World changelog.
 	changeBcs, err := t.queueWorldChange(ctx, &WorldChange{
 		Key:        key,
 		ChangeType: WorldChangeType_WorldChange_OBJECT_SET,
@@ -114,6 +125,7 @@ func (t *WorldState) CreateObject(ctx context.Context, key string, rootRef *buck
 
 // RenameObject renames an object key and updates associated graph quads.
 func (t *WorldState) RenameObject(ctx context.Context, oldKey, newKey string, descendants bool) (world.ObjectState, error) {
+	// Require an active writer and two nonempty object keys.
 	if !t.write {
 		return nil, tx.ErrNotWrite
 	}
@@ -123,6 +135,8 @@ func (t *WorldState) RenameObject(ctx context.Context, oldKey, newKey string, de
 	if oldKey == "" || newKey == "" {
 		return nil, world.ErrEmptyObjectKey
 	}
+
+	// Dispatch the requested rename scope after validating the shared inputs.
 	if descendants {
 		return t.renameObjectDescendants(ctx, oldKey, newKey)
 	}
@@ -130,7 +144,9 @@ func (t *WorldState) RenameObject(ctx context.Context, oldKey, newKey string, de
 	return t.renameObjectSingle(ctx, oldKey, newKey)
 }
 
+// renameObjectSingle moves one object's metadata and its incident relationships.
 func (t *WorldState) renameObjectSingle(ctx context.Context, oldKey, newKey string) (world.ObjectState, error) {
+	// Resolve the source and preserve an existing object on an identity rename.
 	oldObj, found, err := t.getObject(ctx, oldKey)
 	if err != nil {
 		return nil, err
@@ -142,6 +158,7 @@ func (t *WorldState) renameObjectSingle(ctx context.Context, oldKey, newKey stri
 		return oldObj, nil
 	}
 
+	// Reject destination collisions before making a new index entry.
 	ot := t.objTree
 	newTreeKey := []byte(objectKeyPrefix + newKey)
 	exists, err := ot.Exists(ctx, newTreeKey)
@@ -152,6 +169,7 @@ func (t *WorldState) renameObjectSingle(ctx context.Context, oldKey, newKey stri
 		return nil, world.ErrObjectExists
 	}
 
+	// Copy the metadata under the new key without changing its revision.
 	oldRoot, err := oldObj.GetRoot(ctx)
 	if err != nil {
 		return nil, err
@@ -159,6 +177,7 @@ func (t *WorldState) renameObjectSingle(ctx context.Context, oldKey, newKey stri
 	newRoot := oldRoot.Clone()
 	newRoot.Key = newKey
 
+	// Install the replacement entry so rewritten graph endpoints can resolve it.
 	newBcs := t.bcs.Detach(false)
 	newBcs.ClearAllRefs()
 	newBcs.SetBlock(newRoot, true)
@@ -166,10 +185,12 @@ func (t *WorldState) renameObjectSingle(ctx context.Context, oldKey, newKey stri
 		return nil, err
 	}
 
+	// Rewrite relationships before removing their original object entry.
 	if err := t.renameGraphObject(ctx, oldKey, newKey); err != nil {
 		return nil, err
 	}
 
+	// Remove the original entry after every incident relationship was rewritten.
 	oldTreeKey := []byte(objectKeyPrefix + oldKey)
 	if err := ot.Delete(ctx, oldTreeKey); err != nil {
 		return nil, err
@@ -178,6 +199,7 @@ func (t *WorldState) renameObjectSingle(ctx context.Context, oldKey, newKey stri
 	// The old key no longer resolves; drop any stale object memo entry.
 	t.forgetObject(oldKey)
 
+	// Record both object revisions and the changed key in one rename entry.
 	changeBcs, err := t.queueWorldChange(ctx, &WorldChange{
 		Key:        oldKey,
 		NewKey:     newKey,
@@ -194,19 +216,25 @@ func (t *WorldState) renameObjectSingle(ctx context.Context, oldKey, newKey stri
 	return NewObjectState(ctx, t, newBcs)
 }
 
+// renameObjectDescendants moves a complete object-key subtree after preflight.
 func (t *WorldState) renameObjectDescendants(ctx context.Context, oldKey, newKey string) (world.ObjectState, error) {
+	// Reject an absent source and moving an object underneath itself.
 	if oldKey == newKey {
 		return t.renameObjectSingle(ctx, oldKey, newKey)
 	}
 	if strings.HasPrefix(newKey, oldKey+"/") {
 		return nil, world.ErrObjectExists
 	}
-	if _, found, err := t.getObject(ctx, oldKey); err != nil {
+	obj, found, err := t.getObject(ctx, oldKey)
+	world.ReleaseObjectState(obj)
+	if err != nil {
 		return nil, err
-	} else if !found {
+	}
+	if !found {
 		return nil, world.ErrObjectNotFound
 	}
 
+	// Resolve every destination collision before changing the subtree.
 	renames, err := t.collectObjectRenames(ctx, oldKey, newKey)
 	if err != nil {
 		return nil, err
@@ -215,6 +243,7 @@ func (t *WorldState) renameObjectDescendants(ctx context.Context, oldKey, newKey
 		return nil, err
 	}
 
+	// Retain the renamed parent while applying its ordered descendant changes.
 	out, err := t.renameObjectSingle(ctx, oldKey, newKey)
 	if err != nil {
 		world.ReleaseObjectState(out)
@@ -231,7 +260,9 @@ func (t *WorldState) renameObjectDescendants(ctx context.Context, oldKey, newKey
 	return out, nil
 }
 
+// collectObjectRenames lists the parent and descendants in parent-first order.
 func (t *WorldState) collectObjectRenames(ctx context.Context, oldKey, newKey string) ([]objectRename, error) {
+	// Read only the source subtree and retain each exact destination key.
 	renames := []objectRename{{oldKey: oldKey, newKey: newKey}}
 	iter := t.IterateObjects(ctx, oldKey+"/", false)
 	defer iter.Close()
@@ -246,22 +277,29 @@ func (t *WorldState) collectObjectRenames(ctx context.Context, oldKey, newKey st
 	if err := iter.Err(); err != nil {
 		return nil, err
 	}
+
+	// Move shorter parent keys before their descendants.
 	slices.SortFunc(renames, func(a, b objectRename) int {
 		return len(a.oldKey) - len(b.oldKey)
 	})
 	return renames, nil
 }
 
+// checkObjectRenameCollisions rejects occupied destinations and overlapping moves.
 func (t *WorldState) checkObjectRenameCollisions(ctx context.Context, renames []objectRename) error {
+	// Record all source keys so a destination cannot overwrite another source.
 	oldKeys := make(map[string]struct{}, len(renames))
 	for _, rename := range renames {
 		oldKeys[rename.oldKey] = struct{}{}
 	}
+
+	// Resolve every remaining destination through the current object index.
 	for _, rename := range renames {
 		if _, ok := oldKeys[rename.newKey]; ok {
 			return world.ErrObjectExists
 		}
-		_, found, err := t.getObject(ctx, rename.newKey)
+		obj, found, err := t.getObject(ctx, rename.newKey)
+		world.ReleaseObjectState(obj)
 		if err != nil {
 			return err
 		}
@@ -272,10 +310,14 @@ func (t *WorldState) checkObjectRenameCollisions(ctx context.Context, renames []
 	return nil
 }
 
+// rewriteObjectKeyPrefix replaces one complete object-key prefix.
 func rewriteObjectKeyPrefix(key, oldKey, newKey string) (string, bool) {
+	// The parent itself has no descendant separator to preserve.
 	if key == oldKey {
 		return newKey, true
 	}
+
+	// Match a complete path component before retaining the descendant suffix.
 	prefix := oldKey + "/"
 	if !strings.HasPrefix(key, prefix) {
 		return key, false
@@ -283,8 +325,11 @@ func rewriteObjectKeyPrefix(key, oldKey, newKey string) (string, bool) {
 	return newKey + key[len(oldKey):], true
 }
 
+// objectRename identifies one source object and its proposed destination.
 type objectRename struct {
+	// oldKey is the existing object key.
 	oldKey string
+	// newKey is the replacement object key.
 	newKey string
 }
 
@@ -292,6 +337,7 @@ type objectRename struct {
 // Calls DeleteGraphObject internally.
 // Returns false, nil if not found.
 func (t *WorldState) DeleteObject(ctx context.Context, key string) (bool, error) {
+	// Require an active writer before resolving or removing the object.
 	if !t.write {
 		return false, tx.ErrNotWrite
 	}
@@ -299,20 +345,19 @@ func (t *WorldState) DeleteObject(ctx context.Context, key string) (bool, error)
 		return false, tx.ErrDiscarded
 	}
 
+	// Resolve the stored object, retaining its metadata until deletion is recorded.
 	ot := t.objTree
 	k := []byte(objectKeyPrefix + key)
-
 	objState, found, err := t.GetObject(ctx, key)
 	defer world.ReleaseObjectState(objState)
-	if err != nil {
-		if err != world.ErrObjectNotFound {
-			return false, err
-		}
+	if err != nil && err != world.ErrObjectNotFound {
+		return false, err
 	}
 	if !found {
 		return false, nil
 	}
 
+	// Keep the object's block cursor for the deletion change record.
 	objs, ok := objState.(*ObjectState)
 	if !ok {
 		return false, block.ErrUnexpectedType
@@ -350,7 +395,9 @@ func (t *WorldState) DeleteObject(ctx context.Context, key string) (bool, error)
 	return true, nil
 }
 
+// renameGraphObject rewrites each complete incident quad exactly once.
 func (t *WorldState) renameGraphObject(ctx context.Context, oldKey, newKey string) error {
+	// Capture both endpoint directions before changing any indexed relationship.
 	oldValue := world.KeyToGraphValue(oldKey).String()
 	newValue := world.KeyToGraphValue(newKey).String()
 	subjQuads, err := t.LookupGraphQuads(ctx, world.NewGraphQuad(oldValue, "", "", ""), 0)
@@ -362,14 +409,17 @@ func (t *WorldState) renameGraphObject(ctx context.Context, oldKey, newKey strin
 		return err
 	}
 
-	seen := make(map[string]struct{}, len(subjQuads)+len(objQuads))
+	// Keep field boundaries in the identity, including embedded NUL bytes.
+	seen := make(map[[4]string]struct{}, len(subjQuads)+len(objQuads))
 	for _, q := range append(subjQuads, objQuads...) {
-		key := graphQuadKey(q)
+		// A self-edge appears in both direction scans but must change only once.
+		key := [4]string{q.GetSubject(), q.GetPredicate(), q.GetObj(), q.GetLabel()}
 		if _, ok := seen[key]; ok {
 			continue
 		}
 		seen[key] = struct{}{}
 
+		// Rewrite only endpoints that identify the renamed object.
 		subj := q.GetSubject()
 		obj := q.GetObj()
 		if subj == oldValue {
@@ -380,6 +430,7 @@ func (t *WorldState) renameGraphObject(ctx context.Context, oldKey, newKey strin
 		}
 		next := world.NewGraphQuad(subj, q.GetPredicate(), obj, q.GetLabel())
 
+		// Validate both graph values before removing the old relationship.
 		prevQuad, err := world.GraphQuadToCayleyQuad(q, true)
 		if err != nil {
 			return err
@@ -388,6 +439,8 @@ func (t *WorldState) renameGraphObject(ctx context.Context, oldKey, newKey strin
 		if err != nil {
 			return err
 		}
+
+		// Record the removal even when the rewritten relationship already exists.
 		if err := t.graphHd.RemoveQuad(ctx, prevQuad); err != nil && !graph.IsQuadNotExist(err) {
 			return err
 		}
@@ -398,6 +451,7 @@ func (t *WorldState) renameGraphObject(ctx context.Context, oldKey, newKey strin
 			return err
 		}
 
+		// Add and record the replacement only when it is a new relationship.
 		exists, err := world.CheckQuadExists(ctx, t.graphHd, nextQuad)
 		if err != nil {
 			return err
@@ -416,10 +470,6 @@ func (t *WorldState) renameGraphObject(ctx context.Context, oldKey, newKey strin
 		}
 	}
 	return nil
-}
-
-func graphQuadKey(q world.GraphQuad) string {
-	return q.GetSubject() + "\x00" + q.GetPredicate() + "\x00" + q.GetObj() + "\x00" + q.GetLabel()
 }
 
 // _ is a type assertion

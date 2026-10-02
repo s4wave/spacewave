@@ -1,8 +1,10 @@
 package world
 
 import (
+	"cmp"
 	"context"
 	"slices"
+	"strings"
 )
 
 // GraphPathDirection indicates which side of the current object key to follow.
@@ -49,6 +51,7 @@ type GraphPathQueryResult struct {
 
 // CollectGraphPathWithKeys collects object keys for a bounded graph traversal.
 func CollectGraphPathWithKeys(ctx context.Context, ws WorldStateGraph, query *GraphPathQuery) ([]string, error) {
+	// Preserve the traversal result while returning only its reached object keys.
 	result, err := ws.QueryGraphPath(ctx, query)
 	if err != nil || result == nil {
 		return nil, err
@@ -65,9 +68,12 @@ func CollectGraphPathStepWithKeys(
 	predicate string,
 	limit uint32,
 ) ([]string, error) {
+	// An empty frontier requires no graph access or bounded query construction.
 	if len(entityKeys) == 0 {
 		return nil, nil
 	}
+
+	// Use the same bounded query contract for this single traversal step.
 	return CollectGraphPathWithKeys(ctx, ws, &GraphPathQuery{
 		StartKeys: entityKeys,
 		Steps: []GraphPathStep{
@@ -83,6 +89,7 @@ func CollectGraphPathStepWithKeys(
 
 // QueryGraphPathWithLookups executes a graph path query with bounded quad lookups.
 func QueryGraphPathWithLookups(ctx context.Context, ws WorldStateGraph, query *GraphPathQuery) (*GraphPathQueryResult, error) {
+	// Validate all bounds before any graph operation can observe the query.
 	if query == nil {
 		return &GraphPathQueryResult{}, nil
 	}
@@ -93,32 +100,39 @@ func QueryGraphPathWithLookups(ctx context.Context, ws WorldStateGraph, query *G
 		return nil, err
 	}
 
+	// Select the initial frontier in request order, then traverse it in key order.
 	current := uniqueNonEmptyKeys(query.StartKeys, query.ResultLimit)
 	if len(query.Steps) == 0 {
 		return &GraphPathQueryResult{ObjectKeys: current}, nil
 	}
 
-	quadSeen := make(map[string]struct{})
+	// Complete field tuples retain distinct relationships containing separator bytes.
+	quadSeen := make(map[[4]string]struct{})
 	var resultQuads []GraphQuad
 	for _, step := range query.Steps {
+		// A step receives the prior frontier and independently deduplicates reached keys.
 		if err := ctx.Err(); err != nil {
 			return nil, err
 		}
 		nextSeen := make(map[string]struct{})
 		var next []string
 		for _, key := range current {
+			// Apply each direction's limit before considering the next frontier.
 			quads, err := lookupGraphPathStep(ctx, ws, key, step)
 			if err != nil {
 				return nil, err
 			}
 			for _, q := range quads {
+				// Include each complete relationship once across the whole traversal.
 				if query.IncludeQuads {
-					qkey := graphPathQuadKey(q)
+					qkey := [4]string{q.GetSubject(), q.GetPredicate(), q.GetObj(), q.GetLabel()}
 					if _, ok := quadSeen[qkey]; !ok {
 						quadSeen[qkey] = struct{}{}
 						resultQuads = append(resultQuads, q)
 					}
 				}
+
+				// A new endpoint consumes the bounded frontier capacity exactly once.
 				nextKey, err := nextGraphPathKey(q, key, step.Direction)
 				if err != nil {
 					return nil, err
@@ -139,13 +153,18 @@ func QueryGraphPathWithLookups(ctx context.Context, ws WorldStateGraph, query *G
 				break
 			}
 		}
+
+		// Canonical key order determines the next step's bounded visitation order.
 		slices.Sort(next)
 		current = next
 	}
+
+	// Return the included relationships in field order.
 	sortGraphQuads(resultQuads)
 	return &GraphPathQueryResult{ObjectKeys: current, Quads: resultQuads}, nil
 }
 
+// validateGraphPathSteps requires finite access and a defined direction at each step.
 func validateGraphPathSteps(steps []GraphPathStep) error {
 	for _, step := range steps {
 		if step.Predicate == "" {
@@ -163,7 +182,9 @@ func validateGraphPathSteps(steps []GraphPathStep) error {
 	return nil
 }
 
+// uniqueNonEmptyKeys selects distinct keys before sorting the bounded selection.
 func uniqueNonEmptyKeys(keys []string, limit uint32) []string {
+	// The input order determines which keys occupy the available result slots.
 	seen := make(map[string]struct{})
 	out := make([]string, 0, len(keys))
 	for _, key := range keys {
@@ -179,11 +200,15 @@ func uniqueNonEmptyKeys(keys []string, limit uint32) []string {
 			break
 		}
 	}
+
+	// Subsequent graph operations visit the selected keys in canonical order.
 	slices.Sort(out)
 	return out
 }
 
+// lookupGraphPathStep combines independently bounded direction lookups in public order.
 func lookupGraphPathStep(ctx context.Context, ws WorldStateGraph, key string, step GraphPathStep) ([]GraphQuad, error) {
+	// Read outgoing relationships through the World's existing lookup capability.
 	var quads []GraphQuad
 	if step.Direction == GraphPathDirectionOut || step.Direction == GraphPathDirectionBoth {
 		out, err := ws.LookupGraphQuads(ctx, NewGraphQuadWithKeys(key, step.Predicate, "", ""), step.Limit)
@@ -192,6 +217,8 @@ func lookupGraphPathStep(ctx context.Context, ws WorldStateGraph, key string, st
 		}
 		quads = append(quads, out...)
 	}
+
+	// Incoming lookup has its own limit, including when both directions were requested.
 	if step.Direction == GraphPathDirectionIn || step.Direction == GraphPathDirectionBoth {
 		in, err := ws.LookupGraphQuads(ctx, NewGraphQuadWithKeys("", step.Predicate, key, ""), step.Limit)
 		if err != nil {
@@ -199,10 +226,13 @@ func lookupGraphPathStep(ctx context.Context, ws WorldStateGraph, key string, st
 		}
 		quads = append(quads, in...)
 	}
+
+	// Merge both directions into field order.
 	sortGraphQuads(quads)
 	return quads, nil
 }
 
+// nextGraphPathKey chooses the opposite object endpoint for the requested direction.
 func nextGraphPathKey(q GraphQuad, currentKey string, dir GraphPathDirection) (string, error) {
 	switch dir {
 	case GraphPathDirectionOut:
@@ -220,20 +250,14 @@ func nextGraphPathKey(q GraphQuad, currentKey string, dir GraphPathDirection) (s
 	}
 }
 
+// sortGraphQuads orders quads by subject, predicate, object, then label.
 func sortGraphQuads(quads []GraphQuad) {
 	slices.SortFunc(quads, func(a, b GraphQuad) int {
-		ak := graphPathQuadKey(a)
-		bk := graphPathQuadKey(b)
-		if ak < bk {
-			return -1
-		}
-		if ak > bk {
-			return 1
-		}
-		return 0
+		return cmp.Or(
+			strings.Compare(a.GetSubject(), b.GetSubject()),
+			strings.Compare(a.GetPredicate(), b.GetPredicate()),
+			strings.Compare(a.GetObj(), b.GetObj()),
+			strings.Compare(a.GetLabel(), b.GetLabel()),
+		)
 	})
-}
-
-func graphPathQuadKey(q GraphQuad) string {
-	return q.GetSubject() + "\x00" + q.GetPredicate() + "\x00" + q.GetObj() + "\x00" + q.GetLabel()
 }
