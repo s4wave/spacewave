@@ -2717,8 +2717,10 @@ export const StartDesktopPasskeyReauthRequest: MessageType<StartDesktopPasskeyRe
   })
 
 /**
- * StartDesktopPasskeyReauthResponse returns the browser-authenticated passkey
- * artifacts for the requested entity keypair.
+ * StartDesktopPasskeyReauthResponse reports one step of the desktop passkey
+ * reauth flow. The first message carries only OpenUrl, before the browser
+ * opens. The last message carries the browser-authenticated passkey artifacts
+ * for the requested entity keypair.
  *
  * @generated from message s4wave.provider.spacewave.StartDesktopPasskeyReauthResponse
  */
@@ -2759,6 +2761,13 @@ export interface StartDesktopPasskeyReauthResponse {
    * @generated from field: string prf_output = 6;
    */
   prfOutput?: string
+  /**
+   * OpenUrl is the account-hosted ceremony URL, set only on the first message
+   * so a caller can show it when the browser does not open.
+   *
+   * @generated from field: string open_url = 7;
+   */
+  openUrl?: string
 }
 
 export const StartDesktopPasskeyReauthResponse: MessageType<StartDesktopPasskeyReauthResponse> =
@@ -2771,6 +2780,7 @@ export const StartDesktopPasskeyReauthResponse: MessageType<StartDesktopPasskeyR
       { no: 4, name: 'auth_params', kind: 'scalar', T: ScalarType.STRING },
       { no: 5, name: 'pin_wrapped', kind: 'scalar', T: ScalarType.BOOL },
       { no: 6, name: 'prf_output', kind: 'scalar', T: ScalarType.STRING },
+      { no: 7, name: 'open_url', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
   })
 

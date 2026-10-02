@@ -158,10 +158,10 @@ type SRPCSpacewaveSessionResourceServiceClient interface {
 	StartDesktopSSOLink(ctx context.Context, in *s4wave_provider_spacewave.StartDesktopSSOLinkRequest) (*s4wave_provider_spacewave.StartDesktopSSOLinkResponse, error)
 	// StartDesktopPasskeyReauth runs the native-owned desktop passkey reauth flow
 	// for one specific entity keypair. The handler calls the authenticated cloud
-	// start endpoint, opens the system browser to the account-hosted ceremony,
+	// start endpoint, sends the ceremony URL, opens the system browser to it,
 	// waits for the browser-authenticated result on the auth-session WebSocket,
-	// and returns the unwrap artifacts for the existing unlock path.
-	StartDesktopPasskeyReauth(ctx context.Context, in *s4wave_provider_spacewave.StartDesktopPasskeyReauthRequest) (*s4wave_provider_spacewave.StartDesktopPasskeyReauthResponse, error)
+	// and sends the unwrap artifacts for the existing unlock path.
+	StartDesktopPasskeyReauth(ctx context.Context, in *s4wave_provider_spacewave.StartDesktopPasskeyReauthRequest) (SRPCSpacewaveSessionResourceService_StartDesktopPasskeyReauthClient, error)
 	// EnrollForHandoff registers the receiving client's independent Session key.
 	EnrollForHandoff(ctx context.Context, in *s4wave_provider_spacewave.EnrollForHandoffRequest) (*s4wave_provider_spacewave.EnrollForHandoffResponse, error)
 	// PreviewSpaceLink verifies a SpaceLink ticket for trusted UI display.
@@ -962,13 +962,37 @@ func (c *srpcSpacewaveSessionResourceServiceClient) StartDesktopSSOLink(ctx cont
 	return out, nil
 }
 
-func (c *srpcSpacewaveSessionResourceServiceClient) StartDesktopPasskeyReauth(ctx context.Context, in *s4wave_provider_spacewave.StartDesktopPasskeyReauthRequest) (*s4wave_provider_spacewave.StartDesktopPasskeyReauthResponse, error) {
-	out := new(s4wave_provider_spacewave.StartDesktopPasskeyReauthResponse)
-	err := c.cc.ExecCall(ctx, c.serviceID, "StartDesktopPasskeyReauth", in, out)
+func (c *srpcSpacewaveSessionResourceServiceClient) StartDesktopPasskeyReauth(ctx context.Context, in *s4wave_provider_spacewave.StartDesktopPasskeyReauthRequest) (SRPCSpacewaveSessionResourceService_StartDesktopPasskeyReauthClient, error) {
+	stream, err := c.cc.NewStream(ctx, c.serviceID, "StartDesktopPasskeyReauth", in)
 	if err != nil {
 		return nil, err
 	}
-	return out, nil
+	strm := &srpcSpacewaveSessionResourceService_StartDesktopPasskeyReauthClient{stream}
+	// A failed half-close means the call ended; MsgRecv reports its outcome.
+	_ = strm.CloseSend()
+	return strm, nil
+}
+
+type SRPCSpacewaveSessionResourceService_StartDesktopPasskeyReauthClient interface {
+	srpc.Stream
+	Recv() (*s4wave_provider_spacewave.StartDesktopPasskeyReauthResponse, error)
+	RecvTo(*s4wave_provider_spacewave.StartDesktopPasskeyReauthResponse) error
+}
+
+type srpcSpacewaveSessionResourceService_StartDesktopPasskeyReauthClient struct {
+	srpc.Stream
+}
+
+func (x *srpcSpacewaveSessionResourceService_StartDesktopPasskeyReauthClient) Recv() (*s4wave_provider_spacewave.StartDesktopPasskeyReauthResponse, error) {
+	m := new(s4wave_provider_spacewave.StartDesktopPasskeyReauthResponse)
+	if err := x.MsgRecv(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (x *srpcSpacewaveSessionResourceService_StartDesktopPasskeyReauthClient) RecvTo(m *s4wave_provider_spacewave.StartDesktopPasskeyReauthResponse) error {
+	return x.MsgRecv(m)
 }
 
 func (c *srpcSpacewaveSessionResourceServiceClient) EnrollForHandoff(ctx context.Context, in *s4wave_provider_spacewave.EnrollForHandoffRequest) (*s4wave_provider_spacewave.EnrollForHandoffResponse, error) {
@@ -1159,10 +1183,10 @@ type SRPCSpacewaveSessionResourceServiceServer interface {
 	StartDesktopSSOLink(context.Context, *s4wave_provider_spacewave.StartDesktopSSOLinkRequest) (*s4wave_provider_spacewave.StartDesktopSSOLinkResponse, error)
 	// StartDesktopPasskeyReauth runs the native-owned desktop passkey reauth flow
 	// for one specific entity keypair. The handler calls the authenticated cloud
-	// start endpoint, opens the system browser to the account-hosted ceremony,
+	// start endpoint, sends the ceremony URL, opens the system browser to it,
 	// waits for the browser-authenticated result on the auth-session WebSocket,
-	// and returns the unwrap artifacts for the existing unlock path.
-	StartDesktopPasskeyReauth(context.Context, *s4wave_provider_spacewave.StartDesktopPasskeyReauthRequest) (*s4wave_provider_spacewave.StartDesktopPasskeyReauthResponse, error)
+	// and sends the unwrap artifacts for the existing unlock path.
+	StartDesktopPasskeyReauth(*s4wave_provider_spacewave.StartDesktopPasskeyReauthRequest, SRPCSpacewaveSessionResourceService_StartDesktopPasskeyReauthStream) error
 	// EnrollForHandoff registers the receiving client's independent Session key.
 	EnrollForHandoff(context.Context, *s4wave_provider_spacewave.EnrollForHandoffRequest) (*s4wave_provider_spacewave.EnrollForHandoffResponse, error)
 	// PreviewSpaceLink verifies a SpaceLink ticket for trusted UI display.
@@ -2179,11 +2203,8 @@ func (SRPCSpacewaveSessionResourceServiceHandler) InvokeMethod_StartDesktopPassk
 	if err := strm.MsgRecv(req); err != nil {
 		return err
 	}
-	out, err := impl.StartDesktopPasskeyReauth(strm.Context(), req)
-	if err != nil {
-		return err
-	}
-	return strm.MsgSend(out)
+	serverStrm := &srpcSpacewaveSessionResourceService_StartDesktopPasskeyReauthStream{strm}
+	return impl.StartDesktopPasskeyReauth(req, serverStrm)
 }
 
 func (SRPCSpacewaveSessionResourceServiceHandler) InvokeMethod_EnrollForHandoff(impl SRPCSpacewaveSessionResourceServiceServer, strm srpc.Stream) error {
@@ -2880,10 +2901,25 @@ type srpcSpacewaveSessionResourceService_StartDesktopSSOLinkStream struct {
 
 type SRPCSpacewaveSessionResourceService_StartDesktopPasskeyReauthStream interface {
 	srpc.Stream
+	Send(*s4wave_provider_spacewave.StartDesktopPasskeyReauthResponse) error
+	SendAndClose(*s4wave_provider_spacewave.StartDesktopPasskeyReauthResponse) error
 }
 
 type srpcSpacewaveSessionResourceService_StartDesktopPasskeyReauthStream struct {
 	srpc.Stream
+}
+
+func (x *srpcSpacewaveSessionResourceService_StartDesktopPasskeyReauthStream) Send(m *s4wave_provider_spacewave.StartDesktopPasskeyReauthResponse) error {
+	return x.MsgSend(m)
+}
+
+func (x *srpcSpacewaveSessionResourceService_StartDesktopPasskeyReauthStream) SendAndClose(m *s4wave_provider_spacewave.StartDesktopPasskeyReauthResponse) error {
+	if m != nil {
+		if err := x.MsgSend(m); err != nil {
+			return err
+		}
+	}
+	return x.CloseSend()
 }
 
 type SRPCSpacewaveSessionResourceService_EnrollForHandoffStream interface {

@@ -297,9 +297,25 @@ func passkeyCredential(ctx context.Context, sess *s4wave_session.Session, peerID
 		return nil, errors.Wrap(err, "session client")
 	}
 	svc := s4wave_session.NewSRPCSpacewaveSessionResourceServiceClient(sessionClient)
-	os.Stderr.WriteString("Confirm with your passkey in the browser window.\n")
-	reauth, err := svc.StartDesktopPasskeyReauth(ctx, &s4wave_provider_spacewave.StartDesktopPasskeyReauthRequest{PeerId: peerID})
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+	strm, err := svc.StartDesktopPasskeyReauth(ctx, &s4wave_provider_spacewave.StartDesktopPasskeyReauthRequest{PeerId: peerID})
 	if err != nil {
+		return nil, errors.Wrap(err, "passkey reauth")
+	}
+
+	// Show the ceremony URL and wait for the browser's result.
+	start, err := strm.Recv()
+	if err != nil {
+		return nil, errors.Wrap(err, "passkey reauth")
+	}
+	stop := showBrowserURL(cancel, "confirm with your passkey", start.GetOpenUrl())
+	reauth, err := strm.Recv()
+	stop()
+	if err != nil {
+		if ctx.Err() != nil {
+			return nil, errors.New("passkey confirmation canceled")
+		}
 		return nil, errors.Wrap(err, "passkey reauth")
 	}
 

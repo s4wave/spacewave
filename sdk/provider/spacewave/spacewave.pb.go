@@ -2694,8 +2694,10 @@ func (x *StartDesktopPasskeyReauthRequest) GetPeerId() string {
 	return ""
 }
 
-// StartDesktopPasskeyReauthResponse returns the browser-authenticated passkey
-// artifacts for the requested entity keypair.
+// StartDesktopPasskeyReauthResponse reports one step of the desktop passkey
+// reauth flow. The first message carries only OpenUrl, before the browser
+// opens. The last message carries the browser-authenticated passkey artifacts
+// for the requested entity keypair.
 type StartDesktopPasskeyReauthResponse struct {
 	unknownFields []byte
 	// EncryptedBlob is the base64-encoded entity key blob for unlock.
@@ -2710,6 +2712,9 @@ type StartDesktopPasskeyReauthResponse struct {
 	PinWrapped bool `protobuf:"varint,5,opt,name=pin_wrapped,json=pinWrapped,proto3" json:"pinWrapped,omitempty"`
 	// PrfOutput is the base64-encoded PRF output captured in the browser.
 	PrfOutput string `protobuf:"bytes,6,opt,name=prf_output,json=prfOutput,proto3" json:"prfOutput,omitempty"`
+	// OpenUrl is the account-hosted ceremony URL, set only on the first message
+	// so a caller can show it when the browser does not open.
+	OpenUrl string `protobuf:"bytes,7,opt,name=open_url,json=openUrl,proto3" json:"openUrl,omitempty"`
 }
 
 func (x *StartDesktopPasskeyReauthResponse) Reset() {
@@ -2756,6 +2761,13 @@ func (x *StartDesktopPasskeyReauthResponse) GetPinWrapped() bool {
 func (x *StartDesktopPasskeyReauthResponse) GetPrfOutput() string {
 	if x != nil {
 		return x.PrfOutput
+	}
+	return ""
+}
+
+func (x *StartDesktopPasskeyReauthResponse) GetOpenUrl() string {
+	if x != nil {
+		return x.OpenUrl
 	}
 	return ""
 }
@@ -9976,6 +9988,7 @@ func (m *StartDesktopPasskeyReauthResponse) CloneVT() *StartDesktopPasskeyReauth
 	r.AuthParams = m.AuthParams
 	r.PinWrapped = m.PinWrapped
 	r.PrfOutput = m.PrfOutput
+	r.OpenUrl = m.OpenUrl
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -14973,6 +14986,9 @@ func (this *StartDesktopPasskeyReauthResponse) EqualVT(that *StartDesktopPasskey
 		return false
 	}
 	if this.PrfOutput != that.PrfOutput {
+		return false
+	}
+	if this.OpenUrl != that.OpenUrl {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -23211,6 +23227,11 @@ func (x *StartDesktopPasskeyReauthResponse) MarshalProtoJSON(s *json.MarshalStat
 		s.WriteObjectField("prfOutput")
 		s.WriteString(x.PrfOutput)
 	}
+	if x.OpenUrl != "" || s.HasField("openUrl") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("openUrl")
+		s.WriteString(x.OpenUrl)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -23246,6 +23267,9 @@ func (x *StartDesktopPasskeyReauthResponse) UnmarshalProtoJSON(s *json.Unmarshal
 		case "prf_output", "prfOutput":
 			s.AddField("prf_output")
 			x.PrfOutput = s.ReadString()
+		case "open_url", "openUrl":
+			s.AddField("open_url")
+			x.OpenUrl = s.ReadString()
 		}
 	})
 }
@@ -36297,6 +36321,11 @@ func (m *StartDesktopPasskeyReauthResponse) MarshalToSizedBufferVT(dAtA []byte) 
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if len(m.OpenUrl) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.OpenUrl)
+		i--
+		dAtA[i] = 0x3a
+	}
 	if len(m.PrfOutput) > 0 {
 		i = protobuf_go_lite.EncodeString(dAtA, i, m.PrfOutput)
 		i--
@@ -45691,6 +45720,7 @@ func (m *StartDesktopPasskeyReauthResponse) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.AuthParams)
 	n += protobuf_go_lite.SizeBoolNonZero(1, m.PinWrapped)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.PrfOutput)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.OpenUrl)
 	n += len(m.unknownFields)
 	return n
 }
@@ -49455,6 +49485,10 @@ func (x *StartDesktopPasskeyReauthResponse) MarshalProtoText() string {
 	if x.PrfOutput != "" {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "prf_output")
 		protobuf_go_lite.TextWriteString(&sb, x.PrfOutput)
+	}
+	if x.OpenUrl != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "open_url")
+		protobuf_go_lite.TextWriteString(&sb, x.OpenUrl)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -57461,6 +57495,16 @@ func (m *StartDesktopPasskeyReauthResponse) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.PrfOutput = v
+		case 7:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field OpenUrl", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.OpenUrl = v
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

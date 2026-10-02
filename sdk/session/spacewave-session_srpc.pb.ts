@@ -878,9 +878,9 @@ export const SpacewaveSessionResourceServiceDefinition = {
     /**
      * StartDesktopPasskeyReauth runs the native-owned desktop passkey reauth flow
      * for one specific entity keypair. The handler calls the authenticated cloud
-     * start endpoint, opens the system browser to the account-hosted ceremony,
+     * start endpoint, sends the ceremony URL, opens the system browser to it,
      * waits for the browser-authenticated result on the auth-session WebSocket,
-     * and returns the unwrap artifacts for the existing unlock path.
+     * and sends the unwrap artifacts for the existing unlock path.
      *
      * @generated from rpc s4wave.session.SpacewaveSessionResourceService.StartDesktopPasskeyReauth
      */
@@ -888,7 +888,7 @@ export const SpacewaveSessionResourceServiceDefinition = {
       name: 'StartDesktopPasskeyReauth',
       I: StartDesktopPasskeyReauthRequest,
       O: StartDesktopPasskeyReauthResponse,
-      kind: MethodKind.Unary,
+      kind: MethodKind.ServerStreaming,
     },
     /**
      * EnrollForHandoff registers the receiving client's independent Session key.
@@ -1611,16 +1611,16 @@ export interface SpacewaveSessionResourceService {
   /**
    * StartDesktopPasskeyReauth runs the native-owned desktop passkey reauth flow
    * for one specific entity keypair. The handler calls the authenticated cloud
-   * start endpoint, opens the system browser to the account-hosted ceremony,
+   * start endpoint, sends the ceremony URL, opens the system browser to it,
    * waits for the browser-authenticated result on the auth-session WebSocket,
-   * and returns the unwrap artifacts for the existing unlock path.
+   * and sends the unwrap artifacts for the existing unlock path.
    *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.StartDesktopPasskeyReauth
    */
   StartDesktopPasskeyReauth(
     request: StartDesktopPasskeyReauthRequest,
     abortSignal?: AbortSignal,
-  ): Promise<StartDesktopPasskeyReauthResponse>
+  ): MessageStream<StartDesktopPasskeyReauthResponse>
 
   /**
    * EnrollForHandoff registers the receiving client's independent Session key.
@@ -2400,9 +2400,9 @@ export interface SpacewaveSessionResourceServiceHandler {
   /**
    * StartDesktopPasskeyReauth runs the native-owned desktop passkey reauth flow
    * for one specific entity keypair. The handler calls the authenticated cloud
-   * start endpoint, opens the system browser to the account-hosted ceremony,
+   * start endpoint, sends the ceremony URL, opens the system browser to it,
    * waits for the browser-authenticated result on the auth-session WebSocket,
-   * and returns the unwrap artifacts for the existing unlock path.
+   * and sends the unwrap artifacts for the existing unlock path.
    *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.StartDesktopPasskeyReauth
    */
@@ -2410,7 +2410,7 @@ export interface SpacewaveSessionResourceServiceHandler {
     request: StartDesktopPasskeyReauthRequest,
     abortSignal: AbortSignal,
     context: ServerContext,
-  ): Promise<StartDesktopPasskeyReauthResponse>
+  ): MessageStream<StartDesktopPasskeyReauthResponse>
 
   /**
    * EnrollForHandoff registers the receiving client's independent Session key.
@@ -3834,25 +3834,27 @@ export class SpacewaveSessionResourceServiceClient implements SpacewaveSessionRe
   /**
    * StartDesktopPasskeyReauth runs the native-owned desktop passkey reauth flow
    * for one specific entity keypair. The handler calls the authenticated cloud
-   * start endpoint, opens the system browser to the account-hosted ceremony,
+   * start endpoint, sends the ceremony URL, opens the system browser to it,
    * waits for the browser-authenticated result on the auth-session WebSocket,
-   * and returns the unwrap artifacts for the existing unlock path.
+   * and sends the unwrap artifacts for the existing unlock path.
    *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.StartDesktopPasskeyReauth
    */
-  async StartDesktopPasskeyReauth(
+  StartDesktopPasskeyReauth(
     request: StartDesktopPasskeyReauthRequest,
     abortSignal?: AbortSignal,
-  ): Promise<StartDesktopPasskeyReauthResponse> {
+  ): MessageStream<StartDesktopPasskeyReauthResponse> {
     const requestMsg = StartDesktopPasskeyReauthRequest.create(request)
-    const result = await this.rpc.request(
+    const result = this.rpc.serverStreamingRequest(
       this.service,
       SpacewaveSessionResourceServiceDefinition.methods
         .StartDesktopPasskeyReauth.name,
       StartDesktopPasskeyReauthRequest.toBinary(requestMsg),
       abortSignal || undefined,
     )
-    return StartDesktopPasskeyReauthResponse.fromBinary(result)
+    return buildDecodeMessageTransform(StartDesktopPasskeyReauthResponse)(
+      result,
+    )
   }
 
   /**

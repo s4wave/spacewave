@@ -644,8 +644,10 @@ message StartDesktopPasskeyReauthRequest {
   string peer_id = 1;
 }
 
-// StartDesktopPasskeyReauthResponse returns the browser-authenticated passkey
-// artifacts for the requested entity keypair.
+// StartDesktopPasskeyReauthResponse reports one step of the desktop passkey
+// reauth flow. The first message carries only OpenUrl, before the browser
+// opens. The last message carries the browser-authenticated passkey artifacts
+// for the requested entity keypair.
 message StartDesktopPasskeyReauthResponse {
   // EncryptedBlob is the base64-encoded entity key blob for unlock.
   string encrypted_blob = 1;
@@ -659,6 +661,9 @@ message StartDesktopPasskeyReauthResponse {
   bool pin_wrapped = 5;
   // PrfOutput is the base64-encoded PRF output captured in the browser.
   string prf_output = 6;
+  // OpenUrl is the account-hosted ceremony URL, set only on the first message
+  // so a caller can show it when the browser does not open.
+  string open_url = 7;
 }
 
 // ConfirmDesktopSSORequest completes native desktop SSO account creation.

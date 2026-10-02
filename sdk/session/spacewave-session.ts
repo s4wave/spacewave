@@ -622,12 +622,19 @@ export class SpacewaveSession extends Resource {
   // startDesktopPasskeyReauth runs the native-owned desktop passkey reauth
   // flow. The handler opens the system browser, waits on the cloud relay for
   // the browser-authenticated result, and returns the unwrap artifacts for the
-  // existing unlock path.
+  // existing unlock path. The stream's first message, which carries only the
+  // ceremony URL, is skipped.
   public async startDesktopPasskeyReauth(
     request: StartDesktopPasskeyReauthRequest,
     abortSignal?: AbortSignal,
   ): Promise<StartDesktopPasskeyReauthResponse> {
-    return await this.service.StartDesktopPasskeyReauth(request, abortSignal)
+    const stream = this.service.StartDesktopPasskeyReauth(request, abortSignal)
+    for await (const msg of stream) {
+      if (msg.encryptedBlob) {
+        return msg
+      }
+    }
+    throw new Error('desktop passkey reauth ended without a result')
   }
 
   // watchEmails streams the account's email list, emitting on changes.

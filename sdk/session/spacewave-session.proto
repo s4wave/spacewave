@@ -154,10 +154,10 @@ service SpacewaveSessionResourceService {
   rpc StartDesktopSSOLink(.s4wave.provider.spacewave.StartDesktopSSOLinkRequest) returns (.s4wave.provider.spacewave.StartDesktopSSOLinkResponse);
   // StartDesktopPasskeyReauth runs the native-owned desktop passkey reauth flow
   // for one specific entity keypair. The handler calls the authenticated cloud
-  // start endpoint, opens the system browser to the account-hosted ceremony,
+  // start endpoint, sends the ceremony URL, opens the system browser to it,
   // waits for the browser-authenticated result on the auth-session WebSocket,
-  // and returns the unwrap artifacts for the existing unlock path.
-  rpc StartDesktopPasskeyReauth(.s4wave.provider.spacewave.StartDesktopPasskeyReauthRequest) returns (.s4wave.provider.spacewave.StartDesktopPasskeyReauthResponse);
+  // and sends the unwrap artifacts for the existing unlock path.
+  rpc StartDesktopPasskeyReauth(.s4wave.provider.spacewave.StartDesktopPasskeyReauthRequest) returns (stream .s4wave.provider.spacewave.StartDesktopPasskeyReauthResponse);
 
   // EnrollForHandoff registers the receiving client's independent Session key.
   rpc EnrollForHandoff(.s4wave.provider.spacewave.EnrollForHandoffRequest) returns (.s4wave.provider.spacewave.EnrollForHandoffResponse);

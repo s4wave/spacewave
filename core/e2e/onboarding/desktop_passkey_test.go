@@ -12,6 +12,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/aperturerobotics/util/ulid"
 	"github.com/pkg/errors"
 	provider "github.com/s4wave/spacewave/core/provider"
@@ -27,6 +28,7 @@ import (
 	bifpeer "github.com/s4wave/spacewave/net/peer"
 	s4wave_account "github.com/s4wave/spacewave/sdk/account"
 	s4wave_provider_spacewave "github.com/s4wave/spacewave/sdk/provider/spacewave"
+	s4wave_session "github.com/s4wave/spacewave/sdk/session"
 	"github.com/sirupsen/logrus"
 )
 
@@ -811,10 +813,14 @@ func TestDesktopPasskeyRegisterEndToEnd(t *testing.T) {
 	}
 }
 
+// TestDesktopPasskeyReauthEndToEnd unlocks an entity keypair with the
+// artifacts a desktop passkey reauth streams back.
 func TestDesktopPasskeyReauthEndToEnd(t *testing.T) {
+	// Bound the test to the shared environment.
 	ctx, cancel := context.WithCancel(env.ctx)
 	defer cancel()
 
+	// Create a cloud account and register a passkey for its entity key.
 	cloudEntry, entityPriv, entityPeerID := createCloudSessionWithKey(ctx, t)
 	accountID := cloudEntry.GetSessionRef().GetProviderResourceRef().GetProviderAccountId()
 	acc, relAcc := accessSpacewaveAccount(ctx, t, accountID)
@@ -823,6 +829,7 @@ func TestDesktopPasskeyReauthEndToEnd(t *testing.T) {
 	va := newConfiguredVirtualAuthenticator(t)
 	registerPasskeyForAccount(ctx, t, acc.GetSessionClient(), entityPriv, entityPeerID, va)
 
+	// Build the Session and account resources under test.
 	cloudResource, cloudSess, relCloudResource := mountSessionResource(ctx, t, cloudEntry)
 	defer relCloudResource()
 	swResource := resource_session.NewSpacewaveSessionResource(
@@ -835,6 +842,7 @@ func TestDesktopPasskeyReauthEndToEnd(t *testing.T) {
 	accResource := resource_account.NewAccountResource(acc)
 	defer accResource.Release()
 
+	// Answer the ceremony with the virtual authenticator instead of a browser.
 	restore := provider_spacewave_handoff.SetBrowserOpenerForTesting(
 		func(rawURL string) error {
 			return simulateDesktopPasskeyReauthBrowser(ctx, t, rawURL, username, va)
@@ -842,7 +850,15 @@ func TestDesktopPasskeyReauthEndToEnd(t *testing.T) {
 	)
 	defer restore()
 
-	reauthResp, err := swResource.StartDesktopPasskeyReauth(
+	// Start the reauth stream through the generated client.
+	mux := srpc.NewMux()
+	if err := s4wave_session.SRPCRegisterSpacewaveSessionResourceService(mux, swResource); err != nil {
+		t.Fatal(err)
+	}
+	reauthClient := s4wave_session.NewSRPCSpacewaveSessionResourceServiceClient(
+		srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(mux))),
+	)
+	reauthStrm, err := reauthClient.StartDesktopPasskeyReauth(
 		ctx,
 		&s4wave_provider_spacewave.StartDesktopPasskeyReauthRequest{
 			PeerId: entityPeerID.String(),
@@ -851,6 +867,21 @@ func TestDesktopPasskeyReauthEndToEnd(t *testing.T) {
 	if err != nil {
 		t.Fatalf("start desktop passkey reauth: %v", err)
 	}
+
+	// Receive the ceremony URL, then the unwrap artifacts.
+	urlResp, err := reauthStrm.Recv()
+	if err != nil {
+		t.Fatalf("receive desktop passkey reauth url: %v", err)
+	}
+	if urlResp.GetOpenUrl() == "" {
+		t.Fatal("desktop passkey reauth sent no ceremony url")
+	}
+	reauthResp, err := reauthStrm.Recv()
+	if err != nil {
+		t.Fatalf("receive desktop passkey reauth result: %v", err)
+	}
+
+	// Check the harness returned a plain, non-PRF key blob.
 	if reauthResp.GetEncryptedBlob() == "" {
 		t.Fatal("desktop passkey reauth returned no encrypted blob")
 	}
@@ -860,6 +891,8 @@ func TestDesktopPasskeyReauthEndToEnd(t *testing.T) {
 	if reauthResp.GetPinWrapped() {
 		t.Fatal("expected non-pin-wrapped desktop passkey reauth in e2e harness")
 	}
+
+	// Unlock the entity keypair with the recovered PEM.
 	pemDat, err := base64.StdEncoding.DecodeString(reauthResp.GetEncryptedBlob())
 	if err != nil {
 		t.Fatalf("decode desktop passkey reauth pem: %v", err)
@@ -877,6 +910,8 @@ func TestDesktopPasskeyReauthEndToEnd(t *testing.T) {
 	); err != nil {
 		t.Fatalf("unlock entity keypair from desktop passkey reauth: %v", err)
 	}
+
+	// Prove the unlocked key authorizes an account change.
 	backupResp, err := accResource.GenerateBackupKey(
 		ctx,
 		&s4wave_account.GenerateBackupKeyRequest{},
