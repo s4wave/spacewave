@@ -15,17 +15,21 @@ import (
 
 // TestLocalProviderInvitationUsesNativeNetwork joins two accounts without signaling or manual transport wiring.
 func TestLocalProviderInvitationUsesNativeNetwork(t *testing.T) {
-	// Mount two independent accounts under the same real native provider.
+	// Mount the owner account under the real native provider.
 	ctx, cancel := context.WithTimeout(t.Context(), 20*time.Second)
 	defer cancel()
 	tb, _, owner, ownerSession, releaseOwner := setupProviderAndSession(ctx, t)
 	t.Cleanup(releaseOwner)
+
+	// Look up the native provider that hosts both accounts.
 	rawProvider, providerRef, err := provider.ExLookupProvider(ctx, tb.Bus, "local", false, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 	t.Cleanup(providerRef.Release)
 	local := rawProvider.(*provider_local.Provider)
+
+	// Create and mount an independent reader account and session.
 	readerRef, err := local.CreateLocalAccountAndSession(ctx, "")
 	if err != nil {
 		t.Fatal(err)
@@ -35,6 +39,8 @@ func TestLocalProviderInvitationUsesNativeNetwork(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(releaseReader)
+
+	// Mount the reader's session.
 	reader := rawReader.(*provider_local.ProviderAccount)
 	readerSession, releaseSession, err := reader.MountSession(ctx, readerRef, nil)
 	if err != nil {
@@ -42,7 +48,7 @@ func TestLocalProviderInvitationUsesNativeNetwork(t *testing.T) {
 	}
 	t.Cleanup(releaseSession)
 
-	// Publish a signed targeted invitation through the existing owner API.
+	// Create and mount the owner's shared object.
 	ref, err := owner.CreateSharedObject(ctx, "local-invitation", &sobject.SharedObjectMeta{BodyType: "space"}, "", "")
 	if err != nil {
 		t.Fatal(err)
@@ -52,8 +58,10 @@ func TestLocalProviderInvitationUsesNativeNetwork(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(releaseObject)
+
+	// Publish a signed targeted invitation through the existing owner API.
 	host := object.(sobject.InviteHost)
-	invite, err := host.CreateSOInviteOp(ctx, host.GetPrivKey(), sobject.SOParticipantRole_SOParticipantRole_WRITER, "local", readerSession.GetPeerId().String(), 1, nil)
+	invite, err := host.CreateSOInviteOp(ctx, host.GetPrivKey(), "local", &sobject.SOInvite{Role: sobject.SOParticipantRole_SOParticipantRole_WRITER, TargetPeerId: readerSession.GetPeerId().String(), MaxUses: 1})
 	if err != nil {
 		t.Fatal(err)
 	}

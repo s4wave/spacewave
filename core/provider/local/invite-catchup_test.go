@@ -36,7 +36,7 @@ func TestInvitedProviderCatchup(t *testing.T) {
 	ownerObject := object.(*provider_local.SharedObject)
 
 	// The owner prepares an invitation for the reader.
-	invite, err := ownerObject.CreateSOInviteOp(ctx, ownerObject.GetPrivKey(), sobject.SOParticipantRole_SOParticipantRole_READER, "local", "", 1, nil)
+	invite, err := ownerObject.CreateSOInviteOp(ctx, ownerObject.GetPrivKey(), "local", &sobject.SOInvite{Role: sobject.SOParticipantRole_SOParticipantRole_READER, MaxUses: 1})
 	if err != nil {
 		t.Fatal(err)
 	}

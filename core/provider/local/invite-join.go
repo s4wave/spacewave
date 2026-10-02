@@ -23,11 +23,12 @@ var ErrDirectInviteOwnerMustBeOnline = errors.New("space owner must be online to
 
 // JoinViaInvite executes the full invite join flow.
 //
-// 1. Ensures a session transport is running (starts one if needed)
-// 2. Opens an SRPC stream to the owner and sends AcceptInviteRequest
-// 3. Receives the SOGrant from the owner
-// 4. Mounts the shared object with the grant
-// 5. Starts P2P sync so SolicitSync delivers state
+//  1. Ensures a session transport is running (starts one if needed)
+//  2. Opens an SRPC stream to the owner and sends AcceptInviteRequest
+//  3. Receives the SOGrant from the owner, or returns early when the owner
+//     queued the redemption for approval
+//  4. Mounts the shared object with the grant
+//  5. Starts P2P sync so SolicitSync delivers state
 //
 // The inviteMsg is the out-of-band SOInviteMessage from the owner.
 // sessionKey is the invitee's session private key.
@@ -38,6 +39,7 @@ func (a *ProviderAccount) JoinViaInvite(
 	inviteMsg *sobject.SOInviteMessage,
 	signalingURL string,
 ) (*sobject_invite.JoinResult, error) {
+	// Verify the owner peer the invite names.
 	if inviteMsg == nil {
 		return nil, errors.New("invite message is nil")
 	}
@@ -67,6 +69,7 @@ func (a *ProviderAccount) JoinViaInvite(
 		return nil, errors.Wrap(err, "start session transport")
 	}
 
+	// Wait for the owner to be reachable on the session transport.
 	st := a.GetSessionTransport()
 	if st == nil {
 		return nil, errors.New("session transport not available")
@@ -86,6 +89,7 @@ func (a *ProviderAccount) JoinViaInvite(
 		return nil, err
 	}
 
+	// Read the storage peer key, which joins alongside the session.
 	volumePeer, err := a.vol.GetPeer(ctx, true)
 	if err != nil {
 		return nil, errors.Wrap(err, "get storage peer")
@@ -108,6 +112,9 @@ func (a *ProviderAccount) JoinViaInvite(
 	)
 	if err != nil {
 		return nil, errors.Wrap(err, "invite handshake")
+	}
+	if result.Pending {
+		return result, nil
 	}
 
 	// Mount the shared object and apply the grant.

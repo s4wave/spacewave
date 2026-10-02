@@ -27,29 +27,41 @@ type EnrollFn func(ctx context.Context, result *InviteLookupResult, inviteePeerI
 // LeaveFn commits voluntary departure while retaining the selected native host through acknowledgment.
 type LeaveFn func(context.Context, *sobject.SOLeaveRequest) (*sobject.SOLeaveResponse, error)
 
+// QueueFn holds a redemption as a join request for an owner to grant or refuse.
+type QueueFn func(ctx context.Context, result *InviteLookupResult, joinResp *sobject.SOJoinResponse) error
+
+// HeldConfigFn returns the host's own configuration of a Space, or nil when
+// the host does not hold it.
+type HeldConfigFn func(ctx context.Context, sharedObjectID string) (*sobject.SharedObjectConfig, error)
+
+// Handlers are the owner operations behind the invite service.
+type Handlers struct {
+	// Lookup resolves the owner's invitation authority.
+	Lookup InviteLookupFn
+	// Enroll issues participant grants under the resolved owner.
+	Enroll EnrollFn
+	// Leave commits authenticated voluntary departure.
+	Leave LeaveFn
+	// Queue holds join requests; nil refuses redemptions that need approval.
+	Queue QueueFn
+	// HeldConfig reads the Spaces a participant_of invite names; nil holds none.
+	HeldConfig HeldConfigFn
+}
+
 // Server implements the SOInviteService SRPC server.
 type Server struct {
 	// le provides diagnostics for this service.
 	le *logrus.Entry
-	// lookupFn resolves the owner's invitation authority.
-	lookupFn InviteLookupFn
-	// enrollFn issues participant grants under the resolved owner.
-	enrollFn EnrollFn
-	// leaveFn commits authenticated voluntary departure.
-	leaveFn LeaveFn
+	// h performs the owner operations.
+	h Handlers
 	// acceptMtx serializes invite acceptance from lookup through the use
 	// increment, so a limited-use invite cannot enroll more peers than it admits.
 	acceptMtx csync.Mutex
 }
 
 // NewServer constructs a new SO invite server.
-func NewServer(le *logrus.Entry, lookupFn InviteLookupFn, enrollFn EnrollFn, leaveFn LeaveFn) *Server {
-	return &Server{
-		le:       le,
-		lookupFn: lookupFn,
-		enrollFn: enrollFn,
-		leaveFn:  leaveFn,
-	}
+func NewServer(le *logrus.Entry, h Handlers) *Server {
+	return &Server{le: le, h: h}
 }
 
 // Leave binds the transport to a departing identity before invoking the native owner.
@@ -65,14 +77,15 @@ func (s *Server) Leave(ctx context.Context, request *sobject.SOLeaveRequest) (*s
 	}
 
 	// The mounted provider retains and mutates its own host for the complete operation.
-	if s.leaveFn == nil {
+	if s.h.Leave == nil {
 		return nil, errors.New("voluntary departure is unavailable")
 	}
-	return s.leaveFn(ctx, request)
+	return s.h.Leave(ctx, request)
 }
 
 // AcceptInvite processes a join request from an invitee.
 func (s *Server) AcceptInvite(ctx context.Context, req *AcceptInviteRequest) (*AcceptInviteResponse, error) {
+	// Validate the request.
 	joinResp := req.GetJoinResponse()
 	if joinResp == nil {
 		return nil, errors.New("join_response is required")
@@ -106,6 +119,7 @@ func (s *Server) AcceptInvite(ctx context.Context, req *AcceptInviteRequest) (*A
 		return nil, errors.New("stream peer ID does not match join response responder")
 	}
 
+	// The storage join response must be valid and name the same invite.
 	storageJoinResp := req.GetStorageJoinResponse()
 	if storageJoinResp == nil {
 		return nil, errors.New("storage_join_response is required")
@@ -127,7 +141,7 @@ func (s *Server) AcceptInvite(ctx context.Context, req *AcceptInviteRequest) (*A
 	defer relAccept()
 
 	// Look up the invite by token hash.
-	result, err := s.lookupFn(ctx, tokenHash)
+	result, err := s.h.Lookup(ctx, tokenHash)
 	if err != nil {
 		return nil, errors.Wrap(err, "look up invite")
 	}
@@ -157,17 +171,35 @@ func (s *Server) AcceptInvite(ctx context.Context, req *AcceptInviteRequest) (*A
 		return nil, errors.Wrap(err, "invite not usable")
 	}
 
+	// Admit, queue or refuse the redeemer under the invite's conditions.
+	held, err := s.readHeldConfigs(ctx, result.Invite)
+	if err != nil {
+		return nil, err
+	}
+	switch sobject.RedeemInvite(result.Invite, responderPeerID.String(), held) {
+	case sobject.InviteRedemptionRefuse:
+		return nil, errors.New("invite does not admit this peer")
+	case sobject.InviteRedemptionQueue:
+		if s.h.Queue == nil {
+			return nil, errors.New("join requests are unavailable")
+		}
+		if err := s.h.Queue(ctx, result, joinResp); err != nil {
+			return nil, errors.Wrap(err, "queue join request")
+		}
+		return &AcceptInviteResponse{SharedObjectId: result.SharedObjectID, Pending: true}, nil
+	}
+
 	// Enroll the participant first. If enrollment fails, the invite use
 	// is not consumed (avoids burning limited-use invites on transient errors).
-	if s.enrollFn == nil {
+	if s.h.Enroll == nil {
 		return nil, errors.New("enrollment not configured")
 	}
-	grant, err := s.enrollFn(ctx, result, responderPeerID, responderPubKey)
+	grant, err := s.h.Enroll(ctx, result, responderPeerID, responderPubKey)
 	if err != nil {
 		return nil, errors.Wrap(err, "enroll participant")
 	}
 	if storagePeerID != responderPeerID {
-		if _, err := s.enrollFn(ctx, result, storagePeerID, storagePubKey); err != nil {
+		if _, err := s.h.Enroll(ctx, result, storagePeerID, storagePubKey); err != nil {
 			return nil, errors.Wrap(err, "enroll storage participant")
 		}
 	}
@@ -217,6 +249,28 @@ func (s *Server) AcceptInvite(ctx context.Context, req *AcceptInviteRequest) (*A
 		OwnerGrant:        ownerGrant,
 		SharedObjectState: ownerState.CloneVT(),
 	}, nil
+}
+
+// readHeldConfigs reads this host's configuration of each Space the invite names.
+func (s *Server) readHeldConfigs(ctx context.Context, inv *sobject.SOInvite) (map[string]*sobject.SharedObjectConfig, error) {
+	// Without named Spaces or a reader there is nothing to read.
+	ids := inv.GetParticipantOf().GetSharedObjectIds()
+	if len(ids) == 0 || s.h.HeldConfig == nil {
+		return nil, nil
+	}
+
+	// Read each held Space's config, skipping Spaces this host does not hold.
+	held := make(map[string]*sobject.SharedObjectConfig, len(ids))
+	for _, id := range ids {
+		config, err := s.h.HeldConfig(ctx, id)
+		if err != nil {
+			return nil, errors.Wrapf(err, "read held space %s", id)
+		}
+		if config != nil {
+			held[id] = config
+		}
+	}
+	return held, nil
 }
 
 // _ is a type assertion.

@@ -30,7 +30,9 @@ func newTestSOHost(ctx context.Context, state *SOState) (*SOHost, **SOState) {
 	return host, statePtr
 }
 
+// TestCreateSOInviteOp signs an invite message and stores only its token hash.
 func TestCreateSOInviteOp(t *testing.T) {
+	// Host a shared object owned by one peer.
 	ctx := context.Background()
 	peers := createMockPeers(t, 1)
 	owner := peers[0]
@@ -39,27 +41,20 @@ func TestCreateSOInviteOp(t *testing.T) {
 		t.Fatal(err)
 	}
 	ownerIDStr := owner.GetPeerID().String()
-
-	state := &SOState{
+	host, statePtr := newTestSOHost(ctx, &SOState{
 		Config: &SharedObjectConfig{
 			Participants: []*SOParticipantConfig{{
 				PeerId: ownerIDStr,
 				Role:   SOParticipantRole_SOParticipantRole_OWNER,
 			}},
 		},
-	}
+	})
 
-	host, statePtr := newTestSOHost(ctx, state)
-
-	msg, err := host.CreateSOInviteOp(
-		ctx,
-		ownerPriv,
-		SOParticipantRole_SOParticipantRole_WRITER,
-		"test-provider",
-		"",
-		5,
-		nil,
-	)
+	// Create an invite with five uses.
+	msg, err := host.CreateSOInviteOp(ctx, ownerPriv, "test-provider", &SOInvite{
+		Role:    SOParticipantRole_SOParticipantRole_WRITER,
+		MaxUses: 5,
+	})
 	if err != nil {
 		t.Fatalf("CreateSOInviteOp: %v", err)
 	}
@@ -99,12 +94,12 @@ func TestCreateSOInviteOp(t *testing.T) {
 	if len(inv.GetTokenHash()) != 32 {
 		t.Fatalf("expected 32-byte token_hash, got %d", len(inv.GetTokenHash()))
 	}
-	// Token hash should NOT equal the raw token.
 	if string(inv.GetTokenHash()) == string(msg.GetToken()) {
 		t.Fatal("token_hash should be a hash, not the raw token")
 	}
 }
 
+// TestCreateInvite stores an invite and rejects a duplicate ID.
 func TestCreateInvite(t *testing.T) {
 	ctx := context.Background()
 	peers := createMockPeers(t, 1)
@@ -151,6 +146,7 @@ func TestCreateInvite(t *testing.T) {
 	}
 }
 
+// TestRevokeInvite marks an invite revoked.
 func TestRevokeInvite(t *testing.T) {
 	ctx := context.Background()
 	peers := createMockPeers(t, 1)
@@ -198,6 +194,7 @@ func TestRevokeInvite(t *testing.T) {
 	}
 }
 
+// TestIncrementInviteUses counts uses up to max_uses.
 func TestIncrementInviteUses(t *testing.T) {
 	ctx := context.Background()
 	peers := createMockPeers(t, 1)
@@ -248,6 +245,7 @@ func TestIncrementInviteUses(t *testing.T) {
 	}
 }
 
+// TestIncrementInviteUsesExpired rejects a use of an expired invite.
 func TestIncrementInviteUsesExpired(t *testing.T) {
 	ctx := context.Background()
 	peers := createMockPeers(t, 1)

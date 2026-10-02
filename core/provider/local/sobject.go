@@ -9,8 +9,8 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/controllerbus/controller"
-	"github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	"github.com/aperturerobotics/util/ccontainer"
+	"github.com/aperturerobotics/util/csync"
 	"github.com/aperturerobotics/util/keyed"
 	"github.com/aperturerobotics/util/promise"
 	"github.com/pkg/errors"
@@ -49,6 +49,11 @@ type SharedObject struct {
 	localPriv crypto.PrivKey
 	// localPid identifies the local participant.
 	localPid peer.ID
+
+	// joinRequestsMtx serializes join request writes.
+	joinRequestsMtx csync.Mutex
+	// joinRequests contains the persisted pending join requests.
+	joinRequests *ccontainer.CContainer[*sobject.SOJoinRequestList]
 }
 
 // GetSOHostState returns a snapshot of the current SOState via the SOHost.
@@ -412,15 +417,20 @@ func (t *sobjectTracker) executeSharedObjectTracker(rctx context.Context) (rerr 
 	if err != nil {
 		return err
 	}
+	joinRequests, err := readJoinRequests(ctx, objStore, sharedObjectID)
+	if err != nil {
+		return err
+	}
 	so := &SharedObject{
-		ctx:       ctx,
-		tkr:       t,
-		blkStore:  blkStore,
-		soHost:    soHost,
-		lsoHost:   lsoHost,
-		objStore:  objStore,
-		localPriv: localPriv,
-		localPid:  localPeerID,
+		ctx:          ctx,
+		tkr:          t,
+		blkStore:     blkStore,
+		soHost:       soHost,
+		lsoHost:      lsoHost,
+		objStore:     objStore,
+		localPriv:    localPriv,
+		localPid:     localPeerID,
+		joinRequests: ccontainer.NewCContainer(joinRequests),
 	}
 
 	// A mounted local SharedObject is ready only after LocalSOHost publishes its
@@ -871,21 +881,10 @@ func (s *SharedObject) GetProviderID() string {
 func (s *SharedObject) CreateSOInviteOp(
 	ctx context.Context,
 	ownerPrivKey crypto.PrivKey,
-	role sobject.SOParticipantRole,
 	providerID string,
-	targetPeerID string,
-	maxUses uint32,
-	expiresAt *timestamppb.Timestamp,
+	terms *sobject.SOInvite,
 ) (*sobject.SOInviteMessage, error) {
-	return s.soHost.CreateSOInviteOp(
-		ctx,
-		ownerPrivKey,
-		role,
-		providerID,
-		targetPeerID,
-		maxUses,
-		expiresAt,
-	)
+	return s.soHost.CreateSOInviteOp(ctx, ownerPrivKey, providerID, terms)
 }
 
 // RevokeInvite revokes an invite locally.

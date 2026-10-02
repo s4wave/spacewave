@@ -39,4 +39,7 @@ message AcceptInviteResponse {
   // SharedObjectState is the owner's authorized state after enrollment. The
   // invitee installs this state so both copies use the same root transform.
   .sobject.SOState shared_object_state = 4;
+  // Pending reports that the owner queued the redemption as a join request
+  // instead of admitting it. Every other field is empty.
+  bool pending = 5;
 }

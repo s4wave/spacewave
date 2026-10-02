@@ -1373,40 +1373,34 @@ func (r *SessionResource) CreateSpaceInvite(
 	ctx context.Context,
 	req *s4wave_session.CreateSpaceInviteRequest,
 ) (*s4wave_session.CreateSpaceInviteResponse, error) {
+	// Validate the request.
 	spaceID := req.GetSpaceId()
 	if spaceID == "" {
 		return nil, errors.New("space_id is required")
 	}
 
+	// Mount the Space's invite host.
 	ih, rel, err := r.mountInviteHost(ctx, spaceID)
 	if err != nil {
 		return nil, errors.Wrap(err, "mount invite host")
 	}
 	defer rel()
 
-	msg, err := ih.CreateSOInviteOp(
-		ctx,
-		ih.GetPrivKey(),
-		req.GetRole(),
-		ih.GetProviderID(),
-		req.GetTargetPeerId(),
-		req.GetMaxUses(),
-		req.GetExpiresAt(),
-	)
+	// Add the invite with the requested terms.
+	msg, err := r.createInvite(ctx, ih, &sobject.SOInvite{
+		Role:             req.GetRole(),
+		TargetPeerId:     req.GetTargetPeerId(),
+		MaxUses:          req.GetMaxUses(),
+		ExpiresAt:        req.GetExpiresAt(),
+		ApprovalRequired: req.GetApprovalRequired(),
+		ParticipantOf:    req.GetParticipantOf(),
+	})
 	if err != nil {
-		return nil, errors.Wrap(err, "create invite")
+		return nil, err
 	}
-
-	// Local invitations use the session transport while retaining the Space signer.
-	if local, ok := r.session.GetProviderAccount().(*provider_local.ProviderAccount); ok {
-		if err := local.PrepareDirectInvite(ctx, r.session.GetPrivKey(), ih.GetPrivKey(), msg); err != nil {
-			return nil, err
-		}
-	}
-
-	resp := &s4wave_session.CreateSpaceInviteResponse{InviteMessage: msg}
 
 	// For spacewave sessions, register a short code with the cloud.
+	resp := &s4wave_session.CreateSpaceInviteResponse{InviteMessage: msg}
 	if swAcc, ok := r.session.GetProviderAccount().(*provider_spacewave.ProviderAccount); ok {
 		var expiresAt int64
 		if exp := req.GetExpiresAt(); exp != nil {
@@ -1564,21 +1558,114 @@ func (r *SessionResource) RevokeSpaceInvite(
 	return &s4wave_session.RevokeSpaceInviteResponse{}, nil
 }
 
+// ResolveSpaceJoinRequest grants or refuses a pending join request. A grant
+// returns a single-use invite for the requesting peer, with the role of the
+// invite it redeemed.
+func (r *SessionResource) ResolveSpaceJoinRequest(
+	ctx context.Context,
+	req *s4wave_session.ResolveSpaceJoinRequestRequest,
+) (*s4wave_session.ResolveSpaceJoinRequestResponse, error) {
+	// Validate the request.
+	spaceID := req.GetSpaceId()
+	if spaceID == "" {
+		return nil, errors.New("space_id is required")
+	}
+	peerID := req.GetPeerId()
+	if peerID == "" {
+		return nil, errors.New("peer_id is required")
+	}
+
+	// Mount the Space's invite host, which holds its join requests.
+	ih, rel, err := r.mountInviteHost(ctx, spaceID)
+	if err != nil {
+		return nil, errors.Wrap(err, "mount invite host")
+	}
+	defer rel()
+	jrh, ok := ih.(sobject.JoinRequestHost)
+	if !ok {
+		return nil, errors.New("shared object does not hold join requests")
+	}
+
+	// Find the peer's pending request.
+	var request *sobject.SOJoinRequest
+	for _, candidate := range jrh.GetJoinRequestsCtr().GetValue().GetRequests() {
+		if candidate.GetJoinResponse().GetResponderPeerId() == peerID {
+			request = candidate
+			break
+		}
+	}
+	if request == nil {
+		return nil, errors.New("no pending join request from peer")
+	}
+
+	// On grant, invite the peer personally with the redeemed invite's role.
+	resp := &s4wave_session.ResolveSpaceJoinRequestResponse{}
+	if req.GetGrant() {
+		state, err := ih.GetSOHost().GetHostState(ctx)
+		if err != nil {
+			return nil, err
+		}
+		redeemed := sobject.FindInvite(state, request.GetJoinResponse().GetInviteId())
+		if redeemed == nil {
+			return nil, errors.New("redeemed invite no longer exists")
+		}
+		resp.InviteMessage, err = r.createInvite(ctx, ih, &sobject.SOInvite{
+			Role:         redeemed.GetRole(),
+			TargetPeerId: peerID,
+			MaxUses:      1,
+		})
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	// Remove the resolved request.
+	if err := jrh.RemoveJoinRequest(ctx, peerID); err != nil {
+		return nil, err
+	}
+
+	return resp, nil
+}
+
+// createInvite adds an invite with terms to the Space and returns its message.
+func (r *SessionResource) createInvite(
+	ctx context.Context,
+	ih sobject.InviteHost,
+	terms *sobject.SOInvite,
+) (*sobject.SOInviteMessage, error) {
+	// Sign the invite into the Space's host state.
+	msg, err := ih.CreateSOInviteOp(ctx, ih.GetPrivKey(), ih.GetProviderID(), terms)
+	if err != nil {
+		return nil, errors.Wrap(err, "create invite")
+	}
+
+	// Local invitations use the session transport while retaining the Space signer.
+	if local, ok := r.session.GetProviderAccount().(*provider_local.ProviderAccount); ok {
+		if err := local.PrepareDirectInvite(ctx, r.session.GetPrivKey(), ih.GetPrivKey(), msg); err != nil {
+			return nil, err
+		}
+	}
+	return msg, nil
+}
+
 // JoinSpaceViaInvite joins a space using an out-of-band invite message.
 func (r *SessionResource) JoinSpaceViaInvite(
 	ctx context.Context,
 	req *s4wave_session.JoinSpaceViaInviteRequest,
 ) (*s4wave_session.JoinSpaceViaInviteResponse, error) {
+	// Validate the request.
 	inviteMsg := req.GetInviteMessage()
 	if inviteMsg == nil {
 		return nil, errors.New("invite_message is required")
 	}
 
+	// Joining signs with the unlocked session key.
 	sessionKey := r.session.GetPrivKey()
 	if sessionKey == nil {
 		return nil, errors.New("session is locked")
 	}
 
+	// Join through the session's provider.
 	switch acc := r.session.GetProviderAccount().(type) {
 	case *provider_local.ProviderAccount:
 		result, err := acc.JoinViaInvite(ctx, sessionKey, inviteMsg, "")
@@ -1591,9 +1678,13 @@ func (r *SessionResource) JoinSpaceViaInvite(
 			}
 			return nil, err
 		}
+		joinResult := s4wave_session.JoinSpaceViaInviteResult_JoinSpaceViaInviteResult_ACCEPTED
+		if result.Pending {
+			joinResult = s4wave_session.JoinSpaceViaInviteResult_JoinSpaceViaInviteResult_PENDING_OWNER_APPROVAL
+		}
 		return &s4wave_session.JoinSpaceViaInviteResponse{
 			SharedObjectId: result.SharedObjectID,
-			Result:         s4wave_session.JoinSpaceViaInviteResult_JoinSpaceViaInviteResult_ACCEPTED,
+			Result:         joinResult,
 		}, nil
 	case *provider_spacewave.ProviderAccount:
 		const inviteAcceptFastPathTimeout = time.Second

@@ -1095,6 +1095,7 @@ func (a *ProviderAccount) startSOSync(
 // startInviteServer registers the SO invite SRPC server on the child bus.
 // The server handles incoming alpha/so-invite streams from invitees.
 func (a *ProviderAccount) startInviteServer(ctx context.Context, childBus bus.Bus, st *transport.SessionTransport, state *p2pSyncState) error {
+	// The invite server answers on the session transport peer.
 	localPeerID := st.GetPeerID().String()
 
 	// Build lookup function: scan all mounted SOs for matching token_hash.
@@ -1150,6 +1151,7 @@ func (a *ProviderAccount) startInviteServer(ctx context.Context, childBus bus.Bu
 		return nil, nil
 	}
 
+	// Build enroll function: add the invitee as a participant.
 	enrollFn := func(ctx context.Context, result *sobject_invite.InviteLookupResult, inviteePeerID peer.ID, inviteePubKey crypto.PubKey) (*sobject.SOGrant, error) {
 		// Add the invitee under the owner key. Local participants have no entity.
 		ownerPeerIDStr, err := peer.IDFromPrivateKey(result.OwnerPrivKey)
@@ -1199,24 +1201,85 @@ func (a *ProviderAccount) startInviteServer(ctx context.Context, childBus bus.Bu
 		return grant, nil
 	}
 
+	// Build queue function: hold a redemption for the owner's approval.
+	queueFn := func(ctx context.Context, result *sobject_invite.InviteLookupResult, joinResp *sobject.SOJoinResponse) error {
+		// Mount the invite's shared object.
+		so, relSO, err := a.mountListedSharedObject(ctx, result.SharedObjectID)
+		if err != nil {
+			return err
+		}
+		if so == nil {
+			return errors.New("shared object is not held")
+		}
+		defer relSO()
+
+		// Persist the request on the shared object.
+		return so.QueueJoinRequest(ctx, joinResp)
+	}
+
+	// Build held config function: read the config of a Space this account holds.
+	heldConfigFn := func(ctx context.Context, sharedObjectID string) (*sobject.SharedObjectConfig, error) {
+		// Mount the shared object, or report nothing when it is not held.
+		so, relSO, err := a.mountListedSharedObject(ctx, sharedObjectID)
+		if err != nil || so == nil {
+			return nil, err
+		}
+		defer relSO()
+
+		// Read its current config from the host state.
+		soState, err := so.soHost.GetHostState(ctx)
+		if err != nil {
+			return nil, err
+		}
+		return soState.GetConfig(), nil
+	}
+
+	// Construct the invite controller with the handlers.
 	ctrl, err := sobject_invite.NewInviteController(
 		a.le,
 		childBus,
-		lookupFn,
-		enrollFn,
-		a.acceptSharedObjectLeave,
+		sobject_invite.Handlers{
+			Lookup:     lookupFn,
+			Enroll:     enrollFn,
+			Leave:      a.acceptSharedObjectLeave,
+			Queue:      queueFn,
+			HeldConfig: heldConfigFn,
+		},
 		[]string{localPeerID},
 	)
 	if err != nil {
 		return err
 	}
 
+	// Run the controller on the child bus until sync stops.
 	relCtrl, err := childBus.AddController(ctx, ctrl, nil)
 	if err != nil {
 		return err
 	}
 	state.addRelease(relCtrl)
 	return nil
+}
+
+// mountListedSharedObject mounts a shared object in the account's list by ID.
+// Returns nil when the account does not hold the shared object.
+func (a *ProviderAccount) mountListedSharedObject(ctx context.Context, sharedObjectID string) (*SharedObject, func(), error) {
+	for _, entry := range a.soListCtr.GetValue().GetSharedObjects() {
+		ref := entry.GetRef()
+		if ref.GetProviderResourceRef().GetId() != sharedObjectID {
+			continue
+		}
+		so, relSO, err := a.MountSharedObject(ctx, ref, nil)
+		if err != nil {
+			return nil, nil, err
+		}
+		localSO, ok := so.(*SharedObject)
+		if !ok {
+			relSO()
+			return nil, nil, errors.New("shared object is not local")
+		}
+		return localSO, relSO, nil
+	}
+	return nil, nil, nil
 }
 
 // startDEXSolicit loads a DEX solicit controller on the child bus for

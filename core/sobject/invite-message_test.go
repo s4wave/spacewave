@@ -9,6 +9,7 @@ import (
 // TestInviteTransportSignature preserves the storage signer while authenticating
 // a distinct session endpoint, and rejects endpoint tampering before token use.
 func TestInviteTransportSignature(t *testing.T) {
+	// Create the owner and a distinct session endpoint.
 	owner, err := peer.NewPeer(nil)
 	if err != nil {
 		t.Fatal(err)
@@ -21,7 +22,9 @@ func TestInviteTransportSignature(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	invite, _, err := BuildSOInviteMessage("space", key, SOParticipantRole_SOParticipantRole_WRITER, "local", "", 1, nil)
+
+	// An unmodified invitation routes to its owner.
+	invite, _, err := BuildSOInviteMessage("space", key, "local", &SOInvite{Role: SOParticipantRole_SOParticipantRole_WRITER, MaxUses: 1})
 	if err != nil {
 		t.Fatal(err)
 	}

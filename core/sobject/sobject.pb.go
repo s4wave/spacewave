@@ -1570,6 +1570,12 @@ type SOInvite struct {
 	// TargetAccountId is the optional provider account id required to submit a
 	// targeted invitation proof for this invite. Empty means bearer invite.
 	TargetAccountId string `protobuf:"bytes,9,opt,name=target_account_id,json=targetAccountId,proto3" json:"targetAccountId,omitempty"`
+	// ApprovalRequired queues a redemption the invite does not otherwise admit
+	// as a join request, which an owner grants or refuses.
+	ApprovalRequired bool `protobuf:"varint,10,opt,name=approval_required,json=approvalRequired,proto3" json:"approvalRequired,omitempty"`
+	// ParticipantOf admits a redeemer who participates in one of the named
+	// Spaces, as the redeeming host holds them. Unset applies no condition.
+	ParticipantOf *SOInviteParticipation `protobuf:"bytes,11,opt,name=participant_of,json=participantOf,proto3" json:"participantOf,omitempty"`
 }
 
 func (x *SOInvite) Reset() {
@@ -1639,6 +1645,91 @@ func (x *SOInvite) GetTargetAccountId() string {
 		return x.TargetAccountId
 	}
 	return ""
+}
+
+func (x *SOInvite) GetApprovalRequired() bool {
+	if x != nil {
+		return x.ApprovalRequired
+	}
+	return false
+}
+
+func (x *SOInvite) GetParticipantOf() *SOInviteParticipation {
+	if x != nil {
+		return x.ParticipantOf
+	}
+	return nil
+}
+
+// SOInviteParticipation names the Spaces whose participants an invite admits.
+// An empty list admits nobody by participation.
+type SOInviteParticipation struct {
+	unknownFields []byte
+	// SharedObjectIds are the named Spaces.
+	SharedObjectIds []string `protobuf:"bytes,1,rep,name=shared_object_ids,json=sharedObjectIds,proto3" json:"sharedObjectIds,omitempty"`
+}
+
+func (x *SOInviteParticipation) Reset() {
+	*x = SOInviteParticipation{}
+}
+
+func (*SOInviteParticipation) ProtoMessage() {}
+
+func (x *SOInviteParticipation) GetSharedObjectIds() []string {
+	if x != nil {
+		return x.SharedObjectIds
+	}
+	return nil
+}
+
+// SOJoinRequest is a redemption waiting for an owner to grant or refuse it.
+type SOJoinRequest struct {
+	unknownFields []byte
+	// JoinResponse is the requester's signed redemption.
+	JoinResponse *SOJoinResponse `protobuf:"bytes,1,opt,name=join_response,json=joinResponse,proto3" json:"joinResponse,omitempty"`
+	// CreatedAt is when the host queued the request.
+	CreatedAt *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=created_at,json=createdAt,proto3" json:"createdAt,omitempty"`
+}
+
+func (x *SOJoinRequest) Reset() {
+	*x = SOJoinRequest{}
+}
+
+func (*SOJoinRequest) ProtoMessage() {}
+
+func (x *SOJoinRequest) GetJoinResponse() *SOJoinResponse {
+	if x != nil {
+		return x.JoinResponse
+	}
+	return nil
+}
+
+func (x *SOJoinRequest) GetCreatedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.CreatedAt
+	}
+	return nil
+}
+
+// SOJoinRequestList is a host's pending join requests for one Space, at most
+// one per requesting peer.
+type SOJoinRequestList struct {
+	unknownFields []byte
+	// Requests are ordered by arrival.
+	Requests []*SOJoinRequest `protobuf:"bytes,1,rep,name=requests,proto3" json:"requests,omitempty"`
+}
+
+func (x *SOJoinRequestList) Reset() {
+	*x = SOJoinRequestList{}
+}
+
+func (*SOJoinRequestList) ProtoMessage() {}
+
+func (x *SOJoinRequestList) GetRequests() []*SOJoinRequest {
+	if x != nil {
+		return x.Requests
+	}
+	return nil
 }
 
 // SOState contains the state of the shared object.
@@ -2587,8 +2678,10 @@ func (m *SOInvite) CloneVT() *SOInvite {
 	r.Uses = m.Uses
 	r.Revoked = m.Revoked
 	r.TargetAccountId = m.TargetAccountId
+	r.ApprovalRequired = m.ApprovalRequired
 	r.TokenHash = protobuf_go_lite.CloneBytes(m.TokenHash)
 	r.ExpiresAt = protobuf_go_lite.CloneVTValue(m.ExpiresAt)
+	r.ParticipantOf = protobuf_go_lite.CloneVTValue(m.ParticipantOf)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -2596,6 +2689,55 @@ func (m *SOInvite) CloneVT() *SOInvite {
 }
 
 func (m *SOInvite) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *SOInviteParticipation) CloneVT() *SOInviteParticipation {
+	if m == nil {
+		return (*SOInviteParticipation)(nil)
+	}
+	r := new(SOInviteParticipation)
+	r.SharedObjectIds = protobuf_go_lite.CloneSlice(m.SharedObjectIds)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *SOInviteParticipation) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *SOJoinRequest) CloneVT() *SOJoinRequest {
+	if m == nil {
+		return (*SOJoinRequest)(nil)
+	}
+	r := new(SOJoinRequest)
+	r.JoinResponse = protobuf_go_lite.CloneVTValue(m.JoinResponse)
+	r.CreatedAt = protobuf_go_lite.CloneVTValue(m.CreatedAt)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *SOJoinRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *SOJoinRequestList) CloneVT() *SOJoinRequestList {
+	if m == nil {
+		return (*SOJoinRequestList)(nil)
+	}
+	r := new(SOJoinRequestList)
+	r.Requests = protobuf_go_lite.CloneVTSlice(m.Requests)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *SOJoinRequestList) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -3529,11 +3671,80 @@ func (this *SOInvite) EqualVT(that *SOInvite) bool {
 	if this.TargetAccountId != that.TargetAccountId {
 		return false
 	}
+	if this.ApprovalRequired != that.ApprovalRequired {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.ParticipantOf, that.ParticipantOf) {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
 func (this *SOInvite) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*SOInvite)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *SOInviteParticipation) EqualVT(that *SOInviteParticipation) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualSlice(this.SharedObjectIds, that.SharedObjectIds) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *SOInviteParticipation) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*SOInviteParticipation)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *SOJoinRequest) EqualVT(that *SOJoinRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.JoinResponse, that.JoinResponse) {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.CreatedAt, that.CreatedAt) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *SOJoinRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*SOJoinRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *SOJoinRequestList) EqualVT(that *SOJoinRequestList) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTSliceImplicit(this.Requests, that.Requests, func() *SOJoinRequest { return &SOJoinRequest{} }) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *SOJoinRequestList) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*SOJoinRequestList)
 	if !ok {
 		return false
 	}
@@ -5941,6 +6152,16 @@ func (x *SOInvite) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("targetAccountId")
 		s.WriteString(x.TargetAccountId)
 	}
+	if x.ApprovalRequired || s.HasField("approvalRequired") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("approvalRequired")
+		s.WriteBool(x.ApprovalRequired)
+	}
+	if x.ParticipantOf != nil || s.HasField("participantOf") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("participantOf")
+		x.ParticipantOf.MarshalProtoJSON(s.WithField("participantOf"))
+	}
 	s.WriteObjectEnd()
 }
 
@@ -5989,12 +6210,189 @@ func (x *SOInvite) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "target_account_id", "targetAccountId":
 			s.AddField("target_account_id")
 			x.TargetAccountId = s.ReadString()
+		case "approval_required", "approvalRequired":
+			s.AddField("approval_required")
+			x.ApprovalRequired = s.ReadBool()
+		case "participant_of", "participantOf":
+			if s.ReadNil() {
+				x.ParticipantOf = nil
+				return
+			}
+			x.ParticipantOf = &SOInviteParticipation{}
+			x.ParticipantOf.UnmarshalProtoJSON(s.WithField("participant_of", true))
 		}
 	})
 }
 
 // UnmarshalJSON unmarshals the SOInvite from JSON.
 func (x *SOInvite) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the SOInviteParticipation message to JSON.
+func (x *SOInviteParticipation) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if len(x.SharedObjectIds) > 0 || s.HasField("sharedObjectIds") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("sharedObjectIds")
+		s.WriteStringArray(x.SharedObjectIds)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the SOInviteParticipation to JSON.
+func (x *SOInviteParticipation) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the SOInviteParticipation message from JSON.
+func (x *SOInviteParticipation) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "shared_object_ids", "sharedObjectIds":
+			s.AddField("shared_object_ids")
+			if s.ReadNil() {
+				x.SharedObjectIds = nil
+				return
+			}
+			x.SharedObjectIds = s.ReadStringArray()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the SOInviteParticipation from JSON.
+func (x *SOInviteParticipation) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the SOJoinRequest message to JSON.
+func (x *SOJoinRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.JoinResponse != nil || s.HasField("joinResponse") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("joinResponse")
+		x.JoinResponse.MarshalProtoJSON(s.WithField("joinResponse"))
+	}
+	if x.CreatedAt != nil || s.HasField("createdAt") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("createdAt")
+		x.CreatedAt.MarshalProtoJSON(s.WithField("createdAt"))
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the SOJoinRequest to JSON.
+func (x *SOJoinRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the SOJoinRequest message from JSON.
+func (x *SOJoinRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "join_response", "joinResponse":
+			if s.ReadNil() {
+				x.JoinResponse = nil
+				return
+			}
+			x.JoinResponse = &SOJoinResponse{}
+			x.JoinResponse.UnmarshalProtoJSON(s.WithField("join_response", true))
+		case "created_at", "createdAt":
+			if s.ReadNil() {
+				x.CreatedAt = nil
+				return
+			}
+			x.CreatedAt = &timestamppb.Timestamp{}
+			x.CreatedAt.UnmarshalProtoJSON(s.WithField("created_at", true))
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the SOJoinRequest from JSON.
+func (x *SOJoinRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the SOJoinRequestList message to JSON.
+func (x *SOJoinRequestList) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if len(x.Requests) > 0 || s.HasField("requests") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("requests")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.Requests {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("requests"))
+		}
+		s.WriteArrayEnd()
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the SOJoinRequestList to JSON.
+func (x *SOJoinRequestList) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the SOJoinRequestList message from JSON.
+func (x *SOJoinRequestList) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "requests":
+			s.AddField("requests")
+			if s.ReadNil() {
+				x.Requests = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.Requests = append(x.Requests, nil)
+					return
+				}
+				v := &SOJoinRequest{}
+				v.UnmarshalProtoJSON(s.WithField("requests", false))
+				if s.Err() != nil {
+					return
+				}
+				x.Requests = append(x.Requests, v)
+			})
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the SOJoinRequestList from JSON.
+func (x *SOJoinRequestList) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -8225,6 +8623,21 @@ func (m *SOInvite) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.ParticipantOf != nil {
+		size, err := m.ParticipantOf.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x5a
+	}
+	if m.ApprovalRequired {
+		i = protobuf_go_lite.EncodeBool(dAtA, i, m.ApprovalRequired)
+		i--
+		dAtA[i] = 0x50
+	}
 	if len(m.TargetAccountId) > 0 {
 		i = protobuf_go_lite.EncodeString(dAtA, i, m.TargetAccountId)
 		i--
@@ -8274,6 +8687,141 @@ func (m *SOInvite) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i = protobuf_go_lite.EncodeString(dAtA, i, m.InviteId)
 		i--
 		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *SOInviteParticipation) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *SOInviteParticipation) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *SOInviteParticipation) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.SharedObjectIds) > 0 {
+		for iNdEx := len(m.SharedObjectIds) - 1; iNdEx >= 0; iNdEx-- {
+			i = protobuf_go_lite.EncodeString(dAtA, i, m.SharedObjectIds[iNdEx])
+			i--
+			dAtA[i] = 0xa
+		}
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *SOJoinRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *SOJoinRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *SOJoinRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.CreatedAt != nil {
+		size, err := m.CreatedAt.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x12
+	}
+	if m.JoinResponse != nil {
+		size, err := m.JoinResponse.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *SOJoinRequestList) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *SOJoinRequestList) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *SOJoinRequestList) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.Requests) > 0 {
+		for iNdEx := len(m.Requests) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.Requests[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0xa
+		}
 	}
 	return len(dAtA) - i, nil
 }
@@ -9280,6 +9828,54 @@ func (m *SOInvite) SizeVT() (n int) {
 	}
 	n += protobuf_go_lite.SizeBoolNonZero(1, m.Revoked)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.TargetAccountId)
+	n += protobuf_go_lite.SizeBoolNonZero(1, m.ApprovalRequired)
+	if m.ParticipantOf != nil {
+		l = m.ParticipantOf.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *SOInviteParticipation) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringSlice(1, m.SharedObjectIds)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *SOJoinRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.JoinResponse != nil {
+		l = m.JoinResponse.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	if m.CreatedAt != nil {
+		l = m.CreatedAt.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *SOJoinRequestList) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	for _, e := range m.Requests {
+		l = e.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -10196,10 +10792,76 @@ func (x *SOInvite) MarshalProtoText() string {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "target_account_id")
 		protobuf_go_lite.TextWriteString(&sb, x.TargetAccountId)
 	}
+	if x.ApprovalRequired != false {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "approval_required")
+		protobuf_go_lite.TextWriteBool(&sb, x.ApprovalRequired)
+	}
+	if x.ParticipantOf != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "participant_of")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.ParticipantOf)
+	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
 
 func (x *SOInvite) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *SOInviteParticipation) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "SOInviteParticipation")
+	if len(x.SharedObjectIds) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "shared_object_ids")
+		for i, v := range x.SharedObjectIds {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			protobuf_go_lite.TextWriteString(&sb, v)
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *SOInviteParticipation) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *SOJoinRequest) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "SOJoinRequest")
+	if x.JoinResponse != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "join_response")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.JoinResponse)
+	}
+	if x.CreatedAt != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "created_at")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.CreatedAt)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *SOJoinRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *SOJoinRequestList) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "SOJoinRequestList")
+	if len(x.Requests) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "requests")
+		for i, v := range x.Requests {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			if v == nil {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, &SOJoinRequest{})
+			} else {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, v)
+			}
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *SOJoinRequestList) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -12624,6 +13286,213 @@ func (m *SOInvite) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.TargetAccountId = v
+		case 10:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ApprovalRequired", wireType)
+			}
+			var v bool
+			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.ApprovalRequired = bool(v)
+		case 11:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ParticipantOf", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.ParticipantOf == nil {
+				m.ParticipantOf = &SOInviteParticipation{}
+			}
+			if err := m.ParticipantOf.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *SOInviteParticipation) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: SOInviteParticipation: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: SOInviteParticipation: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SharedObjectIds", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.SharedObjectIds = append(m.SharedObjectIds, v)
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *SOJoinRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: SOJoinRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: SOJoinRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field JoinResponse", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.JoinResponse == nil {
+				m.JoinResponse = &SOJoinResponse{}
+			}
+			if err := m.JoinResponse.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CreatedAt", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.CreatedAt == nil {
+				m.CreatedAt = &timestamppb.Timestamp{}
+			}
+			if err := m.CreatedAt.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *SOJoinRequestList) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: SOJoinRequestList: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: SOJoinRequestList: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Requests", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Requests = append(m.Requests, &SOJoinRequest{})
+			if err := m.Requests[len(m.Requests)-1].UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

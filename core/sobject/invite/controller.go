@@ -28,13 +28,11 @@ type InviteController struct {
 func NewInviteController(
 	le *logrus.Entry,
 	b bus.Bus,
-	lookupFn InviteLookupFn,
-	enrollFn EnrollFn,
-	leaveFn LeaveFn,
+	h Handlers,
 	peerIDs []string,
 ) (*InviteController, error) {
 	// Construct the invitation stream server and its SRPC controller.
-	srv := NewServer(le, lookupFn, enrollFn, leaveFn)
+	srv := NewServer(le, h)
 	ctrl := &InviteController{}
 	var err error
 	ctrl.Server, err = stream_srpc_server.NewServer(

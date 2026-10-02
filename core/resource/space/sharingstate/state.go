@@ -46,6 +46,8 @@ type SharingState struct {
 	Invites []*sobject.SOInvite
 	// MailboxEntries contains pending invitation delivery metadata.
 	MailboxEntries []*MailboxEntry
+	// JoinRequests contains the redemptions held for owner approval.
+	JoinRequests []*sobject.SOJoinRequest
 	// ViewerRole is the mounted participant's effective role.
 	ViewerRole sobject.SOParticipantRole
 	// CanManage indicates that the mounted participant may manage sharing.
@@ -67,6 +69,7 @@ type State struct {
 	soState                 *sobject.SOState
 	departing               []string
 	mailboxEntries          []*MailboxEntry
+	joinRequests            []*sobject.SOJoinRequest
 	participantPresentation *ParticipantPresentation
 	err                     error
 	bcast                   broadcast.Broadcast
@@ -108,6 +111,33 @@ func (s *State) SetMailboxEntries(entries []*MailboxEntry) {
 		s.mailboxEntries = entries
 		broadcast()
 	})
+}
+
+// SetJoinRequests updates the pending join requests and wakes watchers.
+func (s *State) SetJoinRequests(requests []*sobject.SOJoinRequest) {
+	s.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		s.joinRequests = requests
+		broadcast()
+	})
+}
+
+// BridgeJoinRequests forwards the pending join requests into the local
+// broadcast until ctx ends.
+func (s *State) BridgeJoinRequests(
+	ctx context.Context,
+	ctr ccontainer.Watchable[*sobject.SOJoinRequestList],
+) {
+	current := ctr.GetValue()
+	s.SetJoinRequests(current.GetRequests())
+	for {
+		next, err := ctr.WaitValueChange(ctx, current, nil)
+		if err != nil {
+			s.fail(ctx, err)
+			return
+		}
+		current = next
+		s.SetJoinRequests(current.GetRequests())
+	}
 }
 
 // BridgeSOState forwards SO state container updates into the local broadcast.
@@ -179,13 +209,19 @@ func (s *State) RunWatchLoop(
 			bridgeErr = s.err
 			soState := withoutPeers(s.soState, s.departing)
 			viewerRole := ViewerRole(soState, peerID)
+			canManage := sobject.IsOwner(viewerRole)
+			var joinRequests []*sobject.SOJoinRequest
+			if canManage {
+				joinRequests = s.joinRequests
+			}
 			resp = &SharingState{
 				Participants:   soState.GetConfig().GetParticipants(),
 				Invites:        soState.GetInvites(),
 				MailboxEntries: s.mailboxEntries,
+				JoinRequests:   joinRequests,
 				ViewerPeerID:   peerID,
 				ViewerRole:     viewerRole,
-				CanManage:      sobject.IsOwner(viewerRole),
+				CanManage:      canManage,
 				ParticipantInfo: BuildParticipantInfo(
 					soState,
 					peerID,
@@ -353,6 +389,9 @@ func (s *SharingState) Equal(that *SharingState) bool {
 			return a.EqualVT(b)
 		}) &&
 		slices.EqualFunc(s.MailboxEntries, that.MailboxEntries, equalMailboxEntry) &&
+		slices.EqualFunc(s.JoinRequests, that.JoinRequests, func(a, b *sobject.SOJoinRequest) bool {
+			return a.EqualVT(b)
+		}) &&
 		slices.EqualFunc(s.ParticipantInfo, that.ParticipantInfo, equalParticipantInfo)
 }
 

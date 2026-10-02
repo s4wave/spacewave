@@ -36,7 +36,7 @@ func TestNativeSpaceLeave(t *testing.T) {
 	id := object.GetSharedObjectID()
 
 	// The owner serves a direct invitation over its session transport.
-	invite, err := object.CreateSOInviteOp(ctx, object.GetPrivKey(), sobject.SOParticipantRole_SOParticipantRole_WRITER, "local", "", 0, nil)
+	invite, err := object.CreateSOInviteOp(ctx, object.GetPrivKey(), "local", &sobject.SOInvite{Role: sobject.SOParticipantRole_SOParticipantRole_WRITER})
 	if err != nil {
 		t.Fatal(err)
 	}

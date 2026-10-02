@@ -286,6 +286,12 @@ def respond (req : Json) : Except String Json := do
   | "validateInviteUsable" =>
     return json% {ok: $(validateInviteUsable (← req.getObjValAs? Invite "invite")
       (← req.getObjValAs? Bool "expired"))}
+  | "redeemInvite" =>
+    let result := redeemInvite (← req.getObjValAs? Bool "approvalRequired")
+      (← req.getObjValAs? (Option (List String)) "participantOf")
+      (← req.getObjValAs? (List (String × List String)) "held")
+      (← req.getObjValAs? String "peer")
+    return json% {ok: true, redemption: $(result.code)}
   | "findInvite" =>
     let result := findInvite (← req.getObjValAs? (List Invite) "invites")
       (← req.getObjValAs? String "id")

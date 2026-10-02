@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"github.com/aperturerobotics/controllerbus/bus"
-	"github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/aperturerobotics/util/refcount"
 	"github.com/aperturerobotics/util/scrub"
@@ -149,17 +148,23 @@ type InviteHost interface {
 	GetProviderID() string
 }
 
+// JoinRequestHost is an optional interface on SharedObject implementations
+// that hold the join requests queued by invites requiring approval.
+type JoinRequestHost interface {
+	// GetJoinRequestsCtr returns the pending join requests, at most one per peer.
+	GetJoinRequestsCtr() ccontainer.Watchable[*SOJoinRequestList]
+	// RemoveJoinRequest removes the pending request of peerID.
+	RemoveJoinRequest(ctx context.Context, peerID string) error
+}
+
 // InviteMutator mutates shared-object invite state.
 type InviteMutator interface {
 	// CreateSOInviteOp creates a new invite and returns the signed invite message.
 	CreateSOInviteOp(
 		ctx context.Context,
 		ownerPrivKey crypto.PrivKey,
-		role SOParticipantRole,
 		providerID string,
-		targetPeerID string,
-		maxUses uint32,
-		expiresAt *timestamppb.Timestamp,
+		terms *SOInvite,
 	) (*SOInviteMessage, error)
 	// RevokeInvite revokes an invite by ID.
 	RevokeInvite(ctx context.Context, signerPrivKey crypto.PrivKey, inviteID string) error

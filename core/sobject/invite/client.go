@@ -14,7 +14,7 @@ import (
 	stream_srpc "github.com/s4wave/spacewave/net/stream/srpc"
 )
 
-// JoinResult contains the result of a successful invite join.
+// JoinResult contains the result of an accepted invite redemption.
 type JoinResult struct {
 	// Grant is the encrypted SOGrant for the invitee.
 	Grant *sobject.SOGrant
@@ -24,6 +24,9 @@ type JoinResult struct {
 	OwnerGrant *sobject.SOGrant
 	// SharedObjectState is the owner's authorized state after enrollment.
 	SharedObjectState *sobject.SOState
+	// Pending is set when the owner queued the redemption for approval
+	// instead of enrolling the invitee.
+	Pending bool
 }
 
 // JoinViaInvite executes the invitee side of the invite handshake.
@@ -42,21 +45,20 @@ func JoinViaInvite(
 	storagePrivKey crypto.PrivKey,
 	inviteMsg *sobject.SOInviteMessage,
 ) (*JoinResult, error) {
+	// Verify the owner peer the invite routes to.
 	if inviteMsg == nil {
 		return nil, errors.New("invite message is nil")
 	}
-
 	ownerPeerID, err := inviteMsg.VerifyTransportPeer()
 	if err != nil {
 		return nil, errors.Wrap(err, "parse owner peer ID from invite")
 	}
 
-	// Build the signed join response.
+	// Build the signed join responses for the session and storage peers.
 	joinResp, err := BuildJoinResponse(inviteMsg.GetInviteId(), inviteePrivKey)
 	if err != nil {
 		return nil, errors.Wrap(err, "build join response")
 	}
-
 	storageJoinResp, err := BuildJoinResponse(inviteMsg.GetInviteId(), storagePrivKey)
 	if err != nil {
 		return nil, errors.Wrap(err, "build storage join response")
@@ -87,6 +89,7 @@ func JoinViaInvite(
 		SharedObjectID:    resp.GetSharedObjectId(),
 		OwnerGrant:        resp.GetOwnerGrant(),
 		SharedObjectState: resp.GetSharedObjectState(),
+		Pending:           resp.GetPending(),
 	}, nil
 }
 

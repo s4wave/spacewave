@@ -7,7 +7,6 @@ import (
 	"slices"
 
 	"github.com/aperturerobotics/controllerbus/bus"
-	"github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/aperturerobotics/util/keyed"
 	"github.com/aperturerobotics/util/promise"
@@ -1464,21 +1463,10 @@ func (s *SharedObject) applyInviteMutation(
 func (s *SharedObject) CreateSOInviteOp(
 	ctx context.Context,
 	ownerPrivKey crypto.PrivKey,
-	role sobject.SOParticipantRole,
 	providerID string,
-	targetPeerID string,
-	maxUses uint32,
-	expiresAt *timestamppb.Timestamp,
+	terms *sobject.SOInvite,
 ) (*sobject.SOInviteMessage, error) {
-	msg, invite, err := sobject.BuildSOInviteMessage(
-		s.GetSharedObjectID(),
-		ownerPrivKey,
-		role,
-		providerID,
-		targetPeerID,
-		maxUses,
-		expiresAt,
-	)
+	msg, invite, err := sobject.BuildSOInviteMessage(s.GetSharedObjectID(), ownerPrivKey, providerID, terms)
 	if err != nil {
 		return nil, err
 	}

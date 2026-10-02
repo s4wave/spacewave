@@ -533,6 +533,34 @@ message SOInvite {
   // TargetAccountId is the optional provider account id required to submit a
   // targeted invitation proof for this invite. Empty means bearer invite.
   string target_account_id = 9;
+  // ApprovalRequired queues a redemption the invite does not otherwise admit
+  // as a join request, which an owner grants or refuses.
+  bool approval_required = 10;
+  // ParticipantOf admits a redeemer who participates in one of the named
+  // Spaces, as the redeeming host holds them. Unset applies no condition.
+  SOInviteParticipation participant_of = 11;
+}
+
+// SOInviteParticipation names the Spaces whose participants an invite admits.
+// An empty list admits nobody by participation.
+message SOInviteParticipation {
+  // SharedObjectIds are the named Spaces.
+  repeated string shared_object_ids = 1;
+}
+
+// SOJoinRequest is a redemption waiting for an owner to grant or refuse it.
+message SOJoinRequest {
+  // JoinResponse is the requester's signed redemption.
+  SOJoinResponse join_response = 1;
+  // CreatedAt is when the host queued the request.
+  .google.protobuf.Timestamp created_at = 2;
+}
+
+// SOJoinRequestList is a host's pending join requests for one Space, at most
+// one per requesting peer.
+message SOJoinRequestList {
+  // Requests are ordered by arrival.
+  repeated SOJoinRequest requests = 1;
 }
 
 // SOState contains the state of the shared object.

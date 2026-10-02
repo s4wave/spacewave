@@ -408,9 +408,7 @@ func (a *ProviderAccount) startInviteServer(
 	ctrl, err := sobject_invite.NewInviteController(
 		a.le,
 		childBus,
-		lookupFn,
-		enrollFn,
-		nil,
+		sobject_invite.Handlers{Lookup: lookupFn, Enroll: enrollFn},
 		[]string{localPeerID},
 	)
 	if err != nil {

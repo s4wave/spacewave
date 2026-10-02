@@ -755,18 +755,22 @@ class WatchPairingStatusResponse(_message.Message):
     def __init__(self, status: _Optional[_Union[PairingStatus, str]] = ..., remote_peer_id: _Optional[str] = ..., code: _Optional[str] = ..., emoji: _Optional[_Iterable[str]] = ..., error_message: _Optional[str] = ..., account_id: _Optional[str] = ..., receiving: _Optional[bool] = ..., account_name: _Optional[str] = ..., choice: _Optional[_Union[_pairing_pb2.AccountChoice, _Mapping]] = ..., remote_label: _Optional[str] = ...) -> None: ...
 
 class CreateSpaceInviteRequest(_message.Message):
-    __slots__ = ("space_id", "role", "target_peer_id", "max_uses", "expires_at")
+    __slots__ = ("space_id", "role", "target_peer_id", "max_uses", "expires_at", "approval_required", "participant_of")
     SPACE_ID_FIELD_NUMBER: _ClassVar[int]
     ROLE_FIELD_NUMBER: _ClassVar[int]
     TARGET_PEER_ID_FIELD_NUMBER: _ClassVar[int]
     MAX_USES_FIELD_NUMBER: _ClassVar[int]
     EXPIRES_AT_FIELD_NUMBER: _ClassVar[int]
+    APPROVAL_REQUIRED_FIELD_NUMBER: _ClassVar[int]
+    PARTICIPANT_OF_FIELD_NUMBER: _ClassVar[int]
     space_id: str
     role: _sobject_pb2.SOParticipantRole
     target_peer_id: str
     max_uses: int
     expires_at: _timestamp_pb2.Timestamp
-    def __init__(self, space_id: _Optional[str] = ..., role: _Optional[_Union[_sobject_pb2.SOParticipantRole, str]] = ..., target_peer_id: _Optional[str] = ..., max_uses: _Optional[int] = ..., expires_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ...) -> None: ...
+    approval_required: bool
+    participant_of: _sobject_pb2.SOInviteParticipation
+    def __init__(self, space_id: _Optional[str] = ..., role: _Optional[_Union[_sobject_pb2.SOParticipantRole, str]] = ..., target_peer_id: _Optional[str] = ..., max_uses: _Optional[int] = ..., expires_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., approval_required: _Optional[bool] = ..., participant_of: _Optional[_Union[_sobject_pb2.SOInviteParticipation, _Mapping]] = ...) -> None: ...
 
 class CreateSpaceInviteResponse(_message.Message):
     __slots__ = ("invite_message", "short_code")
@@ -825,6 +829,22 @@ class RevokeSpaceInviteRequest(_message.Message):
 class RevokeSpaceInviteResponse(_message.Message):
     __slots__ = ()
     def __init__(self) -> None: ...
+
+class ResolveSpaceJoinRequestRequest(_message.Message):
+    __slots__ = ("space_id", "peer_id", "grant")
+    SPACE_ID_FIELD_NUMBER: _ClassVar[int]
+    PEER_ID_FIELD_NUMBER: _ClassVar[int]
+    GRANT_FIELD_NUMBER: _ClassVar[int]
+    space_id: str
+    peer_id: str
+    grant: bool
+    def __init__(self, space_id: _Optional[str] = ..., peer_id: _Optional[str] = ..., grant: _Optional[bool] = ...) -> None: ...
+
+class ResolveSpaceJoinRequestResponse(_message.Message):
+    __slots__ = ("invite_message",)
+    INVITE_MESSAGE_FIELD_NUMBER: _ClassVar[int]
+    invite_message: _sobject_pb2.SOInviteMessage
+    def __init__(self, invite_message: _Optional[_Union[_sobject_pb2.SOInviteMessage, _Mapping]] = ...) -> None: ...
 
 class JoinSpaceViaInviteRequest(_message.Message):
     __slots__ = ("invite_message", "targeted_invitation_envelope")
