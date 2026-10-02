@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/sha256"
+	"slices"
 	"time"
 
 	"github.com/aperturerobotics/util/keyed"
@@ -15,24 +16,32 @@ import (
 	"github.com/s4wave/spacewave/net/peer"
 )
 
+// mailboxAutoProcessKey identifies one mailbox entry of one Space.
 type mailboxAutoProcessKey struct {
 	soID    string
 	entryID int64
 }
 
+// invalidMailboxEntryError marks a mailbox entry that can never be accepted,
+// which the owner session rejects so the queue drains.
 type invalidMailboxEntryError struct {
 	err error
 }
 
+// Error returns the reason the entry is invalid.
 func (e *invalidMailboxEntryError) Error() string {
 	return e.err.Error()
 }
 
+// Unwrap returns the reason the entry is invalid.
 func (e *invalidMailboxEntryError) Unwrap() error {
 	return e.err
 }
 
 // ProcessMailboxEntry accepts or rejects a mailbox entry for a cloud space.
+//
+// This is the owner's decision: an accept admits the redeemer of any usable
+// invite, whatever conditions the invite carries.
 func (a *ProviderAccount) ProcessMailboxEntry(
 	ctx context.Context,
 	soID string,
@@ -46,7 +55,6 @@ func (a *ProviderAccount) ProcessMailboxEntry(
 	if entryID == 0 {
 		return errors.New("entry id is required")
 	}
-
 	cli := a.GetSessionClient()
 	if cli == nil {
 		return errors.New("session client not available")
@@ -71,7 +79,10 @@ func (a *ProviderAccount) ProcessMailboxEntry(
 	}
 
 	// Apply the requested accept or reject action.
-	return a.processMailboxEntry(ctx, cli, soID, entry, accept)
+	if !accept {
+		return a.rejectMailboxEntry(ctx, cli, soID, entry)
+	}
+	return a.acceptMailboxEntry(ctx, cli, soID, entry, false)
 }
 
 // processPendingMailboxEntries processes the current pending mailbox queue for
@@ -87,7 +98,6 @@ func (a *ProviderAccount) processPendingMailboxEntries(
 	if !a.canAccessOwnerMailbox() {
 		return nil
 	}
-
 	cli := a.GetSessionClient()
 	if cli == nil {
 		return errors.New("session client not available")
@@ -99,9 +109,9 @@ func (a *ProviderAccount) processPendingMailboxEntries(
 		return err
 	}
 
-	// Reject or accept each pending entry.
+	// Decide each pending entry under its invite's conditions.
 	for _, entry := range resp.GetEntries() {
-		if err := a.processMailboxEntryWithReject(ctx, cli, soID, entry); err != nil {
+		if err := a.autoProcessMailboxEntry(ctx, cli, soID, entry); err != nil {
 			return err
 		}
 	}
@@ -109,10 +119,8 @@ func (a *ProviderAccount) processPendingMailboxEntries(
 	return nil
 }
 
+// setMailboxAutoProcessEntry stores the entry an auto-process routine decides.
 func (a *ProviderAccount) setMailboxAutoProcessEntry(key mailboxAutoProcessKey, entry *api.MailboxEntry) {
-	if entry == nil {
-		return
-	}
 	a.mailboxAutoEntriesMtx.Lock()
 	if a.mailboxAutoEntries == nil {
 		a.mailboxAutoEntries = make(map[mailboxAutoProcessKey]*api.MailboxEntry)
@@ -121,7 +129,9 @@ func (a *ProviderAccount) setMailboxAutoProcessEntry(key mailboxAutoProcessKey, 
 	a.mailboxAutoEntriesMtx.Unlock()
 }
 
+// getMailboxAutoProcessEntry returns a copy of the stored entry, or nil.
 func (a *ProviderAccount) getMailboxAutoProcessEntry(key mailboxAutoProcessKey) *api.MailboxEntry {
+	// Copy the entry under the lock.
 	a.mailboxAutoEntriesMtx.Lock()
 	defer a.mailboxAutoEntriesMtx.Unlock()
 	if entry := a.mailboxAutoEntries[key]; entry != nil {
@@ -130,6 +140,7 @@ func (a *ProviderAccount) getMailboxAutoProcessEntry(key mailboxAutoProcessKey) 
 	return nil
 }
 
+// clearMailboxAutoProcessEntry forgets the stored entry.
 func (a *ProviderAccount) clearMailboxAutoProcessEntry(key mailboxAutoProcessKey) {
 	a.mailboxAutoEntriesMtx.Lock()
 	delete(a.mailboxAutoEntries, key)
@@ -158,7 +169,7 @@ func (a *ProviderAccount) buildMailboxAutoProcessRoutine(key mailboxAutoProcessK
 		}
 
 		// Process the queued entry and preserve cancellation errors.
-		if err := a.processMailboxEntryWithReject(ctx, cli, key.soID, entry); err != nil {
+		if err := a.autoProcessMailboxEntry(ctx, cli, key.soID, entry); err != nil {
 			if errors.Is(err, context.Canceled) {
 				return err
 			}
@@ -172,20 +183,23 @@ func (a *ProviderAccount) buildMailboxAutoProcessRoutine(key mailboxAutoProcessK
 	}, struct{}{}
 }
 
-// triggerMailboxEntryAutoProcess queues an owner-side auto-accept for a
-// newly-observed pending mailbox entry received via ws notify. Non-pending
+// triggerMailboxEntryAutoProcess queues the owner-side decision of a
+// newly observed pending mailbox entry received via ws notify. Non-pending
 // events are ignored; non-owner sessions that receive an event will no-op.
 func (a *ProviderAccount) triggerMailboxEntryAutoProcess(
 	_ context.Context,
 	soID string,
 	entry *api.MailboxEntry,
 ) {
+	// Only an owner session decides pending entries.
 	if entry == nil || soID == "" || entry.GetStatus() != "pending" {
 		return
 	}
 	if !a.canAccessOwnerMailbox() {
 		return
 	}
+
+	// Store the entry and start its routine.
 	key := mailboxAutoProcessKey{
 		soID:    soID,
 		entryID: entry.GetId(),
@@ -194,59 +208,54 @@ func (a *ProviderAccount) triggerMailboxEntryAutoProcess(
 	a.mailboxAutoProcessors.SetKey(key, false)
 }
 
-// processMailboxEntryWithReject accepts a pending mailbox entry, rejecting it
-// via a follow-up RPC when validation fails so the queue drains.
-func (a *ProviderAccount) processMailboxEntryWithReject(
+// autoProcessMailboxEntry decides a pending mailbox entry under its invite's
+// conditions. It accepts an entry the invite admits, rejects an invalid or
+// refused entry so the queue drains, and leaves a join request pending for
+// the owner.
+func (a *ProviderAccount) autoProcessMailboxEntry(
 	ctx context.Context,
 	cli *SessionClient,
 	soID string,
 	entry *api.MailboxEntry,
 ) error {
-	// Attempt the accept path before rejecting invalid entries.
-	err := a.processMailboxEntry(ctx, cli, soID, entry, true)
-	if err == nil {
-		return nil
-	}
+	// Attempt the conditional accept before rejecting invalid entries.
+	err := a.acceptMailboxEntry(ctx, cli, soID, entry, true)
 	var invalidErr *invalidMailboxEntryError
 	if !errors.As(err, &invalidErr) {
 		return err
 	}
+	return a.rejectMailboxEntry(ctx, cli, soID, entry)
+}
 
-	// Reject invalid entries and remove them from the local queue.
-	if _, rejectErr := cli.ProcessMailboxEntry(ctx, soID, &api.ProcessMailboxEntryRequest{
+// rejectMailboxEntry rejects a mailbox entry and removes it from the local queue.
+func (a *ProviderAccount) rejectMailboxEntry(
+	ctx context.Context,
+	cli *SessionClient,
+	soID string,
+	entry *api.MailboxEntry,
+) error {
+	if _, err := cli.ProcessMailboxEntry(ctx, soID, &api.ProcessMailboxEntryRequest{
 		Id:     entry.GetId(),
 		Accept: false,
-	}); rejectErr != nil {
-		return rejectErr
+	}); err != nil {
+		return err
 	}
 	a.RemovePendingMailboxEntry(soID, entry.GetId())
 	return nil
 }
 
-func (a *ProviderAccount) processMailboxEntry(
+// acceptMailboxEntry admits the redeemer of a valid mailbox entry.
+//
+// With conditional set, the invite's conditions decide first: a refused
+// redeemer returns an invalidMailboxEntryError, and a join request awaiting
+// approval stays pending without a decision.
+func (a *ProviderAccount) acceptMailboxEntry(
 	ctx context.Context,
 	cli *SessionClient,
 	soID string,
 	entry *api.MailboxEntry,
-	accept bool,
+	conditional bool,
 ) error {
-	// Validate the mailbox entry before applying the requested action.
-	if entry == nil {
-		return errors.New("mailbox entry is required")
-	}
-
-	// Reject immediately when acceptance was not requested.
-	if !accept {
-		if _, err := cli.ProcessMailboxEntry(ctx, soID, &api.ProcessMailboxEntryRequest{
-			Id:     entry.GetId(),
-			Accept: false,
-		}); err != nil {
-			return err
-		}
-		a.RemovePendingMailboxEntry(soID, entry.GetId())
-		return nil
-	}
-
 	// Mount the shared object for accepted-entry validation.
 	swSO, rel, err := a.mountSpaceSO(ctx, soID)
 	if err != nil {
@@ -268,6 +277,20 @@ func (a *ProviderAccount) processMailboxEntry(
 	invite, responderPeerID, responderPub, err := validateMailboxEntryForAccept(ctx, swSO, soID, entry, ownerAccountID)
 	if err != nil {
 		return err
+	}
+
+	// Admit, queue or refuse the redeemer under the invite's conditions.
+	if conditional {
+		held, err := a.heldSpaceConfigs(ctx, invite)
+		if err != nil {
+			return err
+		}
+		switch sobject.RedeemInvite(invite, responderPeerID.String(), held) {
+		case sobject.InviteRedemptionRefuse:
+			return &invalidMailboxEntryError{err: errors.New("invite does not admit this peer")}
+		case sobject.InviteRedemptionQueue:
+			return nil
+		}
 	}
 
 	// Add the responder participant and consume invite uses.
@@ -299,6 +322,54 @@ func (a *ProviderAccount) processMailboxEntry(
 	return nil
 }
 
+// heldSpaceConfigs reads this account's configuration of each Space a
+// participant_of invite names, skipping Spaces the account does not list.
+func (a *ProviderAccount) heldSpaceConfigs(ctx context.Context, invite *sobject.SOInvite) (map[string]*sobject.SharedObjectConfig, error) {
+	// Without named Spaces there is nothing to read.
+	ids := invite.GetParticipantOf().GetSharedObjectIds()
+	if len(ids) == 0 {
+		return nil, nil
+	}
+
+	// Read each named Space the account lists from its own copy.
+	if err := a.EnsureSharedObjectListLoaded(ctx); err != nil {
+		return nil, err
+	}
+	held := make(map[string]*sobject.SharedObjectConfig, len(ids))
+	for _, listed := range a.soListCtr.GetValue().GetSharedObjects() {
+		id := listed.GetRef().GetProviderResourceRef().GetId()
+		if !slices.Contains(ids, id) {
+			continue
+		}
+		config, err := a.readSpaceConfig(ctx, id)
+		if err != nil {
+			return nil, errors.Wrapf(err, "read held space %s", id)
+		}
+		held[id] = config
+	}
+	return held, nil
+}
+
+// readSpaceConfig reads the current configuration of a Space this account holds.
+func (a *ProviderAccount) readSpaceConfig(ctx context.Context, soID string) (*sobject.SharedObjectConfig, error) {
+	// Mount the Space.
+	swSO, rel, err := a.mountSpaceSO(ctx, soID)
+	if err != nil {
+		return nil, err
+	}
+	defer rel()
+
+	// Read its current configuration from the host state.
+	state, err := swSO.GetSOHost().GetHostState(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return state.GetConfig(), nil
+}
+
+// validateMailboxEntryForAccept checks a mailbox entry against the current
+// Space state and returns the invite it redeems and the responder's identity.
+// An entry that can never be accepted returns an invalidMailboxEntryError.
 func validateMailboxEntryForAccept(
 	ctx context.Context,
 	swSO *SharedObject,
@@ -306,13 +377,13 @@ func validateMailboxEntryForAccept(
 	entry *api.MailboxEntry,
 	ownerAccountID string,
 ) (*sobject.SOInvite, peer.ID, crypto.PubKey, error) {
+	// Check the entry against its signed join response.
 	if entry == nil {
 		return nil, "", nil, errors.New("mailbox entry is required")
 	}
 	if entry.GetAccountId() == "" {
 		return nil, "", nil, &invalidMailboxEntryError{err: errors.New("mailbox entry account_id is required")}
 	}
-
 	joinResp := entry.GetJoinResponse()
 	responderPeerID, responderPub, err := sobject_invite.ValidateJoinResponse(joinResp)
 	if err != nil {
@@ -325,21 +396,17 @@ func validateMailboxEntryForAccept(
 		return nil, "", nil, &invalidMailboxEntryError{err: errors.New("mailbox entry invite_id does not match join response")}
 	}
 
+	// Find the redeemed invite in the current state.
 	state, err := swSO.GetSOHost().GetHostState(ctx)
 	if err != nil {
 		return nil, "", nil, errors.Wrap(err, "get current shared object state")
 	}
-
-	var invite *sobject.SOInvite
-	for _, candidate := range state.GetInvites() {
-		if candidate.GetInviteId() == entry.GetInviteId() {
-			invite = candidate
-			break
-		}
-	}
+	invite := sobject.FindInvite(state, entry.GetInviteId())
 	if invite == nil {
 		return nil, "", nil, &invalidMailboxEntryError{err: errors.New("invite not found")}
 	}
+
+	// Check that the invite still admits this responder.
 	if err := sobject.ValidateInviteUsable(invite); err != nil {
 		return nil, "", nil, &invalidMailboxEntryError{err: err}
 	}
@@ -353,6 +420,8 @@ func validateMailboxEntryForAccept(
 	return invite, responderPeerID, responderPub, nil
 }
 
+// validateTargetedMailboxProof checks the owner-signed envelope that proves an
+// account-targeted invitation was issued to the entry's account.
 func validateTargetedMailboxProof(
 	entry *api.MailboxEntry,
 	invite *sobject.SOInvite,
@@ -360,6 +429,7 @@ func validateTargetedMailboxProof(
 	soID string,
 	ownerAccountID string,
 ) error {
+	// An untargeted invite needs no envelope.
 	envelope := entry.GetTargetedEnvelope()
 	if envelope == nil {
 		if invite.GetTargetAccountId() != "" {
@@ -370,6 +440,8 @@ func validateTargetedMailboxProof(
 	if ownerAccountID == "" {
 		return errors.New("owner account id is required for targeted mailbox proof")
 	}
+
+	// Check the envelope's signature, scope and expiry.
 	if err := VerifyTargetedInvitationEnvelope(envelope); err != nil {
 		return err
 	}
@@ -379,6 +451,11 @@ func validateTargetedMailboxProof(
 	if envelope.GetPurpose() != api.TargetedInvitePurpose_TARGETED_INVITE_PURPOSE_SPACE {
 		return errors.New("targeted invitation purpose is not space")
 	}
+	if envelope.GetExpiresAt() > 0 && envelope.GetExpiresAt() <= time.Now().UnixMilli() {
+		return errors.New("targeted invitation is expired")
+	}
+
+	// Check that a current owner addressed this Space to the entry's account.
 	if envelope.GetActorAccountId() != ownerAccountID {
 		return errors.New("targeted invitation actor is not the owner account")
 	}
@@ -392,13 +469,11 @@ func validateTargetedMailboxProof(
 		envelope.GetTargetAccountId() != invite.GetTargetAccountId() {
 		return errors.New("targeted invitation invite account mismatch")
 	}
-	if envelope.GetExpiresAt() > 0 && envelope.GetExpiresAt() <= time.Now().UnixMilli() {
-		return errors.New("targeted invitation is expired")
-	}
 	if !isCurrentTargetedInviteSigner(state.GetConfig(), envelope.GetSignerPeerId()) {
 		return errors.New("targeted invitation signer is not a current owner")
 	}
 
+	// Check that the payload is the redeemed invite, signed by the envelope signer.
 	inviteMsg := &sobject.SOInviteMessage{}
 	if err := inviteMsg.UnmarshalVT(envelope.GetPayload()); err != nil {
 		return errors.Wrap(err, "unmarshal targeted space invite payload")
@@ -419,6 +494,8 @@ func validateTargetedMailboxProof(
 	if !bytes.Equal(tokenHash[:], invite.GetTokenHash()) {
 		return errors.New("targeted invitation payload token mismatch")
 	}
+
+	// Check the envelope's role against the invite.
 	role, err := targetedMailboxEnvelopeRole(envelope.GetRole())
 	if err != nil {
 		return err
@@ -426,12 +503,11 @@ func validateTargetedMailboxProof(
 	if role != invite.GetRole() {
 		return errors.New("targeted invitation role mismatch")
 	}
-	if err := validateTargetedMailboxInviteMessageSignature(inviteMsg); err != nil {
-		return err
-	}
-	return nil
+
+	return validateTargetedMailboxInviteMessageSignature(inviteMsg)
 }
 
+// targetedMailboxEnvelopeRole maps an envelope role name to a participant role.
 func targetedMailboxEnvelopeRole(role string) (sobject.SOParticipantRole, error) {
 	switch role {
 	case "", "reader":
@@ -445,16 +521,17 @@ func targetedMailboxEnvelopeRole(role string) (sobject.SOParticipantRole, error)
 	}
 }
 
+// isCurrentTargetedInviteSigner reports whether peerID is a current owner.
 func isCurrentTargetedInviteSigner(cfg *sobject.SharedObjectConfig, peerID string) bool {
-	for _, p := range cfg.GetParticipants() {
-		if p.GetPeerId() == peerID && sobject.IsOwner(p.GetRole()) {
-			return true
-		}
-	}
-	return false
+	return slices.ContainsFunc(cfg.GetParticipants(), func(p *sobject.SOParticipantConfig) bool {
+		return p.GetPeerId() == peerID && sobject.IsOwner(p.GetRole())
+	})
 }
 
+// validateTargetedMailboxInviteMessageSignature verifies the invite message's
+// signature by the owner peer it names.
 func validateTargetedMailboxInviteMessageSignature(inviteMsg *sobject.SOInviteMessage) error {
+	// Read the signature and the signer's public key.
 	if inviteMsg == nil {
 		return errors.New("targeted invitation payload is required")
 	}
@@ -470,6 +547,8 @@ func validateTargetedMailboxInviteMessageSignature(inviteMsg *sobject.SOInviteMe
 	if err != nil {
 		return errors.Wrap(err, "extract targeted invitation owner public key")
 	}
+
+	// Verify the signature over the unsigned message.
 	body := inviteMsg.CloneVT()
 	body.Signature = nil
 	data, err := body.MarshalVT()
@@ -483,5 +562,6 @@ func validateTargetedMailboxInviteMessageSignature(inviteMsg *sobject.SOInviteMe
 	if !valid {
 		return errors.New("targeted invitation payload signature is invalid")
 	}
+
 	return nil
 }
