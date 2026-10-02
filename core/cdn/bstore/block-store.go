@@ -22,6 +22,9 @@ const DefaultPointerTTL = 30 * time.Second
 type Options struct {
 	// CdnBaseURL is the public CDN origin (e.g. https://cdn.spacewave.app).
 	CdnBaseURL string
+	// RootPointerBaseURL optionally serves root.packedmsg from another origin.
+	// Empty reads the pointer from CdnBaseURL.
+	RootPointerBaseURL string
 	// SpaceID is the CDN Space ULID.
 	SpaceID string
 	// HttpClient overrides the default http.Client.
@@ -434,7 +437,7 @@ func (s *CdnBlockStore) loadPointer(ctx context.Context) (*cdn.CdnRootPointer, e
 			continue
 		}
 
-		ptr, err := FetchRootPointer(ctx, s.cli, s.opts.CdnBaseURL, s.opts.SpaceID)
+		ptr, err := FetchRootPointer(ctx, s.cli, RootPointerBaseURL(s.opts.CdnBaseURL, s.opts.RootPointerBaseURL), s.opts.SpaceID)
 		if err == nil {
 			if _, published := s.setPointer(ctx, ptr); !published {
 				ptr = nil

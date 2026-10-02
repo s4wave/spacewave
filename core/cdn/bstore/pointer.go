@@ -19,6 +19,15 @@ func rootPointerPath(spaceID string) string {
 	return "/" + spaceID + "/root.packedmsg"
 }
 
+// RootPointerBaseURL returns the origin serving root.packedmsg: rootBaseURL
+// when set, otherwise cdnBaseURL.
+func RootPointerBaseURL(cdnBaseURL, rootBaseURL string) string {
+	if rootBaseURL != "" {
+		return rootBaseURL
+	}
+	return cdnBaseURL
+}
+
 // FetchRootPointer fetches and decodes root.packedmsg for a CDN Space.
 // Returns nil, nil on 404 so callers can treat fresh Spaces as empty.
 func FetchRootPointer(ctx context.Context, httpCli *http.Client, cdnBaseURL, spaceID string) (*cdn.CdnRootPointer, error) {

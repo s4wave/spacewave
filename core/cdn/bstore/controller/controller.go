@@ -43,9 +43,11 @@ func NewController(le *logrus.Entry, b bus.Bus, conf *Config) *Controller {
 // NewBlockStoreBuilder constructs a new block store builder from config.
 func NewBlockStoreBuilder(le *logrus.Entry, b bus.Bus, conf *Config) block_store_controller.BlockStoreBuilder {
 	return func(ctx context.Context, released func()) (block_store.Store, func(), error) {
+		// Assemble the CDN store with its local cache wiring.
 		pointerTTL, _ := conf.ParsePointerTTLDur()
 		cdnStore, releaseStore, err := cdn_bstore.NewCachedBlockStore(ctx, b, cdn_bstore.CachedBlockStoreOptions{
 			CdnBaseURL:           conf.GetCdnBaseUrl(),
+			RootPointerBaseURL:   conf.GetRootPointerBaseUrl(),
 			SpaceID:              conf.GetSpaceId(),
 			CacheBlockStoreID:    conf.GetCacheBlockStoreId(),
 			PointerTTL:           pointerTTL,
@@ -56,9 +58,13 @@ func NewBlockStoreBuilder(le *logrus.Entry, b bus.Bus, conf *Config) block_store
 		if err != nil {
 			return nil, nil, err
 		}
+
+		// Apply the configured range-cache budget.
 		if maxBytes := conf.GetRangeCacheMaxBytes(); maxBytes > 0 {
 			cdnStore.SetRangeCacheMaxBytes(maxBytes)
 		}
+
+		// Expose the CDN store under the configured block store ID.
 		store := &blockStoreHandle{
 			Store:    block_store.NewStore(conf.GetBlockStoreId(), cdnStore),
 			cdnStore: cdnStore,

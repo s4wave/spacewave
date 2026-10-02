@@ -17,6 +17,9 @@ import (
 type SuppliedOptions struct {
 	// CdnBaseURL is the public CDN origin (e.g. https://cdn.spacewave.app).
 	CdnBaseURL string
+	// RootPointerBaseURL optionally serves root.packedmsg from another origin.
+	// Empty reads the pointer from CdnBaseURL.
+	RootPointerBaseURL string
 	// SpaceID is the CDN Space ULID.
 	SpaceID string
 	// HttpClient overrides the default http.Client for root pointer fetches.
@@ -39,8 +42,8 @@ type SuppliedBlockStore struct {
 	store block_store.Store
 	// cli fetches the root pointer.
 	cli *http.Client
-	// cdnBaseURL is the public CDN origin.
-	cdnBaseURL string
+	// rootBaseURL is the origin serving root.packedmsg.
+	rootBaseURL string
 	// spaceID is the CDN Space ULID.
 	spaceID string
 
@@ -70,10 +73,10 @@ func NewSuppliedBlockStore(opts SuppliedOptions) (*SuppliedBlockStore, error) {
 		cli = http.DefaultClient
 	}
 	return &SuppliedBlockStore{
-		store:      opts.Store,
-		cli:        cli,
-		cdnBaseURL: opts.CdnBaseURL,
-		spaceID:    opts.SpaceID,
+		store:       opts.Store,
+		cli:         cli,
+		rootBaseURL: RootPointerBaseURL(opts.CdnBaseURL, opts.RootPointerBaseURL),
+		spaceID:     opts.SpaceID,
 	}, nil
 }
 
@@ -110,7 +113,7 @@ func (s *SuppliedBlockStore) Pointer() *cdn.CdnRootPointer {
 // Returns the new pointer (nil if the CDN Space is empty).
 func (s *SuppliedBlockStore) Refresh(ctx context.Context) (*cdn.CdnRootPointer, error) {
 	// Fetch the root pointer from the CDN.
-	ptr, err := FetchRootPointer(ctx, s.cli, s.cdnBaseURL, s.spaceID)
+	ptr, err := FetchRootPointer(ctx, s.cli, s.rootBaseURL, s.spaceID)
 	if err != nil {
 		return nil, err
 	}

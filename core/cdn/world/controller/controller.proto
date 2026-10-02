@@ -44,4 +44,8 @@ message Config {
   // its world head. It resolves no LookupBlockStore because it owns no store.
   // Mutually exclusive with cache_block_store_id.
   string supplied_block_store_id = 7;
+  // RootPointerBaseUrl optionally serves root.packedmsg from another base URL,
+  // so an owner can serve the mutable pointer from its own server and keep the
+  // CDN hostname immutable. Empty reads the pointer from cdn_base_url.
+  string root_pointer_base_url = 8;
 }

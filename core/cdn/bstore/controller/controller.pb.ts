@@ -75,6 +75,14 @@ export interface Config {
    * @generated from field: bool verbose = 10;
    */
   verbose?: boolean
+  /**
+   * RootPointerBaseUrl optionally serves root.packedmsg from another base URL,
+   * so an owner can serve the mutable pointer from its own server and keep the
+   * CDN hostname immutable. Empty reads the pointer from cdn_base_url.
+   *
+   * @generated from field: string root_pointer_base_url = 11;
+   */
+  rootPointerBaseUrl?: string
 }
 
 export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
@@ -111,5 +119,11 @@ export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
     },
     { no: 9, name: 'skip_not_found', kind: 'scalar', T: ScalarType.BOOL },
     { no: 10, name: 'verbose', kind: 'scalar', T: ScalarType.BOOL },
+    {
+      no: 11,
+      name: 'root_pointer_base_url',
+      kind: 'scalar',
+      T: ScalarType.STRING,
+    },
   ] satisfies readonly PartialFieldInfo[],
 })

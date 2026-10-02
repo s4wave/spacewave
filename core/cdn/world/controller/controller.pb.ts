@@ -107,6 +107,14 @@ export interface Config {
    * @generated from field: string supplied_block_store_id = 7;
    */
   suppliedBlockStoreId?: string
+  /**
+   * RootPointerBaseUrl optionally serves root.packedmsg from another base URL,
+   * so an owner can serve the mutable pointer from its own server and keep the
+   * CDN hostname immutable. Empty reads the pointer from cdn_base_url.
+   *
+   * @generated from field: string root_pointer_base_url = 8;
+   */
+  rootPointerBaseUrl?: string
 }
 
 export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
@@ -131,6 +139,12 @@ export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
     {
       no: 7,
       name: 'supplied_block_store_id',
+      kind: 'scalar',
+      T: ScalarType.STRING,
+    },
+    {
+      no: 8,
+      name: 'root_pointer_base_url',
       kind: 'scalar',
       T: ScalarType.STRING,
     },

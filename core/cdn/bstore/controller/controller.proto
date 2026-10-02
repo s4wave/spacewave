@@ -25,4 +25,8 @@ message Config {
   bool skip_not_found = 9;
   // Verbose enables verbose logging of the block store.
   bool verbose = 10;
+  // RootPointerBaseUrl optionally serves root.packedmsg from another base URL,
+  // so an owner can serve the mutable pointer from its own server and keep the
+  // CDN hostname immutable. Empty reads the pointer from cdn_base_url.
+  string root_pointer_base_url = 11;
 }

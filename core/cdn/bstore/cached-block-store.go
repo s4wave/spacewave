@@ -17,6 +17,9 @@ import (
 type CachedBlockStoreOptions struct {
 	// CdnBaseURL is the public CDN origin (e.g. https://cdn.spacewave.app).
 	CdnBaseURL string
+	// RootPointerBaseURL optionally serves root.packedmsg from another origin.
+	// Empty reads the pointer from CdnBaseURL.
+	RootPointerBaseURL string
 	// SpaceID is the CDN Space ULID.
 	SpaceID string
 	// CacheBlockStoreID is the bus block store used for writeback and
@@ -88,11 +91,12 @@ func NewCachedBlockStore(ctx context.Context, b bus.Bus, opts CachedBlockStoreOp
 
 	// Assemble the CDN block store with the resolved index cache.
 	store, err := NewCdnBlockStore(Options{
-		CdnBaseURL: opts.CdnBaseURL,
-		SpaceID:    opts.SpaceID,
-		HttpClient: opts.HttpClient,
-		PointerTTL: opts.PointerTTL,
-		IndexCache: indexCache,
+		CdnBaseURL:         opts.CdnBaseURL,
+		RootPointerBaseURL: opts.RootPointerBaseURL,
+		SpaceID:            opts.SpaceID,
+		HttpClient:         opts.HttpClient,
+		PointerTTL:         opts.PointerTTL,
+		IndexCache:         indexCache,
 	})
 	if err != nil {
 		releaseRefs()

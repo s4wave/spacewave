@@ -249,6 +249,57 @@ func TestFetchRootPointerAbsent(t *testing.T) {
 	}
 }
 
+// TestCdnBlockStoreRootPointerBaseURL reads the pointer from the owner's
+// server under a path prefix while pack ranges stay on the CDN.
+func TestCdnBlockStoreRootPointerBaseURL(t *testing.T) {
+	// Build one pack and a pointer that lists it.
+	ctx := context.Background()
+	block1 := []byte("hello root pointer origin")
+	pack := buildSinglePack(t, "01kcdnpack0000000000000009", map[string][]byte{"b1": block1})
+	ptr := &cdn.CdnRootPointer{
+		SpaceId: testSpaceID,
+		Packs: []*packfile.PackfileEntry{{
+			Id:          pack.id,
+			BloomFilter: pack.bloom,
+			BlockCount:  1,
+			SizeBytes:   uint64(len(pack.data)),
+		}},
+	}
+
+	// The CDN serves packs but no pointer; the owner serves only the pointer.
+	packSrv := newTestCdnServer(t, testSpaceID, nil, []testPack{pack})
+	packHS := httptest.NewServer(http.HandlerFunc(packSrv.handle))
+	defer packHS.Close()
+	rootSrv := newTestCdnServer(t, testSpaceID, encodePointer(t, ptr), nil)
+	rootHS := httptest.NewServer(http.StripPrefix("/cdn", http.HandlerFunc(rootSrv.handle)))
+	defer rootHS.Close()
+
+	// Point the store at the CDN for packs and at the owner for the pointer.
+	bs, err := NewCdnBlockStore(Options{
+		CdnBaseURL:         packHS.URL,
+		RootPointerBaseURL: rootHS.URL + "/cdn/",
+		SpaceID:            testSpaceID,
+		HttpClient:         packHS.Client(),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer bs.Close()
+
+	// Read the block through the owner's pointer and the CDN's pack.
+	h, err := hash.Sum(hash.HashType_HashType_SHA256, block1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, found, err := bs.GetBlock(ctx, &block.BlockRef{Hash: h})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !found || !bytes.Equal(got, block1) {
+		t.Fatalf("block mismatch: found=%v got %q want %q", found, got, block1)
+	}
+}
+
 func TestCdnBlockStoreReadsBlock(t *testing.T) {
 	ctx := context.Background()
 

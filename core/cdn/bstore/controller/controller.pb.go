@@ -38,6 +38,10 @@ type Config struct {
 	SkipNotFound bool `protobuf:"varint,9,opt,name=skip_not_found,json=skipNotFound,proto3" json:"skipNotFound,omitempty"`
 	// Verbose enables verbose logging of the block store.
 	Verbose bool `protobuf:"varint,10,opt,name=verbose,proto3" json:"verbose,omitempty"`
+	// RootPointerBaseUrl optionally serves root.packedmsg from another base URL,
+	// so an owner can serve the mutable pointer from its own server and keep the
+	// CDN hostname immutable. Empty reads the pointer from cdn_base_url.
+	RootPointerBaseUrl string `protobuf:"bytes,11,opt,name=root_pointer_base_url,json=rootPointerBaseUrl,proto3" json:"rootPointerBaseUrl,omitempty"`
 }
 
 func (x *Config) Reset() {
@@ -116,6 +120,13 @@ func (x *Config) GetVerbose() bool {
 	return false
 }
 
+func (x *Config) GetRootPointerBaseUrl() string {
+	if x != nil {
+		return x.RootPointerBaseUrl
+	}
+	return ""
+}
+
 func (m *Config) CloneVT() *Config {
 	if m == nil {
 		return (*Config)(nil)
@@ -130,6 +141,7 @@ func (m *Config) CloneVT() *Config {
 	r.RangeCacheMaxBytes = m.RangeCacheMaxBytes
 	r.SkipNotFound = m.SkipNotFound
 	r.Verbose = m.Verbose
+	r.RootPointerBaseUrl = m.RootPointerBaseUrl
 	r.BucketIds = protobuf_go_lite.CloneSlice(m.BucketIds)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
@@ -175,6 +187,9 @@ func (this *Config) EqualVT(that *Config) bool {
 		return false
 	}
 	if this.Verbose != that.Verbose {
+		return false
+	}
+	if this.RootPointerBaseUrl != that.RootPointerBaseUrl {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -246,6 +261,11 @@ func (x *Config) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("verbose")
 		s.WriteBool(x.Verbose)
 	}
+	if x.RootPointerBaseUrl != "" || s.HasField("rootPointerBaseUrl") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("rootPointerBaseUrl")
+		s.WriteString(x.RootPointerBaseUrl)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -297,6 +317,9 @@ func (x *Config) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "verbose":
 			s.AddField("verbose")
 			x.Verbose = s.ReadBool()
+		case "root_pointer_base_url", "rootPointerBaseUrl":
+			s.AddField("root_pointer_base_url")
+			x.RootPointerBaseUrl = s.ReadString()
 		}
 	})
 }
@@ -334,6 +357,11 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	_ = l
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.RootPointerBaseUrl) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.RootPointerBaseUrl)
+		i--
+		dAtA[i] = 0x5a
 	}
 	if m.Verbose {
 		i = protobuf_go_lite.EncodeBool(dAtA, i, m.Verbose)
@@ -406,6 +434,7 @@ func (m *Config) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeStringSlice(1, m.BucketIds)
 	n += protobuf_go_lite.SizeBoolNonZero(1, m.SkipNotFound)
 	n += protobuf_go_lite.SizeBoolNonZero(1, m.Verbose)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.RootPointerBaseUrl)
 	n += len(m.unknownFields)
 	return n
 }
@@ -456,6 +485,10 @@ func (x *Config) MarshalProtoText() string {
 	if x.Verbose != false {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "verbose")
 		protobuf_go_lite.TextWriteBool(&sb, x.Verbose)
+	}
+	if x.RootPointerBaseUrl != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "root_pointer_base_url")
+		protobuf_go_lite.TextWriteString(&sb, x.RootPointerBaseUrl)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -582,6 +615,16 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.Verbose = bool(v)
+		case 11:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RootPointerBaseUrl", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.RootPointerBaseUrl = v
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

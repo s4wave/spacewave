@@ -78,6 +78,10 @@ type Config struct {
 	// its world head. It resolves no LookupBlockStore because it owns no store.
 	// Mutually exclusive with cache_block_store_id.
 	SuppliedBlockStoreId string `protobuf:"bytes,7,opt,name=supplied_block_store_id,json=suppliedBlockStoreId,proto3" json:"suppliedBlockStoreId,omitempty"`
+	// RootPointerBaseUrl optionally serves root.packedmsg from another base URL,
+	// so an owner can serve the mutable pointer from its own server and keep the
+	// CDN hostname immutable. Empty reads the pointer from cdn_base_url.
+	RootPointerBaseUrl string `protobuf:"bytes,8,opt,name=root_pointer_base_url,json=rootPointerBaseUrl,proto3" json:"rootPointerBaseUrl,omitempty"`
 }
 
 func (x *Config) Reset() {
@@ -135,6 +139,13 @@ func (x *Config) GetSuppliedBlockStoreId() string {
 	return ""
 }
 
+func (x *Config) GetRootPointerBaseUrl() string {
+	if x != nil {
+		return x.RootPointerBaseUrl
+	}
+	return ""
+}
+
 func (m *RefreshRequest) CloneVT() *RefreshRequest {
 	if m == nil {
 		return (*RefreshRequest)(nil)
@@ -179,6 +190,7 @@ func (m *Config) CloneVT() *Config {
 	r.CacheBlockStoreId = m.CacheBlockStoreId
 	r.WritebackWindowBytes = m.WritebackWindowBytes
 	r.SuppliedBlockStoreId = m.SuppliedBlockStoreId
+	r.RootPointerBaseUrl = m.RootPointerBaseUrl
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -254,6 +266,9 @@ func (this *Config) EqualVT(that *Config) bool {
 		return false
 	}
 	if this.SuppliedBlockStoreId != that.SuppliedBlockStoreId {
+		return false
+	}
+	if this.RootPointerBaseUrl != that.RootPointerBaseUrl {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -394,6 +409,11 @@ func (x *Config) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("suppliedBlockStoreId")
 		s.WriteString(x.SuppliedBlockStoreId)
 	}
+	if x.RootPointerBaseUrl != "" || s.HasField("rootPointerBaseUrl") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("rootPointerBaseUrl")
+		s.WriteString(x.RootPointerBaseUrl)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -432,6 +452,9 @@ func (x *Config) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "supplied_block_store_id", "suppliedBlockStoreId":
 			s.AddField("supplied_block_store_id")
 			x.SuppliedBlockStoreId = s.ReadString()
+		case "root_pointer_base_url", "rootPointerBaseUrl":
+			s.AddField("root_pointer_base_url")
+			x.RootPointerBaseUrl = s.ReadString()
 		}
 	})
 }
@@ -544,6 +567,11 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if len(m.RootPointerBaseUrl) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.RootPointerBaseUrl)
+		i--
+		dAtA[i] = 0x42
+	}
 	if len(m.SuppliedBlockStoreId) > 0 {
 		i = protobuf_go_lite.EncodeString(dAtA, i, m.SuppliedBlockStoreId)
 		i--
@@ -617,6 +645,7 @@ func (m *Config) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.CacheBlockStoreId)
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.WritebackWindowBytes)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.SuppliedBlockStoreId)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.RootPointerBaseUrl)
 	n += len(m.unknownFields)
 	return n
 }
@@ -679,6 +708,10 @@ func (x *Config) MarshalProtoText() string {
 	if x.SuppliedBlockStoreId != "" {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "supplied_block_store_id")
 		protobuf_go_lite.TextWriteString(&sb, x.SuppliedBlockStoreId)
+	}
+	if x.RootPointerBaseUrl != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "root_pointer_base_url")
+		protobuf_go_lite.TextWriteString(&sb, x.RootPointerBaseUrl)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -882,6 +915,16 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.SuppliedBlockStoreId = v
+		case 8:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RootPointerBaseUrl", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.RootPointerBaseUrl = v
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

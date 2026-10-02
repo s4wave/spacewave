@@ -90,10 +90,11 @@ func (c *Controller) newBlockStore(ctx context.Context) (cdn_bstore.RootBlockSto
 			return nil, nil, err
 		}
 		store, err := cdn_bstore.NewSuppliedBlockStore(cdn_bstore.SuppliedOptions{
-			CdnBaseURL: c.conf.GetCdnBaseUrl(),
-			SpaceID:    c.conf.GetSpaceId(),
-			HttpClient: http.DefaultClient,
-			Store:      suppliedStore,
+			CdnBaseURL:         c.conf.GetCdnBaseUrl(),
+			RootPointerBaseURL: c.conf.GetRootPointerBaseUrl(),
+			SpaceID:            c.conf.GetSpaceId(),
+			HttpClient:         http.DefaultClient,
+			Store:              suppliedStore,
 		})
 		if err != nil {
 			suppliedRef.Release()
@@ -106,6 +107,7 @@ func (c *Controller) newBlockStore(ctx context.Context) (cdn_bstore.RootBlockSto
 	pointerTTL, _ := c.conf.ParsePointerTTLDur()
 	store, releaseStore, err := cdn_bstore.NewCachedBlockStore(ctx, c.b, cdn_bstore.CachedBlockStoreOptions{
 		CdnBaseURL:           c.conf.GetCdnBaseUrl(),
+		RootPointerBaseURL:   c.conf.GetRootPointerBaseUrl(),
 		SpaceID:              c.conf.GetSpaceId(),
 		CacheBlockStoreID:    c.conf.GetCacheBlockStoreId(),
 		PointerTTL:           pointerTTL,
