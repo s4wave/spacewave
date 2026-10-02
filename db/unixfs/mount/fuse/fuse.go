@@ -86,16 +86,23 @@ func (c *Controller) WaitFuseRootFS(ctx context.Context) (*fuse.RootFS, error) {
 // Returning nil ends execution.
 // Returning an error triggers a retry with backoff.
 func (c *Controller) Execute(ctx context.Context) error {
+	// Create the mount point.
 	mountPath := c.conf.GetMountPath()
-	mountVerbose := c.conf.GetVerbose()
-	mountOpts := c.conf.BuildFuseMountOptions()
-
 	if err := os.MkdirAll(mountPath, 0o755); err != nil {
 		return err
 	}
 
+	// Mount the filesystem, unmounting and removing the mount point on return.
 	le := c.le.WithField("mount-path", mountPath)
-	rfs, err := fuse.Mount(ctx, le, mountPath, c.handle, mountVerbose, mountOpts)
+	rfs, err := fuse.Mount(
+		ctx,
+		le,
+		mountPath,
+		c.handle,
+		c.conf.GetVerbose(),
+		c.conf.GetReadOnly(),
+		c.conf.BuildFuseMountOptions(),
+	)
 	if err != nil {
 		return err
 	}
@@ -110,9 +117,11 @@ func (c *Controller) Execute(ctx context.Context) error {
 		}
 	}()
 
+	// Publish the mount while it is served.
 	c.mountedCtr.SetValue(rfs)
 	defer c.mountedCtr.SetValue(nil)
 
+	// Serve requests until the controller stops or the server fails.
 	errCh := make(chan error, 1)
 	go func() {
 		errCh <- rfs.Serve()

@@ -16,4 +16,12 @@ message Config {
   bool allow_dev = 4;
   // AllowSuid allows set-user-identifier or set-group-identifier bits to take effect.
   bool allow_suid = 5;
+  // ReadOnly mounts an unchanging tree read-only through the kernel page cache.
+  // The kernel rejects writes, keeps file pages across opens, and permits
+  // memory-mapping files.
+  // Volume attribute: read_only=true
+  bool read_only = 6;
+  // MaxReadahead limits kernel readahead for sequential reads in bytes.
+  // Zero keeps the kernel default.
+  uint32 max_readahead = 7;
 }

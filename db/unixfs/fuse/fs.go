@@ -1,10 +1,10 @@
 //go:build linux
-// +build linux
 
 package fuse
 
 import (
 	"context"
+	"time"
 
 	"bazil.org/fuse"
 	"bazil.org/fuse/fs"
@@ -13,9 +13,18 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// refBlockSize is the fake block size used for Block counts.
-// there is no "block size" in this fs implementation, but unix expects it
-const refBlockSize = 512
+const (
+	// refBlockSize is the fake block size used for Block counts. The
+	// filesystem has no block size, but unix expects one.
+	refBlockSize = 512
+	// nodeValidTime is how long the kernel caches attributes and entries of a
+	// writable mount. The kernel may forget parts of the tree sooner under
+	// memory pressure.
+	nodeValidTime = time.Minute * 5
+	// readOnlyValidTime is how long the kernel caches attributes and entries
+	// of a read-only mount, whose tree never changes.
+	readOnlyValidTime = time.Hour * 24
+)
 
 // RootFS mounts the root userspace filesystem resources.
 type RootFS struct {
@@ -27,6 +36,8 @@ type RootFS struct {
 	le *logrus.Entry
 	// rootPath is the path to mount the FUSE filesystem
 	rootPath string
+	// readOnly serves an unchanging tree through the kernel page cache.
+	readOnly bool
 	// root is the root inode
 	root *Inode
 	// conn is the fuse connection
@@ -39,24 +50,33 @@ type RootFS struct {
 type MountOption = fuse.MountOption
 
 // Mount builds a new RootFS FUSE instance.
+//
+// A writable mount bypasses the kernel page cache so each write reaches the
+// World before FUSE reports it. A readOnly mount must serve a tree that never
+// changes, such as one pinned revision: the kernel rejects writes, caches file
+// pages, attributes and entries, and memory-maps files through its page cache.
 func Mount(
 	ctx context.Context,
 	le *logrus.Entry,
 	rootPath string,
 	rootHandle *unixfs.FSHandle,
 	verbose bool,
+	readOnly bool,
 	mountOpts []fuse.MountOption,
 ) (*RootFS, error) {
-	rootFS := &RootFS{rootPath: rootPath, le: le}
+	// Build the root inode.
+	rootFS := &RootFS{rootPath: rootPath, le: le, readOnly: readOnly}
 	rootFS.ctx, rootFS.ctxCancel = context.WithCancel(ctx)
-	root := NewInode(rootFS, nil, rootHandle)
-	rootFS.root = root
+	rootFS.root = NewInode(rootFS, nil, rootHandle)
 
+	// Mount the kernel filesystem.
 	mountOpts = append([]MountOption{
 		fuse.FSName("hydrafs"),
 		fuse.Subtype("hydrafs"),
 	}, mountOpts...)
-
+	if readOnly {
+		mountOpts = append(mountOpts, fuse.ReadOnly())
+	}
 	var err error
 	rootFS.conn, err = fuse.Mount(
 		rootPath,
@@ -67,6 +87,7 @@ func Mount(
 		return nil, err
 	}
 
+	// Build the request server, logging requests when verbose.
 	type stringable interface {
 		String() string
 	}
@@ -80,7 +101,6 @@ func Mount(
 			}
 		},
 	})
-
 	rootFS.server = srv
 	return rootFS, nil
 }
@@ -103,6 +123,19 @@ func (r *RootFS) GetConn() *fuse.Conn {
 // GetServer returns the root filesystem server
 func (r *RootFS) GetServer() *fs.Server {
 	return r.server
+}
+
+// GetReadOnly returns whether the mount is read-only.
+func (r *RootFS) GetReadOnly() bool {
+	return r.readOnly
+}
+
+// validTime returns how long the kernel may cache attributes and entries.
+func (r *RootFS) validTime() time.Duration {
+	if r.readOnly {
+		return readOnlyValidTime
+	}
+	return nodeValidTime
 }
 
 // Root is called to obtain the Node for the file system root.
