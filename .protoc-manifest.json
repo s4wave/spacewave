@@ -44,7 +44,7 @@
       ]
     },
     "github.com/s4wave/spacewave/bldr/desktop/control": {
-      "hash": "a6549d58d60f2c7915c89c9c124f4261dba3e6e731e91efe5d6c360673f80ae4",
+      "hash": "df3606a25a119b1ce689020bff4fbe586fee849fef6b78bbd05c5c617c8d3507",
       "generatedFiles": [
         "bldr/desktop/control/control.pb.go",
         "bldr/desktop/control/control.pb.ts",
@@ -1229,7 +1229,7 @@
       ]
     },
     "github.com/s4wave/spacewave/core/provider/spacewave/api": {
-      "hash": "272a18beb86bd19df985366741273151aa65957e56c1d33eebf16c1424e508c1",
+      "hash": "4579561e1b8188c4ce7ee35d5d1af8c312ca1dc187329e2b3faf1a5799088158",
       "generatedFiles": [
         "core/provider/spacewave/api/api.pb.go",
         "core/provider/spacewave/api/api.pb.ts",
@@ -1266,7 +1266,7 @@
       ]
     },
     "github.com/s4wave/spacewave/core/provider/spacewave/launcher": {
-      "hash": "2b3b70df5ddfc9f54af76576398e97eea7d35930de99d4ab1e6edd35e34876d5",
+      "hash": "d96333324ae4de013ad5f498fbd1946749673319ce5537ff10256e71ba4ff218",
       "generatedFiles": [
         "core/provider/spacewave/launcher/launcher.pb.go",
         "core/provider/spacewave/launcher/launcher.pb.ts",
