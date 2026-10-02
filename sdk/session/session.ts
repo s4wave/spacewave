@@ -23,10 +23,12 @@ import {
   GetTransferInventoryResponse,
   GetTransferStatusResponse,
   JoinSpaceViaInviteResponse,
+  LeaveSpaceResponse,
   ListSpaceInvitesResponse,
   ListSpaceParticipantsResponse,
   RemoveSpaceParticipantsResponse,
   RenameSpaceRequest,
+  ResolveSpaceJoinRequestResponse,
   MountSharedObjectRequest,
   MoveSpaceStorageResponse,
   RevokeSpaceInviteResponse,
@@ -508,6 +510,34 @@ export class Session extends Resource {
   ): Promise<RevokeSpaceInviteResponse> {
     return await this.service.RevokeSpaceInvite(
       { spaceId, inviteId },
+      abortSignal,
+    )
+  }
+
+  // resolveSpaceJoinRequest grants or refuses the pending join request of
+  // peerId. A grant returns a single-use invite for the peer.
+  public async resolveSpaceJoinRequest(
+    spaceId: string,
+    peerId: string,
+    grant: boolean,
+    abortSignal?: AbortSignal,
+  ): Promise<ResolveSpaceJoinRequestResponse> {
+    return await this.service.ResolveSpaceJoinRequest(
+      { spaceId, peerId, grant },
+      abortSignal,
+    )
+  }
+
+  // leaveSpace relinquishes the session account's grants on a space. When the
+  // account owns the space and others remain, successorPeerId names the new
+  // owner; empty selects one.
+  public async leaveSpace(
+    sharedObjectId: string,
+    successorPeerId = '',
+    abortSignal?: AbortSignal,
+  ): Promise<LeaveSpaceResponse> {
+    return await this.service.LeaveSpace(
+      { sharedObjectId, successorPeerId },
       abortSignal,
     )
   }
