@@ -117,10 +117,8 @@ func (d BrowserDriver) acquireWebLock(ctx context.Context, name string, exclusiv
 	if !ifAvailable && !abortController.IsUndefined() && !abortController.IsNull() {
 		ctrl := abortController.New()
 		opts.Set("signal", ctrl.Get("signal"))
-		go func() {
-			<-ctx.Done()
-			ctrl.Call("abort")
-		}()
+		stopAbort := context.AfterFunc(ctx, func() { ctrl.Call("abort") })
+		defer stopAbort()
 	}
 
 	// Request the lock, recording a rejection before acquisition.
