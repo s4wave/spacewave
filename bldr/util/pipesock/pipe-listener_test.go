@@ -11,10 +11,14 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// TestListenUsesShortUniquePrivateRootsAndCleansUp checks that each listener
+// gets a short private root that Close removes.
 func TestListenUsesShortUniquePrivateRootsAndCleansUp(t *testing.T) {
+	// Choose an owner directory deep enough to overflow a socket path.
 	ownerDir := filepath.Join(t.TempDir(), strings.Repeat("deep-checkout-segment-", 12), "sub", "vite")
 	le := logrus.New().WithField("test", t.Name())
 
+	// Open two listeners for the same owner and name.
 	first, err := Listen(le, ownerDir, "vite-abcd-1234")
 	if err != nil {
 		t.Fatal(err)
@@ -25,6 +29,7 @@ func TestListenUsesShortUniquePrivateRootsAndCleansUp(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Each listener has its own short private root.
 	if first.GetRootDir() == second.GetRootDir() {
 		t.Fatalf("concurrent listeners shared root %q", first.GetRootDir())
 	}
@@ -44,6 +49,7 @@ func TestListenUsesShortUniquePrivateRootsAndCleansUp(t *testing.T) {
 		}
 	}
 
+	// Closing each listener removes its root.
 	firstRoot := first.GetRootDir()
 	secondRoot := second.GetRootDir()
 	if err := first.Close(); err != nil {

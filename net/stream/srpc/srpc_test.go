@@ -18,12 +18,13 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// ProtocolID is the stream protocol the test server and client share.
 var ProtocolID = protocol.ID("bifrost/stream/srpc/e2e")
 
 // TestStarpc tests a srpc service end-to-end including LookupRpcClient.
 func TestStarpc(t *testing.T) {
+	// Log both testbeds at debug level.
 	ctx := t.Context()
-
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
@@ -40,11 +41,11 @@ func TestStarpc(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// Derive the peer ID of each testbed.
 	tb1PeerID, err := peer.IDFromPrivateKey(tb1.PrivKey)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-
 	tb2PeerID, err := peer.IDFromPrivateKey(tb2.PrivKey)
 	if err != nil {
 		t.Fatal(err.Error())

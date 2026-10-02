@@ -11,6 +11,7 @@ import (
 // TestOpenOrWritePrivKeyStatError tests that an unexpected stat error is
 // returned instead of a nil key with nil error.
 func TestOpenOrWritePrivKeyStatError(t *testing.T) {
+	// Create a scratch directory for the key path.
 	dir := t.TempDir()
 
 	// A regular file where a directory component is expected makes os.Stat
@@ -21,6 +22,7 @@ func TestOpenOrWritePrivKeyStatError(t *testing.T) {
 	}
 	path := filepath.Join(blocker, "nested", "key.pem")
 
+	// Opening the key must report the stat error.
 	le := logrus.NewEntry(logrus.New())
 	privKey, err := OpenOrWritePrivKey(le, path)
 	if err == nil {
