@@ -131,8 +131,7 @@ func TestWSTrackerDispatchesBlockStoreNonceEventByResourceID(t *testing.T) {
 	t.Cleanup(cancel)
 	done := make(chan error, 1)
 	go func() {
-		_, err := tracker.runWebSocket(ctx, false)
-		done <- err
+		done <- tracker.runWebSocket(ctx)
 	}()
 
 	// Require the expected event without leaving a blocked test on failure.

@@ -68,10 +68,10 @@ type wsTracker struct {
 	onCdnRootChanged func(spaceID string)
 	// onSOListUpdate is called when a so_list_update message is received.
 	onSOListUpdate func(*sobject.SharedObjectList)
-	// onReconnected is called after a session websocket reconnect completes
-	// authentication. Receivers should invalidate caches that rely on
-	// event-carried state so a fresh seed covers events missed during the gap.
-	onReconnected func()
+	// onConnected is called after every session websocket completes
+	// authentication, including the first. Events published before the socket
+	// subscribed are lost, so receivers refetch state that events would carry.
+	onConnected func()
 	// onDormantChanged is called when the tracker enters or exits idle mode.
 	// dormant=true means access is gated (subscription_required or rbac_denied).
 	onDormantChanged func(dormant bool)
@@ -86,9 +86,6 @@ type wsTracker struct {
 	// dormant is true while the tracker is idling on an idleable cloud error.
 	// Only touched by Execute/runWebSocket, which run on a single goroutine.
 	dormant bool
-	// authenticatedOnce tracks whether at least one authenticated session has
-	// completed so later reconnects can fire onReconnected.
-	authenticatedOnce bool
 	// rc manages the shared websocket lifecycle with retry backoff.
 	rc *refcount.RefCount[struct{}]
 }
@@ -164,10 +161,7 @@ const sessionWebSocketPingTimeout = 10 * time.Second
 // Execute runs the wsTracker lifecycle until cancellation or a terminal error.
 func (t *wsTracker) Execute(ctx context.Context) error {
 	for {
-		authenticated, err := t.runWebSocket(ctx, t.authenticatedOnce)
-		if authenticated {
-			t.authenticatedOnce = true
-		}
+		err := t.runWebSocket(ctx)
 		if ctx.Err() != nil {
 			return context.Canceled
 		}
@@ -223,41 +217,41 @@ func (t *wsTracker) waitForAccountChanged(ctx context.Context) error {
 }
 
 // runWebSocket dials the session WS and runs the read loop.
-func (t *wsTracker) runWebSocket(ctx context.Context, reconnect bool) (bool, error) {
+func (t *wsTracker) runWebSocket(ctx context.Context) error {
 	// Require a ready session client with its signing key.
 	client := t.getClient()
 	if client == nil || client.priv == nil {
-		return false, errors.New("session client not ready")
+		return errors.New("session client not ready")
 	}
 
 	// Get a short-lived ticket for WebSocket auth.
 	ticket, err := client.GetSessionTicket(ctx)
 	if err != nil {
-		return false, errors.Wrap(err, "get session ticket")
+		return errors.Wrap(err, "get session ticket")
 	}
 
 	// Build WS URL with ticket as query param. The endpoint may be the
 	// serving origin "/", so join rather than concatenate.
 	wsPath, err := url.JoinPath(client.baseURL, "/api/session/ws")
 	if err != nil {
-		return false, errors.Wrap(err, "build session websocket URL")
+		return errors.Wrap(err, "build session websocket URL")
 	}
 	wsURL := wsPath + "?tk=" + url.QueryEscape(ticket)
 
 	// Dial the session websocket.
 	conn, err := dialSessionWS(ctx, wsURL)
 	if err != nil {
-		return false, err
+		return err
 	}
 	defer conn.CloseNow()
 
 	// Read the 32-byte challenge from server.
 	_, challenge, err := conn.Read(ctx)
 	if err != nil {
-		return false, errors.Wrap(err, "read challenge")
+		return errors.Wrap(err, "read challenge")
 	}
 	if len(challenge) != 32 {
-		return false, errors.New("invalid challenge length")
+		return errors.New("invalid challenge length")
 	}
 
 	// Sign ticket+challenge with the session private key.
@@ -267,12 +261,12 @@ func (t *wsTracker) runWebSocket(ctx context.Context, reconnect bool) (bool, err
 	copy(payload[len(ticketBytes):], challenge)
 	sig, err := client.priv.Sign(payload)
 	if err != nil {
-		return false, errors.Wrap(err, "sign challenge")
+		return errors.Wrap(err, "sign challenge")
 	}
 
 	// Send the 64-byte signature back as binary.
 	if err := conn.Write(ctx, ws.MessageBinary, sig); err != nil {
-		return false, errors.Wrap(err, "send challenge response")
+		return errors.Wrap(err, "send challenge response")
 	}
 	t.le.Debug("session websocket authenticated")
 
@@ -284,9 +278,9 @@ func (t *wsTracker) runWebSocket(ctx context.Context, reconnect bool) (bool, err
 		}
 	}
 
-	// Let the owner resync state missed while disconnected.
-	if reconnect && t.onReconnected != nil {
-		t.onReconnected()
+	// Let the owner resync state published before this socket subscribed.
+	if t.onConnected != nil {
+		t.onConnected()
 	}
 
 	// Keep the connection alive with pings for its lifetime.
@@ -301,7 +295,7 @@ func (t *wsTracker) runWebSocket(ctx context.Context, reconnect bool) (bool, err
 	for {
 		_, data, err := conn.Read(ctx)
 		if err != nil {
-			return true, errors.Wrap(err, "read session websocket message")
+			return errors.Wrap(err, "read session websocket message")
 		}
 
 		msg := &api.SessionMessage{}

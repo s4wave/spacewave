@@ -486,19 +486,19 @@ func (t *providerAccountTracker) executeProviderAccountTracker(rctx context.Cont
 		acc.soListCtr.SetValue(list)
 		acc.refreshSelfEnrollmentSummary(ctx)
 	}
-	acc.wsTracker.onReconnected = func() {
-		le.Debug("session ws reconnected; invalidating event-driven caches")
+	acc.wsTracker.onConnected = func() {
+		// Refetch account state and the caches that events would update.
+		le.Debug("session ws connected; invalidating event-driven caches")
+		acc.BumpLocalEpoch()
 		acc.InvalidatePendingMailboxEntries()
 		acc.InvalidateSharedObjectMetadataCache()
 		acc.invalidateSharedObjectList()
-		acc.accountBcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
-			broadcast()
-		})
 
-		// Re-evaluate every mounted SO once on reconnect: the cold-start gate
-		// short-circuits warm SOs and the cache-aware classifier fetches only
-		// what is missing on the rest, so a long disconnect window cannot leave
-		// caches stale across all SOs without producing per-mount rejoin storms.
+		// Re-evaluate every mounted SO once per connection: the cold-start
+		// gate short-circuits warm SOs and the cache-aware classifier fetches
+		// only what is missing on the rest, so a long disconnect window cannot
+		// leave caches stale across all SOs without producing per-mount rejoin
+		// storms.
 		acc.bumpSelfRejoinSweepGeneration()
 	}
 	acc.wsTracker.onInviteMailbox = func(soID string, entry *api.MailboxEntry, updatedAt int64) {
