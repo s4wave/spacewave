@@ -1,13 +1,20 @@
-//go:build !goscript
-
 package kvtx_block_okra
 
 import (
-	"unsafe"
-
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/block/blob"
-	"github.com/s4wave/spacewave/net/hash"
+)
+
+// Heap allocation sizes of the decoded messages on 64-bit Go, rounded up to
+// the allocator size class. TestPageDecodedHeapSize checks them against
+// measured heap, so update them when the messages change.
+const (
+	pageHeapSize     = 144
+	entryHeapSize    = 128
+	blockRefHeapSize = 32
+	hashHeapSize     = 64
+	blobHeapSize     = 80
+	pointerHeapSize  = 8
 )
 
 // heapAllocAlign approximates the Go allocator rounding small objects up to
@@ -21,51 +28,51 @@ func (p *Page) DecodedHeapSize() int {
 	if p == nil {
 		return 0
 	}
-	n := heapAlloc(int(unsafe.Sizeof(*p))) +
+	n := pageHeapSize +
 		heapBytes(p.LowerBound) +
 		heapBytes(p.UpperBound) +
 		heapBytes(p.PageHash) +
 		heapBytes(p.unknownFields) +
-		heapAlloc(cap(p.Entries)*int(unsafe.Sizeof((*Entry)(nil))))
+		heapAlloc(cap(p.Entries)*pointerHeapSize)
 	for _, entry := range p.Entries {
-		n += entryHeapSize(entry)
+		n += entryDecodedHeapSize(entry)
 	}
 	return n
 }
 
-// entryHeapSize estimates the heap bytes one entry retains.
-func entryHeapSize(e *Entry) int {
+// entryDecodedHeapSize estimates the heap bytes one entry retains.
+func entryDecodedHeapSize(e *Entry) int {
 	if e == nil {
 		return 0
 	}
-	return heapAlloc(int(unsafe.Sizeof(*e))) +
+	return entryHeapSize +
 		heapBytes(e.Key) +
 		heapBytes(e.Hash) +
 		heapBytes(e.unknownFields) +
-		blockRefHeapSize(e.ChildRef) +
-		blockRefHeapSize(e.ValueRef) +
-		blobHeapSize(e.ValueBlob)
+		blockRefDecodedHeapSize(e.ChildRef) +
+		blockRefDecodedHeapSize(e.ValueRef) +
+		blobDecodedHeapSize(e.ValueBlob)
 }
 
-// blockRefHeapSize estimates the heap bytes a block ref retains.
-func blockRefHeapSize(ref *block.BlockRef) int {
+// blockRefDecodedHeapSize estimates the heap bytes a block ref retains.
+func blockRefDecodedHeapSize(ref *block.BlockRef) int {
 	if ref == nil {
 		return 0
 	}
-	n := heapAlloc(int(unsafe.Sizeof(*ref)))
+	n := blockRefHeapSize
 	if h := ref.GetHash(); h != nil {
-		n += heapAlloc(int(unsafe.Sizeof(hash.Hash{}))) + heapBytes(h.GetHash())
+		n += hashHeapSize + heapBytes(h.GetHash())
 	}
 	return n
 }
 
-// blobHeapSize estimates the heap bytes an inline blob retains. A chunk index
-// is charged its encoded size.
-func blobHeapSize(b *blob.Blob) int {
+// blobDecodedHeapSize estimates the heap bytes an inline blob retains. A chunk
+// index is charged its encoded size.
+func blobDecodedHeapSize(b *blob.Blob) int {
 	if b == nil {
 		return 0
 	}
-	return heapAlloc(int(unsafe.Sizeof(*b))) +
+	return blobHeapSize +
 		heapBytes(b.GetRawData()) +
 		b.GetChunkIndex().SizeVT()
 }
