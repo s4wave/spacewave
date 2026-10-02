@@ -351,13 +351,18 @@ async function readWorkbenchPins(signal: AbortSignal) {
     )
     try {
       const state = await workbench.getWorkbench(signal)
+      const layout = state.workbench?.layout
       return {
         action: 'workbench-pins',
         workbenchObjectKey: SQL_WORKBENCH_KEY,
         targetDbObjectKey: state.workbench?.targetDbObjectKey ?? '',
         pinnedQueryObjectKeys: state.workbench?.pinnedQueryObjectKeys ?? [],
-        openTabObjectKeys:
-          state.workbench?.openTabs?.map((tab) => tab.objectKey ?? '') ?? [],
+        openTabIds:
+          state.workbench?.openTabs?.map((tab) => tab.tabId ?? '') ?? [],
+        layoutMode: layout?.mode ?? '',
+        layoutSidebarWidth: layout?.sidebarWidth ?? 0,
+        layoutResultPanelHeight: layout?.resultPanelHeight ?? 0,
+        layoutActiveTabId: layout?.activeTabId ?? '',
       }
     } finally {
       workbench.release()

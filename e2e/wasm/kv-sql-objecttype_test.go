@@ -4,6 +4,7 @@ package wasm
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -133,11 +134,12 @@ func TestQuickstartSqlWorkbenchPinsPersistAfterReload(t *testing.T) {
 		"quickstart",
 	})
 
-	// Prepare workbench pins and assert them on a fresh mount.
+	// Prepare workbench pins and layout and assert them on a fresh mount.
 	setup := prepareSqlWorkbenchPins(t, harness(t), page)
 	assertSqlWorkbenchPins(t, setup)
 	afterFreshMount := readSqlWorkbenchPins(t, harness(t), page)
 	assertSqlWorkbenchPins(t, afterFreshMount)
+	assertSqlWorkbenchLayout(t, afterFreshMount)
 	workbenchKey := stringField(setup, "workbenchObjectKey")
 	NavigateHash(t, harness(t), page, scenario.objectHash(workbenchKey))
 	waitForObjectTypeRoute(t, page, workbenchKey, []string{
@@ -148,7 +150,7 @@ func TestQuickstartSqlWorkbenchPinsPersistAfterReload(t *testing.T) {
 		"e2e-second",
 	})
 
-	// Reload the workbench route and assert the pins persist.
+	// Reload the workbench route and assert the pins and layout persist.
 	reloadObjectTypeRoute(t, page, func() {
 		waitForObjectTypeRoute(t, page, workbenchKey, []string{
 			"SQL Workbench",
@@ -160,6 +162,7 @@ func TestQuickstartSqlWorkbenchPinsPersistAfterReload(t *testing.T) {
 	})
 	afterReload := readSqlWorkbenchPins(t, harness(t), page)
 	assertSqlWorkbenchPins(t, afterReload)
+	assertSqlWorkbenchLayout(t, afterReload)
 }
 
 // Open the object type quickstart route and wait for it to render.
@@ -429,6 +432,29 @@ func assertSqlWorkbenchPins(t testing.TB, result map[string]any) {
 		"sql/query/example",
 		"sql/query/e2e-second",
 	})
+}
+
+// Assert the workbench open tabs and layout written by prepare-workbench-pins.
+func assertSqlWorkbenchLayout(t testing.TB, result map[string]any) {
+	// Mark the function as a test helper.
+	t.Helper()
+
+	// Compare the tab order, then each layout preference.
+	if got, want := stringSliceField(t, result, "openTabIds"), []string{"query:seed", "query:second"}; !slices.Equal(got, want) {
+		t.Fatalf("workbench open tabs = %v, want %v: %#v", got, want, result)
+	}
+	if got := stringField(result, "layoutMode"); got != "split" {
+		t.Fatalf("workbench layout mode = %q, want split: %#v", got, result)
+	}
+	if got := intField(result, "layoutSidebarWidth"); got != 280 {
+		t.Fatalf("workbench sidebar width = %d, want 280: %#v", got, result)
+	}
+	if got := intField(result, "layoutResultPanelHeight"); got != 360 {
+		t.Fatalf("workbench result panel height = %d, want 360: %#v", got, result)
+	}
+	if got := stringField(result, "layoutActiveTabId"); got != "query:seed" {
+		t.Fatalf("workbench active tab = %q, want query:seed: %#v", got, result)
+	}
 }
 
 // Read a string slice field from the helper result map.
