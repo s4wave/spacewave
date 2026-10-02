@@ -508,6 +508,13 @@ func (h *harness) newPersistentBrowserContext(t testing.TB, userDataDir string) 
 	return ctx
 }
 
+// consoleTailLines and consoleTailLineBytes bound the console tail a failed
+// test logs.
+const (
+	consoleTailLines     = 400
+	consoleTailLineBytes = 2048
+)
+
 // attachPageDiagnostics fails the test on captured browser errors unless muted.
 func (h *harness) attachPageDiagnostics(t testing.TB, page playwright.Page) func() {
 	// Collect browser errors until the caller mutes diagnostics.
@@ -529,6 +536,21 @@ func (h *harness) attachPageDiagnostics(t testing.TB, page playwright.Page) func
 		errsMu.Unlock()
 	}
 	consoleTrace := os.Getenv("E2E_RELEASE_WASM_CONSOLE_TRACE") == "1"
+
+	// Keep the latest console lines so a failed test can show what the page
+	// and its workers last reported.
+	var consoleTail []string
+	recordConsole := func(line string) {
+		if len(line) > consoleTailLineBytes {
+			line = line[:consoleTailLineBytes] + "..."
+		}
+		errsMu.Lock()
+		defer errsMu.Unlock()
+		if len(consoleTail) == consoleTailLines {
+			consoleTail = slices.Delete(consoleTail, 0, 1)
+		}
+		consoleTail = append(consoleTail, line)
+	}
 
 	// Log top-level navigations, and runtime requests when tracing HTTP.
 	page.OnFrameNavigated(func(frame playwright.Frame) {
@@ -575,6 +597,7 @@ func (h *harness) attachPageDiagnostics(t testing.TB, page playwright.Page) func
 			t.Logf("browser worker: %s", worker.URL())
 		}
 		worker.OnConsole(func(msg playwright.ConsoleMessage) {
+			recordConsole("worker " + msg.Type() + ": " + msg.Text())
 			switch msg.Type() {
 			case "error":
 				if !ignoreBrowserError(msg.Text()) && !isExpectedReleaseWasmConsoleError(msg) {
@@ -597,6 +620,7 @@ func (h *harness) attachPageDiagnostics(t testing.TB, page playwright.Page) func
 		}
 	})
 	page.On("console", func(msg playwright.ConsoleMessage) {
+		recordConsole("page " + msg.Type() + ": " + msg.Text())
 		switch msg.Type() {
 		case "error":
 			if !ignoreBrowserError(msg.Text()) && !isExpectedReleaseWasmConsoleError(msg) {
@@ -641,11 +665,15 @@ func (h *harness) attachPageDiagnostics(t testing.TB, page playwright.Page) func
 		})
 	})
 
-	// Fail the test on the recorded errors once pending body reads finish.
+	// Fail the test on the recorded errors once pending body reads finish,
+	// logging the console tail of a failed test.
 	t.Cleanup(func() {
 		bodyReads.Wait()
 		errsMu.Lock()
 		defer errsMu.Unlock()
+		if t.Failed() || len(errs) != 0 {
+			t.Logf("browser console tail (%d lines):\n%s", len(consoleTail), strings.Join(consoleTail, "\n"))
+		}
 		if len(errs) != 0 {
 			t.Fatalf("browser errors: %v", errs)
 		}
