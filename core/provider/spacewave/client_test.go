@@ -303,6 +303,46 @@ func TestSignRequest_SignatureVerifies(t *testing.T) {
 	}
 }
 
+// TestDoResendsRateLimitedRequest checks that a rate_limited response is
+// resent with the same body after the delay the Cloud names.
+func TestDoResendsRateLimitedRequest(t *testing.T) {
+	// Encode the Cloud's rate limit response.
+	errResp := &api.ErrorResponse{
+		Code:              "rate_limited",
+		Message:           "retry later",
+		Retryable:         true,
+		RetryAfterSeconds: 1,
+	}
+	errData, err := errResp.MarshalJSON()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Limit the first request and echo the body of the next.
+	var requests int
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requests++
+		if requests == 1 {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusTooManyRequests)
+			_, _ = w.Write(errData)
+			return
+		}
+		_, _ = io.Copy(w, r.Body)
+	}))
+	defer srv.Close()
+
+	// Post once and expect the resent body back.
+	cli, _ := newTestSignedClient(t, srv.URL)
+	resp, err := cli.doPost(context.Background(), "/test", "text/plain", []byte("hello"), nil, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(resp) != "hello" || requests != 2 {
+		t.Fatalf("got body %q after %d requests, want hello after 2", resp, requests)
+	}
+}
+
 // TestMarshalWriteTicketProofPayload verifies the proof payload bytes are the
 // deterministic proto binary serialization of the canonical field set.
 func TestMarshalWriteTicketProofPayload(t *testing.T) {

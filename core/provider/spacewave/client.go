@@ -361,9 +361,19 @@ func (c *SignedHTTPClient) signRequestPrecomputed(req *http.Request, bodyHash []
 	return nil
 }
 
-// Do signs and executes an HTTP request.
+// rateLimitRetries bounds how many times Do resends a rate limited request,
+// and rateLimitMaxWait bounds the delay it waits before each resend.
+const (
+	rateLimitRetries = 3
+	rateLimitMaxWait = time.Minute
+)
+
+// Do signs and executes an HTTP request. The Cloud rejects a rate_limited
+// request before acting on it, so Do resends it after the delay the Cloud
+// names, up to rateLimitRetries times while that delay is within
+// rateLimitMaxWait. Otherwise the 429 response is returned to the caller.
 func (c *SignedHTTPClient) Do(req *http.Request) (*http.Response, error) {
-	// Read body for signing if present.
+	// Read the body once so each attempt can sign and send it.
 	var body []byte
 	if req.Body != nil {
 		var err error
@@ -371,14 +381,56 @@ func (c *SignedHTTPClient) Do(req *http.Request) (*http.Response, error) {
 		if err != nil {
 			return nil, errors.Wrap(err, "read request body")
 		}
-		req.Body = io.NopCloser(bytes.NewReader(body))
 	}
 
-	if err := c.signRequest(req, body); err != nil {
-		return nil, err
-	}
+	for attempt := 0; ; attempt++ {
+		// Sign and send this attempt.
+		if body != nil {
+			req.Body = io.NopCloser(bytes.NewReader(body))
+		}
+		if err := c.signRequest(req, body); err != nil {
+			return nil, err
+		}
+		resp, err := c.httpCli.Do(req) //nolint:gosec // This outbound HTTP client intentionally accepts caller-selected requests.
+		if err != nil || resp.StatusCode != http.StatusTooManyRequests || attempt == rateLimitRetries {
+			return resp, err
+		}
 
-	return c.httpCli.Do(req) //nolint:gosec // This outbound HTTP client intentionally accepts caller-selected requests.
+		// Return the response unless it names a short rate limit delay.
+		delay, err := rateLimitDelay(resp)
+		if err != nil {
+			return nil, err
+		}
+		if delay <= 0 || delay > rateLimitMaxWait {
+			return resp, nil
+		}
+
+		// Wait out the delay before resending.
+		select {
+		case <-req.Context().Done():
+			return nil, req.Context().Err()
+		case <-time.After(delay):
+		}
+	}
+}
+
+// rateLimitDelay returns the delay a retryable rate_limited response names,
+// or zero for any other response. It restores resp.Body for the caller.
+func rateLimitDelay(resp *http.Response) (time.Duration, error) {
+	// Read the body and restore it for the caller.
+	body, err := readResponseBody(resp)
+	_ = resp.Body.Close()
+	if err != nil {
+		return 0, err
+	}
+	resp.Body = io.NopCloser(bytes.NewReader(body))
+
+	// Report the delay only for a retryable rate limit.
+	ce := parseCloudResponseError(resp, body)
+	if ce.Code != "rate_limited" || !ce.Retryable {
+		return 0, nil
+	}
+	return time.Duration(ce.RetryAfterSeconds) * time.Second, nil
 }
 
 // doPost signs and executes a POST request, returning the response body.
