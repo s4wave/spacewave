@@ -42,6 +42,8 @@ func testAcceptedDaemonUpdateRelaunchesAfterFinalClient(t *testing.T, mode strin
 	t.Setenv(daemon.StartupTimeoutEnvVar, "15s")
 	ctx, cancel := context.WithTimeout(t.Context(), 25*time.Second)
 	defer cancel()
+
+	// Watch the state directory and copy the fixture executables.
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
 		t.Fatal(err)
@@ -53,6 +55,8 @@ func testAcceptedDaemonUpdateRelaunchesAfterFinalClient(t *testing.T, mode strin
 	for _, name := range []string{"old-spacewave", "staged-cli"} {
 		copyFixtureExecutable(t, filepath.Join(statePath, name))
 	}
+
+	// Start the old daemon executable.
 	oldPath := filepath.Join(statePath, "old-spacewave")
 	stagedPath := filepath.Join(statePath, "staged-cli")
 	t.Setenv(sharedDaemonUpdateTarget, stagedPath)
@@ -76,10 +80,14 @@ func testAcceptedDaemonUpdateRelaunchesAfterFinalClient(t *testing.T, mode strin
 	if _, err := stream.Recv(); err != nil {
 		t.Fatal(err)
 	}
+
+	// Read the old runtime identity.
 	oldPID, err := os.ReadFile(filepath.Join(statePath, "runtime-identity"))
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Accept the update and retain the watched state.
 	rpc, err := client.Root().GetResourceRef().GetClient()
 	if err != nil {
 		t.Fatal(err)
@@ -290,6 +298,7 @@ func cleanupDaemonUpdateFixture(t *testing.T, statePath string) {
 
 // copyFixtureExecutable creates one controlled copy of this test binary.
 func copyFixtureExecutable(t *testing.T, destination string) {
+	// Open the current executable.
 	t.Helper()
 	source, err := os.Executable()
 	if err != nil {
@@ -300,6 +309,8 @@ func copyFixtureExecutable(t *testing.T, destination string) {
 		t.Fatal(err)
 	}
 	defer input.Close()
+
+	// Copy it to the destination and close the output.
 	output, err := os.OpenFile(destination, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0o700)
 	if err != nil {
 		t.Fatal(err)

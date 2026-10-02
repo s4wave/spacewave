@@ -87,6 +87,7 @@ func newSpaceCreateCommand(statePath *string, sessionIdx *uint) *cli.Command {
 			},
 		},
 		Action: func(c *cli.Context) error {
+			// Require a Space name and reject both storage flags together.
 			name := c.Args().First()
 			if name == "" {
 				return errors.New("space name required")
@@ -95,7 +96,9 @@ func newSpaceCreateCommand(statePath *string, sessionIdx *uint) *cli.Command {
 				return errors.New("choose --storage or --account-storage, not both")
 			}
 
+			// Take the command context.
 			ctx := c.Context
+
 			// Connect to the daemon, mount the selected session and Space resource.
 			client, err := connectDaemonFromContext(ctx, c, *statePath)
 			if err != nil {
@@ -103,12 +106,14 @@ func newSpaceCreateCommand(statePath *string, sessionIdx *uint) *cli.Command {
 			}
 			defer client.close()
 
+			// Mount the selected session.
 			sess, err := client.mountSession(ctx, sessionIndex32(*sessionIdx))
 			if err != nil {
 				return err
 			}
 			defer sess.Release()
 
+			// Build the create request, resolving a named storage backend when one was given.
 			req := &s4wave_session.CreateSpaceRequest{SpaceName: name, AccountStorage: accountStorage}
 			if storage != "" {
 				backend, err := findStorageBackend(ctx, sess, storage)
@@ -122,6 +127,7 @@ func newSpaceCreateCommand(statePath *string, sessionIdx *uint) *cli.Command {
 				return errors.Wrap(err, "create space")
 			}
 
+			// Print the created Space ID, or the response as JSON or YAML.
 			id := resp.GetSharedObjectRef().GetProviderResourceRef().GetId()
 			switch c.String("output") {
 			case "json", "yaml":
@@ -150,12 +156,15 @@ func newSpaceDeleteCommand(statePath *string, sessionIdx *uint) *cli.Command {
 		Usage:     "delete a space by ID",
 		ArgsUsage: "<space-id>",
 		Action: func(c *cli.Context) error {
+			// Require a Space ID.
 			spaceID := c.Args().First()
 			if spaceID == "" {
 				return errors.New("space ID required")
 			}
 
+			// Take the command context.
 			ctx := c.Context
+
 			// Connect to the daemon, mount the selected session and Space resource.
 			client, err := connectDaemonFromContext(ctx, c, *statePath)
 			if err != nil {
@@ -163,16 +172,19 @@ func newSpaceDeleteCommand(statePath *string, sessionIdx *uint) *cli.Command {
 			}
 			defer client.close()
 
+			// Mount the selected session.
 			sess, err := client.mountSession(ctx, sessionIndex32(*sessionIdx))
 			if err != nil {
 				return err
 			}
 			defer sess.Release()
 
+			// Delete the Space.
 			if _, err := sess.DeleteSpace(ctx, spaceID); err != nil {
 				return errors.Wrap(err, "delete space")
 			}
 
+			// Report that the Space was deleted.
 			os.Stdout.WriteString("space deleted\n")
 			return nil
 		},
@@ -186,6 +198,7 @@ func newSpaceRenameCommand(statePath *string, sessionIdx *uint) *cli.Command {
 		Usage:     "rename a space by ID",
 		ArgsUsage: "<space-id> <name>",
 		Action: func(c *cli.Context) error {
+			// Require a Space ID and a new name.
 			spaceID := c.Args().Get(0)
 			if spaceID == "" {
 				return errors.New("space ID required")
@@ -195,7 +208,9 @@ func newSpaceRenameCommand(statePath *string, sessionIdx *uint) *cli.Command {
 				return errors.New("space name required")
 			}
 
+			// Take the command context.
 			ctx := c.Context
+
 			// Connect to the daemon, mount the selected session and Space resource.
 			client, err := connectDaemonFromContext(ctx, c, *statePath)
 			if err != nil {
@@ -203,17 +218,20 @@ func newSpaceRenameCommand(statePath *string, sessionIdx *uint) *cli.Command {
 			}
 			defer client.close()
 
+			// Mount the selected session.
 			sess, err := client.mountSession(ctx, sessionIndex32(*sessionIdx))
 			if err != nil {
 				return err
 			}
 			defer sess.Release()
 
+			// Rename the Space.
 			_, err = sess.RenameSpace(ctx, spaceID, name)
 			if err != nil {
 				return errors.Wrap(err, "rename space")
 			}
 
+			// Report that the Space was renamed.
 			os.Stdout.WriteString("space renamed\n")
 			return nil
 		},
@@ -228,7 +246,9 @@ func newSpaceInfoCommand(statePath *string, sessionIdx *uint) *cli.Command {
 		ArgsUsage: "<space-id>",
 		Flags:     []cli.Flag{outputFlag()},
 		Action: func(c *cli.Context) error {
+			// Take the command context.
 			ctx := c.Context
+
 			// Connect to the daemon, mount the selected session and Space resource.
 			client, err := connectDaemonFromContext(ctx, c, *statePath)
 			if err != nil {
@@ -236,34 +256,40 @@ func newSpaceInfoCommand(statePath *string, sessionIdx *uint) *cli.Command {
 			}
 			defer client.close()
 
+			// Mount the selected session.
 			sess, err := client.mountSession(ctx, sessionIndex32(*sessionIdx))
 			if err != nil {
 				return err
 			}
 			defer sess.Release()
 
+			// Resolve the Space ID from the argument.
 			spaceID, err := client.resolveSpaceID(ctx, sess, c.Args().First())
 			if err != nil {
 				return err
 			}
 
+			// Mount the Space service.
 			spaceSvc, spaceCleanup, err := client.mountSpace(ctx, sess, spaceID)
 			if err != nil {
 				return err
 			}
 			defer spaceCleanup()
 
+			// Watch the Space state.
 			strm, err := spaceSvc.WatchSpaceState(ctx, &s4wave_space.WatchSpaceStateRequest{})
 			if err != nil {
 				return errors.Wrap(err, "watch space state")
 			}
 			defer strm.Close()
 
+			// Read the current Space state.
 			state, err := strm.Recv()
 			if err != nil {
 				return errors.Wrap(err, "recv space state")
 			}
 
+			// Print the Space state, or emit it as JSON or YAML.
 			switch c.String("output") {
 			case "json", "yaml":
 				data, err := state.MarshalJSON()
@@ -286,12 +312,15 @@ func newSpaceResolveCommand(statePath *string, sessionIdx *uint) *cli.Command {
 		Usage:     "resolve a space name to its ID",
 		ArgsUsage: "<name>",
 		Action: func(c *cli.Context) error {
+			// Require a Space name.
 			name := c.Args().First()
 			if name == "" {
 				return errors.New("space name required")
 			}
 
+			// Take the command context.
 			ctx := c.Context
+
 			// Connect to the daemon, mount the selected session and Space resource.
 			client, err := connectDaemonFromContext(ctx, c, *statePath)
 			if err != nil {
@@ -299,17 +328,20 @@ func newSpaceResolveCommand(statePath *string, sessionIdx *uint) *cli.Command {
 			}
 			defer client.close()
 
+			// Mount the selected session.
 			sess, err := client.mountSession(ctx, sessionIndex32(*sessionIdx))
 			if err != nil {
 				return err
 			}
 			defer sess.Release()
 
+			// Look up the Space ID by name.
 			id, err := client.getSpaceByName(ctx, sess, name)
 			if err != nil {
 				return err
 			}
 
+			// Print the Space ID.
 			os.Stdout.WriteString(id + "\n")
 			return nil
 		},
@@ -324,7 +356,9 @@ func newSpaceSettingsCommand(statePath *string, sessionIdx *uint) *cli.Command {
 		ArgsUsage: "[space-id]",
 		Flags:     []cli.Flag{outputFlag()},
 		Action: func(c *cli.Context) error {
+			// Take the command context.
 			ctx := c.Context
+
 			// Connect to the daemon, mount the selected session and Space resource.
 			client, err := connectDaemonFromContext(ctx, c, *statePath)
 			if err != nil {
@@ -332,34 +366,40 @@ func newSpaceSettingsCommand(statePath *string, sessionIdx *uint) *cli.Command {
 			}
 			defer client.close()
 
+			// Mount the selected session.
 			sess, err := client.mountSession(ctx, sessionIndex32(*sessionIdx))
 			if err != nil {
 				return err
 			}
 			defer sess.Release()
 
+			// Resolve the Space ID from the argument.
 			spaceID, err := client.resolveSpaceID(ctx, sess, c.Args().First())
 			if err != nil {
 				return err
 			}
 
+			// Mount the Space service.
 			spaceSvc, spaceCleanup, err := client.mountSpace(ctx, sess, spaceID)
 			if err != nil {
 				return err
 			}
 			defer spaceCleanup()
 
+			// Watch the Space state.
 			strm, err := spaceSvc.WatchSpaceState(ctx, &s4wave_space.WatchSpaceStateRequest{})
 			if err != nil {
 				return errors.Wrap(err, "watch space state")
 			}
 			defer strm.Close()
 
+			// Read the current Space state.
 			state, err := strm.Recv()
 			if err != nil {
 				return errors.Wrap(err, "recv space state")
 			}
 
+			// Print the Space settings, or emit them as JSON or YAML.
 			settings := state.GetSettings()
 			switch c.String("output") {
 			case "json", "yaml":
@@ -426,12 +466,15 @@ func newSpaceImportGitCommand(statePath *string, sessionIdx *uint) *cli.Command 
 			},
 		},
 		Action: func(c *cli.Context) error {
+			// Require a git URL.
 			url := c.Args().First()
 			if url == "" {
 				return errors.New("git URL required as first argument")
 			}
 
+			// Take the command context.
 			ctx := c.Context
+
 			// Connect to the daemon, mount the selected session and Space resource.
 			client, err := connectDaemonFromContext(ctx, c, *statePath)
 			if err != nil {
@@ -439,29 +482,34 @@ func newSpaceImportGitCommand(statePath *string, sessionIdx *uint) *cli.Command 
 			}
 			defer client.close()
 
+			// Mount the selected session.
 			sess, err := client.mountSession(ctx, sessionIndex32(*sessionIdx))
 			if err != nil {
 				return err
 			}
 			defer sess.Release()
 
+			// Resolve the Space ID.
 			sid, err := client.resolveSpaceID(ctx, sess, spaceID)
 			if err != nil {
 				return err
 			}
 
+			// Mount the Space service.
 			spaceSvc, spaceCleanup, err := client.mountSpace(ctx, sess, sid)
 			if err != nil {
 				return err
 			}
 			defer spaceCleanup()
 
+			// Open the World engine through the Space service.
 			engine, engineCleanup, err := client.accessWorldEngine(ctx, spaceSvc)
 			if err != nil {
 				return err
 			}
 			defer engineCleanup()
 
+			// Check whether the object key already exists.
 			w := os.Stdout
 			readTx, err := engine.NewTransaction(ctx, false)
 			if err != nil {
@@ -475,6 +523,7 @@ func newSpaceImportGitCommand(statePath *string, sessionIdx *uint) *cli.Command 
 			}
 			readTx.Discard()
 
+			// Fetch into the existing object when it is already present.
 			if exists {
 				tx, err := engine.NewTransaction(ctx, true)
 				if err != nil {
@@ -493,6 +542,7 @@ func newSpaceImportGitCommand(statePath *string, sessionIdx *uint) *cli.Command 
 				return tx.Commit(ctx)
 			}
 
+			// Clone the remote into a repo ref.
 			w.WriteString("cloning " + url + " as " + objectKey + "...\n")
 			repoRef, err := s4wave_git_core.CloneGitRepoToRef(ctx, engine, &git_block.CloneOpts{
 				Url:             url,
@@ -504,6 +554,8 @@ func newSpaceImportGitCommand(statePath *string, sessionIdx *uint) *cli.Command 
 			if err != nil {
 				return err
 			}
+
+			// Publish the cloned repo under the object key and commit it.
 			tx, err := engine.NewTransaction(ctx, true)
 			if err != nil {
 				return errors.Wrap(err, "new transaction")
@@ -566,6 +618,7 @@ func newSpaceDeployCommand(statePath *string, sessionIdx *uint) *cli.Command {
 			},
 		},
 		Action: func(c *cli.Context) error {
+			// Take the command context for the deploy.
 			ctx := c.Context
 
 			// Resolve the destination object key and output contract.
@@ -618,6 +671,8 @@ func newSpaceDeployCommand(statePath *string, sessionIdx *uint) *cli.Command {
 				return err
 			}
 			defer client.close()
+
+			// Mount the session and Space service.
 			sess, err := client.mountSession(ctx, sessionIndex32(*sessionIdx))
 			if err != nil {
 				return err
@@ -715,6 +770,7 @@ func runDeployBlockExchange(
 
 // printSpaceState prints space state details to stdout.
 func printSpaceState(spaceID string, state *s4wave_space.SpaceState, storage *s4wave_session.WatchSpaceStorageResponse) {
+	// Write the Space state, storage, and plugin list.
 	w := os.Stdout
 	stateStr := "loading"
 	if state.GetReady() {
@@ -743,6 +799,7 @@ func printSpaceState(spaceID string, state *s4wave_space.SpaceState, storage *s4
 
 // printSpaceSettings prints space settings to stdout.
 func printSpaceSettings(settings *space_world.SpaceSettings) {
+	// Write the settings fields and plugin list, or say there are none.
 	w := os.Stdout
 	if settings == nil {
 		w.WriteString("no settings\n")

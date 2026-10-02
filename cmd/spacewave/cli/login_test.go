@@ -18,12 +18,14 @@ import (
 )
 
 func TestRunLoginBrowserWithStreams(t *testing.T) {
+	// Save the login hooks and restore them after the test.
 	oldResolveStatePath := loginResolveStatePath
 	oldConnectDaemon := loginConnectDaemon
 	oldCloseClient := loginCloseClient
 	oldLoginWithEntityKey := loginWithEntityKey
 	oldBrowserHandoff := loginBrowserHandoff
 	t.Cleanup(func() {
+		// Restore the saved login hooks.
 		loginResolveStatePath = oldResolveStatePath
 		loginConnectDaemon = oldConnectDaemon
 		loginCloseClient = oldCloseClient
@@ -31,6 +33,7 @@ func TestRunLoginBrowserWithStreams(t *testing.T) {
 		loginBrowserHandoff = oldBrowserHandoff
 	})
 
+	// Stub state-path resolution, daemon connect, and browser handoff.
 	loginResolveStatePath = func(_ *cli.Context, statePath string) (string, error) {
 		if statePath != ".spacewave" {
 			t.Fatalf("unexpected state path: %s", statePath)
@@ -50,6 +53,7 @@ func TestRunLoginBrowserWithStreams(t *testing.T) {
 		providerID string,
 		req *s4wave_provider_spacewave.StartBrowserHandoffRequest,
 	) (*session_pb.SessionListEntry, error) {
+		// Require the CLI login request and return a session entry.
 		if providerID != "spacewave" {
 			t.Fatalf("unexpected provider id: %s", providerID)
 		}
@@ -73,6 +77,7 @@ func TestRunLoginBrowserWithStreams(t *testing.T) {
 		}, nil
 	}
 
+	// Parse the browser login command with the provider flag.
 	cmd := newLoginBrowserCommand()
 	set := flagSet(t)
 	for _, fl := range cmd.Flags {
@@ -87,16 +92,19 @@ func TestRunLoginBrowserWithStreams(t *testing.T) {
 	c.Command = cmd
 	c.Context = context.Background()
 
+	// Run browser login and capture both streams.
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
 	if err := runLoginBrowserWithStreams(c, ".spacewave", "text", &stdout, &stderr); err != nil {
 		t.Fatalf("run login browser: %v", err)
 	}
 
+	// Require the browser sign-in prompt on stderr.
 	if got := stderr.String(); got != "Opening browser for Spacewave CLI sign-in...\n" {
 		t.Fatalf("unexpected stderr: %q", got)
 	}
 
+	// Require the signed-in account and session on stdout.
 	out := stdout.String()
 	assertContains(t, out, "Signed in via browser.")
 	assertContains(t, out, "spacewave")
@@ -105,6 +113,7 @@ func TestRunLoginBrowserWithStreams(t *testing.T) {
 }
 
 func TestRunBrowserSignupWithStreams(t *testing.T) {
+	// Save the signup hooks and restore them after the test.
 	oldResolveStatePath := loginResolveStatePath
 	oldConnectDaemon := loginConnectDaemon
 	oldCloseClient := loginCloseClient
@@ -116,6 +125,7 @@ func TestRunBrowserSignupWithStreams(t *testing.T) {
 		loginBrowserHandoff = oldBrowserHandoff
 	})
 
+	// Stub state-path resolution, daemon connect, and browser handoff.
 	loginResolveStatePath = func(_ *cli.Context, statePath string) (string, error) {
 		if statePath != ".spacewave" {
 			t.Fatalf("unexpected state path: %s", statePath)
@@ -135,6 +145,7 @@ func TestRunBrowserSignupWithStreams(t *testing.T) {
 		providerID string,
 		req *s4wave_provider_spacewave.StartBrowserHandoffRequest,
 	) (*session_pb.SessionListEntry, error) {
+		// Require the CLI signup request and return a session entry.
 		if providerID != "spacewave" {
 			t.Fatalf("unexpected provider id: %s", providerID)
 		}
@@ -158,6 +169,7 @@ func TestRunBrowserSignupWithStreams(t *testing.T) {
 		}, nil
 	}
 
+	// Parse the signup command with provider and username flags.
 	set := flagSet(t)
 	cmd := newAccountCreateSpacewaveCommand()
 	for _, fl := range cmd.Flags {
@@ -172,16 +184,19 @@ func TestRunBrowserSignupWithStreams(t *testing.T) {
 	c.Command = cmd
 	c.Context = context.Background()
 
+	// Run browser signup and capture both streams.
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
 	if err := runBrowserSignupWithStreams(c, ".spacewave", "text", &stdout, &stderr); err != nil {
 		t.Fatalf("run browser signup: %v", err)
 	}
 
+	// Require the browser sign-up prompt on stderr.
 	if got := stderr.String(); got != "Opening browser for Spacewave CLI sign-up...\n" {
 		t.Fatalf("unexpected stderr: %q", got)
 	}
 
+	// Require the signed-up account and session on stdout.
 	out := stdout.String()
 	assertContains(t, out, "Browser sign-up complete.")
 	assertContains(t, out, "acct-signup")
@@ -189,6 +204,7 @@ func TestRunBrowserSignupWithStreams(t *testing.T) {
 }
 
 func TestRunLoginWithEntityKey(t *testing.T) {
+	// Save the entity-key login hooks and restore them after the test.
 	oldResolveStatePath := loginResolveStatePath
 	oldConnectDaemon := loginConnectDaemon
 	oldCloseClient := loginCloseClient
@@ -200,6 +216,7 @@ func TestRunLoginWithEntityKey(t *testing.T) {
 		loginWithEntityKey = oldLoginWithEntityKey
 	})
 
+	// Stub state-path resolution, daemon connect, and entity-key login.
 	loginResolveStatePath = func(_ *cli.Context, statePath string) (string, error) {
 		if statePath != ".spacewave" {
 			t.Fatalf("unexpected state path: %s", statePath)
@@ -236,11 +253,13 @@ func TestRunLoginWithEntityKey(t *testing.T) {
 		}, nil
 	}
 
+	// Write a temporary PEM file.
 	pemPath := filepath.Join(t.TempDir(), "backup.pem")
 	if err := os.WriteFile(pemPath, []byte("pem-data"), 0o600); err != nil {
 		t.Fatalf("write pem: %v", err)
 	}
 
+	// Parse the login command with the provider flag.
 	set := flagSet(t)
 	cmd := newLoginCommand(nil)
 	for _, fl := range cmd.Flags {
@@ -255,6 +274,7 @@ func TestRunLoginWithEntityKey(t *testing.T) {
 	c.Command = cmd
 	c.Context = context.Background()
 
+	// Replace stdout with a pipe.
 	oldStdout := os.Stdout
 	r, w, err := os.Pipe()
 	if err != nil {
@@ -263,6 +283,7 @@ func TestRunLoginWithEntityKey(t *testing.T) {
 	os.Stdout = w
 	t.Cleanup(func() { os.Stdout = oldStdout })
 
+	// Run the login and close the pipe.
 	runErr := runLogin(c, ".spacewave", "text", pemPath)
 	if err := w.Close(); err != nil {
 		t.Fatalf("close writer: %v", err)
@@ -271,6 +292,7 @@ func TestRunLoginWithEntityKey(t *testing.T) {
 		t.Fatalf("run login: %v", runErr)
 	}
 
+	// Require the PEM login account and session on stdout.
 	out, err := io.ReadAll(r)
 	if err != nil {
 		t.Fatalf("read stdout: %v", err)

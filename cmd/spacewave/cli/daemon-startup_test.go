@@ -19,6 +19,7 @@ import (
 )
 
 func TestInvalidDaemonIdleTimeoutReportsStartupError(t *testing.T) {
+	// Set an invalid idle timeout and open the startup pipe.
 	t.Setenv(daemonIdleTimeoutEnvVar, "not-a-duration")
 	statePath := shortSocketDir(t)
 	pipeListener, err := pipesock.BuildPipeListener(daemon.NewStartupPipeLogger(), statePath, "startup")
@@ -27,6 +28,7 @@ func TestInvalidDaemonIdleTimeoutReportsStartupError(t *testing.T) {
 	}
 	defer pipeListener.Close()
 
+	// Build a serve context with the state path.
 	app := cli.NewApp()
 	parentFlags := flag.NewFlagSet("spacewave", flag.ContinueOnError)
 	parentFlags.SetOutput(os.Stderr)
@@ -37,11 +39,13 @@ func TestInvalidDaemonIdleTimeoutReportsStartupError(t *testing.T) {
 	parent := cli.NewContext(app, parentFlags, nil)
 	child := cli.NewContext(app, flag.NewFlagSet("serve", flag.ContinueOnError), parent)
 
+	// Run the serve command.
 	commandErrCh := make(chan error, 1)
 	go func() {
 		commandErrCh <- runServeCommand(child, func() cli_entrypoint.CliBus { return nil }, yield_policy.NewBroker(), "startup", false, defaultDaemonIdleTimeout)
 	}()
 
+	// Require the startup error to name the idle-timeout variable.
 	waitCtx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 	startupErr := daemon.WaitStartup(waitCtx, pipeListener)

@@ -29,14 +29,19 @@ func TestResolveStatePathFromContextUsesGlobalFlag(t *testing.T) {
 // and silently used the local flag's default (defaultStatePath), ignoring
 // the global flag passed before the subcommand name.
 func TestResolveStatePathFromContextWithClientFlags(t *testing.T) {
+	// Clear the state-path environment.
 	clearStatePathEnv(t)
 
+	// Build a global state path under the temp directory.
 	statePath := filepath.Join(t.TempDir(), "global")
 
+	// Declare the captured state-path values.
 	var commandStatePath string
 	var commandSessionIdx uint
 	var rootStatePath string
 	var got string
+
+	// Build the app with a global flag and a check command.
 	app := cli.NewApp()
 	app.Name = "spacewave"
 	app.HideVersion = true
@@ -53,17 +58,23 @@ func TestResolveStatePathFromContextWithClientFlags(t *testing.T) {
 			return nil
 		},
 	}}
+
+	// Run check with the global state-path flag.
 	if err := app.RunContext(context.Background(), []string{"spacewave", "--state-path", statePath, "check"}); err != nil {
 		t.Fatal(err)
 	}
+
+	// Require the resolved path to match the global flag.
 	if got != statePath {
 		t.Fatalf("got %s, want %s", got, statePath)
 	}
 }
 
 func TestResolveStatePathFromContextUsesCommandRelativeFlag(t *testing.T) {
+	// Clear the state-path environment.
 	clearStatePathEnv(t)
 
+	// Change into a temporary working directory.
 	cwd := t.TempDir()
 	chdir(t, cwd)
 	cwd, err := os.Getwd()
@@ -71,6 +82,7 @@ func TestResolveStatePathFromContextUsesCommandRelativeFlag(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Require a relative command flag to resolve under that directory.
 	got := runStatePathResolveCommand(t, []string{"check", "--state-path", "state"})
 	want := filepath.Join(cwd, "state")
 	if got != want {
@@ -79,8 +91,10 @@ func TestResolveStatePathFromContextUsesCommandRelativeFlag(t *testing.T) {
 }
 
 func TestResolveStatePathFromContextUsesEnv(t *testing.T) {
+	// Clear the state-path environment.
 	clearStatePathEnv(t)
 
+	// Set the state-path environment variable.
 	statePath := filepath.Join(t.TempDir(), "env")
 	if err := os.Setenv(statePathEnvVars[0], statePath); err != nil {
 		t.Fatal(err)
@@ -89,6 +103,7 @@ func TestResolveStatePathFromContextUsesEnv(t *testing.T) {
 		_ = os.Unsetenv(statePathEnvVars[0])
 	})
 
+	// Require the environment path when no flag is set.
 	got := runStatePathResolveCommand(t, []string{"check"})
 	if got != statePath {
 		t.Fatalf("got %s, want %s", got, statePath)
@@ -96,8 +111,10 @@ func TestResolveStatePathFromContextUsesEnv(t *testing.T) {
 }
 
 func TestResolveStatePathFromContextUsesDefault(t *testing.T) {
+	// Clear the state-path environment.
 	clearStatePathEnv(t)
 
+	// Change into a temporary working directory.
 	cwd := t.TempDir()
 	chdir(t, cwd)
 	cwd, err := os.Getwd()
@@ -105,6 +122,7 @@ func TestResolveStatePathFromContextUsesDefault(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Require the default state path under that directory.
 	got := runStatePathResolveCommand(t, []string{"check"})
 	want := defaultStatePath
 	if !filepath.IsAbs(want) {
@@ -116,8 +134,10 @@ func TestResolveStatePathFromContextUsesDefault(t *testing.T) {
 }
 
 func TestResolveStatePathPrefersExistingCwdSocket(t *testing.T) {
+	// Clear the state-path environment.
 	clearStatePathEnv(t)
 
+	// Create a state directory with a socket in the working directory.
 	cwd := t.TempDir()
 	chdir(t, cwd)
 	cwd, err := os.Getwd()
@@ -132,6 +152,7 @@ func TestResolveStatePathPrefersExistingCwdSocket(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Require that existing socket directory.
 	got, err := resolveStatePath("state")
 	if err != nil {
 		t.Fatal(err)
@@ -142,8 +163,10 @@ func TestResolveStatePathPrefersExistingCwdSocket(t *testing.T) {
 }
 
 func TestResolveStatePathFallsBackToGitRootSocket(t *testing.T) {
+	// Clear the state-path environment.
 	clearStatePathEnv(t)
 
+	// Initialize a git root and resolve its path.
 	root := t.TempDir()
 	cmd := exec.Command("git", "init", root)
 	if out, err := cmd.CombinedOutput(); err != nil {
@@ -154,6 +177,7 @@ func TestResolveStatePathFallsBackToGitRootSocket(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Create a socket under the git root and change into a subdirectory.
 	subdir := filepath.Join(root, "sub", "dir")
 	if err := os.MkdirAll(subdir, 0o755); err != nil {
 		t.Fatal(err)
@@ -167,6 +191,7 @@ func TestResolveStatePathFallsBackToGitRootSocket(t *testing.T) {
 	}
 	chdir(t, subdir)
 
+	// Require the git-root socket directory.
 	got, err := resolveStatePath("state")
 	if err != nil {
 		t.Fatal(err)
@@ -177,11 +202,15 @@ func TestResolveStatePathFallsBackToGitRootSocket(t *testing.T) {
 }
 
 func runStatePathResolveCommand(t *testing.T, args []string) string {
+	// Mark the helper.
 	t.Helper()
 
+	// Declare the captured state-path values.
 	var commandStatePath string
 	var rootStatePath string
 	var got string
+
+	// Build the app with a root flag and a check command.
 	app := cli.NewApp()
 	app.Name = "spacewave"
 	app.HideVersion = true
@@ -200,9 +229,13 @@ func runStatePathResolveCommand(t *testing.T, args []string) string {
 			return nil
 		},
 	}}
+
+	// Run the check command with the given arguments.
 	if err := app.RunContext(context.Background(), append([]string{"spacewave"}, args...)); err != nil {
 		t.Fatal(err)
 	}
+
+	// Require a resolved state path.
 	if got == "" {
 		t.Fatal("state path was not resolved")
 	}
@@ -228,8 +261,10 @@ func clearStatePathEnv(t *testing.T) {
 }
 
 func chdir(t *testing.T, path string) {
+	// Mark the helper.
 	t.Helper()
 
+	// Change directory and restore the previous one.
 	old, err := os.Getwd()
 	if err != nil {
 		t.Fatal(err)

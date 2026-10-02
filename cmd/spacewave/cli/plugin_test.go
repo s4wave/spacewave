@@ -41,6 +41,7 @@ func TestPluginSubcommandsUseClientFlags(t *testing.T) {
 }
 
 func TestPluginImportManifestObjectKeyFlag(t *testing.T) {
+	// Require the object-key default and the target-db flag.
 	cmd := buildPluginImportManifestCommand(nil)
 	set := flag.NewFlagSet(cmd.Name, flag.ContinueOnError)
 	set.SetOutput(io.Discard)

@@ -360,6 +360,7 @@ func runServeCommand(
 		// Both bus implementations run caller cleanup in registration order;
 		// the earlier lease release therefore precedes this readiness handoff.
 		cliBus.AddRelease(func() {
+			// Start the selected daemon and reopen the desktop when requested.
 			le.Info("old daemon state lease released; starting selected daemon executable")
 			startCtx := context.WithoutCancel(ctx)
 			if err := daemon.StartExecutable(startCtx, resolved, handoff.selected); err != nil {

@@ -30,6 +30,7 @@ func (c *failingPresenceClient) SRPCClient() srpc.Client { return nil }
 
 // WatchDesktopPresence returns the generation selected for the failure test.
 func (c *failingPresenceClient) WatchDesktopPresence(ctx context.Context, _ *bldr_web_plugin.WatchDesktopPresenceRequest) (bldr_web_plugin.SRPCWebPlugin_WatchDesktopPresenceClient, error) {
+	// Return the prepared presence stream, or the open error.
 	if c.openErr != nil {
 		return nil, c.openErr
 	}

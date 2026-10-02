@@ -10,6 +10,7 @@ import (
 )
 
 func runWithRuntimeTrace(path string, cb func() error) error {
+	// Write a runtime trace to the path, or run the callback directly.
 	if path == "" {
 		return cb()
 	}

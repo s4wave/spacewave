@@ -80,6 +80,7 @@ func (h *devicePolicyControlHandler) GetMethodIDs() []string {
 
 // InvokeMethod handles Device policy reload requests.
 func (h *devicePolicyControlHandler) InvokeMethod(serviceID, methodID string, strm srpc.Stream) (bool, error) {
+	// Reload device policy when the control method is invoked.
 	if serviceID != devicePolicyControlServiceID || methodID != devicePolicyReloadMethodID {
 		return false, nil
 	}

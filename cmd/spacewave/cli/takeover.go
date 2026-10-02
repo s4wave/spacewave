@@ -15,6 +15,7 @@ import (
 // A DenyError from the peer is wrapped with guidance mentioning the
 // Spacewave desktop app so the CLI error message is actionable.
 func takeoverDaemonSocket(ctx context.Context, le *logrus.Entry, sockPath string) error {
+	// Take over the daemon socket, or return a deny error unchanged.
 	err := listener_control.TakeoverSocket(ctx, le, sockPath)
 	if err == nil {
 		return nil

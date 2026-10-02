@@ -44,6 +44,7 @@ func newPluginCommand(getBus func() cli_entrypoint.CliBus) *cli.Command {
 
 // buildPluginImportManifestCommand builds the plugin import-manifest subcommand.
 func buildPluginImportManifestCommand(getBus func() cli_entrypoint.CliBus) *cli.Command {
+	// Declare the import flags and return the command.
 	var dbPath string
 	var manifestID string
 	var objectKey string
@@ -90,6 +91,7 @@ func runPluginImportManifest(
 	manifestID string,
 	objectKey string,
 ) error {
+	// Require a CLI bus and an object key.
 	cliBus := getBus()
 	if cliBus == nil {
 		return errors.New("bus not initialized")
@@ -97,6 +99,8 @@ func runPluginImportManifest(
 	if objectKey == "" {
 		return errors.New("object-key is required")
 	}
+
+	// Open the devtool volume and look up the manifests.
 	le := cliBus.GetLogger()
 	src, err := openDevtoolVolume(ctx, le, dbPath)
 	if err != nil {
@@ -107,6 +111,8 @@ func runPluginImportManifest(
 	if err != nil {
 		return errors.Wrap(err, "lookup manifest")
 	}
+
+	// Build the gzip block transformer.
 	sfs := block_transform.NewStepFactorySet()
 	sfs.AddStepFactory(transform_gzip.NewStepFactory())
 	transformConf, err := block_transform.NewConfig([]config.Config{&transform_gzip.Config{}})
@@ -121,6 +127,8 @@ func runPluginImportManifest(
 	if err != nil {
 		return errors.Wrap(err, "build block transformer")
 	}
+
+	// Open the destination volume and World engine.
 	var dest volume.Volume
 	var destEngine world.Engine
 	var destClose func() error
@@ -145,12 +153,16 @@ func runPluginImportManifest(
 	if destClose != nil {
 		defer destClose()
 	}
+
+	// Copy each manifest block DAG into the destination.
 	for _, collected := range collectedManifests {
 		rootRef := collected.ManifestRef.GetRootRef()
 		if err := copyManifestBlockDAG(ctx, rootRef, src, dest, xfrm); err != nil {
 			return errors.Wrap(err, "copy manifest blocks")
 		}
 	}
+
+	// Create the manifest store and record each imported manifest.
 	tx, err := destEngine.NewTransaction(ctx, true)
 	if err != nil {
 		return errors.Wrap(err, "new transaction")
@@ -173,6 +185,8 @@ func runPluginImportManifest(
 		}
 		imported = append(imported, manifestKey)
 	}
+
+	// Commit and sync the import, then print each manifest key.
 	if err := tx.Commit(ctx); err != nil {
 		return errors.Wrap(err, "commit manifest import")
 	}
@@ -208,6 +222,7 @@ func copyManifestBlock(
 	xfrm block.Transformer,
 	visited map[string]bool,
 ) error {
+	// Skip an empty or already visited ref and check whether the destination has it.
 	if ref.GetEmpty() {
 		return nil
 	}
@@ -220,6 +235,8 @@ func copyManifestBlock(
 	if err != nil {
 		return errors.Wrapf(err, "check block exists: %s", refStr)
 	}
+
+	// Read the block from the destination when it exists, otherwise from the source.
 	store := src
 	if exists {
 		store = dest
@@ -357,6 +374,7 @@ func buildPluginListCommand() *cli.Command {
 			},
 		),
 		Action: func(c *cli.Context) error {
+			// Connect to the daemon for the Space contents watch.
 			ctx := c.Context
 			spaceID := c.String("space")
 			watch := c.Bool("watch")
@@ -366,29 +384,34 @@ func buildPluginListCommand() *cli.Command {
 			}
 			defer client.close()
 
+			// Mount the selected session.
 			sess, err := client.mountSession(ctx, sessionIndex32(sessionIdx))
 			if err != nil {
 				return err
 			}
 			defer sess.Release()
 
+			// Resolve the Space ID.
 			spaceID, err = client.resolveSpaceID(ctx, sess, spaceID)
 			if err != nil {
 				return err
 			}
 
+			// Mount the Space service.
 			spaceSvc, spaceCleanup, err := client.mountSpace(ctx, sess, spaceID)
 			if err != nil {
 				return err
 			}
 			defer spaceCleanup()
 
+			// Mount the Space contents service.
 			contentsSvc, contentsCleanup, err := client.mountSpaceContents(ctx, spaceSvc)
 			if err != nil {
 				return err
 			}
 			defer contentsCleanup()
 
+			// Watch Space contents and print each plugin snapshot.
 			strm, err := contentsSvc.WatchState(ctx, &s4wave_space.WatchSpaceContentsStateRequest{})
 			if err != nil {
 				return errors.Wrap(err, "watch state")
@@ -444,11 +467,13 @@ func buildPluginAddCommand() *cli.Command {
 			},
 		),
 		Action: func(c *cli.Context) error {
+			// Require a manifest ID.
 			manifestID := c.Args().First()
 			if manifestID == "" {
 				return errors.New("manifest ID required")
 			}
 
+			// Connect to the daemon.
 			ctx := c.Context
 			spaceID := c.String("space")
 			client, err := connectDaemonFromContext(ctx, c, statePath)
@@ -457,23 +482,27 @@ func buildPluginAddCommand() *cli.Command {
 			}
 			defer client.close()
 
+			// Mount the selected session.
 			sess, err := client.mountSession(ctx, sessionIndex32(sessionIdx))
 			if err != nil {
 				return err
 			}
 			defer sess.Release()
 
+			// Resolve the Space ID.
 			spaceID, err = client.resolveSpaceID(ctx, sess, spaceID)
 			if err != nil {
 				return err
 			}
 
+			// Mount the Space service.
 			spaceSvc, spaceCleanup, err := client.mountSpace(ctx, sess, spaceID)
 			if err != nil {
 				return err
 			}
 			defer spaceCleanup()
 
+			// Add the plugin to the Space.
 			_, err = spaceSvc.AddSpacePlugin(ctx, &s4wave_space.AddSpacePluginRequest{
 				PluginId: manifestID,
 			})
@@ -481,6 +510,7 @@ func buildPluginAddCommand() *cli.Command {
 				return errors.Wrap(err, "add space plugin")
 			}
 
+			// Report that the plugin was added.
 			os.Stdout.WriteString("added: " + manifestID + "\n")
 			return nil
 		},
@@ -503,11 +533,13 @@ func buildPluginRemoveCommand() *cli.Command {
 			},
 		),
 		Action: func(c *cli.Context) error {
+			// Require a manifest ID.
 			manifestID := c.Args().First()
 			if manifestID == "" {
 				return errors.New("manifest ID required")
 			}
 
+			// Connect to the daemon.
 			ctx := c.Context
 			spaceID := c.String("space")
 			client, err := connectDaemonFromContext(ctx, c, statePath)
@@ -516,23 +548,27 @@ func buildPluginRemoveCommand() *cli.Command {
 			}
 			defer client.close()
 
+			// Mount the selected session.
 			sess, err := client.mountSession(ctx, sessionIndex32(sessionIdx))
 			if err != nil {
 				return err
 			}
 			defer sess.Release()
 
+			// Resolve the Space ID.
 			spaceID, err = client.resolveSpaceID(ctx, sess, spaceID)
 			if err != nil {
 				return err
 			}
 
+			// Mount the Space service.
 			spaceSvc, spaceCleanup, err := client.mountSpace(ctx, sess, spaceID)
 			if err != nil {
 				return err
 			}
 			defer spaceCleanup()
 
+			// Remove the plugin from the Space.
 			_, err = spaceSvc.RemoveSpacePlugin(ctx, &s4wave_space.RemoveSpacePluginRequest{
 				PluginId: manifestID,
 			})
@@ -540,6 +576,7 @@ func buildPluginRemoveCommand() *cli.Command {
 				return errors.Wrap(err, "remove space plugin")
 			}
 
+			// Report that the plugin was removed.
 			os.Stdout.WriteString("removed: " + manifestID + "\n")
 			return nil
 		},

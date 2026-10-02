@@ -36,10 +36,13 @@ func TestServeDaemonListenerDesktopQuitAckCompletesBeforeDrain(t *testing.T) {
 	}
 
 	// Wire the same listener callback and acknowledgement fence as serve.
+	// Cancel serve and shutdown together.
 	serveCtx, serveCancel := context.WithCancel(t.Context())
 	defer serveCancel()
 	shutdownCtx, shutdownCancel := context.WithCancel(serveCtx)
 	defer shutdownCancel()
+
+	// Register the control and desktop Quit handlers.
 	controlHandler := newDaemonControlHandler(func() {})
 	quitHandler := &desktopQuitAckHandler{requestShutdown: func(requester *trackedConn) {
 		controlHandler.desktopQuitConn.Store(requester)
@@ -99,8 +102,10 @@ func startDaemonListenerWithPolicy(
 	t *testing.T,
 	policy listener_control.YieldPolicy,
 ) (sock string, wait func() error) {
+	// Mark the helper.
 	t.Helper()
 
+	// Listen on a short Unix socket.
 	dir := shortSocketDir(t)
 	sock = filepath.Join(dir, socketName)
 	lis, err := net.ListenUnix("unix", &net.UnixAddr{Name: sock, Net: "unix"})
@@ -108,9 +113,11 @@ func startDaemonListenerWithPolicy(
 		t.Fatalf("listen: %v", err)
 	}
 
+	// Cancel the serve context when the test ends.
 	serveCtx, serveCancel := context.WithCancel(t.Context())
 	t.Cleanup(serveCancel)
 
+	// Register a control handler that closes admission.
 	shutdownCh := make(chan struct{})
 	var shutdownOnce sync.Once
 	controlHandler := newDaemonControlHandlerWithPolicy(policy, func() {
@@ -123,6 +130,7 @@ func startDaemonListenerWithPolicy(
 	}
 	srv := srpc.NewServer(mux)
 
+	// Serve the daemon listener and return its wait function.
 	serveErrCh := make(chan error, 1)
 	go func() {
 		serveErrCh <- serveDaemonListener(serveCtx, serveCancel, lis, srv, controlHandler, shutdownCh, nil)
@@ -144,8 +152,10 @@ func startDaemonListenerWithPolicy(
 // close: the requester never observes a reset because the connection lifecycle
 // is canceled only after ShutdownComplete.
 func TestServeDaemonListenerShutdownAckCompletesBeforeDrain(t *testing.T) {
+	// Start a daemon listener.
 	sock, wait := startDaemonListener(t)
 
+	// Dial the daemon socket.
 	conn, err := net.Dial("unix", sock)
 	if err != nil {
 		t.Fatalf("dial: %v", err)
@@ -167,6 +177,7 @@ func TestServeDaemonListenerShutdownAckCompletesBeforeDrain(t *testing.T) {
 // TestServeDaemonListenerWaitsForGrantedRequester proves a stream that reaches
 // the handler but withholds its request body cannot strand the actual winner.
 func TestServeDaemonListenerWaitsForGrantedRequester(t *testing.T) {
+	// Listen on a short Unix socket.
 	dir := shortSocketDir(t)
 	sock := filepath.Join(dir, socketName)
 	lis, err := net.ListenUnix("unix", &net.UnixAddr{Name: sock, Net: "unix"})
@@ -174,6 +185,7 @@ func TestServeDaemonListenerWaitsForGrantedRequester(t *testing.T) {
 		t.Fatalf("listen: %v", err)
 	}
 
+	// Open serve and shutdown state.
 	serveCtx, serveCancel := context.WithCancel(t.Context())
 	t.Cleanup(serveCancel)
 	shutdownCh := make(chan struct{})
@@ -182,6 +194,8 @@ func TestServeDaemonListenerWaitsForGrantedRequester(t *testing.T) {
 		shutdownOnce.Do(func() { close(shutdownCh) })
 		_ = lis.Close()
 	})
+
+	// Serve behind a signal invoker.
 	entered := make(chan struct{})
 	mux := srpc.NewMux(&signalInvoker{
 		handler: controlHandler,
@@ -201,6 +215,7 @@ func TestServeDaemonListenerWaitsForGrantedRequester(t *testing.T) {
 		)
 	}()
 
+	// Dial the first requester and open a client.
 	firstConn, err := net.Dial("unix", sock)
 	if err != nil {
 		t.Fatalf("dial first requester: %v", err)
@@ -210,6 +225,8 @@ func TestServeDaemonListenerWaitsForGrantedRequester(t *testing.T) {
 	if err != nil {
 		t.Fatalf("create first client: %v", err)
 	}
+
+	// Open a stalled shutdown stream and wait for the handler.
 	firstStream, err := firstClient.NewStream(
 		t.Context(),
 		listener_control.ServiceID,
@@ -226,6 +243,7 @@ func TestServeDaemonListenerWaitsForGrantedRequester(t *testing.T) {
 		t.Fatal("first shutdown stream did not reach handler")
 	}
 
+	// Request shutdown from a second connection.
 	secondConn, err := net.Dial("unix", sock)
 	if err != nil {
 		t.Fatalf("dial second requester: %v", err)
@@ -238,6 +256,7 @@ func TestServeDaemonListenerWaitsForGrantedRequester(t *testing.T) {
 		t.Fatalf("close second requester: %v", err)
 	}
 
+	// Require the serve to drain after the granted requester closes.
 	select {
 	case err := <-serveErrCh:
 		if err != nil {
@@ -269,9 +288,11 @@ func (i *signalInvoker) InvokeMethod(
 // serve context with an active client stops acceptance, drains the client, and
 // returns without hanging.
 func TestServeDaemonListenerExternalCancelExitsPromptly(t *testing.T) {
+	// Cancel the serve context when the test ends.
 	serveCtx, serveCancel := context.WithCancel(t.Context())
 	defer serveCancel()
 
+	// Listen on a short Unix socket.
 	dir := shortSocketDir(t)
 	sock := filepath.Join(dir, socketName)
 	lis, err := net.ListenUnix("unix", &net.UnixAddr{Name: sock, Net: "unix"})
@@ -279,6 +300,7 @@ func TestServeDaemonListenerExternalCancelExitsPromptly(t *testing.T) {
 		t.Fatalf("listen: %v", err)
 	}
 
+	// Register an empty control handler.
 	shutdownCh := make(chan struct{})
 	controlHandler := newDaemonControlHandler(func() {})
 	mux := srpc.NewMux()
@@ -287,17 +309,20 @@ func TestServeDaemonListenerExternalCancelExitsPromptly(t *testing.T) {
 	}
 	srv := srpc.NewServer(mux)
 
+	// Serve the daemon listener.
 	serveErrCh := make(chan error, 1)
 	go func() {
 		serveErrCh <- serveDaemonListener(serveCtx, serveCancel, lis, srv, controlHandler, shutdownCh, nil)
 	}()
 
+	// Dial the daemon socket.
 	conn, err := net.Dial("unix", sock)
 	if err != nil {
 		t.Fatalf("dial: %v", err)
 	}
 	defer conn.Close()
 
+	// Cancel serve and require it to exit.
 	serveCancel()
 	select {
 	case err := <-serveErrCh:
@@ -313,15 +338,18 @@ func TestServeDaemonListenerExternalCancelExitsPromptly(t *testing.T) {
 // error that is neither an approved shutdown nor an external cancellation is
 // returned to the caller instead of being suppressed.
 func TestServeDaemonListenerAcceptErrorPropagates(t *testing.T) {
+	// Cancel the serve context when the test ends.
 	serveCtx, serveCancel := context.WithCancel(t.Context())
 	defer serveCancel()
 
+	// Build a listener whose accept always fails.
 	sentinel := stderrors.New("accept boom")
 	lis := &fakeAcceptListener{acceptErr: sentinel}
 	shutdownCh := make(chan struct{})
 	controlHandler := newDaemonControlHandler(func() {})
 	srv := srpc.NewServer(srpc.NewMux())
 
+	// Require the sentinel accept error.
 	err := serveDaemonListener(serveCtx, serveCancel, lis, srv, controlHandler, shutdownCh, nil)
 	if !stderrors.Is(err, sentinel) {
 		t.Fatalf("expected sentinel accept error, got %v", err)

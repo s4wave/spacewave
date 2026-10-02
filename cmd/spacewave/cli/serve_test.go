@@ -21,6 +21,7 @@ import (
 )
 
 func TestServeCommandTraceFlag(t *testing.T) {
+	// Require the serve command to advertise the trace flag.
 	cmd := newServeCommand(nil, yield_policy.NewBroker())
 	set := flag.NewFlagSet(cmd.Name, flag.ContinueOnError)
 	set.SetOutput(io.Discard)
@@ -35,10 +36,12 @@ func TestServeCommandTraceFlag(t *testing.T) {
 }
 
 func TestServeCommandIdleTimeoutFlag(t *testing.T) {
+	// Clear the idle-timeout environment and find the flag.
 	t.Setenv(daemonIdleTimeoutEnvVar, "")
 	cmd := newServeCommand(nil, yield_policy.NewBroker())
 	idleFlag := findServeIdleTimeoutFlag(t, cmd)
 
+	// Require the default idle timeout and its usage.
 	if idleFlag.Value != defaultDaemonIdleTimeout {
 		t.Fatalf("idle-timeout default = %v, want %v", idleFlag.Value, defaultDaemonIdleTimeout)
 	}
@@ -52,6 +55,7 @@ func TestServeCommandIdleTimeoutFlag(t *testing.T) {
 }
 
 func TestServeCommandIdleTimeoutFlagDefersEnvironmentParsing(t *testing.T) {
+	// Apply the idle-timeout flag without parsing the invalid environment value.
 	t.Setenv(daemonIdleTimeoutEnvVar, "not-a-duration")
 	cmd := newServeCommand(nil, yield_policy.NewBroker())
 	idleFlag := findServeIdleTimeoutFlag(t, cmd)
@@ -61,12 +65,14 @@ func TestServeCommandIdleTimeoutFlagDefersEnvironmentParsing(t *testing.T) {
 		t.Fatalf("apply idle-timeout flag: %v", err)
 	}
 
+	// Keep the default idle timeout when the environment value is invalid.
 	if idleFlag.Value != defaultDaemonIdleTimeout {
 		t.Fatalf("idle-timeout environment value parsed during flag setup = %v, want %v", idleFlag.Value, defaultDaemonIdleTimeout)
 	}
 }
 
 func TestServeCommandIdleTimeoutFlagOverridesEnvironment(t *testing.T) {
+	// Set a 45s environment timeout and parse a 0s flag.
 	t.Setenv(daemonIdleTimeoutEnvVar, "45s")
 	cmd := newServeCommand(nil, yield_policy.NewBroker())
 	idleFlag := findServeIdleTimeoutFlag(t, cmd)
@@ -83,6 +89,8 @@ func TestServeCommandIdleTimeoutFlagOverridesEnvironment(t *testing.T) {
 	if idleFlag.Destination == nil {
 		t.Fatal("idle-timeout flag destination missing")
 	}
+
+	// Require the flag to override the environment.
 	if *idleFlag.Destination != 0 {
 		t.Fatalf("idle-timeout destination = %v, want 0", *idleFlag.Destination)
 	}
@@ -119,6 +127,7 @@ func newDaemonTestResourceClient(t *testing.T) srpc.Client {
 }
 
 func TestDaemonResourceInvokerRoutesOnlyResourceService(t *testing.T) {
+	// Reject a non-resource service without loading a client.
 	loadCalled := false
 	invoker := &daemonResourceInvoker{loadClient: func(context.Context) (srpc.Client, directive.Reference, error) {
 		loadCalled = true
@@ -134,6 +143,7 @@ func TestDaemonResourceInvokerRoutesOnlyResourceService(t *testing.T) {
 }
 
 func TestDaemonResourceStreamWaitsForCurrentCoreGeneration(t *testing.T) {
+	// Prepare two core generations and a load counter.
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	loadStarted := make(chan int, 2)
@@ -145,7 +155,10 @@ func TestDaemonResourceStreamWaitsForCurrentCoreGeneration(t *testing.T) {
 	}
 	var loadMtx sync.Mutex
 	loadCount := 0
+
+	// Load each generation only after it is marked ready.
 	invoker := &daemonResourceInvoker{loadClient: func(loadCtx context.Context) (srpc.Client, directive.Reference, error) {
+		// Record the generation and wait until the test releases it.
 		loadMtx.Lock()
 		generation := loadCount
 		loadCount++
@@ -159,6 +172,7 @@ func TestDaemonResourceStreamWaitsForCurrentCoreGeneration(t *testing.T) {
 		}
 	}}
 
+	// Open a resource client from the invoker.
 	open := func() <-chan *resource_client.Client {
 		clientCh := make(chan *resource_client.Client, 1)
 		service := resource.NewSRPCResourceServiceClient(
@@ -176,6 +190,7 @@ func TestDaemonResourceStreamWaitsForCurrentCoreGeneration(t *testing.T) {
 		return clientCh
 	}
 
+	// Open the first generation and release it.
 	firstCh := open()
 	if generation := <-loadStarted; generation != 0 {
 		t.Fatalf("first lookup generation = %d, want 0", generation)
@@ -200,6 +215,7 @@ func TestDaemonResourceStreamWaitsForCurrentCoreGeneration(t *testing.T) {
 		t.Fatal(ctx.Err())
 	}
 
+	// Open the second generation and release it.
 	secondCh := open()
 	if generation := <-loadStarted; generation != 1 {
 		t.Fatalf("second lookup generation = %d, want 1", generation)
@@ -215,6 +231,8 @@ func TestDaemonResourceStreamWaitsForCurrentCoreGeneration(t *testing.T) {
 	case <-ctx.Done():
 		t.Fatal(ctx.Err())
 	}
+
+	// Require both generations to have loaded.
 	loadMtx.Lock()
 	defer loadMtx.Unlock()
 	if loadCount != 2 {
@@ -223,6 +241,7 @@ func TestDaemonResourceStreamWaitsForCurrentCoreGeneration(t *testing.T) {
 }
 
 func TestDaemonResourceStreamCancellationStopsPluginWait(t *testing.T) {
+	// Start a resource stream that waits in loadClient.
 	loadStarted := make(chan struct{})
 	loadExited := make(chan struct{})
 	invoker := &daemonResourceInvoker{loadClient: func(ctx context.Context) (srpc.Client, directive.Reference, error) {
@@ -240,9 +259,12 @@ func TestDaemonResourceStreamCancellationStopsPluginWait(t *testing.T) {
 		_, err := resource_client.NewClient(clientCtx, service)
 		errCh <- err
 	}()
+
+	// Cancel the client after load starts.
 	<-loadStarted
 	cancelClient()
 
+	// Require the load to exit after cancellation.
 	select {
 	case err := <-errCh:
 		if err == nil || !strings.Contains(err.Error(), context.Canceled.Error()) {

@@ -13,6 +13,7 @@ import (
 // commits. Shared by canvas, git, and other CLI subcommands that mutate
 // world state through a typed object.
 func applyWorldOp(c *cli.Context, engine *sdk_engine.SDKEngine, op world.Operation) error {
+	// Open a write transaction.
 	ctx := c.Context
 	tx, err := engine.NewTransaction(ctx, true)
 	if err != nil {
@@ -20,6 +21,7 @@ func applyWorldOp(c *cli.Context, engine *sdk_engine.SDKEngine, op world.Operati
 	}
 	defer tx.Discard()
 
+	// Apply the World operation and commit it.
 	_, _, err = tx.ApplyWorldOp(ctx, op, "")
 	if err != nil {
 		return errors.Wrap(err, "apply "+op.GetOperationTypeId())

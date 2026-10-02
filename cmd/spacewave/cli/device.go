@@ -190,6 +190,7 @@ func newDeviceCommand(_ func() cli_entrypoint.CliBus) *cli.Command {
 }
 
 func newDeviceSetupCommand() *cli.Command {
+	// Declare the setup flags and return the command.
 	var statePath string
 	var label string
 	var targetHint string
@@ -308,6 +309,7 @@ func newDeviceStatusCommand() *cli.Command {
 }
 
 func runDeviceSetup(c *cli.Context, args deviceSetupArgs) error {
+	// Connect to the daemon for the resolved state path.
 	ctx := c.Context
 	resolvedStatePath, sockPath, err := resolveDeviceDaemonPaths(c, args.statePath)
 	if err != nil {
@@ -319,6 +321,7 @@ func runDeviceSetup(c *cli.Context, args deviceSetupArgs) error {
 	}
 	defer client.close()
 
+	// Default the Device label and require a valid role and ticket lifetime.
 	label := strings.TrimSpace(args.label)
 	if label == "" {
 		label = defaultDeviceSetupLabel()
@@ -330,6 +333,8 @@ func runDeviceSetup(c *cli.Context, args deviceSetupArgs) error {
 	if args.expiresIn <= 0 {
 		return errors.New("expires-in must be positive")
 	}
+
+	// Load or create the device identity and build its Space Link ticket.
 	priv, agentPeerID, identityCreated, err := loadOrCreateDeviceIdentity(resolvedStatePath)
 	if err != nil {
 		return err
@@ -346,6 +351,8 @@ func runDeviceSetup(c *cli.Context, args deviceSetupArgs) error {
 	if err != nil {
 		return err
 	}
+
+	// Save the waiting setup record and write its status.
 	record := &deviceSetupRecord{
 		SetupState:     deviceSetupStateWaiting,
 		PeerID:         agentPeerID.String(),
@@ -366,6 +373,7 @@ func runDeviceSetup(c *cli.Context, args deviceSetupArgs) error {
 }
 
 func runDeviceComplete(c *cli.Context, args deviceCompleteArgs) error {
+	// Connect to the daemon for the resolved state path.
 	ctx := c.Context
 	resolvedStatePath, sockPath, err := resolveDeviceDaemonPaths(c, args.statePath)
 	if err != nil {
@@ -377,6 +385,7 @@ func runDeviceComplete(c *cli.Context, args deviceCompleteArgs) error {
 	}
 	defer client.close()
 
+	// Import the completion and save the updated setup record.
 	record, err := readDeviceSetupRecord(resolvedStatePath)
 	if err != nil {
 		return err
@@ -388,6 +397,7 @@ func runDeviceComplete(c *cli.Context, args deviceCompleteArgs) error {
 	if err := writeDeviceSetupRecord(resolvedStatePath, updated); err != nil {
 		return err
 	}
+
 	// Publish the completed Device identity to the daemon's policy host before
 	// this request projects the Device into the World.
 	_ = requestDevicePolicyReload(ctx, client)
@@ -410,6 +420,7 @@ func runDeviceComplete(c *cli.Context, args deviceCompleteArgs) error {
 }
 
 func runDeviceStatus(c *cli.Context, statePath, outputFormat string) error {
+	// Connect to the daemon for the resolved state path.
 	ctx := c.Context
 	resolvedStatePath, sockPath, err := resolveDeviceDaemonPaths(c, statePath)
 	if err != nil {
@@ -421,6 +432,7 @@ func runDeviceStatus(c *cli.Context, statePath, outputFormat string) error {
 	}
 	defer client.close()
 
+	// Read the setup record and write its status.
 	record, err := readDeviceSetupRecord(resolvedStatePath)
 	if err != nil {
 		return err
@@ -429,6 +441,7 @@ func runDeviceStatus(c *cli.Context, statePath, outputFormat string) error {
 }
 
 func buildDeviceDockerSetupReport(c *cli.Context, statePath string, label string) (*deviceDockerSetupReport, error) {
+	// Require a label and resolve the daemon paths for the Docker report.
 	label = strings.TrimSpace(label)
 	if label == "" {
 		return nil, errors.New("device label required")
@@ -451,6 +464,7 @@ func buildDeviceDockerSetupReport(c *cli.Context, statePath string, label string
 }
 
 func resolveDeviceDaemonPaths(c *cli.Context, statePath string) (string, string, error) {
+	// Resolve the state path and require a socket path.
 	resolvedStatePath, err := resolveStatePathFromContext(c, statePath)
 	if err != nil {
 		return "", "", err
@@ -482,6 +496,7 @@ func parseDeviceRequestedRole(raw string) (sobject.SOParticipantRole, string, er
 }
 
 func loadOrCreateDeviceIdentity(statePath string) (crypto.PrivKey, peer.ID, bool, error) {
+	// Return the existing device identity when the key file is present.
 	path := deviceIdentityKeyPath(statePath)
 	priv, pid, _, err := loadDeviceIdentity(path)
 	if err == nil {
@@ -491,6 +506,7 @@ func loadOrCreateDeviceIdentity(statePath string) (crypto.PrivKey, peer.ID, bool
 		return nil, "", false, err
 	}
 
+	// Generate an Ed25519 device identity and marshal it.
 	priv, _, err = crypto.GenerateEd25519Key(cryptorand.Reader)
 	if err != nil {
 		return nil, "", false, errors.Wrap(err, "generate device identity")
@@ -499,6 +515,8 @@ func loadOrCreateDeviceIdentity(statePath string) (crypto.PrivKey, peer.ID, bool
 	if err != nil {
 		return nil, "", false, errors.Wrap(err, "marshal device identity")
 	}
+
+	// Write the identity key and derive its peer ID.
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		return nil, "", false, errors.Wrap(err, "create device identity directory")
 	}
@@ -513,6 +531,7 @@ func loadOrCreateDeviceIdentity(statePath string) (crypto.PrivKey, peer.ID, bool
 }
 
 func loadDeviceIdentity(path string) (crypto.PrivKey, peer.ID, []byte, error) {
+	// Read and parse the device identity key.
 	data, err := os.ReadFile(path)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -545,6 +564,7 @@ type deviceSpaceLinkTicketArgs struct {
 }
 
 func buildDeviceSpaceLinkTicket(args deviceSpaceLinkTicketArgs) (string, time.Time, error) {
+	// Require the identity, peer ID, and label.
 	if args.priv == nil {
 		return "", time.Time{}, errors.New("device identity private key is required")
 	}
@@ -554,6 +574,8 @@ func buildDeviceSpaceLinkTicket(args deviceSpaceLinkTicketArgs) (string, time.Ti
 	if args.label == "" {
 		return "", time.Time{}, errors.New("device label is required")
 	}
+
+	// Build and marshal the Space Link auth request.
 	nonce := make([]byte, deviceSetupNonceLength)
 	if _, err := cryptorand.Read(nonce); err != nil {
 		return "", time.Time{}, errors.Wrap(err, "generate spacelink nonce")
@@ -574,6 +596,8 @@ func buildDeviceSpaceLinkTicket(args deviceSpaceLinkTicketArgs) (string, time.Ti
 	if err != nil {
 		return "", time.Time{}, errors.Wrap(err, "marshal spacelink payload")
 	}
+
+	// Sign the payload and encode the ticket.
 	sig, err := args.priv.Sign(payloadBytes)
 	if err != nil {
 		return "", time.Time{}, errors.Wrap(err, "sign spacelink payload")
@@ -589,6 +613,7 @@ func buildDeviceSpaceLinkTicket(args deviceSpaceLinkTicketArgs) (string, time.Ti
 }
 
 func applyDeviceCompletion(record *deviceSetupRecord, encodedCompletion string, now time.Time) (*deviceSetupRecord, error) {
+	// Reject a missing setup and require the completion nonce to match the ticket.
 	if record == nil || record.SetupState == deviceSetupStateNotConfigured {
 		return nil, errors.New("device setup must run before completion import")
 	}
@@ -607,6 +632,7 @@ func applyDeviceCompletion(record *deviceSetupRecord, encodedCompletion string, 
 		return nil, errors.New("device completion nonce does not match setup ticket")
 	}
 
+	// Copy the completion onto the setup record and fill a missing session ID.
 	updated := *record
 	updated.Completion = strings.TrimSpace(encodedCompletion)
 	updated.CompletionAt = now.Unix()
@@ -620,6 +646,7 @@ func applyDeviceCompletion(record *deviceSetupRecord, encodedCompletion string, 
 		updated.SessionID = deviceSessionID(pid)
 	}
 
+	// Apply the completion status to the copied record.
 	switch completion.GetStatus() {
 	case s4wave_provider_spacewave.SpaceLinkCallbackStatus_SpaceLinkCallbackStatus_OK:
 		return applySuccessfulDeviceCompletion(&updated, completion, payload)
@@ -642,6 +669,7 @@ func applySuccessfulDeviceCompletion(
 	completion *s4wave_provider_spacewave.SpaceLinkCallback,
 	payload *s4wave_provider_spacewave.SpaceLinkAuthRequest,
 ) (*deviceSetupRecord, error) {
+	// Require the account, resource, and session peer from a successful completion.
 	if completion.GetAccountId() == "" {
 		return nil, errors.New("device completion missing account id")
 	}
@@ -659,6 +687,7 @@ func applySuccessfulDeviceCompletion(
 		return nil, errors.New("device completion session peer does not match setup state")
 	}
 
+	// Record the imported account, resource, and session peer.
 	record.SetupState = deviceSetupStateImported
 	record.AccountID = completion.GetAccountId()
 	record.ResourceID = base64.StdEncoding.EncodeToString(completion.GetResourceId())
@@ -675,6 +704,7 @@ func applySuccessfulDeviceCompletion(
 // Device creates its own local session from its durable key when the
 // enrollment is activated.
 func applyLocalDeviceCompletion(record *deviceSetupRecord, encodedCompletion string, now time.Time) (*deviceSetupRecord, error) {
+	// Decode the local completion and require its nonce to match the setup ticket.
 	if record == nil || record.SetupState == deviceSetupStateNotConfigured {
 		return nil, errors.New("device setup must run before completion import")
 	}
@@ -690,6 +720,8 @@ func applyLocalDeviceCompletion(record *deviceSetupRecord, encodedCompletion str
 	if !bytes.Equal(completion.GetNonce(), payload.GetNonce()) {
 		return nil, errors.New("device completion nonce does not match setup ticket")
 	}
+
+	// Require the session peer and resource to match the setup state.
 	sessionPeerID, err := peer.IDFromBytes(completion.GetSessionPeerId())
 	if err != nil {
 		return nil, errors.Wrap(err, "parse completion session peer id")
@@ -704,6 +736,7 @@ func applyLocalDeviceCompletion(record *deviceSetupRecord, encodedCompletion str
 		return nil, errors.New("device completion missing resource id")
 	}
 
+	// Copy the local completion into an imported setup record.
 	updated := *record
 	updated.Completion = encodedCompletion
 	updated.CompletionAt = now.Unix()
@@ -712,6 +745,8 @@ func applyLocalDeviceCompletion(record *deviceSetupRecord, encodedCompletion str
 	updated.FailureReason = ""
 	updated.AccountID = ""
 	updated.ResourceID = base64.StdEncoding.EncodeToString([]byte(completion.GetResourceId()))
+
+	// Fill the session ID and peer from the completion.
 	if updated.SessionID == "" {
 		updated.SessionID = deviceSessionID(sessionPeerID)
 	}
@@ -725,6 +760,7 @@ func openDeviceSession(
 	statePath string,
 	record *deviceSetupRecord,
 ) (*deviceSetupRecord, error) {
+	// Reject a local completion or an identity that cannot open a linked session.
 	if strings.HasPrefix(record.Completion, deviceLocalCompletionPrefix) {
 		return openLocalDeviceSession(ctx, client, statePath, record)
 	}
@@ -745,6 +781,7 @@ func openDeviceSession(
 		return nil, errors.New("device identity does not match setup state")
 	}
 
+	// Mount the linked device session.
 	resp, err := deviceMountLinkedSession(ctx, client, &s4wave_provider_spacewave.MountLinkedDeviceSessionRequest{
 		AccountId:            record.AccountID,
 		SessionId:            record.SessionID,
@@ -760,6 +797,7 @@ func openDeviceSession(
 		return nil, errors.New("mount linked device session returned no session entry")
 	}
 
+	// Mark the session ready and upsert the Device object.
 	updated := *record
 	updated.SetupState = deviceSetupStateSessionReady
 	updated.SessionIndex = entry.GetSessionIndex()
@@ -781,6 +819,7 @@ func openLocalDeviceSession(
 	statePath string,
 	record *deviceSetupRecord,
 ) (*deviceSetupRecord, error) {
+	// Mount the local session and persist it as imported.
 	updated, err := deviceMountLocalSession(ctx, client, statePath, record)
 	if err != nil {
 		return nil, err
@@ -791,6 +830,8 @@ func openLocalDeviceSession(
 	if err := writeDeviceSetupRecord(statePath, updated); err != nil {
 		return nil, errors.Wrap(err, "persist activated Device session")
 	}
+
+	// Project the Device object and mark the session ready.
 	objectKey, err := deviceUpsertObject(ctx, client, statePath, updated)
 	if err != nil {
 		updated.FailureReason = "Device object projection pending: " + err.Error()
@@ -808,6 +849,7 @@ func openLocalDeviceSession(
 // projectPendingDeviceEnrollment retries World projection after the imported
 // Device session has been durably activated.
 func projectPendingDeviceEnrollment(ctx context.Context, statePath string, client *sdkClient) error {
+	// Read the setup record and skip projection unless enrollment is pending.
 	record, err := readDeviceSetupRecord(statePath)
 	if err != nil {
 		return err
@@ -816,6 +858,7 @@ func projectPendingDeviceEnrollment(ctx context.Context, statePath string, clien
 		return nil
 	}
 
+	// Upsert the Device object, recording a pending projection on failure.
 	objectKey, err := deviceUpsertObject(ctx, client, statePath, record)
 	if err != nil {
 		record.FailureReason = "Device object projection pending: " + err.Error()
@@ -825,6 +868,7 @@ func projectPendingDeviceEnrollment(ctx context.Context, statePath string, clien
 		return err
 	}
 
+	// Mark the enrollment session-ready and save the record.
 	record.DeviceObjectKey = objectKey
 	record.FailureReason = ""
 	record.SetupState = deviceSetupStateSessionReady
@@ -839,6 +883,7 @@ func restoreLocalDeviceEnrollment(
 	client *sdkClient,
 	mount func(uint32) (localSessionMount, error),
 ) (func(), error) {
+	// Read the setup record and skip restore unless a local completion already has a session.
 	record, err := readDeviceSetupRecord(statePath)
 	if err != nil {
 		return nil, err
@@ -847,6 +892,7 @@ func restoreLocalDeviceEnrollment(
 		return nil, nil
 	}
 
+	// Remount the local session and save the restored record.
 	sess, err := mount(record.SessionIndex)
 	if err != nil {
 		return nil, err
@@ -875,6 +921,7 @@ func mountLocalDeviceSession(
 	statePath string,
 	record *deviceSetupRecord,
 ) (*deviceSetupRecord, error) {
+	// Decode the local completion and load the matching device identity.
 	completion, err := decodeDeviceLocalCompletion(record.Completion)
 	if err != nil {
 		return nil, err
@@ -893,6 +940,7 @@ func mountLocalDeviceSession(
 		return nil, errors.New("device identity does not match approval completion")
 	}
 
+	// Complete the Space Link enrollment with the local provider.
 	prov, cleanup, err := client.lookupLocalProvider(ctx)
 	if err != nil {
 		return nil, err
@@ -911,6 +959,7 @@ func mountLocalDeviceSession(
 		return nil, errors.New("local SpaceLink enrollment returned no session entry")
 	}
 
+	// Record the ready session from the enrollment response.
 	updated := *record
 	updated.SetupState = deviceSetupStateSessionReady
 	updated.SessionIndex = entry.GetSessionIndex()
@@ -925,6 +974,7 @@ func upsertLinkedDeviceObject(
 	statePath string,
 	record *deviceSetupRecord,
 ) (string, error) {
+	// Decode the resource ID and require a session index.
 	if record == nil {
 		return "", errors.New("device setup state is required")
 	}
@@ -936,24 +986,28 @@ func upsertLinkedDeviceObject(
 		return "", errors.New("device session index is required")
 	}
 
+	// Mount the linked session.
 	sess, err := client.mountSession(ctx, record.SessionIndex)
 	if err != nil {
 		return "", err
 	}
 	defer sess.Release()
 
+	// Mount the Space service for the linked resource.
 	spaceSvc, spaceCleanup, err := client.mountSpace(ctx, sess, spaceID)
 	if err != nil {
 		return "", err
 	}
 	defer spaceCleanup()
 
+	// Open the World engine through the Space service.
 	engine, engineCleanup, err := client.accessWorldEngine(ctx, spaceSvc)
 	if err != nil {
 		return "", err
 	}
 	defer engineCleanup()
 
+	// Read the device policy and upsert the Device object.
 	policy, err := device_policy.ReadFile(statePath)
 	if err != nil {
 		return "", err
@@ -999,12 +1053,14 @@ func upsertLinkedDeviceObjectAttempt(
 	policy *device_policy.DevicePolicy,
 	now time.Time,
 ) error {
+	// Open a write transaction on the World engine.
 	tx, err := engine.NewTransaction(ctx, true)
 	if err != nil {
 		return errors.Wrap(err, "new transaction")
 	}
 	defer tx.Discard()
 
+	// Merge the setup record into the Device object and commit it.
 	next := deviceObjectFromSetupRecord(record, now)
 	existingState, found, err := tx.GetObject(ctx, objectKey)
 	defer world.ReleaseObjectState(existingState)
@@ -1056,6 +1112,7 @@ func upsertLinkedDeviceObjectAttempt(
 }
 
 func decodeDeviceResourceID(encoded string) (string, error) {
+	// Decode the resource ID from the setup record.
 	if strings.TrimSpace(encoded) == "" {
 		return "", errors.New("device completion resource id is missing")
 	}
@@ -1099,6 +1156,7 @@ func deviceObjectFromSetupRecord(record *deviceSetupRecord, now time.Time) *s4wa
 }
 
 func mergeDeviceObjectState(next *s4wave_device.Device, existing *s4wave_device.Device) {
+	// Keep the existing created-at, status, update state, and capabilities.
 	if next == nil || existing == nil {
 		return
 	}
@@ -1143,6 +1201,7 @@ func deviceObjectKey(peerID string) string {
 }
 
 func decodeDeviceCompletion(encoded string) (*s4wave_provider_spacewave.SpaceLinkCallback, error) {
+	// Decode the Space Link callback completion.
 	encoded = strings.TrimSpace(encoded)
 	if encoded == "" {
 		return nil, errors.New("device completion payload is required")
@@ -1159,6 +1218,7 @@ func decodeDeviceCompletion(encoded string) (*s4wave_provider_spacewave.SpaceLin
 }
 
 func decodeDeviceStoredTicketPayload(record *deviceSetupRecord) (*s4wave_provider_spacewave.SpaceLinkAuthRequest, error) {
+	// Decode the stored Space Link ticket payload.
 	if record == nil || strings.TrimSpace(record.Ticket) == "" {
 		return nil, errors.New("device setup ticket is missing")
 	}
@@ -1218,6 +1278,7 @@ func deviceSessionID(pid peer.ID) string {
 }
 
 func marshalDeviceSetupRecord(record *deviceSetupRecord) []byte {
+	// Start the setup record object with its identity fields.
 	var arena fastjson.Arena
 	obj := arena.NewObject()
 	obj.Set("setupState", arena.NewString(record.SetupState))
@@ -1226,6 +1287,8 @@ func marshalDeviceSetupRecord(record *deviceSetupRecord) []byte {
 	setDeviceJSONString(&arena, obj, "requestedRole", record.RequestedRole)
 	setDeviceJSONString(&arena, obj, "targetHint", record.TargetHint)
 	setDeviceJSONString(&arena, obj, "completionMode", record.CompletionMode)
+
+	// Record the completion, account, and session fields.
 	setDeviceJSONString(&arena, obj, "completion", record.Completion)
 	setDeviceJSONInt64(&arena, obj, "completionAt", record.CompletionAt)
 	setDeviceJSONString(&arena, obj, "completionStatus", record.CompletionStatus)
@@ -1234,6 +1297,8 @@ func marshalDeviceSetupRecord(record *deviceSetupRecord) []byte {
 	setDeviceJSONString(&arena, obj, "sessionId", record.SessionID)
 	setDeviceJSONUint32(&arena, obj, "sessionIndex", record.SessionIndex)
 	setDeviceJSONString(&arena, obj, "sessionPeerId", record.SessionPeerID)
+
+	// Record the Device object, failure, expiry, and ticket, then marshal the object.
 	setDeviceJSONString(&arena, obj, "deviceObjectKey", record.DeviceObjectKey)
 	setDeviceJSONString(&arena, obj, "failureReason", record.FailureReason)
 	setDeviceJSONInt64(&arena, obj, "expiresAt", record.ExpiresAt)
@@ -1242,6 +1307,7 @@ func marshalDeviceSetupRecord(record *deviceSetupRecord) []byte {
 }
 
 func parseDeviceSetupRecord(data []byte) (*deviceSetupRecord, error) {
+	// Parse the setup record JSON.
 	var parser fastjson.Parser
 	v, err := parser.ParseBytes(data)
 	if err != nil {
@@ -1277,6 +1343,7 @@ func parseDeviceSetupRecord(data []byte) (*deviceSetupRecord, error) {
 }
 
 func marshalDeviceStatusOutput(out deviceStatusOutput) []byte {
+	// Start the status object with the daemon path and Device label.
 	var arena fastjson.Arena
 	obj := arena.NewObject()
 	obj.Set("daemonStatus", arena.NewString(out.DaemonStatus))
@@ -1285,6 +1352,8 @@ func marshalDeviceStatusOutput(out deviceStatusOutput) []byte {
 	obj.Set("socket", arena.NewString(out.Socket))
 	setDeviceJSONString(&arena, obj, "peerId", out.PeerID)
 	setDeviceJSONString(&arena, obj, "label", out.Label)
+
+	// Record the requested role, completion, account, and session ID.
 	setDeviceJSONString(&arena, obj, "requestedRole", out.RequestedRole)
 	setDeviceJSONString(&arena, obj, "targetHint", out.TargetHint)
 	setDeviceJSONString(&arena, obj, "completionMode", out.CompletionMode)
@@ -1293,6 +1362,8 @@ func marshalDeviceStatusOutput(out deviceStatusOutput) []byte {
 	setDeviceJSONString(&arena, obj, "accountId", out.AccountID)
 	setDeviceJSONString(&arena, obj, "resourceId", out.ResourceID)
 	setDeviceJSONString(&arena, obj, "sessionId", out.SessionID)
+
+	// Record the session index, Device object, expiry, and identity flag, then marshal the object.
 	setDeviceJSONUint32(&arena, obj, "sessionIndex", out.SessionIndex)
 	setDeviceJSONString(&arena, obj, "sessionPeerId", out.SessionPeerID)
 	setDeviceJSONString(&arena, obj, "deviceObjectKey", out.DeviceObjectKey)
@@ -1306,12 +1377,15 @@ func marshalDeviceStatusOutput(out deviceStatusOutput) []byte {
 }
 
 func marshalDeviceDockerSetupReport(report *deviceDockerSetupReport) []byte {
+	// Start the Docker report with the label and state paths.
 	var arena fastjson.Arena
 	obj := arena.NewObject()
 	obj.Set("label", arena.NewString(report.Label))
 	obj.Set("statePath", arena.NewString(report.StatePath))
 	obj.Set("socket", arena.NewString(report.Socket))
 	obj.Set("containerStatePath", arena.NewString(report.ContainerStatePath))
+
+	// Record the session type, role, completion, and ticket, then marshal the report.
 	obj.Set("sessionType", arena.NewString(report.SessionType))
 	obj.Set("requestedRole", arena.NewString(report.RequestedRole))
 	obj.Set("completion", arena.NewString(report.Completion))
@@ -1339,6 +1413,7 @@ func setDeviceJSONUint32(arena *fastjson.Arena, obj *fastjson.Value, key string,
 }
 
 func writeDeviceSetupRecord(statePath string, record *deviceSetupRecord) error {
+	// Write the setup record, defaulting an empty setup state.
 	if record == nil {
 		record = &deviceSetupRecord{SetupState: deviceSetupStateNotConfigured}
 	}
@@ -1358,6 +1433,7 @@ func writeDeviceSetupRecord(statePath string, record *deviceSetupRecord) error {
 }
 
 func readDeviceSetupRecord(statePath string) (*deviceSetupRecord, error) {
+	// Read the setup record, treating a missing file as unconfigured.
 	data, err := os.ReadFile(deviceSetupRecordPath(statePath))
 	if os.IsNotExist(err) {
 		return &deviceSetupRecord{SetupState: deviceSetupStateNotConfigured}, nil

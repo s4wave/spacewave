@@ -21,8 +21,10 @@ import (
 // broker-backed policy resolving Allow lets takeover complete
 // cleanly, matching the desktop app's "user clicked Allow" flow.
 func TestTakeoverDaemonSocketAllowsWhenPolicyAllows(t *testing.T) {
+	// Take the test context.
 	ctx := t.Context()
 
+	// Start a broker-backed listener on a short socket path.
 	sock := filepath.Join(shortSocketDir(t), "d.sock")
 	broker := yield_policy.NewBrokerWithTimeout(5 * time.Second)
 	lis := startBrokerBackedListener(t, ctx, sock, broker)
@@ -44,11 +46,13 @@ func TestTakeoverDaemonSocketAllowsWhenPolicyAllows(t *testing.T) {
 		}
 	}()
 
+	// Take over the daemon socket when policy allows it.
 	le := logrus.NewEntry(logrus.New())
 	if err := takeoverDaemonSocket(ctx, le, sock); err != nil {
 		t.Fatalf("takeover: %v", err)
 	}
 
+	// Require the listener to shut down.
 	select {
 	case <-lis.done:
 	case <-time.After(5 * time.Second):
@@ -61,8 +65,10 @@ func TestTakeoverDaemonSocketAllowsWhenPolicyAllows(t *testing.T) {
 // error that names the Spacewave desktop app, matching the scope
 // requirement.
 func TestTakeoverDaemonSocketSurfacesDenyAsClearError(t *testing.T) {
+	// Take the test context.
 	ctx := t.Context()
 
+	// Start a broker-backed listener on a short socket path.
 	sock := filepath.Join(shortSocketDir(t), "d.sock")
 	broker := yield_policy.NewBrokerWithTimeout(5 * time.Second)
 	startBrokerBackedListener(t, ctx, sock, broker)
@@ -84,6 +90,7 @@ func TestTakeoverDaemonSocketSurfacesDenyAsClearError(t *testing.T) {
 		}
 	}()
 
+	// Require a clear deny error from the desktop app.
 	le := logrus.NewEntry(logrus.New())
 	err := takeoverDaemonSocket(ctx, le, sock)
 	if err == nil {
@@ -106,13 +113,16 @@ func startBrokerBackedListener(
 	sock string,
 	broker *yield_policy.Broker,
 ) *desktopLikeListener {
+	// Mark the helper.
 	t.Helper()
 
+	// Listen on the Unix socket.
 	lis, err := net.Listen("unix", sock)
 	if err != nil {
 		t.Fatalf("listen: %v", err)
 	}
 
+	// Register the listener-control handler with a shutdown callback.
 	serveCtx, serveCancel := context.WithCancel(ctx)
 	mux := srpc.NewMux()
 	policy := broker.MakePolicy("spacewave serve", sock)
@@ -125,6 +135,7 @@ func startBrokerBackedListener(
 		t.Fatalf("register control: %v", err)
 	}
 
+	// Serve the mux until the context ends.
 	done := make(chan struct{})
 	go func() {
 		defer close(done)
@@ -149,6 +160,7 @@ func startBrokerBackedListener(
 		}
 	}()
 
+	// Stop the listener when the test ends and return it.
 	t.Cleanup(func() {
 		serveCancel()
 		lis.Close()

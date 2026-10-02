@@ -17,11 +17,13 @@ func TestValidateSessionPeerIDRejectsAccountID(t *testing.T) {
 }
 
 func TestResolveSessionLogoutEntryMatchesIndexAndAccount(t *testing.T) {
+	// Build the session list.
 	sessions := []*core_session.SessionListEntry{
 		testSessionListEntry(1, "sess-local", "local", "acct-local"),
 		testSessionListEntry(2, "sess-cloud", "spacewave", "acct-cloud"),
 	}
 
+	// Match a positional session index.
 	entry, err := resolveSessionLogoutEntry(sessions, sessionLogoutTarget{Positional: "2"}, 1)
 	if err != nil {
 		t.Fatalf("resolve index: %v", err)
@@ -30,6 +32,7 @@ func TestResolveSessionLogoutEntryMatchesIndexAndAccount(t *testing.T) {
 		t.Fatalf("index selector: got %d", entry.GetSessionIndex())
 	}
 
+	// Match an account ID.
 	entry, err = resolveSessionLogoutEntry(sessions, sessionLogoutTarget{AccountID: "acct-cloud"}, 1)
 	if err != nil {
 		t.Fatalf("resolve account: %v", err)
@@ -38,6 +41,7 @@ func TestResolveSessionLogoutEntryMatchesIndexAndAccount(t *testing.T) {
 		t.Fatalf("account selector: got %d", entry.GetSessionIndex())
 	}
 
+	// Match the selected session index when no target is given.
 	entry, err = resolveSessionLogoutEntry(sessions, sessionLogoutTarget{}, 1)
 	if err != nil {
 		t.Fatalf("resolve default: %v", err)

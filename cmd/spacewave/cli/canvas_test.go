@@ -13,11 +13,13 @@ import (
 // canvas node add subcommands so the parameterized refactor preserves names,
 // usage text, and default sizing per node type.
 func TestBuildCanvasNodeAddSubcommands(t *testing.T) {
+	// Require the add command name.
 	cmd := buildCanvasNodeAddCommand()
 	if cmd.Name != "add" {
 		t.Fatalf("add command name = %q, want %q", cmd.Name, "add")
 	}
 
+	// Require each node-add subcommand name and usage.
 	want := []struct {
 		name      string
 		usage     string

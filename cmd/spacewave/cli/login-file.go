@@ -57,6 +57,8 @@ func runLoginFile(c *cli.Context, statePath, outputFormat, path string) error {
 	if err != nil {
 		return errors.Wrap(err, "resolve Session file")
 	}
+
+	// Require a regular .s4wave state file.
 	if filepath.Ext(path) != ".s4wave" {
 		return errors.New("select a .s4wave file from a Spacewave state directory")
 	}
@@ -151,6 +153,7 @@ func sessionsFromLoginFile(path string, entries []*core_session.SessionListEntry
 
 // usableFileSessions returns file Sessions that the source daemon can mount.
 func usableFileSessions(ctx context.Context, source *sdkClient, path string) ([]*core_session.SessionListEntry, error) {
+	// List usable sessions from the login file.
 	entries, err := source.root.ListSessions(ctx)
 	if err != nil {
 		return nil, errors.Wrap(err, "list Sessions from file")

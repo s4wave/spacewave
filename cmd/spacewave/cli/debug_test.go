@@ -19,14 +19,17 @@ import (
 )
 
 func TestCaptureDaemonRuntimeTraceWritesTrace(t *testing.T) {
+	// Build a trace client and output buffer.
 	ctx := context.Background()
 	traceClient := newDebugTraceTestClient(t)
 	var out bytes.Buffer
 
+	// Emit a trace task before capture.
 	_, task := trace.NewTask(ctx, "debug-trace-test")
 	trace.Log(ctx, "phase", "capture")
 	task.End()
 
+	// Capture the runtime trace and require the written byte count.
 	byteCount, err := trace_capture.CaptureRuntimeTrace(
 		ctx,
 		traceClient,
@@ -73,6 +76,7 @@ func TestDefaultDebugMemoryProfileOutputPath(t *testing.T) {
 }
 
 func TestConnectDebugTraceDaemonUsesSocketPathWithoutAutostart(t *testing.T) {
+	// Restore the daemon connection hooks after the test.
 	oldDial := connectDaemonDial
 	oldBuildClient := connectDaemonBuildClient
 	oldStart := connectDaemonStart
@@ -82,12 +86,14 @@ func TestConnectDebugTraceDaemonUsesSocketPathWithoutAutostart(t *testing.T) {
 		connectDaemonStart = oldStart
 	})
 
+	// Pipe a connection and close it when the test ends.
 	connA, connB := net.Pipe()
 	t.Cleanup(func() {
 		connA.Close()
 		connB.Close()
 	})
 
+	// Stub dial, client build, and start so only dial is used.
 	sock := filepath.Join(t.TempDir(), "spacewave-debug.sock")
 	var dialed string
 	connectDaemonDial = func(ctx context.Context, sockPath string) (net.Conn, error) {
@@ -102,6 +108,7 @@ func TestConnectDebugTraceDaemonUsesSocketPathWithoutAutostart(t *testing.T) {
 		return nil
 	}
 
+	// Connect through the socket path and require that dial used it.
 	client, err := connectDebugTraceDaemon(context.Background(), nil, t.TempDir(), sock)
 	if err != nil {
 		t.Fatalf("connect debug daemon: %v", err)
@@ -113,10 +120,12 @@ func TestConnectDebugTraceDaemonUsesSocketPathWithoutAutostart(t *testing.T) {
 }
 
 func TestCaptureDaemonCPUProfileWritesProfile(t *testing.T) {
+	// Build a trace client and output buffer.
 	ctx := context.Background()
 	traceClient := newDebugTraceTestClient(t)
 	var out bytes.Buffer
 
+	// Capture a CPU profile and require the written byte count.
 	byteCount, err := trace_capture.CaptureCPUProfile(
 		ctx,
 		traceClient,
@@ -138,10 +147,12 @@ func TestCaptureDaemonCPUProfileWritesProfile(t *testing.T) {
 }
 
 func TestCaptureDaemonMemoryProfileWritesProfile(t *testing.T) {
+	// Build a trace client and output buffer.
 	ctx := context.Background()
 	traceClient := newDebugTraceTestClient(t)
 	var out bytes.Buffer
 
+	// Capture an allocs profile and require the written byte count.
 	byteCount, err := trace_capture.CaptureMemoryProfile(ctx, traceClient, &out, trace_capture.MemoryProfileArgs{Profile: "allocs"})
 	if err != nil {
 		t.Fatal(err)
@@ -155,13 +166,16 @@ func TestCaptureDaemonMemoryProfileWritesProfile(t *testing.T) {
 }
 
 func newDebugTraceTestClient(t *testing.T) s4wave_trace.SRPCTraceServiceClient {
+	// Mark the helper.
 	t.Helper()
 
+	// Register the trace service on a mux.
 	mux := srpc.NewMux()
 	if err := s4wave_trace.SRPCRegisterTraceService(mux, trace_service.NewService()); err != nil {
 		t.Fatal(err)
 	}
 
+	// Pipe a server and client connection.
 	server := srpc.NewServer(mux)
 	serverCtx, cancel := context.WithCancel(t.Context())
 	clientConn, serverConn := net.Pipe()
@@ -173,11 +187,14 @@ func newDebugTraceTestClient(t *testing.T) s4wave_trace.SRPCTraceServiceClient {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Accept the server connection and return the trace client.
 	serverErr := make(chan error, 1)
 	go func() {
 		serverErr <- server.AcceptMuxedConn(serverCtx, serverMux)
 	}()
 	t.Cleanup(func() {
+		// Close the mux and require a clean shutdown.
 		if err := serverMux.Close(); err != nil {
 			t.Errorf("close server mux: %v", err)
 		}

@@ -219,6 +219,7 @@ func projectDevicePolicyOntoDevice(
 	policy *device_policy.DevicePolicy,
 	now time.Time,
 ) (*s4wave_device.Device, bool, error) {
+	// Copy policy capabilities onto the Device when they changed.
 	if existing == nil {
 		return nil, false, errors.New("device state is required")
 	}
@@ -239,6 +240,7 @@ func computeDevicePolicyCapabilities(
 	policy *device_policy.DevicePolicy,
 	existing []*s4wave_device.DeviceCapability,
 ) []*s4wave_device.DeviceCapability {
+	// Build capabilities from the policy, keeping existing capability state.
 	existingByID := make(map[string]*s4wave_device.DeviceCapability, len(existing))
 	out := make([]*s4wave_device.DeviceCapability, 0, len(existing)+len(policy.GetCheckoutRoot())+1)
 	for _, cap := range existing {
@@ -311,6 +313,7 @@ func computeCheckoutRootCapability(
 	root *device_policy.CheckoutRootPolicy,
 	existing *s4wave_device.DeviceCapability,
 ) *s4wave_device.DeviceCapability {
+	// Build the checkout-root capability, keeping an existing link.
 	name := strings.TrimSpace(root.GetName())
 	access := root.GetAccess()
 	state, detail := computeDevicePolicyCapabilityState("", existing)
@@ -337,6 +340,7 @@ func computeCheckoutRootCapability(
 }
 
 func computeDeviceCapabilityPolicy(localRef string, existing *s4wave_device.DeviceCapability) *s4wave_device.DeviceCapabilityPolicy {
+	// Copy grant fields from the existing capability policy.
 	policy := &s4wave_device.DeviceCapabilityPolicy{
 		LocalPolicyRef: localRef,
 		LocalState:     s4wave_device.DeviceCapabilityLocalState_DEVICE_CAPABILITY_LOCAL_STATE_ENABLED,
@@ -384,6 +388,7 @@ func sameDeviceCapabilities(a, b []*s4wave_device.DeviceCapability) bool {
 // verifyForgeWorkerLink proves the declared Worker object exists and carries
 // the forge/worker type quad. It runs inside the caller's transaction.
 func verifyForgeWorkerLink(ctx context.Context, ws world.WorldState, workerObjectKey string) error {
+	// Check the worker type and require it to belong to a Cluster.
 	{
 		_, objectState, err := forge_worker.LookupWorker(ctx, ws, workerObjectKey)
 		world.ReleaseObjectState(objectState)

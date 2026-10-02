@@ -29,6 +29,7 @@ func newEscapeReader(chunks ...[]byte) (*serialEscapeReader, context.Context) {
 }
 
 func TestSerialEscapeReaderPassThrough(t *testing.T) {
+	// Pass ordinary bytes through the escape reader.
 	r, ctx := newEscapeReader([]byte("hello"))
 	buf := make([]byte, 16)
 	n, err := r.Read(buf)
@@ -44,6 +45,7 @@ func TestSerialEscapeReaderPassThrough(t *testing.T) {
 }
 
 func TestSerialEscapeReaderQuit(t *testing.T) {
+	// Quit on Ctrl-A x and return the bytes before it.
 	r, ctx := newEscapeReader([]byte{'h', 'i', serialEscapePrefix, 'x'})
 	buf := make([]byte, 16)
 	n, err := r.Read(buf)
@@ -59,6 +61,7 @@ func TestSerialEscapeReaderQuit(t *testing.T) {
 }
 
 func TestSerialEscapeReaderLiteralPrefix(t *testing.T) {
+	// Treat a doubled escape prefix as a literal prefix byte.
 	r, _ := newEscapeReader([]byte{serialEscapePrefix, serialEscapePrefix})
 	buf := make([]byte, 16)
 	n, err := r.Read(buf)
@@ -71,6 +74,7 @@ func TestSerialEscapeReaderLiteralPrefix(t *testing.T) {
 }
 
 func TestSerialEscapeReaderUnknownEscape(t *testing.T) {
+	// Pass an unknown escape through unchanged.
 	r, ctx := newEscapeReader([]byte{serialEscapePrefix, 'y'})
 	buf := make([]byte, 16)
 	n, err := r.Read(buf)
@@ -86,6 +90,7 @@ func TestSerialEscapeReaderUnknownEscape(t *testing.T) {
 }
 
 func TestSerialEscapeReaderPrefixAcrossReads(t *testing.T) {
+	// Hold a prefix that arrives before its following byte.
 	r, _ := newEscapeReader([]byte{serialEscapePrefix}, []byte{'a'})
 	buf := make([]byte, 16)
 	n, err := r.Read(buf)

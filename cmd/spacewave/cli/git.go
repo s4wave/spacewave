@@ -79,13 +79,16 @@ func mountGitContext(c *cli.Context, statePath string, uri fsURI) (*gitContext, 
 // the first Space. Used by standalone commands like clone and the remote
 // helper.
 func mountGitEngine(c *cli.Context, statePath, spaceID string, sessIdx int) (*sdk_engine.SDKEngine, *s4wave_session.Session, func(), error) {
+	// Take the command context for the daemon connection.
 	ctx := c.Context
 
+	// Connect to the daemon from the CLI context.
 	client, err := connectDaemonFromContext(ctx, c, statePath)
 	if err != nil {
 		return nil, nil, nil, err
 	}
 
+	// Resolve the session index, defaulting to the first session.
 	idx := uint32(1)
 	if sessIdx > 0 {
 		idx, err = sessionIndexFromInt(sessIdx)
@@ -95,12 +98,14 @@ func mountGitEngine(c *cli.Context, statePath, spaceID string, sessIdx int) (*sd
 		}
 	}
 
+	// Mount that session on the daemon client.
 	sess, err := client.mountSession(ctx, idx)
 	if err != nil {
 		client.close()
 		return nil, nil, nil, err
 	}
 
+	// Resolve the Space by name or by ID.
 	if spaceID == "" {
 		spaceID, err = client.getSpaceByName(ctx, sess, "")
 	} else {
@@ -112,6 +117,7 @@ func mountGitEngine(c *cli.Context, statePath, spaceID string, sessIdx int) (*sd
 		return nil, nil, nil, errors.Wrap(err, "resolve space")
 	}
 
+	// Mount the Space service for the resolved Space.
 	spaceSvc, spaceCleanup, err := client.mountSpace(ctx, sess, spaceID)
 	if err != nil {
 		sess.Release()
@@ -119,6 +125,7 @@ func mountGitEngine(c *cli.Context, statePath, spaceID string, sessIdx int) (*sd
 		return nil, nil, nil, err
 	}
 
+	// Open the World engine through the Space service.
 	engine, engineCleanup, err := client.accessWorldEngine(ctx, spaceSvc)
 	if err != nil {
 		spaceCleanup()
@@ -127,6 +134,7 @@ func mountGitEngine(c *cli.Context, statePath, spaceID string, sessIdx int) (*sd
 		return nil, nil, nil, err
 	}
 
+	// Release the engine, Space, session, and daemon client together.
 	cleanup := func() {
 		engineCleanup()
 		spaceCleanup()
@@ -201,6 +209,7 @@ func parseTagMode(s string) (git_block.TagMode, error) {
 
 // deriveKeyFromURL derives an object key from a git URL.
 func deriveKeyFromURL(url string) string {
+	// Strip the remote suffix and take the last path segment as the object key.
 	url = strings.TrimSuffix(url, ".git")
 	url = strings.TrimSuffix(url, "/")
 	idx := strings.LastIndex(url, "/")
@@ -267,23 +276,27 @@ func buildGitShowCommand() *cli.Command {
 		Usage: "show repository overview",
 		Flags: commonGitFlags(&gitURI, &statePath, &spaceID, &sessIdx, &outputFormat),
 		Action: func(c *cli.Context) error {
+			// Resolve the git URI from the flag or the positional argument.
 			uri, err := resolveGitURI(c, gitURI, spaceID, sessIdx)
 			if err != nil {
 				return err
 			}
 
+			// Mount the git repo and release it when the command returns.
 			gc, cleanup, err := mountGitContext(c, statePath, uri)
 			if err != nil {
 				return err
 			}
 			defer cleanup()
 
+			// Load the repository overview from the git service.
 			ctx := c.Context
 			resp, err := gc.gitSvc.GetRepoInfo(ctx, &s4wave_git.GetRepoInfoRequest{})
 			if err != nil {
 				return errors.Wrap(err, "get repo info")
 			}
 
+			// Emit the overview as JSON or YAML when that output format was requested.
 			if outputFormat == "json" || outputFormat == "yaml" {
 				data, err := resp.MarshalJSON()
 				if err != nil {
@@ -292,6 +305,7 @@ func buildGitShowCommand() *cli.Command {
 				return formatOutput(data, outputFormat)
 			}
 
+			// Write the repository fields, including the README path when one is set.
 			w := os.Stdout
 			fields := [][2]string{
 				{"Repo", gc.objectKey},
@@ -303,6 +317,7 @@ func buildGitShowCommand() *cli.Command {
 			}
 			writeFields(w, fields)
 
+			// Write the last commit when the repository has one.
 			lc := resp.GetLastCommit()
 			if lc != nil {
 				w.WriteString("\nLast Commit\n")
@@ -328,23 +343,27 @@ func buildGitRefsCommand() *cli.Command {
 		Usage: "list branches and tags",
 		Flags: commonGitFlags(&gitURI, &statePath, &spaceID, &sessIdx, &outputFormat),
 		Action: func(c *cli.Context) error {
+			// Resolve the git URI from the flag or the positional argument.
 			uri, err := resolveGitURI(c, gitURI, spaceID, sessIdx)
 			if err != nil {
 				return err
 			}
 
+			// Mount the git repo and release it when the command returns.
 			gc, cleanup, err := mountGitContext(c, statePath, uri)
 			if err != nil {
 				return err
 			}
 			defer cleanup()
 
+			// List branches and tags from the git service.
 			ctx := c.Context
 			resp, err := gc.gitSvc.ListRefs(ctx, &s4wave_git.ListRefsRequest{})
 			if err != nil {
 				return errors.Wrap(err, "list refs")
 			}
 
+			// Emit the refs as JSON or YAML when that output format was requested.
 			if outputFormat == "json" || outputFormat == "yaml" {
 				data, err := resp.MarshalJSON()
 				if err != nil {
@@ -353,9 +372,11 @@ func buildGitRefsCommand() *cli.Command {
 				return formatOutput(data, outputFormat)
 			}
 
+			// Write the HEAD ref.
 			w := os.Stdout
 			writeFields(w, [][2]string{{"HEAD", resp.GetHeadRef()}})
 
+			// Write the branch table when the repository has branches.
 			branches := resp.GetBranches()
 			if len(branches) > 0 {
 				w.WriteString("\nBranches (" + strconv.Itoa(len(branches)) + ")\n")
@@ -370,6 +391,7 @@ func buildGitRefsCommand() *cli.Command {
 				writeTable(w, "  ", rows)
 			}
 
+			// Write the tag table when the repository has tags.
 			tags := resp.GetTags()
 			if len(tags) > 0 {
 				w.WriteString("\nTags (" + strconv.Itoa(len(tags)) + ")\n")
@@ -412,17 +434,20 @@ func buildGitLogCommand() *cli.Command {
 			},
 		),
 		Action: func(c *cli.Context) error {
+			// Resolve the git URI from the flag or the positional argument.
 			uri, err := resolveGitURI(c, gitURI, spaceID, sessIdx)
 			if err != nil {
 				return err
 			}
 
+			// Mount the git repo and release it when the command returns.
 			gc, cleanup, err := mountGitContext(c, statePath, uri)
 			if err != nil {
 				return err
 			}
 			defer cleanup()
 
+			// Build the log request from the ref, limit, offset, and since flags.
 			ctx := c.Context
 			limit, err := uint32GitFlag(c, "limit")
 			if err != nil {
@@ -439,11 +464,13 @@ func buildGitLogCommand() *cli.Command {
 				SinceRef: c.String("since"),
 			}
 
+			// Load the commit history from the git service.
 			resp, err := gc.gitSvc.Log(ctx, req)
 			if err != nil {
 				return errors.Wrap(err, "log")
 			}
 
+			// Emit the log as JSON or YAML when that output format was requested.
 			if outputFormat == "json" || outputFormat == "yaml" {
 				data, err := resp.MarshalJSON()
 				if err != nil {
@@ -452,6 +479,7 @@ func buildGitLogCommand() *cli.Command {
 				return formatOutput(data, outputFormat)
 			}
 
+			// Write the commit table, keeping only the first line of each message.
 			w := os.Stdout
 			commits := resp.GetCommits()
 			rows := [][]string{{"HASH", "AUTHOR", "DATE", "MESSAGE"}}
@@ -469,6 +497,7 @@ func buildGitLogCommand() *cli.Command {
 			}
 			writeTable(w, "", rows)
 
+			// Point at the next offset when more commits remain.
 			if resp.GetHasMore() {
 				nextOffset := uint64(req.GetOffset()) + uint64(len(commits))
 				w.WriteString("\nUse --offset " + strconv.FormatUint(nextOffset, 10) + " to see more\n")
@@ -489,23 +518,27 @@ func buildGitDiffCommand() *cli.Command {
 		ArgsUsage: "<refA> [refB]",
 		Flags:     commonGitFlags(&gitURI, &statePath, &spaceID, &sessIdx, &outputFormat),
 		Action: func(c *cli.Context) error {
+			// Require ref A and take an optional ref B.
 			refA := c.Args().Get(0)
 			if refA == "" {
 				return errors.New("refA required (branch, tag, or commit hash)")
 			}
 			refB := c.Args().Get(1)
 
+			// Resolve the git URI from the flag or the positional argument.
 			uri, err := resolveGitURI(c, gitURI, spaceID, sessIdx)
 			if err != nil {
 				return err
 			}
 
+			// Mount the git repo and release it when the command returns.
 			gc, cleanup, err := mountGitContext(c, statePath, uri)
 			if err != nil {
 				return err
 			}
 			defer cleanup()
 
+			// Load the diff stat between the two refs.
 			ctx := c.Context
 			resp, err := gc.gitSvc.GetDiffStat(ctx, &s4wave_git.GetDiffStatRequest{
 				RefA: refA,
@@ -515,6 +548,7 @@ func buildGitDiffCommand() *cli.Command {
 				return errors.Wrap(err, "get diff stat")
 			}
 
+			// Emit the diff stat as JSON or YAML when that output format was requested.
 			if outputFormat == "json" || outputFormat == "yaml" {
 				data, err := resp.MarshalJSON()
 				if err != nil {
@@ -523,6 +557,7 @@ func buildGitDiffCommand() *cli.Command {
 				return formatOutput(data, outputFormat)
 			}
 
+			// Write the diff summary for the ref range.
 			w := os.Stdout
 			label := refA
 			if refB != "" {
@@ -535,6 +570,7 @@ func buildGitDiffCommand() *cli.Command {
 				{"Deletions", strconv.FormatUint(uint64(resp.GetTotalDeletions()), 10)},
 			})
 
+			// Write the per-file addition and deletion table when files changed.
 			if len(resp.GetFiles()) > 0 {
 				w.WriteString("\n")
 				rows := [][]string{{"PATH", "+", "-"}}
@@ -563,22 +599,26 @@ func buildGitCommitCommand() *cli.Command {
 		ArgsUsage: "<ref>",
 		Flags:     commonGitFlags(&gitURI, &statePath, &spaceID, &sessIdx, &outputFormat),
 		Action: func(c *cli.Context) error {
+			// Require a commit ref or hash.
 			ref := c.Args().First()
 			if ref == "" {
 				return errors.New("commit ref or hash required")
 			}
 
+			// Resolve the git URI from the flag or the positional argument.
 			uri, err := resolveGitURI(c, gitURI, spaceID, sessIdx)
 			if err != nil {
 				return err
 			}
 
+			// Mount the git repo and release it when the command returns.
 			gc, cleanup, err := mountGitContext(c, statePath, uri)
 			if err != nil {
 				return err
 			}
 			defer cleanup()
 
+			// Take the command context for the parallel commit and diff calls.
 			ctx := c.Context
 
 			// Parallel calls: GetCommit + GetDiffStat
@@ -592,9 +632,11 @@ func buildGitCommitCommand() *cli.Command {
 				err  error
 			}
 
+			// Start the commit and diff-stat calls together.
 			commitCh := make(chan commitResult, 1)
 			diffCh := make(chan diffResult, 1)
 
+			// Fetch the commit and its diff stat in parallel.
 			go func() {
 				resp, err := gc.gitSvc.GetCommit(ctx, &s4wave_git.GetCommitRequest{Hash: ref})
 				commitCh <- commitResult{resp, err}
@@ -604,6 +646,7 @@ func buildGitCommitCommand() *cli.Command {
 				diffCh <- diffResult{resp, err}
 			}()
 
+			// Wait for both calls and fail on either error.
 			cr := <-commitCh
 			if cr.err != nil {
 				return errors.Wrap(cr.err, "get commit")
@@ -613,6 +656,7 @@ func buildGitCommitCommand() *cli.Command {
 				return errors.Wrap(dr.err, "get diff stat")
 			}
 
+			// Emit the commit and diff stat as one JSON or YAML document when requested.
 			if outputFormat == "json" || outputFormat == "yaml" {
 				commitJSON, err := cr.resp.MarshalJSON()
 				if err != nil {
@@ -630,6 +674,7 @@ func buildGitCommitCommand() *cli.Command {
 				return formatOutput(combined, outputFormat)
 			}
 
+			// Write the commit identity, parents, and message.
 			cm := cr.resp.GetCommit()
 			w := os.Stdout
 			fields := [][2]string{
@@ -643,6 +688,7 @@ func buildGitCommitCommand() *cli.Command {
 			writeFields(w, fields)
 			w.WriteString("\n    " + strings.TrimSpace(cm.GetMessage()) + "\n")
 
+			// Write the diff summary against the commit's parent.
 			diffResp := dr.resp
 			w.WriteString("\n")
 			writeFields(w, [][2]string{
@@ -651,6 +697,7 @@ func buildGitCommitCommand() *cli.Command {
 				{"Deletions", strconv.FormatUint(uint64(diffResp.GetTotalDeletions()), 10)},
 			})
 
+			// Write the per-file addition and deletion table when files changed.
 			if len(diffResp.GetFiles()) > 0 {
 				w.WriteString("\n")
 				rows := [][]string{{"PATH", "+", "-"}}
@@ -684,17 +731,20 @@ func buildGitTreeCommand() *cli.Command {
 			},
 		),
 		Action: func(c *cli.Context) error {
+			// Resolve the git URI from the flag or the positional argument.
 			uri, err := resolveGitURI(c, gitURI, spaceID, sessIdx)
 			if err != nil {
 				return err
 			}
 
+			// Mount the git repo and release it when the command returns.
 			gc, cleanup, err := mountGitContext(c, statePath, uri)
 			if err != nil {
 				return err
 			}
 			defer cleanup()
 
+			// Take the command context, the ref, and the optional tree path.
 			ctx := c.Context
 			refName := c.String("ref")
 			fsPath := c.Args().First()
@@ -711,11 +761,13 @@ func buildGitTreeCommand() *cli.Command {
 			ref := gc.client.resClient.CreateResourceReference(treeResp.GetResourceId())
 			defer ref.Release()
 
+			// Open the tree handle client from the resource reference.
 			childClient, err := ref.GetClient()
 			if err != nil {
 				return errors.Wrap(err, "tree handle client")
 			}
 
+			// Wrap the tree handle as a UnixFS service.
 			fsSvc := s4wave_unixfs.NewSRPCFSHandleResourceServiceClient(childClient)
 
 			// Navigate to the requested path if specified.
@@ -746,6 +798,7 @@ func buildGitTreeCommand() *cli.Command {
 				return errors.Wrap(err, "get node type")
 			}
 
+			// Read the node type and list a directory or stream a file.
 			nt := ntResp.GetNodeType()
 			if nt != nil && nt.GetIsDir() {
 				// Directory listing.
@@ -898,17 +951,20 @@ func buildGitCloneCommand() *cli.Command {
 			},
 		},
 		Action: func(c *cli.Context) error {
+			// Take the clone URL and derive the object key when none was given.
 			url := c.String("url")
 			key := c.String("key")
 			if key == "" {
 				key = deriveKeyFromURL(url)
 			}
 
+			// Parse the tag mode flag.
 			tagMode, err := parseTagMode(c.String("tag-mode"))
 			if err != nil {
 				return err
 			}
 
+			// Mount the World engine and release it when the command returns.
 			engine, _, cleanup, err := mountGitEngine(c, statePath, spaceID, sessIdx)
 			if err != nil {
 				return err
@@ -919,6 +975,7 @@ func buildGitCloneCommand() *cli.Command {
 				return err
 			}
 
+			// Build the clone options from the command flags.
 			cloneOpts := &git_block.CloneOpts{
 				Url:          url,
 				RemoteName:   c.String("remote"),
@@ -930,12 +987,14 @@ func buildGitCloneCommand() *cli.Command {
 				Insecure:     c.Bool("insecure"),
 			}
 
+			// Clone the remote and disable checkout when that flag is set.
 			cloneOpts.DisableCheckout = c.Bool("no-checkout")
 			repoRef, err := s4wave_git_core.CloneGitRepoToRef(c.Context, engine, cloneOpts, nil, nil)
 			if err != nil {
 				return err
 			}
 
+			// Publish the cloned repo under the object key.
 			tx, err := engine.NewTransaction(c.Context, true)
 			if err != nil {
 				return errors.Wrap(err, "new transaction")
@@ -950,6 +1009,7 @@ func buildGitCloneCommand() *cli.Command {
 				return errors.Wrap(err, "commit transaction")
 			}
 
+			// Print the object key.
 			os.Stdout.WriteString(key + "\n")
 			return nil
 		},
@@ -998,11 +1058,13 @@ func buildGitFetchCommand() *cli.Command {
 			},
 		),
 		Action: func(c *cli.Context) error {
+			// Resolve the git URI from the flag or the positional argument.
 			uri, err := resolveGitURI(c, gitURI, spaceID, sessIdx)
 			if err != nil {
 				return err
 			}
 
+			// Mount the git repo and parse the depth flag.
 			gc, cleanup, err := mountGitContext(c, statePath, uri)
 			if err != nil {
 				return err
@@ -1013,11 +1075,13 @@ func buildGitFetchCommand() *cli.Command {
 				return err
 			}
 
+			// Parse the tag mode flag.
 			tagMode, err := parseTagMode(c.String("tag-mode"))
 			if err != nil {
 				return err
 			}
 
+			// Build the fetch options from the command flags.
 			fetchOpts := &git_block.FetchOpts{
 				RemoteName: c.String("remote"),
 				RemoteUrl:  c.String("remote-url"),
@@ -1029,11 +1093,13 @@ func buildGitFetchCommand() *cli.Command {
 				Prune:      c.Bool("prune"),
 			}
 
+			// Apply the fetch as a World operation.
 			op := git_world.NewGitFetchOp(gc.objectKey, fetchOpts)
 			if err := applyWorldOp(c, gc.engine, op); err != nil {
 				return err
 			}
 
+			// Report that the fetch finished.
 			os.Stdout.WriteString("fetched\n")
 			return nil
 		},
@@ -1082,23 +1148,27 @@ func buildGitWorktreeCreateCommand() *cli.Command {
 			},
 		),
 		Action: func(c *cli.Context) error {
+			// Resolve the git URI from the flag or the positional argument.
 			uri, err := resolveGitURI(c, gitURI, spaceID, sessIdx)
 			if err != nil {
 				return err
 			}
 
+			// Mount the git repo and release it when the command returns.
 			gc, cleanup, err := mountGitContext(c, statePath, uri)
 			if err != nil {
 				return err
 			}
 			defer cleanup()
 
+			// Use the repo key and default the worktree key when none was given.
 			repoKey := gc.objectKey
 			wtKey := c.String("key")
 			if wtKey == "" {
 				wtKey = repoKey + "/worktree"
 			}
 
+			// Build checkout options unless checkout is disabled.
 			disableCheckout := c.Bool("no-checkout")
 			var checkoutOpts *git_block.CheckoutOpts
 			if !disableCheckout {
@@ -1113,6 +1183,7 @@ func buildGitWorktreeCreateCommand() *cli.Command {
 				FsType:    unixfs_world.FSType_FSType_FS_NODE,
 			}
 
+			// Create the worktree, using the worktree key as its workdir.
 			op := git_world.NewGitCreateWorktreeOp(
 				wtKey,
 				repoKey,
@@ -1123,10 +1194,12 @@ func buildGitWorktreeCreateCommand() *cli.Command {
 				time.Now(),
 			)
 
+			// Apply the create-worktree operation.
 			if err := applyWorldOp(c, gc.engine, op); err != nil {
 				return err
 			}
 
+			// Print the worktree key.
 			os.Stdout.WriteString(wtKey + "\n")
 			return nil
 		},
@@ -1168,20 +1241,24 @@ func buildGitWorktreeCheckoutCommand() *cli.Command {
 			},
 		),
 		Action: func(c *cli.Context) error {
+			// Resolve the git URI from the flag or the positional argument.
 			uri, err := resolveGitURI(c, gitURI, spaceID, sessIdx)
 			if err != nil {
 				return err
 			}
 
+			// Mount the git repo and release it when the command returns.
 			gc, cleanup, err := mountGitContext(c, statePath, uri)
 			if err != nil {
 				return err
 			}
 			defer cleanup()
 
+			// Take the worktree key and the mounted repo key.
 			wtKey := c.String("worktree-key")
 			repoKey := gc.objectKey
 
+			// Build the checkout options from the command flags.
 			checkoutOpts := &git_block.CheckoutOpts{
 				Branch: c.String("branch"),
 				Create: c.Bool("create"),
@@ -1189,11 +1266,13 @@ func buildGitWorktreeCheckoutCommand() *cli.Command {
 				Keep:   c.Bool("keep"),
 			}
 
+			// Apply the worktree checkout operation.
 			op := git_world.NewGitWorktreeCheckoutOp(wtKey, repoKey, checkoutOpts)
 			if err := applyWorldOp(c, gc.engine, op); err != nil {
 				return err
 			}
 
+			// Report that the checkout finished.
 			os.Stdout.WriteString("checked out\n")
 			return nil
 		},

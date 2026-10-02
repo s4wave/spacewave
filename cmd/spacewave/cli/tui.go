@@ -89,6 +89,7 @@ func (a *tuiArgs) BuildFlags() []cli.Flag {
 
 // Run attaches to the daemon and starts the generic Bun TuiView host.
 func (a *tuiArgs) Run(c *cli.Context) error {
+	// Require one plugin ID and resolve the module URL and bun.
 	if c.NArg() != 1 {
 		return errors.New("tui requires one <plugin-id>")
 	}
@@ -104,6 +105,8 @@ func (a *tuiArgs) Run(c *cli.Context) error {
 	if err != nil {
 		return errors.Wrap(err, "resolve Bun executable")
 	}
+
+	// Connect to the daemon.
 	ctx := c.Context
 	client, err := connectDaemonFromContext(ctx, c, a.statePath)
 	if err != nil {
@@ -111,6 +114,7 @@ func (a *tuiArgs) Run(c *cli.Context) error {
 	}
 	defer client.close()
 
+	// Resolve the daemon socket and run the TUI host.
 	sockPath, err := daemonSocketPath(c, a.statePath)
 	if err != nil {
 		return err
@@ -137,6 +141,7 @@ func (a *tuiArgs) Run(c *cli.Context) error {
 }
 
 func resolveTuiModuleURL(value string) (string, error) {
+	// Resolve a module path or URL to a file URL.
 	value = strings.TrimSpace(value)
 	if value == "" {
 		return "", errors.New("TuiView module is required")

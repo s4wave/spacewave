@@ -112,20 +112,24 @@ type fsURI struct {
 // If spaceFlag is non-empty, it overrides the space from the URI.
 // If sessFlag is non-zero, it overrides the session from the URI.
 func parseFsURI(arg string, spaceFlag string, sessFlag int) (fsURI, error) {
+	// Require a URI argument.
 	if arg == "" {
 		return fsURI{}, errors.New("URI argument required")
 	}
 
+	// Parse the Spacewave URI.
 	parsed, err := s4wave_space.ParseSpacewaveURI(arg)
 	if err != nil {
 		return fsURI{}, errors.Wrap(err, "parse URI")
 	}
 
+	// Copy the session and Space from the parsed URI.
 	result := fsURI{
 		sessionIdx: parsed.SessionIdx,
 		spaceID:    parsed.SpaceID,
 	}
 
+	// Override the session and Space when flags were given.
 	if sessFlag > 0 {
 		var err error
 		result.sessionIdx, err = sessionIndexFromInt(sessFlag)
@@ -145,6 +149,7 @@ func parseFsURI(arg string, spaceFlag string, sessFlag int) (fsURI, error) {
 		result.path = parsed.Segments[1]
 	}
 
+	// Require an object key in the URI.
 	if result.objectKey == "" {
 		return fsURI{}, errors.New("object key required in URI")
 	}
@@ -179,16 +184,19 @@ func mountFsContext(c *cli.Context, statePath string, uri fsURI) (*fsContext, fu
 // Returns the SRPC client for the handle at that path and a cleanup function.
 // If fsPath is empty, returns the root handle's service directly.
 func (fc *fsContext) lookupPath(c *cli.Context, fsPath string) (s4wave_unixfs.SRPCFSHandleResourceServiceClient, func(), error) {
+	// Return the root handle when the path is empty.
 	if fsPath == "" {
 		return fc.fsSvc, func() {}, nil
 	}
 
+	// Look up the path from the root handle.
 	ctx := c.Context
 	resp, err := fc.fsSvc.LookupPath(ctx, &s4wave_unixfs.HandleLookupPathRequest{Path: fsPath})
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "lookup path "+fsPath)
 	}
 
+	// Open the child handle from the lookup resource.
 	ref := fc.resClient.CreateResourceReference(resp.GetResourceId())
 	childClient, err := ref.GetClient()
 	if err != nil {
@@ -196,6 +204,7 @@ func (fc *fsContext) lookupPath(c *cli.Context, fsPath string) (s4wave_unixfs.SR
 		return nil, nil, errors.Wrap(err, "child handle client")
 	}
 
+	// Wrap the child handle and release its reference on cleanup.
 	childSvc := s4wave_unixfs.NewSRPCFSHandleResourceServiceClient(childClient)
 	cleanup := func() {
 		ref.Release()
@@ -207,12 +216,14 @@ func (fc *fsContext) lookupPath(c *cli.Context, fsPath string) (s4wave_unixfs.SR
 // the parent's FSHandle service, the base name, and a cleanup function.
 // If fsPath has no parent (e.g., it is a top-level name), the root handle is used.
 func (fc *fsContext) lookupParentAndName(c *cli.Context, fsPath string) (s4wave_unixfs.SRPCFSHandleResourceServiceClient, string, func(), error) {
+	// Split the path into its parent directory and base name.
 	dir := path.Dir(fsPath)
 	base := path.Base(fsPath)
 	if dir == "." || dir == "/" {
 		dir = ""
 	}
 
+	// Look up the parent directory.
 	svc, cleanup, err := fc.lookupPath(c, dir)
 	if err != nil {
 		return nil, "", nil, err
@@ -264,29 +275,34 @@ func buildFsLsCommand() *cli.Command {
 		),
 		Flags: commonFsFlags(&statePath, &spaceID, &sessIdx),
 		Action: func(c *cli.Context) error {
+			// Parse the directory URI.
 			uri, err := parseFsURI(c.Args().First(), spaceID, sessIdx)
 			if err != nil {
 				return err
 			}
 
+			// Mount the UnixFS object and release it when the command returns.
 			fc, cleanup, err := mountFsContext(c, statePath, uri)
 			if err != nil {
 				return err
 			}
 			defer cleanup()
 
+			// Look up the directory path.
 			svc, pathCleanup, err := fc.lookupPath(c, uri.path)
 			if err != nil {
 				return err
 			}
 			defer pathCleanup()
 
+			// Open a directory listing stream.
 			ctx := c.Context
 			strm, err := svc.Readdir(ctx, &s4wave_unixfs.HandleReaddirRequest{})
 			if err != nil {
 				return errors.Wrap(err, "readdir")
 			}
 
+			// Define the directory entry record.
 			type entryInfo struct {
 				Name    string
 				Size    uint64
@@ -295,6 +311,7 @@ func buildFsLsCommand() *cli.Command {
 				ModTime int64
 			}
 
+			// Read directory entries until the stream is done.
 			var entries []entryInfo
 			for {
 				resp, err := strm.Recv()
@@ -317,6 +334,7 @@ func buildFsLsCommand() *cli.Command {
 				})
 			}
 
+			// Emit the entries as JSON or YAML when that output format was requested.
 			outputFormat := c.String("output")
 			if outputFormat == "json" || outputFormat == "yaml" {
 				buf, ms := newMarshalBuf()
@@ -349,6 +367,7 @@ func buildFsLsCommand() *cli.Command {
 				return formatOutput(buf.Bytes(), outputFormat)
 			}
 
+			// Write each entry as a type, mode, size, and name line.
 			w := os.Stdout
 			for _, e := range entries {
 				modeStr := os.FileMode(e.Mode).String()
@@ -406,6 +425,7 @@ func buildFsCatCommand() *cli.Command {
 			},
 		),
 		Action: func(c *cli.Context) error {
+			// Reject an offset or limit that does not fit in int64, then parse the URI.
 			if offset > math.MaxInt64 || limit > math.MaxInt64 {
 				return errors.New("offset and limit must fit in int64")
 			}
@@ -414,12 +434,14 @@ func buildFsCatCommand() *cli.Command {
 				return err
 			}
 
+			// Mount the UnixFS object and release it when the command returns.
 			fc, cleanup, err := mountFsContext(c, statePath, uri)
 			if err != nil {
 				return err
 			}
 			defer cleanup()
 
+			// Look up the file path.
 			svc, pathCleanup, err := fc.lookupPath(c, uri.path)
 			if err != nil {
 				return err
@@ -450,21 +472,25 @@ func buildFsMkdirCommand() *cli.Command {
 		),
 		Flags: commonFsFlags(&statePath, &spaceID, &sessIdx),
 		Action: func(c *cli.Context) error {
+			// Parse the directory URI.
 			uri, err := parseFsURI(c.Args().First(), spaceID, sessIdx)
 			if err != nil {
 				return err
 			}
 
+			// Require a path for mkdir.
 			if uri.path == "" {
 				return errors.New("path required for mkdir")
 			}
 
+			// Mount the UnixFS object and release it when the command returns.
 			fc, cleanup, err := mountFsContext(c, statePath, uri)
 			if err != nil {
 				return err
 			}
 			defer cleanup()
 
+			// Create the directory and any missing parents.
 			ctx := c.Context
 			parts := strings.Split(uri.path, "/")
 			_, err = fc.fsSvc.MkdirAll(ctx, &s4wave_unixfs.HandleMkdirAllRequest{
@@ -498,27 +524,32 @@ func buildFsRmCommand() *cli.Command {
 		),
 		Flags: commonFsFlags(&statePath, &spaceID, &sessIdx),
 		Action: func(c *cli.Context) error {
+			// Parse the path URI.
 			uri, err := parseFsURI(c.Args().First(), spaceID, sessIdx)
 			if err != nil {
 				return err
 			}
 
+			// Require a path for rm.
 			if uri.path == "" {
 				return errors.New("path required for rm")
 			}
 
+			// Mount the UnixFS object and release it when the command returns.
 			fc, cleanup, err := mountFsContext(c, statePath, uri)
 			if err != nil {
 				return err
 			}
 			defer cleanup()
 
+			// Look up the parent directory and entry name.
 			parentSvc, name, parentCleanup, err := fc.lookupParentAndName(c, uri.path)
 			if err != nil {
 				return err
 			}
 			defer parentCleanup()
 
+			// Remove the entry from its parent.
 			ctx := c.Context
 			_, err = parentSvc.Remove(ctx, &s4wave_unixfs.HandleRemoveRequest{
 				Names: []string{name},
@@ -671,10 +702,12 @@ func buildFsMvCommand() *cli.Command {
 		),
 		Flags: commonFsFlags(&statePath, &spaceID, &sessIdx),
 		Action: func(c *cli.Context) error {
+			// Require source and destination URIs.
 			if c.NArg() < 2 {
 				return errors.New("source and destination URIs required")
 			}
 
+			// Parse the source and destination URIs.
 			srcURI, err := parseFsURI(c.Args().Get(0), spaceID, sessIdx)
 			if err != nil {
 				return errors.Wrap(err, "parse source URI")
@@ -684,6 +717,7 @@ func buildFsMvCommand() *cli.Command {
 				return errors.Wrap(err, "parse dest URI")
 			}
 
+			// Require both paths to be in the same Space and object.
 			if srcURI.objectKey != dstURI.objectKey {
 				return errors.New("source and destination must be in the same object")
 			}
@@ -697,6 +731,7 @@ func buildFsMvCommand() *cli.Command {
 				return errors.New("destination path required for mv")
 			}
 
+			// Mount the source UnixFS object and release it when the command returns.
 			fc, cleanup, err := mountFsContext(c, statePath, srcURI)
 			if err != nil {
 				return err
@@ -710,6 +745,7 @@ func buildFsMvCommand() *cli.Command {
 			}
 			defer srcCleanup()
 
+			// Take the source entry name.
 			srcName := path.Base(srcURI.path)
 
 			// look up the source entry to get a handle on it
@@ -719,6 +755,7 @@ func buildFsMvCommand() *cli.Command {
 				return errors.Wrap(err, "lookup source entry")
 			}
 
+			// Open the source entry handle and release its reference when the command returns.
 			srcEntryRef := fc.resClient.CreateResourceReference(srcEntryResp.GetResourceId())
 			srcEntryClient, err := srcEntryRef.GetClient()
 			if err != nil {
@@ -744,8 +781,10 @@ func buildFsMvCommand() *cli.Command {
 			dstParentCloneRef := fc.resClient.CreateResourceReference(dstParentResourceID)
 			defer dstParentCloneRef.Release()
 
+			// Take the destination entry name.
 			dstName := path.Base(dstURI.path)
 
+			// Rename the source entry into the destination parent.
 			_, err = srcEntrySvc.Rename(ctx, &s4wave_unixfs.HandleRenameRequest{
 				DestParentResourceId: dstParentResourceID,
 				DestName:             dstName,
@@ -780,40 +819,47 @@ func buildFsStatCommand() *cli.Command {
 		),
 		Flags: commonFsFlags(&statePath, &spaceID, &sessIdx),
 		Action: func(c *cli.Context) error {
+			// Parse the path URI.
 			uri, err := parseFsURI(c.Args().First(), spaceID, sessIdx)
 			if err != nil {
 				return err
 			}
 
+			// Mount the UnixFS object and release it when the command returns.
 			fc, cleanup, err := mountFsContext(c, statePath, uri)
 			if err != nil {
 				return err
 			}
 			defer cleanup()
 
+			// Look up the path.
 			svc, pathCleanup, err := fc.lookupPath(c, uri.path)
 			if err != nil {
 				return err
 			}
 			defer pathCleanup()
 
+			// Read the file info.
 			ctx := c.Context
 			resp, err := svc.GetFileInfo(ctx, &s4wave_unixfs.HandleGetFileInfoRequest{})
 			if err != nil {
 				return errors.Wrap(err, "get file info")
 			}
 
+			// Require a file info record.
 			info := resp.GetInfo()
 			if info == nil {
 				return errors.New("no file info returned")
 			}
 
+			// Copy the name, size, mode, modification time, and directory flag.
 			name := info.GetName()
 			size := info.GetSize()
 			mode := info.GetMode()
 			modTime := info.GetModTime()
 			isDir := info.GetIsDir()
 
+			// Emit the file info as JSON or YAML when that output format was requested.
 			outputFormat := c.String("output")
 			if outputFormat == "json" || outputFormat == "yaml" {
 				buf, ms := newMarshalBuf()
@@ -840,6 +886,7 @@ func buildFsStatCommand() *cli.Command {
 				return formatOutput(buf.Bytes(), outputFormat)
 			}
 
+			// Write the name, type, size, mode, and modification time.
 			w := os.Stdout
 			displayName := name
 			if displayName == "" {

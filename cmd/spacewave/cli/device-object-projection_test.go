@@ -24,6 +24,7 @@ type staleDeviceEngine struct {
 
 // NewTransaction wraps the first write candidate with a stale commit.
 func (e *staleDeviceEngine) NewTransaction(ctx context.Context, write bool) (world.Tx, error) {
+	// Fail the first write transaction, then delegate.
 	tx, err := e.Engine.NewTransaction(ctx, write)
 	if err != nil {
 		return nil, err
@@ -49,6 +50,7 @@ func (t *staleDeviceTx) Commit(context.Context) error {
 // TestDeviceObjectProjectionReappliesStaleWrite proves that the Device
 // projection reopens the World, rebuilds the object, and commits it.
 func TestDeviceObjectProjectionReappliesStaleWrite(t *testing.T) {
+	// Open a testbed World and a stale engine with a ready setup record.
 	ctx, cancel := context.WithCancel(context.Background())
 	t.Cleanup(cancel)
 	tb := world_testbed.MustDefault(t, ctx)
@@ -85,6 +87,8 @@ func TestDeviceObjectProjectionReappliesStaleWrite(t *testing.T) {
 	if !found {
 		t.Fatal("Device object was not committed")
 	}
+
+	// Require the committed Device peer and label.
 	device, err := readDeviceBlock(ctx, obj)
 	if err != nil {
 		t.Fatal(err)

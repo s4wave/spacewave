@@ -33,6 +33,7 @@ func (a *aptImportDebArgs) BuildFlags() []cli.Flag {
 }
 
 func (a *aptImportDebArgs) Run(c *cli.Context) error {
+	// Require a repository key, package key, and deb path.
 	if c.NArg() != 3 {
 		return errors.New("repository key, package key, and deb path required")
 	}

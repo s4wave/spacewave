@@ -17,6 +17,7 @@ import (
 )
 
 func TestConnectDaemonDoesNotAutostartAfterDialFailure(t *testing.T) {
+	// Save the daemon connection hooks and restore them after the test.
 	oldDial := connectDaemonDial
 	oldBuildClient := connectDaemonBuildClient
 	oldStart := connectDaemonStart
@@ -26,6 +27,7 @@ func TestConnectDaemonDoesNotAutostartAfterDialFailure(t *testing.T) {
 		connectDaemonStart = oldStart
 	})
 
+	// Stub dial and start so autostart is observable.
 	var dialCalls int
 	connectDaemonDial = func(ctx context.Context, sockPath string) (net.Conn, error) {
 		dialCalls++
@@ -40,6 +42,7 @@ func TestConnectDaemonDoesNotAutostartAfterDialFailure(t *testing.T) {
 		return nil, nil
 	}
 
+	// Require a dial failure without starting a daemon.
 	_, err := connectDaemon(context.Background(), "/tmp/state")
 	if err == nil {
 		t.Fatal("expected error")
@@ -53,6 +56,7 @@ func TestConnectDaemonDoesNotAutostartAfterDialFailure(t *testing.T) {
 }
 
 func TestConnectDaemonWithAutostartStartsDaemonAfterDialFailure(t *testing.T) {
+	// Save the daemon connection hooks and restore them after the test.
 	oldDial := connectDaemonDial
 	oldBuildClient := connectDaemonBuildClient
 	oldStart := connectDaemonStart
@@ -62,6 +66,7 @@ func TestConnectDaemonWithAutostartStartsDaemonAfterDialFailure(t *testing.T) {
 		connectDaemonStart = oldStart
 	})
 
+	// Count dials and pipe a connection for the second attempt.
 	var dialCalls int
 	var startStatePath string
 	connA, connB := net.Pipe()
@@ -70,6 +75,7 @@ func TestConnectDaemonWithAutostartStartsDaemonAfterDialFailure(t *testing.T) {
 		connB.Close()
 	})
 
+	// Fail the first dial, then start the daemon and return the pipe.
 	connectDaemonDial = func(ctx context.Context, sockPath string) (net.Conn, error) {
 		dialCalls++
 		if dialCalls == 1 {
@@ -91,6 +97,7 @@ func TestConnectDaemonWithAutostartStartsDaemonAfterDialFailure(t *testing.T) {
 		return &sdkClient{conn: conn}, nil
 	}
 
+	// Require autostart after the first dial failure.
 	client, err := connectDaemonWithAutostart(context.Background(), shortSocketDir(t))
 	if err != nil {
 		t.Fatalf("connect daemon: %v", err)
@@ -107,6 +114,7 @@ func TestConnectDaemonWithAutostartStartsDaemonAfterDialFailure(t *testing.T) {
 }
 
 func TestConnectDaemonWithAutostartDoesNotAutostartOverExistingSocketAfterTransientDialFailure(t *testing.T) {
+	// Save the daemon connection hooks and restore them after the test.
 	oldDial := connectDaemonDial
 	oldBuildClient := connectDaemonBuildClient
 	oldStart := connectDaemonStart
@@ -116,12 +124,14 @@ func TestConnectDaemonWithAutostartDoesNotAutostartOverExistingSocketAfterTransi
 		connectDaemonStart = oldStart
 	})
 
+	// Create an existing socket file in the state directory.
 	statePath := t.TempDir()
 	sockPath := filepath.Join(statePath, socketName)
 	if err := os.WriteFile(sockPath, nil, 0o600); err != nil {
 		t.Fatal(err)
 	}
 
+	// Fail dial and record whether start was called.
 	connectDaemonDial = func(ctx context.Context, sockPath string) (net.Conn, error) {
 		return nil, context.DeadlineExceeded
 	}
@@ -134,6 +144,7 @@ func TestConnectDaemonWithAutostartDoesNotAutostartOverExistingSocketAfterTransi
 		return nil, nil
 	}
 
+	// Require the existing socket to block autostart.
 	_, err := connectDaemonWithAutostart(context.Background(), statePath)
 	if err == nil {
 		t.Fatal("expected dial error")
@@ -144,6 +155,7 @@ func TestConnectDaemonWithAutostartDoesNotAutostartOverExistingSocketAfterTransi
 }
 
 func TestConnectDaemonWithAutostartLeavesSocketCleanupToLeaseHolder(t *testing.T) {
+	// Save the daemon connection hooks and restore them after the test.
 	oldDial := connectDaemonDial
 	oldBuildClient := connectDaemonBuildClient
 	oldStart := connectDaemonStart
@@ -153,12 +165,14 @@ func TestConnectDaemonWithAutostartLeavesSocketCleanupToLeaseHolder(t *testing.T
 		connectDaemonStart = oldStart
 	})
 
+	// Create an existing socket file in the state directory.
 	statePath := t.TempDir()
 	sockPath := filepath.Join(statePath, socketName)
 	if err := os.WriteFile(sockPath, nil, 0o600); err != nil {
 		t.Fatal(err)
 	}
 
+	// Count dials and pipe a connection after the socket is removed.
 	var dialCalls int
 	var startCalled bool
 	connA, connB := net.Pipe()
@@ -167,6 +181,7 @@ func TestConnectDaemonWithAutostartLeavesSocketCleanupToLeaseHolder(t *testing.T
 		connB.Close()
 	})
 
+	// Remove the socket on dial, then start the daemon.
 	connectDaemonDial = func(ctx context.Context, sockPath string) (net.Conn, error) {
 		dialCalls++
 		if dialCalls == 1 {
@@ -182,6 +197,7 @@ func TestConnectDaemonWithAutostartLeavesSocketCleanupToLeaseHolder(t *testing.T
 		return &sdkClient{conn: conn}, nil
 	}
 
+	// Require autostart to leave the socket for the lease holder.
 	client, err := connectDaemonWithAutostart(context.Background(), statePath)
 	if err != nil {
 		t.Fatalf("connect daemon: %v", err)
@@ -198,6 +214,7 @@ func TestConnectDaemonWithAutostartLeavesSocketCleanupToLeaseHolder(t *testing.T
 }
 
 func TestConnectDaemonSkipsAutostartWhenDialSucceeds(t *testing.T) {
+	// Save the daemon connection hooks and restore them after the test.
 	oldDial := connectDaemonDial
 	oldBuildClient := connectDaemonBuildClient
 	oldStart := connectDaemonStart
@@ -207,12 +224,14 @@ func TestConnectDaemonSkipsAutostartWhenDialSucceeds(t *testing.T) {
 		connectDaemonStart = oldStart
 	})
 
+	// Pipe a connection and close it when the test ends.
 	connA, connB := net.Pipe()
 	t.Cleanup(func() {
 		connA.Close()
 		connB.Close()
 	})
 
+	// Return the pipe from dial and record whether start was called.
 	var startCalled bool
 	connectDaemonDial = func(ctx context.Context, sockPath string) (net.Conn, error) {
 		return connA, nil
@@ -225,6 +244,7 @@ func TestConnectDaemonSkipsAutostartWhenDialSucceeds(t *testing.T) {
 		return &sdkClient{conn: conn}, nil
 	}
 
+	// Require a successful dial to skip autostart.
 	if _, err := connectDaemon(context.Background(), "/tmp/state"); err != nil {
 		t.Fatalf("connect daemon: %v", err)
 	}
@@ -234,6 +254,7 @@ func TestConnectDaemonSkipsAutostartWhenDialSucceeds(t *testing.T) {
 }
 
 func TestConnectDaemonWithAutostartReturnsAutostartFailure(t *testing.T) {
+	// Save the daemon connection hooks and restore them after the test.
 	oldDial := connectDaemonDial
 	oldBuildClient := connectDaemonBuildClient
 	oldStart := connectDaemonStart
@@ -243,6 +264,7 @@ func TestConnectDaemonWithAutostartReturnsAutostartFailure(t *testing.T) {
 		connectDaemonStart = oldStart
 	})
 
+	// Fail dial and fail the daemon start.
 	connectDaemonDial = func(ctx context.Context, sockPath string) (net.Conn, error) {
 		return nil, os.ErrNotExist
 	}
@@ -254,6 +276,7 @@ func TestConnectDaemonWithAutostartReturnsAutostartFailure(t *testing.T) {
 		return nil, nil
 	}
 
+	// Require the autostart failure to be returned.
 	_, err := connectDaemonWithAutostart(context.Background(), shortSocketDir(t))
 	if err == nil {
 		t.Fatal("expected error")

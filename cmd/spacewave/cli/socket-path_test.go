@@ -29,11 +29,14 @@ func TestEffectiveSocketPathUsesCommandFlag(t *testing.T) {
 // TestEffectiveSocketPathUsesEnv asserts SPACEWAVE_SOCKET_PATH is
 // picked up as an env fallback for the flag.
 func TestEffectiveSocketPathUsesEnv(t *testing.T) {
+	// Clear the socket-path environment.
 	clearSocketPathEnv(t)
 
+	// Set the socket-path environment variable.
 	sock := filepath.Join(t.TempDir(), "desktop.sock")
 	t.Setenv(socketPathEnvVars[0], sock)
 
+	// Require the environment socket path.
 	got := runSocketPathResolveCommand(t, []string{"check"})
 	if got != sock {
 		t.Fatalf("got %s, want %s", got, sock)
@@ -43,12 +46,15 @@ func TestEffectiveSocketPathUsesEnv(t *testing.T) {
 // TestEffectiveSocketPathFlagBeatsEnv asserts an explicit --socket-path
 // flag value takes precedence over SPACEWAVE_SOCKET_PATH.
 func TestEffectiveSocketPathFlagBeatsEnv(t *testing.T) {
+	// Clear the socket-path environment.
 	clearSocketPathEnv(t)
 
+	// Set an environment socket and a flag socket.
 	envSock := filepath.Join(t.TempDir(), "env.sock")
 	flagSock := filepath.Join(t.TempDir(), "flag.sock")
 	t.Setenv(socketPathEnvVars[0], envSock)
 
+	// Require the flag socket to win.
 	got := runSocketPathResolveCommand(t, []string{"check", "--socket-path", flagSock})
 	if got != flagSock {
 		t.Fatalf("got %s, want %s", got, flagSock)
@@ -69,12 +75,16 @@ func TestEffectiveSocketPathUnsetReturnsFallback(t *testing.T) {
 // TestServeSocketPathUsesExplicitListener proves serve does not replace an
 // exact socket path with the state-local default.
 func TestServeSocketPathUsesExplicitListener(t *testing.T) {
+	// Clear the socket-path environment and choose an explicit socket.
 	clearSocketPathEnv(t)
 	statePath := t.TempDir()
 	explicit := filepath.Join(t.TempDir(), "device.sock")
 
+	// Declare the captured socket path.
 	var rootStatePath string
 	var got string
+
+	// Build the app and run check with the explicit socket.
 	app := cli.NewApp()
 	app.Name = "spacewave"
 	app.HideVersion = true
@@ -89,6 +99,8 @@ func TestServeSocketPathUsesExplicitListener(t *testing.T) {
 	if err := app.RunContext(context.Background(), []string{"spacewave", "--socket-path", explicit, "check"}); err != nil {
 		t.Fatal(err)
 	}
+
+	// Require the serve socket to match the explicit path.
 	if got != explicit {
 		t.Fatalf("serve socket = %q, want %q", got, explicit)
 	}
@@ -97,6 +109,7 @@ func TestServeSocketPathUsesExplicitListener(t *testing.T) {
 // TestConnectDaemonAtSocketSkipsAutostart asserts connect-only mode
 // never invokes the daemon autostart path, even on dial failure.
 func TestConnectDaemonAtSocketSkipsAutostart(t *testing.T) {
+	// Save the daemon connection hooks and restore them after the test.
 	oldDial := connectDaemonDial
 	oldBuildClient := connectDaemonBuildClient
 	oldStart := connectDaemonStart
@@ -106,6 +119,7 @@ func TestConnectDaemonAtSocketSkipsAutostart(t *testing.T) {
 		connectDaemonStart = oldStart
 	})
 
+	// Fail dial and forbid autostart and client build.
 	connectDaemonDial = func(ctx context.Context, sockPath string) (net.Conn, error) {
 		return nil, context.DeadlineExceeded
 	}
@@ -118,6 +132,7 @@ func TestConnectDaemonAtSocketSkipsAutostart(t *testing.T) {
 		return nil, nil
 	}
 
+	// Require the dial error to name the socket and the desktop app.
 	_, err := connectDaemonAtSocket(context.Background(), "/tmp/desktop.sock")
 	if err == nil {
 		t.Fatal("expected dial failure error")
@@ -135,9 +150,11 @@ func TestConnectDaemonAtSocketSkipsAutostart(t *testing.T) {
 // a command context routes to the connect-only dial path and never
 // resolves state-path.
 func TestConnectDaemonFromContextUsesSocketPath(t *testing.T) {
+	// Clear the state-path and socket-path environment.
 	clearStatePathEnv(t)
 	clearSocketPathEnv(t)
 
+	// Save the daemon connection hooks and restore them after the test.
 	oldDial := connectDaemonDial
 	oldBuildClient := connectDaemonBuildClient
 	oldStart := connectDaemonStart
@@ -147,12 +164,14 @@ func TestConnectDaemonFromContextUsesSocketPath(t *testing.T) {
 		connectDaemonStart = oldStart
 	})
 
+	// Pipe a connection and close it when the test ends.
 	connA, connB := net.Pipe()
 	t.Cleanup(func() {
 		connA.Close()
 		connB.Close()
 	})
 
+	// Dial the explicit socket and skip autostart.
 	sock := filepath.Join(t.TempDir(), "desktop.sock")
 	var dialedSocket string
 	connectDaemonDial = func(ctx context.Context, sockPath string) (net.Conn, error) {
@@ -167,9 +186,12 @@ func TestConnectDaemonFromContextUsesSocketPath(t *testing.T) {
 		return &sdkClient{conn: conn}, nil
 	}
 
+	// Declare the command state-path flags.
 	var commandStatePath string
 	var commandSessionIdx uint
 	var rootStatePath string
+
+	// Build the app with a check command.
 	app := cli.NewApp()
 	app.Name = "spacewave"
 	app.HideVersion = true
@@ -186,9 +208,13 @@ func TestConnectDaemonFromContextUsesSocketPath(t *testing.T) {
 			return nil
 		},
 	}}
+
+	// Run check with the socket-path flag.
 	if err := app.RunContext(context.Background(), []string{"spacewave", "check", "--socket-path", sock}); err != nil {
 		t.Fatalf("run: %v", err)
 	}
+
+	// Require the dialed socket to match.
 	if dialedSocket != sock {
 		t.Fatalf("dialed %s, want %s", dialedSocket, sock)
 	}
@@ -197,9 +223,11 @@ func TestConnectDaemonFromContextUsesSocketPath(t *testing.T) {
 // TestConnectDaemonFromContextFallsBackToStatePath asserts no --socket-path
 // uses the state-path daemon socket.
 func TestConnectDaemonFromContextFallsBackToStatePath(t *testing.T) {
+	// Clear the state-path and socket-path environment.
 	clearStatePathEnv(t)
 	clearSocketPathEnv(t)
 
+	// Save the daemon connection hooks and restore them after the test.
 	oldDial := connectDaemonDial
 	oldBuildClient := connectDaemonBuildClient
 	oldStart := connectDaemonStart
@@ -209,12 +237,14 @@ func TestConnectDaemonFromContextFallsBackToStatePath(t *testing.T) {
 		connectDaemonStart = oldStart
 	})
 
+	// Pipe a connection and close it when the test ends.
 	connA, connB := net.Pipe()
 	t.Cleanup(func() {
 		connA.Close()
 		connB.Close()
 	})
 
+	// Dial successfully and skip daemon start.
 	var dialedSocket string
 	connectDaemonDial = func(ctx context.Context, sockPath string) (net.Conn, error) {
 		dialedSocket = sockPath
@@ -228,12 +258,16 @@ func TestConnectDaemonFromContextFallsBackToStatePath(t *testing.T) {
 		return &sdkClient{conn: conn}, nil
 	}
 
+	// Choose a state-path socket.
 	statePath := filepath.Join(t.TempDir(), "state")
 	want := filepath.Join(statePath, socketName)
 
+	// Declare the command state-path flags.
 	var commandStatePath string
 	var commandSessionIdx uint
 	var rootStatePath string
+
+	// Build the app with a check command.
 	app := cli.NewApp()
 	app.Name = "spacewave"
 	app.HideVersion = true
@@ -250,9 +284,13 @@ func TestConnectDaemonFromContextFallsBackToStatePath(t *testing.T) {
 			return nil
 		},
 	}}
+
+	// Run check with the state-path flag.
 	if err := app.RunContext(context.Background(), []string{"spacewave", "--state-path", statePath, "check"}); err != nil {
 		t.Fatalf("run: %v", err)
 	}
+
+	// Require the dialed socket to match the state-path socket.
 	if dialedSocket != want {
 		t.Fatalf("dialed %s, want %s", dialedSocket, want)
 	}
@@ -261,9 +299,11 @@ func TestConnectDaemonFromContextFallsBackToStatePath(t *testing.T) {
 // TestConnectDaemonFromContextStartsStatePathDaemon asserts state-path commands
 // launch a daemon after an initial dial failure.
 func TestConnectDaemonFromContextStartsStatePathDaemon(t *testing.T) {
+	// Clear the state-path and socket-path environment.
 	clearStatePathEnv(t)
 	clearSocketPathEnv(t)
 
+	// Save the daemon connection hooks and restore them after the test.
 	oldDial := connectDaemonDial
 	oldBuildClient := connectDaemonBuildClient
 	oldStart := connectDaemonStart
@@ -273,12 +313,14 @@ func TestConnectDaemonFromContextStartsStatePathDaemon(t *testing.T) {
 		connectDaemonStart = oldStart
 	})
 
+	// Pipe a connection and close it when the test ends.
 	connA, connB := net.Pipe()
 	t.Cleanup(func() {
 		connA.Close()
 		connB.Close()
 	})
 
+	// Fail the first dial, then start the daemon.
 	var dialCalls int
 	var startStatePath string
 	connectDaemonDial = func(ctx context.Context, sockPath string) (net.Conn, error) {
@@ -296,11 +338,15 @@ func TestConnectDaemonFromContextStartsStatePathDaemon(t *testing.T) {
 		return &sdkClient{conn: conn}, nil
 	}
 
+	// Choose a state path.
 	statePath := filepath.Join(t.TempDir(), "state")
 
+	// Declare the command state-path flags.
 	var commandStatePath string
 	var commandSessionIdx uint
 	var rootStatePath string
+
+	// Build the app with a check command.
 	app := cli.NewApp()
 	app.Name = "spacewave"
 	app.HideVersion = true
@@ -317,9 +363,13 @@ func TestConnectDaemonFromContextStartsStatePathDaemon(t *testing.T) {
 			return nil
 		},
 	}}
+
+	// Run check with the state-path flag.
 	if err := app.RunContext(context.Background(), []string{"spacewave", "--state-path", statePath, "check"}); err != nil {
 		t.Fatalf("run: %v", err)
 	}
+
+	// Require the daemon to start at that state path and dial twice.
 	if startStatePath != statePath {
 		t.Fatalf("started with %s, want %s", startStatePath, statePath)
 	}
@@ -331,9 +381,11 @@ func TestConnectDaemonFromContextStartsStatePathDaemon(t *testing.T) {
 // TestDiscoverProjectLocalStatePathUsesCwd asserts cwd/.spacewave
 // with a live socket wins over the shared default root.
 func TestDiscoverProjectLocalStatePathUsesCwd(t *testing.T) {
+	// Clear the state-path and socket-path environment.
 	clearStatePathEnv(t)
 	clearSocketPathEnv(t)
 
+	// Change into a temporary working directory.
 	cwd := t.TempDir()
 	chdir(t, cwd)
 	cwd, err := os.Getwd()
@@ -341,6 +393,7 @@ func TestDiscoverProjectLocalStatePathUsesCwd(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Create a project-local state directory with a socket.
 	stateDir := filepath.Join(cwd, projectLocalStateDirName)
 	if err := os.MkdirAll(stateDir, 0o755); err != nil {
 		t.Fatal(err)
@@ -349,6 +402,7 @@ func TestDiscoverProjectLocalStatePathUsesCwd(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Require discovery to return that directory.
 	got, ok := discoverProjectLocalStatePath()
 	if !ok {
 		t.Fatal("expected discovery to find cwd socket")
@@ -361,11 +415,14 @@ func TestDiscoverProjectLocalStatePathUsesCwd(t *testing.T) {
 // TestDiscoverProjectLocalStatePathMissing asserts the function
 // reports no match when no local socket is present.
 func TestDiscoverProjectLocalStatePathMissing(t *testing.T) {
+	// Clear the state-path and socket-path environment.
 	clearStatePathEnv(t)
 	clearSocketPathEnv(t)
 
+	// Change into an empty temporary directory.
 	chdir(t, t.TempDir())
 
+	// Require discovery to find no socket.
 	got, ok := discoverProjectLocalStatePath()
 	if ok {
 		t.Fatalf("expected no discovery, got %s", got)
@@ -376,9 +433,11 @@ func TestDiscoverProjectLocalStatePathMissing(t *testing.T) {
 // that when --state-path is unset, a project-local socket wins over
 // the shared default root (~/.spacewave).
 func TestResolveStatePathFromContextPrefersProjectLocalOverDefault(t *testing.T) {
+	// Clear the state-path and socket-path environment.
 	clearStatePathEnv(t)
 	clearSocketPathEnv(t)
 
+	// Create a project-local socket in the working directory.
 	cwd := t.TempDir()
 	chdir(t, cwd)
 	cwd, err := os.Getwd()
@@ -393,6 +452,7 @@ func TestResolveStatePathFromContextPrefersProjectLocalOverDefault(t *testing.T)
 		t.Fatal(err)
 	}
 
+	// Require that directory over the default state path.
 	got := runStatePathResolveCommand(t, []string{"check"})
 	if got != stateDir {
 		t.Fatalf("got %s, want %s", got, stateDir)
@@ -403,15 +463,18 @@ func TestResolveStatePathFromContextPrefersProjectLocalOverDefault(t *testing.T)
 // that when --state-path is explicitly set, project-local discovery
 // is skipped even if a local socket would have matched.
 func TestResolveStatePathFromContextExplicitFlagSkipsDiscovery(t *testing.T) {
+	// Clear the state-path and socket-path environment.
 	clearStatePathEnv(t)
 	clearSocketPathEnv(t)
 
+	// Change into a temporary working directory.
 	cwd := t.TempDir()
 	chdir(t, cwd)
 	cwd, err := os.Getwd()
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	// A cwd/.spacewave/spacewave.sock exists but must be ignored when
 	// --state-path is set explicitly.
 	localDir := filepath.Join(cwd, projectLocalStateDirName)
@@ -422,6 +485,7 @@ func TestResolveStatePathFromContextExplicitFlagSkipsDiscovery(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Require the explicit flag to skip the project-local socket.
 	explicit := filepath.Join(t.TempDir(), "explicit")
 	got := runStatePathResolveCommand(t, []string{"--state-path", explicit, "check"})
 	if got != explicit {
@@ -433,12 +497,16 @@ func TestResolveStatePathFromContextExplicitFlagSkipsDiscovery(t *testing.T) {
 // clientFlags and returns the resolved socket path reported by
 // effectiveSocketPath.
 func runSocketPathResolveCommand(t *testing.T, args []string) string {
+	// Mark the helper.
 	t.Helper()
 
+	// Declare the captured paths.
 	var commandStatePath string
 	var commandSessionIdx uint
 	var rootStatePath string
 	var got string
+
+	// Build the app with a check command.
 	app := cli.NewApp()
 	app.Name = "spacewave"
 	app.HideVersion = true
@@ -451,6 +519,8 @@ func runSocketPathResolveCommand(t *testing.T, args []string) string {
 			return nil
 		},
 	}}
+
+	// Run check and return the resolved socket.
 	if err := app.RunContext(context.Background(), append([]string{"spacewave"}, args...)); err != nil {
 		t.Fatal(err)
 	}

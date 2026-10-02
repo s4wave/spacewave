@@ -14,6 +14,7 @@ import (
 // TestDevicePolicyHostSourceForwardsEnrolledIdentityAndRemoval checks the
 // daemon's actual policy snapshot and setup key before the Worker consumes it.
 func TestDevicePolicyHostSourceForwardsEnrolledIdentityAndRemoval(t *testing.T) {
+	// Write the enrolled setup and initial policy.
 	statePath := t.TempDir()
 	if err := writeDeviceSetupRecord(statePath, &deviceSetupRecord{
 		SetupState: deviceSetupStateSessionReady, PeerID: "peer", ResourceID: "resource",
@@ -36,6 +37,8 @@ func TestDevicePolicyHostSourceForwardsEnrolledIdentityAndRemoval(t *testing.T) 
 		t.Fatal(err)
 	}
 	source := &devicePolicyHostSource{store: store, statePath: statePath}
+
+	// Require the current policy snapshot.
 	data, key, revision, err := source.WaitDevicePolicy(t.Context(), nil)
 	if err != nil {
 		t.Fatal(err)
@@ -47,6 +50,8 @@ func TestDevicePolicyHostSourceForwardsEnrolledIdentityAndRemoval(t *testing.T) 
 	if key != "devices/self" || revision != 1 || decoded.GetForgeWorker().GetWorkerObjectKey() != "worker/test" {
 		t.Fatalf("current policy: key=%q revision=%d policy=%+v", key, revision, decoded)
 	}
+
+	// Replace the policy and reload the store.
 	if err := device_policy.WriteFile(statePath, &device_policy.DevicePolicy{Revision: 2}); err != nil {
 		t.Fatal(err)
 	}
@@ -55,6 +60,8 @@ func TestDevicePolicyHostSourceForwardsEnrolledIdentityAndRemoval(t *testing.T) 
 	}
 	ctx, cancel := context.WithTimeout(t.Context(), time.Second)
 	defer cancel()
+
+	// Require the removed worker policy.
 	data, key, revision, err = source.WaitDevicePolicy(ctx, data)
 	if err != nil {
 		t.Fatal(err)

@@ -51,6 +51,7 @@ func runDeviceLauncherUpdateProjection(
 	b bus.Bus,
 	client *sdkClient,
 ) error {
+	// Look up the launcher RPC service.
 	invokers, _, invokerRef, err := bifrost_rpc.ExLookupRpcService(
 		ctx,
 		b,
@@ -67,6 +68,7 @@ func runDeviceLauncherUpdateProjection(
 	}
 	defer invokerRef.Release()
 
+	// Watch launcher info from the first invoker.
 	launcherClient := spacewave_launcher.NewSRPCLauncherClient(srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(invokers[0]))))
 	strm, err := launcherClient.WatchLauncherInfo(ctx, &spacewave_launcher.WatchLauncherInfoRequest{})
 	if err != nil {
@@ -74,6 +76,7 @@ func runDeviceLauncherUpdateProjection(
 	}
 	defer strm.Close()
 
+	// Project each launcher info snapshot onto the Device.
 	for {
 		info, err := strm.Recv()
 		if err != nil {
@@ -99,6 +102,7 @@ func projectDeviceLauncherInfo(
 	info *spacewave_launcher.LauncherInfo,
 	now time.Time,
 ) error {
+	// Read the ready setup record and decode its resource ID.
 	record, ok, err := deviceLauncherProjectionTarget(statePath)
 	if err != nil || !ok {
 		return err
@@ -108,30 +112,35 @@ func projectDeviceLauncherInfo(
 		return err
 	}
 
+	// Mount the Device session.
 	sess, err := client.mountSession(ctx, record.SessionIndex)
 	if err != nil {
 		return err
 	}
 	defer sess.Release()
 
+	// Mount the Space service.
 	spaceSvc, spaceCleanup, err := client.mountSpace(ctx, sess, spaceID)
 	if err != nil {
 		return err
 	}
 	defer spaceCleanup()
 
+	// Open the World engine.
 	engine, engineCleanup, err := client.accessWorldEngine(ctx, spaceSvc)
 	if err != nil {
 		return err
 	}
 	defer engineCleanup()
 
+	// Open a write transaction.
 	tx, err := engine.NewTransaction(ctx, true)
 	if err != nil {
 		return errors.Wrap(err, "new transaction")
 	}
 	defer tx.Discard()
 
+	// Load the Device object and require its peer to match setup state.
 	objState, found, err := tx.GetObject(ctx, record.DeviceObjectKey)
 	defer world.ReleaseObjectState(objState)
 	if err != nil {
@@ -147,11 +156,14 @@ func projectDeviceLauncherInfo(
 	if existing.GetPeerId() != record.PeerID {
 		return errors.New("device object peer_id does not match setup state")
 	}
+
+	// Project the launcher update onto the Device.
 	next, changed, err := projectLauncherUpdateOntoDevice(existing, info, now)
 	if err != nil || !changed {
 		return err
 	}
 
+	// Write the updated Device block and commit.
 	_, _, err = world.AccessObjectState(ctx, objState, true, func(bcs *block.Cursor) error {
 		bcs.SetBlock(next, true)
 		return nil
@@ -163,6 +175,7 @@ func projectDeviceLauncherInfo(
 }
 
 func deviceLauncherProjectionTarget(statePath string) (*deviceSetupRecord, bool, error) {
+	// Read a ready setup record with the fields projection needs.
 	record, err := readDeviceSetupRecord(statePath)
 	if err != nil {
 		return nil, false, err
@@ -181,12 +194,14 @@ func projectLauncherUpdateOntoDevice(
 	info *spacewave_launcher.LauncherInfo,
 	now time.Time,
 ) (*s4wave_device.Device, bool, error) {
+	// Clone the Device and compute the launcher update projection.
 	if existing == nil {
 		return nil, false, errors.New("device state is required")
 	}
 	next := existing.CloneVT()
 	updateState, status := deviceLauncherUpdateProjection(existing, info, now)
 
+	// Apply a changed update state and status, then validate the Device.
 	changed := false
 	if next.GetUpdateState() != updateState {
 		next.UpdateState = updateState

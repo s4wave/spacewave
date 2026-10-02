@@ -36,6 +36,8 @@ func TestAppBundleReplacementRetainsSharedDaemon(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = os.RemoveAll(statePath) })
+
+	// Set the daemon environment and a timeout context.
 	t.Setenv(sharedDaemonFixtureMode, "native")
 	t.Setenv("SPACEWAVE_STATE_PATH", statePath)
 	t.Setenv("SPACEWAVE_SOCKET_PATH", "")
@@ -43,6 +45,8 @@ func TestAppBundleReplacementRetainsSharedDaemon(t *testing.T) {
 	t.Setenv(daemon.StartupTimeoutEnvVar, "15s")
 	ctx, cancel := context.WithTimeout(t.Context(), 35*time.Second)
 	defer cancel()
+
+	// Watch the state directory.
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
 		t.Fatal(err)
@@ -67,6 +71,8 @@ func TestAppBundleReplacementRetainsSharedDaemon(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer input.Close()
+
+	// Write the executable into the fake app bundle.
 	output, err := os.OpenFile(appBinary, os.O_CREATE|os.O_WRONLY|os.O_EXCL, 0o755)
 	if err != nil {
 		t.Fatal(err)
@@ -94,10 +100,14 @@ func TestAppBundleReplacementRetainsSharedDaemon(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Receive the initial state snapshot.
 	defer stream.Close()
 	if _, err := stream.Recv(); err != nil {
 		t.Fatal(err)
 	}
+
+	// Read the runtime identity and require a digest-named executable.
 	pidBefore, err := os.ReadFile(filepath.Join(statePath, "runtime-identity"))
 	if err != nil {
 		t.Fatal(err)
@@ -109,6 +119,8 @@ func TestAppBundleReplacementRetainsSharedDaemon(t *testing.T) {
 	if !strings.HasPrefix(string(executableBefore), filepath.Join(statePath, "daemon-bin")+string(filepath.Separator)) {
 		t.Fatalf("daemon executable remained in app bundle: %q", executableBefore)
 	}
+
+	// Record the daemon file and socket before the swap.
 	daemonFileBefore, err := os.Stat(string(executableBefore))
 	if err != nil {
 		t.Fatal(err)
@@ -380,8 +392,12 @@ func TestSharedDaemonSurvivesStarterCancellation(t *testing.T) {
 			t.Setenv(daemon.StartupTimeoutEnvVar, "15s")
 			ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
 			defer cancel()
+
+			// Cancel the starter independently of the test timeout.
 			starterCtx, cancelStarter := context.WithCancel(ctx)
 			defer cancelStarter()
+
+			// Watch the state directory.
 			watcher, err := fsnotify.NewWatcher()
 			if err != nil {
 				t.Fatal(err)
@@ -396,6 +412,7 @@ func TestSharedDaemonSurvivesStarterCancellation(t *testing.T) {
 			var retained *daemon.Client
 			var stream resource_state.SRPCStateAtomResourceService_WatchStateClient
 			connector := daemon.NewConnector(nil, func(startCtx context.Context, root string) error {
+				// Start the daemon and connect a retained client.
 				if err := daemon.StartProcess(startCtx, root); err != nil {
 					return err
 				}
@@ -405,6 +422,8 @@ func TestSharedDaemonSurvivesStarterCancellation(t *testing.T) {
 				if err != nil {
 					return err
 				}
+
+				// Watch state, then cancel the starter.
 				stream, err = sharedDaemonAtom(t, retained).WatchState(ctx, &resource_state.WatchStateRequest{})
 				if err != nil {
 					return err
@@ -415,6 +434,8 @@ func TestSharedDaemonSurvivesStarterCancellation(t *testing.T) {
 				cancelStarter()
 				return nil
 			})
+
+			// Connect with the canceled starter and retain the second client.
 			client, err := connector.Connect(starterCtx, statePath, "")
 			if client != nil {
 				client.Close()

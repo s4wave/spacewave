@@ -43,9 +43,11 @@ func TestBuildWebListenMultiaddr(t *testing.T) {
 }
 
 func TestBackgroundWebListenerSurvivesClientDisconnectPastIdle(t *testing.T) {
+	// Cancel the test context when the test ends.
 	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
 
+	// Register a core root server.
 	le := logrus.NewEntry(logrus.New())
 	rootMux := srpc.NewMux()
 	rootServer := resource_root.NewCoreRootServer(le, nil)
@@ -54,24 +56,29 @@ func TestBackgroundWebListenerSurvivesClientDisconnectPastIdle(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Register the resource server on that mux.
 	resourceSrv := resource_server.NewResourceServer(rootMux)
 	resourceMux := srpc.NewMux()
 	if err := resourceSrv.Register(resourceMux); err != nil {
 		t.Fatal(err)
 	}
 
+	// Build a short idle tracker.
 	idleCh := make(chan struct{}, 1)
 	idleTracker := newDaemonIdleTracker(30*time.Millisecond, func() {
 		idleCh <- struct{}{}
 	})
 	defer idleTracker.close()
 
+	// Start the web listener keepalive.
 	startWebListenerKeepalive(ctx, le, resourceMux, idleTracker)
 
+	// Pipe a tracked daemon connection.
 	daemonMux := srpc.NewMux(resourceMux)
 	server := srpc.NewServer(daemonMux)
 	clientConn, serverConn := net.Pipe()
 
+	// Attach the client and accept the muxed connection.
 	idleTracker.clientAttached()
 	tracked := &trackedConn{
 		Conn: serverConn,
@@ -87,6 +94,7 @@ func TestBackgroundWebListenerSurvivesClientDisconnectPastIdle(t *testing.T) {
 		_ = server.AcceptMuxedConn(ctx, serverMp)
 	}()
 
+	// Access a background web listener.
 	client, err := buildSDKClient(ctx, clientConn)
 	if err != nil {
 		t.Fatal(err)
@@ -95,16 +103,19 @@ func TestBackgroundWebListenerSurvivesClientDisconnectPastIdle(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	// Wait for the keepalive to hold the listener before the client leaves.
 	waitIdleTrackerActive(t, ctx, idleTracker, 2)
 	client.close()
 
+	// Require idle not to fire while the listener is active.
 	select {
 	case <-idleCh:
 		t.Fatal("daemon idle fired while background listener was active")
 	case <-time.After(100 * time.Millisecond):
 	}
 
+	// Require the health endpoint to answer after the client leaves.
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, resp.GetUrl()+"/_spacewave/health", nil)
 	if err != nil {
 		t.Fatal(err)
@@ -122,6 +133,7 @@ func TestBackgroundWebListenerSurvivesClientDisconnectPastIdle(t *testing.T) {
 		t.Fatalf("health response = %d %q, want ok", httpResp.StatusCode, string(body))
 	}
 
+	// Require idle after the root server closes.
 	rootServer.Close()
 	select {
 	case <-idleCh:
@@ -150,13 +162,16 @@ func waitIdleTrackerActive(t *testing.T, ctx context.Context, tracker *daemonIdl
 }
 
 func TestGlobalStatePathWebBackgroundAndFollowupUseSameSocket(t *testing.T) {
+	// Cancel the test context when the test ends.
 	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
 
+	// Start an in-process web daemon.
 	daemon := startInProcessWebDaemon(t, ctx)
 	statePath := daemon.statePath
 	accepted := daemon.accepted
 
+	// Start a background listener, list it, and stop it.
 	runStatePathWebApp(t, ctx, []string{
 		"--state-path", statePath,
 		"web",
@@ -179,6 +194,7 @@ func TestGlobalStatePathWebBackgroundAndFollowupUseSameSocket(t *testing.T) {
 		listenerID,
 	})
 
+	// Require each command to connect to the daemon socket.
 	for range 3 {
 		select {
 		case <-accepted:
@@ -187,6 +203,7 @@ func TestGlobalStatePathWebBackgroundAndFollowupUseSameSocket(t *testing.T) {
 		}
 	}
 
+	// Require the listener to be gone after stop.
 	listeners = getWebListeners(t, ctx, statePath)
 	if len(listeners) != 0 {
 		t.Fatalf("listeners after stop = %d, want 0", len(listeners))
@@ -194,12 +211,15 @@ func TestGlobalStatePathWebBackgroundAndFollowupUseSameSocket(t *testing.T) {
 }
 
 func TestWebBackgroundPrintURLWritesMachineReadableURL(t *testing.T) {
+	// Cancel the test context when the test ends.
 	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
 
+	// Start an in-process web daemon.
 	daemon := startInProcessWebDaemon(t, ctx)
 	statePath := daemon.statePath
 
+	// Capture the printed URL and require one line.
 	stdout, stderr := runStatePathWebAppCapture(t, ctx, []string{
 		"--state-path", statePath,
 		"web",
@@ -212,6 +232,8 @@ func TestWebBackgroundPrintURLWritesMachineReadableURL(t *testing.T) {
 	if !strings.HasSuffix(stdout, "\n") || strings.Count(stdout, "\n") != 1 {
 		t.Fatalf("stdout = %q, want exactly one URL line", stdout)
 	}
+
+	// Parse the URL and require an HTTP root.
 	urlLine := strings.TrimSuffix(stdout, "\n")
 	parsedURL, err := url.Parse(urlLine)
 	if err != nil {
@@ -226,6 +248,8 @@ func TestWebBackgroundPrintURLWritesMachineReadableURL(t *testing.T) {
 	if parsedURL.RawQuery != "" {
 		t.Fatalf("stdout URL query = %q, want empty", parsedURL.RawQuery)
 	}
+
+	// Require a non-empty OTP and no secret in the remaining text.
 	fragmentKey, secret, ok := strings.Cut(parsedURL.Fragment, "=")
 	if !ok || fragmentKey != "otp" {
 		t.Fatalf("stdout URL fragment = %q, want otp secret", parsedURL.Fragment)
@@ -247,14 +271,17 @@ func TestWebBackgroundPrintURLWritesMachineReadableURL(t *testing.T) {
 }
 
 func TestWebBackgroundPrintURLWritesDisplayURLBeforeOTPFragment(t *testing.T) {
+	// Cancel the test context when the test ends.
 	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
 
+	// Start the daemon and choose a display path and component.
 	daemon := startInProcessWebDaemon(t, ctx)
 	statePath := daemon.statePath
 	displayPath := "docs/hello world/-/child.txt"
 	displayComponent := "viewer.markdown/primary"
 
+	// Capture the display URL and require one line.
 	stdout, stderr := runStatePathWebAppCapture(t, ctx, []string{
 		"--state-path", statePath,
 		"web",
@@ -269,6 +296,8 @@ func TestWebBackgroundPrintURLWritesDisplayURLBeforeOTPFragment(t *testing.T) {
 	if !strings.HasSuffix(stdout, "\n") || strings.Count(stdout, "\n") != 1 {
 		t.Fatalf("stdout = %q, want exactly one URL line", stdout)
 	}
+
+	// Require the display path and component query.
 	urlLine := strings.TrimSuffix(stdout, "\n")
 	parsedURL, err := url.Parse(urlLine)
 	if err != nil {
@@ -284,6 +313,8 @@ func TestWebBackgroundPrintURLWritesDisplayURLBeforeOTPFragment(t *testing.T) {
 	if query.Get("component") != displayComponent {
 		t.Fatalf("display component query = %q, want %q", query.Get("component"), displayComponent)
 	}
+
+	// Require a non-empty OTP fragment.
 	fragmentKey, secret, ok := strings.Cut(parsedURL.Fragment, "=")
 	if !ok || fragmentKey != "otp" {
 		t.Fatalf("stdout URL fragment = %q, want otp secret", parsedURL.Fragment)
@@ -294,13 +325,16 @@ func TestWebBackgroundPrintURLWritesDisplayURLBeforeOTPFragment(t *testing.T) {
 }
 
 func TestWebBackgroundPrintURLWritesDisplayPathWithoutComponent(t *testing.T) {
+	// Cancel the test context when the test ends.
 	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
 
+	// Start the daemon and choose a display path.
 	daemon := startInProcessWebDaemon(t, ctx)
 	statePath := daemon.statePath
 	displayPath := "docs/hello"
 
+	// Capture the display URL.
 	stdout, stderr := runStatePathWebAppCapture(t, ctx, []string{
 		"--state-path", statePath,
 		"web",
@@ -311,6 +345,8 @@ func TestWebBackgroundPrintURLWritesDisplayPathWithoutComponent(t *testing.T) {
 	if stderr != "" {
 		t.Fatalf("stderr = %q, want empty", stderr)
 	}
+
+	// Require the display path and no component query.
 	urlLine := strings.TrimSuffix(stdout, "\n")
 	parsedURL, err := url.Parse(urlLine)
 	if err != nil {
@@ -329,6 +365,7 @@ func TestWebBackgroundPrintURLWritesDisplayPathWithoutComponent(t *testing.T) {
 }
 
 func TestWebDisplayComponentRequiresDisplayPath(t *testing.T) {
+	// Run web with a display component and no display path.
 	var rootStatePath string
 	app := cli.NewApp()
 	app.Name = "spacewave"
@@ -356,13 +393,17 @@ type testWebDaemon struct {
 }
 
 func startInProcessWebDaemon(t *testing.T, ctx context.Context) testWebDaemon {
+	// Mark the helper.
 	t.Helper()
 
+	// Clear the state-path and socket-path environment.
 	clearStatePathEnv(t)
 	clearSocketPathEnv(t)
 
+	// Create a short state directory.
 	statePath := shortSocketDir(t)
 
+	// Register a core root server.
 	le := logrus.NewEntry(logrus.New())
 	rootMux := srpc.NewMux()
 	rootServer := resource_root.NewCoreRootServer(le, nil)
@@ -371,15 +412,18 @@ func startInProcessWebDaemon(t *testing.T, ctx context.Context) testWebDaemon {
 		t.Fatal(err)
 	}
 
+	// Register the resource server.
 	resourceSrv := resource_server.NewResourceServer(rootMux)
 	resourceMux := srpc.NewMux()
 	if err := resourceSrv.Register(resourceMux); err != nil {
 		t.Fatal(err)
 	}
 
+	// Build a long idle tracker.
 	idleTracker := newDaemonIdleTracker(time.Minute, func() {})
 	t.Cleanup(idleTracker.close)
 
+	// Listen on the daemon socket.
 	lis, err := net.Listen("unix", filepath.Join(statePath, socketName))
 	if err != nil {
 		t.Fatal(err)
@@ -388,6 +432,7 @@ func startInProcessWebDaemon(t *testing.T, ctx context.Context) testWebDaemon {
 		_ = lis.Close()
 	})
 
+	// Accept connections and count them.
 	accepted := make(chan struct{}, 8)
 	server := srpc.NewServer(srpc.NewMux(resourceMux))
 	go func() {
@@ -410,6 +455,7 @@ func startInProcessWebDaemon(t *testing.T, ctx context.Context) testWebDaemon {
 		}
 	}()
 
+	// Reject daemon autostart.
 	oldStart := connectDaemonStart
 	connectDaemonStart = func(ctx context.Context, statePath string) error {
 		return stderrors.New("unexpected daemon autostart")
@@ -425,8 +471,10 @@ func startInProcessWebDaemon(t *testing.T, ctx context.Context) testWebDaemon {
 }
 
 func getWebListeners(t *testing.T, ctx context.Context, statePath string) []*s4wave_root.WebListenerInfo {
+	// Mark the helper.
 	t.Helper()
 
+	// List web listeners from the daemon.
 	client, err := connectDaemon(ctx, statePath)
 	if err != nil {
 		t.Fatal(err)
@@ -440,8 +488,10 @@ func getWebListeners(t *testing.T, ctx context.Context, statePath string) []*s4w
 }
 
 func runStatePathWebApp(t *testing.T, ctx context.Context, args []string) {
+	// Mark the helper.
 	t.Helper()
 
+	// Run the web app with the given arguments.
 	var rootStatePath string
 	app := cli.NewApp()
 	app.Name = "spacewave"
@@ -456,8 +506,10 @@ func runStatePathWebApp(t *testing.T, ctx context.Context, args []string) {
 }
 
 func runStatePathWebAppCapture(t *testing.T, ctx context.Context, args []string) (string, string) {
+	// Mark the helper.
 	t.Helper()
 
+	// Build the web app.
 	var rootStatePath string
 	app := cli.NewApp()
 	app.Name = "spacewave"
@@ -466,6 +518,8 @@ func runStatePathWebAppCapture(t *testing.T, ctx context.Context, args []string)
 	app.Commands = []*cli.Command{
 		newWebCommand(nil),
 	}
+
+	// Run it and return the captured streams.
 	stdout, stderr, err := captureStdoutStderr(t, func() error {
 		return app.RunContext(ctx, append([]string{"spacewave"}, args...))
 	})
@@ -476,8 +530,10 @@ func runStatePathWebAppCapture(t *testing.T, ctx context.Context, args []string)
 }
 
 func captureStdoutStderr(t *testing.T, fn func() error) (string, string, error) {
+	// Mark the helper.
 	t.Helper()
 
+	// Open stdout and stderr pipes.
 	oldStdout := os.Stdout
 	oldStderr := os.Stderr
 	stdoutR, stdoutW, err := os.Pipe()
@@ -488,6 +544,8 @@ func captureStdoutStderr(t *testing.T, fn func() error) (string, string, error) 
 	if err != nil {
 		t.Fatalf("stderr pipe: %v", err)
 	}
+
+	// Point stdout and stderr at the pipes.
 	os.Stdout = stdoutW
 	os.Stderr = stderrW
 	defer func() {
@@ -495,6 +553,7 @@ func captureStdoutStderr(t *testing.T, fn func() error) (string, string, error) 
 		os.Stderr = oldStderr
 	}()
 
+	// Run the function and close the writers.
 	runErr := fn()
 	if err := stdoutW.Close(); err != nil {
 		t.Fatalf("close stdout writer: %v", err)
@@ -502,6 +561,8 @@ func captureStdoutStderr(t *testing.T, fn func() error) (string, string, error) 
 	if err := stderrW.Close(); err != nil {
 		t.Fatalf("close stderr writer: %v", err)
 	}
+
+	// Read both streams and close the readers.
 	stdout, err := io.ReadAll(stdoutR)
 	if err != nil {
 		t.Fatalf("read stdout: %v", err)

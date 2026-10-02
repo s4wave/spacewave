@@ -16,6 +16,7 @@ import (
 )
 
 func TestVmCommandShape(t *testing.T) {
+	// Require the top-level vm command and its first commands.
 	cmd := newVmCommand(nil)
 	if cmd.Name != "vm" {
 		t.Fatalf("name = %q, want vm", cmd.Name)
@@ -38,6 +39,8 @@ func TestVmCommandShape(t *testing.T) {
 	if cmd.Subcommands[3].Name != "start" {
 		t.Fatalf("subcommand[3] = %q, want start", cmd.Subcommands[3].Name)
 	}
+
+	// Require stop, watch, image, and the image alias.
 	if cmd.Subcommands[4].Name != "stop" {
 		t.Fatalf("subcommand[4] = %q, want stop", cmd.Subcommands[4].Name)
 	}
@@ -60,6 +63,8 @@ func TestVmCommandShape(t *testing.T) {
 	if image.Subcommands[0].Name != "v86" {
 		t.Fatalf("image subcommand[0] = %q, want v86", image.Subcommands[0].Name)
 	}
+
+	// Require the v86 image subcommands.
 	if len(image.Subcommands[0].Subcommands) != 4 {
 		t.Fatalf("v86 subcommand count = %d, want 4", len(image.Subcommands[0].Subcommands))
 	}
@@ -78,6 +83,7 @@ func TestVmCommandShape(t *testing.T) {
 }
 
 func TestVmRunCommandRootModeFlag(t *testing.T) {
+	// Require the root-mode flag and its values.
 	cmd := newVmRunCommand()
 	var rootMode *cli.StringFlag
 	for _, flag := range cmd.Flags {
@@ -104,6 +110,7 @@ func TestVmRunCommandRootModeFlag(t *testing.T) {
 }
 
 func TestParseV86MountFlags(t *testing.T) {
+	// Parse mount flags and reject an unknown mode.
 	mounts, err := parseV86MountFlags([]string{"/workspace=obj1:rw", "/home=obj2:ro", "/data=obj3"})
 	if err != nil {
 		t.Fatal(err)
@@ -126,6 +133,7 @@ func TestParseV86MountFlags(t *testing.T) {
 }
 
 func TestValidateV86ImageImportTarArgs(t *testing.T) {
+	// Accept a valid import tar fixture.
 	dir := t.TempDir()
 	args := &v86ImageImportTarArgs{
 		wasmPath:      writeTestFile(t, dir, "v86.wasm", "wasm"),
@@ -138,11 +146,13 @@ func TestValidateV86ImageImportTarArgs(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Reject a missing kernel path.
 	args.kernelPath = filepath.Join(dir, "missing-bzImage")
 	if err := validateV86ImageImportTarArgs(args); err == nil {
 		t.Fatal("expected missing kernel error")
 	}
 
+	// Reject a rootfs path that is not a tar.
 	args.kernelPath = writeTestFile(t, dir, "bzImage2", "kernel")
 	args.rootfsTarPath = writeTestFile(t, dir, "not-rootfs.tar", "not a tar")
 	if err := validateV86ImageImportTarArgs(args); err == nil {
@@ -188,6 +198,7 @@ func writeTestFile(t *testing.T, dir, name, body string) string {
 }
 
 func writeTestTar(t *testing.T, dir, name string) string {
+	// Create the tar file and its writer.
 	t.Helper()
 	path := filepath.Join(dir, name)
 	f, err := os.Create(path)
@@ -196,6 +207,8 @@ func writeTestTar(t *testing.T, dir, name string) string {
 	}
 	tw := tar.NewWriter(f)
 	body := []byte("hello\n")
+
+	// Write the issue file and close the tar.
 	if err := tw.WriteHeader(&tar.Header{Name: "etc/issue", Mode: 0o644, Size: int64(len(body))}); err != nil {
 		t.Fatal(err)
 	}
@@ -212,6 +225,7 @@ func writeTestTar(t *testing.T, dir, name string) string {
 }
 
 func TestWriteV86ImageInfoJSON(t *testing.T) {
+	// Build an image entry and capture stdout.
 	entry := &v86ImageCLIEntry{
 		objectKey: "v86image-test",
 		image: &s4wave_vm.V86Image{
@@ -236,6 +250,8 @@ func TestWriteV86ImageInfoJSON(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Write the image info and require its JSON fields.
 	os.Stdout = w
 	err = writeV86ImageInfo(entry, "json")
 	w.Close()

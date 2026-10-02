@@ -25,6 +25,7 @@ import (
 
 // newForgeCommand builds the forge command group.
 func newForgeCommand(getBus func() cli_entrypoint.CliBus) *cli.Command {
+	// Declare the shared forge flags and return the command group.
 	var statePath string
 	var sessionIdx uint
 	var spaceID string
@@ -64,6 +65,7 @@ func buildForgeCreateClusterCommand(statePath *string, sessionIdx *uint, spaceID
 			Destination: &name,
 		}),
 		Action: func(c *cli.Context) error {
+			// Require a cluster key and connect to the daemon.
 			key := c.Args().First()
 			if key == "" {
 				return errors.New("cluster key required")
@@ -75,12 +77,14 @@ func buildForgeCreateClusterCommand(statePath *string, sessionIdx *uint, spaceID
 			}
 			defer client.close()
 
+			// Mount the selected session.
 			sess, err := client.mountSession(ctx, sessionIndex32(*sessionIdx))
 			if err != nil {
 				return err
 			}
 			defer sess.Release()
 
+			// Read the session peer ID.
 			info, err := sess.GetSessionInfo(ctx)
 			if err != nil {
 				return errors.Wrap(err, "get Cluster session info")
@@ -90,39 +94,46 @@ func buildForgeCreateClusterCommand(statePath *string, sessionIdx *uint, spaceID
 				return errors.Wrap(err, "parse Cluster session peer")
 			}
 
+			// Resolve the Space ID.
 			sid, err := client.resolveSpaceID(ctx, sess, *spaceID)
 			if err != nil {
 				return err
 			}
 
+			// Mount the Space service.
 			spaceSvc, spaceCleanup, err := client.mountSpace(ctx, sess, sid)
 			if err != nil {
 				return err
 			}
 			defer spaceCleanup()
 
+			// Open the World engine.
 			engine, engineCleanup, err := client.accessWorldEngine(ctx, spaceSvc)
 			if err != nil {
 				return err
 			}
 			defer engineCleanup()
 
+			// Open a write transaction.
 			tx, err := engine.NewTransaction(ctx, true)
 			if err != nil {
 				return errors.Wrap(err, "new transaction")
 			}
 			defer tx.Discard()
 
+			// Apply the cluster create operation.
 			op := forge_cluster.NewClusterCreateOp(key, name, entityPeerID)
 			_, _, err = tx.ApplyWorldOp(ctx, op, entityPeerID)
 			if err != nil {
 				return errors.Wrap(err, "create cluster")
 			}
 
+			// Commit the cluster create.
 			if err := tx.Commit(ctx); err != nil {
 				return errors.Wrap(err, "commit transaction")
 			}
 
+			// Report that the cluster was created.
 			os.Stdout.WriteString("Created cluster \"" + key + "\".\n")
 			return nil
 		},
@@ -142,6 +153,7 @@ func buildForgeCreateJobCommand(statePath *string, sessionIdx *uint, spaceID *st
 			Destination: &name,
 		}),
 		Action: func(c *cli.Context) error {
+			// Require a job key and connect to the daemon.
 			key := c.Args().First()
 			if key == "" {
 				return errors.New("job key required")
@@ -153,29 +165,34 @@ func buildForgeCreateJobCommand(statePath *string, sessionIdx *uint, spaceID *st
 			}
 			defer client.close()
 
+			// Mount the selected session.
 			sess, err := client.mountSession(ctx, sessionIndex32(*sessionIdx))
 			if err != nil {
 				return err
 			}
 			defer sess.Release()
 
+			// Resolve the Space ID.
 			sid, err := client.resolveSpaceID(ctx, sess, *spaceID)
 			if err != nil {
 				return err
 			}
 
+			// Mount the Space service.
 			spaceSvc, spaceCleanup, err := client.mountSpace(ctx, sess, sid)
 			if err != nil {
 				return err
 			}
 			defer spaceCleanup()
 
+			// Open the World engine.
 			engine, engineCleanup, err := client.accessWorldEngine(ctx, spaceSvc)
 			if err != nil {
 				return err
 			}
 			defer engineCleanup()
 
+			// Open a write transaction.
 			tx, err := engine.NewTransaction(ctx, true)
 			if err != nil {
 				return errors.Wrap(err, "new transaction")
@@ -202,10 +219,12 @@ func buildForgeCreateJobCommand(statePath *string, sessionIdx *uint, spaceID *st
 				return errors.Wrap(err, "set job type")
 			}
 
+			// Commit the job create.
 			if err := tx.Commit(ctx); err != nil {
 				return errors.Wrap(err, "commit transaction")
 			}
 
+			// Report that the job was created.
 			os.Stdout.WriteString("Created job \"" + key + "\".\n")
 			return nil
 		},
@@ -240,6 +259,7 @@ func buildForgeCreateWorkerCommand(statePath *string, sessionIdx *uint, spaceID 
 			},
 		),
 		Action: func(c *cli.Context) error {
+			// Require a worker key, peer ID, and Cluster key.
 			key := strings.TrimSpace(c.Args().First())
 			if key == "" {
 				return errors.New("worker key required")
@@ -252,6 +272,8 @@ func buildForgeCreateWorkerCommand(statePath *string, sessionIdx *uint, spaceID 
 			if clusterKey == "" {
 				return errors.New("worker Cluster required")
 			}
+
+			// Connect to the daemon.
 			ctx := c.Context
 			client, err := connectDaemonFromContext(ctx, c, *statePath)
 			if err != nil {
@@ -259,6 +281,7 @@ func buildForgeCreateWorkerCommand(statePath *string, sessionIdx *uint, spaceID 
 			}
 			defer client.close()
 
+			// Mount the session and require its peer to match the worker peer.
 			sess, err := client.mountSession(ctx, sessionIndex32(*sessionIdx))
 			if err != nil {
 				return err
@@ -275,6 +298,8 @@ func buildForgeCreateWorkerCommand(statePath *string, sessionIdx *uint, spaceID 
 					info.GetPeerId(),
 				)
 			}
+
+			// Validate the session public key and parse the worker peer.
 			publicKeyPEM := strings.TrimSpace(info.GetCryptoInfo().GetPublicKeyPem())
 			if publicKeyPEM == "" {
 				return errors.New("mounted Worker session has no public key")
@@ -288,6 +313,7 @@ func buildForgeCreateWorkerCommand(statePath *string, sessionIdx *uint, spaceID 
 				return errors.Wrap(err, "parse Worker session peer")
 			}
 
+			// Resolve the Space and open the World engine.
 			sid, err := client.resolveSpaceID(ctx, sess, *spaceID)
 			if err != nil {
 				return err
@@ -302,12 +328,15 @@ func buildForgeCreateWorkerCommand(statePath *string, sessionIdx *uint, spaceID 
 				return err
 			}
 			defer engineCleanup()
+
+			// Open a write transaction.
 			tx, err := engine.NewTransaction(ctx, true)
 			if err != nil {
 				return errors.Wrap(err, "new transaction")
 			}
 			defer tx.Discard()
 
+			// Create the worker, assign it to the Cluster, and commit.
 			if _, _, err = tx.ApplyWorldOp(
 				ctx,
 				forge_worker.NewWorkerCreateOp(key, name, []*identity.Keypair{keypair}),
@@ -326,6 +355,7 @@ func buildForgeCreateWorkerCommand(statePath *string, sessionIdx *uint, spaceID 
 				return errors.Wrap(err, "commit transaction")
 			}
 
+			// Report that the worker was created.
 			os.Stdout.WriteString("Created worker \"" + key + "\" in Cluster \"" + clusterKey + "\".\n")
 			return nil
 		},

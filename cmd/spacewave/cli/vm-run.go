@@ -68,9 +68,11 @@ func newVmRunCommand() *cli.Command {
 }
 
 func runV86Interactive(c *cli.Context, args *v86RunArgs) error {
+	// Stop the VM when the process is interrupted.
 	ctx, stop := signal.NotifyContext(c.Context, os.Interrupt)
 	defer stop()
 
+	// Build the boot options and release the root handle when the command returns.
 	boot, release, assets, err := buildV86RunBoot(ctx, args)
 	if err != nil {
 		return err
@@ -79,6 +81,7 @@ func runV86Interactive(c *cli.Context, args *v86RunArgs) error {
 		defer release()
 	}
 
+	// Instantiate the host runtime and initialize the CPU.
 	instance, err := v86_wazero.InstantiateHostRuntime(ctx, assets.Wasm, v86_wazero.HostRuntimeOptions{})
 	if err != nil {
 		return errors.Wrap(err, "instantiate v86 runtime")
@@ -88,6 +91,7 @@ func runV86Interactive(c *cli.Context, args *v86RunArgs) error {
 		return errors.Wrap(err, "initialize v86 CPU")
 	}
 
+	// Describe the root and announce the boot.
 	rootDesc := args.root
 	if rootDesc == "" {
 		rootDesc = "v86fs"
@@ -99,6 +103,7 @@ func runV86Interactive(c *cli.Context, args *v86RunArgs) error {
 	}
 	os.Stderr.WriteString("v86: booting " + rootDesc + " from " + assets.Dir + "; press Ctrl-A x to quit\n")
 
+	// Put the terminal in raw mode when stdin is a terminal.
 	fd := int(os.Stdin.Fd())
 	if term.IsTerminal(fd) {
 		state, err := term.MakeRaw(fd)
@@ -108,6 +113,7 @@ func runV86Interactive(c *cli.Context, args *v86RunArgs) error {
 		defer term.Restore(fd, state)
 	}
 
+	// Run the serial console until Ctrl-A x or interrupt.
 	runCtx, cancel := context.WithCancel(ctx)
 	defer cancel()
 	in := &serialEscapeReader{src: os.Stdin, quit: cancel}
@@ -123,6 +129,7 @@ func runV86Interactive(c *cli.Context, args *v86RunArgs) error {
 // the chosen root device. The returned release func drops the v86fs root handle
 // and is nil for the host9p path.
 func buildV86RunBoot(ctx context.Context, args *v86RunArgs) (v86_wazero.HostBootOptions, func(), *v86_wazero.AssetSet, error) {
+	// Apply asset flags and resolve the v86 asset set.
 	assetOpts := v86_wazero.OptionsFromEnv()
 	if args.assetDir != "" {
 		assetOpts.AssetDir = args.assetDir
@@ -143,6 +150,8 @@ func buildV86RunBoot(ctx context.Context, args *v86RunArgs) (v86_wazero.HostBoot
 	if err != nil {
 		return v86_wazero.HostBootOptions{}, nil, nil, errors.Wrap(err, "resolve v86 assets")
 	}
+
+	// Read SeaBIOS, VGABIOS, and the kernel.
 	bios, err := os.ReadFile(assets.SeaBIOS)
 	if err != nil {
 		return v86_wazero.HostBootOptions{}, nil, nil, errors.Wrap(err, "read SeaBIOS")
@@ -155,6 +164,8 @@ func buildV86RunBoot(ctx context.Context, args *v86RunArgs) (v86_wazero.HostBoot
 	if err != nil {
 		return v86_wazero.HostBootOptions{}, nil, nil, errors.Wrap(err, "read kernel")
 	}
+
+	// Assemble the boot options, memory, network, and root device.
 	boot := v86_wazero.HostBootOptions{
 		EnableJIT: args.enableJIT,
 		BIOS:      bios,
@@ -207,6 +218,7 @@ type serialEscapeReader struct {
 }
 
 func (e *serialEscapeReader) Read(p []byte) (int, error) {
+	// Read stdin, treating Ctrl-A x as quit.
 	if len(e.pending) != 0 {
 		n := copy(p, e.pending)
 		e.pending = e.pending[n:]

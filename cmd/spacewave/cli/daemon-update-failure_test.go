@@ -19,6 +19,7 @@ import (
 // TestDaemonUpdateChangedAfterAcceptanceReportsError keeps admission open and
 // permits an explicit retry after the selected fixture bytes are restored.
 func TestDaemonUpdateChangedAfterAcceptanceReportsError(t *testing.T) {
+	// Stage the old and corrupted update executables.
 	statePath := shortSocketDir(t)
 	oldPath := filepath.Join(statePath, "old-spacewave")
 	stagedPath := filepath.Join(statePath, "staged-cli")
@@ -27,12 +28,16 @@ func TestDaemonUpdateChangedAfterAcceptanceReportsError(t *testing.T) {
 	t.Setenv(sharedDaemonFixtureMode, "native")
 	t.Setenv(sharedDaemonUpdateTarget, stagedPath)
 	t.Setenv(sharedDaemonCorruptOnAccept, "1")
+
+	// Set the daemon environment and a timeout context.
 	t.Setenv("SPACEWAVE_STATE_PATH", statePath)
 	t.Setenv("SPACEWAVE_SOCKET_PATH", "")
 	t.Setenv(daemonIdleTimeoutEnvVar, "30s")
 	t.Setenv(daemon.StartupTimeoutEnvVar, "15s")
 	ctx, cancel := context.WithTimeout(t.Context(), 25*time.Second)
 	defer cancel()
+
+	// Watch the state directory and clean the fixture.
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
 		t.Fatal(err)
@@ -42,6 +47,8 @@ func TestDaemonUpdateChangedAfterAcceptanceReportsError(t *testing.T) {
 		t.Fatal(err)
 	}
 	cleanupDaemonUpdateFixture(t, statePath)
+
+	// Start the old daemon and connect to it.
 	if err := daemon.StartExecutable(ctx, statePath, oldPath); err != nil {
 		t.Fatal(err)
 	}
@@ -56,6 +63,8 @@ func TestDaemonUpdateChangedAfterAcceptanceReportsError(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Accept the update and wait for the failure.
 	rpc, err := client.Root().GetResourceRef().GetClient()
 	if err != nil {
 		t.Fatal(err)
@@ -82,6 +91,7 @@ func TestDaemonUpdateChangedAfterAcceptanceReportsError(t *testing.T) {
 		}
 	}
 
+	// Wait until the update reports a digest error.
 failureReported:
 	status := &spacewave_launcher.LauncherInfo{}
 	if err := rpc.ExecCall(ctx, "test.DaemonUpdate", "Status", &spacewave_launcher.WatchLauncherInfoRequest{}, status); err != nil {
@@ -91,6 +101,8 @@ failureReported:
 	if state.GetPhase() != spacewave_launcher.UpdatePhase_UPDATE_PHASE_ERROR || !strings.Contains(state.GetErrorMessage(), "digest") {
 		t.Fatalf("visible daemon failure = %v", state)
 	}
+
+	// Keep the old runtime identity and restore the fixture.
 	late, err := connector.Connect(ctx, statePath, socketPath)
 	if err != nil {
 		t.Fatalf("admission was fenced after preparation failure: %v", err)
@@ -106,6 +118,7 @@ failureReported:
 	late.Close()
 	client.Close()
 
+	// Wait until the restored daemon is ready.
 	for {
 		select {
 		case event := <-watcher.Events:

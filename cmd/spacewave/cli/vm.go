@@ -34,6 +34,7 @@ import (
 
 // newVmCommand builds the vm command group.
 func newVmCommand(_ func() cli_entrypoint.CliBus) *cli.Command {
+	// Declare the shared VM flags and return the command group.
 	var statePath string
 	var sessionIdx uint
 	var spaceID string
@@ -66,6 +67,7 @@ func newVmStartCommand(statePath *string, sessionIdx *uint, spaceID *string) *cl
 			&cli.BoolFlag{Name: "wait", Usage: "wait for running, stopped, or error state", Destination: &wait},
 		},
 		Action: func(c *cli.Context) error {
+			// Require a VM key, start it, and watch unless waiting was disabled.
 			key := c.Args().First()
 			if key == "" {
 				return errors.New("VM key required")
@@ -114,6 +116,7 @@ func newVmStopCommand(statePath *string, sessionIdx *uint, spaceID *string) *cli
 		Usage:     "request a VM stop",
 		ArgsUsage: "<vm-key>",
 		Action: func(c *cli.Context) error {
+			// Require a VM key, stop it, and report that it stopped.
 			key := c.Args().First()
 			if key == "" {
 				return errors.New("VM key required")
@@ -155,6 +158,7 @@ func newVmCreateV86Command(statePath *string, sessionIdx *uint, spaceID *string)
 			&cli.StringSliceFlag{Name: "mount", Usage: "guest mount /path=objectKey[:rw|:ro]", Destination: &args.mounts},
 		},
 		Action: func(c *cli.Context) error {
+			// Require a name, create the VM, and print its key.
 			name := c.Args().First()
 			if name == "" {
 				return errors.New("VM name required")
@@ -189,6 +193,7 @@ func newVmInfoCommand(statePath *string, sessionIdx *uint, spaceID *string) *cli
 		Usage:     "show VM metadata and runtime configuration",
 		ArgsUsage: "<vm-key>",
 		Action: func(c *cli.Context) error {
+			// Require a VM key, read it, and write its info.
 			key := c.Args().First()
 			if key == "" {
 				return errors.New("VM key required")
@@ -300,6 +305,7 @@ func newVmImageV86CopyFromCdnCommand(statePath *string, sessionIdx *uint, spaceI
 			},
 		},
 		Action: func(c *cli.Context) error {
+			// Require source and destination keys, copy the CDN image, and print the destination.
 			srcKey := c.Args().First()
 			if srcKey == "" {
 				return errors.New("CDN image key required")
@@ -322,6 +328,7 @@ func newVmImageV86InfoCommand(statePath *string, sessionIdx *uint, spaceID *stri
 		Usage:     "show v86 image metadata and asset edges",
 		ArgsUsage: "<image-key>",
 		Action: func(c *cli.Context) error {
+			// Require an image key, read it, and write its info.
 			key := c.Args().First()
 			if key == "" {
 				return errors.New("image key required")
@@ -393,6 +400,7 @@ func vmMemoryMiB(value uint) (uint32, error) {
 func readV86Images(c *cli.Context, statePath string, sessionIdx uint32, spaceID string) ([]*v86ImageCLIEntry, error) {
 	var out []*v86ImageCLIEntry
 	err := withVmWorldReadTx(c, statePath, sessionIdx, spaceID, func(tx world.WorldState) error {
+		// List image keys, sort them, and read each image.
 		keys, err := world_types.ListObjectsWithType(c.Context, tx, s4wave_vm.V86ImageTypeID)
 		if err != nil {
 			return errors.Wrap(err, "list v86 images")
@@ -414,6 +422,7 @@ func readV86Images(c *cli.Context, statePath string, sessionIdx uint32, spaceID 
 func readV86VMs(c *cli.Context, statePath string, sessionIdx uint32, spaceID string) ([]*v86VMCLIEntry, error) {
 	var out []*v86VMCLIEntry
 	err := withVmWorldReadTx(c, statePath, sessionIdx, spaceID, func(tx world.WorldState) error {
+		// List VM keys, sort them, and read each VM.
 		keys, err := world_types.ListObjectsWithType(c.Context, tx, s4wave_vm.VmV86TypeID)
 		if err != nil {
 			return errors.Wrap(err, "list VMs")
@@ -446,6 +455,7 @@ func readV86VM(c *cli.Context, statePath string, sessionIdx uint32, spaceID, key
 }
 
 func readV86VMFromTx(c *cli.Context, tx world.WorldState, key string) (*v86VMCLIEntry, error) {
+	// Load the VM object and require that it exists.
 	ctx := c.Context
 	obj, found, err := tx.GetObject(ctx, key)
 	defer world.ReleaseObjectState(obj)
@@ -455,6 +465,8 @@ func readV86VMFromTx(c *cli.Context, tx world.WorldState, key string) (*v86VMCLI
 	if !found {
 		return nil, errors.Errorf("VM %q not found", key)
 	}
+
+	// Decode the VM block and read its graph edges.
 	var vm *s4wave_vm.VmV86
 	_, _, err = world.AccessObjectState(ctx, obj, false, func(bcs *block.Cursor) error {
 		current, err := block.UnmarshalBlock[*s4wave_vm.VmV86](ctx, bcs, func() block.Block {
@@ -512,6 +524,7 @@ func copyV86ImageFromCdn(
 	srcKey string,
 	dstKey string,
 ) error {
+	// Connect to the daemon.
 	ctx := c.Context
 	client, err := connectDaemonFromContext(ctx, c, statePath)
 	if err != nil {
@@ -519,17 +532,20 @@ func copyV86ImageFromCdn(
 	}
 	defer client.close()
 
+	// Mount the selected session.
 	sess, err := client.mountSession(ctx, sessionIdx)
 	if err != nil {
 		return err
 	}
 	defer sess.Release()
 
+	// Resolve the Space ID.
 	sid, err := client.resolveSpaceID(ctx, sess, spaceID)
 	if err != nil {
 		return err
 	}
 
+	// Open the CDN resource.
 	resp, err := client.root.GetCdn(ctx, cdnID)
 	if err != nil {
 		return errors.Wrap(err, "get CDN")
@@ -541,6 +557,8 @@ func copyV86ImageFromCdn(
 		return errors.Wrap(err, "CDN client")
 	}
 	cdnSvc := s4wave_cdn.NewSRPCCdnResourceServiceClient(cdnClient)
+
+	// Copy the image into the Space and drain the progress stream.
 	strm, err := cdnSvc.CopyV86ImageToSpace(ctx, &s4wave_cdn.CopyV86ImageToSpaceRequest{
 		SessionIdx:   sessionIdx,
 		DstSpaceId:   sid,
@@ -569,6 +587,7 @@ func createV86VM(
 	name string,
 	args *v86VMCreateArgs,
 ) (string, error) {
+	// Parse mounts and default the VM object key.
 	mounts, err := parseV86MountFlags(args.mounts.Value())
 	if err != nil {
 		return "", err
@@ -578,6 +597,8 @@ func createV86VM(
 		vmKey = "vm/v86/" + ulid.NewULID()
 	}
 	ctx := c.Context
+
+	// Connect to the daemon and resolve the Space.
 	client, err := connectDaemonFromContext(ctx, c, statePath)
 	if err != nil {
 		return "", err
@@ -592,6 +613,8 @@ func createV86VM(
 	if err != nil {
 		return "", err
 	}
+
+	// Mount the Space and open the World engine.
 	spaceSvc, spaceCleanup, err := client.mountSpace(ctx, sess, sid)
 	if err != nil {
 		return "", err
@@ -602,6 +625,8 @@ func createV86VM(
 		return "", err
 	}
 	defer engineCleanup()
+
+	// Open a write transaction and reject an existing VM key.
 	tx, err := engine.NewTransaction(ctx, true)
 	if err != nil {
 		return "", errors.Wrap(err, "new transaction")
@@ -616,6 +641,8 @@ func createV86VM(
 			return "", errors.Errorf("destination VM %q already exists", vmKey)
 		}
 	}
+
+	// Build the create operation from the image and config flags.
 	op := s4wave_vm.NewCreateVmV86Op(vmKey, name, args.imageObjectKey, time.Now())
 	memoryMb, err := vmMemoryMiB(args.memoryMb)
 	if err != nil {
@@ -634,6 +661,8 @@ func createV86VM(
 		RuntimePluginId: args.runtimePluginID,
 		Mounts:          mounts,
 	}
+
+	// Apply the create operation and commit it.
 	if _, _, err := tx.ApplyWorldOp(ctx, op, ""); err != nil {
 		return "", errors.Wrap(err, "create v86 VM")
 	}
@@ -651,6 +680,7 @@ func setV86VMState(
 	vmKey string,
 	state s4wave_vm.VmState,
 ) error {
+	// Connect to the daemon and mount the session.
 	ctx := c.Context
 	client, err := connectDaemonFromContext(ctx, c, statePath)
 	if err != nil {
@@ -662,6 +692,8 @@ func setV86VMState(
 		return err
 	}
 	defer sess.Release()
+
+	// Resolve the Space and open the World engine.
 	sid, err := client.resolveSpaceID(ctx, sess, spaceID)
 	if err != nil {
 		return err
@@ -676,11 +708,14 @@ func setV86VMState(
 		return err
 	}
 	defer engineCleanup()
+
+	// Apply the state change.
 	op := s4wave_vm.NewSetV86StateOp(vmKey, state, "")
 	return applyWorldOp(c, engine, op)
 }
 
 func watchV86VM(c *cli.Context, statePath string, sessionIdx uint32, spaceID, vmKey string) error {
+	// Connect to the daemon and mount the session.
 	ctx := c.Context
 	client, err := connectDaemonFromContext(ctx, c, statePath)
 	if err != nil {
@@ -692,6 +727,8 @@ func watchV86VM(c *cli.Context, statePath string, sessionIdx uint32, spaceID, vm
 		return err
 	}
 	defer sess.Release()
+
+	// Resolve the Space and open the World engine.
 	sid, err := client.resolveSpaceID(ctx, sess, spaceID)
 	if err != nil {
 		return err
@@ -706,6 +743,8 @@ func watchV86VM(c *cli.Context, statePath string, sessionIdx uint32, spaceID, vm
 		return err
 	}
 	defer engineCleanup()
+
+	// Open the VM execution stream.
 	vmClient, _, _, vmCleanup, err := client.accessTypedObject(ctx, engineRef, vmKey)
 	if err != nil {
 		return err
@@ -717,6 +756,8 @@ func watchV86VM(c *cli.Context, statePath string, sessionIdx uint32, spaceID, vm
 		return errors.Wrap(err, "execute VM")
 	}
 	defer stream.Close()
+
+	// Print each execution state until the VM stops.
 	for {
 		status, err := stream.Recv()
 		if err != nil {
@@ -772,6 +813,7 @@ func importV86ImageTar(
 	spaceID string,
 	args *v86ImageImportTarArgs,
 ) (string, error) {
+	// Validate the import and default the image object key.
 	ctx := c.Context
 	if err := validateV86ImageImportTarArgs(args); err != nil {
 		return "", err
@@ -780,6 +822,8 @@ func importV86ImageTar(
 	if dstKey == "" {
 		dstKey = "v86image-" + ulid.NewULID()
 	}
+
+	// Name the wasm, BIOS, and kernel asset paths.
 	assetPaths := []struct {
 		name string
 		path string
@@ -790,6 +834,8 @@ func importV86ImageTar(
 		{"vgabios.bin", args.vgabiosPath, s4wave_vm.PredV86ImageBiosVgabios},
 		{"bzImage", args.kernelPath, s4wave_vm.PredV86ImageKernel},
 	}
+
+	// Connect to the daemon and resolve the Space.
 	client, err := connectDaemonFromContext(ctx, c, statePath)
 	if err != nil {
 		return "", err
@@ -804,6 +850,8 @@ func importV86ImageTar(
 	if err != nil {
 		return "", err
 	}
+
+	// Mount the Space and open the World engine.
 	spaceSvc, spaceCleanup, err := client.mountSpace(ctx, sess, sid)
 	if err != nil {
 		return "", err
@@ -814,11 +862,15 @@ func importV86ImageTar(
 		return "", err
 	}
 	defer engineCleanup()
+
+	// Open a write transaction on the World engine.
 	tx, err := engine.NewTransaction(ctx, true)
 	if err != nil {
 		return "", errors.Wrap(err, "new transaction")
 	}
 	defer tx.Discard()
+
+	// Reject an existing destination image.
 	{
 		objectState, found, err := tx.GetObject(ctx, dstKey)
 		world.ReleaseObjectState(objectState)
@@ -828,6 +880,8 @@ func importV86ImageTar(
 			return "", errors.Errorf("destination image %q already exists", dstKey)
 		}
 	}
+
+	// Import the wasm, BIOS, and kernel files.
 	ts := time.Now()
 	edges := make(map[string]string, 5)
 	for _, asset := range assetPaths {
@@ -841,6 +895,8 @@ func importV86ImageTar(
 		}
 		edges[string(asset.pred)] = key
 	}
+
+	// Import the rootfs tar and build the image record.
 	rootfsKey, err := v86ImageImportAssetObjectKey(dstKey, string(s4wave_vm.PredV86ImageRootfs))
 	if err != nil {
 		return "", err
@@ -860,6 +916,8 @@ func importV86ImageTar(
 		Description:   args.description,
 		Tags:          tags,
 	}
+
+	// Create the image, set its asset edges, and commit.
 	op := s4wave_vm.NewCreateV86ImageOp(dstKey, img, ts)
 	if _, _, err := tx.ApplyWorldOp(ctx, op, ""); err != nil {
 		return "", errors.Wrap(err, "create v86 image")
@@ -896,6 +954,7 @@ func v86ImageImportAssetObjectKey(imageKey, pred string) (string, error) {
 }
 
 func validateV86ImageImportTarArgs(args *v86ImageImportTarArgs) error {
+	// Require the wasm, BIOS, and kernel paths to be files.
 	for _, path := range []string{args.wasmPath, args.seabiosPath, args.vgabiosPath, args.kernelPath} {
 		st, err := os.Stat(path)
 		if err != nil {
@@ -905,6 +964,8 @@ func validateV86ImageImportTarArgs(args *v86ImageImportTarArgs) error {
 			return errors.Errorf("%s is a directory, expected file", path)
 		}
 	}
+
+	// Open the rootfs tar and require it to be a file.
 	f, err := os.Open(args.rootfsTarPath)
 	if err != nil {
 		return errors.Wrapf(err, "open rootfs tar %s", args.rootfsTarPath)
@@ -917,6 +978,8 @@ func validateV86ImageImportTarArgs(args *v86ImageImportTarArgs) error {
 	if st.IsDir() {
 		return errors.Errorf("%s is a directory, expected tar file", args.rootfsTarPath)
 	}
+
+	// Parse the rootfs tar and release the cursor.
 	tarCursor, err := unixfs_tar.NewTarFSCursor(f, st.Size())
 	if err != nil {
 		return errors.Wrapf(err, "parse rootfs tar %s", args.rootfsTarPath)
@@ -926,6 +989,7 @@ func validateV86ImageImportTarArgs(args *v86ImageImportTarArgs) error {
 }
 
 func importV86SingleFile(ctx context.Context, tx world.WorldState, key, name, path string, ts time.Time) (string, error) {
+	// Open the asset file.
 	st, err := os.Stat(path)
 	if err != nil {
 		return "", errors.Wrapf(err, "stat %s", path)
@@ -938,6 +1002,8 @@ func importV86SingleFile(ctx context.Context, tx world.WorldState, key, name, pa
 		return "", errors.Wrapf(err, "open %s", path)
 	}
 	defer f.Close()
+
+	// Initialize the UnixFS node and write the file contents.
 	if _, _, err := unixfs_world.FsInit(ctx, tx, "", key, unixfs_world.FSType_FSType_FS_NODE, nil, false, ts); err != nil {
 		return "", errors.Wrap(err, "fs-init "+name)
 	}
@@ -964,6 +1030,7 @@ func importV86SingleFile(ctx context.Context, tx world.WorldState, key, name, pa
 }
 
 func importV86RootfsTar(ctx context.Context, tx world.WorldState, key, path string, ts time.Time) (string, error) {
+	// Open the rootfs tar and require it to be a file.
 	f, err := os.Open(path)
 	if err != nil {
 		return "", errors.Wrapf(err, "open rootfs tar %s", path)
@@ -976,6 +1043,8 @@ func importV86RootfsTar(ctx context.Context, tx world.WorldState, key, path stri
 	if st.IsDir() {
 		return "", errors.Errorf("%s is a directory, expected tar file", path)
 	}
+
+	// Parse the tar and open it as a filesystem handle.
 	tarCursor, err := unixfs_tar.NewTarFSCursor(f, st.Size())
 	if err != nil {
 		return "", errors.Wrapf(err, "parse rootfs tar %s", path)
@@ -986,6 +1055,8 @@ func importV86RootfsTar(ctx context.Context, tx world.WorldState, key, path stri
 		return "", errors.Wrap(err, "build tar fs handle")
 	}
 	defer srcHandle.Release()
+
+	// Initialize the rootfs node and sync the tar into it.
 	if _, _, err := unixfs_world.FsInit(ctx, tx, "", key, unixfs_world.FSType_FSType_FS_NODE, nil, false, ts); err != nil {
 		return "", errors.Wrap(err, "fs-init rootfs")
 	}
@@ -1017,6 +1088,7 @@ func withVmWorldReadTx(
 	spaceID string,
 	cb func(world.WorldState) error,
 ) error {
+	// Connect to the daemon.
 	ctx := c.Context
 	client, err := connectDaemonFromContext(ctx, c, statePath)
 	if err != nil {
@@ -1024,29 +1096,34 @@ func withVmWorldReadTx(
 	}
 	defer client.close()
 
+	// Mount the selected session.
 	sess, err := client.mountSession(ctx, sessionIdx)
 	if err != nil {
 		return err
 	}
 	defer sess.Release()
 
+	// Resolve the Space ID.
 	sid, err := client.resolveSpaceID(ctx, sess, spaceID)
 	if err != nil {
 		return err
 	}
 
+	// Mount the Space service.
 	spaceSvc, spaceCleanup, err := client.mountSpace(ctx, sess, sid)
 	if err != nil {
 		return err
 	}
 	defer spaceCleanup()
 
+	// Open the World engine.
 	engine, engineCleanup, err := client.accessWorldEngine(ctx, spaceSvc)
 	if err != nil {
 		return err
 	}
 	defer engineCleanup()
 
+	// Open a read transaction and run the callback.
 	tx, err := engine.NewTransaction(ctx, false)
 	if err != nil {
 		return errors.Wrap(err, "new transaction")
@@ -1056,6 +1133,7 @@ func withVmWorldReadTx(
 }
 
 func readV86ImageFromTx(c *cli.Context, tx world.WorldState, key string) (*v86ImageCLIEntry, error) {
+	// Load the image object and require that it exists.
 	ctx := c.Context
 	obj, found, err := tx.GetObject(ctx, key)
 	defer world.ReleaseObjectState(obj)
@@ -1065,6 +1143,8 @@ func readV86ImageFromTx(c *cli.Context, tx world.WorldState, key string) (*v86Im
 	if !found {
 		return nil, errors.Errorf("v86 image %q not found", key)
 	}
+
+	// Decode the image block and read its asset edges.
 	var img *s4wave_vm.V86Image
 	_, _, err = world.AccessObjectState(ctx, obj, false, func(bcs *block.Cursor) error {
 		current, err := block.UnmarshalBlock[*s4wave_vm.V86Image](ctx, bcs, func() block.Block {
@@ -1115,6 +1195,7 @@ var v86ImageAssetPreds = map[string]quad.IRI{
 }
 
 func writeV86ImageList(images []*v86ImageCLIEntry, outputFormat string) error {
+	// Emit the image list as JSON or YAML, or write the table.
 	if outputFormat == "json" || outputFormat == "yaml" {
 		buf, ms := newMarshalBuf()
 		ms.WriteObjectStart()
@@ -1147,6 +1228,7 @@ func writeV86ImageList(images []*v86ImageCLIEntry, outputFormat string) error {
 }
 
 func writeV86VMList(vms []*v86VMCLIEntry, outputFormat string) error {
+	// Emit the VM list as JSON or YAML, or write the table.
 	if outputFormat == "json" || outputFormat == "yaml" {
 		buf, ms := newMarshalBuf()
 		ms.WriteObjectStart()
@@ -1204,6 +1286,7 @@ func writeV86ImageInfo(img *v86ImageCLIEntry, outputFormat string) error {
 }
 
 func writeV86VMInfo(vm *v86VMCLIEntry, outputFormat string) error {
+	// Emit the VM info as JSON or YAML, or write its fields.
 	if outputFormat == "json" || outputFormat == "yaml" {
 		buf, ms := newMarshalBuf()
 		writeV86VMJSON(ms, vm)
@@ -1232,6 +1315,7 @@ func writeV86VMInfo(vm *v86VMCLIEntry, outputFormat string) error {
 }
 
 func writeV86ImageJSON(ms *protojson.MarshalState, img *v86ImageCLIEntry) {
+	// Write the image identity fields.
 	ms.WriteObjectStart()
 	var f bool
 	writeJSONStringField(ms, &f, "objectKey", img.objectKey)
@@ -1240,6 +1324,8 @@ func writeV86ImageJSON(ms *protojson.MarshalState, img *v86ImageCLIEntry) {
 	writeJSONStringField(ms, &f, "platform", img.image.GetPlatform())
 	writeJSONStringField(ms, &f, "distro", img.image.GetDistro())
 	writeJSONStringField(ms, &f, "kernelVersion", img.image.GetKernelVersion())
+
+	// Write the image tags.
 	ms.WriteMoreIf(&f)
 	ms.WriteObjectField("tags")
 	ms.WriteArrayStart()
@@ -1249,6 +1335,8 @@ func writeV86ImageJSON(ms *protojson.MarshalState, img *v86ImageCLIEntry) {
 		ms.WriteString(tag)
 	}
 	ms.WriteArrayEnd()
+
+	// Write the image assets and close the object.
 	ms.WriteMoreIf(&f)
 	ms.WriteObjectField("assets")
 	ms.WriteObjectStart()
@@ -1261,6 +1349,7 @@ func writeV86ImageJSON(ms *protojson.MarshalState, img *v86ImageCLIEntry) {
 }
 
 func writeV86VMJSON(ms *protojson.MarshalState, vm *v86VMCLIEntry) {
+	// Start the VM object and open its config.
 	cfg := vm.vm.GetConfig()
 	ms.WriteObjectStart()
 	var f bool
@@ -1269,7 +1358,11 @@ func writeV86VMJSON(ms *protojson.MarshalState, vm *v86VMCLIEntry) {
 	writeJSONStringField(ms, &f, "state", vm.vm.GetState().String())
 	writeJSONStringField(ms, &f, "imageObjectKey", vm.edges["image"])
 	ms.WriteMoreIf(&f)
+
+	// Open the config field.
 	ms.WriteObjectField("config")
+
+	// Write the VM config fields.
 	ms.WriteObjectStart()
 	var cf bool
 	writeJSONUint64Field(ms, &cf, "memoryMb", uint64(cfg.GetMemoryMb()))
@@ -1278,7 +1371,11 @@ func writeV86VMJSON(ms *protojson.MarshalState, vm *v86VMCLIEntry) {
 	writeJSONBoolField(ms, &cf, "serialEnabled", cfg.GetSerialEnabled())
 	writeJSONStringField(ms, &cf, "bootArgs", cfg.GetBootArgs())
 	writeJSONStringField(ms, &cf, "runtimePluginId", cfg.GetRuntimePluginId())
+
+	// Close the config object.
 	ms.WriteObjectEnd()
+
+	// Write the kernel, rootfs, BIOS, and wasm overrides.
 	ms.WriteMoreIf(&f)
 	ms.WriteObjectField("overrides")
 	ms.WriteObjectStart()
@@ -1287,7 +1384,11 @@ func writeV86VMJSON(ms *protojson.MarshalState, vm *v86VMCLIEntry) {
 	writeJSONStringField(ms, &of, "rootfs", vm.edges["rootfsOverride"])
 	writeJSONStringField(ms, &of, "bios", vm.edges["biosOverride"])
 	writeJSONStringField(ms, &of, "wasm", vm.edges["wasmOverride"])
+
+	// Close the overrides object.
 	ms.WriteObjectEnd()
+
+	// Write the error message and close the VM object.
 	writeJSONStringField(ms, &f, "errorMessage", vm.vm.GetErrorMessage())
 	ms.WriteObjectEnd()
 }

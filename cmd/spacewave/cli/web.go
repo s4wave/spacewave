@@ -16,6 +16,7 @@ import (
 
 // newWebCommand builds the web command that exposes the native runtime on localhost.
 func newWebCommand(_ func() cli_entrypoint.CliBus) *cli.Command {
+	// Declare the web listener flags.
 	var statePath string
 	var host string
 	var listenMultiaddr string
@@ -24,6 +25,8 @@ func newWebCommand(_ func() cli_entrypoint.CliBus) *cli.Command {
 	var printURL bool
 	var displayPath string
 	var displayComponent string
+
+	// Return the web command.
 	return &cli.Command{
 		Name:  "web",
 		Usage: "start a localhost web listener for the native runtime",
@@ -129,6 +132,7 @@ func runWeb(
 	displayPath string,
 	displayComponent string,
 ) error {
+	// Reject an invalid port and connect to the daemon.
 	ctx := c.Context
 	if port > 65535 {
 		return errors.New("port must be <= 65535")
@@ -142,6 +146,7 @@ func runWeb(
 	}
 	defer client.close()
 
+	// Build the listen address and access the web listener.
 	reqMultiaddr := listenMultiaddr
 	if reqMultiaddr == "" {
 		reqMultiaddr = buildWebListenMultiaddr(host, uint32(port))
@@ -151,6 +156,7 @@ func runWeb(
 		return errors.Wrap(err, "access web listener")
 	}
 
+	// Release the listener resource when the command returns.
 	var release func()
 	if resp.GetResourceId() != 0 {
 		ref := client.resClient.CreateResourceReference(resp.GetResourceId())
@@ -158,6 +164,7 @@ func runWeb(
 		defer release()
 	}
 
+	// Build the browser URL from the display path and component.
 	queryParts := make([]string, 0, 2)
 	if displayPath != "" {
 		queryParts = append(queryParts, "path="+url.QueryEscape(displayPath))
@@ -170,6 +177,8 @@ func runWeb(
 		webPath = "/display?" + strings.Join(queryParts, "&")
 	}
 	browserURL := resp.GetUrl() + webPath + "#otp=" + resp.GetBootstrapSecret()
+
+	// Print the browser URL and wait unless the listener is backgrounded.
 	if printURL {
 		os.Stdout.WriteString(browserURL + "\n")
 		if background {
@@ -194,6 +203,7 @@ func runWeb(
 }
 
 func runWebList(c *cli.Context, statePath string) error {
+	// Connect to the daemon.
 	ctx := c.Context
 	client, err := connectDaemonFromContext(ctx, c, statePath)
 	if err != nil {
@@ -201,6 +211,7 @@ func runWebList(c *cli.Context, statePath string) error {
 	}
 	defer client.close()
 
+	// List web listeners and print each one.
 	listeners, err := client.root.ListWebListeners(ctx)
 	if err != nil {
 		if strings.Contains(err.Error(), "unimplemented") {
@@ -219,6 +230,7 @@ func runWebList(c *cli.Context, statePath string) error {
 }
 
 func runWebStop(c *cli.Context, statePath string, listenerID string) error {
+	// Connect to the daemon.
 	ctx := c.Context
 	client, err := connectDaemonFromContext(ctx, c, statePath)
 	if err != nil {
@@ -226,6 +238,7 @@ func runWebStop(c *cli.Context, statePath string, listenerID string) error {
 	}
 	defer client.close()
 
+	// Stop the web listener and report it.
 	stopped, err := client.root.StopWebListener(ctx, listenerID)
 	if err != nil {
 		return errors.Wrap(err, "stop web listener")
@@ -238,6 +251,7 @@ func runWebStop(c *cli.Context, statePath string, listenerID string) error {
 }
 
 func buildWebListenMultiaddr(host string, port uint32) string {
+	// Build an IP listen multiaddr from the host and port.
 	portStr := strconv.FormatUint(uint64(port), 10)
 	normalized := strings.Trim(host, "[]")
 	ip := net.ParseIP(normalized)

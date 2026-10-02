@@ -74,6 +74,7 @@ func TestAptImportDebArgumentsAndIntake(t *testing.T) {
 		{
 			name: "oversized file",
 			args: func(t *testing.T) []string {
+				// Create a deb larger than the maximum block size.
 				path := filepath.Join(t.TempDir(), "large.deb")
 				file, err := os.Create(path)
 				if err != nil {
@@ -103,12 +104,14 @@ func TestAptImportDebArgumentsAndIntake(t *testing.T) {
 }
 
 func TestAptImportDebCommitsAndReadsBack(t *testing.T) {
+	// Create a repository and a deb fixture.
 	ctx := t.Context()
 	engine := setupAptSDKEngine(t, ctx)
 	createAptRepository(t, ctx, engine, "apt/repos/stable")
 	deb := buildAptDebFixture(t)
 	var out bytes.Buffer
 
+	// Import the deb into the repository.
 	if err := importAptDebPackage(
 		ctx,
 		engine,
@@ -120,12 +123,14 @@ func TestAptImportDebCommitsAndReadsBack(t *testing.T) {
 		t.Fatalf("importAptDebPackage: %v", err)
 	}
 
+	// Open a read transaction on the engine.
 	readTx, err := engine.NewTransaction(ctx, false)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer readTx.Discard()
 
+	// Load the imported package object.
 	packageKey := "apt/repos/stable/packages/busybox"
 	objectState, found, err := readTx.GetObject(ctx, packageKey)
 	defer world.ReleaseObjectState(objectState)
@@ -146,6 +151,8 @@ func TestAptImportDebCommitsAndReadsBack(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Require the busybox metadata and built state.
 	if aptPackage.GetName() != "busybox" || aptPackage.GetVersion() != "1:1.36.1-7" || aptPackage.GetArchitecture() != "i386" {
 		t.Fatalf("package identity = %s %s %s", aptPackage.GetName(), aptPackage.GetVersion(), aptPackage.GetArchitecture())
 	}
@@ -153,6 +160,7 @@ func TestAptImportDebCommitsAndReadsBack(t *testing.T) {
 		t.Fatalf("package state = %s, want BUILT", aptPackage.GetState().String())
 	}
 
+	// Read the stored deb block and require it to match the fixture.
 	cursor, err := readTx.BuildStorageCursor(ctx)
 	if err != nil {
 		t.Fatal(err)
@@ -166,6 +174,7 @@ func TestAptImportDebCommitsAndReadsBack(t *testing.T) {
 		t.Fatal("committed deb payload does not match input")
 	}
 
+	// Require one graph edge from the repository to the package.
 	quads, err := readTx.LookupGraphQuads(ctx, world.NewGraphQuadWithKeys(
 		"apt/repos/stable",
 		s4wave_apt.PredAptRepoPackage.String(),
@@ -179,6 +188,7 @@ func TestAptImportDebCommitsAndReadsBack(t *testing.T) {
 		t.Fatalf("repository graph edges = %d, want 1", len(quads))
 	}
 
+	// Require the import command to print the package key.
 	wantOutput := "Package Key:     " + packageKey + "\n" +
 		"Package:         busybox\n" +
 		"Version:         1:1.36.1-7\n" +
@@ -191,12 +201,14 @@ func TestAptImportDebCommitsAndReadsBack(t *testing.T) {
 }
 
 func TestAptImportDebInvalidPackageAborts(t *testing.T) {
+	// Create a repository for an invalid import.
 	ctx := t.Context()
 	engine := setupAptSDKEngine(t, ctx)
 	createAptRepository(t, ctx, engine, "apt/repos/stable")
 	packageKey := "apt/repos/stable/packages/invalid"
 	var out bytes.Buffer
 
+	// Reject a payload that is not a deb and write nothing.
 	err := importAptDebPackage(ctx, engine, "apt/repos/stable", packageKey, []byte("not a deb"), &out)
 	if err == nil || !strings.Contains(err.Error(), "import deb package") {
 		t.Fatalf("error = %v, want wrapped import error", err)
@@ -205,6 +217,7 @@ func TestAptImportDebInvalidPackageAborts(t *testing.T) {
 		t.Fatalf("output before commit: %q", out.String())
 	}
 
+	// Require the invalid import to leave no package object or edge.
 	readTx, err := engine.NewTransaction(ctx, false)
 	if err != nil {
 		t.Fatal(err)
@@ -234,6 +247,7 @@ func TestAptImportDebInvalidPackageAborts(t *testing.T) {
 }
 
 func TestAptImportDebWrapsCommitError(t *testing.T) {
+	// Create a repository whose commit fails after the package is staged.
 	ctx := t.Context()
 	failure := &aptCommitFailureClient{err: errors.New("storage commit failed")}
 	engine := setupAptSDKEngineWithClient(t, ctx, func(client *resource_client.Client) sdk_engine.ResourceClient {
@@ -244,6 +258,7 @@ func TestAptImportDebWrapsCommitError(t *testing.T) {
 	failure.enabled = true
 	var out bytes.Buffer
 
+	// Wrap the storage commit error and write nothing.
 	err := importAptDebPackage(
 		ctx,
 		engine,
@@ -259,6 +274,7 @@ func TestAptImportDebWrapsCommitError(t *testing.T) {
 		t.Fatalf("output after failed commit: %q", out.String())
 	}
 
+	// Read the repository after the failed commit.
 	failure.enabled = false
 	readTx, err := engine.NewTransaction(ctx, false)
 	if err != nil {
@@ -277,8 +293,10 @@ func TestAptImportDebWrapsCommitError(t *testing.T) {
 }
 
 func runAptCLI(t *testing.T, args ...string) error {
+	// Mark the helper.
 	t.Helper()
 
+	// Run the apt import-deb command.
 	app := cli.NewApp()
 	app.Name = "spacewave"
 	app.HideVersion = true
@@ -299,8 +317,10 @@ func setupAptSDKEngineWithClient(
 	ctx context.Context,
 	wrap func(*resource_client.Client) sdk_engine.ResourceClient,
 ) *sdk_engine.SDKEngine {
+	// Mark the helper.
 	t.Helper()
 
+	// Create a testbed World through the root resource.
 	_, resClient, cleanup := resource_testbed.SetupTestbedWithClient(ctx, t)
 	rootRef := resClient.AccessRootResource()
 	srpcClient, err := rootRef.GetClient()
@@ -316,6 +336,8 @@ func setupAptSDKEngineWithClient(
 		cleanup()
 		t.Fatal(err)
 	}
+
+	// Open the SDK engine and release it when the test ends.
 	engineRef := resClient.CreateResourceReference(createResp.GetResourceId())
 	engine, err := sdk_engine.NewSDKEngine(wrap(resClient), engineRef)
 	if err != nil {
@@ -333,8 +355,10 @@ func setupAptSDKEngineWithClient(
 }
 
 func createAptRepository(t *testing.T, ctx context.Context, engine *sdk_engine.SDKEngine, repositoryKey string) {
+	// Mark the helper.
 	t.Helper()
 
+	// Create the apt repository and commit it.
 	tx, err := engine.NewTransaction(ctx, true)
 	if err != nil {
 		t.Fatal(err)
@@ -396,8 +420,10 @@ func (c *aptCommitFailureSRPCClient) ExecCall(
 }
 
 func buildAptDebFixture(t *testing.T) []byte {
+	// Mark the helper.
 	t.Helper()
 
+	// Write the control tar.
 	control := []byte("Package: busybox\nVersion: 1:1.36.1-7\nArchitecture: i386\nDescription: Tiny utilities\n\n")
 	var tarData bytes.Buffer
 	tarWriter := tar.NewWriter(&tarData)
@@ -410,6 +436,8 @@ func buildAptDebFixture(t *testing.T) []byte {
 	if err := tarWriter.Close(); err != nil {
 		t.Fatal(err)
 	}
+
+	// Gzip the control archive.
 	var controlArchive bytes.Buffer
 	gzipWriter := gzip.NewWriter(&controlArchive)
 	if _, err := gzipWriter.Write(tarData.Bytes()); err != nil {
@@ -419,6 +447,7 @@ func buildAptDebFixture(t *testing.T) []byte {
 		t.Fatal(err)
 	}
 
+	// Assemble the deb archive from the control and data members.
 	var deb bytes.Buffer
 	deb.WriteString("!<arch>\n")
 	writeAptArMember(t, &deb, "debian-binary", []byte("2.0\n"))
@@ -428,8 +457,10 @@ func buildAptDebFixture(t *testing.T) []byte {
 }
 
 func writeAptArMember(t *testing.T, dst *bytes.Buffer, name string, data []byte) {
+	// Mark the helper.
 	t.Helper()
 
+	// Write an ar member header and its data.
 	field := func(value string, width int) string {
 		return value + strings.Repeat(" ", width-len(value))
 	}

@@ -20,6 +20,7 @@ import (
 // TestDaemonUpdateFailedReadinessRestoresOldCLI proves the old lease releases
 // before fallback readiness and the failed selected child leaves no service.
 func TestDaemonUpdateFailedReadinessRestoresOldCLI(t *testing.T) {
+	// Stage the old executable and a failing selected CLI.
 	statePath := shortSocketDir(t)
 	oldPath := filepath.Join(statePath, "old-spacewave")
 	stagedPath := filepath.Join(statePath, "failed-cli.sh")
@@ -28,6 +29,8 @@ func TestDaemonUpdateFailedReadinessRestoresOldCLI(t *testing.T) {
 	t.Setenv(sharedDaemonFixtureMode, "native")
 	t.Setenv(sharedDaemonUpdateTarget, stagedPath)
 	t.Setenv(sharedDaemonCorruptOnAccept, "")
+
+	// Set the daemon environment and a timeout context.
 	t.Setenv(sharedDaemonFailSelected, "1")
 	t.Setenv("SPACEWAVE_STATE_PATH", statePath)
 	t.Setenv("SPACEWAVE_SOCKET_PATH", "")
@@ -35,6 +38,8 @@ func TestDaemonUpdateFailedReadinessRestoresOldCLI(t *testing.T) {
 	t.Setenv(daemon.StartupTimeoutEnvVar, "5s")
 	ctx, cancel := context.WithTimeout(t.Context(), 25*time.Second)
 	defer cancel()
+
+	// Watch the state directory and clean the fixture.
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
 		t.Fatal(err)
@@ -44,6 +49,8 @@ func TestDaemonUpdateFailedReadinessRestoresOldCLI(t *testing.T) {
 		t.Fatal(err)
 	}
 	cleanupDaemonUpdateFixture(t, statePath)
+
+	// Start the old daemon and read its runtime identity.
 	if err := daemon.StartExecutable(ctx, statePath, oldPath); err != nil {
 		t.Fatal(err)
 	}
@@ -57,6 +64,8 @@ func TestDaemonUpdateFailedReadinessRestoresOldCLI(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Accept the failing update and close the client.
 	rpc, err := client.Root().GetResourceRef().GetClient()
 	if err != nil {
 		t.Fatal(err)
@@ -68,6 +77,7 @@ func TestDaemonUpdateFailedReadinessRestoresOldCLI(t *testing.T) {
 	}
 	client.Close()
 
+	// Wait until the restored daemon is ready.
 	for {
 		select {
 		case event := <-watcher.Events:

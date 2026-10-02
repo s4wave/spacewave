@@ -125,6 +125,7 @@ func acceptDaemonListener(
 	var connsMtx sync.Mutex
 	conns := make(map[*trackedConn]struct{})
 	closeClients := func() {
+		// Close tracked connections and wait for clients to finish.
 		connsMtx.Lock()
 		active := make([]*trackedConn, 0, len(conns))
 		for conn := range conns {

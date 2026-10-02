@@ -23,6 +23,7 @@ import (
 // flags of the password/pem/backup add-method subcommands so the shared
 // addAuthMethodFlow refactor preserves the user-facing CLI surface.
 func TestNewAuthMethodAddSubcommandShape(t *testing.T) {
+	// Require the add command and its method subcommands.
 	cmd := newAuthMethodAddCommand()
 	if cmd.Name != "add" {
 		t.Fatalf("add command name = %q, want %q", cmd.Name, "add")
@@ -48,6 +49,8 @@ func TestNewAuthMethodAddSubcommandShape(t *testing.T) {
 		}
 	}
 	// pem subcommand must require --file flag.
+
+	// Require the PEM subcommand to have a required file flag.
 	pem := cmd.Subcommands[1]
 	var fileFlag *cli.StringFlag
 	for _, f := range pem.Flags {
@@ -62,9 +65,11 @@ func TestNewAuthMethodAddSubcommandShape(t *testing.T) {
 }
 
 func TestRunAuthMethodListUsesLocalAccountKeypairs(t *testing.T) {
+	// Stub the auth hooks.
 	restore := stubAuthTestHooks(t)
 	defer restore()
 
+	// Stub session mount and method-account access.
 	authMountSession = func(ctx context.Context, client *sdkClient, idx uint32) (authSessionHandle, error) {
 		if idx != 1 {
 			t.Fatalf("unexpected session index: %d", idx)
@@ -100,9 +105,11 @@ func TestRunAuthMethodListUsesLocalAccountKeypairs(t *testing.T) {
 		}, func() { cleanupCalled = true }, nil
 	}
 
+	// Build an empty CLI context.
 	c := cli.NewContext(nil, emptyFlagSet(t), nil)
 	c.Context = context.Background()
 
+	// Capture the method list output.
 	out, err := captureStdout(t, func() error {
 		return runAuthMethodList(c, ".spacewave", "text", 1)
 	})
@@ -110,6 +117,7 @@ func TestRunAuthMethodListUsesLocalAccountKeypairs(t *testing.T) {
 		t.Fatalf("run auth method list: %v", err)
 	}
 
+	// Require the password and backup PEM rows, and that cleanup ran.
 	assertContains(t, out, "Password")
 	assertContains(t, out, "Backup PEM")
 	assertContains(t, out, truncateID("12D3KooWPasswordKeypair", 20))
@@ -120,9 +128,11 @@ func TestRunAuthMethodListUsesLocalAccountKeypairs(t *testing.T) {
 }
 
 func TestRunAuthThresholdShowLocalSessionMessage(t *testing.T) {
+	// Stub the auth hooks.
 	restore := stubAuthTestHooks(t)
 	defer restore()
 
+	// Stub session mount and threshold-account access.
 	authMountSession = func(ctx context.Context, client *sdkClient, idx uint32) (authSessionHandle, error) {
 		return &fakeAuthSessionHandle{info: localAuthSessionInfo()}, nil
 	}
@@ -131,9 +141,11 @@ func TestRunAuthThresholdShowLocalSessionMessage(t *testing.T) {
 		return nil, nil, nil
 	}
 
+	// Build an empty CLI context.
 	c := cli.NewContext(nil, emptyFlagSet(t), nil)
 	c.Context = context.Background()
 
+	// Require the local-session threshold show message.
 	err := runAuthThresholdShow(c, ".spacewave", 1)
 	if err == nil {
 		t.Fatal("expected local-session threshold show error")
@@ -144,9 +156,11 @@ func TestRunAuthThresholdShowLocalSessionMessage(t *testing.T) {
 }
 
 func TestRunAuthThresholdSetLocalSessionMessage(t *testing.T) {
+	// Stub the auth hooks.
 	restore := stubAuthTestHooks(t)
 	defer restore()
 
+	// Stub session mount and threshold-account access.
 	authMountSession = func(ctx context.Context, client *sdkClient, idx uint32) (authSessionHandle, error) {
 		return &fakeAuthSessionHandle{info: localAuthSessionInfo()}, nil
 	}
@@ -155,9 +169,11 @@ func TestRunAuthThresholdSetLocalSessionMessage(t *testing.T) {
 		return nil, nil, nil
 	}
 
+	// Build an empty CLI context.
 	c := cli.NewContext(nil, emptyFlagSet(t), nil)
 	c.Context = context.Background()
 
+	// Require the local-session threshold set message.
 	err := runAuthThresholdSet(c, ".spacewave", 1, "", 2)
 	if err == nil {
 		t.Fatal("expected local-session threshold set error")
@@ -168,8 +184,10 @@ func TestRunAuthThresholdSetLocalSessionMessage(t *testing.T) {
 }
 
 func stubAuthTestHooks(t *testing.T) func() {
+	// Mark the helper.
 	t.Helper()
 
+	// Save the auth hook functions.
 	oldResolveStatePath := authResolveStatePath
 	oldConnectDaemon := authConnectDaemon
 	oldCloseClient := authCloseClient
@@ -177,6 +195,7 @@ func stubAuthTestHooks(t *testing.T) func() {
 	oldAccessMethodAccount := authAccessMethodAccount
 	oldAccessThresholdAccount := authAccessThresholdAccount
 
+	// Install stub auth hooks.
 	authResolveStatePath = func(_ *cli.Context, statePath string) (string, error) {
 		if statePath != ".spacewave" {
 			t.Fatalf("unexpected state path: %s", statePath)
@@ -204,6 +223,7 @@ func stubAuthTestHooks(t *testing.T) func() {
 	}
 
 	return func() {
+		// Restore the saved auth hooks.
 		authResolveStatePath = oldResolveStatePath
 		authConnectDaemon = oldConnectDaemon
 		authCloseClient = oldCloseClient
@@ -233,8 +253,10 @@ func emptyFlagSet(t *testing.T) *flag.FlagSet {
 }
 
 func captureStdout(t *testing.T, fn func() error) (string, error) {
+	// Mark the helper.
 	t.Helper()
 
+	// Replace stdout with a pipe.
 	oldStdout := os.Stdout
 	r, w, err := os.Pipe()
 	if err != nil {
@@ -245,6 +267,7 @@ func captureStdout(t *testing.T, fn func() error) (string, error) {
 		os.Stdout = oldStdout
 	}()
 
+	// Run the function and read the captured stdout.
 	runErr := fn()
 	if err := w.Close(); err != nil {
 		t.Fatalf("close writer: %v", err)

@@ -8,6 +8,7 @@ import (
 )
 
 func TestSpaceDeployCommandAdvertisesManifestSetDefault(t *testing.T) {
+	// Require the deploy command to advertise a manifest set.
 	statePath := ""
 	sessionIdx := uint(1)
 	cmd := newSpaceDeployCommand(&statePath, &sessionIdx)

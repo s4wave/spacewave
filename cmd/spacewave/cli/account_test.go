@@ -10,6 +10,7 @@ import (
 )
 
 func TestPrintSessionListEntryShowsFollowupSessionIndex(t *testing.T) {
+	// Build a follow-up session list entry.
 	entry := &session_pb.SessionListEntry{
 		SessionIndex: 7,
 		SessionRef: &session_pb.SessionRef{
@@ -21,6 +22,7 @@ func TestPrintSessionListEntryShowsFollowupSessionIndex(t *testing.T) {
 		},
 	}
 
+	// Capture the printed session entry.
 	out, err := captureStdout(t, func() error {
 		return printSessionListEntry(entry, "text")
 	})
@@ -28,6 +30,7 @@ func TestPrintSessionListEntryShowsFollowupSessionIndex(t *testing.T) {
 		t.Fatalf("print session list entry: %v", err)
 	}
 
+	// Assert the follow-up session index is printed.
 	assertContains(t, out, "Session Index")
 	assertContains(t, out, "7")
 	assertContains(t, out, "Use --session-index 7 with follow-up commands to use this session.")

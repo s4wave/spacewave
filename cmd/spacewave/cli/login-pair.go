@@ -71,6 +71,7 @@ func runLoginPair(c *cli.Context, statePath, code, label, outputFormat string) e
 	}
 	defer client.close()
 
+	// Look up the local provider and prepare a pairing session.
 	local, releaseLocal, err := client.lookupLocalProvider(ctx)
 	if err != nil {
 		return err
@@ -80,6 +81,8 @@ func runLoginPair(c *cli.Context, statePath, code, label, outputFormat string) e
 	if err != nil {
 		return errors.Wrap(err, "prepare pairing session")
 	}
+
+	// Mount the pairing session and open it.
 	resourceID, err := client.root.MountSession(ctx, prepared.GetSessionRef())
 	if err != nil {
 		return errors.Wrap(err, "mount pairing session")
@@ -104,6 +107,8 @@ func runLoginPair(c *cli.Context, statePath, code, label, outputFormat string) e
 	if err := verifyLoginPairing(ctx, sess, remotePeerID, interactive, outputFormat); err != nil {
 		return err
 	}
+
+	// Confirm the pairing and require a registered session.
 	result, err := sess.ConfirmPairingWithResult(ctx, remotePeerID, "")
 	if err != nil {
 		return errors.Wrap(err, "open paired account")
@@ -132,6 +137,7 @@ func runLoginPair(c *cli.Context, statePath, code, label, outputFormat string) e
 // Interactive use compares the emoji here; otherwise this side confirms and
 // prints the emoji for the person approving on the other device.
 func verifyLoginPairing(ctx context.Context, sess *s4wave_session.Session, remotePeerID string, interactive bool, outputFormat string) error {
+	// Watch pairing status until both devices confirm.
 	watch, err := sess.WatchPairingStatus(ctx)
 	if err != nil {
 		return errors.Wrap(err, "watch pairing")
@@ -196,6 +202,7 @@ func verifyLoginPairing(ctx context.Context, sess *s4wave_session.Session, remot
 // printPairingEmoji writes the emoji the person approving on the other device
 // compares. Structured output emits one record before the final Session record.
 func printPairingEmoji(emoji []string, outputFormat string) error {
+	// Start the verify object and write the status.
 	if outputFormat != "json" && outputFormat != "yaml" {
 		os.Stdout.WriteString("Ask the person approving in Spacewave to check these emoji match:\n" + strings.Join(emoji, " ") + "\n")
 		return nil
@@ -206,6 +213,8 @@ func printPairingEmoji(emoji []string, outputFormat string) error {
 	ms.WriteMoreIf(&f)
 	ms.WriteObjectField("status")
 	ms.WriteString("verify")
+
+	// Write the emoji array and close the object.
 	ms.WriteMoreIf(&f)
 	ms.WriteObjectField("emoji")
 	ms.WriteArrayStart()
@@ -216,6 +225,8 @@ func printPairingEmoji(emoji []string, outputFormat string) error {
 	}
 	ms.WriteArrayEnd()
 	ms.WriteObjectEnd()
+
+	// Emit the verify object.
 	if err := formatOutput(buf.Bytes(), outputFormat); err != nil {
 		return err
 	}

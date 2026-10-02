@@ -22,16 +22,20 @@ import (
 // side removes its socket file on shutdown, and the socket must be
 // reusable by a subsequent listen.
 func TestTakeoverDaemonSocketShutsDownDesktopListener(t *testing.T) {
+	// Take the test context.
 	ctx := t.Context()
 
+	// Start a desktop-like listener on a short socket path.
 	sock := filepath.Join(shortSocketDir(t), "desktop.sock")
 	lis := startDesktopLikeListener(t, ctx, sock)
 
+	// Take over the daemon socket.
 	le := logrus.NewEntry(logrus.New())
 	if err := takeoverDaemonSocket(ctx, le, sock); err != nil {
 		t.Fatalf("takeover: %v", err)
 	}
 
+	// Require the listener to shut down.
 	select {
 	case <-lis.done:
 	case <-time.After(5 * time.Second):
@@ -51,6 +55,7 @@ func TestTakeoverDaemonSocketShutsDownDesktopListener(t *testing.T) {
 // TestTakeoverDaemonSocketRemovesStaleSocket asserts takeover removes
 // a leftover socket file when nothing is listening on it.
 func TestTakeoverDaemonSocketRemovesStaleSocket(t *testing.T) {
+	// Create a stale socket path.
 	ctx := context.Background()
 	sock := filepath.Join(shortSocketDir(t), "stale.sock")
 
@@ -70,6 +75,7 @@ func TestTakeoverDaemonSocketRemovesStaleSocket(t *testing.T) {
 		t.Fatalf("takeover: %v", err)
 	}
 
+	// Require the stale socket to be gone.
 	if _, err := os.Stat(sock); !os.IsNotExist(err) {
 		t.Fatalf("expected socket removed; stat err=%v", err)
 	}
@@ -78,6 +84,7 @@ func TestTakeoverDaemonSocketRemovesStaleSocket(t *testing.T) {
 // TestTakeoverDaemonSocketPreservesNonSocket asserts takeover refuses to
 // remove user data occupying the socket path.
 func TestTakeoverDaemonSocketPreservesNonSocket(t *testing.T) {
+	// Create a non-socket path with user data.
 	ctx := context.Background()
 	sock := filepath.Join(shortSocketDir(t), "stale.sock")
 	const contents = "user data"
@@ -133,13 +140,16 @@ func startDesktopLikeListenerWithShutdown(
 	sock string,
 	beforeShutdown func(),
 ) *desktopLikeListener {
+	// Mark the helper.
 	t.Helper()
 
+	// Listen on the Unix socket.
 	lis, err := net.Listen("unix", sock)
 	if err != nil {
 		t.Fatalf("listen: %v", err)
 	}
 
+	// Register a shutdown handler on the serve mux.
 	serveCtx, serveCancel := context.WithCancel(ctx)
 	mux := srpc.NewMux()
 	if err := mux.Register(newDaemonControlHandler(func() {
@@ -153,6 +163,7 @@ func startDesktopLikeListenerWithShutdown(
 		t.Fatalf("register control: %v", err)
 	}
 
+	// Serve the mux until the context ends.
 	done := make(chan struct{})
 	go func() {
 		defer close(done)
@@ -177,6 +188,7 @@ func startDesktopLikeListenerWithShutdown(
 		}
 	}()
 
+	// Stop the listener when the test ends and return it.
 	t.Cleanup(func() {
 		serveCancel()
 		lis.Close()

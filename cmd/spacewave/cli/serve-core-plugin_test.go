@@ -23,12 +23,15 @@ import (
 // Plugins reach the native registry through a core plugin load or the
 // qualified core service route, without a core plugin process.
 func TestNativeCorePluginUsesLocalRegistry(t *testing.T) {
+	// Open a core bus with a timeout.
 	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
 	defer cancel()
 	b, _, err := controllerbus_core.NewCoreBus(ctx, logrus.NewEntry(logrus.New()))
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Register the object-type registry and add the native core plugin.
 	registry := resource_objecttype_registry.NewObjectTypeRegistryResource(nil)
 	server := resource_server.NewResourceServer(registry.GetMux())
 	mux := srpc.NewMux()
@@ -68,6 +71,7 @@ func TestNativeCorePluginUsesLocalRegistry(t *testing.T) {
 // registerNativeTestType registers typeID in the core registry over client and
 // checks that the registry retains it.
 func registerNativeTestType(ctx context.Context, t *testing.T, client srpc.Client, typeID string) {
+	// Open the resource client and its root.
 	t.Helper()
 	resClient, err := resource_client.NewClient(ctx, resource.NewSRPCResourceServiceClient(client))
 	if err != nil {
@@ -80,6 +84,8 @@ func registerNativeTestType(ctx context.Context, t *testing.T, client srpc.Clien
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Register the test type and retain its resource.
 	result, err := sdk_registry.NewSRPCObjectTypeRegistryResourceServiceClient(rootClient).RegisterObjectType(ctx,
 		&sdk_registry.RegisterObjectTypeRequest{TypeId: typeID, PluginId: "test-plugin"})
 	if err != nil {

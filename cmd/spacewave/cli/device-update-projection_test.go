@@ -12,6 +12,7 @@ import (
 )
 
 func TestProjectLauncherUpdateOntoDeviceLifecycle(t *testing.T) {
+	// Build a Device with created and updated timestamps.
 	now := time.Unix(1_700_000_000, 0)
 	created := timestamppb.New(now.Add(-time.Hour))
 	updated := timestamppb.New(now.Add(-time.Minute))
@@ -37,6 +38,7 @@ func TestProjectLauncherUpdateOntoDeviceLifecycle(t *testing.T) {
 		UpdatedAt: updated.CloneVT(),
 	}
 
+	// Define the launcher projection cases.
 	tests := []struct {
 		name         string
 		existing     *s4wave_device.Device
@@ -125,8 +127,10 @@ func TestProjectLauncherUpdateOntoDeviceLifecycle(t *testing.T) {
 		},
 	}
 
+	// Run each launcher projection case.
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			// Project the launcher update and keep identity fields.
 			existing := tt.existing
 			if existing == nil {
 				existing = base.CloneVT()
@@ -147,6 +151,8 @@ func TestProjectLauncherUpdateOntoDeviceLifecycle(t *testing.T) {
 			if next.GetCreatedAt().GetSeconds() != created.GetSeconds() {
 				t.Fatalf("created_at changed: got %v want %v", next.GetCreatedAt(), created)
 			}
+
+			// Assert the update state, status, and updated-at.
 			if len(next.GetCapabilities()) != len(existing.GetCapabilities()) {
 				t.Fatalf("capabilities changed: got %d want %d", len(next.GetCapabilities()), len(existing.GetCapabilities()))
 			}
@@ -172,11 +178,13 @@ func TestProjectLauncherUpdateOntoDeviceLifecycle(t *testing.T) {
 }
 
 func TestDeviceLauncherProjectionTargetRequiresReadyDeviceRecord(t *testing.T) {
+	// Reject a missing setup record.
 	statePath := t.TempDir()
 	if _, ok, err := deviceLauncherProjectionTarget(statePath); err != nil || ok {
 		t.Fatalf("missing setup target = (%v, %v), want no target without error", ok, err)
 	}
 
+	// Accept a ready setup record with a Device object key.
 	if err := writeDeviceSetupRecord(statePath, &deviceSetupRecord{
 		SetupState:      deviceSetupStateSessionReady,
 		PeerID:          "peer-device",

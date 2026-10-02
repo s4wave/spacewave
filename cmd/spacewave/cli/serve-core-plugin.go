@@ -31,6 +31,7 @@ type nativeCorePlugin struct {
 
 // newNativeCorePlugin constructs the core plugin over the native invoker.
 func newNativeCorePlugin(invoker srpc.Invoker) *nativeCorePlugin {
+	// Register the native core plugin and build its client.
 	p := &nativeCorePlugin{invoker: invoker}
 	mux := srpc.NewMux(invoker)
 	_ = bldr_plugin.SRPCRegisterPlugin(mux, p)

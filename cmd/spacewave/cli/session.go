@@ -120,6 +120,7 @@ func newSessionInfoCommand() *cli.Command {
 // runSessionInfo implements the session info command logic.
 // This is also called from the hidden "info" alias in cli.go.
 func runSessionInfo(c *cli.Context, statePath, outputFormat string, sessionIdx uint32) error {
+	// Connect to the daemon.
 	ctx := c.Context
 	client, err := connectDaemonFromContext(ctx, c, statePath)
 	if err != nil {
@@ -127,35 +128,42 @@ func runSessionInfo(c *cli.Context, statePath, outputFormat string, sessionIdx u
 	}
 	defer client.close()
 
+	// Mount the selected session.
 	sess, err := client.mountSession(ctx, sessionIdx)
 	if err != nil {
 		return err
 	}
 	defer sess.Release()
 
+	// Read the session info.
 	info, err := sess.GetSessionInfo(ctx)
 	if err != nil {
 		return errors.Wrap(err, "get session info")
 	}
 
+	// Copy the session, peer, provider, and account IDs.
 	sessID := info.GetSessionRef().GetProviderResourceRef().GetId()
 	peerID := info.GetPeerId()
 	provID := info.GetSessionRef().GetProviderResourceRef().GetProviderId()
 	acctID := info.GetSessionRef().GetProviderResourceRef().GetProviderAccountId()
 
+	// Watch the session resource list.
 	strm, err := sess.WatchResourcesList(ctx)
 	if err != nil {
 		return errors.Wrap(err, "watch resources list")
 	}
 	defer strm.Close()
 
+	// Read the current resource list.
 	resp, err := strm.Recv()
 	if err != nil {
 		return errors.Wrap(err, "recv resources list")
 	}
 
+	// Take the Space list from the resource snapshot.
 	spaces := resp.GetSpacesList()
 
+	// Emit the session info as JSON or YAML when that output format was requested.
 	if outputFormat == "json" || outputFormat == "yaml" {
 		buf, ms := newMarshalBuf()
 		ms.WriteObjectStart()
@@ -199,6 +207,7 @@ func runSessionInfo(c *cli.Context, statePath, outputFormat string, sessionIdx u
 		return formatOutput(buf.Bytes(), outputFormat)
 	}
 
+	// Write the session fields and the Space table.
 	w := os.Stdout
 	writeFields(w, [][2]string{
 		{"Session", sessID},
@@ -222,6 +231,7 @@ func runSessionInfo(c *cli.Context, statePath, outputFormat string, sessionIdx u
 
 // newSessionLogoutCommand builds the session logout subcommand.
 func newSessionLogoutCommand() *cli.Command {
+	// Declare the logout flags and return the command.
 	var statePath string
 	var sessionIdx uint
 	var yes bool
@@ -272,6 +282,7 @@ func sessionLogoutFlags(statePath *string, sessionIdx *uint, sessionID *string, 
 }
 
 func runSessionLogout(c *cli.Context, statePath string, sessionIdx uint32, target sessionLogoutTarget, yes bool) error {
+	// Connect to the daemon.
 	ctx := c.Context
 	client, err := connectDaemonFromContext(ctx, c, statePath)
 	if err != nil {
@@ -279,16 +290,19 @@ func runSessionLogout(c *cli.Context, statePath string, sessionIdx uint32, targe
 	}
 	defer client.close()
 
+	// List sessions on the daemon.
 	sessions, err := client.root.ListSessions(ctx)
 	if err != nil {
 		return errors.Wrap(err, "list sessions")
 	}
 
+	// Resolve the session entry to sign out.
 	entry, err := resolveSessionLogoutEntry(sessions, target, sessionIdx)
 	if err != nil {
 		return err
 	}
 
+	// Confirm the sign-out unless --yes was given.
 	if !yes {
 		ok, err := confirmSessionLogout(entry)
 		if err != nil {
@@ -300,10 +314,12 @@ func runSessionLogout(c *cli.Context, statePath string, sessionIdx uint32, targe
 		}
 	}
 
+	// Delete the selected session.
 	if err := client.root.DeleteSession(ctx, entry.GetSessionIndex()); err != nil {
 		return errors.Wrap(err, "delete session")
 	}
 
+	// Report the signed-out session index, session, and account.
 	ref := entry.GetSessionRef().GetProviderResourceRef()
 	os.Stdout.WriteString("signed out session index " + strconv.FormatUint(uint64(entry.GetSessionIndex()), 10) +
 		" (" + ref.GetProviderId() + " " + ref.GetProviderAccountId() + ")\n")
@@ -311,6 +327,7 @@ func runSessionLogout(c *cli.Context, statePath string, sessionIdx uint32, targe
 }
 
 func resolveSessionLogoutEntry(sessions []*core_session.SessionListEntry, target sessionLogoutTarget, sessionIdx uint32) (*core_session.SessionListEntry, error) {
+	// Resolve the logout target from flags, or from the selected session index.
 	if len(sessions) == 0 {
 		return nil, errors.New("no sessions")
 	}
@@ -332,6 +349,7 @@ func resolveSessionLogoutEntry(sessions []*core_session.SessionListEntry, target
 		return nil, errors.Errorf("no session found at index %d", sessionIdx)
 	}
 
+	// Match a numeric positional argument as a session index.
 	if idx, err := strconv.ParseUint(target.Positional, 10, 32); err == nil {
 		for _, entry := range sessions {
 			if entry.GetSessionIndex() == uint32(idx) {
@@ -363,6 +381,7 @@ func resolveSessionLogoutEntryByProviderRef(sessions []*core_session.SessionList
 }
 
 func confirmSessionLogout(entry *core_session.SessionListEntry) (bool, error) {
+	// Print the session and ask for confirmation.
 	ref := entry.GetSessionRef().GetProviderResourceRef()
 	os.Stdout.WriteString("Sign out this local session?\n\n")
 	writeFields(os.Stdout, [][2]string{
@@ -374,6 +393,7 @@ func confirmSessionLogout(entry *core_session.SessionListEntry) (bool, error) {
 	os.Stdout.WriteString("\nThis removes the session from this Spacewave state root. It does not revoke the provider-side session.\n")
 	os.Stdout.WriteString("Continue? [y/N]: ")
 
+	// Accept y or yes as confirmation.
 	line, err := bufio.NewReader(os.Stdin).ReadString('\n')
 	if err != nil && line == "" {
 		return false, errors.Wrap(err, "read confirmation")

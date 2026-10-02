@@ -31,6 +31,7 @@ import (
 
 // desktopSocket starts the protected daemon listener with Resource and desktop RPCs.
 func desktopSocket(t *testing.T, control *daemonDesktopControl, events <-chan struct{}) string {
+	// Mark the helper.
 	t.Helper()
 
 	// Bind an isolated protected socket for this test's daemon services.
@@ -46,6 +47,8 @@ func desktopSocket(t *testing.T, control *daemonDesktopControl, events <-chan st
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Listen on the protected socket and require mode 0600.
 	lis, err := resource_listener.ListenProtectedUnix(socket, true)
 	if err != nil {
 		t.Fatal(err)
@@ -89,6 +92,7 @@ func desktopSocket(t *testing.T, control *daemonDesktopControl, events <-chan st
 
 // desktopSocketClient connects to both services over one protected socket.
 func desktopSocketClient(t *testing.T, socket string) (srpc.Client, *resource_client.Client, net.Conn) {
+	// Mark the helper.
 	t.Helper()
 
 	// Connect a launcher or retained Resource client to the protected socket.
@@ -113,6 +117,7 @@ func desktopSocketClient(t *testing.T, socket string) (srpc.Client, *resource_cl
 
 // desktopWatch opens a Resource stream that must survive desktop transitions.
 func desktopWatch(t *testing.T, resources *resource_client.Client) srpc.Stream {
+	// Mark the helper.
 	t.Helper()
 
 	// Resolve the retained client's Root Resource and its child watch.
@@ -138,12 +143,15 @@ func desktopWatch(t *testing.T, resources *resource_client.Client) srpc.Stream {
 // TestDesktopControlSocketKeepsResourceAndPluginPresence verifies real socket
 // and web-plugin RPCs across launcher exit, concurrent focus, and warm reopen.
 func TestDesktopControlSocketKeepsResourceAndPluginPresence(t *testing.T) {
+	// Open an idle tracker, a gate, and the desktop handler.
 	ctx := t.Context()
 	idle := newDaemonIdleTracker(0, nil)
 	defer idle.close()
 	gate := make(chan struct{})
 	desktop := &socketDesktop{entered: make(chan string, 3), gate: gate}
 	le := logrus.NewEntry(logrus.New())
+
+	// Open a core bus and register the desktop handler.
 	b, _, err := core.NewCoreBus(ctx, le)
 	if err != nil {
 		t.Fatal(err)
@@ -154,6 +162,8 @@ func TestDesktopControlSocketKeepsResourceAndPluginPresence(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer releaseDesktop()
+
+	// Load the web plugin through desktop control.
 	plugin := web_plugin_controller.NewController(le, b, &web_plugin_controller.Config{})
 	pluginClient := srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(plugin)))
 	var pluginReleases atomic.Int64
@@ -162,6 +172,8 @@ func TestDesktopControlSocketKeepsResourceAndPluginPresence(t *testing.T) {
 		return bldr_web_plugin.NewSRPCWebPluginClient(pluginClient), "artifact/test", func() { pluginReleases.Add(1) }, nil
 	}
 	defer control.close()
+
+	// Connect a launcher client and a retained client.
 	events := make(chan struct{}, 2)
 	socket := desktopSocket(t, control, events)
 	launcher, launcherResources, launcherConn := desktopSocketClient(t, socket)
@@ -170,6 +182,8 @@ func TestDesktopControlSocketKeepsResourceAndPluginPresence(t *testing.T) {
 	retained, retainedResources, retainedConn := desktopSocketClient(t, socket)
 	defer retainedResources.Release()
 	defer retainedConn.Close()
+
+	// Watch resources and require a headless desktop status.
 	watch := desktopWatch(t, retainedResources)
 	status := desktopStatusWatch(t, retained)
 	initial := recvDesktopStatus(t, status, func(*desktop_control.WatchDesktopStatusResponse) bool { return true })
@@ -201,6 +215,8 @@ func TestDesktopControlSocketKeepsResourceAndPluginPresence(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
+
+	// Require the concurrent requests to share one shell.
 	desktop.mtx.Lock()
 	opens := desktop.opens
 	desktop.mtx.Unlock()
@@ -248,6 +264,8 @@ func TestDesktopControlSocketKeepsResourceAndPluginPresence(t *testing.T) {
 	if ended.GetPresence().GetError() != "" || ended.GetFailure() != "" {
 		t.Fatalf("normal end reported failure: %v", ended)
 	}
+
+	// Require the shell close to release only desktop demand.
 	var retainedPlugin bool
 	control.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		retainedPlugin = control.pluginRelease != nil && control.demandRelease == nil
@@ -270,6 +288,8 @@ func TestDesktopControlSocketKeepsResourceAndPluginPresence(t *testing.T) {
 	if opens != 2 {
 		t.Fatalf("reopen created %d shells total, want 2", opens)
 	}
+
+	// Require the reopen to keep desktop demand and become active.
 	var reopened bool
 	control.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		reopened = control.pluginRelease != nil && control.demandRelease != nil
@@ -280,6 +300,8 @@ func TestDesktopControlSocketKeepsResourceAndPluginPresence(t *testing.T) {
 	recvDesktopStatus(t, status, func(state *desktop_control.WatchDesktopStatusResponse) bool {
 		return state.GetGeneration() == 2 && state.GetPresence().GetState() == bldr_web_plugin.DesktopPresenceState_DESKTOP_PRESENCE_STATE_ACTIVE
 	})
+
+	// Require a late subscriber and the Resource watch to see the shell.
 	late := recvDesktopStatus(t, desktopStatusWatch(t, retained), func(*desktop_control.WatchDesktopStatusResponse) bool { return true })
 	if late.GetGeneration() != 2 || late.GetPresence().GetState() != bldr_web_plugin.DesktopPresenceState_DESKTOP_PRESENCE_STATE_ACTIVE {
 		t.Fatalf("late subscriber missed the current shell: %v", late)
@@ -509,6 +531,7 @@ func TestDesktopControlFailuresKeepResource(t *testing.T) {
 		{name: "ended", endOnOpen: true, want: "ended before acknowledgement"},
 	} {
 		t.Run(failure.name, func(t *testing.T) {
+			// Open an idle tracker and a plugin client for the failure case.
 			ctx := t.Context()
 			idle := newDaemonIdleTracker(0, nil)
 			defer idle.close()
@@ -533,6 +556,8 @@ func TestDesktopControlFailuresKeepResource(t *testing.T) {
 				plugin := web_plugin_controller.NewController(le, b, &web_plugin_controller.Config{})
 				pluginClient = srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(plugin)))
 			}
+
+			// Install the desktop control load function.
 			var releases atomic.Int64
 			control := &daemonDesktopControl{ctx: ctx, idleTracker: idle}
 			control.load = func(context.Context) (bldr_web_plugin.SRPCWebPluginClient, string, func(), error) {
@@ -542,6 +567,8 @@ func TestDesktopControlFailuresKeepResource(t *testing.T) {
 				return bldr_web_plugin.NewSRPCWebPluginClient(pluginClient), "artifact/test", func() { releases.Add(1) }, nil
 			}
 			defer control.close()
+
+			// Connect a client and watch resources and status.
 			events := make(chan struct{}, 1)
 			socket := desktopSocket(t, control, events)
 			client, resources, conn := desktopSocketClient(t, socket)
@@ -605,10 +632,13 @@ func TestDesktopControlStreamFailureKeepsDemand(t *testing.T) {
 	for _, failure := range []string{"open-stream", "first-receive", "active-stream"} {
 		t.Run(failure, func(t *testing.T) {
 			// Serve status and Resource RPCs while the private presence stream fails.
+			// Open idle tracking and desktop control.
 			idle := newDaemonIdleTracker(0, nil)
 			defer idle.close()
 			control := &daemonDesktopControl{ctx: t.Context(), idleTracker: idle}
 			defer control.close()
+
+			// Build a presence client that fails at the requested point.
 			fail := make(chan struct{})
 			client := &failingPresenceClient{stream: &failingPresenceStream{fail: fail, failFirst: failure == "first-receive"}}
 			if failure == "open-stream" {
@@ -617,10 +647,14 @@ func TestDesktopControlStreamFailureKeepsDemand(t *testing.T) {
 			if failure != "active-stream" {
 				close(fail)
 			}
+
+			// Load the failing plugin without releasing it.
 			var pluginReleases atomic.Int64
 			control.load = func(context.Context) (bldr_web_plugin.SRPCWebPluginClient, string, func(), error) {
 				return client, "artifact/test", func() { pluginReleases.Add(1) }, nil
 			}
+
+			// Connect a launcher and watch status and resources.
 			events := make(chan struct{}, 1)
 			socket := desktopSocket(t, control, events)
 			launcher, resources, conn := desktopSocketClient(t, socket)
@@ -663,6 +697,8 @@ func TestDesktopControlStreamFailureKeepsDemand(t *testing.T) {
 			if err := conn.Close(); err != nil {
 				t.Fatal(err)
 			}
+
+			// Reconnect and require the late status to match the failure.
 			lateClient, lateResources, lateConn := desktopSocketClient(t, socket)
 			defer lateResources.Release()
 			defer lateConn.Close()
@@ -670,6 +706,8 @@ func TestDesktopControlStreamFailureKeepsDemand(t *testing.T) {
 			if !failed.EqualVT(late) {
 				t.Fatalf("late status = %v, want %v", late, failed)
 			}
+
+			// Require the failure to keep desktop demand and the plugin.
 			control.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 				if control.demandRelease == nil || control.pluginRelease == nil {
 					t.Fatal("unconfirmed stream failure released desktop demand or plugin")
@@ -779,6 +817,7 @@ func TestDesktopControlOwnerExitAfterStreamFailure(t *testing.T) {
 
 // desktopStatusWatch opens the generated status RPC on an existing protected connection.
 func desktopStatusWatch(t *testing.T, client srpc.Client) desktop_control.SRPCDesktopControlService_WatchDesktopStatusClient {
+	// Mark the helper.
 	t.Helper()
 	stream, err := desktop_control.NewSRPCDesktopControlServiceClient(client).WatchDesktopStatus(t.Context(), &desktop_control.WatchDesktopStatusRequest{})
 	if err != nil {

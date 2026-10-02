@@ -119,6 +119,7 @@ func (f *fixtureLauncher) RecheckDistConfig(context.Context, *spacewave_launcher
 
 // ApplyUpdate publishes accepted daemon intent independently of its requester.
 func (f *fixtureLauncher) ApplyUpdate(_ context.Context, req *desktop_update.ApplyUpdateRequest) (*desktop_update.ApplyUpdateResponse, error) {
+	// Mark the update applying.
 	if req.GetTarget() != desktop_update.UpdateTarget_UPDATE_TARGET_DAEMON {
 		return nil, errors.New("fixture accepts only daemon updates")
 	}
@@ -128,6 +129,8 @@ func (f *fixtureLauncher) ApplyUpdate(_ context.Context, req *desktop_update.App
 	info.DaemonUpdateState.Phase = spacewave_launcher.UpdatePhase_UPDATE_PHASE_APPLYING
 	info.DaemonUpdateState.ErrorMessage = ""
 	f.state.SetValue(info)
+
+	// Corrupt the staged executable once, then return the apply response.
 	if f.corruptOnce {
 		f.corruptOnce = false
 		if err := os.WriteFile(f.path, []byte("changed after acceptance"), 0o700); err != nil {
@@ -140,6 +143,7 @@ func (f *fixtureLauncher) ApplyUpdate(_ context.Context, req *desktop_update.App
 
 // ReportDaemonUpdateFailure exposes the old daemon's pre-claim failure.
 func (f *fixtureLauncher) ReportDaemonUpdateFailure(_ context.Context, req *spacewave_launcher.ReportDaemonUpdateFailureRequest) (*spacewave_launcher.ReportDaemonUpdateFailureResponse, error) {
+	// Record the update error when it is still applying.
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	info := f.state.GetValue().CloneVT()
@@ -151,7 +155,11 @@ func (f *fixtureLauncher) ReportDaemonUpdateFailure(_ context.Context, req *spac
 	}
 	current.Phase = spacewave_launcher.UpdatePhase_UPDATE_PHASE_ERROR
 	current.ErrorMessage = req.GetErrorMessage()
+
+	// Store the error state.
 	f.state.SetValue(info)
+
+	// Write the failure marker and report it.
 	if err := os.WriteFile(filepath.Join(f.statePath, "update-failed"), nil, 0o600); err != nil {
 		return nil, err
 	}
@@ -185,6 +193,7 @@ func (f *fixtureLauncher) ReportDaemonUpdateWait(_ context.Context, req *spacewa
 
 // RestartDaemonUpdateNow asks the waiting old daemon to hand off at once.
 func (f *fixtureLauncher) RestartDaemonUpdateNow(context.Context, *spacewave_launcher.RestartDaemonUpdateNowRequest) (*spacewave_launcher.RestartDaemonUpdateNowResponse, error) {
+	// Signal the applying update to restart now.
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	info := f.state.GetValue().CloneVT()
@@ -240,6 +249,7 @@ func (f *fixtureUpdateTrigger) GetMethodIDs() []string {
 
 // InvokeMethod accepts the selected daemon update through a Resource stream.
 func (f *fixtureUpdateTrigger) InvokeMethod(serviceID, methodID string, stream srpc.Stream) (bool, error) {
+	// Dispatch status, restart, and restore before an accept.
 	if serviceID != f.GetServiceID() {
 		return false, nil
 	}
@@ -280,6 +290,8 @@ func (f *fixtureUpdateTrigger) InvokeMethod(serviceID, methodID string, stream s
 	if methodID != "Accept" {
 		return false, nil
 	}
+
+	// Accept the update and send the response.
 	req := &desktop_update.ApplyUpdateRequest{}
 	if err := stream.MsgRecv(req); err != nil && err != io.EOF {
 		return true, err

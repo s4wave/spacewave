@@ -98,6 +98,7 @@ func (a *devicePolicyEnableShellArgs) BuildFlags() []cli.Flag {
 // Run updates the remote-shell policy and signals the daemon.
 func (a *devicePolicyEnableShellArgs) Run(c *cli.Context) error {
 	return runDevicePolicyMutation(c, a.statePath, func(policy *device_policy.DevicePolicy) error {
+		// Enable or disable the remote shell policy.
 		if policy.RemoteShell == nil {
 			policy.RemoteShell = &device_policy.RemoteShellPolicy{}
 		}
@@ -125,6 +126,7 @@ func (a *devicePolicyCheckoutRootAddArgs) BuildFlags() []cli.Flag {
 
 // Run adds or replaces a checkout-root policy declaration.
 func (a *devicePolicyCheckoutRootAddArgs) Run(c *cli.Context) error {
+	// Require a checkout root name and path.
 	if c.NArg() != 2 {
 		return errors.New("checkout-root add requires <name> <path>")
 	}
@@ -136,6 +138,8 @@ func (a *devicePolicyCheckoutRootAddArgs) Run(c *cli.Context) error {
 	if rawPath == "" {
 		return errors.New("checkout-root path is required")
 	}
+
+	// Resolve the path and set its access.
 	path, err := filepath.Abs(rawPath)
 	if err != nil {
 		return errors.Wrap(err, "resolve checkout-root path")
@@ -204,6 +208,7 @@ func runDevicePolicyMutationValidated(
 	mutate func(*device_policy.DevicePolicy) error,
 	validate func(*sdkClient, string, *device_policy.DevicePolicy) error,
 ) error {
+	// Connect to the daemon for the policy mutation.
 	ctx := c.Context
 	resolvedStatePath, _, err := resolveDeviceDaemonPaths(c, statePath)
 	if err != nil {
@@ -215,6 +220,7 @@ func runDevicePolicyMutationValidated(
 	}
 	defer client.close()
 
+	// Mutate, validate, and write the policy, then reload the daemon.
 	policy, err := device_policy.ReadFile(resolvedStatePath)
 	if err != nil {
 		return err

@@ -8,11 +8,13 @@ import (
 )
 
 func TestGetStatusMountSessionTimeoutDefault(t *testing.T) {
+	// Restore the default mount timeout after the test.
 	t.Setenv(statusMountSessionTimeoutEnvVar, "")
 	oldDefault := defaultStatusMountSessionTimeout
 	defaultStatusMountSessionTimeout = 37 * time.Millisecond
 	defer func() { defaultStatusMountSessionTimeout = oldDefault }()
 
+	// Require the default mount timeout.
 	got, err := getStatusMountSessionTimeout()
 	if err != nil {
 		t.Fatalf("get timeout: %v", err)

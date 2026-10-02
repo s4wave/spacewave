@@ -200,11 +200,13 @@ func buildObjectInfoCommand(statePath *string, sessionIdx *uint, spaceID *string
 		Usage:     "show object state and root ref",
 		ArgsUsage: "<object-key-or-uri>",
 		Action: func(c *cli.Context) error {
+			// Require an object key or URI.
 			arg := c.Args().First()
 			if arg == "" {
 				return errors.New("object key or URI required")
 			}
 
+			// Take the command context and the Space flag.
 			ctx := c.Context
 			sid := *spaceID
 
@@ -217,35 +219,41 @@ func buildObjectInfoCommand(statePath *string, sessionIdx *uint, spaceID *string
 			}
 			defer client.close()
 
+			// Mount the selected session.
 			sess, err := client.mountSession(ctx, sessionIndex32(*sessionIdx))
 			if err != nil {
 				return err
 			}
 			defer sess.Release()
 
+			// Resolve the Space ID.
 			sid, err = client.resolveSpaceID(ctx, sess, sid)
 			if err != nil {
 				return err
 			}
 
+			// Mount the Space service.
 			spaceSvc, spaceCleanup, err := client.mountSpace(ctx, sess, sid)
 			if err != nil {
 				return err
 			}
 			defer spaceCleanup()
 
+			// Open the World engine.
 			engine, engineCleanup, err := client.accessWorldEngine(ctx, spaceSvc)
 			if err != nil {
 				return err
 			}
 			defer engineCleanup()
 
+			// Open a read transaction.
 			tx, err := engine.NewTransaction(ctx, false)
 			if err != nil {
 				return errors.Wrap(err, "new transaction")
 			}
 			defer tx.Discard()
 
+			// Load the object and require that it exists.
 			obj, found, err := tx.GetObject(ctx, objectKey)
 			defer world.ReleaseObjectState(obj)
 			if err != nil {
@@ -255,9 +263,11 @@ func buildObjectInfoCommand(statePath *string, sessionIdx *uint, spaceID *string
 				return errors.Errorf("object %q not found", objectKey)
 			}
 
+			// Start the object field list with its key.
 			w := os.Stdout
 			fields := [][2]string{{"Key", obj.GetKey()}}
 
+			// Read the root ref and write the object fields.
 			rootRef, rev, err := obj.GetRootRef(ctx)
 			if err != nil {
 				fields = append(fields, [2]string{"Root Ref", "error: " + err.Error()})
@@ -286,11 +296,13 @@ func buildObjectGraphCommand(statePath *string, sessionIdx *uint, spaceID *strin
 		Usage:     "show graph quads referencing an object",
 		ArgsUsage: "<object-key>",
 		Action: func(c *cli.Context) error {
+			// Require an object key.
 			key := c.Args().First()
 			if key == "" {
 				return errors.New("object key required")
 			}
 
+			// Connect to the daemon.
 			ctx := c.Context
 			client, err := connectDaemonFromContext(ctx, c, *statePath)
 			if err != nil {
@@ -298,35 +310,41 @@ func buildObjectGraphCommand(statePath *string, sessionIdx *uint, spaceID *strin
 			}
 			defer client.close()
 
+			// Mount the selected session.
 			sess, err := client.mountSession(ctx, sessionIndex32(*sessionIdx))
 			if err != nil {
 				return err
 			}
 			defer sess.Release()
 
+			// Resolve the Space ID.
 			sid, err := client.resolveSpaceID(ctx, sess, *spaceID)
 			if err != nil {
 				return err
 			}
 
+			// Mount the Space service.
 			spaceSvc, spaceCleanup, err := client.mountSpace(ctx, sess, sid)
 			if err != nil {
 				return err
 			}
 			defer spaceCleanup()
 
+			// Open the World engine.
 			engine, engineCleanup, err := client.accessWorldEngine(ctx, spaceSvc)
 			if err != nil {
 				return err
 			}
 			defer engineCleanup()
 
+			// Open a read transaction.
 			tx, err := engine.NewTransaction(ctx, false)
 			if err != nil {
 				return errors.Wrap(err, "new transaction")
 			}
 			defer tx.Discard()
 
+			// Look up graph edges where the key is the subject or the object.
 			subjQuads, err := tx.LookupGraphQuads(ctx, world.NewGraphQuadWithKeys(key, "", "", ""), 0)
 			if err != nil {
 				return errors.Wrap(err, "lookup outgoing quads")
@@ -336,6 +354,7 @@ func buildObjectGraphCommand(statePath *string, sessionIdx *uint, spaceID *strin
 				return errors.Wrap(err, "lookup incoming quads")
 			}
 
+			// Write the graph edges, skipping duplicates.
 			rows := [][]string{{"DIR", "SUBJECT", "PREDICATE", "OBJECT", "LABEL"}}
 			seen := make(map[string]struct{}, len(subjQuads)+len(objQuads))
 			appendQuad := func(dir string, q world.GraphQuad) {
@@ -443,6 +462,7 @@ func buildObjectCreateCommand(statePath *string, sessionIdx *uint, spaceID *stri
 			},
 		},
 		Action: func(c *cli.Context) error {
+			// Require an object key.
 			key := c.Args().First()
 			if key == "" {
 				return errors.New("object key required")
@@ -453,6 +473,7 @@ func buildObjectCreateCommand(statePath *string, sessionIdx *uint, spaceID *stri
 				return errors.New("object key cannot contain /-/")
 			}
 
+			// Require exactly one of the type flags.
 			ctx := c.Context
 			objType := c.String("type")
 			objectTypeID := c.String("object-type")
@@ -463,41 +484,48 @@ func buildObjectCreateCommand(statePath *string, sessionIdx *uint, spaceID *stri
 				return errors.New("--type and --object-type are mutually exclusive")
 			}
 
+			// Connect to the daemon.
 			client, err := connectDaemonFromContext(ctx, c, *statePath)
 			if err != nil {
 				return err
 			}
 			defer client.close()
 
+			// Mount the selected session.
 			sess, err := client.mountSession(ctx, sessionIndex32(*sessionIdx))
 			if err != nil {
 				return err
 			}
 			defer sess.Release()
 
+			// Resolve the Space ID.
 			sid, err := client.resolveSpaceID(ctx, sess, *spaceID)
 			if err != nil {
 				return err
 			}
 
+			// Mount the Space service.
 			spaceSvc, spaceCleanup, err := client.mountSpace(ctx, sess, sid)
 			if err != nil {
 				return err
 			}
 			defer spaceCleanup()
 
+			// Open the World engine.
 			engine, engineCleanup, err := client.accessWorldEngine(ctx, spaceSvc)
 			if err != nil {
 				return err
 			}
 			defer engineCleanup()
 
+			// Open a write transaction.
 			tx, err := engine.NewTransaction(ctx, true)
 			if err != nil {
 				return errors.Wrap(err, "new transaction")
 			}
 			defer tx.Discard()
 
+			// Create the object with the requested type.
 			switch objType {
 			case "":
 				{
@@ -545,10 +573,12 @@ func buildObjectCreateCommand(statePath *string, sessionIdx *uint, spaceID *stri
 				return errors.Errorf("unsupported object type: %s (supported: fs, git, canvas, canvas-demo)", objType)
 			}
 
+			// Commit the create transaction.
 			if err := tx.Commit(ctx); err != nil {
 				return errors.Wrap(err, "commit transaction")
 			}
 
+			// Print the created object key and type.
 			if objectTypeID != "" {
 				objType = objectTypeID
 			}
@@ -565,11 +595,13 @@ func buildObjectDeleteCommand(statePath *string, sessionIdx *uint, spaceID *stri
 		Usage:     "delete an object from the world",
 		ArgsUsage: "<key>",
 		Action: func(c *cli.Context) error {
+			// Require an object key.
 			key := c.Args().First()
 			if key == "" {
 				return errors.New("object key required")
 			}
 
+			// Connect to the daemon.
 			ctx := c.Context
 			client, err := connectDaemonFromContext(ctx, c, *statePath)
 			if err != nil {
@@ -577,35 +609,41 @@ func buildObjectDeleteCommand(statePath *string, sessionIdx *uint, spaceID *stri
 			}
 			defer client.close()
 
+			// Mount the selected session.
 			sess, err := client.mountSession(ctx, sessionIndex32(*sessionIdx))
 			if err != nil {
 				return err
 			}
 			defer sess.Release()
 
+			// Resolve the Space ID.
 			sid, err := client.resolveSpaceID(ctx, sess, *spaceID)
 			if err != nil {
 				return err
 			}
 
+			// Mount the Space service.
 			spaceSvc, spaceCleanup, err := client.mountSpace(ctx, sess, sid)
 			if err != nil {
 				return err
 			}
 			defer spaceCleanup()
 
+			// Open the World engine.
 			engine, engineCleanup, err := client.accessWorldEngine(ctx, spaceSvc)
 			if err != nil {
 				return err
 			}
 			defer engineCleanup()
 
+			// Open a write transaction.
 			tx, err := engine.NewTransaction(ctx, true)
 			if err != nil {
 				return errors.Wrap(err, "new transaction")
 			}
 			defer tx.Discard()
 
+			// Delete the object and require that it existed.
 			deleted, err := tx.DeleteObject(ctx, key)
 			if err != nil {
 				return errors.Wrap(err, "delete object")
@@ -614,10 +652,12 @@ func buildObjectDeleteCommand(statePath *string, sessionIdx *uint, spaceID *stri
 				return errors.Errorf("object %q not found", key)
 			}
 
+			// Commit the delete transaction.
 			if err := tx.Commit(ctx); err != nil {
 				return errors.Wrap(err, "commit transaction")
 			}
 
+			// Report that the object was deleted.
 			os.Stdout.WriteString("Deleted object \"" + key + "\".\n")
 			return nil
 		},
