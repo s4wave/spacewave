@@ -2,8 +2,9 @@
 // keeps the whole table in memory and writes it as a log.
 //
 // A commit flushes the device's earlier writes and then appends one record to
-// the current log file with a flush. An ordered commit appends its record
-// without either flush. Recovery replays records only while their sequence
+// the current log file with a flush. On a device.AtomicFlusher the record's
+// flush covers the earlier writes, so the first flush is skipped. An ordered
+// commit appends its record without either flush. Recovery replays records only while their sequence
 // continues, so a crash loses at most a suffix of the ordered commits. A
 // checkpoint writes the table to a checkpoint file and then a manifest naming
 // that checkpoint and the first log file written after it, and removes the
@@ -52,6 +53,9 @@ type Index struct {
 	ctx context.Context
 	// dev holds the index files.
 	dev device.Device
+	// atomicFlush is set when each device flush is atomic, which makes the
+	// barrier before a record unnecessary.
+	atomicFlush bool
 	// opts holds the options with defaults applied.
 	opts Options
 	// wg tracks the running checkpoint.
@@ -83,7 +87,8 @@ func Open(ctx context.Context, dev device.Device, opts Options) (*Index, error) 
 	if opts.CheckpointBytes <= 0 {
 		opts.CheckpointBytes = defaultCheckpointBytes
 	}
-	i := &Index{ctx: ctx, dev: dev, opts: opts}
+	af, ok := dev.(device.AtomicFlusher)
+	i := &Index{ctx: ctx, dev: dev, opts: opts, atomicFlush: ok && af.FlushesAtomically()}
 	i.Table = memtable.New(i.commit)
 
 	// Find the manifest and the files.
@@ -216,8 +221,8 @@ func (i *Index) replayLog(ctx context.Context, n uint64, size int64) error {
 }
 
 // commit appends ops as one log record and starts a checkpoint of next when
-// the log is long enough. Unless ordered is set, a flush barrier precedes the
-// record and the record is flushed.
+// the log is long enough. Unless ordered is set, the record is flushed, after
+// a flush barrier when the device's flushes are not atomic.
 func (i *Index) commit(ctx context.Context, next memtable.Snapshot, ops []memtable.Op, ordered bool) error {
 	// Reserve the next sequence and log position under the index lock.
 	i.mtx.Lock()
@@ -229,8 +234,9 @@ func (i *Index) commit(ctx context.Context, next memtable.Snapshot, ops []memtab
 
 	// Flush the earlier writes on the device, which the record may reference,
 	// so a crash during the record's own flush never keeps the record without
-	// them. The barrier costs nothing on a device with no unflushed writes.
-	if !ordered {
+	// them. The barrier costs nothing on a device with no unflushed writes, and
+	// an atomic flush of the record keeps them without it.
+	if !ordered && !i.atomicFlush {
 		if err := i.dev.Write(ctx, nil, true); err != nil {
 			return errors.Wrap(err, "flush before log")
 		}

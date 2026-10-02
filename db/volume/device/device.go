@@ -67,6 +67,16 @@ type Device interface {
 	List(ctx context.Context) ([]File, error)
 }
 
+// AtomicFlusher is a Device that persists calls only at a flush, and each
+// flush keeps every call since the previous flush or none of them. A record
+// that depends on earlier unflushed calls needs no barrier flush before it:
+// one flush persists both or neither.
+type AtomicFlusher interface {
+	Device
+	// FlushesAtomically reports whether every flush is atomic.
+	FlushesAtomically() bool
+}
+
 // ValidName checks that name is a non-empty flat file name.
 func ValidName(name string) error {
 	if name == "" || name == "." || name == ".." || strings.ContainsAny(name, "/\\\x00") {

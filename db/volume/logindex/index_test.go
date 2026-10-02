@@ -2,10 +2,12 @@ package logindex
 
 import (
 	"bytes"
+	"context"
 	"strconv"
 	"testing"
 
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/db/kvtx"
 	kvtx_kvtest "github.com/s4wave/spacewave/db/kvtx/kvtest"
 	"github.com/s4wave/spacewave/db/volume/device"
 )
@@ -193,3 +195,80 @@ func TestBackgroundCheckpoint(t *testing.T) {
 		t.Fatalf("size %d, err %v, want %d", size, err, n)
 	}
 }
+
+// atomicDevice is an in-memory device that reports atomic flushes and counts
+// them.
+type atomicDevice struct {
+	*device.Memory
+	// flushes counts the flushing writes.
+	flushes int
+}
+
+// Write counts the flush and writes to memory.
+func (d *atomicDevice) Write(ctx context.Context, writes []device.Write, flush bool) error {
+	if flush {
+		d.flushes++
+	}
+	return d.Memory.Write(ctx, writes, flush)
+}
+
+// FlushesAtomically reports atomic flushes.
+func (d *atomicDevice) FlushesAtomically() bool {
+	return true
+}
+
+// TestAtomicFlush checks that a commit after an ordered commit flushes an
+// atomic device once, and that both commits survive a reopen.
+func TestAtomicFlush(t *testing.T) {
+	// Commit one ordered and one durable transaction.
+	ctx := t.Context()
+	d := &atomicDevice{Memory: device.NewMemory()}
+	i, err := Open(ctx, d, Options{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, ordered := range []bool{true, false} {
+		tx, err := i.NewTransaction(ctx, true)
+		if err != nil {
+			t.Fatal(err)
+		}
+		key := []byte(strconv.FormatBool(ordered))
+		if err := tx.Set(ctx, key, key); err != nil {
+			t.Fatal(err)
+		}
+		if ordered {
+			err = kvtx.CommitOrdered(ctx, tx)
+		} else {
+			err = tx.Commit(ctx)
+		}
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := i.Close(); err != nil {
+		t.Fatal(err)
+	}
+	if d.flushes != 1 {
+		t.Fatalf("flushed %d times, want 1", d.flushes)
+	}
+
+	// Reopen and read both keys.
+	r, err := Open(ctx, d, Options{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer r.Close()
+	tx, err := r.NewTransaction(ctx, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tx.Discard()
+	for _, key := range []string{"true", "false"} {
+		if _, found, err := tx.Get(ctx, []byte(key)); err != nil || !found {
+			t.Fatalf("get %s: found %v, err %v", key, found, err)
+		}
+	}
+}
+
+// _ is a type assertion
+var _ device.AtomicFlusher = (*atomicDevice)(nil)
