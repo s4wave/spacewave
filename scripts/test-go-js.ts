@@ -70,6 +70,17 @@ if (listOnly) {
   process.exit(0)
 }
 
+// Build every test binary before any test starts. Each test binary launches
+// Chrome, which must report its DevTools endpoint within wasmbrowsertest's fixed
+// 20 second limit; compiling the remaining packages beside it on a cold build
+// cache starves the launch. Running true in place of the binaries leaves only
+// the link to repeat below. A build failure is reported by the test run.
+Bun.spawnSync(['go', 'test', '-count=1', '-exec=true', ...pkgs], {
+  env: jsEnv,
+  stdout: 'ignore',
+  stderr: 'ignore',
+})
+
 const proc = Bun.spawnSync(
   ['go', 'test', '-count=1', '-timeout=110s', ...pkgs],
   { env: jsEnv, stdout: 'inherit', stderr: 'inherit' },
