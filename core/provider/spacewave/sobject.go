@@ -818,7 +818,8 @@ func hasSOListAccess(
 	}
 }
 
-// RefreshSharedObjectList invalidates and reloads the current shared object list snapshot.
+// RefreshSharedObjectList fetches a fresh shared object list snapshot.
+// Returns once the fetched snapshot is stored.
 func (a *ProviderAccount) RefreshSharedObjectList(ctx context.Context) error {
 	if !a.hasSharedObjectListAccess() {
 		if _, err := a.GetAccountState(ctx); err != nil {
@@ -830,20 +831,7 @@ func (a *ProviderAccount) RefreshSharedObjectList(ctx context.Context) error {
 			return nil
 		}
 	}
-	prev := a.soListCtr.GetValue()
-	a.invalidateSharedObjectList()
-	if err := a.EnsureSharedObjectListLoaded(ctx); err != nil {
-		return err
-	}
-	if prev == nil {
-		return nil
-	}
-	next := a.soListCtr.GetValue()
-	if prev != next {
-		return nil
-	}
-	_, err := a.soListCtr.WaitValueChange(ctx, prev, nil)
-	return err
+	return a.fetchSharedObjectList(ctx)
 }
 
 // HasCachedSharedObject returns true when the cached SO list already contains
