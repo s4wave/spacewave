@@ -43,7 +43,7 @@ require (
 	github.com/aperturerobotics/json-iterator-lite v1.1.0 // latest
 	github.com/aperturerobotics/protobuf-go-lite v0.19.1-0.20260926160815-9337dc7c6cda // master
 	github.com/aperturerobotics/starpc v0.52.2-0.20261002002112-963692aa6b77 // master
-	github.com/aperturerobotics/util v1.34.10-0.20260924000454-918a9e70b357 // master
+	github.com/aperturerobotics/util v1.34.10-0.20261002030236-9b993d4c208f // master
 	github.com/cloudflare/circl v1.6.5
 	github.com/creack/pty v1.1.24
 	github.com/dgraph-io/badger/v4 v4.9.7-0.20260921130653-5688f1406ced

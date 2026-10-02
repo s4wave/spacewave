@@ -90,8 +90,8 @@ github.com/aperturerobotics/starpc v0.52.2-0.20261001142944-1379b4c47855 h1:LzS4
 github.com/aperturerobotics/starpc v0.52.2-0.20261001142944-1379b4c47855/go.mod h1:RuRFctJOFKaEqxvTufdpGR4r7uiW2Z0wta2iIJkyL0Q=
 github.com/aperturerobotics/starpc v0.52.2-0.20261002002112-963692aa6b77 h1:naSVqwbCTEmxOP3IBdaAkkLNZhHALMN8q8N82Vvelc0=
 github.com/aperturerobotics/starpc v0.52.2-0.20261002002112-963692aa6b77/go.mod h1:RuRFctJOFKaEqxvTufdpGR4r7uiW2Z0wta2iIJkyL0Q=
-github.com/aperturerobotics/util v1.34.10-0.20260924000454-918a9e70b357 h1:JEAoOhgohIkgxFMBqL9zxthEFf7OSJcShqhQKUUKTtk=
-github.com/aperturerobotics/util v1.34.10-0.20260924000454-918a9e70b357/go.mod h1:2uIQA8dHn5EQgEtRqcTS4zxJ51dEVehY9O++bJfU2hs=
+github.com/aperturerobotics/util v1.34.10-0.20261002030236-9b993d4c208f h1:0rv6puqll59sU0xCZ0Wv0smt3Yp172NOTb5weL8heQs=
+github.com/aperturerobotics/util v1.34.10-0.20261002030236-9b993d4c208f/go.mod h1:2uIQA8dHn5EQgEtRqcTS4zxJ51dEVehY9O++bJfU2hs=
 github.com/aperturerobotics/vitess v0.0.0-20260922203758-a3c6c653303d h1:9UIhsGTL9o/dBAi60BRp8mWOmG2RkX5ik08aZHDU3zQ=
 github.com/aperturerobotics/vitess v0.0.0-20260922203758-a3c6c653303d/go.mod h1:BA7YZUS4BoNY+k1nl7A3TLJkLY4KfW4I0c+DbXblfis=
 github.com/armon/go-socks5 v0.0.0-20160902184237-e75332964ef5 h1:0CwZNZbxp69SHPdPJAN/hZIm0C4OItdklCFmMRWYpio=
