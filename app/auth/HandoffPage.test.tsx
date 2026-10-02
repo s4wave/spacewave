@@ -25,6 +25,8 @@ vi.mock('@s4wave/app/provider/spacewave/useSpacewaveAuth.js', () => ({
 }))
 
 vi.mock('./handoff-state.js', () => ({
+  clientTypeLabel: (clientType: string) =>
+    clientType === 'cli' ? 'CLI' : 'Desktop',
   decodeHandoffRequest: () => ({
     clientType: 'cli',
     deviceName: 'Terminal',
@@ -52,8 +54,12 @@ vi.mock('@s4wave/web/ui/login-form.js', () => ({
     onLoginWithPem?: (pem: Uint8Array) => Promise<unknown>
   }) => (
     <div data-testid="login-form" data-initial-username={initialUsername ?? ''}>
-      <button onClick={onContinueWithPasskey}>Passkey</button>
-      <button onClick={() => onSignInWithSSO?.('google')}>Google</button>
+      <button type="button" onClick={onContinueWithPasskey}>
+        Passkey
+      </button>
+      <button type="button" onClick={() => onSignInWithSSO?.('google')}>
+        Google
+      </button>
       <span>{onLoginWithPem ? 'PEM available' : 'PEM unavailable'}</span>
     </div>
   ),

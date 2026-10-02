@@ -20,6 +20,7 @@ import { useCloudProviderConfig } from '@s4wave/app/provider/spacewave/useSpacew
 import { setSSOStartIntent } from '@s4wave/app/provider/spacewave/sso-start-intent.js'
 import {
   clearStoredHandoffPayload,
+  clientTypeLabel,
   decodeHandoffRequest,
   enrollHandoffSession,
   setStoredHandoffPayload,
@@ -45,18 +46,6 @@ function parseHandoffRouteHints(): HandoffRouteHints {
 
 // HandoffState tracks the handoff page lifecycle.
 type HandoffState = 'auth' | 'completing' | 'complete'
-
-// clientTypeLabel returns a display label for the client type.
-function clientTypeLabel(clientType: string): string {
-  switch (clientType) {
-    case 'cli':
-      return 'CLI'
-    case 'desktop':
-      return 'Desktop'
-    default:
-      return clientType || 'Desktop'
-  }
-}
 
 // ClientTypeIcon renders the icon for the client type.
 function ClientTypeIcon({ clientType }: { clientType: string }) {

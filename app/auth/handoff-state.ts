@@ -16,6 +16,18 @@ function base64urlDecode(input: string): Uint8Array {
   return bytes
 }
 
+// clientTypeLabel returns a display label for the client type.
+export function clientTypeLabel(clientType: string): string {
+  switch (clientType) {
+    case 'cli':
+      return 'CLI'
+    case 'desktop':
+      return 'Desktop'
+    default:
+      return clientType || 'Desktop'
+  }
+}
+
 export function decodeHandoffRequest(
   payload: string | null | undefined,
 ): HandoffRequest | null {

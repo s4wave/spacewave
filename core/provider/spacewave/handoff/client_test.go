@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -156,5 +157,61 @@ func TestHostsFromURLs(t *testing.T) {
 		if got[i] != h {
 			t.Errorf("host %d: got %q want %q", i, got[i], h)
 		}
+	}
+}
+
+func TestReadHandoffResultRedialsDroppedSocket(t *testing.T) {
+	// Serve a socket that drops the first connection without a close frame.
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	var dials atomic.Int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Accept the socket and drop the first connection.
+		conn, err := websocket.Accept(w, r, nil)
+		if err != nil {
+			t.Error(err)
+			return
+		}
+		if dials.Add(1) == 1 {
+			_ = conn.CloseNow()
+			return
+		}
+
+		// Answer the redial with the result frame.
+		defer conn.Close(websocket.StatusNormalClosure, "")
+		_ = conn.Write(r.Context(), websocket.MessageBinary, []byte("result"))
+	}))
+	defer server.Close()
+
+	// Expect the result from the second connection.
+	conn, msg, err := readHandoffResult(ctx, server.URL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer conn.CloseNow()
+	if string(msg) != "result" || dials.Load() != 2 {
+		t.Fatalf("got %q after %d dials", msg, dials.Load())
+	}
+}
+
+func TestReadHandoffResultStopsOnExpiry(t *testing.T) {
+	// Serve a socket that reports an expired auth session.
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Accept the socket and close it as the expired session does.
+		conn, err := websocket.Accept(w, r, nil)
+		if err != nil {
+			t.Error(err)
+			return
+		}
+		_ = conn.Close(4008, "auth session expired")
+	}))
+	defer server.Close()
+
+	// Expect the wait to end with the expiry explanation.
+	_, _, err := readHandoffResult(ctx, server.URL)
+	if err == nil || !strings.Contains(err.Error(), "expired") {
+		t.Fatalf("expected expiry error, got %v", err)
 	}
 }

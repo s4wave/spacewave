@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"os"
 	"strings"
+	"time"
 
 	websocket "github.com/aperturerobotics/go-websocket"
 	"github.com/aperturerobotics/util/ulid"
@@ -54,8 +55,6 @@ func StartHandoff(
 		return nil, "", "", errors.Wrap(err, "get ephemeral public key bytes")
 	}
 
-	// Derive the raw ephemeral public key bytes for the HandoffRequest.
-	// Derive the raw ephemeral public key bytes for the HandoffRequest.
 	// Build the session_handoff.HandoffRequest proto describing this device.
 	nonce = ulid.NewULID()
 	deviceName := getDeviceName()
@@ -121,19 +120,12 @@ func StartHandoff(
 		return nil, "", "", errors.Wrap(openErr, "open browser")
 	}
 
-	// Connect the auth-session WebSocket with the returned wsTicket.
-	wsURL := buildHandoffWSURL(apiEndpoint, wsTicket)
-	conn, _, err := websocket.Dial(ctx, wsURL, nil)
+	// Wait on the auth-session WebSocket for the provider's registration result.
+	conn, msg, err := readHandoffResult(ctx, buildHandoffWSURL(apiEndpoint, wsTicket))
 	if err != nil {
-		return nil, "", "", errors.Wrap(err, "connect websocket")
+		return nil, "", "", err
 	}
 	defer conn.Close(websocket.StatusNormalClosure, "")
-
-	// Wait for the provider's registration result.
-	_, msg, err := conn.Read(ctx)
-	if err != nil {
-		return nil, "", "", errors.Wrap(err, "read handoff completion")
-	}
 
 	// Parse the api.WsAuthSessionServerFrame and extract the HandoffCompletion.
 	var frame api.WsAuthSessionServerFrame
@@ -168,6 +160,64 @@ func StartHandoff(
 	// Stop the session cleanup and return the provider account to mount.
 	cleanupSession = func() {}
 	return ephPriv, completion.GetAccountId(), completion.GetEntityId(), nil
+}
+
+// maxHandoffRedials bounds consecutive failed attempts to reach the auth
+// session after its WebSocket drops.
+const maxHandoffRedials = 5
+
+// readHandoffResult connects the auth-session WebSocket and reads the
+// provider's result frame, returning the open connection with the frame.
+// The server drops the socket without a close frame when it restarts, so a
+// dropped socket is redialed with backoff. A close frame ends the wait.
+func readHandoffResult(ctx context.Context, wsURL string) (*websocket.Conn, []byte, error) {
+	delay := time.Second
+	var failures int
+	for {
+		// Dial and read one frame; a successful dial resets the failure count.
+		conn, _, err := websocket.Dial(ctx, wsURL, nil)
+		if err == nil {
+			failures = 0
+			var msg []byte
+			_, msg, err = conn.Read(ctx)
+			if err == nil {
+				return conn, msg, nil
+			}
+			_ = conn.Close(websocket.StatusNormalClosure, "")
+		}
+
+		// Stop on a close frame, cancellation, or too many failures.
+		failures++
+		if ctx.Err() != nil || failures > maxHandoffRedials || !isDroppedSocket(err) {
+			return nil, nil, describeHandoffWaitErr(err)
+		}
+
+		// Wait out the backoff before redialing.
+		select {
+		case <-ctx.Done():
+			return nil, nil, ctx.Err()
+		case <-time.After(delay):
+		}
+		delay = min(delay*2, 16*time.Second)
+	}
+}
+
+// isDroppedSocket reports whether err is a connection lost without a close
+// frame, as opposed to the server ending the auth session.
+func isDroppedSocket(err error) bool {
+	status := websocket.CloseStatus(err)
+	return status == -1 || status == websocket.StatusAbnormalClosure
+}
+
+// describeHandoffWaitErr explains why waiting for the browser ended.
+func describeHandoffWaitErr(err error) error {
+	switch websocket.CloseStatus(err) {
+	case 4008:
+		return errors.New("the sign-in link expired; run the command again")
+	case 4000:
+		return errors.New("the sign-in was canceled; run the command again")
+	}
+	return errors.Wrap(err, "wait for browser sign-in")
 }
 
 // getDeviceName returns the hostname or a fallback device name.
