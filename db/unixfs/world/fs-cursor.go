@@ -68,6 +68,8 @@ func NewFSCursor(
 }
 
 // NewFSCursorWithContext constructs a new FSCursor whose watchers stop when ctx is canceled.
+// The filesystem reads blocks with ctx, so a block.AccessLogger on ctx logs
+// every block read through the cursor.
 func NewFSCursorWithContext(
 	ctx context.Context,
 	le *logrus.Entry,

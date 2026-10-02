@@ -595,6 +595,7 @@ func (c *Cursor) Fetch(ctx context.Context) ([]byte, bool, error) {
 
 // fetch loads the raw and unmarshaled block data at the cursor position.
 func (c *Cursor) fetch(ctx context.Context) ([]byte, []byte, bool, error) {
+	// Skip a nil cursor or an empty ref.
 	if c == nil {
 		return nil, nil, false, nil
 	}
@@ -602,6 +603,7 @@ func (c *Cursor) fetch(ctx context.Context) ([]byte, []byte, bool, error) {
 		return nil, nil, false, nil
 	}
 
+	// Read the stored block, recording the read on the context.
 	bkt := c.readStore(ctx)
 	if bkt == nil {
 		return nil, nil, false, ErrBlockStoreUnavailable
@@ -616,6 +618,9 @@ func (c *Cursor) fetch(ctx context.Context) ([]byte, []byte, bool, error) {
 		}
 		return nil, nil, false, err
 	}
+	recordAccessLog(ctx, c.pos.ref, len(data))
+
+	// Decode the stored data with the transformer, if any.
 	storedData := data
 	if xfrm := c.transformer(); xfrm != nil {
 		if trace.IsEnabled() {
