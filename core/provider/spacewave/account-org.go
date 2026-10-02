@@ -335,9 +335,8 @@ func (a *ProviderAccount) reconcileMountedOrganizationSpace(
 		}
 	}
 
-	revInfo := &sobject.SORevocationInfo{
-		Reason: sobject.SORevocationReason_SO_REVOCATION_REASON_ORG_REMOVED,
-	}
+	// Remove every peer of a departed member in one config change.
+	var stale []string
 	for _, p := range state.GetConfig().GetParticipants() {
 		accountID := p.GetEntityId()
 		if accountID == "" || accountID == a.GetAccountID() {
@@ -346,11 +345,17 @@ func (a *ProviderAccount) reconcileMountedOrganizationSpace(
 		if _, ok := memberRoles[accountID]; ok {
 			continue
 		}
-		if _, err := swSO.RemoveParticipantWithRevocation(ctx, p.GetPeerId(), revInfo); err != nil {
-			return errors.Wrapf(err, "remove stale participant %s", p.GetPeerId())
-		}
+		stale = append(stale, p.GetPeerId())
 	}
-
+	if len(stale) == 0 {
+		return nil
+	}
+	revInfo := &sobject.SORevocationInfo{
+		Reason: sobject.SORevocationReason_SO_REVOCATION_REASON_ORG_REMOVED,
+	}
+	if _, err := swSO.RemoveParticipantsWithRevocation(ctx, stale, revInfo); err != nil {
+		return errors.Wrapf(err, "remove stale participants %v", stale)
+	}
 	return nil
 }
 

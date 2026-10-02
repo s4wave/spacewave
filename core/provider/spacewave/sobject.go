@@ -1571,10 +1571,22 @@ func (s *SharedObject) RemoveParticipantWithRevocation(
 	if targetPeerIDStr == "" {
 		return false, errors.New("target peer id is required")
 	}
-	var removed bool
+	removed, err := s.RemoveParticipantsWithRevocation(ctx, []string{targetPeerIDStr}, revInfo)
+	return len(removed) != 0, err
+}
+
+// RemoveParticipantsWithRevocation removes the target peers from the shared
+// object in one signed config change and returns the peers it removed. Peers
+// that do not participate are ignored.
+func (s *SharedObject) RemoveParticipantsWithRevocation(
+	ctx context.Context,
+	targetPeerIDs []string,
+	revInfo *sobject.SORevocationInfo,
+) ([]string, error) {
+	var removed []string
 	err := s.retryConfigConflicts(ctx, func() error {
 		var err error
-		removed, err = sobject.RemoveSOParticipant(ctx, s.GetSOHost(), targetPeerIDStr, s.privKey, revInfo)
+		removed, err = sobject.RemoveSOParticipants(ctx, s.GetSOHost(), targetPeerIDs, s.privKey, revInfo)
 		return err
 	})
 	return removed, err

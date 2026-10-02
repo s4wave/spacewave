@@ -412,16 +412,16 @@ func reconcileFriendDmParticipants(
 		parsedPubs[participant.peerID] = targetPub
 	}
 
-	// Remove stale participants with an owner revocation.
-	for _, peerID := range plan.removals {
-		if _, err := swSO.RemoveParticipantWithRevocation(
+	// Remove stale participants in one change with an owner revocation.
+	if len(plan.removals) != 0 {
+		if _, err := swSO.RemoveParticipantsWithRevocation(
 			ctx,
-			peerID,
+			plan.removals,
 			&sobject.SORevocationInfo{
 				Reason: sobject.SORevocationReason_SO_REVOCATION_REASON_OWNER_REMOVED,
 			},
 		); err != nil {
-			return errors.Wrapf(err, "remove stale participant %s", peerID)
+			return errors.Wrapf(err, "remove stale participants %v", plan.removals)
 		}
 	}
 

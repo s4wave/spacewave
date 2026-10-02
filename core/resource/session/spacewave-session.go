@@ -7,6 +7,7 @@ import (
 	"encoding/base64"
 	"net/http"
 	"net/url"
+	"slices"
 	"time"
 
 	"github.com/aperturerobotics/controllerbus/bus"
@@ -2216,22 +2217,20 @@ func (r *SpacewaveSessionResource) RemoveSpaceMember(
 		return nil, errors.New("no participant peers found for account")
 	}
 
+	// Remove every participant peer in one config change and report each peer.
+	revInfo := &sobject.SORevocationInfo{
+		Reason: sobject.SORevocationReason_SO_REVOCATION_REASON_OWNER_REMOVED,
+	}
+	removed, err := swSO.RemoveParticipantsWithRevocation(ctx, peerIDs, revInfo)
 	results := make([]*s4wave_provider_spacewave.RemoveSpaceMemberResult, 0, len(peerIDs))
 	for _, peerID := range peerIDs {
 		result := &s4wave_provider_spacewave.RemoveSpaceMemberResult{PeerId: peerID}
-
-		revInfo := &sobject.SORevocationInfo{
-			Reason: sobject.SORevocationReason_SO_REVOCATION_REASON_OWNER_REMOVED,
-		}
-		removed, err := swSO.RemoveParticipantWithRevocation(ctx, peerID, revInfo)
 		if err != nil {
 			result.Error = err.Error()
-			results = append(results, result)
-			continue
+		} else {
+			result.Removed = slices.Contains(removed, peerID)
+			result.NotParticipant = !result.Removed
 		}
-
-		result.Removed = removed
-		result.NotParticipant = !removed
 		results = append(results, result)
 	}
 
