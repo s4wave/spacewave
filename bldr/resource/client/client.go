@@ -8,7 +8,6 @@ import (
 	"github.com/aperturerobotics/starpc/srpc"
 	pkgerrors "github.com/pkg/errors"
 	"github.com/s4wave/spacewave/bldr/resource"
-	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
 )
 
 // ResourceRef is a reference to a remote resource.
@@ -301,7 +300,7 @@ func (c *Client) attachResource(
 		if result.err != nil {
 			return 0, nil, result.err
 		}
-		if err := sess.setMux(result.resourceID, mux); err != nil {
+		if err := sess.setMux(result.resourceID, NewAttachedResourceInvoker(c, mux)); err != nil {
 			return 0, nil, err
 		}
 		return result.resourceID, sess, nil
@@ -325,41 +324,6 @@ func (c *Client) DetachResource(ctx context.Context, resourceID uint32) error {
 	// Drop the client-side attachment after the server accepted the detach.
 	sess.releaseAttachedResource(resourceID)
 	return nil
-}
-
-type attachedResourceOwner struct {
-	client *Client
-}
-
-func (o *attachedResourceOwner) Context() context.Context {
-	return o.client.attachCtx
-}
-
-func (o *attachedResourceOwner) AddResource(mux srpc.Invoker, releaseFn func()) (uint32, error) {
-	return o.AddResourceValue(mux, nil, releaseFn)
-}
-
-func (o *attachedResourceOwner) AddResourceValue(mux srpc.Invoker, _ any, releaseFn func()) (uint32, error) {
-	resourceID, sess, err := o.client.attachResource(o.client.attachCtx, "attached-child", mux)
-	if err != nil {
-		return 0, err
-	}
-	if releaseFn != nil {
-		sess.setRelease(resourceID, releaseFn)
-	}
-	return resourceID, nil
-}
-
-func (o *attachedResourceOwner) ReleaseResource(resourceID uint32) bool {
-	return o.client.DetachResource(o.client.attachCtx, resourceID) == nil
-}
-
-func (o *attachedResourceOwner) GetResourceValue(resourceID uint32) (any, error) {
-	return nil, resource.ErrResourceNotFound
-}
-
-func (o *attachedResourceOwner) GetAttachedResource(id uint32) (srpc.Client, error) {
-	return nil, resource.ErrResourceNotFound
 }
 
 // openAttachSession opens a new attach session for the client.
@@ -395,11 +359,8 @@ func (c *Client) openAttachSession() (*attachSession, error) {
 		return nil, ack.GetFailure()
 	}
 
-	// Build the routed invoker carrying the attached resource owner.
-	owner := &attachedResourceOwner{client: c}
-	router := resource.NewRoutedInvokerWithContext(func(ctx context.Context, _ uint32) context.Context {
-		return resource_server.WithResourceClientContext(ctx, owner)
-	})
+	// Route each attached resource through its invocation-aware invoker.
+	router := resource.NewRoutedInvoker()
 	sess := newAttachSession(c.attachCtx, c.attach, strm, router)
 	if err := sess.start(); err != nil {
 		return nil, err
@@ -501,18 +462,24 @@ func (s *attachSession) setMux(resourceID uint32, mux srpc.Invoker) error {
 	return nil
 }
 
+// setRelease records cleanup or releases a child already detached during publication.
 func (s *attachSession) setRelease(resourceID uint32, releaseFn func()) {
 	// Ignore a missing release function.
 	if releaseFn == nil {
 		return
 	}
+
+	// Register cleanup only while the child's mux remains attached.
 	s.mu.Lock()
-	if !s.released {
+	_, attached := s.muxes[resourceID]
+	if !s.released && attached {
 		s.releaseFns[resourceID] = releaseFn
 		s.mu.Unlock()
 		return
 	}
 	s.mu.Unlock()
+
+	// Release handles whose attachment ended before cleanup registration.
 	releaseFn()
 }
 
