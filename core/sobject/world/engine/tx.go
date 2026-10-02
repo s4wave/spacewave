@@ -126,8 +126,7 @@ func (t *soEngineWriteTx) Commit(ctx context.Context) error {
 		}
 	}
 
-	// Wrap the batch in the SharedObject World operation. The storage
-	// generation fences the candidate against bucket reclamation.
+	// Wrap the batch in the SharedObject World operation.
 	op := &SOWorldOp{
 		Body: &SOWorldOp_ApplyTxOp{
 			ApplyTxOp: &ApplyTxOp{Tx: tx},

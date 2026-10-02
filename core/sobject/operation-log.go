@@ -298,6 +298,53 @@ func (s *SOOperationSet) Heads() [][]byte {
 	return heads
 }
 
+// Get returns the verified body of the operation with hash h, or nil.
+func (s *SOOperationSet) Get(h []byte) *SOOperationInner {
+	return s.ops[string(h)]
+}
+
+// Order returns the replay order of the operations whose ancestry the set
+// holds: a topological order of the operation DAG with concurrent operations in
+// byte order of their hashes. Every member holding the same operations computes
+// the same order. An operation naming one the set lacks waits, with its
+// descendants, until the missing operation arrives.
+func (s *SOOperationSet) Order() [][]byte {
+	// Count the links of every operation and index its children.
+	pending := make(map[string]int, len(s.ops))
+	children := make(map[string][]string, len(s.ops))
+	var ready []string
+	for key, inner := range s.ops {
+		links := inner.GetParentHashes()
+		if prev := inner.GetPrevOpHash(); len(prev) != 0 {
+			links = append(slices.Clip(links), prev)
+		}
+		for _, link := range links {
+			children[string(link)] = append(children[string(link)], key)
+		}
+		pending[key] = len(links)
+		if len(links) == 0 {
+			ready = append(ready, key)
+		}
+	}
+	slices.Sort(ready)
+
+	// Place the lowest ready operation and release its children. A missing
+	// link is never placed, so its descendants stay pending.
+	order := make([][]byte, 0, len(s.ops))
+	for len(ready) != 0 {
+		key := ready[0]
+		ready = ready[1:]
+		order = append(order, []byte(key))
+		for _, child := range children[key] {
+			if pending[child]--; pending[child] == 0 {
+				i, _ := slices.BinarySearch(ready, child)
+				ready = slices.Insert(ready, i, child)
+			}
+		}
+	}
+	return order
+}
+
 // Equivocations returns every author sequence with more than one operation,
 // ordered by author and sequence.
 func (s *SOOperationSet) Equivocations() []SOEquivocation {

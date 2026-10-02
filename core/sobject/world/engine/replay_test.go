@@ -6,176 +6,131 @@ import (
 	"slices"
 	"testing"
 
+	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/core/sobject"
 	world_block_tx "github.com/s4wave/spacewave/db/world/block/tx"
 	"github.com/s4wave/spacewave/net/crypto"
 	"github.com/s4wave/spacewave/net/peer"
 )
 
-// replayTestObjectID is the SharedObject the replay test's operations name.
+// replayTestObjectID is the SharedObject the replay tests' operations name.
 const replayTestObjectID = "test-replay"
 
-// replayTestOp is one signed World operation in the replay test.
-type replayTestOp struct {
-	// name labels the operation in failures.
-	name string
-	// op is the signed envelope.
-	op *sobject.SOOperation
-	// author is the signing peer.
-	author peer.ID
-	// data is the encoded SOWorldOp.
-	data []byte
-}
-
-// hash returns the operation identity.
-func (o *replayTestOp) hash() []byte {
-	return o.op.Hash()
-}
-
-// replayTestResult is a World replayed from an ordered operation prefix.
-type replayTestResult struct {
-	// state is the World state after the prefix.
-	state *InnerState
-	// outcomes names each operation in the prefix with "applied" or its
-	// rejection reason.
-	outcomes []string
-}
-
-// replayTestMember replays the operations it knows to a local World. The
-// processing peer comes from its SharedObject, as in the running engine.
-type replayTestMember struct {
+// replayTestSpace is a World and the signed operations written to it.
+type replayTestSpace struct {
 	t       *testing.T
 	c       *Controller
 	so      *testSharedObject
 	genesis *InnerState
-	// warm caches the result of every replayed prefix, keyed by the prefix's
-	// concatenated operation hashes. A cold member replays from genesis.
-	warm  bool
-	cache map[string]*replayTestResult
-	known []*replayTestOp
+	// config is the only config the operations name.
+	config *sobject.SharedObjectConfig
+	// names labels operations by hash in failures.
+	names map[string]string
 }
 
-// deliver adds a batch of operations and replays the known set once.
-func (m *replayTestMember) deliver(ops ...*replayTestOp) *replayTestResult {
-	// Replay the grown set in its deterministic order.
-	m.t.Helper()
-	m.known = append(m.known, ops...)
-	return m.replay(replayTestOrder(m.t, m.known))
-}
-
-// replay replays order from the longest cached prefix.
-func (m *replayTestMember) replay(order []*replayTestOp) *replayTestResult {
-	// Start from the longest cached prefix, or from genesis.
-	m.t.Helper()
-	start, res := 0, &replayTestResult{state: m.genesis}
-	for i := len(order); i > 0 && m.warm; i-- {
-		if cached := m.cache[replayTestPrefixKey(order[:i])]; cached != nil {
-			start, res = i, cached
-			break
-		}
-	}
-
-	// Replay the remaining operations in order.
-	for i := start; i < len(order); i++ {
-		op := order[i]
-		next, opRes, err := m.c.processOp(
-			context.Background(),
-			m.c.le,
-			m.so,
-			op.data,
-			op.name,
-			op.author,
-			1,
-			i,
-			res.state,
-		)
-		if err != nil {
-			m.t.Fatalf("replay %s: %v", op.name, err)
-		}
-		outcome := "applied"
-		if !opRes.GetSuccess() {
-			outcome = opRes.GetErrorDetails().GetErrorMsg()
-			next = res.state
-		}
-		res = &replayTestResult{
-			state:    next,
-			outcomes: append(slices.Clone(res.outcomes), op.name+": "+outcome),
-		}
-		if m.warm {
-			m.cache[replayTestPrefixKey(order[:i+1])] = res
-		}
-	}
-	return res
-}
-
-// replayTestOrder returns ops in topological order of their causal links, with
-// concurrent operations ordered by hash.
-func replayTestOrder(t *testing.T, ops []*replayTestOp) []*replayTestOp {
-	// Count the known parents of every operation.
+// newReplayTestSpace builds a genesis World whose config lets writers write.
+func newReplayTestSpace(t *testing.T, writers ...peer.ID) *replayTestSpace {
+	// Build the genesis World.
 	t.Helper()
-	byHash := make(map[string]*replayTestOp, len(ops))
-	for _, op := range ops {
-		byHash[string(op.hash())] = op
-	}
-	pending := make(map[*replayTestOp]int, len(ops))
-	for _, op := range ops {
-		pending[op] = 0
-		for _, parent := range replayTestParents(t, op) {
-			if byHash[string(parent)] != nil {
-				pending[op]++
-			}
-		}
-	}
+	c, so, genesis := newProcessTestWorld(t, context.Background())
 
-	// Emit the lowest-hash operation whose parents are all emitted.
-	order := make([]*replayTestOp, 0, len(ops))
-	for len(order) < len(ops) {
-		var next *replayTestOp
-		for op, n := range pending {
-			if n == 0 && (next == nil || bytes.Compare(op.hash(), next.hash()) < 0) {
-				next = op
-			}
-		}
-		if next == nil {
-			t.Fatal("operation set has a cycle")
-		}
-		delete(pending, next)
-		order = append(order, next)
-		for op := range pending {
-			for _, parent := range replayTestParents(t, op) {
-				if bytes.Equal(parent, next.hash()) {
-					pending[op]--
+	// Name the writers in the config every operation names.
+	config := &sobject.SharedObjectConfig{ConfigChainHash: bytes.Repeat([]byte{7}, 32)}
+	for _, pid := range writers {
+		config.Participants = append(config.Participants, &sobject.SOParticipantConfig{
+			PeerId: pid.String(),
+			Role:   sobject.SOParticipantRole_SOParticipantRole_WRITER,
+		})
+	}
+	return &replayTestSpace{t: t, c: c, so: so, genesis: genesis, config: config, names: map[string]string{}}
+}
+
+// sign signs a World operation creating key as the next operation of an author.
+func (s *replayTestSpace) sign(name string, priv crypto.PrivKey, key string, link *sobject.SOOperationLink) *sobject.SOOperation {
+	// Encode the object creation.
+	s.t.Helper()
+	tx, err := world_block_tx.NewTxCreateObject(key, s.genesis.GetHeadRef().CloneVT())
+	if err != nil {
+		s.t.Fatal(err.Error())
+	}
+	data := marshalApplyTxOpForProcessTest(s.t, tx)
+
+	// Sign it under the Space config.
+	link.ConfigHash = s.config.GetConfigChainHash()
+	op, err := sobject.BuildSOOperation(replayTestObjectID, priv, data, link, sobject.NewSOOperationLocalID())
+	if err != nil {
+		s.t.Fatal(err.Error())
+	}
+	s.names[string(op.Hash())] = name
+	return op
+}
+
+// member returns a member that replays on the given device. A cold member
+// replays every delivery from genesis.
+func (s *replayTestSpace) member(device peer.ID, cold bool) *replayTestMember {
+	return &replayTestMember{
+		space: s,
+		set:   sobject.NewSOOperationSet(replayTestObjectID),
+		cold:  cold,
+		replayer: &replayer{
+			c:      s.c,
+			so:     &testSharedObject{peerID: device, blockStore: s.so.blockStore},
+			base:   s.genesis,
+			decode: func(data []byte) ([]byte, error) { return data, nil },
+			config: func(_ context.Context, hash []byte) (*sobject.SharedObjectConfig, error) {
+				if !bytes.Equal(hash, s.config.GetConfigChainHash()) {
+					return nil, errors.New("unknown config")
 				}
-			}
-		}
+				return s.config, nil
+			},
+		},
 	}
-	return order
 }
 
-// replayTestParents returns the previous operation and causal parents of op.
-func replayTestParents(t *testing.T, op *replayTestOp) [][]byte {
-	// Read the causal links from the signed envelope.
+// replayTestMember is one device holding operations and replaying them.
+type replayTestMember struct {
+	space    *replayTestSpace
+	set      *sobject.SOOperationSet
+	cold     bool
+	replayer *replayer
+}
+
+// replayTestResult is the World and named outcomes after one replay.
+type replayTestResult struct {
+	state    *InnerState
+	outcomes []string
+}
+
+// deliver adds a batch of operations and replays the set once.
+func (m *replayTestMember) deliver(ops ...*sobject.SOOperation) replayTestResult {
+	// Add the batch to the set.
+	t := m.space.t
 	t.Helper()
-	inner, err := op.op.UnmarshalInner()
+	for _, op := range ops {
+		if _, err := m.set.Add(op); err != nil {
+			t.Fatal(err.Error())
+		}
+	}
+
+	// Replay it, from genesis when cold.
+	if m.cold {
+		m.replayer.positions = nil
+	}
+	state, outcomes, err := m.replayer.replay(context.Background(), m.set)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
-	// Combine the parents with the previous operation.
-	parents := slices.Clone(inner.GetParentHashes())
-	if prev := inner.GetPrevOpHash(); len(prev) != 0 {
-		parents = append(parents, prev)
+	// Name the outcomes.
+	res := replayTestResult{state: state}
+	for _, o := range outcomes {
+		outcome := "applied"
+		if o.reason != "" {
+			outcome = o.reason
+		}
+		res.outcomes = append(res.outcomes, m.space.names[string(o.hash)]+": "+outcome)
 	}
-	return parents
-}
-
-// replayTestPrefixKey identifies an ordered operation prefix.
-func replayTestPrefixKey(prefix []*replayTestOp) string {
-	var key []byte
-	for _, op := range prefix {
-		key = append(key, op.hash()...)
-	}
-	return string(key)
+	return res
 }
 
 // TestReplayConvergesAcrossDeliveryOrders replays concurrent transactions from
@@ -184,57 +139,35 @@ func replayTestPrefixKey(prefix []*replayTestOp) string {
 // the same World with the same outcomes: the creation that sorts first applies
 // and the other is rejected.
 func TestReplayConvergesAcrossDeliveryOrders(t *testing.T) {
-	// Build the shared genesis World and two member devices.
-	ctx := context.Background()
-	c, so, genesis := newProcessTestWorld(t, ctx)
+	// Build the Space and its two member devices.
 	privA, pidA := newReplayTestKey(t)
 	privB, pidB := newReplayTestKey(t)
-	configHash := bytes.Repeat([]byte{7}, 32)
-
-	// sign signs data as the next operation of an author.
-	sign := func(name string, priv crypto.PrivKey, pid peer.ID, data []byte, link *sobject.SOOperationLink) *replayTestOp {
-		// Sign the operation under the shared config.
-		t.Helper()
-		link.ConfigHash = configHash
-		op, err := sobject.BuildSOOperation(replayTestObjectID, priv, data, link, sobject.NewSOOperationLocalID())
-		if err != nil {
-			t.Fatal(err.Error())
-		}
-		return &replayTestOp{name: name, op: op, author: pid, data: data}
-	}
-	createObject := func(key string) []byte {
-		t.Helper()
-		tx, err := world_block_tx.NewTxCreateObject(key, genesis.GetHeadRef().CloneVT())
-		if err != nil {
-			t.Fatal(err.Error())
-		}
-		return marshalApplyTxOpForProcessTest(t, tx)
-	}
+	space := newReplayTestSpace(t, pidA, pidB)
 
 	// Member A creates its own object and then the shared one. Member B
 	// creates the shared object concurrently.
-	opA := sign("A own", privA, pidA, createObject("object-a"), &sobject.SOOperationLink{Nonce: 1})
-	opAShared := sign("A shared", privA, pidA, createObject("object-shared"), &sobject.SOOperationLink{Nonce: 2, PrevOpHash: opA.hash()})
-	opBShared := sign("B shared", privB, pidB, createObject("object-shared"), &sobject.SOOperationLink{Nonce: 1})
+	opA := space.sign("A own", privA, "object-a", &sobject.SOOperationLink{Nonce: 1})
+	opAShared := space.sign("A shared", privA, "object-shared", &sobject.SOOperationLink{Nonce: 2, PrevOpHash: opA.Hash()})
+	opBShared := space.sign("B shared", privB, "object-shared", &sobject.SOOperationLink{Nonce: 1})
 
 	// Each member delivers its own operations first, one at a time, then the
 	// other member's operations as one batch.
 	type run struct {
 		name string
-		res  *replayTestResult
+		res  replayTestResult
 	}
 	var runs []run
-	for _, warm := range []bool{false, true} {
-		mode := "cold"
-		if warm {
-			mode = "warm"
+	for _, cold := range []bool{true, false} {
+		mode := "warm"
+		if cold {
+			mode = "cold"
 		}
-		memberA := &replayTestMember{t: t, c: c, so: &testSharedObject{peerID: pidA, blockStore: so.blockStore}, genesis: genesis, warm: warm, cache: map[string]*replayTestResult{}}
+		memberA := space.member(pidA, cold)
 		memberA.deliver(opA)
 		memberA.deliver(opAShared)
 		runs = append(runs, run{"member A " + mode, memberA.deliver(opBShared)})
 
-		memberB := &replayTestMember{t: t, c: c, so: &testSharedObject{peerID: pidB, blockStore: so.blockStore}, genesis: genesis, warm: warm, cache: map[string]*replayTestResult{}}
+		memberB := space.member(pidB, cold)
 		memberB.deliver(opBShared)
 		runs = append(runs, run{"member B " + mode, memberB.deliver(opA, opAShared)})
 	}
@@ -248,11 +181,39 @@ func TestReplayConvergesAcrossDeliveryOrders(t *testing.T) {
 	}
 
 	// Only the later of the two shared creations is rejected.
-	order := replayTestOrder(t, []*replayTestOp{opA, opAShared, opBShared})
-	for i, op := range order {
-		applied := want.res.outcomes[i] == op.name+": applied"
-		if wantApplied := op != order[2]; applied != wantApplied {
+	set := sobject.NewSOOperationSet(replayTestObjectID)
+	for _, op := range []*sobject.SOOperation{opA, opAShared, opBShared} {
+		if _, err := set.Add(op); err != nil {
+			t.Fatal(err.Error())
+		}
+	}
+	order := set.Order()
+	if len(want.res.outcomes) != len(order) {
+		t.Fatalf("outcomes %q; want %d", want.res.outcomes, len(order))
+	}
+	for i, h := range order {
+		applied := want.res.outcomes[i] == space.names[string(h)]+": applied"
+		if wantApplied := i != 2; applied != wantApplied {
 			t.Errorf("outcome %q; want applied=%v", want.res.outcomes[i], wantApplied)
+		}
+	}
+}
+
+// TestReplayRejectsAuthorOutsideConfig rejects an operation whose author
+// cannot write under the config it names, on every replaying device.
+func TestReplayRejectsAuthorOutsideConfig(t *testing.T) {
+	// Build a Space whose only writer is A, and an operation by outsider C.
+	_, pidA := newReplayTestKey(t)
+	privC, pidC := newReplayTestKey(t)
+	space := newReplayTestSpace(t, pidA)
+	opC := space.sign("C own", privC, "object-c", &sobject.SOOperationLink{Nonce: 1})
+
+	// Both the writer and the outsider reject it.
+	for _, device := range []peer.ID{pidA, pidC} {
+		res := space.member(device, true).deliver(opC)
+		want := []string{"C own: its author could not write to the Space"}
+		if !slices.Equal(res.outcomes, want) || !res.state.EqualVT(space.genesis) {
+			t.Errorf("replay on %s: outcomes %q; want %q", device, res.outcomes, want)
 		}
 	}
 }
