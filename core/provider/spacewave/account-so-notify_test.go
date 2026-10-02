@@ -134,3 +134,30 @@ func TestHandleAccountSONotifyUnknownInvalidatesList(t *testing.T) {
 		t.Fatalf("expected one list invalidation, got %d", invalidated)
 	}
 }
+
+func TestHandleAccountSONotifyAccessChangedInvalidatesList(t *testing.T) {
+	acc := NewTestProviderAccount(t, "http://example.invalid")
+	meta, err := space.NewSharedObjectMeta("Known Space")
+	if err != nil {
+		t.Fatalf("build shared object metadata: %v", err)
+	}
+	acc.cacheSharedObjectListEntry(&sobject.SharedObjectListEntry{
+		Ref:    acc.buildSharedObjectRef("so-1"),
+		Meta:   meta,
+		Source: "cloud",
+	})
+	var invalidated int
+	acc.soListBcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		acc.soListInvalidate = func() {
+			invalidated++
+		}
+	})
+
+	acc.handleAccountSONotify(context.Background(), "so-1", &api.SONotifyEventPayload{
+		ChangeType: "access_changed",
+	})
+
+	if invalidated != 1 {
+		t.Fatalf("expected one list invalidation, got %d", invalidated)
+	}
+}

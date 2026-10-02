@@ -354,7 +354,9 @@ message SONotifyEventPayload {
   // mutation that triggered this notify.
   uint64 seqno = 1;
   // ChangeType identifies the mutation category ("op", "root",
-  // "configChanged", "metadata", "delete").
+  // "configChanged", "metadata", "delete", "access_changed").
+  // "access_changed" means the receiving account gained or lost access, so
+  // its shared object list must be refetched.
   string change_type = 2;
   // StateMessage carries the inline delta or snapshot fallback. When the
   // receiver's cached lastSeqno does not match StateMessage.delta.since the
