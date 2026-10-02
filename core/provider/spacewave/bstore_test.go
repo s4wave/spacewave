@@ -13,6 +13,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	packedmsg "github.com/s4wave/spacewave/bldr/util/packedmsg"
 	alpha_cdn "github.com/s4wave/spacewave/core/cdn"
 	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
@@ -621,83 +622,104 @@ func TestHTTPReaderAtReadAheadCache(t *testing.T) {
 	}
 }
 
-func TestHTTPReaderAtReusesPackReadTicket(t *testing.T) {
-	data := []byte("0123456789abcdef")
+// TestPackReadGrants checks that range reads reuse a live read grant and ask
+// for a new one after a refusal.
+func TestPackReadGrants(t *testing.T) {
+	// Identify the session, block store and pack.
 	priv, pid := generateTestKeypair(t)
-	sessionCli := NewSessionClient(
-		http.DefaultClient,
-		"https://spacewave.test",
-		DefaultSigningEnvPrefix,
-		priv,
-		pid.String(),
-	)
-	resourceID := "01kny7hn4wp25f7t86xzww6bd6"
-	reqs := 0
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reqs++
+	resourceID, packID := "01kny7hn4wp25f7t86xzww6bd6", "pack"
+	data := []byte("0123456789abcdef")
+
+	// Count grants and reads on a test server.
+	var grants, reads int
+	var refuse bool
+	mux := http.NewServeMux()
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+
+	// Grant reads of /pack/<n> for the nth grant.
+	mux.HandleFunc("POST /api/bstore/{id}/read", func(w http.ResponseWriter, r *http.Request) {
+		// Require the session signature.
+		if r.Header.Get("X-Signature") == "" {
+			t.Fatal("grant request is not signed")
+		}
+
+		// Answer the next grant.
+		grants++
+		resp := &packfile.ReadResponse{Grants: []*packfile.ReadGrant{{
+			PackId:    packID,
+			Url:       srv.URL + "/pack/" + strconv.Itoa(grants),
+			ExpiresAt: timestamppb.New(time.Now().Add(10 * time.Minute)),
+		}}}
+		data, err := resp.MarshalVT()
+		if err != nil {
+			t.Fatal(err)
+		}
+		_, _ = w.Write(data)
+	})
+
+	// Serve ranges of the latest grant, refusing one read when asked.
+	mux.HandleFunc("GET /pack/{n}", func(w http.ResponseWriter, r *http.Request) {
+		// Refuse a read with session credentials, a stale grant or a
+		// requested refusal.
+		reads++
+		if r.Header.Get("X-Signature") != "" {
+			t.Fatal("range read carries the session signature")
+		}
+		if r.PathValue("n") != strconv.Itoa(grants) || refuse {
+			refuse = false
+			w.WriteHeader(http.StatusForbidden)
+			return
+		}
+
+		// Serve the range.
 		start, end, ok := parseHTTPRangeHeader(r.Header.Get("Range"), int64(len(data)))
 		if !ok {
 			t.Fatalf("missing or invalid Range header: %q", r.Header.Get("Range"))
 		}
-		if reqs == 1 {
-			if r.Header.Get(packReadTicketHeader) != "" {
-				t.Fatalf("unexpected pack read ticket on first request")
-			}
-			if r.Header.Get("X-Signature") == "" {
-				t.Fatalf("expected signed first request")
-			}
-			w.Header().Set(packReadTicketHeader, "ticket-1")
-		} else {
-			if got := r.Header.Get(packReadTicketHeader); got != "ticket-1" {
-				t.Fatalf("expected pack read ticket on second request, got %q", got)
-			}
-			if r.Header.Get("X-Signature") != "" {
-				t.Fatalf("expected second request to skip request signature")
-			}
-			if r.Header.Get("X-Peer-ID") != "" {
-				t.Fatalf("expected second request to skip peer header")
-			}
-		}
 		w.Header().Set("Content-Length", strconv.FormatInt(end-start, 10))
 		w.WriteHeader(http.StatusPartialContent)
-		if _, err := w.Write(data[start:end]); err != nil {
-			t.Fatalf("write response: %v", err)
+		_, _ = w.Write(data[start:end])
+	})
+
+	// Open readers that share the session's grants.
+	sessionCli := NewSessionClient(srv.Client(), srv.URL, DefaultSigningEnvPrefix, priv, pid.String())
+	newReader := func() io.ReaderAt {
+		return packfile_store.NewHTTPRangeReader(
+			srv.Client(),
+			"",
+			int64(len(data)),
+			4,
+			func(req *http.Request) error {
+				return sessionCli.grantPackRead(req, resourceID, packID)
+			},
+			func(resp *http.Response) {
+				sessionCli.observePackRead(resp, resourceID, packID)
+			},
+		).ReaderAt(context.Background())
+	}
+
+	// Two reads share one grant.
+	rd, buf := newReader(), make([]byte, 4)
+	for _, off := range []int64{0, 8} {
+		if _, err := rd.ReadAt(buf, off); err != nil && err != io.EOF {
+			t.Fatalf("ReadAt(%d): %v", off, err)
 		}
-	}))
-	defer srv.Close()
-
-	shared := packfile_store.NewHTTPRangeReader(
-		srv.Client(),
-		srv.URL,
-		int64(len(data)),
-		4,
-		func(req *http.Request) error {
-			return sessionCli.signPackReadRequest(req, resourceID)
-		},
-		func(resp *http.Response) {
-			sessionCli.observePackReadResponse(resourceID, resp)
-		},
-	)
-	rd := shared.ReaderAt(context.Background())
-
-	buf := make([]byte, 4)
-	n, err := rd.ReadAt(buf, 0)
-	if err != nil && err != io.EOF {
-		t.Fatalf("first ReadAt returned error: %v", err)
 	}
-	if n != 4 || string(buf) != "0123" {
-		t.Fatalf("unexpected first read: n=%d data=%q", n, string(buf))
+	if grants != 1 || reads != 2 || string(buf) != "89ab" {
+		t.Fatalf("grants %d, reads %d, data %q", grants, reads, buf)
 	}
 
-	n, err = rd.ReadAt(buf, 8)
-	if err != nil && err != io.EOF {
-		t.Fatalf("second ReadAt returned error: %v", err)
+	// A refused read drops the grant, and the next read asks for another.
+	rd, refuse = newReader(), true
+	if _, err := rd.ReadAt(buf, 12); err == nil {
+		t.Fatal("refused read succeeded")
 	}
-	if n != 4 || string(buf) != "89ab" {
-		t.Fatalf("unexpected second read: n=%d data=%q", n, string(buf))
+	if _, err := rd.ReadAt(buf, 12); err != nil && err != io.EOF {
+		t.Fatalf("read after refusal: %v", err)
 	}
-	if reqs != 2 {
-		t.Fatalf("expected 2 HTTP requests, got %d", reqs)
+	if grants != 2 || string(buf) != "cdef" {
+		t.Fatalf("grants %d, data %q", grants, buf)
 	}
 }
 

@@ -4,7 +4,6 @@ import (
 	"context"
 	"math"
 	"net/http"
-	"net/url"
 	"sync"
 	"time"
 
@@ -624,11 +623,11 @@ func (s *sourceTrackingStore) track(ctx context.Context, ref *block.BlockRef, re
 }
 
 // BuildBlockStoreOpener builds a packfile Opener for a given block store ID.
-// The opener builds shared pack readers backed by signed HTTP Range requests.
-// The size is taken from the manifest entry, so no HEAD request is issued.
+// The opener builds shared pack readers backed by HTTP Range requests on
+// granted read URLs. The size is taken from the manifest entry, so no HEAD request is issued.
 func (a *ProviderAccount) BuildBlockStoreOpener(bstoreID string) packfile_store.Opener {
 	return func(packID string, size int64) (*packfile_store.PackReader, error) {
-		// Range reads need the manifest size and a session to sign them.
+		// Range reads need the manifest size and a session to grant them.
 		if size <= 0 {
 			return nil, errors.New("pack size must be known from the manifest")
 		}
@@ -637,21 +636,18 @@ func (a *ProviderAccount) BuildBlockStoreOpener(bstoreID string) packfile_store.
 			return nil, errors.New("session client not available")
 		}
 
-		// Read the pack through signed Range requests on the API endpoint.
-		packURL, err := url.JoinPath(a.p.endpoint, "/api/bstore", bstoreID, "pack", packID)
-		if err != nil {
-			return nil, errors.Wrap(err, "build pack URL")
-		}
+		// Point each Range request at the pack's granted read URL, renewing
+		// the grant before it expires.
 		return packfile_store.NewHTTPRangeReader(
 			a.p.httpCli,
-			packURL,
+			"",
 			size,
 			httpReaderAtReadAheadSize,
 			func(req *http.Request) error {
-				return cli.signPackReadRequest(req, bstoreID)
+				return cli.grantPackRead(req, bstoreID, packID)
 			},
 			func(resp *http.Response) {
-				cli.observePackReadResponse(bstoreID, resp)
+				cli.observePackRead(resp, bstoreID, packID)
 			},
 		), nil
 	}

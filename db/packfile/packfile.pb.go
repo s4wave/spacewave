@@ -381,6 +381,85 @@ func (x *PushResponse) GetUpload() *PushUpload {
 	return nil
 }
 
+// ReadRequest asks for read URLs of packfiles in one block store.
+type ReadRequest struct {
+	unknownFields []byte
+	// PackIds are the packfiles to read. Each must be in the store's catalog.
+	PackIds []string `protobuf:"bytes,1,rep,name=pack_ids,json=packIds,proto3" json:"packIds,omitempty"`
+}
+
+func (x *ReadRequest) Reset() {
+	*x = ReadRequest{}
+}
+
+func (*ReadRequest) ProtoMessage() {}
+
+func (x *ReadRequest) GetPackIds() []string {
+	if x != nil {
+		return x.PackIds
+	}
+	return nil
+}
+
+// ReadGrant authorizes reads of one packfile's bytes until it expires.
+type ReadGrant struct {
+	unknownFields []byte
+	// PackId is the packfile identifier.
+	PackId string `protobuf:"bytes,1,opt,name=pack_id,json=packId,proto3" json:"packId,omitempty"`
+	// Url is the opaque URL the client reads the packfile from with GET and
+	// Range requests. It sends no other credentials.
+	Url string `protobuf:"bytes,2,opt,name=url,proto3" json:"url,omitempty"`
+	// ExpiresAt is when the URL stops admitting reads.
+	ExpiresAt *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=expires_at,json=expiresAt,proto3" json:"expiresAt,omitempty"`
+}
+
+func (x *ReadGrant) Reset() {
+	*x = ReadGrant{}
+}
+
+func (*ReadGrant) ProtoMessage() {}
+
+func (x *ReadGrant) GetPackId() string {
+	if x != nil {
+		return x.PackId
+	}
+	return ""
+}
+
+func (x *ReadGrant) GetUrl() string {
+	if x != nil {
+		return x.Url
+	}
+	return ""
+}
+
+func (x *ReadGrant) GetExpiresAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.ExpiresAt
+	}
+	return nil
+}
+
+// ReadResponse is the response to a read request.
+type ReadResponse struct {
+	unknownFields []byte
+	// Grants holds one grant per requested packfile, in request order.
+	Grants []*ReadGrant `protobuf:"bytes,1,rep,name=grants,proto3" json:"grants,omitempty"`
+}
+
+func (x *ReadResponse) Reset() {
+	*x = ReadResponse{}
+}
+
+func (*ReadResponse) ProtoMessage() {}
+
+func (x *ReadResponse) GetGrants() []*ReadGrant {
+	if x != nil {
+		return x.Grants
+	}
+	return nil
+}
+
 type PushUpload_HeadersEntry struct {
 	unknownFields []byte
 	Key           string `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
@@ -525,6 +604,56 @@ func (m *PushResponse) CloneVT() *PushResponse {
 }
 
 func (m *PushResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *ReadRequest) CloneVT() *ReadRequest {
+	if m == nil {
+		return (*ReadRequest)(nil)
+	}
+	r := new(ReadRequest)
+	r.PackIds = protobuf_go_lite.CloneSlice(m.PackIds)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *ReadRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *ReadGrant) CloneVT() *ReadGrant {
+	if m == nil {
+		return (*ReadGrant)(nil)
+	}
+	r := new(ReadGrant)
+	r.PackId = m.PackId
+	r.Url = m.Url
+	r.ExpiresAt = protobuf_go_lite.CloneVTValue(m.ExpiresAt)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *ReadGrant) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *ReadResponse) CloneVT() *ReadResponse {
+	if m == nil {
+		return (*ReadResponse)(nil)
+	}
+	r := new(ReadResponse)
+	r.Grants = protobuf_go_lite.CloneVTSlice(m.Grants)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *ReadResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -717,6 +846,72 @@ func (this *PushResponse) EqualVT(that *PushResponse) bool {
 
 func (this *PushResponse) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*PushResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *ReadRequest) EqualVT(that *ReadRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualSlice(this.PackIds, that.PackIds) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *ReadRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*ReadRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *ReadGrant) EqualVT(that *ReadGrant) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.PackId != that.PackId {
+		return false
+	}
+	if this.Url != that.Url {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.ExpiresAt, that.ExpiresAt) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *ReadGrant) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*ReadGrant)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *ReadResponse) EqualVT(that *ReadResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTSliceImplicit(this.Grants, that.Grants, func() *ReadGrant { return &ReadGrant{} }) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *ReadResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*ReadResponse)
 	if !ok {
 		return false
 	}
@@ -1310,6 +1505,177 @@ func (x *PushResponse) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
+// MarshalProtoJSON marshals the ReadRequest message to JSON.
+func (x *ReadRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if len(x.PackIds) > 0 || s.HasField("packIds") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("packIds")
+		s.WriteStringArray(x.PackIds)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the ReadRequest to JSON.
+func (x *ReadRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the ReadRequest message from JSON.
+func (x *ReadRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "pack_ids", "packIds":
+			s.AddField("pack_ids")
+			if s.ReadNil() {
+				x.PackIds = nil
+				return
+			}
+			x.PackIds = s.ReadStringArray()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the ReadRequest from JSON.
+func (x *ReadRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the ReadGrant message to JSON.
+func (x *ReadGrant) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.PackId != "" || s.HasField("packId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("packId")
+		s.WriteString(x.PackId)
+	}
+	if x.Url != "" || s.HasField("url") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("url")
+		s.WriteString(x.Url)
+	}
+	if x.ExpiresAt != nil || s.HasField("expiresAt") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("expiresAt")
+		x.ExpiresAt.MarshalProtoJSON(s.WithField("expiresAt"))
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the ReadGrant to JSON.
+func (x *ReadGrant) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the ReadGrant message from JSON.
+func (x *ReadGrant) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "pack_id", "packId":
+			s.AddField("pack_id")
+			x.PackId = s.ReadString()
+		case "url":
+			s.AddField("url")
+			x.Url = s.ReadString()
+		case "expires_at", "expiresAt":
+			if s.ReadNil() {
+				x.ExpiresAt = nil
+				return
+			}
+			x.ExpiresAt = &timestamppb.Timestamp{}
+			x.ExpiresAt.UnmarshalProtoJSON(s.WithField("expires_at", true))
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the ReadGrant from JSON.
+func (x *ReadGrant) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the ReadResponse message to JSON.
+func (x *ReadResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if len(x.Grants) > 0 || s.HasField("grants") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("grants")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.Grants {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("grants"))
+		}
+		s.WriteArrayEnd()
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the ReadResponse to JSON.
+func (x *ReadResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the ReadResponse message from JSON.
+func (x *ReadResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "grants":
+			s.AddField("grants")
+			if s.ReadNil() {
+				x.Grants = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.Grants = append(x.Grants, nil)
+					return
+				}
+				v := &ReadGrant{}
+				v.UnmarshalProtoJSON(s.WithField("grants", false))
+				if s.Err() != nil {
+					return
+				}
+				x.Grants = append(x.Grants, v)
+			})
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the ReadResponse from JSON.
+func (x *ReadResponse) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
 func (m *PackfileEntry) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -1707,6 +2073,141 @@ func (m *PushResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
+func (m *ReadRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ReadRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *ReadRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.PackIds) > 0 {
+		for iNdEx := len(m.PackIds) - 1; iNdEx >= 0; iNdEx-- {
+			i = protobuf_go_lite.EncodeString(dAtA, i, m.PackIds[iNdEx])
+			i--
+			dAtA[i] = 0xa
+		}
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *ReadGrant) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ReadGrant) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *ReadGrant) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.ExpiresAt != nil {
+		size, err := m.ExpiresAt.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x1a
+	}
+	if len(m.Url) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.Url)
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.PackId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.PackId)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *ReadResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ReadResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *ReadResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.Grants) > 0 {
+		for iNdEx := len(m.Grants) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.Grants[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0xa
+		}
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *PackfileEntry) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -1815,6 +2316,47 @@ func (m *PushResponse) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.SizeBytes)
 	if m.Upload != nil {
 		l = m.Upload.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *ReadRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringSlice(1, m.PackIds)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *ReadGrant) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.PackId)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Url)
+	if m.ExpiresAt != nil {
+		l = m.ExpiresAt.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *ReadResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	for _, e := range m.Grants {
+		l = e.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
 	n += len(m.unknownFields)
@@ -2055,6 +2597,68 @@ func (x *PushResponse) MarshalProtoText() string {
 }
 
 func (x *PushResponse) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *ReadRequest) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "ReadRequest")
+	if len(x.PackIds) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "pack_ids")
+		for i, v := range x.PackIds {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			protobuf_go_lite.TextWriteString(&sb, v)
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *ReadRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *ReadGrant) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "ReadGrant")
+	if x.PackId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "pack_id")
+		protobuf_go_lite.TextWriteString(&sb, x.PackId)
+	}
+	if x.Url != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "url")
+		protobuf_go_lite.TextWriteString(&sb, x.Url)
+	}
+	if x.ExpiresAt != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "expires_at")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.ExpiresAt)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *ReadGrant) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *ReadResponse) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "ReadResponse")
+	if len(x.Grants) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "grants")
+		for i, v := range x.Grants {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			if v == nil {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, &ReadGrant{})
+			} else {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, v)
+			}
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *ReadResponse) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -2642,6 +3246,193 @@ func (m *PushResponse) UnmarshalVT(dAtA []byte) error {
 				m.Upload = &PushUpload{}
 			}
 			if err := m.Upload.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *ReadRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ReadRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ReadRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PackIds", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.PackIds = append(m.PackIds, v)
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *ReadGrant) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ReadGrant: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ReadGrant: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PackId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.PackId = v
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Url", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Url = v
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ExpiresAt", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.ExpiresAt == nil {
+				m.ExpiresAt = &timestamppb.Timestamp{}
+			}
+			if err := m.ExpiresAt.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *ReadResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ReadResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ReadResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Grants", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Grants = append(m.Grants, &ReadGrant{})
+			if err := m.Grants[len(m.Grants)-1].UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex

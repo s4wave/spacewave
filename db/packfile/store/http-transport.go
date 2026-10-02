@@ -128,8 +128,8 @@ func (t *httpTransport) SnapshotTransportStats() TransportStats {
 // NewHTTPRangeReader builds a per-pack engine backed by HTTP range requests.
 //
 // readAheadSize sets the engine's minimum transport window (and alignment
-// quantum); zero accepts the default. signReq optionally mutates the
-// outgoing request (for signed CDN access).
+// quantum); zero accepts the default. signReq optionally prepares each
+// request, such as signing it or replacing its URL with a granted one.
 func NewHTTPRangeReader(
 	cli *http.Client,
 	url string,

@@ -381,3 +381,90 @@ export const PushResponse: MessageType<PushResponse> =
       { no: 4, name: 'upload', kind: 'message', T: PushUpload },
     ] satisfies readonly PartialFieldInfo[],
   })
+
+/**
+ * ReadRequest asks for read URLs of packfiles in one block store.
+ *
+ * @generated from message packfile.ReadRequest
+ */
+export interface ReadRequest {
+  /**
+   * PackIds are the packfiles to read. Each must be in the store's catalog.
+   *
+   * @generated from field: repeated string pack_ids = 1;
+   */
+  packIds?: string[]
+}
+
+export const ReadRequest: MessageType<ReadRequest> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'packfile.ReadRequest',
+    fields: [
+      {
+        no: 1,
+        name: 'pack_ids',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+        repeated: true,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+  })
+
+/**
+ * ReadGrant authorizes reads of one packfile's bytes until it expires.
+ *
+ * @generated from message packfile.ReadGrant
+ */
+export interface ReadGrant {
+  /**
+   * PackId is the packfile identifier.
+   *
+   * @generated from field: string pack_id = 1;
+   */
+  packId?: string
+  /**
+   * Url is the opaque URL the client reads the packfile from with GET and
+   * Range requests. It sends no other credentials.
+   *
+   * @generated from field: string url = 2;
+   */
+  url?: string
+  /**
+   * ExpiresAt is when the URL stops admitting reads.
+   *
+   * @generated from field: google.protobuf.Timestamp expires_at = 3;
+   */
+  expiresAt?: Date
+}
+
+export const ReadGrant: MessageType<ReadGrant> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'packfile.ReadGrant',
+    fields: [
+      { no: 1, name: 'pack_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'url', kind: 'scalar', T: ScalarType.STRING },
+      { no: 3, name: 'expires_at', kind: 'message', T: () => Timestamp },
+    ] satisfies readonly PartialFieldInfo[],
+  })
+
+/**
+ * ReadResponse is the response to a read request.
+ *
+ * @generated from message packfile.ReadResponse
+ */
+export interface ReadResponse {
+  /**
+   * Grants holds one grant per requested packfile, in request order.
+   *
+   * @generated from field: repeated packfile.ReadGrant grants = 1;
+   */
+  grants?: ReadGrant[]
+}
+
+export const ReadResponse: MessageType<ReadResponse> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'packfile.ReadResponse',
+    fields: [
+      { no: 1, name: 'grants', kind: 'message', T: ReadGrant, repeated: true },
+    ] satisfies readonly PartialFieldInfo[],
+  })

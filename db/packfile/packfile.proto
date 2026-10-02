@@ -109,3 +109,26 @@ message PushResponse {
   // push, and unset when the catalog holds the packfile.
   PushUpload upload = 4;
 }
+
+// ReadRequest asks for read URLs of packfiles in one block store.
+message ReadRequest {
+  // PackIds are the packfiles to read. Each must be in the store's catalog.
+  repeated string pack_ids = 1;
+}
+
+// ReadGrant authorizes reads of one packfile's bytes until it expires.
+message ReadGrant {
+  // PackId is the packfile identifier.
+  string pack_id = 1;
+  // Url is the opaque URL the client reads the packfile from with GET and
+  // Range requests. It sends no other credentials.
+  string url = 2;
+  // ExpiresAt is when the URL stops admitting reads.
+  .google.protobuf.Timestamp expires_at = 3;
+}
+
+// ReadResponse is the response to a read request.
+message ReadResponse {
+  // Grants holds one grant per requested packfile, in request order.
+  repeated ReadGrant grants = 1;
+}

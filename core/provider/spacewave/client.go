@@ -36,11 +36,6 @@ import (
 // maxResponseBodySize is the maximum HTTP response body size (10 MiB).
 const maxResponseBodySize = 10 * 1024 * 1024
 
-const (
-	packReadTicketHeader   = "X-Sw-Pack-Read-Ticket"
-	packReadTicketReuseTTL = 25 * time.Second
-)
-
 const targetedInvitationSignatureContext = "spacewave targeted invitation envelope v1"
 
 // readResponseBody reads an HTTP response body with a size limit.
@@ -1091,17 +1086,10 @@ type SessionClient struct {
 	directWriteTicketOwnersMtx sync.Mutex
 	directWriteTicketOwners    map[string]*writeticketowner.Owner
 
-	// packReadTicketMtx guards packReadTickets
-	packReadTicketMtx sync.Mutex
-	// packReadTickets caches short-lived private pack read tickets by resource
-	packReadTickets map[string]*packReadTicketState
-}
-
-type packReadTicketState struct {
-	// ticket is the cached header value
-	ticket string
-	// exp is the local reuse deadline
-	exp time.Time
+	// readGrantsMtx guards readGrants.
+	readGrantsMtx sync.Mutex
+	// readGrants caches pack read grants by resource and pack ID.
+	readGrants map[readGrantKey]*packfile.ReadGrant
 }
 
 // NewSessionClient constructs a SessionClient with the given session key.
@@ -1153,53 +1141,6 @@ func NewSessionClientSigner(
 // GetAdminJSON sends a signed admin GET request and returns the JSON response body.
 func (c *SessionClient) GetAdminJSON(ctx context.Context, requestPath string) ([]byte, error) {
 	return c.doGet(ctx, path.Join("/api/admin", requestPath), SeedReasonColdSeed)
-}
-
-func (c *SessionClient) getPackReadTicket(resourceID string) (string, bool) {
-	c.packReadTicketMtx.Lock()
-	defer c.packReadTicketMtx.Unlock()
-	if c.packReadTickets == nil {
-		return "", false
-	}
-	state, ok := c.packReadTickets[resourceID]
-	if !ok {
-		return "", false
-	}
-	if time.Now().After(state.exp) {
-		delete(c.packReadTickets, resourceID)
-		return "", false
-	}
-	return state.ticket, true
-}
-
-func (c *SessionClient) setPackReadTicket(resourceID string, ticket string) {
-	if ticket == "" {
-		return
-	}
-	c.packReadTicketMtx.Lock()
-	if c.packReadTickets == nil {
-		c.packReadTickets = make(map[string]*packReadTicketState)
-	}
-	c.packReadTickets[resourceID] = &packReadTicketState{
-		ticket: ticket,
-		exp:    time.Now().Add(packReadTicketReuseTTL),
-	}
-	c.packReadTicketMtx.Unlock()
-}
-
-func (c *SessionClient) signPackReadRequest(req *http.Request, resourceID string) error {
-	if ticket, ok := c.getPackReadTicket(resourceID); ok {
-		req.Header.Set(packReadTicketHeader, ticket)
-		return nil
-	}
-	return c.signRequest(req, nil)
-}
-
-func (c *SessionClient) observePackReadResponse(resourceID string, resp *http.Response) {
-	if resp == nil {
-		return
-	}
-	c.setPackReadTicket(resourceID, resp.Header.Get(packReadTicketHeader))
 }
 
 // DoMultiSig sends a pre-signed multi-sig request to the cloud and returns the
