@@ -16,16 +16,18 @@ import (
 	"testing"
 	"time"
 
-	bdb "github.com/aperturerobotics/bbolt"
 	"github.com/aperturerobotics/cli"
 	cli_entrypoint "github.com/s4wave/spacewave/bldr/cli/entrypoint"
-	storage_native "github.com/s4wave/spacewave/bldr/storage/native"
+	"github.com/s4wave/spacewave/core/daemon"
 	yield_policy "github.com/s4wave/spacewave/core/resource/listener/yieldpolicy"
 	"github.com/sirupsen/logrus"
 )
 
+// statePathLeaseHolderEnv selects the isolated runtime lease holder subprocess.
 const statePathLeaseHolderEnv = "SPACEWAVE_TEST_STATE_PATH_LEASE_HOLDER"
 
+// TestRunServeCommandCompletesTakeoverBeforeBusInitialization gates writable
+// runtime initialization on the previous runtime's completed shutdown.
 func TestRunServeCommandCompletesTakeoverBeforeBusInitialization(t *testing.T) {
 	// Replace the desktop listener with a shutdown-gated stub.
 	statePath := shortSocketDir(t)
@@ -84,10 +86,12 @@ func TestRunServeCommandCompletesTakeoverBeforeBusInitialization(t *testing.T) {
 	<-old.done
 }
 
+// TestPrepareDaemonRuntimeRejectsHeldLeaseAfterPeerExit keeps a live runtime's
+// lease exclusive even after its peer disconnects during takeover.
 func TestPrepareDaemonRuntimeRejectsHeldLeaseAfterPeerExit(t *testing.T) {
 	// Acquire a lease in another process and serve a peer on the socket.
 	statePath := shortSocketDir(t)
-	holderPID, holderStore := startStatePathLeaseHolder(t, statePath)
+	_, holderStore := startStatePathLeaseHolder(t, statePath)
 	sockPath := filepath.Join(statePath, socketName)
 
 	// Accept and close one peer connection.
@@ -115,8 +119,8 @@ func TestPrepareDaemonRuntimeRejectsHeldLeaseAfterPeerExit(t *testing.T) {
 	if !errors.As(err, &heldErr) {
 		t.Fatalf("expected StatePathLeaseHeldError, got %v", err)
 	}
-	if heldErr.HolderPID != holderPID {
-		t.Fatalf("holder PID = %d, want %d", heldErr.HolderPID, holderPID)
+	if !errors.Is(err, daemon.ErrStarting) {
+		t.Fatalf("expected competing runtime startup, got %v", err)
 	}
 	if heldErr.StorePath != holderStore {
 		t.Fatalf("holder store = %q, want %q", heldErr.StorePath, holderStore)
@@ -127,6 +131,8 @@ func TestPrepareDaemonRuntimeRejectsHeldLeaseAfterPeerExit(t *testing.T) {
 	}
 }
 
+// TestPrepareDaemonRuntimeCleanHandoffAcquiresLease admits a replacement after
+// the previous runtime releases its kernel lease.
 func TestPrepareDaemonRuntimeCleanHandoffAcquiresLease(t *testing.T) {
 	// Acquire the old runtime lease and serve the old listener.
 	statePath := shortSocketDir(t)
@@ -171,6 +177,8 @@ func TestPrepareDaemonRuntimeCleanHandoffAcquiresLease(t *testing.T) {
 	}
 }
 
+// TestPrepareDaemonRuntimeRemovesStaleExplicitSocket cleans an explicit socket
+// only after acquiring the writable state path lease.
 func TestPrepareDaemonRuntimeRemovesStaleExplicitSocket(t *testing.T) {
 	// Leave a stale explicit socket on the state path.
 	statePath := shortSocketDir(t)
@@ -200,25 +208,8 @@ func TestPrepareDaemonRuntimeRemovesStaleExplicitSocket(t *testing.T) {
 	}
 }
 
-func TestAcquireStatePathLeaseFailsClosedOnUnknownStoreLock(t *testing.T) {
-	// Resolve and truncate the unknown provider store and its lock file.
-	statePath := shortSocketDir(t)
-	storePath, err := storage_native.BoltDBPath(statePath, "unknown")
-	if err != nil {
-		t.Fatalf("resolve provider store: %v", err)
-	}
-	if err := os.WriteFile(storePath, nil, 0o600); err != nil {
-		t.Fatalf("write provider store: %v", err)
-	}
-	if err := os.WriteFile(storePath+"-lock", make([]byte, bboltReaderTableOffset), 0o600); err != nil {
-		t.Fatalf("write provider lock: %v", err)
-	}
-	if _, err := acquireStatePathLease(statePath); err == nil ||
-		!strings.Contains(err.Error(), "unsupported bbolt lock file") {
-		t.Fatalf("expected unsupported lock-file error, got %v", err)
-	}
-}
-
+// TestStatePathLeaseHolderProcess holds the kernel runtime lease until its stdin
+// closes; a forced exit deliberately leaves bbolt's persistent metadata behind.
 func TestStatePathLeaseHolderProcess(t *testing.T) {
 	// Exit early when not running as the lease holder subprocess.
 	statePath := os.Getenv(statePathLeaseHolderEnv)
@@ -226,21 +217,19 @@ func TestStatePathLeaseHolderProcess(t *testing.T) {
 		return
 	}
 
-	// Open the provider store and acquire the state path lease.
-	storePath, err := storage_native.BoltDBPath(statePath, "p_test")
+	// Hold the runtime's kernel lease throughout the subprocess lifetime.
+	lease, err := acquireStatePathLease(statePath)
 	if err != nil {
-		t.Fatalf("resolve provider store: %v", err)
+		t.Fatalf("acquire runtime lease: %v", err)
 	}
-	db, err := bdb.Open(storePath, 0o600, &bdb.Options{NoFreelistSync: false})
-	if err != nil {
-		t.Fatalf("open writable provider store: %v", err)
-	}
-	defer func() {
-		if err := db.Close(); err != nil {
-			t.Errorf("close writable provider store: %v", err)
+	t.Cleanup(func() {
+		if err := lease.release(); err != nil {
+			t.Errorf("release runtime lease: %v", err)
 		}
-	}()
-	if _, err := os.Stdout.WriteString(strconv.Itoa(os.Getpid()) + "\t" + storePath + "\n"); err != nil {
+	})
+
+	// Publish readiness after acquiring the lease, then await its release gate.
+	if _, err := os.Stdout.WriteString(strconv.Itoa(os.Getpid()) + "\t" + lease.path + "\n"); err != nil {
 		t.Fatalf("report lease holder: %v", err)
 	}
 	var stop [1]byte
@@ -249,7 +238,9 @@ func TestStatePathLeaseHolderProcess(t *testing.T) {
 	}
 }
 
-func startStatePathLeaseHolder(t *testing.T, statePath string) (int, string) {
+// startStatePathLeaseHolder waits for a subprocess to acquire its runtime lease
+// and registers cleanup unless the test has already joined a forced exit.
+func startStatePathLeaseHolder(t *testing.T, statePath string) (*exec.Cmd, string) {
 	// Build the holder subprocess command and pipe identity output.
 	t.Helper()
 
@@ -273,6 +264,12 @@ func startStatePathLeaseHolder(t *testing.T, statePath string) (int, string) {
 
 	// Release the holder's stdin and wait for it on cleanup.
 	t.Cleanup(func() {
+		// Cmd.Wait already closed the pipes when the test joined a forced exit.
+		if cmd.ProcessState != nil {
+			return
+		}
+
+		// Release the normal holder through stdin before joining its process.
 		if err := stdin.Close(); err != nil {
 			t.Errorf("close holder stdin: %v", err)
 		}
@@ -294,7 +291,10 @@ func startStatePathLeaseHolder(t *testing.T, statePath string) (int, string) {
 	if err != nil {
 		t.Fatalf("parse holder PID: %v", err)
 	}
-	return pid, parts[1]
+	if pid != cmd.Process.Pid {
+		t.Fatalf("holder PID = %d, want subprocess PID %d", pid, cmd.Process.Pid)
+	}
+	return cmd, parts[1]
 }
 
 // TestStateLeasePrecedesSocketCleanup rejects another socket under the same

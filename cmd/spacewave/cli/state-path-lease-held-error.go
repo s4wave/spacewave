@@ -3,20 +3,17 @@
 package spacewave_cli
 
 import (
-	"path/filepath"
-
 	"github.com/pkg/errors"
-	storage_native "github.com/s4wave/spacewave/bldr/storage/native"
 	"github.com/s4wave/spacewave/core/daemon"
 )
 
-// StatePathLeaseHeldError reports the process that owns a writable state path.
+// StatePathLeaseHeldError reports a runtime holding a writable state path lease.
 type StatePathLeaseHeldError struct {
 	// StatePath is the canonical writable root.
 	StatePath string
-	// HolderPID identifies the lease holder when available.
+	// HolderPID identifies the holder for same-process conflicts.
 	HolderPID int
-	// StorePath identifies the contended storage lock.
+	// StorePath identifies the runtime coordination store.
 	StorePath string
 }
 
@@ -29,12 +26,12 @@ func (e *StatePathLeaseHeldError) Error() string {
 		return errors.Errorf("writable state path %s is held by PID %d", e.StatePath, e.HolderPID).Error()
 	}
 	if e.StorePath != "" {
-		return errors.Errorf("writable state path %s is held by a writer-capable process through store %s", e.StatePath, e.StorePath).Error()
+		return errors.Errorf("writable state path %s is held by another runtime through store %s", e.StatePath, e.StorePath).Error()
 	}
 	return errors.Errorf("writable state path %s is held by another process", e.StatePath).Error()
 }
 
-// Is distinguishes a competing daemon startup from a separate writable store.
+// Is identifies a competing daemon startup for socket readiness watchers.
 func (e *StatePathLeaseHeldError) Is(target error) bool {
-	return target == daemon.ErrStarting && filepath.Base(e.StorePath) == statePathLeaseStorageID+storage_native.BoltDBExt
+	return target == daemon.ErrStarting
 }
