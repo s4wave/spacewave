@@ -60,9 +60,12 @@ func (r *TableRow) GetSubBlockCtor(id uint32) block.SubBlockCtor {
 // This converts the encoded table column values into Go types.
 // The resulting sql.Row should be checked against a schema.
 func (r *TableRow) FetchSqlRow(ctx context.Context, bcs *block.Cursor) (sql.Row, error) {
+	// Open the stored row column set and allocate the SQL row.
 	colSet := newTableRowColumnSetContainer(r, bcs)
 	rowCols := r.GetColumns()
 	cols := make(sql.Row, len(rowCols))
+
+	// Decode each stored column into its SQL row position.
 	for i, col := range rowCols {
 		_, colcs := colSet.Get(i)
 		r, err := col.FetchSqlColumn(ctx, colcs)

@@ -36,10 +36,13 @@ func (r *RootDb) ApplyBlockRef(id uint32, ptr *block.BlockRef) error {
 // May return nil, and values may also be nil.
 // Note: this does not include pending references (in a cursor)
 func (r *RootDb) GetBlockRefs() (map[uint32]*block.BlockRef, error) {
+	// Omit the database root reference when its block is empty.
 	rr := r.GetRef()
 	if rr.GetEmpty() {
 		return nil, nil
 	}
+
+	// Expose the database root block reference under its schema field ID.
 	m := make(map[uint32]*block.BlockRef)
 	m[2] = rr
 	return m, nil

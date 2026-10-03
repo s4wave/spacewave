@@ -68,6 +68,7 @@ func (t *Table) LookupPartitions(ctx *sql.Context, lookup sql.IndexLookup) (sql.
 
 // CreateIndex records secondary index metadata.
 func (t *Table) CreateIndex(ctx *sql.Context, def sql.IndexDef) error {
+	// Require an unused index name and a supported secondary-index constraint.
 	if def.Name == "" {
 		return errors.New("index name is empty")
 	}
@@ -80,6 +81,8 @@ func (t *Table) CreateIndex(ctx *sql.Context, def sql.IndexDef) error {
 	if t.indexByName(def.Name) != nil || strings.EqualFold(def.Name, "PRIMARY") {
 		return sql.ErrDuplicateKey.New(def.Name)
 	}
+
+	// Resolve the index columns against the table schema.
 	cols := make([]*TableIndexColumn, len(def.Columns))
 	for i, col := range def.Columns {
 		if _, ok := t.columnOrdinal(col.Name); !ok {
@@ -87,12 +90,16 @@ func (t *Table) CreateIndex(ctx *sql.Context, def sql.IndexDef) error {
 		}
 		cols[i] = &TableIndexColumn{Name: col.Name, Length: col.Length}
 	}
+
+	// Construct the secondary-index metadata from the requested definition.
 	index := &TableIndex{
 		Name:    def.Name,
 		Columns: cols,
 		Unique:  def.IsUnique(),
 		Comment: def.Comment,
 	}
+
+	// Check existing table rows before accepting a unique index.
 	if index.GetUnique() {
 		editor := t.NewTableEditor(ctx)
 		ords, err := t.indexColumnOrdinals(cols)
@@ -151,6 +158,8 @@ func (t *Table) CreateIndex(ctx *sql.Context, def sql.IndexDef) error {
 			tx.Discard()
 		}
 	}
+
+	// Publish the new secondary index in the dirty table root.
 	t.root.Indexes = append(t.root.Indexes, index)
 	t.bcs.SetBlock(t.root, true)
 	return nil
@@ -170,13 +179,18 @@ func (t *Table) DropIndex(ctx *sql.Context, indexName string) error {
 
 // RenameIndex renames secondary index metadata.
 func (t *Table) RenameIndex(ctx *sql.Context, fromIndexName string, toIndexName string) error {
+	// Require an unused secondary-index name.
 	if strings.EqualFold(toIndexName, "PRIMARY") || t.indexByName(toIndexName) != nil {
 		return sql.ErrDuplicateKey.New(toIndexName)
 	}
+
+	// Locate the secondary index being renamed.
 	index := t.indexByName(fromIndexName)
 	if index == nil {
 		return errors.Errorf("index %q not found", fromIndexName)
 	}
+
+	// Publish the new index name in the dirty table root.
 	index.Name = toIndexName
 	t.bcs.SetBlock(t.root, true)
 	return nil

@@ -17,14 +17,19 @@ func NewTableRootBlock() block.Block {
 // LoadTableRoot follows the database root cursor.
 // may return nil
 func LoadTableRoot(ctx context.Context, cursor *block.Cursor) (*TableRoot, error) {
+	// Decode the table root block from the supplied cursor.
 	ni, err := cursor.Unmarshal(ctx, NewTableRootBlock)
 	if err != nil {
 		return nil, err
 	}
+
+	// Require a present table root before validating its contents.
 	niv, ok := ni.(*TableRoot)
 	if !ok || niv == nil {
 		return nil, nil
 	}
+
+	// Validate the decoded table root before returning it.
 	if err := niv.Validate(); err != nil {
 		return nil, err
 	}
@@ -33,14 +38,19 @@ func LoadTableRoot(ctx context.Context, cursor *block.Cursor) (*TableRoot, error
 
 // Validate validates the database root block.
 func (r *TableRoot) Validate() error {
+	// Validate the table schema before its partitions and indexes.
 	if err := r.GetTableSchema().Validate(); err != nil {
 		return errors.Wrap(err, "schema")
 	}
+
+	// Validate every table storage partition.
 	for i, pt := range r.GetTablePartitions() {
 		if err := pt.Validate(); err != nil {
 			return errors.Wrapf(err, "table_partitions[%d]", i)
 		}
 	}
+
+	// Require names and columns for every stored table index.
 	for i, index := range r.GetIndexes() {
 		if index.GetName() == "" {
 			return errors.Errorf("indexes[%d]: empty name", i)
@@ -54,6 +64,8 @@ func (r *TableRoot) Validate() error {
 			}
 		}
 	}
+
+	// Locate the table auto-increment column.
 	var autoIncrIdx int
 	for i, c := range r.GetTableSchema().GetColumns() {
 		if c.GetAutoIncrement() {
@@ -61,12 +73,16 @@ func (r *TableRoot) Validate() error {
 			break
 		}
 	}
+
+	// Validate the stored auto-increment value when present.
 	autoIncrVal := r.GetAutoIncrVal()
 	if autoIncrVal != nil {
 		if err := autoIncrVal.Validate(); err != nil {
 			return errors.Wrap(err, "auto_incr_val")
 		}
 	}
+
+	// Require an auto-increment column when the table stores its value.
 	hasAutoIncrCol := !autoIncrVal.IsEmpty()
 	if autoIncrIdx == 0 && hasAutoIncrCol {
 		return errors.New("expected empty auto_incr_val")
@@ -110,12 +126,15 @@ func (r *TableRoot) StoreAutoIncrVal(
 	buildBlobOpts *blob.BuildBlobOpts,
 	val any,
 ) error {
+	// Build the auto-increment column at its table-root sub-block.
 	bcs = bcs.FollowSubBlock(4)
 	var err error
 	r.AutoIncrVal, err = BuildTableColumn(ctx, bcs, buildBlobOpts, val)
 	if err != nil {
 		return err
 	}
+
+	// Mark the updated auto-increment column for persistence.
 	bcs.SetBlock(r.AutoIncrVal, true)
 	return nil
 }

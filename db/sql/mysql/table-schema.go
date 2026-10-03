@@ -7,21 +7,27 @@ import (
 
 // NewTableSchema constructs a table schema from sql schema.
 func NewTableSchema(schema sql.Schema) *TableSchema {
+	// Convert each SQL column into the stored table schema.
 	sch := &TableSchema{}
 	cols := make([]*TableSchemaColumn, len(schema))
 	for i, col := range schema {
 		cols[i] = NewTableSchemaColumn(col)
 	}
+
+	// Attach the converted columns to the stored table schema.
 	sch.Columns = cols
 	return sch
 }
 
 // Validate performs cursory validation of the table schema.
 func (s *TableSchema) Validate() error {
+	// Require at least one stored table column.
 	cols := s.GetColumns()
 	if len(cols) == 0 {
 		return ErrEmptyTable
 	}
+
+	// Validate the columns and enforce single primary-key and auto-increment columns.
 	var hasPk, hasAutoIncr bool
 	for i, col := range s.GetColumns() {
 		if err := col.Validate(); err != nil {

@@ -24,14 +24,19 @@ func NewTablePartitionIter(t *Table) *TablePartitionIter {
 
 // Next iterates to the next partition.
 func (i *TablePartitionIter) Next(sctx *sql.Context) (sql.Partition, error) {
+	// Stop partition iteration when the iterator has been closed.
 	ix := i.i
 	if ix < 0 {
 		return nil, io.EOF
 	}
+
+	// Stop partition iteration at the end of the table partition list.
 	pts := i.t.root.GetTablePartitions()
 	if ix >= len(pts) {
 		return nil, io.EOF
 	}
+
+	// Advance the iterator and open the current table partition.
 	i.i++
 	return i.t.PartitionAtIndex(ix)
 }

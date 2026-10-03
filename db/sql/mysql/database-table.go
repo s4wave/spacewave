@@ -14,13 +14,18 @@ func (d *Database) TableCount() int {
 // CreateTable creates the table with the given name and schema. If a table
 // with that name already exists, returns sql.ErrTableAlreadyExists.
 func (d *Database) CreateTable(ctx *sql.Context, name string, schema sql.PrimaryKeySchema, collation sql.CollationID, comment string) error {
+	// Require an unused table name before inserting its database record.
 	if _, _, nsbOk := d.nsbs.LookupByName(name); nsbOk {
 		return sql.ErrTableAlreadyExists.New(name)
 	}
+
+	// Insert the named table record into the database root.
 	ics, ok := d.root.InsertTable(name, nil, d.bcs)
 	if !ok {
 		return sql.ErrTableAlreadyExists.New(name)
 	}
+
+	// Build the table schema at the inserted table root reference.
 	d.bcs.SetBlock(d.root, true)
 	ics = ics.FollowRef(2, nil)
 	_, _, err := BuildTable(ctx, ics, name, schema, 1, collation, comment)
@@ -29,11 +34,14 @@ func (d *Database) CreateTable(ctx *sql.Context, name string, schema sql.Primary
 
 // DropTable deletes a table, if it exists.
 func (d *Database) DropTable(ctx *sql.Context, name string) error {
+	// Remove the named table record from the database root.
 	oldLen := len(d.root.GetTables())
 	_, _, ok := d.nsbs.DeleteByName(name)
 	if !ok {
 		return sql.ErrTableNotFound.New(name)
 	}
+
+	// Clear the removed table reference and invalidate its cached handle.
 	if cursor := d.nsbs.GetCursor(); cursor != nil && oldLen > len(d.root.GetTables()) {
 		cursor.ClearRef(uint32(oldLen - 1)) //nolint:gosec
 	}

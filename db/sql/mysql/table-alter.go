@@ -12,12 +12,15 @@ import (
 
 // AddColumn adds a column and rewrites stored rows to the new schema.
 func (t *Table) AddColumn(ctx *sql.Context, column *sql.Column, order *sql.ColumnOrder) error {
+	// Require a new column definition with an unused table column name.
 	if column == nil {
 		return errors.New("column is nil")
 	}
 	if _, ok := t.columnOrdinal(column.Name); ok {
 		return sql.ErrColumnExists.New(column.Name)
 	}
+
+	// Resolve the new column source and its requested schema position.
 	nextColumn := *column
 	if nextColumn.Source == "" {
 		nextColumn.Source = t.name
@@ -26,13 +29,18 @@ func (t *Table) AddColumn(ctx *sql.Context, column *sql.Column, order *sql.Colum
 	if err != nil {
 		return err
 	}
+
+	// Compute the new column default for existing table rows.
 	defaultValue, err := columnDefaultValue(ctx, &nextColumn)
 	if err != nil {
 		return err
 	}
+
+	// Rewrite table rows with the new column inserted into their schema.
 	newSchema := slices.Insert(slices.Clone(t.schema.Schema), insertAt, &nextColumn)
 	newPK := primaryKeySchemaFor(newSchema)
 	if err := t.rewriteRows(ctx, t.schema, newPK, func(row sql.Row) (sql.Row, error) {
+		// Build the row with the new column default at its schema position.
 		next := make(sql.Row, len(row)+1)
 		copy(next, row[:insertAt])
 		next[insertAt] = defaultValue
@@ -41,6 +49,8 @@ func (t *Table) AddColumn(ctx *sql.Context, column *sql.Column, order *sql.Colum
 	}); err != nil {
 		return err
 	}
+
+	// Publish the rewritten schema and primary-key positions on the table root.
 	t.root.TableSchema = NewTableSchema(newPK.Schema)
 	t.setPrimaryKeyOrdinals(newPK.PkOrdinals)
 	return t.reloadRoot(GetDbContext(ctx), t.root)
@@ -48,6 +58,7 @@ func (t *Table) AddColumn(ctx *sql.Context, column *sql.Column, order *sql.Colum
 
 // DropColumn drops a column and rewrites stored rows to the new schema.
 func (t *Table) DropColumn(ctx *sql.Context, columnName string) error {
+	// Require an existing table column that is outside the primary key.
 	dropAt, ok := t.columnOrdinal(columnName)
 	if !ok {
 		return sql.ErrTableColumnNotFound.New(t.name, columnName)
@@ -55,6 +66,8 @@ func (t *Table) DropColumn(ctx *sql.Context, columnName string) error {
 	if t.schema.Schema[dropAt].PrimaryKey {
 		return errors.Errorf("cannot drop primary key column %q", columnName)
 	}
+
+	// Reject removal of a column referenced by a secondary index.
 	for _, index := range t.root.GetIndexes() {
 		for _, indexCol := range index.GetColumns() {
 			if strings.EqualFold(indexCol.GetName(), columnName) {
@@ -62,6 +75,8 @@ func (t *Table) DropColumn(ctx *sql.Context, columnName string) error {
 			}
 		}
 	}
+
+	// Rewrite table rows without the removed column.
 	newSchema := slices.Delete(slices.Clone(t.schema.Schema), dropAt, dropAt+1)
 	newPK := primaryKeySchemaFor(newSchema)
 	if err := t.rewriteRows(ctx, t.schema, newPK, func(row sql.Row) (sql.Row, error) {
@@ -72,6 +87,8 @@ func (t *Table) DropColumn(ctx *sql.Context, columnName string) error {
 	}); err != nil {
 		return err
 	}
+
+	// Publish the shortened schema and primary-key positions on the table root.
 	t.root.TableSchema = NewTableSchema(newPK.Schema)
 	t.setPrimaryKeyOrdinals(newPK.PkOrdinals)
 	return t.reloadRoot(GetDbContext(ctx), t.root)
@@ -79,6 +96,7 @@ func (t *Table) DropColumn(ctx *sql.Context, columnName string) error {
 
 // ModifyColumn replaces an existing column definition and optionally moves it.
 func (t *Table) ModifyColumn(ctx *sql.Context, columnName string, column *sql.Column, order *sql.ColumnOrder) error {
+	// Require an existing column and its replacement definition.
 	oldAt, ok := t.columnOrdinal(columnName)
 	if !ok {
 		return sql.ErrTableColumnNotFound.New(t.name, columnName)
@@ -86,6 +104,8 @@ func (t *Table) ModifyColumn(ctx *sql.Context, columnName string, column *sql.Co
 	if column == nil {
 		return errors.New("column is nil")
 	}
+
+	// Resolve the replacement column source and requested position.
 	nextColumn := *column
 	if nextColumn.Source == "" {
 		nextColumn.Source = t.name
@@ -95,9 +115,12 @@ func (t *Table) ModifyColumn(ctx *sql.Context, columnName string, column *sql.Co
 	if err != nil {
 		return err
 	}
+
+	// Rewrite table rows with the replacement column at its new position.
 	newSchema := slices.Insert(withoutOld, insertAt, &nextColumn)
 	newPK := primaryKeySchemaFor(newSchema)
 	if err := t.rewriteRows(ctx, t.schema, newPK, func(row sql.Row) (sql.Row, error) {
+		// Preserve the existing column value while moving it within the row.
 		value := row[oldAt]
 		next := make(sql.Row, 0, len(row))
 		next = append(next, row[:oldAt]...)
@@ -107,6 +130,8 @@ func (t *Table) ModifyColumn(ctx *sql.Context, columnName string, column *sql.Co
 	}); err != nil {
 		return err
 	}
+
+	// Publish the replacement column in index metadata and the table schema.
 	t.renameIndexColumn(columnName, nextColumn.Name)
 	t.root.TableSchema = NewTableSchema(newPK.Schema)
 	t.setPrimaryKeyOrdinals(newPK.PkOrdinals)
@@ -178,15 +203,20 @@ func (t *Table) rewriteRows(
 }
 
 func (t *Table) columnOrderIndex(order *sql.ColumnOrder, defaultIndex int) (int, error) {
+	// Use the default column position when the request omits an order.
 	if order == nil {
 		return defaultIndex, nil
 	}
+
+	// Resolve explicit first position or an empty after-column request.
 	if order.First {
 		return 0, nil
 	}
 	if order.AfterColumn == "" {
 		return defaultIndex, nil
 	}
+
+	// Locate the named preceding column in the current table schema.
 	ord, ok := t.columnOrdinal(order.AfterColumn)
 	if !ok {
 		return 0, sql.ErrTableColumnNotFound.New(t.name, order.AfterColumn)

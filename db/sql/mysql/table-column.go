@@ -25,10 +25,12 @@ func BuildTableColumn(
 	opts *blob.BuildBlobOpts,
 	col any,
 ) (*TableColumn, error) {
+	// Initialize a table column block with cleared references.
 	ntc := &TableColumn{}
 	bcs.ClearAllRefs()
 	bcs.SetBlock(ntc, true)
 
+	// Encode the SQL column value in its stored scalar or blob representation.
 	switch v := col.(type) {
 	case nil:
 	case bool:

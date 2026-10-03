@@ -52,12 +52,14 @@ func (t *Mysql) SetRootNodeRef(ref *bucket.ObjectRef) {
 
 // NewMysqlTransaction returns a transaction against the db.
 func (t *Mysql) NewMysqlTransaction(ctx context.Context, write bool) (*Tx, error) {
+	// Hold the database root lock for the requested transaction mode.
 	if write {
 		t.rmtx.Lock()
 	} else {
 		t.rmtx.RLock()
 	}
 
+	// Load the root and construct the transaction with its database catalog.
 	rn, btx, bcs, err := t.fetchRoot(ctx)
 	atx := &Tx{
 		t:       t,

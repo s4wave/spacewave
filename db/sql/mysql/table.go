@@ -29,10 +29,13 @@ type Table struct {
 }
 
 func (t *Table) loadRootState(ctx context.Context, root *TableRoot) error {
+	// Decode the table schema from its root block.
 	schema, err := root.GetTableSchema().ToSqlSchema(sql.NewContext(ctx))
 	if err != nil {
 		return err
 	}
+
+	// Build the SQL primary-key schema from stored column positions.
 	pkOrdsVals := root.GetPrimaryKeyOrdinals()
 	pkOrds := make([]int, len(pkOrdsVals))
 	for i, v := range pkOrdsVals {
@@ -40,6 +43,7 @@ func (t *Table) loadRootState(ctx context.Context, root *TableRoot) error {
 	}
 	pkSchema := sql.NewPrimaryKeySchema(schema, pkOrds...)
 
+	// Load the table auto-increment column and its stored value.
 	var autoIncIdx int
 	var autoIncVal uint64
 	for i, colSch := range root.GetTableSchema().GetColumns() {
@@ -61,6 +65,7 @@ func (t *Table) loadRootState(ctx context.Context, root *TableRoot) error {
 		break
 	}
 
+	// Publish the schema and auto-increment state on the loaded table.
 	t.schema = pkSchema
 	t.root = root
 	t.autoIncIdx = autoIncIdx
@@ -106,9 +111,12 @@ func BuildTable(
 	collationID sql.CollationID,
 	comment string,
 ) (*TableRoot, *Table, error) {
+	// Give the table at least one storage partition.
 	if numPartitions <= 0 {
 		numPartitions = 1
 	}
+
+	// Construct the table schema and primary-key column positions.
 	tr := &TableRoot{
 		CollationId: uint32(collationID),
 		TableSchema: NewTableSchema(schema.Schema),
@@ -118,10 +126,14 @@ func BuildTable(
 	for i, v := range schema.PkOrdinals {
 		tr.PrimaryKeyOrdinals[i] = int32(v) //nolint:gosec
 	}
+
+	// Create the table storage partitions.
 	tr.TablePartitions = make([]*TablePartitionRoot, numPartitions)
 	for i := 0; i < numPartitions; i++ {
 		tr.TablePartitions[i] = NewTablePartitionRoot()
 	}
+
+	// Initialize the table auto-increment column with its type zero value.
 	// check for auto increment
 	for i, colSch := range tr.GetTableSchema().GetColumns() {
 		if colSch.GetAutoIncrement() {
@@ -138,6 +150,7 @@ func BuildTable(
 		}
 	}
 
+	// Attach the table root and load its table when a cursor is available.
 	var err error
 	var tbl *Table
 	if bcs != nil {
@@ -162,6 +175,7 @@ func (t *Table) String() string {
 	// based on String() at go-sql-server/memory/table.go *Table.String
 	p := sql.NewTreePrinter()
 
+	// Describe the table lookup mode for its printed name.
 	kind := ""
 	/*
 		if len(t.columns) > 0 {
@@ -169,18 +183,22 @@ func (t *Table) String() string {
 		}
 	*/
 
+	// Mark the printed table name when an index lookup is active.
 	if t.lookup != nil {
 		kind += "Indexed "
 	}
 
+	// Format the lookup mode as a suffix on the table name.
 	if kind != "" {
 		kind = ": " + kind
 	}
 
+	// Return the plain table name when no lookup mode applies.
 	if len(kind) == 0 {
 		return t.name
 	}
 
+	// Render the table name with its lookup-mode suffix.
 	_ = p.WriteNode("%s%s", t.name, kind)
 	return p.String()
 }
@@ -199,11 +217,14 @@ func (t *Table) PrimaryKeySchema(*sql.Context) sql.PrimaryKeySchema {
 //
 // Returns io.EOF if out of range.
 func (t *Table) PartitionAtIndex(ix int) (*TablePartition, error) {
+	// Require an existing table partition at the requested index.
 	pts := t.root.GetTablePartitions()
 	bcs := t.bcs
 	if ix >= len(pts) {
 		return nil, io.EOF
 	}
+
+	// Follow the partition block and carry the table index lookup into it.
 	pt := pts[ix]
 	bcs = bcs.FollowSubBlock(2).FollowSubBlock(uint32(ix)) //nolint:gosec
 	var indexLookup sql.IndexLookup
@@ -234,10 +255,13 @@ func (t *Table) PartitionRows(ctx *sql.Context, part sql.Partition) (sql.RowIter
 
 // SelectPartition selects the partition based on the index (round-robin).
 func (t *Table) SelectPartition(nonce uint64) (*TablePartition, int, error) {
+	// Require table partitions before selecting one by row nonce.
 	numPts := len(t.root.GetTablePartitions())
 	if numPts == 0 {
 		return nil, 0, errors.New("no partitions")
 	}
+
+	// Select the row partition using the table round-robin mapping.
 	sel := int(nonce % uint64(numPts)) //nolint:gosec
 	pt, err := t.PartitionAtIndex(sel)
 	return pt, sel, err

@@ -40,10 +40,13 @@ type SqlConn interface {
 // NewSqlConn creates a sql conn from a transaction and dsn.
 // NOTE: dsn is used to specify arguments and is NOT the db name.
 func NewSqlConn(ctx context.Context, tx *Tx, dsn string) (SqlConn, error) {
+	// Create the SQL connector for the database transaction and DSN.
 	conn, err := NewSqlConnector(ctx, tx, dsn)
 	if err != nil {
 		return nil, err
 	}
+
+	// Connect the SQL driver to the database transaction.
 	cn, err := conn.Connect(ctx)
 	if err != nil {
 		return nil, err

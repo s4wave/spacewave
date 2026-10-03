@@ -17,14 +17,19 @@ func NewRootBlock() block.Block {
 // LoadRoot follows the root cursor.
 // may return nil
 func LoadRoot(ctx context.Context, cursor *block.Cursor) (*Root, error) {
+	// Decode the Root block from the supplied cursor.
 	ni, err := cursor.Unmarshal(ctx, NewRootBlock)
 	if err != nil {
 		return nil, err
 	}
+
+	// Require a present Root block before validating its contents.
 	niv, ok := ni.(*Root)
 	if !ok || niv == nil {
 		return nil, nil
 	}
+
+	// Validate the decoded Root block before returning it.
 	if err := niv.Validate(); err != nil {
 		return nil, err
 	}
@@ -120,10 +125,13 @@ func (n *Root) GetRootDbSet(bcs *block.Cursor) *namedsbset.NamedSubBlockSet {
 // Returns new cursor located at *RootDb, added.
 // bcs can be nil, or should be located at root of db.
 func (n *Root) InsertDatabase(name string, ref *block.BlockRef, bcs *block.Cursor) (*RootDb, *block.Cursor) {
+	// Insert the named database record and sort the root catalog.
 	set := n.GetRootDbSet(bcs)
 	rd := &RootDb{Name: name, Ref: ref}
 	n.Databases = append(n.Databases, rd)
 	set.SortNamedRefs()
+
+	// Locate the inserted database cursor when a root cursor is available.
 	var ebcs *block.Cursor
 	if bcs != nil {
 		_, ebcs, _ = set.LookupByName(name)

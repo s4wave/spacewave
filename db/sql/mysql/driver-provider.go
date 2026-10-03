@@ -51,6 +51,7 @@ func (p *DriverProvider) NewContext(
 	conn *gdriver.Conn,
 	opts ...sql.ContextOption,
 ) (*sql.Context, error) {
+	// Resolve the current database from the SQL connection DSN.
 	dsn := conn.DSN()
 	var dbName string
 	if dsn != "" {
@@ -61,6 +62,7 @@ func (p *DriverProvider) NewContext(
 		dbName = parsed
 	}
 
+	// Construct the SQL context with the connection database selected.
 	sctx := sql.NewContext(ctx, opts...)
 	if dbName != "" {
 		sctx.SetCurrentDatabase(dbName)

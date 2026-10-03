@@ -86,9 +86,12 @@ func (t *Tx) DatabaseCount() int {
 //
 // If not exist, create is set, and tx is a write tx, it will be created.
 func (t *Tx) OpenDatabase(ctx context.Context, name string, create bool) (*Database, error) {
+	// Require a database name before opening it in the transaction.
 	if name == "" {
 		return nil, ErrEmptyDatabaseName
 	}
+
+	// Hold the transaction lock while opening the requested database.
 	t.rmtx.Lock()
 	defer t.rmtx.Unlock()
 	readOnly := !t.write
@@ -102,10 +105,13 @@ func (t *Tx) BuildDatabaseProvider(ctx context.Context) (sql.DatabaseProvider, e
 
 // openDatabaseLocked implements OpenDatabase when rmtx is locked by caller.
 func (t *Tx) openDatabaseLocked(ctx context.Context, name string, create, readOnly bool) (*Database, error) {
+	// Use the transaction cached database when it is already open.
 	if d, ok := t.openDbs[name]; ok {
 		// note: d may be nil here.
 		return d, nil
 	}
+
+	// Find or create the named database root within the transaction.
 	dbs := t.root.GetRootDbSet(t.bcs)
 	nsb, rcs, ok := dbs.LookupByName(name)
 	var dsb *RootDb
@@ -127,6 +133,8 @@ func (t *Tx) openDatabaseLocked(ctx context.Context, name string, create, readOn
 		}
 		rcs = rcs.FollowRef(2, dsb.GetRef())
 	}
+
+	// Load the database root and retain its handle in the transaction.
 	ndb, err := NewDatabase(ctx, name, readOnly, rcs)
 	if err != nil {
 		return nil, err

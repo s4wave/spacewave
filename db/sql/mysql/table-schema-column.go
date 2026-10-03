@@ -9,10 +9,12 @@ import (
 
 // NewTableSchemaColumn constructs a table column from sql schema.
 func NewTableSchemaColumn(col *sql.Column) *TableSchemaColumn {
+	// Preserve an absent SQL column as an absent stored column.
 	if col == nil {
 		return nil
 	}
 
+	// Copy the SQL column definition and its type and default expression.
 	tc := &TableSchemaColumn{
 		Name:          col.Name,
 		AutoIncrement: col.AutoIncrement,
@@ -37,6 +39,7 @@ func NewTableSchemaColumn(col *sql.Column) *TableSchemaColumn {
 //
 // Ctx is optional
 func (t *TableSchemaColumn) ToSqlColumn(ctx *sql.Context) (*sql.Column, error) {
+	// Require a stored column definition with a column name.
 	if t == nil {
 		return nil, ErrEmptyTableColumn
 	}
@@ -44,6 +47,8 @@ func (t *TableSchemaColumn) ToSqlColumn(ctx *sql.Context) (*sql.Column, error) {
 	if len(tname) == 0 {
 		return nil, ErrEmptyTableColumnName
 	}
+
+	// Construct the SQL column from its stored attributes.
 	col := &sql.Column{
 		Name:          tname,
 		AutoIncrement: t.GetAutoIncrement(),
@@ -53,6 +58,8 @@ func (t *TableSchemaColumn) ToSqlColumn(ctx *sql.Context) (*sql.Column, error) {
 		Comment:       t.GetComment(),
 		Extra:         t.GetExtra(),
 	}
+
+	// Parse the stored column type for the SQL schema.
 	if colType := t.GetColumnType(); colType != "" {
 		ttype, err := t.ParseColumnType()
 		if err != nil {
@@ -60,6 +67,8 @@ func (t *TableSchemaColumn) ToSqlColumn(ctx *sql.Context) (*sql.Column, error) {
 		}
 		col.Type = ttype
 	}
+
+	// Parse the stored default expression for the SQL column.
 	if t.GetDefaultValueExpr() != "" {
 		defv, err := t.ParseDefaultValueExpr(ctx)
 		if err != nil {
@@ -67,6 +76,8 @@ func (t *TableSchemaColumn) ToSqlColumn(ctx *sql.Context) (*sql.Column, error) {
 		}
 		col.Default = defv
 	}
+
+	// Require primary-key columns to reject null values.
 	// NOTE: this is an upstream todo to fix
 	// see memory/table.go
 	if col.PrimaryKey {

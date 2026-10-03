@@ -24,6 +24,7 @@ func BuildTableRow(
 	row sql.Row,
 	buildBlobOpts *blob.BuildBlobOpts,
 ) (*TableRow, error) {
+	// Initialize the table row block and its column sub-block container.
 	tr := &TableRow{}
 	tr.Columns = make([]*TableColumn, len(row))
 	var err error
@@ -31,6 +32,8 @@ func BuildTableRow(
 	bcs.ClearAllRefs()
 	bcs.SetBlock(tr, true)
 	colSet = newTableRowColumnSetContainer(tr, bcs)
+
+	// Encode every SQL row value into its column sub-block.
 	for i, col := range row {
 		// follow sub-block for the column
 		_, ibcs := colSet.Get(i)
@@ -39,6 +42,8 @@ func BuildTableRow(
 			return nil, errors.Wrapf(err, "column[%d]", i)
 		}
 	}
+
+	// Mark the completed table row block for persistence.
 	bcs.SetBlock(tr, true)
 	return tr, nil
 }

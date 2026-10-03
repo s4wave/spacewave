@@ -60,13 +60,18 @@ func (d *Database) MarkDirty() {
 // should be returned. If there is more than one table that matches a case
 // insensitive comparison the resolution strategy is not defined.
 func (d *Database) GetTableInsensitive(ctx *sql.Context, tblName string) (sql.Table, bool, error) {
+	// Open the database table set in the SQL operation context.
 	cctx := GetDbContext(ctx)
 	set := d.root.GetRootTableSet(d.bcs)
+
+	// Use an exact cached table match when one exists.
 	// search exact match
 	tbl, ok := d.tbls[tblName]
 	if ok {
 		return tbl, tbl != nil, nil
 	}
+
+	// Find the stored table by exact or case-insensitive name.
 	nsb, bcs, found := set.LookupByName(tblName)
 	if !found {
 		// search case insensitive
@@ -76,15 +81,19 @@ func (d *Database) GetTableInsensitive(ctx *sql.Context, tblName string) (sql.Ta
 		}
 	}
 
+	// Require a database table record from the named block set.
 	tble, ok := nsb.(*DatabaseRootTable)
 	if !ok {
 		return nil, false, ErrUnexpectedType
 	}
 
+	// Verify the stored table name matches the requested name.
 	tbln := tble.GetName()
 	if !strings.EqualFold(tbln, tblName) {
 		return nil, false, errors.Errorf("unexpected table name: %s", tbln)
 	}
+
+	// Load the table root and retain its handle in the database cache.
 	ttbl, err := LoadTable(cctx, tbln, bcs.FollowRef(2, tble.GetRef()))
 	if err != nil {
 		return nil, false, err
