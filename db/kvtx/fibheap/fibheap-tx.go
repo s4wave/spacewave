@@ -39,6 +39,7 @@ func (h *FibbonaciHeap) startTx(ctx context.Context, write bool) (*tx, error) {
 		entryCache: hashmap.NewHashmap[*Entry](),
 	}
 	if err := tx.readState(ctx); err != nil {
+		ktx.Discard()
 		return nil, err
 	}
 	return tx, nil
