@@ -10,7 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"runtime"
-	"sync/atomic"
+	"sync"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
@@ -409,25 +409,32 @@ func defaultRemoteShell() string {
 	return "/bin/sh"
 }
 
+// ptyRemoteShellProcess is a shell process attached to a local PTY.
 type ptyRemoteShellProcess struct {
-	cmd      *exec.Cmd
-	ptmx     *os.File
-	closed   atomic.Bool
-	closeErr error
+	cmd  *exec.Cmd
+	ptmx *os.File
+
+	// closeOnce guards closeErr, which holds the PTY close result.
+	closeOnce sync.Once
+	closeErr  error
 }
 
+// Read reads shell output from the PTY.
 func (p *ptyRemoteShellProcess) Read(buf []byte) (int, error) {
 	return p.ptmx.Read(buf)
 }
 
+// Write writes shell input to the PTY.
 func (p *ptyRemoteShellProcess) Write(buf []byte) (int, error) {
 	return p.ptmx.Write(buf)
 }
 
+// Resize sets the PTY window size.
 func (p *ptyRemoteShellProcess) Resize(cols, rows uint32) error {
 	return pty.Setsize(p.ptmx, &pty.Winsize{Cols: ptyDimension(cols), Rows: ptyDimension(rows)})
 }
 
+// remoteShellExitCode clamps a process exit code to the protocol's int32.
 func remoteShellExitCode(value int) int32 {
 	if value > math.MaxInt32 {
 		return math.MaxInt32
@@ -438,6 +445,7 @@ func remoteShellExitCode(value int) int32 {
 	return int32(value) //nolint:gosec // the explicit int32 bounds preserve the terminal protocol's signed exit code.
 }
 
+// ptyDimension clamps a terminal dimension to the kernel's uint16 field.
 func ptyDimension(value uint32) uint16 {
 	if value > math.MaxUint16 {
 		return math.MaxUint16
@@ -445,25 +453,28 @@ func ptyDimension(value uint32) uint16 {
 	return uint16(value) //nolint:gosec // the explicit MaxUint16 bound protects the kernel pty field.
 }
 
+// Close closes the PTY and kills the shell once.
+// Every call returns the first close result.
 func (p *ptyRemoteShellProcess) Close() error {
-	// Keep repeated PTY closure calls from closing the process again.
-	if !p.closed.CompareAndSwap(false, true) {
-		return p.closeErr
-	}
-
-	// Close the PTY and terminate its attached shell process.
-	p.closeErr = p.ptmx.Close()
-	if p.cmd.Process != nil {
-		_ = p.cmd.Process.Kill()
-	}
+	p.closeOnce.Do(func() {
+		// Close the PTY and terminate its attached shell process.
+		p.closeErr = p.ptmx.Close()
+		if p.cmd.Process != nil {
+			_ = p.cmd.Process.Kill()
+		}
+	})
 	return p.closeErr
 }
 
+// Wait waits for the shell to exit and returns its exit code.
 func (p *ptyRemoteShellProcess) Wait() (int, error) {
+	// Report a clean exit without an error.
 	err := p.cmd.Wait()
 	if err == nil {
 		return 0, nil
 	}
+
+	// Report the process exit code when the shell exited unsuccessfully.
 	var exitErr *exec.ExitError
 	if errors.As(err, &exitErr) {
 		return exitErr.ExitCode(), err
