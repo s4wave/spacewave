@@ -28,6 +28,8 @@ func StageChannel(ctx context.Context, ws world.WorldState, manifestKey string, 
 	if key := metadata.GetChannelKey(); key == "." || key == ".." || strings.ContainsAny(key, "/\\") {
 		return nil, errors.New("release channel must be one object-key segment")
 	}
+
+	// Collect the current manifests and reject incomplete release content.
 	groups, manifestErrors, err := manifest_world.CollectManifests(ctx, ws, nil, manifestKey)
 	if err != nil {
 		return nil, err
@@ -35,12 +37,16 @@ func StageChannel(ctx context.Context, ws world.WorldState, manifestKey string, 
 	if len(manifestErrors) != 0 {
 		return nil, manifestErrors[0]
 	}
+
+	// Retain the latest release manifest for each executable or plugin platform.
 	var selected []*manifest_world.CollectedManifest
 	for _, manifests := range groups {
 		selected = append(selected, manifests...)
 	}
 	selected = manifest_world.FilterCollectedManifestsByBuildType(selected, bldr_manifest.BuildType_RELEASE)
 	selected = manifest_world.FilterCollectedManifestsByLatestRev(selected)
+
+	// Bind the release metadata to the selected manifests and validate it.
 	metadata = metadata.CloneVT()
 	metadata.ManifestRefs = nil
 	for _, manifest := range selected {

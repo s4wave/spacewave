@@ -14,6 +14,7 @@ const ConfigID = ControllerID
 
 // Validate validates the configuration.
 func (c *Config) Validate() error {
+	// Validate the container image, resource requests, environments, and mounts.
 	if c.GetImage() == "" {
 		return errors.New("image cannot be empty")
 	}

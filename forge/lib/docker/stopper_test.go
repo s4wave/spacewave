@@ -10,6 +10,7 @@ import (
 // TestStopperUsesPersistedRuntimeIdentity keeps crash recovery on the same
 // Docker CLI path and endpoint that created the container.
 func TestStopperUsesPersistedRuntimeIdentity(t *testing.T) {
+	// Stop the container through a runner that records its persisted CLI identity.
 	runner := &recordingRunner{}
 	stopped, err := NewStopper(runner).StopRuntime(t.Context(), forge_runtime.BackendRuntimeIdentity{
 		Backend: "docker", ID: "spacewave-runtime", StopCommand: "docker-test",
@@ -18,6 +19,8 @@ func TestStopperUsesPersistedRuntimeIdentity(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Verify the stop result and the exact saved command and environment.
 	if !stopped {
 		t.Fatal("runtime stop not confirmed")
 	}

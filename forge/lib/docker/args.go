@@ -17,16 +17,20 @@ func BuildDockerEnv(conf *Config) []string {
 
 // buildCreateArgs renders the docker create invocation for the config.
 func buildCreateArgs(conf *Config, runtimeName string) []string {
+	// Select the container creation command and reserved runtime name.
 	args := []string{"create"}
 	if runtimeName != "" {
 		args = append(args, "--name", runtimeName)
 	}
+
 	// Enforce the same CPU and memory request that admission debits.
 	cpu := strconv.FormatUint(conf.GetMilliCpu()/1000, 10)
 	if fraction := conf.GetMilliCpu() % 1000; fraction != 0 {
 		cpu += "." + strings.TrimRight(strconv.FormatUint(1000+fraction, 10)[1:], "0")
 	}
 	args = append(args, "--cpus", cpu, "--memory", strconv.FormatUint(conf.GetMemoryBytes(), 10))
+
+	// Apply the container working directory, environment, and bind mounts.
 	if workdir := conf.GetWorkdir(); workdir != "" {
 		args = append(args, "--workdir", workdir)
 	}
@@ -36,6 +40,8 @@ func buildCreateArgs(conf *Config, runtimeName string) []string {
 	for _, mount := range conf.GetMounts() {
 		args = append(args, "--mount", buildMountArg(mount))
 	}
+
+	// Select the container image and command after its runtime options.
 	args = append(args, conf.GetImage())
 	args = append(args, conf.GetCommand()...)
 	return args

@@ -47,6 +47,8 @@ func OpenLocalWorld(ctx context.Context, le *logrus.Entry, boltPath, engineID, b
 			out.Release()
 		}
 	}()
+
+	// Attach the storage volume and node controllers to the local World bus.
 	b, sr, err := db_core.NewCoreBus(ctx, le)
 	if err != nil {
 		return nil, err
@@ -61,6 +63,8 @@ func OpenLocalWorld(ctx context.Context, le *logrus.Entry, boltPath, engineID, b
 		return nil, err
 	}
 	out.release = append(out.release, volumeRef.Release)
+
+	// Attach the node controller to expose the mounted publication volume.
 	_, _, nodeRef, err := loader.WaitExecControllerRunning(ctx, b,
 		resolver.NewLoadControllerWithConfig(&node_controller.Config{}), nil)
 	if err != nil {
@@ -76,6 +80,8 @@ func OpenLocalWorld(ctx context.Context, le *logrus.Entry, boltPath, engineID, b
 	if _, err := bucket.ExApplyBucketConfig(ctx, b, bucket.NewApplyBucketConfigToVolume(conf, "release-volume")); err != nil {
 		return nil, err
 	}
+
+	// Attach the World engine using the publication bucket aliases.
 	ctrl, ref, err := world_block_engine.StartEngineWithConfig(ctx, b,
 		world_block_engine.NewConfig(engineID, "release-volume", bucketID, bucketID, nil, nil, false))
 	if err != nil {

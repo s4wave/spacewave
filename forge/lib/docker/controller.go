@@ -74,6 +74,7 @@ func (c *Controller) InitForgeExecController(
 
 // Execute executes the docker container lifecycle.
 func (c *Controller) Execute(ctx context.Context) (retErr error) {
+	// Require the execution handle, container configuration, and runtime capacity service.
 	if c.handle == nil {
 		return errors.New("forge exec controller not initialized")
 	}
@@ -102,6 +103,7 @@ func (c *Controller) Execute(ctx context.Context) (retErr error) {
 	dockerEnv := BuildDockerEnv(c.conf)
 	var containerID string
 	if err := grant.Launch(ctx, func(name string) error {
+		// Create the container under the reserved runtime name and start it.
 		out, err := c.runner.Run(ctx, dockerPath, buildCreateArgs(c.conf, name), dockerEnv)
 		if err != nil {
 			return errors.Wrap(err, "docker create")
@@ -116,6 +118,7 @@ func (c *Controller) Execute(ctx context.Context) (retErr error) {
 		return err
 	}
 
+	// Wait for the container to exit or the execution context to be cancelled.
 	out, err := c.runner.Run(ctx, dockerPath, []string{"wait", containerID}, dockerEnv)
 	if err != nil {
 		if ctx.Err() != nil {

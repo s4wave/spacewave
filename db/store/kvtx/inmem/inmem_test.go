@@ -16,6 +16,7 @@ import (
 
 // TestKVTxStore tests a key/value transaction store on top of inmem.
 func TestKVTxStore(t *testing.T) {
+	// Prepare logging and the key store for the in-memory transaction adapter.
 	ctx := context.Background()
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
@@ -24,6 +25,8 @@ func TestKVTxStore(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Exercise the store contract through the in-memory transaction adapter.
 	ktx := store_kvtx.NewKVTx(
 		kvkey,
 		kvtx_vlogger.NewVLogger(le, NewStore()),
@@ -35,6 +38,7 @@ func TestKVTxStore(t *testing.T) {
 }
 
 func TestWriteIteratorSortsAddedKeys(t *testing.T) {
+	// Open a write transaction for keys inserted out of order.
 	ctx := context.Background()
 	store := NewStore()
 	tx, err := store.NewTransaction(ctx, true)
@@ -43,6 +47,7 @@ func TestWriteIteratorSortsAddedKeys(t *testing.T) {
 	}
 	defer tx.Discard()
 
+	// Insert transaction keys in an order different from their sort order.
 	for _, key := range [][]byte{
 		[]byte("m"),
 		[]byte("a"),
@@ -53,6 +58,7 @@ func TestWriteIteratorSortsAddedKeys(t *testing.T) {
 		}
 	}
 
+	// Collect keys from the sorted transaction iterator.
 	iter := tx.Iterate(ctx, nil, true, false)
 	defer iter.Close()
 	if err := iter.Seek(nil); err != nil {
@@ -67,6 +73,7 @@ func TestWriteIteratorSortsAddedKeys(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Verify that the transaction iterator returned every key in sorted order.
 	want := [][]byte{
 		[]byte("a"),
 		[]byte("m"),
@@ -88,6 +95,7 @@ func TestWriteIteratorSortsAddedKeys(t *testing.T) {
 // as a bubble deadlock.
 func TestWriteWaiterCancelReleasesReaders(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
+		// Create the in-memory store for the cancelled writer scenario.
 		ctx := context.Background()
 		store := NewStore()
 
@@ -129,6 +137,7 @@ func TestWriteWaiterCancelReleasesReaders(t *testing.T) {
 // finishes. A blind clear would admit a reader while the peer still waits.
 func TestWriteWaiterCancelPreservesPeerBlock(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
+		// Create the store for competing writer and reader transactions.
 		ctx := context.Background()
 		store := NewStore()
 
@@ -160,6 +169,7 @@ func TestWriteWaiterCancelPreservesPeerBlock(t *testing.T) {
 		// Both writers are now durably blocked: writeWaiting == 2.
 		synctest.Wait()
 
+		// Verify that cancelling one writer releases only its waiting registration.
 		cancel()
 		synctest.Wait()
 		if err := <-cancelErr; err != context.Canceled {

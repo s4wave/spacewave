@@ -22,9 +22,12 @@ func NewStopper(runner DockerRunner) *Stopper {
 
 // StopRuntime confirms that the named Docker container has stopped or gone.
 func (s *Stopper) StopRuntime(ctx context.Context, rt forge_runtime.BackendRuntimeIdentity) (bool, error) {
+	// Require a Docker runtime before invoking its saved stop command.
 	if rt.Backend != "docker" {
 		return false, errors.Errorf("unsupported runtime backend %q", rt.Backend)
 	}
+
+	// Stop the container using its persisted CLI environment and timeout.
 	command := rt.StopCommand
 	if command == "" {
 		command = "docker"

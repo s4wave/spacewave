@@ -39,6 +39,7 @@ func NewIterator(
 	sort bool,
 	reverse bool,
 ) *Iterator {
+	// Construct the iterator with its transaction and traversal options.
 	it := &Iterator{
 		ctx:     ctx,
 		tx:      tx,
@@ -61,9 +62,12 @@ func NewIterator(
 
 	// Add items from base tree
 	tx.s.tree.Ascend(pivot, func(item *valType) bool {
+		// Stop the base-tree traversal when keys leave the requested prefix.
 		if len(prefix) != 0 && !bytes.HasPrefix(item.key, prefix) {
 			return false
 		}
+
+		// Exclude base-tree values deleted or replaced by this transaction.
 		searchItem := &valType{key: item.key}
 		if tx.write {
 			if _, delExists := tx.deleted.Get(searchItem); delExists {
@@ -73,6 +77,8 @@ func NewIterator(
 				return true
 			}
 		}
+
+		// Retain the visible base-tree value for iteration.
 		it.items = append(it.items, item)
 		return true
 	})
@@ -150,15 +156,20 @@ func (it *Iterator) Value() ([]byte, error) {
 
 // ValueCopy copies the value to the given byte slice and returns it.
 func (it *Iterator) ValueCopy(dst []byte) ([]byte, error) {
+	// Read the iterator value before preparing its destination buffer.
 	val, err := it.Value()
 	if err != nil || val == nil {
 		return nil, err
 	}
+
+	// Size the destination buffer to hold the iterator value.
 	if cap(dst) < len(val) {
 		dst = make([]byte, len(val))
 	} else {
 		dst = dst[:len(val)]
 	}
+
+	// Copy the iterator value into the caller buffer.
 	copy(dst, val)
 	return dst, nil
 }
@@ -178,10 +189,12 @@ func (it *Iterator) Next() bool {
 
 // Seek moves the iterator to the first key >= the provided key (or <= in reverse mode).
 func (it *Iterator) Seek(k []byte) error {
+	// Stop seeking when the iterator has an error.
 	if it.Err() != nil {
 		return it.err
 	}
 
+	// Position an empty-key seek at the first item in traversal order.
 	if len(k) == 0 {
 		if it.reverse {
 			it.pos = len(it.items) - 1
@@ -206,6 +219,7 @@ func (it *Iterator) Seek(k []byte) error {
 		}
 	}
 
+	// Position the iterator at the nearest key in the requested direction.
 	if it.reverse {
 		it.pos = right
 		if it.pos < 0 {

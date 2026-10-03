@@ -36,7 +36,9 @@ func NewStore() *Store {
 // Indicate write if the transaction will not be read-only.
 // Always call Discard() after you are done with the transaction.
 func (s *Store) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, error) {
+	// Prepare the transaction result for the store lock.
 	var tx kvtx.Tx
+
 	// waiting indicates this call registered as a waiting writer and still
 	// owns a writeWaiting increment it must release on any early exit.
 	var waiting bool
@@ -59,11 +61,14 @@ func (s *Store) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, error)
 		}
 	})
 
+	// Return the transaction when the store granted immediate access.
 	if tx != nil {
 		return tx, nil
 	}
 
+	// Wait for store access while retaining the waiting writer registration.
 	for {
+		// Wait for a store change or release the writer registration on cancellation.
 		select {
 		case <-ctx.Done():
 			// A cancelled write waiter must release its admission block on
@@ -80,6 +85,7 @@ func (s *Store) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, error)
 		case <-waitCh:
 		}
 
+		// Acquire the transaction if the store now permits access.
 		s.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
 			if write {
 				if s.nreaders == 0 && !s.writing {
@@ -98,6 +104,7 @@ func (s *Store) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, error)
 			}
 		})
 
+		// Return the transaction once store access is granted.
 		if tx != nil {
 			return tx, nil
 		}

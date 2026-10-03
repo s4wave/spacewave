@@ -35,12 +35,15 @@ func (r *ExecDockerRunner) Logs(ctx context.Context, name, containerID string, e
 
 // run executes a docker command with separate captured output streams.
 func (r *ExecDockerRunner) run(ctx context.Context, name string, args []string, env []string) ([]byte, []byte, error) {
+	// Prepare the Docker subprocess with separate output buffers.
 	cmd := exec.CommandContext(ctx, name, args...)
 	cmd.Env = env
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
+
+	// Execute the Docker command and retain both streams on failure.
 	err := cmd.Run()
 	if err != nil {
 		if ctx.Err() != nil {
