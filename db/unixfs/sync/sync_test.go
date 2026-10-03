@@ -233,7 +233,14 @@ func TestSyncLargeFileWithAppend(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = os.WriteFile(tempFile.Name(), appendData, os.ModeAppend) //nolint:gosec
+	appendFile, err := os.OpenFile(tempFile.Name(), os.O_APPEND|os.O_WRONLY, 0) //nolint:gosec
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = appendFile.Write(appendData)
+	if cerr := appendFile.Close(); err == nil {
+		err = cerr
+	}
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -268,7 +275,10 @@ func TestSyncLargeFileWithAppend(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Verify that the UnixFS bytes match the disk file.
+	// Verify that the UnixFS bytes match the appended disk file.
+	if len(originalData) != len(data)+len(appendData) {
+		t.Fatalf("expected %d bytes on disk after append, got %d", len(data)+len(appendData), len(originalData))
+	}
 	if !bytes.Equal(originalData, syncedData) {
 		t.Fatalf("Synced file does not match the original file. Original size: %d, Synced size: %d", len(originalData), len(syncedData))
 	}
