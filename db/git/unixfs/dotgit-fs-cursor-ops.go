@@ -323,7 +323,8 @@ func (o *DotGitFSCursorOps) Mknod(ctx context.Context, checkExist bool, names []
 	for _, name := range names {
 		path := append(slices.Clone(o.node.path), name)
 		if checkExist {
-			if _, err := o.Lookup(ctx, name); err == nil {
+			if existing, err := o.Lookup(ctx, name); err == nil {
+				existing.Release()
 				return unixfs_errors.ErrExist
 			} else if err != unixfs_errors.ErrNotExist {
 				return err
