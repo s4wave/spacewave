@@ -6,7 +6,9 @@ import (
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/bucket"
 	"github.com/s4wave/spacewave/db/world"
+	world_parent "github.com/s4wave/spacewave/db/world/parent"
 	forge_execution "github.com/s4wave/spacewave/forge/execution"
+	forge_allocation "github.com/s4wave/spacewave/forge/lib/git/allocation"
 	"github.com/s4wave/spacewave/net/peer"
 )
 
@@ -45,7 +47,8 @@ func CreateExecutionWithPass(
 	valueSet := passObj.GetValueSet().Clone()
 	valueSet.Outputs = nil
 
-	return forge_execution.CreateExecutionWithTarget(
+	// Create the pending Execution before binding its Job checkout grant.
+	ref, err := forge_execution.CreateExecutionWithTarget(
 		ctx,
 		ws,
 		sender,
@@ -56,4 +59,25 @@ func CreateExecutionWithPass(
 		passObj.GetPlacement(),
 		passObj.GetTimestamp().CloneVT(),
 	)
+	if err != nil {
+		return nil, err
+	}
+
+	// Follow Pass containment to its Task and retained Job without scanning history.
+	taskKey, err := world_parent.GetObjectParent(ctx, ws, passObjKey)
+	if err != nil {
+		return nil, err
+	}
+	if taskKey != "" {
+		jobKey, err := world_parent.GetObjectParent(ctx, ws, taskKey)
+		if err != nil {
+			return nil, err
+		}
+		if jobKey != "" {
+			if err := forge_allocation.BindJobAllocations(ctx, ws, jobKey, execObjKey); err != nil {
+				return nil, err
+			}
+		}
+	}
+	return ref, nil
 }

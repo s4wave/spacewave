@@ -14,6 +14,7 @@ import (
 	"github.com/s4wave/spacewave/db/bucket"
 	"github.com/s4wave/spacewave/db/world"
 	forge_runtime "github.com/s4wave/spacewave/forge/runtime"
+	"github.com/s4wave/spacewave/net/peer"
 )
 
 const (
@@ -26,6 +27,8 @@ const (
 var (
 	// PredExecutionToAllocation links a Forge Execution to a Git Worktree allocation.
 	PredExecutionToAllocation = quad.IRI("forge/git/execution-allocation")
+	// PredJobToAllocation links a Forge Job to its retained Git allocation.
+	PredJobToAllocation = quad.IRI("forge/git/job-allocation")
 	// PredPassToAllocation links a Forge Pass to a Git Worktree allocation.
 	PredPassToAllocation = quad.IRI("forge/git/pass-allocation")
 	// PredAllocationToRepo links an allocation to the owning Git Repo object.
@@ -36,6 +39,10 @@ var (
 
 // Allocation records provenance for one Forge-owned Git Worktree allocation.
 type Allocation struct {
+	// JobObjectKey is the Job retaining this checkout across its Executions.
+	JobObjectKey string `json:"jobObjectKey,omitempty"`
+	// PeerID is the external World identity authorized to operate a Job checkout.
+	PeerID string `json:"peerId,omitempty"`
 	// ExecutionObjectKey is the owning Forge Execution object key.
 	ExecutionObjectKey string `json:"executionObjectKey,omitempty"`
 	// PassObjectKey is the optional owning Forge Pass object key.
@@ -68,32 +75,10 @@ type Allocation struct {
 	Timestamp *timestamp.Timestamp `json:"timestamp,omitempty"`
 }
 
-// CreateArgs contains inputs for creating or reusing an allocation.
-type CreateArgs struct {
-	ObjectKey          string
-	ExecutionObjectKey string
-	PassObjectKey      string
-	RepoObjectKey      string
-	WorktreeObjectKey  string
-	// WorkdirRequired reports whether the allocation must carry the mutable
-	// Workdir identity. Legacy allocations without it require a clean break.
-	WorkdirRequired   bool
-	WorkdirObjectKey  string
-	BaseCommitHash    string
-	BranchRef         string
-	PathFamily        string
-	EvidenceObjectKey string
-	Status            string
-	CollisionState    string
-	StaleBaseState    string
-	CleanupState      string
-	Timestamp         *timestamp.Timestamp
-}
-
 // BuildObjectKey builds a deterministic allocation object key.
-func BuildObjectKey(executionObjectKey, repoObjectKey, baseCommitHash, pathFamily string) string {
+func BuildObjectKey(ownerObjectKey, repoObjectKey, baseCommitHash, pathFamily string) string {
 	hash := sha256.Sum256([]byte(strings.Join([]string{
-		executionObjectKey,
+		ownerObjectKey,
 		repoObjectKey,
 		baseCommitHash,
 		pathFamily,
@@ -112,15 +97,24 @@ func CreateOrReuse(
 	ws world.WorldState,
 	args CreateArgs,
 ) (*Allocation, string, *bucket.ObjectRef, error) {
+	// Derive the allocation identity from the retained Job or owning Execution.
+	ownerKey := args.JobObjectKey
+	if ownerKey == "" {
+		ownerKey = args.ExecutionObjectKey
+	}
 	if args.ObjectKey == "" {
 		args.ObjectKey = BuildObjectKey(
-			args.ExecutionObjectKey,
+			ownerKey,
 			args.RepoObjectKey,
 			args.BaseCommitHash,
 			args.PathFamily,
 		)
 	}
+
+	// Freeze provenance and default its initial lifecycle state.
 	alloc := &Allocation{
+		JobObjectKey:       args.JobObjectKey,
+		PeerID:             args.PeerID,
 		ExecutionObjectKey: args.ExecutionObjectKey,
 		PassObjectKey:      args.PassObjectKey,
 		RepoObjectKey:      args.RepoObjectKey,
@@ -158,6 +152,7 @@ func CreateOrReuse(
 		return nil, "", nil, err
 	}
 
+	// Reuse only the same admitted checkout and allocation authority.
 	existing, found, err := ws.GetObject(ctx, args.ObjectKey)
 	defer world.ReleaseObjectState(existing)
 	if err != nil {
@@ -181,6 +176,7 @@ func CreateOrReuse(
 		return existingAlloc, args.ObjectKey, ref, err
 	}
 
+	// Publish the allocation body and its graph relationships together.
 	createdObject, rootRef, err := world.CreateWorldObject(ctx, ws, args.ObjectKey, func(bcs *block.Cursor) error {
 		bcs.ClearAllRefs()
 		bcs.SetBlock(alloc, true)
@@ -251,16 +247,19 @@ func ListAllocationWorktrees(ctx context.Context, ws world.WorldState, allocatio
 
 // Validate validates an Allocation.
 func (a *Allocation) Validate() error {
+	// Require one owner and complete checkout provenance.
 	switch {
-	case a.GetExecutionObjectKey() == "":
-		return errors.New("execution_object_key cannot be empty")
+	case (a.GetExecutionObjectKey() == "") == (a.GetJobObjectKey() == ""):
+		return errors.New("allocation requires exactly one Job or Execution owner")
+	case a.GetJobObjectKey() != "" && a.GetPassObjectKey() != "":
+		return errors.New("Job allocation cannot have a Pass owner")
 	case a.GetRepoObjectKey() == "":
 		return errors.New("repo_object_key cannot be empty")
 	case a.GetWorktreeObjectKey() == "":
 		return errors.New("worktree_object_key cannot be empty")
 	case a.GetBaseCommitHash() == "":
 		return errors.New("base_commit_hash cannot be empty")
-	case a.GetBranchRef() == "":
+	case a.GetJobObjectKey() == "" && a.GetBranchRef() == "":
 		return errors.New("branch_ref cannot be empty")
 	case a.GetPathFamily() == "":
 		return errors.New("path_family cannot be empty")
@@ -273,6 +272,16 @@ func (a *Allocation) Validate() error {
 	case a.GetCleanupState() == "":
 		return errors.New("cleanup_state cannot be empty")
 	}
+
+	// Validate the Job grant and any terminal runtime receipt.
+	if a.GetJobObjectKey() != "" {
+		if _, err := peer.IDB58Decode(a.PeerID); err != nil {
+			return errors.Wrap(err, "Job allocation peer ID")
+		}
+		if a.GetWorkdirObjectKey() == "" {
+			return errors.New("Job allocation requires a Workdir")
+		}
+	}
 	if cleanup := a.GetCleanup(); cleanup != nil {
 		if err := cleanup.Validate(); err != nil {
 			return errors.Wrap(err, "cleanup")
@@ -282,6 +291,14 @@ func (a *Allocation) Validate() error {
 		return errors.Wrap(err, "timestamp")
 	}
 	return nil
+}
+
+// GetJobObjectKey returns the Job retaining the checkout.
+func (a *Allocation) GetJobObjectKey() string {
+	if a != nil {
+		return a.JobObjectKey
+	}
+	return ""
 }
 
 // GetExecutionObjectKey returns the owning Execution object key.
@@ -421,25 +438,35 @@ func (a *Allocation) UnmarshalBlock(data []byte) error {
 
 // MarshalJSON marshals the Allocation to JSON without reflection.
 func (a *Allocation) MarshalJSON() ([]byte, error) {
+	// Preserve nil block encoding.
 	if a == nil {
 		return []byte("null"), nil
 	}
 
+	// Encode the allocation owner and checkout identities.
 	var arena fastjson.Arena
 	obj := arena.NewObject()
+	setStringJSONField(&arena, obj, "jobObjectKey", a.JobObjectKey)
+	setStringJSONField(&arena, obj, "peerId", a.PeerID)
 	setStringJSONField(&arena, obj, "executionObjectKey", a.ExecutionObjectKey)
 	setStringJSONField(&arena, obj, "passObjectKey", a.PassObjectKey)
 	setStringJSONField(&arena, obj, "repoObjectKey", a.RepoObjectKey)
 	setStringJSONField(&arena, obj, "worktreeObjectKey", a.WorktreeObjectKey)
+
+	// Encode the immutable base and visible path provenance.
 	setStringJSONField(&arena, obj, "workdirObjectKey", a.WorkdirObjectKey)
 	setStringJSONField(&arena, obj, "baseCommitHash", a.BaseCommitHash)
 	setStringJSONField(&arena, obj, "branchRef", a.BranchRef)
 	setStringJSONField(&arena, obj, "pathFamily", a.PathFamily)
 	setStringJSONField(&arena, obj, "evidenceObjectKey", a.EvidenceObjectKey)
+
+	// Encode lifecycle state independently of the retained checkout identity.
 	setStringJSONField(&arena, obj, "status", a.Status)
 	setStringJSONField(&arena, obj, "collisionState", a.CollisionState)
 	setStringJSONField(&arena, obj, "staleBaseState", a.StaleBaseState)
 	setStringJSONField(&arena, obj, "cleanupState", a.CleanupState)
+
+	// Include the latest runtime cleanup receipt when present.
 	if cleanup := a.GetCleanup(); cleanup != nil {
 		cleanupJSON, err := cleanup.MarshalJSON()
 		if err != nil {
@@ -451,6 +478,8 @@ func (a *Allocation) MarshalJSON() ([]byte, error) {
 		}
 		obj.Set("cleanup", cleanupValue)
 	}
+
+	// Include the allocation creation timestamp.
 	if a.Timestamp != nil {
 		timestampJSON, err := a.Timestamp.MarshalJSON()
 		if err != nil {
@@ -465,12 +494,14 @@ func (a *Allocation) MarshalJSON() ([]byte, error) {
 	return obj.MarshalTo(nil), nil
 }
 
+// setStringJSONField omits empty allocation JSON strings.
 func setStringJSONField(arena *fastjson.Arena, obj *fastjson.Value, key, value string) {
 	if value != "" {
 		obj.Set(key, arena.NewString(value))
 	}
 }
 
+// parseJSONValue copies a separately encoded message into the allocation arena.
 func parseJSONValue(arena *fastjson.Arena, data []byte) (*fastjson.Value, error) {
 	var parser fastjson.Parser
 	value, err := parser.ParseBytes(data)
@@ -482,6 +513,7 @@ func parseJSONValue(arena *fastjson.Arena, data []byte) (*fastjson.Value, error)
 
 // UnmarshalJSON unmarshals the Allocation from JSON without reflection.
 func (a *Allocation) UnmarshalJSON(data []byte) error {
+	// Parse the allocation block and distinguish null from an object.
 	var parser fastjson.Parser
 	value, err := parser.ParseBytes(data)
 	if err != nil {
@@ -495,42 +527,54 @@ func (a *Allocation) UnmarshalJSON(data []byte) error {
 		return errors.New("allocation must be object")
 	}
 
+	// Restore the allocation owner and checkout identities.
+	a.JobObjectKey = string(value.GetStringBytes("jobObjectKey"))
+	a.PeerID = string(value.GetStringBytes("peerId"))
 	a.ExecutionObjectKey = string(value.GetStringBytes("executionObjectKey"))
 	a.PassObjectKey = string(value.GetStringBytes("passObjectKey"))
 	a.RepoObjectKey = string(value.GetStringBytes("repoObjectKey"))
 	a.WorktreeObjectKey = string(value.GetStringBytes("worktreeObjectKey"))
+
+	// Restore the admitted base and path provenance.
 	a.WorkdirObjectKey = string(value.GetStringBytes("workdirObjectKey"))
 	a.BaseCommitHash = string(value.GetStringBytes("baseCommitHash"))
 	a.BranchRef = string(value.GetStringBytes("branchRef"))
 	a.PathFamily = string(value.GetStringBytes("pathFamily"))
 	a.EvidenceObjectKey = string(value.GetStringBytes("evidenceObjectKey"))
+
+	// Restore lifecycle state separately from checkout provenance.
 	a.Status = string(value.GetStringBytes("status"))
 	a.CollisionState = string(value.GetStringBytes("collisionState"))
 	a.StaleBaseState = string(value.GetStringBytes("staleBaseState"))
 	a.CleanupState = string(value.GetStringBytes("cleanupState"))
+
+	// Decode the optional runtime receipt, clearing any earlier value.
+	a.Cleanup = nil
 	if cleanupValue := value.Get("cleanup"); cleanupValue != nil && cleanupValue.Type() == fastjson.TypeObject {
 		cleanup := &forge_runtime.CleanupReceipt{}
 		if err := cleanup.UnmarshalJSON(cleanupValue.MarshalTo(nil)); err != nil {
 			return errors.Wrap(err, "unmarshal cleanup")
 		}
 		a.Cleanup = cleanup
-	} else {
-		a.Cleanup = nil
 	}
+
+	// Decode the creation timestamp, clearing any earlier value.
+	a.Timestamp = nil
 	if timestampValue := value.Get("timestamp"); timestampValue != nil && timestampValue.Type() != fastjson.TypeNull {
 		ts := &timestamp.Timestamp{}
 		if err := ts.UnmarshalJSON(timestampValue.MarshalTo(nil)); err != nil {
 			return errors.Wrap(err, "unmarshal timestamp")
 		}
 		a.Timestamp = ts
-	} else {
-		a.Timestamp = nil
 	}
 	return nil
 }
 
+// sameAllocation compares immutable custody and admitted checkout provenance.
 func (a *Allocation) sameAllocation(other *Allocation) bool {
-	return a.GetExecutionObjectKey() == other.GetExecutionObjectKey() &&
+	return a.GetJobObjectKey() == other.GetJobObjectKey() &&
+		a.PeerID == other.PeerID &&
+		a.GetExecutionObjectKey() == other.GetExecutionObjectKey() &&
 		a.GetPassObjectKey() == other.GetPassObjectKey() &&
 		a.GetRepoObjectKey() == other.GetRepoObjectKey() &&
 		a.GetWorktreeObjectKey() == other.GetWorktreeObjectKey() &&
@@ -543,23 +587,30 @@ func (a *Allocation) sameAllocation(other *Allocation) bool {
 		a.GetCleanupState() == other.GetCleanupState()
 }
 
+// setAllocationQuads publishes ownership and checkout references.
 func setAllocationQuads(ctx context.Context, ws world.WorldState, objKey string, alloc *Allocation) error {
-	if err := ws.SetGraphQuad(ctx, world.NewGraphQuadWithKeys(alloc.GetExecutionObjectKey(), PredExecutionToAllocation.String(), objKey, "")); err != nil {
+	// Link the allocation to its Job or Execution owner.
+	ownerKey, predicate := alloc.GetJobObjectKey(), PredJobToAllocation
+	if ownerKey == "" {
+		ownerKey, predicate = alloc.GetExecutionObjectKey(), PredExecutionToAllocation
+	}
+	if err := ws.SetGraphQuad(ctx, world.NewGraphQuadWithKeys(ownerKey, predicate.String(), objKey, "")); err != nil {
 		return err
 	}
+
+	// Preserve the Execution owner's Pass relationship when supplied.
 	if passKey := alloc.GetPassObjectKey(); passKey != "" {
 		if err := ws.SetGraphQuad(ctx, world.NewGraphQuadWithKeys(passKey, PredPassToAllocation.String(), objKey, "")); err != nil {
 			return err
 		}
 	}
+
+	// Link the shared repository and private checkout.
 	if err := ws.SetGraphQuad(ctx, world.NewGraphQuadWithKeys(objKey, PredAllocationToRepo.String(), alloc.GetRepoObjectKey(), "")); err != nil {
 		return err
 	}
 	return ws.SetGraphQuad(ctx, world.NewGraphQuadWithKeys(objKey, PredAllocationToWorktree.String(), alloc.GetWorktreeObjectKey(), ""))
 }
-
-// _ is a type assertion
-var _ block.Block = (*Allocation)(nil)
 
 // UnmarshalAllocation unmarshals an Allocation from a block cursor.
 func UnmarshalAllocation(ctx context.Context, bcs *block.Cursor) (*Allocation, error) {
@@ -575,6 +626,7 @@ func RecordCleanup(
 	allocationObjectKey string,
 	receipt *forge_runtime.CleanupReceipt,
 ) (*Allocation, *bucket.ObjectRef, error) {
+	// Validate the allocation key and runtime receipt before mutation.
 	if allocationObjectKey == "" {
 		return nil, nil, errors.New("allocation_object_key cannot be empty")
 	}
@@ -582,22 +634,28 @@ func RecordCleanup(
 		return nil, nil, errors.Wrap(err, "cleanup receipt")
 	}
 
+	// Record runtime cleanup without ending a retained Job workspace.
 	var out *Allocation
-	var outRef *bucket.ObjectRef
 	ref, _, err := world.AccessWorldObject(ctx, ws, allocationObjectKey, true, func(bcs *block.Cursor) error {
+		// Decode the allocation before applying its runtime receipt.
 		alloc, err := UnmarshalAllocation(ctx, bcs)
 		if err != nil {
 			return err
 		}
+
+		// Execution cleanup never releases a checkout retained by a Job.
 		alloc.Cleanup = receipt
-		if receipt.Complete() {
-			alloc.CleanupState = "released"
-		} else {
+		if alloc.GetJobObjectKey() == "" {
 			alloc.CleanupState = "cleanup-partial"
+			if receipt.Complete() {
+				alloc.CleanupState = "released"
+			}
 		}
 		if err := alloc.Validate(); err != nil {
 			return err
 		}
+
+		// Publish the validated receipt and return its updated root.
 		bcs.SetBlock(alloc, true)
 		out = alloc
 		return nil
@@ -605,6 +663,8 @@ func RecordCleanup(
 	if err != nil {
 		return nil, nil, err
 	}
-	outRef = ref
-	return out, outRef, nil
+	return out, ref, nil
 }
+
+// _ is a type assertion.
+var _ block.Block = (*Allocation)(nil)
