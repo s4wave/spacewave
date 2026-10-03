@@ -1,12 +1,12 @@
 #!/usr/bin/env bun
 
-// ci-affected selects the CI work a change needs and writes it as GitHub
-// Actions job outputs. A full run selects every job. A delta run compares the
-// checkout with a base commit: it tests the changed Go packages and every
-// package whose tests depend on one, lints the changed Go packages, runs the
-// JavaScript checks when a JavaScript or TypeScript input changed, and runs
-// Lean, Python Resource, and Licenses when their inputs changed. Delta runs
-// carry no E2E job.
+// ci-affected selects the work of each member job and writes it as GitHub
+// Actions job outputs. Every job runs in every mode; the selection only narrows
+// its steps. A full run selects every step. A delta run compares the checkout
+// with a base commit: it tests the changed Go packages and every package whose
+// tests depend on one, lints the changed Go packages, and runs the JavaScript
+// checks when a JavaScript or TypeScript input changed. A job with no selected
+// step passes after setup.
 //
 // Usage: bun scripts/ci-affected.ts full
 //        bun scripts/ci-affected.ts delta <base-commit>
@@ -34,24 +34,6 @@ const fullRunPaths = [
 // tests read.
 const jsInputs =
   /\.(ts|tsx|js|jsx|mjs|cjs|css|html)$|(^|\/)tsconfig[^/]*\.json$|^\.oxlintrc/
-
-// leanInputs are the proofs; the Go conformance tests join through the package
-// graph.
-const leanInputs = /^lean\//
-const leanPackages = ['core/sobject', 'core/sobject/sync']
-
-// pythonInputs are the Python package sources, its lockfile, and the protobuf
-// definitions its bindings are generated from.
-const pythonInputs =
-  /^(python|spacewave_resource)\/|^pyproject\.toml$|^uv\.lock$|\.proto$|^\.protoc-python-/
-const pythonPackages = [
-  'bldr/resource',
-  'bldr/resource/server',
-  'core/resource/session',
-]
-
-// licenseInputs are the dependency manifests and the license reporter.
-const licenseInputs = /^go\.(mod|sum)$|^scripts\/licenses\/|^app\/licenses\//
 
 // sliceCoverageInputs are read by the wasm E2E slice coverage test.
 const sliceCoverageInputs = /^e2e\/(wasm|scenario)\//
@@ -179,9 +161,6 @@ interface Selection {
   members: MemberEntry[]
   alpha: AlphaEntry[]
   db: DbEntry[]
-  lean: boolean
-  python: boolean
-  licenses: boolean
 }
 
 // Graph is the module's package graph from go list.
@@ -410,9 +389,6 @@ function fullSelection(): Selection {
       { ...dbChecks, startup_trace: true, lint_go: true },
       { ...dbTests, test_go: true, test_go_js: true, js: true },
     ],
-    lean: true,
-    python: true,
-    licenses: true,
   }
 }
 
@@ -466,7 +442,7 @@ function deltaSelection(base: string): Selection {
     `ci-affected: ${changed.size} packages changed, ${tested.size} selected`,
   )
 
-  // Build the member entries that have work.
+  // Build every member entry, clearing the steps with no work.
   const js = files.some((file) => jsInputs.test(file))
   const goscript = goscriptPackages(graph)
   const goscriptSelected =
@@ -483,7 +459,7 @@ function deltaSelection(base: string): Selection {
     if (member.name === 'goscript') {
       testGo = goscriptSelected ? member.test_go_script : ''
     }
-    const entry: MemberEntry = {
+    memberEntries.push({
       ...member,
       build_script: js ? member.build_script : '',
       lint_go_script: lintPackages.length > 0 ? member.lint_go_script : '',
@@ -492,48 +468,34 @@ function deltaSelection(base: string): Selection {
       test_js_script: js ? member.test_js_script : '',
       go_packages: member.name === 'e2e' ? '' : goPackages.join(' '),
       lint_packages: lintPackages.join(' '),
-    }
-    if (
-      entry.build_script ||
-      entry.lint_go_script ||
-      entry.lint_js_script ||
-      entry.test_go_script ||
-      entry.test_js_script
-    ) {
-      memberEntries.push(entry)
-    }
+    })
   }
 
-  // Build the alpha stages that have work.
+  // Build every alpha stage, clearing the steps with no work.
   const alphaTested = packageDirs(graph, tested, alphaRoots)
   const alphaChanged = packageDirs(graph, changed, alphaRoots)
-  const alpha: AlphaEntry[] = []
-  if (alphaTested.length > 0 || js) {
-    alpha.push({
+  const alpha: AlphaEntry[] = [
+    {
       name: 'test-go',
       script: alphaTested.length > 0 ? 'test:go:alpha' : '',
       check_script: js ? 'typecheck' : '',
       go_packages: alphaTested.join(' '),
-    })
-  }
-  if (js) {
-    alpha.push({
+    },
+    {
       name: 'test-js',
-      script: 'test:js:alpha',
-      check_script: 'lint:js:alpha',
+      script: js ? 'test:js:alpha' : '',
+      check_script: js ? 'lint:js:alpha' : '',
       go_packages: '',
-    })
-  }
-  if (alphaChanged.length > 0) {
-    alpha.push({
+    },
+    {
       name: 'lint-go',
-      script: 'lint:go:alpha',
+      script: alphaChanged.length > 0 ? 'lint:go:alpha' : '',
       check_script: '',
       go_packages: alphaChanged.join(' '),
-    })
-  }
+    },
+  ]
 
-  // Build the db stages that have work. The js-only Go tests cover every
+  // Build both db stages, clearing the steps with no work. The js-only Go tests cover every
   // product tree, so they take every selected package. The graph is the host
   // build's, so a delta run misses a js-only test whose dependency changed
   // only in js-tagged files; the hourly full run covers it.
@@ -541,54 +503,40 @@ function deltaSelection(base: string): Selection {
   const dbChanged = packageDirs(graph, changed, dbRoots)
   const startupTrace = packageDirs(graph, tested, startupTraceRoots).length > 0
   const goJS = packageDirs(graph, tested, [...graph.dirs.keys()])
-  const db: DbEntry[] = []
-  if (startupTrace || dbChanged.length > 0) {
-    db.push({
+  const db: DbEntry[] = [
+    {
       ...dbChecks,
       startup_trace: startupTrace,
       lint_go: dbChanged.length > 0,
       lint_packages: dbChanged.join(' '),
-    })
-  }
-  if (dbTested.length > 0 || goJS.length > 0 || js) {
-    db.push({
+    },
+    {
       ...dbTests,
       test_go: dbTested.length > 0,
       go_packages: dbTested.join(' '),
       test_go_js: goJS.length > 0,
       go_js_packages: goJS.join(' '),
       js,
-    })
-  }
+    },
+  ]
 
   return {
     mode: 'delta',
     members: memberEntries,
     alpha,
     db,
-    lean:
-      files.some((file) => leanInputs.test(file)) ||
-      leanPackages.some((dir) => tested.has(graph.dirs.get(dir) ?? '')),
-    python:
-      files.some((file) => pythonInputs.test(file)) ||
-      pythonPackages.some((dir) => tested.has(graph.dirs.get(dir) ?? '')),
-    licenses: files.some((file) => licenseInputs.test(file)),
   }
 }
 
 // writeOutputs publishes the selection as job outputs. Each matrix output is
-// a JSON matrix value, or empty when the job has no entries.
+// a JSON matrix value.
 function writeOutputs(selection: Selection) {
-  const matrix = (include: object[]) =>
-    include.length > 0 ? JSON.stringify({ include }) : ''
+  const matrix = (include: object[]) => JSON.stringify({ include })
   const outputs: Record<string, string> = {
     mode: selection.mode,
     members: matrix(selection.members),
     alpha: matrix(selection.alpha),
     db: matrix(selection.db),
-    lean: String(selection.lean),
-    python: String(selection.python),
-    licenses: String(selection.licenses),
   }
   const text = Object.entries(outputs)
     .map(([key, value]) => `${key}=${value}\n`)

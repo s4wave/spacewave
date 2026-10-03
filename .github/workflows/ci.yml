@@ -1,10 +1,11 @@
 name: CI
 
-# A pull request into master and each master push run a delta: the Go tests of
-# the changed packages and every package whose tests depend on one, the lint of
-# the changed packages, and the JavaScript, Lean, Python Resource, and Licenses
-# checks when their inputs changed. The hourly schedule, a manual dispatch, and
-# a pull request into release run the full suite with every E2E job.
+# Every run runs every job, including every E2E job. A pull request into master
+# and each master push narrow the member jobs to a delta: the Go tests of the
+# changed packages and every package whose tests depend on one, the lint of the
+# changed packages, and the JavaScript checks when their inputs changed. A
+# manual dispatch, which the CI hourly workflow sends for an unmeasured master
+# head, and a pull request into release run the full suite.
 on:
   push:
     branches: ['master']
@@ -18,8 +19,6 @@ on:
       - 'doc/**'
       - '*.md'
       - 'CHANGELOG.org'
-  schedule:
-    - cron: '17 * * * *'
   workflow_dispatch:
 
 # Pull request runs group by pull request number, and a new push cancels the
@@ -33,25 +32,15 @@ permissions:
   contents: read
 
 jobs:
-  # affected selects the jobs this run needs; see scripts/ci-affected.ts. An
-  # empty matrix output skips its job. The hourly run skips a commit that
-  # already has a scheduled or dispatched run, so an idle master costs one
-  # short job an hour.
+  # affected selects the steps each member job runs; see scripts/ci-affected.ts.
   affected:
     name: Select
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    permissions:
-      actions: read
-      contents: read
     outputs:
-      mode: ${{ steps.select.outputs.mode }}
       members: ${{ steps.select.outputs.members }}
       alpha: ${{ steps.select.outputs.alpha }}
       db: ${{ steps.select.outputs.db }}
-      lean: ${{ steps.select.outputs.lean }}
-      python: ${{ steps.select.outputs.python }}
-      licenses: ${{ steps.select.outputs.licenses }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -71,22 +60,11 @@ jobs:
       - name: Select jobs
         id: select
         env:
-          GH_TOKEN: ${{ github.token }}
           EVENT: ${{ github.event_name }}
           BASE_REF: ${{ github.base_ref }}
           BEFORE: ${{ github.event.before }}
         run: |
           case "$EVENT" in
-          schedule)
-            runs=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/ci.yml/runs?head_sha=$GITHUB_SHA&per_page=100" \
-              --jq "[.workflow_runs[] | select(.id != $GITHUB_RUN_ID and (.event == \"schedule\" or .event == \"workflow_dispatch\"))] | length")
-            if [ "$runs" -gt 0 ]; then
-              echo "A full run already measured $GITHUB_SHA."
-              echo 'mode=skip' >> "$GITHUB_OUTPUT"
-            else
-              bun scripts/ci-affected.ts full
-            fi
-            ;;
           pull_request)
             if [ "$BASE_REF" = release ]; then
               bun scripts/ci-affected.ts full
@@ -109,7 +87,6 @@ jobs:
   member-ci:
     name: CI (${{ matrix.name }})
     needs: affected
-    if: ${{ needs.affected.outputs.members != '' }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -176,7 +153,6 @@ jobs:
   member-ci-alpha:
     name: CI (alpha / ${{ matrix.name }})
     needs: affected
-    if: ${{ needs.affected.outputs.alpha != '' }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -227,7 +203,6 @@ jobs:
   member-ci-db:
     name: CI (db / ${{ matrix.name }})
     needs: affected
-    if: ${{ needs.affected.outputs.db != '' }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -303,8 +278,6 @@ jobs:
 
   lean:
     name: Lean
-    needs: affected
-    if: ${{ needs.affected.outputs.lean == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -332,8 +305,6 @@ jobs:
 
   python-resource:
     name: Python Resource
-    needs: affected
-    if: ${{ needs.affected.outputs.python == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -498,8 +469,6 @@ jobs:
 
   licenses:
     name: Licenses
-    needs: affected
-    if: ${{ needs.affected.outputs.licenses == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -573,8 +542,6 @@ jobs:
 
   e2e-go:
     name: E2E (${{ matrix.suite.name }})
-    needs: affected
-    if: ${{ needs.affected.outputs.mode == 'full' }}
     runs-on: ${{ matrix.suite.os || 'ubuntu-latest' }}
     strategy:
       fail-fast: false
@@ -658,8 +625,6 @@ jobs:
 
   e2e-wasm:
     name: E2E (wasm / ${{ matrix.slice.name }})
-    needs: affected
-    if: ${{ needs.affected.outputs.mode == 'full' }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -781,8 +746,8 @@ jobs:
   e2e-wasm-complete:
     name: E2E (wasm)
     runs-on: ubuntu-latest
-    needs: [affected, e2e-wasm]
-    if: ${{ !cancelled() && needs.affected.outputs.mode == 'full' }}
+    needs: e2e-wasm
+    if: ${{ !cancelled() }}
     timeout-minutes: 5
     permissions:
       actions: read
@@ -816,8 +781,6 @@ jobs:
 
   e2e-playwright:
     name: E2E (${{ matrix.suite.name }})
-    needs: affected
-    if: ${{ needs.affected.outputs.mode == 'full' }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -858,8 +821,6 @@ jobs:
         run: bun run ${{ matrix.suite.script }}
   nightly-workflow-contract:
     name: Nightly workflow contract
-    needs: affected
-    if: ${{ needs.affected.outputs.mode == 'full' }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:

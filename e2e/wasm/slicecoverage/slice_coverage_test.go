@@ -106,7 +106,7 @@ func TestAllWasmTestsAreEnrolled(t *testing.T) {
 	// Workflows and tests are read relative to the repository root.
 	repoRoot := testRepoRoot(t)
 
-	// A test is enrolled when any slice in the full CI tier (ci.yml e2e-wasm) or
+	// A test is enrolled when any slice in the CI tier (ci.yml e2e-wasm) or
 	// the nightly tier (e2e-nightly.yml e2e-wasm-nightly) selects it.
 	var sliceRegexps []*regexp.Regexp
 	for _, enrolled := range []struct{ file, jobName string }{

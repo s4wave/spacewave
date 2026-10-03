@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ci-gate refuses a production release of a commit without a successful full CI
-# run. A full run is a scheduled or dispatched run, or a pull request run into
+# run. A full run is a dispatched run, or a pull request run into
 # release; release lands that pull request by fast-forward, so the run's head
 # commit is the released commit.
 #
@@ -11,7 +11,7 @@ commit="$1"
 runs=$(gh api --paginate \
   "repos/${GITHUB_REPOSITORY}/actions/workflows/ci.yml/runs?head_sha=${commit}&status=success&per_page=100" \
   --jq '.workflow_runs[]
-    | select(.event == "schedule" or .event == "workflow_dispatch"
+    | select(.event == "workflow_dispatch"
       or (.event == "pull_request" and any(.pull_requests[]; .base.ref == "release")))
     | .html_url')
 if [[ -z "${runs}" ]]; then

@@ -1,0 +1,32 @@
+name: CI hourly
+
+# Master pushes run every CI job but test only the affected Go packages. Once
+# an hour this workflow dispatches a full CI run on the master head unless that
+# commit already has one, so an idle master costs one short job an hour.
+on:
+  schedule:
+    - cron: '17 * * * *'
+  workflow_dispatch:
+
+permissions:
+  actions: write
+  contents: read
+
+jobs:
+  dispatch:
+    name: Dispatch full CI
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Dispatch CI on an unmeasured head
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          runs=$(gh api "repos/$GH_REPO/actions/workflows/ci.yml/runs?head_sha=$GITHUB_SHA&event=workflow_dispatch&per_page=1" \
+            --jq '.total_count')
+          if [ "$runs" -gt 0 ]; then
+            echo "A full run already measured $GITHUB_SHA."
+            exit 0
+          fi
+          gh workflow run ci.yml --ref "$GITHUB_SHA"
