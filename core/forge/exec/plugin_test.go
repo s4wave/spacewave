@@ -295,7 +295,7 @@ func TestPluginExecHandlerStreamsLogsBeforeCompletion(t *testing.T) {
 	// Build the plugin controller config for this execution.
 	conf := &PluginExecConfig{
 		PluginId:         "example-core",
-		ControllerId:     "example/workfront/runner/claude",
+		ControllerId:     "example/worklist/runner/claude",
 		ControllerConfig: []byte{1, 2, 3},
 	}
 	configData, err := conf.MarshalVT()
@@ -376,7 +376,7 @@ func TestPluginExecHandlerRejectsEmptyStream(t *testing.T) {
 		handle: &pluginExecHandleStub{},
 		conf: &PluginExecConfig{
 			PluginId:         "example-core",
-			ControllerId:     "example/workfront/runner/claude",
+			ControllerId:     "example/worklist/runner/claude",
 			ControllerConfig: []byte{1, 2, 3},
 		},
 		inputs: forge_target.InputMap{},
@@ -412,7 +412,7 @@ func TestPluginExecHandlerFallsBackToUnaryExecute(t *testing.T) {
 		handle: &pluginExecHandleStub{},
 		conf: &PluginExecConfig{
 			PluginId:         "example-core",
-			ControllerId:     "example/workfront/runner/claude",
+			ControllerId:     "example/worklist/runner/claude",
 			ControllerConfig: []byte{1, 2, 3},
 		},
 		inputs: forge_target.InputMap{},

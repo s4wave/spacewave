@@ -41,20 +41,20 @@ func TestCollectLatestManifestSetDeterministicPlatformsAndRevisions(t *testing.T
 
 	// Store the manifest refs under distinct object keys.
 	refs := []*manifest.ManifestRef{
-		testManifestRef(t, ctx, tb, "glados-core", "js", 3, "js"),
-		testManifestRef(t, ctx, tb, "glados-core", "desktop/darwin/arm64", 2, "native"),
-		testManifestRef(t, ctx, tb, "glados-core", "desktop/darwin/arm64", 1, "old"),
+		testManifestRef(t, ctx, tb, "gizmo-core", "js", 3, "js"),
+		testManifestRef(t, ctx, tb, "gizmo-core", "desktop/darwin/arm64", 2, "native"),
+		testManifestRef(t, ctx, tb, "gizmo-core", "desktop/darwin/arm64", 1, "old"),
 	}
 	for i, ref := range refs {
 		key := "devtool/manifest/" + string(rune('a'+i))
 		if _, _, err := manifest_world.SetManifest(ctx, ws, peer.ID("test"), key, ref.GetManifestRef()); err != nil {
 			t.Fatal(err)
 		}
-		if err := ws.SetGraphQuad(ctx, manifest_world.NewManifestQuad(host, key, "glados-core")); err != nil {
+		if err := ws.SetGraphQuad(ctx, manifest_world.NewManifestQuad(host, key, "gizmo-core")); err != nil {
 			t.Fatal(err)
 		}
 	}
-	got, err := collectLatestManifestSet(ctx, ws, "glados-core")
+	got, err := collectLatestManifestSet(ctx, ws, "gizmo-core")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -96,10 +96,10 @@ func TestCollectLatestManifestSetCollapsesIdenticalAndRejectsAmbiguous(t *testin
 		}
 
 		// Store the manifest refs, optionally with an ambiguous variant.
-		ref := testManifestRef(t, ctx, tb, "glados-core", "js", 4, "js")
+		ref := testManifestRef(t, ctx, tb, "gizmo-core", "js", 4, "js")
 		refs := []*manifest.ManifestRef{ref, ref}
 		if ambiguous {
-			refs[1] = createTestManifestRefVariant(t, ctx, tb, "glados-core", "js", 4)
+			refs[1] = createTestManifestRefVariant(t, ctx, tb, "gizmo-core", "js", 4)
 		}
 
 		// Store each ref under its own object key.
@@ -108,11 +108,11 @@ func TestCollectLatestManifestSetCollapsesIdenticalAndRejectsAmbiguous(t *testin
 			if _, _, err := manifest_world.SetManifest(ctx, ws, peer.ID("test"), key, item.GetManifestRef()); err != nil {
 				return err
 			}
-			if err := ws.SetGraphQuad(ctx, manifest_world.NewManifestQuad("devtool", key, "glados-core")); err != nil {
+			if err := ws.SetGraphQuad(ctx, manifest_world.NewManifestQuad("devtool", key, "gizmo-core")); err != nil {
 				return err
 			}
 		}
-		got, err := collectLatestManifestSet(ctx, ws, "glados-core")
+		got, err := collectLatestManifestSet(ctx, ws, "gizmo-core")
 		if ambiguous {
 			if err == nil {
 				return fmt.Errorf("ambiguous set unexpectedly succeeded")

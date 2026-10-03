@@ -173,7 +173,7 @@ describe('getObjectDisplayName', () => {
   })
 
   it('humanizes the final object-key segment for generated keys', () => {
-    expect(getObjectDisplayName('glados/bootstrap/llm-session')).toBe(
+    expect(getObjectDisplayName('gizmo/bootstrap/llm-session')).toBe(
       'Llm Session',
     )
   })
@@ -261,22 +261,22 @@ describe('buildObjectLevel', () => {
   it('uses metadata labels and descriptions in node data', () => {
     const metadata = buildObjectTypeMetadataMap([
       {
-        typeId: 'glados/operator-home',
+        typeId: 'gizmo/operator-home',
         registrationId: 1,
         metadata: {
-          displayName: 'GLaDOS Home',
+          displayName: 'Gizmo Home',
           description: 'Operator command surface.',
         },
       },
     ])
     const result = buildObjectLevel(
-      [{ objectKey: 'glados-home', typeId: 'glados/operator-home' }],
+      [{ objectKey: 'gizmo-home', typeId: 'gizmo/operator-home' }],
       [],
       metadata,
     )
-    expect(result[0].name).toBe('Glados Home')
-    expect(result[0].detail).toBe('GLaDOS Home')
-    expect(result[0].data?.objectTypeLabel).toBe('GLaDOS Home')
+    expect(result[0].name).toBe('Gizmo Home')
+    expect(result[0].detail).toBe('Gizmo Home')
+    expect(result[0].data?.objectTypeLabel).toBe('Gizmo Home')
     expect(result[0].data?.objectTypeDescription).toBe(
       'Operator command surface.',
     )

@@ -25,7 +25,7 @@ describe('getTabNameFromPath', () => {
 
   it('humanizes generated object keys instead of showing the route', () => {
     expect(
-      getTabNameFromPath('/u/1/so/space/-/glados/bootstrap/llm-session'),
+      getTabNameFromPath('/u/1/so/space/-/gizmo/bootstrap/llm-session'),
     ).toBe('Llm Session')
   })
 })

@@ -166,7 +166,7 @@ func TestDeployManifestsPublishesNativeAndJSAndReplays(t *testing.T) {
 	r := &SpaceResource{le: tb.Logger, space: &deployIntegrationBody{engine: eng, bucketID: tb.BucketId}}
 
 	// Publish a historical manifest and its host edge before deploying replacements.
-	history, historyData := integrationRef(t, "glados-core", "js", 1, "history")
+	history, historyData := integrationRef(t, "gizmo-core", "js", 1, "history")
 	tx, _ := eng.NewTransaction(ctx, true)
 	if _, e := bldr_manifest_world.CreateManifestStore(ctx, tx, "plugin-host"); e != nil {
 		t.Fatal(e)
@@ -175,7 +175,7 @@ func TestDeployManifestsPublishesNativeAndJSAndReplays(t *testing.T) {
 	if _, _, e := bldr_manifest_world.SetManifest(ctx, tx, "", hk, &bucket.ObjectRef{BucketId: tb.BucketId, RootRef: history.GetManifestRef().GetRootRef()}); e != nil {
 		t.Fatal(e)
 	}
-	if e := tx.SetGraphQuad(ctx, bldr_manifest_world.NewManifestQuad("plugin-host", hk, "glados-core")); e != nil {
+	if e := tx.SetGraphQuad(ctx, bldr_manifest_world.NewManifestQuad("plugin-host", hk, "gizmo-core")); e != nil {
 		t.Fatal(e)
 	}
 	if e := tx.Commit(ctx); e != nil {
@@ -184,8 +184,8 @@ func TestDeployManifestsPublishesNativeAndJSAndReplays(t *testing.T) {
 	_, _ = eng.Sync(ctx)
 
 	// Deploy the native and JavaScript manifest set through the Space stream.
-	native, nativeData := integrationRef(t, "glados-core", "desktop/darwin/arm64", 2, "native")
-	js, jsData := integrationRef(t, "glados-core", "js", 3, "js")
+	native, nativeData := integrationRef(t, "gizmo-core", "desktop/darwin/arm64", 2, "native")
+	js, jsData := integrationRef(t, "gizmo-core", "js", 3, "js")
 	blocks := map[string][]byte{native.GetManifestRef().GetRootRef().MarshalString(): nativeData, js.GetManifestRef().GetRootRef().MarshalString(): jsData, history.GetManifestRef().GetRootRef().MarshalString(): historyData}
 	req := integrationRequest(native, js)
 	if e := runIntegrationDeploy(t, r, ctx, blocks, req, nil); e != nil {
@@ -236,8 +236,8 @@ func TestDeployManifestsMissingBlockAndWrongHostDoNotPublish(t *testing.T) {
 	r := &SpaceResource{le: tb.Logger, space: &deployIntegrationBody{engine: eng, bucketID: tb.BucketId}}
 
 	// Attempt a manifest set whose JavaScript block is missing.
-	native, nativeData := integrationRef(t, "glados-core", "desktop/darwin/arm64", 2, "native")
-	js, _ := integrationRef(t, "glados-core", "js", 3, "js")
+	native, nativeData := integrationRef(t, "gizmo-core", "desktop/darwin/arm64", 2, "native")
+	js, _ := integrationRef(t, "gizmo-core", "js", 3, "js")
 	blocks := map[string][]byte{native.GetManifestRef().GetRootRef().MarshalString(): nativeData}
 	if e := runIntegrationDeploy(t, r, ctx, blocks, integrationRequest(native, js), nil); e == nil {
 		t.Fatal("missing block accepted")
@@ -284,8 +284,8 @@ func TestDeployManifestsRejectsMaskedRevision(t *testing.T) {
 	r := &SpaceResource{le: tb.Logger, space: &deployIntegrationBody{engine: eng, bucketID: tb.BucketId}}
 
 	// Deploy a newer build, then an older one for the same platform.
-	newer, newerData := integrationRef(t, "glados-core", "desktop/darwin/arm64", 42, "newer")
-	older, olderData := integrationRef(t, "glados-core", "desktop/darwin/arm64", 36, "older")
+	newer, newerData := integrationRef(t, "gizmo-core", "desktop/darwin/arm64", 42, "newer")
+	older, olderData := integrationRef(t, "gizmo-core", "desktop/darwin/arm64", 36, "older")
 	blocks := map[string][]byte{
 		newer.GetManifestRef().GetRootRef().MarshalString(): newerData,
 		older.GetManifestRef().GetRootRef().MarshalString(): olderData,
@@ -318,7 +318,7 @@ func TestDeployManifestsCancellationAndExactBlockExchangeRejectPublication(t *te
 	r := &SpaceResource{le: tb.Logger, space: &deployIntegrationBody{engine: eng, bucketID: tb.BucketId}}
 
 	// Prepare a manifest request and the invalid exchange cases.
-	ref, data := integrationRef(t, "glados-core", "js", 1, "js")
+	ref, data := integrationRef(t, "gizmo-core", "js", 1, "js")
 	blocks := map[string][]byte{ref.GetManifestRef().GetRootRef().MarshalString(): data}
 	req := integrationRequest(ref)
 	cases := []struct {
@@ -369,7 +369,7 @@ func TestDeployManifestsInTransactionFenceRejectsWrongHost(t *testing.T) {
 	r := &SpaceResource{le: tb.Logger, space: &deployIntegrationBody{engine: eng, bucketID: tb.BucketId}}
 
 	// Prepare a manifest and change its host type during block transfer.
-	native, data := integrationRef(t, "glados-core", "desktop/darwin/arm64", 2, "native")
+	native, data := integrationRef(t, "gizmo-core", "desktop/darwin/arm64", 2, "native")
 	blocks := map[string][]byte{native.GetManifestRef().GetRootRef().MarshalString(): data}
 	onBlock := func(*block.BlockRef) {
 		// Open a write transaction for the concurrent host type change.

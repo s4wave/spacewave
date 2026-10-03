@@ -2692,7 +2692,7 @@ message MintFacetsLaunchGrantRequest {
 // MintFacetsLaunchGrantResponse is the response body for
 // POST /api/facets/launch-grant/mint.
 message MintFacetsLaunchGrantResponse {
-  // Token is the opaque short-lived launch grant for GLaDOS verification.
+  // Token is the opaque short-lived launch grant to verify.
   string token = 1;
 }
 

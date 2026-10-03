@@ -81,7 +81,7 @@ describe('quickstart options', () => {
       isQuickstartOptionPublic(
         {
           ...getQuickstartOption('drive'),
-          id: 'glados-workspace',
+          id: 'gizmo-workspace',
           dynamic: true,
         },
         false,

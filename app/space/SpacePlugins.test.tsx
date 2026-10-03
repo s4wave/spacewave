@@ -274,54 +274,54 @@ describe('SpacePlugins', () => {
 
   it('adds a requested plugin whose manifest the Space stores', () => {
     contentsState = {
-      requestedPluginIds: ['glados-core', 'glados-web'],
-      availablePlugins: [{ pluginId: 'glados-core' }],
+      requestedPluginIds: ['gizmo-core', 'gizmo-web'],
+      availablePlugins: [{ pluginId: 'gizmo-core' }],
     }
 
     render(<SpacePlugins />)
 
     expect(screen.getAllByText('Requested')).toHaveLength(2)
     expect(
-      screen.getByText('spacewave space deploy --manifest-id glados-web'),
+      screen.getByText('spacewave space deploy --manifest-id gizmo-web'),
     ).toBeDefined()
-    expect(screen.queryByRole('button', { name: 'Add glados-web' })).toBeNull()
-    fireEvent.click(screen.getByRole('button', { name: 'Add glados-core' }))
+    expect(screen.queryByRole('button', { name: 'Add gizmo-web' })).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: 'Add gizmo-core' }))
 
-    expect(mocks.addSpacePlugin).toHaveBeenCalledWith('glados-core')
+    expect(mocks.addSpacePlugin).toHaveBeenCalledWith('gizmo-core')
   })
 
   it('asks to run an added background plugin while the Space is closed', async () => {
     contentsState = {
       plugins: [],
-      availablePlugins: [{ pluginId: 'glados-matrix', background: true }],
+      availablePlugins: [{ pluginId: 'gizmo-matrix', background: true }],
     }
 
     const { rerender } = render(<SpacePlugins />)
     fireEvent.click(screen.getByLabelText('Add plugin'))
-    fireEvent.click(screen.getByText('glados-matrix'))
+    fireEvent.click(screen.getByText('gizmo-matrix'))
     await waitFor(() =>
-      expect(mocks.addSpacePlugin).toHaveBeenCalledWith('glados-matrix'),
+      expect(mocks.addSpacePlugin).toHaveBeenCalledWith('gizmo-matrix'),
     )
 
     contentsState = {
       ...contentsState,
       plugins: [
         {
-          pluginId: 'glados-matrix',
+          pluginId: 'gizmo-matrix',
           state: SpacePluginLifecycleState.SpacePluginLifecycleState_LOADED,
         },
       ],
     }
     rerender(<SpacePlugins />)
     await screen.findByText(
-      'glados-matrix can keep running while this Space is closed. Allow?',
+      'gizmo-matrix can keep running while this Space is closed. Allow?',
     )
     fireEvent.click(screen.getByRole('button', { name: 'Allow' }))
 
     await waitFor(() =>
       expect(mocks.setBackgroundPlugin).toHaveBeenCalledWith(
         'space-1',
-        'glados-matrix',
+        'gizmo-matrix',
         true,
         false,
       ),
@@ -332,11 +332,11 @@ describe('SpacePlugins', () => {
     contentsState = {
       plugins: [
         {
-          pluginId: 'glados-matrix',
+          pluginId: 'gizmo-matrix',
           state: SpacePluginLifecycleState.SpacePluginLifecycleState_LOADED,
         },
       ],
-      availablePlugins: [{ pluginId: 'glados-matrix', background: true }],
+      availablePlugins: [{ pluginId: 'gizmo-matrix', background: true }],
     }
 
     render(<SpacePlugins />)
@@ -353,28 +353,28 @@ describe('SpacePlugins', () => {
     contentsState = {
       plugins: [
         {
-          pluginId: 'glados-matrix',
+          pluginId: 'gizmo-matrix',
           state: SpacePluginLifecycleState.SpacePluginLifecycleState_LOADED,
         },
       ],
-      availablePlugins: [{ pluginId: 'glados-matrix', background: true }],
+      availablePlugins: [{ pluginId: 'gizmo-matrix', background: true }],
     }
     backgroundPlugins = {
       entries: [
-        { spaceId: 'space-1', pluginId: 'glados-matrix', suspended: true },
+        { spaceId: 'space-1', pluginId: 'gizmo-matrix', suspended: true },
       ],
       set: mocks.setBackgroundPlugin,
     }
 
     render(<SpacePlugins />)
     expect(screen.getByText('Suspended')).toBeDefined()
-    fireEvent.click(screen.getByLabelText('Remove glados-matrix'))
+    fireEvent.click(screen.getByLabelText('Remove gizmo-matrix'))
     fireEvent.click(screen.getByRole('button', { name: 'Confirm' }))
 
     await waitFor(() =>
       expect(mocks.setBackgroundPlugin).toHaveBeenCalledWith(
         'space-1',
-        'glados-matrix',
+        'gizmo-matrix',
         false,
         false,
       ),

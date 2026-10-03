@@ -20,22 +20,22 @@ describe('dynamic quickstart options', () => {
   it('converts plugin registrations to app-only options', () => {
     const option = dynamicQuickstartRegistrationToOption(
       {
-        quickstartId: 'glados-workspace',
+        quickstartId: 'gizmo-workspace',
         registrationId: 1,
-        pluginId: 'glados-web',
-        name: 'Glados Workspace',
+        pluginId: 'gizmo-web',
+        name: 'Gizmo Workspace',
         description: 'Operator workspace',
         category: 'tools',
         iconName: 'bot',
-        spaceName: 'Glados Workspace',
-        requiredPluginIds: ['glados-core', 'glados-web'],
+        spaceName: 'Gizmo Workspace',
+        requiredPluginIds: ['gizmo-core', 'gizmo-web'],
       },
       false,
     )
-    expect(option?.id).toBe('glados-workspace')
+    expect(option?.id).toBe('gizmo-workspace')
     expect(option?.dynamic).toBe(true)
-    expect(option?.pluginId).toBe('glados-web')
-    expect(option?.requiredPluginIds).toEqual(['glados-core', 'glados-web'])
+    expect(option?.pluginId).toBe('gizmo-web')
+    expect(option?.requiredPluginIds).toEqual(['gizmo-core', 'gizmo-web'])
     expect(option?.path).toBeUndefined()
   })
 
@@ -93,9 +93,9 @@ describe('dynamic quickstart options', () => {
           category: 'tools',
         },
         {
-          quickstartId: 'glados-workspace',
-          pluginId: 'glados-web',
-          name: 'Glados Workspace',
+          quickstartId: 'gizmo-workspace',
+          pluginId: 'gizmo-web',
+          name: 'Gizmo Workspace',
           description: 'Operator workspace',
           category: 'tools',
         },
@@ -109,7 +109,7 @@ describe('dynamic quickstart options', () => {
       'drive',
       'git',
       'canvas',
-      'glados-workspace',
+      'gizmo-workspace',
     ])
     expect(merged.find((option) => option.id === 'drive')?.name).toBe(
       'Create a Drive',

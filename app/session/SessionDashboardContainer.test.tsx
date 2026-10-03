@@ -92,10 +92,10 @@ vi.mock('./dashboard/SessionDashboard.js', () => ({
           Drive
         </button>
         <button
-          data-testid="quickstart-glados"
-          onClick={() => props.onQuickstartClick?.('glados-workspace')}
+          data-testid="quickstart-gizmo"
+          onClick={() => props.onQuickstartClick?.('gizmo-workspace')}
         >
-          Glados
+          Gizmo
         </button>
       </>
     )
@@ -195,22 +195,22 @@ describe('SessionDashboardContainer', () => {
   it('navigates dynamic quickstarts from the watched inventory', () => {
     mockUseVisibleQuickstartOptions.mockReturnValue([
       {
-        id: 'glados-workspace',
-        name: 'Glados Workspace',
+        id: 'gizmo-workspace',
+        name: 'Gizmo Workspace',
         description: 'Operator workspace',
         category: 'tools',
         icon: () => null,
         dynamic: true,
-        pluginId: 'glados-web',
+        pluginId: 'gizmo-web',
       },
     ])
 
     render(<SessionDashboardContainer />)
-    const tile = screen.getByTestId('quickstart-glados')
+    const tile = screen.getByTestId('quickstart-gizmo')
     fireEvent.click(tile)
 
     expect(mockUseSessionNavigate).toHaveBeenCalledWith({
-      path: 'new/glados-workspace',
+      path: 'new/gizmo-workspace',
     })
   })
 

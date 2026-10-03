@@ -2113,7 +2113,7 @@ func TestCollectDirectManifestForManifestID(t *testing.T) {
 	}
 
 	// Store a direct manifest and link its self graph edge.
-	const manifestKey = "glados-core"
+	const manifestKey = "gizmo-core"
 	ref := createTestManifestRef(t, ctx, tb, manifestKey, "js", 7)
 	if _, _, err := SetManifest(ctx, ws, peer.ID("test"), manifestKey, ref.GetManifestRef()); err != nil {
 		t.Fatal(err.Error())

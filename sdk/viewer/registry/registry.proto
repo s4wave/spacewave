@@ -19,7 +19,7 @@ enum ViewerSurface {
 
 // ViewerRegistration is a registered viewer.
 message ViewerRegistration {
-  // TypeId is the object type ID this viewer handles (e.g. "glados/guild").
+  // TypeId is the object type ID this viewer handles (e.g. "unixfs/fs-node").
   string type_id = 1;
   // ViewerName is the human-readable name of the viewer.
   string viewer_name = 2;

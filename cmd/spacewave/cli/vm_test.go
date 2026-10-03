@@ -165,14 +165,14 @@ func TestV86ImageImportAssetObjectKey(t *testing.T) {
 		pred string
 		want string
 	}{
-		{"v86image/wasm", "glados/codex-rootfs/c5-image/wasm"},
-		{"v86image/bios/seabios", "glados/codex-rootfs/c5-image/bios/seabios"},
-		{"v86image/bios/vgabios", "glados/codex-rootfs/c5-image/bios/vgabios"},
-		{"v86image/kernel", "glados/codex-rootfs/c5-image/kernel"},
-		{"v86image/rootfs", "glados/codex-rootfs/c5-image/rootfs"},
+		{"v86image/wasm", "gizmo/codex-rootfs/c5-image/wasm"},
+		{"v86image/bios/seabios", "gizmo/codex-rootfs/c5-image/bios/seabios"},
+		{"v86image/bios/vgabios", "gizmo/codex-rootfs/c5-image/bios/vgabios"},
+		{"v86image/kernel", "gizmo/codex-rootfs/c5-image/kernel"},
+		{"v86image/rootfs", "gizmo/codex-rootfs/c5-image/rootfs"},
 	}
 	for _, c := range cases {
-		got, err := v86ImageImportAssetObjectKey("glados/codex-rootfs/c5-image", c.pred)
+		got, err := v86ImageImportAssetObjectKey("gizmo/codex-rootfs/c5-image", c.pred)
 		if err != nil {
 			t.Fatal(err)
 		}

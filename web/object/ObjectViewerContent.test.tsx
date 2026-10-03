@@ -26,8 +26,8 @@ function buildObjectInfo(): ObjectInfo {
     info: {
       case: 'worldObjectInfo',
       value: {
-        objectKey: 'glados/bootstrap/llm-session',
-        objectType: 'glados/llm-session',
+        objectKey: 'gizmo/bootstrap/llm-session',
+        objectType: 'gizmo/llm-session',
       },
     },
   }
@@ -47,8 +47,8 @@ describe('ObjectViewerContent', () => {
         }>(() => {}),
     )
     const component: ObjectViewerComponent = {
-      componentID: 'glados.llm-session.viewer',
-      typeID: 'glados/llm-session',
+      componentID: 'gizmo.llm-session.viewer',
+      typeID: 'gizmo/llm-session',
       name: 'LlmSession',
       component: PendingViewer,
     }
@@ -57,7 +57,7 @@ describe('ObjectViewerContent', () => {
       <ObjectViewerContent
         objectInfo={buildObjectInfo()}
         worldState={buildWorldState()}
-        typeID="glados/llm-session"
+        typeID="gizmo/llm-session"
         component={component}
       />,
     )
@@ -73,14 +73,14 @@ describe('ObjectViewerContent', () => {
         default: ComponentType<ObjectViewerComponentProps>
       }>(
         new Error(
-          'Failed to fetch dynamically imported module: app://index.html/b/pa/glados-web/v/b/fe/web/workfront/WorkfrontViewer-DemfR9tb.mjs',
+          'Failed to fetch dynamically imported module: app://index.html/b/pa/gizmo-web/v/b/fe/web/worklist/WorklistViewer-DemfR9tb.mjs',
         ),
       ),
     )
     const component: ObjectViewerComponent = {
-      componentID: 'glados.workfront.viewer',
-      typeID: 'glados/workfront',
-      name: 'Workfront',
+      componentID: 'gizmo.worklist.viewer',
+      typeID: 'gizmo/worklist',
+      name: 'Worklist',
       component: BrokenViewer,
     }
 
@@ -88,7 +88,7 @@ describe('ObjectViewerContent', () => {
       <ObjectViewerContent
         objectInfo={buildObjectInfo()}
         worldState={buildWorldState()}
-        typeID="glados/workfront"
+        typeID="gizmo/worklist"
         component={component}
       />,
     )
@@ -96,7 +96,7 @@ describe('ObjectViewerContent', () => {
     expect(await screen.findByText('Failed to load module')).toBeDefined()
     expect(
       screen.getByText(
-        '/b/pa/glados-web/v/b/fe/web/workfront/WorkfrontViewer-DemfR9tb.mjs',
+        '/b/pa/gizmo-web/v/b/fe/web/worklist/WorklistViewer-DemfR9tb.mjs',
       ),
     ).toBeDefined()
   })
@@ -114,9 +114,9 @@ describe('ObjectViewerContent', () => {
       <ObjectViewerContent
         objectInfo={buildObjectInfo()}
         worldState={buildWorldState()}
-        typeID="glados/missing"
+        typeID="gizmo/missing"
         availableComponents={[debugComponent]}
-        missingComponentID="glados.custom.viewer"
+        missingComponentID="gizmo.custom.viewer"
         onSelectComponent={onSelectComponent}
       />,
     )
@@ -124,10 +124,10 @@ describe('ObjectViewerContent', () => {
     expect(screen.getByText("Can't open this object yet")).toBeDefined()
     expect(screen.getByText('About this object')).toBeDefined()
     expect(screen.getByText('Object key')).toBeDefined()
-    expect(screen.getByText('glados/bootstrap/llm-session')).toBeDefined()
+    expect(screen.getByText('gizmo/bootstrap/llm-session')).toBeDefined()
     expect(screen.getByText('Object type')).toBeDefined()
-    expect(screen.getByText('glados/missing')).toBeDefined()
-    expect(screen.getByText(/glados\.custom\.viewer/)).toBeDefined()
+    expect(screen.getByText('gizmo/missing')).toBeDefined()
+    expect(screen.getByText(/gizmo\.custom\.viewer/)).toBeDefined()
 
     fireEvent.click(screen.getByRole('button', { name: 'Open raw object' }))
 

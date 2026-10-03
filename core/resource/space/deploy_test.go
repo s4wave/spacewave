@@ -145,14 +145,14 @@ func testDeployManifestRef(id, platform string, rev uint64, hashByte byte) *bldr
 
 func TestValidateManifestSetRejectsMixedIDsAndDuplicatePlatforms(t *testing.T) {
 	if _, err := validateManifestSet([]*bldr_manifest.ManifestRef{
-		testDeployManifestRef("glados-core", "js", 1, 1),
+		testDeployManifestRef("gizmo-core", "js", 1, 1),
 		testDeployManifestRef("other", "desktop/darwin/arm64", 1, 2),
 	}); err == nil {
 		t.Fatal("mixed manifest IDs accepted")
 	}
 	if _, err := validateManifestSet([]*bldr_manifest.ManifestRef{
-		testDeployManifestRef("glados-core", "js", 1, 1),
-		testDeployManifestRef("glados-core", "js", 2, 2),
+		testDeployManifestRef("gizmo-core", "js", 1, 1),
+		testDeployManifestRef("gizmo-core", "js", 2, 2),
 	}); err == nil {
 		t.Fatal("duplicate platform accepted")
 	}
@@ -195,7 +195,7 @@ func TestCopyBlockRejectsStoredHashMismatch(t *testing.T) {
 func TestValidateCopiedManifestRejectsMetadataMismatchAndCancellation(t *testing.T) {
 	// Persist a manifest block for metadata and cancellation validation.
 	ctx := context.Background()
-	meta := &bldr_manifest.ManifestMeta{ManifestId: "glados-core", BuildType: "production", PlatformId: "js", Rev: 1}
+	meta := &bldr_manifest.ManifestMeta{ManifestId: "gizmo-core", BuildType: "production", PlatformId: "js", Rev: 1}
 	data, err := bldr_manifest.NewManifest(meta, "entrypoint").MarshalBlock()
 	if err != nil {
 		t.Fatal(err)

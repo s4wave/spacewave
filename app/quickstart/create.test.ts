@@ -543,31 +543,27 @@ describe('quickstart create', () => {
 
   it('executes dynamic quickstarts through the registry and applies returned routing', async () => {
     quickstartRegistryMocks.ExecuteQuickstart.mockResolvedValue({
-      indexPath: 'glados/operator-home',
-      pluginIds: ['glados-core', 'glados-web'],
+      indexPath: 'gizmo/operator-home',
+      pluginIds: ['gizmo-core', 'gizmo-web'],
     })
     const { world, applyWorldOp } = buildQuickstartWorld()
-    await executeDynamicQuickstart(
-      { client: {} } as never,
-      'glados-workspace',
-      {
-        space: { id: 42 },
-        spaceWorld: world,
-        spaceContents: {},
-      } as never,
-    )
+    await executeDynamicQuickstart({ client: {} } as never, 'gizmo-workspace', {
+      space: { id: 42 },
+      spaceWorld: world,
+      spaceContents: {},
+    } as never)
 
     expect(quickstartRegistryMocks.ExecuteQuickstart).toHaveBeenCalledWith(
-      { quickstartId: 'glados-workspace', spaceResourceId: 42 },
+      { quickstartId: 'gizmo-workspace', spaceResourceId: 42 },
       undefined,
     )
-    expect(getSettingsIndexPath(applyWorldOp)).toBe('glados/operator-home')
-    expect(getSettingsIndexPath(applyWorldOp)).not.toBe('glados/org-chart')
+    expect(getSettingsIndexPath(applyWorldOp)).toBe('gizmo/operator-home')
+    expect(getSettingsIndexPath(applyWorldOp)).not.toBe('gizmo/org-chart')
     const settingsCall = applyWorldOp.mock.calls.find(
       (call) => call[0] === SET_SPACE_SETTINGS_OP_ID,
     )
     const settings = SetSpaceSettingsOp.fromBinary(settingsCall?.[1]).settings
-    expect(settings?.pluginIds).toEqual(['glados-core', 'glados-web'])
+    expect(settings?.pluginIds).toEqual(['gizmo-core', 'gizmo-web'])
   })
 
   it('waits for the Notes plugin quickstart before executing public Notes launchers', async () => {

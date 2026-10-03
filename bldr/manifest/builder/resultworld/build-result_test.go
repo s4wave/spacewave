@@ -14,32 +14,38 @@ import (
 )
 
 func TestManifestBuildResultRoundTrip(t *testing.T) {
+	// Prepare the manifest test context and logger.
 	ctx := context.Background()
 	le := logrus.NewEntry(logrus.New())
 
+	// Start the block storage testbed.
 	tb, err := testbed.NewTestbed(ctx, le)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	defer tb.Release()
 
+	// Open an empty cursor for the manifest World.
 	ocs, err := tb.BuildEmptyCursor(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	defer ocs.Release()
 
+	// Build the manifest World on the empty cursor.
 	ws, err := world_block.BuildMockWorldState(ctx, le, true, ocs, false)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
-	const manifestKey = "glados-core"
+	// Store a manifest reference in the World.
+	const manifestKey = "gizmo-core"
 	ref := createTestManifestRef(t, ctx, tb, manifestKey, "js", 7)
 	if _, _, err := bldr_manifest_world.SetManifest(ctx, ws, peer.ID("test"), manifestKey, ref.GetManifestRef()); err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Save a build result for the stored manifest.
 	storedManifest, storedManifestRef, err := bldr_manifest_world.LookupManifest(ctx, ws, manifestKey)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -53,6 +59,7 @@ func TestManifestBuildResultRoundTrip(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// Verify the saved build result preserves the manifest and input path.
 	got, gotRef, err := LookupManifestBuildResult(ctx, ws, manifestKey)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -76,8 +83,8 @@ func createTestManifestRef(
 	platformID string,
 	rev uint64,
 ) *bldr_manifest.ManifestRef {
+	// Prepare manifest metadata and an empty storage cursor.
 	t.Helper()
-
 	meta := &bldr_manifest.ManifestMeta{
 		ManifestId: manifestID,
 		BuildType:  "production",
@@ -90,6 +97,7 @@ func createTestManifestRef(
 	}
 	defer oc.Release()
 
+	// Write the manifest block and return its root reference.
 	btx, bcs := oc.BuildTransaction(nil)
 	bcs.SetBlock(bldr_manifest.NewManifest(meta, "entrypoint"), true)
 	rootRef, _, err := btx.Write(ctx, true)

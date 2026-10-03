@@ -229,15 +229,15 @@ func setupRelationshipFanoutBenchWorld(ctx context.Context, tb testing.TB, roots
 
 	// Create the fanout objects and their incoming and outgoing edges.
 	outPredicates := []string{
-		"<bench/workfront-goal>",
-		"<bench/workfront-session>",
-		"<bench/workfront-job>",
-		"<bench/workfront-evidence>",
+		"<bench/worklist-goal>",
+		"<bench/worklist-session>",
+		"<bench/worklist-job>",
+		"<bench/worklist-evidence>",
 	}
 	inPredicates := []string{
-		"<bench/agent-workfront>",
-		"<bench/question-workfront>",
-		"<bench/wave-workfront>",
+		"<bench/agent-worklist>",
+		"<bench/question-worklist>",
+		"<bench/wave-worklist>",
 	}
 	filters := make([]world.GraphQuad, 0, roots*(len(outPredicates)+len(inPredicates)))
 	for i := range roots {
@@ -320,7 +320,7 @@ func setupRelationshipFanoutBenchWorld(ctx context.Context, tb testing.TB, roots
 }
 
 func relationshipFanoutRootKey(i int) string {
-	return "bench/workfront/" + strconv.Itoa(i)
+	return "bench/worklist/" + strconv.Itoa(i)
 }
 
 func setupGraphPathBenchWorld(ctx context.Context, tb testing.TB, roots int) (*world_block.WorldState, []string, func()) {

@@ -519,11 +519,11 @@ describe("BldrElectronApp", () => {
     expect(daemonQuitMocks.quit).toHaveBeenCalledOnce();
     expect(mockElectronApp.quit).not.toHaveBeenCalled();
 
-    decide({ otherWork: ["glados"] });
+    decide({ otherWork: ["gizmo"] });
     await requested;
     expect(electron.dialog.showMessageBox).toHaveBeenCalledWith(
       expect.objectContaining({
-        detail: "Still using it: glados.",
+        detail: "Still using it: gizmo.",
       }),
     );
     expect(mockElectronApp.quit).toHaveBeenCalledOnce();
@@ -608,7 +608,7 @@ describe("BldrElectronApp", () => {
     expect(mockElectronApp.quit).not.toHaveBeenCalled();
     decide({
       otherWork: [
-        "glados",
+        "gizmo",
         "spacewave (2)",
         "web listener at http://127.0.0.1:8080",
       ],
@@ -625,7 +625,7 @@ describe("BldrElectronApp", () => {
     expect(dialog.showMessageBox).toHaveBeenCalledWith(
       expect.objectContaining({
         detail:
-          "Still using it: glados, spacewave (2), and web listener at http://127.0.0.1:8080.",
+          "Still using it: gizmo, spacewave (2), and web listener at http://127.0.0.1:8080.",
       }),
     );
     expect(mockElectronApp.quit).toHaveBeenCalledOnce();

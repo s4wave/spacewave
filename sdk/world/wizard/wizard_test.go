@@ -39,24 +39,27 @@ import (
 )
 
 func setupWizardRegistryClient(t *testing.T) (context.Context, *resource_client.Client) {
+	// Create the wizard registry and its in-memory RPC connection.
 	t.Helper()
-
 	ctx, cancel := context.WithCancel(context.Background())
 	r := s4wave_wizard.NewWizardRegistryResource(nil)
 	clientPipe, serverPipe := net.Pipe()
 
+	// Connect the wizard RPC client to the client pipe.
 	clientMp, err := srpc.NewMuxedConn(clientPipe, true, nil)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	srpcClient := srpc.NewClientWithMuxedConn(clientMp)
 
+	// Register the wizard resource service on the server mux.
 	resourceSrv := resource_server.NewResourceServer(r.GetMux())
 	serverMux := srpc.NewMux()
 	if err := resourceSrv.Register(serverMux); err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Serve the wizard registry over the server pipe.
 	server := srpc.NewServer(serverMux)
 	serverMp, err := srpc.NewMuxedConn(serverPipe, false, nil)
 	if err != nil {
@@ -68,13 +71,16 @@ func setupWizardRegistryClient(t *testing.T) (context.Context, *resource_client.
 		}
 	}()
 
+	// Create the resource client for wizard RPC calls.
 	resourceSvc := resource.NewSRPCResourceServiceClient(srpcClient)
 	client, err := resource_client.NewClient(ctx, resourceSvc)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Release the wizard client and pipes when the test ends.
 	t.Cleanup(func() {
+		// Wait for wizard client shutdown before closing its transport.
 		client.Release()
 		<-client.Done()
 		cancel()
@@ -88,10 +94,11 @@ func setupWizardRegistryClient(t *testing.T) (context.Context, *resource_client.
 // setupWizardWorldEngine creates a world engine with the wizard object type
 // controller registered.
 func setupWizardWorldEngine(ctx context.Context, t *testing.T) (*resource_client.Client, *s4wave_world.Engine, func()) {
+	// Start the resource testbed with an RPC client.
 	t.Helper()
-
 	tb, resClient, tbCleanup := resource_testbed.SetupTestbedWithClient(ctx, t)
 
+	// Register the wizard object type controller on the testbed bus.
 	lookupFunc := func(ctx context.Context, typeID string) (objecttype.ObjectType, error) {
 		return wizard_resource.LookupWizardObjectType(ctx, typeID)
 	}
@@ -102,6 +109,7 @@ func setupWizardWorldEngine(ctx context.Context, t *testing.T) (*resource_client
 		t.Fatalf("add ObjectType controller: %v", err)
 	}
 
+	// Open the root resource RPC client.
 	rootRef := resClient.AccessRootResource()
 	srpcClient, err := rootRef.GetClient()
 	if err != nil {
@@ -111,6 +119,7 @@ func setupWizardWorldEngine(ctx context.Context, t *testing.T) (*resource_client
 		t.Fatalf("get root client: %v", err)
 	}
 
+	// Create a World through the testbed resource service.
 	testbedClient := s4wave_testbed.NewSRPCTestbedResourceServiceClient(srpcClient)
 	createResp, err := testbedClient.CreateWorld(ctx, &s4wave_testbed.CreateWorldRequest{})
 	if err != nil {
@@ -120,6 +129,7 @@ func setupWizardWorldEngine(ctx context.Context, t *testing.T) (*resource_client
 		t.Fatalf("create world: %v", err)
 	}
 
+	// Open the World engine from its resource reference.
 	engineRef := resClient.CreateResourceReference(createResp.ResourceId)
 	engine, err := s4wave_world.NewEngine(resClient, engineRef)
 	if err != nil {
@@ -130,10 +140,14 @@ func setupWizardWorldEngine(ctx context.Context, t *testing.T) (*resource_client
 		t.Fatalf("create engine: %v", err)
 	}
 
+	// Prepare cleanup for the World engine and object type controller.
 	cleanup := func() {
+		// Release the World engine, object type controller, and root resource.
 		engine.Release()
 		objectTypeCtrlRelease()
 		rootRef.Release()
+
+		// Drain the object type lookup before releasing the testbed.
 		_, _, ref, err := bus.ExecOneOffTyped[objecttype.ObjectType](
 			ctx,
 			tb.Bus,
@@ -235,8 +249,8 @@ func requireWizardStateNameEventually(
 	stream string,
 	name string,
 ) {
+	// Consume wizard snapshots until the expected name arrives.
 	t.Helper()
-
 	ctx, cancel := context.WithTimeout(t.Context(), 2*time.Second)
 	defer cancel()
 	var last string
@@ -263,19 +277,21 @@ func accessWizardResource(
 	engine *s4wave_world.Engine,
 	objectKey string,
 ) (*s4wave_world.Tx, resource_client.ResourceRef, s4wave_wizard.SRPCWizardResourceServiceClient) {
+	// Open a read transaction for the wizard object.
 	t.Helper()
-
 	readTx, err := engine.NewTransaction(ctx, false)
 	if err != nil {
 		t.Fatalf("NewTransaction(read): %v", err)
 	}
 
+	// Open the transaction RPC client.
 	srpcClient, err := readTx.GetResourceRef().GetClient()
 	if err != nil {
 		readTx.Release()
 		t.Fatalf("GetClient: %v", err)
 	}
 
+	// Access the wizard through the typed-object service.
 	typedSvc := s4wave_world.NewSRPCTypedObjectResourceServiceClient(srpcClient)
 	resp, err := typedSvc.AccessTypedObject(ctx, &s4wave_world.AccessTypedObjectRequest{
 		ObjectKey: objectKey,
@@ -289,6 +305,7 @@ func accessWizardResource(
 		t.Fatalf("expected type wizard/test, got %q", resp.GetTypeId())
 	}
 
+	// Open the wizard resource RPC client.
 	wizardRef := resClient.CreateResourceReference(resp.GetResourceId())
 	wizardClient, err := wizardRef.GetClient()
 	if err != nil {
@@ -306,16 +323,18 @@ func recvWizardState(
 	t *testing.T,
 	wizardSvc s4wave_wizard.SRPCWizardResourceServiceClient,
 ) *s4wave_wizard.WizardState {
+	// Bound the wait for a wizard state snapshot.
 	t.Helper()
-
 	watchCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
+	// Start the wizard state watch.
 	stream, err := wizardSvc.WatchWizardState(watchCtx, &s4wave_wizard.WatchWizardStateRequest{})
 	if err != nil {
 		t.Fatalf("WatchWizardState: %v", err)
 	}
 
+	// Receive and verify a populated wizard state snapshot.
 	msg, err := stream.Recv()
 	if err != nil {
 		t.Fatalf("WatchWizardState.Recv: %v", err)
@@ -328,11 +347,12 @@ func recvWizardState(
 }
 
 func recvWizardTestValue[T any](t *testing.T, ch <-chan T, name string) T {
+	// Bound the wait for a wizard stream value.
 	t.Helper()
-
 	ctx, cancel := context.WithTimeout(t.Context(), 2*time.Second)
 	defer cancel()
 
+	// Receive the wizard stream value or report its closed or expired wait.
 	select {
 	case val, ok := <-ch:
 		if !ok {
@@ -497,10 +517,12 @@ func (s *gitCloneProgressStream) SendAndClose(resp *s4wave_wizard.WatchGitCloneP
 }
 
 func TestWizardRegistryRegisterListWatchAndRelease(t *testing.T) {
+	// Connect the wizard client with a bounded registry watch.
 	ctx, client := setupWizardRegistryClient(t)
 	watchCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
 
+	// Open the root wizard registry service.
 	rootRef := client.AccessRootResource()
 	t.Cleanup(rootRef.Release)
 	rootClient, err := rootRef.GetClient()
@@ -509,6 +531,7 @@ func TestWizardRegistryRegisterListWatchAndRelease(t *testing.T) {
 	}
 	svc := s4wave_wizard.NewSRPCObjectWizardRegistryResourceServiceClient(rootClient)
 
+	// Watch the wizard registry and verify its static entries.
 	watch, err := svc.WatchWizards(watchCtx, &s4wave_wizard.WatchWizardsRequest{})
 	if err != nil {
 		t.Fatal(err.Error())
@@ -522,6 +545,7 @@ func TestWizardRegistryRegisterListWatchAndRelease(t *testing.T) {
 		t.Fatal("expected static object wizards")
 	}
 
+	// Register a persistent project board wizard.
 	resp, err := svc.RegisterWizard(ctx, &s4wave_wizard.RegisterWizardRequest{
 		Wizard: &s4wave_wizard.ObjectWizard{
 			TypeId:             "example/project-board",
@@ -542,6 +566,7 @@ func TestWizardRegistryRegisterListWatchAndRelease(t *testing.T) {
 		t.Fatal("expected registration resource id")
 	}
 
+	// Verify the wizard list includes the assigned project board registration.
 	list, err := svc.ListWizards(ctx, &s4wave_wizard.ListWizardsRequest{})
 	if err != nil {
 		t.Fatal(err.Error())
@@ -557,6 +582,7 @@ func TestWizardRegistryRegisterListWatchAndRelease(t *testing.T) {
 		t.Fatal("expected assigned registration id")
 	}
 
+	// Verify the registry watch publishes the added wizard.
 	second, err := watch.Recv()
 	if err != nil {
 		t.Fatal(err.Error())
@@ -565,9 +591,11 @@ func TestWizardRegistryRegisterListWatchAndRelease(t *testing.T) {
 		t.Fatalf("expected watched registration, got %d wizards", len(second.GetWizards()))
 	}
 
+	// Release the project board wizard registration.
 	ref := client.CreateResourceReference(resp.GetResourceId())
 	ref.Release()
 
+	// Verify the registry watch removes the released wizard.
 	third, err := watch.Recv()
 	if err != nil {
 		t.Fatal(err.Error())
@@ -578,17 +606,20 @@ func TestWizardRegistryRegisterListWatchAndRelease(t *testing.T) {
 }
 
 func TestWizardRegistryValidationAndDedupe(t *testing.T) {
+	// Create the registry for wizard validation checks.
 	r := s4wave_wizard.NewWizardRegistryResource(nil)
 
+	// Verify wizard registration requires a wizard record.
 	_, err := r.RegisterWizard(context.Background(), &s4wave_wizard.RegisterWizardRequest{})
 	if err != s4wave_wizard.ErrWizardRequired {
 		t.Fatalf("expected ErrWizardRequired, got %v", err)
 	}
 
+	// Prepare wizard records missing each required field.
 	base := &s4wave_wizard.ObjectWizard{
-		TypeId:      "glados/workfront",
-		PluginId:    "glados-web",
-		DisplayName: "Workfront",
+		TypeId:      "gizmo/worklist",
+		PluginId:    "gizmo-web",
+		DisplayName: "Worklist",
 	}
 	cases := []struct {
 		name   string
@@ -612,15 +643,20 @@ func TestWizardRegistryValidationAndDedupe(t *testing.T) {
 		},
 	}
 
+	// Verify each incomplete wizard registration is rejected.
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
+			// Register the incomplete wizard record.
 			_, err := r.RegisterWizard(context.Background(), &s4wave_wizard.RegisterWizardRequest{Wizard: tc.wizard})
+
+			// Verify the missing wizard field produces its expected error.
 			if err != tc.err {
 				t.Fatalf("expected %v, got %v", tc.err, err)
 			}
 		})
 	}
 
+	// Connect to the root wizard registry service.
 	ctx, client := setupWizardRegistryClient(t)
 	rootRef := client.AccessRootResource()
 	t.Cleanup(rootRef.Release)
@@ -629,6 +665,8 @@ func TestWizardRegistryValidationAndDedupe(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 	svc := s4wave_wizard.NewSRPCObjectWizardRegistryResourceServiceClient(rootClient)
+
+	// Register a complete wizard and retain its resource reference.
 	req := &s4wave_wizard.RegisterWizardRequest{Wizard: base}
 	resp, err := svc.RegisterWizard(ctx, req)
 	if err != nil {
@@ -639,6 +677,8 @@ func TestWizardRegistryValidationAndDedupe(t *testing.T) {
 	}
 	ref := client.CreateResourceReference(resp.GetResourceId())
 	t.Cleanup(ref.Release)
+
+	// Verify the registry rejects a duplicate wizard registration.
 	_, err = svc.RegisterWizard(ctx, req)
 	if err != nil {
 		return
@@ -647,6 +687,7 @@ func TestWizardRegistryValidationAndDedupe(t *testing.T) {
 }
 
 func TestWizardRegistryStaticWizardsWinTypeDedupe(t *testing.T) {
+	// Connect to the root wizard registry service.
 	ctx, client := setupWizardRegistryClient(t)
 	rootRef := client.AccessRootResource()
 	t.Cleanup(rootRef.Release)
@@ -656,6 +697,7 @@ func TestWizardRegistryStaticWizardsWinTypeDedupe(t *testing.T) {
 	}
 	svc := s4wave_wizard.NewSRPCObjectWizardRegistryResourceServiceClient(rootClient)
 
+	// Verify the wizard registry starts with static entries.
 	before, err := svc.ListWizards(ctx, &s4wave_wizard.ListWizardsRequest{})
 	if err != nil {
 		t.Fatal(err.Error())
@@ -664,14 +706,15 @@ func TestWizardRegistryStaticWizardsWinTypeDedupe(t *testing.T) {
 		t.Fatal("expected static object wizards")
 	}
 
+	// Register a dynamic Canvas wizard that overlaps a static type.
 	resp, err := svc.RegisterWizard(ctx, &s4wave_wizard.RegisterWizardRequest{
 		Wizard: &s4wave_wizard.ObjectWizard{
 			TypeId:       "canvas",
-			PluginId:     "glados-web",
+			PluginId:     "gizmo-web",
 			DisplayName:  "Dynamic Canvas",
-			Category:     "Glados",
+			Category:     "Gizmo",
 			Persistent:   true,
-			WizardTypeId: "wizard/glados/canvas",
+			WizardTypeId: "wizard/gizmo/canvas",
 		},
 	})
 	if err != nil {
@@ -683,6 +726,7 @@ func TestWizardRegistryStaticWizardsWinTypeDedupe(t *testing.T) {
 	ref := client.CreateResourceReference(resp.GetResourceId())
 	t.Cleanup(ref.Release)
 
+	// Verify the static Canvas wizard wins type deduplication.
 	after, err := svc.ListWizards(ctx, &s4wave_wizard.ListWizardsRequest{})
 	if err != nil {
 		t.Fatal(err.Error())
@@ -740,10 +784,12 @@ func TestWizardRegistryStaticAppWizardVisibility(t *testing.T) {
 // shadowed by a built-in type id changes no snapshot, and that the watch
 // delivers the next visible change.
 func TestWizardRegistryWatchHidesShadowedWizard(t *testing.T) {
+	// Connect the wizard client with a bounded registry watch.
 	ctx, client := setupWizardRegistryClient(t)
 	watchCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
 
+	// Open the root wizard registry service.
 	rootRef := client.AccessRootResource()
 	t.Cleanup(rootRef.Release)
 	rootClient, err := rootRef.GetClient()
@@ -752,6 +798,7 @@ func TestWizardRegistryWatchHidesShadowedWizard(t *testing.T) {
 	}
 	svc := s4wave_wizard.NewSRPCObjectWizardRegistryResourceServiceClient(rootClient)
 
+	// Watch the wizard registry and capture its static entry count.
 	watch, err := svc.WatchWizards(watchCtx, &s4wave_wizard.WatchWizardsRequest{})
 	if err != nil {
 		t.Fatal(err.Error())
@@ -765,6 +812,7 @@ func TestWizardRegistryWatchHidesShadowedWizard(t *testing.T) {
 		t.Fatal("expected static object wizards")
 	}
 
+	// Register a dynamic Canvas wizard shadowed by the static type.
 	resp, err := svc.RegisterWizard(ctx, &s4wave_wizard.RegisterWizardRequest{
 		Wizard: &s4wave_wizard.ObjectWizard{
 			TypeId:       "canvas",
@@ -784,6 +832,7 @@ func TestWizardRegistryWatchHidesShadowedWizard(t *testing.T) {
 	ref := client.CreateResourceReference(resp.GetResourceId())
 	t.Cleanup(ref.Release)
 
+	// Register a visible wizard to trigger a registry watch snapshot.
 	visibleResp, err := svc.RegisterWizard(ctx, &s4wave_wizard.RegisterWizardRequest{
 		Wizard: &s4wave_wizard.ObjectWizard{
 			TypeId:      "example/visible",
@@ -797,6 +846,7 @@ func TestWizardRegistryWatchHidesShadowedWizard(t *testing.T) {
 	visibleRef := client.CreateResourceReference(visibleResp.GetResourceId())
 	t.Cleanup(visibleRef.Release)
 
+	// Verify the watch includes the visible wizard and hides the shadowed one.
 	next, err := watch.Recv()
 	if err != nil {
 		t.Fatal(err.Error())
@@ -812,6 +862,7 @@ func TestWizardRegistryWatchHidesShadowedWizard(t *testing.T) {
 }
 
 func TestWizardRegistryWatchCancellation(t *testing.T) {
+	// Start a cancellable wizard registry watch.
 	ctx, cancel := context.WithCancel(t.Context())
 	r := s4wave_wizard.NewWizardRegistryResource(nil)
 	strm := newWizardRegistryStream(ctx)
@@ -820,11 +871,13 @@ func TestWizardRegistryWatchCancellation(t *testing.T) {
 		done <- r.WatchWizards(&s4wave_wizard.WatchWizardsRequest{}, strm)
 	}()
 
+	// Verify the wizard registry publishes its initial static entries.
 	initial := recvWizardTestValue(t, strm.sent, "initial wizard snapshot")
 	if len(initial.GetWizards()) == 0 {
 		t.Fatal("expected initial static object wizards")
 	}
 
+	// Cancel the wizard registry watch and verify it stops.
 	cancel()
 	if err := recvWizardTestValue(t, done, "wizard watch cancellation"); !errors.Is(err, context.Canceled) {
 		t.Fatalf("expected context.Canceled, got %v", err)
@@ -832,12 +885,15 @@ func TestWizardRegistryWatchCancellation(t *testing.T) {
 }
 
 func TestWizardGitCloneProgressWatchSendsTerminalOnce(t *testing.T) {
+	// Bound the clone progress watch lifetime.
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 
+	// Create the wizard resource for the invalid clone request.
 	r := wizard_resource.NewWizardResource(nil, nil, "wizard/git/test", &s4wave_wizard.WizardState{})
 	defer r.Close()
 
+	// Start a Git clone with an invalid configuration.
 	_, err := r.StartGitClone(ctx, &s4wave_wizard.StartGitCloneRequest{
 		ObjectKey:  "git/repo/test",
 		Name:       "Test Repo",
@@ -847,12 +903,14 @@ func TestWizardGitCloneProgressWatchSendsTerminalOnce(t *testing.T) {
 		t.Fatalf("StartGitClone: %v", err)
 	}
 
+	// Watch the Git clone progress until completion.
 	strm := newGitCloneProgressStream(ctx)
 	done := make(chan error, 1)
 	go func() {
 		done <- r.WatchGitCloneProgress(&s4wave_wizard.WatchGitCloneProgressRequest{}, strm)
 	}()
 
+	// Verify clone progress reports exactly one terminal failure.
 	var states []s4wave_wizard.GitCloneProgressState
 	var terminalCount int
 	for {
@@ -881,21 +939,25 @@ func TestWizardGitCloneProgressWatchSendsTerminalOnce(t *testing.T) {
 }
 
 func TestWizardGitCloneProgressWatchCancellation(t *testing.T) {
+	// Create a wizard resource with a cancellable clone context.
 	ctx, cancel := context.WithCancel(t.Context())
 	r := wizard_resource.NewWizardResource(nil, nil, "wizard/git/cancel", &s4wave_wizard.WizardState{})
 	defer r.Close()
 
+	// Start the Git clone progress watch.
 	strm := newGitCloneProgressStream(ctx)
 	done := make(chan error, 1)
 	go func() {
 		done <- r.WatchGitCloneProgress(&s4wave_wizard.WatchGitCloneProgressRequest{}, strm)
 	}()
 
+	// Verify the clone progress watch starts idle.
 	initial := recvWizardTestValue(t, strm.sent, "initial clone progress")
 	if initial.GetProgress().GetState() != s4wave_wizard.GitCloneProgressState_GIT_CLONE_PROGRESS_STATE_IDLE {
 		t.Fatalf("expected idle initial progress, got %v", initial.GetProgress().GetState())
 	}
 
+	// Cancel the clone progress watch and verify it stops.
 	cancel()
 	if err := recvWizardTestValue(t, done, "clone progress watch cancellation"); !errors.Is(err, context.Canceled) {
 		t.Fatalf("expected context.Canceled, got %v", err)
@@ -903,6 +965,7 @@ func TestWizardGitCloneProgressWatchCancellation(t *testing.T) {
 }
 
 func TestWizardResourceWatchSharesWorldUpdates(t *testing.T) {
+	// Create the initial wizard state in the World.
 	ctx := t.Context()
 	objKey := "wizard/watch-shared"
 	initial := &s4wave_wizard.WizardState{
@@ -913,12 +976,15 @@ func TestWizardResourceWatchSharesWorldUpdates(t *testing.T) {
 	ws, cleanup := setupWizardWatchWorld(t, ctx, objKey, initial)
 	t.Cleanup(cleanup)
 
+	// Create the wizard resource and cancellable stream contexts.
 	resource := wizard_resource.NewWizardResource(ws, nil, objKey, initial)
 	t.Cleanup(resource.Close)
 	streamCtxA, cancelA := context.WithCancel(ctx)
 	defer cancelA()
 	streamCtxB, cancelB := context.WithCancel(ctx)
 	defer cancelB()
+
+	// Start two state watches on the shared wizard resource.
 	strmA := newWizardStateStream(streamCtxA)
 	strmB := newWizardStateStream(streamCtxB)
 	doneA := make(chan error, 1)
@@ -930,27 +996,37 @@ func TestWizardResourceWatchSharesWorldUpdates(t *testing.T) {
 		doneB <- resource.WatchWizardState(&s4wave_wizard.WatchWizardStateRequest{}, strmB)
 	}()
 
+	// Verify both wizard watches receive the initial state.
 	requireWizardStateName(t, recvWizardTestValue(t, strmA.sent, "stream A initial").GetState(), "Draft Canvas")
 	requireWizardStateName(t, recvWizardTestValue(t, strmB.sent, "stream B initial").GetState(), "Draft Canvas")
 
+	// Commit the configured wizard state to the World.
 	updated := initial.CloneVT()
 	updated.Name = "Configured Canvas"
 	updated.Step = 2
 	setWizardWatchWorldState(t, ctx, ws, objKey, updated)
+
+	// Verify both wizard watches receive the configured state.
 	requireWizardStateName(t, recvWizardTestValue(t, strmA.sent, "stream A update").GetState(), "Configured Canvas")
 	requireWizardStateName(t, recvWizardTestValue(t, strmB.sent, "stream B update").GetState(), "Configured Canvas")
 
+	// Prepare two successive wizard state changes.
 	burstA := updated.CloneVT()
 	burstA.Name = "Burst Canvas A"
 	burstA.Step = 3
 	burstB := updated.CloneVT()
 	burstB.Name = "Burst Canvas B"
 	burstB.Step = 4
+
+	// Commit both wizard states to the World.
 	setWizardWatchWorldState(t, ctx, ws, objKey, burstA)
 	setWizardWatchWorldState(t, ctx, ws, objKey, burstB)
+
+	// Verify both wizard watches reach the latest committed state.
 	requireWizardStateNameEventually(t, strmA.sent, doneA, "stream A burst update", "Burst Canvas B")
 	requireWizardStateNameEventually(t, strmB.sent, doneB, "stream B burst update", "Burst Canvas B")
 
+	// Close the wizard resource and verify both watches stop.
 	resource.Close()
 	if err := recvWizardTestValue(t, doneA, "stream A close"); !errors.Is(err, context.Canceled) {
 		t.Fatalf("expected stream A context.Canceled, got %v", err)
@@ -961,6 +1037,7 @@ func TestWizardResourceWatchSharesWorldUpdates(t *testing.T) {
 }
 
 func TestWizardResourceCloseCancelsStateWatchersImmediately(t *testing.T) {
+	// Start a wizard state watch on the initial resource.
 	ctx := t.Context()
 	resource := wizard_resource.NewWizardResource(nil, nil, "", &s4wave_wizard.WizardState{Name: "Initial"})
 	streamCtx, cancel := context.WithCancel(ctx)
@@ -971,12 +1048,14 @@ func TestWizardResourceCloseCancelsStateWatchersImmediately(t *testing.T) {
 		done <- resource.WatchWizardState(&s4wave_wizard.WatchWizardStateRequest{}, strm)
 	}()
 
+	// Close the wizard resource after receiving its initial state.
 	requireWizardStateName(t, recvWizardTestValue(t, strm.sent, "initial wizard state").GetState(), "Initial")
 	resource.Close()
 	if err := recvWizardTestValue(t, done, "wizard state watch close"); !errors.Is(err, context.Canceled) {
 		t.Fatalf("expected context.Canceled, got %v", err)
 	}
 
+	// Verify a late wizard watcher observes resource cancellation.
 	late := newWizardStateStream(ctx)
 	if err := resource.WatchWizardState(&s4wave_wizard.WatchWizardStateRequest{}, late); !errors.Is(err, context.Canceled) {
 		t.Fatalf("expected late watcher context.Canceled, got %v", err)
@@ -988,10 +1067,12 @@ func TestWizardResourceCloseCancelsStateWatchersImmediately(t *testing.T) {
 // then re-open it through a fresh typed-object resource and verify the updated
 // state is read back from the world.
 func TestWizardResourcePersistsState(t *testing.T) {
+	// Start the wizard World engine and resource client.
 	ctx := context.Background()
 	resClient, engine, cleanup := setupWizardWorldEngine(ctx, t)
 	defer cleanup()
 
+	// Encode a wizard creation operation for the Canvas target.
 	objectKey := "wizard/test-canvas"
 	createOp := s4wave_wizard.NewCreateWizardObjectOp(
 		objectKey,
@@ -1006,6 +1087,7 @@ func TestWizardResourcePersistsState(t *testing.T) {
 		t.Fatalf("MarshalVT(create op): %v", err)
 	}
 
+	// Create and commit the wizard object in the World.
 	writeTx, err := engine.NewTransaction(ctx, true)
 	if err != nil {
 		t.Fatalf("NewTransaction(write): %v", err)
@@ -1021,6 +1103,7 @@ func TestWizardResourcePersistsState(t *testing.T) {
 	}
 	writeTx.Release()
 
+	// Verify the wizard resource reads its initial state.
 	readTx, wizardRef, wizardSvc := accessWizardResource(ctx, t, resClient, engine, objectKey)
 	initialState := recvWizardState(ctx, t, wizardSvc)
 	if initialState.GetStep() != 0 {
@@ -1036,6 +1119,7 @@ func TestWizardResourcePersistsState(t *testing.T) {
 		t.Fatalf("expected initial name Draft Canvas, got %q", initialState.GetName())
 	}
 
+	// Update the wizard state and release its initial read resources.
 	updateResp, err := wizardSvc.UpdateWizardState(ctx, &s4wave_wizard.UpdateWizardStateRequest{
 		Step: 1,
 		Name: "Configured Canvas",
@@ -1045,6 +1129,8 @@ func TestWizardResourcePersistsState(t *testing.T) {
 	if err != nil {
 		t.Fatalf("UpdateWizardState: %v", err)
 	}
+
+	// Verify the wizard update response contains the configured state.
 	if updateResp.GetState().GetStep() != 1 {
 		t.Fatalf("expected updated step 1, got %d", updateResp.GetState().GetStep())
 	}
@@ -1052,10 +1138,12 @@ func TestWizardResourcePersistsState(t *testing.T) {
 		t.Fatalf("expected updated name Configured Canvas, got %q", updateResp.GetState().GetName())
 	}
 
+	// Reopen the wizard through fresh read resources.
 	verifyTx, verifyRef, verifySvc := accessWizardResource(ctx, t, resClient, engine, objectKey)
 	defer verifyRef.Release()
 	defer verifyTx.Release()
 
+	// Verify the wizard state persists its configuration and target.
 	persistedState := recvWizardState(ctx, t, verifySvc)
 	if persistedState.GetStep() != 1 {
 		t.Fatalf("expected persisted step 1, got %d", persistedState.GetStep())
@@ -1076,6 +1164,7 @@ func TestWizardResourcePersistsState(t *testing.T) {
 // and a non-empty sender. The Go handler defaults peerId to sender. The cluster
 // object is created and the wizard object is deleted.
 func TestClusterWizardFinalize(t *testing.T) {
+	// Start the World engine for cluster wizard finalization.
 	ctx := context.Background()
 	_, engine, cleanup := setupWizardWorldEngine(ctx, t)
 	defer cleanup()
@@ -1105,6 +1194,7 @@ func TestClusterWizardFinalize(t *testing.T) {
 		t.Fatalf("MarshalVT(wizard op): %v", err)
 	}
 
+	// Create and commit the cluster wizard object.
 	writeTx, err := engine.NewTransaction(ctx, true)
 	if err != nil {
 		t.Fatalf("NewTransaction(create wizard): %v", err)
@@ -1133,6 +1223,7 @@ func TestClusterWizardFinalize(t *testing.T) {
 		t.Fatalf("MarshalVT(cluster op): %v", err)
 	}
 
+	// Apply cluster creation with the sender as its default peer.
 	writeTx2, err := engine.NewTransaction(ctx, true)
 	if err != nil {
 		t.Fatalf("NewTransaction(create cluster): %v", err)
@@ -1162,6 +1253,7 @@ func TestClusterWizardFinalize(t *testing.T) {
 	}
 	defer readTx.Release()
 
+	// Verify finalization created the cluster object.
 	clusterObj, found, err := readTx.GetObject(ctx, clusterKey)
 	defer world.ReleaseObjectState(clusterObj)
 	if err != nil {
@@ -1171,6 +1263,7 @@ func TestClusterWizardFinalize(t *testing.T) {
 		t.Fatal("cluster object not found after finalize")
 	}
 
+	// Verify finalization removed the cluster wizard object.
 	objectState, wizardFound, err := readTx.GetObject(ctx, wizardKey)
 	world.ReleaseObjectState(objectState)
 	if err != nil {
@@ -1187,6 +1280,7 @@ func TestClusterWizardFinalize(t *testing.T) {
 // objects exist, all wizard objects are deleted, and graph edges
 // (cluster-to-job, job-to-task) are correct.
 func TestForgeWizardChain(t *testing.T) {
+	// Start the World engine for the forge wizard chain.
 	ctx := context.Background()
 	_, engine, cleanup := setupWizardWorldEngine(ctx, t)
 	defer cleanup()
@@ -1202,6 +1296,7 @@ func TestForgeWizardChain(t *testing.T) {
 	}
 	sender := senderPeerID.String()
 
+	// Prepare object and wizard keys for the cluster, job, and task.
 	clusterKey := "forge/cluster/chain-test"
 	jobKey := "forge/job/chain-test-job"
 	taskKey := "forge/task/chain-test-task"
@@ -1442,8 +1537,10 @@ func TestForgeWizardChain(t *testing.T) {
 // TestGitRepoWizardOp verifies the CreateGitRepoWizardOp validation and
 // dispatch logic, and the wizard create/delete lifecycle for git/repo.
 func TestGitRepoWizardOp(t *testing.T) {
+	// Prepare the context for Git repository wizard operations.
 	ctx := context.Background()
 
+	// Verify Git repository wizard operation validation.
 	t.Run("validate", func(t *testing.T) {
 		// Valid new repo op.
 		op := &s4wave_git.CreateGitRepoWizardOp{
@@ -1486,7 +1583,9 @@ func TestGitRepoWizardOp(t *testing.T) {
 		}
 	})
 
+	// Verify Git repository wizard operation lookup.
 	t.Run("lookup", func(t *testing.T) {
+		// Look up the Git repository wizard operation by its matching ID.
 		op, err := s4wave_git.LookupCreateGitRepoWizardOp(ctx, s4wave_git.CreateGitRepoWizardOpId)
 		if err != nil {
 			t.Fatalf("LookupCreateGitRepoWizardOp: %v", err)
@@ -1508,7 +1607,9 @@ func TestGitRepoWizardOp(t *testing.T) {
 		}
 	})
 
+	// Verify Git repository wizard operation encoding preserves clone options.
 	t.Run("marshal-roundtrip", func(t *testing.T) {
+		// Encode a Git repository wizard operation with clone options.
 		op := &s4wave_git.CreateGitRepoWizardOp{
 			ObjectKey: "git/repo/rt-test",
 			Name:      "rt-test",
@@ -1526,10 +1627,13 @@ func TestGitRepoWizardOp(t *testing.T) {
 			t.Fatalf("MarshalVT: %v", err)
 		}
 
+		// Decode the Git repository wizard operation.
 		decoded := &s4wave_git.CreateGitRepoWizardOp{}
 		if err := decoded.UnmarshalVT(data); err != nil {
 			t.Fatalf("UnmarshalVT: %v", err)
 		}
+
+		// Verify the decoded Git repository identity and clone options.
 		if decoded.GetObjectKey() != "git/repo/rt-test" {
 			t.Fatalf("expected object_key git/repo/rt-test, got %q", decoded.GetObjectKey())
 		}
@@ -1547,10 +1651,13 @@ func TestGitRepoWizardOp(t *testing.T) {
 		}
 	})
 
+	// Verify the Git repository wizard creation and deletion lifecycle.
 	t.Run("wizard-lifecycle", func(t *testing.T) {
+		// Start the World engine for the Git repository wizard.
 		_, engine, cleanup := setupWizardWorldEngine(ctx, t)
 		defer cleanup()
 
+		// Choose the Git repository wizard key for its lifecycle checks.
 		wizardKey := "wizard/git/repo/lifecycle-1"
 
 		// Create wizard object for git/repo.
@@ -1563,6 +1670,7 @@ func TestGitRepoWizardOp(t *testing.T) {
 			t.Fatalf("MarshalVT(wizard): %v", err)
 		}
 
+		// Create and commit the Git repository wizard object.
 		tx, err := engine.NewTransaction(ctx, true)
 		if err != nil {
 			t.Fatalf("NewTransaction(create): %v", err)

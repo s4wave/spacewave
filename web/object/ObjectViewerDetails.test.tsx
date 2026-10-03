@@ -36,9 +36,9 @@ const components: ObjectViewerComponent[] = [
     component: () => null,
   },
   {
-    componentID: 'glados.workfront.viewer',
-    typeID: 'glados/workfront',
-    name: 'Workfront',
+    componentID: 'gizmo.worklist.viewer',
+    typeID: 'gizmo/worklist',
+    name: 'Worklist',
     component: () => null,
   },
 ]
@@ -58,39 +58,39 @@ describe('ObjectViewerDetails', () => {
 
     render(
       <ObjectViewerDetails
-        objectKey="glados/workfront/1"
-        typeID="glados/workfront"
+        objectKey="gizmo/worklist/1"
+        typeID="gizmo/worklist"
         availableComponents={[]}
         onComponentSelect={vi.fn()}
       />,
     )
 
     fireEvent.click(screen.getByRole('button', { name: 'Click to copy' }))
-    expect(writeText).toHaveBeenCalledWith('glados/workfront/1')
+    expect(writeText).toHaveBeenCalledWith('gizmo/worklist/1')
   })
 
   it('exposes missing requested component IDs in the object internals panel', () => {
     render(
       <ObjectViewerDetails
-        objectKey="glados/workfront/1"
-        typeID="glados/workfront"
+        objectKey="gizmo/worklist/1"
+        typeID="gizmo/worklist"
         availableComponents={components}
         selectedComponent={components[0]}
-        missingComponentID="glados.missing.viewer"
+        missingComponentID="gizmo.missing.viewer"
         onComponentSelect={vi.fn()}
       />,
     )
 
     expect(screen.getByText('Missing Component ID')).toBeDefined()
-    expect(screen.getByText('glados.missing.viewer')).toBeDefined()
+    expect(screen.getByText('gizmo.missing.viewer')).toBeDefined()
     expect(screen.getByText('ID: spacewave.debug.viewer')).toBeDefined()
   })
 
   it('omits the danger zone when object deletion is unavailable', () => {
     render(
       <ObjectViewerDetails
-        objectKey="glados/workfront/1"
-        typeID="glados/workfront"
+        objectKey="gizmo/worklist/1"
+        typeID="gizmo/worklist"
         availableComponents={components}
         onComponentSelect={vi.fn()}
       />,
@@ -103,8 +103,8 @@ describe('ObjectViewerDetails', () => {
     const onDeleteConfirm = vi.fn().mockResolvedValue(undefined)
     render(
       <ObjectViewerDetails
-        objectKey="glados/workfront/1"
-        typeID="glados/workfront"
+        objectKey="gizmo/worklist/1"
+        typeID="gizmo/worklist"
         availableComponents={components}
         onComponentSelect={vi.fn()}
         onDeleteConfirm={onDeleteConfirm}
@@ -115,7 +115,7 @@ describe('ObjectViewerDetails', () => {
     fireEvent.click(screen.getByRole('button', { name: /Delete Object/ }))
 
     const confirmation = screen.getByText(/This will permanently delete/)
-    expect(confirmation.textContent).toContain('glados/workfront/1')
+    expect(confirmation.textContent).toContain('gizmo/worklist/1')
 
     const deleteButtons = screen.getAllByRole('button', {
       name: 'Delete Object',
@@ -132,8 +132,8 @@ describe('ObjectViewerDetails', () => {
     const onCloseClick = vi.fn()
     render(
       <ObjectViewerDetails
-        objectKey="glados/workfront/1"
-        typeID="glados/workfront"
+        objectKey="gizmo/worklist/1"
+        typeID="gizmo/worklist"
         availableComponents={components}
         selectedComponent={components[0]}
         onComponentSelect={onComponentSelect}
@@ -142,17 +142,17 @@ describe('ObjectViewerDetails', () => {
     )
 
     const debugRow = screen.getByRole('button', { name: /Debug Viewer/ })
-    const workfrontRow = screen.getByRole('button', { name: /Workfront/ })
+    const worklistRow = screen.getByRole('button', { name: /Worklist/ })
     expect(debugRow.getAttribute('aria-pressed')).toBe('true')
-    expect(workfrontRow.getAttribute('aria-pressed')).toBe('false')
+    expect(worklistRow.getAttribute('aria-pressed')).toBe('false')
     expect(debugRow.className).toContain('border-brand/30')
     expect(screen.getByText('Active')).toBeDefined()
     expect(screen.getByRole('button', { name: 'Open viewer' })).toBeDefined()
 
-    fireEvent.click(workfrontRow)
+    fireEvent.click(worklistRow)
 
     expect(onComponentSelect).toHaveBeenCalledWith(components[1])
-    expect(workfrontRow.getAttribute('aria-pressed')).toBe('true')
+    expect(worklistRow.getAttribute('aria-pressed')).toBe('true')
     expect(debugRow.getAttribute('aria-pressed')).toBe('false')
     expect(screen.getByRole('button', { name: 'Open viewer' })).toBeDefined()
 
@@ -170,9 +170,9 @@ describe('ObjectViewerDetails', () => {
 
     render(
       <ObjectViewerDetails
-        objectKey="glados/workfront/1"
-        typeID="glados/workfront"
-        exportUrl="/exports/glados-workfront-1.zip"
+        objectKey="gizmo/worklist/1"
+        typeID="gizmo/worklist"
+        exportUrl="/exports/gizmo-worklist-1.zip"
         availableComponents={[]}
         onComponentSelect={vi.fn()}
       />,
@@ -199,9 +199,9 @@ describe('ObjectViewerDetails', () => {
 
     render(
       <ObjectViewerDetails
-        objectKey="glados/workfront/1"
-        typeID="glados/workfront"
-        exportUrl="/exports/glados-workfront-1.zip"
+        objectKey="gizmo/worklist/1"
+        typeID="gizmo/worklist"
+        exportUrl="/exports/gizmo-worklist-1.zip"
         availableComponents={[]}
         onComponentSelect={vi.fn()}
       />,

@@ -18,7 +18,7 @@ describe('loadForgeDashboardActivityEntries', () => {
   it('does not let dormant AgentInstance or old Evidence history block first paint activity', async () => {
     const signal = new AbortController().signal
     const dashboard: ForgeDashboard = {
-      name: 'Workfront',
+      name: 'Worklist',
       createdAt: new Date('2026-05-11T12:00:00Z'),
     }
     const jobData = Job.toBinary({
@@ -51,12 +51,12 @@ describe('loadForgeDashboardActivityEntries', () => {
       dashboard,
       [
         {
-          objectKey: 'glados/dogfood/workfront/job/task/agent-instance/dormant',
-          typeId: 'glados/agent-instance',
+          objectKey: 'gizmo/dogfood/worklist/job/task/agent-instance/dormant',
+          typeId: 'gizmo/agent-instance',
         },
         {
-          objectKey: 'glados/dogfood/workfront/evidence/old-history',
-          typeId: 'glados/evidence',
+          objectKey: 'gizmo/dogfood/worklist/evidence/old-history',
+          typeId: 'gizmo/evidence',
         },
         {
           objectKey: 'forge/job/active',

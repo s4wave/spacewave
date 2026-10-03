@@ -10,27 +10,27 @@ import {
 describe('ViewerRegistry proto types', () => {
   it('ViewerRegistration carries a stable component ID separate from display name', () => {
     const registration = ViewerRegistration.create({
-      typeId: 'glados/workfront',
-      viewerName: 'Workfront',
-      scriptPath: '/plugins/glados/workfront.js',
-      category: 'GLaDOS',
-      componentId: 'glados.workfront.viewer',
+      typeId: 'gizmo/worklist',
+      viewerName: 'Worklist',
+      scriptPath: '/plugins/gizmo/worklist.js',
+      category: 'Gizmo',
+      componentId: 'gizmo.worklist.viewer',
       surface: ViewerSurface.WEB,
     })
 
-    expect(registration.typeId).toBe('glados/workfront')
-    expect(registration.viewerName).toBe('Workfront')
-    expect(registration.componentId).toBe('glados.workfront.viewer')
+    expect(registration.typeId).toBe('gizmo/worklist')
+    expect(registration.viewerName).toBe('Worklist')
+    expect(registration.componentId).toBe('gizmo.worklist.viewer')
     expect(registration.surface).toBe(ViewerSurface.WEB)
   })
 
   it('RegisterViewerRequest round-trips component IDs through binary serialization', () => {
     const original = RegisterViewerRequest.create({
       registration: {
-        typeId: 'glados/workfront',
-        viewerName: 'Workfront',
-        scriptPath: '/plugins/glados/workfront.js',
-        componentId: 'glados.workfront.viewer',
+        typeId: 'gizmo/worklist',
+        viewerName: 'Worklist',
+        scriptPath: '/plugins/gizmo/worklist.js',
+        componentId: 'gizmo.worklist.viewer',
         surface: ViewerSurface.WEB,
       },
     })
@@ -39,7 +39,7 @@ describe('ViewerRegistry proto types', () => {
       RegisterViewerRequest.toBinary(original),
     )
 
-    expect(decoded.registration?.componentId).toBe('glados.workfront.viewer')
+    expect(decoded.registration?.componentId).toBe('gizmo.worklist.viewer')
     expect(decoded.registration?.surface).toBe(ViewerSurface.WEB)
   })
 
@@ -47,17 +47,17 @@ describe('ViewerRegistry proto types', () => {
     const response = WatchViewersResponse.create({
       registrations: [
         {
-          typeId: 'glados/workfront',
-          viewerName: 'Workfront',
-          scriptPath: '/plugins/glados/workfront.js',
-          componentId: 'glados.workfront.viewer',
+          typeId: 'gizmo/worklist',
+          viewerName: 'Worklist',
+          scriptPath: '/plugins/gizmo/worklist.js',
+          componentId: 'gizmo.worklist.viewer',
           surface: ViewerSurface.WEB,
         },
       ],
     })
 
     expect(response.registrations?.[0]?.componentId).toBe(
-      'glados.workfront.viewer',
+      'gizmo.worklist.viewer',
     )
     expect(response.registrations?.[0]?.surface).toBe(ViewerSurface.WEB)
   })

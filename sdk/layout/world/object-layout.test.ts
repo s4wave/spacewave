@@ -16,9 +16,9 @@ describe('object layout helpers', () => {
     const tab = createObjectLayoutTabDef({
       id: 'decision-proof',
       name: 'Proof',
-      objectKey: 'glados/decision/release',
-      objectType: 'glados/decision',
-      componentID: 'glados.decision',
+      objectKey: 'gizmo/decision/release',
+      objectType: 'gizmo/decision',
+      componentID: 'gizmo.decision',
       path: '/proof',
       enableClose: true,
     })
@@ -26,17 +26,17 @@ describe('object layout helpers', () => {
     expect(tab).toMatchObject({
       id: 'decision-proof',
       name: 'Proof',
-      helpText: 'glados/decision/release',
+      helpText: 'gizmo/decision/release',
       enableClose: true,
     })
     const payload = ObjectLayoutTab.fromBinary(tab.data ?? new Uint8Array())
-    expect(payload.componentId).toBe('glados.decision')
+    expect(payload.componentId).toBe('gizmo.decision')
     expect(payload.path).toBe('/proof')
     expect(payload.objectInfo?.info).toMatchObject({
       case: 'worldObjectInfo',
       value: {
-        objectKey: 'glados/decision/release',
-        objectType: 'glados/decision',
+        objectKey: 'gizmo/decision/release',
+        objectType: 'gizmo/decision',
       },
     })
   })
@@ -47,9 +47,9 @@ describe('object layout helpers', () => {
       afterTabId: 'home',
       id: 'chat',
       name: 'Chat',
-      objectKey: 'glados/llm-session/live',
-      objectType: 'glados/llm-session',
-      componentID: 'glados.llm-session',
+      objectKey: 'gizmo/llm-session/live',
+      objectType: 'gizmo/llm-session',
+      componentID: 'gizmo.llm-session',
       path: '/chat',
     })
 
@@ -65,7 +65,7 @@ describe('object layout helpers', () => {
     const payload = ObjectLayoutTab.fromBinary(
       request.tab?.data ?? new Uint8Array(),
     )
-    expect(payload.componentId).toBe('glados.llm-session')
+    expect(payload.componentId).toBe('gizmo.llm-session')
     expect(payload.path).toBe('/chat')
   })
 
@@ -115,10 +115,10 @@ describe('object layout helpers', () => {
         tabs: [
           {
             id: 'home',
-            name: 'GLaDOS Home',
-            objectKey: 'glados/operator-home',
-            objectType: 'glados/operator-home',
-            componentID: 'glados.operator-home',
+            name: 'Gizmo Home',
+            objectKey: 'gizmo/operator-home',
+            objectType: 'gizmo/operator-home',
+            componentID: 'gizmo.operator-home',
           },
         ],
       },
@@ -129,8 +129,8 @@ describe('object layout helpers', () => {
           {
             id: 'internals',
             name: 'Internals',
-            objectKey: 'glados/decision/release',
-            objectType: 'glados/decision',
+            objectKey: 'gizmo/decision/release',
+            objectType: 'gizmo/decision',
             componentID: 'spacewave.debug.viewer',
             path: '/internals',
           },

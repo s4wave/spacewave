@@ -31,6 +31,7 @@ func TestMain(m *testing.M) {
 }
 
 func TestHostReportsReadyBeforeReturnAndStopsOnCancellation(t *testing.T) {
+	// Configure the Host with a pipe that keeps its child running.
 	host := newTestHost(t, "ready-block", 0)
 	stdin, input, err := os.Pipe()
 	if err != nil {
@@ -40,6 +41,7 @@ func TestHostReportsReadyBeforeReturnAndStopsOnCancellation(t *testing.T) {
 	defer input.Close()
 	host.config.Stdin = stdin
 
+	// Run the Host with readiness and completion notifications.
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	ready := make(chan struct{})
@@ -48,12 +50,15 @@ func TestHostReportsReadyBeforeReturnAndStopsOnCancellation(t *testing.T) {
 		done <- host.Run(ctx, func() { close(ready) })
 	}()
 
+	// Verify Host readiness precedes completion.
 	waitSignal(t, ready, "TUI readiness")
 	select {
 	case err := <-done:
 		t.Fatalf("host returned before cancellation: %v", err)
 	default:
 	}
+
+	// Cancel the Host and verify its runtime files are removed.
 	cancel()
 	if err := waitResult(t, done, "host cancellation"); err != nil {
 		t.Fatalf("host cancellation failed: %v", err)
@@ -62,6 +67,7 @@ func TestHostReportsReadyBeforeReturnAndStopsOnCancellation(t *testing.T) {
 }
 
 func TestHostDoesNotTreatNonzeroInterruptExitAsSignal(t *testing.T) {
+	// Run a Host whose child reports a nonzero interrupt exit.
 	host := newTestHost(t, "ready-interrupt-error", 0)
 	ctx, cancel := context.WithCancel(context.Background())
 	ready := make(chan struct{})
@@ -70,6 +76,7 @@ func TestHostDoesNotTreatNonzeroInterruptExitAsSignal(t *testing.T) {
 		done <- host.Run(ctx, func() { close(ready) })
 	}()
 
+	// Cancel the ready Host and verify the child failure is retained.
 	waitSignal(t, ready, "TUI readiness")
 	cancel()
 	err := waitResult(t, done, "host cancellation")
@@ -91,10 +98,13 @@ func TestHostRejectsExitBeforeReadiness(t *testing.T) {
 }
 
 func TestHostBoundsCrashRestarts(t *testing.T) {
+	// Configure a crashing Host with a two-restart limit.
 	countPath := filepath.Join(t.TempDir(), "attempts")
 	t.Setenv(hostHelperCountEnv, countPath)
 	host := newTestHost(t, "crash", 2)
 	readyCalls := 0
+
+	// Verify the crashing Host fails without reporting readiness.
 	err := host.Run(context.Background(), func() { readyCalls++ })
 	if err == nil {
 		t.Fatal("expected child failure after bounded restarts")
@@ -102,6 +112,8 @@ func TestHostBoundsCrashRestarts(t *testing.T) {
 	if readyCalls != 0 {
 		t.Fatalf("reported readiness %d times", readyCalls)
 	}
+
+	// Verify the Host made three attempts and removed its runtime files.
 	countData, err := os.ReadFile(countPath)
 	if err != nil {
 		t.Fatal(err)
@@ -113,6 +125,7 @@ func TestHostBoundsCrashRestarts(t *testing.T) {
 }
 
 func TestRestoreTerminalWritesOnlyToCharacterDevice(t *testing.T) {
+	// Verify terminal restoration leaves a regular writer untouched.
 	var regular bytes.Buffer
 	if err := restoreTerminal(&regular); err != nil {
 		t.Fatal(err)
@@ -121,12 +134,15 @@ func TestRestoreTerminalWritesOnlyToCharacterDevice(t *testing.T) {
 		t.Fatalf("wrote terminal restoration to regular writer: %q", regular.String())
 	}
 
+	// Open a terminal pair for restoration output.
 	master, terminal, err := pty.Open()
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer master.Close()
 	defer terminal.Close()
+
+	// Restore the terminal and capture the emitted bytes.
 	if err := restoreTerminal(terminal); err != nil {
 		t.Fatal(err)
 	}
@@ -136,6 +152,8 @@ func TestRestoreTerminalWritesOnlyToCharacterDevice(t *testing.T) {
 		_, err := io.ReadFull(master, got)
 		readResult <- err
 	}()
+
+	// Verify the terminal emits the complete restoration sequence.
 	select {
 	case err := <-readResult:
 		if err != nil {
@@ -150,21 +168,24 @@ func TestRestoreTerminalWritesOnlyToCharacterDevice(t *testing.T) {
 }
 
 func newTestHost(t *testing.T, mode string, restartLimit uint) *Host {
+	// Isolate the Host environment and choose its helper mode.
 	t.Helper()
 	home := t.TempDir()
 	t.Setenv("HOME", home)
 	t.Setenv("XDG_CACHE_HOME", filepath.Join(home, "cache"))
 	t.Setenv(hostHelperModeEnv, mode)
+
+	// Create a Host that executes the test helper as its child.
 	moduleURL := (&url.URL{
 		Scheme: "file",
-		Path:   filepath.Join(home, "glados-tui.js"),
+		Path:   filepath.Join(home, "gizmo-tui.js"),
 	}).String()
 	host, err := NewHost(Config{
 		BunPath:          os.Args[0],
 		ModuleURL:        moduleURL,
-		PluginID:         "glados",
+		PluginID:         "gizmo",
 		DaemonSocketPath: filepath.Join(home, "daemon.sock"),
-		StateStoreID:     "tui/glados",
+		StateStoreID:     "tui/gizmo",
 		RestartLimit:     restartLimit,
 		Stdout:           io.Discard,
 		Stderr:           io.Discard,
@@ -176,6 +197,7 @@ func newTestHost(t *testing.T, mode string, restartLimit uint) *Host {
 }
 
 func assertRuntimeClean(t *testing.T) {
+	// Verify the Host cache contains no runtime entries.
 	t.Helper()
 	cacheDir, err := os.UserCacheDir()
 	if err != nil {

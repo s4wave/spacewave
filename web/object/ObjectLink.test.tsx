@@ -73,19 +73,17 @@ describe('ObjectLink', () => {
 
     renderWithSpace(
       <ObjectLink
-        objectKey="glados/workfront/alpha"
-        objectType="glados/workfront"
-        label="Alpha workfront"
-        kind="Workfront"
+        objectKey="gizmo/worklist/alpha"
+        objectType="gizmo/worklist"
+        label="Alpha worklist"
+        kind="Worklist"
       />,
       { navigateToObjects },
     )
 
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Open Alpha workfront' }),
-    )
+    fireEvent.click(screen.getByRole('button', { name: 'Open Alpha worklist' }))
 
-    expect(navigateToObjects).toHaveBeenCalledWith(['glados/workfront/alpha'])
+    expect(navigateToObjects).toHaveBeenCalledWith(['gizmo/worklist/alpha'])
   })
 
   it('adds an ObjectLayout sibling tab inside layout context', () => {
@@ -103,9 +101,9 @@ describe('ObjectLink', () => {
     renderWithSpace(
       <TabContextProvider value={tabContext}>
         <ObjectLink
-          objectKey="glados/question/needs-choice"
-          objectType="glados/question"
-          componentID="glados.question"
+          objectKey="gizmo/question/needs-choice"
+          objectType="gizmo/question"
+          componentID="gizmo.question"
           label="Needs choice"
           kind="Question"
           status="pending"
@@ -127,24 +125,24 @@ describe('ObjectLink', () => {
       select: true,
       tab: {
         name: 'Needs choice',
-        helpText: 'glados/question/needs-choice',
+        helpText: 'gizmo/question/needs-choice',
         enableClose: true,
       },
     })
     expect(request.tab.id).toBe(
       objectLinkTabId({
-        objectKey: 'glados/question/needs-choice',
-        objectType: 'glados/question',
-        componentID: 'glados.question',
+        objectKey: 'gizmo/question/needs-choice',
+        objectType: 'gizmo/question',
+        componentID: 'gizmo.question',
       }),
     )
     const layoutTab = ObjectLayoutTab.fromBinary(request.tab.data)
-    expect(layoutTab.componentId).toBe('glados.question')
+    expect(layoutTab.componentId).toBe('gizmo.question')
     expect(layoutTab.objectInfo?.info).toMatchObject({
       case: 'worldObjectInfo',
       value: {
-        objectKey: 'glados/question/needs-choice',
-        objectType: 'glados/question',
+        objectKey: 'gizmo/question/needs-choice',
+        objectType: 'gizmo/question',
       },
     })
   })
@@ -152,8 +150,8 @@ describe('ObjectLink', () => {
   it('copies and opens the referenced object through secondary actions', () => {
     renderWithSpace(
       <ObjectLink
-        objectKey="glados/evidence/result"
-        objectType="glados/evidence"
+        objectKey="gizmo/evidence/result"
+        objectType="gizmo/evidence"
         label="Evidence result"
       />,
     )
@@ -161,7 +159,7 @@ describe('ObjectLink', () => {
     fireEvent.click(
       screen.getByRole('button', { name: 'Copy Evidence result' }),
     )
-    expect(writeText).toHaveBeenCalledWith('glados/evidence/result')
+    expect(writeText).toHaveBeenCalledWith('gizmo/evidence/result')
 
     fireEvent.click(
       screen.getByRole('button', {
@@ -169,7 +167,7 @@ describe('ObjectLink', () => {
       }),
     )
     expect(window.open).toHaveBeenCalledWith(
-      '/space/-/glados%2Fevidence%2Fresult',
+      '/space/-/gizmo%2Fevidence%2Fresult',
       '_blank',
       'noopener,noreferrer',
     )
@@ -181,8 +179,8 @@ describe('ObjectLink', () => {
 
     renderWithSpace(
       <ObjectLink
-        objectKey="glados/evidence/result"
-        objectType="glados/evidence"
+        objectKey="gizmo/evidence/result"
+        objectType="gizmo/evidence"
         label="Evidence result"
       />,
     )
@@ -213,16 +211,16 @@ describe('ObjectLink', () => {
 
   it('builds stable ObjectLayout add requests for duplicate focus', () => {
     const a = createObjectLinkAddTabRequest({
-      objectKey: 'glados/decision/approved',
-      objectType: 'glados/decision',
-      componentID: 'glados.decision',
+      objectKey: 'gizmo/decision/approved',
+      objectType: 'gizmo/decision',
+      componentID: 'gizmo.decision',
       label: 'Approved',
       currentTabId: 'source',
     })
     const b = createObjectLinkAddTabRequest({
-      objectKey: 'glados/decision/approved',
-      objectType: 'glados/decision',
-      componentID: 'glados.decision',
+      objectKey: 'gizmo/decision/approved',
+      objectType: 'gizmo/decision',
+      componentID: 'gizmo.decision',
       label: 'Approved',
       currentTabId: 'source',
     })
@@ -234,16 +232,16 @@ describe('ObjectLink', () => {
 
   it('keeps component and route path in stable ObjectLayout tab requests', () => {
     const proof = createObjectLinkAddTabRequest({
-      objectKey: 'glados/decision/approved',
-      objectType: 'glados/decision',
-      componentID: 'glados.decision',
+      objectKey: 'gizmo/decision/approved',
+      objectType: 'gizmo/decision',
+      componentID: 'gizmo.decision',
       label: 'Proof',
       path: '/proof',
       currentTabId: 'source',
     })
     const internals = createObjectLinkAddTabRequest({
-      objectKey: 'glados/decision/approved',
-      objectType: 'glados/decision',
+      objectKey: 'gizmo/decision/approved',
+      objectType: 'gizmo/decision',
       componentID: 'spacewave.debug.viewer',
       label: 'Internals',
       path: '/internals',
@@ -257,7 +255,7 @@ describe('ObjectLink', () => {
     const internalsTab = ObjectLayoutTab.fromBinary(
       internals.tab?.data ?? new Uint8Array(),
     )
-    expect(proofTab.componentId).toBe('glados.decision')
+    expect(proofTab.componentId).toBe('gizmo.decision')
     expect(proofTab.path).toBe('/proof')
     expect(internalsTab.componentId).toBe('spacewave.debug.viewer')
     expect(internalsTab.path).toBe('/internals')

@@ -42,17 +42,17 @@ describe('getViewersForType', () => {
   it('orders exact, prefix, then wildcard viewer registrations by component ID owner', () => {
     const viewers = [
       component('spacewave.debug.viewer', '*', 'Debug'),
-      component('glados.generic.viewer', 'glados/*', 'GLaDOS Generic'),
-      component('glados.workfront.viewer', 'glados/workfront', 'Workfront'),
+      component('gizmo.generic.viewer', 'gizmo/*', 'Gizmo Generic'),
+      component('gizmo.worklist.viewer', 'gizmo/worklist', 'Worklist'),
     ]
 
     expect(
-      getViewersForType('glados/workfront', viewers).map(
+      getViewersForType('gizmo/worklist', viewers).map(
         (viewer) => viewer.componentID,
       ),
     ).toEqual([
-      'glados.workfront.viewer',
-      'glados.generic.viewer',
+      'gizmo.worklist.viewer',
+      'gizmo.generic.viewer',
       'spacewave.debug.viewer',
     ])
   })
@@ -61,15 +61,15 @@ describe('getViewersForType', () => {
 describe('useAllViewers', () => {
   it('does not pass terminal registrations to dynamic viewer conversion', () => {
     const webRegistration: ViewerRegistration = {
-      componentId: 'glados.workfront.viewer',
-      typeId: 'glados/workfront',
-      viewerName: 'Workfront',
-      scriptPath: '/plugins/glados/workfront.js',
+      componentId: 'gizmo.worklist.viewer',
+      typeId: 'gizmo/worklist',
+      viewerName: 'Worklist',
+      scriptPath: '/plugins/gizmo/worklist.js',
       surface: ViewerSurface.WEB,
     }
     const terminalRegistration: ViewerRegistration = {
       ...webRegistration,
-      componentId: 'terminal.workfront.viewer',
+      componentId: 'terminal.worklist.viewer',
       surface: ViewerSurface.TUI,
     }
     const mappedRegistrations: ViewerRegistration[] = []
@@ -108,28 +108,28 @@ describe('useAllViewers', () => {
 describe('viewerRegistrationToComponent', () => {
   it('maps dynamic registrations with stable component IDs and display names', () => {
     const viewer = viewerRegistrationToComponent({
-      componentId: 'glados.workfront.viewer',
-      typeId: 'glados/workfront',
-      viewerName: 'Workfront',
-      scriptPath: '/plugins/glados/workfront.js',
-      category: 'GLaDOS',
+      componentId: 'gizmo.worklist.viewer',
+      typeId: 'gizmo/worklist',
+      viewerName: 'Worklist',
+      scriptPath: '/plugins/gizmo/worklist.js',
+      category: 'Gizmo',
       surface: ViewerSurface.WEB,
     })
 
     expect(viewer).toMatchObject({
-      componentID: 'glados.workfront.viewer',
-      typeID: 'glados/workfront',
-      name: 'Workfront',
-      category: 'GLaDOS',
+      componentID: 'gizmo.worklist.viewer',
+      typeID: 'gizmo/worklist',
+      name: 'Worklist',
+      category: 'Gizmo',
     })
   })
 
   it('rejects dynamic registrations without component IDs', () => {
     expect(
       viewerRegistrationToComponent({
-        typeId: 'glados/workfront',
-        viewerName: 'Workfront',
-        scriptPath: '/plugins/glados/workfront.js',
+        typeId: 'gizmo/worklist',
+        viewerName: 'Worklist',
+        scriptPath: '/plugins/gizmo/worklist.js',
         surface: ViewerSurface.WEB,
       }),
     ).toBeNull()

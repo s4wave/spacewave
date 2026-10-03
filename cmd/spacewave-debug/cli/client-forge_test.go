@@ -13,6 +13,7 @@ import (
 )
 
 func TestParsePluginExecTarget(t *testing.T) {
+	// Prepare a plugin execution target with encoded controller configuration.
 	target := []byte(`
 outputs:
 - name: output
@@ -22,18 +23,22 @@ exec:
   controller:
     id: "space-exec/plugin"
     config:
-      pluginId: "glados-core"
-      controllerId: "glados/container-runtime/v86/browser"
+      pluginId: "gizmo-core"
+      controllerId: "gizmo/container-runtime/v86/browser"
       controllerConfig: "AQID"
 `)
+
+	// Parse the plugin execution target.
 	conf, err := parsePluginExecTarget(target)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	if conf.GetPluginId() != "glados-core" {
+
+	// Verify the plugin identity and decoded controller configuration.
+	if conf.GetPluginId() != "gizmo-core" {
 		t.Fatalf("plugin id: %s", conf.GetPluginId())
 	}
-	if conf.GetControllerId() != "glados/container-runtime/v86/browser" {
+	if conf.GetControllerId() != "gizmo/container-runtime/v86/browser" {
 		t.Fatalf("controller id: %s", conf.GetControllerId())
 	}
 	if !bytes.Equal(conf.GetControllerConfig(), []byte{1, 2, 3}) {
@@ -51,8 +56,8 @@ exec:
   controller:
     id: "space-exec/plugin"
     config:
-      pluginId: "glados-core"
-      controllerId: "glados/container-runtime/v86/browser"
+      pluginId: "gizmo-core"
+      controllerId: "gizmo/container-runtime/v86/browser"
       controllerConfig: "AQID"
 `)
 	_, err := parsePluginExecTarget(target)
@@ -65,7 +70,7 @@ func TestWritePluginTargetRouteMarksBrowserRequiredUnavailable(t *testing.T) {
 	var out bytes.Buffer
 	err := writePluginTargetRoute(&out, &space_exec.PluginExecConfig{
 		PluginId:         "spacewave-v86",
-		ControllerId:     "glados/container-runtime/v86/browser",
+		ControllerId:     "gizmo/container-runtime/v86/browser",
 		ControllerConfig: []byte{1, 2, 3},
 	}, true)
 	if err != nil {
@@ -73,7 +78,7 @@ func TestWritePluginTargetRouteMarksBrowserRequiredUnavailable(t *testing.T) {
 	}
 	for _, want := range []string{
 		"plugin: spacewave-v86",
-		"controller: glados/container-runtime/v86/browser",
+		"controller: gizmo/container-runtime/v86/browser",
 		"controller-config-bytes: 3",
 		"plugin-substrate: browser-required-unavailable",
 		"browser-required: true",
@@ -91,7 +96,7 @@ func TestRunPluginTargetRejectsBrowserRequiredNativeBridge(t *testing.T) {
 		context.Background(),
 		&space_exec.PluginExecConfig{
 			PluginId:         "spacewave-v86",
-			ControllerId:     "glados/container-runtime/v86/browser",
+			ControllerId:     "gizmo/container-runtime/v86/browser",
 			ControllerConfig: []byte{1},
 		},
 		&bytes.Buffer{},
@@ -107,7 +112,7 @@ func TestRunPluginTargetInfersBrowserRequiredTarget(t *testing.T) {
 		context.Background(),
 		&space_exec.PluginExecConfig{
 			PluginId:         "spacewave-v86",
-			ControllerId:     "glados/container-runtime/v86/browser",
+			ControllerId:     "gizmo/container-runtime/v86/browser",
 			ControllerConfig: []byte{1},
 		},
 		&out,

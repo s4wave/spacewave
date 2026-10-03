@@ -66,11 +66,12 @@ func (s *canvasStateStream) SendAndClose(resp *WatchCanvasStateResponse) error {
 }
 
 func recvCanvasTestValue[T any](t *testing.T, ch <-chan T, name string) T {
+	// Bound the wait for a Canvas stream value.
 	t.Helper()
-
 	ctx, cancel := context.WithTimeout(t.Context(), 2*time.Second)
 	defer cancel()
 
+	// Receive the Canvas stream value or report its closed or expired wait.
 	select {
 	case val, ok := <-ch:
 		if !ok {
@@ -153,8 +154,8 @@ func requireCanvasNodeEventually(
 	name string,
 	id string,
 ) {
+	// Consume Canvas watch snapshots until the requested node arrives.
 	t.Helper()
-
 	ctx, cancel := context.WithTimeout(t.Context(), 2*time.Second)
 	defer cancel()
 	var last map[string]*CanvasNode
@@ -174,6 +175,7 @@ func requireCanvasNodeEventually(
 }
 
 func TestCanvasResourceWatchSharesWorldUpdates(t *testing.T) {
+	// Create the initial Canvas World with layout metadata.
 	ctx := t.Context()
 	objKey := "canvas/watch-shared"
 	initial := &CanvasState{
@@ -186,19 +188,22 @@ func TestCanvasResourceWatchSharesWorldUpdates(t *testing.T) {
 				Lane:            "source",
 				Rank:            1,
 				Group:           "intent",
-				ProjectionOwner: "glados/workflow",
+				ProjectionOwner: "gizmo/workflow",
 			},
 		},
 	}
 	ws, cleanup := setupCanvasWatchWorld(t, ctx, objKey, initial)
 	t.Cleanup(cleanup)
 
+	// Create the Canvas resource and cancellable stream contexts.
 	resource := NewCanvasResource(ws, nil, objKey, initial)
 	t.Cleanup(resource.Close)
 	streamCtxA, cancelA := context.WithCancel(ctx)
 	defer cancelA()
 	streamCtxB, cancelB := context.WithCancel(ctx)
 	defer cancelB()
+
+	// Start two state watches on the shared Canvas resource.
 	strmA := newCanvasStateStream(streamCtxA)
 	strmB := newCanvasStateStream(streamCtxB)
 	doneA := make(chan error, 1)
@@ -210,6 +215,7 @@ func TestCanvasResourceWatchSharesWorldUpdates(t *testing.T) {
 		doneB <- resource.WatchCanvasState(&WatchCanvasStateRequest{}, strmB)
 	}()
 
+	// Verify both Canvas watches receive the initial node and layout metadata.
 	initialA := recvCanvasTestValue(t, strmA.sent, "stream A initial").GetState()
 	requireCanvasNode(t, initialA, "initial")
 	if got := requireCanvasLayoutMetadata(t, initialA, "initial").GetLane(); got != "source" {
@@ -221,6 +227,7 @@ func TestCanvasResourceWatchSharesWorldUpdates(t *testing.T) {
 		t.Fatalf("expected stream B initial stable node id, got %q", got)
 	}
 
+	// Commit updated Canvas nodes and layout metadata to the World.
 	updated := &CanvasState{
 		Nodes: map[string]*CanvasNode{
 			"updated": {Id: "updated", TextContent: "updated"},
@@ -231,11 +238,13 @@ func TestCanvasResourceWatchSharesWorldUpdates(t *testing.T) {
 				Lane:            "proof",
 				Rank:            7,
 				Group:           "evidence",
-				ProjectionOwner: "glados/workflow",
+				ProjectionOwner: "gizmo/workflow",
 			},
 		},
 	}
 	setCanvasWatchWorldState(t, ctx, ws, objKey, updated)
+
+	// Verify both Canvas watches receive the updated layout metadata.
 	updateA := recvCanvasTestValue(t, strmA.sent, "stream A update").GetState()
 	requireCanvasNode(t, updateA, "updated")
 	if got := requireCanvasLayoutMetadata(t, updateA, "updated").GetRank(); got != 7 {
@@ -243,10 +252,11 @@ func TestCanvasResourceWatchSharesWorldUpdates(t *testing.T) {
 	}
 	updateB := recvCanvasTestValue(t, strmB.sent, "stream B update").GetState()
 	requireCanvasNode(t, updateB, "updated")
-	if got := requireCanvasLayoutMetadata(t, updateB, "updated").GetProjectionOwner(); got != "glados/workflow" {
+	if got := requireCanvasLayoutMetadata(t, updateB, "updated").GetProjectionOwner(); got != "gizmo/workflow" {
 		t.Fatalf("expected stream B updated projection owner, got %q", got)
 	}
 
+	// Commit two successive Canvas states to the World.
 	burstA := &CanvasState{
 		Nodes: map[string]*CanvasNode{
 			"burst-a": {Id: "burst-a", TextContent: "burst-a"},
@@ -259,9 +269,12 @@ func TestCanvasResourceWatchSharesWorldUpdates(t *testing.T) {
 	}
 	setCanvasWatchWorldState(t, ctx, ws, objKey, burstA)
 	setCanvasWatchWorldState(t, ctx, ws, objKey, burstB)
+
+	// Verify both Canvas watches reach the latest committed node.
 	requireCanvasNodeEventually(t, strmA.sent, doneA, "stream A burst update", "burst-b")
 	requireCanvasNodeEventually(t, strmB.sent, doneB, "stream B burst update", "burst-b")
 
+	// Close the Canvas resource and verify both watches stop.
 	resource.Close()
 	if err := recvCanvasTestValue(t, doneA, "stream A close"); !errors.Is(err, context.Canceled) {
 		t.Fatalf("expected stream A context.Canceled, got %v", err)
@@ -272,6 +285,7 @@ func TestCanvasResourceWatchSharesWorldUpdates(t *testing.T) {
 }
 
 func TestCanvasResourceCloseCancelsWatchersImmediately(t *testing.T) {
+	// Start a Canvas state watch on an empty resource.
 	ctx := t.Context()
 	resource := NewCanvasResource(nil, nil, "", &CanvasState{})
 	streamCtx, cancel := context.WithCancel(ctx)
@@ -282,12 +296,14 @@ func TestCanvasResourceCloseCancelsWatchersImmediately(t *testing.T) {
 		done <- resource.WatchCanvasState(&WatchCanvasStateRequest{}, strm)
 	}()
 
+	// Close the Canvas resource after receiving its initial snapshot.
 	recvCanvasTestValue(t, strm.sent, "initial canvas snapshot")
 	resource.Close()
 	if err := recvCanvasTestValue(t, done, "watch close"); !errors.Is(err, context.Canceled) {
 		t.Fatalf("expected context.Canceled, got %v", err)
 	}
 
+	// Verify a late Canvas watcher observes resource cancellation.
 	late := newCanvasStateStream(ctx)
 	if err := resource.WatchCanvasState(&WatchCanvasStateRequest{}, late); !errors.Is(err, context.Canceled) {
 		t.Fatalf("expected late watcher context.Canceled, got %v", err)
@@ -295,9 +311,11 @@ func TestCanvasResourceCloseCancelsWatchersImmediately(t *testing.T) {
 }
 
 func TestCanvasResourceClosePreventsLateStatePublish(t *testing.T) {
+	// Close an empty Canvas resource before publishing another state.
 	resource := NewCanvasResource(nil, nil, "", &CanvasState{})
 	resource.Close()
 
+	// Verify a late Canvas state cannot reopen the closed resource.
 	resource.setCanvasWatchState(&CanvasState{
 		Nodes: map[string]*CanvasNode{
 			"late": {Id: "late"},
@@ -310,6 +328,7 @@ func TestCanvasResourceClosePreventsLateStatePublish(t *testing.T) {
 }
 
 func TestUpdateCanvasHiddenGraphLinks(t *testing.T) {
+	// Prepare an empty Canvas and a hidden graph link.
 	ctx := context.Background()
 	link := &HiddenGraphLink{
 		Subject:   "<objects/a>",
@@ -319,28 +338,35 @@ func TestUpdateCanvasHiddenGraphLinks(t *testing.T) {
 	}
 	resource := NewCanvasResource(nil, nil, "", &CanvasState{})
 
+	// Add duplicate hidden graph links to the Canvas.
 	resp, err := resource.UpdateCanvas(ctx, &UpdateCanvasRequest{
 		AddHiddenGraphLinks: []*HiddenGraphLink{link, link.CloneVT()},
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Verify the Canvas retains one copy of the hidden graph link.
 	if got := len(resp.GetState().GetHiddenGraphLinks()); got != 1 {
 		t.Fatalf("expected one hidden graph link after duplicate add, got %d", got)
 	}
 
+	// Remove the hidden graph link from the Canvas.
 	resp, err = resource.UpdateCanvas(ctx, &UpdateCanvasRequest{
 		RemoveHiddenGraphLinks: []*HiddenGraphLink{link.CloneVT()},
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Verify the Canvas has no remaining hidden graph links.
 	if got := len(resp.GetState().GetHiddenGraphLinks()); got != 0 {
 		t.Fatalf("expected no hidden graph links after remove, got %d", got)
 	}
 }
 
 func TestUpdateCanvasHiddenGraphLinksPreservesManualEdges(t *testing.T) {
+	// Prepare a Canvas with a manual edge and a hidden graph link.
 	ctx := context.Background()
 	edge := &CanvasEdge{
 		Id:           "edge-1",
@@ -357,12 +383,15 @@ func TestUpdateCanvasHiddenGraphLinksPreservesManualEdges(t *testing.T) {
 		Edges: []*CanvasEdge{edge},
 	})
 
+	// Add the hidden graph link to the Canvas.
 	resp, err := resource.UpdateCanvas(ctx, &UpdateCanvasRequest{
 		AddHiddenGraphLinks: []*HiddenGraphLink{link},
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Verify the Canvas preserves its manual edge and hidden graph link.
 	if got := len(resp.GetState().GetEdges()); got != 1 {
 		t.Fatalf("expected manual edge to be preserved, got %d edges", got)
 	}
@@ -372,6 +401,7 @@ func TestUpdateCanvasHiddenGraphLinksPreservesManualEdges(t *testing.T) {
 }
 
 func TestUpdateCanvasPreservesLayoutMetadata(t *testing.T) {
+	// Prepare a Canvas with nodes, edges, and layout metadata.
 	ctx := context.Background()
 	resource := NewCanvasResource(nil, nil, "", &CanvasState{
 		Nodes: map[string]*CanvasNode{
@@ -398,11 +428,12 @@ func TestUpdateCanvasPreservesLayoutMetadata(t *testing.T) {
 				Lane:            "source",
 				Rank:            1,
 				Group:           "workflow",
-				ProjectionOwner: "glados/workflow",
+				ProjectionOwner: "gizmo/workflow",
 			},
 		},
 	})
 
+	// Add a Canvas node, visual edge, and hidden graph link.
 	resp, err := resource.UpdateCanvas(ctx, &UpdateCanvasRequest{
 		SetNodes: map[string]*CanvasNode{
 			"proof": {Id: "proof", TextContent: "proof"},
@@ -426,6 +457,8 @@ func TestUpdateCanvasPreservesLayoutMetadata(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Verify the Canvas retains existing and added nodes and edges.
 	state := resp.GetState()
 	requireCanvasNode(t, state, "source")
 	requireCanvasNode(t, state, "proof")
@@ -435,6 +468,8 @@ func TestUpdateCanvasPreservesLayoutMetadata(t *testing.T) {
 	if got := len(state.GetHiddenGraphLinks()); got != 2 {
 		t.Fatalf("expected existing and added hidden graph links, got %d", got)
 	}
+
+	// Verify the original Canvas layout metadata is preserved.
 	meta := requireCanvasLayoutMetadata(t, state, "source")
 	if got := meta.GetStableNodeId(); got != "spell-run:source" {
 		t.Fatalf("expected stable node id to be preserved, got %q", got)
@@ -448,12 +483,13 @@ func TestUpdateCanvasPreservesLayoutMetadata(t *testing.T) {
 	if got := meta.GetGroup(); got != "workflow" {
 		t.Fatalf("expected group to be preserved, got %q", got)
 	}
-	if got := meta.GetProjectionOwner(); got != "glados/workflow" {
+	if got := meta.GetProjectionOwner(); got != "gizmo/workflow" {
 		t.Fatalf("expected projection owner to be preserved, got %q", got)
 	}
 }
 
 func TestUpdateCanvasMutatesLayoutMetadata(t *testing.T) {
+	// Prepare a Canvas with layout metadata for two nodes.
 	ctx := context.Background()
 	resource := NewCanvasResource(nil, nil, "", &CanvasState{
 		Nodes: map[string]*CanvasNode{
@@ -466,18 +502,19 @@ func TestUpdateCanvasMutatesLayoutMetadata(t *testing.T) {
 				Lane:            "audit",
 				Rank:            1,
 				Group:           "workflow",
-				ProjectionOwner: "glados/workflow",
+				ProjectionOwner: "gizmo/workflow",
 			},
 			"keep": {
 				StableNodeId:    "spell-run:keep",
 				Lane:            "proof",
 				Rank:            2,
 				Group:           "workflow",
-				ProjectionOwner: "glados/workflow",
+				ProjectionOwner: "gizmo/workflow",
 			},
 		},
 	})
 
+	// Replace Canvas layout metadata and remove an existing node.
 	resp, err := resource.UpdateCanvas(ctx, &UpdateCanvasRequest{
 		SetLayoutMetadata: map[string]*CanvasLayoutMetadata{
 			"new": {
@@ -485,7 +522,7 @@ func TestUpdateCanvasMutatesLayoutMetadata(t *testing.T) {
 				Lane:            "source",
 				Rank:            0,
 				Group:           "workflow",
-				ProjectionOwner: "glados/workflow",
+				ProjectionOwner: "gizmo/workflow",
 			},
 		},
 		RemoveLayoutMetadataNodeIds: []string{"old"},
@@ -494,6 +531,8 @@ func TestUpdateCanvasMutatesLayoutMetadata(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Verify Canvas node removal also removes its layout metadata.
 	state := resp.GetState()
 	if state.GetNodes()["keep"] != nil {
 		t.Fatal("expected removed node to be absent")
@@ -510,6 +549,7 @@ func TestUpdateCanvasMutatesLayoutMetadata(t *testing.T) {
 }
 
 func TestUpdateCanvasAcceptsEmptyLayoutMetadata(t *testing.T) {
+	// Prepare a Canvas with a manual node and no layout metadata.
 	ctx := context.Background()
 	resource := NewCanvasResource(nil, nil, "", &CanvasState{
 		Nodes: map[string]*CanvasNode{
@@ -517,6 +557,7 @@ func TestUpdateCanvasAcceptsEmptyLayoutMetadata(t *testing.T) {
 		},
 	})
 
+	// Add workflow layout metadata to the Canvas.
 	resp, err := resource.UpdateCanvas(ctx, &UpdateCanvasRequest{
 		SetLayoutMetadata: map[string]*CanvasLayoutMetadata{
 			"workflow": {
@@ -524,13 +565,15 @@ func TestUpdateCanvasAcceptsEmptyLayoutMetadata(t *testing.T) {
 				Lane:            "source",
 				Rank:            0,
 				Group:           "workflow",
-				ProjectionOwner: "glados/workflow",
+				ProjectionOwner: "gizmo/workflow",
 			},
 		},
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Verify the Canvas retains its manual node and new metadata.
 	requireCanvasNode(t, resp.GetState(), "manual")
 	if got := requireCanvasLayoutMetadata(t, resp.GetState(), "workflow").GetStableNodeId(); got != "spell-run:workflow" {
 		t.Fatalf("expected metadata to be added to empty map, got %q", got)
@@ -538,6 +581,7 @@ func TestUpdateCanvasAcceptsEmptyLayoutMetadata(t *testing.T) {
 }
 
 func TestCanvasHiddenGraphLinksJSONRoundTrip(t *testing.T) {
+	// Prepare Canvas state with hidden graph links and layout metadata.
 	link := &HiddenGraphLink{
 		Subject:   "<objects/a>",
 		Predicate: "<relatedTo>",
@@ -552,11 +596,12 @@ func TestCanvasHiddenGraphLinksJSONRoundTrip(t *testing.T) {
 				Lane:            "audit",
 				Rank:            3,
 				Group:           "checks",
-				ProjectionOwner: "glados/workflow",
+				ProjectionOwner: "gizmo/workflow",
 			},
 		},
 	}
 
+	// Round trip the Canvas state through its JSON codec.
 	data, err := state.MarshalJSON()
 	if err != nil {
 		t.Fatal(err)
@@ -569,6 +614,7 @@ func TestCanvasHiddenGraphLinksJSONRoundTrip(t *testing.T) {
 		t.Fatal("canvas state hidden graph links and layout metadata did not round trip through JSON")
 	}
 
+	// Prepare an update request with graph link and layout metadata changes.
 	req := &UpdateCanvasRequest{
 		AddHiddenGraphLinks:    []*HiddenGraphLink{link},
 		RemoveHiddenGraphLinks: []*HiddenGraphLink{link.CloneVT()},
@@ -578,11 +624,13 @@ func TestCanvasHiddenGraphLinksJSONRoundTrip(t *testing.T) {
 				Lane:            "audit",
 				Rank:            3,
 				Group:           "checks",
-				ProjectionOwner: "glados/workflow",
+				ProjectionOwner: "gizmo/workflow",
 			},
 		},
 		RemoveLayoutMetadataNodeIds: []string{"node-b"},
 	}
+
+	// Round trip the Canvas update request through its JSON codec.
 	data, err = req.MarshalJSON()
 	if err != nil {
 		t.Fatal(err)
@@ -599,6 +647,7 @@ func TestCanvasHiddenGraphLinksJSONRoundTrip(t *testing.T) {
 func TestCanvasStorageUpdatesNodeDAGAndKeepsUnchangedNodeRef(t *testing.T) {
 	for _, nodeCount := range []int{1, 100, 1000} {
 		t.Run(strconv.Itoa(nodeCount), func(t *testing.T) {
+			// Populate a Canvas with the requested number of nodes.
 			ctx := t.Context()
 			initial := &CanvasState{
 				Nodes:         make(map[string]*CanvasNode, nodeCount),
@@ -615,8 +664,12 @@ func TestCanvasStorageUpdatesNodeDAGAndKeepsUnchangedNodeRef(t *testing.T) {
 				id := fmt.Sprintf("node-%04d", i)
 				initial.Nodes[id] = &CanvasNode{Id: id, Width: float64(100 + i), Height: 100}
 			}
+
+			// Store the initial Canvas in the World.
 			ws, release := setupCanvasWatchWorld(t, ctx, "canvas", initial)
 			defer release()
+
+			// Verify the stored Canvas matches its initial state.
 			stored, err := LookupCanvasState(ctx, ws, "canvas")
 			if err != nil {
 				t.Fatal(err)
@@ -625,9 +678,12 @@ func TestCanvasStorageUpdatesNodeDAGAndKeepsUnchangedNodeRef(t *testing.T) {
 				t.Fatalf("stored state has %d nodes, want %d", len(stored.GetNodes()), nodeCount)
 			}
 
+			// Change one Canvas node and write its updated state.
 			firstUpdate := initial.CloneVT()
 			firstUpdate.Nodes["node-0000"].Width++
 			writeCanvasStorageTestState(t, ctx, ws, "canvas", nil, firstUpdate)
+
+			// Verify the stored Canvas reflects the first node update.
 			got, err := LookupCanvasState(ctx, ws, "canvas")
 			if err != nil {
 				t.Fatal(err)
@@ -635,12 +691,17 @@ func TestCanvasStorageUpdatesNodeDAGAndKeepsUnchangedNodeRef(t *testing.T) {
 			if !got.EqualVT(firstUpdate) {
 				t.Fatalf("stored state has %d nodes, want %d", len(got.GetNodes()), nodeCount)
 			}
+
+			// Capture the node and DAG references after the first update.
 			firstRefs := canvasStorageNodeRefs(t, ctx, ws, "canvas")
 			firstDagRefs := canvasStorageNodeDagRefs(t, ctx, ws, "canvas")
 
+			// Write another update to the same Canvas node.
 			next := firstUpdate.CloneVT()
 			next.Nodes["node-0000"].Width++
 			writeCanvasStorageTestState(t, ctx, ws, "canvas", nil, next)
+
+			// Count the DAG references changed by the second node update.
 			secondRefs := canvasStorageNodeRefs(t, ctx, ws, "canvas")
 			secondDagRefs := canvasStorageNodeDagRefs(t, ctx, ws, "canvas")
 			changedDagRefs := 0
@@ -649,6 +710,8 @@ func TestCanvasStorageUpdatesNodeDAGAndKeepsUnchangedNodeRef(t *testing.T) {
 					changedDagRefs++
 				}
 			}
+
+			// Verify the single-node update preserves unchanged node references.
 			t.Logf("nodes=%d DAG refs=%d changed refs=%d", nodeCount, len(secondDagRefs), changedDagRefs)
 			if changedDagRefs >= nodeCount && nodeCount > 1 {
 				t.Fatalf("single-node update changed %d DAG refs for %d nodes", changedDagRefs, nodeCount)
@@ -660,6 +723,7 @@ func TestCanvasStorageUpdatesNodeDAGAndKeepsUnchangedNodeRef(t *testing.T) {
 				t.Fatal("unchanged node block ref changed")
 			}
 
+			// Prepare Canvas node additions and removals.
 			withMembershipChanges := next.CloneVT()
 			withMembershipChanges.Nodes["added"] = &CanvasNode{Id: "added", Width: 80, Height: 80}
 			var removed string
@@ -667,9 +731,13 @@ func TestCanvasStorageUpdatesNodeDAGAndKeepsUnchangedNodeRef(t *testing.T) {
 				removed = fmt.Sprintf("node-%04d", nodeCount-1)
 				delete(withMembershipChanges.Nodes, removed)
 			}
+
+			// Write the Canvas membership changes and capture their references.
 			writeCanvasStorageTestState(t, ctx, ws, "canvas", nil, withMembershipChanges)
 			membershipRefs := canvasStorageNodeRefs(t, ctx, ws, "canvas")
 			membershipDagRefs := canvasStorageNodeDagRefs(t, ctx, ws, "canvas")
+
+			// Verify added nodes are reachable and removed nodes are absent.
 			if _, found := membershipRefs["added"]; !found {
 				t.Fatal("added node is missing from the node DAG")
 			}
@@ -687,6 +755,7 @@ func TestCanvasStorageUpdatesNodeDAGAndKeepsUnchangedNodeRef(t *testing.T) {
 }
 
 func TestCanvasStorageRootIsDeterministic(t *testing.T) {
+	// Populate equivalent Canvas nodes in opposite insertion orders.
 	const nodeCount = 100
 	ascending := &CanvasState{Nodes: make(map[string]*CanvasNode, nodeCount)}
 	descending := &CanvasState{Nodes: make(map[string]*CanvasNode, nodeCount)}
@@ -698,6 +767,8 @@ func TestCanvasStorageRootIsDeterministic(t *testing.T) {
 		id := fmt.Sprintf("node-%04d", i)
 		descending.Nodes[id] = &CanvasNode{Id: id, Width: float64(i)}
 	}
+
+	// Verify Canvas storage produces the same root for both orders.
 	first := canvasStorageRoot(t, ascending)
 	second := canvasStorageRoot(t, descending)
 	if first != second {
@@ -706,10 +777,13 @@ func TestCanvasStorageRootIsDeterministic(t *testing.T) {
 }
 
 func canvasStorageRoot(t *testing.T, state *CanvasState) string {
+	// Create a World for the Canvas storage root check.
 	t.Helper()
 	ctx := t.Context()
 	ws, release := setupCanvasWatchWorld(t, ctx, "canvas", state)
 	defer release()
+
+	// Write the Canvas state and read its root reference.
 	writeCanvasStorageTestState(t, ctx, ws, "canvas", nil, state)
 	var root string
 	_, _, err := world.AccessWorldObject(ctx, ws, "canvas", false, func(bcs *block.Cursor) error {
@@ -723,11 +797,13 @@ func canvasStorageRoot(t *testing.T, state *CanvasState) string {
 }
 
 func TestCanvasStorageWritesEmptyNodeIndex(t *testing.T) {
+	// Create an empty Canvas World for node index checks.
 	ctx := t.Context()
 	initial := &CanvasState{}
 	ws, release := setupCanvasWatchWorld(t, ctx, "canvas", initial)
 	defer release()
 
+	// Verify the empty Canvas state can be read back.
 	stored, err := LookupCanvasState(ctx, ws, "canvas")
 	if err != nil {
 		t.Fatal(err)
@@ -735,8 +811,12 @@ func TestCanvasStorageWritesEmptyNodeIndex(t *testing.T) {
 	if !stored.EqualVT(initial) {
 		t.Fatalf("empty stored state = %#v", stored)
 	}
+
+	// Write Canvas edges while leaving the node index empty.
 	next := &CanvasState{Edges: []*CanvasEdge{{Id: "edge"}}}
 	writeCanvasStorageTestState(t, ctx, ws, "canvas", nil, next)
+
+	// Verify Canvas edges survive storage with an empty node index.
 	got, err := LookupCanvasState(ctx, ws, "canvas")
 	if err != nil {
 		t.Fatal(err)
@@ -747,11 +827,13 @@ func TestCanvasStorageWritesEmptyNodeIndex(t *testing.T) {
 }
 
 func TestCanvasStorageWritesNilMessageValues(t *testing.T) {
+	// Create an empty Canvas World for nil message storage checks.
 	ctx := t.Context()
 	initial := &CanvasState{}
 	ws, release := setupCanvasWatchWorld(t, ctx, "canvas", initial)
 	defer release()
 
+	// Write Canvas state containing nil message entries.
 	next := &CanvasState{
 		Edges:            []*CanvasEdge{nil},
 		HiddenGraphLinks: []*HiddenGraphLink{nil},
@@ -761,6 +843,7 @@ func TestCanvasStorageWritesNilMessageValues(t *testing.T) {
 	}
 	writeCanvasStorageTestState(t, ctx, ws, "canvas", nil, next)
 
+	// Verify Canvas storage retains nil edge, link, and metadata entries.
 	got, err := LookupCanvasState(ctx, ws, "canvas")
 	if err != nil {
 		t.Fatal(err)
@@ -798,9 +881,11 @@ func canvasStorageNodeDagRefs(
 	ws world.WorldState,
 	objKey string,
 ) map[string]struct{} {
+	// Collect the reachable node DAG references from the Canvas World.
 	t.Helper()
 	refs := make(map[string]struct{})
 	_, _, err := world.AccessWorldObject(ctx, ws, objKey, false, func(bcs *block.Cursor) error {
+		// Load the Canvas storage and open its node transaction.
 		if _, err := UnmarshalCanvasStorage(ctx, bcs); err != nil {
 			return err
 		}
@@ -809,6 +894,8 @@ func canvasStorageNodeDagRefs(
 			return err
 		}
 		defer nodes.Discard()
+
+		// Read each Canvas node to load its block references.
 		it := nodes.BlockIterate(ctx, nil, false, false)
 		for it.Next() {
 			if _, err := block.UnmarshalBlock[*CanvasNode](ctx, it.ValueCursor(), NewCanvasNodeBlock); err != nil {
@@ -821,8 +908,11 @@ func canvasStorageNodeDagRefs(
 			return err
 		}
 		it.Close()
+
+		// Collect each unique node DAG reference and its descendants.
 		var collect func(*block.Cursor) error
 		collect = func(cursor *block.Cursor) error {
+			// Record the current Canvas DAG block unless it was already visited.
 			if ref := cursor.GetRef(); ref != nil && !ref.GetEmpty() {
 				key := ref.MarshalString()
 				if _, found := refs[key]; found {
@@ -830,6 +920,8 @@ func canvasStorageNodeDagRefs(
 				}
 				refs[key] = struct{}{}
 			}
+
+			// Read the Canvas DAG children and collect their references.
 			children, err := cursor.GetAllRefs(false)
 			if err != nil {
 				return err
@@ -855,9 +947,11 @@ func canvasStorageNodeRefs(
 	ws world.WorldState,
 	objKey string,
 ) map[string]*block.BlockRef {
+	// Collect each Canvas node block reference from the World.
 	t.Helper()
 	refs := make(map[string]*block.BlockRef)
 	_, _, err := world.AccessWorldObject(ctx, ws, objKey, false, func(bcs *block.Cursor) error {
+		// Verify the Canvas node index uses the write-churn backend.
 		storage, err := UnmarshalCanvasStorage(ctx, bcs)
 		if err != nil {
 			return err
@@ -865,11 +959,15 @@ func canvasStorageNodeRefs(
 		if got, want := storage.GetNodes().GetImplType(), block_kvtx.DefaultKeyValueStoreImplForWorkload(block_kvtx.WorkloadClassWriteChurn); got != want {
 			t.Fatalf("Canvas node backend = %s, want workload policy %s", got, want)
 		}
+
+		// Open a read transaction on the Canvas node index.
 		tx, err := block_kvtx.BuildKvTransaction(ctx, bcs.FollowSubBlock(1), false)
 		if err != nil {
 			return err
 		}
 		defer tx.Discard()
+
+		// Read and retain each Canvas node block reference.
 		it := tx.BlockIterate(ctx, nil, false, false)
 		defer it.Close()
 		for it.Next() {

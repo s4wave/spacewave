@@ -256,7 +256,7 @@ describe('useCanvasMutationQueue', () => {
               lane: 'source',
               rank: 1,
               group: 'workflow',
-              projectionOwner: 'glados/workflow',
+              projectionOwner: 'gizmo/workflow',
             },
           ],
         ]),
@@ -269,7 +269,7 @@ describe('useCanvasMutationQueue', () => {
       lane: 'source',
       rank: 1,
       group: 'workflow',
-      projectionOwner: 'glados/workflow',
+      projectionOwner: 'gizmo/workflow',
     })
     expect(send).toHaveBeenCalledTimes(1)
     expect(send.mock.calls[0]?.[0].setLayoutMetadata).toBeInstanceOf(Map)
@@ -330,7 +330,7 @@ describe('useCanvasMutationQueue', () => {
       lane: 'source',
       rank: 2,
       group: 'workflow',
-      projectionOwner: 'glados/workflow',
+      projectionOwner: 'gizmo/workflow',
     }
     const send = vi.fn().mockResolvedValue(undefined)
     const { result, rerender } = renderHook(

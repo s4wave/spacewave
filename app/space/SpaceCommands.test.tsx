@@ -597,22 +597,22 @@ describe('SpaceCommands', () => {
     h.wizards = [
       ...h.wizards,
       {
-        typeId: 'glados/workfront',
-        displayName: 'Workfront',
-        category: 'Glados',
+        typeId: 'gizmo/worklist',
+        displayName: 'Worklist',
+        category: 'Gizmo',
         persistent: true,
-        wizardTypeId: 'wizard/glados/workfront',
-        keyPrefix: 'glados/workfront/',
-        defaultNamePattern: 'Workfront',
+        wizardTypeId: 'wizard/gizmo/worklist',
+        keyPrefix: 'gizmo/worklist/',
+        defaultNamePattern: 'Worklist',
       },
     ]
     renderCommands()
 
     const { subItems, handler } = getCreateObjectCommandHandlers()
-    const items = await subItems('workfront', new AbortController().signal)
-    expect(items.map((item) => item.id)).toContain('glados/workfront')
+    const items = await subItems('worklist', new AbortController().signal)
+    expect(items.map((item) => item.id)).toContain('gizmo/worklist')
 
-    handler({ subItemId: 'glados/workfront' })
+    handler({ subItemId: 'gizmo/worklist' })
 
     await waitFor(() => {
       expect(h.applyWorldOp).toHaveBeenCalledTimes(1)
@@ -622,11 +622,11 @@ describe('SpaceCommands', () => {
     expect(opTypeId).toBe(CREATE_WIZARD_OBJECT_OP_ID)
 
     const decoded = CreateWizardObjectOp.fromBinary(opData)
-    expect(decoded.objectKey).toBe('wizard/workfront-1')
-    expect(decoded.wizardTypeId).toBe('wizard/glados/workfront')
-    expect(decoded.targetTypeId).toBe('glados/workfront')
-    expect(decoded.targetKeyPrefix).toBe('glados/workfront/')
-    expect(decoded.name).toBe('Workfront')
+    expect(decoded.objectKey).toBe('wizard/worklist-1')
+    expect(decoded.wizardTypeId).toBe('wizard/gizmo/worklist')
+    expect(decoded.targetTypeId).toBe('gizmo/worklist')
+    expect(decoded.targetKeyPrefix).toBe('gizmo/worklist/')
+    expect(decoded.name).toBe('Worklist')
     expect(h.navigateToObjects).toHaveBeenCalledWith([decoded.objectKey])
   })
 

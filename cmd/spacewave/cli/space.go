@@ -600,7 +600,7 @@ func newSpaceDeployCommand(statePath *string, sessionIdx *uint) *cli.Command {
 			},
 			&cli.StringFlag{
 				Name:        "manifest-id",
-				Usage:       "manifest identifier (e.g., glados-core)",
+				Usage:       "manifest identifier (e.g., spacewave-core)",
 				EnvVars:     []string{"SPACEWAVE_MANIFEST_ID"},
 				Required:    true,
 				Destination: &manifestID,

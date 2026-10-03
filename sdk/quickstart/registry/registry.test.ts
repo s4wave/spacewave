@@ -31,35 +31,35 @@ function createMockRef(): ClientResourceRef {
 describe('QuickstartRegistry proto types', () => {
   it('QuickstartRegistration carries plugin-owned app metadata', () => {
     const reg = QuickstartRegistration.create({
-      quickstartId: 'glados-workspace',
+      quickstartId: 'gizmo-workspace',
       registrationId: 7,
-      pluginId: 'glados-web',
-      name: 'Glados Workspace',
+      pluginId: 'gizmo-web',
+      name: 'Gizmo Workspace',
       description: 'Operator workspace',
       category: 'tools',
       iconName: 'bot',
-      spaceName: 'Glados Workspace',
-      requiredPluginIds: ['glados-core', 'glados-web'],
+      spaceName: 'Gizmo Workspace',
+      requiredPluginIds: ['gizmo-core', 'gizmo-web'],
     })
-    expect(reg.quickstartId).toBe('glados-workspace')
+    expect(reg.quickstartId).toBe('gizmo-workspace')
     expect(reg.registrationId).toBe(7)
-    expect(reg.pluginId).toBe('glados-web')
-    expect(reg.name).toBe('Glados Workspace')
-    expect(reg.requiredPluginIds).toEqual(['glados-core', 'glados-web'])
+    expect(reg.pluginId).toBe('gizmo-web')
+    expect(reg.name).toBe('Gizmo Workspace')
+    expect(reg.requiredPluginIds).toEqual(['gizmo-core', 'gizmo-web'])
   })
 
   it('RegisterQuickstartRequest has registration metadata', () => {
     const req = RegisterQuickstartRequest.create({
       registration: {
-        quickstartId: 'glados-workspace',
-        pluginId: 'glados-web',
-        name: 'Glados Workspace',
+        quickstartId: 'gizmo-workspace',
+        pluginId: 'gizmo-web',
+        name: 'Gizmo Workspace',
         description: 'Operator workspace',
         category: 'tools',
       },
     })
-    expect(req.registration?.quickstartId).toBe('glados-workspace')
-    expect(req.registration?.pluginId).toBe('glados-web')
+    expect(req.registration?.quickstartId).toBe('gizmo-workspace')
+    expect(req.registration?.pluginId).toBe('gizmo-web')
   })
 
   it('RegisterQuickstartResponse has resourceId', () => {
@@ -69,25 +69,25 @@ describe('QuickstartRegistry proto types', () => {
 
   it('execution messages carry resource ids and routing hints', () => {
     const executeReq = ExecuteQuickstartRequest.create({
-      quickstartId: 'glados-workspace',
+      quickstartId: 'gizmo-workspace',
       spaceResourceId: 42,
     })
     const executeResp = ExecuteQuickstartResponse.create({
-      indexPath: 'glados/operator-home',
-      pluginIds: ['glados-core', 'glados-web'],
+      indexPath: 'gizmo/operator-home',
+      pluginIds: ['gizmo-core', 'gizmo-web'],
     })
     const seedReq = SeedQuickstartRequest.create({
-      quickstartId: 'glados-workspace',
+      quickstartId: 'gizmo-workspace',
       attachedEngineResourceId: 77,
     })
     const seedResp = SeedQuickstartResponse.create({
-      indexPath: 'glados/operator-home',
-      pluginIds: ['glados-web'],
+      indexPath: 'gizmo/operator-home',
+      pluginIds: ['gizmo-web'],
     })
     expect(executeReq.spaceResourceId).toBe(42)
-    expect(executeResp.pluginIds).toEqual(['glados-core', 'glados-web'])
+    expect(executeResp.pluginIds).toEqual(['gizmo-core', 'gizmo-web'])
     expect(seedReq.attachedEngineResourceId).toBe(77)
-    expect(seedResp.indexPath).toBe('glados/operator-home')
+    expect(seedResp.indexPath).toBe('gizmo/operator-home')
   })
 
   it('ListQuickstartsResponse and WatchQuickstartsResponse carry registrations', () => {
@@ -103,19 +103,19 @@ describe('QuickstartRegistry proto types', () => {
 
   it('QuickstartRegistration round-trips through binary serialization', () => {
     const original = QuickstartRegistration.create({
-      quickstartId: 'glados-workspace',
+      quickstartId: 'gizmo-workspace',
       registrationId: 42,
-      pluginId: 'glados-web',
-      name: 'Glados Workspace',
+      pluginId: 'gizmo-web',
+      name: 'Gizmo Workspace',
       description: 'Operator workspace',
       category: 'tools',
-      requiredPluginIds: ['glados-core', 'glados-web'],
+      requiredPluginIds: ['gizmo-core', 'gizmo-web'],
     })
     const bytes = QuickstartRegistration.toBinary(original)
     const decoded = QuickstartRegistration.fromBinary(bytes)
-    expect(decoded.quickstartId).toBe('glados-workspace')
+    expect(decoded.quickstartId).toBe('gizmo-workspace')
     expect(decoded.registrationId).toBe(42)
-    expect(decoded.requiredPluginIds).toEqual(['glados-core', 'glados-web'])
+    expect(decoded.requiredPluginIds).toEqual(['gizmo-core', 'gizmo-web'])
   })
 })
 

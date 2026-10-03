@@ -237,7 +237,7 @@ func TestDaemonUpdateWaitAndRestartNow(t *testing.T) {
 	if _, err := server.RestartDaemonUpdateNow(t.Context(), &spacewave_launcher.RestartDaemonUpdateNowRequest{}); err == nil {
 		t.Fatal("restart now succeeded without an accepted update")
 	}
-	report := &spacewave_launcher.ReportDaemonUpdateWaitRequest{Selection: selected, OtherWork: []string{"glados", "spacewave (2)"}}
+	report := &spacewave_launcher.ReportDaemonUpdateWaitRequest{Selection: selected, OtherWork: []string{"gizmo", "spacewave (2)"}}
 	if resp, err := server.ReportDaemonUpdateWait(t.Context(), report); err != nil || resp.GetReported() {
 		t.Fatalf("wait report before acceptance: response=%v error=%v", resp, err)
 	}

@@ -113,7 +113,7 @@ function component(
 ): ObjectViewerComponent {
   return {
     componentID,
-    typeID: 'glados/workfront',
+    typeID: 'gizmo/worklist',
     name,
     component: () => null,
   }
@@ -208,52 +208,46 @@ describe('resolveObjectViewerSelection', () => {
   it('uses the ObjectLayout preferred component when no local selection exists', () => {
     const viewers = [
       component('spacewave.debug.viewer', 'Debug'),
-      component('glados.workfront.viewer', 'Workfront'),
+      component('gizmo.worklist.viewer', 'Worklist'),
     ]
 
     expect(
-      resolveObjectViewerSelection(
-        viewers,
-        undefined,
-        'glados.workfront.viewer',
-      ).selectedComponent?.componentID,
-    ).toBe('glados.workfront.viewer')
+      resolveObjectViewerSelection(viewers, undefined, 'gizmo.worklist.viewer')
+        .selectedComponent?.componentID,
+    ).toBe('gizmo.worklist.viewer')
   })
 
   it('keeps the browser-local selection ahead of the ObjectLayout preference', () => {
     const viewers = [
       component('spacewave.debug.viewer', 'Debug'),
-      component('glados.workfront.viewer', 'Workfront'),
+      component('gizmo.worklist.viewer', 'Worklist'),
     ]
 
     expect(
       resolveObjectViewerSelection(
         viewers,
         'spacewave.debug.viewer',
-        'glados.workfront.viewer',
+        'gizmo.worklist.viewer',
       ).selectedComponent?.componentID,
     ).toBe('spacewave.debug.viewer')
   })
 
   it('does not fall back from component ID selection to display names', () => {
     const viewers = [
-      component('spacewave.debug.viewer', 'glados.workfront.viewer'),
-      component('glados.workfront.viewer', 'Workfront'),
+      component('spacewave.debug.viewer', 'gizmo.worklist.viewer'),
+      component('gizmo.worklist.viewer', 'Worklist'),
     ]
 
     expect(
-      resolveObjectViewerSelection(
-        viewers,
-        undefined,
-        'glados.workfront.viewer',
-      ).selectedComponent?.name,
-    ).toBe('Workfront')
+      resolveObjectViewerSelection(viewers, undefined, 'gizmo.worklist.viewer')
+        .selectedComponent?.name,
+    ).toBe('Worklist')
   })
 
   it('falls back to the first visible viewer and exposes missing component IDs', () => {
     const viewers = [
       component('spacewave.debug.viewer', 'Debug'),
-      component('glados.workfront.viewer', 'Workfront'),
+      component('gizmo.worklist.viewer', 'Worklist'),
     ]
 
     const selection = resolveObjectViewerSelection(
@@ -272,19 +266,19 @@ describe('resolveObjectViewerSelection', () => {
     const beforeReload = [component('spacewave.debug.viewer', 'Debug')]
     const afterReload = [
       component('spacewave.debug.viewer', 'Debug'),
-      component('glados.decision', 'Decision'),
+      component('gizmo.decision', 'Decision'),
     ]
 
     expect(
-      resolveObjectViewerSelection(beforeReload, undefined, 'glados.decision'),
+      resolveObjectViewerSelection(beforeReload, undefined, 'gizmo.decision'),
     ).toMatchObject({
       selectedComponent: { componentID: 'spacewave.debug.viewer' },
-      missingComponentID: 'glados.decision',
+      missingComponentID: 'gizmo.decision',
     })
     expect(
-      resolveObjectViewerSelection(afterReload, undefined, 'glados.decision'),
+      resolveObjectViewerSelection(afterReload, undefined, 'gizmo.decision'),
     ).toMatchObject({
-      selectedComponent: { componentID: 'glados.decision' },
+      selectedComponent: { componentID: 'gizmo.decision' },
       missingComponentID: undefined,
     })
   })
@@ -294,7 +288,7 @@ describe('shouldHoldDebugViewerFallback', () => {
   it('holds the debug viewer when it was only selected as a wildcard fallback', () => {
     expect(
       shouldHoldDebugViewerFallback(
-        'glados/unknown',
+        'gizmo/unknown',
         component('spacewave.debug.viewer', 'Debug'),
         undefined,
         undefined,
@@ -305,7 +299,7 @@ describe('shouldHoldDebugViewerFallback', () => {
   it('allows the debug viewer when the user selected it directly', () => {
     expect(
       shouldHoldDebugViewerFallback(
-        'glados/unknown',
+        'gizmo/unknown',
         component('spacewave.debug.viewer', 'Debug'),
         'spacewave.debug.viewer',
         undefined,
@@ -316,7 +310,7 @@ describe('shouldHoldDebugViewerFallback', () => {
   it('allows the debug viewer when a layout requested it directly', () => {
     expect(
       shouldHoldDebugViewerFallback(
-        'glados/unknown',
+        'gizmo/unknown',
         component('spacewave.debug.viewer', 'Debug'),
         undefined,
         'spacewave.debug.viewer',
@@ -327,8 +321,8 @@ describe('shouldHoldDebugViewerFallback', () => {
   it('does not hold a real viewer selection', () => {
     expect(
       shouldHoldDebugViewerFallback(
-        'glados/workfront',
-        component('glados.workfront.viewer', 'Workfront'),
+        'gizmo/worklist',
+        component('gizmo.worklist.viewer', 'Worklist'),
         undefined,
         undefined,
       ),

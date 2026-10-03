@@ -183,17 +183,17 @@ describe('CreateSpaceRoute', () => {
   })
 
   it('executes dynamic quickstart registrations after mounting the new space', async () => {
-    setParams({ quickstartId: 'glados-workspace' })
+    setParams({ quickstartId: 'gizmo-workspace' })
     mockUseVisibleQuickstartOptions.mockReturnValue([
       {
-        id: 'glados-workspace',
-        name: 'Glados Workspace',
+        id: 'gizmo-workspace',
+        name: 'Gizmo Workspace',
         description: 'Operator workspace',
         category: 'tools',
         icon: () => null,
         dynamic: true,
-        pluginId: 'glados-web',
-        spaceName: 'Glados Workspace',
+        pluginId: 'gizmo-web',
+        spaceName: 'Gizmo Workspace',
       },
     ])
     const root = { client: {} }
@@ -230,11 +230,11 @@ describe('CreateSpaceRoute', () => {
     })
 
     expect(mockSessionCreateSpace.mock.calls[0]?.[0]).toEqual({
-      spaceName: 'Glados Workspace',
+      spaceName: 'Gizmo Workspace',
     })
     expect(mockExecuteDynamicQuickstart).toHaveBeenCalledWith(
       root,
-      'glados-workspace',
+      'gizmo-workspace',
       expect.objectContaining({ space: setup.space }),
       expect.any(AbortSignal),
     )

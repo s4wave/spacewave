@@ -51,7 +51,7 @@ func TestNativeCorePluginUsesLocalRegistry(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer coreRef.Release()
-	proxied := rpcstream.NewRpcStreamClient(bldr_plugin.NewSRPCPluginClient(core).PluginRpc, "glados-core", false)
+	proxied := rpcstream.NewRpcStreamClient(bldr_plugin.NewSRPCPluginClient(core).PluginRpc, "gizmo-core", false)
 	registerNativeTestType(ctx, t, proxied, "test/plugin-type")
 
 	// A host resolves the qualified core Resource route.

@@ -202,7 +202,7 @@ describe('goTsResolver', () => {
       const appVendorDir = join(
         sourceRoot,
         'vendor',
-        'github.com/aperturerobotics/glados/sdk/projection',
+        'github.com/aperturerobotics/gizmo/sdk/projection',
       )
       await mkdir(appVendorDir, { recursive: true })
       await writeFile(
@@ -223,7 +223,7 @@ describe('goTsResolver', () => {
         importer?: string,
       ) => Promise<string | null>
       const appResult = await resolveId(
-        '@go/github.com/aperturerobotics/glados/sdk/projection/projection.pb.js',
+        '@go/github.com/aperturerobotics/gizmo/sdk/projection/projection.pb.js',
       )
       expect(appResult).toBe(join(appVendorDir, 'projection.pb.ts'))
 
@@ -233,7 +233,7 @@ describe('goTsResolver', () => {
       expect(fallbackResult).toBe(join(vendorDir, 'pipesock.ts'))
 
       const vendorRelativeResult = await resolveId(
-        'vendor/github.com/aperturerobotics/glados/sdk/projection/projection.pb.js',
+        'vendor/github.com/aperturerobotics/gizmo/sdk/projection/projection.pb.js',
       )
       expect(vendorRelativeResult).toBe(join(appVendorDir, 'projection.pb.ts'))
 

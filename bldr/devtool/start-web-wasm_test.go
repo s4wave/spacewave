@@ -18,9 +18,11 @@ import (
 )
 
 func TestCachedManifestFetchControllerResolvesImportedExternalManifest(t *testing.T) {
+	// Bound the cached manifest request lifetime.
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
+	// Build the Devtool bus in an isolated repository.
 	repoRoot := t.TempDir()
 	d, err := BuildDevtoolBus(ctx, logrus.NewEntry(logrus.New()), repoRoot, filepath.Join(repoRoot, ".bldr"), false)
 	if err != nil {
@@ -28,17 +30,19 @@ func TestCachedManifestFetchControllerResolvesImportedExternalManifest(t *testin
 	}
 	defer d.Release()
 
+	// Start the cached manifest resolver on the Devtool bus.
 	rel, err := d.startCachedManifestFetchController(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer rel()
 
-	meta := bldr_manifest.NewManifestMeta("glados-core", bldr_manifest.BuildType_DEV, "web/js/wasm", 7)
+	// Create the imported manifest root in the World.
+	meta := bldr_manifest.NewManifestMeta("gizmo-core", bldr_manifest.BuildType_DEV, "web/js/wasm", 7)
 	manifestRoot, _, err := world.AccessWorldObject(
 		ctx,
 		d.GetWorldState(),
-		"test/glados-core-manifest-root",
+		"test/gizmo-core-manifest-root",
 		true,
 		func(bcs *block.Cursor) error {
 			bcs.SetBlock(bldr_manifest.NewManifest(meta, "entrypoint"), true)
@@ -49,6 +53,7 @@ func TestCachedManifestFetchControllerResolvesImportedExternalManifest(t *testin
 		t.Fatal(err)
 	}
 
+	// Store the imported manifest under the plugin host.
 	manifestRef := bldr_manifest.NewManifestRef(meta, manifestRoot)
 	manifestKey := bldr_manifest.NewManifestKey(d.GetPluginHostObjectKey(), meta)
 	if err := bldr_manifest_world.ExStoreManifestOp(
@@ -62,10 +67,11 @@ func TestCachedManifestFetchControllerResolvesImportedExternalManifest(t *testin
 		t.Fatal(err)
 	}
 
+	// Wait for the cached resolver to return a manifest reference.
 	val, _, ref, err := bus.ExecWaitValue[*bldr_manifest.FetchManifestValue](
 		ctx,
 		d.GetBus(),
-		bldr_manifest.NewFetchManifest("glados-core", nil, []string{"web/js/wasm"}, 0),
+		bldr_manifest.NewFetchManifest("gizmo-core", nil, []string{"web/js/wasm"}, 0),
 		bus.ReturnWhenIdle(),
 		nil,
 		func(val *bldr_manifest.FetchManifestValue) (bool, error) {
@@ -77,13 +83,14 @@ func TestCachedManifestFetchControllerResolvesImportedExternalManifest(t *testin
 	}
 	defer ref.Release()
 
+	// Verify the imported manifest identity and browser platform.
 	refs := val.GetManifestRefs()
 	if len(refs) != 1 {
 		t.Fatalf("manifest refs = %d, want 1", len(refs))
 	}
 	got := refs[0].GetMeta()
-	if got.GetManifestId() != "glados-core" {
-		t.Fatalf("manifest id = %q, want glados-core", got.GetManifestId())
+	if got.GetManifestId() != "gizmo-core" {
+		t.Fatalf("manifest id = %q, want gizmo-core", got.GetManifestId())
 	}
 	if got.GetPlatformId() != "web/js/wasm" {
 		t.Fatalf("platform id = %q, want web/js/wasm", got.GetPlatformId())
@@ -91,9 +98,11 @@ func TestCachedManifestFetchControllerResolvesImportedExternalManifest(t *testin
 }
 
 func TestCachedManifestFetchControllerDoesNotEmitEmptyManifestValue(t *testing.T) {
+	// Bound the missing manifest request lifetime.
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
+	// Build the Devtool bus in an isolated repository.
 	repoRoot := t.TempDir()
 	d, err := BuildDevtoolBus(ctx, logrus.NewEntry(logrus.New()), repoRoot, filepath.Join(repoRoot, ".bldr"), false)
 	if err != nil {
@@ -101,12 +110,14 @@ func TestCachedManifestFetchControllerDoesNotEmitEmptyManifestValue(t *testing.T
 	}
 	defer d.Release()
 
+	// Start the cached manifest resolver on the Devtool bus.
 	rel, err := d.startCachedManifestFetchController(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer rel()
 
+	// Subscribe to cached values for an absent manifest.
 	valueCh := make(chan *bldr_manifest.FetchManifestValue, 1)
 	handler := directive.NewTypedCallbackHandler(
 		func(v directive.TypedAttachedValue[*bldr_manifest.FetchManifestValue]) {
@@ -128,6 +139,7 @@ func TestCachedManifestFetchControllerDoesNotEmitEmptyManifestValue(t *testing.T
 	}
 	defer ref.Release()
 
+	// Verify the cache miss emits no manifest value.
 	select {
 	case val := <-valueCh:
 		t.Fatalf("unexpected cache-miss FetchManifest value with %d refs", len(val.GetManifestRefs()))

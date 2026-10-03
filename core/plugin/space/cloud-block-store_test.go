@@ -34,9 +34,11 @@ import (
 const testHostPluginID = "spacewave-core"
 
 func TestRunCloudBlockStoreForwardingExposesHostBucket(t *testing.T) {
+	// Bound the cloud block forwarding test lifetime.
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
+	// Create the plugin bus with the host configuration factory.
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
@@ -45,6 +47,8 @@ func TestRunCloudBlockStoreForwardingExposesHostBucket(t *testing.T) {
 		t.Fatal(err)
 	}
 	pluginResolver.AddFactory(plugin_host_configset.NewFactory(pluginBus))
+
+	// Create the host bus and attach its configuration controller.
 	hostBus, _, err := bldr_core.NewCoreBus(ctx, le.WithField("bus", "host"))
 	if err != nil {
 		t.Fatal(err)
@@ -58,6 +62,8 @@ func TestRunCloudBlockStoreForwardingExposesHostBucket(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer relHostConfigSet()
+
+	// Attach the node controller to the host bus.
 	hostNodeCtrl := node_controller.NewController(&node_controller.Config{}, le.WithField("bus", "host"), hostBus)
 	relHostNode, err := hostBus.AddController(ctx, hostNodeCtrl, nil)
 	if err != nil {
@@ -65,6 +71,7 @@ func TestRunCloudBlockStoreForwardingExposesHostBucket(t *testing.T) {
 	}
 	defer relHostNode()
 
+	// Connect the plugin and host buses through their RPC clients.
 	if rel := addFakePluginHost(t, ctx, le, pluginBus, hostBus); rel != nil {
 		defer rel()
 	}
@@ -72,9 +79,10 @@ func TestRunCloudBlockStoreForwardingExposesHostBucket(t *testing.T) {
 		defer rel()
 	}
 
-	bucketID := "p/spacewave/acct/blk/space"
+	// Populate the mounted bucket with a block unavailable in the local cache.
 	// Only the mounted capability can read these bytes. A generic bucket lookup
 	// must not replace it with the provider's local-only cache.
+	bucketID := "p/spacewave/acct/blk/space"
 	store, _, err := block_store_inmem.NewBlockStoreBuilder(le, &block_store_inmem.Config{BlockStoreId: bucketID})(ctx, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -85,6 +93,7 @@ func TestRunCloudBlockStoreForwardingExposesHostBucket(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Create a plugin distribution containing its entrypoint.
 	const entrypoint = "plugin.js"
 	distFS := memfs.New()
 	entrypointFile, err := distFS.Create(entrypoint)
@@ -98,8 +107,9 @@ func TestRunCloudBlockStoreForwardingExposesHostBucket(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Write the plugin manifest and mount its bucket cursor.
 	manifestTx, manifestCursor := block.NewTransaction(store, nil, nil, nil)
-	manifestMeta := bldr_manifest.NewManifestMeta("glados-web", bldr_manifest.BuildType_DEV, "desktop/darwin/arm64", 1)
+	manifestMeta := bldr_manifest.NewManifestMeta("gizmo-web", bldr_manifest.BuildType_DEV, "desktop/darwin/arm64", 1)
 	if err := bldr_manifest.CreateManifestWithBilly(ctx, manifestCursor, bldr_manifest.NewManifest(manifestMeta, entrypoint), distFS, nil, timestamp.Now()); err != nil {
 		t.Fatal(err)
 	}
@@ -112,6 +122,7 @@ func TestRunCloudBlockStoreForwardingExposesHostBucket(t *testing.T) {
 		&bucket.BucketOpArgs{BucketId: bucketID}, nil)
 	defer mountedCursor.Release()
 
+	// Attach the cloud block store forwarder to the plugin bus.
 	forwarder := NewCloudBlockStoreForwarder(
 		le,
 		pluginBus,
@@ -126,6 +137,7 @@ func TestRunCloudBlockStoreForwardingExposesHostBucket(t *testing.T) {
 	}
 	defer forwarderRef()
 
+	// Resolve the forwarded bucket on the host bus.
 	hostBucket, _, hostBucketRef, err := bucket.ExBuildBucketAPI(ctx, hostBus, false, bucketID, bucketID, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -135,6 +147,7 @@ func TestRunCloudBlockStoreForwardingExposesHostBucket(t *testing.T) {
 		t.Fatalf("expected host bucket id %q, got %q", bucketID, hostBucket.GetID())
 	}
 
+	// Verify the forwarded bucket returns the original block bytes.
 	got, found, err := hostBucket.GetBucket().GetBlock(ctx, ref)
 	if err != nil {
 		t.Fatal(err)
@@ -146,12 +159,14 @@ func TestRunCloudBlockStoreForwardingExposesHostBucket(t *testing.T) {
 		t.Fatalf("expected block body %q, got %q", string(body), string(got))
 	}
 
+	// Resolve the forwarded bucket lookup on the host bus.
 	hostLookup, _, hostLookupRef, err := bucket_lookup.ExBuildBucketLookup(ctx, hostBus, false, bucketID, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer hostLookupRef.Release()
 
+	// Verify the bucket lookup returns the original block bytes.
 	got, found, err = bucket_lookup.NewBucketFromHandle(hostLookup).GetBlock(ctx, ref)
 	if err != nil {
 		t.Fatal(err)
@@ -163,6 +178,7 @@ func TestRunCloudBlockStoreForwardingExposesHostBucket(t *testing.T) {
 		t.Fatalf("expected lookup block body %q, got %q", string(body), string(got))
 	}
 
+	// Open the plugin manifest through the forwarded host cursor.
 	hostRootCursor := bucket_lookup.NewCursor(
 		ctx,
 		hostBus,
@@ -188,9 +204,12 @@ func TestRunCloudBlockStoreForwardingExposesHostBucket(t *testing.T) {
 			distFS *unixfs.FSHandle,
 			_ *unixfs.FSHandle,
 		) error {
+			// Verify the forwarded manifest retains its entrypoint.
 			if got := manifest.GetEntrypoint(); got != entrypoint {
 				t.Fatalf("expected manifest entrypoint %q, got %q", entrypoint, got)
 			}
+
+			// Open the entrypoint and verify its file metadata is readable.
 			entrypointHandle, _, err := distFS.LookupPath(ctx, entrypoint)
 			if err != nil {
 				return err
@@ -206,8 +225,8 @@ func TestRunCloudBlockStoreForwardingExposesHostBucket(t *testing.T) {
 }
 
 func addFakePluginHost(t *testing.T, ctx context.Context, le *logrus.Entry, pluginBus bus.Bus, hostBus bus.Bus) func() {
+	// Expose the fake plugin host through an RPC client controller.
 	t.Helper()
-
 	mux := srpc.NewMux()
 	if err := bldr_plugin.SRPCRegisterPluginHost(mux, &testPluginHost{hostBus: hostBus}); err != nil {
 		t.Fatal(err)
@@ -228,8 +247,8 @@ func addFakePluginHost(t *testing.T, ctx context.Context, le *logrus.Entry, plug
 }
 
 func addPluginClientOnHost(t *testing.T, ctx context.Context, le *logrus.Entry, pluginBus bus.Bus, hostBus bus.Bus) func() {
+	// Attach the plugin RPC client to the host bus.
 	t.Helper()
-
 	serverID := bldr_plugin.HostServerID("default")
 	client := srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(bifrost_rpc.NewInvoker(pluginBus, serverID, true))))
 	ctrl := bifrost_rpc.NewClientController(

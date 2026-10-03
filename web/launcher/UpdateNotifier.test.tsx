@@ -204,7 +204,7 @@ describe('UpdateNotifier', () => {
           },
           daemonUpdateWait: {
             otherWork: [
-              'glados',
+              'gizmo',
               'spacewave (2)',
               'web listener at http://127.0.0.1:8080',
             ],
@@ -219,7 +219,7 @@ describe('UpdateNotifier', () => {
     expect(title).toBe('Daemon update accepted')
     expect(options?.id).toBe('daemon-update')
     expect(options?.description).toBe(
-      'Waiting for glados, spacewave (2), and web listener at http://127.0.0.1:8080 to finish before restarting.',
+      'Waiting for gizmo, spacewave (2), and web listener at http://127.0.0.1:8080 to finish before restarting.',
     )
     const action = options?.action
     if (!action || typeof action !== 'object' || !('onClick' in action)) {

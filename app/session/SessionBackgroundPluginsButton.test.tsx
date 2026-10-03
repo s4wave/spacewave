@@ -65,7 +65,7 @@ describe('SessionBackgroundPluginsButton', () => {
 
   it('lists each Space and suspends exactly the chosen plugin', async () => {
     entries = [
-      { spaceId: 'space-1', pluginId: 'glados-matrix' },
+      { spaceId: 'space-1', pluginId: 'gizmo-matrix' },
       { spaceId: 'space-1', pluginId: 'spacewave-notes', suspended: true },
     ]
 
@@ -75,13 +75,13 @@ describe('SessionBackgroundPluginsButton', () => {
     expect(screen.getByText('Running')).toBeDefined()
     expect(screen.getByText('Suspended')).toBeDefined()
     fireEvent.click(
-      screen.getByRole('button', { name: 'Suspend glados-matrix' }),
+      screen.getByRole('button', { name: 'Suspend gizmo-matrix' }),
     )
 
     await waitFor(() =>
       expect(mocks.set).toHaveBeenCalledWith(
         'space-1',
-        'glados-matrix',
+        'gizmo-matrix',
         true,
         true,
       ),
@@ -90,18 +90,16 @@ describe('SessionBackgroundPluginsButton', () => {
 
   it('resumes a suspended plugin', async () => {
     entries = [
-      { spaceId: 'space-1', pluginId: 'glados-matrix', suspended: true },
+      { spaceId: 'space-1', pluginId: 'gizmo-matrix', suspended: true },
     ]
 
     render(<SessionBackgroundPluginsButton />)
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Resume glados-matrix' }),
-    )
+    fireEvent.click(screen.getByRole('button', { name: 'Resume gizmo-matrix' }))
 
     await waitFor(() =>
       expect(mocks.set).toHaveBeenCalledWith(
         'space-1',
-        'glados-matrix',
+        'gizmo-matrix',
         true,
         false,
       ),
