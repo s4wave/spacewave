@@ -29,12 +29,16 @@ func TestPreparedRegistrationReplacement(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
 	defer cancel()
 	groups := registration.NewRegistry()
+
+	// Compose the plugin registries over the shared generation registry.
 	types := objecttypes.NewObjectTypeRegistryResource(groups)
 	ops := worldops.NewWorldOpRegistryResource(groups)
 	uis := viewers.NewViewerRegistryResource(groups)
 	seeds := quickstarts.NewQuickstartRegistryResource(nil, nil, groups)
 	wizards := wizard.NewWizardRegistryResource(groups)
 	root := srpc.NewMux(types.GetMux(), ops.GetMux(), uis.GetMux(), seeds.GetMux(), wizards.GetMux())
+
+	// Expose generation preparation and Resource access on the server mux.
 	if err := groups.Register(root); err != nil {
 		t.Fatal(err)
 	}
@@ -42,6 +46,8 @@ func TestPreparedRegistrationReplacement(t *testing.T) {
 	if err := resource_server.NewResourceServer(root).Register(mux); err != nil {
 		t.Fatal(err)
 	}
+
+	// Open the root Resource client used to prepare generations.
 	client, err := resource_client.NewClient(ctx, resource.NewSRPCResourceServiceClient(srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(mux)))))
 	if err != nil {
 		t.Fatal(err)
@@ -58,6 +64,7 @@ func TestPreparedRegistrationReplacement(t *testing.T) {
 	// Every generation registers the same type, operation, viewer, Quickstart,
 	// and object wizard.
 	open := func(pluginID, manifest, instanceKey string) (resource_client.ResourceRef, srpc.Client) {
+		// Prepare a private generation and retain its Resource client.
 		t.Helper()
 		response, err := prepare.Prepare(ctx, &plugin_registration.PrepareRequest{PluginId: pluginID, ManifestRoot: manifest, InstanceKey: instanceKey})
 		if err != nil {
@@ -72,6 +79,7 @@ func TestPreparedRegistrationReplacement(t *testing.T) {
 		return ref, rpc
 	}
 	register := func(rpc srpc.Client, label string) {
+		// Populate every plugin registry through the private generation client.
 		t.Helper()
 		if _, err := objecttype.NewSRPCObjectTypeRegistryResourceServiceClient(rpc).RegisterObjectType(ctx, &objecttype.RegisterObjectTypeRequest{
 			TypeId: "colors/app", PluginId: "colors", Metadata: &objecttype.ObjectTypeMetadata{DisplayName: label},
@@ -106,6 +114,7 @@ func TestPreparedRegistrationReplacement(t *testing.T) {
 		}
 	}
 	check := func(instanceKey, label string) {
+		// Check the type and Quickstart selected for this installation.
 		t.Helper()
 		if got := types.LookupRegistration("colors/app", instanceKey).GetMetadata().GetDisplayName(); got != label {
 			t.Fatalf("type = %q, want %q", got, label)
@@ -113,6 +122,8 @@ func TestPreparedRegistrationReplacement(t *testing.T) {
 		if got := seeds.LookupRegistration("colors/app", instanceKey); got.GetName() != label || got.GetManifestRoot() != label {
 			t.Fatalf("Quickstart = %v, want generation %q", got, label)
 		}
+
+		// Check the wizard selected for the same generation.
 		wizardList, err := wizards.ListWizards(ctx, &wizard.ListWizardsRequest{InstanceKey: instanceKey})
 		if err != nil {
 			t.Fatal(err)
@@ -126,6 +137,8 @@ func TestPreparedRegistrationReplacement(t *testing.T) {
 		if wizardLabel != label {
 			t.Fatalf("wizard = %q, want %q", wizardLabel, label)
 		}
+
+		// Check viewer and operation visibility for the selected generation.
 		list, err := uis.ListViewers(ctx, &viewer.ListViewersRequest{Surface: viewer.ViewerSurface_VIEWER_SURFACE_WEB, InstanceKey: instanceKey})
 		if err != nil {
 			t.Fatal(err)
@@ -147,6 +160,8 @@ func TestPreparedRegistrationReplacement(t *testing.T) {
 	check("", "")
 	activate(old)
 	check("", "old")
+
+	// Reject an incomplete candidate while preserving the active generation.
 	failedRef, failed := open("colors", "failed", "")
 	if _, err := objecttype.NewSRPCObjectTypeRegistryResourceServiceClient(failed).RegisterObjectType(ctx, &objecttype.RegisterObjectTypeRequest{TypeId: "colors/app", PluginId: "colors"}); err != nil {
 		t.Fatal(err)
@@ -164,6 +179,8 @@ func TestPreparedRegistrationReplacement(t *testing.T) {
 	activate(interrupted)
 	check("", "interrupted")
 	interruptedRef.Release()
+
+	// Observe the interrupted generation roll back through the Quickstart watch.
 	rollbackStream, err := quickstart.NewSRPCQuickstartRegistryResourceServiceClient(rootClient).WatchQuickstarts(ctx, &quickstart.WatchQuickstartsRequest{})
 	if err != nil {
 		t.Fatal(err)
@@ -187,6 +204,8 @@ func TestPreparedRegistrationReplacement(t *testing.T) {
 	activate(next)
 	activate(next)
 	check("", "new")
+
+	// Reject retired activation and extensions to an admitted generation.
 	if _, err := plugin_registration.NewSRPCGenerationServiceClient(old).Activate(ctx, &plugin_registration.ActivateRequest{}); err == nil {
 		t.Fatal("retired generation was admitted again")
 	}
@@ -203,21 +222,29 @@ func TestPreparedRegistrationReplacement(t *testing.T) {
 	spaceBRef, spaceB := open("colors", "space-b-one", "space/b")
 	register(spaceB, "space-b-one")
 	check("space/a", "new")
+
+	// Admit both Space generations and verify their independent registrations.
 	activate(spaceA)
 	activate(spaceB)
 	check("space/a", "space-a-one")
 	check("space/b", "space-b-one")
 	check("", "new")
 	check("space/c", "new")
+
+	// Require different operation registrations for the two Spaces.
 	if ops.LookupRegistrationByOpType("colors/like", "space/a").GetRegistrationId() == ops.LookupRegistrationByOpType("colors/like", "space/b").GetRegistrationId() {
 		t.Fatal("independent Spaces selected the same operation registration")
 	}
+
+	// Replace the first Space generation while retaining the second Space.
 	spaceANextRef, spaceANext := open("colors", "space-a-two", "space/a")
 	register(spaceANext, "space-a-two")
 	check("space/a", "space-a-one")
 	activate(spaceANext)
 	check("space/a", "space-a-two")
 	check("space/b", "space-b-one")
+
+	// Release the first Space generations and watch its global fallback return.
 	spaceARef.Release()
 	spaceANextRef.Release()
 	spaceWatch, err := quickstart.NewSRPCQuickstartRegistryResourceServiceClient(rootClient).WatchQuickstarts(ctx, &quickstart.WatchQuickstartsRequest{InstanceKey: "space/a"})
@@ -234,6 +261,8 @@ func TestPreparedRegistrationReplacement(t *testing.T) {
 			break
 		}
 	}
+
+	// Verify the released Space uses global defaults while the other stays active.
 	check("space/a", "new")
 	check("space/b", "space-b-one")
 	spaceBRef.Release()
@@ -245,6 +274,7 @@ func TestPreparedRegistrationReplacement(t *testing.T) {
 	}
 	foreignRef.Release()
 	newRef.Release()
+
 	// Resource release is asynchronous; use the actual watch to observe removal.
 	stream, err := quickstart.NewSRPCQuickstartRegistryResourceServiceClient(rootClient).WatchQuickstarts(ctx, &quickstart.WatchQuickstartsRequest{})
 	if err != nil {

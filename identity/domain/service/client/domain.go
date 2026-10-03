@@ -35,6 +35,7 @@ type Domain struct {
 
 // NewDomain constructs a new Domain domain controller.
 func NewDomain(le *logrus.Entry, b bus.Bus, conf *Config) (*Domain, error) {
+	// Construct the identity service client using the configured signing peer.
 	peerID, err := conf.ParsePeerID()
 	if err != nil {
 		return nil, err
@@ -81,6 +82,7 @@ func (a *Domain) IdentityLookupEntity(
 	}
 	defer peerRef.Release()
 
+	// Sign the entity lookup with the configured peer and return its domain result.
 	peerPriv, err := peer.GetPrivKey(ctx)
 	if err != nil {
 		return nil, err

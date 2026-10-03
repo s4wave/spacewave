@@ -13,12 +13,15 @@ import (
 
 // TestEnsureDevice checks caller-owned atomic pairing and subsequent session readiness.
 func TestEnsureDevice(t *testing.T) {
+	// Create a World for atomic Device pairing.
 	ctx := t.Context()
 	tb, err := testbed.Default(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
 	t.Cleanup(tb.Release)
+
+	// Derive the Device key and pairing edge from an authenticated peer.
 	local, err := peer.NewPeer(nil)
 	if err != nil {
 		t.Fatal(err)
@@ -26,6 +29,8 @@ func TestEnsureDevice(t *testing.T) {
 	id := local.GetPeerID()
 	key := s4wave_device_world.EnrolledDeviceObjectKey(id)
 	edge := world.NewGraphQuadWithKeys("dashboards/computers", "test/paired-device", key, "")
+
+	// Save the Computers dashboard that will hold the Device association.
 	seed, err := tb.Engine.NewTransaction(ctx, true)
 	if err != nil {
 		t.Fatal(err)
@@ -60,6 +65,8 @@ func TestEnsureDevice(t *testing.T) {
 		t.Fatal(err)
 	}
 	preview.Discard()
+
+	// Verify discarding the pairing removed both the Device and its edge.
 	read, err := tb.Engine.NewTransaction(ctx, false)
 	if err != nil {
 		t.Fatal(err)
@@ -90,10 +97,14 @@ func TestEnsureDevice(t *testing.T) {
 		t.Fatal(err)
 	}
 	tx.Discard()
+
+	// Capture the World revision before repeating Device pairing.
 	before, err := tb.Engine.GetSeqno(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Verify repeated pairing retains the saved Device and its association.
 	check, err := tb.Engine.NewTransaction(ctx, true)
 	if err != nil {
 		t.Fatal(err)
@@ -106,6 +117,8 @@ func TestEnsureDevice(t *testing.T) {
 	if edges, err := check.LookupGraphQuads(ctx, edge, 0); err != nil || len(edges) != 1 {
 		t.Fatal("committed pairing edge missing", edges, err)
 	}
+
+	// Commit the repeated pairing and require the World revision to stay unchanged.
 	if err := check.Commit(ctx); err != nil {
 		t.Fatal(err)
 	}

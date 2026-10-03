@@ -89,6 +89,7 @@ func (g *Generation) Activate(ctx context.Context, req *sdk_registration.Activat
 // still-retained previous worker; once that worker retires it cannot reappear.
 func (g *Generation) Close() {
 	g.registry.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		// Release the generation once and detach retired groups from the handover chain.
 		if g.closed {
 			return
 		}
@@ -105,6 +106,8 @@ func (g *Generation) Close() {
 			g.previous = nil
 			return
 		}
+
+		// Restore the retained generation before notifying registry readers.
 		delete(g.registry.active, g.binding)
 		if g.previous != nil {
 			g.registry.active[g.binding] = g.previous

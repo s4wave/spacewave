@@ -24,6 +24,7 @@ import (
 
 // TestDomainClient tests the client and server.
 func TestDomainClient(t *testing.T) {
+	// Create the logging context shared by the identity client and server testbeds.
 	ctx := context.Background()
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
@@ -44,11 +45,13 @@ func TestDomainClient(t *testing.T) {
 	tb2.StaticResolver.AddFactory(identity_domain_server.NewFactory(tb2.Bus))
 	tb2.StaticResolver.AddFactory(identity_static.NewFactory(tb2.Bus))
 
+	// Resolve the client peer used to authenticate identity requests.
 	tb1PeerID, err := peer.IDFromPrivateKey(tb1.PrivKey)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Resolve the server peer used to host the identity domain.
 	tb2PeerID, err := peer.IDFromPrivateKey(tb2.PrivKey)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -145,6 +148,7 @@ func TestDomainClient(t *testing.T) {
 		},
 	})
 
+	// Run both in-process transport controllers before connecting their peers.
 	go func() {
 		_ = tb1.Bus.ExecuteController(ctx, tp1)
 	}()
@@ -170,11 +174,13 @@ func TestDomainClient(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// Require the identity lookup to return the configured entity.
 	oent := val.GetEntity()
 	if val.IsNotFound() {
 		t.Fatal("returned not found")
 	}
 
+	// Validate the retrieved entity against its public identity contract.
 	t.Logf("retrieved entity: %v", oent)
 	if err := oent.Validate(); err != nil {
 		t.Fatal(err.Error())

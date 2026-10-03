@@ -80,6 +80,7 @@ func EnsureEnrolledDevice(ctx context.Context, engine world.Engine, authenticate
 // ready Device. writeErr is returned when that Device is absent so the caller
 // keeps the original create or commit failure.
 func readyEnrolledDevice(ctx context.Context, engine world.Engine, authenticatedPeer peer.ID, key string, writeErr error) (string, error) {
+	// Open accepted World state and require the enrolled Device object.
 	tx, err := engine.NewTransaction(ctx, false)
 	if err != nil {
 		return "", err

@@ -24,6 +24,8 @@ func TestEnsureEnrolledDevice(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(tb.Release)
+
+	// Enroll an authenticated peer as a ready Device in the fresh World.
 	local, err := peer.NewPeer(nil)
 	if err != nil {
 		t.Fatal(err)
@@ -33,6 +35,8 @@ func TestEnsureEnrolledDevice(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Open the enrolled Device and verify its object type.
 	tx, err := tb.Engine.NewTransaction(ctx, true)
 	if err != nil {
 		t.Fatal(err)
@@ -41,6 +45,8 @@ func TestEnsureEnrolledDevice(t *testing.T) {
 	if err := world_types.CheckObjectType(ctx, tx, key, s4wave_device.DeviceTypeID); err != nil {
 		t.Fatal(err)
 	}
+
+	// Verify enrollment retained the peer identity and made the Device selectable.
 	device, objectState, err := world.LookupObject[*s4wave_device.Device](ctx, tx, key, s4wave_device.NewDeviceBlock)
 	world.ReleaseObjectState(objectState)
 	if err != nil {
@@ -65,9 +71,13 @@ func TestEnsureEnrolledDevice(t *testing.T) {
 		t.Fatal(err)
 	}
 	tx.Discard()
+
+	// Project session readiness again over the saved Device metadata.
 	if _, err := s4wave_device_world.EnsureEnrolledDevice(ctx, tb.Engine, id, "New label"); err != nil {
 		t.Fatal(err)
 	}
+
+	// Verify the accepted Device preserves its saved metadata and capabilities.
 	read, err := tb.Engine.NewTransaction(ctx, false)
 	if err != nil {
 		t.Fatal(err)
@@ -125,6 +135,7 @@ func TestEnsureEnrolledDevice(t *testing.T) {
 // a later Device create is rejected after the accepted World already has the
 // matching ready Device.
 func TestEnsureEnrolledDeviceAcceptedAfterRejectedCreate(t *testing.T) {
+	// Create a World and authenticated peer for the rejected-create projection.
 	ctx := t.Context()
 	tb, err := testbed.Default(ctx)
 	if err != nil {
@@ -136,6 +147,8 @@ func TestEnsureEnrolledDeviceAcceptedAfterRejectedCreate(t *testing.T) {
 		t.Fatal(err)
 	}
 	id := local.GetPeerID()
+
+	// Configure a Device engine that reports rejection after applying the write.
 	rejected := errors.New("rejected op: transaction apply failed: tx_batch[0]: object already exists")
 	engine := &applyThenRejectEngine{Engine: tb.Engine, err: rejected}
 
@@ -160,6 +173,8 @@ func TestEnsureEnrolledDeviceAcceptedAfterRejectedCreate(t *testing.T) {
 	if device.GetPeerId() != id.String() || !device.IsSelectable() {
 		t.Fatal("rejected create did not retain the accepted Device", device)
 	}
+
+	// Preserve the write error when the rejected create left no accepted Device.
 	other, err := peer.NewPeer(nil)
 	if err != nil {
 		t.Fatal(err)

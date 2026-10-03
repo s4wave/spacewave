@@ -16,6 +16,7 @@ import (
 // dialEcho serves the starpc echo service over frames and returns a client
 // connection to it.
 func dialEcho(t *testing.T, ctx context.Context) (*Conn, echo.SRPCEchoerClient, chan error) {
+	// Serve echo calls through a WebSocket connection and frame read pump.
 	t.Helper()
 	mux := srpc.NewMux()
 	if err := echo.NewEchoServer(mux).Register(mux); err != nil {
@@ -31,6 +32,7 @@ func dialEcho(t *testing.T, ctx context.Context) (*Conn, echo.SRPCEchoerClient, 
 	}))
 	t.Cleanup(srv.Close)
 
+	// Attach an echo client and dispatch its incoming frames in the background.
 	ws, _, err := websocket.Dial(ctx, "ws"+strings.TrimPrefix(srv.URL, "http"), nil)
 	if err != nil {
 		t.Fatal(err)
@@ -43,6 +45,7 @@ func dialEcho(t *testing.T, ctx context.Context) (*Conn, echo.SRPCEchoerClient, 
 }
 
 func TestUnaryAndServerStream(t *testing.T) {
+	// Connect the echo client to the frame-backed server.
 	ctx := t.Context()
 	_, client, _ := dialEcho(t, ctx)
 
@@ -57,6 +60,7 @@ func TestUnaryAndServerStream(t *testing.T) {
 		}
 	}
 
+	// Require the echo server stream to deliver the requested message body.
 	strm, err := client.EchoServerStream(ctx, &echo.EchoMsg{Body: "stream"})
 	if err != nil {
 		t.Fatal(err)
@@ -81,18 +85,22 @@ func TestUnaryAndServerStream(t *testing.T) {
 }
 
 func TestSocketFailureFailsStreams(t *testing.T) {
+	// Connect an echo client whose socket can be closed during a call.
 	ctx := t.Context()
 	conn, client, pumpErr := dialEcho(t, ctx)
 
+	// Open an echo stream that remains attached until the socket closes.
 	strm, err := client.EchoBidiStream(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	// The bidi handler greets first, which proves the stream is attached.
 	if _, err := strm.Recv(); err != nil {
 		t.Fatal(err)
 	}
 
+	// Require socket closure to fail the read pump, active stream, and later calls.
 	_ = conn.ws.CloseNow()
 	if err := <-pumpErr; err == nil {
 		t.Fatal("read pump returned no error after the socket closed")

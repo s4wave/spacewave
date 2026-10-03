@@ -33,6 +33,7 @@ func NewClient(
 	peerID peer.ID,
 	srpcConf *stream_srpc_client.Config,
 ) (*Client, error) {
+	// Construct the identity client with its configured SRPC transport.
 	srv := &Client{
 		le:     le,
 		b:      b,

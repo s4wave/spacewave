@@ -44,9 +44,11 @@ func (t *Factory) Construct(
 	conf config.Config,
 	opts controller.ConstructOpts,
 ) (controller.Controller, error) {
+	// Resolve the controller logger and identity client configuration.
 	le := opts.GetLogger()
 	cc := conf.(*Config)
 
+	// Validate the configured identity domain before constructing its controller.
 	domainInfo := cc.GetDomainInfo()
 	domainID := domainInfo.GetDomainId()
 	if err := identity.ValidateDomainID(domainID); err != nil {

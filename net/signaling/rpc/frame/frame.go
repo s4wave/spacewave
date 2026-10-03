@@ -60,6 +60,7 @@ func (c *Conn) OpenStream(
 	msgHandler srpc.PacketDataHandler,
 	closeHandler srpc.CloseHandler,
 ) (srpc.PacketWriter, error) {
+	// Allocate the local stream only while the WebSocket connection remains usable.
 	c.mtx.Lock()
 	defer c.mtx.Unlock()
 	if c.err != nil {
@@ -75,6 +76,7 @@ func (c *Conn) OpenStream(
 // closes every stream with the error and returns it. accept attaches streams
 // the remote opens; with a nil accept, frames for unknown streams are dropped.
 func (c *Conn) ReadPump(accept AcceptFunc) error {
+	// Dispatch WebSocket frames until the connection fails.
 	err := c.readPump(accept)
 
 	// Fail every open stream and refuse new ones.
@@ -128,6 +130,7 @@ func (c *Conn) handleFrame(frame *Frame, accept AcceptFunc) {
 		return
 	}
 
+	// Deliver the stream packet and close any stream that rejects it.
 	if packet := frame.GetPacket(); len(packet) != 0 {
 		if err := s.handler(packet); err != nil {
 			c.remoteClose(id, s, err)
@@ -142,6 +145,7 @@ func (c *Conn) handleFrame(frame *Frame, accept AcceptFunc) {
 
 // remoteClose ends the remote side of a stream and reports it once.
 func (c *Conn) remoteClose(id uint32, s *stream, err error) {
+	// Retire the remote stream once and report its closing error to the handler.
 	c.mtx.Lock()
 	if s.remoteClosed {
 		c.mtx.Unlock()
@@ -166,6 +170,7 @@ func (c *Conn) writeFrame(frame *Frame) error {
 
 // closeStream sends the local close frame once.
 func (c *Conn) closeStream(id uint32) error {
+	// Retire the local stream once before sending its close frame.
 	c.mtx.Lock()
 	s := c.streams[id]
 	if s == nil || s.localClosed {

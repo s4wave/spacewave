@@ -46,10 +46,12 @@ func deviceFactory(
 	ws world.WorldState,
 	objectKey string,
 ) (srpc.Invoker, func(), error) {
+	// Require the World state used to serve the Device resource.
 	if ws == nil {
 		return nil, nil, objecttype.ErrWorldStateRequired
 	}
 
+	// Open the saved Device object and retain its state through resource construction.
 	objState, found, err := ws.GetObject(ctx, objectKey)
 	defer world.ReleaseObjectState(objState)
 	if err != nil {
@@ -59,6 +61,7 @@ func deviceFactory(
 		return nil, nil, world.ErrObjectNotFound
 	}
 
+	// Decode the Device record from its saved object state.
 	var state *s4wave_device.Device
 	_, _, err = world.AccessObjectState(ctx, objState, false, func(bcs *block.Cursor) error {
 		var uerr error
@@ -69,6 +72,7 @@ func deviceFactory(
 		return nil, nil, err
 	}
 
+	// Serve the Device methods over the decoded record and its World.
 	resource := s4wave_device.NewDeviceResource(le, engine, ws, objectKey, state)
 	return resource.GetMux(), func() {}, nil
 }

@@ -84,6 +84,7 @@ func (r *Registry) InstanceKeyLocked(member any) string {
 // registration, and two for this installation's registration. The caller holds
 // Broadcast. Scoped definitions take precedence over global defaults.
 func (r *Registry) priorityLocked(member any, instanceKey string) int {
+	// Rank the member by its admitted generation and installation scope.
 	generation := r.members[member]
 	if generation == nil {
 		return 1
@@ -104,6 +105,7 @@ func (r *Registry) priorityLocked(member any, instanceKey string) int {
 // installation. Scoped definitions override global defaults; the latest ID wins
 // within one priority. Callers hold Broadcast and clone mutable wire results.
 func SelectLocked[T comparable, K comparable](r *Registry, members map[uint32]T, instanceKey string, name func(T) K) []T {
+	// Select the highest-priority visible registration for each semantic name.
 	type candidate struct {
 		member   T
 		priority int
@@ -121,6 +123,8 @@ func SelectLocked[T comparable, K comparable](r *Registry, members map[uint32]T,
 			selected[key] = candidate{member: member, priority: priority, id: id}
 		}
 	}
+
+	// Collect the selected registrations for the installation.
 	result := make([]T, 0, len(selected))
 	for _, current := range selected {
 		result = append(result, current.member)
@@ -132,6 +136,7 @@ func SelectLocked[T comparable, K comparable](r *Registry, members map[uint32]T,
 // replacement candidates of the same family. It rejects duplicates within one
 // generation and competing families within one scope. The caller holds Broadcast.
 func (r *Registry) CanShareNameLocked(member any, candidate *Generation) bool {
+	// Compare installation scopes before checking a replacement within one family.
 	previous := r.members[member]
 	var previousScope, candidateScope string
 	if previous != nil {
