@@ -11,6 +11,7 @@ import {
   verifySOConfigChain,
   verifySOConfigChange,
 } from './config-chain.js'
+import { hashSOControlMessageInner, verifySOControlMessage } from './control.js'
 import {
   hashSOOperationInner,
   SOOperationSet,
@@ -21,6 +22,7 @@ import {
   SharedObjectConfig,
   SOCheckpoint,
   SOConfigChange,
+  SOControlMessage,
   SOOperation,
   SOSequence,
 } from './sobject.pb.js'
@@ -134,18 +136,34 @@ describe('checkpoint vectors', () => {
       expect(bytesToHex(hashSOCheckpointInner(checkpoint.inner!))).toBe(v.hash)
     }
 
-    // Owner authority matches Go under the vector config.
-    const participants =
-      SharedObjectConfig.fromBinary(fromBase64(v.config)).participants ?? []
+    // Authority matches Go under the vector config.
+    const config = SharedObjectConfig.fromBinary(fromBase64(v.config))
     const authority = await verifySOCheckpointAuthority(
       objectID,
       checkpoint,
-      participants,
+      config,
     ).then(
       () => true,
       () => false,
     )
     expect(authority).toBe(v.authority)
+  })
+})
+
+describe('control message vectors', () => {
+  it.each(vectors.controlMessages)('$name verifies as Go does', async (v) => {
+    // Verify the message under the vector object.
+    const msg = SOControlMessage.fromBinary(fromBase64(v.message))
+    const inner = await verifySOControlMessage(objectID, msg).then(
+      (inner) => inner,
+      () => null,
+    )
+
+    // A valid message has Go's hash and voter; an invalid one is rejected.
+    expect(inner?.peerId ?? '').toBe(v.peerId)
+    if (inner) {
+      expect(bytesToHex(hashSOControlMessageInner(msg.inner!))).toBe(v.hash)
+    }
   })
 })
 

@@ -28,13 +28,14 @@ const vectorObjectID = "vector-object"
 // operationLogVectors are the operation and control-record cases shared by the
 // Go and TypeScript cores.
 type operationLogVectors struct {
-	SharedObjectID string
-	Operations     []operationVector
-	OperationSets  []operationSetVector
-	ConfigChains   []configChainVector
-	ConfigChanges  []configChangeVector
-	Checkpoints    []checkpointVector
-	Sequences      []sequenceVector
+	SharedObjectID  string
+	Operations      []operationVector
+	OperationSets   []operationSetVector
+	ConfigChains    []configChainVector
+	ConfigChanges   []configChangeVector
+	Checkpoints     []checkpointVector
+	Sequences       []sequenceVector
+	ControlMessages []controlMessageVector
 }
 
 // operationVector is one operation and its verification under the object.
@@ -93,6 +94,17 @@ type checkpointVector struct {
 	Authority bool
 }
 
+// controlMessageVector is one group decision message verified under the
+// object.
+type controlMessageVector struct {
+	Name    string
+	Message []byte
+	// Hash is the message hash in hex, empty when verification fails.
+	Hash string
+	// PeerID is the verified voter, empty when verification fails.
+	PeerID string
+}
+
 // sequenceVector is one sequence position verified under the object.
 type sequenceVector struct {
 	Name     string
@@ -148,8 +160,14 @@ func (v *operationLogVectors) marshalJSON() []byte {
 		return jsonObject(&a, "name", a.NewString(c.Name), "sequence", jsonBytes(&a, c.Sequence), "hash", a.NewString(c.Hash), "signer", a.NewString(c.Signer))
 	})
 
+	// Encode the control message cases.
+	messages := jsonArray(&a, len(v.ControlMessages), func(i int) *fastjson.Value {
+		c := v.ControlMessages[i]
+		return jsonObject(&a, "name", a.NewString(c.Name), "message", jsonBytes(&a, c.Message), "hash", a.NewString(c.Hash), "peerId", a.NewString(c.PeerID))
+	})
+
 	// Join them under the object ID.
-	out := jsonObject(&a, "sharedObjectId", a.NewString(v.SharedObjectID), "operations", ops, "operationSets", sets, "configChains", chains, "configChanges", changes, "checkpoints", checkpoints, "sequences", sequences)
+	out := jsonObject(&a, "sharedObjectId", a.NewString(v.SharedObjectID), "operations", ops, "operationSets", sets, "configChains", chains, "configChanges", changes, "checkpoints", checkpoints, "sequences", sequences, "controlMessages", messages)
 	return append(out.MarshalTo(nil), '\n')
 }
 
@@ -243,6 +261,9 @@ func buildOperationLogVectors(t *testing.T) *operationLogVectors {
 	buildConfigVectors(t, vectors)
 	vectors.Checkpoints = buildCheckpointVectors(t)
 	vectors.Sequences = buildSequenceVectors(t)
+
+	// Build the group control cases.
+	buildGroupVectors(t, vectors)
 	return vectors
 }
 
@@ -496,6 +517,12 @@ func buildConfigVectors(t *testing.T, vectors *operationLogVectors) {
 	// Build the genesis records that must fail.
 	genesisByNonOwner := buildVectorChange(t, vectorObjectID, &SharedObjectConfig{}, cfg0, SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_GENESIS, privB)
 	genesisOtherObject := buildVectorChange(t, "other-object", &SharedObjectConfig{}, cfg0, SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_GENESIS, privA)
+	groupCfg0 := &SharedObjectConfig{
+		Participants:     []*SOParticipantConfig{{PeerId: peerA, Role: owner, VotingWeight: 1}},
+		Control:          SOControl_SO_CONTROL_GROUP,
+		SealedCheckpoint: &SOCheckpointHead{Hash: bytes.Repeat([]byte{0x5c}, 32)},
+	}
+	genesisGroup := buildVectorChange(t, vectorObjectID, &SharedObjectConfig{}, groupCfg0, SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_GENESIS, privA)
 
 	// Record each chain with its Go result.
 	chains := []struct {
@@ -512,6 +539,7 @@ func buildConfigVectors(t *testing.T, vectors *operationLogVectors) {
 		{"duplicate-signer", "unauthorized", []*SOConfigChange{genesis, add, doubleSigned}},
 		{"genesis-by-non-owner", "unauthorized", []*SOConfigChange{genesisByNonOwner}},
 		{"genesis-for-other-object", "invalid", []*SOConfigChange{genesisOtherObject}},
+		{"genesis-under-group-control", "invalid", []*SOConfigChange{genesisGroup}},
 	}
 	for _, c := range chains {
 		v := configChainVector{Name: c.name, Kind: c.kind}
@@ -537,6 +565,13 @@ func buildConfigVectors(t *testing.T, vectors *operationLogVectors) {
 	escalated := &SOParticipantConfig{PeerId: peerB2, Role: owner, EntityId: "account-b", Username: "bob"}
 	escalate := buildVectorChange(t, vectorObjectID, cur2, withParticipants(cur2, append(cur2.GetParticipants(), escalated)...),
 		SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_SELF_ENROLL_PEER, privB2)
+
+	// The device grants itself a vote, which only the group may grant.
+	voting := &SOParticipantConfig{PeerId: peerB2, Role: writer, EntityId: "account-b", Username: "bob", VotingWeight: 1}
+	enrollVoting := buildVectorChange(t, vectorObjectID, cur2, withParticipants(cur2, append(cur2.GetParticipants(), voting)...),
+		SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_SELF_ENROLL_PEER, privB2)
+
+	// A writer and a foreign record cannot change the object.
 	byWriter := buildVectorChange(t, vectorObjectID, cur2, withParticipants(cur2, cfg0.Participants[0]),
 		SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_REMOVE_PARTICIPANT, privB)
 	otherObject := buildVectorChange(t, "other-object", cur2, withParticipants(cur2, cfg0.Participants[0]),
@@ -562,6 +597,7 @@ func buildConfigVectors(t *testing.T, vectors *operationLogVectors) {
 		{"self-enroll", "", cur2, enroll},
 		{"self-enroll-from-stale-head", "stale", cur2, staleEnroll},
 		{"self-enroll-role-escalation", "unauthorized", cur2, escalate},
+		{"self-enroll-grants-vote", "unauthorized", cur2, enrollVoting},
 		{"writer-removes-participant", "unauthorized", cur2, byWriter},
 		{"record-for-other-object", "invalid", cur2, otherObject},
 		{"owner-appoints-sequencer", "", cur2, appoint},
@@ -674,4 +710,242 @@ func buildSequenceVectors(t *testing.T) []sequenceVector {
 		out = append(out, v)
 	}
 	return out
+}
+
+// buildGroupVectors adds the group control cases: control records and
+// checkpoints decided by commit, and the messages a decision is made of.
+func buildGroupVectors(t *testing.T, vectors *operationLogVectors) {
+	// Four voters with equal weight decide; A and C are owners.
+	t.Helper()
+	privA, peerA := vectorKey(t, "owner-a")
+	privB, peerB := vectorKey(t, "member-b")
+	privC, peerC := vectorKey(t, "owner-c")
+	_, peerD := vectorKey(t, "member-d")
+
+	// The group sealed checkpoint 4 at config seqno 7.
+	owner := SOParticipantRole_SOParticipantRole_OWNER
+	writer := SOParticipantRole_SOParticipantRole_WRITER
+	sealed := &SOCheckpointHead{Height: 4, Hash: bytes.Repeat([]byte{0x5c}, 32)}
+	group := configWithAppliedConfigChainHead(&SharedObjectConfig{
+		Participants: []*SOParticipantConfig{
+			{PeerId: peerA, Role: owner, VotingWeight: 1},
+			{PeerId: peerB, Role: writer, VotingWeight: 1},
+			{PeerId: peerC, Role: owner, VotingWeight: 1},
+			{PeerId: peerD, Role: writer, VotingWeight: 1},
+		},
+		Control:          SOControl_SO_CONTROL_GROUP,
+		SealedCheckpoint: sealed,
+	}, 7, bytes.Repeat([]byte{0xc7}, 32))
+	head := group.GetConfigChainHash()
+
+	// The group removes D at one more than the sealed checkpoint's height.
+	entry := newSOConfigChange(vectorObjectID, group, withParticipants(group, group.GetParticipants()[:3]...),
+		SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_REMOVE_PARTICIPANT)
+	entryHash := mustHashConfigChange(t, entry)
+	decided := entry.CloneVT()
+	decided.Commit = vectorPrecommits(t, head, 5, entryHash, []uint32{1, 1, 1}, privA, privB, privC)
+
+	// Derive the records the group did not decide.
+	withCommit := func(commit []*SOControlMessage) *SOConfigChange {
+		e := entry.CloneVT()
+		e.Commit = commit
+		return e
+	}
+	belowQuorum := withCommit(vectorPrecommits(t, head, 5, entryHash, []uint32{1, 1}, privA, privB))
+	wrongHeight := withCommit(vectorPrecommits(t, head, 4, entryHash, []uint32{1, 1, 1}, privA, privB, privC))
+	spansRounds := withCommit(vectorPrecommits(t, head, 5, entryHash, []uint32{1, 1, 2}, privA, privB, privC))
+	signed := entry.CloneVT()
+	if err := signSOConfigChange(signed, privA); err != nil {
+		t.Fatal(err)
+	}
+
+	// Record each transition with its Go result.
+	changes := []struct {
+		name  string
+		kind  string
+		entry *SOConfigChange
+	}{
+		{"group-commit-decides", "", decided},
+		{"group-commit-below-quorum", "unauthorized", belowQuorum},
+		{"group-commit-wrong-height", "unauthorized", wrongHeight},
+		{"group-commit-spans-rounds", "unauthorized", spansRounds},
+		{"group-record-signed-by-owner", "unauthorized", signed},
+	}
+	for _, c := range changes {
+		v := configChangeVector{Name: c.name, Kind: c.kind, Current: mustMarshalVT(t, group), Entry: mustMarshalVT(t, c.entry)}
+		next, err := VerifyConfigChange(vectorObjectID, group, c.entry)
+		if (err == nil) != (c.kind == "") {
+			t.Fatalf("%s: unexpected change result: %v", c.name, err)
+		}
+		if err == nil {
+			v.NextHash = hex.EncodeToString(next.GetConfigChainHash())
+		}
+		vectors.ConfigChanges = append(vectors.ConfigChanges, v)
+	}
+
+	// Build the checkpoints and messages.
+	vectors.Checkpoints = append(vectors.Checkpoints, buildGroupCheckpointVectors(t, group, privA, privB, privC)...)
+	vectors.ControlMessages = buildControlMessageVectors(t, group, entry, privA, privB)
+}
+
+// buildGroupCheckpointVectors returns the checkpoint cases under group,
+// whose first three voters are privA, privB and privC.
+func buildGroupCheckpointVectors(t *testing.T, group *SharedObjectConfig, privA, privB, privC crypto.PrivKey) []checkpointVector {
+	// The group decides the checkpoint after the sealed one.
+	t.Helper()
+	head := group.GetConfigChainHash()
+	inner := &SOCheckpointInner{
+		SharedObjectId: vectorObjectID, Height: 5, PrevCheckpointHash: group.GetSealedCheckpoint().GetHash(), ConfigHash: head,
+		StateData: []byte("group"), ReplayVersion: SOReplayVersion, KeyEpoch: 1,
+	}
+	build := func(inner *SOCheckpointInner, privs ...crypto.PrivKey) *SOCheckpoint {
+		c := &SOCheckpoint{Inner: mustMarshalVT(t, inner)}
+		rounds := slices.Repeat([]uint32{1}, len(privs))
+		c.Commit = vectorPrecommits(t, head, 5, c.Hash(), rounds, privs...)
+		return c
+	}
+	decided := build(inner, privA, privB, privC)
+
+	// An owner's signature alone does not decide under group control.
+	signed := &SOCheckpoint{Inner: decided.GetInner()}
+	if err := signed.CoSign(privA); err != nil {
+		t.Fatal(err)
+	}
+
+	// A config vouches for the checkpoint it sealed, whoever signed it.
+	bySealer := &SOCheckpoint{Inner: decided.GetInner()}
+	if err := bySealer.CoSign(privB); err != nil {
+		t.Fatal(err)
+	}
+	sealing := group.CloneVT()
+	sealing.SealedCheckpoint = &SOCheckpointHead{Height: 5, Hash: bySealer.Hash()}
+
+	// A commit under the held config cannot decide a body naming another.
+	otherInner := inner.CloneVT()
+	otherInner.ConfigHash = bytes.Repeat([]byte{0xc1}, 32)
+
+	// Record each case with its Go result.
+	cases := []struct {
+		name       string
+		checkpoint *SOCheckpoint
+		config     *SharedObjectConfig
+	}{
+		{"group-commit", decided, group},
+		{"group-commit-below-quorum", build(inner, privA, privB), group},
+		{"group-signed-by-owner", signed, group},
+		{"group-sealed-by-config", bySealer, sealing},
+		{"group-commit-under-other-config", build(otherInner, privA, privB, privC), group},
+	}
+	out := make([]checkpointVector, 0, len(cases))
+	for _, c := range cases {
+		v := checkpointVector{Name: c.name, Checkpoint: mustMarshalVT(t, c.checkpoint), Config: mustMarshalVT(t, c.config)}
+		if _, _, err := c.checkpoint.Verify(vectorObjectID); err == nil {
+			v.Hash = hex.EncodeToString(c.checkpoint.Hash())
+		}
+		_, err := c.checkpoint.ValidateAuthority(vectorObjectID, c.config)
+		v.Authority = err == nil
+		out = append(out, v)
+	}
+	return out
+}
+
+// buildControlMessageVectors returns the control message cases for the
+// decision at height 5 under group, signed by privA and privB.
+func buildControlMessageVectors(t *testing.T, group *SharedObjectConfig, entry *SOConfigChange, privA, privB crypto.PrivKey) []controlMessageVector {
+	// Name the values a decision can carry.
+	t.Helper()
+	head := group.GetConfigChainHash()
+	checkpoint := mustMarshalVT(t, &SOCheckpointInner{SharedObjectId: vectorObjectID, Height: 5, ConfigHash: head})
+	checkpointHash := HashSOCheckpointInner(checkpoint)
+	record, err := configChangeSignedBody(entry)
+	if err != nil {
+		t.Fatal(err)
+	}
+	recordHash := mustHashConfigChange(t, entry)
+
+	// A record carrying its commit is not the value voters agree to.
+	withCommit := entry.CloneVT()
+	withCommit.Commit = vectorPrecommits(t, head, 5, recordHash, []uint32{1}, privA)
+
+	// Each case is a body, signed by a key that may not be its voter.
+	_, peerB := vectorKey(t, "member-b")
+	base := func(typ SOControlMessageType, round uint32) *SOControlMessageInner {
+		return &SOControlMessageInner{SharedObjectId: vectorObjectID, PeerId: peerB, Height: 5, ConfigHash: head, Type: typ, Round: round}
+	}
+	agree := &SOControlMessageInner{
+		SharedObjectId: vectorObjectID, PeerId: peerB, ConfigHash: head, Type: SOControlMessageType_SO_CONTROL_MESSAGE_TYPE_AGREE,
+		Kind: SODecisionKind_SO_DECISION_KIND_CONFIG, Value: record, ValueHash: recordHash,
+	}
+	proposal := base(SOControlMessageType_SO_CONTROL_MESSAGE_TYPE_PROPOSAL, 2)
+	proposal.ValidRound, proposal.Kind, proposal.Value, proposal.ValueHash = 1, SODecisionKind_SO_DECISION_KIND_CHECKPOINT, checkpoint, checkpointHash
+	prevote := base(SOControlMessageType_SO_CONTROL_MESSAGE_TYPE_PREVOTE, 1)
+	prevote.ValueHash = checkpointHash
+
+	// Derive the invalid bodies.
+	agreeWithCommit := agree.CloneVT()
+	agreeWithCommit.Value = mustMarshalVT(t, withCommit)
+	mismatch := proposal.CloneVT()
+	mismatch.ValueHash = bytes.Repeat([]byte{0xee}, 32)
+	voteWithValue := prevote.CloneVT()
+	voteWithValue.Value = checkpoint
+	otherObject := prevote.CloneVT()
+	otherObject.SharedObjectId = "other-object"
+
+	// Record each case with its Go result.
+	cases := []struct {
+		name  string
+		priv  crypto.PrivKey
+		inner *SOControlMessageInner
+	}{
+		{"agree-to-record", privB, agree},
+		{"proposal-with-valid-round", privB, proposal},
+		{"prevote", privB, prevote},
+		{"nil-precommit", privB, base(SOControlMessageType_SO_CONTROL_MESSAGE_TYPE_PRECOMMIT, 3)},
+		{"agree-value-carries-commit", privB, agreeWithCommit},
+		{"proposal-value-mismatch", privB, mismatch},
+		{"vote-carries-value", privB, voteWithValue},
+		{"signed-by-other-voter", privA, prevote},
+		{"bound-to-other-object", privB, otherObject},
+	}
+	out := make([]controlMessageVector, 0, len(cases))
+	for _, c := range cases {
+		msg := signVectorControl(t, c.priv, c.inner)
+		v := controlMessageVector{Name: c.name, Message: mustMarshalVT(t, msg)}
+		if inner, err := msg.Verify(vectorObjectID); err == nil {
+			v.Hash, v.PeerID = hex.EncodeToString(msg.Hash()), inner.GetPeerId()
+		}
+		out = append(out, v)
+	}
+	return out
+}
+
+// vectorPrecommits returns precommits for valueHash at height under the config
+// head, one per key, each in the matching round.
+func vectorPrecommits(t *testing.T, head []byte, height uint64, valueHash []byte, rounds []uint32, privs ...crypto.PrivKey) []*SOControlMessage {
+	t.Helper()
+	out := make([]*SOControlMessage, len(privs))
+	for i, priv := range privs {
+		inner := &SOControlMessageInner{
+			SharedObjectId: vectorObjectID, Height: height, ConfigHash: head,
+			Type: SOControlMessageType_SO_CONTROL_MESSAGE_TYPE_PRECOMMIT, Round: rounds[i], ValueHash: valueHash,
+		}
+		msg, err := BuildSOControlMessage(priv, inner)
+		if err != nil {
+			t.Fatal(err)
+		}
+		out[i] = msg
+	}
+	return out
+}
+
+// signVectorControl signs inner as written without validating it.
+func signVectorControl(t *testing.T, priv crypto.PrivKey, inner *SOControlMessageInner) *SOControlMessage {
+	// Sign the encoded body as written.
+	t.Helper()
+	data := mustMarshalVT(t, inner)
+	sig, err := peer.NewSignature(SOControlMessageSignatureContext, priv, hash.RecommendedHashType, data, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return &SOControlMessage{Inner: data, Signature: sig}
 }

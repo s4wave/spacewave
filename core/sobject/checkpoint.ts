@@ -1,5 +1,5 @@
 import { sha256 } from '@noble/hashes/sha2.js'
-import { concatBytes } from '@noble/hashes/utils.js'
+import { bytesToHex, concatBytes } from '@noble/hashes/utils.js'
 
 import { verifySignature } from '../../net/peer/signature.js'
 import {
@@ -7,12 +7,13 @@ import {
   validateSOAuthorHeads,
   validateSOSequenceHead,
 } from './config-chain.js'
+import { isSOGroupControl, verifySOCommit } from './control.js'
 import { SOBJECT_BASE_CRYPTO_CONTEXT } from './operation-log.js'
 import {
   SOCheckpoint,
   SOCheckpointInner,
   SOParticipantRole,
-  type SOParticipantConfig,
+  type SharedObjectConfig,
 } from './sobject.pb.js'
 
 // SO_REPLAY_VERSION is the replay rule version this build accepts.
@@ -82,9 +83,10 @@ export function validateSOCheckpointInner(inner: SOCheckpointInner): void {
 }
 
 // verifySOCheckpoint authenticates every signature on the checkpoint as
-// written for sharedObjectID and returns the body and the signers. It does not
-// check that a signer holds authority; verifySOCheckpointAuthority does. It
-// throws when the checkpoint is invalid.
+// written for sharedObjectID and returns the body and the signers. A
+// checkpoint a group decided carries a commit and may carry no signature. It
+// does not check authority; verifySOCheckpointAuthority does. It throws when
+// the checkpoint is invalid.
 export async function verifySOCheckpoint(
   sharedObjectID: string,
   checkpoint: SOCheckpoint,
@@ -92,13 +94,17 @@ export async function verifySOCheckpoint(
   // Decode the well-formed body bound to this object.
   const data = checkpoint.inner ?? new Uint8Array()
   const signatures = checkpoint.signatures ?? []
+  const commit = checkpoint.commit ?? []
   if (data.length === 0) {
     throw new Error('checkpoint inner is empty')
   }
-  if (signatures.length === 0) {
-    throw new Error('checkpoint has no signature')
+  if (signatures.length === 0 && commit.length === 0) {
+    throw new Error('checkpoint has no signature or commit')
   }
-  if (signatures.length > MAX_SO_PARTICIPANTS) {
+  if (
+    signatures.length > MAX_SO_PARTICIPANTS ||
+    commit.length > MAX_SO_PARTICIPANTS
+  ) {
     throw new Error('checkpoint has too many signatures')
   }
   const inner = SOCheckpointInner.fromBinary(data)
@@ -108,38 +114,71 @@ export async function verifySOCheckpoint(
   }
 
   // Every signature covers exactly the encoded body, once per signer.
-  const signers: string[] = []
-  for (const [i, sig] of signatures.entries()) {
-    const signer = await verifySignature(
-      SO_CHECKPOINT_SIGNATURE_CONTEXT,
-      sig,
-      data,
-    )
+  const signers = await Promise.all(
+    signatures.map((sig) =>
+      verifySignature(SO_CHECKPOINT_SIGNATURE_CONTEXT, sig, data),
+    ),
+  )
+  const seen = new Set<string>()
+  for (const [i, signer] of signers.entries()) {
     if (!signer) {
       throw new Error(`signatures[${i}]: invalid signature`)
     }
-    if (signers.includes(signer)) {
+    if (seen.has(signer)) {
       throw new Error(`signatures[${i}]: duplicate signer`)
     }
-    signers.push(signer)
+    seen.add(signer)
   }
-  return { inner, signers }
+  return { inner, signers: [...seen] }
 }
 
-// verifySOCheckpointAuthority authenticates the checkpoint and checks that an
-// owner under participants signed it, matching Go
-// SOCheckpoint.ValidateAuthority. It throws when either check fails.
+// verifySOCheckpointAuthority authenticates the checkpoint and checks that cfg
+// authorizes it, matching Go SOCheckpoint.ValidateAuthority. cfg vouches for
+// its sealed checkpoint by hash. Otherwise, under group control, a commit of
+// cfg's voters decided it under cfg, and under owner control an owner of cfg
+// signed it. It throws when either check fails.
 export async function verifySOCheckpointAuthority(
   sharedObjectID: string,
   checkpoint: SOCheckpoint,
-  participants: readonly SOParticipantConfig[],
+  cfg: SharedObjectConfig,
 ): Promise<VerifiedSOCheckpoint> {
+  // Authenticate the body and its signatures.
   const verified = await verifySOCheckpoint(sharedObjectID, checkpoint)
+  const hash = hashSOCheckpointInner(checkpoint.inner!)
+  const sealed = cfg.sealedCheckpoint
   if (
-    !participants.some(
+    sealed &&
+    (sealed.height ?? 0n) === (verified.inner.height ?? 0n) &&
+    bytesToHex(sealed.hash ?? new Uint8Array()) === bytesToHex(hash)
+  ) {
+    return verified
+  }
+
+  // A group decides each checkpoint under its current config.
+  if (isSOGroupControl(cfg)) {
+    if (
+      bytesToHex(verified.inner.configHash ?? new Uint8Array()) !==
+      bytesToHex(cfg.configChainHash ?? new Uint8Array())
+    ) {
+      throw new Error('checkpoint was not decided under the held config')
+    }
+    await verifySOCommit(
+      sharedObjectID,
+      cfg,
+      verified.inner.height ?? 0n,
+      hash,
+      checkpoint.commit ?? [],
+    )
+    return verified
+  }
+
+  // An owner signs under owner control.
+  const signers = new Set(verified.signers)
+  if (
+    !(cfg.participants ?? []).some(
       (p) =>
         p.role === SOParticipantRole.SOParticipantRole_OWNER &&
-        verified.signers.includes(p.peerId ?? ''),
+        signers.has(p.peerId ?? ''),
     )
   ) {
     throw new Error('checkpoint is not signed by an owner')

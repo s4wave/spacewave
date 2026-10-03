@@ -4,6 +4,11 @@ import { bytesToHex } from '@noble/hashes/utils.js'
 import { extractPublicKeyFromPeerID } from '../../net/peer/id.js'
 import { verifySignature } from '../../net/peer/signature.js'
 import {
+  isSOGroupControl,
+  validateSOControl,
+  verifySOCommit,
+} from './control.js'
+import {
   SOConfigChange,
   SOConfigChangeType,
   SOParticipantConfig,
@@ -40,14 +45,16 @@ export class SOConfigChangeError extends Error {
 }
 
 // hashSOConfigChange returns the identity of a control record: the SHA-256 of
-// its encoding with signatures cleared, which is also the signed body.
+// its encoding with signatures and commit cleared, which is also the signed
+// body and the value a group decides.
 export function hashSOConfigChange(entry: SOConfigChange): Uint8Array {
   return sha256(configChangeSignedBody(entry))
 }
 
-// configChangeSignedBody encodes the record with signatures cleared.
-function configChangeSignedBody(entry: SOConfigChange): Uint8Array {
-  return SOConfigChange.toBinary({ ...entry, signatures: [] })
+// configChangeSignedBody encodes the record with its authorization, the
+// signatures and the commit, cleared.
+export function configChangeSignedBody(entry: SOConfigChange): Uint8Array {
+  return SOConfigChange.toBinary({ ...entry, signatures: [], commit: [] })
 }
 
 // validateSOConfig checks that a configuration can authorize later changes,
@@ -81,6 +88,13 @@ export function validateSOConfig(cfg: SharedObjectConfig): void {
   // An appointed sequencer names a key and a real start.
   try {
     validateSOSequencer(cfg.sequencer)
+  } catch (err) {
+    throw new SOConfigChangeError('invalid', (err as Error).message)
+  }
+
+  // The control setting matches its voting weights.
+  try {
+    validateSOControl(cfg)
   } catch (err) {
     throw new SOConfigChangeError('invalid', (err as Error).message)
   }
@@ -197,7 +211,8 @@ export function validateSOSequencer(sequencer: SOSequencer | undefined): void {
 
 // verifySOConfigChain verifies a control chain from genesis and returns the
 // resulting configuration with its chain head. Genesis is signed by an owner
-// of its own configuration; each later record is authorized by its parent.
+// of its own configuration, which starts under owner control; each later
+// record is authorized by its parent.
 // It throws SOConfigChangeError when the chain is invalid.
 export async function verifySOConfigChain(
   sharedObjectID: string,
@@ -234,7 +249,13 @@ export async function verifySOConfigChain(
     )
   }
   validateSOConfig(config)
-  await verifyConfigChangeSignatures(genesis, config)
+  if (isSOGroupControl(config)) {
+    throw new SOConfigChangeError(
+      'invalid',
+      'genesis entry must start under owner control',
+    )
+  }
+  await verifyConfigChangeAuthority(genesis, config)
 
   // Verify each transition under the preceding configuration.
   let current = withConfigChainHead(config, 0n, hashSOConfigChange(genesis))
@@ -292,7 +313,7 @@ export async function verifySOConfigChange(
   }
 
   // The held configuration authorizes the record.
-  await verifyConfigChangeSignatures(entry, current)
+  await verifyConfigChangeAuthority(entry, current)
 
   // An authorized signer still cannot produce an unusable configuration.
   const result = withConfigChainHead(next, expected, hashSOConfigChange(entry))
@@ -309,27 +330,54 @@ function withConfigChainHead(
   return { ...cfg, configChainSeqno: seqno, configChainHash: hash }
 }
 
-// verifyConfigChangeSignatures checks that cfg authorizes the record: at least
-// one signature, each valid over the body, from a distinct signer, and each
-// signer an OWNER of cfg. A SELF_ENROLL_PEER record carries exactly one
-// signature, by the enrolling peer.
-async function verifyConfigChangeSignatures(
+// verifyConfigChangeAuthority checks that cfg authorizes the record, matching
+// Go verifyConfigChangeAuthority. Under group control, a commit of cfg's
+// voters decides every record but a self-enrollment, at one more than the
+// height of the checkpoint the record seals, with no signature. Otherwise the
+// record carries no commit and at least one signature, each valid over the
+// body, from a distinct signer, and each signer an OWNER of cfg. A
+// SELF_ENROLL_PEER record carries exactly one signature, by the enrolling
+// peer.
+async function verifyConfigChangeAuthority(
   entry: SOConfigChange,
   cfg: SharedObjectConfig,
 ): Promise<void> {
-  // Require signatures in the count the change type allows.
+  // A group decides every change but a device joining its own entity.
+  const deny = (message: string) =>
+    new SOConfigChangeError('unauthorized', message)
   const sigs = entry.signatures ?? []
-  if (sigs.length === 0) {
-    throw new SOConfigChangeError('unauthorized', 'missing signature')
-  }
   const selfEnroll =
     entry.changeType ===
     SOConfigChangeType.SO_CONFIG_CHANGE_TYPE_SELF_ENROLL_PEER
+  if (isSOGroupControl(cfg) && !selfEnroll) {
+    if (sigs.length !== 0) {
+      throw deny('group control record must not carry signatures')
+    }
+    const sealed = entry.config?.sealedCheckpoint
+    if (!sealed) {
+      throw deny('group control record must seal a checkpoint')
+    }
+    await verifySOCommit(
+      entry.sharedObjectId ?? '',
+      cfg,
+      (sealed.height ?? 0n) + 1n,
+      hashSOConfigChange(entry),
+      entry.commit ?? [],
+    ).catch((err: Error) => {
+      throw deny(err.message)
+    })
+    return
+  }
+
+  // Require signatures in the count the change type allows, and no commit.
+  if ((entry.commit?.length ?? 0) !== 0) {
+    throw deny('signed control record must not carry a commit')
+  }
+  if (sigs.length === 0) {
+    throw deny('missing signature')
+  }
   if (selfEnroll && sigs.length !== 1) {
-    throw new SOConfigChangeError(
-      'unauthorized',
-      'self-enroll must carry exactly one signature',
-    )
+    throw deny('self-enroll must carry exactly one signature')
   }
 
   // Verify every signature over the body.
@@ -344,25 +392,16 @@ async function verifyConfigChangeSignatures(
   const seen = new Set<string>()
   for (const [i, signer] of signers.entries()) {
     if (!signer) {
-      throw new SOConfigChangeError(
-        'unauthorized',
-        `signatures[${i}]: invalid signature`,
-      )
+      throw deny(`signatures[${i}]: invalid signature`)
     }
     if (seen.has(signer)) {
-      throw new SOConfigChangeError(
-        'unauthorized',
-        `signatures[${i}]: duplicate signer ${signer}`,
-      )
+      throw deny(`signatures[${i}]: duplicate signer ${signer}`)
     }
     seen.add(signer)
     if (selfEnroll) {
       validateSelfEnrollPeerChange(entry, cfg, signer)
     } else if (!isOwnerPeer(cfg, signer)) {
-      throw new SOConfigChangeError(
-        'unauthorized',
-        `signer ${signer} is not an OWNER in the config`,
-      )
+      throw deny(`signer ${signer} is not an OWNER in the config`)
     }
   }
 }
@@ -418,13 +457,18 @@ function validateSelfEnrollPeerChange(
   }
 
   // The added participant is the signer, bound to an existing entity.
-  const participant = added[0]!
+  const participant = added[0]
   if (participant.peerId !== signer) {
     throw deny('self-enroll signer must match the added participant')
   }
   const entityID = participant.entityId ?? ''
   if (!entityID) {
     throw deny('self-enroll participant requires entity_id')
+  }
+
+  // A device joins without a vote; the group grants votes.
+  if ((participant.votingWeight ?? 0) !== 0) {
+    throw deny('self-enroll may not grant a vote')
   }
 
   // The enrollment role is bounded by the entity's existing authority.
