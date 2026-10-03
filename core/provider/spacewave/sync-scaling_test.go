@@ -64,9 +64,6 @@ func TestSyncDrainScaling(t *testing.T) {
 			t.Cleanup(server.Close)
 			key, peer := generateTestKeypair(t)
 			client := NewSessionClient(server.Client(), server.URL, DefaultSigningEnvPrefix, key, peer.String())
-			client.executeWriteTicketAudience = func(_ context.Context, _ string, _ writeTicketAudience, submit func(string) error) error {
-				return submit("local-test-ticket")
-			}
 			logger := logrus.New()
 			logger.SetOutput(io.Discard)
 			syncer := &syncController{

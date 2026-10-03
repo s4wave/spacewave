@@ -244,14 +244,9 @@ func TestCloudPublicationConcurrentAcceptance(t *testing.T) {
 	}
 }
 
-// newTestPublicationClient returns a session client for server that submits
-// each write with a fixed ticket.
+// newTestPublicationClient returns a session client for server.
 func newTestPublicationClient(server *httptest.Server, key crypto.PrivKey, peerID peer.ID) *SessionClient {
-	client := NewSessionClient(server.Client(), server.URL, DefaultSigningEnvPrefix, key, peerID.String())
-	client.executeWriteTicketAudience = func(_ context.Context, _ string, _ writeTicketAudience, submit func(string) error) error {
-		return submit("test-ticket")
-	}
-	return client
+	return NewSessionClient(server.Client(), server.URL, DefaultSigningEnvPrefix, key, peerID.String())
 }
 
 // writeLocalOperation writes one operation signed with key to the accepted

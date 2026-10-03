@@ -763,14 +763,6 @@ func TestSyncControllerExecuteDrainsPendingWorkOnStop(t *testing.T) {
 	// Hold the dirty block behind a deadline the test never reaches.
 	priv, pid := generateTestKeypair(t)
 	cli := NewSessionClient(http.DefaultClient, srv.URL, DefaultSigningEnvPrefix, priv, pid.String())
-	cli.executeWriteTicketAudience = func(
-		ctx context.Context,
-		resourceID string,
-		audience writeTicketAudience,
-		fn func(ticket string) error,
-	) error {
-		return fn("ticket-push")
-	}
 	s := newDirtySyncExecuteTestController(t, cli, nil)
 	s.conf = &SyncConfig{SizeThresholdBytes: 1 << 30, CheckpointIntervalSecs: 3600}
 

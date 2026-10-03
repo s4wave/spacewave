@@ -43,18 +43,6 @@ var unauthCodes = map[string]bool{
 	"unknown_keypair":   true,
 }
 
-// refreshableWriteTicketCodes are error codes indicating a write ticket is
-// stale, expired, or otherwise refreshable without full session
-// reauthentication. These are handled by write-ticket refresh-and-retry paths,
-// not by the account deletion or session reauthentication flows.
-var refreshableWriteTicketCodes = map[string]bool{
-	"invalid_write_ticket":               true,
-	"expired_write_ticket":               true,
-	"stale_write_ticket":                 true,
-	"stale_session_account_write_ticket": true,
-	"stale_resource_write_ticket":        true,
-}
-
 // deletedCodes are error codes indicating the account itself is gone.
 // These are permanent and trigger the account deletion cascade.
 var deletedCodes = map[string]bool{
@@ -179,15 +167,6 @@ func IsAccountDeleted(err error) bool {
 	var ce *Error
 	if errors.As(err, &ce) {
 		return deletedCodes[ce.Code]
-	}
-	return false
-}
-
-// IsRefreshableWriteTicket checks if an error should refresh a write ticket.
-func IsRefreshableWriteTicket(err error) bool {
-	var ce *Error
-	if errors.As(err, &ce) {
-		return refreshableWriteTicketCodes[ce.Code]
 	}
 	return false
 }

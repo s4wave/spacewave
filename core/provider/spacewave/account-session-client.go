@@ -9,14 +9,6 @@ import (
 	"github.com/s4wave/spacewave/net/peer"
 )
 
-func (a *ProviderAccount) configureSessionClient(cli *SessionClient) *SessionClient {
-	if cli == nil {
-		return nil
-	}
-	cli.executeWriteTicketAudience = a.ExecuteWriteTicketAudience
-	return cli
-}
-
 func (a *ProviderAccount) currentSessionClient() *SessionClient {
 	cli, _ := a.sessionClientSnapshot()
 	return cli
@@ -90,7 +82,6 @@ func (a *ProviderAccount) getReadySessionClientForSession(
 			priv,
 			sess.sessionPid.String(),
 		)
-		cli = a.configureSessionClient(cli)
 		a.accountBcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 			a.sessionClient = cli
 			a.sessionClientSessionID = entry.Key
@@ -105,7 +96,6 @@ func (a *ProviderAccount) maybeSetSessionClient(sessionID string, cli *SessionCl
 	if cli == nil || sessionID == "" {
 		return
 	}
-	cli = a.configureSessionClient(cli)
 	var rejoinState *selfRejoinSweepState
 	var updated bool
 	a.accountBcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {

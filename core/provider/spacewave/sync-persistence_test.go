@@ -113,9 +113,6 @@ func TestSyncDeadlineSurvivesContinuousWrites(t *testing.T) {
 	defer server.Close()
 	key, pid := generateTestKeypair(t)
 	client := NewSessionClient(server.Client(), server.URL, DefaultSigningEnvPrefix, key, pid.String())
-	client.executeWriteTicketAudience = func(_ context.Context, _ string, _ writeTicketAudience, submit func(string) error) error {
-		return submit("test-ticket")
-	}
 	syncer := newDirtySyncExecuteTestController(t, client, nil)
 	syncer.conf.SizeThresholdBytes = 0
 	candidates, err := syncer.scanDirtyCandidates(t.Context())

@@ -257,11 +257,7 @@ func (a *ProviderAccount) clearSharedObjectRecoveryLocalState(
 	ctx context.Context,
 	sharedObjectID string,
 ) error {
-	if err := a.InvalidateVerifiedChain(ctx, sharedObjectID); err != nil {
-		return err
-	}
-	a.getWriteTicketOwner(sharedObjectID).Invalidate()
-	return nil
+	return a.InvalidateVerifiedChain(ctx, sharedObjectID)
 }
 
 func (a *ProviderAccount) populateOrganizationSharedObject(

@@ -123,22 +123,10 @@ func TestCloudTransferTarget(t *testing.T) {
 		case strings.Contains(r.URL.Path, "/create"):
 			createdID = strings.TrimSuffix(strings.TrimPrefix(r.URL.Path, "/api/sobject/"), "/create")
 			w.WriteHeader(http.StatusOK)
-		case r.URL.Path == "/api/session/write-tickets/test-so":
-			resp, err := (&api.WriteTicketBundleResponse{
-				SoCheckpointTicket: "ticket-checkpoint",
-			}).MarshalVT()
-			if err != nil {
-				t.Fatalf("marshal write ticket bundle: %v", err)
-			}
-			w.WriteHeader(http.StatusOK)
-			_, _ = w.Write(resp)
 		case r.URL.Path == "/api/sobject/test-so/config-state":
 			configPosted = true
 			w.WriteHeader(http.StatusOK)
 		case r.URL.Path == "/api/sobject/test-so/checkpoint":
-			if got := r.Header.Get("X-Write-Ticket"); got != "ticket-checkpoint" {
-				t.Fatalf("unexpected write ticket: %q", got)
-			}
 			postedCheckpoint, _ = io.ReadAll(r.Body)
 			w.WriteHeader(http.StatusOK)
 		default:

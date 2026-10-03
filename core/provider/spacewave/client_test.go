@@ -1,7 +1,6 @@
 package provider_spacewave
 
 import (
-	"bytes"
 	"context"
 	"crypto/sha256"
 	"encoding/base64"
@@ -343,110 +342,6 @@ func TestDoResendsRateLimitedRequest(t *testing.T) {
 	}
 	if string(resp) != "hello" || requests != 2 {
 		t.Fatalf("got body %q after %d requests, want hello after 2", resp, requests)
-	}
-}
-
-// TestMarshalWriteTicketProofPayload verifies the proof payload bytes are the
-// deterministic proto binary serialization of the canonical field set.
-func TestMarshalWriteTicketProofPayload(t *testing.T) {
-	payloadBytes, err := marshalWriteTicketProofPayload(WriteTicketProofPayloadFields{
-		Ticket:        "ticket-123",
-		Method:        "POST",
-		Path:          "/api/sobject/01/op",
-		TimestampMs:   123456789,
-		ContentLength: 42,
-		BodyHashHex:   "abcd",
-		SignedHeaders: map[string]string{
-			"x-pack-id":           "pack-1",
-			"x-replaces-pack-ids": "old-1,old-2",
-			"x-bloom-filter":      "A+/==",
-			"content-type":        "application/octet-stream",
-			"x-block-count":       "12",
-		},
-	})
-	if err != nil {
-		t.Fatalf("marshalWriteTicketProofPayload: %v", err)
-	}
-
-	want, err := (&api.WriteTicketProofPayload{
-		Ticket:        "ticket-123",
-		Method:        "POST",
-		Path:          "/api/sobject/01/op",
-		TimestampMs:   123456789,
-		ContentLength: 42,
-		BodyHashHex:   "abcd",
-		SignedHeaders: "content-type=application%2Foctet-stream,x-block-count=12,x-bloom-filter=A%2B%2F%3D%3D,x-pack-id=pack-1,x-replaces-pack-ids=old-1%2Cold-2",
-	}).MarshalVT()
-	if err != nil {
-		t.Fatalf("marshal want payload: %v", err)
-	}
-	if !bytes.Equal(payloadBytes, want) {
-		t.Fatal("write ticket proof payload bytes mismatch")
-	}
-}
-
-// TestBuildWriteTicketProof verifies the proof envelope signs the serialized
-// payload bytes with the provided session private key.
-func TestBuildWriteTicketProof(t *testing.T) {
-	priv, _ := generateTestKeypair(t)
-	payload := []byte("proof-payload")
-
-	proof, err := buildWriteTicketProof(payload, priv)
-	if err != nil {
-		t.Fatalf("buildWriteTicketProof: %v", err)
-	}
-	if !bytes.Equal(proof.GetPayload(), payload) {
-		t.Fatal("payload bytes not preserved")
-	}
-
-	pub := priv.GetPublic()
-	ok, err := pub.Verify(proof.GetPayload(), proof.GetSignature())
-	if err != nil {
-		t.Fatalf("verify proof signature: %v", err)
-	}
-	if !ok {
-		t.Fatal("proof signature verification failed")
-	}
-}
-
-// TestMarshalSObjectWriteTicketProofPayload verifies shared-object proof
-// payloads bind the body hash and content-type directly.
-func TestMarshalSObjectWriteTicketProofPayload(t *testing.T) {
-	body := []byte("root-or-op-body")
-	payloadBytes, err := marshalSObjectWriteTicketProofPayload(
-		"ticket-123",
-		http.MethodPost,
-		"/api/sobject/01/op",
-		"application/octet-stream",
-		body,
-		123456789,
-	)
-	if err != nil {
-		t.Fatalf("marshalSObjectWriteTicketProofPayload: %v", err)
-	}
-
-	var payload api.WriteTicketProofPayload
-	if err := payload.UnmarshalVT(payloadBytes); err != nil {
-		t.Fatalf("unmarshal payload: %v", err)
-	}
-	if payload.GetTicket() != "ticket-123" {
-		t.Fatalf("unexpected ticket: %q", payload.GetTicket())
-	}
-	if payload.GetMethod() != http.MethodPost {
-		t.Fatalf("unexpected method: %q", payload.GetMethod())
-	}
-	if payload.GetPath() != "/api/sobject/01/op" {
-		t.Fatalf("unexpected path: %q", payload.GetPath())
-	}
-	if payload.GetSignedHeaders() != "content-type=application%2Foctet-stream" {
-		t.Fatalf("unexpected signed headers: %q", payload.GetSignedHeaders())
-	}
-	wantHash := sha256.Sum256(body)
-	if payload.GetBodyHashHex() != hex.EncodeToString(wantHash[:]) {
-		t.Fatalf("unexpected body hash: %q", payload.GetBodyHashHex())
-	}
-	if payload.GetContentLength() != int64(len(body)) {
-		t.Fatalf("unexpected content length: %d", payload.GetContentLength())
 	}
 }
 
@@ -1023,45 +918,6 @@ func TestIsBlockedCloudError(t *testing.T) {
 	}
 }
 
-// TestIsRefreshableWriteTicketCloudError verifies write-ticket-specific error
-// codes are classified separately from session unauthentication and permanent
-// failures.
-func TestIsRefreshableWriteTicketCloudError(t *testing.T) {
-	tests := []struct {
-		name string
-		code string
-		want bool
-	}{
-		{"invalid_write_ticket", "invalid_write_ticket", true},
-		{"expired_write_ticket", "expired_write_ticket", true},
-		{"stale_write_ticket", "stale_write_ticket", true},
-		{"stale_session_account_write_ticket", "stale_session_account_write_ticket", true},
-		{"stale_resource_write_ticket", "stale_resource_write_ticket", true},
-		{"unknown_session", "unknown_session", false},
-		{"account_not_found", "account_not_found", false},
-		{"dmca_blocked", "dmca_blocked", false},
-		{"empty", "", false},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			err := &cloudError{StatusCode: 401, Code: tt.code, Message: "test"}
-			got := isRefreshableWriteTicketCloudError(err)
-			if got != tt.want {
-				t.Errorf("isRefreshableWriteTicketCloudError(%q) = %v, want %v", tt.code, got, tt.want)
-			}
-		})
-	}
-}
-
-// TestIsRefreshableWriteTicketCloudError_NonCloudError verifies
-// isRefreshableWriteTicketCloudError returns false for non-cloud errors.
-func TestIsRefreshableWriteTicketCloudError_NonCloudError(t *testing.T) {
-	err := errors.New("generic error")
-	if isRefreshableWriteTicketCloudError(err) {
-		t.Error("isRefreshableWriteTicketCloudError should return false for non-cloud errors")
-	}
-}
-
 // TestIsBlockedCloudError_NonCloudError verifies isBlockedCloudError returns
 // false for non-cloud errors.
 func TestIsBlockedCloudError_NonCloudError(t *testing.T) {
@@ -1525,87 +1381,6 @@ func TestFinalizeAccountSObjectBinding_Success(t *testing.T) {
 	}
 }
 
-// TestSessionClientGetWriteTicketBundle checks that a Session fetches every
-// write ticket of a resource at once.
-func TestSessionClientGetWriteTicketBundle(t *testing.T) {
-	// Serve a ticket bundle for the resource.
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// The request is a signed mutation for the resource.
-		if r.Method != http.MethodPost {
-			t.Fatalf("expected POST, got %s", r.Method)
-		}
-		if r.URL.Path != "/api/session/write-tickets/res-1" {
-			t.Fatalf("unexpected path: %s", r.URL.Path)
-		}
-		if got := r.Header.Get(SeedReasonHeader); got != string(SeedReasonMutation) {
-			t.Fatalf("unexpected %s: got %q", SeedReasonHeader, got)
-		}
-
-		// Answer with one ticket of each kind.
-		body, err := (&api.WriteTicketBundleResponse{
-			SoOpTicket:           "so-op-ticket",
-			SoCheckpointTicket:   "so-checkpoint-ticket",
-			BstoreSyncPushTicket: "sync-push-ticket",
-		}).MarshalVT()
-		if err != nil {
-			t.Fatalf("marshal response: %v", err)
-		}
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write(body)
-	}))
-	defer srv.Close()
-
-	// A Session fetches the bundle and receives each ticket.
-	priv, pid := generateTestKeypair(t)
-	cli := NewSessionClient(http.DefaultClient, srv.URL, DefaultSigningEnvPrefix, priv, pid.String())
-	resp, err := cli.GetWriteTicketBundle(context.Background(), "res-1")
-	if err != nil {
-		t.Fatalf("GetWriteTicketBundle: %v", err)
-	}
-	if resp.GetSoOpTicket() != "so-op-ticket" {
-		t.Fatalf("unexpected so op ticket: %q", resp.GetSoOpTicket())
-	}
-	if resp.GetSoCheckpointTicket() != "so-checkpoint-ticket" {
-		t.Fatalf("unexpected so checkpoint ticket: %q", resp.GetSoCheckpointTicket())
-	}
-	if resp.GetBstoreSyncPushTicket() != "sync-push-ticket" {
-		t.Fatalf("unexpected sync push ticket: %q", resp.GetBstoreSyncPushTicket())
-	}
-}
-
-func TestSessionClientGetWriteTicket(t *testing.T) {
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPost {
-			t.Fatalf("expected POST, got %s", r.Method)
-		}
-		if r.URL.Path != "/api/session/write-ticket/res-1/so-op" {
-			t.Fatalf("unexpected path: %s", r.URL.Path)
-		}
-		if got := r.Header.Get(SeedReasonHeader); got != string(SeedReasonMutation) {
-			t.Fatalf("unexpected %s: got %q", SeedReasonHeader, got)
-		}
-
-		body, err := (&api.TicketResponse{Ticket: "fresh-so-op-ticket"}).MarshalVT()
-		if err != nil {
-			t.Fatalf("marshal response: %v", err)
-		}
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write(body)
-	}))
-	defer srv.Close()
-
-	priv, pid := generateTestKeypair(t)
-	cli := NewSessionClient(http.DefaultClient, srv.URL, DefaultSigningEnvPrefix, priv, pid.String())
-
-	ticket, err := cli.GetWriteTicket(context.Background(), "res-1", "so-op")
-	if err != nil {
-		t.Fatalf("GetWriteTicket: %v", err)
-	}
-	if ticket != "fresh-so-op-ticket" {
-		t.Fatalf("unexpected ticket: %q", ticket)
-	}
-}
-
 // TestSessionClientSeedReason verifies every tagged SessionClient request
 // method attaches the expected X-Alpha-Seed-Reason header and that the full
 // SeedReason taxonomy is referenced by at least one call site.
@@ -1638,14 +1413,6 @@ func TestSessionClientSeedReason(t *testing.T) {
 			name:   "PostOp",
 			reason: SeedReasonMutation,
 			call: func(t *testing.T, cli *SessionClient) error {
-				cli.executeWriteTicketAudience = func(
-					ctx context.Context,
-					resourceID string,
-					audience writeTicketAudience,
-					fn func(ticket string) error,
-				) error {
-					return fn("ticket-seed-reason")
-				}
 				return cli.PostOp(context.Background(), "so-1", []byte("op"))
 			},
 		},

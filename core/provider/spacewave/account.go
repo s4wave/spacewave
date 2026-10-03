@@ -30,7 +30,6 @@ import (
 	"github.com/s4wave/spacewave/core/provider/spacewave/seedflight"
 	"github.com/s4wave/spacewave/core/provider/spacewave/selfenrollmentrun"
 	"github.com/s4wave/spacewave/core/provider/spacewave/synctelemetry"
-	"github.com/s4wave/spacewave/core/provider/spacewave/writeticketowner"
 	"github.com/s4wave/spacewave/core/session"
 	"github.com/s4wave/spacewave/core/sobject"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
@@ -96,12 +95,6 @@ type ProviderAccount struct {
 	soListAccess bool
 	// soListInvalidate restarts soListRc when the cache is stale.
 	soListInvalidate func()
-	// writeTicketOwnersMtx guards writeTicketOwners and writeTicketOwnersCtx.
-	writeTicketOwnersMtx sync.Mutex
-	// writeTicketOwners caches per-resource bundled write-ticket owners.
-	writeTicketOwners map[string]*writeticketowner.Owner
-	// writeTicketOwnersCtx is the lifecycle context shared by ticket owners.
-	writeTicketOwnersCtx context.Context
 	// selfRejoinSweep opportunistically heals missing same-entity SO peers after
 	// a new session registers or reconnect invalidates sweep-side caches.
 	selfRejoinSweep *routine.StateRoutineContainer[*selfRejoinSweepState]
@@ -381,7 +374,7 @@ func (t *providerAccountTracker) executeProviderAccountTracker(rctx context.Cont
 	}
 
 	// Wire the session client, Self-Enrollment state and SharedObject list.
-	acc.sessionClient = acc.configureSessionClient(sessionCli)
+	acc.sessionClient = sessionCli
 	acc.selfEnrollmentRun = newSelfEnrollmentRunState(acc)
 	acc.soListCtr.SetValue(nil)
 	acc.soListRc = refcount.NewRefCount(nil, true, nil, nil, acc.resolveSharedObjectList)
@@ -724,10 +717,6 @@ func (t *providerAccountTracker) executeProviderAccountTracker(rctx context.Cont
 	_ = acc.soListRc.SetContext(ctx)
 	defer acc.soListRc.ClearContext()
 
-	// Start the write ticket owners.
-	acc.setWriteTicketOwnersContext(ctx)
-	defer acc.setWriteTicketOwnersContext(nil)
-
 	// Start the self-rejoin sweep.
 	acc.selfRejoinSweep.SetContext(ctx, true)
 	defer acc.selfRejoinSweep.ClearContext()
@@ -791,7 +780,7 @@ func (a *ProviderAccount) GetSessionClient() *SessionClient {
 // Used during reauthentication to install a freshly-generated session key.
 func (a *ProviderAccount) ReplaceSessionClient(cli *SessionClient) {
 	a.accountBcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
-		a.sessionClient = a.configureSessionClient(cli)
+		a.sessionClient = cli
 		a.sessionClientSessionID = ""
 		broadcast()
 	})
