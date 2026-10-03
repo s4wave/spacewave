@@ -64,7 +64,6 @@ func BlockToObject[T comparable](ctx context.Context, bcs *block.Cursor, dest T)
 	out := b.obj
 	if out != dest {
 		// Fetch the MessagePack bytes for the replacement destination.
-		// different object, re-parse
 		data, found, err := bcs.Fetch(ctx)
 		if err != nil {
 			return dest, err
@@ -77,7 +76,7 @@ func BlockToObject[T comparable](ctx context.Context, bcs *block.Cursor, dest T)
 		b = &MsgpackBlock[T]{obj: dest}
 		err = b.UnmarshalBlock(data)
 		if err != nil {
-			return dest, block.ErrNotFound
+			return dest, err
 		}
 		out = dest
 	}
