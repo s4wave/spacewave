@@ -16,6 +16,7 @@ func (r *AccountResource) StartDesktopPasskeyRegisterHandoff(
 	ctx context.Context,
 	req *s4wave_account.StartDesktopPasskeyRegisterHandoffRequest,
 ) (*s4wave_account.StartDesktopPasskeyRegisterHandoffResponse, error) {
+	// Start a desktop passkey registration ceremony through the cloud account.
 	_ = req
 	acc, err := r.requireCloudAccount()
 	if err != nil {
@@ -27,6 +28,7 @@ func (r *AccountResource) StartDesktopPasskeyRegisterHandoff(
 		return nil, errors.Wrap(err, "start desktop passkey register")
 	}
 
+	// Wait for the browser to supply the desktop passkey registration artifacts.
 	p := acc.GetProvider()
 	result, err := provider_spacewave_handoff.WaitForDesktopPasskeyRegister(
 		ctx,

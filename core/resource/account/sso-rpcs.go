@@ -13,6 +13,7 @@ func (r *AccountResource) SSOCodeExchange(
 	ctx context.Context,
 	req *s4wave_account.SSOCodeExchangeRequest,
 ) (*s4wave_account.SSOCodeExchangeResponse, error) {
+	// Require the SSO provider and authorization code for exchange.
 	provider := req.GetProvider()
 	code := req.GetCode()
 	redirectUri := req.GetRedirectUri()
@@ -20,6 +21,7 @@ func (r *AccountResource) SSOCodeExchange(
 		return nil, errors.New("provider and code are required")
 	}
 
+	// Exchange the SSO code through the cloud account entity client.
 	acc, err := r.requireCloudAccount()
 	if err != nil {
 		return nil, err
@@ -47,6 +49,7 @@ func (r *AccountResource) LinkSSO(
 	ctx context.Context,
 	req *s4wave_account.LinkSSORequest,
 ) (*s4wave_account.LinkSSOResponse, error) {
+	// Require the SSO provider and authorization code before linking.
 	provider := req.GetProvider()
 	code := req.GetCode()
 	redirectUri := req.GetRedirectUri()
@@ -54,6 +57,7 @@ func (r *AccountResource) LinkSSO(
 		return nil, errors.New("provider and code are required")
 	}
 
+	// Require a cloud account and read the supplied linking credential.
 	acc, err := r.requireCloudAccount()
 	if err != nil {
 		return nil, err
@@ -89,6 +93,7 @@ func (r *AccountResource) LinkSSO(
 		return nil, errors.New("no credentials provided and no keypairs unlocked")
 	}
 
+	// Link the SSO provider with the unlocked entity keys and refresh account state.
 	err = acc.LinkSSOProvider(
 		ctx,
 		provider,

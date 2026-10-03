@@ -15,6 +15,7 @@ func (s *SpacewaveProviderResource) StartDesktopPasskey(
 	ctx context.Context,
 	req *s4wave_provider_spacewave.StartDesktopPasskeyRequest,
 ) (*s4wave_provider_spacewave.StartDesktopPasskeyResponse, error) {
+	// Complete the desktop passkey handoff and require its result.
 	_ = req
 	result, err := provider_spacewave_handoff.StartPasskeyHandoff(
 		ctx,
@@ -29,6 +30,7 @@ func (s *SpacewaveProviderResource) StartDesktopPasskey(
 		return nil, errors.New("desktop passkey returned no result")
 	}
 
+	// Translate the desktop passkey result into a linked or new account.
 	if linked := result.GetLinked(); linked != nil {
 		return &s4wave_provider_spacewave.StartDesktopPasskeyResponse{
 			Result: &s4wave_provider_spacewave.StartDesktopPasskeyResponse_Linked{

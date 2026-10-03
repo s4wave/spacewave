@@ -44,17 +44,20 @@ func (s *LocalProviderResource) AttachAccount(
 	ctx context.Context,
 	req *s4wave_provider_local.AttachAccountRequest,
 ) (*s4wave_provider_local.AttachAccountResponse, error) {
+	// Require a valid local account ID before attaching its stored Session.
 	accountID := req.GetAccountId()
 	if _, err := ulid.ParseULID(accountID); err != nil {
 		return nil, errors.Wrap(err, "invalid local account ID")
 	}
 
+	// Retain the Session controller while attaching the local account.
 	sessionCtrl, sessionCtrlRef, err := session.ExLookupSessionController(ctx, s.b, "", false, nil)
 	if err != nil {
 		return nil, err
 	}
 	defer sessionCtrlRef.Release()
 
+	// Reuse any Session already registered for the local account.
 	entries, err := sessionCtrl.ListSessions(ctx)
 	if err != nil {
 		return nil, errors.Wrap(err, "list sessions")
@@ -66,6 +69,7 @@ func (s *LocalProviderResource) AttachAccount(
 		}
 	}
 
+	// Open the local account and require one stored Session key.
 	account, release, err := s.provider.AccessProviderAccount(ctx, accountID, nil)
 	if err != nil {
 		return nil, errors.Wrap(err, "open local account")
@@ -79,6 +83,7 @@ func (s *LocalProviderResource) AttachAccount(
 		return nil, errors.Errorf("local account %s has %d stored Session keys; expected one", accountID, len(storedIDs))
 	}
 
+	// Register the stored Session with its local account metadata.
 	ref := &session.SessionRef{ProviderResourceRef: &core_provider.ProviderResourceRef{
 		Id: storedIDs[0], ProviderId: provider_local.ProviderID, ProviderAccountId: accountID,
 	}}
@@ -180,6 +185,8 @@ func (s *LocalProviderResource) CompleteSpaceLinkEnrollment(
 	if err != nil {
 		return nil, errors.Wrap(err, "parse session key")
 	}
+
+	// Verify that the Session key matches the requested peer and invitation.
 	sessionPeerID, err := peer.IDFromPrivateKey(sessionKey)
 	if err != nil {
 		return nil, errors.Wrap(err, "derive session peer id")
@@ -308,6 +315,7 @@ func (s *LocalProviderResource) lookupLocalSessionByPeerID(
 	sessionCtrl session.SessionController,
 	peerID string,
 ) (*session.SessionListEntry, error) {
+	// Return no Session when no peer identity was supplied.
 	if peerID == "" {
 		return nil, nil
 	}

@@ -12,6 +12,7 @@ func (r *AccountResource) StartDesktopPasskeyRegister(
 	ctx context.Context,
 	req *s4wave_account.StartDesktopPasskeyRegisterRequest,
 ) (*s4wave_account.StartDesktopPasskeyRegisterResponse, error) {
+	// Start passkey registration through the cloud account Session.
 	acc, err := r.requireCloudAccount()
 	if err != nil {
 		return nil, err
@@ -33,6 +34,7 @@ func (r *AccountResource) PasskeyRegisterOptions(
 	ctx context.Context,
 	req *s4wave_account.PasskeyRegisterOptionsRequest,
 ) (*s4wave_account.PasskeyRegisterOptionsResponse, error) {
+	// Fetch passkey registration options through the cloud account Session.
 	acc, err := r.requireCloudAccount()
 	if err != nil {
 		return nil, err
@@ -53,6 +55,7 @@ func (r *AccountResource) PasskeyRegisterVerify(
 	ctx context.Context,
 	req *s4wave_account.PasskeyRegisterVerifyRequest,
 ) (*s4wave_account.PasskeyRegisterVerifyResponse, error) {
+	// Register the passkey through the cloud account Session and refresh account state.
 	acc, err := r.requireCloudAccount()
 	if err != nil {
 		return nil, err

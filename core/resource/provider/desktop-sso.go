@@ -15,11 +15,13 @@ func (s *SpacewaveProviderResource) StartDesktopSSO(
 	ctx context.Context,
 	req *s4wave_provider_spacewave.StartDesktopSSORequest,
 ) (*s4wave_provider_spacewave.StartDesktopSSOResponse, error) {
+	// Require the SSO provider for the desktop authentication flow.
 	provider := req.GetSsoProvider()
 	if provider == "" {
 		return nil, errors.New("sso_provider is required")
 	}
 
+	// Complete the desktop SSO handoff and require its result.
 	result, pemPrivateKey, nonce, err := provider_spacewave_handoff.StartSSOHandoff(
 		ctx,
 		s.provider.GetHTTPClient(),
@@ -33,6 +35,7 @@ func (s *SpacewaveProviderResource) StartDesktopSSO(
 		return nil, errors.New("desktop sso returned no result")
 	}
 
+	// Return the linked account with the entity key received from SSO.
 	if result.Linked {
 		if len(pemPrivateKey) == 0 {
 			return nil, errors.New("desktop sso did not return a linked entity key")

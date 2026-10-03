@@ -14,6 +14,7 @@ func (s *SpacewaveProviderResource) ConfirmDesktopSSO(
 	ctx context.Context,
 	req *s4wave_provider_spacewave.ConfirmDesktopSSORequest,
 ) (*s4wave_provider_spacewave.ConfirmDesktopSSOResponse, error) {
+	// Require the nonce, account name, and keys for desktop SSO signup.
 	if req.GetNonce() == "" {
 		return nil, errors.New("nonce is required")
 	}
@@ -30,6 +31,7 @@ func (s *SpacewaveProviderResource) ConfirmDesktopSSO(
 		return nil, errors.New("session_peer_id is required")
 	}
 
+	// Confirm the desktop SSO account and return its Session identity.
 	resp, err := provider_spacewave.ConfirmDesktopSSO(
 		ctx,
 		s.provider.GetHTTPClient(),

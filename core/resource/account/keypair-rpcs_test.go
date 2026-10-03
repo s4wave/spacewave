@@ -24,12 +24,13 @@ import (
 // the wait channel, so updates that race with the loop's send fold into
 // the next read instead of producing one extra emission per source.
 func TestEntityKeypairsWatchStateCoalescesNearSimultaneousChanges(t *testing.T) {
+	// Bind the keypair watch loop to a cancelable test lifetime.
 	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
 
+	// Prepare a watch snapshot with one locked entity keypair.
 	_, pid1, _ := generateEntityKey(t)
 	_, pid2, _ := generateEntityKey(t)
-
 	state := &entityKeypairsWatchState{
 		keypairs: []*session.EntityKeypair{
 			{PeerId: pid1.String(), AuthMethod: "password"},
@@ -38,14 +39,15 @@ func TestEntityKeypairsWatchStateCoalescesNearSimultaneousChanges(t *testing.T) 
 		unlockedPeers: map[peer.ID]bool{},
 	}
 
+	// Record keypair watch emissions and gate the initial snapshot.
 	var (
 		emissionsMu sync.Mutex
 		emissions   []*s4wave_account.WatchEntityKeypairsResponse
 	)
 	released := make(chan struct{})
 	emitted := make(chan struct{}, 8)
-
 	send := func(r *s4wave_account.WatchEntityKeypairsResponse) error {
+		// Capture each keypair snapshot and hold its first emission for concurrent updates.
 		emissionsMu.Lock()
 		idx := len(emissions)
 		emissions = append(emissions, r)
@@ -57,13 +59,14 @@ func TestEntityKeypairsWatchStateCoalescesNearSimultaneousChanges(t *testing.T) 
 		return nil
 	}
 
+	// Run the keypair watch loop and retain its terminal result.
 	loopErr := make(chan error, 1)
 	go func() {
 		loopErr <- state.runWatchLoop(ctx, send)
 	}()
 
+	// Publish keypair and unlock updates while the initial snapshot is blocked.
 	<-emitted
-
 	state.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		state.keypairs = []*session.EntityKeypair{
 			{PeerId: pid1.String(), AuthMethod: "password"},
@@ -76,15 +79,17 @@ func TestEntityKeypairsWatchStateCoalescesNearSimultaneousChanges(t *testing.T) 
 		broadcast()
 	})
 
+	// Release the initial snapshot and await the coalesced keypair update.
 	close(released)
 	<-emitted
 
+	// Stop the keypair watch loop before inspecting its emissions.
 	cancel()
 	<-loopErr
 
+	// Verify that the coalesced snapshot contains both keypair and unlock updates.
 	emissionsMu.Lock()
 	defer emissionsMu.Unlock()
-
 	if got := len(emissions); got != 2 {
 		t.Fatalf("expected 2 emissions (initial + coalesced), got %d", got)
 	}
@@ -112,31 +117,32 @@ func TestEntityKeypairsWatchStateCoalescesNearSimultaneousChanges(t *testing.T) 
 // must not produce any extra emission; a subsequent real change must still
 // emit so the test cannot pass via a stuck loop.
 func TestEntityKeypairsWatchStateEqualityGateSuppressesDuplicates(t *testing.T) {
+	// Bind the duplicate-suppression watch loop to a cancelable test lifetime.
 	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
 
+	// Prepare a stable locked-keypair snapshot for repeated writes.
 	_, pid1, _ := generateEntityKey(t)
-
 	makeKeypairs := func() []*session.EntityKeypair {
 		return []*session.EntityKeypair{
 			{PeerId: pid1.String(), AuthMethod: "password"},
 		}
 	}
-
 	state := &entityKeypairsWatchState{
 		keypairs:      makeKeypairs(),
 		valid:         true,
 		unlockedPeers: map[peer.ID]bool{},
 	}
 
+	// Count keypair watch emissions and gate the initial snapshot.
 	var (
 		emissionsMu sync.Mutex
 		emissions   int
 	)
 	released := make(chan struct{})
 	emitted := make(chan struct{}, 8)
-
 	send := func(r *s4wave_account.WatchEntityKeypairsResponse) error {
+		// Count each keypair snapshot and hold its first emission for duplicate writes.
 		emissionsMu.Lock()
 		idx := emissions
 		emissions++
@@ -148,13 +154,14 @@ func TestEntityKeypairsWatchStateEqualityGateSuppressesDuplicates(t *testing.T) 
 		return nil
 	}
 
+	// Run the keypair watch loop and retain its terminal result.
 	loopErr := make(chan error, 1)
 	go func() {
 		loopErr <- state.runWatchLoop(ctx, send)
 	}()
 
+	// Publish unchanged keypair snapshots while the first emission is blocked.
 	<-emitted
-
 	for range 2 {
 		state.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 			state.keypairs = makeKeypairs()
@@ -163,27 +170,28 @@ func TestEntityKeypairsWatchStateEqualityGateSuppressesDuplicates(t *testing.T) 
 		})
 	}
 
+	// Resume the keypair watch and publish a real unlock change.
 	close(released)
-
 	state.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		state.unlockedPeers = map[peer.ID]bool{pid1: true}
 		broadcast()
 	})
-
 	<-emitted
 
+	// Stop the keypair watch loop before inspecting its emission count.
 	cancel()
 	<-loopErr
 
+	// Verify that duplicate snapshots produce no extra watch emission.
 	emissionsMu.Lock()
 	defer emissionsMu.Unlock()
-
 	if emissions != 2 {
 		t.Fatalf("expected 2 emissions (initial + one real change after duplicate writes), got %d", emissions)
 	}
 }
 
 func TestSignWithEntityKeypairUsesUnlockedStoreAndRejectsLockedOrMissingKey(t *testing.T) {
+	// Prepare an account Resource with one unlocked entity signing key.
 	ctx := context.Background()
 	priv, pid, stdPriv := generateEntityKey(t)
 	_, missingPID, _ := generateEntityKey(t)
@@ -192,6 +200,7 @@ func TestSignWithEntityKeypairUsesUnlockedStoreAndRejectsLockedOrMissingKey(t *t
 	r := &AccountResource{account: providerAccountWithEntityKeyStore(t, store)}
 	payload := []byte("cloud admin signed payload")
 
+	// Verify that the unlocked entity key signs a valid payload.
 	resp, err := r.SignWithEntityKeypair(ctx, &s4wave_account.SignWithEntityKeypairRequest{
 		PeerId:  pid.String(),
 		Payload: payload,
@@ -203,12 +212,14 @@ func TestSignWithEntityKeypairUsesUnlockedStoreAndRejectsLockedOrMissingKey(t *t
 		t.Fatal("signature did not verify with the unlocked entity public key")
 	}
 
+	// Verify that a missing entity key cannot sign the payload.
 	_, err = r.SignWithEntityKeypair(ctx, &s4wave_account.SignWithEntityKeypairRequest{
 		PeerId:  missingPID.String(),
 		Payload: payload,
 	})
 	assertLockedEntityKeypairError(t, err)
 
+	// Lock the entity key and verify that it can no longer sign.
 	if _, err := r.LockEntityKeypair(ctx, &s4wave_account.LockEntityKeypairRequest{PeerId: pid.String()}); err != nil {
 		t.Fatalf("lock keypair: %v", err)
 	}
@@ -220,6 +231,7 @@ func TestSignWithEntityKeypairUsesUnlockedStoreAndRejectsLockedOrMissingKey(t *t
 }
 
 func providerAccountWithEntityKeyStore(t *testing.T, store *provider_spacewave.EntityKeyStore) *provider_spacewave.ProviderAccount {
+	// Attach the supplied entity key store to a test provider account.
 	t.Helper()
 	acc := &provider_spacewave.ProviderAccount{}
 	field := reflect.ValueOf(acc).Elem().FieldByName("entityKeyStore")
@@ -241,6 +253,7 @@ func assertLockedEntityKeypairError(t *testing.T, err error) {
 }
 
 func generateEntityKey(t *testing.T) (bifrost_crypto.PrivKey, peer.ID, ed25519.PrivateKey) {
+	// Generate an entity signing key and its peer identity for the test.
 	t.Helper()
 	priv, _, err := bifrost_crypto.GenerateEd25519Key(rand.Reader)
 	if err != nil {

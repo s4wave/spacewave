@@ -59,6 +59,7 @@ func (s *SpacewaveProviderResource) CreateAccount(
 	ctx context.Context,
 	req *s4wave_provider_spacewave.CreateAccountRequest,
 ) (*s4wave_provider_spacewave.CreateAccountResponse, error) {
+	// Require the entity ID for cloud account creation.
 	entityID := req.GetEntityId()
 	if entityID == "" {
 		return nil, errors.New("entity_id is required")
@@ -81,6 +82,7 @@ func (s *SpacewaveProviderResource) CreateAccount(
 		return nil, errors.New("credential is required")
 	}
 
+	// Retain the Session controller while creating the cloud account.
 	s.le.WithField("entity-id-len", len(entityID)).Debug("creating spacewave account: lookup session controller")
 	sessionCtrl, sessionCtrlRef, err := session.ExLookupSessionController(ctx, s.b, "", false, nil)
 	if err != nil {
@@ -88,6 +90,7 @@ func (s *SpacewaveProviderResource) CreateAccount(
 	}
 	defer sessionCtrlRef.Release()
 
+	// Create the cloud account and register its Session.
 	s.le.WithField("entity-id-len", len(entityID)).Debug("creating spacewave account: register cloud account")
 	listEntry, err := s.provider.CreateSpacewaveAccountAndSession(ctx, entityID, []byte(password), turnstileToken, sessionCtrl)
 	if err != nil {
@@ -105,6 +108,7 @@ func (s *SpacewaveProviderResource) LoginAccount(
 	ctx context.Context,
 	req *s4wave_provider_spacewave.LoginAccountRequest,
 ) (*s4wave_provider_spacewave.LoginAccountResponse, error) {
+	// Require the entity ID for cloud account login.
 	entityID := req.GetEntityId()
 	if entityID == "" {
 		return nil, errors.New("entity_id is required")
@@ -132,17 +136,20 @@ func (s *SpacewaveProviderResource) LoginAccount(
 		return nil, errors.New("credential is required")
 	}
 
+	// Derive the entity identity used to sign the login request.
 	peerID, err := peer.IDFromPrivateKey(privKey)
 	if err != nil {
 		return nil, errors.Wrap(err, "derive peer id")
 	}
 
+	// Retain the Session controller while registering the account login.
 	sessionCtrl, sessionCtrlRef, err := session.ExLookupSessionController(ctx, s.b, "", false, nil)
 	if err != nil {
 		return nil, err
 	}
 	defer sessionCtrlRef.Release()
 
+	// Log in with the entity key and translate cloud credential failures.
 	entityCli := provider_spacewave.NewEntityClientDirect(
 		s.provider.GetHTTPClient(),
 		s.provider.GetEndpoint(),
@@ -181,6 +188,7 @@ func (s *SpacewaveProviderResource) LoginOrCreateAccount(
 	ctx context.Context,
 	req *s4wave_provider_spacewave.LoginOrCreateAccountRequest,
 ) (*s4wave_provider_spacewave.LoginOrCreateAccountResponse, error) {
+	// Require the username and password for account login or creation.
 	username := req.GetUsername()
 	if username == "" {
 		return nil, errors.New("username is required")
@@ -190,12 +198,14 @@ func (s *SpacewaveProviderResource) LoginOrCreateAccount(
 		return nil, errors.New("password is required")
 	}
 
+	// Retain the Session controller while opening the cloud account.
 	sessionCtrl, sessionCtrlRef, err := session.ExLookupSessionController(ctx, s.b, "", false, nil)
 	if err != nil {
 		return nil, err
 	}
 	defer sessionCtrlRef.Release()
 
+	// Log in or create the cloud account and its Session.
 	listEntry, isNew, err := s.provider.LoginOrCreateAccount(ctx, username, []byte(password), sessionCtrl)
 	if err != nil {
 		return nil, err
@@ -212,6 +222,7 @@ func (s *SpacewaveProviderResource) LoginWithEntityKey(
 	ctx context.Context,
 	req *s4wave_provider_spacewave.LoginWithEntityKeyRequest,
 ) (*s4wave_provider_spacewave.LoginWithEntityKeyResponse, error) {
+	// Parse the entity key and derive its signing identity.
 	privKey, err := entitykeylogin.ParsePrivateKey(req.GetPemPrivateKey())
 	if err != nil {
 		return nil, err
@@ -221,12 +232,14 @@ func (s *SpacewaveProviderResource) LoginWithEntityKey(
 		return nil, errors.Wrap(err, "derive peer ID from entity key")
 	}
 
+	// Retain the Session controller while logging in with the entity key.
 	sessionCtrl, sessionCtrlRef, err := session.ExLookupSessionController(ctx, s.b, "", false, nil)
 	if err != nil {
 		return nil, err
 	}
 	defer sessionCtrlRef.Release()
 
+	// Authenticate the entity key and register its cloud Session.
 	entityCli := provider_spacewave.NewEntityClientDirect(
 		s.provider.GetHTTPClient(),
 		s.provider.GetEndpoint(),
@@ -249,6 +262,7 @@ func (s *SpacewaveProviderResource) MountLinkedDeviceSession(
 	ctx context.Context,
 	req *s4wave_provider_spacewave.MountLinkedDeviceSessionRequest,
 ) (*s4wave_provider_spacewave.MountLinkedDeviceSessionResponse, error) {
+	// Require the linked account, Session ID, and private key.
 	if req.GetAccountId() == "" {
 		return nil, errors.New("account_id is required")
 	}
@@ -258,6 +272,8 @@ func (s *SpacewaveProviderResource) MountLinkedDeviceSession(
 	if len(req.GetSessionPemPrivateKey()) == 0 {
 		return nil, errors.New("session_pem_private_key is required")
 	}
+
+	// Parse the linked Session key and verify its peer identity.
 	privKey, err := keypem.ParsePrivKeyPem(req.GetSessionPemPrivateKey())
 	if err != nil {
 		return nil, errors.Wrap(err, "parse session private key")
@@ -273,12 +289,14 @@ func (s *SpacewaveProviderResource) MountLinkedDeviceSession(
 		return nil, errors.New("session_peer_id does not match session private key")
 	}
 
+	// Retain the Session controller while mounting the linked device.
 	sessionCtrl, sessionCtrlRef, err := session.ExLookupSessionController(ctx, s.b, "", false, nil)
 	if err != nil {
 		return nil, errors.Wrap(err, "lookup session controller")
 	}
 	defer sessionCtrlRef.Release()
 
+	// Mount the approved device Session on the cloud account.
 	listEntry, err := s.provider.MountLinkedDeviceSession(
 		ctx,
 		req.GetAccountId(),
@@ -300,6 +318,7 @@ func (s *SpacewaveProviderResource) GenerateAuthKeypairs(
 	context.Context,
 	*s4wave_provider_spacewave.GenerateAuthKeypairsRequest,
 ) (*s4wave_provider_spacewave.GenerateAuthKeypairsResponse, error) {
+	// Generate the entity signing identity and encode its private key.
 	entityPriv, _, err := crypto.GenerateEd25519Key(crand.Reader)
 	if err != nil {
 		return nil, errors.Wrap(err, "generate entity keypair")
@@ -314,6 +333,7 @@ func (s *SpacewaveProviderResource) GenerateAuthKeypairs(
 	}
 	defer scrub.Scrub(entityPEM)
 
+	// Generate the Session signing identity for account authentication.
 	sessionPriv, _, err := crypto.GenerateEd25519Key(crand.Reader)
 	if err != nil {
 		return nil, errors.Wrap(err, "generate session keypair")
@@ -323,6 +343,7 @@ func (s *SpacewaveProviderResource) GenerateAuthKeypairs(
 		return nil, errors.Wrap(err, "derive session peer id")
 	}
 
+	// Encode the entity key for the authentication response.
 	pem := string(entityPEM)
 	return &s4wave_provider_spacewave.GenerateAuthKeypairsResponse{
 		Entity: &s4wave_provider_spacewave.GeneratedEntityKeypair{
@@ -599,6 +620,7 @@ func (s *SpacewaveProviderResource) RelayDesktopPasskey(
 	ctx context.Context,
 	req *s4wave_provider_spacewave.RelayDesktopPasskeyRequest,
 ) (*s4wave_provider_spacewave.RelayDesktopPasskeyResponse, error) {
+	// Translate the browser passkey result and relay it to the desktop.
 	relayReq := &api.DesktopPasskeyRelayResult{
 		Nonce: req.GetNonce(),
 	}
@@ -670,6 +692,7 @@ func (s *SpacewaveProviderResource) PrepareBrowserSSO(
 	_ context.Context,
 	_ *s4wave_provider_spacewave.PrepareBrowserSSORequest,
 ) (*s4wave_provider_spacewave.PrepareBrowserSSOResponse, error) {
+	// Generate the verifier and ephemeral device key for browser SSO.
 	verifier := make([]byte, 32)
 	if _, err := crand.Read(verifier); err != nil {
 		return nil, errors.Wrap(err, "generate browser sso verifier")
@@ -743,6 +766,7 @@ func (s *SpacewaveProviderResource) RequestRecoveryEmail(
 	ctx context.Context,
 	req *s4wave_provider_spacewave.RequestRecoveryEmailRequest,
 ) (*s4wave_provider_spacewave.RequestRecoveryEmailResponse, error) {
+	// Require the recovery email address and request its cloud delivery.
 	email := req.GetEmail()
 	if email == "" {
 		return nil, errors.New("email is required")
@@ -767,11 +791,13 @@ func (s *SpacewaveProviderResource) RecoverVerify(
 	ctx context.Context,
 	req *s4wave_provider_spacewave.RecoverVerifyRequest,
 ) (*s4wave_provider_spacewave.RecoverVerifyResponse, error) {
+	// Require the email recovery token before cloud verification.
 	token := req.GetToken()
 	if token == "" {
 		return nil, errors.New("token is required")
 	}
 
+	// Verify the recovery token and retrieve its account identity.
 	result, err := provider_spacewave.RecoverVerify(ctx, s.provider.GetHTTPClient(), s.provider.GetEndpoint(), token)
 	if err != nil {
 		return nil, errors.Wrap(err, "recover verify")
@@ -789,6 +815,7 @@ func (s *SpacewaveProviderResource) RecoverExecute(
 	ctx context.Context,
 	req *s4wave_provider_spacewave.RecoverExecuteRequest,
 ) (*s4wave_provider_spacewave.RecoverExecuteResponse, error) {
+	// Require the recovery token and replacement password credentials.
 	token := req.GetToken()
 	if token == "" {
 		return nil, errors.New("token is required")
@@ -802,26 +829,31 @@ func (s *SpacewaveProviderResource) RecoverExecute(
 		return nil, errors.New("new_password is required")
 	}
 
+	// Derive the replacement entity key from the recovery password.
 	params, privKey, err := auth_method_password.BuildParametersWithUsernamePassword(username, []byte(newPassword))
 	if err != nil {
 		return nil, errors.Wrap(err, "derive entity keypair")
 	}
 
+	// Encode the replacement password authentication parameters.
 	authParams, err := params.MarshalBlock()
 	if err != nil {
 		return nil, errors.Wrap(err, "marshal auth params")
 	}
 
+	// Derive the replacement entity identity for recovery signing.
 	peerID, err := peer.IDFromPrivateKey(privKey)
 	if err != nil {
 		return nil, errors.Wrap(err, "derive peer id")
 	}
 
+	// Require the account ID bound into the recovery signature.
 	accountID := req.GetAccountId()
 	if accountID == "" {
 		return nil, errors.New("account_id is required for recovery signing")
 	}
 
+	// Sign the recovery context, account, token, and replacement identity.
 	peerIDStr := peerID.String()
 	payload := make([]byte, 0, len(recoveryContext)+len(accountID)+len(token)+len(peerIDStr))
 	payload = append(payload, recoveryContext...)
@@ -833,6 +865,7 @@ func (s *SpacewaveProviderResource) RecoverExecute(
 		return nil, errors.Wrap(err, "sign recovery message")
 	}
 
+	// Build the recovery request with the replacement key and signature.
 	execReq := &api.RecoverExecuteRequest{
 		Token: token,
 		AddKeypair: &api.RecoverExecuteKeypair{
@@ -847,6 +880,7 @@ func (s *SpacewaveProviderResource) RecoverExecute(
 		RemovePeerId: req.GetRemovePeerId(),
 	}
 
+	// Submit the signed recovery request to the cloud.
 	if err := provider_spacewave.RecoverExecute(ctx, s.provider.GetHTTPClient(), s.provider.GetEndpoint(), execReq); err != nil {
 		return nil, errors.Wrap(err, "recover execute")
 	}
@@ -864,12 +898,14 @@ func (s *SpacewaveProviderResource) GetLinkedCloudSession(
 	ctx context.Context,
 	req *s4wave_provider_spacewave.GetLinkedCloudSessionRequest,
 ) (*s4wave_provider_spacewave.GetLinkedCloudSessionResponse, error) {
+	// Retain the Session controller while finding the linked cloud Session.
 	sessionCtrl, sessionCtrlRef, err := session.ExLookupSessionController(ctx, s.b, "", false, nil)
 	if err != nil {
 		return nil, err
 	}
 	defer sessionCtrlRef.Release()
 
+	// Read the Session inventory used to match local and cloud accounts.
 	sessions, err := sessionCtrl.ListSessions(ctx)
 	if err != nil {
 		return nil, err
@@ -919,6 +955,7 @@ func (s *SpacewaveProviderResource) GetLinkedCloudSession(
 		break
 	}
 
+	// Return a missing result when no local Session links to a cloud account.
 	if cloudAccountID == "" {
 		return &s4wave_provider_spacewave.GetLinkedCloudSessionResponse{Found: false}, nil
 	}
@@ -975,6 +1012,7 @@ func (s *SpacewaveProviderResource) GetLinkedCloudSession(
 // Derives an entity key from the credential, verifies with the cloud,
 // generates a new session key, and clears the UNAUTHENTICATED status.
 func (s *SpacewaveProviderResource) ReauthenticateSession(ctx context.Context, req *s4wave_provider_spacewave.ReauthenticateSessionRequest) (*s4wave_provider_spacewave.ReauthenticateSessionResponse, error) {
+	// Require the Session index whose credentials need replacement.
 	sessionIdx := req.GetSessionIndex()
 	if sessionIdx == 0 {
 		return nil, errors.New("session_index is required")
@@ -987,6 +1025,7 @@ func (s *SpacewaveProviderResource) ReauthenticateSession(ctx context.Context, r
 	}
 	defer sessionCtrlRef.Release()
 
+	// Find the registered Session that needs reauthentication.
 	entry, err := sessionCtrl.GetSessionByIdx(ctx, sessionIdx)
 	if err != nil {
 		return nil, errors.Wrap(err, "get session by index")
@@ -995,6 +1034,7 @@ func (s *SpacewaveProviderResource) ReauthenticateSession(ctx context.Context, r
 		return nil, errors.New("session not found")
 	}
 
+	// Require the provider account associated with the Session.
 	sessRef := entry.GetSessionRef()
 	provRef := sessRef.GetProviderResourceRef()
 	accountID := provRef.GetProviderAccountId()
@@ -1002,6 +1042,7 @@ func (s *SpacewaveProviderResource) ReauthenticateSession(ctx context.Context, r
 		return nil, errors.New("session has no provider account id")
 	}
 
+	// Read the entity identity and challenge token for credential verification.
 	entityID := req.GetEntityId()
 	turnstileToken := req.GetTurnstileToken()
 
@@ -1036,6 +1077,7 @@ func (s *SpacewaveProviderResource) ReauthenticateSession(ctx context.Context, r
 		return nil, errors.New("credential is required")
 	}
 
+	// Derive the entity signing identity for cloud verification.
 	entityPeerID, err := peer.IDFromPrivateKey(entityPriv)
 	if err != nil {
 		return nil, errors.Wrap(err, "derive entity peer id")
@@ -1070,6 +1112,7 @@ func (s *SpacewaveProviderResource) ReauthenticateSession(ctx context.Context, r
 	}
 	defer provAccRef.Release()
 
+	// Require a cloud provider account before rotating its Session key.
 	swAcc, ok := provAcc.(*provider_spacewave.ProviderAccount)
 	if !ok {
 		return nil, errors.New("provider account is not a spacewave account")
@@ -1081,6 +1124,7 @@ func (s *SpacewaveProviderResource) ReauthenticateSession(ctx context.Context, r
 		return nil, errors.Wrap(err, "generate session key")
 	}
 
+	// Derive the peer identity for the replacement Session key.
 	sessionPeerID, err := peer.IDFromPrivateKey(sessionPriv)
 	if err != nil {
 		return nil, errors.Wrap(err, "derive session peer id")
@@ -1100,7 +1144,6 @@ func (s *SpacewaveProviderResource) ReauthenticateSession(ctx context.Context, r
 		return nil, errors.Wrap(err, "mount session object store")
 	}
 	defer diRef.Release()
-
 	objStore := objStoreHandle.GetObjectStore()
 
 	// Derive storage key from volume peer key.
@@ -1117,12 +1160,14 @@ func (s *SpacewaveProviderResource) ReauthenticateSession(ctx context.Context, r
 		return nil, errors.Wrap(err, "derive storage key")
 	}
 
+	// Encode the replacement Session key and scrub the temporary PEM.
 	privPEM, err := keypem.MarshalPrivKeyPem(sessionPriv)
 	if err != nil {
 		return nil, errors.Wrap(err, "marshal session key")
 	}
 	defer scrub.Scrub(privPEM)
 
+	// Encrypt and persist the replacement Session key for automatic unlock.
 	encPriv, err := session_lock.EncryptAutoUnlock(storageKey, privPEM)
 	if err != nil {
 		return nil, errors.Wrap(err, "encrypt session key")

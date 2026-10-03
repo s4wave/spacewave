@@ -15,6 +15,7 @@ func (s *SpacewaveProviderResource) ConfirmDesktopPasskey(
 	ctx context.Context,
 	req *s4wave_provider_spacewave.ConfirmDesktopPasskeyRequest,
 ) (*s4wave_provider_spacewave.ConfirmDesktopPasskeyResponse, error) {
+	// Require the desktop passkey signup credentials and key parameters.
 	if req.GetNonce() == "" {
 		return nil, errors.New("nonce is required")
 	}
@@ -40,6 +41,7 @@ func (s *SpacewaveProviderResource) ConfirmDesktopPasskey(
 		return nil, errors.New("auth_params is required for prf-capable passkeys")
 	}
 
+	// Confirm the desktop passkey account and return its Session identity.
 	resp, err := provider_spacewave.ConfirmDesktopPasskey(
 		ctx,
 		s.provider.GetHTTPClient(),

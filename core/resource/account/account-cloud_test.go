@@ -17,6 +17,7 @@ import (
 // TestBuildCloudSessionRows verifies cloud session rows normalize timestamps,
 // current-session state, and mirrored metadata onto the shared DTO.
 func TestBuildCloudSessionRows(t *testing.T) {
+	// Prepare cloud Session records and their mirrored presentation metadata.
 	rows := []*api.AccountSessionInfo{
 		{
 			PeerId:     "peer-current",
@@ -47,11 +48,13 @@ func TestBuildCloudSessionRows(t *testing.T) {
 		},
 	}
 
+	// Build cloud Session rows and verify both Sessions are present.
 	got := buildCloudSessionRows("peer-current", rows, metadata)
 	if len(got) != 2 {
 		t.Fatalf("expected 2 rows, got %d", len(got))
 	}
 
+	// Verify the current cloud Session identity and presentation.
 	current := got[0]
 	if current.GetPeerId() != "peer-current" {
 		t.Fatalf("expected current peer %q, got %q", "peer-current", current.GetPeerId())
@@ -74,10 +77,13 @@ func TestBuildCloudSessionRows(t *testing.T) {
 	if current.GetOs() != "macOS" {
 		t.Fatalf("expected current os %q, got %q", "macOS", current.GetOs())
 	}
+
+	// Verify that the current cloud Session carries both timestamps.
 	if current.GetCreatedAt() == nil || current.GetLastSeenAt() == nil {
 		t.Fatal("expected current timestamps to be set")
 	}
 
+	// Verify the other cloud Session identity and desktop presentation.
 	other := got[1]
 	if other.GetPeerId() != "peer-other" {
 		t.Fatalf("expected other peer %q, got %q", "peer-other", other.GetPeerId())
@@ -102,6 +108,7 @@ func TestBuildCloudSessionRows(t *testing.T) {
 // TestMarshalMultiSigRequestUsesProtoBinary verifies account-resource multi-sig
 // requests stay on the protobuf binary wire format expected by cloud routes.
 func TestMarshalMultiSigRequestUsesProtoBinary(t *testing.T) {
+	// Prepare a multi-signature request with a timestamped entity signature.
 	req := &api.MultiSigRequest{
 		Envelope: []byte("envelope"),
 		Signatures: []*api.EntitySignature{{
@@ -111,11 +118,13 @@ func TestMarshalMultiSigRequestUsesProtoBinary(t *testing.T) {
 		}},
 	}
 
+	// Encode the multi-signature request using the cloud wire format.
 	body, err := marshalMultiSigRequest(req)
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	// Decode the protobuf request and verify every field survives encoding.
 	var decoded api.MultiSigRequest
 	if err := decoded.UnmarshalVT(body); err != nil {
 		t.Fatalf("expected protobuf binary multi-sig request, got decode error: %v", err)
@@ -129,9 +138,11 @@ func TestMarshalMultiSigRequestUsesProtoBinary(t *testing.T) {
 // streams get a typed error instead of a nil-pointer panic if mounted against a
 // local account resource.
 func TestCloudOnlyWatchesRejectLocalAccountResource(t *testing.T) {
+	// Prepare a local account Resource for the cloud-only watch check.
 	r := &AccountResource{localAccount: &provider_local.ProviderAccount{}}
 	ctx := context.Background()
 
+	// Verify that the cloud-only authentication watch rejects the local account.
 	err := r.WatchAuthMethods(
 		&s4wave_account.WatchAuthMethodsRequest{},
 		&testWatchAuthMethodsStream{ctx: ctx},
