@@ -669,8 +669,8 @@ message SOOperationResult {
 message SOOperationRejectionErrorDetails {
   // ErrorMsg is the error message.
   string error_msg = 1;
-  // MissingBlock is set when the validator found a block the operation needs
-  // in no store. The submitter may store its blocks again and resubmit.
+  // MissingBlock is set when replay found a block the operation needs in no
+  // store. The submitter may store its blocks again and resubmit.
   bool missing_block = 2;
 }
 
@@ -719,7 +719,7 @@ message SOEntityRecoveryMaterial {
 }
 
 // SOInvite is a pending invite on a SharedObject.
-// Stored in plaintext on SOState (not in encrypted SORoot).
+// Stored in plaintext on SOState, outside the encrypted checkpoint state.
 message SOInvite {
   // InviteId is the unique identifier for this invite.
   string invite_id = 1;

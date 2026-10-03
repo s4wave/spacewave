@@ -1936,8 +1936,8 @@ type SOOperationRejectionErrorDetails struct {
 	unknownFields []byte
 	// ErrorMsg is the error message.
 	ErrorMsg string `protobuf:"bytes,1,opt,name=error_msg,json=errorMsg,proto3" json:"errorMsg,omitempty"`
-	// MissingBlock is set when the validator found a block the operation needs
-	// in no store. The submitter may store its blocks again and resubmit.
+	// MissingBlock is set when replay found a block the operation needs in no
+	// store. The submitter may store its blocks again and resubmit.
 	MissingBlock bool `protobuf:"varint,2,opt,name=missing_block,json=missingBlock,proto3" json:"missingBlock,omitempty"`
 }
 
@@ -2116,7 +2116,7 @@ func (x *SOEntityRecoveryMaterial) GetGrantInner() *SOGrantInner {
 }
 
 // SOInvite is a pending invite on a SharedObject.
-// Stored in plaintext on SOState (not in encrypted SORoot).
+// Stored in plaintext on SOState, outside the encrypted checkpoint state.
 type SOInvite struct {
 	unknownFields []byte
 	// InviteId is the unique identifier for this invite.

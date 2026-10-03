@@ -1912,8 +1912,8 @@ export interface SOOperationRejectionErrorDetails {
    */
   errorMsg?: string
   /**
-   * MissingBlock is set when the validator found a block the operation needs
-   * in no store. The submitter may store its blocks again and resubmit.
+   * MissingBlock is set when replay found a block the operation needs in no
+   * store. The submitter may store its blocks again and resubmit.
    *
    * @generated from field: bool missing_block = 2;
    */
@@ -2175,7 +2175,7 @@ export const SOInviteParticipation: MessageType<SOInviteParticipation> =
 
 /**
  * SOInvite is a pending invite on a SharedObject.
- * Stored in plaintext on SOState (not in encrypted SORoot).
+ * Stored in plaintext on SOState, outside the encrypted checkpoint state.
  *
  * @generated from message sobject.SOInvite
  */
