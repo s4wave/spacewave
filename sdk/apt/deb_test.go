@@ -13,6 +13,7 @@ import (
 )
 
 func TestParseDebPackageControlGzip(t *testing.T) {
+	// Prepare a gzip control archive with package metadata and continuation lines.
 	control := strings.Join([]string{
 		"Package: busybox",
 		"Version: 1:1.36.1-7",
@@ -27,10 +28,14 @@ func TestParseDebPackageControlGzip(t *testing.T) {
 		"",
 	}, "\n")
 	deb := buildDebFixture(t, "control.tar.gz", []byte(control))
+
+	// Parse the Debian archive metadata.
 	pkg, err := ParseDebPackage(deb)
 	if err != nil {
 		t.Fatalf("ParseDebPackage: %v", err)
 	}
+
+	// Verify the package identity and importing state.
 	if got := pkg.GetState(); got != AptPackageState_AptPackageState_IMPORTING {
 		t.Fatalf("state = %s, want IMPORTING", got.String())
 	}
@@ -43,6 +48,8 @@ func TestParseDebPackageControlGzip(t *testing.T) {
 	if pkg.GetArchitecture() != "i386" {
 		t.Fatalf("architecture = %q, want i386", pkg.GetArchitecture())
 	}
+
+	// Verify package relationships, description, size, and record validity.
 	assertStringSlicesEqual(t, pkg.GetDepends(), []string{"libc6 (>= 2.34)", "zlib1g"})
 	assertStringSlicesEqual(t, pkg.GetProvides(), []string{"busybox-static"})
 	assertStringSlicesEqual(t, pkg.GetConflicts(), []string{"busybox-cvs"})
@@ -59,6 +66,7 @@ func TestParseDebPackageControlGzip(t *testing.T) {
 }
 
 func TestParseDebPackageControlZstd(t *testing.T) {
+	// Prepare and parse a zstd control archive.
 	control := strings.Join([]string{
 		"Package: busybox",
 		"Version: 1:1.36.1-7",
@@ -158,8 +166,8 @@ func buildDebFixture(t *testing.T, controlArchiveName string, control []byte) []
 }
 
 func buildControlArchiveFixture(t *testing.T, controlArchiveName string, control []byte) []byte {
+	// Write the control file into a tar archive.
 	t.Helper()
-
 	var tarBuf bytes.Buffer
 	tw := tar.NewWriter(&tarBuf)
 	if err := tw.WriteHeader(&tar.Header{
@@ -176,6 +184,7 @@ func buildControlArchiveFixture(t *testing.T, controlArchiveName string, control
 		t.Fatal(err)
 	}
 
+	// Encode the tar archive with the requested compression.
 	var archive bytes.Buffer
 	switch controlArchiveName {
 	case "control.tar":
@@ -211,8 +220,8 @@ type debArTestMember struct {
 }
 
 func buildDebArFixture(t *testing.T, members []debArTestMember) []byte {
+	// Write the Debian archive signature and its members.
 	t.Helper()
-
 	var buf bytes.Buffer
 	buf.WriteString(debArMagic)
 	for _, member := range members {

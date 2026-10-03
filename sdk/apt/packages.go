@@ -24,6 +24,7 @@ var (
 
 // AptPackagePoolFilename returns the repository pool path for a package.
 func AptPackagePoolFilename(pkg *AptPackage) (string, error) {
+	// Validate the package identity used in its pool filename.
 	if pkg == nil {
 		return "", errors.Wrap(ErrInvalidAptPackageIndexMetadata, "package is required")
 	}
@@ -37,6 +38,8 @@ func AptPackagePoolFilename(pkg *AptPackage) (string, error) {
 	if err != nil {
 		return "", err
 	}
+
+	// Validate the architecture and compose the package pool path.
 	if err := validateAptArchitecture(architecture); err != nil {
 		return "", err
 	}
@@ -51,6 +54,7 @@ func AptPackagePoolFilename(pkg *AptPackage) (string, error) {
 
 // GeneratePackagesFile renders published packages in Debian Packages format.
 func GeneratePackagesFile(packages []*AptPackage) ([]byte, error) {
+	// Collect published package entries with unique pool filenames.
 	entries := make([]packagesFileEntry, 0, len(packages))
 	filenames := make(map[string]struct{}, len(packages))
 	for _, pkg := range packages {
@@ -73,20 +77,28 @@ func GeneratePackagesFile(packages []*AptPackage) ([]byte, error) {
 		filenames[entry.filename] = struct{}{}
 		entries = append(entries, entry)
 	}
+
+	// Order package entries by pool filename for a stable index.
 	slices.SortFunc(entries, func(a, b packagesFileEntry) int {
 		return strings.Compare(a.filename, b.filename)
 	})
 
+	// Render the package entries as Debian control stanzas.
 	var buf bytes.Buffer
 	for _, entry := range entries {
+		// Write the package identity and archive location fields.
 		writePackagesField(&buf, "Package", entry.pkg.GetName())
 		writePackagesField(&buf, "Version", entry.pkg.GetVersion())
 		writePackagesField(&buf, "Architecture", entry.pkg.GetArchitecture())
 		writePackagesField(&buf, "Filename", entry.filename)
 		writePackagesField(&buf, "Size", entry.size)
+
+		// Write archive checksums for package verification.
 		writePackagesChecksumField(&buf, "MD5sum", entry.checksums["md5"])
 		writePackagesChecksumField(&buf, "SHA1", entry.checksums["sha1"])
 		writePackagesChecksumField(&buf, "SHA256", entry.checksums["sha256"])
+
+		// Write package relationships and description to finish the stanza.
 		writePackagesListField(&buf, "Depends", entry.pkg.GetDepends())
 		writePackagesListField(&buf, "Provides", entry.pkg.GetProvides())
 		writePackagesListField(&buf, "Conflicts", entry.pkg.GetConflicts())
@@ -107,6 +119,7 @@ func GeneratePackagesGzipFile(packages []*AptPackage) ([]byte, error) {
 
 // CompressPackagesFileGzip compresses Packages file bytes for Packages.gz.
 func CompressPackagesFileGzip(data []byte) ([]byte, error) {
+	// Compress the Packages bytes and close the gzip stream.
 	var buf bytes.Buffer
 	gw := gzip.NewWriter(&buf)
 	if _, err := gw.Write(data); err != nil {
@@ -129,6 +142,7 @@ type packagesFileEntry struct {
 }
 
 func newPackagesFileEntry(pkg *AptPackage) (packagesFileEntry, error) {
+	// Require a valid package record with index metadata.
 	if err := pkg.Validate(); err != nil {
 		return packagesFileEntry{}, err
 	}
@@ -142,6 +156,8 @@ func newPackagesFileEntry(pkg *AptPackage) (packagesFileEntry, error) {
 	if err != nil {
 		return packagesFileEntry{}, err
 	}
+
+	// Collect and validate the required archive checksums.
 	checksums := make(map[string]string)
 	for _, checksum := range pkg.GetChecksums() {
 		algorithm := strings.ToLower(checksum.GetAlgorithm())
@@ -161,6 +177,8 @@ func newPackagesFileEntry(pkg *AptPackage) (packagesFileEntry, error) {
 		}
 		checksums[algorithm] = value
 	}
+
+	// Require every checksum algorithm used by the Packages index.
 	for _, algorithm := range aptPackageIndexChecksumOrder {
 		if checksums[algorithm] == "" {
 			return packagesFileEntry{}, errors.Wrapf(ErrInvalidAptPackageIndexMetadata, "%s checksum is required", algorithm)
@@ -285,6 +303,7 @@ func writePackagesChecksumField(buf *bytes.Buffer, name string, value string) {
 }
 
 func writePackagesField(buf *bytes.Buffer, name string, value string) {
+	// Render the field value with Debian continuation lines.
 	lines := strings.Split(value, "\n")
 	buf.WriteString(name)
 	buf.WriteString(": ")

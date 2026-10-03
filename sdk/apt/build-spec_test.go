@@ -8,10 +8,12 @@ import (
 )
 
 func TestAptBuildSpecTypeIDAndBlock(t *testing.T) {
+	// Verify the build specification type identifier.
 	if AptBuildSpecTypeID != "spacewave-vm/apt/build-spec" {
 		t.Fatalf("AptBuildSpecTypeID = %q", AptBuildSpecTypeID)
 	}
 
+	// Prepare the source reference and build configuration and verify the record.
 	sourceRef, err := block.BuildBlockRef([]byte("busybox-source"), nil)
 	if err != nil {
 		t.Fatalf("BuildBlockRef: %v", err)
@@ -35,6 +37,7 @@ func TestAptBuildSpecTypeIDAndBlock(t *testing.T) {
 		t.Fatalf("Validate: %v", err)
 	}
 
+	// Verify the build specification survives binary encoding and decoding.
 	data, err := spec.MarshalBlock()
 	if err != nil {
 		t.Fatalf("MarshalBlock: %v", err)
@@ -49,6 +52,7 @@ func TestAptBuildSpecTypeIDAndBlock(t *testing.T) {
 }
 
 func TestAptBuildSpecValidateRejectsMissingCoreFields(t *testing.T) {
+	// Verify incomplete source and build configuration fields are rejected.
 	sourceRef, err := block.BuildBlockRef([]byte("busybox-source"), nil)
 	if err != nil {
 		t.Fatalf("BuildBlockRef: %v", err)

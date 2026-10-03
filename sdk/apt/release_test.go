@@ -8,6 +8,7 @@ import (
 )
 
 func TestGenerateReleaseFileRendersRepositoryMetadataAndChecksums(t *testing.T) {
+	// Prepare repository metadata and two index files for the release.
 	packagesFile := []byte("Package: busybox\n\n")
 	packagesGzip := []byte("gzip-data")
 	repo := &AptRepository{
@@ -17,6 +18,8 @@ func TestGenerateReleaseFileRendersRepositoryMetadataAndChecksums(t *testing.T) 
 		Architectures: []string{"i386"},
 	}
 	date := time.Date(2026, 5, 20, 21, 30, 0, 0, time.UTC)
+
+	// Generate release metadata and checksums for the index files.
 	data, err := GenerateReleaseFile(repo, map[string][]byte{
 		"main/binary-i386/Packages.gz": packagesGzip,
 		"main/binary-i386/Packages":    packagesFile,
@@ -24,6 +27,8 @@ func TestGenerateReleaseFileRendersRepositoryMetadataAndChecksums(t *testing.T) 
 	if err != nil {
 		t.Fatalf("GenerateReleaseFile: %v", err)
 	}
+
+	// Verify the release metadata and each index checksum section.
 	want := strings.Join([]string{
 		"Suite: stable",
 		"Codename: stable",

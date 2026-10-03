@@ -21,12 +21,14 @@ const (
 
 // ParseDebPackageFile parses apt package metadata from a local .deb file.
 func ParseDebPackageFile(debPath string) (*AptPackage, error) {
+	// Open the Debian package file for metadata parsing.
 	f, err := os.Open(debPath)
 	if err != nil {
 		return nil, errors.Wrap(err, "open deb package")
 	}
 	defer f.Close()
 
+	// Require a regular package file and obtain its archive size.
 	info, err := f.Stat()
 	if err != nil {
 		return nil, errors.Wrap(err, "stat deb package")
@@ -44,6 +46,7 @@ func ParseDebPackage(data []byte) (*AptPackage, error) {
 
 // ParseDebPackageReader parses apt package metadata from a Debian binary package.
 func ParseDebPackageReader(r io.ReaderAt, size int64) (*AptPackage, error) {
+	// Validate the Debian package archive signature.
 	if size < int64(len(debArMagic)) {
 		return nil, errors.Wrap(ErrInvalidDebPackage, "short ar header")
 	}
@@ -55,6 +58,7 @@ func ParseDebPackageReader(r io.ReaderAt, size int64) (*AptPackage, error) {
 		return nil, errors.Wrap(ErrInvalidDebPackage, "missing ar header")
 	}
 
+	// Read the Debian archive members and enforce their required order.
 	var (
 		sawDebianBinary bool
 		sawDataArchive  bool
@@ -116,6 +120,7 @@ type debArMember struct {
 }
 
 func readDebArMember(r io.ReaderAt, off int64, debSize int64) (*debArMember, error) {
+	// Read and validate the archive member header.
 	if off+debArHeaderSize > debSize {
 		return nil, errors.Wrap(ErrInvalidDebPackage, "short ar member header")
 	}
@@ -126,6 +131,8 @@ func readDebArMember(r io.ReaderAt, off int64, debSize int64) (*debArMember, err
 	if string(header[58:60]) != "`\n" {
 		return nil, errors.Wrap(ErrInvalidDebPackage, "invalid ar member trailer")
 	}
+
+	// Decode the archive member name and payload size.
 	name := strings.TrimSpace(string(header[0:16]))
 	name = strings.TrimSuffix(name, "/")
 	memberSize, err := strconv.ParseInt(strings.TrimSpace(string(header[48:58])), 10, 64)
@@ -135,6 +142,8 @@ func readDebArMember(r io.ReaderAt, off int64, debSize int64) (*debArMember, err
 	if memberSize < 0 {
 		return nil, errors.Wrap(ErrInvalidDebPackage, "negative ar member size")
 	}
+
+	// Validate the payload bounds and calculate the next aligned member offset.
 	dataOffset := off + debArHeaderSize
 	dataEnd := dataOffset + memberSize
 	if dataEnd > debSize {
@@ -153,6 +162,7 @@ func readDebArMember(r io.ReaderAt, off int64, debSize int64) (*debArMember, err
 }
 
 func validateDebianBinaryMember(r io.ReaderAt, member *debArMember) error {
+	// Read the Debian format marker and require version 2.0.
 	if member.size > 64 {
 		return errors.Wrap(ErrInvalidDebPackage, "debian-binary member too large")
 	}
@@ -167,12 +177,14 @@ func validateDebianBinaryMember(r io.ReaderAt, member *debArMember) error {
 }
 
 func parseDebControlArchive(r io.ReaderAt, member *debArMember, debSize uint64) (*AptPackage, error) {
+	// Open the control archive with its declared compression.
 	rc, err := openDebControlArchive(member.name, io.NewSectionReader(r, member.offset, member.size))
 	if err != nil {
 		return nil, err
 	}
 	defer rc.Close()
 
+	// Find the control file in the decompressed archive.
 	tr := tar.NewReader(rc)
 	for {
 		header, err := tr.Next()
@@ -215,6 +227,7 @@ func openDebControlArchive(name string, r io.Reader) (io.ReadCloser, error) {
 }
 
 func parseDebControlFile(data []byte, debSize uint64) (*AptPackage, error) {
+	// Decode the control fields and require the package identity.
 	fields, err := parseDebControlFields(string(data))
 	if err != nil {
 		return nil, err
@@ -227,6 +240,8 @@ func parseDebControlFile(data []byte, debSize uint64) (*AptPackage, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	// Require the architecture and description for the package record.
 	architecture, err := requireDebControlField(fields, "architecture")
 	if err != nil {
 		return nil, err
@@ -249,6 +264,7 @@ func parseDebControlFile(data []byte, debSize uint64) (*AptPackage, error) {
 }
 
 func parseDebControlFields(control string) (map[string]string, error) {
+	// Collect control fields and their continuation lines.
 	control = strings.ReplaceAll(control, "\r\n", "\n")
 	fields := make(map[string]string)
 	var current string

@@ -16,6 +16,7 @@ type DebPackageBlockWriter interface {
 
 // StoreDebPackageBlock stores .deb package data in the given block store.
 func StoreDebPackageBlock(ctx context.Context, store DebPackageBlockWriter, deb []byte) (*block.BlockRef, error) {
+	// Require a block store and package bytes before storing the archive.
 	if store == nil {
 		return nil, errors.New("store is required")
 	}
@@ -31,6 +32,7 @@ func StoreDebPackageBlock(ctx context.Context, store DebPackageBlockWriter, deb 
 
 // CompleteAptPackageImport attaches a stored .deb ref and transitions to BUILT.
 func CompleteAptPackageImport(pkg *AptPackage, debRef *block.BlockRef) (*AptPackage, error) {
+	// Attach the archive reference to a copy of the package and complete its import.
 	if pkg == nil {
 		return nil, errors.New("apt_package is required")
 	}
@@ -53,6 +55,7 @@ func ImportDebPackage(
 	packageKey string,
 	deb []byte,
 ) (*AptPackage, *block.BlockRef, error) {
+	// Validate the World and repository target before importing the package.
 	if ws == nil {
 		return nil, nil, errors.New("world state is required")
 	}
@@ -66,24 +69,28 @@ func ImportDebPackage(
 		return nil, nil, err
 	}
 
+	// Parse package metadata and checksum the archive bytes.
 	parsed, err := ParseDebPackage(deb)
 	if err != nil {
 		return nil, nil, err
 	}
 	parsed.Checksums = AptPackageChecksums(deb)
 
+	// Find an existing importing package at the requested object key.
 	objectState, existing, err := lookupAptPackageImportTarget(ctx, ws, packageKey)
 	defer world.ReleaseObjectState(objectState)
 	if err != nil {
 		return nil, nil, err
 	}
 
+	// Acquire the World storage cursor for the package archive.
 	cursor, err := ws.BuildStorageCursor(ctx)
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "build storage cursor")
 	}
 	defer cursor.Release()
 
+	// Store the archive bytes and complete the parsed package record.
 	debRef, err := StoreDebPackageBlock(ctx, cursor, deb)
 	if err != nil {
 		return nil, nil, err
@@ -93,6 +100,7 @@ func ImportDebPackage(
 		return nil, nil, err
 	}
 
+	// Create and complete the package object when the import target is absent.
 	if objectState == nil {
 		op := NewAddAptPackageOp(repositoryKey, packageKey, parsed)
 		if _, _, err := ws.ApplyWorldOp(ctx, op, ""); err != nil {
@@ -109,6 +117,7 @@ func ImportDebPackage(
 		return aptPackage, debRef, nil
 	}
 
+	// Update the existing package and link it to the repository.
 	if err := updateImportedAptPackage(ctx, objectState, existing, aptPackage); err != nil {
 		return nil, nil, err
 	}
@@ -128,6 +137,7 @@ func lookupAptPackageImportTarget(
 	ws world.WorldState,
 	packageKey string,
 ) (world.ObjectState, *AptPackage, error) {
+	// Resolve the import target and require an importing package record.
 	objectState, found, err := ws.GetObject(ctx, packageKey)
 	if err != nil {
 		world.ReleaseObjectState(objectState)
@@ -176,6 +186,7 @@ func updateImportedAptPackage(
 	existing *AptPackage,
 	aptPackage *AptPackage,
 ) error {
+	// Complete a copy of the package using its existing state.
 	next := aptPackage.CloneVT()
 	next.State = existing.GetState()
 	next.DebRef = nil

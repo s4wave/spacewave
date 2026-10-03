@@ -13,6 +13,7 @@ import (
 
 // GenerateReleaseFile renders Debian Release metadata for generated index files.
 func GenerateReleaseFile(repo *AptRepository, files map[string][]byte, date time.Time) ([]byte, error) {
+	// Validate the repository, release date, and index files.
 	if repo == nil {
 		return nil, errors.Wrap(ErrInvalidAptPackageIndexMetadata, "repository is required")
 	}
@@ -31,12 +32,15 @@ func GenerateReleaseFile(repo *AptRepository, files map[string][]byte, date time
 		return nil, err
 	}
 
+	// Render the release identity and distribution metadata.
 	var buf bytes.Buffer
 	writePackagesField(&buf, "Suite", distribution)
 	writePackagesField(&buf, "Codename", distribution)
 	writePackagesField(&buf, "Date", date.UTC().Format(time.RFC1123))
 	writePackagesField(&buf, "Architectures", strings.Join(architectures, " "))
 	writePackagesField(&buf, "Components", strings.Join(components, " "))
+
+	// Render checksum sections for every index file.
 	writeReleaseChecksumSection(&buf, "MD5Sum", entries, func(c aptChecksumSet) string {
 		return c.md5
 	})
@@ -50,6 +54,7 @@ func GenerateReleaseFile(repo *AptRepository, files map[string][]byte, date time
 }
 
 func aptReleaseMetadata(repo *AptRepository) (string, []string, []string, error) {
+	// Validate the distribution, components, and architectures for the release.
 	distribution := repo.GetDistribution()
 	if err := validateAptReleaseToken("distribution", distribution); err != nil {
 		return "", nil, nil, err
@@ -76,6 +81,7 @@ type releaseFileEntry struct {
 }
 
 func newReleaseFileEntries(files map[string][]byte) ([]releaseFileEntry, error) {
+	// Collect unique index file paths with sizes and checksums.
 	if len(files) == 0 {
 		return nil, errors.Wrap(ErrInvalidAptPackageIndexMetadata, "release files are required")
 	}
@@ -96,6 +102,8 @@ func newReleaseFileEntries(files map[string][]byte) ([]releaseFileEntry, error) 
 			checksums: newAptChecksumSet(data),
 		})
 	}
+
+	// Sort release entries by path for stable output.
 	slices.SortFunc(entries, func(a, b releaseFileEntry) int {
 		return strings.Compare(a.path, b.path)
 	})
@@ -103,6 +111,7 @@ func newReleaseFileEntries(files map[string][]byte) ([]releaseFileEntry, error) 
 }
 
 func cleanReleaseFilePath(filePath string) (string, error) {
+	// Normalize the index path and require a printable relative path.
 	if filePath == "" {
 		return "", errors.Wrap(ErrInvalidAptPackageIndexMetadata, "release file path is required")
 	}

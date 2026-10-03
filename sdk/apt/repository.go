@@ -31,6 +31,7 @@ func (r *AptRepository) UnmarshalBlock(data []byte) error {
 
 // Validate performs cursory checks on the AptRepository.
 func (r *AptRepository) Validate() error {
+	// Validate the repository state, distribution, and index reference.
 	if err := r.GetState().Validate(); err != nil {
 		return err
 	}

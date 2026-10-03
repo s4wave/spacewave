@@ -30,6 +30,7 @@ func (s *AptBuildSpec) UnmarshalBlock(data []byte) error {
 
 // Validate performs cursory checks on the AptBuildSpec.
 func (s *AptBuildSpec) Validate() error {
+	// Require the source package, source reference, and build configuration.
 	if s.GetSourcePackage() == "" {
 		return errors.New("source_package is required")
 	}

@@ -8,6 +8,7 @@ import (
 )
 
 func TestAptPackageTypeIDPredicatesAndBlock(t *testing.T) {
+	// Verify the package type identifier and graph predicates.
 	if AptPackageTypeID != "spacewave-vm/apt/package" {
 		t.Fatalf("AptPackageTypeID = %q", AptPackageTypeID)
 	}
@@ -27,6 +28,7 @@ func TestAptPackageTypeIDPredicatesAndBlock(t *testing.T) {
 		}
 	}
 
+	// Prepare a built package and verify its block type and validity.
 	ref, err := block.BuildBlockRef([]byte("deb-payload"), nil)
 	if err != nil {
 		t.Fatalf("BuildBlockRef: %v", err)
@@ -53,6 +55,7 @@ func TestAptPackageTypeIDPredicatesAndBlock(t *testing.T) {
 		t.Fatalf("Validate: %v", err)
 	}
 
+	// Verify the package block survives binary encoding and decoding.
 	data, err := pkg.MarshalBlock()
 	if err != nil {
 		t.Fatalf("MarshalBlock: %v", err)
@@ -67,6 +70,7 @@ func TestAptPackageTypeIDPredicatesAndBlock(t *testing.T) {
 }
 
 func TestAptPackageStateTransitions(t *testing.T) {
+	// Prepare an importing package with a stored archive reference.
 	ref, err := block.BuildBlockRef([]byte("deb-payload"), nil)
 	if err != nil {
 		t.Fatalf("BuildBlockRef: %v", err)
@@ -78,12 +82,16 @@ func TestAptPackageStateTransitions(t *testing.T) {
 		Architecture: "i386",
 	}
 	pkg.DebRef = ref
+
+	// Build the package and verify its resulting state.
 	if err := pkg.TransitionState(AptPackageState_AptPackageState_BUILT); err != nil {
 		t.Fatalf("TransitionState(built): %v", err)
 	}
 	if got := pkg.GetState(); got != AptPackageState_AptPackageState_BUILT {
 		t.Fatalf("package state = %s, want BUILT", got.String())
 	}
+
+	// Verify publication and superseding obey the package transition rules.
 	if err := pkg.TransitionState(AptPackageState_AptPackageState_SUPERSEDED); !errors.Is(err, ErrInvalidAptPackageStateTransition) {
 		t.Fatalf("TransitionState(superseded) err = %v, want invalid transition", err)
 	}
@@ -99,10 +107,13 @@ func TestAptPackageStateTransitions(t *testing.T) {
 }
 
 func TestAptPackageValidateRejectsMissingCoreFields(t *testing.T) {
+	// Build an archive reference for incomplete package validation.
 	ref, err := block.BuildBlockRef([]byte("deb-payload"), nil)
 	if err != nil {
 		t.Fatalf("BuildBlockRef: %v", err)
 	}
+
+	// Verify missing package identity, archive, checksum, and state fields are rejected.
 	if err := (&AptPackage{}).Validate(); err == nil {
 		t.Fatal("expected missing name error")
 	}

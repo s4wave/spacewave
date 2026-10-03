@@ -10,15 +10,19 @@ import (
 )
 
 func TestImportDebPackageStoresBlockAndCreatesBuiltPackage(t *testing.T) {
+	// Prepare the repository, archive bytes, and package key.
 	ctx, ws := setupAptWorldWithRepository(t)
 	deb := testBusyboxDeb(t)
 	repositoryKey := "apt/repos/stable"
 	packageKey := "apt/repos/stable/packages/busybox"
 
+	// Import the Debian package into the World.
 	aptPackage, debRef, err := ImportDebPackage(ctx, ws, repositoryKey, packageKey, deb)
 	if err != nil {
 		t.Fatalf("ImportDebPackage: %v", err)
 	}
+
+	// Verify the returned package metadata and stored archive reference.
 	if debRef.GetEmpty() {
 		t.Fatal("deb ref is empty")
 	}
@@ -34,6 +38,7 @@ func TestImportDebPackageStoresBlockAndCreatesBuiltPackage(t *testing.T) {
 	assertChecksumHex(t, aptPackage.GetChecksums(), "sha256", sha256Hex(deb))
 	assertStoredDebBlock(t, ctx, ws, debRef, deb)
 
+	// Verify the persisted package record, object type, and repository edge.
 	stored := readAptBlock[*AptPackage](t, ctx, ws, packageKey, func() block.Block {
 		return &AptPackage{}
 	})
@@ -45,11 +50,13 @@ func TestImportDebPackageStoresBlockAndCreatesBuiltPackage(t *testing.T) {
 }
 
 func TestImportDebPackageCompletesExistingImportingPackage(t *testing.T) {
+	// Prepare the repository and archive for an existing package import.
 	ctx, ws := setupAptWorldWithRepository(t)
 	deb := testBusyboxDeb(t)
 	repositoryKey := "apt/repos/stable"
 	packageKey := "apt/repos/stable/packages/busybox"
 
+	// Create an importing package object in the repository.
 	op := NewAddAptPackageOp(repositoryKey, packageKey, &AptPackage{
 		State:        AptPackageState_AptPackageState_IMPORTING,
 		Name:         "busybox",
@@ -61,10 +68,13 @@ func TestImportDebPackageCompletesExistingImportingPackage(t *testing.T) {
 		t.Fatalf("ApplyWorldOp(add importing package): %v", err)
 	}
 
+	// Complete the existing package import.
 	aptPackage, debRef, err := ImportDebPackage(ctx, ws, repositoryKey, packageKey, deb)
 	if err != nil {
 		t.Fatalf("ImportDebPackage(existing): %v", err)
 	}
+
+	// Verify the completed package state, archive bytes, and repository edge.
 	if got := aptPackage.GetState(); got != AptPackageState_AptPackageState_BUILT {
 		t.Fatalf("state = %s, want BUILT", got.String())
 	}
@@ -73,11 +83,13 @@ func TestImportDebPackageCompletesExistingImportingPackage(t *testing.T) {
 }
 
 func TestImportDebPackageRejectsExistingBuiltPackage(t *testing.T) {
+	// Prepare a repository and package archive for duplicate import.
 	ctx, ws := setupAptWorldWithRepository(t)
 	deb := testBusyboxDeb(t)
 	repositoryKey := "apt/repos/stable"
 	packageKey := "apt/repos/stable/packages/busybox"
 
+	// Verify an already built package rejects another import.
 	if _, _, err := ImportDebPackage(ctx, ws, repositoryKey, packageKey, deb); err != nil {
 		t.Fatalf("ImportDebPackage(create): %v", err)
 	}
@@ -87,11 +99,14 @@ func TestImportDebPackageRejectsExistingBuiltPackage(t *testing.T) {
 }
 
 func TestImportDebPackageRejectsInvalidDebBeforeWorldMutation(t *testing.T) {
+	// Reject invalid Debian bytes before checking the World remains unchanged.
 	ctx, ws := setupAptWorldWithRepository(t)
 	packageKey := "apt/repos/stable/packages/busybox"
 	if _, _, err := ImportDebPackage(ctx, ws, "apt/repos/stable", packageKey, []byte("deb")); !errors.Is(err, ErrInvalidDebPackage) {
 		t.Fatalf("ImportDebPackage invalid deb err = %v, want invalid deb package", err)
 	}
+
+	// Verify the failed import created no package object.
 	objectState, found, err := ws.GetObject(ctx, packageKey)
 	world.ReleaseObjectState(objectState)
 	if err != nil {
@@ -113,8 +128,8 @@ func TestCompleteAptPackageImportRequiresDebRef(t *testing.T) {
 }
 
 func setupAptWorldWithRepository(t *testing.T) (context.Context, world.WorldState) {
+	// Create the Apt repository in the prepared World.
 	t.Helper()
-
 	ctx, ws := setupAptWorld(t)
 	createRepo := NewCreateAptRepositoryOp("apt/repos/stable", &AptRepository{
 		State:         AptRepositoryState_AptRepositoryState_EMPTY,
@@ -147,14 +162,15 @@ func assertStoredDebBlock(
 	debRef *block.BlockRef,
 	want []byte,
 ) {
+	// Acquire a storage cursor for archive readback.
 	t.Helper()
-
 	cursor, err := ws.BuildStorageCursor(ctx)
 	if err != nil {
 		t.Fatalf("BuildStorageCursor: %v", err)
 	}
 	defer cursor.Release()
 
+	// Verify the stored archive bytes match the input.
 	got, found, err := cursor.GetBlock(ctx, debRef)
 	if err != nil {
 		t.Fatalf("GetBlock: %v", err)

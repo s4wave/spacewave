@@ -46,6 +46,7 @@ func (o *CreateAptRepositoryOp) GetOperationTypeId() string {
 
 // Validate performs cursory checks on the op.
 func (o *CreateAptRepositoryOp) Validate() error {
+	// Validate the repository identity, contents, and initial state.
 	if o.GetObjectKey() == "" {
 		return world.ErrEmptyObjectKey
 	}
@@ -68,10 +69,12 @@ func (o *CreateAptRepositoryOp) ApplyWorldOp(
 	ws world.WorldState,
 	sender peer.ID,
 ) (sysErr bool, err error) {
+	// Validate the repository creation request before changing the World.
 	if err := o.Validate(); err != nil {
 		return false, err
 	}
 
+	// Create the repository object from a copy of the requested record.
 	objectKey := o.GetObjectKey()
 	repository := o.GetRepository().CloneVT()
 	var createdObject world.ObjectState
@@ -84,6 +87,7 @@ func (o *CreateAptRepositoryOp) ApplyWorldOp(
 		return false, err
 	}
 
+	// Register the repository object type in the World graph.
 	if err := world_types.SetObjectType(ctx, ws, objectKey, AptRepositoryTypeID); err != nil {
 		return false, err
 	}
@@ -140,6 +144,7 @@ func (o *AddAptPackageOp) GetOperationTypeId() string {
 
 // Validate performs cursory checks on the op.
 func (o *AddAptPackageOp) Validate() error {
+	// Require the repository and child record keys and contents.
 	if o.GetRepositoryKey() == "" {
 		return errors.New("repository_key is required")
 	}
@@ -165,6 +170,7 @@ func (o *AddAptPackageOp) ApplyWorldOp(
 	ws world.WorldState,
 	sender peer.ID,
 ) (sysErr bool, err error) {
+	// Validate the child record and its repository before changing the World.
 	if err := o.Validate(); err != nil {
 		return false, err
 	}
@@ -172,6 +178,7 @@ func (o *AddAptPackageOp) ApplyWorldOp(
 		return false, err
 	}
 
+	// Create the package object from a copy of the requested record.
 	packageKey := o.GetPackageKey()
 	aptPackage := o.GetAptPackage().CloneVT()
 	var createdObject world.ObjectState
@@ -184,6 +191,7 @@ func (o *AddAptPackageOp) ApplyWorldOp(
 		return false, err
 	}
 
+	// Register the package type and link it to its repository.
 	if err := world_types.SetObjectType(ctx, ws, packageKey, AptPackageTypeID); err != nil {
 		return false, err
 	}
@@ -363,6 +371,7 @@ func applyAptPackageStateTransition(
 	packageKey string,
 	next AptPackageState,
 ) error {
+	// Open the typed package object for a state transition.
 	if err := world_types.CheckObjectType(ctx, ws, packageKey, AptPackageTypeID); err != nil {
 		return err
 	}
@@ -371,13 +380,18 @@ func applyAptPackageStateTransition(
 	if err != nil {
 		return err
 	}
+
+	// Apply the package transition and persist its updated record.
 	_, _, err = world.AccessObjectState(ctx, objectState, true, func(bcs *block.Cursor) error {
+		// Decode the package record before changing its state.
 		aptPackage, err := block.UnmarshalBlock[*AptPackage](ctx, bcs, func() block.Block {
 			return &AptPackage{}
 		})
 		if err != nil {
 			return err
 		}
+
+		// Validate the package transition and write the resulting record.
 		if err := aptPackage.TransitionState(next); err != nil {
 			return err
 		}
@@ -408,6 +422,7 @@ func (o *AddAptBuildSpecOp) GetOperationTypeId() string {
 
 // Validate performs cursory checks on the op.
 func (o *AddAptBuildSpecOp) Validate() error {
+	// Require the repository and child record keys and contents.
 	if o.GetRepositoryKey() == "" {
 		return errors.New("repository_key is required")
 	}
@@ -427,6 +442,7 @@ func (o *AddAptBuildSpecOp) ApplyWorldOp(
 	ws world.WorldState,
 	sender peer.ID,
 ) (sysErr bool, err error) {
+	// Validate the child record and its repository before changing the World.
 	if err := o.Validate(); err != nil {
 		return false, err
 	}
@@ -434,6 +450,7 @@ func (o *AddAptBuildSpecOp) ApplyWorldOp(
 		return false, err
 	}
 
+	// Create the build specification object from a copy of the request.
 	buildSpecKey := o.GetBuildSpecKey()
 	buildSpec := o.GetBuildSpec().CloneVT()
 	var createdObject world.ObjectState
@@ -446,6 +463,7 @@ func (o *AddAptBuildSpecOp) ApplyWorldOp(
 		return false, err
 	}
 
+	// Register the build specification type and link it to its repository.
 	if err := world_types.SetObjectType(ctx, ws, buildSpecKey, AptBuildSpecTypeID); err != nil {
 		return false, err
 	}

@@ -50,6 +50,7 @@ func (s AptPackageState) EnsureTransitionTo(next AptPackageState) error {
 
 // TransitionState transitions the package to the next legal state.
 func (p *AptPackage) TransitionState(next AptPackageState) error {
+	// Apply a legal package transition and restore its state if validation fails.
 	if err := p.GetState().EnsureTransitionTo(next); err != nil {
 		return err
 	}

@@ -13,11 +13,13 @@ import (
 )
 
 func TestAptWorldOpsCreateTypedEntitiesAndRepositoryEdges(t *testing.T) {
+	// Prepare a World and keys for the repository and its child records.
 	ctx, ws := setupAptWorld(t)
 	repositoryKey := "apt/repos/stable"
 	packageKey := "apt/repos/stable/packages/busybox"
 	buildSpecKey := "apt/repos/stable/specs/busybox"
 
+	// Create the repository in the World.
 	createRepo := NewCreateAptRepositoryOp(repositoryKey, &AptRepository{
 		State:         AptRepositoryState_AptRepositoryState_EMPTY,
 		Distribution:  "stable",
@@ -28,6 +30,7 @@ func TestAptWorldOpsCreateTypedEntitiesAndRepositoryEdges(t *testing.T) {
 		t.Fatalf("ApplyWorldOp(create repository): %v", err)
 	}
 
+	// Import the package archive and verify the built state.
 	aptPackage, debRef, err := ImportDebPackage(ctx, ws, repositoryKey, packageKey, testBusyboxDeb(t))
 	if err != nil {
 		t.Fatalf("ImportDebPackage: %v", err)
@@ -36,6 +39,7 @@ func TestAptWorldOpsCreateTypedEntitiesAndRepositoryEdges(t *testing.T) {
 		t.Fatalf("imported package state = %s, want BUILT", got.String())
 	}
 
+	// Add a build specification referencing the source archive.
 	sourceRef, err := block.BuildBlockRef([]byte("busybox-source"), nil)
 	if err != nil {
 		t.Fatalf("BuildBlockRef(source): %v", err)
@@ -49,10 +53,12 @@ func TestAptWorldOpsCreateTypedEntitiesAndRepositoryEdges(t *testing.T) {
 		t.Fatalf("ApplyWorldOp(add build spec): %v", err)
 	}
 
+	// Verify every created object has its expected type.
 	assertObjectType(t, ctx, ws, repositoryKey, AptRepositoryTypeID)
 	assertObjectType(t, ctx, ws, packageKey, AptPackageTypeID)
 	assertObjectType(t, ctx, ws, buildSpecKey, AptBuildSpecTypeID)
 
+	// Read back the repository, package, and build specification records.
 	repository := readAptBlock[*AptRepository](t, ctx, ws, repositoryKey, func() block.Block {
 		return &AptRepository{}
 	})
@@ -75,11 +81,13 @@ func TestAptWorldOpsCreateTypedEntitiesAndRepositoryEdges(t *testing.T) {
 		t.Fatalf("build spec source package = %q, want busybox", buildSpec.GetSourcePackage())
 	}
 
+	// Verify the repository graph links both child records.
 	assertGraphEdge(t, ctx, ws, repositoryKey, PredAptRepoPackage.String(), packageKey)
 	assertGraphEdge(t, ctx, ws, repositoryKey, PredAptRepoBuildSpec.String(), buildSpecKey)
 }
 
 func TestAptWorldOpsRejectInvalidInitialStates(t *testing.T) {
+	// Verify a ready repository cannot be created as an initial record.
 	indexRef, err := block.BuildBlockRef([]byte("dists-index"), nil)
 	if err != nil {
 		t.Fatalf("BuildBlockRef(index): %v", err)
@@ -95,6 +103,7 @@ func TestAptWorldOpsRejectInvalidInitialStates(t *testing.T) {
 		t.Fatalf("CreateAptRepositoryOp.Validate err = %v, want invalid initial state", err)
 	}
 
+	// Verify built, published, and superseded packages cannot be added as initial records.
 	debRef, err := block.BuildBlockRef([]byte("deb-payload"), nil)
 	if err != nil {
 		t.Fatalf("BuildBlockRef(deb): %v", err)
@@ -132,11 +141,14 @@ func TestAptWorldOpsRejectInvalidInitialStates(t *testing.T) {
 }
 
 func TestAptPublishPackageOpTransitionsBuiltPackage(t *testing.T) {
+	// Prepare and publish a built World package.
 	ctx, ws, packageKey := setupAptWorldWithBuiltPackage(t)
 	publish := NewAptPublishPackageOp(packageKey)
 	if _, _, err := ws.ApplyWorldOp(ctx, publish, ""); err != nil {
 		t.Fatalf("ApplyWorldOp(publish): %v", err)
 	}
+
+	// Read back the package and verify its published state.
 	aptPackage := readAptBlock[*AptPackage](t, ctx, ws, packageKey, func() block.Block {
 		return &AptPackage{}
 	})
@@ -146,6 +158,7 @@ func TestAptPublishPackageOpTransitionsBuiltPackage(t *testing.T) {
 }
 
 func TestAptPublishPackageOpRejectsInvalidSourceState(t *testing.T) {
+	// Create an importing World package for the rejected publish operation.
 	ctx, ws := setupAptWorldWithRepository(t)
 	packageKey := "apt/repos/stable/packages/busybox"
 	addImporting := NewAddAptPackageOp("apt/repos/stable", packageKey, &AptPackage{
@@ -158,10 +171,14 @@ func TestAptPublishPackageOpRejectsInvalidSourceState(t *testing.T) {
 	if _, _, err := ws.ApplyWorldOp(ctx, addImporting, ""); err != nil {
 		t.Fatalf("ApplyWorldOp(add importing): %v", err)
 	}
+
+	// Verify publication rejects the importing package.
 	publish := NewAptPublishPackageOp(packageKey)
 	if _, _, err := ws.ApplyWorldOp(ctx, publish, ""); !errors.Is(err, ErrInvalidAptPackageStateTransition) {
 		t.Fatalf("ApplyWorldOp(publish importing) err = %v, want invalid transition", err)
 	}
+
+	// Read back the package and verify its importing state.
 	aptPackage := readAptBlock[*AptPackage](t, ctx, ws, packageKey, func() block.Block {
 		return &AptPackage{}
 	})
@@ -171,13 +188,18 @@ func TestAptPublishPackageOpRejectsInvalidSourceState(t *testing.T) {
 }
 
 func TestAptSupersedePackageOpTransitionsPublishedPackage(t *testing.T) {
+	// Prepare and publish the package before superseding it.
 	ctx, ws, packageKey := setupAptWorldWithBuiltPackage(t)
 	if _, _, err := ws.ApplyWorldOp(ctx, NewAptPublishPackageOp(packageKey), ""); err != nil {
 		t.Fatalf("ApplyWorldOp(publish): %v", err)
 	}
+
+	// Supersede the published package in the World.
 	if _, _, err := ws.ApplyWorldOp(ctx, NewAptSupersedePackageOp(packageKey), ""); err != nil {
 		t.Fatalf("ApplyWorldOp(supersede): %v", err)
 	}
+
+	// Read back the package and verify its superseded state.
 	aptPackage := readAptBlock[*AptPackage](t, ctx, ws, packageKey, func() block.Block {
 		return &AptPackage{}
 	})
@@ -187,10 +209,13 @@ func TestAptSupersedePackageOpTransitionsPublishedPackage(t *testing.T) {
 }
 
 func TestAptSupersedePackageOpRejectsInvalidSourceState(t *testing.T) {
+	// Verify a built package cannot be superseded.
 	ctx, ws, packageKey := setupAptWorldWithBuiltPackage(t)
 	if _, _, err := ws.ApplyWorldOp(ctx, NewAptSupersedePackageOp(packageKey), ""); !errors.Is(err, ErrInvalidAptPackageStateTransition) {
 		t.Fatalf("ApplyWorldOp(supersede built) err = %v, want invalid transition", err)
 	}
+
+	// Read back the package and verify its built state.
 	aptPackage := readAptBlock[*AptPackage](t, ctx, ws, packageKey, func() block.Block {
 		return &AptPackage{}
 	})
@@ -200,6 +225,7 @@ func TestAptSupersedePackageOpRejectsInvalidSourceState(t *testing.T) {
 }
 
 func TestLookupAptOp(t *testing.T) {
+	// Prepare the operation identifiers supported by the Apt lookup.
 	ctx := context.Background()
 	tests := []struct {
 		name string
@@ -211,12 +237,17 @@ func TestLookupAptOp(t *testing.T) {
 		{name: "supersede package", id: AptSupersedePackageOpId},
 		{name: "add build spec", id: AddAptBuildSpecOpId},
 	}
+
+	// Resolve every supported Apt operation identifier.
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
+			// Resolve the operation for this test case.
 			op, err := LookupAptOp(ctx, test.id)
 			if err != nil {
 				t.Fatalf("LookupAptOp: %v", err)
 			}
+
+			// Verify the operation exists and carries the requested identifier.
 			if op == nil {
 				t.Fatalf("LookupAptOp(%q) returned nil", test.id)
 			}
@@ -226,6 +257,7 @@ func TestLookupAptOp(t *testing.T) {
 		})
 	}
 
+	// Verify an unknown operation identifier resolves to no operation.
 	op, err := LookupAptOp(ctx, "unknown/op")
 	if err != nil {
 		t.Fatalf("LookupAptOp(unknown): %v", err)
@@ -236,8 +268,8 @@ func TestLookupAptOp(t *testing.T) {
 }
 
 func setupAptWorld(t *testing.T) (context.Context, world.WorldState) {
+	// Start a World testbed and register its cleanup.
 	t.Helper()
-
 	ctx := t.Context()
 	tb, err := world_testbed.Default(ctx, world_testbed.WithWorldVerbose(false))
 	if err != nil {
@@ -245,6 +277,7 @@ func setupAptWorld(t *testing.T) (context.Context, world.WorldState) {
 	}
 	t.Cleanup(tb.Release)
 
+	// Register the Apt operation controller on the testbed bus.
 	opController := world.NewLookupOpController("test-apt-ops", tb.EngineID, LookupAptOp)
 	if _, err := tb.Bus.AddController(ctx, opController, nil); err != nil {
 		t.Fatal(err)
@@ -254,8 +287,8 @@ func setupAptWorld(t *testing.T) (context.Context, world.WorldState) {
 }
 
 func setupAptWorldWithBuiltPackage(t *testing.T) (context.Context, world.WorldState, string) {
+	// Import a package into the prepared World repository.
 	t.Helper()
-
 	ctx, ws := setupAptWorldWithRepository(t)
 	packageKey := "apt/repos/stable/packages/busybox"
 	if _, _, err := ImportDebPackage(ctx, ws, "apt/repos/stable", packageKey, testBusyboxDeb(t)); err != nil {
@@ -283,8 +316,8 @@ func readAptBlock[T block.Block](
 	objectKey string,
 	ctor func() block.Block,
 ) T {
+	// Acquire the requested World object for block readback.
 	t.Helper()
-
 	objectState, found, err := ws.GetObject(ctx, objectKey)
 	defer world.ReleaseObjectState(objectState)
 	if err != nil {
@@ -294,6 +327,7 @@ func readAptBlock[T block.Block](
 		t.Fatalf("object %s not found", objectKey)
 	}
 
+	// Decode the World object block and check the read result.
 	var out T
 	_, _, err = world.AccessObjectState(ctx, objectState, false, func(bcs *block.Cursor) error {
 		var unmarshalErr error

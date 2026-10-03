@@ -30,6 +30,7 @@ func (p *AptPackage) UnmarshalBlock(data []byte) error {
 
 // Validate performs cursory checks on the AptPackage.
 func (p *AptPackage) Validate() error {
+	// Validate the package identity, archive reference, and checksums.
 	if err := p.GetState().Validate(); err != nil {
 		return err
 	}

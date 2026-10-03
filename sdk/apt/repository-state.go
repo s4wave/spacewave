@@ -53,6 +53,7 @@ func (s AptRepositoryState) EnsureTransitionTo(next AptRepositoryState) error {
 
 // TransitionState transitions the repository to the next legal state.
 func (r *AptRepository) TransitionState(next AptRepositoryState) error {
+	// Apply a legal repository transition and restore its state if validation fails.
 	if err := r.GetState().EnsureTransitionTo(next); err != nil {
 		return err
 	}

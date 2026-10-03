@@ -16,6 +16,7 @@ import (
 )
 
 func TestAptPackageChecksumsRecordsPackagePayloadDigests(t *testing.T) {
+	// Compute package payload digests and verify all supported algorithms.
 	data := []byte("deb-payload")
 	checksums := AptPackageChecksums(data)
 	assertChecksumHex(t, checksums, "md5", md5Hex(data))
@@ -24,6 +25,7 @@ func TestAptPackageChecksumsRecordsPackagePayloadDigests(t *testing.T) {
 }
 
 func TestAptPackagePoolFilename(t *testing.T) {
+	// Prepare package metadata and verify its pool filename.
 	pkg := &AptPackage{
 		Name:         "busybox",
 		Version:      "1:1.36.1-7",
@@ -143,6 +145,7 @@ func TestAptPackagePoolFilenameRejectsInvalidPathMetadata(t *testing.T) {
 }
 
 func TestGeneratePackagesFileRendersPublishedPackages(t *testing.T) {
+	// Prepare published packages and a built package excluded from the index.
 	bashPayload := []byte("bash-deb")
 	busyboxPayload := []byte("busybox-deb")
 	bash := testIndexPackage(t, "bash", "5.2-2", bashPayload)
@@ -150,6 +153,7 @@ func TestGeneratePackagesFileRendersPublishedPackages(t *testing.T) {
 	built := testIndexPackage(t, "zlib1g", "1.3-1", []byte("zlib-deb"))
 	built.State = AptPackageState_AptPackageState_BUILT
 
+	// Generate and verify the published Packages stanzas.
 	data, err := GeneratePackagesFile([]*AptPackage{busybox, built, bash})
 	if err != nil {
 		t.Fatalf("GeneratePackagesFile: %v", err)
@@ -264,15 +268,20 @@ func TestGeneratePackagesFileRejectsInvalidChecksumMetadata(t *testing.T) {
 }
 
 func TestGeneratePackagesGzipFileCompressesPackagesFile(t *testing.T) {
+	// Generate the uncompressed Packages index for comparison.
 	pkg := testIndexPackage(t, "busybox", "1.36.1-7", []byte("busybox-deb"))
 	packagesFile, err := GeneratePackagesFile([]*AptPackage{pkg})
 	if err != nil {
 		t.Fatalf("GeneratePackagesFile: %v", err)
 	}
+
+	// Generate the gzip index for the same package.
 	compressed, err := GeneratePackagesGzipFile([]*AptPackage{pkg})
 	if err != nil {
 		t.Fatalf("GeneratePackagesGzipFile: %v", err)
 	}
+
+	// Decompress the gzip index and close the reader.
 	gr, err := gzip.NewReader(bytes.NewReader(compressed))
 	if err != nil {
 		t.Fatalf("NewReader: %v", err)
@@ -284,12 +293,15 @@ func TestGeneratePackagesGzipFileCompressesPackagesFile(t *testing.T) {
 	if err != nil {
 		t.Fatalf("read gzip: %v", err)
 	}
+
+	// Verify gzip preserves the uncompressed Packages bytes.
 	if string(decompressed) != string(packagesFile) {
 		t.Fatalf("decompressed Packages.gz = %q, want %q", decompressed, packagesFile)
 	}
 }
 
 func TestGeneratePackagesFileFromPublishedWorldPackage(t *testing.T) {
+	// Publish the World package and verify its generated index entry.
 	ctx, ws, packageKey := setupAptWorldWithBuiltPackage(t)
 	if _, _, err := ws.ApplyWorldOp(ctx, NewAptPublishPackageOp(packageKey), ""); err != nil {
 		t.Fatalf("ApplyWorldOp(publish): %v", err)
