@@ -65,6 +65,7 @@ func NewWorkerAdmission(eng world.Engine, workerKey string, peerID peer.ID, clai
 
 // ApplyPolicy claims and observes this Worker or drains it when policy removes capacity.
 func (w *WorkerAdmission) ApplyPolicy(ctx context.Context, deviceKey string, declared *device_policy.ForgeWorkerPolicy) error {
+	// Fence new Worker reservations before changing the policy.
 	w.mtx.Lock()
 	if w.active {
 		w.active = false
@@ -72,10 +73,14 @@ func (w *WorkerAdmission) ApplyPolicy(ctx context.Context, deviceKey string, dec
 		w.changed = make(chan struct{})
 	}
 	w.mtx.Unlock()
+
+	// Serialize the policy transition with Docker launches and claim changes.
 	w.launchMtx.Lock()
 	defer w.launchMtx.Unlock()
 	w.mtx.Lock()
 	defer w.mtx.Unlock()
+
+	// Resolve the enrolled Device identity required by the Worker claim.
 	if deviceKey == "" {
 		deviceKey = w.ref.DeviceObjectKey
 	}
@@ -85,6 +90,8 @@ func (w *WorkerAdmission) ApplyPolicy(ctx context.Context, deviceKey string, dec
 	if deviceKey == "" {
 		return errors.New("enrolled Device identity is required for Worker capacity")
 	}
+
+	// Retain the Worker claim reference and requested policy.
 	firstClaim := w.epoch == 0
 	w.ref = forge_runtime.WorkerClaimRef{DeviceObjectKey: deviceKey, ClaimID: w.claimID}
 	w.policy = nil
@@ -164,6 +171,8 @@ func (w *WorkerAdmission) ApplyPolicy(ctx context.Context, deviceKey string, dec
 		w.epoch = 0
 		return nil
 	}
+
+	// Observe the new Worker capacity and stop reservations if it remains draining.
 	capacity, err = w.admission.ObserveWorker(ctx, w.workerKey, w.ref, w.epoch,
 		declared.GetMilliCpu(), declared.GetMemoryBytes(), declared.GetBackends())
 	if err != nil {
@@ -192,11 +201,14 @@ func (w *WorkerAdmission) ApplyPolicy(ctx context.Context, deviceKey string, dec
 
 // Renew extends the live Worker claim while this execution owns capacity.
 func (w *WorkerAdmission) Renew(ctx context.Context) error {
+	// Hold the Worker claim state and skip renewal after drain completes.
 	w.mtx.Lock()
 	defer w.mtx.Unlock()
 	if w.epoch == 0 {
 		return nil
 	}
+
+	// Extend the Worker claim and reservation leases.
 	capacity, err := w.admission.RenewWorkerClaim(ctx, w.workerKey, w.ref)
 	if err != nil {
 		return err
@@ -205,6 +217,8 @@ func (w *WorkerAdmission) Renew(ctx context.Context) error {
 	if err := w.admission.RenewWorkerReservations(ctx, w.workerKey, w.ref); err != nil {
 		return err
 	}
+
+	// Reconcile draining capacity only when Docker launch permits cleanup.
 	if capacity.OwnerState != forge_runtime.CapacityOwnerStateDraining {
 		return nil
 	}
@@ -212,11 +226,15 @@ func (w *WorkerAdmission) Renew(ctx context.Context) error {
 		return nil
 	}
 	defer w.launchMtx.Unlock()
+
+	// Bound pending runtime stop reconciliation by the owner lease.
 	stopCtx, cancel := context.WithTimeout(ctx, forge_runtime.DefaultOwnerLeaseDuration/3)
 	defer cancel()
 	if _, err := w.admission.ReconcilePendingStops(stopCtx, w.ref); err != nil {
 		return errors.Wrap(ErrWorkerStopPending, err.Error())
 	}
+
+	// Complete drain when the Worker policy is absent or retargeted.
 	if w.policy == nil || w.policy.GetWorkerObjectKey() != w.workerKey {
 		ref, epoch := w.ref, w.epoch
 		w.mtx.Unlock()
@@ -228,9 +246,13 @@ func (w *WorkerAdmission) Renew(ctx context.Context) error {
 		w.epoch = 0
 		return nil
 	}
+
+	// Stop remaining reservations before restoring the declared Worker capacity.
 	if err := w.admission.StopWorkerReservations(stopCtx, w.workerKey, w.ref, w.epoch); err != nil {
 		return errors.Wrap(ErrWorkerStopPending, err.Error())
 	}
+
+	// Observe the retained Worker policy and reopen active admission.
 	capacity, err = w.admission.ObserveWorker(ctx, w.workerKey, w.ref, w.epoch,
 		w.policy.GetMilliCpu(), w.policy.GetMemoryBytes(), w.policy.GetBackends())
 	if err != nil {
@@ -246,9 +268,12 @@ func (w *WorkerAdmission) Renew(ctx context.Context) error {
 // Close drains this Worker's remaining runtimes on a clean execution exit.
 // A crashed process leaves the claim to expire at its lease deadline.
 func (w *WorkerAdmission) Close(ctx context.Context) error {
+	// Fence new Worker reservations on execution exit.
 	w.mtx.Lock()
 	w.active = false
 	w.mtx.Unlock()
+
+	// Wait for Docker launches before inspecting the remaining Worker claim.
 	w.launchMtx.Lock()
 	defer w.launchMtx.Unlock()
 	w.mtx.Lock()
@@ -256,11 +281,15 @@ func (w *WorkerAdmission) Close(ctx context.Context) error {
 	if w.ref.DeviceObjectKey == "" {
 		return nil
 	}
+
+	// Skip cleanup when the durable Worker capacity record is already absent.
 	if _, err := w.admission.LookupWorkerCapacityAdmission(ctx, w.workerKey); errors.Is(err, forge_runtime.ErrWorkerNotObserved) {
 		return nil
 	} else if err != nil {
 		return err
 	}
+
+	// Drain Worker runtimes without blocking claim renewal.
 	ref, epoch := w.ref, w.epoch
 	w.mtx.Unlock()
 	err := w.drain(ctx, ref, epoch)
@@ -286,6 +315,7 @@ func (w *WorkerAdmission) drain(ctx context.Context, ref forge_runtime.WorkerCla
 
 // Reserve debits the Docker target's explicit request under the current claim.
 func (w *WorkerAdmission) Reserve(ctx context.Context, executionKey string, conf *forge_lib_docker.Config) (forge_lib_docker.Reservation, error) {
+	// Read Execution placement from a scoped World transaction.
 	tx, err := w.engine.NewTransaction(ctx, false)
 	if err != nil {
 		return nil, err
@@ -296,11 +326,14 @@ func (w *WorkerAdmission) Reserve(ctx context.Context, executionKey string, conf
 	if err != nil {
 		return nil, err
 	}
+
+	// Require the Execution placement to match this Worker and peer.
 	if placement := execution.GetPlacement(); placement != nil &&
 		(placement.GetWorkerObjectKey() != w.workerKey || placement.GetPeerId() != w.peerID.String()) {
 		return nil, errors.Errorf("execution %s is placed on Worker %s peer %s", executionKey, placement.GetWorkerObjectKey(), placement.GetPeerId())
 	}
 
+	// Reserve Docker capacity under the active Worker claim.
 	w.mtx.Lock()
 	defer w.mtx.Unlock()
 	if !w.active {
@@ -326,6 +359,7 @@ type workerDockerReservation struct {
 
 // Launch records stop custody and holds the launch fence through create and start.
 func (r *workerDockerReservation) Launch(ctx context.Context, createAndStart func(string) error) error {
+	// Hold the Docker launch fence and require active Worker capacity.
 	w := r.worker
 	w.launchMtx.Lock()
 	defer w.launchMtx.Unlock()
@@ -334,6 +368,8 @@ func (r *workerDockerReservation) Launch(ctx context.Context, createAndStart fun
 		w.mtx.Unlock()
 		return forge_runtime.ErrCapacityDraining
 	}
+
+	// Resolve the Docker stop command and persist runtime custody.
 	command := r.conf.GetDockerPath()
 	if command == "" {
 		command = "docker"
@@ -346,12 +382,15 @@ func (r *workerDockerReservation) Launch(ctx context.Context, createAndStart fun
 		w.mtx.Unlock()
 		return err
 	}
+
+	// Release the Worker state lock before creating the named runtime.
 	w.mtx.Unlock()
 	return createAndStart(r.name)
 }
 
 // Release stops the named runtime and credits its reservation once.
 func (r *workerDockerReservation) Release(ctx context.Context) error {
+	// Stop and credit the reservation under the Worker claim lock.
 	w := r.worker
 	w.mtx.Lock()
 	defer w.mtx.Unlock()

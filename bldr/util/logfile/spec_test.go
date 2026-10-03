@@ -110,19 +110,26 @@ func TestParseLogFileSpec(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			// Parse the log specification for this case.
 			got, err := ParseLogFileSpec(tt.spec, ts)
+
+			// Verify the disabled specification returns its sentinel error.
 			if tt.wantNone {
 				if !errors.Is(err, ErrDisabled) {
 					t.Errorf("expected ErrDisabled, got %v", err)
 				}
 				return
 			}
+
+			// Verify invalid specifications return an error.
 			if tt.wantErr {
 				if err == nil {
 					t.Errorf("expected error, got nil")
 				}
 				return
 			}
+
+			// Verify valid specifications preserve the expected level, format, and path.
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}

@@ -31,23 +31,30 @@ import (
 
 // TestWorkerHasPeerID accepts every linked session, not just the first keypair.
 func TestWorkerHasPeerID(t *testing.T) {
+	// Open the Forge testbed for Worker peer relationships.
 	ctx := t.Context()
 	tb, err := forge_testbed.Default(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
 	t.Cleanup(tb.Release)
+
+	// Attach the World operation controller for creating the Worker.
 	op := world.NewLookupOpController("forge-ops", tb.EngineID, forge_world.LookupWorldOp)
 	release, err := tb.Bus.AddController(ctx, op, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 	t.Cleanup(release)
+
+	// Resolve the first linked peer public key.
 	firstID := tb.Volume.GetPeerID()
 	firstPublic, err := firstID.ExtractPublicKey()
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Create the additional linked and unlinked peers.
 	second, err := peer.NewPeer(nil)
 	if err != nil {
 		t.Fatal(err)
@@ -56,6 +63,8 @@ func TestWorkerHasPeerID(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Build the keypairs for the linked Worker peers.
 	firstKeypair, err := identity.NewKeypair(firstPublic, "", nil)
 	if err != nil {
 		t.Fatal(err)
@@ -64,17 +73,23 @@ func TestWorkerHasPeerID(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Create a Worker linked to both keypairs.
 	const workerKey = "workers/multi-peer"
 	if _, _, err := forge_worker.CreateWorker(ctx, tb.WorldState, workerKey, "multi-peer",
 		[]*identity.Keypair{firstKeypair, secondKeypair}, firstID); err != nil {
 		t.Fatal(err)
 	}
+
+	// Verify each linked peer can serve the Worker.
 	for _, id := range []peer.ID{firstID, second.GetPeerID()} {
 		linked, err := workerHasPeerID(ctx, tb.WorldState, workerKey, id)
 		if err != nil || !linked {
 			t.Fatalf("linked peer %s: linked=%t error=%v", id, linked, err)
 		}
 	}
+
+	// Verify the unlinked peer cannot serve the Worker.
 	linked, err := workerHasPeerID(ctx, tb.WorldState, workerKey, third.GetPeerID())
 	if err != nil || linked {
 		t.Fatalf("unlinked peer: linked=%t error=%v", linked, err)
@@ -82,9 +97,11 @@ func TestWorkerHasPeerID(t *testing.T) {
 }
 
 func TestForgeWorkerExecuteReturnsWorkerControllerError(t *testing.T) {
+	// Bound the Worker execution error check.
 	ctx, cancel := context.WithTimeout(t.Context(), time.Second)
 	defer cancel()
 
+	// Create a Worker resource whose controller returns an error.
 	le := logrus.NewEntry(logrus.New())
 	workerPeer, _, _, err := peer.NewPeerWithGenerateED25519()
 	if err != nil {
@@ -103,8 +120,10 @@ func TestForgeWorkerExecuteReturnsWorkerControllerError(t *testing.T) {
 		openPolicyWatch: openTestWorkerPolicyWatch,
 	}
 
+	// Run the Worker execution until its controller exits.
 	err = resource.Execute(nil, stream)
 
+	// Verify execution preserves the controller error and running status.
 	if !stderrors.Is(err, controllerErr) {
 		t.Fatalf("Execute error = %v, want %v", err, controllerErr)
 	}
@@ -116,6 +135,7 @@ func TestForgeWorkerExecuteReturnsWorkerControllerError(t *testing.T) {
 // TestForgeWorkerExecuteReturnsCleanControllerExit keeps a completed Worker
 // controller from turning a clean terminal result into a restart error.
 func TestForgeWorkerExecuteReturnsCleanControllerExit(t *testing.T) {
+	// Create a bounded Worker resource with a clean controller exit.
 	ctx, cancel := context.WithTimeout(t.Context(), time.Second)
 	defer cancel()
 	le := logrus.NewEntry(logrus.New())
@@ -123,12 +143,16 @@ func TestForgeWorkerExecuteReturnsCleanControllerExit(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Connect the Worker resource to the clean-exit controller bus.
 	baseBus := inmem.NewBus(directive_controller.NewController(ctx, le))
 	resource := &forgeWorkerResource{
 		objectKey: "worker/test", b: &workerExitBus{Bus: baseBus}, le: le,
 		peerID: workerPeer.GetPeerID(), admission: testWorkerRuntime{},
 		openPolicyWatch: openTestWorkerPolicyWatch,
 	}
+
+	// Verify execution accepts the clean controller exit.
 	if err := resource.Execute(nil, &forgeWorkerExecuteStream{ctx: ctx}); err != nil {
 		t.Fatalf("clean Worker controller exit = %v", err)
 	}
@@ -137,6 +161,7 @@ func TestForgeWorkerExecuteReturnsCleanControllerExit(t *testing.T) {
 // TestForgeWorkerPolicyRemovalReachesAdmission checks that the Worker's
 // enrolled initial snapshot and later policy removal both reach admission.
 func TestForgeWorkerPolicyRemovalReachesAdmission(t *testing.T) {
+	// Create a cancellable Worker execution and local peer.
 	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
 	le := logrus.NewEntry(logrus.New())
@@ -144,6 +169,8 @@ func TestForgeWorkerPolicyRemovalReachesAdmission(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Connect a policy stream to the observing Worker admission.
 	baseBus := inmem.NewBus(directive_controller.NewController(ctx, le))
 	workerBus := &workerExitBus{Bus: baseBus, started: make(chan struct{}), released: make(chan struct{})}
 	updates := make(chan *device_policy.DevicePolicy, 1)
@@ -154,6 +181,8 @@ func TestForgeWorkerPolicyRemovalReachesAdmission(t *testing.T) {
 		admission:       &observingWorkerRuntime{applied: applied, pendingOnRemoval: true},
 		openPolicyWatch: func(context.Context, bus.Bus) (workerPolicyStream, error) { return stream, nil },
 	}
+
+	// Start the Worker execution and wait for its controller.
 	done := make(chan error, 1)
 	go func() { done <- resource.Execute(nil, &forgeWorkerExecuteStream{ctx: ctx}) }()
 	select {
@@ -161,6 +190,8 @@ func TestForgeWorkerPolicyRemovalReachesAdmission(t *testing.T) {
 	case <-time.After(time.Second):
 		t.Fatal("Worker controller did not start")
 	}
+
+	// Verify the enrolled initial policy reaches Worker admission.
 	select {
 	case got := <-applied:
 		if got.GetWorkerObjectKey() != "worker/test" {
@@ -169,6 +200,8 @@ func TestForgeWorkerPolicyRemovalReachesAdmission(t *testing.T) {
 	case <-time.After(time.Second):
 		t.Fatal("initial policy did not reach admission")
 	}
+
+	// Remove Worker policy and verify admission receives the removal.
 	updates <- &device_policy.DevicePolicy{}
 	select {
 	case got := <-applied:
@@ -178,6 +211,8 @@ func TestForgeWorkerPolicyRemovalReachesAdmission(t *testing.T) {
 	case <-time.After(time.Second):
 		t.Fatal("policy removal did not reach admission")
 	}
+
+	// Cancel the Worker execution and verify its terminal result.
 	cancel()
 	if err := <-done; !stderrors.Is(err, context.Canceled) {
 		t.Fatalf("Worker cancellation = %v", err)
@@ -187,6 +222,7 @@ func TestForgeWorkerPolicyRemovalReachesAdmission(t *testing.T) {
 // TestForgeWorkerCancellationRenewsThroughStop proves stream cancellation
 // keeps the durable owner claim alive while Docker cleanup holds its debit.
 func TestForgeWorkerCancellationRenewsThroughStop(t *testing.T) {
+	// Reserve and launch a runtime before Worker cancellation.
 	admission, stopper, _ := newWorkerAdmissionTestbed(t)
 	grant, err := reserveDocker(t, admission, t.Context(), "exec/cancel", &forge_lib_docker.Config{Image: "img", MilliCpu: 500, MemoryBytes: 1 << 20})
 	if err != nil {
@@ -195,10 +231,14 @@ func TestForgeWorkerCancellationRenewsThroughStop(t *testing.T) {
 	if err := grant.Launch(t.Context(), func(string) error { return nil }); err != nil {
 		t.Fatal(err)
 	}
+
+	// Read the initial Worker lease for the controlled clock.
 	initial, err := admission.admission.LookupWorkerCapacityAdmission(t.Context(), "worker/a")
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Configure the admission clock and blocked runtime stop.
 	base := initial.OwnerLeaseExpiresAt.AsTime().Add(-forge_runtime.DefaultOwnerLeaseDuration)
 	var now atomic.Int64
 	now.Store(base.UnixNano())
@@ -206,6 +246,7 @@ func TestForgeWorkerCancellationRenewsThroughStop(t *testing.T) {
 	stopper.entered = make(chan struct{})
 	stopper.release = make(chan struct{})
 
+	// Create a cancellable Worker execution and local peer.
 	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
 	le := logrus.NewEntry(logrus.New())
@@ -213,6 +254,8 @@ func TestForgeWorkerCancellationRenewsThroughStop(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Build the Worker controller bus and initial Docker policy.
 	baseBus := inmem.NewBus(directive_controller.NewController(ctx, le))
 	workerBus := &workerExitBus{Bus: baseBus, started: make(chan struct{}), released: make(chan struct{})}
 	policy := &device_policy.DevicePolicy{ForgeWorker: &device_policy.ForgeWorkerPolicy{
@@ -221,12 +264,16 @@ func TestForgeWorkerCancellationRenewsThroughStop(t *testing.T) {
 	watch := &changingWorkerPolicyStream{ctx: ctx, initialPolicy: policy}
 	renewed := make(chan struct{}, 1)
 	renewTick := make(chan time.Time)
+
+	// Connect Worker admission to the controlled renewal clock.
 	resource := &forgeWorkerResource{
 		objectKey: "worker/a", b: workerBus, le: le, peerID: workerPeer.GetPeerID(),
 		admission:       &notifyingWorkerRuntime{WorkerAdmission: admission, stopEntered: stopper.entered, renewed: renewed},
 		openPolicyWatch: func(context.Context, bus.Bus) (workerPolicyStream, error) { return watch, nil },
 		renewTick:       renewTick,
 	}
+
+	// Start the Worker execution and wait for its controller.
 	done := make(chan error, 1)
 	go func() { done <- resource.Execute(nil, &forgeWorkerExecuteStream{ctx: ctx}) }()
 	select {
@@ -234,6 +281,8 @@ func TestForgeWorkerCancellationRenewsThroughStop(t *testing.T) {
 	case <-time.After(5 * time.Second):
 		t.Fatal("Worker controller did not start")
 	}
+
+	// Cancel execution and wait for Docker cleanup to begin.
 	cancel()
 	select {
 	case <-stopper.entered:
@@ -254,11 +303,15 @@ func TestForgeWorkerCancellationRenewsThroughStop(t *testing.T) {
 	case <-time.After(5 * time.Second):
 		t.Fatal("owner claim did not renew during Docker stop")
 	}
+
+	// Advance beyond the original deadline and read the renewed claim.
 	now.Store(base.Add(65 * time.Second).UnixNano())
 	capacity, err := admission.admission.LookupWorkerCapacityAdmission(t.Context(), "worker/a")
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Verify blocked Docker cleanup retains the live claim and debit.
 	if !time.Unix(0, now.Load()).Before(capacity.OwnerLeaseExpiresAt.AsTime()) {
 		t.Fatalf("claim expired during Docker stop: %v", capacity.OwnerLeaseExpiresAt.AsTime())
 	}
@@ -266,6 +319,7 @@ func TestForgeWorkerCancellationRenewsThroughStop(t *testing.T) {
 		t.Fatalf("blocked stop lost custody: %+v", capacity)
 	}
 
+	// Confirm Docker stop and wait for Worker cleanup.
 	close(stopper.release)
 	select {
 	case err := <-done:
@@ -275,6 +329,8 @@ func TestForgeWorkerCancellationRenewsThroughStop(t *testing.T) {
 	case <-time.After(5 * time.Second):
 		t.Fatal("Worker cleanup did not finish")
 	}
+
+	// Verify clean drain removed the Worker capacity record.
 	if _, err := admission.admission.LookupWorkerCapacityAdmission(t.Context(), "worker/a"); !stderrors.Is(err, forge_runtime.ErrWorkerNotObserved) {
 		t.Fatalf("clean drain retained capacity: %v", err)
 	}
@@ -408,6 +464,7 @@ var _ s4wave_process.SRPCPersistentExecutionService_ExecuteStream = (*forgeWorke
 // former heartbeat periods and checks controller release on stream cancellation.
 func TestForgeWorkerSteadyStatusAndCancellation(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
+		// Create a cancellable Worker execution in virtual time.
 		ctx, cancel := context.WithCancel(t.Context())
 		defer cancel()
 		le := logrus.NewEntry(logrus.New())
@@ -415,10 +472,14 @@ func TestForgeWorkerSteadyStatusAndCancellation(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
+
+		// Connect the Worker resource to its lifecycle observation bus.
 		base := inmem.NewBus(directive_controller.NewController(ctx, le))
 		workerBus := &workerExitBus{Bus: base, started: make(chan struct{}), released: make(chan struct{})}
 		stream := &forgeWorkerExecuteStream{ctx: ctx}
 		resource := &forgeWorkerResource{objectKey: "worker/test", b: workerBus, le: le, peerID: workerPeer.GetPeerID(), admission: testWorkerRuntime{}, openPolicyWatch: openTestWorkerPolicyWatch}
+
+		// Start the Worker execution and wait for its controller.
 		done := make(chan error, 1)
 		go func() { done <- resource.Execute(nil, stream) }()
 		<-workerBus.started
@@ -429,6 +490,8 @@ func TestForgeWorkerSteadyStatusAndCancellation(t *testing.T) {
 		if stream.statuses != 1 {
 			t.Fatalf("steady worker emitted %d statuses, want one", stream.statuses)
 		}
+
+		// Cancel the Worker execution and verify controller release.
 		cancel()
 		if err := <-done; !stderrors.Is(err, context.Canceled) {
 			t.Fatalf("cancelled execution returned %v", err)

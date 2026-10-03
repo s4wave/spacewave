@@ -27,12 +27,15 @@ func withEnvUnset(t *testing.T, key string) {
 }
 
 func TestBuildAutoDefaultSpec_Unset(t *testing.T) {
+	// Resolve a default log destination with explicit configuration absent.
 	withEnvUnset(t, AutoDefaultEnvVar)
 	now := time.Date(2026, 5, 4, 12, 30, 0, 0, time.UTC)
 	spec, ok := BuildAutoDefaultSpec("/tmp/storage", now)
 	if !ok {
 		t.Fatalf("expected auto-default to fire when env unset")
 	}
+
+	// Verify the default log level, format, and expanded timestamp path.
 	if spec.Level != logrus.DebugLevel {
 		t.Errorf("level = %v, want DEBUG", spec.Level)
 	}
@@ -81,52 +84,83 @@ func TestBuildAutoDefaultSpec_EmptyRoot(t *testing.T) {
 }
 
 func TestResolveLogLevel(t *testing.T) {
+	// Define the project and builder log-level precedence.
 	const (
 		spacewave = "TEST_SPACEWAVE_LOG_LEVEL"
 		bldr      = "TEST_BLDR_LOG_LEVEL"
 	)
 	chain := []string{spacewave, bldr}
 
+	// Verify missing log-level settings use the fallback.
 	t.Run("both unset returns fallback", func(t *testing.T) {
+		// Clear both log-level settings for the fallback case.
 		withEnvUnset(t, spacewave)
 		withEnvUnset(t, bldr)
+
+		// Resolve the configured log level.
 		got := ResolveLogLevel(chain, logrus.InfoLevel)
+
+		// Verify the resolved level matches the fallback.
 		if got != logrus.InfoLevel {
 			t.Errorf("got %v, want InfoLevel", got)
 		}
 	})
 
+	// Verify the project log-level setting takes precedence.
 	t.Run("project-prefixed wins over BLDR_", func(t *testing.T) {
+		// Configure competing project and builder log levels.
 		t.Setenv(spacewave, "warn")
 		t.Setenv(bldr, "debug")
+
+		// Resolve the configured log level.
 		got := ResolveLogLevel(chain, logrus.InfoLevel)
+
+		// Verify the resolved level matches the project or builder warning setting.
 		if got != logrus.WarnLevel {
 			t.Errorf("got %v, want WarnLevel", got)
 		}
 	})
 
+	// Verify the builder setting applies when the project setting is absent.
 	t.Run("falls through to BLDR_ when project unset", func(t *testing.T) {
+		// Configure only the builder log level.
 		withEnvUnset(t, spacewave)
 		t.Setenv(bldr, "debug")
+
+		// Resolve the configured log level.
 		got := ResolveLogLevel(chain, logrus.InfoLevel)
+
+		// Verify the resolved level matches the builder debug setting.
 		if got != logrus.DebugLevel {
 			t.Errorf("got %v, want DebugLevel", got)
 		}
 	})
 
+	// Verify an invalid project setting permits the builder fallback.
 	t.Run("invalid value falls through", func(t *testing.T) {
+		// Configure an invalid project level and a valid builder level.
 		t.Setenv(spacewave, "not-a-level")
 		t.Setenv(bldr, "warn")
+
+		// Resolve the configured log level.
 		got := ResolveLogLevel(chain, logrus.InfoLevel)
+
+		// Verify the resolved level matches the project or builder warning setting.
 		if got != logrus.WarnLevel {
 			t.Errorf("got %v, want WarnLevel", got)
 		}
 	})
 
+	// Verify a blank project setting permits the builder fallback.
 	t.Run("blank value skipped", func(t *testing.T) {
+		// Configure a blank project level and a valid builder level.
 		t.Setenv(spacewave, "   ")
 		t.Setenv(bldr, "error")
+
+		// Resolve the configured log level.
 		got := ResolveLogLevel(chain, logrus.InfoLevel)
+
+		// Verify the resolved level matches the builder error setting.
 		if got != logrus.ErrorLevel {
 			t.Errorf("got %v, want ErrorLevel", got)
 		}

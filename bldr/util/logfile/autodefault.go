@@ -56,18 +56,24 @@ func BuildAutoDefaultSpec(storageRoot string, now time.Time) (LogFileSpec, bool)
 // is non-empty so callers can emit one logrus.Warn at startup. A
 // successful parse always returns warn == "".
 func ResolveRetention(env, raw string) (dur time.Duration, warn string) {
+	// Use the default retention when the environment value is blank.
 	raw = strings.TrimSpace(raw)
 	if raw == "" {
 		return DefaultRetention, ""
 	}
+
+	// Parse the retention days and report malformed configuration.
 	days, err := strconv.Atoi(raw)
 	if err != nil {
 		return DefaultRetention, env + "=" + strconv.Quote(raw) +
 			" is not a non-negative integer; using default retention"
 	}
+
+	// Keep the default retention for non-positive durations.
 	if days <= 0 {
 		return DefaultRetention, ""
 	}
+
 	return time.Duration(days) * 24 * time.Hour, ""
 }
 
@@ -110,11 +116,13 @@ func EnableAutoDefault(
 	retentionEnv string,
 	now time.Time,
 ) (func(), error) {
+	// Resolve the default log destination unless explicit configuration takes precedence.
 	spec, ok := BuildAutoDefaultSpec(storageRoot, now)
 	if !ok {
 		return nil, nil
 	}
 
+	// Resolve the project retention override and report its warning.
 	retention := DefaultRetention
 	if retentionEnv != "" {
 		dur, warn := ResolveRetention(retentionEnv, os.Getenv(retentionEnv))
@@ -124,11 +132,13 @@ func EnableAutoDefault(
 		}
 	}
 
+	// Prune expired logs before opening the new log file.
 	logsDir := filepath.Dir(spec.Path)
 	if _, err := PruneOldLogs(logsDir, retention, DefaultKeepLogs, now); err != nil {
 		logger.WithError(err).Warn("failed to prune old logs")
 	}
 
+	// Attach the default file hook and enable its requested verbosity.
 	cleanup, err := AttachLogFiles(logger, []LogFileSpec{spec})
 	if err != nil {
 		return nil, err

@@ -17,6 +17,7 @@ import (
 //   - {mm} -> 2-digit minute (zero-padded)
 //   - {ss} -> 2-digit second (zero-padded)
 func ExpandTemplate(path string, ts time.Time) string {
+	// Format the timestamp components for substitution in the log path.
 	y := zeroPad(ts.Year(), 4)
 	mo := zeroPad(int(ts.Month()), 2)
 	d := zeroPad(ts.Day(), 2)
@@ -24,6 +25,7 @@ func ExpandTemplate(path string, ts time.Time) string {
 	mi := zeroPad(ts.Minute(), 2)
 	s := zeroPad(ts.Second(), 2)
 
+	// Expand the timestamp placeholders in the log path.
 	path = strings.ReplaceAll(path, "{ts}", y+mo+d+"-"+h+mi+s)
 	path = strings.ReplaceAll(path, "{YYYY}", y)
 	path = strings.ReplaceAll(path, "{MM}", mo)

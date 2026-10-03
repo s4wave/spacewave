@@ -25,6 +25,7 @@ type FileHook struct {
 // NewFileHook creates a hook that writes to the given writer.
 // Exported for testing with bytes.Buffer.
 func NewFileHook(w io.Writer, level logrus.Level, format string) *FileHook {
+	// Choose the formatter for the file hook records.
 	var formatter logrus.Formatter
 	if format == "json" {
 		formatter = &logrus.JSONFormatter{}
@@ -35,6 +36,7 @@ func NewFileHook(w io.Writer, level logrus.Level, format string) *FileHook {
 		}
 	}
 
+	// Start the file hook with its asynchronous writer.
 	h := &FileHook{
 		writer:    w,
 		formatter: formatter,
@@ -62,10 +64,12 @@ func (h *FileHook) Levels() []logrus.Level {
 // Entries fired after Close are dropped: the hook stays attached to the
 // logger (logrus cannot detach a single hook) but nothing drains it.
 func (h *FileHook) Fire(entry *logrus.Entry) error {
+	// Copy the log record before logrus reuses its entry.
 	cp := entry.Dup()
 	cp.Level = entry.Level
 	cp.Message = entry.Message
 
+	// Queue the copied record while the file hook is open.
 	h.bcast.HoldLock(func(bcast func(), _ func() <-chan struct{}) {
 		if h.closed {
 			return

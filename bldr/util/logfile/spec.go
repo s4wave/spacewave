@@ -32,6 +32,7 @@ type LogFileSpec struct {
 // Default level: DEBUG. Default format: text.
 // Unknown keys produce an error. Missing path produces an error.
 func ParseLogFileSpec(spec string, ts time.Time) (LogFileSpec, error) {
+	// Reject empty or explicitly disabled log destinations.
 	spec = strings.TrimSpace(spec)
 	if spec == "" {
 		return LogFileSpec{}, errors.New("empty log file spec")
@@ -40,6 +41,7 @@ func ParseLogFileSpec(spec string, ts time.Time) (LogFileSpec, error) {
 		return LogFileSpec{}, ErrDisabled
 	}
 
+	// Prepare the default level and format for the log destination.
 	result := LogFileSpec{
 		Level:  logrus.DebugLevel,
 		Format: "text",
@@ -51,13 +53,16 @@ func ParseLogFileSpec(spec string, ts time.Time) (LogFileSpec, error) {
 		return result, nil
 	}
 
+	// Parse the configured fields into the log destination.
 	fields := strings.Split(spec, ";")
 	for i, field := range fields {
+		// Ignore blank fields in the log specification.
 		field = strings.TrimSpace(field)
 		if field == "" {
 			continue
 		}
 
+		// Separate each field value or accept a trailing bare path.
 		before, after, ok := strings.Cut(field, "=")
 		if !ok {
 			// Last field without '=' is treated as path.
@@ -68,9 +73,11 @@ func ParseLogFileSpec(spec string, ts time.Time) (LogFileSpec, error) {
 			return LogFileSpec{}, errors.New("invalid field " + strconv.Quote(field) + ": missing '='")
 		}
 
+		// Normalize the log field key and value.
 		key := strings.TrimSpace(before)
 		val := strings.TrimSpace(after)
 
+		// Apply the requested level, format, or expanded path.
 		switch key {
 		case "level":
 			lvl, err := logrus.ParseLevel(val)
@@ -90,6 +97,7 @@ func ParseLogFileSpec(spec string, ts time.Time) (LogFileSpec, error) {
 		}
 	}
 
+	// Require a path before returning the log destination.
 	if result.Path == "" {
 		return LogFileSpec{}, errors.New("missing path in log file spec")
 	}

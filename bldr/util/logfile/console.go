@@ -57,10 +57,13 @@ func (h *ConsoleHook) setWriter(writer io.Writer) {
 
 // Fire formats and writes the entry synchronously.
 func (h *ConsoleHook) Fire(entry *logrus.Entry) error {
+	// Format the console record before acquiring the writer lock.
 	data, err := h.formatter.Format(entry)
 	if err != nil {
 		return err
 	}
+
+	// Serialize the console record write with changes to its destination.
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	_, err = h.writer.Write(data)

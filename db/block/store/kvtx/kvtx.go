@@ -73,9 +73,11 @@ func (k *KVTxBlock) BeginReadOperation(ctx context.Context) (block.StoreOps, fun
 // PutBlock puts a block into the store.
 // Stores should check if the block already exists if possible.
 func (k *KVTxBlock) PutBlock(ctx context.Context, data []byte, opts *block.PutOpts) (ref *block.BlockRef, exists bool, err error) {
+	// Trace the block write through reference construction and storage.
 	ctx, task := trace.NewTask(ctx, "hydra/block-store/kvtx/put-block")
 	defer task.End()
 
+	// Copy the block options and select the store hash type.
 	if opts == nil {
 		opts = &block.PutOpts{}
 	} else {
@@ -83,6 +85,7 @@ func (k *KVTxBlock) PutBlock(ctx context.Context, data []byte, opts *block.PutOp
 	}
 	opts.HashType = opts.SelectHashType(k.hashType)
 
+	// Build the block reference and enforce any requested reference.
 	_, subtask := trace.NewTask(ctx, "hydra/block-store/kvtx/put-block/build-block-ref")
 	ref, err = block.BuildBlockRef(data, opts)
 	subtask.End()
@@ -95,12 +98,14 @@ func (k *KVTxBlock) PutBlock(ctx context.Context, data []byte, opts *block.PutOp
 		}
 	}
 
+	// Encode the block reference in the store key namespace.
 	rm, err := ref.MarshalKey()
 	if err != nil {
 		return nil, false, err
 	}
 	key := k.kvkey.GetBlockKey(rm)
 
+	// Write the block through a replayable kvtx transaction.
 	err = kvtx.RunTransaction(ctx, true,
 		func(ctx context.Context) (kvtx.Tx, error) {
 			taskCtx, subtask := trace.NewTask(ctx, "hydra/block-store/kvtx/put-block/new-transaction")
@@ -109,6 +114,7 @@ func (k *KVTxBlock) PutBlock(ctx context.Context, data []byte, opts *block.PutOp
 			return tx, err
 		},
 		func(ctx context.Context, tx kvtx.Tx) error {
+			// Keep an existing block without writing its bytes again.
 			attemptExists, err := tx.Exists(ctx, key)
 			if err != nil {
 				return err
@@ -208,15 +214,18 @@ func (k *KVTxBlock) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*b
 // getBlock reads a block through the given tx ops, verifying the hash
 // when hashGet is set.
 func (k *KVTxBlock) getBlock(ctx context.Context, tx kvtx.TxOps, ref *block.BlockRef) ([]byte, bool, error) {
+	// Validate the block reference before reading stored bytes.
 	if err := ref.Validate(false); err != nil {
 		return nil, false, err
 	}
 
+	// Encode the block reference in the store key namespace.
 	key, err := k.blockKey(ref)
 	if err != nil {
 		return nil, false, err
 	}
 
+	// Read the stored block bytes through the transaction.
 	data, found, err := tx.Get(ctx, key)
 	if err != nil || !found {
 		return nil, found, err
@@ -229,7 +238,9 @@ func (k *KVTxBlock) getBlock(ctx context.Context, tx kvtx.TxOps, ref *block.Bloc
 		return data, found, nil
 	}
 
+	// Verify the stored bytes against the requested block reference.
 	err = ref.VerifyData(data, true)
+
 	// Return the data and the error with the hash mismatch.
 	// All callers to GetBlock should check the error return value.
 	// We return the data here for cases where we want to report the invalid data.
@@ -403,16 +414,19 @@ func (k *KVTxBlock) StatBlock(ctx context.Context, ref *block.BlockRef) (*block.
 
 // statBlock reads the block stat through the given tx ops.
 func (k *KVTxBlock) statBlock(ctx context.Context, tx kvtx.TxOps, ref *block.BlockRef) (*block.BlockStat, error) {
+	// Encode the block reference for the metadata lookup.
 	key, err := k.blockKey(ref)
 	if err != nil {
 		return nil, err
 	}
 
+	// Check block presence before reading its size.
 	exists, err := tx.Exists(ctx, key)
 	if err != nil || !exists {
 		return nil, err
 	}
 
+	// Read the stored bytes to determine the block size.
 	data, found, err := tx.Get(ctx, key)
 	if err != nil || !found {
 		return nil, err
@@ -464,6 +478,7 @@ func applyPutBlockBatchOp(ctx context.Context, tx kvtx.Tx, op putBlockBatchOp) e
 
 // preparePutBlockBatchOp marshals one batch entry into its stored form.
 func (k *KVTxBlock) preparePutBlockBatchOp(entry *block.PutBatchEntry) (putBlockBatchOp, error) {
+	// Encode tombstones as block-key deletions.
 	if entry.Tombstone {
 		key, err := k.blockKey(entry.Ref)
 		if err != nil {
@@ -472,6 +487,7 @@ func (k *KVTxBlock) preparePutBlockBatchOp(entry *block.PutBatchEntry) (putBlock
 		return putBlockBatchOp{key: key, tombstone: true}, nil
 	}
 
+	// Prepare the batch entry reference and hash options.
 	var ref *block.BlockRef
 	if entry.Ref != nil {
 		ref = entry.Ref.Clone()
@@ -482,6 +498,7 @@ func (k *KVTxBlock) preparePutBlockBatchOp(entry *block.PutBatchEntry) (putBlock
 	}
 	opts.HashType = opts.SelectHashType(k.hashType)
 
+	// Build and validate the batch entry reference and data.
 	actual, err := block.BuildBlockRef(entry.Data, opts)
 	if err != nil {
 		return putBlockBatchOp{}, err
@@ -495,6 +512,7 @@ func (k *KVTxBlock) preparePutBlockBatchOp(entry *block.PutBatchEntry) (putBlock
 		return putBlockBatchOp{}, block.ErrEmptyBlock
 	}
 
+	// Encode the prepared block entry in the store key namespace.
 	key, err := k.blockKey(actual)
 	if err != nil {
 		return putBlockBatchOp{}, err

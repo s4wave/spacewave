@@ -77,6 +77,7 @@ func AttachLogFiles(logger *logrus.Logger, specs []LogFileSpec) (func(), error) 
 // redirects the logger's console output through a level-filtered hook so
 // that --log-level controls console verbosity independently of file hooks.
 func EnsureLoggerLevel(logger *logrus.Logger, specs []LogFileSpec) {
+	// Find the verbosity needed to deliver every file hook level.
 	maxLevel := logger.GetLevel()
 	for _, spec := range specs {
 		if spec.Level > maxLevel {
@@ -110,6 +111,7 @@ func EnsureLoggerLevel(logger *logrus.Logger, specs []LogFileSpec) {
 		}
 	}
 
+	// Route console records through their own threshold before raising logger verbosity.
 	consoleHook := NewConsoleHook(logger.Out, formatter, logger.GetLevel())
 	logger.AddHook(consoleHook)
 	logger.SetOutput(io.Discard)

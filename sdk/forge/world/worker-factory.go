@@ -43,6 +43,7 @@ func forgeWorkerFactory(
 	ws world.WorldState,
 	objectKey string,
 ) (srpc.Invoker, func(), error) {
+	// Require a World state before constructing the Worker resource.
 	if ws == nil {
 		return nil, nil, objecttype.ErrWorldStateRequired
 	}
@@ -63,6 +64,7 @@ func forgeWorkerFactory(
 		return nil, func() {}, nil
 	}
 
+	// Construct the linked Worker resource and its execution service.
 	engineID := objecttype.EngineIDFromContext(ctx)
 	resource := &forgeWorkerResource{
 		objectKey:       objectKey,
@@ -143,6 +145,7 @@ func (r *forgeWorkerResource) Execute(
 	req *s4wave_process.ExecuteRequest,
 	stream s4wave_process.SRPCPersistentExecutionService_ExecuteStream,
 ) error {
+	// Open the daemon policy watch for this Worker execution.
 	ctx := stream.Context()
 	le := r.le.WithField("worker", r.objectKey)
 	watch, err := r.openPolicyWatch(ctx, r.b)
@@ -156,10 +159,13 @@ func (r *forgeWorkerResource) Execute(
 			<-watchDone
 		}
 	}()
+
+	// Read the initial enrolled Device policy before starting Worker work.
 	policy, deviceKey, err := watch.Recv()
 	if err != nil {
 		return errors.Wrap(err, "initial device policy")
 	}
+
 	// Keep the owner claim renewing through the bounded Docker stop and
 	// durable credit. Stream cancellation only stops new Worker work.
 	renewCtx, cancelRenew := context.WithCancel(context.WithoutCancel(ctx))
@@ -191,6 +197,8 @@ func (r *forgeWorkerResource) Execute(
 		cancelRenew()
 		<-renewDone
 	}()
+
+	// Apply the initial Worker policy and retain cleanup custody on exit.
 	if err := r.admission.ApplyPolicy(ctx, deviceKey, policy.GetForgeWorker()); err != nil {
 		if !errors.Is(err, ErrWorkerStopPending) {
 			return errors.Wrap(err, "observe worker capacity")
@@ -207,12 +215,14 @@ func (r *forgeWorkerResource) Execute(
 		cancelStop()
 	}()
 
+	// Publish the initial running status for the Worker execution.
 	if err := stream.Send(&s4wave_process.ExecuteStatus{
 		State: s4wave_process.ExecutionState_ExecutionState_RUNNING,
 	}); err != nil {
 		return err
 	}
 
+	// Attach the local Worker peer controller for this execution.
 	workerPeer, err := peer.NewPeerWithID(r.peerID)
 	if err != nil {
 		return errors.Wrap(err, "build worker peer")

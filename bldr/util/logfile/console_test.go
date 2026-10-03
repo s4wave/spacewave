@@ -8,15 +8,18 @@ import (
 )
 
 func TestConsoleHookLevels(t *testing.T) {
+	// Create a console hook that subscribes to warning records.
 	buf := &safeBuffer{}
 	hook := NewConsoleHook(buf, &logrus.TextFormatter{DisableColors: true}, logrus.WarnLevel)
 
+	// Collect the console hook levels for comparison.
 	levels := hook.Levels()
 	found := make(map[logrus.Level]bool)
 	for _, lvl := range levels {
 		found[lvl] = true
 	}
 
+	// Verify the console hook includes warning levels and excludes verbose levels.
 	for _, expected := range []logrus.Level{logrus.PanicLevel, logrus.FatalLevel, logrus.ErrorLevel, logrus.WarnLevel} {
 		if !found[expected] {
 			t.Errorf("expected %v in levels", expected)
@@ -31,9 +34,11 @@ func TestConsoleHookLevels(t *testing.T) {
 }
 
 func TestConsoleHookFire(t *testing.T) {
+	// Create a console hook with a synchronized output buffer.
 	buf := &safeBuffer{}
 	hook := NewConsoleHook(buf, &logrus.TextFormatter{DisableColors: true}, logrus.InfoLevel)
 
+	// Send a text record through the console hook.
 	entry := &logrus.Entry{
 		Logger:  logrus.StandardLogger(),
 		Level:   logrus.InfoLevel,
@@ -44,6 +49,7 @@ func TestConsoleHookFire(t *testing.T) {
 		t.Fatalf("Fire() error: %v", err)
 	}
 
+	// Verify the console hook wrote the record message.
 	out := buf.String()
 	if !strings.Contains(out, "console test") {
 		t.Errorf("expected output to contain 'console test', got %q", out)
@@ -51,6 +57,7 @@ func TestConsoleHookFire(t *testing.T) {
 }
 
 func TestEnsureLoggerLevelNoOp(t *testing.T) {
+	// Create a debug logger and retain its console destination.
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
 	origOut := log.Out
@@ -61,6 +68,7 @@ func TestEnsureLoggerLevelNoOp(t *testing.T) {
 	}
 	EnsureLoggerLevel(log, specs)
 
+	// Verify a less verbose file hook leaves the logger unchanged.
 	if log.Out != origOut {
 		t.Error("expected logger output to be unchanged")
 	}
@@ -70,12 +78,14 @@ func TestEnsureLoggerLevelNoOp(t *testing.T) {
 }
 
 func TestEnsureLoggerLevelRaises(t *testing.T) {
+	// Create an info logger with a synchronized console buffer.
 	buf := &safeBuffer{}
 	log := logrus.New()
 	log.SetLevel(logrus.InfoLevel)
 	log.SetOutput(buf)
 	log.SetFormatter(&logrus.TextFormatter{DisableColors: true})
 
+	// Enable the debug file level on the info logger.
 	specs := []LogFileSpec{
 		{Level: logrus.DebugLevel, Format: "text", Path: "/dev/null"},
 	}
@@ -98,6 +108,7 @@ func TestEnsureLoggerLevelRaises(t *testing.T) {
 	buf.buf.Reset()
 	buf.mu.Unlock()
 
+	// Verify the console hook excludes debug records.
 	log.Debug("debug message")
 	if strings.Contains(buf.String(), "debug message") {
 		t.Errorf("expected console hook to filter debug message, got %q", buf.String())
@@ -114,6 +125,7 @@ func TestDiscardConsoleOutputPreservesFileHooks(t *testing.T) {
 		{name: "level-filtered console hook", loggerLevel: logrus.InfoLevel, fileLevel: logrus.DebugLevel},
 	} {
 		t.Run(test.name, func(t *testing.T) {
+			// Create the logger and its console and file buffers.
 			terminal := &safeBuffer{}
 			file := &safeBuffer{}
 			log := logrus.New()
@@ -121,14 +133,17 @@ func TestDiscardConsoleOutputPreservesFileHooks(t *testing.T) {
 			log.SetOutput(terminal)
 			log.SetFormatter(&logrus.TextFormatter{DisableColors: true})
 
+			// Attach the file hook and silence console destinations.
 			fileHook := NewFileHook(file, test.fileLevel, "text")
 			log.AddHook(fileHook)
 			EnsureLoggerLevel(log, []LogFileSpec{{Level: test.fileLevel}})
 			DiscardConsoleOutput(log)
 
+			// Deliver a diagnostic record and drain the file hook.
 			log.Info("dashboard diagnostic")
 			fileHook.Close()
 
+			// Verify the diagnostic reaches only the file destination.
 			if output := terminal.String(); output != "" {
 				t.Fatalf("terminal output = %q, want empty", output)
 			}
