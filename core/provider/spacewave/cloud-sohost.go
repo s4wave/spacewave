@@ -291,16 +291,17 @@ func (h *cloudSOHost) runSnapDeriver(ctx context.Context) error {
 		if h.stateObserved != nil {
 			h.stateObserved(next)
 		}
-		snap := sobject.NewSOStateParticipantHandle(
-			h.le,
-			h.sfs,
-			h.soID,
-			next,
-			h.privKey,
-			h.peerID,
-		)
-		h.snapCtr.SetValue(snap)
+		h.snapCtr.SetValue(h.newSnapshot(next))
 	}
+}
+
+// newSnapshot returns a participant handle for state that resolves the config
+// of an operation written under an earlier config from the verified history.
+func (h *cloudSOHost) newSnapshot(state *sobject.SOState) *sobject.SOStateParticipantHandle {
+	snap := sobject.NewSOStateParticipantHandle(h.le, h.sfs, h.soID, state, h.privKey, h.peerID)
+	return snap.WithConfigHistory(func(ctx context.Context, hash []byte) (*sobject.SOConfigChange, error) {
+		return h.readConfigEntry(ctx, h.soID, hash)
+	})
 }
 
 // pullOnTrigger fetches fresh state via HTTP GET after a pull signal.

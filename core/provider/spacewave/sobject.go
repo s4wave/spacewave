@@ -95,26 +95,19 @@ func (s *SharedObject) AccessPublicationRetention(ctx context.Context) (kvtx.Sto
 
 // GetSharedObjectState returns a snapshot of the shared object state.
 func (s *SharedObject) GetSharedObjectState(ctx context.Context) (sobject.SharedObjectStateSnapshot, error) {
+	// Wait for the host's first accepted state.
 	stateCtr, relStateCtr, err := s.host.AccessSharedObjectState(ctx, nil)
 	if err != nil {
 		return nil, err
 	}
 	defer relStateCtr()
-
 	soState, err := stateCtr.WaitValue(ctx, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	snap := sobject.NewSOStateParticipantHandle(
-		s.tkr.a.le,
-		s.tkr.a.sfs,
-		s.GetSharedObjectID(),
-		soState,
-		s.privKey,
-		s.localPid,
-	)
-	return snap, nil
+	// Project it through the host's participant handle.
+	return s.host.newSnapshot(soState), nil
 }
 
 // AccessSharedObjectState adds a reference to the state and returns the state

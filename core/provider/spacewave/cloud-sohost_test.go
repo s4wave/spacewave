@@ -369,6 +369,17 @@ func TestCloudSOHostUsesInlineConfigChainWhenPulledStateHashChanges(t *testing.T
 	if !bytes.Equal(host.lastConfigChainHash, state.GetConfig().GetConfigChainHash()) {
 		t.Fatalf("verified config chain hash = %x, want %x", host.lastConfigChainHash, state.GetConfig().GetConfigChainHash())
 	}
+
+	// An operation written under the previous config resolves it from the
+	// verified history.
+	snap := host.newSnapshot(host.stateCtr.GetValue())
+	cfg, err := snap.GetConfigByHash(context.Background(), previousConfig.GetConfigChainHash())
+	if err != nil {
+		t.Fatalf("previous config by hash: %v", err)
+	}
+	if !bytes.Equal(cfg.GetConfigChainHash(), previousConfig.GetConfigChainHash()) {
+		t.Fatalf("previous config hash = %x, want %x", cfg.GetConfigChainHash(), previousConfig.GetConfigChainHash())
+	}
 }
 
 func waitAsyncCallbackJob(t *testing.T, started <-chan struct{}) {
