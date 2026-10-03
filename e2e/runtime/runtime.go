@@ -33,8 +33,6 @@ const (
 	EventDriveSettled Event = "drive-settled"
 	// EventContentReady waits for an opened content view to render.
 	EventContentReady Event = "content-ready"
-	// EventSpaceListConverged waits for a session-level Space list readback.
-	EventSpaceListConverged Event = "space-list-converged"
 )
 
 // File is an in-memory upload fixture supplied through the user-action API.

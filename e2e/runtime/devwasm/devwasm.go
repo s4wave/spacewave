@@ -576,10 +576,9 @@ func (a *Adapter) WaitForEvent(event runtime.Event) error {
 
 	// Other events expose their state through visible or hidden DOM elements.
 	selector := map[runtime.Event]string{
-		runtime.EventDriveReady:         "[data-testid='unixfs-browser']:visible",
-		runtime.EventDriveSettled:       "[data-testid='unixfs-loading-diagnostics']",
-		runtime.EventContentReady:       "pre",
-		runtime.EventSpaceListConverged: "[data-testid='space-list'], [data-testid='resource-list'], body",
+		runtime.EventDriveReady:   "[data-testid='unixfs-browser']:visible",
+		runtime.EventDriveSettled: "[data-testid='unixfs-loading-diagnostics']",
+		runtime.EventContentReady: "pre",
 	}[event]
 	if selector == "" {
 		return errors.Errorf("unknown readiness event %q", event)
@@ -596,7 +595,7 @@ func eventTimeout(event runtime.Event) time.Duration {
 	switch event {
 	case runtime.EventDriveReady:
 		return 2 * time.Minute
-	case runtime.EventDriveSettled, runtime.EventContentReady, runtime.EventSpaceListConverged:
+	case runtime.EventDriveSettled, runtime.EventContentReady:
 		return 30 * time.Second
 	default:
 		return defaultWait
