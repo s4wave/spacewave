@@ -13,6 +13,7 @@ import (
 )
 
 func TestResolveLookupRpcServiceUsesPluginServiceIDPrefix(t *testing.T) {
+	// Resolve an RPC service addressed to the notes plugin.
 	serviceID := PluginServiceID("spacewave-notes", "resource.ResourceService")
 	resolver, err := ResolveLookupRpcService(
 		t.Context(),
@@ -23,6 +24,7 @@ func TestResolveLookupRpcServiceUsesPluginServiceIDPrefix(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Verify the resolver targets the plugin and strips its service prefix.
 	got, ok := resolver.(*LookupRpcServiceResolver)
 	if !ok {
 		t.Fatalf("expected LookupRpcServiceResolver, got %T", resolver)
@@ -70,6 +72,7 @@ func TestResolveLookupRpcServiceHandlesNilReleaseFunc(t *testing.T) {
 }
 
 func TestClientForwardingInvokerReturnsWhenServerCompletesBeforeCaller(t *testing.T) {
+	// Connect a completed server response to a caller that sends after closure.
 	outgoing := newTestForwardingStream(t.Context(), [][]byte{[]byte("server-response")})
 	local := &testForwardingLocalStream{
 		ctx: t.Context(),
@@ -81,8 +84,11 @@ func TestClientForwardingInvokerReturnsWhenServerCompletesBeforeCaller(t *testin
 	}
 	client := &testForwardingClient{stream: outgoing}
 
+	// Forward the plugin RPC until the server completes the stream.
 	ok, err := newClientForwardingInvoker(client, "plugin/test/").
 		InvokeMethod("plugin/test/resource.ResourceService", "ResourceRpc", local)
+
+	// Verify completion, the forwarded target, and the caller's response.
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -98,24 +104,32 @@ func TestClientForwardingInvokerReturnsWhenServerCompletesBeforeCaller(t *testin
 }
 
 func TestClientForwardingInvokerPreservesServerStreamingHalfClose(t *testing.T) {
+	// Prepare a server that responds only after the caller closes its send side.
 	outgoing := newTestForwardingStream(t.Context(), [][]byte{[]byte("stream-init")})
 	outgoing.waitCloseSendBeforeRecv = true
 
+	// Send one caller request before reporting the end of the request stream.
 	var sent bool
 	local := &testForwardingLocalStream{
 		ctx: t.Context(),
 		recv: func(msg *srpc.RawMessage) error {
+			// End the caller's request stream after its first message.
 			if sent {
 				return io.EOF
 			}
+
+			// Deliver the caller's single request to the forwarding invoker.
 			sent = true
 			msg.SetData([]byte("stream-request"))
 			return nil
 		},
 	}
 
+	// Forward the server-streaming RPC through the caller's half-close.
 	ok, err := newClientForwardingInvoker(&testForwardingClient{stream: outgoing}, "").
 		InvokeMethod("resource.ResourceService", "ResourceClient", local)
+
+	// Verify the request, outgoing half-close, and returned server response.
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -149,9 +163,12 @@ func (c *testForwardingClient) NewStream(
 	methodID string,
 	firstMsg srpc.Message,
 ) (srpc.Stream, error) {
+	// Reject an initial message that this forwarding test client does not accept.
 	if firstMsg != nil {
 		return nil, errors.New("unexpected first message")
 	}
+
+	// Record the forwarded RPC target and bind the stream to its context.
 	c.serviceID = serviceID
 	c.methodID = methodID
 	c.stream.ctx = ctx
@@ -188,17 +205,20 @@ func (s *testForwardingStream) Context() context.Context {
 }
 
 func (s *testForwardingStream) MsgSend(msg srpc.Message) error {
+	// Reject messages sent after the forwarding stream closes.
 	select {
 	case <-s.closed:
 		return srpc.ErrCompleted
 	default:
 	}
 
+	// Encode the message sent to the forwarding stream.
 	data, err := msg.MarshalVT()
 	if err != nil {
 		return err
 	}
 
+	// Retain the forwarded message bytes for request assertions.
 	s.mu.Lock()
 	s.sent = append(s.sent, append([]byte(nil), data...))
 	s.mu.Unlock()
@@ -206,6 +226,7 @@ func (s *testForwardingStream) MsgSend(msg srpc.Message) error {
 }
 
 func (s *testForwardingStream) MsgRecv(msg srpc.Message) error {
+	// Wait for the caller's half-close when the first server response requires it.
 	s.mu.Lock()
 	wait := s.waitCloseSendBeforeRecv && s.recvIdx == 0
 	s.mu.Unlock()
@@ -219,6 +240,7 @@ func (s *testForwardingStream) MsgRecv(msg srpc.Message) error {
 		}
 	}
 
+	// Consume the next configured server response under the stream lock.
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if s.recvIdx >= len(s.responses) {
@@ -227,6 +249,7 @@ func (s *testForwardingStream) MsgRecv(msg srpc.Message) error {
 	data := append([]byte(nil), s.responses[s.recvIdx]...)
 	s.recvIdx++
 
+	// Deliver the configured response through the raw RPC message.
 	raw, ok := msg.(*srpc.RawMessage)
 	if !ok {
 		return errors.New("unexpected message type")
@@ -253,9 +276,11 @@ func (s *testForwardingStream) Close() error {
 }
 
 func (s *testForwardingStream) sentStrings() []string {
+	// Hold the stream lock while reading its recorded messages.
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
+	// Convert the recorded stream messages to strings for assertions.
 	out := make([]string, 0, len(s.sent))
 	for _, data := range s.sent {
 		out = append(out, string(data))
@@ -282,11 +307,13 @@ func (s *testForwardingLocalStream) Context() context.Context {
 }
 
 func (s *testForwardingLocalStream) MsgSend(msg srpc.Message) error {
+	// Encode the server response delivered to the local stream.
 	data, err := msg.MarshalVT()
 	if err != nil {
 		return err
 	}
 
+	// Retain the local response bytes for caller assertions.
 	s.mu.Lock()
 	s.sent = append(s.sent, append([]byte(nil), data...))
 	s.mu.Unlock()
@@ -310,9 +337,11 @@ func (s *testForwardingLocalStream) Close() error {
 }
 
 func (s *testForwardingLocalStream) sentStrings() []string {
+	// Hold the local stream lock while reading its recorded responses.
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
+	// Convert the recorded local responses to strings for assertions.
 	out := make([]string, 0, len(s.sent))
 	for _, data := range s.sent {
 		out = append(out, string(data))

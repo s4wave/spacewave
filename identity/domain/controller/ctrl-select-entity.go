@@ -26,6 +26,7 @@ func (o *selectEntityResolver) Resolve(ctx context.Context, handler directive.Re
 	domainID := o.dir.SelectIdentityEntityDomainID()
 	prevErr := o.dir.SelectIdentityEntityPrevError()
 
+	// Ask the user to select an entity in the requested domain.
 	entityID, err := identity.ExSelectEntityId(ctx, o.c.bus, purpose, domainID, prevErr)
 	if err != nil {
 		return err
@@ -48,6 +49,7 @@ func (o *selectEntityResolver) Resolve(ctx context.Context, handler directive.Re
 		return err
 	}
 
+	// Return the domain lookup error when the entity lookup completed.
 	if !v1.IsNotFound() {
 		if err := v1.GetError(); err != nil {
 			le.WithError(err).Error("entity lookup failed")
@@ -55,6 +57,7 @@ func (o *selectEntityResolver) Resolve(ctx context.Context, handler directive.Re
 		}
 	}
 
+	// Verify the selected entity and report its keypairs or absence.
 	val := v1.GetEntity()
 	if val == nil || v1.IsNotFound() {
 		le.WithError(err).Warn("entity lookup returned not found")
@@ -66,6 +69,7 @@ func (o *selectEntityResolver) Resolve(ctx context.Context, handler directive.Re
 			return err
 		}
 
+		// Report the verified entity identity and keypair count.
 		le.WithFields(logrus.Fields{
 			"entity-uuid":     val.GetEntityUuid(),
 			"entity-epoch":    val.GetEpoch(),

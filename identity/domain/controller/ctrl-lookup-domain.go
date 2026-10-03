@@ -20,10 +20,13 @@ type lookupIdentityDomainResolver struct {
 // The resolver will not be retried after returning an error.
 // Values will be maintained from the previous call.
 func (o *lookupIdentityDomainResolver) Resolve(ctx context.Context, handler directive.ResolverHandler) error {
+	// Wait for the controlled domain to provide its information.
 	d, err := o.c.GetDomain(ctx)
 	if err != nil {
 		return err
 	}
+
+	// Publish the controlled domain information to the lookup handler.
 	di := d.GetDomainInfo()
 	handler.AddValue(di)
 	return nil

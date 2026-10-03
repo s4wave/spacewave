@@ -15,23 +15,28 @@ const ConfigID = ControllerID
 // Validate validates the configuration.
 // This is a cursory validation to see if the values "look correct."
 func (c *Config) Validate() error {
+	// Validate the source peer filter for the relay.
 	if _, err := c.ParsePeerID(); err != nil {
 		return err
 	}
 
+	// Validate the protocol accepted by the relay.
 	pid := protocol.ID(c.GetProtocolId())
 	if err := pid.Validate(); err != nil {
 		return err
 	}
 
+	// Require a destination peer for relayed streams.
 	if c.GetTargetPeerId() == "" {
 		return errors.New("target peer ID cannot be empty")
 	}
 
+	// Validate the destination peer identity for the relay.
 	if _, err := c.ParseTargetPeerID(); err != nil {
 		return err
 	}
 
+	// Validate an explicit destination protocol for relayed streams.
 	if c.GetTargetProtocolId() != "" {
 		tpid := protocol.ID(c.GetTargetProtocolId())
 		if err := tpid.Validate(); err != nil {

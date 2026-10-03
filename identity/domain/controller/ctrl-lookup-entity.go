@@ -16,15 +16,19 @@ type lookupEntityResolver struct {
 
 // Resolve resolves the values, emitting them to the handler.
 func (o *lookupEntityResolver) Resolve(ctx context.Context, handler directive.ResolverHandler) error {
+	// Wait for the controlled domain to serve the entity lookup.
 	domain, err := o.c.GetDomain(ctx)
 	if err != nil {
 		return err
 	}
 
+	// Look up the requested entity through the controlled domain.
 	val, err := domain.IdentityLookupEntity(ctx, o.dir)
 	if err != nil {
 		return err
 	}
+
+	// Publish the entity lookup result when the domain supplies one.
 	if val != nil {
 		_, _ = handler.AddValue(val)
 	}

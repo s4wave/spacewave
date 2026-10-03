@@ -19,11 +19,14 @@ func NewPluginMeta(projectID, pluginID, platformID, buildType string) *PluginMet
 // UnmarshalPluginMetaB58 unmarshals a b58 meta.
 // Note: we compress with gzip compression.
 func UnmarshalPluginMetaB58(str string) (*PluginMeta, error) {
+	// Decode the base58 payload containing the plugin metadata.
 	m := &PluginMeta{}
 	data, err := b58.Decode(str)
 	if err != nil {
 		return nil, err
 	}
+
+	// Decode the plugin metadata from its protobuf payload.
 	if err := m.UnmarshalVT(data); err != nil {
 		return nil, err
 	}

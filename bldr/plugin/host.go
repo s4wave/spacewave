@@ -126,12 +126,15 @@ const PluginDistServiceID = "plugin-dist/unixfs.rpc.FSCursorService"
 
 // PluginHTTPPath adds the plugin http prefix to the given path.
 func PluginHTTPPath(pluginID string, httpPaths ...string) string {
+	// Build the plugin route prefix with a separator for the first path.
 	var sb strings.Builder
 	_, _ = sb.WriteString(PluginHttpPrefix)
 	_, _ = sb.WriteString(pluginID)
 	if len(httpPaths) == 0 || !strings.HasPrefix(httpPaths[0], "/") {
 		_, _ = sb.WriteString("/")
 	}
+
+	// Append the requested HTTP paths beneath the plugin route.
 	for _, httpPath := range httpPaths {
 		_, _ = sb.WriteString(httpPath)
 	}
@@ -151,9 +154,11 @@ func PluginHTTPPathFromContext(ctx context.Context, httpPath string) string {
 
 // ParseHTTPPathPluginID parses and validates a {plugin-id}/ prefix from a HTTP path.
 func ParseHTTPPathPluginID(httpPath string) (pluginID string, suffix string, err error) {
+	// Locate the plugin ID boundary after an optional leading slash.
 	httpPath = strings.TrimPrefix(httpPath, "/")
 	slashIdx := strings.IndexRune(httpPath, '/')
 
+	// Separate the plugin ID from the remaining HTTP path.
 	pluginID = httpPath
 	if slashIdx != -1 {
 		pluginID = httpPath[:slashIdx]
@@ -165,24 +170,30 @@ func ParseHTTPPathPluginID(httpPath string) (pluginID string, suffix string, err
 
 // PluginDistHTTPPath adds the plugin distribution file prefix to the given path.
 func PluginDistHTTPPath(pluginID, httpPath string) string {
+	// Build the distribution route prefix for the requested plugin.
 	var sb strings.Builder
 	_, _ = sb.WriteString(PluginDistHttpPrefix)
 	_, _ = sb.WriteString(pluginID)
 	if !strings.HasPrefix(httpPath, "/") {
 		_, _ = sb.WriteString("/")
 	}
+
+	// Append the distribution file path beneath the plugin route.
 	_, _ = sb.WriteString(httpPath)
 	return sb.String()
 }
 
 // PluginAssetHTTPPath adds the plugin asset file prefix to the given path.
 func PluginAssetHTTPPath(pluginID string, httpPath string) string {
+	// Build the asset route prefix for the requested plugin.
 	var sb strings.Builder
 	_, _ = sb.WriteString(PluginAssetsHttpPrefix)
 	_, _ = sb.WriteString(pluginID)
 	if !strings.HasPrefix(httpPath, "/") {
 		_, _ = sb.WriteString("/")
 	}
+
+	// Append the asset file path beneath the plugin route.
 	_, _ = sb.WriteString(httpPath)
 	return sb.String()
 }

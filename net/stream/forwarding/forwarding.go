@@ -33,11 +33,13 @@ func NewController(
 	bus bus.Bus,
 	conf *Config,
 ) (*Controller, error) {
+	// Resolve the destination multiaddress for forwarded streams.
 	dialMa, err := conf.ParseTargetMultiaddr()
 	if err != nil {
 		return nil, err
 	}
 
+	// Resolve the local peer filter for forwarded streams.
 	pid, err := conf.ParsePeerID()
 	if err != nil {
 		return nil, err
@@ -89,10 +91,13 @@ func (c *Controller) resolveHandleMountedStream(
 	di directive.Instance,
 	dir link.HandleMountedStream,
 ) ([]directive.Resolver, error) {
+	// Match the mounted stream against the forwarding protocol filter.
 	if c.conf.GetProtocolId() != "" &&
 		c.conf.GetProtocolId() != string(dir.HandleMountedStreamProtocolID()) {
 		return nil, nil
 	}
+
+	// Match the mounted stream against the forwarding peer filter.
 	if localPeerID := c.localPeerID; localPeerID != peer.ID("") {
 		if lid := dir.HandleMountedStreamLocalPeerID(); lid != localPeerID {
 			c.le.Debugf(
@@ -103,6 +108,8 @@ func (c *Controller) resolveHandleMountedStream(
 			return nil, nil
 		}
 	}
+
+	// Create the resolver that dials the forwarding destination.
 	dialRes, err := NewDialResolver(c.le, c.bus, c.dialMa)
 	if err != nil {
 		return nil, err

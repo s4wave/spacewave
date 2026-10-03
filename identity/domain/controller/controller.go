@@ -100,6 +100,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 	// Record the execution context and domain logger.
 	c.ctx = ctx
 
+	// Attach the controlled domain identity to its construction logger.
 	le := c.le.WithField("domain-id", c.domainInfo.GetDomainId())
 
 	// Construct and publish the controlled domain.

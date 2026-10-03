@@ -43,6 +43,7 @@ func NewLoadingClient(
 	le *logrus.Entry,
 	rootDir, helperPath, iconPath string,
 ) (*Client, error) {
+	// Prepare the loading helper client and its window options.
 	c := &Client{
 		le:      le,
 		rootDir: rootDir,
@@ -51,6 +52,8 @@ func NewLoadingClient(
 	if iconPath != "" {
 		args = append(args, "--icon", iconPath)
 	}
+
+	// Start the loading helper and wait for its ready event.
 	if err := c.startHelper(ctx, helperPath, args...); err != nil {
 		return nil, err
 	}
@@ -137,6 +140,7 @@ func (c *Client) startHelper(ctx context.Context, helperPath string, args ...str
 		)
 	}
 
+	// Report that the helper can receive commands.
 	c.le.Debug("helper connected and ready")
 	return nil
 }
@@ -188,10 +192,13 @@ func (c *Client) SendError(msg string, retryable bool) error {
 
 // RecvEvent blocks until the helper sends an event.
 func (c *Client) RecvEvent(ctx context.Context) (*HelperEvent, error) {
+	// Read the next framed helper event from the connection.
 	data, err := c.readFrame()
 	if err != nil {
 		return nil, err
 	}
+
+	// Decode the helper event for the caller.
 	evt := &HelperEvent{}
 	if err := evt.UnmarshalVT(data); err != nil {
 		return nil, errors.Wrap(err, "unmarshal helper event")
@@ -201,18 +208,23 @@ func (c *Client) RecvEvent(ctx context.Context) (*HelperEvent, error) {
 
 // Close terminates the helper subprocess and cleans up.
 func (c *Client) Close() error {
+	// Close the helper connection and collect cleanup errors.
 	var closeErr error
 	if c.conn != nil {
 		if err := c.conn.Close(); err != nil && !stderrors.Is(err, net.ErrClosed) {
 			closeErr = stderrors.Join(closeErr, errors.Wrap(err, "close helper connection"))
 		}
 	}
+
+	// Release the listener that accepted the helper connection.
 	if c.listener != nil {
 		if err := c.listener.Close(); err != nil && !stderrors.Is(err, net.ErrClosed) {
 			closeErr = stderrors.Join(closeErr, errors.Wrap(err, "close helper listener"))
 		}
 		c.listener = nil
 	}
+
+	// Terminate and reap the helper subprocess.
 	if c.cmd != nil && c.cmd.Process != nil {
 		if err := c.cmd.Process.Kill(); err != nil && !stderrors.Is(err, os.ErrProcessDone) {
 			closeErr = stderrors.Join(closeErr, errors.Wrap(err, "kill helper process"))
@@ -236,27 +248,34 @@ func (c *Client) sendMessage(msg *HelperMessage) error {
 
 // writeFrame writes data with a 4-byte LE uint32 length prefix.
 func (c *Client) writeFrame(data []byte) error {
+	// Serialize frame writes on the helper connection.
 	c.writeMtx.Lock()
 	defer c.writeMtx.Unlock()
 
+	// Require a helper payload that fits the frame length prefix.
 	if uint64(len(data)) > math.MaxUint32 {
 		return errors.New("message too large")
 	}
 
+	// Send the helper frame length before its payload.
 	lenBuf := make([]byte, 4)
 	binary.LittleEndian.PutUint32(lenBuf, uint32(len(data))) //nolint:gosec // the MaxUint32 check above bounds the frame length.
 	if _, err := c.conn.Write(lenBuf); err != nil {
 		return err
 	}
+
+	// Send the helper frame payload.
 	_, err := c.conn.Write(data)
 	return err
 }
 
 // readFrame reads a 4-byte LE length-prefixed frame.
 func (c *Client) readFrame() ([]byte, error) {
+	// Serialize frame reads on the helper connection.
 	c.readMtx.Lock()
 	defer c.readMtx.Unlock()
 
+	// Read the helper frame length and enforce the message size limit.
 	lenBuf := make([]byte, 4)
 	if _, err := io.ReadFull(c.conn, lenBuf); err != nil {
 		return nil, err
@@ -265,6 +284,8 @@ func (c *Client) readFrame() ([]byte, error) {
 	if msgLen > maxMessageSize {
 		return nil, errors.New("message exceeds max size")
 	}
+
+	// Read the complete helper frame payload.
 	data := make([]byte, msgLen)
 	if _, err := io.ReadFull(c.conn, data); err != nil {
 		return nil, err

@@ -16,19 +16,23 @@ const ConfigID = ControllerID
 // Validate validates the configuration.
 // This is a cursory validation to see if the values "look correct."
 func (c *Config) Validate() error {
+	// Validate the local peer filter for forwarded streams.
 	if _, err := c.ParsePeerID(); err != nil {
 		return err
 	}
 
+	// Validate the protocol accepted for forwarding.
 	pid := protocol.ID(c.GetProtocolId())
 	if err := pid.Validate(); err != nil {
 		return err
 	}
 
+	// Require a destination address for forwarded streams.
 	if c.GetTargetMultiaddr() == "" {
 		return errors.New("target multiaddress cannot be nil")
 	}
 
+	// Validate the destination multiaddress for forwarding.
 	if _, err := c.ParseTargetMultiaddr(); err != nil {
 		return err
 	}

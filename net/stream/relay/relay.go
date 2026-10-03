@@ -37,6 +37,7 @@ func NewController(
 	bus bus.Bus,
 	conf *Config,
 ) (*Controller, error) {
+	// Resolve the source peer identity accepted by the relay.
 	spid, err := conf.ParsePeerID()
 	if err != nil {
 		return nil, err
@@ -45,6 +46,7 @@ func NewController(
 		return nil, peer.ErrEmptyPeerID
 	}
 
+	// Resolve the destination peer identity for relayed streams.
 	tpid, err := conf.ParseTargetPeerID()
 	if err != nil {
 		return nil, err
@@ -53,11 +55,13 @@ func NewController(
 		return nil, peer.ErrEmptyPeerID
 	}
 
+	// Validate the protocol accepted by the relay.
 	srcProtocolID := protocol.ID(conf.GetProtocolId())
 	if err := srcProtocolID.Validate(); err != nil {
 		return nil, err
 	}
 
+	// Resolve the destination protocol, defaulting to the source protocol.
 	targetProtocolID := protocol.ID(conf.GetTargetProtocolId())
 	if targetProtocolID == "" {
 		targetProtocolID = srcProtocolID
