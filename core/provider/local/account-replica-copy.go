@@ -4,18 +4,22 @@ import (
 	"context"
 	"time"
 
+	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/util/routine"
 	"github.com/s4wave/spacewave/core/sobject"
 	sobject_world_engine "github.com/s4wave/spacewave/core/sobject/world/engine"
+	space_world_optypes "github.com/s4wave/spacewave/core/space/world/optypes"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/bucket"
 	"github.com/s4wave/spacewave/db/kvtx"
 )
 
-// runAccountReplicaCopy hydrates every checkpoint World head through the Session's
-// existing DEX read-through store. Cached blocks survive cancellation and restart;
-// a persisted completion record is valid only for its exact immutable head.
-func (a *ProviderAccount) runAccountReplicaCopy(ctx context.Context, so sobject.SharedObject, state *p2pSyncState) error {
+// runAccountReplicaCopy hydrates the World of every accepted state through the
+// Session's existing DEX read-through store. The World is the checkpoint's World
+// with the operation set replayed onto it, as the World engine engineID builds
+// it on b. Cached blocks survive cancellation and restart; a persisted
+// completion record is valid only for its exact immutable head.
+func (a *ProviderAccount) runAccountReplicaCopy(ctx context.Context, b bus.Bus, so sobject.SharedObject, engineID string, state *p2pSyncState) error {
 	// Open the copy's local progress store and the object state stream.
 	local, release, err := so.AccessLocalStateStore(ctx, "account-replica-copy", nil)
 	if err != nil {
@@ -50,19 +54,11 @@ func (a *ProviderAccount) runAccountReplicaCopy(ctx context.Context, so sobject.
 			continue
 		}
 
-		// Skip snapshots without a checkpoint. Replay rebuilds the World of
-		// later operations from their transactions.
-		inner, err := snapshot.GetCheckpoint(ctx)
+		// Replay the operation set onto the checkpoint's World. Members write
+		// edits as operations, so the checkpoint alone lags the World they
+		// hold. Skip unchanged heads.
+		head, err := sobject_world_engine.ReplayWorld(ctx, a.le, b, a.GetStepFactorySet(), so, engineID, space_world_optypes.LookupWorldOp, snapshot)
 		if err != nil {
-			return err
-		}
-		if inner == nil {
-			continue
-		}
-
-		// Decode the World head and skip unchanged heads.
-		head := &sobject_world_engine.InnerState{}
-		if err := head.UnmarshalVT(inner.GetStateData()); err != nil {
 			return err
 		}
 		if head.GetHeadRef() == nil || head.GetHeadRef().EqualVT(previousHead) {

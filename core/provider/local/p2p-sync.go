@@ -1030,7 +1030,9 @@ func (a *ProviderAccount) startSOSync(
 	// Copy a Space to the account replica alongside its sync.
 	if bodyType == space.SpaceBodyType {
 		objectSync.copy = routine.NewRoutineContainerWithLogger(a.le.WithField("routine", "account-copy"), routine.WithRetry(providerBackoff))
-		objectSync.copy.SetRoutine(func(ctx context.Context) error { return a.runAccountReplicaCopy(ctx, so, state) })
+		objectSync.copy.SetRoutine(func(ctx context.Context) error {
+			return a.runAccountReplicaCopy(ctx, childBus, so, space.SpaceEngineId(ref), state)
+		})
 	}
 
 	// Register the object once; a concurrent start keeps the first registration.
