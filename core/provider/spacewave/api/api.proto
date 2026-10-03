@@ -177,10 +177,12 @@ message SOStateDelta {
 message SOStateDeltaEntry {
   // Seqno is the change_log sequence number for this entry.
   uint64 seqno = 1;
-  // ChangeType is the type of change ("op" or "checkpoint").
+  // ChangeType is the type of change: "op", "ops", "checkpoint", "sequence"
+  // or "control".
   string change_type = 2;
-  // ChangeData is an SOOperation for "op" and a PostCheckpointRequest for
-  // "checkpoint".
+  // ChangeData is an SOOperation for "op", a PostOpsRequest for "ops", a
+  // PostCheckpointRequest for "checkpoint", an SOSequenceBatch for "sequence"
+  // and an SOControlBatch for "control".
   bytes change_data = 3;
 }
 
@@ -195,6 +197,13 @@ message PostOpsRequest {
 message SOSequenceBatch {
   // Sequence holds the positions in height order.
   repeated .sobject.SOSequence sequence = 1;
+}
+
+// SOControlBatch is the binary payload for POST /sobject/:id/control and the
+// change-log payload of control messages the cloud admitted in one commit.
+message SOControlBatch {
+  // Control holds signed control messages of the open group decision.
+  repeated .sobject.SOControlMessage control = 1;
 }
 
 // PostCheckpointRequest is the binary payload for POST /sobject/:id/checkpoint.
@@ -1549,6 +1558,8 @@ message PendingSOPublication {
   repeated .sobject.SOOperation operations = 2;
   // FirstPendingUnixMilli starts the bounded cloud-publication interval.
   int64 first_pending_unix_milli = 3;
+  // Control holds local control messages not yet acknowledged by the cloud.
+  repeated .sobject.SOControlMessage control = 4;
 }
 
 // TicketResponse is the response body for POST /session/ticket.

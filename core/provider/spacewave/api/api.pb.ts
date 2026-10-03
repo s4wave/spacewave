@@ -19,6 +19,7 @@ import {
   SOCheckpoint,
   SOConfigChainResponse,
   SOConfigChange,
+  SOControlMessage,
   SOEntityRecoveryEnvelope,
   SOInvite,
   SOJoinResponse,
@@ -804,14 +805,16 @@ export interface SOStateDeltaEntry {
    */
   seqno?: bigint
   /**
-   * ChangeType is the type of change ("op" or "checkpoint").
+   * ChangeType is the type of change: "op", "ops", "checkpoint", "sequence"
+   * or "control".
    *
    * @generated from field: string change_type = 2;
    */
   changeType?: string
   /**
-   * ChangeData is an SOOperation for "op" and a PostCheckpointRequest for
-   * "checkpoint".
+   * ChangeData is an SOOperation for "op", a PostOpsRequest for "ops", a
+   * PostCheckpointRequest for "checkpoint", an SOSequenceBatch for "sequence"
+   * and an SOControlBatch for "control".
    *
    * @generated from field: bytes change_data = 3;
    */
@@ -1063,6 +1066,35 @@ export const SOSequenceBatch: MessageType<SOSequenceBatch> =
         name: 'sequence',
         kind: 'message',
         T: () => SOSequence,
+        repeated: true,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+  })
+
+/**
+ * SOControlBatch is the binary payload for POST /sobject/:id/control and the
+ * change-log payload of control messages the cloud admitted in one commit.
+ *
+ * @generated from message provider.spacewave.api.SOControlBatch
+ */
+export interface SOControlBatch {
+  /**
+   * Control holds signed control messages of the open group decision.
+   *
+   * @generated from field: repeated sobject.SOControlMessage control = 1;
+   */
+  control?: SOControlMessage[]
+}
+
+export const SOControlBatch: MessageType<SOControlBatch> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'provider.spacewave.api.SOControlBatch',
+    fields: [
+      {
+        no: 1,
+        name: 'control',
+        kind: 'message',
+        T: () => SOControlMessage,
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
@@ -5779,6 +5811,12 @@ export interface PendingSOPublication {
    * @generated from field: int64 first_pending_unix_milli = 3;
    */
   firstPendingUnixMilli?: bigint
+  /**
+   * Control holds local control messages not yet acknowledged by the cloud.
+   *
+   * @generated from field: repeated sobject.SOControlMessage control = 4;
+   */
+  control?: SOControlMessage[]
 }
 
 export const PendingSOPublication: MessageType<PendingSOPublication> =
@@ -5798,6 +5836,13 @@ export const PendingSOPublication: MessageType<PendingSOPublication> =
         name: 'first_pending_unix_milli',
         kind: 'scalar',
         T: ScalarType.INT64,
+      },
+      {
+        no: 4,
+        name: 'control',
+        kind: 'message',
+        T: () => SOControlMessage,
+        repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
   })

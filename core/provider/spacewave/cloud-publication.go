@@ -3,6 +3,7 @@ package provider_spacewave
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"slices"
 	"time"
 
@@ -14,13 +15,24 @@ import (
 // cloudOpsBodyLimit is the largest operations request body the cloud accepts.
 const cloudOpsBodyLimit = 256 << 10
 
-// retainPublication commits accepted state and its cloud obligation atomically.
-// The caller holds acceptMu. No watched local success precedes this transaction.
-func (h *cloudSOHost) retainPublication(ctx context.Context, state *sobject.SOState, operations []*sobject.SOOperation, checkpoint bool) error {
-	// Reject an operation that exceeds the cloud request limit.
-	for _, op := range operations {
+// cloudControlBodyLimit is the largest control request body the cloud accepts.
+const cloudControlBodyLimit = 1 << 20
+
+// retainPublication commits accepted state and its cloud obligation atomically:
+// the operations and control messages the write added, and the checkpoint when
+// it changed. The caller holds acceptMu. No watched local success precedes
+// this transaction.
+func (h *cloudSOHost) retainPublication(ctx context.Context, state *sobject.SOState, added *api.PendingSOPublication, checkpoint bool) error {
+	// Reject an operation or control message that exceeds the cloud request
+	// limit.
+	for _, op := range added.GetOperations() {
 		if (&api.PostOpsRequest{Operations: []*sobject.SOOperation{op}}).SizeVT() > cloudOpsBodyLimit {
 			return errors.New("operation exceeds the cloud request limit")
+		}
+	}
+	for _, msg := range added.GetControl() {
+		if (&api.SOControlBatch{Control: []*sobject.SOControlMessage{msg}}).SizeVT() > cloudControlBodyLimit {
+			return errors.New("control message exceeds the cloud request limit")
 		}
 	}
 
@@ -39,12 +51,13 @@ func (h *cloudSOHost) retainPublication(ctx context.Context, state *sobject.SOSt
 		return errors.New("local publication requires durable verified state")
 	}
 
-	// Extend the pending publication with the operation or new checkpoint.
+	// Extend the pending publication with the added work or new checkpoint.
 	pending := cache.GetPendingPublication()
 	if pending == nil {
 		pending = &api.PendingSOPublication{FirstPendingUnixMilli: time.Now().UnixMilli()}
 	}
-	pending.Operations = append(pending.Operations, cloneVTSlice(operations)...)
+	pending.Operations = append(pending.Operations, cloneVTSlice(added.GetOperations())...)
+	pending.Control = append(pending.Control, cloneVTSlice(added.GetControl())...)
 	if checkpoint && state.GetCheckpoint() != nil {
 		pending.Checkpoint = state.GetCheckpoint().CloneVT()
 		if err := dropCoveredOperations(h.soID, pending); err != nil {
@@ -120,6 +133,25 @@ func (h *cloudSOHost) publishCheckpoint(ctx context.Context, sent *api.PendingSO
 		}
 	}
 
+	// Post control messages in bounded batches. The cloud skips a message of
+	// a decision that closed meanwhile.
+	var control []*sobject.SOControlMessage
+	for _, msg := range sent.GetControl() {
+		candidate := append(control, msg)
+		if (&api.SOControlBatch{Control: candidate}).SizeVT() > cloudControlBodyLimit {
+			if err := h.client.PostControl(ctx, h.soID, control); err != nil {
+				return err
+			}
+			control = nil
+		}
+		control = append(control, msg)
+	}
+	if len(control) != 0 {
+		if err := h.client.PostControl(ctx, h.soID, control); err != nil {
+			return err
+		}
+	}
+
 	// A lost acknowledgment leaves the same signed request available for retry.
 	release, err := h.acceptMu.Lock(ctx)
 	if err != nil {
@@ -140,9 +172,12 @@ func (h *cloudSOHost) publishCheckpoint(ctx context.Context, sent *api.PendingSO
 		pending.Checkpoint = nil
 	}
 	pending.Operations = slices.DeleteFunc(pending.Operations, func(op *sobject.SOOperation) bool {
-		return slices.ContainsFunc(sent.Operations, func(other *sobject.SOOperation) bool { return op.EqualVT(other) })
+		return slices.ContainsFunc(sent.Operations, op.EqualVT)
 	})
-	if pending.GetCheckpoint() == nil && len(pending.Operations) == 0 {
+	pending.Control = slices.DeleteFunc(pending.Control, func(msg *sobject.SOControlMessage) bool {
+		return slices.ContainsFunc(sent.Control, msg.EqualVT)
+	})
+	if pending.GetCheckpoint() == nil && len(pending.Operations) == 0 && len(pending.Control) == 0 {
 		pending = nil
 	}
 	cache.PendingPublication = pending
@@ -243,8 +278,8 @@ func (h *cloudSOHost) acceptCloudSnapshot(ctx context.Context, cloud *sobject.SO
 		return errors.New("cloud checkpoint conflicts with accepted peer checkpoint")
 	}
 
-	// Union the operation sets and the sequences. Whatever the selected
-	// checkpoint covers drops out.
+	// Union the operation sets, the sequences and the control messages.
+	// Whatever the selected checkpoint and config close drops out.
 	for _, op := range other.GetOps() {
 		if _, err := next.AddOperation(h.soID, op); err != nil {
 			return errors.Wrap(err, "merge operation")
@@ -255,6 +290,7 @@ func (h *cloudSOHost) acceptCloudSnapshot(ctx context.Context, cloud *sobject.SO
 			return errors.Wrap(err, "merge sequence")
 		}
 	}
+	next.MergeControlMessages(h.soID, other.GetControlMessages())
 	pending := h.pendingPublication()
 	if pending != nil {
 		if err := dropCoveredOperations(h.soID, &api.PendingSOPublication{Checkpoint: next.GetCheckpoint(), Operations: pending.GetOperations()}); err != nil {
@@ -361,12 +397,18 @@ func (h *cloudSOHost) publishConfigChange(ctx context.Context, prev, next *sobje
 		return errors.Wrap(err, "build recovery envelopes")
 	}
 
-	// Commit the change, then accept it.
+	// Commit the change, then accept it. A conflict means another writer,
+	// such as another voter applying the same decision, advanced the head
+	// first.
 	entryData, err := entry.MarshalVT()
 	if err != nil {
 		return err
 	}
 	if err := h.client.PostConfigState(ctx, h.soID, entryData, invites, epoch, envelopes); err != nil {
+		var ce *cloudError
+		if errors.As(err, &ce) && ce.StatusCode == 409 {
+			return fmt.Errorf("%w: %w", sobject.ErrConfigChainHeadMismatch, err)
+		}
 		return err
 	}
 	return h.applyConfigMutation(ctx, entry, invites, epoch)

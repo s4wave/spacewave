@@ -1916,6 +1916,23 @@ func (c *SessionClient) PostConfigState(
 	return nil
 }
 
+// PostControl posts signed control messages of the open group decision. The
+// cloud skips messages of a closed decision and ones it holds.
+func (c *SessionClient) PostControl(ctx context.Context, soID string, control []*sobject.SOControlMessage) error {
+	body, err := (&api.SOControlBatch{Control: control}).MarshalVT()
+	if err != nil {
+		return errors.Wrap(err, "marshal control batch")
+	}
+	_, err = c.doPostBinary(
+		ctx,
+		path.Join("/api/sobject", soID, "control"),
+		body,
+		nil,
+		SeedReasonMutation,
+	)
+	return errors.Wrap(err, "post control")
+}
+
 // PostKeyEpoch posts a new key epoch (after key rotation) to the server.
 func (c *SessionClient) PostKeyEpoch(
 	ctx context.Context,

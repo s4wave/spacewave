@@ -812,8 +812,9 @@ func (h *cloudSOHost) handleStateDelta(ctx context.Context, msg *api.SOStateMess
 
 // applyChangeLogEntry applies a single change_log entry to the cached state.
 // The change_data wire format mirrors the cloud's sharedobject DO: 'op' carries
-// an SOOperation, 'ops' a PostOpsRequest, 'checkpoint' a PostCheckpointRequest
-// and 'sequence' an SOSequenceBatch. Entries are idempotent.
+// an SOOperation, 'ops' a PostOpsRequest, 'checkpoint' a PostCheckpointRequest,
+// 'sequence' an SOSequenceBatch and 'control' an SOControlBatch. Entries are
+// idempotent.
 func applyChangeLogEntry(
 	sharedObjectID string,
 	state *sobject.SOState,
@@ -864,6 +865,14 @@ func applyChangeLogEntry(
 		}
 		return nil
 
+	case "control":
+		batch := &api.SOControlBatch{}
+		if err := batch.UnmarshalVT(entry.GetChangeData()); err != nil {
+			return errors.Wrap(err, "unmarshal control batch")
+		}
+		state.MergeControlMessages(sharedObjectID, batch.GetControl())
+		return nil
+
 	default:
 		return errors.Errorf("unknown change_type %q", entry.GetChangeType())
 	}
@@ -882,7 +891,7 @@ func (h *cloudSOHost) acceptLocalWrite(ctx context.Context, base, written *sobje
 
 	// Rebase the write onto the current state and verify it.
 	current := h.stateCtr.GetValue()
-	next, ops, err := rebaseLocalWrite(h.soID, base, written, current)
+	next, added, err := rebaseLocalWrite(h.soID, base, written, current)
 	if err != nil {
 		return err
 	}
@@ -892,22 +901,27 @@ func (h *cloudSOHost) acceptLocalWrite(ctx context.Context, base, written *sobje
 
 	// Retain the result for publication.
 	checkpoint := !next.GetCheckpoint().EqualVT(current.GetCheckpoint())
-	return h.retainPublication(ctx, next, ops, checkpoint)
+	return h.retainPublication(ctx, next, added, checkpoint)
 }
 
 // rebaseLocalWrite applies the changes a local write made from base to
-// written onto current. It returns the rebased state and the operations the
-// write added.
-func rebaseLocalWrite(sharedObjectID string, base, written, current *sobject.SOState) (*sobject.SOState, []*sobject.SOOperation, error) {
-	// Collect the operations the write added.
-	var ops []*sobject.SOOperation
+// written onto current. It returns the rebased state and the operations and
+// control messages the write added.
+func rebaseLocalWrite(sharedObjectID string, base, written, current *sobject.SOState) (*sobject.SOState, *api.PendingSOPublication, error) {
+	// Collect the operations and control messages the write added.
+	added := &api.PendingSOPublication{}
 	for _, op := range written.GetOps() {
 		if !slices.ContainsFunc(base.GetOps(), op.EqualVT) {
-			ops = append(ops, op)
+			added.Operations = append(added.Operations, op)
+		}
+	}
+	for _, msg := range written.GetControlMessages() {
+		if !slices.ContainsFunc(base.GetControlMessages(), msg.EqualVT) {
+			added.Control = append(added.Control, msg)
 		}
 	}
 	if current == nil || current.EqualVT(base) {
-		return written, ops, nil
+		return written, added, nil
 	}
 
 	// Apply each changed field to the current state.
@@ -917,11 +931,12 @@ func rebaseLocalWrite(sharedObjectID string, base, written, current *sobject.SOS
 			return nil, nil, err
 		}
 	}
-	for _, op := range ops {
+	for _, op := range added.GetOperations() {
 		if _, err := next.AddOperation(sharedObjectID, op); err != nil {
 			return nil, nil, err
 		}
 	}
+	next.MergeControlMessages(sharedObjectID, added.GetControl())
 	for _, epoch := range written.GetKeyEpochs() {
 		if !epoch.EqualVT(base.GetKeyEpoch(epoch.GetEpoch())) {
 			next.SetKeyEpoch(epoch.CloneVT())
@@ -930,7 +945,7 @@ func rebaseLocalWrite(sharedObjectID string, base, written, current *sobject.SOS
 	if !slices.EqualFunc(written.GetInvites(), base.GetInvites(), (*sobject.SOInvite).EqualVT) {
 		next.Invites = cloneVTSlice(written.GetInvites())
 	}
-	return next, ops, nil
+	return next, added, nil
 }
 
 // applyKeyEpoch updates the cached key-epoch state after a successful write.

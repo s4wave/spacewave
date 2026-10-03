@@ -938,10 +938,12 @@ type SOStateDeltaEntry struct {
 	unknownFields []byte
 	// Seqno is the change_log sequence number for this entry.
 	Seqno uint64 `protobuf:"varint,1,opt,name=seqno,proto3" json:"seqno,omitempty"`
-	// ChangeType is the type of change ("op" or "checkpoint").
+	// ChangeType is the type of change: "op", "ops", "checkpoint", "sequence"
+	// or "control".
 	ChangeType string `protobuf:"bytes,2,opt,name=change_type,json=changeType,proto3" json:"changeType,omitempty"`
-	// ChangeData is an SOOperation for "op" and a PostCheckpointRequest for
-	// "checkpoint".
+	// ChangeData is an SOOperation for "op", a PostOpsRequest for "ops", a
+	// PostCheckpointRequest for "checkpoint", an SOSequenceBatch for "sequence"
+	// and an SOControlBatch for "control".
 	ChangeData []byte `protobuf:"bytes,3,opt,name=change_data,json=changeData,proto3" json:"changeData,omitempty"`
 }
 
@@ -1009,6 +1011,27 @@ func (*SOSequenceBatch) ProtoMessage() {}
 func (x *SOSequenceBatch) GetSequence() []*sobject.SOSequence {
 	if x != nil {
 		return x.Sequence
+	}
+	return nil
+}
+
+// SOControlBatch is the binary payload for POST /sobject/:id/control and the
+// change-log payload of control messages the cloud admitted in one commit.
+type SOControlBatch struct {
+	unknownFields []byte
+	// Control holds signed control messages of the open group decision.
+	Control []*sobject.SOControlMessage `protobuf:"bytes,1,rep,name=control,proto3" json:"control,omitempty"`
+}
+
+func (x *SOControlBatch) Reset() {
+	*x = SOControlBatch{}
+}
+
+func (*SOControlBatch) ProtoMessage() {}
+
+func (x *SOControlBatch) GetControl() []*sobject.SOControlMessage {
+	if x != nil {
+		return x.Control
 	}
 	return nil
 }
@@ -5563,6 +5586,8 @@ type PendingSOPublication struct {
 	Operations []*sobject.SOOperation `protobuf:"bytes,2,rep,name=operations,proto3" json:"operations,omitempty"`
 	// FirstPendingUnixMilli starts the bounded cloud-publication interval.
 	FirstPendingUnixMilli int64 `protobuf:"varint,3,opt,name=first_pending_unix_milli,json=firstPendingUnixMilli,proto3" json:"firstPendingUnixMilli,omitempty"`
+	// Control holds local control messages not yet acknowledged by the cloud.
+	Control []*sobject.SOControlMessage `protobuf:"bytes,4,rep,name=control,proto3" json:"control,omitempty"`
 }
 
 func (x *PendingSOPublication) Reset() {
@@ -5590,6 +5615,13 @@ func (x *PendingSOPublication) GetFirstPendingUnixMilli() int64 {
 		return x.FirstPendingUnixMilli
 	}
 	return 0
+}
+
+func (x *PendingSOPublication) GetControl() []*sobject.SOControlMessage {
+	if x != nil {
+		return x.Control
+	}
+	return nil
 }
 
 // TicketResponse is the response body for POST /session/ticket.
@@ -10728,6 +10760,22 @@ func (m *SOSequenceBatch) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
+func (m *SOControlBatch) CloneVT() *SOControlBatch {
+	if m == nil {
+		return (*SOControlBatch)(nil)
+	}
+	r := new(SOControlBatch)
+	r.Control = protobuf_go_lite.CloneVTSlice(m.Control)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *SOControlBatch) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
 func (m *PostCheckpointRequest) CloneVT() *PostCheckpointRequest {
 	if m == nil {
 		return (*PostCheckpointRequest)(nil)
@@ -12864,6 +12912,7 @@ func (m *PendingSOPublication) CloneVT() *PendingSOPublication {
 	r.FirstPendingUnixMilli = m.FirstPendingUnixMilli
 	r.Checkpoint = protobuf_go_lite.CloneVTValue(m.Checkpoint)
 	r.Operations = protobuf_go_lite.CloneVTSlice(m.Operations)
+	r.Control = protobuf_go_lite.CloneVTSlice(m.Control)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -16059,6 +16108,26 @@ func (this *SOSequenceBatch) EqualMessageVT(thatMsg any) bool {
 	return this.EqualVT(that)
 }
 
+func (this *SOControlBatch) EqualVT(that *SOControlBatch) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTSliceImplicit(this.Control, that.Control, func() *sobject.SOControlMessage { return &sobject.SOControlMessage{} }) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *SOControlBatch) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*SOControlBatch)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
 func (this *PostCheckpointRequest) EqualVT(that *PostCheckpointRequest) bool {
 	if this == that {
 		return true
@@ -19150,6 +19219,9 @@ func (this *PendingSOPublication) EqualVT(that *PendingSOPublication) bool {
 		return false
 	}
 	if this.FirstPendingUnixMilli != that.FirstPendingUnixMilli {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTSliceImplicit(this.Control, that.Control, func() *sobject.SOControlMessage { return &sobject.SOControlMessage{} }) {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -24188,6 +24260,69 @@ func (x *SOSequenceBatch) UnmarshalProtoJSON(s *json.UnmarshalState) {
 
 // UnmarshalJSON unmarshals the SOSequenceBatch from JSON.
 func (x *SOSequenceBatch) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the SOControlBatch message to JSON.
+func (x *SOControlBatch) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if len(x.Control) > 0 || s.HasField("control") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("control")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.Control {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("control"))
+		}
+		s.WriteArrayEnd()
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the SOControlBatch to JSON.
+func (x *SOControlBatch) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the SOControlBatch message from JSON.
+func (x *SOControlBatch) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "control":
+			s.AddField("control")
+			if s.ReadNil() {
+				x.Control = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.Control = append(x.Control, nil)
+					return
+				}
+				v := &sobject.SOControlMessage{}
+				v.UnmarshalProtoJSON(s.WithField("control", false))
+				if s.Err() != nil {
+					return
+				}
+				x.Control = append(x.Control, v)
+			})
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the SOControlBatch from JSON.
+func (x *SOControlBatch) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -31249,6 +31384,17 @@ func (x *PendingSOPublication) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("firstPendingUnixMilli")
 		s.WriteInt64(x.FirstPendingUnixMilli)
 	}
+	if len(x.Control) > 0 || s.HasField("control") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("control")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.Control {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("control"))
+		}
+		s.WriteArrayEnd()
+	}
 	s.WriteObjectEnd()
 }
 
@@ -31294,6 +31440,24 @@ func (x *PendingSOPublication) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "first_pending_unix_milli", "firstPendingUnixMilli":
 			s.AddField("first_pending_unix_milli")
 			x.FirstPendingUnixMilli = s.ReadInt64()
+		case "control":
+			s.AddField("control")
+			if s.ReadNil() {
+				x.Control = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.Control = append(x.Control, nil)
+					return
+				}
+				v := &sobject.SOControlMessage{}
+				v.UnmarshalProtoJSON(s.WithField("control", false))
+				if s.Err() != nil {
+					return
+				}
+				x.Control = append(x.Control, v)
+			})
 		}
 	})
 }
@@ -40026,6 +40190,50 @@ func (m *SOSequenceBatch) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
+func (m *SOControlBatch) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *SOControlBatch) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *SOControlBatch) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.Control) > 0 {
+		for iNdEx := len(m.Control) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.Control[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0xa
+		}
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *PostCheckpointRequest) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -45807,6 +46015,18 @@ func (m *PendingSOPublication) MarshalToSizedBufferVT(dAtA []byte) (int, error) 
 	_ = l
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.Control) > 0 {
+		for iNdEx := len(m.Control) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.Control[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x22
+		}
 	}
 	if m.FirstPendingUnixMilli != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.FirstPendingUnixMilli))
@@ -52857,6 +53077,20 @@ func (m *SOSequenceBatch) SizeVT() (n int) {
 	return n
 }
 
+func (m *SOControlBatch) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	for _, e := range m.Control {
+		l = e.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
 func (m *PostCheckpointRequest) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -54588,6 +54822,10 @@ func (m *PendingSOPublication) SizeVT() (n int) {
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.FirstPendingUnixMilli)
+	for _, e := range m.Control {
+		l = e.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -57153,6 +57391,28 @@ func (x *SOSequenceBatch) MarshalProtoText() string {
 }
 
 func (x *SOSequenceBatch) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *SOControlBatch) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "SOControlBatch")
+	if len(x.Control) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "control")
+		for i, v := range x.Control {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			if v == nil {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, &sobject.SOControlMessage{})
+			} else {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, v)
+			}
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *SOControlBatch) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -59851,6 +60111,18 @@ func (x *PendingSOPublication) MarshalProtoText() string {
 	if x.FirstPendingUnixMilli != 0 {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "first_pending_unix_milli")
 		protobuf_go_lite.TextWriteInt(&sb, x.FirstPendingUnixMilli)
+	}
+	if len(x.Control) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "control")
+		for i, v := range x.Control {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			if v == nil {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, &sobject.SOControlMessage{})
+			} else {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, v)
+			}
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -64032,6 +64304,62 @@ func (m *SOSequenceBatch) UnmarshalVT(dAtA []byte) error {
 			}
 			m.Sequence = append(m.Sequence, &sobject.SOSequence{})
 			if err := m.Sequence[len(m.Sequence)-1].UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *SOControlBatch) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: SOControlBatch: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: SOControlBatch: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Control", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Control = append(m.Control, &sobject.SOControlMessage{})
+			if err := m.Control[len(m.Control)-1].UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
@@ -72540,6 +72868,19 @@ func (m *PendingSOPublication) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Control", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Control = append(m.Control, &sobject.SOControlMessage{})
+			if err := m.Control[len(m.Control)-1].UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
