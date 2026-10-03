@@ -69,38 +69,32 @@ func (d *App) Execute(ctx context.Context) error {
 	plugRpcClient := plug.GetRpcClient()
 	rpcClient := prototype_webworker_rpcstream_common.NewSRPCPrototypeServiceClient(plugRpcClient)
 
-	// Start the app2 prototype stream with the app1 greeting.
+	// Start the app2 prototype stream with the app1 greeting, bounded to the
+	// prototype duration so a stalled receive still ends.
 	testBody := "hello from app1"
-	strm, err := rpcClient.Prototype(ctx, &prototype_webworker_rpcstream_common.PrototypeRequest{Body: testBody})
+	strmCtx, strmCancel := context.WithTimeout(ctx, 5*time.Second)
+	defer strmCancel()
+	strm, err := rpcClient.Prototype(strmCtx, &prototype_webworker_rpcstream_common.PrototypeRequest{Body: testBody})
 	if err != nil {
 		return err
 	}
 
-	// Read app2 stream responses until cancellation or the prototype duration ends.
+	// Read app2 stream responses until the prototype duration ends.
 	le.Info("started Prototype rpc with app2")
-	waitTimer := time.After(time.Second * 5)
-WaitLoop:
 	for {
-		select {
-		case <-ctx.Done():
-			return context.Canceled
-		case <-waitTimer:
-			break WaitLoop
-		default:
-		}
-
 		resp, err := strm.Recv()
 		if err != nil {
-			return err
+			// Only the expired prototype duration ends the read normally.
+			if ctx.Err() != nil || strmCtx.Err() == nil {
+				return err
+			}
+			break
 		}
 		le.Infof("got response from app2: %v", resp.String())
 	}
 
-	// Close both directions of the app2 prototype stream.
+	// Close the app2 prototype stream.
 	le.Info("closing stream")
-	if err := strm.CloseSend(); err != nil {
-		return err
-	}
 	if err := strm.Close(); err != nil {
 		return err
 	}
