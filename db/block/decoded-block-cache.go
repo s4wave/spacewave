@@ -72,11 +72,14 @@ var sharedDecodedBlockPool = sync.OnceValue(func() *decodedBlockPool {
 
 // newDecodedBlockPool constructs a pool with opts.
 func newDecodedBlockPool(opts DecodedBlockCacheOptions) (*decodedBlockPool, error) {
+	// Normalize the decoded-cache budget and preserve disabled pools.
 	opts = opts.normalize()
 	pool := &decodedBlockPool{maxCost: opts.MaxCost}
 	if opts.Disabled {
 		return pool, nil
 	}
+
+	// Construct the shared cache with the configured cost limits.
 	cache, err := ristretto.NewCache(&ristretto.Config[string, decodedBlockCacheEntry]{
 		NumCounters: opts.NumCounters,
 		MaxCost:     opts.MaxCost,
@@ -86,6 +89,8 @@ func newDecodedBlockPool(opts DecodedBlockCacheOptions) (*decodedBlockPool, erro
 	if err != nil {
 		return nil, err
 	}
+
+	// Attach the configured cache to its decoded-block pool.
 	pool.cache = cache
 	return pool, nil
 }
@@ -206,19 +211,26 @@ func (c *DecodedBlockCache) Close() {
 // Snapshot returns the pool's decoded-cache metrics. A scope in the shared
 // pool reports the metrics of every scope.
 func (c *DecodedBlockCache) Snapshot() DecodedBlockCacheSnapshot {
+	// Return an empty metrics snapshot for a missing cache scope.
 	if c == nil {
 		return DecodedBlockCacheSnapshot{}
 	}
+
+	// Capture the pool budget before reading enabled cache metrics.
 	snapshot := DecodedBlockCacheSnapshot{MaxCost: c.MaxCost()}
 	if c.pool.cache == nil {
 		return snapshot
 	}
+
+	// Capture the cache cost and locate its metrics counters.
 	snapshot.RemainingCost = c.pool.cache.RemainingCost()
 	snapshot.RetainedCost = snapshot.MaxCost - snapshot.RemainingCost
 	metrics := c.pool.cache.Metrics
 	if metrics == nil {
 		return snapshot
 	}
+
+	// Capture the pool hit, store, rejection, and eviction counters.
 	snapshot.Hits = metrics.Hits()
 	snapshot.Misses = metrics.Misses()
 	snapshot.Stores = metrics.KeysAdded() + metrics.KeysUpdated()
@@ -232,25 +244,34 @@ func (c *DecodedBlockCache) Snapshot() DecodedBlockCacheSnapshot {
 // Lookup returns the cached decoded block for the key, recording a cache
 // hit or miss. The returned block is a clone safe for the caller to keep.
 func (c *DecodedBlockCache) Lookup(ctx context.Context, front *decodedBlockFrontCache, key decodedBlockCacheKey) (Block, bool, error) {
+	// Reuse the decoded block retained in the read-operation cache.
 	if cached := front.lookup(key); cached != nil {
 		return cloneDecodedBlockHit(ctx, cached)
 	}
+
+	// Record a miss when the shared decoded-block pool is disabled.
 	if !c.enabled() {
 		if front != nil {
 			recordDecodedBlockCacheMiss(ctx)
 		}
 		return nil, false, nil
 	}
+
+	// Look up the shared entry and reject stale invalidation epochs.
 	cacheKey := c.cacheKey(key)
 	cached, ok := c.pool.cache.Get(cacheKey)
 	if ok && cached.epochs != c.epochs(key.ref) {
 		c.pool.cache.Del(cacheKey)
 		ok = false
 	}
+
+	// Record a cache miss when no current shared entry exists.
 	if !ok {
 		recordDecodedBlockCacheMiss(ctx)
 		return nil, false, nil
 	}
+
+	// Retain the shared block in the read cache and clone it for the caller.
 	front.store(key, cached.block)
 	return cloneDecodedBlockHit(ctx, cached.block)
 }
@@ -266,6 +287,7 @@ func (c *DecodedBlockCache) Store(
 	blk Block,
 	data []byte,
 ) error {
+	// Require a block and a cache scope before retaining decoded content.
 	if blk == nil {
 		return nil
 	}
@@ -273,10 +295,14 @@ func (c *DecodedBlockCache) Store(
 		RecordDecodedBlockUncacheable(ctx)
 		return nil
 	}
+
+	// Require verified stored bytes before caching their decoded block.
 	if ref == nil || ref.VerifyData(data, false) != nil {
 		RecordDecodedBlockUncacheable(ctx)
 		return nil
 	}
+
+	// Clone the decoded block so cache readers cannot mutate it.
 	cloned, ok, err := cloneDecodedBlock(blk)
 	if err != nil {
 		return err
@@ -285,6 +311,8 @@ func (c *DecodedBlockCache) Store(
 		RecordDecodedBlockUncloneable(ctx)
 		return nil
 	}
+
+	// Reject cache writes whose read token predates an invalidation.
 	var epochs decodedBlockCacheEpochs
 	if c != nil {
 		epochs = c.epochs(key.ref)
@@ -292,16 +320,21 @@ func (c *DecodedBlockCache) Store(
 			return nil
 		}
 	}
+
+	// Retain the cloned block in the read-operation cache.
 	front.store(key, cloned)
 	if !c.enabled() {
 		return nil
 	}
+
+	// Compute the shared entry cost before cache admission.
 	cacheKey := c.cacheKey(key)
 	cost, ok := decodedBlockCacheCost(cacheKey, blk, data)
 	if !ok {
 		RecordDecodedBlockUncacheable(ctx)
 		return nil
 	}
+
 	// An invalidation after the epoch read leaves this entry stale, and
 	// Lookup then treats it as a miss.
 	accepted := c.pool.cache.Set(cacheKey, decodedBlockCacheEntry{
@@ -317,10 +350,13 @@ func (c *DecodedBlockCache) Store(
 
 // InvalidateRef makes cached entries for ref stale.
 func (c *DecodedBlockCache) InvalidateRef(ctx context.Context, ref *BlockRef) {
+	// Resolve the block reference to invalidate in both cache layers.
 	refKey, ok := decodedBlockCacheRefKey(ref)
 	if !ok {
 		return
 	}
+
+	// Invalidate the read cache and advance the shared reference epoch.
 	decodedBlockFrontCacheFromContext(ctx).invalidateRef(refKey)
 	if c == nil {
 		return
@@ -378,6 +414,7 @@ func (c *DecodedBlockCache) refEpoch(refKey string) *atomic.Uint64 {
 // cloneDecodedBlockHit clones a cached block for the caller and records the
 // hit, or reports a miss when the block cannot be cloned.
 func cloneDecodedBlockHit(ctx context.Context, cached Block) (Block, bool, error) {
+	// Clone the cached block and classify unavailable clone support.
 	cloned, ok, err := cloneDecodedBlock(cached)
 	if err != nil {
 		return nil, false, err
@@ -386,6 +423,8 @@ func cloneDecodedBlockHit(ctx context.Context, cached Block) (Block, bool, error
 		RecordDecodedBlockUncloneable(ctx)
 		return nil, false, nil
 	}
+
+	// Record the successful decoded-cache hit for the caller.
 	RecordDecodedBlockCacheHit(ctx, true)
 	return cloned, true, nil
 }
@@ -488,9 +527,12 @@ func decodedBlockCacheCost(cacheKey string, blk Block, data []byte) (int64, bool
 // decodedBlockCacheKeyFor builds the cache key for a block, or false
 // when the block type is not cacheable.
 func decodedBlockCacheKeyFor(ref *BlockRef, blk Block, xfrm Transformer) (decodedBlockCacheKey, bool) {
+	// Require a nonempty reference and block for cache identity.
 	if ref == nil || ref.GetEmpty() || blk == nil {
 		return decodedBlockCacheKey{}, false
 	}
+
+	// Resolve the concrete block type used by the decoded cache.
 	typeKeyer, ok := blk.(DecodedBlockCacheable)
 	if !ok {
 		return decodedBlockCacheKey{}, false
@@ -499,10 +541,14 @@ func decodedBlockCacheKeyFor(ref *BlockRef, blk Block, xfrm Transformer) (decode
 	if blockType == "" {
 		return decodedBlockCacheKey{}, false
 	}
+
+	// Resolve the transform identity used by the decoded cache.
 	transform, ok := decodedBlockCacheTransformKey(xfrm)
 	if !ok {
 		return decodedBlockCacheKey{}, false
 	}
+
+	// Encode the block reference used by the decoded cache.
 	refKey, ok := decodedBlockCacheRefKey(ref)
 	if !ok {
 		return decodedBlockCacheKey{}, false
@@ -518,9 +564,12 @@ func decodedBlockCacheKeyFor(ref *BlockRef, blk Block, xfrm Transformer) (decode
 // decodedBlockCacheTransformKey returns the transformer's cache identity,
 // or the no-transform key.
 func decodedBlockCacheTransformKey(xfrm Transformer) (string, bool) {
+	// Use the untransformed cache identity when no transformer applies.
 	if xfrm == nil {
 		return DecodedBlockCacheNoTransformKey, true
 	}
+
+	// Require a transformer with a nonempty decoded-cache identity.
 	keyer, ok := xfrm.(DecodedBlockCacheTransformer)
 	if !ok {
 		return "", false
@@ -535,12 +584,15 @@ func decodedBlockCacheTransformKey(xfrm Transformer) (string, bool) {
 // String encodes the key as length-prefixed parts, so no part can be confused
 // with a neighbor.
 func (k decodedBlockCacheKey) String() string {
+	// Prepare length-prefixed encoding for the decoded-cache key parts.
 	var b strings.Builder
 	writePart := func(part string) {
 		b.WriteString(strconv.Itoa(len(part)))
 		b.WriteByte(':')
 		b.WriteString(part)
 	}
+
+	// Encode the reference, block type, transform, and trust identities.
 	writePart(k.ref)
 	writePart(k.blockType)
 	writePart(k.transform)
@@ -551,6 +603,7 @@ func (k decodedBlockCacheKey) String() string {
 // cloneDecodedBlock deep-clones a block, returning false when the block
 // type cannot be cloned.
 func cloneDecodedBlock(blk Block) (Block, bool, error) {
+	// Clone the decoded block and distinguish unsupported block types.
 	cloned, err := CloneBlock(blk)
 	if err != nil {
 		if errors.Is(err, ErrNotClonable) || errors.Is(err, ErrUnexpectedType) {
@@ -558,6 +611,8 @@ func cloneDecodedBlock(blk Block) (Block, bool, error) {
 		}
 		return nil, false, err
 	}
+
+	// Require the clone to preserve the block interface.
 	out, ok := cloned.(Block)
 	if !ok {
 		return nil, false, nil
