@@ -155,6 +155,7 @@ func (o *ObjectRef) Clone() *ObjectRef {
 
 // CopyFrom copies the contents of another ObjectRef.
 func (o *ObjectRef) CopyFrom(ot *ObjectRef) {
+	// Copy each field, cloning the nested references.
 	if o == nil || ot == nil {
 		return
 	}
