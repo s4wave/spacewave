@@ -34,12 +34,14 @@ func (t *TxStoreTx) GetTxOps() TxOps {
 
 // Get returns values for a key.
 func (t *TxStoreTx) Get(ctx context.Context, key []byte) (data []byte, found bool, err error) {
+	// Validate the requested keys and hold the virtual transaction lifecycle lock.
 	if len(key) == 0 {
 		return nil, false, ErrEmptyKey
 	}
 	t.rmtx.RLock()
 	defer t.rmtx.RUnlock()
 
+	// Reject access through a discarded virtual transaction.
 	if t.discarded {
 		return nil, false, tx.ErrDiscarded
 	}
@@ -49,6 +51,7 @@ func (t *TxStoreTx) Get(ctx context.Context, key []byte) (data []byte, found boo
 
 // GetBatch returns values for multiple keys.
 func (t *TxStoreTx) GetBatch(ctx context.Context, keys [][]byte) ([][]byte, []bool, error) {
+	// Validate the requested keys and hold the virtual transaction lifecycle lock.
 	for _, key := range keys {
 		if len(key) == 0 {
 			return nil, nil, ErrEmptyKey
@@ -57,6 +60,7 @@ func (t *TxStoreTx) GetBatch(ctx context.Context, keys [][]byte) ([][]byte, []bo
 	t.rmtx.RLock()
 	defer t.rmtx.RUnlock()
 
+	// Reject access through a discarded virtual transaction.
 	if t.discarded {
 		return nil, nil, tx.ErrDiscarded
 	}
@@ -79,13 +83,16 @@ func (t *TxStoreTx) Size(ctx context.Context) (uint64, error) {
 // Set sets the value of a key.
 // This will not be committed until Commit is called.
 func (t *TxStoreTx) Set(ctx context.Context, key, value []byte) error {
+	// Require a nonempty key for the virtual transaction write.
 	if len(key) == 0 {
 		return ErrEmptyKey
 	}
+
 	// note: we don't write discarded field, so use RLock
 	t.rmtx.RLock()
 	defer t.rmtx.RUnlock()
 
+	// Reject writes through a discarded virtual transaction.
 	if t.discarded {
 		return tx.ErrDiscarded
 	}
@@ -97,13 +104,16 @@ func (t *TxStoreTx) Set(ctx context.Context, key, value []byte) error {
 // This will not be committed until Commit is called.
 // Not found should not return an error.
 func (t *TxStoreTx) Delete(ctx context.Context, key []byte) error {
+	// Require a nonempty key for the virtual transaction write.
 	if len(key) == 0 {
 		return ErrEmptyKey
 	}
+
 	// note: we don't write discarded field, so use RLock
 	t.rmtx.RLock()
 	defer t.rmtx.RUnlock()
 
+	// Reject writes through a discarded virtual transaction.
 	if t.discarded {
 		return tx.ErrDiscarded
 	}
@@ -149,9 +159,11 @@ func (t *TxStoreTx) ScanPrefixKeys(ctx context.Context, prefix []byte, cb func(k
 // Must call Next() or Seek() before valid.
 // Some implementations return BlockIterator.
 func (t *TxStoreTx) Iterate(ctx context.Context, prefix []byte, sort, reverse bool) Iterator {
+	// Hold the virtual transaction lifecycle lock while creating its iterator.
 	t.rmtx.RLock()
 	defer t.rmtx.RUnlock()
 
+	// Return an error iterator when the virtual transaction has ended.
 	if t.discarded {
 		return NewErrIterator(tx.ErrDiscarded)
 	}
@@ -161,12 +173,14 @@ func (t *TxStoreTx) Iterate(ctx context.Context, prefix []byte, sort, reverse bo
 
 // Exists checks if a key exists.
 func (t *TxStoreTx) Exists(ctx context.Context, key []byte) (bool, error) {
+	// Validate the requested keys and hold the virtual transaction lifecycle lock.
 	if len(key) == 0 {
 		return false, ErrEmptyKey
 	}
 	t.rmtx.RLock()
 	defer t.rmtx.RUnlock()
 
+	// Reject access through a discarded virtual transaction.
 	if t.discarded {
 		return false, tx.ErrDiscarded
 	}
@@ -193,6 +207,7 @@ func (t *TxStoreTx) Discard() {
 
 // discardOnce locks & discards the tx, returns ErrDiscarded if already discarded
 func (t *TxStoreTx) discardOnce() error {
+	// Mark the virtual transaction discarded under its lifecycle lock.
 	t.rmtx.Lock()
 	discarded := t.discarded
 	if !discarded {
@@ -200,6 +215,7 @@ func (t *TxStoreTx) discardOnce() error {
 	}
 	t.rmtx.Unlock()
 
+	// Report whether this call found an already discarded virtual transaction.
 	if discarded {
 		return tx.ErrDiscarded
 	}

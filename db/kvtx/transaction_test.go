@@ -22,6 +22,7 @@ func (t *retryTestTx) Discard() {
 }
 
 func TestRunTransactionRetriesFreshAttemptsAndDiscards(t *testing.T) {
+	// Record transaction opens and lifecycle events across fresh retry attempts.
 	var events []string
 	var opened int
 
@@ -69,9 +70,11 @@ func TestRunTransactionRetriesFreshAttemptsAndDiscards(t *testing.T) {
 }
 
 func TestRunTransactionRetriesTypedCommitFailure(t *testing.T) {
+	// Record transaction lifecycle events for a typed commit failure.
 	var events []string
 	var opened int
 
+	// Retry the write transaction after its first commit invalidates the snapshot.
 	err := RunTransaction(
 		context.Background(),
 		true,
@@ -92,6 +95,7 @@ func TestRunTransactionRetriesTypedCommitFailure(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Verify the failed commit is discarded before a fresh attempt commits.
 	want := []string{
 		"body:1",
 		"commit:1",
@@ -111,9 +115,11 @@ func TestRunTransactionRetriesTypedCommitFailure(t *testing.T) {
 }
 
 func TestRunTransactionDiscardsBodyErrorWithoutCommit(t *testing.T) {
+	// Prepare a transaction body failure and its lifecycle event log.
 	var events []string
 	bodyErr := errors.New("body failed")
 
+	// Run a write transaction whose body fails without permitting a retry.
 	err := RunTransaction(
 		context.Background(),
 		true,
@@ -129,6 +135,7 @@ func TestRunTransactionDiscardsBodyErrorWithoutCommit(t *testing.T) {
 		t.Fatalf("error = %v, want body error", err)
 	}
 
+	// Verify the failed transaction body is discarded without committing.
 	want := []string{"body:1", "discard:1"}
 	if len(events) != len(want) {
 		t.Fatalf("events = %v, want %v", events, want)
@@ -159,10 +166,12 @@ func TestRunOperationReturnsOperationExhaustionError(t *testing.T) {
 }
 
 func TestRunTransactionReturnsExhaustionErrorAtAttemptBound(t *testing.T) {
+	// Record transaction attempts and prepare a repeatedly failing body.
 	var events []string
 	var opened int
 	bodyErr := errors.New("body failed")
 
+	// Run read transactions until the configured attempt limit is reached.
 	err := RunTransactionWithRetry(
 		context.Background(),
 		false,
@@ -192,9 +201,11 @@ func TestRunTransactionReturnsExhaustionErrorAtAttemptBound(t *testing.T) {
 }
 
 func TestRunTransactionCancellationBeforeOpen(t *testing.T) {
+	// Cancel the transaction context before any attempt can open.
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
+	// Run a write transaction with the already canceled context.
 	opened := 0
 	err := RunTransaction(
 		ctx,
@@ -217,9 +228,11 @@ func TestRunTransactionCancellationBeforeOpen(t *testing.T) {
 }
 
 func TestRunTransactionCancellationDuringOpenSkipsBody(t *testing.T) {
+	// Prepare a cancelable context for transaction opening.
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
+	// Cancel during transaction opening and record whether the body runs.
 	var events []string
 	bodyCalled := false
 	err := RunTransaction(
@@ -246,9 +259,11 @@ func TestRunTransactionCancellationDuringOpenSkipsBody(t *testing.T) {
 }
 
 func TestRunTransactionCancellationDuringBodySkipsCommit(t *testing.T) {
+	// Prepare a cancelable context for the transaction body.
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
+	// Cancel the transaction body and record its cleanup sequence.
 	var events []string
 	var opened int
 	err := RunTransaction(
@@ -276,9 +291,11 @@ func TestRunTransactionCancellationDuringBodySkipsCommit(t *testing.T) {
 }
 
 func TestRunTransactionDoesNotRetryDiagnosticText(t *testing.T) {
+	// Prepare a diagnostic error without the invalid-snapshot marker.
 	var opened int
 	textErr := errors.New("panic: page 2 already freed")
 
+	// Run a transaction whose body returns the diagnostic error.
 	err := RunTransaction(
 		context.Background(),
 		false,
@@ -299,9 +316,11 @@ func TestRunTransactionDoesNotRetryDiagnosticText(t *testing.T) {
 }
 
 func TestRunTransactionRetriesTypedOpenFailure(t *testing.T) {
+	// Record transaction opens and cleanup after a typed opening failure.
 	var events []string
 	var opened int
 
+	// Retry transaction opening when the first snapshot is invalid.
 	err := RunTransaction(
 		context.Background(),
 		false,

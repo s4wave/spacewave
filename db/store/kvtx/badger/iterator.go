@@ -76,12 +76,15 @@ func (i *Iterator) Value() ([]byte, error) {
 // May use the value cached from Value() call as the source of the data.
 // May return nil if !Valid().
 func (i *Iterator) ValueCopy(bt []byte) ([]byte, error) {
+	// Require a valid Badger entry before copying its cached value.
 	if err := i.Err(); err != nil {
 		return nil, err
 	}
 	if !i.Valid() {
 		return nil, nil
 	}
+
+	// Read the Badger value and copy it into the caller buffer.
 	val, err := i.Value() // call ValueCopy once
 	if err != nil {
 		return nil, err
@@ -93,6 +96,7 @@ func (i *Iterator) ValueCopy(bt []byte) ([]byte, error) {
 //
 // Calling Next before Seek positions the iterator at the first entry.
 func (i *Iterator) Next() bool {
+	// Position a fresh Badger iterator or stop an invalid traversal.
 	if err := i.Err(); err != nil {
 		return false
 	}
@@ -105,6 +109,8 @@ func (i *Iterator) Next() bool {
 	if !i.Valid() {
 		return false
 	}
+
+	// Advance the Badger iterator and invalidate its cached entry.
 	i.key, i.value = nil, nil
 	i.it.Next()
 	return i.Valid()
@@ -113,6 +119,7 @@ func (i *Iterator) Next() bool {
 // Seek moves the iterator to the first key >= k, or <= k if reversed.
 // Pass nil to seek to the beginning (or end if reversed).
 func (i *Iterator) Seek(k []byte) error {
+	// Reset the Badger entry cache and handle seeks to the prefix boundary.
 	if err := i.Err(); err != nil {
 		return err
 	}
@@ -127,6 +134,7 @@ func (i *Iterator) Seek(k []byte) error {
 		return nil
 	}
 
+	// Keep seeks beyond the Badger prefix range at its traversal boundary.
 	if len(i.prefix) != 0 && !bytes.HasPrefix(k, i.prefix) && bytes.Compare(k, i.prefix) > 0 {
 		// k is past the prefix range.
 		if i.rev {
@@ -150,12 +158,15 @@ func (i *Iterator) Seek(k []byte) error {
 
 // Close closes the iterator.
 func (i *Iterator) Close() {
+	// Close the Badger iterator and invalidate its cached entry.
 	i.it.Close()
 	i.key = nil
 	i.value = nil
 	if i.err == nil {
 		i.err = context.Canceled
 	}
+
+	// Remove the closed iterator from its transaction tracking set.
 	if r := i.rel; r != nil {
 		r()
 	}

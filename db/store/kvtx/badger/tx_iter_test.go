@@ -10,6 +10,7 @@ import (
 // TestIterateReleaseRemovesOwnEntry tests that closing one iterator
 // removes only that iterator from the transaction's open set.
 func TestIterateReleaseRemovesOwnEntry(t *testing.T) {
+	// Open an in-memory Badger store for iterator release tracking.
 	o := bdb.DefaultOptions("").WithInMemory(true)
 	db, err := Open(o)
 	if err != nil {
@@ -17,6 +18,7 @@ func TestIterateReleaseRemovesOwnEntry(t *testing.T) {
 	}
 	defer db.db.Close()
 
+	// Hold a Badger transaction while its iterators are released individually.
 	ctx := context.Background()
 	tx, err := db.NewTransaction(ctx, true)
 	if err != nil {
@@ -24,9 +26,11 @@ func TestIterateReleaseRemovesOwnEntry(t *testing.T) {
 	}
 	defer tx.Discard()
 
+	// Open two Badger iterators in the same transaction.
 	it1 := tx.Iterate(ctx, nil, true, false)
 	it2 := tx.Iterate(ctx, nil, true, false)
 
+	// Verify both Badger iterators are tracked by the transaction.
 	wt := tx.(*Tx)
 	wt.mtx.Lock()
 	n := len(wt.iters)
@@ -35,6 +39,7 @@ func TestIterateReleaseRemovesOwnEntry(t *testing.T) {
 		t.Fatalf("expected 2 open iterators, got %d", n)
 	}
 
+	// Verify closing the first Badger iterator leaves the second tracked.
 	it1.Close()
 	wt.mtx.Lock()
 	n = len(wt.iters)
@@ -43,5 +48,6 @@ func TestIterateReleaseRemovesOwnEntry(t *testing.T) {
 		t.Fatalf("expected 1 open iterator after closing the first, got %d", n)
 	}
 
+	// Release the remaining Badger iterator before transaction cleanup.
 	it2.Close()
 }

@@ -19,6 +19,7 @@ import (
 
 // TestBadger tests all tests on top of badger.
 func TestBadger(t *testing.T) {
+	// Prepare the logger and key encoding for the Badger store contracts.
 	ctx := context.Background()
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
@@ -27,6 +28,8 @@ func TestBadger(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Open an in-memory Badger store for the storage contract suite.
 	o := bdb.DefaultOptions("").WithInMemory(true)
 	db, err := Open(o)
 	if err != nil {
@@ -34,6 +37,7 @@ func TestBadger(t *testing.T) {
 	}
 	defer db.db.Close()
 
+	// Run the storage contracts through the Badger transaction adapter.
 	ktx := store_kvtx.NewKVTx(
 		kvkey,
 		kvtx_vlogger.NewVLogger(le, db),
@@ -45,12 +49,14 @@ func TestBadger(t *testing.T) {
 }
 
 func TestCommitConflictIsInvalidSnapshot(t *testing.T) {
+	// Open an in-memory Badger database for conflicting snapshots.
 	db, err := bdb.Open(bdb.DefaultOptions("").WithInMemory(true))
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer db.Close()
 
+	// Commit the initial key that both Badger snapshots will observe.
 	ctx := context.Background()
 	seed := db.NewTransaction(true)
 	if err := seed.Set([]byte("key"), []byte("one")); err != nil {
@@ -60,6 +66,7 @@ func TestCommitConflictIsInvalidSnapshot(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Read the key in the first Badger transaction before a competing write.
 	firstStore := NewStore(db)
 	firstStore.writeMtx.Lock()
 	first := firstStore.newTx(db.NewTransaction(true), true)
@@ -68,6 +75,7 @@ func TestCommitConflictIsInvalidSnapshot(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Commit a competing Badger transaction that changes the same key.
 	secondStore := NewStore(db)
 	secondStore.writeMtx.Lock()
 	second := secondStore.newTx(db.NewTransaction(true), true)
@@ -78,6 +86,7 @@ func TestCommitConflictIsInvalidSnapshot(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Verify the stale Badger transaction reports an invalid snapshot on commit.
 	if err := first.Set(ctx, []byte("key"), []byte("three")); err != nil {
 		t.Fatal(err)
 	}

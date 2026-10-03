@@ -44,6 +44,7 @@ func (h *desktopHandler) HandleDirective(ctx context.Context, di directive.Insta
 }
 
 func TestOpenOrFocusDesktopForwardsThroughPluginRPC(t *testing.T) {
+	// Start the controller bus for plugin-local desktop RPC requests.
 	ctx := t.Context()
 	le := logrus.NewEntry(logrus.New())
 	b, _, err := core.NewCoreBus(ctx, le)
@@ -71,6 +72,8 @@ func TestOpenOrFocusDesktopForwardsThroughPluginRPC(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Verify the desktop acknowledgement and the forwarded launch request.
 	if opened.GetGeneration() != 1 {
 		t.Fatalf("generation = %d, want 1", opened.GetGeneration())
 	}
@@ -87,14 +90,20 @@ func TestOpenOrFocusDesktopForwardsThroughPluginRPC(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Verify the plugin stream reports the active desktop generation.
 	if state.GetState() != bldr_web_plugin.DesktopPresenceState_DESKTOP_PRESENCE_STATE_ACTIVE {
 		t.Fatalf("initial presence = %v, want active", state.GetState())
 	}
+
+	// End the desktop generation and receive its terminal presence.
 	handler.presence.SetValue(&bldr_web_plugin.WatchDesktopPresenceResponse{State: bldr_web_plugin.DesktopPresenceState_DESKTOP_PRESENCE_STATE_ENDED, Error: "Electron exited with status 1"})
 	state, err = stream.Recv()
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Verify the terminal desktop state, exit error, and stream completion.
 	if state.GetState() != bldr_web_plugin.DesktopPresenceState_DESKTOP_PRESENCE_STATE_ENDED {
 		t.Fatalf("final presence = %v, want ended", state.GetState())
 	}
@@ -114,6 +123,8 @@ func TestOpenOrFocusDesktopForwardsThroughPluginRPC(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Verify the terminal desktop state, exit error, and stream completion.
 	if state.GetState() != bldr_web_plugin.DesktopPresenceState_DESKTOP_PRESENCE_STATE_ENDED {
 		t.Fatalf("late presence = %v, want ended", state.GetState())
 	}
@@ -129,6 +140,8 @@ func TestOpenOrFocusDesktopForwardsThroughPluginRPC(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Verify the unary desktop wait retains the terminal state and exit error.
 	if terminal.GetState() != bldr_web_plugin.DesktopPresenceState_DESKTOP_PRESENCE_STATE_ENDED || terminal.GetError() != "Electron exited with status 1" {
 		t.Fatalf("late owner wait = %v, want ended with shell error", terminal)
 	}

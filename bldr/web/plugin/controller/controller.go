@@ -213,9 +213,12 @@ func (c *Controller) HandleWebViewViaPlugin(
 	req *bldr_web_plugin.HandleWebViewViaPluginRequest,
 	strm bldr_web_plugin.SRPCWebPlugin_HandleWebViewViaPluginStream,
 ) error {
+	// Validate the plugin routing request before constructing its controller.
 	if err := req.Validate(); err != nil {
 		return err
 	}
+
+	// Build and validate the plugin web-view routing configuration.
 	conf := &plugin_handle_web_view.Config{
 		PluginId:    req.GetHandlePluginId(),
 		WebViewIdRe: req.GetWebViewIdRe(),
@@ -224,6 +227,7 @@ func (c *Controller) HandleWebViewViaPlugin(
 		return err
 	}
 
+	// Attach the web-view routing controller and acknowledge readiness on the stream.
 	ctrl := plugin_handle_web_view.NewController(c.le, c.bus, conf)
 	sendReady := func() error {
 		return strm.Send(&bldr_web_plugin.HandleWebViewViaPluginResponse{
@@ -238,9 +242,12 @@ func (c *Controller) HandleWebPkgViaPlugin(
 	req *bldr_web_plugin.HandleWebPkgViaPluginRequest,
 	strm bldr_web_plugin.SRPCWebPlugin_HandleWebPkgViaPluginStream,
 ) error {
+	// Validate the plugin routing request before constructing its controller.
 	if err := req.Validate(); err != nil {
 		return err
 	}
+
+	// Build and validate the plugin web-package RPC configuration.
 	conf := &web_pkg_rpc_client.Config{
 		ServiceIdPrefix: path.Join(
 			bldr_plugin.PluginServiceIDPrefix,
@@ -256,11 +263,13 @@ func (c *Controller) HandleWebPkgViaPlugin(
 		return err
 	}
 
+	// Construct the plugin web-package RPC controller.
 	ctrl, err := web_pkg_rpc_client.NewController(c.le, c.bus, conf)
 	if err != nil {
 		return err
 	}
 
+	// Acknowledge the routing controller and keep it attached until the stream ends.
 	sendReady := func() error {
 		return strm.Send(&bldr_web_plugin.HandleWebPkgViaPluginResponse{
 			Body: &bldr_web_plugin.HandleWebPkgViaPluginResponse_Ready{Ready: true},
@@ -274,10 +283,12 @@ func (c *Controller) HandleRpcViaPlugin(
 	req *bldr_web_plugin.HandleRpcViaPluginRequest,
 	strm bldr_web_plugin.SRPCWebPlugin_HandleRpcViaPluginStream,
 ) error {
+	// Validate the plugin routing request before constructing its controller.
 	if err := req.Validate(); err != nil {
 		return err
 	}
 
+	// Build and validate the plugin RPC forwarding configuration.
 	conf := &plugin_forward_rpc_service.Config{
 		PluginId:    req.GetHandlePluginId(),
 		ServiceIdRe: req.GetServiceIdRe(),
@@ -288,9 +299,11 @@ func (c *Controller) HandleRpcViaPlugin(
 		return err
 	}
 
+	// Construct the RPC forwarding controller for the stream lifetime.
 	ctx := strm.Context()
 	ctrl := plugin_forward_rpc_service.NewController(c.le, c.bus, conf)
 
+	// Acknowledge the routing controller and keep it attached until the stream ends.
 	sendReady := func() error {
 		return strm.Send(&bldr_web_plugin.HandleRpcViaPluginResponse{
 			Body: &bldr_web_plugin.HandleRpcViaPluginResponse_Ready{Ready: true},
@@ -304,6 +317,7 @@ func (c *Controller) HandleWebViewViaHandlers(
 	req *bldr_web_plugin.HandleWebViewViaHandlersRequest,
 	strm bldr_web_plugin.SRPCWebPlugin_HandleWebViewViaHandlersStream,
 ) error {
+	// Validate the plugin routing request before constructing its controller.
 	if err := req.Validate(); err != nil {
 		return err
 	}
@@ -317,7 +331,9 @@ func (c *Controller) HandleWebViewViaHandlers(
 		return err
 	}
 
+	// Acknowledge the routing controller and keep it attached until the stream ends.
 	sendReady := func() error {
+		// Report web-view handler readiness to the plugin client.
 		c.le.Debug("sending web view handlers ready")
 		return strm.Send(&bldr_web_plugin.HandleWebViewViaHandlersResponse{
 			Body: &bldr_web_plugin.HandleWebViewViaHandlersResponse_Ready{Ready: true},
@@ -331,10 +347,12 @@ func (c *Controller) HandleWebPkgsViaPluginAssets(
 	req *bldr_web_plugin.HandleWebPkgsViaPluginAssetsRequest,
 	strm bldr_web_plugin.SRPCWebPlugin_HandleWebPkgsViaPluginAssetsStream,
 ) error {
+	// Validate the plugin routing request before constructing its controller.
 	if err := req.Validate(); err != nil {
 		return err
 	}
 
+	// Construct the web-package controller backed by the plugin assets filesystem.
 	ctrl, err := web_pkg_fs_controller.NewController(c.le, c.bus, &web_pkg_fs_controller.Config{
 		UnixfsId:     bldr_plugin.PluginAssetsFsId(req.GetHandlePluginId()),
 		UnixfsPrefix: req.GetWebPkgsPath(),
@@ -344,6 +362,7 @@ func (c *Controller) HandleWebPkgsViaPluginAssets(
 		return err
 	}
 
+	// Acknowledge the routing controller and keep it attached until the stream ends.
 	sendReady := func() error {
 		return strm.Send(&bldr_web_plugin.HandleWebPkgsViaPluginAssetsResponse{
 			Body: &bldr_web_plugin.HandleWebPkgsViaPluginAssetsResponse_Ready{Ready: true},
@@ -356,6 +375,7 @@ func (c *Controller) HandleWebPkgsViaPluginAssets(
 // Returning nil from Execute means the controller did no active work; the handler remains attached until the stream closes.
 // Returns the exit error or context.Canceled if the context was cancelled.
 func (c *Controller) addControllerSendReadyAndWait(ctx context.Context, ctrl controller.Controller, sendReady func() error) error {
+	// Attach the routing controller and retain its execution result.
 	exitErrCh := make(chan error, 1)
 	relCtrl, err := c.bus.AddController(ctx, ctrl, func(exitErr error) {
 		exitErrCh <- exitErr
@@ -365,10 +385,12 @@ func (c *Controller) addControllerSendReadyAndWait(ctx context.Context, ctrl con
 	}
 	defer relCtrl()
 
+	// Confirm the routing controller is attached before waiting on its lifetime.
 	if err := sendReady(); err != nil {
 		return err
 	}
 
+	// Keep the routing controller attached until cancellation or execution failure.
 	for {
 		select {
 		case <-ctx.Done():

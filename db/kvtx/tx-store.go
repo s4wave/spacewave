@@ -46,11 +46,14 @@ type writeBatchTxStoreTx struct {
 // ApplyWriteBatch validates the batch keys and forwards the batch to the
 // underlying transaction while this virtual transaction is still live.
 func (t *writeBatchTxStoreTx) ApplyWriteBatch(ctx context.Context, entries []WriteBatchEntry) error {
+	// Validate batch keys before checking the virtual transaction lifecycle.
 	for _, entry := range entries {
 		if len(entry.Key) == 0 {
 			return ErrEmptyKey
 		}
 	}
+
+	// Forward the write batch while the virtual transaction remains live.
 	t.rmtx.RLock()
 	defer t.rmtx.RUnlock()
 	if t.discarded {

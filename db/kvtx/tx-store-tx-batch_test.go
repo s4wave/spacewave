@@ -7,6 +7,7 @@ import (
 )
 
 func TestTxStoreTxGetBatchValidatesEmptyKeyBeforeDiscarded(t *testing.T) {
+	// Discard a virtual transaction before checking empty-key validation.
 	ctx := context.Background()
 	tx, err := NewTxStoreTx(txStoreTxBatchNoopOps{})
 	if err != nil {
@@ -14,10 +15,13 @@ func TestTxStoreTxGetBatchValidatesEmptyKeyBeforeDiscarded(t *testing.T) {
 	}
 	tx.Discard()
 
+	// Verify a single-key read rejects an empty key before its discarded state.
 	_, _, err = tx.Get(ctx, nil)
 	if !errors.Is(err, ErrEmptyKey) {
 		t.Fatalf("Get after discard with empty key err = %v, want %v", err, ErrEmptyKey)
 	}
+
+	// Verify a batch read rejects an empty key before its discarded state.
 	_, _, err = tx.GetBatch(ctx, [][]byte{nil})
 	if !errors.Is(err, ErrEmptyKey) {
 		t.Fatalf("GetBatch after discard with empty key err = %v, want %v", err, ErrEmptyKey)

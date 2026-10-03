@@ -114,6 +114,7 @@ func runTransactionAttempt[T TransactionLifecycle](
 	open func(context.Context) (T, error),
 	body func(context.Context, T) error,
 ) error {
+	// Open a fresh transaction and release it after this attempt completes.
 	tx, err := open(ctx)
 	if err != nil {
 		return err

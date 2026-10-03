@@ -28,6 +28,7 @@ func (s *Store) newTx(txn *bdb.Txn, write bool) *Tx {
 
 // Get returns values for a key.
 func (t *Tx) Get(ctx context.Context, key []byte) ([]byte, bool, error) {
+	// Locate the requested key in the Badger transaction.
 	if len(key) == 0 {
 		return nil, false, kvtx.ErrEmptyKey
 	}
@@ -39,6 +40,7 @@ func (t *Tx) Get(ctx context.Context, key []byte) ([]byte, bool, error) {
 		return nil, false, err
 	}
 
+	// Copy the Badger value before releasing the item callback.
 	var valb []byte
 	err = item.Value(func(val []byte) error {
 		valb = make([]byte, len(val))
@@ -72,9 +74,11 @@ func (t *Tx) Set(ctx context.Context, key, value []byte) error {
 
 // ScanPrefix iterates over keys with a prefix.
 func (t *Tx) ScanPrefix(ctx context.Context, prefix []byte, cb func(key, value []byte) error) error {
+	// Open a Badger iterator for the transaction snapshot.
 	it := t.txn.NewIterator(bdb.DefaultIteratorOptions)
 	defer it.Close()
 
+	// Position the Badger iterator and bound it to the requested prefix.
 	valid := it.Valid
 	if len(prefix) == 0 {
 		it.Rewind()
@@ -85,6 +89,7 @@ func (t *Tx) ScanPrefix(ctx context.Context, prefix []byte, cb func(key, value [
 		}
 	}
 
+	// Deliver each matching Badger entry to the scan callback.
 	for valid() {
 		item := it.Item()
 		k := item.Key()
@@ -100,9 +105,11 @@ func (t *Tx) ScanPrefix(ctx context.Context, prefix []byte, cb func(key, value [
 
 // ScanPrefixKeys iterates over keys with a prefix.
 func (t *Tx) ScanPrefixKeys(ctx context.Context, prefix []byte, cb func(key []byte) error) error {
+	// Open a Badger iterator for the transaction snapshot.
 	it := t.txn.NewIterator(bdb.DefaultIteratorOptions)
 	defer it.Close()
 
+	// Position the Badger iterator and bound it to the requested prefix.
 	valid := it.Valid
 	if len(prefix) == 0 {
 		it.Rewind()
@@ -113,6 +120,7 @@ func (t *Tx) ScanPrefixKeys(ctx context.Context, prefix []byte, cb func(key []by
 		}
 	}
 
+	// Deliver each matching Badger entry to the scan callback.
 	for valid() {
 		item := it.Item()
 		k := item.Key()
@@ -132,8 +140,10 @@ func (t *Tx) ScanPrefixKeys(ctx context.Context, prefix []byte, cb func(key []by
 // The prefix is NOT clipped from the output keys.
 // If !sort, reverse MAY have no effect.
 func (t *Tx) Iterate(ctx context.Context, prefix []byte, sort, reverse bool) kvtx.Iterator {
+	// Configure the Badger iterator traversal direction.
 	opts := bdb.DefaultIteratorOptions
 	opts.Reverse = reverse
+
 	// Badger does not bound reverse iteration by the prefix and reports an
 	// out-of-prefix item as invalid without a way to step off it, so the
 	// Iterator enforces the prefix itself when reversed.
@@ -142,6 +152,7 @@ func (t *Tx) Iterate(ctx context.Context, prefix []byte, sort, reverse bool) kvt
 	}
 	opts.AllVersions = false
 
+	// Track the iterator under the transaction lock until it closes.
 	t.mtx.Lock()
 	rel := t.rel
 	var it *Iterator
