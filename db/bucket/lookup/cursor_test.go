@@ -21,6 +21,7 @@ import (
 )
 
 func TestTransformConfEnvelopeRoundTrip(t *testing.T) {
+	// Encode a transform configuration in the versioned envelope.
 	conf := testTransformConf(t)
 	encoded, err := MarshalTransformConf(conf)
 	if err != nil {
@@ -32,6 +33,7 @@ func TestTransformConfEnvelopeRoundTrip(t *testing.T) {
 		t.Fatalf("unexpected transform config envelope: %x", encoded)
 	}
 
+	// Verify decoding the envelope restores the transform configuration.
 	decoded, err := UnmarshalTransformConf(encoded)
 	if err != nil {
 		t.Fatal(err)
@@ -42,6 +44,7 @@ func TestTransformConfEnvelopeRoundTrip(t *testing.T) {
 }
 
 func TestTransformConfLegacyCRC32RoundTrip(t *testing.T) {
+	// Encode a transform configuration with its legacy CRC32 checksum.
 	conf := testTransformConf(t)
 	payload, err := conf.MarshalVT()
 	if err != nil {
@@ -52,6 +55,7 @@ func TestTransformConfLegacyCRC32RoundTrip(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Verify decoding the legacy payload restores the transform configuration.
 	decoded, err := UnmarshalTransformConf(legacy)
 	if err != nil {
 		t.Fatal(err)
@@ -60,6 +64,7 @@ func TestTransformConfLegacyCRC32RoundTrip(t *testing.T) {
 		t.Fatalf("decoded legacy config mismatch: got %v, want %v", decoded, conf)
 	}
 
+	// Verify a corrupt CRC32 transform payload is rejected.
 	legacy[len(legacy)-1] ^= 0xff
 	if _, err := UnmarshalTransformConf(legacy); err == nil {
 		t.Fatal("corrupt legacy transform config accepted")
@@ -78,6 +83,7 @@ func TestTransformConfEnvelopeRejectsUnknownVersion(t *testing.T) {
 }
 
 func TestCursorBucketIDOverridePinsImplicitReferences(t *testing.T) {
+	// Pin the cursor's implicit bucket references to the public bucket.
 	ctx := context.Background()
 	cursor := NewCursor(
 		ctx,
@@ -92,6 +98,7 @@ func TestCursorBucketIDOverridePinsImplicitReferences(t *testing.T) {
 	)
 	cursor.SetBucketIDOverride("public-cdn")
 
+	// Verify an authoring bucket reference resolves through the pinned bucket.
 	followed, err := cursor.FollowRef(ctx, &bucket.ObjectRef{BucketId: "authoring-world"})
 	if err != nil {
 		t.Fatal(err)
@@ -101,6 +108,7 @@ func TestCursorBucketIDOverridePinsImplicitReferences(t *testing.T) {
 		t.Fatalf("followed bucket = %q, want public-cdn", got)
 	}
 
+	// Verify nested authoring references retain the pinned bucket.
 	nested, err := followed.FollowRef(ctx, &bucket.ObjectRef{BucketId: "another-authoring-world"})
 	if err != nil {
 		t.Fatal(err)
@@ -112,6 +120,7 @@ func TestCursorBucketIDOverridePinsImplicitReferences(t *testing.T) {
 }
 
 func TestCursorCrossBucketExternalRootClearsSourceTransform(t *testing.T) {
+	// Prepare a bounded test context for two distinct bucket stores.
 	const (
 		sourceBucketID   = "source-world"
 		externalBucketID = "spacewave-release"
@@ -119,12 +128,15 @@ func TestCursorCrossBucketExternalRootClearsSourceTransform(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
+	// Register source and external bucket lookups on the controller bus.
 	b, _, err := controllerbus_core.NewCoreBus(ctx, logrus.NewEntry(logrus.New()))
 	if err != nil {
 		t.Fatal(err)
 	}
 	sourceOps := block_mock.NewMockStore(0)
 	externalOps := block_mock.NewMockStore(0)
+
+	// Construct distinct source and external bucket configurations.
 	sourceConf, err := bucket.NewConfig(sourceBucketID, 1, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -145,6 +157,7 @@ func TestCursorCrossBucketExternalRootClearsSourceTransform(t *testing.T) {
 	}
 	handlerRelease, err := b.AddHandler(directive.NewFuncHandler(
 		func(_ context.Context, di directive.Instance) ([]directive.Resolver, error) {
+			// Resolve bucket lookup directives through the registered fixture handles.
 			d, ok := di.GetDirective().(BuildBucketLookup)
 			if !ok {
 				return nil, nil
@@ -164,6 +177,7 @@ func TestCursorCrossBucketExternalRootClearsSourceTransform(t *testing.T) {
 	}
 	defer handlerRelease()
 
+	// Build the source bucket transformer.
 	transformConf := testTransformConf(t)
 	xfrm, err := block_transform.NewTransformer(
 		controller.ConstructOpts{},
@@ -173,6 +187,8 @@ func TestCursorCrossBucketExternalRootClearsSourceTransform(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Store the encoded source bucket root.
 	sourceData := []byte("compressed source world root")
 	encodedSource, err := xfrm.EncodeBlock(sourceData)
 	if err != nil {
@@ -182,12 +198,15 @@ func TestCursorCrossBucketExternalRootClearsSourceTransform(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Store the raw external bucket root.
 	externalData := []byte("untransformed Release World root")
 	externalRef, _, err := externalOps.PutBlock(ctx, externalData, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	// Verify the source cursor decodes its transformed root.
 	cursor := NewCursor(
 		ctx,
 		b,
@@ -208,6 +227,7 @@ func TestCursorCrossBucketExternalRootClearsSourceTransform(t *testing.T) {
 		t.Fatalf("compressed source root read found=%v err=%v data=%q", found, err, got)
 	}
 
+	// Follow the external root through a read-only bucket lookup.
 	external, err := cursor.FollowRefWithOpArgsReadOnly(
 		ctx,
 		&bucket.ObjectRef{BucketId: externalBucketID, RootRef: externalRef},
@@ -221,6 +241,8 @@ func TestCursorCrossBucketExternalRootClearsSourceTransform(t *testing.T) {
 	if external.GetTransformConf() != nil && !external.GetTransformConf().GetEmpty() {
 		t.Fatalf("external root retained source transform: %v", external.GetTransformConf())
 	}
+
+	// Verify the external root uses raw bytes without the source transform.
 	got, found, err := external.GetBlock(ctx, externalRef)
 	if err != nil || !found || !bytes.Equal(got, externalData) {
 		t.Fatalf("untransformed external root read found=%v err=%v data=%q", found, err, got)

@@ -29,6 +29,7 @@ const realisticSDP = "v=0\r\n" +
 	"a=end-of-candidates\r\n"
 
 func TestMinifySDP(t *testing.T) {
+	// Verify SDP minification reduces the exchange payload.
 	result := MinifySDP(realisticSDP)
 	if result == "" {
 		t.Fatal("minified SDP is empty")

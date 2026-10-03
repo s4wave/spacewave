@@ -167,6 +167,8 @@ func copyObjectToBucket(
 	var seenMtx sync.Mutex
 	seenBlocks := make(map[string]struct{})
 	childRefs := make(map[string]*block.BlockRef)
+
+	// Track logical block counts across the concurrent copy workers.
 	var seenBlockCount atomic.Int64
 	var copiedBlocks atomic.Int64
 	var dedupedBlocks atomic.Int64
@@ -174,6 +176,7 @@ func copyObjectToBucket(
 	var writtenBlocks atomic.Int64
 	var skippedSubtrees atomic.Int64
 
+	// Build copy progress snapshots and serialize their delivery.
 	var logicalSourceBytes atomic.Int64
 	var progressMtx sync.Mutex
 	snapshot := func() ObjectCopyStats {
@@ -188,9 +191,12 @@ func copyObjectToBucket(
 		}
 	}
 	reportProgress := func() error {
+		// Skip copy progress delivery when no callback was supplied.
 		if progress == nil {
 			return nil
 		}
+
+		// Deliver a copy snapshot while excluding concurrent progress callbacks.
 		progressMtx.Lock()
 		err := progress(snapshot())
 		progressMtx.Unlock()
@@ -241,6 +247,7 @@ func copyObjectToBucket(
 				cntu = err == nil
 			}
 
+			// Skip payload writes for failed reads and inline or empty block entries.
 			if err != nil || ent.IsSubBlock || !ent.Found || ent.Ref.GetEmpty() || len(ent.Data) == 0 {
 				// Inline sub-blocks are traversed without a separate storage write.
 				return cntu, err
@@ -259,6 +266,8 @@ func copyObjectToBucket(
 				}
 				return false, nil
 			}
+
+			// Retain child block references for destination staging cleanup.
 			refs, err := block.ExtractBlockRefs(ent.Blk)
 			if err != nil {
 				return false, err
@@ -353,6 +362,8 @@ func copyObjectToBucket(
 	trace.Logf(ctx, "copy-block-written-count", "%d", stats.BlocksWritten)
 	trace.Logf(ctx, "copy-block-skip-subtree-count", "%d", stats.SubtreesSkipped)
 	trace.Logf(ctx, "copy-block-logical-source-byte-count", "%d", stats.LogicalSourceBytes)
+
+	// Trace destination durability and demand-read accounting for the copy.
 	trace.Logf(ctx, "copy-block-destination-durable-byte-count", "%d", stats.DestinationDurableBytes)
 	trace.Logf(ctx, "copy-block-demand-read-count", "%d", stats.DemandReadCount)
 	trace.Logf(ctx, "copy-block-demand-read-byte-count", "%d", stats.DemandReadBytes)

@@ -22,10 +22,13 @@ type localPairingMessage[T any] interface {
 // encodeLocalPairing serializes, DEFLATE-compresses, and base58-encodes a
 // pairing message.
 func encodeLocalPairing[M localPairingMessage[T], T any](label string, msg M) (string, error) {
+	// Serialize the pairing message before compressing its payload.
 	data, err := msg.MarshalVT()
 	if err != nil {
 		return "", errors.Wrap(err, "marshal "+label)
 	}
+
+	// Compress the pairing payload for its base58 representation.
 	compressed, err := compressLocalPairingPayload(data)
 	if err != nil {
 		return "", errors.Wrap(err, "compress "+label)
@@ -35,11 +38,14 @@ func encodeLocalPairing[M localPairingMessage[T], T any](label string, msg M) (s
 
 // decodeLocalPairing decodes a base58 string into a pairing message.
 func decodeLocalPairing[M localPairingMessage[T], T any](label, encoded string) (T, error) {
+	// Decode the base58 pairing payload into compressed bytes.
 	var msg T
 	compressed, err := b58.Decode(encoded)
 	if err != nil {
 		return msg, errors.Wrap(err, "base58 decode")
 	}
+
+	// Decompress and decode the pairing message.
 	data, err := decompressLocalPairingPayload(compressed)
 	if err != nil {
 		return msg, errors.Wrap(err, "decompress "+label)
@@ -86,11 +92,14 @@ func (a *LocalPairingAnswer) ParsePeerID() (peer.ID, error) {
 
 // compressLocalPairingPayload compresses a payload with DEFLATE.
 func compressLocalPairingPayload(data []byte) ([]byte, error) {
+	// Construct the DEFLATE writer for the pairing payload.
 	var buf bytes.Buffer
 	w, err := flate.NewWriter(&buf, flate.BestCompression)
 	if err != nil {
 		return nil, errors.Wrap(err, "construct flate writer")
 	}
+
+	// Finish writing and compressing the pairing payload.
 	if _, err := w.Write(data); err != nil {
 		return nil, errors.Wrap(err, "write flate data")
 	}
@@ -102,6 +111,7 @@ func compressLocalPairingPayload(data []byte) ([]byte, error) {
 
 // decompressLocalPairingPayload decompresses a DEFLATE payload.
 func decompressLocalPairingPayload(data []byte) ([]byte, error) {
+	// Read the compressed pairing payload and close its DEFLATE reader.
 	r := flate.NewReader(bytes.NewReader(data))
 	decoded, err := io.ReadAll(r)
 	closeErr := r.Close()
@@ -111,6 +121,8 @@ func decompressLocalPairingPayload(data []byte) ([]byte, error) {
 		}
 		return nil, errors.Wrap(err, "read flate data")
 	}
+
+	// Report a reader close failure after successful decompression.
 	if closeErr != nil {
 		return nil, errors.Wrap(closeErr, "close flate reader")
 	}

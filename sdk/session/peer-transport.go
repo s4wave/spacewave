@@ -30,11 +30,13 @@ type PeerTransport struct {
 
 // OpenPeerTransport opens the authenticated stream service for this session.
 func (s *Session) OpenPeerTransport(ctx context.Context) (*PeerTransport, error) {
+	// Request the session's authenticated peer transport resource.
 	resp, err := s.service.AccessPeerTransport(ctx, &AccessPeerTransportRequest{})
 	if err != nil {
 		return nil, err
 	}
 
+	// Retain the transport resource and decode its local peer identity.
 	ref := s.client.CreateResourceReference(resp.GetResourceId())
 	srpcClient, err := ref.GetClient()
 	if err != nil {
@@ -62,6 +64,7 @@ func (p *PeerTransport) Release() {
 
 // Dial opens a stream to the exact remote peer using protocolID.
 func (p *PeerTransport) Dial(ctx context.Context, remotePeerID, protocolID string) (io.ReadWriteCloser, error) {
+	// Validate the remote identity and peer stream dialing configuration.
 	remoteID, err := peer.IDB58Decode(remotePeerID)
 	if err != nil {
 		return nil, err
@@ -75,6 +78,7 @@ func (p *PeerTransport) Dial(ctx context.Context, remotePeerID, protocolID strin
 		return nil, err
 	}
 
+	// Open the dialing stream and retain cleanup until connection ownership transfers.
 	stream, err := p.service.DialStream(ctx)
 	if err != nil {
 		return nil, err
@@ -86,6 +90,7 @@ func (p *PeerTransport) Dial(ctx context.Context, remotePeerID, protocolID strin
 		}
 	}()
 
+	// Request the peer connection and return its established network stream.
 	if err := stream.Send(&stream_api.DialStreamRequest{Config: conf}); err != nil {
 		return nil, err
 	}
@@ -99,6 +104,7 @@ func (p *PeerTransport) Dial(ctx context.Context, remotePeerID, protocolID strin
 
 // Accept accepts a stream from the exact remote peer using protocolID.
 func (p *PeerTransport) Accept(ctx context.Context, remotePeerID, protocolID string) (io.ReadWriteCloser, error) {
+	// Validate the remote identity and peer stream acceptance configuration.
 	remoteID, err := peer.IDB58Decode(remotePeerID)
 	if err != nil {
 		return nil, err
@@ -112,6 +118,7 @@ func (p *PeerTransport) Accept(ctx context.Context, remotePeerID, protocolID str
 		return nil, err
 	}
 
+	// Open the accepting stream and retain cleanup until connection ownership transfers.
 	stream, err := p.service.AcceptStream(ctx)
 	if err != nil {
 		return nil, err
@@ -123,6 +130,7 @@ func (p *PeerTransport) Accept(ctx context.Context, remotePeerID, protocolID str
 		}
 	}()
 
+	// Accept the peer connection and return its established network stream.
 	if err := stream.Send(&stream_api.AcceptStreamRequest{Config: conf}); err != nil {
 		return nil, err
 	}

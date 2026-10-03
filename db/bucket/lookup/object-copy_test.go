@@ -81,6 +81,7 @@ func testCopyObjectLargerThanBuffer(t *testing.T, batchExistence bool) {
 		t.Fatal(err)
 	}
 
+	// Verify the oversized block contributes one written block to copy accounting.
 	if stats.BlocksCopied != 1 || stats.BlocksWritten != 1 {
 		t.Fatalf("large copy accounting: %+v", stats)
 	}
@@ -236,6 +237,7 @@ func testCopyObjectPrunesSharedSubtrees(t *testing.T, batchExistence bool) {
 	// final batch or durability fence must never return a completed root.
 	for _, failure := range []string{"batch", "sync"} {
 		t.Run(failure, func(t *testing.T) {
+			// Inject a destination batch or durability failure.
 			injected := errors.New("destination " + failure + " failed")
 			destination.batchErr, destination.syncErr = nil, nil
 			if failure == "batch" {
@@ -243,6 +245,8 @@ func testCopyObjectPrunesSharedSubtrees(t *testing.T, batchExistence bool) {
 			} else {
 				destination.syncErr = injected
 			}
+
+			// Verify destination failures prevent a completed copy root.
 			ref, stats, err := copyObjectToBucket(ctx, dest, src,
 				func() block.Block { return &sharedCopyBlock{} }, 2, false, nil, nil, batchExistence)
 			if !errors.Is(err, injected) || ref != nil || stats.BlocksExisting != depth+1 {

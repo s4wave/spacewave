@@ -5,11 +5,13 @@ import (
 )
 
 func TestLocalPairingOfferRoundTrip(t *testing.T) {
+	// Construct a pairing offer containing SDP and a peer identity.
 	offer := &LocalPairingOffer{
 		Sdp:    "v=0\r\no=- 123456 2 IN IP4 127.0.0.1\r\ns=-\r\nt=0 0\r\na=group:BUNDLE 0\r\nm=application 9 UDP/DTLS/SCTP webrtc-datachannel\r\nc=IN IP4 0.0.0.0\r\na=candidate:1 1 udp 2130706431 192.168.1.100 50000 typ host\r\na=ice-ufrag:abcd\r\na=ice-pwd:efghijklmnopqrstuvwxyz\r\na=fingerprint:sha-256 AA:BB:CC:DD:EE:FF:00:11:22:33:44:55:66:77:88:99:AA:BB:CC:DD:EE:FF:00:11:22:33:44:55:66:77:88:99\r\na=setup:actpass\r\na=mid:0\r\na=sctp-port:5000\r\n",
 		PeerId: "QmTestPeerIdBase58Encoded",
 	}
 
+	// Encode the pairing offer into a compressed exchange string.
 	encoded, err := EncodeLocalPairingOffer(offer)
 	if err != nil {
 		t.Fatalf("encode: %v", err)
@@ -19,6 +21,7 @@ func TestLocalPairingOfferRoundTrip(t *testing.T) {
 	}
 	t.Logf("encoded offer length: %d chars (from %d byte SDP)", len(encoded), len(offer.Sdp))
 
+	// Verify decoding the offer restores its SDP and peer identity.
 	decoded, err := DecodeLocalPairingOffer(encoded)
 	if err != nil {
 		t.Fatalf("decode: %v", err)
@@ -32,16 +35,19 @@ func TestLocalPairingOfferRoundTrip(t *testing.T) {
 }
 
 func TestLocalPairingAnswerRoundTrip(t *testing.T) {
+	// Construct a pairing answer containing SDP and a peer identity.
 	answer := &LocalPairingAnswer{
 		Sdp:    "v=0\r\no=- 654321 2 IN IP4 127.0.0.1\r\ns=-\r\nt=0 0\r\na=group:BUNDLE 0\r\nm=application 9 UDP/DTLS/SCTP webrtc-datachannel\r\nc=IN IP4 0.0.0.0\r\na=candidate:1 1 udp 2130706431 10.0.0.50 40000 typ host\r\na=ice-ufrag:wxyz\r\na=ice-pwd:abcdefghijklmnopqrstuv\r\na=fingerprint:sha-256 11:22:33:44:55:66:77:88:99:AA:BB:CC:DD:EE:FF:00:11:22:33:44:55:66:77:88:99:AA:BB:CC:DD:EE:FF:00\r\na=setup:active\r\na=mid:0\r\na=sctp-port:5000\r\n",
 		PeerId: "QmAnotherPeerIdBase58",
 	}
 
+	// Encode the pairing answer into a compressed exchange string.
 	encoded, err := EncodeLocalPairingAnswer(answer)
 	if err != nil {
 		t.Fatalf("encode: %v", err)
 	}
 
+	// Verify decoding the answer restores its SDP and peer identity.
 	decoded, err := DecodeLocalPairingAnswer(encoded)
 	if err != nil {
 		t.Fatalf("decode: %v", err)

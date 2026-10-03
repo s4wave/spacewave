@@ -20,10 +20,13 @@ type objectCopyStore struct {
 // PutBlockBatch checks the batch together, then writes even existing payloads
 // because storage presence does not establish destination bucket ownership.
 func (s *objectCopyStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) error {
+	// Collect destination block references for the copy batch.
 	refs := make([]*block.BlockRef, len(entries))
 	for i, entry := range entries {
 		refs[i] = entry.Ref
 	}
+
+	// Resolve destination existence for every block in the copy batch.
 	existing, err := s.inner.GetBlockExistsBatch(ctx, refs)
 	if err != nil {
 		return err
@@ -31,6 +34,8 @@ func (s *objectCopyStore) PutBlockBatch(ctx context.Context, entries []*block.Pu
 	if len(existing) != len(entries) {
 		return errors.Errorf("copy existence batch returned %d results for %d blocks", len(existing), len(entries))
 	}
+
+	// Report copy accounting before attempting the destination write.
 	if err := s.account(existing); err != nil {
 		return err
 	}

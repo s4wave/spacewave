@@ -138,6 +138,7 @@ func BuildCursor(
 	ref *bucket.ObjectRef,
 	transformConf *block_transform.Config,
 ) (*Cursor, error) {
+	// Build the transformer for the cursor's initial configuration.
 	var xfrm block.Transformer
 	if !transformConf.GetEmpty() {
 		var err error
@@ -150,6 +151,8 @@ func BuildCursor(
 	} else {
 		transformConf = nil
 	}
+
+	// Construct the cursor and require a bucket for a nonempty reference.
 	c := &Cursor{
 		le:            le,
 		bus:           b,
@@ -162,6 +165,7 @@ func BuildCursor(
 	if !ref.GetEmpty() && refBucketID == "" {
 		return nil, errors.New("reference not empty: bucket id must be specified")
 	}
+
 	// if a bucket id is specified, FollowRef to build the stores.
 	if !ref.GetEmpty() || refBucketID != "" {
 		return c.FollowRef(ctx, ref)
@@ -203,10 +207,13 @@ func BuildEmptyCursor(
 // MarshalTransformConf marshals a transform configuration in the
 // content-addressed envelope format.
 func MarshalTransformConf(transformConf *block_transform.Config) ([]byte, error) {
+	// Serialize the transform configuration payload.
 	data, err := transformConf.MarshalVT()
 	if err != nil {
 		return nil, err
 	}
+
+	// Wrap the transform configuration in its versioned envelope.
 	envelope := make([]byte, transformConfEnvelopeHeaderSize+len(data))
 	copy(envelope, transformConfEnvelopeMagic)
 	envelope[len(transformConfEnvelopeMagic)] = transformConfEnvelopeVersion
@@ -217,6 +224,7 @@ func MarshalTransformConf(transformConf *block_transform.Config) ([]byte, error)
 // UnmarshalTransformConf unmarshals the content-addressed envelope format and
 // the legacy CRC32-appended format.
 func UnmarshalTransformConf(data []byte) (*block_transform.Config, error) {
+	// Extract the transform payload from its envelope or CRC32 encoding.
 	var payload []byte
 	if len(data) >= len(transformConfEnvelopeMagic) &&
 		data[0] == transformConfEnvelopeMagic[0] &&
@@ -238,6 +246,7 @@ func UnmarshalTransformConf(data []byte) (*block_transform.Config, error) {
 		}
 	}
 
+	// Decode the transform configuration from the verified payload.
 	conf := &block_transform.Config{}
 	if err := conf.UnmarshalVT(payload); err != nil {
 		return nil, err
@@ -274,6 +283,7 @@ func FetchTransformConf(
 	tconfRef *block.BlockRef,
 	xfrm block.Transformer,
 ) (*block_transform.Config, error) {
+	// Fetch the transform configuration block from the bucket.
 	data, ok, err := bk.GetBlock(ctx, tconfRef)
 	if err != nil {
 		return nil, err
@@ -281,6 +291,8 @@ func FetchTransformConf(
 	if !ok {
 		return nil, nil
 	}
+
+	// Decode the transform configuration block with the current transformer.
 	if xfrm != nil {
 		data, err = xfrm.DecodeBlock(data)
 		if err != nil {
@@ -331,6 +343,7 @@ func (c *Cursor) BuildTransactionAtRef(putOpts *block.PutOpts, ref *block.BlockR
 
 // BuildTransactionAtRefWithStore builds a transaction rooted at the reference using the supplied store.
 func (c *Cursor) BuildTransactionAtRefWithStore(putOpts *block.PutOpts, ref *block.BlockRef, store block.StoreOps) (*block.Transaction, *block.Cursor) {
+	// Select the transaction store and write options for the cursor.
 	if store == nil {
 		store = c.transactionStore
 	}
@@ -340,6 +353,8 @@ func (c *Cursor) BuildTransactionAtRefWithStore(putOpts *block.PutOpts, ref *blo
 	if putOpts == nil {
 		putOpts = c.defaultPutOpts()
 	}
+
+	// Build the transaction with the cursor's decoded-block cache.
 	tx, cursor := block.NewTransaction(store, c.xfrm, ref, putOpts)
 	tx.SetDecodedBlockCache(c.decodedBlocks)
 	return tx, cursor
@@ -405,6 +420,7 @@ func (c *Cursor) followRefWithOpArgs(
 	readOnly bool,
 	returnIfIdle bool,
 ) (*Cursor, error) {
+	// Copy the bucket arguments while retaining the current stores and transform.
 	var rel func()
 	bkt, xfrm := c.bkt, c.xfrm
 	transformConf := c.transformConf
@@ -455,11 +471,13 @@ func (c *Cursor) followRefWithOpArgs(
 	// use the previous bucket ref (transformed) to fetch it
 	// wrap bkRaw with the result
 	applyTransformConf := func(bc *block_transform.Config) error {
+		// Reuse the transformer when the configuration is unchanged.
 		if transformConf.EqualVT(bc) {
 			// no-op equiv to old config
 			return nil
 		}
 
+		// Build the transformer for the replacement configuration.
 		blockXfrm, err := block_transform.NewTransformer(
 			controller.ConstructOpts{Logger: c.le},
 			c.sfs,
@@ -469,6 +487,7 @@ func (c *Cursor) followRefWithOpArgs(
 			return err
 		}
 		transformConf, xfrm = bc, blockXfrm
+
 		return nil
 	}
 
@@ -477,6 +496,7 @@ func (c *Cursor) followRefWithOpArgs(
 	oldTconfRef := c.ref.GetTransformConfRef()
 	refTconfRef := objRef.GetTransformConfRef()
 	refTconf := objRef.GetTransformConf()
+
 	// A cross-bucket reference with no transform metadata is raw in its
 	// destination bucket. Do not carry the source bucket's decoder across it.
 	if c.opArgs.GetBucketId() != "" &&
@@ -665,6 +685,7 @@ func (c *Cursor) GetBucketIDOverride() string {
 
 // GetRefWithOpArgs gets the ref and sets the BucketId and TransformConf (if unset).
 func (c *Cursor) GetRefWithOpArgs() *bucket.ObjectRef {
+	// Fill missing bucket and transform metadata in a copy of the object reference.
 	ref := c.ref.Clone()
 	if ref == nil {
 		ref = &bucket.ObjectRef{}
@@ -707,10 +728,13 @@ func (c *Cursor) Unmarshal(
 	ctx context.Context,
 	ctor func() block.Block,
 ) (block.Block, error) {
+	// Resolve the cursor's root block before decoding it.
 	rr := c.ref.GetRootRef()
 	if rr.GetEmpty() {
 		return nil, nil
 	}
+
+	// Unmarshal the root block with the cursor's decoded-block cache.
 	ctx = block.WithDecodedBlockCache(ctx, c.decodedBlocks)
 	_, cursor := c.BuildTransactionAtRef(nil, rr)
 	return cursor.Unmarshal(ctx, ctor)

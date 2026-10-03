@@ -76,6 +76,7 @@ func (s *manualSignalTransportState) fail(err error) {
 	}
 	var closeRwc io.ReadWriteCloser
 	s.bcast.HoldLock(func(bcast func(), _ func() <-chan struct{}) {
+		// Record the first datachannel failure and detach any pending channel under the state lock.
 		if s.err != nil {
 			return
 		}
@@ -90,9 +91,11 @@ func (s *manualSignalTransportState) fail(err error) {
 }
 
 func (s *manualSignalTransportState) close() bool {
+	// Close the datachannel state and detach any pending channel.
 	var closed bool
 	var closeRwc io.ReadWriteCloser
 	s.bcast.HoldLock(func(bcast func(), _ func() <-chan struct{}) {
+		// Publish the closed datachannel state and wake its waiters.
 		if s.closed {
 			return
 		}
@@ -115,6 +118,7 @@ func (s *manualSignalTransportState) waitReady(ctx context.Context) (io.ReadWrit
 		var closed bool
 		var waitCh <-chan struct{}
 		s.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
+			// Claim a ready datachannel or subscribe to its next state change under one lock.
 			dcRwc = s.dcRwc
 			err = s.err
 			closed = s.closed
@@ -156,10 +160,12 @@ func NewManualSignalTransport(
 	localPeerID peer.ID,
 	iceServers []webrtc.ICEServer,
 ) (*ManualSignalTransport, error) {
+	// Construct a WebRTC API that permits raw datachannel access.
 	se := webrtc.SettingEngine{}
 	se.DetachDataChannels()
 	api := webrtc.NewAPI(webrtc.WithSettingEngine(se))
 
+	// Open the WebRTC peer connection with the configured ICE servers.
 	pc, err := api.NewPeerConnection(webrtc.Configuration{
 		ICEServers: iceServers,
 	})
@@ -167,6 +173,7 @@ func NewManualSignalTransport(
 		return nil, errors.Wrap(err, "create peer connection")
 	}
 
+	// Create the negotiated unordered datachannel for QUIC packets.
 	negotiated := true
 	protocol := manualSignalDataChannelID
 	ordered := false
@@ -182,6 +189,7 @@ func NewManualSignalTransport(
 		return nil, errors.Wrap(err, "create data channel")
 	}
 
+	// Construct the manual transport with its local peer identity.
 	m := &ManualSignalTransport{
 		pc:        pc,
 		dc:        dc,
@@ -190,6 +198,7 @@ func NewManualSignalTransport(
 		le:        le,
 	}
 
+	// Connect datachannel events and ICE gathering completion to the transport.
 	dc.OnOpen(m.onDataChannelOpen)
 	dc.OnClose(m.onDataChannelClose)
 	dc.OnError(m.onDataChannelError)
@@ -231,8 +240,10 @@ func (m *ManualSignalTransport) onDataChannelError(err error) {
 // CreateOffer generates a complete SDP offer with all ICE candidates gathered.
 // The caller is marked as the offerer for subsequent QUIC role selection.
 func (m *ManualSignalTransport) CreateOffer(ctx context.Context) (string, error) {
+	// Select the offerer's QUIC server role for this exchange.
 	m.offerer = true
 
+	// Create and install the local WebRTC offer.
 	offer, err := m.pc.CreateOffer(nil)
 	if err != nil {
 		return "", errors.Wrap(err, "create offer")
@@ -241,12 +252,14 @@ func (m *ManualSignalTransport) CreateOffer(ctx context.Context) (string, error)
 		return "", errors.Wrap(err, "set local description")
 	}
 
+	// Wait for complete offer ICE gathering or caller cancellation.
 	select {
 	case <-ctx.Done():
 		return "", ctx.Err()
 	case <-m.gatherDone:
 	}
 
+	// Return the complete local offer after ICE gathering.
 	desc := m.pc.LocalDescription()
 	if desc == nil {
 		return "", errors.New("local description is nil after gathering")
@@ -257,8 +270,10 @@ func (m *ManualSignalTransport) CreateOffer(ctx context.Context) (string, error)
 // AcceptOffer accepts a remote SDP offer and returns a complete SDP answer
 // with all ICE candidates gathered. The caller is marked as the answerer.
 func (m *ManualSignalTransport) AcceptOffer(ctx context.Context, offerSDP string) (string, error) {
+	// Select the answerer's QUIC client role for this exchange.
 	m.offerer = false
 
+	// Install the remote WebRTC offer before creating its answer.
 	offer := webrtc.SessionDescription{
 		Type: webrtc.SDPTypeOffer,
 		SDP:  offerSDP,
@@ -267,6 +282,7 @@ func (m *ManualSignalTransport) AcceptOffer(ctx context.Context, offerSDP string
 		return "", errors.Wrap(err, "set remote description")
 	}
 
+	// Create and install the local WebRTC answer.
 	answer, err := m.pc.CreateAnswer(nil)
 	if err != nil {
 		return "", errors.Wrap(err, "create answer")
@@ -275,12 +291,14 @@ func (m *ManualSignalTransport) AcceptOffer(ctx context.Context, offerSDP string
 		return "", errors.Wrap(err, "set local description")
 	}
 
+	// Wait for complete answer ICE gathering or caller cancellation.
 	select {
 	case <-ctx.Done():
 		return "", ctx.Err()
 	case <-m.gatherDone:
 	}
 
+	// Return the complete local answer after ICE gathering.
 	desc := m.pc.LocalDescription()
 	if desc == nil {
 		return "", errors.New("local description is nil after gathering")
@@ -305,15 +323,18 @@ func (m *ManualSignalTransport) WaitLink(
 	linkCtx context.Context,
 	remotePeerID peer.ID,
 ) (*transport_quic.Link, error) {
+	// Acquire the negotiated datachannel for the peer link.
 	dcRwc, err := m.state.waitReady(ctx)
 	if err != nil {
 		return nil, err
 	}
 
+	// Adapt the datachannel to packets addressed by local and remote peer identities.
 	localAddr := peer.NewNetAddr(m.localPeer)
 	remoteAddr := peer.NewNetAddr(remotePeerID)
 	pconn := rwc.NewRwcPacketConn(dcRwc, localAddr, remoteAddr)
 
+	// Configure QUIC for the reliable WebRTC packet channel.
 	linkOpts := &transport_quic.Opts{
 		DisableDatagrams:        true,
 		DisableKeepAlive:        true,
@@ -321,6 +342,7 @@ func (m *ManualSignalTransport) WaitLink(
 		MaxIdleTimeoutDur:       "60s",
 	}
 
+	// Establish the QUIC session using the negotiated offerer or answerer role.
 	var sess *quic.Conn
 	if m.offerer {
 		sess, err = transport_quic.ListenSession(ctx, m.le, linkOpts, pconn, m.identity, remotePeerID)
@@ -332,6 +354,7 @@ func (m *ManualSignalTransport) WaitLink(
 		return nil, errors.Wrap(err, "quic session")
 	}
 
+	// Construct the peer link and transfer session cleanup to its lifetime.
 	lnk, err := transport_quic.NewLink(
 		linkCtx,
 		m.le,

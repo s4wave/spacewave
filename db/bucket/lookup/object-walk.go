@@ -130,9 +130,12 @@ func WalkObjectBlocks(
 	maxConcurrency int,
 	alwaysDecode bool,
 ) error {
+	// Skip the object walk when no root entry was supplied.
 	if root == nil {
 		return nil
 	}
+
+	// Create a cancelable object walk with a shared worker error channel.
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 	errCh := make(chan error, 1)
@@ -142,6 +145,8 @@ func WalkObjectBlocks(
 		default:
 		}
 	}
+
+	// Start the root traversal and wait for idle or a worker failure.
 	queue := root.BuildConcurrentQueue(
 		ctx,
 		handleErr,
@@ -155,6 +160,7 @@ func WalkObjectBlocks(
 		err = ctx.Err()
 	}
 	cancel()
+
 	// Join callbacks before releasing the caller's stores or callback state.
 	// Idle and the last worker's error can arrive together; inspect that
 	// buffered error after joining even when WaitIdle observed idle first.
@@ -190,6 +196,7 @@ func (e *WalkObjectBlocksEntry) BuildConcurrentQueue(
 	maxConcurrency int,
 	alwaysDecode bool,
 ) *conc.ConcurrentQueue {
+	// Construct the concurrent traversal queue and its shared walk state.
 	queue := conc.NewConcurrentQueue(maxConcurrency)
 	enqueue := func(f ...func()) {
 		_, _ = queue.Enqueue(f...)
@@ -202,6 +209,8 @@ func (e *WalkObjectBlocksEntry) BuildConcurrentQueue(
 		cb:           cb,
 		alwaysDecode: alwaysDecode,
 	}
+
+	// Schedule the root block visit on the traversal queue.
 	enqueue(
 		e.buildVisitFn(
 			ctx,
@@ -214,9 +223,12 @@ func (e *WalkObjectBlocksEntry) BuildConcurrentQueue(
 // buildVisitFn builds the function called by the concurrent queue in WalkObjectBlocks.
 func (e *WalkObjectBlocksEntry) buildVisitFn(ctx context.Context, st *walkState) func() {
 	return func() {
+		// Stop the block visit when the object walk is canceled.
 		if ctx.Err() != nil {
 			return
 		}
+
+		// Trace the block visit for the lifetime of its worker request.
 		workerCtx := ctx
 		var workerTask *trace.Task
 		if copyWorkerTraceEnabled(ctx) {
@@ -225,11 +237,13 @@ func (e *WalkObjectBlocksEntry) buildVisitFn(ctx context.Context, st *walkState)
 			defer workerTask.End()
 		}
 
+		// Fetch the referenced block when the entry has no payload yet.
 		if !e.Found && e.Err == nil && !e.IsSubBlock && !e.Ref.GetEmpty() {
 			// returns nil, false, nil if reference was empty.
 			e.Data, e.Found, e.Err = st.readBkt.GetBlock(workerCtx, e.Ref)
 		}
 
+		// Decode the fetched block for child traversal.
 		if e.Found && e.Ctor != nil && e.Err == nil && !e.IsSubBlock {
 			err := e.decodeBlock(st.alwaysDecode, st.readXfrm)
 			if err != nil && e.Err == nil {
@@ -237,6 +251,7 @@ func (e *WalkObjectBlocksEntry) buildVisitFn(ctx context.Context, st *walkState)
 			}
 		}
 
+		// Ask the block callback whether traversal should continue.
 		var cntu bool
 		var err error
 		if st.cb != nil {
@@ -303,6 +318,7 @@ func (e *WalkObjectBlocksEntry) buildVisitFn(ctx context.Context, st *walkState)
 			return
 		}
 
+		// Order child entries by reference ID before scheduling their visits.
 		slices.SortStableFunc(toEnqueue, func(a, b *WalkObjectBlocksEntry) int {
 			if a.RefID < b.RefID {
 				return -1
@@ -313,6 +329,7 @@ func (e *WalkObjectBlocksEntry) buildVisitFn(ctx context.Context, st *walkState)
 			return 0
 		})
 
+		// Schedule each child entry on the shared traversal queue.
 		enqFns := make([]func(), len(toEnqueue))
 		for i, enq := range toEnqueue {
 			enqFns[i] = enq.buildVisitFn(ctx, st)
@@ -323,6 +340,7 @@ func (e *WalkObjectBlocksEntry) buildVisitFn(ctx context.Context, st *walkState)
 
 // decodeBlock conditionally decodes the block.
 func (e *WalkObjectBlocksEntry) decodeBlock(alwaysDecode bool, readXfrm block.Transformer) error {
+	// Construct a decoder only for an available block with a constructor.
 	if !e.Found || e.Ctor == nil || e.Err != nil {
 		return nil
 	}
@@ -338,6 +356,7 @@ func (e *WalkObjectBlocksEntry) decodeBlock(alwaysDecode bool, readXfrm block.Tr
 		}
 	}
 
+	// Decode the stored block bytes with the source transformer.
 	dat, err := e.Data, error(nil)
 	if readXfrm != nil {
 		dat, err = readXfrm.DecodeBlock(e.Data)

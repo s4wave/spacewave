@@ -31,6 +31,7 @@ var sdpKeepPrefixes = []string{
 // fingerprint, and candidate lines. Drops bandwidth, ssrc, rtpmap, fmtp,
 // extmap, rtcp, and other media-specific attributes.
 func MinifySDP(sdp string) string {
+	// Retain the SDP fields required for the datachannel connection.
 	lines := strings.Split(sdp, "\r\n")
 	kept := make([]string, 0, len(lines))
 	for _, line := range lines {
@@ -44,6 +45,8 @@ func MinifySDP(sdp string) string {
 			}
 		}
 	}
+
+	// Preserve the original SDP when no supported fields remain.
 	if len(kept) == 0 {
 		return sdp
 	}

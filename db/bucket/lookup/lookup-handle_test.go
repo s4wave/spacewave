@@ -10,6 +10,7 @@ import (
 
 // TestLookupBucketExistenceUsesLookupBatch rejects payload reads for existence probes.
 func TestLookupBucketExistenceUsesLookupBatch(t *testing.T) {
+	// Construct a bucket lookup that records metadata and payload probes.
 	refs := []*block.BlockRef{
 		mustLookupTestBlockRef(t, "first"),
 		mustLookupTestBlockRef(t, "second"),
@@ -17,6 +18,7 @@ func TestLookupBucketExistenceUsesLookupBatch(t *testing.T) {
 	lk := &batchLookupTestLookup{found: []bool{true, false}}
 	bkt := NewBucketFromHandle(&batchLookupTestHandle{lookup: lk})
 
+	// Verify the batch existence result preserves reference order.
 	found, err := bkt.GetBlockExistsBatch(t.Context(), refs)
 	if err != nil {
 		t.Fatal(err)
@@ -24,6 +26,7 @@ func TestLookupBucketExistenceUsesLookupBatch(t *testing.T) {
 	if len(found) != 2 || !found[0] || found[1] {
 		t.Fatalf("found = %v, want [true false]", found)
 	}
+
 	// Single-block probes use the same metadata-only lookup for hits and misses.
 	for _, expected := range []bool{true, false} {
 		lk.found = []bool{expected}
@@ -35,6 +38,8 @@ func TestLookupBucketExistenceUsesLookupBatch(t *testing.T) {
 			t.Fatalf("single block found = %t, want %t", found, expected)
 		}
 	}
+
+	// Verify existence probes use local metadata without reading payloads.
 	if lk.existsBatchCalls != 3 {
 		t.Fatalf("exists batch calls = %d, want 3", lk.existsBatchCalls)
 	}
@@ -120,6 +125,7 @@ func (l *batchLookupTestLookup) LookupBlockExistsBatch(
 	refs []*block.BlockRef,
 	opts ...LookupBlockOption,
 ) ([]bool, error) {
+	// Record the existence probe and return metadata in reference order.
 	l.existsBatchCalls++
 	l.localOnly = NewLookupBlockOpts(opts...).LocalOnly
 	out := make([]bool, len(refs))
