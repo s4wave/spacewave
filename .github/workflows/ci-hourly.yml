@@ -29,4 +29,4 @@ jobs:
             echo "A full run already measured $GITHUB_SHA."
             exit 0
           fi
-          gh workflow run ci.yml --ref "$GITHUB_SHA"
+          gh workflow run ci.yml --ref "$GITHUB_REF_NAME"
