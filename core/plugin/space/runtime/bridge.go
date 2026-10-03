@@ -8,9 +8,11 @@ import (
 	plugin_host_root "github.com/s4wave/spacewave/bldr/plugin/host/root"
 	"github.com/s4wave/spacewave/db/volume"
 	"github.com/s4wave/spacewave/db/world"
+	"github.com/s4wave/spacewave/sdk/world/objecttype"
 )
 
-// bridgeFilter forwards the parent infrastructure lookups into a generation.
+// bridgeFilter forwards generation lookups to the parent infrastructure and
+// root object type registry.
 func bridgeFilter(appPluginIDs []string) func(directive.Instance) (bool, error) {
 	return func(inst directive.Instance) (bool, error) {
 		return bridgeDirective(inst.GetDirective(), appPluginIDs), nil
@@ -18,13 +20,14 @@ func bridgeFilter(appPluginIDs []string) func(directive.Instance) (bool, error) 
 }
 
 // bridgeDirective reports whether dir resolves on the parent bus: app plugin
-// loads and live infrastructure lookups. Space plugin loads, manifests, and
-// RPC services stay inside the generation.
+// loads, live infrastructure lookups, and root object type registrations.
+// Space plugin loads, manifests, and RPC services stay inside the generation.
 func bridgeDirective(dir directive.Directive, appPluginIDs []string) bool {
 	switch d := dir.(type) {
 	case bldr_plugin.LoadPlugin:
 		return slices.Contains(appPluginIDs, d.LoadPluginID())
 	case world.LookupWorldEngine, world.LookupWorldOp,
+		objecttype.LookupObjectType,
 		volume.LookupVolume, volume.BuildObjectStoreAPI,
 		plugin_host_root.LookupRoot:
 		return true
