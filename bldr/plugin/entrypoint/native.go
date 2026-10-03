@@ -12,7 +12,9 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/bldr/entrypoint/storagepath"
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
+	"github.com/s4wave/spacewave/bldr/util/logfile"
 	bldr_pipesock "github.com/s4wave/spacewave/bldr/util/pipesock"
 	"github.com/sirupsen/logrus"
 )
@@ -20,7 +22,9 @@ import (
 // Version is the entrypoint version
 var Version = controller.MustParseVersion("0.0.1")
 
-// Main runs the default main entrypoint for a plugin.
+// Main runs the default main entrypoint for a plugin. logLevel is the
+// compiled default; <PROJECT>_LOG_LEVEL or BLDR_LOG_LEVEL from the host's
+// environment overrides it, matching the host process.
 func Main(
 	pluginStartInfoJsonB64,
 	pluginMetaB58 string,
@@ -71,6 +75,12 @@ func Main(
 		if err != nil {
 			return err
 		}
+
+		// Apply the host's log level override for this project.
+		log.SetLevel(logfile.ResolveLogLevel(
+			[]string{storagepath.LogLevelEnvVar(pluginMeta.GetProjectId()), "BLDR_LOG_LEVEL"},
+			logLevel,
+		))
 
 		// Run the plugin entrypoint, treating expected shutdown as success.
 		err = Run(ctx, le, pluginStartInfo, pluginMeta, addFactoryFuncs, configSetFuncs)
