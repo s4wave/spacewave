@@ -1,5 +1,6 @@
 import Lean.Data.Json
 import Spacewave.SObject.Host
+import Spacewave.SObject.Order
 import Spacewave.SObject.Recovery
 import Spacewave.SObject.Sync.Auth
 import Spacewave.SObject.Sync.Catchup
@@ -14,6 +15,8 @@ per line. A request names a model function in `op` and carries its inputs:
 - `verifyChange`: `current`, `entry`; result `{"ok", "config"}`.
 - `verifySuffix`: `current`, `candidate`, `entries`; result `{"ok"}`.
 - `verifyChain`: `entries`; result `{"ok"}`.
+- `orderOperations`: held `ops`, `checkpoint` author heads, `roster`; result
+  `{"ok", "result": {"order", "stable"}}`.
 - `importPeerSnapshot`: `previous`, `candidate`, `entries`, `localPeer`,
   `candidateBytes`, `historyBytes`, nullable `merged`, `lockOK`, `accessOK`, `writeOK`.
 - `advanceSyncExchange`: held-state reads and one selected production loop event.
@@ -57,6 +60,8 @@ open Lean Spacewave.SObject
 
 deriving instance ToJson, FromJson for Participant, Config, Sig, Entry
 deriving instance ToJson, FromJson for Grant, State, HostResult
+
+deriving instance ToJson, FromJson for Order.Pos, Order.Op
 
 deriving instance ToJson, FromJson for RecoveryMaterial, RecoveryEnvelope, RecoveryGrant
 
@@ -221,6 +226,13 @@ def respond (req : Json) : Except String Json := do
   | "verifyChain" =>
     let ok := (verifyChain (← req.getObjValAs? (List Entry) "entries")).isSome
     return json% {ok: $ok}
+  | "orderOperations" =>
+    let ops ← req.getObjValAs? (List Order.Op) "ops"
+    let checkpoint ← req.getObjValAs? (List Order.Pos) "checkpoint"
+    let roster ← req.getObjValAs? (List String) "roster"
+    let order := Order.order ops checkpoint
+    let stable := Order.stablePoint ops checkpoint roster
+    return json% {ok: true, result: {order: $order, stable: $stable}}
   | op => throw s!"unknown op {op}"
 
 /-- serve answers requests until standard input closes. -/

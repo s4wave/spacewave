@@ -387,7 +387,8 @@ func (s *SOOperationSet) Find(peerID, localID string) []byte {
 }
 
 // Ancestors returns the operations in the set that the operation with hash h
-// descends from, through its author chain and its causal parents.
+// descends from, through its author chain and its causal parents. Like Order,
+// it does not follow a link to a position the checkpoint covers.
 func (s *SOOperationSet) Ancestors(h []byte) map[string]struct{} {
 	ancestors := make(map[string]struct{})
 	stack := []string{string(h)}
@@ -402,7 +403,7 @@ func (s *SOOperationSet) Ancestors(h []byte) map[string]struct{} {
 		// Record each link the first time it is reached.
 		for _, link := range links(inner) {
 			key := string(link.GetOpHash())
-			if _, ok := ancestors[key]; ok {
+			if _, ok := ancestors[key]; ok || s.Covers(link.GetPeerId(), link.GetNonce()) {
 				continue
 			}
 			if _, ok := s.ops[key]; ok {
@@ -417,11 +418,14 @@ func (s *SOOperationSet) Ancestors(h []byte) map[string]struct{} {
 // Order returns the replay order of the operations whose ancestry the set or
 // its checkpoint holds: a topological order of the operation DAG with
 // concurrent operations in byte order of their hashes. Every member holding the
-// same operations above the same checkpoint computes the same order. An
-// operation naming one the set lacks and the checkpoint does not cover waits,
-// with its descendants, until the missing operation arrives. An operation that
-// arrives after the checkpoint covered what it names, such as an edit from a
-// device off the trimming roster, is placed above the checkpoint.
+// same operations above the same checkpoint computes the same order. A link
+// to a position the checkpoint covers is satisfied, even when the set holds an
+// operation with its hash, so placement never depends on which other
+// operations have arrived. An operation naming one the set lacks and the
+// checkpoint does not cover waits, with its descendants, until the missing
+// operation arrives. An operation that arrives after the checkpoint covered
+// what it names, such as an edit from a device off the trimming roster, is
+// placed above the checkpoint.
 func (s *SOOperationSet) Order() [][]byte {
 	// Count the links of every operation and index its children.
 	pending := make(map[string]int, len(s.ops))
@@ -430,10 +434,10 @@ func (s *SOOperationSet) Order() [][]byte {
 	for key, inner := range s.ops {
 		n := 0
 		for _, link := range links(inner) {
-			h := string(link.GetOpHash())
-			if _, ok := s.ops[h]; !ok && s.Covers(link.GetPeerId(), link.GetNonce()) {
+			if s.Covers(link.GetPeerId(), link.GetNonce()) {
 				continue
 			}
+			h := string(link.GetOpHash())
 			children[h] = append(children[h], key)
 			n++
 		}
