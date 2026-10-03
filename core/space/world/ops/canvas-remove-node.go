@@ -50,10 +50,12 @@ func (o *CanvasRemoveNodeOp) ApplyWorldOp(
 	worldHandle world.WorldState,
 	sender peer.ID,
 ) (sysErr bool, err error) {
+	// Validate the canvas node removal before accessing its object.
 	if err := o.Validate(); err != nil {
 		return false, err
 	}
 
+	// Select the canvas object and node IDs to remove.
 	objKey := o.GetObjectKey()
 	nodeIDs := o.GetNodeIds()
 
@@ -63,7 +65,9 @@ func (o *CanvasRemoveNodeOp) ApplyWorldOp(
 		removedSet[id] = struct{}{}
 	}
 
+	// Update the canvas object with nodes and their incident edges removed.
 	_, _, err = world.AccessWorldObject(ctx, worldHandle, objKey, true, func(bcs *block.Cursor) error {
+		// Load the canvas state or prepare an empty state.
 		state, uerr := s4wave_canvas.UnmarshalCanvasState(ctx, bcs)
 		if uerr != nil {
 			return uerr
@@ -72,6 +76,7 @@ func (o *CanvasRemoveNodeOp) ApplyWorldOp(
 			state = &s4wave_canvas.CanvasState{}
 		}
 
+		// Preserve the canvas state before removing nodes and edges.
 		previous := state.CloneVT()
 
 		// Remove nodes.

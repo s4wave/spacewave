@@ -13,6 +13,7 @@ import (
 )
 
 func TestSpaceIndexRepairPreservesConcurrentPluginInstallation(t *testing.T) {
+	// Start the storage testbed for concurrent space settings edits.
 	ctx := t.Context()
 	le := logrus.NewEntry(logrus.New())
 	tb, err := hydra_testbed.NewTestbed(ctx, le, hydra_testbed.WithVerbose(false))
@@ -20,11 +21,15 @@ func TestSpaceIndexRepairPreservesConcurrentPluginInstallation(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer tb.Release()
+
+	// Start the World engine over the storage testbed.
 	wtb, err := world_testbed.NewTestbed(tb, world_testbed.WithWorldVerbose(false))
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer wtb.Release()
+
+	// Open the World state and identify the settings sender.
 	ws := world.NewEngineWorldState(wtb.Engine, true)
 	sender := wtb.Volume.GetPeerID()
 

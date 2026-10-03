@@ -28,6 +28,7 @@ func NewCanvasAddEdgeOpBlock() block.Block {
 
 // Validate performs cursory checks on the op.
 func (o *CanvasAddEdgeOp) Validate() error {
+	// Require a target object and an edge with both endpoint node IDs.
 	if len(o.GetObjectKey()) == 0 {
 		return world.ErrEmptyObjectKey
 	}
@@ -59,13 +60,16 @@ func (o *CanvasAddEdgeOp) ApplyWorldOp(
 	worldHandle world.WorldState,
 	sender peer.ID,
 ) (sysErr bool, err error) {
+	// Validate the canvas edge addition before accessing its object.
 	if err := o.Validate(); err != nil {
 		return false, err
 	}
 
+	// Select the canvas object and edge to add.
 	objKey := o.GetObjectKey()
 	edge := o.GetEdge()
 
+	// Open the canvas object state and require that it exists.
 	objState, found, err := worldHandle.GetObject(ctx, objKey)
 	defer world.ReleaseObjectState(objState)
 	if err != nil {
@@ -75,7 +79,9 @@ func (o *CanvasAddEdgeOp) ApplyWorldOp(
 		return false, world.ErrObjectNotFound
 	}
 
+	// Update the canvas object with the requested edge.
 	_, _, err = world.AccessObjectState(ctx, objState, true, func(bcs *block.Cursor) error {
+		// Load the canvas state or prepare an empty state.
 		state, uerr := s4wave_canvas.UnmarshalCanvasState(ctx, bcs)
 		if uerr != nil {
 			return uerr
@@ -95,6 +101,7 @@ func (o *CanvasAddEdgeOp) ApplyWorldOp(
 			return ErrEdgeNodeNotFound
 		}
 
+		// Preserve the previous canvas state and persist the new edge.
 		previous := state.CloneVT()
 		state.Edges = append(state.Edges, edge)
 		return s4wave_canvas.WriteCanvasState(ctx, bcs, previous, state)

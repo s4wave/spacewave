@@ -70,6 +70,7 @@ func (o *CanvasInitOp) ApplyWorldOp(
 	worldHandle world.WorldState,
 	sender peer.ID,
 ) (sysErr bool, err error) {
+	// Validate the blank canvas initialization and select its object key.
 	objKey := o.GetObjectKey()
 	if err := o.Validate(); err != nil {
 		return false, err

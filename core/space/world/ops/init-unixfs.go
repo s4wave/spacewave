@@ -68,11 +68,13 @@ func (o *InitUnixFSOp) ApplyWorldOp(
 	worldHandle world.WorldState,
 	sender peer.ID,
 ) (sysErr bool, err error) {
+	// Require an object key for the UnixFS root.
 	objKey := o.GetObjectKey()
 	if objKey == "" {
 		return false, world.ErrEmptyObjectKey
 	}
 
+	// Construct and apply a validated filesystem initialization operation.
 	fsNodeType := unixfs_world.FSType_FSType_FS_NODE
 	fsInit := unixfs_world.NewFsInitOp(
 		objKey,

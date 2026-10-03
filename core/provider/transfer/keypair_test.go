@@ -13,8 +13,8 @@ import (
 // TestKeypairTransfer verifies that TransferKeypair copies the private key
 // from one volume to another, resulting in the same peer ID.
 func TestKeypairTransfer(t *testing.T) {
+	// Create independent source and target volumes for the key transfer.
 	ctx := context.Background()
-
 	srcTb, err := testbed.Default(ctx)
 	if err != nil {
 		t.Fatal(err)
@@ -24,15 +24,16 @@ func TestKeypairTransfer(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Verify that the source and target volumes start with distinct identities.
 	srcVol := srcTb.Volume
 	tgtVol := tgtTb.Volume
-
 	srcPeerID := srcVol.GetPeerID()
 	tgtPeerID := tgtVol.GetPeerID()
 	if srcPeerID == tgtPeerID {
 		t.Fatal("source and target should have different peer IDs initially")
 	}
 
+	// Copy the source peer identity into the target volume.
 	if err := provider_transfer.TransferKeypair(ctx, srcVol, tgtVol); err != nil {
 		t.Fatal(err)
 	}
@@ -50,6 +51,7 @@ func TestKeypairTransfer(t *testing.T) {
 		t.Fatal("expected non-nil stored key")
 	}
 
+	// Verify that the stored target key identifies the source peer.
 	storedPeerID, err := peer.IDFromPrivateKey(storedKey)
 	if err != nil {
 		t.Fatal(err)

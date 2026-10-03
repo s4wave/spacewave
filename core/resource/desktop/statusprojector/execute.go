@@ -15,9 +15,11 @@ import (
 
 // Execute publishes Spacewave status into the host desktop tray tree.
 func (c *Controller) Execute(ctx context.Context) error {
+	// Report that desktop tray status projection is starting.
 	le := c.GetLogger()
 	le.Info("desktop tray status projector starting")
 
+	// Acquire the session controller used by desktop status projection.
 	sessionCtrl, sessionCtrlRef, err := session.ExLookupSessionController(ctx, c.GetBus(), "", false, nil)
 	if err != nil {
 		if ctx.Err() != nil {
@@ -30,6 +32,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 	}
 	le.Debug("desktop tray status projector found session controller")
 
+	// Open the host tray publisher and release it when projection ends.
 	publisher, err := newHostDesktopTrayPublisher(ctx, c.GetBus())
 	if err != nil {
 		if ctx.Err() != nil {
@@ -44,6 +47,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 	}()
 	le.Debug("desktop tray status projector opened host desktop tray")
 
+	// Start the launcher watcher and project its runtime status.
 	launcher := spacewave_launcher.NewInfoWatcher(le, c.GetBus())
 	launcher.SetContext(ctx)
 	return projectRuntimeTrayStatus(
@@ -119,9 +123,12 @@ func logDesktopTrayProjection(
 	current *desktop_runtime.DesktopRuntimeState,
 	changed bool,
 ) {
+	// Suppress tray publication when the runtime snapshot is unchanged.
 	if le == nil || current == nil {
 		return
 	}
+
+	// Publish the changed runtime snapshot into the host tray.
 	entry := le.WithFields(logrus.Fields{
 		"changed":         changed,
 		"status-text":     current.GetStatusText(),

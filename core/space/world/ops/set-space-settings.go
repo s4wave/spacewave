@@ -90,6 +90,7 @@ func (o *SetSpaceSettingsOp) ApplyWorldOp(
 	worldHandle world.WorldState,
 	sender peer.ID,
 ) (sysErr bool, err error) {
+	// Select the replacement settings and resolve the target object key.
 	settings := o.GetSettings()
 	objKey := o.GetObjectKey()
 	if objKey == "" {
@@ -108,6 +109,7 @@ func (o *SetSpaceSettingsOp) ApplyWorldOp(
 		}
 	}
 
+	// Merge keybinding overrides when the operation includes an expected set.
 	if o.GetExpectedKeybindingOverrides() != nil {
 		current, err := space_world.LookupSpaceSettingsBody(ctx, worldHandle)
 		if err != nil {
@@ -150,6 +152,7 @@ func (o *SetSpaceSettingsOp) ApplyWorldObjectOp(
 	objectHandle world.ObjectState,
 	sender peer.ID,
 ) (sysErr bool, err error) {
+	// Require replacement settings before updating the object body.
 	settings := o.GetSettings()
 	if settings == nil {
 		return false, ErrInvalidSettings
@@ -184,6 +187,7 @@ func (o *SetSpaceSettingsOp) ApplyWorldObjectOp(
 func (o *SetSpaceSettingsOp) mergeKeybindingSettings(
 	current, replacement *space_world.SpaceSettings,
 ) (*space_world.SpaceSettings, error) {
+	// Merge the expected keybinding edits into the current space settings.
 	if current == nil {
 		current = &space_world.SpaceSettings{}
 	}

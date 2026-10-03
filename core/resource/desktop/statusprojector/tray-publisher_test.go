@@ -26,6 +26,7 @@ func (h *recordingTrayActionHandler) HandleDesktopTrayAction(
 }
 
 func TestDesktopTrayPublisherPublishesUpdatesAndReleasesProjectedEntries(t *testing.T) {
+	// Open the tray publisher fixture and register its cleanup.
 	ctx := t.Context()
 	publisher, tray := newTestDesktopTrayPublisher(t)
 	defer func() {
@@ -34,6 +35,7 @@ func TestDesktopTrayPublisherPublishesUpdatesAndReleasesProjectedEntries(t *test
 		}
 	}()
 
+	// Prepare listener status and an available desktop update.
 	state := BuildDesktopRuntimeStateFromListener(resource_listener.ListenerStatus{
 		SocketPath:       "/run/spacewave.sock",
 		Listening:        true,
@@ -45,6 +47,7 @@ func TestDesktopTrayPublisherPublishesUpdatesAndReleasesProjectedEntries(t *test
 		Label:   "Update ready",
 	}
 
+	// Publish the initial runtime state and verify tray entries change.
 	changed, err := publisher.Publish(ctx, state)
 	if err != nil {
 		t.Fatalf("publish initial state: %v", err)
@@ -53,6 +56,7 @@ func TestDesktopTrayPublisherPublishesUpdatesAndReleasesProjectedEntries(t *test
 		t.Fatal("expected initial publish to change tray entries")
 	}
 
+	// Verify the update action opens an application route without a daemon handler.
 	updateEntry := publisher.entries["apply-update"]
 	if updateEntry == nil {
 		t.Fatal("expected projected update action")
@@ -64,6 +68,7 @@ func TestDesktopTrayPublisherPublishesUpdatesAndReleasesProjectedEntries(t *test
 		t.Fatalf("update action kind = %v, want open route", updateEntry.entry.GetAction().GetKind())
 	}
 
+	// Verify an identical runtime snapshot leaves the tray unchanged.
 	changed, err = publisher.Publish(ctx, state.CloneVT())
 	if err != nil {
 		t.Fatalf("publish unchanged state: %v", err)
@@ -72,6 +77,7 @@ func TestDesktopTrayPublisherPublishesUpdatesAndReleasesProjectedEntries(t *test
 		t.Fatal("expected unchanged publish to be suppressed")
 	}
 
+	// Remove the update and verify its projected action becomes unavailable.
 	state.Update = nil
 	changed, err = publisher.Publish(ctx, state)
 	if err != nil {
@@ -90,8 +96,8 @@ func TestDesktopTrayPublisherPublishesUpdatesAndReleasesProjectedEntries(t *test
 func newTestDesktopTrayPublisher(
 	t *testing.T,
 ) (*desktopTrayPublisher, desktop_tray.SRPCDesktopTrayResourceServiceClient) {
+	// Start the tray resource server and its in-process RPC transport.
 	t.Helper()
-
 	tray := desktop_tray.NewDesktopTray()
 	server := resource_server.NewResourceServer(tray.GetMux())
 	serverMux := srpc.NewMux()
@@ -101,10 +107,14 @@ func newTestDesktopTrayPublisher(
 	resourceService := bldr_resource.NewSRPCResourceServiceClient(
 		srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(serverMux))),
 	)
+
+	// Open a resource client against the tray server.
 	resources, err := resource_client.NewClient(t.Context(), resourceService)
 	if err != nil {
 		t.Fatalf("new resource client: %v", err)
 	}
+
+	// Acquire the tray root resource and open its client.
 	rootRef := resources.AccessRootResource()
 	rootClient, err := rootRef.GetClient()
 	if err != nil {

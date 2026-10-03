@@ -38,10 +38,12 @@ func snapshotSessionProjection(
 	b bus.Bus,
 	sessionCtrl session.SessionController,
 ) (*SessionProjection, []<-chan struct{}, []func(), error) {
+	// Return an empty session projection when no controller is available.
 	if sessionCtrl == nil {
 		return &SessionProjection{}, nil, nil, nil
 	}
 
+	// Capture the session-list change notification before reading its entries.
 	var sessionWaitCh <-chan struct{}
 	sessionCtrl.GetSessionBroadcast().HoldLock(func(
 		_ func(),
@@ -50,30 +52,39 @@ func snapshotSessionProjection(
 		sessionWaitCh = getWaitCh()
 	})
 
+	// Read the sessions that contribute to desktop status.
 	entries, err := sessionCtrl.ListSessions(ctx)
 	if err != nil {
 		return nil, nil, nil, err
 	}
 
+	// Collect session, space, and activity rows with their watches and releases.
 	rows := make([]*projection.SessionProjectionRow, 0, len(entries))
 	spaceRows := []*spacepolicy.Row{}
 	activityRows := []*activitypolicy.Row{}
 	releases := make([]func(), 0, len(entries))
 	waitChs := []<-chan struct{}{sessionWaitCh}
 	for _, entry := range entries {
+		// Skip absent session entries before reading their metadata.
 		if entry == nil {
 			continue
 		}
+
+		// Read the persisted metadata for this session.
 		meta, err := sessionCtrl.GetSessionMetadata(ctx, entry.GetSessionIndex())
 		if err != nil {
 			return nil, nil, releases, err
 		}
+
+		// Mount the session runtime and retain its change notifications.
 		runtime, runtimeWaitChs, runtimeReleases, err := snapshotSessionRuntimeProjection(ctx, b, entry)
 		if err != nil {
 			return nil, nil, releases, err
 		}
 		releases = append(releases, runtimeReleases...)
 		waitChs = append(waitChs, runtimeWaitChs...)
+
+		// Build the session row from its metadata and account state.
 		row := &projection.SessionProjectionRow{
 			Entry:          entry,
 			Metadata:       meta,
@@ -81,6 +92,8 @@ func snapshotSessionProjection(
 			SelfEnrollment: runtime.account.selfEnrollment,
 		}
 		rows = append(rows, row)
+
+		// Collect the labeled space and sync activity rows for this session.
 		label := projection.SessionLabel(row)
 		for _, sp := range runtime.spaces {
 			spaceRows = append(spaceRows, &spacepolicy.Row{
@@ -94,6 +107,7 @@ func snapshotSessionProjection(
 		}
 	}
 
+	// Assemble the session projection and its space and activity summaries.
 	proj := projection.BuildSessionProjection(rows)
 	proj.Spaces = spacepolicy.Build(spaceRows)
 	proj.Activity = activitypolicy.Build(activityRows)
@@ -105,6 +119,7 @@ func activityRowFromSyncStatus(
 	sessionLabel string,
 	status *s4wave_session.WatchSyncStatusResponse,
 ) *activitypolicy.Row {
+	// Copy session identity and transfer counts into the activity row.
 	row := &activitypolicy.Row{
 		SessionIndex:         sessionIndex,
 		SessionLabel:         sessionLabel,
@@ -113,6 +128,8 @@ func activityRowFromSyncStatus(
 		InFlightUploadCount:  uint64(status.GetInFlightUploadCount()),
 		LastError:            status.GetLastError(),
 	}
+
+	// Translate the session sync state into an activity policy state.
 	switch status.GetState() {
 	case s4wave_session.SyncStatusState_SyncStatusState_ERROR:
 		row.State = activitypolicy.SyncStateError
@@ -123,6 +140,8 @@ func activityRowFromSyncStatus(
 	default:
 		row.State = activitypolicy.SyncStateIdle
 	}
+
+	// Translate the session transfer direction into an activity policy direction.
 	switch status.GetDirection() {
 	case s4wave_session.SyncActivityDirection_SyncActivityDirection_UPLOAD:
 		row.Direction = activitypolicy.SyncDirectionUpload
@@ -133,6 +152,8 @@ func activityRowFromSyncStatus(
 	default:
 		row.Direction = activitypolicy.SyncDirectionUnknown
 	}
+
+	// Retain the last activity time when the sync snapshot supplies one.
 	ts := status.GetLastActivityAt()
 	if ts != nil && !ts.GetEmpty() {
 		row.LastActivityAtUnixMs = ts.AsTime().UnixMilli()
@@ -146,6 +167,7 @@ func snapshotSessionRuntimeProjection(
 	b bus.Bus,
 	entry *session.SessionListEntry,
 ) (sessionRuntimeProjection, []<-chan struct{}, []func(), error) {
+	// Mount the session runtime for the requested session entry.
 	sess, sessRef, err := session.ExMountSession(ctx, b, entry.GetSessionRef(), false, nil)
 	if err != nil {
 		return sessionRuntimeProjection{}, nil, nil, err
@@ -158,6 +180,7 @@ func snapshotSessionRuntimeProjection(
 		}, nil, nil, nil
 	}
 
+	// Read the mounted session account state and retain its lifetime.
 	releases := []func(){sessRef.Release}
 	account := sess.GetProviderAccount()
 	proj := sessionRuntimeProjection{
@@ -173,6 +196,7 @@ func snapshotSessionRuntimeProjection(
 		waitChs = append(waitChs, accountWaitChs...)
 	}
 
+	// Read the session spaces and retain their watches and releases.
 	spaces, spaceWaitChs, spaceReleases, err := snapshotSessionSpaces(ctx, sess)
 	if err != nil {
 		releaseAll(spaceReleases)
@@ -183,6 +207,7 @@ func snapshotSessionRuntimeProjection(
 	releases = append(releases, spaceReleases...)
 	waitChs = append(waitChs, spaceWaitChs...)
 
+	// Read the session sync snapshot and its change notifications.
 	syncStatus, syncWaitChs := resource_session.BuildSyncStatusSnapshot(sess, time.Now())
 	proj.sync = syncStatus
 	waitChs = append(waitChs, syncWaitChs...)
@@ -192,6 +217,7 @@ func snapshotSessionRuntimeProjection(
 func snapshotSpacewaveSessionAccountProjection(
 	acc *provider_spacewave.ProviderAccount,
 ) (sessionAccountProjection, []<-chan struct{}) {
+	// Read the account status under the account broadcast lock.
 	proj := sessionAccountProjection{}
 	acc.GetAccountBroadcast().HoldLock(func(
 		_ func(),
@@ -200,9 +226,11 @@ func snapshotSpacewaveSessionAccountProjection(
 		proj.status = acc.GetAccountStatus()
 	})
 
+	// Read the self-enrollment snapshot with its source watches.
 	selfEnrollment, watch := acc.WatchSelfEnrollmentProjection()
 	proj.selfEnrollment = selfEnrollment
 
+	// Collect the available account and enrollment change notifications.
 	waitChs := make([]<-chan struct{}, 0, 3)
 	appendWaitCh := func(ch <-chan struct{}) {
 		if ch != nil {
@@ -219,6 +247,7 @@ func snapshotSessionSpaces(
 	ctx context.Context,
 	sess session.Session,
 ) ([]*space.SpaceSoListEntry, []<-chan struct{}, []func(), error) {
+	// Resolve the provider feature that exposes session shared objects.
 	providerAcc := sess.GetProviderAccount()
 	soProvider, err := sobject.GetSharedObjectProviderAccountFeature(ctx, providerAcc)
 	if err != nil {
@@ -228,11 +257,13 @@ func snapshotSessionSpaces(
 		return nil, nil, nil, err
 	}
 
+	// Acquire the watchable shared-object list for the session.
 	soListWatchable, releaseList, err := soProvider.AccessSharedObjectList(ctx, nil)
 	if err != nil {
 		return nil, nil, nil, err
 	}
 
+	// Read the space rows and release the list if snapshot construction fails.
 	soList, spaces, err := spacepolicy.ReadSnapshot(soListWatchable, cdn.SpaceID())
 	if err != nil {
 		if releaseList != nil {
@@ -241,6 +272,7 @@ func snapshotSessionSpaces(
 		return nil, nil, nil, err
 	}
 
+	// Watch the shared-object list until its snapshot changes.
 	watchCtx, cancel := context.WithCancel(ctx)
 	waitCh := watchWatchableChange(watchCtx, soListWatchable, soList)
 	return spaces, []<-chan struct{}{waitCh}, []func(){cancel, releaseList}, nil

@@ -31,6 +31,7 @@ type desktopTrayPublisher struct {
 }
 
 func newHostDesktopTrayPublisher(ctx context.Context, b bus.Bus) (*desktopTrayPublisher, error) {
+	// Open a resource client for the host plugin service.
 	rpcClient := bifrost_rpc.NewBusClient(b)
 	resourceService := bldr_resource.NewSRPCResourceServiceClientWithServiceID(
 		rpcClient,
@@ -41,6 +42,7 @@ func newHostDesktopTrayPublisher(ctx context.Context, b bus.Bus) (*desktopTrayPu
 		return nil, err
 	}
 
+	// Acquire the host root resource and open its client.
 	rootRef := resources.AccessRootResource()
 	defer rootRef.Release()
 	rootClient, err := rootRef.GetClient()
@@ -49,6 +51,7 @@ func newHostDesktopTrayPublisher(ctx context.Context, b bus.Bus) (*desktopTrayPu
 		return nil, err
 	}
 
+	// Ask the host plugin for its desktop tray resource.
 	hostService := sdk_plugin_host.NewSRPCPluginHostResourceServiceClient(rootClient)
 	resp, err := hostService.AccessDesktopTray(ctx, &sdk_plugin_host.AccessDesktopTrayRequest{})
 	if err != nil {
@@ -56,6 +59,7 @@ func newHostDesktopTrayPublisher(ctx context.Context, b bus.Bus) (*desktopTrayPu
 		return nil, err
 	}
 
+	// Adopt the desktop tray resource for the publisher lifetime.
 	trayRef := resources.CreateResourceReference(resp.GetResourceId())
 	trayClient, err := trayRef.GetClient()
 	if err != nil {
@@ -73,6 +77,7 @@ func newHostDesktopTrayPublisher(ctx context.Context, b bus.Bus) (*desktopTrayPu
 }
 
 func (p *desktopTrayPublisher) Release(ctx context.Context) error {
+	// Release every published tray entry and retain the first failure.
 	var releaseErr error
 	for id, entry := range p.entries {
 		if err := p.releaseEntry(ctx, entry); err != nil && releaseErr == nil {
@@ -80,6 +85,8 @@ func (p *desktopTrayPublisher) Release(ctx context.Context) error {
 		}
 		delete(p.entries, id)
 	}
+
+	// Release the tray resource and its resource client.
 	p.trayRef.Release()
 	p.resources.Release()
 	return releaseErr
@@ -89,6 +96,7 @@ func (p *desktopTrayPublisher) Publish(
 	ctx context.Context,
 	state *desktop_runtime.DesktopRuntimeState,
 ) (bool, error) {
+	// Build the next tray entry set from the runtime snapshot.
 	entries := BuildDesktopTrayEntriesFromRuntimeState(state)
 	next := make(map[string]*desktop_tray.DesktopTrayEntry, len(entries))
 	for _, entry := range entries {
@@ -98,6 +106,7 @@ func (p *desktopTrayPublisher) Publish(
 		next[entry.GetId()] = entry.CloneVT()
 	}
 
+	// Register new entries and update changed entries in the host tray.
 	var changed bool
 	for id, entry := range next {
 		current := p.entries[id]
@@ -136,6 +145,7 @@ func (p *desktopTrayPublisher) Publish(
 		changed = true
 	}
 
+	// Release projected entries that disappeared from the runtime snapshot.
 	for id, current := range p.entries {
 		if next[id] != nil {
 			continue
@@ -153,10 +163,13 @@ func (p *desktopTrayPublisher) register(
 	ctx context.Context,
 	entry *desktop_tray.DesktopTrayEntry,
 ) (*desktopTrayEntryRegistration, error) {
+	// Attach the action handler required by the new tray entry.
 	attachedActionResourceID, err := p.attachActionHandler(ctx, entry)
 	if err != nil {
 		return nil, err
 	}
+
+	// Register the tray entry and unwind its handler if registration fails.
 	resp, err := p.tray.RegisterDesktopTrayEntry(ctx, &desktop_tray.RegisterDesktopTrayEntryRequest{
 		Entry:                    entry,
 		AttachedActionResourceId: attachedActionResourceID,
@@ -172,6 +185,7 @@ func (p *desktopTrayPublisher) register(
 		return nil, errors.Wrap(err, "register desktop tray entry")
 	}
 
+	// Adopt the registered entry resource and unwind failed client creation.
 	ref := p.resources.CreateResourceReference(resp.GetResourceId())
 	client, err := ref.GetClient()
 	if err != nil {
@@ -197,13 +211,18 @@ func (p *desktopTrayPublisher) attachActionHandler(
 	ctx context.Context,
 	entry *desktop_tray.DesktopTrayEntry,
 ) (uint32, error) {
+	// Skip attachment for tray entries handled by application routes.
 	if !entryUsesAttachedHandler(entry) {
 		return 0, nil
 	}
+
+	// Require the configured action handler for this tray entry.
 	handler := p.actionHandlers[entry.GetId()]
 	if handler == nil {
 		return 0, errors.Errorf("desktop tray action handler missing for %s", entry.GetId())
 	}
+
+	// Expose the tray action handler through an attached RPC invoker.
 	mux := srpc.NewMux()
 	if err := desktop_tray.SRPCRegisterDesktopTrayActionHandlerService(mux, handler); err != nil {
 		return 0, err

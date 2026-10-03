@@ -61,18 +61,21 @@ func (c *ObjectStoreCheckpoint) getStore(ctx context.Context) (object.ObjectStor
 
 // LoadCheckpoint loads the checkpoint from the object store.
 func (c *ObjectStoreCheckpoint) LoadCheckpoint(ctx context.Context) (*TransferCheckpoint, error) {
+	// Open the checkpoint object store for the read transaction.
 	store, rel, err := c.getStore(ctx)
 	if err != nil {
 		return nil, err
 	}
 	defer rel()
 
+	// Read and decode the saved transfer checkpoint in one transaction.
 	var cp *TransferCheckpoint
 	err = kvtx.RunTransaction(ctx, false,
 		func(ctx context.Context) (kvtx.Tx, error) {
 			return store.NewTransaction(ctx, false)
 		},
 		func(ctx context.Context, tx kvtx.Tx) error {
+			// Read the checkpoint record, allowing an empty store.
 			data, found, err := tx.Get(ctx, checkpointKey)
 			if err != nil {
 				return err
@@ -82,6 +85,7 @@ func (c *ObjectStoreCheckpoint) LoadCheckpoint(ctx context.Context) (*TransferCh
 				return nil
 			}
 
+			// Decode the checkpoint record before returning it to the transfer.
 			next := &TransferCheckpoint{}
 			if err := next.UnmarshalVT(data); err != nil {
 				return errors.Wrap(err, "unmarshal checkpoint")
@@ -95,11 +99,13 @@ func (c *ObjectStoreCheckpoint) LoadCheckpoint(ctx context.Context) (*TransferCh
 
 // SaveCheckpoint persists the checkpoint to the object store.
 func (c *ObjectStoreCheckpoint) SaveCheckpoint(ctx context.Context, cp *TransferCheckpoint) error {
+	// Encode the transfer checkpoint for storage.
 	data, err := cp.MarshalVT()
 	if err != nil {
 		return err
 	}
 
+	// Open the checkpoint object store for the write transaction.
 	store, rel, err := c.getStore(ctx)
 	if err != nil {
 		return err

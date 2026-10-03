@@ -28,6 +28,7 @@ func NewCanvasAddNodeOpBlock() block.Block {
 
 // Validate performs cursory checks on the op.
 func (o *CanvasAddNodeOp) Validate() error {
+	// Require a target object and a canvas node with an ID.
 	if len(o.GetObjectKey()) == 0 {
 		return world.ErrEmptyObjectKey
 	}
@@ -53,14 +54,18 @@ func (o *CanvasAddNodeOp) ApplyWorldOp(
 	worldHandle world.WorldState,
 	sender peer.ID,
 ) (sysErr bool, err error) {
+	// Validate the canvas node addition before accessing its object.
 	if err := o.Validate(); err != nil {
 		return false, err
 	}
 
+	// Select the canvas object and node to add.
 	objKey := o.GetObjectKey()
 	node := o.GetNode()
 
+	// Update the canvas object with the requested node.
 	_, _, err = world.AccessWorldObject(ctx, worldHandle, objKey, true, func(bcs *block.Cursor) error {
+		// Load the canvas state or prepare an empty state.
 		state, uerr := s4wave_canvas.UnmarshalCanvasState(ctx, bcs)
 		if uerr != nil {
 			return uerr
@@ -68,6 +73,8 @@ func (o *CanvasAddNodeOp) ApplyWorldOp(
 		if state == nil {
 			state = &s4wave_canvas.CanvasState{}
 		}
+
+		// Preserve the previous canvas state and persist the new node.
 		previous := state.CloneVT()
 		if state.Nodes == nil {
 			state.Nodes = make(map[string]*s4wave_canvas.CanvasNode)

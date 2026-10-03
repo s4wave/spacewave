@@ -12,12 +12,15 @@ import (
 // TestFactoryListenerStatus checks the hosted-plugin factory path and explicit
 // listener injection used by a process that owns its resource socket.
 func TestFactoryListenerStatus(t *testing.T) {
+	// Create the controller bus and shared listener broker for factory checks.
 	le := logrus.NewEntry(logrus.New())
 	b, _, err := controllerbus.NewCoreBus(t.Context(), le)
 	if err != nil {
 		t.Fatal(err)
 	}
 	shared := resource_listener.NewStatusBroker()
+
+	// Verify the hosted and injected listener configurations.
 	for _, test := range []struct {
 		name string
 		opts []Option

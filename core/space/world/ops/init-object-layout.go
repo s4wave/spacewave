@@ -68,6 +68,7 @@ func (o *InitObjectLayoutOp) ApplyWorldOp(
 	worldHandle world.WorldState,
 	sender peer.ID,
 ) (sysErr bool, err error) {
+	// Validate the object layout initialization and select its object key.
 	objKey := o.GetObjectKey()
 	if err := o.Validate(); err != nil {
 		return false, err

@@ -11,6 +11,7 @@ import (
 // TransferKeypair copies the peer private key from source volume to target volume.
 // After this call the target volume has the same peer identity as the source.
 func TransferKeypair(ctx context.Context, source, target volume.Volume) error {
+	// Load the source volume peer and its private identity key.
 	sourcePeer, err := source.GetPeer(ctx, true)
 	if err != nil {
 		return errors.Wrap(err, "get source peer")
@@ -20,6 +21,7 @@ func TransferKeypair(ctx context.Context, source, target volume.Volume) error {
 		return errors.Wrap(err, "get source private key")
 	}
 
+	// Require key storage on the target volume before copying the identity.
 	targetStore, ok := target.(volume_store.Store)
 	if !ok {
 		return errors.New("target volume does not support key storage")
