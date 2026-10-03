@@ -15,6 +15,7 @@ func TestEvaluateAlpha(t *testing.T) {
 		t.Skipf("alpha bldr.star not found at %s: %v", starPath, err)
 	}
 
+	// Evaluate the application project source into its configuration.
 	result, err := Evaluate(starPath)
 	if err != nil {
 		t.Fatal(err)
@@ -84,6 +85,7 @@ func TestEvaluateAlpha(t *testing.T) {
 	}
 	t.Logf("spacewave-core builder config length: %d bytes", len(configData))
 
+	// Report the evaluated application manifest and build counts.
 	t.Logf("alpha bldr.star evaluated successfully: %d manifests, %d builds",
 		len(result.Config.GetManifests()), len(result.Config.GetBuild()))
 }

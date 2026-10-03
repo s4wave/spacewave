@@ -106,15 +106,18 @@ func (s *Store) NewKvtxBlockTransaction(ctx context.Context, write bool) (kvtx.B
 		return nil, err
 	}
 
+	// Guard the Store root while opening its write transaction.
 	s.rmtx.Lock()
 	defer s.rmtx.Unlock()
 
+	// Open the block transaction against the current Store root.
 	writeTx, writeBtx, err := s.buildBlockTx(ctx, true)
 	if err != nil {
 		s.wmtx.Release(1)
 		return nil, err
 	}
 
+	// Retain the write transaction until commit or discard.
 	storeTx := s.newStoreTx(writeTx, writeBtx)
 	s.writeTx = storeTx
 	return storeTx, nil
@@ -152,6 +155,7 @@ func (s *Store) setRootRefLocked(ctx context.Context, ref *bucket.ObjectRef) err
 // buildBlockTx builds a new kvtx block transaction.
 // expects caller to hold rmtx
 func (s *Store) buildBlockTx(ctx context.Context, write bool) (kvtx.BlockTx, *block.Transaction, error) {
+	// Build the selected KV backend over the root block transaction.
 	btx, bcs := s.root.BuildTransaction(nil)
 	if !write {
 		btx = nil
@@ -173,15 +177,18 @@ func (s *Store) updateReadWriteTxns(ctx context.Context) error {
 		return nil
 	}
 
+	// Open a read transaction against the updated Store root.
 	readTx, _, err := s.buildBlockTx(ctx, false)
 	if err != nil {
 		return err
 	}
+
 	// cancel the old write tx if active
 	if s.writeTx != nil {
 		s.writeTx.Discard()
 		s.writeTx = nil // field is checked during Commit() as well
 	}
+
 	// swap in the new read tx
 	if s.readTx != nil {
 		s.readTx.Discard()

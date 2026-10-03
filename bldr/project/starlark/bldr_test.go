@@ -11,21 +11,25 @@ import (
 )
 
 func TestEvaluateBldr(t *testing.T) {
+	// Locate the Bldr project source and skip when it is unavailable.
 	starPath := "../../../bldr/bldr.star"
 	if _, err := os.Stat(starPath); err != nil {
 		t.Skipf("bldr.star not found at %s: %v", starPath, err)
 	}
 
+	// Evaluate the Bldr project source into its configuration.
 	result, err := Evaluate(starPath)
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	// Verify the evaluated Bldr project identifier.
 	conf := result.Config
 	if conf.GetId() != "bldr-demo" {
 		t.Fatalf("project id: got %q, want %q", conf.GetId(), "bldr-demo")
 	}
 
+	// Verify the Bldr startup plugin configuration.
 	start := conf.GetStart()
 	if start == nil {
 		t.Fatal("missing start config")
@@ -34,12 +38,14 @@ func TestEvaluateBldr(t *testing.T) {
 		t.Fatalf("start plugins: got %v", got)
 	}
 
+	// Verify the Bldr project declares each expected manifest.
 	for _, manifestID := range []string{"web", "bldr-demo", "bldr-demo-cli", "bldr-demo-release"} {
 		if conf.GetManifests()[manifestID] == nil {
 			t.Fatalf("missing manifest %q", manifestID)
 		}
 	}
 
+	// Verify the Bldr demo manifest uses the default web Go compiler.
 	demo := conf.GetManifests()["bldr-demo"]
 	demoConf := &bldr_plugin_compiler_go.Config{}
 	if err := demoConf.UnmarshalJSON(demo.GetBuilder().GetConfig()); err != nil {
@@ -50,6 +56,7 @@ func TestEvaluateBldr(t *testing.T) {
 		t.Fatalf("bldr-demo web goCompiler: got %s, want GO_COMPILER_DEFAULT", webConf.GetGoCompiler())
 	}
 
+	// Verify the web release build supplies its manifest override.
 	releaseWeb := conf.GetBuild()["release-web"]
 	if releaseWeb == nil {
 		t.Fatal("missing build target release-web")
@@ -62,6 +69,7 @@ func TestEvaluateBldr(t *testing.T) {
 		t.Fatal("release-web override config is empty")
 	}
 
+	// Verify the web release override embeds both web manifests.
 	overrideConf := &bldr_dist_compiler.Config{}
 	if err := overrideConf.UnmarshalJSON(override.GetConfig()); err != nil {
 		t.Fatalf("parse release-web override config: %v", err)
@@ -77,6 +85,7 @@ func TestEvaluateBldr(t *testing.T) {
 		t.Fatalf("unexpected second embed manifest: %s@%s", embedManifests[1].GetManifestId(), embedManifests[1].GetPlatformId())
 	}
 
+	// Verify the distribution publish target references the declared manifests.
 	publish := conf.GetPublish()["demo-dist"]
 	if publish == nil {
 		t.Fatal("missing publish target demo-dist")

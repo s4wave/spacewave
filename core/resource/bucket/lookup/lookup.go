@@ -32,9 +32,11 @@ type BucketLookupCursorResource struct {
 
 // NewBucketLookupCursorResource creates a new BucketLookupCursorResource.
 func NewBucketLookupCursorResource(le *logrus.Entry, b bus.Bus, cursor *bucket_lookup.Cursor) *BucketLookupCursorResource {
+	// Register the bucket cursor service on a dedicated RPC mux.
 	blcResource := &BucketLookupCursorResource{le: le, b: b, cursor: cursor}
 	mux := srpc.NewMux()
 	_ = s4wave_bucket_lookup.SRPCRegisterBucketLookupCursorResourceService(mux, blcResource)
+
 	// Local cursors use the bucket's encoded StoreOps contract. Decoded cursor
 	// methods remain available to callers that delegate transforms to the host.
 	_ = block_rpc.SRPCRegisterBlockStore(mux, block_rpc_server.NewBlockStore(cursor.GetBlockStore()))
@@ -58,16 +60,19 @@ func (r *BucketLookupCursorResource) GetRef(ctx context.Context, req *s4wave_buc
 
 // FollowRef follows an object reference and returns a new cursor.
 func (r *BucketLookupCursorResource) FollowRef(ctx context.Context, req *s4wave_bucket_lookup.FollowRefRequest) (*s4wave_bucket_lookup.FollowRefResponse, error) {
+	// Find the Resource client that will retain the followed cursor.
 	resourceCtx, err := resource_server.MustGetResourceClientContext(ctx)
 	if err != nil {
 		return nil, err
 	}
 
+	// Follow the requested bucket object reference.
 	newCursor, err := r.cursor.FollowRef(ctx, req.GetRef())
 	if err != nil {
 		return nil, err
 	}
 
+	// Register the followed bucket cursor with its release callback.
 	newResource := NewBucketLookupCursorResource(r.le, r.b, newCursor)
 	id, err := resourceCtx.AddResource(newResource.GetMux(), newCursor.Release)
 	if err != nil {
@@ -131,19 +136,23 @@ func (r *BucketLookupCursorResource) GetBlockExistsBatch(ctx context.Context, re
 
 // BuildTransaction builds a transaction at the current position.
 func (r *BucketLookupCursorResource) BuildTransaction(ctx context.Context, req *s4wave_bucket_lookup.BuildTransactionRequest) (*s4wave_bucket_lookup.BuildTransactionResponse, error) {
+	// Find the Resource client that will retain the transaction.
 	resourceCtx, err := resource_server.MustGetResourceClientContext(ctx)
 	if err != nil {
 		return nil, err
 	}
 
+	// Open a block transaction at the bucket cursor.
 	tx, rootCursor := r.cursor.BuildTransaction(req.GetPutOpts())
 
+	// Register the block transaction with the Resource client.
 	txResource := resource_block_transaction.NewBlockTransactionResource(r.le, r.b, tx, rootCursor)
 	txID, err := resourceCtx.AddResource(txResource.GetMux(), func() {})
 	if err != nil {
 		return nil, err
 	}
 
+	// Register the root cursor and release the transaction if registration fails.
 	cursorResource := resource_block_cursor.NewBlockCursorResource(r.le, r.b, tx, rootCursor)
 	cursorID, err := resourceCtx.AddResource(cursorResource.GetMux(), func() {})
 	if err != nil {
@@ -159,19 +168,23 @@ func (r *BucketLookupCursorResource) BuildTransaction(ctx context.Context, req *
 
 // BuildTransactionAtRef builds a transaction at a specific block reference.
 func (r *BucketLookupCursorResource) BuildTransactionAtRef(ctx context.Context, req *s4wave_bucket_lookup.BuildTransactionAtRefRequest) (*s4wave_bucket_lookup.BuildTransactionAtRefResponse, error) {
+	// Find the Resource client that will retain the transaction.
 	resourceCtx, err := resource_server.MustGetResourceClientContext(ctx)
 	if err != nil {
 		return nil, err
 	}
 
+	// Open a block transaction at the requested bucket reference.
 	tx, rootCursor := r.cursor.BuildTransactionAtRef(req.GetPutOpts(), req.GetRef())
 
+	// Register the block transaction with the Resource client.
 	txResource := resource_block_transaction.NewBlockTransactionResource(r.le, r.b, tx, rootCursor)
 	txID, err := resourceCtx.AddResource(txResource.GetMux(), func() {})
 	if err != nil {
 		return nil, err
 	}
 
+	// Register the root cursor and release the transaction if registration fails.
 	cursorResource := resource_block_cursor.NewBlockCursorResource(r.le, r.b, tx, rootCursor)
 	cursorID, err := resourceCtx.AddResource(cursorResource.GetMux(), func() {})
 	if err != nil {
@@ -187,11 +200,13 @@ func (r *BucketLookupCursorResource) BuildTransactionAtRef(ctx context.Context, 
 
 // Clone clones the cursor.
 func (r *BucketLookupCursorResource) Clone(ctx context.Context, req *s4wave_bucket_lookup.CloneRequest) (*s4wave_bucket_lookup.CloneResponse, error) {
+	// Find the Resource client that will retain the cloned cursor.
 	resourceCtx, err := resource_server.MustGetResourceClientContext(ctx)
 	if err != nil {
 		return nil, err
 	}
 
+	// Register a cloned bucket cursor with its release callback.
 	cloned := r.cursor.Clone()
 	clonedResource := NewBucketLookupCursorResource(r.le, r.b, cloned)
 	id, err := resourceCtx.AddResource(clonedResource.GetMux(), cloned.Release)
@@ -211,10 +226,12 @@ func (r *BucketLookupCursorResource) Release(ctx context.Context, req *s4wave_bu
 
 // Unmarshal fetches and unmarshals a block at the given reference.
 func (r *BucketLookupCursorResource) Unmarshal(ctx context.Context, req *s4wave_bucket_lookup.UnmarshalRequest) (*s4wave_bucket_lookup.UnmarshalResponse, error) {
+	// Read the requested block bytes, reference, and type.
 	data := req.GetData()
 	ref := req.GetRef()
 	blockTypeID := req.GetBlockType()
 
+	// Decode the bucket block through its registered block type.
 	if blockTypeID != "" && len(data) == 0 {
 		bt, btRef, err := blocktype.ExLookupBlockType(ctx, r.b, blockTypeID)
 		if err != nil {

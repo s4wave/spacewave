@@ -8,6 +8,7 @@ import (
 )
 
 func TestAlphaStarCompleteness(t *testing.T) {
+	// Evaluate the available application project source for completeness checks.
 	starPath := "../../../alpha/bldr.star"
 	if _, err := os.Stat(starPath); err != nil {
 		t.Skipf("alpha bldr.star not found: %v", err)

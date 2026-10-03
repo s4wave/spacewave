@@ -66,9 +66,11 @@ func NewKeyValueStore(impl KVImplType) *KeyValueStore {
 
 // LoadKeyValueStore loads a key-value store block from a block cursor.
 func LoadKeyValueStore(ctx context.Context, bcs *block.Cursor) (*KeyValueStore, error) {
+	// Trace loading the KeyValueStore root block.
 	ctx, task := trace.NewTask(ctx, "hydra/kvtx-block/load-key-value-store")
 	defer task.End()
 
+	// Decode the KeyValueStore and resolve its legacy implementation.
 	taskCtx, subtask := trace.NewTask(ctx, "hydra/kvtx-block/load-key-value-store/unmarshal")
 	b, err := block.UnmarshalBlock[*KeyValueStore](taskCtx, bcs, NewKeyValueStoreBlock)
 	subtask.End()
@@ -85,9 +87,11 @@ func LoadKeyValueStore(ctx context.Context, bcs *block.Cursor) (*KeyValueStore, 
 //
 // The root ref field in bcs is updated when commit is called.
 func BuildKvTransaction(ctx context.Context, bcs *block.Cursor, write bool) (kvtx.BlockTx, error) {
+	// Trace construction of the KV block transaction.
 	ctx, task := trace.NewTask(ctx, "hydra/kvtx-block/build-kv-transaction")
 	defer task.End()
 
+	// Load the KeyValueStore that selects the transaction backend.
 	taskCtx, subtask := trace.NewTask(ctx, "hydra/kvtx-block/build-kv-transaction/load-key-value-store")
 	kvs, err := LoadKeyValueStore(taskCtx, bcs)
 	subtask.End()
@@ -95,6 +99,7 @@ func BuildKvTransaction(ctx context.Context, bcs *block.Cursor, write bool) (kvt
 		return nil, err
 	}
 
+	// Build the selected backend within its own trace task.
 	taskCtx, subtask = trace.NewTask(ctx, "hydra/kvtx-block/build-kv-transaction/build-impl")
 	defer subtask.End()
 	return kvs.BuildKvTransaction(taskCtx, bcs, write)

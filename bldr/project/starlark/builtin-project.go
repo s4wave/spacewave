@@ -54,11 +54,13 @@ func (e *evaluator) projectBuiltin(thread *starlark.Thread, fn *starlark.Builtin
 
 // dictToStartConfig converts a Starlark dict or StartConfig-shaped value to a StartConfig.
 func dictToStartConfig(val starlark.Value) (*bldr_project.StartConfig, error) {
+	// Require a Starlark dictionary for the project start configuration.
 	dict, ok := val.(*starlark.Dict)
 	if !ok {
 		return nil, errExpectedDict("project", "start")
 	}
 
+	// Decode the start dictionary into plugin and startup settings.
 	conf := &bldr_project.StartConfig{}
 	for _, item := range dict.Items() {
 		key, ok := item[0].(starlark.String)

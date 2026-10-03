@@ -43,17 +43,20 @@ type moduleEntry struct {
 // Evaluate evaluates a .star file and returns the resulting ProjectConfig.
 // The path is the filesystem path to the .star file.
 func Evaluate(path string) (*Result, error) {
+	// Read the root Starlark project source.
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, errors.Wrap(err, "read starlark file")
 	}
 
+	// Resolve the root Starlark file and its project directory.
 	absPath, err := filepath.Abs(path)
 	if err != nil {
 		return nil, errors.Wrap(err, "resolve starlark file path")
 	}
 	projectDir := filepath.Dir(absPath)
 
+	// Create the project evaluator and its module cache.
 	eval := &evaluator{
 		config:      &bldr_project.ProjectConfig{},
 		loadedFiles: []string{absPath},
@@ -62,6 +65,7 @@ func Evaluate(path string) (*Result, error) {
 		moduleCache: make(map[string]*moduleEntry),
 	}
 
+	// Expose project registration and configuration constructors to Starlark.
 	predeclared := starlark.StringDict{
 		// Registration built-ins (mutate config)
 		"project":  starlark.NewBuiltin("project", eval.projectBuiltin),
@@ -84,11 +88,13 @@ func Evaluate(path string) (*Result, error) {
 		"web_plugin_compiler_config": starlark.NewBuiltin("web_plugin_compiler_config", webPluginCompilerConfigBuiltin),
 	}
 
+	// Create the Starlark thread with the evaluator module loader.
 	thread := &starlark.Thread{
 		Name: "bldr",
 		Load: eval.load,
 	}
 
+	// Enable the supported Starlark syntax for the project source.
 	opts := &syntax.FileOptions{
 		Set:             true,
 		While:           true,
@@ -100,6 +106,7 @@ func Evaluate(path string) (*Result, error) {
 	// Store predeclared as thread-local so load() can pass them to sub-modules.
 	thread.SetLocal("predeclared", predeclared)
 
+	// Evaluate the project source and retain its configuration changes.
 	_, err = starlark.ExecFileOptions(opts, thread, absPath, data, predeclared)
 	if err != nil {
 		return nil, errors.Wrap(err, "evaluate starlark file")

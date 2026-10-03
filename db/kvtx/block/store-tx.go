@@ -43,6 +43,7 @@ func (s *Store) newStoreTx(writeTx kvtx.BlockTx, btx *block.Transaction) *storeT
 // Commit commits the transaction to storage.
 // Can return an error to indicate tx failure.
 func (s *storeTx) Commit(ctx context.Context) error {
+	// Reject commits through a read-only Store transaction.
 	if s.writeTx == nil {
 		s.Discard()
 		return tx.ErrNotWrite

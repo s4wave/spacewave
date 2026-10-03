@@ -14,6 +14,7 @@ import (
 // It reads tree metadata and inline values, never external value blocks. Complete
 // is false after maxKeys changes or 100,000 visited tree nodes; callers then reread.
 func ChangedKeys(ctx context.Context, before, after *block.Cursor, maxKeys int) (keys [][]byte, complete bool, err error) {
+	// Open the before and after KV roots as lazy comparison frontiers.
 	left, err := newDiffTree(ctx, before)
 	if err != nil {
 		return nil, false, err
@@ -22,13 +23,18 @@ func ChangedKeys(ctx context.Context, before, after *block.Cursor, maxKeys int) 
 	if err != nil {
 		return nil, false, err
 	}
+
+	// Compare the KV frontiers while skipping unchanged subtrees.
 	for visited := 0; len(left) != 0 || len(right) != 0; visited++ {
+		// Bound the KV comparison by cancellation, node visits, and changed keys.
 		if err := ctx.Err(); err != nil {
 			return nil, false, err
 		}
 		if visited >= 100000 || len(keys) >= maxKeys {
 			return nil, false, nil
 		}
+
+		// Locate the next nodes on the before and after frontiers.
 		var a, b *diffTreeNode
 		if len(left) != 0 {
 			a = left[len(left)-1]
@@ -36,6 +42,8 @@ func ChangedKeys(ctx context.Context, before, after *block.Cursor, maxKeys int) 
 		if len(right) != 0 {
 			b = right[len(right)-1]
 		}
+
+		// Skip KV subtrees with identical references and representations.
 		if a != nil && b != nil && a.cursor != nil && b.cursor != nil {
 			ref := a.cursor.GetRef()
 			if !ref.GetEmpty() && ref.EqualsRef(b.cursor.GetRef()) && a.kind == b.kind {
@@ -43,6 +51,8 @@ func ChangedKeys(ctx context.Context, before, after *block.Cursor, maxKeys int) 
 				continue
 			}
 		}
+
+		// Load the frontier nodes needed for the next comparison.
 		if err := a.load(ctx); err != nil {
 			return nil, false, err
 		}
@@ -59,6 +69,8 @@ func ChangedKeys(ctx context.Context, before, after *block.Cursor, maxKeys int) 
 			right = append(right[:len(right)-1], b.children...)
 			continue
 		}
+
+		// Collect changed leaf keys and advance the ordered frontiers.
 		if a == nil || b != nil && bytes.Compare(b.key, a.key) < 0 {
 			keys = append(keys, bytes.Clone(b.key))
 			right = right[:len(right)-1]
@@ -111,11 +123,15 @@ func newDiffTree(ctx context.Context, cursor *block.Cursor) ([]*diffTreeNode, er
 
 // load reads one frontier node and exposes children without reading their blocks.
 func (n *diffTreeNode) load(ctx context.Context) error {
+	// Ignore absent or previously loaded frontier nodes.
 	if n == nil || n.loaded {
 		return nil
 	}
+
+	// Mark the frontier node loaded and select its representation.
 	n.loaded = true
 	if n.kind == KVImplType_KV_IMPL_TYPE_IAVL {
+		// Read and validate the IAVL frontier node.
 		node, err := block.UnmarshalBlock[*iavl.Node](ctx, n.cursor, iavl.NewNodeBlock)
 		if err != nil {
 			return err
@@ -126,6 +142,8 @@ func (n *diffTreeNode) load(ctx context.Context) error {
 		if err := node.Validate(); err != nil {
 			return err
 		}
+
+		// Expose the IAVL leaf value or its child references.
 		n.height = node.GetHeight()
 		n.leaf = node.IsLeaf()
 		if n.leaf {
@@ -140,6 +158,7 @@ func (n *diffTreeNode) load(ctx context.Context) error {
 		return nil
 	}
 
+	// Read and validate the Okra frontier page.
 	page, err := block.UnmarshalBlock[*okra.Page](ctx, n.cursor, okra.NewPageBlock)
 	if err != nil {
 		return err
@@ -150,6 +169,8 @@ func (n *diffTreeNode) load(ctx context.Context) error {
 	if err := page.Validate(); err != nil {
 		return err
 	}
+
+	// Expose Okra leaf values or child references in stack order.
 	n.height = page.GetLevel() + 1
 	entries := page.GetEntries()
 	for i, entry := range slices.Backward(entries) {

@@ -26,21 +26,25 @@ import (
 const exampleBlockTypeID = "github.com/s4wave/spacewave/db/block/mock.Example"
 
 func TestUnmarshalUsesCursorRefWhenRequestRefEmpty(t *testing.T) {
+	// Create a logger for the bucket cursor testbed.
 	ctx := context.Background()
 	le := logrus.NewEntry(logrus.New())
 
+	// Start the testbed that stores the bucket block.
 	tb, err := testbed.NewTestbed(ctx, le)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	t.Cleanup(tb.Release)
 
+	// Open an empty bucket cursor and arrange its release.
 	cursor, err := tb.BuildEmptyCursor(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	t.Cleanup(cursor.Release)
 
+	// Persist an example block as the bucket cursor root.
 	want := &block_mock.Example{Msg: "manifest data"}
 	tx, bcs := cursor.BuildTransaction(nil)
 	bcs.SetBlock(want, true)
@@ -50,6 +54,7 @@ func TestUnmarshalUsesCursorRefWhenRequestRefEmpty(t *testing.T) {
 	}
 	cursor.SetRootRef(rootRef)
 
+	// Read the bucket root through an empty unmarshal request.
 	resource := NewBucketLookupCursorResource(le, tb.Bus, cursor)
 	got, err := resource.Unmarshal(ctx, &s4wave_bucket_lookup.UnmarshalRequest{})
 	if err != nil {
@@ -59,6 +64,7 @@ func TestUnmarshalUsesCursorRefWhenRequestRefEmpty(t *testing.T) {
 		t.Fatal("expected block data to be found")
 	}
 
+	// Verify the bucket response contains the saved example block.
 	example := &block_mock.Example{}
 	if err := example.UnmarshalBlock(got.GetData()); err != nil {
 		t.Fatal(err.Error())
@@ -69,9 +75,11 @@ func TestUnmarshalUsesCursorRefWhenRequestRefEmpty(t *testing.T) {
 }
 
 func TestUnmarshalWithBlockTypeReusesResourceDecodedCache(t *testing.T) {
+	// Create a logger for typed bucket readback.
 	ctx := context.Background()
 	le := logrus.NewEntry(logrus.New())
 
+	// Start the bucket testbed and register the example block type.
 	tb, err := testbed.NewTestbed(ctx, le)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -79,12 +87,14 @@ func TestUnmarshalWithBlockTypeReusesResourceDecodedCache(t *testing.T) {
 	t.Cleanup(tb.Release)
 	addExampleBlockTypeController(t, ctx, tb)
 
+	// Open an empty bucket cursor and arrange its release.
 	cursor, err := tb.BuildEmptyCursor(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	t.Cleanup(cursor.Release)
 
+	// Persist an example block for typed bucket readback.
 	want := &block_mock.Example{Msg: "typed resource"}
 	tx, bcs := cursor.BuildTransaction(nil)
 	bcs.SetBlock(want, true)
@@ -93,6 +103,8 @@ func TestUnmarshalWithBlockTypeReusesResourceDecodedCache(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 	cursor.SetRootRef(rootRef)
+
+	// Attach a decoded block cache to the bucket cursor Resource.
 	decodedBlocks, err := block.NewDecodedBlockCacheWithOptions(block.DefaultDecodedBlockCacheOptions())
 	if err != nil {
 		t.Fatal(err.Error())
@@ -101,6 +113,7 @@ func TestUnmarshalWithBlockTypeReusesResourceDecodedCache(t *testing.T) {
 	cursor.SetDecodedBlockCache(decodedBlocks)
 	resource := NewBucketLookupCursorResource(le, tb.Bus, cursor)
 
+	// Read and cache the typed bucket block with counters.
 	opCtx, counter := block.WithReadCounter(ctx)
 	resp, err := resource.Unmarshal(opCtx, &s4wave_bucket_lookup.UnmarshalRequest{BlockType: exampleBlockTypeID})
 	if err != nil {
@@ -109,12 +122,14 @@ func TestUnmarshalWithBlockTypeReusesResourceDecodedCache(t *testing.T) {
 	assertExampleResponse(t, resp.GetData(), "typed resource")
 	decodedBlocks.Wait()
 
+	// Read the typed bucket block again through the decoded cache.
 	resp, err = resource.Unmarshal(opCtx, &s4wave_bucket_lookup.UnmarshalRequest{BlockType: exampleBlockTypeID})
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	assertExampleResponse(t, resp.GetData(), "typed resource")
 
+	// Verify typed bucket readback uses one decode and one cache hit.
 	snapshot := counter.Snapshot()
 	if snapshot.BlockReadCount != 1 ||
 		snapshot.DecodedBlockUnmarshalCount != 1 ||
@@ -127,9 +142,11 @@ func TestUnmarshalWithBlockTypeReusesResourceDecodedCache(t *testing.T) {
 }
 
 func TestBuildTransactionResourceCursorBorrowsDecodedCache(t *testing.T) {
+	// Create a logger for transaction cursor cache readback.
 	ctx := context.Background()
 	le := logrus.NewEntry(logrus.New())
 
+	// Start the bucket testbed and register the example block type.
 	tb, err := testbed.NewTestbed(ctx, le)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -137,12 +154,14 @@ func TestBuildTransactionResourceCursorBorrowsDecodedCache(t *testing.T) {
 	t.Cleanup(tb.Release)
 	addExampleBlockTypeController(t, ctx, tb)
 
+	// Open an empty bucket cursor and arrange its release.
 	cursor, err := tb.BuildEmptyCursor(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	t.Cleanup(cursor.Release)
 
+	// Persist an example block for transaction cursor readback.
 	want := &block_mock.Example{Msg: "transaction resource"}
 	tx, bcs := cursor.BuildTransaction(nil)
 	bcs.SetBlock(want, true)
@@ -152,6 +171,7 @@ func TestBuildTransactionResourceCursorBorrowsDecodedCache(t *testing.T) {
 	}
 	cursor.SetRootRef(rootRef)
 
+	// Attach a decoded block cache to the bucket cursor.
 	decodedBlocks, err := block.NewDecodedBlockCacheWithOptions(block.DefaultDecodedBlockCacheOptions())
 	if err != nil {
 		t.Fatal(err.Error())
@@ -159,16 +179,19 @@ func TestBuildTransactionResourceCursorBorrowsDecodedCache(t *testing.T) {
 	defer decodedBlocks.Close()
 	cursor.SetDecodedBlockCache(decodedBlocks)
 
+	// Create the Resource client that retains transaction cursors.
 	resourceClient := newRecordingResourceClient(ctx)
 	resourceCtx := resource_server.WithResourceClientContext(ctx, resourceClient)
 	resource := NewBucketLookupCursorResource(le, tb.Bus, cursor)
 
+	// Build a transaction Resource and attach its root cursor client.
 	buildResp, err := resource.BuildTransaction(resourceCtx, &s4wave_bucket_lookup.BuildTransactionRequest{})
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	cursorClient := resourceClient.blockCursorClient(t, buildResp.GetCursorResourceId())
 
+	// Read the example through the first transaction cursor and warm the cache.
 	firstCtx, firstCounter := block.WithReadCounter(ctx)
 	first, err := cursorClient.Unmarshal(firstCtx, &s4wave_block_cursor.UnmarshalRequest{BlockType: exampleBlockTypeID})
 	if err != nil {
@@ -177,6 +200,7 @@ func TestBuildTransactionResourceCursorBorrowsDecodedCache(t *testing.T) {
 	assertExampleResponse(t, first.GetData(), "transaction resource")
 	decodedBlocks.Wait()
 
+	// Build another transaction cursor and read the cached example.
 	buildResp, err = resource.BuildTransaction(resourceCtx, &s4wave_bucket_lookup.BuildTransactionRequest{})
 	if err != nil {
 		t.Fatal(err.Error())
@@ -189,6 +213,7 @@ func TestBuildTransactionResourceCursorBorrowsDecodedCache(t *testing.T) {
 	}
 	assertExampleResponse(t, second.GetData(), "transaction resource")
 
+	// Verify the first transaction reads and decodes the bucket block.
 	firstSnapshot := firstCounter.Snapshot()
 	if firstSnapshot.BlockReadCount != 1 ||
 		firstSnapshot.DecodedBlockUnmarshalCount != 1 ||
@@ -196,6 +221,8 @@ func TestBuildTransactionResourceCursorBorrowsDecodedCache(t *testing.T) {
 		firstSnapshot.DecodedBlockCacheMissCount != 1 {
 		t.Fatalf("unexpected first transaction resource counters: %+v", firstSnapshot)
 	}
+
+	// Verify the second transaction borrows the decoded block cache.
 	secondSnapshot := secondCounter.Snapshot()
 	if secondSnapshot.BlockReadCount != 0 ||
 		secondSnapshot.DecodedBlockUnmarshalCount != 0 ||
@@ -207,9 +234,11 @@ func TestBuildTransactionResourceCursorBorrowsDecodedCache(t *testing.T) {
 }
 
 func TestBuildTransactionResourceCursorBorrowsTransformedDecodedCache(t *testing.T) {
+	// Create a logger for transformed transaction cursor readback.
 	ctx := context.Background()
 	le := logrus.NewEntry(logrus.New())
 
+	// Start the bucket testbed and register the example block type.
 	tb, err := testbed.NewTestbed(ctx, le)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -217,6 +246,7 @@ func TestBuildTransactionResourceCursorBorrowsTransformedDecodedCache(t *testing
 	t.Cleanup(tb.Release)
 	addExampleBlockTypeController(t, ctx, tb)
 
+	// Open a bucket cursor with a gzip transform and arrange its release.
 	transformConf := newResourceTransformConfig(t, &transform_gzip.Config{})
 	cursor, _, err := bucket_lookup.BuildEmptyCursor(
 		ctx,
@@ -233,6 +263,7 @@ func TestBuildTransactionResourceCursorBorrowsTransformedDecodedCache(t *testing
 	}
 	t.Cleanup(cursor.Release)
 
+	// Persist an example block through the transformed bucket cursor.
 	want := &block_mock.Example{Msg: "transformed transaction resource"}
 	tx, bcs := cursor.BuildTransaction(nil)
 	bcs.SetBlock(want, true)
@@ -242,6 +273,7 @@ func TestBuildTransactionResourceCursorBorrowsTransformedDecodedCache(t *testing
 	}
 	cursor.SetRootRef(rootRef)
 
+	// Attach a decoded block cache to the transformed bucket cursor.
 	decodedBlocks, err := block.NewDecodedBlockCacheWithOptions(block.DefaultDecodedBlockCacheOptions())
 	if err != nil {
 		t.Fatal(err.Error())
@@ -249,16 +281,19 @@ func TestBuildTransactionResourceCursorBorrowsTransformedDecodedCache(t *testing
 	defer decodedBlocks.Close()
 	cursor.SetDecodedBlockCache(decodedBlocks)
 
+	// Create the Resource client that retains transformed transaction cursors.
 	resourceClient := newRecordingResourceClient(ctx)
 	resourceCtx := resource_server.WithResourceClientContext(ctx, resourceClient)
 	resource := NewBucketLookupCursorResource(le, tb.Bus, cursor)
 
+	// Build a transaction Resource and attach its root cursor client.
 	buildResp, err := resource.BuildTransaction(resourceCtx, &s4wave_bucket_lookup.BuildTransactionRequest{})
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	cursorClient := resourceClient.blockCursorClient(t, buildResp.GetCursorResourceId())
 
+	// Read the transformed example and warm the decoded cache.
 	firstCtx, firstCounter := block.WithReadCounter(ctx)
 	first, err := cursorClient.Unmarshal(firstCtx, &s4wave_block_cursor.UnmarshalRequest{BlockType: exampleBlockTypeID})
 	if err != nil {
@@ -267,6 +302,7 @@ func TestBuildTransactionResourceCursorBorrowsTransformedDecodedCache(t *testing
 	assertExampleResponse(t, first.GetData(), "transformed transaction resource")
 	decodedBlocks.Wait()
 
+	// Build another transaction cursor and read the cached transformed example.
 	buildResp, err = resource.BuildTransaction(resourceCtx, &s4wave_bucket_lookup.BuildTransactionRequest{})
 	if err != nil {
 		t.Fatal(err.Error())
@@ -279,6 +315,7 @@ func TestBuildTransactionResourceCursorBorrowsTransformedDecodedCache(t *testing
 	}
 	assertExampleResponse(t, second.GetData(), "transformed transaction resource")
 
+	// Verify the first transaction decodes and caches the transformed block.
 	firstSnapshot := firstCounter.Snapshot()
 	if firstSnapshot.BlockReadCount != 1 ||
 		firstSnapshot.DecodedBlockUnmarshalCount != 1 ||
@@ -288,6 +325,8 @@ func TestBuildTransactionResourceCursorBorrowsTransformedDecodedCache(t *testing
 		firstSnapshot.DecodedBlockUncacheableCount != 0 {
 		t.Fatalf("unexpected first transformed transaction resource counters: %+v", firstSnapshot)
 	}
+
+	// Verify the second transaction reuses the transformed block cache.
 	secondSnapshot := secondCounter.Snapshot()
 	if secondSnapshot.BlockReadCount != 0 ||
 		secondSnapshot.DecodedBlockUnmarshalCount != 0 ||
@@ -299,15 +338,18 @@ func TestBuildTransactionResourceCursorBorrowsTransformedDecodedCache(t *testing
 }
 
 func TestGetRefReturnsCursorOpArgs(t *testing.T) {
+	// Create a logger for bucket reference readback.
 	ctx := context.Background()
 	le := logrus.NewEntry(logrus.New())
 
+	// Start the testbed that supplies the bucket reference.
 	tb, err := testbed.NewTestbed(ctx, le)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	t.Cleanup(tb.Release)
 
+	// Open a transformed bucket cursor with a device mirror override.
 	transformConf := newResourceTransformConfig(t, &transform_gzip.Config{})
 	cursor, err := bucket_lookup.BuildCursor(
 		ctx,
@@ -327,6 +369,7 @@ func TestGetRefReturnsCursorOpArgs(t *testing.T) {
 	}
 	cursor.SetBucketIDOverride("device-mirror")
 
+	// Verify the Resource reference preserves bucket operation arguments.
 	resource := NewBucketLookupCursorResource(le, tb.Bus, cursor)
 	resp, err := resource.GetRef(ctx, &s4wave_bucket_lookup.GetRefRequest{})
 	if err != nil {
@@ -345,6 +388,7 @@ func TestGetRefReturnsCursorOpArgs(t *testing.T) {
 }
 
 func TestGetRefPreservesEmptyCursorOpArgs(t *testing.T) {
+	// Create an empty bucket cursor with transformation arguments.
 	ctx := context.Background()
 	transformConf := newResourceTransformConfig(t, &transform_gzip.Config{})
 	cursor := bucket_lookup.NewCursorWithRelease(
@@ -361,6 +405,7 @@ func TestGetRefPreservesEmptyCursorOpArgs(t *testing.T) {
 	)
 	resource := NewBucketLookupCursorResource(nil, nil, cursor)
 
+	// Verify the empty cursor Resource preserves its bucket operation arguments.
 	resp, err := resource.GetRef(ctx, &s4wave_bucket_lookup.GetRefRequest{})
 	if err != nil {
 		t.Fatal(err.Error())
@@ -378,6 +423,7 @@ func TestGetRefPreservesEmptyCursorOpArgs(t *testing.T) {
 }
 
 func TestPutBlockBatchUsesCursorBatch(t *testing.T) {
+	// Create a bucket cursor Resource with recorded batch operations.
 	ctx := context.Background()
 	store := &recordingBucketOps{StoreOps: block_mock.NewMockStore(0)}
 	cursor := bucket_lookup.NewCursorWithRelease(
@@ -394,12 +440,14 @@ func TestPutBlockBatchUsesCursorBatch(t *testing.T) {
 	)
 	resource := NewBucketLookupCursorResource(nil, nil, cursor)
 
+	// Prepare block data, an outgoing reference, and a tombstone for the batch.
 	firstData := []byte("first")
 	secondData := []byte("second")
 	firstRef := testBlockRef(t, firstData)
 	secondRef := testBlockRef(t, secondData)
 	tombstoneRef := testBlockRef(t, []byte("deleted"))
 
+	// Write the block batch through the bucket cursor Resource.
 	_, err := resource.PutBlockBatch(ctx, &s4wave_bucket_lookup.PutBlockBatchRequest{
 		Entries: []*s4wave_bucket_lookup.PutBlockBatchEntry{
 			{Ref: firstRef, Data: firstData},
@@ -410,6 +458,8 @@ func TestPutBlockBatchUsesCursorBatch(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Verify the Resource forwards one batch with its data, references, and tombstone.
 	if store.putBlockCalls != 0 {
 		t.Fatalf("PutBlock calls = %d, want 0", store.putBlockCalls)
 	}
@@ -431,6 +481,7 @@ func TestPutBlockBatchUsesCursorBatch(t *testing.T) {
 }
 
 func TestGetBlockExistsBatchUsesCursorBatch(t *testing.T) {
+	// Create a bucket cursor Resource with recorded existence batches.
 	ctx := context.Background()
 	firstRef := testBlockRef(t, []byte("first"))
 	secondRef := testBlockRef(t, []byte("second"))
@@ -452,12 +503,15 @@ func TestGetBlockExistsBatchUsesCursorBatch(t *testing.T) {
 	)
 	resource := NewBucketLookupCursorResource(nil, nil, cursor)
 
+	// Query block existence through the bucket cursor Resource.
 	resp, err := resource.GetBlockExistsBatch(ctx, &s4wave_bucket_lookup.GetBlockExistsBatchRequest{
 		Refs: []*block.BlockRef{firstRef, secondRef},
 	})
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Verify the existence batch forwards references and returns the recorded results.
 	if store.existsBatchCalls != 1 {
 		t.Fatalf("GetBlockExistsBatch calls = %d, want 1", store.existsBatchCalls)
 	}
@@ -506,6 +560,7 @@ func (c *recordingResourceClient) AddResource(mux srpc.Invoker, releaseFn func()
 }
 
 func (c *recordingResourceClient) AddResourceValue(mux srpc.Invoker, value any, releaseFn func()) (uint32, error) {
+	// Retain the Resource mux, value, and release callback under a new identifier.
 	c.nextID++
 	c.muxes[c.nextID] = mux
 	c.values[c.nextID] = value
@@ -514,6 +569,7 @@ func (c *recordingResourceClient) AddResourceValue(mux srpc.Invoker, value any, 
 }
 
 func (c *recordingResourceClient) ReleaseResource(resourceID uint32) bool {
+	// Release the retained Resource and remove its recorded registrations.
 	releaseFn, ok := c.releases[resourceID]
 	if !ok {
 		return false
@@ -581,6 +637,7 @@ func testBlockRef(t *testing.T, data []byte) *block.BlockRef {
 }
 
 func addExampleBlockTypeController(t *testing.T, ctx context.Context, tb *testbed.Testbed) {
+	// Register an example block type controller for bucket decoding.
 	t.Helper()
 	controller := blocktype_controller.NewController(func(ctx context.Context, typeID string) (blocktype.BlockType, error) {
 		if typeID == exampleBlockTypeID {
@@ -632,15 +689,18 @@ func (c *failingSecondAddResourceClient) AddResource(mux srpc.Invoker, releaseFn
 }
 
 func TestBuildTransactionReleasesTransactionWhenCursorAddFails(t *testing.T) {
+	// Create a logger for transaction registration failure checks.
 	ctx := context.Background()
 	le := logrus.NewEntry(logrus.New())
 
+	// Start the testbed that supplies the bucket cursor.
 	tb, err := testbed.NewTestbed(ctx, le)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	t.Cleanup(tb.Release)
 
+	// Open a bucket cursor Resource and arrange cursor release.
 	cursor, err := tb.BuildEmptyCursor(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -648,6 +708,7 @@ func TestBuildTransactionReleasesTransactionWhenCursorAddFails(t *testing.T) {
 	t.Cleanup(cursor.Release)
 	resource := NewBucketLookupCursorResource(le, tb.Bus, cursor)
 
+	// Verify both transaction builders release registrations after cursor registration fails.
 	for name, build := range map[string]func(context.Context) error{
 		"BuildTransaction": func(ctx context.Context) error {
 			_, err := resource.BuildTransaction(ctx, &s4wave_bucket_lookup.BuildTransactionRequest{})

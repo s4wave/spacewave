@@ -13,12 +13,16 @@ import (
 func TestChangedKeys(t *testing.T) {
 	for _, impl := range []KVImplType{KVImplType_KV_IMPL_TYPE_IAVL, KVImplType_KV_IMPL_TYPE_OKRA, KVImplType_KV_IMPL_TYPE_OKRA_INLINE} {
 		t.Run(impl.String(), func(t *testing.T) {
+			// Create a block store and deterministic KV mutation sequence.
 			ctx := t.Context()
 			store := newSelectorOkraStore()
 			var root *block.BlockRef
 			values := make(map[string]string)
 			rng := rand.New(rand.NewPCG(4, 9))
+
+			// Compare successive KV roots across randomized mutation rounds.
 			for round := range 12 {
+				// Open the next writable KV root.
 				previous := root
 				btx, cursor := block.NewTransaction(store, nil, root, nil)
 				if root == nil {
@@ -28,6 +32,8 @@ func TestChangedKeys(t *testing.T) {
 				if err != nil {
 					t.Fatal(err)
 				}
+
+				// Apply mutations and track the expected changed KV keys.
 				changed := make(map[string]bool)
 				count := 1 + rng.IntN(10)
 				if round == 0 {
@@ -54,6 +60,8 @@ func TestChangedKeys(t *testing.T) {
 						t.Fatal(err)
 					}
 				}
+
+				// Commit the mutation round and retain its KV root.
 				if err := writer.Commit(ctx); err != nil {
 					t.Fatal(err)
 				}
@@ -66,6 +74,7 @@ func TestChangedKeys(t *testing.T) {
 					continue
 				}
 
+				// Compare the previous and current KV roots with read counting.
 				_, before := block.NewTransaction(store, nil, previous, nil)
 				_, after := block.NewTransaction(store, nil, root, nil)
 				readCtx, counter := block.WithReadCounter(ctx)
@@ -73,6 +82,8 @@ func TestChangedKeys(t *testing.T) {
 				if err != nil || !complete {
 					t.Fatalf("compare: complete=%t err=%v", complete, err)
 				}
+
+				// Verify the reported KV changes match the mutated keys.
 				var got, want []string
 				for _, key := range keys {
 					got = append(got, string(key))

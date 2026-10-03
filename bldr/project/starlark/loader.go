@@ -19,6 +19,7 @@ const goVendorPrefix = "@go/"
 // Resolves relative paths from the project directory.
 // Resolves @go/ paths from the vendor/ directory.
 func (e *evaluator) load(thread *starlark.Thread, module string) (starlark.StringDict, error) {
+	// Resolve the Starlark module path before checking its cached result.
 	resolved, err := e.resolveModulePath(thread, module)
 	if err != nil {
 		return nil, err
@@ -35,8 +36,10 @@ func (e *evaluator) load(thread *starlark.Thread, module string) (starlark.Strin
 		return nil, errors.Wrapf(err, "load %q", module)
 	}
 
+	// Retain the loaded module path for evaluation readback.
 	e.loadedFiles = append(e.loadedFiles, resolved)
 
+	// Enable the supported Starlark syntax for loaded modules.
 	opts := &syntax.FileOptions{
 		Set:             true,
 		While:           true,
@@ -45,6 +48,7 @@ func (e *evaluator) load(thread *starlark.Thread, module string) (starlark.Strin
 		Recursion:       true,
 	}
 
+	// Evaluate the loaded module and cache its globals and error.
 	globals, err := starlark.ExecFileOptions(opts, thread, resolved, data, thread.Local("predeclared").(starlark.StringDict))
 	e.moduleCache[resolved] = &moduleEntry{globals: globals, err: err}
 	return globals, err
@@ -52,6 +56,7 @@ func (e *evaluator) load(thread *starlark.Thread, module string) (starlark.Strin
 
 // resolveModulePath resolves a module string to an absolute filesystem path.
 func (e *evaluator) resolveModulePath(thread *starlark.Thread, module string) (string, error) {
+	// Resolve Go vendor imports beneath the configured vendor directory.
 	if after, ok := strings.CutPrefix(module, goVendorPrefix); ok {
 		// @go/github.com/foo/bar/file.star -> vendor/github.com/foo/bar/file.star
 		return resolveModuleUnder(e.vendorDir, after, module)
@@ -87,6 +92,7 @@ func (e *evaluator) resolveModulePath(thread *starlark.Thread, module string) (s
 // resolveModuleUnder resolves a module path relative to a root directory,
 // erroring when the path escapes the root.
 func resolveModuleUnder(root, module, display string) (string, error) {
+	// Resolve a relative module path and require it to remain beneath the vendor root.
 	if module == "" {
 		return "", errors.Errorf("load %q: empty module path", display)
 	}
@@ -111,6 +117,7 @@ func resolveModuleUnder(root, module, display string) (string, error) {
 // isPathWithin reports whether path is inside root by lexical comparison.
 // See isExistingPathWithin for the symlink-resolved check.
 func isPathWithin(root, path string) bool {
+	// Compare the module path against the absolute root directory.
 	rootAbs, err := filepath.Abs(root)
 	if err != nil {
 		return false
@@ -125,6 +132,7 @@ func isPathWithin(root, path string) bool {
 // isExistingPathWithin reports whether path is inside root after resolving
 // symlinks on both paths.
 func isExistingPathWithin(root, path string) (bool, error) {
+	// Resolve root and module symlinks before checking containment.
 	rootReal, err := filepath.EvalSymlinks(root)
 	if err != nil {
 		return false, err

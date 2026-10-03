@@ -20,21 +20,25 @@ import (
 
 // TestSimple is a basic tree test for all known implementations.
 func TestSimple(t *testing.T) {
+	// Create a logger for the KV backend testbed.
 	ctx := context.Background()
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
 
+	// Select the KV implementations to exercise.
 	testImpls := []KVImplType{
 		KVImplType_KV_IMPL_TYPE_IAVL,
 		KVImplType_KV_IMPL_TYPE_OKRA,
 	}
 
+	// Start the testbed that stores the KV roots.
 	tb, err := testbed.NewTestbed(ctx, le)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Identify the testbed volume for bucket cursor construction.
 	vol := tb.Volume
 	volID := vol.GetID()
 	t.Log(volID)
@@ -47,7 +51,9 @@ func TestSimple(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// Exercise each KV backend through the store contract.
 	for _, impl := range testImpls {
+		// Open an empty bucket cursor for the selected KV backend.
 		oc, _, err := bucket_lookup.BuildEmptyCursor(
 			ctx,
 			tb.Bus,
@@ -62,6 +68,7 @@ func TestSimple(t *testing.T) {
 			t.Fatal(err.Error())
 		}
 
+		// Persist the selected KeyValueStore root.
 		btx, bcs := oc.BuildTransaction(nil)
 		kvs := NewKeyValueStore(impl)
 		bcs.SetBlock(kvs, true)
@@ -85,6 +92,7 @@ func TestSimple(t *testing.T) {
 			return kvtx_txcache.NewTxStore(ktx, write), ktx
 		}
 
+		// Exercise and commit KV operations through the cached store.
 		store, storeTx := buildStore(true)
 		err = kvtx_kvtest.TestAll(ctx, store)
 		if err != nil {
@@ -95,6 +103,7 @@ func TestSimple(t *testing.T) {
 			t.Fatal(err.Error())
 		}
 
+		// Verify the reopened KV store retains the committed key.
 		store, storeTx = buildStore(false)
 		ktx, err := store.NewTransaction(ctx, false)
 		if err != nil {
@@ -127,9 +136,11 @@ func TestSelectorSeed(t *testing.T) {
 
 	for _, impl := range []KVImplType{KVImplType_KV_IMPL_TYPE_IAVL, KVImplType_KV_IMPL_TYPE_OKRA} {
 		t.Run(impl.String(), func(t *testing.T) {
+			// Create an empty root for the selected KV implementation.
 			_, bcs := block.NewTransaction(nil, nil, nil, nil)
 			bcs.SetBlock(NewKeyValueStore(impl), true)
 
+			// Load and validate the selected KeyValueStore.
 			kvs, err := LoadKeyValueStore(ctx, bcs)
 			if err != nil {
 				t.Fatal(err)
@@ -138,12 +149,14 @@ func TestSelectorSeed(t *testing.T) {
 				t.Fatal(err)
 			}
 
+			// Open the selected KV backend for readback.
 			ktx, err := BuildKvTransaction(ctx, bcs, false)
 			if err != nil {
 				t.Fatal(err)
 			}
 			defer ktx.Discard()
 
+			// Verify the empty KV root size and missing-key behavior.
 			size, err := ktx.Size(ctx)
 			if err != nil {
 				t.Fatal(err)
@@ -162,6 +175,7 @@ func TestSelectorSeed(t *testing.T) {
 				t.Fatalf("empty-key cursor lookup err = %v, want %v", err, kvtx.ErrEmptyKey)
 			}
 
+			// Verify loading the KV root preserves its implementation.
 			if got := kvs.GetImplType(); got != impl {
 				t.Fatalf("impl changed after write: %s != %s", got, impl)
 			}
@@ -170,6 +184,7 @@ func TestSelectorSeed(t *testing.T) {
 }
 
 func TestBackendPolicyClassifiesWorkloads(t *testing.T) {
+	// Verify backend policy and store construction for each workload.
 	for _, tc := range []struct {
 		name     string
 		workload WorkloadClass
@@ -192,6 +207,7 @@ func TestBackendPolicyClassifiesWorkloads(t *testing.T) {
 		})
 	}
 
+	// Verify loading an unspecified KV implementation selects the legacy backend.
 	_, bcs := block.NewTransaction(nil, nil, nil, nil)
 	bcs.SetBlock(&KeyValueStore{}, true)
 	kvs, err := LoadKeyValueStore(context.Background(), bcs)
@@ -206,6 +222,7 @@ func TestBackendPolicyClassifiesWorkloads(t *testing.T) {
 // TestSelectorSubBlocks verifies that each implementation owns only its root
 // sub-block under the common KeyValueStore block.
 func TestSelectorSubBlocks(t *testing.T) {
+	// Verify IAVL exposes its own root sub-block constructor.
 	iavlStore := NewKeyValueStore(KVImplType_KV_IMPL_TYPE_IAVL)
 	iavlCtor := iavlStore.GetSubBlockCtor(2)
 	if iavlCtor == nil {
@@ -218,6 +235,7 @@ func TestSelectorSubBlocks(t *testing.T) {
 		t.Fatalf("IAVL sub-block map = %#v", got)
 	}
 
+	// Verify Okra exposes its own root sub-block constructor.
 	okraStore := NewKeyValueStore(KVImplType_KV_IMPL_TYPE_OKRA)
 	okraCtor := okraStore.GetSubBlockCtor(3)
 	if okraCtor == nil {
@@ -230,6 +248,7 @@ func TestSelectorSubBlocks(t *testing.T) {
 		t.Fatalf("Okra sub-block map = %#v", got)
 	}
 
+	// Verify Okra accepts its root and rejects another root type.
 	if err := okraStore.ApplySubBlock(3, &okra.Root{}); err != nil {
 		t.Fatal(err)
 	}

@@ -47,9 +47,11 @@ func TestKVTXBackendGCRefGraphConformance(t *testing.T) {
 }
 
 func testBackendKeyValueCommitDiscardReopen(t *testing.T, impl KVImplType) {
+	// Create a saved KV root for commit and discard checks.
 	ctx := context.Background()
 	root := newBackendConformanceRoot(t, ctx, impl)
 
+	// Write and commit the initial KV entries.
 	_, btx, tx := root.newWriteTx(t, ctx)
 	for _, entry := range []struct {
 		key   string
@@ -59,10 +61,13 @@ func testBackendKeyValueCommitDiscardReopen(t *testing.T, impl KVImplType) {
 		{key: "bravo", value: "two"},
 		{key: "charlie", value: "three"},
 	} {
+		// Store the KV entry in the write transaction.
 		if err := tx.Set(ctx, []byte(entry.key), []byte(entry.value)); err != nil {
 			tx.Discard()
 			t.Fatal(err)
 		}
+
+		// Verify the KV entry exists before commit.
 		exists, err := tx.Exists(ctx, []byte(entry.key))
 		if err != nil {
 			tx.Discard()
@@ -75,6 +80,7 @@ func testBackendKeyValueCommitDiscardReopen(t *testing.T, impl KVImplType) {
 	}
 	root.commit(t, ctx, btx, tx)
 
+	// Verify the reopened KV values and missing-key behavior.
 	readTx := root.newReadTx(t, ctx)
 	assertBackendValue(t, ctx, readTx, "alpha", "one")
 	assertBackendValue(t, ctx, readTx, "bravo", "two")
@@ -86,6 +92,8 @@ func testBackendKeyValueCommitDiscardReopen(t *testing.T, impl KVImplType) {
 		readTx.Discard()
 		t.Fatal("missing key exists")
 	}
+
+	// Verify the KV reader rejects empty keys.
 	if _, _, err := readTx.Get(ctx, nil); err != kvtx.ErrEmptyKey {
 		readTx.Discard()
 		t.Fatalf("Get(empty) err = %v, want %v", err, kvtx.ErrEmptyKey)
@@ -96,6 +104,7 @@ func testBackendKeyValueCommitDiscardReopen(t *testing.T, impl KVImplType) {
 	}
 	readTx.Discard()
 
+	// Discard a KV deletion and an additional write.
 	_, _, tx = root.newWriteTx(t, ctx)
 	if err := tx.Delete(ctx, []byte("alpha")); err != nil {
 		tx.Discard()
@@ -107,6 +116,7 @@ func testBackendKeyValueCommitDiscardReopen(t *testing.T, impl KVImplType) {
 	}
 	tx.Discard()
 
+	// Verify discarded KV changes leave the saved root intact.
 	readTx = root.newReadTx(t, ctx)
 	assertBackendValue(t, ctx, readTx, "alpha", "one")
 	if _, found, err := readTx.Get(ctx, []byte("discarded")); err != nil {
@@ -120,6 +130,7 @@ func testBackendKeyValueCommitDiscardReopen(t *testing.T, impl KVImplType) {
 }
 
 func testBackendSortedIterationAndSeek(t *testing.T, impl KVImplType) {
+	// Create a saved KV root with unsorted keys.
 	ctx := context.Background()
 	root := newBackendConformanceRoot(t, ctx, impl)
 	_, btx, tx := root.newWriteTx(t, ctx)
@@ -131,6 +142,7 @@ func testBackendSortedIterationAndSeek(t *testing.T, impl KVImplType) {
 	}
 	root.commit(t, ctx, btx, tx)
 
+	// Verify KV prefix ordering and seek boundaries.
 	readTx := root.newReadTx(t, ctx)
 	defer readTx.Discard()
 	assertIteratorKeys(t, readTx.Iterate(ctx, []byte("a/"), true, false), nil, []string{"a/01", "a/02", "a/03"})
@@ -141,10 +153,12 @@ func testBackendSortedIterationAndSeek(t *testing.T, impl KVImplType) {
 }
 
 func testBackendCursorAndBlobValues(t *testing.T, impl KVImplType) {
+	// Create a KV root for cursor and blob values.
 	ctx := context.Background()
 	root := newBackendConformanceRoot(t, ctx, impl)
 	rootCursor, btx, tx := root.newWriteTx(t, ctx)
 
+	// Store an example block through a KV cursor.
 	valueCursor := rootCursor.Detach(false)
 	valueCursor.ClearAllRefs()
 	valueCursor.SetBlock(block_mock.NewExample("cursor-value"), true)
@@ -153,6 +167,7 @@ func testBackendCursorAndBlobValues(t *testing.T, impl KVImplType) {
 		t.Fatal(err)
 	}
 
+	// Store and commit a blob through a KV cursor.
 	blobData := []byte("blob-value-through-kvtx")
 	blobCursor := rootCursor.Detach(false)
 	blobCursor.ClearAllRefs()
@@ -166,6 +181,7 @@ func testBackendCursorAndBlobValues(t *testing.T, impl KVImplType) {
 	}
 	root.commit(t, ctx, btx, tx)
 
+	// Open the saved KV cursor and verify its example block.
 	readTx := root.newReadTx(t, ctx)
 	cursor, err := readTx.GetCursorAtKey(ctx, []byte("cursor"))
 	if err != nil {
@@ -181,6 +197,8 @@ func testBackendCursorAndBlobValues(t *testing.T, impl KVImplType) {
 		readTx.Discard()
 		t.Fatalf("cursor value = %q, want cursor-value", example.GetMsg())
 	}
+
+	// Verify the saved KV blob bytes.
 	value, found, err := readTx.Get(ctx, []byte("blob"))
 	if err != nil {
 		readTx.Discard()
@@ -192,6 +210,7 @@ func testBackendCursorAndBlobValues(t *testing.T, impl KVImplType) {
 	}
 	readTx.Discard()
 
+	// Delete the KV cursor and verify the returned example block.
 	_, btx, tx = root.newWriteTx(t, ctx)
 	deletedCursor, err := tx.DeleteCursorAtKey(ctx, []byte("cursor"))
 	if err != nil {
@@ -209,6 +228,7 @@ func testBackendCursorAndBlobValues(t *testing.T, impl KVImplType) {
 	}
 	root.commit(t, ctx, btx, tx)
 
+	// Verify the committed deletion removes the KV cursor.
 	readTx = root.newReadTx(t, ctx)
 	cursor, err = readTx.GetCursorAtKey(ctx, []byte("cursor"))
 	if err != nil {
@@ -223,11 +243,14 @@ func testBackendCursorAndBlobValues(t *testing.T, impl KVImplType) {
 }
 
 func testBackendWriteDeleteCommitChurn(t *testing.T, impl KVImplType) {
+	// Create a saved KV root for repeated write and delete commits.
 	ctx := context.Background()
 	root := newBackendConformanceRoot(t, ctx, impl)
 
+	// Track expected KV values through successive commits.
 	expected := make(map[string]string)
 	for step := range 32 {
+		// Write the next group of KV values.
 		_, btx, tx := root.newWriteTx(t, ctx)
 		for i := range 4 {
 			key := string(makeSequentialBenchKey(step*4 + i))
@@ -238,6 +261,8 @@ func testBackendWriteDeleteCommitChurn(t *testing.T, impl KVImplType) {
 			}
 			expected[key] = value
 		}
+
+		// Remove an older KV key from the transaction and expected values.
 		if step >= 8 {
 			key := string(makeSequentialBenchKey(step - 8))
 			if err := tx.Delete(ctx, []byte(key)); err != nil {
@@ -248,6 +273,7 @@ func testBackendWriteDeleteCommitChurn(t *testing.T, impl KVImplType) {
 		}
 		root.commit(t, ctx, btx, tx)
 
+		// Verify the committed KV size after each step.
 		readTx := root.newReadTx(t, ctx)
 		size, err := readTx.Size(ctx)
 		readTx.Discard()
@@ -259,6 +285,7 @@ func testBackendWriteDeleteCommitChurn(t *testing.T, impl KVImplType) {
 		}
 	}
 
+	// Verify the final KV size and every retained value.
 	readTx := root.newReadTx(t, ctx)
 	defer readTx.Discard()
 	size, err := readTx.Size(ctx)
@@ -293,8 +320,8 @@ func backendConformanceImpls() []KVImplType {
 }
 
 func newBackendConformanceRoot(t *testing.T, ctx context.Context, impl KVImplType) *backendConformanceRoot {
+	// Persist an empty KV root in the mock block store.
 	t.Helper()
-
 	store := block_mock.NewMockStore(0)
 	btx, rootCursor := block.NewTransaction(store, nil, nil, nil)
 	rootCursor.SetBlock(NewKeyValueStore(impl), true)
@@ -306,8 +333,8 @@ func newBackendConformanceRoot(t *testing.T, ctx context.Context, impl KVImplTyp
 }
 
 func (r *backendConformanceRoot) newReadTx(t *testing.T, ctx context.Context) kvtx.BlockTx {
+	// Open a KV reader against the saved root.
 	t.Helper()
-
 	_, rootCursor := block.NewTransaction(r.store, nil, r.rootRef, nil)
 	tx, err := BuildKvTransaction(ctx, rootCursor, false)
 	if err != nil {
@@ -320,8 +347,8 @@ func (r *backendConformanceRoot) newWriteTx(
 	t *testing.T,
 	ctx context.Context,
 ) (*block.Cursor, *block.Transaction, kvtx.BlockTx) {
+	// Open a KV writer against the saved root.
 	t.Helper()
-
 	btx, rootCursor := block.NewTransaction(r.store, nil, r.rootRef, nil)
 	tx, err := BuildKvTransaction(ctx, rootCursor, true)
 	if err != nil {
@@ -336,8 +363,8 @@ func (r *backendConformanceRoot) commit(
 	btx *block.Transaction,
 	tx kvtx.BlockTx,
 ) {
+	// Commit the KV changes and advance the saved block root.
 	t.Helper()
-
 	if err := tx.Commit(ctx); err != nil {
 		tx.Discard()
 		t.Fatal(err)
@@ -351,8 +378,8 @@ func (r *backendConformanceRoot) commit(
 }
 
 func assertBackendValue(t *testing.T, ctx context.Context, tx kvtx.BlockTx, key, value string) {
+	// Verify the KV key returns its expected value.
 	t.Helper()
-
 	got, found, err := tx.Get(ctx, []byte(key))
 	if err != nil {
 		t.Fatal(err)
@@ -363,9 +390,11 @@ func assertBackendValue(t *testing.T, ctx context.Context, tx kvtx.BlockTx, key,
 }
 
 func assertIteratorKeys(t *testing.T, it kvtx.Iterator, seek []byte, want []string) {
+	// Attribute iterator failures to the calling test and arrange cleanup.
 	t.Helper()
 	defer it.Close()
 
+	// Verify the KV iterator seek, keys, and terminal state.
 	if err := it.Seek(seek); err != nil {
 		t.Fatal(err)
 	}

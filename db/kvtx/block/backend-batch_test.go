@@ -13,6 +13,7 @@ func TestKVTXBackendGetBatchMatchesScalarGet(t *testing.T) {
 	ctx := context.Background()
 	for _, impl := range backendConformanceImpls() {
 		t.Run(impl.String(), func(t *testing.T) {
+			// Create and populate a saved KV root for batch reads.
 			root := newBackendConformanceRoot(t, ctx, impl)
 			_, btx, tx := root.newWriteTx(t, ctx)
 			for _, entry := range []struct {
@@ -30,6 +31,7 @@ func TestKVTXBackendGetBatchMatchesScalarGet(t *testing.T) {
 			}
 			root.commit(t, ctx, btx, tx)
 
+			// Open a KV reader and require its batch-read interface.
 			readTx := root.newReadTx(t, ctx)
 			defer readTx.Discard()
 			batchTx, ok := readTx.(kvtx.BatchTxOps)
@@ -44,6 +46,7 @@ func TestKVTXBackendGetBatchMatchesScalarGet(t *testing.T) {
 				[]byte("charlie"),
 			}
 
+			// Read the KV batch and verify the result dimensions.
 			batchValues, batchFound, err := batchTx.GetBatch(ctx, keys)
 			if err != nil {
 				t.Fatal(err)
@@ -54,6 +57,8 @@ func TestKVTXBackendGetBatchMatchesScalarGet(t *testing.T) {
 			if len(batchFound) != len(keys) {
 				t.Fatalf("found len = %d, want %d", len(batchFound), len(keys))
 			}
+
+			// Verify each KV batch result matches its scalar lookup.
 			for i, key := range keys {
 				scalarValue, scalarFound, err := readTx.Get(ctx, key)
 				if err != nil {
@@ -71,6 +76,7 @@ func TestKVTXBackendGetBatchRejectsEmptyKey(t *testing.T) {
 	ctx := context.Background()
 	for _, impl := range backendConformanceImpls() {
 		t.Run(impl.String(), func(t *testing.T) {
+			// Open an empty KV reader and require its batch-read interface.
 			root := newBackendConformanceRoot(t, ctx, impl)
 			readTx := root.newReadTx(t, ctx)
 			defer readTx.Discard()
@@ -79,6 +85,7 @@ func TestKVTXBackendGetBatchRejectsEmptyKey(t *testing.T) {
 				t.Fatalf("%s read transaction does not implement kvtx.BatchTxOps", impl)
 			}
 
+			// Verify the KV batch rejects an empty key.
 			_, _, err := batchTx.GetBatch(ctx, [][]byte{[]byte("present"), nil})
 			if !errors.Is(err, kvtx.ErrEmptyKey) {
 				t.Fatalf("GetBatch empty key err = %v, want %v", err, kvtx.ErrEmptyKey)

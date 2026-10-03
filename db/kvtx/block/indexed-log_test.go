@@ -21,15 +21,19 @@ func TestNextIndexedLogIndexUsesLatestKey(t *testing.T) {
 }
 
 func testNextIndexedLogIndexUsesLatestKey(t *testing.T, impl KVImplType) {
+	// Create a logger for the indexed log testbed.
 	ctx := context.Background()
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
 
+	// Start a testbed for the selected indexed log backend.
 	tb, err := testbed.NewTestbed(ctx, le)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Persist an empty indexed log root in the testbed bucket.
 	oc, err := tb.BuildEmptyCursor(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -40,6 +44,7 @@ func testNextIndexedLogIndexUsesLatestKey(t *testing.T, impl KVImplType) {
 		t.Fatal(err.Error())
 	}
 
+	// Write and commit sparse indexed log entries.
 	tree, err := BuildKvTransaction(ctx, bcs, true)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -56,11 +61,14 @@ func testNextIndexedLogIndexUsesLatestKey(t *testing.T, impl KVImplType) {
 		t.Fatal(err.Error())
 	}
 
+	// Open the saved indexed log for readback.
 	tree, err = BuildKvTransaction(ctx, bcs, false)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	defer tree.Discard()
+
+	// Verify the reopened log advances past its latest index.
 	next, err := NextIndexedLogIndex(ctx, tree)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -82,15 +90,19 @@ func TestNextIndexedLogIndexEmptyTree(t *testing.T) {
 }
 
 func testNextIndexedLogIndexEmptyTree(t *testing.T, impl KVImplType) {
+	// Create a logger for the empty indexed log testbed.
 	ctx := context.Background()
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
 
+	// Start a testbed for the selected empty log backend.
 	tb, err := testbed.NewTestbed(ctx, le)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Persist an empty indexed log root in the testbed bucket.
 	oc, err := tb.BuildEmptyCursor(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -100,11 +112,15 @@ func testNextIndexedLogIndexEmptyTree(t *testing.T, impl KVImplType) {
 	if _, bcs, err = btx.Write(ctx, true); err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Open the empty indexed log for readback.
 	tree, err := BuildKvTransaction(ctx, bcs, false)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	defer tree.Discard()
+
+	// Verify an empty indexed log starts at index zero.
 	next, err := NextIndexedLogIndex(ctx, tree)
 	if err != nil {
 		t.Fatal(err.Error())

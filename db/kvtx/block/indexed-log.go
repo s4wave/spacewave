@@ -17,12 +17,15 @@ func IndexedLogKey(index uint64) []byte {
 
 // NextIndexedLogIndex returns the next append index for an indexed log tree.
 func NextIndexedLogIndex(ctx context.Context, tree kvtx.BlockTx) (uint64, error) {
+	// Find the latest indexed log key with a reverse iterator.
 	it := tree.BlockIterate(ctx, nil, true, true)
 	defer it.Close()
 	if !it.Next() {
 		return 0, it.Err()
 	}
 	key := it.Key()
+
+	// Validate the indexed log key before advancing its index.
 	if len(key) != 8 {
 		return 0, errors.Errorf("invalid indexed log key length %d", len(key))
 	}
