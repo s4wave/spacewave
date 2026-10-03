@@ -98,9 +98,13 @@ func (c *SessionClient) grantPackRead(req *http.Request, resourceID, packID stri
 
 // observePackRead forgets the grant of a refused range request, so the next
 // request asks for a new one. The bucket answers an expired or invalid
-// download authorization with 401, and other origins refuse with 403.
+// download authorization with 401, and other origins refuse with 403. A pack
+// that moved to the public bucket when its Space became public answers its
+// old URL with 404.
 func (c *SessionClient) observePackRead(resp *http.Response, resourceID, packID string) {
-	if resp.StatusCode != http.StatusUnauthorized && resp.StatusCode != http.StatusForbidden {
+	switch resp.StatusCode {
+	case http.StatusUnauthorized, http.StatusForbidden, http.StatusNotFound:
+	default:
 		return
 	}
 	c.readGrantsMtx.Lock()
