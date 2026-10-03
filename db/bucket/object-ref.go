@@ -158,7 +158,6 @@ func (o *ObjectRef) CopyFrom(ot *ObjectRef) {
 	if o == nil || ot == nil {
 		return
 	}
-
 	o.BucketId = ot.GetBucketId()
 	o.RootRef = ot.GetRootRef().Clone()
 	o.TransformConf = ot.GetTransformConf().Clone()
