@@ -9,6 +9,7 @@ import {
   createMessageType,
 } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
+import { Timestamp } from '@aptre/protobuf-es-lite/google/protobuf/timestamp'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 import { Result, Value } from '../../value/value.pb.js'
 import { LogEntry } from '../execution.pb.js'
@@ -72,6 +73,13 @@ export enum TxType {
    * @generated from enum value: TxType_SET_WAITING_PLUGIN = 7;
    */
   TxType_SET_WAITING_PLUGIN = 7,
+
+  /**
+   * TxType_RENEW_CLAIM extends the lease of the current claim.
+   *
+   * @generated from enum value: TxType_RENEW_CLAIM = 8;
+   */
+  TxType_RENEW_CLAIM = 8,
 }
 
 export const TxType_Enum = /* @__PURE__ */ createEnumType(
@@ -101,6 +109,12 @@ export interface TxStart {
    * @generated from field: string claim_id = 2;
    */
   claimId?: string
+  /**
+   * LeaseExpiresAt is the initial lease expiry of a new claim.
+   *
+   * @generated from field: google.protobuf.Timestamp lease_expires_at = 3;
+   */
+  leaseExpiresAt?: Date
 }
 
 export const TxStart: MessageType<TxStart> = /* @__PURE__ */ createMessageType({
@@ -108,6 +122,7 @@ export const TxStart: MessageType<TxStart> = /* @__PURE__ */ createMessageType({
   fields: [
     { no: 1, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
     { no: 2, name: 'claim_id', kind: 'scalar', T: ScalarType.STRING },
+    { no: 3, name: 'lease_expires_at', kind: 'message', T: () => Timestamp },
   ] satisfies readonly PartialFieldInfo[],
 })
 
@@ -263,8 +278,8 @@ export const TxCancel: MessageType<TxCancel> =
   )
 
 /**
- * TxReclaim transfers a RUNNING execution to a new controller instance.
- * The current owner must already be known unavailable by the caller.
+ * TxReclaim transfers a RUNNING or CANCELING execution to a new controller
+ * instance once the current claim lease has expired.
  * TxType: TxType_RECLAIM
  *
  * @generated from message execution.tx.TxReclaim
@@ -288,6 +303,20 @@ export interface TxReclaim {
    * @generated from field: uint64 expected_claim_epoch = 3;
    */
   expectedClaimEpoch?: bigint
+  /**
+   * ObservedAt is the time the sender observed the claim lease expired. The
+   * transaction applies only when the current lease expires at or before it.
+   *
+   * @generated from field: google.protobuf.Timestamp observed_at = 4;
+   */
+  observedAt?: Date
+  /**
+   * LeaseExpiresAt is the initial lease expiry of the new claim.
+   * Must be after observed_at.
+   *
+   * @generated from field: google.protobuf.Timestamp lease_expires_at = 5;
+   */
+  leaseExpiresAt?: Date
 }
 
 export const TxReclaim: MessageType<TxReclaim> =
@@ -302,6 +331,8 @@ export const TxReclaim: MessageType<TxReclaim> =
         kind: 'scalar',
         T: ScalarType.UINT64,
       },
+      { no: 4, name: 'observed_at', kind: 'message', T: () => Timestamp },
+      { no: 5, name: 'lease_expires_at', kind: 'message', T: () => Timestamp },
     ] satisfies readonly PartialFieldInfo[],
   })
 
@@ -338,6 +369,45 @@ export const TxSetWaitingPlugin: MessageType<TxSetWaitingPlugin> =
       { no: 1, name: 'plugin_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'claim_epoch', kind: 'scalar', T: ScalarType.UINT64 },
       { no: 3, name: 'claim_id', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+  })
+
+/**
+ * TxRenewClaim extends the claim lease while its holder is alive.
+ * Execution must be RUNNING or CANCELING.
+ * TxType: TxType_RENEW_CLAIM
+ *
+ * @generated from message execution.tx.TxRenewClaim
+ */
+export interface TxRenewClaim {
+  /**
+   * ClaimEpoch fences this renewal to the current claim.
+   *
+   * @generated from field: uint64 claim_epoch = 1;
+   */
+  claimEpoch?: bigint
+  /**
+   * ClaimId identifies the controller carrying the claim.
+   *
+   * @generated from field: string claim_id = 2;
+   */
+  claimId?: string
+  /**
+   * LeaseExpiresAt is the new lease expiry. A renewal that would not extend
+   * the current lease changes nothing.
+   *
+   * @generated from field: google.protobuf.Timestamp lease_expires_at = 3;
+   */
+  leaseExpiresAt?: Date
+}
+
+export const TxRenewClaim: MessageType<TxRenewClaim> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'execution.tx.TxRenewClaim',
+    fields: [
+      { no: 1, name: 'claim_epoch', kind: 'scalar', T: ScalarType.UINT64 },
+      { no: 2, name: 'claim_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 3, name: 'lease_expires_at', kind: 'message', T: () => Timestamp },
     ] satisfies readonly PartialFieldInfo[],
   })
 
@@ -401,6 +471,13 @@ export interface Tx {
    * @generated from field: execution.tx.TxSetWaitingPlugin tx_set_waiting_plugin = 8;
    */
   txSetWaitingPlugin?: TxSetWaitingPlugin
+  /**
+   * TxRenewClaim extends the lease of the current claim.
+   * TxType_RENEW_CLAIM
+   *
+   * @generated from field: execution.tx.TxRenewClaim tx_renew_claim = 9;
+   */
+  txRenewClaim?: TxRenewClaim
 }
 
 export const Tx: MessageType<Tx> = /* @__PURE__ */ createMessageType({
@@ -419,5 +496,6 @@ export const Tx: MessageType<Tx> = /* @__PURE__ */ createMessageType({
       kind: 'message',
       T: TxSetWaitingPlugin,
     },
+    { no: 9, name: 'tx_renew_claim', kind: 'message', T: TxRenewClaim },
   ] satisfies readonly PartialFieldInfo[],
 })

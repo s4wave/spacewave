@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"testing"
+	"time"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/directive"
@@ -59,10 +60,10 @@ func TestPluginExecReceivesGrantedClaim(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if _, _, err := obj.ApplyObjectOp(t.Context(), execution_tx.NewTxStart(peerID, "previous-owner"), peerID); err != nil {
+			if _, _, err := obj.ApplyObjectOp(t.Context(), execution_tx.NewTxStart(peerID, time.Now().Add(-time.Minute), "previous-owner"), peerID); err != nil {
 				t.Fatal(err)
 			}
-			if _, _, err := obj.ApplyObjectOp(t.Context(), execution_tx.NewTxReclaim(peerID, controllerConf.GetClaimId(), 1), peerID); err != nil {
+			if _, _, err := obj.ApplyObjectOp(t.Context(), execution_tx.NewTxReclaim(peerID, controllerConf.GetClaimId(), 1, time.Now(), time.Now().Add(time.Hour)), peerID); err != nil {
 				t.Fatal(err)
 			}
 

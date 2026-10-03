@@ -31,6 +31,12 @@ func (c *Controller) executeWithConfig(rctx context.Context, execConf *ExecConfi
 		ctxCancel()
 	}
 
+	// Keep the claim lease live while this controller owns the Execution,
+	// including its durable completion. Losing the claim interrupts the target.
+	renewCtx, renewCancel := context.WithCancel(rctx)
+	defer renewCancel()
+	go c.renewClaim(renewCtx, execConf.GetExecution().GetClaim(), ctxCancel)
+
 	// process the execution
 	execErr := c.processExec(ctx, execConf)
 

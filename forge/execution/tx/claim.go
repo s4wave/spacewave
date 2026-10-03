@@ -1,6 +1,7 @@
 package execution_tx
 
 import (
+	"github.com/pkg/errors"
 	forge_execution "github.com/s4wave/spacewave/forge/execution"
 	uuid "github.com/satori/go.uuid"
 )
@@ -40,4 +41,12 @@ func checkClaim(root *forge_execution.Claim, claimID string, claimEpoch uint64) 
 		ClaimID: root.GetClaimId(),
 		Epoch:   root.GetEpoch(),
 	}
+}
+
+// IsClaimFenced reports whether err rejects a write because another claim owns
+// the execution.
+func IsClaimFenced(err error) bool {
+	var stale *StaleClaimEpochError
+	var held *ClaimHeldError
+	return errors.As(err, &stale) || errors.As(err, &held)
 }

@@ -12,6 +12,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"testing"
+	"time"
 
 	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	"github.com/aperturerobotics/starpc/srpc"
@@ -116,7 +117,7 @@ func TestRemoteObjectStateApplyObjectOpPreservesExecutionClaim(t *testing.T) {
 
 	// Start the remote execution claim and commit it.
 	const claimID = "remote-claim-owner"
-	if _, _, err := obj.ApplyObjectOp(ctx, execution_tx.NewTxStart(peerID, claimID), peerID); err != nil {
+	if _, _, err := obj.ApplyObjectOp(ctx, execution_tx.NewTxStart(peerID, time.Now().Add(time.Hour), claimID), peerID); err != nil {
 		t.Fatal(err)
 	}
 	if err := tx.Commit(ctx); err != nil {

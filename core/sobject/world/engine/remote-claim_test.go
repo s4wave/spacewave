@@ -6,6 +6,7 @@ import (
 	"io"
 	"net"
 	"testing"
+	"time"
 
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
@@ -27,6 +28,7 @@ import (
 )
 
 func TestRemoteSharedObjectWorldApplyPreservesExecutionClaim(t *testing.T) {
+	// Start a testbed with the SharedObject World engine and local provider.
 	ctx := context.Background()
 	tb, err := testbed.Default(ctx)
 	if err != nil {
@@ -36,6 +38,7 @@ func TestRemoteSharedObjectWorldApplyPreservesExecutionClaim(t *testing.T) {
 	tb.StaticResolver.AddFactory(sobject_world_engine.NewFactory(tb.Bus))
 	tb.StaticResolver.AddFactory(provider_local.NewFactory(tb.Bus))
 
+	// Load the local provider.
 	peerID := tb.Volume.GetPeerID()
 	_, providerRef, err := tb.Bus.AddDirective(resolver.NewLoadControllerWithConfig(&provider_local.Config{
 		ProviderId: "local",
@@ -50,6 +53,8 @@ func TestRemoteSharedObjectWorldApplyPreservesExecutionClaim(t *testing.T) {
 		t.Fatal(err)
 	}
 	provRef.Release()
+
+	// Create a SharedObject on a provider account.
 	account, accountRef, err := provider.ExAccessProviderAccount(ctx, tb.Bus, "local", "remote-claim", false, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -64,6 +69,7 @@ func TestRemoteSharedObjectWorldApplyPreservesExecutionClaim(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Start the SharedObject World engine.
 	const engineID = "remote-shared-object-claim"
 	engineController, _, engineControllerRef, err := sobject_world_engine.StartEngineWithConfig(
 		ctx,
@@ -75,17 +81,22 @@ func TestRemoteSharedObjectWorldApplyPreservesExecutionClaim(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(engineControllerRef.Release)
+
+	// Register the execution operations on the engine.
 	opController := world.NewLookupOpController("remote-execution-ops", engineID, execution_tx.LookupWorldOp)
 	releaseOps, err := tb.Bus.AddController(ctx, opController, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 	t.Cleanup(releaseOps)
+
+	// Open the engine.
 	engine, err := engineController.GetWorldEngine(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	// Create a pending execution in the engine.
 	const objectKey = "test/execution/remote-shared-object-claim"
 	if err := world.ExecTransaction(ctx, engine, true, func(ctx context.Context, ws world.WorldState) error {
 		_, err := forge_execution.CreateExecutionWithTarget(
@@ -104,6 +115,7 @@ func TestRemoteSharedObjectWorldApplyPreservesExecutionClaim(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Require the remote handle to see the pending execution without a claim.
 	remote, cleanup := newRemoteSharedObjectEngine(t, ctx, tb, engine)
 	t.Cleanup(cleanup)
 	if err := world.ExecTransaction(ctx, remote, false, func(ctx context.Context, ws world.WorldState) error {
@@ -123,19 +135,24 @@ func TestRemoteSharedObjectWorldApplyPreservesExecutionClaim(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Claim the execution through the remote handle.
 	const claimID = "remote-shared-object-owner"
 	if err := world.ExecTransaction(ctx, remote, true, func(ctx context.Context, ws world.WorldState) error {
+		// Open the execution object.
 		obj, err := world.MustGetObject(ctx, ws, objectKey)
 		if err != nil {
 			return err
 		}
 		defer world.ReleaseObjectState(obj)
-		_, _, err = obj.ApplyObjectOp(ctx, execution_tx.NewTxStart(peerID, claimID), peerID)
+
+		// Apply the claim with a lease that outlives the test.
+		_, _, err = obj.ApplyObjectOp(ctx, execution_tx.NewTxStart(peerID, time.Now().Add(time.Hour), claimID), peerID)
 		return err
 	}); err != nil {
 		t.Fatal(err)
 	}
 
+	// Require the claim to survive the remote boundary.
 	if err := world.ExecTransaction(ctx, remote, false, func(ctx context.Context, ws world.WorldState) error {
 		execution, objectState, err := forge_execution.LookupExecution(ctx, ws, objectKey)
 		world.ReleaseObjectState(objectState)

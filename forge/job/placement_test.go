@@ -2,6 +2,7 @@ package forge_job_test
 
 import (
 	"testing"
+	"time"
 
 	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	forge_job_ops "github.com/s4wave/spacewave/core/forge/job"
@@ -196,13 +197,13 @@ func TestJobPlacementBindsExecutionPeer(t *testing.T) {
 
 	// Verify that the other Worker peer cannot claim the Execution.
 	if _, _, err := executionObject.ApplyObjectOp(ctx,
-		execution_tx.NewTxStart(controllerPeer, "wrong-peer"), controllerPeer); err == nil {
+		execution_tx.NewTxStart(controllerPeer, time.Now().Add(time.Hour), "wrong-peer"), controllerPeer); err == nil {
 		t.Fatal("other Worker's peer claimed the selected Execution")
 	}
 
 	// Verify that the selected Device peer can claim the Execution.
 	if _, _, err := executionObject.ApplyObjectOp(ctx,
-		execution_tx.NewTxStart(selectedPeer.GetPeerID(), "selected-peer"), selectedPeer.GetPeerID()); err != nil {
+		execution_tx.NewTxStart(selectedPeer.GetPeerID(), time.Now().Add(time.Hour), "selected-peer"), selectedPeer.GetPeerID()); err != nil {
 		t.Fatalf("selected peer could not claim Execution: %v", err)
 	}
 }

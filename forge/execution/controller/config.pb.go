@@ -35,6 +35,10 @@ type Config struct {
 	InputWorld *target.InputWorld `protobuf:"bytes,6,opt,name=input_world,json=inputWorld,proto3" json:"inputWorld,omitempty"`
 	// ClaimId is the stable owner token used across controller retries.
 	ClaimId string `protobuf:"bytes,7,opt,name=claim_id,json=claimId,proto3" json:"claimId,omitempty"`
+	// ClaimLease is how long a claim stays live without renewal, as a duration
+	// string. The controller renews at a third of the lease. Peers may reclaim
+	// an Execution once its holder has missed the lease. Defaults to one minute.
+	ClaimLease string `protobuf:"bytes,8,opt,name=claim_lease,json=claimLease,proto3" json:"claimLease,omitempty"`
 }
 
 func (x *Config) Reset() {
@@ -92,6 +96,13 @@ func (x *Config) GetClaimId() string {
 	return ""
 }
 
+func (x *Config) GetClaimLease() string {
+	if x != nil {
+		return x.ClaimLease
+	}
+	return ""
+}
+
 // ExecConfig is a configuration for the execution routine.
 type ExecConfig struct {
 	unknownFields []byte
@@ -134,6 +145,7 @@ func (m *Config) CloneVT() *Config {
 	r.ResolveControllerConfigTimeout = m.ResolveControllerConfigTimeout
 	r.AllowNonExecController = m.AllowNonExecController
 	r.ClaimId = m.ClaimId
+	r.ClaimLease = m.ClaimLease
 	r.InputWorld = protobuf_go_lite.CloneVTValue(m.InputWorld)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
@@ -187,6 +199,9 @@ func (this *Config) EqualVT(that *Config) bool {
 		return false
 	}
 	if this.ClaimId != that.ClaimId {
+		return false
+	}
+	if this.ClaimLease != that.ClaimLease {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -266,6 +281,11 @@ func (x *Config) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("claimId")
 		s.WriteString(x.ClaimId)
 	}
+	if x.ClaimLease != "" || s.HasField("claimLease") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("claimLease")
+		s.WriteString(x.ClaimLease)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -308,6 +328,9 @@ func (x *Config) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "claim_id", "claimId":
 			s.AddField("claim_id")
 			x.ClaimId = s.ReadString()
+		case "claim_lease", "claimLease":
+			s.AddField("claim_lease")
+			x.ClaimLease = s.ReadString()
 		}
 	})
 }
@@ -403,6 +426,11 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	_ = l
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.ClaimLease) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.ClaimLease)
+		i--
+		dAtA[i] = 0x42
 	}
 	if len(m.ClaimId) > 0 {
 		i = protobuf_go_lite.EncodeString(dAtA, i, m.ClaimId)
@@ -515,6 +543,7 @@ func (m *Config) SizeVT() (n int) {
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.ClaimId)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.ClaimLease)
 	n += len(m.unknownFields)
 	return n
 }
@@ -567,6 +596,10 @@ func (x *Config) MarshalProtoText() string {
 	if x.ClaimId != "" {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "claim_id")
 		protobuf_go_lite.TextWriteString(&sb, x.ClaimId)
+	}
+	if x.ClaimLease != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "claim_lease")
+		protobuf_go_lite.TextWriteString(&sb, x.ClaimLease)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -688,6 +721,16 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.ClaimId = v
+		case 8:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ClaimLease", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.ClaimLease = v
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

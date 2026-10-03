@@ -44,6 +44,10 @@ message Claim {
   string claim_id = 1;
   // Epoch is the monotonic fencing token for this claim.
   uint64 epoch = 2;
+  // LeaseExpiresAt is when the claim stops being live unless its holder renews
+  // it. Once it has passed, a peer that observed the expiry may reclaim the
+  // Execution, which advances the epoch and fences the previous holder.
+  google.protobuf.Timestamp lease_expires_at = 3;
 }
 
 // LogEntry is a single log line from an execution.

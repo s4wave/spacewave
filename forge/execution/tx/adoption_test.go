@@ -3,6 +3,7 @@ package execution_tx
 import (
 	"context"
 	"testing"
+	"time"
 
 	forge_execution "github.com/s4wave/spacewave/forge/execution"
 	forge_value "github.com/s4wave/spacewave/forge/value"
@@ -22,7 +23,7 @@ func TestTxStartAdoptsRunningExecution(t *testing.T) {
 	}
 
 	// Require the same claim to adopt the running execution.
-	err := NewTxStart(peerID, claimID).GetTxStart().ExecuteTx(
+	err := NewTxStart(peerID, time.Now().Add(time.Hour), claimID).GetTxStart().ExecuteTx(
 		context.Background(), peerID, nil, root,
 	)
 	if err != nil {
