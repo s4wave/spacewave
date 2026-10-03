@@ -24,6 +24,7 @@ func NewConfig(blockStoreId, url string, readOnly bool, bucketIDs []string) *Con
 
 // Validate validates the configuration.
 func (c *Config) Validate() error {
+	// Require a block store ID and service URL in the HTTP configuration.
 	if c.GetBlockStoreId() == "" {
 		return block_store.ErrBlockStoreIDEmpty
 	}

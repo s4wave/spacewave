@@ -164,6 +164,7 @@ func (o *TarFSCursorOps) SetModTimestamp(ctx context.Context, mtime time.Time) e
 
 // ReadAt reads from a file node at the given offset.
 func (o *TarFSCursorOps) ReadAt(ctx context.Context, offset int64, data []byte) (int64, error) {
+	// Require a live file cursor before reading archive bytes.
 	if o.CheckReleased() {
 		return 0, unixfs_errors.ErrReleased
 	}
@@ -171,13 +172,16 @@ func (o *TarFSCursorOps) ReadAt(ctx context.Context, offset int64, data []byte) 
 		return 0, unixfs_errors.ErrNotFile
 	}
 
+	// Report reads that begin beyond the file content.
 	if offset >= o.node.size {
 		return 0, io.EOF
 	}
 
+	// Limit the archive read to the remaining file bytes.
 	avail := o.node.size - offset
 	readLen := min(int64(len(data)), avail)
 
+	// Read the file section and report a short read as EOF.
 	n, err := o.node.ra.ReadAt(data[:readLen], o.node.offset+offset)
 	n64 := int64(n)
 	if err == io.EOF && n64 == avail {
@@ -215,6 +219,7 @@ func (o *TarFSCursorOps) Truncate(ctx context.Context, nsize uint64, ts time.Tim
 
 // Lookup looks up a child entry in a directory.
 func (o *TarFSCursorOps) Lookup(ctx context.Context, name string) (unixfs.FSCursor, error) {
+	// Require a live directory cursor before looking up its child.
 	if o.CheckReleased() {
 		return nil, unixfs_errors.ErrReleased
 	}
@@ -222,6 +227,7 @@ func (o *TarFSCursorOps) Lookup(ctx context.Context, name string) (unixfs.FSCurs
 		return nil, unixfs_errors.ErrNotDirectory
 	}
 
+	// Resolve the named child from the tar directory index.
 	child, ok := o.node.childMap[name]
 	if !ok {
 		return nil, unixfs_errors.ErrNotExist
@@ -270,10 +276,12 @@ func (o *TarFSCursorOps) Symlink(ctx context.Context, checkExist bool, name stri
 
 // Readlink reads a symbolic link's target.
 func (o *TarFSCursorOps) Readlink(ctx context.Context, name string) ([]string, bool, error) {
+	// Require a live cursor before resolving a symlink target.
 	if o.CheckReleased() {
 		return nil, false, unixfs_errors.ErrReleased
 	}
 
+	// Resolve the current tar node when no child name is supplied.
 	if name == "" {
 		if !o.node.isLink {
 			return nil, false, unixfs_errors.ErrNotSymlink
@@ -283,6 +291,7 @@ func (o *TarFSCursorOps) Readlink(ctx context.Context, name string) ([]string, b
 		return strings.Split(tgt, "/"), isAbsolute, nil
 	}
 
+	// Resolve the named symlink from the tar directory index.
 	if !o.node.isDir {
 		return nil, false, unixfs_errors.ErrNotDirectory
 	}

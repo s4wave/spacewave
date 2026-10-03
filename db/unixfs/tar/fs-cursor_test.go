@@ -92,12 +92,15 @@ func (b *tarBuilder) finish() *bytes.Reader {
 //	└── src/               (0755)
 //	    └── main.go        (0644, "package main\n")
 func buildTestArchive() *bytes.Reader {
+	// Build the archive directories and their nested files.
 	b := newTarBuilder()
 	b.addDir("docs/", 0o755)
 	b.addFile("docs/guide.txt", "User guide content", 0o644)
 	b.addDir("empty/", 0o755)
 	b.addDir("src/", 0o755)
 	b.addFile("src/main.go", "package main\n", 0o644)
+
+	// Add the root files and symlink to the test archive.
 	b.addFile("README.md", "# Hello World\n", 0o644)
 	b.addFile("build.sh", "#!/bin/sh\necho hello\n", 0o755)
 	b.addSymlink("link.txt", "README.md")
@@ -123,27 +126,32 @@ func mustOps(t *testing.T, c *TarFSCursor) unixfs.FSCursorOps {
 }
 
 func TestReadFile(t *testing.T) {
+	// Open the standard tar archive and its root cursor operations.
 	ctx := context.Background()
 	ra := buildTestArchive()
 	cursor := mustCursor(t, ra)
 	defer cursor.Release()
 	ops := mustOps(t, cursor)
 
+	// Open README.md from the tar root.
 	child, err := ops.Lookup(ctx, "README.md")
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer child.Release()
 
+	// Access the README.md file operations.
 	childOps, err := child.GetCursorOps(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	// Verify README.md is a regular file.
 	if !childOps.GetIsFile() {
 		t.Fatal("expected file")
 	}
 
+	// Read README.md and verify its content ends at EOF.
 	buf := make([]byte, 100)
 	n, err := childOps.ReadAt(ctx, 0, buf)
 	if err != io.EOF {
@@ -155,12 +163,14 @@ func TestReadFile(t *testing.T) {
 }
 
 func TestReadDir(t *testing.T) {
+	// Open the standard tar archive and its root cursor operations.
 	ctx := context.Background()
 	ra := buildTestArchive()
 	cursor := mustCursor(t, ra)
 	defer cursor.Release()
 	ops := mustOps(t, cursor)
 
+	// Collect the sorted entries from the tar root.
 	var names []string
 	err := ops.ReaddirAll(ctx, 0, func(ent unixfs.FSCursorDirent) error {
 		names = append(names, ent.GetName())
@@ -170,6 +180,7 @@ func TestReadDir(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Verify the tar root lists every expected entry in order.
 	expected := []string{"README.md", "build.sh", "docs", "empty", "link.txt", "src"}
 	if len(names) != len(expected) {
 		t.Fatalf("expected %d entries, got %d: %v", len(expected), len(names), names)
@@ -182,12 +193,14 @@ func TestReadDir(t *testing.T) {
 }
 
 func TestReadDirSkip(t *testing.T) {
+	// Open the standard tar archive and its root cursor operations.
 	ctx := context.Background()
 	ra := buildTestArchive()
 	cursor := mustCursor(t, ra)
 	defer cursor.Release()
 	ops := mustOps(t, cursor)
 
+	// Collect tar root entries after skipping the first three.
 	var names []string
 	err := ops.ReaddirAll(ctx, 3, func(ent unixfs.FSCursorDirent) error {
 		names = append(names, ent.GetName())
@@ -197,6 +210,7 @@ func TestReadDirSkip(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Verify the remaining tar entries retain their sorted order.
 	expected := []string{"empty", "link.txt", "src"}
 	if len(names) != len(expected) {
 		t.Fatalf("expected %d entries, got %d: %v", len(expected), len(names), names)
@@ -209,23 +223,27 @@ func TestReadDirSkip(t *testing.T) {
 }
 
 func TestLookupNested(t *testing.T) {
+	// Open the standard tar archive and its root cursor operations.
 	ctx := context.Background()
 	ra := buildTestArchive()
 	cursor := mustCursor(t, ra)
 	defer cursor.Release()
 	ops := mustOps(t, cursor)
 
+	// Open the docs directory from the tar root.
 	docsChild, err := ops.Lookup(ctx, "docs")
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer docsChild.Release()
 
+	// Access the docs directory operations.
 	docsOps, err := docsChild.GetCursorOps(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	// Verify the docs node retains its directory type and name.
 	if !docsOps.GetIsDirectory() {
 		t.Fatal("expected docs to be directory")
 	}
@@ -233,17 +251,20 @@ func TestLookupNested(t *testing.T) {
 		t.Fatalf("expected name 'docs', got %q", docsOps.GetName())
 	}
 
+	// Open guide.txt from the docs directory.
 	guideChild, err := docsOps.Lookup(ctx, "guide.txt")
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer guideChild.Release()
 
+	// Access the guide.txt file operations.
 	guideOps, err := guideChild.GetCursorOps(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	// Read guide.txt and verify its archived content.
 	buf := make([]byte, 100)
 	n, err := guideOps.ReadAt(ctx, 0, buf)
 	if err != io.EOF {
@@ -255,23 +276,27 @@ func TestLookupNested(t *testing.T) {
 }
 
 func TestSymlink(t *testing.T) {
+	// Open the standard tar archive and its root cursor operations.
 	ctx := context.Background()
 	ra := buildTestArchive()
 	cursor := mustCursor(t, ra)
 	defer cursor.Release()
 	ops := mustOps(t, cursor)
 
+	// Open link.txt from the tar root.
 	child, err := ops.Lookup(ctx, "link.txt")
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer child.Release()
 
+	// Access the link.txt symlink operations.
 	childOps, err := child.GetCursorOps(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	// Verify link.txt is a symlink instead of a regular file.
 	if !childOps.GetIsSymlink() {
 		t.Fatal("expected symlink")
 	}
@@ -293,12 +318,14 @@ func TestSymlink(t *testing.T) {
 }
 
 func TestReadlinkFromDir(t *testing.T) {
+	// Open the standard tar archive and its root cursor operations.
 	ctx := context.Background()
 	ra := buildTestArchive()
 	cursor := mustCursor(t, ra)
 	defer cursor.Release()
 	ops := mustOps(t, cursor)
 
+	// Read link.txt through the tar root and verify its relative target.
 	parts, isAbs, err := ops.Readlink(ctx, "link.txt")
 	if err != nil {
 		t.Fatal(err)
@@ -312,15 +339,18 @@ func TestReadlinkFromDir(t *testing.T) {
 }
 
 func TestReadlinkAbsolute(t *testing.T) {
+	// Build a tar archive with an absolute symlink target.
 	ctx := context.Background()
 	b := newTarBuilder()
 	b.addSymlink("abs-link", "/usr/local/bin/foo")
 	ra := b.finish()
 
+	// Open the archive root and its cursor operations.
 	cursor := mustCursor(t, ra)
 	defer cursor.Release()
 	ops := mustOps(t, cursor)
 
+	// Read the absolute symlink and verify every target component.
 	parts, isAbs, err := ops.Readlink(ctx, "abs-link")
 	if err != nil {
 		t.Fatal(err)
@@ -340,31 +370,37 @@ func TestReadlinkAbsolute(t *testing.T) {
 }
 
 func TestHardlink(t *testing.T) {
+	// Build a tar archive with a file and its hardlink.
 	ctx := context.Background()
 	b := newTarBuilder()
 	b.addFile("original.txt", "hardlink content", 0o644)
 	b.addHardlink("linked.txt", "original.txt")
 	ra := b.finish()
 
+	// Open the archive root and its cursor operations.
 	cursor := mustCursor(t, ra)
 	defer cursor.Release()
 	ops := mustOps(t, cursor)
 
+	// Open linked.txt from the tar root.
 	child, err := ops.Lookup(ctx, "linked.txt")
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer child.Release()
 
+	// Access the linked.txt file operations.
 	childOps, err := child.GetCursorOps(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	// Verify the hardlink resolves to a regular file.
 	if !childOps.GetIsFile() {
 		t.Fatal("expected hardlink to be a file")
 	}
 
+	// Read linked.txt and verify it exposes the original file content.
 	buf := make([]byte, 100)
 	n, err := childOps.ReadAt(ctx, 0, buf)
 	if err != io.EOF {
@@ -376,12 +412,15 @@ func TestHardlink(t *testing.T) {
 }
 
 func TestImplicitDirs(t *testing.T) {
+	// Create the tar builder for an entry with implicit parents.
 	ctx := context.Background()
 	b := newTarBuilder()
+
 	// file with no explicit parent dir entries
 	b.addFile("a/b/c/deep.txt", "deep content", 0o644)
 	ra := b.finish()
 
+	// Open the archive root and its cursor operations.
 	cursor := mustCursor(t, ra)
 	defer cursor.Release()
 	ops := mustOps(t, cursor)
@@ -404,18 +443,22 @@ func TestImplicitDirs(t *testing.T) {
 	defer a.Release()
 	aOps, _ := a.GetCursorOps(ctx)
 
+	// Open the implicit b directory beneath a.
 	ab, _ := aOps.Lookup(ctx, "b")
 	defer ab.Release()
 	abOps, _ := ab.GetCursorOps(ctx)
 
+	// Open the implicit c directory beneath a/b.
 	abc, _ := abOps.Lookup(ctx, "c")
 	defer abc.Release()
 	abcOps, _ := abc.GetCursorOps(ctx)
 
+	// Open deep.txt beneath the implicit parent directories.
 	deep, _ := abcOps.Lookup(ctx, "deep.txt")
 	defer deep.Release()
 	deepOps, _ := deep.GetCursorOps(ctx)
 
+	// Read deep.txt and verify its content survived parent creation.
 	buf := make([]byte, 100)
 	n, err := deepOps.ReadAt(ctx, 0, buf)
 	if err != io.EOF {
@@ -427,6 +470,7 @@ func TestImplicitDirs(t *testing.T) {
 }
 
 func TestPermissions(t *testing.T) {
+	// Open the standard tar archive and its root cursor operations.
 	ctx := context.Background()
 	ra := buildTestArchive()
 	cursor := mustCursor(t, ra)
@@ -465,16 +509,19 @@ func TestPermissions(t *testing.T) {
 }
 
 func TestModTimestamp(t *testing.T) {
+	// Open the standard tar archive and its root cursor operations.
 	ctx := context.Background()
 	ra := buildTestArchive()
 	cursor := mustCursor(t, ra)
 	defer cursor.Release()
 	ops := mustOps(t, cursor)
 
+	// Open README.md and its file operations.
 	child, _ := ops.Lookup(ctx, "README.md")
 	defer child.Release()
 	childOps, _ := child.GetCursorOps(ctx)
 
+	// Verify README.md retains its archived modification timestamp.
 	ts, err := childOps.GetModTimestamp(ctx)
 	if err != nil {
 		t.Fatal(err)
@@ -485,12 +532,14 @@ func TestModTimestamp(t *testing.T) {
 }
 
 func TestReadAtOffset(t *testing.T) {
+	// Open the standard tar archive and its root cursor operations.
 	ctx := context.Background()
 	ra := buildTestArchive()
 	cursor := mustCursor(t, ra)
 	defer cursor.Release()
 	ops := mustOps(t, cursor)
 
+	// Open README.md and its file operations.
 	child, _ := ops.Lookup(ctx, "README.md")
 	defer child.Release()
 	childOps, _ := child.GetCursorOps(ctx)
@@ -507,16 +556,19 @@ func TestReadAtOffset(t *testing.T) {
 }
 
 func TestReadAtPastEOF(t *testing.T) {
+	// Open the standard tar archive and its root cursor operations.
 	ctx := context.Background()
 	ra := buildTestArchive()
 	cursor := mustCursor(t, ra)
 	defer cursor.Release()
 	ops := mustOps(t, cursor)
 
+	// Open README.md and its file operations.
 	child, _ := ops.Lookup(ctx, "README.md")
 	defer child.Release()
 	childOps, _ := child.GetCursorOps(ctx)
 
+	// Verify reading beyond README.md returns no bytes and EOF.
 	buf := make([]byte, 10)
 	n, err := childOps.ReadAt(ctx, 1000, buf)
 	if err != io.EOF {
@@ -528,18 +580,22 @@ func TestReadAtPastEOF(t *testing.T) {
 }
 
 func TestEmptyArchive(t *testing.T) {
+	// Build an empty tar archive.
 	ctx := context.Background()
 	b := newTarBuilder()
 	ra := b.finish()
 
+	// Open the empty archive root and its cursor operations.
 	cursor := mustCursor(t, ra)
 	defer cursor.Release()
 	ops := mustOps(t, cursor)
 
+	// Verify the empty tar root is a directory.
 	if !ops.GetIsDirectory() {
 		t.Fatal("root should be directory")
 	}
 
+	// Verify the empty tar root lists no entries.
 	var count int
 	ops.ReaddirAll(ctx, 0, func(ent unixfs.FSCursorDirent) error {
 		count++
@@ -551,16 +607,19 @@ func TestEmptyArchive(t *testing.T) {
 }
 
 func TestGlobalHeader(t *testing.T) {
+	// Build a tar archive with a global header and one file.
 	ctx := context.Background()
 	b := newTarBuilder()
 	b.addGlobalHeader()
 	b.addFile("file.txt", "content", 0o644)
 	ra := b.finish()
 
+	// Open the archive root and its cursor operations.
 	cursor := mustCursor(t, ra)
 	defer cursor.Release()
 	ops := mustOps(t, cursor)
 
+	// Verify the global header is excluded from directory entries.
 	var names []string
 	ops.ReaddirAll(ctx, 0, func(ent unixfs.FSCursorDirent) error {
 		names = append(names, ent.GetName())
@@ -572,12 +631,14 @@ func TestGlobalHeader(t *testing.T) {
 }
 
 func TestReadOnly(t *testing.T) {
+	// Open the standard tar archive and its root cursor operations.
 	ctx := context.Background()
 	ra := buildTestArchive()
 	cursor := mustCursor(t, ra)
 	defer cursor.Release()
 	ops := mustOps(t, cursor)
 
+	// Verify tar metadata and file content cannot be changed.
 	if err := ops.SetPermissions(ctx, 0o644, time.Time{}); err != unixfs_errors.ErrReadOnly {
 		t.Fatalf("SetPermissions: expected ErrReadOnly, got %v", err)
 	}
@@ -593,6 +654,8 @@ func TestReadOnly(t *testing.T) {
 	if err := ops.Truncate(ctx, 0, time.Time{}); err != unixfs_errors.ErrReadOnly {
 		t.Fatalf("Truncate: expected ErrReadOnly, got %v", err)
 	}
+
+	// Verify tar directory entries cannot be created, removed, or moved.
 	if err := ops.Mknod(ctx, true, []string{"x"}, nil, 0, time.Time{}); err != unixfs_errors.ErrReadOnly {
 		t.Fatalf("Mknod: expected ErrReadOnly, got %v", err)
 	}
@@ -611,17 +674,21 @@ func TestReadOnly(t *testing.T) {
 }
 
 func TestRelease(t *testing.T) {
+	// Open a live tar cursor for release checks.
 	ctx := context.Background()
 	ra := buildTestArchive()
 	cursor := mustCursor(t, ra)
 
+	// Verify the tar cursor begins unreleased.
 	if cursor.CheckReleased() {
 		t.Fatal("expected not released")
 	}
 
+	// Acquire cursor operations before releasing the tar cursor.
 	ops := mustOps(t, cursor)
 	cursor.Release()
 
+	// Verify release is visible through the cursor and its operations.
 	if !cursor.CheckReleased() {
 		t.Fatal("expected released")
 	}
@@ -629,6 +696,7 @@ func TestRelease(t *testing.T) {
 		t.Fatal("expected ops released")
 	}
 
+	// Verify the released cursor rejects operation and proxy access.
 	_, err := cursor.GetCursorOps(ctx)
 	if err != unixfs_errors.ErrReleased {
 		t.Fatalf("expected ErrReleased, got %v", err)
@@ -640,11 +708,13 @@ func TestRelease(t *testing.T) {
 }
 
 func TestFromReader(t *testing.T) {
+	// Build a tar archive for the streaming reader constructor.
 	ctx := context.Background()
 	b := newTarBuilder()
 	b.addFile("test.txt", "from reader", 0o644)
 	ra := b.finish()
 
+	// Open the tar reader as a cursor and acquire its operations.
 	cursor, err := NewTarFSCursorFromReader(ra)
 	if err != nil {
 		t.Fatal(err)
@@ -652,12 +722,14 @@ func TestFromReader(t *testing.T) {
 	defer cursor.Release()
 	ops := mustOps(t, cursor)
 
+	// Open test.txt from the buffered tar root.
 	child, err := ops.Lookup(ctx, "test.txt")
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer child.Release()
 
+	// Read test.txt and verify the buffered reader content.
 	childOps, _ := child.GetCursorOps(ctx)
 	buf := make([]byte, 100)
 	n, _ := childOps.ReadAt(ctx, 0, buf)
@@ -667,20 +739,24 @@ func TestFromReader(t *testing.T) {
 }
 
 func TestDuplicateEntries(t *testing.T) {
+	// Build a tar archive with two entries for file.txt.
 	ctx := context.Background()
 	b := newTarBuilder()
 	b.addFile("file.txt", "first", 0o644)
 	b.addFile("file.txt", "second", 0o644)
 	ra := b.finish()
 
+	// Open the archive root and its cursor operations.
 	cursor := mustCursor(t, ra)
 	defer cursor.Release()
 	ops := mustOps(t, cursor)
 
+	// Open the indexed file.txt entry.
 	child, _ := ops.Lookup(ctx, "file.txt")
 	defer child.Release()
 	childOps, _ := child.GetCursorOps(ctx)
 
+	// Verify file.txt exposes the last archived entry.
 	buf := make([]byte, 100)
 	n, _ := childOps.ReadAt(ctx, 0, buf)
 	if string(buf[:n]) != "second" {
@@ -689,16 +765,19 @@ func TestDuplicateEntries(t *testing.T) {
 }
 
 func TestReaddirOnFile(t *testing.T) {
+	// Open the standard tar archive and its root cursor operations.
 	ctx := context.Background()
 	ra := buildTestArchive()
 	cursor := mustCursor(t, ra)
 	defer cursor.Release()
 	ops := mustOps(t, cursor)
 
+	// Open README.md and its file operations.
 	child, _ := ops.Lookup(ctx, "README.md")
 	defer child.Release()
 	childOps, _ := child.GetCursorOps(ctx)
 
+	// Verify a regular file rejects directory enumeration.
 	err := childOps.ReaddirAll(ctx, 0, func(ent unixfs.FSCursorDirent) error {
 		return nil
 	})
@@ -708,12 +787,14 @@ func TestReaddirOnFile(t *testing.T) {
 }
 
 func TestReadAtOnDir(t *testing.T) {
+	// Open the standard tar archive and its root cursor operations.
 	ctx := context.Background()
 	ra := buildTestArchive()
 	cursor := mustCursor(t, ra)
 	defer cursor.Release()
 	ops := mustOps(t, cursor)
 
+	// Verify the tar root rejects file reads.
 	buf := make([]byte, 10)
 	_, err := ops.ReadAt(ctx, 0, buf)
 	if err != unixfs_errors.ErrNotFile {
@@ -722,12 +803,14 @@ func TestReadAtOnDir(t *testing.T) {
 }
 
 func TestLookupNotExist(t *testing.T) {
+	// Open the standard tar archive and its root cursor operations.
 	ctx := context.Background()
 	ra := buildTestArchive()
 	cursor := mustCursor(t, ra)
 	defer cursor.Release()
 	ops := mustOps(t, cursor)
 
+	// Verify the tar root reports a missing child.
 	_, err := ops.Lookup(ctx, "nonexistent")
 	if err != unixfs_errors.ErrNotExist {
 		t.Fatalf("expected ErrNotExist, got %v", err)
@@ -735,12 +818,14 @@ func TestLookupNotExist(t *testing.T) {
 }
 
 func TestReadlinkNotSymlink(t *testing.T) {
+	// Open the standard tar archive and its root cursor operations.
 	ctx := context.Background()
 	ra := buildTestArchive()
 	cursor := mustCursor(t, ra)
 	defer cursor.Release()
 	ops := mustOps(t, cursor)
 
+	// Verify README.md rejects symlink target reads.
 	_, _, err := ops.Readlink(ctx, "README.md")
 	if err != unixfs_errors.ErrNotSymlink {
 		t.Fatalf("expected ErrNotSymlink, got %v", err)
@@ -748,12 +833,14 @@ func TestReadlinkNotSymlink(t *testing.T) {
 }
 
 func TestNodeTypes(t *testing.T) {
+	// Open the standard tar archive and its root cursor operations.
 	ctx := context.Background()
 	ra := buildTestArchive()
 	cursor := mustCursor(t, ra)
 	defer cursor.Release()
 	ops := mustOps(t, cursor)
 
+	// Describe the directory entry fields compared by this test.
 	type entInfo struct {
 		name   string
 		isDir  bool
@@ -761,6 +848,7 @@ func TestNodeTypes(t *testing.T) {
 		isLink bool
 	}
 
+	// Collect the tar root entries with their node types.
 	var entries []entInfo
 	ops.ReaddirAll(ctx, 0, func(ent unixfs.FSCursorDirent) error {
 		entries = append(entries, entInfo{
@@ -772,6 +860,7 @@ func TestNodeTypes(t *testing.T) {
 		return nil
 	})
 
+	// Describe the expected file, directory, and symlink entries.
 	expected := []entInfo{
 		{name: "README.md", isFile: true},
 		{name: "build.sh", isFile: true},
@@ -781,6 +870,7 @@ func TestNodeTypes(t *testing.T) {
 		{name: "src", isDir: true},
 	}
 
+	// Verify the tar directory entries retain their expected node types.
 	if len(entries) != len(expected) {
 		t.Fatalf("expected %d entries, got %d", len(expected), len(entries))
 	}
@@ -792,16 +882,19 @@ func TestNodeTypes(t *testing.T) {
 }
 
 func TestFileSize(t *testing.T) {
+	// Open the standard tar archive and its root cursor operations.
 	ctx := context.Background()
 	ra := buildTestArchive()
 	cursor := mustCursor(t, ra)
 	defer cursor.Release()
 	ops := mustOps(t, cursor)
 
+	// Open README.md and its file operations.
 	child, _ := ops.Lookup(ctx, "README.md")
 	defer child.Release()
 	childOps, _ := child.GetCursorOps(ctx)
 
+	// Verify README.md reports its archived byte length.
 	size, err := childOps.GetSize(ctx)
 	if err != nil {
 		t.Fatal(err)
@@ -812,12 +905,14 @@ func TestFileSize(t *testing.T) {
 }
 
 func TestDirSize(t *testing.T) {
+	// Open the standard tar archive and its root cursor operations.
 	ctx := context.Background()
 	ra := buildTestArchive()
 	cursor := mustCursor(t, ra)
 	defer cursor.Release()
 	ops := mustOps(t, cursor)
 
+	// Verify the tar root reports a zero directory size.
 	size, err := ops.GetSize(ctx)
 	if err != nil {
 		t.Fatal(err)
@@ -828,16 +923,19 @@ func TestDirSize(t *testing.T) {
 }
 
 func TestEmptyDir(t *testing.T) {
+	// Open the standard tar archive and its root cursor operations.
 	ctx := context.Background()
 	ra := buildTestArchive()
 	cursor := mustCursor(t, ra)
 	defer cursor.Release()
 	ops := mustOps(t, cursor)
 
+	// Open the empty directory and its cursor operations.
 	child, _ := ops.Lookup(ctx, "empty")
 	defer child.Release()
 	childOps, _ := child.GetCursorOps(ctx)
 
+	// Verify the empty directory enumerates no entries.
 	var count int
 	childOps.ReaddirAll(ctx, 0, func(ent unixfs.FSCursorDirent) error {
 		count++
@@ -849,11 +947,13 @@ func TestEmptyDir(t *testing.T) {
 }
 
 func TestGetProxyCursor(t *testing.T) {
+	// Open the standard tar archive and its root cursor operations.
 	ctx := context.Background()
 	ra := buildTestArchive()
 	cursor := mustCursor(t, ra)
 	defer cursor.Release()
 
+	// Verify the immutable tar cursor needs no proxy cursor.
 	proxy, err := cursor.GetProxyCursor(ctx)
 	if err != nil {
 		t.Fatal(err)
@@ -864,12 +964,14 @@ func TestGetProxyCursor(t *testing.T) {
 }
 
 func TestCopyReturnsNotDone(t *testing.T) {
+	// Open the standard tar archive and its root cursor operations.
 	ctx := context.Background()
 	ra := buildTestArchive()
 	cursor := mustCursor(t, ra)
 	defer cursor.Release()
 	ops := mustOps(t, cursor)
 
+	// Verify copying out of the tar cursor reports no completed copy.
 	done, err := ops.CopyTo(ctx, nil, "x", time.Time{})
 	if err != nil {
 		t.Fatal(err)
@@ -878,6 +980,7 @@ func TestCopyReturnsNotDone(t *testing.T) {
 		t.Fatal("expected not done")
 	}
 
+	// Verify copying into the tar cursor reports no completed copy.
 	done, err = ops.CopyFrom(ctx, "x", nil, time.Time{})
 	if err != nil {
 		t.Fatal(err)
@@ -888,15 +991,18 @@ func TestCopyReturnsNotDone(t *testing.T) {
 }
 
 func TestExactRead(t *testing.T) {
+	// Build a tar archive with a five-byte file.
 	ctx := context.Background()
 	b := newTarBuilder()
 	b.addFile("exact.txt", "12345", 0o644)
 	ra := b.finish()
 
+	// Open the archive root and its cursor operations.
 	cursor := mustCursor(t, ra)
 	defer cursor.Release()
 	ops := mustOps(t, cursor)
 
+	// Open exact.txt and its file operations.
 	child, _ := ops.Lookup(ctx, "exact.txt")
 	defer child.Release()
 	childOps, _ := child.GetCursorOps(ctx)
@@ -907,6 +1013,7 @@ func TestExactRead(t *testing.T) {
 	if n != 5 {
 		t.Fatalf("expected 5, got %d", n)
 	}
+
 	// at exact boundary, either nil or EOF is acceptable
 	if err != nil && err != io.EOF {
 		t.Fatalf("expected nil or io.EOF, got %v", err)

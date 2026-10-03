@@ -87,6 +87,7 @@ func (b *HTTPBlock) BeginReadOperation(context.Context) (block.StoreOps, func(),
 // PutBlock puts a block into the store.
 // Stores should check if the block already exists if possible.
 func (b *HTTPBlock) PutBlock(ctx context.Context, data []byte, opts *block.PutOpts) (ref *block.BlockRef, exists bool, err error) {
+	// Require HTTPBlock write access before sending a block.
 	if !b.write {
 		return nil, false, block_store.ErrReadOnly
 	}
@@ -108,6 +109,7 @@ func (b *HTTPBlock) PutBlock(ctx context.Context, data []byte, opts *block.PutOp
 		return nil, false, err
 	}
 
+	// Send the block PUT request and read its HTTP response.
 	req, err := http.NewRequestWithContext(ctx, "POST", putURL.String(), bytes.NewReader(bodyDat))
 	if err != nil {
 		return nil, false, err
@@ -137,6 +139,7 @@ func (b *HTTPBlock) PutBlock(ctx context.Context, data []byte, opts *block.PutOp
 		}
 	}
 
+	// Decode and validate the block PUT response.
 	putResp := &PutResponse{}
 	if err := putResp.UnmarshalVT(respBody); err != nil {
 		return nil, false, err
@@ -145,6 +148,7 @@ func (b *HTTPBlock) PutBlock(ctx context.Context, data []byte, opts *block.PutOp
 		return nil, false, err
 	}
 
+	// Propagate the block service failure from the PUT response.
 	if errStr := putResp.GetErr(); errStr != "" {
 		return nil, false, errors.Wrap(errors.New(errStr), "service error")
 	}
@@ -205,14 +209,18 @@ func (b *HTTPBlock) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*b
 // get fetches and verifies a block from /get/{ref}, asking for its refs when
 // withRefs is set. Returns nil when the block is not found.
 func (b *HTTPBlock) get(ctx context.Context, ref *block.BlockRef, withRefs bool) (*block.StoredBlock, error) {
+	// Require a block reference before fetching its content.
 	if ref.GetEmpty() {
 		return nil, block.ErrEmptyBlockRef
 	}
 
+	// Address the block GET endpoint with the requested reference mode.
 	getURL := b.baseURL.JoinPath(GetPath, ref.MarshalString())
 	if withRefs {
 		getURL.RawQuery = RefsQuery
 	}
+
+	// Fetch the block response and retain its body for decoding.
 	req, err := http.NewRequestWithContext(ctx, "GET", getURL.String(), nil)
 	if err != nil {
 		return nil, err
@@ -235,6 +243,7 @@ func (b *HTTPBlock) get(ctx context.Context, ref *block.BlockRef, withRefs bool)
 		}
 	}
 
+	// Decode the block GET response and resolve errors or missing content.
 	getResp := &GetResponse{}
 	if err := getResp.UnmarshalVT(respBody); err != nil {
 		return nil, err
@@ -272,6 +281,7 @@ func (b *HTTPBlock) get(ctx context.Context, ref *block.BlockRef, withRefs bool)
 // GetBlockExists checks if a block exists in the store.
 // Returns found, and any unexpected error.
 func (b *HTTPBlock) GetBlockExists(ctx context.Context, ref *block.BlockRef) (bool, error) {
+	// Require a block reference before checking its existence.
 	if ref.GetEmpty() {
 		return false, block.ErrEmptyBlockRef
 	}
@@ -280,6 +290,7 @@ func (b *HTTPBlock) GetBlockExists(ctx context.Context, ref *block.BlockRef) (bo
 	refB58 := ref.MarshalString()
 	existsURL := b.baseURL.JoinPath(ExistsPath, refB58)
 
+	// Query block existence and read the HTTP response.
 	req, err := http.NewRequestWithContext(ctx, "GET", existsURL.String(), nil)
 	if err != nil {
 		return false, err
@@ -302,6 +313,7 @@ func (b *HTTPBlock) GetBlockExists(ctx context.Context, ref *block.BlockRef) (bo
 		}
 	}
 
+	// Decode the block existence result and propagate service errors.
 	existsResp := &ExistsResponse{}
 	if err := existsResp.UnmarshalVT(respBody); err != nil {
 		return false, err
@@ -342,6 +354,7 @@ func (b *HTTPBlock) StatBlock(ctx context.Context, ref *block.BlockRef) (*block.
 // RmBlock deletes a block from the store.
 // Should not return an error if the block did not exist.
 func (b *HTTPBlock) RmBlock(ctx context.Context, ref *block.BlockRef) error {
+	// Require a block reference and write access before deletion.
 	if ref.GetEmpty() {
 		return block.ErrEmptyBlockRef
 	}
@@ -353,6 +366,7 @@ func (b *HTTPBlock) RmBlock(ctx context.Context, ref *block.BlockRef) error {
 	refB58 := ref.MarshalString()
 	rmURL := b.baseURL.JoinPath(RmPath, refB58)
 
+	// Send the block DELETE request and read its HTTP response.
 	req, err := http.NewRequestWithContext(ctx, "DELETE", rmURL.String(), nil)
 	if err != nil {
 		return err
@@ -366,6 +380,7 @@ func (b *HTTPBlock) RmBlock(ctx context.Context, ref *block.BlockRef) error {
 	if err != nil {
 		return err
 	}
+
 	// handle 404 not found
 	if resp.StatusCode != 200 {
 		contentType := resp.Header.Get("content-type")
@@ -374,6 +389,7 @@ func (b *HTTPBlock) RmBlock(ctx context.Context, ref *block.BlockRef) error {
 		}
 	}
 
+	// Decode the block deletion result and propagate service errors.
 	rmResp := &RmResponse{}
 	if err := rmResp.UnmarshalVT(respBody); err != nil {
 		return err

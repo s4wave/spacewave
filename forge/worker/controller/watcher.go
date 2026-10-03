@@ -22,6 +22,7 @@ func (c *Controller) ProcessState(
 	obj world.ObjectState, // may be nil if not found
 	rootRef *bucket.ObjectRef, rev uint64,
 ) (waitForChanges bool, err error) {
+	// Wait for the Worker object before reconciling its assignments.
 	objKey := c.objKey
 	if obj == nil {
 		le.Debug("object does not exist, waiting")
@@ -39,6 +40,7 @@ func (c *Controller) ProcessState(
 		return true, err
 	}
 
+	// Require valid Worker state before starting its trackers.
 	if err := workerState.Validate(); err != nil {
 		le.WithError(err).Warn("object is invalid, waiting")
 		return true, nil
@@ -106,6 +108,7 @@ func (c *Controller) ProcessState(
 		assignedObjs,
 	)
 
+	// Reconcile object trackers with the Worker keypair assignments.
 	c.objectTrackers.SyncKeys(assignedObjs, true)
 	return true, nil
 }

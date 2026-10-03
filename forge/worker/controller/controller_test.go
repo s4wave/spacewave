@@ -16,8 +16,8 @@ import (
 
 // TestWorkerController tests basic mechanics of the worker controller.
 func TestWorkerController(t *testing.T) {
+	// Start a verbose World testbed for the Worker controller.
 	ctx := context.Background()
-
 	verbose := true
 	tb, err := testbed.Default(ctx, world_testbed.WithWorldVerbose(verbose))
 	if err != nil {
@@ -36,6 +36,7 @@ func TestWorkerController(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// Run a Worker task against the resolved mock target.
 	ts := timestamp.Now()
 	taskMap := map[string]*forge_target.Target{
 		"test-task": tgt,
@@ -46,6 +47,8 @@ func TestWorkerController(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Verify the Worker completes its assigned job.
 	if outState.GetJobState() != forge_job.State_JobState_COMPLETE {
 		t.Fatalf("expected job state COMPLETE but got %s", outState.GetJobState().String())
 	}

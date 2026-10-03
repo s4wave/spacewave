@@ -69,19 +69,23 @@ func (rc *readCounter) Read(p []byte) (int, error) {
 // parseTar parses a tar archive from an io.ReaderAt and builds a tarNode tree.
 // The returned root node is a directory containing all entries.
 func parseTar(ra io.ReaderAt, size int64) (*tarNode, error) {
+	// Create the tar root and index for parsed archive entries.
 	root := &tarNode{
 		isDir:    true,
 		mode:     fs.ModeDir | 0o755,
 		childMap: make(map[string]*tarNode),
 	}
 	nodes := map[string]*tarNode{".": root}
+
 	// Hardlinks may reference a target that appears later in the archive;
 	// resolve them in a second pass.
 	var pendingLinks []pendingLink
 
+	// Track archive byte offsets while decoding tar headers.
 	counter := &readCounter{r: io.NewSectionReader(ra, 0, size)}
 	tr := tar.NewReader(counter)
 
+	// Build the tar directory tree from supported archive entries.
 	for {
 		hdr, err := tr.Next()
 		if err == io.EOF {
@@ -191,6 +195,7 @@ type pendingLink struct {
 
 // ensureParent ensures all parent directories of name exist in the tree.
 func ensureParent(nodes map[string]*tarNode, root *tarNode, name string) {
+	// Find the missing parent directory in the tar node index.
 	dir := path.Dir(name)
 	if dir == "." {
 		return
@@ -202,6 +207,7 @@ func ensureParent(nodes map[string]*tarNode, root *tarNode, name string) {
 	// recursively ensure grandparent
 	ensureParent(nodes, root, dir)
 
+	// Attach the implicit directory to its parent and index it.
 	node := &tarNode{
 		name:     path.Base(dir),
 		isDir:    true,
@@ -226,10 +232,13 @@ func sortAll(node *tarNode) {
 
 // parseTarFromReader reads the entire tar into memory and parses it.
 func parseTarFromReader(r io.Reader) (*tarNode, io.ReaderAt, error) {
+	// Buffer the tar input for random access to file content.
 	data, err := io.ReadAll(r)
 	if err != nil {
 		return nil, nil, err
 	}
+
+	// Parse the buffered archive into a tar directory tree.
 	ra := bytes.NewReader(data)
 	root, err := parseTar(ra, int64(len(data)))
 	if err != nil {
