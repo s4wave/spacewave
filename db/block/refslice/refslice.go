@@ -193,67 +193,6 @@ func (d *BlockRefSlice) FollowBlockRefAsCursor(idx int) (*block.Cursor, *block.B
 	return subRef, ref, nil
 }
 
-// RemoveBlockRefs removes one or more directory entries.
-// refs must be sorted.
-// returns if any were removed.
-// after removing all entries be sure to call SortBlockRefs.
-func (d *BlockRefSlice) RemoveBlockRefs(rmRefs []*block.BlockRef) (bool, error) {
-	// Leave the reference slice unchanged when no removal can be requested.
-	if d.refs == nil || len(rmRefs) == 0 {
-		return false, nil
-	}
-
-	// Remove matching references and update their positions in the block graph.
-	refs := *d.refs
-	nextRef := refs[0]
-	var any bool
-BlockRefLoop:
-	for di := 0; di < len(refs); di++ {
-		ref := refs[di]
-		for nextRef.LessThan(ref) {
-			rmRefs = rmRefs[1:]
-			if len(rmRefs) == 0 {
-				break BlockRefLoop
-			}
-			nextRef = rmRefs[0]
-		}
-		if ref.EqualsRef(nextRef) {
-			any = true
-			rmRefs = rmRefs[1:]
-			// clear old reference
-			if d.bcs != nil {
-				d.bcs.ClearRef(uint32(di)) //nolint:gosec
-			}
-			if di+1 < len(refs) {
-				// update block graph with pre-remove swap
-				swapIdx := len(refs) - 1
-				if d.bcs != nil {
-					sb := d.bcs.FollowSubBlock(uint32(swapIdx)) //nolint:gosec
-					d.bcs.SetRef(uint32(di), sb)                //nolint:gosec
-				}
-				refs[di] = refs[swapIdx]
-			}
-			// remove ref from slice
-			refs = refs[:len(refs)-1]
-			if len(refs) == 0 {
-				refs = nil
-			}
-			*d.refs = refs
-			if d.bcs != nil {
-				d.bcs.SetBlock(d, true)
-			}
-			if len(refs) == 0 {
-				break BlockRefLoop
-			} else {
-				nextRef = refs[0]
-			}
-		}
-	}
-
-	// NOTE: call SortBlockRefs if any is true!
-	return any, nil
-}
-
 // AppendBlockRef appends a entry to the ref slice.
 func (d *BlockRefSlice) AppendBlockRef(nent *block.BlockRef) *block.Cursor {
 	// Append the reference to the slice and require a cursor to update its block graph.
