@@ -668,7 +668,7 @@ func TestPackReadGrants(t *testing.T) {
 		}
 		if r.PathValue("n") != strconv.Itoa(grants) || refuse {
 			refuse = false
-			w.WriteHeader(http.StatusForbidden)
+			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
 

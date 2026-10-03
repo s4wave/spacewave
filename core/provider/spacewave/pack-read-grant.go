@@ -97,9 +97,10 @@ func (c *SessionClient) grantPackRead(req *http.Request, resourceID, packID stri
 }
 
 // observePackRead forgets the grant of a refused range request, so the next
-// request asks for a new one.
+// request asks for a new one. The bucket answers an expired or invalid
+// download authorization with 401, and other origins refuse with 403.
 func (c *SessionClient) observePackRead(resp *http.Response, resourceID, packID string) {
-	if resp.StatusCode != http.StatusForbidden {
+	if resp.StatusCode != http.StatusUnauthorized && resp.StatusCode != http.StatusForbidden {
 		return
 	}
 	c.readGrantsMtx.Lock()
