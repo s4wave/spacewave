@@ -106,13 +106,13 @@ func main() {
 	dsn := "/" + dbName
 	buildTx := func(write bool) (*mysql.Tx, *gorm.DB, *sql.DB) {
 		// Open the MySQL transaction used by the ORM adapter.
-		tx, err := sq.NewMysqlTransaction(ctx, true)
+		tx, err := sq.NewMysqlTransaction(ctx, write)
 		if err != nil {
 			panic(err)
 		}
 
-		// assert that the database exists
-		_, err = tx.OpenDatabase(ctx, dbName, true)
+		// Open the example database, creating it in a write transaction.
+		_, err = tx.OpenDatabase(ctx, dbName, write)
 		if err != nil {
 			panic(err)
 		}
@@ -144,7 +144,9 @@ func main() {
 		{Value: 30, ID: 3},
 	}
 	for _, v := range createVals {
-		db.Create(v)
+		if err := db.Create(v).Error; err != nil {
+			panic(err)
+		}
 	}
 
 	// Commit the example entries to the bucket-backed database.
@@ -156,7 +158,6 @@ func main() {
 
 	// Read all persisted entries and require the complete result set.
 	tx, db, _ = buildTx(false)
-	_ = tx
 	var se []Entry
 	out := db.Find(&se)
 	if out.Error != nil {
