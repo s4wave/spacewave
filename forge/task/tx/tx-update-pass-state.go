@@ -57,6 +57,7 @@ func (t *TxUpdateWithPassState) ExecuteTx(
 		return err
 	}
 
+	// Advance the Task state when its current Pass finishes or disappears.
 	currPassState := currPass.GetPassState()
 	switch currPassState {
 	case forge_pass.State_PassState_UNKNOWN:

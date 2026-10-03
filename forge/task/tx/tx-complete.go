@@ -67,16 +67,19 @@ func (t *TxComplete) ExecuteTx(
 	bcs *block.Cursor,
 	root *forge_task.Task,
 ) error {
+	// Open the Target referenced by the Task being completed.
 	tgt, _, err := root.FollowTargetRef(ctx, bcs)
 	if err != nil {
 		return err
 	}
 
+	// Supply an empty Result when the completion request has none.
 	result := t.GetResult()
 	if result == nil {
 		result = &forge_value.Result{}
 	}
 
+	// Validate successful completion against the Task state and Pass outputs.
 	var passOutputs forge_value.ValueSlice
 	if result.IsSuccessful() {
 		// an illegal source state is a precondition violation, not an outcome:
@@ -105,6 +108,7 @@ func (t *TxComplete) ExecuteTx(
 		)
 	}
 
+	// Preserve successful Pass outputs and fill the failure description.
 	result.FillFailError()
 	if result.GetSuccess() && len(tgt.GetOutputs()) != 0 {
 		if root.ValueSet == nil {
@@ -113,6 +117,7 @@ func (t *TxComplete) ExecuteTx(
 		root.ValueSet.Outputs = passOutputs
 	}
 
+	// Persist the Task with its terminal Result.
 	root.TaskState = forge_task.State_TaskState_COMPLETE
 	root.Result = result
 	bcs.SetBlock(root, true)
@@ -126,6 +131,7 @@ func validateTaskCompletion(
 	root *forge_task.Task,
 	tgt *forge_target.Target,
 ) (forge_value.ValueSlice, error) {
+	// Load and validate the Pass for the Task attempt being completed.
 	tpass, _, _, err := forge_task.LookupTaskPass(
 		ctx,
 		worldState,
@@ -142,6 +148,7 @@ func validateTaskCompletion(
 		return nil, errors.Wrap(err, "pass")
 	}
 
+	// Require a successful terminal Result from the Pass.
 	passResult := tpass.GetResult()
 	if !passResult.GetSuccess() {
 		passResult.FillFailError()
@@ -155,6 +162,7 @@ func validateTaskCompletion(
 		)
 	}
 
+	// Recompute the Target outputs and compare them with the saved Pass values.
 	outputs := tgt.GetOutputs()
 	if len(outputs) == 0 {
 		return nil, nil

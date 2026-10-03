@@ -40,11 +40,14 @@ func TestTxRetryValidateAcceptsNamedInputs(t *testing.T) {
 }
 
 func TestSameInputsUsesValueContent(t *testing.T) {
+	// Verify separately allocated input values compare by their content.
 	left := forge_value.ValueSlice{forge_value.NewValue("continuation")}
 	right := forge_value.ValueSlice{forge_value.NewValue("continuation")}
 	if !sameInputs(left, right) {
 		t.Fatal("equal named inputs did not compare equal")
 	}
+
+	// Verify a changed input name makes the value sets differ.
 	right[0].Name = "other"
 	if sameInputs(left, right) {
 		t.Fatal("different named inputs compared equal")
@@ -52,18 +55,22 @@ func TestSameInputsUsesValueContent(t *testing.T) {
 }
 
 func TestTxRetryClearsTerminalTaskResultAndRetainsAttemptHistory(t *testing.T) {
+	// Open a World testbed for the retry and its retained attempt history.
 	ctx := t.Context()
 	tb, err := world_testbed.Default(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
 	t.Cleanup(tb.Release)
+
+	// Prepare the Task and predecessor Pass with a disabled Target.
 	sender := tb.Volume.GetPeerID()
 	taskKey := "test/task/retry-result"
 	passKey := forge_task.NewPassKey(taskKey, 1)
 	target := &forge_target.Target{Exec: &forge_target.Exec{Disable: true}}
 	ts := timestamppb.Now()
 
+	// Create the Task for the failed attempt.
 	{
 		createdObject, _, err := forge_task.CreateTaskWithTarget(ctx, tb.WorldState, sender,
 			taskKey, "retry-result", target, "", 1, nil, ts)
@@ -72,12 +79,16 @@ func TestTxRetryClearsTerminalTaskResultAndRetainsAttemptHistory(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
+
+	// Install the Target on the Task before starting its Pass.
 	updateTarget := NewTxUpdateInputs(taskKey)
 	updateTarget.TxUpdateInputs.UpdateTarget = true
 	updateTarget.TxUpdateInputs.ResetInputs = true
 	if _, _, err := tb.WorldState.ApplyWorldOp(ctx, updateTarget, sender); err != nil {
 		t.Fatal(err)
 	}
+
+	// Create the predecessor Pass with the Task Target.
 	{
 		createdObject2, _, err := forge_pass.CreatePassWithTarget(ctx, tb.WorldState, sender,
 			passKey, forge_target.NewValueSet(), target.CloneVT(), 1, 1, "", nil, ts)
@@ -86,6 +97,8 @@ func TestTxRetryClearsTerminalTaskResultAndRetainsAttemptHistory(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
+
+	// Link the predecessor Pass to the Task and start its execution.
 	if err := tb.WorldState.SetGraphQuad(ctx,
 		forge_task.NewTaskToPassQuad(taskKey, passKey, 1)); err != nil {
 		t.Fatal(err)
@@ -94,17 +107,23 @@ func TestTxRetryClearsTerminalTaskResultAndRetainsAttemptHistory(t *testing.T) {
 		passKey, []*pass_tx.ExecSpec{{PeerId: sender.String()}}, true), sender); err != nil {
 		t.Fatal(err)
 	}
+
+	// Open the predecessor execution for its claim and failure transitions.
 	executionKey := forge_pass.BuildPassExecutionObjKey(passKey, sender.String())
 	executionObject, err := world.MustGetObject(ctx, tb.WorldState, executionKey)
 	defer world.ReleaseObjectState(executionObject)
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Claim the predecessor execution for this attempt.
 	const claimID = "retry-history"
 	if _, _, err := executionObject.ApplyObjectOp(ctx,
 		execution_tx.NewTxStart(sender, claimID), sender); err != nil {
 		t.Fatal(err)
 	}
+
+	// Complete the execution with a failure and update the Pass readback.
 	failed := forge_value.NewResultWithError(errRetryFixture)
 	if _, _, err := executionObject.ApplyObjectOp(ctx, execution_tx.NewTxComplete(
 		failed.Clone(), &forge_execution.Claim{ClaimId: claimID, Epoch: 1}), sender); err != nil {
@@ -114,12 +133,17 @@ func TestTxRetryClearsTerminalTaskResultAndRetainsAttemptHistory(t *testing.T) {
 		pass_tx.NewTxUpdateExecStates(passKey), sender); err != nil {
 		t.Fatal(err)
 	}
+
+	// Record the failed Task with predecessor outputs to discard on retry.
 	if _, _, err := world.AccessWorldObject(ctx, tb.WorldState, taskKey, true,
 		func(bcs *block.Cursor) error {
+			// Read the Task before recording the terminal attempt.
 			task, err := forge_task.UnmarshalTask(ctx, bcs)
 			if err != nil {
 				return err
 			}
+
+			// Save the failed Task with its predecessor Result and outputs.
 			task.TaskState = forge_task.State_TaskState_COMPLETE
 			task.PassNonce = 1
 			task.Result = failed.Clone()
@@ -132,12 +156,17 @@ func TestTxRetryClearsTerminalTaskResultAndRetainsAttemptHistory(t *testing.T) {
 		}); err != nil {
 		t.Fatal(err)
 	}
+
+	// Record the predecessor Pass as completed with the execution failure.
 	if _, _, err := world.AccessWorldObject(ctx, tb.WorldState, passKey, true,
 		func(bcs *block.Cursor) error {
+			// Read the Pass before recording the terminal attempt.
 			pass, err := forge_pass.UnmarshalPass(ctx, bcs)
 			if err != nil {
 				return err
 			}
+
+			// Save the completed Pass with its failed Result.
 			pass.PassState = forge_pass.State_PassState_COMPLETE
 			pass.Result = failed.Clone()
 			bcs.SetBlock(pass, true)
@@ -146,6 +175,7 @@ func TestTxRetryClearsTerminalTaskResultAndRetainsAttemptHistory(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Retry the failed Task with new continuation inputs.
 	nextInputs := &forge_target.ValueSet{Inputs: forge_value.ValueSlice{
 		forge_value.NewValueWithWorldObjectSnapshot("continuation",
 			&forge_value.WorldObjectSnapshot{Key: "session"}),
@@ -154,11 +184,15 @@ func TestTxRetryClearsTerminalTaskResultAndRetainsAttemptHistory(t *testing.T) {
 		NewTxRetry(taskKey, 1, nextInputs), sender); err != nil {
 		t.Fatalf("retry failed task: %v", err)
 	}
+
+	// Read the retried Task to inspect its persisted state.
 	task, objectState, err := forge_task.LookupTask(ctx, tb.WorldState, taskKey)
 	world.ReleaseObjectState(objectState)
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Verify the retried Task is pending with only the new inputs.
 	if err := task.Validate(); err != nil {
 		t.Fatalf("retried task is invalid: %v", err)
 	}
@@ -174,10 +208,14 @@ func TestTxRetryClearsTerminalTaskResultAndRetainsAttemptHistory(t *testing.T) {
 	if !sameInputs(task.GetValueSet().GetInputs(), nextInputs.GetInputs()) {
 		t.Fatal("retry inputs were not installed")
 	}
+
+	// Verify replaying the same retry leaves the Task valid.
 	if _, _, err := tb.WorldState.ApplyWorldOp(ctx,
 		NewTxRetry(taskKey, 1, nextInputs), sender); err != nil {
 		t.Fatalf("same retry replay: %v", err)
 	}
+
+	// Verify replaying the retry with different inputs is rejected.
 	differentInputs := &forge_target.ValueSet{Inputs: forge_value.ValueSlice{
 		forge_value.NewValueWithWorldObjectSnapshot("other",
 			&forge_value.WorldObjectSnapshot{Key: "session-2"}),
@@ -186,6 +224,8 @@ func TestTxRetryClearsTerminalTaskResultAndRetainsAttemptHistory(t *testing.T) {
 		NewTxRetry(taskKey, 1, differentInputs), sender); err == nil {
 		t.Fatal("retry accepted different inputs after idempotent replay")
 	}
+
+	// Verify the retry preserves the predecessor Pass and its Result.
 	passes, _, passKeys, err := forge_task.CollectTaskPasses(ctx, tb.WorldState, taskKey)
 	if err != nil {
 		t.Fatal(err)
@@ -196,6 +236,8 @@ func TestTxRetryClearsTerminalTaskResultAndRetainsAttemptHistory(t *testing.T) {
 	if !passes[0].GetResult().Equals(failed) {
 		t.Fatal("predecessor result history changed")
 	}
+
+	// Verify the retry preserves the predecessor execution Result.
 	execution, objectState2, err := forge_execution.LookupExecution(ctx, tb.WorldState, executionKey)
 	world.ReleaseObjectState(objectState2)
 	if err != nil {
@@ -205,9 +247,12 @@ func TestTxRetryClearsTerminalTaskResultAndRetainsAttemptHistory(t *testing.T) {
 		t.Fatal("execution result history changed")
 	}
 
+	// Start the successor Pass from the pending Task.
 	if _, _, err := tb.WorldState.ApplyWorldOp(ctx, NewTxStart(taskKey, true), sender); err != nil {
 		t.Fatalf("start successor pass: %v", err)
 	}
+
+	// Verify the Task is running its second Pass.
 	var objectState3 world.ObjectState
 	task, objectState3, err = forge_task.LookupTask(ctx, tb.WorldState, taskKey)
 	world.ReleaseObjectState(objectState3)
@@ -217,6 +262,8 @@ func TestTxRetryClearsTerminalTaskResultAndRetainsAttemptHistory(t *testing.T) {
 	if task.GetTaskState() != forge_task.State_TaskState_RUNNING || task.GetPassNonce() != 2 {
 		t.Fatalf("successor task = state %s pass %d, want RUNNING pass 2", task.GetTaskState(), task.GetPassNonce())
 	}
+
+	// Verify the successor adds a Pass without replacing attempt history.
 	passes, _, passKeys, err = forge_task.CollectTaskPasses(ctx, tb.WorldState, taskKey)
 	if err != nil {
 		t.Fatal(err)
@@ -224,6 +271,8 @@ func TestTxRetryClearsTerminalTaskResultAndRetainsAttemptHistory(t *testing.T) {
 	if len(passes) != 2 {
 		t.Fatalf("pass history length = %d, want 2 (%v)", len(passes), passKeys)
 	}
+
+	// Verify the successor Pass starts without predecessor outputs.
 	secondPass, _, _, err := forge_task.LookupTaskPass(ctx, tb.WorldState, taskKey, 2)
 	if err != nil {
 		t.Fatal(err)

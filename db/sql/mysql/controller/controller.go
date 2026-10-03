@@ -44,6 +44,7 @@ type Controller struct {
 
 // NewController constructs a new MySQL controller.
 func NewController(le *logrus.Entry, b bus.Bus, conf *Config, sfs *block_transform.StepFactorySet) (*Controller, error) {
+	// Construct the transformer for persisted SQL head state.
 	xfrm, err := block_transform.NewTransformer(
 		controller.ConstructOpts{Logger: le},
 		sfs,
@@ -52,6 +53,8 @@ func NewController(le *logrus.Entry, b bus.Bus, conf *Config, sfs *block_transfo
 	if err != nil {
 		return nil, err
 	}
+
+	// Connect the MySQL setup routine to the SQL controller.
 	ctrl := &Controller{
 		le:   le,
 		b:    b,
@@ -70,8 +73,8 @@ func NewController(le *logrus.Entry, b bus.Bus, conf *Config, sfs *block_transfo
 
 // executeDB executes the mysql setup logic.
 func (c *Controller) executeDB(ctx context.Context, ctr *ccontainer.CContainer[*hydra_sql.SqlStore]) error {
+	// Scope SQL setup and store publication to this database routine.
 	le := c.le
-
 	rctx, rctxCancel := context.WithCancel(ctx)
 	defer rctxCancel()
 
@@ -91,6 +94,7 @@ func (c *Controller) executeDB(ctx context.Context, ctr *ccontainer.CContainer[*
 		le.Debug("no volume id set, using any available volume")
 	}
 
+	// Acquire the configured object store for SQL head persistence.
 	var stateStore object.ObjectStore
 	if stateStoreID != "" {
 		storeVal, _, storeRef, err := volume.ExBuildObjectStoreAPI(ctx, c.b, false, stateStoreID, stateStoreVol, nil)
@@ -101,6 +105,8 @@ func (c *Controller) executeDB(ctx context.Context, ctr *ccontainer.CContainer[*
 
 		stateStore = storeVal.GetObjectStore()
 	}
+
+	// Prefer the persisted SQL head over the configured initial reference.
 	var headState *HeadState
 	if stateStore != nil {
 		// Apply the configured object-store key prefix.
@@ -204,10 +210,13 @@ func (c *Controller) HandleDirective(
 		if serviceID != "" && serviceID == d.LookupRpcServiceID() {
 			return directive.R(
 				directive.NewGetterResolver(func(ctx context.Context) (bifrost_rpc.LookupRpcServiceValue, error) {
+					// Wait for the SQL store before exposing its RPC service.
 					store, err := c.GetSqlStore(ctx)
 					if err != nil {
 						return nil, err
 					}
+
+					// Register the SQL store handler in the service RPC multiplexer.
 					mux := srpc.NewMux()
 					handler := sql_rpc.NewSRPCSqlHandler(sql_rpc_server.NewStore(store), serviceID)
 					if err := mux.Register(handler); err != nil {

@@ -20,28 +20,32 @@ import (
 
 // TestMysqlDb performs a simple test of operations against the db.
 func TestMysqlDb(t *testing.T) {
+	// Prepare the logger and context for the SQL controller test.
 	ctx := context.Background()
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
 
+	// Open a storage testbed for the SQL database and RPC service.
 	tb, err := testbed.NewTestbed(ctx, le)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Acquire an empty bucket cursor for the storage fixture.
 	ocs, err := tb.BuildEmptyCursor(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	defer ocs.Release()
 
+	// Prepare the SQL database identifiers and block transform factories.
 	sfs := transform_all.BuildFactorySet()
-
 	dbID := "test-db"
 	bucketID := dbID
 	objStoreID := dbID
 
+	// Configure the SQL bucket on the testbed volume.
 	bucketConf, err := bucket.NewConfig(bucketID, 1, nil)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -59,6 +63,7 @@ func TestMysqlDb(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// Configure the controller to create a database and publish its RPC service.
 	dbName := "test-db"
 	sqlRpcServiceID := "test/sql/rpc"
 	conf := &Config{
@@ -70,11 +75,13 @@ func TestMysqlDb(t *testing.T) {
 		SqlRpcServiceId: sqlRpcServiceID,
 	}
 
+	// Construct the MySQL controller with the storage configuration.
 	ctrl, err := NewController(le, tb.Bus, conf, sfs)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Attach the MySQL controller for the duration of the test.
 	relCtrl, err := tb.Bus.AddController(ctx, ctrl, func(err error) {
 		if err != nil && err != context.Canceled {
 			t.Fatal(err.Error())
@@ -85,6 +92,7 @@ func TestMysqlDb(t *testing.T) {
 	}
 	defer relCtrl()
 
+	// Open the SQL store and a write transaction for the initial table.
 	// init data
 	tableName := "test-table"
 	rctx := sql.NewEmptyContext().WithContext(ctx)
@@ -98,11 +106,15 @@ func TestMysqlDb(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Open the database created by the controller configuration.
 	// create=false because we are testing CreateDbs above
 	db, err := tx.OpenDatabase(ctx, dbName, false)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Verify the configured database begins without tables.
 	names, err := db.GetTableNames(rctx)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -110,6 +122,8 @@ func TestMysqlDb(t *testing.T) {
 	if len(names) != 0 {
 		t.Fatal("expected db to start empty")
 	}
+
+	// Create the test table with its primary key and typed columns.
 	pkSchema := sql.NewPrimaryKeySchema(sql.Schema{
 		{Name: "id", Type: types.Int64, Nullable: false, Source: tableName, PrimaryKey: true, AutoIncrement: true},
 		{Name: "name", Type: types.Text, Nullable: false, Source: tableName},
@@ -121,6 +135,8 @@ func TestMysqlDb(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Verify the database exposes the newly created table.
 	names, err = db.GetTableNames(rctx)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -129,6 +145,7 @@ func TestMysqlDb(t *testing.T) {
 		t.Fatalf("unexpected table names: %v", names)
 	}
 
+	// Commit the initial table before exercising SQL store operations.
 	if err := tx.Commit(ctx); err != nil {
 		t.Fatal(err.Error())
 	}
@@ -139,6 +156,7 @@ func TestMysqlDb(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// Resolve the SQL controller RPC service and retain its reference.
 	invokers, _, invokerRef, err := bifrost_rpc.ExLookupRpcService(ctx, tb.Bus, sqlRpcServiceID, "", true, nil)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -148,6 +166,7 @@ func TestMysqlDb(t *testing.T) {
 	}
 	defer invokerRef.Release()
 
+	// Exercise the SQL store contract through the published RPC service.
 	rpcClient := sql_rpc.NewSRPCSqlClientWithServiceID(
 		srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(invokers[0]))),
 		sqlRpcServiceID,

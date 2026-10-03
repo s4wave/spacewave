@@ -36,6 +36,7 @@ func (t *TxUpdateInputs) GetTxType() TxType {
 // Validate performs a cursory check of the transaction.
 // Note: this should not fetch network data.
 func (t *TxUpdateInputs) Validate() error {
+	// Validate that the input update contains only permitted input values.
 	valueSet := t.GetValueSet()
 	if len(valueSet.GetOutputs()) != 0 {
 		return errors.New("value_set: outputs: must be empty")
@@ -58,6 +59,7 @@ func (t *TxUpdateInputs) ExecuteTx(
 	bcs *block.Cursor,
 	root *forge_task.Task,
 ) error {
+	// Require the Task record before applying its input update.
 	if root == nil {
 		return errors.New("unexpected empty root task object")
 	}
@@ -88,11 +90,13 @@ func (t *TxUpdateInputs) ExecuteTx(
 
 	// TODO: drop any Input values without a corresponding Input in the Target.
 
+	// Read the previous Task values or supply an empty set.
 	valueSetBefore := root.GetValueSet()
 	if valueSetBefore == nil {
 		valueSetBefore = forge_target.NewValueSet()
 	}
 
+	// Reset or clone the Task values for the requested input changes.
 	var valueSet *forge_target.ValueSet
 	if t.GetResetInputs() {
 		valueSet = forge_target.NewValueSet()
@@ -103,6 +107,7 @@ func (t *TxUpdateInputs) ExecuteTx(
 		valueSet = valueSetBefore.Clone()
 	}
 
+	// Apply changed input values and deletions to the Task value set.
 	for _, setInput := range t.GetValueSet().GetInputs() {
 		inputName := setInput.GetName()
 		existing, existingIdx := valueSet.LookupInput(inputName)

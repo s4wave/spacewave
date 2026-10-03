@@ -38,6 +38,8 @@ func FetchSourcePackToTempFile(
 		return "", errors.Wrap(err, "build source pack request")
 	}
 	req.Header.Set(spacewave_provider.SeedReasonHeader, string(spacewave_provider.SeedReasonColdSeed))
+
+	// Fetch the source pack and require a successful HTTP response.
 	resp, err := opts.Client.Do(req)
 	if err != nil {
 		return "", errors.Wrap(err, "request source pack")
@@ -206,6 +208,7 @@ func (m KVFilePushMetadata) PackResult() *writer.PackResult {
 
 // BuildKVFilePushMetadata verifies a kvfile and builds sync/push metadata.
 func BuildKVFilePushMetadata(ctx context.Context, data []byte) (*KVFilePushMetadata, error) {
+	// Open the kvfile index and bound its block count to the local integer range.
 	rdr, err := kvfile.BuildReader(bytesReaderAt(data), uint64(len(data))) //nolint:gosec // len(data) is the actual in-memory byte slice length.
 	if err != nil {
 		return nil, err
@@ -222,9 +225,12 @@ func BuildKVFilePushMetadata(ctx context.Context, data []byte) (*KVFilePushMetad
 
 	// Reject corrupt content before publication can make the pack reachable.
 	err = rdr.ScanPrefixEntries(nil, func(ie *kvfile.IndexEntry, _ int) error {
+		// Stop verifying the pack when publication is canceled.
 		if err := ctx.Err(); err != nil {
 			return err
 		}
+
+		// Read and verify the indexed block against its content key.
 		key := ie.GetKey()
 		value, found, err := rdr.Get(key)
 		if err != nil {
@@ -236,6 +242,8 @@ func BuildKVFilePushMetadata(ctx context.Context, data []byte) (*KVFilePushMetad
 		if _, _, err := packfile.DecodeBlockValue(key, value); err != nil {
 			return errors.Wrap(err, "verify indexed block")
 		}
+
+		// Include the verified block in pack membership and identity metadata.
 		bf.Add(key)
 		keys = append(keys, bytes.Clone(key))
 		return nil

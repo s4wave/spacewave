@@ -12,27 +12,32 @@ const defaultHeadStateKey = "sql-head"
 
 // loadHeadState loads the head ref from the store.
 func (c *Controller) loadHeadState(ctx context.Context, store object.ObjectStore) (*HeadState, bool, error) {
+	// Open a read transaction on the SQL head state store.
 	ktx, err := store.NewTransaction(ctx, false)
 	if err != nil {
 		return nil, false, err
 	}
 	defer ktx.Discard()
 
+	// Select the configured SQL head key or its default.
 	headKey := []byte(c.conf.GetObjectStoreHeadKey())
 	if len(headKey) == 0 {
 		headKey = []byte(defaultHeadStateKey)
 	}
 
+	// Read the persisted SQL head state at the selected key.
 	data, found, err := ktx.Get(ctx, headKey)
 	if err != nil || !found {
 		return nil, false, err
 	}
 
+	// Decode the SQL head state using the configured block transform.
 	decData, err := c.stateXfrm.DecodeBlock(data)
 	if err != nil {
 		return nil, false, err
 	}
 
+	// Unmarshal the decoded SQL head state for the controller.
 	s := &HeadState{}
 	if err := s.UnmarshalVT(decData); err != nil {
 		return nil, true, err
@@ -42,28 +47,33 @@ func (c *Controller) loadHeadState(ctx context.Context, store object.ObjectStore
 
 // writeHeadState writes the head state to the store.
 func (c *Controller) writeHeadState(ctx context.Context, store object.ObjectStore, nref *bucket.ObjectRef) error {
+	// Open a write transaction on the SQL head state store.
 	ktx, err := store.NewTransaction(ctx, true)
 	if err != nil {
 		return err
 	}
 	defer ktx.Discard()
 
+	// Select the configured SQL head key or its default.
 	headKey := []byte(c.conf.GetObjectStoreHeadKey())
 	if len(headKey) == 0 {
 		headKey = []byte(defaultHeadStateKey)
 	}
 
+	// Marshal the new SQL head reference for persistence.
 	v := &HeadState{HeadRef: nref}
 	data, err := v.MarshalVT()
 	if err != nil {
 		return err
 	}
 
+	// Encode the SQL head state using the configured block transform.
 	encData, err := c.stateXfrm.EncodeBlock(data)
 	if err != nil {
 		return err
 	}
 
+	// Store the encoded SQL head state before committing the transaction.
 	if err := ktx.Set(ctx, headKey, encData); err != nil {
 		return err
 	}

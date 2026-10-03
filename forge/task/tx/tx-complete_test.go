@@ -26,12 +26,15 @@ func buildTaskWithPass(
 	taskResult *forge_value.Result,
 	passResult *forge_value.Result,
 ) peer.ID {
+	// Prepare the Task and Pass identifiers for the completion fixture.
 	t.Helper()
 	ctx := t.Context()
 	sender := tb.Volume.GetPeerID()
 	target := &forge_target.Target{Exec: &forge_target.Exec{Disable: true}}
 	passKey := forge_task.NewPassKey(taskKey, 1)
 	ts := timestamp.Now()
+
+	// Create the Task with the disabled Target.
 	{
 		createdObject, _, err := forge_task.CreateTaskWithTarget(
 			ctx,
@@ -50,6 +53,8 @@ func buildTaskWithPass(
 			t.Fatal(err)
 		}
 	}
+
+	// Create the Pass with the same Target and attempt number.
 	{
 		createdObject2, _, err := forge_pass.CreatePassWithTarget(
 			ctx,
@@ -69,23 +74,32 @@ func buildTaskWithPass(
 			t.Fatal(err)
 		}
 	}
+
+	// Link the Task to its Pass in the World graph.
 	if err := tb.WorldState.SetGraphQuad(
 		ctx,
 		forge_task.NewTaskToPassQuad(taskKey, passKey, 1),
 	); err != nil {
 		t.Fatal(err)
 	}
+
+	// Install the Task Target before assigning the fixture state.
 	targetUpdate := task_tx.NewTxUpdateInputs(taskKey)
 	targetUpdate.TxUpdateInputs.UpdateTarget = true
 	targetUpdate.TxUpdateInputs.ResetInputs = true
 	if _, _, err := tb.WorldState.ApplyWorldOp(ctx, targetUpdate, sender); err != nil {
 		t.Fatalf("update task target: %v", err)
 	}
+
+	// Persist the requested Task state and Result for the completion attempt.
 	if _, _, err := world.AccessWorldObject(ctx, tb.WorldState, taskKey, true, func(bcs *block.Cursor) error {
+		// Read the Task record to update its completion state.
 		task, err := forge_task.UnmarshalTask(ctx, bcs)
 		if err != nil {
 			return err
 		}
+
+		// Save the Task with the fixture Result and Pass nonce.
 		task.TaskState = taskState
 		task.Result = taskResult
 		task.PassNonce = 1
@@ -94,11 +108,16 @@ func buildTaskWithPass(
 	}); err != nil {
 		t.Fatal(err)
 	}
+
+	// Persist the completed Pass with the requested Result.
 	if _, _, err := world.AccessWorldObject(ctx, tb.WorldState, passKey, true, func(bcs *block.Cursor) error {
+		// Read the Pass record to update its completion state.
 		pass, err := forge_pass.UnmarshalPass(ctx, bcs)
 		if err != nil {
 			return err
 		}
+
+		// Save the completed Pass with the fixture Result.
 		pass.PassState = forge_pass.State_PassState_COMPLETE
 		pass.Result = passResult
 		bcs.SetBlock(pass, true)
@@ -110,6 +129,7 @@ func buildTaskWithPass(
 }
 
 func TestTxCompleteConvertsFailedPassToFailedTask(t *testing.T) {
+	// Open a World testbed for the Task completion transaction.
 	ctx := t.Context()
 	tb, err := world_testbed.Default(ctx)
 	if err != nil {
@@ -117,6 +137,7 @@ func TestTxCompleteConvertsFailedPassToFailedTask(t *testing.T) {
 	}
 	t.Cleanup(tb.Release)
 
+	// Create a checking Task whose completed Pass failed.
 	taskKey := "test/task/complete-failed-pass"
 	sender := buildTaskWithPass(
 		t, tb, taskKey,
@@ -125,6 +146,7 @@ func TestTxCompleteConvertsFailedPassToFailedTask(t *testing.T) {
 		forge_value.NewResultWithError(errors.New("pass failed")),
 	)
 
+	// Request successful Task completion against the fixture Pass.
 	if _, _, err := tb.WorldState.ApplyWorldOp(
 		ctx,
 		task_tx.NewTxComplete(taskKey, forge_value.NewResultWithSuccess()),
@@ -133,11 +155,14 @@ func TestTxCompleteConvertsFailedPassToFailedTask(t *testing.T) {
 		t.Fatalf("complete task: %v", err)
 	}
 
+	// Read the Task back to check its persisted completion Result.
 	task, objectState, err := forge_task.LookupTask(ctx, tb.WorldState, taskKey)
 	world.ReleaseObjectState(objectState)
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Verify the Task completed with the Pass failure preserved.
 	if task.GetTaskState() != forge_task.State_TaskState_COMPLETE {
 		t.Fatalf("task state = %s, want COMPLETE", task.GetTaskState())
 	}
@@ -150,6 +175,7 @@ func TestTxCompleteConvertsFailedPassToFailedTask(t *testing.T) {
 }
 
 func TestTxCompleteRejectsSuccessOutsideChecking(t *testing.T) {
+	// Open a World testbed for the Task completion transaction.
 	ctx := t.Context()
 	tb, err := world_testbed.Default(ctx)
 	if err != nil {
@@ -157,6 +183,7 @@ func TestTxCompleteRejectsSuccessOutsideChecking(t *testing.T) {
 	}
 	t.Cleanup(tb.Release)
 
+	// Create a Task and Pass that already completed successfully.
 	taskKey := "test/task/complete-twice"
 	sender := buildTaskWithPass(
 		t, tb, taskKey,
@@ -165,6 +192,7 @@ func TestTxCompleteRejectsSuccessOutsideChecking(t *testing.T) {
 		forge_value.NewResultWithSuccess(),
 	)
 
+	// Request successful Task completion against the fixture Pass.
 	if _, _, err := tb.WorldState.ApplyWorldOp(
 		ctx,
 		task_tx.NewTxComplete(taskKey, forge_value.NewResultWithSuccess()),
@@ -173,11 +201,14 @@ func TestTxCompleteRejectsSuccessOutsideChecking(t *testing.T) {
 		t.Fatal("completing an already complete task was accepted")
 	}
 
+	// Read the Task back to check its persisted completion Result.
 	task, objectState, err := forge_task.LookupTask(ctx, tb.WorldState, taskKey)
 	world.ReleaseObjectState(objectState)
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Verify the rejected completion preserved the recorded success.
 	if !task.GetResult().GetSuccess() {
 		t.Fatalf("recorded success was overwritten: %s", task.GetResult().GetFailError())
 	}
