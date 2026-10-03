@@ -64,11 +64,10 @@ func TestWorldTypeOperationsReleaseResources(t *testing.T) {
 					// itoa key via strconv.
 					key := "resource-types/" + strconv.Itoa(i)
 					if mode == "types" {
-						if _, err := world_types.EnsureTypeExists(ctx, ws, key); err != nil {
+						if err := world_types.EnsureTypeExists(ctx, ws, key); err != nil {
 							return err
 						}
-						_, err := world_types.EnsureTypeExists(ctx, ws, key)
-						return err
+						return world_types.EnsureTypeExists(ctx, ws, key)
 					}
 					obj, err := ws.CreateObject(ctx, key, nil)
 					world.ReleaseObjectState(obj)

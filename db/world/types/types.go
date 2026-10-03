@@ -122,7 +122,7 @@ func SetObjectType(ctx context.Context, ws world.WorldState, key, typeID string)
 	}
 
 	// Create the type object if it is absent.
-	if _, err := EnsureTypeExists(ctx, ws, typeID); err != nil {
+	if err := EnsureTypeExists(ctx, ws, typeID); err != nil {
 		return err
 	}
 
@@ -159,12 +159,12 @@ func SetObjectType(ctx context.Context, ws world.WorldState, key, typeID string)
 // re-reading the type object. Creating the object only when HasObject reports it
 // absent is safe under the single-writer transaction discipline; concurrent
 // creation is not a concern within one transaction.
-func EnsureTypeExists(ctx context.Context, ws world.WorldState, typeID string) (created bool, err error) {
+func EnsureTypeExists(ctx context.Context, ws world.WorldState, typeID string) error {
 	// Check whether the World already contains the type object.
 	objKey := BuildTypeObjectKey(typeID)
 	exists, err := ws.HasObject(ctx, objKey)
 	if err != nil {
-		return false, err
+		return err
 	}
 
 	// Create the missing type object and release its acquired state.
@@ -172,10 +172,10 @@ func EnsureTypeExists(ctx context.Context, ws world.WorldState, typeID string) (
 		obj, err := ws.CreateObject(ctx, objKey, nil)
 		world.ReleaseObjectState(obj)
 		if err != nil {
-			return false, err
+			return err
 		}
 	}
-	return true, nil
+	return nil
 }
 
 // IterateObjectsWithType iterates over object keys with the given type ID.

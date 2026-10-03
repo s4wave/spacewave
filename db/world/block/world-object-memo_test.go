@@ -39,7 +39,7 @@ func TestSetObjectTypeReusesObjectExistenceWithinTransaction(t *testing.T) {
 	const typeID = "memo-type"
 	typeKey := world_types.BuildTypeObjectKey(typeID)
 	existsKey := objectKeyPrefix + typeKey
-	if _, err := world_types.EnsureTypeExists(ctx, ws, typeID); err != nil {
+	if err := world_types.EnsureTypeExists(ctx, ws, typeID); err != nil {
 		t.Fatal(err.Error())
 	}
 
