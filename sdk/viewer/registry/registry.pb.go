@@ -57,7 +57,7 @@ func (x ViewerSurface) String() string {
 // ViewerRegistration is a registered viewer.
 type ViewerRegistration struct {
 	unknownFields []byte
-	// TypeId is the object type ID this viewer handles (e.g. "glados/guild").
+	// TypeId is the object type ID this viewer handles (e.g. "unixfs/fs-node").
 	TypeId string `protobuf:"bytes,1,opt,name=type_id,json=typeId,proto3" json:"typeId,omitempty"`
 	// ViewerName is the human-readable name of the viewer.
 	ViewerName string `protobuf:"bytes,2,opt,name=viewer_name,json=viewerName,proto3" json:"viewerName,omitempty"`

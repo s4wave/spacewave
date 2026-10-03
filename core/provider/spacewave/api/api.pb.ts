@@ -9898,7 +9898,7 @@ export const MintFacetsLaunchGrantRequest: MessageType<MintFacetsLaunchGrantRequ
  */
 export interface MintFacetsLaunchGrantResponse {
   /**
-   * Token is the opaque short-lived launch grant for GLaDOS verification.
+   * Token is the opaque short-lived launch grant to verify.
    *
    * @generated from field: string token = 1;
    */

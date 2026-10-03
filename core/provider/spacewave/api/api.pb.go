@@ -9625,7 +9625,7 @@ func (x *MintFacetsLaunchGrantRequest) GetCapability() string {
 // POST /api/facets/launch-grant/mint.
 type MintFacetsLaunchGrantResponse struct {
 	unknownFields []byte
-	// Token is the opaque short-lived launch grant for GLaDOS verification.
+	// Token is the opaque short-lived launch grant to verify.
 	Token string `protobuf:"bytes,1,opt,name=token,proto3" json:"token,omitempty"`
 }
 

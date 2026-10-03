@@ -49,7 +49,7 @@ export const ViewerSurface_Enum = /* @__PURE__ */ createEnumType(
  */
 export interface ViewerRegistration {
   /**
-   * TypeId is the object type ID this viewer handles (e.g. "glados/guild").
+   * TypeId is the object type ID this viewer handles (e.g. "unixfs/fs-node").
    *
    * @generated from field: string type_id = 1;
    */
