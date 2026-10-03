@@ -25,6 +25,7 @@ type tx struct {
 
 // startTx starts a transaction.
 func (h *FibbonaciHeap) startTx(ctx context.Context, write bool) (*tx, error) {
+	// Open the backing transaction and load its heap root and entry cache.
 	ktx, err := h.db.NewTransaction(ctx, write)
 	if err != nil {
 		return nil, err
@@ -45,6 +46,7 @@ func (h *FibbonaciHeap) startTx(ctx context.Context, write bool) (*tx, error) {
 
 // finish finishes the tx populating rerr if necessary
 func (t *tx) finish(ctx context.Context, rerr *error) {
+	// Discard the backing transaction unless a successful write needs committing.
 	defer t.tx.Discard()
 	if rerr == nil || *rerr != nil || !t.write {
 		return
@@ -90,6 +92,7 @@ func (t *tx) finish(ctx context.Context, rerr *error) {
 		}
 	}
 
+	// Persist the heap root and commit the cached entry changes.
 	if err := t.writeState(ctx); err != nil {
 		*rerr = err
 	} else {
@@ -99,25 +102,30 @@ func (t *tx) finish(ctx context.Context, rerr *error) {
 
 // getEntry gets the entry with the specified ID from the db.
 func (t *tx) getEntry(ctx context.Context, key []byte, alloc bool) (*Entry, error) {
+	// Treat an empty heap entry key as an absent entry.
 	if len(key) == 0 {
 		return nil, nil
 	}
 
+	// Reuse the heap entry already loaded into the transaction cache.
 	entry, ok, err := t.entryCache.Get(ctx, key)
 	if ok || err != nil {
 		return entry, err
 	}
 
+	// Read the heap entry bytes from the backing transaction.
 	idKey := t.getIDKey(key)
 	d, dOk, err := t.tx.Get(ctx, idKey)
 	if err != nil {
 		return nil, err
 	}
 
+	// Leave absent heap entries unallocated for read-only lookups.
 	if !dOk && !alloc {
 		return nil, nil
 	}
 
+	// Decode or allocate the heap entry and retain it in the cache.
 	entry = &Entry{}
 	if dOk {
 		if err := entry.UnmarshalVT(d); err != nil {
@@ -138,21 +146,25 @@ func (t *tx) getPrevNext(
 	ent *Entry,
 	entKey []byte,
 ) (prev *Entry, next *Entry, err error) {
+	// Read the next sibling entry in the heap ring.
 	next, err = t.getEntry(ctx, ent.GetNext(), false)
 	if err != nil {
 		return
 	}
 
+	// Require the next sibling referenced by the heap entry.
 	if next == nil {
 		err = errors.Errorf("cannot find next: %s -> %s", entKey, ent.GetNext())
 		return
 	}
 
+	// Read the previous sibling entry in the heap ring.
 	prev, err = t.getEntry(ctx, ent.GetPrev(), false)
 	if err != nil {
 		return
 	}
 
+	// Require the previous sibling referenced by the heap entry.
 	if prev == nil {
 		err = errors.Errorf("cannot find prev: %s -> %s", entKey, ent.GetPrev())
 		return

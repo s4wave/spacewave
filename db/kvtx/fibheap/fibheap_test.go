@@ -162,6 +162,7 @@ func assertEqual(t *testing.T, t1, t2 any) {
 
 // assertZero asserts something is zero
 func assertZero(t *testing.T, t1 any) {
+	// Check scalar values and nil references against their zero values.
 	vo := reflect.ValueOf(t1)
 	if s, ok := t1.(string); ok {
 		if s != "" {
@@ -182,6 +183,7 @@ func assertZero(t *testing.T, t1 any) {
 }
 
 func TestSimple(t *testing.T) {
+	// Create a heap backed by the test object store.
 	objs, _ := object_mock.BuildTestStore(t)
 	ctx := context.Background()
 	heap, err := fibheap.NewFibbonaciHeap(objs)
@@ -196,6 +198,7 @@ func TestSimple(t *testing.T) {
 		"testNeg2": -2,
 	}
 
+	// Enqueue the fixture entries in the map traversal order.
 	for k, v := range kv {
 		assertNoError(t, heap.Enqueue(ctx, []byte(k), v))
 	}
@@ -203,18 +206,23 @@ func TestSimple(t *testing.T) {
 	// dequeue in expected order
 	order := []float64{-2, 1, 3, 5, 5325}
 	for _, expected := range order {
+		// Remove the next heap minimum.
 		_, pmin, err := heap.DequeueMin(ctx)
 		assertNoError(t, err)
+
+		// Verify the removed priority matches the fixture order.
 		assertEqual(t, expected, pmin)
 	}
 }
 
 func TestEnqueueDequeueMin(t *testing.T) {
+	// Create a heap backed by the test object store.
 	objs, _ := object_mock.BuildTestStore(t)
 	ctx := context.Background()
 	heap, err := fibheap.NewFibbonaciHeap(objs)
 	assertNoError(t, err)
 
+	// Populate the heap with the first priority sequence.
 	for i := range len(NumberSequence1) {
 		err := heap.Enqueue(ctx, []byte(strconv.Itoa(i)), NumberSequence1[i])
 		if err != nil {
@@ -222,15 +230,21 @@ func TestEnqueueDequeueMin(t *testing.T) {
 		}
 	}
 
+	// Drain the heap and verify selected priorities in dequeue order.
 	for {
+		// Stop draining when the heap has no entries.
 		size, err := heap.Size(ctx)
 		assertNoError(t, err)
 		if size == 0 {
 			break
 		}
+
+		// Remove the next heap minimum and track the remaining size.
 		_, minp, err := heap.DequeueMin(ctx)
 		assertNoError(t, err)
 		size--
+
+		// Verify the selected positions in the fixture priority order.
 		if size == 199 {
 			assertEqual(t, Seq1FirstMinimum, minp)
 		}
@@ -247,6 +261,7 @@ func TestEnqueueDequeueMin(t *testing.T) {
 }
 
 func TestFibHeap_Enqueue_Min(t *testing.T) {
+	// Create a heap backed by the test object store.
 	objs, _ := object_mock.BuildTestStore(t)
 	ctx := context.Background()
 	heap, err := fibheap.NewFibbonaciHeap(objs)
@@ -254,6 +269,7 @@ func TestFibHeap_Enqueue_Min(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// Populate the heap with the first priority sequence.
 	for i := range len(NumberSequence1) {
 		err := heap.Enqueue(ctx, []byte(strconv.Itoa(i)), NumberSequence1[i])
 		if err != nil {
@@ -261,12 +277,14 @@ func TestFibHeap_Enqueue_Min(t *testing.T) {
 		}
 	}
 
+	// Verify the populated heap exposes the fixture minimum.
 	_, minp, err := heap.Min(ctx)
 	assertNoError(t, err)
 	assertEqual(t, Seq1FirstMinimum, minp)
 }
 
 func TestFibHeap_Min_EmptyHeap(t *testing.T) {
+	// Create a heap backed by the test object store.
 	objs, _ := object_mock.BuildTestStore(t)
 	ctx := context.Background()
 	heap, err := fibheap.NewFibbonaciHeap(objs)
@@ -274,6 +292,7 @@ func TestFibHeap_Min_EmptyHeap(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// Enqueue and remove the only heap entry.
 	err = heap.Enqueue(ctx, []byte("test"), 0)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -291,6 +310,7 @@ func TestFibHeap_Min_EmptyHeap(t *testing.T) {
 }
 
 func TestEnqueueDecreaseKey(t *testing.T) {
+	// Create a heap backed by the test object store.
 	objs, _ := object_mock.BuildTestStore(t)
 	ctx := context.Background()
 	heap, err := fibheap.NewFibbonaciHeap(objs)
@@ -298,6 +318,7 @@ func TestEnqueueDecreaseKey(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// Populate the heap with identifiable entries for priority decreases.
 	e1k := "test1"
 	e2k := "test2"
 	e3k := "test3"
@@ -326,6 +347,7 @@ func TestEnqueueDecreaseKey(t *testing.T) {
 		}
 	}
 
+	// Decrease the priorities of the three selected heap entries.
 	err = heap.DecreaseKey(ctx, []byte(e1k), Seq2DecreaseKey1Trgt)
 	assertNoError(t, err)
 	err = heap.DecreaseKey(ctx, []byte(e2k), Seq2DecreaseKey2Trgt)
@@ -333,19 +355,25 @@ func TestEnqueueDecreaseKey(t *testing.T) {
 	err = heap.DecreaseKey(ctx, []byte(e3k), Seq2DecreaseKey3Trgt)
 	assertNoError(t, err)
 
+	// Drain the heap and verify the adjusted priority order.
 	for i := range len(NumberSequence2Sorted) {
+		// Remove the next heap minimum.
 		_, minp, err := heap.DequeueMin(ctx)
 		assertNoError(t, err)
+
+		// Verify the removed priority matches the adjusted fixture order.
 		assertEqual(t, NumberSequence2Sorted[i], minp)
 	}
 }
 
 func TestFibHeap_DecreaseKey_EmptyHeap(t *testing.T) {
+	// Create a heap backed by the test object store.
 	objs, _ := object_mock.BuildTestStore(t)
 	ctx := context.Background()
 	heap, err := fibheap.NewFibbonaciHeap(objs)
 	assertNoError(t, err)
 
+	// Enqueue and remove the only heap entry.
 	err = heap.Enqueue(ctx, []byte("test"), 15)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -361,11 +389,13 @@ func TestFibHeap_DecreaseKey_EmptyHeap(t *testing.T) {
 }
 
 func TestFibHeap_DecreaseKey_LargerNewPriority(t *testing.T) {
+	// Create a heap backed by the test object store.
 	objs, _ := object_mock.BuildTestStore(t)
 	ctx := context.Background()
 	heap, err := fibheap.NewFibbonaciHeap(objs)
 	assertNoError(t, err)
 
+	// Verify the heap rejects a priority increase for an existing entry.
 	err = heap.Enqueue(ctx, []byte("test"), 1)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -375,10 +405,13 @@ func TestFibHeap_DecreaseKey_LargerNewPriority(t *testing.T) {
 }
 
 func TestEnqueueDelete(t *testing.T) {
+	// Create a heap backed by the test object store.
 	objs, _ := object_mock.BuildTestStore(t)
 	ctx := context.Background()
 	heap, err := fibheap.NewFibbonaciHeap(objs)
 	assertNoError(t, err)
+
+	// Populate the heap with identifiable entries for deletion.
 	e1k := "test1"
 	e2k := "test2"
 	e3k := "test3"
@@ -397,6 +430,7 @@ func TestEnqueueDelete(t *testing.T) {
 		assertNoError(t, err)
 	}
 
+	// Delete the three selected heap entries.
 	err = heap.Delete(ctx, []byte(e1k))
 	assertNoError(t, err)
 	err = heap.Delete(ctx, []byte(e2k))
@@ -404,19 +438,25 @@ func TestEnqueueDelete(t *testing.T) {
 	err = heap.Delete(ctx, []byte(e3k))
 	assertNoError(t, err)
 
+	// Drain the heap and verify only the retained priorities remain.
 	for i := range len(NumberSequence2Deleted3ElemSorted) {
+		// Remove the next heap minimum.
 		_, pmin, err := heap.DequeueMin(ctx)
 		assertNoError(t, err)
+
+		// Verify the removed priority matches the fixture order.
 		assertEqual(t, NumberSequence2Deleted3ElemSorted[i], pmin)
 	}
 }
 
 func TestFibHeap_Delete_EmptyHeap(t *testing.T) {
+	// Create a heap backed by the test object store.
 	objs, _ := object_mock.BuildTestStore(t)
 	ctx := context.Background()
 	heap, err := fibheap.NewFibbonaciHeap(objs)
 	assertNoError(t, err)
 
+	// Enqueue and remove the only heap entry.
 	err = heap.Enqueue(ctx, []byte("test"), 15)
 	assertNoError(t, err)
 	_, _, err = heap.DequeueMin(ctx)
@@ -462,12 +502,15 @@ func TestMerge(t *testing.T) {
 
 // Runs in O(1) time
 func BenchmarkFibHeap_Enqueue(b *testing.B) {
+	// Create a heap backed by the benchmark object store.
 	objs, _ := object_mock.BuildTestStore(nil)
 	ctx := context.Background()
 	heap, err := fibheap.NewFibbonaciHeap(objs)
 	if err != nil {
 		panic(err)
 	}
+
+	// Measure inserting randomly prioritized heap entries.
 	for i := 0; i < b.N; i++ {
 		err := heap.Enqueue(ctx, []byte(strconv.Itoa(i)), 2*1e10*(rand.Float64()-0.5)) //nolint:gosec
 		if err != nil {
@@ -478,6 +521,7 @@ func BenchmarkFibHeap_Enqueue(b *testing.B) {
 
 // Runs in O(log(N)) time
 func BenchmarkFibHeap_DequeueMin(b *testing.B) {
+	// Create a heap backed by the benchmark object store.
 	objs, _ := object_mock.BuildTestStore(nil)
 	ctx := context.Background()
 	heap, err := fibheap.NewFibbonaciHeap(objs)
@@ -485,8 +529,8 @@ func BenchmarkFibHeap_DequeueMin(b *testing.B) {
 		panic(err)
 	}
 
+	// Populate the benchmark heap with random priorities.
 	N := 1000000
-
 	slice := make([]float64, 0, N)
 	for i := range N {
 		slice = append(slice, 2*1e10*(rand.Float64()-0.5)) //nolint:gosec
@@ -496,6 +540,7 @@ func BenchmarkFibHeap_DequeueMin(b *testing.B) {
 		}
 	}
 
+	// Measure removal of the benchmark heap minimum.
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		_, _, err = heap.DequeueMin(ctx)
@@ -507,6 +552,7 @@ func BenchmarkFibHeap_DequeueMin(b *testing.B) {
 
 // Runs in O(1) amortized time
 func BenchmarkFibHeap_DecreaseKey(b *testing.B) {
+	// Create a heap backed by the benchmark object store.
 	objs, _ := object_mock.BuildTestStore(nil)
 	ctx := context.Background()
 	heap, err := fibheap.NewFibbonaciHeap(objs)
@@ -514,8 +560,8 @@ func BenchmarkFibHeap_DecreaseKey(b *testing.B) {
 		panic(err)
 	}
 
+	// Populate the benchmark heap with the initial priority sequence.
 	N := 10000000
-
 	sliceFlt := make([]float64, 0, N)
 	for i := range N {
 		sliceFlt = append(sliceFlt, 2*1e10*(float64(i)-0.5))
@@ -525,6 +571,7 @@ func BenchmarkFibHeap_DecreaseKey(b *testing.B) {
 		}
 	}
 
+	// Measure priority decreases across the benchmark heap keys.
 	b.ResetTimer()
 	offset := float64(2)
 	for i := 0; i < b.N; i++ {

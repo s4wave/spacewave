@@ -22,17 +22,20 @@ func NewFibbonaciHeap(db kvtx.Store) (*FibbonaciHeap, error) {
 
 // Enqueue adds a new key to the heap, re-enqueuing if it already exists.
 func (h *FibbonaciHeap) Enqueue(ctx context.Context, key []byte, priority float64) (rerr error) {
+	// Open a writable heap transaction for the enqueued key.
 	tx, err := h.startTx(ctx, true)
 	if err != nil {
 		return err
 	}
 	defer tx.finish(ctx, &rerr)
 
+	// Find an existing heap entry before changing its priority.
 	entry, err := tx.getEntry(ctx, key, false)
 	if err != nil {
 		return err
 	}
 
+	// Reuse or remove the existing entry according to its priority change.
 	if entry != nil {
 		entryPriority := entry.GetPriority()
 		switch {
@@ -50,6 +53,7 @@ func (h *FibbonaciHeap) Enqueue(ctx context.Context, key []byte, priority float6
 		entry = nil
 	}
 
+	// Cache a singleton heap entry with the requested priority.
 	entry = &Entry{
 		Next:     key,
 		Prev:     key,
@@ -59,6 +63,7 @@ func (h *FibbonaciHeap) Enqueue(ctx context.Context, key []byte, priority float6
 		return err
 	}
 
+	// Read the current minimum entry for the root-list merge.
 	minID := tx.root.Min
 	var min *Entry
 	if len(minID) != 0 {
@@ -68,11 +73,13 @@ func (h *FibbonaciHeap) Enqueue(ctx context.Context, key []byte, priority float6
 		}
 	}
 
+	// Merge the enqueued entry into the heap root list.
 	nmink, nmine, err := h.mergeLists(ctx, tx, min, entry, minID, key)
 	if err != nil {
 		return err
 	}
 
+	// Record the new heap minimum and size.
 	tx.root.Min = nmink
 	tx.root.MinPriority = nmine.GetPriority()
 	tx.root.Size++
@@ -82,12 +89,14 @@ func (h *FibbonaciHeap) Enqueue(ctx context.Context, key []byte, priority float6
 // Lookup checks priority of the given key.
 // Returns 0, false, nil if not found.
 func (h *FibbonaciHeap) Lookup(ctx context.Context, key []byte) (pr float64, found bool, rerr error) {
+	// Open a read transaction for the heap key lookup.
 	tx, err := h.startTx(ctx, false)
 	if err != nil {
 		return 0, false, err
 	}
 	defer tx.finish(ctx, &rerr)
 
+	// Read the heap entry and return its priority when present.
 	entry, err := tx.getEntry(ctx, key, false)
 	if err != nil {
 		return 0, false, err
@@ -131,6 +140,7 @@ func (h *FibbonaciHeap) Min(ctx context.Context) ([]byte, float64, error) {
 
 // DequeueMin removes and returns the lowest element.
 func (h *FibbonaciHeap) DequeueMin(ctx context.Context) (rmin []byte, pmin float64, rerr error) {
+	// Open a writable heap transaction and finish immediately if empty.
 	tx, err := h.startTx(ctx, true)
 	if err != nil {
 		return nil, 0, err
@@ -140,6 +150,7 @@ func (h *FibbonaciHeap) DequeueMin(ctx context.Context) (rmin []byte, pmin float
 		return nil, 0, nil
 	}
 
+	// Remove the minimum heap entry and return its priority.
 	var rent *Entry
 	rent, rmin, rerr = h.dequeueMinEntry(ctx, tx)
 	pmin = rent.GetPriority()
@@ -148,17 +159,20 @@ func (h *FibbonaciHeap) DequeueMin(ctx context.Context) (rmin []byte, pmin float
 
 // DecreaseKey decreases the key of the given element and returns an error if it was not found.
 func (h *FibbonaciHeap) DecreaseKey(ctx context.Context, key []byte, newPriority float64) (rerr error) {
+	// Open a writable heap transaction for the priority decrease.
 	tx, err := h.startTx(ctx, true)
 	if err != nil {
 		return err
 	}
 	defer tx.finish(ctx, &rerr)
 
+	// Require a nonempty heap before decreasing the requested key.
 	minID := tx.root.GetMin()
 	if len(minID) == 0 {
 		return errors.Errorf("not found: %s", key)
 	}
 
+	// Read the heap entry whose priority will decrease.
 	entry, err := tx.getEntry(ctx, key, false)
 	if err != nil {
 		return err
@@ -167,6 +181,7 @@ func (h *FibbonaciHeap) DecreaseKey(ctx context.Context, key []byte, newPriority
 		return errors.Errorf("not found: %s", key)
 	}
 
+	// Require the replacement priority to be lower than the current priority.
 	if newPriority >= entry.GetPriority() {
 		return errors.Errorf("priority %v larger than or equal to old: %v", newPriority, entry.GetPriority())
 	}
@@ -176,12 +191,14 @@ func (h *FibbonaciHeap) DecreaseKey(ctx context.Context, key []byte, newPriority
 
 // Flush deletes all elements in the heap.
 func (h *FibbonaciHeap) Flush(ctx context.Context) (rerr error) {
+	// Open a writable heap transaction for clearing entries.
 	tx, err := h.startTx(ctx, true)
 	if err != nil {
 		return err
 	}
 	defer tx.finish(ctx, &rerr)
 
+	// Finish without deleting entries when the heap is already empty.
 	if tx.root.GetSize() == 0 {
 		return nil
 	}
@@ -201,17 +218,20 @@ func (h *FibbonaciHeap) Flush(ctx context.Context) (rerr error) {
 // Delete deletes an element from the heap.
 // No error is returned if not found.
 func (h *FibbonaciHeap) Delete(ctx context.Context, key []byte) (rerr error) {
+	// Open a writable heap transaction for deleting the requested key.
 	tx, err := h.startTx(ctx, true)
 	if err != nil {
 		return err
 	}
 	defer tx.finish(ctx, &rerr)
 
+	// Read the heap entry selected for deletion.
 	entry, err := tx.getEntry(ctx, key, false)
 	if err != nil {
 		return err
 	}
 
+	// Finish without changing the heap when the key is absent.
 	if entry == nil {
 		return nil
 	}
@@ -225,20 +245,24 @@ func (h *FibbonaciHeap) Delete(ctx context.Context, key []byte) (rerr error) {
 
 // dequeueMinEntry dequeues the min entry and returns it.
 func (h *FibbonaciHeap) dequeueMinEntry(ctx context.Context, tx *tx) (*Entry, []byte, error) {
+	// Find the heap minimum and finish immediately if the heap is empty.
 	minID := tx.root.GetMin()
 	if tx.root.GetSize() == 0 || len(minID) == 0 {
 		return nil, nil, nil
 	}
 
+	// Read the minimum heap entry from the transaction.
 	min, err := tx.getEntry(ctx, minID, false)
 	if err != nil {
 		return nil, nil, err
 	}
 
+	// Finish without changing the heap when its minimum entry is absent.
 	if min == nil {
 		return nil, nil, nil
 	}
 
+	// Remove the minimum entry from the circular root list.
 	if bytes.Equal(min.GetNext(), minID) {
 		tx.root.Min = nil
 		tx.root.MinPriority = 0
@@ -263,6 +287,7 @@ func (h *FibbonaciHeap) dequeueMinEntry(ctx context.Context, tx *tx) (*Entry, []
 		tx.root.MinPriority = minNext.GetPriority()
 	}
 
+	// Read the remaining root entry after removing the minimum.
 	nmin := min
 	nminID := tx.root.Min
 	if !bytes.Equal(nminID, minID) {
@@ -272,6 +297,7 @@ func (h *FibbonaciHeap) dequeueMinEntry(ctx context.Context, tx *tx) (*Entry, []
 		}
 	}
 
+	// Promote the removed minimum entry children to heap roots.
 	minChildID := min.GetChild()
 	if len(minChildID) != 0 {
 		var err error
@@ -288,16 +314,19 @@ func (h *FibbonaciHeap) dequeueMinEntry(ctx context.Context, tx *tx) (*Entry, []
 		}
 	}
 
+	// Read the child list to merge into the remaining heap roots.
 	minChild, err := tx.getEntry(ctx, minChildID, false)
 	if err != nil {
 		return nil, nil, err
 	}
 
+	// Merge the promoted children into the heap root list.
 	nmink, nmine, err := h.mergeLists(ctx, tx, nmin, minChild, nminID, minChildID)
 	if err != nil {
 		return nil, nil, err
 	}
 
+	// Persist the reduced heap size and merged minimum.
 	tx.root.Size--
 	tx.root.Min = nmink
 	tx.root.MinPriority = nmine.GetPriority() // includes nil check
@@ -305,16 +334,19 @@ func (h *FibbonaciHeap) dequeueMinEntry(ctx context.Context, tx *tx) (*Entry, []
 		return nil, nil, err
 	}
 
+	// Delete the removed minimum from the cache and backing transaction.
 	_ = tx.entryCache.Delete(ctx, minID)
 	minIDKey := tx.getIDKey(minID)
 	if err := tx.tx.Delete(ctx, minIDKey); err != nil {
 		return nil, nil, err
 	}
 
+	// Return the removed entry when no heap roots remain.
 	if nmine == nil {
 		return min, minID, nil
 	}
 
+	// Prepare degree-indexed trees and the root traversal for consolidation.
 	treeSlice := make([]*Entry, 0, tx.root.Size)
 	treeSliceKeys := make([][]byte, 0, tx.root.Size)
 	toVisit := make([]*Entry, 0, tx.root.Size)
@@ -338,6 +370,7 @@ func (h *FibbonaciHeap) dequeueMinEntry(ctx context.Context, tx *tx) (*Entry, []
 		}
 	}
 
+	// Consolidate root trees of equal degree and update the heap minimum.
 	for tvi, curr := range toVisit {
 		currKey := toVisitKeys[tvi]
 
@@ -460,6 +493,7 @@ func (h *FibbonaciHeap) mergeLists(
 	el1, el2 *Entry,
 	el1k, el2k []byte,
 ) ([]byte, *Entry, error) {
+	// Return the surviving root list when either merge input is empty.
 	switch {
 	case el1 == nil && el2 == nil:
 		return nil, nil, nil
@@ -469,17 +503,17 @@ func (h *FibbonaciHeap) mergeLists(
 		return el2k, el2, nil
 	}
 
+	// Splice the second root list after the first list entry.
 	oneNext := el1.GetNext()
 	el1.Next = el2.GetNext()
-
 	el1NextID := el1.GetNext()
 	el1Next, err := tx.getEntry(ctx, el1NextID, false)
 	if err != nil {
 		return nil, nil, err
 	}
-
 	el1Next.Prev = el1k
 
+	// Splice the first root list after the second list entry.
 	el2.Next = oneNext
 	el2NextID := el2.GetNext()
 	el2Next, err := tx.getEntry(ctx, el2NextID, false)
@@ -488,6 +522,7 @@ func (h *FibbonaciHeap) mergeLists(
 	}
 	el2Next.Prev = el2k
 
+	// Choose the merged root list representative by minimum priority.
 	if el1.Priority < el2.Priority {
 		return el1k, el1, nil
 	}
@@ -497,6 +532,7 @@ func (h *FibbonaciHeap) mergeLists(
 
 // cutEntry cuts an entry.
 func (h *FibbonaciHeap) cutEntry(ctx context.Context, tx *tx, key []byte, entry *Entry) (rerr error) {
+	// Read the entry to cut when the caller has not supplied it.
 	if entry == nil {
 		var err error
 		entry, err = tx.getEntry(ctx, key, false)
@@ -505,8 +541,8 @@ func (h *FibbonaciHeap) cutEntry(ctx context.Context, tx *tx, key []byte, entry 
 		}
 	}
 
+	// Clear the cut entry mark and find its parent before detaching it.
 	entry.Marked = false
-
 	parent, _, err := tx.getParentChild(ctx, entry, key)
 	if err != nil {
 		return err
@@ -515,6 +551,7 @@ func (h *FibbonaciHeap) cutEntry(ctx context.Context, tx *tx, key []byte, entry 
 		return nil
 	}
 
+	// Read the cut entry siblings before repairing their links.
 	prev, next, err := tx.getPrevNext(ctx, entry, key)
 	if err != nil {
 		return err
@@ -535,6 +572,7 @@ func (h *FibbonaciHeap) cutEntry(ctx context.Context, tx *tx, key []byte, entry 
 		}
 	}
 
+	// Detach the entry as a singleton and read the current heap minimum.
 	parent.Degree--
 	entry.Prev = key
 	entry.Next = key
@@ -543,21 +581,25 @@ func (h *FibbonaciHeap) cutEntry(ctx context.Context, tx *tx, key []byte, entry 
 		return err
 	}
 
+	// Merge the detached entry into the heap root list.
 	nextMinKey, nextMin, err := h.mergeLists(ctx, tx, min, entry, tx.root.Min, key)
 	if err != nil {
 		return err
 	}
 
+	// Record a new heap minimum if the detached entry has lower priority.
 	if !bytes.Equal(nextMinKey, tx.root.Min) {
 		tx.root.Min = nextMinKey
 		tx.root.MinPriority = nextMin.GetPriority()
 	}
 
+	// Clear the detached parent link and cascade cuts through a marked parent.
 	defer func() { entry.Parent = nil }()
 	if parent.Marked {
 		return h.cutEntry(ctx, tx, entry.GetParent(), parent)
 	}
 
+	// Mark the parent after it loses its first child.
 	parent.Marked = true
 	return nil
 }
@@ -570,19 +612,21 @@ func (h *FibbonaciHeap) decreaseEntry(
 	entry *Entry,
 	priority float64,
 ) error {
+	// Apply the decreased priority and read the parent to check heap ordering.
 	entry.Priority = priority
-
 	parent, _, err := tx.getParentChild(ctx, entry, key)
 	if err != nil {
 		return err
 	}
 
+	// Cut the entry when its decreased priority violates parent ordering.
 	if parent != nil && entry.Priority <= parent.GetPriority() {
 		if err := h.cutEntry(ctx, tx, key, entry); err != nil {
 			return err
 		}
 	}
 
+	// Record the decreased entry as the heap minimum when appropriate.
 	if entry.Priority <= tx.root.GetMinPriority() {
 		tx.root.Min = key
 		tx.root.MinPriority = entry.GetPriority()
