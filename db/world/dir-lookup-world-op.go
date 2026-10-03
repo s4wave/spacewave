@@ -68,11 +68,13 @@ func (d *lookupWorldOp) LookupWorldOpEngineID() string {
 // directives are equivalent, and the new directive does not superceed the
 // old, then the new directive will be merged (de-duplicated) into the old.
 func (d *lookupWorldOp) IsEquivalent(other directive.Directive) bool {
+	// Require another World operation directive for equivalence.
 	od, ok := other.(LookupWorldOp)
 	if !ok {
 		return false
 	}
 
+	// Compare the World engine and operation type targets.
 	if od.LookupWorldOpEngineID() != d.LookupWorldOpEngineID() {
 		return false
 	}

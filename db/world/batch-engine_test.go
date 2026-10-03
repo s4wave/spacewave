@@ -12,6 +12,7 @@ import (
 // TestBatchEngineAtomicClients verifies read-your-writes, one publication and
 // rollback when a nested client discards a write but its caller ignores failure.
 func TestBatchEngineAtomicClients(t *testing.T) {
+	// Wrap the testbed engine to count physical batch write transactions.
 	tb := world_testbed.MustDefault(t, t.Context())
 	counted := &batchCountEngine{Engine: tb.Engine}
 	engine := world.NewBatchEngine(counted)
@@ -22,6 +23,8 @@ func TestBatchEngineAtomicClients(t *testing.T) {
 			return err
 		})
 	}
+
+	// Run two clients in one batch with read access to the first client write.
 	var escaped context.Context
 	err := engine.Run(t.Context(), func(ctx context.Context) error {
 		escaped = ctx
@@ -29,6 +32,7 @@ func TestBatchEngineAtomicClients(t *testing.T) {
 			return err
 		}
 		return world.ExecTransaction(ctx, engine, true, func(ctx context.Context, ws world.WorldState) error {
+			// Read the first client object before creating the second client object.
 			object, err := world.MustGetObject(ctx, ws, "first")
 			world.ReleaseObjectState(object)
 			if err != nil {
@@ -42,6 +46,8 @@ func TestBatchEngineAtomicClients(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Require one publication and reject the completed batch context.
 	if counted.writes != 1 {
 		t.Fatalf("write transactions = %d, want one", counted.writes)
 	}
@@ -63,6 +69,8 @@ func TestBatchEngineAtomicClients(t *testing.T) {
 	if err == nil {
 		t.Fatal("committed after a discarded write")
 	}
+
+	// Verify that a failed client leaves no object visible after rollback.
 	err = world.ExecTransaction(t.Context(), tb.Engine, false, func(ctx context.Context, ws world.WorldState) error {
 		object, found, err := ws.GetObject(ctx, "rolled-back")
 		world.ReleaseObjectState(object)

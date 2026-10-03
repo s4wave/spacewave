@@ -70,18 +70,21 @@ func AssertObjectRev(ctx context.Context, obj ObjectState, expected uint64) erro
 //
 // If not found, returns nil, 0, nil.
 func LookupRootRef(ctx context.Context, eng Engine, key string) (*bucket.ObjectRef, uint64, error) {
+	// Open a read transaction for the object root lookup.
 	stx, err := eng.NewTransaction(ctx, false)
 	if err != nil {
 		return nil, 0, err
 	}
 	defer stx.Discard()
 
+	// Acquire the object state and release it after reading its root.
 	obj, found, err := stx.GetObject(ctx, key)
 	defer ReleaseObjectState(obj)
 	if err != nil {
 		return nil, 0, err
 	}
 
+	// Return an empty root when the object key is absent.
 	if !found {
 		return nil, 0, nil
 	}
@@ -95,11 +98,14 @@ func LookupObject[T block.Block](
 	objKey string,
 	ctor func() block.Block,
 ) (out T, objRef ObjectState, err error) {
+	// Acquire the object state that supplies the requested body.
 	obj, err := MustGetObject(ctx, ws, objKey)
 	if err != nil {
 		ReleaseObjectState(obj)
 		return out, nil, err
 	}
+
+	// Decode the acquired object body and release its state on failure.
 	_, _, err = AccessObjectState(ctx, obj, false, func(bcs *block.Cursor) error {
 		out, err = block.UnmarshalBlock[T](ctx, bcs, ctor)
 		return err
@@ -168,6 +174,7 @@ func LookupObjectBodyBytesWithRev(
 	ws WorldState,
 	objKey string,
 ) ([]byte, uint64, bool, error) {
+	// Acquire the requested object state for the body read.
 	obj, found, err := ws.GetObject(ctx, objKey)
 	if err != nil {
 		ReleaseObjectState(obj)
@@ -178,11 +185,13 @@ func LookupObjectBodyBytesWithRev(
 	}
 	defer ReleaseObjectState(obj)
 
+	// Read the object root and its corresponding revision.
 	rootRef, rev, err := obj.GetRootRef(ctx)
 	if err != nil {
 		return nil, 0, false, err
 	}
 
+	// Fetch the root block bytes through the object storage cursor.
 	var body []byte
 	_, err = AccessObject(ctx, obj.AccessWorldState, rootRef, func(bcs *block.Cursor) error {
 		var found bool
@@ -196,6 +205,7 @@ func LookupObjectBodyBytesWithRev(
 }
 
 func decodeObjectBody[T block.Block](data []byte, ctor func() block.Block) (out T, err error) {
+	// Construct and decode the object body, requiring the requested block type.
 	if ctor == nil {
 		return out, nil
 	}
@@ -242,6 +252,7 @@ func CollectObjectBodies[T block.Block](
 	objKeys []string,
 	ctor func() block.Block,
 ) ([]T, []ObjectState, error) {
+	// Collect object bodies and states, releasing acquired states on failure.
 	objs := make([]T, len(objKeys))
 	objStates := make([]ObjectState, len(objKeys))
 	var retErr error

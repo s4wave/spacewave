@@ -52,12 +52,14 @@ func (s *cursorWorldStorage) AccessWorldState(
 	ref *bucket.ObjectRef,
 	cb func(*bucket_lookup.Cursor) error,
 ) error {
+	// Acquire the World storage cursor for this access.
 	cursor, err := s.buildCursorFn(ctx)
 	if err != nil {
 		return err
 	}
 	defer cursor.Release()
 
+	// Follow the requested reference when it differs from the World root.
 	ncs := cursor
 	if !cursor.GetRef().EqualsRef(ref) {
 		var err error

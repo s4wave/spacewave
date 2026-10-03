@@ -8,6 +8,7 @@ import (
 )
 
 func TestListGraphEdgeBucketsOrdersLimitsAndTruncates(t *testing.T) {
+	// Populate a graph with incoming and outgoing edges for two origins.
 	ctx := context.Background()
 	graph := &edgeBucketTestGraph{
 		quads: []world.GraphQuad{
@@ -20,6 +21,7 @@ func TestListGraphEdgeBucketsOrdersLimitsAndTruncates(t *testing.T) {
 		},
 	}
 
+	// List bounded edge buckets for both graph directions.
 	buckets, err := world.ListGraphEdgeBuckets(ctx, graph, &world.GraphEdgeBucketQuery{
 		OriginObjectKeys: []string{"origin-a", "origin-b"},
 		LimitPerOrigin:   2,
@@ -32,6 +34,7 @@ func TestListGraphEdgeBucketsOrdersLimitsAndTruncates(t *testing.T) {
 		t.Fatalf("expected two buckets, got %d", len(buckets))
 	}
 
+	// Verify ordering and truncation for the first origin bucket.
 	first := buckets[0]
 	if first.OriginObjectKey != "origin-a" {
 		t.Fatalf("expected first bucket for origin-a, got %q", first.OriginObjectKey)
@@ -49,6 +52,7 @@ func TestListGraphEdgeBucketsOrdersLimitsAndTruncates(t *testing.T) {
 		t.Fatalf("expected sorted incoming first subject <source-a>, got %q", got)
 	}
 
+	// Verify the sparse second origin bucket and shared batch lookup.
 	second := buckets[1]
 	if second.OriginObjectKey != "origin-b" {
 		t.Fatalf("expected second bucket for origin-b, got %q", second.OriginObjectKey)
@@ -68,6 +72,7 @@ func TestListGraphEdgeBucketsOrdersLimitsAndTruncates(t *testing.T) {
 }
 
 func TestListGraphEdgeBucketsLimitsAfterOrdering(t *testing.T) {
+	// Populate outgoing graph edges whose insertion and lexical orders differ.
 	ctx := context.Background()
 	graph := &edgeBucketTestGraph{
 		quads: []world.GraphQuad{
@@ -78,6 +83,7 @@ func TestListGraphEdgeBucketsLimitsAfterOrdering(t *testing.T) {
 		},
 	}
 
+	// Request a bounded outgoing edge bucket for the origin.
 	buckets, err := world.ListGraphEdgeBuckets(ctx, graph, &world.GraphEdgeBucketQuery{
 		OriginObjectKeys: []string{"origin-a"},
 		LimitPerOrigin:   2,
@@ -89,6 +95,8 @@ func TestListGraphEdgeBucketsLimitsAfterOrdering(t *testing.T) {
 	if len(buckets) != 1 {
 		t.Fatalf("expected one bucket, got %d", len(buckets))
 	}
+
+	// Verify that the outgoing limit retains the earliest ordered predicates.
 	bucket := buckets[0]
 	if !bucket.OutgoingTruncated {
 		t.Fatal("expected outgoing bucket to be truncated")
@@ -122,6 +130,7 @@ func (g *edgeBucketTestGraph) LookupGraphQuads(ctx context.Context, filter world
 }
 
 func (g *edgeBucketTestGraph) LookupGraphQuadsBatch(ctx context.Context, filters []world.GraphQuad, limitPerFilter uint32) ([][]world.GraphQuad, error) {
+	// Record the graph batch request and return matching quads for each filter.
 	g.batchCalls++
 	g.batchLimit = limitPerFilter
 	g.batchFilters = append([]world.GraphQuad(nil), filters...)

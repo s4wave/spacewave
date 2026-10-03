@@ -18,6 +18,7 @@ import (
 )
 
 func TestAccessObjectReturnsStorageOpArgs(t *testing.T) {
+	// Open a World testbed for object storage and release checks.
 	ctx := context.Background()
 	wtb, err := world_testbed.Default(ctx, world_testbed.WithWorldVerbose(false))
 	if err != nil {
@@ -25,6 +26,7 @@ func TestAccessObjectReturnsStorageOpArgs(t *testing.T) {
 	}
 	defer wtb.Release()
 
+	// Populate the World with the object bodies used by this test.
 	ws := world.NewEngineWorldState(wtb.Engine, true)
 	ref, err := world.AccessObject(ctx, ws.AccessWorldState, nil, func(bcs *block.Cursor) error {
 		bcs.SetBlock(block_mock.NewExample("root"), true)
@@ -40,6 +42,7 @@ func TestAccessObjectReturnsStorageOpArgs(t *testing.T) {
 		t.Fatal("expected object ref to retain the storage transform config")
 	}
 
+	// Read the saved object root and verify its body.
 	example, err := world.LookupObjectRef[*block_mock.Example](ctx, ws.AccessWorldState, ref, block_mock.NewExampleBlock)
 	if err != nil {
 		t.Fatal(err)
@@ -50,6 +53,7 @@ func TestAccessObjectReturnsStorageOpArgs(t *testing.T) {
 }
 
 func TestLookupObjectBodyReleasesObjectState(t *testing.T) {
+	// Open a World testbed for object storage and release checks.
 	ctx := context.Background()
 	wtb, err := world_testbed.Default(ctx, world_testbed.WithWorldVerbose(false))
 	if err != nil {
@@ -57,6 +61,7 @@ func TestLookupObjectBodyReleasesObjectState(t *testing.T) {
 	}
 	defer wtb.Release()
 
+	// Populate the World with the object bodies used by this test.
 	ws := world.NewEngineWorldState(wtb.Engine, true)
 	var createdObject world.ObjectState
 	createdObject, _, err = world.CreateWorldObject(ctx, ws, "example/body-release", func(bcs *block.Cursor) error {
@@ -68,6 +73,7 @@ func TestLookupObjectBodyReleasesObjectState(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Observe object state releases while reading or accessing its body.
 	wrapped := &releaseCountingWorldState{WorldState: ws}
 	example, err := world.LookupObjectBody[*block_mock.Example](
 		ctx,
@@ -87,6 +93,7 @@ func TestLookupObjectBodyReleasesObjectState(t *testing.T) {
 }
 
 func TestLookupObjectBodiesPreservesKeysAndMissingMarkers(t *testing.T) {
+	// Open a World testbed for object storage and release checks.
 	ctx := context.Background()
 	wtb, err := world_testbed.Default(ctx, world_testbed.WithWorldVerbose(false))
 	if err != nil {
@@ -94,6 +101,7 @@ func TestLookupObjectBodiesPreservesKeysAndMissingMarkers(t *testing.T) {
 	}
 	defer wtb.Release()
 
+	// Populate the World with the object bodies used by this test.
 	ws := world.NewEngineWorldState(wtb.Engine, true)
 	for _, entry := range []struct {
 		key string
@@ -103,6 +111,7 @@ func TestLookupObjectBodiesPreservesKeysAndMissingMarkers(t *testing.T) {
 		{key: "example/batch-beta", msg: "beta"},
 		{key: "example/batch-gamma", msg: "gamma"},
 	} {
+		// Save the example body under its requested object key.
 		var createdObject world.ObjectState
 		createdObject, _, err = world.CreateWorldObject(ctx, ws, entry.key, func(bcs *block.Cursor) error {
 			bcs.SetBlock(block_mock.NewExample(entry.msg), true)
@@ -114,6 +123,7 @@ func TestLookupObjectBodiesPreservesKeysAndMissingMarkers(t *testing.T) {
 		}
 	}
 
+	// Read object bodies in an order containing missing and repeated keys.
 	results, err := world.LookupObjectBodies[*block_mock.Example](
 		ctx,
 		ws,
@@ -132,7 +142,9 @@ func TestLookupObjectBodiesPreservesKeysAndMissingMarkers(t *testing.T) {
 		t.Fatalf("expected 4 results, got %d", len(results))
 	}
 
+	// Check the key, existence marker, and body of every batch result.
 	check := func(index int, key string, msg string, exists bool) {
+		// Verify that the returned body matches its requested object key.
 		t.Helper()
 		result := results[index]
 		if result.ObjectKey != key || result.Exists != exists {
@@ -148,6 +160,8 @@ func TestLookupObjectBodiesPreservesKeysAndMissingMarkers(t *testing.T) {
 			t.Fatalf("result %d body = %v, want %q", index, result.Body, msg)
 		}
 	}
+
+	// Assert body order, missing markers, and repeated key results.
 	check(0, "example/batch-gamma", "gamma", true)
 	check(1, "example/batch-missing", "", false)
 	check(2, "example/batch-alpha", "alpha", true)
@@ -155,6 +169,7 @@ func TestLookupObjectBodiesPreservesKeysAndMissingMarkers(t *testing.T) {
 }
 
 func TestAccessWorldObjectReleasesObjectState(t *testing.T) {
+	// Open a World testbed for object storage and release checks.
 	ctx := context.Background()
 	wtb, err := world_testbed.Default(ctx, world_testbed.WithWorldVerbose(false))
 	if err != nil {
@@ -162,6 +177,7 @@ func TestAccessWorldObjectReleasesObjectState(t *testing.T) {
 	}
 	defer wtb.Release()
 
+	// Populate the World with the object bodies used by this test.
 	ws := world.NewEngineWorldState(wtb.Engine, true)
 	const key = "example/access-release"
 	var createdObject world.ObjectState
@@ -174,6 +190,7 @@ func TestAccessWorldObjectReleasesObjectState(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Observe object state releases while reading or accessing its body.
 	wrapped := &releaseCountingWorldState{WorldState: ws}
 	if _, _, err := world.AccessWorldObject(ctx, wrapped, key, false, func(*block.Cursor) error {
 		return nil
@@ -184,6 +201,7 @@ func TestAccessWorldObjectReleasesObjectState(t *testing.T) {
 		t.Fatalf("expected existing-object success to release once, got %d", wrapped.releases)
 	}
 
+	// Check that callback failure releases the existing object state.
 	wrapped.releases = 0
 	callbackErr := errors.New("callback failed")
 	if _, _, err := world.AccessWorldObject(ctx, wrapped, key, false, func(*block.Cursor) error {
@@ -195,6 +213,7 @@ func TestAccessWorldObjectReleasesObjectState(t *testing.T) {
 		t.Fatalf("expected existing-object error to release once, got %d", wrapped.releases)
 	}
 
+	// Check that reading a missing object acquires no object state.
 	wrapped.releases = 0
 	if _, _, err := world.AccessWorldObject(ctx, wrapped, "example/access-missing", false, func(bcs *block.Cursor) error {
 		bcs.SetBlock(block_mock.NewExample("missing"), true)
@@ -206,6 +225,7 @@ func TestAccessWorldObjectReleasesObjectState(t *testing.T) {
 		t.Fatalf("expected not-found access to release no state, got %d", wrapped.releases)
 	}
 
+	// Check that creating a missing object releases its returned state.
 	wrapped.releases = 0
 	if _, _, err := world.AccessWorldObject(ctx, wrapped, "example/access-created", true, func(bcs *block.Cursor) error {
 		bcs.SetBlock(block_mock.NewExample("created"), true)
@@ -219,6 +239,7 @@ func TestAccessWorldObjectReleasesObjectState(t *testing.T) {
 }
 
 func TestCreateWorldObjectReleasesExistingObjectState(t *testing.T) {
+	// Open a World testbed for object storage and release checks.
 	ctx := context.Background()
 	wtb, err := world_testbed.Default(ctx, world_testbed.WithWorldVerbose(false))
 	if err != nil {
@@ -226,6 +247,7 @@ func TestCreateWorldObjectReleasesExistingObjectState(t *testing.T) {
 	}
 	defer wtb.Release()
 
+	// Populate the World with the object bodies used by this test.
 	ws := world.NewEngineWorldState(wtb.Engine, true)
 	const key = "example/create-release"
 	var createdObject world.ObjectState
@@ -238,6 +260,7 @@ func TestCreateWorldObjectReleasesExistingObjectState(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Observe object state releases while reading or accessing its body.
 	wrapped := &releaseCountingWorldState{WorldState: ws}
 	var createdObject2 world.ObjectState
 	createdObject2, _, err = world.CreateWorldObject(ctx, wrapped, key, func(*block.Cursor) error {
@@ -251,6 +274,7 @@ func TestCreateWorldObjectReleasesExistingObjectState(t *testing.T) {
 		t.Fatalf("expected existing-object check to release once, got %d", wrapped.releases)
 	}
 
+	// Check that creating a missing object acquires no state during lookup.
 	wrapped.releases = 0
 	var createdObject3 world.ObjectState
 	createdObject3, _, err = world.CreateWorldObject(ctx, wrapped, "example/create-missing", func(bcs *block.Cursor) error {
@@ -267,6 +291,7 @@ func TestCreateWorldObjectReleasesExistingObjectState(t *testing.T) {
 }
 
 func TestLookupRootRefReleasesObjectState(t *testing.T) {
+	// Open a World testbed for object storage and release checks.
 	ctx := context.Background()
 	wtb, err := world_testbed.Default(ctx, world_testbed.WithWorldVerbose(false))
 	if err != nil {
@@ -274,6 +299,7 @@ func TestLookupRootRefReleasesObjectState(t *testing.T) {
 	}
 	defer wtb.Release()
 
+	// Populate the World with the object bodies used by this test.
 	ws := world.NewEngineWorldState(wtb.Engine, true)
 	const key = "example/root-ref-release"
 	var createdObject world.ObjectState
@@ -286,6 +312,7 @@ func TestLookupRootRefReleasesObjectState(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Count object state releases while reading an existing object root.
 	var releases int
 	eng := &releaseCountingEngine{Engine: wtb.Engine, releases: &releases}
 	if _, _, err := world.LookupRootRef(ctx, eng, key); err != nil {
@@ -295,6 +322,7 @@ func TestLookupRootRefReleasesObjectState(t *testing.T) {
 		t.Fatalf("expected root-ref lookup to release once, got %d", releases)
 	}
 
+	// Check that an absent object root acquires no object state.
 	releases = 0
 	if _, _, err := world.LookupRootRef(ctx, eng, "example/root-ref-missing"); err != nil {
 		t.Fatal(err)
@@ -305,6 +333,7 @@ func TestLookupRootRefReleasesObjectState(t *testing.T) {
 }
 
 func TestLookupObjectReleasesDecodeErrorState(t *testing.T) {
+	// Open a World testbed for object storage and release checks.
 	ctx := context.Background()
 	wtb, err := world_testbed.Default(ctx, world_testbed.WithWorldVerbose(false))
 	if err != nil {
@@ -312,6 +341,7 @@ func TestLookupObjectReleasesDecodeErrorState(t *testing.T) {
 	}
 	defer wtb.Release()
 
+	// Populate the World with the object bodies used by this test.
 	ws := world.NewEngineWorldState(wtb.Engine, true)
 	const key = "example/decode-release"
 	var createdObject world.ObjectState
@@ -324,6 +354,7 @@ func TestLookupObjectReleasesDecodeErrorState(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Observe object state releases while reading or accessing its body.
 	wrapped := &releaseCountingWorldState{WorldState: ws}
 	value, obj, err := world.LookupObject[*releaseTestBlock](
 		ctx,
@@ -346,6 +377,7 @@ func TestLookupObjectReleasesDecodeErrorState(t *testing.T) {
 }
 
 func TestCollectObjectBodiesReleasesPartialFailureStates(t *testing.T) {
+	// Open a World testbed for object storage and release checks.
 	ctx := context.Background()
 	wtb, err := world_testbed.Default(ctx, world_testbed.WithWorldVerbose(false))
 	if err != nil {
@@ -353,11 +385,13 @@ func TestCollectObjectBodiesReleasesPartialFailureStates(t *testing.T) {
 	}
 	defer wtb.Release()
 
+	// Populate the World with the object bodies used by this test.
 	ws := world.NewEngineWorldState(wtb.Engine, true)
 	for key, data := range map[string]string{
 		"example/collect-good": "good",
 		"example/collect-bad":  "bad",
 	} {
+		// Save a body that either decodes successfully or fails decoding.
 		var createdObject world.ObjectState
 		createdObject, _, err = world.CreateWorldObject(ctx, ws, key, func(bcs *block.Cursor) error {
 			bcs.SetBlock(&releaseTestBlock{data: data}, true)
@@ -369,6 +403,7 @@ func TestCollectObjectBodiesReleasesPartialFailureStates(t *testing.T) {
 		}
 	}
 
+	// Observe object state releases while reading or accessing its body.
 	wrapped := &releaseCountingWorldState{WorldState: ws}
 	values, states, err := world.CollectObjectBodies[*releaseTestBlock](
 		ctx,
@@ -388,6 +423,7 @@ func TestCollectObjectBodiesReleasesPartialFailureStates(t *testing.T) {
 }
 
 func TestEngineWorldStateRetriesStaleGenerationWriteOperation(t *testing.T) {
+	// Cover stale generation failures at each write transaction stage.
 	cases := []struct {
 		name      string
 		configure func(*staleRetryEngine)
@@ -412,19 +448,24 @@ func TestEngineWorldStateRetriesStaleGenerationWriteOperation(t *testing.T) {
 		},
 	}
 
+	// Verify that each transient stale failure permits a committed object.
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
+			// Configure an engine that fails once at the selected transaction stage.
 			ctx := context.Background()
 			eng := &staleRetryEngine{objects: make(map[string]*bucket.ObjectRef)}
 			tc.configure(eng)
 			ws := world.NewEngineWorldState(eng, true)
 			key := "retry-object"
 
+			// Create the object through the engine retry path.
 			createdObject, err := ws.CreateObject(ctx, key, &bucket.ObjectRef{BucketId: "bucket"})
 			world.ReleaseObjectState(createdObject)
 			if err != nil {
 				t.Fatalf("CreateObject returned error after transient stale generation: %v", err)
 			}
+
+			// Verify that the retried creation committed the object.
 			found, err := ws.HasObject(ctx, key)
 			if err != nil {
 				t.Fatalf("HasObject after retried create returned error: %v", err)
@@ -647,6 +688,7 @@ func (txs *staleRetryTx) IterateObjects(ctx context.Context, prefix string, reve
 }
 
 func (txs *staleRetryTx) CreateObject(ctx context.Context, key string, rootRef *bucket.ObjectRef) (world.ObjectState, error) {
+	// Reject read-only writes and simulate the requested stale creation failure.
 	if !txs.write {
 		return nil, tx.ErrNotWrite
 	}
@@ -657,6 +699,8 @@ func (txs *staleRetryTx) CreateObject(ctx context.Context, key string, rootRef *
 	if txs.pending == nil {
 		txs.pending = make(map[string]*bucket.ObjectRef)
 	}
+
+	// Retain the object root until this simulated transaction commits.
 	txs.pending[key] = rootRef
 	return &staleRetryObject{key: key, rootRef: rootRef}, nil
 }
@@ -762,6 +806,7 @@ func (obj *staleRetryObject) WaitRev(ctx context.Context, rev uint64, ignoreNotF
 // that another writer changed mid-access onto that writer's root instead of
 // overwriting it.
 func TestAccessObjectStateKeepsConcurrentUpdate(t *testing.T) {
+	// Open a World testbed for object storage and release checks.
 	ctx := context.Background()
 	wtb, err := world_testbed.Default(ctx, world_testbed.WithWorldVerbose(false))
 	if err != nil {
@@ -769,6 +814,7 @@ func TestAccessObjectStateKeepsConcurrentUpdate(t *testing.T) {
 	}
 	defer wtb.Release()
 
+	// Populate the World with the object bodies used by this test.
 	ws := world.NewEngineWorldState(wtb.Engine, true)
 	const key = "example/concurrent-update"
 	created, _, err := world.CreateWorldObject(ctx, ws, key, func(bcs *block.Cursor) error {
@@ -810,6 +856,7 @@ func TestAccessObjectStateKeepsConcurrentUpdate(t *testing.T) {
 		t.Fatalf("callback ran %d times, want 2", attempts)
 	}
 
+	// Read the final object body and verify both writer updates survived.
 	var got string
 	if _, _, err := world.AccessWorldObject(ctx, ws, key, false, func(bcs *block.Cursor) error {
 		ex, err := block_mock.UnmarshalExample(ctx, bcs)

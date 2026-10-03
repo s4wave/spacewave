@@ -31,10 +31,12 @@ func (e *engineWorldState) GetObjectBodiesBatchPageWithSeqno(
 	keys []string,
 	byteBudget int,
 ) ([]*ObjectBody, uint32, uint64, error) {
+	// Read an object body page and its sequence number in one transaction.
 	var bodies []*ObjectBody
 	var consumed uint32
 	var seqno uint64
 	err := e.performOp(ctx, false, func(tx Tx) error {
+		// Read the transaction sequence number before collecting object bodies.
 		var berr error
 		seqno, berr = tx.GetSeqno(ctx)
 		if berr != nil {

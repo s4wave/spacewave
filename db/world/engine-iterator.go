@@ -56,10 +56,12 @@ func (e *engineObjectIterator) Key() string {
 
 // Next advances to the next entry and returns Valid.
 func (e *engineObjectIterator) Next() bool {
+	// Keep a failed engine iterator at its terminal state.
 	if e.err != nil {
 		return false
 	}
 
+	// Open a read transaction for the engine iterator's next key.
 	var valid bool
 	tx, err := e.e.NewTransaction(e.ctx, false)
 	if err != nil {
@@ -69,18 +71,23 @@ func (e *engineObjectIterator) Next() bool {
 	}
 	defer tx.Discard()
 
+	// Find the next object key and retain any traversal failure.
 	err = func() error {
+		// Open the transaction's object iterator for the selected prefix.
 		iter := tx.IterateObjects(e.ctx, e.prefix, e.reversed)
 		if iter == nil {
 			return nil
 		}
 		defer iter.Close()
 
+		// Resume traversal beyond the engine iterator's current key.
 		if e.currKey != "" {
+			// Locate the current key in the fresh transaction.
 			if err := iter.Seek(e.currKey); err != nil {
 				return err
 			}
 
+			// Stop when the current key has no successor in this transaction.
 			if !iter.Valid() {
 				return iter.Err()
 			}
@@ -94,6 +101,7 @@ func (e *engineObjectIterator) Next() bool {
 			}
 		}
 
+		// Retain the successor found by seeking beyond the current key.
 		if iter.Valid() {
 			e.currKey = iter.Key()
 			valid = true
@@ -105,10 +113,12 @@ func (e *engineObjectIterator) Next() bool {
 			return iter.Err()
 		}
 
+		// Stop when the initial object traversal has no valid entry.
 		if !iter.Valid() {
 			return iter.Err()
 		}
 
+		// Retain the first object key for the engine iterator.
 		e.currKey = iter.Key()
 		valid = true
 		return nil
@@ -119,16 +129,19 @@ func (e *engineObjectIterator) Next() bool {
 		return false
 	}
 
+	// Publish whether the engine iterator found another object.
 	e.valid = valid
 	return valid
 }
 
 // Seek moves the iterator to the first key >= the provided key (or <= in reverse mode).
 func (e *engineObjectIterator) Seek(k string) error {
+	// Keep a failed engine iterator at its terminal state.
 	if e.err != nil {
 		return e.err
 	}
 
+	// Open a read transaction for the requested object key.
 	var valid bool
 	tx, err := e.e.NewTransaction(e.ctx, false)
 	if err != nil {
@@ -138,21 +151,26 @@ func (e *engineObjectIterator) Seek(k string) error {
 	}
 	defer tx.Discard()
 
+	// Locate the requested object key and retain any traversal failure.
 	err = func() error {
+		// Open the transaction's object iterator for the selected prefix.
 		iter := tx.IterateObjects(e.ctx, e.prefix, e.reversed)
 		if iter == nil {
 			return nil
 		}
 		defer iter.Close()
 
+		// Seek the transaction's iterator to the requested key.
 		if err := iter.Seek(k); err != nil {
 			return err
 		}
 
+		// Stop when the requested key has no matching object entry.
 		if !iter.Valid() {
 			return iter.Err()
 		}
 
+		// Retain the located object key for the engine iterator.
 		e.currKey = iter.Key()
 		valid = true
 		return nil
@@ -163,6 +181,7 @@ func (e *engineObjectIterator) Seek(k string) error {
 		return err
 	}
 
+	// Publish whether the requested key has a matching object entry.
 	e.valid = valid
 	return nil
 }

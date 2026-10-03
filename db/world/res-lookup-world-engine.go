@@ -19,11 +19,13 @@ func NewWorldEngineResolver(c Controller) (*WorldEngineResolver, error) {
 
 // Resolve resolves the values, emitting them to the handler.
 func (r *WorldEngineResolver) Resolve(ctx context.Context, handler directive.ResolverHandler) error {
+	// Obtain the controller engine before resolving the directive.
 	eng, err := r.c.GetWorldEngine(ctx)
 	if err != nil {
 		return err
 	}
 
+	// Publish the World engine to the directive handler.
 	v := eng
 	_, _ = handler.AddValue(v)
 	return nil

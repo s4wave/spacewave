@@ -26,6 +26,7 @@ type ObjectRootRefBatcher interface {
 
 // GetObjectRootRefsBatch returns object root refs for object keys.
 func GetObjectRootRefsBatch(ctx context.Context, ws WorldState, keys []string) ([]*ObjectRootRef, error) {
+	// Use native object root batching when requests contain keys.
 	if len(keys) == 0 {
 		return nil, nil
 	}
@@ -33,6 +34,7 @@ func GetObjectRootRefsBatch(ctx context.Context, ws WorldState, keys []string) (
 		return batcher.GetObjectRootRefsBatch(ctx, keys)
 	}
 
+	// Read each object root and revision in the requested key order.
 	out := make([]*ObjectRootRef, len(keys))
 	for i, key := range keys {
 		ref := &ObjectRootRef{ObjectKey: key}

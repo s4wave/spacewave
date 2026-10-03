@@ -30,6 +30,7 @@ func (e *engineWorldStateObject) GetRootRef(ctx context.Context) (*bucket.Object
 	var outRef *bucket.ObjectRef
 	var outRev uint64
 	err := e.e.performOp(ctx, false, func(tx Tx) error {
+		// Acquire the transaction object and read its root and revision.
 		obj, err := MustGetObject(ctx, tx, e.key)
 		defer ReleaseObjectState(obj)
 		if err != nil {
@@ -111,6 +112,7 @@ func (e *engineWorldStateObject) accessObjectState(
 
 		// Publish only onto the revision the callback read.
 		err = e.e.performOp(ctx, true, func(tx Tx) error {
+			// Check the object revision and publish the updated root in one transaction.
 			obj, berr := MustGetObject(ctx, tx, e.key)
 			defer ReleaseObjectState(obj)
 			if berr != nil {

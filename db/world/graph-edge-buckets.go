@@ -50,6 +50,7 @@ type graphEdgeBucketFilterTarget struct {
 
 // ListGraphEdgeBuckets lists grouped inbound/outbound graph edges for object keys.
 func ListGraphEdgeBuckets(ctx context.Context, ws WorldStateGraph, query *GraphEdgeBucketQuery) ([]*GraphEdgeBucket, error) {
+	// Require a bounded graph edge query with a supported direction.
 	if query == nil {
 		return nil, nil
 	}
@@ -60,6 +61,7 @@ func ListGraphEdgeBuckets(ctx context.Context, ws WorldStateGraph, query *GraphE
 		return nil, err
 	}
 
+	// Build graph quad filters and their destination buckets for each origin.
 	buckets := make([]*GraphEdgeBucket, len(query.OriginObjectKeys))
 	filters := make([]GraphQuad, 0, len(query.OriginObjectKeys)*2)
 	targets := make([]graphEdgeBucketFilterTarget, 0, len(query.OriginObjectKeys)*2)
@@ -84,6 +86,7 @@ func ListGraphEdgeBuckets(ctx context.Context, ws WorldStateGraph, query *GraphE
 		buckets[i] = bucket
 	}
 
+	// Collect matching graph quads and truncate each sorted edge bucket.
 	if len(filters) != 0 {
 		results, err := ws.LookupGraphQuadsBatch(ctx, filters, 0)
 		if err != nil {

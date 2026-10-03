@@ -25,6 +25,7 @@ func GraphQuadStringToCayleyValue(s string) quad.Value {
 
 // GraphQuadToCayleyQuad converts a graph quad to a cayley quad.
 func GraphQuadToCayleyQuad(q GraphQuad, check bool) (quad.Quad, error) {
+	// Require a graph quad and validate its mandatory fields when requested.
 	oq := quad.Quad{}
 	if q == nil {
 		return oq, ErrNilQuad
@@ -40,10 +41,14 @@ func GraphQuadToCayleyQuad(q GraphQuad, check bool) (quad.Quad, error) {
 			return oq, ErrEmptyQuadObject
 		}
 	}
+
+	// Convert each graph quad field into its Cayley representation.
 	oq.Subject = GraphQuadStringToCayleyValue(q.GetSubject())
 	oq.Predicate = GraphQuadStringToCayleyValue(q.GetPredicate())
 	oq.Object = GraphQuadStringToCayleyValue(q.GetObj())
 	oq.Label = GraphQuadStringToCayleyValue(q.GetLabel())
+
+	// Validate the converted Cayley quad when requested.
 	var err error
 	if check {
 		err = ValidateCayleyQuad(oq)
@@ -53,6 +58,7 @@ func GraphQuadToCayleyQuad(q GraphQuad, check bool) (quad.Quad, error) {
 
 // CayleyQuadToGraphQuad converts a cayley quad into a graph quad.
 func CayleyQuadToGraphQuad(q quad.Quad) GraphQuad {
+	// Preserve the Cayley quad fields as graph quad strings.
 	var subj, pred, obj, label string
 	if q.Subject != nil {
 		subj = q.Subject.String()
@@ -77,6 +83,7 @@ func ValidateGraphQuad(q GraphQuad) error {
 
 // ValidateCayleyQuad checks a cayley quad for validity.
 func ValidateCayleyQuad(q quad.Quad) error {
+	// Require the subject, predicate, and object in the Cayley quad.
 	if q.Subject == nil {
 		return ErrEmptyQuadSubject
 	}
@@ -86,6 +93,7 @@ func ValidateCayleyQuad(q quad.Quad) error {
 	if q.Object == nil {
 		return ErrEmptyQuadObject
 	}
+
 	// subject must be iri
 	if _, ok := q.Subject.(quad.IRI); !ok {
 		return ErrQuadSubjectNotIRI

@@ -306,13 +306,14 @@ func AccessObject(
 	ref *bucket.ObjectRef,
 	cb AccessObjectCb,
 ) (*bucket.ObjectRef, error) {
+	// Trace object access and retain its resulting root reference.
 	ctx, task := trace.NewTask(ctx, "hydra/world/access-object")
 	defer task.End()
-
 	var outRef *bucket.ObjectRef
 
 	// Build the block transaction for the accessed object.
 	err := access(ctx, ref, func(bls *bucket_lookup.Cursor) error {
+		// Trace construction of the accessed object block transaction.
 		_, subtask := trace.NewTask(ctx, "hydra/world/access-object/build-transaction")
 		btx, bcs := bls.BuildTransaction(nil)
 		subtask.End()
@@ -429,6 +430,7 @@ func AccessObjectState(
 	updateWorld bool,
 	cb AccessObjectCb,
 ) (*bucket.ObjectRef, bool, error) {
+	// Trace access to the object root through callback completion.
 	ctx, task := trace.NewTask(ctx, "hydra/world/access-object-state")
 	defer task.End()
 
@@ -474,6 +476,7 @@ func accessObjectRoot(
 	initRef *bucket.ObjectRef,
 	cb AccessObjectCb,
 ) (*bucket.ObjectRef, bool, error) {
+	// Apply the object callback and capture its resulting root reference.
 	taskCtx, subtask := trace.NewTask(ctx, "hydra/world/access-object-state/access-object")
 	outRef, err := AccessObject(taskCtx, obj.AccessWorldState, initRef, cb)
 	subtask.End()
@@ -481,6 +484,7 @@ func accessObjectRoot(
 		return nil, false, err
 	}
 
+	// Compare the root and bucket references to detect object changes.
 	dirty := !outRef.GetRootRef().EqualsRef(initRef.GetRootRef())
 	if initRef.GetBucketId() != "" && initRef.GetBucketId() != outRef.GetBucketId() {
 		dirty = true

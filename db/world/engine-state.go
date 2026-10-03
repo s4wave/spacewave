@@ -95,6 +95,7 @@ func (e *engineWorldState) ApplyWorldOp(
 func (e *engineWorldState) CreateObject(ctx context.Context, key string, rootRef *bucket.ObjectRef) (ObjectState, error) {
 	var outState ObjectState
 	err := e.performOp(ctx, true, func(tx Tx) error {
+		// Create the object in a transaction and retain its engine-backed state.
 		obj, err := tx.CreateObject(ctx, key, rootRef)
 		ReleaseObjectState(obj)
 		if err != nil {
@@ -119,6 +120,7 @@ func (e *engineWorldState) IterateObjects(ctx context.Context, prefix string, re
 // GetObject looks up an object by key.
 // Returns nil, false if not found.
 func (e *engineWorldState) GetObject(ctx context.Context, key string) (ObjectState, bool, error) {
+	// Look up object existence and construct its engine-backed state when found.
 	var found bool
 	err := e.performOp(ctx, false, func(tx Tx) error {
 		obj, exists, nerr := tx.GetObject(ctx, key)
@@ -150,6 +152,7 @@ func (e *engineWorldState) DeleteObject(ctx context.Context, key string) (bool, 
 func (e *engineWorldState) RenameObject(ctx context.Context, oldKey, newKey string, descendants bool) (ObjectState, error) {
 	var outState ObjectState
 	err := e.performOp(ctx, true, func(tx Tx) error {
+		// Rename the object in a transaction and retain its engine-backed state.
 		obj, err := tx.RenameObject(ctx, oldKey, newKey, descendants)
 		ReleaseObjectState(obj)
 		if err != nil {
@@ -274,12 +277,14 @@ func (e *engineWorldState) performOp(ctx context.Context, write bool, cb func(tx
 
 // performOpOnce owns one attempt, including commit and unconditional discard.
 func (e *engineWorldState) performOpOnce(ctx context.Context, write bool, cb func(tx Tx) error) error {
+	// Open the transaction for this engine operation attempt.
 	opTx, err := e.e.NewTransaction(ctx, write)
 	if err != nil {
 		return err
 	}
 	defer opTx.Discard()
 
+	// Apply the engine operation and commit successful writes.
 	if err := cb(opTx); err != nil {
 		return err
 	}

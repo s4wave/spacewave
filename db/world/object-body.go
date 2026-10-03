@@ -68,6 +68,7 @@ func (e *ObjectBodyTooLargeError) Error() string {
 // Results preserve the requested key order and include one missing marker per
 // key that does not exist.
 func GetObjectBodiesBatch(ctx context.Context, ws WorldState, keys []string) ([]*ObjectBody, error) {
+	// Use native object body batching when requests contain keys.
 	if len(keys) == 0 {
 		return nil, nil
 	}
@@ -75,6 +76,7 @@ func GetObjectBodiesBatch(ctx context.Context, ws WorldState, keys []string) ([]
 		return batcher.GetObjectBodiesBatch(ctx, keys)
 	}
 
+	// Read each object body and preserve the requested key order.
 	out := make([]*ObjectBody, len(keys))
 	for i, key := range keys {
 		body, rev, exists, err := LookupObjectBodyBytesWithRev(ctx, ws, key)
@@ -167,6 +169,7 @@ func GetObjectBodiesBatchPageWithSeqno(
 // ObjectBody response entry, including its key, body, exists flag, revision,
 // and the enclosing repeated-message tag and length.
 func objectBodyEncodedSize(body *ObjectBody) int {
+	// Measure the object body fields and their enclosing protobuf entry.
 	if body == nil {
 		return 0
 	}
@@ -215,11 +218,13 @@ func LookupObjectBodies[T block.Block](
 	objKeys []string,
 	ctor func() block.Block,
 ) ([]*ObjectBodyResult[T], error) {
+	// Fetch serialized object bodies in the requested key order.
 	bodies, err := GetObjectBodiesBatch(ctx, ws, objKeys)
 	if err != nil {
 		return nil, err
 	}
 
+	// Decode existing object bodies while retaining missing markers.
 	results := make([]*ObjectBodyResult[T], len(bodies))
 	for i, body := range bodies {
 		result := &ObjectBodyResult[T]{

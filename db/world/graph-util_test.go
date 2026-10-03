@@ -10,11 +10,13 @@ import (
 )
 
 func TestQuadFilterIteratorDirectionsPreferEndpointIndexes(t *testing.T) {
+	// Build a quad filter with both endpoint and predicate restrictions.
 	filter := quad.Quad{
 		Predicate: quad.IRI("<rel>"),
 		Object:    quad.IRI("<target>"),
 	}
 
+	// Verify that indexed endpoint directions precede predicate traversal.
 	dirs := quadFilterIteratorDirections(filter)
 	if len(dirs) != 2 {
 		t.Fatalf("direction count: got %d want 2", len(dirs))
@@ -31,6 +33,7 @@ func TestQuadFilterIteratorDirectionsPreferEndpointIndexes(t *testing.T) {
 }
 
 func TestReadOperationCayleyHandleSkipsQuadRefCaches(t *testing.T) {
+	// Wrap a graph store that counts direction and name resolution.
 	ctx := context.Background()
 	fake := &cachedCayleyHandleTestStore{
 		valueRef: testGraphRef("value-ref"),
@@ -38,6 +41,7 @@ func TestReadOperationCayleyHandleSkipsQuadRefCaches(t *testing.T) {
 	}
 	handle := NewReadOperationCayleyHandle(fake)
 
+	// Read the same quad twice and verify its resolved subject.
 	for range 2 {
 		q, err := handle.Quad(ctx, fake.quadRef)
 		if err != nil {
@@ -47,6 +51,8 @@ func TestReadOperationCayleyHandleSkipsQuadRefCaches(t *testing.T) {
 			t.Fatalf("quad subject = %s, want <<rel>>", q.Subject.String())
 		}
 	}
+
+	// Require fresh quad directions while reusing the resolved graph name.
 	if fake.directionCalls != 8 {
 		t.Fatalf("QuadDirection calls = %d, want 8", fake.directionCalls)
 	}

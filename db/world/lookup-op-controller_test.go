@@ -12,17 +12,20 @@ import (
 
 // TestLookupOpController runs the LookupOpController to test.
 func TestLookupOpController(t *testing.T) {
+	// Configure debug logging for the World operation controller test.
 	ctx := context.Background()
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
 
+	// Open the testbed that hosts the World operation controller.
 	testbed.Verbose = false
 	tb, err := testbed.NewTestbed(ctx, le)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Construct a controller that counts resolved World operation requests.
 	engineID := "test-engine"
 	var ncalled atomic.Uint32
 	testCtrl := NewLookupOpController(
@@ -34,6 +37,7 @@ func TestLookupOpController(t *testing.T) {
 		},
 	)
 
+	// Execute the World operation controller on the testbed bus.
 	b := tb.Bus
 	go func() {
 		_ = b.ExecuteController(ctx, testCtrl)
@@ -42,8 +46,10 @@ func TestLookupOpController(t *testing.T) {
 	// allow it to start
 	<-time.After(time.Millisecond * 100)
 
+	// Bind operation lookups to the controller engine target.
 	lookupWorldOpFn := BuildLookupWorldOpFunc(b, le, engineID)
 
+	// Resolve one World operation and verify its callback count.
 	operationTypeID := "test-operation"
 	op, err := lookupWorldOpFn(ctx, operationTypeID)
 	if err != nil {

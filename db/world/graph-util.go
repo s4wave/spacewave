@@ -80,6 +80,7 @@ func CollectFilteredFullQuadsBatch(ctx context.Context, h CayleyHandle, filters 
 	groupsByKey := make(map[quadFilterBatchKey]int)
 	var groups []quadFilterBatchGroup
 
+	// Group each concrete quad filter by its smallest indexed traversal.
 	for i, filter := range filters {
 		if !hasQuadFilter(filter) {
 			quads, err := collectFilteredFullQuads(ctx, h, filter, limitPerFilter)
@@ -160,6 +161,7 @@ func collectQuadFilterBatchGroup(
 	it := h.QuadIterator(ctx, group.dir, group.ref).Iterate(ctx)
 	defer it.Close()
 
+	// Track which quad filters have reached their result limits.
 	var remaining int
 	filled := make([]bool, len(filters))
 	if limit != 0 {
@@ -268,6 +270,7 @@ type quadDirectionKey struct {
 }
 
 func (h *cachedCayleyHandle) ValueOf(ctx context.Context, val quad.Value) (graph.Ref, error) {
+	// Resolve a graph value and retain its reference for this read operation.
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
@@ -279,12 +282,15 @@ func (h *cachedCayleyHandle) ValueOf(ctx context.Context, val quad.Value) (graph
 	if err != nil {
 		return nil, err
 	}
+
+	// Retain the resolved graph value reference for subsequent reads.
 	h.valueRefFound[key] = true
 	h.valueRefs[key] = ref
 	return ref, nil
 }
 
 func (h *cachedCayleyHandle) NameOf(ctx context.Context, ref graph.Ref) (quad.Value, error) {
+	// Resolve a graph reference and retain its name for this read operation.
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
@@ -296,12 +302,15 @@ func (h *cachedCayleyHandle) NameOf(ctx context.Context, ref graph.Ref) (quad.Va
 	if err != nil {
 		return nil, err
 	}
+
+	// Retain the resolved graph name for subsequent reads.
 	h.nameFound[key] = true
 	h.names[key] = val
 	return val, nil
 }
 
 func (h *cachedCayleyHandle) QuadIteratorSize(ctx context.Context, dir quad.Direction, ref graph.Ref) (refs.Size, error) {
+	// Read and retain the quad iterator size for this read operation.
 	if err := ctx.Err(); err != nil {
 		return refs.Size{}, err
 	}
@@ -352,6 +361,7 @@ func (h *cachedCayleyHandle) quadFromDirections(ctx context.Context, ref graph.R
 }
 
 func (h *cachedCayleyHandle) QuadDirection(ctx context.Context, ref graph.Ref, dir quad.Direction) (graph.Ref, error) {
+	// Resolve and retain the quad direction for this read operation.
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
@@ -380,6 +390,7 @@ func graphRefCacheKey(ref graph.Ref) any {
 }
 
 func selectQuadFilterIterator(ctx context.Context, h CayleyHandle, filter quad.Quad) (quad.Direction, graph.Ref, bool, error) {
+	// Select the smallest indexed quad traversal for the concrete filter.
 	var bestDir quad.Direction
 	var bestRef graph.Ref
 	var bestSize refs.Size
@@ -485,6 +496,7 @@ func IteratePathWithKeys(
 	}
 
 	return ws.AccessCayleyGraph(ctx, false, func(ctx context.Context, h CayleyHandle) error {
+		// Build the graph path from the starting values and caller transformation.
 		p := cayley.StartPath(h, gv...)
 		if pathCb != nil {
 			var err error
@@ -494,6 +506,7 @@ func IteratePathWithKeys(
 			}
 		}
 
+		// Resolve each path result into an object key for the caller.
 		it := p.BuildIterator(ctx).Iterate(ctx)
 		defer it.Close()
 		for it.Next(ctx) {
@@ -527,10 +540,12 @@ func CollectPathWithKeys(
 	entityKeys []string,
 	pathCb func(p *cayley.Path) (*cayley.Path, error),
 ) ([]string, error) {
+	// Skip path collection when no starting object keys are supplied.
 	if len(entityKeys) == 0 {
 		return nil, nil
 	}
 
+	// Collect each reachable object key once and sort the results.
 	var output []string
 	seen := make(map[string]struct{})
 	err := IteratePathWithKeys(

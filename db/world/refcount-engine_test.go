@@ -27,6 +27,8 @@ func TestRefCountEngineRevisionReads(t *testing.T) {
 		return &inner, func() {}, nil
 	})
 	t.Cleanup(engine.ClearContext)
+
+	// Read the initial sequence number through the resolved engine.
 	before, err := engine.GetSeqno(ctx)
 	if err != nil {
 		t.Fatal(err)
