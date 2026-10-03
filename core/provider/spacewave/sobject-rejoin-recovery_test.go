@@ -23,6 +23,7 @@ import (
 
 // TestTryRecoverMissingSharedObjectPeer restores a participant using an unlocked entity credential.
 func TestTryRecoverMissingSharedObjectPeer(t *testing.T) {
+	// Select one isolated shared object and entity.
 	const (
 		soID      = "so-rejoin"
 		accountID = "test-account"
@@ -84,7 +85,7 @@ func TestTryRecoverMissingSharedObjectPeer(t *testing.T) {
 
 	// Retain a client authenticated as the recovering participant.
 	acc := NewTestProviderAccount(t, srv.URL)
-	acc.sessionClient = NewSessionClient(http.DefaultClient, srv.URL, DefaultSigningEnvPrefix, newPriv, newPID.String())
+	acc.ReplaceSessionClient(NewSessionClient(http.DefaultClient, srv.URL, DefaultSigningEnvPrefix, newPriv, newPID.String()))
 	acc.GetEntityKeyStore().Unlock(entityPID, entityPriv)
 
 	// Mount signed state under the recovering participant identity.
@@ -110,7 +111,7 @@ func TestTryRecoverMissingSharedObjectPeer(t *testing.T) {
 	}
 	ref := sobject.NewSharedObjectRef("spacewave", accountID, soID, soID)
 
-	// Attempt recovery and check the resulting participant state.
+	// Attempt recovery.
 	err := so.tkr.tryRecoverMissingSharedObjectPeer(
 		t.Context(),
 		ref,
@@ -120,6 +121,8 @@ func TestTryRecoverMissingSharedObjectPeer(t *testing.T) {
 	if err != nil {
 		t.Fatalf("tryRecoverMissingSharedObjectPeer: %v", err)
 	}
+
+	// Check the resulting participant state.
 	if posted == nil {
 		t.Fatal("expected config-state write")
 	}
@@ -214,7 +217,7 @@ func TestTryRecoverMissingSharedObjectPeerRepairsMissingGrant(t *testing.T) {
 
 	// Retain a client authenticated as the recovering participant.
 	acc := NewTestProviderAccount(t, srv.URL)
-	acc.sessionClient = NewSessionClient(http.DefaultClient, srv.URL, DefaultSigningEnvPrefix, newPriv, newPID.String())
+	acc.ReplaceSessionClient(NewSessionClient(http.DefaultClient, srv.URL, DefaultSigningEnvPrefix, newPriv, newPID.String()))
 	acc.GetEntityKeyStore().Unlock(entityPID, entityPriv)
 
 	// Mount signed state under the recovering participant identity.
@@ -275,6 +278,7 @@ func TestTryRecoverMissingSharedObjectPeerRepairsMissingGrant(t *testing.T) {
 
 // TestTryRecoverMissingSharedObjectPeerRequiresCredential rejects recovery without an unlocked entity key.
 func TestTryRecoverMissingSharedObjectPeerRequiresCredential(t *testing.T) {
+	// Select one isolated shared object and entity.
 	const (
 		soID      = "so-rejoin"
 		accountID = "test-account"
@@ -317,7 +321,7 @@ func TestTryRecoverMissingSharedObjectPeerRequiresCredential(t *testing.T) {
 
 	// Retain a client authenticated as the recovering participant.
 	acc := NewTestProviderAccount(t, srv.URL)
-	acc.sessionClient = NewSessionClient(http.DefaultClient, srv.URL, DefaultSigningEnvPrefix, newPriv, newPID.String())
+	acc.ReplaceSessionClient(NewSessionClient(http.DefaultClient, srv.URL, DefaultSigningEnvPrefix, newPriv, newPID.String()))
 	host := newCloudSOHost(
 		logrus.New().WithField("test", t.Name()),
 		acc.sessionClient,
@@ -354,6 +358,7 @@ func TestTryRecoverMissingSharedObjectPeerRequiresCredential(t *testing.T) {
 
 // TestTryRecoverMissingSharedObjectPeerRemovedEntity rejects an entity absent from the signed configuration.
 func TestTryRecoverMissingSharedObjectPeerRemovedEntity(t *testing.T) {
+	// Select one isolated shared object and entity.
 	const (
 		soID      = "so-rejoin"
 		accountID = "test-account"
@@ -393,7 +398,7 @@ func TestTryRecoverMissingSharedObjectPeerRemovedEntity(t *testing.T) {
 
 	// Retain a client authenticated as the recovering participant.
 	acc := NewTestProviderAccount(t, srv.URL)
-	acc.sessionClient = NewSessionClient(http.DefaultClient, srv.URL, DefaultSigningEnvPrefix, newPriv, newPID.String())
+	acc.ReplaceSessionClient(NewSessionClient(http.DefaultClient, srv.URL, DefaultSigningEnvPrefix, newPriv, newPID.String()))
 	acc.GetEntityKeyStore().Unlock(entityPID, entityPriv)
 	host := newCloudSOHost(
 		logrus.New().WithField("test", t.Name()),
@@ -469,9 +474,8 @@ type rejoinScenario struct {
 
 // newRejoinScenario retains a signed recovery fixture and its HTTP service through the test.
 func newRejoinScenario(t *testing.T) *rejoinScenario {
-	t.Helper()
-
 	// Select one isolated shared object and entity.
+	t.Helper()
 	const (
 		soID      = "so-rejoin"
 		accountID = "test-account"
@@ -548,7 +552,7 @@ func newRejoinScenario(t *testing.T) *rejoinScenario {
 	// Prepare an authenticated account with an initially empty recovery cache.
 	sc.acc = NewTestProviderAccount(t, sc.srv.URL)
 	sc.acc.objStore = hashmap.NewHashmapKvtx(hashmap.NewHashmap[[]byte]())
-	sc.acc.sessionClient = NewSessionClient(http.DefaultClient, sc.srv.URL, DefaultSigningEnvPrefix, newPriv, newPID.String())
+	sc.acc.ReplaceSessionClient(NewSessionClient(http.DefaultClient, sc.srv.URL, DefaultSigningEnvPrefix, newPriv, newPID.String()))
 	sc.acc.GetEntityKeyStore().Unlock(entityPID, entityPriv)
 
 	// Bind the shared-object host to the recovering participant.
@@ -591,9 +595,7 @@ func (sc *rejoinScenario) primeEnvelopeCache(t *testing.T) {
 // primeKeypairCache caches the known entity keypairs before rejoining.
 func (sc *rejoinScenario) primeKeypairCache(t *testing.T) {
 	t.Helper()
-	sc.acc.sessionClient.recoveryKeypairs = map[string]*api.ListSORecoveryEntityKeypairsResponse{
-		sc.soID: sc.keypairResp,
-	}
+	sc.acc.recoveryKeypairs.set(sc.soID, sc.keypairResp)
 }
 
 // run performs recovery through the normal shared-object tracker.

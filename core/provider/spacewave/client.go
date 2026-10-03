@@ -1137,11 +1137,9 @@ type SessionClient struct {
 	// packReadTickets caches short-lived private pack read tickets by resource
 	packReadTickets map[string]*packReadTicketState
 
-	// recoveryKeypairsMtx guards recoveryKeypairs.
-	recoveryKeypairsMtx sync.Mutex
-	// recoveryKeypairs caches the last recovery entity keypair listing of
-	// each shared object, keyed by shared object ID.
-	recoveryKeypairs map[string]*api.ListSORecoveryEntityKeypairsResponse
+	// recoveryKeypairs is the owning account's keypair listing cache, or nil
+	// for a client no account configured.
+	recoveryKeypairs *recoveryKeypairCache
 }
 
 type packReadTicketState struct {

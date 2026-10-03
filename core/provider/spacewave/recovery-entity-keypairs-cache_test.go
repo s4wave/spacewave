@@ -15,7 +15,8 @@ import (
 
 // TestRecoveryEntityKeypairsFollowReadableEntities checks that envelope builds
 // list recovery keypairs again only when the config's readable entities change,
-// and never reuse a listing that lacks an entity's keypairs.
+// reuse a listing across the account's session clients, and never reuse a
+// listing that lacks an entity's keypairs.
 func TestRecoveryEntityKeypairsFollowReadableEntities(t *testing.T) {
 	// Give alice and bob one keypair each, and carol none.
 	const soID = "so-keypair-cache"
@@ -50,7 +51,8 @@ func TestRecoveryEntityKeypairsFollowReadableEntities(t *testing.T) {
 		_, _ = w.Write(mustMarshalVT(t, resp))
 	}))
 	defer srv.Close()
-	cli := NewTestProviderAccount(t, srv.URL).sessionClient
+	acc := NewTestProviderAccount(t, srv.URL)
+	cli := acc.sessionClient
 
 	// build seals envelopes for a config of entity peers, which the Cloud
 	// also holds, and checks the listing count.
@@ -79,10 +81,14 @@ func TestRecoveryEntityKeypairsFollowReadableEntities(t *testing.T) {
 		return err
 	}
 
-	// A new peer of a listed entity reuses the listing.
+	// A new peer of a listed entity reuses the listing, also through a
+	// replacement session client.
 	if err := build(1, "alice", "peer-a1"); err != nil {
 		t.Fatal(err)
 	}
+	priv, pid := generateTestKeypair(t)
+	acc.ReplaceSessionClient(NewSessionClient(http.DefaultClient, srv.URL, "", priv, pid.String()))
+	cli = acc.sessionClient
 	if err := build(1, "alice", "peer-a1", "alice", "peer-a2"); err != nil {
 		t.Fatal(err)
 	}

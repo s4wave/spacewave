@@ -121,6 +121,9 @@ type ProviderAccount struct {
 	presentationJobs *asyncCallbackJobs
 	// orgListJobs refetches the loaded organization list after a reconnect.
 	orgListJobs *asyncCallbackJobs
+	// recoveryKeypairs caches recovery entity keypair listings for every
+	// SessionClient of the account.
+	recoveryKeypairs recoveryKeypairCache
 	// entityKeyStore holds unlocked entity keypairs shared across account
 	// resources for this provider account.
 	entityKeyStore *EntityKeyStore

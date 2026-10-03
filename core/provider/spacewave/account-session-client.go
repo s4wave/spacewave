@@ -9,11 +9,14 @@ import (
 	"github.com/s4wave/spacewave/net/peer"
 )
 
+// configureSessionClient connects cli to the account's write ticket audience
+// and recovery keypair cache.
 func (a *ProviderAccount) configureSessionClient(cli *SessionClient) *SessionClient {
 	if cli == nil {
 		return nil
 	}
 	cli.executeWriteTicketAudience = a.ExecuteWriteTicketAudience
+	cli.recoveryKeypairs = &a.recoveryKeypairs
 	return cli
 }
 
