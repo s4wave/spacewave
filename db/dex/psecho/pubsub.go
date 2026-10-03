@@ -13,10 +13,10 @@ func (c *Controller) publishWantList(
 	sub pubsub.Subscription,
 	refs map[string]*block.BlockRef,
 ) error {
+	// Capture the current wantlist with its publication timestamp.
 	msg := &PubSubMessage{
 		TimestampUnixNano: time.Now().UnixNano(),
 	}
-
 	if len(refs) == 0 {
 		msg.WantEmpty = true
 	}
@@ -24,6 +24,7 @@ func (c *Controller) publishWantList(
 		msg.WantRefs = append(msg.WantRefs, ref)
 	}
 
+	// Encode the wantlist snapshot for the pubsub transport.
 	data, err := msg.MarshalVT()
 	if err != nil {
 		return errors.Wrap(err, "marshal pubsub message")

@@ -14,9 +14,11 @@ import (
 const mockServiceID = "/foo/" + echo.SRPCEchoerServiceID
 
 func startMockHandler(t *testing.T, tb *testbed.Testbed) func() {
+	// Register an echo service in the mock RPC multiplexer.
 	mux := srpc.NewMux()
 	_ = mux.Register(echo.NewSRPCEchoerHandler(echo.NewEchoServer(nil), echo.SRPCEchoerServiceID))
 
+	// Attach the mock service controller to the test bus.
 	handlerCtrl := NewRpcServiceController(
 		controller.NewInfo("bifrost/rpc/test-handler", controller.MustParseVersion("0.0.1"), "test handler"),
 		NewRpcServiceBuilder(mux),
@@ -34,6 +36,7 @@ func startMockHandler(t *testing.T, tb *testbed.Testbed) func() {
 }
 
 func TestRpcServiceController(t *testing.T) {
+	// Start a bus testbed with the mock echo service.
 	ctx := context.Background()
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
@@ -47,6 +50,7 @@ func TestRpcServiceController(t *testing.T) {
 	}
 	defer startMockHandler(t, tb)()
 
+	// Call the mock echo service through a bus-backed RPC pipe.
 	invoker := NewInvoker(tb.Bus, "", false)
 	server := srpc.NewServer(invoker)
 	serverOpenConn := srpc.NewServerPipe(server)
@@ -58,6 +62,8 @@ func TestRpcServiceController(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Verify the echo response preserves the request body.
 	if resp.GetBody() != "testing" {
 		t.FailNow()
 	}

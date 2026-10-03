@@ -19,6 +19,7 @@ import (
 // without emitting writes for every unchanged source module, and reports each
 // destination file it changes.
 func TestSyncContentsPreservesUnchangedFiles(t *testing.T) {
+	// Prepare a source filesystem whose files have fixed timestamps.
 	ctx := t.Context()
 	stamp := time.Unix(1000, 0)
 	files := fstest.MapFS{
@@ -26,6 +27,8 @@ func TestSyncContentsPreservesUnchangedFiles(t *testing.T) {
 		"lib":        {Mode: fs.ModeDir | 0o755, ModTime: stamp},
 		"lib/one.ts": {Data: []byte("one"), Mode: 0o644, ModTime: stamp},
 	}
+
+	// Open the source filesystem for content-aware traversal.
 	cursor, err := unixfs_iofs.NewFSCursor(files)
 	if err != nil {
 		t.Fatal(err)
@@ -36,10 +39,13 @@ func TestSyncContentsPreservesUnchangedFiles(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer handle.Release()
+
+	// Prepare the disk destination and its change-reporting sync helper.
 	directory := t.TempDir()
 	out := osfs.New(directory)
 	filename := filepath.Join(directory, "viewer.ts")
 	sync := func(want ...string) {
+		// Copy source contents while collecting destination change notifications.
 		t.Helper()
 		var got []string
 		err := SyncToBillyContents(ctx, out, handle, DeleteMode_DeleteMode_DURING, nil, func(name string, kind ChangeKind) {
@@ -48,11 +54,15 @@ func TestSyncContentsPreservesUnchangedFiles(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
+
+		// Verify the sync reports exactly the expected destination changes.
 		slices.Sort(got)
 		if !slices.Equal(got, want) {
 			t.Fatalf("changes = %q, want %q", got, want)
 		}
 	}
+
+	// Seed the destination files and pin their modification timestamp.
 	sync(fmt.Sprintf("%d lib/one.ts", ChangeCreate), fmt.Sprintf("%d viewer.ts", ChangeCreate))
 	if err := os.Chtimes(filename, stamp, stamp); err != nil {
 		t.Fatal(err)

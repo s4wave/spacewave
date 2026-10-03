@@ -137,15 +137,18 @@ func (d *lookupRpcClient) LookupRpcClientID() string {
 // directives are equivalent, and the new directive does not superceed the
 // old, then the new directive will be merged (de-duplicated) into the old.
 func (d *lookupRpcClient) IsEquivalent(other directive.Directive) bool {
+	// Require another client lookup before comparing its routing keys.
 	od, ok := other.(LookupRpcClient)
 	if !ok {
 		return false
 	}
 
+	// Require the same service before sharing the client lookup.
 	if d.LookupRpcServiceID() != od.LookupRpcServiceID() {
 		return false
 	}
 
+	// Require the same caller routing key before sharing the lookup.
 	if d.LookupRpcClientID() != od.LookupRpcClientID() {
 		return false
 	}

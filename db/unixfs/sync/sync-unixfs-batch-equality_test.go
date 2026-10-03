@@ -31,6 +31,7 @@ var rootfsFixtureTime = time.Date(2026, 4, 18, 12, 0, 0, 0, time.UTC)
 // Every file and symlink sits under a parent that is either the root (assumed
 // to exist) or explicitly declared via a TypeDir entry earlier in the stream.
 func buildRootfsFixture() []byte {
+	// Prepare tar entry writers with a shared fixture timestamp.
 	var buf bytes.Buffer
 	tw := tar.NewWriter(&buf)
 	writeHeader := func(hdr *tar.Header) {
@@ -61,6 +62,7 @@ func buildRootfsFixture() []byte {
 		})
 	}
 
+	// Populate the root filesystem archive with files, directories, and a symlink.
 	writeDir("etc/", 0o755)
 	writeFile("etc/passwd", "root:x:0:0:::\n", 0o644)
 	writeFile("etc/shadow", "root:*::\n", 0o600)
@@ -70,6 +72,7 @@ func buildRootfsFixture() []byte {
 	writeFile("bin/busybox", strings.Repeat("busybox image ", 4096), 0o755)
 	writeSymlink("link-readme", "README")
 
+	// Finish the tar archive before returning its bytes.
 	_ = tw.Close()
 	return buf.Bytes()
 }
@@ -89,12 +92,14 @@ func runImportCapturingRootRef(t *testing.T, tarBytes []byte, useBatch bool) *bu
 // through the merge-into-existing-FSTree path rather than reusing in-memory
 // accumulator state from the first pass.
 func runImportsCapturingRootRef(t *testing.T, tarPayloads [][]byte, useBatch bool) *bucket.ObjectRef {
+	// Configure the context and logger for the import comparison.
 	t.Helper()
 	ctx := context.Background()
 	log := logrus.New()
 	log.SetLevel(logrus.WarnLevel)
 	le := logrus.NewEntry(log)
 
+	// Create a fresh destination UnixFS World for the import sequence.
 	btb, err := testbed.NewTestbed(ctx, le, testbed.WithVerbose(false))
 	if err != nil {
 		t.Fatal(err.Error())
@@ -108,7 +113,9 @@ func runImportsCapturingRootRef(t *testing.T, tarPayloads [][]byte, useBatch boo
 		t.Fatal(err.Error())
 	}
 
+	// Apply each tar payload to the same destination World.
 	for i, tarBytes := range tarPayloads {
+		// Open the tar payload as a source UnixFS handle.
 		ra := bytes.NewReader(tarBytes)
 		tarCursor, err := unixfs_tar.NewTarFSCursor(ra, int64(ra.Len()))
 		if err != nil {
@@ -120,6 +127,7 @@ func runImportsCapturingRootRef(t *testing.T, tarPayloads [][]byte, useBatch boo
 			t.Fatalf("NewFSHandle pass %d: %v", i, err)
 		}
 
+		// Import the payload through the selected batch or per-operation path.
 		if useBatch {
 			b := unixfs_world.NewBatchFSWriter(
 				wtb.WorldState, objKey, unixfs_world.FSType_FSType_FS_NODE, wtb.Volume.GetPeerID(),
@@ -141,10 +149,13 @@ func runImportsCapturingRootRef(t *testing.T, tarPayloads [][]byte, useBatch boo
 				t.Fatalf("SyncToBilly pass %d: %v", i, err)
 			}
 		}
+
+		// Release the source handles after importing this payload.
 		srcHandle.Release()
 		tarCursor.Release()
 	}
 
+	// Read the destination World root after the final import.
 	obj, err := world.MustGetObject(ctx, wtb.WorldState, objKey)
 	defer world.ReleaseObjectState(obj)
 	if err != nil {
@@ -188,6 +199,7 @@ func TestRootRefEqualAcrossModes(t *testing.T) {
 // path on both the per-op (billy Create over an existing file) and batch
 // (BatchFSWriter in-place dirent NodeRef replacement) implementations.
 func buildRootfsFixtureOverwrite() []byte {
+	// Prepare tar entry writers for the overwrite fixture.
 	var buf bytes.Buffer
 	tw := tar.NewWriter(&buf)
 	writeHeader := func(hdr *tar.Header) {
@@ -211,9 +223,11 @@ func buildRootfsFixtureOverwrite() []byte {
 		})
 	}
 
+	// Populate the archive with a replacement passwd file.
 	writeDir("etc/", 0o755)
 	writeFile("etc/passwd", "root:x:0:0:overwritten:\n", 0o644)
 
+	// Finish the overwrite archive before returning its bytes.
 	_ = tw.Close()
 	return buf.Bytes()
 }
@@ -224,13 +238,16 @@ func buildRootfsFixtureOverwrite() []byte {
 // in-place-dirent-replacement branch against the billy Create-over-existing
 // path.
 func TestRootRefEqualAfterOverwrite(t *testing.T) {
+	// Prepare the initial and overwrite payloads for both import modes.
 	first := buildRootfsFixture()
 	second := buildRootfsFixtureOverwrite()
 	payloads := [][]byte{first, second}
 
+	// Run the overwrite sequence independently through both import modes.
 	perOp := runImportsCapturingRootRef(t, payloads, false)
 	batch := runImportsCapturingRootRef(t, payloads, true)
 
+	// Verify both overwrite paths produce the same World root reference.
 	if !perOp.EqualsRef(batch) {
 		t.Fatalf("rootRef mismatch after overwrite\n  per-op = %+v\n  batch  = %+v", perOp, batch)
 	}
@@ -241,6 +258,7 @@ func TestRootRefEqualAfterOverwrite(t *testing.T) {
 // multi-directory post-order Commit walk is covered by an equality
 // assertion. The root entry count is kept small so the test stays fast.
 func buildDeepRootfsFixture() []byte {
+	// Prepare tar entry writers for the deeply nested fixture.
 	var buf bytes.Buffer
 	tw := tar.NewWriter(&buf)
 	writeHeader := func(hdr *tar.Header) {
@@ -271,17 +289,21 @@ func buildDeepRootfsFixture() []byte {
 		})
 	}
 
+	// Populate the archive with nested compiler headers.
 	writeDir("usr/", 0o755)
 	writeDir("usr/lib/", 0o755)
 	writeDir("usr/lib/gcc/", 0o755)
 	writeDir("usr/lib/gcc/include/", 0o755)
 	writeFile("usr/lib/gcc/include/stddef.h", "/* stddef */\n", 0o644)
 	writeFile("usr/lib/gcc/include/stdarg.h", "/* stdarg */\n", 0o644)
+
+	// Add the compiler library, directory readme, and relative symlink.
 	writeDir("usr/lib/gcc/lib/", 0o755)
 	writeFile("usr/lib/gcc/lib/libgcc.a", "gcc archive\n", 0o644)
 	writeFile("usr/lib/README", "usr/lib readme\n", 0o644)
 	writeSymlink("usr/lib/gcc/latest", "include")
 
+	// Finish the nested archive before returning its bytes.
 	_ = tw.Close()
 	return buf.Bytes()
 }

@@ -18,6 +18,7 @@ var WithLocalOnly = bucket_lookup.WithLocalOnly
 // getBucketLookup builds a bucket lookup handle.
 // Returns the lookup, a release function, and any error.
 func (c *Controller) getBucketLookup(ctx context.Context) (bucket_lookup.Lookup, func(), error) {
+	// Resolve the bucket lookup and retain its directive until release.
 	lkv, _, lkRef, err := bucket_lookup.ExBuildBucketLookup(ctx, c.b, false, c.cc.GetBucketId(), nil)
 	if err != nil {
 		return nil, nil, err
@@ -82,6 +83,7 @@ func (c *Controller) buildIncomingRoutine(key sessionKey) (keyed.Routine, struct
 
 // runIncomingStream handles an incoming sync stream.
 func (c *Controller) runIncomingStream(ctx context.Context, key sessionKey) error {
+	// Claim the queued incoming stream for this peer session.
 	var ms link.MountedStream
 	c.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		ms = c.incoming[key]
@@ -91,6 +93,7 @@ func (c *Controller) runIncomingStream(ctx context.Context, key sessionKey) erro
 		return nil
 	}
 
+	// Identify the incoming peer when reporting stream failures.
 	le := c.le.WithField("remote-peer", key.PeerID.String()).WithField("direction", "incoming")
 
 	// Hold the link open while processing.
@@ -105,17 +108,19 @@ func (c *Controller) runIncomingStream(ctx context.Context, key sessionKey) erro
 	defer lnkRef.Release()
 	defer ms.GetStream().Close()
 
+	// Receive requested blocks through the configured exchange session.
 	sess := dex_session.NewDexSession(
 		ms.GetStream(),
 		int(c.cc.GetChunkSizeOrDefault()),
 		c.cc.GetMaxBlockSizeOrDefault(),
 	)
-
 	for {
+		// Stop receiving blocks when the incoming stream context is canceled.
 		if err := ctx.Err(); err != nil {
 			return err
 		}
 
+		// Receive the next block or finish when the peer ends its stream.
 		reqID, ref, data, err := sess.ReceiveBlock(c.cc.GetMaxBlockSizeOrDefault())
 		if err != nil {
 			le.WithError(err).Debug("incoming stream ended")
@@ -148,6 +153,7 @@ func (c *Controller) runIncomingStream(ctx context.Context, key sessionKey) erro
 			continue
 		}
 
+		// Record the block successfully stored from the remote peer.
 		le.WithField("ref", ref.MarshalString()).Debug("stored block from peer")
 
 		// Remove from wantlist and broadcast.
@@ -168,6 +174,7 @@ func (c *Controller) buildOutgoingRoutine(key sessionKey) (keyed.Routine, struct
 
 // runOutgoingStream handles an outgoing sync stream to push blocks.
 func (c *Controller) runOutgoingStream(ctx context.Context, key sessionKey) error {
+	// Identify the outgoing peer when reporting stream failures.
 	le := c.le.WithField("remote-peer", key.PeerID.String()).WithField("direction", "outgoing")
 
 	// Open a stream to the remote peer.
@@ -183,13 +190,14 @@ func (c *Controller) runOutgoingStream(ctx context.Context, key sessionKey) erro
 	defer rel()
 	defer ms.GetStream().Close()
 
+	// Send queued blocks through the configured exchange session.
 	sess := dex_session.NewDexSession(
 		ms.GetStream(),
 		int(c.cc.GetChunkSizeOrDefault()),
 		c.cc.GetMaxBlockSizeOrDefault(),
 	)
-
 	for {
+		// Stop sending blocks when the outgoing stream context is canceled.
 		if err := ctx.Err(); err != nil {
 			return err
 		}

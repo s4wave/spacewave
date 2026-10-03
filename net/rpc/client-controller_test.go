@@ -27,9 +27,11 @@ func TestPrefixClientValueSatisfiesSRPCClient(t *testing.T) {
 }
 
 func TestClientControllerResolvesMatchingServicePrefix(t *testing.T) {
+	// Bound the test lifetime while resolving the matching service prefix.
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
+	// Create a bus for publishing the prefixed RPC client.
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
@@ -38,6 +40,7 @@ func TestClientControllerResolvesMatchingServicePrefix(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Attach a client controller advertising the plugin service prefix.
 	ctrl := NewClientController(
 		le,
 		b,
@@ -51,11 +54,14 @@ func TestClientControllerResolvesMatchingServicePrefix(t *testing.T) {
 	}
 	defer rel()
 
+	// Resolve the advertised RPC client through the real bus.
 	clients, _, ref, err := ExLookupRpcClient(ctx, b, "plugin-host/bldr.plugin.PluginHost", "test-client", true, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer ref.Release()
+
+	// Verify the service prefix resolves exactly one client.
 	if len(clients) != 1 {
 		t.Fatalf("expected 1 matching client, got %d", len(clients))
 	}

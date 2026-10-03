@@ -51,11 +51,13 @@ func (c *BusClient) NewStream(
 	method string,
 	firstMsg srpc.Message,
 ) (srpc.Stream, error) {
+	// Retain the service client lookup while opening the RPC stream.
 	clientSet, _, ref, err := ExLookupRpcClientSet(ctx, c.b, service, method, c.wait, nil)
 	if err != nil {
 		return nil, err
 	}
 
+	// Open the RPC stream and release its lookup if opening fails.
 	strm, err := clientSet.NewStream(ctx, service, method, firstMsg)
 	if err != nil {
 		ref.Release()

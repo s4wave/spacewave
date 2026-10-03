@@ -32,14 +32,15 @@ func NewInvoker(b bus.Bus, serverID string, wait bool) *Invoker {
 // Returns false, nil if not found.
 // If service string is empty, ignore it.
 func (i *Invoker) InvokeMethod(serviceID, methodID string, strm srpc.Stream) (bool, error) {
+	// Resolve service invokers for the lifetime of the RPC stream.
 	ctx := strm.Context()
-
 	invokers, _, invokerRef, err := ExLookupRpcService(ctx, i.b, serviceID, i.serverID, i.wait, nil)
 	if err != nil || invokerRef == nil {
 		return false, err
 	}
 	defer invokerRef.Release()
 
+	// Dispatch the RPC method through the resolved invokers.
 	var sl srpc.InvokerSlice = invokers
 	return sl.InvokeMethod(serviceID, methodID, strm)
 }

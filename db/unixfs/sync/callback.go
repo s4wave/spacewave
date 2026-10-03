@@ -88,6 +88,7 @@ func NewFilterFileList(pathList []string, isSorted bool) FilterCb {
 //
 // Sorts and cleans the paths. Strips any leading '/'.
 func CleanPathListForFilter(pathList []string) []string {
+	// Normalize each filter path before sorting the list.
 	out := make([]string, len(pathList))
 	for i, srcPath := range pathList {
 		srcPath = path.Clean(srcPath)
@@ -96,6 +97,8 @@ func CleanPathListForFilter(pathList []string) []string {
 		}
 		out[i] = srcPath
 	}
+
+	// Sort and deduplicate the normalized filter paths.
 	sort.Strings(out)
 	out = slices.Compact(out)
 	return out

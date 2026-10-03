@@ -27,16 +27,19 @@ func main() {
 }
 
 func runDemo() error {
+	// Configure the context and logger for the tree visualization.
 	ctx := context.Background()
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
 
+	// Start the storage testbed for the demo tree.
 	tb, err := testbed.NewTestbed(ctx, le)
 	if err != nil {
 		return err
 	}
 
+	// Select the testbed volume used by the demo bucket.
 	vol := tb.Volume
 	volID := vol.GetID()
 
@@ -59,6 +62,7 @@ func runDemo() error {
 		return err
 	}
 
+	// Open an empty bucket cursor with the configured compression transform.
 	oc, _, err := bucket_lookup.BuildEmptyCursor(
 		ctx,
 		tb.Bus,
@@ -73,6 +77,7 @@ func runDemo() error {
 		return err
 	}
 
+	// Populate and commit the demo AVL tree with five keys.
 	tr := iavl.NewAVLTree(oc)
 	atx, err := tr.NewAVLTreeTransaction(ctx, true)
 	if err != nil {
@@ -89,11 +94,13 @@ func runDemo() error {
 		return err
 	}
 
+	// Open a new AVL transaction for removing the boundary keys.
 	atx, err = tr.NewAVLTreeTransaction(ctx, true)
 	if err != nil {
 		return err
 	}
 
+	// Remove both boundary keys and check the deletion results.
 	ops := []error{
 		atx.Delete(ctx, []byte("key-0")),
 		atx.Delete(ctx, []byte("key-4")),
@@ -104,21 +111,25 @@ func runDemo() error {
 		}
 	}
 
+	// Commit the tree after removing its boundary keys.
 	if err := atx.Commit(ctx); err != nil {
 		return err
 	}
 
+	// Read the committed AVL root for graph traversal.
 	btx, bcs := oc.BuildTransactionAtRef(nil, tr.GetRootNodeRef().GetRootRef())
 	rn, err := block.UnmarshalBlock[*iavl.Node](ctx, bcs, iavl.NewNodeBlock)
 	if err != nil {
 		return err
 	}
 
+	// Write the committed block graph to the demo DOT file.
 	err = dot.PlotToFile(ctx, "demo.dot", rn, btx, bcs, nil)
 	if err != nil {
 		return err
 	}
 
+	// Reopen the tree and verify an interior key survived deletion.
 	tr = iavl.NewAVLTree(oc)
 	vtx, err := tr.NewAVLTreeTransaction(ctx, false)
 	if err != nil {

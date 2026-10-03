@@ -11,6 +11,7 @@ import (
 )
 
 func TestFilterLocalExistingBlocksUsesBatchWithoutPayloadReads(t *testing.T) {
+	// Prepare a lookup with two locally available block references.
 	refs := []*block.BlockRef{
 		mustTestBlockRef(t, "first"),
 		mustTestBlockRef(t, "second"),
@@ -18,10 +19,13 @@ func TestFilterLocalExistingBlocksUsesBatchWithoutPayloadReads(t *testing.T) {
 	}
 	lk := &queueTestLookup{found: []bool{true, false, true}}
 
+	// Filter the requested references through the batch existence API.
 	queued, err := filterLocalExistingBlocks(context.Background(), lk, refs)
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Verify the batch selects local blocks without reading their payloads.
 	if lk.existsBatchCalls != 1 {
 		t.Fatalf("exists batch calls = %d, want 1", lk.existsBatchCalls)
 	}
@@ -37,6 +41,7 @@ func TestFilterLocalExistingBlocksUsesBatchWithoutPayloadReads(t *testing.T) {
 }
 
 func TestFilterLocalExistingBlocksFallsBackOnBatchError(t *testing.T) {
+	// Prepare a lookup whose batch request fails before individual checks.
 	refs := []*block.BlockRef{
 		mustTestBlockRef(t, "first"),
 		mustTestBlockRef(t, "second"),
@@ -46,10 +51,13 @@ func TestFilterLocalExistingBlocksFallsBackOnBatchError(t *testing.T) {
 		lookupFound: []bool{false, true},
 	}
 
+	// Filter the requested references through the failed batch and fallback.
 	queued, err := filterLocalExistingBlocks(context.Background(), lk, refs)
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Verify the fallback selects only the individually available block.
 	if lk.existsBatchCalls != 1 {
 		t.Fatalf("exists batch calls = %d, want 1", lk.existsBatchCalls)
 	}
@@ -112,11 +120,14 @@ func (l *queueTestLookup) LookupBlockExistsBatch(
 	refs []*block.BlockRef,
 	opts ...bucket_lookup.LookupBlockOption,
 ) ([]bool, error) {
+	// Record the batch lookup options and return its configured failure.
 	l.existsBatchCalls++
 	l.localOnly = bucket_lookup.NewLookupBlockOpts(opts...).LocalOnly
 	if l.batchErr != nil {
 		return nil, l.batchErr
 	}
+
+	// Return the configured existence results for the requested references.
 	out := make([]bool, len(refs))
 	copy(out, l.found)
 	return out, nil

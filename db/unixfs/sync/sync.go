@@ -57,12 +57,14 @@ func SyncFromFS(
 	deleteMode DeleteMode,
 	filterCb FilterCb,
 ) error {
+	// Open a cursor on the source filesystem for the sync.
 	srcCursor, err := unixfs_iofs.NewFSCursor(srcFs)
 	if err != nil {
 		return err
 	}
 	defer srcCursor.Release()
 
+	// Wrap the source cursor in a handle for the UnixFS traversal.
 	diskRef, err := unixfs.NewFSHandle(srcCursor)
 	if err != nil {
 		return err

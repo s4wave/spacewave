@@ -23,16 +23,19 @@ import (
 )
 
 func setupTestbed(t *testing.T) (context.Context, *unixfs.FSHandle, billy.Filesystem) {
+	// Configure the context and logger for the UnixFS testbed.
 	ctx := context.Background()
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
 
+	// Start the block testbed used by the source filesystem.
 	btb, err := testbed.NewTestbed(ctx, le, testbed.WithVerbose(false))
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Create the source UnixFS World object.
 	objKey := "test-fs"
 	rref, _, err := unixfs_world_testbed.BuildTestbed(
 		btb,
@@ -44,16 +47,20 @@ func setupTestbed(t *testing.T) (context.Context, *unixfs.FSHandle, billy.Filesy
 		t.Fatal(err.Error())
 	}
 
+	// Provide an empty in-memory destination filesystem.
 	outFs := memfs.New()
 	return ctx, rref, outFs
 }
 
 // TestSyncSimpleFile tests syncing a single file
 func TestSyncSimpleFile(t *testing.T) {
+	// Start the source and destination filesystems for the file sync.
 	ctx, rref, outFs := setupTestbed(t)
 
+	// Expose the source handle through the Billy filesystem adapter.
 	bfs := unixfs_billy.NewBillyFS(ctx, rref, "", time.Now())
 
+	// Populate the source file with its expected contents.
 	testFile := "test.txt"
 	testData := []byte("Hello world!")
 	err := billy_util.WriteFile(bfs, testFile, testData, 0o755)
@@ -61,11 +68,13 @@ func TestSyncSimpleFile(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// Copy the source file into the destination filesystem.
 	err = SyncToBilly(ctx, outFs, rref, DeleteMode_DeleteMode_DURING, nil)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Read the destination file and verify its contents.
 	readData, err := billy_util.ReadFile(outFs, testFile)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -77,8 +86,10 @@ func TestSyncSimpleFile(t *testing.T) {
 
 // TestSyncDirectory tests syncing a directory structure
 func TestSyncDirectory(t *testing.T) {
+	// Start the source and destination filesystems for the directory sync.
 	ctx, rref, outFs := setupTestbed(t)
 
+	// Expose the source directory through the Billy filesystem adapter.
 	bfs := unixfs_billy.NewBillyFS(ctx, rref, "", time.Now())
 
 	// Create a directory structure
@@ -87,16 +98,19 @@ func TestSyncDirectory(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// Populate the file at the first directory level.
 	err = billy_util.WriteFile(bfs, "dir1/file1.txt", []byte("File 1"), 0o644)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Populate the file in the nested source directory.
 	err = billy_util.WriteFile(bfs, "dir1/subdir/file2.txt", []byte("File 2"), 0o644)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Copy the complete source directory into the destination.
 	err = SyncToBilly(ctx, outFs, rref, DeleteMode_DeleteMode_DURING, nil)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -119,6 +133,7 @@ func TestSyncDirectory(t *testing.T) {
 
 // TestSyncDeleteModes tests different delete modes
 func TestSyncDeleteModes(t *testing.T) {
+	// Cover each deletion policy with an independent filesystem pair.
 	testCases := []struct {
 		name       string
 		deleteMode DeleteMode
@@ -128,10 +143,13 @@ func TestSyncDeleteModes(t *testing.T) {
 		{"NoDelete", DeleteMode_DeleteMode_NONE},
 	}
 
+	// Exercise the sync and destination assertions for each deletion policy.
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			// Start the filesystem pair for this deletion policy.
 			ctx, rref, outFs := setupTestbed(t)
 
+			// Expose the source handle through the Billy filesystem adapter.
 			bfs := unixfs_billy.NewBillyFS(ctx, rref, "", time.Now())
 
 			// Create a file in the source
@@ -146,6 +164,7 @@ func TestSyncDeleteModes(t *testing.T) {
 				t.Fatal(err.Error())
 			}
 
+			// Copy the source while applying the selected deletion policy.
 			err = SyncToBilly(ctx, outFs, rref, tc.deleteMode, nil)
 			if err != nil {
 				t.Fatal(err.Error())
@@ -173,6 +192,7 @@ func TestSyncDeleteModes(t *testing.T) {
 
 // TestSyncLargeFileWithAppend tests syncing a large file and then appending to it
 func TestSyncLargeFileWithAppend(t *testing.T) {
+	// Start a UnixFS destination for the disk file sync.
 	ctx, rref, _ := setupTestbed(t)
 
 	// Create a temporary directory
@@ -232,19 +252,23 @@ func TestSyncLargeFileWithAppend(t *testing.T) {
 	}
 	defer tmpFileFsh.Release()
 
+	// Open the synced UnixFS file for sequential readback.
 	syncedFile := unixfs_iofs.NewFSFile(ctx, tmpFileFsh)
 	defer syncedFile.Close()
 
+	// Read the disk file as the expected contents.
 	originalData, err := os.ReadFile(tempFile.Name()) //nolint:gosec
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	// Read the synced file for comparison with disk.
 	syncedData, err := io.ReadAll(syncedFile)
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	// Verify that the UnixFS bytes match the disk file.
 	if !bytes.Equal(originalData, syncedData) {
 		t.Fatalf("Synced file does not match the original file. Original size: %d, Synced size: %d", len(originalData), len(syncedData))
 	}
@@ -256,10 +280,13 @@ func TestSyncLargeFileWithAppend(t *testing.T) {
 // normalizes to =a -> b= via path.Clean because UnixFS stores the target as
 // =[]string=) and a relative directory target (=lib64 -> usr/lib64=).
 func TestSyncSymlinksToBilly(t *testing.T) {
+	// Start a filesystem pair for copying relative symlinks.
 	ctx, rref, outFs := setupTestbed(t)
 
+	// Expose the source handle through the Billy filesystem adapter.
 	bfs := unixfs_billy.NewBillyFS(ctx, rref, "", time.Now())
 
+	// Populate file and directory targets with their relative symlinks.
 	if err := billy_util.WriteFile(bfs, "b", []byte("file-b-content"), 0o644); err != nil {
 		t.Fatal(err.Error())
 	}
@@ -273,25 +300,32 @@ func TestSyncSymlinksToBilly(t *testing.T) {
 		t.Fatalf("Symlink lib64 -> usr/lib64: %v", err)
 	}
 
+	// Copy the source symlinks into the destination filesystem.
 	if err := SyncToBilly(ctx, outFs, rref, DeleteMode_DeleteMode_DURING, nil); err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Require a destination adapter that can read symlinks.
 	outSymlink, ok := outFs.(billy.Symlink)
 	if !ok {
 		t.Fatal("memfs destination does not implement billy.Symlink")
 	}
 
+	// Verify both relative symlink targets after the sync.
 	for name, want := range map[string]string{"a": "b", "lib64": "usr/lib64"} {
+		// Read the copied symlink target.
 		got, err := outSymlink.Readlink(name)
 		if err != nil {
 			t.Fatalf("Readlink %s: %v", name, err)
 		}
+
+		// Compare the copied target with its normalized source path.
 		if got != want {
 			t.Errorf("Readlink %s = %q, want %q", name, got, want)
 		}
 	}
 
+	// Verify the copied file target retains its contents.
 	data, err := billy_util.ReadFile(outFs, "b")
 	if err != nil {
 		t.Fatalf("ReadFile b: %v", err)
@@ -306,11 +340,13 @@ func TestSyncSymlinksToBilly(t *testing.T) {
 // that SyncToUnixfs interposes over the destination handle so symlink writes
 // land as UnixFS symlink nodes rather than being silently dropped.
 func TestSyncSymlinksToUnixfs(t *testing.T) {
+	// Configure the context and logger for independent UnixFS testbeds.
 	ctx := context.Background()
 	log := logrus.New()
 	log.SetLevel(logrus.InfoLevel)
 	le := logrus.NewEntry(log)
 
+	// Create the source UnixFS World object.
 	srcBtb, err := testbed.NewTestbed(ctx, le, testbed.WithVerbose(false))
 	if err != nil {
 		t.Fatal(err.Error())
@@ -323,6 +359,7 @@ func TestSyncSymlinksToUnixfs(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// Create a separate destination UnixFS World object.
 	dstBtb, err := testbed.NewTestbed(ctx, le, testbed.WithVerbose(false))
 	if err != nil {
 		t.Fatal(err.Error())
@@ -335,6 +372,7 @@ func TestSyncSymlinksToUnixfs(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// Populate the source World with file and directory symlink targets.
 	srcBfs := unixfs_billy.NewBillyFS(ctx, srcRef, "", time.Now())
 	if err := billy_util.WriteFile(srcBfs, "b", []byte("file-b-content"), 0o644); err != nil {
 		t.Fatal(err.Error())
@@ -349,21 +387,27 @@ func TestSyncSymlinksToUnixfs(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// Copy the source tree into the destination UnixFS World.
 	if err := SyncToUnixfs(ctx, dstRef, srcRef, DeleteMode_DeleteMode_DURING, nil); err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Verify the destination World preserves relative symlink targets.
 	dstBfs := unixfs_billy.NewBillyFS(ctx, dstRef, "", time.Now())
 	for name, want := range map[string]string{"a": "b", "lib64": "usr/lib64"} {
+		// Read the copied symlink target from the destination World.
 		got, err := dstBfs.Readlink(name)
 		if err != nil {
 			t.Fatalf("Readlink %s: %v", name, err)
 		}
+
+		// Compare the copied target with its normalized source path.
 		if got != want {
 			t.Errorf("Readlink %s = %q, want %q", name, got, want)
 		}
 	}
 
+	// Verify the destination file target retains its contents.
 	data, err := billy_util.ReadFile(dstBfs, "b")
 	if err != nil {
 		t.Fatalf("ReadFile b: %v", err)
@@ -375,8 +419,10 @@ func TestSyncSymlinksToUnixfs(t *testing.T) {
 
 // TestSyncWithFilter tests syncing with a filter callback
 func TestSyncWithFilter(t *testing.T) {
+	// Start a filesystem pair for the filtered sync.
 	ctx, rref, outFs := setupTestbed(t)
 
+	// Expose the source handle through the Billy filesystem adapter.
 	bfs := unixfs_billy.NewBillyFS(ctx, rref, "", time.Now())
 
 	// Create files in the source
@@ -394,6 +440,7 @@ func TestSyncWithFilter(t *testing.T) {
 		return filepath.Base(path) != "exclude.txt", nil
 	}
 
+	// Copy the source while applying the filename filter.
 	err = SyncToBilly(ctx, outFs, rref, DeleteMode_DeleteMode_DURING, filterCb)
 	if err != nil {
 		t.Fatal(err.Error())

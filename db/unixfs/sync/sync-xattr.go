@@ -24,6 +24,7 @@ func syncXattrsRecursive(
 	handle *unixfs.FSHandle,
 	relPath string,
 ) error {
+	// Stop the attribute traversal for a released handle or canceled context.
 	if handle.CheckReleased() {
 		return nil
 	}
@@ -56,6 +57,7 @@ func syncXattrsRecursive(
 	}
 
 	return handle.ReaddirAll(ctx, 0, func(ent unixfs.FSCursorDirent) error {
+		// Open the child handle and derive its path for attribute traversal.
 		name := ent.GetName()
 		childHandle, err := handle.Lookup(ctx, name)
 		if err != nil {

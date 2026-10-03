@@ -23,6 +23,8 @@ func TestLookupRpcServiceIdleRetention(t *testing.T) {
 				t.Fatal(err)
 			}
 			t.Cleanup(tb.Release)
+
+			// Resolve or register the service lookup for the selected availability case.
 			var instance directive.Instance
 			var ref directive.Reference
 			if resolved {
@@ -35,6 +37,8 @@ func TestLookupRpcServiceIdleRetention(t *testing.T) {
 				t.Fatal(err)
 			}
 			t.Cleanup(ref.Release)
+
+			// Observe disposal of the lookup after its references are released.
 			disposed := make(chan struct{})
 			t.Cleanup(instance.AddDisposeCallback(func() { close(disposed) }))
 

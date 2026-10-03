@@ -28,10 +28,13 @@ func SyncToUnixfsBatch(
 	src *unixfs.FSHandle,
 	filterCb FilterCb,
 ) error {
+	// Require a live source handle before accumulating the batch.
 	if src.CheckReleased() {
 		b.Release()
 		return unixfs_errors.ErrReleased
 	}
+
+	// Require a source directory before walking its children.
 	srcNt, err := src.GetNodeType(ctx)
 	if err != nil {
 		b.Release()
@@ -42,6 +45,7 @@ func SyncToUnixfsBatch(
 		return errors.New("SyncToUnixfsBatch source must be a directory")
 	}
 
+	// Accumulate the source tree before committing the batch.
 	if err := walkBatchDir(ctx, b, src, nil, filterCb); err != nil {
 		b.Release()
 		return err
@@ -63,6 +67,7 @@ func walkBatchDir(
 	filterCb FilterCb,
 ) error {
 	return dir.ReaddirAll(ctx, 0, func(ent unixfs.FSCursorDirent) error {
+		// Filter named directory entries before opening their handles.
 		name := ent.GetName()
 		if name == "" {
 			return nil
@@ -77,6 +82,7 @@ func walkBatchDir(
 			}
 		}
 
+		// Open the source child for the duration of its batch traversal.
 		child, err := dir.Lookup(ctx, name)
 		if err != nil {
 			if err == unixfs_errors.ErrNotExist {
@@ -86,6 +92,7 @@ func walkBatchDir(
 		}
 		defer child.Release()
 
+		// Dispatch the source child to its matching batch operation.
 		childNt, err := child.GetNodeType(ctx)
 		if err != nil {
 			return err
