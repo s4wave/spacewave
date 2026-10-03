@@ -126,9 +126,6 @@ func (s *promptSession) run(ctx context.Context) error {
 					if hasInterrupt(recv.frame.GetData()) && !command.interrupted {
 						command.interrupted = true
 						command.cancel()
-						if err := s.writeOutput("^C\r\n"); err != nil {
-							return err
-						}
 					}
 					continue
 				}
@@ -202,6 +199,14 @@ func (s *promptSession) startCommand(ctx context.Context, line string) *commandS
 }
 
 func (s *promptSession) finishCommand(command *commandState, result commandResult) error {
+	// Echo an interrupt after the command stops so it follows the last output.
+	if command.interrupted {
+		if err := s.writeOutput("^C\r\n"); err != nil {
+			return err
+		}
+	}
+
+	// Report a failure other than the interrupt's cancellation, then prompt.
 	if result.err != nil && (!command.interrupted || !errors.Is(result.err, context.Canceled)) {
 		if err := s.writeCommandError(result.err.Error()); err != nil {
 			return err
