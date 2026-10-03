@@ -39,6 +39,8 @@ func WriteSecretPayloadForPeer(ctx context.Context, b bus.Bus, secret *Secret, e
 	if err != nil {
 		return err
 	}
+
+	// Check the nested Secret participants for the writer's operation grant.
 	permitted := false
 	for _, participant := range state.GetConfig().GetParticipants() {
 		if participant.GetPeerId() == writerPeerID && sobject.CanWriteOps(participant.GetRole()) {

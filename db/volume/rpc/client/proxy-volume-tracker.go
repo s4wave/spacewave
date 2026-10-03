@@ -46,8 +46,8 @@ func (c *Controller) newProxyVolumeTracker(key string) (keyed.Routine, *proxyVol
 // execute executes the proxy volume tracker.
 // manages retry + backoff if something goes wrong.
 func (t *proxyVolumeTracker) execute(ctx context.Context) error {
+	// Configure proxy volume logging and the retry policy for controller failures.
 	le := t.le
-
 	backoffOpts := t.c.cc.GetBackoff()
 	if backoffOpts.GetEmpty() {
 		backoffOpts = &backoff.Backoff{
@@ -60,6 +60,7 @@ func (t *proxyVolumeTracker) execute(ctx context.Context) error {
 		}
 	}
 
+	// Run proxy volume controller attempts until cancellation or exhausted backoff.
 	bo := backoffOpts.Construct()
 	for {
 		select {
@@ -109,6 +110,7 @@ func (t *proxyVolumeTracker) executeOnce(ctx context.Context, le *logrus.Entry, 
 	}
 	defer clientSetRef.Release()
 
+	// Route the proxy volume services through the selected RPC client set.
 	accessVolumes := volume_rpc.NewSRPCAccessVolumesClientWithServiceID(clientSet, t.c.cc.GetServiceId())
 	openStreamFn := rpcstream.NewRpcStreamOpenStream(accessVolumes.VolumeRpc, volumeID, false)
 	volClient := srpc.NewClient(openStreamFn)
@@ -197,6 +199,7 @@ func (t *proxyVolumeTracker) execProxyVolumeController(
 	volClient srpc.Client,
 	success func(),
 ) error {
+	// Construct the proxy volume controller with its remote storage services.
 	proxyVolCtrl := NewProxyVolumeController(
 		t.c.bus,
 		t.le,
@@ -209,12 +212,14 @@ func (t *proxyVolumeTracker) execProxyVolumeController(
 		rpc_gc.NewSRPCRefGraphClient(volClient),
 	)
 
+	// Honor tracker cancellation before publishing the proxy volume controller.
 	select {
 	case <-ctx.Done():
 		return context.Canceled
 	default:
 	}
 
+	// Publish the ready proxy volume controller and execute it on the bus.
 	t.le.Debug("proxy volume controller ready")
 	t.proxyVolCtr.SetValue(proxyVolCtrl)
 	success()

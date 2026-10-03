@@ -31,13 +31,16 @@ func NewLoadProxyVolumeResolver(c *Controller, di directive.Instance, volumeID s
 
 // Resolve resolves the values, emitting them to the handler.
 func (r *LoadProxyVolumeResolver) Resolve(ctx context.Context, handler directive.ResolverHandler) error {
+	// Reuse the directive's existing proxy volume reference on repeated resolution.
 	if r.refAdded.Swap(true) {
 		return nil
 	}
 
+	// Prepare the selected proxy volume identity and logger.
 	volumeID := r.volumeID
 	le := r.c.le.WithField("volume-id", r.volumeID)
 
+	// Retain the proxy volume tracker until the directive is disposed.
 	le.Debug("adding proxy volume reference")
 	ref, tracker, _ := r.c.proxyVolumes.AddKeyRef(volumeID)
 	r.di.AddDisposeCallback(func() {

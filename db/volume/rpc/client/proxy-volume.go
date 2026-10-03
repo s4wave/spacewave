@@ -47,11 +47,13 @@ func NewProxyVolume(
 	objectStoreClient rpc_object.SRPCObjectStoreClient,
 	refGraphClient rpc_gc.SRPCRefGraphClient,
 ) (*ProxyVolume, error) {
+	// Parse the remote volume identity before constructing its storage facade.
 	volPeer, err := volInfo.ParseToPeer()
 	if err != nil {
 		return nil, err
 	}
 
+	// Attach the remote reference graph when its RPC service is available.
 	var refGraph *rpc_gc_client.RefGraph
 	if refGraphClient != nil {
 		refGraph = rpc_gc_client.NewRefGraph(refGraphClient)
@@ -105,10 +107,12 @@ func (v *ProxyVolume) GetVolumeClient() volume_rpc.SRPCProxyVolumeClient {
 // GetPeer returns the Peer object.
 // If withPriv=false ensure that the Peer returned does not have the private key.
 func (v *ProxyVolume) GetPeer(ctx context.Context, withPriv bool) (peer.Peer, error) {
+	// Serve the cached volume peer when its private key is not requested.
 	if !withPriv {
 		return v.volPeer, nil
 	}
 
+	// Read and validate the remote volume private-key response.
 	resp, err := v.client.GetPeerPriv(ctx, &volume_rpc.GetPeerPrivRequest{})
 	if err == nil {
 		err = resp.Validate()
@@ -117,6 +121,7 @@ func (v *ProxyVolume) GetPeer(ctx context.Context, withPriv bool) (peer.Peer, er
 		return nil, err
 	}
 
+	// Decode the remote private key before constructing the volume peer.
 	privKey, err := resp.ParsePrivKey()
 	if err != nil {
 		return nil, err

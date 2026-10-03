@@ -43,6 +43,7 @@ func NewController(
 	bus bus.Bus,
 	cc *Config,
 ) (*Controller, error) {
+	// Parse the proxy volume selection and reference-release configuration.
 	volumeIDRe, err := cc.ParseVolumeIdRe()
 	if err != nil {
 		return nil, err
@@ -51,6 +52,8 @@ func NewController(
 	if err != nil {
 		return nil, err
 	}
+
+	// Construct proxy volume trackers with the configured release lifetime.
 	c := &Controller{
 		le:              le,
 		bus:             bus,
@@ -62,6 +65,7 @@ func NewController(
 		keyed.WithExitLogger[string, *proxyVolumeTracker](le),
 		keyed.WithReleaseDelay[string, *proxyVolumeTracker](releaseDelay),
 	)
+
 	// add an initial reference to the volume_id_list
 	if cc.GetLoadOnStartup() {
 		for _, volumeID := range cc.GetVolumeIdList() {
@@ -110,11 +114,13 @@ func (c *Controller) HandleDirective(
 // Returns a function to release the volume reference.
 // Returns an error if the volume id does not match this controller.
 func (c *Controller) LoadProxyVolume(ctx context.Context, volumeID string) (volume.Controller, func(), error) {
+	// Match the requested volume to this RPC client before acquiring a reference.
 	var matched bool
 	if volumeID, matched = c.checkVolumeID(volumeID); !matched {
 		return nil, nil, errors.New("volume id does not match this rpc client")
 	}
 
+	// Retain the proxy volume tracker until the caller releases its reference.
 	le := c.le.WithField("volume-id", volumeID)
 	le.Debug("adding proxy volume reference")
 	ref, tracker, _ := c.proxyVolumes.AddKeyRef(volumeID)
@@ -126,6 +132,7 @@ func (c *Controller) LoadProxyVolume(ctx context.Context, volumeID string) (volu
 		}
 	}
 
+	// Wait for the retained proxy volume controller to become available.
 	proxyVol, err := tracker.proxyVolCtr.WaitValue(ctx, nil)
 	if err != nil {
 		rel()
@@ -178,20 +185,26 @@ func (c *Controller) resolveLoadProxyVolumeIDList(
 // checkVolumeID checks if the volume id matches the regex or list.
 // returns the updated volume id if aliased
 func (c *Controller) checkVolumeID(volumeID string) (string, bool) {
+	// Reject an empty volume identifier before evaluating configured matches.
 	if volumeID == "" {
 		return volumeID, false
 	}
+
 	// if there are no values set in these fields, match any.
 	volumeIDList := c.cc.GetVolumeIdList()
 	volumeAliases := c.cc.GetVolumeAliases()
 	if c.matchVolumeIdRe == nil && len(volumeIDList) == 0 && len(volumeAliases) == 0 {
 		return volumeID, true
 	}
+
+	// Resolve configured volume aliases before checking direct matches.
 	for to, alias := range volumeAliases {
 		if slices.Contains(alias.GetFrom(), volumeID) {
 			return to, true
 		}
 	}
+
+	// Match the requested volume against the explicit list or configured regexp.
 	if slices.Contains(volumeIDList, volumeID) {
 		return volumeID, true
 	}

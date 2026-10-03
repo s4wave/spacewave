@@ -28,12 +28,15 @@ func NewCoordinator(client volume_rpc.SRPCProxyVolumeClient) *Coordinator {
 
 // Capability reports the server's structured remote coordination capability.
 func (c *Coordinator) Capability(ctx context.Context, scope coord.Scope) (*coord.Capability, error) {
+	// Read the server capability for the requested coordination scope.
 	resp, err := c.client.GetCoordinatorCapability(ctx, &volume_rpc.GetCoordinatorCapabilityRequest{
 		Scope: volume_rpc.NewCoordinatorScope(scope),
 	})
 	if err != nil {
 		return nil, normalizeCoordError(err)
 	}
+
+	// Resolve unsupported coordination and record stream-based loss detection.
 	capability := resp.GetCapability().ToCoordCapability()
 	if capability == nil {
 		return c.unsupported.Capability(ctx, scope)
@@ -59,6 +62,7 @@ func (c *Coordinator) Snapshot(ctx context.Context, scope coord.Scope) (*coord.S
 
 // Watch streams remote coordination events through the ProxyVolume service.
 func (c *Coordinator) Watch(ctx context.Context, scope coord.Scope, afterGeneration uint64) (coord.Watch, error) {
+	// Open the remote coordination event stream with a cancelable lifetime.
 	watchCtx, cancel := context.WithCancel(ctx)
 	stream, err := c.client.WatchCoordinatorEvents(watchCtx, &volume_rpc.WatchCoordinatorEventsRequest{
 		Scope:           volume_rpc.NewCoordinatorScope(scope),
@@ -68,6 +72,7 @@ func (c *Coordinator) Watch(ctx context.Context, scope coord.Scope, afterGenerat
 		cancel()
 		return nil, normalizeCoordError(err)
 	}
+
 	// The server acknowledges after registering its underlying watch. Waiting
 	// here closes the gap where non-generational contention events could be lost.
 	if _, err := stream.Recv(); err != nil {
@@ -75,6 +80,7 @@ func (c *Coordinator) Watch(ctx context.Context, scope coord.Scope, afterGenerat
 		return nil, normalizeCoordError(err)
 	}
 
+	// Forward the registered coordination stream to the watch event channel.
 	watch := &watch{
 		stream:  stream,
 		cancel:  cancel,
@@ -92,6 +98,7 @@ func (c *Coordinator) Watch(ctx context.Context, scope coord.Scope, afterGenerat
 // the lease when the stream ends, and the client reports loss through
 // WriteLease.Done when the stream ends first.
 func (c *Coordinator) TryAcquireWriteLease(ctx context.Context, scope coord.Scope) (coord.WriteLease, bool, error) {
+	// Open the write-lease stream while acquisition follows caller cancellation.
 	leaseCtx, cancel := context.WithCancel(context.Background())
 	stopAcquireCancel := context.AfterFunc(ctx, cancel)
 	stream, err := c.client.TryAcquireCoordinatorWriteLease(leaseCtx, &volume_rpc.TryAcquireCoordinatorWriteLeaseRequest{
@@ -102,6 +109,8 @@ func (c *Coordinator) TryAcquireWriteLease(ctx context.Context, scope coord.Scop
 		cancel()
 		return nil, false, normalizeCoordError(err)
 	}
+
+	// Read the server acquisition result before handing out a write lease.
 	resp, err := stream.Recv()
 	if err != nil {
 		stopAcquireCancel()
@@ -111,17 +120,23 @@ func (c *Coordinator) TryAcquireWriteLease(ctx context.Context, scope coord.Scop
 		}
 		return nil, false, err
 	}
+
+	// Release an unsuccessful acquisition without creating a client lease.
 	if !resp.GetAcquired() {
 		stopAcquireCancel()
 		cancel()
 		return nil, false, nil
 	}
+
+	// Detach the acquired lease lifetime from the acquisition context.
 	if !stopAcquireCancel() {
 		// ctx ended during acquisition: the stream is already canceled and
 		// the server releases the lease on stream teardown.
 		cancel()
 		return nil, false, ctx.Err()
 	}
+
+	// Track write-lease loss through the server acquisition stream.
 	l := &lease{
 		client:  c.client,
 		cancel:  cancel,
@@ -137,6 +152,7 @@ func (c *Coordinator) TryAcquireWriteLease(ctx context.Context, scope coord.Scop
 
 // WaitAcquireWriteLease waits to acquire the remote write lease.
 func (c *Coordinator) WaitAcquireWriteLease(ctx context.Context, scope coord.Scope) (coord.WriteLease, error) {
+	// Open the write-lease stream while acquisition follows caller cancellation.
 	leaseCtx, cancel := context.WithCancel(context.Background())
 	stopAcquireCancel := context.AfterFunc(ctx, cancel)
 	stream, err := c.client.WaitAcquireCoordinatorWriteLease(leaseCtx, &volume_rpc.WaitAcquireCoordinatorWriteLeaseRequest{
@@ -147,6 +163,8 @@ func (c *Coordinator) WaitAcquireWriteLease(ctx context.Context, scope coord.Sco
 		cancel()
 		return nil, normalizeCoordError(err)
 	}
+
+	// Read the server acquisition result before handing out a write lease.
 	resp, err := stream.Recv()
 	if err != nil {
 		stopAcquireCancel()
@@ -156,10 +174,14 @@ func (c *Coordinator) WaitAcquireWriteLease(ctx context.Context, scope coord.Sco
 		}
 		return nil, normalizeCoordError(err)
 	}
+
+	// Detach the acquired lease lifetime from the acquisition context.
 	if !stopAcquireCancel() {
 		cancel()
 		return nil, ctx.Err()
 	}
+
+	// Track write-lease loss through the server acquisition stream.
 	l := &lease{
 		client:  c.client,
 		cancel:  cancel,
@@ -258,6 +280,7 @@ func (l *lease) watchStream(recv func() error) {
 }
 
 func (l *lease) markLost(err error) {
+	// Publish the first stream failure and wake write-lease waiters.
 	l.mtx.Lock()
 	if l.released || l.lossErr != nil {
 		l.mtx.Unlock()
@@ -266,6 +289,8 @@ func (l *lease) markLost(err error) {
 	l.lossErr = err
 	close(l.done)
 	l.mtx.Unlock()
+
+	// End the lost write-lease stream after releasing the state lock.
 	l.cancel()
 }
 
@@ -291,6 +316,7 @@ func (l *lease) Publish(ctx context.Context, event coord.Event) (*coord.Snapshot
 }
 
 func (l *lease) Release(context.Context) error {
+	// Mark the write lease released and wake waiters exactly once.
 	l.mtx.Lock()
 	if l.released {
 		l.mtx.Unlock()
