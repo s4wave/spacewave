@@ -68,14 +68,14 @@ def resolveRecovery (featureOK : Bool) (entity : Option String)
         else some material
 
 /-- buildSelfEnroll constructs a signed proposal without assuming its membership admission. -/
-def buildSelfEnroll (current : Option Config) (sig : Option Sig) (peer entity : String)
-    (role : Role) (hash : String) (signOK : Bool) : Option Entry := do
+def buildSelfEnroll (object : String) (current : Option Config) (sig : Option Sig)
+    (peer entity : String) (role : Role) (hash : String) (signOK : Bool) : Option Entry := do
   let current ← current
   let sig ← sig
   if peer = "" || entity = "" || role < Role.reader || role > Role.owner || !signOK then none
   else
     let next := {current with participants := current.participants ++ [⟨peer, role, entity⟩]}
-    some ⟨expectedSeqno current % seqnoLimit, some next, some sig,
+    some ⟨object, expectedSeqno current % seqnoLimit, some next, [sig],
       current.hash, ChangeType.selfEnrollPeer, hash⟩
 
 /-- RecoveryGrant carries actual encrypted grant bytes and their recovered plaintext identity. -/
@@ -99,9 +99,11 @@ def buildSelfEnrollGrant (signer peer object : String) (material : Option Recove
 theorem buildRecoveryEnvelope_spec {entity : String} {epoch : Nat} {config : Option Config}
     {material : Option RecoveryMaterial} {recipients : List String}
     {cryptoOK : Bool} {encoded : String} {out : RecoveryEnvelope}
-    (h : buildRecoveryEnvelope entity epoch config material recipients cryptoOK encoded = some out) :
+    (h : buildRecoveryEnvelope entity epoch config material recipients cryptoOK encoded =
+      some out) :
     entity ≠ "" ∧ ∃ c m, config = some c ∧ material = some m ∧
-      recipients ≠ [] ∧ cryptoOK = true ∧ out = ⟨entity, epoch, c.seqno, c.hash, encoded⟩ := by
+      recipients ≠ [] ∧ cryptoOK = true ∧
+      out = ⟨entity, epoch, c.seqno, c.hash, encoded⟩ := by
   unfold buildRecoveryEnvelope at h
   split at h
   · contradiction
@@ -177,14 +179,17 @@ theorem resolveRecovery_entities {featureOK readOK decoderOK decodeOK : Bool}
                   · exact Or.inl empty
                   · exact Or.inr (by simpa using materialOK empty)
 
-/-- A successful self-enrollment builder appends exactly the requested peer and preserves old records. -/
-theorem buildSelfEnroll_spec {current : Option Config} {sig : Option Sig} {peer entity : String}
-    {role : Role} {hash : String} {signOK : Bool} {out : Entry}
-    (h : buildSelfEnroll current sig peer entity role hash signOK = some out) :
+/--
+A successful self-enrollment builder appends exactly the requested peer and
+preserves old records.
+-/
+theorem buildSelfEnroll_spec {object : String} {current : Option Config} {sig : Option Sig}
+    {peer entity : String} {role : Role} {hash : String} {signOK : Bool} {out : Entry}
+    (h : buildSelfEnroll object current sig peer entity role hash signOK = some out) :
     ∃ c signature, current = some c ∧ sig = some signature ∧ peer ≠ "" ∧ entity ≠ "" ∧
       Role.reader ≤ role ∧ role ≤ Role.owner ∧
-      out = ⟨expectedSeqno c % seqnoLimit,
-        some {c with participants := c.participants ++ [⟨peer, role, entity⟩]}, some signature,
+      out = ⟨object, expectedSeqno c % seqnoLimit,
+        some {c with participants := c.participants ++ [⟨peer, role, entity⟩]}, [signature],
         c.hash, ChangeType.selfEnrollPeer, hash⟩ := by
   unfold buildSelfEnroll at h
   cases current with
@@ -204,34 +209,36 @@ theorem buildSelfEnroll_spec {current : Option Config} {sig : Option Sig} {peer 
           Int.le_of_not_gt valid.1.1.2, Int.le_of_not_gt valid.1.2, rfl⟩
 
 /-- enrollRecovery composes the proposal builder with actual current-configuration admission. -/
-def enrollRecovery (current : Config) (sig : Sig) (peer entity : String)
+def enrollRecovery (object : String) (current : Config) (sig : Sig) (peer entity : String)
     (role : Role) (hash : String) (signOK : Bool) : Option Config := do
-  let entry ← buildSelfEnroll (some current) (some sig) peer entity role hash signOK
-  verifyChange current entry
+  let entry ← buildSelfEnroll object (some current) (some sig) peer entity role hash signOK
+  verifyChange object current entry
 
 /-- Recovery cannot enroll above the currently admitted entity's strongest role. -/
-theorem enrollRecovery_roleBound {current out : Config} {sig : Sig} {peer entity : String}
-    {role : Role} {hash : String} {signOK : Bool}
-    (h : enrollRecovery current sig peer entity role hash signOK = some out) :
+theorem enrollRecovery_roleBound {object : String} {current out : Config} {sig : Sig}
+    {peer entity : String} {role : Role} {hash : String} {signOK : Bool}
+    (h : enrollRecovery object current sig peer entity role hash signOK = some out) :
     sig.valid = true ∧ sig.signer = peer ∧ entity ≠ "" ∧
       entityRole current entity ≠ Role.unknown ∧ role ≤ entityRole current entity ∧
       out.participants = current.participants ++ [⟨peer, role, entity⟩] ∧
       Role.reader ≤ role ∧ role ≤ Role.owner := by
   unfold enrollRecovery at h
-  cases built : buildSelfEnroll (some current) (some sig) peer entity role hash signOK with
+  cases built : buildSelfEnroll object (some current) (some sig) peer entity role hash signOK with
   | none => simp [built] at h
   | some entry =>
     simp only [built, Option.bind_eq_bind, Option.bind_some] at h
-    obtain ⟨c, signature, ceq, seq, _, nonempty, lower, upper, shape⟩ := buildSelfEnroll_spec built
+    obtain ⟨c, signature, ceq, seq, _, nonempty, lower, upper, shape⟩ :=
+      buildSelfEnroll_spec built
     cases ceq; cases seq; subst entry
-    obtain ⟨next, nextEq, stateEq, _, _, _, signed, _⟩ := verifyChange_spec h
+    obtain ⟨next, nextEq, stateEq, _, _, _, _, signed, _⟩ := verifyChange_spec h
     simp only [Option.some.injEq] at nextEq
     subst next
-    simp only [verifySignature, ChangeType.selfEnrollPeer, beq_self_eq_true, ↓reduceIte,
-      Bool.and_eq_true] at signed
-    obtain ⟨added, member, signer, entityKnown, ceiling, _⟩ := validateSelfEnroll_added signed.2
+    simp only [verifySignatures, signerAuthorized, ChangeType.selfEnrollPeer, beq_self_eq_true,
+      ↓reduceIte, Bool.and_eq_true, List.all_cons, List.all_nil, and_true] at signed
+    obtain ⟨_, ⟨_, valid⟩, enrolled⟩ := signed
+    obtain ⟨added, member, signer, entityKnown, ceiling, _⟩ := validateSelfEnroll_added enrolled
     have absent : current.participants.all (·.peer != sig.signer) = true := by
-      have checked := signed.2
+      have checked := enrolled
       simp only [validateSelfEnroll, Bool.and_eq_true] at checked
       exact checked.1.2
     rcases List.mem_append.mp member with old | appended
@@ -239,13 +246,14 @@ theorem enrollRecovery_roleBound {current out : Config} {sig : Sig} {peer entity
       simp [signer] at unequal
     · have equal := List.mem_singleton.mp appended
       subst added
-      exact ⟨signed.1, signer.symm, nonempty, entityKnown, ceiling,
+      exact ⟨valid, signer.symm, nonempty, entityKnown, ceiling,
         by simp [stateEq, Config.withHead], lower, upper⟩
 
 /-- A built recovery grant encrypts exactly the recovered grant material for its named recipient. -/
 theorem buildSelfEnrollGrant_spec {signer peer object encoded inner : String}
     {material : Option RecoveryMaterial} {publicKey cryptoOK : Bool} {out : RecoveryGrant}
-    (h : buildSelfEnrollGrant signer peer object material publicKey cryptoOK encoded inner = some out) :
+    (h : buildSelfEnrollGrant signer peer object material publicKey cryptoOK encoded inner =
+      some out) :
     signer ≠ "" ∧ ∃ m plain, material = some m ∧ m.grant = some plain ∧
       out.material = plain ∧ out.grant.peer = peer ∧ out.grant.sig = ⟨signer, true⟩ := by
   unfold buildSelfEnrollGrant at h
@@ -268,10 +276,12 @@ theorem buildSelfEnrollGrant_spec {signer peer object encoded inner : String}
 
 /-- A same-peer recovery grant is authorized after the bounded enrollment is admitted. -/
 theorem recoveryGrant_admitted {current admitted : Config} {sig : Sig}
-    {peer entity hash object encoded inner : String} {role : Role} {signOK publicKey cryptoOK : Bool}
+    {peer entity hash object encoded inner : String} {role : Role}
+    {signOK publicKey cryptoOK : Bool}
     {material : Option RecoveryMaterial} {out : RecoveryGrant}
-    (enrolled : enrollRecovery current sig peer entity role hash signOK = some admitted)
-    (built : buildSelfEnrollGrant sig.signer peer object material publicKey cryptoOK encoded inner = some out)
+    (enrolled : enrollRecovery object current sig peer entity role hash signOK = some admitted)
+    (built : buildSelfEnrollGrant sig.signer peer object material publicKey cryptoOK encoded inner =
+      some out)
     (format : out.grant.format = true) : out.grant.valid admitted.participants = true := by
   obtain ⟨_, signer, _, _, _, audience, lower, upper⟩ := enrollRecovery_roleBound enrolled
   obtain ⟨nonempty, _, _, _, _, _, recipient, signature⟩ := buildSelfEnrollGrant_spec built
@@ -297,12 +307,14 @@ theorem recoveryGrant_admitted {current admitted : Config} {sig : Sig}
 
 /-- Caller-authenticated entity ownership composes with checked enrollment and grant admission. -/
 theorem recoveryGrant_withEntityBinding {current admitted : Config} {sig : Sig}
-    {peer entity hash object encoded inner : String} {role : Role} {signOK publicKey cryptoOK : Bool}
+    {peer entity hash object encoded inner : String} {role : Role}
+    {signOK publicKey cryptoOK : Bool}
     {material : Option RecoveryMaterial} {out : RecoveryGrant}
     (authenticated : String → String → Prop)
     (binding : authenticated sig.signer entity)
-    (enrolled : enrollRecovery current sig peer entity role hash signOK = some admitted)
-    (built : buildSelfEnrollGrant sig.signer peer object material publicKey cryptoOK encoded inner = some out)
+    (enrolled : enrollRecovery object current sig peer entity role hash signOK = some admitted)
+    (built : buildSelfEnrollGrant sig.signer peer object material publicKey cryptoOK encoded inner =
+      some out)
     (format : out.grant.format = true) :
     authenticated peer entity ∧ role ≤ entityRole current entity ∧
       out.grant.valid admitted.participants = true := by

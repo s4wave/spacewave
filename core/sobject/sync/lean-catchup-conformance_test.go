@@ -55,51 +55,60 @@ func leanSyncConfig(arena *fastjson.Arena, config *sobject.SharedObjectConfig) *
 
 // leanSyncChange projects canonical bytes, signature verification and the decoded entry.
 func leanSyncChange(t *testing.T, arena *fastjson.Arena, change *sobject.SOConfigChange) *fastjson.Value {
-
-	// helper.
+	// Hash the entry and project each signature.
 	t.Helper()
 	var digest []byte
 	var hashOK bool
-	signature := arena.NewNull()
+	sigs := arena.NewArray()
 	if change != nil {
 		var err error
 		digest, err = sobject.HashSOConfigChange(change)
 		hashOK = err == nil
-		if sigs := change.GetSignatures(); len(sigs) != 0 {
-			sig := sigs[0]
-			signature = arena.NewObject()
-			var signer string
-			var valid bool
-			public, err := sig.ParsePubKey()
-			if err == nil && public != nil {
-				id, idErr := peer.IDFromPublicKey(public)
-				unsigned := change.CloneVT()
-				unsigned.Signatures = nil
-				data, encodeErr := unsigned.MarshalVT()
-				if idErr == nil && encodeErr == nil {
-					verified, verifyErr := sig.VerifyWithPublic("sobject config change", public, data)
-					signer, valid = id.String(), verified && verifyErr == nil
-				}
-			}
-			signature.Set("signer", arena.NewString(signer))
-			signature.Set("valid", leanSyncBool(arena, valid))
+		for i, sig := range change.GetSignatures() {
+			sigs.SetArrayItem(i, leanSyncSignature(arena, change, sig))
 		}
 	}
+
+	// Project the entry.
 	entry := arena.NewObject()
+	entry.Set("object", arena.NewString(change.GetSharedObjectId()))
 	entry.Set("seqno", arena.NewNumberString(strconv.FormatUint(change.GetConfigSeqno(), 10)))
 	entry.Set("config", leanSyncConfig(arena, change.GetConfig()))
-
-	// Set via entry.
-	entry.Set("sig", signature)
+	entry.Set("sigs", sigs)
 	entry.Set("prev", arena.NewString(hex.EncodeToString(change.GetPreviousHash())))
 	entry.Set("kind", arena.NewNumberInt(int(change.GetChangeType())))
 	entry.Set("hash", arena.NewString(hex.EncodeToString(digest)))
 
-	// newObject value via arena.
+	// Attach the measured size and hash outcome.
 	value := arena.NewObject()
 	value.Set("entry", entry)
 	value.Set("bytes", arena.NewNumberInt(change.SizeVT()))
 	value.Set("hashOK", leanSyncBool(arena, hashOK))
+	return value
+}
+
+// leanSyncSignature projects one config change signature as its signer, empty
+// when the key does not parse, and whether it verifies over the unsigned entry.
+func leanSyncSignature(arena *fastjson.Arena, change *sobject.SOConfigChange, sig *peer.Signature) *fastjson.Value {
+	// Recover the signer and verify over the unsigned encoding.
+	var signer string
+	var valid bool
+	public, err := sig.ParsePubKey()
+	if err == nil && public != nil {
+		id, idErr := peer.IDFromPublicKey(public)
+		unsigned := change.CloneVT()
+		unsigned.Signatures = nil
+		data, encodeErr := unsigned.MarshalVT()
+		if idErr == nil && encodeErr == nil {
+			verified, verifyErr := sig.VerifyWithPublic("sobject config change", public, data)
+			signer, valid = id.String(), verified && verifyErr == nil
+		}
+	}
+
+	// Write the projected signature.
+	value := arena.NewObject()
+	value.Set("signer", arena.NewString(signer))
+	value.Set("valid", leanSyncBool(arena, valid))
 	return value
 }
 

@@ -1,4 +1,5 @@
 import Lean.Data.Json
+import Spacewave.SObject.Envelope
 import Spacewave.SObject.Host
 import Spacewave.SObject.Order
 import Spacewave.SObject.Recovery
@@ -12,12 +13,16 @@ import Spacewave.SObject.Sync.Sync
 Reads one JSON request per line from standard input and writes one JSON result
 per line. A request names a model function in `op` and carries its inputs:
 
-- `verifyChange`: `current`, `entry`; result `{"ok", "config"}`.
-- `verifySuffix`: `current`, `candidate`, `entries`; result `{"ok"}`.
-- `verifyChain`: `entries`; result `{"ok"}`.
+- `verifyChange`: `object`, `current`, `entry`; result `{"ok", "config"}`.
+- `verifySuffix`: `object`, `current`, `candidate`, `entries`; result `{"ok"}`.
+- `verifyChain`: `object`, `entries`; result `{"ok"}`.
+- `authorizeOperation`: `object`, `participants`, `operation`; result
+  `{"ok", "result": {"authorized"}}`, where `ok` is `verifyOperation`.
+- `authorizeCheckpoint`: `object`, `participants`, `checkpoint`; result
+  `{"ok", "result": {"signers", "authorized"}}`, where `ok` is `verifyCheckpoint`.
 - `orderOperations`: held `ops`, `checkpoint` author heads, `roster`; result
   `{"ok", "result": {"order", "stable"}}`.
-- `importPeerSnapshot`: `previous`, `candidate`, `entries`, `localPeer`,
+- `importPeerSnapshot`: `object`, `previous`, `candidate`, `entries`, `localPeer`,
   `candidateBytes`, `historyBytes`, nullable `merged`, `lockOK`, `accessOK`, `writeOK`.
 - `advanceSyncExchange`: held-state reads and one selected production loop event.
 - `joinSyncWorkers`: optional routine exit channels and observed body acknowledgments.
@@ -44,7 +49,7 @@ per line. A request names a model function in `op` and carries its inputs:
 - `buildRecoveryEnvelope`: envelope inputs and primitive `cryptoOK`/`encoded`.
 - `unlockRecovery`: `keys`, `envelope`, primitive `decoded`; result `{"ok", "material"}`.
 - `resolveRecovery`: provider outcomes, `entity`, `envelope`, `material`.
-- `buildSelfEnroll`: proposal inputs; result `{"ok", "entry"}`.
+- `buildSelfEnroll`: `object` and proposal inputs; result `{"ok", "entry"}`.
 - `enrollRecovery`: proposal inputs and current admission; result `{"ok", "config"}`.
 - `validateRecoveryGrant`: `grant`, `config`; result `{"ok"}`.
 - `buildSelfEnrollGrant`: grant inputs and primitive encrypted byte identities.
@@ -62,6 +67,8 @@ deriving instance ToJson, FromJson for Participant, Config, Sig, Entry
 deriving instance ToJson, FromJson for Grant, State, HostResult
 
 deriving instance ToJson, FromJson for Order.Pos, Order.Op
+
+deriving instance ToJson, FromJson for Position, OpBody, Operation, CheckpointBody, Checkpoint
 
 deriving instance ToJson, FromJson for RecoveryMaterial, RecoveryEnvelope, RecoveryGrant
 
@@ -185,13 +192,15 @@ def respond (req : Json) : Except String Json := do
       (← req.getObjValAs? (Option RecoveryMaterial) "material")
     return json% {ok: $(result.isSome), material: $result}
   | "buildSelfEnroll" =>
-    let result := buildSelfEnroll (← req.getObjValAs? (Option Config) "current")
+    let result := buildSelfEnroll (← req.getObjValAs? String "object")
+      (← req.getObjValAs? (Option Config) "current")
       (← req.getObjValAs? (Option Sig) "sig") (← req.getObjValAs? String "peer")
       (← req.getObjValAs? String "entity") (← req.getObjValAs? Int "role")
       (← req.getObjValAs? String "hash") (← req.getObjValAs? Bool "signOK")
     return json% {ok: $(result.isSome), entry: $result}
   | "enrollRecovery" =>
-    let result := enrollRecovery (← req.getObjValAs? Config "current")
+    let result := enrollRecovery (← req.getObjValAs? String "object")
+      (← req.getObjValAs? Config "current")
       (← req.getObjValAs? Sig "sig") (← req.getObjValAs? String "peer")
       (← req.getObjValAs? String "entity") (← req.getObjValAs? Int "role")
       (← req.getObjValAs? String "hash") (← req.getObjValAs? Bool "signOK")
@@ -209,23 +218,40 @@ def respond (req : Json) : Except String Json := do
     return json% {ok: $(result.isSome), grant: $result}
   | "importPeerSnapshot" =>
     let previous ← req.getObjValAs? State "previous"
-    let result := importPeerSnapshot previous (← req.getObjValAs? State "candidate")
+    let result := importPeerSnapshot (← req.getObjValAs? String "object") previous
+      (← req.getObjValAs? State "candidate")
       (← req.getObjValAs? (List Entry) "entries") (← req.getObjValAs? String "localPeer")
       (← req.getObjValAs? Nat "candidateBytes") (← req.getObjValAs? Nat "historyBytes")
       (← req.getObjValAs? (Option State) "merged") (← req.getObjValAs? Bool "lockOK") (← req.getObjValAs? Bool "accessOK")
       (← req.getObjValAs? Bool "writeOK")
     return json% {ok: $(result.isSome), outcome: $(visibleHost previous result)}
   | "verifyChange" =>
-    let result := verifyChange (← req.getObjValAs? Config "current")
+    let result := verifyChange (← req.getObjValAs? String "object")
+      (← req.getObjValAs? Config "current")
       (← req.getObjValAs? Entry "entry")
     return json% {ok: $(result.isSome), config: $(result)}
   | "verifySuffix" =>
-    let ok := verifySuffix (← req.getObjValAs? Config "current")
+    let ok := verifySuffix (← req.getObjValAs? String "object")
+      (← req.getObjValAs? Config "current")
       (← req.getObjValAs? Config "candidate") (← req.getObjValAs? (List Entry) "entries")
     return json% {ok: $ok}
   | "verifyChain" =>
-    let ok := (verifyChain (← req.getObjValAs? (List Entry) "entries")).isSome
+    let ok := (verifyChain (← req.getObjValAs? String "object")
+      (← req.getObjValAs? (List Entry) "entries")).isSome
     return json% {ok: $ok}
+  | "authorizeOperation" =>
+    let object ← req.getObjValAs? String "object"
+    let participants ← req.getObjValAs? (List Participant) "participants"
+    let operation ← req.getObjValAs? Operation "operation"
+    return json% {ok: $((verifyOperation object operation).isSome),
+      result: {authorized: $(authorizeOperation object participants operation)}}
+  | "authorizeCheckpoint" =>
+    let object ← req.getObjValAs? String "object"
+    let participants ← req.getObjValAs? (List Participant) "participants"
+    let checkpoint ← req.getObjValAs? Checkpoint "checkpoint"
+    let verified := verifyCheckpoint object checkpoint
+    return json% {ok: $(verified.isSome), result: {signers: $((verified.map (·.2)).getD []),
+      authorized: $(authorizeCheckpoint object participants checkpoint)}}
   | "orderOperations" =>
     let ops ← req.getObjValAs? (List Order.Op) "ops"
     let checkpoint ← req.getObjValAs? (List Order.Pos) "checkpoint"

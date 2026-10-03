@@ -185,6 +185,7 @@ func leanSyncExchangeCheck(t *testing.T, x *syncExchange, current *sobject.SOSta
 	input.Set("admissionObserver", a.NewTrue())
 	input.Set("recoveryObserver", a.NewTrue())
 	accepted := a.NewObject()
+	accepted.Set("object", a.NewString(x.sync.soID))
 	accepted.Set("previous", leanSyncState(t, &a, previous))
 	receiving := x.receiving
 	if receiving == nil {

@@ -54,14 +54,15 @@ def unappliedEntries (head : String) (entries : List Entry) : List Entry :=
       | none => entries
 
 /-- A proof that already verifies from the checkpoint is used unchanged. -/
-theorem unappliedEntries_of_verifySuffix {cur cand : Config} {entries : List Entry}
-    (h : verifySuffix cur cand entries = true) : unappliedEntries cur.hash entries = entries := by
+theorem unappliedEntries_of_verifySuffix {obj : String} {cur cand : Config} {entries : List Entry}
+    (h : verifySuffix obj cur cand entries = true) :
+    unappliedEntries cur.hash entries = entries := by
   cases entries with
   | nil => rfl
   | cons e rest =>
     by_cases linked : e.prev = cur.hash
     · simp [unappliedEntries, linked]
-    · have step : suffixStep cur e = none := by
+    · have step : suffixStep obj cur e = none := by
         unfold suffixStep verifyChange
         split <;> (try split) <;> simp [linked]
       simp [verifySuffix, applySuffix, List.foldlM, step] at h
@@ -79,19 +80,20 @@ theorem mem_of_mem_unappliedEntries {head : String} {entries : List Entry} {e : 
       · exact h
 
 /--
-importPeerSnapshot mirrors bounds, chain authority, revocation, the merge,
-access and the write.
+importPeerSnapshot mirrors bounds, chain authority for the host's shared object
+`object`, revocation, the merge, access and the write.
 -/
-def importPeerSnapshot (previous candidate : State) (entries : List Entry)
+def importPeerSnapshot (object : String) (previous candidate : State) (entries : List Entry)
     (localPeer : String) (candidateBytes historyBytes : Nat) (merged : Option State)
     (lockOK accessOK writeOK : Bool) : Option HostResult := do
   if candidateBytes > 10 * 1024 * 1024 || entries.length > 4096 ||
       historyBytes > 8 * 1024 * 1024 || !lockOK then none
-  else if !verifySuffix previous.config candidate.config
+  else if !verifySuffix object previous.config candidate.config
       (unappliedEntries previous.config.hash entries) then none
   else if !readableBy candidate.config localPeer then
     if (unappliedEntries previous.config.hash entries).isEmpty then some ⟨previous, true, false⟩
-    else publishHost {previous with config := candidate.config, epochs := [], ops := []} true writeOK
+    else
+      publishHost {previous with config := candidate.config, epochs := [], ops := []} true writeOK
   else
     let merged ← merged
     let next := {merged with config := candidate.config, invites := previous.invites}
@@ -119,17 +121,17 @@ theorem publishHost_spec {next : State} {revoked writeOK : Bool} {out : HostResu
   · contradiction
 
 /-- Every accepted suffix is also a sequence of individually verified changes. -/
-theorem applySuffix_verified {es : List Entry} {cur next : Config}
-    (h : applySuffix cur es = some next) : es.foldlM verifyChange cur = some next := by
+theorem applySuffix_verified {obj : String} {es : List Entry} {cur next : Config}
+    (h : applySuffix obj cur es = some next) : es.foldlM (verifyChange obj) cur = some next := by
   induction es generalizing cur with
   | nil => exact h
   | cons e es ih =>
     simp only [applySuffix, List.foldlM_cons] at h ⊢
-    cases first : suffixStep cur e with
+    cases first : suffixStep obj cur e with
     | none => simp [first] at h
     | some mid =>
       simp only [first, Option.bind_eq_bind, Option.bind_some] at h
-      have checked : verifyChange cur e = some mid := by
+      have checked : verifyChange obj cur e = some mid := by
         unfold suffixStep at first
         split at first
         · exact first
@@ -138,14 +140,14 @@ theorem applySuffix_verified {es : List Entry} {cur next : Config}
       exact ih h
 
 /-- Nonempty entry hashes make a verified suffix advance exactly its length. -/
-theorem verifySuffix_seqno {previous candidate : Config} {entries : List Entry}
+theorem verifySuffix_seqno {obj : String} {previous candidate : Config} {entries : List Entry}
     (hashes : ∀ e ∈ entries, e.hash ≠ "")
-    (h : verifySuffix previous candidate entries = true) :
+    (h : verifySuffix obj previous candidate entries = true) :
     candidate.seqno = previous.seqno + entries.length := by
   simp only [verifySuffix, Bool.and_eq_true] at h
   obtain ⟨⟨checkpoint, _⟩, suffix⟩ := h
   have checkpoint' : previous.hash ≠ "" := by simpa using checkpoint
-  cases applied : applySuffix previous entries with
+  cases applied : applySuffix obj previous entries with
   | none => simp [applied] at suffix
   | some next =>
     simp only [applied] at suffix
@@ -156,12 +158,12 @@ theorem verifySuffix_seqno {previous candidate : Config} {entries : List Entry}
 /-! ## Peer import -/
 
 /-- Every accepted import was authorized by the configuration suffix from the held head. -/
-theorem importPeerSnapshot_authority {previous candidate : State} {entries : List Entry}
-    {peer : String} {bytes history : Nat} {merged : Option State} {lockOK accessOK writeOK : Bool}
-    {out : HostResult}
-    (h : importPeerSnapshot previous candidate entries peer bytes history merged
+theorem importPeerSnapshot_authority {object : String}
+    {previous candidate : State} {entries : List Entry} {peer : String} {bytes history : Nat}
+    {merged : Option State} {lockOK accessOK writeOK : Bool} {out : HostResult}
+    (h : importPeerSnapshot object previous candidate entries peer bytes history merged
       lockOK accessOK writeOK = some out) :
-    verifySuffix previous.config candidate.config
+    verifySuffix object previous.config candidate.config
       (unappliedEntries previous.config.hash entries) = true := by
   unfold importPeerSnapshot at h
   split at h
@@ -175,10 +177,10 @@ theorem importPeerSnapshot_authority {previous candidate : State} {entries : Lis
 An import keeps the held state, or commits the candidate configuration with the
 local invitations.
 -/
-theorem importPeerSnapshot_target {previous candidate : State} {entries : List Entry}
-    {peer : String} {bytes history : Nat} {merged : Option State} {lockOK accessOK writeOK : Bool}
-    {out : HostResult}
-    (h : importPeerSnapshot previous candidate entries peer bytes history merged
+theorem importPeerSnapshot_target {object : String}
+    {previous candidate : State} {entries : List Entry} {peer : String} {bytes history : Nat}
+    {merged : Option State} {lockOK accessOK writeOK : Bool} {out : HostResult}
+    (h : importPeerSnapshot object previous candidate entries peer bytes history merged
       lockOK accessOK writeOK = some out) :
     out.state = previous ∨
       (out.state.config = candidate.config ∧ out.state.invites = previous.invites) := by
@@ -204,11 +206,11 @@ theorem importPeerSnapshot_target {previous candidate : State} {entries : List E
               exact Or.inr ⟨by rw [state], by rw [state]⟩
 
 /-- No accepted peer import can roll back the configuration sequence. -/
-theorem importPeerSnapshot_config_monotone {previous candidate : State} {entries : List Entry}
-    {peer : String} {bytes history : Nat} {merged : Option State} {lockOK accessOK writeOK : Bool}
-    {out : HostResult}
+theorem importPeerSnapshot_config_monotone {object : String}
+    {previous candidate : State} {entries : List Entry} {peer : String} {bytes history : Nat}
+    {merged : Option State} {lockOK accessOK writeOK : Bool} {out : HostResult}
     (hashes : ∀ e ∈ entries, e.hash ≠ "")
-    (h : importPeerSnapshot previous candidate entries peer bytes history merged
+    (h : importPeerSnapshot object previous candidate entries peer bytes history merged
       lockOK accessOK writeOK = some out) :
     previous.config.seqno ≤ out.state.config.seqno := by
   have seq := verifySuffix_seqno (fun e mem => hashes e (mem_of_mem_unappliedEntries mem))
@@ -218,26 +220,29 @@ theorem importPeerSnapshot_config_monotone {previous candidate : State} {entries
   · rw [advanced, seq]; omega
 
 /-- A proved removal commits without the merge or the access callback. -/
-theorem importPeerSnapshot_revoked {previous candidate : State} {entries : List Entry}
-    {peer : String} {bytes history : Nat} (merged : Option State) (accessOK : Bool)
+theorem importPeerSnapshot_revoked {object : String}
+    {previous candidate : State} {entries : List Entry} {peer : String} {bytes history : Nat}
+    (merged : Option State) (accessOK : Bool)
     (bounded : bytes ≤ 10 * 1024 * 1024 ∧ entries.length ≤ 4096 ∧
       history ≤ 8 * 1024 * 1024)
-    (chain : verifySuffix previous.config candidate.config entries = true)
+    (chain : verifySuffix object previous.config candidate.config entries = true)
     (removed : readableBy candidate.config peer = false) (nonempty : entries ≠ []) :
-    importPeerSnapshot previous candidate entries peer bytes history merged true accessOK true =
+    importPeerSnapshot object previous candidate entries peer bytes history merged true accessOK
+      true =
       some ⟨{previous with config := candidate.config, epochs := [], ops := []}, true, true⟩ := by
   simp [importPeerSnapshot, bounded.1, bounded.2.1, bounded.2.2,
     unappliedEntries_of_verifySuffix chain, chain, removed, nonempty, publishHost]
 
 /-- A readable import publishes the merge with the candidate configuration and local invitations. -/
-theorem importPeerSnapshot_merged {previous candidate merged : State} {entries : List Entry}
-    {peer : String} {bytes history : Nat}
+theorem importPeerSnapshot_merged {object : String}
+    {previous candidate merged : State} {entries : List Entry} {peer : String} {bytes history : Nat}
     (bounded : bytes ≤ 10 * 1024 * 1024 ∧ entries.length ≤ 4096 ∧
       history ≤ 8 * 1024 * 1024)
-    (chain : verifySuffix previous.config candidate.config entries = true)
+    (chain : verifySuffix object previous.config candidate.config entries = true)
     (readable : readableBy candidate.config peer = true)
     (changed : {merged with config := candidate.config, invites := previous.invites} ≠ previous) :
-    importPeerSnapshot previous candidate entries peer bytes history (some merged) true true true =
+    importPeerSnapshot object previous candidate entries peer bytes history (some merged) true true
+      true =
       some ⟨{merged with config := candidate.config, invites := previous.invites}, false, true⟩ := by
   simp [importPeerSnapshot, bounded.1, bounded.2.1, bounded.2.2,
     unappliedEntries_of_verifySuffix chain, chain, readable, changed, publishHost]

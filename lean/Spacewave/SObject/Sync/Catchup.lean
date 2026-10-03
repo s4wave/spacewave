@@ -454,6 +454,7 @@ def responseObsolete (current : Option State) (head : Head) : Bool :=
 
 /-- AcceptanceInput retains decoding, sizes and each independently timed host-read observation. -/
 structure AcceptanceInput where
+  object : String
   previous : State
   receiving : Receive
   snapshot : Option Snapshot
@@ -490,7 +491,7 @@ def acceptResponse (input : AcceptanceInput) : AcceptanceResult :=
     | some candidate =>
       if candidate.config.seqno != input.receiving.head.configSeqno || candidate.config.hash != input.receiving.head.configHash then rejected
       else
-        let result := importPeerSnapshot input.previous candidate (input.receiving.changes.map (·.entry))
+        let result := importPeerSnapshot input.object input.previous candidate (input.receiving.changes.map (·.entry))
           input.localPeer input.candidateBytes (historyBytes input.receiving.changes) input.merged
           input.lockOK input.accessOK input.writeOK
         let host := visibleHost input.previous result
@@ -537,7 +538,7 @@ theorem responseObsolete_equal (state : State) (head : Head)
 theorem acceptResponse_publication {input : AcceptanceInput}
     (wrote : (acceptResponse input).host.wrote = true) :
     ∃ candidate, input.decoded = some candidate ∧
-      importPeerSnapshot input.previous candidate (input.receiving.changes.map (·.entry))
+      importPeerSnapshot input.object input.previous candidate (input.receiving.changes.map (·.entry))
         input.localPeer input.candidateBytes (historyBytes input.receiving.changes) input.merged
         input.lockOK input.accessOK input.writeOK = some (acceptResponse input).host := by
   unfold acceptResponse at wrote ⊢
@@ -562,7 +563,7 @@ theorem acceptResponse_publication {input : AcceptanceInput}
           · contradiction
           · rename_i pinned
             simp only [pinned]
-            cases imported : importPeerSnapshot input.previous candidate (input.receiving.changes.map (·.entry))
+            cases imported : importPeerSnapshot input.object input.previous candidate (input.receiving.changes.map (·.entry))
               input.localPeer input.candidateBytes (historyBytes input.receiving.changes) input.merged
               input.lockOK input.accessOK input.writeOK with
             | none => simp [imported, visibleHost] at wrote
@@ -596,7 +597,7 @@ theorem acceptResponse_binding {input : AcceptanceInput}
 theorem acceptResponse_authority {input : AcceptanceInput}
     (wrote : (acceptResponse input).host.wrote = true) :
     ∃ candidate, input.decoded = some candidate ∧
-      verifySuffix input.previous.config candidate.config
+      verifySuffix input.object input.previous.config candidate.config
         (unappliedEntries input.previous.config.hash (input.receiving.changes.map (·.entry))) = true := by
   obtain ⟨candidate, decoded, imported⟩ := acceptResponse_publication wrote
   exact ⟨candidate, decoded, importPeerSnapshot_authority imported⟩
@@ -624,7 +625,7 @@ theorem acceptResponse_complete (input : AcceptanceInput) (candidate merged : St
     (configHash : candidate.config.hash = input.receiving.head.configHash)
     (bounded : input.candidateBytes ≤ 10 * 1024 * 1024 ∧ input.receiving.changes.length ≤ 4096 ∧
       historyBytes input.receiving.changes ≤ 8 * 1024 * 1024)
-    (chain : verifySuffix input.previous.config candidate.config (input.receiving.changes.map (·.entry)) = true)
+    (chain : verifySuffix input.object input.previous.config candidate.config (input.receiving.changes.map (·.entry)) = true)
     (readable : readableBy candidate.config input.localPeer = true)
     (changed : {merged with config := candidate.config, invites := input.previous.invites} ≠ input.previous)
     (lock : input.lockOK = true) (access : input.accessOK = true) (write : input.writeOK = true) :
@@ -949,7 +950,7 @@ theorem pagesExchange_imports (sender : Response) (input : AcceptanceInput) (siz
     (configSeq : candidate.config.seqno = input.receiving.head.configSeqno)
     (configHash : candidate.config.hash = input.receiving.head.configHash)
     (candidateBytes : input.candidateBytes ≤ 10 * 1024 * 1024)
-    (chain : verifySuffix input.previous.config candidate.config (sender.changes.map (·.entry)) = true)
+    (chain : verifySuffix input.object input.previous.config candidate.config (sender.changes.map (·.entry)) = true)
     (readable : readableBy candidate.config input.localPeer = true)
     (changed : {merged with config := candidate.config, invites := input.previous.invites} ≠ input.previous)
     (lock : input.lockOK = true) (access : input.accessOK = true) (write : input.writeOK = true) :
@@ -1277,7 +1278,7 @@ theorem receiveExchange_publication {before : Exchange} {current : State} {frame
     (imported : (receiveExchange before current frame input).imported = some accepted)
     (wrote : accepted.host.wrote = true) :
     ∃ receiving candidate, before.receiving = some receiving ∧ input.acceptance.decoded = some candidate ∧
-      importPeerSnapshot input.acceptance.previous candidate (receiving.changes.map (·.entry))
+      importPeerSnapshot input.acceptance.object input.acceptance.previous candidate (receiving.changes.map (·.entry))
         input.acceptance.localPeer input.acceptance.candidateBytes (historyBytes receiving.changes)
         input.acceptance.merged input.acceptance.lockOK input.acceptance.accessOK input.acceptance.writeOK = some accepted.host := by
   obtain ⟨_, _, _, receiving, retained, same⟩ := receiveExchange_import imported
@@ -1340,7 +1341,7 @@ theorem receiveExchange_complete (before : Exchange) (current : State) (frame : 
     (configHash : candidate.config.hash = input.acceptance.receiving.head.configHash)
     (bounded : input.acceptance.candidateBytes ≤ 10 * 1024 * 1024 ∧ input.acceptance.receiving.changes.length ≤ 4096 ∧
       historyBytes input.acceptance.receiving.changes ≤ 8 * 1024 * 1024)
-    (chain : verifySuffix input.acceptance.previous.config candidate.config (input.acceptance.receiving.changes.map (·.entry)) = true)
+    (chain : verifySuffix input.acceptance.object input.acceptance.previous.config candidate.config (input.acceptance.receiving.changes.map (·.entry)) = true)
     (readable : readableBy candidate.config input.acceptance.localPeer = true)
     (changed : {merged with config := candidate.config, invites := input.acceptance.previous.invites} ≠
       input.acceptance.previous)
@@ -1465,7 +1466,7 @@ theorem advanceExchange_publication {before : Exchange} {localID remote : String
     (imported : result.exchange.imported = some accepted) (wrote : accepted.host.wrote = true) :
     ∃ receiving candidate, (prepareOutgoing before input.current input.preparation).state.receiving = some receiving ∧
       input.reception.acceptance.decoded = some candidate ∧
-      importPeerSnapshot input.reception.acceptance.previous candidate (receiving.changes.map (·.entry))
+      importPeerSnapshot input.reception.acceptance.object input.reception.acceptance.previous candidate (receiving.changes.map (·.entry))
         input.reception.acceptance.localPeer input.reception.acceptance.candidateBytes (historyBytes receiving.changes)
         input.reception.acceptance.merged input.reception.acceptance.lockOK input.reception.acceptance.accessOK input.reception.acceptance.writeOK = some accepted.host := by
   obtain ⟨_, _, _, _, current, _, same⟩ := advanceExchange_import advanced imported

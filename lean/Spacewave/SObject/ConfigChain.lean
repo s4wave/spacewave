@@ -6,7 +6,7 @@ Models the configuration chain decisions in `core/sobject/config-chain.go` and
 Spacewave `cc4d9007e` plus the owner-retention fix:
 
 - `Config.validate` mirrors `SharedObjectConfig.Validate`.
-- `verifySignature` mirrors `verifyConfigChangeSignature`.
+- `verifySignatures` mirrors `verifyConfigChangeSignatures`.
 - `validateSelfEnroll` mirrors `validateSelfEnrollPeerChange`.
 - `verifyChange` mirrors `VerifyConfigChange`.
 - `verifySuffix` mirrors `VerifyConfigChainSuffix`.
@@ -16,10 +16,12 @@ Abstraction. Peer IDs, entity IDs and hashes are opaque strings. The Go
 projection maps a peer ID that fails `ParsePeerID` to the empty string and
 writes each hash as lowercase hex, so a 32-byte digest is 64 characters. An
 entry carries its own hash, computed by Go over the entry without its
-signature. A signature is its signer and whether it parsed and verified over
-the same bytes; unforgeability is the assumption that `valid` holds only for
-the named signer's key. Role and change type codes stay integers because
-protobuf decoding keeps values outside the enum.
+signatures, and the shared object it is bound to. A signature is its signer,
+empty when its key does not parse, and whether it verified over the same bytes;
+unforgeability is the assumption that `valid` holds only for the named signer's
+key. Every verifier takes the shared object it verifies for. Role and change
+type codes stay integers because protobuf decoding keeps values outside the
+enum.
 -/
 
 namespace Spacewave.SObject
@@ -89,9 +91,10 @@ structure Sig where
 
 /-- Entry is one `SOConfigChange`; `config` is none when Go's field is nil. -/
 structure Entry where
+  object : String
   seqno : Nat
   config : Option Config
-  sig : Option Sig
+  sigs : List Sig
   prev : String
   kind : ChangeType
   hash : String
@@ -165,79 +168,83 @@ def validateSelfEnroll (cur next : Config) (signer : String) : Bool :=
     | _ => false
 
 /--
-verifySignature mirrors `verifyConfigChangeSignature`: a verified signature
-from an OWNER of `cfg`, or an admissible self-enrollment by its signer.
+signerAuthorized reports whether `cfg` lets `signer` sign the entry: as an
+OWNER, or as the peer an admissible self-enrollment adds.
 -/
-def verifySignature (e : Entry) (cfg : Config) : Bool :=
-  match e.sig with
-  | none => false
-  | some s =>
-    s.valid &&
-      if e.kind == ChangeType.selfEnrollPeer then
-        match e.config with
-        | some next => validateSelfEnroll cfg next s.signer
-        | none => false
-      else
-        isOwner cfg s.signer
+def signerAuthorized (e : Entry) (cfg : Config) (signer : String) : Bool :=
+  if e.kind == ChangeType.selfEnrollPeer then
+    match e.config with
+    | some next => validateSelfEnroll cfg next signer
+    | none => false
+  else
+    isOwner cfg signer
+
+/--
+verifySignatures mirrors `verifyConfigChangeSignatures`: at least one
+signature, exactly one for a self-enrollment, from distinct parsed signers,
+each authorized by `cfg` and verified.
+-/
+def verifySignatures (e : Entry) (cfg : Config) : Bool :=
+  !e.sigs.isEmpty && (e.kind != ChangeType.selfEnrollPeer || e.sigs.length == 1) &&
+    decide (e.sigs.map (·.signer)).Nodup &&
+    e.sigs.all fun s => s.signer != "" && s.valid && signerAuthorized e cfg s.signer
 
 /-- expectedSeqno is the sequence number that follows the head of `cur`. -/
 def expectedSeqno (cur : Config) : Nat :=
   if cur.hash = "" then 0 else cur.seqno + 1
 
 /--
-verifyChange mirrors `VerifyConfigChange`. It accepts an entry linked to the
-head of `cur`, at the next sequence number, authorized by `cur`, whose
-configuration with the entry as its head is valid, and returns that
-configuration.
+verifyChange mirrors `VerifyConfigChange`. It accepts an entry bound to
+`obj`, linked to the head of `cur`, at the next sequence number, authorized by
+`cur`, whose configuration with the entry as its head is valid, and returns
+that configuration.
 -/
-def verifyChange (cur : Config) (e : Entry) : Option Config :=
+def verifyChange (obj : String) (cur : Config) (e : Entry) : Option Config :=
   match e.config with
   | none => none
   | some next =>
     let result := next.withHead e.seqno e.hash
-    if e.prev = cur.hash ∧ expectedSeqno cur < seqnoLimit ∧ e.seqno = expectedSeqno cur ∧
-        verifySignature e cur ∧ result.validate then
+    if e.object = obj ∧ e.prev = cur.hash ∧ expectedSeqno cur < seqnoLimit ∧
+        e.seqno = expectedSeqno cur ∧ verifySignatures e cur ∧ result.validate then
       some result
     else
       none
 
 /-- suffixStep is one `VerifyConfigChainSuffix` step: a peer change type, then `verifyChange`. -/
-def suffixStep (cur : Config) (e : Entry) : Option Config :=
-  if e.kind ∈ ChangeType.peerChanges then verifyChange cur e else none
+def suffixStep (obj : String) (cur : Config) (e : Entry) : Option Config :=
+  if e.kind ∈ ChangeType.peerChanges then verifyChange obj cur e else none
 
 /-- applySuffix folds `suffixStep` over entries from a checkpoint. -/
-def applySuffix (cur : Config) (es : List Entry) : Option Config :=
-  es.foldlM suffixStep cur
+def applySuffix (obj : String) (cur : Config) (es : List Entry) : Option Config :=
+  es.foldlM (suffixStep obj) cur
 
 /--
 verifySuffix mirrors `VerifyConfigChainSuffix`: from a nonempty valid
 checkpoint, the entries must reach a configuration equal to the candidate.
 -/
-def verifySuffix (cur cand : Config) (es : List Entry) : Bool :=
+def verifySuffix (obj : String) (cur cand : Config) (es : List Entry) : Bool :=
   cur.hash != "" && cur.validate &&
-    match applySuffix cur es with
+    match applySuffix obj cur es with
     | some c => c.same cand
     | none => false
 
 /-- genesisValid mirrors the genesis checks of `VerifyConfigChain`. -/
-def genesisValid (g : Entry) (c : Config) : Bool :=
-  g.seqno == 0 && g.prev == "" && g.kind == ChangeType.genesis &&
-    !c.participants.isEmpty && c.validate &&
-    match g.sig with
-    | none => false
-    | some _ => verifySignature g c
+def genesisValid (obj : String) (g : Entry) (c : Config) : Bool :=
+  g.object == obj && g.seqno == 0 && g.prev == "" && g.kind == ChangeType.genesis &&
+    !c.participants.isEmpty && c.validate && verifySignatures g c
 
 /--
 verifyChain mirrors `VerifyConfigChain`: a valid genesis, then every later
 entry verified against the configuration before it. Returns the final
 configuration, which Go computes and discards.
 -/
-def verifyChain : List Entry → Option Config
+def verifyChain (obj : String) : List Entry → Option Config
   | [] => none
   | g :: rest =>
     match g.config with
     | none => none
-    | some c => if genesisValid g c then rest.foldlM verifyChange (c.withHead 0 g.hash) else none
+    | some c =>
+      if genesisValid obj g c then rest.foldlM (verifyChange obj) (c.withHead 0 g.hash) else none
 
 /-! ## Configuration validity -/
 
@@ -277,11 +284,11 @@ theorem isOwner_perm {a b : Config} (hp : a.participants.Perm b.participants) (p
 A verified change is the entry's configuration at the entry's head, linked to the
 previous head at the next sequence number, signed with authority, and valid.
 -/
-theorem verifyChange_spec {cur : Config} {e : Entry} {next : Config}
-    (h : verifyChange cur e = some next) :
-    ∃ c, e.config = some c ∧ next = c.withHead e.seqno e.hash ∧ e.prev = cur.hash ∧
-      expectedSeqno cur < seqnoLimit ∧ e.seqno = expectedSeqno cur ∧
-      verifySignature e cur = true ∧ next.validate = true := by
+theorem verifyChange_spec {obj : String} {cur : Config} {e : Entry} {next : Config}
+    (h : verifyChange obj cur e = some next) :
+    ∃ c, e.config = some c ∧ next = c.withHead e.seqno e.hash ∧ e.object = obj ∧
+      e.prev = cur.hash ∧ expectedSeqno cur < seqnoLimit ∧ e.seqno = expectedSeqno cur ∧
+      verifySignatures e cur = true ∧ next.validate = true := by
   unfold verifyChange at h
   split at h
   · contradiction
@@ -294,47 +301,49 @@ theorem verifyChange_spec {cur : Config} {e : Entry} {next : Config}
     · contradiction
 
 /--
-A verified change carries a valid signature, from an OWNER of the previous
-configuration unless it is a self-enrollment.
+A verified change carries at least one signature, and every signature is valid
+and, unless the change is a self-enrollment, from an OWNER of the previous
+configuration.
 -/
-theorem verifyChange_authorized {cur next : Config} {e : Entry}
-    (h : verifyChange cur e = some next) :
-    ∃ s, e.sig = some s ∧ s.valid = true ∧
+theorem verifyChange_authorized {obj : String} {cur next : Config} {e : Entry}
+    (h : verifyChange obj cur e = some next) :
+    e.sigs ≠ [] ∧ ∀ s ∈ e.sigs, s.valid = true ∧
       (e.kind ≠ ChangeType.selfEnrollPeer → isOwner cur s.signer = true) := by
-  obtain ⟨_, _, _, _, _, _, hsig, _⟩ := verifyChange_spec h
-  unfold verifySignature at hsig
-  split at hsig
-  · contradiction
-  · rename_i s hs
-    simp only [Bool.and_eq_true] at hsig
-    refine ⟨s, hs, hsig.1, fun hk => ?_⟩
-    have hk' : (e.kind == ChangeType.selfEnrollPeer) = false := by simpa using hk
-    simpa [hk'] using hsig.2
+  obtain ⟨_, _, _, _, _, _, _, hsig, _⟩ := verifyChange_spec h
+  simp only [verifySignatures, Bool.and_eq_true, Bool.not_eq_true',
+    List.isEmpty_eq_false_iff, List.all_eq_true] at hsig
+  obtain ⟨⟨⟨hne, _⟩, _⟩, hall⟩ := hsig
+  refine ⟨hne, fun s hs => ?_⟩
+  obtain ⟨⟨_, hv⟩, hauth⟩ := hall s hs
+  refine ⟨hv, fun hk => ?_⟩
+  have hk' : (e.kind == ChangeType.selfEnrollPeer) = false := by simpa using hk
+  simpa [signerAuthorized, hk'] using hauth
 
 /-- A verified change leaves an OWNER in every nonempty configuration. -/
-theorem verifyChange_owner {cur next : Config} {e : Entry} (h : verifyChange cur e = some next)
-    (hne : next.participants ≠ []) : ∃ p ∈ next.participants, p.role = Role.owner := by
-  obtain ⟨_, _, _, _, _, _, _, hv⟩ := verifyChange_spec h
+theorem verifyChange_owner {obj : String} {cur next : Config} {e : Entry}
+    (h : verifyChange obj cur e = some next) (hne : next.participants ≠ []) :
+    ∃ p ∈ next.participants, p.role = Role.owner := by
+  obtain ⟨_, _, _, _, _, _, _, _, hv⟩ := verifyChange_spec h
   exact Config.validate_owner hv hne
 
 /--
 A change at or below the held sequence number is rejected, so a held head
 cannot be forked or rolled back.
 -/
-theorem verifyChange_stale {cur : Config} {e : Entry} (hh : cur.hash ≠ "")
-    (hs : e.seqno ≤ cur.seqno) : verifyChange cur e = none := by
-  cases h : verifyChange cur e with
+theorem verifyChange_stale {obj : String} {cur : Config} {e : Entry} (hh : cur.hash ≠ "")
+    (hs : e.seqno ≤ cur.seqno) : verifyChange obj cur e = none := by
+  cases h : verifyChange obj cur e with
   | none => rfl
   | some next =>
-    obtain ⟨_, _, _, _, _, hseq, _, _⟩ := verifyChange_spec h
+    obtain ⟨_, _, _, _, _, _, hseq, _, _⟩ := verifyChange_spec h
     simp [expectedSeqno, hh] at hseq
     omega
 
 /-! ## Suffix verification -/
 
 /-- A suffix step depends on the configuration only up to Go's equality. -/
-theorem suffixStep_congr {a b : Config} (h : a.same b = true) (e : Entry) :
-    suffixStep a e = suffixStep b e := by
+theorem suffixStep_congr {obj : String} {a b : Config} (h : a.same b = true) (e : Entry) :
+    suffixStep obj a e = suffixStep obj b e := by
   simp only [Config.same, Bool.and_eq_true, beq_iff_eq, List.isPerm_iff] at h
   obtain ⟨⟨hh, hs⟩, hp⟩ := h
   unfold suffixStep
@@ -347,23 +356,25 @@ theorem suffixStep_congr {a b : Config} (h : a.same b = true) (e : Entry) :
       simp [heq, ChangeType.selfEnrollPeer, ChangeType.addParticipant,
         ChangeType.removeParticipant, ChangeType.addInvite, ChangeType.revokeInvite,
         ChangeType.incrementInviteUses, ChangeType.transferOwnership, ChangeType.setRoster] at hk
-    simp [verifyChange, verifySignature, expectedSeqno, hh, hs, hk', isOwner_perm hp]
+    simp [verifyChange, verifySignatures, signerAuthorized, expectedSeqno, hh, hs, hk',
+      isOwner_perm hp]
   · rfl
 
 /-- Folding a suffix in two parts equals folding it at once. -/
-theorem applySuffix_append (a : Config) (xs ys : List Entry) :
-    applySuffix a (xs ++ ys) = (applySuffix a xs).bind (applySuffix · ys) := by
+theorem applySuffix_append (obj : String) (a : Config) (xs ys : List Entry) :
+    applySuffix obj a (xs ++ ys) = (applySuffix obj a xs).bind (applySuffix obj · ys) := by
   simp [applySuffix, List.foldlM_append]
 
 /-- A nonempty suffix gives the same result from Go-equal checkpoints. -/
-theorem applySuffix_congr {a b : Config} (h : a.same b = true) {ys : List Entry} (hne : ys ≠ []) :
-    applySuffix a ys = applySuffix b ys := by
+theorem applySuffix_congr {obj : String} {a b : Config} (h : a.same b = true) {ys : List Entry}
+    (hne : ys ≠ []) : applySuffix obj a ys = applySuffix obj b ys := by
   cases ys with
   | nil => contradiction
   | cons e ys => simp [applySuffix, List.foldlM_cons, suffixStep_congr h]
 
 /-- An empty suffix accepts only a candidate equal to the checkpoint. -/
-theorem verifySuffix_nil {a c : Config} (h : verifySuffix a c [] = true) : a.same c = true := by
+theorem verifySuffix_nil {obj : String} {a c : Config} (h : verifySuffix obj a c [] = true) :
+    a.same c = true := by
   simp [verifySuffix, applySuffix] at h
   exact h.2
 
@@ -371,9 +382,9 @@ theorem verifySuffix_nil {a c : Config} (h : verifySuffix a c [] = true) : a.sam
 Suffix verification composes: a verified path from `a` to `b` and one from `b`
 to `c` join into a verified path from `a` to `c`.
 -/
-theorem verifySuffix_trans {a b c : Config} {xs ys : List Entry}
-    (hab : verifySuffix a b xs = true) (hbc : verifySuffix b c ys = true) :
-    verifySuffix a c (xs ++ ys) = true := by
+theorem verifySuffix_trans {obj : String} {a b c : Config} {xs ys : List Entry}
+    (hab : verifySuffix obj a b xs = true) (hbc : verifySuffix obj b c ys = true) :
+    verifySuffix obj a c (xs ++ ys) = true := by
   simp only [verifySuffix, Bool.and_eq_true] at hab hbc ⊢
   obtain ⟨hcheck, hab⟩ := hab
   obtain ⟨_, hbc⟩ := hbc
@@ -393,39 +404,39 @@ theorem verifySuffix_trans {a b c : Config} {xs ys : List Entry}
 /-! ## Full chains -/
 
 /-- Every configuration reached through verified changes from a valid start is valid. -/
-theorem foldlM_verifyChange_valid {es : List Entry} :
-    ∀ {init c : Config}, init.validate = true → es.foldlM verifyChange init = some c →
+theorem foldlM_verifyChange_valid {obj : String} {es : List Entry} :
+    ∀ {init c : Config}, init.validate = true → es.foldlM (verifyChange obj) init = some c →
       c.validate = true := by
   induction es with
   | nil => intro init c hv h; simp at h; exact h ▸ hv
   | cons e es ih =>
     intro init c _ h
     simp only [List.foldlM_cons] at h
-    cases hstep : verifyChange init e with
+    cases hstep : verifyChange obj init e with
     | none => simp [hstep] at h
     | some next =>
       simp only [hstep, Option.bind_eq_bind, Option.bind_some] at h
-      obtain ⟨_, _, _, _, _, _, _, hv⟩ := verifyChange_spec hstep
+      obtain ⟨_, _, _, _, _, _, _, _, hv⟩ := verifyChange_spec hstep
       exact ih hv h
 
 /--
 Each verified change advances a nonempty head by exactly one, given nonempty
 entry hashes, which SHA-256 digests always are.
 -/
-theorem foldlM_verifyChange_seqno {es : List Entry} :
+theorem foldlM_verifyChange_seqno {obj : String} {es : List Entry} :
     ∀ {init c : Config}, init.hash ≠ "" → (∀ e ∈ es, e.hash ≠ "") →
-      es.foldlM verifyChange init = some c →
+      es.foldlM (verifyChange obj) init = some c →
       c.seqno = init.seqno + es.length ∧ c.hash ≠ "" := by
   induction es with
   | nil => intro init c hh _ h; simp at h; subst h; exact ⟨rfl, hh⟩
   | cons e es ih =>
     intro init c hh hes h
     simp only [List.foldlM_cons] at h
-    cases hstep : verifyChange init e with
+    cases hstep : verifyChange obj init e with
     | none => simp [hstep] at h
     | some next =>
       simp only [hstep, Option.bind_eq_bind, Option.bind_some] at h
-      obtain ⟨_, _, hnext, _, _, hseq, _, _⟩ := verifyChange_spec hstep
+      obtain ⟨_, _, hnext, _, _, _, hseq, _, _⟩ := verifyChange_spec hstep
       have hnh : next.hash ≠ "" := by
         simpa [hnext, Config.withHead] using hes e (List.mem_cons_self ..)
       obtain ⟨hs, hc⟩ := ih hnh (fun x hx => hes x (List.mem_cons_of_mem e hx)) h
@@ -435,9 +446,10 @@ theorem foldlM_verifyChange_seqno {es : List Entry} :
       exact ⟨by omega, hc⟩
 
 /-- A verified chain is a valid genesis followed by verified changes. -/
-theorem verifyChain_spec {es : List Entry} {c : Config} (h : verifyChain es = some c) :
-    ∃ g rest gc, es = g :: rest ∧ g.config = some gc ∧ genesisValid g gc = true ∧
-      rest.foldlM verifyChange (gc.withHead 0 g.hash) = some c := by
+theorem verifyChain_spec {obj : String} {es : List Entry} {c : Config}
+    (h : verifyChain obj es = some c) :
+    ∃ g rest gc, es = g :: rest ∧ g.config = some gc ∧ genesisValid obj g gc = true ∧
+      rest.foldlM (verifyChange obj) (gc.withHead 0 g.hash) = some c := by
   unfold verifyChain at h
   split at h
   · contradiction
@@ -451,7 +463,8 @@ theorem verifyChain_spec {es : List Entry} {c : Config} (h : verifyChain es = so
       · contradiction
 
 /-- Every nonempty configuration a verified chain reaches has an OWNER. -/
-theorem verifyChain_owner {es : List Entry} {c : Config} (h : verifyChain es = some c)
+theorem verifyChain_owner {obj : String} {es : List Entry} {c : Config}
+    (h : verifyChain obj es = some c)
     (hne : c.participants ≠ []) : ∃ p ∈ c.participants, p.role = Role.owner := by
   obtain ⟨g, _, gc, _, _, hg, hfold⟩ := verifyChain_spec h
   simp only [genesisValid, Bool.and_eq_true, Bool.not_eq_true', List.isEmpty_eq_false_iff] at hg
@@ -463,7 +476,8 @@ theorem verifyChain_owner {es : List Entry} {c : Config} (h : verifyChain es = s
 A verified chain's head sequence number counts its entries after genesis,
 given nonempty entry hashes.
 -/
-theorem verifyChain_seqno {es : List Entry} {c : Config} (h : verifyChain es = some c)
+theorem verifyChain_seqno {obj : String} {es : List Entry} {c : Config}
+    (h : verifyChain obj es = some c)
     (hes : ∀ e ∈ es, e.hash ≠ "") : c.seqno + 1 = es.length := by
   obtain ⟨g, rest, gc, rfl, _, _, hfold⟩ := verifyChain_spec h
   have hgh : (gc.withHead 0 g.hash).hash ≠ "" := hes g (List.mem_cons_self ..)

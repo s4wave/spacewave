@@ -200,11 +200,14 @@ func (s *configChainScenario) checkChange(
 	next *SharedObjectConfig,
 	err error,
 ) {
+	// Record the request.
 	req := s.arena.NewObject()
 	req.Set("op", s.arena.NewString("verifyChange"))
+	req.Set("object", s.arena.NewString(mockSharedObjectID))
 	req.Set("current", projectLeanConfig(cur).json(&s.arena))
 	req.Set("entry", s.entryJSON(entry))
 
+	// Record the Go decision and, when accepted, the next configuration.
 	c := leanCase{name: "verifyChange step " + strconv.Itoa(step), request: req.MarshalTo(nil), ok: err == nil}
 	if err == nil {
 		projected := projectLeanConfig(next)
@@ -218,6 +221,7 @@ func (s *configChainScenario) checkChain(chain []*SOConfigChange) bool {
 	// Record the request.
 	req := s.arena.NewObject()
 	req.Set("op", s.arena.NewString("verifyChain"))
+	req.Set("object", s.arena.NewString(mockSharedObjectID))
 	req.Set("entries", s.entriesJSON(chain))
 
 	// Record the Go decision as the expected result.
@@ -251,6 +255,7 @@ func (s *configChainScenario) checkSuffix(heads []*SharedObjectConfig, chain []*
 	// Record the request.
 	req := s.arena.NewObject()
 	req.Set("op", s.arena.NewString("verifySuffix"))
+	req.Set("object", s.arena.NewString(mockSharedObjectID))
 	req.Set("current", projectLeanConfig(heads[from]).json(&s.arena))
 	req.Set("candidate", projectLeanConfig(candidate).json(&s.arena))
 	req.Set("entries", s.entriesJSON(entries))
@@ -289,12 +294,17 @@ func (s *configChainScenario) genesis() *SOConfigChange {
 		entry.ChangeType = SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_ADD_PARTICIPANT
 	case 3:
 		entry.Config = nil
+	case 4:
+		entry.SharedObjectId = "other object"
 	}
 
-	// Sign as the owner, a random peer, or not at all.
-	switch s.rng.IntN(4) {
+	// Sign as the owner, a random peer, both, or not at all.
+	switch s.rng.IntN(6) {
 	case 0:
 	case 1:
+		s.sign(entry, s.rng.IntN(len(s.ids)))
+	case 2:
+		s.sign(entry, 0)
 		s.sign(entry, s.rng.IntN(len(s.ids)))
 	default:
 		s.sign(entry, 0)
@@ -349,14 +359,25 @@ func (s *configChainScenario) change(cur *SharedObjectConfig) *SOConfigChange {
 		entry.PreviousHash = bytes.Repeat([]byte{7}, 32)
 	case 3:
 		entry.Config = nil
+	case 4:
+		entry.SharedObjectId = "other object"
 	}
 
-	// Sign it, sometimes omitting or invalidating the signature.
+	// Sign it, sometimes omitting, invalidating or repeating the signature, or
+	// adding an owner's.
 	switch s.rng.IntN(16) {
 	case 0:
 	case 1:
 		s.sign(entry, signer)
 		entry.ConfigSeqno++
+	case 2:
+		s.sign(entry, signer)
+		s.sign(entry, signer)
+	case 3, 4:
+		s.sign(entry, signer)
+		s.sign(entry, s.peer(cur, func(p *SOParticipantConfig) bool {
+			return p != nil && IsOwner(p.GetRole())
+		}))
 	default:
 		s.sign(entry, signer)
 	}
@@ -448,9 +469,11 @@ func (s *configChainScenario) role() SOParticipantRole {
 	return SOParticipantRole(1 + s.rng.IntN(3))
 }
 
-// sign signs entry with the key of peer index signer.
+// sign adds a signature over entry by the key of peer index signer.
 func (s *configChainScenario) sign(entry *SOConfigChange, signer int) {
-	signConfigChange(s.t, entry, s.privs[signer])
+	if err := signSOConfigChange(entry, s.privs[signer]); err != nil {
+		s.t.Fatal(err)
+	}
 }
 
 // hash returns the chain hash of entry.
@@ -471,56 +494,37 @@ func (s *configChainScenario) entriesJSON(entries []*SOConfigChange) *fastjson.V
 	return arr
 }
 
-// entryJSON projects a config change entry into the Lean Entry structure. The
-// signature becomes its signer and whether it verifies over the entry.
+// entryJSON projects a config change entry into the Lean Entry structure.
+// Each signature becomes its signer and whether it verifies over the entry.
 func (s *configChainScenario) entryJSON(entry *SOConfigChange) *fastjson.Value {
-	// Project the sequence and config.
+	// Project the binding, sequence and config.
 	a := &s.arena
 	v := a.NewObject()
+	v.Set("object", a.NewString(entry.GetSharedObjectId()))
 	v.Set("seqno", a.NewNumberString(strconv.FormatUint(entry.GetConfigSeqno(), 10)))
 	v.Set("config", a.NewNull())
 	if entry.GetConfig() != nil {
 		v.Set("config", projectLeanConfig(entry.GetConfig()).json(a))
 	}
 
-	// Project the first signature.
-	v.Set("sig", a.NewNull())
-	if len(entry.GetSignatures()) != 0 {
-		signer, valid := projectLeanSignature(entry)
-		sig := a.NewObject()
-		sig.Set("signer", a.NewString(signer))
-		sig.Set("valid", leanBool(a, valid))
-		v.Set("sig", sig)
+	// Project each signature over the bytes verifyConfigChangeSignatures checks.
+	data, err := configChangeSignedBody(entry)
+	if err != nil {
+		s.t.Fatal(err)
 	}
+	sigs := a.NewArray()
+	for i, sig := range entry.GetSignatures() {
+		sigs.SetArrayItem(i, projectLeanSig(a, sig, data, func(string) string {
+			return soConfigChangeSignatureContext
+		}))
+	}
+	v.Set("sigs", sigs)
 
 	// Project the links and identity.
 	v.Set("prev", a.NewString(hex.EncodeToString(entry.GetPreviousHash())))
 	v.Set("kind", a.NewNumberInt(int(entry.GetChangeType())))
 	v.Set("hash", a.NewString(hex.EncodeToString(s.hash(entry))))
 	return v
-}
-
-// projectLeanSignature returns the peer that produced the entry's first
-// signature and whether it verifies over the entry's signed body.
-func projectLeanSignature(entry *SOConfigChange) (string, bool) {
-	// Identify the signer.
-	sig := entry.GetSignatures()[0]
-	pub, err := sig.ParsePubKey()
-	if err != nil || pub == nil {
-		return "", false
-	}
-	id, err := peer.IDFromPublicKey(pub)
-	if err != nil {
-		return "", false
-	}
-
-	// Verify over the same bytes verifyConfigChangeSignatures checks.
-	data, err := configChangeSignedBody(entry)
-	if err != nil {
-		return "", false
-	}
-	valid, err := sig.VerifyWithPublic("sobject config change", pub, data)
-	return id.String(), err == nil && valid
 }
 
 // leanParticipant mirrors the Lean Participant structure.

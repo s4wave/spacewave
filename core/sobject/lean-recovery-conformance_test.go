@@ -412,6 +412,7 @@ func runLeanRecoveryEnrollment(t *testing.T, projection *configChainScenario, pe
 		}
 		req := a.NewObject()
 		req.Set("op", a.NewString("buildSelfEnroll"))
+		req.Set("object", a.NewString(mockSharedObjectID))
 		req.Set("current", a.NewNull())
 		if current != nil {
 			req.Set("current", projectLeanConfig(current).json(a))
@@ -420,7 +421,7 @@ func runLeanRecoveryEnrollment(t *testing.T, projection *configChainScenario, pe
 		req.Set("hash", a.NewString(""))
 		if primitive != nil {
 			projected := projection.entryJSON(primitive)
-			req.Set("sig", projected.Get("sig"))
+			req.Set("sig", projected.Get("sigs", "0"))
 			req.Set("hash", projected.Get("hash"))
 		}
 		req.Set("peer", a.NewString(peerID))

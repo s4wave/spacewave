@@ -1,6 +1,7 @@
 import Spacewave.Audit
 import Spacewave.SObject.ConfigChain
 import Spacewave.SObject.Crypto
+import Spacewave.SObject.Envelope
 import Spacewave.SObject.State
 import Spacewave.SObject.Host
 import Spacewave.SObject.Order

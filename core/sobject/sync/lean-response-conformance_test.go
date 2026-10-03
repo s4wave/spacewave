@@ -349,6 +349,7 @@ func leanSyncResponseCases(t *testing.T, seed uint64) []leanSyncCase {
 			})
 		var arena fastjson.Arena
 		input := arena.NewObject()
+		input.Set("object", arena.NewString(objectID))
 		input.Set("previous", leanSyncState(t, &arena, previous))
 		input.Set("receiving", leanSyncReceive(t, &arena, receiving))
 		input.Set("snapshot", leanSyncSnapshot(&arena, snapshot))
