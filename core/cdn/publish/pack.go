@@ -54,10 +54,11 @@ func FetchSourcePackToTempFile(
 	}
 
 	// Bound downloads by the advertised pack size before creating a local file.
-	if entry.GetSizeBytes() > math.MaxInt64-4096 {
+	// The read limit adds one byte past the budget to detect oversized bodies.
+	if entry.GetSizeBytes() >= math.MaxInt64-4096 {
 		return "", errors.Errorf("source pack size exceeds local reader limit: %d", entry.GetSizeBytes())
 	}
-	maxBytes := int64(entry.GetSizeBytes()) + 4096 //nolint:gosec // the explicit MaxInt64-4096 check makes this conversion and addition representable.
+	maxBytes := int64(entry.GetSizeBytes()) + 4096 //nolint:gosec // the MaxInt64-4096 check keeps this sum and the read limit representable.
 	body, err := io.ReadAll(io.LimitReader(resp.Body, maxBytes+1))
 	if err != nil {
 		return "", errors.Wrap(err, "read source pack body")
