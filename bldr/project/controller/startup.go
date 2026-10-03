@@ -12,11 +12,13 @@ import (
 
 // executeStartup executes the configured Startup part of the project config.
 func (c *Controller) executeStartup(ctx context.Context, conf *bldr_project.StartConfig) error {
+	// Find the startup plugins requested by the project configuration.
 	loadPluginIDs := conf.GetPlugins()
 	if len(loadPluginIDs) == 0 {
 		return nil
 	}
 
+	// Hold a load directive reference for every startup plugin.
 	for _, pluginID := range loadPluginIDs {
 		c.le.WithField("plugin-id", pluginID).Info("loading startup plugin")
 		_, plugRef, err := c.bus.AddDirective(bldr_plugin.NewLoadPlugin(pluginID), nil)
@@ -26,6 +28,7 @@ func (c *Controller) executeStartup(ctx context.Context, conf *bldr_project.Star
 		defer plugRef.Release()
 	}
 
+	// Wait for the plugin scheduler and all requested startup plugins.
 	scheduler, err := plugin_host_scheduler.WaitControllerOnBus(ctx, c.bus)
 	if err != nil {
 		return err

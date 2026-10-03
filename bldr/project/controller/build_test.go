@@ -15,6 +15,7 @@ import (
 )
 
 func TestApplyBuilderConfigOverride_Replace(t *testing.T) {
+	// Prepare a manifest builder and an override with different embedded platforms.
 	mc := &bldr_project.ManifestConfig{
 		Builder: &configset_proto.ControllerConfig{
 			Id:     "bldr/plugin/compiler/dist",
@@ -27,10 +28,12 @@ func TestApplyBuilderConfigOverride_Replace(t *testing.T) {
 		Config: []byte(`{"embedManifests":[{"manifestId":"spacewave-launcher","platformId":"desktop/darwin/arm64"}]}`),
 	}
 
+	// Apply the replacement builder configuration to the manifest.
 	if err := applyBuilderConfigOverride(mc, "spacewave-dist", override); err != nil {
 		t.Fatalf("apply: %v", err)
 	}
 
+	// Verify the override replaces builder bytes while preserving identity and revision.
 	if mc.GetBuilder().GetId() != "bldr/plugin/compiler/dist" {
 		t.Fatalf("builder id should be preserved, got %q", mc.GetBuilder().GetId())
 	}
@@ -112,6 +115,7 @@ func TestApplyBuilderConfigOverride_NoBuilder(t *testing.T) {
 // BuilderConfigOverride path (IC-1 + IC-2) without standing up a live
 // controller bus.
 func TestBuildTargetsOverrideSelection(t *testing.T) {
+	// Prepare one manifest override and the build policy shared by selected manifests.
 	platformIDs := []string{"desktop/darwin/arm64"}
 	override := &configset_proto.ControllerConfig{
 		Config: []byte(`{"embedManifests":[{"manifestId":"spacewave-launcher","platformId":"desktop/darwin/arm64"}]}`),
@@ -121,12 +125,14 @@ func TestBuildTargetsOverrideSelection(t *testing.T) {
 	}
 	buildPolicy := manifest_build.NewBuildPolicy(enabled.Enabled_DISABLE, enabled.Enabled_ENABLE, enabled.Enabled_ENABLE)
 
+	// Expand manifest selectors and capture their effective override and policy.
 	var gotOverride *configset_proto.ControllerConfig
 	var gotPolicy *manifest_build.BuildPolicy
 	err := ForManifestSelector(
 		[]string{"spacewave-dist", "spacewave-launcher"},
 		platformIDs,
 		func(manifestID, platformID string) (bool, error) {
+			// Configure the selected manifest with its target platforms and overrides.
 			mbc := newBuildTargetManifestBuilderConfig(
 				manifestID,
 				platformID,
@@ -136,6 +142,8 @@ func TestBuildTargetsOverrideSelection(t *testing.T) {
 				buildPolicy,
 				manifestOverrides,
 			)
+
+			// Capture the matching override and reject overrides on unrelated manifests.
 			if manifestID == "spacewave-dist" {
 				gotOverride = mbc.GetBuilderConfigOverride()
 			} else if mbc.GetBuilderConfigOverride() != nil {
@@ -148,16 +156,21 @@ func TestBuildTargetsOverrideSelection(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Verify the selected manifest receives the expected override bytes.
 	if gotOverride == nil {
 		t.Fatal("expected override on spacewave-dist slot")
 	}
 	if !bytes.Equal(gotOverride.GetConfig(), override.GetConfig()) {
 		t.Fatalf("override config mismatch: got %s", gotOverride.GetConfig())
 	}
+
 	// CloneVT must decouple the override from the source map.
 	if gotOverride == override {
 		t.Fatal("override should be cloned, not aliased")
 	}
+
+	// Verify the builder receives an independent copy of the selected build policy.
 	if gotPolicy.GetJsMinification() != enabled.Enabled_DISABLE {
 		t.Fatalf("js_minification: got %s, want DISABLE", gotPolicy.GetJsMinification())
 	}
@@ -170,6 +183,7 @@ func TestBuildTargetsOverrideSelection(t *testing.T) {
 }
 
 func TestResolveBuildTargetMergesBuildPolicy(t *testing.T) {
+	// Prepare a browser build target and a partial policy override.
 	buildTarget := &bldr_project.BuildConfig{
 		Targets: []string{"browser"},
 		BuildPolicy: manifest_build.NewBuildPolicy(
@@ -184,10 +198,13 @@ func TestResolveBuildTargetMergesBuildPolicy(t *testing.T) {
 		enabled.Enabled_ENABLE,
 	)
 
+	// Resolve the build target with its partial policy override.
 	resolved, err := ResolveBuildTarget(buildTarget, nil, override)
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Verify the effective build policy merges defaults and preserves browser platforms.
 	if resolved.BuildPolicy.GetJsMinification() != enabled.Enabled_DISABLE {
 		t.Fatalf("js_minification: got %s, want DISABLE", resolved.BuildPolicy.GetJsMinification())
 	}
@@ -214,6 +231,7 @@ func TestResolveBuildTargetRejectsInvalidBuildPolicy(t *testing.T) {
 }
 
 func TestManifestBuilderBuildTargetStatusMetadata(t *testing.T) {
+	// Prepare a manifest builder with two target platforms and a metadata registry.
 	ctrl := &Controller{
 		manifestBuilderBuildTargets: make(map[string][]string),
 	}
@@ -225,20 +243,25 @@ func TestManifestBuilderBuildTargetStatusMetadata(t *testing.T) {
 		[]string{"desktop/darwin/arm64", "desktop/linux/amd64"},
 	)
 
+	// Record build target membership with one repeated target.
 	ctrl.addManifestBuilderBuildTarget(mbc, "desktop")
 	ctrl.addManifestBuilderBuildTarget(mbc, "desktop")
 	ctrl.addManifestBuilderBuildTarget(mbc, "release")
 
+	// Verify build target membership preserves order and removes duplicates.
 	targets := ctrl.getManifestBuilderBuildTargets(mbc.MarshalB58())
 	if len(targets) != 2 || targets[0] != "desktop" || targets[1] != "release" {
 		t.Fatalf("unexpected build target metadata: %#v", targets)
 	}
 
+	// Create a queued manifest status from the recorded build metadata.
 	tr := &manifestBuilderTracker{
 		c:    ctrl,
 		conf: mbc,
 	}
 	status := tr.newStatus(ManifestBuilderStatusStateQueued, "queued", "")
+
+	// Verify the queued status carries build target and platform metadata.
 	if len(status.BuildTargetIDs) != 2 || status.BuildTargetIDs[0] != "desktop" || status.BuildTargetIDs[1] != "release" {
 		t.Fatalf("unexpected build target ids: %#v", status.BuildTargetIDs)
 	}
@@ -248,6 +271,7 @@ func TestManifestBuilderBuildTargetStatusMetadata(t *testing.T) {
 }
 
 func TestManifestBuilderTrackerLifecycleStatusPreservesFiniteBuildMetadata(t *testing.T) {
+	// Prepare a finite manifest build with one recorded build target.
 	ctrl := &Controller{
 		manifestBuilderBuildTargets: make(map[string][]string),
 	}
@@ -260,6 +284,7 @@ func TestManifestBuilderTrackerLifecycleStatusPreservesFiniteBuildMetadata(t *te
 	)
 	ctrl.addManifestBuilderBuildTarget(mbc, "desktop")
 
+	// Attach a recording status sink to the queued manifest tracker.
 	sink := &recordingManifestBuilderStatusSink{}
 	ctrl.manifestBuilderStatusSink = sink
 	tr := &manifestBuilderTracker{
@@ -268,12 +293,15 @@ func TestManifestBuilderTrackerLifecycleStatusPreservesFiniteBuildMetadata(t *te
 	}
 	tr.status = tr.newStatus(ManifestBuilderStatusStateQueued, "queued", "")
 
+	// Publish a cache-hit completion for the finite manifest build.
 	tr.SetManifestBuilderLifecycleStatus(manifest_builder_controller.ManifestBuilderLifecycleStatus{
 		State:    manifest_builder_controller.ManifestBuilderLifecycleStateDone,
 		CacheHit: true,
 		Summary:  "startup cache hit",
 	})
 	cacheHit := sink.last(t)
+
+	// Verify cache-hit status retains the finite build target metadata.
 	if cacheHit.State != ManifestBuilderStatusStateDone || !cacheHit.CacheHit || cacheHit.Summary != "startup cache hit" {
 		t.Fatalf("unexpected cache-hit status: %#v", cacheHit)
 	}
@@ -281,16 +309,20 @@ func TestManifestBuilderTrackerLifecycleStatusPreservesFiniteBuildMetadata(t *te
 		t.Fatalf("cache-hit status lost finite build targets: %#v", cacheHit.BuildTargetIDs)
 	}
 
+	// Publish a full rebuild for the same manifest tracker.
 	tr.SetManifestBuilderLifecycleStatus(manifest_builder_controller.ManifestBuilderLifecycleStatus{
 		State:       manifest_builder_controller.ManifestBuilderLifecycleStateRunning,
 		FullRebuild: true,
 		Summary:     "full rebuild",
 	})
 	fullRebuild := sink.last(t)
+
+	// Verify full rebuild status reports its current lifecycle state.
 	if fullRebuild.State != ManifestBuilderStatusStateRunning || !fullRebuild.FullRebuild || fullRebuild.HotRebuild {
 		t.Fatalf("unexpected full rebuild status: %#v", fullRebuild)
 	}
 
+	// Publish a hot rebuild with watched-file and dependency metadata.
 	tr.SetManifestBuilderLifecycleStatus(manifest_builder_controller.ManifestBuilderLifecycleStatus{
 		State:                   manifest_builder_controller.ManifestBuilderLifecycleStateRunning,
 		HotRebuild:              true,
@@ -299,6 +331,8 @@ func TestManifestBuilderTrackerLifecycleStatusPreservesFiniteBuildMetadata(t *te
 		Summary:                 "hot rebuild",
 	})
 	hotRebuild := sink.last(t)
+
+	// Verify hot rebuild status preserves dependency and target platform metadata.
 	if hotRebuild.State != ManifestBuilderStatusStateRunning || !hotRebuild.HotRebuild || hotRebuild.FullRebuild {
 		t.Fatalf("unexpected hot rebuild status: %#v", hotRebuild)
 	}

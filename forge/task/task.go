@@ -117,6 +117,7 @@ func CreateTaskWithTarget(
 	placement *forge_worker.Placement,
 	ts *timestamp.Timestamp,
 ) (world.ObjectState, *bucket.ObjectRef, error) {
+	// Validate the linked placement and Target before creating the Task.
 	if placement != nil {
 		if err := placement.ValidateLinked(ctx, ws); err != nil {
 			return nil, nil, errors.Wrap(err, "placement")
@@ -126,6 +127,7 @@ func CreateTaskWithTarget(
 		return nil, nil, err
 	}
 
+	// Construct and validate the pending Task record.
 	ntask := &Task{
 		TaskState: State_TaskState_PENDING,
 		Name:      name,
@@ -138,6 +140,7 @@ func CreateTaskWithTarget(
 		return nil, nil, err
 	}
 
+	// Create the Task object and initialize its block contents.
 	objState, rootRef, err := world.CreateWorldObject(ctx, ws, objKey, func(bcs *block.Cursor) error {
 		bcs.ClearAllRefs()
 		bcs.SetBlock(ntask, true)
@@ -204,6 +207,7 @@ func ValidateName(name string) error {
 
 // Validate performs cursory checks of the Task object.
 func (e *Task) Validate() error {
+	// Validate Task placement, state, timestamp, name, and replica requirements.
 	if p := e.GetPlacement(); p != nil {
 		if err := p.Validate(); err != nil {
 			return errors.Wrap(err, "placement")
@@ -224,6 +228,8 @@ func (e *Task) Validate() error {
 	if e.GetPlacement() != nil && e.GetReplicas() != 1 {
 		return errors.New("placed task must have one replica")
 	}
+
+	// Validate the Task target reference and value set for its current state.
 	if e.GetTargetRef().GetEmpty() {
 		if ts := e.GetTaskState(); ts != State_TaskState_PENDING {
 			return errors.Errorf("target_ref: cannot be empty in state: %s", ts.String())
@@ -237,6 +243,7 @@ func (e *Task) Validate() error {
 		return errors.Wrap(err, "value_set")
 	}
 
+	// Require a nonempty result exactly when the Task is complete.
 	if e.GetTaskState() == State_TaskState_COMPLETE {
 		if err := e.GetResult().Validate(); err != nil {
 			return errors.Wrap(err, "result")

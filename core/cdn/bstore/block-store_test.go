@@ -49,8 +49,8 @@ func (c doneObservedContext) Done() <-chan struct{} {
 }
 
 func buildSinglePack(t *testing.T, id string, blocks map[string][]byte) testPack {
+	// Hash the supplied blocks into packfile entries for the test.
 	t.Helper()
-
 	type entry struct {
 		h    *hash.Hash
 		data []byte
@@ -64,6 +64,7 @@ func buildSinglePack(t *testing.T, id string, blocks map[string][]byte) testPack
 		items = append(items, entry{h: h, data: data})
 	}
 
+	// Write the block entries into one packfile with its bloom filter.
 	var buf bytes.Buffer
 	idx := 0
 	result, err := writer.PackBlocks(&buf, func() (*hash.Hash, *block.StoredBlock, error) {
@@ -109,6 +110,7 @@ func newTestCdnServer(t *testing.T, spaceID string, pointer []byte, packs []test
 }
 
 func (s *testCdnServer) handle(w http.ResponseWriter, r *http.Request) {
+	// Serve the current root pointer or report an empty CDN Space.
 	rootPath := "/" + s.spaceID + "/root.packedmsg"
 	if r.URL.Path == rootPath {
 		if s.pointer == nil {
@@ -120,12 +122,15 @@ func (s *testCdnServer) handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Require a pack URL within the test CDN Space.
 	packPrefix := "/" + s.spaceID + "/packs/"
 	if !strings.HasPrefix(r.URL.Path, packPrefix) {
 		http.NotFound(w, r)
 		return
 	}
 	rest := strings.TrimPrefix(r.URL.Path, packPrefix)
+
+	// Resolve the requested shard and pack ID to stored pack bytes.
 	// shard/{packID}.kvf
 	parts := strings.Split(rest, "/")
 	if len(parts) != 2 || !strings.HasSuffix(parts[1], ".kvf") {
@@ -139,12 +144,15 @@ func (s *testCdnServer) handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Serve the complete pack when the request has no byte range.
 	rangeHdr := r.Header.Get("Range")
 	if rangeHdr == "" {
 		w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
 		_, _ = w.Write(data)
 		return
 	}
+
+	// Validate the requested pack range and return its partial response.
 	s.ranges++
 	off, end, err := parseBytesRange(rangeHdr, int64(len(data)))
 	if err != nil {
@@ -157,6 +165,7 @@ func (s *testCdnServer) handle(w http.ResponseWriter, r *http.Request) {
 }
 
 func parseBytesRange(header string, size int64) (int64, int64, error) {
+	// Require a byte-range header with one start and end pair.
 	const prefix = "bytes="
 	if !strings.HasPrefix(header, prefix) {
 		return 0, 0, errors.New("unsupported range syntax")
@@ -166,10 +175,14 @@ func parseBytesRange(header string, size int64) (int64, int64, error) {
 	if len(parts) != 2 {
 		return 0, 0, errors.New("malformed range spec")
 	}
+
+	// Decode the starting byte offset of the requested range.
 	off, err := strconv.ParseInt(parts[0], 10, 64)
 	if err != nil {
 		return 0, 0, errors.Wrap(err, "parse range start")
 	}
+
+	// Resolve the range end, using the last pack byte for an open range.
 	var end int64
 	if parts[1] == "" {
 		end = size - 1
@@ -179,6 +192,8 @@ func parseBytesRange(header string, size int64) (int64, int64, error) {
 			return 0, 0, errors.Wrap(err, "parse range end")
 		}
 	}
+
+	// Constrain the requested range to the available pack bytes.
 	if end >= size {
 		end = size - 1
 	}
@@ -189,11 +204,12 @@ func parseBytesRange(header string, size int64) (int64, int64, error) {
 }
 
 func TestFetchRootPointer(t *testing.T) {
+	// Build a packfile containing the root-pointer test block.
 	ctx := context.Background()
-
 	block1 := []byte("hello cdn")
 	pack := buildSinglePack(t, "01kcdnpack0000000000000001", map[string][]byte{"b1": block1})
 
+	// Serve a root pointer that lists the test packfile.
 	ptr := &cdn.CdnRootPointer{
 		SpaceId: testSpaceID,
 		Packs: []*packfile.PackfileEntry{{
@@ -208,10 +224,13 @@ func TestFetchRootPointer(t *testing.T) {
 	hs := httptest.NewServer(http.HandlerFunc(srv.handle))
 	defer hs.Close()
 
+	// Fetch the CDN root pointer from the test server.
 	got, err := FetchRootPointer(ctx, hs.Client(), hs.URL, testSpaceID)
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Verify the root pointer identifies the requested Space and packfile.
 	if got.GetSpaceId() != testSpaceID {
 		t.Fatalf("space id mismatch: %q", got.GetSpaceId())
 	}
@@ -221,6 +240,7 @@ func TestFetchRootPointer(t *testing.T) {
 }
 
 func TestFetchRootPointerMismatchRejected(t *testing.T) {
+	// Serve a root pointer belonging to a different Space.
 	ctx := context.Background()
 	ptr := &cdn.CdnRootPointer{SpaceId: "wrongspace"}
 	pointerBytes := encodePointer(t, ptr)
@@ -228,6 +248,7 @@ func TestFetchRootPointerMismatchRejected(t *testing.T) {
 	hs := httptest.NewServer(http.HandlerFunc(srv.handle))
 	defer hs.Close()
 
+	// Verify the CDN fetch rejects the mismatched Space ID.
 	_, err := FetchRootPointer(ctx, hs.Client(), hs.URL, testSpaceID)
 	if err == nil {
 		t.Fatal("expected space id mismatch error")
@@ -235,15 +256,19 @@ func TestFetchRootPointerMismatchRejected(t *testing.T) {
 }
 
 func TestFetchRootPointerAbsent(t *testing.T) {
+	// Serve an empty CDN Space without a root pointer.
 	ctx := context.Background()
 	srv := newTestCdnServer(t, testSpaceID, nil, nil)
 	hs := httptest.NewServer(http.HandlerFunc(srv.handle))
 	defer hs.Close()
 
+	// Fetch the absent CDN pointer without a transport error.
 	got, err := FetchRootPointer(ctx, hs.Client(), hs.URL, testSpaceID)
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Verify the absent pointer represents an empty Space.
 	if got != nil {
 		t.Fatalf("expected nil pointer for empty space, got %+v", got)
 	}
@@ -301,11 +326,12 @@ func TestCdnBlockStoreRootPointerBaseURL(t *testing.T) {
 }
 
 func TestCdnBlockStoreReadsBlock(t *testing.T) {
+	// Build the block and packfile for CDN readback.
 	ctx := context.Background()
-
 	block1 := []byte("hello cdn block store")
 	pack := buildSinglePack(t, "01kcdnpack0000000000000002", map[string][]byte{"b1": block1})
 
+	// Serve a root pointer that exposes the test block packfile.
 	ptr := &cdn.CdnRootPointer{
 		SpaceId: testSpaceID,
 		Packs: []*packfile.PackfileEntry{{
@@ -320,6 +346,7 @@ func TestCdnBlockStoreReadsBlock(t *testing.T) {
 	hs := httptest.NewServer(http.HandlerFunc(srv.handle))
 	defer hs.Close()
 
+	// Open a CDN block store against the test server.
 	bs, err := NewCdnBlockStore(Options{
 		CdnBaseURL: hs.URL,
 		SpaceID:    testSpaceID,
@@ -330,6 +357,7 @@ func TestCdnBlockStoreReadsBlock(t *testing.T) {
 	}
 	defer bs.Close()
 
+	// Read the test block through its content hash.
 	h, err := hash.Sum(hash.HashType_HashType_SHA256, block1)
 	if err != nil {
 		t.Fatal(err)
@@ -338,6 +366,8 @@ func TestCdnBlockStoreReadsBlock(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Verify the CDN block bytes match the packed block.
 	if !found {
 		t.Fatal("expected block to be found")
 	}
@@ -367,8 +397,8 @@ func TestCdnBlockStoreReadsBlock(t *testing.T) {
 }
 
 func TestCdnBlockStoreInvalidateClearsDecodedBlockCache(t *testing.T) {
+	// Serve a packed example block through the initial CDN pointer.
 	ctx := context.Background()
-
 	example := &block_mock.Example{Msg: "old pointer"}
 	raw, err := example.MarshalBlock()
 	if err != nil {
@@ -384,10 +414,13 @@ func TestCdnBlockStoreInvalidateClearsDecodedBlockCache(t *testing.T) {
 			SizeBytes:   uint64(len(pack.data)),
 		}},
 	}
+
+	// Serve the example pack through its initial root pointer.
 	srv := newTestCdnServer(t, testSpaceID, encodePointer(t, ptr), []testPack{pack})
 	hs := httptest.NewServer(http.HandlerFunc(srv.handle))
 	defer hs.Close()
 
+	// Open the CDN block store and identify the packed example.
 	bs, err := NewCdnBlockStore(Options{
 		CdnBaseURL: hs.URL,
 		SpaceID:    testSpaceID,
@@ -402,6 +435,7 @@ func TestCdnBlockStoreInvalidateClearsDecodedBlockCache(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Populate the decoded-block cache by unmarshaling the example.
 	tx, cursor := block.NewTransaction(bs, nil, ref, nil)
 	tx.SetDecodedBlockCache(bs.GetDecodedBlockCache())
 	if _, err := cursor.Unmarshal(ctx, block_mock.NewExampleBlock); err != nil {
@@ -409,16 +443,20 @@ func TestCdnBlockStoreInvalidateClearsDecodedBlockCache(t *testing.T) {
 	}
 	bs.GetDecodedBlockCache().Wait()
 
+	// Invalidate the removed CDN pointer before decoding the example again.
 	srv.pointer = nil
 	bs.Invalidate()
 	tx, cursor = block.NewTransaction(bs, nil, ref, nil)
 	tx.SetDecodedBlockCache(bs.GetDecodedBlockCache())
+
+	// Verify invalidation prevents reuse of the cached example.
 	if _, err := cursor.Unmarshal(ctx, block_mock.NewExampleBlock); !errors.Is(err, block.ErrNotFound) {
 		t.Fatalf("Unmarshal after CDN invalidate error = %v, want %v", err, block.ErrNotFound)
 	}
 }
 
 func TestCdnBlockStoreCanceledPointerLeaderDoesNotPoisonFollower(t *testing.T) {
+	// Serve a root pointer while blocking the first request until cancellation.
 	ptr := &cdn.CdnRootPointer{SpaceId: testSpaceID}
 	pointerBytes := encodePointer(t, ptr)
 	var requests atomic.Int64
@@ -437,6 +475,7 @@ func TestCdnBlockStoreCanceledPointerLeaderDoesNotPoisonFollower(t *testing.T) {
 	}))
 	defer hs.Close()
 
+	// Open a CDN block store against the cancelable pointer server.
 	bs, err := NewCdnBlockStore(Options{
 		CdnBaseURL: hs.URL,
 		SpaceID:    testSpaceID,
@@ -447,6 +486,7 @@ func TestCdnBlockStoreCanceledPointerLeaderDoesNotPoisonFollower(t *testing.T) {
 	}
 	defer bs.Close()
 
+	// Start a pointer leader with a deadline and wait for its request.
 	leaderCtx, cancelLeader := context.WithTimeout(t.Context(), 200*time.Millisecond)
 	defer cancelLeader()
 	leaderDone := make(chan error, 1)
@@ -460,12 +500,14 @@ func TestCdnBlockStoreCanceledPointerLeaderDoesNotPoisonFollower(t *testing.T) {
 		t.Fatal(t.Context().Err())
 	}
 
+	// Join the pointer request with a healthy follower.
 	followerDone := make(chan error, 1)
 	go func() {
 		_, err := bs.Refresh(t.Context())
 		followerDone <- err
 	}()
 
+	// Cancel a separate follower without interrupting the shared pointer request.
 	callerCtx, cancelCaller := context.WithCancel(t.Context())
 	callerDone := make(chan error, 1)
 	go func() {
@@ -482,6 +524,7 @@ func TestCdnBlockStoreCanceledPointerLeaderDoesNotPoisonFollower(t *testing.T) {
 		t.Fatal(t.Context().Err())
 	}
 
+	// Verify the expired leader permits a healthy follower to publish the pointer.
 	select {
 	case err := <-leaderDone:
 		if !errors.Is(err, context.DeadlineExceeded) {
@@ -507,14 +550,18 @@ func TestCdnBlockStoreCanceledPointerLeaderDoesNotPoisonFollower(t *testing.T) {
 }
 
 func TestCdnBlockStoreSharesNonContextPointerError(t *testing.T) {
+	// Serve one gated CDN pointer request that returns an unavailable response.
 	var requests atomic.Int64
 	requestStarted := make(chan struct{})
 	releaseRequest := make(chan struct{})
 	hs := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Require the requested root pointer path before admitting the CDN request.
 		if r.URL.Path != "/"+testSpaceID+"/root.packedmsg" {
 			http.NotFound(w, r)
 			return
 		}
+
+		// Hold the CDN request until all readers can share its failure.
 		requests.Add(1)
 		close(requestStarted)
 		<-releaseRequest
@@ -522,6 +569,7 @@ func TestCdnBlockStoreSharesNonContextPointerError(t *testing.T) {
 	}))
 	defer hs.Close()
 
+	// Open the CDN block store against the failing pointer server.
 	bs, err := NewCdnBlockStore(Options{
 		CdnBaseURL: hs.URL,
 		SpaceID:    testSpaceID,
@@ -532,6 +580,7 @@ func TestCdnBlockStoreSharesNonContextPointerError(t *testing.T) {
 	}
 	defer bs.Close()
 
+	// Start the pointer leader and wait for its request to reach the server.
 	const readers = 32
 	done := make(chan error, readers)
 	go func() {
@@ -544,6 +593,7 @@ func TestCdnBlockStoreSharesNonContextPointerError(t *testing.T) {
 		t.Fatal(t.Context().Err())
 	}
 
+	// Admit the remaining pointer readers to the shared request.
 	admitted := make([]chan struct{}, 0, readers-1)
 	for range readers - 1 {
 		observed := make(chan struct{}, 1)
@@ -562,6 +612,7 @@ func TestCdnBlockStoreSharesNonContextPointerError(t *testing.T) {
 		}
 	}
 
+	// Release the failed request and verify every reader receives the shared error.
 	close(releaseRequest)
 	for range readers {
 		if err := <-done; err == nil || !strings.Contains(err.Error(), "status 503") {
@@ -574,16 +625,20 @@ func TestCdnBlockStoreSharesNonContextPointerError(t *testing.T) {
 }
 
 func TestCdnBlockStoreCoalescesUnchangedPointerRefreshes(t *testing.T) {
+	// Serve a stable CDN pointer while gating later refresh requests.
 	ptr := &cdn.CdnRootPointer{SpaceId: testSpaceID}
 	pointerBytes := encodePointer(t, ptr)
 	var requests atomic.Int64
 	refreshStarted := make(chan struct{})
 	releaseRefresh := make(chan struct{})
 	hs := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Require the requested root pointer path before handling a refresh.
 		if r.URL.Path != "/"+testSpaceID+"/root.packedmsg" {
 			http.NotFound(w, r)
 			return
 		}
+
+		// Count CDN pointer requests and gate refreshes after the initial fetch.
 		request := requests.Add(1)
 		if request == 2 {
 			close(refreshStarted)
@@ -595,6 +650,7 @@ func TestCdnBlockStoreCoalescesUnchangedPointerRefreshes(t *testing.T) {
 	}))
 	defer hs.Close()
 
+	// Open the CDN block store and fetch its initial pointer.
 	bs, err := NewCdnBlockStore(Options{
 		CdnBaseURL: hs.URL,
 		SpaceID:    testSpaceID,
@@ -608,6 +664,7 @@ func TestCdnBlockStoreCoalescesUnchangedPointerRefreshes(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Start the refresh leader and wait for its request to reach the server.
 	const readers = 32
 	done := make(chan error, readers)
 	go func() {
@@ -620,6 +677,7 @@ func TestCdnBlockStoreCoalescesUnchangedPointerRefreshes(t *testing.T) {
 		t.Fatal(t.Context().Err())
 	}
 
+	// Admit the remaining readers to the unchanged pointer refresh.
 	admitted := make([]chan struct{}, 0, readers-1)
 	for range readers - 1 {
 		observed := make(chan struct{}, 1)
@@ -638,6 +696,7 @@ func TestCdnBlockStoreCoalescesUnchangedPointerRefreshes(t *testing.T) {
 		}
 	}
 
+	// Release the shared refresh and verify every reader completes.
 	close(releaseRefresh)
 	for range readers {
 		if err := <-done; err != nil {
@@ -648,6 +707,7 @@ func TestCdnBlockStoreCoalescesUnchangedPointerRefreshes(t *testing.T) {
 		t.Fatalf("root pointer requests = %d, want initial plus one shared refresh", got)
 	}
 
+	// Verify the unchanged CDN pointer preserves its publication epoch.
 	bs.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		if bs.pointerEpoch != 1 {
 			t.Fatalf("unchanged pointer epoch = %d, want 1", bs.pointerEpoch)
@@ -656,8 +716,8 @@ func TestCdnBlockStoreCoalescesUnchangedPointerRefreshes(t *testing.T) {
 }
 
 func TestCdnBlockStorePointerTTLRefreshClearsDecodedBlockCache(t *testing.T) {
+	// Serve a packed example block through a pointer with a short lifetime.
 	ctx := context.Background()
-
 	example := &block_mock.Example{Msg: "old ttl pointer"}
 	raw, err := example.MarshalBlock()
 	if err != nil {
@@ -673,10 +733,13 @@ func TestCdnBlockStorePointerTTLRefreshClearsDecodedBlockCache(t *testing.T) {
 			SizeBytes:   uint64(len(pack.data)),
 		}},
 	}
+
+	// Serve the example pack through its initial root pointer.
 	srv := newTestCdnServer(t, testSpaceID, encodePointer(t, ptr), []testPack{pack})
 	hs := httptest.NewServer(http.HandlerFunc(srv.handle))
 	defer hs.Close()
 
+	// Open the CDN block store with an expiring pointer cache.
 	bs, err := NewCdnBlockStore(Options{
 		CdnBaseURL: hs.URL,
 		SpaceID:    testSpaceID,
@@ -692,6 +755,7 @@ func TestCdnBlockStorePointerTTLRefreshClearsDecodedBlockCache(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Populate the decoded-block cache from the initial CDN pointer.
 	tx, cursor := block.NewTransaction(bs, nil, ref, nil)
 	tx.SetDecodedBlockCache(bs.GetDecodedBlockCache())
 	if _, err := cursor.Unmarshal(ctx, block_mock.NewExampleBlock); err != nil {
@@ -699,18 +763,21 @@ func TestCdnBlockStorePointerTTLRefreshClearsDecodedBlockCache(t *testing.T) {
 	}
 	bs.GetDecodedBlockCache().Wait()
 
+	// Expire the CDN pointer and remove the example from the server.
 	time.Sleep(time.Millisecond)
 	srv.pointer = nil
 	tx, cursor = block.NewTransaction(bs, nil, ref, nil)
 	tx.SetDecodedBlockCache(bs.GetDecodedBlockCache())
+
+	// Verify pointer refresh prevents reuse of the decoded example.
 	if _, err := cursor.Unmarshal(ctx, block_mock.NewExampleBlock); !errors.Is(err, block.ErrNotFound) {
 		t.Fatalf("Unmarshal after CDN pointer TTL error = %v, want %v", err, block.ErrNotFound)
 	}
 }
 
 func TestCdnBlockStorePointerTTLRejectsStaleWritebackHit(t *testing.T) {
+	// Serve a packed block through the initial CDN pointer.
 	ctx := context.Background()
-
 	block1 := []byte("hello stale cdn writeback")
 	pack := buildSinglePack(t, "01kcdnpack0000000000000006", map[string][]byte{"b1": block1})
 	ptr := &cdn.CdnRootPointer{
@@ -726,6 +793,7 @@ func TestCdnBlockStorePointerTTLRejectsStaleWritebackHit(t *testing.T) {
 	hs := httptest.NewServer(http.HandlerFunc(srv.handle))
 	defer hs.Close()
 
+	// Identify the packed block and allocate its writeback caches.
 	refHash, err := hash.Sum(hash.HashType_HashType_SHA256, block1)
 	if err != nil {
 		t.Fatal(err)
@@ -733,6 +801,8 @@ func TestCdnBlockStorePointerTTLRejectsStaleWritebackHit(t *testing.T) {
 	ref := &block.BlockRef{Hash: refHash}
 	cache := newWritebackReadStore()
 	indexCache := newMemIndexCache()
+
+	// Open the CDN block store with an expiring pointer and local writeback.
 	bs, err := NewCdnBlockStore(Options{
 		CdnBaseURL: hs.URL,
 		SpaceID:    testSpaceID,
@@ -746,6 +816,7 @@ func TestCdnBlockStorePointerTTLRejectsStaleWritebackHit(t *testing.T) {
 	defer bs.Close()
 	bs.SetWriteback(ctx, cache, 1<<20)
 
+	// Read the block and wait for its local writeback to complete.
 	if _, found, err := bs.GetBlock(ctx, ref); err != nil || !found {
 		t.Fatalf("first read found=%v err=%v", found, err)
 	}
@@ -753,6 +824,7 @@ func TestCdnBlockStorePointerTTLRejectsStaleWritebackHit(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Expire the CDN pointer and verify the removed block misses local writeback.
 	time.Sleep(time.Millisecond)
 	srv.pointer = nil
 	if _, found, err := bs.GetBlock(ctx, ref); err != nil || found {
@@ -761,6 +833,7 @@ func TestCdnBlockStorePointerTTLRejectsStaleWritebackHit(t *testing.T) {
 }
 
 func TestCdnBlockStoreOwnsDecodedBlockCache(t *testing.T) {
+	// Open a CDN block store with its own decoded-block cache.
 	bs, err := NewCdnBlockStore(Options{
 		CdnBaseURL: "https://cdn.example.test",
 		SpaceID:    testSpaceID,
@@ -768,6 +841,8 @@ func TestCdnBlockStoreOwnsDecodedBlockCache(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Verify the decoded-block cache lives until the CDN block store closes.
 	if bs.GetDecodedBlockCache() == nil {
 		t.Fatal("expected CDN block store to own a decoded-block cache")
 	}
@@ -778,6 +853,7 @@ func TestCdnBlockStoreOwnsDecodedBlockCache(t *testing.T) {
 }
 
 func TestCdnBlockStoreCloseFencesBlockedRefresh(t *testing.T) {
+	// Serve a packed root pointer while holding its refresh response.
 	pack := buildSinglePack(t, "01kcdnpack0000000000000008", map[string][]byte{"b1": []byte("close refresh")})
 	ptr := &cdn.CdnRootPointer{
 		SpaceId: testSpaceID,
@@ -801,6 +877,7 @@ func TestCdnBlockStoreCloseFencesBlockedRefresh(t *testing.T) {
 	}))
 	defer hs.Close()
 
+	// Open the CDN block store whose refresh will be closed in flight.
 	bs, err := NewCdnBlockStore(Options{
 		CdnBaseURL: hs.URL,
 		SpaceID:    testSpaceID,
@@ -811,6 +888,7 @@ func TestCdnBlockStoreCloseFencesBlockedRefresh(t *testing.T) {
 	}
 	t.Cleanup(bs.Close)
 
+	// Start the pointer refresh and wait for its request to reach the server.
 	type refreshResult struct {
 		ptr *cdn.CdnRootPointer
 		err error
@@ -826,6 +904,7 @@ func TestCdnBlockStoreCloseFencesBlockedRefresh(t *testing.T) {
 		t.Fatalf("Refresh did not reach the root pointer request: %v", t.Context().Err())
 	}
 
+	// Admit a follower to the blocked CDN pointer refresh.
 	followerDone := make(chan error, 1)
 	followerAdmitted := make(chan struct{}, 1)
 	go func() {
@@ -839,6 +918,7 @@ func TestCdnBlockStoreCloseFencesBlockedRefresh(t *testing.T) {
 		t.Fatal(t.Context().Err())
 	}
 
+	// Close the CDN block store while its root request remains blocked.
 	closeDone := make(chan struct{})
 	go func() {
 		bs.Close()
@@ -849,6 +929,8 @@ func TestCdnBlockStoreCloseFencesBlockedRefresh(t *testing.T) {
 	case <-t.Context().Done():
 		t.Fatalf("Close did not fence blocked Refresh: %v", t.Context().Err())
 	}
+
+	// Verify shutdown clears the CDN manifest and wakes the refresh follower.
 	if bs.Pointer() != nil {
 		t.Fatal("blocked Refresh published a root pointer after Close")
 	}
@@ -864,6 +946,7 @@ func TestCdnBlockStoreCloseFencesBlockedRefresh(t *testing.T) {
 		t.Fatalf("Refresh follower did not observe Close: %v", t.Context().Err())
 	}
 
+	// Release the root response and verify shutdown prevents pointer publication.
 	close(releaseRefresh)
 	select {
 	case result := <-refreshDone:
@@ -885,11 +968,12 @@ func TestCdnBlockStoreCloseFencesBlockedRefresh(t *testing.T) {
 }
 
 func TestCdnBlockStoreReadsThroughWritebackOnSecondColdStart(t *testing.T) {
+	// Build a packfile for writeback reuse across CDN store instances.
 	ctx := context.Background()
-
 	block1 := []byte("hello cdn writeback")
 	pack := buildSinglePack(t, "01kcdnpack0000000000000003", map[string][]byte{"b1": block1})
 
+	// Serve the root pointer and its writeback test packfile.
 	ptr := &cdn.CdnRootPointer{
 		SpaceId: testSpaceID,
 		Packs: []*packfile.PackfileEntry{{
@@ -904,12 +988,15 @@ func TestCdnBlockStoreReadsThroughWritebackOnSecondColdStart(t *testing.T) {
 	hs := httptest.NewServer(http.HandlerFunc(srv.handle))
 	defer hs.Close()
 
+	// Identify the packed block and allocate a shared writeback store.
 	refHash, err := hash.Sum(hash.HashType_HashType_SHA256, block1)
 	if err != nil {
 		t.Fatal(err)
 	}
 	ref := &block.BlockRef{Hash: refHash}
 	cache := newWritebackReadStore()
+
+	// Open the first CDN block store with local writeback enabled.
 	first, err := NewCdnBlockStore(Options{
 		CdnBaseURL: hs.URL,
 		SpaceID:    testSpaceID,
@@ -920,6 +1007,8 @@ func TestCdnBlockStoreReadsThroughWritebackOnSecondColdStart(t *testing.T) {
 	}
 	defer first.Close()
 	first.SetWriteback(ctx, cache, 1<<20)
+
+	// Read the block and wait for the first store to persist its writeback.
 	got, found, err := first.GetBlock(ctx, ref)
 	if err != nil {
 		t.Fatal(err)
@@ -931,6 +1020,7 @@ func TestCdnBlockStoreReadsThroughWritebackOnSecondColdStart(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Open a second CDN block store using the same writeback store.
 	second, err := NewCdnBlockStore(Options{
 		CdnBaseURL: hs.URL,
 		SpaceID:    testSpaceID,
@@ -941,6 +1031,8 @@ func TestCdnBlockStoreReadsThroughWritebackOnSecondColdStart(t *testing.T) {
 	}
 	defer second.Close()
 	second.SetWriteback(ctx, cache, 1<<20)
+
+	// Verify the second store reads the same block through local writeback.
 	got, found, err = second.GetBlock(ctx, ref)
 	if err != nil {
 		t.Fatal(err)
@@ -951,6 +1043,7 @@ func TestCdnBlockStoreReadsThroughWritebackOnSecondColdStart(t *testing.T) {
 }
 
 func TestCdnBlockStoreWritesRejected(t *testing.T) {
+	// Open the anonymous CDN block store for write rejection checks.
 	bs, err := NewCdnBlockStore(Options{
 		CdnBaseURL: "https://cdn.example",
 		SpaceID:    testSpaceID,
@@ -959,6 +1052,8 @@ func TestCdnBlockStoreWritesRejected(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer bs.Close()
+
+	// Verify the anonymous CDN store rejects block writes and removals.
 	if _, _, err := bs.PutBlock(context.Background(), []byte("x"), nil); err == nil {
 		t.Fatal("expected PutBlock to error")
 	}

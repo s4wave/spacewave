@@ -31,6 +31,7 @@ func RootPointerBaseURL(cdnBaseURL, rootBaseURL string) string {
 // FetchRootPointer fetches and decodes root.packedmsg for a CDN Space.
 // Returns nil, nil on 404 so callers can treat fresh Spaces as empty.
 func FetchRootPointer(ctx context.Context, httpCli *http.Client, cdnBaseURL, spaceID string) (*cdn.CdnRootPointer, error) {
+	// Validate the requested Space and select its HTTP client.
 	if spaceID == "" {
 		return nil, errors.New("cdn bstore: space id required")
 	}
@@ -38,6 +39,7 @@ func FetchRootPointer(ctx context.Context, httpCli *http.Client, cdnBaseURL, spa
 		httpCli = http.DefaultClient
 	}
 
+	// Open the CDN root pointer response for the requested Space.
 	url := strings.TrimRight(cdnBaseURL, "/") + rootPointerPath(spaceID)
 	resp, err := fetchRootPointerResponse(ctx, httpCli, url)
 	if err != nil {
@@ -45,6 +47,7 @@ func FetchRootPointer(ctx context.Context, httpCli *http.Client, cdnBaseURL, spa
 	}
 	defer resp.Close()
 
+	// Treat an absent CDN pointer as an empty Space and reject other failed responses.
 	if resp.StatusCode() == http.StatusNotFound {
 		return nil, nil
 	}
@@ -52,6 +55,7 @@ func FetchRootPointer(ctx context.Context, httpCli *http.Client, cdnBaseURL, spa
 		return nil, errors.Errorf("cdn root pointer status %d", resp.StatusCode())
 	}
 
+	// Read the CDN pointer within the anonymous response size limit.
 	body, err := io.ReadAll(io.LimitReader(resp.Body(), MaxRootPackedmsgBytes+1))
 	if err != nil {
 		return nil, errors.Wrap(err, "reading root pointer body")
@@ -60,11 +64,13 @@ func FetchRootPointer(ctx context.Context, httpCli *http.Client, cdnBaseURL, spa
 		return nil, errors.Errorf("cdn root pointer exceeds %d bytes", MaxRootPackedmsgBytes)
 	}
 
+	// Extract the protobuf payload from the packed root pointer.
 	raw, ok := packedmsg.DecodePackedMessage(string(body))
 	if !ok {
 		return nil, errors.New("cdn root pointer failed packedmsg decode")
 	}
 
+	// Decode the CDN pointer and verify that it belongs to the requested Space.
 	pointer := &cdn.CdnRootPointer{}
 	if err := pointer.UnmarshalVT(raw); err != nil {
 		return nil, errors.Wrap(err, "unmarshaling cdn root pointer")

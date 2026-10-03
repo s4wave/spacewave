@@ -37,12 +37,14 @@ func (c *Controller) BuildManifests(
 	buildType bldr_manifest.BuildType,
 	manifestOverrides map[string]*configset_proto.ControllerConfig,
 ) ([]*bldr_manifest.ManifestRef, []string, error) {
+	// Resolve the native desktop platform for manifest compilation.
 	np, err := bldr_platform.ParseNativePlatform("desktop")
 	if err != nil {
 		return nil, nil, err
 	}
 	platformID := np.GetPlatformID()
 
+	// Configure each requested manifest with its optional builder override.
 	var confs []*ManifestBuilderConfig
 	for _, id := range manifestIDs {
 		id = strings.TrimSpace(id)
@@ -69,17 +71,21 @@ func (c *Controller) BuildManifests(
 // If the targets list is empty, builds all targets.
 // If targetsOverride is specified, it overrides the targets field in all build configs.
 func (c *Controller) BuildTargets(ctx context.Context, remote string, targets []string, buildType bldr_manifest.BuildType, targetsOverride []string, buildPolicyOverride *manifest_build.BuildPolicy) error {
+	// Read the project build targets from the current controller configuration.
 	conf := c.conf.Load()
 	projConfig := conf.GetProjectConfig()
 	buildTargets := projConfig.GetBuild()
 
+	// Expand the selected build targets into manifest builder configurations.
 	var manifestBuilderConfs []*ManifestBuilderConfig
 	for _, target := range targets {
+		// Ignore empty build target selectors.
 		target = strings.TrimSpace(target)
 		if target == "" {
 			continue
 		}
 
+		// Resolve the build target platforms and policy with command-line overrides.
 		buildTarget := buildTargets[target]
 		resolved, err := ResolveBuildTarget(buildTarget, targetsOverride, buildPolicyOverride)
 		if err != nil {
@@ -87,6 +93,7 @@ func (c *Controller) BuildTargets(ctx context.Context, remote string, targets []
 		}
 		platformIDs := resolved.PlatformIDs
 
+		// Configure every manifest selected for the resolved build target.
 		err = ForManifestSelector(
 			buildTarget.GetManifests(),
 			platformIDs,
@@ -110,16 +117,20 @@ func (c *Controller) BuildTargets(ctx context.Context, remote string, targets []
 		}
 	}
 
+	// Build the complete set of selected manifest configurations.
 	_, _, err := c.BuildManifestBuilderConfigs(ctx, manifestBuilderConfs)
 	return err
 }
 
 // ResolveBuildTarget resolves a build target with command-line overrides.
 func ResolveBuildTarget(buildConfig *bldr_project.BuildConfig, targetsOverride []string, buildPolicyOverride *manifest_build.BuildPolicy) (*ResolvedBuildTarget, error) {
+	// Resolve the build target platforms from configuration and overrides.
 	platformIDs, err := ResolveBuildConfigPlatformIDs(buildConfig, targetsOverride)
 	if err != nil {
 		return nil, err
 	}
+
+	// Merge and validate the effective build policy.
 	buildPolicy := buildConfig.GetBuildPolicy().Merge(buildPolicyOverride)
 	if err := buildPolicy.Validate(); err != nil {
 		return nil, err
@@ -159,6 +170,7 @@ func newBuildTargetManifestBuilderConfig(
 // If targetsOverride is specified, it takes precedence over the config's targets field.
 // Platform IDs from all targets and explicit platform_ids are merged.
 func ResolveBuildConfigPlatformIDs(buildConfig *bldr_project.BuildConfig, targetsOverride []string) ([]string, error) {
+	// Collect target platforms before merging explicit platform IDs.
 	var platformIDs []string
 
 	// Use targetsOverride if specified, otherwise use config's targets
@@ -201,10 +213,13 @@ func ResolveBuildConfigPlatformIDs(buildConfig *bldr_project.BuildConfig, target
 // GetBuildConfigTargets returns the parsed Targets for a BuildConfig, if specified.
 // Returns nil if no targets are specified.
 func GetBuildConfigTargets(buildConfig *bldr_project.BuildConfig) ([]*bldr_platform.Target, error) {
+	// Return no parsed targets when the build configuration has none.
 	targetIDs := buildConfig.GetTargets()
 	if len(targetIDs) == 0 {
 		return nil, nil
 	}
+
+	// Parse every nonempty build target in configuration order.
 	targets := make([]*bldr_platform.Target, 0, len(targetIDs))
 	for _, targetID := range targetIDs {
 		targetID = strings.TrimSpace(targetID)
@@ -237,15 +252,18 @@ func MergePlatformIDs(platformIDLists ...[]string) []string {
 
 // FilterPlatformIDsByBase filters platform IDs to only those matching the given base platform IDs.
 func FilterPlatformIDsByBase(platformIDs []string, basePlatformIDs []string) []string {
+	// Return no platforms when no base platforms are requested.
 	if len(basePlatformIDs) == 0 {
 		return nil
 	}
 
+	// Index the requested base platforms for membership checks.
 	baseSet := make(map[string]struct{}, len(basePlatformIDs))
 	for _, bp := range basePlatformIDs {
 		baseSet[bp] = struct{}{}
 	}
 
+	// Keep valid platform IDs whose base platform is requested.
 	result := make([]string, 0, len(platformIDs))
 	for _, platformID := range platformIDs {
 		platform, err := bldr_platform.ParsePlatform(platformID)

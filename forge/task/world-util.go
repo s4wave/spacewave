@@ -47,11 +47,13 @@ func CollectTaskPasses(
 	ws world.WorldState,
 	taskKeys ...string,
 ) ([]*forge_pass.Pass, []*forge_target.Target, []string, error) {
+	// Collect the Pass object keys linked to the requested Tasks.
 	kpObjectKeys, err := ListTaskPasses(ctx, ws, taskKeys...)
 	if err != nil {
 		return nil, nil, nil, err
 	}
 
+	// Load and validate every linked Pass together with its Target.
 	states := make([]*forge_pass.Pass, len(kpObjectKeys))
 	tgts := make([]*forge_target.Target, len(kpObjectKeys))
 	for i, objKey := range kpObjectKeys {
@@ -77,21 +79,25 @@ func LookupTaskPass(
 	taskKey string,
 	nonce uint64,
 ) (*forge_pass.Pass, *forge_target.Target, string, error) {
+	// Find the Task link for the requested Pass nonce.
 	gqs, err := ws.LookupGraphQuads(ctx, NewTaskToPassQuad(taskKey, "", nonce), 1)
 	if err != nil {
 		return nil, nil, "", err
 	}
 
+	// Return an absent Pass when the Task has no matching link.
 	if len(gqs) == 0 {
 		return nil, nil, "", nil
 	}
 
+	// Decode the linked Pass object key from the graph quad.
 	gq := gqs[0]
 	passKey, err := world.GraphValueToKey(gq.GetObj())
 	if err != nil {
 		return nil, nil, "", err
 	}
 
+	// Load the linked Pass and its Target from the World.
 	pass, tgt, err := forge_pass.LookupPass(ctx, ws, passKey)
 	if err != nil {
 		return nil, nil, passKey, err
@@ -142,11 +148,13 @@ func CollectTaskTargets(
 	ws world.WorldState,
 	taskKeys ...string,
 ) ([]*forge_target.Target, []string, error) {
+	// Collect the Target object keys linked to the requested Tasks.
 	kpObjectKeys, err := ListTaskTargets(ctx, ws, taskKeys...)
 	if err != nil {
 		return nil, nil, err
 	}
 
+	// Load and validate every Target linked to the Tasks.
 	states := make([]*forge_target.Target, len(kpObjectKeys))
 	for i, objKey := range kpObjectKeys {
 		states[i], err = forge_target.LookupTarget(ctx, ws, objKey)
@@ -212,11 +220,13 @@ func CollectTaskSubtasks(
 	ws world.WorldState,
 	taskKeys ...string,
 ) ([]*Task, []string, error) {
+	// Collect the child Task keys linked to the requested parent Tasks.
 	objKeys, err := ListTaskSubtasks(ctx, ws, taskKeys...)
 	if err != nil {
 		return nil, nil, err
 	}
 
+	// Load the child Task bodies from the World.
 	tasks := make([]*Task, len(objKeys))
 	for i, objKey := range objKeys {
 		tasks[i], err = LookupTaskBody(ctx, ws, objKey)

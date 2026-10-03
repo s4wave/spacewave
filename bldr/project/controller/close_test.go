@@ -19,16 +19,19 @@ import (
 )
 
 func TestCloseJoinsPostExecuteTrackerWork(t *testing.T) {
+	// Execute the project controller before adding tracker work.
 	ctrl := NewController(logrus.NewEntry(logrus.New()), nil, &Config{})
 	if err := ctrl.Execute(context.Background()); err != nil {
 		t.Fatal(err)
 	}
 
+	// Start a manifest tracker whose shutdown is held until the test releases it.
 	started := make(chan struct{})
 	release := make(chan struct{})
 	stopped := make(chan struct{})
 	ctrl.manifestBuilders = keyed.NewKeyedRefCount(func(string) (keyed.Routine, *manifestBuilderTracker) {
 		return ctrl.routines.Wrap(func(ctx context.Context) error {
+			// Signal tracker startup and hold its shutdown after context cancellation.
 			close(started)
 			<-ctx.Done()
 			<-release
@@ -44,6 +47,7 @@ func TestCloseJoinsPostExecuteTrackerWork(t *testing.T) {
 		t.Fatal("manifest tracker did not start")
 	}
 
+	// Begin closing the controller and verify it waits for the running tracker.
 	closeDone := make(chan struct{})
 	go func() {
 		_ = ctrl.Close()
@@ -55,12 +59,15 @@ func TestCloseJoinsPostExecuteTrackerWork(t *testing.T) {
 	case <-time.After(100 * time.Millisecond):
 	}
 
+	// Release the tracker shutdown and wait for controller closure.
 	close(release)
 	select {
 	case <-closeDone:
 	case <-time.After(5 * time.Second):
 		t.Fatal("Close did not return after the tracker stopped")
 	}
+
+	// Verify tracker shutdown, repeated closure, and rejection of new remote references.
 	select {
 	case <-stopped:
 	default:
@@ -100,6 +107,7 @@ func (b *startupTestBus) GetControllers() []controllerbus_controller.Controller 
 }
 
 func TestStartupRejectsAfterCloseBegins(t *testing.T) {
+	// Execute a project controller with an observable startup directive bus.
 	logger := logrus.NewEntry(logrus.New())
 	baseBus := inmem.NewBus(directive_controller.NewController(context.Background(), logger))
 	startupBus := &startupTestBus{
@@ -111,11 +119,13 @@ func TestStartupRejectsAfterCloseBegins(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Start a manifest tracker that holds controller shutdown open.
 	started := make(chan struct{})
 	release := make(chan struct{})
 	stopped := make(chan struct{})
 	ctrl.manifestBuilders = keyed.NewKeyedRefCount(func(string) (keyed.Routine, *manifestBuilderTracker) {
 		return ctrl.routines.Wrap(func(ctx context.Context) error {
+			// Signal tracker startup and hold its shutdown after context cancellation.
 			close(started)
 			<-ctx.Done()
 			<-release
@@ -131,6 +141,7 @@ func TestStartupRejectsAfterCloseBegins(t *testing.T) {
 		t.Fatal("manifest tracker did not start")
 	}
 
+	// Begin closing the controller while its manifest tracker is blocked.
 	closeDone := make(chan struct{})
 	go func() {
 		_ = ctrl.Close()
@@ -142,6 +153,7 @@ func TestStartupRejectsAfterCloseBegins(t *testing.T) {
 	case <-time.After(100 * time.Millisecond):
 	}
 
+	// Request startup during closure and verify the startup routine exits without loading plugins.
 	ctrl.startup.SetContext(context.Background(), true)
 	ctrl.startup.SetState(&bldr_project.StartConfig{Plugins: []string{""}})
 	startupExited := make(chan error, 1)
@@ -161,6 +173,7 @@ func TestStartupRejectsAfterCloseBegins(t *testing.T) {
 		t.Fatal("startup routine did not exit after Close began")
 	}
 
+	// Release the blocked tracker and verify controller closure joins its shutdown.
 	close(release)
 	select {
 	case <-closeDone:
@@ -175,6 +188,7 @@ func TestStartupRejectsAfterCloseBegins(t *testing.T) {
 }
 
 func TestCloseJoinsStartupWork(t *testing.T) {
+	// Prepare a startup bus that holds plugin loading until the test releases it.
 	logger := logrus.NewEntry(logrus.New())
 	baseBus := inmem.NewBus(directive_controller.NewController(context.Background(), logger))
 	started := make(chan struct{})
@@ -191,6 +205,8 @@ func TestCloseJoinsStartupWork(t *testing.T) {
 			plugin_host_scheduler.NewConfig("", "", "", "", "", false, false, false),
 		),
 	}
+
+	// Start project startup and wait for plugin loading to reach the bus.
 	ctrl := NewController(logger, startupBus, &Config{})
 	ctrl.startup.SetContext(context.Background(), true)
 	ctrl.startup.SetState(&bldr_project.StartConfig{Plugins: []string{""}})
@@ -200,6 +216,7 @@ func TestCloseJoinsStartupWork(t *testing.T) {
 		t.Fatal("startup did not enter executeStartup")
 	}
 
+	// Begin closing the controller and verify it waits for active startup work.
 	closeDone := make(chan struct{})
 	go func() {
 		_ = ctrl.Close()
@@ -211,6 +228,7 @@ func TestCloseJoinsStartupWork(t *testing.T) {
 	case <-time.After(100 * time.Millisecond):
 	}
 
+	// Release plugin loading and verify controller closure joins startup work.
 	close(release)
 	select {
 	case <-closeDone:
