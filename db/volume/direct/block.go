@@ -174,6 +174,8 @@ func (s *Store) lookup(ctx context.Context, refs []*block.BlockRef, read bool) (
 		}
 		return data, found, nil
 	}
+
+	// Read stored payloads for blocks absent from pending writes.
 	values, err := s.records.Get(ctx, rest)
 	if err != nil {
 		return nil, nil, err

@@ -30,6 +30,7 @@ func (s *Store) appendJournal(ctx context.Context, adds, removes []block_gc.RefE
 	}
 	value := journal.Marshal(adds, removes)
 	return s.update(ctx, ordered, func(tx kvtx.Tx) error {
+		// Store the reference graph changes at the next journal sequence.
 		seq := s.journal + 1
 		key := binary.BigEndian.AppendUint64([]byte(journalPrefix), seq)
 		if err := tx.Set(ctx, key, value); err != nil {

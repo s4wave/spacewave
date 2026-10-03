@@ -76,6 +76,7 @@ func (c *Controller) resolveLookupRpcService(
 	_ directive.Instance,
 	dir bifrost_rpc.LookupRpcService,
 ) ([]directive.Resolver, error) {
+	// Require the directive to request the web view handler service.
 	serviceID, serverID := dir.LookupRpcServiceID(), dir.LookupRpcServerID()
 	if serviceID != web_view_handler.SRPCHandleWebViewServiceServiceID {
 		return nil, nil
@@ -113,26 +114,31 @@ func (c *Controller) resolveLookupRpcService(
 
 // Resolve resolves the values, emitting them to the handler.
 func (r *lookupRpcServiceResolver) Resolve(ctx context.Context, handler directive.ResolverHandler) error {
+	// Withdraw the previous web view handler service while resolving its client.
 	handler.ClearValues()
 
+	// Acquire the web view access client for the requesting server.
 	client, _, clientRef, err := bifrost_rpc.ExLookupRpcClientSet(ctx, r.c.GetBus(), r.accessWebViewsServiceID, ControllerID, true, nil)
 	if err != nil {
 		return err
 	}
 	defer clientRef.Release()
 
+	// Forward web view handling through the requesting server's access client.
 	accessClient := web_view.NewSRPCAccessWebViewsClientWithServiceID(
 		client,
 		r.accessWebViewsServiceID,
 	)
 	handleViaBus := web_view_handler.NewHandleWebViewViaBus(r.c.GetLogger(), r.c.GetBus(), accessClient)
 
+	// Publish the web view handler as an RPC service.
 	mux := srpc.NewMux()
 	_ = web_view_handler.SRPCRegisterHandleWebViewService(mux, handleViaBus)
 	var value bifrost_rpc.LookupRpcServiceValue = mux
 	_, _ = handler.AddValue(value)
 	handler.MarkIdle(true)
 
+	// Retain the web view access client until the directive is released.
 	<-ctx.Done()
 	return context.Canceled
 }

@@ -66,6 +66,7 @@ type pendingBlock struct {
 
 // Open opens the store on rs, loading the key-value store and the journal.
 func Open(ctx context.Context, rs records.Store) (*Store, error) {
+	// Connect the record store to the in-memory transaction table.
 	s := &Store{records: rs, pending: make(map[string]*pendingBlock)}
 	s.table = memtable.New(s.commit)
 	s.Store = kvtx_prefixer.NewPrefixer(tableStore{s}, []byte(kvPrefix))
@@ -114,14 +115,19 @@ func (s *Store) view(ctx context.Context, fn func(tx kvtx.Tx) error) error {
 // update runs fn in a table write transaction and commits it, durably unless
 // ordered is set.
 func (s *Store) update(ctx context.Context, ordered bool, fn func(tx kvtx.Tx) error) error {
+	// Open a table write transaction for the record changes.
 	tx, err := s.table.NewTransaction(ctx, true)
 	if err != nil {
 		return err
 	}
 	defer tx.Discard()
+
+	// Apply the record changes before committing the transaction.
 	if err := fn(tx); err != nil {
 		return err
 	}
+
+	// Commit the table transaction with the requested durability.
 	if ordered {
 		return kvtx.CommitOrdered(ctx, tx)
 	}
@@ -176,10 +182,13 @@ type tableStore struct {
 
 // NewTransaction opens a table transaction.
 func (t tableStore) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, error) {
+	// Open the table snapshot used by read and buffered write transactions.
 	read, err := t.s.table.NewTransaction(ctx, false)
 	if err != nil || !write {
 		return read, err
 	}
+
+	// Buffer writes until commit opens the table write transaction.
 	w := &writeTx{s: t.s, ctx: ctx}
 	w.Tx, err = kvtx_txcache.NewTxWithCbs(read, true, read.Discard, w.begin, false)
 	if err != nil {
@@ -225,6 +234,7 @@ func (w *writeTx) CommitOrdered(ctx context.Context) error {
 
 // commit applies the collected changes and commits the table transaction.
 func (w *writeTx) commit(ctx context.Context, ordered bool) error {
+	// Apply buffered changes and release the acquired table transaction.
 	err := w.Tx.Commit(ctx)
 	if w.ttx == nil {
 		return err
@@ -233,6 +243,8 @@ func (w *writeTx) commit(ctx context.Context, ordered bool) error {
 	if err != nil {
 		return err
 	}
+
+	// Commit the table changes with the requested durability.
 	if ordered {
 		return kvtx.CommitOrdered(ctx, w.ttx)
 	}

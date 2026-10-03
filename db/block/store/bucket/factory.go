@@ -41,15 +41,18 @@ func (t *Factory) Construct(
 	conf config.Config,
 	opts controller.ConstructOpts,
 ) (controller.Controller, error) {
+	// Read the bucket controller configuration.
 	// le := opts.GetLogger()
 	cc := conf.(*Config)
 
+	// Use the block store ID when no bucket store ID is configured.
 	bucketStoreID := cc.GetBucketStoreId()
 	if bucketStoreID == "" {
 		// default to block store id
 		bucketStoreID = cc.GetBlockStoreId()
 	}
 
+	// Resolve the configured block store through the controller bus.
 	accessBlockStore := block_store.NewAccessBlockStoreViaBusFunc(
 		t.bus,
 		cc.GetBlockStoreId(),

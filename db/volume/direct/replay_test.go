@@ -26,10 +26,13 @@ var (
 // once ordered. WORKLOAD_FILL_BLOCKS first fills the volume with that many
 // blocks of WORKLOAD_FILL_SIZE bytes (default 1024).
 func TestWorkloadReplayTraces(t *testing.T) {
+	// Require captured workload traces before preparing the replay cases.
 	paths := os.Getenv("WORKLOAD_TRACES")
 	if paths == "" {
 		t.Skip("set WORKLOAD_TRACES to replay captured traces")
 	}
+
+	// Run each captured trace under durable and ordered commit policies.
 	fillBlocks := envInt(t, "WORKLOAD_FILL_BLOCKS", 0)
 	fillSize := envInt(t, "WORKLOAD_FILL_SIZE", 1024)
 	for _, policy := range []string{"durable", "ordered"} {
@@ -44,6 +47,7 @@ func TestWorkloadReplayTraces(t *testing.T) {
 // replayTrace replays one captured trace, with ordered commits if ordered is
 // set, and logs its record store calls.
 func replayTrace(t *testing.T, path string, ordered bool, fillBlocks, fillSize int) {
+	// Bind the trace replay to the test lifecycle.
 	ctx := t.Context()
 
 	// Prepare the workload and the volume it runs against.
@@ -103,11 +107,14 @@ func replayTrace(t *testing.T, path string, ordered bool, fillBlocks, fillSize i
 
 // envInt parses an optional integer environment variable.
 func envInt(t *testing.T, name string, def int) int {
+	// Read the optional workload setting with its default.
 	t.Helper()
 	raw := os.Getenv(name)
 	if raw == "" {
 		return def
 	}
+
+	// Require the workload setting to contain an integer.
 	v, err := strconv.Atoi(raw)
 	if err != nil {
 		t.Fatalf("%s: %v", name, err)

@@ -17,11 +17,13 @@ import (
 
 // TestBlockStoreBucketController tests the block store bucket controller.
 func TestBlockStoreBucketController(t *testing.T) {
+	// Prepare logging for the bucket controller test.
 	ctx := context.Background()
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
 
+	// Start a testbed for the block store and bucket controllers.
 	verbose := true
 	tb, err := testbed.NewTestbed(ctx, le, testbed.WithVolumeConfig(nil), testbed.WithVerbose(verbose))
 	if err != nil {
@@ -37,6 +39,7 @@ func TestBlockStoreBucketController(t *testing.T) {
 	}
 	defer relStore()
 
+	// Configure the bucket backed by the in-memory block store.
 	bucketID := "test-block-store-bucket"
 	bucketConf, err := bucket.NewConfig(bucketID, 1, nil)
 	if err != nil {
@@ -69,9 +72,11 @@ func TestBlockStoreBucketController(t *testing.T) {
 	}
 	defer bls.Release()
 
+	// Add an example block to a new bucket transaction.
 	btx, bcs := bls.BuildTransaction(nil)
 	bcs.SetBlock(block_mock.NewExample("hello world"), true)
 
+	// Verify that the bucket transaction writes a root reference.
 	rootRef, _, err := btx.Write(ctx, true)
 	if err != nil {
 		t.Fatal(err.Error())

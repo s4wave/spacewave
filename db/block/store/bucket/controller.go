@@ -69,9 +69,11 @@ func (c *Controller) GetControllerInfo() *controller.Info {
 
 // Execute executes the controller goroutine.
 func (c *Controller) Execute(ctx context.Context) error {
+	// Bind the bucket handle to the controller lifecycle.
 	c.handleRc.SetContext(ctx)
 	defer c.handleRc.SetContext(nil)
 
+	// Wait for the bucket handle resolver to report its failure.
 	rerr, err := c.errCtr.WaitValue(ctx, nil)
 	if err != nil {
 		return err
@@ -94,11 +96,13 @@ func (c *Controller) ResolveBuildBucketAPI(
 	di directive.Instance,
 	d bucket.BuildBucketAPI,
 ) directive.Resolver {
+	// Require the directive to request this controller's bucket.
 	bucketID := d.BuildBucketAPIBucketID()
 	if bucketID != c.bucketConf.GetId() {
 		return nil
 	}
 
+	// Require the directive to request this controller's store.
 	storeID := d.BuildBucketAPIStoreID()
 	if storeID != c.bucketStoreID {
 		return nil
