@@ -11,7 +11,6 @@ import (
 	"github.com/sirupsen/logrus"
 
 	core_session "github.com/s4wave/spacewave/core/session"
-	s4wave_session "github.com/s4wave/spacewave/sdk/session"
 )
 
 // syncKeepaliveRetryDelay is the pause before rewatching core after the
@@ -127,8 +126,9 @@ func reconcileSyncKeepaliveWatches(
 }
 
 // watchSessionUploads holds the idle tracker while the session reports
-// pending or in-flight uploads. A sync error releases the hold: the provider
-// keeps the durable work for the next run.
+// pending or in-flight uploads. An upload error releases the hold: the
+// provider keeps the durable work for the next run. Download and transport
+// errors do not, since the uploads may still succeed.
 func watchSessionUploads(
 	ctx context.Context,
 	client *sdkClient,
@@ -161,7 +161,7 @@ func watchSessionUploads(
 		}
 
 		// Take or release the hold as uploads appear and settle.
-		pending := status.GetState() != s4wave_session.SyncStatusState_SyncStatusState_ERROR &&
+		pending := status.GetUploadError() == "" &&
 			(status.GetPendingUploadCount() != 0 || status.GetPendingUploadBytes() != 0 || status.GetInFlightUploadCount() != 0)
 		switch {
 		case pending && release == nil:

@@ -194,6 +194,39 @@ func TestSnapshotTransitions(t *testing.T) {
 	}
 }
 
+// TestUploadErrorFollowsPendingUploads checks that UploadError reports only a
+// push error of a store with uploads still pending.
+func TestUploadErrorFollowsPendingUploads(t *testing.T) {
+	// A pull error on a store with pending uploads is not an upload error.
+	store := &Store{}
+	store.SetPendingPublications("bstore-1", 1)
+	store.StartPull("bstore-1")
+	store.FinishPull("bstore-1", errors.New("pull failed"))
+	if snap := store.Snapshot(); snap.UploadError != "" {
+		t.Fatalf("upload error = %q after a pull error", snap.UploadError)
+	}
+
+	// A failed flush with uploads pending is.
+	pushErr := errors.New("push failed")
+	store.RecordError("bstore-1", pushErr)
+	if snap := store.Snapshot(); snap.UploadError != pushErr.Error() {
+		t.Fatalf("upload error = %q, want %q", snap.UploadError, pushErr.Error())
+	}
+
+	// A push error left on a store with nothing pending is not.
+	store.SetPendingPublications("bstore-1", 0)
+	if snap := store.Snapshot(); snap.UploadError != "" {
+		t.Fatalf("upload error = %q with no uploads pending", snap.UploadError)
+	}
+
+	// A successful flush clears it.
+	store.SetPendingPublications("bstore-1", 1)
+	store.RecordError("bstore-1", nil)
+	if snap := store.Snapshot(); snap.UploadError != "" {
+		t.Fatalf("upload error = %q after a successful flush", snap.UploadError)
+	}
+}
+
 func TestStoreStatsChangeBroadcast(t *testing.T) {
 	store := &Store{}
 	stats := &testStatsChanged{}

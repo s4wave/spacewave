@@ -166,6 +166,9 @@ type Snapshot struct {
 	LastPushError string
 	// LastPushErrorAt is the latest packfile push error time.
 	LastPushErrorAt time.Time
+	// UploadError is the latest push error of a store whose uploads are still
+	// pending. It clears when that store's uploads succeed or drain.
+	UploadError string
 	// LastPullError is the latest sync-pull error.
 	LastPullError string
 	// LastPullErrorAt is the latest sync-pull error time.
@@ -534,6 +537,9 @@ func BuildSnapshot(states []state) Snapshot {
 		if state.lastPushError != "" {
 			snap.LastPushError = state.lastPushError
 			snap.LastPushErrorAt = state.lastPushErrorAt
+			if state.pendingUploadCount != 0 || state.pendingPublications != 0 || state.pendingUploadBytes != 0 || state.inFlightPushes != 0 {
+				snap.UploadError = state.lastPushError
+			}
 			if snap.LastErrorAt.Before(state.lastPushErrorAt) {
 				snap.LastError = state.lastPushError
 				snap.LastErrorAt = state.lastPushErrorAt

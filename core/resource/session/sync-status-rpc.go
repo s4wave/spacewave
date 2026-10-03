@@ -225,6 +225,7 @@ func syncStatusFromSpacewaveTelemetry(
 		ActivePeerCount:                   composition.ActivePeerCount,
 		DirectP2PDisabled:                 !composition.DirectP2PEnabled,
 		LastError:                         telemetry.LastError,
+		UploadError:                       telemetry.UploadError,
 		PackRangeRequestCount:             telemetry.RangeRequestCount,
 		PackRangeResponseBytes:            nonNegativeUint64(telemetry.RangeResponseBytes),
 		PackFullResponseFallbackCount:     telemetry.FullResponseFallbackCount,

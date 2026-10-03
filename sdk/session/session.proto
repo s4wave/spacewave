@@ -453,6 +453,10 @@ message WatchSyncStatusResponse {
   uint64 peer_download_bytes = 60;
   // peers breaks the payload totals down by authenticated Session peer.
   repeated SyncPeerTransferStatus peers = 61;
+  // UploadError is the latest upload failure of a store whose uploads are
+  // still pending, empty while pending uploads succeed. Unlike LastError, it
+  // ignores download and transport errors.
+  string upload_error = 62;
 }
 
 // SyncPeerTransferStatus reports one peer's traffic on the active transport.

@@ -1626,6 +1626,14 @@ export interface WatchSyncStatusResponse {
    * @generated from field: repeated s4wave.session.SyncPeerTransferStatus peers = 61;
    */
   peers?: SyncPeerTransferStatus[]
+  /**
+   * UploadError is the latest upload failure of a store whose uploads are
+   * still pending, empty while pending uploads succeed. Unlike LastError, it
+   * ignores download and transport errors.
+   *
+   * @generated from field: string upload_error = 62;
+   */
+  uploadError?: string
 }
 
 export const WatchSyncStatusResponse: MessageType<WatchSyncStatusResponse> =
@@ -1965,6 +1973,7 @@ export const WatchSyncStatusResponse: MessageType<WatchSyncStatusResponse> =
         T: SyncPeerTransferStatus,
         repeated: true,
       },
+      { no: 62, name: 'upload_error', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
   })
 

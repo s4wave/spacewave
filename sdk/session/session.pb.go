@@ -1205,6 +1205,10 @@ type WatchSyncStatusResponse struct {
 	PeerDownloadBytes uint64 `protobuf:"varint,60,opt,name=peer_download_bytes,json=peerDownloadBytes,proto3" json:"peerDownloadBytes,omitempty"`
 	// peers breaks the payload totals down by authenticated Session peer.
 	Peers []*SyncPeerTransferStatus `protobuf:"bytes,61,rep,name=peers,proto3" json:"peers,omitempty"`
+	// UploadError is the latest upload failure of a store whose uploads are
+	// still pending, empty while pending uploads succeed. Unlike LastError, it
+	// ignores download and transport errors.
+	UploadError string `protobuf:"bytes,62,opt,name=upload_error,json=uploadError,proto3" json:"uploadError,omitempty"`
 }
 
 func (x *WatchSyncStatusResponse) Reset() {
@@ -1631,6 +1635,13 @@ func (x *WatchSyncStatusResponse) GetPeers() []*SyncPeerTransferStatus {
 		return x.Peers
 	}
 	return nil
+}
+
+func (x *WatchSyncStatusResponse) GetUploadError() string {
+	if x != nil {
+		return x.UploadError
+	}
+	return ""
 }
 
 // SyncPeerTransferStatus reports one peer's traffic on the active transport.
@@ -4316,6 +4327,7 @@ func (m *WatchSyncStatusResponse) CloneVT() *WatchSyncStatusResponse {
 	r.LocalAccount = m.LocalAccount
 	r.PeerUploadBytes = m.PeerUploadBytes
 	r.PeerDownloadBytes = m.PeerDownloadBytes
+	r.UploadError = m.UploadError
 	r.LastActivityAt = protobuf_go_lite.CloneVTValue(m.LastActivityAt)
 	r.BlockStores = protobuf_go_lite.CloneVTSlice(m.BlockStores)
 	r.LocalCopies = protobuf_go_lite.CloneVTSlice(m.LocalCopies)
@@ -6521,6 +6533,9 @@ func (this *WatchSyncStatusResponse) EqualVT(that *WatchSyncStatusResponse) bool
 		return false
 	}
 	if !protobuf_go_lite.EqualVTSliceImplicit(this.Peers, that.Peers, func() *SyncPeerTransferStatus { return &SyncPeerTransferStatus{} }) {
+		return false
+	}
+	if this.UploadError != that.UploadError {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -10241,6 +10256,11 @@ func (x *WatchSyncStatusResponse) MarshalProtoJSON(s *json.MarshalState) {
 		}
 		s.WriteArrayEnd()
 	}
+	if x.UploadError != "" || s.HasField("uploadError") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("uploadError")
+		s.WriteString(x.UploadError)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -10487,6 +10507,9 @@ func (x *WatchSyncStatusResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
 				}
 				x.Peers = append(x.Peers, v)
 			})
+		case "upload_error", "uploadError":
+			s.AddField("upload_error")
+			x.UploadError = s.ReadString()
 		}
 	})
 }
@@ -15809,6 +15832,13 @@ func (m *WatchSyncStatusResponse) MarshalToSizedBufferVT(dAtA []byte) (int, erro
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if len(m.UploadError) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.UploadError)
+		i--
+		dAtA[i] = 0x3
+		i--
+		dAtA[i] = 0xf2
+	}
 	if len(m.Peers) > 0 {
 		for iNdEx := len(m.Peers) - 1; iNdEx >= 0; iNdEx-- {
 			size, err := m.Peers[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
@@ -20385,6 +20415,7 @@ func (m *WatchSyncStatusResponse) SizeVT() (n int) {
 		l = e.SizeVT()
 		n += protobuf_go_lite.SizeMessage(2, l)
 	}
+	n += protobuf_go_lite.SizeStringNonEmpty(2, m.UploadError)
 	n += len(m.unknownFields)
 	return n
 }
@@ -22214,6 +22245,10 @@ func (x *WatchSyncStatusResponse) MarshalProtoText() string {
 			}
 		}
 		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
+	if x.UploadError != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "upload_error")
+		protobuf_go_lite.TextWriteString(&sb, x.UploadError)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -25714,6 +25749,16 @@ func (m *WatchSyncStatusResponse) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		case 62:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field UploadError", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.UploadError = v
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
