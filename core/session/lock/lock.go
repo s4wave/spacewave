@@ -12,11 +12,14 @@ import (
 // DeriveStorageKey derives the auto-unlock storage key from the volume's
 // persistent peer private key via blake3 key derivation.
 func DeriveStorageKey(volPeerPrivKey crypto.PrivKey) ([32]byte, error) {
+	// Read the volume private key bytes and scrub them after derivation.
 	raw, err := volPeerPrivKey.Raw()
 	if err != nil {
 		return [32]byte{}, err
 	}
 	defer scrub.Scrub(raw)
+
+	// Bind the storage key to the session encryption context.
 	var key [32]byte
 	blake3.DeriveKey("session-privkey-v2", raw, key[:])
 	return key, nil
@@ -41,6 +44,7 @@ func newSessionLockMethod(key []byte) (blockenc.Method, error) {
 }
 
 func decryptSessionLockBytes(key []byte, encrypted []byte) ([]byte, error) {
+	// Attempt to decrypt the session bytes with AES-GCM.
 	method, err := newSessionLockMethod(key)
 	if err != nil {
 		return nil, err
@@ -50,6 +54,7 @@ func decryptSessionLockBytes(key []byte, encrypted []byte) ([]byte, error) {
 		return out, nil
 	}
 
+	// Recover session bytes encrypted with the legacy XChaCha method.
 	legacyMethod, legacyErr := blockenc.NewXChaCha20Poly1305(key)
 	if legacyErr != nil {
 		return nil, err

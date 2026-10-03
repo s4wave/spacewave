@@ -56,6 +56,7 @@ func newRegistries(le *logrus.Entry, b bus.Bus) *registries {
 
 // register serves every registry on the root resource mux.
 func (r *registries) register(mux srpc.Mux) error {
+	// Register the plugin capability services on the root resource mux.
 	if err := r.generations.Register(mux); err != nil {
 		return err
 	}

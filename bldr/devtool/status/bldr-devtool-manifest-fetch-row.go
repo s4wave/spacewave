@@ -87,10 +87,12 @@ func enrichManifestFetchRow(
 	row BldrDevtoolManifestFetchRow,
 	buildRows []BldrDevtoolManifestBuildRow,
 ) BldrDevtoolManifestFetchRow {
+	// Clear the manifest fetch row relationships before matching current builds.
 	row.RemoteID = ""
 	row.LocalBuildIDs = ""
 	row.BlockedOnLocalBuild = false
 
+	// Collect matching build IDs, remote IDs, and pending local build state.
 	var buildIDs []string
 	var remoteIDs []string
 	for _, buildRow := range buildRows {
@@ -108,6 +110,7 @@ func enrichManifestFetchRow(
 		}
 	}
 
+	// Publish the matching build and remote IDs in the manifest fetch row.
 	row.LocalBuildIDs = strings.Join(buildIDs, ",")
 	row.RemoteID = strings.Join(remoteIDs, ",")
 	return row
@@ -132,9 +135,12 @@ func manifestFetchPlatformMatches(fetchPlatformIDs string, buildPlatformID strin
 }
 
 func manifestFetchBuildTypeMatches(fetchBuildTypes string, buildType string) bool {
+	// Match an unspecified manifest build type to the development build.
 	if fetchBuildTypes == "" {
 		return buildType == "dev"
 	}
+
+	// Read the manifest fetch build types to determine development and release selection.
 	buildTypes := strings.Split(fetchBuildTypes, ",")
 	hasDev := false
 	hasRelease := false
@@ -146,6 +152,8 @@ func manifestFetchBuildTypeMatches(fetchBuildTypes string, buildType string) boo
 			hasRelease = true
 		}
 	}
+
+	// Prefer the release build when the manifest fetch requests both build types.
 	if hasDev && hasRelease {
 		return buildType == "release"
 	}

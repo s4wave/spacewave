@@ -35,6 +35,7 @@ type observedDirectiveSpec struct {
 }
 
 func (o *observedDirective) configure(spec observedDirectiveSpec) {
+	// Configure the observed directive callbacks under its mutex.
 	o.mtx.Lock()
 	o.kind = spec.kind
 	o.update = spec.update
@@ -43,10 +44,12 @@ func (o *observedDirective) configure(spec observedDirectiveSpec) {
 }
 
 func (o *observedDirective) attach(di directive.Instance) {
+	// Observe directive state and disposal while retaining a weak reference.
 	weakRef := di.AddReference(nil, true)
 	releaseState := di.AddStateCallback(o.update)
 	releaseDispose := di.AddDisposeCallback(o.dispose)
 
+	// Retain the directive callbacks unless the observation was already released.
 	o.mtx.Lock()
 	if o.released {
 		o.mtx.Unlock()
@@ -62,12 +65,15 @@ func (o *observedDirective) attach(di directive.Instance) {
 }
 
 func (o *observedDirective) release() {
+	// Mark the observed directive released exactly once under its mutex.
 	o.mtx.Lock()
 	if o.released {
 		o.mtx.Unlock()
 		return
 	}
 	o.released = true
+
+	// Detach the observed directive resources before releasing the mutex.
 	releaseDispose := o.releaseDispose
 	o.releaseDispose = nil
 	releaseState := o.releaseState
@@ -76,6 +82,7 @@ func (o *observedDirective) release() {
 	o.weakRef = nil
 	o.mtx.Unlock()
 
+	// Release the detached directive callbacks and weak reference.
 	if releaseDispose != nil {
 		releaseDispose()
 	}

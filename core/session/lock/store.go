@@ -80,23 +80,27 @@ func ReadPINLockFiles(ctx context.Context, objStore object.ObjectStore, sessionI
 			return objStore.NewTransaction(ctx, false)
 		},
 		func(ctx context.Context, tx kvtx.Tx) error {
+			// Read the session private key encrypted by the PIN lock.
 			var found bool
 			encPriv, found, err = tx.Get(ctx, MakeKey(sessionID, SuffixLocked))
 			if err != nil || !found {
 				return err
 			}
 
+			// Read the encrypted symmetric key that protects the session private key.
 			encSymKey, found, err = tx.Get(ctx, MakeKey(sessionID, SuffixLockKey))
 			if err != nil || !found {
 				return err
 			}
 
+			// Read the persisted PIN derivation parameters.
 			var configData []byte
 			configData, found, err = tx.Get(ctx, MakeKey(sessionID, SuffixLockParams))
 			if err != nil || !found {
 				return err
 			}
 
+			// Decode the PIN derivation parameters for unlocking the session.
 			config = &LockConfig{}
 			return config.UnmarshalVT(configData)
 		},

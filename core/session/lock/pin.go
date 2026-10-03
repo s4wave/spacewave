@@ -15,6 +15,7 @@ var pinKDFContext = "aperture/alpha 2026-03-16 session-lock pin-kdf v2"
 
 // derivePinKey derives a 32-byte key from a PIN using scrypt+blake3.
 func derivePinKey(config *LockConfig, pin []byte) ([]byte, error) {
+	// Select the configured scrypt cost for the session PIN.
 	n := config.ScryptN
 	if n == 0 {
 		n = 18 // 2^18 = ~0.25s, appropriate for PIN unlock
@@ -24,6 +25,7 @@ func derivePinKey(config *LockConfig, pin []byte) ([]byte, error) {
 	var passKey [32]byte
 	blake3.DeriveKey(pinKDFContext, pin, passKey[:])
 
+	// Derive the session encryption key from the bound PIN and salt.
 	pinKey, err := scrypt.Key(passKey[:], config.Salt, 1<<n, 8, 1, 32)
 	if err != nil {
 		return nil, errors.Wrap(err, "scrypt pin key derivation")
@@ -80,6 +82,7 @@ func CreatePINLock(privPEM, pin []byte) (encPriv, encSymKey []byte, config *Lock
 
 // UnlockPIN decrypts a PIN-locked session key.
 func UnlockPIN(encPriv, encSymKey []byte, config *LockConfig, pin []byte) ([]byte, error) {
+	// Derive the PIN key and scrub it when the unlock attempt ends.
 	pinKey, err := derivePinKey(config, pin)
 	if err != nil {
 		return nil, err

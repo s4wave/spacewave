@@ -105,6 +105,7 @@ func NewFactory(b bus.Bus, opts ...Option) controller.Factory {
 			return &Config{}
 		},
 		func(base *bus.BusController[*Config]) (*Controller, error) {
+			// Construct the root controller with its app registry and configured options.
 			c := &Controller{BusController: base}
 			c.apps = c.newAppRegistry()
 			for _, opt := range opts {

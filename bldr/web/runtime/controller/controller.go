@@ -195,6 +195,7 @@ func (c *Controller) HandleFetch(strm fetch.SRPCFetchService_FetchStream) error 
 
 // ServeServiceWorkerHTTP serves a ServiceWorker HTTP request.
 func (c *Controller) ServeServiceWorkerHTTP(rw http.ResponseWriter, req *http.Request) {
+	// Read the ServiceWorker request path for runtime routing.
 	rurl := req.URL
 	rpath := rurl.Path
 
@@ -288,6 +289,7 @@ func (c *Controller) ServeServiceWorkerHTTP(rw http.ResponseWriter, req *http.Re
 		return
 	}
 
+	// Reject ServiceWorker requests outside the supported runtime routes.
 	http.Error(rw, "bldr: unhandled path: "+rpath, http.StatusNotFound)
 }
 
@@ -310,6 +312,7 @@ func (c *Controller) ServePluginHTTP(pluginID string, rw http.ResponseWriter, re
 	}
 	defer rpcClientRef.Release()
 
+	// Forward the HTTP request through the loaded plugin fetch service.
 	fetchClient := fetch.NewSRPCFetchServiceClient(rpcClient)
 	err = fetch.Fetch(ctx, fetchClient.Fetch, req, rw)
 	if err != nil && err != context.Canceled {
@@ -328,6 +331,7 @@ func setNoCacheHeaders(hdr http.Header) {
 
 // ServePluginDistFsHTTP serves a HTTP request for a plugin dist filesystem.
 func (c *Controller) ServePluginDistFsHTTP(pluginID string, rw http.ResponseWriter, req *http.Request) {
+	// Log the plugin distribution filesystem request.
 	c.le.
 		WithField("plugin-id", pluginID).
 		WithField("path", req.URL.Path).
@@ -337,13 +341,16 @@ func (c *Controller) ServePluginDistFsHTTP(pluginID string, rw http.ResponseWrit
 	unixFsID := bldr_plugin.PluginDistFsId(pluginID)
 	handler := unixfs_access_http.NewHTTPHandler(req.Context(), c.bus, unixFsID, "", "", true)
 
+	// Disable response caching for the plugin distribution filesystem.
 	setNoCacheHeaders(rw.Header())
 
+	// Serve the plugin distribution file through UnixFS.
 	handler.ServeHTTP(rw, req)
 }
 
 // ServePluginAssetsFsHTTP serves a HTTP request for a plugin assets filesystem.
 func (c *Controller) ServePluginAssetsFsHTTP(pluginID string, rw http.ResponseWriter, req *http.Request) {
+	// Log the plugin assets filesystem request.
 	c.le.
 		WithField("plugin-id", pluginID).
 		WithField("path", req.URL.Path).
@@ -353,8 +360,10 @@ func (c *Controller) ServePluginAssetsFsHTTP(pluginID string, rw http.ResponseWr
 	unixFsID := bldr_plugin.PluginAssetsFsId(pluginID)
 	handler := unixfs_access_http.NewHTTPHandler(req.Context(), c.bus, unixFsID, "", "", true)
 
+	// Disable response caching for the plugin assets filesystem.
 	setNoCacheHeaders(rw.Header())
 
+	// Serve the plugin asset file through UnixFS.
 	handler.ServeHTTP(rw, req)
 }
 
@@ -375,10 +384,13 @@ func (c *Controller) ServeWebModuleHTTP(pkgPath string, rw http.ResponseWriter, 
 
 // ServeBrowserIndexHTML serves the browser root document from the Go runtime.
 func (c *Controller) ServeBrowserIndexHTML(rw http.ResponseWriter, req *http.Request) {
+	// Require a browser index request that reads the document or its headers.
 	if req.Method != http.MethodGet && req.Method != http.MethodHead {
 		http.Error(rw, "method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
+
+	// Render the browser index document with the boot module entrypoint.
 	indexHTML, err := web_entrypoint_index.RenderIndexHTML(web_entrypoint_index.IndexData{
 		ImportMap:      web_entrypoint_index.ImportMap{Imports: map[string]string{}},
 		EntrypointPath: "/boot.mjs",
@@ -387,6 +399,8 @@ func (c *Controller) ServeBrowserIndexHTML(rw http.ResponseWriter, req *http.Req
 		http.Error(rw, "bldr: render browser index failed: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
+
+	// Send the browser index headers and the document body when requested.
 	rw.Header().Set("Content-Type", "text/html; charset=utf-8")
 	rw.Header().Set("Content-Length", strconv.Itoa(len(indexHTML)))
 	rw.WriteHeader(http.StatusOK)

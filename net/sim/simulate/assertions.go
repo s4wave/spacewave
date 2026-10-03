@@ -15,6 +15,7 @@ func TestConnectivity(ctx context.Context, px0, px1 *Peer) error {
 	// Open a link and stream from the first peer to the second.
 	tb0 := px0.testbed
 
+	// Retain a directive establishing the link between the simulated peers.
 	_, esRef, err := tb0.Bus.AddDirective(link.NewEstablishLinkWithPeer(
 		px0.GetPeerID(),
 		px1.GetPeerID(),
@@ -24,6 +25,7 @@ func TestConnectivity(ctx context.Context, px0, px1 *Peer) error {
 	}
 	defer esRef.Release()
 
+	// Open the echo stream over the simulated peer link.
 	ms1, ms1Rel, err := link.OpenStreamWithPeerEx(
 		ctx,
 		tb0.Bus,
@@ -58,6 +60,7 @@ func TestConnectivity(ctx context.Context, px0, px1 *Peer) error {
 		)
 	}
 
+	// Send the connectivity probe through the simulated peer stream.
 	data := []byte("testing 1234")
 	_, err = ms1.GetStream().Write(data)
 	if err != nil {
@@ -71,6 +74,7 @@ func TestConnectivity(ctx context.Context, px0, px1 *Peer) error {
 		return oe
 	}
 
+	// Verify the echoed probe has the expected byte count.
 	outData = outData[:on]
 	if on != len(data) {
 		return errors.Errorf(

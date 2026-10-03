@@ -42,6 +42,7 @@ func NewSimulator(
 	// Create the simulator cancellation context before starting peers.
 	s.ctx, s.ctxCancel = context.WithCancel(ctx)
 
+	// Apply the simulator construction options before creating graph peers.
 	for _, opt := range opts {
 		if opt != nil {
 			if err := opt(s); err != nil {
@@ -113,10 +114,13 @@ func NewSimulator(
 // Called only during NewSimulator construction before the Simulator is shared,
 // so it does not take mtx.
 func (s *Simulator) pushPeer(peer *graph.Peer) (*Peer, error) {
+	// Start the graph peer using the simulator lifecycle context.
 	p, err := newPeer(s.ctx, s.le, peer, s.verbose)
 	if err != nil {
 		return nil, err
 	}
+
+	// Register the running graph peer under its peer ID.
 	peerIDStr := p.GetPeerID().String()
 	s.peers[peerIDStr] = p
 	return p, nil

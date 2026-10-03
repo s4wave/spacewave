@@ -57,8 +57,8 @@ func newPeer(ctx context.Context, le *logrus.Entry, gp *graph.Peer, verbose bool
 		staticPeerMap: make(map[string]*dialer.DialerOpts),
 	}
 
+	// Create the peer lifecycle context and retain its cancellation callback.
 	var ctxCancel func()
-
 	np.ctx, ctxCancel = context.WithCancel(ctx) //nolint:gosec // cancel stored in rels and released by Close
 	rels = append(rels, ctxCancel)
 
@@ -74,6 +74,7 @@ func newPeer(ctx context.Context, le *logrus.Entry, gp *graph.Peer, verbose bool
 		return nil, err
 	}
 
+	// Register the in-process transport and graph-specific peer factories.
 	np.testbed.StaticResolver.AddFactory(inproc.NewFactory(np.testbed.Bus))
 	for _, extraFactoryCtor := range gp.GetExtraFactories() {
 		np.testbed.StaticResolver.AddFactory(extraFactoryCtor(np.testbed.Bus))

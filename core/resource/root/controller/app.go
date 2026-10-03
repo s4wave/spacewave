@@ -60,12 +60,15 @@ func (c *Controller) newAppRegistry() *keyed.KeyedRefCount[resource_root.AppStor
 	return keyed.NewKeyedRefCount(func(binding resource_root.AppStorage) (keyed.Routine, *promise.Promise[*appRuntime]) {
 		ready := promise.NewPromise[*appRuntime]()
 		return func(ctx context.Context) error {
+			// Build the shared app runtime and publish its construction result.
 			runtime, err := c.buildApp(ctx, binding)
 			ready.SetResult(runtime, err)
 			if err != nil {
 				return err
 			}
 			defer runtime.close()
+
+			// Keep the app runtime alive until its registry cancels execution.
 			<-ctx.Done()
 			return nil
 		}, ready
@@ -102,10 +105,13 @@ func (r *appRuntime) GetHTTPPathPrefix() string { return r.root.httpPathPrefix }
 
 // InvokeMethod scopes RPC cancellation and plugin storage to this installation.
 func (r *appRuntime) InvokeMethod(service, method string, stream srpc.Stream) (bool, error) {
+	// Cancel the app RPC when either the stream or runtime ends.
 	ctx, cancel := context.WithCancel(stream.Context())
 	stop := context.AfterFunc(r.ctx, cancel)
 	defer stop()
 	defer cancel()
+
+	// Invoke the app root with installation-scoped storage and plugin context.
 	ctx = storage.WithHostStorageID(ctx, "default")
 	ctx = bldr_plugin.WithPluginContextInfo(ctx, nil)
 	return r.root.InvokeMethod(service, method, srpc.NewStreamWithContext(stream, ctx))
@@ -124,6 +130,7 @@ func (r *appRuntime) close() {
 // buildApp composes the normal local provider, Session, Space, plugin, and Root
 // controllers around supplied Storage. Its bus never inherits parent Sessions.
 func (c *Controller) buildApp(ctx context.Context, binding resource_root.AppStorage) (_ *appRuntime, err error) {
+	// Create the app runtime context and release partial construction on failure.
 	ctx, cancel := context.WithCancel(bldr_plugin.WithPluginContextInfo(ctx, nil))
 	ctx = storage.WithHostStorageID(ctx, "default")
 	runtime := &appRuntime{ctx: ctx, cancel: cancel, done: make(chan struct{})}
@@ -132,11 +139,15 @@ func (c *Controller) buildApp(ctx context.Context, binding resource_root.AppStor
 			runtime.close()
 		}
 	}()
+
+	// Create the child controller bus for the nested app runtime.
 	le := c.GetLogger().WithField("runtime", "nested-app")
 	child, factories, err := bldr_core.NewCoreBus(ctx, le)
 	if err != nil {
 		return nil, err
 	}
+
+	// Register the database and app controller factories on the child bus.
 	db_core.AddFactories(child, factories)
 	for _, factory := range []controller.Factory{
 		NewFactory(child, withParent(c)),
@@ -158,6 +169,8 @@ func (c *Controller) buildApp(ctx context.Context, binding resource_root.AppStor
 	} {
 		factories.AddFactory(factory)
 	}
+
+	// Prepare controller acquisition helpers that retain runtime release functions.
 	start := func(conf config.Config) (controller.Controller, error) {
 		ctrl, _, ref, err := loader.WaitExecControllerRunning(ctx, child, resolver.NewLoadControllerWithConfig(conf), nil)
 		if err == nil {
@@ -172,6 +185,8 @@ func (c *Controller) buildApp(ctx context.Context, binding resource_root.AppStor
 		}
 		return err
 	}
+
+	// Start the child node controller before mounting app storage.
 	if _, err := start(&node_controller.Config{}); err != nil {
 		return nil, err
 	}
@@ -192,6 +207,7 @@ func (c *Controller) buildApp(ctx context.Context, binding resource_root.AppStor
 		return nil, err
 	}
 
+	// Resolve the supplied app Storage or construct World-backed Storage.
 	var supplied storage.Storage
 	if binding.StorageID != "" {
 		selected, _, ref, lookupErr := bus.ExecWaitValue[storage.LookupStorageValue](
@@ -236,6 +252,8 @@ func (c *Controller) buildApp(ctx context.Context, binding resource_root.AppStor
 			return nil, err
 		}
 	}
+
+	// Expose the selected Storage through the child bus factories and controller.
 	supplied.AddFactories(child, factories)
 	if err := add(storage_controller.BuildStorageController("default", []storage.Storage{supplied},
 		controller.NewInfo("app/storage", Version, "app storage"))); err != nil {
@@ -254,6 +272,8 @@ func (c *Controller) buildApp(ctx context.Context, binding resource_root.AppStor
 	if _, err := pluginVolumeCtrl.(volume.Controller).GetVolume(ctx); err != nil {
 		return nil, err
 	}
+
+	// Start the app provider, Session, and Space controllers on the child bus.
 	for _, conf := range []config.Config{
 		&object_peer.Config{ObjectStoreId: "s4wave-peer", VolumeId: bldr_plugin.PluginVolumeID},
 		&session_controller.Config{},
@@ -268,11 +288,15 @@ func (c *Controller) buildApp(ctx context.Context, binding resource_root.AppStor
 			return nil, err
 		}
 	}
+
+	// Start the app root with the configured application plugins.
 	root, err := start(&Config{AppPluginIds: c.GetConfig().GetAppPluginIds()})
 	if err != nil {
 		return nil, err
 	}
 	runtime.root = root.(*Controller)
+
+	// Project app HTTP routes through the child bus under a unique path.
 	pathPrefix := "/app/" + ulid.NewULID()
 	runtime.root.httpPathPrefix = c.httpPathPrefix + pathPrefix
 	handler := http.StripPrefix(pathPrefix, bifrost_http.NewBusHandler(child, "", true))
@@ -280,15 +304,20 @@ func (c *Controller) buildApp(ctx context.Context, binding resource_root.AppStor
 		controller.NewInfo("app/http", Version, "projected app files and exports"),
 		func(context.Context, func()) (http.Handler, func(), error) {
 			return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+				// Cancel the app HTTP request when either the request or runtime ends.
 				requestCtx, requestCancel := context.WithCancel(req.Context())
 				stop := context.AfterFunc(ctx, requestCancel)
 				defer stop()
 				defer requestCancel()
+
+				// Serve the app HTTP request with installation-scoped storage and plugin context.
 				requestCtx = storage.WithHostStorageID(requestCtx, "default")
 				requestCtx = bldr_plugin.WithPluginContextInfo(requestCtx, nil)
 				handler.ServeHTTP(w, req.WithContext(requestCtx))
 			}), nil, nil
 		}, []string{pathPrefix + "/"}, false, nil)
+
+	// Register the projected app HTTP controller and retain its release function.
 	release, err := c.GetBus().AddController(ctx, httpCtrl, nil)
 	if err != nil {
 		return nil, err
