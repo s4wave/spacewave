@@ -34,6 +34,7 @@ func (e *signalTicketHTTPError) Is(target error) bool {
 
 // signalURL joins a signaling endpoint path to its relative or absolute base.
 func signalURL(baseURL, endpoint string) (*url.URL, error) {
+	// Resolve the signaling endpoint path against its configured base URL.
 	u, err := url.Parse(baseURL)
 	if err != nil {
 		return nil, err
@@ -45,6 +46,7 @@ func signalURL(baseURL, endpoint string) (*url.URL, error) {
 
 // signalWebSocketURL builds a signaling WebSocket URL with an encoded ticket.
 func signalWebSocketURL(baseURL, ticket string) (string, error) {
+	// Build the WebSocket endpoint and encode its authorization ticket.
 	u, err := signalURL(baseURL, "/api/signal/ws")
 	if err != nil {
 		return "", err
@@ -70,6 +72,7 @@ func acquireSignalTicket(
 	pid peer.ID,
 	envPfx string,
 ) (string, error) {
+	// Construct the binary signal ticket request at the configured endpoint.
 	ticketURL, err := signalURL(baseURL, "/api/signal/ticket")
 	if err != nil {
 		return "", err
@@ -80,20 +83,24 @@ func acquireSignalTicket(
 	}
 	req.Header.Set("Accept", "application/octet-stream")
 
+	// Authenticate the ticket request with the session peer signature.
 	if err := SignHTTPRequest(req, nil, priv, pid, envPfx); err != nil {
 		return "", errors.Wrap(err, "sign signal ticket request")
 	}
 
+	// Send the ticket request and retain its response body until decoded.
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return "", errors.Wrap(err, "post signal ticket")
 	}
 	defer resp.Body.Close()
 
+	// Require a successful HTTP response before decoding the signal ticket.
 	if resp.StatusCode != http.StatusOK {
 		return "", &signalTicketHTTPError{statusCode: resp.StatusCode}
 	}
 
+	// Decode the binary signal ticket response and require its token.
 	data, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return "", errors.Wrap(err, "read signal ticket response")

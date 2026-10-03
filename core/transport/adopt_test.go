@@ -17,6 +17,7 @@ import (
 )
 
 func TestSessionTransportAdoptsAuthenticatedLink(t *testing.T) {
+	// Start the session transport testbed with a bounded lifetime.
 	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
 	defer cancel()
 	tb, err := testbed.Default(ctx)
@@ -24,6 +25,8 @@ func TestSessionTransportAdoptsAuthenticatedLink(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer tb.Release()
+
+	// Generate private keys for the local and remote link peers.
 	localKey, _, err := crypto.GenerateEd25519Key(rand.Reader)
 	if err != nil {
 		t.Fatal(err)
@@ -32,6 +35,8 @@ func TestSessionTransportAdoptsAuthenticatedLink(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Derive the peer IDs used by the authenticated test link.
 	localPeer, err := peer.IDFromPrivateKey(localKey)
 	if err != nil {
 		t.Fatal(err)
@@ -40,6 +45,8 @@ func TestSessionTransportAdoptsAuthenticatedLink(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Start the session transport and wait for its local controllers.
 	owner, err := transport.NewSessionTransport(logrus.NewEntry(logrus.New()), tb.Bus, localKey, "", "")
 	if err != nil {
 		t.Fatal(err)
@@ -49,10 +56,14 @@ func TestSessionTransportAdoptsAuthenticatedLink(t *testing.T) {
 	if err := owner.AwaitReady(ctx); err != nil {
 		t.Fatal(err)
 	}
+
+	// Adopt the authenticated link into the running session transport.
 	lnk := newAdoptTestLink(localPeer, remotePeer)
 	if err := owner.AdoptLink(ctx, lnk); err != nil {
 		t.Fatal(err)
 	}
+
+	// Wait for the adopted link to appear in the transport snapshot.
 	for {
 		links, waits := owner.GetLinkSnapshotsWithWait()
 		if len(links) == 1 && links[0].RemotePeerID == remotePeer {
@@ -64,6 +75,8 @@ func TestSessionTransportAdoptsAuthenticatedLink(t *testing.T) {
 		case <-waitAny(waits):
 		}
 	}
+
+	// Verify that session transport shutdown closes the adopted link.
 	cancel()
 	select {
 	case <-lnk.closed:

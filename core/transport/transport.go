@@ -133,6 +133,7 @@ func NewSessionTransport(
 	signingEnvPfx string,
 	opts ...SessionTransportOption,
 ) (*SessionTransport, error) {
+	// Derive the session peer and apply its transport configuration options.
 	pid, err := peer.IDFromPrivateKey(sessionKey)
 	if err != nil {
 		return nil, err
@@ -284,6 +285,7 @@ func (t *SessionTransport) AwaitReady(ctx context.Context) error {
 func (t *SessionTransport) fail(err error) {
 	var cancel context.CancelFunc
 	t.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		// Record the first transport failure and notify lifecycle waiters.
 		if t.phase == phaseFailed {
 			return
 		}
@@ -354,8 +356,8 @@ func (t *SessionTransport) Execute(ctx context.Context) (err error) {
 		}
 	}()
 
+	// Create the child bus with transport logging and controller infrastructure.
 	le := t.le
-
 	// Create the child bus and its controller infrastructure.
 	t.setStartupStage("child-bus")
 	b, sr, err := cbc.NewCoreBus(ctx, le)
@@ -383,8 +385,8 @@ func (t *SessionTransport) Execute(ctx context.Context) (err error) {
 		})
 	}()
 
+	// Prepare the child bus to bridge allowed directives to its parent.
 	t.setStartupStage("bridge")
-
 	// Bridge directives from child to parent.
 	bridge := bus_bridge.NewBusBridge(t.parentBus, func(di directive.Instance) (bool, error) {
 		if t.bridgeFilter != nil {
@@ -416,8 +418,8 @@ func (t *SessionTransport) Execute(ctx context.Context) (err error) {
 		return err
 	}
 
+	// Install the session peer identity on the child bus.
 	t.setStartupStage("peer-controller")
-
 	// Register peer controller with the session's private key.
 	sessionPeer, err := peer.NewPeer(t.sessionKey)
 	if err != nil {
@@ -428,8 +430,8 @@ func (t *SessionTransport) Execute(ctx context.Context) (err error) {
 		return err
 	}
 
+	// Make transport and stream routing controllers available on the child bus.
 	t.setStartupStage("factories")
-
 	// Register bifrost transport factories on the child bus.
 	for _, factory := range sessionTransportFactories(b) {
 		sr.AddFactory(factory)
@@ -438,8 +440,8 @@ func (t *SessionTransport) Execute(ctx context.Context) (err error) {
 	sr.AddFactory(dex_solicit.NewFactory(b))
 	sr.AddFactory(stream_api_accept.NewFactory(b))
 
+	// Start bilateral stream matching on the session bus.
 	t.setStartupStage("solicit-controller")
-
 	// Start solicit controller for bilateral stream matching.
 	_, _, solicitRef, err := loader.WaitExecControllerRunning(
 		ctx, b,
@@ -451,8 +453,8 @@ func (t *SessionTransport) Execute(ctx context.Context) (err error) {
 	}
 	defer solicitRef.Release()
 
+	// Start distribution configuration gossip for linked peers.
 	t.setStartupStage("dist-config-gossip")
-
 	// Gossip the launcher's signed DistConfig with linked peers.
 	gossipCtrl := spacewave_launcher_gossip.NewController(le, b)
 	releaseGossip, err := b.AddController(ctx, gossipCtrl, nil)
@@ -477,6 +479,7 @@ func (t *SessionTransport) Execute(ctx context.Context) (err error) {
 		}
 	}
 
+	// Start WebRTC transport controllers and expose their active links.
 	t.setStartupStage("webrtc-controllers")
 	rtcCtrl, releaseRTC, err := t.startWebRTCControllers(ctx, le, b)
 	if err != nil {
@@ -492,12 +495,14 @@ func (t *SessionTransport) Execute(ctx context.Context) (err error) {
 		})
 	}
 
+	// Publish the running session bus for transport lookups.
 	releaseLookup, err := t.publishSessionBus(b)
 	if err != nil {
 		return err
 	}
 	defer releaseLookup()
 
+	// Announce transport readiness and run until its context ends.
 	t.setStartupStage("ready")
 	t.publishReady()
 	le.Debug("session transport started")

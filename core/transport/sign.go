@@ -17,6 +17,7 @@ import (
 // SignHTTPRequest signs an HTTP request using the Spacewave SigningPayload
 // proto binary + Ed25519 wire format.
 func SignHTTPRequest(req *http.Request, body []byte, priv bifrost_crypto.PrivKey, pid peer.ID, envPfx string) error {
+	// Prepare the request environment, body digest, and signing timestamp.
 	if envPfx == "" {
 		envPfx = "spacewave"
 	}
@@ -24,6 +25,7 @@ func SignHTTPRequest(req *http.Request, body []byte, priv bifrost_crypto.PrivKey
 	bodyHashHex := hex.EncodeToString(h[:])
 	timestampMs := time.Now().UnixMilli()
 
+	// Encode the request metadata in the canonical signing payload.
 	payload := &api.SigningPayload{
 		EnvPrefix:     envPfx,
 		Method:        req.Method,
@@ -37,11 +39,13 @@ func SignHTTPRequest(req *http.Request, body []byte, priv bifrost_crypto.PrivKey
 		return errors.Wrap(err, "marshal signing payload")
 	}
 
+	// Sign the encoded request payload with the session private key.
 	sig, err := priv.Sign(payloadBytes)
 	if err != nil {
 		return errors.Wrap(err, "sign payload")
 	}
 
+	// Attach the peer identity and signature headers to the HTTP request.
 	req.Header.Set("X-Peer-ID", pid.String())
 	req.Header.Set("X-Timestamp", strconv.FormatInt(timestampMs, 10))
 	req.Header.Set("X-Sw-Hash", bodyHashHex)

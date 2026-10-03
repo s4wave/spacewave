@@ -18,31 +18,38 @@ import (
 )
 
 func TestFSCursorProjectsGitWorktreePaths(t *testing.T) {
+	// Create the context and debug logger for the projected worktree test.
 	ctx := context.Background()
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
 
+	// Start the storage testbed for the projected World.
 	btb, err := hydra_testbed.NewTestbed(ctx, le, hydra_testbed.WithVerbose(false))
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	// Start the World engine and retain it for the test lifetime.
 	wtb, err := world_testbed.NewTestbed(btb, world_testbed.WithWorldVerbose(false))
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer wtb.Release()
 
+	// Register UnixFS operations for the worktree directory.
 	unixfsOpc := world.NewLookupOpController("test-space-projection-git-unixfs", wtb.EngineID, unixfs_world.LookupFsOp)
 	if _, err := wtb.Bus.AddController(ctx, unixfsOpc, nil); err != nil {
 		t.Fatal(err)
 	}
+
+	// Register Git operations for the World worktree.
 	gitOpc := world.NewLookupOpController("test-space-projection-git", wtb.EngineID, git_world.LookupGitOp)
 	if _, err := wtb.Bus.AddController(ctx, gitOpc, nil); err != nil {
 		t.Fatal(err)
 	}
 
+	// Create the Git repository object in the writable World.
 	ws := world.NewEngineWorldState(wtb.Engine, true)
 	sender := wtb.Volume.GetPeerID()
 	{
@@ -56,6 +63,7 @@ func TestFSCursorProjectsGitWorktreePaths(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Create a World worktree backed by a UnixFS directory.
 	workdirRef := &unixfs_world.UnixfsRef{
 		ObjectKey: "repo/demo/workdir",
 		FsType:    unixfs_world.FSType_FSType_FS_NODE,
@@ -75,12 +83,14 @@ func TestFSCursorProjectsGitWorktreePaths(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Open a writable World transaction for the worktree contents.
 	tx, err := wtb.Engine.NewTransaction(ctx, true)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer tx.Discard()
 
+	// Open a writable filesystem handle on the worktree directory.
 	workdirCursor, _ := unixfs_world.NewFSCursorWithWriter(
 		ctx,
 		le,
@@ -96,6 +106,7 @@ func TestFSCursorProjectsGitWorktreePaths(t *testing.T) {
 	}
 	defer workdirHandle.Release()
 
+	// Create and write README.md in the worktree directory.
 	now := time.Now()
 	if err := workdirHandle.Mknod(ctx, true, []string{"README.md"}, unixfs.NewFSCursorNodeType_File(), 0o644, now); err != nil {
 		t.Fatal(err)
@@ -109,10 +120,13 @@ func TestFSCursorProjectsGitWorktreePaths(t *testing.T) {
 		t.Fatal(err)
 	}
 	fileHandle.Release()
+
+	// Commit the worktree file contents to the World.
 	if err := tx.Commit(ctx); err != nil {
 		t.Fatal(err)
 	}
 
+	// Open the projected filesystem root and retain its handle.
 	rootCursor := NewFSCursor(le, world.NewEngineWorldState(wtb.Engine, false), 11, "space-git")
 	rootHandle, err := unixfs.NewFSHandle(rootCursor)
 	if err != nil {
@@ -121,17 +135,21 @@ func TestFSCursorProjectsGitWorktreePaths(t *testing.T) {
 	}
 	defer rootHandle.Release()
 
+	// Open README.md through the projected Git worktree path.
 	projectedFile, _, err := rootHandle.LookupPath(ctx, "u/11/so/space-git/-/repo/demo/worktree/-/README.md")
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer projectedFile.Release()
 
+	// Read README.md through the projected filesystem handle.
 	buf := make([]byte, 32)
 	n, err := projectedFile.ReadAt(ctx, 0, buf)
 	if err != nil && err != io.EOF {
 		t.Fatal(err)
 	}
+
+	// Verify that the projected worktree returns the stored README contents.
 	if got := string(buf[:n]); got != "git worktree file" {
 		t.Fatalf("got %q, want %q", got, "git worktree file")
 	}

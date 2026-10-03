@@ -56,10 +56,12 @@ func (f *FSCursor) CheckReleased() bool {
 
 // GetProxyCursor returns the mounted object cursor for exact object paths.
 func (f *FSCursor) GetProxyCursor(ctx context.Context) (unixfs.FSCursor, error) {
+	// Reject a released projected filesystem cursor.
 	if f.CheckReleased() {
 		return nil, unixfs_errors.ErrReleased
 	}
 
+	// Resolve the exact object mounted at the projected path.
 	objectKey, ok, err := f.getMountedObjectKey(ctx)
 	if err != nil {
 		return nil, err
@@ -68,9 +70,11 @@ func (f *FSCursor) GetProxyCursor(ctx context.Context) (unixfs.FSCursor, error) 
 		return nil, nil
 	}
 
+	// Serialize access to the cached object cursor.
 	f.mtx.Lock()
 	defer f.mtx.Unlock()
 
+	// Reuse the live object cursor after checking release under the lock.
 	if f.released.Load() {
 		return nil, unixfs_errors.ErrReleased
 	}
@@ -78,6 +82,7 @@ func (f *FSCursor) GetProxyCursor(ctx context.Context) (unixfs.FSCursor, error) 
 		return f.proxyCursor, nil
 	}
 
+	// Open and cache the object cursor for the mounted object.
 	cursor, err := openObjectCursor(ctx, f.le, f.ws, objectKey)
 	if err != nil {
 		return nil, err
@@ -146,16 +151,19 @@ func (f *FSCursor) getProjectionTail() ([]string, bool) {
 }
 
 func (f *FSCursor) getMountedObjectKey(ctx context.Context) (string, bool, error) {
+	// Require an object mount marker at the end of the projected path.
 	tail, ok := f.getProjectionTail()
 	if !ok || len(tail) == 0 || tail[len(tail)-1] != "-" {
 		return "", false, nil
 	}
 
+	// Extract the object path preceding its mount marker.
 	objectPath := tail[:len(tail)-1]
 	if len(objectPath) == 0 {
 		return "", false, nil
 	}
 
+	// Match the object path against the objects projected from the World.
 	objects, err := listProjectedObjects(ctx, f.ws)
 	if err != nil {
 		return "", false, err
@@ -165,10 +173,12 @@ func (f *FSCursor) getMountedObjectKey(ctx context.Context) (string, bool, error
 }
 
 func (f *FSCursor) lookupChild(ctx context.Context, name string) (unixfs.FSCursor, error) {
+	// Reject child lookups on a released projected cursor.
 	if f.CheckReleased() {
 		return nil, unixfs_errors.ErrReleased
 	}
 
+	// Resolve the synthetic session and shared object path segments.
 	switch len(f.path) {
 	case 0:
 		if name != "u" {
@@ -197,6 +207,7 @@ func (f *FSCursor) lookupChild(ctx context.Context, name string) (unixfs.FSCurso
 		return f.buildChild(name), nil
 	}
 
+	// Keep mounted object contents outside synthetic child lookup.
 	_, mounted, err := f.getMountedObjectKey(ctx)
 	if err != nil {
 		return nil, err
@@ -205,6 +216,7 @@ func (f *FSCursor) lookupChild(ctx context.Context, name string) (unixfs.FSCurso
 		return nil, unixfs_errors.ErrNotExist
 	}
 
+	// Require the requested child in the projected directory.
 	children, err := f.listChildren(ctx)
 	if err != nil {
 		return nil, err
@@ -216,6 +228,7 @@ func (f *FSCursor) lookupChild(ctx context.Context, name string) (unixfs.FSCurso
 }
 
 func (f *FSCursor) listChildren(ctx context.Context) (map[string]*projectedChild, error) {
+	// Require a projected directory path instead of an object mount.
 	path, ok := f.getProjectionTail()
 	if !ok {
 		return nil, unixfs_errors.ErrNotExist
@@ -224,11 +237,13 @@ func (f *FSCursor) listChildren(ctx context.Context) (map[string]*projectedChild
 		return nil, unixfs_errors.ErrNotDirectory
 	}
 
+	// Read the World objects eligible for filesystem projection.
 	objects, err := listProjectedObjects(ctx, f.ws)
 	if err != nil {
 		return nil, err
 	}
 
+	// Collect the next path segment of each object below this directory.
 	children := make(map[string]*projectedChild)
 	for _, objectKey := range objects {
 		segs := splitObjectKey(objectKey)
@@ -240,6 +255,7 @@ func (f *FSCursor) listChildren(ctx context.Context) (map[string]*projectedChild
 		children[childName] = &projectedChild{name: childName}
 	}
 
+	// Expose the mount marker when this directory is also an exact object path.
 	if len(path) > 0 {
 		if _, found := findExactObjectKey(path, objects); found {
 			children["-"] = &projectedChild{name: "-"}
@@ -250,10 +266,12 @@ func (f *FSCursor) listChildren(ctx context.Context) (map[string]*projectedChild
 }
 
 func (f *FSCursor) readdirChildren(ctx context.Context, skip uint64, cb func(ent unixfs.FSCursorDirent) error) error {
+	// Reject directory reads on a released projected cursor.
 	if f.CheckReleased() {
 		return unixfs_errors.ErrReleased
 	}
 
+	// Build entries for the synthetic path or projected object directory.
 	var dirents []*projectedDirent
 	switch len(f.path) {
 	case 0:
@@ -274,6 +292,7 @@ func (f *FSCursor) readdirChildren(ctx context.Context, skip uint64, cb func(ent
 		dirents = buildProjectedDirents(children)
 	}
 
+	// Deliver directory entries after the requested skip count.
 	for i, dirent := range dirents {
 		if uint64(i) < skip {
 			continue

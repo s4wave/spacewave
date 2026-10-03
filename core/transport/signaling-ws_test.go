@@ -25,6 +25,7 @@ import (
 
 // TestWSSignalPeerResolverWaitsForConnection verifies cancellation before signaling is ready.
 func TestWSSignalPeerResolverWaitsForConnection(t *testing.T) {
+	// Verify that a canceled resolver stops while signaling is still unavailable.
 	ctx, cancel := context.WithCancel(t.Context())
 	cancel()
 	ctrl := &wsSignalingCtrl{ready: make(chan struct{})}
@@ -153,6 +154,7 @@ type genTestHandler struct {
 
 // AddValue records an added value.
 func (h *genTestHandler) AddValue(val directive.Value) (uint32, bool) {
+	// Record the resolver value and notify the test of its attachment.
 	h.mtx.Lock()
 	h.nextID++
 	id := h.nextID
@@ -164,6 +166,7 @@ func (h *genTestHandler) AddValue(val directive.Value) (uint32, bool) {
 
 // RemoveValue removes a value and calls its removed callback.
 func (h *genTestHandler) RemoveValue(id uint32) (directive.Value, bool) {
+	// Remove the resolver value and notify its removal callback.
 	h.mtx.Lock()
 	val, ok := h.values[id]
 	delete(h.values, id)
@@ -187,6 +190,7 @@ func (h *genTestHandler) AddValueRemovedCallback(id uint32, cb func()) func() {
 // TestWSSignalPeerResolverReplacesValueOnReconnect verifies the resolver
 // replaces its value when the signaling connection generation changes.
 func TestWSSignalPeerResolverReplacesValueOnReconnect(t *testing.T) {
+	// Prepare the peer identity and signaling connection generations.
 	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
 	defer cancel()
 	priv, _, err := crypto.GenerateEd25519Key(rand.Reader)
@@ -196,6 +200,7 @@ func TestWSSignalPeerResolverReplacesValueOnReconnect(t *testing.T) {
 	le := logrus.NewEntry(logrus.New())
 	ctrl := &wsSignalingCtrl{ready: make(chan struct{})}
 	startGen := func() chan struct{} {
+		// Create a signaling client and publish the next ready generation.
 		client, err := signaling_rpc_client.NewClient(le, nil, priv, nil)
 		if err != nil {
 			t.Fatal(err)
@@ -208,6 +213,7 @@ func TestWSSignalPeerResolverReplacesValueOnReconnect(t *testing.T) {
 		return ctrl.done
 	}
 	endGen := func() {
+		// End the current signaling generation and clear its client for reconnect.
 		ctrl.mtx.Lock()
 		defer ctrl.mtx.Unlock()
 		ctrl.client = nil
@@ -216,6 +222,7 @@ func TestWSSignalPeerResolverReplacesValueOnReconnect(t *testing.T) {
 		ctrl.ready = make(chan struct{})
 	}
 
+	// Start the peer resolver with a handler that records attached values.
 	handler := &genTestHandler{
 		values:  make(map[uint32]directive.Value),
 		removed: make(map[uint32]func()),
@@ -228,6 +235,7 @@ func TestWSSignalPeerResolverReplacesValueOnReconnect(t *testing.T) {
 	errCh := make(chan error, 1)
 	go func() { errCh <- resolver.Resolve(ctx, handler) }()
 
+	// Define a wait for each newly attached resolver value.
 	waitAdded := func() uint32 {
 		t.Helper()
 		select {
@@ -239,14 +247,21 @@ func TestWSSignalPeerResolverReplacesValueOnReconnect(t *testing.T) {
 		return 0
 	}
 
+	// Attach a resolver value from the first signaling generation.
 	startGen()
 	first := waitAdded()
+
+	// Replace the signaling generation and await its new resolver value.
 	endGen()
 	startGen()
 	second := waitAdded()
+
+	// Verify that reconnecting publishes a distinct resolver value.
 	if second == first {
 		t.Fatal("expected a new value for the new generation")
 	}
+
+	// Verify that reconnecting removes the previous resolver value.
 	handler.mtx.Lock()
 	_, firstPresent := handler.values[first]
 	handler.mtx.Unlock()
@@ -254,6 +269,7 @@ func TestWSSignalPeerResolverReplacesValueOnReconnect(t *testing.T) {
 		t.Fatal("expected stale value to be removed")
 	}
 
+	// Cancel the resolver and verify its cancellation result.
 	cancel()
 	if err := <-errCh; !errors.Is(err, context.Canceled) {
 		t.Fatalf("resolve error = %v, want context cancellation", err)
@@ -263,6 +279,7 @@ func TestWSSignalPeerResolverReplacesValueOnReconnect(t *testing.T) {
 // TestWSSignalingGenerationEndsOnCloseFrame verifies that a server close
 // frame ends the connection generation without waiting for the ping.
 func TestWSSignalingGenerationEndsOnCloseFrame(t *testing.T) {
+	// Prepare the peer identity for a signaling close frame test.
 	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
 	t.Cleanup(cancel)
 	priv, _, err := crypto.GenerateEd25519Key(rand.Reader)
@@ -277,6 +294,7 @@ func TestWSSignalingGenerationEndsOnCloseFrame(t *testing.T) {
 	// Reject the first frame the way the signaling server rejects one it
 	// cannot decode.
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Accept the test WebSocket and reject its first signaling frame.
 		conn, err := ws.Accept(w, r, nil)
 		if err != nil {
 			t.Error(err)
@@ -290,6 +308,7 @@ func TestWSSignalingGenerationEndsOnCloseFrame(t *testing.T) {
 	}))
 	t.Cleanup(server.Close)
 
+	// Connect the signaling controller to the test WebSocket server.
 	ctrl := &wsSignalingCtrl{
 		le:    logrus.NewEntry(logrus.New()),
 		ready: make(chan struct{}),
@@ -300,8 +319,12 @@ func TestWSSignalingGenerationEndsOnCloseFrame(t *testing.T) {
 			return "ws" + strings.TrimPrefix(server.URL, "http"), nil
 		},
 	}
+
+	// Run one signaling generation against the rejecting server.
 	start := time.Now()
 	err = ctrl.executeGeneration(ctx)
+
+	// Verify that the close frame ends the generation before its ping interval.
 	if elapsed := time.Since(start); elapsed > signalingWebSocketPingInterval/3 {
 		t.Fatalf("generation ended after %v with %v, want it to end at the close frame", elapsed, err)
 	}
