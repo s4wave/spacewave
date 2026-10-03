@@ -70,10 +70,13 @@ type HostRuntime struct {
 
 // InstantiateHostRuntime compiles and instantiates the v86 wasm image and
 func InstantiateHostRuntime(ctx context.Context, wasmPath string, opts HostRuntimeOptions) (*HostRuntime, error) {
+	// Read the v86 wasm image before allocating the host runtime.
 	wasmBytes, err := os.ReadFile(wasmPath)
 	if err != nil {
 		return nil, errors.Wrap(err, "read v86 wasm")
 	}
+
+	// Create a wazero runtime that closes if host instantiation fails.
 	r := wazero.NewRuntime(ctx)
 	closeOnError := true
 	defer func() {
@@ -82,12 +85,14 @@ func InstantiateHostRuntime(ctx context.Context, wasmPath string, opts HostRunti
 		}
 	}()
 
+	// Compile the v86 wasm image and retain it through module instantiation.
 	compiled, err := r.CompileModule(ctx, wasmBytes)
 	if err != nil {
 		return nil, errors.Wrap(err, "compile v86 wasm with wazero")
 	}
 	defer compiled.Close(ctx)
 
+	// Inspect v86 imports and construct the host callback and device state.
 	report, err := importReport(compiled, wasmBytes)
 	if err != nil {
 		return nil, err
@@ -108,6 +113,7 @@ func InstantiateHostRuntime(ctx context.Context, wasmPath string, opts HostRunti
 		mmapBlocks:   make(map[uint32]mmapBlock),
 	}
 
+	// Instantiate the shared v86 memory and table before installing host callbacks.
 	shared, err := buildSharedModule(externs, opts)
 	if err != nil {
 		return nil, err
@@ -118,6 +124,8 @@ func InstantiateHostRuntime(ctx context.Context, wasmPath string, opts HostRunti
 	if err := host.instantiateGoEnv(ctx, compiled); err != nil {
 		return nil, err
 	}
+
+	// Instantiate the env re-exports that connect v86 imports to the Go callbacks.
 	env, err := buildEnvModule(compiled, externs)
 	if err != nil {
 		return nil, err
@@ -125,29 +133,38 @@ func InstantiateHostRuntime(ctx context.Context, wasmPath string, opts HostRunti
 	if _, err := r.InstantiateWithConfig(ctx, env, wazero.NewModuleConfig().WithName(envModuleName)); err != nil {
 		return nil, errors.Wrap(err, "instantiate v86 env re-export module")
 	}
+
+	// Instantiate the v86 guest and transfer the runtime lifetime to its host.
 	mod, err := r.InstantiateModule(ctx, compiled, wazero.NewModuleConfig().WithName("v86"))
 	if err != nil {
 		return nil, errors.Wrap(err, "instantiate v86 wasm module")
 	}
 	host.Module = mod
 	closeOnError = false
+
 	return host, nil
 }
 
 // Close releases the wazero runtime and every module it instantiated.
 func (h *HostRuntime) Close(ctx context.Context) error {
+	// Treat an absent host runtime as already closed.
 	if h == nil || h.Runtime == nil {
 		return nil
 	}
+
+	// Close the host network stack while retaining its meaningful failure.
 	var netErr error
 	if h.network != nil {
 		if err := h.network.Close(); err != nil && !errors.Is(err, usernet.ErrStackClosed) {
 			netErr = err
 		}
 	}
+
+	// Release every wazero module before returning the network close result.
 	if err := h.Runtime.Close(ctx); err != nil {
 		return err
 	}
+
 	return netErr
 }
 
@@ -331,10 +348,13 @@ func (h *HostRuntime) callback(name string, results []api.ValueType) api.GoModul
 
 // apicTimer advances the guest APIC timer and returns the next tick
 func (h *HostRuntime) apicTimer(ctx context.Context, now float64) float64 {
+	// Locate the optional guest APIC timer export.
 	fn := h.Module.ExportedFunction("apic_timer")
 	if fn == nil {
 		return 100
 	}
+
+	// Advance the guest APIC timer and require a returned deadline.
 	result, err := fn.Call(ctx, api.EncodeF64(now))
 	if err != nil {
 		return 100
@@ -342,14 +362,18 @@ func (h *HostRuntime) apicTimer(ctx context.Context, now float64) float64 {
 	if len(result) == 0 {
 		return 100
 	}
+
 	return api.DecodeF64(result[0])
 }
 
 // readIO services a guest IO port read through its registered handler.
 func (h *HostRuntime) readIO(ctx context.Context, port uint32, width int) uint32 {
+	// Count the guest port read in the host I/O diagnostics.
 	if h.ioReads != nil {
 		h.ioReads[uint16(port)]++ //nolint:gosec // x86 IO port addresses are the low 16 bits of the guest port value.
 	}
+
+	// Dispatch the guest read at its requested hardware port width.
 	slot := h.ioPorts[uint16(port)] //nolint:gosec // x86 IO port addresses are the low 16 bits of the guest port value.
 	var value uint32
 	switch width {
@@ -362,9 +386,12 @@ func (h *HostRuntime) readIO(ctx context.Context, port uint32, width int) uint32
 	default:
 		value = 0
 	}
+
+	// Retain the last guest port value for host I/O diagnostics.
 	if h.ioLastReads != nil {
 		h.ioLastReads[uint16(port)] = value //nolint:gosec // x86 IO port addresses are the low 16 bits of the guest port value.
 	}
+
 	return value
 }
 
@@ -438,15 +465,20 @@ func (h *HostRuntime) codegenFinalize(ctx context.Context, stack []uint64) {
 
 // appendLog appends a debug-console string written by the guest to Logs.
 func (h *HostRuntime) appendLog(mod api.Module, stack []uint64) {
+	// Require guest log arguments and readable wasm memory.
 	if len(stack) < 2 || mod == nil || mod.Memory() == nil {
 		return
 	}
+
+	// Read the guest log string from its wasm memory range.
 	offset := api.DecodeU32(stack[0])
 	byteCount := api.DecodeU32(stack[1])
 	data, ok := mod.Memory().Read(offset, byteCount)
 	if !ok {
 		return
 	}
+
+	// Retain the guest console message in the host log.
 	h.Logs = append(h.Logs, string(data))
 }
 

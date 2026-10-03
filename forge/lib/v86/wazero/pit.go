@@ -24,10 +24,13 @@ type pitDevice struct {
 
 // registerPIT wires the counter ports (0x40-0x42), the control register
 func (h *HostRuntime) registerPIT() {
+	// Attach the programmable interval timer to the host runtime.
 	pit := &pitDevice{host: h}
 	h.pit = pit
 
+	// Expose speaker and counter-two output through the system control port.
 	h.RegisterIORead(0x61, 8, func(context.Context, uint16) uint32 {
+		// Sample the timer outputs and emulate the speaker reference toggle.
 		now := h.microtick()
 		pit.speakerToggle ^= 1
 		refToggle := uint32(pit.speakerToggle)
@@ -35,10 +38,12 @@ func (h *HostRuntime) registerPIT() {
 		if pit.counterEnabled[2] == 0 {
 			counter2Out = refToggle
 		}
+
 		return (refToggle << 4) | (counter2Out << 5)
 	})
 	h.RegisterIOWrite(0x61, 8, func(context.Context, uint16, uint32) {})
 
+	// Wire each PIT counter to its byte read and reload ports.
 	for i := range 3 {
 		counter := i
 		h.RegisterIORead(uint16(0x40+counter), 8, func(context.Context, uint16) uint32 {
@@ -48,6 +53,8 @@ func (h *HostRuntime) registerPIT() {
 			pit.counterWrite(counter, uint8(value)) //nolint:gosec // PIT data ports consume the low byte of an 8-bit IO write.
 		})
 	}
+
+	// Route control-port writes to the PIT mode and latch decoder.
 	h.RegisterIOWrite(0x43, 8, func(ctx context.Context, _ uint16, value uint32) {
 		pit.writeControl(ctx, uint8(value)) //nolint:gosec // the PIT control port consumes the low byte of an 8-bit IO write.
 	})
@@ -55,10 +62,13 @@ func (h *HostRuntime) registerPIT() {
 
 // timer services the timer tick: it raises/lower IRQ0 per counter 0 state
 func (p *pitDevice) timer(ctx context.Context, now float64, noIRQ bool) float64 {
+	// Suppress PIT interrupts when the CPU requests a timer-free step.
 	next := 100.0
 	if noIRQ {
 		return next
 	}
+
+	// Signal counter-zero rollover and stop a completed one-shot counter.
 	if p.counterEnabled[0] != 0 && p.didRollover(0, now) != 0 {
 		p.counterStartValue[0] = p.counterValue(0, now)
 		p.counterStartTime[0] = now
@@ -70,17 +80,21 @@ func (p *pitDevice) timer(ctx context.Context, now float64, noIRQ bool) float64 
 	} else {
 		_ = p.host.callVoid(ctx, "device_lower_irq", 0)
 	}
+
+	// Compute the next PIT deadline from the remaining counter ticks.
 	if p.counterEnabled[0] != 0 {
 		diff := now - p.counterStartTime[0]
 		diffTicks := math.Floor(diff * pitOscillatorKHz)
 		missing := float64(p.counterStartValue[0]) - diffTicks
 		next = missing / pitOscillatorKHz
 	}
+
 	return next
 }
 
 // counterRead returns the next latched or live byte of a counter, honoring
 func (p *pitDevice) counterRead(i int) uint8 {
+	// Consume a previously latched PIT counter byte before sampling live state.
 	if p.counterLatch[i] != 0 {
 		latch := p.counterLatch[i]
 		p.counterLatch[i]--
@@ -90,6 +104,7 @@ func (p *pitDevice) counterRead(i int) uint8 {
 		return uint8(p.counterLatchValue[i] >> 8) //nolint:gosec // the latched PIT value is a 16-bit counter read split into bytes.
 	}
 
+	// Select the live PIT counter byte and advance alternating reads.
 	nextLow := p.counterNextLow[i]
 	if p.counterMode[i] == 3 {
 		p.counterNextLow[i] ^= 1
@@ -98,6 +113,7 @@ func (p *pitDevice) counterRead(i int) uint8 {
 	if nextLow != 0 {
 		return uint8(value) //nolint:gosec // the PIT counter is a 16-bit hardware register.
 	}
+
 	return uint8(value >> 8)
 }
 
@@ -123,12 +139,15 @@ func (p *pitDevice) counterWrite(i int, value uint8) {
 
 // writeControl decodes a control-word write: latch command, read/load
 func (p *pitDevice) writeControl(ctx context.Context, value uint8) {
+	// Decode the PIT control word and reject the read-back counter selector.
 	mode := (value >> 1) & 7
 	i := int((value >> 6) & 3)
 	readMode := (value >> 4) & 3
 	if i == 3 {
 		return
 	}
+
+	// Snapshot the selected PIT counter for a two-byte latched read.
 	if readMode == 0 {
 		p.counterLatch[i] = 2
 		counterValue := p.counterValue(i, p.host.microtick())
@@ -138,6 +157,8 @@ func (p *pitDevice) writeControl(ctx context.Context, value uint8) {
 		p.counterLatchValue[i] = counterValue
 		return
 	}
+
+	// Normalize PIT mode aliases and choose the first reload byte.
 	if mode >= 6 {
 		mode &^= 4
 	}
@@ -149,6 +170,8 @@ func (p *pitDevice) writeControl(ctx context.Context, value uint8) {
 	default:
 		p.counterNextLow[i] = 1
 	}
+
+	// Clear counter-zero interrupt state before applying its new PIT mode.
 	if i == 0 {
 		_ = p.host.callVoid(ctx, "device_lower_irq", 0)
 	}
@@ -158,9 +181,12 @@ func (p *pitDevice) writeControl(ctx context.Context, value uint8) {
 
 // counterValue computes the current down-counter value in oscillator ticks.
 func (p *pitDevice) counterValue(i int, now float64) uint16 {
+	// Keep disabled PIT counters at zero.
 	if p.counterEnabled[i] == 0 {
 		return 0
 	}
+
+	// Convert elapsed time into the PIT down-counter value and reload range.
 	diff := now - p.counterStartTime[i]
 	diffTicks := math.Floor(diff * pitOscillatorKHz)
 	value := int(p.counterStartValue[i]) - int(diffTicks)
@@ -168,23 +194,30 @@ func (p *pitDevice) counterValue(i int, now float64) uint16 {
 	if reload == 0 {
 		reload = 0x10000
 	}
+
+	// Wrap the PIT counter into its programmed reload range.
 	if value >= reload {
 		value %= reload
 	} else if value < 0 {
 		value = value%reload + reload
 	}
+
 	return uint16(value) //nolint:gosec // counterValue normalizes the value into the 16-bit reload range.
 }
 
 // didRollover reports whether counter i has wrapped by now.
 func (p *pitDevice) didRollover(i int, now float64) uint8 {
+	// Treat a reversed host clock as PIT counter rollover.
 	diff := now - p.counterStartTime[i]
 	if diff < 0 {
 		return 1
 	}
+
+	// Compare elapsed oscillator ticks with the PIT counter starting value.
 	diffTicks := math.Floor(diff * pitOscillatorKHz)
 	if float64(p.counterStartValue[i]) < diffTicks {
 		return 1
 	}
+
 	return 0
 }

@@ -40,9 +40,12 @@ type optionROM struct {
 
 // loadLinuxKernel validates a bzImage and installs it with its initrd and
 func (h *HostRuntime) loadLinuxKernel(ctx context.Context, kernel []byte, initrd []byte, cmdline string) error {
+	// Require a complete Linux boot header before reading the image.
 	if len(kernel) < linuxBootHdrCmdlineSize+4 {
 		return errors.Errorf("kernel image too small: %d bytes", len(kernel))
 	}
+
+	// Copy the kernel image and validate its boot flag and header magic.
 	bzimage := append([]byte(nil), kernel...)
 	if binary.LittleEndian.Uint16(bzimage[linuxBootHdrBootFlag:]) != linuxBootHdrChecksum1 {
 		return errors.New("kernel image has invalid boot flag")
@@ -54,6 +57,8 @@ func (h *HostRuntime) loadLinuxKernel(ctx context.Context, kernel []byte, initrd
 	if header != linuxBootHdrChecksum2 {
 		return errors.New("kernel image has invalid header magic")
 	}
+
+	// Require a supported Linux boot protocol and high-memory loading.
 	protocol := binary.LittleEndian.Uint16(bzimage[linuxBootHdrVersion:])
 	if protocol < 0x202 {
 		return errors.Errorf("kernel boot protocol %#x is not supported", protocol)
@@ -63,6 +68,7 @@ func (h *HostRuntime) loadLinuxKernel(ctx context.Context, kernel []byte, initrd
 		return errors.New("kernel image is not loaded-high capable")
 	}
 
+	// Resolve the setup length and validate the kernel command-line capacity.
 	setupSects := uint32(bzimage[linuxBootHdrSetupSects])
 	if setupSects == 0 {
 		setupSects = 4
@@ -76,11 +82,13 @@ func (h *HostRuntime) loadLinuxKernel(ctx context.Context, kernel []byte, initrd
 		return errors.Errorf("kernel cmdline length %d exceeds limit %d", len(cmdlineBytes), cmdlineSize)
 	}
 
+	// Place the Linux real-mode setup and command line in low guest memory.
 	const realModeSegment = 0x8000
 	const heapEnd = 0xe000
 	basePtr := uint32(realModeSegment << 4)
 	cmdLinePtr := basePtr + heapEnd
 
+	// Configure the Linux boot header and install the guest command line.
 	bzimage[linuxBootHdrTypeOfLoader] = linuxBootHdrLoaderUnassigned
 	bzimage[linuxBootHdrLoadflags] = (flags &^ (linuxBootHdrQuietFlag | linuxBootHdrKeepSegments)) | linuxBootHdrCanUseHeap
 	binary.LittleEndian.PutUint16(bzimage[linuxBootHdrVidMode:], 0xffff)
@@ -90,10 +98,13 @@ func (h *HostRuntime) loadLinuxKernel(ctx context.Context, kernel []byte, initrd
 		return errors.Wrap(err, "write kernel cmdline")
 	}
 
+	// Validate the kernel payload offset before placing it in guest memory.
 	protectedModeStart := (setupSects + 1) * 512
 	if uint64(protectedModeStart) >= uint64(len(bzimage)) {
 		return errors.Errorf("kernel protected-mode offset %#x exceeds image size %#x", protectedModeStart, len(bzimage))
 	}
+
+	// Install the optional initrd and record its fixed guest address in the header.
 	if len(initrd) != 0 {
 		if uint64(len(initrd)) > math.MaxUint32 {
 			return errors.New("initrd exceeds linux boot protocol size")
@@ -107,6 +118,8 @@ func (h *HostRuntime) loadLinuxKernel(ctx context.Context, kernel []byte, initrd
 		binary.LittleEndian.PutUint32(bzimage[linuxBootHdrRamdiskImage:], initrdAddress)
 		binary.LittleEndian.PutUint32(bzimage[linuxBootHdrRamdiskSize:], uint32(len(initrd))) //nolint:gosec // the preceding MaxUint32 check protects the boot protocol field.
 	}
+
+	// Install the real-mode setup and protected-mode kernel in their guest regions.
 	if basePtr+protectedModeStart >= 0xa0000 {
 		return errors.New("kernel real-mode setup exceeds low memory")
 	}
@@ -117,20 +130,24 @@ func (h *HostRuntime) loadLinuxKernel(ctx context.Context, kernel []byte, initrd
 		return errors.Wrap(err, "write kernel protected-mode image")
 	}
 
+	// Publish the boot ROM that transfers control to the installed Linux setup.
 	h.optionROMs = append(h.optionROMs, optionROM{
 		name: "genroms/kernel.bin",
 		data: makeLinuxBootROM(realModeSegment, heapEnd),
 	})
+
 	return nil
 }
 
 // makeLinuxBootROM builds the 16-bit boot stub that jumps into the loaded
 func makeLinuxBootROM(realModeSegment, heapEnd uint16) []byte {
+	// Allocate a one-sector Linux option ROM with its BIOS signature.
 	const size = 0x200
 	data := make([]byte, size)
 	binary.LittleEndian.PutUint16(data[0:], 0xaa55)
 	data[2] = size / 0x200
 
+	// Disable interrupts and load the Linux real-mode segment into AX.
 	i := 3
 	data[i] = 0xfa
 	i++
@@ -138,18 +155,24 @@ func makeLinuxBootROM(realModeSegment, heapEnd uint16) []byte {
 	i++
 	binary.LittleEndian.PutUint16(data[i:], realModeSegment)
 	i += 2
+
+	// Point ES and DS at the Linux real-mode setup segment.
 	data[i] = 0x8e
 	data[i+1] = 0xc0
 	i += 2
 	data[i] = 0x8e
 	data[i+1] = 0xd8
 	i += 2
+
+	// Point FS and GS at the Linux real-mode setup segment.
 	data[i] = 0x8e
 	data[i+1] = 0xe0
 	i += 2
 	data[i] = 0x8e
 	data[i+1] = 0xe8
 	i += 2
+
+	// Initialize SS and the stack pointer for the Linux setup entry.
 	data[i] = 0x8e
 	data[i+1] = 0xd0
 	i += 2
@@ -157,6 +180,8 @@ func makeLinuxBootROM(realModeSegment, heapEnd uint16) []byte {
 	i++
 	binary.LittleEndian.PutUint16(data[i:], heapEnd)
 	i += 2
+
+	// Jump to the Linux setup code beyond its boot sector.
 	data[i] = 0xea
 	i++
 	binary.LittleEndian.PutUint16(data[i:], 0)
@@ -164,11 +189,13 @@ func makeLinuxBootROM(realModeSegment, heapEnd uint16) []byte {
 	binary.LittleEndian.PutUint16(data[i:], realModeSegment+0x20)
 	i += 2
 
+	// Complete the option-ROM checksum required by BIOS discovery.
 	checksumIndex := i
 	var checksum byte
 	for _, b := range data {
 		checksum += b
 	}
 	data[checksumIndex] = -checksum
+
 	return data
 }
