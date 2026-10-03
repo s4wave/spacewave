@@ -313,3 +313,46 @@ func TestBasicFile(t *testing.T) {
 		t.Fatalf("read %s != expected %s", buf, expected)
 	}
 }
+
+// TestSymlinkReplacesExistingEntry verifies that Symlink without checkExist
+// replaces an existing entry with the new link target.
+func TestSymlinkReplacesExistingEntry(t *testing.T) {
+	// Start a testbed with an empty object cursor.
+	ctx := context.Background()
+	le := logrus.NewEntry(logrus.New())
+	tb, err := testbed.NewTestbed(ctx, le)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	oc, err := tb.BuildEmptyCursor(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	// Initialize an empty root directory.
+	_, bcs := oc.BuildTransaction(nil)
+	bcs.SetBlock(NewFSNode(NodeType_NodeType_DIRECTORY, 0, nil), true)
+	ftree, err := NewFSTree(ctx, bcs, NodeType_NodeType_DIRECTORY)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	// Create a link and then replace it with a different target.
+	first := &FSSymlink{TargetPath: &FSPath{Nodes: []string{"first"}}}
+	if _, err := ftree.Symlink(true, "link", first, nil); err != nil {
+		t.Fatal(err.Error())
+	}
+	second := &FSSymlink{TargetPath: &FSPath{Nodes: []string{"second"}}}
+	if _, err := ftree.Symlink(false, "link", second, nil); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	// Expect the directory entry to reach the replacement target.
+	link, _, err := ftree.LookupFollowDirent("link")
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if got := link.GetFSNode().GetSymlink().GetTargetPath().GetNodes(); len(got) != 1 || got[0] != "second" {
+		t.Fatalf("symlink target = %v", got)
+	}
+}

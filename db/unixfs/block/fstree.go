@@ -198,15 +198,15 @@ func (f *FSTree) Symlink(
 			return nil, unixfs_errors.ErrExist
 		}
 
-		// clear old dirent refs
-		dcs := dslice.bcs.FollowSubBlock(uint32(direntIdx)) //nolint:gosec
+		// Clear the replaced entry's node reference.
+		dcs = dslice.bcs.FollowSubBlock(uint32(direntIdx)) //nolint:gosec
 		dirent.NodeRef = nil
 		dcs.ClearAllRefs()
 
-		// update dirent type
+		// Mark the replaced entry as a symbolic link.
 		dirent.NodeType = NodeType_NodeType_SYMLINK
 	} else {
-		// create new entry
+		// Append a new symbolic link entry in sorted order.
 		dirent = &Dirent{
 			Name:     name,
 			NodeType: NodeType_NodeType_SYMLINK,
