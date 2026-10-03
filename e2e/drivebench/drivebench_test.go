@@ -10,6 +10,7 @@ import (
 )
 
 func TestParseStartupMarksPreservesDetail(t *testing.T) {
+	// Parse a startup mark containing an inactive bridge's browser details.
 	marks := ParseStartupMarks([]any{
 		map[string]any{
 			"label":    "runtime.opfs-bridge-ready",
@@ -27,6 +28,7 @@ func TestParseStartupMarksPreservesDetail(t *testing.T) {
 		},
 	})
 
+	// Verify the parsed mark's identity and flattened browser fields.
 	if len(marks) != 1 {
 		t.Fatalf("marks = %d, want 1", len(marks))
 	}
@@ -40,6 +42,8 @@ func TestParseStartupMarksPreservesDetail(t *testing.T) {
 	if mark.Detail == nil {
 		t.Fatalf("mark detail is nil")
 	}
+
+	// Verify that the mark preserves false values and the worker identity.
 	gotEnabled, ok := mark.Detail["enabled"].(bool)
 	if !ok || gotEnabled {
 		t.Fatalf("detail enabled = %v (present %t), want false", gotEnabled, ok)
@@ -50,6 +54,7 @@ func TestParseStartupMarksPreservesDetail(t *testing.T) {
 }
 
 func TestWriteRunPreservesStartupDetail(t *testing.T) {
+	// Write a run artifact containing startup marks and trace task timing.
 	driveSeedStartedMs := 11
 	runPath, err := WriteRun(t.TempDir(), Run{
 		Timestamp:    "2026-06-30T08:41:13Z",
@@ -90,6 +95,7 @@ func TestWriteRunPreservesStartupDetail(t *testing.T) {
 		t.Fatalf("write run: %v", err)
 	}
 
+	// Read and parse the saved run artifact.
 	data, err := os.ReadFile(runPath)
 	if err != nil {
 		t.Fatalf("read run: %v", err)
@@ -100,6 +106,7 @@ func TestWriteRunPreservesStartupDetail(t *testing.T) {
 		t.Fatalf("parse run: %v", err)
 	}
 
+	// Verify the compiler identity and startup-mark count.
 	if got := string(value.GetStringBytes("compiler")); got != "goscript" {
 		t.Fatalf("compiler = %q, want goscript", got)
 	}
@@ -107,6 +114,8 @@ func TestWriteRunPreservesStartupDetail(t *testing.T) {
 	if len(startupMarks) != 1 {
 		t.Fatalf("startup marks = %d, want 1", len(startupMarks))
 	}
+
+	// Verify the inactive bridge's serialized detail values.
 	detail := startupMarks[0].Get("detail")
 	if detail.Get("enabled").Type() != fastjson.TypeFalse {
 		t.Fatalf("detail enabled type = %v, want false", detail.Get("enabled").Type())
@@ -114,6 +123,8 @@ func TestWriteRunPreservesStartupDetail(t *testing.T) {
 	if got := string(detail.GetStringBytes("workerId")); got != "runtime-1" {
 		t.Fatalf("detail workerId = %q, want runtime-1", got)
 	}
+
+	// Verify that the trace retains its task summary.
 	tasks := value.Get("trace").GetArray("tasks")
 	if len(tasks) != 1 {
 		t.Fatalf("trace tasks = %d, want 1", len(tasks))
@@ -121,6 +132,7 @@ func TestWriteRunPreservesStartupDetail(t *testing.T) {
 }
 
 func TestBrowserFromQuickstartTimingCountsDriveSeedResourceCalls(t *testing.T) {
+	// Construct quickstart timing with wrapper phases and leaf Resource SDK calls.
 	finished := 250
 	timing := map[string]any{
 		"state":           "content-ready",
@@ -173,7 +185,10 @@ func TestBrowserFromQuickstartTimingCountsDriveSeedResourceCalls(t *testing.T) {
 		},
 	}
 
+	// Summarize the browser's quickstart timing.
 	browser := BrowserFromQuickstartTiming(300, timing)
+
+	// Verify the quickstart state, Resource SDK call count, and Drive seed window.
 	if browser.QuickstartState != "content-ready" {
 		t.Fatalf("quickstart state = %q", browser.QuickstartState)
 	}
@@ -192,6 +207,7 @@ func TestBrowserFromQuickstartTimingCountsDriveSeedResourceCalls(t *testing.T) {
 }
 
 func TestWriteRunPreservesOperationShapeAndProfile(t *testing.T) {
+	// Write a run artifact containing operation fields and a browser profile.
 	runPath, err := WriteRun(t.TempDir(), Run{
 		Timestamp:    "2026-07-01T03:11:00Z",
 		Compiler:     "goscript",
@@ -236,6 +252,7 @@ func TestWriteRunPreservesOperationShapeAndProfile(t *testing.T) {
 		t.Fatalf("write run: %v", err)
 	}
 
+	// Read and parse the saved run artifact.
 	data, err := os.ReadFile(runPath)
 	if err != nil {
 		t.Fatalf("read run: %v", err)
@@ -245,6 +262,8 @@ func TestWriteRunPreservesOperationShapeAndProfile(t *testing.T) {
 	if err != nil {
 		t.Fatalf("parse run: %v", err)
 	}
+
+	// Verify the operation's name and numeric field summaries.
 	operation := value.Get("operationShape").GetArray("operations")[0]
 	if got := string(operation.GetStringBytes("name")); got != "block-write" {
 		t.Fatalf("operation name = %q, want block-write", got)
@@ -256,6 +275,8 @@ func TestWriteRunPreservesOperationShapeAndProfile(t *testing.T) {
 	if got := string(fields[0].GetStringBytes("name")); got != "write-shape.encoded_blocks" {
 		t.Fatalf("field name = %q", got)
 	}
+
+	// Verify the captured browser profile and its artifact path.
 	profile := value.Get("browserProfile")
 	if profile.Get("captured").Type() != fastjson.TypeTrue {
 		t.Fatalf("profile captured type = %v, want true", profile.Get("captured").Type())
@@ -266,6 +287,7 @@ func TestWriteRunPreservesOperationShapeAndProfile(t *testing.T) {
 }
 
 func TestWriteRunKeepsOperationShapeAndProfileOptional(t *testing.T) {
+	// Write a run artifact without operation summaries or a browser profile.
 	runPath, err := WriteRun(t.TempDir(), Run{
 		Timestamp:          "2026-07-01T03:11:00Z",
 		Compiler:           "goscript",
@@ -280,6 +302,7 @@ func TestWriteRunKeepsOperationShapeAndProfileOptional(t *testing.T) {
 		t.Fatalf("write run: %v", err)
 	}
 
+	// Read and parse the saved run artifact.
 	data, err := os.ReadFile(runPath)
 	if err != nil {
 		t.Fatalf("read run: %v", err)
@@ -289,6 +312,8 @@ func TestWriteRunKeepsOperationShapeAndProfileOptional(t *testing.T) {
 	if err != nil {
 		t.Fatalf("parse run without operation fields: %v", err)
 	}
+
+	// Verify that absent operation summaries and profiles remain omitted.
 	if got := value.Get("operationShape"); got != nil {
 		t.Fatalf("operationShape = %v, want absent", got)
 	}

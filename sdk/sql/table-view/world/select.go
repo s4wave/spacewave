@@ -21,12 +21,15 @@ func compileTableViewSelect(
 	schema *s4wave_sql_schema.Schema,
 	tableView *s4wave_sql_table_view.TableView,
 ) (string, []driver.NamedValue, uint32, error) {
+	// Require the schema and table view before compiling the SELECT.
 	if schema == nil {
 		return "", nil, 0, errors.New("sql/table-view: target schema is required")
 	}
 	if tableView == nil {
 		return "", nil, 0, errors.New("sql/table-view: table view is required")
 	}
+
+	// Quote the schema and table identifiers for the SELECT target.
 	schemaIdent, err := s4wave_sql.QuoteIdentifier(schema.GetSchemaName())
 	if err != nil {
 		return "", nil, 0, errors.Wrap(err, "sql/table-view: target schema name")
@@ -35,6 +38,8 @@ func compileTableViewSelect(
 	if err != nil {
 		return "", nil, 0, errors.Wrap(err, "sql/table-view: target table name")
 	}
+
+	// Compile the projected columns and sort order.
 	projection, err := compileProjection(tableView.GetProjectedColumns())
 	if err != nil {
 		return "", nil, 0, err
@@ -43,6 +48,8 @@ func compileTableViewSelect(
 	if err != nil {
 		return "", nil, 0, err
 	}
+
+	// Compile the table view filter and resolve its arguments and row limit.
 	where, whereParams, err := compileTableViewWhere(tableView)
 	if err != nil {
 		return "", nil, 0, err
@@ -50,6 +57,7 @@ func compileTableViewSelect(
 	args := sql_rpc.SqlValuesToNamedValues(whereParams)
 	maxRows := tableViewFetchLimit(tableView)
 
+	// Build the SELECT projection and qualified table target.
 	var query strings.Builder
 	query.WriteString("SELECT ")
 	query.WriteString(projection)
@@ -57,6 +65,8 @@ func compileTableViewSelect(
 	query.WriteString(schemaIdent)
 	query.WriteByte('.')
 	query.WriteString(tableIdent)
+
+	// Apply the table view filter and sort order to the SELECT.
 	if where != "" {
 		query.WriteString(" WHERE ")
 		query.WriteString(where)
@@ -65,8 +75,11 @@ func compileTableViewSelect(
 		query.WriteString(" ORDER BY ")
 		query.WriteString(orderBy)
 	}
+
+	// Limit the SELECT to one extra row so truncation can be detected.
 	query.WriteString(" LIMIT ")
 	query.WriteString(strconv.FormatUint(uint64(maxRows)+1, 10))
+
 	return query.String(), args, maxRows, nil
 }
 
@@ -75,24 +88,31 @@ func compileTableViewUpdate(
 	tableView *s4wave_sql_table_view.TableView,
 	req *s4wave_sql_table_view.UpdateRowRequest,
 ) (string, []driver.NamedValue, error) {
+	// Require the schema and table view before compiling the UPDATE.
 	if schema == nil {
 		return "", nil, errors.New("sql/table-view: target schema is required")
 	}
 	if tableView == nil {
 		return "", nil, errors.New("sql/table-view: table view is required")
 	}
+
+	// Require matching column and value counts for the update assignments.
 	if len(req.GetSetColumns()) == 0 {
 		return "", nil, errors.New("sql/table-view: update requires set columns")
 	}
 	if len(req.GetSetColumns()) != len(req.GetSetValues()) {
 		return "", nil, errors.New("sql/table-view: set columns and values length mismatch")
 	}
+
+	// Require matching column and value counts for the row predicates.
 	if len(req.GetMatchColumns()) == 0 {
 		return "", nil, errors.New("sql/table-view: update requires match columns")
 	}
 	if len(req.GetMatchColumns()) != len(req.GetMatchValues()) {
 		return "", nil, errors.New("sql/table-view: match columns and values length mismatch")
 	}
+
+	// Quote the schema and table identifiers for the UPDATE target.
 	schemaIdent, err := s4wave_sql.QuoteIdentifier(schema.GetSchemaName())
 	if err != nil {
 		return "", nil, errors.Wrap(err, "sql/table-view: target schema name")
@@ -102,10 +122,13 @@ func compileTableViewUpdate(
 		return "", nil, errors.Wrap(err, "sql/table-view: target table name")
 	}
 
+	// Compile the table view filter for the UPDATE.
 	where, whereParams, err := compileTableViewWhere(tableView)
 	if err != nil {
 		return "", nil, err
 	}
+
+	// Build the qualified UPDATE target and allocate its arguments.
 	args := make([]driver.NamedValue, 0, len(req.GetSetValues())+len(whereParams)+len(req.GetMatchValues()))
 	var query strings.Builder
 	query.WriteString("UPDATE ")
@@ -113,7 +136,10 @@ func compileTableViewUpdate(
 	query.WriteByte('.')
 	query.WriteString(tableIdent)
 	query.WriteString(" SET ")
+
+	// Bind each assigned column to its typed update value.
 	for i, column := range req.GetSetColumns() {
+		// Separate and quote the next assignment column.
 		if i != 0 {
 			query.WriteString(", ")
 		}
@@ -121,10 +147,14 @@ func compileTableViewUpdate(
 		if err != nil {
 			return "", nil, errors.Wrap(err, "sql/table-view: update set column")
 		}
+
+		// Append the assignment expression and its bound value.
 		query.WriteString(columnIdent)
 		query.WriteString(" = ?")
 		args = appendSqlValueArg(args, req.GetSetValues()[i])
 	}
+
+	// Constrain the UPDATE to the table view's filter.
 	query.WriteString(" WHERE ")
 	if where != "" {
 		query.WriteByte('(')
@@ -134,7 +164,10 @@ func compileTableViewUpdate(
 			args = appendSqlValueArg(args, value)
 		}
 	}
+
+	// Add predicates matching the row's original column values.
 	for i, column := range req.GetMatchColumns() {
+		// Separate and quote the next matching column.
 		if i != 0 {
 			query.WriteString(" AND ")
 		}
@@ -142,14 +175,19 @@ func compileTableViewUpdate(
 		if err != nil {
 			return "", nil, errors.Wrap(err, "sql/table-view: update match column")
 		}
+
+		// Match null values without binding a placeholder.
 		query.WriteString(columnIdent)
 		if isSqlNull(req.GetMatchValues()[i]) {
 			query.WriteString(" IS NULL")
 			continue
 		}
+
+		// Bind the non-null matching value to its predicate.
 		query.WriteString(" = ?")
 		args = appendSqlValueArg(args, req.GetMatchValues()[i])
 	}
+
 	return query.String(), args, nil
 }
 

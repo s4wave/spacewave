@@ -23,6 +23,7 @@ import (
 )
 
 func TestSqlSchemaListTablesAndTableViewFetchRows(t *testing.T) {
+	// Start the World testbed for schema discovery and filtered row reads.
 	ctx := context.Background()
 	tb, err := testbed.Default(ctx)
 	if err != nil {
@@ -30,10 +31,12 @@ func TestSqlSchemaListTablesAndTableViewFetchRows(t *testing.T) {
 	}
 	defer tb.Release()
 
+	// Create and seed the SQL database with the people table.
 	dbKey := "sql/schema-view-test/db"
 	createSqlDbObject(t, ctx, tb.WorldState, dbKey)
 	seedSqlDb(t, ctx, tb, dbKey)
 
+	// Create a schema object and open its resource client.
 	schemaKey := "sql/schema-view-test/schema"
 	createSqlSchemaObject(t, ctx, tb.WorldState, schemaKey, &s4wave_sql_schema.Schema{
 		SchemaName:        "alpha",
@@ -43,15 +46,19 @@ func TestSqlSchemaListTablesAndTableViewFetchRows(t *testing.T) {
 	schemaClient, schemaCleanup := openSqlSchemaClient(t, ctx, tb, schemaKey)
 	defer schemaCleanup()
 
+	// List the schema's tables through the resource client.
 	tables, err := schemaClient.ListTables(ctx, &s4wave_sql_schema.ListTablesRequest{})
 	if err != nil {
 		t.Fatalf("ListTables: %v", err)
 	}
+
+	// Verify the people table and its schema-to-database graph relationship.
 	if !hasTable(tables.GetTables(), "people") {
 		t.Fatalf("tables = %#v, want people", tables.GetTables())
 	}
 	assertGraphQuad(t, ctx, tb.WorldState, schemaKey, s4wave_sql.PredSqlSchemaInDb.String(), dbKey)
 
+	// Create a filtered table view and open its resource client.
 	viewKey := "sql/schema-view-test/table-view"
 	createSqlTableViewObject(t, ctx, tb.WorldState, viewKey, &s4wave_sql_table_view.TableView{
 		TargetSchemaObjectKey: schemaKey,
@@ -70,10 +77,13 @@ func TestSqlSchemaListTablesAndTableViewFetchRows(t *testing.T) {
 	viewClient, viewCleanup := openSqlTableViewClient(t, ctx, tb, viewKey)
 	defer viewCleanup()
 
+	// Fetch the table view's projected rows through its resource client.
 	rows, err := viewClient.FetchRows(ctx, &s4wave_sql_table_view.FetchRowsRequest{})
 	if err != nil {
 		t.Fatalf("FetchRows: %v", err)
 	}
+
+	// Verify the projected adult row and the table view's graph relationship.
 	if rows.GetTruncated() {
 		t.Fatal("FetchRows returned truncated result")
 	}
@@ -90,6 +100,7 @@ func TestSqlSchemaListTablesAndTableViewFetchRows(t *testing.T) {
 }
 
 func TestSqlTableViewUpdateRowPersistsTypedValue(t *testing.T) {
+	// Start the World testbed for typed table view updates.
 	ctx := context.Background()
 	tb, err := testbed.Default(ctx)
 	if err != nil {
@@ -97,10 +108,12 @@ func TestSqlTableViewUpdateRowPersistsTypedValue(t *testing.T) {
 	}
 	defer tb.Release()
 
+	// Create and seed the SQL database with the people table.
 	dbKey := "sql/schema-view-update-test/db"
 	createSqlDbObject(t, ctx, tb.WorldState, dbKey)
 	seedSqlDb(t, ctx, tb, dbKey)
 
+	// Create the schema object targeting the seeded database.
 	schemaKey := "sql/schema-view-update-test/schema"
 	createSqlSchemaObject(t, ctx, tb.WorldState, schemaKey, &s4wave_sql_schema.Schema{
 		SchemaName:        "alpha",
@@ -108,6 +121,7 @@ func TestSqlTableViewUpdateRowPersistsTypedValue(t *testing.T) {
 		DisplayName:       "Alpha",
 	})
 
+	// Create a table view restricted to the first person's age.
 	viewKey := "sql/schema-view-update-test/table-view"
 	createSqlTableViewObject(t, ctx, tb.WorldState, viewKey, &s4wave_sql_table_view.TableView{
 		TargetSchemaObjectKey: schemaKey,
@@ -123,14 +137,18 @@ func TestSqlTableViewUpdateRowPersistsTypedValue(t *testing.T) {
 	viewClient, viewCleanup := openSqlTableViewClient(t, ctx, tb, viewKey)
 	defer viewCleanup()
 
+	// Query the table view's SQL driver capability.
 	capability, err := viewClient.GetDriverCapability(ctx, &s4wave_sql_table_view.GetDriverCapabilityRequest{})
 	if err != nil {
 		t.Fatalf("GetDriverCapability: %v", err)
 	}
+
+	// Verify that the driver supports row updates.
 	if got := capability.GetCapability().GetUpdateRow(); !got {
 		t.Fatalf("update row capability = %v, reason = %q", got, capability.GetCapability().GetUpdateRowUnsupportedReason())
 	}
 
+	// Update the first person's age through the table view.
 	updateResp, err := viewClient.UpdateRow(ctx, &s4wave_sql_table_view.UpdateRowRequest{
 		MatchColumns: []string{"id"},
 		MatchValues: []*hydra_sql.SqlValue{
@@ -144,10 +162,13 @@ func TestSqlTableViewUpdateRowPersistsTypedValue(t *testing.T) {
 	if err != nil {
 		t.Fatalf("UpdateRow: %v", err)
 	}
+
+	// Verify that the update affected exactly one row.
 	if updateResp.GetRowsAffected() != 1 {
 		t.Fatalf("rows affected = %d, want 1", updateResp.GetRowsAffected())
 	}
 
+	// Attempt an update to a person excluded by the table view filter.
 	blockedResp, err := viewClient.UpdateRow(ctx, &s4wave_sql_table_view.UpdateRowRequest{
 		MatchColumns: []string{"id"},
 		MatchValues: []*hydra_sql.SqlValue{
@@ -161,14 +182,19 @@ func TestSqlTableViewUpdateRowPersistsTypedValue(t *testing.T) {
 	if err != nil {
 		t.Fatalf("UpdateRow outside view filter: %v", err)
 	}
+
+	// Verify that the table view filter prevented the second update.
 	if blockedResp.GetRowsAffected() != 0 {
 		t.Fatalf("outside-filter rows affected = %d, want 0", blockedResp.GetRowsAffected())
 	}
 
+	// Fetch the table view after updating the person's age.
 	rows, err := viewClient.FetchRows(ctx, &s4wave_sql_table_view.FetchRowsRequest{})
 	if err != nil {
 		t.Fatalf("FetchRows: %v", err)
 	}
+
+	// Verify that the table view returns the persisted typed age.
 	if rows.GetRowCount() != 1 {
 		t.Fatalf("row count = %d, want 1", rows.GetRowCount())
 	}
@@ -178,6 +204,7 @@ func TestSqlTableViewUpdateRowPersistsTypedValue(t *testing.T) {
 }
 
 func createSqlDbObject(t *testing.T, ctx context.Context, ws world.WorldState, objectKey string) {
+	// Create a SQL database object with an empty MySQL root.
 	t.Helper()
 	createdObject, _, err := world.CreateWorldObject(ctx, ws, objectKey, func(bcs *block.Cursor) error {
 		bcs.SetBlock(sql_mysql.NewRootBlock(), true)
@@ -187,6 +214,8 @@ func createSqlDbObject(t *testing.T, ctx context.Context, ws world.WorldState, o
 	if err != nil {
 		t.Fatalf("CreateWorldObject(%s): %v", objectKey, err)
 	}
+
+	// Register the created object as a SQL database.
 	if err := world_types.SetObjectType(ctx, ws, objectKey, s4wave_sql_world.SqlDbTypeID); err != nil {
 		t.Fatalf("SetObjectType(%s): %v", objectKey, err)
 	}
@@ -199,6 +228,7 @@ func createSqlSchemaObject(
 	objectKey string,
 	schema *s4wave_sql_schema.Schema,
 ) {
+	// Create a World object containing the SQL schema root.
 	t.Helper()
 	createdObject, rootRef, err := world.CreateWorldObject(ctx, ws, objectKey, func(bcs *block.Cursor) error {
 		bcs.SetBlock(schema, true)
@@ -208,6 +238,8 @@ func createSqlSchemaObject(
 	if err != nil {
 		t.Fatalf("CreateWorldObject(%s): %v", objectKey, err)
 	}
+
+	// Register the schema type and synchronize its root relationships.
 	if err := world_types.SetObjectType(ctx, ws, objectKey, s4wave_sql_schema.SqlSchemaTypeID); err != nil {
 		t.Fatalf("SetObjectType(%s): %v", objectKey, err)
 	}
@@ -224,6 +256,7 @@ func createSqlTableViewObject(
 	objectKey string,
 	tableView *s4wave_sql_table_view.TableView,
 ) {
+	// Create a World object containing the table view root.
 	t.Helper()
 	createdObject, rootRef, err := world.CreateWorldObject(ctx, ws, objectKey, func(bcs *block.Cursor) error {
 		bcs.SetBlock(tableView, true)
@@ -233,6 +266,8 @@ func createSqlTableViewObject(
 	if err != nil {
 		t.Fatalf("CreateWorldObject(%s): %v", objectKey, err)
 	}
+
+	// Register the table view type and synchronize its root relationships.
 	if err := world_types.SetObjectType(ctx, ws, objectKey, s4wave_sql_table_view.SqlTableViewTypeID); err != nil {
 		t.Fatalf("SetObjectType(%s): %v", objectKey, err)
 	}
@@ -243,6 +278,7 @@ func createSqlTableViewObject(
 }
 
 func seedSqlDb(t *testing.T, ctx context.Context, tb *testbed.Testbed, objectKey string) {
+	// Open the database resource used to seed the SQL fixture.
 	t.Helper()
 	inv, cleanup, err := s4wave_sql_world.SqlDbFactory(
 		ctx,
@@ -257,11 +293,13 @@ func seedSqlDb(t *testing.T, ctx context.Context, tb *testbed.Testbed, objectKey
 	}
 	defer cleanup()
 
+	// Create the alpha database through its SQL resource.
 	store := sql_rpc_client.NewStore(sql_rpc.NewSRPCSqlClient(srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(inv)))))
 	rootTx := openSqlTx(t, ctx, store, true, "")
 	execSql(t, ctx, rootTx, "CREATE DATABASE alpha")
 	commitSql(t, ctx, rootTx)
 
+	// Populate the alpha database with the people table and its initial rows.
 	writeTx := openSqlTx(t, ctx, store, true, "/alpha")
 	for _, query := range []string{
 		"CREATE TABLE people (id BIGINT NOT NULL PRIMARY KEY, name TEXT NOT NULL, age BIGINT NOT NULL)",
@@ -279,6 +317,7 @@ func openSqlSchemaClient(
 	tb *testbed.Testbed,
 	objectKey string,
 ) (s4wave_sql_schema.SRPCSqlSchemaResourceServiceClient, func()) {
+	// Open the schema resource and connect its SRPC client.
 	t.Helper()
 	inv, cleanup, err := s4wave_sql_schema_world.SqlSchemaFactory(
 		ctx,
@@ -303,6 +342,7 @@ func openSqlTableViewClient(
 	tb *testbed.Testbed,
 	objectKey string,
 ) (s4wave_sql_table_view.SRPCSqlTableViewResourceServiceClient, func()) {
+	// Open the table view resource and connect its SRPC client.
 	t.Helper()
 	inv, cleanup, err := s4wave_sql_table_view_world.SqlTableViewFactory(
 		ctx,
@@ -367,18 +407,25 @@ func hasTable(tables []*s4wave_sql_schema.TableInfo, tableName string) bool {
 }
 
 func singleStringValue(t *testing.T, batches []*hydra_sql.RowBatch) string {
+	// Require a single row batch for the string result.
 	t.Helper()
 	if len(batches) != 1 {
 		t.Fatalf("row batches = %d, want 1", len(batches))
 	}
+
+	// Require a single row in the string result batch.
 	rows := batches[0].GetRows()
 	if len(rows) != 1 {
 		t.Fatalf("rows = %d, want 1", len(rows))
 	}
+
+	// Require a single column value in the string result row.
 	values := rows[0].GetValues()
 	if len(values) != 1 {
 		t.Fatalf("values = %d, want 1", len(values))
 	}
+
+	// Decode the string result from its supported SQL value types.
 	switch value := values[0].GetValue().(type) {
 	case *hydra_sql.SqlValue_StrValue:
 		return value.StrValue
@@ -387,26 +434,35 @@ func singleStringValue(t *testing.T, batches []*hydra_sql.RowBatch) string {
 	default:
 		t.Fatalf("value = %#v, want string/blob", values[0])
 	}
+
 	return ""
 }
 
 func singleIntValue(t *testing.T, batches []*hydra_sql.RowBatch) int64 {
+	// Require a single row batch for the integer result.
 	t.Helper()
 	if len(batches) != 1 {
 		t.Fatalf("row batches = %d, want 1", len(batches))
 	}
+
+	// Require a single row in the integer result batch.
 	rows := batches[0].GetRows()
 	if len(rows) != 1 {
 		t.Fatalf("rows = %d, want 1", len(rows))
 	}
+
+	// Require a single column value in the integer result row.
 	values := rows[0].GetValues()
 	if len(values) != 1 {
 		t.Fatalf("values = %d, want 1", len(values))
 	}
+
+	// Decode the integer result from its typed SQL value.
 	value, ok := values[0].GetValue().(*hydra_sql.SqlValue_IntValue)
 	if !ok {
 		t.Fatalf("value = %#v, want int", values[0])
 	}
+
 	return value.IntValue
 }
 

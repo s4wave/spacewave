@@ -45,20 +45,26 @@ func (o *SqlTableViewSetRootOp) ApplyWorldOp(
 	ws world.WorldState,
 	sender peer.ID,
 ) (bool, error) {
+	// Validate the root operation and the table view's object type.
 	if err := o.Validate(); err != nil {
 		return false, err
 	}
 	if err := world_types.CheckObjectType(ctx, ws, o.GetObjectKey(), s4wave_sql_table_view.SqlTableViewTypeID); err != nil {
 		return false, err
 	}
+
+	// Acquire the table view object for the root update.
 	obj, err := world.MustGetObject(ctx, ws, o.GetObjectKey())
 	defer world.ReleaseObjectState(obj)
 	if err != nil {
 		return false, err
 	}
+
+	// Apply the table view root before synchronizing its graph relationships.
 	if sysErr, err := o.ApplyWorldObjectOp(ctx, le, obj, sender); err != nil || sysErr {
 		return sysErr, err
 	}
+
 	return false, s4wave_sql_table_view.SyncTableViewGraphQuads(ctx, ws, o.GetObjectKey())
 }
 
@@ -69,15 +75,20 @@ func (o *SqlTableViewSetRootOp) ApplyWorldObjectOp(
 	os world.ObjectState,
 	_ peer.ID,
 ) (bool, error) {
+	// Validate the root operation and require its target object.
 	if err := o.Validate(); err != nil {
 		return false, err
 	}
 	if os == nil {
 		return false, world.ErrObjectNotFound
 	}
+
+	// Require the supplied object to match the table view operation.
 	if os.GetKey() != o.GetObjectKey() {
 		return false, errors.Errorf("sql/table-view: op target %s does not match object %s", o.GetObjectKey(), os.GetKey())
 	}
+
+	// Advance the table view object's root reference.
 	_, err := os.SetRootRef(ctx, o.GetRootRef())
 	return false, err
 }

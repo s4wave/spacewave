@@ -210,14 +210,19 @@ type ProfileBucket struct {
 // BrowserFromQuickstartTiming builds the browser timing artifact from the
 // quickstart timing object published by app/quickstart/create.ts.
 func BrowserFromQuickstartTiming(contentReadyMs int, raw map[string]any) Browser {
+	// Initialize the browser artifact when quickstart timing is unavailable.
 	browser := Browser{ContentReadyMs: contentReadyMs}
 	if raw == nil {
 		return browser
 	}
+
+	// Recover the quickstart state and milestone timestamps.
 	browser.QuickstartState, _ = raw["state"].(string)
 	browser.QuickstartProgressReadyMs = optionalInt(raw, "progressReadyMs")
 	browser.QuickstartContentReadyMs = optionalInt(raw, "contentReadyMs")
 	browser.QuickstartFinishedMs = optionalInt(raw, "finishedMs")
+
+	// Summarize the quickstart phases and Drive seed window.
 	browser.QuickstartPhases = parsePhases(raw["phases"])
 	browser.DriveSeedResourceCalls = CountDriveSeedResourceCalls(browser.QuickstartPhases)
 	setDriveSeedWindow(&browser)
@@ -269,16 +274,21 @@ func WriteArtifact(path string, data []byte) error {
 func MeasureBundleDir(root string) (*Bundle, error) {
 	var bundle Bundle
 	walkErr := filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
+		// Propagate bundle traversal errors and skip directories.
 		if err != nil {
 			return err
 		}
 		if d.IsDir() {
 			return nil
 		}
+
+		// Select JavaScript and WASM modules for bundle measurement.
 		ext := filepath.Ext(path)
 		if ext != ".mjs" && ext != ".js" && ext != ".wasm" {
 			return nil
 		}
+
+		// Add the module's file size to the bundle totals.
 		info, err := d.Info()
 		if err != nil {
 			return err
@@ -299,9 +309,12 @@ func MeasureBundleDir(root string) (*Bundle, error) {
 // WriteRun marshals run as JSON and writes it to dir/run.json, returning the
 // written path.
 func WriteRun(dir string, run Run) (string, error) {
+	// Encode the run artifact as newline-terminated JSON.
 	var arena fastjson.Arena
 	data := marshalRunValue(&arena, run).MarshalTo(nil)
 	data = append(data, '\n')
+
+	// Write the run artifact to its cell directory.
 	path := filepath.Join(dir, "run.json")
 	if err := WriteArtifact(path, data); err != nil {
 		return "", err
@@ -310,17 +323,22 @@ func WriteRun(dir string, run Run) (string, error) {
 }
 
 func marshalRunValue(arena *fastjson.Arena, run Run) *fastjson.Value {
+	// Encode the run's build identity and cell metadata.
 	obj := arena.NewObject()
 	obj.Set("timestamp", arena.NewString(run.Timestamp))
 	obj.Set("compiler", arena.NewString(run.Compiler))
 	obj.Set("buildMode", arena.NewString(run.BuildMode))
 	obj.Set("runtimeState", arena.NewString(run.RuntimeState))
 	obj.Set("cell", arena.NewString(run.Cell))
+
+	// Encode the run's milestones, browser timing, and served bundle.
 	obj.Set("milestones", marshalMilestonesValue(arena, run.Milestones))
 	obj.Set("browser", marshalBrowserValue(arena, run.Browser))
 	if run.ServedBundle != nil {
 		obj.Set("servedBundle", marshalBundleValue(arena, *run.ServedBundle))
 	}
+
+	// Encode the run's resource connection and optional trace and profiles.
 	obj.Set("resourceConnection", marshalResourceConnValue(arena, run.ResourceConnection))
 	if run.Trace != nil {
 		obj.Set("trace", marshalTraceValue(arena, *run.Trace))
@@ -335,6 +353,7 @@ func marshalRunValue(arena *fastjson.Arena, run Run) *fastjson.Value {
 }
 
 func marshalMilestonesValue(arena *fastjson.Arena, milestones Milestones) *fastjson.Value {
+	// Encode the run's startup milestone timestamps.
 	obj := arena.NewObject()
 	obj.Set("liveAppMs", arena.NewNumberString(strconv.FormatInt(milestones.LiveAppMs, 10)))
 	obj.Set("routeAcceptedMs", arena.NewNumberString(strconv.FormatInt(milestones.RouteAcceptedMs, 10)))
@@ -344,6 +363,7 @@ func marshalMilestonesValue(arena *fastjson.Arena, milestones Milestones) *fastj
 }
 
 func marshalBrowserValue(arena *fastjson.Arena, browser Browser) *fastjson.Value {
+	// Encode the browser's content and quickstart milestone timing.
 	obj := arena.NewObject()
 	obj.Set("contentReadyMs", arena.NewNumberInt(browser.ContentReadyMs))
 	obj.Set("quickstartState", arena.NewString(browser.QuickstartState))
@@ -353,12 +373,16 @@ func marshalBrowserValue(arena *fastjson.Arena, browser Browser) *fastjson.Value
 	if len(browser.QuickstartPhases) != 0 {
 		obj.Set("quickstartPhases", marshalPhasesValue(arena, browser.QuickstartPhases))
 	}
+
+	// Encode the browser's Drive seed call count and timing window.
 	if browser.DriveSeedResourceCalls != 0 {
 		obj.Set("driveSeedResourceCalls", arena.NewNumberInt(browser.DriveSeedResourceCalls))
 	}
 	setOptionalIntJSONField(arena, obj, "driveSeedStartedMs", browser.DriveSeedStartedMs)
 	setOptionalIntJSONField(arena, obj, "driveSeedFinishedMs", browser.DriveSeedFinishedMs)
 	setOptionalIntJSONField(arena, obj, "driveSeedElapsedMs", browser.DriveSeedElapsedMs)
+
+	// Include the browser's startup marks when captured.
 	if len(browser.StartupMarks) != 0 {
 		obj.Set("startupMarks", marshalStartupMarksValue(arena, browser.StartupMarks))
 	}
@@ -400,6 +424,7 @@ func marshalStartupMarksValue(arena *fastjson.Arena, marks []StartupMark) *fastj
 }
 
 func marshalBundleValue(arena *fastjson.Arena, bundle Bundle) *fastjson.Value {
+	// Encode the served bundle's byte totals and file count.
 	obj := arena.NewObject()
 	obj.Set("totalBytes", arena.NewNumberString(strconv.FormatInt(bundle.TotalBytes, 10)))
 	obj.Set("wasmBytes", arena.NewNumberString(strconv.FormatInt(bundle.WasmBytes, 10)))
@@ -408,6 +433,7 @@ func marshalBundleValue(arena *fastjson.Arena, bundle Bundle) *fastjson.Value {
 }
 
 func marshalResourceConnValue(arena *fastjson.Arena, conn ResourceConn) *fastjson.Value {
+	// Encode the Resource SDK connection timing and attempt counts.
 	obj := arena.NewObject()
 	obj.Set("durationMs", arena.NewNumberString(strconv.FormatInt(conn.DurationMs, 10)))
 	obj.Set("attempts", arena.NewNumberInt(conn.Attempts))
@@ -416,9 +442,11 @@ func marshalResourceConnValue(arena *fastjson.Arena, conn ResourceConn) *fastjso
 }
 
 func marshalTraceValue(arena *fastjson.Arena, trace Trace) *fastjson.Value {
+	// Encode the raw trace's size and artifact path.
 	obj := arena.NewObject()
 	obj.Set("bytes", arena.NewNumberInt(trace.Bytes))
 	obj.Set("runtimeTracePath", arena.NewString(trace.RuntimeTracePath))
+
 	// A cell that captured the raw trace without summarizing it has no counts to
 	// report, and the tracetool path is what says whether summarization ran. Key
 	// the whole summary block on it rather than on the counts themselves: a
@@ -461,6 +489,7 @@ func MarshalOperationShapeValue(arena *fastjson.Arena, shape OperationShape) *fa
 }
 
 func marshalOperationSummaryValue(arena *fastjson.Arena, op OperationSummary) *fastjson.Value {
+	// Encode the operation's name and recorded timing and log counts.
 	obj := arena.NewObject()
 	obj.Set("name", arena.NewString(op.Name))
 	if op.Count != 0 {
@@ -475,6 +504,8 @@ func marshalOperationSummaryValue(arena *fastjson.Arena, op OperationSummary) *f
 	if op.LogCount != 0 {
 		obj.Set("logCount", arena.NewNumberInt(op.LogCount))
 	}
+
+	// Include the operation's numeric field summaries when available.
 	if len(op.Fields) != 0 {
 		arr := arena.NewArray()
 		for _, field := range op.Fields {
@@ -486,6 +517,7 @@ func marshalOperationSummaryValue(arena *fastjson.Arena, op OperationSummary) *f
 }
 
 func marshalOperationFieldValue(arena *fastjson.Arena, field OperationField) *fastjson.Value {
+	// Encode the numeric field's sample count and aggregate values.
 	obj := arena.NewObject()
 	obj.Set("name", arena.NewString(field.Name))
 	obj.Set("samples", arena.NewNumberInt(field.Samples))
@@ -496,17 +528,22 @@ func marshalOperationFieldValue(arena *fastjson.Arena, field OperationField) *fa
 }
 
 func marshalBrowserProfileValue(arena *fastjson.Arena, profile BrowserProfile) *fastjson.Value {
+	// Encode whether the browser profile was captured.
 	obj := arena.NewObject()
 	if profile.Captured {
 		obj.Set("captured", arena.NewTrue())
 	} else {
 		obj.Set("captured", arena.NewFalse())
 	}
+
+	// Encode the browser profile's paths and capture window.
 	setOmitEmptyStringJSONField(arena, obj, "profilePath", profile.ProfilePath)
 	setOmitEmptyStringJSONField(arena, obj, "summaryPath", profile.SummaryPath)
 	setOmitEmptyStringJSONField(arena, obj, "captureWindow", profile.CaptureWindow)
 	setOmitEmptyStringJSONField(arena, obj, "startedAt", profile.StartedAt)
 	setOmitEmptyStringJSONField(arena, obj, "stoppedAt", profile.StoppedAt)
+
+	// Include the browser profile's size, skip reason, and summary buckets.
 	if profile.Bytes != 0 {
 		obj.Set("bytes", arena.NewNumberInt(profile.Bytes))
 	}
@@ -522,6 +559,7 @@ func marshalBrowserProfileValue(arena *fastjson.Arena, profile BrowserProfile) *
 }
 
 func marshalProfileBucketValue(arena *fastjson.Arena, bucket ProfileBucket) *fastjson.Value {
+	// Encode the browser profile bucket's name and recorded timing.
 	obj := arena.NewObject()
 	obj.Set("name", arena.NewString(bucket.Name))
 	if bucket.Count != 0 {
@@ -537,11 +575,14 @@ func marshalProfileBucketValue(arena *fastjson.Arena, bucket ProfileBucket) *fas
 }
 
 func marshalJSONMapValue(arena *fastjson.Arena, values map[string]any) *fastjson.Value {
+	// Collect the JSON object's keys for deterministic ordering.
 	obj := arena.NewObject()
 	keys := make([]string, 0, len(values))
 	for key := range values {
 		keys = append(keys, key)
 	}
+
+	// Encode the JSON object's values in sorted key order.
 	slices.Sort(keys)
 	for _, key := range keys {
 		obj.Set(key, marshalJSONAnyValue(arena, values[key]))
@@ -616,10 +657,13 @@ var driveSeedResourcePhaseNames = []string{
 // parser preserves that order so the pre-quickstart gap reads as the interval
 // between adjacent marks. Entries without a label are skipped.
 func ParseStartupMarks(raw any) []StartupMark {
+	// Require a startup-mark array before parsing the browser timeline.
 	items, ok := raw.([]any)
 	if !ok {
 		return nil
 	}
+
+	// Recover labeled startup marks in their captured order.
 	marks := make([]StartupMark, 0, len(items))
 	for _, item := range items {
 		m, ok := item.(map[string]any)
@@ -647,10 +691,13 @@ func ParseStartupMarks(raw any) []StartupMark {
 }
 
 func parsePhases(raw any) []Phase {
+	// Require a phase array before parsing quickstart timing.
 	items, ok := raw.([]any)
 	if !ok {
 		return nil
 	}
+
+	// Recover named phases with their timing and error details.
 	phases := make([]Phase, 0, len(items))
 	for _, item := range items {
 		m, ok := item.(map[string]any)
@@ -674,6 +721,7 @@ func parsePhases(raw any) []Phase {
 }
 
 func setDriveSeedWindow(browser *Browser) {
+	// Use the populate-space phase as the Drive seed window when available.
 	for _, phase := range browser.QuickstartPhases {
 		if phase.Name == "populate-space" {
 			browser.DriveSeedStartedMs = &phase.StartedMs
@@ -682,6 +730,8 @@ func setDriveSeedWindow(browser *Browser) {
 			return
 		}
 	}
+
+	// Find the earliest and latest Drive seed phase timestamps.
 	var start *int
 	var finish *int
 	for _, phase := range browser.QuickstartPhases {
@@ -699,6 +749,8 @@ func setDriveSeedWindow(browser *Browser) {
 			finish = &finished
 		}
 	}
+
+	// Publish the recovered Drive seed window and its elapsed duration.
 	browser.DriveSeedStartedMs = start
 	browser.DriveSeedFinishedMs = finish
 	if start != nil && finish != nil {
