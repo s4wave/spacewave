@@ -37,6 +37,8 @@ func TestKVTxStore(t *testing.T) {
 	}
 }
 
+// TestWriteIteratorSortsAddedKeys tests that a write transaction iterates its
+// added keys in sorted order.
 func TestWriteIteratorSortsAddedKeys(t *testing.T) {
 	// Open a write transaction for keys inserted out of order.
 	ctx := context.Background()
@@ -218,4 +220,24 @@ func TestWriteWaiterCancelPreservesPeerBlock(t *testing.T) {
 		}
 		rtx2.Discard()
 	})
+}
+
+// TestIteratorSeekReportsCanceled tests that Seek on an iterator whose context
+// was canceled reports the cancellation.
+func TestIteratorSeekReportsCanceled(t *testing.T) {
+	// Open an iterator on a context canceled before the seek.
+	ctx, cancel := context.WithCancel(context.Background())
+	tx, err := NewStore().NewTransaction(ctx, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tx.Discard()
+	iter := tx.Iterate(ctx, nil, true, false)
+	defer iter.Close()
+	cancel()
+
+	// Verify that Seek returns the cancellation instead of nil.
+	if err := iter.Seek(nil); err != context.Canceled {
+		t.Fatalf("Seek returned %v, want %v", err, context.Canceled)
+	}
 }

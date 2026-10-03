@@ -190,8 +190,8 @@ func (it *Iterator) Next() bool {
 // Seek moves the iterator to the first key >= the provided key (or <= in reverse mode).
 func (it *Iterator) Seek(k []byte) error {
 	// Stop seeking when the iterator has an error.
-	if it.Err() != nil {
-		return it.err
+	if err := it.Err(); err != nil {
+		return err
 	}
 
 	// Position an empty-key seek at the first item in traversal order.
