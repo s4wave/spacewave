@@ -4,52 +4,52 @@
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct OpenOrFocusDesktopRequest {
     /// Route is an optional in-app route; empty opens or focuses the main window.
-    #[prost(string, tag="1")]
+    #[prost(string, tag = "1")]
     pub route: ::prost::alloc::string::String,
     /// InstalledApp is the application bundle that requested the desktop.
     /// Desktop app updates replace this bundle; empty when not launched from one.
-    #[prost(string, tag="2")]
+    #[prost(string, tag = "2")]
     pub installed_app: ::prost::alloc::string::String,
 }
 /// OpenOrFocusDesktopResponse acknowledges Electron main's open or focus operation.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct OpenOrFocusDesktopResponse {
     /// Generation identifies the acknowledged shell lifetime within this plugin controller.
-    #[prost(uint64, tag="1")]
+    #[prost(uint64, tag = "1")]
     pub generation: u64,
 }
 /// WatchDesktopPresenceRequest identifies the shell lifetime to observe.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct WatchDesktopPresenceRequest {
     /// Generation is the value returned by OpenOrFocusDesktop.
-    #[prost(uint64, tag="1")]
+    #[prost(uint64, tag = "1")]
     pub generation: u64,
 }
 /// WatchDesktopPresenceResponse reports the selected generation's current state.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct WatchDesktopPresenceResponse {
     /// State first reports active or ended, then reports ended when an active shell exits.
-    #[prost(enumeration="DesktopPresenceState", tag="1")]
+    #[prost(enumeration = "DesktopPresenceState", tag = "1")]
     pub state: i32,
     /// Error describes a failed shell exit; empty on a normal end or while active.
-    #[prost(string, tag="2")]
+    #[prost(string, tag = "2")]
     pub error: ::prost::alloc::string::String,
 }
 /// HandleWebViewViaPluginRequest is a request to handle web views via a plugin RPC.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct HandleWebViewViaPluginRequest {
     /// HandlePluginId is the plugin the web plugin should send WebViews to.
-    #[prost(string, tag="1")]
+    #[prost(string, tag = "1")]
     pub handle_plugin_id: ::prost::alloc::string::String,
     /// WebViewIdRe is the regex of web view IDs to handle with handlePluginId.
     /// If empty, will forward any.
-    #[prost(string, tag="2")]
+    #[prost(string, tag = "2")]
     pub web_view_id_re: ::prost::alloc::string::String,
 }
 /// HandleWebViewViaPluginResponse is the response to HandleWebViewViaPlugin.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct HandleWebViewViaPluginResponse {
-    #[prost(oneof="handle_web_view_via_plugin_response::Body", tags="1")]
+    #[prost(oneof = "handle_web_view_via_plugin_response::Body", tags = "1")]
     pub body: ::core::option::Option<handle_web_view_via_plugin_response::Body>,
 }
 /// Nested message and enum types in `HandleWebViewViaPluginResponse`.
@@ -57,7 +57,7 @@ pub mod handle_web_view_via_plugin_response {
     #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Oneof)]
     pub enum Body {
         /// Ready indicates the service to forward rpcs has been started.
-        #[prost(bool, tag="1")]
+        #[prost(bool, tag = "1")]
         Ready(bool),
     }
 }
@@ -65,27 +65,27 @@ pub mod handle_web_view_via_plugin_response {
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct HandleWebPkgViaPluginRequest {
     /// HandlePluginId is the plugin the web plugin should send WebViews to.
-    #[prost(string, tag="1")]
+    #[prost(string, tag = "1")]
     pub handle_plugin_id: ::prost::alloc::string::String,
     /// WebPkgIdRe is a regex string to match web pkgs IDs.
     /// Set to '.*' or empty to match all web pkgs ids.
-    #[prost(string, tag="2")]
+    #[prost(string, tag = "2")]
     pub web_pkg_id_re: ::prost::alloc::string::String,
     /// WebPkgIdPrefixes is a list of web pkg id prefixes to match.
     /// If the value is in this list, overrides web_pkg_id_re.
     /// Set to '.*' or empty to match all web pkgs ids.
-    #[prost(string, repeated, tag="3")]
+    #[prost(string, repeated, tag = "3")]
     pub web_pkg_id_prefixes: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
     /// WebPkgIdList is a list of web pkg IDs to resolve.
     /// If the value is in this list, overrides web_pkg_id_re and web_pkg_id_prefixes.
     /// Ignored if empty.
-    #[prost(string, repeated, tag="4")]
+    #[prost(string, repeated, tag = "4")]
     pub web_pkg_id_list: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
 }
 /// HandleWebPkgViaPluginResponse is the response to HandleWebPkgViaPlugin.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct HandleWebPkgViaPluginResponse {
-    #[prost(oneof="handle_web_pkg_via_plugin_response::Body", tags="1")]
+    #[prost(oneof = "handle_web_pkg_via_plugin_response::Body", tags = "1")]
     pub body: ::core::option::Option<handle_web_pkg_via_plugin_response::Body>,
 }
 /// Nested message and enum types in `HandleWebPkgViaPluginResponse`.
@@ -93,7 +93,7 @@ pub mod handle_web_pkg_via_plugin_response {
     #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Oneof)]
     pub enum Body {
         /// Ready indicates the service to forward rpcs has been started.
-        #[prost(bool, tag="1")]
+        #[prost(bool, tag = "1")]
         Ready(bool),
     }
 }
@@ -101,25 +101,25 @@ pub mod handle_web_pkg_via_plugin_response {
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct HandleRpcViaPluginRequest {
     /// HandlePluginId is the plugin the web plugin should send Rpcs to.
-    #[prost(string, tag="1")]
+    #[prost(string, tag = "1")]
     pub handle_plugin_id: ::prost::alloc::string::String,
     /// ServiceIdRe is the regex of service IDs to forward.
     /// If empty, will forward any.
-    #[prost(string, tag="2")]
+    #[prost(string, tag = "2")]
     pub service_id_re: ::prost::alloc::string::String,
     /// ServerIdRe is the regex of server IDs to forward for.
     /// If empty, will forward any.
-    #[prost(string, tag="3")]
+    #[prost(string, tag = "3")]
     pub server_id_re: ::prost::alloc::string::String,
     /// Backoff is the backoff config for calling the RPC service.
     /// If unset, defaults to reasonable defaults.
-    #[prost(message, optional, tag="4")]
+    #[prost(message, optional, tag = "4")]
     pub backoff: ::core::option::Option<super::super::super::backoff::Backoff>,
 }
 /// HandleRpcViaPluginResponse is the response to HandleRpcViaPlugin.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct HandleRpcViaPluginResponse {
-    #[prost(oneof="handle_rpc_via_plugin_response::Body", tags="1")]
+    #[prost(oneof = "handle_rpc_via_plugin_response::Body", tags = "1")]
     pub body: ::core::option::Option<handle_rpc_via_plugin_response::Body>,
 }
 /// Nested message and enum types in `HandleRpcViaPluginResponse`.
@@ -127,7 +127,7 @@ pub mod handle_rpc_via_plugin_response {
     #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Oneof)]
     pub enum Body {
         /// Ready indicates the service to forward rpcs has been started.
-        #[prost(bool, tag="1")]
+        #[prost(bool, tag = "1")]
         Ready(bool),
     }
 }
@@ -135,13 +135,15 @@ pub mod handle_rpc_via_plugin_response {
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct HandleWebViewViaHandlersRequest {
     /// Config is the web view handlers configuration.
-    #[prost(message, optional, tag="1")]
-    pub config: ::core::option::Option<super::super::super::web::view::handler::WebViewHandlersConfig>,
+    #[prost(message, optional, tag = "1")]
+    pub config: ::core::option::Option<
+        super::super::super::web::view::handler::WebViewHandlersConfig,
+    >,
 }
 /// HandleWebViewViaHandlersResponse is the response to HandleWebViewViaHandlers.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct HandleWebViewViaHandlersResponse {
-    #[prost(oneof="handle_web_view_via_handlers_response::Body", tags="1")]
+    #[prost(oneof = "handle_web_view_via_handlers_response::Body", tags = "1")]
     pub body: ::core::option::Option<handle_web_view_via_handlers_response::Body>,
 }
 /// Nested message and enum types in `HandleWebViewViaHandlersResponse`.
@@ -149,7 +151,7 @@ pub mod handle_web_view_via_handlers_response {
     #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Oneof)]
     pub enum Body {
         /// Ready indicates the handlers have been configured.
-        #[prost(bool, tag="1")]
+        #[prost(bool, tag = "1")]
         Ready(bool),
     }
 }
@@ -157,20 +159,20 @@ pub mod handle_web_view_via_handlers_response {
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct HandleWebPkgsViaPluginAssetsRequest {
     /// HandlePluginId is the plugin the web plugin should use for serving assets.
-    #[prost(string, tag="1")]
+    #[prost(string, tag = "1")]
     pub handle_plugin_id: ::prost::alloc::string::String,
     /// WebPkgsPath is the sub-directory of the plugin assets fs to look up the web pkgs root.
-    #[prost(string, tag="2")]
+    #[prost(string, tag = "2")]
     pub web_pkgs_path: ::prost::alloc::string::String,
     /// WebPkgIdList is a list of web pkg IDs to resolve with the plugin assets fs.
     /// Must be at least one web pkg listed.
-    #[prost(string, repeated, tag="3")]
+    #[prost(string, repeated, tag = "3")]
     pub web_pkg_id_list: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
 }
 /// HandleWebPkgsViaPluginAssetsResponse is the response to HandleWebPkgsViaPluginAssets.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct HandleWebPkgsViaPluginAssetsResponse {
-    #[prost(oneof="handle_web_pkgs_via_plugin_assets_response::Body", tags="1")]
+    #[prost(oneof = "handle_web_pkgs_via_plugin_assets_response::Body", tags = "1")]
     pub body: ::core::option::Option<handle_web_pkgs_via_plugin_assets_response::Body>,
 }
 /// Nested message and enum types in `HandleWebPkgsViaPluginAssetsResponse`.
@@ -178,7 +180,7 @@ pub mod handle_web_pkgs_via_plugin_assets_response {
     #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Oneof)]
     pub enum Body {
         /// Ready indicates the service has been configured.
-        #[prost(bool, tag="1")]
+        #[prost(bool, tag = "1")]
         Ready(bool),
     }
 }

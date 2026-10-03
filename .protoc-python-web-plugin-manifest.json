@@ -1,7 +1,7 @@
 {
   "version": 2,
   "protocFlagsHash": "f3371eb4a4768e3b7f3e3ac546ec7bb7da05b08dda4ec8d0fe2f6c63f6b19da9",
-  "toolVersions": "protoc=embedded,protobuf-go-lite=v0.18.0,starpc=v0.52.1,protobuf-es-lite=1.1.4,uv.lock=9bfc76e5ff7b4a5e38f5b41f4e9a4edbd11d9f4276d15d3e9f9c6326fa1ea7c2",
+  "toolVersions": "protoc=embedded,protobuf-go-lite=v0.18.0,starpc=v0.52.3-0.20261003013036-4cdf88642ec9,protobuf-es-lite=1.1.4,uv.lock=9bfc76e5ff7b4a5e38f5b41f4e9a4edbd11d9f4276d15d3e9f9c6326fa1ea7c2",
   "packages": {
     "github.com/s4wave/spacewave/bldr/web/plugin": {
       "hash": "96cbc1676aa5cd27d0ab5c1ace19c4a90763401d9667bb481081aca9417d87ab",
