@@ -236,6 +236,7 @@ func (o *BillyFSCursorOps) ReadAt(ctx context.Context, offset int64, data []byte
 		}
 		return 0, err
 	}
+	defer file.Close()
 
 	// Read the requested file range through the Billy file.
 	n, err := file.ReadAt(data, offset)
@@ -274,8 +275,11 @@ func (o *BillyFSCursorOps) ReaddirAll(ctx context.Context, skip uint64, cb func(
 		return nil
 	}
 
-	// Deliver each Billy directory entry to the callback.
-	for _, fi := range fis {
+	// Deliver each Billy directory entry after the skipped ones to the callback.
+	if skip >= uint64(len(fis)) {
+		return nil
+	}
+	for _, fi := range fis[skip:] {
 		dirent := unixfs_iofs.NewFSCursorDirent(fi)
 		if err := cb(dirent); err != nil {
 			return err

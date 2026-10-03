@@ -815,7 +815,8 @@ func (r *FSHandleResource) UploadFile(strm s4wave_unixfs.SRPCFSHandleResourceSer
 	// Connect the upload stream to filesystem ingestion through a pipe.
 	pr, pw := io.Pipe()
 
-	// Start the file ingestion and retain its completion result.
+	// Start the file ingestion and retain its completion result. Closing the
+	// reader when ingestion returns unblocks a write it will never consume.
 	var uploadErr error
 	done := make(chan struct{})
 	go func() {
@@ -837,52 +838,42 @@ func (r *FSHandleResource) UploadFile(strm s4wave_unixfs.SRPCFSHandleResourceSer
 				fs.FileMode(mode), time.Now(),
 			)
 		})
+		pr.CloseWithError(uploadErr)
 	}()
 
-	// Feed any bytes in the first message to the file ingestion pipe.
-	var bytesWritten int64
-	if data := first.GetData(); len(data) > 0 {
-		if err := validateUploadDataFrame(data); err != nil {
-			pw.CloseWithError(err)
-			<-done
-			return nil, err
+	// abort ends the ingestion and returns its error, or err when it succeeded.
+	abort := func(err error) error {
+		pw.CloseWithError(err)
+		<-done
+		if uploadErr != nil {
+			return uploadErr
 		}
-		recordUploadMetric(ctx, UploadMetric{Stage: "receive-data", Bytes: len(data)})
-		_, err = pw.Write(data)
-		if err != nil {
-			pw.CloseWithError(err)
-			<-done
-			return nil, err
-		}
-		bytesWritten += int64(len(data))
+		return err
 	}
 
-	// Feed the remaining upload messages to the file ingestion pipe.
+	// Feed each data frame, starting with the first message, to the file
+	// ingestion pipe until the client ends the stream.
+	var bytesWritten int64
+	msg := first
 	for {
-		msg, err := strm.Recv()
+		if data := msg.GetData(); len(data) > 0 {
+			if err := validateUploadDataFrame(data); err != nil {
+				return nil, abort(err)
+			}
+			recordUploadMetric(ctx, UploadMetric{Stage: "receive-data", Bytes: len(data)})
+			if _, err := pw.Write(data); err != nil {
+				return nil, abort(errors.New("upload data exceeds total_size"))
+			}
+			bytesWritten += int64(len(data))
+		}
+
+		// Read the next upload message.
+		msg, err = strm.Recv()
 		if err == io.EOF {
 			break
 		}
 		if err != nil {
-			pw.CloseWithError(err)
-			<-done
-			return nil, err
-		}
-		data := msg.GetData()
-		if len(data) > 0 {
-			if err := validateUploadDataFrame(data); err != nil {
-				pw.CloseWithError(err)
-				<-done
-				return nil, err
-			}
-			recordUploadMetric(ctx, UploadMetric{Stage: "receive-data", Bytes: len(data)})
-			_, err = pw.Write(data)
-			if err != nil {
-				pw.CloseWithError(err)
-				<-done
-				return nil, err
-			}
-			bytesWritten += int64(len(data))
+			return nil, abort(err)
 		}
 	}
 

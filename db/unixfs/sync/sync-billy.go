@@ -425,7 +425,7 @@ func syncToBillyOnce(
 		xferBuf := cpyBuffer.GetOrAllocate(copyBufferSize)
 		changed := createTruncateFile
 		if createTruncateFile {
-			err = unixfs_billy.CopyToBillyFSFile(ctx, of, handle, xferBuf, 0)
+			err = unixfs_billy.CopyToBillyFSFile(ctx, of, handle, xferBuf)
 		} else {
 			wbuffer := writeBuffer.GetOrAllocate(copyBufferSize)
 			changed, err = unixfs_billy.SyncToBillyFSFile(ctx, of, handle, xferBuf, wbuffer)

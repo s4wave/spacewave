@@ -1529,6 +1529,45 @@ func TestFSHandleResourceUploadFileRejectsOversizedData(t *testing.T) {
 	}
 }
 
+func TestFSHandleResourceUploadFileRejectsDataPastTotalSize(t *testing.T) {
+	// Start the filesystem resource testbed for single-file uploads.
+	ctx, resClient, _, _, cleanup := setupFSHandleResourceClient(t)
+	defer cleanup()
+
+	// Retain the filesystem root resource for the test.
+	rootRef := resClient.AccessRootResource()
+	defer rootRef.Release()
+
+	// Open the filesystem root RPC service.
+	rootClient, err := rootRef.GetClient()
+	if err != nil {
+		t.Fatal(err)
+	}
+	rootSvc := s4wave_unixfs.NewSRPCFSHandleResourceServiceClient(rootClient)
+
+	// Send more bytes than the declared size and require an error, not a hang.
+	strm, err := rootSvc.UploadFile(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := strm.Send(&s4wave_unixfs.HandleUploadFileRequest{
+		Name:      "short.txt",
+		TotalSize: 4,
+		Mode:      0o644,
+		Data:      []byte("four"),
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if err := strm.Send(&s4wave_unixfs.HandleUploadFileRequest{
+		Data: []byte("extra"),
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := strm.CloseAndRecv(); err == nil {
+		t.Fatal("expected upload data past total_size to fail")
+	}
+}
+
 func extractEntryNames(entries []*s4wave_unixfs.DirEntry) []string {
 	names := make([]string, 0, len(entries))
 	for _, entry := range entries {

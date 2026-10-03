@@ -2,6 +2,7 @@ package block
 
 import (
 	"math/rand/v2"
+	"slices"
 	"strconv"
 	"testing"
 )
@@ -40,15 +41,15 @@ func (t *testNamedSubBlock) Equals(ot ComparableNamedSubBlock) bool {
 var _ NamedSubBlock = (*testNamedSubBlock)(nil)
 
 // TestSortNamedSubBlocks tests sorting a set of named sub blocks.
-func TestSortNamedTestBlocks(t *testing.T) {
+func TestSortNamedSubBlocks(t *testing.T) {
 	// Generate the original names for named sub-block sorting.
 	namesSorted := make([]string, 100)
 	for i := range namesSorted {
 		namesSorted[i] = "foo-" + strconv.Itoa(i)
 	}
 
-	// Prepare and shuffle the input name slots.
-	namesShuffled := make([]string, len(namesSorted))
+	// Shuffle a copy of the names.
+	namesShuffled := slices.Clone(namesSorted)
 	rand.Shuffle(len(namesShuffled), func(i, j int) {
 		namesShuffled[i], namesShuffled[j] = namesShuffled[j], namesShuffled[i]
 	})

@@ -47,14 +47,12 @@ func NewBillyFSFile(ctx context.Context, name string, h *unixfs.FSHandle, flag i
 
 // CopyToBillyFSFile copies data from a FSHandle to a BillyFSFile.
 // Writes from the current out index forward.
-// If limit <= 0, ignores.
 // If copyBuffer is set, uses it, otherwise allocates one.
 func CopyToBillyFSFile(
 	ctx context.Context,
 	destFile billy.File,
 	srcHandle *unixfs.FSHandle,
 	copyBuffer []byte,
-	limit int64,
 ) error {
 	// Provide a buffer for copying UnixFS content to the Billy file.
 	if len(copyBuffer) < 16 {
