@@ -62,10 +62,12 @@ func (c *BillyFSCursor) AddChangeCb(cb unixfs.FSCursorChangeCb) {
 // Returning nil, nil will be corrected to nil, ErrNotExist.
 // Return nil, ErrReleased to indicate this FSCursor was released.
 func (c *BillyFSCursor) GetCursorOps(ctx context.Context) (unixfs.FSCursorOps, error) {
+	// Require a live Billy cursor before retrieving its operations.
 	if c.CheckReleased() {
 		return nil, unixfs_errors.ErrReleased
 	}
 
+	// Read the Billy entry metadata under the filesystem lock.
 	c.state.mtx.Lock()
 	fi, err := billyLstat(c.state.bfs, c.path)
 	c.state.mtx.Unlock()

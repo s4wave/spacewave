@@ -81,6 +81,7 @@ func (o *BillyFSCursorOps) GetSize(ctx context.Context) (uint64, error) {
 
 // Lookup implements FSCursorOps.
 func (o *BillyFSCursorOps) Lookup(ctx context.Context, name string) (unixfs.FSCursor, error) {
+	// Require a live directory cursor before looking up a child.
 	if o.CheckReleased() {
 		return nil, unixfs_errors.ErrReleased
 	}
@@ -88,11 +89,13 @@ func (o *BillyFSCursorOps) Lookup(ctx context.Context, name string) (unixfs.FSCu
 		return nil, unixfs_errors.ErrNotDirectory
 	}
 
+	// Resolve the child name within the Billy filesystem.
 	npath, err := o.c.buildChildPath(name)
 	if err != nil {
 		return nil, err
 	}
 
+	// Check the child entry while holding the Billy filesystem lock.
 	o.c.state.mtx.Lock()
 	_, err = billyLstat(o.c.state.bfs, npath)
 	o.c.state.mtx.Unlock()
@@ -108,6 +111,7 @@ func (o *BillyFSCursorOps) Lookup(ctx context.Context, name string) (unixfs.FSCu
 
 // Mknod implements FSCursorOps.
 func (o *BillyFSCursorOps) Mknod(ctx context.Context, checkExist bool, names []string, nodeType unixfs.FSCursorNodeType, permissions fs.FileMode, ts time.Time) error {
+	// Require a live directory cursor and names for node creation.
 	if o.CheckReleased() {
 		return unixfs_errors.ErrReleased
 	}
@@ -118,6 +122,7 @@ func (o *BillyFSCursorOps) Mknod(ctx context.Context, checkExist bool, names []s
 		return nil
 	}
 
+	// Select the Billy capability for the requested node type.
 	createDir := nodeType.GetIsDirectory()
 	var dirFs billy.Dir
 	if createDir {
@@ -130,6 +135,7 @@ func (o *BillyFSCursorOps) Mknod(ctx context.Context, checkExist bool, names []s
 		return billy.ErrNotSupported
 	}
 
+	// Resolve and deduplicate the child paths before creating nodes.
 	childPaths := make([]string, len(names))
 	for i, name := range names {
 		npath, err := o.c.buildChildPath(name)
@@ -141,6 +147,7 @@ func (o *BillyFSCursorOps) Mknod(ctx context.Context, checkExist bool, names []s
 	slices.Sort(childPaths)
 	childPaths = slices.Compact(childPaths)
 
+	// Check for existing entries under the Billy filesystem lock.
 	o.c.state.mtx.Lock()
 	defer o.c.state.mtx.Unlock()
 	if checkExist {
@@ -155,6 +162,7 @@ func (o *BillyFSCursorOps) Mknod(ctx context.Context, checkExist bool, names []s
 		}
 	}
 
+	// Create each requested node and invalidate the cursor before mutation.
 	for _, childPath := range childPaths {
 		o.released.Store(true) // release the cursor just before filesystem modification
 		if createDir {
@@ -186,6 +194,7 @@ func (o *BillyFSCursorOps) MoveFrom(ctx context.Context, name string, srcCursorO
 // same billy filesystem. It returns done=false for a different filesystem so
 // FSHandle.Rename can fall back; billy.Basic.Rename overwrites a file target.
 func (o *BillyFSCursorOps) MoveTo(ctx context.Context, tgtCursorOps unixfs.FSCursorOps, tgtName string, ts time.Time) (done bool, err error) {
+	// Require a live cursor and a target in the same Billy filesystem.
 	if o.CheckReleased() {
 		return false, unixfs_errors.ErrReleased
 	}
@@ -194,11 +203,13 @@ func (o *BillyFSCursorOps) MoveTo(ctx context.Context, tgtCursorOps unixfs.FSCur
 		return false, nil
 	}
 
+	// Resolve the destination path within the target directory.
 	newPath, err := tgtOps.c.buildChildPath(tgtName)
 	if err != nil {
 		return false, err
 	}
 
+	// Rename the Billy entry under the filesystem lock and invalidate the cursor.
 	o.released.Store(true) // release the cursor just before filesystem modification
 	o.c.state.mtx.Lock()
 	defer o.c.state.mtx.Unlock()
@@ -210,10 +221,12 @@ func (o *BillyFSCursorOps) MoveTo(ctx context.Context, tgtCursorOps unixfs.FSCur
 
 // ReadAt implements FSCursorOps.
 func (o *BillyFSCursorOps) ReadAt(ctx context.Context, offset int64, data []byte) (int64, error) {
+	// Require a live cursor before reading file content.
 	if o.CheckReleased() {
 		return 0, unixfs_errors.ErrReleased
 	}
 
+	// Open the Billy file under the filesystem lock.
 	o.c.state.mtx.Lock()
 	defer o.c.state.mtx.Unlock()
 	file, err := o.c.state.bfs.Open(o.c.path)
@@ -224,25 +237,30 @@ func (o *BillyFSCursorOps) ReadAt(ctx context.Context, offset int64, data []byte
 		return 0, err
 	}
 
+	// Read the requested file range through the Billy file.
 	n, err := file.ReadAt(data, offset)
 	return int64(n), err
 }
 
 // ReaddirAll implements FSCursorOps.
 func (o *BillyFSCursorOps) ReaddirAll(ctx context.Context, skip uint64, cb func(ent unixfs.FSCursorDirent) error) error {
+	// Require a live cursor before listing directory entries.
 	if o.CheckReleased() {
 		return unixfs_errors.ErrReleased
 	}
 
+	// Require a directory entry for the Billy listing.
 	if !o.fi.IsDir() {
 		return unixfs_errors.ErrNotDirectory
 	}
 
+	// Require the Billy directory capability for the listing.
 	dirFs, ok := o.c.state.bfs.(billy.Dir)
 	if !ok {
 		return unixfs_errors.ErrNotDirectory
 	}
 
+	// Read the Billy directory entries under the filesystem lock.
 	o.c.state.mtx.Lock()
 	fis, err := dirFs.ReadDir(o.c.path)
 	o.c.state.mtx.Unlock()
@@ -256,6 +274,7 @@ func (o *BillyFSCursorOps) ReaddirAll(ctx context.Context, skip uint64, cb func(
 		return nil
 	}
 
+	// Deliver each Billy directory entry to the callback.
 	for _, fi := range fis {
 		dirent := unixfs_iofs.NewFSCursorDirent(fi)
 		if err := cb(dirent); err != nil {
@@ -268,20 +287,24 @@ func (o *BillyFSCursorOps) ReaddirAll(ctx context.Context, skip uint64, cb func(
 
 // Readlink implements FSCursorOps.
 func (o *BillyFSCursorOps) Readlink(ctx context.Context, name string) ([]string, bool, error) {
+	// Require a live cursor before reading a symbolic link.
 	if o.CheckReleased() {
 		return nil, false, unixfs_errors.ErrReleased
 	}
 
+	// Require the Billy symbolic link capability.
 	symlinkFs, ok := o.c.state.bfs.(billy.Symlink)
 	if !ok {
 		return nil, false, billy.ErrNotSupported
 	}
 
+	// Resolve the symbolic link name within the Billy filesystem.
 	fpath, err := o.c.buildChildPath(name)
 	if err != nil {
 		return nil, false, err
 	}
 
+	// Read the symbolic link target under the filesystem lock.
 	o.c.state.mtx.Lock()
 	outPath, err := symlinkFs.Readlink(fpath)
 	o.c.state.mtx.Unlock()
@@ -289,16 +312,19 @@ func (o *BillyFSCursorOps) Readlink(ctx context.Context, name string) ([]string,
 		return nil, false, err
 	}
 
+	// Decode the symbolic link target into UnixFS path components.
 	nodes, isAbsolute := unixfs.SplitPath(outPath)
 	return nodes, isAbsolute, nil
 }
 
 // Remove implements FSCursorOps.
 func (o *BillyFSCursorOps) Remove(ctx context.Context, names []string, ts time.Time) error {
+	// Require a live cursor before removing child entries.
 	if o.CheckReleased() {
 		return unixfs_errors.ErrReleased
 	}
 
+	// Resolve and deduplicate the child paths before removing entries.
 	removePaths := make([]string, len(names))
 	for i, name := range names {
 		fpath, err := o.c.buildChildPath(name)
@@ -310,6 +336,7 @@ func (o *BillyFSCursorOps) Remove(ctx context.Context, names []string, ts time.T
 	slices.Sort(removePaths)
 	removePaths = slices.Compact(removePaths)
 
+	// Remove the Billy entries under the filesystem lock and invalidate the cursor.
 	o.c.state.mtx.Lock()
 	defer o.c.state.mtx.Unlock()
 	for _, removePath := range removePaths {
@@ -333,15 +360,18 @@ type chtimesFS interface {
 
 // SetModTimestamp implements FSCursorOps.
 func (o *BillyFSCursorOps) SetModTimestamp(ctx context.Context, mtime time.Time) error {
+	// Require a live cursor before changing its timestamp.
 	if o.CheckReleased() {
 		return unixfs_errors.ErrReleased
 	}
 
+	// Require the Billy timestamp capability.
 	chtimesFs, ok := o.c.state.bfs.(chtimesFS)
 	if !ok {
 		return billy.ErrNotSupported
 	}
 
+	// Change the Billy entry timestamp under the filesystem lock and invalidate the cursor.
 	o.released.Store(true) // release the cursor just before filesystem modification
 	o.c.state.mtx.Lock()
 	defer o.c.state.mtx.Unlock()
@@ -350,6 +380,7 @@ func (o *BillyFSCursorOps) SetModTimestamp(ctx context.Context, mtime time.Time)
 
 // SetPermissions implements FSCursorOps.
 func (o *BillyFSCursorOps) SetPermissions(ctx context.Context, permissions fs.FileMode, ts time.Time) error {
+	// Require a live cursor before changing its permissions.
 	if o.CheckReleased() {
 		return unixfs_errors.ErrReleased
 	}
@@ -363,6 +394,7 @@ func (o *BillyFSCursorOps) SetPermissions(ctx context.Context, permissions fs.Fi
 		return billy.ErrNotSupported
 	}
 
+	// Change the Billy entry permissions under the filesystem lock and invalidate the cursor.
 	newMode := o.fi.Mode().Type() | permissions.Perm()
 	o.released.Store(true) // release the cursor just before filesystem modification
 	o.c.state.mtx.Lock()
@@ -372,20 +404,24 @@ func (o *BillyFSCursorOps) SetPermissions(ctx context.Context, permissions fs.Fi
 
 // Symlink implements FSCursorOps.
 func (o *BillyFSCursorOps) Symlink(ctx context.Context, checkExist bool, name string, target []string, targetIsAbsolute bool, ts time.Time) error {
+	// Require a live cursor before creating a symbolic link.
 	if o.CheckReleased() {
 		return unixfs_errors.ErrReleased
 	}
 
+	// Require the Billy symbolic link capability for creation.
 	symlinkFs, ok := o.c.state.bfs.(billy.Symlink)
 	if !ok {
 		return billy.ErrNotSupported
 	}
 
+	// Resolve the new symbolic link path within the Billy filesystem.
 	fpath, err := o.c.buildChildPath(name)
 	if err != nil {
 		return err
 	}
 
+	// Check for an existing Billy entry under the filesystem lock.
 	o.c.state.mtx.Lock()
 	defer o.c.state.mtx.Unlock()
 	if checkExist {
@@ -397,12 +433,15 @@ func (o *BillyFSCursorOps) Symlink(ctx context.Context, checkExist bool, name st
 			return err
 		}
 	}
+
+	// Create the symbolic link and invalidate the cursor before mutation.
 	o.released.Store(true) // release the cursor just before filesystem modification
 	return symlinkFs.Symlink(unixfs.JoinPath(target, targetIsAbsolute), fpath)
 }
 
 // Truncate implements FSCursorOps.
 func (o *BillyFSCursorOps) Truncate(ctx context.Context, nsize uint64, ts time.Time) error {
+	// Require a live regular-file cursor before truncation.
 	if o.CheckReleased() {
 		return unixfs_errors.ErrReleased
 	}
@@ -410,6 +449,7 @@ func (o *BillyFSCursorOps) Truncate(ctx context.Context, nsize uint64, ts time.T
 		return unixfs_errors.ErrNotFile
 	}
 
+	// Open the Billy file for truncation under the filesystem lock.
 	o.c.state.mtx.Lock()
 	defer o.c.state.mtx.Unlock()
 	f, err := o.c.state.bfs.OpenFile(o.c.path, os.O_WRONLY, 0o644)
@@ -420,6 +460,7 @@ func (o *BillyFSCursorOps) Truncate(ctx context.Context, nsize uint64, ts time.T
 		return err
 	}
 
+	// Truncate the Billy file and invalidate the cursor before mutation.
 	o.released.Store(true)                           // release the cursor just before filesystem modification
 	if err := f.Truncate(int64(nsize)); err != nil { //nolint:gosec
 		_ = f.Close()
@@ -431,6 +472,7 @@ func (o *BillyFSCursorOps) Truncate(ctx context.Context, nsize uint64, ts time.T
 
 // WriteAt implements FSCursorOps.
 func (o *BillyFSCursorOps) WriteAt(ctx context.Context, offset int64, data []byte, ts time.Time) error {
+	// Require a live regular-file cursor before writing content.
 	if o.CheckReleased() {
 		return unixfs_errors.ErrReleased
 	}
@@ -438,6 +480,7 @@ func (o *BillyFSCursorOps) WriteAt(ctx context.Context, offset int64, data []byt
 		return unixfs_errors.ErrNotFile
 	}
 
+	// Open the Billy file for writing under the filesystem lock.
 	o.c.state.mtx.Lock()
 	defer o.c.state.mtx.Unlock()
 	f, err := o.c.state.bfs.OpenFile(o.c.path, os.O_WRONLY, 0o644)
@@ -448,12 +491,14 @@ func (o *BillyFSCursorOps) WriteAt(ctx context.Context, offset int64, data []byt
 		return err
 	}
 
+	// Position the Billy file at the requested write offset.
 	_, err = f.Seek(offset, io.SeekStart)
 	if err != nil {
 		_ = f.Close()
 		return err
 	}
 
+	// Write the remaining content and invalidate the cursor before mutation.
 	o.released.Store(true) // release the cursor just before filesystem modification
 	for len(data) != 0 {
 		n, err := f.Write(data)
@@ -472,6 +517,7 @@ func (o *BillyFSCursorOps) WriteAt(ctx context.Context, offset int64, data []byt
 
 // MknodWithContent creates a file entry and writes content atomically.
 func (o *BillyFSCursorOps) MknodWithContent(ctx context.Context, name string, nodeType unixfs.FSCursorNodeType, dataLen int64, rdr io.Reader, permissions fs.FileMode, ts time.Time) error {
+	// Require a live directory cursor before creating a file with content.
 	if o.CheckReleased() {
 		return unixfs_errors.ErrReleased
 	}
@@ -479,11 +525,13 @@ func (o *BillyFSCursorOps) MknodWithContent(ctx context.Context, name string, no
 		return unixfs_errors.ErrNotDirectory
 	}
 
+	// Resolve the new file path within the Billy filesystem.
 	fpath, err := o.c.buildChildPath(name)
 	if err != nil {
 		return err
 	}
 
+	// Create the Billy file under the filesystem lock and invalidate the cursor.
 	o.released.Store(true) // release the cursor just before filesystem modification
 	o.c.state.mtx.Lock()
 	defer o.c.state.mtx.Unlock()
@@ -491,6 +539,8 @@ func (o *BillyFSCursorOps) MknodWithContent(ctx context.Context, name string, no
 	if err != nil {
 		return err
 	}
+
+	// Copy the supplied content and close the Billy file.
 	_, err = io.Copy(f, rdr)
 	closeErr := f.Close()
 	if err != nil {

@@ -34,10 +34,13 @@ type BillyFS struct {
 // if ts is nil, uses time.Now() on each call
 // basePath should contain the path to this FSHandle.
 func NewBillyFS(ctx context.Context, h *unixfs.FSHandle, basePath string, ts time.Time) *BillyFS {
+	// Normalize the Billy filesystem root before constructing the adapter.
 	if basePath == "" {
 		basePath = "/"
 	}
 	basePath = path.Clean(basePath)
+
+	// Construct the Billy filesystem adapter and apply its write timestamp.
 	bfs := &BillyFS{
 		ctx:      ctx,
 		h:        h,
@@ -112,9 +115,11 @@ func (f *BillyFS) Open(filepath string) (billy.File, error) {
 // perm, (0666 etc.) if applicable. If successful, methods on the returned
 // File can be used for I/O.
 func (f *BillyFS) OpenFile(filepath string, flag int, perm os.FileMode) (billy.File, error) {
+	// Split the Billy file path into its parent directory and entry name.
 	filepath = path.Clean(filepath)
 	filedir, filename := path.Split(filepath)
 
+	// Create any missing parent directories when file creation is requested.
 	if flag&os.O_CREATE != 0 {
 		// billyfs expects: create directories as needed
 		if len(filedir) != 0 && filedir != "." {
@@ -124,6 +129,7 @@ func (f *BillyFS) OpenFile(filepath string, flag int, perm os.FileMode) (billy.F
 		}
 	}
 
+	// Resolve the parent UnixFS handle and retain it through the open operation.
 	var h *unixfs.FSHandle
 	if len(filedir) == 0 || filedir == "." {
 		h = f.h
@@ -139,6 +145,7 @@ func (f *BillyFS) OpenFile(filepath string, flag int, perm os.FileMode) (billy.F
 		h = dirHandle
 	}
 
+	// Look up the file entry and enforce exclusive creation.
 	fileHandle, err := h.Lookup(f.ctx, filename)
 	isExcl := unixfs.FlagIsExclusive(flag)
 	if isExcl {
@@ -150,6 +157,7 @@ func (f *BillyFS) OpenFile(filepath string, flag int, perm os.FileMode) (billy.F
 			return nil, &os.PathError{Op: "openfile-lookup-excl", Path: filepath, Err: err}
 		}
 	}
+
 	// Note: symlinks are not resolved on this path.
 	// create the file if necessary
 	if err == unixfs_errors.ErrNotExist {
@@ -177,16 +185,22 @@ func (f *BillyFS) OpenFile(filepath string, flag int, perm os.FileMode) (billy.F
 			return nil, errors.New("file did not exist after being created")
 		}
 	}
+
+	// Release a partial file handle when the lookup or creation fails.
 	if err != nil {
 		if fileHandle != nil {
 			fileHandle.Release()
 		}
 		return nil, &os.PathError{Op: "openfile-reopen", Path: filepath, Err: err}
 	}
+
+	// Require write access before truncating an existing UnixFS file.
 	if unixfs.FlagIsTruncate(flag) && !unixfs.FlagIsWriteOnly(flag) && !unixfs.FlagIsReadAndWrite(flag) {
 		fileHandle.Release()
 		return nil, &os.PathError{Op: "openfile-truncate", Path: filepath, Err: billy.ErrReadOnly}
 	}
+
+	// Truncate the UnixFS file when requested by the open flags.
 	if unixfs.FlagIsTruncate(flag) {
 		if err := fileHandle.Truncate(f.ctx, 0, f.timestamp()); err != nil {
 			fileHandle.Release()
@@ -248,8 +262,10 @@ func (f *BillyFS) TempFile(dir, prefix string) (billy.File, error) {
 // ReadDir reads the directory named by dirname and returns a list of
 // directory entries sorted by filename.
 func (f *BillyFS) ReadDir(mpath string) ([]fs.DirEntry, error) {
+	// Normalize the Billy directory path before resolving its handle.
 	mpath = path.Clean(mpath)
 
+	// Resolve the UnixFS directory handle and retain it through the listing.
 	var h *unixfs.FSHandle
 	if mpath == "" || mpath == "." || mpath == "/" {
 		h = f.h
@@ -265,10 +281,13 @@ func (f *BillyFS) ReadDir(mpath string) ([]fs.DirEntry, error) {
 		h = ch
 	}
 
+	// Read the UnixFS directory entries as file information.
 	fis, err := unixfs.ReaddirAllToFileInfo(f.ctx, 0, 0, h)
 	if err != nil {
 		return nil, &os.PathError{Op: "readdir", Path: mpath, Err: err}
 	}
+
+	// Convert the UnixFS file information into Billy directory entries.
 	entries := make([]fs.DirEntry, len(fis))
 	for i, fi := range fis {
 		entries[i] = fs.FileInfoToDirEntry(fi)
@@ -333,6 +352,7 @@ func (f *BillyFS) Lstat(filepath string) (os.FileInfo, error) {
 // absolute or relative path, and need not refer to an existing node.
 // Parent directories of link are created as necessary.
 func (f *BillyFS) Symlink(target, link string) error {
+	// Create the symbolic link parent directories and retain their UnixFS handle.
 	filepath := path.Clean(link)
 	filedir, filename := path.Split(filepath)
 	if len(filedir) != 0 && filedir != "." {
@@ -340,6 +360,8 @@ func (f *BillyFS) Symlink(target, link string) error {
 			return &os.PathError{Op: "symlink-mkdirall", Path: filedir, Err: err}
 		}
 	}
+
+	// Retain the UnixFS parent handle through symbolic link creation.
 	ch, _, err := f.h.LookupPath(f.ctx, filedir)
 	if err != nil {
 		if ch != nil {
@@ -349,12 +371,14 @@ func (f *BillyFS) Symlink(target, link string) error {
 	}
 	defer ch.Release()
 
+	// Encode the symbolic link target as UnixFS path components.
 	tgtComponents, tgtComponentsIsAbsolute := unixfs.SplitPath(target)
 	return ch.Symlink(f.ctx, true, filename, tgtComponents, tgtComponentsIsAbsolute, f.timestamp())
 }
 
 // Readlink returns the target path of link.
 func (f *BillyFS) Readlink(link string) (string, error) {
+	// Resolve the symbolic link handle and retain it through the target read.
 	ch, _, err := f.h.LookupPath(f.ctx, link)
 	if err != nil {
 		if ch != nil {
@@ -363,6 +387,8 @@ func (f *BillyFS) Readlink(link string) (string, error) {
 		return "", &os.PathError{Op: "readlink", Path: link, Err: err}
 	}
 	defer ch.Release()
+
+	// Require a symbolic link node before reading its target.
 	nt, err := ch.GetNodeType(f.ctx)
 	if err != nil {
 		return "", &os.PathError{Op: "readlink-nodetype", Path: link, Err: err}
@@ -374,6 +400,8 @@ func (f *BillyFS) Readlink(link string) (string, error) {
 			Err:  unixfs_errors.ErrNotSymlink,
 		}
 	}
+
+	// Read the UnixFS symbolic link target and reconstruct its path.
 	lnkd, lnkdAbsolute, err := ch.Readlink(f.ctx, "")
 	if err != nil {
 		return "", &os.PathError{Op: "readlink-read", Path: link, Err: err}

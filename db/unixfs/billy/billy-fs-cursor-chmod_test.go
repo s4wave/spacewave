@@ -19,31 +19,37 @@ import (
 // ErrNotSupported, so it could not catch this; this test asserts the chmod
 // actually applies.
 func TestBillyFSCursorMemfsChmod(t *testing.T) {
+	// Create the in-memory Billy root for the permission check.
 	bfs := memfs.New()
 	if err := bfs.MkdirAll("./", 0o755); err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Retain a Billy cursor for the permission check.
 	fsc := unixfs_billy.NewBillyFSCursor(bfs, "")
 	defer fsc.Release()
 
+	// Retain a UnixFS handle for the permission check.
 	fsh, err := unixfs.NewFSHandle(fsc)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	defer fsh.Release()
 
+	// Create a Billy file with the initial permissions.
 	ctx := context.Background()
 	ts := time.Date(2023, time.January, 1, 12, 0, 0, 0, time.UTC)
 	if err := fsh.Mknod(ctx, true, []string{"chmod.txt"}, unixfs.NewFSCursorNodeType_File(), 0, ts); err != nil {
 		t.Fatalf("create file: %v", err)
 	}
 
+	// Resolve the Billy file handle before changing permissions.
 	fhandle, err := fsh.Lookup(ctx, "chmod.txt")
 	if err != nil {
 		t.Fatalf("lookup file: %v", err)
 	}
 
+	// Change the Billy file permissions through its UnixFS handle.
 	if err := fhandle.SetPermissions(ctx, 0o600, ts); err != nil {
 		if err == billy.ErrNotSupported {
 			t.Fatal("SetPermissions returned ErrNotSupported on a memfs upper: the RAM writable root cannot chmod, so the guest sees EIO")
@@ -51,14 +57,19 @@ func TestBillyFSCursorMemfsChmod(t *testing.T) {
 		t.Fatalf("SetPermissions: %v", err)
 	}
 
+	// Resolve the Billy file again after the permission change.
 	fhandle, err = fsh.Lookup(ctx, "chmod.txt")
 	if err != nil {
 		t.Fatalf("re-lookup file: %v", err)
 	}
+
+	// Read the Billy file metadata after the permission change.
 	info, err := fhandle.GetFileInfo(ctx)
 	if err != nil {
 		t.Fatalf("get file info: %v", err)
 	}
+
+	// Verify the Billy file permissions match the requested mode.
 	if got := info.Mode().Perm(); got != 0o600 {
 		t.Fatalf("chmod not applied on memfs upper: got %o want %o", got, 0o600)
 	}

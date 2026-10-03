@@ -17,15 +17,18 @@ func TestBillyFSCursor(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// Retain a Billy cursor for the filesystem contract checks.
 	fsc := unixfs_billy.NewBillyFSCursor(bfs, "")
 	defer fsc.Release()
 
+	// Retain a UnixFS handle for the filesystem contract checks.
 	fsh, err := unixfs.NewFSHandle(fsc)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	defer fsh.Release()
 
+	// Exercise the UnixFS contract through the Billy cursor.
 	ctx := context.Background()
 	if err := unixfs_e2e.TestUnixFS(ctx, fsh); err != nil {
 		t.Fatal(err.Error())

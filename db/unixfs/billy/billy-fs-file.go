@@ -56,16 +56,21 @@ func CopyToBillyFSFile(
 	copyBuffer []byte,
 	limit int64,
 ) error {
+	// Provide a buffer for copying UnixFS content to the Billy file.
 	if len(copyBuffer) < 16 {
 		copyBuffer = make([]byte, 32*1024)
 	}
 
+	// Copy the UnixFS content until the source ends or a transfer fails.
 	var offset int64
 	var written int64
 	var err error
 	for {
+		// Read the next UnixFS chunk and advance the source offset.
 		nr, er := srcHandle.ReadAt(ctx, offset, copyBuffer)
 		offset += nr
+
+		// Write the source chunk to the Billy file and detect short writes.
 		if nr > 0 {
 			nw, ew := destFile.Write(copyBuffer[0:nr])
 			if nw < 0 || int(nr) < nw {
@@ -84,6 +89,8 @@ func CopyToBillyFSFile(
 				break
 			}
 		}
+
+		// Finish the transfer when the UnixFS source reports EOF or an error.
 		if er != nil {
 			if er != io.EOF {
 				err = er
@@ -104,6 +111,7 @@ func SyncToBillyFSFile(
 	srcHandle *unixfs.FSHandle,
 	inBuffer, outBuffer []byte,
 ) (bool, error) {
+	// Size separate buffers for comparing UnixFS and Billy file content.
 	if len(inBuffer) < 16 {
 		inBuffer = make([]byte, 32*1024)
 	}
@@ -132,6 +140,7 @@ func SyncToBillyFSFile(
 	// read & compare in chunks
 	var offset int64
 	for {
+		// Read the next UnixFS range and verify the source ends at its declared size.
 		nreadIn, err := srcHandle.ReadAt(ctx, offset, inBuffer)
 		isEOF := err == io.EOF
 		if err != nil && !isEOF {
@@ -144,6 +153,7 @@ func SyncToBillyFSFile(
 			break
 		}
 
+		// Read the corresponding Billy file range for comparison.
 		outBuffer = outBuffer[:nreadIn]
 		nreadOut, err := destFile.ReadAt(outBuffer, offset)
 		if err != nil {
@@ -154,6 +164,7 @@ func SyncToBillyFSFile(
 			return false, errors.Errorf("read 0 bytes but expected %d", nreadIn)
 		}
 
+		// Limit the comparison to the bytes returned by both files.
 		compareSize := nreadIn
 		if out := int64(nreadOut); out < compareSize {
 			compareSize = out
@@ -165,11 +176,13 @@ func SyncToBillyFSFile(
 			continue
 		}
 
+		// Position the Billy file before replacing a differing range.
 		// otherwise write to the destination.
 		if _, err := destFile.Seek(offset, io.SeekStart); err != nil {
 			return false, err
 		}
 
+		// Persist the changed Billy file range and advance the comparison offset.
 		wroteSize, err := destFile.Write(inBuffer[:compareSize])
 		if err != nil {
 			return false, err
@@ -196,10 +209,12 @@ func (f *BillyFSFile) Name() string {
 
 // Write writes data to the file node.
 func (f *BillyFSFile) Write(p []byte) (n int, err error) {
+	// Require write access to the Billy file.
 	if f.GetReadOnly() {
 		return 0, billy.ErrReadOnly
 	}
 
+	// Write the content through the UnixFS handle and advance the file offset.
 	startIdx := f.idx.Load()
 	err = f.h.WriteAt(f.ctx, startIdx, p, f.timestamp())
 	if err != nil {
@@ -264,10 +279,13 @@ func (f *BillyFSFile) ReadFrom(r io.Reader) (n int64, err error) {
 
 // Read reads data from the file node, advancing the file handle offset.
 func (f *BillyFSFile) Read(p []byte) (n int, err error) {
+	// Trace the Billy file read when runtime tracing is enabled.
 	if trace.IsEnabled() {
 		_, task := trace.NewTask(f.ctx, "db/unixfs/billy/file/read")
 		defer task.End()
 	}
+
+	// Read the UnixFS file content and advance the offset after a successful read.
 	idx := f.idx.Load()
 	rn, err := f.h.ReadAt(f.ctx, idx, p)
 	if rn != 0 {
