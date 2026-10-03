@@ -19,6 +19,7 @@ type applicationCore struct {
 
 // newApplicationCore constructs the Resource-serving core plugin capability.
 func newApplicationCore(root srpc.Invoker) *applicationCore {
+	// Expose the native core Resource tree through a plugin RPC client.
 	core := &applicationCore{root: root}
 	mux := srpc.NewMux()
 	_ = plugin.SRPCRegisterPlugin(mux, core)

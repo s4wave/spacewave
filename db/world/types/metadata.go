@@ -31,13 +31,17 @@ type ObjectMetadataBatcher interface {
 //
 // The result slice preserves the input key order.
 func GetObjectMetadataBatch(ctx context.Context, ws world.WorldState, keys []string) ([]*ObjectMetadata, error) {
+	// Return no metadata when the caller supplies no object keys.
 	if len(keys) == 0 {
 		return nil, nil
 	}
+
+	// Delegate metadata lookup to the World batch API when available.
 	if batcher, ok := ws.(ObjectMetadataBatcher); ok {
 		return batcher.GetObjectMetadataBatch(ctx, keys)
 	}
 
+	// Preserve input order while grouping metadata records by unique object key.
 	result := make([]*ObjectMetadata, len(keys))
 	uniqueKeys := make([]string, 0, len(keys))
 	seen := make(map[string]struct{}, len(keys))
@@ -52,7 +56,9 @@ func GetObjectMetadataBatch(ctx context.Context, ws world.WorldState, keys []str
 		resultByKey[key] = append(resultByKey[key], md)
 	}
 
+	// Read type and parent graph metadata once for each unique object key.
 	for _, key := range uniqueKeys {
+		// Apply the object type edges to every corresponding metadata record.
 		typeQuads, err := ws.LookupGraphQuads(
 			ctx,
 			world.NewGraphQuadWithKeys(key, TypePred.String(), "", ""),
@@ -67,6 +73,7 @@ func GetObjectMetadataBatch(ctx context.Context, ws world.WorldState, keys []str
 			}
 		}
 
+		// Apply the parent edges to every corresponding metadata record.
 		parentQuads, err := ws.LookupGraphQuads(
 			ctx,
 			world.NewGraphQuadWithKeys(key, world_parent.ParentPred.String(), "", ""),
@@ -87,14 +94,18 @@ func GetObjectMetadataBatch(ctx context.Context, ws world.WorldState, keys []str
 
 // setTypeBatch updates result metadata from a type quad.
 func setTypeBatch(q world.GraphQuad, resultByKey map[string][]*ObjectMetadata) error {
+	// Ignore graph quads without both object endpoints.
 	if q.GetSubject() == "" || q.GetObj() == "" {
 		return nil
 	}
 
+	// Decode the graph subject into the metadata object key.
 	objKey, err := world.GraphValueToKey(q.GetSubject())
 	if err != nil {
 		return err
 	}
+
+	// Decode the type endpoint and require the type object prefix.
 	typeKey, err := world.GraphValueToKey(q.GetObj())
 	if err != nil {
 		return err
@@ -102,6 +113,8 @@ func setTypeBatch(q world.GraphQuad, resultByKey map[string][]*ObjectMetadata) e
 	if !strings.HasPrefix(typeKey, TypesPrefix) {
 		return nil
 	}
+
+	// Fill unset type identifiers in the matching metadata records.
 	typeID := typeKey[len(TypesPrefix):]
 	for _, md := range resultByKey[objKey] {
 		if md.TypeID == "" {
@@ -113,18 +126,24 @@ func setTypeBatch(q world.GraphQuad, resultByKey map[string][]*ObjectMetadata) e
 
 // setParentBatch updates result metadata from a parent quad.
 func setParentBatch(q world.GraphQuad, resultByKey map[string][]*ObjectMetadata) error {
+	// Ignore graph quads without both object endpoints.
 	if q.GetSubject() == "" || q.GetObj() == "" {
 		return nil
 	}
 
+	// Decode the graph subject into the metadata object key.
 	objKey, err := world.GraphValueToKey(q.GetSubject())
 	if err != nil {
 		return err
 	}
+
+	// Decode the parent endpoint into its object key.
 	parentKey, err := world.GraphValueToKey(q.GetObj())
 	if err != nil {
 		return err
 	}
+
+	// Record the parent object key in every matching metadata record.
 	for _, md := range resultByKey[objKey] {
 		md.ParentObjectKey = parentKey
 	}

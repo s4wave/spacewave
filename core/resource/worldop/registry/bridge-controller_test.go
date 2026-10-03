@@ -27,6 +27,7 @@ import (
 )
 
 func TestWorldOpRegistryBridgeControllerAppliesPluginWorldAndObjectOps(t *testing.T) {
+	// Start a World testbed for plugin operations on supplied transactions.
 	ctx := context.Background()
 	le := logrus.NewEntry(logrus.New())
 	tb, err := world_testbed.Default(ctx)
@@ -35,15 +36,20 @@ func TestWorldOpRegistryBridgeControllerAppliesPluginWorldAndObjectOps(t *testin
 	}
 	t.Cleanup(tb.Release)
 
+	// Capture the authenticated sender for the typed object factory.
 	sender := tb.Volume.GetPeerID()
+
 	// Typed factories must use the same supplied transaction and authenticated sender.
 	typed := objecttype.NewObjectType("test/supplied-state", func(
 		ctx context.Context, le *logrus.Entry, b bus.Bus, engine world.Engine,
 		ws world.WorldState, key string,
 	) (srpc.Invoker, func(), error) {
+		// Require the typed factory to retain the supplied transaction and sender.
 		if engine != nil || ws.GetReadOnly() || objecttype.SessionPeerIDFromContext(ctx) != sender {
 			return nil, nil, fmt.Errorf("typed factory escaped the operation context")
 		}
+
+		// Create an object through the supplied typed factory transaction.
 		obj, err := ws.CreateObject(ctx, "test/typed-op-created", nil)
 		world.ReleaseObjectState(obj)
 		if err != nil {
@@ -51,6 +57,8 @@ func TestWorldOpRegistryBridgeControllerAppliesPluginWorldAndObjectOps(t *testin
 		}
 		return srpc.NewMux(), func() {}, nil
 	})
+
+	// Register the typed factory controller for the plugin World operation.
 	typedController := objecttype_controller.NewController(func(ctx context.Context, typeID string) (objecttype.ObjectType, error) {
 		if typeID == "test/supplied-state" {
 			return typed, nil
@@ -62,6 +70,8 @@ func TestWorldOpRegistryBridgeControllerAppliesPluginWorldAndObjectOps(t *testin
 		t.Fatal(err)
 	}
 	defer typedRelease()
+
+	// Expose the test operation handler through the plugin Resource server.
 	pluginRoot := srpc.NewMux()
 	if err := s4wave_worldop_registry.SRPCRegisterWorldOpHandlerService(pluginRoot, &testWorldOpHandler{sender: sender}); err != nil {
 		t.Fatal(err)
@@ -72,12 +82,14 @@ func TestWorldOpRegistryBridgeControllerAppliesPluginWorldAndObjectOps(t *testin
 	}
 	pluginClient := srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(pluginResourceMux)))
 
+	// Keep the plugin load controller available throughout the test.
 	rel, err := tb.Bus.AddController(ctx, &testWorldOpPluginLoadController{client: pluginClient}, nil)
 	if err != nil {
 		t.Fatalf("AddController plugin load: %v", err)
 	}
 	defer rel()
 
+	// Register the plugin operation and attach the registry bridge controller.
 	registry := NewWorldOpRegistryResource(nil)
 	registry.registrations[1] = &s4wave_worldop_registry.WorldOpRegistration{
 		OperationTypeId: "test/plugin-op",
@@ -91,6 +103,7 @@ func TestWorldOpRegistryBridgeControllerAppliesPluginWorldAndObjectOps(t *testin
 	}
 	defer rel()
 
+	// Resolve the registered plugin operation for the test World engine.
 	vs, _, ref, err := world.ExLookupWorldOp(
 		ctx,
 		tb.Bus,
@@ -106,6 +119,7 @@ func TestWorldOpRegistryBridgeControllerAppliesPluginWorldAndObjectOps(t *testin
 		t.Fatalf("expected 1 lookup op, got %d", len(vs))
 	}
 
+	// Decode a bridge operation and verify its selected World engine.
 	op, err := vs[0](ctx, "test/plugin-op")
 	if err != nil {
 		t.Fatalf("lookup op: %v", err)
@@ -121,10 +135,13 @@ func TestWorldOpRegistryBridgeControllerAppliesPluginWorldAndObjectOps(t *testin
 		t.Fatalf("UnmarshalBlock: %v", err)
 	}
 
+	// Open the supplied World transaction for the plugin operation.
 	worldTx, err := tb.Engine.NewTransaction(ctx, true)
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Apply the plugin World operation through the supplied transaction.
 	sysErr, err := op.ApplyWorldOp(ctx, le, worldTx, sender)
 	if err != nil {
 		worldTx.Discard()
@@ -134,12 +151,15 @@ func TestWorldOpRegistryBridgeControllerAppliesPluginWorldAndObjectOps(t *testin
 		worldTx.Discard()
 		t.Fatal("ApplyWorldOp returned system error")
 	}
+
+	// Commit the plugin World mutation and verify both created objects.
 	if err := worldTx.Commit(ctx); err != nil {
 		t.Fatalf("Commit world op tx: %v", err)
 	}
 	assertWorldObjectExists(t, ctx, tb.Engine, "test/world-op-created")
 	assertWorldObjectExists(t, ctx, tb.Engine, "test/typed-op-created")
 
+	// Open the object operation transaction and create its target object.
 	objectTx, err := tb.Engine.NewTransaction(ctx, true)
 	if err != nil {
 		t.Fatal(err)
@@ -150,6 +170,8 @@ func TestWorldOpRegistryBridgeControllerAppliesPluginWorldAndObjectOps(t *testin
 		objectTx.Discard()
 		t.Fatalf("CreateObject: %v", err)
 	}
+
+	// Apply the plugin operation to the acquired target object.
 	sysErr, err = op.ApplyWorldObjectOp(ctx, le, obj, sender)
 	if err != nil {
 		objectTx.Discard()
@@ -159,6 +181,8 @@ func TestWorldOpRegistryBridgeControllerAppliesPluginWorldAndObjectOps(t *testin
 		objectTx.Discard()
 		t.Fatal("ApplyWorldObjectOp returned system error")
 	}
+
+	// Commit the object mutation and verify its revision and settings.
 	if err := objectTx.Commit(ctx); err != nil {
 		t.Fatalf("Commit object op tx: %v", err)
 	}
@@ -167,6 +191,7 @@ func TestWorldOpRegistryBridgeControllerAppliesPluginWorldAndObjectOps(t *testin
 }
 
 func TestWorldOpRegistryBridgeControllerValidatesBeforeMutation(t *testing.T) {
+	// Start a World testbed for plugin validation failure.
 	ctx := context.Background()
 	le := logrus.NewEntry(logrus.New())
 	tb, err := world_testbed.Default(ctx)
@@ -175,6 +200,7 @@ func TestWorldOpRegistryBridgeControllerValidatesBeforeMutation(t *testing.T) {
 	}
 	t.Cleanup(tb.Release)
 
+	// Expose a plugin handler that rejects operation validation.
 	pluginRoot := srpc.NewMux()
 	if err := s4wave_worldop_registry.SRPCRegisterWorldOpHandlerService(pluginRoot, &testWorldOpHandler{
 		validateError: "plugin validation failed",
@@ -187,12 +213,14 @@ func TestWorldOpRegistryBridgeControllerValidatesBeforeMutation(t *testing.T) {
 	}
 	pluginClient := srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(pluginResourceMux)))
 
+	// Keep the rejecting plugin load controller available throughout the test.
 	rel, err := tb.Bus.AddController(ctx, &testWorldOpPluginLoadController{client: pluginClient}, nil)
 	if err != nil {
 		t.Fatalf("AddController plugin load: %v", err)
 	}
 	defer rel()
 
+	// Register the rejecting plugin operation and attach its registry bridge.
 	registry := NewWorldOpRegistryResource(nil)
 	registry.registrations[1] = &s4wave_worldop_registry.WorldOpRegistration{
 		OperationTypeId: "test/plugin-op",
@@ -206,6 +234,7 @@ func TestWorldOpRegistryBridgeControllerValidatesBeforeMutation(t *testing.T) {
 	}
 	defer rel()
 
+	// Resolve and decode the plugin operation that will fail validation.
 	vs, _, ref, err := world.ExLookupWorldOp(
 		ctx,
 		tb.Bus,
@@ -225,6 +254,7 @@ func TestWorldOpRegistryBridgeControllerValidatesBeforeMutation(t *testing.T) {
 		t.Fatalf("UnmarshalBlock: %v", err)
 	}
 
+	// Apply the rejected operation and verify the World remains unchanged.
 	worldTx, err := tb.Engine.NewTransaction(ctx, true)
 	if err != nil {
 		t.Fatal(err)
@@ -241,6 +271,7 @@ func TestWorldOpRegistryBridgeControllerValidatesBeforeMutation(t *testing.T) {
 }
 
 func assertWorldObjectExists(t *testing.T, ctx context.Context, engine world.Engine, key string) {
+	// Read the committed World and require the expected object to exist.
 	t.Helper()
 	readTx, err := engine.NewTransaction(ctx, false)
 	if err != nil {
@@ -257,6 +288,7 @@ func assertWorldObjectExists(t *testing.T, ctx context.Context, engine world.Eng
 }
 
 func assertWorldObjectMissing(t *testing.T, ctx context.Context, engine world.Engine, key string) {
+	// Read the committed World and require the rejected object to remain absent.
 	t.Helper()
 	readTx, err := engine.NewTransaction(ctx, false)
 	if err != nil {
@@ -273,17 +305,22 @@ func assertWorldObjectMissing(t *testing.T, ctx context.Context, engine world.En
 }
 
 func assertObjectRevAtLeast(t *testing.T, ctx context.Context, engine world.Engine, key string, minRev uint64) {
+	// Open a World read transaction for the object revision assertion.
 	t.Helper()
 	readTx, err := engine.NewTransaction(ctx, false)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer readTx.Discard()
+
+	// Acquire the committed object state for the revision assertion.
 	obj, err := world.MustGetObject(ctx, readTx, key)
 	defer world.ReleaseObjectState(obj)
 	if err != nil {
 		t.Fatalf("object %q was not committed: %v", key, err)
 	}
+
+	// Read the committed object revision and compare it with the minimum.
 	_, rev, err := obj.GetRootRef(ctx)
 	if err != nil {
 		t.Fatalf("GetRootRef(%q): %v", key, err)
@@ -294,12 +331,15 @@ func assertObjectRevAtLeast(t *testing.T, ctx context.Context, engine world.Engi
 }
 
 func assertObjectSettingsIndexPath(t *testing.T, ctx context.Context, engine world.Engine, key, want string) {
+	// Open a World read transaction for the object settings assertion.
 	t.Helper()
 	readTx, err := engine.NewTransaction(ctx, false)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer readTx.Discard()
+
+	// Read the committed settings and compare their index path.
 	settings, objectState, err := world.LookupObject[*space_world.SpaceSettings](
 		ctx,
 		readTx,
@@ -324,6 +364,7 @@ func (h *testWorldOpHandler) ApplyWorldOp(
 	ctx context.Context,
 	req *s4wave_worldop_registry.ApplyWorldOpRequest,
 ) (*s4wave_worldop_registry.ApplyWorldOpResponse, error) {
+	// Require the expected World operation payload, sender, and attached state.
 	if req.GetOperationTypeId() != "test/plugin-op" || string(req.GetOpData()) != "op-data" {
 		return nil, resource.ErrInvalidResourceID
 	}
@@ -333,6 +374,8 @@ func (h *testWorldOpHandler) ApplyWorldOp(
 	if req.GetAttachedWorldStateResourceId() == 0 {
 		return nil, resource.ErrInvalidResourceID
 	}
+
+	// Access the attached World state through the plugin Resource client.
 	resourceCtx, err := resource_server.MustGetResourceClientContext(ctx)
 	if err != nil {
 		return nil, err
@@ -342,6 +385,8 @@ func (h *testWorldOpHandler) ApplyWorldOp(
 		return nil, err
 	}
 	worldState := s4wave_world.NewSRPCWorldStateResourceServiceClient(worldClient)
+
+	// Create the test object through the attached World state.
 	objResp, err := worldState.CreateObject(ctx, &s4wave_world.CreateObjectRequest{
 		ObjectKey: "test/world-op-created",
 	})
@@ -351,6 +396,7 @@ func (h *testWorldOpHandler) ApplyWorldOp(
 	if objID := objResp.GetResourceId(); objID != 0 {
 		defer resourceCtx.ReleaseResource(objID)
 	}
+
 	// The bridge exposes typed access alongside the operation-scoped WorldState.
 	if _, err := worldState.CreateObject(ctx, &s4wave_world.CreateObjectRequest{
 		ObjectKey: "types/test/supplied-state",
@@ -364,6 +410,8 @@ func (h *testWorldOpHandler) ApplyWorldOp(
 	}); err != nil {
 		return nil, err
 	}
+
+	// Access the created object through its typed Resource service.
 	typed := s4wave_world.NewSRPCTypedObjectResourceServiceClient(worldClient)
 	if _, err := typed.AccessTypedObject(ctx, &s4wave_world.AccessTypedObjectRequest{
 		ObjectKey: "test/world-op-created",
@@ -377,6 +425,7 @@ func (h *testWorldOpHandler) ApplyWorldObjectOp(
 	ctx context.Context,
 	req *s4wave_worldop_registry.ApplyWorldObjectOpRequest,
 ) (*s4wave_worldop_registry.ApplyWorldObjectOpResponse, error) {
+	// Require the expected object operation payload, target, and sender.
 	if req.GetOperationTypeId() != "test/plugin-op" || string(req.GetOpData()) != "op-data" {
 		return nil, resource.ErrInvalidResourceID
 	}
@@ -389,6 +438,8 @@ func (h *testWorldOpHandler) ApplyWorldObjectOp(
 	if req.GetAttachedObjectStateResourceId() == 0 {
 		return nil, resource.ErrInvalidResourceID
 	}
+
+	// Access the attached object state through the plugin Resource client.
 	resourceCtx, err := resource_server.MustGetResourceClientContext(ctx)
 	if err != nil {
 		return nil, err
@@ -398,6 +449,8 @@ func (h *testWorldOpHandler) ApplyWorldObjectOp(
 		return nil, err
 	}
 	objectState := s4wave_world.NewSRPCObjectStateResourceServiceClient(objectClient)
+
+	// Verify the attached object key before mutating its revision.
 	keyResp, err := objectState.GetKey(ctx, &s4wave_world.GetKeyRequest{})
 	if err != nil {
 		return nil, err
@@ -405,6 +458,8 @@ func (h *testWorldOpHandler) ApplyWorldObjectOp(
 	if keyResp.GetObjectKey() != "test/object-op-target" {
 		return nil, resource.ErrInvalidResourceID
 	}
+
+	// Increment the attached object revision and verify it changed.
 	revResp, err := objectState.IncrementRev(ctx, &s4wave_world.IncrementRevRequest{})
 	if err != nil {
 		return nil, err
@@ -412,6 +467,8 @@ func (h *testWorldOpHandler) ApplyWorldObjectOp(
 	if revResp.GetRev() == 0 {
 		return nil, resource.ErrInvalidResourceID
 	}
+
+	// Encode a nested settings operation for the attached object.
 	nestedOp := space_world_ops.NewSetSpaceSettingsOp(
 		"test/object-op-target",
 		&space_world.SpaceSettings{IndexPath: "/object-op"},
@@ -422,6 +479,8 @@ func (h *testWorldOpHandler) ApplyWorldObjectOp(
 	if err != nil {
 		return nil, err
 	}
+
+	// Apply the nested settings operation and verify its returned revision.
 	applyResp, err := objectState.ApplyObjectOp(ctx, &s4wave_world.ApplyObjectOpRequest{
 		OpTypeId: nestedOp.GetOperationTypeId(),
 		OpData:   opData,
@@ -461,10 +520,13 @@ func (c *testWorldOpPluginLoadController) Execute(ctx context.Context) error {
 }
 
 func (c *testWorldOpPluginLoadController) HandleDirective(_ context.Context, inst directive.Instance) ([]directive.Resolver, error) {
+	// Match the requested test plugin before selecting its executable client.
 	dir, ok := inst.GetDirective().(bldr_plugin.LoadPlugin)
 	if !ok || dir.LoadPluginID() != "test-plugin" {
 		return nil, nil
 	}
+
+	// Select the pinned manifest client or the default test plugin client.
 	client := c.client
 	if root := dir.LoadPluginManifestRoot(); root != "" {
 		client = c.manifests[root]

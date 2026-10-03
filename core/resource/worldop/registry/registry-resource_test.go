@@ -12,6 +12,7 @@ import (
 
 // TestNewWorldOpRegistryResource tests basic construction.
 func TestNewWorldOpRegistryResource(t *testing.T) {
+	// Construct the operation registry and verify its initial resources.
 	r := NewWorldOpRegistryResource(nil)
 	if r == nil {
 		t.Fatal("expected non-nil resource")
@@ -38,8 +39,10 @@ func TestLookupRegistrationByOpTypeEmpty(t *testing.T) {
 
 // TestLookupRegistrationByOpTypeFound tests that LookupRegistrationByOpType finds a manually added registration.
 func TestLookupRegistrationByOpTypeFound(t *testing.T) {
+	// Construct an empty operation registry for lookup.
 	r := NewWorldOpRegistryResource(nil)
 
+	// Publish the test operation registration under the registry lock.
 	r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		r.registrations[1] = &s4wave_worldop_registry.WorldOpRegistration{
 			OperationTypeId: "test-plugin/test-op",
@@ -49,6 +52,7 @@ func TestLookupRegistrationByOpTypeFound(t *testing.T) {
 		broadcast()
 	})
 
+	// Look up the test operation and verify its registration fields.
 	reg := r.LookupRegistrationByOpType("test-plugin/test-op", "")
 	if reg == nil {
 		t.Fatal("expected non-nil registration")
@@ -66,8 +70,10 @@ func TestLookupRegistrationByOpTypeFound(t *testing.T) {
 
 // TestLookupRegistrationByOpTypeReturnsClone tests that the returned registration is a clone.
 func TestLookupRegistrationByOpTypeReturnsClone(t *testing.T) {
+	// Construct the registry whose returned registration will be mutated.
 	r := NewWorldOpRegistryResource(nil)
 
+	// Publish the original operation registration for the clone check.
 	orig := &s4wave_worldop_registry.WorldOpRegistration{
 		OperationTypeId: "test-plugin/cloned",
 		RegistrationId:  1,
@@ -78,6 +84,7 @@ func TestLookupRegistrationByOpTypeReturnsClone(t *testing.T) {
 		broadcast()
 	})
 
+	// Require the original operation registration to be available for lookup.
 	reg := r.LookupRegistrationByOpType("test-plugin/cloned", "")
 	if reg == nil {
 		t.Fatal("expected non-nil registration")
@@ -96,8 +103,10 @@ func TestLookupRegistrationByOpTypeReturnsClone(t *testing.T) {
 
 // TestLookupRegistrationByOpTypeMultiple tests lookup with multiple registrations.
 func TestLookupRegistrationByOpTypeMultiple(t *testing.T) {
+	// Construct the registry for lookups across multiple plugins.
 	r := NewWorldOpRegistryResource(nil)
 
+	// Publish distinct operation registrations for both plugins.
 	r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		r.registrations[1] = &s4wave_worldop_registry.WorldOpRegistration{
 			OperationTypeId: "plugin-a/op-one",
@@ -117,6 +126,7 @@ func TestLookupRegistrationByOpTypeMultiple(t *testing.T) {
 		broadcast()
 	})
 
+	// Look up the second plugin operation and verify its registration identifier.
 	reg := r.LookupRegistrationByOpType("plugin-b/op-two", "")
 	if reg == nil {
 		t.Fatal("expected to find plugin-b/op-two")
@@ -125,6 +135,7 @@ func TestLookupRegistrationByOpTypeMultiple(t *testing.T) {
 		t.Fatalf("expected registration_id 2, got %d", reg.GetRegistrationId())
 	}
 
+	// Look up the other first-plugin operation and verify its identifier.
 	reg = r.LookupRegistrationByOpType("plugin-a/op-three", "")
 	if reg == nil {
 		t.Fatal("expected to find plugin-a/op-three")
@@ -133,6 +144,7 @@ func TestLookupRegistrationByOpTypeMultiple(t *testing.T) {
 		t.Fatalf("expected registration_id 3, got %d", reg.GetRegistrationId())
 	}
 
+	// Verify an unregistered operation remains absent.
 	reg = r.LookupRegistrationByOpType("nonexistent/op", "")
 	if reg != nil {
 		t.Fatal("expected nil for nonexistent operation type")
@@ -141,6 +153,7 @@ func TestLookupRegistrationByOpTypeMultiple(t *testing.T) {
 
 // TestGetRegistrationsLocked tests the snapshot helper.
 func TestGetRegistrationsLocked(t *testing.T) {
+	// Construct the registry for registration snapshot checks.
 	r := NewWorldOpRegistryResource(nil)
 
 	// Empty registry should return empty slice.
@@ -167,6 +180,7 @@ func TestGetRegistrationsLocked(t *testing.T) {
 		broadcast()
 	})
 
+	// Read the populated registry snapshot and verify both registrations appear.
 	r.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		regs = r.getRegistrationsLocked("")
 	})
@@ -177,8 +191,10 @@ func TestGetRegistrationsLocked(t *testing.T) {
 
 // TestRegistrationRemoval tests that deleting a registration makes it unfindable.
 func TestRegistrationRemoval(t *testing.T) {
+	// Construct the registry for operation removal checks.
 	r := NewWorldOpRegistryResource(nil)
 
+	// Publish the operation registration that will be removed.
 	r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		r.registrations[1] = &s4wave_worldop_registry.WorldOpRegistration{
 			OperationTypeId: "test-plugin/removable",
@@ -188,16 +204,19 @@ func TestRegistrationRemoval(t *testing.T) {
 		broadcast()
 	})
 
+	// Verify the operation can be found before removing its registration.
 	reg := r.LookupRegistrationByOpType("test-plugin/removable", "")
 	if reg == nil {
 		t.Fatal("expected registration before removal")
 	}
 
+	// Remove the operation registration and notify registry watchers.
 	r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		delete(r.registrations, 1)
 		broadcast()
 	})
 
+	// Verify the removed operation can no longer be found.
 	reg = r.LookupRegistrationByOpType("test-plugin/removable", "")
 	if reg != nil {
 		t.Fatal("expected nil after removal")
@@ -206,8 +225,10 @@ func TestRegistrationRemoval(t *testing.T) {
 
 // TestBroadcastOnChange tests that the broadcast channel fires when registrations change.
 func TestBroadcastOnChange(t *testing.T) {
+	// Construct the registry for operation change notifications.
 	r := NewWorldOpRegistryResource(nil)
 
+	// Subscribe to the next operation registry change under the registry lock.
 	var waitCh <-chan struct{}
 	r.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
 		waitCh = getWaitCh()
@@ -266,6 +287,7 @@ func (f *fakeResourceClientContext) GetAttachedResource(id uint32) (srpc.Client,
 // registration of one operation type ID fails instead of making dispatch
 // nondeterministic between plugins.
 func TestRegisterWorldOpRejectsDuplicateOperationType(t *testing.T) {
+	// Construct a client context and request for a duplicate operation registration.
 	r := NewWorldOpRegistryResource(nil)
 	ctx := resource_server.WithResourceClientContext(
 		context.Background(),
@@ -275,12 +297,16 @@ func TestRegisterWorldOpRejectsDuplicateOperationType(t *testing.T) {
 		OperationTypeId: "test-plugin/duplicate",
 		PluginId:        "test-plugin",
 	}
+
+	// Register the operation once and require the duplicate request to fail.
 	if _, err := r.RegisterWorldOp(ctx, req); err != nil {
 		t.Fatalf("first registration: %v", err)
 	}
 	if _, err := r.RegisterWorldOp(ctx, req); !errors.Is(err, ErrOperationTypeAlreadyRegistered) {
 		t.Fatalf("duplicate registration error = %v, want ErrOperationTypeAlreadyRegistered", err)
 	}
+
+	// Verify duplicate rejection preserves the original operation registration.
 	reg := r.LookupRegistrationByOpType("test-plugin/duplicate", "")
 	if reg == nil || reg.GetRegistrationId() != 1 {
 		t.Fatalf("original registration changed after duplicate attempt: %+v", reg)

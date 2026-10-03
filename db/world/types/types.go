@@ -64,6 +64,7 @@ func LimitNodesToTypes(path *cayley.Path, typeIDs ...string) *cayley.Path {
 // GetObjectType returns the type of a given object.
 // Returns "" if the object has no type.
 func GetObjectType(ctx context.Context, ws world.WorldState, key string) (string, error) {
+	// Read the object type through the World metadata batch API when available.
 	if batcher, ok := ws.(ObjectMetadataBatcher); ok {
 		metadata, err := batcher.GetObjectMetadataBatch(ctx, []string{key})
 		if err != nil || len(metadata) == 0 {
@@ -72,11 +73,14 @@ func GetObjectType(ctx context.Context, ws world.WorldState, key string) (string
 		return metadata[0].TypeID, nil
 	}
 
+	// Find the object type key among its outgoing type quads.
 	var typeKey string
 	quads, err := ws.LookupGraphQuads(ctx, world.NewGraphQuadWithKeys(key, TypePred.String(), "", ""), typeGraphLookupLimit)
 	if err != nil {
 		return "", err
 	}
+
+	// Decode the type graph values until a type object key is found.
 	for _, q := range quads {
 		objKey, err := world.GraphValueToKey(q.GetObj())
 		if err != nil {
@@ -87,6 +91,8 @@ func GetObjectType(ctx context.Context, ws world.WorldState, key string) (string
 			break
 		}
 	}
+
+	// Report an absent type when no type object key matched.
 	if len(typeKey) == 0 {
 		return "", nil
 	}
@@ -110,6 +116,7 @@ func CheckObjectType(ctx context.Context, ws world.WorldState, key, typeID strin
 
 // SetObjectType sets the type of a given object by writing a graph quad.
 func SetObjectType(ctx context.Context, ws world.WorldState, key, typeID string) error {
+	// Require object and type keys before changing the type graph.
 	if key == "" || typeID == "" {
 		return world.ErrEmptyObjectKey
 	}
@@ -119,11 +126,14 @@ func SetObjectType(ctx context.Context, ws world.WorldState, key, typeID string)
 		return err
 	}
 
+	// Replace other type quads while retaining an existing matching quad.
 	nextQuad := world.NewGraphQuadWithKeys(key, TypePred.String(), BuildTypeObjectKey(typeID), "")
 	quads, err := ws.LookupGraphQuads(ctx, world.NewGraphQuadWithKeys(key, TypePred.String(), "", ""), typeGraphLookupLimit)
 	if err != nil {
 		return err
 	}
+
+	// Remove stale type edges and remember whether the requested edge exists.
 	exists := false
 	for _, q := range quads {
 		if q.GetObj() == nextQuad.GetObj() {
@@ -134,6 +144,8 @@ func SetObjectType(ctx context.Context, ws world.WorldState, key, typeID string)
 			return err
 		}
 	}
+
+	// Preserve the matching type edge without writing it again.
 	if exists {
 		return nil
 	}
@@ -148,11 +160,14 @@ func SetObjectType(ctx context.Context, ws world.WorldState, key, typeID string)
 // absent is safe under the single-writer transaction discipline; concurrent
 // creation is not a concern within one transaction.
 func EnsureTypeExists(ctx context.Context, ws world.WorldState, typeID string) (created bool, err error) {
+	// Check whether the World already contains the type object.
 	objKey := BuildTypeObjectKey(typeID)
 	exists, err := ws.HasObject(ctx, objKey)
 	if err != nil {
 		return false, err
 	}
+
+	// Create the missing type object and release its acquired state.
 	if !exists {
 		obj, err := ws.CreateObject(ctx, objKey, nil)
 		world.ReleaseObjectState(obj)
@@ -170,18 +185,25 @@ func IterateObjectsWithType(
 	typeID string,
 	cb func(objKey string) (bool, error),
 ) error {
+	// Require a type identifier before visiting matching objects.
 	if typeID == "" {
 		return ErrTypeIDEmpty
 	}
+
+	// Leave the World untouched when no object visitor is supplied.
 	if cb == nil {
 		return nil
 	}
 
+	// Visit type matches through the World object listing API when available.
 	if lister, ok := ws.(ObjectTypeLister); ok {
+		// Fetch the object keys for the requested type.
 		objKeys, err := lister.ListObjectsWithType(rctx, typeID)
 		if err != nil {
 			return err
 		}
+
+		// Visit each listed object until the callback stops the traversal.
 		for _, objKey := range objKeys {
 			ctnu, err := cb(objKey)
 			if err != nil || !ctnu {
@@ -191,6 +213,7 @@ func IterateObjectsWithType(
 		return nil
 	}
 
+	// Resolve incoming type edges to their object keys.
 	objKeys, err := world.CollectGraphPathStepWithKeys(
 		rctx,
 		ws,
@@ -202,6 +225,8 @@ func IterateObjectsWithType(
 	if err != nil {
 		return err
 	}
+
+	// Visit each graph match until the callback stops the traversal.
 	for _, objKey := range objKeys {
 		ctnu, err := cb(objKey)
 		if err != nil || !ctnu {
@@ -213,13 +238,17 @@ func IterateObjectsWithType(
 
 // ListObjectsWithType returns the list of object keys with the given type id.
 func ListObjectsWithType(ctx context.Context, ws world.WorldState, typeID string) ([]string, error) {
+	// Require a type identifier before collecting matching object keys.
 	if typeID == "" {
 		return nil, ErrTypeIDEmpty
 	}
+
+	// Delegate object collection to the World listing API when available.
 	if lister, ok := ws.(ObjectTypeLister); ok {
 		return lister.ListObjectsWithType(ctx, typeID)
 	}
 
+	// Collect every object key visited by the type traversal.
 	var objKeys []string
 	err := IterateObjectsWithType(ctx, ws, typeID, func(objKey string) (bool, error) {
 		objKeys = append(objKeys, objKey)
@@ -238,11 +267,13 @@ func ListObjectsWithType(ctx context.Context, ws world.WorldState, typeID string
 // Returns two slices of length len(objKeys). If any objects are not found,
 // their entries are nil and ErrNotFound is returned after all states release.
 func ListCollectObjectsWithType[T block.Block](ctx context.Context, ws world.WorldState, typeID string, ctor func() block.Block) ([]T, []string, error) {
+	// Resolve the object keys whose bodies belong to the requested type.
 	objKeys, err := ListObjectsWithType(ctx, ws, typeID)
 	if err != nil {
 		return nil, nil, err
 	}
 
+	// Decode the matching bodies and release every acquired object state.
 	objs, states, err := world.CollectObjectBodies[T](ctx, ws, objKeys, ctor)
 	for _, state := range states {
 		world.ReleaseObjectState(state)

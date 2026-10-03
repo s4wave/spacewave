@@ -51,6 +51,7 @@ func (r *WorldOpRegistryResource) RegisterWorldOp(
 	ctx context.Context,
 	req *s4wave_worldop_registry.RegisterWorldOpRequest,
 ) (*s4wave_worldop_registry.RegisterWorldOpResponse, error) {
+	// Require operation and plugin identifiers before registering a handler.
 	opTypeID := req.GetOperationTypeId()
 	pluginID := req.GetPluginId()
 	if opTypeID == "" {
@@ -59,6 +60,7 @@ func (r *WorldOpRegistryResource) RegisterWorldOp(
 	if pluginID == "" {
 		return nil, ErrPluginIdRequired
 	}
+
 	// Require a namespace prefix before the first '/'. The prefix need not match
 	// pluginID: a single plugin (e.g. spacewave-v86) may serve multiple op
 	// namespaces.
@@ -66,25 +68,31 @@ func (r *WorldOpRegistryResource) RegisterWorldOp(
 		return nil, ErrOpTypeIdMustHavePluginPrefix
 	}
 
+	// Resolve the plugin generation that will supply this operation handler.
 	generation, err := registration.FromContext(ctx, pluginID)
 	if err != nil {
 		return nil, err
 	}
 
+	// Acquire the client context that will retain the registration resource.
 	client, err := resource_server.MustGetResourceClientContext(ctx)
 	if err != nil {
 		return nil, err
 	}
 
+	// Reserve an operation registration and bind it to the plugin generation.
 	var regID uint32
 	duplicate := false
 	r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		// Reject a conflicting operation name before reserving its registration.
 		for _, v := range r.registrations {
 			if v.GetOperationTypeId() == opTypeID && !r.generations.CanShareNameLocked(v, generation) {
 				duplicate = true
 				return
 			}
 		}
+
+		// Bind the new operation registration and remove it if binding fails.
 		regID = r.nextID
 		r.nextID++
 		r.registrations[regID] = &s4wave_worldop_registry.WorldOpRegistration{
@@ -107,6 +115,7 @@ func (r *WorldOpRegistryResource) RegisterWorldOp(
 		return nil, ErrOperationTypeAlreadyRegistered
 	}
 
+	// Tie the operation registration lifetime to its client resource.
 	emptyMux := srpc.NewMux()
 	resourceID, err := client.AddResource(emptyMux, func() {
 		r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
