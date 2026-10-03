@@ -44,6 +44,7 @@ func (p *FSPath) Validate(allowEmpty bool, allowAbsolute bool) error {
 
 // Clone copies the path in memory.
 func (p *FSPath) Clone() *FSPath {
+	// Copy the path components into an independent filesystem path.
 	if p == nil {
 		return nil
 	}

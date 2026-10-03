@@ -99,6 +99,7 @@ func (f *FSWriter) Remove(ctx context.Context, paths [][]string, ts time.Time) e
 // MknodWithContent creates a file and writes content atomically.
 // Builds the blob inline and writes it to the new file entry.
 func (f *FSWriter) MknodWithContent(ctx context.Context, path []string, nodeType unixfs.FSCursorNodeType, dataLen int64, rdr io.Reader, permissions fs.FileMode, ts time.Time) error {
+	// Convert the file type and timestamp for block-backed inode creation.
 	nt := FSCursorNodeTypeToNodeType(nodeType)
 	tts := ToTimestamp(ts, true)
 

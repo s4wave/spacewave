@@ -20,9 +20,11 @@ import (
 // unixfs ErrNotExist. Inserting names in descending order forces multiple swaps
 // per insert, which is the case that regressed.
 func TestMultiDirentSameTxLookup(t *testing.T) {
+	// Prepare logging for same-transaction directory lookup.
 	ctx := context.Background()
 	le := logrus.NewEntry(logrus.New())
 
+	// Start a testbed and open an empty object cursor.
 	tb, err := testbed.NewTestbed(ctx, le)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -32,6 +34,7 @@ func TestMultiDirentSameTxLookup(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// Initialize a directory tree in one block transaction.
 	_, bcs := oc.BuildTransaction(nil)
 	bcs.SetBlock(NewFSNode(NodeType_NodeType_DIRECTORY, 0, nil), true)
 	ftree, err := NewFSTree(ctx, bcs, NodeType_NodeType_DIRECTORY)
@@ -39,6 +42,7 @@ func TestMultiDirentSameTxLookup(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// Insert descending file names and verify every earlier entry remains findable.
 	const n = 8
 	created := make([]string, 0, n)
 	for i := n - 1; i >= 0; i-- {

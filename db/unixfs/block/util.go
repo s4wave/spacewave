@@ -6,6 +6,7 @@ import (
 
 // ReaddirAll reads all directory entries to a map.
 func ReaddirAll(ctx context.Context, f *FSTree) (map[string]*Dirent, error) {
+	// Collect the directory stream entries by name, stopping at its end.
 	dstream, err := f.Readdir()
 	if err != nil {
 		return nil, err

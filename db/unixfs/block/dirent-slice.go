@@ -80,6 +80,7 @@ func (d *DirentSlice) Swap(i, j int) {
 
 // ApplySubBlock applies a sub-block change with a field id.
 func (d *DirentSlice) ApplySubBlock(id uint32, next block.SubBlock) error {
+	// Accept only directory entries and grow the slice for the requested index.
 	direntSlice := *d.dirents
 	dirent, ok := next.(*Dirent)
 	if !ok {
@@ -98,11 +99,13 @@ func (d *DirentSlice) ApplySubBlock(id uint32, next block.SubBlock) error {
 // GetSubBlocks returns all constructed sub-blocks by ID.
 // May return nil, and values may also be nil.
 func (d *DirentSlice) GetSubBlocks() map[uint32]block.SubBlock {
+	// Return no constructed sub-blocks for an empty directory slice.
 	direntSlice := *d.dirents
 	if len(direntSlice) == 0 {
 		return nil
 	}
 
+	// Collect the constructed directory entries by their sub-block indexes.
 	m := make(map[uint32]block.SubBlock)
 	for idx, dirent := range direntSlice {
 		if dirent == nil {
@@ -117,6 +120,7 @@ func (d *DirentSlice) GetSubBlocks() map[uint32]block.SubBlock {
 // sub-block at reference id. Can return nil to indicate invalid reference id.
 func (d *DirentSlice) GetSubBlockCtor(id uint32) block.SubBlockCtor {
 	return func(create bool) block.SubBlock {
+		// Find or allocate the directory entry for the requested sub-block index.
 		direntSlice := *d.dirents
 		if int(id) >= len(direntSlice) {
 			if !create {
@@ -136,6 +140,7 @@ func (d *DirentSlice) GetSubBlockCtor(id uint32) block.SubBlockCtor {
 
 // BlockPreWriteHook is called when writing the block.
 func (d *DirentSlice) BlockPreWriteHook() error {
+	// Sort directory entries without cursor-driven swaps holding the block lock.
 	b := d.bcs
 	d.bcs = nil // avoid deadlock swapping on cursor
 	d.SortDirents()
@@ -146,6 +151,7 @@ func (d *DirentSlice) BlockPreWriteHook() error {
 // SearchDirents searches a dirent slice for a name.
 // If not found returns the index it should be inserted.
 func (d *DirentSlice) SearchDirents(name string) (idx int, match bool) {
+	// Find the insertion index and matching name in the sorted directory entries.
 	if d.dirents == nil {
 		return -1, false
 	}
@@ -194,6 +200,7 @@ func (d *DirentSlice) LookupDirent(name string) (*Dirent, int) {
 // ensures that the next node type is as expected
 // may return ErrOutOfBounds
 func (d *DirentSlice) FollowDirentAsCursor(didx int) (*block.Cursor, *Dirent, error) {
+	// Require a directory slice and cursor before following an entry.
 	if d.dirents == nil || d.bcs == nil {
 		return nil, nil, unixfs_errors.ErrOutOfBounds
 	}
@@ -202,6 +209,7 @@ func (d *DirentSlice) FollowDirentAsCursor(didx int) (*block.Cursor, *Dirent, er
 		return nil, nil, unixfs_errors.ErrOutOfBounds
 	}
 
+	// Follow the directory entry cursor to its inode reference.
 	dirent := dirents[didx]
 	subRef := d.bcs.FollowSubBlock(uint32(didx)) //nolint:gosec
 	nodeRef := subRef.FollowRef(2, dirent.GetNodeRef())
@@ -213,11 +221,13 @@ func (d *DirentSlice) FollowDirentAsCursor(didx int) (*block.Cursor, *Dirent, er
 // ensures that the next node type is as expected
 // may return ErrOutOfBounds
 func (d *DirentSlice) FollowDirent(ctx context.Context, didx int) (*FSTree, *Dirent, error) {
+	// Open the inode cursor for the requested directory entry.
 	bcs, dirent, err := d.FollowDirentAsCursor(didx)
 	if err != nil {
 		return nil, dirent, err
 	}
 
+	// Load the referenced inode and require its directory entry type.
 	dnode, err := FetchCheckFSNode(ctx, bcs, dirent.GetNodeType())
 	if err != nil {
 		return nil, dirent, err
@@ -233,6 +243,7 @@ func (d *DirentSlice) FollowDirent(ctx context.Context, didx int) (*FSTree, *Dir
 // both names and dirent slice must be sorted.
 // returns if any were removed.
 func (d *DirentSlice) RemoveDirents(names []string) (bool, error) {
+	// Leave an empty directory slice or removal list unchanged.
 	if d.dirents == nil || len(names) == 0 {
 		return false, nil
 	}
@@ -316,6 +327,7 @@ DirentLoop:
 		nextName = names[0]
 	}
 
+	// Mark the changed directory and restore the entry sort order.
 	if any {
 		d.bcs.MarkDirty()
 		if len(dirents) != 0 {
@@ -330,10 +342,12 @@ DirentLoop:
 // Ensure the entry does not exist BEFORE calling this.
 // After appending all directories, be sure to call SortDirents.
 func (d *DirentSlice) AppendDirent(nent *Dirent) *block.Cursor {
+	// Require a directory slice before appending an entry.
 	if d.dirents == nil {
 		return nil
 	}
 
+	// Append the entry after clearing any reference at its new index.
 	nextIdx := len(*d.dirents)
 	if d.bcs != nil {
 		d.bcs.ClearRef(uint32(nextIdx)) //nolint:gosec
@@ -346,6 +360,7 @@ func (d *DirentSlice) AppendDirent(nent *Dirent) *block.Cursor {
 	// we already appended to the slice: mark the block as dirty
 	subBlk := d.bcs.FollowSubBlock(uint32(nextIdx)) //nolint:gosec
 	subBlk.MarkDirty()
+
 	// subBlk.SetBlock(nent, true)
 	return subBlk
 }

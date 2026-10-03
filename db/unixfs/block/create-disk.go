@@ -18,6 +18,7 @@ func CreateFromDisk(
 	diskPath string,
 	ts *timestamp.Timestamp,
 ) error {
+	// Open the disk directory and initialize its block-backed root tree.
 	iofs := os.DirFS(diskPath)
 	rootFsNode := NewFSNode(NodeType_NodeType_DIRECTORY, 0, ts)
 	bcs.SetBlock(rootFsNode, true)
@@ -25,6 +26,8 @@ func CreateFromDisk(
 	if err != nil {
 		return err
 	}
+
+	// Copy the disk filesystem contents before importing extended attributes.
 	if err := CopyFSToFSTree(ctx, iofs, fsTree, nil, ts); err != nil {
 		return err
 	}
@@ -35,6 +38,7 @@ func CreateFromDisk(
 // the corresponding FSNode.Xattrs fields in the FSTree.
 // Platform-specific: implemented on unix, no-op on windows/js.
 func readDiskXattrsToFSTree(fsTree *FSTree, diskBasePath string, relPath string) error {
+	// Locate the disk inode and copy its extended attributes to the tree.
 	diskPath := diskBasePath
 	if relPath != "." {
 		diskPath = filepath.Join(diskBasePath, relPath)

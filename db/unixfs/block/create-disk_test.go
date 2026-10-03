@@ -47,12 +47,14 @@ func TestCreateFromDiskPreservesXattrs(t *testing.T) {
 		t.Skipf("xattrs not supported on this filesystem: %v", err)
 	}
 
+	// Attach an extended attribute to the source directory.
 	dirXattrName := "user.test.dir"
 	dirXattrValue := []byte("dir-xattr")
 	if err := unix.Lsetxattr(subDir, dirXattrName, dirXattrValue, 0); err != nil {
 		t.Fatal(err)
 	}
 
+	// Attach an extended attribute to the nested source file.
 	nestedXattrName := "user.test.nested"
 	nestedXattrValue := []byte("nested-xattr")
 	if err := unix.Lsetxattr(subFile, nestedXattrName, nestedXattrValue, 0); err != nil {
@@ -63,6 +65,7 @@ func TestCreateFromDiskPreservesXattrs(t *testing.T) {
 	ctx := context.Background()
 	writeTs := timestamp.Now()
 	testbed.RunSubtest(t, "CreateFromDisk", func(t *testing.T, tb *testbed.Testbed) {
+		// Import the disk filesystem into a block transaction and persist it.
 		bls, err := tb.BuildEmptyCursor(ctx)
 		if err != nil {
 			t.Fatal(err)
@@ -129,12 +132,14 @@ func TestCreateFromDiskPreservesXattrs(t *testing.T) {
 // TestCreateFromDiskFiltersTransientXattrs verifies that transient macOS
 // xattrs (quarantine, lastuseddate, kMDItemWhereFroms) are excluded.
 func TestCreateFromDiskFiltersTransientXattrs(t *testing.T) {
+	// Create a temporary source directory for extended attribute filtering.
 	srcDir, err := os.MkdirTemp("", "hydra-xattr-filter-*")
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer os.RemoveAll(srcDir)
 
+	// Write the source file whose extended attributes will be filtered.
 	filePath := filepath.Join(srcDir, "app.bin")
 	if err := os.WriteFile(filePath, []byte("binary"), 0o755); err != nil {
 		t.Fatal(err)
@@ -152,9 +157,11 @@ func TestCreateFromDiskFiltersTransientXattrs(t *testing.T) {
 		t.Logf("could not set com.apple.quarantine (expected on Linux): %v", err)
 	}
 
+	// Import the source filesystem with an extended attribute filtering testbed.
 	ctx := context.Background()
 	writeTs := timestamp.Now()
 	testbed.RunSubtest(t, "FilterTransient", func(t *testing.T, tb *testbed.Testbed) {
+		// Copy and persist the source filesystem in a block transaction.
 		bls, err := tb.BuildEmptyCursor(ctx)
 		if err != nil {
 			t.Fatal(err)
@@ -168,6 +175,7 @@ func TestCreateFromDiskFiltersTransientXattrs(t *testing.T) {
 			t.Fatal(err)
 		}
 
+		// Reload the persisted tree and locate the imported source file.
 		fsTree, err := NewFSTree(ctx, bcs, NodeType_NodeType_DIRECTORY)
 		if err != nil {
 			t.Fatal(err)

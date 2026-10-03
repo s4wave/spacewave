@@ -11,6 +11,7 @@ import (
 // (xattrs are best-effort, filesystem may not support them).
 // Filters transient macOS xattrs that should not be preserved.
 func readFileXattrs(path string) ([]*FSXattr, error) {
+	// Read the filesystem extended attribute names when they are available.
 	sz, err := unix.Llistxattr(path, nil)
 	if err != nil || sz <= 0 {
 		return nil, nil

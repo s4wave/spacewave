@@ -26,6 +26,7 @@ func TestWriteAtRootConcurrentDirentNoRace(t *testing.T) {
 	const fileCount = 48
 
 	testbed.RunSubtest(t, "ConcurrentDirentRewrite", func(t *testing.T, tb *testbed.Testbed) {
+		// Initialize the wide directory tree in a block transaction.
 		bls, err := tb.BuildEmptyCursor(ctx)
 		if err != nil {
 			t.Fatal(err.Error())
@@ -37,6 +38,7 @@ func TestWriteAtRootConcurrentDirentNoRace(t *testing.T) {
 			t.Fatal(err.Error())
 		}
 
+		// Prepare a writer that seeds every child file with initial contents.
 		seedAll := func(tree *FSTree) {
 			w := NewFSWriter(tree)
 			for i := range fileCount {
@@ -56,6 +58,7 @@ func TestWriteAtRootConcurrentDirentNoRace(t *testing.T) {
 			}
 		}
 
+		// Prepare a writer that replaces every child file payload.
 		rewriteAll := func(tree *FSTree, payload []byte) {
 			for i := range fileCount {
 				name := "f" + strconv.Itoa(i)
@@ -73,11 +76,13 @@ func TestWriteAtRootConcurrentDirentNoRace(t *testing.T) {
 			}
 		}
 
+		// Seed the directory files and persist their initial inode references.
 		seedAll(fsTree)
 		if _, bcs, err = btx.Write(ctx, true); err != nil {
 			t.Fatal(err.Error())
 		}
 
+		// Repeatedly reload and rewrite the directory through the concurrent encode pool.
 		for iter := range 40 {
 			fsTree, err = NewFSTree(ctx, bcs, NodeType_NodeType_DIRECTORY)
 			if err != nil {

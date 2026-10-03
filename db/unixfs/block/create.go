@@ -18,6 +18,7 @@ func CreateFromFS(
 	iofs fs.FS,
 	ts *timestamp.Timestamp,
 ) error {
+	// Initialize the block-backed root and copy the source filesystem into it.
 	rootFsNode := NewFSNode(NodeType_NodeType_DIRECTORY, 0, ts)
 	bcs.SetBlock(rootFsNode, true)
 	fsTree, err := NewFSTree(ctx, bcs, NodeType_NodeType_DIRECTORY)
@@ -47,6 +48,7 @@ func CopyFSToFSTree(
 		isDir bool
 	}
 
+	// Prepare a traversal stack carrying source paths and destination inodes.
 	stack := make([]stackElem, 0, 10)
 	pushStack := func(srcPath string, destNode *FSTree, isDir bool) {
 		stack = append(stack, stackElem{

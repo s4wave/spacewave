@@ -24,6 +24,7 @@ var (
 //
 // POSIX: a-z, A-Z, 0-9, ., _, -, or space.
 func ValidateDirentName(name string) error {
+	// Require a nonempty UTF-8 directory name without reserved path components.
 	if name == "" {
 		return ErrDirectoryNameEmpty
 	}

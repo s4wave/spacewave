@@ -28,6 +28,7 @@ type FSTree struct {
 //
 // Ntype can be set to 0 (Unknown) to allow any.
 func NewFSTree(ctx context.Context, bcs *block.Cursor, ntype NodeType) (*FSTree, error) {
+	// Load the filesystem node at the root cursor and require it to exist.
 	var err error
 	t := &FSTree{ctx: ctx, bcs: bcs}
 	t.node, err = FetchCheckFSNode(ctx, bcs, ntype)
@@ -112,10 +113,12 @@ func (f *FSTree) Mknod(
 	permissions fs.FileMode,
 	ts *timestamppb.Timestamp,
 ) (*FSTree, error) {
+	// Require a directory entry name before creating an inode.
 	if len(name) == 0 {
 		return nil, unixfs_errors.ErrEmptyPath
 	}
 
+	// Check the parent directory for an existing entry with this name.
 	ftree, dirent, err := f.LookupFollowDirent(name)
 	if err != nil {
 		// checks if f is a directory
@@ -143,10 +146,12 @@ func (f *FSTree) Mknod(
 		NodeRef:  initRef,
 	}
 
+	// Attach the new entry to the sorted directory slice.
 	dslice := NewDirentSlice(&f.node.DirectoryEntry, f.bcs)
 	dcs := dslice.AppendDirent(dirent)
 	dslice.SortDirents()
 
+	// Load the initial inode when the entry references an existing block.
 	var dnode *FSNode
 	var dnodeCs *block.Cursor
 	if !initRefEmpty {
@@ -177,13 +182,16 @@ func (f *FSTree) Symlink(
 	lnk *FSSymlink,
 	ts *timestamppb.Timestamp,
 ) (*FSTree, error) {
+	// Require a directory entry name before creating a symbolic link.
 	if len(name) == 0 {
 		return nil, unixfs_errors.ErrEmptyPath
 	}
 
+	// Find the directory entry that will hold the symbolic link.
 	dslice := NewDirentSlice(&f.node.DirectoryEntry, f.bcs)
 	dirent, direntIdx := dslice.LookupDirent(name)
 
+	// Replace the existing entry or append a new symbolic link entry.
 	var dcs *block.Cursor
 	if dirent != nil {
 		if checkExist {
@@ -207,9 +215,11 @@ func (f *FSTree) Symlink(
 		dslice.SortDirents()
 	}
 
+	// Construct the symbolic link inode with its target path.
 	dnode := NewFSNode(NodeType_NodeType_SYMLINK, DefaultPermissions(NodeType_NodeType_SYMLINK), ts)
 	dnode.Symlink = lnk
 
+	// Attach the symbolic link inode to the directory entry cursor.
 	dnodeCs := dcs.FollowRef(2, nil)
 	dnodeCs.SetBlock(dnode, true)
 
@@ -238,6 +248,7 @@ func (f *FSTree) Readdir() (*DirStream, error) {
 // Lookup returns a directory entry by name.
 // Returns nil if not found.
 func (f *FSTree) Lookup(name string) (*Dirent, error) {
+	// Require a directory before looking up an entry by name.
 	if f.node.GetNodeType() != NodeType_NodeType_DIRECTORY {
 		return nil, unixfs_errors.ErrNotDirectory
 	}
@@ -252,6 +263,7 @@ func (f *FSTree) Lookup(name string) (*Dirent, error) {
 // LookupFollowDirent looks up and follows a directory entry by name.
 // Returns nil if not found.
 func (f *FSTree) LookupFollowDirent(name string) (*FSTree, *Dirent, error) {
+	// Require a directory before following an entry to its inode.
 	if f.node.GetNodeType() != NodeType_NodeType_DIRECTORY {
 		return nil, nil, unixfs_errors.ErrNotDirectory
 	}
@@ -270,6 +282,7 @@ func (f *FSTree) LookupFollowDirent(name string) (*FSTree, *Dirent, error) {
 // LookupFollowDirentAsCursor looks up and follows a directory entry by name.
 // Returns nil if not found.
 func (f *FSTree) LookupFollowDirentAsCursor(name string) (*block.Cursor, *Dirent, error) {
+	// Require a directory before following an entry to its block cursor.
 	if f.node.GetNodeType() != NodeType_NodeType_DIRECTORY {
 		return nil, nil, unixfs_errors.ErrNotDirectory
 	}
@@ -284,6 +297,7 @@ func (f *FSTree) LookupFollowDirentAsCursor(name string) (*block.Cursor, *Dirent
 // Mkdir creates one or more directories.
 // May return ErrExist if any of dirs exist as a file.
 func (f *FSTree) Mkdir(permissions fs.FileMode, ts *timestamppb.Timestamp, dirs ...string) (map[string]*FSTree, error) {
+	// Require a directory and prepare cursors for the requested children.
 	if f.node.GetNodeType() != NodeType_NodeType_DIRECTORY {
 		return nil, errors.New("inode is not a directory")
 	}
@@ -299,6 +313,7 @@ func (f *FSTree) Mkdir(permissions fs.FileMode, ts *timestamppb.Timestamp, dirs 
 	skipIndexes := make([]int, len(dirs))
 	var hasCreate bool
 
+	// Identify existing children and duplicate names before creating directories.
 	var startIdx int
 	for i := range dirs {
 		if err := ValidateDirentName(dirs[i]); err != nil {
@@ -328,6 +343,7 @@ func (f *FSTree) Mkdir(permissions fs.FileMode, ts *timestamppb.Timestamp, dirs 
 		hasCreate = true
 	}
 
+	// Open cursors for the requested directories that already exist.
 	dslice := NewDirentSlice(&f.node.DirectoryEntry, f.bcs)
 	var err error
 	for i, didx := range skipIndexes {
@@ -345,6 +361,7 @@ func (f *FSTree) Mkdir(permissions fs.FileMode, ts *timestamppb.Timestamp, dirs 
 		return outputCursors, nil
 	}
 
+	// Create inode blocks and directory entries for the missing children.
 	for i := range dirs {
 		if skipDirs[i] {
 			// already created
@@ -379,6 +396,7 @@ func (f *FSTree) Remove(
 	names []string,
 	ts *timestamppb.Timestamp,
 ) (bool, error) {
+	// Require a directory before removing its entries.
 	if f.GetFSNode().GetNodeType() != NodeType_NodeType_DIRECTORY {
 		return false, unixfs_errors.ErrNotDirectory
 	}
@@ -407,10 +425,12 @@ func (f *FSTree) FollowDirent(didx int) (*FSTree, *Dirent, error) {
 
 // SetDirent creates or overrides a directory pointing to the node.
 func (f *FSTree) SetDirent(name string, nodeType NodeType, bcs *block.Cursor) error {
+	// Validate the directory entry name before attaching an inode.
 	if err := ValidateDirentName(name); err != nil {
 		return err
 	}
 
+	// Replace or append the directory entry with the supplied inode reference.
 	ds := NewDirentSlice(&f.node.DirectoryEntry, f.bcs)
 	dirent, idx := ds.LookupDirent(name)
 	var direntCs *block.Cursor
@@ -427,6 +447,7 @@ func (f *FSTree) SetDirent(name string, nodeType NodeType, bcs *block.Cursor) er
 		ds.SortDirents()
 	}
 
+	// Attach the inode cursor and mark the directory entry dirty.
 	direntCs.SetRef(2, bcs)
 	direntCs.MarkDirty()
 	return nil

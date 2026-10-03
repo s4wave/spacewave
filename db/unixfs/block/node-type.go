@@ -23,6 +23,7 @@ func NodeTypeToFSCursorNodeType(nt NodeType) unixfs.FSCursorNodeType {
 
 // FSCursorNodeTypeToNodeType converts a FSCursorNodeType to a NodeType.
 func FSCursorNodeTypeToNodeType(nt unixfs.FSCursorNodeType) NodeType {
+	// Classify the filesystem cursor as a symbolic link, directory, or file.
 	if nt == nil {
 		return NodeType_NodeType_UNKNOWN
 	}

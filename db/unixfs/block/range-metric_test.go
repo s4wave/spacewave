@@ -15,6 +15,7 @@ import (
 )
 
 func TestUnixFSBlockRangeMetricWriteAtWriteBlobTruncate(t *testing.T) {
+	// Start a testbed with logging for file range measurements.
 	ctx := context.Background()
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
@@ -23,27 +24,36 @@ func TestUnixFSBlockRangeMetricWriteAtWriteBlobTruncate(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Open an empty object cursor for the measured filesystem.
 	oc, err := tb.BuildEmptyCursor(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Initialize the root directory for both append workloads.
 	btx, bcs := oc.BuildTransaction(nil)
 	bcs.SetBlock(NewFSNode(NodeType_NodeType_DIRECTORY, 0, nil), true)
 	root, err := NewFSTree(ctx, bcs, NodeType_NodeType_DIRECTORY)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Create separate files for byte writes and blob writes.
 	if mkErr := Mknod(root, [][]string{{"metric-writeat"}}, NodeType_NodeType_FILE, 0, nil); mkErr != nil {
 		t.Fatal(mkErr.Error())
 	}
 	if mkErr := Mknod(root, [][]string{{"metric-writeblob"}}, NodeType_NodeType_FILE, 0, nil); mkErr != nil {
 		t.Fatal(mkErr.Error())
 	}
+
+	// Prepare append data and the expected sparse extension.
 	first := bytes.Repeat([]byte("unixfs-writeat-"), 96)
 	second := bytes.Repeat([]byte("blob-append-"), 48)
 	truncateTail := make([]byte, 16)
 	expected := append(append(append([]byte(nil), first...), second...), truncateTail...)
 
+	// Append bytes and extend the byte-written file with a sparse tail.
 	if writeErr := WriteAt(ctx, root, nil, []string{"metric-writeat"}, 0, int64(len(first)), bytes.NewReader(first), nil); writeErr != nil {
 		t.Fatal(writeErr.Error())
 	}
@@ -54,9 +64,12 @@ func TestUnixFSBlockRangeMetricWriteAtWriteBlobTruncate(t *testing.T) {
 		t.Fatal(truncateErr.Error())
 	}
 
+	// Write the initial contents of the blob-written file.
 	if writeErr := WriteAt(ctx, root, nil, []string{"metric-writeblob"}, 0, int64(len(first)), bytes.NewReader(first), nil); writeErr != nil {
 		t.Fatal(writeErr.Error())
 	}
+
+	// Build and persist a blob containing the append payload.
 	blobBtx, blobBcs := oc.BuildTransaction(nil)
 	_, err = blob.BuildBlob(ctx, int64(len(second)), bytes.NewReader(second), blobBcs, nil)
 	if err != nil {
@@ -66,6 +79,8 @@ func TestUnixFSBlockRangeMetricWriteAtWriteBlobTruncate(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Append the saved blob and extend the file with a sparse tail.
 	if writeErr := WriteBlob(ctx, root, []string{"metric-writeblob"}, int64(len(first)), blobRef, true, false, nil); writeErr != nil {
 		t.Fatal(writeErr.Error())
 	}
@@ -73,6 +88,7 @@ func TestUnixFSBlockRangeMetricWriteAtWriteBlobTruncate(t *testing.T) {
 		t.Fatal(truncateErr.Error())
 	}
 
+	// Measure persistence of the filesystem tree and reload its root.
 	rootWriteStarted := time.Now()
 	_, bcs, err = btx.Write(ctx, true)
 	if err != nil {
@@ -84,22 +100,30 @@ func TestUnixFSBlockRangeMetricWriteAtWriteBlobTruncate(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// Prepare a reader that measures file contents and serialized range metadata.
 	readMetricFile := func(name string) ([]byte, int, int, time.Duration) {
+		// Resolve the measured file in the persisted filesystem tree.
 		child, _, err := root.LookupFollowDirent(name)
 		if err != nil {
 			t.Fatal(err.Error())
 		}
+
+		// Open the measured file handle for readback.
 		fh, err := child.BuildFileHandle(ctx)
 		if err != nil {
 			t.Fatal(err.Error())
 		}
 		defer fh.Close()
+
+		// Read the complete file contents and measure their read latency.
 		readStarted := time.Now()
 		out, err := io.ReadAll(fh)
 		readLatency := time.Since(readStarted)
 		if err != nil {
 			t.Fatal(err.Error())
 		}
+
+		// Decode and serialize the file range metadata for measurement.
 		rootFile, err := block.UnmarshalBlock[*file.File](ctx, fh.GetCursor(), file.NewFileBlock)
 		if err != nil {
 			t.Fatal(err.Error())
@@ -110,21 +134,30 @@ func TestUnixFSBlockRangeMetricWriteAtWriteBlobTruncate(t *testing.T) {
 		}
 		return out, len(rootFile.GetRanges()), len(metadataBytes), readLatency
 	}
+
+	// Verify byte-written file contents match the expected sparse extension.
 	writeAtOut, writeAtRanges, writeAtMetadataBytes, writeAtReadLatency := readMetricFile("metric-writeat")
 	if !bytes.Equal(writeAtOut, expected) {
 		t.Fatal("unixfs WriteAt append metric readback mismatch")
 	}
+
+	// Verify blob-written file contents match the expected sparse extension.
 	writeBlobOut, writeBlobRanges, writeBlobMetadataBytes, writeBlobReadLatency := readMetricFile("metric-writeblob")
 	if !bytes.Equal(writeBlobOut, expected) {
 		t.Fatal("unixfs WriteBlob append metric readback mismatch")
 	}
+
+	// Verify both append paths produce the same number of file ranges.
 	if writeAtRanges != writeBlobRanges {
 		t.Fatalf("unixfs append parity range mismatch: writeat=%d writeblob=%d", writeAtRanges, writeBlobRanges)
 	}
+
+	// Report append range, metadata size, and read and write latency measurements.
 	t.Logf("metric workload=unixfs-write-boundary file_class=unixfs-block chunk_class=blob write_at_bytes=%d write_at_append_bytes=%d write_blob_bytes=%d truncate_size=%d range_count=%d write_at_range_count=%d write_blob_range_count=%d read_latency_ns=%d serialized_metadata_bytes=%d root_write_latency_ns=%d metadata_rewrite_bytes_per_append=%d metadata_rewrite_bytes_per_publish=%d", len(first), len(second), len(second), len(expected), writeAtRanges, writeAtRanges, writeBlobRanges, writeAtReadLatency.Nanoseconds()+writeBlobReadLatency.Nanoseconds(), writeAtMetadataBytes+writeBlobMetadataBytes, rootWriteLatency.Nanoseconds(), writeAtMetadataBytes, writeBlobMetadataBytes)
 }
 
 func TestUnixFSBlockRangeMetricRandomOverwrite(t *testing.T) {
+	// Start a testbed with logging for random overwrite measurements.
 	ctx := context.Background()
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
@@ -133,10 +166,14 @@ func TestUnixFSBlockRangeMetricRandomOverwrite(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Open an empty object cursor for the measured filesystem.
 	oc, err := tb.BuildEmptyCursor(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Initialize the root directory and random overwrite file.
 	btx, bcs := oc.BuildTransaction(nil)
 	bcs.SetBlock(NewFSNode(NodeType_NodeType_DIRECTORY, 0, nil), true)
 	root, err := NewFSTree(ctx, bcs, NodeType_NodeType_DIRECTORY)
@@ -147,11 +184,14 @@ func TestUnixFSBlockRangeMetricRandomOverwrite(t *testing.T) {
 		t.Fatal(mkErr.Error())
 	}
 
+	// Write the initial file contents and prepare the expected readback.
 	body := bytes.Repeat([]byte("unixfs-random-overwrite-base-"), 128)
 	expected := append([]byte(nil), body...)
 	if writeErr := WriteAt(ctx, root, nil, []string{"metric-random-overwrite"}, 0, int64(len(body)), bytes.NewReader(body), nil); writeErr != nil {
 		t.Fatal(writeErr.Error())
 	}
+
+	// Apply overlapping writes to the file and expected contents.
 	writes := []struct {
 		offset int
 		data   []byte
@@ -162,18 +202,22 @@ func TestUnixFSBlockRangeMetricRandomOverwrite(t *testing.T) {
 		{300, bytes.Repeat([]byte("d"), 24)},
 	}
 	for _, write := range writes {
+		// Apply this overwrite to both the expected bytes and the stored file.
 		copy(expected[write.offset:], write.data)
 		if writeErr := WriteAt(ctx, root, nil, []string{"metric-random-overwrite"}, int64(write.offset), int64(len(write.data)), bytes.NewReader(write.data), nil); writeErr != nil {
 			t.Fatal(writeErr.Error())
 		}
 	}
 
+	// Measure persistence of the overwritten filesystem tree.
 	rootWriteStarted := time.Now()
 	_, bcs, err = btx.Write(ctx, true)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	rootWriteLatency := time.Since(rootWriteStarted)
+
+	// Reload the persisted tree and locate the overwritten file.
 	root, err = NewFSTree(ctx, bcs, NodeType_NodeType_DIRECTORY)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -182,21 +226,29 @@ func TestUnixFSBlockRangeMetricRandomOverwrite(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Open the overwritten file handle for readback.
 	fh, err := child.BuildFileHandle(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	defer fh.Close()
+
+	// Read the complete overwritten file and measure its read latency.
 	readStarted := time.Now()
 	out, err := io.ReadAll(fh)
 	readLatency := time.Since(readStarted)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Verify persisted file contents match every overlapping overwrite.
 	if !bytes.Equal(out, expected) {
 		diff := firstByteDiff(out, expected)
 		t.Fatalf("unixfs random overwrite readback mismatch: got_len=%d want_len=%d first_diff=%d got_window=%q want_window=%q", len(out), len(expected), diff, byteWindow(out, diff), byteWindow(expected, diff))
 	}
+
+	// Decode and serialize the overwritten file range metadata.
 	rootFile, err := block.UnmarshalBlock[*file.File](ctx, fh.GetCursor(), file.NewFileBlock)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -205,6 +257,8 @@ func TestUnixFSBlockRangeMetricRandomOverwrite(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Verify range compaction retains overlap without fully occluded ranges.
 	occluded := countFullyOccludedRanges(rootFile.GetRanges())
 	overlapDepth := maxOverlapDepth(rootFile.GetRanges())
 	lookupScan := lookupScanLength(rootFile.GetRanges(), 128)
@@ -212,6 +266,8 @@ func TestUnixFSBlockRangeMetricRandomOverwrite(t *testing.T) {
 	if len(rootFile.GetRanges()) <= 1 || len(rootFile.GetRanges()) >= uncompactedRangeCount || occluded != 0 || overlapDepth <= 1 {
 		t.Fatalf("unixfs random overwrite workload did not preserve compacted range pressure: ranges=%d uncompacted_ranges=%d occluded=%d overlap_depth=%d", len(rootFile.GetRanges()), uncompactedRangeCount, occluded, overlapDepth)
 	}
+
+	// Report overwrite range pressure, metadata size, and I/O latency measurements.
 	t.Logf("metric workload=unixfs-random-overwrite file_class=unixfs-block chunk_class=file range_count=%d uncompacted_range_count=%d fully_occluded_range_count=%d stale_reachable_refs=%d overlap_depth=%d lookup_scan_length=%d logical_bytes=%d read_latency_ns=%d serialized_metadata_bytes=%d root_write_latency_ns=%d metadata_rewrite_bytes_per_append=%d metadata_rewrite_bytes_per_publish=%d", len(rootFile.GetRanges()), uncompactedRangeCount, occluded, occluded, overlapDepth, lookupScan, rootFile.GetTotalSize(), readLatency.Nanoseconds(), len(metadataBytes), rootWriteLatency.Nanoseconds(), len(metadataBytes), len(metadataBytes))
 }
 
@@ -288,6 +344,7 @@ func maxOverlapDepth(ranges []*file.Range) int {
 }
 
 func lookupScanLength(ranges []*file.Range, pos uint64) int {
+	// Find the range search boundary and count backward lookup scans.
 	idxAfter := len(ranges)
 	for i, rng := range ranges {
 		if rng.GetStart() > pos {

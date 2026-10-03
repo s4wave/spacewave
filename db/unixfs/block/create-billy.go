@@ -19,9 +19,11 @@ func CreateFromBillyFS(
 	bfs billy.Filesystem,
 	ts *timestamp.Timestamp,
 ) error {
+	// Create the block-backed root directory for the Billy filesystem.
 	rootFsNode := NewFSNode(NodeType_NodeType_DIRECTORY, 0, ts)
 	bcs.SetBlock(rootFsNode, true)
 
+	// Copy the Billy filesystem into the initialized root tree.
 	fsTree, err := NewFSTree(ctx, bcs, NodeType_NodeType_DIRECTORY)
 	if err == nil && bfs != nil {
 		err = CopyBillyFSToFSTree(ctx, bfs, fsTree, nil, ts)
@@ -39,6 +41,7 @@ func CopyBillyFSToFSTree(
 	buildBlobOpts *blob.BuildBlobOpts,
 	writeTs *timestamp.Timestamp,
 ) error {
+	// Retain the Billy symbolic link capability for entry copying.
 	bfsSymlink, bfsSymlinkOk := bfs.(billy.Symlink)
 
 	// stackElem is a element in the fs location stack.
@@ -52,6 +55,7 @@ func CopyBillyFSToFSTree(
 		isDir bool
 	}
 
+	// Prepare a traversal stack carrying source paths and destination inodes.
 	stack := make([]stackElem, 0, 10)
 	pushStack := func(srcPath string, destNode *FSTree, isDir bool) {
 		stack = append(stack, stackElem{

@@ -52,6 +52,7 @@ func NewFSNodeSubBlockCtor(r **FSNode) block.SubBlockCtor {
 // FetchCheckFSNode unmarshals a filesystem node and checks its type.
 // returns nil, nil if empty or nodeType is 0
 func FetchCheckFSNode(ctx context.Context, bcs *block.Cursor, nt NodeType) (*FSNode, error) {
+	// Load the inode and validate its expected type and contents.
 	fn, err := UnmarshalFSNode(ctx, bcs)
 	if err != nil {
 		return nil, err
@@ -85,6 +86,7 @@ func (n *FSNode) IsNil() bool {
 
 // Validate performs cursory checks of the FS node.
 func (n *FSNode) Validate(allowUnknownNodeType bool) error {
+	// Validate the inode permissions, type, timestamp, and file metadata.
 	if n.GetPermissions() == 0 {
 		return errors.New("permissions cannot be empty")
 	}
@@ -103,6 +105,8 @@ func (n *FSNode) Validate(allowUnknownNodeType bool) error {
 	if err := n.GetFile().Validate(); err != nil {
 		return err
 	}
+
+	// Require valid, unique directory entries sorted by name.
 	var prevName string
 	for i, dirent := range n.GetDirectoryEntry() {
 		if err := dirent.Validate(); err != nil {
@@ -170,6 +174,7 @@ func (n *FSNode) ApplySubBlock(id uint32, next block.SubBlock) error {
 // GetSubBlocks returns all constructed sub-blocks by ID.
 // May return nil, and values may also be nil.
 func (n *FSNode) GetSubBlocks() map[uint32]block.SubBlock {
+	// Collect the file, directory entries, and symbolic link as inode sub-blocks.
 	m := make(map[uint32]block.SubBlock)
 	m[4] = n.GetFile()
 	m[5] = NewDirentSlice(&n.DirectoryEntry, nil)

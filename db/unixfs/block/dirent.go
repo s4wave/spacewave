@@ -15,6 +15,7 @@ func (d *Dirent) IsNil() bool {
 
 // Validate checks the directory entry for validity.
 func (d *Dirent) Validate() error {
+	// Validate the directory entry name, inode reference, and inode type.
 	if d == nil {
 		return errors.New("dirent cannot be nil")
 	}
