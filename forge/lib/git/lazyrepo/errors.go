@@ -16,15 +16,21 @@ type ProvenanceError struct {
 
 // Error returns a human-readable error.
 func (e *ProvenanceError) Error() string {
+	// Omit the message for an absent provenance error.
 	if e == nil {
 		return ""
 	}
+
+	// Describe the provenance failure with its default reason.
 	reason := e.Reason
 	if reason == "" {
 		reason = "unresolved repo mount provenance"
 	}
+
+	// Include the evidence record when the provenance error has one.
 	if e.EvidenceObjectKey != "" {
 		return strings.Join([]string{"forge git lazy repo: ", e.Operation, " for ", e.MutationPath, ": ", reason, " (evidence ", e.EvidenceObjectKey, ")"}, "")
 	}
+
 	return strings.Join([]string{"forge git lazy repo: ", e.Operation, " for ", e.MutationPath, ": ", reason}, "")
 }

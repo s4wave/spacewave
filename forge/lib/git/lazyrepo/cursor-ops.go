@@ -112,19 +112,25 @@ func (o *FSCursorOps) Truncate(ctx context.Context, nsize uint64, ts time.Time) 
 }
 
 func (o *FSCursorOps) Lookup(ctx context.Context, name string) (unixfs.FSCursor, error) {
+	// Require a live cursor and a valid child name for lookup.
 	if o.CheckReleased() {
 		return nil, unixfs_errors.ErrReleased
 	}
 	if err := validateDirentName(name); err != nil {
 		return nil, err
 	}
+
+	// Resolve the child through the allocated writable repository when present.
 	if alloc := o.cursor.lookupAllocation(); alloc != nil {
 		return o.lookupWritableChild(ctx, alloc, name)
 	}
+
+	// Open the read child for lazy allocation on a later mutation.
 	baseChild, err := o.base.Lookup(ctx, name)
 	if err != nil {
 		return nil, err
 	}
+
 	return o.cursor.child(name, baseChild), nil
 }
 
@@ -186,30 +192,42 @@ func (o *FSCursorOps) CopyFrom(ctx context.Context, name string, srcCursorOps un
 }
 
 func (o *FSCursorOps) MoveTo(ctx context.Context, tgtCursorOps unixfs.FSCursorOps, tgtName string, ts time.Time) (bool, error) {
+	// Require a valid destination name for the repository move.
 	if err := validateDirentName(tgtName); err != nil {
 		return true, err
 	}
+
+	// Handle moves to another lazy repository cursor.
 	tgt, ok := tgtCursorOps.(*FSCursorOps)
 	if !ok {
 		return false, nil
 	}
+
+	// Allocate the source and destination before the move falls back.
 	if err := o.allocateLazyMove(ctx, tgt, tgtName); err != nil {
 		return true, err
 	}
+
 	return false, nil
 }
 
 func (o *FSCursorOps) MoveFrom(ctx context.Context, name string, srcCursorOps unixfs.FSCursorOps, ts time.Time) (bool, error) {
+	// Require a valid destination name for the repository move.
 	if err := validateDirentName(name); err != nil {
 		return true, err
 	}
+
+	// Handle moves from another lazy repository cursor.
 	src, ok := srcCursorOps.(*FSCursorOps)
 	if !ok {
 		return false, nil
 	}
+
+	// Allocate the source and destination before the move falls back.
 	if err := src.allocateLazyMove(ctx, o, name); err != nil {
 		return true, err
 	}
+
 	return false, nil
 }
 
@@ -253,9 +271,12 @@ func (o *FSCursorOps) mutateCurrent(ctx context.Context, operation string, cb fu
 }
 
 func (o *FSCursorOps) mutateChildren(ctx context.Context, operation string, names []string, cb func(ops unixfs.FSCursorOps) error) error {
+	// Require a live cursor before mutating its children.
 	if o.CheckReleased() {
 		return unixfs_errors.ErrReleased
 	}
+
+	// Allocate writable repository roots for the requested children.
 	var alloc *allocatedRoot
 	for _, name := range names {
 		childPath := append(append([]string(nil), o.cursor.path...), name)
@@ -267,9 +288,12 @@ func (o *FSCursorOps) mutateChildren(ctx context.Context, operation string, name
 			alloc = nextAlloc
 		}
 	}
+
+	// Use the read operations when no child requires allocation.
 	if alloc == nil {
 		return cb(o.base)
 	}
+
 	return o.withWritableOps(ctx, alloc, cb)
 }
 
@@ -285,39 +309,51 @@ func (o *FSCursorOps) withWritableOps(ctx context.Context, alloc *allocatedRoot,
 }
 
 func (o *FSCursorOps) lookupWritableChild(ctx context.Context, alloc *allocatedRoot, name string) (unixfs.FSCursor, error) {
+	// Open the writable parent handle for child lookup.
 	handle, err := o.cursor.openWritableHandle(ctx, alloc)
 	if err != nil {
 		return nil, err
 	}
+
+	// Open the writable child and release the temporary parent.
 	child, err := handle.Lookup(ctx, name)
 	handle.Release()
 	if err != nil {
 		return nil, err
 	}
+
 	return unixfs.NewFSHandleCursor(child, true, nil), nil
 }
 
 func (o *FSCursorOps) copyToLazyTarget(ctx context.Context, tgt *FSCursorOps, tgtName string, move bool, ts time.Time) error {
+	// Allocate the source repository for the copy.
 	operation := "copy-to"
 	srcAlloc, _, err := o.cursor.ensureWritable(ctx, operation, o.cursor.path)
 	if err != nil {
 		return err
 	}
+
+	// Allocate the destination repository for the copied child.
 	tgtPath := append(append([]string(nil), tgt.cursor.path...), tgtName)
 	tgtAlloc, _, err := tgt.cursor.ensureWritable(ctx, operation, tgtPath)
 	if err != nil {
 		return err
 	}
+
+	// Open the writable source handle for the copy.
 	srcHandle, err := o.cursor.openWritableHandle(ctx, srcAlloc)
 	if err != nil {
 		return err
 	}
 	defer srcHandle.Release()
+
+	// Open the writable destination handle for the copy.
 	tgtHandle, err := tgt.cursor.openWritableHandle(ctx, tgtAlloc)
 	if err != nil {
 		return err
 	}
 	defer tgtHandle.Release()
+
 	return copyHandleToDir(ctx, srcHandle, tgtHandle, tgtName, ts)
 }
 
@@ -331,6 +367,7 @@ func (o *FSCursorOps) allocateLazyMove(ctx context.Context, tgt *FSCursorOps, tg
 }
 
 func copyHandleToDir(ctx context.Context, src *unixfs.FSHandle, tgtDir *unixfs.FSHandle, tgtName string, ts time.Time) error {
+	// Read the source node type and permissions for the copied entry.
 	nt, err := src.GetNodeType(ctx)
 	if err != nil {
 		return err
@@ -339,8 +376,11 @@ func copyHandleToDir(ctx context.Context, src *unixfs.FSHandle, tgtDir *unixfs.F
 	if err != nil {
 		return err
 	}
+
+	// Copy the source entry according to its filesystem node type.
 	switch {
 	case nt.GetIsFile():
+		// Bound the source file size for a streamed copy.
 		size, err := src.GetSize(ctx)
 		if err != nil {
 			return err
@@ -351,15 +391,21 @@ func copyHandleToDir(ctx context.Context, src *unixfs.FSHandle, tgtDir *unixfs.F
 		}
 		return tgtDir.MknodWithContent(ctx, tgtName, nt, int64(size), &fsHandleReader{ctx: ctx, handle: src, size: size}, perms, ts) //nolint:gosec
 	case nt.GetIsDirectory():
+		// Create the destination directory if it is absent.
 		if err := tgtDir.Mknod(ctx, false, []string{tgtName}, nt, perms, ts); err != nil && err != unixfs_errors.ErrExist {
 			return err
 		}
+
+		// Open the destination directory for recursive copying.
 		nextTgtDir, err := tgtDir.Lookup(ctx, tgtName)
 		if err != nil {
 			return err
 		}
 		defer nextTgtDir.Release()
+
+		// Copy every source directory entry into the destination.
 		return src.ReaddirAll(ctx, 0, func(ent unixfs.FSCursorDirent) error {
+			// Open the source child for recursive copying.
 			child, err := src.Lookup(ctx, ent.GetName())
 			if err != nil {
 				return err
@@ -368,6 +414,7 @@ func copyHandleToDir(ctx context.Context, src *unixfs.FSHandle, tgtDir *unixfs.F
 			return copyHandleToDir(ctx, child, nextTgtDir, ent.GetName(), ts)
 		})
 	case nt.GetIsSymlink():
+		// Read the source symlink target for the destination entry.
 		target, isAbs, err := src.Readlink(ctx, "")
 		if err != nil {
 			return err
@@ -386,15 +433,21 @@ type fsHandleReader struct {
 }
 
 func (r *fsHandleReader) Read(data []byte) (int, error) {
+	// Stop the file stream at the recorded source size.
 	if r.offset >= int64(r.size) { //nolint:gosec
 		return 0, io.EOF
 	}
+
+	// Limit the read buffer to the remaining source bytes.
 	remaining := int64(r.size) - r.offset //nolint:gosec
 	if int64(len(data)) > remaining {
 		data = data[:remaining]
 	}
+
+	// Read source bytes and advance the file stream position.
 	n, err := r.handle.ReadAt(r.ctx, r.offset, data)
 	r.offset += n
+
 	return int(n), err
 }
 

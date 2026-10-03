@@ -108,9 +108,12 @@ func (c *FSCursor) GetProxyCursor(ctx context.Context) (unixfs.FSCursor, error) 
 
 // AddChangeCb registers a cursor change callback.
 func (c *FSCursor) AddChangeCb(cb unixfs.FSCursorChangeCb) {
+	// Ignore absent callbacks on the lazy cursor.
 	if cb == nil {
 		return
 	}
+
+	// Register callbacks while the lazy cursor remains live.
 	c.mtx.Lock()
 	if !c.CheckReleased() {
 		c.cbs = append(c.cbs, cb)
@@ -118,6 +121,8 @@ func (c *FSCursor) AddChangeCb(cb unixfs.FSCursorChangeCb) {
 		return
 	}
 	c.mtx.Unlock()
+
+	// Notify the callback that the lazy cursor was released.
 	_ = cb(&unixfs.FSCursorChange{Cursor: c, Released: true})
 }
 
@@ -135,19 +140,27 @@ func (c *FSCursor) GetCursorOps(ctx context.Context) (unixfs.FSCursorOps, error)
 
 // Release releases this cursor and its read-mode children.
 func (c *FSCursor) Release() {
+	// Claim the lazy cursor release once.
 	if c == nil || c.released.Swap(true) {
 		return
 	}
+
+	// Release the read cursor and its descendants.
 	c.releaseChildren()
 	c.base.Release()
+
+	// Detach the lazy cursor callbacks under the cursor lock.
 	c.mtx.Lock()
 	cbs := c.cbs
 	c.cbs = nil
 	c.mtx.Unlock()
+
+	// Notify the detached callbacks of cursor release.
 	_ = cbs.CallCbs(&unixfs.FSCursorChange{Cursor: c, Released: true})
 }
 
 func (c *FSCursor) child(name string, base unixfs.FSCursor) *FSCursor {
+	// Construct a child cursor with the extended repository path.
 	pathParts := make([]string, len(c.path), len(c.path)+1)
 	copy(pathParts, c.path)
 	pathParts = append(pathParts, name)
@@ -158,6 +171,8 @@ func (c *FSCursor) child(name string, base unixfs.FSCursor) *FSCursor {
 		name:   name,
 		path:   pathParts,
 	}
+
+	// Attach the child only while the parent cursor remains live.
 	c.mtx.Lock()
 	if c.CheckReleased() {
 		c.mtx.Unlock()
@@ -166,10 +181,12 @@ func (c *FSCursor) child(name string, base unixfs.FSCursor) *FSCursor {
 	}
 	c.children = append(c.children, child)
 	c.mtx.Unlock()
+
 	return child
 }
 
 func (c *FSCursor) ensureWritable(ctx context.Context, operation string, mutationPath []string) (*allocatedRoot, bool, error) {
+	// Resolve repository provenance for the requested mutation.
 	resolved, err := c.tree.resolver.ResolveCursorPath(mutationPath)
 	if err != nil {
 		if perr, ok := err.(*ProvenanceError); ok {
@@ -179,6 +196,7 @@ func (c *FSCursor) ensureWritable(ctx context.Context, operation string, mutatio
 	}
 	key := allocationKey(resolved)
 
+	// Reuse an existing allocation or reserve its completion slot.
 	c.tree.mtx.Lock()
 	if slot := c.tree.allocations[key]; slot != nil {
 		c.tree.mtx.Unlock()
@@ -193,6 +211,7 @@ func (c *FSCursor) ensureWritable(ctx context.Context, operation string, mutatio
 	c.tree.allocations[key] = slot
 	c.tree.mtx.Unlock()
 
+	// Allocate the writable repository tree and require its cursor opener.
 	result, err := c.tree.allocator.AllocateWritableRepoTree(ctx, AllocationRequest{
 		ResolvedPath: resolved,
 		Operation:    operation,
@@ -201,6 +220,7 @@ func (c *FSCursor) ensureWritable(ctx context.Context, operation string, mutatio
 		err = errors.New("allocator returned no writable cursor opener")
 	}
 
+	// Publish the allocation result and wake the waiting cursors.
 	c.tree.mtx.Lock()
 	if err != nil {
 		delete(c.tree.allocations, key)
@@ -217,19 +237,25 @@ func (c *FSCursor) ensureWritable(ctx context.Context, operation string, mutatio
 		return nil, false, err
 	}
 
+	// Release stale read children beneath the allocated repository root.
 	rootCursor := c.findRepoRootCursor(resolved.RepoRootPath)
 	if rootCursor != nil {
 		rootCursor.releaseChildren()
 	}
+
 	return slot.alloc, true, nil
 }
 
 func (c *FSCursor) lookupAllocation() *allocatedRoot {
+	// Lock the repository allocations for a consistent path lookup.
 	c.tree.mtx.Lock()
 	defer c.tree.mtx.Unlock()
+
+	// Select the nearest completed allocation containing this cursor path.
 	var best *allocatedRoot
 	bestLen := -1
 	for _, slot := range c.tree.allocations {
+		// Skip allocations that have not completed successfully.
 		select {
 		case <-slot.ready:
 		default:
@@ -239,6 +265,8 @@ func (c *FSCursor) lookupAllocation() *allocatedRoot {
 		if alloc == nil || slot.err != nil {
 			continue
 		}
+
+		// Keep the most specific repository root containing the cursor.
 		rootParts, _ := unixfs.CleanSplitValidateRelativePath(alloc.resolved.RepoRootPath)
 		if !hasPathPrefix(c.path, rootParts) || len(rootParts) <= bestLen {
 			continue
@@ -246,6 +274,7 @@ func (c *FSCursor) lookupAllocation() *allocatedRoot {
 		best = alloc
 		bestLen = len(rootParts)
 	}
+
 	return best
 }
 
@@ -258,6 +287,7 @@ func (c *FSCursor) openWritableCursor(ctx context.Context, alloc *allocatedRoot)
 }
 
 func (c *FSCursor) openWritableHandle(ctx context.Context, alloc *allocatedRoot) (*unixfs.FSHandle, error) {
+	// Open the allocated repository root as a writable handle.
 	rootCursor, err := alloc.result.OpenCursor(ctx)
 	if err != nil {
 		return nil, err
@@ -267,6 +297,8 @@ func (c *FSCursor) openWritableHandle(ctx context.Context, alloc *allocatedRoot)
 		rootCursor.Release()
 		return nil, err
 	}
+
+	// Resolve the cursor path relative to the allocated repository root.
 	rootParts, err := unixfs.CleanSplitValidateRelativePath(alloc.resolved.RepoRootPath)
 	if err != nil {
 		rootHandle.Release()
@@ -276,11 +308,14 @@ func (c *FSCursor) openWritableHandle(ctx context.Context, alloc *allocatedRoot)
 	if len(relPath) == 0 {
 		return rootHandle, nil
 	}
+
+	// Open the writable descendant and release the temporary root handle.
 	writableHandle, _, err := rootHandle.LookupPathPts(ctx, relPath)
 	rootHandle.Release()
 	if err != nil {
 		return nil, err
 	}
+
 	return writableHandle, nil
 }
 
@@ -298,10 +333,13 @@ func (c *FSCursor) findRepoRootCursor(repoRootPath string) *FSCursor {
 }
 
 func (c *FSCursor) releaseChildren() {
+	// Detach the read children under the cursor lock.
 	c.mtx.Lock()
 	children := c.children
 	c.children = nil
 	c.mtx.Unlock()
+
+	// Release each detached read child.
 	for _, child := range children {
 		child.Release()
 	}

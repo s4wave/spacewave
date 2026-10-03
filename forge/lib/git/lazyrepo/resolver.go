@@ -66,21 +66,29 @@ type MountedRepoResolver struct {
 
 // NewMountedRepoResolver constructs a resolver from mounted repo roots.
 func NewMountedRepoResolver(mounts []RepoMount) (*MountedRepoResolver, error) {
+	// Require repository mounts for path provenance resolution.
 	if len(mounts) == 0 {
 		return nil, errors.New("no repo mounts configured")
 	}
+
+	// Normalize the configured repository roots and guest mount paths.
 	nmounts := make([]normalizedRepoMount, 0, len(mounts))
 	for _, mount := range mounts {
+		// Require the repository identity and pinned base commit.
 		if mount.RepoObjectKey == "" {
 			return nil, errors.New("repo object key cannot be empty")
 		}
 		if mount.BaseCommitHash == "" {
 			return nil, errors.New("base commit hash cannot be empty")
 		}
+
+		// Validate the repository path within the mounted tree.
 		repoRootParts, err := unixfs.CleanSplitValidateRelativePath(mount.RepoRootPath)
 		if err != nil {
 			return nil, errors.Wrapf(err, "repo root path %q", mount.RepoRootPath)
 		}
+
+		// Normalize the guest mount path and default the allocation path family.
 		mountPath := mount.MountPath
 		if mountPath == "" {
 			mountPath = "/"
@@ -89,17 +97,22 @@ func NewMountedRepoResolver(mounts []RepoMount) (*MountedRepoResolver, error) {
 		if mount.PathFamily == "" {
 			mount.PathFamily = unixfs.JoinPath(repoRootParts, false)
 		}
+
+		// Retain the normalized mount and repository paths.
 		nmounts = append(nmounts, normalizedRepoMount{
 			input:          mount,
 			mountPathParts: mountPathParts,
 			repoRootParts:  repoRootParts,
 		})
 	}
+
+	// Prefer the most specific mount and repository root during resolution.
 	slices.SortFunc(nmounts, func(a, b normalizedRepoMount) int {
 		alen := len(a.mountPathParts) + len(a.repoRootParts)
 		blen := len(b.mountPathParts) + len(b.repoRootParts)
 		return blen - alen
 	})
+
 	return &MountedRepoResolver{mounts: nmounts}, nil
 }
 
