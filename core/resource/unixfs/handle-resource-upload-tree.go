@@ -251,12 +251,15 @@ func (r *FSHandleResource) addUploadTreeDir(
 
 // parseUploadTreePath validates a slash-separated relative upload path.
 func parseUploadTreePath(path string) ([]string, error) {
+	// Require a nonempty relative path for the uploaded entry.
 	if path == "" {
 		return nil, errors.New("empty upload path")
 	}
 	if strings.HasPrefix(path, "/") {
 		return nil, errors.New("upload path must be relative")
 	}
+
+	// Normalize the upload path components and reject parent traversal.
 	parts := strings.Split(path, "/")
 	out := make([]string, 0, len(parts))
 	for _, part := range parts {
@@ -268,6 +271,8 @@ func parseUploadTreePath(path string) ([]string, error) {
 		}
 		out = append(out, part)
 	}
+
+	// Require an entry name after normalizing the upload path.
 	if len(out) == 0 {
 		return nil, errors.New("empty upload path")
 	}
@@ -275,17 +280,24 @@ func parseUploadTreePath(path string) ([]string, error) {
 }
 
 func (f *uploadTreeFile) Read(p []byte) (int, error) {
+	// Return immediately when the caller has no room for upload bytes.
 	if len(p) == 0 {
 		return 0, nil
 	}
+
+	// Drain the buffered remainder of the previous upload frame.
 	if len(f.buf) != 0 {
 		n := copy(p, f.buf)
 		f.buf = f.buf[n:]
 		return n, nil
 	}
+
+	// Stop reading when the declared file size has been consumed.
 	if f.remaining == 0 {
 		return 0, io.EOF
 	}
+
+	// Receive the next upload frame and require the stream to remain open.
 	msg, err := f.strm.Recv()
 	if err == io.EOF {
 		return 0, errors.Errorf(
@@ -297,6 +309,8 @@ func (f *uploadTreeFile) Read(p []byte) (int, error) {
 	if err != nil {
 		return 0, err
 	}
+
+	// Validate the upload data frame and retain its ordered commit request.
 	f.state.ordered = f.state.ordered || msg.GetOrderedCommit()
 	data := msg.GetData()
 	if len(data) == 0 {
@@ -305,6 +319,8 @@ func (f *uploadTreeFile) Read(p []byte) (int, error) {
 	if err := validateUploadDataFrame(data); err != nil {
 		return 0, err
 	}
+
+	// Record the received bytes and enforce the declared file size.
 	recordUploadMetric(f.strm.Context(), UploadMetric{
 		Stage: "receive-data",
 		Bytes: len(data),
@@ -312,6 +328,8 @@ func (f *uploadTreeFile) Read(p []byte) (int, error) {
 	if int64(len(data)) > f.remaining {
 		return 0, errors.Errorf("tree upload data exceeds declared size for %q", f.name)
 	}
+
+	// Deliver the upload bytes and retain any remainder for the next read.
 	f.state.resp.BytesWritten += int64(len(data))
 	f.remaining -= int64(len(data))
 	n := copy(p, data)

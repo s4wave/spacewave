@@ -95,6 +95,7 @@ func newFSHandleResource(
 	fsType unixfs_world.FSType,
 	path []string,
 ) *FSHandleResource {
+	// Initialize the notifications and publication barriers shared by child resources.
 	if bcast == nil {
 		bcast = &broadcast.Broadcast{}
 	}
@@ -104,6 +105,8 @@ func newFSHandleResource(
 	if handleMtx == nil {
 		handleMtx = &sync.RWMutex{}
 	}
+
+	// Bind the filesystem handle and World path to the resource service.
 	r := &FSHandleResource{
 		le:        le,
 		handle:    handle,
@@ -137,12 +140,14 @@ func (r *FSHandleResource) registerChildResource(
 	childHandle *unixfs.FSHandle,
 	childPath []string,
 ) (uint32, error) {
+	// Resolve the resource client that will retain the child handle.
 	client, err := resource_server.MustGetResourceClientContext(ctx)
 	if err != nil {
 		childHandle.Release()
 		return 0, err
 	}
 
+	// Register the child service with the shared filesystem barriers.
 	childResource := newFSHandleResource(
 		r.le,
 		childHandle,
@@ -167,9 +172,12 @@ func (r *FSHandleResource) registerChildResource(
 
 // joinHandlePath joins relPath onto the current handle path.
 func (r *FSHandleResource) joinHandlePath(relPath string) []string {
+	// Preserve the current handle path for a lookup of the current directory.
 	if relPath == "" || relPath == "." {
 		return slices.Clone(r.path)
 	}
+
+	// Resolve relative path components against the current handle path.
 	next := slices.Clone(r.path)
 	parts, _ := unixfs.SplitPath(relPath)
 	for _, part := range parts {
@@ -193,11 +201,14 @@ func (r *FSHandleResource) joinHandlePath(relPath string) []string {
 // mutation so the read-merge-publish in world.AccessObjectState cannot interleave
 // with another writer and lose an update. fn performs the world mutation.
 func (r *FSHandleResource) mutate(fn func() error) error {
+	// Hold the resource tree write barrier across the filesystem mutation.
 	r.writeMtx.Lock()
 	defer r.writeMtx.Unlock()
 	if err := fn(); err != nil {
 		return err
 	}
+
+	// Notify directory watchers after the filesystem mutation succeeds.
 	r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) { broadcast() })
 	return nil
 }
@@ -226,13 +237,18 @@ func (r *FSHandleResource) borrowHandle(
 // so neither another writer nor a read operation can observe the invalidated
 // handle generation before this replacement is installed.
 func (r *FSHandleResource) reloadHandleLocked(ctx context.Context) error {
+	// Keep detached filesystem handles on their current cursor.
 	if r.ws == nil || r.objKey == "" {
 		return nil
 	}
+
+	// Open a replacement handle on the current World root.
 	nextHandle, err := r.newObjectFSHandle(ctx)
 	if err != nil {
 		return err
 	}
+
+	// Replace the resource handle and release its previous cursor.
 	prev := r.handle
 	r.handle = nextHandle
 	prev.Release()
@@ -240,10 +256,12 @@ func (r *FSHandleResource) reloadHandleLocked(ctx context.Context) error {
 }
 
 func (r *FSHandleResource) newObjectFSHandle(ctx context.Context) (*unixfs.FSHandle, error) {
+	// Require the World object that backs the filesystem handle.
 	if r.ws == nil || r.objKey == "" {
 		return nil, errors.New("object-backed filesystem handle unavailable")
 	}
 
+	// Open a filesystem cursor with the World state access mode.
 	var fsCursor *unixfs_world.FSCursor
 	if r.ws.GetReadOnly() {
 		fsCursor = unixfs_world.NewFSCursor(r.le, r.ws, r.objKey, r.fsType, nil, true)
@@ -253,6 +271,8 @@ func (r *FSHandleResource) newObjectFSHandle(ctx context.Context) (*unixfs.FSHan
 		// carries nothing new here.
 		fsCursor, _ = unixfs_world.NewFSCursorWithWriter(ctx, r.le, r.ws, r.objKey, r.fsType, "")
 	}
+
+	// Position the replacement handle at the resource path.
 	var nextHandle *unixfs.FSHandle
 	var err error
 	if len(r.path) == 0 {
@@ -281,16 +301,19 @@ func borrowDestParentHandle(
 	ctx context.Context,
 	destParentResourceID uint32,
 ) (*unixfs.FSHandle, func(), error) {
+	// Resolve the client containing the destination parent resource.
 	client, err := resource_server.MustGetResourceClientContext(ctx)
 	if err != nil {
 		return nil, nil, err
 	}
 
+	// Retrieve the registered destination parent resource.
 	value, err := client.GetResourceValue(destParentResourceID)
 	if err != nil {
 		return nil, nil, err
 	}
 
+	// Require a filesystem handle service for the destination parent.
 	destParentResource, ok := value.(*FSHandleResource)
 	if !ok {
 		return nil, nil, errors.New("destination parent is not a unixfs handle resource")
@@ -317,14 +340,15 @@ func getFileInfo(ctx context.Context, handle *unixfs.FSHandle) (*s4wave_unixfs.F
 
 // Lookup looks up a child by name and returns a new handle resource.
 func (r *FSHandleResource) Lookup(ctx context.Context, req *s4wave_unixfs.HandleLookupRequest) (*s4wave_unixfs.HandleLookupResponse, error) {
+	// Borrow the parent handle for the requested child lookup.
 	name := req.GetName()
-
 	handle, releaseHandle, err := r.borrowHandle(ctx)
 	if err != nil {
 		return nil, err
 	}
 	defer releaseHandle()
 
+	// Open the requested child handle for resource registration.
 	childHandle, err := handle.Lookup(ctx, name)
 	if err != nil {
 		return nil, err
@@ -355,14 +379,15 @@ func (r *FSHandleResource) Lookup(ctx context.Context, req *s4wave_unixfs.Handle
 
 // LookupPath looks up a path and returns a new handle resource.
 func (r *FSHandleResource) LookupPath(ctx context.Context, req *s4wave_unixfs.HandleLookupPathRequest) (*s4wave_unixfs.HandleLookupPathResponse, error) {
+	// Borrow the starting handle for the requested filesystem path lookup.
 	path := req.GetPath()
-
 	handle, releaseHandle, err := r.borrowHandle(ctx)
 	if err != nil {
 		return nil, err
 	}
 	defer releaseHandle()
 
+	// Traverse the requested path and release any partial handle on failure.
 	childHandle, traversedPath, err := handle.LookupPath(ctx, path)
 	if err != nil {
 		if childHandle != nil {
@@ -397,9 +422,9 @@ func (r *FSHandleResource) LookupPath(ctx context.Context, req *s4wave_unixfs.Ha
 
 // ReadAt reads bytes at the given offset.
 func (r *FSHandleResource) ReadAt(ctx context.Context, req *s4wave_unixfs.HandleReadAtRequest) (*s4wave_unixfs.HandleReadAtResponse, error) {
+	// Borrow the file handle for the requested bounded read range.
 	offset := req.GetOffset()
 	length := req.GetLength()
-
 	handle, releaseHandle, err := r.borrowHandle(ctx)
 	if err != nil {
 		return nil, err
@@ -437,6 +462,7 @@ func (r *FSHandleResource) ReadAt(ctx context.Context, req *s4wave_unixfs.Handle
 		length = fsHandleMaxReadSize
 	}
 
+	// Read the bounded file range into the response buffer.
 	data := make([]byte, length)
 	bytesRead, err := handle.ReadAt(ctx, offset, data)
 
@@ -465,12 +491,14 @@ func (r *FSHandleResource) ReadStream(
 	req *s4wave_unixfs.HandleReadStreamRequest,
 	strm s4wave_unixfs.SRPCFSHandleResourceService_ReadStreamStream,
 ) error {
+	// Require a nonnegative file offset for the streamed range.
 	ctx := strm.Context()
 	offset, length := req.GetOffset(), req.GetLength()
 	if offset < 0 {
 		return errors.Errorf("negative read offset: %d", offset)
 	}
 
+	// Borrow one file handle for the complete read stream.
 	handle, releaseHandle, err := r.borrowHandle(ctx)
 	if err != nil {
 		return err
@@ -546,12 +574,14 @@ func (r *FSHandleResource) Truncate(ctx context.Context, req *s4wave_unixfs.Hand
 
 // GetSize returns the current size of the file.
 func (r *FSHandleResource) GetSize(ctx context.Context, req *s4wave_unixfs.HandleGetSizeRequest) (*s4wave_unixfs.HandleGetSizeResponse, error) {
+	// Borrow the file handle while the resource tree read barrier is held.
 	handle, releaseHandle, err := r.borrowHandle(ctx)
 	if err != nil {
 		return nil, err
 	}
 	defer releaseHandle()
 
+	// Read the current file size from the borrowed handle.
 	size, err := handle.GetSize(ctx)
 	if err != nil {
 		return nil, err
@@ -564,12 +594,14 @@ func (r *FSHandleResource) GetSize(ctx context.Context, req *s4wave_unixfs.Handl
 
 // GetFileInfo returns file metadata for the handle's location.
 func (r *FSHandleResource) GetFileInfo(ctx context.Context, req *s4wave_unixfs.HandleGetFileInfoRequest) (*s4wave_unixfs.HandleGetFileInfoResponse, error) {
+	// Borrow the filesystem handle while the resource tree read barrier is held.
 	handle, releaseHandle, err := r.borrowHandle(ctx)
 	if err != nil {
 		return nil, err
 	}
 	defer releaseHandle()
 
+	// Read the metadata at the borrowed handle location.
 	info, err := getFileInfo(ctx, handle)
 	if err != nil {
 		return nil, err
@@ -582,12 +614,14 @@ func (r *FSHandleResource) GetFileInfo(ctx context.Context, req *s4wave_unixfs.H
 
 // GetNodeType returns the node type (file, directory, symlink).
 func (r *FSHandleResource) GetNodeType(ctx context.Context, req *s4wave_unixfs.HandleGetNodeTypeRequest) (*s4wave_unixfs.HandleGetNodeTypeResponse, error) {
+	// Borrow the filesystem handle while the resource tree read barrier is held.
 	handle, releaseHandle, err := r.borrowHandle(ctx)
 	if err != nil {
 		return nil, err
 	}
 	defer releaseHandle()
 
+	// Read the node type at the borrowed handle location.
 	nodeType, err := handle.GetNodeType(ctx)
 	if err != nil {
 		return nil, err
@@ -604,15 +638,16 @@ func (r *FSHandleResource) GetNodeType(ctx context.Context, req *s4wave_unixfs.H
 
 // Readdir reads directory entries (streaming for large directories).
 func (r *FSHandleResource) Readdir(req *s4wave_unixfs.HandleReaddirRequest, strm s4wave_unixfs.SRPCFSHandleResourceService_ReaddirStream) error {
+	// Borrow one directory handle for the requested listing offset.
 	ctx := strm.Context()
 	skip := req.GetSkip()
-
 	handle, releaseHandle, err := r.borrowHandle(ctx)
 	if err != nil {
 		return err
 	}
 	defer releaseHandle()
 
+	// Stream directory entries with the metadata available from each child.
 	err = handle.ReaddirAll(ctx, skip, func(ent unixfs.FSCursorDirent) error {
 		entry := dirEntryFromCursor(ent)
 
@@ -646,11 +681,13 @@ func (r *FSHandleResource) Readdir(req *s4wave_unixfs.HandleReaddirRequest, strm
 
 // Mknod creates a new file or directory.
 func (r *FSHandleResource) Mknod(ctx context.Context, req *s4wave_unixfs.HandleMknodRequest) (*s4wave_unixfs.HandleMknodResponse, error) {
+	// Read the requested node names, type, permissions, and existence policy.
 	names := req.GetNames()
 	nodeType := req.GetNodeType()
 	mode := req.GetMode()
 	checkExist := req.GetCheckExist()
 
+	// Choose the filesystem node type for the creation request.
 	var fsNodeType unixfs.FSCursorNodeType
 	switch nodeType {
 	case s4wave_unixfs.MknodType_MKNOD_TYPE_FILE:
@@ -661,10 +698,12 @@ func (r *FSHandleResource) Mknod(ctx context.Context, req *s4wave_unixfs.HandleM
 		fsNodeType = unixfs.NewFSCursorNodeType_File()
 	}
 
+	// Supply the default permissions for the chosen node type.
 	if mode == 0 {
 		mode = uint32(unixfs.DefaultPermissions(fsNodeType))
 	}
 
+	// Create the requested nodes under the resource tree write barrier.
 	if err := r.mutate(func() error {
 		return r.handle.Mknod(ctx, checkExist, names, fsNodeType, fs.FileMode(mode), time.Now())
 	}); err != nil {
@@ -689,13 +728,16 @@ func (r *FSHandleResource) Remove(ctx context.Context, req *s4wave_unixfs.Handle
 
 // MkdirAll creates a directory and all parent directories.
 func (r *FSHandleResource) MkdirAll(ctx context.Context, req *s4wave_unixfs.HandleMkdirAllRequest) (*s4wave_unixfs.HandleMkdirAllResponse, error) {
+	// Read the directory path and permissions requested for creation.
 	pathParts := req.GetPathParts()
 	mode := req.GetMode()
 
+	// Supply the directory permissions when the request omits them.
 	if mode == 0 {
 		mode = 0o755
 	}
 
+	// Create the directory path under the resource tree write barrier.
 	if err := r.mutate(func() error {
 		return r.handle.MkdirAll(ctx, pathParts, fs.FileMode(mode), time.Now())
 	}); err != nil {
@@ -709,21 +751,26 @@ func (r *FSHandleResource) MkdirAll(ctx context.Context, req *s4wave_unixfs.Hand
 // When source_name is set, this handle is the parent directory containing the entry.
 // When source_name is empty, returns an error (legacy path was broken).
 func (r *FSHandleResource) Rename(ctx context.Context, req *s4wave_unixfs.HandleRenameRequest) (*s4wave_unixfs.HandleRenameResponse, error) {
+	// Read the source and destination locations requested for the rename.
 	sourceName := req.GetSourceName()
 	destName := req.GetDestName()
 	destParentResourceID := req.GetDestParentResourceId()
 
+	// Require a source entry name within this directory handle.
 	if sourceName == "" {
 		return nil, errors.New("source_name is required for rename")
 	}
 
+	// Move the entry under the resource tree write barrier.
 	if err := r.mutate(func() error {
+		// Open the source entry handle for the move.
 		sourceHandle, err := r.handle.Lookup(ctx, sourceName)
 		if err != nil {
 			return err
 		}
 		defer sourceHandle.Release()
 
+		// Borrow the destination parent handle for the move.
 		var destParentHandle *unixfs.FSHandle
 		var releaseDestParent func()
 		if destParentResourceID == 0 {
@@ -749,8 +796,8 @@ func (r *FSHandleResource) Rename(ctx context.Context, req *s4wave_unixfs.Handle
 
 // UploadFile uploads a file via client-streaming.
 func (r *FSHandleResource) UploadFile(strm s4wave_unixfs.SRPCFSHandleResourceService_UploadFileStream) (*s4wave_unixfs.HandleUploadFileResponse, error) {
+	// Read and validate the file metadata in the first upload message.
 	ctx := strm.Context()
-
 	first, err := strm.Recv()
 	if err != nil {
 		return nil, err
@@ -764,16 +811,22 @@ func (r *FSHandleResource) UploadFile(strm s4wave_unixfs.SRPCFSHandleResourceSer
 	if totalSize <= 0 {
 		return nil, errors.New("total_size must be positive")
 	}
+
+	// Connect the upload stream to filesystem ingestion through a pipe.
 	pr, pw := io.Pipe()
 
+	// Start the file ingestion and retain its completion result.
 	var uploadErr error
 	done := make(chan struct{})
 	go func() {
+		// Choose the file permissions and signal completion when ingestion ends.
 		defer close(done)
 		nodeType := unixfs.NewFSCursorNodeType_File()
 		if mode == 0 {
 			mode = uint32(unixfs.DefaultPermissions(nodeType))
 		}
+
+		// Ingest and publish the uploaded file under the resource tree write barrier.
 		// MknodWithContent fuses blob ingest and the root commit, so writeMtx
 		// is held across the streamed read. The legacy single-file path trades
 		// upload-time write parallelism for the same lost-update safety the
@@ -786,6 +839,7 @@ func (r *FSHandleResource) UploadFile(strm s4wave_unixfs.SRPCFSHandleResourceSer
 		})
 	}()
 
+	// Feed any bytes in the first message to the file ingestion pipe.
 	var bytesWritten int64
 	if data := first.GetData(); len(data) > 0 {
 		if err := validateUploadDataFrame(data); err != nil {
@@ -803,6 +857,7 @@ func (r *FSHandleResource) UploadFile(strm s4wave_unixfs.SRPCFSHandleResourceSer
 		bytesWritten += int64(len(data))
 	}
 
+	// Feed the remaining upload messages to the file ingestion pipe.
 	for {
 		msg, err := strm.Recv()
 		if err == io.EOF {
@@ -831,6 +886,7 @@ func (r *FSHandleResource) UploadFile(strm s4wave_unixfs.SRPCFSHandleResourceSer
 		}
 	}
 
+	// Finish the ingestion pipe and report the filesystem commit result.
 	pw.Close()
 	<-done
 	if uploadErr != nil {
@@ -844,12 +900,14 @@ func (r *FSHandleResource) UploadFile(strm s4wave_unixfs.SRPCFSHandleResourceSer
 
 // Readlink reads the target of a symbolic link at this handle.
 func (r *FSHandleResource) Readlink(ctx context.Context, req *s4wave_unixfs.HandleReadlinkRequest) (*s4wave_unixfs.HandleReadlinkResponse, error) {
+	// Borrow the symbolic link handle while the resource tree read barrier is held.
 	handle, releaseHandle, err := r.borrowHandle(ctx)
 	if err != nil {
 		return nil, err
 	}
 	defer releaseHandle()
 
+	// Read the symbolic link target from the borrowed handle.
 	parts, isAbsolute, err := handle.Readlink(ctx, "")
 	if err != nil {
 		return nil, err
@@ -861,17 +919,20 @@ func (r *FSHandleResource) Readlink(ctx context.Context, req *s4wave_unixfs.Hand
 
 // Clone creates a copy of this handle pointing to the same location.
 func (r *FSHandleResource) Clone(ctx context.Context, req *s4wave_unixfs.HandleCloneRequest) (*s4wave_unixfs.HandleCloneResponse, error) {
+	// Borrow the filesystem handle while the resource tree read barrier is held.
 	handle, releaseHandle, err := r.borrowHandle(ctx)
 	if err != nil {
 		return nil, err
 	}
 	defer releaseHandle()
 
+	// Clone the handle at its current filesystem location.
 	clonedHandle, err := handle.Clone(ctx)
 	if err != nil {
 		return nil, err
 	}
 
+	// Register the cloned handle as a child resource.
 	resourceID, err := r.registerChildResource(ctx, clonedHandle, r.path)
 	if err != nil {
 		return nil, err
@@ -905,8 +966,8 @@ func readWatchEntries(ctx context.Context, handle *unixfs.FSHandle) ([]*s4wave_u
 
 // WatchReaddir watches directory entries and streams the full listing on each change.
 func (r *FSHandleResource) WatchReaddir(req *s4wave_unixfs.HandleWatchReaddirRequest, strm s4wave_unixfs.SRPCFSHandleResourceService_WatchReaddirStream) error {
+	// Open an independent watch handle and retain its last emitted revision.
 	ctx := strm.Context()
-
 	var prev *s4wave_unixfs.HandleWatchReaddirResponse
 	var lastObjRev uint64
 	var haveObjRev bool
@@ -928,7 +989,10 @@ func (r *FSHandleResource) WatchReaddir(req *s4wave_unixfs.HandleWatchReaddirReq
 		}
 		defer watchHandle.Release()
 	}
+
+	// Publish each changed directory listing until the watch ends.
 	for {
+		// Capture the local change notification before reading the World revision.
 		var ch <-chan struct{}
 		r.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
 			ch = getWaitCh()
@@ -948,6 +1012,7 @@ func (r *FSHandleResource) WatchReaddir(req *s4wave_unixfs.HandleWatchReaddirReq
 			watchHandle = nextWatchHandle
 		}
 
+		// Read the directory listing while the resource tree read barrier is held.
 		r.handleMtx.RLock()
 		entries, err := readWatchEntries(ctx, watchHandle)
 		r.handleMtx.RUnlock()
@@ -956,6 +1021,7 @@ func (r *FSHandleResource) WatchReaddir(req *s4wave_unixfs.HandleWatchReaddirReq
 			return err
 		}
 
+		// Emit the directory listing only when its entries change.
 		resp := &s4wave_unixfs.HandleWatchReaddirResponse{
 			Entries: entries,
 		}
@@ -971,6 +1037,7 @@ func (r *FSHandleResource) WatchReaddir(req *s4wave_unixfs.HandleWatchReaddirReq
 			haveObjRev = true
 		}
 
+		// Wait for a local notification or a change to the World object revision.
 		err = r.waitReaddirChange(ctx, ch, objState, objRev)
 		world.ReleaseObjectState(objState)
 		if err != nil {
@@ -980,9 +1047,12 @@ func (r *FSHandleResource) WatchReaddir(req *s4wave_unixfs.HandleWatchReaddirReq
 }
 
 func (r *FSHandleResource) watchObjectRev(ctx context.Context) (world.ObjectState, uint64, error) {
+	// Keep detached directory watches independent of World object revisions.
 	if r.ws == nil || r.objKey == "" {
 		return nil, 0, nil
 	}
+
+	// Open the backing World object and require it to remain present.
 	objState, found, err := r.ws.GetObject(ctx, r.objKey)
 	if err != nil {
 		world.ReleaseObjectState(objState)
@@ -992,6 +1062,8 @@ func (r *FSHandleResource) watchObjectRev(ctx context.Context) (world.ObjectStat
 		world.ReleaseObjectState(objState)
 		return nil, 0, world.ErrObjectNotFound
 	}
+
+	// Read the root revision used to wait for the next directory change.
 	_, rev, err := objState.GetRootRef(ctx)
 	if err != nil {
 		world.ReleaseObjectState(objState)
@@ -1006,6 +1078,7 @@ func (r *FSHandleResource) waitReaddirChange(
 	objState world.ObjectState,
 	objRev uint64,
 ) error {
+	// Wait for a local change when the directory has no backing World object.
 	if objState == nil {
 		select {
 		case <-ctx.Done():
@@ -1015,6 +1088,7 @@ func (r *FSHandleResource) waitReaddirChange(
 		}
 	}
 
+	// Start a cancellable wait for the next backing World object revision.
 	waitCtx, cancel := context.WithCancel(ctx)
 	defer cancel()
 	objChange := make(chan error, 1)
@@ -1023,6 +1097,7 @@ func (r *FSHandleResource) waitReaddirChange(
 		objChange <- err
 	}()
 
+	// Finish the directory wait on cancellation or either change notification.
 	select {
 	case <-ctx.Done():
 		return ctx.Err()
