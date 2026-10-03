@@ -38,6 +38,10 @@ type SRPCEngineResourceServiceClient interface {
 	BuildStorageCursor(ctx context.Context, in *BuildStorageCursorRequest) (*BuildStorageCursorResponse, error)
 
 	AccessWorldState(ctx context.Context, in *AccessWorldStateRequest) (*AccessWorldStateResponse, error)
+	// StageWorldState opens a staging scope for writes outside a transaction.
+	// Releasing the stage resource, or ending its resource client, releases
+	// the scope. Hold it until the transaction adopting the build returns.
+	StageWorldState(ctx context.Context, in *StageWorldStateRequest) (*StageWorldStateResponse, error)
 }
 
 type srpcEngineResourceServiceClient struct {
@@ -181,6 +185,15 @@ func (c *srpcEngineResourceServiceClient) AccessWorldState(ctx context.Context, 
 	return out, nil
 }
 
+func (c *srpcEngineResourceServiceClient) StageWorldState(ctx context.Context, in *StageWorldStateRequest) (*StageWorldStateResponse, error) {
+	out := new(StageWorldStateResponse)
+	err := c.cc.ExecCall(ctx, c.serviceID, "StageWorldState", in, out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 type SRPCEngineResourceServiceServer interface {
 	GetEngineInfo(context.Context, *GetEngineInfoRequest) (*GetEngineInfoResponse, error)
 
@@ -206,6 +219,10 @@ type SRPCEngineResourceServiceServer interface {
 	BuildStorageCursor(context.Context, *BuildStorageCursorRequest) (*BuildStorageCursorResponse, error)
 
 	AccessWorldState(context.Context, *AccessWorldStateRequest) (*AccessWorldStateResponse, error)
+	// StageWorldState opens a staging scope for writes outside a transaction.
+	// Releasing the stage resource, or ending its resource client, releases
+	// the scope. Hold it until the transaction adopting the build returns.
+	StageWorldState(context.Context, *StageWorldStateRequest) (*StageWorldStateResponse, error)
 }
 
 const SRPCEngineResourceServiceServiceID = "s4wave.world.EngineResourceService"
@@ -245,6 +262,7 @@ func (SRPCEngineResourceServiceHandler) GetMethodIDs() []string {
 		"WaitSeqno",
 		"BuildStorageCursor",
 		"AccessWorldState",
+		"StageWorldState",
 	}
 }
 
@@ -279,6 +297,8 @@ func (d *SRPCEngineResourceServiceHandler) InvokeMethod(
 		return true, d.InvokeMethod_BuildStorageCursor(d.impl, strm)
 	case "AccessWorldState":
 		return true, d.InvokeMethod_AccessWorldState(d.impl, strm)
+	case "StageWorldState":
+		return true, d.InvokeMethod_StageWorldState(d.impl, strm)
 	default:
 		return false, nil
 	}
@@ -413,6 +433,18 @@ func (SRPCEngineResourceServiceHandler) InvokeMethod_AccessWorldState(impl SRPCE
 	return strm.MsgSend(out)
 }
 
+func (SRPCEngineResourceServiceHandler) InvokeMethod_StageWorldState(impl SRPCEngineResourceServiceServer, strm srpc.Stream) error {
+	req := new(StageWorldStateRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	out, err := impl.StageWorldState(strm.Context(), req)
+	if err != nil {
+		return err
+	}
+	return strm.MsgSend(out)
+}
+
 type SRPCEngineResourceService_GetEngineInfoStream interface {
 	srpc.Stream
 }
@@ -513,6 +545,154 @@ type SRPCEngineResourceService_AccessWorldStateStream interface {
 }
 
 type srpcEngineResourceService_AccessWorldStateStream struct {
+	srpc.Stream
+}
+
+type SRPCEngineResourceService_StageWorldStateStream interface {
+	srpc.Stream
+}
+
+type srpcEngineResourceService_StageWorldStateStream struct {
+	srpc.Stream
+}
+
+type SRPCWorldStageResourceServiceClient interface {
+	// SRPCClient returns the underlying SRPC client.
+	SRPCClient() srpc.Client
+
+	BuildStorageCursor(ctx context.Context, in *BuildStorageCursorRequest) (*BuildStorageCursorResponse, error)
+
+	AccessWorldState(ctx context.Context, in *AccessWorldStateRequest) (*AccessWorldStateResponse, error)
+}
+
+type srpcWorldStageResourceServiceClient struct {
+	cc        srpc.Client
+	serviceID string
+}
+
+func NewSRPCWorldStageResourceServiceClient(cc srpc.Client) SRPCWorldStageResourceServiceClient {
+	return &srpcWorldStageResourceServiceClient{cc: cc, serviceID: SRPCWorldStageResourceServiceServiceID}
+}
+
+func NewSRPCWorldStageResourceServiceClientWithServiceID(cc srpc.Client, serviceID string) SRPCWorldStageResourceServiceClient {
+	if serviceID == "" {
+		serviceID = SRPCWorldStageResourceServiceServiceID
+	}
+	return &srpcWorldStageResourceServiceClient{cc: cc, serviceID: serviceID}
+}
+
+func (c *srpcWorldStageResourceServiceClient) SRPCClient() srpc.Client { return c.cc }
+
+func (c *srpcWorldStageResourceServiceClient) BuildStorageCursor(ctx context.Context, in *BuildStorageCursorRequest) (*BuildStorageCursorResponse, error) {
+	out := new(BuildStorageCursorResponse)
+	err := c.cc.ExecCall(ctx, c.serviceID, "BuildStorageCursor", in, out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *srpcWorldStageResourceServiceClient) AccessWorldState(ctx context.Context, in *AccessWorldStateRequest) (*AccessWorldStateResponse, error) {
+	out := new(AccessWorldStateResponse)
+	err := c.cc.ExecCall(ctx, c.serviceID, "AccessWorldState", in, out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+type SRPCWorldStageResourceServiceServer interface {
+	BuildStorageCursor(context.Context, *BuildStorageCursorRequest) (*BuildStorageCursorResponse, error)
+
+	AccessWorldState(context.Context, *AccessWorldStateRequest) (*AccessWorldStateResponse, error)
+}
+
+const SRPCWorldStageResourceServiceServiceID = "s4wave.world.WorldStageResourceService"
+
+type SRPCWorldStageResourceServiceHandler struct {
+	serviceID string
+	impl      SRPCWorldStageResourceServiceServer
+}
+
+// NewSRPCWorldStageResourceServiceHandler constructs a new RPC handler.
+// serviceID: if empty, uses default: s4wave.world.WorldStageResourceService
+func NewSRPCWorldStageResourceServiceHandler(impl SRPCWorldStageResourceServiceServer, serviceID string) srpc.Handler {
+	if serviceID == "" {
+		serviceID = SRPCWorldStageResourceServiceServiceID
+	}
+	return &SRPCWorldStageResourceServiceHandler{impl: impl, serviceID: serviceID}
+}
+
+// SRPCRegisterWorldStageResourceService registers the implementation with the mux.
+// Uses the default serviceID: s4wave.world.WorldStageResourceService
+func SRPCRegisterWorldStageResourceService(mux srpc.Mux, impl SRPCWorldStageResourceServiceServer) error {
+	return mux.Register(NewSRPCWorldStageResourceServiceHandler(impl, ""))
+}
+
+func (d *SRPCWorldStageResourceServiceHandler) GetServiceID() string { return d.serviceID }
+
+func (SRPCWorldStageResourceServiceHandler) GetMethodIDs() []string {
+	return []string{
+		"BuildStorageCursor",
+		"AccessWorldState",
+	}
+}
+
+func (d *SRPCWorldStageResourceServiceHandler) InvokeMethod(
+	serviceID, methodID string,
+	strm srpc.Stream,
+) (bool, error) {
+	if serviceID != "" && serviceID != d.GetServiceID() {
+		return false, nil
+	}
+
+	switch methodID {
+	case "BuildStorageCursor":
+		return true, d.InvokeMethod_BuildStorageCursor(d.impl, strm)
+	case "AccessWorldState":
+		return true, d.InvokeMethod_AccessWorldState(d.impl, strm)
+	default:
+		return false, nil
+	}
+}
+
+func (SRPCWorldStageResourceServiceHandler) InvokeMethod_BuildStorageCursor(impl SRPCWorldStageResourceServiceServer, strm srpc.Stream) error {
+	req := new(BuildStorageCursorRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	out, err := impl.BuildStorageCursor(strm.Context(), req)
+	if err != nil {
+		return err
+	}
+	return strm.MsgSend(out)
+}
+
+func (SRPCWorldStageResourceServiceHandler) InvokeMethod_AccessWorldState(impl SRPCWorldStageResourceServiceServer, strm srpc.Stream) error {
+	req := new(AccessWorldStateRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	out, err := impl.AccessWorldState(strm.Context(), req)
+	if err != nil {
+		return err
+	}
+	return strm.MsgSend(out)
+}
+
+type SRPCWorldStageResourceService_BuildStorageCursorStream interface {
+	srpc.Stream
+}
+
+type srpcWorldStageResourceService_BuildStorageCursorStream struct {
+	srpc.Stream
+}
+
+type SRPCWorldStageResourceService_AccessWorldStateStream interface {
+	srpc.Stream
+}
+
+type srpcWorldStageResourceService_AccessWorldStateStream struct {
 	srpc.Stream
 }
 

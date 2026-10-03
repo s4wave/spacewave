@@ -90,48 +90,80 @@ var errRootRefChanged = errors.New("object root changed during access")
 // only when the object still has the revision cb read. Reading and publishing
 // are separate transactions so cb never runs under the engine write lock; a
 // concurrent change replays cb against the new root instead of overwriting it.
+//
+// Without updateWorld the caller publishes the returned root itself, so the
+// build is not staged here.
 func (e *engineWorldStateObject) accessObjectState(
 	ctx context.Context,
 	updateWorld bool,
 	cb AccessObjectCb,
 ) (*bucket.ObjectRef, bool, error) {
+	// Build against the current root for a caller that publishes it.
+	if !updateWorld {
+		initRef, _, err := e.GetRootRef(ctx)
+		if err != nil {
+			return nil, false, err
+		}
+		return accessObjectRoot(ctx, e.AccessWorldState, initRef, cb)
+	}
+
+	// Replay the build until it publishes onto the revision it read.
 	for {
 		if err := ctx.Err(); err != nil {
 			return nil, false, err
 		}
-
-		// Apply the callback against the current root and revision.
-		initRef, initRev, err := e.GetRootRef(ctx)
-		if err != nil {
-			return nil, false, err
-		}
-		outRef, dirty, err := accessObjectRoot(ctx, e, initRef, cb)
-		if err != nil || !updateWorld || !dirty {
-			return outRef, dirty, err
-		}
-
-		// Publish only onto the revision the callback read.
-		err = e.e.performOp(ctx, true, func(tx Tx) error {
-			// Check the object revision and publish the updated root in one transaction.
-			obj, berr := MustGetObject(ctx, tx, e.key)
-			defer ReleaseObjectState(obj)
-			if berr != nil {
-				return berr
-			}
-			_, rev, berr := obj.GetRootRef(ctx)
-			if berr != nil {
-				return berr
-			}
-			if rev != initRev {
-				return errRootRefChanged
-			}
-			_, berr = obj.SetRootRef(ctx, outRef)
-			return berr
-		})
+		outRef, dirty, err := e.publishObjectState(ctx, cb)
 		if !errors.Is(err, errRootRefChanged) {
 			return outRef, dirty, err
 		}
 	}
+}
+
+// publishObjectState builds through a World stage and publishes the result
+// onto the revision the build read. The stage keeps the build alive until the
+// publishing transaction returns; a conflicting or failed publication leaves
+// the build to the sweep.
+func (e *engineWorldStateObject) publishObjectState(ctx context.Context, cb AccessObjectCb) (*bucket.ObjectRef, bool, error) {
+	// Read the current root and revision.
+	initRef, initRev, err := e.GetRootRef(ctx)
+	if err != nil {
+		return nil, false, err
+	}
+
+	// Build through a stage held until publication returns.
+	stage, err := e.e.e.StageWorldState(ctx)
+	if err != nil {
+		return nil, false, err
+	}
+	defer stage.Release()
+
+	// Build the object state through the stage.
+	outRef, dirty, err := accessObjectRoot(ctx, stage.AccessWorldState, initRef, cb)
+	if err != nil || !dirty {
+		return outRef, dirty, err
+	}
+
+	// Check the object revision and publish the updated root in one transaction.
+	err = e.e.performOp(ctx, true, func(tx Tx) error {
+		// Read the object's revision inside the transaction.
+		obj, berr := MustGetObject(ctx, tx, e.key)
+		defer ReleaseObjectState(obj)
+		if berr != nil {
+			return berr
+		}
+		_, rev, berr := obj.GetRootRef(ctx)
+		if berr != nil {
+			return berr
+		}
+
+		// Publish only onto the revision the build read.
+		if rev != initRev {
+			return errRootRefChanged
+		}
+		_, berr = obj.SetRootRef(ctx, outRef)
+		return berr
+	})
+	return outRef, dirty, err
 }
 
 // ApplyObjectOp applies a batch operation at the object level.

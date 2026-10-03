@@ -116,6 +116,36 @@ func (e *RefCountEngine) BuildStorageCursor(ctx context.Context) (*bucket_lookup
 	return bls, nil
 }
 
+// StageWorldState opens a stage on the current engine and holds the engine
+// until the stage is released.
+func (e *RefCountEngine) StageWorldState(ctx context.Context) (WorldStage, error) {
+	// Hold the current engine for the stage lifetime.
+	engine, ref, err := e.rc.Wait(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	// Open the stage and release the engine with it.
+	stage, err := (*engine).StageWorldState(ctx)
+	if err != nil {
+		ref.Release()
+		return nil, err
+	}
+	return &heldStage{WorldStage: stage, release: ref.Release}, nil
+}
+
+// heldStage releases a held resource after its stage.
+type heldStage struct {
+	WorldStage
+	release func()
+}
+
+// Release releases the stage, then the held resource.
+func (s *heldStage) Release() {
+	s.WorldStage.Release()
+	s.release()
+}
+
 // AccessWorldState builds a bucket lookup cursor with an optional ref.
 // If the ref Bucket ID is empty, uses the same bucket + volume as the world.
 // The lookup cursor will be released after cb returns.

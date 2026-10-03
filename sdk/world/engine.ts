@@ -9,6 +9,7 @@ import {
   TypedObjectResourceServiceClient,
 } from './world_srpc.pb.js'
 import { BucketLookupCursor } from '../bucket/lookup/lookup.js'
+import { WorldStage } from './stage.js'
 import {
   Tx,
   WorldStateResource,
@@ -120,6 +121,14 @@ export class Engine extends Resource {
       response.resourceId ?? 0,
       BucketLookupCursor,
     )
+  }
+
+  // stageWorldState opens a staging scope for writes outside a transaction.
+  // Build through the stage, adopt the result in a transaction, then release
+  // the stage after that transaction returns.
+  public async stageWorldState(abortSignal?: AbortSignal): Promise<WorldStage> {
+    const response = await this.service.StageWorldState({}, abortSignal)
+    return this.resourceRef.createResource(response.resourceId ?? 0, WorldStage)
   }
 
   // accessTypedObject looks up an object, determines its type via graph quad,

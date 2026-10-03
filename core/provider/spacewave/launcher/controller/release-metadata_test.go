@@ -30,6 +30,7 @@ import (
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/bucket"
 	"github.com/s4wave/spacewave/db/testbed"
+	"github.com/s4wave/spacewave/db/tx"
 	"github.com/s4wave/spacewave/db/world"
 	world_block "github.com/s4wave/spacewave/db/world/block"
 	"github.com/s4wave/spacewave/net/hash"
@@ -1115,6 +1116,11 @@ func (c *releaseWorldLookupTestController) HandleDirective(
 
 type releaseWorldTestEngine struct {
 	world.WorldState
+}
+
+// StageWorldState rejects writes to this read-only release fixture.
+func (e *releaseWorldTestEngine) StageWorldState(context.Context) (world.WorldStage, error) {
+	return nil, tx.ErrNotWrite
 }
 
 // OperationAuthor identifies this unsigned, read-only release fixture.

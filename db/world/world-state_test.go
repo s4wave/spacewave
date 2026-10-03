@@ -625,6 +625,10 @@ func (e *staleRetryEngine) BuildStorageCursor(ctx context.Context) (*bucket_look
 	panic("unexpected BuildStorageCursor call")
 }
 
+func (e *staleRetryEngine) StageWorldState(context.Context) (world.WorldStage, error) {
+	panic("unexpected StageWorldState call")
+}
+
 func (e *staleRetryEngine) AccessWorldState(
 	ctx context.Context,
 	ref *bucket.ObjectRef,

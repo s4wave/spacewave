@@ -32,6 +32,27 @@ service EngineResourceService {
   rpc BuildStorageCursor(BuildStorageCursorRequest) returns (BuildStorageCursorResponse);
 
   rpc AccessWorldState(AccessWorldStateRequest) returns (AccessWorldStateResponse);
+
+  // StageWorldState opens a staging scope for writes outside a transaction.
+  // Releasing the stage resource, or ending its resource client, releases
+  // the scope. Hold it until the transaction adopting the build returns.
+  rpc StageWorldState(StageWorldStateRequest) returns (StageWorldStateResponse);
+}
+
+// WorldStageResourceService builds cursors whose writes a staging scope owns.
+service WorldStageResourceService {
+  rpc BuildStorageCursor(BuildStorageCursorRequest) returns (BuildStorageCursorResponse);
+
+  rpc AccessWorldState(AccessWorldStateRequest) returns (AccessWorldStateResponse);
+}
+
+// StageWorldStateRequest is the request type for StageWorldState.
+message StageWorldStateRequest {}
+
+// StageWorldStateResponse is the response type for StageWorldState.
+message StageWorldStateResponse {
+  // ResourceId is the ID of the WorldStageResourceService resource.
+  uint32 resource_id = 1;
 }
 
 // SyncRequest is the request type for Sync.

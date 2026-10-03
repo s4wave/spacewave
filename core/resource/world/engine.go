@@ -271,6 +271,28 @@ func (r *EngineResource) AccessWorldState(ctx context.Context, req *s4wave_world
 	return &s4wave_world.AccessWorldStateResponse{ResourceId: id}, nil
 }
 
+// StageWorldState opens a World stage owned by a stage resource.
+func (r *EngineResource) StageWorldState(ctx context.Context, req *s4wave_world.StageWorldStateRequest) (*s4wave_world.StageWorldStateResponse, error) {
+	// Acquire the resource client and open the stage.
+	resourceCtx, err := resource_server.MustGetResourceClientContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+	stage, err := r.engine.StageWorldState(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	// Release the stage with its resource or resource client.
+	stageResource := NewWorldStageResource(r.le, r.b, stage)
+	id, err := resourceCtx.AddResource(stageResource.GetMux(), stage.Release)
+	if err != nil {
+		stage.Release()
+		return nil, err
+	}
+	return &s4wave_world.StageWorldStateResponse{ResourceId: id}, nil
+}
+
 // loadWorldRootSnapshot reads the committed root through one engine read scope.
 func (r *EngineResource) loadWorldRootSnapshot(ctx context.Context) (*s4wave_world.WorldRootSnapshot, error) {
 	// Read the root sequence and storage reference.

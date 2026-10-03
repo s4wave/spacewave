@@ -301,6 +301,11 @@ func (e *soEngine) BuildStorageCursor(ctx context.Context) (*bucket_lookup.Curso
 	return e.bengine.BuildStorageCursor(ctx)
 }
 
+// StageWorldState opens a staging scope on the block engine.
+func (e *soEngine) StageWorldState(ctx context.Context) (world.WorldStage, error) {
+	return e.bengine.StageWorldState(ctx)
+}
+
 // AccessWorldState builds a bucket lookup cursor with an optional ref.
 // If the ref is empty, returns a cursor pointing to the root world state.
 // The lookup cursor will be released after cb returns.

@@ -92,6 +92,8 @@ import {
   SetRetainedRootResponse,
   SetRootRefRequest,
   SetRootRefResponse,
+  StageWorldStateRequest,
+  StageWorldStateResponse,
   SyncRequest,
   SyncResponse,
   ValidRequest,
@@ -227,6 +229,19 @@ export const EngineResourceServiceDefinition = {
       O: AccessWorldStateResponse,
       kind: MethodKind.Unary,
     },
+    /**
+     * StageWorldState opens a staging scope for writes outside a transaction.
+     * Releasing the stage resource, or ending its resource client, releases
+     * the scope. Hold it until the transaction adopting the build returns.
+     *
+     * @generated from rpc s4wave.world.EngineResourceService.StageWorldState
+     */
+    StageWorldState: {
+      name: 'StageWorldState',
+      I: StageWorldStateRequest,
+      O: StageWorldStateResponse,
+      kind: MethodKind.Unary,
+    },
   },
 } as const
 
@@ -325,6 +340,18 @@ export interface EngineResourceService {
     request: AccessWorldStateRequest,
     abortSignal?: AbortSignal,
   ): Promise<AccessWorldStateResponse>
+
+  /**
+   * StageWorldState opens a staging scope for writes outside a transaction.
+   * Releasing the stage resource, or ending its resource client, releases
+   * the scope. Hold it until the transaction adopting the build returns.
+   *
+   * @generated from rpc s4wave.world.EngineResourceService.StageWorldState
+   */
+  StageWorldState(
+    request: StageWorldStateRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<StageWorldStateResponse>
 }
 
 /**
@@ -436,6 +463,19 @@ export interface EngineResourceServiceHandler {
     abortSignal: AbortSignal,
     context: ServerContext,
   ): Promise<AccessWorldStateResponse>
+
+  /**
+   * StageWorldState opens a staging scope for writes outside a transaction.
+   * Releasing the stage resource, or ending its resource client, releases
+   * the scope. Hold it until the transaction adopting the build returns.
+   *
+   * @generated from rpc s4wave.world.EngineResourceService.StageWorldState
+   */
+  StageWorldState(
+    request: StageWorldStateRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<StageWorldStateResponse>
 }
 
 export const EngineResourceServiceServiceName =
@@ -458,6 +498,7 @@ export class EngineResourceServiceClient implements EngineResourceService {
     this.WaitSeqno = this.WaitSeqno.bind(this)
     this.BuildStorageCursor = this.BuildStorageCursor.bind(this)
     this.AccessWorldState = this.AccessWorldState.bind(this)
+    this.StageWorldState = this.StageWorldState.bind(this)
   }
   /**
    * @generated from rpc s4wave.world.EngineResourceService.GetEngineInfo
@@ -647,6 +688,150 @@ export class EngineResourceServiceClient implements EngineResourceService {
     const result = await this.rpc.request(
       this.service,
       EngineResourceServiceDefinition.methods.AccessWorldState.name,
+      AccessWorldStateRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return AccessWorldStateResponse.fromBinary(result)
+  }
+
+  /**
+   * StageWorldState opens a staging scope for writes outside a transaction.
+   * Releasing the stage resource, or ending its resource client, releases
+   * the scope. Hold it until the transaction adopting the build returns.
+   *
+   * @generated from rpc s4wave.world.EngineResourceService.StageWorldState
+   */
+  async StageWorldState(
+    request: StageWorldStateRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<StageWorldStateResponse> {
+    const requestMsg = StageWorldStateRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      EngineResourceServiceDefinition.methods.StageWorldState.name,
+      StageWorldStateRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return StageWorldStateResponse.fromBinary(result)
+  }
+}
+/**
+ * WorldStageResourceService builds cursors whose writes a staging scope owns.
+ *
+ * @generated from service s4wave.world.WorldStageResourceService
+ */
+export const WorldStageResourceServiceDefinition = {
+  typeName: 's4wave.world.WorldStageResourceService',
+  methods: {
+    /**
+     * @generated from rpc s4wave.world.WorldStageResourceService.BuildStorageCursor
+     */
+    BuildStorageCursor: {
+      name: 'BuildStorageCursor',
+      I: BuildStorageCursorRequest,
+      O: BuildStorageCursorResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * @generated from rpc s4wave.world.WorldStageResourceService.AccessWorldState
+     */
+    AccessWorldState: {
+      name: 'AccessWorldState',
+      I: AccessWorldStateRequest,
+      O: AccessWorldStateResponse,
+      kind: MethodKind.Unary,
+    },
+  },
+} as const
+
+/**
+ * WorldStageResourceService builds cursors whose writes a staging scope owns.
+ *
+ * @generated from service s4wave.world.WorldStageResourceService
+ */
+export interface WorldStageResourceService {
+  /**
+   * @generated from rpc s4wave.world.WorldStageResourceService.BuildStorageCursor
+   */
+  BuildStorageCursor(
+    request: BuildStorageCursorRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<BuildStorageCursorResponse>
+
+  /**
+   * @generated from rpc s4wave.world.WorldStageResourceService.AccessWorldState
+   */
+  AccessWorldState(
+    request: AccessWorldStateRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<AccessWorldStateResponse>
+}
+
+/**
+ * WorldStageResourceService builds cursors whose writes a staging scope owns.
+ *
+ * @generated from service s4wave.world.WorldStageResourceService
+ */
+export interface WorldStageResourceServiceHandler {
+  /**
+   * @generated from rpc s4wave.world.WorldStageResourceService.BuildStorageCursor
+   */
+  BuildStorageCursor(
+    request: BuildStorageCursorRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<BuildStorageCursorResponse>
+
+  /**
+   * @generated from rpc s4wave.world.WorldStageResourceService.AccessWorldState
+   */
+  AccessWorldState(
+    request: AccessWorldStateRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<AccessWorldStateResponse>
+}
+
+export const WorldStageResourceServiceServiceName =
+  WorldStageResourceServiceDefinition.typeName
+
+export class WorldStageResourceServiceClient implements WorldStageResourceService {
+  private readonly rpc: ProtoRpc
+  private readonly service: string
+  constructor(rpc: ProtoRpc, opts?: { service?: string }) {
+    this.service = opts?.service || WorldStageResourceServiceServiceName
+    this.rpc = rpc
+    this.BuildStorageCursor = this.BuildStorageCursor.bind(this)
+    this.AccessWorldState = this.AccessWorldState.bind(this)
+  }
+  /**
+   * @generated from rpc s4wave.world.WorldStageResourceService.BuildStorageCursor
+   */
+  async BuildStorageCursor(
+    request: BuildStorageCursorRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<BuildStorageCursorResponse> {
+    const requestMsg = BuildStorageCursorRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      WorldStageResourceServiceDefinition.methods.BuildStorageCursor.name,
+      BuildStorageCursorRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return BuildStorageCursorResponse.fromBinary(result)
+  }
+
+  /**
+   * @generated from rpc s4wave.world.WorldStageResourceService.AccessWorldState
+   */
+  async AccessWorldState(
+    request: AccessWorldStateRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<AccessWorldStateResponse> {
+    const requestMsg = AccessWorldStateRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      WorldStageResourceServiceDefinition.methods.AccessWorldState.name,
       AccessWorldStateRequest.toBinary(requestMsg),
       abortSignal || undefined,
     )

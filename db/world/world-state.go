@@ -454,7 +454,7 @@ func AccessObjectState(
 	}
 
 	// Apply the callback against the current object root.
-	outRef, dirty, err := accessObjectRoot(ctx, obj, initRef, cb)
+	outRef, dirty, err := accessObjectRoot(ctx, obj.AccessWorldState, initRef, cb)
 	if err != nil {
 		return nil, false, err
 	}
@@ -472,13 +472,13 @@ func AccessObjectState(
 // the resulting root differs from it.
 func accessObjectRoot(
 	ctx context.Context,
-	obj ObjectState,
+	access AccessWorldStateFunc,
 	initRef *bucket.ObjectRef,
 	cb AccessObjectCb,
 ) (*bucket.ObjectRef, bool, error) {
 	// Apply the object callback and capture its resulting root reference.
 	taskCtx, subtask := trace.NewTask(ctx, "hydra/world/access-object-state/access-object")
-	outRef, err := AccessObject(taskCtx, obj.AccessWorldState, initRef, cb)
+	outRef, err := AccessObject(taskCtx, access, initRef, cb)
 	subtask.End()
 	if err != nil {
 		return nil, false, err

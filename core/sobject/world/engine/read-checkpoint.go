@@ -77,6 +77,11 @@ func (e *readCheckpointEngine) BuildStorageCursor(ctx context.Context) (*bucket_
 	return e.readOnlyCursor(ctx, cursor, cursor.Release), nil
 }
 
+// StageWorldState rejects writes; a read checkpoint cannot stage them.
+func (e *readCheckpointEngine) StageWorldState(context.Context) (world.WorldStage, error) {
+	return nil, tx.ErrNotWrite
+}
+
 // AccessWorldState exposes a bounded read-only cursor at the requested root.
 func (e *readCheckpointEngine) AccessWorldState(ctx context.Context, ref *bucket.ObjectRef, cb func(*bucket_lookup.Cursor) error) error {
 	return e.Engine.AccessWorldState(ctx, ref, func(cursor *bucket_lookup.Cursor) error {

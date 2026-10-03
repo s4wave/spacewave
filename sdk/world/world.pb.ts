@@ -120,6 +120,41 @@ export const WorldErrorCode_Enum = /* @__PURE__ */ createEnumType(
 )
 
 /**
+ * StageWorldStateRequest is the request type for StageWorldState.
+ *
+ * @generated from message s4wave.world.StageWorldStateRequest
+ */
+export interface StageWorldStateRequest {}
+
+export const StageWorldStateRequest: MessageType<StageWorldStateRequest> =
+  /* @__PURE__ */ createEmptyMessageType<StageWorldStateRequest>(
+    's4wave.world.StageWorldStateRequest',
+    true,
+  )
+
+/**
+ * StageWorldStateResponse is the response type for StageWorldState.
+ *
+ * @generated from message s4wave.world.StageWorldStateResponse
+ */
+export interface StageWorldStateResponse {
+  /**
+   * ResourceId is the ID of the WorldStageResourceService resource.
+   *
+   * @generated from field: uint32 resource_id = 1;
+   */
+  resourceId?: number
+}
+
+export const StageWorldStateResponse: MessageType<StageWorldStateResponse> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.world.StageWorldStateResponse',
+    fields: [
+      { no: 1, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
+    ] satisfies readonly PartialFieldInfo[],
+  })
+
+/**
  * SyncRequest is the request type for Sync.
  *
  * @generated from message s4wave.world.SyncRequest

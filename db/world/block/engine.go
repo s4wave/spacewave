@@ -937,6 +937,44 @@ func (e *Engine) BuildStorageCursor(ctx context.Context) (*bucket_lookup.Cursor,
 	return ncs, nil
 }
 
+// StageWorldState opens a staging scope over the engine storage.
+//
+// In deferred durability mode a commit's blocks stay in memory until Sync, so
+// the stage flushes them before it releases. Otherwise the sweep could collect
+// a build that only a buffered parent references.
+func (e *Engine) StageWorldState(ctx context.Context) (world.WorldStage, error) {
+	// Reject a closed engine.
+	locked := e.bcast.Lock()
+	closed := e.closed
+	locked.Unlock()
+	if closed {
+		return nil, ErrEngineClosed
+	}
+
+	// Durable-on-write commits reference the build before they return.
+	stage := world.NewStorageStage(e)
+	if !e.deferDurability || e.writeCoordinator != nil {
+		return stage, nil
+	}
+	return &deferredStage{WorldStage: stage, e: e}, nil
+}
+
+// deferredStage flushes the engine's buffered blocks before it releases.
+type deferredStage struct {
+	world.WorldStage
+	e *Engine
+}
+
+// Release makes the adopting commits durable, then releases the stage. A
+// failed flush keeps the stage until its process owner is reaped.
+func (s *deferredStage) Release() {
+	if _, err := s.e.writeBlockStore.Sync(context.Background()); err != nil {
+		s.e.le.WithError(err).Warn("keeping world stage after failed block flush")
+		return
+	}
+	s.WorldStage.Release()
+}
+
 // AccessWorldState builds a bucket lookup cursor with an optional ref.
 // If the ref Bucket ID is empty, uses the same bucket + volume as the world.
 // The lookup cursor will be released after cb returns.

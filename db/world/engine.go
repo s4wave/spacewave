@@ -31,6 +31,11 @@ type Engine interface {
 	// WorldStorage provides access to the world storage via bucket cursors.
 	WorldStorage
 
+	// StageWorldState opens a staging scope for writes outside a transaction.
+	// Build through the stage, adopt the result in a transaction, then
+	// release the stage after that transaction returns.
+	StageWorldState(ctx context.Context) (WorldStage, error)
+
 	// WorldWaitSeqno allows waiting for the world seqno to change.
 	WorldWaitSeqno
 
