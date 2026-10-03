@@ -40,16 +40,19 @@ func NewController(le *logrus.Entry, conf *Config) *Controller {
 // verbose logs successes as well as failures
 func NewBlockStoreBuilder(le *logrus.Entry, conf *Config, verbose bool) block_store_controller.BlockStoreBuilder {
 	return func(ctx context.Context, released func()) (block_store.Store, func(), error) {
+		// Resolve the remote kvfile URL before constructing its block store.
 		fileURL, err := conf.ParseURL()
 		if err != nil {
 			return nil, nil, err
 		}
 
+		// Construct the key encoding used to locate blocks in the kvfile.
 		kvk, err := store_kvkey.NewKVKey(conf.GetKvKeyOpts())
 		if err != nil {
 			return nil, nil, err
 		}
 
+		// Canonicalize configured HTTP headers for remote kvfile requests.
 		var headers map[string][]string
 		if cheaders := conf.GetHeaders(); len(cheaders) != 0 {
 			headers = make(map[string][]string, len(cheaders))
@@ -58,6 +61,7 @@ func NewBlockStoreBuilder(le *logrus.Entry, conf *Config, verbose bool) block_st
 			}
 		}
 
+		// Open the remote kvfile block reader with the configured cache and buffering.
 		kvfileBlock, err := NewKvfileHTTPBlock(
 			ctx,
 			le,
@@ -72,6 +76,7 @@ func NewBlockStoreBuilder(le *logrus.Entry, conf *Config, verbose bool) block_st
 			return nil, nil, err
 		}
 
+		// Expose the remote kvfile reader under the configured block store ID.
 		blockStore := block_store.NewStore(conf.GetBlockStoreId(), kvfileBlock)
 
 		/*

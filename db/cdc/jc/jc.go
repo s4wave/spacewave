@@ -39,6 +39,7 @@ var (
 )
 
 func generateSpacedMask(oneCount int, totalBits int) uint64 {
+	// Handle empty and saturated JC masks before spacing their bits.
 	if oneCount >= totalBits {
 		return 0xFFFFFFFFFFFFFFFF
 	}
@@ -46,6 +47,7 @@ func generateSpacedMask(oneCount int, totalBits int) uint64 {
 		return 0
 	}
 
+	// Distribute JC boundary bits evenly across the requested mask width.
 	step := totalBits / oneCount
 	var mask uint64 = 0
 	for i := range oneCount {
@@ -155,12 +157,14 @@ func NewWithOptions(minSize, maxSize, targetSize uint64, key []byte) (*JC, error
 	c := &JC{minSize: int(minSize), maxSize: int(maxSize), targetSize: int(targetSize)} //nolint:gosec
 	bits := uint64(math.Log2(float64(targetSize)))
 
+	// Calculate the JC jump distance from the two boundary densities.
 	cOnes := bits - 1
 	jOnes := cOnes - 1
 	numerator := 1 << (cOnes + jOnes)
 	denominator := (1 << cOnes) - (1 << jOnes)
 	c.jumpLength = numerator / denominator
 
+	// Construct the JC boundary mask and its embedded jump mask.
 	c.maskC = generateSpacedMask(int(cOnes), 64) //nolint:gosec
 	c.maskJ = embedMask(c.maskC)
 
@@ -203,6 +207,7 @@ func NewChunkerWithOptions(reader io.Reader, minSize, maxSize, targetSize uint64
 
 // Algorithm implements the JC algorithm as a top-level function.
 func Algorithm(data []byte, n int, G []uint64, maskC, maskJ uint64, jumpLength, minSize, maxSize, targetSize int) int {
+	// Bound the JC scan by the target and maximum chunk sizes.
 	switch {
 	case n <= targetSize:
 		return n
@@ -210,9 +215,11 @@ func Algorithm(data []byte, n int, G []uint64, maskC, maskJ uint64, jumpLength, 
 		n = maxSize
 	}
 
+	// Start the JC fingerprint scan after the minimum chunk size.
 	fp := uint64(0)
 	i := minSize
 
+	// Locate a JC boundary or jump past bytes without a matching fingerprint.
 	for i < n {
 		fp = (fp << 1) + G[data[i]]
 		if (fp & maskJ) == 0 {
@@ -237,6 +244,7 @@ func (c *JC) Algorithm(data []byte, n int) int {
 // Reset clears the internal buffers and resets the chunker state to release memory.
 // The chunker can be reused after calling Reset with the same reader and options.
 func (c *Chunker) Reset() {
+	// Scrub the Chunker buffer and reset its stream position.
 	if c.buf != nil {
 		scrub.Scrub(c.buf)
 	}
@@ -332,9 +340,9 @@ func (c *Chunker) Next(data []byte) (Chunk, error) {
 		Data:   chunkData,
 	}
 
+	// Advance the Chunker buffer and stream positions past the emitted chunk.
 	// Update state
 	c.bufPos += chunkSize
-
 	c.pos += uint64(chunkSize) //nolint:gosec
 
 	return chunk, nil

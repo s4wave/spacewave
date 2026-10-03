@@ -87,6 +87,7 @@ func init() {
 
 // runDaemon runs the daemon.
 func runDaemon(c *cli.Context) error {
+	// Prepare the daemon context and debug logger.
 	ctx := context.Background()
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
@@ -98,6 +99,7 @@ func runDaemon(c *cli.Context) error {
 		return err
 	}
 
+	// Construct the daemon with the node private key and logger.
 	d, err := daemon.NewDaemon(ctx, peerPriv, daemon.ConstructOpts{
 		LogEntry: le,
 	})
@@ -105,6 +107,7 @@ func runDaemon(c *cli.Context) error {
 		return errors.Wrap(err, "construct daemon")
 	}
 
+	// Obtain the daemon bus for controller and configuration requests.
 	b := d.GetControllerBus()
 
 	// Construct config set.
@@ -113,6 +116,7 @@ func runDaemon(c *cli.Context) error {
 	// Load config file
 	configLe := le.WithField("config", daemonFlags.ConfigPath)
 	if confPath := daemonFlags.ConfigPath; confPath != "" {
+		// Read the daemon configuration, allowing a missing file when writing it.
 		confDat, err := os.ReadFile(confPath)
 		if err != nil {
 			if os.IsNotExist(err) {
@@ -130,6 +134,7 @@ func runDaemon(c *cli.Context) error {
 			}
 		}
 
+		// Resolve the YAML controller configurations through the daemon bus.
 		_, err = configset_json.UnmarshalYAML(ctx, b, confDat, confSet, true)
 		if err != nil {
 			return errors.Wrap(err, "unmarshal config yaml")
@@ -172,17 +177,22 @@ func runDaemon(c *cli.Context) error {
 		return err
 	}
 
+	// Save the configuration set when the daemon requests a config file.
 	if daemonFlags.ConfigPath != "" && daemonFlags.WriteConfig {
+		// Encode the daemon configuration set as YAML.
 		confDat, err := configset_json.MarshalYAML(confSet)
 		if err != nil {
 			return errors.Wrap(err, "marshal config")
 		}
+
+		// Persist the encoded daemon configuration at the requested path.
 		err = os.WriteFile(daemonFlags.ConfigPath, confDat, 0o644)
 		if err != nil {
 			return errors.Wrap(err, "write config file")
 		}
 	}
 
+	// Apply the configuration set for the lifetime of the daemon command.
 	_, bdbRef, err := b.AddDirective(
 		configset.NewApplyConfigSet(confSet),
 		nil,
@@ -192,12 +202,14 @@ func runDaemon(c *cli.Context) error {
 	}
 	defer bdbRef.Release()
 
+	// Serve daemon profiling when a profiler address is configured.
 	if daemonFlags.ProfListen != "" {
 		go func() {
 			_ = daemon_prof.ListenProf(le, daemonFlags.ProfListen)
 		}()
 	}
 
+	// Keep the daemon command active until its context ends.
 	_ = d
 	<-ctx.Done()
 	return nil

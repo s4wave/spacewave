@@ -23,6 +23,7 @@ func NewConfig(blockStoreId, url string, bucketIDs []string) *Config {
 
 // Validate validates the configuration.
 func (c *Config) Validate() error {
+	// Require a block store ID and a remote kvfile URL in the configuration.
 	if c.GetBlockStoreId() == "" {
 		return block_store.ErrBlockStoreIDEmpty
 	}

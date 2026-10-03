@@ -58,6 +58,7 @@ func (o *ClusterCompleteJobOp) ApplyWorldOp(
 	worldHandle world.WorldState,
 	sender peer.ID,
 ) (sysErr bool, err error) {
+	// Identify the Cluster and Job records involved in completion.
 	clusterKey, jobKey := o.GetClusterKey(), o.GetJobKey()
 
 	// check the <type> of the cluster and job objects
@@ -65,6 +66,7 @@ func (o *ClusterCompleteJobOp) ApplyWorldOp(
 		return false, err
 	}
 
+	// Require a Job record before collecting its task results.
 	if err := forge_job.CheckJobType(ctx, worldHandle, jobKey); err != nil {
 		return false, err
 	}
@@ -115,12 +117,14 @@ func (o *ClusterCompleteJobOp) ApplyWorldOp(
 
 	// transition job to complete with the result
 	_, _, err = world.AccessWorldObject(ctx, worldHandle, jobKey, true, func(bcs *block.Cursor) error {
+		// Complete the Job with the aggregate task result and validate its record.
 		job.JobState = forge_job.State_JobState_COMPLETE
 		job.Result = jobResult
 		if err := job.Validate(); err != nil {
 			return err
 		}
 
+		// Persist the completed Job record in its World object.
 		bcs.SetBlock(job, true)
 		return nil
 	})

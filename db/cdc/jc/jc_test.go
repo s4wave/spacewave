@@ -11,10 +11,12 @@ import (
 )
 
 func TestNewJCDefaults(t *testing.T) {
+	// Construct JC with its default chunk size limits.
 	c, err := NewJC()
 	if err != nil {
 		t.Fatalf("NewJC() error = %v", err)
 	}
+
 	// Default values per implementation
 	if c.minSize != 2*1024 {
 		t.Fatalf("minSize = %d, want %d", c.minSize, 2*1024)
@@ -68,6 +70,7 @@ func TestNewWithOptionsValidation(t *testing.T) {
 }
 
 func TestAlgorithm_SmallDataReturnsN(t *testing.T) {
+	// Construct JC with chunk sizes larger than the small input.
 	minSize := uint64(128)
 	maxSize := uint64(1024)
 	targetSize := uint64(256)
@@ -76,11 +79,13 @@ func TestAlgorithm_SmallDataReturnsN(t *testing.T) {
 		t.Fatalf("NewWithOptions error: %v", err)
 	}
 
+	// Prepare input shorter than the JC target size.
 	data := make([]byte, 200) // < targetSize
 	for i := range data {
 		data[i] = byte(i)
 	}
 
+	// Verify JC returns all bytes when the input is below its target.
 	got := c.Algorithm(data, len(data))
 	if got != len(data) {
 		t.Fatalf("Algorithm returned %d, want %d (n<=targetSize should return n)", got, len(data))
@@ -88,20 +93,24 @@ func TestAlgorithm_SmallDataReturnsN(t *testing.T) {
 }
 
 func TestAlgorithm_MaxClampAndBounds(t *testing.T) {
+	// Construct JC with default bounds for the oversized input.
 	c, err := NewJC()
 	if err != nil {
 		t.Fatalf("NewJC error: %v", err)
 	}
+
 	// Create a large buffer to ensure n >= maxSize path
 	data := make([]byte, 2*c.maxSize)
 	for i := range data {
 		data[i] = byte(i)
 	}
 
+	// Verify the JC boundary does not exceed the maximum chunk size.
 	got := c.Algorithm(data, len(data))
 	if got > c.maxSize {
 		t.Fatalf("Algorithm returned %d > maxSize %d", got, c.maxSize)
 	}
+
 	// When n>targetSize, if a boundary is found it must be >= minSize
 	// Otherwise, if none found, it returns n (clamped to maxSize).
 	if got < c.minSize {
@@ -125,6 +134,7 @@ func chunkAll(c *JC, data []byte) []int {
 }
 
 func TestChunkingInvariantsAndDeterminism_DefaultKey(t *testing.T) {
+	// Construct JC for repeatable default-key chunking.
 	c, err := NewJC()
 	if err != nil {
 		t.Fatalf("NewJC error: %v", err)
@@ -138,7 +148,9 @@ func TestChunkingInvariantsAndDeterminism_DefaultKey(t *testing.T) {
 		data[i] = byte(rng.Intn(256)) //nolint:gosec
 	}
 
+	// Chunk the reproducible input with the default JC key.
 	chunks1 := chunkAll(c, data)
+
 	// invariant checks
 	sum := 0
 	for i, sz := range chunks1 {
@@ -186,6 +198,7 @@ func TestStreamingChunker_DefaultKey(t *testing.T) {
 		t.Fatalf("NewChunker error: %v", err)
 	}
 
+	// Collect chunk lengths from the streaming JC reader.
 	chunks, err := chunkAllStreaming(chunker)
 	if err != nil {
 		t.Fatalf("chunkAllStreaming error: %v", err)
@@ -233,6 +246,7 @@ func TestChunkingWithLargeDefaultValues(t *testing.T) {
 	targetSize := uint64(512000)       // 512000 bytes
 	maxSize := uint64(4096 * (64 * 3)) // 786432 bytes
 
+	// Construct JC with the blob chunker size limits.
 	c, err := NewWithOptions(minSize, maxSize, targetSize, nil)
 	if err != nil {
 		t.Fatalf("NewWithOptions error: %v", err)
@@ -280,11 +294,13 @@ func TestChunkingWithLargeDefaultValues(t *testing.T) {
 		t.Fatalf("NewChunkerWithOptions error: %v", err)
 	}
 
+	// Collect streaming JC chunks with the blob chunker limits.
 	streamingChunks, err := chunkAllStreaming(chunker)
 	if err != nil {
 		t.Fatalf("chunkAllStreaming error: %v", err)
 	}
 
+	// Verify streaming and direct JC chunking select identical boundaries.
 	if !reflect.DeepEqual(chunks, streamingChunks) {
 		t.Fatalf("streaming chunker produced different results than non-streaming; got %v vs %v", streamingChunks[:min(3, len(streamingChunks))], chunks[:min(3, len(chunks))])
 	}
@@ -297,10 +313,12 @@ func TestChunkingWithLargeDefaultValues(t *testing.T) {
 }
 
 func TestKeyAffectsGAndChunking(t *testing.T) {
+	// Choose JC chunk sizes shared by the default and custom keys.
 	minSize := uint64(2048)
 	maxSize := uint64(65536)
 	targetSize := uint64(8192)
 
+	// Construct the default JC table and matching and distinct custom keys.
 	cDefault, err := NewWithOptions(minSize, maxSize, targetSize, nil)
 	if err != nil {
 		t.Fatalf("NewWithOptions default key error: %v", err)
@@ -309,6 +327,7 @@ func TestKeyAffectsGAndChunking(t *testing.T) {
 	keyB := []byte("key-A") // same key, should produce same G
 	keyC := []byte("key-C") // different key, likely different G
 
+	// Construct JC tables from each custom key for comparison.
 	cA, err := NewWithOptions(minSize, maxSize, targetSize, keyA)
 	if err != nil {
 		t.Fatalf("NewWithOptions keyA error: %v", err)
@@ -326,10 +345,12 @@ func TestKeyAffectsGAndChunking(t *testing.T) {
 	if !reflect.DeepEqual(cA.G, cB.G) {
 		t.Fatalf("same key produced different G")
 	}
+
 	// Different key -> G should differ in at least one entry
 	if reflect.DeepEqual(cA.G, cC.G) {
 		t.Fatalf("different keys produced identical G (unexpected)")
 	}
+
 	// Non-empty key vs default key almost certainly differs
 	if reflect.DeepEqual(cDefault.G, cA.G) {
 		t.Fatalf("default key and custom key produced identical G (unexpected)")
@@ -363,11 +384,13 @@ func TestGenerateSpacedMaskAndEmbedMask(t *testing.T) {
 	if mask != 0xAA {
 		t.Fatalf("generateSpacedMask(4,8) = 0x%X, want 0xAA", mask)
 	}
+
 	// Clear least significant 1-bit
 	embedded := embedMask(mask)
 	if embedded != 0xA8 { // 10101000b
 		t.Fatalf("embedMask(0xAA) = 0x%X, want 0xA8", embedded)
 	}
+
 	// Edge cases
 	if generateSpacedMask(0, 8) != 0 {
 		t.Fatalf("expected 0 when oneCount=0")
@@ -378,27 +401,34 @@ func TestGenerateSpacedMaskAndEmbedMask(t *testing.T) {
 }
 
 func BenchmarkChunking_DefaultKey(b *testing.B) {
+	// Construct JC with the default key for the chunking benchmark.
 	c, err := NewJC()
 	if err != nil {
 		b.Fatalf("NewJC error: %v", err)
 	}
+
+	// Generate repeatable input for the default-key JC benchmark.
 	size := 8 * 1024 * 1024 // 8 MiB
 	data := make([]byte, size)
 	rng := rand.New(rand.NewSource(42)) //nolint:gosec
 	for i := range data {
 		data[i] = byte(rng.Intn(256)) //nolint:gosec
 	}
+
 	// Reusable slice to avoid reallocation noise
 	chunks := make([]int, 0, size/c.targetSize)
 
+	// Include allocation counts in the JC benchmark results.
 	b.ReportAllocs()
 
+	// Measure default-key JC chunking with a reusable result slice.
 	for b.Loop() {
 		_ = chunkAllReuse(c, data, &chunks)
 	}
 }
 
 func TestChunkerReset(t *testing.T) {
+	// Construct a streaming JC reader with enough data to fill its buffer.
 	data := bytes.Repeat([]byte("test data for reset"), 1000)
 	reader := bytes.NewReader(data)
 	chunker, err := NewChunker(reader)
@@ -465,25 +495,33 @@ func TestChunkerReset(t *testing.T) {
 }
 
 func BenchmarkChunking_CustomKey_32MiB(b *testing.B) {
+	// Choose JC chunk sizes and a fresh key for the custom-key benchmark.
 	minSize := uint64(2048)
 	maxSize := uint64(128 * 1024)
 	targetSize := uint64(16 * 1024)
 	key := []byte("benchmark-key-" + time.Now().Format(time.RFC3339Nano)) // just to avoid constant folding
 
+	// Construct JC with the custom benchmark key.
 	c, err := NewWithOptions(minSize, maxSize, targetSize, key)
 	if err != nil {
 		b.Fatalf("NewWithOptions error: %v", err)
 	}
+
+	// Generate repeatable input for the custom-key JC benchmark.
 	size := 32 * 1024 * 1024 // 32 MiB
 	data := make([]byte, size)
 	rng := rand.New(rand.NewSource(1337)) //nolint:gosec
 	for i := range data {
 		data[i] = byte(rng.Intn(256)) //nolint:gosec
 	}
+
+	// Reserve reusable JC chunk lengths outside the measured loop.
 	chunks := make([]int, 0, size/c.targetSize)
 
+	// Include allocation counts in the custom-key JC benchmark results.
 	b.ReportAllocs()
 
+	// Measure custom-key JC chunking with a reusable result slice.
 	for b.Loop() {
 		_ = chunkAllReuse(c, data, &chunks)
 	}
@@ -515,6 +553,7 @@ func chunkAllStreaming(chunker *Chunker) ([]int, error) {
 
 // chunkAllReuse is like chunkAll but reuses the provided slice to reduce allocations in benchmarks.
 func chunkAllReuse(c *JC, data []byte, out *[]int) []int {
+	// Collect JC chunk lengths into the supplied reusable slice.
 	res := (*out)[:0]
 	offset := 0
 	for offset < len(data) {

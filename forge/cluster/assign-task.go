@@ -64,6 +64,7 @@ func (o *ClusterAssignTaskOp) ApplyWorldOp(
 	worldHandle world.WorldState,
 	sender peer.ID,
 ) (sysErr bool, err error) {
+	// Identify the Cluster, Job, and Task records for the assignment.
 	clusterKey, jobKey, taskKey := o.GetClusterKey(), o.GetJobKey(), o.GetTaskKey()
 
 	// Confirm the cluster, job, and task object types.
@@ -72,11 +73,13 @@ func (o *ClusterAssignTaskOp) ApplyWorldOp(
 		return false, err
 	}
 
+	// Require a Job record before checking its Cluster relationship.
 	err = forge_job.CheckJobType(ctx, worldHandle, jobKey)
 	if err != nil {
 		return false, err
 	}
 
+	// Require a Task record before updating its peer assignment.
 	err = forge_task.CheckTaskType(ctx, worldHandle, taskKey)
 	if err != nil {
 		return false, err
@@ -128,6 +131,7 @@ func (o *ClusterAssignTaskOp) ApplyWorldOp(
 
 	// Assign the task to the cluster when it is unclaimed.
 	_, _, err = world.AccessWorldObject(ctx, worldHandle, taskKey, true, func(bcs *block.Cursor) error {
+		// Decode the Task record before checking its current assignment.
 		task, err := forge_task.UnmarshalTask(ctx, bcs)
 		if err != nil {
 			return err

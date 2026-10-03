@@ -34,6 +34,7 @@ func NewKvfileHTTPBlock(
 	httpRangeMinSize int64,
 	verbose bool,
 ) (*KvfileHTTPBlock, error) {
+	// Require the URL that identifies the remote kvfile.
 	if fileURL == "" {
 		// this won't work
 		return nil, errors.New("file url cannot be empty")
@@ -51,11 +52,13 @@ func NewKvfileHTTPBlock(
 		return nil, err
 	}
 
+	// Buffer remote kvfile reads when a minimum HTTP request size is configured.
 	var reader io.ReaderAt = fetchReader
 	if httpRangeMinSize > 0 {
 		reader = buffered_reader_at.NewBufferedReaderAt(fetchReader, httpRangeMinSize)
 	}
 
+	// Open the kvfile index over the remote range reader.
 	kvReader, err := kvfile.BuildReader(reader, totalSize)
 	if err != nil {
 		return nil, err

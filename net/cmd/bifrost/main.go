@@ -13,6 +13,7 @@ var commands []*cli.Command
 var version string
 
 func main() {
+	// Assemble the Bifrost CLI with its registered commands.
 	app := cli.NewApp()
 	app.Name = "bifrost"
 	app.HideVersion = true
@@ -30,6 +31,7 @@ func main() {
 		app.Version = version
 	}
 
+	// Run the Bifrost command and report failures to the invoking shell.
 	if err := app.Run(os.Args); err != nil {
 		fmt.Println(err.Error())
 		os.Exit(1)
