@@ -84,6 +84,7 @@ func (m *Memory) Calls() int {
 // write torn to a random subset of its sectors, as rng chooses. The device then
 // accepts calls again.
 func (m *Memory) PowerLoss(rng *rand.Rand) {
+	// Reconstruct a crash image from durable files and surviving pending operations.
 	m.mtx.Lock()
 	defer m.mtx.Unlock()
 	image := cloneImage(m.durable)
@@ -97,6 +98,8 @@ func (m *Memory) PowerLoss(rng *rand.Rand) {
 			applyWrite(image, op, rng)
 		}
 	}
+
+	// Adopt the crash image as durable state and resume memory device calls.
 	m.files, m.durable, m.pending = image, cloneImage(image), nil
 	m.crashed, m.crashAfter = false, -1
 }
@@ -137,14 +140,19 @@ func (m *Memory) Remove(ctx context.Context, names []string) error {
 
 // Read fills every read from the current image.
 func (m *Memory) Read(ctx context.Context, reads []Read) error {
+	// Honor cancellation before reading the memory device image.
 	if err := ctx.Err(); err != nil {
 		return err
 	}
+
+	// Require an operational memory device while holding its lock.
 	m.mtx.Lock()
 	defer m.mtx.Unlock()
 	if m.crashed {
 		return ErrCrashed
 	}
+
+	// Copy each requested range from the current memory device image.
 	for _, r := range reads {
 		data, ok := m.files[r.Name]
 		end := r.Offset + int64(len(r.Data))
@@ -158,14 +166,19 @@ func (m *Memory) Read(ctx context.Context, reads []Read) error {
 
 // List returns every file in the current image.
 func (m *Memory) List(ctx context.Context) ([]File, error) {
+	// Honor cancellation before listing the memory device image.
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
+
+	// Require an operational memory device while holding its lock.
 	m.mtx.Lock()
 	defer m.mtx.Unlock()
 	if m.crashed {
 		return nil, ErrCrashed
 	}
+
+	// Collect file names and sizes from the current memory device image.
 	files := make([]File, 0, len(m.files))
 	for name, data := range m.files {
 		files = append(files, File{Name: name, Size: int64(len(data))})
@@ -177,15 +190,20 @@ func (m *Memory) List(ctx context.Context) ([]File, error) {
 // crashing call's mutations join the unflushed ones, so PowerLoss may keep
 // any part of them.
 func (m *Memory) mutate(ctx context.Context, ops []memoryOp, flush bool) error {
+	// Honor cancellation before mutating the memory device.
 	if err := ctx.Err(); err != nil {
 		return err
 	}
+
+	// Count the mutation call under the device lock and reject a crashed device.
 	m.mtx.Lock()
 	defer m.mtx.Unlock()
 	m.calls++
 	if m.crashed {
 		return ErrCrashed
 	}
+
+	// Record pending mutations and inject a crash when the configured call is reached.
 	m.pending = append(m.pending, ops...)
 	if m.crashAfter == 0 {
 		m.crashed = true
@@ -194,9 +212,13 @@ func (m *Memory) mutate(ctx context.Context, ops []memoryOp, flush bool) error {
 	if m.crashAfter > 0 {
 		m.crashAfter--
 	}
+
+	// Apply the accepted mutations to the current memory device image.
 	for _, op := range ops {
 		applyOp(m.files, op)
 	}
+
+	// Make all pending mutations durable when the call requests a flush.
 	if flush {
 		for _, op := range m.pending {
 			applyOp(m.durable, op)
@@ -224,6 +246,7 @@ func applyOp(image map[string][]byte, op memoryOp) {
 // applyWrite applies an unflushed write to image as a power loss could leave
 // it: in full, not at all, or extended with a random subset of its sectors.
 func applyWrite(image map[string][]byte, op memoryOp, rng *rand.Rand) {
+	// Choose whether the unflushed write survives intact, disappears, or tears.
 	switch rng.IntN(3) {
 	case 0:
 		applyOp(image, op)
@@ -231,6 +254,8 @@ func applyWrite(image map[string][]byte, op memoryOp, rng *rand.Rand) {
 	case 1:
 		return
 	}
+
+	// Apply the randomly surviving sectors to the crash image.
 	data := image[op.name]
 	data = resize(data, max(int64(len(data)), op.offset+int64(len(op.data))))
 	for start := 0; start < len(op.data); start += SectorSize {

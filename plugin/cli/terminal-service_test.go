@@ -26,6 +26,7 @@ import (
 )
 
 func TestRunCliSupportedWhoamiCommandWritesRunnerOutput(t *testing.T) {
+	// Prepare a terminal session for the whoami command.
 	factory := &terminalFakeFactory{
 		client: &terminalFakeClient{
 			session: terminalFakeSessionWithSpace("space-123456789", "Alpha"),
@@ -36,10 +37,12 @@ func TestRunCliSupportedWhoamiCommandWritesRunnerOutput(t *testing.T) {
 		terminalClose(),
 	)
 
+	// Run whoami through the terminal service.
 	if err := cli_plugin.NewTerminalService(factory).RunCli(strm); err != nil {
 		t.Fatalf("RunCli: %v", err)
 	}
 
+	// Verify the ready frame and the session and lock output.
 	assertReadyFrame(t, strm)
 	out := terminalOutput(strm)
 	assertContains(t, out, "spacewave> whoami\r\n")
@@ -48,6 +51,8 @@ func TestRunCliSupportedWhoamiCommandWritesRunnerOutput(t *testing.T) {
 	assertContains(t, out, "Lock")
 	assertContains(t, out, "unlocked (auto)")
 	assertSuffix(t, out, "spacewave> ")
+
+	// Verify every output frame uses exactly one CR before each LF.
 	var sawCommandLineBreak bool
 	for _, frame := range terminalOutputFrames(strm) {
 		data := frame.GetData()
@@ -71,12 +76,14 @@ func TestRunCliSupportedWhoamiCommandWritesRunnerOutput(t *testing.T) {
 		t.Fatal("whoami output frame did not contain a CRLF line break")
 	}
 
+	// Verify whoami opens one runner client.
 	if factory.newCalls != 1 {
 		t.Fatalf("NewClient calls = %d, want 1", factory.newCalls)
 	}
 }
 
 func TestRunCliHelpBuiltinsListRunnerCommandMetadata(t *testing.T) {
+	// Define the terminal help aliases to exercise.
 	tests := []struct {
 		name  string
 		input string
@@ -85,28 +92,36 @@ func TestRunCliHelpBuiltinsListRunnerCommandMetadata(t *testing.T) {
 		{name: "question mark", input: "?\n"},
 	}
 
+	// Exercise each help alias against runner command metadata.
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			// Prepare the terminal stream for the help alias.
 			factory := &terminalFakeFactory{}
 			strm := newTerminalStream(
 				terminalInput(tt.input),
 				terminalClose(),
 			)
 
+			// Run the help alias through the terminal service.
 			if err := cli_plugin.NewTerminalService(factory).RunCli(strm); err != nil {
 				t.Fatalf("RunCli: %v", err)
 			}
 
+			// Verify help includes the supported runner commands.
 			out := terminalOutput(strm)
 			assertContains(t, out, "Supported browser CLI commands:\r\n")
 			for _, want := range expectedRunnerHelpLines() {
 				assertContains(t, out, want)
 			}
+
+			// Verify help includes terminal builtins and the native CLI settings pointer.
 			assertContains(t, out, "  help, ?       show browser CLI help\r\n")
 			assertContains(t, out, "  clear         clear the terminal\r\n")
 			assertContains(t, out, "  exit          close this browser CLI prompt\r\n")
 			assertContains(t, out, "Open Command Line settings for the full native CLI.\r\n")
 			assertSuffix(t, out, "spacewave> ")
+
+			// Verify terminal help needs no runner client.
 			if factory.newCalls != 0 {
 				t.Fatalf("NewClient calls = %d, want 0", factory.newCalls)
 			}
@@ -115,6 +130,7 @@ func TestRunCliHelpBuiltinsListRunnerCommandMetadata(t *testing.T) {
 }
 
 func TestRunCliUnsupportedCommandWritesSupportedSetSettingsPointerAndContinuesPromptLoop(t *testing.T) {
+	// Prepare an unsupported command followed by whoami in one terminal stream.
 	factory := &terminalFakeFactory{
 		client: &terminalFakeClient{
 			session: terminalFakeSessionWithSpace("space-123456789", "Alpha"),
@@ -126,10 +142,12 @@ func TestRunCliUnsupportedCommandWritesSupportedSetSettingsPointerAndContinuesPr
 		terminalClose(),
 	)
 
+	// Run both commands through the terminal prompt loop.
 	if err := cli_plugin.NewTerminalService(factory).RunCli(strm); err != nil {
 		t.Fatalf("RunCli: %v", err)
 	}
 
+	// Verify the unsupported command explains the supported set and whoami still runs.
 	out := terminalOutput(strm)
 	assertContains(t, out, "deploy now\r\nerror: unsupported browser CLI command: deploy\r\n")
 	assertContains(t, out, "supported browser CLI commands: status, whoami, space list, spaces list, help, ?, clear, exit\r\n")
@@ -139,12 +157,15 @@ func TestRunCliUnsupportedCommandWritesSupportedSetSettingsPointerAndContinuesPr
 	if prompts := strings.Count(out, "spacewave> "); prompts != 3 {
 		t.Fatalf("prompt count = %d, want 3 in output %q", prompts, out)
 	}
+
+	// Verify only whoami opens a runner client.
 	if factory.newCalls != 1 {
 		t.Fatalf("NewClient calls = %d, want 1", factory.newCalls)
 	}
 }
 
 func TestRunCliUnsupportedFlagWritesAllowedFlagSet(t *testing.T) {
+	// Define unsupported flags and their command-specific allowed sets.
 	tests := []struct {
 		name string
 		line string
@@ -162,18 +183,22 @@ func TestRunCliUnsupportedFlagWritesAllowedFlagSet(t *testing.T) {
 		},
 	}
 
+	// Exercise flag rejection for each command.
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			// Prepare the terminal stream containing the unsupported flag.
 			factory := &terminalFakeFactory{}
 			strm := newTerminalStream(
 				terminalInput(tt.line),
 				terminalClose(),
 			)
 
+			// Run the command through terminal flag validation.
 			if err := cli_plugin.NewTerminalService(factory).RunCli(strm); err != nil {
 				t.Fatalf("RunCli: %v", err)
 			}
 
+			// Verify the allowed flag set and the restored prompt.
 			out := terminalOutput(strm)
 			assertContains(t, out, tt.want)
 			assertSuffix(t, out, "spacewave> ")
@@ -185,6 +210,7 @@ func TestRunCliUnsupportedFlagWritesAllowedFlagSet(t *testing.T) {
 }
 
 func TestRunCliHistoryRecallSupportsCursorEditingWithXtermArrowEscapes(t *testing.T) {
+	// Prepare two space responses and an edited history recall.
 	sess := terminalFakeSessionWithSpace("space-123456789", "Alpha")
 	sess.resources.responses = append(sess.resources.responses, terminalSpaceListResponse("space-987654321", "Beta"))
 	factory := &terminalFakeFactory{
@@ -196,10 +222,12 @@ func TestRunCliHistoryRecallSupportsCursorEditingWithXtermArrowEscapes(t *testin
 		terminalClose(),
 	)
 
+	// Run the space command and its edited history entry.
 	if err := cli_plugin.NewTerminalService(factory).RunCli(strm); err != nil {
 		t.Fatalf("RunCli: %v", err)
 	}
 
+	// Verify the recalled command changes to the plural alias and returns the next space.
 	out := terminalOutput(strm)
 	assertContains(t, out, "spacewave> space list\r\n")
 	assertContains(t, out, "Alpha")
@@ -211,6 +239,7 @@ func TestRunCliHistoryRecallSupportsCursorEditingWithXtermArrowEscapes(t *testin
 }
 
 func TestRunCliHistoryDownRestoresNewerEntryAndDraft(t *testing.T) {
+	// Prepare terminal history navigation around an unfinished help command.
 	factory := &terminalFakeFactory{}
 	strm := newTerminalStream(
 		terminalInput("help\n"),
@@ -219,10 +248,12 @@ func TestRunCliHistoryDownRestoresNewerEntryAndDraft(t *testing.T) {
 		terminalClose(),
 	)
 
+	// Run the terminal history and draft restoration sequence.
 	if err := cli_plugin.NewTerminalService(factory).RunCli(strm); err != nil {
 		t.Fatalf("RunCli: %v", err)
 	}
 
+	// Verify history navigation restores the newer command and the unfinished draft.
 	out := terminalOutput(strm)
 	if clearRecallCount := strings.Count(out, "\r\x1b[2Kspacewave> clear"); clearRecallCount != 2 {
 		t.Fatalf("clear history recall count = %d, want 2 in output %q", clearRecallCount, out)
@@ -237,20 +268,25 @@ func TestRunCliHistoryDownRestoresNewerEntryAndDraft(t *testing.T) {
 }
 
 func TestRunCliCtrlCCancelsHungCommandAndReprintsPrompt(t *testing.T) {
+	// Start a terminal service whose session mount waits for cancellation.
 	factory := &terminalFakeFactory{
 		client: &terminalFakeClient{blockMount: true},
 	}
 	strm := newInteractiveTerminalStream()
 	done := runTerminalServiceAsync(t, factory, strm)
 
+	// Submit whoami and interrupt its blocked mount with Ctrl-C.
 	strm.receive(terminalInput("whoami\n"))
 	waitForTerminalOutput(t, strm, "spacewave> whoami\r\n")
 	strm.receive(terminalInput("\x03"))
 	waitForTerminalOutput(t, strm, "^C\r\nspacewave> ")
+
+	// Close the terminal stream and wait for the service to release it.
 	strm.receive(terminalClose())
 	strm.closeRecv()
 	waitForTerminalService(t, done)
 
+	// Verify interruption restores the prompt without exposing a cancellation error.
 	out := terminalOutput(strm)
 	assertContains(t, out, "spacewave> whoami\r\n")
 	assertContains(t, out, "^C\r\nspacewave> ")
@@ -263,16 +299,19 @@ func TestRunCliCtrlCCancelsHungCommandAndReprintsPrompt(t *testing.T) {
 }
 
 func TestRunCliClearWritesXtermClearSequenceAndPrompt(t *testing.T) {
+	// Prepare a terminal stream containing the clear builtin.
 	factory := &terminalFakeFactory{}
 	strm := newTerminalStream(
 		terminalInput("clear\n"),
 		terminalClose(),
 	)
 
+	// Run clear through the terminal service.
 	if err := cli_plugin.NewTerminalService(factory).RunCli(strm); err != nil {
 		t.Fatalf("RunCli: %v", err)
 	}
 
+	// Verify clear emits the xterm clear sequence without opening a runner client.
 	out := terminalOutput(strm)
 	assertContains(t, out, "spacewave> clear\r\n\x1b[2J\x1b[Hspacewave> ")
 	if factory.newCalls != 0 {
@@ -281,15 +320,18 @@ func TestRunCliClearWritesXtermClearSequenceAndPrompt(t *testing.T) {
 }
 
 func TestRunCliExitSendsExitFrame(t *testing.T) {
+	// Prepare a terminal stream containing the exit builtin.
 	factory := &terminalFakeFactory{}
 	strm := newTerminalStream(
 		terminalInput("exit\n"),
 	)
 
+	// Run exit through the terminal service.
 	if err := cli_plugin.NewTerminalService(factory).RunCli(strm); err != nil {
 		t.Fatalf("RunCli: %v", err)
 	}
 
+	// Verify exit sends a successful exit frame without opening a runner client.
 	exit := findTerminalFrame(strm, s4wave_terminal.TerminalFrameKind_TERMINAL_FRAME_KIND_EXIT)
 	if exit == nil {
 		t.Fatalf("no EXIT frame sent; sent frames: %#v", strm.sent)
@@ -303,6 +345,7 @@ func TestRunCliExitSendsExitFrame(t *testing.T) {
 }
 
 func TestRunCliWatchModeStreamsIncrementalOutputUntilCtrlCReprintsPrompt(t *testing.T) {
+	// Start a terminal session with two space updates followed by a blocking watch.
 	resources := newBlockingResourcesListStream(
 		terminalSpaceListResponse("space-123456789", "Alpha"),
 		terminalSpaceListResponse("space-987654321", "Beta"),
@@ -315,17 +358,22 @@ func TestRunCliWatchModeStreamsIncrementalOutputUntilCtrlCReprintsPrompt(t *test
 	strm := newInteractiveTerminalStream()
 	done := runTerminalServiceAsync(t, factory, strm)
 
+	// Run the space watch and verify both updates arrive in separate output frames.
 	strm.receive(terminalInput("space list --watch\n"))
 	waitForTerminalOutput(t, strm, "Alpha")
 	waitForTerminalOutput(t, strm, "Beta")
 	assertOutputFrameCountAtLeast(t, strm, 3)
 
+	// Interrupt the space watch and verify the prompt returns.
 	strm.receive(terminalInput("\x03"))
 	waitForTerminalOutput(t, strm, "^C\r\nspacewave> ")
+
+	// Close the terminal stream and wait for watch cleanup.
 	strm.receive(terminalClose())
 	strm.closeRecv()
 	waitForTerminalService(t, done)
 
+	// Verify the watch output and cancellation handling.
 	out := terminalOutput(strm)
 	assertContains(t, out, "spacewave> space list --watch\r\n")
 	assertContains(t, out, "\n--- ")
@@ -334,6 +382,8 @@ func TestRunCliWatchModeStreamsIncrementalOutputUntilCtrlCReprintsPrompt(t *test
 	if strings.Contains(out, "context canceled") {
 		t.Fatalf("interrupted watch surfaced context cancellation: %q", out)
 	}
+
+	// Verify interruption closes the watch and uses one runner client.
 	if !resources.closed {
 		t.Fatal("resources list stream was not closed")
 	}
@@ -343,6 +393,7 @@ func TestRunCliWatchModeStreamsIncrementalOutputUntilCtrlCReprintsPrompt(t *test
 }
 
 func TestRunCliChunksLargeCommandOutputFrames(t *testing.T) {
+	// Prepare a space list large enough to require multiple terminal output frames.
 	sess := terminalFakeSessionWithSpace("space-123456789", "Alpha")
 	sess.resources = &terminalFakeResourcesListStream{
 		responses: []*s4wave_session.WatchResourcesListResponse{terminalSpacesListResponse(320)},
@@ -355,10 +406,12 @@ func TestRunCliChunksLargeCommandOutputFrames(t *testing.T) {
 		terminalClose(),
 	)
 
+	// Run the large space list through the terminal service.
 	if err := cli_plugin.NewTerminalService(factory).RunCli(strm); err != nil {
 		t.Fatalf("RunCli: %v", err)
 	}
 
+	// Verify output frames respect the size limit and include the final space.
 	outputFrames := terminalOutputFrames(strm)
 	var chunked bool
 	for _, frame := range outputFrames {
@@ -376,6 +429,7 @@ func TestRunCliChunksLargeCommandOutputFrames(t *testing.T) {
 }
 
 func TestRunCliWatchFalseRunsSpaceList(t *testing.T) {
+	// Prepare a space list command with watch explicitly disabled.
 	sess := terminalFakeSessionWithSpace("space-123456789", "Alpha")
 	factory := &terminalFakeFactory{
 		client: &terminalFakeClient{session: sess},
@@ -385,10 +439,12 @@ func TestRunCliWatchFalseRunsSpaceList(t *testing.T) {
 		terminalClose(),
 	)
 
+	// Run the space list through the terminal service.
 	if err := cli_plugin.NewTerminalService(factory).RunCli(strm); err != nil {
 		t.Fatalf("RunCli: %v", err)
 	}
 
+	// Verify the space output and runner resource cleanup.
 	out := terminalOutput(strm)
 	assertContains(t, out, "spacewave> space list --watch=false\r\n")
 	assertContains(t, out, "space-12...")
@@ -402,6 +458,7 @@ func TestRunCliWatchFalseRunsSpaceList(t *testing.T) {
 }
 
 func TestRunCliRunnerCommandErrorWritesTerminalErrorAndReprintsPrompt(t *testing.T) {
+	// Prepare a runner client factory that returns a connection failure.
 	factory := &terminalFakeFactory{
 		newClientErr: errors.New("daemon unavailable"),
 	}
@@ -410,10 +467,12 @@ func TestRunCliRunnerCommandErrorWritesTerminalErrorAndReprintsPrompt(t *testing
 		terminalClose(),
 	)
 
+	// Run whoami through the failing runner client factory.
 	if err := cli_plugin.NewTerminalService(factory).RunCli(strm); err != nil {
 		t.Fatalf("RunCli: %v", err)
 	}
 
+	// Verify the terminal reports the connection failure and restores its prompt.
 	out := terminalOutput(strm)
 	assertContains(t, out, "spacewave> whoami\r\n")
 	assertContains(t, out, "error: daemon unavailable\r\nspacewave> ")
@@ -423,6 +482,7 @@ func TestRunCliRunnerCommandErrorWritesTerminalErrorAndReprintsPrompt(t *testing
 }
 
 func TestRunCliCloseOrEOFReturnsAfterMountedCommandReleasesRunnerResources(t *testing.T) {
+	// Define terminal shutdown by close frame and by receive EOF.
 	tests := []struct {
 		name   string
 		frames []*s4wave_terminal.TerminalFrame
@@ -442,22 +502,28 @@ func TestRunCliCloseOrEOFReturnsAfterMountedCommandReleasesRunnerResources(t *te
 		},
 	}
 
+	// Exercise each shutdown path after a mounted space command.
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			// Prepare a mounted session and the selected terminal shutdown sequence.
 			sess := terminalFakeSessionWithSpace("space-123456789", "Alpha")
 			client := &terminalFakeClient{session: sess}
 			factory := &terminalFakeFactory{client: client}
 			strm := newTerminalStream(tt.frames...)
 
+			// Run the space command through the selected shutdown path.
 			if err := cli_plugin.NewTerminalService(factory).RunCli(strm); err != nil {
 				t.Fatalf("RunCli: %v", err)
 			}
 
+			// Verify the command output and restored terminal prompt.
 			out := terminalOutput(strm)
 			assertContains(t, out, "spacewave> space list\r\n")
 			assertContains(t, out, "space-12...")
 			assertContains(t, out, "Alpha")
 			assertSuffix(t, out, "spacewave> ")
+
+			// Verify shutdown closes the runner client, mounted session, and resource watch.
 			if !client.closed {
 				t.Fatal("runner client was not closed")
 			}
@@ -507,6 +573,7 @@ func (s *terminalStream) Context() context.Context {
 }
 
 func (s *terminalStream) Send(frame *s4wave_terminal.TerminalFrame) error {
+	// Record the sent terminal frame and notify output waiters under the stream lock.
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.sent = append(s.sent, cloneTerminalFrame(frame))
@@ -525,6 +592,7 @@ func (s *terminalStream) SendAndClose(frame *s4wave_terminal.TerminalFrame) erro
 }
 
 func (s *terminalStream) Recv() (*s4wave_terminal.TerminalFrame, error) {
+	// Receive interactive terminal frames until the channel closes or the context ends.
 	if s.recvCh != nil {
 		select {
 		case frame, ok := <-s.recvCh:
@@ -536,15 +604,21 @@ func (s *terminalStream) Recv() (*s4wave_terminal.TerminalFrame, error) {
 			return nil, s.ctx.Err()
 		}
 	}
+
+	// Wait for the previous command prompt before consuming queued terminal input.
 	if s.waitForPromptBeforeNext {
 		s.waitForPromptBeforeNext = false
 		if err := s.waitForPromptCount(s.nextPromptCount); err != nil {
 			return nil, err
 		}
 	}
+
+	// Return EOF when the queued terminal frames are exhausted.
 	if len(s.recv) == 0 {
 		return nil, io.EOF
 	}
+
+	// Consume the next queued terminal frame and track its expected command prompt.
 	frame := s.recv[0]
 	s.recv = s.recv[1:]
 	if frame.GetKind() == s4wave_terminal.TerminalFrameKind_TERMINAL_FRAME_KIND_INPUT && bytes.ContainsAny(frame.GetData(), "\r\n") {
@@ -646,6 +720,7 @@ func terminalOutput(strm *terminalStream) string {
 }
 
 func terminalOutputFrames(strm *terminalStream) []*s4wave_terminal.TerminalFrame {
+	// Copy output frames while holding the terminal stream lock.
 	strm.mu.Lock()
 	defer strm.mu.Unlock()
 	var out []*s4wave_terminal.TerminalFrame
@@ -701,6 +776,7 @@ func expectedHelpLine(name, usage string) string {
 }
 
 func runTerminalServiceAsync(t *testing.T, factory *terminalFakeFactory, strm *terminalStream) <-chan error {
+	// Start the terminal service asynchronously and wait for its initial prompt.
 	t.Helper()
 	done := make(chan error, 1)
 	go func() {

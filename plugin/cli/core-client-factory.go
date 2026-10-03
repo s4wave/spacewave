@@ -27,11 +27,13 @@ func NewCoreClientFactory(b bus.Bus) *CoreClientFactory {
 
 // NewClient opens a command-scoped Spacewave SDK client for the browser plugin runtime.
 func (f *CoreClientFactory) NewClient(ctx context.Context, c *cli.Context) (runner.Client, error) {
+	// Connect the command client to the core plugin resource service.
 	resources, err := s4wave_plugin.ConnectPluginResources(ctx, f.b, corePluginID)
 	if err != nil {
 		return nil, err
 	}
 
+	// Open the root resource and release the connection if initialization fails.
 	rootRef := resources.Client.AccessRootResource()
 	root, err := s4wave_root.NewRoot(resources.Client, rootRef)
 	if err != nil {
@@ -63,6 +65,7 @@ func (c *coreClient) Close() {
 }
 
 func (c *coreClient) MountSession(ctx context.Context, idx uint32) (runner.Session, error) {
+	// Mount the requested session and reject a missing session index.
 	resp, err := c.root.MountSessionByIdx(ctx, idx)
 	if err != nil {
 		return nil, errors.Wrap(err, "mount session")
@@ -71,6 +74,7 @@ func (c *coreClient) MountSession(ctx context.Context, idx uint32) (runner.Sessi
 		return nil, errors.Errorf("no session found at index %d", idx)
 	}
 
+	// Adopt the mounted session resource into a runner session.
 	sessRef := c.resources.Client.CreateResourceReference(resp.GetResourceId())
 	sess, err := s4wave_session.NewSession(c.resources.Client, sessRef)
 	if err != nil {
@@ -93,10 +97,13 @@ func (s *coreSession) WatchLockState(ctx context.Context) (runner.LockStateStrea
 }
 
 func (s *coreSession) WatchRecoveryStatus(ctx context.Context) (*s4wave_status.RecoveryStatus, error) {
+	// Obtain the session connection for the recovery status service.
 	client, err := s.GetResourceRef().GetClient()
 	if err != nil {
 		return nil, err
 	}
+
+	// Open a recovery status watch for the session connection.
 	strm, err := s4wave_status.NewSRPCSystemStatusServiceClient(client).WatchRecoveryStatus(
 		ctx,
 		&s4wave_status.WatchRecoveryStatusRequest{},
@@ -105,6 +112,8 @@ func (s *coreSession) WatchRecoveryStatus(ctx context.Context) (*s4wave_status.R
 		return nil, err
 	}
 	defer strm.Close()
+
+	// Read the initial recovery status before releasing the watch.
 	resp, err := strm.Recv()
 	if err != nil {
 		return nil, err

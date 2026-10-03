@@ -80,15 +80,18 @@ func readLocalModulePath(projectRoot string) string {
 }
 
 func resolveExistingSourcePath(jsPath string) (string, bool) {
+	// Prefer the JavaScript source when it exists.
 	if fileExists(jsPath) {
 		return jsPath, true
 	}
 
+	// Resolve a TypeScript source for the JavaScript import.
 	tsPath := strings.TrimSuffix(jsPath, ".js") + ".ts"
 	if fileExists(tsPath) {
 		return tsPath, true
 	}
 
+	// Resolve a TSX source when the other source extensions are absent.
 	tsxPath := strings.TrimSuffix(jsPath, ".js") + ".tsx"
 	if fileExists(tsxPath) {
 		return tsxPath, true
@@ -98,16 +101,19 @@ func resolveExistingSourcePath(jsPath string) (string, bool) {
 }
 
 func (r goVendorTsResolver) resolveEscapedRelativeImport(importer, importPath string) (string, bool) {
+	// Require a filesystem importer for relative source resolution.
 	if importer == "" || strings.HasPrefix(importer, "\x00") {
 		return "", false
 	}
 
+	// Require the importer to belong to the flattened dist source tree.
 	relImporter, err := filepath.Rel(r.distSourcePath, importer)
 	if err != nil || filepath.IsAbs(relImporter) || relImporter == ".." ||
 		strings.HasPrefix(relImporter, ".."+string(filepath.Separator)) {
 		return "", false
 	}
 
+	// Select relative imports that escape the flattened dist source tree.
 	target := filepath.Clean(filepath.Join(filepath.Dir(importer), filepath.FromSlash(importPath)))
 	relTarget, err := filepath.Rel(r.distSourcePath, target)
 	if err != nil || filepath.IsAbs(relTarget) ||
@@ -115,6 +121,7 @@ func (r goVendorTsResolver) resolveEscapedRelativeImport(importer, importPath st
 		return "", false
 	}
 
+	// Resolve the escaped import through its original Go module path.
 	modulePath := path.Join(localModulePrefix+"bldr", filepath.ToSlash(relImporter))
 	modulePath = path.Clean(path.Join(path.Dir(modulePath), filepath.ToSlash(importPath)))
 	return resolveExistingSourcePath(r.resolveGoImportPath(modulePath))
@@ -128,6 +135,7 @@ func GoVendorTsResolverPlugin(sourcePath, distSourcePath string) esbuild.Plugin 
 			build.OnResolve(esbuild.OnResolveOptions{
 				Filter: `^@go/.*\.js$`,
 			}, func(args esbuild.OnResolveArgs) (esbuild.OnResolveResult, error) {
+				// Limit Go import resolution to JavaScript imports outside the resolver itself.
 				var result esbuild.OnResolveResult
 				if args.Importer == "bldr-go-vendor-ts-resolver" {
 					return result, nil
@@ -139,9 +147,11 @@ func GoVendorTsResolverPlugin(sourcePath, distSourcePath string) esbuild.Plugin 
 					return result, nil
 				}
 
+				// Locate the Go import in the local source or dist vendor tree.
 				subPath := strings.TrimPrefix(args.Path, "@go/")
 				jsPath := resolver.resolveGoImportPath(subPath)
 
+				// Resolve the Go import to an existing JavaScript or TypeScript source.
 				if sourcePath, ok := resolveExistingSourcePath(jsPath); ok {
 					result.Path = sourcePath
 					return result, nil
@@ -152,6 +162,7 @@ func GoVendorTsResolverPlugin(sourcePath, distSourcePath string) esbuild.Plugin 
 			build.OnResolve(esbuild.OnResolveOptions{
 				Filter: `^(devtool|manifest|plugin|resource|sdk|web)/.*\.js$`,
 			}, func(args esbuild.OnResolveArgs) (esbuild.OnResolveResult, error) {
+				// Limit dist source resolution to JavaScript imports outside the resolver itself.
 				var result esbuild.OnResolveResult
 				if args.Importer == "bldr-go-vendor-ts-resolver" {
 					return result, nil
@@ -160,6 +171,7 @@ func GoVendorTsResolverPlugin(sourcePath, distSourcePath string) esbuild.Plugin 
 					return result, nil
 				}
 
+				// Resolve the dist import to an existing source under a supported prefix.
 				jsPath, ok := resolver.resolveDistSourcePath(args.Path)
 				if !ok {
 					return result, nil
@@ -174,6 +186,7 @@ func GoVendorTsResolverPlugin(sourcePath, distSourcePath string) esbuild.Plugin 
 			build.OnResolve(esbuild.OnResolveOptions{
 				Filter: `^\.\.?/.*\.js$`,
 			}, func(args esbuild.OnResolveArgs) (esbuild.OnResolveResult, error) {
+				// Limit escaped source resolution to relative JavaScript imports.
 				var result esbuild.OnResolveResult
 				if args.Importer == "bldr-go-vendor-ts-resolver" {
 					return result, nil
@@ -185,6 +198,7 @@ func GoVendorTsResolverPlugin(sourcePath, distSourcePath string) esbuild.Plugin 
 					return result, nil
 				}
 
+				// Resolve the relative import through the dist vendor tree when it escapes.
 				if sourcePath, ok := resolver.resolveEscapedRelativeImport(args.Importer, args.Path); ok {
 					result.Path = sourcePath
 					return result, nil

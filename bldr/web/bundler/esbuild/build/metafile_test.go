@@ -3,6 +3,7 @@ package bldr_web_bundler_esbuild_build
 import "testing"
 
 func TestParseEsbuildMetafile(t *testing.T) {
+	// Parse an esbuild metafile with an input and JavaScript and CSS outputs.
 	meta, err := ParseEsbuildMetafile([]byte(`{
 		"inputs": {
 			"src/index.ts": {
@@ -24,6 +25,8 @@ func TestParseEsbuildMetafile(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ParseEsbuildMetafile() error = %v", err)
 	}
+
+	// Verify the source input record retains its byte count.
 	input, ok := meta.Inputs["src/index.ts"]
 	if !ok {
 		t.Fatal("expected src/index.ts input")
@@ -31,6 +34,8 @@ func TestParseEsbuildMetafile(t *testing.T) {
 	if input.Bytes != 12 {
 		t.Fatalf("expected input bytes 12, got %d", input.Bytes)
 	}
+
+	// Verify the JavaScript output retains its size, entry point, and CSS bundle.
 	jsOutput, ok := meta.Outputs["dist/index.js"]
 	if !ok {
 		t.Fatal("expected dist/index.js output")
@@ -44,6 +49,8 @@ func TestParseEsbuildMetafile(t *testing.T) {
 	if jsOutput.CssBundle != "dist/index.css" {
 		t.Fatalf("expected cssBundle dist/index.css, got %q", jsOutput.CssBundle)
 	}
+
+	// Verify the CSS output retains its byte count.
 	cssOutput, ok := meta.Outputs["dist/index.css"]
 	if !ok {
 		t.Fatal("expected dist/index.css output")

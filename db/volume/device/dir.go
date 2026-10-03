@@ -42,6 +42,7 @@ func OpenDir(root string) (*Dir, error) {
 
 // Close closes every open handle without flushing.
 func (d *Dir) Close() error {
+	// Close and forget the directory device file handles under its lock.
 	d.mtx.Lock()
 	defer d.mtx.Unlock()
 	var firstErr error
@@ -57,9 +58,12 @@ func (d *Dir) Close() error {
 
 // Write applies writes in order and flushes when flush is set.
 func (d *Dir) Write(ctx context.Context, writes []Write, flush bool) error {
+	// Honor cancellation before writing directory device files.
 	if err := ctx.Err(); err != nil {
 		return err
 	}
+
+	// Write each file range under the device lock and record it for flushing.
 	d.mtx.Lock()
 	defer d.mtx.Unlock()
 	for _, w := range writes {
@@ -83,6 +87,8 @@ func (d *Dir) Write(ctx context.Context, writes []Write, flush bool) error {
 		}
 		delete(d.dirty, name)
 	}
+
+	// Flush changed directory entries after file contents are durable.
 	if !d.dirDirty {
 		return nil
 	}
@@ -95,9 +101,12 @@ func (d *Dir) Write(ctx context.Context, writes []Write, flush bool) error {
 
 // Read fills every read.
 func (d *Dir) Read(ctx context.Context, reads []Read) error {
+	// Honor cancellation before reading directory device files.
 	if err := ctx.Err(); err != nil {
 		return err
 	}
+
+	// Fill the requested ranges under the device lock and report short reads.
 	d.mtx.Lock()
 	defer d.mtx.Unlock()
 	for _, r := range reads {
@@ -121,9 +130,12 @@ func (d *Dir) Read(ctx context.Context, reads []Read) error {
 
 // Truncate sets a file's length.
 func (d *Dir) Truncate(ctx context.Context, name string, size int64) error {
+	// Honor cancellation before truncating a directory device file.
 	if err := ctx.Err(); err != nil {
 		return err
 	}
+
+	// Truncate the file under the device lock and record it for flushing.
 	d.mtx.Lock()
 	defer d.mtx.Unlock()
 	f, err := d.open(name, true)
@@ -139,9 +151,12 @@ func (d *Dir) Truncate(ctx context.Context, name string, size int64) error {
 
 // Remove deletes files.
 func (d *Dir) Remove(ctx context.Context, names []string) error {
+	// Honor cancellation before removing directory device files.
 	if err := ctx.Err(); err != nil {
 		return err
 	}
+
+	// Close and remove the selected files under the device lock.
 	d.mtx.Lock()
 	defer d.mtx.Unlock()
 	for _, name := range names {
@@ -164,15 +179,20 @@ func (d *Dir) Remove(ctx context.Context, names []string) error {
 
 // List returns every file in the directory.
 func (d *Dir) List(ctx context.Context) ([]File, error) {
+	// Honor cancellation before listing directory device files.
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
+
+	// Read directory entries under the device lock.
 	d.mtx.Lock()
 	defer d.mtx.Unlock()
 	entries, err := os.ReadDir(d.root)
 	if err != nil {
 		return nil, err
 	}
+
+	// Collect names and sizes of regular files in the directory.
 	files := make([]File, 0, len(entries))
 	for _, entry := range entries {
 		info, err := entry.Info()
@@ -189,12 +209,17 @@ func (d *Dir) List(ctx context.Context) ([]File, error) {
 // open returns the handle for name, opening it when needed. With create set a
 // missing file is created. The caller holds mtx.
 func (d *Dir) open(name string, create bool) (*os.File, error) {
+	// Reuse the cached directory device handle when the file is already open.
 	if f := d.files[name]; f != nil {
 		return f, nil
 	}
+
+	// Validate the device file name before opening its filesystem path.
 	if err := ValidName(name); err != nil {
 		return nil, err
 	}
+
+	// Open or create the device file and retain its handle for later calls.
 	path := filepath.Join(d.root, name)
 	f, err := os.OpenFile(path, os.O_RDWR, 0)
 	if errors.Is(err, os.ErrNotExist) && create {
@@ -210,10 +235,13 @@ func (d *Dir) open(name string, create bool) (*os.File, error) {
 
 // syncDir flushes a directory's entries.
 func syncDir(root string) error {
+	// Open the directory to flush its entries.
 	dir, err := os.Open(root)
 	if err != nil {
 		return err
 	}
+
+	// Flush and close the directory, preserving the flush error when present.
 	syncErr := dir.Sync()
 	closeErr := dir.Close()
 	if syncErr != nil {

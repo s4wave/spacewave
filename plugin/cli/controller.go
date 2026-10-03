@@ -36,6 +36,7 @@ func NewFactory(b bus.Bus) controller.Factory {
 			return &Config{}
 		},
 		func(base *bus.BusController[*Config]) (*Controller, error) {
+			// Register the terminal service on the controller RPC mux.
 			ctrl := &Controller{BusController: base}
 			mux := srpc.NewMux()
 			if err := s4wave_cli_terminal.SRPCRegisterCliTerminalService(mux, NewTerminalService(NewCoreClientFactory(b))); err != nil {

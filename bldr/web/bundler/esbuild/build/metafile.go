@@ -28,12 +28,14 @@ type EsbuildMetaFileOutput struct {
 
 // ParseEsbuildMetafile parses an esbuild metafile with the shared fastjson path.
 func ParseEsbuildMetafile(dat []byte) (*EsbuildMetafile, error) {
+	// Parse the esbuild JSON document before reading its input and output records.
 	var p fastjson.Parser
 	v, err := p.ParseBytes(dat)
 	if err != nil {
 		return nil, err
 	}
 
+	// Collect the input sizes and output metadata from the parsed document.
 	meta := &EsbuildMetafile{
 		Inputs:  make(map[string]EsbuildMetafileInput),
 		Outputs: make(map[string]EsbuildMetaFileOutput),

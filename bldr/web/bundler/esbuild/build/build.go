@@ -11,6 +11,7 @@ import (
 // ParseEsbuildFlags parsed the esbuild flags field, if set.
 // Returns nil if no flags were set.
 func ParseEsbuildFlags(flags []string) (*esbuild_api.BuildOptions, error) {
+	// Expand shell-quoted esbuild flags into the command argument list.
 	var args []string
 	for _, flagStr := range flags {
 		flagArgs, err := shellquote.Split(flagStr)
@@ -23,6 +24,7 @@ func ParseEsbuildFlags(flags []string) (*esbuild_api.BuildOptions, error) {
 		return nil, nil
 	}
 
+	// Parse the argument list into esbuild build options.
 	opts, err := esbuild_cli.ParseBuildOptions(args)
 	if err != nil {
 		return nil, err

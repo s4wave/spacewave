@@ -30,13 +30,18 @@ type Handle struct {
 
 // OpenHandle returns a Handle on the named file, which need not exist.
 func OpenHandle(ctx context.Context, dev Device, name string) (*Handle, error) {
+	// Validate the device file name before opening a handle.
 	if err := ValidName(name); err != nil {
 		return nil, err
 	}
+
+	// Read device file metadata to initialize the handle size.
 	files, err := dev.List(ctx)
 	if err != nil {
 		return nil, err
 	}
+
+	// Construct the handle with the existing file size when present.
 	h := &Handle{ctx: ctx, dev: dev, name: name}
 	for _, f := range files {
 		if f.Name == name {
@@ -48,11 +53,14 @@ func OpenHandle(ctx context.Context, dev Device, name string) (*Handle, error) {
 
 // ReadAt reads len(p) bytes at off, returning io.EOF when the file ends first.
 func (h *Handle) ReadAt(p []byte, off int64) (int, error) {
+	// Issue pending handle writes before reading under its lock.
 	h.mtx.Lock()
 	defer h.mtx.Unlock()
 	if err := h.issue(false); err != nil {
 		return 0, err
 	}
+
+	// Read the available file range and report EOF for a short result.
 	n := int(min(int64(len(p)), max(h.size-off, 0)))
 	if n != 0 {
 		if err := h.dev.Read(h.ctx, []Read{{Name: h.name, Offset: off, Data: p[:n]}}); err != nil {
@@ -68,6 +76,7 @@ func (h *Handle) ReadAt(p []byte, off int64) (int, error) {
 // WriteAt collects a copy of p for the next device call, merging it into the
 // previous write when it continues that write.
 func (h *Handle) WriteAt(p []byte, off int64) (int, error) {
+	// Merge a contiguous range into the preceding pending handle write under its lock.
 	h.mtx.Lock()
 	defer h.mtx.Unlock()
 	if n := len(h.pending); n != 0 {
@@ -78,6 +87,8 @@ func (h *Handle) WriteAt(p []byte, off int64) (int, error) {
 			return len(p), nil
 		}
 	}
+
+	// Collect a separate pending write and extend the handle size as needed.
 	h.pending = append(h.pending, Write{Name: h.name, Offset: off, Data: slices.Clone(p)})
 	h.size = max(h.size, off+int64(len(p)))
 	return len(p), nil
@@ -92,11 +103,14 @@ func (h *Handle) Size() (int64, error) {
 
 // Truncate sets the file length.
 func (h *Handle) Truncate(size int64) error {
+	// Issue pending handle writes before truncating under its lock.
 	h.mtx.Lock()
 	defer h.mtx.Unlock()
 	if err := h.issue(false); err != nil {
 		return err
 	}
+
+	// Truncate the device file and retain its new size in the handle.
 	if err := h.dev.Truncate(h.ctx, h.name, size); err != nil {
 		return err
 	}
