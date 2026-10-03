@@ -2337,23 +2337,6 @@ func (c *SessionClient) CreateOrgInvite(ctx context.Context, orgID string, invit
 	return c.doPost(ctx, "/api/org/"+orgID+"/invite", "application/octet-stream", body, nil, SeedReasonMutation)
 }
 
-// CreateTargetedInviteDraftByUsername creates an opaque targeted invite draft.
-func (c *SessionClient) CreateTargetedInviteDraftByUsername(ctx context.Context, req *api.CreateTargetedInviteDraftByUsernameRequest) (*api.CreateTargetedInviteDraftByUsernameResponse, error) {
-	body, err := req.MarshalVT()
-	if err != nil {
-		return nil, errors.Wrap(err, "marshal targeted invite draft request")
-	}
-	data, err := c.doPostBinary(ctx, "/api/account/targeted-invite/draft/by-username", body, nil, SeedReasonMutation)
-	if err != nil {
-		return nil, errors.Wrap(err, "create targeted invite draft")
-	}
-	var resp api.CreateTargetedInviteDraftByUsernameResponse
-	if err := resp.UnmarshalVT(data); err != nil {
-		return nil, errors.Wrap(err, "unmarshal targeted invite draft response")
-	}
-	return &resp, nil
-}
-
 // ResolveUsername resolves an exact username for an allowed context.
 func (c *SessionClient) ResolveUsername(ctx context.Context, req *api.ResolveUsernameRequest) (*api.ResolveUsernameResponse, error) {
 	body, err := req.MarshalVT()

@@ -989,38 +989,6 @@ func (r *SpacewaveSessionResource) CreateOrgInvite(
 	return resp, nil
 }
 
-// CreateTargetedInviteDraftByUsername creates an opaque targeted invite draft.
-func (r *SpacewaveSessionResource) CreateTargetedInviteDraftByUsername(
-	ctx context.Context,
-	req *s4wave_provider_spacewave.CreateTargetedInviteDraftByUsernameRequest,
-) (*s4wave_provider_spacewave.CreateTargetedInviteDraftByUsernameResponse, error) {
-	var purpose api.TargetedInvitePurpose
-	switch req.GetPurpose() {
-	case s4wave_provider_spacewave.TargetedInvitePurpose_TARGETED_INVITE_PURPOSE_SPACE:
-		purpose = api.TargetedInvitePurpose_TARGETED_INVITE_PURPOSE_SPACE
-	case s4wave_provider_spacewave.TargetedInvitePurpose_TARGETED_INVITE_PURPOSE_ORGANIZATION:
-		purpose = api.TargetedInvitePurpose_TARGETED_INVITE_PURPOSE_ORGANIZATION
-	default:
-		purpose = api.TargetedInvitePurpose_TARGETED_INVITE_PURPOSE_UNSPECIFIED
-	}
-
-	cli := r.swAcc.GetSessionClient()
-	resp, err := cli.CreateTargetedInviteDraftByUsername(ctx, &api.CreateTargetedInviteDraftByUsernameRequest{
-		Username:  req.GetUsername(),
-		Purpose:   purpose,
-		SpaceId:   req.GetSpaceId(),
-		OrgId:     req.GetOrgId(),
-		Role:      req.GetRole(),
-		ExpiresAt: req.GetExpiresAt(),
-	})
-	if err != nil {
-		return nil, err
-	}
-	return &s4wave_provider_spacewave.CreateTargetedInviteDraftByUsernameResponse{
-		Accepted: resp.GetAccepted(),
-	}, nil
-}
-
 // ResolveUsername resolves an exact username for an allowed invite context.
 func (r *SpacewaveSessionResource) ResolveUsername(
 	ctx context.Context,
@@ -1072,7 +1040,6 @@ func (r *SpacewaveSessionResource) CreateTargetedInvitation(
 		Role:            req.GetRole(),
 		ExpiresAt:       req.GetExpiresAt(),
 		Envelope:        targetedInvitationEnvelopeToAPI(req.GetEnvelope()),
-		DraftId:         req.GetDraftId(),
 	})
 	if err != nil {
 		return nil, err
@@ -1200,23 +1167,13 @@ func (r *SpacewaveSessionResource) AcceptSpaceTargetedInvitation(
 	ctx context.Context,
 	req *s4wave_provider_spacewave.AcceptSpaceTargetedInvitationRequest,
 ) (*s4wave_provider_spacewave.AcceptSpaceTargetedInvitationResponse, error) {
-	invID := req.GetId()
-	if invID == "" {
-		return nil, errors.New("id is required")
-	}
-	cli := r.swAcc.GetSessionClient()
-	resp, err := cli.GetTargetedInvitation(ctx, invID)
+	// Verify the invitation.
+	envelope, err := r.getAcceptableTargetedInvitation(ctx, req.GetId(), api.TargetedInvitePurpose_TARGETED_INVITE_PURPOSE_SPACE)
 	if err != nil {
 		return nil, err
 	}
-	inv := resp.GetInvitation()
-	if inv == nil {
-		return nil, errors.New("targeted invitation is missing")
-	}
-	envelope, err := r.verifyAcceptableSpaceTargetedInvitation(ctx, inv)
-	if err != nil {
-		return nil, err
-	}
+
+	// Decode the Space invite it carries.
 	inviteMsg := &sobject.SOInviteMessage{}
 	if err := inviteMsg.UnmarshalVT(envelope.GetPayload()); err != nil {
 		return nil, errors.Wrap(err, "unmarshal targeted space invite payload")
@@ -1224,11 +1181,14 @@ func (r *SpacewaveSessionResource) AcceptSpaceTargetedInvitation(
 	if inviteMsg.GetSharedObjectId() != envelope.GetContextId() {
 		return nil, errors.New("targeted space invite payload context mismatch")
 	}
+
+	// Encode the envelope for the join request.
 	envelopeBytes, err := envelope.MarshalVT()
 	if err != nil {
 		return nil, errors.Wrap(err, "marshal targeted invitation envelope")
 	}
 
+	// Join the Space through its mailbox.
 	joinResp, err := r.parent.JoinSpaceViaInvite(ctx, &s4wave_session.JoinSpaceViaInviteRequest{
 		InviteMessage:              inviteMsg,
 		TargetedInvitationEnvelope: envelopeBytes,
@@ -1242,8 +1202,10 @@ func (r *SpacewaveSessionResource) AcceptSpaceTargetedInvitation(
 	default:
 		return nil, errors.New("targeted space invite mailbox submission was not accepted")
 	}
-	processResp, err := cli.ProcessTargetedInvitation(ctx, &api.ProcessTargetedInvitationRequest{
-		Id:     invID,
+
+	// Mark the invitation accepted.
+	processResp, err := r.swAcc.GetSessionClient().ProcessTargetedInvitation(ctx, &api.ProcessTargetedInvitationRequest{
+		Id:     req.GetId(),
 		Action: "accept",
 	})
 	if err != nil {
@@ -1343,24 +1305,14 @@ func (r *SpacewaveSessionResource) AcceptOrganizationTargetedInvitation(
 	ctx context.Context,
 	req *s4wave_provider_spacewave.AcceptOrganizationTargetedInvitationRequest,
 ) (*s4wave_provider_spacewave.AcceptOrganizationTargetedInvitationResponse, error) {
-	invID := req.GetId()
-	if invID == "" {
-		return nil, errors.New("id is required")
-	}
-	cli := r.swAcc.GetSessionClient()
-	resp, err := cli.GetTargetedInvitation(ctx, invID)
+	// Verify the invitation.
+	envelope, err := r.getAcceptableTargetedInvitation(ctx, req.GetId(), api.TargetedInvitePurpose_TARGETED_INVITE_PURPOSE_ORGANIZATION)
 	if err != nil {
 		return nil, err
 	}
-	inv := resp.GetInvitation()
-	if inv == nil {
-		return nil, errors.New("targeted invitation is missing")
-	}
-	envelope, err := r.verifyAcceptableOrganizationTargetedInvitation(ctx, inv)
-	if err != nil {
-		return nil, err
-	}
-	acceptResp, err := cli.AcceptTargetedOrganizationInvitation(ctx, envelope.GetContextId(), &api.AcceptTargetedOrganizationInvitationRequest{Id: invID})
+
+	// Join the organization.
+	acceptResp, err := r.swAcc.GetSessionClient().AcceptTargetedOrganizationInvitation(ctx, envelope.GetContextId(), &api.AcceptTargetedOrganizationInvitationRequest{Id: req.GetId()})
 	if err != nil {
 		return nil, err
 	}
@@ -1368,6 +1320,8 @@ func (r *SpacewaveSessionResource) AcceptOrganizationTargetedInvitation(
 	if org == nil {
 		return nil, errors.New("targeted organization invite response missing organization")
 	}
+
+	// Mirror the membership into local organization state.
 	if err := r.swAcc.RefreshSharedObjectList(ctx); err != nil {
 		r.le.WithError(err).Warn("failed to refresh SO list after targeted org join")
 	}
@@ -1495,45 +1449,75 @@ func (r *SpacewaveSessionResource) ProcessTargetedInvitation(
 	}, nil
 }
 
-func (r *SpacewaveSessionResource) verifyAcceptableSpaceTargetedInvitation(
+// getAcceptableTargetedInvitation fetches the targeted invitation with id and
+// checks that it is pending, of purpose, addressed to this account and signed
+// by its creator. It returns the invitation's envelope.
+func (r *SpacewaveSessionResource) getAcceptableTargetedInvitation(
 	ctx context.Context,
-	inv *api.TargetedInvitationInfo,
+	id string,
+	purpose api.TargetedInvitePurpose,
 ) (*api.TargetedInvitationEnvelope, error) {
+	// Fetch the invitation.
+	if id == "" {
+		return nil, errors.New("id is required")
+	}
+	resp, err := r.swAcc.GetSessionClient().GetTargetedInvitation(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	inv := resp.GetInvitation()
+	if inv == nil {
+		return nil, errors.New("targeted invitation is missing")
+	}
+
+	// Check the invitation row.
 	if inv.GetStatus() != "pending" {
 		return nil, errors.New("targeted invitation is not pending")
 	}
-	if inv.GetPurpose() != api.TargetedInvitePurpose_TARGETED_INVITE_PURPOSE_SPACE {
-		return nil, errors.New("targeted invitation is not a space invite")
+	if inv.GetPurpose() != purpose {
+		return nil, errors.Errorf("targeted invitation purpose is %v, want %v", inv.GetPurpose(), purpose)
 	}
+
+	// Check that the envelope matches the row.
 	envelope := inv.GetEnvelope()
-	if envelope == nil {
+	switch {
+	case envelope == nil:
 		return nil, errors.New("targeted invitation envelope is required")
-	}
-	if envelope.GetSchemaVersion() != 1 {
+	case envelope.GetSchemaVersion() != 1:
 		return nil, errors.New("unsupported targeted invitation envelope version")
-	}
-	if envelope.GetPurpose() != inv.GetPurpose() || envelope.GetContextId() != inv.GetContextId() {
+	case envelope.GetPurpose() != inv.GetPurpose() || envelope.GetContextId() != inv.GetContextId():
 		return nil, errors.New("targeted invitation envelope context mismatch")
-	}
-	if envelope.GetTargetAccountId() != inv.GetTargetAccountId() ||
+	case envelope.GetTargetAccountId() != inv.GetTargetAccountId() ||
 		envelope.GetTargetEntityId() != inv.GetTargetEntityId() ||
 		envelope.GetTargetEntityUuid() != inv.GetTargetEntityUuid() ||
-		envelope.GetTargetAccountEpoch() != inv.GetTargetAccountEpoch() {
+		envelope.GetTargetAccountEpoch() != inv.GetTargetAccountEpoch():
 		return nil, errors.New("targeted invitation envelope target mismatch")
-	}
-	if envelope.GetRole() != inv.GetRole() || envelope.GetExpiresAt() != inv.GetExpiresAt() {
+	case envelope.GetRole() != inv.GetRole() || envelope.GetExpiresAt() != inv.GetExpiresAt():
 		return nil, errors.New("targeted invitation envelope row mismatch")
-	}
-	if len(envelope.GetNonce()) == 0 || len(envelope.GetPayload()) == 0 {
+	case len(envelope.GetNonce()) == 0:
 		return nil, errors.New("targeted invitation envelope is incomplete")
-	}
-	if envelope.GetExpiresAt() > 0 && envelope.GetExpiresAt() <= time.Now().UnixMilli() {
+	case envelope.GetExpiresAt() > 0 && envelope.GetExpiresAt() <= time.Now().UnixMilli():
 		return nil, errors.New("targeted invitation is expired")
 	}
+
+	// Check the purpose's role and payload.
+	switch purpose {
+	case api.TargetedInvitePurpose_TARGETED_INVITE_PURPOSE_SPACE:
+		if len(envelope.GetPayload()) == 0 {
+			return nil, errors.New("targeted invitation envelope is incomplete")
+		}
+	case api.TargetedInvitePurpose_TARGETED_INVITE_PURPOSE_ORGANIZATION:
+		if envelope.GetRole() != "org:member" {
+			return nil, errors.New("targeted invitation envelope role mismatch")
+		}
+	}
+
+	// Check the creator's signature.
 	if err := provider_spacewave.VerifyTargetedInvitationEnvelope(envelope); err != nil {
 		return nil, err
 	}
 
+	// Check that the envelope addresses this account.
 	account, err := r.swAcc.GetSessionClient().GetAccountInfo(ctx)
 	if err != nil {
 		return nil, errors.Wrap(err, "get account info")
@@ -1542,67 +1526,8 @@ func (r *SpacewaveSessionResource) verifyAcceptableSpaceTargetedInvitation(
 	if entityUUID == "" {
 		entityUUID = account.GetAccountId()
 	}
-	if envelope.GetTargetAccountId() != account.GetAccountId() ||
-		envelope.GetTargetEntityUuid() != entityUUID ||
-		envelope.GetTargetAccountEpoch() != int64(account.GetEpoch()) {
-		return nil, errors.New("targeted invitation is not for this account generation")
-	}
-	return envelope, nil
-}
-
-func (r *SpacewaveSessionResource) verifyAcceptableOrganizationTargetedInvitation(
-	ctx context.Context,
-	inv *api.TargetedInvitationInfo,
-) (*api.TargetedInvitationEnvelope, error) {
-	if inv.GetStatus() != "pending" {
-		return nil, errors.New("targeted invitation is not pending")
-	}
-	if inv.GetPurpose() != api.TargetedInvitePurpose_TARGETED_INVITE_PURPOSE_ORGANIZATION {
-		return nil, errors.New("targeted invitation is not an organization invite")
-	}
-	envelope := inv.GetEnvelope()
-	if envelope == nil {
-		return nil, errors.New("targeted invitation envelope is required")
-	}
-	if envelope.GetSchemaVersion() != 1 {
-		return nil, errors.New("unsupported targeted invitation envelope version")
-	}
-	if envelope.GetPurpose() != inv.GetPurpose() || envelope.GetContextId() != inv.GetContextId() {
-		return nil, errors.New("targeted invitation envelope context mismatch")
-	}
-	if envelope.GetTargetAccountId() != inv.GetTargetAccountId() ||
-		envelope.GetTargetEntityId() != inv.GetTargetEntityId() ||
-		envelope.GetTargetEntityUuid() != inv.GetTargetEntityUuid() ||
-		envelope.GetTargetAccountEpoch() != inv.GetTargetAccountEpoch() {
-		return nil, errors.New("targeted invitation envelope target mismatch")
-	}
-	if envelope.GetRole() != "org:member" || inv.GetRole() != "org:member" {
-		return nil, errors.New("targeted invitation envelope role mismatch")
-	}
-	if envelope.GetExpiresAt() != inv.GetExpiresAt() {
-		return nil, errors.New("targeted invitation envelope row mismatch")
-	}
-	if len(envelope.GetNonce()) == 0 {
-		return nil, errors.New("targeted invitation envelope is incomplete")
-	}
-	if envelope.GetExpiresAt() > 0 && envelope.GetExpiresAt() <= time.Now().UnixMilli() {
-		return nil, errors.New("targeted invitation is expired")
-	}
-	if err := provider_spacewave.VerifyTargetedInvitationEnvelope(envelope); err != nil {
-		return nil, err
-	}
-	account, err := r.swAcc.GetSessionClient().GetAccountInfo(ctx)
-	if err != nil {
-		return nil, errors.Wrap(err, "get account info")
-	}
-	entityUUID := account.GetEntityUuid()
-	if entityUUID == "" {
-		entityUUID = account.GetAccountId()
-	}
-	if envelope.GetTargetAccountId() != account.GetAccountId() ||
-		envelope.GetTargetEntityUuid() != entityUUID ||
-		envelope.GetTargetAccountEpoch() != int64(account.GetEpoch()) {
-		return nil, errors.New("targeted invitation is not for this account generation")
+	if envelope.GetTargetAccountId() != account.GetAccountId() || envelope.GetTargetEntityUuid() != entityUUID {
+		return nil, errors.New("targeted invitation is not for this account")
 	}
 	return envelope, nil
 }
@@ -1730,7 +1655,6 @@ func targetedInvitationInfoFromAPI(in *api.TargetedInvitationInfo) *s4wave_provi
 		CreatedAt:          in.GetCreatedAt(),
 		UpdatedAt:          in.GetUpdatedAt(),
 		ExpiresAt:          in.GetExpiresAt(),
-		DraftId:            in.GetDraftId(),
 	}
 }
 

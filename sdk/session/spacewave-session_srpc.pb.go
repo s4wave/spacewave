@@ -71,8 +71,6 @@ type SRPCSpacewaveSessionResourceServiceClient interface {
 	WatchOrganizationState(ctx context.Context, in *s4wave_provider_spacewave.WatchOrganizationStateRequest) (SRPCSpacewaveSessionResourceService_WatchOrganizationStateClient, error)
 	// DeleteOrganization deletes an organization.
 	DeleteOrganization(ctx context.Context, in *s4wave_provider_spacewave.DeleteOrganizationRequest) (*s4wave_provider_spacewave.DeleteOrganizationResponse, error)
-	// CreateTargetedInviteDraftByUsername creates an opaque targeted invite draft.
-	CreateTargetedInviteDraftByUsername(ctx context.Context, in *s4wave_provider_spacewave.CreateTargetedInviteDraftByUsernameRequest) (*s4wave_provider_spacewave.CreateTargetedInviteDraftByUsernameResponse, error)
 	// ResolveUsername resolves an exact username for an allowed invite context.
 	ResolveUsername(ctx context.Context, in *s4wave_provider_spacewave.ResolveUsernameRequest) (*s4wave_provider_spacewave.ResolveUsernameResponse, error)
 	// CreateTargetedInvitation creates a signed pending targeted invitation.
@@ -575,15 +573,6 @@ func (x *srpcSpacewaveSessionResourceService_WatchOrganizationStateClient) RecvT
 func (c *srpcSpacewaveSessionResourceServiceClient) DeleteOrganization(ctx context.Context, in *s4wave_provider_spacewave.DeleteOrganizationRequest) (*s4wave_provider_spacewave.DeleteOrganizationResponse, error) {
 	out := new(s4wave_provider_spacewave.DeleteOrganizationResponse)
 	err := c.cc.ExecCall(ctx, c.serviceID, "DeleteOrganization", in, out)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *srpcSpacewaveSessionResourceServiceClient) CreateTargetedInviteDraftByUsername(ctx context.Context, in *s4wave_provider_spacewave.CreateTargetedInviteDraftByUsernameRequest) (*s4wave_provider_spacewave.CreateTargetedInviteDraftByUsernameResponse, error) {
-	out := new(s4wave_provider_spacewave.CreateTargetedInviteDraftByUsernameResponse)
-	err := c.cc.ExecCall(ctx, c.serviceID, "CreateTargetedInviteDraftByUsername", in, out)
 	if err != nil {
 		return nil, err
 	}
@@ -1096,8 +1085,6 @@ type SRPCSpacewaveSessionResourceServiceServer interface {
 	WatchOrganizationState(*s4wave_provider_spacewave.WatchOrganizationStateRequest, SRPCSpacewaveSessionResourceService_WatchOrganizationStateStream) error
 	// DeleteOrganization deletes an organization.
 	DeleteOrganization(context.Context, *s4wave_provider_spacewave.DeleteOrganizationRequest) (*s4wave_provider_spacewave.DeleteOrganizationResponse, error)
-	// CreateTargetedInviteDraftByUsername creates an opaque targeted invite draft.
-	CreateTargetedInviteDraftByUsername(context.Context, *s4wave_provider_spacewave.CreateTargetedInviteDraftByUsernameRequest) (*s4wave_provider_spacewave.CreateTargetedInviteDraftByUsernameResponse, error)
 	// ResolveUsername resolves an exact username for an allowed invite context.
 	ResolveUsername(context.Context, *s4wave_provider_spacewave.ResolveUsernameRequest) (*s4wave_provider_spacewave.ResolveUsernameResponse, error)
 	// CreateTargetedInvitation creates a signed pending targeted invitation.
@@ -1254,7 +1241,6 @@ func (SRPCSpacewaveSessionResourceServiceHandler) GetMethodIDs() []string {
 		"CreateOrganization",
 		"WatchOrganizationState",
 		"DeleteOrganization",
-		"CreateTargetedInviteDraftByUsername",
 		"ResolveUsername",
 		"CreateTargetedInvitation",
 		"CreateSpaceTargetedInvitationByUsername",
@@ -1363,8 +1349,6 @@ func (d *SRPCSpacewaveSessionResourceServiceHandler) InvokeMethod(
 		return true, d.InvokeMethod_WatchOrganizationState(d.impl, strm)
 	case "DeleteOrganization":
 		return true, d.InvokeMethod_DeleteOrganization(d.impl, strm)
-	case "CreateTargetedInviteDraftByUsername":
-		return true, d.InvokeMethod_CreateTargetedInviteDraftByUsername(d.impl, strm)
 	case "ResolveUsername":
 		return true, d.InvokeMethod_ResolveUsername(d.impl, strm)
 	case "CreateTargetedInvitation":
@@ -1754,18 +1738,6 @@ func (SRPCSpacewaveSessionResourceServiceHandler) InvokeMethod_DeleteOrganizatio
 		return err
 	}
 	out, err := impl.DeleteOrganization(strm.Context(), req)
-	if err != nil {
-		return err
-	}
-	return strm.MsgSend(out)
-}
-
-func (SRPCSpacewaveSessionResourceServiceHandler) InvokeMethod_CreateTargetedInviteDraftByUsername(impl SRPCSpacewaveSessionResourceServiceServer, strm srpc.Stream) error {
-	req := new(s4wave_provider_spacewave.CreateTargetedInviteDraftByUsernameRequest)
-	if err := strm.MsgRecv(req); err != nil {
-		return err
-	}
-	out, err := impl.CreateTargetedInviteDraftByUsername(strm.Context(), req)
 	if err != nil {
 		return err
 	}
@@ -2570,14 +2542,6 @@ type SRPCSpacewaveSessionResourceService_DeleteOrganizationStream interface {
 }
 
 type srpcSpacewaveSessionResourceService_DeleteOrganizationStream struct {
-	srpc.Stream
-}
-
-type SRPCSpacewaveSessionResourceService_CreateTargetedInviteDraftByUsernameStream interface {
-	srpc.Stream
-}
-
-type srpcSpacewaveSessionResourceService_CreateTargetedInviteDraftByUsernameStream struct {
 	srpc.Stream
 }
 
