@@ -89,13 +89,22 @@ func (c *RemoteResourceClient) addResource(
 ) (uint32, error) {
 	// Allocate the resource ID and register it under the server lock.
 	var id uint32
-	var rejected bool
+	var err error
 	c.server.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		// Reject registration once the client generation is released.
 		if c.released {
-			rejected = true
+			err = resource.ErrClientReleased
 			return
 		}
+
+		// Reject a child whose parent was released while the invocation ran.
+		// The parent's release already swept its pending children, so this
+		// child would be unreachable by any later Release.
+		if parentID != 0 && c.resources[parentID] == nil {
+			err = resource.ErrResourceNotFound
+			return
+		}
+
 		c.server.resourceIDCtr++
 		id = c.server.resourceIDCtr
 		c.resources[id] = &trackedResource{
@@ -117,10 +126,8 @@ func (c *RemoteResourceClient) addResource(
 		}
 		broadcast()
 	})
-
-	// Report a rejected registration after the released generation check.
-	if rejected {
-		return 0, resource.ErrClientReleased
+	if err != nil {
+		return 0, err
 	}
 	return id, nil
 }

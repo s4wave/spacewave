@@ -147,6 +147,32 @@ func TestAdoptedChildSurvivesParentReleaseAndTombstoneNotifies(t *testing.T) {
 	}
 }
 
+func TestChildAfterParentReleaseRejected(t *testing.T) {
+	// Add a pending child, then release it as a parent whose invocation runs on.
+	_, client := ownershipTestClient(t)
+	parent, err := client.addInvocationResource(1, "svc", "parent", srpc.NewMux(), nil, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !client.ReleaseResource(parent) {
+		t.Fatal("parent release rejected")
+	}
+
+	// Register the late child and verify it is rejected without allocation.
+	var released bool
+	releaseChild := func() { released = true }
+	child, err := client.addInvocationResource(parent, "svc", "child", srpc.NewMux(), nil, releaseChild)
+	if err != resource.ErrResourceNotFound || child != 0 {
+		t.Fatalf("late child = %d/%v, want ErrResourceNotFound", child, err)
+	}
+	if released {
+		t.Fatal("rejected registration ran the caller's release")
+	}
+	if len(client.resources) != 1 || len(client.children) != 0 {
+		t.Fatalf("resources = %d, children = %d after rejection", len(client.resources), len(client.children))
+	}
+}
+
 func TestForeignAndNeverAllocatedControlsTerminate(t *testing.T) {
 	_, client := ownershipTestClient(t)
 	if _, err := client.releaseClientControl(999); err != resource.ErrResourceNotFound {
