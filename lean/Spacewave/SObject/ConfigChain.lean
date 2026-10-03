@@ -49,11 +49,12 @@ def revokeInvite : ChangeType := 5
 def incrementInviteUses : ChangeType := 6
 def selfEnrollPeer : ChangeType := 7
 def transferOwnership : ChangeType := 8
+def setRoster : ChangeType := 9
 
 /-- peerChanges are the change types a peer may relay in a suffix. -/
 def peerChanges : List ChangeType :=
   [addParticipant, removeParticipant, addInvite, revokeInvite, incrementInviteUses,
-    transferOwnership]
+    transferOwnership, setRoster]
 
 end ChangeType
 
@@ -345,7 +346,7 @@ theorem suffixStep_congr {a b : Config} (h : a.same b = true) (e : Entry) :
       intro heq
       simp [heq, ChangeType.selfEnrollPeer, ChangeType.addParticipant,
         ChangeType.removeParticipant, ChangeType.addInvite, ChangeType.revokeInvite,
-        ChangeType.incrementInviteUses, ChangeType.transferOwnership] at hk
+        ChangeType.incrementInviteUses, ChangeType.transferOwnership, ChangeType.setRoster] at hk
     simp [verifyChange, verifySignature, expectedSeqno, hh, hs, hk', isOwner_perm hp]
   · rfl
 
