@@ -96,6 +96,40 @@ func TestResolveFSCursorProxyTracksEveryClient(t *testing.T) {
 	}
 }
 
+func TestRemoveFSCursorRefRemovesClientCursor(t *testing.T) {
+	// Construct a cursor service with two clients sharing the same proxy cursor.
+	ctx := t.Context()
+	proxy := newTestFSCursor(nil)
+	root := newTestFSCursor(proxy)
+	service := NewFSCursorService(root)
+	service.clients[1] = &fsCursorClient{}
+	service.clients[2] = &fsCursorClient{}
+
+	// Resolve the shared proxy cursor for both clients.
+	_, proxyHandleID, err := service.resolveFSCursorProxy(ctx, 1, 1)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if _, _, err := service.resolveFSCursorProxy(ctx, 1, 2); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	// Release the first client reference as the release RPC does.
+	service.mtx.Lock()
+	defer service.mtx.Unlock()
+	if err := service.removeFSCursorRefLocked(proxyHandleID, 1, true); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	// Require only the first client record to drop the proxy cursor.
+	if cursors := service.clients[1].cursors; len(cursors) != 0 {
+		t.Fatalf("released client retained cursors: %v", cursors)
+	}
+	if cursors := service.clients[2].cursors; !slices.Equal(cursors, []uint64{proxyHandleID}) {
+		t.Fatalf("unexpected second client cursors: %v", cursors)
+	}
+}
+
 type testFSCursor struct {
 	proxy       unixfs.FSCursor
 	released    atomic.Bool

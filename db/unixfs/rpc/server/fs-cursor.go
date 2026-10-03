@@ -617,7 +617,7 @@ func (f *FSCursorService) removeFSCursorRefLocked(cursorHandleID, clientHandleID
 		if clientIdx == -1 {
 			return nil
 		}
-		clientObj.cursors = append(clientObj.cursors[:clientIdx], clientObj.cursors[clientIdx:]...)
+		clientObj.cursors = slices.Delete(clientObj.cursors, clientIdx, clientIdx+1)
 	}
 
 	// Find the registered cursor whose client reference is being removed.
@@ -637,7 +637,7 @@ func (f *FSCursorService) removeFSCursorRefLocked(cursorHandleID, clientHandleID
 		cursor.clients = nil
 		f.maybeReleaseFSCursorLocked(cursorHandleID, cursor)
 	} else {
-		cursor.clients = append(cursor.clients[:idx], cursor.clients[idx+1:]...)
+		cursor.clients = slices.Delete(cursor.clients, idx, idx+1)
 	}
 
 	return nil
