@@ -22,8 +22,8 @@ var SOParticipantRoleToRbacRole = map[int32]string{
 // SOParticipantRoleRequiredVerbs maps SOParticipantRole enum values
 // to the RBAC verbs required for the verb containment check.
 var SOParticipantRoleRequiredVerbs = map[int32][]string{
-	4: {VerbRead, VerbWriteOps, VerbValidate, VerbManageConfig},
-	3: {VerbRead, VerbWriteOps, VerbValidate},
+	4: {VerbRead, VerbWriteOps, VerbCheckpoint, VerbManageConfig},
+	3: {VerbRead, VerbWriteOps, VerbCheckpoint},
 	2: {VerbRead, VerbWriteOps},
 	1: {VerbRead},
 }
@@ -95,7 +95,7 @@ func BuiltinRoles() []*RbacRole {
 			DisplayName: "Owner",
 			Builtin:     true,
 			Rules: []*RbacRule{
-				{ResourceType: ResourceTypeSharedObject, Verbs: []string{VerbRead, VerbWriteOps, VerbValidate, VerbManageConfig, VerbTransfer}},
+				{ResourceType: ResourceTypeSharedObject, Verbs: []string{VerbRead, VerbWriteOps, VerbCheckpoint, VerbManageConfig, VerbTransfer}},
 				{ResourceType: ResourceTypeBlockStore, Verbs: []string{VerbRead, VerbPush, VerbPull, VerbManage, VerbTransfer}},
 			},
 		},

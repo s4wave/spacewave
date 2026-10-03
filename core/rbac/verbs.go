@@ -14,7 +14,7 @@ const (
 const (
 	VerbRead         = "read"
 	VerbWriteOps     = "write_ops"
-	VerbValidate     = "validate"
+	VerbCheckpoint   = "checkpoint"
 	VerbManageConfig = "manage_config"
 	VerbTransfer     = "transfer"
 )
