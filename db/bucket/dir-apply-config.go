@@ -86,29 +86,16 @@ func ExApplyBucketConfig(ctx context.Context, b bus.Bus, apply ApplyBucketConfig
 // volID is the primary volume ID.
 // alias is a list of any alias volume IDs for volID.
 func CheckApplyBucketConfigMatchesVolume(dir ApplyBucketConfig, volID string, alias []string) bool {
+	// Match the volume ID or an alias against the pattern.
 	if volumeIDConstraint := dir.ApplyBucketConfigVolumeIDRe(); volumeIDConstraint != nil {
-		if volumeIDConstraint.MatchString(volID) {
-			return true
-		}
-		return slices.ContainsFunc(alias, volumeIDConstraint.MatchString)
+		return volumeIDConstraint.MatchString(volID) || slices.ContainsFunc(alias, volumeIDConstraint.MatchString)
 	}
-	if volumeIDList := dir.ApplyBucketConfigVolumeIDList(); len(volumeIDList) != 0 {
-		var matched bool
-		for _, desiredID := range volumeIDList {
-			if matched = desiredID == volID; matched {
-				break
-			}
-			for _, aliasID := range alias {
-				if matched = desiredID == aliasID; matched {
-					break
-				}
-			}
-		}
-		if !matched {
-			return false
-		}
-	}
-	return true
+
+	// Otherwise match any listed volume ID, or every volume when none is listed.
+	volumeIDList := dir.ApplyBucketConfigVolumeIDList()
+	return len(volumeIDList) == 0 || slices.ContainsFunc(volumeIDList, func(id string) bool {
+		return id == volID || slices.Contains(alias, id)
+	})
 }
 
 // Validate validates the directive.
