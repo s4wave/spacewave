@@ -762,3 +762,32 @@ func TestBillyFS_GitStatusSymlink(t *testing.T) {
 		t.Errorf("status not clean after re-open:\n%s", status2.String())
 	}
 }
+
+// TestBillyFS_RenameIntoDirectory verifies renaming a file into a nested path.
+func TestBillyFS_RenameIntoDirectory(t *testing.T) {
+	// Create a source file and a destination directory.
+	billyFS, _ := newTestBillyFS(t)
+	if err := billyFS.MkdirAll("dir", 0o755); err != nil {
+		t.Fatal(err)
+	}
+	f, err := billyFS.Create("a.txt")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := f.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	// Rename the file into the directory under a new name.
+	if err := billyFS.Rename("a.txt", "dir/b.txt"); err != nil {
+		t.Fatal(err)
+	}
+
+	// Expect the file at its new path and gone from the old one.
+	if _, err := billyFS.Stat("dir/b.txt"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := billyFS.Stat("a.txt"); !os.IsNotExist(err) {
+		t.Fatalf("old path stat error = %v", err)
+	}
+}

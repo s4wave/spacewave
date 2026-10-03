@@ -114,7 +114,7 @@ func RenameWithPaths(ctx context.Context, h *FSHandle, oldPath, newPath string, 
 	}
 
 	// Require both paths before resolving the rename handles.
-	if len(newPath) == 0 || len(oldPath) == 0 {
+	if len(newPathPts) == 0 || len(oldPathPts) == 0 {
 		return unixfs_errors.ErrEmptyPath
 	}
 
@@ -129,8 +129,8 @@ func RenameWithPaths(ctx context.Context, h *FSHandle, oldPath, newPath string, 
 	defer oldHandle.Release()
 
 	// Open the destination parent and retain it through the rename.
-	parentPathPts := newPathPts[:len(newPath)-1]
-	destName := newPathPts[len(newPath)-1]
+	parentPathPts := newPathPts[:len(newPathPts)-1]
+	destName := newPathPts[len(newPathPts)-1]
 	nextParent, _, err := h.LookupPathPts(ctx, parentPathPts)
 	if err != nil {
 		if nextParent != nil {
