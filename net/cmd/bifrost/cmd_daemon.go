@@ -5,6 +5,8 @@ package main
 import (
 	"context"
 	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/aperturerobotics/cli"
 	bus_api "github.com/aperturerobotics/controllerbus/bus/api"
@@ -87,8 +89,11 @@ func init() {
 
 // runDaemon runs the daemon.
 func runDaemon(c *cli.Context) error {
-	// Prepare the daemon context and debug logger.
-	ctx := context.Background()
+	// Run until interrupted or terminated so the deferred releases run.
+	ctx, ctxCancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer ctxCancel()
+
+	// Prepare the debug logger.
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
@@ -209,8 +214,7 @@ func runDaemon(c *cli.Context) error {
 		}()
 	}
 
-	// Keep the daemon command active until its context ends.
-	_ = d
+	// Run until the daemon context ends.
 	<-ctx.Done()
 	return nil
 }

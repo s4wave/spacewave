@@ -6,6 +6,7 @@ import (
 	"context"
 	"os"
 	"os/signal"
+	"syscall"
 
 	"github.com/aperturerobotics/cli"
 	"github.com/aperturerobotics/controllerbus/controller/configset"
@@ -94,20 +95,22 @@ func init() {
 
 // runDaemon runs the daemon.
 func runDaemon(c *cli.Context) error {
-	// ctx := context.Background()
-	ctx, ctxCancel := signal.NotifyContext(context.Background(), os.Interrupt, os.Kill)
+	// Run until interrupted or terminated so the deferred releases run.
+	ctx, ctxCancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer ctxCancel()
 
+	// Prepare the debug logger.
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
 
-	// Load or create private key.
+	// Load or create the peer private key.
 	peerPriv, err := keyfile.OpenOrWritePrivKey(le, daemonFlags.PeerPrivPath)
 	if err != nil {
 		return err
 	}
 
+	// Construct the daemon around the peer key.
 	d, err := daemon.NewDaemon(ctx, peerPriv, daemon.ConstructOpts{
 		LogEntry: le,
 	})
@@ -115,13 +118,13 @@ func runDaemon(c *cli.Context) error {
 		return errors.Wrap(err, "construct daemon")
 	}
 
+	// Register the forge factories on the daemon bus.
 	b := d.GetControllerBus()
 	sr := d.GetStaticResolver()
-
 	forge_core.AddFactories(b, sr)
 	forge_lib.AddFactories(b, sr)
 
-	// ConfigSet controller
+	// Load the ConfigSet controller.
 	_, csRef, err := b.AddDirective(
 		resolver.NewLoadControllerWithConfig(&configset_controller.Config{}),
 		nil,
@@ -131,7 +134,7 @@ func runDaemon(c *cli.Context) error {
 	}
 	defer csRef.Release()
 
-	// Daemon API
+	// Serve the daemon API when a listen address is configured.
 	if daemonFlags.APIListen != "" {
 		_, apiRef, err := b.AddDirective(
 			resolver.NewLoadControllerWithConfig(&api_controller.Config{
@@ -148,10 +151,10 @@ func runDaemon(c *cli.Context) error {
 	// Construct config set.
 	confSet := configset.ConfigSet{}
 
-	// Load floodsub controller
+	// Load the floodsub controller.
 	confSet["pubsub"] = configset.NewControllerConfig(1, &floodsub_controller.Config{})
 
-	// Load config file
+	// Merge the config file into the config set.
 	configLe := le.WithField("config", daemonFlags.ConfigPath)
 	if confPath := daemonFlags.ConfigPath; confPath != "" {
 		confDat, err := os.ReadFile(confPath)
@@ -177,6 +180,7 @@ func runDaemon(c *cli.Context) error {
 		}
 	}
 
+	// Apply the command line arguments to the config set.
 	for _, e := range []error{
 		daemonFlags.bDaemonArgs.ApplyToConfigSet(confSet, true),
 		daemonFlags.hDaemonArgs.ApplyToConfigSet(confSet, true, nil),
@@ -186,6 +190,7 @@ func runDaemon(c *cli.Context) error {
 		}
 	}
 
+	// Write the merged config back when requested.
 	if daemonFlags.ConfigPath != "" && daemonFlags.WriteConfig {
 		confDat, err := configset_json.MarshalYAML(confSet)
 		if err != nil {
@@ -197,6 +202,7 @@ func runDaemon(c *cli.Context) error {
 		}
 	}
 
+	// Apply the configuration set for the lifetime of the daemon command.
 	_, bdbRef, err := b.AddDirective(
 		configset.NewApplyConfigSet(confSet),
 		nil,
@@ -206,12 +212,14 @@ func runDaemon(c *cli.Context) error {
 	}
 	defer bdbRef.Release()
 
+	// Serve daemon profiling when a profiler address is configured.
 	if daemonFlags.ProfListen != "" {
 		go func() {
 			_ = daemon_prof.ListenProf(le, daemonFlags.ProfListen)
 		}()
 	}
 
+	// Run until the daemon context ends.
 	<-ctx.Done()
 	return nil
 }
