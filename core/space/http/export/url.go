@@ -46,6 +46,7 @@ func parseExportURL(path string) (*exportRequest, error) {
 }
 
 func parseBatchExportURL(path string) (*batchExportRequest, error) {
+	// Separate and decode the batch archive filename from the URL.
 	rest := strings.TrimPrefix(path, exportBatchPathPrefix)
 	lastSlash := strings.LastIndex(rest, "/")
 	if lastSlash <= 0 || lastSlash == len(rest)-1 {
@@ -56,6 +57,7 @@ func parseBatchExportURL(path string) (*batchExportRequest, error) {
 		return nil, errors.Wrap(err, "decode export batch filename")
 	}
 
+	// Parse the projected base path before decoding the selected paths.
 	secondSlash := strings.LastIndex(rest[:lastSlash], "/")
 	if secondSlash <= 0 || secondSlash == len(rest[:lastSlash])-1 {
 		return nil, errors.New("invalid export-batch URL format")
@@ -66,6 +68,7 @@ func parseBatchExportURL(path string) (*batchExportRequest, error) {
 		return nil, err
 	}
 
+	// Decode the batch selection carried by the URL.
 	paths, err := decodeBatchRequest(rest[secondSlash+1 : lastSlash])
 	if err != nil {
 		return nil, err
@@ -81,6 +84,7 @@ func parseBatchExportURL(path string) (*batchExportRequest, error) {
 }
 
 func buildExportFilename(projectedPath string) string {
+	// Derive the archive filename from the selected projected directory.
 	base := projectedPath
 	if idx := strings.LastIndex(projectedPath, "/"); idx >= 0 {
 		base = projectedPath[idx+1:]
@@ -95,6 +99,7 @@ func buildExportFilename(projectedPath string) string {
 }
 
 func resolveProjectedExportTarget(req *exportRequest) (lookupPath string, zipRoot string) {
+	// Export the Space namespace without an enclosing archive directory.
 	spaceRoot := "u/" + strconv.FormatUint(uint64(req.sessionIdx), 10) + "/so/" + req.sharedObjectID
 	if req.projectedPath == spaceRoot {
 		return spaceRoot + "/-", ""
@@ -103,6 +108,7 @@ func resolveProjectedExportTarget(req *exportRequest) (lookupPath string, zipRoo
 		return req.projectedPath, ""
 	}
 
+	// Name the archive root after the selected projected directory.
 	zipRoot = path.Base(req.projectedPath)
 	if zipRoot == "-" {
 		zipRoot = path.Base(path.Dir(req.projectedPath))

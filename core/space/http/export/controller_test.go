@@ -8,6 +8,7 @@ import (
 )
 
 func TestExportURLParsing(t *testing.T) {
+	// Cover complete, encoded and malformed projected export URLs.
 	tests := []struct {
 		name     string
 		path     string
@@ -66,8 +67,10 @@ func TestExportURLParsing(t *testing.T) {
 		},
 	}
 
+	// Check each projected export URL against its expected request.
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			// Parse the export URL and check its expected failure.
 			req, err := parseExportURL(tt.path)
 			if tt.wantErr {
 				if err == nil {
@@ -78,6 +81,8 @@ func TestExportURLParsing(t *testing.T) {
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
+
+			// Verify the parsed session, SharedObject and projected path.
 			if req.sessionIdx != tt.wantIdx {
 				t.Fatalf("sessionIdx: got %d, want %d", req.sessionIdx, tt.wantIdx)
 			}
@@ -92,6 +97,7 @@ func TestExportURLParsing(t *testing.T) {
 }
 
 func TestBatchExportURLParsing(t *testing.T) {
+	// Encode the batch selection with a duplicate path.
 	msg := &ExportBatchRequest{
 		Paths: []string{"assets/logo.png", "docs/report.txt", "assets/logo.png"},
 	}
@@ -100,6 +106,7 @@ func TestBatchExportURLParsing(t *testing.T) {
 		t.Fatalf("marshal batch request: %v", err)
 	}
 
+	// Compress the batch selection for the export URL.
 	var compressed bytes.Buffer
 	zw := zlib.NewWriter(&compressed)
 	if _, err := zw.Write(data); err != nil {
@@ -109,6 +116,7 @@ func TestBatchExportURLParsing(t *testing.T) {
 		t.Fatalf("close compressor: %v", err)
 	}
 
+	// Parse the compressed selection from the batch export URL.
 	req, err := parseBatchExportURL(
 		"/export-batch/u/7/so/test-space/-/docs/demo/-/nested/" +
 			base64.RawURLEncoding.EncodeToString(compressed.Bytes()) +
@@ -117,6 +125,8 @@ func TestBatchExportURLParsing(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected parse error: %v", err)
 	}
+
+	// Verify the batch target, filename and normalized selection.
 	if req.sessionIdx != 7 {
 		t.Fatalf("sessionIdx: got %d, want 7", req.sessionIdx)
 	}
@@ -129,12 +139,15 @@ func TestBatchExportURLParsing(t *testing.T) {
 	if req.filename != "bundle.zip" {
 		t.Fatalf("filename: got %q", req.filename)
 	}
+
+	// Verify that the batch selection contains each requested path once.
 	if len(req.paths) != 2 || req.paths[0] != "assets/logo.png" || req.paths[1] != "docs/report.txt" {
 		t.Fatalf("paths: got %#v", req.paths)
 	}
 }
 
 func TestBatchExportURLParsingAcceptsRawPayload(t *testing.T) {
+	// Encode the batch selection as an uncompressed payload.
 	msg := &ExportBatchRequest{
 		Paths: []string{"assets/logo.png", "docs/report.txt", "assets/logo.png"},
 	}
@@ -143,6 +156,7 @@ func TestBatchExportURLParsingAcceptsRawPayload(t *testing.T) {
 		t.Fatalf("marshal batch request: %v", err)
 	}
 
+	// Parse the raw selection from the batch export URL.
 	req, err := parseBatchExportURL(
 		"/export-batch/u/7/so/test-space/-/docs/demo/-/nested/" +
 			base64.RawURLEncoding.EncodeToString(data) +
@@ -151,6 +165,8 @@ func TestBatchExportURLParsingAcceptsRawPayload(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected parse error: %v", err)
 	}
+
+	// Verify that the batch selection contains each requested path once.
 	if len(req.paths) != 2 || req.paths[0] != "assets/logo.png" || req.paths[1] != "docs/report.txt" {
 		t.Fatalf("paths: got %#v", req.paths)
 	}

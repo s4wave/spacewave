@@ -34,6 +34,7 @@ func FollowDomainInfo(
 	accessState world.AccessWorldStateFunc,
 	domainInfoRef *bucket.ObjectRef,
 ) (*identity_domain.DomainInfo, error) {
+	// Validate the domain information reference before reading its block.
 	var err error
 	if domainInfoRef.GetEmpty() {
 		return nil, errors.New("empty domain info ref")
@@ -41,6 +42,8 @@ func FollowDomainInfo(
 	if err := domainInfoRef.Validate(); err != nil {
 		return nil, err
 	}
+
+	// Decode and validate the referenced domain information record.
 	var domain *identity_domain.DomainInfo
 	_, err = world.AccessObject(ctx, accessState, domainInfoRef, func(bcs *block.Cursor) error {
 		// Decode the referenced domain information block.
@@ -69,6 +72,7 @@ func LookupDomainInfoOp(ctx context.Context, opTypeID string) (world.Operation, 
 // LookupDomainInfo looks up an entity with the given key.
 // returns nil, nil, nil if not found.
 func LookupDomainInfo(ctx context.Context, w world.WorldState, objKey string) (*identity_domain.DomainInfo, world.ObjectState, error) {
+	// Look up the domain object and preserve its handle for the caller.
 	obj, objFound, err := w.GetObject(ctx, objKey)
 	if err != nil {
 		world.ReleaseObjectState(obj)
@@ -77,6 +81,8 @@ func LookupDomainInfo(ctx context.Context, w world.WorldState, objKey string) (*
 	if !objFound {
 		return nil, nil, nil
 	}
+
+	// Decode the stored domain information while preserving its object handle.
 	var entity *identity_domain.DomainInfo
 	_, _, err = world.AccessObjectState(ctx, obj, false, func(bcs *block.Cursor) error {
 		var err error
@@ -108,6 +114,7 @@ func LookupDomainInfos(ctx context.Context, w world.WorldState, objKeys []string
 // CollectAllDomainInfos collects all DomainInfo states located in the store.
 // returns list of entities and object keys
 func CollectAllDomainInfos(ctx context.Context, w world.WorldState) ([]*identity_domain.DomainInfo, []string, error) {
+	// Collect and sort the object keys for stored domain information.
 	var objKeys []string
 	err := world_types.IterateObjectsWithType(ctx, w, DomainInfoTypeID, func(objKey string) (bool, error) {
 		if !strings.HasPrefix(objKey, DomainInfoPrefix) {

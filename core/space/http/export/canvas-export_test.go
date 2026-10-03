@@ -22,6 +22,7 @@ import (
 )
 
 func TestExportSpaceWithCanvasWorldObjectNode(t *testing.T) {
+	// Start the storage and World testbeds for the canvas export.
 	ctx := context.Background()
 	le := logrus.NewEntry(logrus.New())
 	btb, err := hydra_testbed.NewTestbed(ctx, le, hydra_testbed.WithVerbose(false))
@@ -34,11 +35,13 @@ func TestExportSpaceWithCanvasWorldObjectNode(t *testing.T) {
 	}
 	defer wtb.Release()
 
+	// Register the filesystem operations used to create the image fixture.
 	unixfsOps := world.NewLookupOpController("test-canvas-export-unixfs", wtb.EngineID, unixfs_world.LookupFsOp)
 	if _, err := wtb.Bus.AddController(ctx, unixfsOps, nil); err != nil {
 		t.Fatal(err)
 	}
 
+	// Create the filesystem object referenced by the canvas.
 	ws := world.NewEngineWorldState(wtb.Engine, true)
 	sender := wtb.Volume.GetPeerID()
 	const imageName = "Screenshot 2026-05-12 at 9.28.36 PM.png"
@@ -55,6 +58,7 @@ func TestExportSpaceWithCanvasWorldObjectNode(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Open a writable filesystem handle in the World transaction.
 	tx, err := wtb.Engine.NewTransaction(ctx, true)
 	if err != nil {
 		t.Fatal(err)
@@ -74,6 +78,8 @@ func TestExportSpaceWithCanvasWorldObjectNode(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer files.Release()
+
+	// Create and populate the image file referenced by the canvas.
 	if err := files.Mknod(ctx, true, []string{imageName}, unixfs.NewFSCursorNodeType_File(), 0o644, time.Time{}); err != nil {
 		t.Fatal(err)
 	}
@@ -86,10 +92,13 @@ func TestExportSpaceWithCanvasWorldObjectNode(t *testing.T) {
 		t.Fatal(err)
 	}
 	image.Release()
+
+	// Commit the image fixture before exporting the Space.
 	if err := tx.Commit(ctx); err != nil {
 		t.Fatal(err)
 	}
 
+	// Persist a canvas node that references the image filesystem object.
 	canvas := &s4wave_canvas.CanvasState{Nodes: map[string]*s4wave_canvas.CanvasNode{
 		"unixfs-demo": {
 			Id:        "unixfs-demo",
@@ -117,6 +126,7 @@ func TestExportSpaceWithCanvasWorldObjectNode(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Open the projected Space namespace for export.
 	root, err := space_unixfs.BuildFSHandle(le, world.NewEngineWorldState(wtb.Engine, false), 19, "space-canvas-export")
 	if err != nil {
 		t.Fatal(err)
@@ -128,10 +138,13 @@ func TestExportSpaceWithCanvasWorldObjectNode(t *testing.T) {
 	}
 	defer space.Release()
 
+	// Export the Space to an in-memory archive.
 	var buf bytes.Buffer
 	if err := exportZip(ctx, &buf, space); err != nil {
 		t.Fatal(err)
 	}
+
+	// Find and verify the image bytes in the exported archive.
 	zr, err := zip.NewReader(bytes.NewReader(buf.Bytes()), int64(buf.Len()))
 	if err != nil {
 		t.Fatal(err)
@@ -161,6 +174,7 @@ func TestExportSpaceWithCanvasWorldObjectNode(t *testing.T) {
 		t.Fatalf("missing exported image in %#v", zr.File)
 	}
 
+	// Read the canvas object after exporting the Space.
 	canvasObject, found, err := ws.GetObject(ctx, "canvas")
 	if err != nil {
 		t.Fatal(err)
@@ -169,6 +183,8 @@ func TestExportSpaceWithCanvasWorldObjectNode(t *testing.T) {
 		t.Fatal("canvas object disappeared after export")
 	}
 	defer world.ReleaseObjectState(canvasObject)
+
+	// Verify that exporting the Space preserves the canvas state.
 	var persistedState *s4wave_canvas.CanvasState
 	if _, _, err := world.AccessObjectState(ctx, canvasObject, false, func(bcs *block.Cursor) error {
 		persistedState, err = s4wave_canvas.UnmarshalCanvasState(ctx, bcs)

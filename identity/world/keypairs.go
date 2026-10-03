@@ -50,6 +50,7 @@ func FollowKeypair(
 	accessState world.AccessWorldStateFunc,
 	keypairRef *bucket.ObjectRef,
 ) (*identity.Keypair, error) {
+	// Validate the keypair reference before reading its block.
 	var err error
 	if keypairRef.GetEmpty() {
 		return nil, errors.New("empty keypair ref")
@@ -57,6 +58,8 @@ func FollowKeypair(
 	if err := keypairRef.Validate(); err != nil {
 		return nil, err
 	}
+
+	// Decode and validate the referenced keypair record.
 	var entity *identity.Keypair
 	_, err = world.AccessObject(ctx, accessState, keypairRef, func(bcs *block.Cursor) error {
 		// Decode the referenced keypair block.
@@ -85,6 +88,7 @@ func LookupKeypairOp(ctx context.Context, opTypeID string) (world.Operation, err
 // LookupKeypair looks up an entity with the given key.
 // returns nil, nil, nil if not found.
 func LookupKeypair(ctx context.Context, w world.WorldState, objKey string) (*identity.Keypair, world.ObjectState, error) {
+	// Look up the keypair object and preserve its handle for the caller.
 	obj, objFound, err := w.GetObject(ctx, objKey)
 	if err != nil {
 		world.ReleaseObjectState(obj)
@@ -93,6 +97,8 @@ func LookupKeypair(ctx context.Context, w world.WorldState, objKey string) (*ide
 	if !objFound {
 		return nil, nil, nil
 	}
+
+	// Decode the stored keypair while preserving its object handle.
 	var entity *identity.Keypair
 	_, _, err = world.AccessObjectState(ctx, obj, false, func(bcs *block.Cursor) error {
 		var err error
@@ -129,6 +135,7 @@ func LookupKeypairs(ctx context.Context, w world.WorldState, objKeys []string) (
 // CollectAllKeypairs collects all Keypair states located in the store.
 // returns list of entities and object keys
 func CollectAllKeypairs(ctx context.Context, w world.WorldState) ([]*identity.Keypair, []string, error) {
+	// Collect and sort the object keys for stored keypairs.
 	var objKeys []string
 	err := world_types.IterateObjectsWithType(ctx, w, KeypairTypeID, func(objKey string) (bool, error) {
 		if !strings.HasPrefix(objKey, KeypairPrefix) {
@@ -167,11 +174,13 @@ func ListKeypairEntities(ctx context.Context, w world.WorldState, keypairKeys ..
 // CollectKeypairEntities collects all Entity linking to the keypairs.
 // returns list of Entities and object keys
 func CollectKeypairEntities(ctx context.Context, w world.WorldState, keypairKeys ...string) ([]*identity.Entity, []string, error) {
+	// Find the entity objects linked to the selected keypairs.
 	objKeys, err := ListKeypairEntities(ctx, w, keypairKeys...)
 	if err != nil {
 		return nil, nil, err
 	}
 
+	// Read the entities identified by the keypair links.
 	ents, err := LookupEntities(ctx, w, objKeys)
 	if err != nil {
 		return nil, objKeys, err
@@ -207,11 +216,13 @@ func ListObjectKeypairs(ctx context.Context, w world.WorldState, objectKeys ...s
 // CollectObjectKeypairs collects all Keypair linked to by the given Objects.
 // returns list of Keypair
 func CollectObjectKeypairs(ctx context.Context, w world.WorldState, objectKeys ...string) ([]*identity.Keypair, []string, error) {
+	// Find the keypair objects linked to the selected objects.
 	kpObjectKeys, err := ListEntityKeypairs(ctx, w, objectKeys...)
 	if err != nil {
 		return nil, nil, err
 	}
 
+	// Read each linked keypair without retaining its object handle.
 	kps := make([]*identity.Keypair, len(kpObjectKeys))
 	for i, objKey := range kpObjectKeys {
 		var err error

@@ -14,6 +14,7 @@ import (
 )
 
 func TestWalkAndZipUnixFS(t *testing.T) {
+	// Prepare a filesystem fixture with nested files and an empty directory.
 	ctx := context.Background()
 	mfs := fstest.MapFS{
 		"hello.txt":         {Data: []byte("hello world")},
@@ -22,6 +23,7 @@ func TestWalkAndZipUnixFS(t *testing.T) {
 		"empty-dir":         {Mode: 0o755 | fs.ModeDir},
 	}
 
+	// Open a filesystem handle over the archive fixture.
 	cursor, err := unixfs_iofs.NewFSCursor(mfs)
 	if err != nil {
 		t.Fatal(err)
@@ -33,6 +35,7 @@ func TestWalkAndZipUnixFS(t *testing.T) {
 	}
 	defer fsh.Release()
 
+	// Export the filesystem fixture and open its archive.
 	var buf bytes.Buffer
 	if err := exportZip(ctx, &buf, fsh); err != nil {
 		t.Fatal(err)
@@ -42,6 +45,7 @@ func TestWalkAndZipUnixFS(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Index the archive entries and verify each expected file.
 	entries := make(map[string]*zip.File)
 	for _, f := range zr.File {
 		entries[f.Name] = f
@@ -75,6 +79,7 @@ func TestWalkAndZipUnixFS(t *testing.T) {
 		}
 	}
 
+	// Verify that the archive preserves nested directory entries.
 	for _, name := range []string{"subdir/", "subdir/deep/"} {
 		if _, ok := entries[name]; !ok {
 			t.Errorf("missing expected directory entry: %s", name)

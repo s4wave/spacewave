@@ -56,10 +56,12 @@ func readCompressed(reader io.ReadCloser, err error) ([]byte, error) {
 }
 
 func normalizeBatchPaths(relPaths []string) ([]string, error) {
+	// Require a path selection before normalizing the batch.
 	if len(relPaths) == 0 {
 		return nil, errors.New("batch request requires at least one path")
 	}
 
+	// Normalize and deduplicate the selected descendant paths.
 	seen := make(map[string]struct{}, len(relPaths))
 	normalized := make([]string, 0, len(relPaths))
 	for _, relPath := range relPaths {
@@ -78,6 +80,7 @@ func normalizeBatchPaths(relPaths []string) ([]string, error) {
 }
 
 func normalizeBatchPath(relPath string) (string, error) {
+	// Reject empty and absolute paths from the batch selection.
 	trimmedPath := strings.TrimSpace(relPath)
 	if trimmedPath == "" {
 		return "", errors.New("batch path is empty")
@@ -86,6 +89,7 @@ func normalizeBatchPath(relPath string) (string, error) {
 		return "", errors.New("batch path must be relative")
 	}
 
+	// Reject normalized paths that do not identify a descendant.
 	cleanPath := path.Clean(trimmedPath)
 	if cleanPath == "." {
 		return "", errors.New("batch path must identify a descendant")

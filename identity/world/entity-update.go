@@ -56,9 +56,10 @@ func (o *EntityUpdateOp) ApplyWorldOp(
 	worldHandle world.WorldState,
 	sender peer.ID,
 ) (sysErr bool, err error) {
+	// Resolve the entity object key and validation for the reference update.
 	entityRef := o.GetEntityRef()
-
 	resolve := func(ctx context.Context) (string, func() error, error) {
+		// Read the referenced entity and derive its World object key.
 		entity, err := FollowEntity(ctx, worldHandle.AccessWorldState, entityRef)
 		if err != nil || entity == nil {
 			return "", nil, err
@@ -68,6 +69,7 @@ func (o *EntityUpdateOp) ApplyWorldOp(
 		return NewEntityKey(domainID, entityID), validate, nil
 	}
 
+	// Apply the entity reference to the resolved World object.
 	if _, err := applyRefUpdate(ctx, worldHandle, entityRef, EntityTypeID, resolve); err != nil {
 		return false, err
 	}
@@ -92,6 +94,7 @@ func (o *EntityUpdateOp) ApplyWorldOp(
 		return false, err
 	}
 
+	// Derive the entity object key for its graph links.
 	domainID, entityID := entity.GetDomainId(), entity.GetEntityId()
 	objKey := NewEntityKey(domainID, entityID)
 

@@ -70,16 +70,19 @@ func (c *Controller) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Controller) serveProjectedExport(w http.ResponseWriter, r *http.Request) {
+	// Use the HTTP request context and the export controller services.
 	ctx := r.Context()
 	le := c.GetLogger()
 	b := c.GetBus()
 
+	// Decode the projected export URL before resolving its Space.
 	req, err := parseExportURL(r.URL.Path)
 	if err != nil {
 		http.Error(w, "invalid export URL: "+err.Error(), http.StatusBadRequest)
 		return
 	}
 
+	// Resolve the Space engine for the duration of the export.
 	resolved, cleanup, err := space_resolve.ResolveSpace(ctx, b, req.sessionIdx, req.sharedObjectID)
 	if err != nil {
 		le.WithError(err).Warn("failed to resolve space for export")
@@ -88,6 +91,7 @@ func (c *Controller) serveProjectedExport(w http.ResponseWriter, r *http.Request
 	}
 	defer cleanup()
 
+	// Open the projected filesystem over the resolved World.
 	ws := world.NewEngineWorldState(resolved.Engine, false)
 	rootHandle, err := space_unixfs.BuildFSHandle(le, ws, req.sessionIdx, req.sharedObjectID)
 	if err != nil {
@@ -97,6 +101,7 @@ func (c *Controller) serveProjectedExport(w http.ResponseWriter, r *http.Request
 	}
 	defer rootHandle.Release()
 
+	// Open the selected export target and retain it through streaming.
 	lookupPath, zipRoot := resolveProjectedExportTarget(req)
 	targetHandle, _, err := rootHandle.LookupPath(ctx, lookupPath)
 	if err != nil {
@@ -108,6 +113,7 @@ func (c *Controller) serveProjectedExport(w http.ResponseWriter, r *http.Request
 	}
 	defer targetHandle.Release()
 
+	// Send the projected archive with its download headers.
 	w.Header().Set("Content-Type", "application/zip")
 	space_http_header.SetAttachmentHeader(w, buildExportFilename(req.projectedPath))
 	if err := streamProjectedExport(ctx, w, targetHandle, zipRoot); err != nil {
@@ -116,16 +122,19 @@ func (c *Controller) serveProjectedExport(w http.ResponseWriter, r *http.Request
 }
 
 func (c *Controller) serveBatchExport(w http.ResponseWriter, r *http.Request) {
+	// Use the HTTP request context and the batch export controller services.
 	ctx := r.Context()
 	le := c.GetLogger()
 	b := c.GetBus()
 
+	// Decode the batch export URL before resolving its Space.
 	req, err := parseBatchExportURL(r.URL.Path)
 	if err != nil {
 		http.Error(w, "invalid export-batch URL: "+err.Error(), http.StatusBadRequest)
 		return
 	}
 
+	// Resolve the Space engine for the duration of the batch export.
 	resolved, cleanup, err := space_resolve.ResolveSpace(ctx, b, req.sessionIdx, req.sharedObjectID)
 	if err != nil {
 		le.WithError(err).Warn("failed to resolve space for batch export")
@@ -134,6 +143,7 @@ func (c *Controller) serveBatchExport(w http.ResponseWriter, r *http.Request) {
 	}
 	defer cleanup()
 
+	// Open the projected filesystem over the resolved World.
 	ws := world.NewEngineWorldState(resolved.Engine, false)
 	rootHandle, err := space_unixfs.BuildFSHandle(le, ws, req.sessionIdx, req.sharedObjectID)
 	if err != nil {
@@ -143,6 +153,7 @@ func (c *Controller) serveBatchExport(w http.ResponseWriter, r *http.Request) {
 	}
 	defer rootHandle.Release()
 
+	// Open the batch base directory and retain it through streaming.
 	baseHandle, _, err := rootHandle.LookupPath(ctx, req.basePath)
 	if err != nil {
 		if baseHandle != nil {
@@ -153,6 +164,7 @@ func (c *Controller) serveBatchExport(w http.ResponseWriter, r *http.Request) {
 	}
 	defer baseHandle.Release()
 
+	// Send the selected paths as an archive with its download headers.
 	w.Header().Set("Content-Type", "application/zip")
 	space_http_header.SetAttachmentHeader(w, req.filename)
 	if err := exportBatchZip(ctx, w, baseHandle, req.paths); err != nil {

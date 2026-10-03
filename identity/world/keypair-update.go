@@ -31,11 +31,13 @@ func StoreKeypair(
 	kp *identity.Keypair,
 	overwrite bool,
 ) (uint64, bool, error) {
+	// Read the keypair peer ID before choosing its object key.
 	pid, err := kp.ParsePeerID()
 	if err != nil {
 		return 0, false, err
 	}
 
+	// Preserve an existing keypair when overwriting is disabled.
 	key := NewKeypairKey(pid.String())
 	if !overwrite {
 		existing, err := LookupKeypairBody(ctx, w, key)
@@ -63,6 +65,7 @@ func LookupOrStoreKeypair(
 	authMethodID string,
 	authMethodParams []byte,
 ) (*identity.Keypair, string, error) {
+	// Require a valid peer ID before finding or creating its keypair.
 	keypairPeerStr := keypairPeer.String()
 	if keypairPeer == "" {
 		return nil, "", peer.ErrEmptyPeerID
@@ -71,6 +74,7 @@ func LookupOrStoreKeypair(
 		return nil, "", err
 	}
 
+	// Find the stored keypair or create it from the peer public key.
 	kpKey := NewKeypairKey(keypairPeerStr)
 	kp, err := LookupKeypairBody(ctx, w, kpKey)
 	if err != nil {
@@ -104,6 +108,7 @@ func EnsureKeypairsExist(
 	kps []*identity.Keypair,
 	overwrite bool,
 ) ([]string, error) {
+	// Prepare the duplicate tracking and object keys for the keypair batch.
 	createdKp := make(map[string]struct{})
 	kpObjectKeys := make([]string, len(kps))
 
@@ -156,6 +161,7 @@ func (o *KeypairUpdateOp) ApplyWorldOp(
 	kpRef := o.GetKeypairRef()
 
 	resolve := func(ctx context.Context) (string, func() error, error) {
+		// Resolve the referenced keypair and its validation for the update.
 		kp, err := FollowKeypair(ctx, worldHandle.AccessWorldState, kpRef)
 		if err != nil {
 			return "", nil, err

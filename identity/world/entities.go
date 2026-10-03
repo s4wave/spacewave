@@ -49,6 +49,7 @@ func FollowEntity(
 	accessState world.AccessWorldStateFunc,
 	entityRef *bucket.ObjectRef,
 ) (*identity.Entity, error) {
+	// Validate the entity reference before reading its block.
 	var err error
 	if entityRef.GetEmpty() {
 		return nil, errors.New("empty entity ref")
@@ -56,6 +57,8 @@ func FollowEntity(
 	if err := entityRef.Validate(); err != nil {
 		return nil, err
 	}
+
+	// Decode and validate the referenced entity record.
 	var entity *identity.Entity
 	_, err = world.AccessObject(ctx, accessState, entityRef, func(bcs *block.Cursor) error {
 		// Decode the referenced entity block.
@@ -84,6 +87,7 @@ func LookupEntityOp(ctx context.Context, opTypeID string) (world.Operation, erro
 // LookupEntity looks up an entity with the given key.
 // returns nil, nil, nil if not found.
 func LookupEntity(ctx context.Context, w world.WorldState, objKey string) (*identity.Entity, world.ObjectState, error) {
+	// Look up the entity object and preserve its handle for the caller.
 	obj, objFound, err := w.GetObject(ctx, objKey)
 	if err != nil {
 		world.ReleaseObjectState(obj)
@@ -92,6 +96,8 @@ func LookupEntity(ctx context.Context, w world.WorldState, objKey string) (*iden
 	if !objFound {
 		return nil, nil, nil
 	}
+
+	// Decode the stored entity while preserving its object handle.
 	var entity *identity.Entity
 	_, _, err = world.AccessObjectState(ctx, obj, false, func(bcs *block.Cursor) error {
 		var err error
@@ -124,6 +130,7 @@ func LookupEntities(ctx context.Context, w world.WorldState, objKeys []string) (
 // CollectAllEntities collects all Entity states located in the store.
 // returns list of entities and object keys
 func CollectAllEntities(ctx context.Context, w world.WorldState) ([]*identity.Entity, []string, error) {
+	// Collect and sort the object keys for stored entities.
 	var objKeys []string
 	err := world_types.IterateObjectsWithType(ctx, w, EntityTypeID, func(objKey string) (bool, error) {
 		if !strings.HasPrefix(objKey, EntityPrefix) {

@@ -10,11 +10,13 @@ import (
 )
 
 func exportBatchZip(ctx context.Context, w io.Writer, baseHandle *unixfs.FSHandle, relPaths []string) error {
+	// Validate the selected descendant paths before opening the archive.
 	normalizedPaths, err := normalizeBatchPaths(relPaths)
 	if err != nil {
 		return err
 	}
 
+	// Write each selected filesystem target into the batch archive.
 	zw := zip.NewWriter(w)
 	for _, relPath := range normalizedPaths {
 		targetHandle, _, err := baseHandle.LookupPath(ctx, relPath)

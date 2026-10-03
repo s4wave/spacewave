@@ -39,8 +39,8 @@ func (o *countingObjectState) Release() {
 // TestIdentityBatchLookupsReleaseStates fails if the identity batch lookups
 // leave their remote-releasable ObjectState handles alive.
 func TestIdentityBatchLookupsReleaseStates(t *testing.T) {
+	// Start a World testbed for the identity lookup fixtures.
 	ctx := context.Background()
-
 	tb, err := world_testbed.Default(ctx)
 	if err != nil {
 		t.Fatal(err)
@@ -74,13 +74,17 @@ func TestIdentityBatchLookupsReleaseStates(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Count object handle releases through a wrapped World state.
 	var released int
 	cws := &countingWorldState{WorldState: w, released: &released}
 
+	// Look up the found and missing keypairs through the counting World.
 	kps, err := LookupKeypairs(ctx, cws, []string{NewKeypairKey(kp.GetPeerId()), NewKeypairKey("missing-peer")})
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Verify the found and missing keypairs and the release count.
 	if len(kps) != 2 || kps[0] == nil || kps[1] != nil {
 		t.Fatalf("expected one found keypair and one missing, got %#v", kps)
 	}
@@ -88,10 +92,13 @@ func TestIdentityBatchLookupsReleaseStates(t *testing.T) {
 		t.Fatalf("LookupKeypairs: released %d states, want 1", released)
 	}
 
+	// Look up the stored entity through the counting World.
 	ents, err := LookupEntities(ctx, cws, []string{NewEntityKey("test-domain", "test-entity")})
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Verify the found entity and the cumulative release count.
 	if len(ents) != 1 || ents[0] == nil {
 		t.Fatalf("expected one entity, got %#v", ents)
 	}
@@ -99,10 +106,13 @@ func TestIdentityBatchLookupsReleaseStates(t *testing.T) {
 		t.Fatalf("LookupEntities: released %d states total, want 2", released)
 	}
 
+	// Look up the stored domain information through the counting World.
 	dis, err := LookupDomainInfos(ctx, cws, []string{NewDomainInfoKey("test-domain")})
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Verify the found domain information and the cumulative release count.
 	if len(dis) != 1 || dis[0] == nil {
 		t.Fatalf("expected one domain info, got %#v", dis)
 	}
