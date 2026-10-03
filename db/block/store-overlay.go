@@ -92,15 +92,20 @@ func (o *StoreOverlay) GetSupportedFeatures() StoreFeature {
 
 // BeginReadOperation opens read scopes for the overlay stores.
 func (o *StoreOverlay) BeginReadOperation(ctx context.Context) (StoreOps, func(), error) {
+	// Open the lower store's read scope.
 	lower, lowerRelease, err := o.lower.BeginReadOperation(ctx)
 	if err != nil {
 		return nil, nil, err
 	}
+
+	// Open the upper store's scope and release the lower scope on failure.
 	upper, upperRelease, err := o.upper.BeginReadOperation(ctx)
 	if err != nil {
 		lowerRelease()
 		return nil, nil, err
 	}
+
+	// Return an overlay that borrows both scopes until its release callback runs.
 	scoped := *o
 	scoped.lower = lower
 	scoped.upper = upper
@@ -138,14 +143,19 @@ func (o *StoreOverlay) readRoute() (first, second, fill StoreOps) {
 // Returns nil, false, nil if not found.
 // Note: the block may not be in the specified bucket.
 func (o *StoreOverlay) GetBlock(ctx context.Context, ref *BlockRef) ([]byte, bool, error) {
+	// Read the block from the overlay's first store.
 	first, second, fill := o.readRoute()
 	data, found, err := first.GetBlock(ctx, ref)
 	if err != nil || found || second == nil {
 		return data, found, err
 	}
+
+	// Read directly from the second store when the overlay does not fill a cache.
 	if fill == nil {
 		return second.GetBlock(ctx, ref)
 	}
+
+	// Read the second store and carry its reference edges into the cache fill.
 	stored, err := o.readFill(ctx, second, fill, ref)
 	if err != nil || stored == nil {
 		return nil, false, err
@@ -181,9 +191,12 @@ func (o *StoreOverlay) readFill(ctx context.Context, second, fill StoreOps, ref 
 // fill writes a block read from the second store back to the first store in
 // the background, bounded by the overlay context and writeback timeout.
 func (o *StoreOverlay) fill(target StoreOps, ref *BlockRef, stored *StoredBlock) {
+	// Skip cache writeback after the overlay lifetime ends.
 	if o.ctx.Err() != nil {
 		return
 	}
+
+	// Bound the cache writeback by the overlay lifetime and configured deadline.
 	var ctx context.Context
 	var cancel context.CancelFunc
 	if o.writebackTimeout > 0 {
@@ -191,12 +204,16 @@ func (o *StoreOverlay) fill(target StoreOps, ref *BlockRef, stored *StoredBlock)
 	} else {
 		ctx, cancel = context.WithCancel(o.ctx)
 	}
+
+	// Preserve the stored block's identity and outgoing edges during writeback.
 	putOpts := o.writebackPutOpts.CloneVT()
 	if putOpts == nil {
 		putOpts = &PutOpts{}
 	}
 	putOpts.ForceBlockRef = ref.Clone()
 	putOpts.Refs = CloneBlockRefs(stored.Refs)
+
+	// Give the background writeback its own payload and cancellation cleanup.
 	// The caller receives stored.Data and may modify it during the writeback.
 	data := bytes.Clone(stored.Data)
 	go func() {
@@ -247,10 +264,13 @@ func (o *StoreOverlay) PutBlock(ctx context.Context, data []byte, opts *PutOpts)
 	}
 
 	cacheMode := func(s1, s2 StoreOps) (*BlockRef, bool, error) {
+		// Write the first store to establish the block reference.
 		ref, existed, err := s1.PutBlock(ctx, data, putOpts)
 		if err != nil {
 			return nil, false, err
 		}
+
+		// Write the second store with the same reference and combine existence results.
 		lowerOpts := putOpts.CloneVT()
 		if lowerOpts == nil {
 			lowerOpts = &PutOpts{}
@@ -332,6 +352,7 @@ func (o *StoreOverlay) PutBlockBatch(ctx context.Context, entries []*PutBatchEnt
 
 // GetBlockExistsBatch checks block existence using the same read policy as GetBlockExists.
 func (o *StoreOverlay) GetBlockExistsBatch(ctx context.Context, refs []*BlockRef) ([]bool, error) {
+	// Query the overlay's first store before consulting its fallback.
 	first, second, _ := o.readRoute()
 	out, err := first.GetBlockExistsBatch(ctx, refs)
 	if err != nil || second == nil {
@@ -351,10 +372,14 @@ func (o *StoreOverlay) GetBlockExistsBatch(ctx context.Context, refs []*BlockRef
 	if len(missing) == 0 {
 		return out, nil
 	}
+
+	// Resolve the missing references through the second store.
 	secondOut, err := second.GetBlockExistsBatch(ctx, missing)
 	if err != nil {
 		return nil, err
 	}
+
+	// Merge the second store's answers into the original reference order.
 	for i, found := range secondOut {
 		out[missingIdx[i]] = found
 	}
