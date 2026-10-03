@@ -84,16 +84,19 @@ func RegisterTypedObjectResource(mux srpc.Mux, le *logrus.Entry, b bus.Bus, ws w
 
 // Close releases shared typed object handles owned by this resource mount.
 func (r *TypedObjectResource) Close() {
+	// Cancel factories before taking the keyed lock they hold during construction.
 	if !r.closed.CompareAndSwap(false, true) {
 		return
 	}
+	r.lifecycleCancel()
+
+	// Release constructed handles after blocked factories have returned.
 	for _, keyedObject := range r.objects.GetKeysWithData() {
 		if keyedObject.Data != nil {
 			keyedObject.Data.close()
 		}
 	}
 	r.objects.ClearContext()
-	r.lifecycleCancel()
 }
 
 // WatchTypedObject retains scoped handler demand and revokes obsolete children.
@@ -264,9 +267,12 @@ type typedObjectHandle struct {
 
 // close releases the registered invoker exactly once.
 func (h *typedObjectHandle) close() {
+	// Claim the invoker cleanup before releasing its factory resources.
 	if !h.closed.CompareAndSwap(false, true) {
 		return
 	}
+
+	// Release the factory resources when the invoker owns a cleanup callback.
 	if h.cleanup != nil {
 		h.cleanup()
 	}
@@ -309,6 +315,7 @@ func (r *TypedObjectResource) buildTypedObjectHandle(key typedObjectResourceKey)
 		cleanup: cleanup,
 	}
 	routine := func(ctx context.Context) error {
+		// Release the invoker after its shared routine is canceled.
 		<-ctx.Done()
 		handle.close()
 		return nil
@@ -322,8 +329,7 @@ func (r *TypedObjectResource) accessPluginUnixFS(
 	resourceCtx resource_server.ResourceClientContext,
 	unixfsID string,
 ) (*s4wave_world.AccessTypedObjectResponse, error) {
-	// Use the AccessUnixFS directive to get an FSHandle from the plugin host
-	// returnIfIdle=false: wait for a resolver, valDisposeCb=nil
+	// Retain plugin filesystem demand until its Resource is released.
 	accessFunc, ref, err := unixfs_access.ExAccessUnixFS(ctx, r.b, unixfsID, false, nil)
 	if err != nil {
 		return nil, err
@@ -335,14 +341,14 @@ func (r *TypedObjectResource) accessPluginUnixFS(
 		return nil, world.ErrObjectNotFound
 	}
 
-	// Get the FSHandle from the access function
+	// Acquire the filesystem handle from the resolved plugin.
 	fsHandle, handleCleanup, err := accessFunc(ctx, nil)
 	if err != nil {
 		ref.Release()
 		return nil, err
 	}
 
-	// Create the FSHandle resource which mirrors hydra/unixfs.FSHandle
+	// Serve the acquired filesystem through its Resource interface.
 	resource := resource_unixfs.NewFSHandleResource(fsHandle)
 
 	// Bind filesystem cleanup to the registered typed Resource.
@@ -351,7 +357,7 @@ func (r *TypedObjectResource) accessPluginUnixFS(
 		ref.Release()
 	}
 
-	// Register the typed resource
+	// Transfer filesystem ownership to the registered child Resource.
 	id, err := resourceCtx.AddResourceValue(resource.GetMux(), resource, cleanup)
 	if err != nil {
 		cleanup()
