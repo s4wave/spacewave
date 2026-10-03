@@ -37,10 +37,12 @@ type Testbed struct {
 
 // NewTestbed constructs a new layout testbed from a world testbed.
 func NewTestbed(ctx context.Context, tb *world_testbed.Testbed, opts ...Option) (t *Testbed, tbErr error) {
+	// Require the World testbed that supplies the layout storage and bus.
 	if tb == nil {
 		return nil, errors.New("testbed cannot be nil")
 	}
 
+	// Release acquired controllers and clients if layout testbed construction fails.
 	var rels []func()
 	defer func() {
 		if tbErr != nil {
@@ -50,6 +52,7 @@ func NewTestbed(ctx context.Context, tb *world_testbed.Testbed, opts ...Option) 
 		}
 	}()
 
+	// Reject unsupported layout testbed options before acquiring resources.
 	for _, opt := range opts {
 		switch opt.(type) {
 		default:
@@ -71,6 +74,7 @@ func NewTestbed(ctx context.Context, tb *world_testbed.Testbed, opts ...Option) 
 	}
 	rels = append(rels, objectTypeCtrlRelease)
 
+	// Connect the layout testbed to its root resource service.
 	resClient, clientCleanup, err := setupResourceClient(ctx, tb)
 	if err != nil {
 		return nil, errors.Wrap(err, "setup resource client")
@@ -87,6 +91,7 @@ func NewTestbed(ctx context.Context, tb *world_testbed.Testbed, opts ...Option) 
 
 // setupResourceClient creates pipes, muxed connections, and resource client.
 func setupResourceClient(ctx context.Context, tb *world_testbed.Testbed) (*resource_client.Client, func(), error) {
+	// Configure logging for the in-memory resource connection.
 	logger := logrus.New()
 	logger.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(logger)
@@ -139,6 +144,7 @@ func setupResourceClient(ctx context.Context, tb *world_testbed.Testbed) (*resou
 		return nil, nil, errors.Wrap(err, "create resource client")
 	}
 
+	// Release the resource client and both pipe endpoints together.
 	cleanup := func() {
 		resClient.Release()
 		clientPipe.Close()
@@ -150,10 +156,13 @@ func setupResourceClient(ctx context.Context, tb *world_testbed.Testbed) (*resou
 
 // Default constructs the default layout testbed arrangement.
 func Default(ctx context.Context, opts ...Option) (*Testbed, error) {
+	// Construct the World testbed that supplies layout storage.
 	tb, err := world_testbed.Default(ctx)
 	if err != nil {
 		return nil, err
 	}
+
+	// Attach layout services and release the World testbed if setup fails.
 	tb2, err := NewTestbed(ctx, tb, opts...)
 	if err != nil {
 		tb.Release()
@@ -188,20 +197,24 @@ type Setup struct {
 // SetupLayoutEngine creates an engine with ObjectLayout registered and a demo
 // layout resource retained for the returned Setup.
 func (t *Testbed) SetupLayoutEngine(ctx context.Context, objectKey string) (*Setup, error) {
+	// Retain the root resource while creating the layout World.
 	rootRef := t.ResClient.AccessRootResource()
 	defer rootRef.Release()
 
+	// Open the root resource RPC client for World creation.
 	srpcClient, err := rootRef.GetClient()
 	if err != nil {
 		return nil, errors.Wrap(err, "get SRPC client")
 	}
 
+	// Create the World resource through the testbed root service.
 	testbedClient := s4wave_testbed.NewSRPCTestbedResourceServiceClient(srpcClient)
 	createWorldResp, err := testbedClient.CreateWorld(ctx, &s4wave_testbed.CreateWorldRequest{})
 	if err != nil {
 		return nil, errors.Wrap(err, "create world")
 	}
 
+	// Adopt the World resource as the layout engine.
 	engineRef := t.ResClient.CreateResourceReference(createWorldResp.ResourceId)
 	engine, err := s4wave_world.NewEngine(t.ResClient, engineRef)
 	if err != nil {
@@ -216,6 +229,7 @@ func (t *Testbed) SetupLayoutEngine(ctx context.Context, objectKey string) (*Set
 		return nil, errors.Wrap(err, "create transaction")
 	}
 
+	// Encode the operation that initializes the layout object.
 	op := space_world_ops.NewInitObjectLayoutOp(objectKey, time.Now())
 	opData, err := op.MarshalBlock()
 	if err != nil {
@@ -224,6 +238,7 @@ func (t *Testbed) SetupLayoutEngine(ctx context.Context, objectKey string) (*Set
 		return nil, errors.Wrap(err, "marshal block")
 	}
 
+	// Apply the layout initialization operation to the write transaction.
 	_, _, err = sdkTx.ApplyWorldOp(ctx, space_world_ops.InitObjectLayoutOpId, opData, "")
 	if err != nil {
 		sdkTx.Release()
@@ -231,6 +246,7 @@ func (t *Testbed) SetupLayoutEngine(ctx context.Context, objectKey string) (*Set
 		return nil, errors.Wrap(err, "apply world op")
 	}
 
+	// Commit the initialized layout and release its write transaction.
 	err = sdkTx.Commit(ctx)
 	if err != nil {
 		sdkTx.Release()
@@ -248,12 +264,14 @@ func (t *Testbed) SetupLayoutEngine(ctx context.Context, objectKey string) (*Set
 	}
 	defer readTx.Release()
 
+	// Open the read transaction RPC client for typed object access.
 	txSrpcClient, err := readTx.GetResourceRef().GetClient()
 	if err != nil {
 		engine.Release()
 		return nil, errors.Wrap(err, "get tx client")
 	}
 
+	// Access the layout object through the typed object service.
 	typedSvcClient := s4wave_world.NewSRPCTypedObjectResourceServiceClient(txSrpcClient)
 	resp, err := typedSvcClient.AccessTypedObject(ctx, &s4wave_world.AccessTypedObjectRequest{
 		ObjectKey: objectKey,

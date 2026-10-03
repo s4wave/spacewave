@@ -28,11 +28,14 @@ func NewProxyInvoker(client SRPCAccessRpcServiceClient, req *LookupRpcServiceReq
 // Returns false, nil if not found.
 // If service string is empty, ignore it.
 func (r *ProxyInvoker) InvokeMethod(serviceID, methodID string, strm srpc.Stream) (bool, error) {
+	// Select the requested service without changing the proxy lookup request.
 	req := r.req
 	if serviceID != "" && serviceID != req.GetServiceId() {
 		req = req.CloneVT()
 		req.ServiceId = serviceID
 	}
+
+	// Encode the service lookup for the remote RPC stream.
 	componentID, err := req.MarshalComponentID()
 	if err != nil {
 		return false, err
@@ -55,11 +58,13 @@ func (r *ProxyInvoker) InvokeMethod(serviceID, methodID string, strm srpc.Stream
 		return false, err
 	}
 
+	// Track completion of both directions of the proxied call.
 	serverDone := make(chan error, 1)
 	clientDone := make(chan error, 1)
 
 	// Read messages from prw -> write to invoker stream.
 	go func() {
+		// Reuse a zero-copy message for responses from the remote service.
 		proxyMsg := srpc.NewRawMessage(nil, false) // zero-copy mode
 
 		// We have to handle the Packet here because srpc.Stream MsgSend will be
@@ -70,6 +75,7 @@ func (r *ProxyInvoker) InvokeMethod(serviceID, methodID string, strm srpc.Stream
 				// unexpected from server -> client but handle anyway
 				return errors.New("rpc canceled by the remote")
 			case *srpc.Packet_CallData:
+				// Forward the remote call data to the invoking stream.
 				data, dataIsZero := body.CallData.GetData(), body.CallData.GetDataIsZero()
 				complete, errStr := body.CallData.GetComplete(), body.CallData.GetError()
 				if len(data) != 0 || dataIsZero {
@@ -78,6 +84,8 @@ func (r *ProxyInvoker) InvokeMethod(serviceID, methodID string, strm srpc.Stream
 						return err
 					}
 				}
+
+				// Report the remote service error or completion to the packet reader.
 				if errStr != "" {
 					return errors.New(errStr)
 				}
@@ -87,6 +95,8 @@ func (r *ProxyInvoker) InvokeMethod(serviceID, methodID string, strm srpc.Stream
 			}
 			return nil
 		})
+
+		// Deliver remote packets until the service completes or the stream fails.
 		err := rpcstream.ReadToHandler(rpcStream, handler)
 		if err == io.EOF {
 			err = nil
@@ -96,8 +106,10 @@ func (r *ProxyInvoker) InvokeMethod(serviceID, methodID string, strm srpc.Stream
 
 	// Write messages from invoker stream -> rpc client.
 	go func() {
+		// Forward invoking stream messages through a reusable zero-copy message.
 		readMsg := srpc.NewRawMessage(nil, false) // zero-copy mode
 		for {
+			// Complete the remote request when the invoking stream reaches EOF.
 			err := strm.MsgRecv(readMsg)
 			if err == io.EOF {
 				// EOF = normal exit
@@ -105,10 +117,14 @@ func (r *ProxyInvoker) InvokeMethod(serviceID, methodID string, strm srpc.Stream
 				clientDone <- err
 				return
 			}
+
+			// Send each received request body to the remote service.
 			if err == nil {
 				callData := readMsg.GetData()
 				err = packetWriter.WritePacket(srpc.NewCallDataPacket(callData, len(callData) == 0, false, nil))
 			}
+
+			// Notify the remote service and caller when request forwarding fails.
 			if err != nil {
 				// attempt to write the error back to the client rpc
 				_ = packetWriter.WritePacket(srpc.NewCallDataPacket(nil, false, true, err))
@@ -118,6 +134,7 @@ func (r *ProxyInvoker) InvokeMethod(serviceID, methodID string, strm srpc.Stream
 		}
 	}()
 
+	// Return remote completion, or wait for it after request forwarding ends.
 	select {
 	case err := <-serverDone:
 		return true, err

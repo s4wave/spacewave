@@ -38,12 +38,14 @@ func (s *AccessRpcServiceServer) LookupRpcService(
 	req *LookupRpcServiceRequest,
 	strm SRPCAccessRpcService_LookupRpcServiceStream,
 ) error {
+	// Track service availability and queued responses under the broadcast lock.
 	var bcast broadcast.Broadcast
 	var sendQueue []*LookupRpcServiceResponse
 	var disposed bool
 	var resErr error
 	var resIdle bool
 
+	// Resolve the requested server through the server ID override.
 	serverID := req.GetServerId()
 	if s.serverIdCb != nil {
 		var err error
@@ -53,19 +55,24 @@ func (s *AccessRpcServiceServer) LookupRpcService(
 		}
 	}
 
+	// Subscribe to service changes before attaching the lookup directive.
 	var waitCh <-chan struct{}
 	bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
 		waitCh = getWaitCh()
 	})
 
+	// Attach the service lookup and queue availability changes until release.
 	dir := bifrost_rpc.NewLookupRpcService(req.GetServiceId(), serverID)
 	vals := make(map[uint32]struct{})
 	di, ref, err := s.b.AddDirective(dir, bus.NewCallbackHandler(
 		func(av directive.AttachedValue) {
+			// Accept only RPC service invokers from the lookup directive.
 			_, ok := av.GetValue().(bifrost_rpc.LookupRpcServiceValue)
 			if !ok {
 				return
 			}
+
+			// Notify the stream when its first service invoker arrives.
 			bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
 				vals[av.GetValueID()] = struct{}{}
 				if len(vals) == 1 {
@@ -103,8 +110,10 @@ func (s *AccessRpcServiceServer) LookupRpcService(
 	}
 	defer ref.Release()
 
+	// Queue resolver idle transitions and retain the first resolver error.
 	defer di.AddIdleCallback(func(isIdle bool, resErrs []error) {
 		bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
+			// Retain the first lookup failure for the stream to report.
 			if resErr == nil {
 				for _, err := range resErrs {
 					if err != nil {
@@ -114,6 +123,8 @@ func (s *AccessRpcServiceServer) LookupRpcService(
 					}
 				}
 			}
+
+			// Queue the lookup idle state only when it changes.
 			if isIdle == resIdle {
 				return
 			}
@@ -125,13 +136,16 @@ func (s *AccessRpcServiceServer) LookupRpcService(
 		})
 	})()
 
+	// Send lookup changes until cancellation, resolver failure, or disposal.
 	for {
+		// Wait for the next lookup change or stream cancellation.
 		select {
 		case <-strm.Context().Done():
 			return context.Canceled
 		case <-waitCh:
 		}
 
+		// Drain queued responses with the current lookup state and next wakeup.
 		var currSendQueue []*LookupRpcServiceResponse
 		var currDisposed bool
 		var currResErr error
@@ -142,14 +156,20 @@ func (s *AccessRpcServiceServer) LookupRpcService(
 			currResErr, currIdle = resErr, resIdle
 			sendQueue = nil
 		})
+
+		// Report a failed lookup once its resolvers become idle.
 		if currIdle && currResErr != nil && currResErr != context.Canceled {
 			return currResErr
 		}
+
+		// Deliver each queued availability or idle response to the stream.
 		for _, msg := range currSendQueue {
 			if err := strm.Send(msg); err != nil {
 				return err
 			}
 		}
+
+		// End the stream when the lookup directive is disposed.
 		if currDisposed {
 			return errors.New("directive disposed")
 		}
@@ -164,9 +184,13 @@ func (s *AccessRpcServiceServer) CallRpcService(strm SRPCAccessRpcService_CallRp
 		if err := req.UnmarshalComponentID(componentID); err != nil {
 			return nil, nil, err
 		}
+
+		// Validate the requested service before resolving its server.
 		if err := req.Validate(); err != nil {
 			return nil, nil, err
 		}
+
+		// Resolve the requested server through the server ID override.
 		serverID := req.GetServerId()
 		if s.serverIdCb != nil {
 			var err error
@@ -175,6 +199,7 @@ func (s *AccessRpcServiceServer) CallRpcService(strm SRPCAccessRpcService_CallRp
 				return nil, nil, err
 			}
 		}
+
 		// lookup the rpc service invokers
 		invokers, _, invokerRef, err := bifrost_rpc.ExLookupRpcService(
 			ctx,
@@ -187,10 +212,13 @@ func (s *AccessRpcServiceServer) CallRpcService(strm SRPCAccessRpcService_CallRp
 		if err != nil || invokerRef == nil {
 			return nil, nil, err
 		}
+
+		// Release a lookup that produced no callable service.
 		if len(invokers) == 0 {
 			invokerRef.Release()
 			return nil, nil, nil
 		}
+
 		// return the invoker slice
 		return srpc.InvokerSlice(invokers), invokerRef.Release, nil
 	})
