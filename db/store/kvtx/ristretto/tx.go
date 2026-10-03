@@ -54,9 +54,12 @@ func (t *Tx) Exists(ctx context.Context, key []byte) (bool, error) {
 
 // Set sets the value of a key.
 func (t *Tx) Set(ctx context.Context, key, value []byte) error {
+	// Require a live transaction before submitting a cache write.
 	if t.rel.Load() {
 		return kvtx.ErrDiscarded
 	}
+
+	// Submit the value to the cache with the transaction's expiration duration.
 	var ok bool
 	cost := int64(len(value))
 	if t.ttl != 0 {
@@ -64,6 +67,7 @@ func (t *Tx) Set(ctx context.Context, key, value []byte) error {
 	} else {
 		ok = t.db.Set(key, value, cost)
 	}
+
 	// ignore if it was actually set or not
 	_ = ok
 	return nil

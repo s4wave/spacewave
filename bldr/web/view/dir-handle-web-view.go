@@ -39,9 +39,11 @@ func ExHandleWebView(
 	webView WebView,
 	returnIfErr bool,
 ) (err error) {
+	// Scope the web view directive to this handling operation.
 	ctx, ctxCancel := context.WithCancel(rctx)
 	defer ctxCancel()
 
+	// Keep the web view directive active until handling finishes.
 	di, diRef, err := b.AddDirective(
 		NewHandleWebView(webView),
 		bus.NewCallbackHandler(nil, nil, ctxCancel),
@@ -51,6 +53,7 @@ func ExHandleWebView(
 	}
 	defer diRef.Release()
 
+	// Forward resolver failures when the caller requests early error returns.
 	errCh := make(chan error, 1)
 	handleErr := func(err error) {
 		select {
@@ -69,6 +72,7 @@ func ExHandleWebView(
 		})()
 	}
 
+	// Wait for the web view directive to end or report a resolver failure.
 	select {
 	case <-ctx.Done():
 		return context.Canceled

@@ -42,11 +42,13 @@ func NewController(
 	bus bus.Bus,
 	cc *Config,
 ) (*Controller, error) {
+	// Compile the web package identity filter before constructing the controller.
 	webPkgIdRe, err := cc.ParseWebPkgIdRe()
 	if err != nil {
 		return nil, err
 	}
 
+	// Normalize the RPC service prefix used to locate web packages.
 	serviceIDPrefix := cc.GetServiceIdPrefix()
 	if serviceIDPrefix == "" {
 		serviceIDPrefix = web_pkg_rpc.DefServiceIDPrefix

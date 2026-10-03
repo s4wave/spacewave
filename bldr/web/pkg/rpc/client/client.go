@@ -26,9 +26,12 @@ func NewRemoteWebPkg(
 	id string,
 	client web_pkg_rpc.SRPCAccessWebPkgClient,
 ) (*RemoteWebPkg, error) {
+	// Connect the web package filesystem RPC stream to its remote service.
 	fsRpcClient := rpcstream.NewRpcStreamClient(client.WebPkgFsRpc, "", false)
+
 	// verboseClient := srpc.NewVClient(fsRpcClient, le)
 	// fsRpcClient = verboseClient
+	// Open a filesystem handle over the remote cursor service.
 	fsRpcSrvClient := unixfs_rpc.NewSRPCFSCursorServiceClient(fsRpcClient)
 	fsc := unixfs_rpc_client.NewFSCursor(ctx, fsRpcSrvClient)
 	fsh, err := unixfs.NewFSHandle(fsc)

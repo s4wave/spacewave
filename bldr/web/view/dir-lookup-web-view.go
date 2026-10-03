@@ -91,11 +91,13 @@ func (d *lookupWebView) LookupWebViewWait() bool {
 // directives are equivalent, and the new directive does not superceed the
 // old, then the new directive will be merged (de-duplicated) into the old.
 func (d *lookupWebView) IsEquivalent(other directive.Directive) bool {
+	// Require a web view lookup before comparing its request arguments.
 	od, ok := other.(LookupWebView)
 	if !ok {
 		return false
 	}
 
+	// Match the web view identity and waiting policy for directive reuse.
 	if d.LookupWebViewID() != od.LookupWebViewID() {
 		return false
 	}

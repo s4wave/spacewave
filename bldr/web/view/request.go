@@ -15,6 +15,7 @@ func (m *SetRenderModeRequest) Logger(le *logrus.Entry) *logrus.Entry {
 
 // Logger builds the logger for the request.
 func (m *SetHtmlLinksRequest) Logger(le *logrus.Entry) *logrus.Entry {
+	// Describe the request's clearing and removal operations in the log fields.
 	fields := logrus.Fields{}
 	if m.GetClear() {
 		fields["clear"] = true
@@ -22,8 +23,11 @@ func (m *SetHtmlLinksRequest) Logger(le *logrus.Entry) *logrus.Entry {
 	if remove := m.GetRemove(); len(remove) != 0 {
 		fields["remove"] = remove
 	}
+
+	// Describe each replacement link by its relation and destination.
 	for id, link := range m.GetSetLinks() {
 		fields["set-"+id] = link.GetRel() + "@" + link.GetHref()
 	}
+
 	return le.WithFields(fields)
 }

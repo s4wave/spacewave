@@ -19,17 +19,20 @@ func newResolveLookupWebPkg(c *Controller, webPkgID string) *resolveLookupWebPkg
 		c.bus,
 		bifrost_rpc.NewLookupRpcClient(serviceID, c.cc.GetClientId()),
 		func(ctx context.Context, val directive.AttachedValue) (web_pkg.LookupWebPkgValue, func(), bool, error) {
+			// Require an RPC client before opening the remote web package.
 			client, ok := val.GetValue().(bifrost_rpc.LookupRpcClientValue)
 			if !ok {
 				return nil, nil, false, nil
 			}
 
+			// Open the remote web package through its access service.
 			accessClient := web_pkg_rpc.NewSRPCAccessWebPkgClientWithServiceID(client, serviceID)
 			proxyWebPkg, err := NewRemoteWebPkg(ctx, webPkgID, accessClient)
 			if err != nil {
 				return nil, nil, false, err
 			}
 
+			// Publish the web package with its resolver disposal callback.
 			var result web_pkg.WebPkg = proxyWebPkg
 			return result, proxyWebPkg.Release, true, nil
 		},

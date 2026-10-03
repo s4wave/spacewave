@@ -23,26 +23,31 @@ func NewStoreWithCache(db *ristretto.Cache[[]byte, []byte], ttl time.Duration) *
 //
 // conf can be nil
 func NewStore(conf *Config) (*Store, error) {
+	// Size the cache's frequency counters from the store configuration.
 	numCounters := int64(1e5)
 	if cn := conf.GetNumCounters(); cn != 0 {
 		numCounters = int64(cn) //nolint:gosec
 	}
 
+	// Limit the cache's retained value cost from the store configuration.
 	maxCost := int64(1e9)
 	if cn := conf.GetMaxCost(); cn != 0 {
 		maxCost = int64(cn) //nolint:gosec
 	}
 
+	// Size the cache's access buffers from the store configuration.
 	bufferItems := int64(64)
 	if cn := conf.GetBufferItems(); cn != 0 {
 		bufferItems = int64(cn)
 	}
 
+	// Parse the store's expiration duration before constructing the cache.
 	ttlDur, err := conf.ParseTtlDur()
 	if err != nil {
 		return nil, err
 	}
 
+	// Construct the cache with byte-sized value costs and the configured limits.
 	db, err := ristretto.NewCache(&ristretto.Config[[]byte, []byte]{
 		NumCounters: numCounters,
 		MaxCost:     maxCost,
