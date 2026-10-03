@@ -164,7 +164,7 @@ func (s *Store) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, error)
 	return s.newTx(conn, write), nil
 }
 
-// buildConn builds a new connetion.
+// buildConn builds a new connection.
 func (s *Store) buildConn(ctx context.Context, write bool) (redis.Conn, error) {
 	// Borrow a Redis connection and verify its current error state.
 	conn, err := s.pool.GetContext(s.ctx)
@@ -172,6 +172,7 @@ func (s *Store) buildConn(ctx context.Context, write bool) (redis.Conn, error) {
 		return nil, err
 	}
 	if err := conn.Err(); err != nil {
+		_ = conn.Close()
 		return nil, err
 	}
 
@@ -179,12 +180,12 @@ func (s *Store) buildConn(ctx context.Context, write bool) (redis.Conn, error) {
 	// Note: redigo is smart, and automatically cancels the MULTI if the transaction fails.
 	// it may be possible to send multi and defer reading the reply.
 	if write {
-		_, err = conn.Do("MULTI")
-		if err != nil {
+		if _, err := conn.Do("MULTI"); err != nil {
+			_ = conn.Close()
 			return nil, err
 		}
 	}
-	return conn, err
+	return conn, nil
 }
 
 // Execute executes the given store.

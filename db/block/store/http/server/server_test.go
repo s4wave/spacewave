@@ -35,6 +35,7 @@ func TestBlockStoreHTTPServer(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+	defer tb.Release()
 
 	// Create a block to lookup.
 	vol := tb.Volume
@@ -168,6 +169,7 @@ func TestBlockStoreHTTPServer_ReadOnly(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+	defer tb.Release()
 
 	// Create a block to lookup.
 	vol := tb.Volume
@@ -307,6 +309,7 @@ func TestBlockStoreHTTPAsFallback(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+	defer serverTb.Release()
 
 	// Create a block to lookup in the server bucket, which records its refs.
 	serverBkt, _, serverBktRef, err := bucket.ExBuildBucketAPI(ctx, serverTb.Bus, false, serverTb.BucketId, serverTb.Volume.GetID(), nil)
@@ -340,6 +343,7 @@ func TestBlockStoreHTTPAsFallback(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+	defer clientTb.Release()
 	clientTb.StaticResolver.AddFactory(block_store_http.NewFactory(clientTb.Bus))
 
 	// Create the bucket in the client
