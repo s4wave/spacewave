@@ -11,6 +11,7 @@ import (
 	"github.com/s4wave/spacewave/db/unixfs"
 	unixfs_billy "github.com/s4wave/spacewave/db/unixfs/billy"
 	"github.com/tetratelabs/wazero"
+	wazero_exp_sys "github.com/tetratelabs/wazero/experimental/sys"
 	wazero_exp_sysfs "github.com/tetratelabs/wazero/experimental/sysfs"
 	"github.com/tetratelabs/wazero/imports/wasi_snapshot_preview1"
 )
@@ -104,4 +105,47 @@ func TestWazeroFS(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 	_ = mod
+}
+
+// TestFileReadOnlyRejectsWrites verifies that a read-only open rejects writes.
+func TestFileReadOnlyRejectsWrites(t *testing.T) {
+	// Build a memory filesystem holding one file.
+	bfs := memfs.New()
+	if err := billy_util.WriteFile(bfs, "test.txt", []byte(testFileContent), 0o644); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	// Serve the filesystem through the Wazero adapter.
+	ctx := context.Background()
+	fsc := unixfs_billy.NewBillyFSCursor(bfs, "")
+	defer fsc.Release()
+	fsh, err := unixfs.NewFSHandle(fsc)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer fsh.Release()
+	wfs := NewFS(ctx, fsh, nil)
+
+	// Expect both write paths to fail on a read-only open.
+	ro, errno := wfs.OpenFile("test.txt", wazero_exp_sys.O_RDONLY, 0)
+	if errno != 0 {
+		t.Fatalf("open read-only: %v", errno)
+	}
+	defer ro.Close()
+	if _, errno := ro.Write([]byte("x")); errno != wazero_exp_sys.EBADF {
+		t.Fatalf("read-only Write errno = %v, want EBADF", errno)
+	}
+	if _, errno := ro.Pwrite([]byte("x"), 0); errno != wazero_exp_sys.EBADF {
+		t.Fatalf("read-only Pwrite errno = %v, want EBADF", errno)
+	}
+
+	// Expect a read-write open to accept the write.
+	rw, errno := wfs.OpenFile("test.txt", wazero_exp_sys.O_RDWR, 0)
+	if errno != 0 {
+		t.Fatalf("open read-write: %v", errno)
+	}
+	defer rw.Close()
+	if _, errno := rw.Pwrite([]byte("x"), 0); errno != 0 {
+		t.Fatalf("read-write Pwrite errno = %v", errno)
+	}
 }

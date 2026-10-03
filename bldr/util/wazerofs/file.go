@@ -457,6 +457,12 @@ func (f *File) Readdir(n int) (dirents []wazero_sys.Dirent, errno wazero_sys.Err
 	return entries, 0
 }
 
+// writable reports whether the file was opened for writing. O_RDONLY is zero,
+// so only the RDWR and WRONLY access modes grant writes.
+func (f *File) writable() bool {
+	return f.flag&(wazero_sys.O_RDWR|wazero_sys.O_WRONLY) != 0
+}
+
 // Write attempts to write all bytes in `p` to the file, and returns the
 // count written even on error.
 //
@@ -471,21 +477,21 @@ func (f *File) Readdir(n int) (dirents []wazero_sys.Dirent, errno wazero_sys.Err
 //   - This is like io.Writer and `write` in POSIX, preferring semantics of
 //     io.Writer. See https://pubs.opengroup.org/onlinepubs/9699919799/functions/write.html
 func (f *File) Write(buf []byte) (n int, errno wazero_sys.Errno) {
+	// Reject writes after Close.
 	if f.handle == nil {
 		return 0, wazero_sys.EBADF
 	}
 
-	// Check if file is writable
-	if f.flag&wazero_sys.O_RDONLY != 0 {
+	// Reject writes to a file opened read-only.
+	if !f.writable() {
 		return 0, wazero_sys.EBADF
 	}
 
-	// Check if it's a directory
+	// Reject writes to a directory.
 	nodeType, err := f.handle.GetNodeType(f.ctx)
 	if err != nil {
 		return 0, UnixfsErrorToWazeroErrno(err)
 	}
-
 	if nodeType.GetIsDirectory() {
 		return 0, wazero_sys.EBADF
 	}
@@ -508,9 +514,8 @@ func (f *File) Write(buf []byte) (n int, errno wazero_sys.Errno) {
 		return 0, UnixfsErrorToWazeroErrno(err)
 	}
 
-	// Update the offset
+	// Advance the file position past the written bytes.
 	f.offset += int64(len(buf))
-
 	return len(buf), 0
 }
 
@@ -530,6 +535,7 @@ func (f *File) Write(buf []byte) (n int, errno wazero_sys.Errno) {
 //   - This is like io.WriterAt and `pwrite` in POSIX, preferring semantics
 //     of io.WriterAt. See https://pubs.opengroup.org/onlinepubs/9699919799/functions/pwrite.html
 func (f *File) Pwrite(buf []byte, off int64) (n int, errno wazero_sys.Errno) {
+	// Reject writes after Close.
 	if f.handle == nil {
 		return 0, wazero_sys.EBADF
 	}
@@ -539,17 +545,16 @@ func (f *File) Pwrite(buf []byte, off int64) (n int, errno wazero_sys.Errno) {
 		return 0, wazero_sys.EINVAL
 	}
 
-	// Check if file is writable
-	if f.flag&wazero_sys.O_RDONLY != 0 {
+	// Reject writes to a file opened read-only.
+	if !f.writable() {
 		return 0, wazero_sys.EBADF
 	}
 
-	// Check if it's a directory
+	// Reject writes to a directory.
 	nodeType, err := f.handle.GetNodeType(f.ctx)
 	if err != nil {
 		return 0, UnixfsErrorToWazeroErrno(err)
 	}
-
 	if nodeType.GetIsDirectory() {
 		return 0, wazero_sys.EISDIR
 	}
@@ -559,7 +564,6 @@ func (f *File) Pwrite(buf []byte, off int64) (n int, errno wazero_sys.Errno) {
 	if err != nil {
 		return 0, UnixfsErrorToWazeroErrno(err)
 	}
-
 	return len(buf), 0
 }
 
