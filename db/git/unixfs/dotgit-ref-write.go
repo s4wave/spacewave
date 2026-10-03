@@ -29,12 +29,15 @@ func dotGitPathIsLooseObject(path []string) bool {
 }
 
 func dotGitPathIsObjectTemp(path []string) bool {
+	// Exclude paths outside loose Git objects and reserved object directories.
 	if len(path) < 2 || path[0] != "objects" {
 		return false
 	}
 	if path[1] == "info" || path[1] == "pack" {
 		return false
 	}
+
+	// Recognize temporary loose Git objects and temporary object directories.
 	if dotGitIsLooseObjectPrefix(path[1]) {
 		return !dotGitPathIsLooseObject(path)
 	}
@@ -82,13 +85,18 @@ func dotGitReferenceNameFromPath(path []string) plumbing.ReferenceName {
 }
 
 func dotGitParseReferenceContent(name plumbing.ReferenceName, content []byte) (*plumbing.Reference, bool, error) {
+	// Interpret empty Git reference content as a removal.
 	data := bytes.TrimSpace(content)
 	if len(data) == 0 {
 		return nil, true, nil
 	}
+
+	// Validate the destination Git reference name.
 	if err := name.Validate(); err != nil {
 		return nil, false, err
 	}
+
+	// Parse and validate a symbolic Git reference target.
 	text := string(data)
 	if after, ok := strings.CutPrefix(text, "ref:"); ok {
 		target := plumbing.ReferenceName(strings.TrimSpace(after))
@@ -97,6 +105,8 @@ func dotGitParseReferenceContent(name plumbing.ReferenceName, content []byte) (*
 		}
 		return plumbing.NewSymbolicReference(name, target), false, nil
 	}
+
+	// Require a valid object hash for a direct Git reference.
 	if !plumbing.IsHash(text) {
 		return nil, false, errors.Errorf("invalid reference target %q", text)
 	}
@@ -112,6 +122,7 @@ func dotGitParseConfigContent(content []byte) (*config.Config, error) {
 }
 
 func dotGitParseShallowContent(content []byte) ([]plumbing.Hash, error) {
+	// Parse nonempty shallow-file lines as Git object hashes.
 	var hashes []plumbing.Hash
 	sc := bufio.NewScanner(bytes.NewReader(content))
 	for sc.Scan() {
@@ -124,6 +135,8 @@ func dotGitParseShallowContent(content []byte) ([]plumbing.Hash, error) {
 		}
 		hashes = append(hashes, plumbing.NewHash(line))
 	}
+
+	// Check the shallow-file scan before sorting its hashes.
 	if err := sc.Err(); err != nil {
 		return nil, err
 	}
@@ -132,6 +145,7 @@ func dotGitParseShallowContent(content []byte) ([]plumbing.Hash, error) {
 }
 
 func dotGitParsePackedRefsContent(content []byte) ([]*plumbing.Reference, error) {
+	// Parse packed Git reference lines while skipping metadata.
 	var refs []*plumbing.Reference
 	sc := bufio.NewScanner(bytes.NewReader(content))
 	for sc.Scan() {
@@ -152,6 +166,8 @@ func dotGitParsePackedRefsContent(content []byte) ([]*plumbing.Reference, error)
 		}
 		refs = append(refs, plumbing.NewHashReference(name, plumbing.NewHash(parts[0])))
 	}
+
+	// Report any failure to scan packed Git references.
 	if err := sc.Err(); err != nil {
 		return nil, err
 	}

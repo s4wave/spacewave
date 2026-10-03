@@ -22,9 +22,12 @@ func newDotGitWriteState() *dotGitWriteState {
 }
 
 func (s *dotGitWriteState) get(path []string) ([]byte, bool) {
+	// Use a missing result when no .git write state exists.
 	if s == nil {
 		return nil, false
 	}
+
+	// Read and clone the staged .git file under the write-state mutex.
 	s.mtx.Lock()
 	defer s.mtx.Unlock()
 	data, ok := s.files[dotGitWriteStateKey(path)]
@@ -53,9 +56,12 @@ func (s *dotGitWriteState) setDir(path []string) {
 }
 
 func (s *dotGitWriteState) remove(path []string) {
+	// Ignore removal when no .git write state exists.
 	if s == nil {
 		return
 	}
+
+	// Remove staged .git file and directory entries under the write-state mutex.
 	s.mtx.Lock()
 	delete(s.files, dotGitWriteStateKey(path))
 	delete(s.dirs, dotGitWriteStateKey(path))
@@ -63,15 +69,21 @@ func (s *dotGitWriteState) remove(path []string) {
 }
 
 func (s *dotGitWriteState) lookup(dirPath []string, name string) (*dotGitNode, bool) {
+	// Use a missing result when no .git write state exists.
 	if s == nil {
 		return nil, false
 	}
+
+	// Lock the .git write state for a consistent child lookup.
 	s.mtx.Lock()
 	defer s.mtx.Unlock()
 
+	// Resolve an explicitly staged .git directory.
 	if _, ok := s.dirs[dotGitWriteStateKey(append(slices.Clone(dirPath), name))]; ok {
 		return newDotGitDirNode(name, append(slices.Clone(dirPath), name)), true
 	}
+
+	// Resolve a staged .git file or an implicit parent directory.
 	var foundDir bool
 	for key, data := range s.files {
 		path := dotGitWriteStatePath(key)
@@ -84,6 +96,8 @@ func (s *dotGitWriteState) lookup(dirPath []string, name string) (*dotGitNode, b
 		}
 		foundDir = true
 	}
+
+	// Expose an implicit .git directory when staged children exist.
 	if foundDir {
 		return newDotGitDirNode(name, append(slices.Clone(dirPath), name)), true
 	}
@@ -91,16 +105,22 @@ func (s *dotGitWriteState) lookup(dirPath []string, name string) (*dotGitNode, b
 }
 
 func (s *dotGitWriteState) overlayDirents(dirPath []string, ents []unixfsDirentInfo) []unixfsDirentInfo {
+	// Keep stored .git entries when no write overlay exists.
 	if s == nil {
 		return ents
 	}
+
+	// Lock the .git write state while collecting overlay entries.
 	s.mtx.Lock()
 	defer s.mtx.Unlock()
 
+	// Index the stored .git directory entries by name.
 	seen := make(map[string]unixfsDirentInfo)
 	for _, ent := range ents {
 		seen[ent.name] = ent
 	}
+
+	// Merge staged .git files and their parent directories.
 	for key := range s.files {
 		path := dotGitWriteStatePath(key)
 		if len(path) <= len(dirPath) || !slices.Equal(path[:len(dirPath)], dirPath) {
@@ -117,6 +137,8 @@ func (s *dotGitWriteState) overlayDirents(dirPath []string, ents []unixfsDirentI
 		}
 		seen[name] = ent
 	}
+
+	// Merge explicitly staged .git directories.
 	for key := range s.dirs {
 		path := dotGitWriteStatePath(key)
 		if len(path) <= len(dirPath) || !slices.Equal(path[:len(dirPath)], dirPath) {
@@ -130,11 +152,14 @@ func (s *dotGitWriteState) overlayDirents(dirPath []string, ents []unixfsDirentI
 		seen[name] = ent
 	}
 
+	// Sort the overlaid .git directory names.
 	names := make([]string, 0, len(seen))
 	for name := range seen {
 		names = append(names, name)
 	}
 	slices.Sort(names)
+
+	// Build the ordered .git directory overlay entries.
 	out := make([]unixfsDirentInfo, 0, len(names))
 	for _, name := range names {
 		out = append(out, seen[name])

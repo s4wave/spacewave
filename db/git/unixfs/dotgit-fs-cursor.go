@@ -32,15 +32,20 @@ func NewDotGitFSCursor(tx hydra_git.Tx, name string) *DotGitFSCursor {
 
 // NewDotGitFSCursorWithOptions creates a new .git directory cursor.
 func NewDotGitFSCursorWithOptions(tx hydra_git.Tx, name string, opts ...DotGitFSCursorOption) *DotGitFSCursor {
+	// Create the .git root and apply its cursor options.
 	root := newDotGitRootNode()
 	root.name = name
 	conf := dotGitFSCursorOptions{}
 	for _, opt := range opts {
 		opt(&conf)
 	}
+
+	// Respect the Git transaction read-only mode.
 	if tx != nil && tx.GetReadOnly() {
 		conf.writable = false
 	}
+
+	// Limit the .git cursor release callback to one invocation.
 	releaseFn := conf.releaseFn
 	if releaseFn != nil {
 		var once atomic.Bool
@@ -51,6 +56,8 @@ func NewDotGitFSCursorWithOptions(tx hydra_git.Tx, name string, opts ...DotGitFS
 			}
 		}
 	}
+
+	// Construct the .git cursor with shared write state when writable.
 	c := &DotGitFSCursor{
 		tx:           tx,
 		node:         root,
@@ -61,6 +68,8 @@ func NewDotGitFSCursorWithOptions(tx hydra_git.Tx, name string, opts ...DotGitFS
 	if c.writable {
 		c.writeState = newDotGitWriteState()
 	}
+
+	// Subscribe the .git cursor to repository changes.
 	c.attachChangeSource()
 	return c
 }
@@ -107,10 +116,12 @@ func (c *DotGitFSCursor) GetProxyCursor(ctx context.Context) (unixfs.FSCursor, e
 
 // AddChangeCb is a no-op for the initial read-only cursor.
 func (c *DotGitFSCursor) AddChangeCb(cb unixfs.FSCursorChangeCb) {
+	// Ignore an absent .git change callback.
 	if cb == nil {
 		return
 	}
 
+	// Register the .git change callback while the cursor is live.
 	var added bool
 	c.mtx.Lock()
 	if !c.CheckReleased() {
@@ -118,6 +129,8 @@ func (c *DotGitFSCursor) AddChangeCb(cb unixfs.FSCursorChangeCb) {
 		added = true
 	}
 	c.mtx.Unlock()
+
+	// Notify the callback immediately when the .git cursor is already released.
 	if !added {
 		_ = cb(&unixfs.FSCursorChange{Cursor: c, Released: true})
 	}
@@ -133,17 +146,21 @@ func (c *DotGitFSCursor) GetCursorOps(ctx context.Context) (unixfs.FSCursorOps, 
 
 // Release releases the cursor.
 func (c *DotGitFSCursor) Release() {
+	// Prepare the .git cursor callbacks for release outside the lock.
 	var (
 		cbs             unixfs.FSCursorChangeCbSlice
 		changeSourceRel func()
 		releaseFn       func()
 	)
 
+	// Mark the .git cursor released under its mutex.
 	c.mtx.Lock()
 	if c.isReleased.Swap(true) {
 		c.mtx.Unlock()
 		return
 	}
+
+	// Detach the .git cursor callbacks and release functions.
 	cbs = c.cbs
 	c.cbs = nil
 	changeSourceRel = c.changeSourceRel
@@ -152,12 +169,15 @@ func (c *DotGitFSCursor) Release() {
 	c.releaseFn = nil
 	c.mtx.Unlock()
 
+	// Release the .git change subscription and transaction resource.
 	if changeSourceRel != nil {
 		changeSourceRel()
 	}
 	if releaseFn != nil {
 		releaseFn()
 	}
+
+	// Notify .git cursor callbacks that the cursor was released.
 	_ = cbs.CallCbs(&unixfs.FSCursorChange{Cursor: c, Released: true})
 }
 

@@ -153,13 +153,18 @@ func (o *GitFSCursorOps) GetIsSymlink() bool {
 
 // GetPermissions returns the file mode permissions.
 func (o *GitFSCursorOps) GetPermissions(ctx context.Context) (fs.FileMode, error) {
+	// Require a live Git cursor before reading permissions.
 	if o.CheckReleased() {
 		return 0, unixfs_errors.ErrReleased
 	}
+
+	// Use directory permissions for the Git tree root.
 	if o.entry == nil {
 		// root directory
 		return 0o755 | fs.ModeDir, nil
 	}
+
+	// Convert the Git entry mode to filesystem permissions.
 	m, err := o.entry.Mode.ToOSFileMode()
 	if err != nil {
 		return 0, err
@@ -177,15 +182,20 @@ func (o *GitFSCursorOps) SetPermissions(ctx context.Context, permissions fs.File
 
 // GetSize returns the size of the node in bytes.
 func (o *GitFSCursorOps) GetSize(ctx context.Context) (uint64, error) {
+	// Require a live Git cursor before reading its size.
 	if o.CheckReleased() {
 		return 0, unixfs_errors.ErrReleased
 	}
+
+	// Treat Git directories and missing entries as empty content.
 	if o.isDir {
 		return 0, nil
 	}
 	if o.entry == nil {
 		return 0, nil
 	}
+
+	// Load the Git blob to read its stored size.
 	blob, err := object.GetBlob(o.storer, o.entry.Hash)
 	if err != nil {
 		return 0, err
@@ -212,6 +222,7 @@ func (o *GitFSCursorOps) SetModTimestamp(ctx context.Context, mtime time.Time) e
 
 // ReadAt reads from a file node at the given offset.
 func (o *GitFSCursorOps) ReadAt(ctx context.Context, offset int64, data []byte) (int64, error) {
+	// Require a live Git file entry before reading content.
 	if o.CheckReleased() {
 		return 0, unixfs_errors.ErrReleased
 	}
@@ -222,15 +233,18 @@ func (o *GitFSCursorOps) ReadAt(ctx context.Context, offset int64, data []byte) 
 		return 0, unixfs_errors.ErrNotFile
 	}
 
+	// Resolve the Git blob for the current file.
 	blob, err := object.GetBlob(o.storer, o.entry.Hash)
 	if err != nil {
 		return 0, err
 	}
 
+	// Report the end of the Git blob before opening its reader.
 	if offset >= blob.Size {
 		return 0, io.EOF
 	}
 
+	// Open the Git blob reader for the requested range.
 	reader, err := blob.Reader()
 	if err != nil {
 		return 0, err
@@ -244,6 +258,7 @@ func (o *GitFSCursorOps) ReadAt(ctx context.Context, offset int64, data []byte) 
 		}
 	}
 
+	// Read the Git file bytes and normalize a short read to EOF.
 	n, err := io.ReadFull(reader, data)
 	if err == io.ErrUnexpectedEOF {
 		err = io.EOF
@@ -274,6 +289,7 @@ func (o *GitFSCursorOps) Truncate(ctx context.Context, nsize uint64, ts time.Tim
 
 // Lookup looks up a child entry in a directory.
 func (o *GitFSCursorOps) Lookup(ctx context.Context, name string) (unixfs.FSCursor, error) {
+	// Require a live Git directory before looking up an entry.
 	if o.CheckReleased() {
 		return nil, unixfs_errors.ErrReleased
 	}
@@ -281,11 +297,13 @@ func (o *GitFSCursorOps) Lookup(ctx context.Context, name string) (unixfs.FSCurs
 		return nil, unixfs_errors.ErrNotDirectory
 	}
 
+	// Find the named entry in the Git tree.
 	entry, err := o.tree.FindEntry(name)
 	if err != nil {
 		return nil, unixfs_errors.ErrNotExist
 	}
 
+	// Open a Git cursor for the resolved entry.
 	cursor, err := newGitFSCursorFromEntry(o.storer, entry)
 	if err != nil {
 		return nil, err
@@ -336,10 +354,12 @@ func (o *GitFSCursorOps) Symlink(ctx context.Context, checkExist bool, name stri
 // Readlink reads a symbolic link's target.
 // If name is empty, reads the link at the cursor position.
 func (o *GitFSCursorOps) Readlink(ctx context.Context, name string) ([]string, bool, error) {
+	// Require a live Git cursor before resolving a symlink.
 	if o.CheckReleased() {
 		return nil, false, unixfs_errors.ErrReleased
 	}
 
+	// Resolve the symlink entry at this cursor or in its directory.
 	var entry *object.TreeEntry
 	if name == "" {
 		if !o.isSymlink {
@@ -360,22 +380,26 @@ func (o *GitFSCursorOps) Readlink(ctx context.Context, name string) ([]string, b
 		entry = e
 	}
 
+	// Load the Git blob containing the symlink target.
 	blob, err := object.GetBlob(o.storer, entry.Hash)
 	if err != nil {
 		return nil, false, err
 	}
 
+	// Open the Git symlink content reader.
 	reader, err := blob.Reader()
 	if err != nil {
 		return nil, false, err
 	}
 	defer reader.Close()
 
+	// Read the complete Git symlink target.
 	data, err := io.ReadAll(reader)
 	if err != nil {
 		return nil, false, err
 	}
 
+	// Split the Git symlink target and retain its absolute-path flag.
 	target := string(data)
 	isAbsolute := path.IsAbs(target)
 	target = strings.TrimPrefix(target, "/")

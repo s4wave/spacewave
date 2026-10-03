@@ -17,6 +17,7 @@ import (
 
 // storeBlob writes a blob to the storage and returns its hash.
 func storeBlob(t *testing.T, s *memory.Storage, content string) plumbing.Hash {
+	// Prepare a Git blob and open its content writer.
 	t.Helper()
 	obj := s.NewEncodedObject()
 	obj.SetType(plumbing.BlobObject)
@@ -24,12 +25,16 @@ func storeBlob(t *testing.T, s *memory.Storage, content string) plumbing.Hash {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Write and close the Git blob content.
 	if _, err := w.Write([]byte(content)); err != nil {
 		t.Fatal(err)
 	}
 	if err := w.Close(); err != nil {
 		t.Fatal(err)
 	}
+
+	// Store the Git blob and return its hash.
 	h, err := s.SetEncodedObject(obj)
 	if err != nil {
 		t.Fatal(err)
@@ -39,6 +44,7 @@ func storeBlob(t *testing.T, s *memory.Storage, content string) plumbing.Hash {
 
 // storeTree writes a tree to the storage and returns its hash.
 func storeTree(t *testing.T, s *memory.Storage, entries []object.TreeEntry) plumbing.Hash {
+	// Encode the sorted Git tree entries.
 	t.Helper()
 	sort.Sort(object.TreeEntrySorter(entries))
 	tree := &object.Tree{Entries: entries}
@@ -46,6 +52,8 @@ func storeTree(t *testing.T, s *memory.Storage, entries []object.TreeEntry) plum
 	if err := tree.Encode(obj); err != nil {
 		t.Fatal(err)
 	}
+
+	// Store the encoded Git tree and return its hash.
 	h, err := s.SetEncodedObject(obj)
 	if err != nil {
 		t.Fatal(err)
@@ -68,8 +76,10 @@ func storeTree(t *testing.T, s *memory.Storage, entries []object.TreeEntry) plum
 //	└── src/               (directory)
 //	    └── main.go        (regular file, "package main\n")
 func buildTestTree(t *testing.T, s *memory.Storage) *object.Tree {
+	// Mark Git tree fixture failures at the calling test.
 	t.Helper()
 
+	// Store the Git fixture file and symlink blobs.
 	readmeHash := storeBlob(t, s, "# Hello World\n")
 	buildShHash := storeBlob(t, s, "#!/bin/sh\necho hello\n")
 	guideHash := storeBlob(t, s, "User guide content")
@@ -99,6 +109,7 @@ func buildTestTree(t *testing.T, s *memory.Storage) *object.Tree {
 		{Name: "src", Mode: filemode.Dir, Hash: srcTreeHash},
 	})
 
+	// Load the completed Git root tree fixture.
 	tree, err := object.GetTree(s, rootHash)
 	if err != nil {
 		t.Fatal(err)
@@ -107,18 +118,22 @@ func buildTestTree(t *testing.T, s *memory.Storage) *object.Tree {
 }
 
 func TestReaddirAll(t *testing.T) {
+	// Create the in-memory Git tree fixture for cursor checks.
 	ctx := context.Background()
 	s := memory.NewStorage()
 	tree := buildTestTree(t, s)
 
+	// Open the Git root cursor for the fixture.
 	cursor := NewGitFSCursor(s, tree, "")
 	defer cursor.Release()
 
+	// Access the Git root cursor operations.
 	ops, err := cursor.GetCursorOps(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	// Verify the Git root entries match the fixture order.
 	if !ops.GetIsDirectory() {
 		t.Fatal("expected root to be a directory")
 	}
@@ -126,6 +141,7 @@ func TestReaddirAll(t *testing.T) {
 		t.Fatalf("expected empty name for root, got %q", ops.GetName())
 	}
 
+	// Collect the Git directory entries through the cursor.
 	var names []string
 	err = ops.ReaddirAll(ctx, 0, func(ent unixfs.FSCursorDirent) error {
 		names = append(names, ent.GetName())
@@ -135,6 +151,7 @@ func TestReaddirAll(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Verify the Git root entries match the fixture order.
 	expected := []string{"README.md", "build.sh", "docs", "empty", "link.txt", "src"}
 	if len(names) != len(expected) {
 		t.Fatalf("expected %d entries, got %d: %v", len(expected), len(names), names)
@@ -147,18 +164,22 @@ func TestReaddirAll(t *testing.T) {
 }
 
 func TestReaddirAllSkip(t *testing.T) {
+	// Create the in-memory Git tree fixture for cursor checks.
 	ctx := context.Background()
 	s := memory.NewStorage()
 	tree := buildTestTree(t, s)
 
+	// Open the Git root cursor for the fixture.
 	cursor := NewGitFSCursor(s, tree, "")
 	defer cursor.Release()
 
+	// Access the Git root cursor operations.
 	ops, err := cursor.GetCursorOps(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	// Collect the Git directory entries through the cursor.
 	var names []string
 	err = ops.ReaddirAll(ctx, 3, func(ent unixfs.FSCursorDirent) error {
 		names = append(names, ent.GetName())
@@ -168,6 +189,7 @@ func TestReaddirAllSkip(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Verify Git enumeration skips the requested entries.
 	expected := []string{"empty", "link.txt", "src"}
 	if len(names) != len(expected) {
 		t.Fatalf("expected %d entries, got %d: %v", len(expected), len(names), names)
@@ -180,18 +202,22 @@ func TestReaddirAllSkip(t *testing.T) {
 }
 
 func TestReaddirAllNodeTypes(t *testing.T) {
+	// Create the in-memory Git tree fixture for cursor checks.
 	ctx := context.Background()
 	s := memory.NewStorage()
 	tree := buildTestTree(t, s)
 
+	// Open the Git root cursor for the fixture.
 	cursor := NewGitFSCursor(s, tree, "")
 	defer cursor.Release()
 
+	// Access the Git root cursor operations.
 	ops, err := cursor.GetCursorOps(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	// Define the Git entry properties captured during enumeration.
 	type entInfo struct {
 		name   string
 		isDir  bool
@@ -199,6 +225,7 @@ func TestReaddirAllNodeTypes(t *testing.T) {
 		isLink bool
 	}
 
+	// Collect the Git directory entries through the cursor.
 	var entries []entInfo
 	err = ops.ReaddirAll(ctx, 0, func(ent unixfs.FSCursorDirent) error {
 		entries = append(entries, entInfo{
@@ -213,6 +240,7 @@ func TestReaddirAllNodeTypes(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Describe the expected Git entry types.
 	expected := []entInfo{
 		{name: "README.md", isFile: true},
 		{name: "build.sh", isFile: true},
@@ -222,6 +250,7 @@ func TestReaddirAllNodeTypes(t *testing.T) {
 		{name: "src", isDir: true},
 	}
 
+	// Verify the Git entries retain their file, directory, and symlink types.
 	for i, e := range expected {
 		if entries[i] != e {
 			t.Fatalf("entry %d: expected %+v, got %+v", i, e, entries[i])
@@ -230,29 +259,35 @@ func TestReaddirAllNodeTypes(t *testing.T) {
 }
 
 func TestLookupFile(t *testing.T) {
+	// Create the in-memory Git tree fixture for cursor checks.
 	ctx := context.Background()
 	s := memory.NewStorage()
 	tree := buildTestTree(t, s)
 
+	// Open the Git root cursor for the fixture.
 	cursor := NewGitFSCursor(s, tree, "")
 	defer cursor.Release()
 
+	// Access the Git root cursor operations.
 	ops, err := cursor.GetCursorOps(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	// Look up README.md in the Git tree.
 	child, err := ops.Lookup(ctx, "README.md")
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer child.Release()
 
+	// Access the Git child cursor operations.
 	childOps, err := child.GetCursorOps(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	// Verify README.md is exposed as a named Git file.
 	if !childOps.GetIsFile() {
 		t.Fatal("expected README.md to be a file")
 	}
@@ -265,24 +300,29 @@ func TestLookupFile(t *testing.T) {
 }
 
 func TestReadAtFile(t *testing.T) {
+	// Create the in-memory Git tree fixture for cursor checks.
 	ctx := context.Background()
 	s := memory.NewStorage()
 	tree := buildTestTree(t, s)
 
+	// Open the Git root cursor for the fixture.
 	cursor := NewGitFSCursor(s, tree, "")
 	defer cursor.Release()
 
+	// Access the Git root cursor operations.
 	ops, err := cursor.GetCursorOps(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	// Look up README.md in the Git tree.
 	child, err := ops.Lookup(ctx, "README.md")
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer child.Release()
 
+	// Access the Git child cursor operations.
 	childOps, err := child.GetCursorOps(ctx)
 	if err != nil {
 		t.Fatal(err)
@@ -301,24 +341,29 @@ func TestReadAtFile(t *testing.T) {
 }
 
 func TestReadAtOffset(t *testing.T) {
+	// Create the in-memory Git tree fixture for cursor checks.
 	ctx := context.Background()
 	s := memory.NewStorage()
 	tree := buildTestTree(t, s)
 
+	// Open the Git root cursor for the fixture.
 	cursor := NewGitFSCursor(s, tree, "")
 	defer cursor.Release()
 
+	// Access the Git root cursor operations.
 	ops, err := cursor.GetCursorOps(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	// Look up README.md in the Git tree.
 	child, err := ops.Lookup(ctx, "README.md")
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer child.Release()
 
+	// Access the Git child cursor operations.
 	childOps, err := child.GetCursorOps(ctx)
 	if err != nil {
 		t.Fatal(err)
@@ -337,29 +382,35 @@ func TestReadAtOffset(t *testing.T) {
 }
 
 func TestReadAtPastEOF(t *testing.T) {
+	// Create the in-memory Git tree fixture for cursor checks.
 	ctx := context.Background()
 	s := memory.NewStorage()
 	tree := buildTestTree(t, s)
 
+	// Open the Git root cursor for the fixture.
 	cursor := NewGitFSCursor(s, tree, "")
 	defer cursor.Release()
 
+	// Access the Git root cursor operations.
 	ops, err := cursor.GetCursorOps(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	// Look up README.md in the Git tree.
 	child, err := ops.Lookup(ctx, "README.md")
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer child.Release()
 
+	// Access the Git child cursor operations.
 	childOps, err := child.GetCursorOps(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	// Read the requested Git content range through the cursor.
 	buf := make([]byte, 10)
 	n, err := childOps.ReadAt(ctx, 1000, buf)
 	if err != io.EOF {
@@ -371,74 +422,91 @@ func TestReadAtPastEOF(t *testing.T) {
 }
 
 func TestFileSize(t *testing.T) {
+	// Create the in-memory Git tree fixture for cursor checks.
 	ctx := context.Background()
 	s := memory.NewStorage()
 	tree := buildTestTree(t, s)
 
+	// Open the Git root cursor for the fixture.
 	cursor := NewGitFSCursor(s, tree, "")
 	defer cursor.Release()
 
+	// Access the Git root cursor operations.
 	ops, err := cursor.GetCursorOps(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	// Look up README.md in the Git tree.
 	child, err := ops.Lookup(ctx, "README.md")
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer child.Release()
 
+	// Access the Git child cursor operations.
 	childOps, err := child.GetCursorOps(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	// Read the Git entry content size.
 	size, err := childOps.GetSize(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	// Verify the Git file size matches its blob content.
 	if size != 14 { // "# Hello World\n" = 14 bytes
 		t.Fatalf("expected size 14, got %d", size)
 	}
 }
 
 func TestDirectorySize(t *testing.T) {
+	// Create the in-memory Git tree fixture for cursor checks.
 	ctx := context.Background()
 	s := memory.NewStorage()
 	tree := buildTestTree(t, s)
 
+	// Open the Git root cursor for the fixture.
 	cursor := NewGitFSCursor(s, tree, "")
 	defer cursor.Release()
 
+	// Access the Git root cursor operations.
 	ops, err := cursor.GetCursorOps(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	// Read the Git entry content size.
 	size, err := ops.GetSize(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Verify the Git directory reports zero content bytes.
 	if size != 0 {
 		t.Fatalf("expected directory size 0, got %d", size)
 	}
 }
 
 func TestFilePermissions(t *testing.T) {
+	// Create the in-memory Git tree fixture for cursor checks.
 	ctx := context.Background()
 	s := memory.NewStorage()
 	tree := buildTestTree(t, s)
 
+	// Open the Git root cursor for the fixture.
 	cursor := NewGitFSCursor(s, tree, "")
 	defer cursor.Release()
 
+	// Access the Git root cursor operations.
 	ops, err := cursor.GetCursorOps(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	// Describe the expected Git regular and executable permissions.
 	tests := []struct {
 		name string
 
@@ -448,39 +516,53 @@ func TestFilePermissions(t *testing.T) {
 		{"build.sh", "-rwxr-xr-x"},
 	}
 
+	// Read and check each Git file permission case.
 	for _, tt := range tests {
+		// Open the Git file named by the permission case.
 		child, err := ops.Lookup(ctx, tt.name)
 		if err != nil {
 			t.Fatalf("lookup %s: %v", tt.name, err)
 		}
+
+		// Access the Git file cursor operations.
 		childOps, err := child.GetCursorOps(ctx)
 		if err != nil {
 			t.Fatalf("getops %s: %v", tt.name, err)
 		}
+
+		// Read the Git file permissions.
 		perm, err := childOps.GetPermissions(ctx)
 		if err != nil {
 			t.Fatalf("getperm %s: %v", tt.name, err)
 		}
+
+		// Verify the Git file permissions match the case.
 		if perm.String() != tt.perm {
 			t.Fatalf("%s: expected permissions %s, got %s", tt.name, tt.perm, perm.String())
 		}
+
+		// Release the Git file cursor after its permission check.
 		child.Release()
 	}
 }
 
 func TestRootPermissions(t *testing.T) {
+	// Create the in-memory Git tree fixture for cursor checks.
 	ctx := context.Background()
 	s := memory.NewStorage()
 	tree := buildTestTree(t, s)
 
+	// Open the Git root cursor for the fixture.
 	cursor := NewGitFSCursor(s, tree, "")
 	defer cursor.Release()
 
+	// Access the Git root cursor operations.
 	ops, err := cursor.GetCursorOps(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	// Read the Git entry filesystem permissions.
 	perm, err := ops.GetPermissions(ctx)
 	if err != nil {
 		t.Fatal(err)
@@ -493,18 +575,22 @@ func TestRootPermissions(t *testing.T) {
 }
 
 func TestLookupNotExist(t *testing.T) {
+	// Create the in-memory Git tree fixture for cursor checks.
 	ctx := context.Background()
 	s := memory.NewStorage()
 	tree := buildTestTree(t, s)
 
+	// Open the Git root cursor for the fixture.
 	cursor := NewGitFSCursor(s, tree, "")
 	defer cursor.Release()
 
+	// Access the Git root cursor operations.
 	ops, err := cursor.GetCursorOps(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	// Look up nonexistent.txt in the Git tree.
 	_, err = ops.Lookup(ctx, "nonexistent.txt")
 	if err != unixfs_errors.ErrNotExist {
 		t.Fatalf("expected ErrNotExist, got %v", err)
@@ -512,13 +598,16 @@ func TestLookupNotExist(t *testing.T) {
 }
 
 func TestSubdirectoryNavigation(t *testing.T) {
+	// Create the in-memory Git tree fixture for cursor checks.
 	ctx := context.Background()
 	s := memory.NewStorage()
 	tree := buildTestTree(t, s)
 
+	// Open the Git root cursor for the fixture.
 	cursor := NewGitFSCursor(s, tree, "")
 	defer cursor.Release()
 
+	// Access the Git root cursor operations.
 	ops, err := cursor.GetCursorOps(ctx)
 	if err != nil {
 		t.Fatal(err)
@@ -531,11 +620,13 @@ func TestSubdirectoryNavigation(t *testing.T) {
 	}
 	defer docsChild.Release()
 
+	// Access the Git child cursor operations.
 	docsOps, err := docsChild.GetCursorOps(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	// Verify the Git subtree entry type and name.
 	if !docsOps.GetIsDirectory() {
 		t.Fatal("expected docs to be a directory")
 	}
@@ -550,53 +641,65 @@ func TestSubdirectoryNavigation(t *testing.T) {
 	}
 	defer guideChild.Release()
 
+	// Access the Git child cursor operations.
 	guideOps, err := guideChild.GetCursorOps(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	// Verify the Git subtree entry type and name.
 	if !guideOps.GetIsFile() {
 		t.Fatal("expected guide.txt to be a file")
 	}
 
+	// Read the nested Git guide file content.
 	buf := make([]byte, 100)
 	n, err := guideOps.ReadAt(ctx, 0, buf)
 	if err != io.EOF {
 		t.Fatalf("expected io.EOF, got %v", err)
 	}
+
+	// Verify the nested Git guide content matches its blob.
 	if string(buf[:n]) != "User guide content" {
 		t.Fatalf("unexpected content: %q", string(buf[:n]))
 	}
 }
 
 func TestEmptyDirectory(t *testing.T) {
+	// Create the in-memory Git tree fixture for cursor checks.
 	ctx := context.Background()
 	s := memory.NewStorage()
 	tree := buildTestTree(t, s)
 
+	// Open the Git root cursor for the fixture.
 	cursor := NewGitFSCursor(s, tree, "")
 	defer cursor.Release()
 
+	// Access the Git root cursor operations.
 	ops, err := cursor.GetCursorOps(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	// Look up empty in the Git tree.
 	child, err := ops.Lookup(ctx, "empty")
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer child.Release()
 
+	// Access the Git child cursor operations.
 	childOps, err := child.GetCursorOps(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	// Verify the empty Git subtree has no entries.
 	if !childOps.GetIsDirectory() {
 		t.Fatal("expected empty to be a directory")
 	}
 
+	// Collect the Git directory entries through the cursor.
 	var count int
 	err = childOps.ReaddirAll(ctx, 0, func(ent unixfs.FSCursorDirent) error {
 		count++
@@ -605,35 +708,43 @@ func TestEmptyDirectory(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Verify the empty Git subtree has no entries.
 	if count != 0 {
 		t.Fatalf("expected 0 entries in empty dir, got %d", count)
 	}
 }
 
 func TestSymlinkLookup(t *testing.T) {
+	// Create the in-memory Git tree fixture for cursor checks.
 	ctx := context.Background()
 	s := memory.NewStorage()
 	tree := buildTestTree(t, s)
 
+	// Open the Git root cursor for the fixture.
 	cursor := NewGitFSCursor(s, tree, "")
 	defer cursor.Release()
 
+	// Access the Git root cursor operations.
 	ops, err := cursor.GetCursorOps(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	// Look up link.txt in the Git tree.
 	child, err := ops.Lookup(ctx, "link.txt")
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer child.Release()
 
+	// Access the Git child cursor operations.
 	childOps, err := child.GetCursorOps(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	// Verify the Git symlink is neither a file nor a directory.
 	if !childOps.GetIsSymlink() {
 		t.Fatal("expected link.txt to be a symlink")
 	}
@@ -646,33 +757,41 @@ func TestSymlinkLookup(t *testing.T) {
 }
 
 func TestReadlinkSelf(t *testing.T) {
+	// Create the in-memory Git tree fixture for cursor checks.
 	ctx := context.Background()
 	s := memory.NewStorage()
 	tree := buildTestTree(t, s)
 
+	// Open the Git root cursor for the fixture.
 	cursor := NewGitFSCursor(s, tree, "")
 	defer cursor.Release()
 
+	// Access the Git root cursor operations.
 	ops, err := cursor.GetCursorOps(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	// Look up link.txt in the Git tree.
 	child, err := ops.Lookup(ctx, "link.txt")
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer child.Release()
 
+	// Access the Git child cursor operations.
 	childOps, err := child.GetCursorOps(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	// Resolve the Git symlink target through the cursor.
 	parts, isAbsolute, err := childOps.Readlink(ctx, "")
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Verify the Git symlink cursor returns its relative target.
 	if isAbsolute {
 		t.Fatal("expected relative link")
 	}
@@ -682,22 +801,28 @@ func TestReadlinkSelf(t *testing.T) {
 }
 
 func TestReadlinkFromDir(t *testing.T) {
+	// Create the in-memory Git tree fixture for cursor checks.
 	ctx := context.Background()
 	s := memory.NewStorage()
 	tree := buildTestTree(t, s)
 
+	// Open the Git root cursor for the fixture.
 	cursor := NewGitFSCursor(s, tree, "")
 	defer cursor.Release()
 
+	// Access the Git root cursor operations.
 	ops, err := cursor.GetCursorOps(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	// Resolve the Git symlink target through the cursor.
 	parts, isAbsolute, err := ops.Readlink(ctx, "link.txt")
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Verify the Git directory resolves the relative symlink target.
 	if isAbsolute {
 		t.Fatal("expected relative link")
 	}
@@ -707,6 +832,7 @@ func TestReadlinkFromDir(t *testing.T) {
 }
 
 func TestReadlinkAbsolute(t *testing.T) {
+	// Create the in-memory Git tree fixture for cursor checks.
 	ctx := context.Background()
 	s := memory.NewStorage()
 
@@ -716,23 +842,29 @@ func TestReadlinkAbsolute(t *testing.T) {
 		{Name: "abs-link", Mode: filemode.Symlink, Hash: linkHash},
 	})
 
+	// Load the Git root tree containing the absolute symlink.
 	tree, err := object.GetTree(s, rootHash)
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	// Open the Git root cursor for the fixture.
 	cursor := NewGitFSCursor(s, tree, "")
 	defer cursor.Release()
 
+	// Access the Git root cursor operations.
 	ops, err := cursor.GetCursorOps(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	// Resolve the Git symlink target through the cursor.
 	parts, isAbsolute, err := ops.Readlink(ctx, "abs-link")
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Verify the Git symlink retains its absolute target components.
 	if !isAbsolute {
 		t.Fatal("expected absolute link")
 	}
@@ -748,18 +880,22 @@ func TestReadlinkAbsolute(t *testing.T) {
 }
 
 func TestReadlinkNotSymlink(t *testing.T) {
+	// Create the in-memory Git tree fixture for cursor checks.
 	ctx := context.Background()
 	s := memory.NewStorage()
 	tree := buildTestTree(t, s)
 
+	// Open the Git root cursor for the fixture.
 	cursor := NewGitFSCursor(s, tree, "")
 	defer cursor.Release()
 
+	// Access the Git root cursor operations.
 	ops, err := cursor.GetCursorOps(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	// Resolve the Git symlink target through the cursor.
 	_, _, err = ops.Readlink(ctx, "README.md")
 	if err != unixfs_errors.ErrNotSymlink {
 		t.Fatalf("expected ErrNotSymlink, got %v", err)
@@ -767,13 +903,16 @@ func TestReadlinkNotSymlink(t *testing.T) {
 }
 
 func TestWriteOpsReturnReadOnly(t *testing.T) {
+	// Create the in-memory Git tree fixture for cursor checks.
 	ctx := context.Background()
 	s := memory.NewStorage()
 	tree := buildTestTree(t, s)
 
+	// Open the Git root cursor for the fixture.
 	cursor := NewGitFSCursor(s, tree, "")
 	defer cursor.Release()
 
+	// Access the Git root cursor operations.
 	ops, err := cursor.GetCursorOps(ctx)
 	if err != nil {
 		t.Fatal(err)
@@ -831,23 +970,29 @@ func TestWriteOpsReturnReadOnly(t *testing.T) {
 }
 
 func TestRelease(t *testing.T) {
+	// Create the in-memory Git tree fixture for cursor checks.
 	ctx := context.Background()
 	s := memory.NewStorage()
 	tree := buildTestTree(t, s)
 
+	// Open the Git root cursor for the fixture.
 	cursor := NewGitFSCursor(s, tree, "")
 
+	// Verify the Git cursor starts live.
 	if cursor.CheckReleased() {
 		t.Fatal("expected not released")
 	}
 
+	// Access the Git root cursor operations.
 	ops, err := cursor.GetCursorOps(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	// Release the Git cursor before checking access failures.
 	cursor.Release()
 
+	// Verify the Git cursor reports its released state.
 	if !cursor.CheckReleased() {
 		t.Fatal("expected released")
 	}
@@ -857,11 +1002,13 @@ func TestRelease(t *testing.T) {
 		t.Fatal("expected ops released after cursor release")
 	}
 
+	// Access the Git child cursor operations.
 	_, err = cursor.GetCursorOps(ctx)
 	if err != unixfs_errors.ErrReleased {
 		t.Fatalf("expected ErrReleased, got %v", err)
 	}
 
+	// Read the Git cursor proxy result.
 	_, err = cursor.GetProxyCursor(ctx)
 	if err != unixfs_errors.ErrReleased {
 		t.Fatalf("expected ErrReleased from GetProxyCursor, got %v", err)
@@ -869,57 +1016,72 @@ func TestRelease(t *testing.T) {
 }
 
 func TestGetProxyCursor(t *testing.T) {
+	// Create the in-memory Git tree fixture for cursor checks.
 	ctx := context.Background()
 	s := memory.NewStorage()
 	tree := buildTestTree(t, s)
 
+	// Open the Git root cursor for the fixture.
 	cursor := NewGitFSCursor(s, tree, "")
 	defer cursor.Release()
 
+	// Read the Git cursor proxy result.
 	proxy, err := cursor.GetProxyCursor(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Verify immutable Git cursors have no proxy cursor.
 	if proxy != nil {
 		t.Fatal("expected nil proxy")
 	}
 }
 
 func TestGetModTimestamp(t *testing.T) {
+	// Create the in-memory Git tree fixture for cursor checks.
 	ctx := context.Background()
 	s := memory.NewStorage()
 	tree := buildTestTree(t, s)
 
+	// Open the Git root cursor for the fixture.
 	cursor := NewGitFSCursor(s, tree, "")
 	defer cursor.Release()
 
+	// Access the Git root cursor operations.
 	ops, err := cursor.GetCursorOps(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	// Read the Git entry modification timestamp.
 	ts, err := ops.GetModTimestamp(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Verify Git entries report an unset modification timestamp.
 	if !ts.IsZero() {
 		t.Fatalf("expected zero time, got %v", ts)
 	}
 }
 
 func TestReadAtOnDirectory(t *testing.T) {
+	// Create the in-memory Git tree fixture for cursor checks.
 	ctx := context.Background()
 	s := memory.NewStorage()
 	tree := buildTestTree(t, s)
 
+	// Open the Git root cursor for the fixture.
 	cursor := NewGitFSCursor(s, tree, "")
 	defer cursor.Release()
 
+	// Access the Git root cursor operations.
 	ops, err := cursor.GetCursorOps(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	// Read the requested Git content range through the cursor.
 	buf := make([]byte, 10)
 	_, err = ops.ReadAt(ctx, 0, buf)
 	if err != unixfs_errors.ErrNotFile {
@@ -928,29 +1090,35 @@ func TestReadAtOnDirectory(t *testing.T) {
 }
 
 func TestExecutablePermissions(t *testing.T) {
+	// Create the in-memory Git tree fixture for cursor checks.
 	ctx := context.Background()
 	s := memory.NewStorage()
 	tree := buildTestTree(t, s)
 
+	// Open the Git root cursor for the fixture.
 	cursor := NewGitFSCursor(s, tree, "")
 	defer cursor.Release()
 
+	// Access the Git root cursor operations.
 	ops, err := cursor.GetCursorOps(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	// Look up build.sh in the Git tree.
 	child, err := ops.Lookup(ctx, "build.sh")
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer child.Release()
 
+	// Access the Git child cursor operations.
 	childOps, err := child.GetCursorOps(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	// Read the Git entry filesystem permissions.
 	perm, err := childOps.GetPermissions(ctx)
 	if err != nil {
 		t.Fatal(err)
@@ -963,59 +1131,74 @@ func TestExecutablePermissions(t *testing.T) {
 }
 
 func TestCopyToReturnsNotDone(t *testing.T) {
+	// Create the in-memory Git tree fixture for cursor checks.
 	ctx := context.Background()
 	s := memory.NewStorage()
 	tree := buildTestTree(t, s)
 
+	// Open the Git root cursor for the fixture.
 	cursor := NewGitFSCursor(s, tree, "")
 	defer cursor.Release()
 
+	// Access the Git root cursor operations.
 	ops, err := cursor.GetCursorOps(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	// Request a copy from the immutable Git cursor.
 	done, err := ops.CopyTo(ctx, nil, "x", time.Time{})
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Verify unsupported Git copies report no completed operation.
 	if done {
 		t.Fatal("expected not done")
 	}
 
+	// Request a copy into the immutable Git cursor.
 	done, err = ops.CopyFrom(ctx, "x", nil, time.Time{})
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Verify unsupported Git copies report no completed operation.
 	if done {
 		t.Fatal("expected not done")
 	}
 }
 
 func TestReaddirAllOnFile(t *testing.T) {
+	// Create the in-memory Git tree fixture for cursor checks.
 	ctx := context.Background()
 	s := memory.NewStorage()
 	tree := buildTestTree(t, s)
 
+	// Open the Git root cursor for the fixture.
 	cursor := NewGitFSCursor(s, tree, "")
 	defer cursor.Release()
 
+	// Access the Git root cursor operations.
 	ops, err := cursor.GetCursorOps(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	// Look up README.md in the Git tree.
 	child, err := ops.Lookup(ctx, "README.md")
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer child.Release()
 
+	// Access the Git child cursor operations.
 	childOps, err := child.GetCursorOps(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	// Collect the Git directory entries through the cursor.
 	err = childOps.ReaddirAll(ctx, 0, func(ent unixfs.FSCursorDirent) error {
 		return nil
 	})
