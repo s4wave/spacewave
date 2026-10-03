@@ -15,6 +15,7 @@ type WebPkgRefConfigSlice []*WebPkgRefConfig
 //
 // Returns true if any changes were made.
 func (sl WebPkgRefConfigSlice) AppendWebPkgRefConfig(addConf *WebPkgRefConfig) (WebPkgRefConfigSlice, bool) {
+	// Require a package ID before merging its reference configuration.
 	if addConf.GetId() == "" {
 		return sl, false
 	}
@@ -29,6 +30,7 @@ func (sl WebPkgRefConfigSlice) AppendWebPkgRefConfig(addConf *WebPkgRefConfig) (
 		}
 	}
 
+	// Insert a new package reference or merge its exclusions and imports.
 	if ref == nil {
 		sl = append(sl, addConf.CloneVT())
 		slices.SortFunc(sl, func(a, b *WebPkgRefConfig) int {
@@ -83,10 +85,13 @@ func MergeWebPkgRefConfigImports(refs web_pkg.WebPkgRefSlice, configs []*WebPkgR
 
 // ToIdList converts the list to the esbuild externalize list.
 func (sl WebPkgRefConfigSlice) ToIdList() []string {
+	// Collect the package IDs for the externalize list.
 	out := make([]string, 0, len(sl))
 	for _, v := range sl {
 		out = append(out, v.GetId())
 	}
+
+	// Sort and deduplicate the external package IDs.
 	slices.Sort(out)
 	out = slices.Compact(out)
 	return out
@@ -113,6 +118,7 @@ func SortWebPkgRefConfigs(refs []*WebPkgRefConfig) {
 // CompactWebPkgRefConfigs compacts the list of ref configs by web pkg id.
 // Merges together entries with the same ID in-place.
 func CompactWebPkgRefConfigs(refs []*WebPkgRefConfig) []*WebPkgRefConfig {
+	// Keep reference lists that cannot contain duplicate package IDs.
 	if len(refs) <= 1 {
 		return refs
 	}

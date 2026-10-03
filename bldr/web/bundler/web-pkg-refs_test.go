@@ -8,6 +8,7 @@ import (
 )
 
 func TestCompactWebPkgRefConfigs(t *testing.T) {
+	// Describe package reference combinations and their compacted results.
 	tests := []struct {
 		name string
 		refs []*WebPkgRefConfig
@@ -97,6 +98,7 @@ func TestCompactWebPkgRefConfigs(t *testing.T) {
 		},
 	}
 
+	// Check package reference compaction for each input combination.
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Create a copy of the input to avoid modifying the test case
@@ -109,6 +111,7 @@ func TestCompactWebPkgRefConfigs(t *testing.T) {
 				}
 			}
 
+			// Compact the copied package references for comparison.
 			got := CompactWebPkgRefConfigs(input)
 
 			// Check if the result has the expected length
@@ -124,6 +127,7 @@ func TestCompactWebPkgRefConfigs(t *testing.T) {
 					continue
 				}
 
+				// Verify the compacted package ID, exclusion flag, and imports.
 				gotRef := got[i]
 				if gotRef.GetId() != wantRef.GetId() {
 					t.Errorf("Element %d: Id = %q, want %q", i, gotRef.GetId(), wantRef.GetId())

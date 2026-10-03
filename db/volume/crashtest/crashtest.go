@@ -106,11 +106,14 @@ func Run[D Device](t *testing.T, blocks Blocks, newDevice func() D, open func(ct
 // checkCrash runs the workload of seed on d, crashes after n mutating calls,
 // and checks the recovered target.
 func checkCrash[D Device](t *testing.T, d D, open func(ctx context.Context, d D) (Target, error), blocks Blocks, seed uint64, n int) {
+	// Open the target on the device before injecting a workload crash.
 	ctx := t.Context()
 	s, err := open(ctx, d)
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Interrupt the workload and discard device writes lost on power failure.
 	d.CrashAfter(n)
 	allowed, err := runWorkload(ctx, s, blocks, seed)
 	if err == nil {
@@ -176,10 +179,13 @@ const (
 // durable commit, of each ordered commit after it, and, when a commit failed,
 // the state that commit would have reached.
 func runWorkload(ctx context.Context, s Target, blocks Blocks, seed uint64) ([]state, error) {
+	// Initialize the seeded workload and its allowed recovery states.
 	rng := rand.New(rand.NewPCG(seed, 0)) //nolint:gosec
 	committed := state{values: make(map[string]string), blocks: make(map[int]bool)}
 	live := committed.clone()
 	allowed := []state{committed}
+
+	// Advance the target and track the states each commit permits after a crash.
 	for step := range ops {
 		// Apply one step to the live state and, for an ordered commit, the
 		// committed state. A durable commit makes the whole live state durable.
@@ -249,14 +255,19 @@ func runWorkload(ctx context.Context, s Target, blocks Blocks, seed uint64) ([]s
 // setValue sets one key in its own committed transaction, with write ordering
 // only if ordered is set.
 func setValue(ctx context.Context, s Target, key, value string, ordered bool) error {
+	// Open a writable transaction for the workload value.
 	tx, err := s.NewTransaction(ctx, true)
 	if err != nil {
 		return err
 	}
 	defer tx.Discard()
+
+	// Write the workload value before publishing its transaction.
 	if err := tx.Set(ctx, []byte(key), []byte(value)); err != nil {
 		return err
 	}
+
+	// Publish the workload value with the requested commit guarantee.
 	if ordered {
 		return kvtx.CommitOrdered(ctx, tx)
 	}
@@ -266,6 +277,7 @@ func setValue(ctx context.Context, s Target, key, value string, ordered bool) er
 // readState reads the key-value store, the workload's blocks, and the journal
 // length from s, checking every stored payload.
 func readState(t *testing.T, s Target) state {
+	// Prepare the recovered target state for comparison with the workload.
 	ctx := t.Context()
 	got := state{values: make(map[string]string), blocks: make(map[int]bool)}
 

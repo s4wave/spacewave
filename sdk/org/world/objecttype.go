@@ -27,10 +27,12 @@ func orgFactory(
 	ws world.WorldState,
 	objectKey string,
 ) (srpc.Invoker, func(), error) {
+	// Require the World state that supplies the organization object.
 	if ws == nil {
 		return nil, nil, objecttype.ErrWorldStateRequired
 	}
 
+	// Acquire the organization object and retain it while reading its state.
 	objState, found, err := ws.GetObject(ctx, objectKey)
 	defer world.ReleaseObjectState(objState)
 	if err != nil {
@@ -40,6 +42,7 @@ func orgFactory(
 		return nil, nil, world.ErrObjectNotFound
 	}
 
+	// Decode the organization state from its block cursor.
 	var state *s4wave_org.OrgState
 	_, _, err = world.AccessObjectState(ctx, objState, false, func(bcs *block.Cursor) error {
 		var err error
@@ -50,6 +53,7 @@ func orgFactory(
 		return nil, nil, err
 	}
 
+	// Expose the organization resource and transfer its cleanup to the caller.
 	resource := s4wave_org.NewOrgResource(ws, objectKey, state)
 	return resource.GetMux(), resource.Close, nil
 }

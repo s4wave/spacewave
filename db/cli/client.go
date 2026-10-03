@@ -132,6 +132,7 @@ func (a *ClientArgs) BuildHydraCommand() *ucli.Command {
 
 // BuildCommands attaches the commands.
 func (a *ClientArgs) BuildCommands() []*ucli.Command {
+	// Describe the block commands and their volume operation flags.
 	clientBlockCommands := []*ucli.Command{
 		{
 			Name:   "put",
@@ -171,6 +172,8 @@ func (a *ClientArgs) BuildCommands() []*ucli.Command {
 			},
 		},
 	}
+
+	// Describe the object commands and their key and payload flags.
 	clientObjectStoreCommands := []*ucli.Command{
 		{
 			Name:   "get",
@@ -227,6 +230,8 @@ func (a *ClientArgs) BuildCommands() []*ucli.Command {
 			},
 		},
 	}
+
+	// Describe the bucket commands and their volume selection flags.
 	clientBucketStoreCommands := []*ucli.Command{
 		{
 			Name:   "config",
@@ -275,11 +280,15 @@ func (a *ClientArgs) BuildCommands() []*ucli.Command {
 			},
 		},
 	}
+
+	// Describe the command that lists attached volumes.
 	clientVolumeCommands := []*ucli.Command{{
 		Name:   "list-volumes",
 		Usage:  "Lists local attached volume info.",
 		Action: a.RunListVolumes,
 	}}
+
+	// Assemble the daemon command groups with their shared targeting flags.
 	return []*ucli.Command{
 		{
 			Name:        "block",
