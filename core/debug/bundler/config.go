@@ -15,6 +15,7 @@ const defaultManifestName = "spacewave-web"
 
 // ParseBldrWebPkgs reads bldr.yaml and extracts webPkgs from the spacewave-web manifest.
 func ParseBldrWebPkgs(projectRoot string) ([]*bldr_web_bundler.WebPkgRefConfig, error) {
+	// Read the project Bldr configuration when it exists.
 	configPath := filepath.Join(projectRoot, "bldr.yaml")
 	data, err := os.ReadFile(configPath)
 	if err != nil {
@@ -24,17 +25,20 @@ func ParseBldrWebPkgs(projectRoot string) ([]*bldr_web_bundler.WebPkgRefConfig, 
 		return nil, errors.Wrapf(err, "read %s", configPath)
 	}
 
+	// Convert the Bldr YAML configuration to JSON.
 	jdata, err := yaml.YAMLToJSON(data)
 	if err != nil {
 		return nil, errors.Wrapf(err, "parse %s", configPath)
 	}
 
+	// Parse the Bldr configuration for manifest lookup.
 	var p fastjson.Parser
 	v, err := p.ParseBytes(jdata)
 	if err != nil {
 		return nil, errors.Wrapf(err, "parse %s", configPath)
 	}
 
+	// Collect web package IDs from the web manifest.
 	webPkgs := v.GetArray("manifests", defaultManifestName, "builder", "config", "webPkgs")
 	var pkgs []*bldr_web_bundler.WebPkgRefConfig
 	for _, wp := range webPkgs {

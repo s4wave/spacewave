@@ -18,6 +18,7 @@ import (
 )
 
 func TestBuildWebGoScriptPluginScriptFailsUndefinedImports(t *testing.T) {
+	// Prepare the Rolldown fixture and plugin build paths.
 	root := t.TempDir()
 	bldrDistRoot := filepath.Join(root, "dist")
 	writeRolldownToolFixture(t, bldrDistRoot)
@@ -25,6 +26,7 @@ func TestBuildWebGoScriptPluginScriptFailsUndefinedImports(t *testing.T) {
 	goScriptOutputRoot := filepath.Join(root, "goscript")
 	outPath := filepath.Join(root, "out", "plugin.mjs")
 
+	// Write a plugin that references a missing GoScript export.
 	writeTestFile(t, filepath.Join(bldrDistRoot, webRuntimeGoScriptDir, "plugin-goscript.ts"), `
 export default async function runGoScriptPlugin(_api, pluginMain) {
   await pluginMain()
@@ -41,6 +43,7 @@ export async function main() {
 export const Present = 1
 `)
 
+	// Build the plugin with the undefined import.
 	_, err := BuildWebGoScriptPluginScript(
 		context.Background(),
 		logrus.NewEntry(logrus.New()),
@@ -53,6 +56,8 @@ export const Present = 1
 		false,
 		false,
 	)
+
+	// Require the build error to identify the undefined GoScript import.
 	if err == nil {
 		t.Fatal("expected undefined import error")
 	}
@@ -62,6 +67,7 @@ export const Present = 1
 }
 
 func TestBuildWebGoScriptPluginScriptBuildsResolvedImports(t *testing.T) {
+	// Prepare the Rolldown fixture and plugin build paths.
 	root := t.TempDir()
 	bldrDistRoot := filepath.Join(root, "dist")
 	writeRolldownToolFixture(t, bldrDistRoot)
@@ -69,6 +75,7 @@ func TestBuildWebGoScriptPluginScriptBuildsResolvedImports(t *testing.T) {
 	goScriptOutputRoot := filepath.Join(root, "goscript")
 	outPath := filepath.Join(root, "out", "plugin.mjs")
 
+	// Write a plugin and its resolved GoScript dependency.
 	writeTestFile(t, filepath.Join(bldrDistRoot, webRuntimeGoScriptDir, "plugin-goscript.ts"), `
 export default async function runGoScriptPlugin(_api, pluginMain) {
   await pluginMain()
@@ -85,6 +92,7 @@ export async function main() {
 export const Present = 1
 `)
 
+	// Build the plugin with the resolved import.
 	inputs, err := BuildWebGoScriptPluginScript(
 		context.Background(),
 		logrus.NewEntry(logrus.New()),
@@ -100,6 +108,8 @@ export const Present = 1
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Require recorded inputs and the plugin output file.
 	if len(inputs) == 0 {
 		t.Fatal("expected build inputs")
 	}
@@ -109,16 +119,20 @@ export const Present = 1
 }
 
 func TestBuildWebGoScriptPluginScriptExternalizesSharedGoScriptImports(t *testing.T) {
+	// Prepare the Rolldown fixture and plugin build paths.
 	root := t.TempDir()
 	bldrDistRoot := filepath.Join(root, "dist")
 	writeRolldownToolFixture(t, bldrDistRoot)
 	workDir := filepath.Join(root, "work")
 	goScriptOutputRoot := filepath.Join(root, "goscript")
 	outPath := filepath.Join(root, "out", "plugin.mjs")
+
+	// Locate the main, shared dependency, and application modules.
 	mainPath := filepath.Join(goScriptOutputRoot, "@goscript", "github.com", "s4wave", "spacewave", "main", "plugin.gs.ts")
 	sharedPath := filepath.Join(goScriptOutputRoot, "@goscript", "github.com", "aperturerobotics", "protobuf-go-lite", "index.ts")
 	appPath := filepath.Join(goScriptOutputRoot, "@goscript", "github.com", "s4wave", "spacewave", "local", "index.ts")
 
+	// Write a plugin that combines shared and application values.
 	writeTestFile(t, filepath.Join(bldrDistRoot, webRuntimeGoScriptDir, "plugin-goscript.ts"), `
 export default async function runGoScriptPlugin(_api, pluginMain) {
   globalThis.__pluginResult = await pluginMain()
@@ -139,6 +153,7 @@ export const SharedValue = "shared-source-payload"
 export const AppValue = "local-app-payload"
 `)
 
+	// Build the plugin with shared dependency externalization.
 	inputs, err := BuildWebGoScriptPluginScriptWithOptions(
 		context.Background(),
 		logrus.NewEntry(logrus.New()),
@@ -158,6 +173,8 @@ export const AppValue = "local-app-payload"
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Require local inputs and exclude the shared source from the bundle report.
 	assertInputsContainPaths(t, inputs,
 		filepath.Join(workDir, "plugin-goscript-entrypoint.ts"),
 		filepath.Join(bldrDistRoot, webRuntimeGoScriptDir, "plugin-goscript.ts"),
@@ -170,10 +187,13 @@ export const AppValue = "local-app-payload"
 	}
 	assertBundleReport(t, GoScriptBundleReportPath(workDir), outPath, false, false, false, inputs)
 
+	// Read the plugin bundle for shared import assertions.
 	out, err := os.ReadFile(outPath)
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Require the provider URL and exclude the bare shared specifier.
 	outString := string(out)
 	sharedURL := "/b/pkg/@s4wave/goscript-shared/github.com/aperturerobotics/protobuf-go-lite/index.mjs"
 	if !strings.Contains(outString, sharedURL) {
@@ -183,6 +203,8 @@ export const AppValue = "local-app-payload"
 	if strings.Contains(outString, bareSharedSpecifier) {
 		t.Fatalf("bundle kept bare shared import specifier %q:\n%s", bareSharedSpecifier, outString)
 	}
+
+	// Require local application bytes and exclude shared dependency bytes.
 	if strings.Contains(outString, "shared-source-payload") {
 		t.Fatalf("bundle included externalized shared source payload:\n%s", outString)
 	}
@@ -192,16 +214,20 @@ export const AppValue = "local-app-payload"
 }
 
 func TestBuildWebGoScriptSharedProviderScriptPublishesSharedModules(t *testing.T) {
+	// Prepare the Rolldown fixture and provider build paths.
 	root := t.TempDir()
 	bldrDistRoot := filepath.Join(root, "dist")
 	writeRolldownToolFixture(t, bldrDistRoot)
 	workDir := filepath.Join(root, "work")
 	goScriptOutputRoot := filepath.Join(root, "goscript")
 	outWebPkgPath := filepath.Join(root, "out", "webpkg")
+
+	// Locate the shared modules and application module.
 	protobufPath := filepath.Join(goScriptOutputRoot, "@goscript", "github.com", "aperturerobotics", "protobuf-go-lite", "index.ts")
 	clockPath := filepath.Join(goScriptOutputRoot, "@goscript", "github.com", "example", "clock", "index.ts")
 	appPath := filepath.Join(goScriptOutputRoot, "@goscript", "github.com", "s4wave", "spacewave", "local", "index.ts")
 
+	// Write shared dependency modules and an application-only module.
 	writeTestFile(t, protobufPath, `
 export const EncodedValue = "encoded-for-consumer-a"
 export const DecodedValue = "decoded-for-consumer-a"
@@ -213,6 +239,7 @@ export const ClockValue = "clock-for-consumer-b"
 export const LocalOnlyValue = "must-not-be-published"
 `)
 
+	// Build the shared GoScript provider.
 	importMap, inputs, err := BuildWebGoScriptSharedProviderScript(
 		context.Background(),
 		logrus.NewEntry(logrus.New()),
@@ -227,11 +254,15 @@ export const LocalOnlyValue = "must-not-be-published"
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Require shared provider inputs and exclude application sources.
 	assertInputsContainPaths(t, inputs, protobufPath, clockPath)
 	appPath = canonicalTestPath(t, appPath)
 	if slices.Contains(inputs, appPath) {
 		t.Fatalf("provider inputs included github.com/s4wave app source %s: %v", appPath, inputs)
 	}
+
+	// Require provider URLs for the shared modules only.
 	wantImportMap := GoScriptSharedImportMap{
 		"@goscript/github.com/aperturerobotics/protobuf-go-lite/index.js": "/b/pkg/@s4wave/goscript-shared/github.com/aperturerobotics/protobuf-go-lite/index.mjs",
 		"@goscript/github.com/example/clock/index.js":                     "/b/pkg/@s4wave/goscript-shared/github.com/example/clock/index.mjs",
@@ -244,6 +275,8 @@ export const LocalOnlyValue = "must-not-be-published"
 	if _, ok := importMap["@goscript/github.com/s4wave/spacewave/local/index.js"]; ok {
 		t.Fatalf("provider import map included github.com/s4wave app module: %v", importMap)
 	}
+
+	// Require the provider outputs and their directory report.
 	protobufOut := filepath.Join(outWebPkgPath, "github.com", "aperturerobotics", "protobuf-go-lite", "index.mjs")
 	clockOut := filepath.Join(outWebPkgPath, "github.com", "example", "clock", "index.mjs")
 	if _, err := os.Stat(protobufOut); err != nil {
@@ -254,6 +287,7 @@ export const LocalOnlyValue = "must-not-be-published"
 	}
 	assertDirectoryBundleReport(t, GoScriptBundleReportPath(workDir), outWebPkgPath, false, false, true, inputs, protobufOut, clockOut)
 
+	// Execute the provider modules and verify their exported values.
 	runBunModuleScript(t, filepath.Join(workDir, "..", "..", "bun"), `
 import { pathToFileURL } from "node:url"
 
@@ -272,6 +306,7 @@ if (clock.ClockValue !== "clock-for-consumer-b") {
 }
 
 func TestBuildWebGoScriptPluginScriptResolvesGoScriptOverrideImports(t *testing.T) {
+	// Prepare the Rolldown fixture and standard library override path.
 	sourceRoot := t.TempDir()
 	bldrDistRoot := filepath.Join(sourceRoot, "bldr")
 	writeRolldownToolFixture(t, bldrDistRoot)
@@ -280,6 +315,7 @@ func TestBuildWebGoScriptPluginScriptResolvesGoScriptOverrideImports(t *testing.
 	outPath := filepath.Join(sourceRoot, "out", "plugin.mjs")
 	stdlibMathPath := filepath.Join(sourceRoot, "vendor", "github.com", "s4wave", "goscript", "gs", "math", "index.ts")
 
+	// Write a plugin that imports the GoScript math override through a dependency.
 	writeTestFile(t, filepath.Join(sourceRoot, "go.mod"), "module github.com/s4wave/spacewave\n")
 	writeTestFile(t, filepath.Join(bldrDistRoot, webRuntimeGoScriptDir, "plugin-goscript.ts"), `
 export default async function runGoScriptPlugin(_api, pluginMain) {
@@ -302,6 +338,7 @@ export const EncodedValue = MathValue
 export const MathValue = 1
 `)
 
+	// Build the plugin with the standard library override.
 	inputs, err := BuildWebGoScriptPluginScript(
 		context.Background(),
 		logrus.NewEntry(logrus.New()),
@@ -317,6 +354,8 @@ export const MathValue = 1
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Require the overridden math module among the bundle inputs.
 	stdlibMathPath = canonicalTestPath(t, stdlibMathPath)
 	if !slices.Contains(inputs, stdlibMathPath) {
 		t.Fatalf("inputs missing %s: %v", stdlibMathPath, inputs)
@@ -324,6 +363,7 @@ export const MathValue = 1
 }
 
 func TestBuildWebGoScriptPluginScriptShimsNodeEvents(t *testing.T) {
+	// Prepare the Rolldown fixture and plugin build paths.
 	root := t.TempDir()
 	bldrDistRoot := filepath.Join(root, "dist")
 	writeRolldownToolFixture(t, bldrDistRoot)
@@ -331,6 +371,7 @@ func TestBuildWebGoScriptPluginScriptShimsNodeEvents(t *testing.T) {
 	goScriptOutputRoot := filepath.Join(root, "goscript")
 	outPath := filepath.Join(root, "out", "plugin.mjs")
 
+	// Write a plugin that calls the Node events API.
 	writeTestFile(t, filepath.Join(bldrDistRoot, webRuntimeGoScriptDir, "plugin-goscript.ts"), `
 export default async function runGoScriptPlugin(_api, pluginMain) {
   await pluginMain()
@@ -344,6 +385,7 @@ export async function main() {
 }
 `)
 
+	// Build the plugin with the browser events shim.
 	_, err := BuildWebGoScriptPluginScript(
 		context.Background(),
 		logrus.NewEntry(logrus.New()),
@@ -359,6 +401,8 @@ export async function main() {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Require the browser output to exclude Node events imports.
 	out, err := os.ReadFile(outPath)
 	if err != nil {
 		t.Fatal(err)
@@ -369,16 +413,20 @@ export async function main() {
 }
 
 func TestBuildWebGoScriptPluginScriptResolvesBldrRuntimeAliases(t *testing.T) {
+	// Prepare the Rolldown fixture and plugin build paths.
 	sourceRoot := t.TempDir()
 	bldrDistRoot := filepath.Join(sourceRoot, "bldr")
 	writeRolldownToolFixture(t, bldrDistRoot)
 	workDir := filepath.Join(sourceRoot, "work")
 	goScriptOutputRoot := filepath.Join(sourceRoot, "goscript")
 	outPath := filepath.Join(sourceRoot, "out", "plugin.mjs")
+
+	// Locate SDK and generated protobuf fixtures for runtime aliases.
 	sdkPath := filepath.Join(bldrDistRoot, "sdk", "plugin.ts")
 	localProtoPath := filepath.Join(sourceRoot, "bldr", "plugin", "plugin.pb.ts")
 	vendorProtoPath := filepath.Join(bldrDistRoot, "vendor", "github.com", "aperturerobotics", "controllerbus", "controller", "exec", "exec.pb.ts")
 
+	// Write a plugin runtime whose SDK imports local and vendored protobuf modules.
 	writeTestFile(t, filepath.Join(sourceRoot, "go.mod"), "module github.com/s4wave/spacewave\n")
 	writeTestFile(t, filepath.Join(bldrDistRoot, webRuntimeGoScriptDir, "plugin-goscript.ts"), `
 import { BackendAPI } from "@aptre/bldr-sdk"
@@ -409,6 +457,7 @@ export async function main() {
 }
 `)
 
+	// Build the plugin with Bldr runtime aliases.
 	inputs, err := BuildWebGoScriptPluginScript(
 		context.Background(),
 		logrus.NewEntry(logrus.New()),
@@ -424,6 +473,8 @@ export async function main() {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Require every aliased SDK and protobuf module among the inputs.
 	for _, input := range []string{
 		sdkPath,
 		localProtoPath,
@@ -437,17 +488,21 @@ export async function main() {
 }
 
 func TestBuildWebGoScriptPluginScriptResolvesExternalBldrRuntimeAliases(t *testing.T) {
+	// Prepare the extracted Bldr fixture and plugin build paths.
 	sourceRoot := t.TempDir()
 	bldrDistRoot := filepath.Join(sourceRoot, ".bldr", "src")
 	writeRolldownToolFixture(t, bldrDistRoot)
 	workDir := filepath.Join(sourceRoot, "work")
 	goScriptOutputRoot := filepath.Join(sourceRoot, "goscript")
 	outPath := filepath.Join(sourceRoot, "out", "plugin.mjs")
+
+	// Locate SDK, Bldr protobuf, and application protobuf modules.
 	sdkPath := filepath.Join(bldrDistRoot, "sdk", "plugin.ts")
 	spacewaveProtoPath := filepath.Join(bldrDistRoot, "vendor", "github.com", "s4wave", "spacewave", "bldr", "plugin", "plugin.pb.ts")
 	vendorProtoPath := filepath.Join(bldrDistRoot, "vendor", "github.com", "aperturerobotics", "controllerbus", "controller", "exec", "exec.pb.ts")
 	appProtoPath := filepath.Join(sourceRoot, "vendor", "github.com", "example", "geometry", "types.pb.ts")
 
+	// Write an external application with an extracted Bldr runtime and aliased imports.
 	writeTestFile(t, filepath.Join(sourceRoot, "go.mod"), "module github.com/example/app\n")
 	writeTestFile(t, filepath.Join(bldrDistRoot, "go.mod"), "module github.com/s4wave/spacewave/bldr-dist\n")
 	writeTestFile(t, filepath.Join(bldrDistRoot, webRuntimeGoScriptDir, "plugin-goscript.ts"), `
@@ -484,6 +539,7 @@ export async function main() {
 }
 `)
 
+	// Build the external application plugin with Bldr runtime aliases.
 	inputs, err := BuildWebGoScriptPluginScript(
 		context.Background(),
 		logrus.NewEntry(logrus.New()),
@@ -499,6 +555,8 @@ export async function main() {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Require both Bldr and application alias targets among the inputs.
 	for _, input := range []string{
 		sdkPath,
 		spacewaveProtoPath,
@@ -513,17 +571,21 @@ export async function main() {
 }
 
 func TestRunRolldownGoScriptBundleSplitsAndLoadsDynamicGoScriptChunk(t *testing.T) {
+	// Prepare the Rolldown fixture and split plugin build paths.
 	root := t.TempDir()
 	bldrDistRoot := filepath.Join(root, "dist")
 	writeRolldownToolFixture(t, bldrDistRoot)
 	workDir := filepath.Join(root, "work")
 	goScriptOutputRoot := filepath.Join(root, "goscript")
 	outPath := filepath.Join(root, "out", "plugin.mjs")
+
+	// Locate the plugin runtime, entrypoint, main module, and lazy module.
 	runtimePath := filepath.Join(bldrDistRoot, webRuntimeGoScriptDir, "plugin-goscript.ts")
 	entrypointPath := filepath.Join(workDir, "plugin-goscript-entrypoint.ts")
 	mainPath := filepath.Join(goScriptOutputRoot, "@goscript", "example", "main", "plugin.gs.ts")
 	lazyPath := filepath.Join(goScriptOutputRoot, "@goscript", "example", "lazy", "index.ts")
 
+	// Write a plugin entrypoint whose main module dynamically imports a dependency.
 	writeTestFile(t, runtimePath, `
 export default async function runGoScriptPlugin(_api, pluginMain) {
   return await pluginMain()
@@ -550,6 +612,7 @@ export async function main() {
 export const LazyValue = "loaded from dynamic goscript chunk"
 `)
 
+	// Build the plugin with dynamic chunk splitting.
 	inputs, err := runRolldownGoScriptBundle(
 		context.Background(),
 		logrus.NewEntry(logrus.New()),
@@ -566,6 +629,8 @@ export const LazyValue = "loaded from dynamic goscript chunk"
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Require the plugin entry output and enumerate its dynamic chunks.
 	if _, err := os.Stat(outPath); err != nil {
 		t.Fatal(err)
 	}
@@ -580,6 +645,8 @@ export const LazyValue = "loaded from dynamic goscript chunk"
 			chunkFiles = append(chunkFiles, filepath.Join(chunksDir, chunkEntry.Name()))
 		}
 	}
+
+	// Require a dynamic chunk and the lazy module among the build inputs.
 	if len(chunkFiles) == 0 {
 		t.Fatalf("expected at least one dynamic chunk under %s", chunksDir)
 	}
@@ -588,21 +655,26 @@ export const LazyValue = "loaded from dynamic goscript chunk"
 		t.Fatalf("inputs missing lazy GoScript module %s: %v", lazyPath, inputs)
 	}
 
+	// Execute the plugin entrypoint and verify the dynamic chunk value.
 	runBundledEntryModule(t, filepath.Join(workDir, "..", "..", "bun"), outPath, "loaded from dynamic goscript chunk")
 }
 
 func TestRunRolldownGoScriptBundleSplitsWithSourceMapsAndLoadsDynamicGoScriptChunk(t *testing.T) {
+	// Prepare the Rolldown fixture and mapped split plugin build paths.
 	root := t.TempDir()
 	bldrDistRoot := filepath.Join(root, "dist")
 	writeRolldownToolFixture(t, bldrDistRoot)
 	workDir := filepath.Join(root, "work")
 	goScriptOutputRoot := filepath.Join(root, "goscript")
 	outPath := filepath.Join(root, "out", "plugin.mjs")
+
+	// Locate the plugin runtime, entrypoint, main module, and lazy module.
 	runtimePath := filepath.Join(bldrDistRoot, webRuntimeGoScriptDir, "plugin-goscript.ts")
 	entrypointPath := filepath.Join(workDir, "plugin-goscript-entrypoint.ts")
 	mainPath := filepath.Join(goScriptOutputRoot, "@goscript", "example", "main", "plugin.gs.ts")
 	lazyPath := filepath.Join(goScriptOutputRoot, "@goscript", "example", "lazy", "index.ts")
 
+	// Write a plugin entrypoint whose main module dynamically imports a dependency.
 	writeTestFile(t, runtimePath, `
 export default async function runGoScriptPlugin(_api, pluginMain) {
   return await pluginMain()
@@ -629,6 +701,7 @@ export async function main() {
 export const LazyValue = "loaded from dynamic goscript sourcemap chunk"
 `)
 
+	// Build the split plugin with sourcemaps.
 	inputs, err := runRolldownGoScriptBundle(
 		context.Background(),
 		logrus.NewEntry(logrus.New()),
@@ -645,6 +718,8 @@ export const LazyValue = "loaded from dynamic goscript sourcemap chunk"
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Require the entry output and its source in the external sourcemap.
 	if _, err := os.Stat(outPath); err != nil {
 		t.Fatal(err)
 	}
@@ -653,6 +728,7 @@ export const LazyValue = "loaded from dynamic goscript sourcemap chunk"
 		t.Fatalf("entry sourcemap sources = %v, want plugin-goscript-entrypoint.ts", entryMapSources)
 	}
 
+	// Enumerate dynamic chunks and find the lazy module in their sourcemaps.
 	chunksDir := filepath.Join(filepath.Dir(outPath), "chunks")
 	chunkEntries, err := os.ReadDir(chunksDir)
 	if err != nil {
@@ -661,6 +737,8 @@ export const LazyValue = "loaded from dynamic goscript sourcemap chunk"
 	var chunkFiles []string
 	var lazyChunkFile string
 	var lazyChunkMapSources []string
+
+	// Inspect each emitted chunk sourcemap for the lazy module.
 	for _, chunkEntry := range chunkEntries {
 		if !chunkEntry.Type().IsRegular() || !strings.HasSuffix(chunkEntry.Name(), ".mjs") {
 			continue
@@ -673,6 +751,8 @@ export const LazyValue = "loaded from dynamic goscript sourcemap chunk"
 			lazyChunkFile = chunkFile
 		}
 	}
+
+	// Require a lazy chunk and the lazy module among the build inputs.
 	if len(chunkFiles) == 0 {
 		t.Fatalf("expected at least one dynamic chunk under %s", chunksDir)
 	}
@@ -684,20 +764,25 @@ export const LazyValue = "loaded from dynamic goscript sourcemap chunk"
 		t.Fatalf("inputs missing lazy GoScript module %s: %v", lazyPath, inputs)
 	}
 
+	// Execute the mapped plugin entrypoint and verify the dynamic chunk value.
 	runBundledEntryModule(t, filepath.Join(workDir, "..", "..", "bun"), outPath, "loaded from dynamic goscript sourcemap chunk")
 }
 
 func TestBuildWebGoScriptPluginScriptCodeSplittingUsesLazyMainLoader(t *testing.T) {
+	// Prepare the Rolldown fixture and split plugin build paths.
 	root := t.TempDir()
 	bldrDistRoot := filepath.Join(root, "dist")
 	writeRolldownToolFixture(t, bldrDistRoot)
 	workDir := filepath.Join(root, "work")
 	goScriptOutputRoot := filepath.Join(root, "goscript")
 	outPath := filepath.Join(root, "out", "plugin.mjs")
+
+	// Locate the plugin runtime, main module, and lazy module.
 	runtimePath := filepath.Join(bldrDistRoot, webRuntimeGoScriptDir, "plugin-goscript.ts")
 	mainPath := filepath.Join(goScriptOutputRoot, "@goscript", "example", "main", "plugin.gs.ts")
 	lazyPath := filepath.Join(goScriptOutputRoot, "@goscript", "example", "lazy", "index.ts")
 
+	// Write a runtime that checks lazy main loading and a plugin that imports a lazy value.
 	writeTestFile(t, runtimePath, `
 export default async function runGoScriptPlugin(api, loadPluginMain) {
   if (typeof loadPluginMain !== "function") {
@@ -724,6 +809,7 @@ export async function main(api) {
 export const LazyValue = "loaded from public plugin split chunk"
 `)
 
+	// Build the plugin with split chunks and sourcemaps.
 	inputs, err := BuildWebGoScriptPluginScript(
 		context.Background(),
 		logrus.NewEntry(logrus.New()),
@@ -739,6 +825,8 @@ export const LazyValue = "loaded from public plugin split chunk"
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Require the generated plugin entrypoint to forward environment and startup completion.
 	entrypointData, err := os.ReadFile(filepath.Join(workDir, "plugin-goscript-entrypoint.ts"))
 	if err != nil {
 		t.Fatal(err)
@@ -749,12 +837,16 @@ export const LazyValue = "loaded from public plugin split chunk"
 		!strings.Contains(entrypointSource, ".main, env)") {
 		t.Fatalf("entrypoint does not forward the env and return the GoScript startup lifecycle: %s", entrypointSource)
 	}
+
+	// Require the main and lazy inputs and the mapped bundle report.
 	assertInputsContainPaths(t, inputs, mainPath, lazyPath)
 	assertBundleReport(t, GoScriptBundleReportPath(workDir), outPath, false, true, true, inputs)
 	entryMapSources := assertExternalSourceMapForOutput(t, outPath)
 	if !sourceMapSourcesContainSuffix(entryMapSources, "plugin-goscript-entrypoint.ts") {
 		t.Fatalf("entry sourcemap sources = %v, want plugin-goscript-entrypoint.ts", entryMapSources)
 	}
+
+	// Require the lazy payload and its source in a split chunk.
 	chunkFiles := assertSplitOutputLoadsPayloadFromChunk(t, outPath, "loaded from public plugin split chunk")
 	var lazyChunkMapSources []string
 	for _, chunkFile := range chunkFiles {
@@ -767,20 +859,25 @@ export const LazyValue = "loaded from public plugin split chunk"
 		t.Fatalf("no chunk sourcemap referenced lazy GoScript module; chunks=%v", chunkFiles)
 	}
 
+	// Execute the plugin wrapper and verify lazy main loading.
 	runBundledPluginEntryModule(t, filepath.Join(workDir, "..", "..", "bun"), outPath, "loaded from public plugin split chunk")
 }
 
 func TestBuildWebGoScriptRuntimeScriptCodeSplittingDefersMainChunkUntilMessage(t *testing.T) {
+	// Prepare the Rolldown fixture and split browser runtime build paths.
 	root := t.TempDir()
 	bldrDistRoot := filepath.Join(root, "dist")
 	writeRolldownToolFixture(t, bldrDistRoot)
 	workDir := filepath.Join(root, "work")
 	goScriptOutputRoot := filepath.Join(root, "goscript")
 	outPath := filepath.Join(root, "out", "runtime.mjs")
+
+	// Locate the browser runtime, main module, and lazy module.
 	runtimePath := filepath.Join(bldrDistRoot, "web", "entrypoint", "browser", "runtime-goscript.ts")
 	mainPath := filepath.Join(goScriptOutputRoot, "@goscript", "example", "runtime", "main.gs.ts")
 	lazyPath := filepath.Join(goScriptOutputRoot, "@goscript", "example", "lazy", "index.ts")
 
+	// Write a browser runtime that loads the main module only after a message.
 	writeTestFile(t, runtimePath, `
 export default function runGoScriptRuntime(loadDistMain) {
   if (typeof loadDistMain !== "function") {
@@ -811,6 +908,7 @@ export async function main(init) {
 export const LazyValue = "loaded from public runtime split chunk"
 `)
 
+	// Build the browser runtime with split chunks.
 	inputs, err := BuildWebGoScriptRuntimeScript(
 		context.Background(),
 		logrus.NewEntry(logrus.New()),
@@ -826,27 +924,36 @@ export const LazyValue = "loaded from public runtime split chunk"
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Require the main and lazy inputs and a split lazy payload.
 	assertInputsContainPaths(t, inputs, mainPath, lazyPath)
 	assertSplitOutputLoadsPayloadFromChunk(t, outPath, "loaded from public runtime split chunk")
 
+	// Execute the browser entrypoint and verify message-triggered main loading.
 	runBundledRuntimeEntryModule(t, filepath.Join(workDir, "..", "..", "bun"), outPath, "loaded from public runtime split chunk")
 }
 
 func TestBuildWebGoScriptPluginScriptAppliesRolldownPolicies(t *testing.T) {
+	// Prepare the Rolldown fixture and GoScript output root.
 	root := t.TempDir()
 	bldrDistRoot := filepath.Join(root, "dist")
 	writeRolldownToolFixture(t, bldrDistRoot)
 	goScriptOutputRoot := filepath.Join(root, "goscript")
+
+	// Locate work directories and outputs for the minification and sourcemap policies.
 	minWorkDir := filepath.Join(root, "work-min")
 	readableWorkDir := filepath.Join(root, "work-readable")
 	readableMapWorkDir := filepath.Join(root, "work-readable-map")
 	minOutPath := filepath.Join(root, "out", "plugin.min.mjs")
 	readableOutPath := filepath.Join(root, "out", "plugin.readable.mjs")
 	readableMapOutPath := filepath.Join(root, "out", "plugin.readable-map.mjs")
+
+	// Locate the plugin runtime, main module, and dependency fixtures.
 	runtimePath := filepath.Join(bldrDistRoot, webRuntimeGoScriptDir, "plugin-goscript.ts")
 	mainPath := filepath.Join(goScriptOutputRoot, "@goscript", "example", "main", "plugin.gs.ts")
 	valuesPath := filepath.Join(goScriptOutputRoot, "@goscript", "example", "values", "index.ts")
 
+	// Write a plugin with unused exports and local names for minification checks.
 	writeTestFile(t, runtimePath, `
 export default async function runGoScriptPlugin(_api, pluginMain) {
   await pluginMain()
@@ -867,6 +974,7 @@ export const Present = 1
 export const Unused = 2
 `)
 
+	// Build the plugin with full minification and sourcemaps.
 	inputs, err := BuildWebGoScriptPluginScript(
 		context.Background(),
 		logrus.NewEntry(logrus.New()),
@@ -882,6 +990,8 @@ export const Unused = 2
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Require the generated entrypoint and source modules among the inputs.
 	for _, input := range []string{
 		filepath.Join(minWorkDir, "plugin-goscript-entrypoint.ts"),
 		runtimePath,
@@ -893,6 +1003,8 @@ export const Unused = 2
 			t.Fatalf("inputs missing %s: %v", input, inputs)
 		}
 	}
+
+	// Require browser ESM output and both sourcemap forms.
 	assertInlineAndExternalSourceMap(t, minOutPath)
 	minOut, err := os.ReadFile(minOutPath)
 	if err != nil {
@@ -901,6 +1013,8 @@ export const Unused = 2
 	if !strings.Contains(string(minOut), "export") {
 		t.Fatalf("minified output should remain browser ESM:\n%s", minOut)
 	}
+
+	// Read and validate the private GoScript bundle report.
 	assertBundleReport(t, GoScriptBundleReportPath(minWorkDir), minOutPath, true, true, false, inputs)
 	reportBytes, err := os.ReadFile(GoScriptBundleReportPath(minWorkDir))
 	if err != nil {
@@ -911,6 +1025,8 @@ export const Unused = 2
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Report bundle measurements and require the report to stay out of distribution output.
 	t.Logf(
 		"GoScript Rolldown seed: raw=%d files=%d inputs=%d",
 		report.GetInt64("totalOutputBytes"),
@@ -921,6 +1037,7 @@ export const Unused = 2
 		t.Fatalf("dist report path exists or stat failed: %v", err)
 	}
 
+	// Build the plugin with readable output and no sourcemaps.
 	readableInputs, err := BuildWebGoScriptPluginScript(
 		context.Background(),
 		logrus.NewEntry(logrus.New()),
@@ -936,6 +1053,8 @@ export const Unused = 2
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Require minified code to be smaller than readable code and verify the readable report.
 	minInfo, err := os.Stat(minOutPath)
 	if err != nil {
 		t.Fatal(err)
@@ -953,6 +1072,7 @@ export const Unused = 2
 	}
 	assertBundleReport(t, GoScriptBundleReportPath(readableWorkDir), readableOutPath, false, false, false, readableInputs)
 
+	// Build readable output with both sourcemap forms.
 	_, err = BuildWebGoScriptPluginScript(
 		context.Background(),
 		logrus.NewEntry(logrus.New()),
@@ -970,6 +1090,7 @@ export const Unused = 2
 	}
 	assertInlineAndExternalSourceMap(t, readableMapOutPath)
 
+	// Build the plugin with name mangling and no compression.
 	mangleWorkDir := filepath.Join(root, "work-mangle")
 	mangleOutPath := filepath.Join(root, "out", "plugin.mangle.mjs")
 	_, err = BuildWebGoScriptPluginScriptWithOptions(
@@ -988,6 +1109,8 @@ export const Unused = 2
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Require mangled output to remove the verbose local names.
 	mangleOut, err := os.ReadFile(mangleOutPath)
 	if err != nil {
 		t.Fatal(err)
@@ -995,6 +1118,7 @@ export const Unused = 2
 	if strings.Contains(string(mangleOut), "verboseLocalName") {
 		t.Fatalf("mangle output should mangle local names:\n%s", mangleOut)
 	}
+
 	// Compress folds the constant sum; the mangle level leaves it in place.
 	if !strings.Contains(minCode, "return 7") || !strings.Contains(string(mangleOut), "1+1+2+3") {
 		t.Fatalf("mangle output should skip compress:\nmangle: %s\nfull: %s", mangleOut, minCode)
@@ -1002,6 +1126,7 @@ export const Unused = 2
 }
 
 func assertBundleReport(t *testing.T, reportPath, outPath string, minify, sourcemaps, codeSplitting bool, inputs []string) {
+	// Read and parse the GoScript bundle report.
 	t.Helper()
 	reportBytes, err := os.ReadFile(reportPath)
 	if err != nil {
@@ -1012,6 +1137,8 @@ func assertBundleReport(t *testing.T, reportPath, outPath string, minify, source
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Compare the report identity and entry size with the output file.
 	outInfo, err := os.Stat(outPath)
 	if err != nil {
 		t.Fatal(err)
@@ -1025,6 +1152,8 @@ func assertBundleReport(t *testing.T, reportPath, outPath string, minify, source
 	if got := report.GetInt64("outputBytes"); got != outInfo.Size() {
 		t.Fatalf("outputBytes = %d, want %d", got, outInfo.Size())
 	}
+
+	// Require the selected bundle policies and input count in the report.
 	if got := report.GetBool("minify"); got != minify {
 		t.Fatalf("minify = %v, want %v", got, minify)
 	}
@@ -1037,6 +1166,8 @@ func assertBundleReport(t *testing.T, reportPath, outPath string, minify, source
 	if got := report.GetInt("inputCount"); got != len(inputs) {
 		t.Fatalf("inputCount = %d, want %d", got, len(inputs))
 	}
+
+	// Require the report input paths to match the build inputs.
 	inputValues := report.GetArray("inputPaths")
 	gotInputs := make([]string, 0, len(inputValues))
 	for _, inputValue := range inputValues {
@@ -1048,6 +1179,7 @@ func assertBundleReport(t *testing.T, reportPath, outPath string, minify, source
 }
 
 func assertDirectoryBundleReport(t *testing.T, reportPath, outPath string, minify, sourcemaps, codeSplitting bool, inputs []string, outputPaths ...string) {
+	// Read and parse the shared provider directory report.
 	t.Helper()
 	reportBytes, err := os.ReadFile(reportPath)
 	if err != nil {
@@ -1058,6 +1190,8 @@ func assertDirectoryBundleReport(t *testing.T, reportPath, outPath string, minif
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Require the directory identity, selected policies, and file counts.
 	if got := report.GetInt("schemaVersion"); got != 1 {
 		t.Fatalf("schemaVersion = %d, want 1", got)
 	}
@@ -1079,6 +1213,8 @@ func assertDirectoryBundleReport(t *testing.T, reportPath, outPath string, minif
 	if got := report.GetInt("outputFileCount"); got != len(outputPaths) {
 		t.Fatalf("outputFileCount = %d, want %d", got, len(outputPaths))
 	}
+
+	// Require every provider output path in the directory report.
 	outputValues := report.GetArray("outputFiles")
 	gotOutputs := make([]string, 0, len(outputValues))
 	for _, outputValue := range outputValues {
@@ -1092,6 +1228,7 @@ func assertDirectoryBundleReport(t *testing.T, reportPath, outPath string, minif
 }
 
 func assertInlineAndExternalSourceMap(t *testing.T, outPath string) {
+	// Require the external map file and read the mapped bundle output.
 	t.Helper()
 	if _, err := os.Stat(outPath + ".map"); err != nil {
 		t.Fatal(err)
@@ -1100,6 +1237,8 @@ func assertInlineAndExternalSourceMap(t *testing.T, outPath string) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Require an inline map reference without an external reference in the bundle.
 	outString := string(out)
 	if !strings.Contains(outString, "sourceMappingURL=data:application/json;base64,") {
 		t.Fatalf("output missing inline sourcemap reference:\n%s", out)
@@ -1110,6 +1249,7 @@ func assertInlineAndExternalSourceMap(t *testing.T, outPath string) {
 }
 
 func assertExternalSourceMapForOutput(t *testing.T, outPath string) []string {
+	// Read the mapped bundle output and require nonempty code.
 	t.Helper()
 	out, err := os.ReadFile(outPath)
 	if err != nil {
@@ -1119,6 +1259,8 @@ func assertExternalSourceMapForOutput(t *testing.T, outPath string) []string {
 	if outString == "" {
 		t.Fatalf("output %s is empty", outPath)
 	}
+
+	// Require a trailing external sourcemap URL for the bundle.
 	lines := strings.Split(outString, "\n")
 	const sourceMappingURLPrefix = "//# sourceMappingURL="
 	sourceMappingURLLine := strings.TrimSpace(lines[len(lines)-1])
@@ -1133,6 +1275,8 @@ func assertExternalSourceMapForOutput(t *testing.T, outPath string) []string {
 	if sourceMappingURL != wantSourceMappingURL {
 		t.Fatalf("sourceMappingURL for %s = %q, want %q", outPath, sourceMappingURL, wantSourceMappingURL)
 	}
+
+	// Read and parse the external sourcemap.
 	mapBytes, err := os.ReadFile(filepath.Join(filepath.Dir(outPath), sourceMappingURL))
 	if err != nil {
 		t.Fatal(err)
@@ -1142,6 +1286,8 @@ func assertExternalSourceMapForOutput(t *testing.T, outPath string) []string {
 	if err != nil {
 		t.Fatalf("parse sourcemap for %s: %v", outPath, err)
 	}
+
+	// Require sourcemap version 3 and nonempty mappings.
 	if got := sourceMap.GetInt("version"); got != 3 {
 		t.Fatalf("sourcemap version for %s = %d, want 3", outPath, got)
 	}
@@ -1149,6 +1295,8 @@ func assertExternalSourceMapForOutput(t *testing.T, outPath string) []string {
 	if mappings == "" {
 		t.Fatalf("sourcemap for %s has empty mappings", outPath)
 	}
+
+	// Collect the source paths from the external sourcemap.
 	sourceValues := sourceMap.GetArray("sources")
 	if len(sourceValues) == 0 {
 		t.Fatalf("sourcemap for %s has no sources", outPath)
@@ -1181,12 +1329,15 @@ func assertInputsContainPaths(t *testing.T, inputs []string, paths ...string) {
 }
 
 func collectSplitChunkFiles(t *testing.T, outPath string) []string {
+	// Read the chunk directory beside the split entry output.
 	t.Helper()
 	chunksDir := filepath.Join(filepath.Dir(outPath), "chunks")
 	chunkEntries, err := os.ReadDir(chunksDir)
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Collect emitted JavaScript chunk files and require at least one.
 	var chunkFiles []string
 	for _, chunkEntry := range chunkEntries {
 		if chunkEntry.Type().IsRegular() && strings.HasSuffix(chunkEntry.Name(), ".mjs") {
@@ -1200,6 +1351,7 @@ func collectSplitChunkFiles(t *testing.T, outPath string) []string {
 }
 
 func assertSplitOutputLoadsPayloadFromChunk(t *testing.T, outPath, payload string) []string {
+	// Require the split entry to exclude the lazy payload.
 	t.Helper()
 	entryOut, err := os.ReadFile(outPath)
 	if err != nil {
@@ -1208,6 +1360,8 @@ func assertSplitOutputLoadsPayloadFromChunk(t *testing.T, outPath, payload strin
 	if strings.Contains(string(entryOut), payload) {
 		t.Fatalf("split entry %s contains lazy payload %q instead of leaving it in a chunk", outPath, payload)
 	}
+
+	// Search the emitted chunks for the lazy payload.
 	chunkFiles := collectSplitChunkFiles(t, outPath)
 	for _, chunkFile := range chunkFiles {
 		chunkOut, err := os.ReadFile(chunkFile)
@@ -1218,6 +1372,8 @@ func assertSplitOutputLoadsPayloadFromChunk(t *testing.T, outPath, payload strin
 			return chunkFiles
 		}
 	}
+
+	// Fail when no emitted chunk contains the lazy payload.
 	t.Fatalf("no split chunk contained lazy payload %q; chunks=%v", payload, chunkFiles)
 	return nil
 }
@@ -1276,13 +1432,18 @@ process.exit(0)
 }
 
 func runBunModuleScript(t *testing.T, stateDir, script string, args ...string) {
+	// Write the Bun module runner fixture.
 	t.Helper()
 	runnerPath := filepath.Join(t.TempDir(), "run-module.mjs")
 	writeTestFile(t, runnerPath, script)
+
+	// Resolve Bun for the module runner.
 	bunPath, err := npm.ResolveBunPath(context.Background(), logrus.NewEntry(logrus.New()), stateDir)
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Execute the module runner and require successful completion.
 	cmd := exec.CommandContext(context.Background(), bunPath, append([]string{runnerPath}, args...)...)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
@@ -1291,6 +1452,7 @@ func runBunModuleScript(t *testing.T, stateDir, script string, args ...string) {
 }
 
 func writeRolldownToolFixture(t *testing.T, bldrDistRoot string) {
+	// Link the installed Rolldown package into the build fixture.
 	t.Helper()
 	packageRoot, runnerPath := findTestRolldownPaths(t)
 	targetPackageRoot := filepath.Join(bldrDistRoot, "dist", "deps", "node_modules", "rolldown")
@@ -1300,6 +1462,8 @@ func writeRolldownToolFixture(t *testing.T, bldrDistRoot string) {
 	if err := os.Symlink(packageRoot, targetPackageRoot); err != nil {
 		t.Fatal(err)
 	}
+
+	// Read the installed Rolldown manifest and require a package version.
 	installedPackage, err := os.ReadFile(filepath.Join(packageRoot, "package.json"))
 	if err != nil {
 		t.Fatal(err)
@@ -1313,11 +1477,15 @@ func writeRolldownToolFixture(t *testing.T, bldrDistRoot string) {
 	if installedVersion == "" {
 		t.Fatal("Rolldown test package has no version")
 	}
+
+	// Write the matching Rolldown dependency declaration into the fixture.
 	writeTestFile(
 		t,
 		filepath.Join(bldrDistRoot, "dist", "deps", "package.json"),
 		`{"dependencies":{"rolldown":`+strconv.Quote(installedVersion)+`}}`,
 	)
+
+	// Copy the direct Rolldown runner into the build fixture.
 	runnerBytes, err := os.ReadFile(runnerPath)
 	if err != nil {
 		t.Fatal(err)
@@ -1327,6 +1495,7 @@ func writeRolldownToolFixture(t *testing.T, bldrDistRoot string) {
 }
 
 func findTestRolldownPaths(t *testing.T) (string, string) {
+	// Start the Rolldown fixture search from the test working directory.
 	t.Helper()
 	dir, err := os.Getwd()
 	if err != nil {
@@ -1334,6 +1503,7 @@ func findTestRolldownPaths(t *testing.T) (string, string) {
 	}
 	var packageRoot, runnerPath string
 	for {
+		// Locate the installed Rolldown package under the current ancestor.
 		if packageRoot == "" {
 			for _, candidate := range []string{
 				filepath.Join(dir, "dist", "deps", "node_modules", "rolldown"),
@@ -1345,12 +1515,16 @@ func findTestRolldownPaths(t *testing.T) (string, string) {
 				}
 			}
 		}
+
+		// Locate the direct Rolldown runner under the current ancestor.
 		if runnerPath == "" {
 			candidate := filepath.Join(dir, "web", "bundler", "rolldown", "run-build.mjs")
 			if info, err := os.Stat(candidate); err == nil && !info.IsDir() {
 				runnerPath = candidate
 			}
 		}
+
+		// Return complete fixture paths or continue at the parent directory.
 		if packageRoot != "" && runnerPath != "" {
 			return packageRoot, runnerPath
 		}
@@ -1372,6 +1546,7 @@ func canonicalTestPath(t *testing.T, path string) string {
 }
 
 func runBundledEntryModule(t *testing.T, stateDir, entryPath, want string) {
+	// Write a Bun runner that checks the bundled entrypoint result.
 	t.Helper()
 	runnerPath := filepath.Join(t.TempDir(), "run-entry.mjs")
 	writeTestFile(t, runnerPath, `
@@ -1383,10 +1558,14 @@ if (got !== process.argv[3]) {
   throw new Error("entry returned " + JSON.stringify(got) + ", want " + JSON.stringify(process.argv[3]))
 }
 `)
+
+	// Resolve Bun for the bundled entrypoint runner.
 	bunPath, err := npm.ResolveBunPath(context.Background(), logrus.NewEntry(logrus.New()), stateDir)
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Execute the bundled entrypoint and require the expected result.
 	cmd := exec.CommandContext(context.Background(), bunPath, runnerPath, entryPath, want)
 	output, err := cmd.CombinedOutput()
 	if err != nil {

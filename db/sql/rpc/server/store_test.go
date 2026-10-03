@@ -17,11 +17,13 @@ import (
 )
 
 func TestTxHandleCloseOpsWaitsForActiveStreams(t *testing.T) {
+	// Prepare a transaction handle with active stream tracking.
 	h := &txHandle{
 		active: make(map[uint64]func()),
 		idle:   make(chan struct{}),
 	}
 
+	// Acquire an operations stream with a release notification.
 	released := make(chan struct{})
 	_, release, err := h.acquire(func() {
 		close(released)
@@ -30,32 +32,36 @@ func TestTxHandleCloseOpsWaitsForActiveStreams(t *testing.T) {
 		t.Fatalf("acquire: %v", err)
 	}
 
+	// Start transaction closure and signal when it finishes.
 	closed := make(chan struct{})
 	go func() {
 		h.closeOps()
 		close(closed)
 	}()
 
+	// Require transaction closure to request active stream release.
 	select {
 	case <-released:
 	case <-time.After(time.Second):
 		t.Fatal("closeOps did not release active stream")
 	}
 
+	// Require transaction closure to wait for stream cleanup.
 	select {
 	case <-closed:
 		t.Fatal("closeOps returned before active stream released")
 	default:
 	}
 
+	// Complete active stream cleanup and require transaction closure to finish.
 	release()
-
 	select {
 	case <-closed:
 	case <-time.After(time.Second):
 		t.Fatal("closeOps did not return after active stream released")
 	}
 
+	// Require closed transactions to reject new operations streams.
 	_, _, err = h.acquire(nil)
 	if !errors.Is(err, tx.ErrDiscarded) {
 		t.Fatalf("acquire after close error = %v, want %v", err, tx.ErrDiscarded)
@@ -63,18 +69,22 @@ func TestTxHandleCloseOpsWaitsForActiveStreams(t *testing.T) {
 }
 
 func TestStoreClientConcurrentTransactions(t *testing.T) {
+	// Bound the concurrent transaction test lifetime.
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
+	// Register the fake SQL store behind the RPC server.
 	fakeStore := &fakeSqlStore{}
 	mux := srpc.NewMux()
 	if err := sql_rpc.SRPCRegisterSql(mux, NewStore(fakeStore)); err != nil {
 		t.Fatalf("register sql rpc: %v", err)
 	}
 
+	// Connect the SQL store client through the server pipe.
 	client := sql_rpc.NewSRPCSqlClient(srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(mux))))
 	store := sql_rpc_client.NewStore(client)
 
+	// Open independent write and read transactions and verify their modes.
 	writeTx, err := store.NewSqlTransaction(ctx, true, "primary")
 	if err != nil {
 		t.Fatalf("new write tx: %v", err)
@@ -90,6 +100,7 @@ func TestStoreClientConcurrentTransactions(t *testing.T) {
 		t.Fatal("read tx reports writable")
 	}
 
+	// Execute a write through RPC and verify the affected row count.
 	writeOps, err := writeTx.GetSqlOps(ctx)
 	if err != nil {
 		t.Fatalf("write ops: %v", err)
@@ -108,6 +119,7 @@ func TestStoreClientConcurrentTransactions(t *testing.T) {
 		t.Fatalf("rows affected = %d, want 1", rowsAffected)
 	}
 
+	// Query typed SQL rows through the read transaction.
 	readOps, err := readTx.GetSqlOps(ctx)
 	if err != nil {
 		t.Fatalf("read ops: %v", err)
@@ -116,6 +128,8 @@ func TestStoreClientConcurrentTransactions(t *testing.T) {
 	if err != nil {
 		t.Fatalf("query: %v", err)
 	}
+
+	// Require the expected column names and database types.
 	if cols := rows.Columns(); len(cols) != 3 || cols[0] != "id" || cols[1] != "name" || cols[2] != "payload" {
 		t.Fatalf("columns = %v, want [id name payload]", cols)
 	}
@@ -123,6 +137,8 @@ func TestStoreClientConcurrentTransactions(t *testing.T) {
 	if got := columnTypes.ColumnTypeDatabaseTypeName(2); got != "BLOB" {
 		t.Fatalf("column type = %q, want BLOB", got)
 	}
+
+	// Read the SQL row and verify its scalar and binary values.
 	dest := make([]driver.Value, 3)
 	if err := rows.Next(dest); err != nil {
 		t.Fatalf("next: %v", err)
@@ -134,6 +150,8 @@ func TestStoreClientConcurrentTransactions(t *testing.T) {
 	if !ok || string(payload) != "\x01\x02\x03" {
 		t.Fatalf("payload = %#v, want []byte{1,2,3}", dest[2])
 	}
+
+	// Require end-of-rows and close the query stream.
 	if err := rows.Next(dest); err != io.EOF {
 		t.Fatalf("next after row = %v, want EOF", err)
 	}
@@ -141,11 +159,13 @@ func TestStoreClientConcurrentTransactions(t *testing.T) {
 		t.Fatalf("rows close: %v", err)
 	}
 
+	// Commit the write transaction and discard the read transaction.
 	if err := writeTx.Commit(ctx); err != nil {
 		t.Fatalf("commit: %v", err)
 	}
 	readTx.Discard()
 
+	// Require the server transactions to retain their completion state and DSNs.
 	fakeStore.mtx.Lock()
 	defer fakeStore.mtx.Unlock()
 	if len(fakeStore.txs) != 2 {
@@ -168,6 +188,7 @@ type fakeSqlStore struct {
 }
 
 func (s *fakeSqlStore) NewSqlTransaction(ctx context.Context, write bool, dsn string) (hydra_sql.SqlTransaction, error) {
+	// Create and retain a fake transaction with the requested mode and DSN.
 	tx := &fakeSqlTx{
 		readOnly: !write,
 		dsn:      dsn,

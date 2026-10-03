@@ -23,12 +23,14 @@ func NewOps(ops hydra_sql.SqlOps) *Ops {
 
 // Exec executes a SQL statement.
 func (o *Ops) Exec(ctx context.Context, req *sql_rpc.SqlExecRequest) (*sql_rpc.SqlExecResponse, error) {
+	// Execute the SQL statement with the driver context fallback.
 	args := sql_rpc.SqlValuesToNamedValues(req.GetArgs())
 	result, err := o.ops.ExecContext(ctx, req.GetQuery(), args)
 	if errors.Is(err, driver.ErrSkip) {
 		result, err = o.ops.Exec(req.GetQuery(), sql_rpc.NamedValuesToValues(args))
 	}
 
+	// Encode the SQL execution error or result metadata.
 	resp := &sql_rpc.SqlExecResponse{}
 	if err != nil {
 		resp.Error = err.Error()
@@ -48,6 +50,7 @@ func (o *Ops) Exec(ctx context.Context, req *sql_rpc.SqlExecRequest) (*sql_rpc.S
 
 // Query executes a SQL query with explicit row iteration control.
 func (o *Ops) Query(strm sql_rpc.SRPCSqlOps_QueryStream) error {
+	// Require the query initialization request.
 	initReq, err := strm.Recv()
 	if err != nil {
 		return err
@@ -57,6 +60,7 @@ func (o *Ops) Query(strm sql_rpc.SRPCSqlOps_QueryStream) error {
 		return sendQueryReqError(strm, "expected init request")
 	}
 
+	// Open the SQL query rows with the driver context fallback.
 	args := sql_rpc.SqlValuesToNamedValues(init.GetArgs())
 	rows, err := o.ops.QueryContext(strm.Context(), init.GetQuery(), args)
 	if errors.Is(err, driver.ErrSkip) {
@@ -70,6 +74,7 @@ func (o *Ops) Query(strm sql_rpc.SRPCSqlOps_QueryStream) error {
 	}
 	defer rows.Close()
 
+	// Describe query columns and any driver-provided database types.
 	columns := rows.Columns()
 	columnSchemas := make([]*hydra_sql.ColumnSchema, len(columns))
 	columnTypes, _ := rows.(driver.RowsColumnTypeDatabaseTypeName)
@@ -80,6 +85,7 @@ func (o *Ops) Query(strm sql_rpc.SRPCSqlOps_QueryStream) error {
 		}
 	}
 
+	// Acknowledge the query with its column schema.
 	if err := strm.Send(&sql_rpc.SqlQueryResponse{
 		Body: &sql_rpc.SqlQueryResponse_Ack{
 			Ack: &sql_rpc.SqlQueryAck{Columns: columnSchemas},
@@ -88,6 +94,7 @@ func (o *Ops) Query(strm sql_rpc.SRPCSqlOps_QueryStream) error {
 		return err
 	}
 
+	// Serve explicit row iteration and closure requests for the query.
 	dest := make([]driver.Value, len(columns))
 	done := false
 	for {

@@ -69,6 +69,7 @@ func (b *Bundler) SetWebPkgs(pkgs []*bldr_web_bundler.WebPkgRefConfig) {
 
 // Bundle bundles a TypeScript file and returns the bundled JS code.
 func (b *Bundler) Bundle(ctx context.Context, scriptPath string) (string, error) {
+	// Obtain the Vite client for the eval bundle.
 	client, err := b.ensureVite(ctx)
 	if err != nil {
 		return "", err
@@ -90,6 +91,7 @@ func (b *Bundler) Bundle(ctx context.Context, scriptPath string) (string, error)
 		return "", errors.Wrap(err, "create output dir")
 	}
 
+	// Describe the eval script as the bundle entrypoint.
 	meta := &bldr_web_bundler_vite_compiler.ViteBundleMeta{
 		Id: "default",
 		Entrypoints: []*bldr_web_bundler_vite_compiler.ViteBundleEntrypoint{
@@ -97,10 +99,12 @@ func (b *Bundler) Bundle(ctx context.Context, scriptPath string) (string, error)
 		},
 	}
 
+	// Snapshot the configured external web packages.
 	b.mtx.Lock()
 	webPkgs := b.webPkgs
 	b.mtx.Unlock()
 
+	// Build the eval script through the Vite subprocess.
 	_, outputMetas, _, err := bldr_web_bundler_vite_compiler.BuildViteBundle(
 		ctx,
 		b.le,
@@ -173,14 +177,17 @@ func (b *Bundler) ensureVite(ctx context.Context) (bldr_vite.SRPCViteBundlerClie
 // startViteLocked starts the Vite bun subprocess.
 // Caller must hold b.mtx.
 func (b *Bundler) startViteLocked(_ context.Context) (bldr_vite.SRPCViteBundlerClient, error) {
+	// Start the Vite routine and prepare its readiness result.
 	b.le.Debug("starting vite bundler subprocess")
 	ready := make(chan viteStartResult, 1)
 	b.vite.SetRoutine(func(ctx context.Context) error {
 		return b.runVite(ctx, ready)
 	})
+
 	// The Vite subprocess is owned by the Bundler and outlives any one Bundle call.
 	b.vite.SetContext(context.Background(), true)
 
+	// Retain the Vite client after successful subprocess startup.
 	result := <-ready
 	if result.err != nil {
 		return nil, result.err
@@ -190,6 +197,7 @@ func (b *Bundler) startViteLocked(_ context.Context) (bldr_vite.SRPCViteBundlerC
 }
 
 func (b *Bundler) runVite(viteCtx context.Context, ready chan<- viteStartResult) error {
+	// Prepare the Vite working directory and report creation failures.
 	if err := os.MkdirAll(b.workingPath, 0o755); err != nil {
 		err = errors.Wrap(err, "create working dir")
 		ready <- viteStartResult{err: err}
@@ -228,9 +236,11 @@ func (b *Bundler) runVite(viteCtx context.Context, ready chan<- viteStartResult)
 		return errors.Wrap(err, "create pipe listener")
 	}
 
+	// Accept Vite connections through the singleton IPC transport.
 	smc := singleton_muxed_conn.NewSingletonMuxedConn(viteCtx, true)
 	go smc.AcceptPump(pipeListener)
 
+	// Configure the Bun subprocess for the Vite service script.
 	cmd, err := bun.BunExec(viteCtx, b.le, bunStateDir, viteScriptPath, "--bundle-id", "eval", "--pipe-uuid", pipeUuid)
 	if err != nil {
 		smc.Close()
@@ -243,6 +253,7 @@ func (b *Bundler) runVite(viteCtx context.Context, ready chan<- viteStartResult)
 	cmd.Stdout = b.le.WriterLevel(logrus.DebugLevel)
 	cmd.Stderr = b.le.WriterLevel(logrus.DebugLevel)
 
+	// Start the Bun subprocess and report startup failures.
 	if err := cmd.Start(); err != nil {
 		smc.Close()
 		pipeListener.Close()
@@ -253,7 +264,6 @@ func (b *Bundler) runVite(viteCtx context.Context, ready chan<- viteStartResult)
 	// Wait for the subprocess to connect via IPC.
 	timeoutCtx, timeoutCancel := context.WithTimeout(viteCtx, 30*time.Second)
 	defer timeoutCancel()
-
 	b.le.Debug("waiting for vite subprocess to connect")
 	_, err = smc.WaitConn(timeoutCtx)
 	if err != nil {
@@ -264,11 +274,12 @@ func (b *Bundler) runVite(viteCtx context.Context, ready chan<- viteStartResult)
 		return errors.Wrap(err, "vite subprocess did not connect")
 	}
 
+	// Create the Vite RPC client and publish successful startup.
 	client := bldr_vite.NewSRPCViteBundlerClient(srpc.NewClientWithMuxedConn(smc))
 	b.le.Debug("vite bundler subprocess connected")
-
 	ready <- viteStartResult{client: client}
 
+	// Wait for the Vite subprocess to exit and clear its retained client.
 	defer pipeListener.Close()
 	defer smc.Close()
 	_ = cmd.Wait()
@@ -285,12 +296,14 @@ func (b *Bundler) runVite(viteCtx context.Context, ready chan<- viteStartResult)
 
 // Close shuts down the Vite subprocess and waits for cleanup.
 func (b *Bundler) Close() {
+	// Stop the Vite routine and clear the cached client.
 	b.mtx.Lock()
 	b.client = nil
 	waitCh, _ := b.vite.SetRoutine(nil)
 	b.vite.ClearContext()
 	b.mtx.Unlock()
 
+	// Wait for Vite routine cleanup before closing the Bundler.
 	if waitCh != nil {
 		<-waitCh
 	}

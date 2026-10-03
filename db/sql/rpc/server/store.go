@@ -51,6 +51,7 @@ func NewStore(store hydra_sql.SqlStore) *Store {
 }
 
 func newTxHandle(ctx context.Context, sqlTx hydra_sql.SqlTransaction) (*txHandle, error) {
+	// Obtain SQL operations and register their transaction RPC mux.
 	ops, err := sqlTx.GetSqlOps(ctx)
 	if err != nil {
 		return nil, err
@@ -67,13 +68,16 @@ func newTxHandle(ctx context.Context, sqlTx hydra_sql.SqlTransaction) (*txHandle
 }
 
 func (h *txHandle) acquire(released func()) (srpc.Invoker, func(), error) {
+	// Lock the transaction handle while acquiring an operations stream.
 	h.mtx.Lock()
 	defer h.mtx.Unlock()
 
+	// Reject new operations after transaction closure starts.
 	if h.closing {
 		return nil, nil, tx.ErrDiscarded
 	}
 
+	// Register the active operations stream and its release notification.
 	id := h.next
 	h.next++
 	h.active[id] = released
@@ -95,6 +99,7 @@ func (h *txHandle) release(id uint64) {
 }
 
 func (h *txHandle) closeOps() {
+	// Wait for an ongoing transaction closure before returning.
 	h.mtx.Lock()
 	if h.closing {
 		idle := h.idle
@@ -105,6 +110,7 @@ func (h *txHandle) closeOps() {
 		return
 	}
 
+	// Mark the transaction closing and snapshot active stream release callbacks.
 	h.closing = true
 	releases := make([]func(), 0, len(h.active))
 	for _, release := range h.active {
@@ -120,6 +126,7 @@ func (h *txHandle) closeOps() {
 	}
 	h.mtx.Unlock()
 
+	// Release active operations streams and wait for their completion.
 	for _, release := range releases {
 		release()
 	}
@@ -130,6 +137,7 @@ func (h *txHandle) closeOps() {
 
 // SqlTransaction starts and manages a SQL transaction.
 func (s *Store) SqlTransaction(strm sql_rpc.SRPCSql_SqlTransactionStream) error {
+	// Require the SQL transaction initialization request.
 	req, err := strm.Recv()
 	if err != nil {
 		return err
@@ -139,26 +147,30 @@ func (s *Store) SqlTransaction(strm sql_rpc.SRPCSql_SqlTransactionStream) error 
 		return errors.New("expected init request")
 	}
 
+	// Open the SQL transaction and arrange its stream cleanup.
 	sqlTx, err := s.store.NewSqlTransaction(strm.Context(), init.GetWrite(), init.GetDsn())
 	var errStr, txID string
 	if err != nil {
 		errStr = err.Error()
 	} else {
+		// Assign the new SQL transaction its RPC routing ID.
 		txIDNumeric := s.idCounter.Add(1) - 1
 		txID = "tx/" + strconv.Itoa(int(txIDNumeric))
 
+		// Register SQL operations and discard the transaction if registration fails.
 		handle, hErr := newTxHandle(strm.Context(), sqlTx)
 		if hErr != nil {
 			sqlTx.Discard()
 			return hErr
 		}
 
+		// Publish the transaction handle for operations streams.
 		s.rmtx.Lock()
 		s.txs[txID] = handle
 		s.rmtx.Unlock()
 	}
-
 	defer func() {
+		// Remove the transaction route before closing operations and discarding it.
 		var handle *txHandle
 		if txID != "" {
 			s.rmtx.Lock()
@@ -174,6 +186,7 @@ func (s *Store) SqlTransaction(strm sql_rpc.SRPCSql_SqlTransactionStream) error 
 		}
 	}()
 
+	// Acknowledge the transaction routing ID or creation error.
 	txErr := strm.Send(&sql_rpc.SqlTransactionResponse{
 		Body: &sql_rpc.SqlTransactionResponse_Ack{
 			Ack: &sql_rpc.SqlTransactionAck{
@@ -186,6 +199,7 @@ func (s *Store) SqlTransaction(strm sql_rpc.SRPCSql_SqlTransactionStream) error 
 		return txErr
 	}
 
+	// Require a commit or discard request for the transaction.
 	req, err = strm.Recv()
 	if err != nil {
 		return err
@@ -195,6 +209,7 @@ func (s *Store) SqlTransaction(strm sql_rpc.SRPCSql_SqlTransactionStream) error 
 		return errors.New("expected commit or discard but got neither")
 	}
 
+	// Remove the transaction route and close its active operations streams.
 	var completeErrStr string
 	var commitErr error
 	if txID != "" {
@@ -206,6 +221,8 @@ func (s *Store) SqlTransaction(strm sql_rpc.SRPCSql_SqlTransactionStream) error 
 			handle.closeOps()
 		}
 	}
+
+	// Commit or discard the SQL transaction and retain the completion error.
 	if doCommit {
 		commitErr = sqlTx.Commit(strm.Context())
 		if commitErr != nil {
@@ -233,6 +250,7 @@ func (s *Store) SqlTransactionRpc(strm sql_rpc.SRPCSql_SqlTransactionRpcStream) 
 
 // GetSqlOpsMux returns the SqlOpsServer mux for the given transaction id.
 func (s *Store) GetSqlOpsMux(ctx context.Context, txID string, released func()) (srpc.Invoker, func(), error) {
+	// Find the active transaction handle for the requested operations route.
 	s.rmtx.RLock()
 	handle, ok := s.txs[txID]
 	s.rmtx.RUnlock()
