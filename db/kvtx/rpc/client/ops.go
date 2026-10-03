@@ -130,6 +130,7 @@ func (o *Ops) Iterate(ctx context.Context, prefix []byte, sort bool, reverse boo
 	// wait for init packet
 	ackMsg, err := itClient.Recv()
 	if err != nil {
+		_ = itClient.Close()
 		return kvtx.NewErrIterator(err)
 	}
 	switch m := ackMsg.GetBody().(type) {
