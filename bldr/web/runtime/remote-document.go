@@ -65,6 +65,7 @@ func NewRemoteWebDocument(ctx context.Context, r *Remote, id string, permanent b
 		},
 	)
 	if err != nil {
+		v.ctxCancel()
 		return nil, err
 	}
 
