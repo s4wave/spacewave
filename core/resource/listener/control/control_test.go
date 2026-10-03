@@ -32,11 +32,16 @@ func TestHandlerMetadata(t *testing.T) {
 // unmatched (false, nil) for services and methods it does not own, so
 // the mux keeps probing other handlers.
 func TestInvokeMethodIgnoresForeignRoutes(t *testing.T) {
+	// Create a handler whose shutdown callback must never receive foreign routes.
 	h := NewHandler(nil, func() { t.Fatal("callback fired for foreign route") })
+
+	// Require the daemon handler to leave a foreign service unmatched.
 	handled, err := h.InvokeMethod("other.service", ShutdownMethodID, nil)
 	if handled || err != nil {
 		t.Fatalf("foreign service: handled=%v err=%v", handled, err)
 	}
+
+	// Require the daemon handler to leave a foreign method unmatched.
 	handled, err = h.InvokeMethod(ServiceID, "Other", nil)
 	if handled || err != nil {
 		t.Fatalf("foreign method: handled=%v err=%v", handled, err)
@@ -47,8 +52,10 @@ func TestInvokeMethodIgnoresForeignRoutes(t *testing.T) {
 // starpc client and a handler-backed mux, and that the handler's
 // shutdown callback fires exactly once.
 func TestShutdownRoundTrip(t *testing.T) {
+	// Use the test lifetime for the daemon shutdown exchange.
 	ctx := t.Context()
 
+	// Bind the daemon socket and remove its path when the test ends.
 	dir := t.TempDir()
 	sock := filepath.Join(dir, "daemon.sock")
 	lis, err := net.Listen("unix", sock)
@@ -60,6 +67,7 @@ func TestShutdownRoundTrip(t *testing.T) {
 		_ = os.Remove(sock)
 	})
 
+	// Serve a daemon shutdown handler that reports callback completion.
 	shutdownCh := make(chan struct{}, 4)
 	mux := srpc.NewMux()
 	if err := mux.Register(NewHandler(nil, func() {
@@ -69,6 +77,7 @@ func TestShutdownRoundTrip(t *testing.T) {
 	}
 	server := srpc.NewServer(mux)
 	go func() {
+		// Accept and serve the requester through the shutdown handler.
 		conn, err := lis.Accept()
 		if err != nil {
 			return
@@ -81,18 +90,21 @@ func TestShutdownRoundTrip(t *testing.T) {
 		_ = server.AcceptMuxedConn(ctx, mp)
 	}()
 
+	// Connect the requester to the daemon control socket.
 	conn, err := net.Dial("unix", sock)
 	if err != nil {
 		t.Fatalf("dial: %v", err)
 	}
 	defer conn.Close()
 
+	// Request daemon shutdown with a bounded call lifetime.
 	callCtx, callCancel := context.WithTimeout(ctx, 5*time.Second)
 	defer callCancel()
 	if err := RequestShutdown(callCtx, conn); err != nil {
 		t.Fatalf("request shutdown: %v", err)
 	}
 
+	// Require the daemon shutdown callback to complete.
 	select {
 	case <-shutdownCh:
 	case <-time.After(5 * time.Second):
@@ -107,9 +119,11 @@ func TestShutdownRoundTrip(t *testing.T) {
 // shutdown on CloseSend stranded the old daemon whenever the client won
 // that race.
 func TestShutdownFiresWhenClientClosesBeforeCloseSend(t *testing.T) {
+	// Create a daemon handler that records its shutdown callback.
 	shutdownFired := false
 	h := NewHandler(nil, func() { shutdownFired = true })
 
+	// Require shutdown to fire even when response-stream completion fails.
 	strm := &closeSendErrStream{ctx: t.Context()}
 	handled, err := h.InvokeMethod(ServiceID, ShutdownMethodID, strm)
 	if !handled {
@@ -140,8 +154,10 @@ func (s *closeSendErrStream) Close() error               { return nil }
 // TestShutdownDenyPropagates asserts a deny policy propagates to the
 // caller as a DenyError without firing the shutdown callback.
 func TestShutdownDenyPropagates(t *testing.T) {
+	// Use the test lifetime for the denied shutdown exchange.
 	ctx := t.Context()
 
+	// Bind the daemon socket and remove its path when the test ends.
 	dir := t.TempDir()
 	sock := filepath.Join(dir, "daemon.sock")
 	lis, err := net.Listen("unix", sock)
@@ -153,6 +169,7 @@ func TestShutdownDenyPropagates(t *testing.T) {
 		_ = os.Remove(sock)
 	})
 
+	// Serve a daemon handler whose yield policy denies the request.
 	denyErr := errors.New("denied by Spacewave desktop app")
 	shutdownFired := false
 	mux := srpc.NewMux()
@@ -164,6 +181,7 @@ func TestShutdownDenyPropagates(t *testing.T) {
 	}
 	server := srpc.NewServer(mux)
 	go func() {
+		// Accept and serve the requester through the denying handler.
 		conn, err := lis.Accept()
 		if err != nil {
 			return
@@ -176,18 +194,22 @@ func TestShutdownDenyPropagates(t *testing.T) {
 		_ = server.AcceptMuxedConn(ctx, mp)
 	}()
 
+	// Connect the requester to the daemon that denies takeover.
 	conn, err := net.Dial("unix", sock)
 	if err != nil {
 		t.Fatalf("dial: %v", err)
 	}
 	defer conn.Close()
 
+	// Require the requester to receive the daemon policy denial.
 	callCtx, callCancel := context.WithTimeout(ctx, 5*time.Second)
 	defer callCancel()
 	err = RequestShutdown(callCtx, conn)
 	if err == nil {
 		t.Fatalf("request shutdown: expected deny error, got nil")
 	}
+
+	// Verify the denial retains its typed error and the peer's reason.
 	var denyError *DenyError
 	if !errors.As(err, &denyError) {
 		t.Fatalf("expected DenyError, got %T: %v", err, err)
@@ -195,6 +217,8 @@ func TestShutdownDenyPropagates(t *testing.T) {
 	if !strings.Contains(denyError.Reason, "Spacewave desktop app") {
 		t.Fatalf("deny reason missing app name: %q", denyError.Reason)
 	}
+
+	// Require the denied request to leave the daemon running.
 	if shutdownFired {
 		t.Fatal("shutdown callback fired despite deny")
 	}

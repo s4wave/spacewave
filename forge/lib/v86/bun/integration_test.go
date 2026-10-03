@@ -29,6 +29,7 @@ import (
 // skipIfNoV86 checks that V86_DIR and V86FS_DIR are set and point to
 // valid directories. Skips the test if artifacts are not available.
 func skipIfNoV86(t *testing.T) (v86Dir, v86fsDir string) {
+	// Require configured v86 and rootfs directories before running the guest.
 	t.Helper()
 	v86Dir = os.Getenv("V86_DIR")
 	v86fsDir = os.Getenv("V86FS_DIR")
@@ -38,6 +39,8 @@ func skipIfNoV86(t *testing.T) (v86Dir, v86fsDir string) {
 	if v86fsDir == "" {
 		t.Skip("V86FS_DIR not set (path to rootfs with bzImage, fs.json, flat/)")
 	}
+
+	// Require the guest runtime, BIOS, kernel, and rootfs artifacts to exist.
 	for _, p := range []string{
 		filepath.Join(v86Dir, "build", "v86-debug.wasm"),
 		filepath.Join(v86Dir, "bios", "seabios.bin"),
@@ -55,11 +58,14 @@ func skipIfNoV86(t *testing.T) (v86Dir, v86fsDir string) {
 // scriptDir returns the absolute path to this package directory.
 // boot.ts and v86fs-bridge.ts live here.
 func scriptDir(t *testing.T) string {
+	// Locate the package boot script and require it to exist.
 	t.Helper()
 	dir, err := os.Getwd()
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Require the package directory to contain the Bun boot script.
 	if _, err := os.Stat(dir + "/boot.ts"); err != nil {
 		t.Fatalf("boot.ts not found in %s", dir)
 	}
@@ -70,28 +76,35 @@ func scriptDir(t *testing.T) string {
 // runs a command that writes to /output, and verifies the output BlockRef
 // contains the expected file.
 func TestV86Execution(t *testing.T) {
+	// Require a full test run and locate the v86 guest artifacts.
 	if testing.Short() {
 		t.Skip("skipping v86 integration test in short mode")
 	}
 	v86Dir, v86fsDir := skipIfNoV86(t)
 	sdir := scriptDir(t)
 
+	// Provide the guest artifact paths to the Bun boot script.
 	t.Setenv("V86_DIR", v86Dir)
 	t.Setenv("V86FS_DIR", v86fsDir)
 
+	// Bound the guest execution lifetime and release its context afterward.
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
 	defer cancel()
 
+	// Start a Forge testbed with the v86 Bun controller factory.
 	tb, err := testbed.Default(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	tb.StaticResolver.AddFactory(NewFactory(tb.Bus))
 
+	// Import the rootfs into a World object for the guest input.
 	rootfsTar := v86fsDir + "/rootfs.tar"
 	t.Setenv("V86FS_DIR", "")
 	rootfsObj := importV86RootfsTarForTest(t, ctx, tb, rootfsTar, "v86-test/rootfs")
 	defer world.ReleaseObjectState(rootfsObj)
+
+	// Resolve a Forge target that writes a file using the imported rootfs.
 	yaml := `
 inputs:
   - name: rootfs
@@ -117,6 +130,7 @@ exec:
 		t.Fatal(err.Error())
 	}
 
+	// Snapshot the imported rootfs for the Forge execution inputs.
 	ts := timestamp.Now()
 	rootfsSnapshot, err := forge_value.NewWorldObjectSnapshot(ctx, rootfsObj, tb.WorldState)
 	if err != nil {
@@ -128,6 +142,7 @@ exec:
 		},
 	}
 
+	// Run the target until Forge produces its final execution state.
 	finalState, err := tb.RunExecutionWithTarget(tgt, valueSet, ts)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -140,11 +155,13 @@ exec:
 		t.Fatal(err.Error())
 	}
 
+	// Require the completed guest execution to publish an output value.
 	outVal := valMap["output"]
 	if outVal == nil || outVal.IsEmpty() {
 		t.Fatal("expected output value to be set")
 	}
 
+	// Verify the guest command wrote the expected output file.
 	verifyUnixFSOutput(t, ctx, tb, outVal, "test.txt", []byte("hello-from-v86\n"))
 }
 
@@ -155,6 +172,7 @@ func importV86RootfsTarForTest(
 	tarPath string,
 	objKey string,
 ) world.ObjectState {
+	// Open the rootfs tar and attribute import failures to the calling test.
 	t.Helper()
 	file, err := os.Open(tarPath)
 	if err != nil {
@@ -162,27 +180,34 @@ func importV86RootfsTarForTest(
 	}
 	defer file.Close()
 
+	// Open a UnixFS cursor and handle over the rootfs tar.
 	cursor, err := unixfs_tar.NewTarFSCursorFromReader(file)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	defer cursor.Release()
+
+	// Wrap the tar cursor for copying its filesystem into the World.
 	handle, err := unixfs.NewFSHandle(cursor)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	defer handle.Release()
 
+	// Initialize the World filesystem and copy the rootfs into it.
 	fsType := unixfs_world.FSType_FSType_FS_NODE
 	if _, _, err := unixfs_world.FsInit(ctx, tb.WorldState, tb.Volume.GetPeerID(), objKey, fsType, nil, true, time.Now()); err != nil {
 		t.Fatal(err.Error())
 	}
 	b := unixfs_world.NewBatchFSWriter(tb.WorldState, objKey, fsType, tb.Volume.GetPeerID())
 	defer b.Release()
+
+	// Copy the tar filesystem into the initialized World object.
 	if err := unixfs_sync.SyncToUnixfsBatch(ctx, b, handle, nil); err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Retrieve the imported rootfs object for the Forge input snapshot.
 	obj, found, err := tb.WorldState.GetObject(ctx, objKey)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -197,18 +222,22 @@ func importV86RootfsTarForTest(
 // writes a file to /output. The second mounts the first's output as an
 // input, reads the file, and writes a derived file to its own /output.
 func TestV86ExecutionChain(t *testing.T) {
+	// Require a full test run and locate the v86 guest artifacts.
 	if testing.Short() {
 		t.Skip("skipping v86 integration test in short mode")
 	}
 	v86Dir, v86fsDir := skipIfNoV86(t)
 	sdir := scriptDir(t)
 
+	// Provide the guest artifact paths to both Bun executions.
 	t.Setenv("V86_DIR", v86Dir)
 	t.Setenv("V86FS_DIR", v86fsDir)
 
+	// Bound the two-stage guest lifetime and release its context afterward.
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
 
+	// Start a Forge testbed with storage shared by both guest stages.
 	tb, err := testbed.Default(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -239,12 +268,14 @@ exec:
 		t.Fatal(err.Error())
 	}
 
+	// Run stage A to create the first guest output tree.
 	ts := timestamp.Now()
 	stateA, err := tb.RunExecutionWithTarget(tgtA, &forge_target.ValueSet{}, ts)
 	if err != nil {
 		t.Fatalf("stage A: %v", err)
 	}
 
+	// Require stage A to publish the output tree used by stage B.
 	outputsA := forge_value.ValueSlice(stateA.GetValueSet().GetOutputs())
 	valMapA, err := outputsA.BuildValueMap(true, false)
 	if err != nil {
@@ -305,11 +336,13 @@ exec:
 		Inputs: forge_value.ValueSlice{inpValue},
 	}
 
+	// Run stage B with the snapshot of the stage A output.
 	stateB, err := tb.RunExecutionWithTarget(tgtB, valueSetB, ts)
 	if err != nil {
 		t.Fatalf("stage B: %v", err)
 	}
 
+	// Require stage B to publish its derived output tree.
 	outputsB := forge_value.ValueSlice(stateB.GetValueSet().GetOutputs())
 	valMapB, err := outputsB.BuildValueMap(true, false)
 	if err != nil {
@@ -335,15 +368,19 @@ func verifyUnixFSOutput(
 	filename string,
 	expected []byte,
 ) {
+	// Attribute output verification failures to the calling test.
 	t.Helper()
 
+	// Require the Forge output to contain a stored UnixFS root.
 	bref := val.GetBucketRef()
 	if bref == nil || bref.GetRootRef().GetEmpty() {
 		t.Fatal("output value has no bucket ref")
 	}
 
+	// Read the Forge output through a World storage scope.
 	objRef := &bucket.ObjectRef{RootRef: bref.GetRootRef()}
 	err := tb.WorldState.AccessWorldState(ctx, objRef, func(cs *bucket_lookup.Cursor) error {
+		// Open a read-only UnixFS handle on the output root.
 		fs := unixfs_block_fs.NewFS(ctx, unixfs_block.NodeType_NodeType_DIRECTORY, cs, nil)
 		defer fs.Release()
 		fh, err := unixfs.NewFSHandle(fs)
@@ -352,11 +389,14 @@ func verifyUnixFSOutput(
 		}
 		defer fh.Release()
 
+		// Read the output file through BillyFS and compare its contents.
 		bfs := unixfs_billy.NewBillyFS(ctx, fh, "", time.Now())
 		data, err := billy_util.ReadFile(bfs, filename)
 		if err != nil {
 			return err
 		}
+
+		// Verify the guest output file contains the expected command result.
 		if !bytes.Equal(data, expected) {
 			t.Errorf("%s: expected %q, got %q", filename, string(expected), string(data))
 		}

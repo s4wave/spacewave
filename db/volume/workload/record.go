@@ -60,14 +60,18 @@ func (r Record) Log(ctx context.Context) {
 // AppendText appends the record's single-line text form, which ParseRecord
 // decodes: op, id, parent, size, and the hexadecimal key.
 func (r Record) AppendText(b []byte) []byte {
+	// Encode the operation and transaction identity as space-separated fields.
 	b = append(b, r.Op...)
 	b = append(b, ' ')
 	b = strconv.AppendUint(b, r.ID, 10)
 	b = append(b, ' ')
+
+	// Encode the parent transaction and operation size before the key.
 	b = strconv.AppendUint(b, r.Parent, 10)
 	b = append(b, ' ')
 	b = strconv.AppendInt(b, r.Size, 10)
 	b = append(b, ' ')
+
 	return hex.AppendEncode(b, r.Key)
 }
 

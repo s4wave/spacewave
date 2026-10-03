@@ -20,16 +20,20 @@ import (
 // its socket. A replacement can bind immediately, and the old owner's
 // later serve-loop exit cannot unlink the replacement.
 func TestTakeoverSocketShutsDownLiveDaemon(t *testing.T) {
+	// Use the test lifetime for the daemon takeover.
 	ctx := t.Context()
 
+	// Start a live daemon listener at the takeover socket path.
 	sock := filepath.Join(makeShortTakeoverDir(t, "takeover-live"), "d.sock")
 	done := startControlListener(t, ctx, sock)
 
+	// Request takeover of the live daemon socket.
 	le := logrus.NewEntry(logrus.New())
 	if err := TakeoverSocket(ctx, le, sock); err != nil {
 		t.Fatalf("takeover: %v", err)
 	}
 
+	// Bind a replacement listener immediately after the daemon yields.
 	newLis, err := net.ListenUnix("unix", &net.UnixAddr{Name: sock, Net: "unix"})
 	if err != nil {
 		t.Fatalf("relisten immediately after takeover: %v", err)
@@ -37,6 +41,7 @@ func TestTakeoverSocketShutsDownLiveDaemon(t *testing.T) {
 	defer newLis.Close()
 	assertSocketAccepts(t, sock)
 
+	// Verify the old daemon exits without unlinking the replacement socket.
 	select {
 	case <-done:
 	case <-time.After(5 * time.Second):
@@ -50,12 +55,15 @@ func TestTakeoverSocketShutsDownLiveDaemon(t *testing.T) {
 // The requester must stay blocked on the socket-path event until the
 // old owner completes release.
 func TestTakeoverSocketWaitsForHandoffCompletionEvent(t *testing.T) {
+	// Bind the old daemon socket for an acknowledgement-before-release handoff.
 	ctx := t.Context()
 	sock := filepath.Join(makeShortTakeoverDir(t, "takeover-event"), "d.sock")
 	lis, err := net.ListenUnix("unix", &net.UnixAddr{Name: sock, Net: "unix"})
 	if err != nil {
 		t.Fatalf("listen: %v", err)
 	}
+
+	// Gate listener release after the daemon acknowledges the shutdown request.
 	acknowledged := make(chan struct{})
 	release := make(chan struct{})
 	mux := srpc.NewMux()
@@ -68,7 +76,10 @@ func TestTakeoverSocketWaitsForHandoffCompletionEvent(t *testing.T) {
 	}); err != nil {
 		t.Fatalf("register control: %v", err)
 	}
+
+	// Serve the old daemon until its release gate closes.
 	go func() {
+		// Accept and serve the old daemon control connection.
 		conn, err := lis.Accept()
 		if err != nil {
 			return
@@ -80,10 +91,13 @@ func TestTakeoverSocketWaitsForHandoffCompletionEvent(t *testing.T) {
 		}
 		_ = srpc.NewServer(mux).AcceptMuxedConn(ctx, mp)
 	}()
+
+	// Release the old daemon listener when the test ends.
 	t.Cleanup(func() {
 		_ = lis.Close()
 	})
 
+	// Start the takeover request and require it to wait after acknowledgement.
 	result := make(chan error, 1)
 	go func() {
 		result <- TakeoverSocket(ctx, logrus.NewEntry(logrus.New()), sock)
@@ -99,6 +113,7 @@ func TestTakeoverSocketWaitsForHandoffCompletionEvent(t *testing.T) {
 	default:
 	}
 
+	// Release the old listener and require the takeover to complete.
 	close(release)
 	select {
 	case err := <-result:
@@ -108,6 +123,8 @@ func TestTakeoverSocketWaitsForHandoffCompletionEvent(t *testing.T) {
 	case <-time.After(5 * time.Second):
 		t.Fatal("takeover did not observe socket release")
 	}
+
+	// Bind a replacement listener after the socket release event.
 	replacement, err := net.ListenUnix("unix", &net.UnixAddr{Name: sock, Net: "unix"})
 	if err != nil {
 		t.Fatalf("replacement listen: %v", err)
@@ -119,14 +136,18 @@ func TestTakeoverSocketWaitsForHandoffCompletionEvent(t *testing.T) {
 // TestTakeoverSocketRemovesStaleFile asserts that TakeoverSocket
 // removes an orphaned socket file when no daemon answers.
 func TestTakeoverSocketRemovesStaleFile(t *testing.T) {
+	// Leave an orphaned socket at the daemon path.
 	ctx := context.Background()
 	sock := filepath.Join(makeShortTakeoverDir(t, "takeover-stale"), "d.sock")
 	createStaleTakeoverSocket(t, sock)
 
+	// Request takeover of the orphaned daemon socket.
 	le := logrus.NewEntry(logrus.New())
 	if err := TakeoverSocket(ctx, le, sock); err != nil {
 		t.Fatalf("takeover: %v", err)
 	}
+
+	// Require the orphaned daemon socket path to be removed.
 	if _, err := os.Stat(sock); !os.IsNotExist(err) {
 		t.Fatalf("expected socket removed; stat err=%v", err)
 	}
@@ -145,6 +166,7 @@ func TestTakeoverSocketNoop(t *testing.T) {
 }
 
 func TestEnsureSocketAvailableRefusesLiveListener(t *testing.T) {
+	// Bind a live listener that must be protected from implicit takeover.
 	sock := filepath.Join(makeShortTakeoverDir(t, "ensure-live"), "d.sock")
 	lis, err := net.ListenUnix("unix", &net.UnixAddr{Name: sock, Net: "unix"})
 	if err != nil {
@@ -152,6 +174,7 @@ func TestEnsureSocketAvailableRefusesLiveListener(t *testing.T) {
 	}
 	defer lis.Close()
 
+	// Require socket availability to report the live listener refusal.
 	err = EnsureSocketAvailable(t.Context(), logrus.NewEntry(logrus.New()), sock)
 	if err == nil {
 		t.Fatal("expected live socket refusal")
@@ -178,10 +201,12 @@ func TestEnsureSocketAvailableRemovesStaleFile(t *testing.T) {
 // death, not as a permanent handoff wait. The stale path is removed
 // and a replacement can serve without a timeout.
 func TestTakeoverSocketReclaimsWhenYieldingPeerExitsBeforeCompletion(t *testing.T) {
+	// Start a daemon that exits before acknowledging completed shutdown.
 	ctx := t.Context()
 	sock := filepath.Join(makeShortTakeoverDir(t, "takeover-peer-exit"), "d.sock")
 	done := startExitBeforeCompletionListener(t, ctx, sock)
 
+	// Reclaim the yielded socket and bind a replacement listener.
 	if err := TakeoverSocket(ctx, logrus.NewEntry(logrus.New()), sock); err != nil {
 		t.Fatalf("takeover after peer exit: %v", err)
 	}
@@ -192,6 +217,7 @@ func TestTakeoverSocketReclaimsWhenYieldingPeerExitsBeforeCompletion(t *testing.
 	defer replacement.Close()
 	assertSocketAccepts(t, sock)
 
+	// Require the yielding peer to finish its serving goroutine.
 	select {
 	case <-done:
 	case <-time.After(5 * time.Second):
@@ -202,10 +228,12 @@ func TestTakeoverSocketReclaimsWhenYieldingPeerExitsBeforeCompletion(t *testing.
 // TestConcurrentTakeoverRequestsHaveOneWinner asserts that two
 // requests admitted by one old owner cannot both bind the socket.
 func TestConcurrentTakeoverRequestsHaveOneWinner(t *testing.T) {
+	// Start a daemon whose policy gates two simultaneous takeover requests.
 	ctx := t.Context()
 	sock := filepath.Join(makeShortTakeoverDir(t, "takeover-concurrent"), "d.sock")
 	arrived, release := startGatedControlListener(t, ctx, sock)
 
+	// Launch two requesters that compete to bind the released socket.
 	type result struct {
 		lis *net.UnixListener
 		err error
@@ -213,16 +241,20 @@ func TestConcurrentTakeoverRequestsHaveOneWinner(t *testing.T) {
 	results := make(chan result, 2)
 	for range 2 {
 		go func() {
+			// Request takeover and report any denial before binding a replacement.
 			err := TakeoverSocket(ctx, logrus.NewEntry(logrus.New()), sock)
 			if err != nil {
 				results <- result{err: err}
 				return
 			}
+
+			// Bind the replacement socket after this requester completes takeover.
 			lis, err := net.ListenUnix("unix", &net.UnixAddr{Name: sock, Net: "unix"})
 			results <- result{lis: lis, err: err}
 		}()
 	}
 
+	// Wait for both requesters to reach the policy before releasing the daemon.
 	for range 2 {
 		select {
 		case <-arrived:
@@ -232,6 +264,7 @@ func TestConcurrentTakeoverRequestsHaveOneWinner(t *testing.T) {
 	}
 	close(release)
 
+	// Require exactly one requester to retain the replacement listener.
 	var winner *net.UnixListener
 	for range 2 {
 		res := <-results
@@ -270,6 +303,7 @@ func (h *ackBeforeReleaseHandler) InvokeMethod(
 	methodID string,
 	strm srpc.Stream,
 ) (bool, error) {
+	// Acknowledge the shutdown request before releasing the old listener.
 	if serviceID != ServiceID || methodID != ShutdownMethodID {
 		return false, nil
 	}
@@ -279,12 +313,16 @@ func (h *ackBeforeReleaseHandler) InvokeMethod(
 	if err := strm.MsgSend(&emptypb.Empty{}); err != nil {
 		return true, err
 	}
+
+	// Hold the acknowledged request until the test releases the daemon listener.
 	h.acknowledged <- struct{}{}
 	select {
 	case <-strm.Context().Done():
 		return true, strm.Context().Err()
 	case <-h.release:
 	}
+
+	// Release the old listener before completing the response stream.
 	h.shutdown()
 	return true, strm.CloseSend()
 }
@@ -293,13 +331,16 @@ func (h *ackBeforeReleaseHandler) InvokeMethod(
 // registers the daemon-control handler. UnixListener.Close owns the
 // socket unlink, matching the production listener lifecycle.
 func startControlListener(t *testing.T, ctx context.Context, sock string) <-chan struct{} {
+	// Attribute daemon listener setup failures to the calling test.
 	t.Helper()
 
+	// Bind the daemon control listener at the requested socket path.
 	lis, err := net.ListenUnix("unix", &net.UnixAddr{Name: sock, Net: "unix"})
 	if err != nil {
 		t.Fatalf("listen: %v", err)
 	}
 
+	// Register a shutdown handler that cancels serving and releases the socket.
 	serveCtx, serveCancel := context.WithCancel(ctx)
 	mux := srpc.NewMux()
 	if err := mux.Register(NewHandler(nil, func() {
@@ -310,6 +351,7 @@ func startControlListener(t *testing.T, ctx context.Context, sock string) <-chan
 		t.Fatalf("register: %v", err)
 	}
 
+	// Serve daemon control connections until shutdown closes the listener.
 	done := make(chan struct{})
 	go func() {
 		defer close(done)
@@ -331,6 +373,7 @@ func startControlListener(t *testing.T, ctx context.Context, sock string) <-chan
 		}
 	}()
 
+	// Release the daemon context and listener when the test ends.
 	t.Cleanup(func() {
 		serveCancel()
 		lis.Close()
@@ -343,6 +386,7 @@ func startExitBeforeCompletionListener(
 	ctx context.Context,
 	sock string,
 ) <-chan struct{} {
+	// Bind a daemon listener that leaves its socket path behind on exit.
 	t.Helper()
 	lis, err := net.ListenUnix("unix", &net.UnixAddr{Name: sock, Net: "unix"})
 	if err != nil {
@@ -350,8 +394,10 @@ func startExitBeforeCompletionListener(
 	}
 	lis.SetUnlinkOnClose(false)
 
+	// Serve one daemon connection that closes before shutdown completion.
 	done := make(chan struct{})
 	go func() {
+		// Accept the requester and register the daemon shutdown handler.
 		defer close(done)
 		conn, err := lis.Accept()
 		if err != nil {
@@ -383,11 +429,14 @@ func startGatedControlListener(
 	ctx context.Context,
 	sock string,
 ) (<-chan struct{}, chan<- struct{}) {
+	// Bind a daemon listener for the gated takeover requests.
 	t.Helper()
 	lis, err := net.ListenUnix("unix", &net.UnixAddr{Name: sock, Net: "unix"})
 	if err != nil {
 		t.Fatalf("listen: %v", err)
 	}
+
+	// Gate both takeover policy invocations before permitting shutdown.
 	arrived := make(chan struct{}, 2)
 	release := make(chan struct{})
 	policy := func(ctx context.Context) error {
@@ -399,12 +448,16 @@ func startGatedControlListener(
 			return nil
 		}
 	}
+
+	// Register the gated shutdown policy on the daemon control mux.
 	mux := srpc.NewMux()
 	if err := mux.Register(NewHandler(policy, func() {
 		_ = lis.Close()
 	})); err != nil {
 		t.Fatalf("register control: %v", err)
 	}
+
+	// Serve each concurrent requester through the gated daemon handler.
 	server := srpc.NewServer(mux)
 	go func() {
 		for {
@@ -440,11 +493,14 @@ func assertSocketAccepts(t *testing.T, sock string) {
 // makeShortTakeoverDir returns a short, test-package-local directory
 // for Unix sockets; mirrors the helper in the spacewave-cli tests.
 func makeShortTakeoverDir(t *testing.T, _ string) string {
+	// Choose a short socket directory beneath the test state root.
 	t.Helper()
 	root := os.Getenv("SPACEWAVE_TEST_STATE_ROOT")
 	if root == "" {
 		root = "../../../../.tmp"
 	}
+
+	// Resolve and create the root directory for short daemon socket paths.
 	tmpRoot, err := filepath.Abs(root)
 	if err != nil {
 		t.Fatal(err)
@@ -452,6 +508,8 @@ func makeShortTakeoverDir(t *testing.T, _ string) string {
 	if err := os.MkdirAll(tmpRoot, 0o700); err != nil {
 		t.Fatal(err)
 	}
+
+	// Allocate a socket directory that is removed when the test ends.
 	dir, err := os.MkdirTemp(tmpRoot, "tk")
 	if err != nil {
 		t.Fatal(err)
@@ -462,6 +520,7 @@ func makeShortTakeoverDir(t *testing.T, _ string) string {
 
 // createStaleTakeoverSocket leaves a real unbound socket, not an ordinary file.
 func createStaleTakeoverSocket(t *testing.T, path string) {
+	// Create an orphaned socket whose file survives listener closure.
 	t.Helper()
 	listener, err := net.ListenUnix("unix", &net.UnixAddr{Name: path, Net: "unix"})
 	if err != nil {

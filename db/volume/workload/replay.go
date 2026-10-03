@@ -120,6 +120,7 @@ const seedBatch = 1024
 // NewReplay prepares a replay of records, regenerating every block payload and
 // finding the state the workload reads before writing it.
 func NewReplay(records []Record) (*Replay, error) {
+	// Prepare the replay's block payload and initial-value indexes.
 	r := &Replay{
 		records:    records,
 		blocks:     make(map[string]*replayBlock),
@@ -245,11 +246,15 @@ func (r *Replay) block(key []byte, sizes map[string]int64) (*replayBlock, error)
 	if err != nil {
 		return nil, err
 	}
+
+	// Generate and hash the deterministic payload for the recorded block key.
 	data := randomBytes(key, n)
 	ref, err := block.BuildBlockRef(data, nil)
 	if err != nil {
 		return nil, err
 	}
+
+	// Retain the regenerated block for later operations on the same key.
 	b := &replayBlock{ref: ref, data: data}
 	r.blocks[string(key)] = b
 	return b, nil
@@ -287,16 +292,20 @@ func (r *Replay) Seed(ctx context.Context, t Target) error {
 
 // seedValueChunk writes one transaction of seeded values.
 func (r *Replay) seedValueChunk(ctx context.Context, t Target, keys []string) error {
+	// Open a write transaction for one chunk of seeded values.
 	tx, err := t.NewTransaction(ctx, true)
 	if err != nil {
 		return errors.Wrap(err, "seed values")
 	}
 	defer tx.Discard()
+
+	// Populate the transaction with each value the workload reads before writing.
 	for _, key := range keys {
 		if err := tx.Set(ctx, []byte(key), r.values[:r.seedValues[key]]); err != nil {
 			return errors.Wrap(err, "seed value")
 		}
 	}
+
 	return errors.Wrap(tx.Commit(ctx), "seed commit")
 }
 
@@ -324,6 +333,7 @@ func Fill(ctx context.Context, t Target, n, size int) error {
 // Run replays the workload against t in record order on one goroutine, with
 // no think time, and reports its timing.
 func (r *Replay) Run(ctx context.Context, t Target) (*Result, error) {
+	// Track the target's open resources and replay results for this run.
 	run := &replayRun{
 		replay: r,
 		target: t,
@@ -335,12 +345,15 @@ func (r *Replay) Run(ctx context.Context, t Target) (*Result, error) {
 	}
 	defer run.release()
 
+	// Apply each workload record in order while measuring the complete replay.
 	start := time.Now()
 	for i, rec := range r.records {
 		if err := run.apply(ctx, rec); err != nil {
 			return nil, errors.Wrapf(err, "replay record %d (%s)", i, rec.Op)
 		}
 	}
+
+	// Report the completed record count and total replay duration.
 	run.result.Ops = len(r.records)
 	run.result.Wall = time.Since(start)
 	return run.result, nil
@@ -431,6 +444,7 @@ func (run *replayRun) apply(ctx context.Context, rec Record) error {
 
 // applyTx replays one operation of an open transaction.
 func (run *replayRun) applyTx(ctx context.Context, rec Record) error {
+	// Resolve the transaction recorded directly or through its iterator.
 	id := rec.ID
 	if rec.Op == OpIterate {
 		id = rec.Parent
@@ -439,6 +453,8 @@ func (run *replayRun) applyTx(ctx context.Context, rec Record) error {
 	if err != nil {
 		return err
 	}
+
+	// Apply the recorded read, write, iterator, or commit to the open transaction.
 	switch rec.Op {
 	case OpGet:
 		_, _, err = tx.Get(ctx, rec.Key)
@@ -462,6 +478,8 @@ func (run *replayRun) applyTx(ctx context.Context, rec Record) error {
 		}
 		return nil
 	}
+
+	// Discard the transaction and remove its retained replay state.
 	tx.Discard()
 	delete(run.txs, id)
 	delete(run.heads, id)
@@ -481,9 +499,12 @@ func (run *replayRun) commit(ctx context.Context, tx kvtx.Tx, head bool) error {
 // tx returns the open transaction id. A transaction the trace began inside
 // opens here as a write transaction, which serves every operation it records.
 func (run *replayRun) tx(ctx context.Context, id uint64) (kvtx.Tx, error) {
+	// Reuse the transaction already opened for the recorded ID.
 	if tx := run.txs[id]; tx != nil {
 		return tx, nil
 	}
+
+	// Open and retain a transaction whose beginning was outside the trace.
 	tx, err := run.target.NewTransaction(ctx, true)
 	if err != nil {
 		return nil, err
@@ -494,6 +515,7 @@ func (run *replayRun) tx(ctx context.Context, id uint64) (kvtx.Tx, error) {
 
 // applyBlock replays one block store operation.
 func (run *replayRun) applyBlock(ctx context.Context, rec Record) error {
+	// Apply block writes, batches, and read-scope transitions to the target.
 	b := run.replay.blocks[string(rec.Key)]
 	switch rec.Op {
 	case OpPutBatch:
@@ -544,6 +566,8 @@ func (run *replayRun) applyBlock(ctx context.Context, rec Record) error {
 	if scope, ok := run.scopes[rec.ID]; ok {
 		ops = scope.ops
 	}
+
+	// Apply the recorded block read through the selected storage scope.
 	switch rec.Op {
 	case OpGetBlock:
 		return run.timed(OpGetBlock, func() error {
@@ -576,10 +600,13 @@ func (run *replayRun) flushBatch(ctx context.Context) error {
 
 // flushExists checks the open existence batch once it holds every reference.
 func (run *replayRun) flushExists(ctx context.Context) error {
+	// Wait for the existence batch to contain every recorded reference.
 	batch := run.exists
 	if int64(len(batch.refs)) < batch.want {
 		return nil
 	}
+
+	// Check the completed existence batch through its recorded read scope.
 	run.exists = nil
 	var ops block.StoreOps = run.target
 	if scope, ok := run.scopes[batch.id]; ok {

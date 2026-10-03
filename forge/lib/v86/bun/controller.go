@@ -103,6 +103,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 	// Create v86fs relay server (mounts added dynamically below).
 	v86fsSrv := v86fs.NewServer(c.le, nil)
 
+	// Register the v86fs relay with the SRPC connection server.
 	mux := srpc.NewMux()
 	if err := v86fs.SRPCRegisterV86FsService(mux, v86fsSrv); err != nil {
 		return errors.Wrap(err, "register v86fs service")
@@ -116,6 +117,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 	go func() {
 		serveErr <- srpc.AcceptMuxedListener(ctx, lis, server, nil)
 	}()
+
 	// stopServe closes the listener and waits for the accept loop to exit.
 	stopServe := func() {
 		lis.Close()
@@ -136,16 +138,19 @@ func (c *Controller) Execute(ctx context.Context) error {
 		stateDir = filepath.Join(tmpDir, "bun")
 	}
 
+	// Install the selected Bun runtime in its state directory.
 	bunPath, err := autobun.EnsureBun(ctx, c.le, stateDir, bunVersion)
 	if err != nil {
 		return errors.Wrap(err, "ensure bun")
 	}
 
+	// Choose the guest memory allocation from the controller configuration.
 	memoryMb := c.conf.GetMemoryMb()
 	if memoryMb == 0 {
 		memoryMb = 256
 	}
 
+	// Choose the guest directory for the writable output mount.
 	outputDir := c.conf.GetOutputDir()
 	if outputDir == "" {
 		outputDir = "/output"
@@ -191,6 +196,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 		// Add output mount to v86fs server.
 		v86fsSrv.AddMount("output", outputDir, outputHandle)
 
+		// Mount the rootfs input when no rootfs tar was supplied.
 		if rootfsTarPath == "" {
 			if _, ok := c.inputVals["rootfs"]; ok {
 				rootfsHandle, err := c.resolveInputMount(ctx, cs, "rootfs")
@@ -212,6 +218,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 			}
 		}()
 
+		// Mount each configured UnixFS input at its guest path.
 		for guestPath, inputName := range c.conf.GetMounts() {
 			inputHandle, err := c.resolveInputMount(ctx, cs, inputName)
 			if err != nil {
@@ -227,6 +234,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 			}).Debug("added input mount")
 		}
 
+		// Capture the v86fs socket address for the Bun subprocess.
 		socketAddr := lis.Addr().String()
 
 		// Resolve boot script path.
@@ -239,6 +247,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 			return errors.Wrap(err, "boot script not found")
 		}
 
+		// Describe the guest execution configuration before launching Bun.
 		c.le.WithFields(logrus.Fields{
 			"bun":        bunPath,
 			"socket":     socketAddr,
@@ -264,12 +273,14 @@ func (c *Controller) Execute(ctx context.Context) error {
 			args = append(args, "--cmd", cmd)
 		}
 
+		// Connect the Bun subprocess to the host environment and output streams.
 		cmd := exec.CommandContext(ctx, bunPath, args...)
 		cmd.Dir = scriptDir
 		cmd.Env = os.Environ()
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
 
+		// Run the guest commands through the Bun boot script.
 		if err := cmd.Run(); err != nil {
 			return errors.Wrap(err, "bun subprocess")
 		}
@@ -330,6 +341,7 @@ func (c *Controller) resolveInputMount(
 		nil,
 	)
 
+	// Wrap the read-only input filesystem in a mount handle.
 	handle, err := unixfs.NewFSHandle(fs)
 	if err != nil {
 		fs.Release()
@@ -360,6 +372,7 @@ func initOutputMount(ctx context.Context, cs *bucket_lookup.Cursor) (*unixfs.FSH
 	fs := unixfs_block_fs.NewFS(ctx, unixfs_block.NodeType_NodeType_DIRECTORY, cs, wr)
 	wr.SetFS(fs)
 
+	// Wrap the writable output filesystem in a mount handle.
 	handle, err := unixfs.NewFSHandle(fs)
 	if err != nil {
 		fs.Release()

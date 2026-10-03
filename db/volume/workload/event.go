@@ -58,15 +58,20 @@ func Extract(r io.Reader) ([]Event, error) {
 // ReadTraceRecords reads the workload records of the Go execution trace file
 // at path.
 func ReadTraceRecords(path string) ([]Record, error) {
+	// Open the execution trace containing the workload records.
 	f, err := os.Open(path)
 	if err != nil {
 		return nil, err
 	}
+
+	// Extract the workload events and close the trace file afterward.
 	events, err := Extract(f)
 	_ = f.Close()
 	if err != nil {
 		return nil, err
 	}
+
+	// Preserve each extracted record in trace order without its event metadata.
 	records := make([]Record, len(events))
 	for i, ev := range events {
 		records[i] = ev.Record

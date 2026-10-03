@@ -41,21 +41,25 @@ func sendRecv(t *testing.T, strm v86fs.SRPCV86FsService_RelayV86FsClient, msg *v
 // backed by a block transaction. Writes persist to the block store and
 // data is readable from a fresh BillyFS view on the same handle.
 func TestInitOutputMount(t *testing.T) {
+	// Prepare the output-mount test context and logger.
 	ctx := context.Background()
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
 
+	// Start a testbed with storage for the output mount.
 	tb, err := testbed.NewTestbed(ctx, le)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Open an empty block cursor for the output directory.
 	oc, err := tb.BuildEmptyCursor(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Create the writable output mount and retain it through verification.
 	handle, err := initOutputMount(ctx, oc)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -89,6 +93,8 @@ func TestInitOutputMount(t *testing.T) {
 	if err != nil {
 		t.Fatalf("read via billy: %v", err)
 	}
+
+	// Verify the file content matches the bytes written by the producing stage.
 	if !bytes.Equal(readData, data) {
 		t.Fatalf("expected %q, got %q", string(data), string(readData))
 	}
@@ -97,21 +103,25 @@ func TestInitOutputMount(t *testing.T) {
 // TestOutputMountViaSRPC tests the output mount through the v86fs SRPC
 // relay, verifying that writes through SRPC persist to the block store.
 func TestOutputMountViaSRPC(t *testing.T) {
+	// Prepare the SRPC output-mount test context and logger.
 	ctx := context.Background()
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
 
+	// Start a testbed with storage for SRPC writes.
 	tb, err := testbed.NewTestbed(ctx, le)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Open an empty block cursor for the SRPC output directory.
 	oc, err := tb.BuildEmptyCursor(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Create the writable output mount for the relay server.
 	handle, err := initOutputMount(ctx, oc)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -122,6 +132,7 @@ func TestOutputMountViaSRPC(t *testing.T) {
 	srv := v86fs.NewServer(nil, nil)
 	srv.AddMount("output", "/output", handle)
 
+	// Connect an in-process SRPC client to the output relay.
 	mux := srpc.NewMux()
 	if err := v86fs.SRPCRegisterV86FsService(mux, srv); err != nil {
 		t.Fatal(err.Error())
@@ -131,6 +142,7 @@ func TestOutputMountViaSRPC(t *testing.T) {
 	client := srpc.NewClient(pipe)
 	v86fsClient := v86fs.NewSRPCV86FsServiceClient(client)
 
+	// Open the v86fs relay stream for guest filesystem requests.
 	strm, err := v86fsClient.RelayV86Fs(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -177,6 +189,8 @@ func TestOutputMountViaSRPC(t *testing.T) {
 	if writeReply == nil || writeReply.GetStatus() != 0 {
 		t.Fatalf("write failed: %v", reply.GetBody())
 	}
+
+	// Verify the relay accepted every byte of the output file.
 	if int(writeReply.GetBytesWritten()) != len(fileData) {
 		t.Fatalf("expected %d bytes written, got %d", len(fileData), writeReply.GetBytesWritten())
 	}
@@ -193,6 +207,8 @@ func TestOutputMountViaSRPC(t *testing.T) {
 	if err != nil {
 		t.Fatalf("read via billy after SRPC write: %v", err)
 	}
+
+	// Verify the file content matches the bytes written by the producing stage.
 	if !bytes.Equal(readData, fileData) {
 		t.Fatalf("expected %q, got %q", string(fileData), string(readData))
 	}
@@ -201,6 +217,7 @@ func TestOutputMountViaSRPC(t *testing.T) {
 // seedUnixFSTree creates a UnixFS tree with a test file and returns its BlockRef.
 // This simulates a forge input providing a UnixFS tree for mounting.
 func seedUnixFSTree(t *testing.T, ctx context.Context, cs *bucket_lookup.Cursor, filename string, content []byte) *block.BlockRef {
+	// Attribute UnixFS seed failures to the calling test.
 	t.Helper()
 
 	// Create writable handle to build the tree.
@@ -224,6 +241,7 @@ func seedUnixFSTree(t *testing.T, ctx context.Context, cs *bucket_lookup.Cursor,
 		t.Fatalf("seed file: %v", err)
 	}
 
+	// Require the seeded UnixFS tree to have a stored root block.
 	ref := cs.GetRef().GetRootRef()
 	if ref.GetEmpty() {
 		t.Fatal("expected non-empty ref after seeding tree")
@@ -235,11 +253,13 @@ func seedUnixFSTree(t *testing.T, ctx context.Context, cs *bucket_lookup.Cursor,
 // backed by existing UnixFS trees. Files seeded into the tree are readable
 // through the mount.
 func TestInputMountReadOnly(t *testing.T) {
+	// Prepare the read-only input-mount test context and logger.
 	ctx := context.Background()
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
 
+	// Start a testbed with storage for the input tree.
 	tb, err := testbed.NewTestbed(ctx, le)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -264,6 +284,7 @@ func TestInputMountReadOnly(t *testing.T) {
 	fs := unixfs_block_fs.NewFS(ctx, unixfs_block.NodeType_NodeType_DIRECTORY, mountCs, nil)
 	defer fs.Release()
 
+	// Wrap the input filesystem in a handle for read-only access.
 	inputHandle, err := unixfs.NewFSHandle(fs)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -276,6 +297,8 @@ func TestInputMountReadOnly(t *testing.T) {
 	if err != nil {
 		t.Fatalf("read input file: %v", err)
 	}
+
+	// Verify the file content matches the bytes written by the producing stage.
 	if !bytes.Equal(readData, inputContent) {
 		t.Fatalf("expected %q, got %q", string(inputContent), string(readData))
 	}
@@ -284,11 +307,13 @@ func TestInputMountReadOnly(t *testing.T) {
 // TestInputMountViaSRPC tests an input mount served through the v86fs SRPC
 // relay. The guest can read files from a pre-populated UnixFS tree.
 func TestInputMountViaSRPC(t *testing.T) {
+	// Prepare the SRPC input-mount test context and logger.
 	ctx := context.Background()
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
 
+	// Start a testbed with storage for the SRPC input tree.
 	tb, err := testbed.NewTestbed(ctx, le)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -309,6 +334,7 @@ func TestInputMountViaSRPC(t *testing.T) {
 	}
 	mountCs.SetRootRef(inputRef)
 
+	// Create a read-only input handle for the relay server.
 	fs := unixfs_block_fs.NewFS(ctx, unixfs_block.NodeType_NodeType_DIRECTORY, mountCs, nil)
 	defer fs.Release()
 	inputHandle, err := unixfs.NewFSHandle(fs)
@@ -321,6 +347,7 @@ func TestInputMountViaSRPC(t *testing.T) {
 	srv := v86fs.NewServer(nil, nil)
 	srv.AddMount("toolchain", "/opt/toolchain", inputHandle)
 
+	// Connect an in-process SRPC client to the input relay.
 	mux := srpc.NewMux()
 	if err := v86fs.SRPCRegisterV86FsService(mux, srv); err != nil {
 		t.Fatal(err.Error())
@@ -330,6 +357,7 @@ func TestInputMountViaSRPC(t *testing.T) {
 	client := srpc.NewClient(pipe)
 	v86fsClient := v86fs.NewSRPCV86FsServiceClient(client)
 
+	// Open the v86fs relay stream for reading the input tree.
 	strm, err := v86fsClient.RelayV86Fs(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -360,6 +388,8 @@ func TestInputMountViaSRPC(t *testing.T) {
 		t.Fatalf("lookup failed: %v", reply.GetBody())
 	}
 	fileInodeID := lookupReply.GetInodeId()
+
+	// Verify the input inode retains the file size from its producing stage.
 	if lookupReply.GetSize() != uint64(len(inputContent)) {
 		t.Fatalf("expected size %d, got %d", len(inputContent), lookupReply.GetSize())
 	}
@@ -391,6 +421,8 @@ func TestInputMountViaSRPC(t *testing.T) {
 	if readReply == nil || readReply.GetStatus() != 0 {
 		t.Fatalf("read failed: %v", reply.GetBody())
 	}
+
+	// Verify the file content matches the bytes written by the producing stage.
 	if !bytes.Equal(readReply.GetData(), inputContent) {
 		t.Fatalf("expected %q, got %q", string(inputContent), string(readReply.GetData()))
 	}
@@ -400,11 +432,13 @@ func TestInputMountViaSRPC(t *testing.T) {
 // to an output mount, task B mounts that output as a read-only input and
 // reads the files back. Proves the core forge I/O model works end-to-end.
 func TestOutputInputChain(t *testing.T) {
+	// Prepare the two-stage filesystem test context and logger.
 	ctx := context.Background()
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
 
+	// Start a testbed whose storage retains both execution stages.
 	tb, err := testbed.NewTestbed(ctx, le)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -416,6 +450,7 @@ func TestOutputInputChain(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// Create the writable mount for stage A artifacts.
 	outputHandle, err := initOutputMount(ctx, stageACs)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -429,6 +464,7 @@ func TestOutputInputChain(t *testing.T) {
 		{"result.txt", []byte("build output from stage A\n")},
 		{"meta.json", []byte(`{"status":"ok","stage":"A"}` + "\n")},
 	} {
+		// Write each stage A artifact into the output tree.
 		err = outputHandle.MknodWithContent(
 			ctx,
 			f.name,
@@ -442,6 +478,8 @@ func TestOutputInputChain(t *testing.T) {
 			t.Fatalf("stage A write %s: %v", f.name, err)
 		}
 	}
+
+	// Release the writable stage A mount before opening its output as input.
 	outputHandle.Release()
 
 	// Extract output BlockRef (same as controller.Execute does after VM exits).
@@ -457,6 +495,7 @@ func TestOutputInputChain(t *testing.T) {
 	}
 	stageBCs.SetRootRef(outputRef)
 
+	// Mount the stage A root as a read-only filesystem for stage B.
 	inputFS := unixfs_block_fs.NewFS(ctx, unixfs_block.NodeType_NodeType_DIRECTORY, stageBCs, nil)
 	defer inputFS.Release()
 	inputHandle, err := unixfs.NewFSHandle(inputFS)
@@ -474,10 +513,13 @@ func TestOutputInputChain(t *testing.T) {
 		{"result.txt", []byte("build output from stage A\n")},
 		{"meta.json", []byte(`{"status":"ok","stage":"A"}` + "\n")},
 	} {
+		// Read each stage A artifact through the stage B input mount.
 		got, err := billy_util.ReadFile(bfs, f.name)
 		if err != nil {
 			t.Fatalf("stage B read %s: %v", f.name, err)
 		}
+
+		// Verify the file content matches the bytes written by the producing stage.
 		if !bytes.Equal(got, f.data) {
 			t.Fatalf("stage B %s: expected %q, got %q", f.name, string(f.data), string(got))
 		}
@@ -490,11 +532,13 @@ func TestOutputInputChain(t *testing.T) {
 // reads from an input mount). This is the full data path a real v86 task
 // chain would exercise.
 func TestOutputInputChainViaSRPC(t *testing.T) {
+	// Prepare the two-stage SRPC test context and logger.
 	ctx := context.Background()
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
 
+	// Start a testbed whose storage retains both SRPC execution stages.
 	tb, err := testbed.NewTestbed(ctx, le)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -506,14 +550,17 @@ func TestOutputInputChainViaSRPC(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// Create the writable mount for stage A guest writes.
 	outputHandle, err := initOutputMount(ctx, stageACs)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Expose the stage A output through a v86fs relay server.
 	srvA := v86fs.NewServer(nil, nil)
 	srvA.AddMount("output", "/output", outputHandle)
 
+	// Connect an in-process SRPC client to the stage A relay.
 	muxA := srpc.NewMux()
 	if err := v86fs.SRPCRegisterV86FsService(muxA, srvA); err != nil {
 		t.Fatal(err.Error())
@@ -523,6 +570,7 @@ func TestOutputInputChainViaSRPC(t *testing.T) {
 	clientA := srpc.NewClient(pipeA)
 	v86fsClientA := v86fs.NewSRPCV86FsServiceClient(clientA)
 
+	// Open the stage A relay stream for guest filesystem requests.
 	strmA, err := v86fsClientA.RelayV86Fs(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -553,6 +601,7 @@ func TestOutputInputChainViaSRPC(t *testing.T) {
 		t.Fatalf("stage A create failed: %v", reply.GetBody())
 	}
 
+	// Write the stage A greeting into its newly created file.
 	helloData := []byte("hello from stage A\n")
 	reply = sendRecv(t, strmA, &v86fs.V86FsMessage{
 		Tag: 3,
@@ -567,6 +616,7 @@ func TestOutputInputChainViaSRPC(t *testing.T) {
 		t.Fatalf("stage A write failed: %v", reply.GetBody())
 	}
 
+	// Release the stage A stream and mount after its guest writes.
 	strmA.Close()
 	outputHandle.Release()
 
@@ -584,6 +634,7 @@ func TestOutputInputChainViaSRPC(t *testing.T) {
 	}
 	stageBCs.SetRootRef(outputRef)
 
+	// Mount the stage A output as a read-only filesystem for stage B.
 	inputFS := unixfs_block_fs.NewFS(ctx, unixfs_block.NodeType_NodeType_DIRECTORY, stageBCs, nil)
 	inputHandle, err := unixfs.NewFSHandle(inputFS)
 	if err != nil {
@@ -601,10 +652,12 @@ func TestOutputInputChainViaSRPC(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// Expose the stage B input and output mounts through one relay.
 	srvB := v86fs.NewServer(nil, nil)
 	srvB.AddMount("prev", "/input/prev", inputHandle)
 	srvB.AddMount("output", "/output", stageBOutHandle)
 
+	// Connect an in-process SRPC client to the stage B relay.
 	muxB := srpc.NewMux()
 	if err := v86fs.SRPCRegisterV86FsService(muxB, srvB); err != nil {
 		t.Fatal(err.Error())
@@ -614,6 +667,7 @@ func TestOutputInputChainViaSRPC(t *testing.T) {
 	clientB := srpc.NewClient(pipeB)
 	v86fsClientB := v86fs.NewSRPCV86FsServiceClient(clientB)
 
+	// Open the stage B relay stream for guest filesystem requests.
 	strmB, err := v86fsClientB.RelayV86Fs(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -643,6 +697,8 @@ func TestOutputInputChainViaSRPC(t *testing.T) {
 	if lookupReply == nil || lookupReply.GetStatus() != 0 {
 		t.Fatalf("stage B lookup hello.txt failed: %v", reply.GetBody())
 	}
+
+	// Verify the input inode retains the file size from its producing stage.
 	if lookupReply.GetSize() != uint64(len(helloData)) {
 		t.Fatalf("stage B hello.txt size: expected %d, got %d", len(helloData), lookupReply.GetSize())
 	}
@@ -660,6 +716,7 @@ func TestOutputInputChainViaSRPC(t *testing.T) {
 		t.Fatalf("stage B open failed: %v", reply.GetBody())
 	}
 
+	// Read the stage A greeting through the stage B input mount.
 	reply = sendRecv(t, strmB, &v86fs.V86FsMessage{
 		Tag: 4,
 		Body: &v86fs.V86FsMessage_ReadRequest{ReadRequest: &v86fs.V86FsReadRequest{
@@ -672,6 +729,8 @@ func TestOutputInputChainViaSRPC(t *testing.T) {
 	if readReply == nil || readReply.GetStatus() != 0 {
 		t.Fatalf("stage B read failed: %v", reply.GetBody())
 	}
+
+	// Verify the file content matches the bytes written by the producing stage.
 	if !bytes.Equal(readReply.GetData(), helloData) {
 		t.Fatalf("stage B read: expected %q, got %q", string(helloData), string(readReply.GetData()))
 	}
@@ -701,6 +760,7 @@ func TestOutputInputChainViaSRPC(t *testing.T) {
 		t.Fatalf("stage B create derived.txt failed: %v", reply.GetBody())
 	}
 
+	// Write the greeting and stage B suffix to the derived output file.
 	derivedData := append(readReply.GetData(), []byte("processed by stage B\n")...)
 	reply = sendRecv(t, strmB, &v86fs.V86FsMessage{
 		Tag: 7,
@@ -715,6 +775,7 @@ func TestOutputInputChainViaSRPC(t *testing.T) {
 		t.Fatalf("stage B write derived.txt failed: %v", reply.GetBody())
 	}
 
+	// Release the stage B stream and filesystem mounts after its guest writes.
 	strmB.Close()
 	inputHandle.Release()
 	inputFS.Release()
@@ -734,6 +795,7 @@ func TestOutputInputChainViaSRPC(t *testing.T) {
 	}
 	verifyCs.SetRootRef(stageBOutRef)
 
+	// Open a fresh read-only handle on the stored stage B output.
 	verifyFS := unixfs_block_fs.NewFS(ctx, unixfs_block.NodeType_NodeType_DIRECTORY, verifyCs, nil)
 	defer verifyFS.Release()
 	verifyHandle, err := unixfs.NewFSHandle(verifyFS)
@@ -742,11 +804,14 @@ func TestOutputInputChainViaSRPC(t *testing.T) {
 	}
 	defer verifyHandle.Release()
 
+	// Read the derived output through BillyFS for content verification.
 	bfs := unixfs_billy.NewBillyFS(ctx, verifyHandle, "", time.Now())
 	got, err := billy_util.ReadFile(bfs, "derived.txt")
 	if err != nil {
 		t.Fatalf("verify stage B derived.txt: %v", err)
 	}
+
+	// Verify the derived file contains the stage A greeting and stage B suffix.
 	expected := []byte("hello from stage A\nprocessed by stage B\n")
 	if !bytes.Equal(got, expected) {
 		t.Fatalf("stage B derived.txt: expected %q, got %q", string(expected), string(got))

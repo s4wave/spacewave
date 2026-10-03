@@ -38,21 +38,31 @@ func TestNewReplaySizes(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Prepare deterministic payloads and seed state from the decoded workload.
 	replay, err := NewReplay(records)
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Verify the shared value buffer accommodates the largest recorded write.
 	if len(replay.values) != 127 {
 		t.Fatalf("value buffer size = %d", len(replay.values))
 	}
+
+	// Verify each initially present value has its recorded or default size.
 	for key, size := range map[string]int{"a": 5, "d": defaultValueSize, "p\xffreplay-0": defaultValueSize} {
 		if replay.seedValues[key] != size {
 			t.Fatalf("seed value %q size = %d, want %d", key, replay.seedValues[key], size)
 		}
 	}
+
+	// Require missing values to remain absent from the seeded state.
 	if _, ok := replay.seedValues["c"]; ok {
 		t.Fatal("seeded a missing value")
 	}
+
+	// Verify the initially present block retains its recorded payload length.
 	if len(replay.seedBlocks) != 1 {
 		t.Fatalf("seed block count = %d, want 1", len(replay.seedBlocks))
 	}

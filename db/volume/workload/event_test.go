@@ -13,6 +13,7 @@ import (
 // real execution trace come back in order with their fields intact, and that
 // records logged outside the trace and other log categories are absent.
 func TestExtractReadsRecordsFromExecutionTrace(t *testing.T) {
+	// Prepare workload records with transaction, iterator, and block identities.
 	ctx := context.Background()
 	want := []Record{
 		{Op: OpTxWrite, ID: 1},
@@ -38,14 +39,21 @@ func TestExtractReadsRecordsFromExecutionTrace(t *testing.T) {
 	if err != nil {
 		t.Fatalf("extract: %v", err)
 	}
+
+	// Require extraction to retain exactly the workload records logged in the trace.
 	if len(events) != len(want) {
 		t.Fatalf("extracted %d records, want %d", len(events), len(want))
 	}
+
+	// Verify the extracted workload fields and timestamps preserve trace order.
 	for i, ev := range events {
+		// Compare each workload record with the corresponding logged operation.
 		got, exp := ev.Record, want[i]
 		if got.Op != exp.Op || got.ID != exp.ID || got.Parent != exp.Parent || got.Size != exp.Size || !bytes.Equal(got.Key, exp.Key) {
 			t.Fatalf("record %d = %+v, want %+v", i, got, exp)
 		}
+
+		// Require each workload event to follow the previous event in trace time.
 		if i != 0 && ev.Time < events[i-1].Time {
 			t.Fatalf("record %d time %d precedes record %d", i, ev.Time, i-1)
 		}

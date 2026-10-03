@@ -114,20 +114,24 @@ func (h *Handler) GetMethodIDs() []string {
 // policy error or an already-claimed handoff, it returns a wrapped denial to
 // the peer.
 func (h *Handler) InvokeMethod(serviceID, methodID string, strm srpc.Stream) (bool, error) {
+	// Match the daemon shutdown route before reading the request.
 	if serviceID != ServiceID || methodID != ShutdownMethodID {
 		return false, nil
 	}
 
+	// Receive the shutdown request from the control stream.
 	req := &emptypb.Empty{}
 	if err := strm.MsgRecv(req); err != nil && err != io.EOF {
 		return true, err
 	}
 
+	// Require the daemon yield policy to allow this requester.
 	ctx := strm.Context()
 	if err := h.policy(ctx); err != nil {
 		return true, errors.Errorf("%s %s", DenyErrorMarker, err.Error())
 	}
 
+	// Claim the shutdown handoff for one requester under the handler lock.
 	h.mtx.Lock()
 	if h.claimed {
 		h.mtx.Unlock()
@@ -137,6 +141,7 @@ func (h *Handler) InvokeMethod(serviceID, methodID string, strm srpc.Stream) (bo
 	shutdownGranted := h.shutdownGranted
 	h.mtx.Unlock()
 
+	// Notify the granted requester before releasing the daemon listener.
 	if shutdownGranted != nil {
 		shutdownGranted(ctx)
 	}
@@ -162,10 +167,13 @@ func (h *Handler) InvokeMethod(serviceID, methodID string, strm srpc.Stream) (bo
 // the takeover, the returned error is a DenyError describing the denial reason.
 // Callers are responsible for closing conn.
 func RequestShutdown(ctx context.Context, conn net.Conn) error {
+	// Connect an SRPC client to the daemon control connection.
 	client, err := srpc.NewClientWithConn(conn, true, nil)
 	if err != nil {
 		return errors.Wrap(err, "create daemon control client")
 	}
+
+	// Open the shutdown request stream and retain it through completion.
 	strm, err := client.NewStream(
 		ctx,
 		ServiceID,
@@ -176,9 +184,13 @@ func RequestShutdown(ctx context.Context, conn net.Conn) error {
 		return wrapRequestShutdownError(err)
 	}
 	defer strm.Close()
+
+	// Require the daemon's acknowledgement of the shutdown request.
 	if err := strm.MsgRecv(&emptypb.Empty{}); err != nil {
 		return wrapRequestShutdownError(err)
 	}
+
+	// Require stream completion after the daemon's single acknowledgement.
 	if err := strm.MsgRecv(&emptypb.Empty{}); err != io.EOF {
 		if err == nil {
 			return errors.New("request daemon shutdown: unexpected response after acknowledgement")
@@ -214,6 +226,7 @@ func (e *DenyError) Error() string {
 // extractDenyReason extracts the deny reason from an error string if
 // it contains the DenyErrorMarker embedded by InvokeMethod.
 func extractDenyReason(err error) (string, bool) {
+	// Extract the peer denial marker and trim its reason for the caller.
 	msg := err.Error()
 	_, after, ok := strings.Cut(msg, DenyErrorMarker)
 	if !ok {

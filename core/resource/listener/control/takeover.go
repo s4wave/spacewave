@@ -53,6 +53,7 @@ func prepareSocket(
 	sockPath string,
 	allowTakeover bool,
 ) error {
+	// Inspect the daemon socket path before attempting a handoff.
 	socketInfo, err := os.Stat(sockPath)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -60,6 +61,7 @@ func prepareSocket(
 		}
 		return errors.Wrap(err, "stat daemon socket")
 	}
+
 	// A non-socket path may contain user data even when connect returns refusal.
 	if socketInfo.Mode()&os.ModeSocket == 0 {
 		return errors.Errorf("daemon socket path is not a socket: %s", sockPath)
@@ -75,6 +77,7 @@ func prepareSocket(
 		return errors.Wrap(err, "watch daemon socket directory")
 	}
 
+	// Connect to the daemon or reclaim a socket whose listener is gone.
 	conn, err := (&net.Dialer{}).DialContext(ctx, "unix", sockPath)
 	if err != nil {
 		// Only a refused connection proves a stale socket; permission and other
@@ -90,10 +93,12 @@ func prepareSocket(
 	}
 	defer conn.Close()
 
+	// Protect a live daemon listener when takeover was not requested.
 	if !allowTakeover {
 		return &SocketInUseError{Path: sockPath}
 	}
 
+	// Request daemon shutdown and confirm listener release after a peer exit.
 	if err := RequestShutdown(ctx, conn); err != nil {
 		var denyErr *DenyError
 		if errors.As(err, &denyErr) || ctx.Err() != nil {
