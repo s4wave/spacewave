@@ -27,11 +27,12 @@ func NewFile(fs BillyFs, path string) (*File, error) {
 	return &File{File: f, path: path, fs: fs}, nil
 }
 
+// Readdir returns an error because a file has no directory entries.
 func (f *File) Readdir(count int) ([]fs.FileInfo, error) {
-	// ENOTDIR
 	return nil, errors.New("not a directory")
 }
 
+// Stat returns the file metadata.
 func (f *File) Stat() (fs.FileInfo, error) {
 	return f.fs.Stat(f.path)
 }

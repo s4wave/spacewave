@@ -54,3 +54,36 @@ func TestFileSystem(t *testing.T) {
 		t.Fail()
 	}
 }
+
+// TestDirReaddirContinues tests that limited Readdir calls continue through
+// the directory and end with io.EOF.
+func TestDirReaddirContinues(t *testing.T) {
+	// Create a directory with three files.
+	mfs := memfs.New()
+	for _, name := range []string{"a", "b", "c"} {
+		if err := util.WriteFile(mfs, "dir/"+name, nil, 0o644); err != nil {
+			t.Fatal(err.Error())
+		}
+	}
+
+	// Read the directory two entries at a time.
+	dir := NewDir(mfs, "dir")
+	var names []string
+	for {
+		fis, err := dir.Readdir(2)
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+		for _, fi := range fis {
+			names = append(names, fi.Name())
+		}
+	}
+
+	// Verify each entry was returned exactly once.
+	if len(names) != 3 || names[0] != "a" || names[1] != "b" || names[2] != "c" {
+		t.Fatalf("names: %v", names)
+	}
+}
