@@ -12,11 +12,14 @@ import (
 // store has buffered but not flushed. Blocks are immutable, so an edge once
 // recorded stays valid for the life of the block.
 func (g *GCStoreOps) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*block.StoredBlock, error) {
+	// Read the immutable block data before resolving its outgoing references.
 	data, found, err := g.store.GetBlock(ctx, ref)
 	if err != nil || !found {
 		return nil, err
 	}
 	refs, err := g.getOutgoingBlockRefs(ctx, BlockIRI(ref))
+
+	// Collect durable, journaled, and buffered references for the stored block.
 	if err != nil {
 		return nil, err
 	}
@@ -25,6 +28,7 @@ func (g *GCStoreOps) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*
 
 // getOutgoingBlockRefs collects the block targets of node's outgoing edges.
 func (g *GCStoreOps) getOutgoingBlockRefs(ctx context.Context, node string) ([]*block.BlockRef, error) {
+	// Read the durable outgoing edges and include pending journal entries.
 	targets, err := g.refGraph.GetOutgoingRefs(ctx, node)
 	if err != nil {
 		return nil, err

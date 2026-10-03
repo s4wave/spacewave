@@ -48,9 +48,11 @@ type SweepResult struct {
 // Phase 2 (exclusive STW lock): process remaining WAL entries with
 // transitive rescue, then delete sweep candidates from the backend.
 func SweepCycle(ctx context.Context, cfg SweepConfig) (*SweepResult, error) {
+	// Trace the two-phase GC sweep cycle.
 	ctx, task := trace.NewTask(ctx, "hydra/block-gc/sweep-cycle")
 	defer task.End()
 
+	// Collect WAL replay, mark, rescue, and deletion counts for the sweep.
 	result := &SweepResult{}
 
 	// Phase 1: WAL replay + mark (no lock held).
@@ -62,6 +64,7 @@ func SweepCycle(ctx context.Context, cfg SweepConfig) (*SweepResult, error) {
 	}
 	result.WALEntriesPhase1 = n
 
+	// Mark the reference graph and stop when there are no sweep candidates.
 	marker := NewMarker(cfg.Graph)
 	candidates, _, err := marker.Mark(ctx)
 	if err != nil {
@@ -82,6 +85,7 @@ func SweepCycle(ctx context.Context, cfg SweepConfig) (*SweepResult, error) {
 	phase2Ctx, phase2Task := trace.NewTask(ctx, "hydra/block-gc/sweep-cycle/phase2-stw")
 	defer phase2Task.End()
 
+	// Acquire the exclusive storage fence for GC reconciliation.
 	stwRelease, err := cfg.AcquireSTW()
 	if err != nil {
 		return nil, errors.Wrap(err, "acquire STW exclusive lock")

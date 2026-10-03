@@ -161,10 +161,13 @@ func (g *GCStoreOps) GetStore() block.StoreOps {
 
 // BeginReadOperation opens a read scope on the inner store.
 func (g *GCStoreOps) BeginReadOperation(ctx context.Context) (block.StoreOps, func(), error) {
+	// Open the inner block read scope for the GC wrapper.
 	store, release, err := g.store.BeginReadOperation(ctx)
 	if err != nil {
 		return nil, nil, err
 	}
+
+	// Wrap the scoped store while preserving GC tracking configuration.
 	scoped := &GCStoreOps{
 		store:     store,
 		refGraph:  g.refGraph,
@@ -346,6 +349,7 @@ func (g *GCStoreOps) StatBlock(ctx context.Context, ref *block.BlockRef) (*block
 // FlushPending delivers the release. An unparented store owns no reference
 // to release; its staging mark remains.
 func (g *GCStoreOps) RmBlock(ctx context.Context, ref *block.BlockRef) error {
+	// Require a live context and a parent-owned block before releasing ownership.
 	if err := ctx.Err(); err != nil {
 		return err
 	}
@@ -353,6 +357,8 @@ func (g *GCStoreOps) RmBlock(ctx context.Context, ref *block.BlockRef) error {
 	if iri == "" || g.parentIRI == "" {
 		return nil
 	}
+
+	// Buffer the parent release under the GC store mutex.
 	g.mu.Lock()
 	g.bufferReleaseLocked(iri)
 	g.mu.Unlock()
@@ -404,6 +410,7 @@ func (g *GCStoreOps) BeginDeferFlush() {
 // scope ends, calls FlushPending to flush all accumulated operations
 // in one batch. Also forwards to the inner store.
 func (g *GCStoreOps) EndDeferFlush(ctx context.Context) error {
+	// Close one deferred-flush scope without allowing the depth to underflow.
 	var depth int64
 	for {
 		depth = g.deferFlush.Load()
@@ -415,6 +422,8 @@ func (g *GCStoreOps) EndDeferFlush(ctx context.Context) error {
 			break
 		}
 	}
+
+	// Close the inner scope and flush ownership changes at the outermost boundary.
 	innerErr := block.EndDeferFlush(ctx, g.store)
 	if depth == 0 {
 		if err := g.FlushPending(ctx); err != nil {
@@ -553,6 +562,7 @@ func (g *GCStoreOps) FlushPending(ctx context.Context) error {
 
 // flushRefEdges retains every undelivered edge before reporting an error.
 func (g *GCStoreOps) flushRefEdges(ctx context.Context, adds, removes []RefEdge) error {
+	// Journal the ownership edges and retain them when delivery fails.
 	if g.wal != nil {
 		walCtx, walTask := trace.NewTask(ctx, "hydra/block-gc/store/flush-pending/wal-append")
 		if err := g.wal.Append(walCtx, adds, removes); err != nil {
@@ -567,6 +577,7 @@ func (g *GCStoreOps) flushRefEdges(ctx context.Context, adds, removes []RefEdge)
 		return nil
 	}
 
+	// Apply the ownership batch directly and retain its uncommitted remainder.
 	batchCtx, batchTask := trace.NewTask(ctx, "hydra/block-gc/store/flush-pending/apply-ref-batch")
 	if err := g.refGraph.ApplyRefBatch(batchCtx, adds, removes); err != nil {
 		batchTask.End()
@@ -585,9 +596,12 @@ func (g *GCStoreOps) flushRefEdges(ctx context.Context, adds, removes []RefEdge)
 }
 
 func (g *GCStoreOps) rebufferEdges(adds, removes []RefEdge) {
+	// Skip rebuffering when the failed delivery has no remaining edges.
 	if len(adds) == 0 && len(removes) == 0 {
 		return
 	}
+
+	// Prepend undelivered edges to the GC store retry buffer.
 	g.mu.Lock()
 	g.pendingAdds = append(slices.Clone(adds), g.pendingAdds...)
 	g.pendingRemoves = append(slices.Clone(removes), g.pendingRemoves...)
@@ -609,6 +623,7 @@ func deduplicateRefEdges(edges []RefEdge) []RefEdge {
 }
 
 func normalizeRefEdges(adds, removes []RefEdge) ([]RefEdge, []RefEdge) {
+	// Deduplicate removal edges while preserving their caller order.
 	removeKeys := make(map[RefEdge]struct{}, len(removes))
 	normalizedRemoves := make([]RefEdge, 0, len(removes))
 	for _, edge := range removes {
@@ -620,6 +635,7 @@ func normalizeRefEdges(adds, removes []RefEdge) ([]RefEdge, []RefEdge) {
 		normalizedRemoves = append(normalizedRemoves, edge)
 	}
 
+	// Deduplicate additions and discard edges removed by the same batch.
 	addKeys := make(map[RefEdge]struct{}, len(adds))
 	normalizedAdds := make([]RefEdge, 0, len(adds))
 	for _, edge := range adds {

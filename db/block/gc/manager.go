@@ -44,6 +44,7 @@ func NewManager(cfg ManagerConfig) *Manager {
 // Failed replay leaves unapplied entries for the next cycle and prevents sweeping;
 // maintenance failures must not terminate the volume serving application writes.
 func (m *Manager) Run(ctx context.Context) error {
+	// Trace GC manager replay and sweep work over its lifecycle.
 	ctx, task := trace.NewTask(ctx, "hydra/block-gc/manager")
 	defer task.End()
 

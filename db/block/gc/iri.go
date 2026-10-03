@@ -33,10 +33,13 @@ func BlockIRI(ref *block.BlockRef) string {
 // ParseBlockIRI parses a "block:{b58}" IRI back to a BlockRef.
 // Returns nil, false if not a valid block IRI.
 func ParseBlockIRI(iri string) (*block.BlockRef, bool) {
+	// Require a nonempty block IRI before decoding its reference.
 	rest, ok := strings.CutPrefix(iri, prefixBlock)
 	if !ok || rest == "" {
 		return nil, false
 	}
+
+	// Decode the block reference from the IRI suffix.
 	ref, err := block.UnmarshalBlockRefB58(rest)
 	if err != nil {
 		return nil, false
