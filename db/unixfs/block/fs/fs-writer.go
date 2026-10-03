@@ -134,6 +134,7 @@ func (f *FSWriter) applyOp(
 	ctx context.Context,
 	cb func(ft *unixfs_block.FSTree, wr *unixfs_block.FSWriter) error,
 ) error {
+	// Hold the filesystem lock for the writer operation and root update.
 	rel, err := f.fs.rmtx.Lock(ctx, true)
 	if err != nil {
 		return err

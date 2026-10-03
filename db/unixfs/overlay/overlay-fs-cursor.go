@@ -91,13 +91,16 @@ func (c *OverlayFSCursor) AddChangeCb(cb unixfs.FSCursorChangeCb) {
 
 // GetCursorOps returns the FSCursorOps for the overlay cursor.
 func (c *OverlayFSCursor) GetCursorOps(ctx context.Context) (unixfs.FSCursorOps, error) {
+	// Require a live overlay cursor before resolving its operations.
 	if c.CheckReleased() {
 		return nil, unixfs_errors.ErrReleased
 	}
 
+	// Hold the overlay lock while selecting cursor operations.
 	c.state.mtx.Lock()
 	defer c.state.mtx.Unlock()
 
+	// Resolve operations from both the upper and lower cursors.
 	upperOps, upperErr := cursorOps(ctx, c.upper)
 	if upperErr != nil && !isNotExist(upperErr) {
 		return nil, upperErr
@@ -107,6 +110,7 @@ func (c *OverlayFSCursor) GetCursorOps(ctx context.Context) (unixfs.FSCursorOps,
 		return nil, lowerErr
 	}
 
+	// Prefer matching upper operations or a visible lower node.
 	if upperOps != nil {
 		if lowerOps != nil && !sameNodeType(upperOps, lowerOps) {
 			lowerOps = nil

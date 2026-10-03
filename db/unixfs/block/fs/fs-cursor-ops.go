@@ -103,6 +103,7 @@ func (f *FSCursorOps) GetModTimestamp(ctx context.Context) (time.Time, error) {
 
 // SetModTimestamp updates the modification timestamp of the node.
 func (f *FSCursorOps) SetModTimestamp(ctx context.Context, mtime time.Time) error {
+	// Require a live cursor and a writer before changing the node timestamp.
 	if f.CheckReleased() {
 		return unixfs_errors.ErrReleased
 	}
@@ -137,6 +138,7 @@ func (f *FSCursorOps) GetPermissions(ctx context.Context) (fs.FileMode, error) {
 // SetPermissions sets the permissions bits of the file mode.
 // The file mode portion of the value is ignored.
 func (f *FSCursorOps) SetPermissions(ctx context.Context, fm fs.FileMode, ts time.Time) error {
+	// Require a live cursor and a writer before changing node permissions.
 	if f.CheckReleased() {
 		return unixfs_errors.ErrReleased
 	}
@@ -161,6 +163,7 @@ func (f *FSCursorOps) SetPermissions(ctx context.Context, fm fs.FileMode, ts tim
 
 // ReadAt reads from an offset inside a file node.
 func (f *FSCursorOps) ReadAt(ctx context.Context, offset int64, data []byte) (int64, error) {
+	// Require a live file cursor before reading its content.
 	if f.CheckReleased() {
 		return 0, unixfs_errors.ErrReleased
 	}
@@ -173,9 +176,11 @@ func (f *FSCursorOps) ReadAt(ctx context.Context, offset int64, data []byte) (in
 		return 0, io.EOF
 	}
 
+	// Hold the file handle lock for the seek and read.
 	f.fileHandleMtx.Lock()
 	defer f.fileHandleMtx.Unlock()
 
+	// Seek the file handle to the requested read offset.
 	idx, err := f.fileHandle.Seek(offset, io.SeekStart)
 	if err == nil && idx < offset {
 		err = io.EOF
@@ -184,6 +189,7 @@ func (f *FSCursorOps) ReadAt(ctx context.Context, offset int64, data []byte) (in
 		return 0, err
 	}
 
+	// Read the requested bytes and normalize a short read to EOF.
 	n, err := io.ReadAtLeast(f.fileHandle, data, len(data))
 	if err == io.ErrUnexpectedEOF {
 		err = io.EOF
@@ -200,6 +206,7 @@ func (f *FSCursorOps) GetOptimalWriteSize(ctx context.Context) (int64, error) {
 
 // WriteAt writes to a location within a File node synchronously.
 func (f *FSCursorOps) WriteAt(ctx context.Context, offset int64, data []byte, ts time.Time) error {
+	// Require a live file cursor and a writer before writing content.
 	if f.CheckReleased() {
 		return unixfs_errors.ErrReleased
 	}
@@ -229,6 +236,7 @@ func (f *FSCursorOps) WriteAt(ctx context.Context, offset int64, data []byte, ts
 // Truncate shrinks or extends a file to the specified size.
 // The extended part will be a sparse range (hole) reading as zeros.
 func (f *FSCursorOps) Truncate(ctx context.Context, nsize uint64, ts time.Time) error {
+	// Require a live file cursor and a writer before changing its size.
 	if f.CheckReleased() {
 		return unixfs_errors.ErrReleased
 	}
@@ -246,6 +254,7 @@ func (f *FSCursorOps) Truncate(ctx context.Context, nsize uint64, ts time.Time) 
 		return err
 	}
 
+	// Persist the file size and release operations if the write fails.
 	err = writer.Truncate(ctx, npath, int64(nsize), ts) //nolint:gosec
 	if err != nil {
 		f.release()
@@ -260,6 +269,7 @@ func (f *FSCursorOps) Truncate(ctx context.Context, nsize uint64, ts time.Time) 
 // Returns ErrReleased if the reference has been released.
 // Creates a new FSCursor at the new location.
 func (f *FSCursorOps) Lookup(ctx context.Context, name string) (unixfs.FSCursor, error) {
+	// Require a live directory cursor before looking up a child.
 	if f.CheckReleased() {
 		return nil, unixfs_errors.ErrReleased
 	}
@@ -279,10 +289,12 @@ func (f *FSCursorOps) Lookup(ctx context.Context, name string) (unixfs.FSCursor,
 
 // ReaddirAll reads all directory entries to a callback.
 func (f *FSCursorOps) ReaddirAll(ctx context.Context, skip uint64, cb func(ent unixfs.FSCursorDirent) error) error {
+	// Require a live directory cursor before reading entries.
 	if f.CheckReleased() {
 		return unixfs_errors.ErrReleased
 	}
 
+	// Open the directory entry stream at the requested position.
 	dirStream, err := f.fsTree.Readdir()
 	if err != nil {
 		return err
@@ -293,6 +305,8 @@ func (f *FSCursorOps) ReaddirAll(ctx context.Context, skip uint64, cb func(ent u
 	if skip > 0 {
 		dirStream.Skip(int(skip)) //nolint:gosec
 	}
+
+	// Deliver each directory entry to the callback until it fails.
 	for dirStream.Next() {
 		ent := dirStream.GetEntry()
 		if ent == nil {
@@ -317,10 +331,12 @@ func (f *FSCursorOps) Mknod(
 	permissions fs.FileMode,
 	ts time.Time,
 ) error {
+	// Require a live directory cursor before creating nodes.
 	if f.CheckReleased() {
 		return unixfs_errors.ErrReleased
 	}
 
+	// Require a filesystem writer for node creation.
 	writer := f.cursor.fs.writer
 	if writer == nil {
 		return unixfs_errors.ErrReadOnly
@@ -332,6 +348,7 @@ func (f *FSCursorOps) Mknod(
 		return err
 	}
 
+	// Persist the child nodes and release operations if creation fails.
 	err = writer.Mknod(ctx, paths, nodeType, permissions, ts)
 	if err != nil {
 		f.release()
@@ -343,20 +360,24 @@ func (f *FSCursorOps) Mknod(
 
 // MknodWithContent creates a file entry and writes content atomically.
 func (f *FSCursorOps) MknodWithContent(ctx context.Context, name string, nodeType unixfs.FSCursorNodeType, dataLen int64, rdr io.Reader, permissions fs.FileMode, ts time.Time) error {
+	// Require a live directory cursor before creating a file with content.
 	if f.CheckReleased() {
 		return unixfs_errors.ErrReleased
 	}
 
+	// Require a filesystem writer for atomic file creation.
 	writer := f.cursor.fs.writer
 	if writer == nil {
 		return unixfs_errors.ErrReadOnly
 	}
 
+	// Resolve the child path for the new file.
 	paths, err := f.buildChildPaths(ctx, []string{name})
 	if err != nil {
 		return err
 	}
 
+	// Persist the file and its content in one writer operation.
 	err = writer.MknodWithContent(ctx, paths[0], nodeType, dataLen, rdr, permissions, ts)
 	if err != nil {
 		f.release()
@@ -368,10 +389,12 @@ func (f *FSCursorOps) MknodWithContent(ctx context.Context, name string, nodeTyp
 
 // Symlink creates a symbolic link from a location to a path.
 func (f *FSCursorOps) Symlink(ctx context.Context, checkExist bool, name string, target []string, targetIsAbsolute bool, ts time.Time) error {
+	// Require a live directory cursor before creating a symbolic link.
 	if f.CheckReleased() {
 		return unixfs_errors.ErrReleased
 	}
 
+	// Require a filesystem writer for symbolic link creation.
 	writer := f.cursor.fs.writer
 	if writer == nil {
 		return unixfs_errors.ErrReadOnly
@@ -396,6 +419,7 @@ func (f *FSCursorOps) Symlink(ctx context.Context, checkExist bool, name string,
 // If name is empty, reads the link at the cursor position.
 // Returns ErrNotSymlink if not a symbolic link.
 func (f *FSCursorOps) Readlink(ctx context.Context, name string) ([]string, bool, error) {
+	// Resolve the symbolic link tree at the cursor or named child.
 	var ftree *unixfs_block.FSTree
 	if len(name) == 0 {
 		ftree = f.fsTree
@@ -493,6 +517,7 @@ func (f *FSCursorOps) moveOrCopyTo(
 		return false, nil
 	}
 
+	// Require the target cursor to share the source filesystem.
 	tgtFsCursor := tgtOps.cursor
 	fs := f.cursor.fs
 	if tgtFsCursor.fs != fs {
@@ -500,6 +525,7 @@ func (f *FSCursorOps) moveOrCopyTo(
 		return false, nil
 	}
 
+	// Require both cursors to share the filesystem writer.
 	writer := f.cursor.fs.writer
 	if writer == nil || writer != tgtFsCursor.fs.writer {
 		// read-only or diff writer
@@ -512,11 +538,13 @@ func (f *FSCursorOps) moveOrCopyTo(
 		return false, err
 	}
 
+	// Resolve the target parent path for the copy or move.
 	tgtParentPath, err := tgtOps.cursor.GetPath(ctx)
 	if err != nil {
 		return false, err
 	}
 
+	// Build the destination path beneath the target parent.
 	tgtPath := make([]string, len(tgtParentPath)+1)
 	copy(tgtPath, tgtParentPath)
 	tgtPath[len(tgtPath)-1] = tgtName
@@ -539,27 +567,32 @@ func (f *FSCursorOps) moveOrCopyTo(
 // Remove deletes entries from a directory.
 // Returns ErrReadOnly if read-only.
 func (f *FSCursorOps) Remove(ctx context.Context, names []string, ts time.Time) error {
+	// Require a live directory cursor before removing children.
 	if f.CheckReleased() {
 		return unixfs_errors.ErrReleased
 	}
 
+	// Prepare the removal timestamp and require a filesystem writer.
 	tts := unixfs_block.ToTimestamp(ts, false)
 	writer := f.cursor.fs.writer
 	if writer == nil {
 		return unixfs_errors.ErrReadOnly
 	}
 
+	// Resolve the child paths to remove.
 	paths, err := f.buildChildPaths(ctx, names)
 	if err != nil {
 		return err
 	}
 
+	// Persist the removals and release operations if the writer fails.
 	err = writer.Remove(ctx, paths, ts)
 	if err != nil {
 		f.release()
 		return err
 	}
 
+	// Stop updating the local tree if the writer released the cursor.
 	if f.CheckReleased() {
 		return nil
 	}
@@ -577,6 +610,7 @@ func (f *FSCursorOps) Remove(ctx context.Context, names []string, ts time.Time) 
 // names must not be empty
 // mtx must not be locked
 func (f *FSCursorOps) buildChildPaths(ctx context.Context, names []string) ([][]string, error) {
+	// Resolve the directory path and build each child path beneath it.
 	rootPath, err := f.cursor.GetPath(ctx)
 	if err != nil {
 		return nil, err

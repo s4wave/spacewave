@@ -19,6 +19,7 @@ import (
 var overlayTestTime = time.Date(2026, 6, 13, 12, 0, 0, 0, time.UTC)
 
 func TestOverlayFSCursor(t *testing.T) {
+	// Define overlay operations and their expected effects on both layers.
 	tests := []struct {
 		name string
 		run  func(t *testing.T, root unixfs.FSCursor, lower unixfs.FSCursor, upper unixfs.FSCursor)
@@ -26,8 +27,11 @@ func TestOverlayFSCursor(t *testing.T) {
 		{
 			name: "create over base",
 			run: func(t *testing.T, root unixfs.FSCursor, lower unixfs.FSCursor, upper unixfs.FSCursor) {
+				// Open root operations for creating a file above the lower layer.
 				ctx := context.Background()
 				ops := mustOps(t, root)
+
+				// Create a file with content in the overlay.
 				err := ops.MknodWithContent(
 					ctx,
 					"created.txt",
@@ -41,6 +45,7 @@ func TestOverlayFSCursor(t *testing.T) {
 					t.Fatal(err)
 				}
 
+				// Check the created content and its presence only in the upper layer.
 				if got := mustReadFile(t, root, "created.txt"); got != "created" {
 					t.Fatalf("created content: %q", got)
 				}
@@ -55,22 +60,29 @@ func TestOverlayFSCursor(t *testing.T) {
 		{
 			name: "modify base copy-up",
 			run: func(t *testing.T, root unixfs.FSCursor, lower unixfs.FSCursor, upper unixfs.FSCursor) {
+				// Open the lower-backed file through the overlay cursor.
 				ctx := context.Background()
 				child := mustLookup(t, root, "base.txt")
 				childOps := mustOps(t, child)
+
+				// Check the lower file content before copying it up.
 				if got := mustReadFile(t, child, ""); got != "lower base" {
 					t.Fatalf("pre-copy content: %q", got)
 				}
+
+				// Truncate the lower-backed file to create an empty upper copy.
 				if err := childOps.Truncate(ctx, 0, overlayTestTime); err != nil {
 					t.Fatal(err)
 				}
 
+				// Write replacement content through the copied-up file.
 				child = mustLookup(t, root, "base.txt")
 				childOps = mustOps(t, child)
 				if err := childOps.WriteAt(ctx, 0, []byte("upper base"), overlayTestTime); err != nil {
 					t.Fatal(err)
 				}
 
+				// Check overlay content and preservation of the original lower file.
 				if got := mustReadFile(t, root, "base.txt"); got != "upper base" {
 					t.Fatalf("overlay content: %q", got)
 				}
@@ -85,10 +97,13 @@ func TestOverlayFSCursor(t *testing.T) {
 		{
 			name: "delete base whiteout",
 			run: func(t *testing.T, root unixfs.FSCursor, lower unixfs.FSCursor, upper unixfs.FSCursor) {
+				// Remove the lower-backed file through the overlay root.
 				ctx := context.Background()
 				if err := mustOps(t, root).Remove(ctx, []string{"base.txt"}, overlayTestTime); err != nil {
 					t.Fatal(err)
 				}
+
+				// Check that the whiteout hides the file and preserves its lower content.
 				if _, err := mustOps(t, root).Lookup(ctx, "base.txt"); err != unixfs_errors.ErrNotExist {
 					t.Fatalf("overlay lookup removed base.txt: %v", err)
 				}
@@ -106,16 +121,20 @@ func TestOverlayFSCursor(t *testing.T) {
 		{
 			name: "readdir union dedupe upper wins",
 			run: func(t *testing.T, root unixfs.FSCursor, lower unixfs.FSCursor, upper unixfs.FSCursor) {
+				// Create an upper file that overrides the matching lower entry.
 				ctx := context.Background()
 				upperOps := mustOps(t, upper)
 				if err := upperOps.MknodWithContent(ctx, "base.txt", unixfs.NewFSCursorNodeType_File(), 5, bytes.NewReader([]byte("upper")), 0o644, overlayTestTime); err != nil {
 					t.Fatal(err)
 				}
+
+				// Create a file that exists only in the upper directory.
 				upperOps = mustOps(t, upper)
 				if err := upperOps.MknodWithContent(ctx, "upper-only.txt", unixfs.NewFSCursorNodeType_File(), 10, bytes.NewReader([]byte("upper-only")), 0o644, overlayTestTime); err != nil {
 					t.Fatal(err)
 				}
 
+				// Check merged directory names and upper-layer content precedence.
 				names := mustReadDirNames(t, root)
 				want := []string{"base.txt", "dir", "lower-only.txt", "upper-only.txt"}
 				if !slices.Equal(names, want) {
@@ -129,13 +148,17 @@ func TestOverlayFSCursor(t *testing.T) {
 		{
 			name: "nested mkdir parent-chain copy-up",
 			run: func(t *testing.T, root unixfs.FSCursor, lower unixfs.FSCursor, upper unixfs.FSCursor) {
+				// Open the lower-backed directory through the overlay.
 				ctx := context.Background()
 				dir := mustLookup(t, root, "dir")
 				dirOps := mustOps(t, dir)
+
+				// Create a nested directory through parent-chain copy-up.
 				if err := dirOps.Mknod(ctx, true, []string{"nested"}, unixfs.NewFSCursorNodeType_Dir(), 0o755, overlayTestTime); err != nil {
 					t.Fatal(err)
 				}
 
+				// Check the upper parent and nested directory while preserving the lower tree.
 				if names := mustReadDirNames(t, upper); !slices.Contains(names, "dir") {
 					t.Fatalf("upper parent dir was not copied up: %v", names)
 				}
@@ -162,21 +185,27 @@ func TestOverlayFSCursor(t *testing.T) {
 		{
 			name: "opaque dir hides lower entries",
 			run: func(t *testing.T, root unixfs.FSCursor, lower unixfs.FSCursor, upper unixfs.FSCursor) {
+				// Create the upper directory for an opaque overlay directory.
 				ctx := context.Background()
 				upperOps := mustOps(t, upper)
 				if err := upperOps.Mknod(ctx, true, []string{"dir"}, unixfs.NewFSCursorNodeType_Dir(), 0o755, overlayTestTime); err != nil {
 					t.Fatal(err)
 				}
+
+				// Create the opacity marker in the upper directory.
 				upperDir := mustLookup(t, upper, "dir")
 				upperDirOps := mustOps(t, upperDir)
 				if err := upperDirOps.MknodWithContent(ctx, ".wh..wh..opq", unixfs.NewFSCursorNodeType_File(), 0, bytes.NewReader(nil), 0, overlayTestTime); err != nil {
 					t.Fatal(err)
 				}
+
+				// Create the visible file within the opaque upper directory.
 				upperDirOps = mustOps(t, upperDir)
 				if err := upperDirOps.MknodWithContent(ctx, "upper-dir.txt", unixfs.NewFSCursorNodeType_File(), 9, bytes.NewReader([]byte("upper-dir")), 0o644, overlayTestTime); err != nil {
 					t.Fatal(err)
 				}
 
+				// Check that the opaque overlay directory hides every lower entry.
 				overlayDir := mustLookup(t, root, "dir")
 				names := mustReadDirNames(t, overlayDir)
 				want := []string{"upper-dir.txt"}
@@ -190,27 +219,34 @@ func TestOverlayFSCursor(t *testing.T) {
 		},
 	}
 
+	// Run each overlay case with fresh lower and upper filesystems.
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			// Construct the overlay cursor and release both layers after the case.
 			lower := mustLower(t)
 			upper := mustUpper(t)
 			root := NewOverlayFSCursor(lower, upper)
 			defer root.Release()
+
+			// Exercise the overlay operation and check its effects on both layers.
 			tt.run(t, root, lower, upper)
 		})
 	}
 }
 
 func TestOverlayFSCursorReaddirAllCallbackCanReenterLookup(t *testing.T) {
+	// Construct an overlay cursor for directory callback reentry.
 	ctx := context.Background()
 	lower := mustLower(t)
 	upper := mustUpper(t)
 	root := NewOverlayFSCursor(lower, upper)
 	defer root.Release()
 
+	// Read directory entries while looking up each child from the callback.
 	ops := mustOps(t, root)
 	var names []string
 	err := ops.ReaddirAll(ctx, 0, func(ent unixfs.FSCursorDirent) error {
+		// Look up the directory entry again and record its name.
 		child, err := ops.Lookup(ctx, ent.GetName())
 		if err != nil {
 			return err
@@ -223,6 +259,7 @@ func TestOverlayFSCursorReaddirAllCallbackCanReenterLookup(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Check that callback reentry returns all visible directory names.
 	want := []string{"base.txt", "dir", "lower-only.txt"}
 	if !slices.Equal(names, want) {
 		t.Fatalf("names: got %v want %v", names, want)
@@ -230,8 +267,8 @@ func TestOverlayFSCursorReaddirAllCallbackCanReenterLookup(t *testing.T) {
 }
 
 func mustLower(t *testing.T) unixfs.FSCursor {
+	// Build a tar archive containing the lower filesystem fixture.
 	t.Helper()
-
 	var buf bytes.Buffer
 	tw := tar.NewWriter(&buf)
 	mustWriteTarDir(t, tw, "dir/", 0o755)
@@ -242,6 +279,7 @@ func mustLower(t *testing.T) unixfs.FSCursor {
 		t.Fatal(err)
 	}
 
+	// Open the tar archive as the read-only lower cursor.
 	cursor, err := unixfs_tar.NewTarFSCursorFromReader(bytes.NewReader(buf.Bytes()))
 	if err != nil {
 		t.Fatal(err)
@@ -280,8 +318,8 @@ func mustLookup(t *testing.T, cursor unixfs.FSCursor, name string) unixfs.FSCurs
 }
 
 func mustReadDirNames(t *testing.T, cursor unixfs.FSCursor) []string {
+	// Collect and sort directory names through the cursor interface.
 	t.Helper()
-
 	var names []string
 	err := mustOps(t, cursor).ReaddirAll(context.Background(), 0, func(ent unixfs.FSCursorDirent) error {
 		names = append(names, ent.GetName())
@@ -295,8 +333,8 @@ func mustReadDirNames(t *testing.T, cursor unixfs.FSCursor) []string {
 }
 
 func mustReadFile(t *testing.T, cursor unixfs.FSCursor, name string) string {
+	// Resolve the requested file cursor and its content size.
 	t.Helper()
-
 	fileCursor := cursor
 	if name != "" {
 		fileCursor = mustLookup(t, cursor, name)
@@ -306,6 +344,8 @@ func mustReadFile(t *testing.T, cursor unixfs.FSCursor, name string) string {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Read the file content through its cursor operations.
 	data := make([]byte, size)
 	n, err := ops.ReadAt(context.Background(), 0, data)
 	if err != nil && err != io.EOF {

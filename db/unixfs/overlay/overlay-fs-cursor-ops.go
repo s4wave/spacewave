@@ -65,13 +65,16 @@ func (o *OverlayFSCursorOps) GetPermissions(ctx context.Context) (fs.FileMode, e
 
 // SetPermissions implements FSCursorOps.
 func (o *OverlayFSCursorOps) SetPermissions(ctx context.Context, permissions fs.FileMode, ts time.Time) error {
+	// Require a live overlay cursor before changing permissions.
 	if o.CheckReleased() {
 		return unixfs_errors.ErrReleased
 	}
 
+	// Hold the overlay lock while copying up and changing permissions.
 	o.c.state.mtx.Lock()
 	defer o.c.state.mtx.Unlock()
 
+	// Copy the node to the upper layer and update its permissions.
 	upperOps, err := o.ensureUpperLocked(ctx, ts)
 	if err != nil {
 		return err
@@ -98,13 +101,16 @@ func (o *OverlayFSCursorOps) GetModTimestamp(ctx context.Context) (time.Time, er
 
 // SetModTimestamp implements FSCursorOps.
 func (o *OverlayFSCursorOps) SetModTimestamp(ctx context.Context, mtime time.Time) error {
+	// Require a live overlay cursor before changing its timestamp.
 	if o.CheckReleased() {
 		return unixfs_errors.ErrReleased
 	}
 
+	// Hold the overlay lock while copying up and changing the timestamp.
 	o.c.state.mtx.Lock()
 	defer o.c.state.mtx.Unlock()
 
+	// Copy the node to the upper layer and update its timestamp.
 	upperOps, err := o.ensureUpperLocked(ctx, mtime)
 	if err != nil {
 		return err
@@ -137,13 +143,16 @@ func (o *OverlayFSCursorOps) GetOptimalWriteSize(ctx context.Context) (int64, er
 
 // WriteAt implements FSCursorOps.
 func (o *OverlayFSCursorOps) WriteAt(ctx context.Context, offset int64, data []byte, ts time.Time) error {
+	// Require a live overlay cursor before writing file content.
 	if o.CheckReleased() {
 		return unixfs_errors.ErrReleased
 	}
 
+	// Hold the overlay lock while copying up and writing file content.
 	o.c.state.mtx.Lock()
 	defer o.c.state.mtx.Unlock()
 
+	// Copy the file to the upper layer and write its content.
 	upperOps, err := o.ensureUpperLocked(ctx, ts)
 	if err != nil {
 		return err
@@ -154,13 +163,16 @@ func (o *OverlayFSCursorOps) WriteAt(ctx context.Context, offset int64, data []b
 
 // Truncate implements FSCursorOps.
 func (o *OverlayFSCursorOps) Truncate(ctx context.Context, nsize uint64, ts time.Time) error {
+	// Require a live overlay cursor before changing the file size.
 	if o.CheckReleased() {
 		return unixfs_errors.ErrReleased
 	}
 
+	// Hold the overlay lock while copying up and resizing the file.
 	o.c.state.mtx.Lock()
 	defer o.c.state.mtx.Unlock()
 
+	// Copy the file to the upper layer and change its size.
 	upperOps, err := o.ensureUpperLocked(ctx, ts)
 	if err != nil {
 		return err
@@ -171,6 +183,7 @@ func (o *OverlayFSCursorOps) Truncate(ctx context.Context, nsize uint64, ts time
 
 // Lookup implements FSCursorOps.
 func (o *OverlayFSCursorOps) Lookup(ctx context.Context, name string) (unixfs.FSCursor, error) {
+	// Require a live overlay directory before looking up a child.
 	if o.CheckReleased() {
 		return nil, unixfs_errors.ErrReleased
 	}
@@ -178,15 +191,18 @@ func (o *OverlayFSCursorOps) Lookup(ctx context.Context, name string) (unixfs.FS
 		return nil, unixfs_errors.ErrNotDirectory
 	}
 
+	// Hold the overlay lock while resolving child visibility.
 	o.c.state.mtx.Lock()
 	defer o.c.state.mtx.Unlock()
 
+	// Hide a child covered by an upper-layer whiteout.
 	if hidden, err := hasUpperChildLocked(ctx, o.c.upper, whiteoutName(name)); err != nil {
 		return nil, err
 	} else if hidden {
 		return nil, unixfs_errors.ErrNotExist
 	}
 
+	// Resolve the child cursors from both filesystem layers.
 	upperChild, err := lookupChildLocked(ctx, o.c.upper, name)
 	if err != nil && !isNotExist(err) {
 		return nil, err
@@ -199,6 +215,7 @@ func (o *OverlayFSCursorOps) Lookup(ctx context.Context, name string) (unixfs.FS
 		return nil, lowerErr
 	}
 
+	// Prefer the upper child and retain a lower child of the same type.
 	if upperChild != nil {
 		if lowerChild != nil {
 			same, err := cursorsHaveSameType(ctx, upperChild, lowerChild)
@@ -215,6 +232,7 @@ func (o *OverlayFSCursorOps) Lookup(ctx context.Context, name string) (unixfs.FS
 		return newOverlayFSCursor(o.c.state, o.c, name, lowerChild, upperChild), nil
 	}
 
+	// Require a lower child visible through the upper directory.
 	if lowerChild == nil {
 		return nil, unixfs_errors.ErrNotExist
 	}
@@ -231,6 +249,7 @@ func (o *OverlayFSCursorOps) Lookup(ctx context.Context, name string) (unixfs.FS
 
 // ReaddirAll implements FSCursorOps.
 func (o *OverlayFSCursorOps) ReaddirAll(ctx context.Context, skip uint64, cb func(ent unixfs.FSCursorDirent) error) error {
+	// Require a live overlay directory and a callback for reading entries.
 	if o.CheckReleased() {
 		return unixfs_errors.ErrReleased
 	}
@@ -241,6 +260,7 @@ func (o *OverlayFSCursorOps) ReaddirAll(ctx context.Context, skip uint64, cb fun
 		return nil
 	}
 
+	// Snapshot the visible overlay directory entries before invoking callbacks.
 	ents, err := o.readdirSnapshotLocked(ctx)
 	if err != nil {
 		return err
@@ -260,15 +280,19 @@ func (o *OverlayFSCursorOps) ReaddirAll(ctx context.Context, skip uint64, cb fun
 }
 
 func (o *OverlayFSCursorOps) readdirSnapshotLocked(ctx context.Context) ([]unixfs.FSCursorDirent, error) {
+	// Hold the overlay lock while merging directory entries.
 	o.c.state.mtx.Lock()
 	defer o.c.state.mtx.Unlock()
 
+	// Prepare visible entries and upper-layer visibility markers.
 	entries := map[string]unixfs.FSCursorDirent{}
 	whiteouts := map[string]struct{}{}
 	opaque := false
 
+	// Collect upper entries and their whiteout and opacity markers.
 	if o.upperOps != nil {
 		err := o.upperOps.ReaddirAll(ctx, 0, func(ent unixfs.FSCursorDirent) error {
+			// Classify the upper directory entry as a marker or visible node.
 			name := ent.GetName()
 			if name == opaqueMarker {
 				opaque = true
@@ -286,8 +310,10 @@ func (o *OverlayFSCursorOps) readdirSnapshotLocked(ctx context.Context) ([]unixf
 		}
 	}
 
+	// Merge lower entries when the upper directory is transparent.
 	if o.lowerOps != nil && !opaque {
 		err := o.lowerOps.ReaddirAll(ctx, 0, func(ent unixfs.FSCursorDirent) error {
+			// Retain lower entries absent from the upper entries and whiteouts.
 			name := ent.GetName()
 			if _, ok := entries[name]; ok {
 				return nil
@@ -303,12 +329,14 @@ func (o *OverlayFSCursorOps) readdirSnapshotLocked(ctx context.Context) ([]unixf
 		}
 	}
 
+	// Sort visible entry names for stable directory traversal.
 	names := make([]string, 0, len(entries))
 	for name := range entries {
 		names = append(names, name)
 	}
 	slices.Sort(names)
 
+	// Build the directory entry snapshot in name order.
 	ents := make([]unixfs.FSCursorDirent, 0, len(names))
 	for _, name := range names {
 		ents = append(ents, entries[name])
@@ -318,6 +346,7 @@ func (o *OverlayFSCursorOps) readdirSnapshotLocked(ctx context.Context) ([]unixf
 
 // Mknod implements FSCursorOps.
 func (o *OverlayFSCursorOps) Mknod(ctx context.Context, checkExist bool, names []string, nodeType unixfs.FSCursorNodeType, permissions fs.FileMode, ts time.Time) error {
+	// Require a live overlay directory and names for node creation.
 	if o.CheckReleased() {
 		return unixfs_errors.ErrReleased
 	}
@@ -328,9 +357,11 @@ func (o *OverlayFSCursorOps) Mknod(ctx context.Context, checkExist bool, names [
 		return nil
 	}
 
+	// Hold the overlay lock while creating upper-layer nodes.
 	o.c.state.mtx.Lock()
 	defer o.c.state.mtx.Unlock()
 
+	// Reject node creation when a requested visible name already exists.
 	if checkExist {
 		for _, name := range names {
 			exists, err := o.visibleChildExistsLocked(ctx, name)
@@ -343,6 +374,7 @@ func (o *OverlayFSCursorOps) Mknod(ctx context.Context, checkExist bool, names [
 		}
 	}
 
+	// Copy the directory up and remove whiteouts for the new nodes.
 	upperOps, err := o.ensureUpperLocked(ctx, ts)
 	if err != nil {
 		return err
@@ -362,6 +394,7 @@ func (o *OverlayFSCursorOps) Mknod(ctx context.Context, checkExist bool, names [
 
 // Symlink implements FSCursorOps.
 func (o *OverlayFSCursorOps) Symlink(ctx context.Context, checkExist bool, name string, target []string, targetIsAbsolute bool, ts time.Time) error {
+	// Require a live overlay directory before creating a symbolic link.
 	if o.CheckReleased() {
 		return unixfs_errors.ErrReleased
 	}
@@ -369,9 +402,11 @@ func (o *OverlayFSCursorOps) Symlink(ctx context.Context, checkExist bool, name 
 		return unixfs_errors.ErrNotDirectory
 	}
 
+	// Hold the overlay lock while creating the symbolic link.
 	o.c.state.mtx.Lock()
 	defer o.c.state.mtx.Unlock()
 
+	// Reject symbolic link creation when its visible name already exists.
 	if checkExist {
 		exists, err := o.visibleChildExistsLocked(ctx, name)
 		if err != nil {
@@ -382,6 +417,7 @@ func (o *OverlayFSCursorOps) Symlink(ctx context.Context, checkExist bool, name 
 		}
 	}
 
+	// Copy the directory up and replace the whiteout with a symbolic link.
 	upperOps, err := o.ensureUpperLocked(ctx, ts)
 	if err != nil {
 		return err
@@ -428,6 +464,7 @@ func (o *OverlayFSCursorOps) CopyFrom(ctx context.Context, name string, srcCurso
 // lower children; the v86 consumers (apt) rename files, not lower-backed
 // directories.
 func (o *OverlayFSCursorOps) MoveTo(ctx context.Context, tgtCursorOps unixfs.FSCursorOps, tgtName string, ts time.Time) (done bool, err error) {
+	// Require a live source and a target directory in the same overlay.
 	if o.CheckReleased() {
 		return false, unixfs_errors.ErrReleased
 	}
@@ -439,9 +476,11 @@ func (o *OverlayFSCursorOps) MoveTo(ctx context.Context, tgtCursorOps unixfs.FSC
 		return false, unixfs_errors.ErrNotDirectory
 	}
 
+	// Hold the overlay lock for the upper-layer move and source whiteout.
 	o.c.state.mtx.Lock()
 	defer o.c.state.mtx.Unlock()
 
+	// Copy source and target up and remove the target whiteout.
 	srcUpperOps, err := o.ensureUpperLocked(ctx, ts)
 	if err != nil {
 		return false, err
@@ -461,6 +500,7 @@ func (o *OverlayFSCursorOps) MoveTo(ctx context.Context, tgtCursorOps unixfs.FSC
 		return false, err
 	}
 
+	// Move the source node within the upper filesystem layer.
 	done, err = srcUpperOps.MoveTo(ctx, tgtUpperOps, tgtName, ts)
 	if err != nil {
 		return false, err
@@ -469,6 +509,7 @@ func (o *OverlayFSCursorOps) MoveTo(ctx context.Context, tgtCursorOps unixfs.FSC
 		return false, nil
 	}
 
+	// Hide the old source name when it still exists in the lower layer.
 	if o.c.lower != nil && o.c.parent != nil {
 		if err := o.c.parent.ensureUpperLocked(ctx, ts); err != nil {
 			return false, err
@@ -490,6 +531,7 @@ func (o *OverlayFSCursorOps) MoveTo(ctx context.Context, tgtCursorOps unixfs.FSC
 		}
 	}
 
+	// Invalidate the source operations after the completed move.
 	o.released.Store(true)
 	return true, nil
 }
@@ -501,6 +543,7 @@ func (o *OverlayFSCursorOps) MoveFrom(ctx context.Context, name string, srcCurso
 
 // Remove implements FSCursorOps.
 func (o *OverlayFSCursorOps) Remove(ctx context.Context, names []string, ts time.Time) error {
+	// Require a live overlay directory before removing children.
 	if o.CheckReleased() {
 		return unixfs_errors.ErrReleased
 	}
@@ -508,10 +551,13 @@ func (o *OverlayFSCursorOps) Remove(ctx context.Context, names []string, ts time
 		return unixfs_errors.ErrNotDirectory
 	}
 
+	// Hold the overlay lock while removing children and creating whiteouts.
 	o.c.state.mtx.Lock()
 	defer o.c.state.mtx.Unlock()
 
+	// Remove upper children and hide any matching lower children.
 	for _, name := range names {
+		// Resolve the child presence in both filesystem layers.
 		lowerExists, err := hasChildLocked(ctx, o.c.lower, name)
 		if err != nil {
 			return err
@@ -521,7 +567,9 @@ func (o *OverlayFSCursorOps) Remove(ctx context.Context, names []string, ts time
 			return err
 		}
 
+		// Replace a lower-backed child with an upper-layer whiteout.
 		if lowerExists {
+			// Copy the directory up and remove any existing upper child.
 			upperOps, err := o.ensureUpperLocked(ctx, ts)
 			if err != nil {
 				return err
@@ -535,6 +583,8 @@ func (o *OverlayFSCursorOps) Remove(ctx context.Context, names []string, ts time
 					return err
 				}
 			}
+
+			// Replace the child whiteout marker after removing the upper entry.
 			marker := whiteoutName(name)
 			if err := upperOps.Remove(ctx, []string{marker}, ts); err != nil {
 				return err
@@ -558,6 +608,7 @@ func (o *OverlayFSCursorOps) Remove(ctx context.Context, names []string, ts time
 			continue
 		}
 
+		// Remove a child that exists only in the upper layer.
 		if upperExists {
 			upperOps, err := cursorOps(ctx, o.c.upper)
 			if err != nil {
@@ -575,6 +626,7 @@ func (o *OverlayFSCursorOps) Remove(ctx context.Context, names []string, ts time
 
 // MknodWithContent implements FSCursorOps.
 func (o *OverlayFSCursorOps) MknodWithContent(ctx context.Context, name string, nodeType unixfs.FSCursorNodeType, dataLen int64, rdr io.Reader, permissions fs.FileMode, ts time.Time) error {
+	// Require a live overlay directory before creating a file with content.
 	if o.CheckReleased() {
 		return unixfs_errors.ErrReleased
 	}
@@ -582,9 +634,11 @@ func (o *OverlayFSCursorOps) MknodWithContent(ctx context.Context, name string, 
 		return unixfs_errors.ErrNotDirectory
 	}
 
+	// Hold the overlay lock for atomic upper-layer file creation.
 	o.c.state.mtx.Lock()
 	defer o.c.state.mtx.Unlock()
 
+	// Copy the directory up and replace the whiteout with the new file.
 	upperOps, err := o.ensureUpperLocked(ctx, ts)
 	if err != nil {
 		return err
@@ -625,6 +679,7 @@ func (o *OverlayFSCursorOps) visibleChildExistsLocked(ctx context.Context, name 
 }
 
 func (c *OverlayFSCursor) ensureUpperLocked(ctx context.Context, ts time.Time) error {
+	// Require a lower node and writable parent when the upper node is absent.
 	if c.upper != nil {
 		return nil
 	}
@@ -638,6 +693,7 @@ func (c *OverlayFSCursor) ensureUpperLocked(ctx context.Context, ts time.Time) e
 		return err
 	}
 
+	// Reuse an existing upper child beneath the copied-up parent.
 	parentUpperOps, err := cursorOps(ctx, c.parent.upper)
 	if err != nil {
 		return err
@@ -649,6 +705,7 @@ func (c *OverlayFSCursor) ensureUpperLocked(ctx context.Context, ts time.Time) e
 		return err
 	}
 
+	// Read the lower node permissions and timestamp for copy-up.
 	lowerOps, err := cursorOps(ctx, c.lower)
 	if err != nil {
 		return err
@@ -662,6 +719,7 @@ func (c *OverlayFSCursor) ensureUpperLocked(ctx context.Context, ts time.Time) e
 		return err
 	}
 
+	// Remove the child whiteout before creating its upper node.
 	if err := parentUpperOps.Remove(ctx, []string{whiteoutName(c.name)}, ts); err != nil {
 		return err
 	}
@@ -670,6 +728,7 @@ func (c *OverlayFSCursor) ensureUpperLocked(ctx context.Context, ts time.Time) e
 		return err
 	}
 
+	// Create the upper node with the lower node type and content.
 	switch {
 	case lowerOps.GetIsDirectory():
 		if err := parentUpperOps.Mknod(ctx, false, []string{c.name}, unixfs.NewFSCursorNodeType_Dir(), permissions, mtime); err != nil {
@@ -707,6 +766,7 @@ func (c *OverlayFSCursor) ensureUpperLocked(ctx context.Context, ts time.Time) e
 		return unixfs_errors.ErrNotExist
 	}
 
+	// Attach the newly copied-up child cursor.
 	parentUpperOps, err = cursorOps(ctx, c.parent.upper)
 	if err != nil {
 		return err
@@ -717,6 +777,7 @@ func (c *OverlayFSCursor) ensureUpperLocked(ctx context.Context, ts time.Time) e
 	}
 	c.upper = upperChild
 
+	// Restore the lower node timestamp on the upper copy.
 	upperOps, err := cursorOps(ctx, c.upper)
 	if err != nil {
 		return err
@@ -736,6 +797,7 @@ func (c *OverlayFSCursor) isHiddenByParentLocked(ctx context.Context) (bool, err
 }
 
 func cursorOps(ctx context.Context, c unixfs.FSCursor) (unixfs.FSCursorOps, error) {
+	// Resolve operations only for an existing live filesystem cursor.
 	if c == nil {
 		return nil, unixfs_errors.ErrNotExist
 	}
@@ -780,6 +842,7 @@ func hasUpperChildLocked(ctx context.Context, parent unixfs.FSCursor, name strin
 }
 
 func cursorsHaveSameType(ctx context.Context, a, b unixfs.FSCursor) (bool, error) {
+	// Resolve both cursor operations to compare their node types.
 	aOps, err := cursorOps(ctx, a)
 	if err != nil {
 		return false, err
@@ -798,6 +861,7 @@ func sameNodeType(a, b unixfs.FSCursorNodeType) bool {
 }
 
 func removeUpperEntryRecursiveLocked(ctx context.Context, dirOps unixfs.FSCursorOps, name string, ts time.Time) error {
+	// Open the upper child and release its cursor after removal.
 	child, err := dirOps.Lookup(ctx, name)
 	if err != nil {
 		if isNotExist(err) {
@@ -807,6 +871,7 @@ func removeUpperEntryRecursiveLocked(ctx context.Context, dirOps unixfs.FSCursor
 	}
 	defer child.Release()
 
+	// Resolve the upper child and recursively remove its descendants.
 	childOps, err := cursorOps(ctx, child)
 	if err != nil {
 		return err
@@ -880,6 +945,7 @@ type cursorReader struct {
 }
 
 func (r *cursorReader) Read(p []byte) (int, error) {
+	// Bound the cursor read to the remaining file content and signed offset range.
 	if r.off >= r.size {
 		return 0, io.EOF
 	}
@@ -890,6 +956,8 @@ func (r *cursorReader) Read(p []byte) (int, error) {
 	if r.off > math.MaxInt64 {
 		return 0, errors.New("cursor offset exceeds int64 read range")
 	}
+
+	// Read the file bytes and advance the cursor reader by the returned count.
 	n, err := r.ops.ReadAt(r.ctx, int64(r.off), p) //nolint:gosec // the preceding MaxInt64 check protects the signed read API.
 	if n > 0 {
 		r.off += uint64(n)

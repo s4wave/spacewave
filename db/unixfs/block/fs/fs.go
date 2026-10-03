@@ -88,17 +88,19 @@ func (f *FS) UpdateRootRef(ctx context.Context, blkRef *block.BlockRef) error {
 
 // updateRootRefLocked updates the root fs ref while the mtx is write locked.
 func (f *FS) updateRootRefLocked(blkRef *block.BlockRef) error {
+	// Require a live filesystem before changing its root reference.
 	if f.CheckReleased() {
 		return unixfs_errors.ErrReleased
 	}
 
+	// Leave the filesystem cursors attached when the root reference is unchanged.
 	if f.bls.GetRef().GetRootRef().EqualsRef(blkRef) {
 		// no changes
 		return nil
 	}
 
+	// Update the root reference and discard an inactive root cursor.
 	f.bls.SetRootRef(blkRef)
-
 	if f.rootFSCursor == nil || f.rootFSCursor.CheckReleased() {
 		f.rootFSCursor = nil
 		return nil
@@ -119,12 +121,14 @@ func (f *FS) updateRootRefLocked(blkRef *block.BlockRef) error {
 // Releasing a child cursor does not release the parent, and vise-versa.
 // Return nil, ErrReleased if this FSCursor was released.
 func (f *FS) GetProxyCursor(ctx context.Context) (unixfs.FSCursor, error) {
+	// Hold the filesystem lock while resolving its proxy cursor.
 	rel, err := f.rmtx.Lock(ctx, true)
 	if err != nil {
 		return nil, err
 	}
 	defer rel()
 
+	// Require a live filesystem before resolving its root cursor.
 	if f.CheckReleased() {
 		return nil, unixfs_errors.ErrReleased
 	}
@@ -161,16 +165,19 @@ func (f *FS) GetCursorOps(ctx context.Context) (unixfs.FSCursorOps, error) {
 
 // Release releases the filesystem cursor.
 func (f *FS) Release() {
+	// Mark the filesystem released once and cancel its context.
 	if f.isReleased.Swap(true) {
 		return
 	}
 	f.ctxCancel()
 
+	// Hold the filesystem lock while releasing its root and bucket cursors.
 	rel, err := f.rmtx.Lock(context.Background(), true)
 	if err != nil {
 		return
 	}
 
+	// Detach callbacks and release the filesystem cursors.
 	cbs := f.cbs
 	f.cbs = nil
 	if f.rootFSCursor != nil {
@@ -179,8 +186,8 @@ func (f *FS) Release() {
 	}
 	f.bls.Release()
 
+	// Notify filesystem callbacks after dropping the filesystem lock.
 	rel()
-
 	_ = cbs.CallCbs(&unixfs.FSCursorChange{Cursor: f, Released: true})
 }
 
@@ -197,6 +204,7 @@ func (f *FS) addChangeCbLocked(cb unixfs.FSCursorChangeCb) bool {
 
 // resolveRootFSCursorLocked gets/sets the rootFSCursor or returns an error
 func (f *FS) resolveRootFSCursorLocked() (*FSCursor, error) {
+	// Reuse the cached filesystem root cursor while it remains live.
 	if f.rootFSCursor != nil {
 		if f.rootFSCursor.CheckReleased() {
 			f.rootFSCursor = nil
@@ -205,6 +213,7 @@ func (f *FS) resolveRootFSCursorLocked() (*FSCursor, error) {
 		}
 	}
 
+	// Build and cache the root cursor with its change callback.
 	rootNode, _, btx, err := f.buildRootTxLocked()
 	if err != nil {
 		return nil, err
