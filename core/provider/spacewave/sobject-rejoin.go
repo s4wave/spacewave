@@ -131,9 +131,8 @@ func (t *sobjectTracker) tryRecoverMissingSharedObjectPeer(
 				return errors.Wrap(err, "build recovery config snapshot")
 			}
 		}
-		recoveryEnvelopes, err := buildSORecoveryEnvelopesFromCache(
+		recoveryEnvelopes, err := buildSORecoveryEnvelopes(
 			ctx,
-			t.a,
 			cli,
 			so.GetSharedObjectID(),
 			recoveryCfg,
@@ -197,10 +196,9 @@ func (t *sobjectTracker) tryRecoverMissingSharedObjectPeer(
 	return errors.New("self-enroll recovery failed after max retries due to config conflicts")
 }
 
-// resolveRejoinRecoveryMaterial resolves recovery material via the cache-aware
-// classifier. It returns the decrypted material for the local entity, fetching
-// /recovery-envelope and/or /recovery-entity-keypairs only when the
-// corresponding caches are cold or stale relative to currentEpoch.
+// resolveRejoinRecoveryMaterial returns the decrypted recovery material for the
+// local entity, fetching /recovery-envelope only when the cached envelope is
+// missing or older than currentEpoch.
 func (t *sobjectTracker) resolveRejoinRecoveryMaterial(
 	ctx context.Context,
 	ref *sobject.SharedObjectRef,

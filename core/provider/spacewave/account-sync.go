@@ -62,15 +62,20 @@ func (a *ProviderAccount) buildMemberSessionSyncRoutine(
 	key memberSessionSyncKey,
 ) (keyed.Routine, struct{}) {
 	return func(ctx context.Context) error {
+		// Only a session that may change cloud objects syncs members.
 		if !a.canMutateCloudObjects() {
 			return nil
 		}
+
+		// Enroll an added session or revoke a removed one.
 		var err error
 		if key.added {
-			err = a.reconcileMemberSession(ctx, key.soID, key.accountID)
+			err = a.reconcileMemberSession(ctx, key.soID, key.accountID, key.sessionPeerID)
 		} else {
 			err = a.revokeMemberSession(ctx, key.soID, key.sessionPeerID)
 		}
+
+		// Drop the task when the shared object can never mount.
 		if isTerminalSharedObjectMountError(err) {
 			a.le.WithError(err).
 				WithField("sobject-id", key.soID).

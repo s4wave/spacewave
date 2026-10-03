@@ -116,9 +116,12 @@ func (a *ProviderAccount) reconcilePendingParticipant(ctx context.Context, soID,
 }
 
 // reconcileMemberSession enrolls a member's sessions into a shared object
-// after a member_session_added notification. Mounts the SO and calls
-// enrollMountedSpaceMember to add the member's current session peers.
-func (a *ProviderAccount) reconcileMemberSession(ctx context.Context, soID, accountID string) error {
+// after a member_session_added notification for sessionPeerID. The Cloud sends
+// one notification for every session of the member, so a notification whose
+// session is already enrolled returns without a Cloud request, and one
+// enroll-member request adds each new session.
+func (a *ProviderAccount) reconcileMemberSession(ctx context.Context, soID, accountID, sessionPeerID string) error {
+	// Require the shared object, the member and a session that may enroll.
 	if soID == "" {
 		return errors.New("shared object id is required")
 	}
@@ -128,22 +131,30 @@ func (a *ProviderAccount) reconcileMemberSession(ctx context.Context, soID, acco
 	if !a.canMutateCloudObjects() {
 		return nil
 	}
-
 	cli := a.GetSessionClient()
 	if cli == nil {
 		return errors.New("session client not available")
 	}
 
+	// Mount the shared object and read its state.
 	swSO, rel, err := a.mountSpaceSO(ctx, soID)
 	if err != nil {
 		return err
 	}
 	defer rel()
-
 	state, err := swSO.GetSOHost().GetHostState(ctx)
 	if err != nil {
 		return errors.Wrap(err, "get current SO state")
 	}
+
+	// Skip a session that is already a participant with a current grant.
+	if participantConfigForPeer(state.GetConfig(), sessionPeerID) != nil &&
+		peerEnrolledInCurrentEpoch(swSO.host.GetKeyEpochs(), sessionPeerID) {
+		return nil
+	}
+
+	// Enroll at the member's current role, or the local peer's higher role
+	// when the member is this account.
 	role := participantRoleForAccount(
 		state.GetConfig(),
 		accountID,

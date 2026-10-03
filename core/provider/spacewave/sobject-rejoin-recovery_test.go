@@ -588,17 +588,11 @@ func (sc *rejoinScenario) primeEnvelopeCache(t *testing.T) {
 	}
 }
 
-// primeKeypairCache persists the known entity keypairs before rejoining.
+// primeKeypairCache caches the known entity keypairs before rejoining.
 func (sc *rejoinScenario) primeKeypairCache(t *testing.T) {
 	t.Helper()
-	for _, entity := range sc.keypairResp.GetEntities() {
-		if err := sc.acc.writeRecoveryEntityKeypairsCache(
-			t.Context(),
-			entity,
-		); err != nil {
-			t.Errorf("prime keypair cache: %v", err)
-			return
-		}
+	sc.acc.sessionClient.recoveryKeypairs = map[string]*api.ListSORecoveryEntityKeypairsResponse{
+		sc.soID: sc.keypairResp,
 	}
 }
 
