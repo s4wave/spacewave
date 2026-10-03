@@ -13,23 +13,53 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func TestGitWorktreeFactoryAllowsUnbornHead(t *testing.T) {
+// newTestWorld returns an engine World state over a fresh testbed.
+func newTestWorld(t *testing.T) (context.Context, *logrus.Entry, *world_testbed.Testbed, world.WorldState) {
+	// Build the volume testbed.
+	t.Helper()
 	ctx := context.Background()
-	log := logrus.New()
-	le := logrus.NewEntry(log)
-
+	le := logrus.NewEntry(logrus.New())
 	btb, err := hydra_testbed.NewTestbed(ctx, le, hydra_testbed.WithVerbose(false))
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	// Build the World testbed on the volume.
 	wtb, err := world_testbed.NewTestbed(btb, world_testbed.WithWorldVerbose(false))
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer wtb.Release()
+	t.Cleanup(wtb.Release)
+	return ctx, le, wtb, world.NewEngineWorldState(wtb.Engine, true)
+}
 
-	ws := world.NewEngineWorldState(wtb.Engine, true)
+func TestGitRepoFactoryReadsNewRepo(t *testing.T) {
+	// Open a fresh engine World.
+	ctx, le, wtb, ws := newTestWorld(t)
+
+	// Create an empty repository without a worktree.
+	repoKey := "repo/empty-repo-factory"
+	sender := wtb.Volume.GetPeerID()
+	if _, _, err := ws.ApplyWorldOp(ctx, git_world.NewGitInitOp(repoKey, nil, true, nil, nil), sender); err != nil {
+		t.Fatal(err)
+	}
+
+	// Open the repository resource, which reads through engine storage.
+	mux, cleanup, err := GitRepoFactory(ctx, le, nil, wtb.Engine, ws, repoKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer cleanup()
+	if mux == nil {
+		t.Fatal("expected Git repo resource mux")
+	}
+}
+
+func TestGitWorktreeFactoryAllowsUnbornHead(t *testing.T) {
+	// Open a fresh engine World.
+	ctx, le, wtb, ws := newTestWorld(t)
+
+	// Create an empty repository and a worktree attached to it.
 	sender := wtb.Volume.GetPeerID()
 	repoKey := "repo/empty-worktree-factory"
 	worktreeKey := repoKey + "/worktree"
@@ -40,21 +70,11 @@ func TestGitWorktreeFactoryAllowsUnbornHead(t *testing.T) {
 	if _, _, err := ws.ApplyWorldOp(ctx, git_world.NewGitInitOp(repoKey, nil, true, nil, nil), sender); err != nil {
 		t.Fatal(err)
 	}
-	if err := git_world.CreateWorldObjectWorktree(
-		ctx,
-		le,
-		ws,
-		worktreeKey,
-		repoKey,
-		workdirRef,
-		true,
-		nil,
-		sender,
-		time.Now(),
-	); err != nil {
+	if err := git_world.CreateWorldObjectWorktree(ctx, le, ws, worktreeKey, repoKey, workdirRef, true, nil, sender, time.Now()); err != nil {
 		t.Fatal(err)
 	}
 
+	// Open the worktree resource while HEAD is still unborn.
 	mux, cleanup, err := GitWorktreeFactory(ctx, le, nil, wtb.Engine, ws, worktreeKey)
 	if err != nil {
 		t.Fatal(err)

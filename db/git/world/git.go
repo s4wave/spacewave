@@ -178,18 +178,19 @@ func openRepoStore(
 }
 
 // ValidateOrCreateRepo creates or checks a reference to a Repo.
-// repoRef can be nil to create a new repo.
+// repoRef can be nil to create a new repo. A new repo is initialized with its
+// HEAD, so later reads open it without writing.
 func ValidateOrCreateRepo(
 	ctx context.Context,
 	accessState world.AccessWorldStateFunc,
 	repoRef *bucket.ObjectRef,
 ) (*bucket.ObjectRef, error) {
-	// Create a repository block for an empty reference or validate the existing repository.
+	// Initialize a repository for an empty reference or validate the existing repository.
 	var err error
 	if repoRef.GetEmpty() {
 		repoRef, err = world.AccessObject(ctx, accessState, nil, func(bcs *block.Cursor) error {
 			bcs.SetBlock(git_block.NewRepo(), true)
-			return nil
+			return AccessRepoWithCursor(ctx, bcs, nil, nil, nil, nil)
 		})
 	} else {
 		// Validate the supplied reference before opening its repository block.
