@@ -56,7 +56,7 @@ func (c *Controller) newObjectTracker(key string) (keyed.Routine, *objectTracker
 	tr.objLoop = world_control.NewWatchLoop(
 		c.le.WithField("object-loop", "object-tracker"),
 		key,
-		tr.processState,
+		tr.processAssignedState,
 	)
 	return tr.execute, tr
 }
@@ -224,6 +224,29 @@ func (t *objectTracker) processState(
 	// Publish only objects this Worker can execute.
 	t.pushObjType(objType)
 	return true, nil
+}
+
+// processAssignedState releases retired objects after their final result is
+// durable, and retains ordinary controller demand for live work.
+func (t *objectTracker) processAssignedState(
+	ctx context.Context,
+	le *logrus.Entry,
+	ws world.WorldState,
+	obj world.ObjectState,
+	rootRef *bucket.ObjectRef, rev uint64,
+) (bool, error) {
+	// Reconcile retirement before choosing the object's executable controller.
+	retired, err := forge_task.ReconcileRetiredObject(ctx, ws, t.objKey)
+	if err != nil {
+		return false, err
+	}
+	if retired {
+		t.pushObjType("")
+		return false, nil
+	}
+
+	// Preserve normal reactive demand until one-shot work is fully settled.
+	return t.processState(ctx, le, ws, obj, rootRef, rev)
 }
 
 // pushObjType pushes the object info from processState.

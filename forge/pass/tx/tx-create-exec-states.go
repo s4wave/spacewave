@@ -9,6 +9,7 @@ import (
 	world_parent "github.com/s4wave/spacewave/db/world/parent"
 	forge_execution "github.com/s4wave/spacewave/forge/execution"
 	forge_pass "github.com/s4wave/spacewave/forge/pass"
+	forge_task "github.com/s4wave/spacewave/forge/task"
 	"github.com/s4wave/spacewave/net/peer"
 )
 
@@ -37,7 +38,8 @@ func (t *TxCreateExecSpecs) GetTxType() TxType {
 func (t *TxCreateExecSpecs) Validate() error {
 	if execSpecs := t.GetExecSpecs(); len(execSpecs) != 0 {
 		return ValidateExecSpecs(execSpecs)
-	} else if !t.GetClearExisting() {
+	}
+	if !t.GetClearExisting() {
 		return errors.New("exec_specs or clear_existing must be set")
 	}
 	return nil
@@ -64,6 +66,7 @@ func (t *TxCreateExecSpecs) ExecuteTx(
 		return err
 	}
 
+	// Require each placed Pass to execute only on its selected peer.
 	if t.IsEmpty() {
 		return nil
 	}
@@ -142,6 +145,11 @@ func (t *TxCreateExecSpecs) ExecuteTx(
 		err = worldState.SetGraphQuad(ctx, forge_pass.NewPassToExecutionQuad(objKey, execObjKey))
 		if err != nil {
 			return errors.Wrapf(err, "exec_specs[%d]", i)
+		}
+
+		// Carry retirement into an Execution admitted while its Pass drains.
+		if err := forge_task.InheritRetirement(ctx, worldState, objKey, execObjKey); err != nil {
+			return err
 		}
 	}
 

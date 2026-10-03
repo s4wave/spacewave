@@ -152,6 +152,11 @@ func (t *TxRetry) ExecuteTx(
 	valueSet.SortValues()
 	root.ValueSet = valueSet
 
+	// Restore demand for an explicitly retried one-shot Task.
+	if err := forge_task.ReactivateTask(ctx, worldState, objKey, root.GetPeerId(), sender); err != nil {
+		return err
+	}
+
 	// Reset the task to pending with the retry's inputs and no result.
 	// Result describes the terminal attempt and is invalid on a pending Task.
 	// The failed predecessor retains its Result in the graph history.

@@ -42,7 +42,7 @@ func (t *TxStart) Validate() error {
 	return nil
 }
 
-// ExecuteTx executes the transaction against the pass instance.
+// ExecuteTx promotes pending Task custody and creates its next Pass.
 func (t *TxStart) ExecuteTx(
 	ctx context.Context,
 	worldState world.WorldState,
@@ -57,7 +57,8 @@ func (t *TxStart) ExecuteTx(
 	if taskState == forge_task.State_TaskState_RUNNING {
 		return nil
 	}
-	// ensure PENDING
+
+	// Require pending Task custody before creating another Pass.
 	if taskState != forge_task.State_TaskState_PENDING {
 		return errors.Wrapf(
 			forge_value.ErrUnknownState,
@@ -121,11 +122,13 @@ func (t *TxStart) ExecuteTx(
 	nextNonce := highestNonce + 1
 	root.PassNonce = nextNonce
 
+	// Assign the new Pass to the calling peer when requested.
 	var passPeerID peer.ID
 	if t.GetAssignSelf() {
 		passPeerID = sender
 	}
 
+	// Store the new Pass with the Task's frozen inputs and placement.
 	passKey := forge_task.NewPassKey(objKey, nextNonce)
 	var createdObject world.ObjectState
 	createdObject, _, err = forge_pass.CreatePassWithTarget(
@@ -164,7 +167,12 @@ func (t *TxStart) ExecuteTx(
 		return err
 	}
 
-	// mark as dirty
+	// Carry one-shot retirement into a Pass admitted after canonical settlement.
+	if err := forge_task.InheritRetirement(ctx, worldState, objKey, passKey); err != nil {
+		return err
+	}
+
+	// Publish running Task custody with its new Pass.
 	bcs.SetBlock(root, true)
 	return nil
 }
