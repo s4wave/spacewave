@@ -11,6 +11,7 @@ import (
 
 // createSpacePluginManifest retains a distinct manifest in the test World's bucket.
 func createSpacePluginManifest(t *testing.T, ctx context.Context, tb *testbed.Testbed, id, platform string, rev uint64) *bldr_manifest.ManifestRef {
+	// Prepare the plugin manifest metadata for the requested artifact.
 	t.Helper()
 	meta := bldr_manifest.NewManifestMeta(
 		id,
@@ -20,6 +21,7 @@ func createSpacePluginManifest(t *testing.T, ctx context.Context, tb *testbed.Te
 	)
 	var manifestRef *bldr_manifest.ManifestRef
 	if err := tb.Engine.AccessWorldState(ctx, nil, func(cursor *bucket_lookup.Cursor) error {
+		// Persist the plugin manifest and retain its exact World bucket reference.
 		transaction, blocks := cursor.BuildTransactionAtRef(nil, nil)
 		blocks.SetBlock(bldr_manifest.NewManifest(meta, "entrypoint"), true)
 		rootRef, _, err := transaction.Write(ctx, true)

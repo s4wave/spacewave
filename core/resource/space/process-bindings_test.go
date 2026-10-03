@@ -106,6 +106,7 @@ func (b *bindingTestBody) GetSharedObject() sobject.SharedObject { return nil }
 // independent binding watch sees approval, disable, and orphan deletion while
 // only the keeper's reference keeps the shared runtime running.
 func TestBindingWatchRetainsSharedRuntimeAfterCommandMountRelease(t *testing.T) {
+	// Prepare the World and stable Space identity for process binding watches.
 	ctx, tb := newSpaceRuntimeTestbed(t)
 	ref := &sobject.SharedObjectRef{}
 	ref.ProviderResourceRef = &provider.ProviderResourceRef{}
@@ -114,6 +115,8 @@ func TestBindingWatchRetainsSharedRuntimeAfterCommandMountRelease(t *testing.T) 
 	ref.ProviderResourceRef.Id = "binding-watch"
 	body := &bindingTestBody{engine: tb.Engine, engineID: tb.EngineID, ref: ref}
 	spaceID := space.SpaceEngineId(ref)
+
+	// Watch local process decisions independently of a contents mount.
 	registry := process_binding.NewBindingRegistry()
 	spaceResource := NewSpaceResourceWithSessionPeerID(tb.Logger, tb.Bus, body, tb.Volume.GetPeerID().String())
 	spaceResource.SetBindingRegistry(registry)
@@ -123,17 +126,21 @@ func TestBindingWatchRetainsSharedRuntimeAfterCommandMountRelease(t *testing.T) 
 		t.Fatal(err)
 	}
 	defer stream.Close()
+
+	// Verify the independent binding watch starts with no process decisions.
 	initial, err := stream.Recv()
 	if err != nil || len(initial.GetProcessBindings()) != 0 {
 		t.Fatalf("initial binding snapshot = %#v, %v", initial, err)
 	}
 
+	// Prepare contents mounts that share the Space runtime and binding registry.
 	conf := &plugin_space.Config{
 		SpaceId: spaceID, VolumeId: tb.EngineVolumeID,
 		ObjectStoreId: process_binding.DefaultObjectStoreID,
 		EngineId:      tb.EngineID, SessionPeerId: tb.Volume.GetPeerID().String(),
 	}
 	mount := func() *SpaceContentsResource {
+		// Start the shared runtime for a contents mount.
 		t.Helper()
 		runtime, runtimeRef, err := plugin_space_runtime.StartControllerWithConfig(
 			ctx, tb.Bus, &plugin_space_runtime.Config{Space: conf},
@@ -141,12 +148,16 @@ func TestBindingWatchRetainsSharedRuntimeAfterCommandMountRelease(t *testing.T) 
 		if err != nil {
 			t.Fatal(err)
 		}
+
+		// Connect the contents mount to the local process decision store.
 		contents := NewSpaceContentsResource(tb.Logger, tb.Bus, tb.Engine, spaceID, tb.EngineID, runtime, runtimeRef)
 		contents.volumeID = tb.EngineVolumeID
 		contents.storeID = process_binding.DefaultObjectStoreID
 		runtime.SetBindingRegistry(registry)
 		return contents
 	}
+
+	// Approve the Worker binding through a command contents mount.
 	createSpaceRuntimeObject(t, ctx, tb, "worker/test")
 	command := mount()
 	gen := waitSpaceRuntimeGeneration(t, command.runtime, nil)
@@ -155,10 +166,14 @@ func TestBindingWatchRetainsSharedRuntimeAfterCommandMountRelease(t *testing.T) 
 	}); err != nil {
 		t.Fatal(err)
 	}
+
+	// Verify the binding watch reports the approved Worker.
 	approved, err := stream.Recv()
 	if err != nil || len(approved.GetProcessBindings()) != 1 || !approved.GetProcessBindings()[0].GetApproved() {
 		t.Fatalf("approved binding snapshot = %#v, %v", approved, err)
 	}
+
+	// Restore a binding watch and verify it retains the saved approval.
 	restored, err := client.WatchProcessBindings(ctx, &s4wave_space.WatchProcessBindingsRequest{})
 	if err != nil {
 		t.Fatal(err)
@@ -168,6 +183,8 @@ func TestBindingWatchRetainsSharedRuntimeAfterCommandMountRelease(t *testing.T) 
 	if err != nil || len(restoredSnapshot.GetProcessBindings()) != 1 || !restoredSnapshot.GetProcessBindings()[0].GetApproved() {
 		t.Fatalf("restored binding snapshot = %#v, %v", restoredSnapshot, err)
 	}
+
+	// Release the command mount while a keeper retains its runtime.
 	keeper := mount()
 	if keeper.runtime != command.runtime {
 		t.Fatal("keeper acquired a different Space runtime")
@@ -179,16 +196,21 @@ func TestBindingWatchRetainsSharedRuntimeAfterCommandMountRelease(t *testing.T) 
 	default:
 	}
 
+	// Disable the Worker binding through a new command mount.
 	command = mount()
 	if _, err := command.SetProcessBinding(ctx, &s4wave_space.SetProcessBindingRequest{
 		ObjectKey: "worker/test", TypeId: forge_worker.WorkerTypeID, Approved: false,
 	}); err != nil {
 		t.Fatal(err)
 	}
+
+	// Verify the binding watch reports the disabled Worker.
 	disabled, err := stream.Recv()
 	if err != nil || len(disabled.GetProcessBindings()) != 1 || disabled.GetProcessBindings()[0].GetApproved() {
 		t.Fatalf("disabled binding snapshot = %#v, %v", disabled, err)
 	}
+
+	// Release both mounts and verify the disabled Worker retains no runtime.
 	command.Release()
 	keeper.Release()
 	select {
@@ -197,6 +219,7 @@ func TestBindingWatchRetainsSharedRuntimeAfterCommandMountRelease(t *testing.T) 
 		t.Fatal("disabled binding retained the runtime")
 	}
 
+	// Approve the Worker again in a new runtime generation.
 	command = mount()
 	gen = waitSpaceRuntimeGeneration(t, command.runtime, nil)
 	if _, err := command.SetProcessBinding(ctx, &s4wave_space.SetProcessBindingRequest{
@@ -204,20 +227,28 @@ func TestBindingWatchRetainsSharedRuntimeAfterCommandMountRelease(t *testing.T) 
 	}); err != nil {
 		t.Fatal(err)
 	}
+
+	// Verify the binding watch reports the restored Worker approval.
 	approved, err = stream.Recv()
 	if err != nil || len(approved.GetProcessBindings()) != 1 || !approved.GetProcessBindings()[0].GetApproved() {
 		t.Fatalf("reapproved binding snapshot = %#v, %v", approved, err)
 	}
+
+	// Delete the bound Worker while a keeper retains the runtime.
 	keeper = mount()
 	command.Release()
 	deleted, err := tb.WorldState.DeleteObject(ctx, "worker/test")
 	if err != nil || !deleted {
 		t.Fatalf("delete bound Worker = %v, %v", deleted, err)
 	}
+
+	// Verify the binding watch removes the deleted Worker decision.
 	orphaned, err := stream.Recv()
 	if err != nil || len(orphaned.GetProcessBindings()) != 0 {
 		t.Fatalf("orphan removal snapshot = %#v, %v", orphaned, err)
 	}
+
+	// Release the keeper and verify the orphaned binding retains no runtime.
 	keeper.Release()
 	select {
 	case <-gen.Done():

@@ -79,16 +79,20 @@ func (*attachedRpcServiceStream) Close() error {
 }
 
 func TestBindAttachedRpcService(t *testing.T) {
+	// Start two distinct Spaces for attached route isolation.
 	ctx, tb := newSpaceRuntimeTestbed(t)
 	conf := newSpaceRuntimeConfig(tb)
 	conf.SpaceId = "space-a"
 	resource := newTestSpaceContentsResource(t, tb.Logger, tb.Bus, tb.Engine, conf)
 	siblingConf := conf.CloneVT()
+
+	// Mount the sibling Space under its separate runtime identity.
 	siblingConf.SpaceId = "space-b"
 	sibling := newTestSpaceContentsResource(t, tb.Logger, tb.Bus, tb.Engine, siblingConf)
 	gen := waitSpaceRuntimeGeneration(t, resource.runtime, nil)
 	siblingGen := waitSpaceRuntimeGeneration(t, sibling.runtime, nil)
 
+	// Bind the echo Resource to the first Space runtime.
 	attachedResources := newSpaceRecordingResourceClient(ctx)
 	attachedID := addAttachedEchoResource(t, attachedResources)
 	bindCtx := resource_server.WithResourceClientContext(ctx, attachedResources)
@@ -113,6 +117,7 @@ func TestBindAttachedRpcService(t *testing.T) {
 		t.Fatal("sibling Space resolved attached service")
 	}
 
+	// Verify duplicate and malformed attached service bindings are rejected.
 	duplicate := newAttachedRpcServiceStream(bindCtx)
 	if err := resource.BindAttachedRpcService(&s4wave_space.BindAttachedRpcServiceRequest{
 		AttachedResourceId: attachedID,
@@ -144,6 +149,7 @@ func TestBindAttachedRpcService(t *testing.T) {
 		t.Fatal("oversized prefix binding succeeded")
 	}
 
+	// Release the echo attachment and verify its route is removed.
 	if !attachedResources.ReleaseResource(attachedID) {
 		t.Fatal("attached resource release failed")
 	}
@@ -156,17 +162,20 @@ func TestBindAttachedRpcService(t *testing.T) {
 }
 
 func TestBindAttachedRpcServicePreEndedOwner(t *testing.T) {
+	// Start a Space runtime for a binding with an ended caller lifetime.
 	ctx, tb := newSpaceRuntimeTestbed(t)
 	conf := newSpaceRuntimeConfig(tb)
 	conf.SpaceId = "space-a"
 	resource := newTestSpaceContentsResource(t, tb.Logger, tb.Bus, tb.Engine, conf)
 	gen := waitSpaceRuntimeGeneration(t, resource.runtime, nil)
 
+	// End the attached Resource client lifetime before binding its echo service.
 	ownerCtx, cancelOwner := context.WithCancel(ctx)
 	attachedResources := newSpaceRecordingResourceClient(ownerCtx)
 	attachedID := addAttachedEchoResource(t, attachedResources)
 	cancelOwner()
 
+	// Verify the ended caller cannot publish readiness or retain an echo route.
 	stream := newAttachedRpcServiceStream(resource_server.WithResourceClientContext(ctx, attachedResources))
 	err := resource.BindAttachedRpcService(&s4wave_space.BindAttachedRpcServiceRequest{
 		AttachedResourceId: attachedID,
@@ -187,6 +196,7 @@ func TestBindAttachedRpcServicePreEndedOwner(t *testing.T) {
 
 // addAttachedEchoResource adds an attached resource serving the echo service.
 func addAttachedEchoResource(t *testing.T, resources *spaceRecordingResourceClient) uint32 {
+	// Register an attached echo Resource for route tests.
 	t.Helper()
 	mux := srpc.NewMux()
 	if err := mux.Register(echo.NewSRPCEchoerHandler(echo.NewEchoServer(nil), echo.SRPCEchoerServiceID)); err != nil {
@@ -201,6 +211,7 @@ func addAttachedEchoResource(t *testing.T, resources *spaceRecordingResourceClie
 
 // invokeAttachedEcho calls the attached echo route on b.
 func invokeAttachedEcho(ctx context.Context, b bus.Bus, body string) error {
+	// Invoke the attached echo route and verify its response body.
 	invoker := bifrost_rpc.NewInvoker(b, "", false)
 	client := srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(invoker)))
 	response, err := echo.NewSRPCEchoerClientWithServiceID(client, attachedEchoServiceID).
@@ -216,6 +227,7 @@ func invokeAttachedEcho(ctx context.Context, b bus.Bus, body string) error {
 
 // countAttachedEcho returns the number of attached echo routes on b.
 func countAttachedEcho(t *testing.T, ctx context.Context, b bus.Bus) int {
+	// Count the attached echo routes and release their lookup reference.
 	t.Helper()
 	values, _, valuesRef, err := bifrost_rpc.ExLookupRpcService(ctx, b, attachedEchoServiceID, "", false, nil)
 	if valuesRef != nil {

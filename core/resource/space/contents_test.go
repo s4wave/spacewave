@@ -102,6 +102,7 @@ func newTestSpaceContentsResource(
 	engine world.Engine,
 	conf *plugin_space.Config,
 ) *SpaceContentsResource {
+	// Start the shared Space runtime and retain its contents mount until test cleanup.
 	t.Helper()
 	runtime, runtimeRef, err := plugin_space_runtime.StartControllerWithConfig(
 		t.Context(),
@@ -143,8 +144,10 @@ func TestWaitSpaceContentsSourcesWaitsForEverySource(t *testing.T) {
 
 	for sourceIdx := range 5 {
 		t.Run(fmt.Sprintf("source-%d", sourceIdx), func(t *testing.T) {
+			// Run each independent Space contents wake source concurrently.
 			t.Parallel()
 
+			// Watch the selected contents source without waking it yet.
 			waitChs, closeSource := testWaitChannels(5, sourceIdx)
 			done := make(chan error, 1)
 			go func() {
@@ -154,14 +157,17 @@ func TestWaitSpaceContentsSourcesWaitsForEverySource(t *testing.T) {
 				}, waitChs)
 			}()
 
+			// Verify the contents wait remains blocked until a source changes.
 			select {
 			case err := <-done:
 				t.Fatalf("waitSpaceContentsSources returned before source %d woke: %v", sourceIdx, err)
 			case <-time.After(10 * time.Millisecond):
 			}
 
+			// Wake the selected contents source.
 			closeSource()
 
+			// Verify the contents wait completes after the selected source changes.
 			select {
 			case err := <-done:
 				if err != nil {
@@ -175,8 +181,10 @@ func TestWaitSpaceContentsSourcesWaitsForEverySource(t *testing.T) {
 }
 
 func TestWaitSpaceContentsSourcesContextCancellation(t *testing.T) {
+	// Run the contents cancellation check independently.
 	t.Parallel()
 
+	// Start a contents wait with a cancellable context.
 	ctx, cancel := context.WithCancel(context.Background())
 	done := make(chan error, 1)
 	go func() {
@@ -186,14 +194,17 @@ func TestWaitSpaceContentsSourcesContextCancellation(t *testing.T) {
 		}, nil)
 	}()
 
+	// Verify the contents wait remains blocked before cancellation.
 	select {
 	case err := <-done:
 		t.Fatalf("waitSpaceContentsSources returned before cancellation: %v", err)
 	case <-time.After(10 * time.Millisecond):
 	}
 
+	// Cancel the pending contents wait.
 	cancel()
 
+	// Verify the contents wait returns its context cancellation.
 	select {
 	case err := <-done:
 		if err != context.Canceled {
@@ -275,6 +286,7 @@ func TestBuildSpacePluginStatusProjectsLifecycle(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			// Project the configured plugin lifecycle for the selected test case.
 			got := buildSpacePluginStatus(
 				"plugin-"+tt.name,
 				"description",
@@ -282,6 +294,8 @@ func TestBuildSpacePluginStatusProjectsLifecycle(t *testing.T) {
 				tt.controllerStarted,
 				tt.schedulerStatus,
 			)
+
+			// Verify the projected plugin lifecycle and description match the case.
 			if got.GetLoaded() != tt.wantLoaded {
 				t.Fatalf("loaded = %v, want %v", got.GetLoaded(), tt.wantLoaded)
 			}
@@ -301,6 +315,7 @@ func TestBuildSpacePluginStatusProjectsLifecycle(t *testing.T) {
 // testWaitChannels returns count open channels framed by nil channels and a
 // func that closes the channel at sourceIdx.
 func testWaitChannels(count int, sourceIdx int) ([]<-chan struct{}, func()) {
+	// Prepare the contents wake channels with inactive entries at both ends.
 	chans := make([]chan struct{}, count)
 	waitChs := make([]<-chan struct{}, 0, count+2)
 	waitChs = append(waitChs, nil)
@@ -316,8 +331,8 @@ func testWaitChannels(count int, sourceIdx int) ([]<-chan struct{}, func()) {
 
 // generateSpaceContentsTestPeerID returns a random Ed25519 peer ID.
 func generateSpaceContentsTestPeerID(t *testing.T) peer.ID {
+	// Generate an Ed25519 identity for the Space contents test.
 	t.Helper()
-
 	priv, _, err := crypto.GenerateEd25519Key(rand.Reader)
 	if err != nil {
 		t.Fatal(err)
@@ -343,8 +358,8 @@ func applyWizardFinalizeOp(
 	op world.Operation,
 	sender peer.ID,
 ) {
+	// Create and commit the wizard object before finalization.
 	t.Helper()
-
 	wizardOp := s4wave_wizard.NewCreateWizardObjectOp(
 		wizardKey,
 		wizardTypeID,
@@ -366,6 +381,7 @@ func applyWizardFinalizeOp(
 		t.Fatalf("Commit(%s wizard create): %v", wizardTypeID, err)
 	}
 
+	// Finalize the target object and remove its wizard in a second transaction.
 	tx, err = engine.NewTransaction(ctx, true)
 	if err != nil {
 		t.Fatalf("NewTransaction(%s finalize): %v", wizardTypeID, err)

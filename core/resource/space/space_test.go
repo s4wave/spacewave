@@ -247,6 +247,7 @@ func TestSpaceResourceChatSenderUsesWorldSigner(t *testing.T) {
 }
 
 func TestTypedObjectResourceCacheSeparatesPeerIdentities(t *testing.T) {
+	// Start a World testbed for peer-specific typed Resource caching.
 	ctx := t.Context()
 	tb, err := testbed.Default(ctx)
 	if err != nil {
@@ -254,9 +255,11 @@ func TestTypedObjectResourceCacheSeparatesPeerIdentities(t *testing.T) {
 	}
 	t.Cleanup(tb.Release)
 
+	// Create the chat channel shared by both signing peers.
 	const channelKey = "chat/channel/unbound-owner"
 	createSpaceResourceChatChannel(t, ctx, tb.WorldState, channelKey)
 
+	// Register a chat factory that records peer-specific handles and cleanup.
 	factory := &recordingChatFactory{
 		base:      spacewave_chat_world.ChatChannelType.GetFactory(),
 		cleanupCh: make(chan int, 2),
@@ -274,6 +277,7 @@ func TestTypedObjectResourceCacheSeparatesPeerIdentities(t *testing.T) {
 	}
 	t.Cleanup(objectTypeRelease)
 
+	// Generate a second peer identity distinct from the test volume signer.
 	peerA := tb.Volume.GetPeerID()
 	peerBPriv, _, err := crypto.GenerateEd25519Key(rand.Reader)
 	if err != nil {
@@ -284,6 +288,7 @@ func TestTypedObjectResourceCacheSeparatesPeerIdentities(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Expose typed World Resources through a recording Resource client.
 	resources := newSpaceRecordingResourceClient(ctx)
 	ctx = resource_server.WithResourceClientContext(ctx, resources)
 	owner := resource_world.NewTypedObjectResource(
@@ -298,6 +303,7 @@ func TestTypedObjectResourceCacheSeparatesPeerIdentities(t *testing.T) {
 	})
 	typedClient := s4wave_world.NewSRPCTypedObjectResourceServiceClient(spaceResourceClient(t, mux))
 
+	// Open two references to the chat channel for each peer.
 	ctxA := objecttype.WithSessionPeerID(ctx, peerA)
 	ctxB := objecttype.WithSessionPeerID(ctx, peerB)
 	typedA1, err := typedClient.AccessTypedObject(ctxA, &s4wave_world.AccessTypedObjectRequest{ObjectKey: channelKey})
@@ -308,6 +314,8 @@ func TestTypedObjectResourceCacheSeparatesPeerIdentities(t *testing.T) {
 	if err != nil {
 		t.Fatalf("AccessTypedObject(A2): %v", err)
 	}
+
+	// Open the second peer references to the same chat channel.
 	typedB1, err := typedClient.AccessTypedObject(ctxB, &s4wave_world.AccessTypedObjectRequest{ObjectKey: channelKey})
 	if err != nil {
 		t.Fatalf("AccessTypedObject(B1): %v", err)
@@ -317,6 +325,7 @@ func TestTypedObjectResourceCacheSeparatesPeerIdentities(t *testing.T) {
 		t.Fatalf("AccessTypedObject(B2): %v", err)
 	}
 
+	// Verify both peer handles stay distinct and live while their references remain.
 	factory.mu.Lock()
 	opens := len(factory.peers)
 	distinct := len(factory.handles) == 2 && factory.handles[0] != factory.handles[1]
@@ -329,6 +338,7 @@ func TestTypedObjectResourceCacheSeparatesPeerIdentities(t *testing.T) {
 		t.Fatalf("owner factory cleanups while all refs live = %d, want 0", cleanups)
 	}
 
+	// Release the first peer references and verify cleanup occurs after its last reference.
 	resources.ReleaseResource(typedA1.GetResourceId())
 	factory.mu.Lock()
 	cleanups = len(factory.cleanups)
@@ -342,6 +352,8 @@ func TestTypedObjectResourceCacheSeparatesPeerIdentities(t *testing.T) {
 	case <-time.After(5 * time.Second):
 		t.Fatal("timed out waiting for A cleanup")
 	}
+
+	// Release the second peer references and verify cleanup occurs after its last reference.
 	resources.ReleaseResource(typedB1.GetResourceId())
 	factory.mu.Lock()
 	cleanups = len(factory.cleanups)
@@ -355,6 +367,8 @@ func TestTypedObjectResourceCacheSeparatesPeerIdentities(t *testing.T) {
 	case <-time.After(5 * time.Second):
 		t.Fatal("timed out waiting for B cleanup")
 	}
+
+	// Verify both peer handles were cleaned after their final references.
 	factory.mu.Lock()
 	cleanups = len(factory.cleanups)
 	factory.mu.Unlock()
@@ -563,16 +577,20 @@ func (f *recordingChatFactory) create(
 	ws world.WorldState,
 	objectKey string,
 ) (srpc.Invoker, func(), error) {
+	// Create the chat Resource and record the peer identity of its handle.
 	invoker, cleanup, err := f.base(ctx, le, b, engine, ws, objectKey)
 	if err != nil {
 		return nil, nil, err
 	}
+
+	// Record the opened chat handle under the factory lock.
 	f.mu.Lock()
 	handleID := len(f.handles) + 1
 	f.peers = append(f.peers, objecttype.SessionPeerIDFromContext(ctx))
 	f.handles = append(f.handles, handleID)
 	f.mu.Unlock()
 	return invoker, func() {
+		// Record the chat handle cleanup and release its underlying Resource.
 		f.mu.Lock()
 		f.cleanups = append(f.cleanups, handleID)
 		f.mu.Unlock()
@@ -586,6 +604,7 @@ func (f *recordingChatFactory) create(
 }
 
 func createSpaceResourceChatChannel(t *testing.T, ctx context.Context, ws world.WorldState, key string) {
+	// Create a typed chat channel in the World for Resource tests.
 	t.Helper()
 	createdObject, _, err := world.CreateWorldObject(ctx, ws, key, func(bcs *block.Cursor) error {
 		bcs.SetBlock(&spacewave_chat.ChatChannel{Name: "General", CreatedAt: timestamppb.Now()}, true)
@@ -601,12 +620,15 @@ func createSpaceResourceChatChannel(t *testing.T, ctx context.Context, ws world.
 }
 
 func assertSpaceChatSender(t *testing.T, ctx context.Context, engine world.Engine, messageKey, want string) {
+	// Read the saved chat message and verify its signing peer.
 	t.Helper()
 	tx, err := engine.NewTransaction(ctx, false)
 	if err != nil {
 		t.Fatalf("NewTransaction: %v", err)
 	}
 	defer tx.Discard()
+
+	// Acquire the saved chat message from the World snapshot.
 	obj, found, err := tx.GetObject(ctx, messageKey)
 	defer world.ReleaseObjectState(obj)
 	if err != nil {
@@ -615,6 +637,8 @@ func assertSpaceChatSender(t *testing.T, ctx context.Context, engine world.Engin
 	if !found {
 		t.Fatalf("message %s not found", messageKey)
 	}
+
+	// Decode the saved chat message body.
 	var message *spacewave_chat.ChatMessage
 	_, _, err = world.AccessObjectState(ctx, obj, false, func(bcs *block.Cursor) error {
 		var err error
@@ -624,6 +648,8 @@ func assertSpaceChatSender(t *testing.T, ctx context.Context, engine world.Engin
 	if err != nil {
 		t.Fatalf("UnmarshalBlock(%s): %v", messageKey, err)
 	}
+
+	// Verify the chat message carries the expected signer.
 	if got := message.GetSenderPeerId(); got != want {
 		t.Fatalf("message %s sender = %q, want %q", messageKey, got, want)
 	}
@@ -670,6 +696,7 @@ func (c *spaceRecordingResourceClient) AddResource(mux srpc.Invoker, releaseFn f
 }
 
 func (c *spaceRecordingResourceClient) AddResourceValue(mux srpc.Invoker, value any, releaseFn func()) (uint32, error) {
+	// Register the Resource value, route, release callback, and lifetime under one ID.
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	c.nextID++
@@ -681,6 +708,7 @@ func (c *spaceRecordingResourceClient) AddResourceValue(mux srpc.Invoker, value 
 }
 
 func (c *spaceRecordingResourceClient) ReleaseResource(resourceID uint32) bool {
+	// Remove the recorded Resource before ending its attachment lifetime.
 	c.mu.Lock()
 	releaseFn, ok := c.releases[resourceID]
 	done := c.dones[resourceID]
@@ -694,6 +722,8 @@ func (c *spaceRecordingResourceClient) ReleaseResource(resourceID uint32) bool {
 	if !ok {
 		return false
 	}
+
+	// Notify attachment callers and release the underlying Resource.
 	close(done)
 	if releaseFn != nil {
 		releaseFn()
@@ -702,6 +732,7 @@ func (c *spaceRecordingResourceClient) ReleaseResource(resourceID uint32) bool {
 }
 
 func (c *spaceRecordingResourceClient) GetResourceValue(resourceID uint32) (any, error) {
+	// Read a recorded Resource value under the client lock.
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	value, ok := c.values[resourceID]
@@ -712,6 +743,7 @@ func (c *spaceRecordingResourceClient) GetResourceValue(resourceID uint32) (any,
 }
 
 func (c *spaceRecordingResourceClient) GetAttachedResource(resourceID uint32) (srpc.Client, error) {
+	// Resolve the recorded Resource route and its attachment lifetime.
 	c.mu.Lock()
 	mux := c.muxes[resourceID]
 	done := c.dones[resourceID]

@@ -9,9 +9,11 @@ import (
 )
 
 func TestSpaceContentsResource_GetPluginDescriptionsCache(t *testing.T) {
+	// Prepare a description cache test under the test context.
 	ctx := t.Context()
 	var calls int
 
+	// Count description builds with a deterministic plugin description source.
 	r := &SpaceContentsResource{
 		buildDescriptions: func(_ context.Context, _ world.WorldState, pluginIDs []string) (map[string]string, error) {
 			calls++
@@ -21,6 +23,7 @@ func TestSpaceContentsResource_GetPluginDescriptionsCache(t *testing.T) {
 		},
 	}
 
+	// Build and verify the initial plugin description.
 	descriptions, err := r.getPluginDescriptions(ctx, nil, []string{"alpha"})
 	if err != nil {
 		t.Fatal(err)
@@ -32,6 +35,7 @@ func TestSpaceContentsResource_GetPluginDescriptionsCache(t *testing.T) {
 		t.Fatalf("unexpected description: %#v", descriptions)
 	}
 
+	// Verify caller mutation cannot alter the cached plugin descriptions.
 	descriptions["alpha"] = "mutated"
 	cachedDescriptions, err := r.getPluginDescriptions(ctx, nil, []string{"alpha"})
 	if err != nil {
@@ -44,6 +48,7 @@ func TestSpaceContentsResource_GetPluginDescriptionsCache(t *testing.T) {
 		t.Fatalf("cache alias leaked mutation: %#v", cachedDescriptions)
 	}
 
+	// Verify changing the plugin identity rebuilds its descriptions.
 	_, err = r.getPluginDescriptions(ctx, nil, []string{"beta"})
 	if err != nil {
 		t.Fatal(err)
@@ -52,6 +57,7 @@ func TestSpaceContentsResource_GetPluginDescriptionsCache(t *testing.T) {
 		t.Fatalf("expected rebuild after plugin set change, got %d builds", calls)
 	}
 
+	// Verify changing the plugin set retains its new ordered cache key.
 	reorderedDescriptions, err := r.getPluginDescriptions(ctx, nil, []string{"beta", "alpha"})
 	if err != nil {
 		t.Fatal(err)

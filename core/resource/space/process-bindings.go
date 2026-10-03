@@ -18,6 +18,7 @@ func (r *SpaceResource) WatchProcessBindings(
 	_ *s4wave_space.WatchProcessBindingsRequest,
 	strm s4wave_space.SRPCSpaceResourceService_WatchProcessBindingsStream,
 ) error {
+	// Stream changed process decisions while the mounted Space is available.
 	if r.bindingRegistry == nil {
 		return errors.New("process binding watch unavailable")
 	}
@@ -47,6 +48,7 @@ func (r *SpaceResource) WatchProcessBindings(
 
 // listProcessBindingInfos reads local decisions from the Space's account store.
 func listProcessBindingInfos(ctx context.Context, b bus.Bus, volumeID, storeID, spaceID string) ([]*s4wave_space.ProcessBindingInfo, error) {
+	// Read and project local process decisions from the Space account store.
 	handle, _, ref, err := volume.ExBuildObjectStoreAPI(ctx, b, true, storeID, volumeID, nil)
 	if err != nil {
 		return nil, err

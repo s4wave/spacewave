@@ -22,10 +22,12 @@ import (
 )
 
 func TestSpaceResourceCreateSecretCreatesGrantedSecret(t *testing.T) {
+	// Mount a provider-backed Space for Secret creation.
 	ctx := t.Context()
 	tb, resource, release := setupSecretSpaceResourceTest(ctx, t)
 	defer release()
 
+	// Generate the reader identity and its public key grant.
 	readerPriv, readerPub, err := crypto.GenerateEd25519Key(rand.Reader)
 	if err != nil {
 		t.Fatal(err)
@@ -39,6 +41,7 @@ func TestSpaceResourceCreateSecretCreatesGrantedSecret(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Create a Secret with the generated reader grant.
 	resp, err := resource.CreateSecret(ctx, &s4wave_space.CreateSecretRequest{
 		ObjectKey:          "secrets/provider/access-token",
 		DisplayName:        "Provider credential",
@@ -54,6 +57,7 @@ func TestSpaceResourceCreateSecretCreatesGrantedSecret(t *testing.T) {
 		t.Fatal("expected nested SharedObjectRef")
 	}
 
+	// Read the Secret through its signed payload challenge.
 	secretResource := s4wave_secret.NewSecretResource(tb.Logger, tb.Bus, tb.WorldState, "secrets/provider/access-token")
 	begin, err := secretResource.BeginReadPayload(ctx, &s4wave_secret.BeginReadPayloadRequest{
 		ReaderPeerId: readerPeerID.String(),
@@ -62,6 +66,8 @@ func TestSpaceResourceCreateSecretCreatesGrantedSecret(t *testing.T) {
 	if err != nil {
 		t.Fatalf("BeginReadPayload: %v", err)
 	}
+
+	// Sign the Secret payload challenge with the granted reader key.
 	signature, err := peer.NewSignature(
 		s4wave_secret.ReadPayloadChallengeSignatureContext,
 		readerPriv,
@@ -72,6 +78,8 @@ func TestSpaceResourceCreateSecretCreatesGrantedSecret(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewSignature: %v", err)
 	}
+
+	// Read the payload with the granted reader proof.
 	read, err := secretResource.ReadPayload(ctx, &s4wave_secret.ReadPayloadRequest{
 		ChallengeId: begin.GetChallengeId(),
 		Signature:   signature,
@@ -79,16 +87,20 @@ func TestSpaceResourceCreateSecretCreatesGrantedSecret(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ReadPayload: %v", err)
 	}
+
+	// Verify the signed read returns the saved Secret payload.
 	if got := string(read.GetPayload().GetValue()); got != `{"api_key":"opencode-go"}` {
 		t.Fatalf("payload mismatch: %q", got)
 	}
 }
 
 func TestSpaceResourceReadSecretPayloadUsesMountedSessionGrant(t *testing.T) {
+	// Mount a provider-backed Space under its Session signer.
 	ctx := t.Context()
 	tb, resource, release := setupSecretSpaceResourceTest(ctx, t)
 	defer release()
 
+	// Grant the mounted Session reader access to a Secret.
 	readerPub, err := tb.Volume.GetPeerID().ExtractPublicKey()
 	if err != nil {
 		t.Fatal(err)
@@ -108,6 +120,7 @@ func TestSpaceResourceReadSecretPayloadUsesMountedSessionGrant(t *testing.T) {
 		t.Fatalf("CreateSecret: %v", err)
 	}
 
+	// Read the Secret payload under the mounted Session grant.
 	read, err := resource.ReadSecretPayload(ctx, &s4wave_space.ReadSecretPayloadRequest{
 		ObjectKey:    "secrets/provider/session-token",
 		ExpectedKind: s4wave_secret.SecretKindProviderCredential,
@@ -128,6 +141,7 @@ func TestSpaceResourceReadSecretPayloadUsesMountedSessionGrant(t *testing.T) {
 		t.Fatalf("expected kind mismatch, got %v", err)
 	}
 
+	// Verify another Session identity cannot use the saved reader grant.
 	otherPriv, _, err := crypto.GenerateEd25519Key(rand.Reader)
 	if err != nil {
 		t.Fatal(err)
@@ -174,12 +188,14 @@ func setupSecretSpaceResourceTest(
 	ctx context.Context,
 	t *testing.T,
 ) (*testbed.Testbed, *SpaceResource, func()) {
+	// Start the World testbed for the provider-backed Secret Space.
 	t.Helper()
 	tb, err := testbed.Default(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	// Register and start the local SharedObject provider.
 	providerID := "local"
 	tb.StaticResolver.AddFactory(provider_local.NewFactory(tb.Bus))
 	_, provCtrlRef, err := tb.Bus.AddDirective(resolver.NewLoadControllerWithConfig(&provider_local.Config{
@@ -191,6 +207,7 @@ func setupSecretSpaceResourceTest(
 		t.Fatal(err)
 	}
 
+	// Open the provider account and create the parent Space SharedObject.
 	accountID := "test-account-" + sobject.NewSOOperationLocalID()
 	provAcc, provAccRef, err := provider.ExAccessProviderAccount(ctx, tb.Bus, providerID, accountID, false, nil)
 	if err != nil {
@@ -212,6 +229,8 @@ func setupSecretSpaceResourceTest(
 		tb.Release()
 		t.Fatal(err)
 	}
+
+	// Create the parent Space SharedObject under the provider account.
 	spaceRef, err := soProvider.CreateSharedObject(ctx, "space-"+sobject.NewSOOperationLocalID(), spaceMeta, "", "")
 	if err != nil {
 		provAccRef.Release()
@@ -220,6 +239,7 @@ func setupSecretSpaceResourceTest(
 		t.Fatal(err)
 	}
 
+	// Expose the provider-backed Space with its mounted Session signer.
 	resource := &SpaceResource{
 		le:            tb.Logger,
 		b:             tb.Bus,
@@ -235,9 +255,12 @@ func setupSecretSpaceResourceTest(
 
 // TestSpaceResourceWritesSecretWithoutChangingGrants covers writer-only replacement.
 func TestSpaceResourceWritesSecretWithoutChangingGrants(t *testing.T) {
+	// Mount a provider-backed Space for writer grant replacement.
 	ctx := t.Context()
 	tb, resource, release := setupSecretSpaceResourceTest(ctx, t)
 	defer release()
+
+	// Encode the mounted Session public key for the writer grant.
 	pub, err := tb.Volume.GetPeerID().ExtractPublicKey()
 	if err != nil {
 		t.Fatal(err)
@@ -246,14 +269,20 @@ func TestSpaceResourceWritesSecretWithoutChangingGrants(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Create a Secret whose mounted Session holds a writer grant.
 	created, err := resource.CreateSecret(ctx, &s4wave_space.CreateSecretRequest{ObjectKey: "secrets/rotation", Kind: s4wave_secret.SecretKindProviderCredential, Value: []byte("old"), ReaderPublicKeyPem: pem, ParticipantRole: sobject.SOParticipantRole_SOParticipantRole_WRITER})
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Replace the Secret payload under the mounted writer grant.
 	_, err = resource.WriteSecretPayload(ctx, &s4wave_space.WriteSecretPayloadRequest{ObjectKey: "secrets/rotation", ExpectedKind: s4wave_secret.SecretKindProviderCredential, ContentType: "application/json", Value: []byte("new")})
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Read the replacement and verify the Secret identity is unchanged.
 	read, err := resource.ReadSecretPayload(ctx, &s4wave_space.ReadSecretPayloadRequest{ObjectKey: "secrets/rotation", ExpectedKind: s4wave_secret.SecretKindProviderCredential})
 	if err != nil {
 		t.Fatal(err)

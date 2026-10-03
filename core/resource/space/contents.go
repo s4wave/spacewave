@@ -124,10 +124,13 @@ func (r *SpaceContentsResource) Release() {
 // getStoreLocation returns the volume and object store IDs that hold the
 // process bindings, falling back to the plugin volume defaults.
 func (r *SpaceContentsResource) getStoreLocation() (string, string) {
+	// Resolve the volume that holds the Space process bindings.
 	volumeID := r.volumeID
 	if volumeID == "" {
 		volumeID = bldr_plugin.PluginVolumeID
 	}
+
+	// Resolve the object store that holds the Space process bindings.
 	storeID := r.storeID
 	if storeID == "" {
 		storeID = process_binding.DefaultObjectStoreID
@@ -148,6 +151,7 @@ func (r *SpaceContentsResource) BindAttachedRpcService(
 	req *s4wave_space.BindAttachedRpcServiceRequest,
 	strm s4wave_space.SRPCSpaceContentsResourceService_BindAttachedRpcServiceStream,
 ) error {
+	// Validate the attached Resource identity and private service prefix.
 	if req.GetAttachedResourceId() == 0 {
 		return errors.New("attached resource ID must be nonzero")
 	}
@@ -156,6 +160,7 @@ func (r *SpaceContentsResource) BindAttachedRpcService(
 		return errors.New("service ID prefix must be nonempty and safe")
 	}
 
+	// Resolve the attached Resource client and its lifetime notification.
 	resourceCtx, err := resource_server.MustGetResourceClientContext(strm.Context())
 	if err != nil {
 		return err
@@ -180,6 +185,7 @@ func (r *SpaceContentsResource) BindAttachedRpcService(
 	}
 	defer releasePrefix()
 
+	// Keep the attached service route bound to the current Space generation.
 	invoker := srpc.NewClientInvoker(client)
 	var installed *plugin_space_runtime.Generation
 	var release func()
@@ -296,6 +302,7 @@ func (r *SpaceContentsResource) attachedRpcServiceLifetimeError(
 	resourceCtx context.Context,
 	clientDone <-chan struct{},
 ) error {
+	// Check the stream, Resource, and Space mount lifetimes before publishing a route.
 	if err := streamCtx.Err(); err != nil {
 		return err
 	}
@@ -343,17 +350,20 @@ func (r *SpaceContentsResource) WatchState(
 		var descriptions map[string]string
 		var availablePlugins []*s4wave_space.AvailablePlugin
 		if err := func() error {
+			// Open a World snapshot for the Space contents readback.
 			wtx, err := r.engine.NewTransaction(ctx, false)
 			if err != nil {
 				return err
 			}
 			defer wtx.Discard()
 
+			// Capture the World revision for the next contents change.
 			prevSeqno, err = wtx.GetSeqno(ctx)
 			if err != nil {
 				return err
 			}
 
+			// Read the configured plugins from SpaceSettings.
 			settings, err := space_world.LookupSpaceSettingsBody(ctx, wtx)
 			if err != nil {
 				return err
@@ -362,12 +372,14 @@ func (r *SpaceContentsResource) WatchState(
 				pluginIDs = settings.GetPluginIds()
 			}
 
+			// Resolve descriptions for the configured Space plugins.
 			descriptions, err = r.getPluginDescriptions(ctx, wtx, pluginIDs)
 			if err != nil {
 				r.le.WithError(err).Warn("failed to resolve plugin descriptions")
 				descriptions = nil
 			}
 
+			// Read the installable plugin catalog from the World snapshot.
 			availablePlugins, err = r.getAvailablePlugins(ctx, wtx)
 			if err != nil {
 				r.le.WithError(err).Warn("failed to resolve plugin catalog")
@@ -465,9 +477,11 @@ func waitSpaceContentsSources(
 	waitChs []<-chan struct{},
 	waitFns ...func(context.Context) error,
 ) error {
+	// Scope the Space contents waits so any completed source can stop the others.
 	waitCtx, waitCancel := context.WithCancel(ctx)
 	defer waitCancel()
 
+	// Watch the runtime channels and each available contents change source.
 	waitCount := 1
 	for _, waitFn := range waitFns {
 		if waitFn != nil {
@@ -493,6 +507,7 @@ func waitSpaceContentsSources(
 		}()
 	}
 
+	// Join the contents watchers after the World revision wait ends.
 	err := waitSeqno(waitCtx)
 	waitCancel()
 	for range waitCount {
@@ -532,6 +547,7 @@ func buildSpacePluginStatus(
 	controllerStarted bool,
 	schedulerStatus *bldr_plugin.PluginStatus,
 ) *s4wave_space.SpacePluginStatus {
+	// Project the configured plugin through runtime, scheduler, and loaded states.
 	state := s4wave_space.SpacePluginLifecycleState_SpacePluginLifecycleState_CONFIGURED
 	detail := ""
 	if controllerStarted {
@@ -582,8 +598,10 @@ func (r *SpaceContentsResource) getPluginDescriptions(
 	ws world.WorldState,
 	pluginIDs []string,
 ) (map[string]string, error) {
+	// Retain a stable plugin set for the description cache lookup.
 	pluginIDs = slices.Clone(pluginIDs)
 
+	// Return cached descriptions when the configured plugin set matches.
 	var cached map[string]string
 	r.mu.Lock()
 	if slices.Equal(r.descriptionPluginIDs, pluginIDs) {
@@ -594,6 +612,7 @@ func (r *SpaceContentsResource) getPluginDescriptions(
 		return cached, nil
 	}
 
+	// Build descriptions for the changed Space plugin set.
 	buildDescriptions := r.buildDescriptions
 	if buildDescriptions == nil {
 		buildDescriptions = r.collectPluginDescriptions
@@ -603,6 +622,7 @@ func (r *SpaceContentsResource) getPluginDescriptions(
 		return nil, err
 	}
 
+	// Retain an independent description cache for subsequent contents reads.
 	r.mu.Lock()
 	r.descriptionPluginIDs = slices.Clone(pluginIDs)
 	r.descriptions = maps.Clone(descriptions)
@@ -616,11 +636,13 @@ func (r *SpaceContentsResource) collectPluginDescriptions(
 	ws world.WorldState,
 	pluginIDs []string,
 ) (map[string]string, error) {
+	// Prepare the description result for the configured Space plugins.
 	descriptions := make(map[string]string, len(pluginIDs))
 	if len(pluginIDs) == 0 {
 		return descriptions, nil
 	}
 
+	// Collect the nonempty plugin IDs whose descriptions are needed.
 	needed := make(map[string]struct{}, len(pluginIDs))
 	for _, pid := range pluginIDs {
 		if pid != "" {
@@ -631,6 +653,7 @@ func (r *SpaceContentsResource) collectPluginDescriptions(
 		return descriptions, nil
 	}
 
+	// Read manifest descriptions until every requested plugin has one.
 	manifestKeys, err := world_types.ListObjectsWithType(ctx, ws, bldr_manifest_world.ManifestTypeID)
 	if err != nil {
 		return nil, err
@@ -704,6 +727,7 @@ func collectAvailablePluginManifestRefs(
 	ctx context.Context,
 	ws world.WorldState,
 ) ([]string, error) {
+	// Order manifest object keys for a stable catalog fingerprint.
 	manifestKeys, err := world_types.ListObjectsWithType(ctx, ws, bldr_manifest_world.ManifestTypeID)
 	if err != nil {
 		return nil, err
@@ -711,6 +735,7 @@ func collectAvailablePluginManifestRefs(
 	manifestKeys = slices.Clone(manifestKeys)
 	slices.Sort(manifestKeys)
 
+	// Collect manifest root references without retaining World object handles.
 	manifestRefs := make([]string, 0, len(manifestKeys))
 	for _, key := range manifestKeys {
 		obj, err := world.MustGetObject(ctx, ws, key)
@@ -823,6 +848,7 @@ func (r *SpaceContentsResource) SetProcessBinding(
 	ctx context.Context,
 	req *s4wave_space.SetProcessBindingRequest,
 ) (*s4wave_space.SetProcessBindingResponse, error) {
+	// Validate the process binding object identity and type.
 	objKey := req.GetObjectKey()
 	if objKey == "" {
 		return nil, errors.New("object_key is required")
@@ -832,6 +858,7 @@ func (r *SpaceContentsResource) SetProcessBinding(
 		return nil, errors.New("type_id is required")
 	}
 
+	// Open the local object store that holds Space process decisions.
 	volumeID, storeID := r.getStoreLocation()
 	handle, _, ref, err := volume.ExBuildObjectStoreAPI(
 		ctx,
@@ -846,11 +873,13 @@ func (r *SpaceContentsResource) SetProcessBinding(
 	}
 	defer ref.Release()
 
+	// Translate the requested approval into the process binding state.
 	state := s4wave_process.ProcessBindingState_ProcessBindingState_UNAPPROVED
 	if req.GetApproved() {
 		state = s4wave_process.ProcessBindingState_ProcessBindingState_APPROVED
 	}
 
+	// Persist the process binding decision with its decision time.
 	binding := &s4wave_process.ProcessBinding{
 		State:     state,
 		ObjectKey: objKey,
@@ -861,6 +890,7 @@ func (r *SpaceContentsResource) SetProcessBinding(
 		return nil, err
 	}
 
+	// Wake the Space runtime to apply the changed process decision.
 	r.runtime.NotifyProcessBindingsChanged()
 	return &s4wave_space.SetProcessBindingResponse{}, nil
 }

@@ -77,6 +77,7 @@ func (r *SpaceResource) OpenPluginFrontend(ctx context.Context, request *s4wave_
 
 	// Every forwarded call ends with this attachment, including a pending dial.
 	mux := srpc.InvokerFunc(func(serviceID, methodID string, stream srpc.Stream) (bool, error) {
+		// Forward compiler calls only while the frontend attachment is active.
 		if serviceID != frontend.SRPCFrontendServiceID {
 			return false, nil
 		}
@@ -94,6 +95,7 @@ func (r *SpaceResource) OpenPluginFrontend(ctx context.Context, request *s4wave_
 	// Close the attachment by releasing the transport and route and cancelling the execution.
 	var releaseRoute func()
 	closeAttachment := func() {
+		// Release the frontend attachment transport and route before cancelling its execution.
 		cancel()
 		releaseTransport()
 		if releaseRoute != nil {

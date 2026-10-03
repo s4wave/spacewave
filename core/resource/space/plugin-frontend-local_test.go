@@ -42,6 +42,8 @@ func TestLocalPluginFrontend(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer mount.Release()
+
+	// Open the mounted Space Resource and seed its compiler source files.
 	request := setupPluginBuildSource(t, tb, shared.GetPeerID())
 	body := space_sobject.NewSpaceBody(ref, tb.EngineID, tb.EngineBucketID, tb.EngineVolumeID, shared, tb.BusEngine)
 	resource := NewSpaceResourceWithSessionPeerID(tb.Logger, tb.Bus, body, shared.GetPeerID().String())
@@ -52,6 +54,8 @@ func TestLocalPluginFrontend(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer world.ReleaseObjectState(object)
+
+	// Seed the compiler project files in the mounted World source.
 	const source = `export const label = "colors"`
 	for name, contents := range map[string]string{
 		"bldr.yaml": `{"id":"space-colors","manifests":{"space-colors":{"builder":{"id":"bldr/plugin/compiler/js","config":{"modules":[{"kind":"JS_MODULE_KIND_FRONTEND","path":"./Viewer.ts"}]}}}}}`,
@@ -74,12 +78,16 @@ func TestLocalPluginFrontend(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer releasePeer()
+
+	// Register the worker, execution, and compiler bridge factories.
 	tb.StaticResolver.AddFactory(worker_controller.NewFactory(tb.Bus))
 	tb.StaticResolver.AddFactory(execution_controller.NewFactory(tb.Bus))
 	tb.StaticResolver.AddFactory(forge_lib_kvtx.NewFactory(tb.Bus))
 	for _, factory := range space_exec.BridgeFactories(space_exec.NewDefaultRegistryWithBus(tb.Bus)) {
 		tb.StaticResolver.AddFactory(factory)
 	}
+
+	// Start the worker and open its live compiler attachment.
 	_, worker, err := worker_controller.StartControllerWithConfig(ctx, tb.Bus,
 		worker_controller.NewConfig(tb.EngineID, "workers/build", shared.GetPeerID(), true))
 	if err != nil {
@@ -92,6 +100,8 @@ func TestLocalPluginFrontend(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer resources.ReleaseResource(opened.GetResourceId())
+
+	// Watch the started compiler session through its attached Resource.
 	attached := frontend.NewSRPCFrontendClient(resources.client(t, opened.GetResourceId()))
 	watch, err := attached.Watch(ctx, &frontend.WatchRequest{})
 	if err != nil {
@@ -105,6 +115,7 @@ func TestLocalPluginFrontend(t *testing.T) {
 
 	// Module fetches use the same attachment that delivers accepted source edits.
 	fetch := func() string {
+		// Fetch the compiler module through the frontend Resource.
 		t.Helper()
 		response := httptest.NewRecorder()
 		request := httptest.NewRequest(http.MethodGet, "http://space.test"+snapshot.GetSession().GetRoutePrefix()+"Viewer.ts", nil).WithContext(ctx)
@@ -121,6 +132,8 @@ func TestLocalPluginFrontend(t *testing.T) {
 	if !strings.Contains(fetch(), "colors") {
 		t.Fatal("initial compiler source is missing")
 	}
+
+	// Write an accepted World source edit and verify the compiler observes it.
 	_, _, err = unixfs_world.FsWriteAt(ctx, object, shared.GetPeerID(), unixfs_world.FSType_FSType_FS_NODE,
 		[]string{"Viewer.ts"}, 0, []byte(strings.ReplaceAll(source, "colors", "colours")), time.Now())
 	if err != nil {

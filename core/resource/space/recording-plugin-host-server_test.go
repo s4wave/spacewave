@@ -49,6 +49,7 @@ func (h *recordingPluginHostServer) LoadPlugin(
 	req *bldr_plugin.LoadPluginRequest,
 	strm bldr_plugin.SRPCPluginHost_LoadPluginStream,
 ) error {
+	// Publish the recorded plugin load as running for its stream lifetime.
 	h.requests <- req.CloneVT()
 	if err := strm.Send(&bldr_plugin.LoadPluginResponse{
 		PluginStatus: &bldr_plugin.PluginStatus{Running: true},

@@ -36,6 +36,7 @@ import (
 const spaceRuntimeManifestID = "cold-plugin"
 
 func TestSpaceRuntimeSchedulesApprovedPluginFromParentManifestSource(t *testing.T) {
+	// Start a Space runtime testbed with a parent manifest source and plugin host.
 	ctx, tb := newSpaceRuntimeTestbed(t)
 	parentLoads := newLoadPluginRecorder()
 	addSpaceRuntimeController(t, tb.Bus, parentLoads)
@@ -43,6 +44,7 @@ func TestSpaceRuntimeSchedulesApprovedPluginFromParentManifestSource(t *testing.
 	manifestSource := newEmptyManifestSource(spaceRuntimeManifestID)
 	addSpaceRuntimeController(t, tb.Bus, manifestSource)
 
+	// Verify the unapproved Space plugin leaves its parent manifest source idle.
 	resource := newTestSpaceContentsResource(t, tb.Logger, tb.Bus, tb.Engine, newSpaceRuntimeConfig(tb))
 	gen := waitSpaceRuntimeGeneration(t, resource.runtime, nil)
 	select {
@@ -51,6 +53,7 @@ func TestSpaceRuntimeSchedulesApprovedPluginFromParentManifestSource(t *testing.
 	default:
 	}
 
+	// Approve the Space plugin and wait for its parent manifest lookup.
 	approveSpaceRuntimePlugin(t, ctx, tb)
 	select {
 	case <-manifestSource.started:
@@ -58,6 +61,7 @@ func TestSpaceRuntimeSchedulesApprovedPluginFromParentManifestSource(t *testing.
 		t.Fatal("approved Space plugin did not fetch its parent manifest")
 	}
 
+	// Verify the Space scheduler records the approved plugin request.
 	scheduler := gen.GetScheduler()
 	statuses := scheduler.GetPluginStatusCtr().GetValue()
 	if !slices.ContainsFunc(statuses.GetPlugins(), func(status *bldr_plugin.PluginStatus) bool {
@@ -93,6 +97,7 @@ func TestSpaceRuntimeSchedulesApprovedPluginFromParentManifestSource(t *testing.
 }
 
 func TestSpaceRuntimeRoutesPluginHostLoadToParentEntrypoint(t *testing.T) {
+	// Expose a recording parent plugin host through its entrypoint controller.
 	ctx, tb := newSpaceRuntimeTestbed(t)
 	host := newRecordingPluginHostServer()
 	mux := srpc.NewMux()
@@ -106,6 +111,7 @@ func TestSpaceRuntimeRoutesPluginHostLoadToParentEntrypoint(t *testing.T) {
 		bldr_plugin.NewSRPCPluginHostClient(srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(mux)))),
 	))
 
+	// Mount the Space twice and verify both mounts retain one runtime.
 	conf := newSpaceRuntimeConfig(tb)
 	conf.HostPluginId = "spacewave-core"
 	resource := newTestSpaceContentsResource(t, tb.Logger, tb.Bus, tb.Engine, conf)
@@ -117,6 +123,7 @@ func TestSpaceRuntimeRoutesPluginHostLoadToParentEntrypoint(t *testing.T) {
 		t.Fatal("two mounts did not retain the same active runtime")
 	}
 
+	// Approve the Space plugin and verify its parent host load request.
 	approveSpaceRuntimePlugin(t, ctx, tb)
 	select {
 	case req := <-host.requests:
@@ -192,13 +199,16 @@ func TestSpaceRuntimeRoutesPluginHostLoadToParentEntrypoint(t *testing.T) {
 
 // TestSpaceRuntimeKeepsGenerationAfterParentHostPublication schedules through live hosts.
 func TestSpaceRuntimeKeepsGenerationAfterParentHostPublication(t *testing.T) {
+	// Start the Space with a parent manifest source and no published host.
 	ctx, tb := newSpaceRuntimeTestbed(t)
 	manifestSource := newEmptyManifestSource(spaceRuntimeManifestID)
 	addSpaceRuntimeController(t, tb.Bus, manifestSource)
 
+	// Mount the Space and retain its initial runtime generation.
 	resource := newTestSpaceContentsResource(t, tb.Logger, tb.Bus, tb.Engine, newSpaceRuntimeConfig(tb))
 	first := waitSpaceRuntimeGeneration(t, resource.runtime, nil)
 
+	// Publish a plugin host and verify the Space keeps its generation.
 	addSpaceRuntimePluginHost(t, tb.Bus, "test/platform")
 	waitSpaceRuntimeHost(t, ctx, first.GetScheduler(), "test/platform")
 	if current, _, err := resource.runtime.GetGeneration(); current != first || err != nil {
@@ -213,9 +223,11 @@ func TestSpaceRuntimeKeepsGenerationAfterParentHostPublication(t *testing.T) {
 }
 
 func TestBindAttachedRpcServiceRebindsAfterSpaceRuntimeReplacement(t *testing.T) {
+	// Start a Space runtime with an attached service manifest source.
 	ctx, tb := newSpaceRuntimeTestbed(t)
 	addSpaceRuntimeController(t, tb.Bus, newEmptyManifestSource(spaceRuntimeManifestID))
 
+	// Prepare an echo call that follows the current Space runtime generation.
 	resource := newTestSpaceContentsResource(t, tb.Logger, tb.Bus, tb.Engine, newSpaceRuntimeConfig(tb))
 	first := waitSpaceRuntimeGeneration(t, resource.runtime, nil)
 	invokeCurrent := func(body string) error {
@@ -240,6 +252,7 @@ func TestBindAttachedRpcServiceRebindsAfterSpaceRuntimeReplacement(t *testing.T)
 		})
 	}
 
+	// Bind an echo Resource while the first generation readiness is paused.
 	attachedResources := newSpaceRecordingResourceClient(ctx)
 	attachedID := addAttachedEchoResource(t, attachedResources)
 	stream := newAttachedRpcServiceStream(resource_server.WithResourceClientContext(ctx, attachedResources))
@@ -271,6 +284,7 @@ func TestBindAttachedRpcServiceRebindsAfterSpaceRuntimeReplacement(t *testing.T)
 	default:
 	}
 
+	// Resume the binding and verify the replacement route stays callable.
 	close(continueBind)
 	select {
 	case <-stream.ready:
@@ -286,6 +300,7 @@ func TestBindAttachedRpcServiceRebindsAfterSpaceRuntimeReplacement(t *testing.T)
 	default:
 	}
 
+	// Release the echo attachment and verify the replacement route is removed.
 	if !attachedResources.ReleaseResource(attachedID) {
 		t.Fatal("attached resource release failed")
 	}
@@ -298,7 +313,10 @@ func TestBindAttachedRpcServiceRebindsAfterSpaceRuntimeReplacement(t *testing.T)
 }
 
 func TestSpaceContentsMountsShareRuntime(t *testing.T) {
+	// Start the World testbed for shared Space mounts.
 	ctx, tb := newSpaceRuntimeTestbed(t)
+
+	// Mount the same Space twice and verify both mounts share one generation.
 	conf := newSpaceRuntimeConfig(tb)
 	first := newTestSpaceContentsResource(t, tb.Logger, tb.Bus, tb.Engine, conf)
 	second := newTestSpaceContentsResource(t, tb.Logger, tb.Bus, tb.Engine, conf.CloneVT())
@@ -362,12 +380,14 @@ func TestSpaceContentsMountsShareRuntime(t *testing.T) {
 }
 
 func TestSpaceRuntimeDeletesBindingOfDeletedObject(t *testing.T) {
+	// Mount the Space runtime whose process bindings follow World objects.
 	ctx, tb := newSpaceRuntimeTestbed(t)
 	resource := newTestSpaceContentsResource(t, tb.Logger, tb.Bus, tb.Engine, newSpaceRuntimeConfig(tb))
 	resource.volumeID = tb.EngineVolumeID
 	resource.storeID = tb.EngineObjectStoreID
 	waitSpaceRuntimeGeneration(t, resource.runtime, nil)
 
+	// Watch two approved process bindings before deleting their World objects.
 	stream, stop := startSpaceRuntimeWatch(t, ctx, resource)
 	defer stop()
 	for _, key := range []string{"kept", "deleted"} {
@@ -396,10 +416,12 @@ func TestSpaceRuntimeDeletesBindingOfDeletedObject(t *testing.T) {
 }
 
 func TestSpaceContentsResourceProjectsPluginHostWatchChange(t *testing.T) {
+	// Start a Space with one configured plugin and an initial host.
 	ctx, tb := newSpaceRuntimeTestbed(t)
 	setSpaceRuntimeTestPlugin(t, ctx, tb)
 	addSpaceRuntimePluginHost(t, tb.Bus, "desktop/test-a")
 
+	// Mount the Space and retain the initial runtime generation.
 	resource := newTestSpaceContentsResource(t, tb.Logger, tb.Bus, tb.Engine, &plugin_space.Config{
 		SpaceId:       "space-test",
 		EngineId:      tb.EngineID,
@@ -408,10 +430,12 @@ func TestSpaceContentsResourceProjectsPluginHostWatchChange(t *testing.T) {
 	resource.volumeID = tb.EngineVolumeID
 	first := waitSpaceRuntimeGeneration(t, resource.runtime, nil)
 
+	// Start the contents watch and consume its initial state.
 	stream, stop := startSpaceRuntimeWatch(t, ctx, resource)
 	defer stop()
 	recvSpaceRuntimeWatchState(t, stream)
 
+	// Publish another host and verify the existing plugin generation stays healthy.
 	addSpaceRuntimePluginHost(t, tb.Bus, "desktop/test-b")
 	waitSpaceRuntimeHost(t, ctx, first.GetScheduler(), "desktop/test-b")
 	if current, _, err := resource.runtime.GetGeneration(); current != first || err != nil {
@@ -427,10 +451,12 @@ func TestSpaceContentsResourceProjectsPluginHostWatchChange(t *testing.T) {
 }
 
 func TestSpaceContentsResourceProjectsPluginHostWatchError(t *testing.T) {
+	// Start a Space with a configured plugin and an initial host.
 	ctx, tb := newSpaceRuntimeTestbed(t)
 	setSpaceRuntimeTestPlugin(t, ctx, tb)
 	addSpaceRuntimePluginHost(t, tb.Bus, "desktop/test-a")
 
+	// Mount the Space before introducing the host discovery failure.
 	resource := newTestSpaceContentsResource(t, tb.Logger, tb.Bus, tb.Engine, &plugin_space.Config{
 		SpaceId:       "space-test",
 		EngineId:      tb.EngineID,
@@ -439,10 +465,12 @@ func TestSpaceContentsResourceProjectsPluginHostWatchError(t *testing.T) {
 	resource.volumeID = tb.EngineVolumeID
 	first := waitSpaceRuntimeGeneration(t, resource.runtime, nil)
 
+	// Start the contents watch and consume its initial state.
 	stream, stop := startSpaceRuntimeWatch(t, ctx, resource)
 	defer stop()
 	recvSpaceRuntimeWatchState(t, stream)
 
+	// Publish a host discovery error and verify its plugin failure readback.
 	addSpaceRuntimeController(
 		t,
 		tb.Bus,
@@ -466,6 +494,7 @@ func TestSpaceContentsResourceProjectsPluginHostWatchError(t *testing.T) {
 // newSpaceRuntimeTestbed starts a testbed whose volume also serves as the plugin
 // volume. The test context defaults to 10 seconds unless timeout is supplied.
 func newSpaceRuntimeTestbed(t *testing.T, timeout ...time.Duration) (context.Context, *testbed.Testbed) {
+	// Attribute Space runtime fixture failures to the calling test.
 	t.Helper()
 
 	// Keep the usual test bound unless this fixture needs more startup time.
@@ -570,6 +599,7 @@ func startSpaceRuntimeWatch(
 	ctx context.Context,
 	r *SpaceContentsResource,
 ) (*testWatchSpaceContentsStateStream, func()) {
+	// Run the Space contents watch until its returned cleanup joins it.
 	t.Helper()
 	watchCtx, watchCancel := context.WithCancel(ctx)
 	stream := newTestWatchSpaceContentsStateStream(watchCtx)

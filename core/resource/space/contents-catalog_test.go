@@ -31,14 +31,18 @@ type catalogCacheTestManifestSpec struct {
 }
 
 func TestSpaceContentsResourceWatchStateCachesAvailablePluginCatalogForUnchangedManifestSet(t *testing.T) {
+	// Bound the catalog cache test by its contents watch lifetime.
 	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
 	defer cancel()
 
+	// Start the World testbed for the manifest catalog.
 	_, tb := newSpaceRuntimeTestbed(t)
 
+	// Seed the manifest objects whose references define the catalog cache.
 	manifestSpecs := catalogCacheTestManifestSpecs()
 	manifests := seedCatalogCacheTestManifests(t, ctx, tb.Engine, manifestSpecs)
 
+	// Mount the Space contents on the seeded World.
 	resource := newTestSpaceContentsResource(t, tb.Logger, tb.Bus, tb.Engine, newSpaceRuntimeConfig(tb))
 	resource.volumeID = tb.EngineVolumeID
 	resource.storeID = "platform-account"
@@ -47,6 +51,7 @@ func TestSpaceContentsResourceWatchStateCachesAvailablePluginCatalogForUnchanged
 	// wake the watch.
 	waitSpaceRuntimeGeneration(t, resource.runtime, nil)
 
+	// Count manifest lookups performed while the catalog watch runs.
 	var lookupCalls atomic.Int64
 	resource.lookupManifest = func(
 		_ context.Context,
@@ -57,6 +62,7 @@ func TestSpaceContentsResourceWatchStateCachesAvailablePluginCatalogForUnchanged
 		return manifests[key], nil, nil
 	}
 
+	// Start the Space contents watch.
 	watchCtx, watchCancel := context.WithCancel(ctx)
 	stream := newTestWatchSpaceContentsStateStream(watchCtx)
 	errCh := make(chan error, 1)
@@ -64,6 +70,7 @@ func TestSpaceContentsResourceWatchStateCachesAvailablePluginCatalogForUnchanged
 		errCh <- resource.WatchState(&s4wave_space.WatchSpaceContentsStateRequest{}, stream)
 	}()
 
+	// Verify the first catalog emission loads every seeded manifest.
 	initial := receiveTestSpaceContentsState(t, ctx, stream)
 	if got := int(lookupCalls.Load()); got != len(manifestSpecs) {
 		watchCancel()
@@ -71,6 +78,7 @@ func TestSpaceContentsResourceWatchStateCachesAvailablePluginCatalogForUnchanged
 	}
 	assertCatalogCacheTestAvailablePlugins(t, initial.GetAvailablePlugins(), manifestSpecs)
 
+	// Commit an unrelated SpaceSettings write to wake the contents watch.
 	settingsTx, err := tb.Engine.NewTransaction(ctx, true)
 	if err != nil {
 		watchCancel()
@@ -94,6 +102,7 @@ func TestSpaceContentsResourceWatchStateCachesAvailablePluginCatalogForUnchanged
 		t.Fatalf("Commit(write settings): %v", err)
 	}
 
+	// Verify the unrelated World change reuses the catalog cache.
 	next := receiveTestSpaceContentsState(t, ctx, stream)
 	if got := int(lookupCalls.Load()); got != len(manifestSpecs) {
 		watchCancel()
@@ -101,6 +110,7 @@ func TestSpaceContentsResourceWatchStateCachesAvailablePluginCatalogForUnchanged
 	}
 	assertCatalogCacheTestAvailablePlugins(t, next.GetAvailablePlugins(), manifestSpecs)
 
+	// Stop the contents watch and verify it ends cleanly.
 	watchCancel()
 	select {
 	case err := <-errCh:
@@ -240,8 +250,8 @@ func seedCatalogCacheTestManifests(
 	engine world.Engine,
 	specs []catalogCacheTestManifestSpec,
 ) map[string]*bldr_manifest.Manifest {
+	// Create the seeded manifest objects in one World transaction.
 	t.Helper()
-
 	manifests := make(map[string]*bldr_manifest.Manifest, len(specs))
 	seedTx, err := engine.NewTransaction(ctx, true)
 	if err != nil {
@@ -261,6 +271,8 @@ func seedCatalogCacheTestManifests(
 			t.Fatalf("SetObjectType(%s): %v", spec.key, err)
 		}
 	}
+
+	// Publish the complete seeded manifest set in the World.
 	if err := seedTx.Commit(ctx); err != nil {
 		t.Fatalf("Commit(seed manifests): %v", err)
 	}
@@ -339,7 +351,9 @@ func assertCatalogCacheTestAvailablePlugins(
 }
 
 func TestAvailablePluginsFromCatalogKeepsHighestRev(t *testing.T) {
+	// Prepare an empty manifest catalog before adding competing revisions.
 	catalog := map[string]*bldr_manifest.ManifestMeta{}
+
 	// Two revisions of the same plugin plus a distinct plugin; the catalog must
 	// keep the highest revision per manifest ID.
 	for _, meta := range []*bldr_manifest.ManifestMeta{
@@ -352,6 +366,7 @@ func TestAvailablePluginsFromCatalogKeepsHighestRev(t *testing.T) {
 		addManifestToCatalog(catalog, meta)
 	}
 
+	// Project the catalog and verify unnamed manifests are excluded.
 	got := availablePluginsFromCatalog(catalog)
 	if len(got) != 2 {
 		t.Fatalf("expected 2 plugins, got %d: %+v", len(got), got)

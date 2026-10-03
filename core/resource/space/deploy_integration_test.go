@@ -51,6 +51,7 @@ func (s *deployIntegrationStream) MsgRecv(srpc.Message) error { return errors.Ne
 func (s *deployIntegrationStream) CloseSend() error           { return nil }
 func (s *deployIntegrationStream) Close() error               { return nil }
 func (s *deployIntegrationStream) Send(m *deploy.DeployManifestsMessage) error {
+	// Record deployment messages and supply requested manifest block responses.
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.sent = append(s.sent, m)
@@ -81,6 +82,7 @@ func (s *deployIntegrationStream) SendAndClose(m *deploy.DeployManifestsMessage)
 }
 
 func (s *deployIntegrationStream) Recv() (*deploy.DeployManifestsMessage, error) {
+	// Receive the next queued deployment message while the stream is active.
 	if err := s.ctx.Err(); err != nil {
 		return nil, err
 	}
@@ -99,6 +101,7 @@ func (s *deployIntegrationStream) RecvTo(*deploy.DeployManifestsMessage) error {
 }
 
 func newDeployIntegrationEngine(t *testing.T, ctx context.Context) (*testbed.Testbed, *world_block.Engine) {
+	// Start the block testbed and its manifest-aware World engine.
 	t.Helper()
 	tb, err := testbed.NewTestbed(ctx, logrus.NewEntry(logrus.New()))
 	if err != nil {
@@ -118,6 +121,7 @@ func newDeployIntegrationEngine(t *testing.T, ctx context.Context) (*testbed.Tes
 }
 
 func integrationRef(t *testing.T, id, platform string, rev uint64, entry string) (*bldr_manifest.ManifestRef, []byte) {
+	// Encode a manifest and calculate its deployment block reference.
 	t.Helper()
 	meta := &bldr_manifest.ManifestMeta{ManifestId: id, BuildType: "production", PlatformId: platform, Rev: rev}
 	data, err := bldr_manifest.NewManifest(meta, entry).MarshalBlock()
@@ -136,6 +140,7 @@ func integrationRequest(refs ...*bldr_manifest.ManifestRef) *deploy.DeployManife
 }
 
 func runIntegrationDeploy(t *testing.T, r *SpaceResource, ctx context.Context, blocks map[string][]byte, req *deploy.DeployManifestsMessage, onBlock func(*block.BlockRef)) error {
+	// Run the Space manifest deployment and validate its result message.
 	s := &deployIntegrationStream{ctx: ctx, blocks: blocks, recv: []*deploy.DeployManifestsMessage{req}, onBlockRequest: onBlock}
 	err := r.DeployManifests(s)
 	if err != nil {
@@ -153,11 +158,14 @@ func runIntegrationDeploy(t *testing.T, r *SpaceResource, ctx context.Context, b
 }
 
 func TestDeployManifestsPublishesNativeAndJSAndReplays(t *testing.T) {
+	// Start a manifest-aware World engine for deployment replay.
 	ctx := context.Background()
 	tb, eng := newDeployIntegrationEngine(t, ctx)
 	defer tb.Release()
 	defer eng.Close()
 	r := &SpaceResource{le: tb.Logger, space: &deployIntegrationBody{engine: eng, bucketID: tb.BucketId}}
+
+	// Publish a historical manifest and its host edge before deploying replacements.
 	history, historyData := integrationRef(t, "glados-core", "js", 1, "history")
 	tx, _ := eng.NewTransaction(ctx, true)
 	if _, e := bldr_manifest_world.CreateManifestStore(ctx, tx, "plugin-host"); e != nil {
@@ -174,6 +182,8 @@ func TestDeployManifestsPublishesNativeAndJSAndReplays(t *testing.T) {
 		t.Fatal(e)
 	}
 	_, _ = eng.Sync(ctx)
+
+	// Deploy the native and JavaScript manifest set through the Space stream.
 	native, nativeData := integrationRef(t, "glados-core", "desktop/darwin/arm64", 2, "native")
 	js, jsData := integrationRef(t, "glados-core", "js", 3, "js")
 	blocks := map[string][]byte{native.GetManifestRef().GetRootRef().MarshalString(): nativeData, js.GetManifestRef().GetRootRef().MarshalString(): jsData, history.GetManifestRef().GetRootRef().MarshalString(): historyData}
@@ -181,6 +191,8 @@ func TestDeployManifestsPublishesNativeAndJSAndReplays(t *testing.T) {
 	if e := runIntegrationDeploy(t, r, ctx, blocks, req, nil); e != nil {
 		t.Fatal(e)
 	}
+
+	// Verify both deployed manifest artifacts are present in the World.
 	ws := world.NewEngineWorldState(eng, false)
 	for _, ref := range []*bldr_manifest.ManifestRef{native, js} {
 		key := bldr_manifest.NewManifestArtifactKey(ref.GetManifestRef())
@@ -192,6 +204,8 @@ func TestDeployManifestsPublishesNativeAndJSAndReplays(t *testing.T) {
 			}
 		}
 	}
+
+	// Verify the host keeps its historical edge alongside both new manifests.
 	edges, e := ws.LookupGraphQuads(ctx, world.NewGraphQuadWithKeys("plugin-host", bldr_manifest_world.PredManifest.String(), "", ""), 0)
 	if e != nil {
 		t.Fatal(e)
@@ -199,6 +213,8 @@ func TestDeployManifestsPublishesNativeAndJSAndReplays(t *testing.T) {
 	if len(edges) != 3 {
 		t.Fatalf("edge count=%d want 3 including history", len(edges))
 	}
+
+	// Replay the manifest deployment and verify it creates no extra host edges.
 	if e := runIntegrationDeploy(t, r, ctx, blocks, req, nil); e != nil {
 		t.Fatal(e)
 	}
@@ -212,22 +228,29 @@ func TestDeployManifestsPublishesNativeAndJSAndReplays(t *testing.T) {
 }
 
 func TestDeployManifestsMissingBlockAndWrongHostDoNotPublish(t *testing.T) {
+	// Start a manifest-aware World engine for rejected deployments.
 	ctx := context.Background()
 	tb, eng := newDeployIntegrationEngine(t, ctx)
 	defer tb.Release()
 	defer eng.Close()
 	r := &SpaceResource{le: tb.Logger, space: &deployIntegrationBody{engine: eng, bucketID: tb.BucketId}}
+
+	// Attempt a manifest set whose JavaScript block is missing.
 	native, nativeData := integrationRef(t, "glados-core", "desktop/darwin/arm64", 2, "native")
 	js, _ := integrationRef(t, "glados-core", "js", 3, "js")
 	blocks := map[string][]byte{native.GetManifestRef().GetRootRef().MarshalString(): nativeData}
 	if e := runIntegrationDeploy(t, r, ctx, blocks, integrationRequest(native, js), nil); e == nil {
 		t.Fatal("missing block accepted")
 	}
+
+	// Verify the missing block prevents manifest edge publication.
 	ws := world.NewEngineWorldState(eng, false)
 	edges, _ := ws.LookupGraphQuads(ctx, world.NewGraphQuadWithKeys("plugin-host", bldr_manifest_world.PredManifest.String(), "", ""), 0)
 	if len(edges) != 0 {
 		t.Fatalf("missing block published %d edges", len(edges))
 	}
+
+	// Create a World object with a type that cannot host manifests.
 	tx, _ := eng.NewTransaction(ctx, true)
 	{
 		createdObject, e := tx.CreateObject(ctx, "wrong-host", nil)
@@ -243,6 +266,8 @@ func TestDeployManifestsMissingBlockAndWrongHostDoNotPublish(t *testing.T) {
 		t.Fatal(e)
 	}
 	_, _ = eng.Sync(ctx)
+
+	// Verify deployment rejects the object with the wrong host type.
 	if e := runIntegrationDeploy(t, r, ctx, map[string][]byte{native.GetManifestRef().GetRootRef().MarshalString(): nativeData}, &deploy.DeployManifestsMessage{Body: &deploy.DeployManifestsMessage_Request{Request: &deploy.DeployManifestsRequest{ObjectKey: "wrong-host", ManifestRefs: []*bldr_manifest.ManifestRef{native}}}}, nil); e == nil {
 		t.Fatal("wrong host accepted")
 	}
@@ -251,6 +276,7 @@ func TestDeployManifestsMissingBlockAndWrongHostDoNotPublish(t *testing.T) {
 // TestDeployManifestsRejectsMaskedRevision rejects a build the Space would never
 // start because it already holds a newer build for the same platform.
 func TestDeployManifestsRejectsMaskedRevision(t *testing.T) {
+	// Start the World engine used to test masked manifest revisions.
 	ctx := context.Background()
 	tb, eng := newDeployIntegrationEngine(t, ctx)
 	defer tb.Release()
@@ -284,11 +310,14 @@ func TestDeployManifestsRejectsMaskedRevision(t *testing.T) {
 }
 
 func TestDeployManifestsCancellationAndExactBlockExchangeRejectPublication(t *testing.T) {
+	// Start the World engine used to test invalid block exchanges.
 	baseCtx := context.Background()
 	tb, eng := newDeployIntegrationEngine(t, baseCtx)
 	defer tb.Release()
 	defer eng.Close()
 	r := &SpaceResource{le: tb.Logger, space: &deployIntegrationBody{engine: eng, bucketID: tb.BucketId}}
+
+	// Prepare a manifest request and the invalid exchange cases.
 	ref, data := integrationRef(t, "glados-core", "js", 1, "js")
 	blocks := map[string][]byte{ref.GetManifestRef().GetRootRef().MarshalString(): data}
 	req := integrationRequest(ref)
@@ -300,8 +329,11 @@ func TestDeployManifestsCancellationAndExactBlockExchangeRejectPublication(t *te
 		{name: "response data", wrongData: true},
 		{name: "cancel during block send", cancel: true},
 	}
+
+	// Verify every invalid block exchange leaves the manifest set unpublished.
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
+			// Prepare the deployment stream with the selected exchange failure.
 			ctx, cancel := context.WithCancel(baseCtx)
 			defer cancel()
 			s := &deployIntegrationStream{ctx: ctx, blocks: blocks, wrongResponseRef: tc.wrongRef, wrongData: tc.wrongData}
@@ -309,9 +341,13 @@ func TestDeployManifestsCancellationAndExactBlockExchangeRejectPublication(t *te
 				s.onBlockRequest = func(*block.BlockRef) { cancel() }
 			}
 			s.recv = []*deploy.DeployManifestsMessage{req}
+
+			// Run the invalid block exchange through the Space deployment service.
 			if e := r.DeployManifests(s); e != nil {
 				t.Fatal(e)
 			}
+
+			// Verify the exchange failure is reported without publishing manifest edges.
 			if len(s.sent) == 0 || s.sent[len(s.sent)-1].GetResult().GetError() == "" {
 				t.Fatal("invalid exchange succeeded")
 			}
@@ -325,24 +361,32 @@ func TestDeployManifestsCancellationAndExactBlockExchangeRejectPublication(t *te
 }
 
 func TestDeployManifestsInTransactionFenceRejectsWrongHost(t *testing.T) {
+	// Start the World engine used to test the transaction host check.
 	ctx := context.Background()
 	tb, eng := newDeployIntegrationEngine(t, ctx)
 	defer tb.Release()
 	defer eng.Close()
 	r := &SpaceResource{le: tb.Logger, space: &deployIntegrationBody{engine: eng, bucketID: tb.BucketId}}
+
+	// Prepare a manifest and change its host type during block transfer.
 	native, data := integrationRef(t, "glados-core", "desktop/darwin/arm64", 2, "native")
 	blocks := map[string][]byte{native.GetManifestRef().GetRootRef().MarshalString(): data}
 	onBlock := func(*block.BlockRef) {
+		// Open a write transaction for the concurrent host type change.
 		tx, e := eng.NewTransaction(ctx, true)
 		if e != nil {
 			return
 		}
+
+		// Create the host with a non-manifest type before deployment publication.
 		var createdObject world.ObjectState
 		createdObject, e = tx.CreateObject(ctx, "fenced-host", nil)
 		world.ReleaseObjectState(createdObject)
 		if e == nil {
 			e = world_types.SetObjectType(ctx, tx, "fenced-host", "other-type")
 		}
+
+		// Publish the concurrent host type change and release its transaction.
 		if e == nil {
 			e = tx.Commit(ctx)
 		}
@@ -351,10 +395,14 @@ func TestDeployManifestsInTransactionFenceRejectsWrongHost(t *testing.T) {
 		}
 		tx.Discard()
 	}
+
+	// Attempt deployment after the host type changes during transfer.
 	req := &deploy.DeployManifestsMessage{Body: &deploy.DeployManifestsMessage_Request{Request: &deploy.DeployManifestsRequest{ObjectKey: "fenced-host", ManifestRefs: []*bldr_manifest.ManifestRef{native}}}}
 	if e := runIntegrationDeploy(t, r, ctx, blocks, req, onBlock); e == nil {
 		t.Fatal("in-transaction fence accepted")
 	}
+
+	// Verify the transaction host check prevents manifest edge publication.
 	ws := world.NewEngineWorldState(eng, false)
 	edges, _ := ws.LookupGraphQuads(ctx, world.NewGraphQuadWithKeys("fenced-host", bldr_manifest_world.PredManifest.String(), "", ""), 0)
 	if len(edges) != 0 {

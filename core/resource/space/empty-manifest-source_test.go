@@ -44,11 +44,13 @@ func (c *emptyManifestSource) HandleDirective(
 	_ context.Context,
 	inst directive.Instance,
 ) ([]directive.Resolver, error) {
+	// Serve an empty manifest only for this source's requested plugin identity.
 	dir, ok := inst.GetDirective().(bldr_manifest.FetchManifest)
 	if !ok || dir.GetManifestId() != c.manifestID {
 		return nil, nil
 	}
 	return directive.R(directive.NewFuncResolver(func(ctx context.Context, handler directive.ResolverHandler) error {
+		// Publish the empty manifest and hold its resolver until cancellation.
 		c.once.Do(func() { close(c.started) })
 		_, _ = handler.AddValue(&bldr_manifest.FetchManifestValue{})
 		handler.MarkIdle(true)

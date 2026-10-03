@@ -20,6 +20,7 @@ func (r *SpaceResource) CreateSecret(
 	ctx context.Context,
 	req *s4wave_space.CreateSecretRequest,
 ) (*s4wave_space.CreateSecretResponse, error) {
+	// Validate the Secret identity, kind, and mounted provider reference.
 	if req.GetObjectKey() == "" {
 		return nil, errors.New("object_key cannot be empty")
 	}
@@ -31,6 +32,7 @@ func (r *SpaceResource) CreateSecret(
 		return nil, errors.New("space shared object ref is missing")
 	}
 
+	// Resolve the Secret participant role and optional reader public key.
 	role := req.GetParticipantRole()
 	if role == sobject.SOParticipantRole_SOParticipantRole_UNKNOWN {
 		role = sobject.SOParticipantRole_SOParticipantRole_READER
@@ -56,6 +58,7 @@ func (r *SpaceResource) CreateSecret(
 		readerPub = pub
 	}
 
+	// Acquire the provider account that will store the Secret.
 	provRef := ref.GetProviderResourceRef()
 	provAcc, relProvAcc, err := provider.ExAccessProviderAccount(
 		ctx,
@@ -73,6 +76,7 @@ func (r *SpaceResource) CreateSecret(
 	}
 	defer relProvAcc.Release()
 
+	// Create the Secret through the provider shared object feature.
 	soProvider, err := sobject.GetSharedObjectProviderAccountFeature(ctx, provAcc)
 	if err != nil {
 		return nil, err
@@ -108,6 +112,7 @@ func (r *SpaceResource) ReadSecretPayload(
 	ctx context.Context,
 	req *s4wave_space.ReadSecretPayloadRequest,
 ) (*s4wave_space.ReadSecretPayloadResponse, error) {
+	// Require the Secret identity and mounted Session authority.
 	if req.GetObjectKey() == "" {
 		return nil, errors.New("object_key cannot be empty")
 	}
@@ -115,12 +120,14 @@ func (r *SpaceResource) ReadSecretPayload(
 		return nil, errors.New("space session peer id is unavailable")
 	}
 
+	// Open a World snapshot for the Secret identity.
 	wtx, err := r.space.GetWorldEngine().NewTransaction(ctx, false)
 	if err != nil {
 		return nil, err
 	}
 	defer wtx.Discard()
 
+	// Read the typed Secret and its payload under the Session grant.
 	if err := world_types.CheckObjectType(ctx, wtx, req.GetObjectKey(), s4wave_secret.SecretTypeID); err != nil {
 		return nil, err
 	}

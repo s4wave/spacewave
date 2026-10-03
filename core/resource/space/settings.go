@@ -43,11 +43,13 @@ func (r *SpaceResource) RemoveSpacePlugin(
 	ctx context.Context,
 	req *s4wave_space.RemoveSpacePluginRequest,
 ) (*s4wave_space.RemoveSpacePluginResponse, error) {
+	// Require a plugin identity before changing SpaceSettings.
 	pid := req.GetPluginId()
 	if pid == "" {
 		return nil, errors.New("plugin_id is required")
 	}
 
+	// Open a write transaction for the plugin removal.
 	engine := r.space.GetWorldEngine()
 	tx, err := engine.NewTransaction(ctx, true)
 	if err != nil {
@@ -55,6 +57,7 @@ func (r *SpaceResource) RemoveSpacePlugin(
 	}
 	defer tx.Discard()
 
+	// Read the current SpaceSettings before removing its plugin.
 	settings, err := space_world.LookupSpaceSettingsBody(ctx, tx)
 	if err != nil {
 		return nil, err
@@ -63,6 +66,7 @@ func (r *SpaceResource) RemoveSpacePlugin(
 		return &s4wave_space.RemoveSpacePluginResponse{}, nil
 	}
 
+	// Remove the plugin and its pinned installation from SpaceSettings.
 	idx := slices.Index(settings.PluginIds, pid)
 	if idx < 0 {
 		return &s4wave_space.RemoveSpacePluginResponse{}, nil
@@ -70,6 +74,7 @@ func (r *SpaceResource) RemoveSpacePlugin(
 	settings.PluginIds = slices.Delete(settings.PluginIds, idx, idx+1)
 	delete(settings.PluginInstallations, pid)
 
+	// Write the revised SpaceSettings into the transaction.
 	_, _, err = space_world_ops.SetSpaceSettings(
 		ctx, tx, "", space_world_ops.DefaultSpaceSettingsObjectKey,
 		settings, true, time.Now(),
@@ -78,10 +83,12 @@ func (r *SpaceResource) RemoveSpacePlugin(
 		return nil, err
 	}
 
+	// Publish the plugin removal by committing SpaceSettings.
 	if err := tx.Commit(ctx); err != nil {
 		return nil, err
 	}
 
+	// Report the completed Space plugin removal.
 	r.le.Infof("removed plugin %s from space settings", pid)
 	return &s4wave_space.RemoveSpacePluginResponse{}, nil
 }

@@ -22,6 +22,7 @@ import (
 
 // DeployManifests handles the bidirectional manifest-set deployment stream.
 func (r *SpaceResource) DeployManifests(strm s4wave_space.SRPCSpaceResourceService_DeployManifestsStream) error {
+	// Use the deployment stream lifetime for manifest transfer and publication.
 	ctx := strm.Context()
 
 	// Receive the initial request message before inspecting its deployment shape.
@@ -238,6 +239,7 @@ func validateCopiedManifest(
 	meta *bldr_manifest.ManifestMeta,
 	xfrm block.Transformer,
 ) error {
+	// Load and validate the copied Manifest against its advertised metadata.
 	data, found, err := dest.GetBlock(ctx, rootRef)
 	if err != nil {
 		return err
@@ -297,10 +299,12 @@ func copyBlockWithTransform(
 	xfrm block.Transformer,
 	visited map[string]bool,
 ) error {
+	// Skip an empty block reference during manifest traversal.
 	if ref.GetEmpty() {
 		return nil
 	}
 
+	// Visit each manifest block reference only once.
 	refStr := ref.MarshalString()
 	if visited[refStr] {
 		return nil
@@ -313,6 +317,7 @@ func copyBlockWithTransform(
 		return errors.Wrapf(err, "check block exists: %s", refStr)
 	}
 
+	// Read the manifest block bytes from the destination or stream source.
 	var data []byte
 	if exists {
 		var found bool
@@ -442,6 +447,7 @@ func (s *streamStoreOps) GetSupportedFeatures() block.StoreFeature {
 
 // GetBlock requests a block from the client over the stream.
 func (s *streamStoreOps) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {
+	// Request the manifest block while the deployment stream is active.
 	if err := ctx.Err(); err != nil {
 		return nil, false, err
 	}
@@ -456,6 +462,7 @@ func (s *streamStoreOps) GetBlock(ctx context.Context, ref *block.BlockRef) ([]b
 		return nil, false, errors.Wrap(err, "send block request")
 	}
 
+	// Validate the deployment response before returning its block bytes.
 	if err := ctx.Err(); err != nil {
 		return nil, false, err
 	}

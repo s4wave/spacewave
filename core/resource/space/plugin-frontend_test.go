@@ -27,6 +27,8 @@ func TestPluginFrontendResource(t *testing.T) {
 	defer cancel()
 	tb, existing, release := setupSecretSpaceResourceTest(ctx, t)
 	defer release()
+
+	// Mount the build source SharedObject for the frontend attachment.
 	request := setupPluginBuildSource(t, tb, tb.Volume.GetPeerID())
 	ref := existing.space.GetSharedObjectRef()
 	shared, mount, err := sobject.ExMountSharedObject(ctx, tb.Bus, ref, false, nil)
@@ -34,6 +36,8 @@ func TestPluginFrontendResource(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer mount.Release()
+
+	// Open the mounted Space compiler attachment under its Session authority.
 	body := space_sobject.NewSpaceBody(ref, tb.EngineID, tb.EngineBucketID, tb.EngineVolumeID, shared, tb.BusEngine)
 	resource := NewSpaceResourceWithSessionPeerID(tb.Logger, tb.Bus, body, shared.GetPeerID().String())
 	resources := newSpaceRecordingResourceClient(ctx)
@@ -52,8 +56,11 @@ func TestPluginFrontendResource(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Decode the accepted execution target into the compiler grant.
 	var config space_exec.PluginBuildConfig
 	_, err = world.AccessObject(ctx, tb.WorldState.AccessWorldState, nil, func(cursor *block.Cursor) error {
+		// Read the compiler configuration from the accepted execution target.
 		cursor = cursor.Detach(true)
 		cursor.ClearAllRefs()
 		cursor.SetRefAtCursor(execution.GetTargetRef(), true)
@@ -69,6 +76,8 @@ func TestPluginFrontendResource(t *testing.T) {
 	if config.GetFrontendPeerId() != shared.GetPeerID().String() {
 		t.Fatal("compiler grant lost the mounted author's identity")
 	}
+
+	// Resolve the compiler grant's browser module route.
 	serviceID, err := frontend.RouteService(config.GetFrontendRoutePrefix() + "session/Viewer.tsx")
 	if err != nil {
 		t.Fatal(err)
@@ -92,6 +101,7 @@ func TestPluginFrontendResource(t *testing.T) {
 	defer route.Release()
 
 	// Both the attached Resource and its browser module route may be dialing.
+	// Start calls through the compiler Resource and its browser route.
 	attached := frontend.NewSRPCFrontendClient(resources.client(t, opened.GetResourceId()))
 	watch, err := attached.Watch(ctx, &frontend.WatchRequest{})
 	if err != nil {
@@ -104,6 +114,8 @@ func TestPluginFrontendResource(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer fetch.Close()
+
+	// Release the compiler attachment and verify both calls and its route end.
 	if !resources.ReleaseResource(opened.GetResourceId()) {
 		t.Fatal("attachment was not retained")
 	}
