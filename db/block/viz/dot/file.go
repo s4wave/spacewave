@@ -28,13 +28,16 @@ func PlotToFile(
 	if err != nil {
 		return err
 	}
-	defer of.Close()
 
 	// Write the DOT graph and flush the file to storage.
-	_, _ = of.WriteString(string(dat))
-	_, _ = of.WriteString("\n")
-	if err := of.Sync(); err != nil {
-		return err
+	_, err = of.Write(append(dat, '\n'))
+	if err == nil {
+		err = of.Sync()
 	}
-	return nil
+
+	// Close the file, reporting the first failure.
+	if cerr := of.Close(); err == nil {
+		err = cerr
+	}
+	return err
 }
