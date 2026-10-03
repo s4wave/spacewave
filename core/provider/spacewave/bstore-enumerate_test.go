@@ -2,14 +2,15 @@ package provider_spacewave
 
 import (
 	"bytes"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"slices"
-	"strings"
 	"sync"
 	"testing"
 	"time"
 
+	"github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/packfile"
 	"github.com/s4wave/spacewave/db/packfile/writer"
@@ -44,6 +45,7 @@ func enumerateTestPack(t *testing.T, datas ...string) ([]byte, []string) {
 // TestEnumerateBlockRefs verifies enumeration lists each block of the current
 // packs once and skips superseded and replaced packs.
 func TestEnumerateBlockRefs(t *testing.T) {
+	// Pack two current packs sharing a block, and two inactive packs.
 	current1, keys1 := enumerateTestPack(t, "alpha", "shared")
 	current2, keys2 := enumerateTestPack(t, "bravo", "shared")
 	superseded, _ := enumerateTestPack(t, "superseded")
@@ -54,6 +56,8 @@ func TestEnumerateBlockRefs(t *testing.T) {
 		"superseded": superseded,
 		"replaced":   replaced,
 	}
+
+	// List every pack, superseding one and replacing another.
 	entry := func(id string) *packfile.PackfileEntry {
 		return &packfile.PackfileEntry{Id: id, SizeBytes: uint64(len(packs[id]))}
 	}
@@ -72,32 +76,72 @@ func TestEnumerateBlockRefs(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	var mtx sync.Mutex
-	var opened []string
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if strings.HasSuffix(r.URL.Path, "/sync/pull") {
-			_, _ = w.Write(pullData)
+	// Serve the pull.
+	mux := http.NewServeMux()
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+	mux.HandleFunc("GET /api/bstore/{id}/sync/pull", func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write(pullData)
+	})
+
+	// Grant a read URL for each requested pack.
+	mux.HandleFunc("POST /api/bstore/{id}/read", func(w http.ResponseWriter, r *http.Request) {
+		// Decode the requested packs.
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			t.Error(err)
 			return
 		}
-		id := r.URL.Path[strings.LastIndex(r.URL.Path, "/")+1:]
+		req := &packfile.ReadRequest{}
+		if err := req.UnmarshalVT(body); err != nil {
+			t.Error(err)
+			return
+		}
+
+		// Answer one grant per pack.
+		resp := &packfile.ReadResponse{}
+		for _, id := range req.GetPackIds() {
+			resp.Grants = append(resp.Grants, &packfile.ReadGrant{
+				PackId:    id,
+				Url:       srv.URL + "/pack/" + id,
+				ExpiresAt: timestamppb.New(time.Now().Add(10 * time.Minute)),
+			})
+		}
+		data, err := resp.MarshalVT()
+		if err != nil {
+			t.Error(err)
+			return
+		}
+		_, _ = w.Write(data)
+	})
+
+	// Serve granted range reads, recording each pack opened.
+	var mtx sync.Mutex
+	var opened []string
+	mux.HandleFunc("GET /pack/{id}", func(w http.ResponseWriter, r *http.Request) {
+		// Find the pack.
+		id := r.PathValue("id")
 		data, ok := packs[id]
 		if !ok {
 			w.WriteHeader(http.StatusNotFound)
 			return
 		}
+
+		// Record and serve the read.
 		mtx.Lock()
 		opened = append(opened, id)
 		mtx.Unlock()
 		http.ServeContent(w, r, id, time.Time{}, bytes.NewReader(data))
-	}))
-	defer srv.Close()
+	})
 
+	// Enumerate the block store.
 	acc := NewTestProviderAccount(t, srv.URL)
 	refs, err := acc.EnumerateBlockRefs(t.Context(), "bstore-1")
 	if err != nil {
 		t.Fatalf("enumerate: %v", err)
 	}
 
+	// Expect each block of the current packs once.
 	got := make([]string, len(refs))
 	for i, ref := range refs {
 		got[i] = ref.GetHash().MarshalString()
@@ -107,6 +151,8 @@ func TestEnumerateBlockRefs(t *testing.T) {
 	if !slices.Equal(got, want) {
 		t.Fatalf("refs = %v, want %v", got, want)
 	}
+
+	// Expect no read of an inactive pack.
 	mtx.Lock()
 	defer mtx.Unlock()
 	for _, id := range opened {
