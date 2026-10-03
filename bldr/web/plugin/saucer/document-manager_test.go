@@ -16,10 +16,12 @@ import (
 )
 
 func TestDocumentManagerDefaultDocumentWaitsForMuxRead(t *testing.T) {
+	// Create a document manager with a bounded default-document wait.
 	dm := newTestDocumentManager()
 	waitCtx, waitCancel := context.WithTimeout(t.Context(), time.Second)
 	defer waitCancel()
 
+	// Wait for the default document before its HTTP mux connects.
 	ready := make(chan struct {
 		docID string
 		err   error
@@ -32,6 +34,7 @@ func TestDocumentManagerDefaultDocumentWaitsForMuxRead(t *testing.T) {
 		}{docID: docID, err: err}
 	}()
 
+	// Connect the document HTTP mux and close it when the test finishes.
 	readCtx, readCancel := context.WithCancel(t.Context())
 	readDone := startTestMuxRead(dm, readCtx, "doc-a")
 	defer func() {
@@ -39,6 +42,7 @@ func TestDocumentManagerDefaultDocumentWaitsForMuxRead(t *testing.T) {
 		waitForDone(t, readDone, "mux read")
 	}()
 
+	// Verify that mux readiness selects the connected document as default.
 	select {
 	case result := <-ready:
 		if result.err != nil {
@@ -53,8 +57,10 @@ func TestDocumentManagerDefaultDocumentWaitsForMuxRead(t *testing.T) {
 }
 
 func TestDocumentManagerMuxWriteWaitsForMuxRead(t *testing.T) {
+	// Create the document manager for pre-connection POST requests.
 	dm := newTestDocumentManager()
 
+	// Cancel a document POST while its mux connection is unavailable.
 	cancelCtx, cancel := context.WithCancel(t.Context())
 	cancelBody := &countingReader{data: []byte{9}}
 	cancelDone := make(chan struct{}, 1)
@@ -64,12 +70,15 @@ func TestDocumentManagerMuxWriteWaitsForMuxRead(t *testing.T) {
 		dm.ServeSaucerHTTP(httptest.NewRecorder(), req)
 		cancelDone <- struct{}{}
 	}()
+
+	// Verify cancellation leaves the document POST body unread.
 	cancel()
 	waitForDone(t, cancelDone, "pre-mux canceled POST")
 	if reads := cancelBody.reads.Load(); reads != 0 {
 		t.Fatalf("POST body was read %d times before mux connection", reads)
 	}
 
+	// Observe when the document POST begins waiting for mux readiness.
 	postWaiting := make(chan struct{}, 1)
 	dm.sessions.muxWriteWaitHook = func(docID string) {
 		if docID != "doc-a" {
@@ -81,10 +90,12 @@ func TestDocumentManagerMuxWriteWaitsForMuxRead(t *testing.T) {
 		}
 	}
 
+	// Prepare the document POST payload and its cancellation scope.
 	postCtx, postCancel := context.WithCancel(t.Context())
 	defer postCancel()
 	body := []byte{1, 2, 3, 4}
 
+	// Submit the document POST before establishing the mux connection.
 	postDone := make(chan int, 1)
 	go func() {
 		req := httptest.NewRequest("POST", "/b/saucer/doc-a/mux", bytes.NewReader(body)).
@@ -94,6 +105,7 @@ func TestDocumentManagerMuxWriteWaitsForMuxRead(t *testing.T) {
 		postDone <- rw.Code
 	}()
 
+	// Require the document POST to reach its mux readiness wait.
 	waitCtx, waitCancel := context.WithTimeout(t.Context(), time.Second)
 	defer waitCancel()
 	select {
@@ -102,6 +114,7 @@ func TestDocumentManagerMuxWriteWaitsForMuxRead(t *testing.T) {
 		t.Fatalf("POST did not reach mux readiness wait: %v", waitCtx.Err())
 	}
 
+	// Connect the document POST transport and wake its readiness waiter.
 	muxCtx, muxCancel := context.WithCancel(t.Context())
 	defer muxCancel()
 	mc := &muxConn{
@@ -119,6 +132,7 @@ func TestDocumentManagerMuxWriteWaitsForMuxRead(t *testing.T) {
 		broadcast()
 	})
 
+	// Verify the connected document mux receives the original POST payload.
 	select {
 	case queued := <-mc.writeCh:
 		if !bytes.Equal(queued, body) {
@@ -128,6 +142,7 @@ func TestDocumentManagerMuxWriteWaitsForMuxRead(t *testing.T) {
 		t.Fatalf("POST body did not reach mux writer after connection: %v", waitCtx.Err())
 	}
 
+	// Verify the document POST completes after mux readiness.
 	select {
 	case code := <-postDone:
 		if code != 204 {
@@ -139,6 +154,7 @@ func TestDocumentManagerMuxWriteWaitsForMuxRead(t *testing.T) {
 }
 
 func TestDocumentManagerDefaultDocAndStatusWatchFollowMuxLifecycle(t *testing.T) {
+	// Watch runtime status from a document manager with no connected muxes.
 	dm := newTestDocumentManager()
 	statusStream := newTestRuntimeStatusStream(t.Context())
 	watchDone := make(chan error, 1)
@@ -146,6 +162,7 @@ func TestDocumentManagerDefaultDocAndStatusWatchFollowMuxLifecycle(t *testing.T)
 		watchDone <- dm.WatchWebRuntimeStatus(web_runtime.NewWatchWebRuntimeStatusRequest(), statusStream)
 	}()
 
+	// Verify the initial runtime snapshot contains no documents.
 	initial := statusStream.recv(t)
 	if !initial.GetSnapshot() {
 		t.Fatal("initial status is not a snapshot")
@@ -154,9 +171,11 @@ func TestDocumentManagerDefaultDocAndStatusWatchFollowMuxLifecycle(t *testing.T)
 		t.Fatalf("initial status document count = %d, want 0", got)
 	}
 
+	// Connect the document HTTP mux.
 	readCtx, readCancel := context.WithCancel(t.Context())
 	readDone := startTestMuxRead(dm, readCtx, "doc-a")
 
+	// Verify the connected document becomes the default RPC destination.
 	waitCtx, waitCancel := context.WithTimeout(t.Context(), time.Second)
 	defer waitCancel()
 	docID, err := dm.WaitDefaultDoc(waitCtx)
@@ -167,6 +186,7 @@ func TestDocumentManagerDefaultDocAndStatusWatchFollowMuxLifecycle(t *testing.T)
 		t.Fatalf("default doc = %q, want doc-a", docID)
 	}
 
+	// Verify the runtime snapshot describes the connected permanent document.
 	connected := statusStream.recvWithDocCount(t, 1)
 	docs := connected.GetWebDocuments()
 	if got := docs[0].GetId(); got != "doc-a" {
@@ -176,11 +196,14 @@ func TestDocumentManagerDefaultDocAndStatusWatchFollowMuxLifecycle(t *testing.T)
 		t.Fatal("connected status doc is not marked permanent")
 	}
 
+	// Disconnect the document mux and wait for its HTTP handler to finish.
 	readCancel()
 	waitForDone(t, readDone, "mux read")
 
+	// Verify the runtime snapshot removes the disconnected document.
 	statusStream.recvWithDocCount(t, 0)
 
+	// Verify cancellation terminates the runtime status watcher.
 	statusStream.cancel()
 	select {
 	case err := <-watchDone:
@@ -193,10 +216,13 @@ func TestDocumentManagerDefaultDocAndStatusWatchFollowMuxLifecycle(t *testing.T)
 }
 
 func TestDocumentSessionOwnerIgnoresStaleDisconnect(t *testing.T) {
+	// Prepare a document manager and two successive mux connections.
 	dm := newTestDocumentManager()
 	owner := &dm.sessions
 	firstMux := &testMuxedConn{}
 	secondMux := &testMuxedConn{}
+
+	// Connect the first document session without a previous mux.
 	firstGeneration, oldMux := owner.beginMuxReconnect("doc-a")
 	if oldMux != nil {
 		t.Fatal("first reconnect returned old mux")
@@ -205,6 +231,7 @@ func TestDocumentSessionOwnerIgnoresStaleDisconnect(t *testing.T) {
 		t.Fatal("first mux did not connect")
 	}
 
+	// Replace the document session and retain its previous mux for cleanup.
 	secondGeneration, oldMux := owner.beginMuxReconnect("doc-a")
 	if oldMux != firstMux {
 		t.Fatalf("old mux = %#v, want first mux", oldMux)
@@ -213,6 +240,7 @@ func TestDocumentSessionOwnerIgnoresStaleDisconnect(t *testing.T) {
 		t.Fatal("second mux did not connect")
 	}
 
+	// Verify the stale disconnect preserves both muxes and the connected document.
 	owner.disconnectMux(documentSession{docID: "doc-a", generation: firstGeneration})
 	if firstMux.closed.Load() {
 		t.Fatal("stale disconnect closed the old mux returned to the reconnect owner")
@@ -225,6 +253,7 @@ func TestDocumentSessionOwnerIgnoresStaleDisconnect(t *testing.T) {
 		t.Fatalf("connected document ids = %v, want [doc-a]", ids)
 	}
 
+	// Verify the current disconnect closes its mux and removes the document.
 	owner.disconnectMux(documentSession{docID: "doc-a", generation: secondGeneration})
 	if !secondMux.closed.Load() {
 		t.Fatal("current disconnect did not close the current mux")
@@ -297,9 +326,12 @@ func (s *testRuntimeStatusStream) recv(t *testing.T) *web_runtime.WebRuntimeStat
 }
 
 func (s *testRuntimeStatusStream) recvWithDocCount(t *testing.T, docCount int) *web_runtime.WebRuntimeStatus {
+	// Bound the runtime snapshot wait and retain the last observed status.
 	t.Helper()
 	deadline := time.After(time.Second)
 	var last *web_runtime.WebRuntimeStatus
+
+	// Receive runtime snapshots until the requested document count appears.
 	for {
 		select {
 		case status := <-s.statuses:
@@ -371,10 +403,13 @@ type countingReader struct {
 }
 
 func (r *countingReader) Read(p []byte) (int, error) {
+	// Record each document POST body read and report exhaustion.
 	r.reads.Add(1)
 	if len(r.data) == 0 {
 		return 0, io.EOF
 	}
+
+	// Copy document POST bytes and retain the unread body.
 	n := copy(p, r.data)
 	r.data = r.data[n:]
 	return n, nil

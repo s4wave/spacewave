@@ -16,18 +16,23 @@ import (
 // TestRegisterSessionSetsCreatedAt verifies that RegisterSession injects
 // created_at when the caller provides zero.
 func TestRegisterSessionSetsCreatedAt(t *testing.T) {
+	// Establish the context for Session creation and registration.
 	ctx := context.Background()
 
+	// Start the testbed that supplies the Session storage volume.
 	tb, err := testbed.Default(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	// Read the peer identity used by the local provider.
 	peerID := tb.Volume.GetPeerID()
 
+	// Register the Session and local provider controller factories.
 	tb.StaticResolver.AddFactory(session_controller.NewFactory(tb.Bus))
 	tb.StaticResolver.AddFactory(provider_local.NewFactory(tb.Bus))
 
+	// Load the Session controller against the testbed volume.
 	_, sessCtrlRef, err := tb.Bus.AddDirective(resolver.NewLoadControllerWithConfig(&session_controller.Config{
 		VolumeId: tb.EngineVolumeID,
 	}), nil)
@@ -36,6 +41,7 @@ func TestRegisterSessionSetsCreatedAt(t *testing.T) {
 	}
 	defer sessCtrlRef.Release()
 
+	// Load the local provider against the testbed peer and storage.
 	providerID := "local"
 	_, provCtrlRef, err := tb.Bus.AddDirective(resolver.NewLoadControllerWithConfig(&provider_local.Config{
 		ProviderId: providerID,
@@ -47,18 +53,21 @@ func TestRegisterSessionSetsCreatedAt(t *testing.T) {
 	}
 	defer provCtrlRef.Release()
 
+	// Acquire the local provider for creating Session references.
 	prov, provRef, err := provider.ExLookupProvider(ctx, tb.Bus, providerID, false, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer provRef.Release()
 
+	// Create the first local account and Session reference.
 	localProv := prov.(*provider_local.Provider)
 	sessRef, err := localProv.CreateLocalAccountAndSession(ctx, "")
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	// Acquire the Session controller that persists attachment metadata.
 	sessCtrl, sessCtrlLookupRef, err := session.ExLookupSessionController(ctx, tb.Bus, "", false, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -106,6 +115,8 @@ func TestRegisterSessionSetsCreatedAt(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Verify the second Session registration preserves its explicit creation time.
 	stored2, err := sessCtrl.GetSessionMetadata(ctx, entry2.GetSessionIndex())
 	if err != nil {
 		t.Fatal(err)

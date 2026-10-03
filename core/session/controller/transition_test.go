@@ -9,12 +9,15 @@ import (
 )
 
 func TestTransitionSessionPreservesIndexAndMetadata(t *testing.T) {
+	// Prepare three Session references in an in-memory registry.
 	ctx := t.Context()
 	controller := &Controller{objStore: store_kvtx_inmem.NewStore()}
 	ref := func(account string) *session.SessionRef {
 		return &session.SessionRef{ProviderResourceRef: &provider.ProviderResourceRef{ProviderId: "local", ProviderAccountId: account, Id: "same-session"}}
 	}
 	source, target, unrelated := ref("source"), ref("target"), ref("unrelated")
+
+	// Register the source, destination, and unrelated Session attachments.
 	old, err := controller.RegisterSession(ctx, source, &session.SessionMetadata{DisplayName: "My laptop", CreatedAt: 1700000000000})
 	if err != nil {
 		t.Fatal(err)
@@ -26,11 +29,15 @@ func TestTransitionSessionPreservesIndexAndMetadata(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Replay the Session transition to verify it completes idempotently.
 	for range 2 {
 		if err := controller.TransitionSession(ctx, source, target); err != nil {
 			t.Fatal(err)
 		}
 	}
+
+	// Verify the destination replaces the source without changing unrelated Sessions.
 	entries, err := controller.ListSessions(ctx)
 	if err != nil {
 		t.Fatal(err)
@@ -52,6 +59,8 @@ func TestTransitionSessionPreservesIndexAndMetadata(t *testing.T) {
 			t.Fatal("duplicate target Session remains")
 		}
 	}
+
+	// Verify the transition preserves source metadata and adopts the destination provider.
 	metadata, err := controller.GetSessionMetadata(ctx, old.GetSessionIndex())
 	if err != nil {
 		t.Fatal(err)

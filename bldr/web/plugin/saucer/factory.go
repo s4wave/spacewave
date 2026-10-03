@@ -41,14 +41,17 @@ func (t *Factory) Construct(
 	conf config.Config,
 	opts controller.ConstructOpts,
 ) (controller.Controller, error) {
+	// Read the logger and Saucer configuration supplied by the controller bus.
 	le := opts.GetLogger()
 	cc := conf.(*Config)
 
+	// Resolve the configured Saucer runtime identity.
 	webRuntimeId := cc.GetWebRuntimeId()
 	if webRuntimeId == "" {
 		webRuntimeId = "default"
 	}
 
+	// Resolve the Saucer work directory before constructing its process.
 	workdirPath := cc.GetWorkdirPath()
 	if workdirPath == "" {
 		var err error

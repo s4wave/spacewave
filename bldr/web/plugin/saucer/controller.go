@@ -91,12 +91,14 @@ func (r *Controller) GetBus() bus.Bus {
 // Execute executes the runtime.
 // Returns any errors, nil if Execute is not required.
 func (r *Controller) Execute(ctx context.Context) error {
+	// Hold the Saucer execution slot until the runtime exits.
 	err := r.execSema.Acquire(ctx, 1)
 	if err != nil {
 		return err
 	}
 	defer r.execSema.Release(1)
 
+	// Start the Saucer process and release its published runtime on exit.
 	s, err := RunSaucer(
 		ctx,
 		r.le,
@@ -131,6 +133,7 @@ func (r *Controller) Execute(ctx context.Context) error {
 			le *logrus.Entry,
 			handler web_runtime.WebRuntimeHandler,
 		) (web_runtime.WebRuntime, error) {
+			// Use the Saucer process mux for the runtime transport.
 			mc := s.GetMuxedConn()
 
 			// Create the DocumentManager to handle document lifecycle.
@@ -175,6 +178,7 @@ func (r *Controller) Execute(ctx context.Context) error {
 				r.runtimeUuid,
 				loopbackClient,
 				func(ctx context.Context, _ *web_runtime.Remote) error {
+					// Accept Saucer RPC streams and retain the Remote until cancellation.
 					le.Debug("starting yamux accept loop")
 					err := reqHandler.AcceptStreams(ctx, mc)
 					le.WithError(err).Debug("yamux accept loop exited")
@@ -195,6 +199,7 @@ func (r *Controller) Execute(ctx context.Context) error {
 			// JS-initiated RPC streams are handled locally (WebRuntimeHost).
 			docMgr.SetServer(remote.GetRpcServer())
 
+			// Publish the Saucer process after its Remote RPC server is installed.
 			r.saucerCtr.SetValue(s)
 			return remote, nil
 		},
@@ -202,6 +207,7 @@ func (r *Controller) Execute(ctx context.Context) error {
 		Version,
 	)
 
+	// Run the Saucer runtime controller and report its terminal error.
 	err = r.bus.ExecuteController(ctx, rc)
 	if err != nil && err != context.Canceled && err.Error() != "stream reset" {
 		r.le.WithError(err).Error("saucer remote runtime exited with error")

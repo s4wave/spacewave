@@ -84,32 +84,42 @@ func (dm *DocumentManager) GetWebRuntimeStatusCtr() *ccontainer.CContainer[*web_
 }
 
 func (o *documentSessionOwner) beginMuxReconnect(docID string) (uint64, srpc.MuxedConn) {
+	// Invalidate the document mux and capture its replacement generation.
 	var generation uint64
 	var oldMux srpc.MuxedConn
 	var status *web_runtime.WebRuntimeStatus
 	o.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		// Advance the document generation while retaining the old mux for cleanup.
 		doc := o.getOrCreateDocLocked(docID)
 		oldMux = doc.mux
 		doc.generation++
 		generation = doc.generation
+
+		// Publish the disconnected document state to session waiters.
 		doc.mux = nil
 		doc.mc = nil
 		doc.connected = false
 		status = o.statusLocked()
 		broadcast()
 	})
+
+	// Send the disconnected document snapshot to runtime observers.
 	o.publishStatus(status)
 	return generation, oldMux
 }
 
 func (o *documentSessionOwner) connectMux(docID string, generation uint64, mux srpc.MuxedConn, mc *muxConn) bool {
+	// Attach the mux only to the document generation that requested it.
 	var status *web_runtime.WebRuntimeStatus
 	var connected bool
 	o.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		// Require the current document generation before attaching its mux.
 		doc := o.getOrCreateDocLocked(docID)
 		if doc.generation != generation {
 			return
 		}
+
+		// Mark the document connected and wake session waiters.
 		doc.mux = mux
 		doc.mc = mc
 		doc.connected = true
@@ -118,18 +128,24 @@ func (o *documentSessionOwner) connectMux(docID string, generation uint64, mux s
 		connected = true
 		broadcast()
 	})
+
+	// Send the connected document snapshot to runtime observers.
 	o.publishStatus(status)
 	return connected
 }
 
 func (o *documentSessionOwner) disconnectMux(session documentSession) {
+	// Detach the mux only when the closing session is still current.
 	var status *web_runtime.WebRuntimeStatus
 	var closeMux srpc.MuxedConn
 	o.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		// Ignore disconnects from an absent or superseded document session.
 		doc := o.docs[session.docID]
 		if doc == nil || doc.generation != session.generation {
 			return
 		}
+
+		// Retain the document mux for cleanup and wake disconnected-session waiters.
 		closeMux = doc.mux
 		doc.mux = nil
 		doc.mc = nil
@@ -137,31 +153,42 @@ func (o *documentSessionOwner) disconnectMux(session documentSession) {
 		status = o.statusLocked()
 		broadcast()
 	})
+
+	// Close the detached document mux outside the session lock.
 	if closeMux != nil {
 		_ = closeMux.Close()
 	}
+
+	// Send the disconnected document snapshot to runtime observers.
 	o.publishStatus(status)
 }
 
 func (o *documentSessionOwner) close() []srpc.MuxedConn {
+	// Detach all document muxes and capture the empty runtime snapshot.
 	var muxes []srpc.MuxedConn
 	var status *web_runtime.WebRuntimeStatus
 	o.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		// Collect the document muxes for cleanup outside the session lock.
 		for _, doc := range o.docs {
 			if doc.mux != nil {
 				muxes = append(muxes, doc.mux)
 			}
 		}
+
+		// Clear the document records and notify session waiters.
 		o.docs = make(map[string]*documentState)
 		status = o.statusLocked()
 		broadcast()
 	})
+
+	// Send the empty document snapshot to runtime observers.
 	o.publishStatus(status)
 	return muxes
 }
 
 func (o *documentSessionOwner) waitMux(ctx context.Context, docID string) (srpc.MuxedConn, error) {
 	for {
+		// Read the connected document mux with its next session notification.
 		var mux srpc.MuxedConn
 		var ch <-chan struct{}
 		o.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
@@ -174,6 +201,7 @@ func (o *documentSessionOwner) waitMux(ctx context.Context, docID string) (srpc.
 			return mux, nil
 		}
 
+		// Wait for the document session to change or the caller to cancel.
 		select {
 		case <-ctx.Done():
 			return nil, ctx.Err()
@@ -184,6 +212,7 @@ func (o *documentSessionOwner) waitMux(ctx context.Context, docID string) (srpc.
 
 func (o *documentSessionOwner) waitMuxConn(ctx context.Context, docID string) (*muxConn, error) {
 	for {
+		// Read the document POST connection with its next session notification.
 		var mc *muxConn
 		var ch <-chan struct{}
 		var waitHook func(string)
@@ -197,9 +226,13 @@ func (o *documentSessionOwner) waitMuxConn(ctx context.Context, docID string) (*
 		if mc != nil {
 			return mc, nil
 		}
+
+		// Notify the POST readiness hook that the document connection is pending.
 		if waitHook != nil {
 			waitHook(docID)
 		}
+
+		// Wait for the document session to change or the POST to be canceled.
 		select {
 		case <-ctx.Done():
 			return nil, ctx.Err()
@@ -242,6 +275,7 @@ func (o *documentSessionOwner) defaultDocIDValue() string {
 
 func (o *documentSessionOwner) waitDefaultDoc(ctx context.Context) (string, error) {
 	for {
+		// Read the default document with its next session notification.
 		var id string
 		var ch <-chan struct{}
 		o.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
@@ -249,10 +283,12 @@ func (o *documentSessionOwner) waitDefaultDoc(ctx context.Context) (string, erro
 			id = o.defaultDocID
 		})
 
+		// Return the default document once a session has selected it.
 		if id != "" {
 			return id, nil
 		}
 
+		// Wait for a default document change or caller cancellation.
 		select {
 		case <-ctx.Done():
 			return "", ctx.Err()
@@ -266,6 +302,7 @@ func (o *documentSessionOwner) watchStatus(
 	send func(*web_runtime.WebRuntimeStatus) error,
 ) error {
 	for {
+		// Capture the document snapshot with its next session notification.
 		var ch <-chan struct{}
 		var status *web_runtime.WebRuntimeStatus
 		o.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
@@ -273,10 +310,12 @@ func (o *documentSessionOwner) watchStatus(
 			status = o.statusLocked()
 		})
 
+		// Send the document snapshot outside the session lock.
 		if err := send(status); err != nil {
 			return err
 		}
 
+		// Wait for a document change or watcher cancellation.
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
@@ -322,8 +361,8 @@ func (dm *DocumentManager) Close() {
 
 // ServeSaucerHTTP handles /b/saucer/* routes.
 func (dm *DocumentManager) ServeSaucerHTTP(rw http.ResponseWriter, req *http.Request) {
+	// Parse the Saucer route and reject paths without a document endpoint.
 	path := req.URL.Path
-
 	docID, remainder, ok := parseSaucerPath(path)
 	if !ok {
 		rw.WriteHeader(404)
@@ -331,6 +370,7 @@ func (dm *DocumentManager) ServeSaucerHTTP(rw http.ResponseWriter, req *http.Req
 		return
 	}
 
+	// Route document mux requests to the matching HTTP transport direction.
 	switch remainder {
 	case "mux":
 		switch req.Method {
@@ -366,6 +406,7 @@ type muxConn struct {
 
 // Read returns data posted by JS to the mux write endpoint.
 func (mc *muxConn) Read(p []byte) (int, error) {
+	// Drain bytes retained from the previous document POST before waiting.
 	mc.pendingMu.Lock()
 	if len(mc.pending) > 0 {
 		n := copy(p, mc.pending)
@@ -378,6 +419,7 @@ func (mc *muxConn) Read(p []byte) (int, error) {
 	}
 	mc.pendingMu.Unlock()
 
+	// Read the next document POST and retain bytes beyond the caller buffer.
 	select {
 	case <-mc.ctx.Done():
 		return 0, mc.ctx.Err()
@@ -416,11 +458,13 @@ func (mc *muxConn) Close() error {
 // handleMuxRead handles GET /b/saucer/{docId}/mux.
 // This is a long-lived streaming response that carries yamux frames from Go to JS.
 func (dm *DocumentManager) handleMuxRead(rw http.ResponseWriter, req *http.Request, docID string) {
+	// Replace the document session and close its previous mux.
 	generation, oldMux := dm.sessions.beginMuxReconnect(docID)
 	if oldMux != nil {
 		_ = oldMux.Close()
 	}
 
+	// Allocate the document HTTP transport channels and cancellation scope.
 	muxCtx, muxCancel := context.WithCancel(req.Context())
 	mc := &muxConn{
 		ctx:     muxCtx,
@@ -463,6 +507,7 @@ func (dm *DocumentManager) handleMuxRead(rw http.ResponseWriter, req *http.Reque
 	rw.Header().Set("Content-Type", "application/octet-stream")
 	rw.WriteHeader(200)
 
+	// Forward document mux frames until the HTTP transport closes.
 	for {
 		select {
 		case <-muxCtx.Done():
@@ -497,6 +542,7 @@ func (dm *DocumentManager) handleMuxWrite(rw http.ResponseWriter, req *http.Requ
 		return
 	}
 
+	// Read the document POST body after its mux connection is ready.
 	body, err := io.ReadAll(req.Body)
 	if err != nil {
 		rw.WriteHeader(500)
@@ -504,11 +550,13 @@ func (dm *DocumentManager) handleMuxWrite(rw http.ResponseWriter, req *http.Requ
 		return
 	}
 
+	// Complete empty document POSTs without queuing a mux frame.
 	if len(body) == 0 {
 		rw.WriteHeader(204)
 		return
 	}
 
+	// Queue the document frame or report that its transport has closed.
 	select {
 	case mc.writeCh <- body:
 		rw.WriteHeader(204)
@@ -547,6 +595,7 @@ func (dm *DocumentManager) WebDocumentOpenStream(
 	closeHandler srpc.CloseHandler,
 	webDocumentID string,
 ) (srpc.PacketWriter, error) {
+	// Wait for the document mux and open its outgoing RPC stream.
 	mux, err := dm.sessions.waitMux(ctx, webDocumentID)
 	if err != nil {
 		return nil, err
@@ -560,6 +609,7 @@ func (dm *DocumentManager) WebDocumentOpenStream(
 	// Use direct framing: length-prefixed SRPC packets.
 	bridge := &yamuxStreamBridge{stream: stream}
 	go func() {
+		// Deliver document RPC frames until the stream or packet handler fails.
 		var pumpErr error
 		var count int
 		for {
@@ -577,6 +627,8 @@ func (dm *DocumentManager) WebDocumentOpenStream(
 				break
 			}
 		}
+
+		// Report the document read pump result to the log and close handler.
 		dm.le.
 			WithField("packets", count).
 			WithError(pumpErr).
@@ -597,9 +649,11 @@ type yamuxStreamBridge struct {
 
 // RecvRaw reads a length-prefixed frame from the yamux stream.
 func (b *yamuxStreamBridge) RecvRaw() ([]byte, error) {
+	// Serialize reads so each document frame retains its length prefix.
 	b.readMu.Lock()
 	defer b.readMu.Unlock()
 
+	// Read and validate the document frame length before allocating its body.
 	lenBuf := make([]byte, 4)
 	if _, err := io.ReadFull(b.stream, lenBuf); err != nil {
 		return nil, err
@@ -608,6 +662,8 @@ func (b *yamuxStreamBridge) RecvRaw() ([]byte, error) {
 	if msgLen > MaxFrameSize {
 		return nil, io.ErrShortBuffer
 	}
+
+	// Read the complete document frame body.
 	data := make([]byte, msgLen)
 	if _, err := io.ReadFull(b.stream, data); err != nil {
 		return nil, err
@@ -617,11 +673,14 @@ func (b *yamuxStreamBridge) RecvRaw() ([]byte, error) {
 
 // SendRaw writes a length-prefixed frame to the yamux stream.
 func (b *yamuxStreamBridge) SendRaw(data []byte) error {
+	// Send the document frame length before its body.
 	lenBuf := make([]byte, 4)
 	binary.LittleEndian.PutUint32(lenBuf, uint32(len(data))) //nolint:gosec
 	if _, err := b.stream.Write(lenBuf); err != nil {
 		return err
 	}
+
+	// Send the document frame body on the same stream.
 	_, err := b.stream.Write(data)
 	return err
 }
@@ -661,15 +720,20 @@ var _ srpc.PacketWriter = (*yamuxPacketWriter)(nil)
 
 // parseSaucerPath parses /b/saucer/{docId}/{remainder}.
 func parseSaucerPath(path string) (docID, remainder string, ok bool) {
+	// Require the Saucer endpoint prefix before parsing its document path.
 	prefix := "/b/saucer/"
 	if !strings.HasPrefix(path, prefix) {
 		return "", "", false
 	}
+
+	// Separate the document ID from the remaining endpoint path.
 	rest := path[len(prefix):]
 	before, after, ok0 := strings.Cut(rest, "/")
 	if !ok0 {
 		return rest, "", rest != ""
 	}
+
+	// Return the document ID and endpoint only when the document ID is present.
 	docID = before
 	remainder = after
 	return docID, remainder, docID != ""
@@ -701,10 +765,12 @@ func (dm *DocumentManager) HandleWebDocumentRpc(
 	componentID string,
 	_ func(),
 ) (srpc.Invoker, func(), error) {
+	// Require a connected document mux before creating its RPC invoker.
 	if _, err := dm.sessions.waitMux(ctx, componentID); err != nil {
 		return nil, nil, errors.New("document " + componentID + " not found")
 	}
 
+	// Bind the RPC client to streams opened through this document manager.
 	openStreamFn := func(
 		ctx context.Context,
 		msgHandler srpc.PacketDataHandler,
@@ -720,8 +786,8 @@ func (dm *DocumentManager) HandleWebDocumentRpc(
 
 // WatchWebRuntimeStatus streams document status updates to the Remote.
 func (dm *DocumentManager) WatchWebRuntimeStatus(_ *web_runtime.WatchWebRuntimeStatusRequest, strm web_runtime.SRPCWebRuntime_WatchWebRuntimeStatusStream) error {
+	// Forward document snapshots for the status stream lifetime.
 	ctx := strm.Context()
-
 	var initial bool
 	err := dm.sessions.watchStatus(ctx, func(status *web_runtime.WebRuntimeStatus) error {
 		if !initial {
@@ -730,6 +796,8 @@ func (dm *DocumentManager) WatchWebRuntimeStatus(_ *web_runtime.WatchWebRuntimeS
 		}
 		return strm.Send(status)
 	})
+
+	// Report cancellation of the runtime status stream.
 	if ctx.Err() != nil {
 		dm.le.Debug("WatchWebRuntimeStatus: context canceled")
 	}

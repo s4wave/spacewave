@@ -12,6 +12,7 @@ import (
 // destination has durably accepted its credential. Source credentials remain
 // in their provider volume for recovery. Replaying the same transition is safe.
 func (c *Controller) TransitionSession(ctx context.Context, source, destination *session.SessionRef) error {
+	// Validate both Session references before replacing an attachment.
 	if err := source.Validate(); err != nil {
 		return err
 	}
@@ -21,17 +22,23 @@ func (c *Controller) TransitionSession(ctx context.Context, source, destination 
 	if source.EqualVT(destination) {
 		return nil
 	}
+
+	// Lock the Session registry and open its object store for the transition.
 	c.mtx.Lock()
 	defer c.mtx.Unlock()
 	store, err := c.buildObjectStoreLocked(ctx)
 	if err != nil {
 		return err
 	}
+
+	// Replace the Session attachment and provider metadata in one transaction.
 	err = kvtx.RunTransaction(ctx, true, func(ctx context.Context) (kvtx.Tx, error) {
 		return store.NewTransaction(ctx, true)
 	}, func(ctx context.Context, tx kvtx.Tx) error {
+		// Locate the source and any existing destination Session registration.
 		var old, next *session.SessionListEntry
 		if err := tx.ScanPrefix(ctx, sessionListPrefix, func(_ []byte, data []byte) error {
+			// Decode each Session registration and match the transition references.
 			entry := &session.SessionListEntry{}
 			if err := entry.UnmarshalVT(data); err != nil {
 				return err
@@ -46,12 +53,16 @@ func (c *Controller) TransitionSession(ctx context.Context, source, destination 
 		}); err != nil {
 			return err
 		}
+
+		// Treat an already completed transition as success and reject a missing source.
 		if old == nil {
 			if next != nil {
 				return nil
 			}
 			return errors.New("the source Session is no longer registered")
 		}
+
+		// Store the destination reference at the source Session index.
 		old.SessionRef = destination.CloneVT()
 		data, err := old.MarshalVT()
 		if err != nil {
@@ -60,6 +71,8 @@ func (c *Controller) TransitionSession(ctx context.Context, source, destination 
 		if err := tx.Set(ctx, sessionListEntryKey(old.GetSessionIndex()), data); err != nil {
 			return err
 		}
+
+		// Read the source Session metadata so its display name and creation time survive.
 		data, found, err := tx.Get(ctx, sessionMetaKey(old.GetSessionIndex()))
 		if err != nil {
 			return err
@@ -70,6 +83,8 @@ func (c *Controller) TransitionSession(ctx context.Context, source, destination 
 				return err
 			}
 		}
+
+		// Resolve the destination provider identity and display name.
 		ref := destination.GetProviderResourceRef()
 		metadata.ProviderId = ref.GetProviderId()
 		metadata.ProviderAccountId = ref.GetProviderAccountId()
@@ -77,6 +92,8 @@ func (c *Controller) TransitionSession(ctx context.Context, source, destination 
 		if err != nil {
 			return err
 		}
+
+		// Store the destination provider metadata at the retained Session index.
 		metadata.ProviderDisplayName = displayName
 		data, err = metadata.MarshalVT()
 		if err != nil {
@@ -85,6 +102,8 @@ func (c *Controller) TransitionSession(ctx context.Context, source, destination 
 		if err := tx.Set(ctx, sessionMetaKey(old.GetSessionIndex()), data); err != nil {
 			return err
 		}
+
+		// Remove any duplicate destination Session registration and metadata.
 		if next != nil && next.GetSessionIndex() != old.GetSessionIndex() {
 			if err := tx.Delete(ctx, sessionListEntryKey(next.GetSessionIndex())); err != nil {
 				return err
@@ -93,6 +112,8 @@ func (c *Controller) TransitionSession(ctx context.Context, source, destination 
 		}
 		return nil
 	})
+
+	// Notify Session observers only after the transition commits.
 	if err == nil {
 		c.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) { broadcast() })
 	}

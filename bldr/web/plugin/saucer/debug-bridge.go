@@ -32,10 +32,13 @@ var statementPrefixes = []string{
 // isExpression returns true if code looks like a single expression
 // (no semicolons, single line, no statement keywords).
 func isExpression(code string) bool {
+	// Exclude empty or multi-statement JavaScript from implicit returns.
 	trimmed := strings.TrimSpace(code)
 	if trimmed == "" || strings.Contains(trimmed, ";") || strings.Contains(trimmed, "\n") {
 		return false
 	}
+
+	// Exclude JavaScript statement prefixes from expression wrapping.
 	lower := strings.ToLower(trimmed)
 	for _, prefix := range statementPrefixes {
 		if strings.HasPrefix(lower, prefix) {
@@ -81,17 +84,20 @@ type debugBridge struct {
 
 // EvalJS evaluates JavaScript code in the webview context.
 func (d *debugBridge) EvalJS(ctx context.Context, req *EvalJSRequest) (*EvalJSResponse, error) {
+	// Require JavaScript code before forwarding the evaluation request.
 	code := req.GetCode()
 	if code == "" {
 		return &EvalJSResponse{Error: "empty code"}, nil
 	}
 
+	// Log a bounded preview of the JavaScript evaluation request.
 	truncated := code
 	if len(truncated) > 100 {
 		truncated = truncated[:100] + "..."
 	}
 	d.le.Debugf("EvalJS: %s", truncated)
 
+	// Evaluate the JavaScript through the webview mux and encode its result.
 	result, err := d.evalViaYamux(ctx, code)
 	if err != nil {
 		return &EvalJSResponse{Error: err.Error()}, nil
@@ -103,8 +109,8 @@ func (d *debugBridge) EvalJS(ctx context.Context, req *EvalJSRequest) (*EvalJSRe
 // The code is wrapped in an async IIFE that posts the result back to C++ via
 // the saucer message channel. C++ waits for the result and returns it as protobuf.
 func (d *debugBridge) evalViaYamux(ctx context.Context, code string) (string, error) {
+	// Wrap the JavaScript and wait for the webview mux connection.
 	wrapped := wrapEvalCode(code)
-
 	d.le.Infof("waiting for yamux conn (closed: %v)", d.mc.IsClosed())
 	waitCtx, waitCancel := context.WithTimeout(ctx, 5*time.Second)
 	defer waitCancel()
@@ -112,6 +118,8 @@ func (d *debugBridge) evalViaYamux(ctx context.Context, code string) (string, er
 	if err != nil {
 		return "", errors.Wrap(err, "wait yamux conn")
 	}
+
+	// Open an evaluation stream on the connected webview mux.
 	d.le.Infof("got yamux conn (closed: %v), opening stream", conn.IsClosed())
 	stream, err := conn.OpenStream(ctx)
 	if err != nil {
@@ -168,18 +176,21 @@ func (d *debugBridge) evalViaYamux(ctx context.Context, code string) (string, er
 // runDebugSocket starts the debug bridge Unix socket listener.
 // Blocks until ctx is canceled.
 func runDebugSocket(ctx context.Context, le *logrus.Entry, mc *singleton_muxed_conn.SingletonMuxedConn, workdir string) error {
+	// Register the Saucer debug service on its socket RPC mux.
 	mux := srpc.NewMux()
 	svc := &debugBridge{le: le, mc: mc}
 	if err := SRPCRegisterSaucerDebugService(mux, svc); err != nil {
 		return err
 	}
 
+	// Resolve the Saucer debug socket within the runtime work directory.
 	sockDir := filepath.Join(workdir, ".bldr")
 	sockPath := filepath.Join(sockDir, debugSocketName)
 
 	// Remove stale socket.
 	_ = os.Remove(sockPath)
 
+	// Open the protected debug listener and remove its socket on exit.
 	lis, err := bldr_pipesock.ListenProtectedUnix(sockPath)
 	if err != nil {
 		return errors.Wrap(err, "listen protected unix")
@@ -188,7 +199,6 @@ func runDebugSocket(ctx context.Context, le *logrus.Entry, mc *singleton_muxed_c
 		lis.Close()
 		_ = os.Remove(sockPath)
 	}()
-
 	le.Infof("debug bridge listening on %s", sockPath)
 
 	// Close listener when context is canceled.
@@ -197,6 +207,7 @@ func runDebugSocket(ctx context.Context, le *logrus.Entry, mc *singleton_muxed_c
 		lis.Close()
 	}()
 
+	// Serve debug RPC streams until the listener or runtime context closes.
 	srv := srpc.NewServer(mux)
 	return srpc.AcceptMuxedListener(ctx, lis, srv, nil)
 }

@@ -30,6 +30,7 @@ func TestYamuxBidirectional(t *testing.T) {
 	// Start client accept loop (simulates C++ accept_thread).
 	clientDone := make(chan string, 1)
 	go func() {
+		// Accept the server-initiated evaluation stream on the client mux.
 		t.Log("[client] waiting for server-initiated stream")
 		stream, err := clientMC.AcceptStream()
 		if err != nil {
@@ -47,6 +48,7 @@ func TestYamuxBidirectional(t *testing.T) {
 		msgLen := binary.LittleEndian.Uint32(lenBuf)
 		t.Logf("[client] read length: %d", msgLen)
 
+		// Read the evaluation payload after its length prefix.
 		data := make([]byte, msgLen)
 		if _, err := io.ReadFull(stream, data); err != nil {
 			clientDone <- "read data error: " + err.Error()
@@ -68,12 +70,14 @@ func TestYamuxBidirectional(t *testing.T) {
 		t.Log("[client] wrote response, closing stream")
 		stream.Close()
 
+		// Report completion of the client evaluation exchange.
 		clientDone <- "ok"
 	}()
 
 	// Server opens a stream to the client (simulates debug bridge).
 	ctx := t.Context()
 
+	// Open the server evaluation stream to the client mux.
 	t.Log("[server] opening stream to client")
 	stream, err := serverMC.OpenStream(ctx)
 	if err != nil {
@@ -81,6 +85,7 @@ func TestYamuxBidirectional(t *testing.T) {
 	}
 	t.Log("[server] stream opened, writing code")
 
+	// Send the evaluation code with the Saucer length-prefixed framing.
 	code := "console.log('hello')"
 	codeBytes := []byte(code)
 	lenBuf := make([]byte, 4)
@@ -111,6 +116,7 @@ func TestYamuxBidirectional(t *testing.T) {
 		t.Fatalf("[client] error: %s", result)
 	}
 
+	// Close both mux endpoints after the bidirectional exchange.
 	serverMC.Close()
 	clientMC.Close()
 }

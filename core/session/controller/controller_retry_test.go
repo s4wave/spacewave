@@ -41,12 +41,15 @@ func (t *scanConflictTx) ScanPrefix(ctx context.Context, prefix []byte, cb func(
 }
 
 func TestListSessionsRetriesGenerationChangeBetweenSizeAndScan(t *testing.T) {
+	// Open an in-memory Session store for the scan failure scenario.
 	ctx := context.Background()
 	store := store_kvtx_inmem.NewStore()
 	writeTx, err := store.NewTransaction(ctx, true)
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Persist the existing Session registration before injecting a transaction failure.
 	entry := &session.SessionListEntry{SessionIndex: 7}
 	data, err := entry.MarshalVT()
 	if err != nil {
@@ -60,12 +63,15 @@ func TestListSessionsRetriesGenerationChangeBetweenSizeAndScan(t *testing.T) {
 	}
 	writeTx.Discard()
 
+	// List Sessions through a store that invalidates the first scan.
 	conflicts := &scanConflictStore{Store: store}
 	controller := &Controller{objStore: conflicts}
 	entries, err := controller.ListSessions(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Verify the Session census retries and returns the stored registration.
 	if conflicts.opened != 2 {
 		t.Fatalf("opened transactions = %d, want 2", conflicts.opened)
 	}
@@ -100,12 +106,15 @@ func (t *partialScanFailureTx) ScanPrefix(ctx context.Context, prefix []byte, cb
 }
 
 func TestListSessionsReturnsNilAfterPartialScanFailure(t *testing.T) {
+	// Open an in-memory Session store for the scan failure scenario.
 	ctx := context.Background()
 	store := store_kvtx_inmem.NewStore()
 	writeTx, err := store.NewTransaction(ctx, true)
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Persist the existing Session registration before injecting a transaction failure.
 	entry := &session.SessionListEntry{SessionIndex: 7}
 	data, err := entry.MarshalVT()
 	if err != nil {
@@ -119,9 +128,12 @@ func TestListSessionsReturnsNilAfterPartialScanFailure(t *testing.T) {
 	}
 	writeTx.Discard()
 
+	// List Sessions through a store that fails after yielding its entries.
 	scanErr := errors.New("scan failed")
 	controller := &Controller{objStore: &partialScanFailureStore{Store: store, err: scanErr}}
 	entries, err := controller.ListSessions(ctx)
+
+	// Verify the Session census returns the scan failure without partial entries.
 	if !errors.Is(err, scanErr) {
 		t.Fatalf("error = %v, want %v", err, scanErr)
 	}
@@ -174,12 +186,15 @@ func (t *commitConflictTx) Commit(ctx context.Context) error {
 }
 
 func TestRegisterSessionRetriesGenerationChangeBetweenSizeAndScan(t *testing.T) {
+	// Open an in-memory Session store for the scan failure scenario.
 	ctx := context.Background()
 	store := store_kvtx_inmem.NewStore()
 	writeTx, err := store.NewTransaction(ctx, true)
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Persist the existing Session registration before injecting a transaction failure.
 	existing := &session.SessionListEntry{
 		SessionIndex: 7,
 		SessionRef: &session.SessionRef{ProviderResourceRef: &provider.ProviderResourceRef{
@@ -198,6 +213,7 @@ func TestRegisterSessionRetriesGenerationChangeBetweenSizeAndScan(t *testing.T) 
 	}
 	writeTx.Discard()
 
+	// Register a Session through a store that invalidates the first write scan.
 	conflicts := &registerConflictStore{Store: store}
 	controller := &Controller{objStore: conflicts}
 	ref := &session.SessionRef{ProviderResourceRef: &provider.ProviderResourceRef{Id: "new"}}
@@ -205,6 +221,8 @@ func TestRegisterSessionRetriesGenerationChangeBetweenSizeAndScan(t *testing.T) 
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Verify registration retries and allocates the next Session index.
 	if conflicts.opened != 2 {
 		t.Fatalf("opened transactions = %d, want 2", conflicts.opened)
 	}
@@ -212,6 +230,7 @@ func TestRegisterSessionRetriesGenerationChangeBetweenSizeAndScan(t *testing.T) 
 		t.Fatalf("registered = %v, want new session at index 8", registered)
 	}
 
+	// Verify the Session registry retains both the existing and new attachments.
 	entries, err := controller.ListSessions(ctx)
 	if err != nil {
 		t.Fatal(err)
@@ -222,15 +241,20 @@ func TestRegisterSessionRetriesGenerationChangeBetweenSizeAndScan(t *testing.T) 
 }
 
 func TestUpdateSessionMetadataRetriesGenerationChangeDuringRefLookup(t *testing.T) {
+	// Open an in-memory Session store for the scan failure scenario.
 	ctx := context.Background()
 	store := store_kvtx_inmem.NewStore()
 	ref := &session.SessionRef{ProviderResourceRef: &provider.ProviderResourceRef{
 		Id: "existing",
 	}}
+
+	// Open the write transaction that seeds the existing Session reference.
 	writeTx, err := store.NewTransaction(ctx, true)
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Persist the existing Session registration before injecting a transaction failure.
 	existing := &session.SessionListEntry{SessionIndex: 7, SessionRef: ref}
 	data, err := existing.MarshalVT()
 	if err != nil {
@@ -244,6 +268,7 @@ func TestUpdateSessionMetadataRetriesGenerationChangeDuringRefLookup(t *testing.
 	}
 	writeTx.Discard()
 
+	// Update Session metadata through a store that invalidates the first commit.
 	conflicts := &commitConflictStore{Store: store}
 	controller := &Controller{objStore: conflicts}
 	const createdAt = int64(1700000000000)
@@ -254,10 +279,13 @@ func TestUpdateSessionMetadataRetriesGenerationChangeDuringRefLookup(t *testing.
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Verify the metadata update retries its invalidated transaction.
 	if conflicts.opened != 2 {
 		t.Fatalf("opened transactions = %d, want 2", conflicts.opened)
 	}
 
+	// Verify the Session metadata retains the requested creation time.
 	stored, err := controller.GetSessionMetadata(ctx, 7)
 	if err != nil {
 		t.Fatal(err)
@@ -283,15 +311,20 @@ func TestUpdateSessionMetadataRetriesGenerationChangeDuringRefLookup(t *testing.
 }
 
 func TestDeleteSessionRetriesGenerationChangeDuringScan(t *testing.T) {
+	// Open an in-memory Session store for the scan failure scenario.
 	ctx := context.Background()
 	store := store_kvtx_inmem.NewStore()
 	ref := &session.SessionRef{ProviderResourceRef: &provider.ProviderResourceRef{
 		Id: "existing",
 	}}
+
+	// Open the write transaction that seeds the Session to delete.
 	writeTx, err := store.NewTransaction(ctx, true)
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Persist the existing Session registration before injecting a transaction failure.
 	existing := &session.SessionListEntry{SessionIndex: 7, SessionRef: ref}
 	data, err := existing.MarshalVT()
 	if err != nil {
@@ -305,16 +338,20 @@ func TestDeleteSessionRetriesGenerationChangeDuringScan(t *testing.T) {
 	}
 	writeTx.Discard()
 
+	// Delete the Session through a store that invalidates the first commit.
 	conflicts := &commitConflictStore{Store: store}
 	controller := &Controller{objStore: conflicts}
 	err = controller.DeleteSession(ctx, ref)
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Verify Session deletion retries its invalidated transaction.
 	if conflicts.opened != 2 {
 		t.Fatalf("opened transactions = %d, want 2", conflicts.opened)
 	}
 
+	// Verify the Session registry contains no attachments after deletion.
 	entries, err := controller.ListSessions(ctx)
 	if err != nil {
 		t.Fatal(err)
