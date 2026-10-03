@@ -17,22 +17,26 @@ import (
 )
 
 func TestFSCursor(t *testing.T) {
+	// Prepare the context and logger for filesystem operations.
 	ctx := context.Background()
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
 
+	// Open a cursor over the mock filesystem and retain its expected paths.
 	ifs, expectedFiles := iofs_mock.NewMockIoFS()
 	fsc, err := NewFSCursor(ifs)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Acquire a filesystem handle and release it after the test.
 	handle, err := unixfs.NewFSHandle(fsc)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	defer handle.Release()
 
+	// Verify the filesystem adapter against the standard fs.FS contract.
 	iofs := NewFS(ctx, handle)
 	if err := fstest.TestFS(iofs, expectedFiles...); err != nil {
 		t.Fatal(err.Error())
@@ -45,6 +49,7 @@ func TestFSCursor(t *testing.T) {
 	}
 	defer fph.Release()
 
+	// Verify that WithIgnorePath reads the selected file for an unrelated path.
 	iofs = NewFS(ctx, fph, WithIgnorePath())
 	data, err := iofs.ReadFile("foo/bar/baz/does/not/exist.zip")
 	if err == nil && len(data) == 0 {
@@ -56,6 +61,7 @@ func TestFSCursor(t *testing.T) {
 }
 
 func TestFSFileReadSkipsReaderOnlyOffsetBeforeFinalBytes(t *testing.T) {
+	// Open a reader-only filesystem containing a full chunk and trailing bytes.
 	ctx := context.Background()
 	const name = "dist/index.mjs"
 	body := append(bytes.Repeat([]byte{'x'}, 32*1024), bytes.Repeat([]byte{'t'}, 105)...)
@@ -69,25 +75,31 @@ func TestFSFileReadSkipsReaderOnlyOffsetBeforeFinalBytes(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// Acquire the root filesystem handle for path lookup.
 	root, err := unixfs.NewFSHandle(fsc)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	defer root.Release()
 
+	// Look up the test file within the reader-only filesystem.
 	fileHandle, _, err := root.LookupPath(ctx, name)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Wrap the file handle for sequential reads and release it after the test.
 	file := &FSFile{ctx: ctx, handle: fileHandle}
 	defer fileHandle.Release()
 
+	// Read the first complete chunk from the file.
 	first := make([]byte, 32*1024)
 	n, err := file.Read(first)
 	if err != nil {
 		t.Fatalf("read first chunk: %v", err)
 	}
+
+	// Verify the first chunk length and contents.
 	if n != len(first) {
 		t.Fatalf("first chunk length = %d, want %d", n, len(first))
 	}
@@ -95,11 +107,14 @@ func TestFSFileReadSkipsReaderOnlyOffsetBeforeFinalBytes(t *testing.T) {
 		t.Fatal("first chunk data mismatch")
 	}
 
+	// Read the trailing bytes after the first chunk.
 	second := make([]byte, 32*1024)
 	n, err = file.Read(second)
 	if err != nil {
 		t.Fatalf("read final bytes: %v", err)
 	}
+
+	// Verify that the trailing bytes match the end of the file.
 	if n != 105 {
 		t.Fatalf("final read length = %d, want 105", n)
 	}
@@ -107,6 +122,7 @@ func TestFSFileReadSkipsReaderOnlyOffsetBeforeFinalBytes(t *testing.T) {
 		t.Fatal("final read data mismatch")
 	}
 
+	// Verify that a subsequent read reports the end of the file.
 	n, err = file.Read(second)
 	if n != 0 || err != io.EOF {
 		t.Fatalf("post-final read = %d, %v; want 0, EOF", n, err)

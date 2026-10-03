@@ -38,6 +38,7 @@ func ApplyDevBranding(
 	appName string,
 	iconPath string,
 ) (string, error) {
+	// Keep the standard Electron executable when no application name is supplied.
 	if appName == "" {
 		return GetElectronBinName(plat), nil
 	}
@@ -49,13 +50,14 @@ func ApplyDevBranding(
 		return getBrandedBinName(plat, appName), nil
 	}
 
+	// Select the native platform layout for Electron branding.
 	np, ok := plat.(*bldr_platform.NativePlatform)
 	if !ok {
 		return GetElectronBinName(plat), nil
 	}
 
+	// Apply the application name and icon using the native platform tools.
 	le.WithField("app-name", appName).Info("applying dev-mode branding to Electron")
-
 	var binName string
 	var err error
 	switch np.GetGOOS() {
@@ -97,6 +99,7 @@ func getBrandedBinName(plat bldr_platform.Platform, appName string) string {
 // applyDarwinBranding edits Info.plist, renames the .app and binary, strips quarantine.
 // If iconPath points to a PNG, converts to .icns and copies to Resources/.
 func applyDarwinBranding(ctx context.Context, le *logrus.Entry, electronDistPath, appName, iconPath string) (string, error) {
+	// Locate the Electron app bundle metadata.
 	appDir := filepath.Join(electronDistPath, "Electron.app")
 	contentsDir := filepath.Join(appDir, "Contents")
 	plistPath := filepath.Join(contentsDir, "Info.plist")
@@ -107,6 +110,7 @@ func applyDarwinBranding(ctx context.Context, le *logrus.Entry, electronDistPath
 		return "", errors.Wrap(err, "read Info.plist")
 	}
 
+	// Apply the application name to the bundle identity and executable metadata.
 	plist := string(plistData)
 	plist = updatePlistStringValue(plist, "CFBundleName", appName)
 	plist = updatePlistStringValue(plist, "CFBundleDisplayName", appName)
@@ -144,13 +148,13 @@ func applyDarwinBranding(ctx context.Context, le *logrus.Entry, electronDistPath
 	if out, xErr := xattrCmd.CombinedOutput(); xErr != nil {
 		le.WithError(xErr).WithField("output", string(out)).Debug("xattr strip (non-fatal)")
 	}
-
 	le.Debug("macOS branding applied")
 	return appName + ".app/Contents/MacOS/" + appName, nil
 }
 
 // convertAndCopyDarwinIcon converts a PNG to .icns and copies to Resources/.
 func convertAndCopyDarwinIcon(ctx context.Context, le *logrus.Entry, srcPng, contentsDir string) error {
+	// Locate the app bundle directory that receives the converted icon.
 	resourcesDir := filepath.Join(contentsDir, "Resources")
 
 	// Create a temporary iconset directory.
@@ -163,12 +167,14 @@ func convertAndCopyDarwinIcon(ctx context.Context, le *logrus.Entry, srcPng, con
 	// Generate icon sizes using sips.
 	sizes := []int{16, 32, 64, 128, 256, 512}
 	for _, sz := range sizes {
+		// Render the standard-resolution icon for this iconset size.
 		outFile := filepath.Join(iconsetDir, "icon_"+strconv.Itoa(sz)+"x"+strconv.Itoa(sz)+".png")
 		// #nosec G204 -- sips is invoked with local bundle asset paths selected by the builder.
 		cmd := osexec.CommandContext(ctx, "sips", "-z", strconv.Itoa(sz), strconv.Itoa(sz), srcPng, "--out", outFile)
 		if out, err := cmd.CombinedOutput(); err != nil {
 			return errors.Wrapf(err, "sips %dx%d: %s", sz, sz, string(out))
 		}
+
 		// Generate @2x variant.
 		sz2 := sz * 2
 		if sz2 <= 1024 {
@@ -187,7 +193,6 @@ func convertAndCopyDarwinIcon(ctx context.Context, le *logrus.Entry, srcPng, con
 	if out, err := cmd.CombinedOutput(); err != nil {
 		return errors.Wrapf(err, "iconutil: %s", string(out))
 	}
-
 	le.Debug("macOS icon converted and copied")
 	return nil
 }
@@ -201,6 +206,7 @@ func convertAndCopyDarwinIcon(ctx context.Context, le *logrus.Entry, srcPng, con
 // original electron.exe when resedit succeeds; on failure we fall back
 // to a plain rename so the build still produces an (unbranded) binary.
 func applyWindowsBranding(ctx context.Context, le *logrus.Entry, electronDistPath, stateDir, appName, iconPath string) (string, error) {
+	// Locate the original and branded Windows executables.
 	exePath := filepath.Join(electronDistPath, "electron.exe")
 	newExePath := filepath.Join(electronDistPath, appName+".exe")
 
@@ -232,6 +238,7 @@ func applyWindowsBranding(ctx context.Context, le *logrus.Entry, electronDistPat
 		edited = true
 	}
 
+	// Retain only the branded executable, using a plain rename if resedit failed.
 	if edited {
 		// resedit wrote newExePath from exePath; drop the original.
 		if err := os.Remove(exePath); err != nil && !os.IsNotExist(err) {
@@ -243,7 +250,6 @@ func applyWindowsBranding(ctx context.Context, le *logrus.Entry, electronDistPat
 			return "", errors.Wrap(err, "rename electron.exe")
 		}
 	}
-
 	le.Debug("Windows branding applied")
 	return appName + ".exe", nil
 }
@@ -251,10 +257,12 @@ func applyWindowsBranding(ctx context.Context, le *logrus.Entry, electronDistPat
 // convertPngToIco converts a PNG to ICO using png-to-ico via bunx.
 // png-to-ico outputs .ico to stdout, so we capture and write to file.
 func convertPngToIco(ctx context.Context, le *logrus.Entry, stateDir, srcPng, destIco string) error {
+	// Prepare the PNG converter with the source icon.
 	cmd, err := npm.BunTool(ctx, le, stateDir, "png-to-ico@3.0.2", "png-to-ico", srcPng)
 	if err != nil {
 		return errors.Wrap(err, "setup png-to-ico")
 	}
+
 	// NewCmd presets Stdout to os.Stdout; clear it so Output() can bind its
 	// own buffer (Cmd.Output refuses to run when Stdout is already set).
 	cmd.Stdout = nil
@@ -262,11 +270,13 @@ func convertPngToIco(ctx context.Context, le *logrus.Entry, stateDir, srcPng, de
 	if err != nil {
 		return errors.Wrap(err, "run png-to-ico")
 	}
+
 	return os.WriteFile(destIco, outData, 0o644)
 }
 
 // applyLinuxBranding renames the electron binary and copies the icon.
 func applyLinuxBranding(electronDistPath, appName, iconPath string) (string, error) {
+	// Rename the Linux Electron executable and retain executable permissions.
 	oldPath := filepath.Join(electronDistPath, "electron")
 	newPath := filepath.Join(electronDistPath, appName)
 	if err := os.Rename(oldPath, newPath); err != nil {
@@ -275,6 +285,7 @@ func applyLinuxBranding(electronDistPath, appName, iconPath string) (string, err
 	if err := os.Chmod(newPath, 0o755); err != nil {
 		return "", errors.Wrap(err, "chmod renamed binary")
 	}
+
 	// Copy icon to resources directory if provided.
 	if iconPath != "" {
 		resourcesDir := filepath.Join(electronDistPath, "resources")
@@ -286,6 +297,7 @@ func applyLinuxBranding(electronDistPath, appName, iconPath string) (string, err
 			}
 		}
 	}
+
 	return appName, nil
 }
 

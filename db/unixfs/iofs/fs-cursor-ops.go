@@ -33,15 +33,20 @@ type FSCursorOps struct {
 
 // newFSCursorOps constructs a new FSCursorOps.
 func newFSCursorOps(fsCursor *FSCursor, ifs fs.FS) (*FSCursorOps, error) {
+	// Load the metadata at the FSCursor path.
 	fpath := fsCursor.buildPathString()
 	fileInfo, err := fs.Stat(ifs, fpath)
 	if err != nil {
 		return nil, err
 	}
+
+	// Determine the UnixFS node type from the file mode.
 	ntype, err := unixfs.FileModeToNodeType(fileInfo.Mode())
 	if err != nil {
 		return nil, err
 	}
+
+	// Cache the directory entries for directory cursors.
 	var dirents []fs.DirEntry
 	if ntype.GetIsDirectory() {
 		dirents, err = fs.ReadDir(ifs, fpath)
@@ -49,6 +54,7 @@ func newFSCursorOps(fsCursor *FSCursor, ifs fs.FS) (*FSCursorOps, error) {
 			return nil, err
 		}
 	}
+
 	return &FSCursorOps{
 		FSCursorNodeType: ntype,
 		cursor:           fsCursor,
@@ -118,6 +124,7 @@ func (f *FSCursorOps) SetPermissions(ctx context.Context, fm fs.FileMode, ts tim
 
 // Read reads from an offset inside a file node.
 func (f *FSCursorOps) ReadAt(ctx context.Context, offset int64, data []byte) (int64, error) {
+	// Require a live file cursor before opening its contents.
 	if f.CheckReleased() {
 		return 0, unixfs_errors.ErrReleased
 	}
@@ -125,12 +132,14 @@ func (f *FSCursorOps) ReadAt(ctx context.Context, offset int64, data []byte) (in
 		return 0, unixfs_errors.ErrNotFile
 	}
 
+	// Open the cursor file for this read and close it on return.
 	ff, err := f.fs.Open(f.path)
 	if err != nil {
 		return 0, err
 	}
 	defer ff.Close()
 
+	// Use the file offset API available on the underlying file.
 	switch f := ff.(type) {
 	case io.ReaderAt:
 		rn, err := f.ReadAt(data, offset)
@@ -187,6 +196,7 @@ func (f *FSCursorOps) Truncate(ctx context.Context, nsize uint64, ts time.Time) 
 // Returns ErrReleased if the reference has been released.
 // Creates a new FSCursor at the new location.
 func (f *FSCursorOps) Lookup(ctx context.Context, name string) (unixfs.FSCursor, error) {
+	// Require a live FSCursor before searching its cached directory entries.
 	if f.CheckReleased() {
 		return nil, unixfs_errors.ErrReleased
 	}

@@ -91,6 +91,7 @@ func (f *FS) Open(name string) (fs.File, error) {
 // Stat returns a FileInfo describing the file.
 // If there is an error, it should be of type *PathError.
 func (f *FS) Stat(name string) (fs.FileInfo, error) {
+	// Resolve the file name relative to the FS root.
 	if f.ignorePath {
 		name = ""
 	} else if err := f.checkFilePath(name); err != nil {
@@ -99,6 +100,7 @@ func (f *FS) Stat(name string) (fs.FileInfo, error) {
 		name = ""
 	}
 
+	// Acquire the file handle for its metadata and release it after the read.
 	h, _, err := f.handle.LookupPath(f.ctx, name)
 	if err != nil {
 		if h != nil {
@@ -121,6 +123,7 @@ func (f *FS) Stat(name string) (fs.FileInfo, error) {
 // ReadDir reads the named directory
 // and returns a list of directory entries sorted by filename.
 func (f *FS) ReadDir(name string) ([]fs.DirEntry, error) {
+	// Resolve the directory name relative to the FS root.
 	if f.ignorePath {
 		name = ""
 	} else if err := f.checkFilePath(name); err != nil {
@@ -129,6 +132,7 @@ func (f *FS) ReadDir(name string) ([]fs.DirEntry, error) {
 		name = ""
 	}
 
+	// Acquire the directory handle for listing and release it after the read.
 	h, _, err := f.handle.LookupPath(f.ctx, name)
 	if err != nil {
 		if h != nil {
@@ -149,6 +153,7 @@ func (f *FS) ReadDir(name string) ([]fs.DirEntry, error) {
 // The caller is permitted to modify the returned byte slice.
 // This method should return a copy of the underlying data.
 func (f *FS) ReadFile(name string) ([]byte, error) {
+	// Resolve the file name relative to the FS root.
 	if f.ignorePath {
 		name = ""
 	} else if err := f.checkFilePath(name); err != nil {
@@ -157,6 +162,7 @@ func (f *FS) ReadFile(name string) ([]byte, error) {
 		name = ""
 	}
 
+	// Acquire the file handle for reading and release it after the read.
 	h, _, err := f.handle.LookupPath(f.ctx, name)
 	if err != nil {
 		if h != nil {
@@ -173,6 +179,7 @@ func (f *FS) ReadFile(name string) ([]byte, error) {
 	}
 	defer h.Release()
 
+	// Read the file size and finish immediately for an empty file.
 	// err = h.AccessOps(f.ctx,  func(ops unixfs.FSCursorOps) error {})
 	size, err := h.GetSize(f.ctx)
 	if err != nil {
@@ -181,10 +188,13 @@ func (f *FS) ReadFile(name string) ([]byte, error) {
 	if size == 0 {
 		return nil, nil
 	}
+
 	// cap size at MaxReadFileSize
 	if size > unixfs.MaxReadFileSize {
 		return nil, unixfs.NewReadFileSizeTooLargeError(size)
 	}
+
+	// Read the complete file into a buffer sized from its metadata.
 	data := make([]byte, size)
 	fileHandle := NewFSFile(f.ctx, h)
 	defer fileHandle.Close()

@@ -46,10 +46,13 @@ func newFSCursor(
 	name string,
 	path []string,
 ) (*FSCursor, error) {
+	// Determine the cursor depth from its parent.
 	var depth uint
 	if parent != nil {
 		depth = parent.depth + 1
 	}
+
+	// Construct the cursor with its filesystem position.
 	c := &FSCursor{
 		fs:     ifs,
 		depth:  depth,
@@ -57,11 +60,14 @@ func newFSCursor(
 		name:   name,
 		path:   path,
 	}
+
+	// Load the filesystem operations for the cursor position.
 	var err error
 	c.fsCursorOps, err = newFSCursorOps(c, ifs)
 	if err != nil {
 		return nil, err
 	}
+
 	return c, nil
 }
 
@@ -105,13 +111,17 @@ func (f *FSCursor) GetCursorOps(ctx context.Context) (unixfs.FSCursorOps, error)
 
 // buildChildCursor locks fs.rmtx and builds a child cursor with a name
 func (f *FSCursor) buildChildCursor(name string, dirent fs.DirEntry) (unixfs.FSCursor, error) {
+	// Extend the parent cursor path with the child entry name.
 	childPath := make([]string, len(f.path)+1)
 	copy(childPath, f.path)
 	childPath[len(childPath)-1] = name
+
+	// Construct the child cursor at the extended path.
 	cursor, err := newFSCursor(f.fs, f, name, childPath)
 	if err != nil {
 		return nil, err
 	}
+
 	return cursor, nil
 }
 

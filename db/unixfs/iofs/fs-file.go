@@ -67,6 +67,7 @@ func (f *FSFile) Stat() (fs.FileInfo, error) {
 // If it encounters an error before the end of the directory,
 // ReadDir returns the DirEntry list read until that point and a non-nil error.
 func (f *FSFile) ReadDir(count int) ([]fs.DirEntry, error) {
+	// Require a directory handle before reading its entries.
 	nodeType, err := f.handle.GetNodeType(f.ctx)
 	if err != nil {
 		return nil, err
@@ -75,6 +76,7 @@ func (f *FSFile) ReadDir(count int) ([]fs.DirEntry, error) {
 		return nil, unixfs_errors.ErrNotDirectory
 	}
 
+	// Resolve the directory offset and normalize the requested entry count.
 	var idx uint64
 	idxBefore := f.idx.Load()
 	if idxBefore > 0 {
@@ -84,6 +86,7 @@ func (f *FSFile) ReadDir(count int) ([]fs.DirEntry, error) {
 		count = 0
 	}
 
+	// Read directory entries and advance the offset or report the end.
 	ents, err := unixfs.ReaddirAllToDirEntries(f.ctx, idx, uint64(count), f.handle) //nolint:gosec
 	if err == nil {
 		nents := len(ents)

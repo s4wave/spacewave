@@ -265,7 +265,6 @@ func BuildElectronBundle(ctx context.Context, le *logrus.Entry, stateDir, bldrDi
 	runtimePathPrefix := "../../../../"
 	runtimeSwPath := runtimePathPrefix + swFilename
 	runtimeShwPath := runtimePathPrefix + shwFilename
-
 	var webStartupSrcPath string
 	if startupFilename != "" {
 		webStartupSrcPath = runtimePathPrefix + startupFilename
@@ -405,7 +404,6 @@ func DownloadElectronRedist(ctx context.Context, le *logrus.Entry, stateDir stri
 	if err := fsutil.CopyRecursive(destDir, electronDistPath, nil); err != nil {
 		return err
 	}
-
 	le.Debug("successfully downloaded electron")
 	return nil
 }
