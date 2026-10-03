@@ -84,23 +84,31 @@ export function validateSOOperationInner(inner: SOOperationInner): void {
     throw new Error('operation prev_op_hash must be a 32-byte hash')
   }
 
-  // Parents are distinct hashes in byte order and never repeat prev.
-  const parents = inner.parentHashes ?? []
+  // Parents are positions with distinct hashes in hash order and never
+  // repeat prev.
+  const parents = inner.parents ?? []
   if (parents.length > MAX_SO_OPERATION_PARENTS) {
-    throw new Error('operation parent_hashes exceeds the maximum count')
+    throw new Error('operation parents exceeds the maximum count')
   }
   const prevHex = bytesToHex(prev)
   let last = ''
   for (const [i, parent] of parents.entries()) {
-    if (parent.length !== 32) {
-      throw new Error(`parent_hashes[${i}] must be a 32-byte hash`)
+    if (!extractPublicKeyFromPeerID(parent.peerId ?? '')) {
+      throw new Error(`parents[${i}]: peer_id is invalid`)
     }
-    const hex = bytesToHex(parent)
+    if ((parent.nonce ?? 0n) === 0n) {
+      throw new Error(`parents[${i}]: nonce must be positive`)
+    }
+    const hash = parent.opHash ?? new Uint8Array()
+    if (hash.length !== 32) {
+      throw new Error(`parents[${i}] must name a 32-byte hash`)
+    }
+    const hex = bytesToHex(hash)
     if (hex <= last) {
-      throw new Error('operation parent_hashes must be strictly sorted')
+      throw new Error('operation parents must be strictly sorted by hash')
     }
     if (hex === prevHex) {
-      throw new Error('operation parent_hashes must not repeat prev_op_hash')
+      throw new Error('operation parents must not repeat prev_op_hash')
     }
     last = hex
   }
@@ -221,8 +229,8 @@ export class SOOperationSet {
     const named = new Set<string>()
     for (const inner of this.ops.values()) {
       named.add(bytesToHex(inner.prevOpHash ?? new Uint8Array()))
-      for (const parent of inner.parentHashes ?? []) {
-        named.add(bytesToHex(parent))
+      for (const parent of inner.parents ?? []) {
+        named.add(bytesToHex(parent.opHash ?? new Uint8Array()))
       }
     }
 

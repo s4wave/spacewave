@@ -26,11 +26,8 @@ func TestStablePoint(t *testing.T) {
 		t.Fatalf("stable point before acknowledgments: %d operations", len(got))
 	}
 	ids := []string{peers[0].GetPeerID().String(), peers[1].GetPeerID().String(), peers[2].GetPeerID().String()}
-	if set.NeedsAcknowledgment(roster, ids[0], ids[0], 1) || !set.NeedsAcknowledgment(roster, ids[0], ids[1], 2) || set.NeedsAcknowledgment(roster, ids[0], ids[1], 3) {
+	if set.NeedsAcknowledgment(ids[0], ids[0], 1) || !set.NeedsAcknowledgment(ids[0], ids[1], 2) || set.NeedsAcknowledgment(ids[0], ids[1], 3) {
 		t.Fatal("acknowledgment lag is not the unbuilt edit count")
-	}
-	if set.NeedsAcknowledgment(roster[:1], ids[0], ids[1], 1) {
-		t.Fatal("a member off the roster needs to acknowledge")
 	}
 
 	// After B and C acknowledge, A's edits are stable and no acknowledgment
@@ -42,7 +39,7 @@ func TestStablePoint(t *testing.T) {
 		t.Fatalf("stable point %x; want a1, a2", got)
 	}
 	for _, id := range ids {
-		if set.NeedsAcknowledgment(roster, ids[0], id, 1) {
+		if set.NeedsAcknowledgment(ids[0], id, 1) {
 			t.Fatal("an acknowledgment asked for another")
 		}
 	}
@@ -50,14 +47,14 @@ func TestStablePoint(t *testing.T) {
 	// An acknowledgment of the checkpointer asks B and C to answer at once.
 	writeTestOp(t, state, keys[0], "")
 	set = mustOperationSet(t, state)
-	if set.NeedsAcknowledgment(roster, ids[0], ids[0], 1) || !set.NeedsAcknowledgment(roster, ids[0], ids[1], AcknowledgmentLag) {
+	if set.NeedsAcknowledgment(ids[0], ids[0], 1) || !set.NeedsAcknowledgment(ids[0], ids[1], AcknowledgmentLag) {
 		t.Fatal("the checkpointer's acknowledgment did not ask the members to answer")
 	}
 	writeTestOp(t, state, keys[1], "")
 	writeTestOp(t, state, keys[2], "")
 	set = mustOperationSet(t, state)
 	for _, id := range ids {
-		if set.NeedsAcknowledgment(roster, ids[0], id, 1) {
+		if set.NeedsAcknowledgment(ids[0], id, 1) {
 			t.Fatal("an answer asked for another")
 		}
 	}
@@ -98,8 +95,8 @@ func TestCheckpointCoverKeepsLinks(t *testing.T) {
 	a1 := build(privA, &SOOperationLink{Nonce: 1})
 	a2 := build(privA, &SOOperationLink{Nonce: 2, PrevOpHash: a1.Hash()})
 	a3 := build(privA, &SOOperationLink{Nonce: 3, PrevOpHash: a2.Hash()})
-	b1 := build(privB, &SOOperationLink{Nonce: 1, ParentHashes: [][]byte{a1.Hash()}})
-	b2 := build(privB, &SOOperationLink{Nonce: 2, PrevOpHash: b1.Hash(), ParentHashes: [][]byte{a2.Hash()}})
+	b1 := build(privB, &SOOperationLink{Nonce: 1, Parents: []*SOOperationPosition{opPosition(t, a1)}})
+	b2 := build(privB, &SOOperationLink{Nonce: 2, PrevOpHash: b1.Hash(), Parents: []*SOOperationPosition{opPosition(t, a2)}})
 
 	// Hold them in one set.
 	ops := []*SOOperation{a1, a2, a3, b1, b2}
@@ -113,8 +110,7 @@ func TestCheckpointCoverKeepsLinks(t *testing.T) {
 	// Cover each prefix and replay the rest above the checkpoint.
 	order := set.Order()
 	for n := range order {
-		frontier, authors := set.cover(order[:n])
-		above := NewSOOperationSet(vectorObjectID, &SOCheckpointInner{Frontier: frontier, Authors: authors})
+		above := NewSOOperationSet(vectorObjectID, &SOCheckpointInner{Authors: set.cover(order[:n])})
 		for _, op := range ops {
 			if _, err := above.Add(op); err != nil {
 				t.Fatal(err)

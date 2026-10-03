@@ -50,10 +50,9 @@ func main() {
 			Height:             1,
 			PrevCheckpointHash: genesis.Hash(),
 			ConfigHash:         configHash[:],
-			Frontier:           [][]byte{head},
 			StateData:          []byte(fmt.Sprintf("state at %d", nonce)),
 			ReplayVersion:      sobject.SOReplayVersion,
-			Authors:            []*sobject.SOCheckpointAuthor{{PeerId: peerID.String(), Nonce: nonce, OpHash: head}},
+			Authors:            []*sobject.SOOperationPosition{{PeerId: peerID.String(), Nonce: nonce, OpHash: head}},
 		})
 		must(err)
 		return request(checkpoint)

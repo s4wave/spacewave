@@ -254,24 +254,24 @@ func buildCheckpointVectors(t *testing.T) []checkpointVector {
 	// Build a genesis.
 	genesisInner := &SOCheckpointInner{SharedObjectId: vectorObjectID, ConfigHash: configHash, StateData: []byte("genesis"), ReplayVersion: SOReplayVersion}
 	genesis := sign(genesisInner, privA)
-	authors := []*SOCheckpointAuthor{
+	authors := []*SOOperationPosition{
 		{PeerId: peerA, Nonce: 3, OpHash: bytes.Repeat([]byte{0xa3}, 32)},
 		{PeerId: peerB, Nonce: 1, OpHash: bytes.Repeat([]byte{0xb1}, 32)},
 	}
-	slices.SortFunc(authors, func(x, y *SOCheckpointAuthor) int { return strings.Compare(x.GetPeerId(), y.GetPeerId()) })
+	slices.SortFunc(authors, func(x, y *SOOperationPosition) int { return strings.Compare(x.GetPeerId(), y.GetPeerId()) })
 
 	// Build its successor covering one operation of each author.
 	nextInner := &SOCheckpointInner{
 		SharedObjectId: vectorObjectID, Height: 1, PrevCheckpointHash: genesis.Hash(), ConfigHash: configHash,
-		Frontier: [][]byte{bytes.Repeat([]byte{0xa3}, 32), bytes.Repeat([]byte{0xb1}, 32)}, StateData: []byte("next"),
+		StateData:     []byte("next"),
 		ReplayVersion: SOReplayVersion, KeyEpoch: 1, Authors: authors,
 	}
 
 	// Derive the invalid variants.
 	unsorted := nextInner.CloneVT()
 	slices.Reverse(unsorted.Authors)
-	genesisWithFrontier := genesisInner.CloneVT()
-	genesisWithFrontier.Frontier = nextInner.GetFrontier()
+	genesisWithAuthors := genesisInner.CloneVT()
+	genesisWithAuthors.Authors = nextInner.GetAuthors()
 	otherObject := genesisInner.CloneVT()
 	otherObject.SharedObjectId = "other-object"
 	forged := sign(genesisInner, privA)
@@ -291,7 +291,7 @@ func buildCheckpointVectors(t *testing.T) []checkpointVector {
 		{"signature-over-other-body", forged},
 		{"bound-to-other-object", sign(otherObject, privA)},
 		{"authors-unsorted", sign(unsorted, privA)},
-		{"genesis-names-frontier", sign(genesisWithFrontier, privA)},
+		{"genesis-names-authors", sign(genesisWithAuthors, privA)},
 	}
 	out := make([]checkpointVector, 0, len(cases))
 	for _, c := range cases {
@@ -327,13 +327,13 @@ func buildOperationVectors(t *testing.T, vectors *operationLogVectors) map[strin
 	a1 := build(privA, vectorObjectID, "a1", &SOOperationLink{Nonce: 1, ConfigHash: configHash}, "01k6h000000000000000000001")
 	b1 := build(privB, vectorObjectID, "b1", &SOOperationLink{Nonce: 1, ConfigHash: configHash}, "01k6h000000000000000000002")
 	a2 := build(privA, vectorObjectID, "a2", &SOOperationLink{
-		Nonce: 2, PrevOpHash: a1.Hash(), ParentHashes: [][]byte{b1.Hash()}, ConfigHash: configHash,
+		Nonce: 2, PrevOpHash: a1.Hash(), Parents: []*SOOperationPosition{opPosition(t, b1)}, ConfigHash: configHash,
 	}, "01k6h000000000000000000003")
 	a1Fork := build(privA, vectorObjectID, "a1-fork", &SOOperationLink{Nonce: 1, ConfigHash: configHash}, "01k6h000000000000000000004")
 
 	// B acknowledges A's head with an operation carrying no data.
 	b2Ack := build(privB, vectorObjectID, "", &SOOperationLink{
-		Nonce: 2, PrevOpHash: b1.Hash(), ParentHashes: [][]byte{a2.Hash()}, ConfigHash: configHash,
+		Nonce: 2, PrevOpHash: b1.Hash(), Parents: []*SOOperationPosition{opPosition(t, a2)}, ConfigHash: configHash,
 	}, "01k6h000000000000000000008")
 	valid := map[string]*SOOperation{"a1": a1, "b1": b1, "a2": a2, "a1-fork": a1Fork, "b2-ack": b2Ack}
 
@@ -350,7 +350,11 @@ func buildOperationVectors(t *testing.T, vectors *operationLogVectors) map[strin
 	unsorted := signVectorInner(t, privA, &SOOperationInner{
 		PeerId: peerA, LocalId: "01k6h000000000000000000007", Nonce: 2, OpData: []byte("x"),
 		SharedObjectId: vectorObjectID, ProtocolVersion: SOOperationProtocolVersion, PrevOpHash: a1.Hash(),
-		ParentHashes: [][]byte{bytes.Repeat([]byte{0xff}, 32), bytes.Repeat([]byte{0x01}, 32)}, ConfigHash: configHash,
+		Parents: []*SOOperationPosition{
+			{PeerId: peerA, Nonce: 1, OpHash: bytes.Repeat([]byte{0xff}, 32)},
+			{PeerId: peerA, Nonce: 1, OpHash: bytes.Repeat([]byte{0x01}, 32)},
+		},
+		ConfigHash: configHash,
 	})
 
 	// A tampered body no longer matches its signature.
@@ -403,7 +407,7 @@ func buildOperationSetVectors(t *testing.T, ops map[string]*SOOperation) []opera
 		}
 
 		// Record the heads and evidence in hex.
-		v := operationSetVector{Operations: names, Heads: hexHashes(set.Heads()), Equivocations: []equivocationVector{}}
+		v := operationSetVector{Operations: names, Heads: hexHashes(headHashes(set.Heads())), Equivocations: []equivocationVector{}}
 		for i, name := range names {
 			v.Name += map[bool]string{true: "+", false: ""}[i > 0] + name
 		}

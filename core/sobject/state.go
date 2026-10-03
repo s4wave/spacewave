@@ -193,8 +193,8 @@ func (s *SOState) NextOperationLink(sharedObjectID, peerID string) (*SOOperation
 
 	// Name every other head.
 	for _, head := range set.Heads() {
-		if !bytes.Equal(head, prev) {
-			link.ParentHashes = append(link.ParentHashes, head)
+		if !bytes.Equal(head.GetOpHash(), prev) {
+			link.Parents = append(link.Parents, head)
 		}
 	}
 	return link, nil

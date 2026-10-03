@@ -228,22 +228,30 @@ func (c *SharedObjectConfig) AdmitsOperation(peerID string, nonce uint64) bool {
 	if slices.ContainsFunc(c.GetParticipants(), func(p *SOParticipantConfig) bool { return p.GetPeerId() == peerID }) {
 		return true
 	}
-	i, ok := slices.BinarySearchFunc(c.GetRemovedAuthors(), peerID, func(a *SOCheckpointAuthor, id string) int {
+	i, ok := slices.BinarySearchFunc(c.GetRemovedAuthors(), peerID, func(a *SOOperationPosition, id string) int {
 		return strings.Compare(a.GetPeerId(), id)
 	})
 	return ok && nonce <= c.GetRemovedAuthors()[i].GetNonce()
 }
 
-// TrimRoster returns the trimming roster: every participant that can write
-// operations and is not dropped from the roster, in participant order.
-func (c *SharedObjectConfig) TrimRoster() []string {
-	var roster []string
+// Writers returns every participant that can write operations, in
+// participant order.
+func (c *SharedObjectConfig) Writers() []string {
+	var writers []string
 	for _, p := range c.GetParticipants() {
-		if CanWriteOps(p.GetRole()) && !slices.Contains(c.GetRosterDroppedPeerIds(), p.GetPeerId()) {
-			roster = append(roster, p.GetPeerId())
+		if CanWriteOps(p.GetRole()) {
+			writers = append(writers, p.GetPeerId())
 		}
 	}
-	return roster
+	return writers
+}
+
+// TrimRoster returns the trimming roster: every writer the roster does not
+// drop, in participant order.
+func (c *SharedObjectConfig) TrimRoster() []string {
+	return slices.DeleteFunc(c.Writers(), func(peerID string) bool {
+		return slices.Contains(c.GetRosterDroppedPeerIds(), peerID)
+	})
 }
 
 // Checkpointer returns the owner that checkpoints the stable point: the first

@@ -324,6 +324,14 @@ export enum SOConfigChangeType {
    * @generated from enum value: SO_CONFIG_CHANGE_TYPE_TRANSFER_OWNERSHIP = 8;
    */
   SO_CONFIG_CHANGE_TYPE_TRANSFER_OWNERSHIP = 8,
+
+  /**
+   * SO_CONFIG_CHANGE_TYPE_SET_ROSTER changes which writers the trimming roster
+   * drops.
+   *
+   * @generated from enum value: SO_CONFIG_CHANGE_TYPE_SET_ROSTER = 9;
+   */
+  SO_CONFIG_CHANGE_TYPE_SET_ROSTER = 9,
 }
 
 export const SOConfigChangeType_Enum = /* @__PURE__ */ createEnumType(
@@ -776,11 +784,11 @@ export const SOParticipantConfig: MessageType<SOParticipantConfig> =
   })
 
 /**
- * SOCheckpointAuthor is the last operation of one author a checkpoint covers.
+ * SOOperationPosition is an operation at one position of its author's chain.
  *
- * @generated from message sobject.SOCheckpointAuthor
+ * @generated from message sobject.SOOperationPosition
  */
-export interface SOCheckpointAuthor {
+export interface SOOperationPosition {
   /**
    * PeerId is the author.
    *
@@ -801,9 +809,9 @@ export interface SOCheckpointAuthor {
   opHash?: Uint8Array
 }
 
-export const SOCheckpointAuthor: MessageType<SOCheckpointAuthor> =
+export const SOOperationPosition: MessageType<SOOperationPosition> =
   /* @__PURE__ */ createMessageType({
-    typeName: 'sobject.SOCheckpointAuthor',
+    typeName: 'sobject.SOOperationPosition',
     fields: [
       { no: 1, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'nonce', kind: 'scalar', T: ScalarType.UINT64 },
@@ -844,9 +852,9 @@ export interface SharedObjectConfig {
    * by peer ID. Replay applies a removed author's operations up to that
    * operation and skips the rest, which may postdate the removal.
    *
-   * @generated from field: repeated sobject.SOCheckpointAuthor removed_authors = 12;
+   * @generated from field: repeated sobject.SOOperationPosition removed_authors = 12;
    */
-  removedAuthors?: SOCheckpointAuthor[]
+  removedAuthors?: SOOperationPosition[]
   /**
    * RosterDroppedPeerIds are the writers left off the trimming roster, sorted.
    * Every other writer is on the roster: the stable point waits until each
@@ -884,7 +892,7 @@ export const SharedObjectConfig: MessageType<SharedObjectConfig> =
         no: 12,
         name: 'removed_authors',
         kind: 'message',
-        T: SOCheckpointAuthor,
+        T: SOOperationPosition,
         repeated: true,
       },
       {
@@ -1172,14 +1180,6 @@ export interface SOCheckpointInner {
    */
   configHash?: Uint8Array
   /**
-   * Frontier is the covered operations a later operation may name: the heads
-   * of the covered prefix and every covered operation that a held operation
-   * above the prefix names, strictly sorted. Empty at genesis.
-   *
-   * @generated from field: repeated bytes frontier = 5;
-   */
-  frontier?: Uint8Array[]
-  /**
    * StateData is the World state after the prefix, encrypted with the key of
    * key_epoch.
    *
@@ -1202,9 +1202,9 @@ export interface SOCheckpointInner {
    * Authors are the last covered operation of each author, sorted by peer_id.
    * An operation at or below its author's entry is covered. Empty at genesis.
    *
-   * @generated from field: repeated sobject.SOCheckpointAuthor authors = 9;
+   * @generated from field: repeated sobject.SOOperationPosition authors = 9;
    */
-  authors?: SOCheckpointAuthor[]
+  authors?: SOOperationPosition[]
 }
 
 export const SOCheckpointInner: MessageType<SOCheckpointInner> =
@@ -1220,13 +1220,6 @@ export const SOCheckpointInner: MessageType<SOCheckpointInner> =
         T: ScalarType.BYTES,
       },
       { no: 4, name: 'config_hash', kind: 'scalar', T: ScalarType.BYTES },
-      {
-        no: 5,
-        name: 'frontier',
-        kind: 'scalar',
-        T: ScalarType.BYTES,
-        repeated: true,
-      },
       { no: 6, name: 'state_data', kind: 'scalar', T: ScalarType.BYTES },
       { no: 7, name: 'replay_version', kind: 'scalar', T: ScalarType.UINT32 },
       { no: 8, name: 'key_epoch', kind: 'scalar', T: ScalarType.UINT64 },
@@ -1234,7 +1227,7 @@ export const SOCheckpointInner: MessageType<SOCheckpointInner> =
         no: 9,
         name: 'authors',
         kind: 'message',
-        T: SOCheckpointAuthor,
+        T: SOOperationPosition,
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
@@ -1327,12 +1320,13 @@ export interface SOOperationInner {
    */
   prevOpHash?: Uint8Array
   /**
-   * ParentHashes are the other heads the author knew, strictly sorted.
-   * Excludes prev_op_hash.
+   * Parents are the other heads the author knew, sorted by op_hash. Excludes
+   * the previous operation. A parent's position lets every member tell a
+   * parent its checkpoint covers from one it has not received yet.
    *
-   * @generated from field: repeated bytes parent_hashes = 8;
+   * @generated from field: repeated sobject.SOOperationPosition parents = 8;
    */
-  parentHashes?: Uint8Array[]
+  parents?: SOOperationPosition[]
   /**
    * ConfigHash is the config chain hash the operation was written under.
    *
@@ -1360,9 +1354,9 @@ export const SOOperationInner: MessageType<SOOperationInner> =
       { no: 7, name: 'prev_op_hash', kind: 'scalar', T: ScalarType.BYTES },
       {
         no: 8,
-        name: 'parent_hashes',
-        kind: 'scalar',
-        T: ScalarType.BYTES,
+        name: 'parents',
+        kind: 'message',
+        T: SOOperationPosition,
         repeated: true,
       },
       { no: 9, name: 'config_hash', kind: 'scalar', T: ScalarType.BYTES },

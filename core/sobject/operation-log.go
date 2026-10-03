@@ -34,8 +34,8 @@ type SOOperationLink struct {
 	Nonce uint64
 	// PrevOpHash is the hash of the author's previous operation, empty when Nonce is 1.
 	PrevOpHash []byte
-	// ParentHashes are the other heads the author knows.
-	ParentHashes [][]byte
+	// Parents are the other heads the author knows.
+	Parents []*SOOperationPosition
 	// ConfigHash is the config chain hash the operation is written under.
 	ConfigHash []byte
 	// KeyEpoch is the key epoch whose key encrypts the operation data.
@@ -82,7 +82,7 @@ func BuildSOOperation(
 		SharedObjectId:  sharedObjectID,
 		ProtocolVersion: SOOperationProtocolVersion,
 		PrevOpHash:      link.PrevOpHash,
-		ParentHashes:    sortedOperationHashes(link.ParentHashes, link.PrevOpHash),
+		Parents:         sortedParents(link.Parents, link.PrevOpHash),
 		ConfigHash:      link.ConfigHash,
 		KeyEpoch:        link.KeyEpoch,
 	}
@@ -106,16 +106,24 @@ func BuildSOOperation(
 	return op, nil
 }
 
-// sortedOperationHashes returns the distinct hashes in byte order without exclude.
-func sortedOperationHashes(hashes [][]byte, exclude []byte) [][]byte {
-	out := make([][]byte, 0, len(hashes))
-	for _, h := range hashes {
-		if !bytes.Equal(h, exclude) {
-			out = append(out, h)
+// sortedParents returns the parents with distinct hashes in hash order,
+// without prev.
+func sortedParents(parents []*SOOperationPosition, prev []byte) []*SOOperationPosition {
+	out := make([]*SOOperationPosition, 0, len(parents))
+	for _, parent := range parents {
+		if !bytes.Equal(parent.GetOpHash(), prev) {
+			out = append(out, parent)
 		}
 	}
-	slices.SortFunc(out, bytes.Compare)
-	return slices.CompactFunc(out, bytes.Equal)
+	slices.SortFunc(out, compareOpHash)
+	return slices.CompactFunc(out, func(a, b *SOOperationPosition) bool {
+		return bytes.Equal(a.GetOpHash(), b.GetOpHash())
+	})
+}
+
+// compareOpHash orders positions by operation hash.
+func compareOpHash(a, b *SOOperationPosition) int {
+	return bytes.Compare(a.GetOpHash(), b.GetOpHash())
 }
 
 // validateLinks checks the operation's chain, parent and config references.
@@ -137,20 +145,27 @@ func (i *SOOperationInner) validateLinks() error {
 		return errors.New("operation prev_op_hash must be a 32-byte hash")
 	}
 
-	// Parents are distinct hashes in byte order and never repeat prev.
-	parents := i.GetParentHashes()
+	// Parents are positions with distinct hashes in hash order and never
+	// repeat prev.
+	parents := i.GetParents()
 	if len(parents) > MaxSOOperationParents {
-		return errors.Wrap(ErrMaxCountExceeded, "operation parent_hashes")
+		return errors.Wrap(ErrMaxCountExceeded, "operation parents")
 	}
 	for j, parent := range parents {
-		if len(parent) != sha256.Size {
-			return errors.Errorf("parent_hashes[%d] must be a 32-byte hash", j)
+		if _, err := parsePeerIDField(parent.GetPeerId()); err != nil {
+			return errors.Wrapf(err, "parents[%d]", j)
 		}
-		if j > 0 && bytes.Compare(parents[j-1], parent) >= 0 {
-			return errors.New("operation parent_hashes must be strictly sorted")
+		if parent.GetNonce() == 0 {
+			return errors.Errorf("parents[%d]: nonce must be positive", j)
 		}
-		if bytes.Equal(parent, prev) {
-			return errors.New("operation parent_hashes must not repeat prev_op_hash")
+		if len(parent.GetOpHash()) != sha256.Size {
+			return errors.Errorf("parents[%d] must name a 32-byte hash", j)
+		}
+		if j > 0 && compareOpHash(parents[j-1], parent) >= 0 {
+			return errors.New("operation parents must be strictly sorted by hash")
+		}
+		if bytes.Equal(parent.GetOpHash(), prev) {
+			return errors.New("operation parents must not repeat prev_op_hash")
 		}
 	}
 
@@ -228,10 +243,8 @@ type SOOperationSet struct {
 	sharedObjectID string
 	ops            map[string]*SOOperationInner
 	byAuthorSeq    map[soAuthorSeq][]string
-	// frontier holds the checkpoint's heads.
-	frontier map[string]struct{}
 	// authors holds the last covered operation of each author.
-	authors map[string]*SOCheckpointAuthor
+	authors map[string]*SOOperationPosition
 }
 
 // soAuthorSeq identifies one position in one author's chain.
@@ -257,11 +270,7 @@ func NewSOOperationSet(sharedObjectID string, checkpoint *SOCheckpointInner) *SO
 		sharedObjectID: sharedObjectID,
 		ops:            make(map[string]*SOOperationInner),
 		byAuthorSeq:    make(map[soAuthorSeq][]string),
-		frontier:       make(map[string]struct{}, len(checkpoint.GetFrontier())),
-		authors:        make(map[string]*SOCheckpointAuthor, len(checkpoint.GetAuthors())),
-	}
-	for _, h := range checkpoint.GetFrontier() {
-		s.frontier[string(h)] = struct{}{}
+		authors:        make(map[string]*SOOperationPosition, len(checkpoint.GetAuthors())),
 	}
 	for _, author := range checkpoint.GetAuthors() {
 		s.authors[author.GetPeerId()] = author
@@ -276,17 +285,15 @@ func (s *SOOperationSet) Covers(peerID string, nonce uint64) bool {
 	return ok && nonce <= author.GetNonce()
 }
 
-// below reports whether h names an operation the checkpoint covers.
-func (s *SOOperationSet) below(h string) bool {
-	if _, ok := s.frontier[h]; ok {
-		return true
+// links returns the positions an operation names: its causal parents, then
+// its author's previous operation.
+func links(inner *SOOperationInner) []*SOOperationPosition {
+	parents := inner.GetParents()
+	if len(inner.GetPrevOpHash()) == 0 {
+		return parents
 	}
-	for _, author := range s.authors {
-		if string(author.GetOpHash()) == h {
-			return true
-		}
-	}
-	return false
+	prev := &SOOperationPosition{PeerId: inner.GetPeerId(), Nonce: inner.GetNonce() - 1, OpHash: inner.GetPrevOpHash()}
+	return append(slices.Clip(parents), prev)
 }
 
 // Add verifies op and adds it. It reports false when the set already holds it
@@ -318,31 +325,30 @@ func (s *SOOperationSet) Len() int {
 	return len(s.ops)
 }
 
-// Heads returns the operations and checkpoint heads no operation in the set
-// names, in byte order.
-func (s *SOOperationSet) Heads() [][]byte {
+// Heads returns the operations in the set and the checkpoint's author heads
+// that no operation in the set names, in hash order.
+func (s *SOOperationSet) Heads() []*SOOperationPosition {
 	// Collect every hash an operation names.
 	named := make(map[string]struct{}, len(s.ops))
 	for _, inner := range s.ops {
-		named[string(inner.GetPrevOpHash())] = struct{}{}
-		for _, parent := range inner.GetParentHashes() {
-			named[string(parent)] = struct{}{}
+		for _, link := range links(inner) {
+			named[string(link.GetOpHash())] = struct{}{}
 		}
 	}
 
 	// The heads are the operations and checkpoint heads left unnamed.
-	heads := make([][]byte, 0, len(s.ops)+len(s.frontier))
-	for key := range s.ops {
+	heads := make([]*SOOperationPosition, 0, len(s.ops)+len(s.authors))
+	for key, inner := range s.ops {
 		if _, ok := named[key]; !ok {
-			heads = append(heads, []byte(key))
+			heads = append(heads, &SOOperationPosition{PeerId: inner.GetPeerId(), Nonce: inner.GetNonce(), OpHash: []byte(key)})
 		}
 	}
-	for key := range s.frontier {
-		if _, ok := named[key]; !ok {
-			heads = append(heads, []byte(key))
+	for _, author := range s.authors {
+		if _, ok := named[string(author.GetOpHash())]; !ok {
+			heads = append(heads, author)
 		}
 	}
-	slices.SortFunc(heads, bytes.Compare)
+	slices.SortFunc(heads, compareOpHash)
 	return heads
 }
 
@@ -392,19 +398,16 @@ func (s *SOOperationSet) Ancestors(h []byte) map[string]struct{} {
 		if inner == nil {
 			continue
 		}
-		links := inner.GetParentHashes()
-		if prev := inner.GetPrevOpHash(); len(prev) != 0 {
-			links = append(slices.Clip(links), prev)
-		}
 
 		// Record each link the first time it is reached.
-		for _, link := range links {
-			if _, ok := ancestors[string(link)]; ok {
+		for _, link := range links(inner) {
+			key := string(link.GetOpHash())
+			if _, ok := ancestors[key]; ok {
 				continue
 			}
-			if _, ok := s.ops[string(link)]; ok {
-				ancestors[string(link)] = struct{}{}
-				stack = append(stack, string(link))
+			if _, ok := s.ops[key]; ok {
+				ancestors[key] = struct{}{}
+				stack = append(stack, key)
 			}
 		}
 	}
@@ -414,24 +417,24 @@ func (s *SOOperationSet) Ancestors(h []byte) map[string]struct{} {
 // Order returns the replay order of the operations whose ancestry the set or
 // its checkpoint holds: a topological order of the operation DAG with
 // concurrent operations in byte order of their hashes. Every member holding the
-// same operations computes the same order. An operation naming one the set
-// lacks waits, with its descendants, until the missing operation arrives.
+// same operations above the same checkpoint computes the same order. An
+// operation naming one the set lacks and the checkpoint does not cover waits,
+// with its descendants, until the missing operation arrives. An operation that
+// arrives after the checkpoint covered what it names, such as an edit from a
+// device off the trimming roster, is placed above the checkpoint.
 func (s *SOOperationSet) Order() [][]byte {
 	// Count the links of every operation and index its children.
 	pending := make(map[string]int, len(s.ops))
 	children := make(map[string][]string, len(s.ops))
 	var ready []string
 	for key, inner := range s.ops {
-		links := inner.GetParentHashes()
-		if prev := inner.GetPrevOpHash(); len(prev) != 0 {
-			links = append(slices.Clip(links), prev)
-		}
 		n := 0
-		for _, link := range links {
-			if _, ok := s.ops[string(link)]; !ok && s.below(string(link)) {
+		for _, link := range links(inner) {
+			h := string(link.GetOpHash())
+			if _, ok := s.ops[h]; !ok && s.Covers(link.GetPeerId(), link.GetNonce()) {
 				continue
 			}
-			children[string(link)] = append(children[string(link)], key)
+			children[h] = append(children[h], key)
 			n++
 		}
 		pending[key] = n

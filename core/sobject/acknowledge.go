@@ -2,6 +2,7 @@ package sobject
 
 import (
 	"context"
+	"slices"
 )
 
 // Acknowledge calls write each time the local peer should acknowledge, as
@@ -30,16 +31,20 @@ func Acknowledge(ctx context.Context, so SharedObject, write func(context.Contex
 			continue
 		}
 
-		// Acknowledge when the local peer holds back the stable point.
+		// Acknowledge as a writer, on the roster or dropped from it, so a
+		// dropped device that returns answers the checkpointer too.
 		cfg, err := snap.GetConfig(ctx)
 		if err != nil {
 			return err
+		}
+		if !slices.Contains(cfg.Writers(), peerID) {
+			continue
 		}
 		set, err := snap.GetOperationSet(ctx)
 		if err != nil {
 			return err
 		}
-		if !set.NeedsAcknowledgment(cfg.TrimRoster(), cfg.Checkpointer(), peerID, AcknowledgmentLag) {
+		if !set.NeedsAcknowledgment(cfg.Checkpointer(), peerID, AcknowledgmentLag) {
 			continue
 		}
 		if err := write(ctx); err != nil {

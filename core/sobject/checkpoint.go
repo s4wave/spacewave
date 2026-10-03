@@ -1,10 +1,8 @@
 package sobject
 
 import (
-	"bytes"
 	"crypto/sha256"
 	"encoding/binary"
-	"maps"
 	"slices"
 	"strings"
 
@@ -92,11 +90,16 @@ func BuildGenesisSOCheckpoint(
 // stateDataEnc is the state after those operations, encrypted with the key of
 // the current key epoch.
 func (s *SOState) BuildNextCheckpoint(sharedObjectID string, privKey crypto.PrivKey, stateDataEnc []byte) (*SOCheckpoint, error) {
+	// Cover every held operation.
 	set, err := s.OperationSet(sharedObjectID)
 	if err != nil {
 		return nil, err
 	}
-	return s.buildCheckpoint(sharedObjectID, privKey, set.Heads(), set.coveredAuthors(), stateDataEnc)
+	held := make([][]byte, 0, set.Len())
+	for key := range set.ops {
+		held = append(held, []byte(key))
+	}
+	return s.buildCheckpoint(sharedObjectID, privKey, set.cover(held), stateDataEnc)
 }
 
 // UnmarshalInner decodes and checks the checkpoint body.
@@ -129,7 +132,7 @@ func (i *SOCheckpointInner) Validate() error {
 
 	// Genesis starts the chain; every later checkpoint names its predecessor.
 	if i.GetHeight() == 0 {
-		if len(i.GetPrevCheckpointHash()) != 0 || len(i.GetFrontier()) != 0 || len(i.GetAuthors()) != 0 {
+		if len(i.GetPrevCheckpointHash()) != 0 || len(i.GetAuthors()) != 0 {
 			return errors.New("genesis checkpoint must not name previous operations")
 		}
 		return nil
@@ -137,23 +140,12 @@ func (i *SOCheckpointInner) Validate() error {
 	if len(i.GetPrevCheckpointHash()) != sha256.Size {
 		return errors.New("checkpoint prev_checkpoint_hash must be a 32-byte hash")
 	}
-
-	// The frontier holds distinct hashes in byte order.
-	for j, h := range i.GetFrontier() {
-		if len(h) != sha256.Size {
-			return errors.Errorf("frontier[%d] must be a 32-byte hash", j)
-		}
-		if j > 0 && bytes.Compare(i.GetFrontier()[j-1], h) >= 0 {
-			return errors.New("checkpoint frontier must be strictly sorted")
-		}
-	}
-
 	return validateAuthorHeads("authors", i.GetAuthors())
 }
 
 // validateAuthorHeads checks that each author appears once, in peer ID order,
 // at a real operation. field names the list in errors.
-func validateAuthorHeads(field string, authors []*SOCheckpointAuthor) error {
+func validateAuthorHeads(field string, authors []*SOOperationPosition) error {
 	for j, author := range authors {
 		if _, err := parsePeerIDField(author.GetPeerId()); err != nil {
 			return errors.Wrapf(err, "%s[%d]", field, j)
@@ -232,34 +224,4 @@ func (c *SOCheckpoint) ValidateAuthority(sharedObjectID string, participants []*
 		}
 	}
 	return nil, errors.New("checkpoint is not signed by an owner")
-}
-
-// coveredAuthors returns the last operation of each author the set and its
-// checkpoint hold, sorted by peer ID.
-func (s *SOOperationSet) coveredAuthors() []*SOCheckpointAuthor {
-	// Start from the authors the checkpoint covers.
-	heads := make(map[string]*SOCheckpointAuthor, len(s.authors))
-	maps.Copy(heads, s.authors)
-
-	// Raise each author to its highest operation in the set.
-	for key, inner := range s.ops {
-		head, ok := heads[inner.GetPeerId()]
-		if !ok || inner.GetNonce() > head.GetNonce() {
-			heads[inner.GetPeerId()] = &SOCheckpointAuthor{
-				PeerId: inner.GetPeerId(),
-				Nonce:  inner.GetNonce(),
-				OpHash: []byte(key),
-			}
-		}
-	}
-
-	// Sort by peer ID.
-	out := make([]*SOCheckpointAuthor, 0, len(heads))
-	for _, author := range heads {
-		out = append(out, author)
-	}
-	slices.SortFunc(out, func(a, b *SOCheckpointAuthor) int {
-		return strings.Compare(a.GetPeerId(), b.GetPeerId())
-	})
-	return out
 }

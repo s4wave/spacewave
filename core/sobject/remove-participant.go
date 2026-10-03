@@ -52,10 +52,15 @@ func RemoveSOParticipants(
 		return nil, nil
 	}
 
-	// Sign the removal and prune the removed peers' grants with it.
+	// Sign the removal, dropping the removed peers from the roster's drops, and
+	// prune their grants with it.
 	nextCfg := currentCfg.CloneVT()
 	nextCfg.Participants = slices.DeleteFunc(nextCfg.Participants, func(participant *SOParticipantConfig) bool {
 		_, ok := targets[participant.GetPeerId()]
+		return ok
+	})
+	nextCfg.RosterDroppedPeerIds = slices.DeleteFunc(nextCfg.RosterDroppedPeerIds, func(peerID string) bool {
+		_, ok := targets[peerID]
 		return ok
 	})
 	if err := pinRemovedAuthors(host.GetSharedObjectID(), state, nextCfg, removed); err != nil {
@@ -97,7 +102,7 @@ func pinRemovedAuthors(sharedObjectID string, state *SOState, next *SharedObject
 	}
 
 	// Keep each earlier pin a later checkpoint or rejoin has not made redundant.
-	pins := make(map[string]*SOCheckpointAuthor, len(next.GetRemovedAuthors())+len(peers))
+	pins := make(map[string]*SOOperationPosition, len(next.GetRemovedAuthors())+len(peers))
 	for _, pin := range next.GetRemovedAuthors() {
 		participates := slices.ContainsFunc(next.GetParticipants(), func(p *SOParticipantConfig) bool { return p.GetPeerId() == pin.GetPeerId() })
 		if !participates && !set.Covers(pin.GetPeerId(), pin.GetNonce()) {
@@ -109,12 +114,12 @@ func pinRemovedAuthors(sharedObjectID string, state *SOState, next *SharedObject
 	for _, peerID := range peers {
 		nonce, head := set.AuthorHead(peerID)
 		if nonce != 0 && !set.Covers(peerID, nonce) {
-			pins[peerID] = &SOCheckpointAuthor{PeerId: peerID, Nonce: nonce, OpHash: head}
+			pins[peerID] = &SOOperationPosition{PeerId: peerID, Nonce: nonce, OpHash: head}
 		}
 	}
 
 	// Store them in peer ID order.
-	next.RemovedAuthors = slices.SortedFunc(maps.Values(pins), func(a, b *SOCheckpointAuthor) int {
+	next.RemovedAuthors = slices.SortedFunc(maps.Values(pins), func(a, b *SOOperationPosition) int {
 		return strings.Compare(a.GetPeerId(), b.GetPeerId())
 	})
 	return nil

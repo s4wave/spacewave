@@ -121,7 +121,7 @@ func TestNextOperationLink(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if link.Nonce != 1 || len(link.PrevOpHash) != 0 || len(link.ParentHashes) != 0 {
+	if link.Nonce != 1 || len(link.PrevOpHash) != 0 || len(link.Parents) != 0 {
 		t.Fatalf("first link %v; want nonce 1 and no heads", link)
 	}
 	if !bytes.Equal(link.ConfigHash, state.GetConfig().GetConfigChainHash()) {
@@ -138,7 +138,7 @@ func TestNextOperationLink(t *testing.T) {
 	if link.Nonce != 2 || !bytes.Equal(link.PrevOpHash, first.Hash()) {
 		t.Fatalf("second link %v; want nonce 2 after the first", link)
 	}
-	if len(link.ParentHashes) != 1 || !bytes.Equal(link.ParentHashes[0], other.Hash()) {
+	if len(link.Parents) != 1 || !bytes.Equal(link.Parents[0].GetOpHash(), other.Hash()) {
 		t.Fatal("second link does not name the other author's head")
 	}
 }

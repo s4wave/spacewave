@@ -1,5 +1,5 @@
 import { sha256 } from '@noble/hashes/sha2.js'
-import { bytesToHex, concatBytes } from '@noble/hashes/utils.js'
+import { concatBytes } from '@noble/hashes/utils.js'
 
 import { verifySignature } from '../../net/peer/signature.js'
 import { MAX_SO_PARTICIPANTS, validateSOAuthorHeads } from './config-chain.js'
@@ -62,30 +62,16 @@ export function validateSOCheckpointInner(inner: SOCheckpointInner): void {
   }
 
   // Genesis starts the chain; every later checkpoint names its predecessor.
-  const frontier = inner.frontier ?? []
   const authors = inner.authors ?? []
   const prev = inner.prevCheckpointHash ?? new Uint8Array()
   if ((inner.height ?? 0n) === 0n) {
-    if (prev.length !== 0 || frontier.length !== 0 || authors.length !== 0) {
+    if (prev.length !== 0 || authors.length !== 0) {
       throw new Error('genesis checkpoint must not name previous operations')
     }
     return
   }
   if (prev.length !== 32) {
     throw new Error('checkpoint prev_checkpoint_hash must be a 32-byte hash')
-  }
-
-  // The frontier holds distinct hashes in byte order.
-  let last = ''
-  for (const [i, h] of frontier.entries()) {
-    if (h.length !== 32) {
-      throw new Error(`frontier[${i}] must be a 32-byte hash`)
-    }
-    const hex = bytesToHex(h)
-    if (hex <= last) {
-      throw new Error('checkpoint frontier must be strictly sorted')
-    }
-    last = hex
   }
 
   validateSOAuthorHeads('authors', authors)

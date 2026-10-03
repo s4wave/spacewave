@@ -283,6 +283,9 @@ const (
 	// SO_CONFIG_CHANGE_TYPE_TRANSFER_OWNERSHIP promotes a participant to OWNER.
 	// When an owner departs, it carries the leave consent the successor commits.
 	SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_TRANSFER_OWNERSHIP SOConfigChangeType = 8
+	// SO_CONFIG_CHANGE_TYPE_SET_ROSTER changes which writers the trimming roster
+	// drops.
+	SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_SET_ROSTER SOConfigChangeType = 9
 )
 
 // Enum value maps for SOConfigChangeType.
@@ -297,6 +300,7 @@ var (
 		6: "SO_CONFIG_CHANGE_TYPE_INCREMENT_INVITE_USES",
 		7: "SO_CONFIG_CHANGE_TYPE_SELF_ENROLL_PEER",
 		8: "SO_CONFIG_CHANGE_TYPE_TRANSFER_OWNERSHIP",
+		9: "SO_CONFIG_CHANGE_TYPE_SET_ROSTER",
 	}
 	SOConfigChangeType_value = map[string]int32{
 		"SO_CONFIG_CHANGE_TYPE_UNKNOWN":               0,
@@ -308,6 +312,7 @@ var (
 		"SO_CONFIG_CHANGE_TYPE_INCREMENT_INVITE_USES": 6,
 		"SO_CONFIG_CHANGE_TYPE_SELF_ENROLL_PEER":      7,
 		"SO_CONFIG_CHANGE_TYPE_TRANSFER_OWNERSHIP":    8,
+		"SO_CONFIG_CHANGE_TYPE_SET_ROSTER":            9,
 	}
 )
 
@@ -700,7 +705,7 @@ type SharedObjectConfig struct {
 	// removed author whose operations the checkpoint does not yet cover, sorted
 	// by peer ID. Replay applies a removed author's operations up to that
 	// operation and skips the rest, which may postdate the removal.
-	RemovedAuthors []*SOCheckpointAuthor `protobuf:"bytes,12,rep,name=removed_authors,json=removedAuthors,proto3" json:"removedAuthors,omitempty"`
+	RemovedAuthors []*SOOperationPosition `protobuf:"bytes,12,rep,name=removed_authors,json=removedAuthors,proto3" json:"removedAuthors,omitempty"`
 	// RosterDroppedPeerIds are the writers left off the trimming roster, sorted.
 	// Every other writer is on the roster: the stable point waits until each
 	// has built on an operation before history below it is trimmed.
@@ -734,7 +739,7 @@ func (x *SharedObjectConfig) GetConfigChainSeqno() uint64 {
 	return 0
 }
 
-func (x *SharedObjectConfig) GetRemovedAuthors() []*SOCheckpointAuthor {
+func (x *SharedObjectConfig) GetRemovedAuthors() []*SOOperationPosition {
 	if x != nil {
 		return x.RemovedAuthors
 	}
@@ -1040,10 +1045,6 @@ type SOCheckpointInner struct {
 	PrevCheckpointHash []byte `protobuf:"bytes,3,opt,name=prev_checkpoint_hash,json=prevCheckpointHash,proto3" json:"prevCheckpointHash,omitempty"`
 	// ConfigHash is the config chain hash the checkpoint was signed under.
 	ConfigHash []byte `protobuf:"bytes,4,opt,name=config_hash,json=configHash,proto3" json:"configHash,omitempty"`
-	// Frontier is the covered operations a later operation may name: the heads
-	// of the covered prefix and every covered operation that a held operation
-	// above the prefix names, strictly sorted. Empty at genesis.
-	Frontier [][]byte `protobuf:"bytes,5,rep,name=frontier,proto3" json:"frontier,omitempty"`
 	// StateData is the World state after the prefix, encrypted with the key of
 	// key_epoch.
 	StateData []byte `protobuf:"bytes,6,opt,name=state_data,json=stateData,proto3" json:"stateData,omitempty"`
@@ -1053,7 +1054,7 @@ type SOCheckpointInner struct {
 	KeyEpoch uint64 `protobuf:"varint,8,opt,name=key_epoch,json=keyEpoch,proto3" json:"keyEpoch,omitempty"`
 	// Authors are the last covered operation of each author, sorted by peer_id.
 	// An operation at or below its author's entry is covered. Empty at genesis.
-	Authors []*SOCheckpointAuthor `protobuf:"bytes,9,rep,name=authors,proto3" json:"authors,omitempty"`
+	Authors []*SOOperationPosition `protobuf:"bytes,9,rep,name=authors,proto3" json:"authors,omitempty"`
 }
 
 func (x *SOCheckpointInner) Reset() {
@@ -1090,13 +1091,6 @@ func (x *SOCheckpointInner) GetConfigHash() []byte {
 	return nil
 }
 
-func (x *SOCheckpointInner) GetFrontier() [][]byte {
-	if x != nil {
-		return x.Frontier
-	}
-	return nil
-}
-
 func (x *SOCheckpointInner) GetStateData() []byte {
 	if x != nil {
 		return x.StateData
@@ -1118,15 +1112,15 @@ func (x *SOCheckpointInner) GetKeyEpoch() uint64 {
 	return 0
 }
 
-func (x *SOCheckpointInner) GetAuthors() []*SOCheckpointAuthor {
+func (x *SOCheckpointInner) GetAuthors() []*SOOperationPosition {
 	if x != nil {
 		return x.Authors
 	}
 	return nil
 }
 
-// SOCheckpointAuthor is the last operation of one author a checkpoint covers.
-type SOCheckpointAuthor struct {
+// SOOperationPosition is an operation at one position of its author's chain.
+type SOOperationPosition struct {
 	unknownFields []byte
 	// PeerId is the author.
 	PeerId string `protobuf:"bytes,1,opt,name=peer_id,json=peerId,proto3" json:"peerId,omitempty"`
@@ -1136,27 +1130,27 @@ type SOCheckpointAuthor struct {
 	OpHash []byte `protobuf:"bytes,3,opt,name=op_hash,json=opHash,proto3" json:"opHash,omitempty"`
 }
 
-func (x *SOCheckpointAuthor) Reset() {
-	*x = SOCheckpointAuthor{}
+func (x *SOOperationPosition) Reset() {
+	*x = SOOperationPosition{}
 }
 
-func (*SOCheckpointAuthor) ProtoMessage() {}
+func (*SOOperationPosition) ProtoMessage() {}
 
-func (x *SOCheckpointAuthor) GetPeerId() string {
+func (x *SOOperationPosition) GetPeerId() string {
 	if x != nil {
 		return x.PeerId
 	}
 	return ""
 }
 
-func (x *SOCheckpointAuthor) GetNonce() uint64 {
+func (x *SOOperationPosition) GetNonce() uint64 {
 	if x != nil {
 		return x.Nonce
 	}
 	return 0
 }
 
-func (x *SOCheckpointAuthor) GetOpHash() []byte {
+func (x *SOOperationPosition) GetOpHash() []byte {
 	if x != nil {
 		return x.OpHash
 	}
@@ -1218,9 +1212,10 @@ type SOOperationInner struct {
 	// PrevOpHash is the hash of the author's previous operation.
 	// Empty only when nonce is 1.
 	PrevOpHash []byte `protobuf:"bytes,7,opt,name=prev_op_hash,json=prevOpHash,proto3" json:"prevOpHash,omitempty"`
-	// ParentHashes are the other heads the author knew, strictly sorted.
-	// Excludes prev_op_hash.
-	ParentHashes [][]byte `protobuf:"bytes,8,rep,name=parent_hashes,json=parentHashes,proto3" json:"parentHashes,omitempty"`
+	// Parents are the other heads the author knew, sorted by op_hash. Excludes
+	// the previous operation. A parent's position lets every member tell a
+	// parent its checkpoint covers from one it has not received yet.
+	Parents []*SOOperationPosition `protobuf:"bytes,8,rep,name=parents,proto3" json:"parents,omitempty"`
 	// ConfigHash is the config chain hash the operation was written under.
 	ConfigHash []byte `protobuf:"bytes,9,opt,name=config_hash,json=configHash,proto3" json:"configHash,omitempty"`
 	// KeyEpoch is the key epoch whose key encrypted op_data.
@@ -1282,9 +1277,9 @@ func (x *SOOperationInner) GetPrevOpHash() []byte {
 	return nil
 }
 
-func (x *SOOperationInner) GetParentHashes() [][]byte {
+func (x *SOOperationInner) GetParents() []*SOOperationPosition {
 	if x != nil {
-		return x.ParentHashes
+		return x.Parents
 	}
 	return nil
 }
@@ -2324,7 +2319,6 @@ func (m *SOCheckpointInner) CloneVT() *SOCheckpointInner {
 	r.KeyEpoch = m.KeyEpoch
 	r.PrevCheckpointHash = protobuf_go_lite.CloneBytes(m.PrevCheckpointHash)
 	r.ConfigHash = protobuf_go_lite.CloneBytes(m.ConfigHash)
-	r.Frontier = protobuf_go_lite.CloneBytesSlice(m.Frontier)
 	r.StateData = protobuf_go_lite.CloneBytes(m.StateData)
 	r.Authors = protobuf_go_lite.CloneVTSlice(m.Authors)
 	if len(m.unknownFields) > 0 {
@@ -2337,11 +2331,11 @@ func (m *SOCheckpointInner) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
-func (m *SOCheckpointAuthor) CloneVT() *SOCheckpointAuthor {
+func (m *SOOperationPosition) CloneVT() *SOOperationPosition {
 	if m == nil {
-		return (*SOCheckpointAuthor)(nil)
+		return (*SOOperationPosition)(nil)
 	}
-	r := new(SOCheckpointAuthor)
+	r := new(SOOperationPosition)
 	r.PeerId = m.PeerId
 	r.Nonce = m.Nonce
 	r.OpHash = protobuf_go_lite.CloneBytes(m.OpHash)
@@ -2351,7 +2345,7 @@ func (m *SOCheckpointAuthor) CloneVT() *SOCheckpointAuthor {
 	return r
 }
 
-func (m *SOCheckpointAuthor) CloneMessageVT() protobuf_go_lite.CloneMessage {
+func (m *SOOperationPosition) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -2385,7 +2379,7 @@ func (m *SOOperationInner) CloneVT() *SOOperationInner {
 	r.KeyEpoch = m.KeyEpoch
 	r.OpData = protobuf_go_lite.CloneBytes(m.OpData)
 	r.PrevOpHash = protobuf_go_lite.CloneBytes(m.PrevOpHash)
-	r.ParentHashes = protobuf_go_lite.CloneBytesSlice(m.ParentHashes)
+	r.Parents = protobuf_go_lite.CloneVTSlice(m.Parents)
 	r.ConfigHash = protobuf_go_lite.CloneBytes(m.ConfigHash)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
@@ -2930,7 +2924,7 @@ func (this *SharedObjectConfig) EqualVT(that *SharedObjectConfig) bool {
 	if this.ConfigChainSeqno != that.ConfigChainSeqno {
 		return false
 	}
-	if !protobuf_go_lite.EqualVTSliceImplicit(this.RemovedAuthors, that.RemovedAuthors, func() *SOCheckpointAuthor { return &SOCheckpointAuthor{} }) {
+	if !protobuf_go_lite.EqualVTSliceImplicit(this.RemovedAuthors, that.RemovedAuthors, func() *SOOperationPosition { return &SOOperationPosition{} }) {
 		return false
 	}
 	if !protobuf_go_lite.EqualSlice(this.RosterDroppedPeerIds, that.RosterDroppedPeerIds) {
@@ -3133,9 +3127,6 @@ func (this *SOCheckpointInner) EqualVT(that *SOCheckpointInner) bool {
 	if !protobuf_go_lite.EqualBytes(this.ConfigHash, that.ConfigHash) {
 		return false
 	}
-	if !protobuf_go_lite.EqualBytesSlice(this.Frontier, that.Frontier) {
-		return false
-	}
 	if !protobuf_go_lite.EqualBytes(this.StateData, that.StateData) {
 		return false
 	}
@@ -3145,7 +3136,7 @@ func (this *SOCheckpointInner) EqualVT(that *SOCheckpointInner) bool {
 	if this.KeyEpoch != that.KeyEpoch {
 		return false
 	}
-	if !protobuf_go_lite.EqualVTSliceImplicit(this.Authors, that.Authors, func() *SOCheckpointAuthor { return &SOCheckpointAuthor{} }) {
+	if !protobuf_go_lite.EqualVTSliceImplicit(this.Authors, that.Authors, func() *SOOperationPosition { return &SOOperationPosition{} }) {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -3159,7 +3150,7 @@ func (this *SOCheckpointInner) EqualMessageVT(thatMsg any) bool {
 	return this.EqualVT(that)
 }
 
-func (this *SOCheckpointAuthor) EqualVT(that *SOCheckpointAuthor) bool {
+func (this *SOOperationPosition) EqualVT(that *SOOperationPosition) bool {
 	if this == that {
 		return true
 	} else if this == nil || that == nil {
@@ -3177,8 +3168,8 @@ func (this *SOCheckpointAuthor) EqualVT(that *SOCheckpointAuthor) bool {
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
-func (this *SOCheckpointAuthor) EqualMessageVT(thatMsg any) bool {
-	that, ok := thatMsg.(*SOCheckpointAuthor)
+func (this *SOOperationPosition) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*SOOperationPosition)
 	if !ok {
 		return false
 	}
@@ -3235,7 +3226,7 @@ func (this *SOOperationInner) EqualVT(that *SOOperationInner) bool {
 	if !protobuf_go_lite.EqualBytes(this.PrevOpHash, that.PrevOpHash) {
 		return false
 	}
-	if !protobuf_go_lite.EqualBytesSlice(this.ParentHashes, that.ParentHashes) {
+	if !protobuf_go_lite.EqualVTSliceImplicit(this.Parents, that.Parents, func() *SOOperationPosition { return &SOOperationPosition{} }) {
 		return false
 	}
 	if !protobuf_go_lite.EqualBytes(this.ConfigHash, that.ConfigHash) {
@@ -4618,7 +4609,7 @@ func (x *SharedObjectConfig) UnmarshalProtoJSON(s *json.UnmarshalState) {
 					x.RemovedAuthors = append(x.RemovedAuthors, nil)
 					return
 				}
-				v := &SOCheckpointAuthor{}
+				v := &SOOperationPosition{}
 				v.UnmarshalProtoJSON(s.WithField("removed_authors", false))
 				if s.Err() != nil {
 					return
@@ -5149,11 +5140,6 @@ func (x *SOCheckpointInner) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("configHash")
 		s.WriteBytes(x.ConfigHash)
 	}
-	if len(x.Frontier) > 0 || s.HasField("frontier") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("frontier")
-		s.WriteBytesArray(x.Frontier)
-	}
 	if len(x.StateData) > 0 || s.HasField("stateData") {
 		s.WriteMoreIf(&wroteField)
 		s.WriteObjectField("stateData")
@@ -5209,13 +5195,6 @@ func (x *SOCheckpointInner) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "config_hash", "configHash":
 			s.AddField("config_hash")
 			x.ConfigHash = s.ReadBytes()
-		case "frontier":
-			s.AddField("frontier")
-			if s.ReadNil() {
-				x.Frontier = nil
-				return
-			}
-			x.Frontier = s.ReadBytesArray()
 		case "state_data", "stateData":
 			s.AddField("state_data")
 			x.StateData = s.ReadBytes()
@@ -5236,7 +5215,7 @@ func (x *SOCheckpointInner) UnmarshalProtoJSON(s *json.UnmarshalState) {
 					x.Authors = append(x.Authors, nil)
 					return
 				}
-				v := &SOCheckpointAuthor{}
+				v := &SOOperationPosition{}
 				v.UnmarshalProtoJSON(s.WithField("authors", false))
 				if s.Err() != nil {
 					return
@@ -5252,8 +5231,8 @@ func (x *SOCheckpointInner) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
-// MarshalProtoJSON marshals the SOCheckpointAuthor message to JSON.
-func (x *SOCheckpointAuthor) MarshalProtoJSON(s *json.MarshalState) {
+// MarshalProtoJSON marshals the SOOperationPosition message to JSON.
+func (x *SOOperationPosition) MarshalProtoJSON(s *json.MarshalState) {
 	if x == nil {
 		s.WriteNil()
 		return
@@ -5278,13 +5257,13 @@ func (x *SOCheckpointAuthor) MarshalProtoJSON(s *json.MarshalState) {
 	s.WriteObjectEnd()
 }
 
-// MarshalJSON marshals the SOCheckpointAuthor to JSON.
-func (x *SOCheckpointAuthor) MarshalJSON() ([]byte, error) {
+// MarshalJSON marshals the SOOperationPosition to JSON.
+func (x *SOOperationPosition) MarshalJSON() ([]byte, error) {
 	return json.DefaultMarshalerConfig.Marshal(x)
 }
 
-// UnmarshalProtoJSON unmarshals the SOCheckpointAuthor message from JSON.
-func (x *SOCheckpointAuthor) UnmarshalProtoJSON(s *json.UnmarshalState) {
+// UnmarshalProtoJSON unmarshals the SOOperationPosition message from JSON.
+func (x *SOOperationPosition) UnmarshalProtoJSON(s *json.UnmarshalState) {
 	if s.ReadNil() {
 		return
 	}
@@ -5305,8 +5284,8 @@ func (x *SOCheckpointAuthor) UnmarshalProtoJSON(s *json.UnmarshalState) {
 	})
 }
 
-// UnmarshalJSON unmarshals the SOCheckpointAuthor from JSON.
-func (x *SOCheckpointAuthor) UnmarshalJSON(b []byte) error {
+// UnmarshalJSON unmarshals the SOOperationPosition from JSON.
+func (x *SOOperationPosition) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -5407,10 +5386,16 @@ func (x *SOOperationInner) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("prevOpHash")
 		s.WriteBytes(x.PrevOpHash)
 	}
-	if len(x.ParentHashes) > 0 || s.HasField("parentHashes") {
+	if len(x.Parents) > 0 || s.HasField("parents") {
 		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("parentHashes")
-		s.WriteBytesArray(x.ParentHashes)
+		s.WriteObjectField("parents")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.Parents {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("parents"))
+		}
+		s.WriteArrayEnd()
 	}
 	if len(x.ConfigHash) > 0 || s.HasField("configHash") {
 		s.WriteMoreIf(&wroteField)
@@ -5460,13 +5445,24 @@ func (x *SOOperationInner) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "prev_op_hash", "prevOpHash":
 			s.AddField("prev_op_hash")
 			x.PrevOpHash = s.ReadBytes()
-		case "parent_hashes", "parentHashes":
-			s.AddField("parent_hashes")
+		case "parents":
+			s.AddField("parents")
 			if s.ReadNil() {
-				x.ParentHashes = nil
+				x.Parents = nil
 				return
 			}
-			x.ParentHashes = s.ReadBytesArray()
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.Parents = append(x.Parents, nil)
+					return
+				}
+				v := &SOOperationPosition{}
+				v.UnmarshalProtoJSON(s.WithField("parents", false))
+				if s.Err() != nil {
+					return
+				}
+				x.Parents = append(x.Parents, v)
+			})
 		case "config_hash", "configHash":
 			s.AddField("config_hash")
 			x.ConfigHash = s.ReadBytes()
@@ -7566,13 +7562,6 @@ func (m *SOCheckpointInner) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i--
 		dAtA[i] = 0x32
 	}
-	if len(m.Frontier) > 0 {
-		for iNdEx := len(m.Frontier) - 1; iNdEx >= 0; iNdEx-- {
-			i = protobuf_go_lite.EncodeBytes(dAtA, i, m.Frontier[iNdEx])
-			i--
-			dAtA[i] = 0x2a
-		}
-	}
 	if len(m.ConfigHash) > 0 {
 		i = protobuf_go_lite.EncodeBytes(dAtA, i, m.ConfigHash)
 		i--
@@ -7596,7 +7585,7 @@ func (m *SOCheckpointInner) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
-func (m *SOCheckpointAuthor) MarshalVT() (dAtA []byte, err error) {
+func (m *SOOperationPosition) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
 	}
@@ -7609,12 +7598,12 @@ func (m *SOCheckpointAuthor) MarshalVT() (dAtA []byte, err error) {
 	return dAtA[:n], nil
 }
 
-func (m *SOCheckpointAuthor) MarshalToVT(dAtA []byte) (int, error) {
+func (m *SOOperationPosition) MarshalToVT(dAtA []byte) (int, error) {
 	size := m.SizeVT()
 	return m.MarshalToSizedBufferVT(dAtA[:size])
 }
 
-func (m *SOCheckpointAuthor) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+func (m *SOOperationPosition) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m == nil {
 		return 0, nil
 	}
@@ -7729,9 +7718,14 @@ func (m *SOOperationInner) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i--
 		dAtA[i] = 0x4a
 	}
-	if len(m.ParentHashes) > 0 {
-		for iNdEx := len(m.ParentHashes) - 1; iNdEx >= 0; iNdEx-- {
-			i = protobuf_go_lite.EncodeBytes(dAtA, i, m.ParentHashes[iNdEx])
+	if len(m.Parents) > 0 {
+		for iNdEx := len(m.Parents) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.Parents[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
 			i--
 			dAtA[i] = 0x42
 		}
@@ -8977,7 +8971,6 @@ func (m *SOCheckpointInner) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.Height)
 	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.PrevCheckpointHash)
 	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.ConfigHash)
-	n += protobuf_go_lite.SizeBytesSlice(1, m.Frontier)
 	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.StateData)
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.ReplayVersion)
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.KeyEpoch)
@@ -8989,7 +8982,7 @@ func (m *SOCheckpointInner) SizeVT() (n int) {
 	return n
 }
 
-func (m *SOCheckpointAuthor) SizeVT() (n int) {
+func (m *SOOperationPosition) SizeVT() (n int) {
 	if m == nil {
 		return 0
 	}
@@ -9030,7 +9023,10 @@ func (m *SOOperationInner) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.SharedObjectId)
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.ProtocolVersion)
 	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.PrevOpHash)
-	n += protobuf_go_lite.SizeBytesSlice(1, m.ParentHashes)
+	for _, e := range m.Parents {
+		l = e.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
 	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.ConfigHash)
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.KeyEpoch)
 	n += len(m.unknownFields)
@@ -9591,7 +9587,7 @@ func (x *SharedObjectConfig) MarshalProtoText() string {
 		for i, v := range x.RemovedAuthors {
 			protobuf_go_lite.TextWriteListSeparator(&sb, i)
 			if v == nil {
-				protobuf_go_lite.TextWriteTextMarshaler(&sb, &SOCheckpointAuthor{})
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, &SOOperationPosition{})
 			} else {
 				protobuf_go_lite.TextWriteTextMarshaler(&sb, v)
 			}
@@ -9812,14 +9808,6 @@ func (x *SOCheckpointInner) MarshalProtoText() string {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "config_hash")
 		protobuf_go_lite.TextWriteBytes(&sb, x.ConfigHash)
 	}
-	if len(x.Frontier) > 0 {
-		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "frontier")
-		for i, v := range x.Frontier {
-			protobuf_go_lite.TextWriteListSeparator(&sb, i)
-			protobuf_go_lite.TextWriteBytes(&sb, v)
-		}
-		protobuf_go_lite.TextWriteListEnd(&sb)
-	}
 	if len(x.StateData) != 0 {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "state_data")
 		protobuf_go_lite.TextWriteBytes(&sb, x.StateData)
@@ -9837,7 +9825,7 @@ func (x *SOCheckpointInner) MarshalProtoText() string {
 		for i, v := range x.Authors {
 			protobuf_go_lite.TextWriteListSeparator(&sb, i)
 			if v == nil {
-				protobuf_go_lite.TextWriteTextMarshaler(&sb, &SOCheckpointAuthor{})
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, &SOOperationPosition{})
 			} else {
 				protobuf_go_lite.TextWriteTextMarshaler(&sb, v)
 			}
@@ -9851,9 +9839,9 @@ func (x *SOCheckpointInner) String() string {
 	return x.MarshalProtoText()
 }
 
-func (x *SOCheckpointAuthor) MarshalProtoText() string {
+func (x *SOOperationPosition) MarshalProtoText() string {
 	var sb protobuf_go_lite.TextBuilder
-	initialLen := protobuf_go_lite.TextStartMessage(&sb, "SOCheckpointAuthor")
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "SOOperationPosition")
 	if x.PeerId != "" {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "peer_id")
 		protobuf_go_lite.TextWriteString(&sb, x.PeerId)
@@ -9869,7 +9857,7 @@ func (x *SOCheckpointAuthor) MarshalProtoText() string {
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
 
-func (x *SOCheckpointAuthor) String() string {
+func (x *SOOperationPosition) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -9922,11 +9910,15 @@ func (x *SOOperationInner) MarshalProtoText() string {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "prev_op_hash")
 		protobuf_go_lite.TextWriteBytes(&sb, x.PrevOpHash)
 	}
-	if len(x.ParentHashes) > 0 {
-		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "parent_hashes")
-		for i, v := range x.ParentHashes {
+	if len(x.Parents) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "parents")
+		for i, v := range x.Parents {
 			protobuf_go_lite.TextWriteListSeparator(&sb, i)
-			protobuf_go_lite.TextWriteBytes(&sb, v)
+			if v == nil {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, &SOOperationPosition{})
+			} else {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, v)
+			}
 		}
 		protobuf_go_lite.TextWriteListEnd(&sb)
 	}
@@ -11023,7 +11015,7 @@ func (m *SharedObjectConfig) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
-			m.RemovedAuthors = append(m.RemovedAuthors, &SOCheckpointAuthor{})
+			m.RemovedAuthors = append(m.RemovedAuthors, &SOOperationPosition{})
 			if err := m.RemovedAuthors[len(m.RemovedAuthors)-1].UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
 				return err
 			}
@@ -11619,16 +11611,6 @@ func (m *SOCheckpointInner) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
-		case 5:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Frontier", wireType)
-			}
-			var v []byte
-			v, iNdEx, err = protobuf_go_lite.DecodeBytes(dAtA, iNdEx, true)
-			if err != nil {
-				return err
-			}
-			m.Frontier = append(m.Frontier, v)
 		case 6:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field StateData", wireType)
@@ -11663,7 +11645,7 @@ func (m *SOCheckpointInner) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
-			m.Authors = append(m.Authors, &SOCheckpointAuthor{})
+			m.Authors = append(m.Authors, &SOOperationPosition{})
 			if err := m.Authors[len(m.Authors)-1].UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
 				return err
 			}
@@ -11691,7 +11673,7 @@ func (m *SOCheckpointInner) UnmarshalVT(dAtA []byte) error {
 	return nil
 }
 
-func (m *SOCheckpointAuthor) UnmarshalVT(dAtA []byte) error {
+func (m *SOOperationPosition) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
 	var err error
@@ -11705,10 +11687,10 @@ func (m *SOCheckpointAuthor) UnmarshalVT(dAtA []byte) error {
 		fieldNum := int32(wire >> 3)
 		wireType := int(wire & 0x7)
 		if wireType == 4 {
-			return fmt.Errorf("proto: SOCheckpointAuthor: wiretype end group for non-group")
+			return fmt.Errorf("proto: SOOperationPosition: wiretype end group for non-group")
 		}
 		if fieldNum <= 0 {
-			return fmt.Errorf("proto: SOCheckpointAuthor: illegal tag %d (wire type %d)", fieldNum, wire)
+			return fmt.Errorf("proto: SOOperationPosition: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		case 1:
@@ -11913,14 +11895,17 @@ func (m *SOOperationInner) UnmarshalVT(dAtA []byte) error {
 			}
 		case 8:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field ParentHashes", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field Parents", wireType)
 			}
-			var v []byte
-			v, iNdEx, err = protobuf_go_lite.DecodeBytes(dAtA, iNdEx, true)
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
 			if err != nil {
 				return err
 			}
-			m.ParentHashes = append(m.ParentHashes, v)
+			m.Parents = append(m.Parents, &SOOperationPosition{})
+			if err := m.Parents[len(m.Parents)-1].UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
 		case 9:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field ConfigHash", wireType)

@@ -36,7 +36,7 @@ func TestSOOperationSetOrder(t *testing.T) {
 	a1 := build(privA, &SOOperationLink{Nonce: 1})
 	a2 := build(privA, &SOOperationLink{Nonce: 2, PrevOpHash: a1.Hash()})
 	b1 := build(privB, &SOOperationLink{Nonce: 1})
-	b2 := build(privB, &SOOperationLink{Nonce: 2, PrevOpHash: b1.Hash(), ParentHashes: [][]byte{a1.Hash()}})
+	b2 := build(privB, &SOOperationLink{Nonce: 2, PrevOpHash: b1.Hash(), Parents: []*SOOperationPosition{opPosition(t, a1)}})
 	c1 := build(privC, &SOOperationLink{Nonce: 1})
 	c2 := build(privC, &SOOperationLink{Nonce: 2, PrevOpHash: c1.Hash()})
 	delivered := []*SOOperation{a1, a2, b1, b2, c2}

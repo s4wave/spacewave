@@ -7,7 +7,7 @@ import {
   SOConfigChange,
   SOConfigChangeType,
   SOParticipantConfig,
-  type SOCheckpointAuthor,
+  type SOOperationPosition,
   SOParticipantRole,
   type SharedObjectConfig,
 } from './sobject.pb.js'
@@ -115,7 +115,7 @@ export function validateSOConfig(cfg: SharedObjectConfig): void {
 // list in errors. Base58 peer IDs are ASCII, so string order is byte order.
 export function validateSOAuthorHeads(
   field: string,
-  authors: readonly SOCheckpointAuthor[],
+  authors: readonly SOOperationPosition[],
 ): void {
   let lastPeer = ''
   for (const [i, author] of authors.entries()) {

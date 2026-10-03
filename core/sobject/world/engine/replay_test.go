@@ -198,8 +198,7 @@ func (m *replayTestMember) adopt(height uint64, world *InnerState, heads ...*sob
 		if err != nil {
 			t.Fatal(err.Error())
 		}
-		checkpoint.Frontier = append(checkpoint.Frontier, op.Hash())
-		checkpoint.Authors = append(checkpoint.Authors, &sobject.SOCheckpointAuthor{PeerId: inner.GetPeerId(), Nonce: inner.GetNonce(), OpHash: op.Hash()})
+		checkpoint.Authors = append(checkpoint.Authors, &sobject.SOOperationPosition{PeerId: inner.GetPeerId(), Nonce: inner.GetNonce(), OpHash: op.Hash()})
 	}
 
 	// Hold the operations above it, and sync.
@@ -390,8 +389,7 @@ func TestReplayKeepsPositionsAboveCheckpoint(t *testing.T) {
 	member.replayer.base = base
 	member.replayer.positions = member.replayer.positionsAbove(base)
 	member.set = sobject.NewSOOperationSet(replayTestObjectID, &sobject.SOCheckpointInner{
-		Frontier: [][]byte{a2.Hash()},
-		Authors:  []*sobject.SOCheckpointAuthor{{PeerId: pidA.String(), Nonce: 2, OpHash: a2.Hash()}},
+		Authors: []*sobject.SOOperationPosition{{PeerId: pidA.String(), Nonce: 2, OpHash: a2.Hash()}},
 	})
 
 	// Resolving no config, replaying a3 again would reject it.

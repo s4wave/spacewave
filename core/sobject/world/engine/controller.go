@@ -210,8 +210,8 @@ func (c *Controller) executeWorld(
 	c.engineCtr.SetValue(&wengine)
 	defer c.engineCtr.SetValue(nil)
 
-	// Acknowledge the edits this device builds on and reclaim storage while
-	// it serves the World.
+	// Acknowledge the edits this device builds on, restore returning devices
+	// to the trimming roster and reclaim storage while it serves the World.
 	bgCtx, bgCancel := context.WithCancel(ctx)
 	defer bgCancel()
 	go func() {
@@ -219,6 +219,13 @@ func (c *Controller) executeWorld(
 			le.WithError(err).Warn("stopped acknowledging edits")
 		}
 	}()
+	if roster, ok := so.(sobject.RosterHost); ok {
+		go func() {
+			if err := sobject.RestoreRoster(bgCtx, so, roster); err != nil && bgCtx.Err() == nil {
+				le.WithError(err).Warn("stopped restoring returning devices")
+			}
+		}()
+	}
 	go func() {
 		if err := c.executeStorageReclaim(bgCtx, engine); err != nil && bgCtx.Err() == nil {
 			le.WithError(err).Warn("stopped reclaiming storage")

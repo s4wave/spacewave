@@ -716,6 +716,12 @@ func (s *SharedObject) IncrementInviteUses(ctx context.Context, signerPrivKey cr
 	return s.soHost.IncrementInviteUses(ctx, signerPrivKey, inviteID)
 }
 
+// SetRosterDropped drops exactly the writers in dropped from the trimming
+// roster, signed by the local peer.
+func (s *SharedObject) SetRosterDropped(ctx context.Context, dropped []string) (bool, error) {
+	return sobject.SetSORoster(ctx, s.soHost, dropped, s.localPriv)
+}
+
 // _ verifies the local provider's SharedObject contracts.
 var (
 	_ sobject.SharedObjectHealthAccessor = (*SharedObject)(nil)
@@ -723,4 +729,5 @@ var (
 	_ sobject.SharedObjectProvider       = (*ProviderAccount)(nil)
 	_ sobject.SharedObject               = (*SharedObject)(nil)
 	_ sobject.InviteHost                 = (*SharedObject)(nil)
+	_ sobject.RosterHost                 = (*SharedObject)(nil)
 )

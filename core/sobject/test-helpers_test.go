@@ -211,3 +211,22 @@ func writeTestOp(t *testing.T, state *SOState, priv crypto.PrivKey, data string)
 	}
 	return op
 }
+
+// opPosition returns the position of op in its author's chain.
+func opPosition(t *testing.T, op *SOOperation) *SOOperationPosition {
+	t.Helper()
+	inner, err := op.UnmarshalInner()
+	if err != nil {
+		t.Fatal(err)
+	}
+	return &SOOperationPosition{PeerId: inner.GetPeerId(), Nonce: inner.GetNonce(), OpHash: op.Hash()}
+}
+
+// headHashes returns the operation hashes of heads, in order.
+func headHashes(heads []*SOOperationPosition) [][]byte {
+	out := make([][]byte, len(heads))
+	for i, head := range heads {
+		out[i] = head.GetOpHash()
+	}
+	return out
+}

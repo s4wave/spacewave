@@ -46,27 +46,22 @@ func (s *SOOperationSet) StablePoint(roster []string) [][]byte {
 	return order
 }
 
-// NeedsAcknowledgment reports whether peerID should write an acknowledgment.
-// It must be on roster, and every head must be placed, so the acknowledgment
-// it would write is placed too. It then acknowledges when at least lag placed
+// NeedsAcknowledgment reports whether the writer peerID should write an
+// acknowledgment. Every head must be placed, so the acknowledgment it would
+// write is placed too. It then acknowledges when at least lag placed
 // edits are not below its own latest operations, or when it has not built on
 // an acknowledgment of checkpointer, which asks every member to answer at
 // once. Other acknowledgments ask nothing, so members never answer each
 // other's answers.
-func (s *SOOperationSet) NeedsAcknowledgment(roster []string, checkpointer, peerID string, lag int) bool {
-	// Only roster members hold back the stable point.
-	if !slices.Contains(roster, peerID) {
-		return false
-	}
-
+func (s *SOOperationSet) NeedsAcknowledgment(checkpointer, peerID string, lag int) bool {
 	// An acknowledgment naming an unplaced head would itself wait unplaced.
 	order := s.Order()
 	placed := make(map[string]struct{}, len(order))
 	for _, h := range order {
 		placed[string(h)] = struct{}{}
 	}
-	for _, h := range s.Heads() {
-		if _, ok := placed[string(h)]; !ok && !s.below(string(h)) {
+	for _, head := range s.Heads() {
+		if _, ok := placed[string(head.GetOpHash())]; !ok && !s.Covers(head.GetPeerId(), head.GetNonce()) {
 			return false
 		}
 	}
@@ -88,6 +83,25 @@ func (s *SOOperationSet) NeedsAcknowledgment(roster []string, checkpointer, peer
 		}
 	}
 	return n >= lag
+}
+
+// BuiltOnLatest reports whether peerID has built on author's latest operation:
+// a placed operation of peerID descends from it, or author has none above the
+// checkpoint and peerID has a placed operation.
+func (s *SOOperationSet) BuiltOnLatest(peerID, author string) bool {
+	// A peer with no placed operation has built on nothing.
+	built := s.builtOn(s.Order(), peerID)
+	if len(built) == 0 {
+		return false
+	}
+
+	// Look for author's latest operation above the checkpoint.
+	nonce, head := s.AuthorHead(author)
+	if nonce == 0 || s.Covers(author, nonce) {
+		return true
+	}
+	_, ok := built[string(head)]
+	return ok
 }
 
 // builtOn returns the placed operations every later operation of peerID
@@ -129,61 +143,27 @@ func (s *SOOperationSet) builtOn(order [][]byte, peerID string) map[string]struc
 	return built
 }
 
-// cover returns the frontier and author heads of a checkpoint covering the
-// operations in prefix, which must be a prefix of Order. The frontier holds
-// the heads of the covered operations and every covered operation a held
-// operation above prefix names, so each held operation still finds its links.
-func (s *SOOperationSet) cover(prefix [][]byte) ([][]byte, []*SOCheckpointAuthor) {
-	// Index the covered operations.
-	covered := make(map[string]struct{}, len(prefix))
-	for _, h := range prefix {
-		covered[string(h)] = struct{}{}
-	}
-
-	// Keep each covered or checkpoint hash a covered operation leaves unnamed,
-	// or an uncovered operation names.
-	namedBelow := make(map[string]struct{})
-	namedAbove := make(map[string]struct{})
-	for key, inner := range s.ops {
-		named := namedAbove
-		if _, ok := covered[key]; ok {
-			named = namedBelow
-		}
-		named[string(inner.GetPrevOpHash())] = struct{}{}
-		for _, parent := range inner.GetParentHashes() {
-			named[string(parent)] = struct{}{}
-		}
-	}
-	candidates := slices.Collect(maps.Keys(covered))
-	candidates = slices.AppendSeq(candidates, maps.Keys(s.frontier))
-	var frontier [][]byte
-	for _, key := range candidates {
-		_, inner := namedBelow[key]
-		_, outer := namedAbove[key]
-		if !inner || outer {
-			frontier = append(frontier, []byte(key))
-		}
-	}
-
-	// Raise each author to its highest covered operation.
+// cover returns the author heads of a checkpoint covering the operations in
+// covered: each author's highest covered operation, sorted by peer ID.
+func (s *SOOperationSet) cover(covered [][]byte) []*SOOperationPosition {
+	// Raise each author the checkpoint covers to its highest covered operation.
 	heads := maps.Clone(s.authors)
 	if heads == nil {
-		heads = make(map[string]*SOCheckpointAuthor)
+		heads = make(map[string]*SOOperationPosition)
 	}
-	for _, h := range prefix {
+	for _, h := range covered {
 		inner := s.ops[string(h)]
 		if head, ok := heads[inner.GetPeerId()]; !ok || inner.GetNonce() > head.GetNonce() {
-			heads[inner.GetPeerId()] = &SOCheckpointAuthor{
+			heads[inner.GetPeerId()] = &SOOperationPosition{
 				PeerId: inner.GetPeerId(),
 				Nonce:  inner.GetNonce(),
 				OpHash: slices.Clone(h),
 			}
 		}
 	}
-	authors := slices.SortedFunc(maps.Values(heads), func(a, b *SOCheckpointAuthor) int {
+	return slices.SortedFunc(maps.Values(heads), func(a, b *SOOperationPosition) int {
 		return strings.Compare(a.GetPeerId(), b.GetPeerId())
 	})
-	return sortedOperationHashes(frontier, nil), authors
 }
 
 // BuildStableCheckpoint signs, as the owner of privKey, the checkpoint after
@@ -200,17 +180,15 @@ func (s *SOState) BuildStableCheckpoint(
 	if err != nil {
 		return nil, err
 	}
-	frontier, authors := set.cover(prefix)
-	return s.buildCheckpoint(sharedObjectID, privKey, frontier, authors, stateDataEnc)
+	return s.buildCheckpoint(sharedObjectID, privKey, set.cover(prefix), stateDataEnc)
 }
 
 // buildCheckpoint signs the checkpoint after the held one with the given
-// frontier and author heads.
+// author heads.
 func (s *SOState) buildCheckpoint(
 	sharedObjectID string,
 	privKey crypto.PrivKey,
-	frontier [][]byte,
-	authors []*SOCheckpointAuthor,
+	authors []*SOOperationPosition,
 	stateDataEnc []byte,
 ) (*SOCheckpoint, error) {
 	// Continue the chain from the held checkpoint.
@@ -228,7 +206,6 @@ func (s *SOState) buildCheckpoint(
 		Height:             prevInner.GetHeight() + 1,
 		PrevCheckpointHash: prev.Hash(),
 		ConfigHash:         s.GetConfig().GetConfigChainHash(),
-		Frontier:           frontier,
 		StateData:          stateDataEnc,
 		ReplayVersion:      SOReplayVersion,
 		KeyEpoch:           s.CurrentKeyEpoch().GetEpoch(),

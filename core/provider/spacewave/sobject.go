@@ -1438,6 +1438,18 @@ func (s *SharedObject) retryConfigConflicts(ctx context.Context, write func() er
 	return nil
 }
 
+// SetRosterDropped drops exactly the writers in dropped from the trimming
+// roster, signed by the local peer against the latest cloud configuration.
+func (s *SharedObject) SetRosterDropped(ctx context.Context, dropped []string) (bool, error) {
+	var changed bool
+	err := s.retryConfigConflicts(ctx, func() error {
+		var err error
+		changed, err = sobject.SetSORoster(ctx, s.GetSOHost(), dropped, s.privKey)
+		return err
+	})
+	return changed, err
+}
+
 // isConfigConflict reports whether a config write lost a race with another
 // writer and may be rebuilt against the current head.
 func isConfigConflict(err error) bool {
@@ -1470,4 +1482,5 @@ var (
 	_ sobject.SharedObjectProvider       = (*ProviderAccount)(nil)
 	_ sobject.SharedObject               = (*SharedObject)(nil)
 	_ sobject.InviteHost                 = (*SharedObject)(nil)
+	_ sobject.RosterHost                 = (*SharedObject)(nil)
 )
