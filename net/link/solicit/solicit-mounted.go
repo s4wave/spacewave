@@ -19,10 +19,11 @@ type SolicitMountedStream interface {
 
 // solicitMountedStream implements SolicitMountedStream.
 type solicitMountedStream struct {
-	ms  link.MountedStream
-	err error
+	ms link.MountedStream
 
+	// mu guards err and accepted.
 	mu       sync.Mutex
+	err      error
 	accepted bool
 }
 
@@ -38,14 +39,14 @@ func NewSolicitMountedStreamWithErr(err error) SolicitMountedStream {
 
 // AcceptMountedStream claims ownership of the stream.
 func (s *solicitMountedStream) AcceptMountedStream() (link.MountedStream, bool, error) {
+	// Serialize callers claiming the solicited stream with Close.
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	// Return the solicitation failure before claiming its stream.
 	if s.err != nil {
 		return nil, false, s.err
 	}
-
-	// Serialize callers claiming the solicited stream.
-	s.mu.Lock()
-	defer s.mu.Unlock()
 
 	// Claim the stream only for the first accepting caller.
 	if s.accepted {
