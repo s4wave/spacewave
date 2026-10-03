@@ -2,8 +2,8 @@ package block
 
 import "context"
 
-// RootRetainer owns durable named roots, temporary reader pins, and the
-// staging ownership of roots written outside both. Replacing a named root
+// RootRetainer owns durable named roots, temporary reader pins, stages, and the
+// staging ownership of roots written outside them. Replacing a named root
 // releases its predecessor; immutable descendants remain protected by their own
 // edges, other named roots, and reader pins. Unsupported stores keep their
 // existing retention policy.
@@ -11,6 +11,7 @@ type RootRetainer interface {
 	SupportsRootRetention() bool
 	SetRetainedRoot(context.Context, string, *BlockRef) error
 	PinRoot(context.Context, *BlockRef) (func(), error)
+	OpenStage(context.Context) (StoreOps, func(), error)
 	ReleaseRoots(context.Context, []*BlockRef) error
 	MarkRootsComplete(context.Context, []*BlockRef) error
 	RootComplete(context.Context, *BlockRef) (bool, error)
@@ -62,6 +63,19 @@ func PinRoot(ctx context.Context, store StoreOps, ref *BlockRef) (func(), error)
 		return func() {}, nil
 	}
 	return store.(RootRetainer).PinRoot(ctx, ref)
+}
+
+// OpenStage returns a store whose writes the stage owns, and the stage's
+// release. The stage holds each block until a parent written outside the stage
+// references it; after the release, the sweep collects every block no other
+// owner holds. Hold the stage until the transaction that references the
+// stage's roots returns. A store without root ownership returns itself and a
+// no-op release.
+func OpenStage(ctx context.Context, store StoreOps) (StoreOps, func(), error) {
+	if !SupportsRootRetention(store) {
+		return store, func() {}, nil
+	}
+	return store.(RootRetainer).OpenStage(ctx)
 }
 
 // ReleaseRoots drops the staging ownership the store holds for roots the caller

@@ -19,6 +19,15 @@ func (s *store) PinRoot(ctx context.Context, ref *block.BlockRef) (func(), error
 	return block.PinRoot(ctx, s.ops, ref)
 }
 
+// OpenStage wraps a stage opened on the underlying store.
+func (s *store) OpenStage(ctx context.Context) (block.StoreOps, func(), error) {
+	ops, release, err := block.OpenStage(ctx, s.ops)
+	if err != nil {
+		return nil, nil, err
+	}
+	return &store{ops: ops, id: s.id}, release, nil
+}
+
 // ReleaseRoots forwards staging release to the underlying store.
 func (s *store) ReleaseRoots(ctx context.Context, refs []*block.BlockRef) error {
 	return block.ReleaseRoots(ctx, s.ops, refs)
@@ -33,3 +42,6 @@ func (s *store) MarkRootsComplete(ctx context.Context, roots []*block.BlockRef) 
 func (s *store) RootComplete(ctx context.Context, ref *block.BlockRef) (bool, error) {
 	return block.RootComplete(ctx, s.ops, ref)
 }
+
+// _ is a type assertion
+var _ block.RootRetainer = (*store)(nil)

@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/s4wave/spacewave/db/block"
+	block_store "github.com/s4wave/spacewave/db/block/store"
 )
 
 // SupportsRootRetention reports the underlying ownership capability.
@@ -38,6 +39,21 @@ func (b *BlockStore) PinRoot(ctx context.Context, ref *block.BlockRef) (func(), 
 	return block.PinRoot(ctx, b.store, ref)
 }
 
+// OpenStage wraps a stage opened on the local store. Reads keep the Session
+// read path.
+func (b *BlockStore) OpenStage(ctx context.Context) (block.StoreOps, func(), error) {
+	// Open the stage on the local store.
+	ops, release, err := block.OpenStage(ctx, b.store)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// Copy the store with its writes routed to the stage.
+	staged := *b
+	staged.store = block_store.NewStore(b.store.GetID(), ops)
+	return &staged, release, nil
+}
+
 // ReleaseRoots forwards staging release to the underlying store.
 func (b *BlockStore) ReleaseRoots(ctx context.Context, refs []*block.BlockRef) error {
 	return block.ReleaseRoots(ctx, b.store, refs)
@@ -52,3 +68,6 @@ func (b *BlockStore) MarkRootsComplete(ctx context.Context, roots []*block.Block
 func (b *BlockStore) RootComplete(ctx context.Context, ref *block.BlockRef) (bool, error) {
 	return block.RootComplete(ctx, b.store, ref)
 }
+
+// _ is a type assertion
+var _ block.RootRetainer = (*BlockStore)(nil)

@@ -15,7 +15,7 @@ import (
 //
 // It commits with write ordering when the store supports it. Every direct
 // stage is safe to lose in a crash as long as no earlier commit is lost:
-// prepared blocks stay owned by their bucket, and root proofs, pins and sweeps
+// prepared blocks stay owned by their bucket or stage, and root proofs, pins and sweeps
 // are recomputed or redone. The head publication that follows commits fully
 // and makes these writes durable, as does Sync.
 func (v *Volume) withDirectAtomic(ctx context.Context, fn func(block.StoreOps, *block_gc.RefGraph) (bool, error)) error {
@@ -69,60 +69,66 @@ func (v *Volume) withDirectAtomic(ctx context.Context, fn func(block.StoreOps, *
 // PrepareOwnedBlock durably prepares a potentially oversized body together with
 // its bucket ownership. Unlike queue admission this call retains no caller data
 // after return; it also checks existence inside the physical write transaction.
+// An empty bucketID writes the block without ownership.
 func (v *Volume) PrepareOwnedBlock(ctx context.Context, bucketID string, data []byte, opts *block.PutOpts) (ref *block.BlockRef, existed bool, err error) {
-	if !v.SupportsAtomicPublication() {
-		return nil, false, block.ErrAtomicPublicationUnsupported
-	}
-	err = v.withDirectAtomic(ctx, func(blocks block.StoreOps, rg *block_gc.RefGraph) (bool, error) {
-		// Write unowned block bytes directly in the shared transaction.
-		putOpts, _ := block.PutOptsWithoutSync(opts)
-		if bucketID == "" {
-			ref, existed, err = blocks.PutBlock(ctx, data, putOpts)
-			return err == nil, err
-		}
-
-		// Retain the bucket as a permanent garbage collection root.
-		owner := block_gc.BucketIRI(bucketID)
-		if err := rg.AddRef(ctx, block_gc.NodeGCRoot, owner); err != nil {
-			return false, err
-		}
-
-		// Write the block and flush its bucket ownership together.
-		gc := block_gc.NewGCStoreOpsWithParentAndTraceTask(blocks, rg, owner, block_gc.BucketFlushTask())
-		ref, existed, err = gc.PutBlock(ctx, data, putOpts)
-		if err == nil {
-			err = gc.FlushPending(ctx)
-		}
-		return err == nil, err
+	putOpts, _ := block.PutOptsWithoutSync(opts)
+	err = v.prepareOwned(ctx, bucketOwner(bucketID), claimBucket, func(store block.StoreOps) error {
+		ref, existed, err = store.PutBlock(ctx, data, putOpts)
+		return err
 	})
-	return
+	return ref, existed, err
 }
 
 // PrepareOwnedBlockBatch is used by bounded staging's ordinary capacity drains.
 // It cannot expose a gap between persisting bytes and rescuing their ownership.
 func (v *Volume) PrepareOwnedBlockBatch(ctx context.Context, bucketID string, entries []*block.PutBatchEntry) error {
+	if len(entries) == 0 && v.SupportsAtomicPublication() {
+		return nil
+	}
+	return v.prepareOwned(ctx, bucketOwner(bucketID), claimBucket, func(store block.StoreOps) error {
+		return store.PutBlockBatch(ctx, entries)
+	})
+}
+
+// bucketOwner returns the graph node of a bucket, or empty for no bucket.
+func bucketOwner(bucketID string) string {
+	if bucketID == "" {
+		return ""
+	}
+	return block_gc.BucketIRI(bucketID)
+}
+
+// claimBucket retains the bucket as a permanent garbage collection root.
+func claimBucket(ctx context.Context, rg *block_gc.RefGraph, bucket string) error {
+	return rg.AddRef(ctx, block_gc.NodeGCRoot, bucket)
+}
+
+// prepareOwned writes blocks and their ownership by owner in one physical
+// transaction. claim checks or roots the owner first. An empty owner writes the
+// blocks without ownership.
+func (v *Volume) prepareOwned(
+	ctx context.Context,
+	owner string,
+	claim func(context.Context, *block_gc.RefGraph, string) error,
+	put func(block.StoreOps) error,
+) error {
 	if !v.SupportsAtomicPublication() {
 		return block.ErrAtomicPublicationUnsupported
 	}
 	return v.withDirectAtomic(ctx, func(blocks block.StoreOps, rg *block_gc.RefGraph) (bool, error) {
-		// Skip empty batches and write unowned batches directly.
-		if len(entries) == 0 {
-			return false, nil
-		}
-		if bucketID == "" {
-			err := blocks.PutBlockBatch(ctx, entries)
+		// Write unowned blocks directly in the shared transaction.
+		if owner == "" {
+			err := put(blocks)
 			return err == nil, err
 		}
 
-		// Retain the batch bucket as a permanent garbage collection root.
-		owner := block_gc.BucketIRI(bucketID)
-		if err := rg.AddRef(ctx, block_gc.NodeGCRoot, owner); err != nil {
+		// Claim the owner, then write the blocks and flush their ownership
+		// together.
+		if err := claim(ctx, rg, owner); err != nil {
 			return false, err
 		}
-
-		// Write the batch and flush its bucket ownership together.
 		gc := block_gc.NewGCStoreOpsWithParentAndTraceTask(blocks, rg, owner, block_gc.BucketFlushTask())
-		err := gc.PutBlockBatch(ctx, entries)
+		err := put(gc)
 		if err == nil {
 			err = gc.FlushPending(ctx)
 		}

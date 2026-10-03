@@ -38,6 +38,8 @@ type bucketHandle struct {
 	gcOps *block_gc.GCStoreOps
 	// readOps confines block operations to an existing read snapshot when set.
 	readOps block.StoreOps
+	// stage is the volume stage that owns this handle's writes, if any.
+	stage string
 }
 
 // clone copies the bucket handle without changing its retained dependencies.
@@ -226,6 +228,15 @@ func (b *bucketHandle) PutBlock(ctx context.Context, data []byte, opts *block.Pu
 	}
 	putOpts, syncRequested := block.PutOptsWithoutSync(opts)
 
+	// A stage owns the writes of a staged handle.
+	if b.stage != "" {
+		ref, existed, err := b.v.(bucketRootVolume).PrepareStagedBlock(ctx, b.stage, data, putOpts)
+		if err == nil && syncRequested {
+			_, err = b.Sync(ctx)
+		}
+		return ref, existed, err
+	}
+
 	// Preparation spills need the same atomic ownership guarantee as the final
 	// head publication. This synchronous path does not put large bodies in the
 	// bounded publication queue and preserves PutBlock's existence result.
@@ -302,6 +313,11 @@ func (b *bucketHandle) PutBlockBatch(ctx context.Context, entries []*block.PutBa
 	}
 	if b.readOps != nil {
 		return b.readOps.PutBlockBatch(ctx, entries)
+	}
+
+	// A stage owns the batch of a staged handle.
+	if b.stage != "" {
+		return b.v.(bucketRootVolume).PrepareStagedBlockBatch(ctx, b.stage, entries)
 	}
 
 	// Publish the batch atomically when the volume supports it.

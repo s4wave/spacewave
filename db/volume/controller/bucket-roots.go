@@ -10,6 +10,9 @@ type bucketRootVolume interface {
 	SupportsAtomicPublication() bool
 	SetBucketRoot(context.Context, string, string, *block.BlockRef) error
 	PinBucketRoot(context.Context, *block.BlockRef) (func(), error)
+	OpenStage(context.Context) (string, func(), error)
+	PrepareStagedBlock(context.Context, string, []byte, *block.PutOpts) (*block.BlockRef, bool, error)
+	PrepareStagedBlockBatch(context.Context, string, []*block.PutBatchEntry) error
 	ReleaseBucketRoots(context.Context, string, []*block.BlockRef) error
 	MarkRootsComplete(context.Context, []*block.BlockRef) error
 	RootComplete(context.Context, *block.BlockRef) (bool, error)
@@ -47,6 +50,23 @@ func (b *bucketHandle) PinRoot(ctx context.Context, ref *block.BlockRef) (func()
 	return b.v.(bucketRootVolume).PinBucketRoot(ctx, ref)
 }
 
+// OpenStage returns a handle whose writes a new volume stage owns.
+func (b *bucketHandle) OpenStage(ctx context.Context) (block.StoreOps, func(), error) {
+	// A volume without root retention writes through the bucket.
+	if !b.SupportsRootRetention() {
+		return b, func() {}, nil
+	}
+
+	// Open the stage and clone the handle around it.
+	stage, release, err := b.v.(bucketRootVolume).OpenStage(ctx)
+	if err != nil {
+		return nil, nil, err
+	}
+	staged := b.clone()
+	staged.stage = stage
+	return staged, release, nil
+}
+
 // ReleaseRoots drops this bucket's staging ownership of roots.
 func (b *bucketHandle) ReleaseRoots(ctx context.Context, refs []*block.BlockRef) error {
 	if !b.SupportsRootRetention() {
@@ -54,3 +74,6 @@ func (b *bucketHandle) ReleaseRoots(ctx context.Context, refs []*block.BlockRef)
 	}
 	return b.v.(bucketRootVolume).ReleaseBucketRoots(ctx, b.t.bucketID, refs)
 }
+
+// _ is a type assertion
+var _ block.RootRetainer = (*bucketHandle)(nil)

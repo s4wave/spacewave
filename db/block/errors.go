@@ -46,6 +46,9 @@ var (
 	// ErrPublicationDependency means a predecessor failed or was not submitted to
 	// this writer before its dependent publication.
 	ErrPublicationDependency = errors.New("publication predecessor did not succeed")
+	// ErrStageReleased rejects a write through a stage that was released or
+	// reaped, which can no longer own the blocks.
+	ErrStageReleased = errors.New("block: stage released")
 )
 
 // publicationDependencyError joins the dependency sentinel with the predecessor

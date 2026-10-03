@@ -25,6 +25,16 @@ func (s *BufferedStore) PinRoot(ctx context.Context, ref *BlockRef) (func(), err
 	return PinRoot(ctx, s.inner, ref)
 }
 
+// OpenStage opens a stage on the destination. Reads go through this buffer, so
+// a staged build sees blocks still pending here; writes go to the stage.
+func (s *BufferedStore) OpenStage(ctx context.Context) (StoreOps, func(), error) {
+	stage, release, err := OpenStage(ctx, s.inner)
+	if err != nil {
+		return nil, nil, err
+	}
+	return NewStoreRW(s, stage), release, nil
+}
+
 // ReleaseRoots fences prepared blocks so their staging edges exist before
 // they are released.
 func (s *BufferedStore) ReleaseRoots(ctx context.Context, refs []*BlockRef) error {
@@ -43,3 +53,6 @@ func (s *BufferedStore) MarkRootsComplete(ctx context.Context, roots []*BlockRef
 func (s *BufferedStore) RootComplete(ctx context.Context, ref *BlockRef) (bool, error) {
 	return RootComplete(ctx, s.inner, ref)
 }
+
+// _ is a type assertion
+var _ RootRetainer = (*BufferedStore)(nil)

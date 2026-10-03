@@ -13,7 +13,8 @@ import (
 	"github.com/s4wave/spacewave/db/coord"
 )
 
-// rootPinPrefix prefixes the owner node of one process's reader pins.
+// rootPinPrefix prefixes the owner node of one process's reader pins and
+// stages.
 const rootPinPrefix = "reader:"
 
 // RootOwnerPrefix prefixes the owner node of each named bucket root. A bucket
@@ -172,21 +173,11 @@ func (v *Volume) pinRoot(ctx context.Context, ref *block.BlockRef, prepared bool
 		if err != nil {
 			return "", nil, err
 		}
-		if v.rootPinsClosed {
+		owner, err := v.rootPinOwnerLocked(ctx)
+		if err != nil {
 			unlock()
-			return "", nil, block.ErrPublicationClosed
+			return "", nil, err
 		}
-		if v.rootPinLease == nil {
-			owner := rootPinPrefix + ulid.NewULID()
-			lease, err := v.WaitAcquireWriteLease(ctx, v.rootPinScope(owner))
-			if err != nil {
-				unlock()
-				return "", nil, err
-			}
-			v.rootPinOwner, v.rootPinLease = owner, lease
-			v.rootPins = make(map[string]*rootPin)
-		}
-		owner := v.rootPinOwner
 
 		// Wait out an edge write in flight, then observe its result.
 		pin := v.rootPins[node]
@@ -240,6 +231,29 @@ func (v *Volume) pinRoot(ctx context.Context, ref *block.BlockRef, prepared bool
 		}
 		return owner, release, nil
 	}
+}
+
+// rootPinOwnerLocked returns the process owner node of reader pins and stages,
+// acquiring its lease on first use. The caller holds rootPinMu.
+func (v *Volume) rootPinOwnerLocked(ctx context.Context) (string, error) {
+	// Refuse new owners after the pins close.
+	if v.rootPinsClosed {
+		return "", block.ErrPublicationClosed
+	}
+	if v.rootPinLease != nil {
+		return v.rootPinOwner, nil
+	}
+
+	// Hold the owner's lease for the life of the process, so a crash lets
+	// ReapRootPins release everything the owner holds.
+	owner := rootPinPrefix + ulid.NewULID()
+	lease, err := v.WaitAcquireWriteLease(ctx, v.rootPinScope(owner))
+	if err != nil {
+		return "", err
+	}
+	v.rootPinOwner, v.rootPinLease = owner, lease
+	v.rootPins = make(map[string]*rootPin)
+	return owner, nil
 }
 
 // unpinRoot releases one reader and removes the durable edge after the last.

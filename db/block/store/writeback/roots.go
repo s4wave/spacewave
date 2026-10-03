@@ -23,6 +23,16 @@ func (m *MarkingStore) PinRoot(ctx context.Context, ref *block.BlockRef) (func()
 	return block.PinRoot(ctx, m.store, ref)
 }
 
+// OpenStage wraps a stage opened on the inner store, so staged writes are
+// marked for upload like any other write.
+func (m *MarkingStore) OpenStage(ctx context.Context) (block.StoreOps, func(), error) {
+	store, release, err := block.OpenStage(ctx, m.store)
+	if err != nil {
+		return nil, nil, err
+	}
+	return NewMarkingStore(store, m.mark), release, nil
+}
+
 // ReleaseRoots forwards staging release to the underlying store.
 func (m *MarkingStore) ReleaseRoots(ctx context.Context, refs []*block.BlockRef) error {
 	return block.ReleaseRoots(ctx, m.store, refs)

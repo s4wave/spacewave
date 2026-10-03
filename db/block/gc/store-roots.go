@@ -19,6 +19,12 @@ func (g *GCStoreOps) PinRoot(ctx context.Context, ref *block.BlockRef) (func(), 
 	return block.PinRoot(ctx, g.store, ref)
 }
 
+// OpenStage forwards to the underlying store. Its writes leave this wrapper's
+// graph: the stage alone owns them.
+func (g *GCStoreOps) OpenStage(ctx context.Context) (block.StoreOps, func(), error) {
+	return block.OpenStage(ctx, g.store)
+}
+
 // ReleaseRoots forwards staging release to the underlying store.
 func (g *GCStoreOps) ReleaseRoots(ctx context.Context, refs []*block.BlockRef) error {
 	return block.ReleaseRoots(ctx, g.store, refs)
@@ -33,3 +39,6 @@ func (g *GCStoreOps) MarkRootsComplete(ctx context.Context, roots []*block.Block
 func (g *GCStoreOps) RootComplete(ctx context.Context, ref *block.BlockRef) (bool, error) {
 	return block.RootComplete(ctx, g.store, ref)
 }
+
+// _ is a type assertion
+var _ block.RootRetainer = (*GCStoreOps)(nil)
