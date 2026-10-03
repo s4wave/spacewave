@@ -120,14 +120,21 @@ func newResourceCursor(t testing.TB) (*bucket_lookup.Cursor, *world_testbed.Test
 		t.Fatal(err)
 	}
 
-	// Build the storage cursor from the World resource reference.
+	// Open the World resource as an SDK engine.
 	ref := client.CreateResourceReference(created.ResourceId)
 	t.Cleanup(ref.Release)
 	engine, err := sdk_world_engine.NewSDKEngine(client, ref)
 	if err != nil {
 		t.Fatal(err)
 	}
-	cursor, err := engine.BuildStorageCursor(t.Context())
+
+	// Build the cursor through a stage held until the test ends.
+	stage, err := engine.StageWorldState(t.Context())
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(stage.Release)
+	cursor, err := stage.BuildStorageCursor(t.Context())
 	if err != nil {
 		t.Fatal(err)
 	}

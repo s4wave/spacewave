@@ -36,16 +36,21 @@ func TestApplyOpCheckExistsErrors(t *testing.T) {
 	}
 	defer btx.Discard()
 
-	// Construct the execution handle used by the key-existence operations.
+	// Stage the handle's writes until the test ends.
+	stage, err := tb.WorldState.StageWorldState(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer stage.Release()
 	handle := forge_target.ExecControllerHandleWithAccess(
 		"check-exists-test",
 		tb.Volume.GetPeerID(),
 		tb.Engine,
-		tb.WorldState.AccessWorldState,
+		stage.AccessWorldState,
 		timestamp.Now(),
 	)
 
-	// set one key so it exists (empty block ref is sufficient)
+	// Set one key so it exists; an empty block ref is sufficient.
 	if err := btx.SetCursorAtKey(ctx, []byte("present"), nil, false); err != nil {
 		t.Fatal(err.Error())
 	}

@@ -268,12 +268,21 @@ func (c *Controller) processExec(
 		inputsMap[targetWorldInput] = targetWorld
 	}
 
+	// Stage the values the Execution writes until the run ends, after its
+	// outputs have adopted them.
+	stage, err := c.ws.StageWorldState(ctx)
+	if err != nil {
+		return err
+	}
+	defer stage.Release()
+
 	// Build the execution handle and pass it to the controller.
 	execCtx := forge_target.WithExecCancelSignal(ctx, c.CancelWaitCh())
 	execCtrlHandle := newExecControllerHandle(
 		execCtx,
 		c,
 		c.ws,
+		stage,
 		exState.GetTimestamp(),
 		exState.GetClaim().GetEpoch(),
 	)

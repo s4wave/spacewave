@@ -218,13 +218,18 @@ function buildQuickstartWorld(
       lookupGraphQuads: vi.fn().mockResolvedValue({ quads: [] }),
       deleteGraphQuad: vi.fn().mockResolvedValue(undefined),
       setGraphQuad,
-      buildStorageCursor: vi.fn(() =>
+      stageWorldState: vi.fn(() =>
         Promise.resolve({
-          buildTransaction,
-          putBlock: vi.fn().mockResolvedValue({ ref: {} }),
-          getRef: vi.fn().mockResolvedValue({ ref: { bucketId: 'world' } }),
-          release: releaseCursor,
-          [Symbol.dispose]: releaseCursor,
+          buildStorageCursor: vi.fn(() =>
+            Promise.resolve({
+              buildTransaction,
+              putBlock: vi.fn().mockResolvedValue({ ref: {} }),
+              getRef: vi.fn().mockResolvedValue({ ref: { bucketId: 'world' } }),
+              release: releaseCursor,
+              [Symbol.dispose]: releaseCursor,
+            }),
+          ),
+          [Symbol.dispose]: vi.fn(),
         }),
       ),
       createObject,
@@ -1693,12 +1698,17 @@ to try first.
       lookupGraphQuads,
       deleteGraphQuad,
       setGraphQuad,
-      buildStorageCursor: vi.fn(() =>
+      stageWorldState: vi.fn(() =>
         Promise.resolve({
-          putBlock,
-          getRef,
-          release: releaseCursor,
-          [Symbol.dispose]: releaseCursor,
+          buildStorageCursor: vi.fn(() =>
+            Promise.resolve({
+              putBlock,
+              getRef,
+              release: releaseCursor,
+              [Symbol.dispose]: releaseCursor,
+            }),
+          ),
+          [Symbol.dispose]: vi.fn(),
         }),
       ),
       createObject,
@@ -1810,12 +1820,17 @@ to try first.
       lookupGraphQuads: vi.fn().mockResolvedValue({ quads: [] }),
       deleteGraphQuad: vi.fn().mockResolvedValue(undefined),
       setGraphQuad: vi.fn().mockResolvedValue(undefined),
-      buildStorageCursor: vi.fn(() =>
+      stageWorldState: vi.fn(() =>
         Promise.resolve({
-          putBlock,
-          getRef,
-          release: releaseCursor,
-          [Symbol.dispose]: releaseCursor,
+          buildStorageCursor: vi.fn(() =>
+            Promise.resolve({
+              putBlock,
+              getRef,
+              release: releaseCursor,
+              [Symbol.dispose]: releaseCursor,
+            }),
+          ),
+          [Symbol.dispose]: vi.fn(),
         }),
       ),
       createObject: vi.fn().mockResolvedValue({}),

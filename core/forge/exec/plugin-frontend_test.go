@@ -69,7 +69,7 @@ func TestPluginFrontendSource(t *testing.T) {
 		"Viewer.ts":  `import "./viewer.css"; export const label = "colors"`,
 		"viewer.css": `p { color: red; }`,
 	} {
-		_, _, err := unixfs_world.FsMknodWithContent(ctx, object, sender, unixfs_world.FSType_FSType_FS_NODE,
+		_, _, err := unixfs_world.FsMknodWithContent(ctx, tb.WorldState, object, sender, unixfs_world.FSType_FSType_FS_NODE,
 			[]string{name}, unixfs.NewFSCursorNodeType_File(), int64(len(data)), strings.NewReader(data), 0o644, stamp)
 		if err != nil {
 			t.Fatal(err)
@@ -160,7 +160,7 @@ func TestPluginFrontendSource(t *testing.T) {
 	}
 
 	// Equal-size content with the original timestamp still produces an update.
-	_, _, err = unixfs_world.FsWriteAt(ctx, object, sender, unixfs_world.FSType_FSType_FS_NODE,
+	_, _, err = unixfs_world.FsWriteAt(ctx, tb.WorldState, object, sender, unixfs_world.FSType_FSType_FS_NODE,
 		[]string{"viewer.css"}, 0, []byte("p { color: tan; }"), stamp)
 	if err != nil {
 		t.Fatal(err)

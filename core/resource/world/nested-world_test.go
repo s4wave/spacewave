@@ -25,8 +25,15 @@ func TestOpenNestedWorldResourceRelease(t *testing.T) {
 	tb, cleanup := setupWorldTestbed(ctx, t)
 	defer cleanup()
 
+	// Stage the snapshot until the outer object adopts it.
+	stage, err := tb.Engine.StageWorldState(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer stage.Release()
+
 	// importSnapshot snapshot,err via world_block.
-	snapshot, err := world_block.ImportSnapshot(ctx, tb.Engine, maps.All(map[string]block.Block{
+	snapshot, err := world_block.ImportSnapshot(ctx, stage, maps.All(map[string]block.Block{
 		"inner": block_mock.NewExample("content"),
 	}), nil)
 	if err != nil {

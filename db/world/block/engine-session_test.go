@@ -601,29 +601,33 @@ func TestEngineSessionOnlyUnsupportedFallsBack(t *testing.T) {
 	sessionHas(t, reader, "legacy", true)
 }
 
-func TestEngineSessionSyncFencesRetainedConstructionWithoutPublishingHead(t *testing.T) {
+func TestEngineSessionStagedConstructionWithoutPublishingHead(t *testing.T) {
 	// Stage a construction block on the engine.
 	f := newSessionFixture(t)
 	initial := f.engine.GetRootRef()
-	cursor, err := f.engine.BuildStorageCursor(t.Context())
+	stage, err := f.engine.StageWorldState(t.Context())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer stage.Release()
+
+	// Write a construction block through a staged cursor.
+	cursor, err := stage.BuildStorageCursor(t.Context())
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer cursor.Release()
-	ref, _, err := cursor.PutBlock(t.Context(), []byte("retained construction awaiting a later transaction"), nil)
+	ref, _, err := cursor.PutBlock(t.Context(), []byte("staged construction awaiting a later transaction"), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	// Fence the staged block without publishing the head.
-	if found, err := f.engine.writeBlockStore.GetBlockExists(t.Context(), ref); err != nil || found {
-		t.Fatalf("construction bypassed staging: %v %v", found, err)
-	}
-	if fenced, err := f.engine.Sync(t.Context()); err != nil || !fenced {
-		t.Fatalf("engine fence: %v %v", fenced, err)
-	}
+	// The stage writes through to the volume; a fence leaves the head alone.
 	if found, err := f.engine.writeBlockStore.GetBlockExists(t.Context(), ref); err != nil || !found {
-		t.Fatalf("Sync omitted retained construction: %v %v", found, err)
+		t.Fatalf("staged construction missing from the volume: %v %v", found, err)
+	}
+	if _, err := f.engine.Sync(t.Context()); err != nil {
+		t.Fatal(err)
 	}
 	if !initial.EqualsRef(f.engine.GetRootRef()) {
 		t.Fatal("block fence advanced the World head")

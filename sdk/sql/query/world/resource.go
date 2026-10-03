@@ -89,12 +89,19 @@ func (r *SqlQueryResource) Initialize(
 		DialectHint:       req.GetDialectHint(),
 		TargetDbObjectKey: req.GetTargetDbObjectKey(),
 	}
-	rootRef, err := s4wave_sql_query.WriteQueryRootRef(ctx, r.ws, query)
+
+	// Build the root through a stage held until the op adopts it.
+	stage, err := r.ws.StageWorldState(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer stage.Release()
+	rootRef, err := s4wave_sql_query.WriteQueryRootRef(ctx, stage, query)
 	if err != nil {
 		return nil, err
 	}
 
-	// Initialize the query object root through its create-once operation.
+	// Initialize the object at the built root.
 	_, sysErr, err := r.ws.ApplyWorldOp(ctx, NewSqlQueryInitializeRootOp(r.objectKey, rootRef), "")
 	if err != nil {
 		return nil, err
@@ -227,14 +234,20 @@ func (r *SqlQueryResource) readQuery(ctx context.Context) (*s4wave_sql_query.Que
 	return s4wave_sql_query.ReadQueryRoot(ctx, r.ws, r.objectKey)
 }
 
+// commitQueryRoot writes query as the object's new root.
 func (r *SqlQueryResource) commitQueryRoot(ctx context.Context, query *s4wave_sql_query.Query) error {
-	// Write the replacement query body into World storage.
-	rootRef, err := s4wave_sql_query.WriteQueryRootRef(ctx, r.ws, query)
+	// Build the root through a stage held until the op adopts it.
+	stage, err := r.ws.StageWorldState(ctx)
+	if err != nil {
+		return err
+	}
+	defer stage.Release()
+	rootRef, err := s4wave_sql_query.WriteQueryRootRef(ctx, stage, query)
 	if err != nil {
 		return err
 	}
 
-	// Advance the query object root through its World operation.
+	// Point the object at the built root.
 	_, sysErr, err := r.ws.ApplyWorldOp(ctx, NewSqlQuerySetRootOp(r.objectKey, rootRef), "")
 	if err != nil {
 		return err
@@ -327,38 +340,16 @@ func (r *SqlQueryResource) executeQuery(
 	}
 }
 
+// openRows runs query against its target database. The returned func releases
+// the rows, their transaction and the store.
 func (r *SqlQueryResource) openRows(
 	ctx context.Context,
 	query *s4wave_sql_query.Query,
 ) (driver.Rows, func(), error) {
 	// Open the target database object and retain its root reference.
 	targetKey := query.GetTargetDbObjectKey()
-	obj, err := world.MustGetObject(ctx, r.ws, targetKey)
-	defer world.ReleaseObjectState(obj)
+	store, err := s4wave_sql_world.NewWorldBackedSql(ctx, r.ws, targetKey)
 	if err != nil {
-		return nil, nil, errors.Wrap(err, "sql/query: open target db object")
-	}
-	rootRef, _, err := obj.GetRootRef(ctx)
-	if err != nil {
-		return nil, nil, errors.Wrap(err, "sql/query: read target db root")
-	}
-
-	// Follow the database root from the engine storage cursor.
-	storageRoot, err := r.engine.BuildStorageCursor(ctx)
-	if err != nil {
-		return nil, nil, errors.Wrap(err, "sql/query: open target db storage cursor")
-	}
-	root, err := storageRoot.FollowRef(ctx, rootRef)
-	if err != nil {
-		storageRoot.Release()
-		return nil, nil, errors.Wrap(err, "sql/query: follow target db root")
-	}
-
-	// Open the World-backed SQL store at the database root.
-	store, err := s4wave_sql_world.NewWorldBackedSql(ctx, root, r.ws, targetKey)
-	if err != nil {
-		root.Release()
-		storageRoot.Release()
 		return nil, nil, errors.Wrap(err, "sql/query: open target db store")
 	}
 
@@ -366,7 +357,6 @@ func (r *SqlQueryResource) openRows(
 	tx, err := store.NewSqlTransaction(ctx, false, "")
 	if err != nil {
 		store.Close()
-		storageRoot.Release()
 		return nil, nil, errors.Wrap(err, "sql/query: open target db read transaction")
 	}
 
@@ -375,7 +365,6 @@ func (r *SqlQueryResource) openRows(
 	if err != nil {
 		tx.Discard()
 		store.Close()
-		storageRoot.Release()
 		return nil, nil, errors.Wrap(err, "sql/query: open target db SQL ops")
 	}
 
@@ -388,13 +377,11 @@ func (r *SqlQueryResource) openRows(
 	if err != nil {
 		tx.Discard()
 		store.Close()
-		storageRoot.Release()
 		return nil, nil, errors.Wrap(err, "sql/query: execute target db query")
 	}
 	if rows == nil {
 		tx.Discard()
 		store.Close()
-		storageRoot.Release()
 		return nil, nil, errors.New("sql/query: query returned nil rows")
 	}
 
@@ -403,7 +390,6 @@ func (r *SqlQueryResource) openRows(
 		rows.Close()
 		tx.Discard()
 		store.Close()
-		storageRoot.Release()
 	}
 	return rows, cleanup, nil
 }

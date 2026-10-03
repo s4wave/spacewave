@@ -89,15 +89,20 @@ func (e *readCheckpointEngine) AccessWorldState(ctx context.Context, ref *bucket
 	})
 }
 
+// readOnlyCursor rebuilds cursor over a read-only view of its bucket. release
+// runs when the returned cursor is released.
 func (e *readCheckpointEngine) readOnlyCursor(ctx context.Context, cursor *bucket_lookup.Cursor, release func()) *bucket_lookup.Cursor {
+	// Drop the volume so reads resolve through the bucket.
 	opArgs := cursor.GetOpArgs()
 	opArgs.VolumeId = ""
+
+	// Wrap the bucket in a read-only store at the cursor's position.
 	read := bucket_lookup.NewCursorWithRelease(
 		ctx,
 		e.bus,
 		e.le,
 		cursor.GetStepFactorySet(),
-		&readOnlyBlockStore{StoreOps: cursor.GetBucket()},
+		block.NewReadOnlyStore(cursor.GetBucket()),
 		cursor.GetTransformer(),
 		cursor.GetRef(),
 		opArgs,
@@ -106,33 +111,4 @@ func (e *readCheckpointEngine) readOnlyCursor(ctx context.Context, cursor *bucke
 	)
 	read.SetBucketIDOverride(cursor.GetBucketIDOverride())
 	return read
-}
-
-// readOnlyBlockStore preserves block reads while rejecting every storage mutation.
-type readOnlyBlockStore struct {
-	block.StoreOps
-}
-
-func (s *readOnlyBlockStore) BeginReadOperation(ctx context.Context) (block.StoreOps, func(), error) {
-	store, release, err := s.StoreOps.BeginReadOperation(ctx)
-	if err != nil {
-		return nil, nil, err
-	}
-	return &readOnlyBlockStore{StoreOps: store}, release, nil
-}
-
-func (s *readOnlyBlockStore) PutBlock(context.Context, []byte, *block.PutOpts) (*block.BlockRef, bool, error) {
-	return nil, false, tx.ErrNotWrite
-}
-
-func (s *readOnlyBlockStore) PutBlockBatch(context.Context, []*block.PutBatchEntry) error {
-	return tx.ErrNotWrite
-}
-
-func (s *readOnlyBlockStore) RmBlock(context.Context, *block.BlockRef) error {
-	return tx.ErrNotWrite
-}
-
-func (s *readOnlyBlockStore) Sync(context.Context) (bool, error) {
-	return false, tx.ErrNotWrite
 }

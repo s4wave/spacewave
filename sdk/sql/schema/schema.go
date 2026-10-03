@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/s4wave/spacewave/db/block"
-	"github.com/s4wave/spacewave/db/bucket"
 	"github.com/s4wave/spacewave/db/world"
 	s4wave_sql "github.com/s4wave/spacewave/sdk/sql"
 )
@@ -45,14 +44,6 @@ func ReadSchemaObjectRoot(ctx context.Context, obj world.ObjectState) (*Schema, 
 		return nil, err
 	}
 	return schema, nil
-}
-
-// WriteSchemaRootRef writes a SQL schema root block and returns its ref.
-func WriteSchemaRootRef(ctx context.Context, ws world.WorldState, schema *Schema) (*bucket.ObjectRef, error) {
-	return world.AccessObject(ctx, ws.AccessWorldState, nil, func(bcs *block.Cursor) error {
-		bcs.SetBlock(schema, true)
-		return nil
-	})
 }
 
 // SyncSchemaGraphQuads replaces the schema's target database graph link.

@@ -74,7 +74,7 @@ func writeSpaceColorsFiles(t *testing.T, ctx context.Context, tb *testbed.Testbe
 		if err != nil {
 			t.Fatal(err)
 		}
-		_, _, err = unixfs_world.FsMknodWithContent(ctx, obj, sender, unixfs_world.FSType_FSType_FS_NODE,
+		_, _, err = unixfs_world.FsMknodWithContent(ctx, tb.WorldState, obj, sender, unixfs_world.FSType_FSType_FS_NODE,
 			[]string{name}, unixfs.NewFSCursorNodeType_File(), int64(len(source)), bytes.NewBufferString(source), 0o644, time.Now())
 		world.ReleaseObjectState(obj)
 		if err != nil {

@@ -31,14 +31,23 @@ func TestManifestRegistrationRetriesInvalidSnapshot(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			// Write a manifest content block and record the host's root ref.
-			ref, err := world.AccessObject(ctx, ws.AccessWorldState, nil, func(cursor *block.Cursor) error {
+			// Open a stage held until the test ends.
+			contentStage, err := ws.StageWorldState(ctx)
+			if err != nil {
+				t.Fatal(err)
+			}
+			t.Cleanup(contentStage.Release)
+
+			// Write a manifest content block through the stage.
+			ref, err := world.AccessObject(ctx, contentStage.AccessWorldState, nil, func(cursor *block.Cursor) error {
 				cursor.SetBlock(block_mock.NewExample("manifest-content"), true)
 				return nil
 			})
 			if err != nil {
 				t.Fatal(err)
 			}
+
+			// Record the host's root ref.
 			host, err := world.MustGetObject(ctx, ws, hostKey)
 			if err != nil {
 				t.Fatal(err)

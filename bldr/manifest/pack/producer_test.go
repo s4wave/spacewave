@@ -40,7 +40,7 @@ func TestCommitDistDirManifestPacksAppBundle(t *testing.T) {
 		Rev:        5,
 	}
 	conf := &ProducerConfig{WorldState: ws, DistDir: distDir, Entrypoint: "Spacewave.app"}
-	ref, err := commitDistDirManifest(ctx, conf, meta)
+	ref, err := commitDistDirManifest(ctx, ws, conf, meta)
 	if err != nil {
 		t.Fatal(err)
 	}

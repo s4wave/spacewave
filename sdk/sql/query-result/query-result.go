@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/s4wave/spacewave/db/block"
-	"github.com/s4wave/spacewave/db/bucket"
 	"github.com/s4wave/spacewave/db/world"
 	s4wave_sql "github.com/s4wave/spacewave/sdk/sql"
 )
@@ -45,18 +44,6 @@ func ReadQueryResultObjectRoot(ctx context.Context, obj world.ObjectState) (*Que
 		return nil, err
 	}
 	return result, nil
-}
-
-// WriteQueryResultRootRef writes a SQL query result root block and returns its ref.
-func WriteQueryResultRootRef(
-	ctx context.Context,
-	ws world.WorldState,
-	result *QueryResult,
-) (*bucket.ObjectRef, error) {
-	return world.AccessObject(ctx, ws.AccessWorldState, nil, func(bcs *block.Cursor) error {
-		bcs.SetBlock(result, true)
-		return nil
-	})
 }
 
 // SyncResultGraphQuads replaces the result's source query and target database graph links.

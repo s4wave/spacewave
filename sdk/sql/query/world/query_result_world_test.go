@@ -166,16 +166,23 @@ func TestSqlQueryInitializeWorldOpCreateOnce(t *testing.T) {
 	}
 	defer world.ReleaseObjectState(obj)
 
-	// Initialize the first root and verify its saved query text.
-	firstRef := writeQueryRootRef(t, ctx, tb.WorldState, &s4wave_sql_query.Query{SqlText: "SELECT 1"})
+	// Stage both roots until the ops adopt them.
+	stage, err := tb.WorldState.StageWorldState(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer stage.Release()
+
+	// The first initialize-only op sets the root.
+	firstRef := writeQueryRootRef(t, ctx, stage, &s4wave_sql_query.Query{SqlText: "SELECT 1"})
 	if _, err := s4wave_sql_query_world.NewSqlQueryInitializeRootOp(queryKey, firstRef).
 		ApplyWorldObjectOp(ctx, nil, obj, ""); err != nil {
 		t.Fatalf("first initialize-only op: %v", err)
 	}
 	assertQueryRoot(t, ctx, tb.WorldState, queryKey, "SELECT 1")
 
-	// Reject a second create-once root and preserve the first query text.
-	secondRef := writeQueryRootRef(t, ctx, tb.WorldState, &s4wave_sql_query.Query{SqlText: "SELECT 2"})
+	// A second initialize-only op is refused and keeps the first root.
+	secondRef := writeQueryRootRef(t, ctx, stage, &s4wave_sql_query.Query{SqlText: "SELECT 2"})
 	_, err = s4wave_sql_query_world.NewSqlQueryInitializeRootOp(queryKey, secondRef).
 		ApplyWorldObjectOp(ctx, nil, obj, "")
 	if !std_errors.Is(err, s4wave_sql_query_world.ErrQueryAlreadyInitialized) {
@@ -394,11 +401,11 @@ func assertObjectRootEmpty(t *testing.T, ctx context.Context, ws world.WorldStat
 func writeQueryRootRef(
 	t *testing.T,
 	ctx context.Context,
-	ws world.WorldState,
+	storage world.WorldStorage,
 	query *s4wave_sql_query.Query,
 ) *bucket.ObjectRef {
 	t.Helper()
-	rootRef, err := s4wave_sql_query.WriteQueryRootRef(ctx, ws, query)
+	rootRef, err := s4wave_sql_query.WriteQueryRootRef(ctx, storage, query)
 	if err != nil {
 		t.Fatalf("WriteQueryRootRef: %v", err)
 	}

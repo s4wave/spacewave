@@ -63,10 +63,17 @@ func (r *WizardResource) runGitClone(ctx context.Context, req *wizard.StartGitCl
 		ts = timestamppb.Now()
 	}
 
-	// Clone the repository while publishing progress to the wizard.
+	// Clone the repository through a stage held until the publish commits,
+	// publishing progress to the wizard.
+	stage, err := r.engine.StageWorldState(ctx)
+	if err != nil {
+		r.failGitClone(req.GetObjectKey(), "Clone failed.", err)
+		return
+	}
+	defer stage.Release()
 	repoRef, err := s4wave_git.CloneGitRepoToRef(
 		ctx,
-		r.engine,
+		stage,
 		op.GetCloneOpts(),
 		nil,
 		&gitCloneProgressWriter{resource: r, objectKey: req.GetObjectKey()},

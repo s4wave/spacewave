@@ -10,7 +10,6 @@ import (
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/bucket"
-	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	hydra_sql "github.com/s4wave/spacewave/db/sql"
 	sql_mysql "github.com/s4wave/spacewave/db/sql/mysql"
 	sql_rpc "github.com/s4wave/spacewave/db/sql/rpc"
@@ -309,18 +308,9 @@ func openWorldBackedSql(
 ) (hydra_sql.SqlStore, func()) {
 	// Resolve the World object and open its SQL store through a storage cursor.
 	t.Helper()
-	obj, err := world.MustGetObject(ctx, ws, objectKey)
-	defer world.ReleaseObjectState(obj)
+	store, err := s4wave_sql_world.NewWorldBackedSql(ctx, ws, objectKey)
 	if err != nil {
-		t.Fatalf("MustGetObject(%s): %v", objectKey, err)
-	}
-	var store *s4wave_sql_world.WorldBackedSql
-	if err := obj.AccessWorldState(ctx, nil, func(root *bucket_lookup.Cursor) error {
-		var err error
-		store, err = s4wave_sql_world.NewWorldBackedSql(ctx, root.Clone(), ws, objectKey)
-		return err
-	}); err != nil {
-		t.Fatalf("AccessWorldState(%s): %v", objectKey, err)
+		t.Fatalf("NewWorldBackedSql(%s): %v", objectKey, err)
 	}
 	return store, store.Close
 }

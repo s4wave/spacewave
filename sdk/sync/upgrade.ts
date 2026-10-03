@@ -182,7 +182,8 @@ export async function executeAppUpgrade<S extends Schema>(
         }
         using object = await state.getObject(request.objectKey, signal)
         // eslint-disable-next-line react-doctor/server-sequential-independent-await -- Register object disposal before another Resource acquisition can fail.
-        using cursor = await state.buildStorageCursor(signal)
+        using stage = await state.stageWorldState(signal)
+        using cursor = await stage.buildStorageCursor(signal)
         const binding: AppInstance = {
           ...current,
           ...revision,

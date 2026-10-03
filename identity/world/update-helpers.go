@@ -12,8 +12,8 @@ import (
 
 // storeBlockUpdate stores blk at the object key and applies the update
 // operation built from the stored ref. When an object already exists at
-// objKey its state is replaced through AccessObjectState; otherwise the
-// block is written to a fresh object.
+// objKey the block replaces its root; otherwise the block is written to a
+// fresh root. A stage holds the block until the operation adopts it.
 func storeBlockUpdate[T block.Block](
 	ctx context.Context,
 	w world.WorldState,
@@ -36,19 +36,27 @@ func storeBlockUpdate[T block.Block](
 		return nil
 	}
 
-	// Write the block through the existing object or a fresh one.
-	var opRef *bucket.ObjectRef
+	// Read the existing root the block replaces, if any.
+	var initRef *bucket.ObjectRef
 	if objFound {
-		var changed bool
-		opRef, changed, err = world.AccessObjectState(ctx, obj, false, setBlock)
-		if err != nil || !changed {
-			return 0, false, err
-		}
-	} else {
-		opRef, err = world.AccessObject(ctx, w.AccessWorldState, nil, setBlock)
+		initRef, _, err = obj.GetRootRef(ctx)
 		if err != nil {
 			return 0, false, err
 		}
+	}
+
+	// Write the block through a stage held until the op adopts it.
+	stage, err := w.StageWorldState(ctx)
+	if err != nil {
+		return 0, false, err
+	}
+	defer stage.Release()
+	opRef, err := world.AccessObject(ctx, stage.AccessWorldState, initRef, setBlock)
+	if err != nil {
+		return 0, false, err
+	}
+	if objFound && opRef.GetRootRef().EqualsRef(initRef.GetRootRef()) {
+		return 0, false, nil
 	}
 
 	// Apply the update operation built from the stored reference.

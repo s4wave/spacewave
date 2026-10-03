@@ -83,10 +83,17 @@ func TestKvtx(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	// Store the input blob in a world object.
+	// Open a stage held until the test ends.
+	stage, err := ws.StageWorldState(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer stage.Release()
+
+	// Store the input blob through the stage.
 	ts := timestamp.Now()
 	uniqueID := "kvtx-test"
-	handle := forge_target.ExecControllerHandleWithAccess(uniqueID, tb.Volume.GetPeerID(), tb.Engine, ws.AccessWorldState, ts)
+	handle := forge_target.ExecControllerHandleWithAccess(uniqueID, tb.Volume.GetPeerID(), tb.Engine, stage.AccessWorldState, ts)
 	mockData := []byte("mock blob: hello world")
 	testBlob, err := forge_target.StoreBlobValueFromBytes(ctx, handle, mockData)
 	if err != nil {

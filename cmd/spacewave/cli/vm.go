@@ -1014,6 +1014,7 @@ func importV86SingleFile(ctx context.Context, tx world.WorldState, key, name, pa
 	}
 	if _, _, err := unixfs_world.FsMknodWithContent(
 		ctx,
+		tx,
 		obj,
 		"",
 		unixfs_world.FSType_FSType_FS_NODE,

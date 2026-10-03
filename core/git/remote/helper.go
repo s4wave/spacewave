@@ -298,30 +298,47 @@ func (h *Helper) push(ctx context.Context, cmds []pushCommand) ([]string, error)
 			continue
 		}
 
-		// Apply every command inside one World writer and collect reasons.
-		results := make([]string, len(cmds))
-		nextRef, err := git_world.AccessRepo(ctx, h.engine.AccessWorldState, prevRef, nil, nil, nil, func(repo *git.Repository) error {
-			remote := git.NewRemote(repo.Storer, &config.RemoteConfig{Name: localRemoteName, URLs: []string{h.gitDir}})
-			for i, cmd := range cmds {
-				reason, err := h.pushOne(ctx, repo, remote, cmd)
-				if err != nil {
-					return err
-				}
-				results[i] = reason
-			}
-			return nil
-		})
-		if err != nil {
-			return nil, errors.Wrap(err, "update the Space repository")
-		}
-
-		// Adopt the new root or retry against the writer that moved it.
-		applied, err := h.adoptRoot(ctx, prevRev, nextRef)
+		// Apply the commands and adopt the new root, or retry against the
+		// writer that moved it.
+		results, applied, err := h.pushAt(ctx, cmds, prevRef, prevRev)
 		if err != nil || applied {
 			h.pushed = applied
 			return results, err
 		}
 	}
+}
+
+// pushAt applies cmds to the Repo at prevRef and adopts the new root if the
+// object is still at prevRev. It returns a failure reason per command and
+// whether the root was adopted.
+func (h *Helper) pushAt(ctx context.Context, cmds []pushCommand, prevRef *bucket.ObjectRef, prevRev uint64) ([]string, bool, error) {
+	// Stage the Repo update until the adopting transaction returns.
+	stage, err := h.engine.StageWorldState(ctx)
+	if err != nil {
+		return nil, false, err
+	}
+	defer stage.Release()
+
+	// Apply every command to the staged Repo and collect reasons.
+	results := make([]string, len(cmds))
+	nextRef, err := git_world.AccessRepo(ctx, stage.AccessWorldState, prevRef, nil, nil, nil, func(repo *git.Repository) error {
+		remote := git.NewRemote(repo.Storer, &config.RemoteConfig{Name: localRemoteName, URLs: []string{h.gitDir}})
+		for i, cmd := range cmds {
+			reason, err := h.pushOne(ctx, repo, remote, cmd)
+			if err != nil {
+				return err
+			}
+			results[i] = reason
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, false, errors.Wrap(err, "update the Space repository")
+	}
+
+	// Adopt the new root while the stage still holds it.
+	applied, err := h.adoptRoot(ctx, prevRev, nextRef)
+	return results, applied, err
 }
 
 // pushOne applies one ref update inside the Repo and returns the reason it was

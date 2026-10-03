@@ -30,15 +30,15 @@ var ReleaseManifestTime = timestamp.New(time.Unix(1, 0).UTC())
 // ReleaseManifestAccess writes new manifest objects with the gzip transform
 // understood by both native and browser readers. Existing references retain
 // their own transforms; only new payloads use this release policy.
-func ReleaseManifestAccess(le *logrus.Entry, ws world.WorldState) world.AccessWorldStateFunc {
+func ReleaseManifestAccess(le *logrus.Entry, storage world.WorldStorage) world.AccessWorldStateFunc {
 	return func(ctx context.Context, ref *bucket.ObjectRef, cb func(*bucket_lookup.Cursor) error) error {
 		// Read an existing reference with the transform it already has.
 		if !ref.GetEmpty() {
-			return ws.AccessWorldState(ctx, ref, cb)
+			return storage.AccessWorldState(ctx, ref, cb)
 		}
 
 		// Open the World's storage cursor for the new object.
-		base, err := ws.BuildStorageCursor(ctx)
+		base, err := storage.BuildStorageCursor(ctx)
 		if err != nil {
 			return err
 		}
@@ -54,16 +54,19 @@ func ReleaseManifestAccess(le *logrus.Entry, ws world.WorldState) world.AccessWo
 			return err
 		}
 
-		// Write through a cursor that applies the transformer.
+		// Write through a cursor that applies the transformer, into the store
+		// that owns the base cursor's writes.
 		cursor := bucket_lookup.NewCursor(ctx, nil, le, base.GetStepFactorySet(), base.GetBucket(), xfrm, nil, base.GetOpArgs(), conf)
 		defer cursor.Release()
+		cursor.SetTransactionStore(base.GetBlockStore())
 		return cb(cursor)
 	}
 }
 
 // EncodeReleaseManifest encodes the source Manifest into the destination World
 // with the release policy and returns the encoded Manifest and its reference.
-// The encoding is not linked into the World.
+// The encoding is not linked into the World; dest owns its blocks until the
+// caller links it.
 //
 // meta carries the revision of the encoded Manifest. The encoded blocks of
 // unchanged files and directories equal the ones already encoded anywhere, so
@@ -74,7 +77,7 @@ func EncodeReleaseManifest(
 	src world.AccessWorldStateFunc,
 	srcRef *bucket.ObjectRef,
 	meta *bldr_manifest.ManifestMeta,
-	dest world.WorldState,
+	dest world.WorldStorage,
 ) (*bldr_manifest.Manifest, *bucket.ObjectRef, error) {
 	var out *bldr_manifest.Manifest
 	var ref *bucket.ObjectRef

@@ -13,6 +13,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/bucket"
+	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	git_block "github.com/s4wave/spacewave/db/git/block"
 	unixfs_billy "github.com/s4wave/spacewave/db/unixfs/billy"
 	unixfs_world "github.com/s4wave/spacewave/db/unixfs/world"
@@ -91,23 +92,16 @@ func AccessRepoWithCursor(
 	refStore git_block.ReferenceStore,
 	cb func(repo *git.Repository) error,
 ) error {
-	// Resolve default stores and validate the persisted repository block.
+	// Resolve the default stores.
 	if indexStore == nil {
 		indexStore = &memory.IndexStorage{}
 	}
 	if workdir == nil {
 		workdir = memfs.New()
 	}
-	repob, err := git_block.UnmarshalRepo(ctx, bcs)
-	if err != nil {
-		return err
-	}
-	if err := repob.Validate(); err != nil {
-		return err
-	}
 
 	// Open the block-backed git store and release it after the callback.
-	store, err := git_block.NewStore(ctx, nil, bcs, indexStore, refStore)
+	store, err := openRepoStore(ctx, bcs, indexStore, refStore)
 	if err != nil {
 		return err
 	}
@@ -131,6 +125,56 @@ func AccessRepoWithCursor(
 
 	// Commit the repository mutation.
 	return store.Commit()
+}
+
+// ReadRepo opens the repository at ref for reading. Nothing is written: block
+// changes made while opening the repository, such as initializing a missing
+// HEAD the way AccessRepo does, are discarded, so read-only World storage can
+// serve the read.
+func ReadRepo(
+	ctx context.Context,
+	access world.AccessWorldStateFunc,
+	ref *bucket.ObjectRef,
+	cb func(repo *git.Repository) error,
+) error {
+	return access(ctx, ref, func(bls *bucket_lookup.Cursor) error {
+		// Open the block-backed git store on a transaction that is never written.
+		_, bcs := bls.BuildTransaction(nil)
+		store, err := openRepoStore(ctx, bcs, &memory.IndexStorage{}, nil)
+		if err != nil {
+			return err
+		}
+		defer store.Close()
+
+		// Open or initialize the repository and run the callback.
+		workdir := memfs.New()
+		repo, err := git.Open(store, workdir)
+		if errors.Is(err, git.ErrRepositoryNotExists) {
+			repo, err = git.Init(store, git.WithWorkTree(workdir))
+		}
+		if err != nil {
+			return err
+		}
+		return cb(repo)
+	})
+}
+
+// openRepoStore validates the repository block at bcs and opens its git store.
+func openRepoStore(
+	ctx context.Context,
+	bcs *block.Cursor,
+	indexStore storer.IndexStorer,
+	refStore git_block.ReferenceStore,
+) (*git_block.Store, error) {
+	// Decode and validate the persisted repository block.
+	repob, err := git_block.UnmarshalRepo(ctx, bcs)
+	if err != nil {
+		return nil, err
+	}
+	if err := repob.Validate(); err != nil {
+		return nil, err
+	}
+	return git_block.NewStore(ctx, nil, bcs, indexStore, refStore)
 }
 
 // ValidateOrCreateRepo creates or checks a reference to a Repo.

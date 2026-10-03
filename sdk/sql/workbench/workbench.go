@@ -58,8 +58,9 @@ func ReadWorkbenchObjectRoot(ctx context.Context, obj world.ObjectState) (*Workb
 }
 
 // WriteWorkbenchRootRef writes a SQL workbench root block and returns its ref.
-func WriteWorkbenchRootRef(ctx context.Context, ws world.WorldState, workbench *Workbench) (*bucket.ObjectRef, error) {
-	return world.AccessObject(ctx, ws.AccessWorldState, nil, func(bcs *block.Cursor) error {
+// Write through a stage held until the root is adopted.
+func WriteWorkbenchRootRef(ctx context.Context, storage world.WorldStorage, workbench *Workbench) (*bucket.ObjectRef, error) {
+	return world.AccessObject(ctx, storage.AccessWorldState, nil, func(bcs *block.Cursor) error {
 		bcs.SetBlock(workbench, true)
 		return nil
 	})

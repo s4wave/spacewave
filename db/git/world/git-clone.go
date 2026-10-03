@@ -51,12 +51,17 @@ func GitClone(
 		cloneArgs.ClientOptions = append(cloneArgs.ClientOptions, client.WithSSHAuth(authMethod))
 	}
 
-	// Clone directly into hydra storage under world write lock.
-	// The bulk-mode Store streams objects to KV via mini-transactions,
-	// then builds the IAVL tree bottom-up at Commit.
+	// Clone directly into hydra storage through a stage held until the init
+	// op adopts the repo. The bulk-mode Store streams objects to KV via
+	// mini-transactions, then builds the IAVL tree bottom-up at Commit.
+	stage, err := ws.StageWorldState(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer stage.Release()
 	repoRef, err := world.AccessObject(
 		ctx,
-		ws.AccessWorldState,
+		stage.AccessWorldState,
 		nil,
 		func(bcs *block.Cursor) error {
 			// Initialize the repository block and storage adapter.

@@ -162,7 +162,7 @@ func writeColorsSource(t *testing.T, tb *testbed.Testbed, sender peer.ID, source
 		"bldr.yaml": `{"id":"space-colors","manifests":{"space-colors":{"builder":{"id":"bldr/plugin/compiler/js","config":{"viteDisableProjectConfig":true,"modules":[{"kind":"JS_MODULE_KIND_FRONTEND","path":"./Viewer.ts"}]}}}}}`,
 		"Viewer.ts": `export const label = "colors"`,
 	} {
-		_, _, err := unixfs_world.FsMknodWithContent(ctx, object, sender, unixfs_world.FSType_FSType_FS_NODE,
+		_, _, err := unixfs_world.FsMknodWithContent(ctx, tb.WorldState, object, sender, unixfs_world.FSType_FSType_FS_NODE,
 			[]string{name}, unixfs.NewFSCursorNodeType_File(), int64(len(contents)), strings.NewReader(contents), 0o644, time.Now())
 		if err != nil {
 			t.Fatal(err)

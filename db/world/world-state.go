@@ -65,6 +65,16 @@ type WorldState interface {
 
 	// WorldStorage accesses the world storage.
 	WorldStorage
+
+	// StageWorldState opens a staging scope for writes outside a transaction.
+	// Build through the stage, adopt the result through this state, then
+	// release the stage after the adopting call returns. An engine-level state
+	// opens an engine stage. A write transaction adopts the build only when it
+	// commits, after the adopting call returns, so its stage writes through the
+	// transaction's own storage and Release does nothing. A read-only state
+	// returns tx.ErrNotWrite.
+	StageWorldState(ctx context.Context) (WorldStage, error)
+
 	// WorldStateObject contains the object APIs
 	WorldStateObject
 	// WorldStateGraph contains the graph APIs
@@ -368,8 +378,14 @@ func CreateWorldObject(
 		return nil, nil, err
 	}
 
-	// Build and persist the new object's root block.
-	objRef, err := AccessObject(ctx, ws.AccessWorldState, nil, cb)
+	// Build the new object's root block through a stage held until the
+	// object references it.
+	stage, err := ws.StageWorldState(ctx)
+	if err != nil {
+		return nil, nil, err
+	}
+	defer stage.Release()
+	objRef, err := AccessObject(ctx, stage.AccessWorldState, nil, cb)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -380,7 +396,8 @@ func CreateWorldObject(
 }
 
 // AccessWorldObject attempts to look up an object in the world state.
-// If the object did not exist, bcs will be empty, the object will be created.
+// If the object did not exist, bcs will be empty; with updateWorld the object
+// will be created, otherwise the build is discarded.
 // If updateWorld=true, and the result is different, will SetRootRef with change.
 // Note: if updateWorld=true but ws is read-only, sets updateWorld=false.
 // Returns the modified object ref, if it was dirty, and any error.
@@ -403,14 +420,20 @@ func AccessWorldObject(
 		return nil, false, err
 	}
 
-	// Create a root block and publish the object when it is new.
+	// Build a new object's root block through storage held until the object
+	// references it. Without updateWorld the build is discarded on return.
 	if !existed {
-		initRef, err := AccessObject(ctx, ws.AccessWorldState, nil, cb)
-		if err == nil && updateWorld {
-			created, createErr := ws.CreateObject(ctx, objKey, initRef)
-			ReleaseObjectState(created)
-			err = createErr
+		stage, err := OpenWorldStorage(ctx, ws)
+		if err != nil {
+			return nil, false, err
 		}
+		defer stage.Release()
+		initRef, err := AccessObject(ctx, stage.AccessWorldState, nil, cb)
+		if err != nil || !updateWorld {
+			return initRef, true, err
+		}
+		created, err := ws.CreateObject(ctx, objKey, initRef)
+		ReleaseObjectState(created)
 		return initRef, true, err
 	}
 

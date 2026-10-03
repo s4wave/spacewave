@@ -33,6 +33,63 @@ func NewStorageStage(storage WorldStorage) WorldStage {
 	return &storageStage{storage: storage}
 }
 
+// NewTransactionStage returns a stage over a write transaction's storage.
+// The transaction adopts the build when it commits, after the caller would
+// release a stage, so writes go through the transaction's own storage and
+// Release does nothing.
+func NewTransactionStage(storage WorldStorage) WorldStage {
+	return passthroughStage{WorldStorage: storage}
+}
+
+// OpenWorldStorage opens storage for building through ws. A writable ws opens
+// a stage that owns the build; a read-only ws returns its own storage, so
+// reads work and writes fail. Release the result after the build is adopted
+// or abandoned.
+func OpenWorldStorage(ctx context.Context, ws WorldState) (WorldStage, error) {
+	if ws.GetReadOnly() {
+		return passthroughStage{WorldStorage: ws}, nil
+	}
+	return ws.StageWorldState(ctx)
+}
+
+// OpenStagedCursor opens storage for building through ws with
+// OpenWorldStorage and returns a cursor at ref. The release func releases the
+// cursor and then the storage; call it after the build is adopted or
+// abandoned.
+func OpenStagedCursor(ctx context.Context, ws WorldState, ref *bucket.ObjectRef) (*bucket_lookup.Cursor, func(), error) {
+	// Open the storage that owns the cursor's writes.
+	stage, err := OpenWorldStorage(ctx, ws)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// Build the cursor and follow it to ref.
+	storageRoot, err := stage.BuildStorageCursor(ctx)
+	if err != nil {
+		stage.Release()
+		return nil, nil, err
+	}
+	cursor, err := storageRoot.FollowRef(ctx, ref)
+	if err != nil {
+		storageRoot.Release()
+		stage.Release()
+		return nil, nil, err
+	}
+	return cursor, func() {
+		cursor.Release()
+		storageRoot.Release()
+		stage.Release()
+	}, nil
+}
+
+// passthroughStage uses storage that already owns or rejects its writes.
+type passthroughStage struct {
+	WorldStorage
+}
+
+// Release does nothing: the wrapped storage owns its writes.
+func (passthroughStage) Release() {}
+
 // storageStage implements WorldStage over World storage.
 type storageStage struct {
 	// storage builds the cursors this stage wraps.
@@ -117,4 +174,7 @@ func (s *storageStage) stageCursor(ctx context.Context, cursor *bucket_lookup.Cu
 }
 
 // _ is a type assertion
-var _ WorldStage = (*storageStage)(nil)
+var (
+	_ WorldStage = (*storageStage)(nil)
+	_ WorldStage = passthroughStage{}
+)

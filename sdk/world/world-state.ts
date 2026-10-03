@@ -16,6 +16,7 @@ import { ObjectState, type IObjectState } from './object-state.js'
 import { ObjectIterator } from './object_iterator.js'
 import { BucketLookupCursor } from '../bucket/lookup/lookup.js'
 import { Engine } from './engine.js'
+import { WorldStage } from './stage.js'
 import { EngineWorldState } from './engine-state.js'
 import type {
   ObjectBody,
@@ -91,6 +92,12 @@ export interface IWorldState {
     ref?: ObjectRef,
     abortSignal?: AbortSignal,
   ): Promise<BucketLookupCursor>
+
+  // StageWorldState opens a staging scope for writes outside a transaction.
+  // Build through the stage, adopt the result through this state, then
+  // release the stage after the adopting call returns. A write transaction's
+  // stage writes through the transaction. A read-only state rejects it.
+  stageWorldState(abortSignal?: AbortSignal): Promise<WorldStage>
 
   /** openNestedWorld opens a typed outer object as a read-only sub-World. Dispose of the returned owned state independently. */
   openNestedWorld(
@@ -346,6 +353,13 @@ export class WorldStateResource extends Resource implements IWorldState {
       response.resourceId ?? 0,
       BucketLookupCursor,
     )
+  }
+
+  // StageWorldState opens a staging scope for writes outside a transaction.
+  // Release the stage after the call that adopts its build returns.
+  public async stageWorldState(abortSignal?: AbortSignal): Promise<WorldStage> {
+    const response = await this.service.StageWorldState({}, abortSignal)
+    return this.resourceRef.createResource(response.resourceId ?? 0, WorldStage)
   }
 
   /** openNestedWorld opens a typed object's immutable sub-World. Release it independently. */

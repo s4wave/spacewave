@@ -189,7 +189,7 @@ func (f *FSCursor) GetProxyCursor(ctx context.Context) (unixfs.FSCursor, error) 
 	}
 
 	// Collect the proxy cursor and resources needed to resolve this position.
-	relFns := make([]func(), 0, 2)
+	relFns := make([]func(), 0, 3)
 	var fsc unixfs.FSCursor
 	var retErr error
 
@@ -223,10 +223,17 @@ func (f *FSCursor) GetProxyCursor(ctx context.Context) (unixfs.FSCursor, error) 
 			return
 		}
 
-		// build root cursor
-		rootCursor, err := f.ws.BuildStorageCursor(ctx)
+		// Stage the filesystem's writes until the writer publishes them.
+		stage, err := world.OpenWorldStorage(ctx, f.ws)
 		if err != nil {
-			// cannot build root cursor
+			retErr = err
+			return
+		}
+		relFns = append(relFns, stage.Release)
+
+		// Build the root cursor through the stage.
+		rootCursor, err := stage.BuildStorageCursor(ctx)
+		if err != nil {
 			retErr = err
 			return
 		}
@@ -259,11 +266,15 @@ func (f *FSCursor) GetProxyCursor(ctx context.Context) (unixfs.FSCursor, error) 
 			}
 			// add callback to release cursors when nfs is released
 			nfs.AddChangeCb(func(ch *unixfs.FSCursorChange) bool {
+				// Ignore changes other than the release.
 				if !ch.Released {
 					return true
 				}
+
+				// Release the cursors and the stage with the filesystem.
 				locCursor.Release()
 				rootCursor.Release()
+				stage.Release()
 				return false
 			})
 			fsc = nfs

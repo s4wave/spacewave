@@ -40,7 +40,7 @@ func UpdateSnapshot(
 		// Retain writes until the final indexes exist, since copy-on-write
 		// replaces intermediate blocks. Sync still sends bounded batches
 		// through the destination's normal RPC, GC and durability path.
-		writes := block.NewBufferedStoreWithSettings(ctx, bucketCursor.GetBucket(), &block.BufferedStoreSettings{
+		writes := block.NewBufferedStoreWithSettings(ctx, bucketCursor.GetBlockStore(), &block.BufferedStoreSettings{
 			MaxPendingEntries:       math.MaxInt,
 			MaxPendingBytes:         math.MaxInt,
 			MaxPendingMetadataBytes: math.MaxInt,

@@ -206,19 +206,22 @@ func TestSpaceCollectionsPlugin(t *testing.T) {
 // seedColorsProject registers the local worker and copies the shipped example
 // into an ordinary Space UnixFS object before the developer opens the build UI.
 func seedColorsProject(t *testing.T, ctx context.Context, engine world.Engine, sender, devicePeer peer.ID) {
-	t.Helper()
-
 	// Publish the example and its compiler configuration in one source transaction.
+	t.Helper()
 	tx, err := engine.NewTransaction(ctx, true)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer tx.Discard()
+
+	// Create the source filesystem object.
 	const sourceKey = "projects/colors"
 	_, _, err = unixfs_world.FsInit(ctx, tx, sender, sourceKey, unixfs_world.FSType_FSType_FS_NODE, nil, false, time.Now())
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Collect the example files, rewriting SDK imports for the Space build.
 	files := map[string][]byte{"bldr.yaml": []byte(`{
   "id": "space-colors",
   "manifests": {"space-colors": {"builder": {
@@ -244,18 +247,21 @@ export default { plugins: [react()] }
 		source := strings.ReplaceAll(string(data), "../../sdk/", "@go/github.com/s4wave/spacewave/sdk/")
 		files[name] = []byte(strings.ReplaceAll(source, "plugin/colors/ColorViewer.tsx", "./ColorViewer.tsx"))
 	}
+
+	// Write the files into the source object.
 	object, err := world.MustGetObject(ctx, tx, sourceKey)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer world.ReleaseObjectState(object)
 	for name, data := range files {
-		_, _, err := unixfs_world.FsMknodWithContent(ctx, object, sender, unixfs_world.FSType_FSType_FS_NODE,
+		_, _, err := unixfs_world.FsMknodWithContent(ctx, tx, object, sender, unixfs_world.FSType_FSType_FS_NODE,
 			[]string{name}, unixfs.NewFSCursorNodeType_File(), int64(len(data)), bytes.NewReader(data), 0o644, time.Now())
 		if err != nil {
 			t.Fatal(err)
 		}
 	}
+
 	// Grant the disposable Session's worker access through the Device capability.
 	publicKey, err := devicePeer.ExtractPublicKey()
 	if err != nil {
@@ -265,10 +271,14 @@ export default { plugins: [react()] }
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Create the worker for the device key.
 	_, _, err = forge_worker.CreateWorker(ctx, tx, "workers/plugin-build", "plugin-builder", []*identity.Keypair{keypair}, sender)
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Publish the device that offers the worker capability.
 	device := &s4wave_device.Device{
 		PeerId: devicePeer.String(), Label: "Local plugin builder",
 		SetupState: s4wave_device.DeviceSetupState_DEVICE_SETUP_STATE_DEVICE_SESSION_READY,
@@ -293,6 +303,8 @@ export default { plugins: [react()] }
 	if err := world_types.SetObjectType(ctx, tx, "devices/plugin-build", s4wave_device.DeviceTypeID); err != nil {
 		t.Fatal(err)
 	}
+
+	// Commit the source transaction.
 	if err := tx.Commit(ctx); err != nil {
 		t.Fatal(err)
 	}

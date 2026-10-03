@@ -46,8 +46,13 @@ func TestCloneGitRepoToRefPublishesTypedRepo(t *testing.T) {
 	sourcePath := createSourceRepo(t)
 	objectKey := "repo/imported"
 
-	// Clone the source repository into a completed World repository reference.
-	repoRef, err := s4wave_git.CloneGitRepoToRef(ctx, ws, &git_block.CloneOpts{
+	// Clone through a stage held until the init op adopts the repo.
+	stage, err := ws.StageWorldState(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer stage.Release()
+	repoRef, err := s4wave_git.CloneGitRepoToRef(ctx, stage, &git_block.CloneOpts{
 		Url: sourcePath,
 	}, nil, nil)
 	if err != nil {

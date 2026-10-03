@@ -80,8 +80,11 @@ type BatchFSWriter struct {
 	// that parent. The key encoding is produced by joinPathKey.
 	pending map[string]*pendingDir
 
-	// storage is the world storage cursor blobs are built against, opened by
-	// the first AddFile with data and released by Commit or Release.
+	// stage owns the blob blocks the buffer drains before Commit publishes
+	// them, opened with storage and released by Commit or Release.
+	stage world.WorldStage
+	// storage is the staged world storage cursor blobs are built against,
+	// opened by the first AddFile with data and released by Commit or Release.
 	storage *bucket_lookup.Cursor
 	// blobs buffers blob blocks until Commit stages them into the tree.
 	blobs *block.BufferedStore
@@ -172,13 +175,19 @@ func (b *BatchFSWriter) AddFile(
 // buildBlob writes a blob of dataLen bytes from rdr into the blob buffer and
 // returns its root reference.
 func (b *BatchFSWriter) buildBlob(ctx context.Context, dataLen int64, rdr io.Reader) (*block.BlockRef, error) {
-	// Open the World storage cursor and its shared blob buffer on first use.
+	// Open the staged World storage cursor and its shared blob buffer on
+	// first use.
 	if b.storage == nil {
-		storage, err := b.ws.BuildStorageCursor(ctx)
+		stage, err := b.ws.StageWorldState(ctx)
 		if err != nil {
 			return nil, err
 		}
-		b.storage = storage
+		storage, err := stage.BuildStorageCursor(ctx)
+		if err != nil {
+			stage.Release()
+			return nil, err
+		}
+		b.stage, b.storage = stage, storage
 		b.blobs = block.NewBufferedStore(ctx, storage.GetBlockStore())
 	}
 
@@ -619,8 +628,7 @@ func (b *BatchFSWriter) syncExistingFile(
 // after Commit; after Release the writer rejects all further calls.
 //
 // Buffered blobs are dropped. Blobs the buffer already drained for capacity
-// stay in the world's block store unreferenced until block-store GC
-// reclaims them.
+// are released with the writer's stage for block-store GC to reclaim.
 func (b *BatchFSWriter) Release() {
 	// Discard the pending entries and storage, then record the released batch.
 	pendingDirs, pendingEntries := b.pendingMetricCounts()
@@ -635,11 +643,16 @@ func (b *BatchFSWriter) Release() {
 	})
 }
 
-// releaseStorage drops the blob buffer and releases the storage cursor.
+// releaseStorage drops the blob buffer and releases the storage cursor and
+// its stage.
 func (b *BatchFSWriter) releaseStorage() {
 	if b.storage != nil {
 		b.storage.Release()
 		b.storage = nil
+	}
+	if b.stage != nil {
+		b.stage.Release()
+		b.stage = nil
 	}
 	b.blobs = nil
 }

@@ -98,7 +98,7 @@ func (w *FSWriter) SetModTimestamp(ctx context.Context, paths [][]string, mtime 
 // WriteAt writes data to an offset in an inode (usually a file).
 func (w *FSWriter) WriteAt(ctx context.Context, path []string, offset int64, data []byte, ts time.Time) error {
 	return w.applyConfirmOp(ctx, func(wobj world.ObjectState) (nrev uint64, sysErr bool, err error) {
-		return FsWriteAt(ctx, wobj, w.sender, w.fsType, path, offset, data, ts)
+		return FsWriteAt(ctx, w.ws, wobj, w.sender, w.fsType, path, offset, data, ts)
 	})
 }
 
@@ -152,7 +152,7 @@ func (w *FSWriter) Remove(ctx context.Context, paths [][]string, ts time.Time) e
 // Pre-builds the blob, then applies the mknod+content op in a single commit.
 func (w *FSWriter) MknodWithContent(ctx context.Context, path []string, nodeType unixfs.FSCursorNodeType, dataLen int64, rdr io.Reader, permissions fs.FileMode, ts time.Time) error {
 	return w.applyConfirmOp(ctx, func(wobj world.ObjectState) (nrev uint64, sysErr bool, err error) {
-		return FsMknodWithContent(ctx, wobj, w.sender, w.fsType, path, nodeType, dataLen, rdr, permissions, ts)
+		return FsMknodWithContent(ctx, w.ws, wobj, w.sender, w.fsType, path, nodeType, dataLen, rdr, permissions, ts)
 	})
 }
 

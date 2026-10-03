@@ -25,28 +25,25 @@ export async function openWorldKvStore(
       throw new KvObjectTypeError()
   } else {
     if (!create) return undefined
-    const cursor = await state.buildStorageCursor(signal)
-    try {
-      const root = await cursor.putBlock(
-        {
-          data: KeyValueStore.toBinary({
-            implType: KVImplType.KV_IMPL_TYPE_IAVL,
-          }),
-        },
-        signal,
-      )
-      const storage = await cursor.getRef(signal)
-      if (!root.ref) throw new Error('kv/store: missing initial root')
-      const created = await state.createObject(
-        key,
-        { ...storage.ref, rootRef: root.ref },
-        signal,
-      )
-      created.release()
-      await setObjectType(state, key, KvStoreTypeID, signal)
-    } finally {
-      cursor.release()
-    }
+    using stage = await state.stageWorldState(signal)
+    using cursor = await stage.buildStorageCursor(signal)
+    const root = await cursor.putBlock(
+      {
+        data: KeyValueStore.toBinary({
+          implType: KVImplType.KV_IMPL_TYPE_IAVL,
+        }),
+      },
+      signal,
+    )
+    const storage = await cursor.getRef(signal)
+    if (!root.ref) throw new Error('kv/store: missing initial root')
+    const created = await state.createObject(
+      key,
+      { ...storage.ref, rootRef: root.ref },
+      signal,
+    )
+    created.release()
+    await setObjectType(state, key, KvStoreTypeID, signal)
   }
   const access = await state.accessTypedObject(key, signal)
   const store = state.resourceRef.createResource(access.resourceId, KvStore)

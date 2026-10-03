@@ -64,7 +64,8 @@ export function SqlSchemaViewer({
       try {
         const spaceWorld = container.spaceWorld
         const viewKey = `${objectKey}/table/${tableName}/${Date.now().toString(36)}`
-        using cursor = await spaceWorld.buildStorageCursor()
+        using stage = await spaceWorld.stageWorldState()
+        using cursor = await stage.buildStorageCursor()
         const created = await createWorldObject(
           spaceWorld,
           cursor,

@@ -22,6 +22,9 @@ type execControllerHandle struct {
 	c *Controller
 	// ws is the World state used for claim-fenced Execution writes.
 	ws world.WorldState
+	// storage owns the value blocks the Execution writes until its outputs
+	// adopt them.
+	storage world.WorldStorage
 	// ts is the immutable timestamp of the Execution snapshot.
 	ts *timestamp.Timestamp
 	// claimEpoch is the granted snapshot's epoch, never a later claim's epoch.
@@ -29,11 +32,13 @@ type execControllerHandle struct {
 }
 
 // newExecControllerHandle constructs an ExecControllerHandle.
-// ts cannot be nil. claimEpoch comes from the granted Execution snapshot.
+// storage is a stage over ws held for the handle's lifetime. ts cannot be nil.
+// claimEpoch comes from the granted Execution snapshot.
 func newExecControllerHandle(
 	ctx context.Context,
 	c *Controller,
 	ws world.WorldState,
+	storage world.WorldStorage,
 	ts *timestamp.Timestamp,
 	claimEpoch uint64,
 ) *execControllerHandle {
@@ -41,6 +46,7 @@ func newExecControllerHandle(
 		ctx:        ctx,
 		c:          c,
 		ws:         ws,
+		storage:    storage,
 		ts:         ts,
 		claimEpoch: claimEpoch,
 	}
@@ -74,7 +80,8 @@ func (h *execControllerHandle) GetTimestamp() *timestamp.Timestamp {
 // AccessStorage builds a bucket lookup cursor located at the given ref.
 // If the ref is empty, will produce a cursor at the root of the target world.
 // If the ref Bucket ID is empty, uses the same bucket + volume as the target world.
-// The cursor returned is read-only.
+// Writes through the cursor belong to the handle's stage until the outputs
+// that reference them are set.
 // The lookup cursor will be released after cb returns.
 func (h *execControllerHandle) AccessStorage(
 	ctx context.Context,
@@ -90,8 +97,8 @@ func (h *execControllerHandle) AccessStorage(
 	default:
 	}
 
-	// Use the World state already granted to this Execution.
-	return h.ws.AccessWorldState(ctx, ref, cb)
+	// Use the stage over the World state granted to this Execution.
+	return h.storage.AccessWorldState(ctx, ref, cb)
 }
 
 // SetOutputs changes the outputs according to the given ValueSlice.

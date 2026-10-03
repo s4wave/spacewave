@@ -11,7 +11,6 @@ import (
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/pkg/errors"
 	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
-	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	hydra_sql "github.com/s4wave/spacewave/db/sql"
 	sql_rpc "github.com/s4wave/spacewave/db/sql/rpc"
 	"github.com/s4wave/spacewave/db/world"
@@ -283,29 +282,19 @@ func (r *SqlTableViewResource) openTargetRows(
 	return rows, cleanup, nil
 }
 
+// openTargetSqlOps opens the target database with a read or write transaction
+// and its SQL operations. The caller discards the transaction and closes the
+// store.
 func (r *SqlTableViewResource) openTargetSqlOps(
 	ctx context.Context,
 	targetKey string,
 	write bool,
 ) (*s4wave_sql_world.WorldBackedSql, hydra_sql.SqlTransaction, hydra_sql.SqlOps, error) {
-	// Acquire the target database object for the store's initialization.
-	obj, err := world.MustGetObject(ctx, r.ws, targetKey)
-	defer world.ReleaseObjectState(obj)
+	// Open a transaction on the target database.
+	store, err := s4wave_sql_world.NewWorldBackedSql(ctx, r.ws, targetKey)
 	if err != nil {
 		return nil, nil, nil, err
 	}
-
-	// Open the World-backed SQL store from the object's root.
-	var store *s4wave_sql_world.WorldBackedSql
-	if err := obj.AccessWorldState(ctx, nil, func(root *bucket_lookup.Cursor) error {
-		var err error
-		store, err = s4wave_sql_world.NewWorldBackedSql(ctx, root.Clone(), r.ws, targetKey)
-		return err
-	}); err != nil {
-		return nil, nil, nil, err
-	}
-
-	// Start the requested SQL transaction.
 	tx, err := store.NewSqlTransaction(ctx, write, "")
 	if err != nil {
 		store.Close()

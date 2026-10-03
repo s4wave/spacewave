@@ -69,16 +69,26 @@ func (r *SpaceResource) DeployManifests(strm s4wave_space.SRPCSpaceResourceServi
 		}
 	}
 
-	// Copy and validate every manifest DAG before opening the transaction.
-	cursor, err := engine.BuildStorageCursor(ctx)
+	// Copy and validate every manifest DAG before opening the transaction,
+	// staged until the transaction links the copies.
+	stage, err := engine.StageWorldState(ctx)
+	if err != nil {
+		return sendDeployManifestsResult(strm, errors.Wrap(err, "stage world state").Error())
+	}
+	defer stage.Release()
+
+	// Buffer the copies into the staged storage.
+	cursor, err := stage.BuildStorageCursor(ctx)
 	if err != nil {
 		return sendDeployManifestsResult(strm, errors.Wrap(err, "build storage cursor").Error())
 	}
 	defer cursor.Release()
-	dest := block.NewBufferedStoreWithSettings(ctx, cursor.GetBucket(), &block.BufferedStoreSettings{
+	dest := block.NewBufferedStoreWithSettings(ctx, cursor.GetBlockStore(), &block.BufferedStoreSettings{
 		MaxPendingEntries: 128,
 		MaxPendingBytes:   4 << 20,
 	})
+
+	// Copy each manifest DAG from the stream.
 	src := &streamStoreOps{strm: strm}
 	visited := make(map[string]bool)
 	storedRefs := make([]*bucket.ObjectRef, len(refs))

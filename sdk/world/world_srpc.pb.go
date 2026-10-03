@@ -714,6 +714,11 @@ type SRPCWorldStateResourceServiceClient interface {
 	BuildStorageCursor(ctx context.Context, in *BuildStorageCursorRequest) (*BuildStorageCursorResponse, error)
 
 	AccessWorldState(ctx context.Context, in *AccessWorldStateRequest) (*AccessWorldStateResponse, error)
+	// StageWorldState opens a staging scope for writes outside a transaction.
+	// An engine-level state stages on its engine. A write transaction's stage
+	// writes through the transaction, which adopts the build when it commits.
+	// A read-only state rejects the request.
+	StageWorldState(ctx context.Context, in *StageWorldStateRequest) (*StageWorldStateResponse, error)
 	// OpenNestedWorld opens the immutable nested World published by an outer object.
 	OpenNestedWorld(ctx context.Context, in *OpenNestedWorldRequest) (*OpenNestedWorldResponse, error)
 	// OpenOuterWorld grants the enclosing Space Engine under the same authority.
@@ -831,6 +836,15 @@ func (c *srpcWorldStateResourceServiceClient) BuildStorageCursor(ctx context.Con
 func (c *srpcWorldStateResourceServiceClient) AccessWorldState(ctx context.Context, in *AccessWorldStateRequest) (*AccessWorldStateResponse, error) {
 	out := new(AccessWorldStateResponse)
 	err := c.cc.ExecCall(ctx, c.serviceID, "AccessWorldState", in, out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *srpcWorldStateResourceServiceClient) StageWorldState(ctx context.Context, in *StageWorldStateRequest) (*StageWorldStateResponse, error) {
+	out := new(StageWorldStateResponse)
+	err := c.cc.ExecCall(ctx, c.serviceID, "StageWorldState", in, out)
 	if err != nil {
 		return nil, err
 	}
@@ -1056,6 +1070,11 @@ type SRPCWorldStateResourceServiceServer interface {
 	BuildStorageCursor(context.Context, *BuildStorageCursorRequest) (*BuildStorageCursorResponse, error)
 
 	AccessWorldState(context.Context, *AccessWorldStateRequest) (*AccessWorldStateResponse, error)
+	// StageWorldState opens a staging scope for writes outside a transaction.
+	// An engine-level state stages on its engine. A write transaction's stage
+	// writes through the transaction, which adopts the build when it commits.
+	// A read-only state rejects the request.
+	StageWorldState(context.Context, *StageWorldStateRequest) (*StageWorldStateResponse, error)
 	// OpenNestedWorld opens the immutable nested World published by an outer object.
 	OpenNestedWorld(context.Context, *OpenNestedWorldRequest) (*OpenNestedWorldResponse, error)
 	// OpenOuterWorld grants the enclosing Space Engine under the same authority.
@@ -1131,6 +1150,7 @@ func (SRPCWorldStateResourceServiceHandler) GetMethodIDs() []string {
 		"WaitSeqno",
 		"BuildStorageCursor",
 		"AccessWorldState",
+		"StageWorldState",
 		"OpenNestedWorld",
 		"OpenOuterWorld",
 		"CreateObject",
@@ -1177,6 +1197,8 @@ func (d *SRPCWorldStateResourceServiceHandler) InvokeMethod(
 		return true, d.InvokeMethod_BuildStorageCursor(d.impl, strm)
 	case "AccessWorldState":
 		return true, d.InvokeMethod_AccessWorldState(d.impl, strm)
+	case "StageWorldState":
+		return true, d.InvokeMethod_StageWorldState(d.impl, strm)
 	case "OpenNestedWorld":
 		return true, d.InvokeMethod_OpenNestedWorld(d.impl, strm)
 	case "OpenOuterWorld":
@@ -1300,6 +1322,18 @@ func (SRPCWorldStateResourceServiceHandler) InvokeMethod_AccessWorldState(impl S
 		return err
 	}
 	out, err := impl.AccessWorldState(strm.Context(), req)
+	if err != nil {
+		return err
+	}
+	return strm.MsgSend(out)
+}
+
+func (SRPCWorldStateResourceServiceHandler) InvokeMethod_StageWorldState(impl SRPCWorldStateResourceServiceServer, strm srpc.Stream) error {
+	req := new(StageWorldStateRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	out, err := impl.StageWorldState(strm.Context(), req)
 	if err != nil {
 		return err
 	}
@@ -1596,6 +1630,14 @@ type SRPCWorldStateResourceService_AccessWorldStateStream interface {
 }
 
 type srpcWorldStateResourceService_AccessWorldStateStream struct {
+	srpc.Stream
+}
+
+type SRPCWorldStateResourceService_StageWorldStateStream interface {
+	srpc.Stream
+}
+
+type srpcWorldStateResourceService_StageWorldStateStream struct {
 	srpc.Stream
 }
 

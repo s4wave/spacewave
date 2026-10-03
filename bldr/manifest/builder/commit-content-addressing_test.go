@@ -61,9 +61,14 @@ func TestCommitManifestUsesContentAddressing(t *testing.T) {
 	// Dist copying uses this same timestamp policy and preserves content identity.
 	var copiedRoot *bucket.ObjectRef
 	for _, target := range []*testbed.Testbed{firstWorld, secondWorld} {
+		stage, err := target.GetWorldState().StageWorldState(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer stage.Release()
 		_, copied, err := bldr_manifest_world.DeepCopyManifest(
 			ctx, target.GetLogger(), firstWorld.GetWorldState().AccessWorldState,
-			firstRef, nil, target.GetWorldState(), target.GetWorldState().AccessWorldState,
+			firstRef, nil, target.GetWorldState(), stage.AccessWorldState,
 			"copied-manifest", nil, target.GetVolume().GetPeerID(), ManifestCommitTimestamp(ctx),
 		)
 		if err != nil {

@@ -28,12 +28,18 @@ func BuildMockWorldState(ctx context.Context, le *logrus.Entry, write bool, ocs 
 
 // BuildMockObject builds a mock object in a world.
 func BuildMockObject(ctx context.Context, ws world.WorldState, objKey string) (world.ObjectState, error) {
-	// Choose a default key and build the example block transaction.
+	// Choose a default key and build the example block through a stage held
+	// until the object adopts it.
 	if objKey == "" {
 		objKey = "test-obj-1"
 	}
+	stage, err := ws.StageWorldState(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer stage.Release()
 	var oref *bucket.ObjectRef
-	err := ws.AccessWorldState(ctx, nil, func(bls *bucket_lookup.Cursor) error {
+	err = stage.AccessWorldState(ctx, nil, func(bls *bucket_lookup.Cursor) error {
 		// Write the example block and return its root ref.
 		oref = bls.GetRef() // note: clones the ref
 		obtx, obcs := bls.BuildTransactionAtRef(nil, nil)

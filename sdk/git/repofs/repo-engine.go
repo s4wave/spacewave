@@ -10,7 +10,6 @@ import (
 	"github.com/aperturerobotics/util/routine"
 	"github.com/go-git/go-git/v6/storage/memory"
 	"github.com/pkg/errors"
-	"github.com/s4wave/spacewave/db/block"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	hydra_git "github.com/s4wave/spacewave/db/git"
 	git_block "github.com/s4wave/spacewave/db/git/block"
@@ -65,54 +64,53 @@ func (e *Engine) NewTransaction(ctx context.Context, write bool) (hydra_git.Tx, 
 		return nil, errors.Wrap(err, "get root ref")
 	}
 
+	// Stage a write transaction's blocks until Commit publishes its root.
+	tx := &projectionTx{obj: e.obj}
+	storage := world.WorldStorage(e.ws)
+	if write {
+		tx.stage, err = e.ws.StageWorldState(ctx)
+		if err != nil {
+			return nil, errors.Wrap(err, "stage world state")
+		}
+		storage = tx.stage
+	}
+
 	// Retain the storage cursors until the transaction is discarded.
-	rootCursor, err := e.ws.BuildStorageCursor(ctx)
+	tx.rootCursor, err = storage.BuildStorageCursor(ctx)
 	if err != nil {
+		tx.release()
 		return nil, errors.Wrap(err, "build storage cursor")
 	}
-	locCursor, err := rootCursor.FollowRef(ctx, objRef)
+	tx.locCursor, err = tx.rootCursor.FollowRef(ctx, objRef)
 	if err != nil {
-		rootCursor.Release()
+		tx.release()
 		return nil, errors.Wrap(err, "follow ref")
 	}
 
 	// Expose a writable transaction only when requested.
-	var btx *block.Transaction
-	var bcs *block.Cursor
-	if write {
-		btx, bcs = locCursor.BuildTransaction(nil)
-	}
+	btx, bcs := tx.locCursor.BuildTransaction(nil)
 	if !write {
-		_, bcs = locCursor.BuildTransaction(nil)
+		btx = nil
 	}
 
 	// Validate the repository before exposing its Git store.
 	repob, err := git_block.UnmarshalRepo(ctx, bcs)
 	if err != nil {
-		locCursor.Release()
-		rootCursor.Release()
+		tx.release()
 		return nil, errors.Wrap(err, "unmarshal repo")
 	}
 	if err := repob.Validate(); err != nil {
-		locCursor.Release()
-		rootCursor.Release()
+		tx.release()
 		return nil, errors.Wrap(err, "validate repo")
 	}
 
-	// Transfer both cursors to the successfully opened transaction.
-	store, err := git_block.NewStore(ctx, btx, bcs, &memory.IndexStorage{}, nil)
+	// Transfer the cursors and stage to the opened transaction.
+	tx.Store, err = git_block.NewStore(ctx, btx, bcs, &memory.IndexStorage{}, nil)
 	if err != nil {
-		locCursor.Release()
-		rootCursor.Release()
+		tx.release()
 		return nil, errors.Wrap(err, "create git store")
 	}
-
-	return &projectionTx{
-		Store:      store,
-		obj:        e.obj,
-		rootCursor: rootCursor,
-		locCursor:  locCursor,
-	}, nil
+	return tx, nil
 }
 
 // Close releases the repo filesystem engine lifecycle.
@@ -215,12 +213,16 @@ type projectionTx struct {
 
 	// obj receives the committed repository root.
 	obj world.ObjectState
+	// stage owns a write transaction's blocks until Discard, after Commit
+	// publishes the root that references them. Nil for a read transaction.
+	stage world.WorldStage
 	// rootCursor retains the storage root for the transaction lifetime.
 	rootCursor *bucket_lookup.Cursor
 	// locCursor retains the repository location for the transaction lifetime.
 	locCursor *bucket_lookup.Cursor
 
-	// once releases the store and its cursors on the first Discard call.
+	// once releases the store, its cursors and its stage on the first
+	// Discard call.
 	once sync.Once
 }
 
@@ -241,15 +243,27 @@ func (t *projectionTx) Commit(ctx context.Context) error {
 	return err
 }
 
-// Discard releases the store and both cursors exactly once.
+// Discard releases the store, both cursors and the stage exactly once.
 func (t *projectionTx) Discard() {
 	t.once.Do(func() {
 		// Store.Close only releases cached packs and cancels its context.
 		// It always returns nil.
 		_ = t.Close()
-		t.locCursor.Release()
-		t.rootCursor.Release()
+		t.release()
 	})
+}
+
+// release releases the cursors and stage the transaction holds.
+func (t *projectionTx) release() {
+	if t.locCursor != nil {
+		t.locCursor.Release()
+	}
+	if t.rootCursor != nil {
+		t.rootCursor.Release()
+	}
+	if t.stage != nil {
+		t.stage.Release()
+	}
 }
 
 // _ is a type assertion

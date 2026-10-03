@@ -331,9 +331,16 @@ func (t *pluginInstance) execDownloadManifest(
 		return err
 	}
 
+	// Stage the copy until the manifest reference is stored.
+	stage, err := ws.StageWorldState(ctx)
+	if err != nil {
+		return err
+	}
+	defer stage.Release()
+
 	// Build cursors outside AccessWorldState so source reads and destination
 	// block writes cannot wait while holding a world-state access.
-	dest, err := ws.BuildStorageCursor(ctx)
+	dest, err := stage.BuildStorageCursor(ctx)
 	if err != nil {
 		return err
 	}

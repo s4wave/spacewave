@@ -112,7 +112,7 @@ func createTestFS(
 		t.Fatalf("MustGetObject: %v", err)
 	}
 	_, _, err = unixfs_world.FsMknodWithContent(
-		ctx, obj, sender,
+		ctx, ws, obj, sender,
 		unixfs_world.FSType_FSType_FS_NODE,
 		[]string{fileName},
 		unixfs.NewFSCursorNodeType_File(),

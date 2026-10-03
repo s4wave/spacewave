@@ -62,6 +62,9 @@ func (e *engineWorldState) BuildStorageCursor(ctx context.Context) (*bucket_look
 
 // StageWorldState opens a staging scope on the engine.
 func (e *engineWorldState) StageWorldState(ctx context.Context) (WorldStage, error) {
+	if !e.write {
+		return nil, tx.ErrNotWrite
+	}
 	return e.e.StageWorldState(ctx)
 }
 

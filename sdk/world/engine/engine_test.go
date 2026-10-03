@@ -327,32 +327,47 @@ func TestSDKEngine_WaitSeqno(t *testing.T) {
 	t.Logf("waited for seqno %d", waited)
 }
 
-// TestSDKEngine_BuildStorageCursor tests resource-backed storage cursor access.
-func TestSDKEngine_BuildStorageCursor(t *testing.T) {
+// TestSDKEngine_StorageCursorWrites tests that resource-backed engine cursors
+// reject writes and staged cursors accept them.
+func TestSDKEngine_StorageCursorWrites(t *testing.T) {
+	// Open a resource-backed SDK engine.
 	ctx := context.Background()
 	engine, cleanup := setupSDKEngine(ctx, t)
 	defer cleanup()
 
+	// The engine cursor reads the World but rejects writes.
 	cursor, err := engine.BuildStorageCursor(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	defer cursor.Release()
+	if _, _, err := cursor.PutBlock(ctx, []byte("cursor-data"), &block.PutOpts{}); err == nil {
+		t.Fatal("expected the engine cursor to reject a write")
+	}
 
-	ref, _, err := cursor.PutBlock(ctx, []byte("cursor-data"), &block.PutOpts{})
+	// Build a staged cursor.
+	stage, err := engine.StageWorldState(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-
-	data, found, err := cursor.GetBlock(ctx, ref)
+	defer stage.Release()
+	stagedCursor, err := stage.BuildStorageCursor(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	if !found {
-		t.Fatal("expected cursor-written block to be readable")
+	defer stagedCursor.Release()
+
+	// Write a block and read it back.
+	ref, _, err := stagedCursor.PutBlock(ctx, []byte("cursor-data"), &block.PutOpts{})
+	if err != nil {
+		t.Fatal(err.Error())
 	}
-	if string(data) != "cursor-data" {
-		t.Fatalf("expected cursor-data, got %q", string(data))
+	data, found, err := stagedCursor.GetBlock(ctx, ref)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if !found || string(data) != "cursor-data" {
+		t.Fatalf("expected staged cursor-data, got %q found=%v", string(data), found)
 	}
 }
 

@@ -227,6 +227,10 @@ func (t *TrackedWorldState) BuildStorageCursor(ctx context.Context) (*bucket_loo
 	return t.ws.BuildStorageCursor(ctx)
 }
 
+func (t *TrackedWorldState) StageWorldState(ctx context.Context) (world.WorldStage, error) {
+	return t.ws.StageWorldState(ctx)
+}
+
 func (t *TrackedWorldState) AccessWorldState(ctx context.Context, ref *bucket.ObjectRef, cb func(*bucket_lookup.Cursor) error) error {
 	return t.ws.AccessWorldState(ctx, ref, cb)
 }

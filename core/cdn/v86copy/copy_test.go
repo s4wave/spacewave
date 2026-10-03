@@ -142,6 +142,7 @@ func createFSNodeObjectWithFile(
 	}
 	if _, _, err := unixfs_world.FsMknodWithContent(
 		ctx,
+		ws,
 		obj,
 		"",
 		unixfs_world.FSType_FSType_FS_NODE,

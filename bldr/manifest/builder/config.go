@@ -102,10 +102,16 @@ func (c *BuilderConfig) CommitManifest(
 	}
 	ts := ManifestCommitTimestamp(ctx)
 
-	// Create the manifest in the World with the dist and assets filesystems.
+	// Create the manifest with the dist and assets filesystems through a stage
+	// held until the store op adopts it.
+	stage, err := ws.StageWorldState(ctx)
+	if err != nil {
+		return nil, nil, err
+	}
+	defer stage.Release()
 	manifestValue := manifest.NewManifest(meta, entrypointFilename)
 	manifestValue.Deps = slices.Clone(c.GetDeps())
-	manifestRef, err := world.AccessObject(ctx, ws.AccessWorldState, nil, func(bcs *block.Cursor) error {
+	manifestRef, err := world.AccessObject(ctx, stage.AccessWorldState, nil, func(bcs *block.Cursor) error {
 		return manifest.CreateManifestWithBilly(ctx, bcs, manifestValue, distFs, assetsFs, ts)
 	})
 	if err != nil {

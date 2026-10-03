@@ -134,6 +134,14 @@ func (w *WorldState) BuildStorageCursor(ctx context.Context) (*bucket_lookup.Cur
 	return w.world.BuildStorageCursor(ctx)
 }
 
+// StageWorldState returns a stage over the transaction's storage.
+func (w *WorldState) StageWorldState(ctx context.Context) (world.WorldStage, error) {
+	if !w.write {
+		return nil, tx.ErrNotWrite
+	}
+	return world.NewTransactionStage(w), nil
+}
+
 // AccessWorldState builds a bucket lookup cursor with an optional ref.
 // If the ref is empty, returns empty cursor in the same bucket + volume as the world.
 // The lookup cursor will be released after cb returns.

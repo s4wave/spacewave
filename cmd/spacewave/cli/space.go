@@ -542,9 +542,14 @@ func newSpaceImportGitCommand(statePath *string, sessionIdx *uint) *cli.Command 
 				return tx.Commit(ctx)
 			}
 
-			// Clone the remote into a repo ref.
+			// Clone the remote into a repo ref staged until the publish commits.
 			w.WriteString("cloning " + url + " as " + objectKey + "...\n")
-			repoRef, err := s4wave_git_core.CloneGitRepoToRef(ctx, engine, &git_block.CloneOpts{
+			stage, err := engine.StageWorldState(ctx)
+			if err != nil {
+				return err
+			}
+			defer stage.Release()
+			repoRef, err := s4wave_git_core.CloneGitRepoToRef(ctx, stage, &git_block.CloneOpts{
 				Url:             url,
 				Ref:             ref,
 				SingleBranch:    singleBranch,

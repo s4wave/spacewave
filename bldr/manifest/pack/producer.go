@@ -58,9 +58,15 @@ func ProduceManifestPack(ctx context.Context, conf *ProducerConfig) (*ManifestPa
 		return nil, errors.Wrap(err, "resolve manifest tuple")
 	}
 
-	// Replace the built manifest with the dist-dir artifact when configured.
+	// Replace the built manifest with the dist-dir artifact when configured,
+	// staged until the bundle adopts it.
 	if conf.DistDir != "" {
-		manifestRef, err = commitDistDirManifest(ctx, conf, manifestRef.GetMeta())
+		stage, err := conf.WorldState.StageWorldState(ctx)
+		if err != nil {
+			return nil, err
+		}
+		defer stage.Release()
+		manifestRef, err = commitDistDirManifest(ctx, stage, conf, manifestRef.GetMeta())
 		if err != nil {
 			return nil, err
 		}
@@ -145,11 +151,12 @@ func (c *ProducerConfig) Validate() error {
 	return nil
 }
 
-// commitDistDirManifest writes a manifest with the built metadata whose dist
-// tree is conf.DistDir. The directory is the complete artifact, so the
-// manifest carries no assets.
+// commitDistDirManifest writes a manifest through storage with the built
+// metadata whose dist tree is conf.DistDir. The directory is the complete
+// artifact, so the manifest carries no assets.
 func commitDistDirManifest(
 	ctx context.Context,
+	storage world.WorldStorage,
 	conf *ProducerConfig,
 	meta *bldr_manifest.ManifestMeta,
 ) (*bldr_manifest.ManifestRef, error) {
@@ -162,7 +169,7 @@ func commitDistDirManifest(
 	// Commit the manifest whose dist tree is the dist directory.
 	manifest := bldr_manifest.NewManifest(meta.CloneVT(), conf.Entrypoint)
 	distFs := osfs.New(conf.DistDir, osfs.WithBoundOS())
-	ref, err := world.AccessObject(ctx, conf.WorldState.AccessWorldState, nil, func(bcs *block.Cursor) error {
+	ref, err := world.AccessObject(ctx, storage.AccessWorldState, nil, func(bcs *block.Cursor) error {
 		return bldr_manifest.CreateManifestWithBilly(ctx, bcs, manifest, distFs, nil, timestamppb.Now())
 	})
 	if err != nil {

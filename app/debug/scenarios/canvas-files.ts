@@ -146,7 +146,8 @@ async function seedCanvasFiles(
     },
   ])
   reportProgress('Creating the workspace layout')
-  using cursor = await world.buildStorageCursor(signal)
+  using stage = await world.stageWorldState(signal)
+  using cursor = await stage.buildStorageCursor(signal)
   const objectRef = await accessObject(
     cursor,
     undefined,

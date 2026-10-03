@@ -32,13 +32,20 @@ func ImportManifestPack(
 	if err := verifyPackBytes(meta, packBytes); err != nil {
 		return err
 	}
-	if err := importPackBlocks(ctx, ws, packBytes); err != nil {
+
+	// Import the blocks through a stage held until the bundle adopts them.
+	stage, err := ws.StageWorldState(ctx)
+	if err != nil {
+		return err
+	}
+	defer stage.Release()
+	if err := importPackBlocks(ctx, stage, packBytes); err != nil {
 		return err
 	}
 	if err := applyManifestBundle(ctx, ws, sender, meta); err != nil {
 		return err
 	}
-	_, err := ws.Sync(ctx)
+	_, err = ws.Sync(ctx)
 	return err
 }
 
@@ -54,14 +61,14 @@ func verifyPackBytes(meta *ManifestPackMetadata, packBytes []byte) error {
 	return nil
 }
 
-// importPackBlocks imports every block from the pack bytes into the world
-// state with its refs. PutBlock verifies each block against its key.
-func importPackBlocks(ctx context.Context, ws world.WorldState, packBytes []byte) error {
+// importPackBlocks imports every block from the pack bytes into storage with
+// its refs. PutBlock verifies each block against its key.
+func importPackBlocks(ctx context.Context, storage world.WorldStorage, packBytes []byte) error {
 	rdr, err := kvfile.BuildReader(bytes.NewReader(packBytes), uint64(len(packBytes)))
 	if err != nil {
 		return err
 	}
-	return ws.AccessWorldState(ctx, nil, func(bls *bucket_lookup.Cursor) error {
+	return storage.AccessWorldState(ctx, nil, func(bls *bucket_lookup.Cursor) error {
 		return rdr.ScanPrefixEntries(nil, func(entry *kvfile.IndexEntry, idx int) error {
 			// Stop on context cancellation between entries.
 			if err := ctx.Err(); err != nil {
@@ -82,8 +89,8 @@ func importPackBlocks(ctx context.Context, ws world.WorldState, packBytes []byte
 				return errors.Wrapf(err, "pack entry %d", idx)
 			}
 
-			// Put the block into the bucket, which verifies the key.
-			_, _, err = bls.GetBucket().PutBlock(ctx, stored.Data, stored.PutOpts(ref))
+			// Put the block into the cursor's store, which verifies the key.
+			_, _, err = bls.GetBlockStore().PutBlock(ctx, stored.Data, stored.PutOpts(ref))
 			return err
 		})
 	})

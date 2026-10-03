@@ -11,7 +11,6 @@ import (
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/pkg/errors"
 	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
-	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	"github.com/s4wave/spacewave/db/world"
 	world_types "github.com/s4wave/spacewave/db/world/types"
 	s4wave_sql "github.com/s4wave/spacewave/sdk/sql"
@@ -107,22 +106,16 @@ func listTablesSQL(schemaName string) (string, error) {
 	return "SHOW TABLES FROM " + schemaIdent, nil
 }
 
+// openTargetRows runs query against the target database. The returned func
+// releases the rows, their transaction and the store.
 func (r *SqlSchemaResource) openTargetRows(
 	ctx context.Context,
 	targetKey string,
 	query string,
 ) (driver.Rows, func(), error) {
-	obj, err := world.MustGetObject(ctx, r.ws, targetKey)
-	defer world.ReleaseObjectState(obj)
+	// Open a read transaction on the target database.
+	store, err := s4wave_sql_world.NewWorldBackedSql(ctx, r.ws, targetKey)
 	if err != nil {
-		return nil, nil, err
-	}
-	var store *s4wave_sql_world.WorldBackedSql
-	if err := obj.AccessWorldState(ctx, nil, func(root *bucket_lookup.Cursor) error {
-		var err error
-		store, err = s4wave_sql_world.NewWorldBackedSql(ctx, root.Clone(), r.ws, targetKey)
-		return err
-	}); err != nil {
 		return nil, nil, err
 	}
 	tx, err := store.NewSqlTransaction(ctx, false, "")
@@ -136,6 +129,8 @@ func (r *SqlSchemaResource) openTargetRows(
 		store.Close()
 		return nil, nil, err
 	}
+
+	// Run the query, falling back to the plain query interface.
 	rows, err := ops.QueryContext(ctx, query, nil)
 	if std_errors.Is(err, driver.ErrSkip) {
 		rows, err = ops.Query(query, nil)
@@ -150,6 +145,8 @@ func (r *SqlSchemaResource) openTargetRows(
 		store.Close()
 		return nil, nil, errors.New("sql/schema: list tables returned nil rows")
 	}
+
+	// Release the rows, the transaction and the store together.
 	cleanup := func() {
 		rows.Close()
 		tx.Discard()

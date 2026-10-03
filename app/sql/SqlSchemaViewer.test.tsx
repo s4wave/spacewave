@@ -99,8 +99,12 @@ vi.mock('@s4wave/web/contexts/SpaceContainerContext.js', () => ({
   SpaceContainerContext: {
     useContextSafe: () => ({
       spaceWorld: {
-        buildStorageCursor: () =>
+        stageWorldState: () =>
           Promise.resolve({
+            buildStorageCursor: () =>
+              Promise.resolve({
+                [Symbol.dispose]() {},
+              }),
             [Symbol.dispose]() {},
           }),
         createObject: vi.fn(),

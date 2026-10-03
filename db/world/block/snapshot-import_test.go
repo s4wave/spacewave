@@ -70,7 +70,7 @@ func TestImportSnapshotPreservesWorld(t *testing.T) {
 	}
 
 	// Import the objects and relationships in one snapshot.
-	ref, err := world_block.ImportSnapshot(ctx, tb.Engine, exampleObjects(keys...), quads)
+	ref, err := world_block.ImportSnapshot(ctx, engineStage(t, tb.Engine), exampleObjects(keys...), quads)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -118,7 +118,7 @@ func TestImportSnapshotGraphSpansBatches(t *testing.T) {
 	}
 
 	// Import two objects and the oversized relationship set.
-	ref, err := world_block.ImportSnapshot(ctx, tb.Engine, exampleObjects("from", "to"), quads)
+	ref, err := world_block.ImportSnapshot(ctx, engineStage(t, tb.Engine), exampleObjects("from", "to"), quads)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -165,10 +165,22 @@ func TestImportSnapshotRejectsInvalidContents(t *testing.T) {
 
 		// Import each invalid case and require the matching error.
 		t.Run(tc.name, func(t *testing.T) {
-			ref, err := world_block.ImportSnapshot(ctx, tb.Engine, exampleObjects(tc.keys...), tc.quads)
+			ref, err := world_block.ImportSnapshot(ctx, engineStage(t, tb.Engine), exampleObjects(tc.keys...), tc.quads)
 			if ref != nil || !tc.match(err) {
 				t.Fatalf("import returned ref %v, error %v", ref, err)
 			}
 		})
 	}
+}
+
+// engineStage opens a stage on e that holds its writes until the test ends.
+func engineStage(t testing.TB, e world.Engine) world.WorldStage {
+	// Open the stage and release it when the test ends.
+	t.Helper()
+	stage, err := e.StageWorldState(t.Context())
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(stage.Release)
+	return stage
 }

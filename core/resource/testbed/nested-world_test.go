@@ -57,8 +57,15 @@ func TestNestedWorldResource(t *testing.T) {
 	}
 	defer storage.Release()
 
+	// Stage the snapshot until the outer object adopts it.
+	stage, err := storage.StageWorldState(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer stage.Release()
+
 	// Publish a typed outer object with a standard nested-World root.
-	snapshot, err := world_block.ImportSnapshot(ctx, storage, maps.All(map[string]block.Block{
+	snapshot, err := world_block.ImportSnapshot(ctx, stage, maps.All(map[string]block.Block{
 		"inner": block_mock.NewExample("nested content"),
 	}), nil)
 	if err != nil {

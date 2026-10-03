@@ -13,9 +13,11 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// FsWriteAt writes to a file at the given location.
+// FsWriteAt writes to a file at the given location. The blob is staged
+// through ws until the write op adopts it.
 func FsWriteAt(
 	ctx context.Context,
+	ws world.WorldState,
 	obj world.ObjectState,
 	sender peer.ID,
 	fsType FSType,
@@ -24,11 +26,16 @@ func FsWriteAt(
 	data []byte,
 	ts time.Time,
 ) (rev uint64, sysErr bool, err error) {
-	// Build the blob.
+	// Build the blob through a stage held until the op adopts it.
+	stage, err := ws.StageWorldState(ctx)
+	if err != nil {
+		return 0, true, err
+	}
+	defer stage.Release()
 	fpath := unixfs_block.NewFSPath(path, false)
 	blbObjRef, err := world.AccessObject(
 		ctx,
-		obj.AccessWorldState,
+		stage.AccessWorldState,
 		nil,
 		func(bcs *block.Cursor) error {
 			bcs.SetRefAtCursor(nil, true)

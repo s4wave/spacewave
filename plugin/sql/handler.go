@@ -363,6 +363,8 @@ func (h *SQLHandler) seedSQLQuickstart(ctx context.Context, ws world.WorldState)
 	return nil
 }
 
+// seedSQLDatabase creates the quickstart schema and its sample rows in the SQL
+// database object.
 func (h *SQLHandler) seedSQLDatabase(ctx context.Context, ws world.WorldState) error {
 	// Open the SQL database object for quickstart seeding.
 	obj, err := world.MustGetObject(ctx, ws, sqlQuickstartDBKey)
@@ -371,10 +373,19 @@ func (h *SQLHandler) seedSQLDatabase(ctx context.Context, ws world.WorldState) e
 		return errors.Wrap(err, "open SQL database object")
 	}
 
-	// Build the SQL database root with its schema and sample rows.
+	// Build the schema through a stage held until the object adopts the root.
+	rootRef, _, err := obj.GetRootRef(ctx)
+	if err != nil {
+		return errors.Wrap(err, "read SQL database root")
+	}
+	stage, err := ws.StageWorldState(ctx)
+	if err != nil {
+		return errors.Wrap(err, "stage SQL database root")
+	}
+	defer stage.Release()
 	var committedRoot *bucket.ObjectRef
-	if err := obj.AccessWorldState(ctx, nil, func(root *bucket_lookup.Cursor) error {
-		// Open the SQL store and retain its latest committed root.
+	if err := stage.AccessWorldState(ctx, rootRef, func(root *bucket_lookup.Cursor) error {
+		// Open the MySQL store on a clone of the staged root.
 		sqlRoot := root.Clone()
 		defer sqlRoot.Release()
 		store := sql_mysql.NewMysql(sqlRoot, func(next *bucket.ObjectRef) error {

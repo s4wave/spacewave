@@ -80,5 +80,34 @@ func (r *WorldStageResource) AccessWorldState(ctx context.Context, req *s4wave_w
 	return &s4wave_world.AccessWorldStateResponse{ResourceId: id}, nil
 }
 
+// addWorldStageResource opens a stage with open and registers it with the
+// resource client of ctx. Releasing the resource, or ending the client,
+// releases the stage.
+func addWorldStageResource(
+	ctx context.Context,
+	le *logrus.Entry,
+	b bus.Bus,
+	open func(context.Context) (world.WorldStage, error),
+) (*s4wave_world.StageWorldStateResponse, error) {
+	// Acquire the resource client and open the stage.
+	resourceCtx, err := resource_server.MustGetResourceClientContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+	stage, err := open(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	// Release the stage with its resource or resource client.
+	stageResource := NewWorldStageResource(le, b, stage)
+	id, err := resourceCtx.AddResource(stageResource.GetMux(), stage.Release)
+	if err != nil {
+		stage.Release()
+		return nil, err
+	}
+	return &s4wave_world.StageWorldStateResponse{ResourceId: id}, nil
+}
+
 // _ is a type assertion
 var _ s4wave_world.SRPCWorldStageResourceServiceServer = (*WorldStageResource)(nil)

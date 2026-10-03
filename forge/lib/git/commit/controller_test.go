@@ -115,11 +115,18 @@ func TestGitCommitControllerCommitsStagedWorktreeAndOutputsResult(t *testing.T) 
 		t.Fatal(err)
 	}
 
-	// Give the commit controller storage access and an output capture handle.
+	// Stage the commit controller's storage access.
+	stage, err := ws.StageWorldState(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer stage.Release()
+
+	// Capture outputs through a handle that writes through the stage.
 	handle := &captureHandle{
 		peerID:     sender,
 		ts:         timestamp.Now(),
-		accessFunc: ws.AccessWorldState,
+		accessFunc: stage.AccessWorldState,
 	}
 	inputs := forge_target.InputMap{
 		inputNameWorld: forge_target.NewInputValueWorld(wtb.EngineID, wtb.Engine, ws),

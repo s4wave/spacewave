@@ -61,7 +61,13 @@ func ProduceReleasePack(
 		return nil, nil, errors.New("release pack has no sources")
 	}
 
-	// Encode each source Manifest into the world and record its tuple.
+	// Encode each source Manifest through a stage held until the bundle adopts
+	// it, and record its tuple.
+	stage, err := conf.WorldState.StageWorldState(ctx)
+	if err != nil {
+		return nil, nil, err
+	}
+	defer stage.Release()
 	var buildType string
 	tuples := make([]*ManifestTuple, 0, len(conf.Sources))
 	refs := make([]*bldr_manifest.ManifestRef, 0, len(conf.Sources))
@@ -75,7 +81,7 @@ func ProduceReleasePack(
 		} else if meta.GetBuildType() != buildType {
 			return nil, nil, errors.Errorf("source %d build type %q differs from %q", i, meta.GetBuildType(), buildType)
 		}
-		_, ref, err := bldr_manifest_world.EncodeReleaseManifest(ctx, le, src.Access, src.Ref, meta.CloneVT(), conf.WorldState)
+		_, ref, err := bldr_manifest_world.EncodeReleaseManifest(ctx, le, src.Access, src.Ref, meta.CloneVT(), stage)
 		if err != nil {
 			return nil, nil, errors.Wrapf(err, "encode source %d", i)
 		}

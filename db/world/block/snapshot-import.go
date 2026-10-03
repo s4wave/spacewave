@@ -51,7 +51,7 @@ func ImportSnapshot(
 	err := storage.AccessWorldState(ctx, nil, func(bucketCursor *bucket_lookup.Cursor) error {
 		// Drain with the bounds of ordinary World writes. Sync fences the
 		// remainder through the destination's normal durability path.
-		writes := block.NewBufferedStore(ctx, bucketCursor.GetBucket())
+		writes := block.NewBufferedStore(ctx, bucketCursor.GetBlockStore())
 		bucketCursor.SetTransactionStore(writes)
 
 		// Import the objects and relationships into that buffered store.

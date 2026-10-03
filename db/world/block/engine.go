@@ -316,10 +316,10 @@ func (e *Engine) Sync(ctx context.Context) (bool, error) {
 		return false, ErrEngineClosed
 	}
 
-	// Construction cursors write into the engine-retained overlay even before
-	// a World transaction is submitted. Fence those bytes as durable preparation
-	// as well, without changing a head. Completed borrows are returned before
-	// their completion goroutine needs bcast, so this cannot block publication.
+	// Transactions write into the engine-retained overlay before they are
+	// submitted. Fence those bytes as durable preparation as well, without
+	// changing a head. Completed borrows are returned before their completion
+	// goroutine needs bcast, so this cannot block publication.
 	store := e.writeBlockStore
 	if e.stagedStore != nil {
 		store = e.stagedStore
@@ -920,9 +920,19 @@ func (e *Engine) ForkBlockTransaction(ctx context.Context, write bool) (*Tx, err
 }
 
 // BuildStorageCursor builds a cursor to the world storage with an empty ref.
-// The cursor should be released independently of the WorldState.
+// The cursor rejects writes; build through StageWorldState instead.
 // Be sure to call Release on the cursor when done.
 func (e *Engine) BuildStorageCursor(ctx context.Context) (*bucket_lookup.Cursor, error) {
+	cursor, err := e.buildStorageCursor(ctx)
+	if err != nil {
+		return nil, err
+	}
+	setReadOnlyCursor(cursor)
+	return cursor, nil
+}
+
+// buildStorageCursor builds a writable cursor to the world storage.
+func (e *Engine) buildStorageCursor(ctx context.Context) (*bucket_lookup.Cursor, error) {
 	// Clone the base root under the engine lock.
 	locked := e.bcast.Lock()
 	defer locked.Unlock()
@@ -952,7 +962,7 @@ func (e *Engine) StageWorldState(ctx context.Context) (world.WorldStage, error) 
 	}
 
 	// Durable-on-write commits reference the build before they return.
-	stage := world.NewStorageStage(e)
+	stage := world.NewStorageStage(engineStorage{e: e})
 	if !e.deferDurability || e.writeCoordinator != nil {
 		return stage, nil
 	}
@@ -977,13 +987,26 @@ func (s *deferredStage) Release() {
 
 // AccessWorldState builds a bucket lookup cursor with an optional ref.
 // If the ref Bucket ID is empty, uses the same bucket + volume as the world.
-// The lookup cursor will be released after cb returns.
-// The root clone is made while bcast is held for the documented same-bucket
-// root path. Cursor.Clone copies the bucket handle without taking a release
-// func, so this does not establish a cross-bucket lifetime across Engine.Close.
+// The lookup cursor rejects writes and is released after cb returns; build
+// through StageWorldState instead.
 //
 // NOTE: this is the implementation of AccessWorldState for the world/block engine.
 func (e *Engine) AccessWorldState(
+	ctx context.Context,
+	ref *bucket.ObjectRef,
+	cb func(*bucket_lookup.Cursor) error,
+) error {
+	return e.accessStorage(ctx, ref, func(cursor *bucket_lookup.Cursor) error {
+		setReadOnlyCursor(cursor)
+		return cb(cursor)
+	})
+}
+
+// accessStorage builds a writable bucket lookup cursor with an optional ref.
+// The root clone is made while bcast is held for the documented same-bucket
+// root path. Cursor.Clone copies the bucket handle without taking a release
+// func, so this does not establish a cross-bucket lifetime across Engine.Close.
+func (e *Engine) accessStorage(
 	ctx context.Context,
 	ref *bucket.ObjectRef,
 	cb func(*bucket_lookup.Cursor) error,

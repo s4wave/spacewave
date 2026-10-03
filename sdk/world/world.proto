@@ -198,6 +198,12 @@ service WorldStateResourceService {
 
   rpc AccessWorldState(AccessWorldStateRequest) returns (AccessWorldStateResponse);
 
+  // StageWorldState opens a staging scope for writes outside a transaction.
+  // An engine-level state stages on its engine. A write transaction's stage
+  // writes through the transaction, which adopts the build when it commits.
+  // A read-only state rejects the request.
+  rpc StageWorldState(StageWorldStateRequest) returns (StageWorldStateResponse);
+
   // OpenNestedWorld opens the immutable nested World published by an outer object.
   rpc OpenNestedWorld(OpenNestedWorldRequest) returns (OpenNestedWorldResponse);
 

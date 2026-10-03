@@ -177,6 +177,7 @@ func createReadinessManifest(
 	ctx context.Context,
 	tb *testbed.Testbed,
 ) *bldr_manifest.ManifestRef {
+	// Describe the readiness manifest.
 	t.Helper()
 	meta := bldr_manifest.NewManifestMeta(
 		pluginReadinessPluginID,
@@ -184,14 +185,24 @@ func createReadinessManifest(
 		pluginReadinessPlatformID,
 		1,
 	)
+
+	// Stage the manifest until the test ends so the caller can adopt it.
+	stage, err := tb.Engine.StageWorldState(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(stage.Release)
 	var manifestRef *bldr_manifest.ManifestRef
-	if err := tb.Engine.AccessWorldState(ctx, nil, func(cursor *bucket_lookup.Cursor) error {
+	if err := stage.AccessWorldState(ctx, nil, func(cursor *bucket_lookup.Cursor) error {
+		// Write the manifest block.
 		transaction, blocks := cursor.BuildTransactionAtRef(nil, nil)
 		blocks.SetBlock(bldr_manifest.NewManifest(meta, "entrypoint"), true)
 		rootRef, _, err := transaction.Write(ctx, true)
 		if err != nil {
 			return err
 		}
+
+		// Point the manifest ref at the written root.
 		objectRef := cursor.GetRef().CloneVT()
 		objectRef.RootRef = rootRef
 		manifestRef = bldr_manifest.NewManifestRef(meta, objectRef)

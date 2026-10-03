@@ -149,6 +149,8 @@ func ensureCopiedWorldObject(
 	if objectKey == "" {
 		return bucket_lookup.ObjectCopyStats{}, nil
 	}
+
+	// Keep an object the destination already has, filling in its type.
 	objectState, found, err := dst.GetObject(ctx, objectKey)
 	world.ReleaseObjectState(objectState)
 	if err != nil {
@@ -179,10 +181,15 @@ func ensureCopiedWorldObject(
 		return bucket_lookup.ObjectCopyStats{}, errors.Wrap(err, "get source object root")
 	}
 
-	// Copy the source asset blocks into the destination bucket with progress accounting.
+	// Copy the blocks through a stage held until the object adopts them.
+	stage, err := dst.StageWorldState(ctx)
+	if err != nil {
+		return bucket_lookup.ObjectCopyStats{}, err
+	}
+	defer stage.Release()
 	var dstRef *bucket.ObjectRef
 	var stats bucket_lookup.ObjectCopyStats
-	err = dst.AccessWorldState(ctx, nil, func(dstCursor *bucket_lookup.Cursor) error {
+	err = stage.AccessWorldState(ctx, nil, func(dstCursor *bucket_lookup.Cursor) error {
 		return srcObj.AccessWorldState(ctx, srcRef, func(srcCursor *bucket_lookup.Cursor) error {
 			var copyErr error
 			dstRef, stats, copyErr = bucket_lookup.CopyObjectToBucketWithProgress(

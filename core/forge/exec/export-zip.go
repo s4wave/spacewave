@@ -87,9 +87,14 @@ func (h *exportZipHandler) Execute(ctx context.Context) error {
 	// Record the archive size in the execution log.
 	_ = h.handle.WriteLog(ctx, "info", "zip: "+strconv.Itoa(buf.Len())+" bytes from "+objKey)
 
-	// Write zip bytes as a blob block in world storage.
+	// Write zip bytes as a blob staged until the outputs adopt it.
+	stage, err := h.ws.StageWorldState(ctx)
+	if err != nil {
+		return err
+	}
+	defer stage.Release()
 	zipData := buf.Bytes()
-	blobRef, err := world.AccessObject(ctx, h.ws.AccessWorldState, nil, func(bcs *block.Cursor) error {
+	blobRef, err := world.AccessObject(ctx, stage.AccessWorldState, nil, func(bcs *block.Cursor) error {
 		bcs.SetRefAtCursor(nil, true)
 		_, berr := blob.BuildBlobWithBytes(ctx, zipData, bcs)
 		return berr

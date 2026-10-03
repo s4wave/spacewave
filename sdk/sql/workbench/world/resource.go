@@ -65,19 +65,26 @@ func (r *SqlWorkbenchResource) Initialize(
 		TargetDbObjectKey: req.GetTargetDbObjectKey(),
 		DisplayName:       req.GetDisplayName(),
 	}
+
+	// Check the target database.
 	if targetKey := workbench.GetTargetDbObjectKey(); targetKey != "" {
 		if err := world_types.CheckObjectType(ctx, r.ws, targetKey, s4wave_sql_world.SqlDbTypeID); err != nil {
 			return nil, err
 		}
 	}
 
-	// Store the initial workbench root in the World block store.
-	rootRef, err := s4wave_sql_workbench.WriteWorkbenchRootRef(ctx, r.ws, workbench)
+	// Build the root through a stage held until the op adopts it.
+	stage, err := r.ws.StageWorldState(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer stage.Release()
+	rootRef, err := s4wave_sql_workbench.WriteWorkbenchRootRef(ctx, stage, workbench)
 	if err != nil {
 		return nil, err
 	}
 
-	// Initialize the workbench object with the stored root.
+	// Initialize the object at the built root.
 	_, sysErr, err := r.ws.ApplyWorldOp(ctx, NewSqlWorkbenchInitializeRootOp(r.objectKey, rootRef), "")
 	if err != nil {
 		return nil, err
@@ -254,6 +261,7 @@ func (r *SqlWorkbenchResource) validateOpenTabs(
 	return nil
 }
 
+// commitWorkbenchRoot writes workbench as the object's new root.
 func (r *SqlWorkbenchResource) commitWorkbenchRoot(
 	ctx context.Context,
 	workbench *s4wave_sql_workbench.Workbench,
@@ -265,13 +273,18 @@ func (r *SqlWorkbenchResource) commitWorkbenchRoot(
 		}
 	}
 
-	// Store the replacement workbench root in the World block store.
-	rootRef, err := s4wave_sql_workbench.WriteWorkbenchRootRef(ctx, r.ws, workbench)
+	// Build the root through a stage held until the op adopts it.
+	stage, err := r.ws.StageWorldState(ctx)
+	if err != nil {
+		return err
+	}
+	defer stage.Release()
+	rootRef, err := s4wave_sql_workbench.WriteWorkbenchRootRef(ctx, stage, workbench)
 	if err != nil {
 		return err
 	}
 
-	// Advance the workbench object to the stored root.
+	// Point the object at the built root.
 	_, sysErr, err := r.ws.ApplyWorldOp(ctx, NewSqlWorkbenchSetRootOp(r.objectKey, rootRef), "")
 	if err != nil {
 		return err

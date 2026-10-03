@@ -7,7 +7,6 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/bucket"
-	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	"github.com/s4wave/spacewave/db/kvtx"
 	kvtx_block "github.com/s4wave/spacewave/db/kvtx/block"
 	"github.com/s4wave/spacewave/db/world"
@@ -16,25 +15,31 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-type worldCursor = *bucket_lookup.Cursor
-
 // WorldBackedStore wraps a KVTX block store and commits root updates through world ops.
 type WorldBackedStore struct {
+	// inner is the KVTX block store at the object root.
 	inner *kvtx_block.Store
-	ws    world.WorldState
-	key   string
-	root  *bucket_lookup.Cursor
+	// ws publishes committed roots.
+	ws world.WorldState
+	// key is the world object key.
+	key string
+	// release releases the store's cursor and the stage that owns its writes.
+	release func()
 
-	mtx      sync.Mutex
+	// mtx guards tx.
+	mtx sync.Mutex
+	// writeMtx serializes write transactions.
 	writeMtx sync.Mutex
-	tx       *worldBackedTx
+	// tx is the open write transaction, if any.
+	tx *worldBackedTx
 }
 
-// NewWorldBackedStore opens a KVTX store against a world object's current root.
+// NewWorldBackedStore opens a KVTX store against a world object's current
+// root. The store stages its writes until it publishes the root that
+// references them; Close releases the stage.
 func NewWorldBackedStore(
 	ctx context.Context,
 	le *logrus.Entry,
-	root *bucket_lookup.Cursor,
 	ws world.WorldState,
 	objectKey string,
 ) (*WorldBackedStore, error) {
@@ -42,35 +47,47 @@ func NewWorldBackedStore(
 	if ws == nil {
 		return nil, objecttype.ErrWorldStateRequired
 	}
-	if root == nil {
-		return nil, errors.New("kv/store: root cursor is required")
-	}
 	if objectKey == "" {
 		return nil, world.ErrEmptyObjectKey
 	}
 
-	// Open the block store and capture its committed roots in the World store.
+	// Open a staged cursor at the object's current root.
+	obj, err := world.MustGetObject(ctx, ws, objectKey)
+	defer world.ReleaseObjectState(obj)
+	if err != nil {
+		return nil, err
+	}
+	rootRef, _, err := obj.GetRootRef(ctx)
+	if err != nil {
+		return nil, err
+	}
+	root, release, err := world.OpenStagedCursor(ctx, ws, rootRef)
+	if err != nil {
+		return nil, err
+	}
+
+	// Open the KVTX store on the staged root.
 	st := &WorldBackedStore{
-		ws:   ws,
-		key:  objectKey,
-		root: root,
+		ws:      ws,
+		key:     objectKey,
+		release: release,
 	}
 	inner, err := kvtx_block.NewStore(ctx, le, root, st.captureCommittedRoot)
 	if err != nil {
-		root.Release()
+		release()
 		return nil, err
 	}
 	st.inner = inner
 	return st, nil
 }
 
-// Close releases the root cursor owned by the store.
+// Close releases the root cursor and stage owned by the store.
 func (s *WorldBackedStore) Close() {
-	if s == nil || s.root == nil {
+	if s == nil || s.release == nil {
 		return
 	}
-	s.root.Release()
-	s.root = nil
+	s.release()
+	s.release = nil
 }
 
 // WatchPrefix streams current key/value snapshots for a prefix after world commits.

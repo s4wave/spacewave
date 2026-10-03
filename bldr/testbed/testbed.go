@@ -399,8 +399,14 @@ func (d *Testbed) CreateManifestWithBilly(
 	distFs, assetsFs billy.Filesystem,
 	ts *timestamppb.Timestamp,
 ) (manifest *bldr_manifest.Manifest, manifestRef *bldr_manifest.ManifestRef, err error) {
-	// Write the manifest into the World state and capture its block reference.
-	err = d.GetWorldEngine().AccessWorldState(ctx, nil, func(bls *bucket_lookup.Cursor) error {
+	// Write the manifest through a stage held until the store op links it, and
+	// capture its block reference.
+	stage, err := d.GetWorldEngine().StageWorldState(ctx)
+	if err != nil {
+		return nil, nil, err
+	}
+	defer stage.Release()
+	err = stage.AccessWorldState(ctx, nil, func(bls *bucket_lookup.Cursor) error {
 		// Open a transaction on the World state bucket cursor.
 		btx, bcs := bls.BuildTransactionAtRef(nil, nil)
 

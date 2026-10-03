@@ -32,7 +32,7 @@ func TestUpdateSnapshotPreservesHistoryAndCopiesFinalBlocks(t *testing.T) {
 	}
 
 	// Import the base World with three objects and one relationship.
-	base, err := world_block.ImportSnapshot(ctx, tb.Engine, exampleObjects("change", "keep", "remove"), []world.GraphQuad{
+	base, err := world_block.ImportSnapshot(ctx, engineStage(t, tb.Engine), exampleObjects("change", "keep", "remove"), []world.GraphQuad{
 		world.NewGraphQuadWithKeys("keep", "<edge>", "remove", ""),
 	})
 	if err != nil {
@@ -41,7 +41,7 @@ func TestUpdateSnapshotPreservesHistoryAndCopiesFinalBlocks(t *testing.T) {
 
 	// Update the snapshot: replace, add, delete, and refill the graph.
 	var superseded *bucket.ObjectRef
-	next, err := world_block.UpdateSnapshot(ctx, tb.Logger, tb.Engine, base, func(ctx context.Context, state *world_block.WorldState) error {
+	next, err := world_block.UpdateSnapshot(ctx, tb.Logger, engineStage(t, tb.Engine), base, func(ctx context.Context, state *world_block.WorldState) error {
 		// Write a superseded body first, then the final body for the same object.
 		var err error
 		superseded, err = write(ctx, state, "change", "superseded")
@@ -161,7 +161,7 @@ func TestUpdateSnapshotPreservesHistoryAndCopiesFinalBlocks(t *testing.T) {
 	// Verify a canceled update returns no candidate and leaves both roots intact.
 	canceled, cancel := context.WithCancel(ctx)
 	cancel()
-	ref, err := world_block.UpdateSnapshot(canceled, tb.Logger, tb.Engine, next, func(context.Context, *world_block.WorldState) error {
+	ref, err := world_block.UpdateSnapshot(canceled, tb.Logger, engineStage(t, tb.Engine), next, func(context.Context, *world_block.WorldState) error {
 		t.Fatal("canceled update called its mutation")
 		return nil
 	})
@@ -192,14 +192,15 @@ func BenchmarkUpdateSnapshot(b *testing.B) {
 	}
 
 	// Import the chain graph once and measure repeated one-eighth deletions.
-	base, err := world_block.ImportSnapshot(ctx, tb.Engine, exampleObjects(keys...), chainQuads(keys))
+	stage := engineStage(b, tb.Engine)
+	base, err := world_block.ImportSnapshot(ctx, stage, exampleObjects(keys...), chainQuads(keys))
 	if err != nil {
 		b.Fatal(err)
 	}
 	b.ReportAllocs()
 	for b.Loop() {
 		// Import the chain graph once and measure repeated one-eighth deletions.
-		_, err := world_block.UpdateSnapshot(ctx, tb.Logger, tb.Engine, base, func(ctx context.Context, state *world_block.WorldState) error {
+		_, err := world_block.UpdateSnapshot(ctx, tb.Logger, stage, base, func(ctx context.Context, state *world_block.WorldState) error {
 			// Delete one eighth of the objects in each iteration.
 			for _, key := range keys[:size/8] {
 				if _, err := state.DeleteObject(ctx, key); err != nil {
@@ -228,14 +229,15 @@ func BenchmarkUpdateSnapshotFixedChange(b *testing.B) {
 			}
 
 			// Import the chain graph once and measure repeated single replacements.
-			base, err := world_block.ImportSnapshot(ctx, tb.Engine, exampleObjects(keys...), chainQuads(keys))
+			stage := engineStage(b, tb.Engine)
+			base, err := world_block.ImportSnapshot(ctx, stage, exampleObjects(keys...), chainQuads(keys))
 			if err != nil {
 				b.Fatal(err)
 			}
 			b.ReportAllocs()
 			b.ResetTimer()
 			for b.Loop() {
-				_, err := world_block.UpdateSnapshot(ctx, tb.Logger, tb.Engine, base, func(ctx context.Context, state *world_block.WorldState) error {
+				_, err := world_block.UpdateSnapshot(ctx, tb.Logger, stage, base, func(ctx context.Context, state *world_block.WorldState) error {
 					_, _, err := world.AccessWorldObject(ctx, state, keys[0], true, func(cursor *block.Cursor) error {
 						cursor.SetBlock(block_mock.NewExample("changed"), true)
 						return nil

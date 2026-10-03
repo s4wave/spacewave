@@ -19,8 +19,15 @@ func createSpacePluginManifest(t *testing.T, ctx context.Context, tb *testbed.Te
 		platform,
 		rev,
 	)
+
+	// Stage the manifest until the test ends so the caller can adopt it.
+	stage, err := tb.Engine.StageWorldState(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(stage.Release)
 	var manifestRef *bldr_manifest.ManifestRef
-	if err := tb.Engine.AccessWorldState(ctx, nil, func(cursor *bucket_lookup.Cursor) error {
+	if err := stage.AccessWorldState(ctx, nil, func(cursor *bucket_lookup.Cursor) error {
 		// Persist the plugin manifest and retain its exact World bucket reference.
 		transaction, blocks := cursor.BuildTransactionAtRef(nil, nil)
 		blocks.SetBlock(bldr_manifest.NewManifest(meta, "entrypoint"), true)

@@ -910,6 +910,20 @@ export const WorldStateResourceServiceDefinition = {
       kind: MethodKind.Unary,
     },
     /**
+     * StageWorldState opens a staging scope for writes outside a transaction.
+     * An engine-level state stages on its engine. A write transaction's stage
+     * writes through the transaction, which adopts the build when it commits.
+     * A read-only state rejects the request.
+     *
+     * @generated from rpc s4wave.world.WorldStateResourceService.StageWorldState
+     */
+    StageWorldState: {
+      name: 'StageWorldState',
+      I: StageWorldStateRequest,
+      O: StageWorldStateResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
      * OpenNestedWorld opens the immutable nested World published by an outer object.
      *
      * @generated from rpc s4wave.world.WorldStateResourceService.OpenNestedWorld
@@ -1158,6 +1172,19 @@ export interface WorldStateResourceService {
   ): Promise<AccessWorldStateResponse>
 
   /**
+   * StageWorldState opens a staging scope for writes outside a transaction.
+   * An engine-level state stages on its engine. A write transaction's stage
+   * writes through the transaction, which adopts the build when it commits.
+   * A read-only state rejects the request.
+   *
+   * @generated from rpc s4wave.world.WorldStateResourceService.StageWorldState
+   */
+  StageWorldState(
+    request: StageWorldStateRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<StageWorldStateResponse>
+
+  /**
    * OpenNestedWorld opens the immutable nested World published by an outer object.
    *
    * @generated from rpc s4wave.world.WorldStateResourceService.OpenNestedWorld
@@ -1394,6 +1421,20 @@ export interface WorldStateResourceServiceHandler {
   ): Promise<AccessWorldStateResponse>
 
   /**
+   * StageWorldState opens a staging scope for writes outside a transaction.
+   * An engine-level state stages on its engine. A write transaction's stage
+   * writes through the transaction, which adopts the build when it commits.
+   * A read-only state rejects the request.
+   *
+   * @generated from rpc s4wave.world.WorldStateResourceService.StageWorldState
+   */
+  StageWorldState(
+    request: StageWorldStateRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<StageWorldStateResponse>
+
+  /**
    * OpenNestedWorld opens the immutable nested World published by an outer object.
    *
    * @generated from rpc s4wave.world.WorldStateResourceService.OpenNestedWorld
@@ -1596,6 +1637,7 @@ export class WorldStateResourceServiceClient implements WorldStateResourceServic
     this.WaitSeqno = this.WaitSeqno.bind(this)
     this.BuildStorageCursor = this.BuildStorageCursor.bind(this)
     this.AccessWorldState = this.AccessWorldState.bind(this)
+    this.StageWorldState = this.StageWorldState.bind(this)
     this.OpenNestedWorld = this.OpenNestedWorld.bind(this)
     this.OpenOuterWorld = this.OpenOuterWorld.bind(this)
     this.CreateObject = this.CreateObject.bind(this)
@@ -1736,6 +1778,28 @@ export class WorldStateResourceServiceClient implements WorldStateResourceServic
       abortSignal || undefined,
     )
     return AccessWorldStateResponse.fromBinary(result)
+  }
+
+  /**
+   * StageWorldState opens a staging scope for writes outside a transaction.
+   * An engine-level state stages on its engine. A write transaction's stage
+   * writes through the transaction, which adopts the build when it commits.
+   * A read-only state rejects the request.
+   *
+   * @generated from rpc s4wave.world.WorldStateResourceService.StageWorldState
+   */
+  async StageWorldState(
+    request: StageWorldStateRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<StageWorldStateResponse> {
+    const requestMsg = StageWorldStateRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      WorldStateResourceServiceDefinition.methods.StageWorldState.name,
+      StageWorldStateRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return StageWorldStateResponse.fromBinary(result)
   }
 
   /**

@@ -987,9 +987,15 @@ func buildGitCloneCommand() *cli.Command {
 				Insecure:     c.Bool("insecure"),
 			}
 
-			// Clone the remote and disable checkout when that flag is set.
+			// Clone the remote, staged until the publish commits, and disable
+			// checkout when that flag is set.
 			cloneOpts.DisableCheckout = c.Bool("no-checkout")
-			repoRef, err := s4wave_git_core.CloneGitRepoToRef(c.Context, engine, cloneOpts, nil, nil)
+			stage, err := engine.StageWorldState(c.Context)
+			if err != nil {
+				return err
+			}
+			defer stage.Release()
+			repoRef, err := s4wave_git_core.CloneGitRepoToRef(c.Context, stage, cloneOpts, nil, nil)
 			if err != nil {
 				return err
 			}

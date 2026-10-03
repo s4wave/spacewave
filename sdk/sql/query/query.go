@@ -58,8 +58,9 @@ func ReadQueryObjectRoot(ctx context.Context, obj world.ObjectState) (*Query, er
 }
 
 // WriteQueryRootRef writes a SQL query root block and returns its ref.
-func WriteQueryRootRef(ctx context.Context, ws world.WorldState, query *Query) (*bucket.ObjectRef, error) {
-	return world.AccessObject(ctx, ws.AccessWorldState, nil, func(bcs *block.Cursor) error {
+// Write through a stage held until the root is adopted.
+func WriteQueryRootRef(ctx context.Context, storage world.WorldStorage, query *Query) (*bucket.ObjectRef, error) {
+	return world.AccessObject(ctx, storage.AccessWorldState, nil, func(bcs *block.Cursor) error {
 		bcs.SetBlock(query, true)
 		return nil
 	})

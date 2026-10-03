@@ -13,6 +13,7 @@ import {
 } from './world-state.js'
 import { ObjectIterator } from './object_iterator.js'
 import { BucketLookupCursor } from '../bucket/lookup/lookup.js'
+import type { WorldStage } from './stage.js'
 import type {
   GetRootRefResponse,
   ListGraphEdgeBucketsResponse,
@@ -106,6 +107,14 @@ export class EngineWorldState implements IWorldState {
     abortSignal?: AbortSignal,
   ): Promise<BucketLookupCursor> {
     return this.engine.accessWorldState(ref, abortSignal)
+  }
+
+  // stageWorldState opens a staging scope on the engine.
+  public async stageWorldState(abortSignal?: AbortSignal): Promise<WorldStage> {
+    if (!this.write) {
+      throw new Error('EngineWorldState is read-only')
+    }
+    return this.engine.stageWorldState(abortSignal)
   }
 
   /** openNestedWorld opens a retained read-only sub-World from a typed outer object. */

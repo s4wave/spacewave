@@ -19,8 +19,20 @@ const maxEngineTxTries = 10
 // BuildStorageCursor builds a cursor to the world storage with an empty ref.
 // The cursor should be released independently of the WorldState.
 // Be sure to call Release on the cursor when done.
+// A write transaction's cursor writes through the transaction's store.
 func (e *EngineTx) BuildStorageCursor(ctx context.Context) (*bucket_lookup.Cursor, error) {
+	if e.writeTx != nil {
+		return e.writeTx.BuildStorageCursor(ctx)
+	}
 	return e.engine.BuildStorageCursor(ctx)
+}
+
+// StageWorldState returns a stage over the write transaction's storage.
+func (e *EngineTx) StageWorldState(ctx context.Context) (world.WorldStage, error) {
+	if e.writeTx == nil {
+		return nil, tx.ErrNotWrite
+	}
+	return e.writeTx.StageWorldState(ctx)
 }
 
 // AccessWorldState builds a bucket lookup cursor with an optional ref.
@@ -31,6 +43,9 @@ func (e *EngineTx) AccessWorldState(
 	ref *bucket.ObjectRef,
 	cb func(*bucket_lookup.Cursor) error,
 ) error {
+	if e.writeTx != nil {
+		return e.writeTx.AccessWorldState(ctx, ref, cb)
+	}
 	return e.engine.AccessWorldState(ctx, ref, cb)
 }
 

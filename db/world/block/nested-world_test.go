@@ -59,15 +59,16 @@ func TestNestedWorldPublication(t *testing.T) {
 	tb := world_testbed.MustDefault(t, ctx)
 
 	// Import the nested snapshot.
-	nestedRef, err := world_block.ImportSnapshot(ctx, tb.Engine, maps.All(map[string]block.Block{
+	nestedRef, err := world_block.ImportSnapshot(ctx, engineStage(t, tb.Engine), maps.All(map[string]block.Block{
 		"inner": block_mock.NewExample("nested content"),
 	}), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	// The receipt is an opaque app-owned block, separate from the standard root.
-	receiptRef, err := world.AccessObject(ctx, tb.Engine.AccessWorldState, nil, func(cursor *block.Cursor) error {
+	// The receipt is an opaque app-owned block, separate from the standard root,
+	// staged until the publication adopts it.
+	receiptRef, err := world.AccessObject(ctx, engineStage(t, tb.Engine).AccessWorldState, nil, func(cursor *block.Cursor) error {
 		cursor.SetBlock(block_mock.NewExample("source commit receipt"), true)
 		return nil
 	})
@@ -167,9 +168,15 @@ func TestNestedWorldReplacementGC(t *testing.T) {
 
 	// publish imports a snapshot and stores it as the outer object's nested World.
 	publish := func(content string) *block.BlockRef {
-		// Import the snapshot.
+		// Import the snapshot through a stage held until the outer object
+		// adopts it.
 		t.Helper()
-		ref, err := world_block.ImportSnapshot(ctx, tb.Engine, maps.All(map[string]block.Block{
+		stage, err := tb.Engine.StageWorldState(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer stage.Release()
+		ref, err := world_block.ImportSnapshot(ctx, stage, maps.All(map[string]block.Block{
 			"inner": block_mock.NewExample(content),
 		}), nil)
 		if err != nil {

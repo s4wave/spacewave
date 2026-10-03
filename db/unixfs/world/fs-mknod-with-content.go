@@ -17,10 +17,12 @@ import (
 )
 
 // FsMknodWithContent creates a file with content atomically.
-// Phase 1: pre-builds the blob in an isolated object.
+// Phase 1: pre-builds the blob through a stage on ws.
 // Phase 2: creates the file entry and writes the blob in a single commit.
+// The stage holds the blob until the op adopts it.
 func FsMknodWithContent(
 	ctx context.Context,
+	ws world.WorldState,
 	obj world.ObjectState,
 	sender peer.ID,
 	fsType FSType,
@@ -31,11 +33,16 @@ func FsMknodWithContent(
 	permissions fs.FileMode,
 	ts time.Time,
 ) (rev uint64, sysErr bool, err error) {
-	// Phase 1: build the blob in an isolated object.
+	// Phase 1: build the blob through a stage held until the op adopts it.
+	stage, err := ws.StageWorldState(ctx)
+	if err != nil {
+		return 0, true, err
+	}
+	defer stage.Release()
 	fpath := unixfs_block.NewFSPath(path, false)
 	blbObjRef, err := world.AccessObject(
 		ctx,
-		obj.AccessWorldState,
+		stage.AccessWorldState,
 		nil,
 		func(bcs *block.Cursor) error {
 			bcs.SetRefAtCursor(nil, true)

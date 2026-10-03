@@ -39,8 +39,15 @@ func TestOpenOuterWorld(t *testing.T) {
 	}
 	defer storage.Release()
 
+	// Stage the snapshot until the outer object adopts it.
+	stage, err := storage.StageWorldState(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer stage.Release()
+
 	// importSnapshot snapshot,err via world_block.
-	snapshot, err := world_block.ImportSnapshot(ctx, storage, maps.All(map[string]block.Block{
+	snapshot, err := world_block.ImportSnapshot(ctx, stage, maps.All(map[string]block.Block{
 		"inner": block_mock.NewExample("nested"),
 	}), nil)
 	if err != nil {

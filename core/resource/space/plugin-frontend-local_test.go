@@ -61,7 +61,7 @@ func TestLocalPluginFrontend(t *testing.T) {
 		"bldr.yaml": `{"id":"space-colors","manifests":{"space-colors":{"builder":{"id":"bldr/plugin/compiler/js","config":{"modules":[{"kind":"JS_MODULE_KIND_FRONTEND","path":"./Viewer.ts"}]}}}}}`,
 		"Viewer.ts": source,
 	} {
-		_, _, err := unixfs_world.FsMknodWithContent(ctx, object, shared.GetPeerID(), unixfs_world.FSType_FSType_FS_NODE,
+		_, _, err := unixfs_world.FsMknodWithContent(ctx, tb.WorldState, object, shared.GetPeerID(), unixfs_world.FSType_FSType_FS_NODE,
 			[]string{name}, unixfs.NewFSCursorNodeType_File(), int64(len(contents)), strings.NewReader(contents), 0o644, time.Now())
 		if err != nil {
 			t.Fatal(err)
@@ -134,7 +134,7 @@ func TestLocalPluginFrontend(t *testing.T) {
 	}
 
 	// Write an accepted World source edit and verify the compiler observes it.
-	_, _, err = unixfs_world.FsWriteAt(ctx, object, shared.GetPeerID(), unixfs_world.FSType_FSType_FS_NODE,
+	_, _, err = unixfs_world.FsWriteAt(ctx, tb.WorldState, object, shared.GetPeerID(), unixfs_world.FSType_FSType_FS_NODE,
 		[]string{"Viewer.ts"}, 0, []byte(strings.ReplaceAll(source, "colors", "colours")), time.Now())
 	if err != nil {
 		t.Fatal(err)

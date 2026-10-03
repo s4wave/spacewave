@@ -5,7 +5,6 @@ import (
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/starpc/srpc"
-	"github.com/pkg/errors"
 	kvtx_rpc "github.com/s4wave/spacewave/db/kvtx/rpc"
 	kvtx_rpc_server "github.com/s4wave/spacewave/db/kvtx/rpc/server"
 	"github.com/s4wave/spacewave/db/world"
@@ -37,27 +36,13 @@ func KvStoreFactory(
 		return nil, nil, err
 	}
 
-	// Retain the World object while opening its KV store.
-	obj, err := world.MustGetObject(ctx, ws, objectKey)
-	defer world.ReleaseObjectState(obj)
+	// Open the store; it stages its writes until it publishes them.
+	store, err := NewWorldBackedStore(ctx, le, ws, objectKey)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	// Open the World-backed store against the object root.
-	var store *WorldBackedStore
-	if err := obj.AccessWorldState(ctx, nil, func(root worldCursor) error {
-		var err error
-		store, err = NewWorldBackedStore(ctx, le, root.Clone(), ws, objectKey)
-		return err
-	}); err != nil {
-		return nil, nil, err
-	}
-	if store == nil {
-		return nil, nil, errors.New("kv/store: failed to open world-backed store")
-	}
-
-	// Register the KV store RPC service and transfer its cleanup to the caller.
+	// Serve the store until the caller releases it.
 	mux := srpc.NewMux()
 	if err := kvtx_rpc.SRPCRegisterKvtx(mux, kvtx_rpc_server.NewStore(store)); err != nil {
 		store.Close()

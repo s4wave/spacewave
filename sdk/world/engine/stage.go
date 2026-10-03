@@ -14,21 +14,33 @@ import (
 // StageWorldState opens a remote World stage. Releasing it releases the
 // stage resource.
 func (e *SDKEngine) StageWorldState(ctx context.Context) (world.WorldStage, error) {
-	// Open the stage on the remote World engine.
 	resp, err := e.service.StageWorldState(ctx, &s4wave_world.StageWorldStateRequest{})
 	if err != nil {
 		return nil, err
 	}
+	return newSDKStage(e.client, resp.GetResourceId())
+}
 
-	// Wrap the stage resource and release it if construction fails.
-	ref := e.client.CreateResourceReference(resp.GetResourceId())
+// StageWorldState opens a remote stage on the World state. Releasing it
+// releases the stage resource.
+func (ws *SDKWorldState) StageWorldState(ctx context.Context) (world.WorldStage, error) {
+	resp, err := ws.service.StageWorldState(ctx, &s4wave_world.StageWorldStateRequest{})
+	if err != nil {
+		return nil, err
+	}
+	return newSDKStage(ws.client, resp.GetResourceId())
+}
+
+// newSDKStage wraps a stage resource, releasing it if construction fails.
+func newSDKStage(client ResourceClient, resourceID uint32) (*sdkStage, error) {
+	ref := client.CreateResourceReference(resourceID)
 	srpcClient, err := ref.GetClient()
 	if err != nil {
 		ref.Release()
 		return nil, err
 	}
 	return &sdkStage{
-		client:  e.client,
+		client:  client,
 		ref:     ref,
 		service: s4wave_world.NewSRPCWorldStageResourceServiceClient(srpcClient),
 	}, nil

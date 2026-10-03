@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/s4wave/spacewave/db/block"
-	"github.com/s4wave/spacewave/db/bucket"
 	"github.com/s4wave/spacewave/db/world"
 	s4wave_sql "github.com/s4wave/spacewave/sdk/sql"
 )
@@ -45,14 +44,6 @@ func ReadTableViewObjectRoot(ctx context.Context, obj world.ObjectState) (*Table
 		return nil, err
 	}
 	return tableView, nil
-}
-
-// WriteTableViewRootRef writes a SQL table view root block and returns its ref.
-func WriteTableViewRootRef(ctx context.Context, ws world.WorldState, tableView *TableView) (*bucket.ObjectRef, error) {
-	return world.AccessObject(ctx, ws.AccessWorldState, nil, func(bcs *block.Cursor) error {
-		bcs.SetBlock(tableView, true)
-		return nil
-	})
 }
 
 // SyncTableViewGraphQuads replaces the table view's target schema graph link.

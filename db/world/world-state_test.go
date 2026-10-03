@@ -26,9 +26,14 @@ func TestAccessObjectReturnsStorageOpArgs(t *testing.T) {
 	}
 	defer wtb.Release()
 
-	// Populate the World with the object bodies used by this test.
+	// Build the object body through a stage.
 	ws := world.NewEngineWorldState(wtb.Engine, true)
-	ref, err := world.AccessObject(ctx, ws.AccessWorldState, nil, func(bcs *block.Cursor) error {
+	stage, err := ws.StageWorldState(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer stage.Release()
+	ref, err := world.AccessObject(ctx, stage.AccessWorldState, nil, func(bcs *block.Cursor) error {
 		bcs.SetBlock(block_mock.NewExample("root"), true)
 		return nil
 	})
@@ -665,6 +670,10 @@ func (txs *staleRetryTx) Sync(ctx context.Context) (bool, error) {
 
 func (txs *staleRetryTx) BuildStorageCursor(ctx context.Context) (*bucket_lookup.Cursor, error) {
 	panic("unexpected BuildStorageCursor call")
+}
+
+func (txs *staleRetryTx) StageWorldState(context.Context) (world.WorldStage, error) {
+	panic("unexpected StageWorldState call")
 }
 
 func (txs *staleRetryTx) AccessWorldState(

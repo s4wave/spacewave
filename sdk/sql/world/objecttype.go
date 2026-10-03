@@ -34,44 +34,18 @@ func SqlDbFactory(
 	if err := world_types.CheckObjectType(ctx, ws, objectKey, SqlDbTypeID); err != nil {
 		return nil, nil, err
 	}
-	obj, err := world.MustGetObject(ctx, ws, objectKey)
-	defer world.ReleaseObjectState(obj)
-	if err != nil {
-		return nil, nil, err
-	}
-	rootRef, _, err := obj.GetRootRef(ctx)
+
+	// Open the database; it stages its writes until it publishes them.
+	store, err := NewWorldBackedSql(ctx, ws, objectKey)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	// Open the storage cursor and follow the SQL object root.
-	storageRoot, err := ws.BuildStorageCursor(ctx)
-	if err != nil {
-		return nil, nil, err
-	}
-	root, err := storageRoot.FollowRef(ctx, rootRef)
-	if err != nil {
-		storageRoot.Release()
-		return nil, nil, err
-	}
-
-	// Open the SQL store on the resolved storage cursor.
-	store, err := NewWorldBackedSql(ctx, root, ws, objectKey)
-	if err != nil {
-		root.Release()
-		storageRoot.Release()
-		return nil, nil, err
-	}
-
-	// Expose the SQL store through an SRPC mux with cursor cleanup.
+	// Serve the database until the caller releases it.
 	mux := srpc.NewMux()
 	if err := sql_rpc.SRPCRegisterSql(mux, sql_rpc_server.NewStore(store)); err != nil {
 		store.Close()
-		storageRoot.Release()
 		return nil, nil, err
 	}
-	return mux, func() {
-		store.Close()
-		storageRoot.Release()
-	}, nil
+	return mux, store.Close, nil
 }

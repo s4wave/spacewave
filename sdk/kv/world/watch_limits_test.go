@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/aperturerobotics/starpc/srpc"
-	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	"github.com/s4wave/spacewave/db/kvtx"
 	kvtx_rpc "github.com/s4wave/spacewave/db/kvtx/rpc"
 	kvtx_rpc_client "github.com/s4wave/spacewave/db/kvtx/rpc/client"
@@ -28,20 +27,9 @@ func openBoundedWorldBackedStore(
 ) (*s4wave_kv_world.WorldBackedStore, func()) {
 	// Retain the World object while opening its bounded-watch KV store.
 	t.Helper()
-	obj, err := world.MustGetObject(ctx, ws, objectKey)
-	defer world.ReleaseObjectState(obj)
+	store, err := s4wave_kv_world.NewWorldBackedStore(ctx, logrus.NewEntry(logrus.New()), ws, objectKey)
 	if err != nil {
-		t.Fatalf("MustGetObject(%s): %v", objectKey, err)
-	}
-
-	// Open a KV store against the retained World object root.
-	var store *s4wave_kv_world.WorldBackedStore
-	if err := obj.AccessWorldState(ctx, nil, func(root *bucket_lookup.Cursor) error {
-		var err error
-		store, err = s4wave_kv_world.NewWorldBackedStore(ctx, logrus.NewEntry(logrus.New()), root.Clone(), ws, objectKey)
-		return err
-	}); err != nil {
-		t.Fatalf("AccessWorldState(%s): %v", objectKey, err)
+		t.Fatalf("NewWorldBackedStore(%s): %v", objectKey, err)
 	}
 	return store, store.Close
 }

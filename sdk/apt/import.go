@@ -83,8 +83,13 @@ func ImportDebPackage(
 		return nil, nil, err
 	}
 
-	// Acquire the World storage cursor for the package archive.
-	cursor, err := ws.BuildStorageCursor(ctx)
+	// Stage the package archive until the package record adopts it.
+	stage, err := ws.StageWorldState(ctx)
+	if err != nil {
+		return nil, nil, err
+	}
+	defer stage.Release()
+	cursor, err := stage.BuildStorageCursor(ctx)
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "build storage cursor")
 	}

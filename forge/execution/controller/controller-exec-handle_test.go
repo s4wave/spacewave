@@ -36,7 +36,7 @@ func TestExecutionHandleRetainsGrantedEpoch(t *testing.T) {
 	if _, _, err := obj.ApplyObjectOp(ctx, execution_tx.NewTxStart(peerID, conf.GetClaimId()), peerID); err != nil {
 		t.Fatal(err)
 	}
-	handle := newExecControllerHandle(ctx, NewController(tb.Logger, tb.Bus, conf), tb.WorldState, ts, 1)
+	handle := newExecControllerHandle(ctx, NewController(tb.Logger, tb.Bus, conf), tb.WorldState, tb.WorldState, ts, 1)
 
 	// Replace the authoritative claim without replacing the caller's handle.
 	if _, _, err := obj.ApplyObjectOp(ctx, execution_tx.NewTxReclaim(peerID, "next-owner", 1), peerID); err != nil {

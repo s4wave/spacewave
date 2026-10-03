@@ -50,14 +50,10 @@ func SetManifestBuildResult(
 	}
 
 	// Create a new World object holding the result block.
-	ref, err := world.AccessObject(ctx, ws.AccessWorldState, nil, func(bcs *block.Cursor) error {
+	created, ref, err := world.CreateWorldObject(ctx, ws, objKey, func(bcs *block.Cursor) error {
 		bcs.SetBlock(result.CloneVT(), true)
 		return nil
 	})
-	if err != nil {
-		return nil, err
-	}
-	created, err := ws.CreateObject(ctx, objKey, ref)
 	world.ReleaseObjectState(created)
 	if err != nil {
 		return nil, err

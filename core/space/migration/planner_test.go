@@ -8,8 +8,6 @@ import (
 	space_migration "github.com/s4wave/spacewave/core/space/migration"
 	"github.com/s4wave/spacewave/db/block"
 	block_mock "github.com/s4wave/spacewave/db/block/mock"
-	"github.com/s4wave/spacewave/db/bucket"
-	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	kvtx_block "github.com/s4wave/spacewave/db/kvtx/block"
 	"github.com/s4wave/spacewave/db/world"
 	world_testbed "github.com/s4wave/spacewave/db/world/testbed"
@@ -263,38 +261,22 @@ func TestPlannerRemapsDescendantClosureKeys(t *testing.T) {
 }
 
 func setObject(t *testing.T, ctx context.Context, ws world.WorldState, key, typeID string) {
-	// Write the typed test object payload into the World block store.
+	// Create the test World object with the payload of its ObjectType.
 	t.Helper()
-	var root *bucket.ObjectRef
-	err := ws.AccessWorldState(ctx, nil, func(cursor *bucket_lookup.Cursor) error {
-		// Open a block transaction and choose the test ObjectType payload.
-		root = cursor.GetRef()
-		tx, blocks := cursor.BuildTransactionAtRef(nil, nil)
+	createdObject, _, err := world.CreateWorldObject(ctx, ws, key, func(bcs *block.Cursor) error {
 		switch typeID {
 		case s4wave_kv_world.KvStoreTypeID:
-			blocks.SetBlock(kvtx_block.NewKeyValueStore(0), true)
+			bcs.SetBlock(kvtx_block.NewKeyValueStore(0), true)
 		case s4wave_canvas_world.CanvasTypeID:
-			blocks.SetBlock(s4wave_canvas.NewCanvasStorage(), true)
+			bcs.SetBlock(s4wave_canvas.NewCanvasStorage(), true)
 		default:
-			blocks.SetBlock(block_mock.NewExampleBlock(), true)
+			bcs.SetBlock(block_mock.NewExampleBlock(), true)
 		}
-
-		// Persist the test payload root into the World block store.
-		var err error
-		root.RootRef, _, err = tx.Write(ctx, true)
-		return err
+		return nil
 	})
+	world.ReleaseObjectState(createdObject)
 	if err != nil {
 		t.Fatal(err)
-	}
-
-	// Create the test World object from its persisted root.
-	{
-		createdObject, err := ws.CreateObject(ctx, key, root)
-		world.ReleaseObjectState(createdObject)
-		if err != nil {
-			t.Fatal(err)
-		}
 	}
 
 	// Assign the test World object its requested ObjectType.
@@ -321,29 +303,15 @@ func setCanvasState(t *testing.T, ctx context.Context, ws world.WorldState, key 
 }
 
 func setObjectBlock(t *testing.T, ctx context.Context, ws world.WorldState, key, typeID string, payload block.Block) {
-	// Write the supplied test payload into the World block store.
+	// Create the test World object with the supplied payload as its root.
 	t.Helper()
-	var root *bucket.ObjectRef
-	err := ws.AccessWorldState(ctx, nil, func(cursor *bucket_lookup.Cursor) error {
-		// Open a block transaction and persist the supplied test payload.
-		root = cursor.GetRef()
-		tx, blocks := cursor.BuildTransactionAtRef(nil, nil)
-		blocks.SetBlock(payload, true)
-		var err error
-		root.RootRef, _, err = tx.Write(ctx, true)
-		return err
+	createdObject, _, err := world.CreateWorldObject(ctx, ws, key, func(bcs *block.Cursor) error {
+		bcs.SetBlock(payload, true)
+		return nil
 	})
+	world.ReleaseObjectState(createdObject)
 	if err != nil {
 		t.Fatal(err)
-	}
-
-	// Create the test World object from its persisted payload root.
-	{
-		createdObject, err := ws.CreateObject(ctx, key, root)
-		world.ReleaseObjectState(createdObject)
-		if err != nil {
-			t.Fatal(err)
-		}
 	}
 
 	// Assign the test World object its requested ObjectType.

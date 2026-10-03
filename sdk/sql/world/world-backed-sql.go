@@ -7,7 +7,6 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/bucket"
-	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	hydra_sql "github.com/s4wave/spacewave/db/sql"
 	sql_mysql "github.com/s4wave/spacewave/db/sql/mysql"
 	"github.com/s4wave/spacewave/db/world"
@@ -15,23 +14,30 @@ import (
 	"github.com/s4wave/spacewave/sdk/world/objecttype"
 )
 
-type worldCursor = *bucket_lookup.Cursor
-
 // WorldBackedSql commits SQL roots through world operations.
 type WorldBackedSql struct {
-	inner    *sql_mysql.Mysql
-	ws       world.WorldState
-	key      string
-	root     worldCursor
-	mtx      sync.Mutex
+	// inner is the SQL database at the object root.
+	inner *sql_mysql.Mysql
+	// ws publishes committed roots.
+	ws world.WorldState
+	// key is the world object key.
+	key string
+	// release releases the database's cursor and the stage that owns its
+	// writes.
+	release func()
+	// mtx guards tx.
+	mtx sync.Mutex
+	// writeMtx serializes write transactions.
 	writeMtx sync.Mutex
-	tx       *worldBackedSqlTx
+	// tx is the open write transaction, if any.
+	tx *worldBackedSqlTx
 }
 
-// NewWorldBackedSql opens a world-backed SQL database.
+// NewWorldBackedSql opens a world-backed SQL database at the object's current
+// root. The database stages its writes until it publishes the root that
+// references them; Close releases the stage.
 func NewWorldBackedSql(
-	_ context.Context,
-	root worldCursor,
+	ctx context.Context,
 	ws world.WorldState,
 	objectKey string,
 ) (*WorldBackedSql, error) {
@@ -39,30 +45,42 @@ func NewWorldBackedSql(
 	if ws == nil {
 		return nil, objecttype.ErrWorldStateRequired
 	}
-	if root == nil {
-		return nil, errors.New("sql/db: root cursor is required")
-	}
 	if objectKey == "" {
 		return nil, world.ErrEmptyObjectKey
 	}
 
-	// Open the SQL engine with the World root commit callback.
+	// Open a staged cursor at the object's current root.
+	obj, err := world.MustGetObject(ctx, ws, objectKey)
+	defer world.ReleaseObjectState(obj)
+	if err != nil {
+		return nil, err
+	}
+	rootRef, _, err := obj.GetRootRef(ctx)
+	if err != nil {
+		return nil, err
+	}
+	root, release, err := world.OpenStagedCursor(ctx, ws, rootRef)
+	if err != nil {
+		return nil, err
+	}
+
+	// Open the database on the staged root.
 	st := &WorldBackedSql{
-		ws:   ws,
-		key:  objectKey,
-		root: root,
+		ws:      ws,
+		key:     objectKey,
+		release: release,
 	}
 	st.inner = sql_mysql.NewMysql(root, st.captureCommittedRoot)
 	return st, nil
 }
 
-// Close releases the backing world cursor.
+// Close releases the database's cursor and stage.
 func (s *WorldBackedSql) Close() {
-	if s == nil || s.root == nil {
+	if s == nil || s.release == nil {
 		return
 	}
-	s.root.Release()
-	s.root = nil
+	s.release()
+	s.release = nil
 }
 
 // NewSqlTransaction opens a SQL transaction.

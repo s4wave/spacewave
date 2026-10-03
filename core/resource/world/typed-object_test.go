@@ -650,14 +650,23 @@ func TestTypedObjectResource(t *testing.T) {
 		}
 		defer gitOpRelease()
 
-		// Record objectKey.
+		// Open a stage held until the test ends.
 		objectKey := "repo/typed-object"
-		repoRef, err := core_git.CloneGitRepoToRef(ctx, tb.Engine, &git_block.CloneOpts{
+		stage, err := tb.Engine.StageWorldState(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer stage.Release()
+
+		// Clone the repo through the stage.
+		repoRef, err := core_git.CloneGitRepoToRef(ctx, stage, &git_block.CloneOpts{
 			Url: createTypedObjectSourceRepo(t),
 		}, nil, nil)
 		if err != nil {
 			t.Fatalf("CloneGitRepoToRef: %v", err)
 		}
+
+		// Publish the clone with the init op.
 		sdkTx, err := engine.NewTransaction(ctx, true)
 		if err != nil {
 			t.Fatalf("NewTransaction failed: %v", err)

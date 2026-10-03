@@ -189,6 +189,11 @@ func (r *WorldStateResource) BuildStorageCursor(ctx context.Context, req *s4wave
 	return &s4wave_world.BuildStorageCursorResponse{ResourceId: id}, nil
 }
 
+// StageWorldState opens a staging scope on the World state.
+func (r *WorldStateResource) StageWorldState(ctx context.Context, req *s4wave_world.StageWorldStateRequest) (*s4wave_world.StageWorldStateResponse, error) {
+	return addWorldStageResource(ctx, r.le, r.b, r.ws.StageWorldState)
+}
+
 // AccessWorldState builds a bucket lookup cursor with an optional ref.
 func (r *WorldStateResource) AccessWorldState(ctx context.Context, req *s4wave_world.AccessWorldStateRequest) (*s4wave_world.AccessWorldStateResponse, error) {
 	// Require the Resource client that will own the World cursor.
