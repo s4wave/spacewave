@@ -58,10 +58,10 @@ func ResolveMount(ctx context.Context, ws world.WorldState, key string) (peer.ID
 	sender, err := peer.IDB58Decode(alloc.PeerID)
 	if alloc.GetJobObjectKey() == "" {
 		execution, state, lookupErr := forge_execution.LookupExecution(ctx, ws, alloc.GetExecutionObjectKey())
+		world.ReleaseObjectState(state)
 		if lookupErr != nil {
 			return "", nil, lookupErr
 		}
-		defer world.ReleaseObjectState(state)
 		sender, err = execution.ParsePeerID()
 	}
 	if err != nil {
