@@ -47,21 +47,25 @@ func NewController(
 	conf *Config,
 	bus bus.Bus,
 ) (*Controller, error) {
+	// Parse the network address the stream controller will listen on.
 	listenMa, err := conf.ParseListenMultiaddr()
 	if err != nil {
 		return nil, err
 	}
 
+	// Resolve the local peer identity used to open forwarded streams.
 	localPeerID, err := conf.ParseLocalPeerID()
 	if err != nil {
 		return nil, err
 	}
 
+	// Resolve the remote peer receiving forwarded streams.
 	remotePeerID, err := conf.ParseRemotePeerID()
 	if err != nil {
 		return nil, err
 	}
 
+	// Validate the protocol attached to forwarded streams.
 	pid := protocol.ID(conf.GetProtocolId())
 	if err := pid.Validate(); err != nil {
 		return nil, err
@@ -92,9 +96,8 @@ func (c *Controller) GetControllerInfo() *controller.Info {
 // Returning nil ends execution.
 // Returning an error triggers a retry with backoff.
 func (c *Controller) Execute(ctx context.Context) error {
-	le := c.le
-
 	// Listen on the configured multiaddress.
+	le := c.le
 	listener, err := manet.Listen(c.listenMa)
 	if err != nil {
 		return err

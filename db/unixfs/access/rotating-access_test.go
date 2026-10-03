@@ -15,9 +15,11 @@ import (
 )
 
 func TestRotatingAccessRebindsBlockedAccess(t *testing.T) {
+	// Create a rotating UnixFS provider that initially blocks access.
 	ctx := t.Context()
 	access := unixfs_access.NewRotatingAccess()
 
+	// Create the first UnixFS root with its expected file body.
 	firstBody := []byte("first generation")
 	firstHandle, err := newTestRotatingAccessRoot(ctx, firstBody)
 	if err != nil {
@@ -25,25 +27,31 @@ func TestRotatingAccessRebindsBlockedAccess(t *testing.T) {
 	}
 	defer firstHandle.Release()
 
+	// Bound the first UnixFS access attempt and release its context afterward.
 	firstAccessCtx, firstCancel := context.WithTimeout(ctx, 5*time.Second)
 	defer firstCancel()
 
+	// Start the first access attempt while the UnixFS provider is blocked.
 	firstStarted := make(chan struct{})
 	firstResult := make(chan rotatingAccessResult, 1)
 	go accessRotatingHandleWithRebind(firstAccessCtx, access, firstStarted, firstResult)
 
+	// Wait until the first attempt reaches the blocked UnixFS provider.
 	select {
 	case <-firstStarted:
 	case <-firstAccessCtx.Done():
 		t.Fatalf("blocked access did not start: %v", firstAccessCtx.Err())
 	}
 
+	// Publish the first UnixFS provider to release the blocked attempt.
 	access.SetCurrent(unixfs_access.NewAccessUnixFSFunc(firstHandle))
 
+	// Verify the first access attempt reads the published UnixFS root.
 	first := waitRotatingAccessResult(t, firstAccessCtx, firstResult)
 	defer first.release()
 	assertRotatingAccessBody(t, firstAccessCtx, first.handle, firstBody)
 
+	// Create a replacement UnixFS root with a distinct file body.
 	secondBody := []byte("second generation")
 	secondHandle, err := newTestRotatingAccessRoot(ctx, secondBody)
 	if err != nil {
@@ -51,22 +59,27 @@ func TestRotatingAccessRebindsBlockedAccess(t *testing.T) {
 	}
 	defer secondHandle.Release()
 
+	// Bound the replacement UnixFS access attempt.
 	secondAccessCtx, secondCancel := context.WithTimeout(ctx, 5*time.Second)
 	defer secondCancel()
 
+	// Block the UnixFS provider again and start the replacement attempt.
 	secondStarted := make(chan struct{})
 	secondResult := make(chan rotatingAccessResult, 1)
 	access.SetBlocked()
 	go accessRotatingHandleWithRebind(secondAccessCtx, access, secondStarted, secondResult)
 
+	// Wait until the replacement attempt reaches the blocked provider.
 	select {
 	case <-secondStarted:
 	case <-secondAccessCtx.Done():
 		t.Fatalf("blocked replacement access did not start: %v", secondAccessCtx.Err())
 	}
 
+	// Publish the replacement UnixFS provider.
 	access.SetCurrent(unixfs_access.NewAccessUnixFSFunc(secondHandle))
 
+	// Verify the replacement attempt reads the new UnixFS root.
 	second := waitRotatingAccessResult(t, secondAccessCtx, secondResult)
 	defer second.release()
 	assertRotatingAccessBody(t, secondAccessCtx, second.handle, secondBody)
@@ -172,28 +185,34 @@ func assertRotatingAccessBody(
 	handle *unixfs.FSHandle,
 	want []byte,
 ) {
+	// Open the asset file from the resolved UnixFS handle for the body assertion.
 	t.Helper()
-
 	fileHandle, _, err := handle.LookupPath(ctx, "/asset.txt")
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	defer fileHandle.Release()
 
+	// Read the resolved asset file body.
 	got, err := unixfs.ReadFile(ctx, fileHandle)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Verify the asset file body matches the expected provider.
 	if !bytes.Equal(got, want) {
 		t.Fatalf("unexpected body: %q", string(got))
 	}
 }
 
 func newTestRotatingAccessRoot(ctx context.Context, body []byte) (*unixfs.FSHandle, error) {
+	// Create an in-memory UnixFS root for the provider.
 	rootRef, err := unixfs.NewFSHandle(unixfs_billy.NewBillyFSCursor(memfs.New(), ""))
 	if err != nil {
 		return nil, err
 	}
+
+	// Write the expected asset body into the UnixFS root.
 	rbfs := unixfs_billy.NewBillyFS(ctx, rootRef, "", time.Now())
 	if err := billy_util.WriteFile(rbfs, "/asset.txt", body, 0o644); err != nil {
 		rootRef.Release()

@@ -15,6 +15,7 @@ const ConfigID = ControllerID
 // Validate validates the configuration.
 // This is a cursory validation to see if the values "look correct."
 func (c *Config) Validate() error {
+	// Validate the optional local peer and require a valid remote peer.
 	if c.GetLocalPeerId() != "" {
 		if _, err := c.ParseLocalPeerID(); err != nil {
 			return errors.Wrap(err, "local")
@@ -26,15 +27,19 @@ func (c *Config) Validate() error {
 	if _, err := c.ParseRemotePeerID(); err != nil {
 		return errors.Wrap(err, "remote")
 	}
+
+	// Require a network address before parsing the listener configuration.
 	if c.GetListenMultiaddr() == "" {
 		return errors.New("listen multiaddr cannot be empty")
 	}
 
+	// Validate the protocol selected for forwarded streams.
 	pid := protocol.ID(c.GetProtocolId())
 	if err := pid.Validate(); err != nil {
 		return err
 	}
 
+	// Require a parseable network address for the listener.
 	if _, err := c.ParseListenMultiaddr(); err != nil {
 		return err
 	}

@@ -27,6 +27,7 @@ func NewRotatingAccess() *RotatingAccess {
 
 // AccessUnixFS accesses the current UnixFS provider.
 func (r *RotatingAccess) AccessUnixFS(ctx context.Context, released func()) (*unixfs.FSHandle, func(), error) {
+	// Snapshot the UnixFS provider and register the access release callback.
 	r.mtx.Lock()
 	current := r.current
 	r.waiters = append(r.waiters, released)
@@ -37,12 +38,14 @@ func (r *RotatingAccess) AccessUnixFS(ctx context.Context, released func()) (*un
 
 // SetCurrent sets the current UnixFS provider and releases waiting access attempts.
 func (r *RotatingAccess) SetCurrent(fn AccessUnixFSFunc) {
+	// Replace the UnixFS provider and detach its pending release callbacks.
 	r.mtx.Lock()
 	r.current = fn
 	waiters := slices.Clone(r.waiters)
 	r.waiters = nil
 	r.mtx.Unlock()
 
+	// Notify access attempts that their UnixFS provider changed.
 	for _, waiter := range waiters {
 		if waiter != nil {
 			waiter()

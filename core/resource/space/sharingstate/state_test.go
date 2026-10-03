@@ -42,10 +42,13 @@ func TestWatchStateCoalescesNearSimultaneousChanges(t *testing.T) {
 
 	// Hold the first send until both sources have changed.
 	send := func(s *SharingState) error {
+		// Record the sharing snapshot before notifying the test.
 		emissionsMu.Lock()
 		idx := len(emissions)
 		emissions = append(emissions, s)
 		emissionsMu.Unlock()
+
+		// Signal the sharing emission and hold the initial send for source changes.
 		emitted <- struct{}{}
 		if idx == 0 {
 			<-released
@@ -131,10 +134,13 @@ func TestWatchStateEqualityGateSuppressesDuplicates(t *testing.T) {
 
 	// Hold the first send while duplicates are written.
 	send := func(s *SharingState) error {
+		// Count the sharing emission before notifying the test.
 		emissionsMu.Lock()
 		idx := emissions
 		emissions++
 		emissionsMu.Unlock()
+
+		// Signal the sharing emission and hold the initial send for duplicate writes.
 		emitted <- struct{}{}
 		if idx == 0 {
 			<-released
@@ -300,6 +306,7 @@ func TestWatchStateOmitsDepartingPeers(t *testing.T) {
 }
 
 func TestBuildParticipantInfoUsesPresentationLabels(t *testing.T) {
+	// Project account labels and multiple peers into sharing participant rows.
 	info := BuildParticipantInfo(
 		&sobject.SOState{
 			Config: &sobject.SharedObjectConfig{
@@ -332,6 +339,7 @@ func TestBuildParticipantInfoUsesPresentationLabels(t *testing.T) {
 		},
 	)
 
+	// Verify participant labels, grouped peers, and the effective self role.
 	if len(info) != 2 {
 		t.Fatalf("expected 2 participant rows, got %d", len(info))
 	}
@@ -353,6 +361,7 @@ func TestBuildParticipantInfoUsesPresentationLabels(t *testing.T) {
 }
 
 func TestBuildParticipantInfoFallsBackToAccountAndPeer(t *testing.T) {
+	// Project participants with account and peer identities but no labels.
 	info := BuildParticipantInfo(
 		&sobject.SOState{
 			Config: &sobject.SharedObjectConfig{
@@ -373,6 +382,7 @@ func TestBuildParticipantInfoFallsBackToAccountAndPeer(t *testing.T) {
 		&ParticipantPresentation{},
 	)
 
+	// Verify unlabeled participant rows retain their account or peer identities.
 	if len(info) != 2 {
 		t.Fatalf("expected 2 participant rows, got %d", len(info))
 	}
@@ -477,14 +487,19 @@ func TestCoalescingEndToEnd(t *testing.T) {
 
 	// Hold the first send and signal the final participant set.
 	send := func(s *SharingState) error {
+		// Record the sharing snapshot before inspecting its participant set.
 		emissionsMu.Lock()
 		idx := len(emissions)
 		emissions = append(emissions, s)
 		emissionsMu.Unlock()
+
+		// Hold the initial sharing emission until the test releases it.
 		if idx == 0 {
 			emitted <- struct{}{}
 			<-released
 		}
+
+		// Notify the test when sharing converges on the final participant set.
 		if len(s.Participants) == 2 &&
 			s.Participants[1].GetPeerId() == finalPeer {
 			finalEmitted <- struct{}{}

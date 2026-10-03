@@ -18,16 +18,19 @@ import (
 )
 
 func TestFSCursor(t *testing.T) {
+	// Create the context and logger for the UnixFS cursor test.
 	ctx := context.Background()
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
 
+	// Start the storage testbed for the UnixFS World.
 	btb, err := testbed.NewTestbed(ctx, le, testbed.WithVerbose(true))
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Create the World-backed UnixFS root and retain it for the test.
 	objKey := "test-fs"
 	rootRef, tb, err := unixfs_world_testbed.BuildTestbed(
 		btb,
@@ -40,12 +43,14 @@ func TestFSCursor(t *testing.T) {
 	}
 	defer rootRef.Release()
 
+	// Write the text fixture into the UnixFS root.
 	rbfs := unixfs_billy.NewBillyFS(ctx, rootRef, "", time.Now())
 	testData := []byte("hello world")
 	if err := billy_util.WriteFile(rbfs, "/bat/baz/test-file.txt", testData, 0o755); err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Write the script fixture into the UnixFS root.
 	testJsData := []byte("console.log(\"hello world\")\n")
 	if err := billy_util.WriteFile(rbfs, "/bat/baz/script.js", testJsData, 0o755); err != nil {
 		t.Fatal(err.Error())
@@ -85,21 +90,26 @@ func TestFSCursor(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Verify the accessed text file matches the original fixture.
 	if !bytes.Equal(readData, testData) {
 		t.Fatal("test data mismatch")
 	}
 }
 
 func TestAccessUnixFSValueResolverRoundTrip(t *testing.T) {
+	// Create the context and logger for the directive round trip.
 	ctx := context.Background()
 	log := logrus.New()
 	le := logrus.NewEntry(log)
 
+	// Start the storage testbed for the UnixFS access directive.
 	tb, err := testbed.NewTestbed(ctx, le, testbed.WithVerbose(false))
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Register a UnixFS provider whose access function returns an empty result.
 	unixFsID := "test-fs"
 	accessCtrl := unixfs_access.NewController(
 		tb.Logger,
@@ -116,11 +126,14 @@ func TestAccessUnixFSValueResolverRoundTrip(t *testing.T) {
 	}
 	defer accessRel()
 
+	// Resolve the registered UnixFS access function through the bus.
 	accessUfs, ufsRef, err := unixfs_access.ExAccessUnixFS(ctx, tb.Bus, unixFsID, false, nil)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	defer ufsRef.Release()
+
+	// Verify the directive returned a UnixFS access function.
 	if accessUfs == nil {
 		t.Fatal("expected access function")
 	}

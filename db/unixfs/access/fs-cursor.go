@@ -23,10 +23,12 @@ func NewFSCursor(
 // NewAccessUnixFSFuncFSCursorGetter returns a FSCursorGetter bound to a AccessUnixFSFunc.
 func NewAccessUnixFSFuncFSCursorGetter(access AccessUnixFSFunc) func(ctx context.Context) (unixfs.FSCursor, error) {
 	return func(rctx context.Context) (unixfs.FSCursor, error) {
+		// Require a UnixFS provider before resolving its cursor.
 		if access == nil {
 			return nil, errors.New("unixfs access func is nil")
 		}
 
+		// Tie the resolved cursor to the access context and release callback.
 		ctx, ctxCancel := context.WithCancel(rctx)
 		var subCursor atomic.Pointer[unixfs.FSHandleCursor]
 		released := func() {
@@ -37,12 +39,14 @@ func NewAccessUnixFSFuncFSCursorGetter(access AccessUnixFSFunc) func(ctx context
 			}
 		}
 
+		// Acquire the UnixFS handle from the provider.
 		fsh, relFsh, err := access(ctx, released)
 		if err != nil {
 			ctxCancel()
 			return nil, err
 		}
 
+		// Publish the handle cursor unless access was already canceled.
 		retCursor := unixfs.NewFSHandleCursor(fsh, true, relFsh)
 		subCursor.Store(retCursor)
 		if ctx.Err() != nil {

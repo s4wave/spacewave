@@ -54,6 +54,7 @@ func NewIterator(ctx context.Context, s Ops, prefix []byte, sort, reverse bool) 
 
 // Initialize intializes the iterator, fetching all keys into memory.
 func (i *Iterator) Initialize() (skipNext bool, err error) {
+	// Reuse the initialized key tree or its recorded scan error.
 	if i.keys != nil || i.err != nil {
 		return false, i.err
 	}
@@ -91,11 +92,13 @@ func (i *Iterator) Initialize() (skipNext bool, err error) {
 // Seek moves the iterator to the first key >= the provided key (or <= in reverse mode).
 // Pass nil to seek to the beginning (or end if reversed).
 func (i *Iterator) Seek(k []byte) error {
+	// Initialize the iterator and discard the previously cached value.
 	if _, err := i.Initialize(); err != nil {
 		return err
 	}
 	i.val = nil
 
+	// Position an empty-key seek at the traversal boundary.
 	if len(k) == 0 {
 		if i.rev {
 			i.oob = !i.ki.Last()
@@ -108,6 +111,7 @@ func (i *Iterator) Seek(k []byte) error {
 	// Binary search for the key
 	valid := i.ki.Seek(k)
 
+	// Adjust reverse seeks to the greatest key at or below the target.
 	if i.rev {
 		// In reverse mode:
 		// If we found an exact match, stay there
@@ -122,9 +126,10 @@ func (i *Iterator) Seek(k []byte) error {
 		}
 	}
 
+	// Mark the iterator out of bounds when the seek found no item.
 	i.oob = !valid
 
-	// Check if the key matches our prefix constraint
+	// Check if the key matches our prefix constraint.
 	if valid && len(i.prefix) != 0 {
 		key := i.ki.Item()
 		if !bytes.HasPrefix(key, i.prefix) {
@@ -137,10 +142,13 @@ func (i *Iterator) Seek(k []byte) error {
 
 // Next moves the iterator to the next item.
 func (i *Iterator) Next() bool {
+	// Initialize the iterator before advancing its position.
 	skipNext, err := i.Initialize()
 	if i.oob || err != nil {
 		return false
 	}
+
+	// Discard the cached value and advance in the configured direction.
 	i.val = nil
 	if !skipNext {
 		var valid bool
@@ -194,12 +202,15 @@ func (i *Iterator) Value() ([]byte, error) {
 // If the slice is not big enough (cap), it must create a new one and return it.
 // Always returns a new copy (does not cache between calls).
 func (i *Iterator) ValueCopy(bt []byte) ([]byte, error) {
+	// Require a valid iterator position before reading its value.
 	if _, err := i.Initialize(); err != nil {
 		return nil, err
 	}
 	if i.oob {
 		return nil, nil
 	}
+
+	// Reuse the cached value or fetch it from the transaction.
 	var err error
 	var val []byte
 	if len(i.val) != 0 {
@@ -215,6 +226,8 @@ func (i *Iterator) ValueCopy(bt []byte) ([]byte, error) {
 		}
 		i.val = val
 	}
+
+	// Return an empty destination when the transaction value is empty.
 	if len(val) == 0 {
 		return bt[:0], nil
 	}

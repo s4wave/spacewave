@@ -44,16 +44,21 @@ func ExAccessUnixFS(
 	returnIfIdle bool,
 	valDisposeCb func(),
 ) (AccessUnixFSValue, directive.Reference, error) {
+	// Resolve the UnixFS access directive and propagate resolution errors.
 	av, _, avRef, err := bus.ExecOneOff(ctx, b, NewAccessUnixFS(unixFsID), bus.ReturnIfIdle(returnIfIdle), valDisposeCb)
 	if err != nil {
 		return nil, nil, err
 	}
+
+	// Release the directive reference when no UnixFS provider was found.
 	if av == nil {
 		if avRef != nil {
 			avRef.Release()
 		}
 		return nil, nil, nil
 	}
+
+	// Require the resolved directive value to be a UnixFS access function.
 	val, valOk := av.GetValue().(AccessUnixFSValue)
 	if !valOk {
 		avRef.Release()

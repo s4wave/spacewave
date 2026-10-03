@@ -41,15 +41,18 @@ func (c *connection) Begin() (driver.Tx, error) {
 
 // BeginTx starts a transaction with optional read-only semantics.
 func (c *connection) BeginTx(ctx context.Context, opts driver.TxOptions) (driver.Tx, error) {
+	// Require the isolation level supported by the SQLite bridge.
 	if opts.Isolation != driver.IsolationLevel(sql.LevelDefault) {
 		return nil, errors.New("sqlite-rpc: unsupported isolation level")
 	}
 
+	// Choose the SQLite transaction mode from the read-only option.
 	beginSQL := "BEGIN IMMEDIATE"
 	if opts.ReadOnly {
 		beginSQL = "BEGIN"
 	}
 
+	// Begin the transaction on the bound SQLite connection.
 	_, err := c.client.Exec(ctx, &sql_sqlite_wasm_rpc.ExecRequest{
 		DbId: c.dbID,
 		Sql:  beginSQL,
@@ -62,10 +65,13 @@ func (c *connection) BeginTx(ctx context.Context, opts driver.TxOptions) (driver
 
 // ExecContext executes a statement that does not return rows.
 func (c *connection) ExecContext(ctx context.Context, query string, args []driver.NamedValue) (driver.Result, error) {
+	// Encode the SQL arguments for the SQLite bridge.
 	params, err := namedValuesToProto(args)
 	if err != nil {
 		return nil, err
 	}
+
+	// Execute the SQL statement on the bound SQLite connection.
 	resp, err := c.client.Exec(ctx, &sql_sqlite_wasm_rpc.ExecRequest{
 		DbId:   c.dbID,
 		Sql:    query,
@@ -82,10 +88,13 @@ func (c *connection) ExecContext(ctx context.Context, query string, args []drive
 
 // QueryContext executes a query that returns rows.
 func (c *connection) QueryContext(ctx context.Context, query string, args []driver.NamedValue) (driver.Rows, error) {
+	// Encode the SQL arguments for the SQLite bridge.
 	params, err := namedValuesToProto(args)
 	if err != nil {
 		return nil, err
 	}
+
+	// Open the query stream on the bound SQLite connection.
 	stream, err := c.client.Query(ctx, &sql_sqlite_wasm_rpc.QueryRequest{
 		DbId:   c.dbID,
 		Sql:    query,
@@ -94,6 +103,7 @@ func (c *connection) QueryContext(ctx context.Context, query string, args []driv
 	if err != nil {
 		return nil, err
 	}
+
 	// Read the first message to get column names.
 	first, err := stream.Recv()
 	if err != nil {
@@ -195,6 +205,7 @@ func (r *rows) Close() error {
 
 // Next populates dest with the values of the next row.
 func (r *rows) Next(dest []driver.Value) error {
+	// Receive the next SQLite row and propagate stream completion.
 	msg, err := r.stream.Recv()
 	if err != nil {
 		if errors.Is(err, io.EOF) {
@@ -202,10 +213,14 @@ func (r *rows) Next(dest []driver.Value) error {
 		}
 		return err
 	}
+
+	// Require the SQLite row to match the driver column count.
 	row := msg.GetRow()
 	if len(row) != len(dest) {
 		return fmt.Errorf("sqlite-rpc: received %d values for %d columns", len(row), len(dest))
 	}
+
+	// Decode the SQLite row values into the driver destination.
 	for i := range dest {
 		dest[i] = protoToDriverValue(row[i])
 	}
