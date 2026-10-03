@@ -89,6 +89,7 @@ func TestV86ExecuteSetsStartingAndStreamsLogs(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	t.Cleanup(tb.Release)
 
 	// Create the VM object whose startup state will be retained.
 	vmKey := "vm/v86-exec-test"
