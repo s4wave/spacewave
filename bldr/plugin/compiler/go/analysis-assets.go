@@ -47,16 +47,19 @@ func TrimAssetArgs(value string) (string, bool) {
 //
 // If no bldr:asset prefix is found, returns nil, false, nil
 func ParseAssetComments(values []string, spec *ast.ValueSpec) (*AssetArgs, bool, error) {
+	// Parse the asset directive arguments from the variable comments.
 	args, found, err := CombineShellComments(AssetTag, values)
 	if err != nil || !found {
 		return nil, found, err
 	}
 
+	// Require a string variable to hold the asset URL.
 	typeStr := types.ExprString(spec.Type)
 	if typeStr != "string" {
 		return nil, true, errors.Errorf("bldr:asset: expected string variable type but got %s", typeStr)
 	}
 
+	// Require the asset source and destination arguments.
 	outArgs := &AssetArgs{}
 	fs := outArgs.BuildFlagSet()
 	if err := fs.Parse(args); err != nil {
@@ -67,11 +70,13 @@ func ParseAssetComments(values []string, spec *ast.ValueSpec) (*AssetArgs, bool,
 		return nil, true, errors.Errorf("expected 2 args but got %d: expected %s from to", narg, AssetTag)
 	}
 
+	// Require an asset source path relative to its package.
 	fromPath := fs.Arg(narg - 2)
 	if filepath.IsAbs(fromPath) {
 		return nil, true, errors.Errorf("from path must be relative: %s", fromPath)
 	}
 
+	// Require an asset destination path relative to the asset root.
 	toPath := fs.Arg(narg - 1)
 	if filepath.IsAbs(toPath) {
 		return nil, true, errors.Errorf("to path must be relative: %s", toPath)

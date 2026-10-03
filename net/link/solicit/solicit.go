@@ -99,11 +99,13 @@ func (d *solicitProtocol) GetValueOptions() directive.ValueOptions {
 
 // IsEquivalent checks if the other directive is equivalent.
 func (d *solicitProtocol) IsEquivalent(other directive.Directive) bool {
+	// Compare only directives that solicit a protocol.
 	od, ok := other.(SolicitProtocol)
 	if !ok {
 		return false
 	}
 
+	// Require matching protocol, peer, transport and context constraints.
 	if d.protocolID != od.SolicitProtocolID() {
 		return false
 	}
@@ -131,6 +133,7 @@ func (d *solicitProtocol) GetName() string {
 
 // GetDebugVals returns the directive arguments as k/v pairs.
 func (d *solicitProtocol) GetDebugVals() directive.DebugValues {
+	// Describe the protocol and optional peer and transport constraints.
 	vals := directive.NewDebugValues()
 	vals["protocol-id"] = []string{string(d.protocolID)}
 	if len(d.peerID) != 0 {

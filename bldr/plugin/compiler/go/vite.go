@@ -89,11 +89,13 @@ func BuildViteBundleVarMeta(
 	// bundles is the map of bundle-id to bundle-def
 	bundles := make(map[string]*ViteBundleVarMeta)
 	getBundle := func(bundleID string) *ViteBundleVarMeta {
+		// Reuse the Vite bundle metadata already collected for this ID.
 		bundleDef := bundles[bundleID]
 		if bundleDef != nil {
 			return bundleDef
 		}
 
+		// Create Vite bundle metadata for the first entrypoint with this ID.
 		bundleDef = &ViteBundleVarMeta{Id: bundleID}
 		bundles[bundleID] = bundleDef
 		return bundleDef

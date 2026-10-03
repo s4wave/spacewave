@@ -128,11 +128,13 @@ func BuildEsbuildBundleVarMeta(
 	// bundles is the map of bundle-id to bundle-def
 	bundles := make(map[string]*EsbuildBundleVarMeta)
 	getBundle := func(bundleID string) *EsbuildBundleVarMeta {
+		// Reuse the esbuild bundle metadata already collected for this ID.
 		bundleDef := bundles[bundleID]
 		if bundleDef != nil {
 			return bundleDef
 		}
 
+		// Create esbuild bundle metadata for the first entrypoint with this ID.
 		bundleDef = &EsbuildBundleVarMeta{Id: bundleID}
 		bundles[bundleID] = bundleDef
 		return bundleDef

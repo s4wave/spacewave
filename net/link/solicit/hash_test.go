@@ -9,6 +9,7 @@ import (
 )
 
 func TestComputeSessionID(t *testing.T) {
+	// Choose distinct peers for the canonical session comparison.
 	peerA := peer.ID("peer-aaa")
 	peerB := peer.ID("peer-bbb")
 
@@ -33,8 +34,10 @@ func TestComputeSessionID(t *testing.T) {
 }
 
 func TestComputeProtocolHash(t *testing.T) {
+	// Create a session shared by the protocol hash cases.
 	sid := ComputeSessionID(peer.ID("a"), peer.ID("b"))
 
+	// Check that identical solicitation inputs produce identical hashes.
 	h1 := ComputeProtocolHash(sid, protocol.ID("test/echo"), nil)
 	h2 := ComputeProtocolHash(sid, protocol.ID("test/echo"), nil)
 	if !bytes.Equal(h1, h2) {
@@ -53,19 +56,23 @@ func TestComputeProtocolHash(t *testing.T) {
 		t.Fatal("different contexts should produce different hashes")
 	}
 
+	// Check that two nonempty contexts produce different solicitation hashes.
 	h5 := ComputeProtocolHash(sid, protocol.ID("test/echo"), []byte("bucket-b"))
 	if bytes.Equal(h4, h5) {
 		t.Fatal("different contexts should produce different hashes")
 	}
 
+	// Require the solicitation digest to have the protocol hash size.
 	if len(h1) != HashSize {
 		t.Fatalf("expected %d bytes, got %d", HashSize, len(h1))
 	}
 }
 
 func TestComputeProtocolHashes(t *testing.T) {
+	// Create a session for the protocol hash collection.
 	sid := ComputeSessionID(peer.ID("a"), peer.ID("b"))
 
+	// Hash three protocol and context entries for the session.
 	entries := []SolicitEntry{
 		{ProtocolID: protocol.ID("z-proto"), Context: nil},
 		{ProtocolID: protocol.ID("a-proto"), Context: nil},
@@ -85,18 +92,22 @@ func TestComputeProtocolHashes(t *testing.T) {
 }
 
 func TestFindMatchingHashes(t *testing.T) {
+	// Create a session for overlapping solicitation sets.
 	sid := ComputeSessionID(peer.ID("a"), peer.ID("b"))
 
+	// Hash shared and endpoint-specific protocols for the matching cases.
 	h1 := ComputeProtocolHash(sid, protocol.ID("shared"), nil)
 	h2 := ComputeProtocolHash(sid, protocol.ID("only-local"), nil)
 	h3 := ComputeProtocolHash(sid, protocol.ID("only-remote"), nil)
 	h4 := ComputeProtocolHash(sid, protocol.ID("shared2"), nil)
 
+	// Sort both endpoint hash sets for the intersection scan.
 	local := [][]byte{h1, h2, h4}
 	remote := [][]byte{h1, h3, h4}
 	SortHashes(local)
 	SortHashes(remote)
 
+	// Require both shared solicitation hashes in the intersection.
 	matches := FindMatchingHashes(local, remote)
 	if len(matches) != 2 {
 		t.Fatalf("expected 2 matches, got %d", len(matches))
@@ -113,16 +124,20 @@ func TestFindMatchingHashes(t *testing.T) {
 }
 
 func TestFindMatchingHashesDisjoint(t *testing.T) {
+	// Create a session for disjoint solicitation sets.
 	sid := ComputeSessionID(peer.ID("a"), peer.ID("b"))
 
+	// Hash a different protocol for each endpoint.
 	h1 := ComputeProtocolHash(sid, protocol.ID("local-only"), nil)
 	h2 := ComputeProtocolHash(sid, protocol.ID("remote-only"), nil)
 
+	// Sort the disjoint endpoint hash sets for the intersection scan.
 	local := [][]byte{h1}
 	remote := [][]byte{h2}
 	SortHashes(local)
 	SortHashes(remote)
 
+	// Require no matches between the disjoint solicitation sets.
 	matches := FindMatchingHashes(local, remote)
 	if len(matches) != 0 {
 		t.Fatalf("expected 0 matches, got %d", len(matches))
@@ -130,17 +145,20 @@ func TestFindMatchingHashesDisjoint(t *testing.T) {
 }
 
 func TestFindMatchingHashesEmpty(t *testing.T) {
+	// Require no matches when both solicitation sets are empty.
 	matches := FindMatchingHashes(nil, nil)
 	if len(matches) != 0 {
 		t.Fatalf("expected 0 matches, got %d", len(matches))
 	}
 
+	// Require no matches when only the remote solicitation set is empty.
 	h := [][]byte{{1, 2, 3}}
 	matches = FindMatchingHashes(h, nil)
 	if len(matches) != 0 {
 		t.Fatalf("expected 0 matches, got %d", len(matches))
 	}
 
+	// Require no matches when only the local solicitation set is empty.
 	matches = FindMatchingHashes(nil, h)
 	if len(matches) != 0 {
 		t.Fatalf("expected 0 matches, got %d", len(matches))

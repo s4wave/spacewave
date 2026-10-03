@@ -23,26 +23,31 @@ type SolicitEntry struct {
 // Both sides of a link compute the same session ID since the peer IDs
 // are the same regardless of which side you're on.
 func ComputeSessionID(peerA, peerB peer.ID) []byte {
+	// Order the peer IDs so both link endpoints hash the same session.
 	lower, higher := peerA, peerB
 	if lower > higher {
 		lower, higher = higher, lower
 	}
 
+	// Hash the canonical peer pair into the session digest.
 	h := blake3.New()
 	h.Write([]byte(lower))
 	h.Write([]byte(higher))
 
+	// Return the session digest at the protocol hash size.
 	sum := h.Sum(nil)
 	return sum[:HashSize]
 }
 
 // ComputeProtocolHash returns BLAKE3(session_id || protocol_id || context).
 func ComputeProtocolHash(sessionID []byte, protocolID protocol.ID, context []byte) []byte {
+	// Hash the session, protocol and context into the solicitation digest.
 	h := blake3.New()
 	h.Write(sessionID)
 	h.Write([]byte(protocolID))
 	h.Write(context)
 
+	// Return the solicitation digest at the protocol hash size.
 	sum := h.Sum(nil)
 	return sum[:HashSize]
 }

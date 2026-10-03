@@ -42,16 +42,19 @@ func TrimAssetHrefArgs(value string) (string, bool) {
 //
 // If no bldr:asset:href prefix is found, returns nil, false, nil
 func ParseAssetHrefComments(values []string, spec *ast.ValueSpec) (*AssetHrefArgs, bool, error) {
+	// Parse the asset URL directive arguments from the variable comments.
 	args, found, err := CombineShellComments(AssetHrefTag, values)
 	if err != nil || !found {
 		return nil, found, err
 	}
 
+	// Require a string variable to hold the asset URL.
 	typeStr := types.ExprString(spec.Type)
 	if typeStr != "string" {
 		return nil, true, errors.Errorf("bldr:asset: expected string variable type but got %s", typeStr)
 	}
 
+	// Require one asset path argument for the URL.
 	outArgs := &AssetHrefArgs{}
 	fs := outArgs.BuildFlagSet()
 	if err := fs.Parse(args); err != nil {
@@ -62,6 +65,7 @@ func ParseAssetHrefComments(values []string, spec *ast.ValueSpec) (*AssetHrefArg
 		return nil, true, errors.Errorf("expected 1 args but got %d: expected %s asset-path", narg, AssetHrefTag)
 	}
 
+	// Require an asset path relative to the asset root.
 	assetPath := fs.Arg(narg - 1)
 	if filepath.IsAbs(assetPath) {
 		return nil, true, errors.Errorf("to path must be relative: %s", assetPath)

@@ -19,6 +19,7 @@ import (
 )
 
 func TestAddTinyGoStartupCacheInputsIncludesProfileIdentity(t *testing.T) {
+	// Configure the TinyGo profile environment used to identify cached startup inputs.
 	values := map[string]string{
 		gocompiler.TinyGoProfileEnv:       gocompiler.TinyGoProfileFast,
 		gocompiler.TinyGoOptEnv:           "0",
@@ -33,9 +34,11 @@ func TestAddTinyGoStartupCacheInputsIncludesProfileIdentity(t *testing.T) {
 		t.Setenv(key, values[key])
 	}
 
+	// Record the TinyGo profile in the input manifest.
 	inputManifest := bldr_manifest_builder.NewInputManifest(nil, nil)
 	addTinyGoStartupCacheInputs(inputManifest)
 
+	// Require every TinyGo profile setting in the manifest environment inputs.
 	got := make(map[string]string, len(inputManifest.GetStartupInputs()))
 	for _, input := range inputManifest.GetStartupInputs() {
 		if input.GetKind() != bldr_manifest_builder.InputManifest_StartupInputKind_ENV_VAR {
@@ -62,11 +65,14 @@ func TestAddGoScriptStartupCacheInputsIgnoresCommandIdentity(t *testing.T) {
 }
 
 func TestAddGoCompilerStartupCacheInputsIncludesModeIdentity(t *testing.T) {
+	// Select GoScript as the default compiler mode.
 	t.Setenv(gocompiler.GoCompilerEnv, string(gocompiler.GoCompilerGoScript))
 
+	// Record the default compiler mode in the input manifest.
 	inputManifest := bldr_manifest_builder.NewInputManifest(nil, nil)
 	addGoCompilerStartupCacheInputs(inputManifest)
 
+	// Require the GoScript mode in the manifest environment inputs.
 	got := make(map[string]string, len(inputManifest.GetStartupInputs()))
 	for _, input := range inputManifest.GetStartupInputs() {
 		if input.GetKind() != bldr_manifest_builder.InputManifest_StartupInputKind_ENV_VAR {
@@ -80,11 +86,14 @@ func TestAddGoCompilerStartupCacheInputsIncludesModeIdentity(t *testing.T) {
 }
 
 func TestAddGoWasmOptimizeStartupCacheInputsIncludesOptimizerIdentity(t *testing.T) {
+	// Disable Go wasm optimization for the startup input comparison.
 	t.Setenv(gocompiler.GoWasmOptimizeEnv, "false")
 
+	// Record the Go wasm optimizer setting in the input manifest.
 	inputManifest := bldr_manifest_builder.NewInputManifest(nil, nil)
 	addGoWasmOptimizeStartupCacheInputs(inputManifest)
 
+	// Require the disabled optimizer setting in the manifest environment inputs.
 	got := make(map[string]string, len(inputManifest.GetStartupInputs()))
 	for _, input := range inputManifest.GetStartupInputs() {
 		if input.GetKind() != bldr_manifest_builder.InputManifest_StartupInputKind_ENV_VAR {
@@ -98,9 +107,11 @@ func TestAddGoWasmOptimizeStartupCacheInputsIncludesOptimizerIdentity(t *testing
 }
 
 func TestAddCompilerStartupCacheInputsIncludesOptimizerIdentityForExplicitGo(t *testing.T) {
+	// Configure a TinyGo default and disabled wasm optimization for an explicit Go build.
 	t.Setenv(gocompiler.GoCompilerEnv, string(gocompiler.GoCompilerTinyGo))
 	t.Setenv(gocompiler.GoWasmOptimizeEnv, "false")
 
+	// Record startup inputs for the explicitly selected Go compiler.
 	inputManifest := bldr_manifest_builder.NewInputManifest(nil, nil)
 	addCompilerStartupCacheInputs(
 		inputManifest,
@@ -108,6 +119,7 @@ func TestAddCompilerStartupCacheInputsIncludesOptimizerIdentityForExplicitGo(t *
 		gocompiler.GoCompilerGo,
 	)
 
+	// Require optimizer identity without the overridden default compiler setting.
 	got := make(map[string]string, len(inputManifest.GetStartupInputs()))
 	for _, input := range inputManifest.GetStartupInputs() {
 		got[input.GetKey()] = input.GetStringValue()
@@ -168,9 +180,11 @@ func TestControllerSupportedPlatformsIncludesJS(t *testing.T) {
 }
 
 func TestBuildManifestAllowsExplicitGoScriptJSPlatform(t *testing.T) {
+	// Clear the default compiler mode and identify the explicit GoScript pre-build stop.
 	t.Setenv(gocompiler.GoCompilerEnv, "")
 	sentinelErr := errors.New("goscript js build reached pre-build hook")
 
+	// Create a compiler controller with explicit GoScript support for JavaScript.
 	ctrl, err := NewController(logrus.NewEntry(logrus.New()), nil, &Config{
 		PlatformTypes: map[string]*Config{
 			"js": {
@@ -182,6 +196,7 @@ func TestBuildManifestAllowsExplicitGoScriptJSPlatform(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Stop the explicit GoScript build after verifying the JavaScript platform in its hook.
 	hookCalled := false
 	ctrl.AddPreBuildHook(func(_ context.Context, builderConf *bldr_manifest_builder.BuilderConfig, _ world.Engine) (*PreBuildHookResult, error) {
 		hookCalled = true
@@ -191,6 +206,7 @@ func TestBuildManifestAllowsExplicitGoScriptJSPlatform(t *testing.T) {
 		return nil, sentinelErr
 	})
 
+	// Require the explicit GoScript build to reach its pre-build hook.
 	result, err := ctrl.BuildManifest(context.Background(), newTestJSBuildManifestArgs(t), nil)
 	if !errors.Is(err, sentinelErr) {
 		t.Fatalf("BuildManifest error = %v, want pre-build hook sentinel for explicit GoScript js platform", err)
@@ -204,14 +220,17 @@ func TestBuildManifestAllowsExplicitGoScriptJSPlatform(t *testing.T) {
 }
 
 func TestBuildManifestDefaultsJSPlatformToGoScript(t *testing.T) {
+	// Clear the default compiler mode and identify the default JavaScript pre-build stop.
 	t.Setenv(gocompiler.GoCompilerEnv, "")
 	sentinelErr := errors.New("default goscript js build reached pre-build hook")
 
+	// Create a compiler controller with default platform settings.
 	ctrl, err := NewController(logrus.NewEntry(logrus.New()), nil, NewConfig())
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	// Stop the default JavaScript build after verifying its platform in the hook.
 	hookCalled := false
 	ctrl.AddPreBuildHook(func(_ context.Context, builderConf *bldr_manifest_builder.BuilderConfig, _ world.Engine) (*PreBuildHookResult, error) {
 		hookCalled = true
@@ -221,6 +240,7 @@ func TestBuildManifestDefaultsJSPlatformToGoScript(t *testing.T) {
 		return nil, sentinelErr
 	})
 
+	// Require the default JavaScript build to reach its pre-build hook.
 	result, err := ctrl.BuildManifest(context.Background(), newTestJSBuildManifestArgs(t), nil)
 	if !errors.Is(err, sentinelErr) {
 		t.Fatalf("BuildManifest error = %v, want pre-build hook sentinel for default GoScript js platform", err)
@@ -247,6 +267,7 @@ func newTestJSBuildManifestArgs(t *testing.T) *bldr_manifest_builder.BuildManife
 }
 
 func TestAppendInputManifestFilesKeepsGoInputsAppRootRelative(t *testing.T) {
+	// Choose app-local and external module-cache paths for the Go input manifest.
 	sourcePath := filepath.Join(t.TempDir(), "app")
 	moduleCachePath := filepath.Join(t.TempDir(), "pkg", "mod", "github.com", "s4wave", "spacewave@v0.0.0")
 	paths := []string{
@@ -256,11 +277,13 @@ func TestAppendInputManifestFilesKeepsGoInputsAppRootRelative(t *testing.T) {
 		filepath.Join(sourcePath, "go.sum"),
 	}
 
+	// Append the candidate Go files to the input manifest.
 	inputManifest := &bldr_manifest_builder.InputManifest{}
 	if err := appendInputManifestFiles(inputManifest, sourcePath, InputFileKind_InputFileKind_GO, paths); err != nil {
 		t.Fatal(err)
 	}
 
+	// Require Go input metadata while collecting the recorded file paths.
 	var gotPaths []string
 	for _, file := range inputManifest.GetFiles() {
 		gotPaths = append(gotPaths, filepath.ToSlash(file.GetPath()))
@@ -273,6 +296,7 @@ func TestAppendInputManifestFilesKeepsGoInputsAppRootRelative(t *testing.T) {
 		}
 	}
 
+	// Require app-relative Go inputs and exclude external module-cache paths.
 	for _, want := range []string{"core/doc.go", "go.mod", "go.sum"} {
 		if !slices.Contains(gotPaths, want) {
 			t.Fatalf("input manifest paths missing %q: %v", want, gotPaths)
@@ -286,10 +310,12 @@ func TestAppendInputManifestFilesKeepsGoInputsAppRootRelative(t *testing.T) {
 }
 
 func TestAppendInputManifestFilesRejectsExternalAssetInputs(t *testing.T) {
+	// Choose an external asset path for an empty input manifest.
 	sourcePath := filepath.Join(t.TempDir(), "app")
 	externalAssetPath := filepath.Join(t.TempDir(), "assets", "icon.png")
 	inputManifest := &bldr_manifest_builder.InputManifest{}
 
+	// Require the external asset to fail without changing the input manifest.
 	err := appendInputManifestFiles(
 		inputManifest,
 		sourcePath,
@@ -308,6 +334,7 @@ func TestAppendInputManifestFilesRejectsExternalAssetInputs(t *testing.T) {
 }
 
 func TestCloudflareAnalysisMatchesCompiledTarget(t *testing.T) {
+	// Require the default Workers compiler and analysis tags to select the same target.
 	t.Setenv(gocompiler.GoCompilerEnv, "")
 	platform := bldr_platform.NewCloudflarePlatform()
 	compiler, err := resolveBuildGoCompiler(platform, bldr_manifest.BuildType_RELEASE, GoCompiler_GO_COMPILER_DEFAULT)

@@ -89,11 +89,13 @@ func (d *BlockRefSlice) Less(i, j int) bool {
 // Swap swaps the elements with indexes i and j.
 // If bcs is set on ref slice, also swaps reference ids.
 func (d *BlockRefSlice) Swap(i, j int) {
+	// Require a reference slice before swapping its entries.
 	if d.refs == nil {
 		return
 	}
 	refs := *d.refs
 
+	// Keep the block cursor references aligned with the swapped entries.
 	if d.bcs != nil {
 		iref := d.bcs.FollowRef(uint32(i), refs[i]) //nolint:gosec
 		jref := d.bcs.FollowRef(uint32(j), refs[j]) //nolint:gosec
@@ -117,6 +119,7 @@ func (d *BlockRefSlice) BlockPreWriteHook() error {
 // SearchBlockRefs searches a ref slice for a ref.
 // If not found returns the index it should be inserted.
 func (d *BlockRefSlice) SearchBlockRefs(ref *block.BlockRef) (idx int, match bool) {
+	// Find the first sorted reference equal to or greater than the requested reference.
 	if d.refs == nil {
 		return -1, false
 	}
@@ -151,6 +154,7 @@ func (d *BlockRefSlice) GetBlockRefAtIndex(i int) *block.BlockRef {
 // SetBlockCursorAtIndex sets the reference to a cursor at the index.
 // The index must already exist, and bcs be set, or returns ErrOutOfBounds
 func (d *BlockRefSlice) SetBlockCursorAtIndex(idx int, bcs *block.Cursor) error {
+	// Require an existing slice entry and block cursor before replacing its reference.
 	if d.refs == nil || d.bcs == nil {
 		return ErrOutOfBounds
 	}
@@ -159,6 +163,7 @@ func (d *BlockRefSlice) SetBlockCursorAtIndex(idx int, bcs *block.Cursor) error 
 		return ErrOutOfBounds
 	}
 
+	// Update the slice entry and block graph with the supplied cursor.
 	if bcs == nil {
 		refs[idx] = nil
 		d.bcs.ClearRef(uint32(idx)) //nolint:gosec
@@ -173,6 +178,7 @@ func (d *BlockRefSlice) SetBlockCursorAtIndex(idx int, bcs *block.Cursor) error 
 // bcs must be set on the ref slice
 // may return ErrOutOfBounds
 func (d *BlockRefSlice) FollowBlockRefAsCursor(idx int) (*block.Cursor, *block.BlockRef, error) {
+	// Require an existing slice entry and block cursor before following its reference.
 	if d.refs == nil || d.bcs == nil {
 		return nil, nil, ErrOutOfBounds
 	}
@@ -181,6 +187,7 @@ func (d *BlockRefSlice) FollowBlockRefAsCursor(idx int) (*block.Cursor, *block.B
 		return nil, nil, ErrOutOfBounds
 	}
 
+	// Follow the selected reference through the slice block cursor.
 	ref := refs[idx]
 	subRef := d.bcs.FollowRef(uint32(idx), ref) //nolint:gosec
 	return subRef, ref, nil
@@ -191,10 +198,12 @@ func (d *BlockRefSlice) FollowBlockRefAsCursor(idx int) (*block.Cursor, *block.B
 // returns if any were removed.
 // after removing all entries be sure to call SortBlockRefs.
 func (d *BlockRefSlice) RemoveBlockRefs(rmRefs []*block.BlockRef) (bool, error) {
+	// Leave the reference slice unchanged when no removal can be requested.
 	if d.refs == nil || len(rmRefs) == 0 {
 		return false, nil
 	}
 
+	// Remove matching references and update their positions in the block graph.
 	refs := *d.refs
 	nextRef := refs[0]
 	var any bool
@@ -247,6 +256,7 @@ BlockRefLoop:
 
 // AppendBlockRef appends a entry to the ref slice.
 func (d *BlockRefSlice) AppendBlockRef(nent *block.BlockRef) *block.Cursor {
+	// Append the reference to the slice and require a cursor to update its block graph.
 	if d.refs == nil {
 		return nil
 	}
@@ -256,6 +266,7 @@ func (d *BlockRefSlice) AppendBlockRef(nent *block.BlockRef) *block.Cursor {
 		return nil
 	}
 
+	// Attach the appended reference at its new block cursor position.
 	subBlk := d.bcs.FollowRef(uint32(nextIdx), nent) //nolint:gosec
 	subBlk.SetRefAtCursor(nent, true)
 	return subBlk
@@ -264,6 +275,7 @@ func (d *BlockRefSlice) AppendBlockRef(nent *block.BlockRef) *block.Cursor {
 // ApplyBlockRef applies a ref change with a field id.
 // The reference may be nil if the child block is nil.
 func (d *BlockRefSlice) ApplyBlockRef(id uint32, ptr *block.BlockRef) error {
+	// Extend the reference slice as needed and apply the reference at its field ID.
 	if d.refs == nil {
 		return errors.New("nil refs slice reference")
 	}
@@ -291,11 +303,13 @@ func (d *BlockRefSlice) ApplyBlockRef(id uint32, ptr *block.BlockRef) error {
 // May return nil, and values may also be nil.
 // Note: this does not include pending references (in a cursor)
 func (d *BlockRefSlice) GetBlockRefs() (map[uint32]*block.BlockRef, error) {
+	// Return no block references for an empty slice.
 	refSlice := *d.refs
 	if len(refSlice) == 0 {
 		return nil, nil
 	}
 
+	// Collect the nonnil slice references by their block field IDs.
 	m := make(map[uint32]*block.BlockRef)
 	for i, r := range refSlice {
 		if r != nil {

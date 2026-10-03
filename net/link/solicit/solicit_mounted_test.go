@@ -5,7 +5,9 @@ import (
 )
 
 func TestSolicitMountedStreamAccept(t *testing.T) {
+	// Create an unclaimed solicitation to exercise exclusive stream acceptance.
 	sms := NewSolicitMountedStream(nil).(*solicitMountedStream)
+
 	// Accept the first time should succeed.
 	ms, already, err := sms.AcceptMountedStream()
 	if err != nil {

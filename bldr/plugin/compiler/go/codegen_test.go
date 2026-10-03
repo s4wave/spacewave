@@ -128,17 +128,20 @@ var _ bldr_values.VoidOutput
 `
 
 func TestCodegen(t *testing.T) {
+	// Create the context and logger for plugin wrapper analysis.
 	ctx := context.Background()
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
 
+	// Choose controller packages for the generated plugin wrapper.
 	packagePaths := []string{
 		"github.com/aperturerobotics/controllerbus/example/boilerplate/controller",
 		"github.com/s4wave/spacewave/bldr/example",
 		"github.com/s4wave/spacewave/net/link/solicit/controller",
 	}
 
+	// Analyze the controller packages and configure their plugin asset variable.
 	workDir, _ := os.Getwd()
 	workDir = filepath.Join(workDir, "../../../..")
 	an, err := AnalyzePackages(ctx, le, workDir, packagePaths, []string{"build_type_dev"}, "", "", false)
@@ -152,6 +155,7 @@ func TestCodegen(t *testing.T) {
 		&vardef.PluginVar_StringValue{StringValue: "/path/to/asset.png"},
 	)}
 
+	// Define expected wrappers with embedded and external development variables.
 	type testcase struct {
 		fn     func() (*ast.File, error)
 		result string
@@ -184,19 +188,28 @@ func TestCodegen(t *testing.T) {
 			result: expectedCodegenDevInfo,
 		},
 	}
+
+	// Generate and compare each development wrapper with its expected source.
 	for _, tcase := range testcases {
+		// Generate the development wrapper for this variable configuration.
 		genFile, err := tcase.fn()
 		if err != nil {
 			t.Fatal(err.Error())
 		}
+
+		// Format the generated wrapper as Go source.
 		formatDat, err := FormatFile(genFile)
 		if err != nil {
 			t.Fatal(err.Error())
 		}
+
+		// Resolve imports in the generated wrapper source.
 		dat, err := imports.Process(workDir, formatDat, nil)
 		if err != nil {
 			t.Fatal(err.Error())
 		}
+
+		// Require the generated development wrapper to match its expected source.
 		output := strings.TrimSpace(string(dat))
 		expected := strings.TrimSpace(tcase.result)
 		t.Log("expected:")
@@ -210,6 +223,7 @@ func TestCodegen(t *testing.T) {
 		}
 	}
 
+	// Generate the release wrapper for the JavaScript platform.
 	releaseMeta := bldr_plugin.NewPluginMeta("test-project", "test-plugin", "js", "release")
 	genFile, err := CodegenPluginWrapperFromAnalysis(
 		le,
@@ -222,10 +236,14 @@ func TestCodegen(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Format the generated release wrapper as Go source.
 	formatDat, err := FormatFile(genFile)
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Require the release wrapper to retain progress logging.
 	if output := string(formatDat); !strings.Contains(output, "var LogLevel = logrus.InfoLevel") {
 		t.Fatalf("expected release plugin to keep progress logs and drop debug, got:\n%s", output)
 	}

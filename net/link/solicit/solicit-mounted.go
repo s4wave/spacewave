@@ -38,13 +38,16 @@ func NewSolicitMountedStreamWithErr(err error) SolicitMountedStream {
 
 // AcceptMountedStream claims ownership of the stream.
 func (s *solicitMountedStream) AcceptMountedStream() (link.MountedStream, bool, error) {
+	// Return the solicitation failure before claiming its stream.
 	if s.err != nil {
 		return nil, false, s.err
 	}
 
+	// Serialize callers claiming the solicited stream.
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
+	// Claim the stream only for the first accepting caller.
 	if s.accepted {
 		return nil, true, nil
 	}
@@ -62,13 +65,16 @@ func (s *solicitMountedStream) IsAccepted() bool {
 // Close closes the stream if it has not been accepted.
 // Returns true if the stream was closed (not accepted).
 func (s *solicitMountedStream) Close() bool {
+	// Serialize stream closure with callers claiming the stream.
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
+	// Preserve streams already claimed or absent from the solicitation.
 	if s.accepted || s.ms == nil {
 		return false
 	}
 
+	// Close the unclaimed stream and retain the solicitation failure.
 	s.ms.GetStream().Close()
 	s.err = errSolicitationClosed
 	return true
