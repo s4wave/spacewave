@@ -53,22 +53,28 @@ func TestOpenV86RootModes(t *testing.T) {
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
+			// Parse the filesystem root mode for this case.
 			mode, err := ParseRootMode(c.value)
 			if err != nil {
 				t.Fatal(err)
 			}
+
+			// Open the V86 filesystem root and retain its release handle.
 			server, release, err := OpenV86Root(mode, rootfsTar)
 			if err != nil {
 				t.Fatalf("open root: %v", err)
 			}
 			defer release()
 
+			// Verify the filesystem root serves the image and accepts permitted writes.
 			session := unixfs_v86fs.NewLocalSession(context.Background(), server)
 			defer session.Close()
 			rootID := assertV86RootServesIssue(t, session)
 			if c.writable {
 				assertV86RootWritable(t, session, rootID, c.name+".txt")
 			}
+
+			// Verify the disk root persists the guest write in its upper directory.
 			if mode.Mode == rootModeDisk {
 				got, err := os.ReadFile(filepath.Join(mode.Arg, c.name+".txt"))
 				if err != nil {
@@ -188,28 +194,37 @@ func assertV86RootWritable(t *testing.T, session *unixfs_v86fs.LocalSession, roo
 }
 
 func callV86Root(t *testing.T, session *unixfs_v86fs.LocalSession, msg *unixfs_v86fs.V86FsMessage) *unixfs_v86fs.V86FsMessage {
+	// Handle the V86 filesystem request and reject transport failures.
 	t.Helper()
 	reply, err := session.HandleMessage(context.Background(), msg)
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Require a typed filesystem reply from the local session.
 	if er := reply.GetErrorReply(); er != nil {
 		t.Fatalf("v86fs returned error status=%d for %T", er.GetStatus(), msg.GetBody())
 	}
+
 	return reply
 }
 
 func writeV86RootTestTar(t *testing.T) string {
+	// Create a temporary rootfs tar for the V86 filesystem tests.
 	t.Helper()
 	path := filepath.Join(t.TempDir(), "rootfs.tar")
 	f, err := os.Create(path)
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Write the rootfs etc directory entry.
 	tw := tar.NewWriter(f)
 	if err := tw.WriteHeader(&tar.Header{Name: "etc/", Typeflag: tar.TypeDir, Mode: 0o755}); err != nil {
 		t.Fatal(err)
 	}
+
+	// Write the rootfs issue file and its contents.
 	body := []byte("spacewave\n")
 	if err := tw.WriteHeader(&tar.Header{Name: "etc/issue", Mode: 0o644, Size: int64(len(body))}); err != nil {
 		t.Fatal(err)
@@ -217,11 +232,14 @@ func writeV86RootTestTar(t *testing.T) string {
 	if _, err := tw.Write(body); err != nil {
 		t.Fatal(err)
 	}
+
+	// Close the rootfs tar writer and its backing file.
 	if err := tw.Close(); err != nil {
 		t.Fatal(err)
 	}
 	if err := f.Close(); err != nil {
 		t.Fatal(err)
 	}
+
 	return path
 }

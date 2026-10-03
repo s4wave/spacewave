@@ -7,11 +7,14 @@ import (
 )
 
 func TestNE2KResetAndInitialRegisters(t *testing.T) {
+	// Create an NE2K device with its initial register state.
 	ctx := context.Background()
 	host, dev := newNE2KTestDevice(t)
 
+	// Reset the NE2K device through its reset port.
 	_ = host.readIO(ctx, uint32(dev.port+ne2kReset), 8)
 
+	// Verify the NE2K ring bounds and reset registers.
 	if dev.pstart != ne2kStartPage {
 		t.Fatalf("pstart = %#x, want %#x", dev.pstart, ne2kStartPage)
 	}
@@ -36,14 +39,18 @@ func TestNE2KResetAndInitialRegisters(t *testing.T) {
 }
 
 func TestNE2KPage1MACProgramReadback(t *testing.T) {
+	// Create an NE2K device and the station address to program.
 	ctx := context.Background()
 	host, dev := newNE2KTestDevice(t)
 	want := []byte{0x02, 0xaa, 0xbb, 0xcc, 0xdd, 0xee}
 
+	// Program the NE2K station address through page-one registers.
 	host.writeIO(ctx, uint32(dev.port+e8390Cmd), 0x41, 8)
 	for i, value := range want {
 		host.writeIO(ctx, uint32(dev.port+en0Startpg+uint16(i)), uint32(value), 8)
 	}
+
+	// Verify the page-one station address readback.
 	for i, wantValue := range want {
 		got := host.readIO(ctx, uint32(dev.port+en0Startpg+uint16(i)), 8)
 		if got != uint32(wantValue) {
@@ -53,42 +60,54 @@ func TestNE2KPage1MACProgramReadback(t *testing.T) {
 }
 
 func TestNE2KRemoteDMARoundTrip(t *testing.T) {
+	// Create an NE2K device and a byte DMA payload.
 	ctx := context.Background()
 	host, dev := newNE2KTestDevice(t)
 	want := []byte{0xde, 0xad, 0xbe, 0xef, 0x42}
 	addr := uint16(ne2kStartPage) << 8
 
+	// Write the payload into the NE2K ring through byte DMA.
 	programNE2KDMA(ctx, host, dev, addr, len(want))
 	for _, value := range want {
 		host.writeIO(ctx, uint32(dev.port+ne2kDataPort), uint32(value), 8)
 	}
+
+	// Read the payload back through byte DMA.
 	programNE2KDMA(ctx, host, dev, addr, len(want))
 	got := make([]byte, len(want))
 	for i := range got {
 		got[i] = byte(host.readIO(ctx, uint32(dev.port+ne2kDataPort), 8))
 	}
+
+	// Verify the byte DMA payload survives the round trip.
 	if !bytes.Equal(got, want) {
 		t.Fatalf("remote DMA round trip = %x, want %x", got, want)
 	}
 }
 
 func TestNE2KRemoteDMAWordRoundTrip(t *testing.T) {
+	// Create an NE2K device for word DMA transfers.
 	ctx := context.Background()
 	host, dev := newNE2KTestDevice(t)
+
 	// Two 16-bit words; each data-port access must move two ring bytes through the
 	// DMA engine, the word transfer mode the Linux NE2000-PCI driver uses.
 	words := []uint16{0xbeef, 0x4221}
 	want := []byte{0xef, 0xbe, 0x21, 0x42}
 	addr := uint16(ne2kStartPage) << 8
 
+	// Write the words into the NE2K ring through word DMA.
 	programNE2KDMA(ctx, host, dev, addr, len(want))
 	for _, word := range words {
 		host.writeIO(ctx, uint32(dev.port+ne2kDataPort), uint32(word), 16)
 	}
+
+	// Verify word DMA stores little-endian bytes in the ring.
 	if got := dev.memory[addr : addr+uint16(len(want))]; !bytes.Equal(got, want) {
 		t.Fatalf("ring after word DMA write = %x, want %x", got, want)
 	}
 
+	// Verify word DMA reads the original words from the ring.
 	programNE2KDMA(ctx, host, dev, addr, len(want))
 	for i, word := range words {
 		got := uint16(host.readIO(ctx, uint32(dev.port+ne2kDataPort), 16))
@@ -99,6 +118,7 @@ func TestNE2KRemoteDMAWordRoundTrip(t *testing.T) {
 }
 
 func TestNE2KTransmitOutboundAndIRQGating(t *testing.T) {
+	// Create an NE2K device and an outbound Ethernet frame.
 	ctx := context.Background()
 	host, dev := newNE2KTestDevice(t)
 	frame := []byte{
@@ -106,18 +126,22 @@ func TestNE2KTransmitOutboundAndIRQGating(t *testing.T) {
 		0x02, 0x22, 0x15, 0x00, 0x00, 0x01,
 		0x08, 0x00, 0x45, 0x00,
 	}
+
+	// Capture the NE2K outbound callback for the prepared ring frame.
 	copy(dev.memory[ne2kStartPage<<8:], frame)
 	var sent []byte
 	dev.SetOutbound(func(frame []byte) {
 		sent = append([]byte(nil), frame...)
 	})
 
+	// Transmit the ring frame with NE2K transmit interrupts enabled.
 	host.writeIO(ctx, uint32(dev.port+en0TPSR), ne2kStartPage, 8)
 	host.writeIO(ctx, uint32(dev.port+en0TCNTLO), uint32(len(frame)), 8)
 	host.writeIO(ctx, uint32(dev.port+en0TCNTHI), uint32(len(frame)>>8), 8)
 	host.writeIO(ctx, uint32(dev.port+en0IMR), enisrTX, 8)
 	host.writeIO(ctx, uint32(dev.port+e8390Cmd), ne2kCRTXP, 8)
 
+	// Verify the outbound frame and transmit interrupt state.
 	if !bytes.Equal(sent, frame) {
 		t.Fatalf("outbound frame = %x, want %x", sent, frame)
 	}
@@ -127,6 +151,8 @@ func TestNE2KTransmitOutboundAndIRQGating(t *testing.T) {
 	if !dev.irqAsserted {
 		t.Fatal("irqAsserted false with TX interrupt enabled")
 	}
+
+	// Mask NE2K transmit interrupts and verify the IRQ clears.
 	host.writeIO(ctx, uint32(dev.port+en0IMR), 0, 8)
 	if dev.irqAsserted {
 		t.Fatal("irqAsserted true with TX interrupt masked")
@@ -134,6 +160,7 @@ func TestNE2KTransmitOutboundAndIRQGating(t *testing.T) {
 }
 
 func TestNE2KReceiveFrameRingAndIRQGating(t *testing.T) {
+	// Create an NE2K device and an inbound Ethernet frame.
 	ctx := context.Background()
 	host, dev := newNE2KTestDevice(t)
 	frame := append([]byte{
@@ -143,10 +170,12 @@ func TestNE2KReceiveFrameRingAndIRQGating(t *testing.T) {
 	}, bytes.Repeat([]byte{0xab}, 18)...)
 	offset := uint16(ne2kStartRXPage) << 8
 
+	// Receive the Ethernet frame with NE2K receive interrupts enabled.
 	host.writeIO(ctx, uint32(dev.port+en0IMR), enisrRX, 8)
 	host.writeIO(ctx, uint32(dev.port+e8390Cmd), 0, 8)
 	dev.ReceiveFrame(ctx, frame)
 
+	// Verify the NE2K receive header, frame bytes, and next ring page.
 	wantNext := byte(ne2kStartRXPage + 1)
 	if got := dev.memory[offset : offset+4]; !bytes.Equal(got, []byte{enrsrRXOK, wantNext, 64, 0}) {
 		t.Fatalf("RX header = %x, want %x", got, []byte{enrsrRXOK, wantNext, 64, 0})
@@ -157,17 +186,22 @@ func TestNE2KReceiveFrameRingAndIRQGating(t *testing.T) {
 	if dev.curpg != wantNext {
 		t.Fatalf("curpg = %#x, want %#x", dev.curpg, wantNext)
 	}
+
 	// BOUNDARY is the driver's read pointer; the device must not advance it on
 	// receive (lib8390 reads the next ring page as EN0_BOUNDARY+1).
 	if dev.boundary != ne2kStartRXPage {
 		t.Fatalf("boundary = %#x, want unchanged %#x", dev.boundary, ne2kStartRXPage)
 	}
+
+	// Verify the NE2K receive interrupt reaches the IRQ line.
 	if dev.isr&enisrRX == 0 {
 		t.Fatalf("ISR = %#x, missing RX bit", dev.isr)
 	}
 	if !dev.irqAsserted {
 		t.Fatal("irqAsserted false with RX interrupt enabled")
 	}
+
+	// Mask NE2K receive interrupts and verify the IRQ clears.
 	host.writeIO(ctx, uint32(dev.port+en0IMR), 0, 8)
 	if dev.irqAsserted {
 		t.Fatal("irqAsserted true with RX interrupt masked")
@@ -175,6 +209,7 @@ func TestNE2KReceiveFrameRingAndIRQGating(t *testing.T) {
 }
 
 func TestNE2KQueueInboundDefersDeliveryToDrain(t *testing.T) {
+	// Create an NE2K device and a frame to queue twice.
 	ctx := context.Background()
 	host, dev := newNE2KTestDevice(t)
 	frame := append([]byte{
@@ -183,11 +218,15 @@ func TestNE2KQueueInboundDefersDeliveryToDrain(t *testing.T) {
 		0x08, 0x00,
 	}, bytes.Repeat([]byte{0xcd}, 18)...)
 
+	// Enable NE2K reception and receive interrupts.
 	host.writeIO(ctx, uint32(dev.port+en0IMR), enisrRX, 8)
 	host.writeIO(ctx, uint32(dev.port+e8390Cmd), 0, 8)
 
+	// Queue two inbound frames for deferred NE2K delivery.
 	dev.QueueInbound(frame)
 	dev.QueueInbound(frame)
+
+	// Verify queued frames leave the NE2K ring and interrupt state unchanged.
 	if dev.curpg != ne2kStartRXPage {
 		t.Fatalf("curpg advanced before drain: %#x", dev.curpg)
 	}
@@ -195,7 +234,10 @@ func TestNE2KQueueInboundDefersDeliveryToDrain(t *testing.T) {
 		t.Fatalf("RX ISR set before drain: %#x", dev.isr)
 	}
 
+	// Drain both queued frames into the NE2K receive ring.
 	dev.DrainInbound(ctx)
+
+	// Verify both drained frames advance the ring and assert the receive IRQ.
 	if got, want := dev.curpg, byte(ne2kStartRXPage+2); got != want {
 		t.Fatalf("curpg after drain = %#x, want %#x (two frames delivered)", got, want)
 	}
@@ -208,6 +250,7 @@ func TestNE2KQueueInboundDefersDeliveryToDrain(t *testing.T) {
 }
 
 func TestNE2KReceiveFilterDropsOtherUnicast(t *testing.T) {
+	// Create an NE2K device and a frame addressed to another station.
 	ctx := context.Background()
 	host, dev := newNE2KTestDevice(t)
 	frame := []byte{
@@ -217,9 +260,11 @@ func TestNE2KReceiveFilterDropsOtherUnicast(t *testing.T) {
 	}
 	offset := uint16(ne2kStartRXPage) << 8
 
+	// Deliver the foreign unicast frame to the NE2K receive filter.
 	host.writeIO(ctx, uint32(dev.port+e8390Cmd), 0, 8)
 	dev.ReceiveFrame(ctx, frame)
 
+	// Verify the rejected frame leaves the NE2K ring and interrupts unchanged.
 	if dev.curpg != ne2kStartRXPage {
 		t.Fatalf("curpg = %#x, want unchanged %#x", dev.curpg, ne2kStartRXPage)
 	}
@@ -240,9 +285,11 @@ func TestNE2KReceiveFilterDropsOtherUnicast(t *testing.T) {
 // page, count) and the body match. This is the device-level proof that the live
 // guest's apt-over-net DNS/ARP round trip should not be rejected as rx_errors.
 func TestNE2KDriverInitReceiveReadback(t *testing.T) {
+	// Create an NE2K device for the Linux driver receive sequence.
 	ctx := context.Background()
 	host, dev := newNE2KTestDevice(t)
 
+	// Define the Linux driver ring layout and command values.
 	const (
 		txStartPage = 0x40
 		rxStartPage = 0x46
@@ -263,6 +310,7 @@ func TestNE2KDriverInitReceiveReadback(t *testing.T) {
 	}
 	host.writeIO(ctx, uint32(dev.port+en0ISR), rxStartPage, 8) // EN1_CURPAG
 
+	// Initialize the NE2K page-zero ring and enable reception.
 	host.writeIO(ctx, uint32(dev.port+e8390Cmd), 0x21, 8) // page0, stop
 	host.writeIO(ctx, uint32(dev.port+en0TPSR), txStartPage, 8)
 	host.writeIO(ctx, uint32(dev.port+en0Startpg), rxStartPage, 8)
@@ -272,6 +320,7 @@ func TestNE2KDriverInitReceiveReadback(t *testing.T) {
 	host.writeIO(ctx, uint32(dev.port+en0IMR), enisrRX, 8)
 	host.writeIO(ctx, uint32(dev.port+e8390Cmd), crStart, 8)
 
+	// Verify the driver initialization selects the first receive page.
 	if dev.curpg != rxStartPage {
 		t.Fatalf("after driver init curpg = %#x, want %#x", dev.curpg, rxStartPage)
 	}
@@ -284,6 +333,7 @@ func TestNE2KDriverInitReceiveReadback(t *testing.T) {
 	}, bytes.Repeat([]byte{0xa5}, 28)...)
 	dev.ReceiveFrame(ctx, frame)
 
+	// Verify the received ARP frame asserts the NE2K receive IRQ.
 	if !dev.irqAsserted {
 		t.Fatal("irqAsserted false after RX with RX interrupt enabled")
 	}
@@ -301,11 +351,14 @@ func TestNE2KDriverInitReceiveReadback(t *testing.T) {
 	for i := range hdr {
 		hdr[i] = byte(host.readIO(ctx, uint32(dev.port+ne2kDataPort), 8))
 	}
+
+	// Verify the driver reads a padded receive header through DMA.
 	wantHdr := []byte{enrsrRXOK, rxStartPage + 1, 64, 0}
 	if !bytes.Equal(hdr, wantHdr) {
 		t.Fatalf("driver-read RX header = %x, want %x", hdr, wantHdr)
 	}
 
+	// Verify the driver accepts the padded packet length.
 	pktLen := (int(hdr[2]) | int(hdr[3])<<8) - 4
 	if pktLen < ne2kMinFrameLen {
 		t.Fatalf("driver pkt_len = %d, would be rejected as rx_error (< %d)", pktLen, ne2kMinFrameLen)
@@ -321,12 +374,15 @@ func TestNE2KDriverInitReceiveReadback(t *testing.T) {
 	for i := range body {
 		body[i] = byte(host.readIO(ctx, uint32(dev.port+ne2kDataPort), 8))
 	}
+
+	// Verify the driver reads the original Ethernet frame through DMA.
 	if !bytes.Equal(body[:len(frame)], frame) {
 		t.Fatalf("driver-read RX body = %x, want prefix %x", body[:len(frame)], frame)
 	}
 }
 
 func newNE2KTestDevice(t *testing.T) (*HostRuntime, *ne2kDevice) {
+	// Create a HostRuntime with I/O tracking and PCI register state.
 	t.Helper()
 	ctx := context.Background()
 	host := &HostRuntime{
@@ -343,10 +399,13 @@ func newNE2KTestDevice(t *testing.T) (*HostRuntime, *ne2kDevice) {
 		barIO:     make(map[uint16]map[int]bool),
 		barProbes: make(map[uint16]map[int]bool),
 	}
+
+	// Register the NE2K device on the test host.
 	dev := newNE2KDevice(host, 0, [6]byte{0x02, 0x22, 0x15, 0x00, 0x00, 0x01})
 	if err := dev.register(ctx); err != nil {
 		t.Fatalf("register NE2K: %v", err)
 	}
+
 	return host, dev
 }
 

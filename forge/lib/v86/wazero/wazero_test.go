@@ -15,23 +15,33 @@ import (
 )
 
 func TestV86WazeroCompileFromRealImage(t *testing.T) {
+	// Require the enabled V86 integration fixture before loading guest assets.
 	if !runV86WazeroTests() {
 		t.Skip("set RUN_V86_WAZERO=true to hydrate the real V86Image and compile v86 wasm with wazero")
 	}
+
+	// Bound the V86 host runtime lifetime for this integration check.
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 	defer cancel()
 
+	// Resolve the real V86 image and its boot assets.
 	assets, err := ResolveAssets(ctx, OptionsFromEnv())
 	if err != nil {
 		t.Fatalf("resolve v86 assets: %v", err)
 	}
+
+	// Compile the V86 wasm module and inspect its import report.
 	report, err := CompileImportReport(ctx, assets.Wasm)
 	if err != nil {
 		t.Fatalf("compile v86 wasm: %v", err)
 	}
+
+	// Verify the compiled V86 module exports functions.
 	if len(report.Exports) == 0 {
 		t.Fatal("compiled v86 wasm exposes no functions")
 	}
+
+	// Report the V86 image and compiled module imports.
 	t.Logf("v86 image %s assets at %s", assets.ImageKey, assets.Dir)
 	t.Logf(
 		"v86 wasm imports: functions=%d memories=%d tables=%d exports=%d",
@@ -56,22 +66,29 @@ func TestV86WazeroCompileFromRealImage(t *testing.T) {
 }
 
 func TestV86WazeroInstantiateHostRuntime(t *testing.T) {
+	// Require the enabled V86 integration fixture before loading guest assets.
 	if !runV86WazeroBootTests() {
 		t.Skip("set RUN_V86_WAZERO_BOOT=true to instantiate v86 wasm with the Go wazero host runtime")
 	}
+
+	// Bound the V86 host runtime lifetime for this integration check.
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 	defer cancel()
 
+	// Resolve the real V86 image and its boot assets.
 	assets, err := ResolveAssets(ctx, OptionsFromEnv())
 	if err != nil {
 		t.Fatalf("resolve v86 assets: %v", err)
 	}
+
+	// Instantiate the V86 wasm module with the Go host runtime.
 	instance, err := InstantiateHostRuntime(ctx, assets.Wasm, HostRuntimeOptions{})
 	if err != nil {
 		t.Fatalf("instantiate v86 wasm with wazero host runtime: %v", err)
 	}
 	defer instance.Close(ctx)
 
+	// Initialize the instantiated V86 module and report its exports.
 	if err := instance.RustInit(ctx); err != nil {
 		t.Fatalf("initialize v86 wasm: %v", err)
 	}
@@ -86,34 +103,47 @@ func TestV86WazeroInstantiateHostRuntime(t *testing.T) {
 }
 
 func TestV86WazeroCPUSetupAndMainLoop(t *testing.T) {
+	// Require the enabled V86 integration fixture before loading guest assets.
 	if !runV86WazeroBootTests() {
 		t.Skip("set RUN_V86_WAZERO_BOOT=true to initialize v86 CPU memory and run the Go host loop")
 	}
+
+	// Bound the V86 host runtime lifetime for this integration check.
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 	defer cancel()
 
+	// Resolve the real V86 image and its boot assets.
 	assets, err := ResolveAssets(ctx, OptionsFromEnv())
 	if err != nil {
 		t.Fatalf("resolve v86 assets: %v", err)
 	}
+
+	// Instantiate the V86 wasm module with the Go host runtime.
 	instance, err := InstantiateHostRuntime(ctx, assets.Wasm, HostRuntimeOptions{})
 	if err != nil {
 		t.Fatalf("instantiate v86 wasm with wazero host runtime: %v", err)
 	}
 	defer instance.Close(ctx)
 
+	// Load SeaBIOS for the V86 CPU.
 	bios, err := os.ReadFile(assets.SeaBIOS)
 	if err != nil {
 		t.Fatalf("read SeaBIOS: %v", err)
 	}
+
+	// Load the VGA BIOS for the V86 CPU.
 	vgaBIOS, err := os.ReadFile(assets.VGABIOS)
 	if err != nil {
 		t.Fatalf("read VGABIOS: %v", err)
 	}
+
+	// Load the Linux kernel for the V86 guest.
 	kernel, err := os.ReadFile(assets.Kernel)
 	if err != nil {
 		t.Fatalf("read kernel: %v", err)
 	}
+
+	// Initialize the V86 CPU with the loaded boot assets.
 	if err := instance.InitCPU(ctx, HostBootOptions{
 		BIOS:    bios,
 		VGABIOS: vgaBIOS,
@@ -122,6 +152,8 @@ func TestV86WazeroCPUSetupAndMainLoop(t *testing.T) {
 	}); err != nil {
 		t.Fatalf("initialize v86 CPU: %v", err)
 	}
+
+	// Run the V86 CPU for a bounded number of main-loop ticks.
 	const ticks = 100000
 	var delay float64
 	for range ticks {
@@ -130,6 +162,8 @@ func TestV86WazeroCPUSetupAndMainLoop(t *testing.T) {
 			t.Fatalf("run v86 main loop: %v", err)
 		}
 	}
+
+	// Verify the V86 boot loop produces serial output.
 	serial := instance.SerialOutput()
 	if len(serial) == 0 {
 		t.Fatalf(
@@ -151,40 +185,54 @@ func TestV86WazeroCPUSetupAndMainLoop(t *testing.T) {
 }
 
 func TestV86WazeroV86FSDeviceProbe(t *testing.T) {
+	// Require the enabled V86 integration fixture before loading guest assets.
 	if !runV86WazeroBootTests() {
 		t.Skip("set RUN_V86_WAZERO_BOOT=true to boot Linux with the Go v86fs host device")
 	}
+
+	// Bound the V86 host runtime lifetime for this integration check.
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 	defer cancel()
 
+	// Resolve the real V86 image and its boot assets.
 	assets, err := ResolveAssets(ctx, OptionsFromEnv())
 	if err != nil {
 		t.Fatalf("resolve v86 assets: %v", err)
 	}
+
+	// Open the read-only V86 filesystem root for the guest.
 	v86fsServer, releaseRoot, err := OpenV86Root(RootMode{Mode: rootModeReadonly}, assets.RootfsTar)
 	if err != nil {
 		t.Fatalf("open v86fs root: %v", err)
 	}
 	defer releaseRoot()
 
+	// Instantiate the V86 wasm module with the Go host runtime.
 	instance, err := InstantiateHostRuntime(ctx, assets.Wasm, HostRuntimeOptions{})
 	if err != nil {
 		t.Fatalf("instantiate v86 wasm with wazero host runtime: %v", err)
 	}
 	defer instance.Close(ctx)
 
+	// Load SeaBIOS for the V86 CPU.
 	bios, err := os.ReadFile(assets.SeaBIOS)
 	if err != nil {
 		t.Fatalf("read SeaBIOS: %v", err)
 	}
+
+	// Load the VGA BIOS for the V86 CPU.
 	vgaBIOS, err := os.ReadFile(assets.VGABIOS)
 	if err != nil {
 		t.Fatalf("read VGABIOS: %v", err)
 	}
+
+	// Load the Linux kernel for the V86 guest.
 	kernel, err := os.ReadFile(assets.Kernel)
 	if err != nil {
 		t.Fatalf("read kernel: %v", err)
 	}
+
+	// Initialize the V86 CPU with the loaded boot assets.
 	if err := instance.InitCPU(ctx, HostBootOptions{
 		BIOS:        bios,
 		VGABIOS:     vgaBIOS,
@@ -194,17 +242,23 @@ func TestV86WazeroV86FSDeviceProbe(t *testing.T) {
 		t.Fatalf("initialize v86 CPU with v86fs: %v", err)
 	}
 
+	// Run the V86 CPU for a bounded number of main-loop ticks.
 	const ticks = 50000
 	for range ticks {
+		// Advance the V86 CPU toward the filesystem device probe.
 		if _, err := instance.MainLoop(ctx); err != nil {
 			t.Fatalf("run v86 main loop: %v", err)
 		}
+
+		// Detect the V86 filesystem probe marker in guest serial output.
 		serial := string(instance.SerialOutput())
 		if strings.Contains(serial, "v86fs: probed, 3 virtqueues ready") {
 			t.Logf("v86fs device probe reached proof marker after serial=%q", serial)
 			return
 		}
 	}
+
+	// Report the missing V86 filesystem probe and host diagnostics.
 	t.Fatalf("v86fs device probe did not reach proof marker after %d ticks; serial=%q io reads=%s writes=%s last_reads=%s last_writes=%s logs=%q",
 		ticks,
 		string(instance.SerialOutput()),
@@ -217,40 +271,54 @@ func TestV86WazeroV86FSDeviceProbe(t *testing.T) {
 }
 
 func TestV86WazeroV86FSRootShell(t *testing.T) {
+	// Require the enabled V86 integration fixture before loading guest assets.
 	if !runV86WazeroBootTests() {
 		t.Skip("set RUN_V86_WAZERO_BOOT=true to boot Linux with the Go v86fs root device")
 	}
+
+	// Bound the V86 host runtime lifetime for this integration check.
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
 	defer cancel()
 
+	// Resolve the real V86 image and its boot assets.
 	assets, err := ResolveAssets(ctx, OptionsFromEnv())
 	if err != nil {
 		t.Fatalf("resolve v86 assets: %v", err)
 	}
+
+	// Open the read-only V86 filesystem root for the guest.
 	v86fsServer, releaseRoot, err := OpenV86Root(RootMode{Mode: rootModeReadonly}, assets.RootfsTar)
 	if err != nil {
 		t.Fatalf("open v86fs root: %v", err)
 	}
 	defer releaseRoot()
 
+	// Instantiate the V86 wasm module with the Go host runtime.
 	instance, err := InstantiateHostRuntime(ctx, assets.Wasm, HostRuntimeOptions{})
 	if err != nil {
 		t.Fatalf("instantiate v86 wasm with wazero host runtime: %v", err)
 	}
 	defer instance.Close(ctx)
 
+	// Load SeaBIOS for the V86 CPU.
 	bios, err := os.ReadFile(assets.SeaBIOS)
 	if err != nil {
 		t.Fatalf("read SeaBIOS: %v", err)
 	}
+
+	// Load the VGA BIOS for the V86 CPU.
 	vgaBIOS, err := os.ReadFile(assets.VGABIOS)
 	if err != nil {
 		t.Fatalf("read VGABIOS: %v", err)
 	}
+
+	// Load the Linux kernel for the V86 guest.
 	kernel, err := os.ReadFile(assets.Kernel)
 	if err != nil {
 		t.Fatalf("read kernel: %v", err)
 	}
+
+	// Initialize the V86 CPU with the loaded boot assets.
 	if err := instance.InitCPU(ctx, HostBootOptions{
 		BIOS:        bios,
 		VGABIOS:     vgaBIOS,
@@ -261,6 +329,7 @@ func TestV86WazeroV86FSRootShell(t *testing.T) {
 	}
 	instance.SetSerialSink(os.Stderr)
 
+	// Wait for the guest root shell and report device diagnostics on failure.
 	waitCtx, waitCancel := context.WithTimeout(context.Background(), 120*time.Second)
 	defer waitCancel()
 	if _, err := waitSerial(waitCtx, instance, ":/#"); err != nil {
@@ -280,6 +349,8 @@ func TestV86WazeroV86FSRootShell(t *testing.T) {
 			tailStrings(instance.Logs, 8),
 		)
 	}
+
+	// Verify the guest root shell executes the echo command.
 	serial, err := runShellCommand(ctx, instance, "echo wazero-v86fs")
 	if err != nil {
 		t.Fatalf("run echo command: %v; serial=%q", err, serial)
@@ -287,6 +358,8 @@ func TestV86WazeroV86FSRootShell(t *testing.T) {
 	if !strings.Contains(serial, "wazero-v86fs") {
 		t.Fatalf("echo command output missing from serial=%q", serial)
 	}
+
+	// Verify the guest root shell reports a successful exit status.
 	serial, err = runShellCommand(ctx, instance, "echo $?")
 	if err != nil {
 		t.Fatalf("run exit status command: %v; serial=%q", err, serial)
@@ -298,45 +371,61 @@ func TestV86WazeroV86FSRootShell(t *testing.T) {
 }
 
 func TestV86WazeroHost9PRootShell(t *testing.T) {
+	// Require the enabled V86 integration fixture before loading guest assets.
 	if !runV86WazeroBootTests() {
 		t.Skip("set RUN_V86_WAZERO_BOOT=true to boot Linux with the Go host9p root device")
 	}
+
+	// Bound the V86 host runtime lifetime for this integration check.
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 	defer cancel()
 
+	// Resolve the real V86 image and its boot assets.
 	assets, err := ResolveAssets(ctx, OptionsFromEnv())
 	if err != nil {
 		t.Fatalf("resolve v86 assets: %v", err)
 	}
+
+	// Require the host9p root metadata and flat file directory.
 	if !filesExist(assets.RootfsJSON) {
 		t.Fatalf("host9p root proof requires fs.json at %s", assets.RootfsJSON)
 	}
 	if info, err := os.Stat(assets.RootfsFlatDir); err != nil || !info.IsDir() {
 		t.Fatalf("host9p root proof requires flat dir at %s", assets.RootfsFlatDir)
 	}
+
+	// Open the host9p filesystem for the guest root.
 	host9p, err := OpenHost9PFS(filepath.Dir(assets.RootfsJSON))
 	if err != nil {
 		t.Fatalf("open host9p rootfs: %v", err)
 	}
 
+	// Instantiate the V86 wasm module with the Go host runtime.
 	instance, err := InstantiateHostRuntime(ctx, assets.Wasm, HostRuntimeOptions{})
 	if err != nil {
 		t.Fatalf("instantiate v86 wasm with wazero host runtime: %v", err)
 	}
 	defer instance.Close(ctx)
 
+	// Load SeaBIOS for the V86 CPU.
 	bios, err := os.ReadFile(assets.SeaBIOS)
 	if err != nil {
 		t.Fatalf("read SeaBIOS: %v", err)
 	}
+
+	// Load the VGA BIOS for the V86 CPU.
 	vgaBIOS, err := os.ReadFile(assets.VGABIOS)
 	if err != nil {
 		t.Fatalf("read VGABIOS: %v", err)
 	}
+
+	// Load the Linux kernel for the V86 guest.
 	kernel, err := os.ReadFile(assets.Kernel)
 	if err != nil {
 		t.Fatalf("read kernel: %v", err)
 	}
+
+	// Initialize the V86 CPU with the loaded boot assets.
 	if err := instance.InitCPU(ctx, HostBootOptions{
 		BIOS:     bios,
 		VGABIOS:  vgaBIOS,
@@ -348,6 +437,7 @@ func TestV86WazeroHost9PRootShell(t *testing.T) {
 	}
 	instance.SetSerialSink(os.Stderr)
 
+	// Wait for the guest root shell and report device diagnostics on failure.
 	waitCtx, waitCancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer waitCancel()
 	if _, err := waitSerial(waitCtx, instance, ":/#"); err != nil {
@@ -367,6 +457,8 @@ func TestV86WazeroHost9PRootShell(t *testing.T) {
 			tailStrings(instance.Logs, 5),
 		)
 	}
+
+	// Verify the guest root shell executes the echo command.
 	serial, err := runShellCommand(ctx, instance, "echo wazero-host9p")
 	if err != nil {
 		t.Fatalf("run echo command: %v; serial=%q", err, serial)
@@ -374,6 +466,8 @@ func TestV86WazeroHost9PRootShell(t *testing.T) {
 	if !strings.Contains(serial, "wazero-host9p") {
 		t.Fatalf("echo command output missing from serial=%q", serial)
 	}
+
+	// Verify the guest root shell reports a successful exit status.
 	serial, err = runShellCommand(ctx, instance, "echo $?")
 	if err != nil {
 		t.Fatalf("run exit status command: %v; serial=%q", err, serial)
@@ -411,6 +505,7 @@ func TestHostBootOptionsKernelCmdlineDefault(t *testing.T) {
 }
 
 func TestUARTSerialInputQueue(t *testing.T) {
+	// Create a HostRuntime with a COM1 input queue.
 	ctx := context.Background()
 	host := &HostRuntime{
 		ioPorts:      newIOPorts(),
@@ -421,21 +516,28 @@ func TestUARTSerialInputQueue(t *testing.T) {
 	}
 	host.registerUART(0x3f8)
 
+	// Feed two bytes into the COM1 input queue.
 	if err := host.WriteSerialInput(ctx, []byte("hi")); err != nil {
 		t.Fatalf("write serial input: %v", err)
 	}
+
+	// Verify COM1 is ready and yields the first queued byte.
 	if got := host.readIO(ctx, 0x3fd, 8); got&uartLsrDataReady == 0 {
 		t.Fatalf("COM1 line status %#x missing data-ready bit", got)
 	}
 	if got := host.readIO(ctx, 0x3f8, 8); got != 'h' {
 		t.Fatalf("first COM1 byte = %#x, want 'h'", got)
 	}
+
+	// Verify COM1 stays ready and yields the remaining queued byte.
 	if got := host.readIO(ctx, 0x3fd, 8); got&uartLsrDataReady == 0 {
 		t.Fatalf("COM1 line status %#x dropped data-ready before queue drained", got)
 	}
 	if got := host.readIO(ctx, 0x3f8, 8); got != 'i' {
 		t.Fatalf("second COM1 byte = %#x, want 'i'", got)
 	}
+
+	// Verify COM1 clears data-ready after the final byte is read.
 	if got := host.readIO(ctx, 0x3fd, 8); got&uartLsrDataReady != 0 {
 		t.Fatalf("COM1 line status %#x kept data-ready after queue drained", got)
 	}
@@ -467,6 +569,7 @@ func tailStrings(values []string, count int) []string {
 }
 
 func topPorts(counts map[uint16]uint64) string {
+	// Collect host I/O port counts into sortable records.
 	type entry struct {
 		port  uint16
 		count uint64
@@ -475,6 +578,8 @@ func topPorts(counts map[uint16]uint64) string {
 	for port, count := range counts {
 		entries = append(entries, entry{port: port, count: count})
 	}
+
+	// Select the twelve busiest host I/O ports in a stable order.
 	slices.SortFunc(entries, func(a, b entry) int {
 		if a.count != b.count {
 			return cmp.Compare(b.count, a.count)
@@ -484,10 +589,13 @@ func topPorts(counts map[uint16]uint64) string {
 	if len(entries) > 12 {
 		entries = entries[:12]
 	}
+
+	// Format the selected port counts for boot diagnostics.
 	var parts []string
 	for _, entry := range entries {
 		parts = append(parts, fmt.Sprintf("%#x:%d", entry.port, entry.count))
 	}
+
 	return strings.Join(parts, ",")
 }
 
@@ -512,14 +620,18 @@ func waitSerial(ctx context.Context, h *HostRuntime, marker string) (string, err
 }
 
 func runShellCommand(ctx context.Context, h *HostRuntime, command string) (string, error) {
+	// Send the guest command after recording the current serial boundary.
 	before := len(h.SerialOutput())
 	if err := h.WriteSerialInput(ctx, []byte(command+"\n")); err != nil {
 		return string(h.SerialOutput()), err
 	}
+
+	// Wait for the guest prompt and return the command serial output.
 	serial, err := waitSerialFrom(ctx, h, ":/#", before)
 	if before < len(serial) {
 		return serial[before:], err
 	}
+
 	return serial, err
 }
 
