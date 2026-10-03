@@ -112,13 +112,18 @@ func (t *Transformer) DecodeBlock(data []byte) ([]byte, error) {
 }
 
 func decodedBlockCacheTransformKeyForConfig(c *Config) (string, error) {
+	// Use the untransformed cache identity for an empty configuration.
 	if c == nil || c.GetEmpty() {
 		return block.DecodedBlockCacheNoTransformKey, nil
 	}
+
+	// Serialize the transform configuration for a deterministic cache identity.
 	data, err := c.MarshalVT()
 	if err != nil {
 		return "", err
 	}
+
+	// Hash the serialized configuration into the transform cache namespace.
 	sum := sha256.Sum256(data)
 	return decodedBlockCacheTransformConfigKeyPrefix + base64.RawStdEncoding.EncodeToString(sum[:]), nil
 }

@@ -46,11 +46,13 @@ func ListWorkerKeypairs(ctx context.Context, w world.WorldState, workerKeys ...s
 // CollectWorkerKeypairs collects all Keypair linked to by the given entities.
 // returns list of Keypair for each object key
 func CollectWorkerKeypairs(ctx context.Context, w world.WorldState, workerKeys ...string) ([]*identity.Keypair, []string, error) {
+	// Find the keypair objects linked to the requested workers.
 	kpObjectKeys, err := ListWorkerKeypairs(ctx, w, workerKeys...)
 	if err != nil {
 		return nil, nil, err
 	}
 
+	// Load each linked keypair body in the order of its object key.
 	kps := make([]*identity.Keypair, len(kpObjectKeys))
 	for i, objKey := range kpObjectKeys {
 		var err error

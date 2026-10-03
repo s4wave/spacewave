@@ -22,30 +22,30 @@ const testProtocolID = "bifrost/stream/srpc/server/lookup/test"
 // p0 (client) dials p1 (server) over a LAN. p1 runs the lookup controller
 // which resolves echo RPCs via LookupRpcService on the bus.
 func TestLookup(t *testing.T) {
+	// Prepare the simulated peers' context and diagnostic logger.
 	ctx := t.Context()
-
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
 
+	// Connect the simulated client and server peers through a shared LAN.
 	g := graph.NewGraph()
 	p0 := addPeer(t, g)
 	p1 := addPeer(t, g)
-
 	lan := graph.AddLAN(g)
 	lan.AddPeer(g, p0)
 	lan.AddPeer(g, p1)
 
+	// Start the network simulator and resolve the client and server peers.
 	sim := initSimulator(t, ctx, le, g, simulate.WithVerbose())
-
 	sp0 := sim.GetPeerByID(p0.GetPeerID())
 	sp1 := sim.GetPeerByID(p1.GetPeerID())
 
+	// Verify simulated connectivity and select the server testbed.
 	// Verify connectivity first.
 	if err := simulate.TestConnectivity(ctx, sp0, sp1); err != nil {
 		t.Fatal(err.Error())
 	}
-
 	tb1 := sp1.GetTestbed()
 
 	// Register echo service on p1's bus via RpcServiceController.
@@ -100,6 +100,8 @@ func TestLookup(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Verify the lookup server returned the echo service response.
 	if resp.GetBody() != msg {
 		t.Fatal(errors.Errorf("expected %q but got %q", msg, resp.GetBody()))
 	}

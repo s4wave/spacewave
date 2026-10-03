@@ -9,10 +9,13 @@ import (
 
 // TestLookupBlockTypeSpaceSettings resolves persisted settings by their block ID.
 func TestLookupBlockTypeSpaceSettings(t *testing.T) {
+	// Resolve the persisted Space settings block type.
 	got, err := space_world.LookupBlockType(context.Background(), "space/settings")
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Verify the registered block type constructs SpaceSettings.
 	if got == nil {
 		t.Fatal("space/settings block type was not found")
 	}

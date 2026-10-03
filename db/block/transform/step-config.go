@@ -36,10 +36,13 @@ func (c *StepConfig) UnmarshalBlock(data []byte) error {
 
 // MarshalProtoJSON marshals the ControllerConfig message to JSON.
 func (c *StepConfig) MarshalProtoJSON(s *json.MarshalState) {
+	// Represent an absent step configuration as JSON null.
 	if c == nil {
 		s.WriteNil()
 		return
 	}
+
+	// Open the step configuration object and write its requested identifier.
 	s.WriteObjectStart()
 	var wroteField bool
 	if c.Id != "" || s.HasField("id") {
@@ -47,6 +50,8 @@ func (c *StepConfig) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("id")
 		s.WriteString(c.Id)
 	}
+
+	// Preserve JSON configuration objects and encode other configuration bytes.
 	if len(c.Config) > 0 || s.HasField("config") {
 		s.WriteMoreIf(&wroteField)
 		s.WriteObjectField("config")
@@ -69,6 +74,8 @@ func (c *StepConfig) MarshalProtoJSON(s *json.MarshalState) {
 			s.WriteString(base64.RawStdEncoding.EncodeToString(c.Config))
 		}
 	}
+
+	// Complete the step configuration JSON object.
 	s.WriteObjectEnd()
 }
 

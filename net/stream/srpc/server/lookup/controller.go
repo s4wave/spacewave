@@ -30,6 +30,7 @@ func NewController(
 	le *logrus.Entry,
 	conf *Config,
 ) (*Controller, error) {
+	// Parse the protocol and peer filters for incoming lookup streams.
 	protocolIDs, err := confparse.ParseProtocolIDs(conf.GetProtocolIds(), false)
 	if err != nil {
 		return nil, err
@@ -39,9 +40,11 @@ func NewController(
 		return nil, err
 	}
 
+	// Route SRPC service calls through the controller bus lookup invoker.
 	invoker := bifrost_rpc.NewInvoker(b, conf.GetServerId(), true)
 	mux := srpc.NewMux(invoker)
 
+	// Construct the stream server with the lookup mux and configured filters.
 	info := controller.NewInfo(ControllerID, Version, "lookup srpc server")
 	return stream_srpc_server.NewServerWithMux(
 		b,

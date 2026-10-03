@@ -66,6 +66,7 @@ func (o *WorkerCreateOp) ApplyWorldOp(
 	worldHandle world.WorldState,
 	sender peer.ID,
 ) (sysErr bool, err error) {
+	// Validate the worker body before creating its World object.
 	objKey := o.GetObjectKey()
 	wrk := o.BuildWorker()
 	err = wrk.Validate()
@@ -73,6 +74,7 @@ func (o *WorkerCreateOp) ApplyWorldOp(
 		return false, err
 	}
 
+	// Store the worker body in a new World object and release its handle.
 	var createdObject world.ObjectState
 	createdObject, _, err = world.CreateWorldObject(ctx, worldHandle, objKey, func(bcs *block.Cursor) error {
 		bcs.ClearAllRefs()
@@ -84,12 +86,14 @@ func (o *WorkerCreateOp) ApplyWorldOp(
 		return false, err
 	}
 
+	// Identify the new World object as a worker.
 	// create the <type> ref
 	err = world_types.SetObjectType(ctx, worldHandle, objKey, WorkerTypeID)
 	if err != nil {
 		return false, err
 	}
 
+	// Ensure the worker keypairs have corresponding World objects.
 	// create the keypair objects
 	keypairs := o.GetKeypairs()
 	kpKeys, err := identity_world.EnsureKeypairsExist(ctx, worldHandle, sender, keypairs, false)
@@ -97,6 +101,7 @@ func (o *WorkerCreateOp) ApplyWorldOp(
 		return false, err
 	}
 
+	// Link the worker object to every ensured keypair object.
 	// link to the keypair objects
 	for _, kpKey := range kpKeys {
 		err := worldHandle.SetGraphQuad(ctx, identity_world.NewObjectToKeypairQuad(objKey, kpKey))

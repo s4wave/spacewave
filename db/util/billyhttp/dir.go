@@ -25,13 +25,18 @@ func (f *Dir) Stat() (fs.FileInfo, error) {
 
 // Readdir reads the directory contents.
 func (f *Dir) Readdir(count int) ([]fs.FileInfo, error) {
+	// Read the directory entries from the underlying filesystem.
 	ents, err := f.fs.ReadDir(f.path)
 	if err != nil {
 		return nil, err
 	}
+
+	// Limit the returned entries to the requested directory count.
 	if count > 0 && count < len(ents) {
 		ents = ents[:count]
 	}
+
+	// Resolve the selected directory entries to HTTP file metadata.
 	fis := make([]fs.FileInfo, 0, len(ents))
 	for _, ent := range ents {
 		fi, err := ent.Info()

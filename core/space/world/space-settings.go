@@ -56,17 +56,24 @@ func LookupSpaceSettingsBody(ctx context.Context, ws world.WorldState) (*SpaceSe
 // LookupSpacePluginManifest resolves an installation pin in the authorized World.
 // The key must address this plugin's immutable content, never a mutable build slot.
 func LookupSpacePluginManifest(ctx context.Context, ws world.WorldState, pluginID, key string) (*manifest.ManifestRef, error) {
+	// Load the pinned manifest from the authorized World.
 	built, ref, err := manifest_world.LookupManifest(ctx, ws, key)
 	if err != nil {
 		return nil, err
 	}
+
+	// Require the immutable manifest artifact to match the installed plugin.
 	if key != manifest.NewManifestArtifactKey(ref) || built.GetMeta().GetManifestId() != pluginID {
 		return nil, errors.New("installed artifact does not match plugin identity")
 	}
+
+	// Resolve the manifest object reference to its canonical World location.
 	ref, err = manifest_world.CanonicalizeManifestObjectRef(ctx, ws.AccessWorldState, ref)
 	if err != nil {
 		return nil, err
 	}
+
+	// Fill an omitted manifest bucket from the authorized World cursor.
 	if ref.GetBucketId() == "" {
 		err = ws.AccessWorldState(ctx, nil, func(cursor *bucket_lookup.Cursor) error {
 			ref.BucketId = cursor.GetOpArgs().GetBucketId()
@@ -83,6 +90,7 @@ func LookupSpacePluginManifest(ctx context.Context, ws world.WorldState, pluginI
 // SpaceSettings.index_path. Missing settings, an empty index, and stale index
 // paths have no semantic type and return an empty string.
 func LookupSpaceIndexObjectType(ctx context.Context, ws world.WorldState) (string, error) {
+	// Read the Space settings that select the index object.
 	settings, err := LookupSpaceSettingsBody(ctx, ws)
 	if err != nil {
 		return "", err
@@ -91,6 +99,7 @@ func LookupSpaceIndexObjectType(ctx context.Context, ws world.WorldState) (strin
 		return "", nil
 	}
 
+	// Resolve the index route to the root object key.
 	indexPath := strings.TrimPrefix(path.Clean("/"+settings.GetIndexPath()), "/")
 	if after, ok := strings.CutPrefix(indexPath, "-/"); ok {
 		indexPath = after
@@ -103,6 +112,8 @@ func LookupSpaceIndexObjectType(ctx context.Context, ws world.WorldState) (strin
 	if indexPath == "" {
 		return "", nil
 	}
+
+	// Read the selected index object type from its durable metadata.
 	metadata, err := world_types.GetObjectMetadataBatch(ctx, ws, []string{indexPath})
 	if err != nil {
 		return "", err

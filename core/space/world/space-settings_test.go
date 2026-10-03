@@ -17,14 +17,15 @@ import (
 
 // TestLookupSpaceSettingsMissing checks missing settings return nil without error.
 func TestLookupSpaceSettingsMissing(t *testing.T) {
+	// Open a World testbed for the Space settings operations.
 	ctx := context.Background()
-
 	tb, err := world_testbed.Default(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer tb.Release()
 
+	// Verify a World without settings returns neither a body nor an object handle.
 	settings, state, err := space_world.LookupSpaceSettings(ctx, tb.WorldState)
 	if err != nil {
 		t.Fatal(err)
@@ -41,14 +42,15 @@ func TestLookupSpaceSettingsMissing(t *testing.T) {
 // settings world op stores keybinding overrides alongside the existing index
 // and plugin settings supplied by higher-level helpers.
 func TestSetSpaceSettingsKeybindingOverridesPreservesSettingsFields(t *testing.T) {
+	// Open a World testbed for the Space settings operations.
 	ctx := context.Background()
-
 	tb, err := world_testbed.Default(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer tb.Release()
 
+	// Store the initial index path and installed plugin settings.
 	initialOp := space_world_ops.NewSetSpaceSettingsOp(
 		"",
 		&space_world.SpaceSettings{
@@ -65,6 +67,7 @@ func TestSetSpaceSettingsKeybindingOverridesPreservesSettingsFields(t *testing.T
 		t.Fatalf("ApplyWorldOp initial settings failed: %v", err)
 	}
 
+	// Update the settings with a web keybinding override.
 	overrideOp := space_world_ops.NewSetSpaceSettingsOp(
 		"",
 		&space_world.SpaceSettings{
@@ -95,11 +98,14 @@ func TestSetSpaceSettingsKeybindingOverridesPreservesSettingsFields(t *testing.T
 		t.Fatalf("ApplyWorldOp keybinding settings failed: %v", err)
 	}
 
+	// Read the updated settings and release their World object handle.
 	settings, objectState, err := space_world.LookupSpaceSettings(ctx, tb.WorldState)
 	world.ReleaseObjectState(objectState)
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Verify the keybinding update preserved the index path and installed plugins.
 	if settings == nil {
 		t.Fatal("expected settings object after SetSpaceSettingsOp")
 	}
@@ -109,6 +115,8 @@ func TestSetSpaceSettingsKeybindingOverridesPreservesSettingsFields(t *testing.T
 	if got := settings.GetPluginIds(); len(got) != 2 || got[0] != "spacewave-app" || got[1] != "spacewave-terminal" {
 		t.Fatalf("plugin_ids = %#v", got)
 	}
+
+	// Verify the saved web override retains its command, cleared bindings, and replacement binding.
 	overrides := settings.GetKeybindingOverrides().GetWebOverrides()
 	if len(overrides) != 1 {
 		t.Fatalf("expected one keybinding override, got %d", len(overrides))
@@ -125,6 +133,7 @@ func TestSetSpaceSettingsKeybindingOverridesPreservesSettingsFields(t *testing.T
 }
 
 func TestSetSpaceSettingsKeybindingOverridesMergesConcurrentSurfaces(t *testing.T) {
+	// Open a World testbed for the Space settings operations.
 	ctx := t.Context()
 	tb, err := world_testbed.Default(ctx)
 	if err != nil {
@@ -132,6 +141,7 @@ func TestSetSpaceSettingsKeybindingOverridesMergesConcurrentSurfaces(t *testing.
 	}
 	defer tb.Release()
 
+	// Store the initial settings shared by the web and terminal updates.
 	initialOverrides := &s4wave_command.KeybindingOverrideSet{}
 	initialSettings := &space_world.SpaceSettings{
 		IndexPath:           "/files",
@@ -143,6 +153,7 @@ func TestSetSpaceSettingsKeybindingOverridesMergesConcurrentSurfaces(t *testing.
 		t.Fatal(err)
 	}
 
+	// Update the web keybinding settings from the initial snapshot.
 	webOverrides := initialOverrides.CloneVT()
 	webOverrides.WebSettings = &s4wave_command.KeybindingOverrideSettings{LeaderCombo: "Ctrl+A"}
 	webOp := space_world_ops.NewSetSpaceSettingsOp("", &space_world.SpaceSettings{
@@ -153,6 +164,7 @@ func TestSetSpaceSettingsKeybindingOverridesMergesConcurrentSurfaces(t *testing.
 		t.Fatal(err)
 	}
 
+	// Update the terminal keybinding settings from the same initial snapshot.
 	tuiOverrides := initialOverrides.CloneVT()
 	tuiOverrides.TuiSettings = &s4wave_command.KeybindingOverrideSettings{LeaderCombo: "Ctrl+B"}
 	tuiOp := space_world_ops.NewSetSpaceSettingsOp("", &space_world.SpaceSettings{
@@ -163,11 +175,14 @@ func TestSetSpaceSettingsKeybindingOverridesMergesConcurrentSurfaces(t *testing.
 		t.Fatal(err)
 	}
 
+	// Read the merged settings and release their World object handle.
 	got, objectState, err := space_world.LookupSpaceSettings(ctx, tb.WorldState)
 	world.ReleaseObjectState(objectState)
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Verify both surface updates survived and unrelated Space settings were preserved.
 	if got.GetIndexPath() != "/files" || len(got.GetPluginIds()) != 1 || got.GetPluginIds()[0] != "spacewave-app" {
 		t.Fatalf("unrelated settings changed: %#v", got)
 	}
@@ -180,14 +195,15 @@ func TestSetSpaceSettingsKeybindingOverridesMergesConcurrentSurfaces(t *testing.
 // TestLookupSpaceIndexObjectTypeFollowsDurableObjectMetadata verifies index_path
 // resolves the selected root object's type, including through an object subpath.
 func TestLookupSpaceIndexObjectTypeFollowsDurableObjectMetadata(t *testing.T) {
+	// Open a World testbed for the Space settings operations.
 	ctx := context.Background()
-
 	tb, err := world_testbed.Default(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer tb.Release()
 
+	// Create typed index objects for a direct route and an object subpath.
 	indexObjects := []struct {
 		objectPath string
 		indexPath  string
@@ -197,6 +213,7 @@ func TestLookupSpaceIndexObjectTypeFollowsDurableObjectMetadata(t *testing.T) {
 		{objectPath: "layout", indexPath: "layout", typeID: s4wave_layout_world.ObjectLayoutTypeID},
 	}
 	for _, indexObject := range indexObjects {
+		// Create the index object and release its World handle.
 		{
 			createdObject, err := tb.WorldState.CreateObject(ctx, indexObject.objectPath, nil)
 			world.ReleaseObjectState(createdObject)
@@ -204,12 +221,16 @@ func TestLookupSpaceIndexObjectTypeFollowsDurableObjectMetadata(t *testing.T) {
 				t.Fatalf("CreateObject(%q) failed: %v", indexObject.objectPath, err)
 			}
 		}
+
+		// Record the index object type in the World graph.
 		if err := world_types.SetObjectType(ctx, tb.WorldState, indexObject.objectPath, indexObject.typeID); err != nil {
 			t.Fatalf("SetObjectType(%q) failed: %v", indexObject.objectPath, err)
 		}
 	}
 
+	// Check the durable type selected by each Space index route.
 	for i, indexObject := range indexObjects {
+		// Select the index route in the saved Space settings.
 		_, _, err := space_world_ops.SetSpaceSettings(
 			ctx,
 			tb.WorldState,
@@ -223,10 +244,13 @@ func TestLookupSpaceIndexObjectTypeFollowsDurableObjectMetadata(t *testing.T) {
 			t.Fatalf("SetSpaceSettings(%q) failed: %v", indexObject.indexPath, err)
 		}
 
+		// Resolve the selected index object type from its World metadata.
 		got, err := space_world.LookupSpaceIndexObjectType(ctx, tb.WorldState)
 		if err != nil {
 			t.Fatalf("LookupSpaceIndexObjectType(%q) failed: %v", indexObject.indexPath, err)
 		}
+
+		// Verify the route resolves to the expected root object type.
 		if got != indexObject.typeID {
 			t.Fatalf("LookupSpaceIndexObjectType(%q) = %q, want %q", indexObject.indexPath, got, indexObject.typeID)
 		}
@@ -247,6 +271,7 @@ func TestLookupSpaceIndexObjectTypeReturnsEmptyWithoutDurableIndexMetadata(t *te
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
+			// Open a World testbed for the missing index metadata case.
 			ctx := context.Background()
 			tb, err := world_testbed.Default(ctx)
 			if err != nil {
@@ -254,6 +279,7 @@ func TestLookupSpaceIndexObjectTypeReturnsEmptyWithoutDurableIndexMetadata(t *te
 			}
 			defer tb.Release()
 
+			// Store the settings for cases with an empty or stale index route.
 			if test.settings != nil {
 				_, _, err := space_world_ops.SetSpaceSettings(
 					ctx,
@@ -269,6 +295,7 @@ func TestLookupSpaceIndexObjectTypeReturnsEmptyWithoutDurableIndexMetadata(t *te
 				}
 			}
 
+			// Verify missing index metadata resolves to an empty object type.
 			got, err := space_world.LookupSpaceIndexObjectType(ctx, tb.WorldState)
 			if err != nil {
 				t.Fatalf("LookupSpaceIndexObjectType failed: %v", err)

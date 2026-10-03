@@ -36,6 +36,7 @@ func NewFileSystem(fs BillyFs, prefix string) *FileSystem {
 
 // Open opens the file at the given path.
 func (f *FileSystem) Open(name string) (http.File, error) {
+	// Resolve the HTTP path within the configured filesystem prefix.
 	name = path.Clean(name)
 	name = strings.TrimPrefix(name, "/")
 	if len(f.prefix) != 0 {
@@ -44,6 +45,7 @@ func (f *FileSystem) Open(name string) (http.File, error) {
 	}
 	name = strings.TrimPrefix(name, "/")
 
+	// Inspect the resolved path and open its file or directory adapter.
 	fi, err := f.fs.Stat(name)
 	if err != nil {
 		return nil, err

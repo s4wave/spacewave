@@ -40,14 +40,15 @@ func (o *countingObjectState) Release() {
 // lookup leaves its remote-releasable ObjectState alive, or if the missing
 // settings case stops returning nil without error.
 func TestLookupSpaceSettingsBodyReleasesStates(t *testing.T) {
+	// Open a World testbed for the Space settings lookups.
 	ctx := context.Background()
-
 	tb, err := world_testbed.Default(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer tb.Release()
 
+	// Wrap the World to count the object handles released by body lookups.
 	var released int
 	ws := &countingWorldState{WorldState: tb.WorldState, released: &released}
 
@@ -63,6 +64,7 @@ func TestLookupSpaceSettingsBodyReleasesStates(t *testing.T) {
 		t.Fatalf("missing settings: released %d states, want 0", released)
 	}
 
+	// Store a Space settings object for the body lookup.
 	op := space_world_ops.NewSetSpaceSettingsOp(
 		"",
 		&space_world.SpaceSettings{IndexPath: "/files"},
@@ -73,6 +75,7 @@ func TestLookupSpaceSettingsBodyReleasesStates(t *testing.T) {
 		t.Fatalf("ApplyWorldOp settings failed: %v", err)
 	}
 
+	// Verify the body lookup returns saved settings and releases its object handle.
 	settings, err = space_world.LookupSpaceSettingsBody(ctx, ws)
 	if err != nil {
 		t.Fatal(err)
