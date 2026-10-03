@@ -76,10 +76,13 @@ func (c *Controller) GetControllerInfo() *controller.Info {
 // Close releases any resources used by the controller.
 // Error indicates any issue encountered releasing.
 func (c *Controller) Close() error {
+	// Detach the controller's directive references under its cleanup lock.
 	c.mtx.Lock()
 	refs := c.cleanupRefs
 	c.cleanupRefs = nil
 	c.mtx.Unlock()
+
+	// Release every detached directive reference outside the controller lock.
 	for _, ref := range refs {
 		ref.Release()
 	}

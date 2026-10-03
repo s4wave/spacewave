@@ -26,7 +26,9 @@ type establishLinkHandler struct {
 	mtx sync.Mutex
 	// valCount is the number of added values
 	valCount int
-	// rigidRef is the non-weak reference
+	// holding is set while the handler wants a non-weak reference.
+	holding bool
+	// rigidRef is the non-weak reference, nil until it is added.
 	rigidRef directive.Reference
 }
 
@@ -53,23 +55,46 @@ func (e *establishLinkHandler) HandleValueAdded(inst directive.Instance, val dir
 		return
 	}
 
-	// Count active values and determine whether a rigid reference is needed.
+	// Count active values and claim the hold when none is wanted yet.
 	e.mtx.Lock()
 	e.valCount++
-	nrr := e.rigidRef == nil
+	start := !e.holding
+	e.holding = true
 	e.mtx.Unlock()
+	if !start {
+		return
+	}
 
-	// Start holding the directive while at least one link remains.
-	if nrr {
-		e.le.
-			WithField("link-uuid", vl.GetLinkUUID()).
-			WithField("local-peer", vl.GetLocalPeer().String()).
-			Debug("starting peer hold-open tracking")
-		go func() {
-			e.mtx.Lock()
-			e.rigidRef = e.di.AddReference(nil, false)
-			e.mtx.Unlock()
-		}()
+	// Add the non-weak reference outside the directive callback. A removal
+	// or disposal that clears holding before it is stored releases it.
+	e.le.
+		WithField("link-uuid", vl.GetLinkUUID()).
+		WithField("local-peer", vl.GetLocalPeer().String()).
+		Debug("starting peer hold-open tracking")
+	go func() {
+		// Store the reference unless the hold ended or another one won.
+		ref := e.di.AddReference(nil, false)
+		e.mtx.Lock()
+		keep := e.holding && e.rigidRef == nil
+		if keep {
+			e.rigidRef = ref
+		}
+		e.mtx.Unlock()
+
+		// Release a reference that is no longer wanted.
+		if !keep {
+			ref.Release()
+		}
+	}()
+}
+
+// releaseHold stops holding the directive and releases the non-weak reference
+// if it was stored. Called with mtx held.
+func (e *establishLinkHandler) releaseHold() {
+	e.holding = false
+	if e.rigidRef != nil {
+		go e.rigidRef.Release()
+		e.rigidRef = nil
 	}
 }
 
@@ -81,10 +106,9 @@ func (e *establishLinkHandler) HandleValueRemoved(inst directive.Instance, val d
 		e.valCount--
 	}
 
-	// Release the rigid reference when the final value is removed.
-	if e.valCount == 0 && e.rigidRef != nil {
-		go e.rigidRef.Release()
-		e.rigidRef = nil
+	// Stop holding the directive when the final value is removed.
+	if e.valCount == 0 {
+		e.releaseHold()
 	}
 	e.mtx.Unlock()
 }
@@ -94,17 +118,13 @@ func (e *establishLinkHandler) HandleValueRemoved(inst directive.Instance, val d
 func (e *establishLinkHandler) HandleInstanceDisposed(inst directive.Instance) {
 	// Detach the controller reference and any rigid value reference.
 	e.mtx.Lock()
-
 	eref := e.ref
 	if eref == nil {
 		e.mtx.Unlock()
 		return
 	}
 	e.ref = nil
-	if e.rigidRef != nil {
-		go e.rigidRef.Release()
-		e.rigidRef = nil
-	}
+	e.releaseHold()
 	e.mtx.Unlock()
 
 	// Remove the disposed reference from controller cleanup state.

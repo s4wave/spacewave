@@ -20,10 +20,12 @@ import (
 )
 
 func buildTestbed(t *testing.T, ctx context.Context) (*testbed.Testbed, *logrus.Entry) {
+	// Configure the testbed logger to expose hold-open link activity.
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
 
+	// Start the network testbed with transport and hold-open factories.
 	tb, err := testbed.NewTestbed(ctx, le, testbed.TestbedOpts{})
 	if err != nil {
 		t.Fatal(err.Error())
@@ -38,16 +40,19 @@ func execPeer(ctx context.Context, t *testing.T, tb *testbed.Testbed, conf *inpr
 	*inproc.Inproc,
 	directive.Reference,
 ) {
+	// Derive the transport peer identity from the testbed key.
 	peerId, err := peer.IDFromPrivateKey(tb.PrivKey)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Bind the in-process transport configuration to the testbed peer.
 	if conf == nil {
 		conf = &inproc.Config{}
 	}
 	conf.TransportPeerId = peerId.String()
 
+	// Load the transport controller through the testbed bus.
 	tpc1, _, tp1Ref, err := loader.WaitExecControllerRunningTyped[*transport_controller.Controller](
 		ctx,
 		tb.Bus,
@@ -57,6 +62,8 @@ func execPeer(ctx context.Context, t *testing.T, tb *testbed.Testbed, conf *inpr
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Obtain the running in-process transport from its controller.
 	tpt1, err := tpc1.GetTransport(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -70,17 +77,19 @@ func execPeer(ctx context.Context, t *testing.T, tb *testbed.Testbed, conf *inpr
 // This verifies the fix for issue #276 where the type assertion for link.Link
 // failed because EstablishLinkWithPeerValue was changed to MountedLink.
 func TestHoldOpenWithMountedLink(t *testing.T) {
+	// Start two network testbeds for the mounted-link hold-open test.
 	ctx := t.Context()
-
 	tb1, le1 := buildTestbed(t, ctx)
 	le1 = le1.WithField("testbed", 0)
 	tb2, le2 := buildTestbed(t, ctx)
 	le2 = le2.WithField("testbed", 1)
 
+	// Start the first peer and retain its transport for the test.
 	_, tp1, tp1Ref := execPeer(ctx, t, tb1, nil)
 	peerId1 := tp1.GetPeerID()
 	defer tp1Ref.Release()
 
+	// Start the second peer with a dialer targeting the first transport.
 	_, tp2, tp2Ref := execPeer(ctx, t, tb2, &inproc.Config{
 		Dialers: map[string]*dialer.DialerOpts{
 			peerId1.String(): {
@@ -91,9 +100,11 @@ func TestHoldOpenWithMountedLink(t *testing.T) {
 	peerId2 := tp2.GetPeerID()
 	defer tp2Ref.Release()
 
+	// Report the peer identities used by the mounted link.
 	le1.Infof("constructed peer 1 with id %s", peerId1.String())
 	le2.Infof("constructed peer 2 with id %s", peerId2.String())
 
+	// Connect the transports so both peers can accept streams.
 	tp2.ConnectToInproc(ctx, tp1)
 	tp1.ConnectToInproc(ctx, tp2)
 
@@ -117,6 +128,7 @@ func TestHoldOpenWithMountedLink(t *testing.T) {
 	}
 	defer lnkRel()
 
+	// Report the mounted link established for the hold-open controller.
 	le2.Infof("opened link from 2 -> 1 with uuid %v", lnk.GetLinkUUID())
 
 	// Verify the link works by using the echo stream
@@ -126,12 +138,14 @@ func TestHoldOpenWithMountedLink(t *testing.T) {
 	}
 	defer ms.GetStream().Close()
 
+	// Send a proof payload through the held-open link's echo stream.
 	data := []byte("hold-open test")
 	_, err = ms.GetStream().Write(data)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Verify that the held-open link echoes the complete proof payload.
 	outData := make([]byte, len(data)*2)
 	n, err := ms.GetStream().Read(outData)
 	if err != nil {
@@ -141,5 +155,6 @@ func TestHoldOpenWithMountedLink(t *testing.T) {
 		t.Fatalf("expected %d bytes, got %d", len(data), n)
 	}
 
+	// Report the proof bytes received through the held-open link.
 	le2.Infof("echoed data successfully: %s", string(outData[:n]))
 }

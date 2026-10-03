@@ -23,6 +23,10 @@ func (c *Controller) handleEstablishLink(
 	}
 
 	// Store the reference for cleanup and disposal.
+	handler.mtx.Lock()
 	handler.ref = ref
+	handler.mtx.Unlock()
+	c.mtx.Lock()
 	c.cleanupRefs = append(c.cleanupRefs, ref)
+	c.mtx.Unlock()
 }
