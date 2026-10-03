@@ -71,23 +71,27 @@ func (s *CoreRootServer) UpsertSpaceRootAlias(
 	ctx context.Context,
 	req *s4wave_root.UpsertSpaceRootAliasRequest,
 ) (*s4wave_root.UpsertSpaceRootAliasResponse, error) {
+	// Open the configured root alias store for the update.
 	store, release, err := s.openSpaceRootAliasObjectStore(ctx)
 	if err != nil {
 		return nil, err
 	}
 	defer release()
 
+	// Begin the transaction that writes the root alias record.
 	otx, err := store.NewTransaction(ctx, true)
 	if err != nil {
 		return nil, err
 	}
 	defer otx.Discard()
 
+	// Require the root alias record supplied by the caller.
 	record := req.GetRecord()
 	if record == nil {
 		return nil, errors.New("space root alias record is required")
 	}
 
+	// Preserve the root alias creation time while updating its timestamp.
 	now := time.Now().UnixMilli()
 	createdAt := record.GetCreatedAtUnixMs()
 	existing, found, err := readSpaceRootAliasRecord(ctx, otx, record.GetAliasId())
@@ -101,6 +105,7 @@ func (s *CoreRootServer) UpsertSpaceRootAlias(
 		createdAt = now
 	}
 
+	// Validate and persist the configured root alias record.
 	validated, err := validateSpaceRootAliasRecord(record, createdAt, now)
 	if err != nil {
 		return nil, err
@@ -116,6 +121,7 @@ func (s *CoreRootServer) UpsertSpaceRootAlias(
 		return nil, err
 	}
 
+	// Notify root alias watchers of the committed record.
 	s.broadcastSpaceRootAliasChange()
 	return &s4wave_root.UpsertSpaceRootAliasResponse{Record: validated}, nil
 }
@@ -125,23 +131,27 @@ func (s *CoreRootServer) RemoveSpaceRootAlias(
 	ctx context.Context,
 	req *s4wave_root.RemoveSpaceRootAliasRequest,
 ) (*s4wave_root.RemoveSpaceRootAliasResponse, error) {
+	// Require the root alias identifier before removing its record.
 	aliasID := strings.TrimSpace(req.GetAliasId())
 	if aliasID == "" {
 		return nil, errors.New("space root alias id is required")
 	}
 
+	// Open the configured root alias store for removal.
 	store, release, err := s.openSpaceRootAliasObjectStore(ctx)
 	if err != nil {
 		return nil, err
 	}
 	defer release()
 
+	// Begin the transaction that removes the root alias record.
 	otx, err := store.NewTransaction(ctx, true)
 	if err != nil {
 		return nil, err
 	}
 	defer otx.Discard()
 
+	// Find and delete the persisted root alias record.
 	key := spaceRootAliasKey(aliasID)
 	_, found, err := otx.Get(ctx, key)
 	if err != nil {
@@ -157,6 +167,7 @@ func (s *CoreRootServer) RemoveSpaceRootAlias(
 		return nil, err
 	}
 
+	// Notify root alias watchers of the committed removal.
 	s.broadcastSpaceRootAliasChange()
 	return &s4wave_root.RemoveSpaceRootAliasResponse{}, nil
 }
@@ -181,18 +192,21 @@ func (s *CoreRootServer) openSpaceRootAliasObjectStore(
 func (s *CoreRootServer) snapshotSpaceRootAliases(
 	ctx context.Context,
 ) ([]*s4wave_root.SpaceRootAliasRecord, error) {
+	// Open the configured root alias store for the snapshot.
 	store, release, err := s.openSpaceRootAliasObjectStore(ctx)
 	if err != nil {
 		return nil, err
 	}
 	defer release()
 
+	// Begin a read transaction on the configured root alias store.
 	otx, err := store.NewTransaction(ctx, false)
 	if err != nil {
 		return nil, err
 	}
 	defer otx.Discard()
 
+	// Decode the saved root alias records and refresh their status.
 	records := make([]*s4wave_root.SpaceRootAliasRecord, 0)
 	err = otx.ScanPrefix(ctx, spaceRootAliasKeyPrefix, func(_ []byte, value []byte) error {
 		record := &s4wave_root.SpaceRootAliasRecord{}
@@ -207,6 +221,7 @@ func (s *CoreRootServer) snapshotSpaceRootAliases(
 		return nil, err
 	}
 
+	// Order root alias records by identifier for stable snapshots.
 	slices.SortFunc(records, func(a, b *s4wave_root.SpaceRootAliasRecord) int {
 		return strings.Compare(a.GetAliasId(), b.GetAliasId())
 	})
@@ -218,6 +233,7 @@ func validateSpaceRootAliasRecord(
 	createdAt int64,
 	now int64,
 ) (*s4wave_root.SpaceRootAliasRecord, error) {
+	// Validate the root alias identifier, kind, and open mode.
 	aliasID := strings.TrimSpace(record.GetAliasId())
 	if aliasID == "" {
 		return nil, errors.New("space root alias id is required")
@@ -233,6 +249,7 @@ func validateSpaceRootAliasRecord(
 		return nil, errors.New("space root alias open mode must be open existing")
 	}
 
+	// Require an absolute native path to an existing root.
 	native := record.GetNative()
 	if native == nil {
 		return nil, errors.New("native path metadata is required")
@@ -248,6 +265,7 @@ func validateSpaceRootAliasRecord(
 		return nil, err
 	}
 
+	// Choose the root alias display name from the request or path.
 	displayName := strings.TrimSpace(record.GetDisplayName())
 	if displayName == "" {
 		displayName = filepath.Base(path)
@@ -294,6 +312,7 @@ func validateSpaceRootAliasPath(kind s4wave_root.SpaceRootKind, path string) err
 }
 
 func validateExistingSpaceRootPath(path string) error {
+	// Require the selected root path to be an existing directory.
 	info, err := os.Stat(path)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -305,6 +324,7 @@ func validateExistingSpaceRootPath(path string) error {
 		return errors.Errorf("selected path is not a directory: %s", path)
 	}
 
+	// Recognize the directory by its plugin, logs, or volume files.
 	if _, err := os.Stat(filepath.Join(path, "plugin")); err == nil {
 		return nil
 	}
@@ -324,6 +344,7 @@ func validateExistingSpaceRootPath(path string) error {
 func refreshSpaceRootAliasStatus(
 	record *s4wave_root.SpaceRootAliasRecord,
 ) *s4wave_root.SpaceRootAliasRecord {
+	// Mark root alias modes unsupported by this runtime.
 	out := record.CloneVT()
 	if (out.GetKind() != s4wave_root.SpaceRootKind_SpaceRootKind_NATIVE_DIRECTORY &&
 		out.GetKind() != s4wave_root.SpaceRootKind_SpaceRootKind_S4WAVE_FILE) ||
@@ -333,6 +354,7 @@ func refreshSpaceRootAliasStatus(
 		return out
 	}
 
+	// Check the root alias path and report missing or invalid roots.
 	path := out.GetNative().GetPath()
 	if err := validateSpaceRootAliasPath(out.GetKind(), path); err != nil {
 		out.Status = s4wave_root.SpaceRootStatus_SpaceRootStatus_INVALID
@@ -343,6 +365,7 @@ func refreshSpaceRootAliasStatus(
 		return out
 	}
 
+	// Mark the validated root alias ready for use.
 	out.Status = s4wave_root.SpaceRootStatus_SpaceRootStatus_READY
 	out.StatusMessage = ""
 	return out
@@ -355,6 +378,7 @@ func readSpaceRootAliasRecord(
 	},
 	aliasID string,
 ) (*s4wave_root.SpaceRootAliasRecord, bool, error) {
+	// Read and decode the saved root alias identified by the caller.
 	aliasID = strings.TrimSpace(aliasID)
 	if aliasID == "" {
 		return nil, false, nil

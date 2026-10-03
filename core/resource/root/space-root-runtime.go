@@ -56,6 +56,7 @@ func (s *CoreRootServer) WatchSpaceRootRuntime(
 	req *s4wave_root.WatchSpaceRootRuntimeRequest,
 	strm s4wave_root.SRPCRootResourceService_WatchSpaceRootRuntimeStream,
 ) error {
+	// Resolve the configured root alias and its daemon socket path.
 	ctx := strm.Context()
 	alias, err := s.lookupReadySpaceRootAlias(ctx, req.GetAliasId())
 	if err != nil {
@@ -67,6 +68,7 @@ func (s *CoreRootServer) WatchSpaceRootRuntime(
 	}
 	socketPath := filepath.Join(statePath, spaceRootRuntimeSocketName)
 
+	// Report the daemon connection attempt to the runtime stream.
 	if err := strm.Send(&s4wave_root.WatchSpaceRootRuntimeResponse{
 		Status:     s4wave_root.SpaceRootRuntimeStatus_SpaceRootRuntimeStatus_CONNECTING,
 		AliasId:    alias.GetAliasId(),
@@ -76,6 +78,7 @@ func (s *CoreRootServer) WatchSpaceRootRuntime(
 		return err
 	}
 
+	// Connect to the root daemon and start it when requested.
 	client, err := connectSpaceRootRuntimeFunc(ctx, statePath)
 	if err != nil && req.GetAutostart() {
 		if err := strm.Send(&s4wave_root.WatchSpaceRootRuntimeResponse{
@@ -101,12 +104,14 @@ func (s *CoreRootServer) WatchSpaceRootRuntime(
 	}
 	defer client.Close()
 
+	// Open the daemon Session watch for the runtime stream.
 	watch, err := client.root.WatchSessions(ctx)
 	if err != nil {
 		return sendSpaceRootRuntimeError(strm, alias.GetAliasId(), statePath, socketPath, errors.Wrap(err, "watch sessions"))
 	}
 	defer watch.Close()
 
+	// Forward Session updates with metadata and available spaces.
 	for {
 		resp, err := watch.Recv()
 		if err != nil {
@@ -153,6 +158,7 @@ func (c *spaceRootRuntimeClient) buildSpaceRootRuntimeSessions(
 	ctx context.Context,
 	sessions []*session.SessionListEntry,
 ) []*s4wave_root.SpaceRootRuntimeSession {
+	// Build runtime records with metadata and spaces for each Session.
 	out := make([]*s4wave_root.SpaceRootRuntimeSession, 0, len(sessions))
 	for _, entry := range sessions {
 		runtimeSession := &s4wave_root.SpaceRootRuntimeSession{Session: entry}
@@ -182,6 +188,7 @@ func (c *spaceRootRuntimeClient) listSpaceRootRuntimeSessionSpaces(
 	ctx context.Context,
 	idx uint32,
 ) ([]*space.SpaceSoListEntry, error) {
+	// Mount the Session when a resource client is available.
 	if c.resClient == nil {
 		return nil, nil
 	}
@@ -192,6 +199,8 @@ func (c *spaceRootRuntimeClient) listSpaceRootRuntimeSessionSpaces(
 	if mount.GetNotFound() {
 		return nil, nil
 	}
+
+	// Acquire the mounted Session resource for the space list.
 	ref := c.resClient.CreateResourceReference(mount.GetResourceId())
 	sess, err := s4wave_session.NewSession(c.resClient, ref)
 	if err != nil {
@@ -199,6 +208,8 @@ func (c *spaceRootRuntimeClient) listSpaceRootRuntimeSessionSpaces(
 		return nil, errors.Wrap(err, "session resource")
 	}
 	defer sess.Release()
+
+	// Open the Session resource watch and read its initial space list.
 	watch, err := sess.WatchResourcesList(ctx)
 	if err != nil {
 		return nil, errors.Wrap(err, "watch spaces")
@@ -215,6 +226,7 @@ func (s *CoreRootServer) lookupReadySpaceRootAlias(
 	ctx context.Context,
 	aliasID string,
 ) (*s4wave_root.SpaceRootAliasRecord, error) {
+	// Require the root alias identifier before resolving its record.
 	aliasID = strings.TrimSpace(aliasID)
 	if aliasID == "" {
 		return nil, errors.New("space root alias id is required")
@@ -223,6 +235,8 @@ func (s *CoreRootServer) lookupReadySpaceRootAlias(
 	if err != nil {
 		return nil, err
 	}
+
+	// Find the requested root alias and require its ready status.
 	for _, record := range records {
 		if record.GetAliasId() != aliasID {
 			continue
@@ -236,6 +250,7 @@ func (s *CoreRootServer) lookupReadySpaceRootAlias(
 }
 
 func connectSpaceRootRuntime(ctx context.Context, statePath string) (*spaceRootRuntimeClient, error) {
+	// Connect to the daemon socket and construct its runtime client.
 	socketPath := filepath.Join(statePath, spaceRootRuntimeSocketName)
 	conn, err := dialSpaceRootRuntime(ctx, socketPath)
 	if err != nil {
@@ -255,12 +270,14 @@ func dialSpaceRootRuntime(ctx context.Context, socketPath string) (net.Conn, err
 }
 
 func buildSpaceRootRuntimeClient(ctx context.Context, conn net.Conn) (*spaceRootRuntimeClient, error) {
+	// Create the SRPC client for the daemon connection.
 	srpcClient, err := srpc.NewClientWithConn(conn, true, nil)
 	if err != nil {
 		conn.Close()
 		return nil, errors.Wrap(err, "create srpc client")
 	}
 
+	// Create the resource client over the daemon SRPC service.
 	resourceSvc := resource.NewSRPCResourceServiceClient(srpcClient)
 	resClient, err := resource_client.NewClient(ctx, resourceSvc)
 	if err != nil {
@@ -268,6 +285,7 @@ func buildSpaceRootRuntimeClient(ctx context.Context, conn net.Conn) (*spaceRoot
 		return nil, errors.Wrap(err, "resource client")
 	}
 
+	// Acquire the root resource for the daemon runtime client.
 	rootRef := resClient.AccessRootResource()
 	root, err := s4wave_root.NewRoot(resClient, rootRef)
 	if err != nil {
@@ -299,14 +317,17 @@ func (c *spaceRootRuntimeClient) Close() {
 }
 
 func (s *CoreRootServer) startSpaceRootRuntimeDaemon(ctx context.Context, statePath string) error {
+	// Read the configured deadline for daemon startup.
 	startupTimeout, err := getSpaceRootRuntimeStartupTimeout()
 	if err != nil {
 		return err
 	}
 
+	// Bound the daemon startup wait with a cancellable context.
 	startCtx, cancel := context.WithTimeout(ctx, startupTimeout)
 	defer cancel()
 
+	// Open the pipe that receives the daemon startup result.
 	pipeID := "spacewave-daemon-" + randstring.RandomIdentifier(6)
 	pipeListener, err := pipesock.BuildPipeListener(s.le, statePath, pipeID)
 	if err != nil {
@@ -314,11 +335,13 @@ func (s *CoreRootServer) startSpaceRootRuntimeDaemon(ctx context.Context, stateP
 	}
 	defer pipeListener.Close()
 
+	// Resolve the executable used to start the daemon.
 	exePath, err := os.Executable()
 	if err != nil {
 		return errors.Wrap(err, "resolve executable")
 	}
 
+	// Prepare the daemon command for the selected state root.
 	cmd := exec.Command(
 		exePath,
 		"--state-path", statePath,
@@ -326,6 +349,7 @@ func (s *CoreRootServer) startSpaceRootRuntimeDaemon(ctx context.Context, stateP
 		"--daemon-startup-pipe-id", pipeID,
 	)
 
+	// Redirect the daemon standard streams to the null device.
 	nullFile, err := os.OpenFile(os.DevNull, os.O_RDWR, 0)
 	if err != nil {
 		return errors.Wrap(err, "open devnull")
@@ -335,10 +359,12 @@ func (s *CoreRootServer) startSpaceRootRuntimeDaemon(ctx context.Context, stateP
 	cmd.Stdout = nullFile
 	cmd.Stderr = nullFile
 
+	// Start the daemon process for the selected state root.
 	if err := cmd.Start(); err != nil {
 		return errors.Wrap(err, "start daemon process")
 	}
 
+	// Wait for daemon readiness and release the process handle.
 	if err := waitForSpaceRootRuntimeStartup(startCtx, pipeListener); err != nil {
 		if cmd.Process != nil {
 			_ = cmd.Process.Kill()
@@ -353,6 +379,7 @@ func (s *CoreRootServer) startSpaceRootRuntimeDaemon(ctx context.Context, stateP
 }
 
 func getSpaceRootRuntimeStartupTimeout() (time.Duration, error) {
+	// Read and parse the configured daemon startup duration.
 	raw := os.Getenv(spaceRootRuntimeStartupTimeoutEnvVar)
 	if raw == "" {
 		return spaceRootRuntimeStartupTimeout, nil
@@ -365,6 +392,7 @@ func getSpaceRootRuntimeStartupTimeout() (time.Duration, error) {
 }
 
 func waitForSpaceRootRuntimeStartup(ctx context.Context, pipeListener net.Listener) error {
+	// Receive the daemon startup message while cancellation closes the pipe.
 	type startupResult struct {
 		msg string
 		err error
@@ -384,6 +412,7 @@ func waitForSpaceRootRuntimeStartup(ctx context.Context, pipeListener net.Listen
 		_ = pipeListener.Close()
 	}()
 
+	// Resolve daemon readiness or return its startup failure.
 	select {
 	case <-ctx.Done():
 		return errors.Wrap(ctx.Err(), "wait for daemon startup")
@@ -406,8 +435,10 @@ func waitForSpaceRootRuntimeStartup(ctx context.Context, pipeListener net.Listen
 }
 
 func readSpaceRootRuntimeStartupMessage(conn net.Conn) (string, error) {
+	// Close the startup connection after consuming its message.
 	defer conn.Close()
 
+	// Read and validate the daemon startup message.
 	msg, err := io.ReadAll(conn)
 	if err != nil {
 		return "", errors.Wrap(err, "read startup message")

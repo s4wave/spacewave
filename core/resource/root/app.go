@@ -36,9 +36,12 @@ func (s *CoreRootServer) SetMountAppFunc(fn MountAppFunc) { s.mountApp = fn }
 
 // MountApp mounts an isolated installation using exactly one supplied storage source.
 func (s *CoreRootServer) MountApp(ctx context.Context, req *s4wave_root.MountAppRequest) (*s4wave_root.MountAppResponse, error) {
+	// Require the nested app runtime before resolving its storage.
 	if s.mountApp == nil {
 		return nil, errors.New("nested app runtime is unavailable")
 	}
+
+	// Resolve the supplied storage source for the nested installation.
 	var sources int
 	binding := AppStorage{StorageID: req.GetStorageId(), Prefix: strings.TrimRight(req.GetObjectPrefix(), "/")}
 	if binding.StorageID != "" {
@@ -67,6 +70,8 @@ func (s *CoreRootServer) MountApp(ctx context.Context, req *s4wave_root.MountApp
 	if sources != 1 {
 		return nil, errors.New("select exactly one app storage source")
 	}
+
+	// Attach the nested runtime as a child resource of the caller.
 	var httpPathPrefix string
 	_, id, err := resource_server.ConstructChildResource(ctx, func(_ context.Context) (srpc.Invoker, struct{}, func(), error) {
 		// Startup follows the request's cancellation. The runtime registry retains

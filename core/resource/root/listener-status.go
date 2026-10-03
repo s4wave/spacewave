@@ -12,6 +12,7 @@ func (s *CoreRootServer) WatchListenerStatus(
 	_ *s4wave_root.WatchListenerStatusRequest,
 	strm s4wave_root.SRPCRootResourceService_WatchListenerStatusStream,
 ) error {
+	// Resolve the listener status broker or send an empty runtime status.
 	ctx := strm.Context()
 	broker := s.getListenerStatusBroker()
 	if broker == nil {
@@ -22,6 +23,7 @@ func (s *CoreRootServer) WatchListenerStatus(
 		return nil
 	}
 
+	// Watch the broker and send changed listener status snapshots.
 	var prev s4wave_root.WatchListenerStatusResponse
 	first := true
 	for {

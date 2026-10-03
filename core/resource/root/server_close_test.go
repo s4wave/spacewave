@@ -53,6 +53,7 @@ func TestRootServerCloseReleasesStateAtomAndCDN(t *testing.T) {
 	server.Close()
 	server.Close()
 
+	// Verify root shutdown releases each retained resource exactly once.
 	if releases.Load() != 1 {
 		t.Fatalf("state atom reference releases = %d, want 1", releases.Load())
 	}
@@ -86,6 +87,7 @@ func TestRootServerCloseWaitsForConcurrentStateAtomUse(t *testing.T) {
 	}()
 	<-started
 
+	// Verify root shutdown waits for the blocked state-atom acquisition.
 	closeDone := make(chan struct{})
 	go func() {
 		server.Close()

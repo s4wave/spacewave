@@ -121,12 +121,14 @@ func (s *CoreRootServer) ListSessions(
 	ctx context.Context,
 	req *s4wave_root.ListSessionsRequest,
 ) (*s4wave_root.ListSessionsResponse, error) {
+	// Acquire the Session controller for the configured session list.
 	sessionCtrl, sessionCtrlRef, err := session.ExLookupSessionController(ctx, s.b, "", false, nil)
 	if err != nil {
 		return nil, err
 	}
 	defer sessionCtrlRef.Release()
 
+	// Read the configured Session entries.
 	entries, err := sessionCtrl.ListSessions(ctx)
 	if err != nil {
 		return nil, err
@@ -140,12 +142,14 @@ func (s *CoreRootServer) GetSessionMetadata(
 	ctx context.Context,
 	req *s4wave_root.GetSessionMetadataRequest,
 ) (*s4wave_root.GetSessionMetadataResponse, error) {
+	// Acquire the Session controller for metadata lookup.
 	sessionCtrl, sessionCtrlRef, err := session.ExLookupSessionController(ctx, s.b, "", false, nil)
 	if err != nil {
 		return nil, err
 	}
 	defer sessionCtrlRef.Release()
 
+	// Read metadata for the requested Session index.
 	meta, err := s.sessionMetadata(ctx, sessionCtrl, req.GetSessionIdx())
 	if err != nil {
 		return nil, err
@@ -159,6 +163,7 @@ func (s *CoreRootServer) WatchSessionMetadata(
 	req *s4wave_root.WatchSessionMetadataRequest,
 	strm s4wave_root.SRPCRootResourceService_WatchSessionMetadataStream,
 ) error {
+	// Acquire the Session controller for the metadata stream.
 	ctx := strm.Context()
 	sessionCtrl, sessionCtrlRef, err := session.ExLookupSessionController(ctx, s.b, "", false, nil)
 	if err != nil {
@@ -166,6 +171,7 @@ func (s *CoreRootServer) WatchSessionMetadata(
 	}
 	defer sessionCtrlRef.Release()
 
+	// Watch Session mutations and send changed metadata snapshots.
 	bcast := sessionCtrl.GetSessionBroadcast()
 	var prev *s4wave_root.WatchSessionMetadataResponse
 	for {
@@ -201,6 +207,7 @@ func (s *CoreRootServer) WatchSessionMetadata(
 }
 
 func (s *CoreRootServer) sessionMetadata(ctx context.Context, sessionCtrl session.SessionController, sessionIdx uint32) (*session.SessionMetadata, error) {
+	// Read the Session metadata before enriching PIN recovery state.
 	meta, err := sessionCtrl.GetSessionMetadata(ctx, sessionIdx)
 	if err != nil || meta == nil {
 		return meta, err
@@ -210,6 +217,7 @@ func (s *CoreRootServer) sessionMetadata(ctx context.Context, sessionCtrl sessio
 		return meta, nil
 	}
 
+	// Resolve the Session provider account for PIN recovery lookup.
 	sessInfo, err := sessionCtrl.GetSessionByIdx(ctx, sessionIdx)
 	if err != nil || sessInfo == nil {
 		return meta, err
@@ -227,6 +235,7 @@ func (s *CoreRootServer) sessionMetadata(ctx context.Context, sessionCtrl sessio
 	}
 	defer provAccRef.Release()
 
+	// Read the provider account feature and its PIN recovery state.
 	sessFeature, err := session.GetSessionProviderAccountFeature(ctx, provAcc)
 	if err != nil {
 		return meta, nil
@@ -244,12 +253,14 @@ func (s *CoreRootServer) UnlockSession(
 	ctx context.Context,
 	req *s4wave_root.UnlockSessionByIdxRequest,
 ) (*s4wave_root.UnlockSessionByIdxResponse, error) {
+	// Acquire the Session controller for the unlock request.
 	sessionCtrl, sessionCtrlRef, err := session.ExLookupSessionController(ctx, s.b, "", false, nil)
 	if err != nil {
 		return nil, err
 	}
 	defer sessionCtrlRef.Release()
 
+	// Find the Session identified by the requested index.
 	sessInfo, err := sessionCtrl.GetSessionByIdx(ctx, req.GetSessionIdx())
 	if err != nil {
 		return nil, err
@@ -258,9 +269,11 @@ func (s *CoreRootServer) UnlockSession(
 		return nil, session.ErrSessionNotFound
 	}
 
+	// Resolve the provider account reference for the locked Session.
 	ref := sessInfo.GetSessionRef()
 	provRef := ref.GetProviderResourceRef()
 
+	// Access the provider account for the unlock request.
 	provAcc, provAccRef, err := provider.ExAccessProviderAccount(
 		ctx, s.b,
 		provRef.GetProviderId(),
@@ -272,11 +285,13 @@ func (s *CoreRootServer) UnlockSession(
 	}
 	defer provAccRef.Release()
 
+	// Resolve the provider account feature that unlocks PIN sessions.
 	sessFeature, err := session.GetSessionProviderAccountFeature(ctx, provAcc)
 	if err != nil {
 		return nil, err
 	}
 
+	// Unlock the Session with the supplied PIN.
 	if err := sessFeature.UnlockPINSession(ctx, ref, req.GetPin()); err != nil {
 		return nil, err
 	}
@@ -289,6 +304,7 @@ func (s *CoreRootServer) WatchSessions(
 	req *s4wave_root.WatchSessionsRequest,
 	strm s4wave_root.SRPCRootResourceService_WatchSessionsStream,
 ) error {
+	// Acquire the Session controller for the session list stream.
 	ctx := strm.Context()
 	sessionCtrl, sessionCtrlRef, err := session.ExLookupSessionController(ctx, s.b, "", false, nil)
 	if err != nil {
@@ -296,6 +312,7 @@ func (s *CoreRootServer) WatchSessions(
 	}
 	defer sessionCtrlRef.Release()
 
+	// Watch Session mutations and send changed session lists.
 	bcast := sessionCtrl.GetSessionBroadcast()
 	var prev *s4wave_root.WatchSessionsResponse
 	for {
@@ -334,6 +351,7 @@ func (s *CoreRootServer) WatchAllAccountStatuses(
 	req *s4wave_root.WatchAllAccountStatusesRequest,
 	strm s4wave_root.SRPCRootResourceService_WatchAllAccountStatusesStream,
 ) error {
+	// Acquire the Session controller for the account status stream.
 	ctx := strm.Context()
 	sessionCtrl, sessionCtrlRef, err := session.ExLookupSessionController(ctx, s.b, "", false, nil)
 	if err != nil {
@@ -341,6 +359,7 @@ func (s *CoreRootServer) WatchAllAccountStatuses(
 	}
 	defer sessionCtrlRef.Release()
 
+	// Send changed account statuses and wait on their retained watches.
 	var prev *s4wave_root.WatchAllAccountStatusesResponse
 	for {
 		resp, waitChs, releases, err := s.snapshotAllAccountStatuses(ctx, sessionCtrl)
@@ -383,6 +402,7 @@ func (s *CoreRootServer) snapshotAllAccountStatuses(
 	[]func(),
 	error,
 ) {
+	// Capture the Session change notification before reading entries.
 	var sessionCh <-chan struct{}
 	sessionCtrl.GetSessionBroadcast().HoldLock(func(
 		_ func(),
@@ -391,11 +411,13 @@ func (s *CoreRootServer) snapshotAllAccountStatuses(
 		sessionCh = getWaitCh()
 	})
 
+	// Read the Session entries whose account statuses will be reported.
 	entries, err := sessionCtrl.ListSessions(ctx)
 	if err != nil {
 		return nil, nil, nil, err
 	}
 
+	// Collect each Session status and retain its provider account watch.
 	accountStatuses := make(map[string]provider.ProviderAccountStatus)
 	accountWaitChs := make(map[string]<-chan struct{})
 	releases := make([]func(), 0, len(entries))
@@ -455,6 +477,7 @@ func (s *CoreRootServer) snapshotAllAccountStatuses(
 		}
 	})
 
+	// Combine Session and provider account change notifications.
 	waitChs := make([]<-chan struct{}, 0, len(accountWaitChs)+1)
 	waitChs = append(waitChs, sessionCh)
 	for _, ch := range accountWaitChs {
@@ -469,12 +492,14 @@ func (s *CoreRootServer) DeleteSession(
 	ctx context.Context,
 	req *s4wave_root.DeleteSessionRequest,
 ) (*s4wave_root.DeleteSessionResponse, error) {
+	// Acquire the Session controller for the delete request.
 	sessionCtrl, sessionCtrlRef, err := session.ExLookupSessionController(ctx, s.b, "", false, nil)
 	if err != nil {
 		return nil, err
 	}
 	defer sessionCtrlRef.Release()
 
+	// Find the Session to remove from the local list.
 	sessInfo, err := sessionCtrl.GetSessionByIdx(ctx, req.GetSessionIdx())
 	if err != nil {
 		return nil, err
@@ -483,6 +508,7 @@ func (s *CoreRootServer) DeleteSession(
 		return &s4wave_root.DeleteSessionResponse{}, nil
 	}
 
+	// Delete the selected Session from the controller.
 	if err := sessionCtrl.DeleteSession(ctx, sessInfo.GetSessionRef()); err != nil {
 		return nil, err
 	}
@@ -495,17 +521,20 @@ func (s *CoreRootServer) ResetSession(
 	ctx context.Context,
 	req *s4wave_root.ResetSessionByIdxRequest,
 ) (*s4wave_root.ResetSessionByIdxResponse, error) {
+	// Require the credential used to verify the Session reset.
 	cred := req.GetCredential()
 	if cred == nil {
 		return nil, errors.New("credential is required")
 	}
 
+	// Acquire the Session controller for the reset request.
 	sessionCtrl, sessionCtrlRef, err := session.ExLookupSessionController(ctx, s.b, "", false, nil)
 	if err != nil {
 		return nil, err
 	}
 	defer sessionCtrlRef.Release()
 
+	// Find the Session identified by the reset request.
 	sessInfo, err := sessionCtrl.GetSessionByIdx(ctx, req.GetSessionIdx())
 	if err != nil {
 		return nil, err
@@ -514,9 +543,11 @@ func (s *CoreRootServer) ResetSession(
 		return nil, session.ErrSessionNotFound
 	}
 
+	// Resolve the provider account reference for the Session reset.
 	ref := sessInfo.GetSessionRef()
 	provRef := ref.GetProviderResourceRef()
 
+	// Access the provider account for credential verification and reset.
 	provAcc, provAccRef, err := provider.ExAccessProviderAccount(
 		ctx, s.b,
 		provRef.GetProviderId(),
@@ -528,6 +559,7 @@ func (s *CoreRootServer) ResetSession(
 	}
 	defer provAccRef.Release()
 
+	// Verify the credential through the Spacewave account resource.
 	if provRef.GetProviderId() == "spacewave" {
 		accResource := resource_account.NewAccountResource(provAcc)
 		if accResource == nil {
@@ -539,11 +571,13 @@ func (s *CoreRootServer) ResetSession(
 		}
 	}
 
+	// Resolve the provider account feature that resets PIN sessions.
 	sessFeature, err := session.GetSessionProviderAccountFeature(ctx, provAcc)
 	if err != nil {
 		return nil, err
 	}
 
+	// Reset the Session using the verified credential.
 	if err := sessFeature.ResetPINSession(ctx, ref, cred); err != nil {
 		return nil, err
 	}

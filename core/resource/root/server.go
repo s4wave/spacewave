@@ -67,6 +67,7 @@ type CoreRootServer struct {
 
 // NewCoreRootServer creates a new CoreRootServer.
 func NewCoreRootServer(le *logrus.Entry, b bus.Bus) *CoreRootServer {
+	// Construct the root server and its process-scoped registries.
 	s := &CoreRootServer{
 		le: le,
 		b:  b,

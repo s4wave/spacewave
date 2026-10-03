@@ -16,6 +16,7 @@ import (
 )
 
 func TestParseWebListenSpec(t *testing.T) {
+	// Parse a loopback listen address and verify its host and ephemeral port.
 	spec, err := parseWebListenSpec("/ip4/127.0.0.1/tcp/0")
 	if err != nil {
 		t.Fatal(err)
@@ -24,6 +25,7 @@ func TestParseWebListenSpec(t *testing.T) {
 		t.Fatalf("spec = %#v, want 127.0.0.1:0", spec)
 	}
 
+	// Verify web listen parsing rejects non-loopback and incomplete addresses.
 	if _, err := parseWebListenSpec("/ip4/0.0.0.0/tcp/0"); err == nil {
 		t.Fatal("expected non-loopback host error")
 	}
@@ -33,12 +35,14 @@ func TestParseWebListenSpec(t *testing.T) {
 }
 
 func TestWebListenerServesHealth(t *testing.T) {
+	// Start a localhost web listener for the health request.
 	listener, err := newWebListener(t.Context(), logrus.NewEntry(logrus.New()), nil, "")
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer listener.Close()
 
+	// Fetch the listener health response and verify its status and body.
 	resp, err := http.Get(listener.url + "/_spacewave/health")
 	if err != nil {
 		t.Fatal(err)
@@ -54,6 +58,7 @@ func TestWebListenerServesHealth(t *testing.T) {
 }
 
 func TestWebListenerServesBootShell(t *testing.T) {
+	// Serve release boot metadata from a local upstream fixture.
 	upstream := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
 		if req.URL.Path != "/" {
 			t.Fatalf("upstream path = %s, want /", req.URL.Path)
@@ -66,12 +71,14 @@ func TestWebListenerServesBootShell(t *testing.T) {
 	defer upstream.Close()
 	t.Setenv("SPACEWAVE_WEB_ENDPOINT", upstream.URL)
 
+	// Start the web listener against the release fixture.
 	listener, err := newWebListener(t.Context(), logrus.NewEntry(logrus.New()), nil, "")
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer listener.Close()
 
+	// Fetch and read the listener boot shell.
 	resp, err := http.Get(listener.url + "/")
 	if err != nil {
 		t.Fatal(err)
@@ -81,6 +88,8 @@ func TestWebListenerServesBootShell(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Verify the shell includes release assets and capability bootstrap wiring.
 	text := string(body)
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("boot shell status = %d, want 200", resp.StatusCode)
@@ -100,6 +109,7 @@ func TestWebListenerServesBootShell(t *testing.T) {
 }
 
 func TestWebListenerServesDisplayBootShellBeforeCapability(t *testing.T) {
+	// Serve release boot metadata for the display route fixture.
 	upstream := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
 		if req.URL.Path != "/" {
 			t.Fatalf("upstream path = %s, want /", req.URL.Path)
@@ -111,12 +121,14 @@ func TestWebListenerServesDisplayBootShellBeforeCapability(t *testing.T) {
 	defer upstream.Close()
 	t.Setenv("SPACEWAVE_WEB_ENDPOINT", upstream.URL)
 
+	// Start the web listener against the display fixture.
 	listener, err := newWebListener(t.Context(), logrus.NewEntry(logrus.New()), nil, "")
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer listener.Close()
 
+	// Fetch and read the display boot shell before capability exchange.
 	resp, err := http.Get(listener.url + "/display?path=docs%2Fhello")
 	if err != nil {
 		t.Fatal(err)
@@ -126,6 +138,8 @@ func TestWebListenerServesDisplayBootShellBeforeCapability(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Verify the display shell includes the release bootstrap wiring.
 	text := string(body)
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("display boot shell status = %d, want 200", resp.StatusCode)
@@ -136,12 +150,14 @@ func TestWebListenerServesDisplayBootShellBeforeCapability(t *testing.T) {
 }
 
 func TestWebListenerBootstrapSetsSingleUseCapability(t *testing.T) {
+	// Start a web listener for the single-use bootstrap exchange.
 	listener, err := newWebListener(t.Context(), logrus.NewEntry(logrus.New()), nil, "")
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer listener.Close()
 
+	// Exchange the bootstrap secret and verify its bounded capability cookie.
 	secret, err := listener.issueBootstrapSecret()
 	if err != nil {
 		t.Fatal(err)
@@ -159,6 +175,7 @@ func TestWebListenerBootstrapSetsSingleUseCapability(t *testing.T) {
 		t.Fatalf("capability cookie should be http-only and bounded: %#v", cookie)
 	}
 
+	// Verify a consumed bootstrap secret cannot be exchanged again.
 	resp, err = exchangeWebBootstrapWithSecret(listener, secret)
 	if err != nil {
 		t.Fatal(err)
@@ -170,6 +187,7 @@ func TestWebListenerBootstrapSetsSingleUseCapability(t *testing.T) {
 }
 
 func TestWebListenerGatesReleaseAssets(t *testing.T) {
+	// Serve a release descriptor from a local upstream fixture.
 	upstream := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
 		if req.URL.Path != "/browser-release.json" {
 			t.Fatalf("upstream path = %s, want /browser-release.json", req.URL.Path)
@@ -180,12 +198,14 @@ func TestWebListenerGatesReleaseAssets(t *testing.T) {
 	defer upstream.Close()
 	t.Setenv("SPACEWAVE_WEB_ENDPOINT", upstream.URL)
 
+	// Start the web listener against the release descriptor fixture.
 	listener, err := newWebListener(t.Context(), logrus.NewEntry(logrus.New()), nil, "")
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer listener.Close()
 
+	// Verify release assets reject a request without a capability.
 	resp, err := http.Get(listener.url + "/browser-release.json")
 	if err != nil {
 		t.Fatal(err)
@@ -195,6 +215,7 @@ func TestWebListenerGatesReleaseAssets(t *testing.T) {
 		t.Fatalf("ungated release response = %d, want 401", resp.StatusCode)
 	}
 
+	// Exchange a bootstrap secret for the release asset capability.
 	resp, err = exchangeWebBootstrap(listener)
 	if err != nil {
 		t.Fatal(err)
@@ -205,6 +226,7 @@ func TestWebListenerGatesReleaseAssets(t *testing.T) {
 		t.Fatal("missing capability cookie")
 	}
 
+	// Request the release descriptor with the capability cookie.
 	req, err := http.NewRequestWithContext(t.Context(), http.MethodGet, listener.url+"/browser-release.json", nil)
 	if err != nil {
 		t.Fatal(err)
@@ -219,14 +241,18 @@ func TestWebListenerGatesReleaseAssets(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Verify the authorized request receives the upstream descriptor.
 	if resp.StatusCode != http.StatusOK || !strings.Contains(string(body), "app.js") {
 		t.Fatalf("release response = %d %q, want proxied descriptor", resp.StatusCode, string(body))
 	}
 }
 
 func TestWebListenerRegistryReusesPortZeroHostname(t *testing.T) {
+	// Create a listener registry for ephemeral-port reuse.
 	reg := newWebListenerRegistry(logrus.NewEntry(logrus.New()))
 
+	// Allocate the first listener and verify it was created.
 	a, reused, err := reg.access(t.Context(), nil, "/ip4/127.0.0.1/tcp/0")
 	if err != nil {
 		t.Fatal(err)
@@ -236,6 +262,7 @@ func TestWebListenerRegistryReusesPortZeroHostname(t *testing.T) {
 		t.Fatal("first listener should not be reused")
 	}
 
+	// Access the same listen address and verify its listener is reused.
 	b, reused, err := reg.access(t.Context(), nil, "/ip4/127.0.0.1/tcp/0")
 	if err != nil {
 		t.Fatal(err)
@@ -246,6 +273,8 @@ func TestWebListenerRegistryReusesPortZeroHostname(t *testing.T) {
 	if a != b {
 		t.Fatal("expected registry to return the existing listener")
 	}
+
+	// Verify each listener response issues a fresh bootstrap secret.
 	aResp, err := a.response(0, false)
 	if err != nil {
 		t.Fatal(err)
@@ -286,8 +315,10 @@ func findWebCapabilityCookie(cookies []*http.Cookie) *http.Cookie {
 }
 
 func TestWebListenerRegistryDoesNotReuseExplicitPort(t *testing.T) {
+	// Create a listener registry for explicit-port allocation.
 	reg := newWebListenerRegistry(logrus.NewEntry(logrus.New()))
 
+	// Allocate a listener whose port remains in use.
 	a, reused, err := reg.access(t.Context(), nil, "/ip4/127.0.0.1/tcp/0")
 	if err != nil {
 		t.Fatal(err)
@@ -297,6 +328,7 @@ func TestWebListenerRegistryDoesNotReuseExplicitPort(t *testing.T) {
 		t.Fatal("first listener should not be reused")
 	}
 
+	// Verify an explicit request for the occupied port fails without reuse.
 	parts := strings.Split(a.listenMultiaddr, "/tcp/")
 	if len(parts) != 2 {
 		t.Fatalf("unexpected listener multiaddr: %s", a.listenMultiaddr)
@@ -307,6 +339,7 @@ func TestWebListenerRegistryDoesNotReuseExplicitPort(t *testing.T) {
 }
 
 func TestWebListenerRegistryRetainsExplicitPort(t *testing.T) {
+	// Find an available TCP port for the explicit listener fixture.
 	reg := newWebListenerRegistry(logrus.NewEntry(logrus.New()))
 	probe, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
@@ -317,6 +350,7 @@ func TestWebListenerRegistryRetainsExplicitPort(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Allocate the explicit-port listener and verify it is new.
 	listener, reused, err := reg.access(t.Context(), nil, "/ip4/127.0.0.1/tcp/"+strconv.Itoa(port))
 	if err != nil {
 		t.Fatal(err)
@@ -326,6 +360,7 @@ func TestWebListenerRegistryRetainsExplicitPort(t *testing.T) {
 		t.Fatal("explicit listener should not be reused")
 	}
 
+	// Verify the registry retains the explicit background listener.
 	var found bool
 	reg.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		for _, existing := range reg.listeners {
@@ -340,9 +375,11 @@ func TestWebListenerRegistryRetainsExplicitPort(t *testing.T) {
 }
 
 func TestAccessWebListenerBackgroundResponseIncludesLifecycleData(t *testing.T) {
+	// Create a root server for background listener access.
 	server := NewCoreRootServer(logrus.NewEntry(logrus.New()), nil)
 	defer server.Close()
 
+	// Access a background listener and verify its lifecycle response.
 	resp, err := server.AccessWebListener(t.Context(), &s4wave_root.AccessWebListenerRequest{
 		ListenMultiaddr: "/ip4/127.0.0.1/tcp/0",
 		Background:      true,
@@ -359,6 +396,8 @@ func TestAccessWebListenerBackgroundResponseIncludesLifecycleData(t *testing.T) 
 	if !strings.Contains(resp.GetListenMultiaddr(), "/tcp/") {
 		t.Fatalf("listen multiaddr = %q, want resolved tcp multiaddr", resp.GetListenMultiaddr())
 	}
+
+	// Verify the response URL, bootstrap secret, and initial reuse status.
 	if !strings.HasPrefix(resp.GetUrl(), "http://") {
 		t.Fatalf("url = %q, want http:// URL", resp.GetUrl())
 	}
@@ -369,6 +408,7 @@ func TestAccessWebListenerBackgroundResponseIncludesLifecycleData(t *testing.T) 
 		t.Fatal("first listener should not be reused")
 	}
 
+	// Verify a second access reuses the listener and issues a fresh secret.
 	reused, err := server.AccessWebListener(t.Context(), &s4wave_root.AccessWebListenerRequest{
 		ListenMultiaddr: "/ip4/127.0.0.1/tcp/0",
 		Background:      true,
@@ -388,9 +428,11 @@ func TestAccessWebListenerBackgroundResponseIncludesLifecycleData(t *testing.T) 
 }
 
 func TestRootServerListsAndStopsBackgroundWebListeners(t *testing.T) {
+	// Create a root server for background listener lifecycle checks.
 	server := NewCoreRootServer(logrus.NewEntry(logrus.New()), nil)
 	defer server.Close()
 
+	// Access a background listener through the root service.
 	resp, err := server.AccessWebListener(t.Context(), &s4wave_root.AccessWebListenerRequest{
 		ListenMultiaddr: "/ip4/127.0.0.1/tcp/0",
 		Background:      true,
@@ -399,6 +441,7 @@ func TestRootServerListsAndStopsBackgroundWebListeners(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Verify the listener appears in the background registry.
 	listeners := server.webListeners.list()
 	if len(listeners) != 1 {
 		t.Fatalf("listeners = %d, want 1", len(listeners))
@@ -410,6 +453,7 @@ func TestRootServerListsAndStopsBackgroundWebListeners(t *testing.T) {
 		t.Fatal("listed listener should be background-owned")
 	}
 
+	// Verify stopping an unknown listener reports it missing.
 	missing, err := server.StopWebListener(t.Context(), &s4wave_root.StopWebListenerRequest{
 		ListenerId: "missing",
 	})
@@ -420,6 +464,7 @@ func TestRootServerListsAndStopsBackgroundWebListeners(t *testing.T) {
 		t.Fatal("missing listener should report not found")
 	}
 
+	// Stop the registered listener through the root service.
 	stopped, err := server.StopWebListener(t.Context(), &s4wave_root.StopWebListenerRequest{
 		ListenerId: resp.GetListenerId(),
 	})
@@ -430,6 +475,7 @@ func TestRootServerListsAndStopsBackgroundWebListeners(t *testing.T) {
 		t.Fatal("existing listener should stop")
 	}
 
+	// Verify the stopped listener is removed from the registry.
 	listeners = server.webListeners.list()
 	if len(listeners) != 0 {
 		t.Fatalf("listeners after stop = %d, want 0", len(listeners))

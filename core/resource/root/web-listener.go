@@ -44,6 +44,7 @@ func (s *CoreRootServer) AccessWebListener(
 	ctx context.Context,
 	req *s4wave_root.AccessWebListenerRequest,
 ) (*s4wave_root.AccessWebListenerResponse, error) {
+	// Resolve daemon-owned listeners through the shared registry.
 	if req.GetBackground() {
 		listener, reused, err := s.webListeners.access(ctx, s.b, req.GetListenMultiaddr())
 		if err != nil {
@@ -52,6 +53,7 @@ func (s *CoreRootServer) AccessWebListener(
 		return listener.response(0, reused)
 	}
 
+	// Create a web listener whose lifetime follows the client resource.
 	resourceCtx, err := resource_server.MustGetResourceClientContext(ctx)
 	if err != nil {
 		return nil, err
@@ -144,6 +146,7 @@ func (r *webListenerRegistry) access(
 	b bus.Bus,
 	listenMultiaddr string,
 ) (*webListener, bool, error) {
+	// Parse the requested address and register explicit-port listeners.
 	spec, err := parseWebListenSpec(listenMultiaddr)
 	if err != nil {
 		return nil, false, err
@@ -160,6 +163,7 @@ func (r *webListenerRegistry) access(
 		return listener, false, nil
 	}
 
+	// Reuse the existing listener for this ephemeral-port address.
 	key := spec.reuseKey()
 	var existing *webListener
 	r.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
@@ -169,6 +173,7 @@ func (r *webListenerRegistry) access(
 		return existing, true, nil
 	}
 
+	// Register a new listener unless another caller already supplied one.
 	listener, err := newWebListenerWithSpec(ctx, r.le, b, spec)
 	if err != nil {
 		return nil, false, err
@@ -199,6 +204,7 @@ func (r *webListenerRegistry) list() []*s4wave_root.WebListenerInfo {
 }
 
 func (r *webListenerRegistry) listLocked() []*s4wave_root.WebListenerInfo {
+	// Build a sorted listener list for the registry snapshot.
 	listeners := make([]*webListener, 0, len(r.listeners))
 	for _, listener := range r.listeners {
 		listeners = append(listeners, listener)
@@ -214,6 +220,7 @@ func (r *webListenerRegistry) listLocked() []*s4wave_root.WebListenerInfo {
 }
 
 func (r *webListenerRegistry) stop(listenerID string) bool {
+	// Remove the requested listener from the registry before closing it.
 	var listener *webListener
 	r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		for key, existing := range r.listeners {
@@ -268,6 +275,7 @@ func newWebListenerWithSpec(
 	b bus.Bus,
 	spec *webListenSpec,
 ) (*webListener, error) {
+	// Bind the web listener to the requested TCP address.
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
@@ -275,6 +283,8 @@ func newWebListenerWithSpec(
 	if err != nil {
 		return nil, errors.Wrap(err, "listen web")
 	}
+
+	// Resolve the bound listener address and generate its public identifier.
 	resolved, err := manet.FromNetAddr(lis.Addr())
 	if err != nil {
 		_ = lis.Close()
@@ -285,6 +295,8 @@ func newWebListenerWithSpec(
 		_ = lis.Close()
 		return nil, err
 	}
+
+	// Create the package server and HTTP handler for the bound listener.
 	var pkgServer *web_pkg_http.Server
 	if b != nil {
 		pkgServer = web_pkg_http.NewServer(le, b, false)
@@ -309,6 +321,8 @@ func newWebListenerWithSpec(
 		Handler:           listener,
 		ReadHeaderTimeout: webListenerReadHeaderTimeout,
 	}
+
+	// Serve web requests until the listener closes.
 	go func() {
 		err := listener.server.Serve(lis)
 		if err != nil && err != http.ErrServerClosed {
@@ -352,6 +366,7 @@ func (l *webListener) Close() {
 }
 
 func (l *webListener) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
+	// Route web requests through bootstrap, authorization, and runtime handlers.
 	if req.URL.Path == "/_spacewave/health" {
 		rw.Header().Set("Content-Type", "text/plain; charset=utf-8")
 		_, _ = rw.Write([]byte("ok\n"))
@@ -377,20 +392,26 @@ func (l *webListener) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 }
 
 func (l *webListener) exchangeBootstrap(rw http.ResponseWriter, req *http.Request) {
+	// Require a POST request for the bootstrap exchange.
 	if req.Method != http.MethodPost {
 		http.Error(rw, "method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
+
+	// Generate the capability token for the supplied bootstrap secret.
 	secret := req.Header.Get("X-Spacewave-Bootstrap")
 	token, err := newWebSecret()
 	if err != nil {
 		http.Error(rw, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
+	// Exchange the unexpired bootstrap secret for a retained capability.
 	var ok bool
 	now := time.Now()
 	expires := now.Add(webCapabilityTTL)
 	l.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		// Consume the bootstrap secret and register its capability if valid.
 		l.pruneExpiredKeys(now)
 		bootstrapExpires, found := l.bootstrapKeys[secret]
 		ok = found && now.Before(bootstrapExpires)
@@ -407,6 +428,8 @@ func (l *webListener) exchangeBootstrap(rw http.ResponseWriter, req *http.Reques
 		http.Error(rw, "invalid bootstrap secret", http.StatusUnauthorized)
 		return
 	}
+
+	// Return the capability cookie and token to the bootstrap client.
 	http.SetCookie(rw, &http.Cookie{
 		Name:     webCapabilityCookie,
 		Value:    token,
@@ -421,6 +444,7 @@ func (l *webListener) exchangeBootstrap(rw http.ResponseWriter, req *http.Reques
 }
 
 func (l *webListener) issueBootstrapSecret() (string, error) {
+	// Generate and retain an expiring bootstrap secret for this listener.
 	secret, err := newWebSecret()
 	if err != nil {
 		return "", err
@@ -449,6 +473,7 @@ func (l *webListener) pruneExpiredKeys(now time.Time) {
 }
 
 func (l *webListener) isAuthorized(req *http.Request) bool {
+	// Validate the request capability against the listener expiration record.
 	cookie, err := req.Cookie(webCapabilityCookie)
 	if err != nil || cookie.Value == "" {
 		return false
@@ -470,16 +495,21 @@ func isWebListenerBootShellPath(path string) bool {
 }
 
 func (l *webListener) serveBootShell(rw http.ResponseWriter, req *http.Request) {
+	// Fetch the released web app HTML for its boot metadata.
 	html, err := l.fetchReleaseRootHTML(req.Context())
 	if err != nil {
 		http.Error(rw, err.Error(), http.StatusBadGateway)
 		return
 	}
+
+	// Extract the release import map and stylesheet links.
 	metadata, err := webListenerReleaseBootMetadataFromHTML(html)
 	if err != nil {
 		http.Error(rw, err.Error(), http.StatusBadGateway)
 		return
 	}
+
+	// Render and serve the local bootstrap shell.
 	shell, err := renderWebListenerBootShell(metadata)
 	if err != nil {
 		http.Error(rw, err.Error(), http.StatusInternalServerError)
@@ -491,6 +521,7 @@ func (l *webListener) serveBootShell(rw http.ResponseWriter, req *http.Request) 
 }
 
 func (l *webListener) fetchReleaseRootHTML(ctx context.Context) (string, error) {
+	// Build an authorized request for the released web app root.
 	remoteURL, err := url.JoinPath(webAppEndpoint(), "/")
 	if err != nil {
 		return "", err
@@ -502,6 +533,8 @@ func (l *webListener) fetchReleaseRootHTML(ctx context.Context) (string, error) 
 	if auth := webAppAuthorization(); auth != "" {
 		upstreamReq.Header.Set("Authorization", auth)
 	}
+
+	// Fetch the release root and read its successful response body.
 	resp, err := http.DefaultClient.Do(upstreamReq)
 	if err != nil {
 		return "", err
@@ -573,6 +606,7 @@ await import('/boot.mjs');
 }
 
 func quoteWebListenerScriptString(value string) string {
+	// Escape HTML delimiters in the JavaScript string literal.
 	quoted := strconv.Quote(value)
 	quoted = strings.ReplaceAll(quoted, "<", `\u003c`)
 	quoted = strings.ReplaceAll(quoted, ">", `\u003e`)
@@ -581,6 +615,7 @@ func quoteWebListenerScriptString(value string) string {
 }
 
 func (l *webListener) serveNativeRuntimeHTTP(rw http.ResponseWriter, req *http.Request) {
+	// Route native runtime requests through the available package or bus handler.
 	if l.b == nil {
 		http.Error(rw, "spacewave: native runtime unavailable", http.StatusNotFound)
 		return
@@ -594,6 +629,8 @@ func (l *webListener) serveNativeRuntimeHTTP(rw http.ResponseWriter, req *http.R
 		l.pkgServer.ServeWebModuleHTTP(req.URL.Path[len(pkgPrefix):], rw, req)
 		return
 	}
+
+	// Resolve the native HTTP handler and retain it through the response.
 	handler, _, handlerRef, err := bifrost_http.ExLookupFirstHTTPHandler(
 		req.Context(),
 		l.b,
@@ -616,10 +653,12 @@ func (l *webListener) serveNativeRuntimeHTTP(rw http.ResponseWriter, req *http.R
 }
 
 func (l *webListener) serveReleaseWebHTTP(rw http.ResponseWriter, req *http.Request) {
+	// Require a read request before proxying release web assets.
 	if req.Method != http.MethodGet && req.Method != http.MethodHead {
 		http.Error(rw, "method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
+
 	// The upstream host is operator-configured (webAppEndpoint); JoinPath cleans dot
 	// segments, so the forwarded request path cannot escape that host.
 	// #nosec G704 -- intentional reverse proxy to the configured web app endpoint.
@@ -628,6 +667,8 @@ func (l *webListener) serveReleaseWebHTTP(rw http.ResponseWriter, req *http.Requ
 		http.Error(rw, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
+	// Build the upstream request with range and authorization headers.
 	// #nosec G704 -- intentional reverse proxy to the configured web app endpoint.
 	upstreamReq, err := http.NewRequestWithContext(req.Context(), req.Method, remoteURL, nil)
 	if err != nil {
@@ -640,6 +681,8 @@ func (l *webListener) serveReleaseWebHTTP(rw http.ResponseWriter, req *http.Requ
 	if auth := webAppAuthorization(); auth != "" {
 		upstreamReq.Header.Set("Authorization", auth)
 	}
+
+	// Fetch the upstream response and retain its body through forwarding.
 	// #nosec G704 -- intentional reverse proxy to the configured web app endpoint.
 	resp, err := http.DefaultClient.Do(upstreamReq)
 	if err != nil {
@@ -647,6 +690,8 @@ func (l *webListener) serveReleaseWebHTTP(rw http.ResponseWriter, req *http.Requ
 		return
 	}
 	defer resp.Body.Close()
+
+	// Forward the upstream headers and body to the web client.
 	copyHTTPHeaders(rw.Header(), resp.Header)
 	rw.WriteHeader(resp.StatusCode)
 	if req.Method == http.MethodHead {
@@ -679,6 +724,7 @@ func (s *webListenSpec) reuseKey() string {
 }
 
 func parseWebListenSpec(listenMultiaddr string) (*webListenSpec, error) {
+	// Parse the requested web listen address or its default.
 	raw := listenMultiaddr
 	if raw == "" {
 		raw = defaultWebListenMultiaddr
@@ -687,6 +733,8 @@ func parseWebListenSpec(listenMultiaddr string) (*webListenSpec, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "parse listen multiaddr")
 	}
+
+	// Extract and validate the localhost TCP host and port.
 	var host string
 	var port string
 	for _, comp := range maddr {
@@ -709,6 +757,8 @@ func parseWebListenSpec(listenMultiaddr string) (*webListenSpec, error) {
 	if !isLocalWebHost(host) {
 		return nil, errors.New("web listener host must be localhost or loopback")
 	}
+
+	// Decode the TCP port for the web listener specification.
 	portU64, err := strconv.ParseUint(port, 10, 16)
 	if err != nil {
 		return nil, errors.Wrap(err, "parse tcp port")
@@ -729,6 +779,7 @@ func isLocalWebHost(host string) bool {
 }
 
 func tcpListenHostPort(addr net.Addr) (string, uint32, error) {
+	// Resolve the bound TCP listener host with a loopback fallback.
 	tcpAddr, ok := addr.(*net.TCPAddr)
 	if !ok {
 		return "", 0, errors.New("web listener is not tcp")

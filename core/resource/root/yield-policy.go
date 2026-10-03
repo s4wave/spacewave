@@ -18,6 +18,7 @@ func (s *CoreRootServer) WatchListenerYieldPrompts(
 	_ *s4wave_root.WatchListenerYieldPromptsRequest,
 	strm s4wave_root.SRPCRootResourceService_WatchListenerYieldPromptsStream,
 ) error {
+	// Watch the listener broker and send changed takeover prompts.
 	broker := s.getYieldBroker()
 	if broker == nil {
 		return errors.New("listener yield broker is not available")
@@ -75,6 +76,7 @@ func (s *CoreRootServer) WatchRuntimeHandoff(
 	_ *s4wave_root.WatchRuntimeHandoffRequest,
 	strm s4wave_root.SRPCRootResourceService_WatchRuntimeHandoffStream,
 ) error {
+	// Watch the listener broker and send changed runtime handoff state.
 	broker := s.getYieldBroker()
 	if broker == nil {
 		return errors.New("listener yield broker is not available")

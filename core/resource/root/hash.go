@@ -26,11 +26,13 @@ func (s *CoreRootServer) ParseHash(
 	ctx context.Context,
 	req *s4wave_root.ParseHashRequest,
 ) (*s4wave_root.ParseHashResponse, error) {
+	// Handle an empty hash string before decoding its base58 bytes.
 	hashStr := req.GetHashStr()
 	if hashStr == "" {
 		return &s4wave_root.ParseHashResponse{Hash: nil}, nil
 	}
 
+	// Decode the base58 string into a Hash record.
 	h := &hash.Hash{}
 	if err := h.ParseFromB58(hashStr); err != nil {
 		return nil, err
@@ -44,9 +46,11 @@ func (s *CoreRootServer) HashSum(
 	ctx context.Context,
 	req *s4wave_root.HashSumRequest,
 ) (*s4wave_root.HashSumResponse, error) {
+	// Read the requested hash algorithm and input bytes.
 	hashType := req.GetHashType()
 	data := req.GetData()
 
+	// Compute the requested hash over the input bytes.
 	h, err := hash.Sum(hashType, data)
 	if err != nil {
 		return nil, err

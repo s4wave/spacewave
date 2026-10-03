@@ -21,11 +21,13 @@ import (
 )
 
 func TestSpaceRootAliasRegistryPersistsAndRemoves(t *testing.T) {
+	// Create the root alias server and an existing state directory.
 	ctx := t.Context()
 	server, cancel := setupSpaceRootAliasServer(ctx, t)
 	defer cancel()
 	rootPath := makeSpaceRootAliasDir(t)
 
+	// Save the root alias and verify its ready status.
 	record, err := server.UpsertSpaceRootAlias(ctx, &s4wave_root.UpsertSpaceRootAliasRequest{
 		Record: &s4wave_root.SpaceRootAliasRecord{
 			AliasId:     "company",
@@ -42,6 +44,7 @@ func TestSpaceRootAliasRegistryPersistsAndRemoves(t *testing.T) {
 		t.Fatalf("status = %s, want ready", record.GetRecord().GetStatus())
 	}
 
+	// Verify the saved root alias appears in the store snapshot.
 	records, err := server.snapshotSpaceRootAliases(ctx)
 	if err != nil {
 		t.Fatal(err)
@@ -50,6 +53,7 @@ func TestSpaceRootAliasRegistryPersistsAndRemoves(t *testing.T) {
 		t.Fatalf("records = %#v, want company at %s", records, rootPath)
 	}
 
+	// Remove the saved alias and verify it was found.
 	removeResp, err := server.RemoveSpaceRootAlias(ctx, &s4wave_root.RemoveSpaceRootAliasRequest{
 		AliasId: "company",
 	})
@@ -60,6 +64,7 @@ func TestSpaceRootAliasRegistryPersistsAndRemoves(t *testing.T) {
 		t.Fatal("remove should find existing alias")
 	}
 
+	// Verify the store snapshot is empty after removal.
 	records, err = server.snapshotSpaceRootAliases(ctx)
 	if err != nil {
 		t.Fatal(err)
@@ -70,10 +75,12 @@ func TestSpaceRootAliasRegistryPersistsAndRemoves(t *testing.T) {
 }
 
 func TestSpaceRootAliasRegistryRejectsUnsupportedSelections(t *testing.T) {
+	// Create a root alias server for invalid selections.
 	ctx := t.Context()
 	server, cancel := setupSpaceRootAliasServer(ctx, t)
 	defer cancel()
 
+	// Verify a missing state file cannot become a root alias.
 	if _, err := server.UpsertSpaceRootAlias(ctx, &s4wave_root.UpsertSpaceRootAliasRequest{
 		Record: &s4wave_root.SpaceRootAliasRecord{
 			AliasId:  "file",
@@ -85,6 +92,7 @@ func TestSpaceRootAliasRegistryRejectsUnsupportedSelections(t *testing.T) {
 		t.Fatal("expected .s4wave rejection")
 	}
 
+	// Verify an ordinary directory cannot become a root alias.
 	plainDir := t.TempDir()
 	if _, err := server.UpsertSpaceRootAlias(ctx, &s4wave_root.UpsertSpaceRootAliasRequest{
 		Record: &s4wave_root.SpaceRootAliasRecord{
@@ -99,6 +107,7 @@ func TestSpaceRootAliasRegistryRejectsUnsupportedSelections(t *testing.T) {
 }
 
 func TestSpaceRootFileAliasUsesItsContainingStateRoot(t *testing.T) {
+	// Create the alias server and its state catalog fixture.
 	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
 	server, serverCancel := setupSpaceRootAliasServer(t.Context(), t)
@@ -108,6 +117,8 @@ func TestSpaceRootFileAliasUsesItsContainingStateRoot(t *testing.T) {
 	if err := os.WriteFile(filePath, nil, 0o600); err != nil {
 		t.Fatal(err)
 	}
+
+	// Save the state file alias and verify its ready status.
 	record, err := server.UpsertSpaceRootAlias(t.Context(), &s4wave_root.UpsertSpaceRootAliasRequest{
 		Record: &s4wave_root.SpaceRootAliasRecord{
 			AliasId:  "file",
@@ -123,6 +134,7 @@ func TestSpaceRootFileAliasUsesItsContainingStateRoot(t *testing.T) {
 		t.Fatalf("file status = %s", record.GetRecord().GetStatus())
 	}
 
+	// Supply a runtime fixture that verifies the containing root path.
 	previous := connectSpaceRootRuntimeFunc
 	connectSpaceRootRuntimeFunc = func(_ context.Context, gotPath string) (*spaceRootRuntimeClient, error) {
 		if gotPath != statePath {
@@ -165,11 +177,13 @@ func TestSpaceRootFileSelectsItsAccountSessions(t *testing.T) {
 }
 
 func TestSpaceRootRuntimeReportsMissingDaemon(t *testing.T) {
+	// Create the root alias server and an existing state directory.
 	ctx := t.Context()
 	server, cancel := setupSpaceRootAliasServer(ctx, t)
 	defer cancel()
 	rootPath := makeSpaceRootAliasDir(t)
 
+	// Save the root alias whose daemon is absent.
 	_, err := server.UpsertSpaceRootAlias(ctx, &s4wave_root.UpsertSpaceRootAliasRequest{
 		Record: &s4wave_root.SpaceRootAliasRecord{
 			AliasId:  "company",
@@ -182,6 +196,7 @@ func TestSpaceRootRuntimeReportsMissingDaemon(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Watch the configured root whose daemon is absent.
 	strm := &testSpaceRootRuntimeStream{ctx: ctx}
 	if err := server.WatchSpaceRootRuntime(&s4wave_root.WatchSpaceRootRuntimeRequest{
 		AliasId: "company",
@@ -189,6 +204,7 @@ func TestSpaceRootRuntimeReportsMissingDaemon(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Verify the stream reports a connection attempt and actionable failure.
 	if len(strm.sent) != 2 {
 		t.Fatalf("sent %d responses, want connecting and error", len(strm.sent))
 	}
@@ -204,12 +220,14 @@ func TestSpaceRootRuntimeReportsMissingDaemon(t *testing.T) {
 }
 
 func TestSpaceRootRuntimeStreamsSelectedRootSessions(t *testing.T) {
+	// Create the root alias server and a cancellable runtime watch.
 	watchCtx, cancel := context.WithCancel(t.Context())
 	defer cancel()
 	server, serverCancel := setupSpaceRootAliasServer(t.Context(), t)
 	defer serverCancel()
 	rootPath := makeSpaceRootAliasDir(t)
 
+	// Save the root alias used by the runtime watch.
 	_, err := server.UpsertSpaceRootAlias(t.Context(), &s4wave_root.UpsertSpaceRootAliasRequest{
 		Record: &s4wave_root.SpaceRootAliasRecord{
 			AliasId:  "company",
@@ -222,6 +240,7 @@ func TestSpaceRootRuntimeStreamsSelectedRootSessions(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Supply a daemon fixture with Session metadata.
 	prev := connectSpaceRootRuntimeFunc
 	connectSpaceRootRuntimeFunc = func(context.Context, string) (*spaceRootRuntimeClient, error) {
 		return &spaceRootRuntimeClient{
@@ -237,6 +256,7 @@ func TestSpaceRootRuntimeStreamsSelectedRootSessions(t *testing.T) {
 		connectSpaceRootRuntimeFunc = prev
 	})
 
+	// Watch the selected root until the ready snapshot arrives.
 	strm := &testSpaceRootRuntimeStream{
 		ctx: watchCtx,
 		onSend: func(resp *s4wave_root.WatchSpaceRootRuntimeResponse) {
@@ -251,6 +271,7 @@ func TestSpaceRootRuntimeStreamsSelectedRootSessions(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Verify the stream includes the selected Session and its metadata.
 	if len(strm.sent) != 2 {
 		t.Fatalf("sent %d responses, want connecting and ready", len(strm.sent))
 	}
@@ -264,6 +285,8 @@ func TestSpaceRootRuntimeStreamsSelectedRootSessions(t *testing.T) {
 	if len(ready.GetRuntimeSessions()) != 1 || ready.GetRuntimeSessions()[0].GetMetadata().GetDisplayName() != "External Account" {
 		t.Fatalf("runtime sessions = %#v, want enriched session", ready.GetRuntimeSessions())
 	}
+
+	// Verify watching the runtime preserves the configured root alias.
 	records, err := server.snapshotSpaceRootAliases(t.Context())
 	if err != nil {
 		t.Fatal(err)
@@ -277,10 +300,12 @@ func setupSpaceRootAliasServer(
 	ctx context.Context,
 	t *testing.T,
 ) (*CoreRootServer, context.CancelFunc) {
+	// Create a cancellable context for the root alias testbed.
 	t.Helper()
 	ctx, cancel := context.WithCancel(ctx)
 	t.Cleanup(cancel)
 
+	// Start the in-memory volume testbed for the root alias server.
 	tb, err := db_testbed.NewTestbed(ctx, logrus.NewEntry(logrus.New()), db_testbed.WithVolumeConfig(
 		&volume_kvtxinmem.Config{
 			VolumeConfig: &volume_controller.Config{

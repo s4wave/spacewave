@@ -25,6 +25,7 @@ func (s *CoreRootServer) getStateAtomStoreIndex(
 		return s.stateAtomStoreIndex, nil
 	}
 
+	// Prepare the state-atom index acquisition result.
 	var (
 		stateAtomStoreIndex *session.StateAtomStoreIndex
 		release             func()
@@ -55,12 +56,14 @@ func (s *CoreRootServer) getStateAtomStoreIndex(
 		return nil, err
 	}
 
+	// Retain the state-atom index and its object-store release callback.
 	s.stateAtomStoreIndex = stateAtomStoreIndex
 	s.releaseStateAtomStoreIndex = release
 	return s.stateAtomStoreIndex, nil
 }
 
 func (s *CoreRootServer) closeStateAtomStoreIndex() {
+	// Detach the state-atom index while marking the root closed.
 	s.stateAtomStoreIndexMtx.Lock()
 	s.stateAtomStoreClosed = true
 	release := s.releaseStateAtomStoreIndex
