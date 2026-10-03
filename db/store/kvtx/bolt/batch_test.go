@@ -7,6 +7,8 @@ import (
 	"os"
 	"path"
 	"testing"
+
+	"github.com/s4wave/spacewave/db/kvtx"
 )
 
 // newBatchTestStore opens a bolt store with a batch wrapper for tests.
@@ -171,4 +173,58 @@ func TestBatchStoreReadYourWrites(t *testing.T) {
 	if err := tx.Commit(ctx); err != nil {
 		t.Fatal(err.Error())
 	}
+}
+
+// TestBatchStoreSizeMergesBufferedWrites tests that Size counts buffered
+// insertions of new keys and deletions of stored keys only.
+func TestBatchStoreSizeMergesBufferedWrites(t *testing.T) {
+	// Start a BatchStore and define a helper that checks the merged size.
+	ctx := context.Background()
+	b := newBatchTestStore(t, 8)
+	checkSize := func(tx kvtx.Tx, want uint64) {
+		t.Helper()
+		size, err := tx.Size(ctx)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+		if size != want {
+			t.Fatalf("size = %d, want %d", size, want)
+		}
+	}
+
+	// Count one insertion but not the deletion of a missing key before the
+	// store holds a bucket.
+	tx, err := b.NewTransaction(ctx, true)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if err := tx.Set(ctx, []byte("a"), []byte("1")); err != nil {
+		t.Fatal(err.Error())
+	}
+	if err := tx.Delete(ctx, []byte("missing")); err != nil {
+		t.Fatal(err.Error())
+	}
+	checkSize(tx, 1)
+	if err := tx.Commit(ctx); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	// Replace the stored key with a new one and overwrite it twice.
+	tx, err = b.NewTransaction(ctx, true)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer tx.Discard()
+	if err := tx.Delete(ctx, []byte("a")); err != nil {
+		t.Fatal(err.Error())
+	}
+	for _, v := range []string{"2", "3"} {
+		if err := tx.Set(ctx, []byte("b"), []byte(v)); err != nil {
+			t.Fatal(err.Error())
+		}
+	}
+	if err := tx.Delete(ctx, []byte("missing")); err != nil {
+		t.Fatal(err.Error())
+	}
+	checkSize(tx, 1)
 }

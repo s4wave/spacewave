@@ -168,7 +168,17 @@ func (t *batchTx) finalState() map[string]batchWrite {
 	return m
 }
 
-// clone returns a copy of the byte slice.
+// lastWrite returns this transaction's last buffered write to key.
+func (t *batchTx) lastWrite(key []byte) (batchWrite, bool) {
+	for _, w := range slices.Backward(t.writes) {
+		if bytes.Equal(w.key, key) {
+			return w, true
+		}
+	}
+	return batchWrite{}, false
+}
+
+// cloneBytes returns a copy of the byte slice.
 func cloneBytes(b []byte) []byte {
 	if b == nil {
 		return nil
@@ -202,7 +212,7 @@ func (t *batchTx) Get(ctx context.Context, key []byte) ([]byte, bool, error) {
 	if len(key) == 0 {
 		return nil, false, kvtx.ErrEmptyKey
 	}
-	if w, ok := t.finalState()[string(key)]; ok {
+	if w, ok := t.lastWrite(key); ok {
 		if w.value == nil {
 			return nil, false, nil
 		}
@@ -231,12 +241,8 @@ func (t *batchTx) Get(ctx context.Context, key []byte) ([]byte, bool, error) {
 // Exists checks if a key exists, including this transaction's buffered
 // writes.
 func (t *batchTx) Exists(ctx context.Context, key []byte) (bool, error) {
-	val, found, err := t.Get(ctx, key)
-	if err != nil {
-		return false, err
-	}
-	_ = val
-	return found, nil
+	_, found, err := t.Get(ctx, key)
+	return found, err
 }
 
 // Size returns the number of keys in the store, including this
@@ -245,30 +251,25 @@ func (t *batchTx) Size(ctx context.Context) (uint64, error) {
 	// Collect this transaction's last write for each key.
 	final := t.finalState()
 
-	// Acquire the shared Bolt bucket for the merged key count.
+	// Count the stored keys this transaction keeps. Bucket statistics miss
+	// keys written earlier in the shared Bolt transaction, so walk the keys.
 	t.batch.mu.Lock()
 	defer t.batch.mu.Unlock()
-	if t.batch.writeTx == nil {
-		return uint64(len(final)), nil //nolint:gosec
-	}
-	bkt := t.batch.writeTx.Bucket(t.bucket)
-	if bkt == nil {
-		return uint64(len(final)), nil //nolint:gosec
-	}
-
-	// Count stored keys after applying buffered deletions.
-	size := uint64(bkt.Stats().KeyN) //nolint:gosec
-	c := bkt.Cursor()
-	for k, _ := c.First(); k != nil; k, _ = c.Next() {
-		if w, ok := final[string(k)]; ok {
-			if w.value == nil {
-				size--
+	var size uint64
+	if t.batch.writeTx != nil {
+		if bkt := t.batch.writeTx.Bucket(t.bucket); bkt != nil {
+			c := bkt.Cursor()
+			for k, _ := c.First(); k != nil; k, _ = c.Next() {
+				w, ok := final[string(k)]
+				if !ok || w.value != nil {
+					size++
+				}
+				delete(final, string(k))
 			}
-			delete(final, string(k))
 		}
 	}
 
-	// Count buffered insertions absent from the stored bucket.
+	// Count buffered insertions of keys absent from the stored bucket.
 	for _, w := range final {
 		if w.value != nil {
 			size++
