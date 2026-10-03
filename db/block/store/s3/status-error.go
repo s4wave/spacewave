@@ -57,10 +57,13 @@ func (e *StatusError) Error() string {
 
 // xmlElementText returns the text of the first element with the given name.
 func xmlElementText(doc, name string) string {
+	// Locate the opening XML element or return an empty value.
 	_, rest, ok := strings.Cut(doc, "<"+name+">")
 	if !ok {
 		return ""
 	}
+
+	// Extract the XML element text only when its closing tag exists.
 	text, _, ok := strings.Cut(rest, "</"+name+">")
 	if !ok {
 		return ""

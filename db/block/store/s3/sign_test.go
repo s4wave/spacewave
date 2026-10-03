@@ -13,6 +13,7 @@ import (
 //
 // Reference: https://docs.aws.amazon.com/AmazonS3/latest/API/sig-v4-header-based-auth.html
 func TestSignV4GetObject(t *testing.T) {
+	// Build the S3 example request with the documented signing inputs.
 	c := &Client{
 		endpoint:  "examplebucket.s3.amazonaws.com",
 		region:    "us-east-1",
@@ -26,9 +27,11 @@ func TestSignV4GetObject(t *testing.T) {
 	}
 	req.Header.Set("Range", "bytes=0-9")
 
+	// Sign the example object request at its fixed timestamp.
 	now := time.Date(2013, 5, 24, 0, 0, 0, 0, time.UTC)
 	c.signV4(req, emptyPayloadHash, now)
 
+	// Verify the authorization header matches the published object example.
 	want := "AWS4-HMAC-SHA256 Credential=" + c.accessKey + "/20130524/us-east-1/s3/aws4_request, SignedHeaders=host;range;x-amz-content-sha256;x-amz-date, Signature=f0e8bdb87c964420e857bd35b5d6ed310bd44f0170aba48dd91039c6036bdb41"
 	got := req.Header.Get("Authorization")
 	if got != want {
@@ -41,6 +44,7 @@ func TestSignV4GetObject(t *testing.T) {
 //
 // Reference: https://docs.aws.amazon.com/AmazonS3/latest/API/sig-v4-header-based-auth.html
 func TestSignV4ListObjects(t *testing.T) {
+	// Build the S3 example listing request with the documented signing inputs.
 	c := &Client{
 		endpoint:  "examplebucket.s3.amazonaws.com",
 		region:    "us-east-1",
@@ -53,9 +57,11 @@ func TestSignV4ListObjects(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Sign the example bucket listing at its fixed timestamp.
 	now := time.Date(2013, 5, 24, 0, 0, 0, 0, time.UTC)
 	c.signV4(req, emptyPayloadHash, now)
 
+	// Verify the authorization header matches the published listing example.
 	want := "AWS4-HMAC-SHA256 Credential=" + c.accessKey + "/20130524/us-east-1/s3/aws4_request, SignedHeaders=host;x-amz-content-sha256;x-amz-date, Signature=34b48302e7b5fa45bde8084f4b7868a86f0a534bc59db6670ed5711ef69dc6f7"
 	got := req.Header.Get("Authorization")
 	if got != want {

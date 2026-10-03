@@ -80,6 +80,7 @@ func (c *Client) GetObject(ctx context.Context, bucket, key string) (io.ReadClos
 // is shorter than length when the object ends first.
 // Returns ErrNotFound if the object does not exist.
 func (c *Client) GetObjectRange(ctx context.Context, bucket, key string, off int64, length int) ([]byte, error) {
+	// Request the object byte range and reject unsuccessful responses.
 	rng := "bytes=" + strconv.FormatInt(off, 10) + "-" + strconv.FormatInt(off+int64(length)-1, 10)
 	resp, err := c.do(ctx, http.MethodGet, bucket, key, nil, nil, http.Header{"Range": {rng}})
 	if err != nil {
@@ -92,6 +93,8 @@ func (c *Client) GetObjectRange(ctx context.Context, bucket, key string, off int
 	if err := checkStatus(resp, bucket, key, http.MethodGet); err != nil {
 		return nil, err
 	}
+
+	// Read only the requested object bytes when the server ignores the range.
 	// A server may ignore the range and send the whole object.
 	if resp.StatusCode != http.StatusPartialContent {
 		if _, err := io.CopyN(io.Discard, resp.Body, off); err != nil {
@@ -107,6 +110,7 @@ func (c *Client) GetObjectRange(ctx context.Context, bucket, key string, off int
 // HeadObject returns the object's content length.
 // Returns ErrNotFound if the object does not exist.
 func (c *Client) HeadObject(ctx context.Context, bucket, key string) (int64, error) {
+	// Read the object headers and require a successful S3 response.
 	resp, err := c.do(ctx, http.MethodHead, bucket, key, nil, nil, nil)
 	if err != nil {
 		return 0, err
@@ -309,6 +313,7 @@ func (c *Client) do(ctx context.Context, method, bucket, key string, query url.V
 
 // send builds, signs, and sends one attempt of an S3 request.
 func (c *Client) send(ctx context.Context, method, bucket, key string, query url.Values, data []byte, header http.Header) (*http.Response, error) {
+	// Address the S3 bucket and object using the configured endpoint.
 	scheme := "http"
 	if c.useSSL {
 		scheme = "https"
@@ -324,12 +329,15 @@ func (c *Client) send(ctx context.Context, method, bucket, key string, query url
 		RawQuery: canonicalQuery(query),
 	}
 
+	// Prepare the request body and its payload hash.
 	var body io.Reader
 	payloadHash := emptyPayloadHash
 	if data != nil {
 		body = bytes.NewReader(data)
 		payloadHash = hexSHA256(data)
 	}
+
+	// Build and sign the HTTP request before sending it to S3.
 	req, err := http.NewRequestWithContext(ctx, method, u.String(), body)
 	if err != nil {
 		return nil, err
@@ -362,9 +370,12 @@ func isTransient(resp *http.Response, err error) bool {
 // checkStatus maps a missing bucket to ErrBucketNotFound, another 404 to
 // ErrNotFound, and any other non-success status to a StatusError.
 func checkStatus(resp *http.Response, bucket, key, method string) error {
+	// Accept successful S3 responses before decoding error details.
 	if resp.StatusCode/100 == 2 {
 		return nil
 	}
+
+	// Map missing buckets and objects to the client lookup errors.
 	serr := newStatusError(resp, method, bucket, key)
 	if serr.Code == "NoSuchBucket" {
 		return errors.Wrap(ErrBucketNotFound, serr.Error())

@@ -40,10 +40,13 @@ type publicationCrashTx struct {
 }
 
 func (t *publicationCrashTx) Commit(ctx context.Context) error {
+	// Exit at the armed crash cut before the physical commit.
 	armed := t.store.armed.Load()
 	if armed && !t.store.after {
 		os.Exit(74)
 	}
+
+	// Commit the physical transaction and exit at the armed acknowledgement cut.
 	err := t.Tx.Commit(ctx)
 	if armed && err == nil {
 		os.Exit(74)
@@ -80,6 +83,7 @@ func TestPublicationCrashAtomicGroup(t *testing.T) {
 }
 
 func publicationCrashWorker(t *testing.T, role, path string) {
+	// Open the durable store and require synchronous physical commits.
 	raw, err := store_bolt.Open(path, 0o600, nil, []byte("publication"))
 	if err != nil {
 		t.Fatal(err)
@@ -87,6 +91,8 @@ func publicationCrashWorker(t *testing.T, role, path string) {
 	if raw.GetDB().NoSync || raw.GetDB().NoFreelistSync {
 		t.Fatal("sync disabled")
 	}
+
+	// Open a Volume with the selected physical crash cut.
 	s := &publicationCrashStore{Store: raw, after: role == "after"}
 	v, err := NewVolume(t.Context(), "publication-crash", store_kvkey.NewDefaultKVKey(), s, &store_kvtx.Config{}, false, false, nil, raw.GetDB().Close)
 	if err != nil {
@@ -97,15 +103,21 @@ func publicationCrashWorker(t *testing.T, role, path string) {
 			t.Error(err)
 		}
 	})
+
+	// Prepare the seed and both dependent publication candidates.
 	zero := publicationFor(t, "crash", "", "zero")
 	first := publicationFor(t, "crash", "zero", "one")
 	second := publicationFor(t, "crash", "one", "two")
+
+	// Store the initial publication for subsequent crash runs.
 	if role == "seed" {
 		if err := v.PublishAtomic(t.Context(), zero); err != nil {
 			t.Fatal(err)
 		}
 		return
 	}
+
+	// Verify the recovered head and blocks for the selected crash cut.
 	if strings.HasPrefix(role, "verify-") {
 		want := "zero"
 		found := role == "verify-after"
@@ -118,6 +130,8 @@ func publicationCrashWorker(t *testing.T, role, path string) {
 		assertPublishedBlock(t, v, second, found)
 		return
 	}
+
+	// Hold publication validation until both candidates are admitted.
 	entered, release := make(chan struct{}), make(chan struct{})
 	released := false
 	defer func() {
@@ -132,9 +146,12 @@ func publicationCrashWorker(t *testing.T, role, path string) {
 	case <-time.After(5 * time.Second):
 		t.Fatal("no preflight")
 	}
+
+	// Admit the dependent publication and arm the physical crash cut.
 	second.After = r1
 	r2 := submitPublication(t, v, second)
 	s.armed.Store(true)
+
 	// Both requests are admitted before the physical commit reaches its cut.
 	close(release)
 	released = true

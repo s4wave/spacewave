@@ -27,8 +27,10 @@ const completeWorldNode = "world:complete"
 // MarkRootsComplete persists a copy's proof batch without per-block commits.
 func (v *Volume) MarkRootsComplete(ctx context.Context, roots []*block.BlockRef) error {
 	return v.withDirectAtomic(ctx, func(blocks block.StoreOps, rg *block_gc.RefGraph) (bool, error) {
+		// Collect proof edges for stored roots that are not already complete.
 		var adds []block_gc.RefEdge
 		for _, root := range roots {
+			// Require stored bytes before adding a root completion proof.
 			if root.GetEmpty() {
 				continue
 			}
@@ -39,6 +41,8 @@ func (v *Volume) MarkRootsComplete(ctx context.Context, roots []*block.BlockRef)
 			if !found {
 				return false, block.ErrNotFound
 			}
+
+			// Add the root proof only when its graph does not already contain it.
 			node := block_gc.BlockIRI(root)
 			refs, err := rg.GetOutgoingRefs(ctx, node)
 			if err != nil {
@@ -51,6 +55,8 @@ func (v *Volume) MarkRootsComplete(ctx context.Context, roots []*block.BlockRef)
 		if len(adds) == 0 {
 			return false, nil
 		}
+
+		// Persist all missing root proofs in the shared transaction.
 		err := rg.ApplyRefBatch(ctx, adds, nil)
 		return err == nil, err
 	})
@@ -215,6 +221,7 @@ func (v *Volume) pinRoot(ctx context.Context, ref *block.BlockRef, prepared bool
 		v.rootPins[node] = pin
 		unlock()
 		err = v.withDirectAtomic(ctx, func(blocks block.StoreOps, rg *block_gc.RefGraph) (bool, error) {
+			// Require the reader root to exist before retaining its graph edge.
 			found, err := blocks.GetBlockExists(ctx, ref)
 			if err != nil {
 				return false, err
@@ -222,6 +229,8 @@ func (v *Volume) pinRoot(ctx context.Context, ref *block.BlockRef, prepared bool
 			if !found {
 				return false, block.ErrNotFound
 			}
+
+			// Retain the reader root under the process lease in the same transaction.
 			err = rg.ApplyRefBatch(ctx, []block_gc.RefEdge{{Subject: block_gc.NodeGCRoot, Object: owner}, {Subject: owner, Object: node}}, nil)
 			return err == nil, err
 		})
@@ -235,6 +244,7 @@ func (v *Volume) pinRoot(ctx context.Context, ref *block.BlockRef, prepared bool
 
 // unpinRoot releases one reader and removes the durable edge after the last.
 func (v *Volume) unpinRoot(node string) {
+	// Find the reader pin under the Volume pin lock.
 	ctx := context.Background()
 	unlock, _ := v.rootPinMu.Lock(ctx)
 	pin := v.rootPins[node]
@@ -242,11 +252,15 @@ func (v *Volume) unpinRoot(node string) {
 		unlock()
 		return
 	}
+
+	// Release the reader count and retain roots with other readers.
 	pin.count--
 	if pin.count != 0 {
 		unlock()
 		return
 	}
+
+	// Reserve the last reader edge removal before releasing the pin lock.
 	pin.settled = make(chan struct{})
 	owner := v.rootPinOwner
 	unlock()
@@ -262,6 +276,7 @@ func (v *Volume) unpinRoot(node string) {
 // settleRootPin finishes pin's edge write and wakes pins waiting on it. A
 // failed add or a completed removal forgets the root.
 func (v *Volume) settleRootPin(node string, pin *rootPin, forget bool) {
+	// Finish the root edge transition under the Volume pin lock.
 	unlock, _ := v.rootPinMu.Lock(context.Background())
 	defer unlock()
 	if forget && v.rootPins[node] == pin {
@@ -272,6 +287,7 @@ func (v *Volume) settleRootPin(node string, pin *rootPin, forget bool) {
 }
 
 func (v *Volume) closeRootPins() error {
+	// Stop new reader pins while holding the Volume pin lock.
 	ctx := context.Background()
 	unlock, _ := v.rootPinMu.Lock(ctx)
 	defer unlock()
@@ -279,6 +295,8 @@ func (v *Volume) closeRootPins() error {
 	if v.rootPinLease == nil {
 		return nil
 	}
+
+	// Release the process reader edges and their coordination lease.
 	err := v.releaseRootPin(ctx, v.rootPinOwner)
 	leaseErr := v.rootPinLease.Release(ctx)
 	clear(v.rootPins)
@@ -305,13 +323,18 @@ func (v *Volume) releaseRootPin(ctx context.Context, owner string) error {
 // ReapRootPins drops only pins whose coordination lease is no longer held.
 // It scans root owners, not the block inventory or retained history.
 func (v *Volume) ReapRootPins(ctx context.Context) error {
+	// Skip reader-pin recovery outside the atomic publication domain.
 	if !v.SupportsAtomicPublication() {
 		return nil
 	}
+
+	// Read retained root owners from the Volume reference graph.
 	roots, err := v.refGraph.GetOutgoingRefs(ctx, block_gc.NodeGCRoot)
 	if err != nil {
 		return err
 	}
+
+	// Remove reader owners whose process leases can be acquired.
 	for _, owner := range roots {
 		if !strings.HasPrefix(owner, rootPinPrefix) {
 			continue

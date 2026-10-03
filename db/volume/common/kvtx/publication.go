@@ -19,9 +19,12 @@ func (v *Volume) SupportsAtomicPublication() bool {
 // SubmitAtomic admits an atomic publication and returns its completion receipt.
 // Admission is not durability: await the receipt for the durable result.
 func (v *Volume) SubmitAtomic(ctx context.Context, p *block.AtomicPublication) (*block.PublicationReceipt, error) {
+	// Require the Volume atomic publication domain.
 	if !v.SupportsAtomicPublication() {
 		return nil, block.ErrAtomicPublicationUnsupported
 	}
+
+	// Reserve a reader pin for a published named root.
 	var owner string
 	var release func()
 	if p != nil && p.TrackGC && p.RootName != "" && !p.Root.GetEmpty() {
@@ -31,6 +34,8 @@ func (v *Volume) SubmitAtomic(ctx context.Context, p *block.AtomicPublication) (
 			return nil, err
 		}
 	}
+
+	// Submit the publication and release its pin if admission fails.
 	receipt, err := v.publications.submit(ctx, p, owner, release)
 	if err != nil && release != nil {
 		release()
@@ -70,9 +75,12 @@ type PublicationStats struct {
 
 // GetPublicationStats returns a snapshot of this handle's writer occupancy.
 func (v *Volume) GetPublicationStats() PublicationStats {
+	// Return empty statistics when the Volume has no publication writer.
 	if v.publications == nil {
 		return PublicationStats{}
 	}
+
+	// Snapshot publication writer statistics under its broadcast lock.
 	w := v.publications
 	var stats PublicationStats
 	w.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {

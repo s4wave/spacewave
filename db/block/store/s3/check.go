@@ -89,9 +89,12 @@ func newCheckFailure(step string, err error) *CheckResult {
 
 // ClassifyError maps an error from the S3 client to a CheckOutcome.
 func ClassifyError(err error) CheckOutcome {
+	// Classify a missing bucket before examining S3 response details.
 	if errors.Is(err, ErrBucketNotFound) {
 		return CheckOutcome_CHECK_OUTCOME_BUCKET_NOT_FOUND
 	}
+
+	// Distinguish S3 response errors from cancellation and unreachable services.
 	var serr *StatusError
 	if !errors.As(err, &serr) {
 		if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
@@ -99,12 +102,16 @@ func ClassifyError(err error) CheckOutcome {
 		}
 		return CheckOutcome_CHECK_OUTCOME_UNREACHABLE
 	}
+
+	// Classify rejected credentials and region mismatches by S3 error code.
 	switch serr.Code {
 	case "InvalidAccessKeyId", "SignatureDoesNotMatch", "InvalidToken", "ExpiredToken":
 		return CheckOutcome_CHECK_OUTCOME_CREDENTIALS_REJECTED
 	case "PermanentRedirect", "AuthorizationHeaderMalformed", "IllegalLocationConstraintException":
 		return CheckOutcome_CHECK_OUTCOME_WRONG_REGION
 	}
+
+	// Classify permission and region failures by HTTP response status.
 	switch serr.StatusCode {
 	case http.StatusForbidden:
 		return CheckOutcome_CHECK_OUTCOME_ACCESS_DENIED

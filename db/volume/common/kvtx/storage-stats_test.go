@@ -12,8 +12,10 @@ import (
 )
 
 func TestStorageStatsSnapshotWakesOnDelete(t *testing.T) {
+	// Run the Volume statistics deletion check independently.
 	t.Parallel()
 
+	// Create a Volume whose statistics reflect backing-store deletion.
 	deleted := false
 	vol := &Volume{
 		statsFn: func(context.Context) (*volume.StorageStats, error) {
@@ -28,6 +30,7 @@ func TestStorageStatsSnapshotWakesOnDelete(t *testing.T) {
 		},
 	}
 
+	// Subscribe to Volume statistics and verify the initial snapshot.
 	stats, waitCh, err := vol.GetStorageStatsSnapshotWithWait(context.Background())
 	if err != nil {
 		t.Fatalf("GetStorageStatsSnapshotWithWait() error = %v", err)
@@ -36,6 +39,7 @@ func TestStorageStatsSnapshotWakesOnDelete(t *testing.T) {
 		t.Fatalf("stats = %+v, want 1024/2", stats)
 	}
 
+	// Delete the Volume and verify its statistics subscription wakes.
 	if err := vol.Delete(); err != nil {
 		t.Fatalf("Delete() error = %v", err)
 	}
@@ -47,8 +51,10 @@ func TestStorageStatsSnapshotWakesOnDelete(t *testing.T) {
 }
 
 func TestStorageStatsSnapshotWakesOnDirectBlockMutations(t *testing.T) {
+	// Run the direct block statistics check independently.
 	t.Parallel()
 
+	// Create a Volume backed by an in-memory block store.
 	store := store_kvtx.NewKVTx(
 		store_kvkey.NewDefaultKVKey(),
 		store_kvtx_inmem.NewStore(),
@@ -56,10 +62,13 @@ func TestStorageStatsSnapshotWakesOnDirectBlockMutations(t *testing.T) {
 	)
 	vol := &Volume{Store: store}
 
+	// Subscribe to statistics before writing the test block.
 	_, putCh, err := vol.GetStorageStatsSnapshotWithWait(context.Background())
 	if err != nil {
 		t.Fatalf("GetStorageStatsSnapshotWithWait() error = %v", err)
 	}
+
+	// Write a new block and verify the statistics subscription wakes.
 	ref, exists, err := vol.PutBlock(context.Background(), []byte("hello"), nil)
 	if err != nil {
 		t.Fatalf("PutBlock() error = %v", err)
@@ -69,6 +78,7 @@ func TestStorageStatsSnapshotWakesOnDirectBlockMutations(t *testing.T) {
 	}
 	waitForStorageStatsWake(t, putCh)
 
+	// Delete the block and verify a new statistics subscription wakes.
 	_, rmCh, err := vol.GetStorageStatsSnapshotWithWait(context.Background())
 	if err != nil {
 		t.Fatalf("GetStorageStatsSnapshotWithWait() error = %v", err)
@@ -78,6 +88,7 @@ func TestStorageStatsSnapshotWakesOnDirectBlockMutations(t *testing.T) {
 	}
 	waitForStorageStatsWake(t, rmCh)
 
+	// Synchronize the Volume and verify its statistics subscription wakes.
 	_, flushCh, err := vol.GetStorageStatsSnapshotWithWait(context.Background())
 	if err != nil {
 		t.Fatalf("GetStorageStatsSnapshotWithWait() error = %v", err)

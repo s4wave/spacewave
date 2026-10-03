@@ -19,6 +19,7 @@ import (
 // are recomputed or redone. The head publication that follows commits fully
 // and makes these writes durable, as does Sync.
 func (v *Volume) withDirectAtomic(ctx context.Context, fn func(block.StoreOps, *block_gc.RefGraph) (bool, error)) error {
+	// Join direct Volume operations and reject writes after storage closes.
 	v.directMu.RLock()
 	defer v.directMu.RUnlock()
 	if v.directClosed {
@@ -27,11 +28,15 @@ func (v *Volume) withDirectAtomic(ctx context.Context, fn func(block.StoreOps, *
 	if err := ctx.Err(); err != nil {
 		return err
 	}
+
+	// Open one physical transaction for block bytes and reference changes.
 	tx, err := v.kvtxStore.NewTransaction(ctx, true)
 	if err != nil {
 		return err
 	}
 	defer tx.Discard()
+
+	// Open transaction-local block and reference graph adapters.
 	store := kvtx.NewTxStore(tx)
 	blocks := block_store_kvtx.NewKVTxBlock(v.kvKey, store, v.GetHashType(), v.atomicHashGet)
 	rg, err := block_gc.NewRefGraph(ctx, store, volumeRefGraphPrefix())
@@ -39,10 +44,14 @@ func (v *Volume) withDirectAtomic(ctx context.Context, fn func(block.StoreOps, *
 		return err
 	}
 	defer rg.Close()
+
+	// Apply the direct operation and skip unchanged transactions.
 	changed, err := fn(blocks, rg)
 	if err != nil || !changed {
 		return err
 	}
+
+	// Commit the direct changes using the Volume write-ordering contract.
 	if v.ordered != nil {
 		err = kvtx.CommitOrdered(ctx, tx)
 	} else {
@@ -51,6 +60,8 @@ func (v *Volume) withDirectAtomic(ctx context.Context, fn func(block.StoreOps, *
 	if err != nil {
 		return err
 	}
+
+	// Wake Volume statistics watchers after the committed changes.
 	v.broadcastStorageStatsChanged()
 	return nil
 }
@@ -63,15 +74,20 @@ func (v *Volume) PrepareOwnedBlock(ctx context.Context, bucketID string, data []
 		return nil, false, block.ErrAtomicPublicationUnsupported
 	}
 	err = v.withDirectAtomic(ctx, func(blocks block.StoreOps, rg *block_gc.RefGraph) (bool, error) {
+		// Write unowned block bytes directly in the shared transaction.
 		putOpts, _ := block.PutOptsWithoutSync(opts)
 		if bucketID == "" {
 			ref, existed, err = blocks.PutBlock(ctx, data, putOpts)
 			return err == nil, err
 		}
+
+		// Retain the bucket as a permanent garbage collection root.
 		owner := block_gc.BucketIRI(bucketID)
 		if err := rg.AddRef(ctx, block_gc.NodeGCRoot, owner); err != nil {
 			return false, err
 		}
+
+		// Write the block and flush its bucket ownership together.
 		gc := block_gc.NewGCStoreOpsWithParentAndTraceTask(blocks, rg, owner, block_gc.BucketFlushTask())
 		ref, existed, err = gc.PutBlock(ctx, data, putOpts)
 		if err == nil {
@@ -89,6 +105,7 @@ func (v *Volume) PrepareOwnedBlockBatch(ctx context.Context, bucketID string, en
 		return block.ErrAtomicPublicationUnsupported
 	}
 	return v.withDirectAtomic(ctx, func(blocks block.StoreOps, rg *block_gc.RefGraph) (bool, error) {
+		// Skip empty batches and write unowned batches directly.
 		if len(entries) == 0 {
 			return false, nil
 		}
@@ -96,10 +113,14 @@ func (v *Volume) PrepareOwnedBlockBatch(ctx context.Context, bucketID string, en
 			err := blocks.PutBlockBatch(ctx, entries)
 			return err == nil, err
 		}
+
+		// Retain the batch bucket as a permanent garbage collection root.
 		owner := block_gc.BucketIRI(bucketID)
 		if err := rg.AddRef(ctx, block_gc.NodeGCRoot, owner); err != nil {
 			return false, err
 		}
+
+		// Write the batch and flush its bucket ownership together.
 		gc := block_gc.NewGCStoreOpsWithParentAndTraceTask(blocks, rg, owner, block_gc.BucketFlushTask())
 		err := gc.PutBlockBatch(ctx, entries)
 		if err == nil {
@@ -118,11 +139,14 @@ func (v *Volume) PrepareOwnedBlockBatch(ctx context.Context, bucketID string, en
 // owns every candidate, so releasing nodes one at a time rewrites its posting
 // list once per node, which is quadratic in the number of orphans.
 func (v *Volume) SweepUnreferenced(ctx context.Context, graph block_gc.RefGraphOps, nodes []string) ([]string, error) {
+	// Require the Volume transaction domain for atomic sweeping.
 	actual, ok := v.refGraph.(*transactionRefGraph)
 	given, sameType := graph.(*transactionRefGraph)
 	if !ok || !sameType || given != actual || !v.SupportsAtomicPublication() {
 		return nil, block_gc.ErrAtomicSweepUnsupported
 	}
+
+	// Sweep candidates and their graph edges in one physical transaction.
 	var swept []string
 	err := v.withDirectAtomic(ctx, func(blocks block.StoreOps, rg *block_gc.RefGraph) (bool, error) {
 		// Collect the candidates the marker still owns alone, with their edges.
@@ -171,6 +195,7 @@ func (v *Volume) SweepUnreferenced(ctx context.Context, graph block_gc.RefGraphO
 		}
 		return true, nil
 	})
+
 	// A failed physical transaction must not report a successful sweep.
 	if err != nil {
 		return nil, err

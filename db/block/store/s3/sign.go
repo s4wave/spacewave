@@ -25,10 +25,12 @@ const (
 // If the client has no access key, only the date and content-sha256 headers
 // are added (anonymous request).
 func (c *Client) signV4(req *http.Request, payloadHash string, now time.Time) {
+	// Format the signing time for the request date and credential scope.
 	t := now.UTC()
 	amzDate := t.Format("20060102T150405Z")
 	dateStamp := t.Format("20060102")
 
+	// Attach payload and date headers, including the session token when present.
 	req.Header.Set("X-Amz-Date", amzDate)
 	req.Header.Set("X-Amz-Content-Sha256", payloadHash)
 	if c.token != "" {
@@ -38,9 +40,11 @@ func (c *Client) signV4(req *http.Request, payloadHash string, now time.Time) {
 		return
 	}
 
+	// Canonicalize the request headers and object path for signing.
 	signedHeaders, canonicalHeaders := canonicalRequestHeaders(req)
 	canonicalURI := uriEncode(req.URL.Path, false)
 
+	// Build the canonical S3 request from its method, path, query, and payload.
 	canonicalRequest := strings.Join([]string{
 		req.Method,
 		canonicalURI,
@@ -50,6 +54,7 @@ func (c *Client) signV4(req *http.Request, payloadHash string, now time.Time) {
 		payloadHash,
 	}, "\n")
 
+	// Build the string to sign for the S3 region and request date.
 	credScope := dateStamp + "/" + c.region + "/" + signService + "/" + signRequestName
 	stringToSign := strings.Join([]string{
 		signAlgorithm,
@@ -58,12 +63,14 @@ func (c *Client) signV4(req *http.Request, payloadHash string, now time.Time) {
 		hexSHA256([]byte(canonicalRequest)),
 	}, "\n")
 
+	// Derive the S3 signing key and calculate the request signature.
 	kDate := hmacSHA256([]byte("AWS4"+c.secretKey), dateStamp)
 	kRegion := hmacSHA256(kDate, c.region)
 	kService := hmacSHA256(kRegion, signService)
 	kSigning := hmacSHA256(kService, signRequestName)
 	signature := hex.EncodeToString(hmacSHA256(kSigning, stringToSign))
 
+	// Attach the credential scope, signed headers, and signature to the request.
 	req.Header.Set("Authorization",
 		signAlgorithm+" Credential="+c.accessKey+"/"+credScope+
 			", SignedHeaders="+signedHeaders+
@@ -73,6 +80,7 @@ func (c *Client) signV4(req *http.Request, payloadHash string, now time.Time) {
 // canonicalRequestHeaders returns the SignedHeaders list and CanonicalHeaders block.
 // CanonicalHeaders ends with a trailing newline as required by SigV4.
 func canonicalRequestHeaders(req *http.Request) (signed string, canonical string) {
+	// Collect normalized request headers while excluding authorization.
 	headers := map[string]string{
 		"host": req.URL.Host,
 	}
@@ -85,6 +93,8 @@ func canonicalRequestHeaders(req *http.Request) (signed string, canonical string
 		keys = append(keys, lname)
 		headers[lname] = strings.TrimSpace(strings.Join(vals, ","))
 	}
+
+	// Write sorted canonical headers and the signed header list.
 	slices.Sort(keys)
 	var hb, sb strings.Builder
 	for i, k := range keys {
@@ -124,6 +134,7 @@ func canonicalQuery(query url.Values) string {
 // uriEncode percent-encodes per AWS S3 SigV4 rules.
 // If encodeSlash is false, '/' is left unescaped (used for the canonical URI).
 func uriEncode(s string, encodeSlash bool) string {
+	// Encode the object path or query value using S3 percent-encoding rules.
 	const hexChars = "0123456789ABCDEF"
 	var b strings.Builder
 	b.Grow(len(s))

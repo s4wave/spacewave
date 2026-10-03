@@ -159,10 +159,13 @@ func (s *PackStore) BeginReadOperation(context.Context) (block.StoreOps, func(),
 
 // PutBlock writes one block as its own packfile.
 func (s *PackStore) PutBlock(ctx context.Context, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
+	// Build the block reference before writing its packfile.
 	ref, err := block.BuildBlockRef(data, opts)
 	if err != nil {
 		return nil, false, err
 	}
+
+	// Write the block and its references through the batch packfile path.
 	entry := &block.PutBatchEntry{Ref: ref, Data: data, Refs: opts.GetRefs()}
 	if err := s.PutBlockBatch(ctx, []*block.PutBatchEntry{entry}); err != nil {
 		return nil, false, err
@@ -175,8 +178,10 @@ func (s *PackStore) PutBlock(ctx context.Context, data []byte, opts *block.PutOp
 // The batch must fit one packfile: at most writer.DefaultMaxBlocksPerPack
 // blocks and writer.DefaultMaxPackBytes bytes. Tombstones are rejected.
 func (s *PackStore) PutBlockBatch(ctx context.Context, batch []*block.PutBatchEntry) error {
+	// Write the batch as one immutable packfile.
 	i := 0
 	entry, err := s.writePack(ctx, func() (*hash.Hash, *block.StoredBlock, error) {
+		// Yield each batch block and reject tombstones.
 		if i == len(batch) {
 			return nil, nil, nil
 		}
@@ -190,6 +195,8 @@ func (s *PackStore) PutBlockBatch(ctx context.Context, batch []*block.PutBatchEn
 	if err != nil || entry == nil {
 		return err
 	}
+
+	// Publish the new packfile entry and wake compaction watchers.
 	s.updateEntries([]*packfile.PackfileEntry{entry}, nil)
 	s.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		s.writes++
@@ -310,11 +317,14 @@ func (s *PackStore) Sync(context.Context) (bool, error) {
 // deleted packfile, it lists the entries, which finds the packfiles other
 // writers added and drops the ones merged away, and runs find again.
 func (s *PackStore) lookup(ctx context.Context, find func() (bool, error)) error {
+	// Look for the block in the currently known packfiles.
 	listed := s.listings.Load()
 	found, err := find()
 	if found || (err != nil && !errors.Is(err, ErrNotFound)) {
 		return err
 	}
+
+	// Refresh packfile entries after a miss and repeat the lookup.
 	if err := s.listEntries(ctx, listed); err != nil {
 		return err
 	}
@@ -327,6 +337,7 @@ func (s *PackStore) lookup(ctx context.Context, find func() (bool, error)) error
 // caller's count of listed already completed. Entries added while the listing
 // runs are kept.
 func (s *PackStore) listEntries(ctx context.Context, listed uint64) error {
+	// Serialize packfile listings and skip a listing already completed.
 	release, err := s.listMtx.Lock(ctx)
 	if err != nil {
 		return err
@@ -337,6 +348,7 @@ func (s *PackStore) listEntries(ctx context.Context, listed uint64) error {
 	}
 	s.listings.Add(1)
 
+	// Snapshot the packfile entries known before the listing starts.
 	var known map[string]bool
 	s.bcast.HoldLock(func(func(), func() <-chan struct{}) {
 		known = make(map[string]bool, len(s.entries))
@@ -345,6 +357,7 @@ func (s *PackStore) listEntries(ctx context.Context, listed uint64) error {
 		}
 	})
 
+	// List packfile entries and identify new and removed packfiles.
 	var ids []string
 	dir := s.prefix + entryDir
 	err = s.client.ListObjects(ctx, s.bucket, dir, func(key string, _ int64) error {
@@ -360,6 +373,7 @@ func (s *PackStore) listEntries(ctx context.Context, listed uint64) error {
 		return errors.Wrap(err, "list packfile entries")
 	}
 
+	// Read new packfile entries with bounded concurrent requests.
 	entries := make([]*packfile.PackfileEntry, len(ids))
 	eg, egCtx := errgroup.WithContext(ctx)
 	eg.SetLimit(batchConcurrency)
@@ -377,6 +391,8 @@ func (s *PackStore) listEntries(ctx context.Context, listed uint64) error {
 	if err := eg.Wait(); err != nil {
 		return err
 	}
+
+	// Drop entries deleted during listing and publish the refreshed manifest.
 	entries = slices.DeleteFunc(entries, func(entry *packfile.PackfileEntry) bool {
 		return entry == nil
 	})
@@ -386,6 +402,7 @@ func (s *PackStore) listEntries(ctx context.Context, listed uint64) error {
 
 // readEntry reads the entry object of packfile id.
 func (s *PackStore) readEntry(ctx context.Context, id string) (*packfile.PackfileEntry, error) {
+	// Read and close the packfile entry object body.
 	body, err := s.client.GetObject(ctx, s.bucket, s.prefix+entryDir+id)
 	if err != nil {
 		return nil, errors.Wrap(err, "read packfile entry")
@@ -395,6 +412,8 @@ func (s *PackStore) readEntry(ctx context.Context, id string) (*packfile.Packfil
 	if err != nil {
 		return nil, errors.Wrap(err, "read packfile entry")
 	}
+
+	// Decode the packfile entry and verify it names the requested packfile.
 	entry := &packfile.PackfileEntry{}
 	if err := entry.UnmarshalVT(data); err != nil {
 		return nil, errors.Wrap(err, "decode packfile entry "+id)

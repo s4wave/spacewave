@@ -107,6 +107,7 @@ func NewVolume(
 	closeFn func() error,
 	deleteFn ...func() error,
 ) (*Volume, error) {
+	// Build the Volume around its key-value store and cleanup callbacks.
 	v := &Volume{
 		Store:     store_kvtx.NewKVTx(kvkey, store, conf),
 		kvtxStore: store,
@@ -117,11 +118,17 @@ func NewVolume(
 	if len(deleteFn) != 0 {
 		v.deleteFn = deleteFn[0]
 	}
+
+	// Load or claim the Volume identity and initialize its storage.
 	v, err := initVolume(ctx, v, storeID, store, noGenerateKey, noWriteKey)
 	if err != nil {
 		return nil, err
 	}
+
+	// Coordinate direct writers using the initialized Volume identity.
 	v.Coordinator = coord_inmem.ForVolume(v.GetID())
+
+	// Route atomic publications through transaction-local reference graphs.
 	if atomicStore, ok := store.(kvtx.AtomicCommitStore); ok && atomicStore.SupportsAtomicCommit() {
 		v.atomicHashGet = !conf.GetDisableHashGet()
 		// Long-lived Cayley caches cannot be shared with transaction-local writes.
@@ -134,6 +141,7 @@ func NewVolume(
 			v.ordered = orderedStore
 		}
 	}
+
 	return v, nil
 }
 
@@ -154,6 +162,7 @@ func NewVolumeWithBlockStore(
 	closeFn func() error,
 	deleteFn ...func() error,
 ) (*Volume, error) {
+	// Build the Volume around its key-value store and cleanup callbacks.
 	v := &Volume{
 		Store:     store_kvtx.NewKVTxWithBlockStore(kvkey, store, blk, conf),
 		kvtxStore: store,
@@ -164,11 +173,16 @@ func NewVolumeWithBlockStore(
 	if len(deleteFn) != 0 {
 		v.deleteFn = deleteFn[0]
 	}
+
+	// Load or claim the Volume identity and initialize its storage.
 	v, err := initVolume(ctx, v, storeID, store, noGenerateKey, noWriteKey)
 	if err != nil {
 		return nil, err
 	}
+
+	// Coordinate direct writers using the initialized Volume identity.
 	v.Coordinator = coord_inmem.ForVolume(v.GetID())
+
 	return v, nil
 }
 
@@ -188,6 +202,7 @@ func NewVolumeWithBlockStoreAndGC(
 	closeFn func() error,
 	deleteFn ...func() error,
 ) (*Volume, error) {
+	// Build the Volume around its key-value store and cleanup callbacks.
 	v := &Volume{
 		Store:     store_kvtx.NewKVTxWithBlockStore(kvkey, store, blk, conf),
 		kvtxStore: store,
@@ -199,11 +214,16 @@ func NewVolumeWithBlockStoreAndGC(
 	if len(deleteFn) != 0 {
 		v.deleteFn = deleteFn[0]
 	}
+
+	// Load or claim the Volume identity and initialize its storage.
 	v, err := initVolumeSkipGC(ctx, v, storeID, noGenerateKey, noWriteKey)
 	if err != nil {
 		return nil, err
 	}
+
+	// Coordinate direct writers using the initialized Volume identity.
 	v.Coordinator = coord_inmem.ForVolume(v.GetID())
+
 	return v, nil
 }
 
@@ -217,11 +237,13 @@ func initVolume(
 	noGenerateKey,
 	noWriteKey bool,
 ) (*Volume, error) {
+	// Initialize the Volume identity before opening its reference graph.
 	v, err := initVolumeSkipGC(ctx, v, storeID, noGenerateKey, noWriteKey)
 	if err != nil {
 		return nil, err
 	}
 
+	// Open the persistent reference graph for Volume garbage collection.
 	rg, err := block_gc.NewRefGraph(ctx, store, volumeRefGraphPrefix())
 	if err != nil {
 		return nil, err
@@ -352,10 +374,13 @@ func (v *Volume) GetStorageStats(ctx context.Context) (*volume.StorageStats, err
 func (v *Volume) GetStorageStatsSnapshotWithWait(
 	ctx context.Context,
 ) (*volume.StorageStats, <-chan struct{}, error) {
+	// Subscribe to Volume statistics changes before reading the snapshot.
 	var waitCh <-chan struct{}
 	v.statsBcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
 		waitCh = getWaitCh()
 	})
+
+	// Read the Volume statistics paired with the change notification.
 	stats, err := v.GetStorageStats(ctx)
 	if err != nil {
 		return nil, nil, err
@@ -387,14 +412,19 @@ func (v *Volume) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEnt
 
 // PutBlock forwards block writes to the embedded store.
 func (v *Volume) PutBlock(ctx context.Context, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
+	// Write the block while retaining the requested Volume durability barrier.
 	putOpts, syncRequested := block.PutOptsWithoutSync(opts)
 	ref, exists, err := v.Store.PutBlock(ctx, data, putOpts)
 	if err != nil {
 		return nil, exists, err
 	}
+
+	// Wake Volume statistics watchers when the block adds stored data.
 	if ref != nil && !exists {
 		v.broadcastStorageStatsChanged()
 	}
+
+	// Make the Volume durable when the block write requests synchronization.
 	if syncRequested {
 		if _, err := v.Sync(ctx); err != nil {
 			return ref, exists, err
@@ -419,15 +449,20 @@ func (v *Volume) RmBlock(ctx context.Context, ref *block.BlockRef) error {
 
 // Sync forwards the durability barrier to the embedded store.
 func (v *Volume) Sync(ctx context.Context) (bool, error) {
+	// Fence queued publications before synchronizing the Volume store.
 	if v.publications != nil {
 		if err := v.publications.fence(ctx); err != nil {
 			return false, err
 		}
 	}
+
+	// Synchronize block bytes through the embedded Volume store.
 	fenced, err := v.Store.Sync(ctx)
 	if err != nil {
 		return false, err
 	}
+
+	// Flush ordered direct commits before waking statistics watchers.
 	if v.ordered != nil {
 		if err := v.ordered.Sync(ctx); err != nil {
 			return false, err
@@ -495,30 +530,42 @@ func (v *Volume) SetGCManagerHooks(hooks block_gc.ManagerHooks) {
 // Close closes the volume, returning any errors.
 // Close is idempotent: subsequent calls return the same error.
 func (v *Volume) Close() error {
+	// Claim the Volume close sequence or observe the existing closer.
 	var waitCh <-chan struct{}
 	started := false
 	v.closeBcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
+		// Leave an already closed Volume unchanged.
 		if v.closed {
 			return
 		}
+
+		// Subscribe to completion when another caller is closing the Volume.
 		if v.closing {
 			waitCh = getWaitCh()
 			return
 		}
+
+		// Stop new Volume writes and claim responsibility for cleanup.
 		v.closing = true
 		started = true
 		broadcast()
 	})
+
+	// Join the existing Volume close sequence when another caller claimed it.
 	if !started {
 		if waitCh != nil {
 			<-waitCh
 		}
 		return v.closeErr
 	}
+
+	// Release root pins and join direct Volume transactions before closing storage.
 	closeErr := v.closeRootPins()
 	v.directMu.Lock()
 	v.directClosed = true
 	v.directMu.Unlock()
+
+	// Drain Volume publications and close the reference graph and backing store.
 	if v.publications != nil {
 		v.publications.close()
 	}
@@ -528,6 +575,8 @@ func (v *Volume) Close() error {
 	if v.closeFn != nil {
 		closeErr = errors.Join(closeErr, v.closeFn())
 	}
+
+	// Publish the Volume close result to all waiting callers.
 	v.closeBcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		v.closeErr = closeErr
 		v.closed = true

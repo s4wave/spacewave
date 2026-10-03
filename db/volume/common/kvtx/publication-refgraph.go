@@ -17,17 +17,22 @@ type transactionRefGraph struct{ volume *Volume }
 
 // read runs fn against a fresh read-scoped reference graph in one transaction.
 func (g *transactionRefGraph) read(ctx context.Context, fn func(*block_gc.RefGraph) error) error {
+	// Join Volume operations while reading the reference graph.
 	v := g.volume
 	v.directMu.RLock()
 	defer v.directMu.RUnlock()
 	if v.directClosed {
 		return block.ErrPublicationClosed
 	}
+
+	// Open a read transaction for the reference graph snapshot.
 	tx, err := v.kvtxStore.NewTransaction(ctx, false)
 	if err != nil {
 		return err
 	}
 	defer tx.Discard()
+
+	// Read through a fresh reference graph scoped to the transaction.
 	rg, err := block_gc.NewRefGraph(ctx, kvtx.NewTxStore(tx), volumeRefGraphPrefix())
 	if err != nil {
 		return err

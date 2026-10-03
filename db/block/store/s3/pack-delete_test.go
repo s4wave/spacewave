@@ -10,6 +10,7 @@ import (
 // TestDeletePackStore deletes every object of one store and none of another
 // store's in the same bucket.
 func TestDeletePackStore(t *testing.T) {
+	// Write two packs alongside another store object in the fake bucket.
 	ctx := t.Context()
 	bucket, client := newFakeBucket(t, map[string]string{"q/packs/other": "x"})
 	store := newTestPackStore(t, client)
@@ -19,6 +20,7 @@ func TestDeletePackStore(t *testing.T) {
 		}
 	}
 
+	// Delete the pack store and verify the other store object survives.
 	if err := DeletePackStore(ctx, client, "bucket", "p/"); err != nil {
 		t.Fatal(err)
 	}
