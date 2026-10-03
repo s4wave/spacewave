@@ -22,15 +22,18 @@ const (
 
 // TIER: nightly
 func TestPackagedInstalledAppRetainedStateLauncherStartupSmoke(t *testing.T) {
+	// Run only when installed-app tests are enabled.
 	if !E2EInstalledAppEnabled() {
 		t.Skip("set ENABLE_E2E_INSTALLED_APP=true to run")
 	}
 
+	// Resolve the packaged app from the environment.
 	appPath := strings.TrimSpace(os.Getenv(installedAppPathEnv))
 	if appPath == "" {
 		t.Fatalf("set %s to a packaged installed Spacewave app path, e.g. /Applications/Spacewave.app", installedAppPathEnv)
 	}
 
+	// Find its executable and check the signature on macOS.
 	executablePath, err := resolveInstalledAppExecutable(appPath)
 	if err != nil {
 		t.Fatal(err)
@@ -41,21 +44,25 @@ func TestPackagedInstalledAppRetainedStateLauncherStartupSmoke(t *testing.T) {
 		}
 	}
 
+	// Start from an empty state root and stop its processes at the end.
 	stateRoot, err := resolveInstalledAppStateRoot()
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := os.RemoveAll(stateRoot); err != nil {
+	if err := resetInstalledAppStateRoot(stateRoot); err != nil {
 		t.Fatalf("clear installed-app state root: %v", err)
 	}
 	t.Cleanup(func() {
 		stopStateRootProcesses(stateRoot)
 	})
+
+	// Create the artifact directory inside the state root.
 	artifactDir := filepath.Join(stateRoot, "artifacts")
 	if err := os.MkdirAll(artifactDir, 0o755); err != nil {
 		t.Fatalf("create installed-app artifact dir: %v", err)
 	}
 
+	// Start the app on the fresh state root.
 	initialProofs := []string{
 		"initializing application and storage",
 		"launcher starting",
@@ -65,6 +72,8 @@ func TestPackagedInstalledAppRetainedStateLauncherStartupSmoke(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Start it again on the retained state and expect a new log.
 	retainedProofs := []string{
 		"initializing application and storage",
 		"starting electron:",
@@ -77,6 +86,7 @@ func TestPackagedInstalledAppRetainedStateLauncherStartupSmoke(t *testing.T) {
 		t.Fatalf("expected distinct installed-app logs, got %q", initial.logPath)
 	}
 
+	// Record where the logs and proofs went.
 	breadcrumbPath, err := writeInstalledAppBreadcrumbs(
 		artifactDir,
 		appPath,
@@ -194,6 +204,35 @@ func resolveInstalledAppStateRoot() (string, error) {
 		return "", fmt.Errorf("%s must not be %q", installedAppStateRootEnv, stateRoot)
 	}
 	return stateRoot, nil
+}
+
+// installedAppStateMarker marks a directory as an installed-app state root
+// that this test created and may delete.
+const installedAppStateMarker = ".sw-e2e-installed-state"
+
+// resetInstalledAppStateRoot empties stateRoot and marks it as a state root.
+// It refuses to delete a non-empty directory without the marker, so a
+// mistaken SPACEWAVE_INSTALLED_APP_STATE_ROOT cannot remove user data.
+func resetInstalledAppStateRoot(stateRoot string) error {
+	// Refuse a non-empty directory that this test did not create.
+	ents, err := os.ReadDir(stateRoot)
+	if err != nil && !os.IsNotExist(err) {
+		return err
+	}
+	if len(ents) != 0 {
+		if _, err := os.Stat(filepath.Join(stateRoot, installedAppStateMarker)); err != nil {
+			return fmt.Errorf("%s is not empty and has no %s marker; remove it by hand if it is a state root", stateRoot, installedAppStateMarker)
+		}
+	}
+
+	// Recreate the state root empty except for its marker.
+	if err := os.RemoveAll(stateRoot); err != nil {
+		return err
+	}
+	if err := os.MkdirAll(stateRoot, 0o755); err != nil {
+		return err
+	}
+	return os.WriteFile(filepath.Join(stateRoot, installedAppStateMarker), nil, 0o644)
 }
 
 func verifyDarwinCodeSignature(appPath string) error {
