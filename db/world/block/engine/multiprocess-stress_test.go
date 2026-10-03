@@ -50,6 +50,7 @@ const (
 )
 
 func TestWorldEngineBboltMultiProcessStress(t *testing.T) {
+	// Dispatch a World stress child or require the enabled parent harness.
 	if role := os.Getenv(multiProcessStressEnv); role != "" {
 		runWorldEngineStressWorker(t, role)
 		return
@@ -61,13 +62,16 @@ func TestWorldEngineBboltMultiProcessStress(t *testing.T) {
 		t.Skip("skipping multi-process bbolt world stress in short mode")
 	}
 
+	// Initialize the shared Bolt World before starting stress processes.
 	boltPath := filepath.Join(t.TempDir(), "world-engine-stress.bolt")
 	initWorldEngineStressVolume(t, boltPath)
 
+	// Read the World stress writer, reader, and iteration counts.
 	writers := stressEnvInt(multiProcessStressWritersEnv, 3)
 	readers := stressEnvInt(multiProcessStressReadersEnv, 3)
 	iterations := stressEnvInt(multiProcessStressItersEnv, 12)
 
+	// Construct the World stress writer and reader processes.
 	var cmds []*exec.Cmd
 	for i := range writers {
 		cmds = append(cmds, worldEngineStressCommand(t, boltPath, "writer", i, iterations))
@@ -76,6 +80,7 @@ func TestWorldEngineBboltMultiProcessStress(t *testing.T) {
 		cmds = append(cmds, worldEngineStressCommand(t, boltPath, "reader", i, iterations*writers))
 	}
 
+	// Start and join all World stress processes.
 	for _, cmd := range cmds {
 		if err := cmd.Start(); err != nil {
 			t.Fatalf("start %s: %v", strings.Join(cmd.Args, " "), err)
@@ -87,6 +92,7 @@ func TestWorldEngineBboltMultiProcessStress(t *testing.T) {
 		}
 	}
 
+	// Verify the shared World after all stress processes complete.
 	verifier := worldEngineStressCommand(t, boltPath, "verifier", 0, iterations)
 	verifier.Env = append(verifier.Env, multiProcessStressWritersEnv+"="+strconv.Itoa(writers))
 	if err := verifier.Start(); err != nil {
@@ -98,6 +104,7 @@ func TestWorldEngineBboltMultiProcessStress(t *testing.T) {
 }
 
 func TestBboltObjectStoreMultiProcessCoordinationCAS(t *testing.T) {
+	// Dispatch an ObjectStore CAS child or require the enabled parent harness.
 	if role := os.Getenv(objectStoreCASEnv); role != "" {
 		runObjectStoreCASWorker(t, role)
 		return
@@ -109,12 +116,15 @@ func TestBboltObjectStoreMultiProcessCoordinationCAS(t *testing.T) {
 		t.Skip("skipping multi-process bbolt object store CAS stress in short mode")
 	}
 
+	// Initialize the shared Bolt ObjectStore before starting CAS writers.
 	boltPath := filepath.Join(t.TempDir(), "objectstore-cas.bolt")
 	initObjectStoreCASVolume(t, boltPath)
 
+	// Read the ObjectStore CAS writer and iteration counts.
 	writers := stressEnvInt(objectStoreCASWritersEnv, 3)
 	iterations := stressEnvInt(objectStoreCASItersEnv, 4)
 
+	// Construct and start the ObjectStore CAS writer processes.
 	var cmds []*exec.Cmd
 	for i := range writers {
 		cmds = append(cmds, objectStoreCASCommand(t, boltPath, "writer", i, iterations))
@@ -124,12 +134,15 @@ func TestBboltObjectStoreMultiProcessCoordinationCAS(t *testing.T) {
 			t.Fatalf("start %s: %v", strings.Join(cmd.Args, " "), err)
 		}
 	}
+
+	// Join all ObjectStore CAS writers before verifying their results.
 	for _, cmd := range cmds {
 		if err := waitWorldEngineStressCommand(cmd, 90*time.Second); err != nil {
 			t.Fatalf("object store cas child failed: %v\n%s", err, cmdOutput(cmd))
 		}
 	}
 
+	// Verify the shared ObjectStore after all CAS writers complete.
 	verifier := objectStoreCASCommand(t, boltPath, "verifier", 0, iterations)
 	verifier.Env = append(verifier.Env, objectStoreCASWritersEnv+"="+strconv.Itoa(writers))
 	if err := verifier.Start(); err != nil {
@@ -141,10 +154,12 @@ func TestBboltObjectStoreMultiProcessCoordinationCAS(t *testing.T) {
 }
 
 func initWorldEngineStressVolume(t *testing.T, boltPath string) {
+	// Bound the initial World stress setup with a context deadline.
 	t.Helper()
 	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 	defer cancel()
 
+	// Open the Bolt testbed and its World engine controller.
 	tb := newWorldEngineStressTestbed(t, ctx, boltPath, "init")
 	defer tb.Release()
 	ctrl, ref := startWorldEngineStressController(t, ctx, tb, "stress-init")
@@ -153,6 +168,8 @@ func initWorldEngineStressVolume(t *testing.T, boltPath string) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Commit the initial World object before concurrent stress begins.
 	tx, err := eng.NewTransaction(ctx, true)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -171,14 +188,18 @@ func initWorldEngineStressVolume(t *testing.T, boltPath string) {
 }
 
 func initObjectStoreCASVolume(t *testing.T, boltPath string) {
+	// Bound the initial ObjectStore CAS setup with a context deadline.
 	t.Helper()
 	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 	defer cancel()
 
+	// Open the Bolt testbed and coordinated ObjectStore.
 	tb := newWorldEngineStressTestbed(t, ctx, boltPath, "objectstore-cas-init")
 	defer tb.Release()
 	store, release := openObjectStoreCASStore(t, ctx, tb)
 	defer release()
+
+	// Initialize and commit the shared ObjectStore sequence.
 	tx, err := store.NewTransaction(ctx, true)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -194,7 +215,9 @@ func initObjectStoreCASVolume(t *testing.T, boltPath string) {
 }
 
 func objectStoreCASCommand(t *testing.T, boltPath, role string, id, iterations int) *exec.Cmd {
+	// Attribute ObjectStore CAS command failures to the calling test.
 	t.Helper()
+
 	// Re-exec the current test binary with a fixed selector; role data is passed
 	// through test-owned environment variables.
 	cmd := exec.Command( //nolint:gosec
@@ -215,7 +238,9 @@ func objectStoreCASCommand(t *testing.T, boltPath, role string, id, iterations i
 }
 
 func worldEngineStressCommand(t *testing.T, boltPath, role string, id, iterations int) *exec.Cmd {
+	// Attribute World stress command failures to the calling test.
 	t.Helper()
+
 	// Re-exec the current test binary with a fixed selector; role data is passed
 	// through test-owned environment variables.
 	cmd := exec.Command( //nolint:gosec
@@ -263,6 +288,7 @@ func waitWorldEngineStressCommand(cmd *exec.Cmd, timeout time.Duration) error {
 }
 
 func runWorldEngineStressWorker(t *testing.T, role string) {
+	// Read and validate the World stress child configuration.
 	boltPath := os.Getenv(multiProcessStressPathEnv)
 	if boltPath == "" {
 		t.Fatal("stress bolt path env is empty")
@@ -276,9 +302,11 @@ func runWorldEngineStressWorker(t *testing.T, role string) {
 		t.Fatalf("parse stress iterations: %v", err)
 	}
 
+	// Bound the World stress child execution with a context deadline.
 	ctx, cancel := context.WithTimeout(context.Background(), 45*time.Second)
 	defer cancel()
 
+	// Open the shared Bolt World through the stress controller.
 	tb := newWorldEngineStressTestbed(t, ctx, boltPath, fmt.Sprintf("%s-%d", role, id))
 	defer tb.Release()
 	ctrl, ref := startWorldEngineStressController(t, ctx, tb, fmt.Sprintf("stress-%s-%d", role, id))
@@ -288,6 +316,7 @@ func runWorldEngineStressWorker(t *testing.T, role string) {
 		t.Fatal(err.Error())
 	}
 
+	// Execute the configured World stress writer, reader, or verifier.
 	switch role {
 	case "writer":
 		runWorldEngineStressWriter(t, ctx, eng, id, iterations)
@@ -305,6 +334,7 @@ func runWorldEngineStressWorker(t *testing.T, role string) {
 }
 
 func runObjectStoreCASWorker(t *testing.T, role string) {
+	// Read and validate the ObjectStore CAS child configuration.
 	boltPath := os.Getenv(objectStoreCASPathEnv)
 	if boltPath == "" {
 		t.Fatal("object store CAS bolt path env is empty")
@@ -318,14 +348,17 @@ func runObjectStoreCASWorker(t *testing.T, role string) {
 		t.Fatalf("parse object store CAS iterations: %v", err)
 	}
 
+	// Bound the ObjectStore CAS child execution with a context deadline.
 	ctx, cancel := context.WithTimeout(context.Background(), 45*time.Second)
 	defer cancel()
 
+	// Open the shared Bolt ObjectStore for the CAS child.
 	tb := newWorldEngineStressTestbed(t, ctx, boltPath, fmt.Sprintf("objectstore-cas-%s-%d", role, id))
 	defer tb.Release()
 	store, release := openObjectStoreCASStore(t, ctx, tb)
 	defer release()
 
+	// Execute the configured ObjectStore CAS writer or verifier.
 	switch role {
 	case "writer":
 		runObjectStoreCASWriter(t, ctx, tb, store, id, iterations)
@@ -346,6 +379,7 @@ func newWorldEngineStressTestbed(
 	boltPath string,
 	id string,
 ) *testbed.Testbed {
+	// Open the shared Bolt testbed and register the World engine factory.
 	t.Helper()
 	log := logrus.New()
 	log.SetLevel(logrus.WarnLevel)
@@ -420,6 +454,7 @@ func runObjectStoreCASWriter(
 }
 
 func commitObjectStoreCASKey(ctx context.Context, store object.ObjectStore, key string) (uint64, error) {
+	// Refresh coordinated ObjectStore state and open its writer transaction.
 	if err := refreshObjectStoreForCoordination(store); err != nil {
 		return 0, err
 	}
@@ -428,6 +463,8 @@ func commitObjectStoreCASKey(ctx context.Context, store object.ObjectStore, key 
 		return 0, err
 	}
 	defer tx.Discard()
+
+	// Read the current ObjectStore sequence before applying the CAS update.
 	data, found, err := tx.Get(ctx, []byte("seq"))
 	if err != nil {
 		return 0, err
@@ -436,6 +473,8 @@ func commitObjectStoreCASKey(ctx context.Context, store object.ObjectStore, key 
 		return 0, fmt.Errorf("seq missing")
 	}
 	seq := binary.BigEndian.Uint64(data)
+
+	// Commit the ObjectStore key and increment its sequence together.
 	if err := tx.Set(ctx, []byte("key/"+key), []byte("1")); err != nil {
 		return 0, err
 	}
@@ -457,6 +496,7 @@ func runObjectStoreCASVerifier(
 	writers int,
 	iterations int,
 ) {
+	// Refresh coordinated ObjectStore state and open a read snapshot.
 	t.Helper()
 	if err := refreshObjectStoreForCoordination(store); err != nil {
 		t.Fatal(err.Error())
@@ -466,6 +506,8 @@ func runObjectStoreCASVerifier(
 		t.Fatal(err.Error())
 	}
 	defer tx.Discard()
+
+	// Require the shared ObjectStore sequence to exist.
 	data, found, err := tx.Get(ctx, []byte("seq"))
 	if err != nil {
 		t.Fatal(err.Error())
@@ -473,6 +515,8 @@ func runObjectStoreCASVerifier(
 	if !found {
 		t.Fatal("seq missing")
 	}
+
+	// Verify every CAS writer key against the shared ObjectStore sequence.
 	seq := binary.BigEndian.Uint64(data)
 	wantSeq := uint64(writers * iterations)
 	var missing []string
@@ -494,6 +538,7 @@ func runObjectStoreCASVerifier(
 }
 
 func objectStoreCASKeyVisible(ctx context.Context, store object.ObjectStore, key string) bool {
+	// Refresh coordinated ObjectStore state and open a visibility snapshot.
 	if err := refreshObjectStoreForCoordination(store); err != nil {
 		return false
 	}
@@ -502,6 +547,8 @@ func objectStoreCASKeyVisible(ctx context.Context, store object.ObjectStore, key
 		return false
 	}
 	defer tx.Discard()
+
+	// Check whether the committed CAS key is visible in the snapshot.
 	_, found, err := tx.Get(ctx, []byte("key/"+key))
 	return err == nil && found
 }
@@ -520,6 +567,7 @@ func startWorldEngineStressController(
 	tb *testbed.Testbed,
 	engineID string,
 ) (*world_block_engine.Controller, interface{ Release() }) {
+	// Configure and start the World stress controller on the shared Bolt volume.
 	t.Helper()
 	transformConf, err := block_transform.NewConfig(nil)
 	if err != nil {
@@ -667,6 +715,7 @@ func runWorldEngineStressVerifier(
 }
 
 func describeWorldEngineStressState(ctx context.Context, eng world.Engine, writers, iterations int) string {
+	// Capture the World stress sequence for failure diagnostics.
 	var parts []string
 	if blockEng, ok := eng.(*world_block.Engine); ok {
 		if seqno, err := blockEng.GetSeqno(ctx); err == nil {
@@ -675,6 +724,8 @@ func describeWorldEngineStressState(ctx context.Context, eng world.Engine, write
 			parts = append(parts, fmt.Sprintf("seqnoErr=%v", err))
 		}
 	}
+
+	// Count present and missing stress objects through read transactions.
 	var missing []string
 	var present int
 	for writerID := range writers {
@@ -699,6 +750,8 @@ func describeWorldEngineStressState(ctx context.Context, eng world.Engine, write
 			}
 		}
 	}
+
+	// Summarize the World stress object count and missing keys.
 	parts = append(parts, fmt.Sprintf("present=%d/%d", present, writers*iterations))
 	if len(missing) != 0 {
 		parts = append(parts, "missing="+strings.Join(missing, ","))
@@ -724,11 +777,14 @@ func waitWorldEngineStressKey(ctx context.Context, eng world.Engine, key string)
 }
 
 func readWorldEngineStressKey(ctx context.Context, eng world.Engine, key string, requireFound bool) error {
+	// Open a World read transaction for the requested stress key.
 	tx, err := eng.NewTransaction(ctx, false)
 	if err != nil {
 		return fmt.Errorf("new read transaction: %w", err)
 	}
 	defer tx.Discard()
+
+	// Read and release the stress object and require its presence when requested.
 	objectState, found, err := tx.GetObject(ctx, key)
 	world.ReleaseObjectState(objectState)
 	if err != nil {
@@ -745,10 +801,13 @@ func worldEngineStressKey(writerID int, iteration int) string {
 }
 
 func stressEnvInt(key string, fallback int) int {
+	// Read the configured stress count or retain the fallback.
 	raw := os.Getenv(key)
 	if raw == "" {
 		return fallback
 	}
+
+	// Parse the configured stress count or retain the fallback.
 	value, err := strconv.Atoi(raw)
 	if err != nil {
 		return fallback

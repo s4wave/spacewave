@@ -18,6 +18,7 @@ import (
 // revision. No private engine, concrete Submit call, or alternate block route
 // participates in the Resource operations under test.
 func TestWorldCommitBatchingResourceRunAhead(t *testing.T) {
+	// Open the Resource batching fixture and read its initial World sequence.
 	f := newBatchingFixture(t, 512)
 	ctx, cancel := context.WithTimeout(t.Context(), 60*time.Second)
 	defer cancel()
@@ -25,11 +26,14 @@ func TestWorldCommitBatchingResourceRunAhead(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Open the first Resource World producer transaction.
 	first, err := f.engine.NewTransaction(ctx, true)
 	if err != nil {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = first.Discard(context.Background()); first.Release() })
+
 	// The first coordinator refresh must precede the blocked physical turn.
 	// Reused same-World authority must not remap the database again while N is
 	// pending. This barrier does not change the sync/freelist configuration.
@@ -38,27 +42,38 @@ func TestWorldCommitBatchingResourceRunAhead(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer physical.Rollback()
+
+	// Capture the Bolt and publication counters before preparing revisions.
 	before := f.db.CommitCounter()
 	publications := f.tb.Volume.(interface {
 		GetPublicationStats() volume_kvtx.PublicationStats
 	})
 	beforePublications := publications.GetPublicationStats().PhysicalCommits
+
+	// Prepare and submit the first Resource World revision.
 	keys1 := batchingResourcePopulate(t, ctx, f, first, 0, 32)
 	done1 := make(chan error, 1)
 	go func() { done1 <- first.Commit(ctx) }()
+
+	// Open a successor Resource transaction before the first revision persists.
 	second, err := f.engine.NewTransaction(ctx, true)
 	if err != nil {
 		t.Fatalf("successor could not prepare before persistence: %v", err)
 	}
 	t.Cleanup(func() { _ = second.Discard(context.Background()); second.Release() })
+
+	// Require the successor transaction to inherit the first private revision.
 	obj, found, err := second.GetObject(ctx, keys1[0])
 	world.ReleaseObjectState(obj)
 	if err != nil || !found {
 		t.Fatalf("successor did not inherit private revision: %v %v", found, err)
 	}
+
+	// Prepare and submit the second Resource World revision.
 	keys2 := batchingResourcePopulate(t, ctx, f, second, 1, 32)
 	done2 := make(chan error, 1)
 	go func() { done2 <- second.Commit(ctx) }()
+
 	// Admission of a following transaction proves the second commit sealed and
 	// released its producer turn, rather than merely starting a goroutine.
 	probe, err := f.engine.NewTransaction(ctx, true)
@@ -70,11 +85,15 @@ func TestWorldCommitBatchingResourceRunAhead(t *testing.T) {
 	if err != nil || !found {
 		t.Fatalf("second private revision missing: %v %v", found, err)
 	}
+
+	// Release the probe transaction after checking the second private revision.
 	if err := probe.Discard(ctx); err != nil {
 		probe.Release()
 		t.Fatal(err)
 	}
 	probe.Release()
+
+	// Require the durable World head and commit acknowledgments to remain unchanged.
 	seq, err := f.engine.GetSeqno(ctx)
 	if err != nil || seq != initial {
 		t.Fatalf("canonical seqno advanced before durability: %d want %d, %v", seq, initial, err)
@@ -89,6 +108,8 @@ func TestWorldCommitBatchingResourceRunAhead(t *testing.T) {
 	if n := f.db.CommitCounter() - before; n != 0 {
 		t.Fatalf("construction wrote %d physical commits", n)
 	}
+
+	// Release the physical writer and wait for both Resource commits to persist.
 	if err := physical.Rollback(); err != nil {
 		t.Fatal(err)
 	}
@@ -102,9 +123,12 @@ func TestWorldCommitBatchingResourceRunAhead(t *testing.T) {
 			t.Fatal(ctx.Err())
 		}
 	}
+
+	// Require both Resource revisions to share one physical publication.
 	if n := publications.GetPublicationStats().PhysicalCommits - beforePublications; n != 1 {
 		t.Fatalf("two Resource revisions used %d publication commits, want 1", n)
 	}
+
 	// Reader pins and their release are separate ownership transactions.
 	t.Logf("physical commits including reader ownership: %d", f.db.CommitCounter()-before)
 	p1 := batchingResourceReadback(t, ctx, f, keys1)
@@ -120,11 +144,14 @@ func TestWorldCommitBatchingResourceRunAhead(t *testing.T) {
 func BenchmarkWorldCommitBatchingResourcePipeline(b *testing.B) {
 	for _, objects := range []int{1, 32} {
 		b.Run(fmt.Sprintf("objects=%d", objects), func(b *testing.B) {
+			// Prepare the Resource pipeline fixture and bounded producer window.
 			f := newBatchingFixture(b, 512)
 			const window = 8
 			ctx := b.Context()
 			b.ReportAllocs()
 			b.ResetTimer()
+
+			// Begin timing the Resource pipeline and retain pending acknowledgments.
 			before := f.db.CommitCounter()
 			start := time.Now()
 			var pending []<-chan pipelineResult
@@ -138,6 +165,8 @@ func BenchmarkWorldCommitBatchingResourcePipeline(b *testing.B) {
 				}
 				elapsed += got.elapsed
 			}
+
+			// Prepare and submit Resource World updates within the producer window.
 			for i := 0; i < b.N; i++ {
 				if len(pending) == window {
 					join()
@@ -150,23 +179,32 @@ func BenchmarkWorldCommitBatchingResourcePipeline(b *testing.B) {
 				done := make(chan pipelineResult, 1)
 				pending = append(pending, done)
 				go func(w *sdk_world.Tx) {
+					// Measure the Resource commit acknowledgment latency.
 					at := time.Now()
 					err := w.Commit(ctx)
 					latency := time.Since(at)
+
+					// Release the Resource transaction and deliver its measured result.
 					_ = w.Discard(context.Background())
 					w.Release()
 					done <- pipelineResult{latency, err}
 				}(w)
 			}
+
+			// Join all pending Resource commits before ending pipeline timing.
 			for len(pending) != 0 {
 				join()
 			}
 			total := time.Since(start)
 			physical := f.db.CommitCounter() - before
 			b.StopTimer()
+
+			// Verify each committed Resource payload outside the timed pipeline.
 			for _, ks := range keys {
 				batchingResourceReadback(b, ctx, f, ks)
 			}
+
+			// Report durable Resource throughput, acknowledgment latency, and commit counts.
 			b.ReportMetric(float64(b.N)/total.Seconds(), "durable-updates/s")
 			b.ReportMetric(float64(elapsed.Nanoseconds())/float64(b.N), "ack-ns/op")
 			b.ReportMetric(float64(physical)/float64(b.N), "physical-commits/op")

@@ -41,6 +41,7 @@ func newBatchingFixture(t testing.TB, history int) *batchingFixture {
 }
 
 func newBatchingFixtureAt(t testing.TB, history int, path string) *batchingFixture {
+	// Build the Bolt storage testbed for the Resource batching fixture.
 	t.Helper()
 	ctx := t.Context()
 	log := logrus.New()
@@ -53,6 +54,7 @@ func newBatchingFixtureAt(t testing.TB, history int, path string) *batchingFixtu
 		t.Fatal(err)
 	}
 	t.Cleanup(tb.Release)
+
 	// Prepopulate an unrelated object store in one transaction outside the timer.
 	store, rel, err := tb.Volume.AccessObjectStore(ctx, "unrelated-history", nil)
 	if err != nil {
@@ -64,6 +66,8 @@ func newBatchingFixtureAt(t testing.TB, history int, path string) *batchingFixtu
 		t.Fatal(err)
 	}
 	defer ktx.Discard()
+
+	// Populate and commit the unrelated history before measurement.
 	for i := range history {
 		if err := ktx.Set(ctx, []byte(fmt.Sprintf("history/%08d", i)), make([]byte, 4096)); err != nil {
 			t.Fatal(err)
@@ -72,6 +76,8 @@ func newBatchingFixtureAt(t testing.TB, history int, path string) *batchingFixtu
 	if err := ktx.Commit(ctx); err != nil {
 		t.Fatal(err)
 	}
+
+	// Build the World testbed and access its root Resource client.
 	wtb, err := world_testbed.NewTestbed(tb)
 	if err != nil {
 		t.Fatal(err)
@@ -84,6 +90,8 @@ func newBatchingFixtureAt(t testing.TB, history int, path string) *batchingFixtu
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Create the remote World and retain its Resource engine.
 	resp, err := s4wave_testbed.NewSRPCTestbedResourceServiceClient(srpc).CreateWorld(ctx, &s4wave_testbed.CreateWorldRequest{EngineId: "batching-resource-world"})
 	if err != nil {
 		t.Fatal(err)
@@ -95,11 +103,14 @@ func newBatchingFixtureAt(t testing.TB, history int, path string) *batchingFixtu
 		t.Fatal(err)
 	}
 	t.Cleanup(eng.Release)
+
 	// Controller initialization creates the empty World lazily. Warm it before
 	// measuring construction so setup writes do not masquerade as batch savings.
 	if _, err := eng.GetSeqno(ctx); err != nil {
 		t.Fatal(err)
 	}
+
+	// Require the fixture to use a native Bolt database with durability enabled.
 	db := volume_bolt.GetBoltDB(tb.Volume)
 	if db == nil {
 		t.Fatal("not a native Bolt volume")
@@ -114,6 +125,7 @@ func newBatchingFixtureAt(t testing.TB, history int, path string) *batchingFixtu
 // construction and Commit separately. Setup and exact readback are outside the
 // complete-update timer. Physical counts come from bbolt, not logical wrappers.
 func batchingResourceUpdate(t testing.TB, f *batchingFixture, sample, count int) (time.Duration, time.Duration, time.Duration, uint64, uint64, uint32) {
+	// Open the Resource World transaction and begin complete-update timing.
 	t.Helper()
 	ctx := t.Context()
 	before := f.db.CommitCounter()
@@ -124,8 +136,12 @@ func batchingResourceUpdate(t testing.TB, f *batchingFixture, sample, count int)
 	}
 	defer wtx.Release()
 	defer wtx.Discard(context.Background()) // independently release the remote resource
+
+	// Prepare the Resource objects and record construction commits.
 	keys := batchingResourcePopulate(t, ctx, f, wtx, sample, count)
 	prepared := f.db.CommitCounter()
+
+	// Measure Resource publication latency and its physical commits.
 	commitStart := time.Now()
 	if err := wtx.Commit(ctx); err != nil {
 		t.Fatal(err)
@@ -136,6 +152,8 @@ func batchingResourceUpdate(t testing.TB, f *batchingFixture, sample, count int)
 	if b, ok := t.(*testing.B); ok {
 		b.StopTimer()
 	}
+
+	// Read back Resource contents outside the measured update timer.
 	readStart := time.Now()
 	parity := batchingResourceReadback(t, ctx, f, keys)
 	readElapsed := time.Since(readStart)
@@ -147,6 +165,7 @@ func batchingResourceUpdate(t testing.TB, f *batchingFixture, sample, count int)
 
 // batchingResourcePopulate uses only the public Resource cursor and World APIs.
 func batchingResourcePopulate(t testing.TB, ctx context.Context, f *batchingFixture, wtx *sdk_world.Tx, sample, count int) []string {
+	// Populate the Resource World with object bodies and graph relationships.
 	t.Helper()
 	prefix := fmt.Sprintf("batch/%04d/", sample)
 	keys := make([]string, count)
@@ -157,12 +176,15 @@ func batchingResourcePopulate(t testing.TB, ctx context.Context, f *batchingFixt
 			t.Fatal(err)
 		}
 		err = sdk_cursor.AccessCursor(ctx, f.client, id, func(c *bucket_lookup.Cursor) error {
+			// Write the object payload through its Resource storage cursor.
 			btx, bcs := c.BuildTransaction(nil)
 			bcs.SetBlock(block_mock.NewExample(fmt.Sprintf("complete payload %04d\n%s", i, keys[i])), true)
 			root, _, err := btx.Write(ctx, true)
 			if err != nil {
 				return err
 			}
+
+			// Create the World object with the written payload reference.
 			ref := c.GetRef().Clone()
 			ref.RootRef = root
 			obj, err := wtx.CreateObject(ctx, keys[i], ref)
@@ -182,6 +204,7 @@ func batchingResourcePopulate(t testing.TB, ctx context.Context, f *batchingFixt
 }
 
 func batchingResourceReadback(t testing.TB, ctx context.Context, f *batchingFixture, keys []string) uint32 {
+	// Open a Resource World read snapshot for content parity.
 	t.Helper()
 	rtx, err := f.engine.NewTransaction(ctx, false)
 	if err != nil {
@@ -206,11 +229,14 @@ func batchingResourceReadback(t testing.TB, ctx context.Context, f *batchingFixt
 			t.Fatal(err)
 		}
 		err = sdk_cursor.AccessCursor(ctx, f.client, id, func(c *bucket_lookup.Cursor) error {
+			// Read the stored object payload through its Resource cursor.
 			_, bcs := c.BuildTransaction(nil)
 			body, err := block_mock.UnmarshalExample(ctx, bcs)
 			if err != nil {
 				return err
 			}
+
+			// Require the stored payload to match and contribute to the parity hash.
 			want := fmt.Sprintf("complete payload %04d\n%s", i, key)
 			if body.GetMsg() != want {
 				return fmt.Errorf("body mismatch %s: %q", key, body.GetMsg())
@@ -254,11 +280,14 @@ func TestWorldCommitBatchingResourceBaseline(t *testing.T) {
 func BenchmarkWorldCommitBatchingResource(b *testing.B) {
 	for _, n := range []int{1, 32, 128} {
 		b.Run(fmt.Sprintf("objects=%d", n), func(b *testing.B) {
+			// Prepare the Resource fixture and measurements for this object count.
 			f := newBatchingFixture(b, 512)
 			b.ReportAllocs()
 			b.ResetTimer()
 			var total, commit, read time.Duration
 			var construction, publication uint64
+
+			// Accumulate complete Resource update measurements for each sample.
 			for sample := 0; sample < b.N; sample++ {
 				a, c, r, x, y, _ := batchingResourceUpdate(b, f, sample, n)
 				total += a
@@ -267,6 +296,8 @@ func BenchmarkWorldCommitBatchingResource(b *testing.B) {
 				construction += x
 				publication += y
 			}
+
+			// Report Resource update latency and physical commit counts.
 			b.StopTimer()
 			b.ReportMetric(float64(total.Nanoseconds())/float64(b.N), "complete-ns/op")
 			b.ReportMetric(float64(commit.Nanoseconds())/float64(b.N), "commit-ns/op")

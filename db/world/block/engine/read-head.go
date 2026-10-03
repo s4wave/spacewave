@@ -21,16 +21,19 @@ func ReadHeadRef(
 	stateTransformConf *block_transform.Config,
 	sfs *block_transform.StepFactorySet,
 ) (*bucket.ObjectRef, error) {
+	// Resolve the saved World head key when the caller uses the default.
 	if headKey == "" {
 		headKey = defaultHeadStateKey
 	}
 
+	// Open a read transaction on the saved World head store.
 	ktx, err := store.NewTransaction(ctx, false)
 	if err != nil {
 		return nil, err
 	}
 	defer ktx.Discard()
 
+	// Read the saved World head record from the transaction snapshot.
 	data, found, err := ktx.Get(ctx, []byte(headKey))
 	if err != nil {
 		return nil, err
@@ -39,6 +42,7 @@ func ReadHeadRef(
 		return nil, nil
 	}
 
+	// Decode the saved World head with its configured block transform.
 	if !stateTransformConf.GetEmpty() {
 		xfrm, err := block_transform.NewTransformer(
 			controller.ConstructOpts{Logger: le},
@@ -54,6 +58,7 @@ func ReadHeadRef(
 		}
 	}
 
+	// Parse the saved World head and return its bucket reference.
 	s := &HeadState{}
 	if err := s.UnmarshalVT(data); err != nil {
 		return nil, err

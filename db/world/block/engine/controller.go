@@ -217,6 +217,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 	var recoveryBaseRef *bucket.ObjectRef
 	var recoveredMissingPersistedHead bool
 	recoverMissingPersistedHead := func(err error) bool {
+		// Require a missing persisted World head and an unused recovery attempt.
 		if err == nil ||
 			!errors.Is(err, block.ErrNotFound) ||
 			persistedHeadRef == nil ||
@@ -240,6 +241,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 		return true
 	}
 
+	// Build the World engine from the selected bucket root.
 buildWorldEngine:
 
 	// Resolve and validate the selected root before publishing an engine.
@@ -420,6 +422,7 @@ buildWorldEngine:
 	// Fence durability when this execution ends.
 	<-rctx.Done()
 	le.Debug("shutting down")
+
 	// Clean-shutdown durability flush. In the single-writer path the durable
 	// head advances only at Sync, so a normal shutdown must fence before ending
 	// this execution. Controller-lifetime resources remain mounted until Close.
@@ -462,6 +465,7 @@ func (c *Controller) HandleDirective(ctx context.Context, di directive.Instance)
 // GetWorldEngine waits for the engine to be built.
 // Returns the Engine managed by the controller.
 func (c *Controller) GetWorldEngine(ctx context.Context) (Engine, error) {
+	// Wait for the controller to publish its engine or startup failure.
 	result, err := c.engineCtr.WaitValue(ctx, nil)
 	if err != nil {
 		return nil, err
@@ -479,9 +483,12 @@ func validateReadOnlyInitHead(
 	stateStore object.ObjectStore,
 	initRef *bucket.ObjectRef,
 ) error {
+	// Limit bucket validation to immutable configured World roots.
 	if !isReadOnlyInitHead(stateStore, initRef) {
 		return nil
 	}
+
+	// Require the configured World root to exist in its bucket.
 	found, err := cursor.GetBucket().GetBlockExists(ctx, initRef.GetRootRef())
 	if err != nil {
 		return err
@@ -508,11 +515,14 @@ func isReadOnlyInitHeadNotFound(err error, stateStore object.ObjectStore, initRe
 
 // startExecution retains a serving execution unless controller cleanup has begun.
 func (c *Controller) startExecution(execution *engineExecution) bool {
+	// Hold the controller resource lock while checking execution eligibility.
 	c.mtx.Lock()
 	defer c.mtx.Unlock()
 	if c.closed {
 		return false
 	}
+
+	// Retain the execution so controller cleanup can cancel and join it.
 	c.executions[execution] = struct{}{}
 	return true
 }
@@ -531,11 +541,14 @@ func (c *Controller) retainEngine(
 	publishedEngine world.Engine,
 	storeRef directive.Reference,
 ) bool {
+	// Hold the controller resource lock while checking engine eligibility.
 	c.mtx.Lock()
 	defer c.mtx.Unlock()
 	if c.closed {
 		return false
 	}
+
+	// Retain the engine storage and publish the usable World engine.
 	c.engineResources = append(c.engineResources, engineResource{
 		engine:   engine,
 		storeRef: storeRef,
@@ -558,6 +571,8 @@ func (c *Controller) Close() error {
 		c.mtx.Unlock()
 		return closeErr
 	}
+
+	// Detach the controller executions and engines for exclusive cleanup.
 	c.closed = true
 	executions := make([]*engineExecution, 0, len(c.executions))
 	for execution := range c.executions {

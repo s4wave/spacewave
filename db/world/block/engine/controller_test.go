@@ -20,6 +20,7 @@ import (
 
 // TestControllerCoordinatorSupported checks that direct writes require durable generations.
 func TestControllerCoordinatorSupported(t *testing.T) {
+	// Prepare the World controller and its coordination scope.
 	ctx := context.Background()
 	ctrl := &Controller{le: logrus.NewEntry(logrus.New())}
 	scope := coord.Scope{
@@ -45,6 +46,7 @@ func TestControllerCoordinatorSupported(t *testing.T) {
 
 // TestControllerGetWorldEngineReturnsMissingInitHeadError checks that an absent immutable root resolves lookup with its error.
 func TestControllerGetWorldEngineReturnsMissingInitHeadError(t *testing.T) {
+	// Prepare the context and logger for immutable World startup.
 	ctx := t.Context()
 	log := logrus.New()
 	le := logrus.NewEntry(log)
@@ -110,6 +112,7 @@ func TestControllerGetWorldEngineReturnsMissingInitHeadError(t *testing.T) {
 
 // TestControllerRecoversMissingPersistedHead checks explicit recovery publishes the configured replacement.
 func TestControllerRecoversMissingPersistedHead(t *testing.T) {
+	// Prepare the context and logger for persisted-head recovery.
 	ctx := t.Context()
 	le := logrus.NewEntry(logrus.New())
 
@@ -125,6 +128,8 @@ func TestControllerRecoversMissingPersistedHead(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Write the replacement World root through the bucket cursor.
 	currentTx, currentBlocks := currentCursor.BuildTransaction(nil)
 	currentBlocks.ClearAllRefs()
 	currentBlocks.SetBlock(world_block.NewWorld(true), true)
@@ -133,6 +138,8 @@ func TestControllerRecoversMissingPersistedHead(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Retain the replacement World root for recovery configuration.
 	currentHeadRef := &bucket.ObjectRef{
 		BucketId: tb.BucketId,
 		RootRef:  currentRootRef,
@@ -199,6 +206,8 @@ func TestControllerRecoversMissingPersistedHead(t *testing.T) {
 	if !found {
 		t.Fatal("recovered world head was not persisted")
 	}
+
+	// Require the recovered head to select the configured replacement root.
 	recoveredHeadRef := headState.GetHeadRef()
 	if recoveredHeadRef.GetRootRef().GetEmpty() {
 		t.Fatal("recovered world head is empty")
@@ -231,6 +240,7 @@ func TestControllerRecoversMissingPersistedHead(t *testing.T) {
 
 // TestControllerEngineSurvivesExecuteRestartUntilClose checks retained handles keep their storage through execution restarts.
 func TestControllerEngineSurvivesExecuteRestartUntilClose(t *testing.T) {
+	// Prepare the context and logger for controller restart checks.
 	ctx := t.Context()
 	le := logrus.NewEntry(logrus.New())
 
@@ -264,11 +274,14 @@ func TestControllerEngineSurvivesExecuteRestartUntilClose(t *testing.T) {
 	getCtx, getCancel := context.WithTimeout(ctx, 2*time.Second)
 	t.Cleanup(getCancel)
 	startExecution := func() (Engine, context.CancelFunc, <-chan error) {
+		// Start a serving World controller execution.
 		execCtx, execCancel := context.WithCancel(ctx)
 		execErrCh := make(chan error, 1)
 		go func() {
 			execErrCh <- ctrl.Execute(execCtx)
 		}()
+
+		// Wait for the execution to publish its World engine.
 		eng, err := ctrl.GetWorldEngine(getCtx)
 		if err != nil {
 			execCancel()
@@ -288,10 +301,13 @@ func TestControllerEngineSurvivesExecuteRestartUntilClose(t *testing.T) {
 		}
 	}
 	assertOpen := func(name string, eng Engine) {
+		// Require the retained World engine to expose a readable sequence.
 		t.Helper()
 		if _, err := eng.GetSeqno(ctx); err != nil {
 			t.Fatalf("%s engine is unusable while controller remains attached: %v", name, err)
 		}
+
+		// Require the retained engine to have a live block World root.
 		blockEngine, ok := eng.(*world_block.Engine)
 		if !ok {
 			t.Fatalf("%s engine type = %T, want *world_block.Engine", name, eng)
@@ -300,6 +316,8 @@ func TestControllerEngineSurvivesExecuteRestartUntilClose(t *testing.T) {
 		if rootRef == nil || rootRef.GetRootRef().GetEmpty() {
 			t.Fatalf("%s engine has no live world root", name)
 		}
+
+		// Open and discard a read transaction through the retained engine.
 		readTx, err := eng.NewTransaction(ctx, false)
 		if err != nil {
 			t.Fatalf("%s engine read transaction: %v", name, err)
@@ -318,6 +336,8 @@ func TestControllerEngineSurvivesExecuteRestartUntilClose(t *testing.T) {
 	firstEngine, firstCancel, firstErrCh := startExecution()
 	stopExecution(firstCancel, firstErrCh)
 	assertOpen("first after Execute return", firstEngine)
+
+	// Commit and sync an object through the engine after execution ends.
 	firstTx, err := firstEngine.NewTransaction(ctx, true)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -341,6 +361,8 @@ func TestControllerEngineSurvivesExecuteRestartUntilClose(t *testing.T) {
 	secondEngine, secondCancel, secondErrCh := startExecution()
 	t.Cleanup(secondCancel)
 	assertOpen("first after Execute restart", firstEngine)
+
+	// Require the first engine to read its object after execution restarts.
 	restartReadTx, err := firstEngine.NewTransaction(ctx, false)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -373,6 +395,7 @@ func TestControllerEngineSurvivesExecuteRestartUntilClose(t *testing.T) {
 
 // TestControllerDoesNotRecoverMissingPersistedHeadByDefault checks missing durable data is not replaced without configured recovery.
 func TestControllerDoesNotRecoverMissingPersistedHeadByDefault(t *testing.T) {
+	// Prepare the context and logger for missing-head failure checks.
 	ctx := t.Context()
 	le := logrus.NewEntry(logrus.New())
 
@@ -418,6 +441,7 @@ func writeControllerTestHead(
 	objectStoreID string,
 	headRef *bucket.ObjectRef,
 ) {
+	// Resolve the real ObjectStore for test head metadata.
 	t.Helper()
 	storeVal, _, storeRef, err := volume.ExBuildObjectStoreAPI(
 		ctx,

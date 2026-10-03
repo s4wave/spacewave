@@ -90,6 +90,7 @@ func (c *Controller) writeHeadState(ctx context.Context, store object.ObjectStor
 // replaceHeadState is the common decoded CAS/encoding step. It performs no
 // I/O and can run inside a volume-owned atomic publication transaction.
 func (c *Controller) replaceHeadState(ctx context.Context, data []byte, found bool, baseRef, nref *bucket.ObjectRef) ([]byte, error) {
+	// Validate the stored World head against the publication base.
 	var err error
 	if found {
 		if !c.conf.GetStateTransformConf().GetEmpty() {
@@ -116,6 +117,7 @@ func (c *Controller) replaceHeadState(ctx context.Context, data []byte, found bo
 		return nil, err
 	}
 
+	// Apply the configured block transform to the replacement World head.
 	if !c.conf.GetStateTransformConf().GetEmpty() {
 		data, err = c.stateXfrm.EncodeBlock(data)
 		if err != nil {
@@ -136,10 +138,13 @@ func headRefsEqual(a, b *bucket.ObjectRef) bool {
 
 // objectStoreHeadKeyPrefix identifies the head's key in the backing store.
 func (c *Controller) objectStoreHeadKeyPrefix() []byte {
+	// Resolve the configured World head key within its object store.
 	headKey := []byte(c.conf.GetObjectStoreHeadKey())
 	if len(headKey) == 0 {
 		headKey = []byte(defaultHeadStateKey)
 	}
+
+	// Include the object store prefix in the backing-store head key.
 	prefix := []byte(c.conf.GetObjectStorePrefix())
 	out := make([]byte, 0, len(prefix)+len(headKey))
 	out = append(out, prefix...)

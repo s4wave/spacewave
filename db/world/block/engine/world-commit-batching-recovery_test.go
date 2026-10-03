@@ -26,20 +26,28 @@ func TestWorldCommitBatchingResourceFreshProcessRecovery(t *testing.T) {
 	}
 	for _, boundary := range []string{"prepared", "admitted", "durable"} {
 		t.Run(boundary, func(t *testing.T) {
+			// Select the Bolt file shared by this recovery boundary.
 			path := filepath.Join(t.TempDir(), "recovery.bolt")
 			run := func(role string, wantExit int) {
+				// Run a recovery worker process with a bounded execution context.
 				t.Helper()
 				ctx, cancel := context.WithTimeout(t.Context(), 90*time.Second)
 				defer cancel()
 				cmd := exec.CommandContext(ctx, os.Args[0], "-test.run=^TestWorldCommitBatchingResourceFreshProcessRecovery$", "-test.timeout=80s")
 				cmd.Env = append(os.Environ(), roleEnv+"="+role, "SPACEWAVE_BATCHING_RECOVERY_PATH="+path)
 				out, err := cmd.CombinedOutput()
+
+				// Require the recovery worker to exit at the expected boundary.
 				if cmd.ProcessState == nil || cmd.ProcessState.ExitCode() != wantExit || ctx.Err() != nil {
 					t.Fatalf("%s exit want %d: %v\n%s", role, wantExit, err, out)
 				}
 			}
+
+			// Seed the durable World and stop the writer at this recovery boundary.
 			run("seed", 0)
 			run(boundary, 73)
+
+			// Verify only the World revisions durable at this boundary.
 			want := 1
 			if boundary == "durable" {
 				want = 3
@@ -58,13 +66,18 @@ func recoveryKeys(sample int) []string {
 }
 
 func batchingRecoveryWorker(t *testing.T, role, path string) {
+	// Open the recovery fixture with a bounded Resource operation context.
 	f := newBatchingFixtureAt(t, 128, path)
 	ctx, cancel := context.WithTimeout(t.Context(), 70*time.Second)
 	defer cancel()
+
+	// Seed the initial durable World revision when requested.
 	if role == "seed" {
 		batchingResourceUpdate(t, f, 0, 32)
 		return
 	}
+
+	// Verify the durable World payloads and reject unpublished objects.
 	if role == "verify-1" || role == "verify-3" {
 		count := 1
 		if role == "verify-3" {
@@ -94,6 +107,8 @@ func batchingRecoveryWorker(t *testing.T, role, path string) {
 		}
 		return
 	}
+
+	// Prepare the first recovery writer and retain its initial durable sequence.
 	first, err := f.engine.NewTransaction(ctx, true)
 	if err != nil {
 		t.Fatal(err)
@@ -104,6 +119,7 @@ func batchingRecoveryWorker(t *testing.T, role, path string) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	// Block the first physical publication at the raw writer turn after the
 	// coordinator refresh. Both admitted revisions must remain invisible.
 	if role == "prepared" || role == "admitted" {
@@ -113,6 +129,8 @@ func batchingRecoveryWorker(t *testing.T, role, path string) {
 		}
 		defer physical.Rollback()
 	}
+
+	// Prepare the next World revision and stop at the preparation boundary.
 	before := f.db.CommitCounter()
 	batchingResourcePopulate(t, ctx, f, first, 1, 32)
 	if role == "prepared" {
@@ -121,6 +139,8 @@ func batchingRecoveryWorker(t *testing.T, role, path string) {
 		}
 		os.Exit(73)
 	}
+
+	// Submit the first revision and open the successor World transaction.
 	done1 := make(chan error, 1)
 	go func() { done1 <- first.Commit(ctx) }()
 	second, err := f.engine.NewTransaction(ctx, true)
@@ -129,9 +149,13 @@ func batchingRecoveryWorker(t *testing.T, role, path string) {
 	}
 	defer second.Release()
 	defer second.Discard(context.Background())
+
+	// Submit the successor World revision for publication.
 	batchingResourcePopulate(t, ctx, f, second, 2, 32)
 	done2 := make(chan error, 1)
 	go func() { done2 <- second.Commit(ctx) }()
+
+	// Open and release a probe to establish successor admission.
 	probe, err := f.engine.NewTransaction(ctx, true)
 	if err != nil {
 		t.Fatal(err)
@@ -140,6 +164,8 @@ func batchingRecoveryWorker(t *testing.T, role, path string) {
 		t.Fatal(err)
 	}
 	probe.Release()
+
+	// Require admitted revisions to remain unacknowledged and absent from durability.
 	if role == "admitted" {
 		seq, err := f.engine.GetSeqno(ctx)
 		if err != nil || seq != initial {
@@ -157,6 +183,8 @@ func batchingRecoveryWorker(t *testing.T, role, path string) {
 		}
 		os.Exit(73)
 	}
+
+	// Require the remaining recovery role to wait for durable acknowledgments.
 	if role != "durable" {
 		t.Fatal("unknown recovery role", role)
 	}
@@ -170,6 +198,7 @@ func batchingRecoveryWorker(t *testing.T, role, path string) {
 			t.Fatal(ctx.Err())
 		}
 	}
+
 	// The acknowledgement itself, not process/engine shutdown, is the fence.
 	os.Exit(73)
 }

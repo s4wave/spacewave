@@ -31,9 +31,11 @@ func NewConfig(
 // Validate validates the configuration.
 // This is a cursory validation to see if the values "look correct."
 func (c *Config) Validate() error {
+	// Determine whether the World configuration supplies an initial head.
 	initRef := c.GetInitHeadRef()
 	hasInitRef := !initRef.GetEmpty()
 
+	// Validate the initial World head and its persisted-state transform.
 	if hasInitRef {
 		if err := c.GetInitHeadRef().Validate(); err != nil {
 			return errors.Wrap(err, "init_head_ref")
