@@ -228,6 +228,7 @@ func TestClaimCommitUsesObservedRootSnapshot(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer world.ReleaseObjectState(obj)
 	pendingRoot, pendingRev, err := obj.GetRootRef(ctx)
 	if err != nil {
 		t.Fatal(err)

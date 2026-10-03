@@ -77,6 +77,7 @@ func StartControllerWithConfig(
 	b bus.Bus,
 	conf *Config,
 ) (*Controller, directive.Reference, error) {
+	// Wait for the configured controller to start on the bus.
 	ctrli, _, ctrlRef, err := loader.WaitExecControllerRunning(
 		ctx,
 		b,
@@ -86,8 +87,11 @@ func StartControllerWithConfig(
 	if err != nil {
 		return nil, nil, err
 	}
+
+	// Require the loaded controller to have the expected type.
 	cl, ok := ctrli.(*Controller)
 	if !ok {
+		ctrlRef.Release()
 		return nil, nil, block.ErrUnexpectedType
 	}
 	return cl, ctrlRef, nil

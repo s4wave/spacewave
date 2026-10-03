@@ -126,6 +126,7 @@ func StartControllerWithConfig(
 	// Require the loaded controller to expose the Execution controller API.
 	cl, ok := ctrli.(*Controller)
 	if !ok {
+		ctrlRef.Release()
 		return nil, nil, block.ErrUnexpectedType
 	}
 	return cl, ctrlRef, nil
