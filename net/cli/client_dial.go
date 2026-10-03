@@ -24,10 +24,7 @@ func (a *ClientArgs) RunDial(*cli.Context) error {
 		return err
 	}
 
-	// Apply the requested peer filter and send the dial configuration.
-	if len(a.RemotePeerIdsCsv) != 0 {
-		a.AcceptConf.RemotePeerIds = a.ParseRemotePeerIdsCsv()
-	}
+	// Send the dial configuration.
 	err = client.Send(&stream_api.DialStreamRequest{
 		Config: &a.DialConf,
 	})
