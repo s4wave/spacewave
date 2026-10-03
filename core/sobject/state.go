@@ -488,7 +488,7 @@ func (s *SOState) MergeKeyEpochs(sharedObjectID string, epochs []*SOKeyEpoch) er
 		// Start from the held epoch, or a new one.
 		merged := s.GetKeyEpoch(epoch.GetEpoch()).CloneVT()
 		if merged == nil {
-			merged = &SOKeyEpoch{Epoch: epoch.GetEpoch()}
+			merged = &SOKeyEpoch{Epoch: epoch.GetEpoch(), ConfigChainSeqno: epoch.GetConfigChainSeqno()}
 		}
 
 		// Add or replace each authorized grant.

@@ -56,7 +56,7 @@ func runLeanRecoveryScenario(t *testing.T, peers []peer.Peer, seed uint64) []lea
 	config := &SharedObjectConfig{ConfigChainSeqno: seed%23 + 1, ConfigChainHash: bytes.Repeat([]byte{byte(seed%254 + 1)}, 32)}
 	transform, _, err := RotateTransformKey(keys[0], mockSharedObjectID, []*SOParticipantConfig{
 		{PeerId: peers[0].GetPeerID().String(), Role: SOParticipantRole_SOParticipantRole_OWNER},
-	}, 0)
+	}, 0, config.GetConfigChainSeqno())
 	if err != nil {
 		t.Fatal(err)
 	}

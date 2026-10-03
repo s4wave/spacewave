@@ -116,7 +116,7 @@ func newRemovedSignerFixture(t *testing.T) (*SOHost, **SOState, *SharedObjectCon
 	)
 
 	// The second owner rotates the key.
-	_, epoch, err := RotateTransformKey(keys[1], mockSharedObjectID, initial.GetConfig().GetParticipants(), initial.CurrentKeyEpoch().GetEpoch())
+	_, epoch, err := RotateTransformKey(keys[1], mockSharedObjectID, initial.GetConfig().GetParticipants(), initial.CurrentKeyEpoch().GetEpoch(), initial.GetConfig().GetConfigChainSeqno())
 	if err != nil {
 		t.Fatal(err)
 	}

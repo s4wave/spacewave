@@ -50,9 +50,6 @@ type cloudSOHost struct {
 	lastSeqno uint64
 	// lastConfigChainHash tracks the last known config chain hash.
 	lastConfigChainHash []byte
-	// rotatedConfigChainHash is the head whose participant removal this peer
-	// last rotated the key for.
-	rotatedConfigChainHash []byte
 	// verifiedConfigChainSeqno tracks the seqno of the last verified config chain head.
 	verifiedConfigChainSeqno uint64
 	// keyEpochs stores the key epochs fetched from the config chain.
@@ -1307,11 +1304,7 @@ func (h *cloudSOHost) syncConfigChainResponse(
 	}
 
 	// Store epochs and update the last known config chain hash.
-	var rotate bool
 	h.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
-		// Rotate the key at most once per configuration head.
-		rotate = !bytes.Equal(h.rotatedConfigChainHash, newHash)
-
 		// Adopt the verified peer state and projected state.
 		h.genesisHash = cache.GenesisHash
 		h.peerState = cache.PeerState
@@ -1358,18 +1351,13 @@ func (h *cloudSOHost) syncConfigChainResponse(
 		return sobject.ErrNotParticipant
 	}
 
-	// If local peer is OWNER, check whether the head removed participants by
-	// comparing the previous and latest config entries. This is computed
-	// locally rather than trusting the server-supplied changeType field. Every
-	// state pull re-verifies the same head, which rotates the key only once.
-	if rotate && localIsOwner && len(entries) >= 2 {
-		prevParticipants := entries[len(entries)-2].GetConfig().GetParticipants()
-		currParticipants := latestConfig.GetParticipants()
-		if participantsRemoved(prevParticipants, currParticipants) && h.rotateKeyOnRevocation(ctx, currParticipants) {
-			h.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-				h.rotatedConfigChainHash = bytes.Clone(newHash)
-			})
-		}
+	// A peer that may sign grants replaces the key a removed reader holds.
+	// Every such peer computes this from the verified chain and the epochs, so
+	// a peer that loses a concurrent rotation sees the new epoch on its next
+	// pull and stops.
+	mayGrant := localIsOwner || latestConfig.VotingWeight(localPeerIDStr) != 0
+	if mayGrant && sobject.NeedsKeyRotation(entries, resp.GetKeyEpochs()) {
+		h.rotateKeyOnRevocation(ctx, latestConfig)
 	}
 
 	// Client-side revocation enforcement: scan recent config chain entries for
@@ -1415,91 +1403,58 @@ func (h *cloudSOHost) syncConfigChainResponse(
 	return nil
 }
 
-// participantsRemoved returns true if any participant peer IDs present
-// in prev are absent in curr (i.e., a participant was removed).
-func participantsRemoved(prev, curr []*sobject.SOParticipantConfig) bool {
-	// Index current membership before checking for removed peers.
-	currIDs := make(map[string]struct{}, len(curr))
-	for _, p := range curr {
-		currIDs[p.GetPeerId()] = struct{}{}
-	}
-	for _, p := range prev {
-		if _, ok := currIDs[p.GetPeerId()]; !ok {
-			return true
-		}
-	}
-	return false
-}
-
-// rotateKeyOnRevocation generates a new transform key and posts the epoch to
-// the server, reporting whether the rotation completed.
-// Note: old epoch grants remain on the server for historical decryption by remaining
-// participants. This is by design -- forward secrecy means the revoked participant
-// cannot decrypt NEW content, but historical content up to the rotation point remains
-// accessible to anyone who had the old key. The server is trusted to serve epochs
-// only to authorized participants (via rbac_role_bindings).
-func (h *cloudSOHost) rotateKeyOnRevocation(ctx context.Context, participants []*sobject.SOParticipantConfig) bool {
-	// Snapshot the current epoch and configuration together.
+// rotateKeyOnRevocation grants a new transform key to the readers of cfg as
+// the epoch after the held ones, and posts it. Old epochs stay on the server
+// so remaining readers can decrypt history; a removed reader cannot decrypt
+// content written under the new key. When another peer posts the same epoch
+// first, the server refuses this one and the next pull adopts the other.
+func (h *cloudSOHost) rotateKeyOnRevocation(ctx context.Context, cfg *sobject.SharedObjectConfig) {
+	// Snapshot the current epoch.
 	var currentEpoch uint64
-	var currentCfg *sobject.SharedObjectConfig
 	h.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		if len(h.keyEpochs) != 0 {
 			currentEpoch = h.keyEpochs[len(h.keyEpochs)-1].GetEpoch()
 		}
-		if st := h.stateCtr.GetValue(); st.GetConfig() != nil {
-			currentCfg = st.GetConfig().CloneVT()
-		}
 	})
-	if currentCfg == nil {
-		h.le.Warn("failed to rotate transform key: current config missing")
-		return false
-	}
 
 	// Build the new encryption epoch and authorized recovery envelopes.
 	transformConf, epoch, err := sobject.RotateTransformKey(
 		h.privKey,
 		h.soID,
-		participants,
+		cfg.GetParticipants(),
 		currentEpoch,
+		cfg.GetConfigChainSeqno(),
 	)
 	if err != nil {
 		h.le.WithError(err).Warn("failed to rotate transform key")
-		return false
+		return
 	}
 	recoveryEnvelopes, err := buildSORecoveryEnvelopes(
 		ctx,
 		h.client,
 		h.soID,
-		currentCfg,
+		cfg,
 		epoch.GetEpoch(),
 		&sobject.SOGrantInner{TransformConf: transformConf},
 	)
 	if err != nil {
-		if ctx.Err() != nil {
-			return false
+		if ctx.Err() == nil {
+			h.le.WithError(err).Warn("failed to build recovery envelopes for key rotation")
 		}
-		h.le.WithError(err).Warn("failed to build recovery envelopes for key rotation")
-		return false
+		return
 	}
 
 	// Post the new epoch to the server.
-	if err := h.client.PostKeyEpoch(
-		ctx,
-		h.soID,
-		epoch,
-		recoveryEnvelopes,
-	); err != nil {
-		if ctx.Err() != nil {
-			return false
+	if err := h.client.PostKeyEpoch(ctx, h.soID, epoch, recoveryEnvelopes); err != nil {
+		if ctx.Err() == nil {
+			h.le.WithError(err).Warn("failed to post key epoch to server")
 		}
-		h.le.WithError(err).Warn("failed to post key epoch to server")
-		return false
+		return
 	}
 
 	// Project the successful rotation into the accepted local state.
 	h.applyKeyEpoch(ctx, epoch)
 	h.le.WithField("epoch", epoch.GetEpoch()).Info("key rotation complete after participant revocation")
-	return true
 }
 
 // GetKeyEpochs returns the current key epochs.

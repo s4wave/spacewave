@@ -810,9 +810,13 @@ message SOKeyEpoch {
   // Epoch is the epoch number (0-based, increments on rotation).
   uint64 epoch = 1;
 
-  // Grants are the key encrypted to each reader of this epoch.
-  // Each grant is signed by an owner or by its recipient.
+  // Grants are the key encrypted to each reader of this epoch. Each grant is
+  // signed by an owner, a voter under group control, or its recipient.
   repeated SOGrant grants = 2;
+  // ConfigChainSeqno is the config chain sequence number under which the
+  // epoch was created. A reader removed at a later sequence number still holds
+  // this epoch's key, so the next epoch must replace it.
+  uint64 config_chain_seqno = 3;
 }
 
 // SOConfigChainResponse is returned by GET /sobject/{id}/config-chain.

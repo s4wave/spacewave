@@ -2403,12 +2403,20 @@ export interface SOKeyEpoch {
    */
   epoch?: bigint
   /**
-   * Grants are the key encrypted to each reader of this epoch.
-   * Each grant is signed by an owner or by its recipient.
+   * Grants are the key encrypted to each reader of this epoch. Each grant is
+   * signed by an owner, a voter under group control, or its recipient.
    *
    * @generated from field: repeated sobject.SOGrant grants = 2;
    */
   grants?: SOGrant[]
+  /**
+   * ConfigChainSeqno is the config chain sequence number under which the
+   * epoch was created. A reader removed at a later sequence number still holds
+   * this epoch's key, so the next epoch must replace it.
+   *
+   * @generated from field: uint64 config_chain_seqno = 3;
+   */
+  configChainSeqno?: bigint
 }
 
 export const SOKeyEpoch: MessageType<SOKeyEpoch> =
@@ -2417,6 +2425,12 @@ export const SOKeyEpoch: MessageType<SOKeyEpoch> =
     fields: [
       { no: 1, name: 'epoch', kind: 'scalar', T: ScalarType.UINT64 },
       { no: 2, name: 'grants', kind: 'message', T: SOGrant, repeated: true },
+      {
+        no: 3,
+        name: 'config_chain_seqno',
+        kind: 'scalar',
+        T: ScalarType.UINT64,
+      },
     ] satisfies readonly PartialFieldInfo[],
   })
 

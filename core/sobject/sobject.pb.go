@@ -2390,9 +2390,13 @@ type SOKeyEpoch struct {
 	unknownFields []byte
 	// Epoch is the epoch number (0-based, increments on rotation).
 	Epoch uint64 `protobuf:"varint,1,opt,name=epoch,proto3" json:"epoch,omitempty"`
-	// Grants are the key encrypted to each reader of this epoch.
-	// Each grant is signed by an owner or by its recipient.
+	// Grants are the key encrypted to each reader of this epoch. Each grant is
+	// signed by an owner, a voter under group control, or its recipient.
 	Grants []*SOGrant `protobuf:"bytes,2,rep,name=grants,proto3" json:"grants,omitempty"`
+	// ConfigChainSeqno is the config chain sequence number under which the
+	// epoch was created. A reader removed at a later sequence number still holds
+	// this epoch's key, so the next epoch must replace it.
+	ConfigChainSeqno uint64 `protobuf:"varint,3,opt,name=config_chain_seqno,json=configChainSeqno,proto3" json:"configChainSeqno,omitempty"`
 }
 
 func (x *SOKeyEpoch) Reset() {
@@ -2413,6 +2417,13 @@ func (x *SOKeyEpoch) GetGrants() []*SOGrant {
 		return x.Grants
 	}
 	return nil
+}
+
+func (x *SOKeyEpoch) GetConfigChainSeqno() uint64 {
+	if x != nil {
+		return x.ConfigChainSeqno
+	}
+	return 0
 }
 
 // SOConfigChainResponse is returned by GET /sobject/{id}/config-chain.
@@ -3345,6 +3356,7 @@ func (m *SOKeyEpoch) CloneVT() *SOKeyEpoch {
 	}
 	r := new(SOKeyEpoch)
 	r.Epoch = m.Epoch
+	r.ConfigChainSeqno = m.ConfigChainSeqno
 	r.Grants = protobuf_go_lite.CloneVTSlice(m.Grants)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
@@ -4541,6 +4553,9 @@ func (this *SOKeyEpoch) EqualVT(that *SOKeyEpoch) bool {
 		return false
 	}
 	if !protobuf_go_lite.EqualVTSliceImplicit(this.Grants, that.Grants, func() *SOGrant { return &SOGrant{} }) {
+		return false
+	}
+	if this.ConfigChainSeqno != that.ConfigChainSeqno {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -8034,6 +8049,11 @@ func (x *SOKeyEpoch) MarshalProtoJSON(s *json.MarshalState) {
 		}
 		s.WriteArrayEnd()
 	}
+	if x.ConfigChainSeqno != 0 || s.HasField("configChainSeqno") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("configChainSeqno")
+		s.WriteUint64(x.ConfigChainSeqno)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -8072,6 +8092,9 @@ func (x *SOKeyEpoch) UnmarshalProtoJSON(s *json.UnmarshalState) {
 				}
 				x.Grants = append(x.Grants, v)
 			})
+		case "config_chain_seqno", "configChainSeqno":
+			s.AddField("config_chain_seqno")
+			x.ConfigChainSeqno = s.ReadUint64()
 		}
 	})
 }
@@ -10630,6 +10653,11 @@ func (m *SOKeyEpoch) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.ConfigChainSeqno != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.ConfigChainSeqno))
+		i--
+		dAtA[i] = 0x18
+	}
 	if len(m.Grants) > 0 {
 		for iNdEx := len(m.Grants) - 1; iNdEx >= 0; iNdEx-- {
 			size, err := m.Grants[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
@@ -11547,6 +11575,7 @@ func (m *SOKeyEpoch) SizeVT() (n int) {
 		l = e.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.ConfigChainSeqno)
 	n += len(m.unknownFields)
 	return n
 }
@@ -12801,6 +12830,10 @@ func (x *SOKeyEpoch) MarshalProtoText() string {
 			}
 		}
 		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
+	if x.ConfigChainSeqno != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "config_chain_seqno")
+		protobuf_go_lite.TextWriteUint(&sb, x.ConfigChainSeqno)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -16163,6 +16196,15 @@ func (m *SOKeyEpoch) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ConfigChainSeqno", wireType)
+			}
+			m.ConfigChainSeqno = 0
+			m.ConfigChainSeqno, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

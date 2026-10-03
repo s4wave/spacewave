@@ -126,7 +126,7 @@ func newTestSOState(t *testing.T, peers []peer.Peer, roles ...SOParticipantRole)
 	}
 
 	// Grant key epoch 0 to every reader and sign the empty genesis checkpoint.
-	_, epoch, err := RotateTransformKey(owner, mockSharedObjectID, participants, 0)
+	_, epoch, err := RotateTransformKey(owner, mockSharedObjectID, participants, 0, 0)
 	if err != nil {
 		t.Fatal(err)
 	}
