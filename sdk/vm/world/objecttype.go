@@ -47,6 +47,7 @@ func vmV86Factory(
 	ws world.WorldState,
 	objectKey string,
 ) (srpc.Invoker, func(), error) {
+	// Require World state and use the engine-backed state when available.
 	if ws == nil {
 		return nil, nil, objecttype.ErrWorldStateRequired
 	}

@@ -8,16 +8,19 @@ import (
 )
 
 func TestComputeIdentityTracksSourceEnvironmentModeAndLockfiles(t *testing.T) {
+	// Create the repository and baseline artifact identity.
 	repoRoot := newIdentityTestRepo(t)
 	inputs := testBuildInputs()
 	base := computeTestIdentity(t, repoRoot, inputs)
 
+	// Verify that changing source bytes changes the artifact identity.
 	writeTestFile(t, filepath.Join(repoRoot, "source", "main.go"), "package source\n\nconst Value = 2\n")
 	sourceChanged := computeTestIdentity(t, repoRoot, inputs)
 	if sourceChanged.SourceDigest == base.SourceDigest || sourceChanged.Digest == base.Digest {
 		t.Fatal("source edit did not change release artifact identity")
 	}
 
+	// Restore source and verify that environment changes affect identity.
 	writeTestFile(t, filepath.Join(repoRoot, "source", "main.go"), "package source\n\nconst Value = 1\n")
 	envInputs := testBuildInputs()
 	envInputs.Environment["BLDR_GO_WASM_OPTIMIZE"] = "false"
@@ -26,6 +29,7 @@ func TestComputeIdentityTracksSourceEnvironmentModeAndLockfiles(t *testing.T) {
 		t.Fatal("environment edit did not change release artifact identity")
 	}
 
+	// Verify that a different build mode changes artifact identity.
 	modeInputs := testBuildInputs()
 	modeInputs.Mode = "release/web/e2e/debug"
 	modeChanged := computeTestIdentity(t, repoRoot, modeInputs)
@@ -33,6 +37,7 @@ func TestComputeIdentityTracksSourceEnvironmentModeAndLockfiles(t *testing.T) {
 		t.Fatal("mode edit did not change release artifact identity")
 	}
 
+	// Verify that lockfile changes affect artifact identity.
 	writeTestFile(t, filepath.Join(repoRoot, "bun.lock"), "lockfile-v2\n")
 	lockChanged := computeTestIdentity(t, repoRoot, inputs)
 	if lockChanged.LockfileDigest == base.LockfileDigest || lockChanged.Digest == base.Digest {
@@ -41,16 +46,19 @@ func TestComputeIdentityTracksSourceEnvironmentModeAndLockfiles(t *testing.T) {
 }
 
 func TestComputeIdentityTracksBldrAndPrerenderInputs(t *testing.T) {
+	// Create the repository and baseline artifact identity.
 	repoRoot := newIdentityTestRepo(t)
 	inputs := testBuildInputs()
 	base := computeTestIdentity(t, repoRoot, inputs)
 
+	// Verify that builder input changes affect artifact identity.
 	writeTestFile(t, filepath.Join(repoRoot, "bldr", "cache-format.go"), "package bldr\n\nconst CacheFormat = 2\n")
 	bldrChanged := computeTestIdentity(t, repoRoot, inputs)
 	if bldrChanged.BldrDigest == base.BldrDigest || bldrChanged.Digest == base.Digest {
 		t.Fatal("Bldr input edit did not change release artifact identity")
 	}
 
+	// Restore builder inputs and verify that prerender inputs affect identity.
 	writeTestFile(t, filepath.Join(repoRoot, "bldr", "cache-format.go"), "package bldr\n\nconst CacheFormat = 1\n")
 	writeTestFile(t, filepath.Join(repoRoot, "app", "prerender", "entry.ts"), "export const route = '/changed'\n")
 	prerenderChanged := computeTestIdentity(t, repoRoot, inputs)
@@ -60,6 +68,7 @@ func TestComputeIdentityTracksBldrAndPrerenderInputs(t *testing.T) {
 }
 
 func newIdentityTestRepo(t *testing.T) string {
+	// Create the source and build input fixture tree.
 	t.Helper()
 	repoRoot := t.TempDir()
 	writeTestFile(t, filepath.Join(repoRoot, "source", "main.go"), "package source\n\nconst Value = 1\n")
@@ -67,6 +76,8 @@ func newIdentityTestRepo(t *testing.T) string {
 	writeTestFile(t, filepath.Join(repoRoot, "app", "prerender", "entry.ts"), "export const route = '/'\n")
 	writeTestFile(t, filepath.Join(repoRoot, "go.mod"), "module example.com/release-identity\n\ngo 1.25\n")
 	writeTestFile(t, filepath.Join(repoRoot, "bun.lock"), "lockfile-v1\n")
+
+	// Track fixture files in a new Git repository.
 	runTestGit(t, repoRoot, "init")
 	runTestGit(t, repoRoot, "add", ".")
 	return repoRoot

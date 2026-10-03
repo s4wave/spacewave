@@ -12,42 +12,58 @@ import (
 )
 
 func TestPublishLastCompleteWinsAndIgnoresPartialGeneration(t *testing.T) {
+	// Create the repository identity and artifact store.
 	repoRoot := newIdentityTestRepo(t)
 	identity := computeTestIdentity(t, repoRoot, testBuildInputs())
 	storeDir := filepath.Join(t.TempDir(), "store")
 
+	// Publish the first complete artifact pair.
 	releaseA, prerenderA := newArtifactFixture(t, "first")
 	publishedRelease, publishedPrerender, err := Publish(storeDir, releaseA, prerenderA, identity)
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Verify both published outputs carry the first marker.
 	assertArtifactMarker(t, publishedRelease, publishedPrerender, "first")
 
+	// Leave an incomplete staging tree beside the published generation.
 	partialDir := filepath.Join(storeDir, ".publish-killed")
 	writeTestFile(t, filepath.Join(partialDir, "release", "browser-release.json"), "{}")
 	writeTestFile(t, filepath.Join(partialDir, "prerender", "index.html"), "partial")
+
+	// Resolve the current generation after interrupted staging.
 	currentRelease, currentPrerender, err := Current(storeDir, identity)
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Verify incomplete staging preserves the first output pair.
 	assertArtifactMarker(t, currentRelease, currentPrerender, "first")
 
+	// Publish a second complete artifact pair.
 	releaseB, prerenderB := newArtifactFixture(t, "second")
 	if _, _, err := Publish(storeDir, releaseB, prerenderB, identity); err != nil {
 		t.Fatal(err)
 	}
+
+	// Resolve the current generation after the second publication.
 	currentRelease, currentPrerender, err = Current(storeDir, identity)
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Verify the second output pair becomes current.
 	assertArtifactMarker(t, currentRelease, currentPrerender, "second")
 }
 
 func TestConcurrentPublishNeverInterleavesOutputs(t *testing.T) {
+	// Create the repository identity and shared artifact store.
 	repoRoot := newIdentityTestRepo(t)
 	identity := computeTestIdentity(t, repoRoot, testBuildInputs())
 	storeDir := filepath.Join(t.TempDir(), "store")
 
+	// Publish competing artifact pairs and wait for every publication.
 	var wg sync.WaitGroup
 	for _, marker := range []string{"one", "two", "three", "four"} {
 		releaseDir, prerenderDir := newArtifactFixture(t, marker)
@@ -59,6 +75,7 @@ func TestConcurrentPublishNeverInterleavesOutputs(t *testing.T) {
 	}
 	wg.Wait()
 
+	// Read the current generation and both output markers.
 	releaseDir, prerenderDir, err := Current(storeDir, identity)
 	if err != nil {
 		t.Fatal(err)
@@ -71,15 +88,19 @@ func TestConcurrentPublishNeverInterleavesOutputs(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Verify competing publishers preserve matching output markers.
 	if string(releaseMarker) != string(prerenderMarker) {
 		t.Fatalf("interleaved artifact outputs: release=%q prerender=%q", releaseMarker, prerenderMarker)
 	}
 }
 
 func TestValidateRejectsPartialAndModifiedArtifacts(t *testing.T) {
+	// Create the expected artifact identity.
 	repoRoot := newIdentityTestRepo(t)
 	identity := computeTestIdentity(t, repoRoot, testBuildInputs())
 
+	// Verify incomplete release descriptors fail artifact validation.
 	partialRelease := filepath.Join(t.TempDir(), "release")
 	partialPrerender := filepath.Join(t.TempDir(), "prerender")
 	writeTestFile(t, filepath.Join(partialRelease, "browser-release.json"), "{}")
@@ -88,6 +109,7 @@ func TestValidateRejectsPartialAndModifiedArtifacts(t *testing.T) {
 		t.Fatal("partial artifact validated")
 	}
 
+	// Publish and validate a complete artifact pair.
 	releaseDir, prerenderDir := newArtifactFixture(t, "complete")
 	publishedRelease, publishedPrerender, err := Publish(filepath.Join(t.TempDir(), "store"), releaseDir, prerenderDir, identity)
 	if err != nil {
@@ -96,6 +118,8 @@ func TestValidateRejectsPartialAndModifiedArtifacts(t *testing.T) {
 	if err := Validate(publishedRelease, publishedPrerender, identity); err != nil {
 		t.Fatal(err)
 	}
+
+	// Verify modified output bytes fail artifact validation.
 	writeTestFile(t, filepath.Join(publishedRelease, "marker.txt"), "truncated")
 	if err := Validate(publishedRelease, publishedPrerender, identity); err == nil {
 		t.Fatal("modified artifact validated")
@@ -103,6 +127,7 @@ func TestValidateRejectsPartialAndModifiedArtifacts(t *testing.T) {
 }
 
 func TestValidateRejectsStaleIdentity(t *testing.T) {
+	// Create and publish an artifact with the baseline identity.
 	repoRoot := newIdentityTestRepo(t)
 	identity := computeTestIdentity(t, repoRoot, testBuildInputs())
 	releaseDir, prerenderDir := newArtifactFixture(t, "complete")
@@ -111,6 +136,7 @@ func TestValidateRejectsStaleIdentity(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Verify a changed build environment rejects the saved artifact.
 	changedInputs := testBuildInputs()
 	changedInputs.Environment["BLDR_GO_WASM_OPTIMIZE"] = "false"
 	changedIdentity := computeTestIdentity(t, repoRoot, changedInputs)
@@ -120,19 +146,25 @@ func TestValidateRejectsStaleIdentity(t *testing.T) {
 }
 
 func TestPublishCopiesNestedFilesAndSymlinks(t *testing.T) {
+	// Create the expected identity and nested artifact fixture.
 	repoRoot := newIdentityTestRepo(t)
 	identity := computeTestIdentity(t, repoRoot, testBuildInputs())
 	releaseDir, prerenderDir := newArtifactFixture(t, "nested")
+
+	// Add a nested file and symbolic link to the release output.
 	nestedPath := filepath.Join(releaseDir, "assets", "nested.txt")
 	writeTestFile(t, nestedPath, "nested artifact")
 	if err := os.Symlink("nested.txt", filepath.Join(releaseDir, "assets", "nested.link")); err != nil {
 		t.Fatal(err)
 	}
 
+	// Publish the nested artifact fixture.
 	generation, err := PublishGeneration(filepath.Join(t.TempDir(), "store"), releaseDir, prerenderDir, identity)
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Verify the published nested file preserves its bytes.
 	data, err := os.ReadFile(filepath.Join(generation.ReleaseDir, "assets", "nested.txt"))
 	if err != nil {
 		t.Fatal(err)
@@ -140,6 +172,8 @@ func TestPublishCopiesNestedFilesAndSymlinks(t *testing.T) {
 	if string(data) != "nested artifact" {
 		t.Fatalf("nested artifact = %q, want %q", data, "nested artifact")
 	}
+
+	// Verify the published symbolic link preserves its target.
 	link, err := os.Readlink(filepath.Join(generation.ReleaseDir, "assets", "nested.link"))
 	if err != nil {
 		t.Fatal(err)
@@ -150,15 +184,18 @@ func TestPublishCopiesNestedFilesAndSymlinks(t *testing.T) {
 }
 
 func TestForeignIdentityMissesSilentlyAndStaysReportable(t *testing.T) {
+	// Create the expected identity and artifact store.
 	repoRoot := newIdentityTestRepo(t)
 	identity := computeTestIdentity(t, repoRoot, testBuildInputs())
 	storeDir := filepath.Join(t.TempDir(), "store")
 
+	// Publish an artifact with the baseline identity.
 	releaseDir, prerenderDir := newArtifactFixture(t, "published")
 	if _, _, err := Publish(storeDir, releaseDir, prerenderDir, identity); err != nil {
 		t.Fatal(err)
 	}
 
+	// Compute an identity for a different build environment.
 	changedInputs := testBuildInputs()
 	changedInputs.Environment["BLDR_GO_WASM_OPTIMIZE"] = "false"
 	changedIdentity := computeTestIdentity(t, repoRoot, changedInputs)
@@ -173,6 +210,8 @@ func TestForeignIdentityMissesSilentlyAndStaysReportable(t *testing.T) {
 	if len(generations) != 0 {
 		t.Fatalf("foreign identity matched %d generation(s)", len(generations))
 	}
+
+	// Verify foreign generation names remain available for diagnostics.
 	names, err := GenerationIDs(storeDir)
 	if err != nil {
 		t.Fatal(err)
@@ -183,10 +222,13 @@ func TestForeignIdentityMissesSilentlyAndStaysReportable(t *testing.T) {
 }
 
 func newArtifactFixture(t *testing.T, marker string) (string, string) {
+	// Create release and prerender directories for the artifact fixture.
 	t.Helper()
 	root := t.TempDir()
 	releaseDir := filepath.Join(root, "release")
 	prerenderDir := filepath.Join(root, "prerender")
+
+	// Write complete release and prerender outputs with matching markers.
 	writeTestFile(t, filepath.Join(releaseDir, "browser-release.json"), `{
   "schemaVersion": 1,
   "generationId": "fixture-generation",
@@ -224,11 +266,13 @@ const (
 )
 
 func TestPublishGenerationAndValidGenerationsTokenParity(t *testing.T) {
+	// Create the identity, store, and generation fixture.
 	repoRoot := newIdentityTestRepo(t)
 	identity := computeTestIdentity(t, repoRoot, testBuildInputs())
 	storeDir := filepath.Join(t.TempDir(), "store")
 	releaseDir, prerenderDir := newArtifactFixture(t, "generation")
 
+	// Publish a generation and require its identifier.
 	generation, err := PublishGeneration(storeDir, releaseDir, prerenderDir, identity)
 	if err != nil {
 		t.Fatal(err)
@@ -236,6 +280,8 @@ func TestPublishGenerationAndValidGenerationsTokenParity(t *testing.T) {
 	if generation.ID == "" {
 		t.Fatal("published generation has an empty ID")
 	}
+
+	// Verify generation listing returns the published generation.
 	generations, err := ValidGenerations(storeDir, identity)
 	if err != nil {
 		t.Fatal(err)
@@ -243,6 +289,8 @@ func TestPublishGenerationAndValidGenerationsTokenParity(t *testing.T) {
 	if len(generations) != 1 || generations[0] != generation {
 		t.Fatalf("listed generations = %#v, want %#v", generations, generation)
 	}
+
+	// Verify the current pointer resolves the published output paths.
 	currentRelease, currentPrerender, err := Current(storeDir, identity)
 	if err != nil {
 		t.Fatal(err)
@@ -253,10 +301,12 @@ func TestPublishGenerationAndValidGenerationsTokenParity(t *testing.T) {
 }
 
 func TestValidGenerationsOrdersNonLexicalCurrentFirst(t *testing.T) {
+	// Create the identity and artifact store.
 	repoRoot := newIdentityTestRepo(t)
 	identity := computeTestIdentity(t, repoRoot, testBuildInputs())
 	storeDir := filepath.Join(t.TempDir(), "store")
 
+	// Publish two complete artifact generations.
 	releaseA, prerenderA := newArtifactFixture(t, "first")
 	first, err := PublishGeneration(storeDir, releaseA, prerenderA, identity)
 	if err != nil {
@@ -268,6 +318,7 @@ func TestValidGenerationsOrdersNonLexicalCurrentFirst(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Give the generations ordered names and select the lexical-last generation.
 	firstID := identity.Digest + "-a"
 	secondID := identity.Digest + "-z"
 	root := filepath.Join(storeDir, generationsDir)
@@ -281,6 +332,7 @@ func TestValidGenerationsOrdersNonLexicalCurrentFirst(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Verify the current generation precedes the lexical-first generation.
 	generations, err := ValidGenerations(storeDir, identity)
 	if err != nil {
 		t.Fatal(err)
@@ -291,9 +343,11 @@ func TestValidGenerationsOrdersNonLexicalCurrentFirst(t *testing.T) {
 }
 
 func TestValidGenerationsCandidatePredicate(t *testing.T) {
+	// Create the expected artifact identity.
 	repoRoot := newIdentityTestRepo(t)
 	identity := computeTestIdentity(t, repoRoot, testBuildInputs())
 
+	// Exercise absent, foreign, malformed, and incomplete generation candidates.
 	t.Run("absent store is empty", func(t *testing.T) {
 		generations, err := ValidGenerations(filepath.Join(t.TempDir(), "absent"), identity)
 		if err != nil || len(generations) != 0 {
@@ -301,8 +355,11 @@ func TestValidGenerationsCandidatePredicate(t *testing.T) {
 		}
 	})
 	t.Run("other digest entry is ignored", func(t *testing.T) {
+		// Create a foreign generation entry in the artifact store.
 		storeDir := t.TempDir()
 		writeTestFile(t, filepath.Join(storeDir, generationsDir, "other-entry"), "not a directory")
+
+		// Verify the foreign entry does not match the expected identity.
 		generations, err := ValidGenerations(storeDir, identity)
 		if err != nil || len(generations) != 0 {
 			t.Fatalf("generations = %#v, err = %v", generations, err)
@@ -310,18 +367,26 @@ func TestValidGenerationsCandidatePredicate(t *testing.T) {
 	})
 	for _, name := range []string{identity.Digest, identity.Digest + "-"} {
 		t.Run("malformed matching "+filepath.Base(name), func(t *testing.T) {
+			// Create a malformed entry with the expected identity digest.
 			storeDir := t.TempDir()
 			writeTestFile(t, filepath.Join(storeDir, generationsDir, name), "malformed")
+
+			// Verify matching entries require a complete generation name.
+
+			// Verify incomplete matching generations propagate validation errors.
 			if generations, err := ValidGenerations(storeDir, identity); err == nil || len(generations) != 0 {
 				t.Fatalf("generations = %#v, err = %v", generations, err)
 			}
 		})
 	}
 	t.Run("matching validation error propagates", func(t *testing.T) {
+		// Create an incomplete generation with the expected identity digest.
 		storeDir := t.TempDir()
 		if err := os.MkdirAll(filepath.Join(storeDir, generationsDir, identity.Digest+"-invalid"), 0o755); err != nil {
 			t.Fatal(err)
 		}
+
+		// Verify incomplete matching generations propagate validation errors.
 		if generations, err := ValidGenerations(storeDir, identity); err == nil || len(generations) != 0 {
 			t.Fatalf("generations = %#v, err = %v", generations, err)
 		}
@@ -329,6 +394,7 @@ func TestValidGenerationsCandidatePredicate(t *testing.T) {
 }
 
 func TestValidGenerationsTreatsOutputDigestMismatchAsCacheMiss(t *testing.T) {
+	// Publish an artifact generation for the expected identity.
 	repoRoot := newIdentityTestRepo(t)
 	identity := computeTestIdentity(t, repoRoot, testBuildInputs())
 	storeDir := filepath.Join(t.TempDir(), "store")
@@ -338,6 +404,7 @@ func TestValidGenerationsTreatsOutputDigestMismatchAsCacheMiss(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Verify modified output bytes make the stored generation a cache miss.
 	writeTestFile(t, filepath.Join(generation.ReleaseDir, "marker.txt"), "changed after download")
 	generations, err := ValidGenerations(storeDir, identity)
 	if err != nil {
@@ -347,11 +414,14 @@ func TestValidGenerationsTreatsOutputDigestMismatchAsCacheMiss(t *testing.T) {
 		t.Fatalf("generations = %#v, want stale output to be treated as a miss", generations)
 	}
 
+	// Publish a rebuilt artifact generation.
 	rebuiltRelease, rebuiltPrerender := newArtifactFixture(t, "rebuilt")
 	rebuilt, err := PublishGeneration(storeDir, rebuiltRelease, rebuiltPrerender, identity)
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Verify the rebuilt generation is the sole usable artifact.
 	generations, err = ValidGenerations(storeDir, identity)
 	if err != nil {
 		t.Fatal(err)
@@ -362,6 +432,7 @@ func TestValidGenerationsTreatsOutputDigestMismatchAsCacheMiss(t *testing.T) {
 }
 
 func TestValidGenerationsIgnoresTransportModeChanges(t *testing.T) {
+	// Create an artifact fixture with a restricted cache record.
 	repoRoot := newIdentityTestRepo(t)
 	identity := computeTestIdentity(t, repoRoot, testBuildInputs())
 	storeDir := filepath.Join(t.TempDir(), "store")
@@ -372,6 +443,7 @@ func TestValidGenerationsIgnoresTransportModeChanges(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Publish the artifact and change the transported cache record permissions.
 	generation, err := PublishGeneration(storeDir, releaseDir, prerenderDir, identity)
 	if err != nil {
 		t.Fatal(err)
@@ -380,6 +452,7 @@ func TestValidGenerationsIgnoresTransportModeChanges(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Verify transport permission changes preserve the usable generation.
 	generations, err := ValidGenerations(storeDir, identity)
 	if err != nil {
 		t.Fatal(err)
@@ -390,6 +463,7 @@ func TestValidGenerationsIgnoresTransportModeChanges(t *testing.T) {
 }
 
 func TestValidGenerationsRejectsExternalValidFixtureSymlink(t *testing.T) {
+	// Publish a complete artifact in an external store.
 	repoRoot := newIdentityTestRepo(t)
 	identity := computeTestIdentity(t, repoRoot, testBuildInputs())
 	externalStore := filepath.Join(t.TempDir(), "external-store")
@@ -400,6 +474,7 @@ func TestValidGenerationsRejectsExternalValidFixtureSymlink(t *testing.T) {
 	}
 	externalDir := filepath.Dir(external.ReleaseDir)
 
+	// Verify a generation symlink cannot import the external artifact.
 	storeDir := t.TempDir()
 	root := filepath.Join(storeDir, generationsDir)
 	if err := os.MkdirAll(root, 0o755); err != nil {
@@ -414,6 +489,7 @@ func TestValidGenerationsRejectsExternalValidFixtureSymlink(t *testing.T) {
 }
 
 func TestValidGenerationsRejectsMatchingNonDirectory(t *testing.T) {
+	// Verify a matching generation file fails directory validation.
 	repoRoot := newIdentityTestRepo(t)
 	identity := computeTestIdentity(t, repoRoot, testBuildInputs())
 	storeDir := t.TempDir()
@@ -424,17 +500,24 @@ func TestValidGenerationsRejectsMatchingNonDirectory(t *testing.T) {
 }
 
 func TestPublishCrashRecovery(t *testing.T) {
+	// Dispatch the crash child process when its role is selected.
 	if role := os.Getenv(publishCrashRoleEnv); role != "" {
 		runPublishCrashRole(t, role)
 		return
 	}
+
+	// Create the identity and artifact pair for crash recovery.
 	repoRoot := newIdentityTestRepo(t)
 	identity := computeTestIdentity(t, repoRoot, testBuildInputs())
 	releaseDir, prerenderDir := newArtifactFixture(t, "crash")
 
+	// Exercise interruption before and after generation commit.
 	t.Run("before rename leaves no generation", func(t *testing.T) {
+		// Interrupt publication before committing a generation.
 		storeDir := filepath.Join(t.TempDir(), "store")
 		runPublishCrashChild(t, "before-rename", storeDir, releaseDir, prerenderDir, repoRoot)
+
+		// Verify interruption before commit leaves no usable generation.
 		generations, err := ValidGenerations(storeDir, identity)
 		if err != nil {
 			t.Fatal(err)
@@ -444,8 +527,11 @@ func TestPublishCrashRecovery(t *testing.T) {
 		}
 	})
 	t.Run("after rename recovers unpointed generation", func(t *testing.T) {
+		// Interrupt publication after committing a generation.
 		storeDir := filepath.Join(t.TempDir(), "store")
 		runPublishCrashChild(t, "after-rename", storeDir, releaseDir, prerenderDir, repoRoot)
+
+		// Verify the committed generation survives without a current pointer.
 		generations, err := ValidGenerations(storeDir, identity)
 		if err != nil {
 			t.Fatal(err)
@@ -460,9 +546,12 @@ func TestPublishCrashRecovery(t *testing.T) {
 }
 
 func runPublishCrashChild(t *testing.T, role, storeDir, releaseDir, prerenderDir, repoRoot string) {
+	// Create the bounded child process context for crash testing.
 	t.Helper()
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	t.Cleanup(cancel)
+
+	// Configure the child process with its artifact paths and crash role.
 	cmd := exec.CommandContext(ctx, os.Args[0], "-test.run=^TestPublishCrashRecovery$") //nolint:gosec
 	cmd.Env = append(os.Environ(),
 		publishCrashRoleEnv+"="+role,
@@ -471,11 +560,15 @@ func runPublishCrashChild(t *testing.T, role, storeDir, releaseDir, prerenderDir
 		publishCrashPrerenderEnv+"="+prerenderDir,
 		publishCrashRepositoryEnv+"="+repoRoot,
 	)
+
+	// Run the child and require an intentional process exit.
 	err := cmd.Run()
 	exitErr, ok := err.(*exec.ExitError)
 	if !ok {
 		t.Fatalf("crash child error = %v", err)
 	}
+
+	// Verify the child exited at the selected publication hook.
 	wantCode := 73
 	if role == "after-rename" {
 		wantCode = 74
@@ -486,6 +579,7 @@ func runPublishCrashChild(t *testing.T, role, storeDir, releaseDir, prerenderDir
 }
 
 func runPublishCrashRole(t *testing.T, role string) {
+	// Create the artifact identity and hook for the selected crash role.
 	t.Helper()
 	identity := computeTestIdentity(t, os.Getenv(publishCrashRepositoryEnv), testBuildInputs())
 	hooks := publishHooks{}
@@ -497,6 +591,8 @@ func runPublishCrashRole(t *testing.T, role string) {
 	default:
 		t.Fatalf("unknown crash role %q", role)
 	}
+
+	// Run publication and require the crash hook to exit the process.
 	if _, err := publish(
 		os.Getenv(publishCrashStoreEnv),
 		os.Getenv(publishCrashReleaseEnv),

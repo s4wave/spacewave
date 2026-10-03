@@ -37,6 +37,7 @@ func registerV86ConfigMounts(
 	objectKey string,
 	srv *unixfs_v86fs.Server,
 ) (func(), error) {
+	// Open the VM object whose configured mounts will be registered.
 	objState, found, err := ws.GetObject(ctx, objectKey)
 	defer world.ReleaseObjectState(objState)
 	if err != nil {
@@ -46,6 +47,7 @@ func registerV86ConfigMounts(
 		return func() {}, nil
 	}
 
+	// Read the VM mount configuration from its block state.
 	var cfg *s4wave_vm.V86Config
 	_, _, err = world.AccessObjectState(ctx, objState, false, func(bcs *block.Cursor) error {
 		vm, unmarshalErr := block.UnmarshalBlock[*s4wave_vm.VmV86](ctx, bcs, func() block.Block {
@@ -66,6 +68,7 @@ func registerV86ConfigMounts(
 		return func() {}, nil
 	}
 
+	// Retain opened mount handles and unregister them during factory cleanup.
 	var opened []*unixfs.FSHandle
 	registered := make([]string, 0, len(cfg.GetMounts()))
 	cleanup := func() {
@@ -77,6 +80,7 @@ func registerV86ConfigMounts(
 		}
 	}
 
+	// Register configured non-home mounts on the filesystem server.
 	for _, mnt := range cfg.GetMounts() {
 		path := mnt.GetPath()
 		objKey := mnt.GetObjectKey()
@@ -128,10 +132,12 @@ func ensureHomeMount(
 	vmObjectKey string,
 	srv *unixfs_v86fs.Server,
 ) (func(), error) {
+	// Require the VM object key before provisioning its home mount.
 	if vmObjectKey == "" {
 		return nil, errors.New("vm object key is required")
 	}
 
+	// Open the VM object whose home mount must be ensured.
 	vmObjState, found, err := ws.GetObject(ctx, vmObjectKey)
 	defer world.ReleaseObjectState(vmObjState)
 	if err != nil {
@@ -141,6 +147,7 @@ func ensureHomeMount(
 		return nil, errors.Errorf("vm-v86 object %q not found", vmObjectKey)
 	}
 
+	// Read the VM configuration before resolving its home mount.
 	var cfg *s4wave_vm.V86Config
 	_, _, err = world.AccessObjectState(ctx, vmObjState, false, func(bcs *block.Cursor) error {
 		vm, unmarshalErr := block.UnmarshalBlock[*s4wave_vm.VmV86](ctx, bcs, func() block.Block {
@@ -161,6 +168,7 @@ func ensureHomeMount(
 		cfg = &s4wave_vm.V86Config{}
 	}
 
+	// Reuse the configured home object or provision a deterministic home mount.
 	homeObjectKey := ""
 	for _, mount := range cfg.GetMounts() {
 		if mount.GetPath() == homeMountPath {
@@ -185,6 +193,7 @@ func ensureHomeMount(
 		}
 	}
 
+	// Open and register the home mount for the runtime lifetime.
 	mountName := deriveV86MountName(homeMountPath)
 	handle, err := openFSHandleForObject(ctx, le, ws, homeObjectKey)
 	if err != nil {
@@ -205,6 +214,7 @@ func ensureEmptyFSNodeObject(
 	ws world.WorldState,
 	objKey string,
 ) error {
+	// Check whether the UnixFS home object already exists.
 	{
 		objectState, found, err := ws.GetObject(ctx, objKey)
 		world.ReleaseObjectState(objectState)
@@ -215,6 +225,7 @@ func ensureEmptyFSNodeObject(
 		}
 	}
 
+	// Create the empty UnixFS home object, allowing concurrent creation.
 	op := &unixfs_world.FsInitOp{
 		ObjectKey: objKey,
 		FsType:    unixfs_world.FSType_FSType_FS_NODE,

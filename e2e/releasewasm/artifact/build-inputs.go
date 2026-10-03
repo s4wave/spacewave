@@ -19,6 +19,7 @@ type BuildInputs struct {
 }
 
 func (i *BuildInputs) digest() (string, error) {
+	// Require the compiler and build mode that determine artifact bytes.
 	if i == nil {
 		return "", errors.New("nil release artifact build inputs")
 	}
@@ -29,6 +30,7 @@ func (i *BuildInputs) digest() (string, error) {
 		return "", errors.New("empty release artifact build mode")
 	}
 
+	// Hash build configuration and sorted tool and environment maps.
 	h := sha256.New()
 	writeDigestField(h, "compiler", i.Compiler)
 	writeDigestField(h, "mode", i.Mode)

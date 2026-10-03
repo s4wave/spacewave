@@ -22,6 +22,7 @@ import (
 // "wasm". The per-VM bios override (if present) covers both seabios and
 // vgabios until a per-asset override is added.
 func resolveV86Mount(ctx context.Context, le *logrus.Entry, ws world.WorldState, objectKey, name string) (*unixfs.FSHandle, error) {
+	// Select the VM override and image asset predicates for the requested mount.
 	var overridePred, imagePred quad.IRI
 	switch name {
 	case "", "rootfs":
@@ -43,6 +44,7 @@ func resolveV86Mount(ctx context.Context, le *logrus.Entry, ws world.WorldState,
 		return nil, unixfs_errors.ErrNotExist
 	}
 
+	// Resolve the VM override before consulting the linked image.
 	targetKey, ok, err := lookupSingleEdge(ctx, ws, objectKey, string(overridePred))
 	if err != nil {
 		return nil, err
@@ -51,6 +53,7 @@ func resolveV86Mount(ctx context.Context, le *logrus.Entry, ws world.WorldState,
 		return openFSHandleForObject(ctx, le, ws, targetKey)
 	}
 
+	// Resolve the linked image and its requested filesystem asset.
 	imageKey, ok, err := lookupSingleEdge(ctx, ws, objectKey, string(s4wave_vm.PredV86Image))
 	if err != nil {
 		return nil, err
@@ -71,6 +74,7 @@ func resolveV86Mount(ctx context.Context, le *logrus.Entry, ws world.WorldState,
 // lookupSingleEdge returns the target object key of the first graph quad
 // matching (subject, predicate, *). Reports (_, false, nil) when no edge is set.
 func lookupSingleEdge(ctx context.Context, ws world.WorldState, subject, pred string) (string, bool, error) {
+	// Look up the first graph edge matching the subject and predicate.
 	gqs, err := ws.LookupGraphQuads(
 		ctx,
 		world.NewGraphQuadWithKeys(subject, pred, "", ""),
@@ -84,6 +88,7 @@ func lookupSingleEdge(ctx context.Context, ws world.WorldState, subject, pred st
 	}
 	targetKey, err := world.GraphValueToKey(gqs[0].GetObj())
 	if err != nil {
+		// Decode the graph target as a World object key.
 		return "", false, errors.Wrap(err, "parse target object key")
 	}
 	return targetKey, true, nil
@@ -91,6 +96,7 @@ func lookupSingleEdge(ctx context.Context, ws world.WorldState, subject, pred st
 
 // openFSHandleForObject opens a read-only FSHandle for a UnixFS world object.
 func openFSHandleForObject(ctx context.Context, le *logrus.Entry, ws world.WorldState, objectKey string) (*unixfs.FSHandle, error) {
+	// Open the UnixFS object cursor and transfer it to a filesystem handle.
 	fsType, _, err := unixfs_world.LookupFsType(ctx, ws, objectKey)
 	if err != nil {
 		return nil, errors.Wrap(err, "lookup fs type")

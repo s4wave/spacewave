@@ -36,11 +36,13 @@ type Identity struct {
 // working tree, including tracked edits, staged edits, deletions, and untracked
 // non-ignored files.
 func ComputeIdentity(repoRoot string, inputs *BuildInputs) (*Identity, error) {
+	// Digest the compiler, mode, tools, and environment inputs.
 	buildDigest, err := inputs.digest()
 	if err != nil {
 		return nil, err
 	}
 
+	// List tracked and unignored source paths from the working tree.
 	cmd := exec.Command("git", "ls-files", "--cached", "--others", "--exclude-standard", "-z")
 	cmd.Dir = repoRoot
 	out, err := cmd.Output()
@@ -48,6 +50,7 @@ func ComputeIdentity(repoRoot string, inputs *BuildInputs) (*Identity, error) {
 		return nil, errors.Wrap(err, "list release artifact source files")
 	}
 
+	// Sort source paths to make their digest deterministic.
 	paths := make([]string, 0)
 	for raw := range bytes.SplitSeq(out, []byte{0}) {
 		if len(raw) != 0 {
@@ -56,6 +59,7 @@ func ComputeIdentity(repoRoot string, inputs *BuildInputs) (*Identity, error) {
 	}
 	slices.Sort(paths)
 
+	// Hash source files into source, lockfile, builder, and prerender groups.
 	sourceHash := sha256.New()
 	lockfileHash := sha256.New()
 	bldrHash := sha256.New()
@@ -75,6 +79,7 @@ func ComputeIdentity(repoRoot string, inputs *BuildInputs) (*Identity, error) {
 		}
 	}
 
+	// Bind source and build digests into one artifact identity.
 	identity := &Identity{
 		SchemaVersion:         identitySchemaVersion,
 		Compiler:              inputs.Compiler,
@@ -108,9 +113,12 @@ func (i *Identity) Summary() map[string]string {
 
 // Differences returns the current inputs that do not match the artifact.
 func (i *Identity) Differences(artifact *Identity) []string {
+	// Require an artifact identity before comparing its inputs.
 	if artifact == nil {
 		return []string{"missing identity"}
 	}
+
+	// Compare the artifact schema and compiler configuration.
 	var differences []string
 	if artifact.SchemaVersion != identitySchemaVersion {
 		differences = append(differences, "identity schema")
@@ -124,6 +132,8 @@ func (i *Identity) Differences(artifact *Identity) []string {
 	if artifact.BuildDigest != i.BuildDigest {
 		differences = append(differences, "build environment")
 	}
+
+	// Compare source, lockfile, builder, and prerender input digests.
 	if artifact.SourceDigest != i.SourceDigest {
 		differences = append(differences, "source content")
 	}
@@ -136,6 +146,8 @@ func (i *Identity) Differences(artifact *Identity) []string {
 	if artifact.PrerenderInputsDigest != i.PrerenderInputsDigest {
 		differences = append(differences, "prerender inputs")
 	}
+
+	// Verify the artifact identity digest against its recorded fields.
 	if artifact.Digest != artifact.contentDigest() {
 		differences = append(differences, "identity digest")
 	}
@@ -143,10 +155,13 @@ func (i *Identity) Differences(artifact *Identity) []string {
 }
 
 func (i *Identity) contentDigest() string {
+	// Hash the identity schema and compiler configuration.
 	h := sha256.New()
 	writeDigestField(h, "schema", strconv.Itoa(i.SchemaVersion))
 	writeDigestField(h, "compiler", i.Compiler)
 	writeDigestField(h, "mode", i.Mode)
+
+	// Hash the source and build input groups into the identity digest.
 	writeDigestField(h, "source", i.SourceDigest)
 	writeDigestField(h, "build", i.BuildDigest)
 	writeDigestField(h, "lockfiles", i.LockfileDigest)
@@ -167,7 +182,10 @@ func isLockfile(path string) bool {
 // includeMode controls whether filesystem permission bits participate in the
 // digest. Source inputs retain modes, while transported output trees do not.
 func hashFile(h hash.Hash, repoRoot, path string, includeMode bool) error {
+	// Resolve the input path within the selected repository.
 	fullPath := filepath.Join(repoRoot, filepath.FromSlash(path))
+
+	// Inspect the input and record tracked deletions in its digest.
 	// #nosec G703 -- fullPath is the caller-selected repo root joined with the manifest path.
 	info, err := os.Lstat(fullPath)
 	if os.IsNotExist(err) {
@@ -178,10 +196,13 @@ func hashFile(h hash.Hash, repoRoot, path string, includeMode bool) error {
 		return errors.Wrapf(err, "stat release artifact input %s", path)
 	}
 
+	// Record the input path and optional filesystem permissions.
 	writeDigestField(h, "path", path)
 	if includeMode {
 		writeDigestField(h, "mode", strconv.FormatUint(uint64(info.Mode()), 8))
 	}
+
+	// Hash symbolic link targets without following them.
 	if info.Mode()&os.ModeSymlink != 0 {
 		target, err := os.Readlink(fullPath)
 		if err != nil {
@@ -194,7 +215,10 @@ func hashFile(h hash.Hash, repoRoot, path string, includeMode bool) error {
 		return errors.Errorf("release artifact input %s has unsupported mode %s", path, info.Mode())
 	}
 
+	// Record the regular input size before reading its bytes.
 	writeDigestField(h, "size", strconv.FormatInt(info.Size(), 10))
+
+	// Hash regular input bytes and close the input file.
 	// #nosec G703 -- fullPath is the caller-selected repo root joined with the manifest path.
 	f, err := os.Open(fullPath)
 	if err != nil {

@@ -16,6 +16,7 @@ func TestDefaultVmRuntimePluginID(t *testing.T) {
 }
 
 func TestV86RuntimeStatusGenerationFence(t *testing.T) {
+	// Create the World testbed for runtime status updates.
 	ctx := t.Context()
 	wtb, err := db_world_testbed.Default(ctx)
 	if err != nil {
@@ -23,6 +24,7 @@ func TestV86RuntimeStatusGenerationFence(t *testing.T) {
 	}
 	defer wtb.Release()
 
+	// Create a starting VM object with a known runtime generation.
 	ws := world.NewEngineWorldState(wtb.Engine, true)
 	const objectKey = "vm/v86/test"
 	const generation = uint64(7)
@@ -40,6 +42,7 @@ func TestV86RuntimeStatusGenerationFence(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Report bootstrap status through the VM resource.
 	resource := newV86Resource(nil, objectKey, ws, nil, nil)
 	booting, err := resource.applyRuntimeStatus(ctx, generation, &s4wave_vm.ReportV86RuntimeStatusRequest{
 		ObjectKey: objectKey,
@@ -48,9 +51,13 @@ func TestV86RuntimeStatusGenerationFence(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Verify bootstrap status accepts the stored runtime generation.
 	if !booting.GetAccepted() || booting.GetRunGeneration() != generation {
 		t.Fatalf("boot report = %#v, want accepted generation %d", booting, generation)
 	}
+
+	// Report readiness for the current runtime generation.
 	ready, err := resource.applyRuntimeStatus(ctx, generation, &s4wave_vm.ReportV86RuntimeStatusRequest{
 		ObjectKey:     objectKey,
 		RunGeneration: generation,
@@ -59,9 +66,13 @@ func TestV86RuntimeStatusGenerationFence(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Verify readiness is accepted for the current runtime.
 	if !ready.GetAccepted() {
 		t.Fatalf("ready report rejected: %s", ready.GetRejection())
 	}
+
+	// Report bootstrap status again after runtime readiness.
 	staleBootstrap, err := resource.applyRuntimeStatus(ctx, generation, &s4wave_vm.ReportV86RuntimeStatusRequest{
 		ObjectKey: objectKey,
 		Status:    s4wave_vm.V86RuntimeStatus_V86RuntimeStatus_BOOTING,
@@ -69,9 +80,13 @@ func TestV86RuntimeStatusGenerationFence(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Verify bootstrap status cannot regress a ready runtime.
 	if staleBootstrap.GetAccepted() {
 		t.Fatal("bootstrap report regressed a ready runtime")
 	}
+
+	// Report a runtime failure for the current generation.
 	failed, err := resource.applyRuntimeStatus(ctx, generation, &s4wave_vm.ReportV86RuntimeStatusRequest{
 		ObjectKey:     objectKey,
 		RunGeneration: generation,
@@ -81,10 +96,13 @@ func TestV86RuntimeStatusGenerationFence(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Verify the current generation accepts its runtime failure.
 	if !failed.GetAccepted() {
 		t.Fatalf("error report rejected: %s", failed.GetRejection())
 	}
 
+	// Report a runtime failure from a stale generation.
 	stale, err := resource.applyRuntimeStatus(ctx, generation, &s4wave_vm.ReportV86RuntimeStatusRequest{
 		ObjectKey:     objectKey,
 		RunGeneration: generation - 1,
@@ -94,9 +112,13 @@ func TestV86RuntimeStatusGenerationFence(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Verify stale runtime reports are rejected.
 	if stale.GetAccepted() {
 		t.Fatal("stale runtime report was accepted")
 	}
+
+	// Attempt a direct observed state update from a stale generation.
 	changed, accepted, err := resource.updateObservedState(
 		ctx,
 		generation-1,
@@ -106,10 +128,13 @@ func TestV86RuntimeStatusGenerationFence(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Verify stale updates neither change nor accept the observed state.
 	if changed || accepted {
 		t.Fatalf("stale state update = changed %t accepted %t", changed, accepted)
 	}
 
+	// Open the VM object after the accepted and rejected reports.
 	objState, found, err := ws.GetObject(ctx, objectKey)
 	defer world.ReleaseObjectState(objState)
 	if err != nil {
@@ -118,6 +143,8 @@ func TestV86RuntimeStatusGenerationFence(t *testing.T) {
 	if !found {
 		t.Fatal("runtime object disappeared")
 	}
+
+	// Read the persisted VM block after runtime status updates.
 	var vm *s4wave_vm.VmV86
 	_, _, err = world.AccessObjectState(ctx, objState, false, func(bcs *block.Cursor) error {
 		blockValue, unmarshalErr := block.UnmarshalBlock[*s4wave_vm.VmV86](ctx, bcs, func() block.Block {
@@ -132,6 +159,8 @@ func TestV86RuntimeStatusGenerationFence(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Verify the current failure survives stale runtime reports.
 	if vm == nil {
 		t.Fatal("runtime object has no VmV86 block")
 	}
