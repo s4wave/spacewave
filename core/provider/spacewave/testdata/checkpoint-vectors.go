@@ -14,7 +14,6 @@ import (
 	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
 	"github.com/s4wave/spacewave/core/sobject"
 	"github.com/s4wave/spacewave/net/crypto"
-	"github.com/s4wave/spacewave/net/hash"
 	"github.com/s4wave/spacewave/net/peer"
 )
 
@@ -40,23 +39,43 @@ func main() {
 	batch, err := (&api.PostOpsRequest{Operations: operations}).MarshalVT()
 	must(err)
 
-	// Sign a root that resolves the chain head and rejects its last operation.
-	rejection, err := sobject.BuildSOOperationRejection(key, objectID, peerID, 50, fmt.Sprintf("01j0000000%016d", 50), nil)
+	// Sign the genesis checkpoint and two successors: one covering the first
+	// half of the chain and one covering all of it.
+	genesis, err := sobject.BuildGenesisSOCheckpoint(key, objectID, configHash[:], []byte("genesis"))
 	must(err)
-	inner, err := (&sobject.SORootInner{Seqno: 51, StateData: []byte("coalesced checkpoint")}).MarshalVT()
-	must(err)
-	root := &sobject.SORoot{Inner: inner, InnerSeqno: 51, AccountNonces: []*sobject.SOAccountNonce{{PeerId: peerID.String(), Nonce: 50, OpHash: prev}}}
-	must(root.SignInnerData(key, objectID, 51, hash.RecommendedHashType))
-	request, err := (&api.PostRootRequest{Root: root, RejectedOps: []*sobject.SOOperationRejection{rejection}}).MarshalVT()
-	must(err)
+	cover := func(nonce uint64) []byte {
+		head := sobject.HashSOOperationInner(operations[nonce-1].GetInner())
+		checkpoint, err := sobject.BuildSOCheckpoint(key, &sobject.SOCheckpointInner{
+			SharedObjectId:     objectID,
+			Height:             1,
+			PrevCheckpointHash: genesis.Hash(),
+			ConfigHash:         configHash[:],
+			Frontier:           [][]byte{head},
+			StateData:          []byte(fmt.Sprintf("state at %d", nonce)),
+			ReplayVersion:      sobject.SOReplayVersion,
+			Authors:            []*sobject.SOCheckpointAuthor{{PeerId: peerID.String(), Nonce: nonce, OpHash: head}},
+		})
+		must(err)
+		return request(checkpoint)
+	}
 
 	// Write the vectors as JSON.
 	must(json.NewEncoder(os.Stdout).Encode(struct {
-		ObjectID string `json:"objectId"`
-		PeerID   string `json:"peerId"`
-		Batch    []byte `json:"batch"`
-		Root     []byte `json:"root"`
-	}{objectID, peerID.String(), batch, request}))
+		ObjectID   string `json:"objectId"`
+		PeerID     string `json:"peerId"`
+		ConfigHash []byte `json:"configHash"`
+		Batch      []byte `json:"batch"`
+		Genesis    []byte `json:"genesis"`
+		Partial    []byte `json:"partial"`
+		Checkpoint []byte `json:"checkpoint"`
+	}{objectID, peerID.String(), configHash[:], batch, request(genesis), cover(25), cover(50)}))
+}
+
+// request encodes checkpoint as the body of POST /sobject/:id/checkpoint.
+func request(checkpoint *sobject.SOCheckpoint) []byte {
+	data, err := (&api.PostCheckpointRequest{Checkpoint: checkpoint}).MarshalVT()
+	must(err)
+	return data
 }
 
 func must(err error) {
