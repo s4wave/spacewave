@@ -10,14 +10,13 @@ import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 /**
  * RuntimeCapabilityFlagRequest switches one runtime capability for the current
  * environment. Only platform administrators may call
- * POST /api/admin/runtime-flag, and only for a capability the Worker gates.
+ * POST /api/admin/runtime-flag, and only for a capability the cloud gates.
  *
  * @generated from message provider.spacewave.api.RuntimeCapabilityFlagRequest
  */
 export interface RuntimeCapabilityFlagRequest {
   /**
-   * Capability names the gated feature, such as runtime.worker-facet or
-   * storage.public-origin.
+   * Capability names the gated feature, such as storage.public-origin.
    *
    * @generated from field: string capability = 1;
    */
