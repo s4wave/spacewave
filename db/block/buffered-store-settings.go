@@ -18,9 +18,10 @@ type BufferedStoreSettings struct {
 	MaxPendingMetadataBytes int
 	// DrainBatchEntries is the number of entries written per drain batch.
 	DrainBatchEntries int
-	// RecordWrites records every block written to the inner store, so the
-	// writer can release the ones its final root does not reach with
-	// ReleaseUnreached.
+	// RecordWrites records every block written to the inner store with its
+	// outgoing refs. DrainReachable and SyncReachable follow refs through the
+	// recorded blocks, and ReleaseUnreached releases the recorded blocks a
+	// final root does not reach.
 	RecordWrites bool
 }
 

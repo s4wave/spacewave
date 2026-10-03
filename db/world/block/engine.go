@@ -895,7 +895,7 @@ func (e *Engine) ForkBlockTransaction(ctx context.Context, write bool) (*Tx, err
 	if err != nil {
 		return nil, err
 	}
-	ws.ownedStore = buffered
+	ws.ownedStore, ws.releaseOwned = buffered, buffered != nil
 
 	// Pin the base root for the lifetime of a write fork.
 	if write {
@@ -1253,27 +1253,28 @@ func (e *Engine) initializeHeadReadTx(ctx context.Context) error {
 }
 
 // buildWriteState builds a write state at root whose blocks go to a buffer
-// the transaction owns. Committing drains only the blocks the committed root
-// reaches. Outside a staged session the buffer drains into the engine store
-// and records what it writes there, so ending the transaction releases the
-// blocks its final root does not reach, as a fork does. In a staged session
-// it drains into the staged store when the transaction submits, so the next
-// publication carries none of a discarded transaction's blocks.
+// the transaction owns. The buffer records what it writes, so committing
+// drains only the blocks the committed root reaches, even through a parent a
+// capacity drain wrote early. Outside a staged session the buffer drains into
+// the engine store, and ending the transaction releases the blocks its final
+// root does not reach, as a fork does. In a staged session it drains into the
+// staged store when the transaction submits, so the next publication carries
+// none of a discarded transaction's blocks.
 // The caller must hold bcast after construction.
 func (e *Engine) buildWriteState(ctx context.Context, root *bucket_lookup.Cursor) (*WorldState, error) {
 	// Buffer the writes over the store the engine publishes from.
-	inner, record := e.writeBlockStore, true
+	inner := e.writeBlockStore
 	if e.stagedStore != nil {
-		inner, record = e.stagedStore, false
+		inner = e.stagedStore
 	}
-	writes := block.NewBufferedStoreWithSettings(ctx, inner, &block.BufferedStoreSettings{RecordWrites: record})
+	writes := block.NewBufferedStoreWithSettings(ctx, inner, &block.BufferedStoreSettings{RecordWrites: true})
 
 	// Build the state and give it the buffer.
 	ws, err := e.buildWorldStateForRoot(ctx, false, root, writes)
 	if err != nil {
 		return nil, err
 	}
-	ws.ownedStore = writes
+	ws.ownedStore, ws.releaseOwned = writes, e.stagedStore == nil
 	return ws, nil
 }
 

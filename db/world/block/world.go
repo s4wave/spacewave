@@ -42,9 +42,13 @@ type WorldState struct {
 	// owns physical reachability.
 	store block.StoreOps
 	// ownedStore is the write buffer this state created, nil for forks that
-	// share their parent's. Discard releases the blocks it wrote that the
-	// final root does not reach.
+	// share their parent's. It records the blocks it writes.
 	ownedStore *block.BufferedStore
+	// releaseOwned reports that ownedStore writes to the engine store, so
+	// Discard releases the blocks it wrote that the final root does not reach.
+	// A buffer over a staged session store leaves them to the publication,
+	// since releasing through that store would publish it early.
+	releaseOwned bool
 
 	objTree   kvtx.BlockTx
 	graphTree kvtx.BlockTx
@@ -488,7 +492,7 @@ func (t *WorldState) Discard() {
 	t.btx.DiscardStagedWrites()
 
 	// Release the written blocks the final root does not reach.
-	if t.ownedStore != nil {
+	if t.releaseOwned {
 		if err := t.ownedStore.ReleaseUnreached(context.Background(), t.GetRootRef()); err != nil {
 			t.le.WithError(err).Warn("unable to release unreached world blocks")
 		}

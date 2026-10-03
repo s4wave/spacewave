@@ -6,8 +6,10 @@ import (
 )
 
 // SyncReachable discards pending writes outside roots, then applies the normal
-// durability fence. Reachability follows the outgoing refs recorded with each
-// pending block; references already in the inner store are retained there.
+// durability fence. Reachability follows the outgoing refs of each pending
+// block and, when the store records writes, of each block it already wrote to
+// the inner store. A capacity drain can write a parent before its children
+// arrive, so a store that may drain before this call must record writes.
 //
 // The caller must exclusively own the buffer and stop all writers first. Use
 // this for a newly constructed snapshot, not a buffer shared with other work.
@@ -76,6 +78,13 @@ func (s *BufferedStore) keepReachable(ctx context.Context, roots []*BlockRef) er
 			keep[key] = struct{}{}
 			pending := s.pending[key]
 			if pending == nil {
+				// Walk through a block a capacity drain already wrote, so its
+				// pending children survive.
+				if written := s.written[key]; written != nil {
+					for _, childRef := range slices.Backward(written.refs) {
+						stack = append(stack, visit{ref: childRef})
+					}
+				}
 				continue
 			}
 			if pending.tombstone {
