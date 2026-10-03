@@ -94,11 +94,13 @@ func (c *Controller) Execute(ctx context.Context) error {
 		return errors.New("target world input must be set")
 	}
 
+	// Resolve the target World from the execution input.
 	ipv, err := forge_target.InputValueToWorld(inWorld)
 	if err != nil {
 		return errors.Wrap(err, "world")
 	}
 
+	// Read the configured repository object and retain it during cloning.
 	ws := ipv.GetWorldState()
 	repoObjKey := c.conf.GetObjectKey()
 	alreadyExistsObj, alreadyExists, err := ws.GetObject(ctx, repoObjKey)
@@ -107,6 +109,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 		return err
 	}
 
+	// Bind checkout options to the repository object and execution timestamp.
 	cloneOpts := c.conf.GetCloneOpts()
 	worktreeOpts := c.conf.GetWorktreeOpts().CloneVT()
 	if worktreeOpts != nil {
@@ -114,6 +117,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 		worktreeOpts.Timestamp = ts
 	}
 
+	// Reuse the repository snapshot or clone it into the target World.
 	var repoRef *bucket.ObjectRef
 	var repoRev uint64
 	if alreadyExists {

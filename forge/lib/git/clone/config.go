@@ -12,18 +12,26 @@ const ConfigID = ControllerID
 
 // Validate validates the configuration.
 func (c *Config) Validate() error {
+	// Require the World object key that will hold the repository.
 	if c.GetObjectKey() == "" {
 		return world.ErrEmptyObjectKey
 	}
+
+	// Validate the repository clone options.
 	if err := c.GetCloneOpts().Validate(); err != nil {
 		return errors.Wrap(err, "clone_opts")
 	}
+
+	// Validate the credentials used to authenticate the clone.
 	if err := c.GetAuthOpts().Validate(); err != nil {
 		return errors.Wrap(err, "auth_opts")
 	}
+
+	// Validate the worktree created from the repository snapshot.
 	if err := c.GetWorktreeOpts().Validate(); err != nil {
 		return errors.Wrap(err, "worktree_opts")
 	}
+
 	return nil
 }
 

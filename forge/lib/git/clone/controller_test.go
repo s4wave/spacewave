@@ -45,8 +45,10 @@ exec:
 }
 
 func createSourceRepo(t *testing.T) string {
+	// Attribute repository fixture failures to the calling test.
 	t.Helper()
 
+	// Initialize a source repository and open its worktree.
 	dir := t.TempDir()
 	repo, err := git.PlainInit(dir, false)
 	if err != nil {
@@ -56,12 +58,16 @@ func createSourceRepo(t *testing.T) string {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Stage the source repository README for the initial snapshot.
 	if err := os.WriteFile(dir+"/README.md", []byte("test repo\n"), 0o644); err != nil {
 		t.Fatal(err.Error())
 	}
 	if _, err := wt.Add("README.md"); err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Commit the initial snapshot that the controller will clone.
 	sig := &object.Signature{
 		Name:  "Test",
 		Email: "test@example.com",
@@ -73,11 +79,13 @@ func createSourceRepo(t *testing.T) string {
 	}); err != nil {
 		t.Fatal(err.Error())
 	}
+
 	return dir
 }
 
 // TestGitClone tests the git clone controller.
 func TestGitClone(t *testing.T) {
+	// Start the Forge testbed with the clone factory and source repository.
 	tb, err := testbed.Default(context.Background())
 	if err != nil {
 		t.Fatal(err.Error())
@@ -86,6 +94,7 @@ func TestGitClone(t *testing.T) {
 	tb.StaticResolver.AddFactory(NewFactory(tb.Bus))
 	repoRoot := createSourceRepo(t)
 
+	// Resolve the clone execution target from its repository URL.
 	tgt, err := target_json.ResolveYAML(ctx, tb.Bus, []byte(buildTestYAML(repoRoot)))
 	if err != nil {
 		t.Fatal(err.Error())
@@ -94,6 +103,7 @@ func TestGitClone(t *testing.T) {
 	// Supply the value set that the Task controller normally resolves.
 	valueSet := &forge_target.ValueSet{}
 
+	// Execute the clone target with the supplied value set.
 	// handle := forge_target.ExecControllerHandleWithAccess(ws.AccessWorldState)
 	ts := timestamp.Now()
 	finalState, err := tb.RunExecutionWithTarget(tgt, valueSet, ts)
@@ -101,6 +111,7 @@ func TestGitClone(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// Decode execution outputs for the repository presence check.
 	outputs := forge_value.ValueSlice(finalState.GetValueSet().GetOutputs())
 	valMap, err := outputs.BuildValueMap(true, false)
 	if err != nil {

@@ -214,7 +214,6 @@ func (t *Transport) HandleConn(ctx context.Context, dial bool, pc net.PacketConn
 	// Negotiate a session as a dialer or listener.
 	var sess *quic.Conn
 	var err error
-
 	t.le.Debugf("negotiating quic session with: %s", raddr.String())
 	if dial {
 		sess, _, err = DialSession(
@@ -258,6 +257,8 @@ func (t *Transport) HandleSession(ctx context.Context, sess *quic.Conn) (*Link, 
 	sessID := t.sessionCounter
 	t.sessionCounter++
 	t.mtx.Unlock()
+
+	// Construct the link with a callback that retires its address entry.
 	var lnk *Link
 	var err error
 	as := sess.RemoteAddr().String()

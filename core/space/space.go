@@ -52,14 +52,18 @@ func NewSpaceSoMeta(name string) *SpaceSoMeta {
 
 // NewSharedObjectMeta constructs a new SharedObjectMeta for a space.
 func NewSharedObjectMeta(spaceName string) (*sobject.SharedObjectMeta, error) {
+	// Validate the Space metadata before encoding its shared object body.
 	meta := NewSpaceSoMeta(spaceName)
 	if err := meta.Validate(); err != nil {
 		return nil, err
 	}
+
+	// Encode the Space metadata for the shared object envelope.
 	metaDat, err := meta.MarshalVT()
 	if err != nil {
 		return nil, err
 	}
+
 	return &sobject.SharedObjectMeta{
 		BodyType: SpaceBodyType,
 		BodyMeta: metaDat,
@@ -100,18 +104,22 @@ func FixupSpaceName(name string) string {
 // - No special characters
 // - Spaces allowed only in the middle
 func ValidateSpaceName(name string) error {
+	// Require a Space name within the supported length.
 	if len(name) == 0 || len(name) > 64 {
 		return errors.Errorf("space name: must be between 1 and 64 characters")
 	}
 
+	// Require a letter at the start of the Space name.
 	if first, _ := utf8.DecodeRuneInString(name); !unicode.IsLetter(first) {
 		return errors.Errorf("space name: must start with a letter")
 	}
 
+	// Require a Space name ending without a separator.
 	if name[len(name)-1] == '-' || name[len(name)-1] == '_' || name[len(name)-1] == ' ' {
 		return errors.Errorf("space name: must not end with dash, underscore, or space")
 	}
 
+	// Validate Space name characters and reject adjacent separators.
 	prev := rune(0)
 	for _, r := range name {
 		if (r == '-' || r == '_' || r == ' ') && (prev == '-' || prev == '_' || prev == ' ') {

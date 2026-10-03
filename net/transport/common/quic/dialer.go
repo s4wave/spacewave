@@ -47,6 +47,7 @@ func NewDialer(
 
 // Execute executes the dialer, yielding a Link.
 func (d *Dialer) Execute() {
+	// Retire the address dialer and its context when execution ends.
 	ctx := d.ctx
 	defer d.ctxCancel()
 	defer func() {
@@ -57,6 +58,7 @@ func (d *Dialer) Execute() {
 		d.t.mtx.Unlock()
 	}()
 
+	// Dial the remote QUIC address with its peer identity in the log.
 	le := d.t.le.WithField("remote-addr", d.addr)
 	if d.peerID != "" {
 		le = le.WithField("remote-peer", d.peerID.String())
@@ -69,5 +71,6 @@ func (d *Dialer) Execute() {
 		return
 	}
 
+	// Publish the link created from the dialed QUIC session.
 	d.result.SetResult(d.t.HandleSession(ctx, rconn))
 }
