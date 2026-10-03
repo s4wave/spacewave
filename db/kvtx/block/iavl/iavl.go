@@ -66,6 +66,7 @@ func (t *AVLTree) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, erro
 
 // NewAVLTreeTransaction returns a transaction with additional iavl functionality.
 func (t *AVLTree) NewAVLTreeTransaction(ctx context.Context, write bool) (*Tx, error) {
+	// Hold the tree lock for the lifetime of the requested transaction.
 	if write {
 		t.rmtx.Lock()
 	} else {
@@ -79,6 +80,7 @@ func (t *AVLTree) NewAVLTreeTransaction(ctx context.Context, write bool) (*Tx, e
 		}
 	}
 
+	// Construct the block transaction and transfer the tree lock release to it.
 	btx, bcs := t.rootCursor.BuildTransaction(nil)
 	atx, err := NewTx(ctx, bcs, btx, write, nil)
 	if err != nil {

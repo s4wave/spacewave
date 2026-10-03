@@ -17,6 +17,7 @@ import (
 )
 
 func TestBasicReader(t *testing.T) {
+	// Prepare a file transaction containing one range of test bytes.
 	ctx := context.Background()
 	bkt := bucket_mock.NewMockBucket("test-basic-reader", nil)
 	btx, bcs := block.NewTransaction(bkt, nil, nil, nil)
@@ -29,6 +30,8 @@ func TestBasicReader(t *testing.T) {
 		}},
 	}
 	bcs.SetBlock(rootFile, true)
+
+	// Build the blob referenced by the file range.
 	rangeSet := NewRangeSet(&rootFile.Ranges, bcs.FollowSubBlock(4))
 	_, r1cs := rangeSet.Get(0)
 	r1cs = r1cs.FollowRef(4, nil)
@@ -42,10 +45,14 @@ func TestBasicReader(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Publish the ranged file fixture.
 	rootRef, _, err := btx.Write(ctx, true)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Reopen the published file root for readback.
 	// root index is eves[len(eves)-1]
 	_, bcs = block.NewTransaction(bkt, nil, rootRef, nil)
 	fi, err := block.UnmarshalBlock[*File](ctx, bcs, NewFileBlock)
@@ -53,18 +60,22 @@ func TestBasicReader(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// Read the ranged file through its handle.
 	rdr := NewHandle(ctx, bcs, fi)
 	defer rdr.Close()
 	ob, err := io.ReadAll(rdr)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Verify the file reader returns the range contents.
 	if !bytes.Equal(ob, testBuf) {
 		t.Fatal("test buffer mismatch")
 	}
 }
 
 func TestInlineRootBlobReader(t *testing.T) {
+	// Build and publish a file with an inline root blob.
 	ctx := context.Background()
 	bkt := bucket_mock.NewMockBucket("test-basic-reader", nil)
 	btx, bcs := block.NewTransaction(bkt, nil, nil, nil)
@@ -86,18 +97,22 @@ func TestInlineRootBlobReader(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// Read the inline file through its handle.
 	rdr := NewHandle(ctx, bcs, fi)
 	defer rdr.Close()
 	ob, err := io.ReadAll(rdr)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Verify the file reader returns the inline blob contents.
 	if !bytes.Equal(ob, testBuf) {
 		t.Fatal("test buffer mismatch")
 	}
 }
 
 func TestRangeBlobGenericTraversal(t *testing.T) {
+	// Prepare a ranged file fixture for generic block traversal.
 	ctx := context.Background()
 	bkt := bucket_mock.NewMockBucket("test-range-blob-generic-traversal", nil)
 	btx, bcs := block.NewTransaction(bkt, nil, nil, nil)
@@ -110,6 +125,8 @@ func TestRangeBlobGenericTraversal(t *testing.T) {
 		}},
 	}
 	bcs.SetBlock(rootFile, true)
+
+	// Build and publish the blob referenced by the file range.
 	rangeSet := NewRangeSet(&rootFile.Ranges, bcs.FollowSubBlock(4))
 	_, r1cs := rangeSet.Get(0)
 	r1cs = r1cs.FollowRef(4, nil)
@@ -122,12 +139,14 @@ func TestRangeBlobGenericTraversal(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// Reopen the ranged file root for traversal.
 	_, bcs = block.NewTransaction(bkt, nil, rootRef, nil)
 	fi, err := block.UnmarshalBlock[*File](ctx, bcs, NewFileBlock)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Verify generic traversal visits the range reference as a blob.
 	var sawRangeBlob bool
 	err = traverse.Visit(ctx, fi, bcs, func(loc *traverse.Location) error {
 		if loc.Parent == nil {
@@ -151,18 +170,22 @@ func TestRangeBlobGenericTraversal(t *testing.T) {
 		t.Fatalf("generic traversal did not visit range ref as blob")
 	}
 
+	// Read the traversed file through its handle.
 	rdr := NewHandle(ctx, bcs, fi)
 	defer rdr.Close()
 	ob, err := io.ReadAll(rdr)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Verify traversal preserves the file contents.
 	if !bytes.Equal(ob, testBuf) {
 		t.Fatal("test buffer mismatch")
 	}
 }
 
 func TestRangeSparseGenericTraversal(t *testing.T) {
+	// Build a file fixture with one sparse zero range.
 	ctx := context.Background()
 	bkt := bucket_mock.NewMockBucket("test-range-sparse-generic-traversal", nil)
 	_, bcs := block.NewTransaction(bkt, nil, nil, nil)
@@ -178,6 +201,7 @@ func TestRangeSparseGenericTraversal(t *testing.T) {
 	rangeSet.Get(0)
 	fi := rootFile
 
+	// Verify generic traversal skips the sparse range reference.
 	err := traverse.Visit(ctx, fi, bcs, func(loc *traverse.Location) error {
 		if loc.Parent == nil {
 			return nil
@@ -200,10 +224,12 @@ func TestRangeSparseGenericTraversal(t *testing.T) {
 | range 1 |
 */
 func TestMultiRangeReader(t *testing.T) {
+	// Open a file transaction for the overlapping range fixture.
 	ctx := context.Background()
 	bkt := bucket_mock.NewMockBucket("test-basic-reader", nil)
 	btx, bcs := block.NewTransaction(bkt, nil, nil, nil)
 
+	// Generate the contents of each overlapping file range.
 	r1Data := make([]byte, 100)
 	r2Data := make([]byte, 40)
 	r3Data := make([]byte, 10)
@@ -211,14 +237,17 @@ func TestMultiRangeReader(t *testing.T) {
 	_, _ = rand.Read(r2Data)
 	_, _ = rand.Read(r3Data)
 
+	// Choose the overlap positions for the newer file ranges.
 	r2Start := 40
 	r3Start := 50
 
+	// Compose the expected file bytes from the overlapping writes.
 	expectedOutcome := make([]byte, 100)
 	copy(expectedOutcome, r1Data)
 	copy(expectedOutcome[r2Start:], r2Data)
 	copy(expectedOutcome[r3Start:], r3Data)
 
+	// Describe the file ranges in increasing write nonce order.
 	rootFile := &File{
 		TotalSize:  uint64(len(r1Data)),
 		RangeNonce: 2,
@@ -241,6 +270,7 @@ func TestMultiRangeReader(t *testing.T) {
 		},
 	}
 
+	// Connect the range fixture to a blob builder.
 	bcs.SetBlock(rootFile, true)
 	rangeSet := NewRangeSet(&rootFile.Ranges, bcs.FollowSubBlock(4))
 	buildRangeData := func(idx int, data []byte) {
@@ -258,26 +288,34 @@ func TestMultiRangeReader(t *testing.T) {
 		}
 	}
 
+	// Build the contents of each overlapping file range.
 	buildRangeData(0, r1Data)
 	buildRangeData(1, r2Data)
 	buildRangeData(2, r3Data)
 
+	// Publish the overlapping range fixture.
 	rootRef, _, err := btx.Write(ctx, true)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Reopen the published file root for readback.
 	// root index is eves[len(eves)-1]
 	_, bcs = block.NewTransaction(bkt, nil, rootRef, nil)
 	fi, err := block.UnmarshalBlock[*File](ctx, bcs, NewFileBlock)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Read all overlapping ranges through the file handle.
 	rdr := NewHandle(ctx, bcs, fi)
 	defer rdr.Close()
 	ob, err := io.ReadAll(rdr)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Verify readback chooses the newest range at each position.
 	if !bytes.Equal(ob, expectedOutcome) {
 		t.Fatalf(
 			"test buffer mismatch\nob(%d): %v\nexpected: %v\nt1: %v\nt2: %v\nt3: %v",
@@ -292,10 +330,12 @@ func TestMultiRangeReader(t *testing.T) {
 }
 
 func TestOverlappingRangeReadResumesAfterHigherNonceSpan(t *testing.T) {
+	// Open a transaction for concrete and sparse overlapping file ranges.
 	ctx := context.Background()
 	bkt := bucket_mock.NewMockBucket("test-overlap-reader-resumes", nil)
 	btx, bcs := block.NewTransaction(bkt, nil, nil, nil)
 
+	// Prepare the visible data and nonce order for the overlapping ranges.
 	baseData := bytes.Repeat([]byte("b"), 32)
 	lowerData := bytes.Repeat([]byte("l"), 20)
 	higherData := []byte("HIGH")
@@ -309,6 +349,8 @@ func TestOverlappingRangeReadResumesAfterHigherNonceSpan(t *testing.T) {
 			{Nonce: 3, Start: 20, Length: 4},
 		},
 	}
+
+	// Connect the overlapping range fixture to a blob builder.
 	bcs.SetBlock(rootFile, true)
 	rangeSet := NewRangeSet(&rootFile.Ranges, bcs.FollowSubBlock(4))
 	buildRangeData := func(idx int, data []byte) {
@@ -325,33 +367,45 @@ func TestOverlappingRangeReadResumesAfterHigherNonceSpan(t *testing.T) {
 			t.Fatal(err.Error())
 		}
 	}
+
+	// Build the concrete blobs beneath the overlapping file ranges.
 	buildRangeData(0, baseData)
 	buildRangeData(1, lowerData)
 	buildRangeData(2, higherData)
 
+	// Publish the overlapping file fixture.
 	rootRef, _, err := btx.Write(ctx, true)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Reopen the published file root for overlap readback.
 	_, bcs = block.NewTransaction(bkt, nil, rootRef, nil)
 	fi, err := block.UnmarshalBlock[*File](ctx, bcs, NewFileBlock)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Open a file reader at the start of the highest-nonce span.
 	rdr := NewHandle(ctx, bcs, fi)
 	defer rdr.Close()
 	if _, err := rdr.Seek(12, io.SeekStart); err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Read across concrete and sparse overlap boundaries.
 	got := make([]byte, 20)
 	n, err := rdr.Read(got)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Verify the overlapping read fills the caller buffer.
 	if n != len(got) {
 		t.Fatalf("overlap read returned %d bytes, expected %d", n, len(got))
 	}
+
+	// Verify the reader resumes lower-nonce spans after newer spans end.
 	want := append([]byte("HIGH"), bytes.Repeat([]byte("l"), 4)...)
 	want = append(want, 0, 0, 0, 0)
 	want = append(want, bytes.Repeat([]byte("l"), 4)...)
@@ -363,23 +417,28 @@ func TestOverlappingRangeReadResumesAfterHigherNonceSpan(t *testing.T) {
 
 // TestRandomReads tests random reads from a 1Mb file of random data.
 func TestRandomReads(t *testing.T) {
+	// Open a file transaction for random seek and read coverage.
 	ctx := context.Background()
 	bkt := bucket_mock.NewMockBucket("test-reader-random-reads", nil)
 	btx, bcs := block.NewTransaction(bkt, nil, nil, nil)
 
+	// Generate the random file contents used for readback comparisons.
 	expectedData := make([]byte, 1e6)
 	_, _ = rand.Read(expectedData)
 
+	// Build the file from the random bytes.
 	_, err := BuildFileWithBytes(ctx, bcs, expectedData, nil)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Publish the random file fixture.
 	rootRef, bcs, err := btx.Write(ctx, true)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Decode the published random file root.
 	fi, err := UnmarshalFile(ctx, bcs)
 	if err != nil {
 		t.Fatal(err.Error())

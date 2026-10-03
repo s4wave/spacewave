@@ -57,10 +57,12 @@ func FollowUnixfsRef(
 	sender peer.ID,
 	watchChanges bool,
 ) (*FSCursor, error) {
+	// Validate the UnixfsRef before resolving its World object.
 	if err := ref.Validate(); err != nil {
 		return nil, err
 	}
 
+	// Resolve the filesystem type from the reference or World object metadata.
 	objKey := ref.GetObjectKey()
 	fsType := ref.GetFsType()
 	if fsType == 0 {
@@ -79,6 +81,7 @@ func FollowUnixfsRef(
 		}
 	}
 
+	// Attach a confirming writer when filesystem changes are enabled.
 	if watchChanges {
 		fsc, _ := NewFSCursorWithWriter(ctx, le, ws, objKey, fsType, sender)
 		return fsc, nil

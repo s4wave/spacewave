@@ -10,9 +10,11 @@ import (
 )
 
 func TestFaultStoreInjectsOneCommitFailure(t *testing.T) {
+	// Wrap an in-memory store with one commit failure.
 	ctx := context.Background()
 	store := NewFaultStore(sinmem.NewStore(), FaultBeforeCommit)
 
+	// Write the first transaction and verify its injected commit failure.
 	tx, err := store.NewTransaction(ctx, true)
 	if err != nil {
 		t.Fatal(err)
@@ -25,6 +27,7 @@ func TestFaultStoreInjectsOneCommitFailure(t *testing.T) {
 	}
 	tx.Discard()
 
+	// Verify the next transaction commits without another injected failure.
 	tx, err = store.NewTransaction(ctx, true)
 	if err != nil {
 		t.Fatal(err)
@@ -34,6 +37,7 @@ func TestFaultStoreInjectsOneCommitFailure(t *testing.T) {
 	}
 	tx.Discard()
 
+	// Verify both transaction attempts were opened and discarded.
 	if got := store.Opened(); got != 2 {
 		t.Fatalf("opened transactions = %d, want 2", got)
 	}

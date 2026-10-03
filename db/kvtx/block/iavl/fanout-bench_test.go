@@ -31,12 +31,16 @@ type fanoutBenchNode struct {
 }
 
 func buildFanoutBenchTree(tb testing.TB, keys [][]byte, fanout int) *fanoutBenchTree {
+	// Mark fanout tree construction as a test helper.
 	tb.Helper()
 
+	// Validate the sorted fixture keys before building the fanout tree.
 	ctx := context.Background()
 	if err := validateFanoutBenchKeys(keys); err != nil {
 		tb.Fatal(err)
 	}
+
+	// Persist the fixture values and collect their key references.
 	store := newBenchBlockStore()
 	entries := make([]fanoutBenchEntry, 0, len(keys))
 	for i, key := range keys {
@@ -47,6 +51,7 @@ func buildFanoutBenchTree(tb testing.TB, keys [][]byte, fanout int) *fanoutBench
 		entries = append(entries, fanoutBenchEntry{maxKey: key, ref: ref})
 	}
 
+	// Build successive fanout layers until a single root remains.
 	for len(entries) > 1 {
 		next := make([]fanoutBenchEntry, 0, (len(entries)+fanout-1)/fanout)
 		for start := 0; start < len(entries); start += fanout {
@@ -69,6 +74,8 @@ func buildFanoutBenchTree(tb testing.TB, keys [][]byte, fanout int) *fanoutBench
 		}
 		entries = next
 	}
+
+	// Clear construction counters before measuring tree operations.
 	store.resetCounts()
 
 	return &fanoutBenchTree{
@@ -163,10 +170,13 @@ func fanoutBenchScanPrefixRefs(
 	end []byte,
 	cb func(key []byte, ref *block.BlockRef) error,
 ) error {
+	// Load the fanout Node before selecting matching prefix entries.
 	node, err := loadFanoutBenchNode(ctx, tree.store, ref)
 	if err != nil {
 		return err
 	}
+
+	// Visit matching leaf entries within the prefix bounds.
 	if node.leaf {
 		for i, key := range node.keys {
 			if bytes.Compare(key, prefix) < 0 {
@@ -185,6 +195,7 @@ func fanoutBenchScanPrefixRefs(
 		return nil
 	}
 
+	// Visit child subtrees whose key ranges overlap the prefix.
 	var prevMax []byte
 	for i, maxKey := range node.keys {
 		if end != nil && prevMax != nil && bytes.Compare(prevMax, end) >= 0 {
@@ -218,14 +229,19 @@ func fanoutBenchSet(
 	key []byte,
 	value []byte,
 ) (*block.BlockRef, bool, error) {
+	// Load the fanout Node to locate the key being updated.
 	node, err := loadFanoutBenchNode(ctx, store, ref)
 	if err != nil {
 		return nil, false, err
 	}
+
+	// Locate the child or leaf slot that can hold the update key.
 	idx := node.find(key)
 	if idx == len(node.keys) {
 		return ref, false, nil
 	}
+
+	// Copy the Node before replacing the matching value reference.
 	next := &fanoutBenchNode{
 		leaf: node.leaf,
 		keys: append([][]byte(nil), node.keys...),
@@ -244,10 +260,13 @@ func fanoutBenchSet(
 		return nextRef, true, err
 	}
 
+	// Update the matching child subtree and retain its replacement root.
 	nextRef, changed, err := fanoutBenchSet(ctx, store, node.refs[idx], key, value)
 	if err != nil || !changed {
 		return ref, changed, err
 	}
+
+	// Persist the copied parent with its changed child reference.
 	next.refs[idx] = nextRef
 	outRef, err := putFanoutBenchNode(ctx, store, next)
 	return outRef, true, err
@@ -278,12 +297,15 @@ func validateFanoutBenchKeys(keys [][]byte) error {
 }
 
 func (n *fanoutBenchNode) marshal() ([]byte, error) {
+	// Encode the fanout Node header and leaf marker.
 	out := []byte{'f', 'a', 'n', '1'}
 	if n.leaf {
 		out = append(out, 1)
 	} else {
 		out = append(out, 0)
 	}
+
+	// Encode each Node key and its value or child reference.
 	out = binary.AppendUvarint(out, uint64(len(n.keys)))
 	for i, key := range n.keys {
 		ref, err := n.refs[i].MarshalVT()
@@ -299,9 +321,12 @@ func (n *fanoutBenchNode) marshal() ([]byte, error) {
 }
 
 func unmarshalFanoutBenchNode(data []byte) (*fanoutBenchNode, error) {
+	// Require the fanout wire header before decoding a Node.
 	if len(data) < 5 || string(data[:4]) != "fan1" {
 		return nil, block.ErrUnexpectedType
 	}
+
+	// Read the entry count and allocate the decoded Node.
 	reader := bytes.NewReader(data[5:])
 	count, err := binary.ReadUvarint(reader)
 	if err != nil {
@@ -312,7 +337,10 @@ func unmarshalFanoutBenchNode(data []byte) (*fanoutBenchNode, error) {
 		keys: make([][]byte, count),
 		refs: make([]*block.BlockRef, count),
 	}
+
+	// Decode each key and reference into its entry slot.
 	for i := range node.keys {
+		// Read the length-prefixed key bytes for this entry.
 		keyLen, err := binary.ReadUvarint(reader)
 		if err != nil {
 			return nil, err
@@ -321,6 +349,8 @@ func unmarshalFanoutBenchNode(data []byte) (*fanoutBenchNode, error) {
 		if _, err := reader.Read(key); err != nil {
 			return nil, err
 		}
+
+		// Read the length-prefixed reference bytes for this entry.
 		refLen, err := binary.ReadUvarint(reader)
 		if err != nil {
 			return nil, err
@@ -329,6 +359,8 @@ func unmarshalFanoutBenchNode(data []byte) (*fanoutBenchNode, error) {
 		if _, err := reader.Read(refData); err != nil {
 			return nil, err
 		}
+
+		// Decode the BlockRef and retain the completed entry.
 		ref := &block.BlockRef{}
 		if err := ref.UnmarshalVT(refData); err != nil {
 			return nil, err
@@ -340,8 +372,11 @@ func unmarshalFanoutBenchNode(data []byte) (*fanoutBenchNode, error) {
 }
 
 func TestFanoutBenchTreeHarness(t *testing.T) {
+	// Build a fanout tree fixture for update and lookup checks.
 	ctx := context.Background()
 	tree := buildFanoutBenchTree(t, makeBenchKeys(128, benchKeySequential), 32)
+
+	// Verify every fixture key is reachable.
 	for _, key := range tree.keys {
 		_, found, err := fanoutBenchGet(ctx, tree, key)
 		if err != nil {
@@ -351,6 +386,8 @@ func TestFanoutBenchTreeHarness(t *testing.T) {
 			t.Fatalf("key %x not found", key)
 		}
 	}
+
+	// Update an existing key and retain the changed root.
 	nextRoot, changed, err := fanoutBenchSet(ctx, tree.store, tree.root, tree.keys[17], benchValue(1000))
 	if err != nil {
 		t.Fatal(err)
@@ -359,6 +396,8 @@ func TestFanoutBenchTreeHarness(t *testing.T) {
 		t.Fatal("expected update")
 	}
 	tree.root = nextRoot
+
+	// Verify the updated key returns its replacement value.
 	value, found, err := fanoutBenchGet(ctx, tree, tree.keys[17])
 	if err != nil {
 		t.Fatal(err)
@@ -366,6 +405,8 @@ func TestFanoutBenchTreeHarness(t *testing.T) {
 	if !found || !bytes.Equal(value, benchValue(1000)) {
 		t.Fatal("updated value mismatch")
 	}
+
+	// Verify out-of-range keys remain absent.
 	for _, key := range [][]byte{
 		{0},
 		append(append([]byte(nil), tree.keys[len(tree.keys)-1]...), 0),
@@ -378,6 +419,8 @@ func TestFanoutBenchTreeHarness(t *testing.T) {
 			t.Fatalf("unexpected missing-key hit for %x", key)
 		}
 	}
+
+	// Verify updating a missing key leaves the tree unchanged.
 	_, changed, err = fanoutBenchSet(ctx, tree.store, tree.root, []byte{0xff}, benchValue(1001))
 	if err != nil {
 		t.Fatal(err)
@@ -388,6 +431,7 @@ func TestFanoutBenchTreeHarness(t *testing.T) {
 }
 
 func TestFanoutBenchTreeScanPrefixBoundaries(t *testing.T) {
+	// Build a fanout tree spanning adjacent prefix boundaries.
 	ctx := context.Background()
 	tree := buildFanoutBenchTree(t, [][]byte{
 		[]byte("a/"),
@@ -397,6 +441,7 @@ func TestFanoutBenchTreeScanPrefixBoundaries(t *testing.T) {
 		[]byte("b"),
 	}, 2)
 
+	// Verify a key-only scan returns exactly the requested prefix.
 	var keys [][]byte
 	if err := fanoutBenchScanPrefixKeys(ctx, tree, []byte("a/"), func(key []byte) error {
 		keys = append(keys, append([]byte(nil), key...))
@@ -409,6 +454,7 @@ func TestFanoutBenchTreeScanPrefixBoundaries(t *testing.T) {
 	}
 	keyOnlyReads := tree.store.getBlocks.Load()
 
+	// Verify a value scan fetches matching values and their blocks.
 	tree.store.resetCounts()
 	var values int
 	if err := fanoutBenchScanPrefixValues(ctx, tree, []byte("a/"), func(key, value []byte) error {
@@ -432,9 +478,11 @@ func TestFanoutBenchTreeScanPrefixBoundaries(t *testing.T) {
 }
 
 func TestFanoutBenchTreeScanPrefixGraphAndMissing(t *testing.T) {
+	// Build a graph-key fixture for prefix scans.
 	ctx := context.Background()
 	tree := buildFanoutBenchTree(t, makeBenchKeys(512, benchKeyGraph), 32)
 
+	// Verify the graph prefix scan visits its complete key group.
 	var count int
 	prefix := benchGraphPrefix(2)
 	if err := fanoutBenchScanPrefixKeys(ctx, tree, prefix, func(key []byte) error {
@@ -450,6 +498,7 @@ func TestFanoutBenchTreeScanPrefixGraphAndMissing(t *testing.T) {
 		t.Fatalf("expected %d graph prefix keys, got %d", benchGraphGroupSize, count)
 	}
 
+	// Verify a missing graph prefix yields no keys.
 	tree.store.resetCounts()
 	count = 0
 	if err := fanoutBenchScanPrefixKeys(ctx, tree, benchGraphPrefix(4), func(key []byte) error {
@@ -485,10 +534,13 @@ func BenchmarkFanoutBlockTreeScanPrefixKeys(b *testing.B) {
 	for _, fanout := range []int{16, 32, 64} {
 		for _, size := range []int{1024, 16384} {
 			b.Run("fanout_"+strconv.Itoa(fanout)+"/"+benchFixtureName(benchKeyGraph, size), func(b *testing.B) {
+				// Build the fanout fixture and prepare its measurement counters.
 				ctx := context.Background()
 				tree := buildFanoutBenchTree(b, makeBenchKeys(size, benchKeyGraph), fanout)
 				tree.store.resetCounts()
 				b.ResetTimer()
+
+				// Scan matching graph keys through the fanout tree.
 				for i := range b.N {
 					var count int
 					err := fanoutBenchScanPrefixKeys(ctx, tree, benchGraphPrefix(benchLookupIndex(i, size)/benchGraphGroupSize), func(key []byte) error {
@@ -502,6 +554,8 @@ func BenchmarkFanoutBlockTreeScanPrefixKeys(b *testing.B) {
 						b.Fatal("expected matching prefix keys")
 					}
 				}
+
+				// Report the fanout and block-store costs outside the timed operation.
 				b.StopTimer()
 				b.ReportMetric(float64(tree.fanout), "fanout")
 				tree.store.reportMetrics(b, int64(b.N))
@@ -514,10 +568,13 @@ func BenchmarkFanoutBlockTreeScanPrefixValues(b *testing.B) {
 	for _, fanout := range []int{16, 32, 64} {
 		for _, size := range []int{1024, 16384} {
 			b.Run("fanout_"+strconv.Itoa(fanout)+"/"+benchFixtureName(benchKeyGraph, size), func(b *testing.B) {
+				// Build the fanout fixture and prepare its measurement counters.
 				ctx := context.Background()
 				tree := buildFanoutBenchTree(b, makeBenchKeys(size, benchKeyGraph), fanout)
 				tree.store.resetCounts()
 				b.ResetTimer()
+
+				// Scan matching graph values through the fanout tree.
 				for i := range b.N {
 					var count int
 					err := fanoutBenchScanPrefixValues(ctx, tree, benchGraphPrefix(benchLookupIndex(i, size)/benchGraphGroupSize), func(_, _ []byte) error {
@@ -531,6 +588,8 @@ func BenchmarkFanoutBlockTreeScanPrefixValues(b *testing.B) {
 						b.Fatal("expected matching prefix values")
 					}
 				}
+
+				// Report the fanout and block-store costs outside the timed operation.
 				b.StopTimer()
 				b.ReportMetric(float64(tree.fanout), "fanout")
 				tree.store.reportMetrics(b, int64(b.N))
@@ -543,10 +602,13 @@ func BenchmarkFanoutBlockTreeGetCursorAtKey(b *testing.B) {
 	for _, fanout := range []int{16, 32, 64} {
 		for _, size := range []int{1024, 16384} {
 			b.Run("fanout_"+strconv.Itoa(fanout)+"/"+benchSizeName(size), func(b *testing.B) {
+				// Build the fanout fixture and prepare its measurement counters.
 				ctx := context.Background()
 				tree := buildFanoutBenchTree(b, makeBenchKeys(size, benchKeySequential), fanout)
 				tree.store.resetCounts()
 				b.ResetTimer()
+
+				// Locate value references through the fanout tree.
 				for i := range b.N {
 					_, found, err := fanoutBenchValueRef(ctx, tree, tree.keys[benchLookupIndex(i, size)])
 					if err != nil {
@@ -556,6 +618,8 @@ func BenchmarkFanoutBlockTreeGetCursorAtKey(b *testing.B) {
 						b.Fatal("key not found")
 					}
 				}
+
+				// Report the fanout and block-store costs outside the timed operation.
 				b.StopTimer()
 				b.ReportMetric(float64(tree.fanout), "fanout")
 				tree.store.reportMetrics(b, int64(b.N))
@@ -568,10 +632,13 @@ func BenchmarkFanoutBlockTreeGetValue(b *testing.B) {
 	for _, fanout := range []int{16, 32, 64} {
 		for _, size := range []int{1024, 16384} {
 			b.Run("fanout_"+strconv.Itoa(fanout)+"/"+benchSizeName(size), func(b *testing.B) {
+				// Build the fanout fixture and prepare its measurement counters.
 				ctx := context.Background()
 				tree := buildFanoutBenchTree(b, makeBenchKeys(size, benchKeySequential), fanout)
 				tree.store.resetCounts()
 				b.ResetTimer()
+
+				// Fetch values through the fanout tree.
 				for i := range b.N {
 					_, found, err := fanoutBenchGet(ctx, tree, tree.keys[benchLookupIndex(i, size)])
 					if err != nil {
@@ -581,6 +648,8 @@ func BenchmarkFanoutBlockTreeGetValue(b *testing.B) {
 						b.Fatal("key not found")
 					}
 				}
+
+				// Report the fanout and block-store costs outside the timed operation.
 				b.StopTimer()
 				b.ReportMetric(float64(tree.fanout), "fanout")
 				tree.store.reportMetrics(b, int64(b.N))
@@ -593,10 +662,13 @@ func BenchmarkFanoutBlockTreeUpdate(b *testing.B) {
 	for _, fanout := range []int{16, 32, 64} {
 		for _, size := range []int{1024, 16384} {
 			b.Run("updates_100/fanout_"+strconv.Itoa(fanout)+"/"+benchSizeName(size), func(b *testing.B) {
+				// Build the fanout fixture and prepare its measurement counters.
 				ctx := context.Background()
 				tree := buildFanoutBenchTree(b, makeBenchKeys(size, benchKeySequential), fanout)
 				tree.store.resetCounts()
 				b.ResetTimer()
+
+				// Measure batches of a hundred fanout tree updates.
 				for i := range b.N {
 					root := tree.root
 					for updateIndex := range 100 {
@@ -616,6 +688,8 @@ func BenchmarkFanoutBlockTreeUpdate(b *testing.B) {
 						root = nextRoot
 					}
 				}
+
+				// Report the fanout and block-store costs outside the timed operation.
 				b.StopTimer()
 				b.ReportMetric(float64(tree.fanout), "fanout")
 				tree.store.reportMetrics(b, int64(b.N))

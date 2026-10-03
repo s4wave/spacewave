@@ -24,16 +24,20 @@ import (
 // PrintIAVLTree prints a text representation of the IAVL tree.
 // Returns an error if any node traversal fails.
 func PrintIAVLTree(ctx context.Context, t *AVLTree) (string, error) {
+	// Open a read transaction for the tree rendering.
 	btx, err := t.NewAVLTreeTransaction(ctx, false)
 	if err != nil {
 		return "", err
 	}
 	defer btx.Discard()
 
+	// Prepare the text builder and recursive Node renderer.
 	var sb strings.Builder
 	var printNode func(node *Node, cursor *block.Cursor, depth int) error
 
+	// Define the traversal that renders each Node and its children.
 	printNode = func(node *Node, cursor *block.Cursor, depth int) error {
+		// Finish rendering when a child Node is absent.
 		if node == nil {
 			return nil
 		}
@@ -76,6 +80,7 @@ func PrintIAVLTree(ctx context.Context, t *AVLTree) (string, error) {
 		return nil
 	}
 
+	// Render the root and propagate any traversal error.
 	if err := printNode(btx.root, btx.bcs, 0); err != nil {
 		return "", err
 	}
@@ -85,16 +90,19 @@ func PrintIAVLTree(ctx context.Context, t *AVLTree) (string, error) {
 
 // TestSimple is a basic iavl tree test.
 func TestSimple(t *testing.T) {
+	// Prepare the context and logger for the single-key test.
 	ctx := context.Background()
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
 
+	// Start the testbed that stores the IAVL tree.
 	tb, err := testbed.NewTestbed(ctx, le)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Read the testbed volume identity for bucket lookup.
 	vol := tb.Volume
 	volID := vol.GetID()
 	t.Log(volID)
@@ -105,6 +113,7 @@ func TestSimple(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// Open an empty bucket cursor with the configured transform.
 	oc, _, err := bucket_lookup.BuildEmptyCursor(
 		ctx,
 		tb.Bus,
@@ -119,12 +128,16 @@ func TestSimple(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// Construct the IAVL tree over the empty bucket cursor.
 	tr := NewAVLTree(oc)
 
+	// Open a writable transaction for the single-key test.
 	btx, err := tr.NewAVLTreeTransaction(ctx, true)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Verify the new transaction contains no keys.
 	ilen, err := btx.Size(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -133,6 +146,7 @@ func TestSimple(t *testing.T) {
 		t.FailNow()
 	}
 
+	// Verify the new tree has no value for the test key.
 	key := []byte("test")
 	h, err := btx.Exists(ctx, key)
 	if err != nil {
@@ -142,12 +156,14 @@ func TestSimple(t *testing.T) {
 		t.FailNow()
 	}
 
+	// Write the test value into the empty tree.
 	val := []byte("tvalue")
 	err = btx.Set(ctx, key, val)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Verify the written value is reachable through the transaction.
 	ival, ok, err := btx.Get(ctx, key)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -179,16 +195,19 @@ func TestSimple(t *testing.T) {
 
 // TestIavl is a more comprehensive test.
 func TestIavl(t *testing.T) {
+	// Prepare the context and logger for the persistence test.
 	ctx := context.Background()
 	log := logrus.New()
 	log.SetLevel(logrus.InfoLevel)
 	le := logrus.NewEntry(log)
 
+	// Start the testbed that stores the compressed tree.
 	tb, err := testbed.NewTestbed(ctx, le)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Read the testbed volume identity for bucket lookup.
 	vol := tb.Volume
 	volID := vol.GetID()
 	t.Log(volID)
@@ -201,6 +220,7 @@ func TestIavl(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// Open an empty bucket cursor with the compression transform.
 	oc, _, err := bucket_lookup.BuildEmptyCursor(
 		ctx,
 		tb.Bus,
@@ -215,12 +235,14 @@ func TestIavl(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// Open the IAVL tree for writing.
 	tr := NewAVLTree(oc)
 	btx, err := tr.NewAVLTreeTransaction(ctx, true)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Verify the new tree contains no keys.
 	ilen, err := btx.Size(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -229,6 +251,7 @@ func TestIavl(t *testing.T) {
 		t.FailNow()
 	}
 
+	// Verify the test key is absent before insertion.
 	key := []byte("test")
 	h, err := btx.Exists(ctx, key)
 	if err != nil {
@@ -238,12 +261,15 @@ func TestIavl(t *testing.T) {
 		t.FailNow()
 	}
 
+	// Write a sequence of keys with nonempty values.
 	kn := 5
 	t.Logf("placing %d keys", kn)
 	for i := range kn {
+		// Prepare the key and value for this tree entry.
 		key := fmt.Appendf(nil, "key-%d", i)
 		val := fmt.Appendf(nil, "key-%d", kn-i)
 
+		// Insert the entry and report its key.
 		err := btx.Set(ctx, key, val)
 		if err != nil {
 			t.Fatal(err.Error())
@@ -251,6 +277,7 @@ func TestIavl(t *testing.T) {
 		t.Log(string(key))
 	}
 
+	// Define the readback check for every inserted key.
 	checkAll := func() {
 		for i := kn - 1; i >= 0; i-- {
 			key := fmt.Appendf(nil, "key-%d", i)
@@ -264,16 +291,19 @@ func TestIavl(t *testing.T) {
 		}
 	}
 
+	// Verify the written keys before persisting the transaction.
 	checkAll()
 	if err := btx.Commit(ctx); err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Reopen the persisted tree for readback.
 	btx, err = tr.NewAVLTreeTransaction(ctx, false)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Verify persisted values and count the matching prefix entries.
 	checkAll()
 	keyCount := 0
 	err = btx.ScanPrefix(ctx, []byte("key-"), func(key, val []byte) error {
@@ -290,21 +320,26 @@ func TestIavl(t *testing.T) {
 		t.Fatalf("counted %d keys expected %d", keyCount, kn)
 	}
 
+	// Replace the read transaction with a write transaction for deletion.
 	btx.Discard()
 	btx, err = tr.NewAVLTreeTransaction(ctx, true)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Verify the keys before removing alternate entries.
 	checkAll()
 	for i := range kn {
 		key := fmt.Appendf(nil, "key-%d", i)
 		if i%2 == 0 {
+			// Delete the selected even-numbered key.
 			t.Logf("deleting key %s", key)
 			err := btx.Delete(ctx, key)
 			if err != nil {
 				t.Fatal(err.Error())
 			}
+
+			// Verify the deleted key is absent from the transaction.
 			_, bfound, err := btx.Get(ctx, key)
 			if err != nil {
 				t.Fatal(err.Error())
@@ -315,10 +350,12 @@ func TestIavl(t *testing.T) {
 		}
 	}
 
+	// Persist the deletions before reopening the root.
 	if err := btx.Commit(ctx); err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Follow the persisted root and open it for readback.
 	rref := tr.GetRootNodeRef()
 	fc, err := oc.FollowRef(ctx, rref)
 	if err != nil {
@@ -330,6 +367,7 @@ func TestIavl(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// Verify the persisted tree reports the remaining key count.
 	expectedSize := kn / 2
 	ns, err := btx.Size(ctx)
 	if err != nil {
@@ -339,6 +377,8 @@ func TestIavl(t *testing.T) {
 	if trs != expectedSize {
 		t.Fatalf("removal size mismatch %d != expected %d", trs, expectedSize)
 	}
+
+	// Verify each surviving key and count its membership.
 	actLen := 0
 	for i := range kn {
 		key := fmt.Appendf(nil, "key-%d", i)
@@ -354,25 +394,31 @@ func TestIavl(t *testing.T) {
 			actLen++
 		}
 	}
+
+	// Verify the observed membership agrees with the reported size.
 	if actLen != trs {
 		t.Fatalf("length reported %d != actual length %d", trs, actLen)
 	}
 
+	// Release the read transaction after persistence checks.
 	btx.Discard()
 }
 
 // TestKvtest is an end to end test.
 func TestKvtest(t *testing.T) {
+	// Prepare the context and logger for the key-value contract suite.
 	ctx := context.Background()
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
 
+	// Start the testbed for the key-value contract suite.
 	tb, err := testbed.NewTestbed(ctx, le)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Read the testbed volume identity for bucket lookup.
 	vol := tb.Volume
 	volID := vol.GetID()
 	t.Log(volID)
@@ -383,6 +429,7 @@ func TestKvtest(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// Open an empty bucket cursor for the contract suite.
 	oc, _, err := bucket_lookup.BuildEmptyCursor(
 		ctx,
 		tb.Bus,
@@ -397,9 +444,11 @@ func TestKvtest(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// Wrap the IAVL tree with transaction logging.
 	tr := NewAVLTree(oc)
 	vl := kvtx_vlogger.NewVLogger(le, tr)
 
+	// Run the shared key-value contracts against the IAVL store.
 	if err := kvtx_kvtest.TestAll(ctx, vl); err != nil {
 		t.Fatal(err.Error())
 	}
@@ -407,16 +456,19 @@ func TestKvtest(t *testing.T) {
 
 // TestSimpleIterate tests basic iterator behavior with a small tree.
 func TestSimpleIterate(t *testing.T) {
+	// Prepare the context and logger for iterator tests.
 	ctx := context.Background()
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
 
+	// Start the testbed that stores the iterator fixture.
 	tb, err := testbed.NewTestbed(ctx, le)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Open an empty bucket cursor for the iterator fixture.
 	oc, _, err := bucket_lookup.BuildEmptyCursor(
 		ctx,
 		tb.Bus,
@@ -431,12 +483,14 @@ func TestSimpleIterate(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// Open a write transaction for the iterator fixture.
 	tr := NewAVLTree(oc)
 	btx, err := tr.NewAVLTreeTransaction(ctx, true)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Insert keys in an order that exercises IAVL balancing.
 	keys := []string{"5", "3", "7", "2", "4", "6", "8"}
 	for _, k := range keys {
 		err = btx.Set(ctx, []byte(k), []byte("val-"+k))
@@ -445,6 +499,7 @@ func TestSimpleIterate(t *testing.T) {
 		}
 	}
 
+	// Persist the iterator fixture before reading it.
 	if err := btx.Commit(ctx); err != nil {
 		t.Fatal(err.Error())
 	}
@@ -458,12 +513,14 @@ func TestSimpleIterate(t *testing.T) {
 
 	// Test forward iteration
 	t.Run("Forward Iteration", func(t *testing.T) {
+		// Open a read transaction for forward iteration.
 		btx, err = tr.NewAVLTreeTransaction(ctx, false)
 		if err != nil {
 			t.Fatal(err.Error())
 		}
 		defer btx.Discard()
 
+		// Open the forward iterator and register its cleanup.
 		iter := btx.Iterate(ctx, nil, true, false)
 		defer iter.Close()
 
@@ -488,12 +545,14 @@ func TestSimpleIterate(t *testing.T) {
 
 	// Test reverse iteration
 	t.Run("Reverse Iteration", func(t *testing.T) {
+		// Open a read transaction for reverse iteration.
 		btx, err = tr.NewAVLTreeTransaction(ctx, false)
 		if err != nil {
 			t.Fatal(err.Error())
 		}
 		defer btx.Discard()
 
+		// Open the reverse iterator and register its cleanup.
 		iter := btx.Iterate(ctx, nil, true, true)
 		defer iter.Close()
 
@@ -519,12 +578,14 @@ func TestSimpleIterate(t *testing.T) {
 
 	// Test seek followed by forward iteration
 	t.Run("Seek and Forward Iteration", func(t *testing.T) {
+		// Open a read transaction for forward iteration after seeking.
 		btx, err = tr.NewAVLTreeTransaction(ctx, false)
 		if err != nil {
 			t.Fatal(err.Error())
 		}
 		defer btx.Discard()
 
+		// Open the forward iterator and register its cleanup.
 		iter := btx.Iterate(ctx, nil, true, false)
 		defer iter.Close()
 
@@ -559,12 +620,14 @@ func TestSimpleIterate(t *testing.T) {
 
 	// Test seek followed by reverse iteration
 	t.Run("Seek and Reverse Iteration", func(t *testing.T) {
+		// Open a read transaction for reverse iteration after seeking.
 		btx, err = tr.NewAVLTreeTransaction(ctx, false)
 		if err != nil {
 			t.Fatal(err.Error())
 		}
 		defer btx.Discard()
 
+		// Open the reverse iterator and register its cleanup.
 		iter := btx.Iterate(ctx, nil, true, true)
 		defer iter.Close()
 
@@ -599,15 +662,18 @@ func TestSimpleIterate(t *testing.T) {
 
 	// Test seek to beginning (nil key) in forward iteration
 	t.Run("Seek Beginning Forward", func(t *testing.T) {
+		// Open a read transaction for seeking to the first key.
 		btx, err = tr.NewAVLTreeTransaction(ctx, false)
 		if err != nil {
 			t.Fatal(err.Error())
 		}
 		defer btx.Discard()
 
+		// Open the forward iterator and register its cleanup.
 		iter := btx.Iterate(ctx, nil, true, false)
 		defer iter.Close()
 
+		// Seek to the beginning and verify the iterator remains valid.
 		if err := iter.Seek(nil); err != nil {
 			t.Fatal(err)
 		}
@@ -635,15 +701,18 @@ func TestSimpleIterate(t *testing.T) {
 
 	// Test seek to end (nil key) in reverse iteration
 	t.Run("Seek End Reverse", func(t *testing.T) {
+		// Open a read transaction for seeking to the last key.
 		btx, err = tr.NewAVLTreeTransaction(ctx, false)
 		if err != nil {
 			t.Fatal(err.Error())
 		}
 		defer btx.Discard()
 
+		// Open the reverse iterator and register its cleanup.
 		iter := btx.Iterate(ctx, nil, true, true)
 		defer iter.Close()
 
+		// Seek to the end and verify the iterator remains valid.
 		if err := iter.Seek(nil); err != nil {
 			t.Fatal(err)
 		}
@@ -671,6 +740,7 @@ func TestSimpleIterate(t *testing.T) {
 }
 
 func TestIteratorSeekNilUsesPrefixBounds(t *testing.T) {
+	// Start a testbed for prefix-bounded iterator checks.
 	ctx := context.Background()
 	le := logrus.NewEntry(logrus.New())
 	tb, err := testbed.NewTestbed(ctx, le)
@@ -679,6 +749,7 @@ func TestIteratorSeekNilUsesPrefixBounds(t *testing.T) {
 	}
 	defer tb.Release()
 
+	// Open an empty bucket cursor for the prefix fixture.
 	oc, _, err := bucket_lookup.BuildEmptyCursor(
 		ctx,
 		tb.Bus,
@@ -694,6 +765,7 @@ func TestIteratorSeekNilUsesPrefixBounds(t *testing.T) {
 	}
 	defer oc.Release()
 
+	// Open a write transaction and persist keys across prefix boundaries.
 	tr := NewAVLTree(oc)
 	btx, err := tr.NewAVLTreeTransaction(ctx, true)
 	if err != nil {
@@ -708,13 +780,16 @@ func TestIteratorSeekNilUsesPrefixBounds(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// Verify forward seeking uses the prefix lower bound.
 	t.Run("forward", func(t *testing.T) {
+		// Open a read transaction for the forward prefix check.
 		btx, err := tr.NewAVLTreeTransaction(ctx, false)
 		if err != nil {
 			t.Fatal(err.Error())
 		}
 		defer btx.Discard()
 
+		// Seek the forward iterator to the prefix beginning and verify its keys.
 		iter := btx.Iterate(ctx, []byte("aa/"), true, false)
 		defer iter.Close()
 		if err := iter.Seek(nil); err != nil {
@@ -723,13 +798,16 @@ func TestIteratorSeekNilUsesPrefixBounds(t *testing.T) {
 		assertIteratorKeys(t, iter, []string{"aa/0", "aa/1", "aa/2"})
 	})
 
+	// Verify reverse seeking uses the prefix upper bound.
 	t.Run("reverse", func(t *testing.T) {
+		// Open a read transaction for the reverse prefix check.
 		btx, err := tr.NewAVLTreeTransaction(ctx, false)
 		if err != nil {
 			t.Fatal(err.Error())
 		}
 		defer btx.Discard()
 
+		// Seek the reverse iterator to the prefix end and verify its keys.
 		iter := btx.Iterate(ctx, []byte("aa/"), true, true)
 		defer iter.Close()
 		if err := iter.Seek(nil); err != nil {

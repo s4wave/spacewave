@@ -16,9 +16,11 @@ func TestKVTest(t *testing.T) {
 }
 
 func TestKVTestRetriesThroughFaultStore(t *testing.T) {
+	// Wrap the shared store checks with one injected commit failure.
 	ctx := context.Background()
 	store := NewFaultStore(sinmem.NewStore(), FaultBeforeCommit)
 
+	// Verify the shared checks replay, discard the failed attempt, and commit.
 	if err := TestAll(ctx, store); err != nil {
 		t.Fatal(err.Error())
 	}

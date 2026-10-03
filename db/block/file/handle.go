@@ -79,6 +79,7 @@ func (r *Handle) Size() uint64 {
 //
 // note: not accurate until the btx has been committed.
 func (r *Handle) ComputeStorageSize(ctx context.Context) (uint64, error) {
+	// Accumulate the storage occupied by the file block and its blobs.
 	var storageSize uint64
 
 	// add the size of the root block
@@ -88,6 +89,7 @@ func (r *Handle) ComputeStorageSize(ctx context.Context) (uint64, error) {
 	}
 	storageSize += uint64(len(rootData))
 
+	// Count the root blob directly when the file has no ranges.
 	ranges := r.root.GetRanges()
 	if len(ranges) == 0 {
 		// use root blob
@@ -124,10 +126,12 @@ func (r *Handle) ComputeStorageSize(ctx context.Context) (uint64, error) {
 // It fills p across range boundaries until p is full, EOF is reached, or a
 // selected blob reader stops making progress.
 func (r *Handle) Read(p []byte) (n int, err error) {
+	// Leave the file position unchanged for an empty read buffer.
 	if len(p) == 0 {
 		return 0, nil
 	}
 
+	// Trace the file read and stop at the end of its contents.
 	traceEnabled := trace.IsEnabled()
 	readCtx := r.ctx
 	if traceEnabled {
@@ -140,6 +144,7 @@ func (r *Handle) Read(p []byte) (n int, err error) {
 		return 0, io.EOF
 	}
 
+	// Fill the read buffer across file ranges and sparse spans.
 	for n < len(p) && r.idx < totalSize {
 		var evalErr error
 		if traceEnabled {
@@ -239,12 +244,15 @@ func (r *Handle) Read(p []byte) (n int, err error) {
 // Seeking to any positive offset is legal, but the behavior of subsequent
 // Read and Seek are not concurrent safe.
 func (r *Handle) Seek(offset int64, whence int) (int64, error) {
+	// Require file bounds that fit the signed seek offsets.
 	if r.idx > math.MaxInt64 {
 		return 0, errors.New("file position exceeds maximum")
 	}
 	if r.root.GetTotalSize() > math.MaxInt64 {
 		return 0, errors.New("total size exceeds maximum")
 	}
+
+	// Resolve the requested seek offset relative to the file origin.
 	nextIdx := offset
 	switch whence {
 	case io.SeekCurrent:
@@ -255,10 +263,14 @@ func (r *Handle) Seek(offset int64, whence int) (int64, error) {
 	if nextIdx < 0 {
 		return 0, errors.New("seek to before start of file")
 	}
+
+	// Keep the current read state when the file position is unchanged.
 	currIdx := int64(r.idx)
 	if nextIdx == currIdx {
 		return nextIdx, nil
 	}
+
+	// Reposition or discard the blob reader for the requested file offset.
 	nextEval := int64(r.nextEval) //nolint:gosec
 	if nextIdx < currIdx || (nextEval != 0 && nextEval <= nextIdx) {
 		// if rewinding or if next idx > nextEval, clear read state.
@@ -285,6 +297,8 @@ func (r *Handle) Seek(offset int64, whence int) (int64, error) {
 			}
 		}
 	}
+
+	// Retain the resolved file position for subsequent reads and writes.
 	r.idx = uint64(nextIdx)
 	return nextIdx, nil
 }
@@ -299,16 +313,20 @@ func (r *Handle) Close() error {
 
 // evaluateCurrentRange updates the currentRange for the idx.
 func (r *Handle) evaluateCurrentRange() error {
+	// Stop range evaluation when the file handle is canceled.
 	select {
 	case <-r.ctx.Done():
 		return r.ctx.Err()
 	default:
 	}
 
+	// Prepare a seek operation relative to the selected file range.
 	seekBlob := func() error {
+		// Skip seeking when the selected file span has no blob reader.
 		if r.currentBlob == nil {
 			return nil
 		}
+
 		// say we are at index 100
 		// blob might start at index 50
 		// we need to seek 100-50 = 50 past the start
@@ -325,6 +343,7 @@ func (r *Handle) evaluateCurrentRange() error {
 		return err
 	}
 
+	// Reuse the selected range until its evaluation boundary is reached.
 	if r.nextEval > r.idx {
 		return seekBlob()
 	} else if r.nextEval == 0 || r.idx >= r.nextEval {
@@ -336,10 +355,14 @@ func (r *Handle) evaluateCurrentRange() error {
 			r.currentBlob = nil
 		}
 	}
+
+	// Stop range selection when the file position reaches its end.
 	totalSize := r.root.GetTotalSize()
 	if r.idx >= totalSize {
 		return io.EOF
 	}
+
+	// Select the root blob or its trailing sparse span for an un-ranged file.
 	ranges := r.root.GetRanges()
 	idx := r.idx
 	var err error
@@ -413,6 +436,7 @@ func (r *Handle) evaluateCurrentRange() error {
 		}
 	}
 
+	// Read a sparse span until the next range or the end of the file.
 	if r.currentRange == nil {
 		// there is no range for this index (zeros, sparse file)
 		// nextEval is set to the next block we will encounter
@@ -460,6 +484,7 @@ func (r *Handle) followRootRangeBlobRef(
 	idx int,
 	blobRef *block.BlockRef,
 ) (*blob.Blob, *block.Cursor, error) {
+	// Locate the range blob reference and skip a missing blob.
 	rangeCs := r.bcs.FollowSubBlock(4).FollowSubBlock(uint32(idx)) //nolint:gosec
 	var ncs *block.Cursor
 	if blobRef == nil {
@@ -470,6 +495,8 @@ func (r *Handle) followRootRangeBlobRef(
 	} else {
 		ncs = rangeCs.FollowRef(4, blobRef)
 	}
+
+	// Decode the referenced file blob for the caller.
 	blobi, err := ncs.Unmarshal(r.ctx, blob.NewBlobBlock)
 	if err != nil {
 		return nil, nil, err

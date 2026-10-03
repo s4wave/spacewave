@@ -46,11 +46,13 @@ func NewFaultStore(store kvtx.Store, boundary FaultBoundary) *FaultStore {
 // NewTransaction opens a transaction from the wrapped store and records the
 // real attempt. The returned transaction delegates all unselected operations.
 func (s *FaultStore) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, error) {
+	// Open a real transaction through the wrapped store.
 	tx, err := s.store.NewTransaction(ctx, write)
 	if err != nil {
 		return nil, err
 	}
 
+	// Record the opened transaction attempt under the fault store lock.
 	s.mu.Lock()
 	s.opened++
 	attempt := s.opened
@@ -90,6 +92,7 @@ func (s *FaultStore) DelegatedCommits() int {
 }
 
 func (s *FaultStore) inject(boundary FaultBoundary) bool {
+	// Inject the selected transaction failure only once under the fault store lock.
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if s.boundary != boundary || s.injected {

@@ -88,7 +88,10 @@ func newMetricCountingStore() *metricCountingStore {
 }
 
 func (s *metricCountingStore) PutBlock(ctx context.Context, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
+	// Write the block through the counting store.
 	ref, existed, err := s.StoreOps.PutBlock(ctx, data, opts)
+
+	// Record successful block writes while holding the metric lock.
 	s.mtx.Lock()
 	defer s.mtx.Unlock()
 	if err == nil {
@@ -102,7 +105,10 @@ func (s *metricCountingStore) PutBlock(ctx context.Context, data []byte, opts *b
 }
 
 func (s *metricCountingStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) error {
+	// Write the block batch through the counting store.
 	err := s.StoreOps.PutBlockBatch(ctx, entries)
+
+	// Record successful batch writes while holding the metric lock.
 	s.mtx.Lock()
 	defer s.mtx.Unlock()
 	if err == nil {
@@ -118,7 +124,10 @@ func (s *metricCountingStore) PutBlockBatch(ctx context.Context, entries []*bloc
 }
 
 func (s *metricCountingStore) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {
+	// Fetch the referenced block through the counting store.
 	data, found, err := s.StoreOps.GetBlock(ctx, ref)
+
+	// Record successful block reads and their reference counts under the metric lock.
 	s.mtx.Lock()
 	defer s.mtx.Unlock()
 	if err == nil {
@@ -135,7 +144,10 @@ func (s *metricCountingStore) GetBlock(ctx context.Context, ref *block.BlockRef)
 }
 
 func (s *metricCountingStore) GetBlockExists(ctx context.Context, ref *block.BlockRef) (bool, error) {
+	// Check block existence through the counting store.
 	exists, err := s.StoreOps.GetBlockExists(ctx, ref)
+
+	// Record successful existence checks under the metric lock.
 	s.mtx.Lock()
 	defer s.mtx.Unlock()
 	if err == nil {
@@ -148,7 +160,10 @@ func (s *metricCountingStore) GetBlockExists(ctx context.Context, ref *block.Blo
 }
 
 func (s *metricCountingStore) GetBlockExistsBatch(ctx context.Context, refs []*block.BlockRef) ([]bool, error) {
+	// Check the block reference batch through the counting store.
 	exists, err := s.StoreOps.GetBlockExistsBatch(ctx, refs)
+
+	// Record batch existence checks and hits under the metric lock.
 	s.mtx.Lock()
 	defer s.mtx.Unlock()
 	if err == nil {
@@ -163,12 +178,15 @@ func (s *metricCountingStore) GetBlockExistsBatch(ctx context.Context, refs []*b
 }
 
 func (s *metricCountingStore) reset() {
+	// Hold the metric lock while clearing the recorded store activity.
 	s.mtx.Lock()
 	defer s.mtx.Unlock()
 	s.putCalls = 0
 	s.putBatches = 0
 	s.putExisted = 0
 	s.putBytes = 0
+
+	// Clear read and existence metrics for the next workload.
 	s.getCalls = 0
 	s.getBytes = 0
 	s.existsCalls = 0
@@ -177,6 +195,7 @@ func (s *metricCountingStore) reset() {
 }
 
 func (s *metricCountingStore) snapshot() metricStoreSnapshot {
+	// Copy the store metrics and reference counts under the metric lock.
 	s.mtx.Lock()
 	defer s.mtx.Unlock()
 	readByRef := make(map[string]int, len(s.readByRef))
@@ -232,11 +251,14 @@ func countRangeBlobRefs(ranges []*Range) int {
 }
 
 func syntheticFlatChunkBlob(t *testing.T, chunkCount int, chunkSize uint64) *blob.Blob {
+	// Build a shared block reference for the synthetic chunk fixture.
 	t.Helper()
 	ref, err := block.BuildBlockRef([]byte("synthetic-flat-chunk"), &block.PutOpts{})
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Construct a flat chunk index spanning the requested synthetic file size.
 	chunks := make([]*blob.Chunk, 0, chunkCount)
 	var start uint64
 	for range chunkCount {
@@ -256,9 +278,12 @@ func syntheticFlatChunkBlob(t *testing.T, chunkCount int, chunkSize uint64) *blo
 }
 
 func readFileBytes(t *testing.T, ctx context.Context, bcs *block.Cursor, root *File) []byte {
+	// Open a file reader for the metric workload readback.
 	t.Helper()
 	rdr := NewHandle(ctx, bcs, root)
 	defer rdr.Close()
+
+	// Read the complete file contents for the calling test.
 	out, err := io.ReadAll(rdr)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -279,16 +304,21 @@ func buildMetricRootWithStore(
 	store block.StoreOps,
 	recorder *metricRecorder,
 ) (*block.Transaction, *block.Cursor, *File) {
+	// Attach the optional blob metric recorder to the fixture context.
 	t.Helper()
 	if recorder != nil {
 		ctx = blob.WithMetricsRecorder(ctx, recorder)
 	}
+
+	// Create a file transaction and writer over the supplied metric store.
 	btx, bcs := block.NewTransaction(store, nil, nil, nil)
 	root := &File{}
 	bcs.SetBlock(root, true)
 	fh := NewHandle(ctx, bcs, root)
 	defer fh.Close()
 	fw := NewWriter(fh, btx, metricBlobOpts())
+
+	// Write the fixture contents into the metric file root.
 	if err := fw.WriteFrom(0, int64(len(data)), bytes.NewReader(data)); err != nil {
 		t.Fatal(err.Error())
 	}
@@ -296,14 +326,19 @@ func buildMetricRootWithStore(
 }
 
 func TestFileMetricAppendHeavyLargeFile(t *testing.T) {
+	// Prepare the append workload data, store, and blob recorder.
 	ctx := context.Background()
 	body := bytes.Repeat([]byte("append-metric-base-"), 512)
 	appendData := bytes.Repeat([]byte("tail-"), 80)
 	store := newMetricCountingStore()
 	recorder := &metricRecorder{}
+
+	// Measure the allocations used to construct the baseline file.
 	allocs := testing.AllocsPerRun(1, func() {
 		_, _, _ = buildMetricRoot(t, ctx, "test-file-metric-append-alloc", body)
 	})
+
+	// Build the chunked file and retain its stable prefix references.
 	btx, bcs, root := buildMetricRootWithStore(t, ctx, body, store, recorder)
 	initialChunks := root.GetRootBlob().GetChunkIndex().GetChunks()
 	if len(initialChunks) < 3 {
@@ -311,32 +346,45 @@ func TestFileMetricAppendHeavyLargeFile(t *testing.T) {
 	}
 	prefixRefs := chunkRefStrings(initialChunks[:len(initialChunks)-1])
 
+	// Open an append writer with fresh store and blob metrics.
 	store.reset()
 	recorder.reset()
 	fh := NewHandle(blob.WithMetricsRecorder(ctx, recorder), bcs, root)
 	defer fh.Close()
 	fw := NewWriter(fh, btx, metricBlobOpts())
+
+	// Append the workload tail to the existing file.
 	if err := fw.WriteFrom(uint64(len(body)), int64(len(appendData)), bytes.NewReader(appendData)); err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Verify the append preserves the root blob representation.
 	if len(root.GetRanges()) != 0 {
 		t.Fatalf("append created ranges on whole-file root: %d", len(root.GetRanges()))
 	}
+
+	// Publish the appended file and measure its latency.
 	publishStarted := time.Now()
 	if _, _, err := btx.Write(ctx, true); err != nil {
 		t.Fatal(err.Error())
 	}
 	publishLatency := time.Since(publishStarted)
+
+	// Verify the append preserves every stable prefix chunk reference.
 	nextChunks := root.GetRootBlob().GetChunkIndex().GetChunks()
 	preserved := countSamePrefix(prefixRefs, chunkRefStrings(nextChunks[:min(len(prefixRefs), len(nextChunks))]))
 	if preserved != len(prefixRefs) {
 		t.Fatalf("append rewrote stable prefix refs: preserved %d of %d", preserved, len(prefixRefs))
 	}
+
+	// Verify the appended file reads back the expected contents.
 	out := readFileBytes(t, ctx, bcs, root)
 	expected := append(append([]byte(nil), body...), appendData...)
 	if !bytes.Equal(out, expected) {
 		t.Fatal("append workload readback mismatch")
 	}
+
+	// Report append metadata size, store activity, and blob metrics.
 	metadataBytes, err := root.GetRootBlob().MarshalBlock()
 	if err != nil {
 		t.Fatal(err.Error())
@@ -347,33 +395,45 @@ func TestFileMetricAppendHeavyLargeFile(t *testing.T) {
 }
 
 func TestFileMetricCompatibleLastRangeAppend(t *testing.T) {
+	// Prepare a chunked baseline and the compatible append workload.
 	ctx := context.Background()
 	store := newMetricCountingStore()
 	body := bytes.Repeat([]byte("range-append-base-"), 96)
 	appendData := bytes.Repeat([]byte("tail-range-"), 24)
 	btx, bcs, root := buildMetricRootWithStore(t, ctx, body, store, nil)
+
+	// Open a writer and overwrite the baseline to produce file ranges.
 	fh := NewHandle(ctx, bcs, root)
 	defer fh.Close()
 	fw := NewWriter(fh, btx, metricBlobOpts())
 	if err := fw.WriteFrom(13, int64(len("overwrite")), bytes.NewReader([]byte("overwrite"))); err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Record the range shape and require a ranged append fixture.
 	beforeRanges := len(root.GetRanges())
 	beforeRefs := countRangeBlobRefs(root.GetRanges())
 	if beforeRanges == 0 {
 		t.Fatal("expected compatible append fixture to move the file into ranges")
 	}
 
+	// Append at EOF with fresh store metrics.
 	store.reset()
 	if err := fw.WriteFrom(root.GetTotalSize(), int64(len(appendData)), bytes.NewReader(appendData)); err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Verify the compatible append preserves the file range count.
 	if len(root.GetRanges()) != beforeRanges {
 		t.Fatalf("compatible EOF append changed range shape: before=%d after=%d", beforeRanges, len(root.GetRanges()))
 	}
+
+	// Publish the compatible range append.
 	if _, _, err := btx.Write(ctx, true); err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Verify readback includes the overwrite and appended contents.
 	out := readFileBytes(t, ctx, bcs, root)
 	expected := append([]byte(nil), body...)
 	copy(expected[13:], []byte("overwrite"))
@@ -381,15 +441,20 @@ func TestFileMetricCompatibleLastRangeAppend(t *testing.T) {
 	if !bytes.Equal(out, expected) {
 		t.Fatal("compatible last-range append readback mismatch")
 	}
+
+	// Verify the append keeps range blob reference growth bounded.
 	afterRefs := countRangeBlobRefs(root.GetRanges())
 	if afterRefs-beforeRefs > 2 {
 		t.Fatalf("compatible EOF append widened range blob refs by %d, want <=2", afterRefs-beforeRefs)
 	}
+
+	// Report the compatible append range and store metrics.
 	stats := store.snapshot()
 	t.Logf("metric workload=compatible-last-range-append before_ranges=%d after_ranges=%d before_block_refs=%d after_block_refs=%d store_puts=%d duplicate_store_puts=%d put_bytes=%d", beforeRanges, len(root.GetRanges()), beforeRefs, afterRefs, stats.putCalls, stats.putExisted, stats.putBytes)
 }
 
 func TestFileMetricRandomOverwrite(t *testing.T) {
+	// Build the random overwrite baseline and expected write sequence.
 	ctx := context.Background()
 	body := bytes.Repeat([]byte("random-overwrite-base-"), 384)
 	store := newMetricCountingStore()
@@ -404,15 +469,20 @@ func TestFileMetricRandomOverwrite(t *testing.T) {
 		{220, bytes.Repeat([]byte("c"), 48)},
 		{300, bytes.Repeat([]byte("d"), 24)},
 	}
+
+	// Open a file writer and apply every random overwrite.
 	fh := NewHandle(ctx, bcs, root)
 	defer fh.Close()
 	fw := NewWriter(fh, btx, nil)
 	for _, write := range writes {
+		// Apply the overwrite to both expected bytes and the file.
 		copy(expected[write.offset:], write.data)
 		if err := fw.WriteFrom(uint64(write.offset), int64(len(write.data)), bytes.NewReader(write.data)); err != nil {
 			t.Fatal(err.Error())
 		}
 	}
+
+	// Publish the random overwrites and measure their latency.
 	publishStarted := time.Now()
 	rootRef, bcs, err := btx.Write(ctx, true)
 	if err != nil {
@@ -420,6 +490,7 @@ func TestFileMetricRandomOverwrite(t *testing.T) {
 	}
 	publishLatency := time.Since(publishStarted)
 
+	// Reopen the published file and measure root loading.
 	store.reset()
 	openStarted := time.Now()
 	_, readBcs := block.NewTransaction(store, nil, rootRef, nil)
@@ -429,11 +500,14 @@ func TestFileMetricRandomOverwrite(t *testing.T) {
 	}
 	openLatency := time.Since(openStarted)
 	openStats := store.snapshot()
+
+	// Verify random overwrite readback after compaction.
 	store.reset()
 	if got := readFileBytes(t, ctx, readBcs, root); !bytes.Equal(got, expected) {
 		t.Fatal("random overwrite readback changed after compaction")
 	}
 
+	// Verify compaction removes hidden ranges while preserving visible overlap.
 	occluded := countFullyOccludedRanges(root.GetRanges())
 	overlapDepth := maxOverlapDepth(root.GetRanges())
 	lookupScan := lookupScanLength(root.GetRanges(), 128)
@@ -441,17 +515,22 @@ func TestFileMetricRandomOverwrite(t *testing.T) {
 	if len(root.GetRanges()) >= uncompactedRangeCount || occluded != 0 || overlapDepth <= 1 {
 		t.Fatalf("random overwrite compaction did not reduce stale range pressure: ranges=%d uncompacted_ranges=%d occluded=%d overlap_depth=%d", len(root.GetRanges()), uncompactedRangeCount, occluded, overlapDepth)
 	}
+
+	// Report the random overwrite shape and publication metrics.
 	_ = bcs
 	t.Logf("metric workload=random-overwrite range_count=%d uncompacted_range_count=%d fully_occluded_range_count=%d stale_reachable_refs=%d overlap_depth=%d lookup_scan_length=%d logical_bytes=%d root_open_latency_ns=%d publish_latency_ns=%d root_fetches=%d fetched_bytes=%d", len(root.GetRanges()), uncompactedRangeCount, occluded, occluded, overlapDepth, lookupScan, root.GetTotalSize(), openLatency.Nanoseconds(), publishLatency.Nanoseconds(), openStats.getCalls, openStats.getBytes)
 }
 
 func TestFileRangeCompactionPreservesSparseZeroOverwrite(t *testing.T) {
+	// Build the baseline file and open a writer for sparse overwrites.
 	ctx := context.Background()
 	body := []byte("0123456789abcdef")
 	btx, bcs, root := buildMetricRoot(t, ctx, "range-compaction-sparse-zero", body)
 	fh := NewHandle(ctx, bcs, root)
 	defer fh.Close()
 	fw := NewWriter(fh, btx, nil)
+
+	// Replace part of the file with concrete bytes and then a sparse zero range.
 	if err := fw.WriteFrom(4, 4, bytes.NewReader([]byte("DATA"))); err != nil {
 		t.Fatal(err.Error())
 	}
@@ -459,6 +538,7 @@ func TestFileRangeCompactionPreservesSparseZeroOverwrite(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// Publish the sparse overwrite and reopen its file root.
 	rootRef, _, err := btx.Write(ctx, true)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -468,6 +548,8 @@ func TestFileRangeCompactionPreservesSparseZeroOverwrite(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Verify the sparse overwrite reads back zeros over the replaced span.
 	got := readFileBytes(t, ctx, readBcs, readRoot)
 	want := append([]byte(nil), body...)
 	for i := range want[4:8] {
@@ -476,6 +558,8 @@ func TestFileRangeCompactionPreservesSparseZeroOverwrite(t *testing.T) {
 	if !bytes.Equal(got, want) {
 		t.Fatalf("sparse zero overwrite readback mismatch\n got: %v\nwant: %v", got, want)
 	}
+
+	// Verify compaction preserves visible ranges and removes stale blob references.
 	if len(readRoot.GetRanges()) != 2 {
 		t.Fatalf("expected compacted root range and sparse zero range, got %d ranges", len(readRoot.GetRanges()))
 	}
@@ -488,6 +572,7 @@ func TestFileRangeCompactionPreservesSparseZeroOverwrite(t *testing.T) {
 }
 
 func TestFileMetricOverlappingRangeReadback(t *testing.T) {
+	// Build the overlap workload baseline and open its file writer.
 	ctx := context.Background()
 	store := newMetricCountingStore()
 	body := bytes.Repeat([]byte("b"), 32)
@@ -495,6 +580,8 @@ func TestFileMetricOverlappingRangeReadback(t *testing.T) {
 	fh := NewHandle(ctx, bcs, root)
 	defer fh.Close()
 	fw := NewWriter(fh, btx, metricBlobOpts())
+
+	// Apply overlapping concrete writes and a sparse zero overwrite.
 	if err := fw.WriteFrom(8, 20, bytes.NewReader(bytes.Repeat([]byte("l"), 20))); err != nil {
 		t.Fatal(err.Error())
 	}
@@ -508,6 +595,7 @@ func TestFileMetricOverlappingRangeReadback(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// Publish the overlapping file ranges and measure latency.
 	publishStarted := time.Now()
 	rootRef, _, err := btx.Write(ctx, true)
 	if err != nil {
@@ -515,6 +603,7 @@ func TestFileMetricOverlappingRangeReadback(t *testing.T) {
 	}
 	publishLatency := time.Since(publishStarted)
 
+	// Reopen the published file with fresh root loading metrics.
 	store.reset()
 	openStarted := time.Now()
 	_, readBcs := block.NewTransaction(store, nil, rootRef, nil)
@@ -526,11 +615,14 @@ func TestFileMetricOverlappingRangeReadback(t *testing.T) {
 	openStats := store.snapshot()
 	store.reset()
 
+	// Open a file reader at the start of the overlapping spans.
 	rdr := NewHandle(ctx, readBcs, readRoot)
 	defer rdr.Close()
 	if _, seekErr := rdr.Seek(12, io.SeekStart); seekErr != nil {
 		t.Fatal(seekErr.Error())
 	}
+
+	// Read across the overlapping ranges and measure latency.
 	got := make([]byte, 20)
 	readStarted := time.Now()
 	n, err := rdr.Read(got)
@@ -538,9 +630,13 @@ func TestFileMetricOverlappingRangeReadback(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Verify the overlap read fills the requested buffer.
 	if n != len(got) {
 		t.Fatalf("overlap metric read returned %d bytes, expected %d", n, len(got))
 	}
+
+	// Verify readback follows the visible concrete and sparse spans.
 	want := append([]byte("HIGH"), bytes.Repeat([]byte("l"), 4)...)
 	want = append(want, 0, 0, 0, 0)
 	want = append(want, bytes.Repeat([]byte("l"), 4)...)
@@ -549,6 +645,7 @@ func TestFileMetricOverlappingRangeReadback(t *testing.T) {
 		t.Fatal("overlap metric readback mismatch")
 	}
 
+	// Verify compaction preserves visible overlap without hidden ranges.
 	ranges := readRoot.GetRanges()
 	rangeCount := len(ranges)
 	occluded := countFullyOccludedRanges(ranges)
@@ -557,11 +654,14 @@ func TestFileMetricOverlappingRangeReadback(t *testing.T) {
 	if rangeCount <= 1 || occluded != 0 || overlapDepth <= 1 {
 		t.Fatalf("overlap workload compaction did not preserve visible overlap without stale ranges: ranges=%d occluded=%d overlap_depth=%d", rangeCount, occluded, overlapDepth)
 	}
+
+	// Report overlap read latency, range shape, and store activity.
 	stats := store.snapshot()
 	t.Logf("metric workload=overlap-readback-corrected range_count=%d fully_occluded_range_count=%d stale_reachable_refs=%d overlap_depth=%d lookup_scan_length=%d read_latency_ns=%d read_latency_by_range_count_ns=%d logical_bytes=%d root_open_latency_ns=%d publish_latency_ns=%d root_open_fetches=%d root_open_fetched_bytes=%d read_fetches=%d read_fetched_bytes=%d", rangeCount, occluded, occluded, overlapDepth, lookupScan, readLatency.Nanoseconds(), readLatency.Nanoseconds()/int64(max(rangeCount, 1)), readRoot.GetTotalSize(), openLatency.Nanoseconds(), publishLatency.Nanoseconds(), openStats.getCalls, openStats.getBytes, stats.getCalls, stats.getBytes)
 }
 
 func TestFileMetricMostlyUnchangedFullRewrite(t *testing.T) {
+	// Build a chunked baseline and prepare a one-byte full rewrite.
 	ctx := context.Background()
 	body := bytes.Repeat([]byte("mostly-unchanged-full-rewrite-"), 384)
 	store := newMetricCountingStore()
@@ -570,23 +670,33 @@ func TestFileMetricMostlyUnchangedFullRewrite(t *testing.T) {
 	oldRefs := chunkRefStrings(root.GetRootBlob().GetChunkIndex().GetChunks())
 	mutated := append([]byte(nil), body...)
 	mutated[len(mutated)/2] ^= 0xff
+
+	// Open the full rewrite writer with fresh store and blob metrics.
 	store.reset()
 	recorder.reset()
 	fh := NewHandle(blob.WithMetricsRecorder(ctx, recorder), bcs, root)
 	defer fh.Close()
 	fw := NewWriter(fh, btx, metricBlobOpts())
+
+	// Replace the complete file with the modified contents.
 	if err := fw.WriteFrom(0, int64(len(mutated)), bytes.NewReader(mutated)); err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Publish the full rewrite and measure its latency.
 	publishStarted := time.Now()
 	if _, _, err := btx.Write(ctx, true); err != nil {
 		t.Fatal(err.Error())
 	}
 	publishLatency := time.Since(publishStarted)
+
+	// Verify full rewrite readback matches the modified contents.
 	out := readFileBytes(t, ctx, bcs, root)
 	if !bytes.Equal(out, mutated) {
 		t.Fatal("full rewrite workload readback mismatch")
 	}
+
+	// Report unchanged chunk references and full rewrite store activity.
 	newRefs := chunkRefStrings(root.GetRootBlob().GetChunkIndex().GetChunks())
 	unchangedPositions := countSamePrefix(oldRefs, newRefs)
 	directChunks, directBytes := recorder.stage("chunk-direct-put")
@@ -595,28 +705,38 @@ func TestFileMetricMostlyUnchangedFullRewrite(t *testing.T) {
 }
 
 func TestFileMetricSequentialOpenDownload(t *testing.T) {
+	// Prepare the sequential download baseline and appended data.
 	ctx := context.Background()
 	first := bytes.Repeat([]byte("download-a-"), 384)
 	second := bytes.Repeat([]byte("download-b-"), 384)
 	store := newMetricCountingStore()
 	btx, bcs, root := buildMetricRootWithStore(t, ctx, first, store, nil)
+
+	// Write the download tail and close its file writer.
 	fh := NewHandle(ctx, bcs, root)
 	fw := NewWriter(fh, btx, metricBlobOpts())
 	if err := fw.WriteFrom(uint64(len(first)), int64(len(second)), bytes.NewReader(second)); err != nil {
 		t.Fatal(err.Error())
 	}
 	fh.Close()
+
+	// Publish the complete download fixture.
 	rootRef, _, err := btx.Write(ctx, true)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Measure sequential downloads with each caller buffer size.
 	for _, bufSize := range []int{37, 257} {
+		// Reopen the download file with fresh store metrics.
 		store.reset()
 		_, readBcs := block.NewTransaction(store, nil, rootRef, nil)
 		readRoot, err := block.UnmarshalBlock[*File](ctx, readBcs, NewFileBlock)
 		if err != nil {
 			t.Fatal(err.Error())
 		}
+
+		// Read the complete file through the selected caller buffer.
 		buf := make([]byte, bufSize)
 		rdr := NewHandle(ctx, readBcs, readRoot)
 		var total, reads int
@@ -635,12 +755,16 @@ func TestFileMetricSequentialOpenDownload(t *testing.T) {
 				t.Fatal(err.Error())
 			}
 		}
+
+		// Close the download reader and verify its total byte count.
 		if err := rdr.Close(); err != nil {
 			t.Fatal(err.Error())
 		}
 		if total != len(first)+len(second) {
 			t.Fatalf("sequential read got %d bytes, expected %d", total, len(first)+len(second))
 		}
+
+		// Report chunk fetches, cache hits, and range transitions for the download.
 		stats := store.snapshot()
 		chunkFetches := countChunkFetches(stats, readRoot.GetRootBlob().GetChunkIndex().GetChunks())
 		cacheHits := max(reads-chunkFetches, 0)
@@ -735,6 +859,7 @@ func maxOverlapDepth(ranges []*Range) int {
 }
 
 func lookupScanLength(ranges []*Range, pos uint64) int {
+	// Locate the first file range starting after the lookup position.
 	idxAfter := len(ranges)
 	for i, rng := range ranges {
 		if rng.GetStart() > pos {
@@ -742,6 +867,8 @@ func lookupScanLength(ranges []*Range, pos uint64) int {
 			break
 		}
 	}
+
+	// Count the backward range scan needed for that file position.
 	var scans int
 	for i := idxAfter - 1; i >= 0; i-- {
 		scans++

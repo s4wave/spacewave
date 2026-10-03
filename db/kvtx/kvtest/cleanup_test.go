@@ -10,10 +10,12 @@ import (
 )
 
 func TestFaultStoreCleanupOnCancellation(t *testing.T) {
+	// Prepare a cancelable transaction context and one commit failure.
 	ctx, cancel := context.WithCancel(context.Background())
 	store := NewFaultStore(sinmem.NewStore(), FaultBeforeCommit)
 	bodyCalls := 0
 
+	// Cancel the write body and verify its single attempt is discarded.
 	err := kvtx.RunTransaction(ctx, true,
 		func(ctx context.Context) (kvtx.Tx, error) {
 			return store.NewTransaction(ctx, true)
@@ -33,11 +35,13 @@ func TestFaultStoreCleanupOnCancellation(t *testing.T) {
 }
 
 func TestFaultStoreCleanupOnBodyError(t *testing.T) {
+	// Prepare a transaction body error and one commit failure.
 	ctx := context.Background()
 	store := NewFaultStore(sinmem.NewStore(), FaultBeforeCommit)
 	bodyErr := errors.New("body failed")
 	bodyCalls := 0
 
+	// Fail the write body and verify its single attempt is discarded.
 	err := kvtx.RunTransaction(ctx, true,
 		func(ctx context.Context) (kvtx.Tx, error) {
 			return store.NewTransaction(ctx, true)

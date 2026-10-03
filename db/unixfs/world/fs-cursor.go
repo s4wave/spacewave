@@ -183,14 +183,17 @@ func (f *FSCursor) GetCursorOps(ctx context.Context) (unixfs.FSCursorOps, error)
 // Releasing a child cursor does not release the parent, and vise-versa.
 // Return nil, ErrReleased if this FSCursor was released.
 func (f *FSCursor) GetProxyCursor(ctx context.Context) (unixfs.FSCursor, error) {
+	// Reject proxy resolution after FSCursor has been released.
 	if f.CheckReleased() {
 		return nil, unixfs_errors.ErrReleased
 	}
 
+	// Collect the proxy cursor and resources needed to resolve this position.
 	relFns := make([]func(), 0, 2)
 	var fsc unixfs.FSCursor
 	var retErr error
 
+	// Resolve or reuse the root filesystem cursor under its state lock.
 	f.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
 		// check if the root fs cursor is valid & return it if so
 		if f.rootFSCursor != nil {
@@ -213,6 +216,7 @@ func (f *FSCursor) GetProxyCursor(ctx context.Context) (unixfs.FSCursor, error) 
 			return
 		}
 
+		// Read the World object reference and revision for the root cursor.
 		objRef, objRev, err := objState.GetRootRef(ctx)
 		if err != nil {
 			retErr = err
@@ -228,6 +232,7 @@ func (f *FSCursor) GetProxyCursor(ctx context.Context) (unixfs.FSCursor, error) 
 		}
 		relFns = append(relFns, rootCursor.Release)
 
+		// Follow the World object reference with the storage cursor.
 		locCursor, err := rootCursor.FollowRef(ctx, objRef)
 		if err != nil {
 			retErr = err
@@ -241,6 +246,7 @@ func (f *FSCursor) GetProxyCursor(ctx context.Context) (unixfs.FSCursor, error) 
 			broadcast()
 		}
 
+		// Construct the filesystem proxy for the current position type.
 		switch f.posType {
 		case FSType_FSType_FS_NODE:
 			nfs := unixfs_block_fs.NewFS(f.ctx, 0, locCursor, f.writer)
@@ -266,6 +272,7 @@ func (f *FSCursor) GetProxyCursor(ctx context.Context) (unixfs.FSCursor, error) 
 		}
 	})
 
+	// Release acquired storage cursors when proxy resolution fails.
 	if retErr != nil {
 		for _, rel := range relFns {
 			rel()
@@ -309,6 +316,7 @@ func (f *FSCursor) Release() {
 }
 
 func (f *FSCursor) release(waitForWatchers bool) {
+	// Stop an already released FSCursor after its watchers finish when requested.
 	if f.CheckReleased() {
 		// fast path
 		if waitForWatchers {
@@ -316,8 +324,11 @@ func (f *FSCursor) release(waitForWatchers bool) {
 		}
 		return
 	}
+
+	// Release the FSCursor state and detach its change callbacks under the lock.
 	var changeCbs unixfs.FSCursorChangeCbSlice
 	f.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
+		// Cancel the FSCursor watchers and release its cached root cursor.
 		if f.isReleased.Swap(true) {
 			return
 		}
@@ -332,6 +343,8 @@ func (f *FSCursor) release(waitForWatchers bool) {
 		f.cbs = nil
 		broadcast()
 	})
+
+	// Notify detached callbacks and finish the FSCursor watchers when requested.
 	_ = changeCbs.CallCbs(&unixfs.FSCursorChange{Cursor: f, Released: true})
 	if waitForWatchers {
 		f.watchWg.Wait()
@@ -341,6 +354,7 @@ func (f *FSCursor) release(waitForWatchers bool) {
 // watchWorldChanges waits for changes to the world object in a goroutine.
 // started by GetProxyCursor
 func (f *FSCursor) watchWorldChanges(nfs *unixfs_block_fs.FS, currRef *bucket.ObjectRef) {
+	// Prepare a revision notifier for World change waiters.
 	markLatestRev := func(rev uint64) {
 		// proc any waiters
 		f.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {

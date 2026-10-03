@@ -39,9 +39,11 @@ func NewTx(
 	write bool,
 	rootChangedCb func(*block.Cursor),
 ) (*Tx, error) {
+	// Trace construction of the IAVL transaction.
 	ctx, task := trace.NewTask(ctx, "hydra/kvtx-block-iavl/new-tx")
 	defer task.End()
 
+	// Decode the root Node before exposing the transaction.
 	taskCtx, subtask := trace.NewTask(ctx, "hydra/kvtx-block-iavl/new-tx/unmarshal-root")
 	rn, err := block.UnmarshalBlock[*Node](taskCtx, bcs, NewNodeBlock)
 	subtask.End()
@@ -117,18 +119,23 @@ func (t *Tx) Exists(ctx context.Context, key []byte) (bool, error) {
 
 // Get returns the value of the specified key if it exists.
 func (t *Tx) Get(ctx context.Context, key []byte) ([]byte, bool, error) {
+	// Require a key before reading the IAVL tree.
 	if len(key) == 0 {
 		return nil, false, kvtx.ErrEmptyKey
 	}
 
+	// Finish the lookup when the IAVL tree is empty.
 	if t.root.GetSize() == 0 {
 		return nil, false, nil
 	}
 
+	// Find the leaf that holds the requested key.
 	bcs, node, err := t.getFromRoot(ctx, key)
 	if err != nil || node == nil || bcs == nil {
 		return nil, false, err
 	}
+
+	// Read the value stored by the matching leaf.
 	val, err := t.nodeToValue(ctx, bcs, node)
 	if err != nil {
 		return nil, true, err
@@ -139,6 +146,7 @@ func (t *Tx) Get(ctx context.Context, key []byte) ([]byte, bool, error) {
 
 // GetBatch returns values for multiple keys.
 func (t *Tx) GetBatch(ctx context.Context, keys [][]byte) ([][]byte, []bool, error) {
+	// Prepare indexed lookups and result slots for the requested keys.
 	values := make([][]byte, len(keys))
 	found := make([]bool, len(keys))
 	lookups := make([]batchLookup, 0, len(keys))
@@ -151,12 +159,18 @@ func (t *Tx) GetBatch(ctx context.Context, keys [][]byte) ([][]byte, []bool, err
 			index: i,
 		})
 	}
+
+	// Honor cancellation before traversing the IAVL tree.
 	if err := ctx.Err(); err != nil {
 		return nil, nil, err
 	}
+
+	// Finish an empty batch or an empty tree without traversal.
 	if t.root.GetSize() == 0 || len(lookups) == 0 {
 		return values, found, nil
 	}
+
+	// Fill the batch results through the shared tree traversal.
 	if err := t.getBatchFromNode(ctx, t.bcs, t.root, lookups, values, found); err != nil {
 		return nil, nil, err
 	}
@@ -168,16 +182,23 @@ func (t *Tx) GetBatch(ctx context.Context, keys [][]byte) ([][]byte, []bool, err
 //
 // Returns nil, nil if not found.
 func (t *Tx) GetCursorAtKey(ctx context.Context, key []byte) (*block.Cursor, error) {
+	// Require a key before locating its value cursor.
 	if len(key) == 0 {
 		return nil, kvtx.ErrEmptyKey
 	}
+
+	// Finish the cursor lookup when the tree is empty.
 	if t.root.GetSize() == 0 {
 		return nil, nil
 	}
+
+	// Locate the leaf whose value cursor is requested.
 	bcs, nod, err := t.getFromRoot(ctx, key)
 	if err != nil || bcs == nil || nod == nil {
 		return nil, err
 	}
+
+	// Follow an embedded Blob when the leaf stores one.
 	if nod.ValueIsBlob() {
 		return bcs.FollowSubBlock(8), nil
 	}
@@ -223,15 +244,22 @@ func (t *Tx) SetCursorAtKey(ctx context.Context, key []byte, bcs *block.Cursor, 
 
 // Delete removes a key from the tree
 func (t *Tx) Delete(ctx context.Context, key []byte) error {
+	// Require a key before deleting from the IAVL tree.
 	if len(key) == 0 {
 		return kvtx.ErrEmptyKey
 	}
+
+	// Establish an empty root when the transaction has none.
 	if t.root == nil {
 		t.root = &Node{}
 	}
+
+	// Finish deletion when the IAVL tree is empty.
 	if t.root.GetSize() == 0 {
 		return nil
 	}
+
+	// Remove the key and publish the replacement root.
 	_, _, err := t.removeFromRoot(ctx, key)
 	return err
 }
@@ -288,20 +316,28 @@ func (t *Tx) BlockIterate(ctx context.Context, prefix []byte, sort, reverse bool
 // DeleteCursorAtKey deletes the key and returns the cursor to the value.
 // returns nil, nil if not found.
 func (t *Tx) DeleteCursorAtKey(ctx context.Context, key []byte) (*block.Cursor, error) {
+	// Require a key before removing its value cursor.
 	if len(key) == 0 {
 		return nil, kvtx.ErrEmptyKey
 	}
+
+	// Establish an empty root when the transaction has none.
 	if t.root == nil {
 		t.root = &Node{}
 	}
+
+	// Finish cursor removal when the tree is empty.
 	if t.root.GetSize() == 0 {
 		return nil, nil
 	}
 
+	// Remove the leaf while retaining its value cursor.
 	removedNodCursor, removedNod, err := t.removeFromRoot(ctx, key)
 	if err != nil {
 		return nil, err
 	}
+
+	// Follow the removed leaf's embedded Blob when present.
 	if removedNod.ValueIsBlob() {
 		return removedNodCursor.FollowSubBlock(8), nil
 	}
@@ -310,30 +346,41 @@ func (t *Tx) DeleteCursorAtKey(ctx context.Context, key []byte) (*block.Cursor, 
 
 // GetAndDelete removes a key from the tree returning a value.
 func (t *Tx) GetAndDelete(ctx context.Context, key []byte) (_ []byte, _ bool, err error) {
+	// Require a key before removing its value.
 	if len(key) == 0 {
 		return nil, false, kvtx.ErrEmptyKey
 	}
+
+	// Establish an empty root when the transaction has none.
 	if t.root == nil {
 		t.root = &Node{}
 	}
+
+	// Finish value removal when the tree is empty.
 	if t.root.GetSize() == 0 {
 		return nil, false, nil
 	}
 
+	// Remove the matching leaf and retain it for value decoding.
 	removedBcs, removedNod, err := t.removeFromRoot(ctx, key)
 	if err != nil || removedBcs == nil {
 		return nil, false, err
 	}
+
+	// Decode the value retained by the removed leaf.
 	val, err := t.nodeToValue(ctx, removedBcs, removedNod)
 	return val, true, err
 }
 
 // removeFromRoot removes the key from the root and returns the cursor to the removed node.
 func (t *Tx) removeFromRoot(ctx context.Context, key []byte) (*block.Cursor, *Node, error) {
+	// Remove the leaf from the current root subtree.
 	nextCs, _, removedNodCursor, removedNod, err := t.removeFromNode(ctx, t.bcs, t.root, key)
 	if err != nil || removedNod == nil {
 		return nil, nil, err
 	}
+
+	// Load the surviving root or clear the exhausted tree.
 	var nextNod *Node
 	if nextCs == nil {
 		nextCs = t.bcs
@@ -346,6 +393,8 @@ func (t *Tx) removeFromRoot(ctx context.Context, key []byte) (*block.Cursor, *No
 			return nil, nil, err
 		}
 	}
+
+	// Publish the replacement root through the transaction.
 	t.setRootCursor(nextCs, nextNod)
 	return removedNodCursor, removedNod, nil
 }
@@ -353,16 +402,21 @@ func (t *Tx) removeFromRoot(ctx context.Context, key []byte) (*block.Cursor, *No
 // setFromRoot calls setFromNode from the root of the tree.
 // if valueCursor == nil, sets an empty block ref.
 func (t *Tx) setFromRoot(ctx context.Context, key []byte, valueCursor *block.Cursor, isBlob bool) error {
+	// Prepare the current root for insertion into an empty or populated tree.
 	bcs := t.bcs
 	nextRoot := t.root
 	if nextRoot == nil {
 		nextRoot = &Node{}
 	}
+
+	// Insert the value and retain the resulting root.
 	var changed bool
 	nextRoot, bcs, changed, err := t.setFromNode(ctx, bcs, nextRoot, key, valueCursor, isBlob)
 	if !changed || err != nil {
 		return err
 	}
+
+	// Publish the changed root through the transaction.
 	t.setRootCursor(bcs, nextRoot)
 	return nil
 }
@@ -408,9 +462,12 @@ func (t *Tx) getBatchFromNode(
 	values [][]byte,
 	found []bool,
 ) error {
+	// Finish batch traversal at a missing subtree.
 	if n == nil {
 		return nil
 	}
+
+	// Resolve the batch keys that match this leaf.
 	if n.IsLeaf() {
 		for _, lookup := range lookups {
 			if !bytes.Equal(n.GetKey(), lookup.key) {
@@ -426,6 +483,7 @@ func (t *Tx) getBatchFromNode(
 		return nil
 	}
 
+	// Partition batch lookups by the Node separator.
 	var leftLookups []batchLookup
 	var rightLookups []batchLookup
 	for _, lookup := range lookups {
@@ -435,6 +493,8 @@ func (t *Tx) getBatchFromNode(
 			rightLookups = append(rightLookups, lookup)
 		}
 	}
+
+	// Resolve the batch keys routed to the left subtree.
 	if len(leftLookups) != 0 {
 		leftNode, leftCursor, err := n.FollowLeft(ctx, bcs)
 		if err != nil {
@@ -444,6 +504,8 @@ func (t *Tx) getBatchFromNode(
 			return err
 		}
 	}
+
+	// Resolve the batch keys routed to the right subtree.
 	if len(rightLookups) != 0 {
 		rightNode, rightCursor, err := n.FollowRight(ctx, bcs)
 		if err != nil {
@@ -486,12 +548,17 @@ func (t *Tx) followKeyFromNode(
 
 // hasFromNode checks if a key exists in a sub-tree.
 func (t *Tx) hasFromNode(ctx context.Context, bcs *block.Cursor, n *Node, key []byte) (bool, error) {
+	// Recognize a matching Node key before descending.
 	if bytes.Equal(n.GetKey(), key) {
 		return true, nil
 	}
+
+	// Finish an unsuccessful search at a leaf.
 	if n.IsLeaf() {
 		return false, nil
 	}
+
+	// Follow the child subtree selected by the requested key.
 	ln, lcs, _, err := t.followKeyFromNode(ctx, bcs, n, key)
 	if err != nil {
 		return false, err
@@ -534,6 +601,7 @@ func (t *Tx) setNodeValue(ctx context.Context, cs *block.Cursor, nod *Node, valC
 
 // createLeafNode creates a new leaf node with the given key and value.
 func (t *Tx) createLeafNode(ctx context.Context, cs *block.Cursor, key []byte, valCursor *block.Cursor, isBlob bool) (*Node, *block.Cursor, error) {
+	// Install a keyed leaf on a cursor with cleared references.
 	nod := &Node{
 		Key:  key,
 		Size: 1,
@@ -541,6 +609,7 @@ func (t *Tx) createLeafNode(ctx context.Context, cs *block.Cursor, key []byte, v
 	cs.ClearAllRefs()
 	cs.SetBlock(nod, true)
 
+	// Attach the requested value to the new leaf.
 	if err := t.setNodeValue(ctx, cs, nod, valCursor, isBlob); err != nil {
 		return nil, nil, err
 	}
@@ -557,6 +626,7 @@ func (t *Tx) setFromNode(
 	valCursor *block.Cursor,
 	isBlob bool,
 ) (*Node, *block.Cursor, bool, error) {
+	// Replace a matching leaf or split it around the inserted key.
 	if nod.IsLeaf() {
 		keyCmp := bytes.Compare(key, nod.GetKey())
 		if keyCmp == 0 || nod.GetSize() == 0 {
@@ -569,9 +639,11 @@ func (t *Tx) setFromNode(
 			nod.ValueBlob = nil
 			nod.ValueRef = nil
 
+			// Replace the leaf block and discard its previous cursor references.
 			bcs.SetBlock(nod, true)
 			bcs.ClearAllRefs()
 
+			// Attach the replacement value to the reinitialized leaf.
 			if err := t.setNodeValue(ctx, bcs, nod, valCursor, isBlob); err != nil {
 				return nod, bcs, true, err
 			}
@@ -612,6 +684,8 @@ func (t *Tx) setFromNode(
 	if err != nil {
 		return nil, nil, false, err
 	}
+
+	// Insert into the selected child subtree.
 	_, setCs, changed, err := t.setFromNode(ctx, nextBc, nextNod, key, valCursor, isBlob)
 	if err != nil {
 		return nil, nil, changed, err
@@ -627,6 +701,7 @@ func (t *Tx) setFromNode(
 		bcs.SetRef(6, setCs)
 	}
 
+	// Recompute the parent height and size from the updated children.
 	leftNod, leftCs, rightNod, rightCs, err := t.loadNodeChildren(ctx, nod, bcs)
 	if err != nil {
 		return nil, nil, changed, err
@@ -654,6 +729,7 @@ func (t *Tx) removeFromNode(
 	nod *Node,
 	key []byte,
 ) (*block.Cursor, []byte, *block.Cursor, *Node, error) {
+	// Remove a matching leaf or finish an unsuccessful leaf search.
 	if nod.IsLeaf() {
 		if bytes.Equal(key, nod.GetKey()) {
 			return nil, nil, bcs, nod, nil
@@ -661,14 +737,19 @@ func (t *Tx) removeFromNode(
 		return nil, nil, nil, nil, nil
 	}
 
+	// Locate the child subtree containing the deletion key.
 	lnod, lcs, left, err := t.followKeyFromNode(ctx, bcs, nod, key)
 	if err != nil {
 		return nil, nil, nil, nil, err
 	}
+
+	// Remove the key from the selected child subtree.
 	ncs, nkey, removedCursor, removedNode, err := t.removeFromNode(ctx, lcs, lnod, key)
 	if err != nil || removedNode == nil {
 		return nil, nil, nil, nil, err
 	}
+
+	// Promote the surviving child when deletion exhausts its sibling.
 	if ncs == nil {
 		// Promote the surviving child. The separator is the right subtree's
 		// minimum, even when that child is an internal node.
@@ -692,6 +773,8 @@ func (t *Tx) removeFromNode(
 		// A changed right minimum updates this separator, not its ancestors.
 		nkey = nil
 	}
+
+	// Recompute the parent metadata after replacing its child.
 	err = t.calcNodeHeightAndSize(ctx, nod, bcs)
 	if err != nil {
 		return nil, nil, nil, nil, err
@@ -701,10 +784,13 @@ func (t *Tx) removeFromNode(
 
 // calcNodeHeightAndSize calculates a node's height and size.
 func (t *Tx) calcNodeHeightAndSize(ctx context.Context, nod *Node, bcs *block.Cursor) error {
+	// Load both children needed to recompute the Node metadata.
 	leftNod, _, rightNod, _, err := t.loadNodeChildren(ctx, nod, bcs)
 	if err != nil {
 		return err
 	}
+
+	// Update the Node height and size from its children.
 	nod.Height = max(leftNod.GetHeight(), rightNod.GetHeight()) + 1
 	nod.Size = leftNod.GetSize() + rightNod.GetSize()
 	bcs.SetBlock(nod, true)
@@ -716,10 +802,13 @@ func (t *Tx) loadNodeChildren(
 	nod *Node,
 	bcs *block.Cursor,
 ) (*Node, *block.Cursor, *Node, *block.Cursor, error) {
+	// Load the Node's left subtree and cursor.
 	leftNod, leftCs, err := nod.FollowLeft(ctx, bcs)
 	if err != nil {
 		return nil, nil, nil, nil, err
 	}
+
+	// Load the Node's right subtree and cursor.
 	rightNod, rightCs, err := nod.FollowRight(ctx, bcs)
 	if err != nil {
 		return nil, nil, nil, nil, err
@@ -729,10 +818,13 @@ func (t *Tx) loadNodeChildren(
 
 // calcNodeBalance calculates a node's balance.
 func (t *Tx) calcNodeBalance(ctx context.Context, nod *Node, bcs *block.Cursor) (int, error) {
+	// Load the left child for the Node balance calculation.
 	leftNod, _, err := nod.FollowLeft(ctx, bcs)
 	if err != nil {
 		return 0, err
 	}
+
+	// Load the right child for the Node balance calculation.
 	rightNod, _, err := nod.FollowRight(ctx, bcs)
 	if err != nil {
 		return 0, err
@@ -762,13 +854,17 @@ func (t *Tx) rotateNodeRight(ctx context.Context, nod *Node, bcs *block.Cursor) 
 	// to correctly fix the block graph:
 	// 1. set n1->left to n4 (n2->right)
 	bcs.SetRef(5, leftNodRightCs)
+
 	// 2. set n2->right to n1
 	leftNodCs.SetRef(6, bcs)
 
+	// Recompute the demoted Node metadata after the right rotation.
 	err = t.calcNodeHeightAndSize(ctx, nod, bcs)
 	if err != nil {
 		return nil, nil, err
 	}
+
+	// Recompute the promoted Node metadata after the right rotation.
 	err = t.calcNodeHeightAndSize(ctx, leftNod, leftNodCs)
 	if err != nil {
 		return nil, nil, err
@@ -796,13 +892,17 @@ func (t *Tx) rotateNodeLeft(ctx context.Context, nod *Node, bcs *block.Cursor) (
 	// rightnod->right remains the same
 	// nod->right becomes rightnod->left
 	bcs.SetRef(6, rightNodLeftCs)
+
 	// rightnod->left becomes nod
 	rightNodCs.SetRef(5, bcs)
 
+	// Recompute the demoted Node metadata after the left rotation.
 	err = t.calcNodeHeightAndSize(ctx, nod, bcs)
 	if err != nil {
 		return nil, nil, err
 	}
+
+	// Recompute the promoted Node metadata after the left rotation.
 	err = t.calcNodeHeightAndSize(ctx, rightNod, rightNodCs)
 	if err != nil {
 		return nil, nil, err

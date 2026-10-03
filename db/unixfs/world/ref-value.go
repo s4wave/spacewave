@@ -6,11 +6,13 @@ import (
 
 // UnmarshalRefValueFromKey unmarshals the ref value from a key.
 func UnmarshalRefValueFromKey(key string) (*RefValue, error) {
+	// Represent an empty reference key with an empty RefValue.
 	v := &RefValue{}
 	if len(key) == 0 {
 		return v, nil
 	}
 
+	// Decode the base58 reference key into its RefValue record.
 	dat, err := b58.Decode(key)
 	if err != nil {
 		return nil, err

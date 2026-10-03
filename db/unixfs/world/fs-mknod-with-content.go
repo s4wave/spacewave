@@ -84,6 +84,7 @@ func NewFsMknodWithContentOpBlock() block.Block {
 
 // Validate performs cursory checks on the op.
 func (o *FsMknodWithContentOp) Validate() error {
+	// Validate the file path, timestamp, filesystem type, and content reference.
 	if o.GetPath() == nil || len(o.GetPath().GetNodes()) == 0 {
 		return errors.New("path is required")
 	}

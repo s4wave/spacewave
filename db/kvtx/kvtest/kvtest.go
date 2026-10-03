@@ -42,6 +42,7 @@ func withTxValue[T any](
 
 // TestAll tests all tests for a kvtx store.
 func TestAll(ctx context.Context, ktx kvtx.Store) error {
+	// Prepare ordered keys for the store transaction checks.
 	keys := [][]byte{
 		[]byte("ab"),
 		[]byte("ba"),
@@ -51,6 +52,7 @@ func TestAll(ctx context.Context, ktx kvtx.Store) error {
 		[]byte("c"),
 	}
 
+	// Verify the fixture keys are absent in a read transaction.
 	err := withTx(ctx, ktx, false, func(tx kvtx.Tx) error {
 		for _, k := range keys {
 			ok, err := tx.Exists(ctx, k)
@@ -67,6 +69,7 @@ func TestAll(ctx context.Context, ktx kvtx.Store) error {
 		return err
 	}
 
+	// Write each fixture value and verify it within the same transaction.
 	err = withTx(ctx, ktx, true, func(tx kvtx.Tx) error {
 		for i := range keys {
 			v := []byte(strconv.Itoa(i))
@@ -90,6 +93,7 @@ func TestAll(ctx context.Context, ktx kvtx.Store) error {
 		return err
 	}
 
+	// Verify every committed fixture value in a fresh read transaction.
 	err = withTx(ctx, ktx, false, func(tx kvtx.Tx) error {
 		for i, k := range keys {
 			v := []byte(strconv.Itoa(i))
@@ -110,11 +114,14 @@ func TestAll(ctx context.Context, ktx kvtx.Store) error {
 		return err
 	}
 
+	// Delete a fixture key and verify its immediate removal.
 	err = withTx(ctx, ktx, true, func(tx kvtx.Tx) error {
+		// Remove the first fixture key within the write transaction.
 		if err := tx.Delete(ctx, keys[0]); err != nil {
 			return err
 		}
 
+		// Verify the deleted key is absent before committing the transaction.
 		_, ok, err := tx.Get(ctx, keys[0])
 		if err == nil && ok {
 			err = errors.Errorf("expected key to not exist after delete: %s", string(keys[0]))
@@ -128,6 +135,7 @@ func TestAll(ctx context.Context, ktx kvtx.Store) error {
 		return err
 	}
 
+	// Verify the deleted fixture key remains absent after commit.
 	err = withTx(ctx, ktx, false, func(tx kvtx.Tx) error {
 		_, ok, err := tx.Get(ctx, keys[0])
 		if err == nil && ok {
@@ -139,6 +147,7 @@ func TestAll(ctx context.Context, ktx kvtx.Store) error {
 		return err
 	}
 
+	// Write a binary value for prefix scanning and readback.
 	err = withTx(ctx, ktx, true, func(tx kvtx.Tx) error {
 		if err := tx.Set(ctx, []byte("test"), []byte{1, 2, 3, 4}); err != nil {
 			return err
@@ -149,6 +158,7 @@ func TestAll(ctx context.Context, ktx kvtx.Store) error {
 		return err
 	}
 
+	// Scan the committed prefix and verify its sole matching key.
 	ks, err := withTxValue(ctx, ktx, false, func(tx kvtx.Tx) ([][]byte, error) {
 		var attemptKeys [][]byte
 		err := tx.ScanPrefix(ctx, []byte("t"), func(key, val []byte) error {
@@ -167,7 +177,9 @@ func TestAll(ctx context.Context, ktx kvtx.Store) error {
 		return errors.Errorf("expected single entry 'test' %v", ks[0])
 	}
 
+	// Verify the committed binary value through a read transaction.
 	err = withTx(ctx, ktx, false, func(tx kvtx.Tx) error {
+		// Read the binary fixture and verify its stored bytes.
 		dat, found, err := tx.Get(ctx, []byte("test"))
 		if err != nil {
 			return err
@@ -184,6 +196,7 @@ func TestAll(ctx context.Context, ktx kvtx.Store) error {
 		return err
 	}
 
+	// Delete the binary fixture in a write transaction.
 	err = withTx(ctx, ktx, true, func(tx kvtx.Tx) error {
 		if err := tx.Delete(ctx, []byte("test")); err != nil {
 			return err
@@ -194,6 +207,7 @@ func TestAll(ctx context.Context, ktx kvtx.Store) error {
 		return err
 	}
 
+	// Verify the deleted binary fixture returns no value.
 	err = withTx(ctx, ktx, false, func(tx kvtx.Tx) error {
 		dat, found, err := tx.Get(ctx, []byte("test"))
 		if err != nil {
@@ -221,6 +235,7 @@ func TestAll(ctx context.Context, ktx kvtx.Store) error {
 		{[]byte("test-2"), []byte("testing-2")},
 	}
 
+	// Write the key groups used for batch and iterator checks.
 	err = withTx(ctx, ktx, true, func(tx kvtx.Tx) error {
 		for _, x := range testData {
 			if err := tx.Set(ctx, x.k, x.v); err != nil {
@@ -239,6 +254,7 @@ func TestAll(ctx context.Context, ktx kvtx.Store) error {
 	// (txcache) has to keep that alignment through its batch path, including
 	// absent keys interleaved with present ones.
 	err = withTx(ctx, ktx, false, func(tx kvtx.Tx) error {
+		// Compare batch values and found flags with individual key reads.
 		batchKeys := [][]byte{
 			[]byte("a/1"),
 			[]byte("missing/1"),
@@ -283,14 +299,18 @@ func TestAll(ctx context.Context, ktx kvtx.Store) error {
 		return err
 	}
 
+	// Verify a required key and count a forward prefix scan.
 	err = withTx(ctx, ktx, false, func(tx kvtx.Tx) error {
+		// Require the committed fixture key before scanning its neighbors.
 		if _, err := kvtx.MustGet(ctx, tx, []byte("foo-1")); err != nil {
 			return err
 		}
 
+		// Open a forward iterator restricted to the test prefix.
 		it := tx.Iterate(ctx, []byte("test-"), true, false)
 		defer it.Close()
 
+		// Verify the forward prefix scan starts correctly and returns two keys.
 		vals := 0
 		if err := it.Seek(nil); err != nil {
 			return err
@@ -313,10 +333,13 @@ func TestAll(ctx context.Context, ktx kvtx.Store) error {
 		return err
 	}
 
+	// Verify a reverse prefix scan returns its keys in descending order.
 	err = withTx(ctx, ktx, false, func(tx kvtx.Tx) error {
+		// Open a reverse iterator restricted to the test prefix.
 		it := tx.Iterate(ctx, []byte("test-"), true, true)
 		defer it.Close()
 
+		// Verify reverse prefix ordering and iterator exhaustion.
 		if err := it.Seek(nil); err != nil {
 			return err
 		}
@@ -339,6 +362,7 @@ func TestAll(ctx context.Context, ktx kvtx.Store) error {
 		return err
 	}
 
+	// Verify missing prefixes produce empty iterators in both directions.
 	err = withTx(ctx, ktx, false, func(tx kvtx.Tx) error {
 		for _, reverse := range []bool{false, true} {
 			it := tx.Iterate(ctx, []byte("missing/"), true, reverse)
@@ -375,6 +399,7 @@ func TestAll(ctx context.Context, ktx kvtx.Store) error {
 		return err
 	}
 
+	// Verify a stored empty value retains its key and reads back empty.
 	err = withTx(ctx, ktx, false, func(tx kvtx.Tx) error {
 		// verify exists
 		exists, err := tx.Exists(ctx, emptyKey)
@@ -384,6 +409,7 @@ func TestAll(ctx context.Context, ktx kvtx.Store) error {
 		if !exists {
 			return errors.New("expected key with empty value to exist")
 		}
+
 		// verify empty value
 		val, ok, err := tx.Get(ctx, emptyKey)
 		if err != nil {
@@ -414,6 +440,7 @@ func TestAll(ctx context.Context, ktx kvtx.Store) error {
 
 	// check the empty key behavior
 	err = withTx(ctx, ktx, true, func(tx kvtx.Tx) error {
+		// Verify transaction reads, writes, and deletes reject an empty key.
 		expectedEmpty := func(err error) error {
 			return errors.Errorf("expected empty key error but got %v", err)
 		}
@@ -435,6 +462,7 @@ func TestAll(ctx context.Context, ktx kvtx.Store) error {
 	// Test iterator seek behavior
 	// Test forward seek with prefix
 	err = withTx(ctx, ktx, false, func(tx kvtx.Tx) error {
+		// Verify forward seek selects the requested key and its successor.
 		it := tx.Iterate(ctx, []byte("a/"), true, false)
 		defer it.Close()
 		if err := it.Seek([]byte("a/2")); err != nil {
@@ -460,6 +488,7 @@ func TestAll(ctx context.Context, ktx kvtx.Store) error {
 
 	// Test reverse seek with prefix
 	err = withTx(ctx, ktx, false, func(tx kvtx.Tx) error {
+		// Verify reverse seek selects the requested key and its predecessor.
 		it := tx.Iterate(ctx, []byte("b/"), true, true)
 		defer it.Close()
 		if err := it.Seek([]byte("b/2")); err != nil {
@@ -518,6 +547,7 @@ func TestAll(ctx context.Context, ktx kvtx.Store) error {
 
 	// Test seek with prefix constraint
 	err = withTx(ctx, ktx, false, func(tx kvtx.Tx) error {
+		// Verify seeking below a prefix selects its first matching key.
 		it := tx.Iterate(ctx, []byte("b/"), true, false)
 		defer it.Close()
 		if err := it.Seek([]byte("a/3")); err != nil {
@@ -537,6 +567,7 @@ func TestAll(ctx context.Context, ktx kvtx.Store) error {
 
 	// Test reverse seek positioning
 	err = withTx(ctx, ktx, false, func(tx kvtx.Tx) error {
+		// Seek between reverse keys and require a valid iterator.
 		it := tx.Iterate(ctx, []byte("b/"), true, true)
 		defer it.Close()
 		if err := it.Seek([]byte("b/1.5")); err != nil {
@@ -545,10 +576,12 @@ func TestAll(ctx context.Context, ktx kvtx.Store) error {
 		if !it.Valid() {
 			return errors.New("expected valid iterator after reverse seek to b/1.5")
 		}
+
 		// Should land on b/1 since it's the greatest key <= b/1.5
 		if string(it.Key()) != "b/1" {
 			return errors.Errorf("expected key b/1 but got %s", string(it.Key()))
 		}
+
 		// Moving next in reverse should give us no more keys since b/1 is the smallest in the b/ prefix
 		if it.Next() || it.Valid() {
 			return errors.Errorf("expected no more valid keys but got %s", string(it.Key()))

@@ -120,6 +120,7 @@ func (b *BatchFSWriter) AddFile(
 	permissions fs.FileMode,
 	ts time.Time,
 ) error {
+	// Validate the file entry before accepting it into BatchFSWriter.
 	if err := b.checkOpen(); err != nil {
 		return err
 	}
@@ -129,6 +130,8 @@ func (b *BatchFSWriter) AddFile(
 	if dataLen < 0 {
 		return errors.New("negative data length")
 	}
+
+	// Record the start of the file ingest before building its blob.
 	b.recordBatchFSWriterMetric(ctx, BatchFSWriterMetric{
 		Stage: "ingest-file-start",
 		Bytes: dataLen,
@@ -145,6 +148,7 @@ func (b *BatchFSWriter) AddFile(
 		}
 	}
 
+	// Queue the file metadata and record the completed ingest.
 	pd := b.pendingDirFor(parentPath)
 	pd.entries = append(pd.entries, pendingEntry{
 		name:        name,
@@ -153,6 +157,8 @@ func (b *BatchFSWriter) AddFile(
 		ts:          unixfs_block.ToTimestamp(ts, true),
 		blobRef:     blobRef,
 	})
+
+	// Record the pending directory and entry counts after accepting the file.
 	pendingDirs, pendingEntries := b.pendingMetricCounts()
 	b.recordBatchFSWriterMetric(ctx, BatchFSWriterMetric{
 		Stage:          "ingest-file-complete",
@@ -166,6 +172,7 @@ func (b *BatchFSWriter) AddFile(
 // buildBlob writes a blob of dataLen bytes from rdr into the blob buffer and
 // returns its root reference.
 func (b *BatchFSWriter) buildBlob(ctx context.Context, dataLen int64, rdr io.Reader) (*block.BlockRef, error) {
+	// Open the World storage cursor and its shared blob buffer on first use.
 	if b.storage == nil {
 		storage, err := b.ws.BuildStorageCursor(ctx)
 		if err != nil {
@@ -201,6 +208,7 @@ func (b *BatchFSWriter) AddDir(
 	permissions fs.FileMode,
 	ts time.Time,
 ) error {
+	// Validate the directory entry before accepting it into BatchFSWriter.
 	if err := b.checkOpen(); err != nil {
 		return err
 	}
@@ -238,6 +246,7 @@ func (b *BatchFSWriter) AddSymlink(
 	targetIsAbsolute bool,
 	ts time.Time,
 ) error {
+	// Validate the symlink entry before accepting it into BatchFSWriter.
 	if err := b.checkOpen(); err != nil {
 		return err
 	}
@@ -245,6 +254,7 @@ func (b *BatchFSWriter) AddSymlink(
 		return unixfs_errors.ErrEmptyPath
 	}
 
+	// Queue the symlink target and metadata under its parent directory.
 	sym := unixfs_block.NewFSSymlink(unixfs_block.NewFSPath(target, targetIsAbsolute))
 	pd := b.pendingDirFor(parentPath)
 	pd.entries = append(pd.entries, pendingEntry{
@@ -265,6 +275,7 @@ func (b *BatchFSWriter) AddSymlink(
 // the tree transaction, so the trailing btx.Write inside AccessObjectState
 // publishes them with the tree in one batch and a single root-ref update.
 func (b *BatchFSWriter) Commit(ctx context.Context) (rerr error) {
+	// Claim the BatchFSWriter commit and release its storage when it finishes.
 	if b.released {
 		return errors.New("batch writer released")
 	}
@@ -274,6 +285,7 @@ func (b *BatchFSWriter) Commit(ctx context.Context) (rerr error) {
 	b.committed = true
 	defer b.releaseStorage()
 
+	// Record whether the commit has pending directory entries to publish.
 	if len(b.pending) == 0 {
 		b.recordBatchFSWriterMetric(ctx, BatchFSWriterMetric{
 			Stage:     "commit-empty",
@@ -281,6 +293,8 @@ func (b *BatchFSWriter) Commit(ctx context.Context) (rerr error) {
 		})
 		return nil
 	}
+
+	// Record the pending directory and entry counts before committing the tree.
 	pendingDirs, pendingEntries := b.pendingMetricCounts()
 	b.recordBatchFSWriterMetric(ctx, BatchFSWriterMetric{
 		Stage:          "commit-start",
@@ -288,6 +302,7 @@ func (b *BatchFSWriter) Commit(ctx context.Context) (rerr error) {
 		PendingEntries: pendingEntries,
 	})
 
+	// Acquire the filesystem World object for the batch commit.
 	obj, exists, err := b.ws.GetObject(ctx, b.objKey)
 	defer world.ReleaseObjectState(obj)
 	if err != nil {
@@ -307,6 +322,7 @@ func (b *BatchFSWriter) Commit(ctx context.Context) (rerr error) {
 		defer func() { blobs.Complete(rerr) }()
 	}
 
+	// Merge the buffered entries into the World object in one transaction.
 	_, _, err = world.AccessObjectState(ctx, obj, true, func(bcs *block.Cursor) error {
 		// Stage the blobs on every attempt: a replay runs on a new transaction.
 		if blobs != nil && len(blobs.Entries) != 0 {
@@ -316,6 +332,7 @@ func (b *BatchFSWriter) Commit(ctx context.Context) (rerr error) {
 			}
 		}
 
+		// Open the filesystem tree and merge parent directories before their children.
 		root, err := unixfs_block.NewFSTree(ctx, bcs, unixfs_block.NodeType_NodeType_UNKNOWN)
 		if err != nil {
 			return err
@@ -323,6 +340,8 @@ func (b *BatchFSWriter) Commit(ctx context.Context) (rerr error) {
 		resolvedDirs := map[string]*unixfs_block.FSTree{
 			joinPathKey(nil): root,
 		}
+
+		// Merge the pending directories in parent-first order.
 		ordered := b.sortedPendingDirs()
 		for _, pd := range ordered {
 			if err := b.mergePendingDir(ctx, root, resolvedDirs, pd); err != nil {
@@ -331,6 +350,8 @@ func (b *BatchFSWriter) Commit(ctx context.Context) (rerr error) {
 		}
 		return nil
 	})
+
+	// Record successful publication of the pending filesystem entries.
 	if err == nil {
 		b.recordBatchFSWriterMetric(ctx, BatchFSWriterMetric{
 			Stage:          "commit-complete",
@@ -484,16 +505,22 @@ func (b *BatchFSWriter) syncExistingFile(
 	blobRef *block.BlockRef,
 	ts *timestamppb.Timestamp,
 ) error {
+	// Prepare an existing-file reader for comparing the incoming blob.
 	readExisting := func(offset int64, p []byte) (int, error) {
+		// Resolve the existing file node at the requested path.
 		node, _, err := unixfs_block.LookupFSTreePath(root, path)
 		if err != nil {
 			return 0, err
 		}
+
+		// Open an existing-file handle for this comparison read.
 		fh, err := node.BuildFileHandle(ctx)
 		if err != nil {
 			return 0, err
 		}
 		defer fh.Close()
+
+		// Read the existing file range and normalize a short read to EOF.
 		if _, err := fh.Seek(offset, io.SeekStart); err != nil {
 			return 0, err
 		}
@@ -504,11 +531,13 @@ func (b *BatchFSWriter) syncExistingFile(
 		return n, err
 	}
 
+	// Resolve the destination file before opening the incoming blob.
 	node, _, err := unixfs_block.LookupFSTreePath(root, path)
 	if err != nil {
 		return err
 	}
 
+	// Open the incoming blob and determine its file size.
 	var srcSize int64
 	var srcRdr io.ReadCloser
 	if !blobRef.GetEmpty() {
@@ -529,6 +558,7 @@ func (b *BatchFSWriter) syncExistingFile(
 		defer srcRdr.Close()
 	}
 
+	// Match the existing file length to the incoming blob before comparing content.
 	if err := unixfs_block.TruncateFile(ctx, root, path, srcSize, ts); err != nil {
 		return err
 	}
@@ -536,10 +566,12 @@ func (b *BatchFSWriter) syncExistingFile(
 		return nil
 	}
 
+	// Compare incoming chunks with the existing file and replace differing content.
 	readBuffer := make([]byte, 32*1024)
 	compareBuffer := make([]byte, len(readBuffer))
 	var offset int64
 	for {
+		// Read the next incoming chunk and require the complete source length.
 		nreadSrc, err := srcRdr.Read(readBuffer)
 		if err != nil && err != io.EOF {
 			return err
@@ -551,6 +583,7 @@ func (b *BatchFSWriter) syncExistingFile(
 			break
 		}
 
+		// Read the matching range from the existing file for comparison.
 		readChunk := readBuffer[:nreadSrc]
 		compareChunk := compareBuffer[:nreadSrc]
 		nreadDst, readErr := readExisting(offset, compareChunk)
@@ -561,6 +594,8 @@ func (b *BatchFSWriter) syncExistingFile(
 			return errors.Errorf("read 0 bytes but expected %d", nreadSrc)
 		}
 		compareChunk = compareChunk[:nreadDst]
+
+		// Overlay the incoming blob when existing file content differs.
 		if !bytes.Equal(readChunk[:len(compareChunk)], compareChunk) {
 			// TruncateFile already matched the source size above, so writing the
 			// incoming blob as an overlay preserves the per-op range history
@@ -570,6 +605,8 @@ func (b *BatchFSWriter) syncExistingFile(
 			}
 			return nil
 		}
+
+		// Advance the comparison until the incoming blob reaches EOF.
 		offset += int64(len(readChunk))
 		if err == io.EOF {
 			break
@@ -585,6 +622,7 @@ func (b *BatchFSWriter) syncExistingFile(
 // stay in the world's block store unreferenced until block-store GC
 // reclaims them.
 func (b *BatchFSWriter) Release() {
+	// Discard the pending entries and storage, then record the released batch.
 	pendingDirs, pendingEntries := b.pendingMetricCounts()
 	b.released = true
 	b.pending = nil
@@ -621,6 +659,7 @@ func (b *BatchFSWriter) checkOpen() error {
 // access. parentPath is stored by value (copied) so callers may mutate the
 // argument slice after return.
 func (b *BatchFSWriter) pendingDirFor(parentPath []string) *pendingDir {
+	// Reuse the pending directory record or retain a copy of its parent path.
 	key := joinPathKey(parentPath)
 	pd, ok := b.pending[key]
 	if ok {

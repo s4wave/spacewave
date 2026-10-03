@@ -68,8 +68,8 @@ func newBenchBlockStoreWithOps(inner block.StoreOps) *benchBlockStore {
 }
 
 func newBenchBadgerBlockStore(tb testing.TB) *benchBlockStore {
+	// Open the temporary Badger database and register its cleanup.
 	tb.Helper()
-
 	kv, err := store_kvtx_badger.Open(badger.DefaultOptions(tb.TempDir()).WithLogger(nil))
 	if err != nil {
 		tb.Fatal(err)
@@ -113,6 +113,7 @@ func (s *benchBlockStore) PutBlock(ctx context.Context, data []byte, opts *block
 }
 
 func (s *benchBlockStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) error {
+	// Write the block batch and count its entries and outgoing references.
 	err := s.inner.PutBlockBatch(ctx, entries)
 	if err != nil {
 		return err
@@ -198,38 +199,50 @@ func (s *benchBlockStore) EndDeferFlush(ctx context.Context) error {
 }
 
 func (s *benchBlockStore) resetCounts() {
+	// Clear the block-store read and existence counters.
 	s.getBlocks.Store(0)
 	s.getBytes.Store(0)
 	s.existsBlocks.Store(0)
 	s.existsBatchCalls.Store(0)
 	s.existsBatchRefs.Store(0)
+
+	// Clear the block-store write and batch counters.
 	s.putBlocks.Store(0)
 	s.putBytes.Store(0)
 	s.putRefs.Store(0)
 	s.putBatchCalls.Store(0)
 	s.putBatchEntries.Store(0)
 	s.putBatchMaxEntries.Store(0)
+
+	// Clear the block-store removal, metadata, and durability counters.
 	s.rmBlocks.Store(0)
 	s.statBlocks.Store(0)
 	s.syncCalls.Store(0)
 }
 
 func (s *benchBlockStore) reportMetrics(b *testing.B, ops int64) {
+	// Skip block-store metrics when no operations were measured.
 	if ops == 0 {
 		return
 	}
+
+	// Report the block-store read and existence costs per operation.
 	denom := float64(ops)
 	b.ReportMetric(float64(s.getBlocks.Load())/denom, "get-blocks/op")
 	b.ReportMetric(float64(s.getBytes.Load())/denom, "get-bytes/op")
 	b.ReportMetric(float64(s.existsBlocks.Load())/denom, "exists-blocks/op")
 	b.ReportMetric(float64(s.existsBatchCalls.Load())/denom, "exists-batches/op")
 	b.ReportMetric(float64(s.existsBatchRefs.Load())/denom, "exists-batch-refs/op")
+
+	// Report the block-store write and batch costs per operation.
 	b.ReportMetric(float64(s.putBlocks.Load())/denom, "put-blocks/op")
 	b.ReportMetric(float64(s.putBytes.Load())/denom, "put-bytes/op")
 	b.ReportMetric(float64(s.putRefs.Load())/denom, "put-refs/op")
 	b.ReportMetric(float64(s.putBatchCalls.Load())/denom, "put-batches/op")
 	b.ReportMetric(float64(s.putBatchEntries.Load())/denom, "put-batch-entries/op")
 	b.ReportMetric(float64(s.putBatchMaxEntries.Load()), "put-batch-max")
+
+	// Report block removal, metadata, and durability costs per operation.
 	b.ReportMetric(float64(s.rmBlocks.Load())/denom, "rm-blocks/op")
 	b.ReportMetric(float64(s.statBlocks.Load())/denom, "stat-blocks/op")
 	b.ReportMetric(float64(s.syncCalls.Load())/denom, "syncs/op")
@@ -328,9 +341,12 @@ func (g *benchRefGraph) resetCounts() {
 }
 
 func (g *benchRefGraph) reportMetrics(b *testing.B, ops int64) {
+	// Skip reference-graph metrics when no operations were measured.
 	if ops == 0 {
 		return
 	}
+
+	// Report reference-graph changes and batches per operation.
 	denom := float64(ops)
 	b.ReportMetric(float64(g.addRefs.Load())/denom, "gc-add-refs/op")
 	b.ReportMetric(float64(g.removeRefs.Load())/denom, "gc-remove-refs/op")
@@ -356,8 +372,8 @@ func buildBenchTreeWithStore(tb testing.TB, keys [][]byte, store *benchBlockStor
 }
 
 func buildBenchTreeWithGC(tb testing.TB, keys [][]byte) (*benchTree, *benchRefGraph) {
+	// Build a tree through the counted GC reference graph.
 	tb.Helper()
-
 	store := newBenchBlockStore()
 	refGraph := &benchRefGraph{}
 	gcStore := block_gc.NewGCStoreOps(store, refGraph)
@@ -367,8 +383,8 @@ func buildBenchTreeWithGC(tb testing.TB, keys [][]byte) (*benchTree, *benchRefGr
 }
 
 func buildBenchTreeWithRealGC(tb testing.TB, keys [][]byte) *benchTree {
+	// Build the block store on an in-memory key-value database.
 	tb.Helper()
-
 	ctx := context.Background()
 	kvStore := store_kvtx_inmem.NewStore()
 	store := newBenchBlockStoreWithOps(block_store_kvtx.NewKVTxBlock(
@@ -377,6 +393,8 @@ func buildBenchTreeWithRealGC(tb testing.TB, keys [][]byte) *benchTree {
 		0,
 		false,
 	))
+
+	// Create the reference graph and register its cleanup.
 	refGraph, err := block_gc.NewRefGraph(ctx, kvStore, []byte("gc/"))
 	if err != nil {
 		tb.Fatal(err)
@@ -386,6 +404,8 @@ func buildBenchTreeWithRealGC(tb testing.TB, keys [][]byte) *benchTree {
 			tb.Error(err)
 		}
 	})
+
+	// Build the tree through the GC store and flush its reference graph.
 	gcStore := block_gc.NewGCStoreOps(store, refGraph)
 	return buildBenchTreeWithOps(tb, keys, store, gcStore, gcStore.FlushPending)
 }
@@ -397,8 +417,8 @@ func buildBenchTreeWithOps(
 	ops block.StoreOps,
 	afterBuild func(context.Context) error,
 ) *benchTree {
+	// Persist the fixture values before assembling the tree.
 	tb.Helper()
-
 	ctx := context.Background()
 	size := len(keys)
 	refs := make([]*block.BlockRef, size)
@@ -410,6 +430,7 @@ func buildBenchTreeWithOps(
 		refs[i] = ref
 	}
 
+	// Build and persist the IAVL tree from sorted key references.
 	tx, _, err := BuildTree(ops, nil, nil, benchEntries(keys, refs))
 	if err != nil {
 		tb.Fatal(err)
@@ -418,6 +439,8 @@ func buildBenchTreeWithOps(
 	if err != nil {
 		tb.Fatal(err)
 	}
+
+	// Flush pending fixture work and clear construction counters.
 	if afterBuild != nil {
 		if err := afterBuild(ctx); err != nil {
 			tb.Fatal(err)
@@ -441,8 +464,8 @@ func (t *benchTree) storeOps() block.StoreOps {
 }
 
 func newBenchReadTx(tb testing.TB, ctx context.Context, tree *benchTree) *Tx {
+	// Open the persisted tree root for readback.
 	tb.Helper()
-
 	_, rootCursor := block.NewTransaction(tree.storeOps(), nil, tree.rootRef, nil)
 	tx, err := NewTx(ctx, rootCursor, nil, false, nil)
 	if err != nil {
@@ -480,6 +503,7 @@ func makeSequentialBenchKey(i int) []byte {
 }
 
 func makeGraphBenchKey(i int) []byte {
+	// Encode the graph group, edge index, and stable key suffix.
 	key := make([]byte, 16)
 	binary.BigEndian.PutUint32(key[0:4], uint32(i/benchGraphGroupSize))
 	binary.BigEndian.PutUint32(key[4:8], uint32(i%benchGraphGroupSize))
@@ -494,6 +518,7 @@ func benchGraphPrefix(group int) []byte {
 }
 
 func benchValue(i int) []byte {
+	// Encode a deterministic value fixture with four related integer fields.
 	value := make([]byte, 32)
 	binary.BigEndian.PutUint64(value[0:8], uint64(i))
 	binary.BigEndian.PutUint64(value[8:16], uint64(i*3+1))
@@ -525,11 +550,13 @@ func benchFixtureName(kind benchKeyKind, size int) string {
 }
 
 func TestIAVLBenchHarnessCounts(t *testing.T) {
+	// Open the counted tree fixture for a cursor lookup.
 	ctx := context.Background()
 	tree := buildBenchTree(t, 32)
 	tx := newBenchReadTx(t, ctx, tree)
 	defer tx.Discard()
 
+	// Verify the cursor lookup performs counted block reads.
 	_, err := tx.GetCursorAtKey(ctx, tree.keys[17])
 	if err != nil {
 		t.Fatal(err)
@@ -540,11 +567,13 @@ func TestIAVLBenchHarnessCounts(t *testing.T) {
 }
 
 func TestIAVLBenchHarnessGraphPrefix(t *testing.T) {
+	// Open the graph-key tree fixture for a prefix scan.
 	ctx := context.Background()
 	tree := buildBenchTreeWithKeys(t, makeBenchKeys(512, benchKeyGraph))
 	tx := newBenchReadTx(t, ctx, tree)
 	defer tx.Discard()
 
+	// Verify the prefix scan returns a complete graph key group.
 	var count int
 	if err := tx.ScanPrefixKeys(ctx, benchGraphPrefix(2), func(key []byte) error {
 		count++
@@ -561,14 +590,17 @@ func TestIAVLBenchHarnessGraphPrefix(t *testing.T) {
 }
 
 func TestIAVLDeleteAvoidsValueFetch(t *testing.T) {
+	// Compare the block reads used by both deletion methods.
 	ctx := context.Background()
 	deleteReads := measureBenchTreeDeleteReads(t, ctx, "delete")
 	getAndDeleteReads := measureBenchTreeDeleteReads(t, ctx, "get-and-delete")
 
+	// Verify key-only deletion avoids fetching the removed value.
 	if deleteReads >= getAndDeleteReads {
 		t.Fatalf("Delete read %d blocks, GetAndDelete read %d blocks", deleteReads, getAndDeleteReads)
 	}
 
+	// Verify deleting an absent key succeeds without a value.
 	tree := buildBenchTree(t, 128)
 	tx := newBenchReadTx(t, ctx, tree)
 	if err := tx.Delete(ctx, makeSequentialBenchKey(len(tree.keys)+1)); err != nil {
@@ -579,8 +611,8 @@ func TestIAVLDeleteAvoidsValueFetch(t *testing.T) {
 }
 
 func measureBenchTreeDeleteReads(t *testing.T, ctx context.Context, mode string) int64 {
+	// Measure the requested deletion against a fresh tree fixture.
 	t.Helper()
-
 	tree := buildBenchTree(t, 128)
 	tree.store.resetCounts()
 	tx := newBenchReadTx(t, ctx, tree)
@@ -607,11 +639,13 @@ func measureBenchTreeDeleteReads(t *testing.T, ctx context.Context, mode string)
 }
 
 func TestIAVLBenchBadgerBlockStoreCounts(t *testing.T) {
+	// Open the Badger-backed fixture for a value lookup.
 	ctx := context.Background()
 	tree := buildBenchTreeWithStore(t, makeBenchKeys(32, benchKeySequential), newBenchBadgerBlockStore(t))
 	tx := newBenchReadTx(t, ctx, tree)
 	defer tx.Discard()
 
+	// Verify the value lookup reaches the physical block store.
 	_, found, err := tx.Get(ctx, tree.keys[17])
 	if err != nil {
 		t.Fatal(err)
@@ -625,14 +659,18 @@ func TestIAVLBenchBadgerBlockStoreCounts(t *testing.T) {
 }
 
 func TestIAVLBenchGCStoreCounts(t *testing.T) {
+	// Build a GC-backed tree with a counted reference graph.
 	ctx := context.Background()
 	tree, refGraph := buildBenchTreeWithGC(t, makeBenchKeys(128, benchKeySequential))
 
+	// Open a writable transaction over the persisted tree.
 	btx, rootCursor := block.NewTransaction(tree.storeOps(), nil, tree.rootRef, nil)
 	tx, err := NewTx(ctx, rootCursor, nil, true, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Replace a tree value and persist its changed blocks.
 	if err := tx.Set(ctx, tree.keys[17], benchValue(1000)); err != nil {
 		tx.Discard()
 		t.Fatal(err)
@@ -642,6 +680,7 @@ func TestIAVLBenchGCStoreCounts(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Verify commit batches existence checks and flushes GC additions.
 	if tree.store.existsBatchCalls.Load() == 0 {
 		t.Fatal("expected GC commit to check existing blocks in a batch")
 	}
@@ -662,6 +701,7 @@ func TestIAVLSetRotationSequences(t *testing.T) {
 		{name: "right_left", keys: []int{1, 3, 2}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
+			// Open an empty tree transaction for the rotation sequence.
 			store := newBenchBlockStore()
 			_, rootCursor := block.NewTransaction(store, nil, nil, nil)
 			rootCursor.SetBlock(&Node{}, true)
@@ -671,11 +711,14 @@ func TestIAVLSetRotationSequences(t *testing.T) {
 			}
 			defer tx.Discard()
 
+			// Insert the keys in the order that triggers the selected rotations.
 			for _, key := range tc.keys {
 				if err := tx.Set(ctx, makeSequentialBenchKey(key), benchValue(key)); err != nil {
 					t.Fatal(err)
 				}
 			}
+
+			// Verify rotations preserve the tree size and bound its height.
 			size, err := tx.Size(ctx)
 			if err != nil {
 				t.Fatal(err)
@@ -686,6 +729,8 @@ func TestIAVLSetRotationSequences(t *testing.T) {
 			if height := tx.Height(); height > 2 {
 				t.Fatalf("expected height <= 2, got %d", height)
 			}
+
+			// Verify every inserted key survives the rotations.
 			for key := 1; key <= 3; key++ {
 				_, found, err := tx.Get(ctx, makeSequentialBenchKey(key))
 				if err != nil {
@@ -696,6 +741,7 @@ func TestIAVLSetRotationSequences(t *testing.T) {
 				}
 			}
 
+			// Verify a full key scan preserves ordering and membership.
 			var prev []byte
 			var count int
 			if err := tx.ScanPrefixKeys(ctx, nil, func(key []byte) error {
@@ -721,17 +767,22 @@ func runIAVLTrace(
 	setup func(context.Context, *benchTree),
 	body func(context.Context, *benchTree),
 ) {
+	// Mark runtime trace capture as a test helper.
 	t.Helper()
 
+	// Require an explicit request before creating a runtime trace.
 	if os.Getenv("SPACEWAVE_IAVL_TRACE") != "1" {
 		t.Skip("set SPACEWAVE_IAVL_TRACE=1 to capture IAVL runtime traces")
 	}
 
+	// Build the tree fixture and run the optional trace setup.
 	ctx := context.Background()
 	tree := buildBenchTree(t, 16384)
 	if setup != nil {
 		setup(ctx, tree)
 	}
+
+	// Open the trace output and start recording runtime events.
 	tracePath := filepath.Join("..", "..", "..", "..", ".tmp", "iavl-"+name+".trace")
 	if err := os.MkdirAll(filepath.Dir(tracePath), 0o755); err != nil {
 		t.Fatal(err)
@@ -754,6 +805,7 @@ func runIAVLTrace(
 		t.Logf("trace: %s", tracePath)
 	}()
 
+	// Run the measured tree operation inside a named trace task.
 	taskCtx, task := trace.NewTask(ctx, "iavl-bench/"+name)
 	defer task.End()
 	body(taskCtx, tree)
@@ -874,10 +926,13 @@ func TestIAVLTraceUpdateCommit(t *testing.T) {
 func BenchmarkIAVLGetCursorAtKey(b *testing.B) {
 	for _, size := range []int{1024, 16384} {
 		b.Run("cold/"+benchSizeName(size), func(b *testing.B) {
+			// Build the tree fixture and prepare the measured operation.
 			ctx := context.Background()
 			tree := buildBenchTree(b, size)
 			tree.store.resetCounts()
 			b.ResetTimer()
+
+			// Measure cursor lookups through fresh tree transactions.
 			for i := range b.N {
 				tx := newBenchReadTx(b, ctx, tree)
 				_, err := tx.GetCursorAtKey(ctx, tree.keys[benchLookupIndex(i, size)])
@@ -886,28 +941,39 @@ func BenchmarkIAVLGetCursorAtKey(b *testing.B) {
 					b.Fatal(err)
 				}
 			}
+
+			// Report block-store costs outside the timed operation.
 			b.StopTimer()
 			tree.store.reportMetrics(b, int64(b.N))
 		})
 
 		b.Run("warm/"+benchSizeName(size), func(b *testing.B) {
+			// Build the tree fixture and prepare the measured operation.
 			ctx := context.Background()
 			tree := buildBenchTree(b, size)
 			tx := newBenchReadTx(b, ctx, tree)
 			defer tx.Discard()
+
+			// Warm the transaction with every fixture key.
 			for _, key := range tree.keys {
 				if _, err := tx.GetCursorAtKey(ctx, key); err != nil {
 					b.Fatal(err)
 				}
 			}
+
+			// Clear the warm transaction counters before timed lookups.
 			tree.store.resetCounts()
 			b.ResetTimer()
+
+			// Measure cursor lookups against the warmed transaction.
 			for i := range b.N {
 				_, err := tx.GetCursorAtKey(ctx, tree.keys[benchLookupIndex(i, size)])
 				if err != nil {
 					b.Fatal(err)
 				}
 			}
+
+			// Report block-store costs outside the timed operation.
 			b.StopTimer()
 			tree.store.reportMetrics(b, int64(b.N))
 		})
@@ -917,10 +983,13 @@ func BenchmarkIAVLGetCursorAtKey(b *testing.B) {
 func BenchmarkIAVLGetValue(b *testing.B) {
 	for _, size := range []int{1024, 16384} {
 		b.Run("cold/"+benchSizeName(size), func(b *testing.B) {
+			// Build the tree fixture and prepare the measured operation.
 			ctx := context.Background()
 			tree := buildBenchTree(b, size)
 			tree.store.resetCounts()
 			b.ResetTimer()
+
+			// Measure value lookups through fresh tree transactions.
 			for i := range b.N {
 				tx := newBenchReadTx(b, ctx, tree)
 				_, found, err := tx.Get(ctx, tree.keys[benchLookupIndex(i, size)])
@@ -932,6 +1001,8 @@ func BenchmarkIAVLGetValue(b *testing.B) {
 					b.Fatal("key not found")
 				}
 			}
+
+			// Report block-store costs outside the timed operation.
 			b.StopTimer()
 			tree.store.reportMetrics(b, int64(b.N))
 		})
@@ -941,10 +1012,13 @@ func BenchmarkIAVLGetValue(b *testing.B) {
 func BenchmarkIAVLScanPrefixKeys(b *testing.B) {
 	for _, size := range []int{1024, 16384} {
 		b.Run(benchFixtureName(benchKeyGraph, size), func(b *testing.B) {
+			// Build the tree fixture and prepare the measured operation.
 			ctx := context.Background()
 			tree := buildBenchTreeWithKeys(b, makeBenchKeys(size, benchKeyGraph))
 			tree.store.resetCounts()
 			b.ResetTimer()
+
+			// Measure graph-prefix key scans through fresh tree transactions.
 			for i := range b.N {
 				tx := newBenchReadTx(b, ctx, tree)
 				var count int
@@ -960,6 +1034,8 @@ func BenchmarkIAVLScanPrefixKeys(b *testing.B) {
 					b.Fatal("expected matching prefix keys")
 				}
 			}
+
+			// Report block-store costs outside the timed operation.
 			b.StopTimer()
 			tree.store.reportMetrics(b, int64(b.N))
 		})
@@ -969,10 +1045,13 @@ func BenchmarkIAVLScanPrefixKeys(b *testing.B) {
 func BenchmarkIAVLScanPrefixValues(b *testing.B) {
 	for _, size := range []int{1024, 16384} {
 		b.Run(benchFixtureName(benchKeyGraph, size), func(b *testing.B) {
+			// Build the tree fixture and prepare the measured operation.
 			ctx := context.Background()
 			tree := buildBenchTreeWithKeys(b, makeBenchKeys(size, benchKeyGraph))
 			tree.store.resetCounts()
 			b.ResetTimer()
+
+			// Measure graph-prefix value scans through fresh tree transactions.
 			for i := range b.N {
 				tx := newBenchReadTx(b, ctx, tree)
 				var count int
@@ -988,6 +1067,8 @@ func BenchmarkIAVLScanPrefixValues(b *testing.B) {
 					b.Fatal("expected matching prefix values")
 				}
 			}
+
+			// Report block-store costs outside the timed operation.
 			b.StopTimer()
 			tree.store.reportMetrics(b, int64(b.N))
 		})
@@ -997,10 +1078,13 @@ func BenchmarkIAVLScanPrefixValues(b *testing.B) {
 func BenchmarkIAVLUpdateCommit(b *testing.B) {
 	for _, size := range []int{1024, 16384} {
 		b.Run("updates_100/"+benchSizeName(size), func(b *testing.B) {
+			// Build the tree fixture and prepare the measured operation.
 			ctx := context.Background()
 			tree := buildBenchTree(b, size)
 			tree.store.resetCounts()
 			b.ResetTimer()
+
+			// Measure commits containing a hundred tree updates.
 			for i := range b.N {
 				btx, rootCursor := block.NewTransaction(tree.storeOps(), nil, tree.rootRef, nil)
 				tx, err := NewTx(ctx, rootCursor, nil, true, nil)
@@ -1018,6 +1102,8 @@ func BenchmarkIAVLUpdateCommit(b *testing.B) {
 					b.Fatal(err)
 				}
 			}
+
+			// Report block-store costs outside the timed operation.
 			b.StopTimer()
 			tree.store.reportMetrics(b, int64(b.N))
 		})
@@ -1027,11 +1113,14 @@ func BenchmarkIAVLUpdateCommit(b *testing.B) {
 func BenchmarkIAVLUpdateCommitGC(b *testing.B) {
 	for _, size := range []int{1024, 16384} {
 		b.Run("updates_100/"+benchSizeName(size), func(b *testing.B) {
+			// Build the tree fixture and prepare the measured operation.
 			ctx := context.Background()
 			tree, refGraph := buildBenchTreeWithGC(b, makeBenchKeys(size, benchKeySequential))
 			tree.store.resetCounts()
 			refGraph.resetCounts()
 			b.ResetTimer()
+
+			// Measure commits containing a hundred updates through the counted GC graph.
 			for i := range b.N {
 				btx, rootCursor := block.NewTransaction(tree.storeOps(), nil, tree.rootRef, nil)
 				tx, err := NewTx(ctx, rootCursor, nil, true, nil)
@@ -1050,6 +1139,8 @@ func BenchmarkIAVLUpdateCommitGC(b *testing.B) {
 					b.Fatal(err)
 				}
 			}
+
+			// Report block-store costs outside the timed operation.
 			b.StopTimer()
 			tree.store.reportMetrics(b, int64(b.N))
 			refGraph.reportMetrics(b, int64(b.N))
@@ -1060,10 +1151,13 @@ func BenchmarkIAVLUpdateCommitGC(b *testing.B) {
 func BenchmarkIAVLUpdateCommitGCRefGraph(b *testing.B) {
 	for _, size := range []int{1024, 16384} {
 		b.Run("updates_100/"+benchSizeName(size), func(b *testing.B) {
+			// Build the tree fixture and prepare the measured operation.
 			ctx := context.Background()
 			tree := buildBenchTreeWithRealGC(b, makeBenchKeys(size, benchKeySequential))
 			tree.store.resetCounts()
 			b.ResetTimer()
+
+			// Measure commits containing a hundred updates through the persistent GC graph.
 			for i := range b.N {
 				btx, rootCursor := block.NewTransaction(tree.storeOps(), nil, tree.rootRef, nil)
 				tx, err := NewTx(ctx, rootCursor, nil, true, nil)
@@ -1082,6 +1176,8 @@ func BenchmarkIAVLUpdateCommitGCRefGraph(b *testing.B) {
 					b.Fatal(err)
 				}
 			}
+
+			// Report block-store costs outside the timed operation.
 			b.StopTimer()
 			tree.store.reportMetrics(b, int64(b.N))
 		})
@@ -1091,10 +1187,13 @@ func BenchmarkIAVLUpdateCommitGCRefGraph(b *testing.B) {
 func BenchmarkIAVLDeleteCommit(b *testing.B) {
 	for _, size := range []int{1024, 16384} {
 		b.Run("deletes_100/"+benchSizeName(size), func(b *testing.B) {
+			// Build the tree fixture and prepare the measured operation.
 			ctx := context.Background()
 			tree := buildBenchTree(b, size)
 			tree.store.resetCounts()
 			b.ResetTimer()
+
+			// Measure commits containing a hundred key deletions.
 			for i := range b.N {
 				btx, rootCursor := block.NewTransaction(tree.storeOps(), nil, tree.rootRef, nil)
 				tx, err := NewTx(ctx, rootCursor, nil, true, nil)
@@ -1113,6 +1212,8 @@ func BenchmarkIAVLDeleteCommit(b *testing.B) {
 					b.Fatal(err)
 				}
 			}
+
+			// Report block-store costs outside the timed operation.
 			b.StopTimer()
 			tree.store.reportMetrics(b, int64(b.N))
 		})
@@ -1122,10 +1223,13 @@ func BenchmarkIAVLDeleteCommit(b *testing.B) {
 func BenchmarkIAVLDeleteCursorCommit(b *testing.B) {
 	for _, size := range []int{1024, 16384} {
 		b.Run("deletes_100/"+benchSizeName(size), func(b *testing.B) {
+			// Build the tree fixture and prepare the measured operation.
 			ctx := context.Background()
 			tree := buildBenchTree(b, size)
 			tree.store.resetCounts()
 			b.ResetTimer()
+
+			// Measure commits containing a hundred value-cursor deletions.
 			for i := range b.N {
 				btx, rootCursor := block.NewTransaction(tree.storeOps(), nil, tree.rootRef, nil)
 				tx, err := NewTx(ctx, rootCursor, nil, true, nil)
@@ -1144,6 +1248,8 @@ func BenchmarkIAVLDeleteCursorCommit(b *testing.B) {
 					b.Fatal(err)
 				}
 			}
+
+			// Report block-store costs outside the timed operation.
 			b.StopTimer()
 			tree.store.reportMetrics(b, int64(b.N))
 		})
@@ -1154,10 +1260,13 @@ func BenchmarkIAVLBadgerBlockStore(b *testing.B) {
 	const size = 1024
 
 	b.Run("cold_get_cursor/"+benchSizeName(size), func(b *testing.B) {
+		// Build the tree fixture and prepare the measured operation.
 		ctx := context.Background()
 		tree := buildBenchTreeWithStore(b, makeBenchKeys(size, benchKeySequential), newBenchBadgerBlockStore(b))
 		tree.store.resetCounts()
 		b.ResetTimer()
+
+		// Measure Badger-backed cursor lookups through fresh transactions.
 		for i := range b.N {
 			tx := newBenchReadTx(b, ctx, tree)
 			_, err := tx.GetCursorAtKey(ctx, tree.keys[benchLookupIndex(i, size)])
@@ -1166,15 +1275,20 @@ func BenchmarkIAVLBadgerBlockStore(b *testing.B) {
 				b.Fatal(err)
 			}
 		}
+
+		// Report block-store costs outside the timed operation.
 		b.StopTimer()
 		tree.store.reportMetrics(b, int64(b.N))
 	})
 
 	b.Run("cold_get_value/"+benchSizeName(size), func(b *testing.B) {
+		// Build the tree fixture and prepare the measured operation.
 		ctx := context.Background()
 		tree := buildBenchTreeWithStore(b, makeBenchKeys(size, benchKeySequential), newBenchBadgerBlockStore(b))
 		tree.store.resetCounts()
 		b.ResetTimer()
+
+		// Measure Badger-backed value lookups through fresh transactions.
 		for i := range b.N {
 			tx := newBenchReadTx(b, ctx, tree)
 			_, found, err := tx.Get(ctx, tree.keys[benchLookupIndex(i, size)])
@@ -1186,15 +1300,20 @@ func BenchmarkIAVLBadgerBlockStore(b *testing.B) {
 				b.Fatal("key not found")
 			}
 		}
+
+		// Report block-store costs outside the timed operation.
 		b.StopTimer()
 		tree.store.reportMetrics(b, int64(b.N))
 	})
 
 	b.Run("updates_100/"+benchSizeName(size), func(b *testing.B) {
+		// Build the tree fixture and prepare the measured operation.
 		ctx := context.Background()
 		tree := buildBenchTreeWithStore(b, makeBenchKeys(size, benchKeySequential), newBenchBadgerBlockStore(b))
 		tree.store.resetCounts()
 		b.ResetTimer()
+
+		// Measure Badger-backed commits containing a hundred updates.
 		for i := range b.N {
 			btx, rootCursor := block.NewTransaction(tree.storeOps(), nil, tree.rootRef, nil)
 			tx, err := NewTx(ctx, rootCursor, nil, true, nil)
@@ -1213,6 +1332,8 @@ func BenchmarkIAVLBadgerBlockStore(b *testing.B) {
 				b.Fatal(err)
 			}
 		}
+
+		// Report block-store costs outside the timed operation.
 		b.StopTimer()
 		tree.store.reportMetrics(b, int64(b.N))
 	})

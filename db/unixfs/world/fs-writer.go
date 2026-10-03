@@ -167,17 +167,20 @@ func (w *FSWriter) getWorldObject(ctx context.Context, checkExists bool) (world.
 
 // applyConfirmOp gets the world object, applies the op, and confirms it (if applicable)
 func (w *FSWriter) applyConfirmOp(ctx context.Context, op func(wobj world.ObjectState) (nrev uint64, sysErr bool, err error)) error {
+	// Acquire the filesystem World object for the write operation.
 	wobj, err := w.getWorldObject(ctx, true)
 	defer world.ReleaseObjectState(wobj)
 	if err != nil {
 		return err
 	}
 
+	// Apply the filesystem operation and capture its object revision.
 	nrev, _, err := op(wobj)
 	if err != nil {
 		return err
 	}
 
+	// Wait for the FSCursor to observe the written revision when confirmation is enabled.
 	if confirmFn := w.confirmFn.Load(); confirmFn != nil {
 		if err := (*confirmFn)(ctx, nrev); err != nil {
 			return err

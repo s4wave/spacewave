@@ -30,6 +30,7 @@ func (r RangeSlice) Swap(i, j int) {
 // returns the index of that range
 // returns nil, 0, false if no range covering pos is located.
 func (r RangeSlice) LocatePosition(pos int) (*Range, int, bool) {
+	// Skip range lookup when the file has no ranges.
 	rlen := len(r)
 	if rlen == 0 {
 		return nil, 0, false
@@ -44,6 +45,7 @@ func (r RangeSlice) LocatePosition(pos int) (*Range, int, bool) {
 		return int(r[i].GetStart()) > pos //nolint:gosec
 	})
 
+	// Select the newest range covering the requested file position.
 	foundNonce, foundIdx := -1, -1
 	for i := idxAfter - 1; i >= 0; i-- {
 		rng := r[i]

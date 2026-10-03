@@ -12,10 +12,12 @@ import (
 // require a backing world state. Data-carrying flows are covered by the
 // testbed-based tests.
 func TestBatchFSWriter_Validation(t *testing.T) {
+	// Create a BatchFSWriter for validation without backing World storage.
 	ctx := context.Background()
 	ts := time.Unix(1_700_000_000, 0)
 	b := NewBatchFSWriter(nil, "test/fs", FSType_FSType_FS_NODE, "")
 
+	// Verify BatchFSWriter rejects invalid file, directory, and symlink entries.
 	if err := b.AddFile(ctx, nil, "", unixfs.NewFSCursorNodeType_File(), 0, nil, 0o644, ts); err == nil {
 		t.Fatal("AddFile with empty name should error")
 	}
@@ -50,10 +52,12 @@ func TestBatchFSWriter_Validation(t *testing.T) {
 // TestBatchFSWriter_ReleaseRejects covers iter 8: Release-before-Commit
 // discards pending state and rejects every subsequent call.
 func TestBatchFSWriter_ReleaseRejects(t *testing.T) {
+	// Create a BatchFSWriter for checking release before commit.
 	ctx := context.Background()
 	ts := time.Unix(1_700_000_000, 0)
 	b := NewBatchFSWriter(nil, "test/fs", FSType_FSType_FS_NODE, "")
 
+	// Release BatchFSWriter and verify that every subsequent operation is rejected.
 	b.Release()
 	if err := b.AddDir(ctx, nil, "x", 0o755, ts); err == nil {
 		t.Fatal("AddDir after Release should error")
@@ -67,6 +71,8 @@ func TestBatchFSWriter_ReleaseRejects(t *testing.T) {
 	if err := b.Commit(ctx); err == nil {
 		t.Fatal("Commit after Release should error")
 	}
+
+	// Verify that releasing BatchFSWriter twice is harmless.
 	// double Release is a no-op.
 	b.Release()
 }

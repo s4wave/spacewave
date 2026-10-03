@@ -9,6 +9,7 @@ import (
 // TestNewFSCursorWithWriterConfirmsObservedRevision checks that a successful
 // writer operation remains fenced on the cursor's observed object revision.
 func TestNewFSCursorWithWriterConfirmsObservedRevision(t *testing.T) {
+	// Construct a writer-backed FSCursor and verify its confirmation callback.
 	cursor, writer := NewFSCursorWithWriterContext(
 		context.Background(),
 		nil,

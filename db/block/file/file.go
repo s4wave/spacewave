@@ -23,6 +23,7 @@ func UnmarshalFile(ctx context.Context, bcs *block.Cursor) (*File, error) {
 
 // FetchToBuffer fetches a full File to a buffer.
 func FetchToBuffer(ctx context.Context, bcs *block.Cursor, buf *bytes.Buffer) error {
+	// Load the file root and skip fetching an empty file.
 	root, err := block.UnmarshalBlock[*File](ctx, bcs, NewFileBlock)
 	if err != nil {
 		return err
@@ -32,6 +33,7 @@ func FetchToBuffer(ctx context.Context, bcs *block.Cursor, buf *bytes.Buffer) er
 		return nil
 	}
 
+	// Fetch an un-ranged file directly from its root blob.
 	rootRanges := root.GetRanges()
 	if len(rootRanges) == 0 {
 		rootBlob := root.GetRootBlob()
@@ -39,9 +41,11 @@ func FetchToBuffer(ctx context.Context, bcs *block.Cursor, buf *bytes.Buffer) er
 		return blob.FetchToBuffer(ctx, bcs, buf)
 	}
 
+	// Open a file reader that resolves ranges and sparse spans.
 	rseeker := NewHandle(ctx, bcs, root)
 	defer rseeker.Close()
 
+	// Copy the resolved file contents into the caller buffer.
 	_, err = io.Copy(buf, rseeker)
 	return err
 }
@@ -113,6 +117,7 @@ func (f *File) ApplySubBlock(id uint32, next block.SubBlock) error {
 // GetSubBlocks returns all constructed sub-blocks by ID.
 // May return nil, and values may also be nil.
 func (f *File) GetSubBlocks() map[uint32]block.SubBlock {
+	// Collect the file root blob and range set for block traversal.
 	if f == nil {
 		return nil
 	}

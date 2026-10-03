@@ -76,6 +76,7 @@ func (o *FsCopyOp) GetOperationTypeId() string {
 
 // Validate performs cursory checks on the op.
 func (o *FsCopyOp) Validate() error {
+	// Validate the copy timestamp, paths, object key, and filesystem type.
 	if err := o.GetTimestamp().Validate(false); err != nil {
 		return err
 	}
@@ -122,6 +123,7 @@ func (o *FsCopyOp) ApplyWorldObjectOp(
 		return false, err
 	}
 
+	// Copy the inode through the World object filesystem transaction.
 	ts := o.GetTimestamp().AsTime()
 	_, _, err = world.AccessObjectState(ctx, objectHandle, true, func(bcs *block.Cursor) error {
 		srcFsType := o.GetFsType()

@@ -21,14 +21,19 @@ func (n *Node) DecodedBlockCacheTypeKey() string {
 
 // loadNode follows the node cursor and returns nil when it does not contain a Node.
 func loadNode(ctx context.Context, cursor *block.Cursor) (*Node, error) {
+	// Decode the cursor block before interpreting it as a Node.
 	ni, err := cursor.Unmarshal(ctx, func() block.Block { return &Node{} })
 	if err != nil {
 		return nil, err
 	}
+
+	// Accept only a constructed Node from the decoded block.
 	niv, ok := ni.(*Node)
 	if !ok || niv == nil {
 		return nil, nil
 	}
+
+	// Validate the Node before returning it to tree traversal.
 	if err := niv.Validate(); err != nil {
 		return nil, err
 	}

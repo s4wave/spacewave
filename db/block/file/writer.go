@@ -42,10 +42,13 @@ func NewWriter(
 // CommitWriter commits any pending writes using a block transaction.
 // Note: the block transaction must match the handle's block cursor.
 func CommitWriter(w *Writer) (*block.BlockRef, *block.Cursor, error) {
+	// Discard the file read state and require a writable block transaction.
 	w.clearReadState()
 	if w.btx == nil {
 		return nil, nil, tx.ErrNotWrite
 	}
+
+	// Commit the file blocks and retain the resulting cursor on success.
 	ref, ncs, err := w.btx.Write(w.ctx, true)
 	if err == nil {
 		w.bcs = ncs
@@ -55,10 +58,13 @@ func CommitWriter(w *Writer) (*block.BlockRef, *block.Cursor, error) {
 
 // Write writes to the handle, immediately flushing if btx is set.
 func (w *Writer) Write(p []byte) (n int, err error) {
+	// Write the bytes at the current file position.
 	idx := w.idx
 	if err := w.WriteBytes(idx, p); err != nil {
 		return 0, err
 	}
+
+	// Advance the file position and flush an attached block transaction.
 	w.idx += uint64(len(p))
 	if w.btx != nil {
 		_, _, err = CommitWriter(w)
@@ -237,6 +243,7 @@ func (w *Writer) WriteFrom(index uint64, dataLen int64, dataRdr io.Reader) error
 	w.compactOccludedRanges()
 	w.clearReadState()
 
+	// Extend the file size to include the newly written range.
 	oldSize := w.root.GetTotalSize()
 	nextSize := index + size
 	if nextSize > oldSize {
@@ -256,9 +263,12 @@ func (w *Writer) WriteBytes(index uint64, data []byte) error {
 // WriteBlob writes a blob to an index in a new range.
 // Implies removing any ranges which are completely occluded.
 func (w *Writer) WriteBlob(index, size uint64, ref *block.BlockRef) error {
+	// Move the root blob into a range before adding the referenced blob.
 	if err := w.moveRootBlobToRange(); err != nil {
 		return err
 	}
+
+	// Allocate a new range and connect it to the referenced blob.
 	nonce := w.root.GetRangeNonce()
 	w.root.RangeNonce += 1
 	rlen := len(w.root.Ranges)
@@ -272,9 +282,11 @@ func (w *Writer) WriteBlob(index, size uint64, ref *block.BlockRef) error {
 	_, rcs := w.rangeSet.Get(rlen)
 	rcs.ClearRef(4)
 
+	// Order the file ranges and remove ranges hidden by newer writes.
 	w.sortRanges() // TODO: faster sorted insert
 	w.compactOccludedRanges()
 
+	// Extend the file size to include the referenced blob.
 	oldSize := w.root.GetTotalSize()
 	nextSize := index + size
 	if nextSize > oldSize {
@@ -288,6 +300,7 @@ func (w *Writer) WriteBlob(index, size uint64, ref *block.BlockRef) error {
 
 // Reset completely clears the contents of the file.
 func (w *Writer) Reset() {
+	// Clear the file contents, range references, and size together.
 	rangesBcs := w.bcs.FollowSubBlock(4)
 	w.root.RootBlob = nil
 	w.bcs.ClearRef(2)
@@ -300,10 +313,12 @@ func (w *Writer) Reset() {
 
 // Truncate shrinks or extends the file handle to the given size.
 func (w *Writer) Truncate(size uint64) error {
+	// Keep the file state when its size already matches the request.
 	if size == w.root.GetTotalSize() {
 		return nil
 	}
 
+	// Discard cached reads and clear all contents for a zero-length file.
 	w.clearReadState()
 	rangesBcs := w.bcs.FollowSubBlock(4)
 	if size == 0 {
@@ -413,6 +428,7 @@ func (w *Writer) Truncate(size uint64) error {
 
 // trimRootBlob truncates the root blob to at most size bytes.
 func (w *Writer) trimRootBlob(size uint64) error {
+	// Keep the root blob when it already fits within the requested size.
 	rootBlob := w.root.GetRootBlob()
 	if rootBlob.GetTotalSize() <= size {
 		return nil
@@ -420,6 +436,8 @@ func (w *Writer) trimRootBlob(size uint64) error {
 	if size > math.MaxInt64 {
 		return errors.New("total size exceeds maximum")
 	}
+
+	// Truncate the root blob and mark the file block dirty.
 	rootBlobBcs := w.bcs.FollowSubBlock(2)
 	if err := rootBlob.Truncate(w.ctx, rootBlobBcs, w.buildBlobOpts, int64(size)); err != nil {
 		return err
@@ -430,22 +448,28 @@ func (w *Writer) trimRootBlob(size uint64) error {
 
 // moveRootBlobToRange moves the root blob if it is set to a range.
 func (w *Writer) moveRootBlobToRange() error {
+	// Keep the root blob when file ranges already exist.
 	if len(w.root.Ranges) != 0 {
 		return nil
 	}
+
 	// the root blob may extend past the end of the file: drop those bytes.
 	if err := w.trimRootBlob(w.root.GetTotalSize()); err != nil {
 		return err
 	}
+
+	// Read the trimmed root blob size and skip an empty blob.
 	rblob := w.root.GetRootBlob()
 	rblobSize := rblob.GetTotalSize()
 	if rblobSize == 0 {
 		return nil
 	}
 
+	// Locate the root blob cursor and allocate its range nonce.
 	rblobBcs := w.bcs.FollowSubBlock(2)
 	nonce := w.root.GetRangeNonce()
 
+	// Create a range spanning the former root blob.
 	w.root.RangeNonce += 1
 	w.root.Ranges = append(w.root.Ranges, &Range{
 		Nonce:  nonce,
@@ -463,6 +487,7 @@ func (w *Writer) moveRootBlobToRange() error {
 	w.bcs.ClearRef(2)
 	w.root.RootBlob = nil
 
+	// Order and compact file ranges and discard the former read state.
 	w.sortRanges()
 	w.compactOccludedRanges()
 	w.clearReadState()
@@ -505,11 +530,13 @@ func (w *Writer) normalize() error {
 // moveRangeToRootBlob embeds the blob of a single range starting at zero into
 // the file block when inlineBlob allows it. Otherwise it does nothing.
 func (w *Writer) moveRangeToRootBlob() error {
+	// Require a single range starting at the file origin.
 	ranges := w.root.GetRanges()
 	if len(ranges) != 1 || ranges[0].GetStart() != 0 {
 		return nil
 	}
 
+	// Load the range blob and require that it can be embedded.
 	rootRange := ranges[0]
 	_, rangeBcs := w.rangeSet.Get(0)
 	rangeBlobBcs := rangeBcs.FollowRef(4, rootRange.GetRef())
@@ -521,6 +548,7 @@ func (w *Writer) moveRangeToRootBlob() error {
 		return nil
 	}
 
+	// Replace the range references with the embedded root blob.
 	w.root.RangeNonce = 0
 	w.root.Ranges = nil
 	w.rangeSet.GetCursor().ClearAllRefs()
@@ -534,6 +562,7 @@ func (w *Writer) moveRangeToRootBlob() error {
 		w.bcs.ClearRef(2)
 	}
 
+	// Discard read state that refers to the former range.
 	w.clearReadState()
 	return nil
 }
@@ -559,14 +588,18 @@ func (w *Writer) compactOccludedRanges() {
 }
 
 func (w *Writer) deleteRange(idx int) {
+	// Shift following file ranges over the deleted range.
 	ranges := w.root.GetRanges()
 	lastIdx := len(ranges) - 1
 	for i := idx; i < lastIdx; i++ {
 		w.rangeSet.Swap(i, i+1)
 	}
+
+	// Remove the final range slot after shifting the remaining ranges.
 	w.root.Ranges[lastIdx] = nil
 	w.root.Ranges = w.root.Ranges[:lastIdx]
 
+	// Clear the deleted range reference and mark the file block dirty.
 	w.rangeSet.GetCursor().ClearRef(uint32(lastIdx)) //nolint:gosec
 	w.bcs.MarkDirty()
 }
@@ -574,10 +607,13 @@ func (w *Writer) deleteRange(idx int) {
 // rangeCoveredByHigherNonce returns true if the range at idx is fully
 // covered by a later range with a higher nonce.
 func rangeCoveredByHigherNonce(ranges []*Range, idx int) bool {
+	// Establish the span whose coverage by newer ranges must be checked.
 	rng := ranges[idx]
 	start := rng.GetStart()
 	end := start + rng.GetLength()
 	coveredEnd := start
+
+	// Extend the covered span until newer ranges cover it or make no progress.
 	for {
 		var advanced bool
 		for i, other := range ranges {

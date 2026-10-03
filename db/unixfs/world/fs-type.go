@@ -96,6 +96,7 @@ func NewFSRootWithType(f FSType, rootType unixfs.FSCursorNodeType, ts *timestamp
 // returns nil, typeID, nil if the root was empty.
 // returns the block, type ID, and error.
 func UnmarshalFSRootWithType(ctx context.Context, bcs *block.Cursor, f FSType) (block.Block, string, error) {
+	// Resolve the filesystem root constructor and decode its block.
 	ctor, typeID, err := GetFSRootWithType(f)
 	if err != nil {
 		return nil, "", err

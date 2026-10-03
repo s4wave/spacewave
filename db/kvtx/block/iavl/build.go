@@ -53,6 +53,7 @@ func BuildTree(
 		minKey []byte // leftmost key in this subtree
 	}
 
+	// Create the leaf layer with a cursor for each sorted entry.
 	layer := make([]nodeEntry, len(leaves))
 	for i, lf := range leaves {
 		var cs *block.Cursor
@@ -118,6 +119,7 @@ func BuildTree(
 		layer = next
 	}
 
+	// Publish the final tree layer as the transaction root.
 	root := layer[0]
 	if err := tx.SetRoot(root.cursor); err != nil {
 		return nil, nil, err
