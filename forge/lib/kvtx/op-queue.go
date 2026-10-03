@@ -191,6 +191,7 @@ func (q *OpQueue) resolveKeyInput(op *Op) ([]byte, error) {
 // resolveValueInput resolves the Value field, either in-line or via an Input.
 // returns nil if the value was not configured.
 func (q *OpQueue) resolveValueInput(op *Op) (*forge_value.Value, bool, error) {
+	// Resolve the operation value from its literal, inline blob, or named input.
 	var inputValueBlob bool
 	inputValue := op.GetValue()
 	if inputValue.IsEmpty() {

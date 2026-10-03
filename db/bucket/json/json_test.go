@@ -9,6 +9,7 @@ import (
 )
 
 func TestParseConfig(t *testing.T) {
+	// Parse a bucket configuration with put and lookup options.
 	conf, err := ParseConfig([]byte(`{
 		"id":"bucket-1",
 		"version":7,
@@ -19,6 +20,7 @@ func TestParseConfig(t *testing.T) {
 		t.Fatalf("parse config: %v", err)
 	}
 
+	// Verify the bucket identifier, version, and decoded options.
 	if conf.Id != "bucket-1" {
 		t.Fatalf("unexpected id: %q", conf.Id)
 	}
@@ -34,6 +36,7 @@ func TestParseConfig(t *testing.T) {
 }
 
 func TestMarshalApplyBucketConfigResult(t *testing.T) {
+	// Prepare a bucket configuration result with an update timestamp.
 	conf := &Config{
 		Id:      "bucket-1",
 		Rev:     7,
@@ -48,17 +51,20 @@ func TestMarshalApplyBucketConfigResult(t *testing.T) {
 		Updated:    true,
 	}
 
+	// Marshal the bucket configuration result to JSON.
 	dat, err := result.MarshalJSON()
 	if err != nil {
 		t.Fatalf("marshal result: %v", err)
 	}
 
+	// Parse the encoded result for field assertions.
 	var p fastjson.Parser
 	v, err := p.ParseBytes(dat)
 	if err != nil {
 		t.Fatalf("parse output: %v", err)
 	}
 
+	// Verify the result identifiers, bucket configuration, timestamp, and update flag.
 	if got := string(v.GetStringBytes("bucket_id")); got != "bucket-1" {
 		t.Fatalf("unexpected bucket id: %q", got)
 	}

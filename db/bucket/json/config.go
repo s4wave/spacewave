@@ -50,15 +50,18 @@ func NewConfig(ctx context.Context, b bus.Bus, c *bucket.Config) (*Config, error
 
 // MarshalJSON marshals the config to JSON.
 func (c *Config) MarshalJSON() ([]byte, error) {
+	// Encode an absent bucket configuration as JSON null.
 	if c == nil {
 		return []byte("null"), nil
 	}
 
+	// Encode the bucket identifier and configuration version.
 	var a fastjson.Arena
 	obj := a.NewObject()
 	obj.Set("id", a.NewString(c.Id))
 	obj.Set("version", a.NewNumberString(strconv.FormatUint(uint64(c.Rev), 10)))
 
+	// Encode the optional put and lookup settings for the bucket.
 	if c.PutOpts != nil {
 		dat, err := c.PutOpts.MarshalJSON()
 		if err != nil {
@@ -111,6 +114,7 @@ func (c *Config) ResolveToProto(ctx context.Context, b bus.Bus) (*bucket.Config,
 }
 
 func parseConfigValue(v *fastjson.Value) (*Config, error) {
+	// Require a bucket configuration object and a version that fits uint32.
 	if v == nil || v.Type() != fastjson.TypeObject {
 		return nil, errors.New("bucket config must be object")
 	}
@@ -119,6 +123,7 @@ func parseConfigValue(v *fastjson.Value) (*Config, error) {
 		return nil, errors.New("bucket config version exceeds uint32")
 	}
 
+	// Decode the bucket identifier, version, put options, and lookup settings.
 	c := &Config{
 		Id:  string(v.GetStringBytes("id")),
 		Rev: uint32(rev),

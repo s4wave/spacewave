@@ -54,16 +54,21 @@ func (r *HTTPRangeReader) SetSize(size uint64) {
 
 // ReadAt reads len(buf) bytes into buf starting at offset off.
 func (r *HTTPRangeReader) ReadAt(buf []byte, off int64) (int, error) {
+	// Fetch the remote data that overlaps the caller buffer.
 	dataOffset, data, err := r.SliceReadAt(off, int64(len(buf)))
 	if err != nil && len(data) == 0 {
 		return 0, err
 	}
+
 	// Ensure the start index is within the bounds of the data slice.
 	start := max(0, off-dataOffset)
+
 	// Ensure the end index does not exceed the length of the data slice.
 	end := min(start+int64(len(buf)), int64(len(data)))
+
 	// Copy the data from the calculated start to end index into the buffer.
 	n := copy(buf, data[start:end])
+
 	// NOTE: we still return success if n < len(buf) which is not quite what io.ReadAt expects.
 	return n, err
 }
@@ -72,6 +77,7 @@ func (r *HTTPRangeReader) ReadAt(buf []byte, off int64) (int, error) {
 // NOTE: the returned slice may start before or after the requested location and length.
 // NOTE: this may return a completely different range than what you asked for!
 func (r *HTTPRangeReader) SliceReadAt(offset, length int64) (dataOffset int64, data []byte, err error) {
+	// Reject a range with a negative offset or no buffer space.
 	if offset < 0 {
 		return 0, nil, io.EOF
 	}
@@ -79,6 +85,7 @@ func (r *HTTPRangeReader) SliceReadAt(offset, length int64) (dataOffset int64, d
 		return offset, nil, io.ErrShortBuffer
 	}
 
+	// Clip the requested range to the known remote file size.
 	if knownSizePtr := r.knownSize.Load(); knownSizePtr != nil {
 		knownSize := int64(*knownSizePtr) //nolint:gosec
 		if offset >= knownSize {
@@ -92,15 +99,18 @@ func (r *HTTPRangeReader) SliceReadAt(offset, length int64) (dataOffset int64, d
 		}
 	}
 
+	// Prepare the HTTP request for the requested byte range.
 	req := r.request.Clone(r.request.Context())
 	req.Header.Add("Range", fmtRange(offset, length))
 
+	// Open the HTTP response body for the byte range.
 	resp, err := httplog.DoRequestWithClient(r.le, r.client, req, r.verbose)
 	if err != nil {
 		return offset, nil, err
 	}
 	defer resp.Body.Close()
 
+	// Read the returned range or report the HTTP status failure.
 	switch resp.StatusCode {
 	case http.StatusOK, http.StatusPartialContent:
 		// For both OK and Partial Content, read the body.
@@ -146,6 +156,7 @@ func (r *HTTPRangeReader) SliceReadAt(offset, length int64) (dataOffset int64, d
 
 // Read implements the io.Reader interface for HTTPRangeReader.
 func (r *HTTPRangeReader) Read(buf []byte) (int, error) {
+	// Read from the current position and advance the reader by the bytes copied.
 	var seek int64
 	seekPtr := r.seek.Load()
 	if seekPtr != nil {
@@ -159,8 +170,8 @@ func (r *HTTPRangeReader) Read(buf []byte) (int, error) {
 
 // Seek sets the offset for the next Read or ReadAt operation.
 func (r *HTTPRangeReader) Seek(offset int64, whence int) (int64, error) {
+	// Resolve the requested position relative to the start, current position, or end.
 	var seek int64
-
 	switch whence {
 	case io.SeekStart:
 		seek = offset
@@ -186,10 +197,12 @@ func (r *HTTPRangeReader) Seek(offset int64, whence int) (int64, error) {
 		return 0, errors.New("invalid whence")
 	}
 
+	// Reject a seek position before the remote file begins.
 	if seek < 0 {
 		return 0, errors.New("negative position")
 	}
 
+	// Retain the resolved position for subsequent reads.
 	r.seek.Store(&seek)
 	return seek, nil
 }
@@ -197,9 +210,11 @@ func (r *HTTPRangeReader) Seek(offset int64, whence int) (int64, error) {
 // getSizeFromRequest makes an HTTP request with the specified method and attempts to determine the content length.
 // If the Content-Length header is missing in a GET response, it reads the entire body to calculate the size.
 func (r *HTTPRangeReader) getSizeFromRequest(method string) (uint64, error) {
+	// Prepare the HTTP request used to determine the remote file size.
 	req := r.request.Clone(r.request.Context())
 	req.Method = method
 
+	// Open the HTTP response body used to determine the file size.
 	resp, err := httplog.DoRequestWithClient(r.le, r.client, req, r.verbose)
 	if err != nil {
 		return 0, err
@@ -220,6 +235,7 @@ func (r *HTTPRangeReader) getSizeFromRequest(method string) (uint64, error) {
 		return 0, errors.Errorf("unexpected response status: %d", resp.StatusCode)
 	}
 
+	// Read the remote file size from the Content-Length header when present.
 	contentLengthStr := resp.Header.Get("Content-Length")
 	if len(contentLengthStr) != 0 {
 		contentLength, err := strconv.ParseInt(contentLengthStr, 10, 64)
@@ -258,6 +274,7 @@ func (r *HTTPRangeReader) getSizeFromRequest(method string) (uint64, error) {
 // If the HEAD request does not return a Content-Length, it attempts a GET request.
 // If the GET request also lacks a Content-Length, it reads the entire body to determine the size.
 func (r *HTTPRangeReader) Size() (uint64, error) {
+	// Reuse the remote file size when the reader already knows it.
 	if knownSizePtr := r.knownSize.Load(); knownSizePtr != nil {
 		return *knownSizePtr, nil
 	}
@@ -276,6 +293,7 @@ func (r *HTTPRangeReader) Size() (uint64, error) {
 		}
 	}
 
+	// Cache the discovered remote file size for subsequent range requests.
 	r.knownSize.Store(&size)
 	return size, nil
 }

@@ -34,11 +34,13 @@ func NewApplyBucketConfigResult(
 	b bus.Bus,
 	obj *bucket.ApplyBucketConfigResult,
 ) (*ApplyBucketConfigResult, error) {
+	// Convert the current bucket configuration for the JSON result.
 	bc, err := NewConfig(ctx, b, obj.GetBucketConf())
 	if err != nil {
 		return nil, err
 	}
 
+	// Convert the previous bucket configuration for the JSON result.
 	obc, err := NewConfig(ctx, b, obj.GetOldBucketConf())
 	if err != nil {
 		return nil, err
@@ -57,10 +59,12 @@ func NewApplyBucketConfigResult(
 
 // MarshalJSON marshals the result to JSON.
 func (c *ApplyBucketConfigResult) MarshalJSON() ([]byte, error) {
+	// Encode an absent bucket configuration result as JSON null.
 	if c == nil {
 		return []byte("null"), nil
 	}
 
+	// Encode the result identifiers, error, and bucket configurations.
 	var a fastjson.Arena
 	obj := a.NewObject()
 	if c.BucketId != "" {
@@ -95,6 +99,7 @@ func (c *ApplyBucketConfigResult) MarshalJSON() ([]byte, error) {
 		obj.Set("old_bucket_conf", oldBucketConf)
 	}
 
+	// Encode the result timestamp as a JSON value.
 	timestamp, err := c.Timestamp.MarshalJSON()
 	if err != nil {
 		return nil, errors.Wrap(err, "marshal timestamp")
@@ -105,6 +110,7 @@ func (c *ApplyBucketConfigResult) MarshalJSON() ([]byte, error) {
 	}
 	obj.Set("timestamp", timestampValue)
 
+	// Encode whether the bucket configuration was updated.
 	if c.Updated {
 		obj.Set("updated", a.NewTrue())
 	} else {

@@ -14,12 +14,14 @@ import (
 
 // TestApplyOpCheckExistsErrors pins the error meaning on both mismatch paths.
 func TestApplyOpCheckExistsErrors(t *testing.T) {
+	// Start the Forge testbed for key-existence checks.
 	ctx := context.Background()
 	tb, err := testbed.Default(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Open an empty key-value store and a writable transaction.
 	bls, err := tb.BuildEmptyCursor(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -34,6 +36,7 @@ func TestApplyOpCheckExistsErrors(t *testing.T) {
 	}
 	defer btx.Discard()
 
+	// Construct the execution handle used by the key-existence operations.
 	handle := forge_target.ExecControllerHandleWithAccess(
 		"check-exists-test",
 		tb.Volume.GetPeerID(),
@@ -47,11 +50,13 @@ func TestApplyOpCheckExistsErrors(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// Verify the missing key reports the required-existence failure.
 	err = ApplyOpCheckExists(ctx, handle, btx, []byte("missing"), true)
 	if err == nil || !strings.Contains(err.Error(), "does not exist") {
 		t.Fatalf("expected key-does-not-exist error, got: %v", err)
 	}
 
+	// Verify the present key reports the required-absence failure.
 	err = ApplyOpCheckExists(ctx, handle, btx, []byte("present"), false)
 	if err == nil || !strings.Contains(err.Error(), "exists") || strings.Contains(err.Error(), "does not exist") {
 		t.Fatalf("expected key-exists-unexpectedly error, got: %v", err)

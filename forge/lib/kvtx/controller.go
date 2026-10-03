@@ -81,6 +81,7 @@ func (c *Controller) InitForgeExecController(
 // Returning nil ends execution.
 // Returning an error triggers a retry with backoff.
 func (c *Controller) Execute(ctx context.Context) error {
+	// Read the Controller configuration for this execution.
 	var err error
 	conf := c.conf
 
@@ -93,11 +94,13 @@ func (c *Controller) Execute(ctx context.Context) error {
 		return err
 	}
 
+	// Combine configured operations and stop when the Controller has no work.
 	ops = append(ops, confInput.GetOps()...)
 	if len(ops) == 0 {
 		return nil
 	}
 
+	// Resolve the input store to its bucket root.
 	var rootRef *bucket.ObjectRef
 	inStoreVal, err := forge_target.InputValueToValue(c.inputVals[inputNameStore])
 	if err != nil {
@@ -122,27 +125,35 @@ func (c *Controller) Execute(ctx context.Context) error {
 	// apply operations
 	var nextRootRef *block.BlockRef
 	var sizeBefore, sizeAfter uint64
+
 	// access the kvtx tree. note this might occur cross-bucket.
 	opCount := len(opQueue.GetPendingOps())
 	err = c.handle.AccessStorage(
 		ctx,
 		rootRef,
 		func(cs *bucket_lookup.Cursor) error {
+			// Record when the input requires an empty key-value store.
 			if rootRef.GetEmpty() {
 				c.le.
 					WithField("store-type", kvtx_block.DefaultKeyValueStoreImpl.String()).
 					Info("store input was empty, initializing empty store")
 			}
+
+			// Open a writable key-value transaction at the input store root.
 			btx, bcs := cs.BuildTransactionAtRef(nil, rootRef.GetRootRef())
 			txn, berr := kvtx_block.BuildKvTransaction(ctx, bcs, true)
 			if berr != nil {
 				return berr
 			}
 			defer txn.Discard()
+
+			// Measure the input store before applying the queued operations.
 			sizeBefore, berr = txn.Size(ctx)
 			if berr != nil {
 				return berr
 			}
+
+			// Apply the queued operations and commit the resulting key-value tree.
 			berr = opQueue.ApplyOps(txn, true, c.conf.GetIgnoreErrors())
 			if berr == nil {
 				sizeAfter, berr = txn.Size(ctx)
@@ -153,6 +164,8 @@ func (c *Controller) Execute(ctx context.Context) error {
 			if berr != nil {
 				return berr
 			}
+
+			// Persist the block transaction and retain the updated store root.
 			nextRootRef, _, berr = btx.Write(ctx, true)
 			return berr
 		},
@@ -179,6 +192,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 		WithField("size-after", sizeAfter)
 	le.Infof("applied %d ops to store", opCount)
 
+	// Publish the updated store reference as the Controller output.
 	outpSlice := []*forge_value.Value{{
 		Name:      outputNameStore,
 		ValueType: forge_value.ValueType_ValueType_BUCKET_REF,
@@ -206,10 +220,13 @@ func (c *Controller) Close() error {
 
 // fetchConfigInput fetches the ConfigInput from a value.
 func (c *Controller) fetchConfigInput(ctx context.Context) (*ConfigInput, error) {
+	// Check whether the Controller requests an additional configuration input.
 	configInputName := c.conf.GetConfigInput()
 	if len(configInputName) == 0 {
 		return nil, nil
 	}
+
+	// Resolve the named configuration input and require a populated value.
 	val, err := forge_target.InputValueToValue(c.inputVals[configInputName])
 	if err != nil {
 		return nil, errors.Wrap(err, configInputName)

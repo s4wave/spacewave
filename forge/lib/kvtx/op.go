@@ -31,10 +31,12 @@ func (o *Op) Validate() error {
 
 // validateRecursive recursively validates the tree.
 func (o *Op) validateRecursive(ignoreInput, ignoreOutput bool) error {
+	// Accept an operation tree with no configured actions.
 	if o.IsEmpty() {
 		return nil
 	}
 
+	// Track inherited input and output requirements for nested operations.
 	var inputWasSet bool
 	var outputWasSet bool
 
@@ -48,18 +50,23 @@ func (o *Op) validateRecursive(ignoreInput, ignoreOutput bool) error {
 
 	// checkInput checks the value input.
 	checkInput := func(allowEmpty bool) error {
+		// Accept an inline string or validate the named value input.
 		if ki := o.GetValueString(); len(ki) != 0 {
 			return nil
 		}
 		if kip := o.GetValueInput(); len(kip) != 0 {
 			return checkReservedName(kip)
 		}
+
+		// Require a literal value unless this operation allows an empty input.
 		if o.GetValue().IsEmpty() {
 			if allowEmpty {
 				return nil
 			}
 			return errors.New("input value must be set")
 		}
+
+		// Validate the literal value and pass its presence to nested operations.
 		inputWasSet = true
 		return o.GetValue().Validate(true)
 	}
@@ -79,6 +86,7 @@ func (o *Op) validateRecursive(ignoreInput, ignoreOutput bool) error {
 		return nil
 	}
 
+	// Validate the input and output requirements of the keyed operation.
 	opType := o.GetOpType()
 	if anyKeySet {
 		switch opType {
@@ -121,6 +129,7 @@ func (o *Op) validateRecursive(ignoreInput, ignoreOutput bool) error {
 		}
 	}
 
+	// Validate nested operations with the parent input and output requirements.
 	for _, op := range o.GetOps() {
 		err := op.validateRecursive(ignoreInput || inputWasSet, ignoreOutput || outputWasSet)
 		if err != nil {

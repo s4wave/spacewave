@@ -22,11 +22,13 @@ func ApplyOpCheck(
 	valueIsBlob bool,
 	outputName string,
 ) error {
+	// Open the stored value cursor for the checked key.
 	bcs, err := btx.GetCursorAtKey(ctx, key)
 	if err != nil {
 		return err
 	}
 
+	// Publish the stored reference when the check requests an output.
 	bcsRef := bcs.GetRef()
 	outVal := forge_value.NewValueWithBlockRef("", bcsRef)
 	if len(outputName) != 0 {
@@ -38,6 +40,7 @@ func ApplyOpCheck(
 		}
 	}
 
+	// Compare blob contents when the input value represents a blob.
 	if valueIsBlob {
 		var wasEqual bool
 		_, err = forge_target.AccessValue(ctx, handle, value, func(cs *block.Cursor) error {
@@ -64,6 +67,7 @@ func ApplyOpCheck(
 		}
 		var wasEqual bool
 		_, err = forge_target.AccessValue(ctx, handle, value, func(cs *block.Cursor) error {
+			// Fetch the input block and require its contents to exist.
 			data, dataOk, err := cs.Fetch(ctx)
 			if err != nil {
 				return err
@@ -71,6 +75,8 @@ func ApplyOpCheck(
 			if !dataOk {
 				return errors.New("input value not found")
 			}
+
+			// Compare the input block contents with the stored block contents.
 			wasEqual = bytes.Equal(data, bcsData)
 			return nil
 		})
@@ -82,6 +88,7 @@ func ApplyOpCheck(
 		}
 		return nil
 	}
+
 	// compare references
 	if !value.GetBlockRef().EqualsRef(bcsRef) {
 		return ErrValueMismatch

@@ -30,6 +30,7 @@ func (c *LookupConfig) GetDisable() bool {
 }
 
 func parseLookupConfigValue(v *fastjson.Value) (*LookupConfig, error) {
+	// Accept an absent lookup configuration and require an object when present.
 	if v == nil || v.Type() == fastjson.TypeNull {
 		return nil, nil
 	}
@@ -37,6 +38,7 @@ func parseLookupConfigValue(v *fastjson.Value) (*LookupConfig, error) {
 		return nil, errors.New("lookup config must be object")
 	}
 
+	// Decode the controller configuration for the bucket lookup.
 	controller, err := parseControllerConfigValue(v.Get("controller"))
 	if err != nil {
 		return nil, err
@@ -49,10 +51,12 @@ func parseLookupConfigValue(v *fastjson.Value) (*LookupConfig, error) {
 }
 
 func (c *LookupConfig) marshalJSONValue(a *fastjson.Arena) (*fastjson.Value, error) {
+	// Encode an absent lookup configuration as JSON null.
 	if c == nil {
 		return a.NewNull(), nil
 	}
 
+	// Encode whether cross-volume bucket lookup is disabled.
 	obj := a.NewObject()
 	if c.Disable {
 		obj.Set("disable", a.NewTrue())
@@ -60,6 +64,7 @@ func (c *LookupConfig) marshalJSONValue(a *fastjson.Arena) (*fastjson.Value, err
 		obj.Set("disable", a.NewFalse())
 	}
 
+	// Encode the controller configuration for the bucket lookup.
 	controller, err := marshalControllerConfigValue(a, c.Controller)
 	if err != nil {
 		return nil, err

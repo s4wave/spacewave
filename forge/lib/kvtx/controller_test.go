@@ -69,6 +69,7 @@ exec:
 
 // TestKvtx tests the kvtx execution controller
 func TestKvtx(t *testing.T) {
+	// Start the Forge testbed and register the key-value execution controller.
 	tb, err := testbed.Default(context.Background())
 	if err != nil {
 		t.Fatal(err.Error())
@@ -76,6 +77,7 @@ func TestKvtx(t *testing.T) {
 	ctx, le, ws := tb.Context, tb.Logger, tb.WorldState
 	tb.StaticResolver.AddFactory(NewFactory(tb.Bus))
 
+	// Resolve the target containing the key-value operation sequence.
 	tgt, err := target_json.ResolveYAML(ctx, tb.Bus, []byte(testYAML))
 	if err != nil {
 		t.Fatal(err.Error())
@@ -90,12 +92,15 @@ func TestKvtx(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Create the World object that supplies the target input blob.
 	testObj, err := ws.CreateObject(ctx, "test-blob", testBlob.GetBucketRef())
 	defer world.ReleaseObjectState(testObj)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Prepare the value set for the target execution inputs.
 	valueSet := &forge_target.ValueSet{}
 
 	// Resolve the world-object input for the target execution.
@@ -108,6 +113,7 @@ func TestKvtx(t *testing.T) {
 	inpValue := forge_value.NewValueWithWorldObjectSnapshot("testValue", inpSnapshot)
 	valueSet.Inputs = append(valueSet.Inputs, inpValue)
 
+	// Execute the target operations against the input value set.
 	finalState, err := tb.RunExecutionWithTarget(
 		tgt,
 		valueSet,
@@ -117,6 +123,7 @@ func TestKvtx(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// Index the execution outputs for the stored-value assertions.
 	outputs := forge_value.ValueSlice(finalState.GetValueSet().GetOutputs())
 	valMap, err := outputs.BuildValueMap(true, false)
 	if err != nil {
@@ -192,6 +199,7 @@ func TestKvtx(t *testing.T) {
 	}
 	le.Infof("output store reference was: %s", stv.GetBucketRef().MarshalString())
 	_, err = forge_target.AccessValue(ctx, h, stv, func(bcs *block.Cursor) error {
+		// Open the output key-value store and a read transaction.
 		kvs, err := kvtx_block.LoadKeyValueStore(ctx, bcs)
 		if err != nil {
 			return err
@@ -200,6 +208,8 @@ func TestKvtx(t *testing.T) {
 		if err != nil {
 			return err
 		}
+
+		// Verify the persisted store contains the two remaining keys.
 		nkeys, err := btx.Size(ctx)
 		if err != nil {
 			return err

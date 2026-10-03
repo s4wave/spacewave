@@ -18,6 +18,7 @@ func marshalJSONBytesValue(a *fastjson.Arena, dat []byte) (*fastjson.Value, erro
 }
 
 func parseControllerConfigValue(v *fastjson.Value) (*configset_json.ControllerConfig, error) {
+	// Accept an absent controller configuration and require an object when present.
 	if v == nil || v.Type() == fastjson.TypeNull {
 		return nil, nil
 	}
@@ -25,6 +26,7 @@ func parseControllerConfigValue(v *fastjson.Value) (*configset_json.ControllerCo
 		return nil, errors.New("controller config must be object")
 	}
 
+	// Decode the controller identifier, revision, and optional configuration body.
 	c := &configset_json.ControllerConfig{
 		Rev: v.GetUint64("rev"),
 		Id:  string(v.GetStringBytes("id")),
@@ -43,10 +45,12 @@ func marshalControllerConfigValue(
 	a *fastjson.Arena,
 	c *configset_json.ControllerConfig,
 ) (*fastjson.Value, error) {
+	// Encode an absent controller configuration as JSON null.
 	if c == nil {
 		return a.NewNull(), nil
 	}
 
+	// Encode the controller identifier, revision, and optional configuration body.
 	obj := a.NewObject()
 	obj.Set("id", a.NewString(c.Id))
 	if c.Rev != 0 {

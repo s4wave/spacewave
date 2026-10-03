@@ -20,10 +20,13 @@ func FetchConfigInput(
 	handle forge_target.ExecControllerHandle,
 	val *forge_value.Value,
 ) (*ConfigInput, error) {
+	// Resolve the configuration value to its bucket reference.
 	objRef, err := val.ToBucketRef()
 	if err != nil {
 		return nil, err
 	}
+
+	// Decode the configuration block from the referenced bucket.
 	var confInput *ConfigInput
 	err = handle.AccessStorage(ctx, objRef, func(bls *bucket_lookup.Cursor) error {
 		_, bcs := bls.BuildTransaction(nil)

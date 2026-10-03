@@ -44,6 +44,7 @@ func ApplyOpSet(
 		nvalCursor.SetRefAtCursor(value.GetBlockRef(), true)
 	}
 
+	// Store the value cursor at the operation key.
 	err = btx.SetCursorAtKey(ctx, key, nvalCursor, valueIsBlob)
 	if err != nil {
 		return err
