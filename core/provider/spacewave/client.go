@@ -1560,7 +1560,7 @@ func (c *SessionClient) GetSORecoveryEnvelope(
 	return resp.GetEnvelope(), nil
 }
 
-// RegisterInviteCode registers a short invite code on the cloud SO DO.
+// RegisterInviteCode registers a short invite code for the shared object.
 // The code maps to the full serialized SOInviteMessage for lookup.
 func (c *SessionClient) RegisterInviteCode(ctx context.Context, soID string, req *api.RegisterInviteCodeRequest) error {
 	body, err := req.MarshalVT()
@@ -1574,39 +1574,6 @@ func (c *SessionClient) RegisterInviteCode(ctx context.Context, soID string, req
 	var resp api.RegisterInviteCodeResponse
 	if err := resp.UnmarshalVT(data); err != nil {
 		return errors.Wrap(err, "unmarshal register invite code response")
-	}
-	return nil
-}
-
-// RegisterInviteBeacon registers an owner-side invite beacon for mailbox joins.
-func (c *SessionClient) RegisterInviteBeacon(
-	ctx context.Context,
-	soID string,
-	inviteID string,
-	tokenHashHex string,
-	expiresAtMs int64,
-) error {
-	body, err := (&api.InviteBeaconRequest{
-		InviteId:  inviteID,
-		TokenHash: tokenHashHex,
-		ExpiresAt: expiresAtMs,
-	}).MarshalVT()
-	if err != nil {
-		return errors.Wrap(err, "marshal invite beacon request")
-	}
-	data, err := c.doPostBinary(
-		ctx,
-		path.Join("/api/sobject", soID, "invite-beacon"),
-		body,
-		nil,
-		SeedReasonMutation,
-	)
-	if err != nil {
-		return errors.Wrap(err, "register invite beacon")
-	}
-	var resp api.InviteBeaconResponse
-	if err := resp.UnmarshalVT(data); err != nil {
-		return errors.Wrap(err, "unmarshal invite beacon response")
 	}
 	return nil
 }
