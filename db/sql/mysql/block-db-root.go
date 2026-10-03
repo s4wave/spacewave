@@ -58,6 +58,7 @@ func (r *DatabaseRoot) Validate() error {
 				)
 			}
 		}
+		prevName = table.GetName()
 	}
 	return nil
 }

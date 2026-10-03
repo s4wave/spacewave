@@ -53,6 +53,7 @@ func (n *Root) Validate() error {
 				)
 			}
 		}
+		prevName = ent.GetName()
 	}
 	return nil
 }

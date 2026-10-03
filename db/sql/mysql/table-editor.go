@@ -109,7 +109,7 @@ func (i *TableEditor) Insert(sqlCtx *sql.Context, row sql.Row) error {
 			var ok bool
 			autoIncVal, ok = v.(uint64)
 			if !ok {
-				return errors.Wrap(err, "auto increment type mismatch")
+				return errors.Errorf("auto increment type mismatch: converted to %T", v)
 			}
 			autoIncVal++ // Move onto next autoIncVal
 		} else if cmp == 0 {
