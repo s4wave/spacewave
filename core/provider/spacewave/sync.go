@@ -238,12 +238,15 @@ func (s *syncController) takeCompactDue() bool {
 	return due && !s.conf.GetDisableCompaction()
 }
 
-// Execute dispatches from the first pending change, without extending its deadline.
+// Execute dispatches from the first pending change, without extending its
+// deadline. When ctx ends, Execute drains pending work once before returning.
 func (s *syncController) Execute(ctx context.Context) error {
+	// Run remote pulls for the life of ctx, then drain pending work.
 	if s.remotePullRoutine != nil && !s.skipPull {
 		s.remotePullRoutine.SetContext(ctx)
 		defer s.remotePullRoutine.ClearContext()
 	}
+	defer s.drain(ctx)
 
 	// Keep the existing pressure and pack limits independent of the time boundary.
 	bo := providerBackoff.Construct()
@@ -256,6 +259,7 @@ func (s *syncController) Execute(ctx context.Context) error {
 		interval = 30 * time.Second
 	}
 
+	// Flush at each deadline or size threshold until ctx ends.
 	for ctx.Err() == nil {
 		first, dirty, changed := s.pendingSnapshot()
 		if first.IsZero() && dirty < threshold {
@@ -315,6 +319,25 @@ func (s *syncController) Execute(ctx context.Context) error {
 		}
 	}
 	return nil
+}
+
+// drain flushes pending blocks and publications once after ctx ends. A
+// short-lived mount, such as a CLI write, releases the store before the
+// checkpoint deadline; without the drain its edits wait for the next mount. A
+// failed drain keeps the durable obligation for that mount.
+func (s *syncController) drain(ctx context.Context) {
+	// Skip the drain when nothing is pending.
+	first, dirty, _ := s.pendingSnapshot()
+	if first.IsZero() && dirty == 0 {
+		return
+	}
+
+	// Flush on a detached context, bounded like a forced sync.
+	flushCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), forceSyncTimeout)
+	defer cancel()
+	if err := s.FlushNow(flushCtx); err != nil {
+		s.le.WithError(err).Warn("pending cloud work kept for the next mount")
+	}
 }
 
 func waitDirtySyncRetry(ctx context.Context, ch <-chan struct{}, delay time.Duration) error {

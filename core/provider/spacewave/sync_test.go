@@ -635,31 +635,6 @@ func TestSyncControllerPushPackfileRetriesCanceledPush(t *testing.T) {
 	}
 }
 
-// TestSyncControllerExecuteExitsOnCanceledThresholdContext stops execution when its context is canceled.
-func TestSyncControllerExecuteExitsOnCanceledThresholdContext(t *testing.T) {
-	s := &syncController{
-		conf: &SyncConfig{SizeThresholdBytes: 1},
-	}
-	s.dirtySize = 1
-
-	ctx, cancel := context.WithCancel(context.Background())
-	cancel()
-
-	done := make(chan error, 1)
-	go func() {
-		done <- s.Execute(ctx)
-	}()
-
-	select {
-	case err := <-done:
-		if err != nil {
-			t.Fatalf("Execute returned error: %v", err)
-		}
-	case <-time.After(100 * time.Millisecond):
-		t.Fatal("expected Execute to stop when context is canceled")
-	}
-}
-
 // TestSyncControllerInitSkipsPullForRemoteManifest uses an existing remote manifest without pulling.
 func TestSyncControllerInitSkipsPullForRemoteManifest(t *testing.T) {
 	ctx := context.Background()
@@ -1020,6 +995,51 @@ func TestSyncControllerExecuteGatesAccessDeniedFlushFailures(t *testing.T) {
 		}
 	case <-time.After(syncExecuteStopTimeout):
 		t.Fatal("expected Execute to stop when context is canceled")
+	}
+}
+
+// TestSyncControllerExecuteDrainsPendingWorkOnStop pushes dirty blocks when
+// the mount releases before the checkpoint deadline.
+func TestSyncControllerExecuteDrainsPendingWorkOnStop(t *testing.T) {
+	// Count push requests; their result does not matter to the drain.
+	requests := make(chan struct{}, 4)
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requests <- struct{}{}
+		w.WriteHeader(http.StatusInternalServerError)
+	}))
+	defer srv.Close()
+
+	// Hold the dirty block behind a deadline the test never reaches.
+	priv, pid := generateTestKeypair(t)
+	cli := NewSessionClient(http.DefaultClient, srv.URL, DefaultSigningEnvPrefix, priv, pid.String())
+	cli.executeWriteTicketAudience = func(
+		ctx context.Context,
+		resourceID string,
+		audience writeTicketAudience,
+		fn func(ticket string) error,
+	) error {
+		return fn("ticket-push")
+	}
+	s := newDirtySyncExecuteTestController(t, cli, nil)
+	s.conf = &SyncConfig{SizeThresholdBytes: 1 << 30, CheckpointIntervalSecs: 3600}
+
+	// Release the mount and expect one push before Execute returns.
+	ctx, cancel := context.WithCancel(context.Background())
+	done := make(chan error, 1)
+	go func() {
+		done <- s.Execute(ctx)
+	}()
+	cancel()
+	select {
+	case err := <-done:
+		if err != nil {
+			t.Fatalf("Execute returned error: %v", err)
+		}
+	case <-time.After(syncExecuteRequestTimeout):
+		t.Fatal("expected Execute to stop after draining")
+	}
+	if len(requests) == 0 {
+		t.Fatal("expected pending dirty blocks to be pushed on stop")
 	}
 }
 
