@@ -111,8 +111,8 @@ func (k *KVTx) ListBucketInfo(ctx context.Context, idRegex *regexp.Regexp) ([]*b
 	}
 	defer tx.Discard()
 
-	// Collect matching bucket information from the configuration prefix.
-	resVals := make(map[string]int)
+	// Collect matching bucket information from the configuration prefix, which
+	// holds one key per bucket ID.
 	var res []*bucket.BucketInfo
 	prefix := k.kvkey.GetBucketConfigFullPrefix()
 	err = tx.ScanPrefix(ctx, prefix, func(key, value []byte) error {
@@ -122,26 +122,10 @@ func (k *KVTx) ListBucketInfo(ctx context.Context, idRegex *regexp.Regexp) ([]*b
 			return err
 		}
 
-		// Exclude bucket IDs outside the requested pattern.
-		if idRegex != nil {
-			if !idRegex.MatchString(bc.GetId()) {
-				return nil
-			}
+		// Include the bucket when its ID matches the requested pattern.
+		if idRegex == nil || idRegex.MatchString(bc.GetId()) {
+			res = append(res, bucket.NewBucketInfo(bc))
 		}
-
-		// Replace a collected bucket record only with a newer revision.
-		nbi := bucket.NewBucketInfo(bc)
-		if evi, ok := resVals[bc.GetId()]; ok {
-			ev := res[evi]
-			if ev.GetConfig().GetRev() >= bc.GetRev() {
-				return nil
-			}
-			res[evi] = nbi
-			return nil
-		}
-
-		// Include the bucket information in the scan results.
-		res = append(res, nbi)
 		return nil
 	})
 	if err != nil {
