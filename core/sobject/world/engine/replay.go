@@ -161,8 +161,10 @@ func (r *replayer) coveredWorld(checkpoint *sobject.SOCheckpointInner) (*InnerSt
 	for n < len(r.positions) && covered(r.positions[n].outcome.hash) {
 		n++
 	}
-	if slices.ContainsFunc(r.positions[n:], func(pos replayPosition) bool { return covered(pos.outcome.hash) }) {
-		return nil, false
+	for _, pos := range r.positions[n:] {
+		if covered(pos.outcome.hash) {
+			return nil, false
+		}
 	}
 
 	// Each covered author head must be among them, or below the last
