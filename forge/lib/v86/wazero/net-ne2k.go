@@ -116,9 +116,12 @@ func (h *HostRuntime) registerNE2K(ctx context.Context, id int, mac [6]byte) *ne
 
 // register maps the device into PCI config space and wires byte-wide port
 func (d *ne2kDevice) register(ctx context.Context) error {
+	// Require the host PCI bus before registering the NE2000 adapter.
 	if d.host == nil || d.host.pci == nil {
 		return nil
 	}
+
+	// Register the NE2000 PCI function and byte-wide IO ports.
 	d.host.pci.spaces[d.bdf] = newNE2KPCISpace(d.port)
 	d.host.pci.setBARSize(d.bdf, 0, ne2kBARSize, true)
 	for i := range uint16(ne2kBARSize) {
@@ -158,6 +161,7 @@ func (d *ne2kDevice) register(ctx context.Context) error {
 		d.writeData(ctx, byte(value>>24))  //nolint:gosec // the shifted 32-bit IO value is serialized one byte at a time.
 	})
 
+	// Synchronize the adapter interrupt line after registering its IO ports.
 	d.updateIRQ(ctx)
 	return nil
 }
@@ -175,10 +179,13 @@ func (d *ne2kDevice) SetOutbound(sink func(frame []byte)) {
 // the CPU goroutine, so the network stack never touches device or wasm state
 // concurrently with guest port I/O.
 func (d *ne2kDevice) QueueInbound(frame []byte) {
+	// Copy the inbound Ethernet frame before retaining it in the queue.
 	if d == nil {
 		return
 	}
 	cp := append([]byte(nil), frame...)
+
+	// Append the copied frame under the inbound queue lock.
 	d.mtx.Lock()
 	d.inbound = append(d.inbound, cp)
 	d.mtx.Unlock()
@@ -188,13 +195,18 @@ func (d *ne2kDevice) QueueInbound(frame []byte) {
 // on the CPU goroutine, between main-loop ticks, so receive-ring writes and IRQ
 // delivery stay single-threaded with guest port I/O.
 func (d *ne2kDevice) DrainInbound(ctx context.Context) {
+	// Require an NE2000 adapter before draining its inbound queue.
 	if d == nil {
 		return
 	}
+
+	// Detach the inbound frame batch under its queue lock.
 	d.mtx.Lock()
 	frames := d.inbound
 	d.inbound = nil
 	d.mtx.Unlock()
+
+	// Deliver the detached Ethernet frames on the CPU goroutine.
 	for _, frame := range frames {
 		d.ReceiveFrame(ctx, frame)
 	}
@@ -204,6 +216,7 @@ func (d *ne2kDevice) DrainInbound(ctx context.Context) {
 // places accepted Ethernet frames into the NE2000 receive ring. It runs on the
 // CPU goroutine; off-thread callers use QueueInbound plus DrainInbound.
 func (d *ne2kDevice) ReceiveFrame(ctx context.Context, frame []byte) {
+	// Apply the NE2000 run state and Ethernet destination filter.
 	if d == nil || d.cr&ne2kCRStop != 0 || len(frame) < 6 {
 		return
 	}
@@ -211,6 +224,7 @@ func (d *ne2kDevice) ReceiveFrame(ctx context.Context, frame []byte) {
 		return
 	}
 
+	// Reserve receive ring pages for the padded Ethernet frame and header.
 	packetLen := max(len(frame), ne2kMinFrameLen)
 	totalLen := packetLen + 4
 	needed := byte(1 + (totalLen >> 8)) //nolint:gosec // the NE2000 receive ring uses an 8-bit page count for bounded Ethernet frames.
@@ -218,17 +232,20 @@ func (d *ne2kDevice) ReceiveFrame(ctx context.Context, frame []byte) {
 		return
 	}
 
+	// Locate the receive ring page and wrap its next-page pointer.
 	offset := uint16(d.curpg) << 8
 	next := d.curpg + needed
 	if next >= d.pstop {
 		next += d.pstart - d.pstop
 	}
 
+	// Write the receive header, frame bytes, and minimum-length padding.
 	d.writeRing(offset, []byte{enrsrRXOK, next, byte(totalLen), byte(totalLen >> 8)}) //nolint:gosec // these are the two low bytes of the fixed-width NE2000 receive length.
 	d.writeRing(offset+4, frame)
 	if len(frame) < ne2kMinFrameLen {
 		d.writeRingZeros(offset+4+uint16(len(frame)), ne2kMinFrameLen-len(frame)) //nolint:gosec // this branch proves len(frame) is below the 64-byte minimum.
 	}
+
 	// Advance only CURR. BOUNDARY is the driver's read pointer: lib8390 ei_receive
 	// reads the next ring page as EN0_BOUNDARY+1, so the device must never write it
 	// or the driver reads headers from the wrong (empty) page and drops every frame
@@ -284,6 +301,7 @@ func (d *ne2kDevice) writePort(ctx context.Context, offset uint16, value byte) {
 
 // writeCommand handles the shared command-register write: remote-DMA
 func (d *ne2kDevice) writeCommand(ctx context.Context, value byte) {
+	// Apply the NE2000 command and signal an already completed remote DMA.
 	d.cr = value
 	if value&ne2kCRStop != 0 {
 		return
@@ -291,6 +309,8 @@ func (d *ne2kDevice) writeCommand(ctx context.Context, value byte) {
 	if value&ne2kCRRDMA != 0 && d.rcnt == 0 {
 		d.interrupt(ctx, enisrRDC)
 	}
+
+	// Transmit the guest frame when the command requests transmission.
 	if value&ne2kCRTXP == 0 {
 		return
 	}
@@ -439,17 +459,21 @@ func (d *ne2kDevice) advanceDMA(ctx context.Context) {
 
 // transmit copies the transmit-buffer frame and hands it to the outbound
 func (d *ne2kDevice) transmit(ctx context.Context) {
+	// Copy the guest transmit buffer before delivering it to the Ethernet sink.
 	start := uint16(d.tpsr) << 8
 	end := min(uint32(start)+uint32(d.tcnt), uint32(len(d.memory))) //nolint:gosec // guest memory is the uint32-addressed device window.
 	frame := append([]byte(nil), d.memory[start:end]...)
 	if d.outbound != nil {
 		d.outbound(frame)
 	}
+
+	// Signal completion of the NE2000 frame transmission.
 	d.interrupt(ctx, enisrTX)
 }
 
 // acceptsFrame applies the receive filter: promiscuous, broadcast, and
 func (d *ne2kDevice) acceptsFrame(frame []byte) bool {
+	// Apply promiscuous, broadcast, and multicast receive modes.
 	if d.rxcr&enrxcrPRO != 0 {
 		return true
 	}
@@ -459,6 +483,8 @@ func (d *ne2kDevice) acceptsFrame(frame []byte) bool {
 	if d.rxcr&enrxcrAM != 0 && frame[0]&1 != 0 {
 		return false
 	}
+
+	// Accept unicast Ethernet frames addressed to the adapter MAC.
 	for i, value := range d.mac {
 		if frame[i] != value {
 			return false
@@ -469,12 +495,15 @@ func (d *ne2kDevice) acceptsFrame(frame []byte) bool {
 
 // rxAvailable reports whether needed ring pages are free between BOUNDARY
 func (d *ne2kDevice) rxAvailable(needed byte) bool {
+	// Treat an unset or coincident receive boundary as available ring space.
 	if d.boundary == 0 {
 		return true
 	}
 	if d.boundary == d.curpg {
 		return true
 	}
+
+	// Compare the free receive ring pages with the incoming frame size.
 	var available byte
 	if d.boundary > d.curpg {
 		available = d.boundary - d.curpg
@@ -520,11 +549,16 @@ func (d *ne2kDevice) interrupt(ctx context.Context, mask byte) {
 
 // updateIRQ reevaluates the interrupt line against ISR & IMR.
 func (d *ne2kDevice) updateIRQ(ctx context.Context) {
+	// Derive the NE2000 interrupt state from its pending and enabled bits.
 	asserted := d.imr&d.isr != 0
 	d.irqAsserted = asserted
+
+	// Require a host before delivering the adapter interrupt state.
 	if d.host == nil {
 		return
 	}
+
+	// Apply the adapter interrupt state to its assigned host IRQ line.
 	if asserted {
 		_ = d.host.raiseIRQ(ctx, d.assignedIRQ())
 		return
@@ -554,6 +588,7 @@ func (d *ne2kDevice) reset(ctx context.Context) {
 
 // resetState restores power-on register defaults and clears ring memory.
 func (d *ne2kDevice) resetState() {
+	// Restore the NE2000 command, DMA count, and receive-control defaults.
 	d.isr = 0
 	d.imr = 0
 	d.cr = ne2kCRStop
@@ -562,6 +597,8 @@ func (d *ne2kDevice) resetState() {
 	d.tcnt = 0
 	d.tpsr = 0
 	d.rxcr = 0
+
+	// Restore the transmit status and receive ring pointers.
 	d.txcr = 0
 	d.tsr = 1
 	d.rsar = 0
@@ -569,6 +606,8 @@ func (d *ne2kDevice) resetState() {
 	d.pstop = ne2kStopPage
 	d.curpg = ne2kStartRXPage
 	d.boundary = ne2kStartRXPage
+
+	// Clear the adapter interrupt and memory before seeding its PROM.
 	d.irqAsserted = false
 	clear(d.memory)
 	d.writePROM()
@@ -576,10 +615,13 @@ func (d *ne2kDevice) resetState() {
 
 // writePROM seeds the PROM area with the MAC in word-duplicated form.
 func (d *ne2kDevice) writePROM() {
+	// Duplicate the adapter MAC bytes into the word-wide PROM layout.
 	for i, value := range d.mac {
 		d.memory[i<<1] = value
 		d.memory[i<<1|1] = value
 	}
+
+	// Write the NE2000 signature into the final PROM words.
 	d.memory[14<<1] = 0x57
 	d.memory[14<<1|1] = 0x57
 	d.memory[15<<1] = 0x57
@@ -606,6 +648,7 @@ func ne2kPCIID(id int) uint16 {
 
 // newNE2KPCISpace builds the adapter's config space exposing its IO BAR.
 func newNE2KPCISpace(port uint16) []byte {
+	// Build the NE2000 PCI identity and Ethernet class header.
 	space := make([]byte, 256)
 	copy(space, []byte{
 		0xec, 0x10, 0x29, 0x80,
@@ -613,10 +656,14 @@ func newNE2KPCISpace(port uint16) []byte {
 		0x00, 0x00, 0x00, 0x02,
 		0x00, 0x00, 0x00, 0x00,
 	})
+
+	// Encode the adapter IO BAR, subsystem identity, and ROM address.
 	binary.LittleEndian.PutUint32(space[0x10:], uint32(port)|1)
 	binary.LittleEndian.PutUint16(space[0x2c:], 0x1af4)
 	binary.LittleEndian.PutUint16(space[0x2e:], 0x1100)
 	binary.LittleEndian.PutUint32(space[0x30:], 0xfeb80000)
+
+	// Advertise the NE2000 interrupt line and pin.
 	space[0x3c] = ne2kIRQ
 	space[0x3d] = 1
 	return space

@@ -86,10 +86,13 @@ type host9pInode struct {
 
 // OpenHost9PFS loads a v86 fs.json directory produced for Bun handle9p boot.
 func OpenHost9PFS(dir string) (*Host9PFS, error) {
+	// Read the root image metadata from fs.json.
 	data, err := os.ReadFile(filepath.Join(dir, "fs.json"))
 	if err != nil {
 		return nil, errors.Wrap(err, "read fs.json")
 	}
+
+	// Parse the root image metadata and require its inode entries.
 	var parser fastjson.Parser
 	root, err := parser.ParseBytes(data)
 	if err != nil {
@@ -99,6 +102,8 @@ func OpenHost9PFS(dir string) (*Host9PFS, error) {
 	if entries == nil {
 		return nil, errors.New("fs.json missing fsroot array")
 	}
+
+	// Build the Host9PFS root and load its inode tree.
 	fs := &Host9PFS{
 		flatDir: filepath.Join(dir, "flat"),
 		fids:    make(map[uint32]*host9pInode),
@@ -163,6 +168,7 @@ func (fs *Host9PFS) loadChildren(parent *host9pInode, values []*fastjson.Value) 
 
 // Handle serves one 9P request frame and returns the reply frame bytes.
 func (fs *Host9PFS) Handle(req []byte) []byte {
+	// Require the 9P header and reject payloads longer than the frame.
 	if len(req) < 7 {
 		return nil
 	}
@@ -170,11 +176,15 @@ func (fs *Host9PFS) Handle(req []byte) []byte {
 	if uint64(size) > uint64(len(req)) {
 		return p9Error(binary.LittleEndian.Uint16(req[5:]), p9EIO)
 	}
+
+	// Record the 9P request type before dispatching its body.
 	msgType := req[4]
 	tag := binary.LittleEndian.Uint16(req[5:])
 	body := req[7:size]
 	fs.requests.Add(1)
 	fs.lastType.Store(uint32(msgType))
+
+	// Dispatch the 9P request to its protocol handler.
 	switch msgType {
 	case p9TVersion:
 		return fs.handleVersion(tag, body)
@@ -218,9 +228,12 @@ func (fs *Host9PFS) stats() (uint64, byte, uint64, uint32, uint32, bool) {
 
 // handleVersion negotiates the 9P2000.L protocol version.
 func (fs *Host9PFS) handleVersion(tag uint16, body []byte) []byte {
+	// Require the message-size field before negotiating the 9P protocol.
 	if len(body) < 4 {
 		return p9Error(tag, p9EIO)
 	}
+
+	// Encode the negotiated message size and 9P2000.L version.
 	var out []byte
 	out = p9AppendU32(out, binary.LittleEndian.Uint32(body))
 	out = p9AppendString(out, "9P2000.L")
@@ -238,9 +251,12 @@ func (fs *Host9PFS) handleAttach(tag uint16, body []byte) []byte {
 
 // handleWalk resolves a walk path from a fid and returns the visited qids.
 func (fs *Host9PFS) handleWalk(tag uint16, body []byte) []byte {
+	// Require the 9P walk header before decoding its path.
 	if len(body) < 10 {
 		return p9Error(tag, p9EIO)
 	}
+
+	// Resolve the starting fid and decode the walk destination.
 	fid := binary.LittleEndian.Uint32(body)
 	newfid := binary.LittleEndian.Uint32(body[4:])
 	count := int(binary.LittleEndian.Uint16(body[8:]))
@@ -249,6 +265,8 @@ func (fs *Host9PFS) handleWalk(tag uint16, body []byte) []byte {
 	if node == nil {
 		return p9Error(tag, p9ENOENT)
 	}
+
+	// Traverse the inode path and collect the visited qids.
 	var qids []byte
 	for range count {
 		name, ok := cursor.string()
@@ -265,6 +283,8 @@ func (fs *Host9PFS) handleWalk(tag uint16, body []byte) []byte {
 		node = next
 		qids = append(qids, node.qid()...)
 	}
+
+	// Bind the destination fid and encode the visited qids.
 	fs.fids[newfid] = node
 	var out []byte
 	out = p9AppendU16(out, uint16(count)) //nolint:gosec // TWalk's count is a uint16 protocol field.
@@ -274,13 +294,18 @@ func (fs *Host9PFS) handleWalk(tag uint16, body []byte) []byte {
 
 // handleLOpen prepares a fid for IO and returns its qid and IO unit.
 func (fs *Host9PFS) handleLOpen(tag uint16, body []byte) []byte {
+	// Require the fid field before opening its inode.
 	if len(body) < 4 {
 		return p9Error(tag, p9EIO)
 	}
+
+	// Resolve the inode bound to the requested fid.
 	node := fs.fids[binary.LittleEndian.Uint32(body)]
 	if node == nil {
 		return p9Error(tag, p9ENOENT)
 	}
+
+	// Encode the inode qid and supported IO unit.
 	out := append([]byte{}, node.qid()...)
 	out = p9AppendU32(out, 65536)
 	return p9Reply(p9RLOpen, tag, out)
@@ -300,13 +325,18 @@ func (fs *Host9PFS) handleReadLink(tag uint16, body []byte) []byte {
 
 // handleGetAttr returns the stat metadata of a fid's inode.
 func (fs *Host9PFS) handleGetAttr(tag uint16, body []byte) []byte {
+	// Require the fid field before reading inode attributes.
 	if len(body) < 4 {
 		return p9Error(tag, p9EIO)
 	}
+
+	// Resolve the inode bound to the requested fid.
 	node := fs.fids[binary.LittleEndian.Uint32(body)]
 	if node == nil {
 		return p9Error(tag, p9ENOENT)
 	}
+
+	// Encode the inode identity, permissions, and link metadata.
 	var out []byte
 	out = p9AppendU64(out, 0x7ff)
 	out = append(out, node.qid()...)
@@ -315,9 +345,13 @@ func (fs *Host9PFS) handleGetAttr(tag uint16, body []byte) []byte {
 	out = p9AppendU32(out, node.gid)
 	out = p9AppendU64(out, 1)
 	out = p9AppendU64(out, 0)
+
+	// Encode the inode storage size and block allocation.
 	out = p9AppendU64(out, node.size)
 	out = p9AppendU64(out, 4096)
 	out = p9AppendU64(out, (node.size+511)/512)
+
+	// Encode the inode timestamps and unused generation fields.
 	for range 4 {
 		out = p9AppendU64(out, node.mtime)
 		out = p9AppendU64(out, 0)
@@ -329,9 +363,12 @@ func (fs *Host9PFS) handleGetAttr(tag uint16, body []byte) []byte {
 
 // handleReadDir streams one directory entry per child of a directory fid.
 func (fs *Host9PFS) handleReadDir(tag uint16, body []byte) []byte {
+	// Require the 9P directory read header before decoding its range.
 	if len(body) < 16 {
 		return p9Error(tag, p9EIO)
 	}
+
+	// Resolve the fid and require a directory inode.
 	node := fs.fids[binary.LittleEndian.Uint32(body)]
 	if node == nil {
 		return p9Error(tag, p9ENOENT)
@@ -339,12 +376,16 @@ func (fs *Host9PFS) handleReadDir(tag uint16, body []byte) []byte {
 	if !node.isDir() {
 		return p9Error(tag, p9ENOTDIR)
 	}
+
+	// Decode the directory range and handle an exhausted child list.
 	offset := binary.LittleEndian.Uint64(body[4:])
 	count := int(binary.LittleEndian.Uint32(body[12:]))
 	var entries []byte
 	if offset >= uint64(len(node.children)) {
 		return p9Reply(p9RReadDir, tag, p9AppendU32(nil, 0))
 	}
+
+	// Encode directory entries within the requested byte count.
 	for i := int(offset); i < len(node.children); i++ { //nolint:gosec // offset is bounded by the child slice length above.
 		child := node.children[i]
 		entry := append([]byte{}, child.qid()...)
@@ -356,6 +397,8 @@ func (fs *Host9PFS) handleReadDir(tag uint16, body []byte) []byte {
 		}
 		entries = append(entries, entry...)
 	}
+
+	// Frame the encoded directory entries with their byte length.
 	out := p9AppendU32(nil, uint32(len(entries))) //nolint:gosec // entries is bounded by the negotiated 9P message size.
 	out = append(out, entries...)
 	return p9Reply(p9RReadDir, tag, out)
@@ -363,19 +406,26 @@ func (fs *Host9PFS) handleReadDir(tag uint16, body []byte) []byte {
 
 // handleRead returns a byte range of a regular file or symlink target.
 func (fs *Host9PFS) handleRead(tag uint16, body []byte) []byte {
+	// Require the 9P file read header before decoding its range.
 	if len(body) < 16 {
 		return p9Error(tag, p9EIO)
 	}
+
+	// Resolve the inode bound to the requested fid.
 	node := fs.fids[binary.LittleEndian.Uint32(body)]
 	if node == nil {
 		return p9Error(tag, p9ENOENT)
 	}
+
+	// Read the requested byte range from the inode backing data.
 	offset := binary.LittleEndian.Uint64(body[4:])
 	count := binary.LittleEndian.Uint32(body[12:])
 	data, err := fs.readFile(node, offset, count)
 	if err != nil {
 		return p9Error(tag, p9EIO)
 	}
+
+	// Frame the file bytes with their actual read length.
 	out := p9AppendU32(nil, uint32(len(data))) //nolint:gosec // data is bounded by the negotiated 9P read size.
 	out = append(out, data...)
 	return p9Reply(p9RRead, tag, out)
@@ -391,12 +441,15 @@ func (fs *Host9PFS) handleClunk(tag uint16, body []byte) []byte {
 
 // handleStatFS answers with fixed filesystem capacity figures.
 func (fs *Host9PFS) handleStatFS(tag uint16) []byte {
+	// Encode the filesystem type, block size, and block capacity.
 	var out []byte
 	out = p9AppendU32(out, 0x01021997)
 	out = p9AppendU32(out, 4096)
 	out = p9AppendU64(out, 1000000)
 	out = p9AppendU64(out, 500000)
 	out = p9AppendU64(out, 500000)
+
+	// Encode the filesystem inode capacity and name length limit.
 	out = p9AppendU64(out, uint64(len(fs.inodes)))
 	out = p9AppendU64(out, 100000)
 	out = p9AppendU64(out, 0)
@@ -406,6 +459,7 @@ func (fs *Host9PFS) handleStatFS(tag uint16) []byte {
 
 // readFile reads up to count bytes at an offset from an inode's backing
 func (fs *Host9PFS) readFile(node *host9pInode, offset uint64, count uint32) ([]byte, error) {
+	// Resolve empty ranges and in-memory symlink data before opening a file.
 	if count == 0 || offset >= node.size {
 		return nil, nil
 	}
@@ -416,6 +470,8 @@ func (fs *Host9PFS) readFile(node *host9pInode, offset uint64, count uint32) ([]
 	if node.flatFile == "" {
 		return nil, nil
 	}
+
+	// Open the inode backing file with a buffer bounded by its remaining size.
 	limit := min(uint64(count), node.size-offset)
 	data := make([]byte, limit)
 	f, err := os.Open(filepath.Join(fs.flatDir, node.flatFile))
@@ -423,9 +479,13 @@ func (fs *Host9PFS) readFile(node *host9pInode, offset uint64, count uint32) ([]
 		return nil, err
 	}
 	defer f.Close()
+
+	// Require a file offset representable by the host file API.
 	if offset > math.MaxInt64 {
 		return nil, errors.New("9P file offset exceeds int64 range")
 	}
+
+	// Read the backing file range while accepting a partial final read.
 	n, err := f.ReadAt(data, int64(offset)) //nolint:gosec // the preceding MaxInt64 check protects os.File.ReadAt.
 	if err != nil && !errors.Is(err, io.EOF) {
 		return nil, err
@@ -459,12 +519,15 @@ func (n *host9pInode) isDir() bool {
 
 // qid renders the 13-byte 9P qid for the inode.
 func (n *host9pInode) qid() []byte {
+	// Select the 9P qid type from the inode mode.
 	var typ byte = host9pQIDFile
 	if n.isDir() {
 		typ = host9pQIDDir
 	} else if n.mode&host9pModeSymlink == host9pModeSymlink {
 		typ = host9pQIDSymlink
 	}
+
+	// Encode the qid type, version, and inode identity.
 	out := []byte{typ}
 	out = p9AppendU32(out, 0)
 	out = p9AppendU64(out, n.ino)
@@ -484,6 +547,7 @@ func (n *host9pInode) dtype() byte {
 
 // p9Reply frames a reply: size, message type, tag, then body.
 func p9Reply(typ byte, tag uint16, body []byte) []byte {
+	// Encode the 9P reply header and append its payload.
 	out := make([]byte, 7, 7+len(body))
 	binary.LittleEndian.PutUint32(out, uint32(7+len(body))) //nolint:gosec // 9P frames use a uint32 byte length.
 	out[4] = typ
@@ -531,14 +595,19 @@ type p9Cursor struct {
 
 // string consumes one length-prefixed string, reporting ok=false on
 func (c *p9Cursor) string() (string, bool) {
+	// Require the 9P string length prefix before decoding its size.
 	if c.pos+2 > len(c.data) {
 		return "", false
 	}
+
+	// Consume the length prefix and require the complete string payload.
 	size := int(binary.LittleEndian.Uint16(c.data[c.pos:]))
 	c.pos += 2
 	if c.pos+size > len(c.data) {
 		return "", false
 	}
+
+	// Consume the 9P string payload and advance the request cursor.
 	value := string(c.data[c.pos : c.pos+size])
 	c.pos += size
 	return value, true
