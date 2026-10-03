@@ -24,11 +24,12 @@ func isTypeScript(path string) bool {
 
 // RunEval evaluates JavaScript code in the page context.
 func (a *ClientArgs) RunEval(c *cli.Context) error {
+	// Prepare the page evaluation context and source representation.
 	ctx := c.Context
-
 	var code string
 	var isModule bool
 
+	// Load evaluation code from the requested script or command argument.
 	if a.EvalFilePath != "" && isTypeScript(a.EvalFilePath) {
 		// TypeScript: bundle with Vite first.
 		bundled, err := a.bundleTypeScript(ctx, a.EvalFilePath)
@@ -49,10 +50,13 @@ func (a *ClientArgs) RunEval(c *cli.Context) error {
 		return errors.New("provide code as argument or use --file")
 	}
 
+	// Connect to the debug service for the current page.
 	svc, err := a.BuildClient()
 	if err != nil {
 		return err
 	}
+
+	// Evaluate the script through the page debug service.
 	resp, err := svc.EvalJS(ctx, &s4wave_debug.EvalJSRequest{
 		Code:     code,
 		IsModule: isModule,
@@ -60,6 +64,8 @@ func (a *ClientArgs) RunEval(c *cli.Context) error {
 	if err != nil {
 		return err
 	}
+
+	// Report page evaluation errors to the command caller.
 	if resp.GetError() != "" {
 		msg := resp.GetError()
 		if LooksLikeSyntaxError(msg) {
@@ -67,6 +73,8 @@ func (a *ClientArgs) RunEval(c *cli.Context) error {
 		}
 		return errors.Errorf("eval: %s", msg)
 	}
+
+	// Print the page evaluation result when it has output.
 	result := resp.GetResult()
 	if result != "" {
 		os.Stdout.WriteString(result)
@@ -83,6 +91,7 @@ func (a *ClientArgs) bundleTypeScript(ctx context.Context, filePath string) (str
 		return "", err
 	}
 
+	// Locate the generated sources and working directory for script bundling.
 	stateRoot := filepath.Join(projectRoot, ".bldr")
 	distPath := filepath.Join(stateRoot, "src")
 	workingPath := filepath.Join(stateRoot, "debug", "eval")
@@ -92,6 +101,7 @@ func (a *ClientArgs) bundleTypeScript(ctx context.Context, filePath string) (str
 		return "", errors.New("bldr dist sources not found at .bldr/src/; run 'bldr setup' first")
 	}
 
+	// Open the TypeScript bundler with the generated project sources.
 	le := logrus.NewEntry(logrus.StandardLogger()).WithField("component", "eval-bundler")
 	b := bundler.NewBundler(le, distPath, projectRoot, workingPath)
 	defer b.Close()
@@ -106,6 +116,7 @@ func (a *ClientArgs) bundleTypeScript(ctx context.Context, filePath string) (str
 	webPkgs = bundler.MergeWebPkgStrings(webPkgs, a.WebPkgs.Value())
 	b.SetWebPkgs(webPkgs)
 
+	// Bundle the TypeScript script and report the generated code size.
 	le.Debugf("bundling %s", filePath)
 	code, err := b.Bundle(ctx, filePath)
 	if err != nil {
@@ -117,17 +128,24 @@ func (a *ClientArgs) bundleTypeScript(ctx context.Context, filePath string) (str
 
 // EvalCode evaluates JavaScript code and prints the result to stdout.
 func (a *ClientArgs) EvalCode(ctx context.Context, code string) error {
+	// Connect to the debug service for the current page.
 	svc, err := a.BuildClient()
 	if err != nil {
 		return err
 	}
+
+	// Evaluate the script through the page debug service.
 	resp, err := svc.EvalJS(ctx, &s4wave_debug.EvalJSRequest{Code: code})
 	if err != nil {
 		return err
 	}
+
+	// Report page evaluation errors to the command caller.
 	if resp.GetError() != "" {
 		return errors.Errorf("eval: %s", resp.GetError())
 	}
+
+	// Print the page evaluation result when it has output.
 	result := resp.GetResult()
 	if result != "" {
 		os.Stdout.WriteString(result)
@@ -138,16 +156,20 @@ func (a *ClientArgs) EvalCode(ctx context.Context, code string) error {
 
 // RunInfo returns information about the current page.
 func (a *ClientArgs) RunInfo(c *cli.Context) error {
+	// Connect to the debug service for the current page.
 	ctx := c.Context
-
 	svc, err := a.BuildClient()
 	if err != nil {
 		return err
 	}
+
+	// Fetch the current page metadata from the debug service.
 	resp, err := svc.GetPageInfo(ctx, &s4wave_debug.GetPageInfoRequest{})
 	if err != nil {
 		return err
 	}
+
+	// Print the page URL, title and runtime identifiers.
 	w := os.Stdout
 	w.WriteString("URL:         " + resp.GetUrl() + "\n")
 	w.WriteString("Title:       " + resp.GetTitle() + "\n")

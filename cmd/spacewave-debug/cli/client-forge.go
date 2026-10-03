@@ -69,11 +69,14 @@ func (a *ClientArgs) BuildForgeCommand() *appcli.Command {
 
 // RunPluginTarget runs a space-exec/plugin target through the live debug bridge.
 func (fa *ForgeArgs) RunPluginTarget(c *appcli.Context) error {
+	// Read the Forge target file for this command.
 	ctx := c.Context
 	data, err := os.ReadFile(fa.TargetPath)
 	if err != nil {
 		return errors.Wrapf(err, "read target %s", fa.TargetPath)
 	}
+
+	// Parse and validate the plugin execution target before running it.
 	conf, err := parsePluginExecTarget(data)
 	if err != nil {
 		return err
@@ -86,6 +89,7 @@ func (fa *ForgeArgs) runParsedPluginTarget(
 	conf *space_exec.PluginExecConfig,
 	w io.Writer,
 ) error {
+	// Report the target route and stop when only validation was requested.
 	browserRequired := fa.BrowserRequired || isBrowserRequiredPluginTarget(conf)
 	if err := writePluginTargetRoute(w, conf, browserRequired); err != nil {
 		return err
@@ -93,13 +97,19 @@ func (fa *ForgeArgs) runParsedPluginTarget(
 	if fa.DryRun {
 		return nil
 	}
+
+	// Reject plugin targets that require an unavailable browser route.
 	if browserRequired {
 		return errors.New("browser-required target cannot run through the current native debug bridge")
 	}
+
+	// Connect to the live plugin execution service for this target.
 	client, err := fa.client.BuildPluginExecServiceClient(ctx, conf.GetPluginId())
 	if err != nil {
 		return err
 	}
+
+	// Execute the target through a stream when the plugin supports it.
 	req := &space_exec.PluginExecRequest{
 		ControllerId:     conf.GetControllerId(),
 		ControllerConfig: conf.GetControllerConfig(),
@@ -109,6 +119,8 @@ func (fa *ForgeArgs) runParsedPluginTarget(
 		defer strm.Close()
 		return printPluginExecStream(ctx, w, strm)
 	}
+
+	// Execute the target through the unary service when streaming fails.
 	resp, err := client.Execute(ctx, req)
 	if err != nil {
 		return errors.Wrap(err, "execute plugin target")
@@ -124,6 +136,7 @@ func isBrowserRequiredPluginTarget(conf *space_exec.PluginExecConfig) bool {
 }
 
 func writePluginTargetRoute(w io.Writer, conf *space_exec.PluginExecConfig, browserRequired bool) error {
+	// Print the target plugin, controller and configuration size.
 	if _, err := io.WriteString(w, "plugin: "+conf.GetPluginId()+"\n"); err != nil {
 		return err
 	}
@@ -133,6 +146,8 @@ func writePluginTargetRoute(w io.Writer, conf *space_exec.PluginExecConfig, brow
 	if _, err := io.WriteString(w, "controller-config-bytes: "+strconv.Itoa(len(conf.GetControllerConfig()))+"\n"); err != nil {
 		return err
 	}
+
+	// Report the execution route and whether it requires a browser.
 	substrate := "native-debug"
 	if browserRequired {
 		substrate = "browser-required-unavailable"
@@ -153,10 +168,13 @@ func (a *ClientArgs) BuildPluginExecServiceClient(
 	ctx context.Context,
 	pluginID string,
 ) (space_exec.SRPCPluginExecServiceClient, error) {
+	// Dial the plugin RPC connection for the requested plugin.
 	pluginClient, err := a.DialPluginRpc(pluginID)
 	if err != nil {
 		return nil, err
 	}
+
+	// Proxy the plugin execution service through the RPC access service.
 	accessClient := bifrost_rpc_access.NewSRPCAccessRpcServiceClient(pluginClient)
 	req := bifrost_rpc_access.NewLookupRpcServiceRequest(space_exec.SRPCPluginExecServiceServiceID, "")
 	invoker := bifrost_rpc_access.NewProxyInvoker(accessClient, req, true)
@@ -165,18 +183,25 @@ func (a *ClientArgs) BuildPluginExecServiceClient(
 }
 
 func parsePluginExecTarget(data []byte) (*space_exec.PluginExecConfig, error) {
+	// Convert the Forge target document to JSON for typed field access.
 	jdata, err := yaml.YAMLToJSON(data)
 	if err != nil {
 		return nil, errors.Wrap(err, "parse target yaml")
 	}
+
+	// Parse the target JSON into fields used by plugin execution.
 	var p fastjson.Parser
 	v, err := p.ParseBytes(jdata)
 	if err != nil {
 		return nil, errors.Wrap(err, "parse target json")
 	}
+
+	// Reject target inputs that the debug runner cannot supply.
 	if inputs := v.GetArray("inputs"); len(inputs) != 0 {
 		return nil, errors.New("debug plugin target runner does not support target inputs yet")
 	}
+
+	// Require the target execution controller to select the plugin executor.
 	controller := v.Get("exec", "controller")
 	if controller == nil || controller.Type() != fastjson.TypeObject {
 		return nil, errors.New("target exec.controller is required")
@@ -184,14 +209,20 @@ func parsePluginExecTarget(data []byte) (*space_exec.PluginExecConfig, error) {
 	if id := stringValue(controller.Get("id")); id != space_exec.PluginExecConfigID {
 		return nil, errors.Errorf("target exec.controller.id must be %s, got %q", space_exec.PluginExecConfigID, id)
 	}
+
+	// Require the plugin execution configuration object.
 	config := controller.Get("config")
 	if config == nil || config.Type() != fastjson.TypeObject {
 		return nil, errors.New("target exec.controller.config is required")
 	}
+
+	// Decode the plugin controller configuration from the target document.
 	controllerConfig, err := base64.StdEncoding.DecodeString(stringValue(config.Get("controllerConfig")))
 	if err != nil {
 		return nil, errors.Wrap(err, "decode controllerConfig")
 	}
+
+	// Validate the plugin execution configuration assembled from target fields.
 	conf := &space_exec.PluginExecConfig{
 		PluginId:         stringValue(config.Get("pluginId")),
 		ControllerId:     stringValue(config.Get("controllerId")),
@@ -230,25 +261,34 @@ func printPluginExecStream(
 }
 
 func printPluginExecResponse(ctx context.Context, w io.Writer, resp *space_exec.PluginExecResponse) error {
+	// Require an active command context and a plugin execution response.
 	if err := ctx.Err(); err != nil {
 		return err
 	}
 	if resp == nil {
 		return errors.New("plugin exec service returned nil response")
 	}
+
+	// Print every log entry returned by plugin execution.
 	for _, entry := range resp.GetLogs() {
 		if _, err := io.WriteString(w, "log["+entry.GetLevel()+"]: "+entry.GetMessage()+"\n"); err != nil {
 			return err
 		}
 	}
+
+	// Print the values returned by plugin execution.
 	if err := printPluginExecOutputs(w, resp.GetOutputs()); err != nil {
 		return err
 	}
+
+	// Report the paths and byte counts of plugin output files.
 	for _, file := range resp.GetOutputFiles() {
 		if _, err := io.WriteString(w, "output-file: "+file.GetPath()+" bytes="+strconv.Itoa(len(file.GetData()))+"\n"); err != nil {
 			return err
 		}
 	}
+
+	// Return the execution failure reported by the plugin.
 	if resp.GetError() != "" {
 		return errors.New(resp.GetError())
 	}
