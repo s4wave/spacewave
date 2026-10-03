@@ -86,6 +86,7 @@ func newPromptSession(strm s4wave_cli_terminal.SRPCCliTerminalService_RunCliStre
 }
 
 func (s *promptSession) run(ctx context.Context) error {
+	// Announce readiness and print the first prompt; close the stream on return.
 	if err := s.strm.Send(&s4wave_terminal.TerminalFrame{Kind: s4wave_terminal.TerminalFrameKind_TERMINAL_FRAME_KIND_READY}); err != nil {
 		return err
 	}
@@ -94,6 +95,7 @@ func (s *promptSession) run(ctx context.Context) error {
 	}
 	defer s.strm.Close()
 
+	// Dispatch input frames and command results until the stream ends.
 	recvCh := s.recvFrames(ctx)
 	var command *commandState
 	for {
@@ -327,6 +329,8 @@ func (s *promptSession) handleEscape(data []byte) (bool, []byte, error) {
 }
 
 func (s *promptSession) recallHistory(direction int) error {
+	// Step the history index, saving the draft when recall begins and
+	// restoring it past the newest entry.
 	if len(s.history) == 0 {
 		return nil
 	}
@@ -350,6 +354,8 @@ func (s *promptSession) recallHistory(direction int) error {
 			return s.redrawLine()
 		}
 	}
+
+	// Show the recalled entry with the cursor at its end.
 	s.line = []rune(s.history[s.historyIndex])
 	s.cursor = len(s.line)
 	return s.redrawLine()
@@ -367,6 +373,7 @@ func (s *promptSession) resetHistoryRecall() {
 }
 
 func (s *promptSession) redrawLine() error {
+	// Clear the line, reprint the prompt and input, and restore the cursor.
 	out := "\r\x1b[2K" + prompt + string(s.line)
 	if right := len(s.line) - s.cursor; right != 0 {
 		out += "\x1b[" + strconv.Itoa(right) + "D"
@@ -375,6 +382,7 @@ func (s *promptSession) redrawLine() error {
 }
 
 func (s *promptSession) executeCommand(ctx context.Context, line string) error {
+	// Split the command line and reject an unsupported command.
 	args, err := splitCommandLine(line)
 	if err != nil {
 		return s.writeCommandError(err.Error())
@@ -386,15 +394,18 @@ func (s *promptSession) executeCommand(ctx context.Context, line string) error {
 		return s.writeUnsupportedCommandError(args[0])
 	}
 
+	// Parse the browser command options.
 	opts, err := parseBrowserCommandOptions(args[1:], args[0] == "space" || args[0] == "spaces")
 	if err != nil {
 		return s.writeCommandError(err.Error())
 	}
 
+	// Route the command output to the terminal.
 	config := s.config
 	config.Stdout = &terminalOutputWriter{session: s}
 	cliCtx := &cli.Context{Context: ctx}
 
+	// Run the selected command.
 	switch args[0] {
 	case "status":
 		err = runner.RunStatus(config, cliCtx, opts.outputFormat, opts.sessionIdx)
@@ -410,6 +421,7 @@ func (s *promptSession) executeCommand(ctx context.Context, line string) error {
 }
 
 func (s *promptSession) writeHelp() error {
+	// List each supported command with its usage, then the native CLI pointer.
 	var out strings.Builder
 	out.WriteString("Supported browser CLI commands:\r\n")
 	for _, usage := range supportedCommandUsages(s.config) {
@@ -429,6 +441,7 @@ func (s *promptSession) writeHelp() error {
 }
 
 func supportedCommandUsages(config runner.Config) []commandUsage {
+	// Collect the usage of each runner command, subcommand and alias.
 	commands := runner.NewCommands(config)
 	usages := make([]commandUsage, 0, 8)
 	for _, cmd := range commands {
@@ -440,6 +453,8 @@ func supportedCommandUsages(config runner.Config) []commandUsage {
 			}
 		}
 	}
+
+	// Append the commands the prompt handles itself.
 	usages = append(usages,
 		commandUsage{name: "help, ?", usage: "show browser CLI help"},
 		commandUsage{name: "clear", usage: "clear the terminal"},
@@ -464,6 +479,7 @@ func (s *promptSession) writeOutput(output string) error {
 }
 
 func (s *promptSession) writeOutputBytes(output []byte) error {
+	// Normalize non-empty output and send it as one frame under the output lock.
 	if len(output) == 0 {
 		return nil
 	}
@@ -615,12 +631,14 @@ func hasInterrupt(data []byte) bool {
 }
 
 func splitCommandLine(line string) ([]string, error) {
+	// Track the current argument, quote and escape state.
 	var args []string
 	var b strings.Builder
 	var quote rune
 	escaped := false
 	inArg := false
 
+	// Split on unquoted whitespace, honoring quotes and backslash escapes.
 	for _, r := range line {
 		if escaped {
 			b.WriteRune(r)
