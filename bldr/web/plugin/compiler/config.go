@@ -29,6 +29,7 @@ func (c *Config) GetConfigID() string {
 
 // Validate validates the configuration.
 func (c *Config) Validate() error {
+	// Validate the Go compiler settings and optional Electron package identifier.
 	conf, err := c.ToPluginCompilerConf()
 	if err != nil {
 		return err
@@ -61,6 +62,7 @@ func (c *Config) EqualsConfig(other config.Config) bool {
 
 // ToPluginCompilerConf converts the Config to a PluginCompilerConf.
 func (c *Config) ToPluginCompilerConf() (*bldr_plugin_compiler_go.Config, error) {
+	// Configure the Go plugin compiler to run the web plugin controller.
 	pluginCompilerConf := bldr_plugin_compiler_go.NewConfig()
 	pluginCompilerConf.ProjectId = c.GetProjectId()
 	pluginCompilerConf.GoPkgs = []string{

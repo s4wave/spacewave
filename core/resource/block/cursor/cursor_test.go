@@ -20,6 +20,7 @@ import (
 const exampleBlockTypeID = "github.com/s4wave/spacewave/db/block/mock.Example"
 
 func TestUnmarshalWithBlockTypeReusesDecodedCursor(t *testing.T) {
+	// Start a block testbed with the example block type registered.
 	ctx := context.Background()
 	le := logrus.NewEntry(logrus.New())
 	tb, err := testbed.NewTestbed(ctx, le)
@@ -29,6 +30,7 @@ func TestUnmarshalWithBlockTypeReusesDecodedCursor(t *testing.T) {
 	t.Cleanup(tb.Release)
 	addExampleBlockTypeController(t, ctx, tb)
 
+	// Create a resource cursor rooted at a serialized example block.
 	store := block_mock.NewMockStore(0)
 	ref, _, err := block.PutBlock(ctx, store, &block_mock.Example{Msg: "typed cursor"})
 	if err != nil {
@@ -37,6 +39,7 @@ func TestUnmarshalWithBlockTypeReusesDecodedCursor(t *testing.T) {
 	tx, cursor := block.NewTransaction(store, nil, ref, nil)
 	resource := NewBlockCursorResource(le, tb.Bus, tx, cursor)
 
+	// Read the typed block once while recording cursor cache counters.
 	opCtx, counter := block.WithReadCounter(ctx)
 	resp, err := resource.Unmarshal(opCtx, &s4wave_block_cursor.UnmarshalRequest{BlockType: exampleBlockTypeID})
 	if err != nil {
@@ -44,12 +47,14 @@ func TestUnmarshalWithBlockTypeReusesDecodedCursor(t *testing.T) {
 	}
 	assertExampleResponse(t, resp.GetData(), "typed cursor")
 
+	// Read the same typed block again through the resource cursor.
 	resp, err = resource.Unmarshal(opCtx, &s4wave_block_cursor.UnmarshalRequest{BlockType: exampleBlockTypeID})
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	assertExampleResponse(t, resp.GetData(), "typed cursor")
 
+	// Verify repeated typed reads reuse the decoded cursor block.
 	snapshot := counter.Snapshot()
 	if snapshot.BlockReadCount != 1 ||
 		snapshot.DecodedBlockUnmarshalCount != 1 ||
@@ -61,6 +66,7 @@ func TestUnmarshalWithBlockTypeReusesDecodedCursor(t *testing.T) {
 }
 
 func TestSetBlockWithSqlRootBlockTypesWritesBrowserSeededRoots(t *testing.T) {
+	// Start a block testbed with both SQL root block types registered.
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	t.Cleanup(cancel)
 	le := logrus.NewEntry(logrus.New())
@@ -71,6 +77,7 @@ func TestSetBlockWithSqlRootBlockTypesWritesBrowserSeededRoots(t *testing.T) {
 	t.Cleanup(tb.Release)
 	addSQLBlockTypeController(t, ctx, tb)
 
+	// Verify raw SQL seed bytes cannot be written as a typed root block.
 	rawStore := block_mock.NewMockStore(0)
 	rawTx, rawCursor := block.NewTransaction(rawStore, nil, nil, nil)
 	rawResource := NewBlockCursorResource(le, tb.Bus, rawTx, rawCursor)
@@ -93,6 +100,7 @@ func TestSetBlockWithSqlRootBlockTypesWritesBrowserSeededRoots(t *testing.T) {
 		t.Fatalf("raw SQL root write error = %v, want %v", err, block.ErrNotBlock)
 	}
 
+	// Write and decode a typed SQL query root with its seeded fields intact.
 	queryRoot := writeTypedSqlRoot(
 		t,
 		ctx,
@@ -111,6 +119,7 @@ func TestSetBlockWithSqlRootBlockTypesWritesBrowserSeededRoots(t *testing.T) {
 		t.Fatalf("query root = %#v, want %#v", query, querySeed)
 	}
 
+	// Write and decode a typed SQL workbench root with its seeded fields intact.
 	workbenchSeed := &s4wave_sql_workbench.Workbench{
 		TargetDbObjectKey: "sql/db",
 		DisplayName:       "Browser SQL Workbench",
@@ -139,6 +148,7 @@ func TestSetBlockWithSqlRootBlockTypesWritesBrowserSeededRoots(t *testing.T) {
 }
 
 func addExampleBlockTypeController(t *testing.T, ctx context.Context, tb *testbed.Testbed) {
+	// Register an example block constructor for the testbed lifecycle.
 	t.Helper()
 	controller := blocktype_controller.NewController(func(ctx context.Context, typeID string) (blocktype.BlockType, error) {
 		if typeID == exampleBlockTypeID {
@@ -156,6 +166,7 @@ func addExampleBlockTypeController(t *testing.T, ctx context.Context, tb *testbe
 }
 
 func addSQLBlockTypeController(t *testing.T, ctx context.Context, tb *testbed.Testbed) {
+	// Register the SQL query and workbench block types for the testbed lifecycle.
 	t.Helper()
 	controller := blocktype_controller.NewController(func(_ context.Context, typeID string) (blocktype.BlockType, error) {
 		switch typeID {
@@ -182,11 +193,14 @@ func writeTypedSqlRoot(
 	blockTypeID string,
 	root block.Block,
 ) *block.Cursor {
+	// Encode the SQL root seed before creating its resource cursor.
 	t.Helper()
 	data, err := root.MarshalBlock()
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Store the SQL seed as a typed block through the resource cursor.
 	store := block_mock.NewMockStore(0)
 	tx, cursor := block.NewTransaction(store, nil, nil, nil)
 	resource := NewBlockCursorResource(le, tb.Bus, tx, cursor)
@@ -197,6 +211,8 @@ func writeTypedSqlRoot(
 	}); err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Publish the typed SQL root and require a nonempty block reference.
 	ref, rootCursor, err := tx.Write(ctx, true)
 	if err != nil {
 		t.Fatal(err.Error())

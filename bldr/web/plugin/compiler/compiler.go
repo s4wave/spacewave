@@ -140,11 +140,13 @@ func (c *Controller) BuildManifest(
 	args *bldr_manifest_builder.BuildManifestArgs,
 	host bldr_manifest_builder.BuildManifestHost,
 ) (*bldr_manifest_builder.BuilderResult, error) {
+	// Resolve the Go plugin compiler configuration for this manifest.
 	pluginCompilerConf, err := c.GetConfig().ToPluginCompilerConf()
 	if err != nil {
 		return nil, err
 	}
 
+	// Resolve the target platform before choosing the plugin entrypoint.
 	_, buildPlatform, err := args.GetBuilderConfig().GetManifestMeta().Resolve()
 	if err != nil {
 		return nil, err
@@ -173,11 +175,13 @@ func (c *Controller) BuildManifest(
 		return c.buildBrowserShimManifest(ctx, args)
 	}
 
+	// Construct the Go plugin compiler with the resolved configuration.
 	pluginCompilerCtrl, err := plugin_compiler_go.NewController(c.GetLogger(), c.GetBus(), pluginCompilerConf)
 	if err != nil {
 		return nil, err
 	}
 
+	// Attach the selected native web renderer bundling hook.
 	if shouldBundleNativeWebRenderer() {
 		// Check which web renderer to bundle based on BLDR_WEB_RENDERER env var.
 		renderer := web_runtime.GetWebRendererFromEnv().Resolve()
@@ -206,6 +210,7 @@ func (c *Controller) BundleElectronHook(
 	builderConf *bldr_manifest_builder.BuilderConfig,
 	worldEng world.Engine,
 ) (*plugin_compiler_go.PreBuildHookResult, error) {
+	// Resolve the manifest metadata and platform for the Electron bundle.
 	meta, buildPlatform, err := builderConf.GetManifestMeta().Resolve()
 	if err != nil {
 		return nil, err
@@ -222,12 +227,14 @@ func (c *Controller) BundleElectronHook(
 		return nil, nil
 	}
 
+	// Derive the Electron build settings and working directory.
 	buildType := bldr_manifest.ToBuildType(meta.GetBuildType())
 	platformID := meta.GetPlatformId()
 	pluginID := meta.GetManifestId()
 	minify, devMode := buildType.IsRelease(), buildType.IsDev()
 	workingDir := filepath.Join(builderConf.GetWorkingPath(), "build")
 
+	// Attach manifest identifiers to the Electron build log.
 	le := c.GetLogger().
 		WithField("plugin-id", pluginID).
 		WithField("build-type", buildType).
@@ -241,6 +248,7 @@ func (c *Controller) BundleElectronHook(
 		return nil, err
 	}
 
+	// Resolve the Electron package version from configuration or package metadata.
 	electronPkg := c.GetConfig().GetElectronPkg()
 	if electronPkg == "" {
 		// attempt to load version from package.json
@@ -316,6 +324,7 @@ func (c *Controller) BundleElectronHook(
 		return nil, errors.Wrap(err, "build app.asar")
 	}
 
+	// Configure Electron debugging and sandbox flags for this build.
 	var extraElectronFlags []string
 	if buildType.IsDev() {
 		extraElectronFlags = append(
@@ -359,6 +368,7 @@ func (c *Controller) BundleElectronHook(
 		}
 	}
 
+	// Encode the Electron controller configuration for plugin startup.
 	electronCtrlConf, err := configset_proto.NewControllerConfig(configset.NewControllerConfig(1, electronConf), false)
 	if err != nil {
 		return nil, err
@@ -383,6 +393,7 @@ func (c *Controller) BundleSaucerHook(
 	builderConf *bldr_manifest_builder.BuilderConfig,
 	worldEng world.Engine,
 ) (*plugin_compiler_go.PreBuildHookResult, error) {
+	// Resolve the manifest metadata and platform for the Saucer bundle.
 	meta, buildPlatform, err := builderConf.GetManifestMeta().Resolve()
 	if err != nil {
 		return nil, err
@@ -398,6 +409,7 @@ func (c *Controller) BundleSaucerHook(
 		return nil, nil
 	}
 
+	// Derive the Saucer build and JavaScript output settings.
 	buildType := bldr_manifest.ToBuildType(meta.GetBuildType())
 	platformID := meta.GetPlatformId()
 	pluginID := meta.GetManifestId()
@@ -405,12 +417,14 @@ func (c *Controller) BundleSaucerHook(
 	jsMinification := builderConf.GetBuildPolicy().ResolveJsMinification(buildType)
 	jsSourcemaps := builderConf.GetBuildPolicy().ResolveJsSourcemaps(buildType)
 
+	// Attach manifest identifiers to the Saucer build log.
 	le := c.GetLogger().
 		WithField("plugin-id", pluginID).
 		WithField("build-type", buildType).
 		WithField("platform-id", platformID)
 	le.Debug("building web plugin with saucer")
 
+	// Prepare an empty distribution directory for the Saucer bundle.
 	outDistPath := filepath.Join(builderConf.GetWorkingPath(), "dist")
 	if err := fsutil.CleanCreateDir(outDistPath); err != nil {
 		return nil, err
@@ -500,6 +514,7 @@ func (c *Controller) BundleSaucerHook(
 		}
 	}
 
+	// Encode the Saucer controller configuration for plugin startup.
 	saucerCtrlConf, err := configset_proto.NewControllerConfig(configset.NewControllerConfig(1, saucerConf), false)
 	if err != nil {
 		return nil, err
@@ -526,6 +541,7 @@ func (c *Controller) buildBrowserShimManifest(
 	ctx context.Context,
 	args *bldr_manifest_builder.BuildManifestArgs,
 ) (*bldr_manifest_builder.BuilderResult, error) {
+	// Resolve the manifest metadata for the browser shim build.
 	le := c.GetLogger()
 	builderConf := args.GetBuilderConfig()
 	meta, _, err := builderConf.GetManifestMeta().Resolve()
@@ -533,15 +549,18 @@ func (c *Controller) buildBrowserShimManifest(
 		return nil, err
 	}
 
+	// Prepare an empty distribution directory for the browser shim.
 	outDistPath := filepath.Join(builderConf.GetWorkingPath(), "dist")
 	if err := fsutil.CleanCreateDir(outDistPath); err != nil {
 		return nil, err
 	}
 
+	// Resolve the JavaScript output settings for the browser build type.
 	buildType := bldr_manifest.ToBuildType(meta.GetBuildType())
 	jsMinification := builderConf.GetBuildPolicy().ResolveJsMinification(buildType)
 	jsSourcemaps := builderConf.GetBuildPolicy().ResolveJsSourcemaps(buildType)
 
+	// Build the browser plugin entrypoint in the distribution directory.
 	outFilename := "web.mjs"
 	outFile := filepath.Join(outDistPath, outFilename)
 	err = web_plugin_browser_build.BuildWebPluginBrowserEntrypoint(
@@ -556,6 +575,7 @@ func (c *Controller) buildBrowserShimManifest(
 		return nil, err
 	}
 
+	// Open a World transaction for publishing the browser shim manifest.
 	busEngine := world.NewBusEngine(ctx, c.GetBus(), builderConf.GetEngineId())
 	tx, err := busEngine.NewTransaction(ctx, true)
 	if err != nil {
@@ -563,7 +583,9 @@ func (c *Controller) buildBrowserShimManifest(
 	}
 	defer tx.Discard()
 
+	// Report that the browser plugin files are ready to bundle.
 	le.Debug("bundling plugin files")
+
 	// bundle dist and assets fs
 	committedManifest, committedManifestRef, err := builderConf.CommitManifestWithPaths(
 		ctx,
@@ -578,6 +600,7 @@ func (c *Controller) buildBrowserShimManifest(
 		return nil, err
 	}
 
+	// Publish the browser shim result with its startup validation inputs.
 	le.Debug("plugin build complete")
 	result := bldr_manifest_builder.NewBuilderResult(
 		committedManifest,
@@ -604,6 +627,7 @@ func addWebPluginStartupInputs(
 	builderConf *bldr_manifest_builder.BuilderConfig,
 	builderResult *bldr_manifest_builder.BuilderResult,
 ) error {
+	// Record the environment values that affect web plugin startup.
 	if builderResult.GetInputManifest() == nil {
 		builderResult.InputManifest = bldr_manifest_builder.NewInputManifest(nil, nil)
 	}
@@ -630,6 +654,7 @@ func addWebPluginStartupInputs(
 		bldr_manifest_builder.NewEnvStartupInput("BLDR_FROM_SOURCE", os.Getenv("BLDR_FROM_SOURCE")),
 	)
 
+	// Track existing manifest paths before adding package metadata inputs.
 	seenPaths := make(map[string]struct{}, len(inputManifest.GetFiles()))
 	for _, f := range inputManifest.GetFiles() {
 		seenPaths[f.GetPath()] = struct{}{}
@@ -637,6 +662,8 @@ func addWebPluginStartupInputs(
 	sourcePath := builderConf.GetSourcePath()
 	appendWebPluginInputFile(inputManifest, seenPaths, sourcePath, false, "package.json")
 	appendWebPluginInputFile(inputManifest, seenPaths, sourcePath, false, "bun.lock")
+
+	// Include distributed browser and renderer sources in startup validation.
 	appendWebPluginInputDir(inputManifest, seenPaths, sourcePath, false, ".bldr/src/dist/deps")
 	appendWebPluginInputDir(inputManifest, seenPaths, sourcePath, false, ".bldr/src/manifest")
 	appendWebPluginInputDir(inputManifest, seenPaths, sourcePath, false, ".bldr/src/plugin")
@@ -644,6 +671,8 @@ func addWebPluginStartupInputs(
 	appendWebPluginInputDir(inputManifest, seenPaths, sourcePath, false, ".bldr/src/web/entrypoint")
 	appendWebPluginInputDir(inputManifest, seenPaths, sourcePath, false, ".bldr/src/web/plugin/browser")
 	appendWebPluginInputDir(inputManifest, seenPaths, sourcePath, false, ".bldr/src/web/runtime/wasm")
+
+	// Sort the startup validation records for deterministic manifest output.
 	inputManifest.SortStartupInputs()
 	inputManifest.SortFiles()
 	return nil
@@ -659,6 +688,7 @@ func appendWebPluginInputDir(
 ) {
 	absDir := filepath.Join(sourcePath, relDir)
 	_ = filepath.Walk(absDir, func(currPath string, fileInfo os.FileInfo, err error) error {
+		// Record each distinct source file discovered in the input directory.
 		if err != nil || fileInfo == nil || fileInfo.IsDir() {
 			return nil
 		}
@@ -686,6 +716,7 @@ func appendWebPluginInputFile(
 	startupOnly bool,
 	relPath string,
 ) {
+	// Record the requested source file only when it exists and is new.
 	if relPath == "" {
 		return
 	}

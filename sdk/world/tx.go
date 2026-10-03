@@ -26,11 +26,13 @@ type Tx struct {
 
 // NewTx creates a new Tx resource wrapper.
 func NewTx(client *resource_client.Client, ref resource_client.ResourceRef, readOnly bool) (*Tx, error) {
+	// Wrap the transaction resource with its World state interface.
 	ws, err := NewWorldState(client, ref, readOnly)
 	if err != nil {
 		return nil, err
 	}
 
+	// Obtain the transaction client for commit and discard operations.
 	srpcClient, err := ref.GetClient()
 	if err != nil {
 		return nil, err
@@ -61,13 +63,18 @@ func (tx *Tx) Commit(ctx context.Context) error {
 // CommitError restores the stale-generation classification that the RPC
 // boundary flattens to text in a Commit error.
 func CommitError(err error) error {
+	// Preserve a successful transaction commit.
 	if err == nil {
 		return nil
 	}
+
+	// Recognize a stale-generation error flattened by the RPC boundary.
 	msg, stale := strings.CutSuffix(err.Error(), coord.ErrStaleGeneration.Error())
 	if !stale {
 		return err
 	}
+
+	// Restore the stale-generation classification with its remote message.
 	msg = strings.TrimSuffix(msg, ": ")
 	if msg == "" {
 		return coord.ErrStaleGeneration

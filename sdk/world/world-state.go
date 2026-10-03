@@ -105,10 +105,13 @@ func (ws *WorldState) AccessWorldState(ctx context.Context, ref *bucket.ObjectRe
 // OpenNestedWorld opens an immutable sub-World published by a typed outer object.
 // Release the returned state independently of this World state.
 func (ws *WorldState) OpenNestedWorld(ctx context.Context, key string) (*WorldState, error) {
+	// Open the immutable nested World through the outer object.
 	resp, err := ws.service.OpenNestedWorld(ctx, &OpenNestedWorldRequest{ObjectKey: key})
 	if err != nil {
 		return nil, err
 	}
+
+	// Wrap the nested World resource and release it if construction fails.
 	ref := ws.client.CreateResourceReference(resp.GetResourceId())
 	nested, err := NewWorldState(ws.client, ref, true)
 	if err != nil {
@@ -121,10 +124,13 @@ func (ws *WorldState) OpenNestedWorld(ctx context.Context, key string) (*WorldSt
 // OpenOuterWorld grants the Engine of the enclosing Space under the same authority.
 // Release the returned Engine independently of the nested state.
 func (ws *WorldState) OpenOuterWorld(ctx context.Context) (*Engine, error) {
+	// Request access to the enclosing Space Engine.
 	resp, err := ws.service.OpenOuterWorld(ctx, &OpenOuterWorldRequest{})
 	if err != nil {
 		return nil, err
 	}
+
+	// Wrap the outer Engine resource and release it if construction fails.
 	ref := ws.client.CreateResourceReference(resp.GetResourceId())
 	outer, err := NewEngine(ws.client, ref)
 	if err != nil {
@@ -139,6 +145,7 @@ func (ws *WorldState) OpenOuterWorld(ctx context.Context) (*Engine, error) {
 // Appends a OBJECT_SET change to the changelog.
 // Returns an ObjectState resource for the created object.
 func (ws *WorldState) CreateObject(ctx context.Context, key string, rootRef *bucket.ObjectRef) (world.ObjectState, error) {
+	// Create the World object with its initial root reference.
 	resp, err := ws.service.CreateObject(ctx, &CreateObjectRequest{
 		ObjectKey: key,
 		RootRef:   rootRef,
@@ -147,6 +154,7 @@ func (ws *WorldState) CreateObject(ctx context.Context, key string, rootRef *buc
 		return nil, err
 	}
 
+	// Wrap the created object resource and release it if construction fails.
 	objRef := ws.client.CreateResourceReference(resp.ResourceId)
 	obj, err := NewObjectState(ws.client, objRef, resp.ObjectKey)
 	if err != nil {
@@ -159,15 +167,18 @@ func (ws *WorldState) CreateObject(ctx context.Context, key string, rootRef *buc
 // GetObject retrieves an object from the world by its key.
 // Returns (object, found, error).
 func (ws *WorldState) GetObject(ctx context.Context, key string) (world.ObjectState, bool, error) {
+	// Look up the World object by its key.
 	resp, err := ws.service.GetObject(ctx, &GetObjectRequest{ObjectKey: key})
 	if err != nil {
 		return nil, false, err
 	}
 
+	// Return a missing object without allocating a resource reference.
 	if !resp.Found {
 		return nil, false, nil
 	}
 
+	// Wrap the found object resource and release it if construction fails.
 	objRef := ws.client.CreateResourceReference(resp.ResourceId)
 	obj, err := NewObjectState(ws.client, objRef, resp.ObjectKey)
 	if err != nil {
@@ -194,6 +205,7 @@ func (ws *WorldState) IterateObjects(ctx context.Context, prefix string, reverse
 
 // RenameObject renames an object key and associated graph quads.
 func (ws *WorldState) RenameObject(ctx context.Context, oldKey, newKey string, descendants bool) (world.ObjectState, error) {
+	// Rename the World object and its associated graph quads.
 	resp, err := ws.service.RenameObject(ctx, &RenameObjectRequest{
 		OldObjectKey: oldKey,
 		NewObjectKey: newKey,
@@ -203,6 +215,7 @@ func (ws *WorldState) RenameObject(ctx context.Context, oldKey, newKey string, d
 		return nil, err
 	}
 
+	// Wrap the renamed object resource and release it if construction fails.
 	objRef := ws.client.CreateResourceReference(resp.ResourceId)
 	obj, err := NewObjectState(ws.client, objRef, resp.ObjectKey)
 	if err != nil {
@@ -257,6 +270,7 @@ func (ws *WorldState) DeleteGraphQuad(ctx context.Context, q world.GraphQuad) er
 // If not found, returns empty list.
 // If limit is set, stops after finding that number of matching quads.
 func (ws *WorldState) LookupGraphQuads(ctx context.Context, filter world.GraphQuad, limit uint32) ([]world.GraphQuad, error) {
+	// Encode the graph filter and retrieve its matching quads.
 	protoFilter := &quad.Quad{
 		Subject:   filter.GetSubject(),
 		Predicate: filter.GetPredicate(),
@@ -271,6 +285,7 @@ func (ws *WorldState) LookupGraphQuads(ctx context.Context, filter world.GraphQu
 		return nil, err
 	}
 
+	// Expose the returned quads through the World graph interface.
 	quads := make([]world.GraphQuad, len(resp.Quads))
 	for i, q := range resp.Quads {
 		quads[i] = q
@@ -280,6 +295,7 @@ func (ws *WorldState) LookupGraphQuads(ctx context.Context, filter world.GraphQu
 
 // LookupGraphQuadsBatch searches for graph quads using bounded indexed filters.
 func (ws *WorldState) LookupGraphQuadsBatch(ctx context.Context, filters []world.GraphQuad, limitPerFilter uint32) ([][]world.GraphQuad, error) {
+	// Encode each graph filter for the bounded batch query.
 	protoFilters := make([]*quad.Quad, len(filters))
 	for i, filter := range filters {
 		protoFilters[i] = &quad.Quad{
@@ -290,6 +306,7 @@ func (ws *WorldState) LookupGraphQuadsBatch(ctx context.Context, filters []world
 		}
 	}
 
+	// Retrieve the indexed graph matches for every filter.
 	resp, err := ws.service.LookupGraphQuadsBatch(ctx, &LookupGraphQuadsBatchRequest{
 		Filters:        protoFilters,
 		LimitPerFilter: limitPerFilter,
@@ -298,12 +315,16 @@ func (ws *WorldState) LookupGraphQuadsBatch(ctx context.Context, filters []world
 		return nil, err
 	}
 
+	// Convert each graph result while preserving its filter position.
 	results := make([][]world.GraphQuad, len(resp.GetResults()))
 	for i, result := range resp.GetResults() {
+		// Expose this filter's quads through the World graph interface.
 		quads := make([]world.GraphQuad, len(result.GetQuads()))
 		for j, q := range result.GetQuads() {
 			quads[j] = q
 		}
+
+		// Retain the converted matches at the corresponding filter position.
 		results[i] = quads
 	}
 	return results, nil
@@ -311,22 +332,29 @@ func (ws *WorldState) LookupGraphQuadsBatch(ctx context.Context, filters []world
 
 // ListGraphEdgeBuckets lists grouped inbound/outbound graph edge buckets.
 func (ws *WorldState) ListGraphEdgeBuckets(ctx context.Context, query *world.GraphEdgeBucketQuery) ([]*world.GraphEdgeBucket, error) {
+	// Request the grouped graph edges for the selected origins.
 	req := GraphEdgeBucketQueryToProto(query)
 	resp, err := ws.service.ListGraphEdgeBuckets(ctx, req)
 	if err != nil {
 		return nil, err
 	}
 
+	// Convert the returned edge buckets to World graph records.
 	buckets := make([]*world.GraphEdgeBucket, len(resp.GetBuckets()))
 	for i, bucket := range resp.GetBuckets() {
+		// Convert the origin's outgoing edges to World graph quads.
 		outgoing := make([]world.GraphQuad, len(bucket.GetOutgoing()))
 		for j, q := range bucket.GetOutgoing() {
 			outgoing[j] = q
 		}
+
+		// Convert the origin's incoming edges to World graph quads.
 		incoming := make([]world.GraphQuad, len(bucket.GetIncoming()))
 		for j, q := range bucket.GetIncoming() {
 			incoming[j] = q
 		}
+
+		// Retain both edge directions and their truncation state for the origin.
 		buckets[i] = &world.GraphEdgeBucket{
 			OriginObjectKey:   bucket.GetOriginObjectKey(),
 			Outgoing:          outgoing,
@@ -351,6 +379,7 @@ func (ws *WorldState) ListObjectsWithType(ctx context.Context, typeID string) ([
 
 // GetObjectRootRefsBatch returns root references for object keys.
 func (ws *WorldState) GetObjectRootRefsBatch(ctx context.Context, keys []string) ([]*world.ObjectRootRef, error) {
+	// Retrieve the root references for the requested World objects.
 	resp, err := ws.service.GetObjectRootRefsBatch(ctx, &GetObjectRootRefsBatchRequest{
 		ObjectKeys: keys,
 	})
@@ -358,6 +387,7 @@ func (ws *WorldState) GetObjectRootRefsBatch(ctx context.Context, keys []string)
 		return nil, err
 	}
 
+	// Clone the returned roots into independent World object records.
 	refs := make([]*world.ObjectRootRef, len(resp.GetRootRefs()))
 	for i, ref := range resp.GetRootRefs() {
 		refs[i] = &world.ObjectRootRef{
@@ -372,6 +402,7 @@ func (ws *WorldState) GetObjectRootRefsBatch(ctx context.Context, keys []string)
 
 // GetObjectMetadataBatch returns graph metadata for object keys.
 func (ws *WorldState) GetObjectMetadataBatch(ctx context.Context, keys []string) ([]*world_types.ObjectMetadata, error) {
+	// Retrieve graph metadata for the requested World objects.
 	resp, err := ws.service.GetObjectMetadataBatch(ctx, &GetObjectMetadataBatchRequest{
 		ObjectKeys: keys,
 	})
@@ -379,6 +410,7 @@ func (ws *WorldState) GetObjectMetadataBatch(ctx context.Context, keys []string)
 		return nil, err
 	}
 
+	// Convert the returned metadata to World object records.
 	metadata := make([]*world_types.ObjectMetadata, len(resp.GetMetadata()))
 	for i, md := range resp.GetMetadata() {
 		metadata[i] = &world_types.ObjectMetadata{
@@ -407,15 +439,19 @@ func (ws *WorldState) GetObjectBodiesBatch(ctx context.Context, keys []string) (
 
 // QueryGraphPath executes a bounded server-side graph path query.
 func (ws *WorldState) QueryGraphPath(ctx context.Context, query *world.GraphPathQuery) (*world.GraphPathQueryResult, error) {
+	// Encode the graph path query and validate its directions.
 	req, err := GraphPathQueryToProto(query)
 	if err != nil {
 		return nil, err
 	}
+
+	// Open the server resource that pages through the graph path result.
 	resp, err := ws.service.QueryGraphPath(ctx, req)
 	if err != nil {
 		return nil, err
 	}
 
+	// Adopt the graph query resource and close it when collection finishes.
 	ref := ws.client.CreateResourceReference(resp.GetResourceId())
 	defer ref.Release()
 	srpcClient, err := ref.GetClient()
@@ -425,16 +461,22 @@ func (ws *WorldState) QueryGraphPath(ctx context.Context, query *world.GraphPath
 	service := NewSRPCGraphPathQueryResourceServiceClient(srpcClient)
 	defer service.Close(ctx, &CloseGraphPathQueryRequest{})
 
+	// Collect the graph path pages until the server marks the result complete.
 	result := &world.GraphPathQueryResult{}
 	for {
+		// Read the next page from the graph query resource.
 		page, err := service.Next(ctx, &NextGraphPathQueryRequest{})
 		if err != nil {
 			return nil, err
 		}
+
+		// Accumulate the page's object keys and quads in the graph result.
 		result.ObjectKeys = append(result.ObjectKeys, page.GetObjectKeys()...)
 		for _, q := range page.GetQuads() {
 			result.Quads = append(result.Quads, q)
 		}
+
+		// Return the graph result after its final page.
 		if page.GetDone() {
 			return result, nil
 		}
@@ -470,21 +512,28 @@ func (ws *WorldState) ApplyWorldOp(ctx context.Context, opTypeID string, opData 
 
 // GraphPathQueryToProto converts a GraphPathQuery to its wire request.
 func GraphPathQueryToProto(query *world.GraphPathQuery) (*QueryGraphPathRequest, error) {
+	// Encode an absent graph path query as an empty request.
 	if query == nil {
 		return &QueryGraphPathRequest{}, nil
 	}
+
+	// Validate and encode every graph traversal step.
 	steps := make([]*GraphPathStep, len(query.Steps))
 	for i, step := range query.Steps {
+		// Translate the traversal direction or reject an unsupported direction.
 		dir, err := graphPathDirectionToProto(step.Direction)
 		if err != nil {
 			return nil, err
 		}
+
+		// Preserve the step's predicate and limit in its wire record.
 		steps[i] = &GraphPathStep{
 			Direction: dir,
 			Predicate: step.Predicate,
 			Limit:     step.Limit,
 		}
 	}
+
 	return &QueryGraphPathRequest{
 		StartKeys:    query.StartKeys,
 		Steps:        steps,

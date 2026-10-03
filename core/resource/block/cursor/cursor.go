@@ -24,6 +24,7 @@ type BlockCursorResource struct {
 
 // NewBlockCursorResource creates a new BlockCursorResource.
 func NewBlockCursorResource(le *logrus.Entry, b bus.Bus, tx *block.Transaction, cursor *block.Cursor) *BlockCursorResource {
+	// Register the block cursor resource with its RPC mux.
 	bcResource := &BlockCursorResource{le: le, b: b, tx: tx, cursor: cursor}
 	mux := srpc.NewMux()
 	_ = s4wave_block_cursor.SRPCRegisterBlockCursorResourceService(mux, bcResource)
@@ -50,6 +51,7 @@ func (r *BlockCursorResource) Fetch(ctx context.Context, req *s4wave_block_curso
 
 // SetBlock sets the block at the current position.
 func (r *BlockCursorResource) SetBlock(ctx context.Context, req *s4wave_block_cursor.SetBlockRequest) (*s4wave_block_cursor.SetBlockResponse, error) {
+	// Store raw block bytes when the request supplies no block type.
 	blockTypeID := req.GetBlockType()
 	if blockTypeID == "" {
 		// Legacy path: no block type, use raw bytes
@@ -85,16 +87,19 @@ func (r *BlockCursorResource) SetBlock(ctx context.Context, req *s4wave_block_cu
 
 // FollowRef follows a reference field and returns a new cursor.
 func (r *BlockCursorResource) FollowRef(ctx context.Context, req *s4wave_block_cursor.FollowRefRequest) (*s4wave_block_cursor.FollowRefResponse, error) {
+	// Obtain the resource client context for the followed block cursor.
 	resourceCtx, err := resource_server.MustGetResourceClientContext(ctx)
 	if err != nil {
 		return nil, err
 	}
 
+	// Follow the requested block reference or report a missing cursor.
 	newCursor := r.cursor.FollowRef(req.GetRefId(), req.GetBlkRef())
 	if newCursor == nil {
 		return nil, block.ErrNotFound
 	}
 
+	// Register the followed cursor as a client resource.
 	newResource := NewBlockCursorResource(r.le, r.b, r.tx, newCursor)
 	id, err := resourceCtx.AddResource(newResource.GetMux(), func() {})
 	if err != nil {
@@ -143,6 +148,7 @@ func (r *BlockCursorResource) GetBlock(ctx context.Context, req *s4wave_block_cu
 
 // Unmarshal fetches and unmarshals the data to a block.
 func (r *BlockCursorResource) Unmarshal(ctx context.Context, req *s4wave_block_cursor.UnmarshalRequest) (*s4wave_block_cursor.UnmarshalResponse, error) {
+	// Decode a typed block through its registered constructor when requested.
 	blockTypeID := req.GetBlockType()
 	if blockTypeID != "" {
 		if r.cursor.GetRef().GetEmpty() {
@@ -176,6 +182,7 @@ func (r *BlockCursorResource) Unmarshal(ctx context.Context, req *s4wave_block_c
 		}, nil
 	}
 
+	// Fetch raw block bytes when the request supplies no block type.
 	data, found, err := r.cursor.Fetch(ctx)
 	if err != nil {
 		return nil, err
@@ -194,16 +201,19 @@ func (r *BlockCursorResource) IsSubBlock(ctx context.Context, req *s4wave_block_
 
 // FollowSubBlock follows a sub-block reference and returns a new cursor.
 func (r *BlockCursorResource) FollowSubBlock(ctx context.Context, req *s4wave_block_cursor.FollowSubBlockRequest) (*s4wave_block_cursor.FollowSubBlockResponse, error) {
+	// Obtain the resource client context for the followed sub-block cursor.
 	resourceCtx, err := resource_server.MustGetResourceClientContext(ctx)
 	if err != nil {
 		return nil, err
 	}
 
+	// Follow the requested sub-block reference or report a missing cursor.
 	newCursor := r.cursor.FollowSubBlock(req.GetRefId())
 	if newCursor == nil {
 		return nil, block.ErrNotFound
 	}
 
+	// Register the followed sub-block cursor as a client resource.
 	newResource := NewBlockCursorResource(r.le, r.b, r.tx, newCursor)
 	id, err := resourceCtx.AddResource(newResource.GetMux(), func() {})
 	if err != nil {
@@ -241,16 +251,19 @@ func (r *BlockCursorResource) SetRef(ctx context.Context, req *s4wave_block_curs
 
 // GetExistingRef checks if the reference has been traversed already.
 func (r *BlockCursorResource) GetExistingRef(ctx context.Context, req *s4wave_block_cursor.GetExistingRefRequest) (*s4wave_block_cursor.GetExistingRefResponse, error) {
+	// Find a previously traversed cursor for the requested reference.
 	existingCursor := r.cursor.GetExistingRef(req.GetRefId())
 	if existingCursor == nil {
 		return &s4wave_block_cursor.GetExistingRefResponse{ResourceId: 0}, nil
 	}
 
+	// Obtain the resource client context for the existing cursor.
 	resourceCtx, err := resource_server.MustGetResourceClientContext(ctx)
 	if err != nil {
 		return nil, err
 	}
 
+	// Register the existing cursor as a client resource.
 	newResource := NewBlockCursorResource(r.le, r.b, r.tx, existingCursor)
 	id, err := resourceCtx.AddResource(newResource.GetMux(), func() {})
 	if err != nil {
@@ -262,16 +275,19 @@ func (r *BlockCursorResource) GetExistingRef(ctx context.Context, req *s4wave_bl
 
 // GetAllRefs returns cursors to all references.
 func (r *BlockCursorResource) GetAllRefs(ctx context.Context, req *s4wave_block_cursor.GetAllRefsRequest) (*s4wave_block_cursor.GetAllRefsResponse, error) {
+	// Collect the block cursor references requested by the client.
 	allRefs, err := r.cursor.GetAllRefs(req.GetExistingOnly())
 	if err != nil {
 		return nil, err
 	}
 
+	// Obtain the resource client context for registering referenced cursors.
 	resourceCtx, err := resource_server.MustGetResourceClientContext(ctx)
 	if err != nil {
 		return nil, err
 	}
 
+	// Register each referenced cursor and return its resource identifier.
 	refs := make(map[uint32]uint32)
 	for refID, cursor := range allRefs {
 		newResource := NewBlockCursorResource(r.le, r.b, r.tx, cursor)
@@ -287,16 +303,19 @@ func (r *BlockCursorResource) GetAllRefs(ctx context.Context, req *s4wave_block_
 
 // Detach clones the cursor position.
 func (r *BlockCursorResource) Detach(ctx context.Context, req *s4wave_block_cursor.DetachRequest) (*s4wave_block_cursor.DetachResponse, error) {
+	// Clone the cursor position with the requested reference retention.
 	newCursor := r.cursor.Detach(req.GetKeepRefs())
 	if newCursor == nil {
 		return nil, block.ErrNotFound
 	}
 
+	// Obtain the resource client context for the detached cursor.
 	resourceCtx, err := resource_server.MustGetResourceClientContext(ctx)
 	if err != nil {
 		return nil, err
 	}
 
+	// Register the detached cursor as a client resource.
 	newResource := NewBlockCursorResource(r.le, r.b, r.tx, newCursor)
 	id, err := resourceCtx.AddResource(newResource.GetMux(), func() {})
 	if err != nil {
@@ -308,16 +327,19 @@ func (r *BlockCursorResource) Detach(ctx context.Context, req *s4wave_block_curs
 
 // DetachTransaction creates a new ephemeral transaction rooted at the cursor.
 func (r *BlockCursorResource) DetachTransaction(ctx context.Context, req *s4wave_block_cursor.DetachTransactionRequest) (*s4wave_block_cursor.DetachTransactionResponse, error) {
+	// Detach the cursor into a new ephemeral transaction.
 	newCursor := r.cursor.DetachTransaction()
 	if newCursor == nil {
 		return nil, block.ErrNotFound
 	}
 
+	// Obtain the resource client context for the detached transaction cursor.
 	resourceCtx, err := resource_server.MustGetResourceClientContext(ctx)
 	if err != nil {
 		return nil, err
 	}
 
+	// Register the cursor with its detached transaction as a client resource.
 	newResource := NewBlockCursorResource(r.le, r.b, newCursor.GetTransaction(), newCursor)
 	id, err := resourceCtx.AddResource(newResource.GetMux(), func() {})
 	if err != nil {
@@ -329,21 +351,25 @@ func (r *BlockCursorResource) DetachTransaction(ctx context.Context, req *s4wave
 
 // DetachRecursive clones the cursor position and all referenced positions.
 func (r *BlockCursorResource) DetachRecursive(ctx context.Context, req *s4wave_block_cursor.DetachRecursiveRequest) (*s4wave_block_cursor.DetachRecursiveResponse, error) {
+	// Clone the cursor and referenced positions with the requested block options.
 	newCursor := r.cursor.DetachRecursive(req.GetDetachTx(), req.GetCloneBlocks(), req.GetMarkDirty())
 	if newCursor == nil {
 		return nil, block.ErrNotFound
 	}
 
+	// Obtain the resource client context for the recursively detached cursor.
 	resourceCtx, err := resource_server.MustGetResourceClientContext(ctx)
 	if err != nil {
 		return nil, err
 	}
 
+	// Use the cloned transaction when recursive detachment requested one.
 	newTx := r.tx
 	if req.GetDetachTx() {
 		newTx = newCursor.GetTransaction()
 	}
 
+	// Register the recursively detached cursor as a client resource.
 	newResource := NewBlockCursorResource(r.le, r.b, newTx, newCursor)
 	id, err := resourceCtx.AddResource(newResource.GetMux(), func() {})
 	if err != nil {
@@ -355,16 +381,19 @@ func (r *BlockCursorResource) DetachRecursive(ctx context.Context, req *s4wave_b
 
 // Parents returns new cursors pointing to the parent blocks.
 func (r *BlockCursorResource) Parents(ctx context.Context, req *s4wave_block_cursor.ParentsRequest) (*s4wave_block_cursor.ParentsResponse, error) {
+	// Collect the parent cursors or return an empty parent list.
 	parents := r.cursor.Parents()
 	if parents == nil {
 		return &s4wave_block_cursor.ParentsResponse{ParentResourceIds: nil}, nil
 	}
 
+	// Obtain the resource client context for registering parent cursors.
 	resourceCtx, err := resource_server.MustGetResourceClientContext(ctx)
 	if err != nil {
 		return nil, err
 	}
 
+	// Register every parent cursor and collect its resource identifier.
 	parentIDs := make([]uint32, 0, len(parents))
 	for _, parent := range parents {
 		newResource := NewBlockCursorResource(r.le, r.b, r.tx, parent)

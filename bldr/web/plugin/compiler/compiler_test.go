@@ -12,6 +12,7 @@ import (
 )
 
 func TestGetElectronQuitPolicy(t *testing.T) {
+	// Verify the build type chooses the default Electron quit policy.
 	if got := getElectronQuitPolicy(bldr_manifest.BuildType_DEV, nil); got != electron.QuitPolicy_QUIT_POLICY_RESTART {
 		t.Fatalf("dev default quit policy = %v, want %v", got, electron.QuitPolicy_QUIT_POLICY_RESTART)
 	}
@@ -19,11 +20,13 @@ func TestGetElectronQuitPolicy(t *testing.T) {
 		t.Fatalf("release default quit policy = %v, want %v", got, electron.QuitPolicy_QUIT_POLICY_EXIT)
 	}
 
+	// Verify an explicit restart policy overrides the release default.
 	nativeApp := &NativeAppConfig{QuitPolicy: QuitPolicy_QUIT_POLICY_RESTART}
 	if got := getElectronQuitPolicy(bldr_manifest.BuildType_RELEASE, nativeApp); got != electron.QuitPolicy_QUIT_POLICY_RESTART {
 		t.Fatalf("explicit restart quit policy = %v, want %v", got, electron.QuitPolicy_QUIT_POLICY_RESTART)
 	}
 
+	// Verify an explicit exit policy overrides the development default.
 	nativeApp = &NativeAppConfig{QuitPolicy: QuitPolicy_QUIT_POLICY_EXIT}
 	if got := getElectronQuitPolicy(bldr_manifest.BuildType_DEV, nativeApp); got != electron.QuitPolicy_QUIT_POLICY_EXIT {
 		t.Fatalf("explicit exit quit policy = %v, want %v", got, electron.QuitPolicy_QUIT_POLICY_EXIT)
@@ -31,15 +34,18 @@ func TestGetElectronQuitPolicy(t *testing.T) {
 }
 
 func TestGetElectronDesktopPresencePolicy(t *testing.T) {
+	// Verify absent native app settings leave desktop presence unspecified.
 	if got := getElectronDesktopPresencePolicy(nil); got != electron.DesktopPresencePolicy_DESKTOP_PRESENCE_POLICY_UNSPECIFIED {
 		t.Fatalf("nil desktop presence policy = %v, want %v", got, electron.DesktopPresencePolicy_DESKTOP_PRESENCE_POLICY_UNSPECIFIED)
 	}
 
+	// Verify empty native app settings leave desktop presence unspecified.
 	nativeApp := &NativeAppConfig{}
 	if got := getElectronDesktopPresencePolicy(nativeApp); got != electron.DesktopPresencePolicy_DESKTOP_PRESENCE_POLICY_UNSPECIFIED {
 		t.Fatalf("unspecified desktop presence policy = %v, want %v", got, electron.DesktopPresencePolicy_DESKTOP_PRESENCE_POLICY_UNSPECIFIED)
 	}
 
+	// Verify the window lifetime desktop presence policy passes through.
 	nativeApp = &NativeAppConfig{
 		DesktopPresencePolicy: DesktopPresencePolicy_DESKTOP_PRESENCE_POLICY_WINDOW_LIFETIME,
 	}
@@ -47,6 +53,7 @@ func TestGetElectronDesktopPresencePolicy(t *testing.T) {
 		t.Fatalf("window lifetime desktop presence policy = %v, want %v", got, electron.DesktopPresencePolicy_DESKTOP_PRESENCE_POLICY_WINDOW_LIFETIME)
 	}
 
+	// Verify the tray background desktop presence policy passes through.
 	nativeApp = &NativeAppConfig{
 		DesktopPresencePolicy: DesktopPresencePolicy_DESKTOP_PRESENCE_POLICY_TRAY_BACKGROUND,
 	}
@@ -56,16 +63,19 @@ func TestGetElectronDesktopPresencePolicy(t *testing.T) {
 }
 
 func TestShouldBundleNativeWebRendererHonorsSkipEnv(t *testing.T) {
+	// Verify an empty renderer skip setting keeps native renderer bundling.
 	t.Setenv(SkipNativeWebRendererEnvVar, "")
 	if !shouldBundleNativeWebRenderer() {
 		t.Fatal("empty skip env should bundle native web renderer")
 	}
 
+	// Verify the renderer skip setting disables native renderer bundling.
 	t.Setenv(SkipNativeWebRendererEnvVar, "true")
 	if shouldBundleNativeWebRenderer() {
 		t.Fatal("true skip env should not bundle native web renderer")
 	}
 
+	// Verify a false renderer skip setting keeps native renderer bundling.
 	t.Setenv(SkipNativeWebRendererEnvVar, "false")
 	if !shouldBundleNativeWebRenderer() {
 		t.Fatal("false skip env should bundle native web renderer")
@@ -73,16 +83,19 @@ func TestShouldBundleNativeWebRendererHonorsSkipEnv(t *testing.T) {
 }
 
 func TestElectronNoSandboxEnabledHonorsEnv(t *testing.T) {
+	// Verify an empty sandbox setting keeps Electron sandboxing enabled.
 	t.Setenv(ElectronNoSandboxEnvVar, "")
 	if electronNoSandboxEnabled() {
 		t.Fatal("empty no-sandbox env should not add Electron no-sandbox flag")
 	}
 
+	// Verify the sandbox setting enables the Electron no-sandbox flag.
 	t.Setenv(ElectronNoSandboxEnvVar, "true")
 	if !electronNoSandboxEnabled() {
 		t.Fatal("true no-sandbox env should add Electron no-sandbox flag")
 	}
 
+	// Verify a false sandbox setting keeps Electron sandboxing enabled.
 	t.Setenv(ElectronNoSandboxEnvVar, "false")
 	if electronNoSandboxEnabled() {
 		t.Fatal("false no-sandbox env should not add Electron no-sandbox flag")
@@ -90,6 +103,7 @@ func TestElectronNoSandboxEnabledHonorsEnv(t *testing.T) {
 }
 
 func TestAddWebPluginStartupInputsIncludesSkipRendererEnv(t *testing.T) {
+	// Capture renderer and sandbox settings in the web plugin startup inputs.
 	t.Setenv("BLDR_WEB_RENDERER", "")
 	t.Setenv(SkipNativeWebRendererEnvVar, "true")
 	t.Setenv(ElectronNoSandboxEnvVar, "true")
@@ -101,6 +115,7 @@ func TestAddWebPluginStartupInputsIncludesSkipRendererEnv(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Verify every expected environment value appears in the startup manifest.
 	wantInputs := map[string]string{
 		"BLDR_WEB_RENDERER":         "",
 		SkipNativeWebRendererEnvVar: "true",
@@ -122,6 +137,7 @@ func TestAddWebPluginStartupInputsIncludesSkipRendererEnv(t *testing.T) {
 }
 
 func TestAddWebPluginStartupInputsIncludesBrowserShimSources(t *testing.T) {
+	// Create the distributed browser shim sources for startup validation.
 	sourcePath := t.TempDir()
 	for _, relPath := range []string{
 		".bldr/src/web/plugin/browser/web-plugin-browser.ts",
@@ -138,6 +154,7 @@ func TestAddWebPluginStartupInputsIncludesBrowserShimSources(t *testing.T) {
 		}
 	}
 
+	// Collect startup inputs from the prepared browser shim source tree.
 	result := &bldr_manifest_builder.BuilderResult{}
 	if err := addWebPluginStartupInputs(
 		&bldr_manifest_builder.BuilderConfig{SourcePath: sourcePath},
@@ -146,6 +163,7 @@ func TestAddWebPluginStartupInputsIncludesBrowserShimSources(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Verify the startup manifest includes every distributed browser shim source.
 	var paths []string
 	for _, input := range result.GetInputManifest().GetFiles() {
 		paths = append(paths, input.GetPath())
