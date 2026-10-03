@@ -83,7 +83,7 @@ func (s *SOState) OpenControlMessages() ([]ControlMessage, error) {
 // AddControlMessage adds a voter's message to the open decision. It reports
 // false for a message the state holds, belongs to a closed decision, or
 // exceeds the evidence kept of its signer. Under group control only a voter of
-// the held config signs messages.
+// the held config signs messages, and only the round's proposer proposes.
 func (s *SOState) AddControlMessage(sharedObjectID string, msg *SOControlMessage) (bool, error) {
 	// Find its place, and skip a held message, which was verified when added.
 	h := msg.Hash()
@@ -104,6 +104,10 @@ func (s *SOState) AddControlMessage(sharedObjectID string, msg *SOControlMessage
 	}
 	if !s.controlOpen(inner) {
 		return false, nil
+	}
+	if inner.GetType() == SOControlMessageType_SO_CONTROL_MESSAGE_TYPE_PROPOSAL &&
+		inner.GetPeerId() != roundProposer(s.GetConfig(), inner.GetHeight(), inner.GetRound()) {
+		return false, errors.Errorf("%s does not propose in round %d", inner.GetPeerId(), inner.GetRound())
 	}
 
 	// Keep a bounded record of the signer's messages.

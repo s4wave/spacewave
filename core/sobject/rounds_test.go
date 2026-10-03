@@ -193,8 +193,8 @@ func TestStepRoundSkipAndDecide(t *testing.T) {
 }
 
 // TestAddControlMessageBounds checks that a state keeps two conflicting
-// messages of a voter's step as evidence and no more, rejects a non-voter, and
-// skips a message of another decision.
+// messages of a voter's step as evidence and no more, rejects a proposal out
+// of turn and a non-voter, and skips a message of another decision.
 func TestAddControlMessageBounds(t *testing.T) {
 	// The fourth voter equivocates.
 	f := newRoundFixture(t)
@@ -222,6 +222,19 @@ func TestAddControlMessageBounds(t *testing.T) {
 	}
 	if added, err := f.state.AddControlMessage(mockSharedObjectID, stale); err != nil || added {
 		t.Fatalf("stale message added %v: %v", added, err)
+	}
+
+	// Only the round's proposer proposes.
+	var outOfTurn string
+	for i := range 4 {
+		if v := f.voter(i); v != f.proposer(1) {
+			outOfTurn = v
+			break
+		}
+	}
+	wrong := f.msg(outOfTurn, SOControlMessageType_SO_CONTROL_MESSAGE_TYPE_PROPOSAL, 1, checkpointValue(t, 1), 0)
+	if _, err := f.state.AddControlMessage(mockSharedObjectID, wrong.Msg); err == nil {
+		t.Fatal("a voter proposed out of turn")
 	}
 
 	// A non-voter cannot add messages.
