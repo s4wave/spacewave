@@ -23,23 +23,30 @@ type BuildLock struct {
 // cancellation is checked before and after the kernel wait, but cannot promptly
 // interrupt a caller parked in that wait.
 func AcquireBuildLock(ctx context.Context, le *logrus.Entry, lockDir, name string) (*BuildLock, error) {
+	// Validate the build lock request before accessing its directory.
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
 	if name == "" || name == "." || name == ".." || filepath.Base(name) != name || strings.ContainsAny(name, `/\\`) {
 		return nil, errors.Errorf("invalid build lock name %q", name)
 	}
+
+	// Prepare the directory and file path for the named build lock.
 	// #nosec G703 -- lockDir is the caller-selected build lock directory.
 	if err := os.MkdirAll(lockDir, 0o755); err != nil {
 		return nil, errors.Wrap(err, "create build lock directory")
 	}
 	lockPath := filepath.Join(lockDir, name+".lock")
+
+	// Open the shared build lock file without replacing its inode.
 	// #nosec G703 -- name is validated above: a single path element without separators.
 	file, err := os.OpenFile(lockPath, os.O_CREATE|os.O_RDWR, 0o644)
 	if err != nil {
 		return nil, errors.Wrap(err, "open build lock")
 	}
 	lock := &BuildLock{file: file, pidPath: lockPath + ".pid"}
+
+	// Acquire the build lock and report the holder if a kernel wait is needed.
 	locked, err := lock.tryLock()
 	if err != nil {
 		lock.closeAfterError()
@@ -60,17 +67,22 @@ func AcquireBuildLock(ctx context.Context, le *logrus.Entry, lockDir, name strin
 			return nil, errors.Wrap(err, "wait for build lock")
 		}
 	}
+
+	// Prepare the holder PID only if the build lock request remains live.
 	if err := ctx.Err(); err != nil {
 		lock.Release()
 		return nil, err
 	}
 	pid := strconv.AppendInt(nil, int64(os.Getpid()), 10)
 	pid = append(pid, '\n')
+
+	// Publish the holder PID for build lock wait diagnostics.
 	// #nosec G703 -- pidPath is the validated lock path plus a constant suffix.
 	if err := os.WriteFile(lock.pidPath, pid, 0o644); err != nil {
 		lock.Release()
 		return nil, errors.Wrap(err, "write build lock pid")
 	}
+
 	return lock, nil
 }
 

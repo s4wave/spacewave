@@ -101,16 +101,20 @@ func NewIdentityLookupEntity(
 
 // ExIdentityLookupEntity executes the lookup entity directive.
 func ExIdentityLookupEntity(ctx context.Context, b bus.Bus, domainID, entityID string) (IdentityLookupEntityValue, error) {
+	// Look up the entity record in the requested domain.
 	av, _, dirRef, err := bus.ExecOneOff(ctx, b, NewIdentityLookupEntity(domainID, entityID), nil, nil)
 	if err != nil {
 		return nil, err
 	}
+
+	// Extract the entity lookup result and release the completed directive.
 	val := av.GetValue()
 	dirRef.Release()
 	valObj, valObjOk := val.(IdentityLookupEntityValue)
 	if !valObjOk {
 		return nil, block.ErrUnexpectedType
 	}
+
 	return valObj, nil
 }
 

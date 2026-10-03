@@ -108,17 +108,20 @@ func (s *deriveKeypair) GetValueOptions() directive.ValueOptions {
 //
 // Note: the two DeriveEntityKeypair directives MUST be exactly identical.
 func (s *deriveKeypair) IsEquivalent(other directive.Directive) bool {
+	// Compare only directives that derive entity keypairs.
 	ot, ok := other.(DeriveEntityKeypair)
 	if !ok {
 		return false
 	}
 
+	// Require both directives to request the same number of keypairs.
 	list := s.DeriveEntityKeypairList()
 	otList := ot.DeriveEntityKeypairList()
 	if len(otList) != len(list) {
 		return false
 	}
 
+	// Compare the requested keypair records in their original order.
 	for i, x := range list {
 		ox := otList[i]
 		if !x.EqualVT(ox) {
@@ -145,6 +148,7 @@ func (s *deriveKeypair) GetName() string {
 // This should be something like param1="test", param2="test".
 // This is not necessarily unique, and is primarily intended for display.
 func (s *deriveKeypair) GetDebugVals() directive.DebugValues {
+	// Collect keypair peer IDs for the directive debug values.
 	vals := directive.DebugValues{}
 	var kpPeerIDs []string
 	for _, kp := range s.kps {

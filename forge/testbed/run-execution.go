@@ -17,6 +17,7 @@ func (tb *Testbed) RunExecutionWithTarget(
 	valueSet *forge_target.ValueSet,
 	ts *timestamp.Timestamp,
 ) (*forge_execution.Execution, error) {
+	// Use the testbed context and World for the execution controller run.
 	ctx, le, worldState := tb.Context, tb.Logger, tb.WorldState
 
 	// create the Execution object in the world
@@ -84,10 +85,12 @@ func (tb *Testbed) RunExecutionWithTarget(
 		return nil, err
 	}
 
+	// Return the execution failure recorded in its final result.
 	res := finalState.GetResult()
 	if errStr := res.FailError; len(errStr) != 0 {
 		return finalState, errors.New(errStr)
 	}
+
 	// success
 	return finalState, nil
 }

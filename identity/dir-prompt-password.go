@@ -42,6 +42,7 @@ func ExPromptPassword(
 	domainID, reason, reasonDetail string,
 	prevErr error,
 ) (string, error) {
+	// Collect the password callback while the prompt directive is active.
 	result := promise.NewPromise[*string]()
 	_, _, valRef, err := bus.ExecOneOff(
 		ctx,
@@ -62,10 +63,13 @@ func ExPromptPassword(
 	if err != nil {
 		return "", err
 	}
+
+	// Wait for the password supplied through the prompt callback.
 	val, err := result.Await(ctx)
 	if err != nil {
 		return "", err
 	}
+
 	return *val, nil
 }
 

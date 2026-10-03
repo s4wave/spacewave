@@ -52,6 +52,7 @@ func (t *TxComplete) ExecuteTx(
 	bcs *block.Cursor,
 	root *forge_pass.Pass,
 ) error {
+	// Require every attached execution to finish before completing the pass.
 	executions, _, err := forge_pass.CollectPassExecutions(ctx, worldState, objKey)
 	if err != nil {
 		return err
@@ -65,12 +66,14 @@ func (t *TxComplete) ExecuteTx(
 		}
 	}
 
+	// Prepare the pass result and fill any missing failure message.
 	result := t.GetResult()
 	if result == nil {
 		result = &forge_value.Result{}
 	}
 	result.FillFailError()
 
+	// Require the pass state to match the completion result.
 	passState := root.GetPassState()
 	if passState == forge_pass.State_PassState_COMPLETE {
 		return nil
@@ -89,6 +92,7 @@ func (t *TxComplete) ExecuteTx(
 		)
 	}
 
+	// Publish target outputs from the successful execution states.
 	if result.IsSuccessful() {
 		tgt, _, err := root.FollowTargetRef(ctx, bcs)
 		if err != nil {
@@ -105,6 +109,7 @@ func (t *TxComplete) ExecuteTx(
 		root.ValueSet.Outputs = outpVals
 	}
 
+	// Store the completed pass state and result in its block cursor.
 	root.PassState = forge_pass.State_PassState_COMPLETE
 	root.Result = result
 	bcs.SetBlock(root, true)

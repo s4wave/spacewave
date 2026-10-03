@@ -111,6 +111,7 @@ type ChromiumLaunchPolicy struct {
 // NewChromiumLaunchPolicy resolves the policy from the environment once per
 // harness boot and logs the chosen preference.
 func NewChromiumLaunchPolicy(le *logrus.Entry) (*ChromiumLaunchPolicy, error) {
+	// Resolve and log the Chromium GPU preference for this harness boot.
 	pref, err := ResolveChromiumGPUPreference()
 	if err != nil {
 		return nil, err
@@ -131,6 +132,7 @@ func LaunchChromium[B any](
 	p *ChromiumLaunchPolicy,
 	launch func(gpu bool) (B, error),
 ) (B, error) {
+	// Require a Chromium launch policy and a live launch context.
 	var zero B
 	if p == nil {
 		return zero, errors.New("nil ChromiumLaunchPolicy; resolve the policy at harness boot")
@@ -156,6 +158,7 @@ func LaunchChromium[B any](
 		return zero, err
 	}
 
+	// Resolve the Chromium launch choice from the GPU preference.
 	switch p.pref {
 	case ChromiumGPULegacy:
 		p.rememberLocked(false)
@@ -210,13 +213,17 @@ func launchChromium[B any](ctx context.Context,
 	gpu bool,
 	launch func(gpu bool) (B, error),
 ) (B, error) {
+	// Require a live context before launching Chromium in the selected mode.
 	var zero B
 	if err := ctx.Err(); err != nil {
 		return zero, err
 	}
+
+	// Launch Chromium and preserve the launch error for the caller.
 	b, err := launch(gpu)
 	if err != nil {
 		return zero, errors.Wrap(err, "launch chromium")
 	}
+
 	return b, nil
 }

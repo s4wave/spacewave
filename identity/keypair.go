@@ -18,14 +18,18 @@ func NewKeypair(
 	authMethodID string,
 	authMethodParams []byte,
 ) (*Keypair, error) {
+	// Derive the keypair peer ID from its public key.
 	pid, err := peer.IDFromPublicKey(pubKey)
 	if err != nil {
 		return nil, err
 	}
+
+	// Encode the public key for the keypair record.
 	pkData, err := confparse.MarshalPublicKey(pubKey)
 	if err != nil {
 		return nil, err
 	}
+
 	return &Keypair{
 		PeerId:           pid.String(),
 		PubKey:           pkData,
@@ -56,6 +60,7 @@ func UnmarshalKeypair(ctx context.Context, bcs *block.Cursor) (*Keypair, error) 
 
 // Validate validates the keypair.
 func (k *Keypair) Validate() error {
+	// Require a valid peer ID in the keypair record.
 	peerID, err := k.ParsePeerID()
 	if err != nil {
 		return err
@@ -63,6 +68,8 @@ func (k *Keypair) Validate() error {
 	if len(peerID) == 0 {
 		return peer.ErrEmptyPeerID
 	}
+
+	// Require a public key in the keypair record.
 	pubKey, err := k.ParsePubKey()
 	if err != nil {
 		return err
@@ -70,6 +77,8 @@ func (k *Keypair) Validate() error {
 	if pubKey == nil {
 		return errors.New("pub_key field cannot be empty")
 	}
+
+	// Verify that the keypair public key identifies the recorded peer.
 	if !peerID.MatchesPublicKey(pubKey) {
 		pubKeyPeerID, err := peer.IDFromPublicKey(pubKey)
 		if err != nil {
@@ -81,11 +90,14 @@ func (k *Keypair) Validate() error {
 			peerID.String(),
 		)
 	}
+
+	// Require an authentication method for keypair authentication parameters.
 	if k.GetAuthMethodId() == "" {
 		if len(k.GetAuthMethodParams()) != 0 {
 			return errors.New("auth provider params cannot be set unless auth provider id is set")
 		}
 	}
+
 	return nil
 }
 

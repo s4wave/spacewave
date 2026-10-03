@@ -130,9 +130,11 @@ func newTestPolicy(pref ChromiumGPUPreference) *ChromiumLaunchPolicy {
 }
 
 func TestLaunchChromiumPreferGPUFallsBackOnce(t *testing.T) {
+	// Prepare a Chromium policy whose GPU launch will fail.
 	p := newTestPolicy(ChromiumGPUPreferGPU)
 	rec := &launchRecorder[*int]{fail: map[bool]error{true: errors.New("boom")}}
 
+	// Launch Chromium and verify that the GPU failure selects the legacy fallback.
 	first, err := LaunchChromium(context.Background(), p, rec.launch)
 	if err != nil {
 		t.Fatal(err)
@@ -154,9 +156,11 @@ func TestLaunchChromiumPreferGPUFallsBackOnce(t *testing.T) {
 }
 
 func TestLaunchChromiumPreferGPUSucceedsSticky(t *testing.T) {
+	// Prepare a Chromium policy with successful GPU launches.
 	p := newTestPolicy(ChromiumGPUPreferGPU)
 	rec := &launchRecorder[*int]{}
 
+	// Launch Chromium twice and verify that the GPU choice persists.
 	if _, err := LaunchChromium(context.Background(), p, rec.launch); err != nil {
 		t.Fatal(err)
 	}
@@ -169,9 +173,11 @@ func TestLaunchChromiumPreferGPUSucceedsSticky(t *testing.T) {
 }
 
 func TestLaunchChromiumLegacyNeverAttemptsGPU(t *testing.T) {
+	// Prepare a legacy Chromium policy with a failing software launch.
 	p := newTestPolicy(ChromiumGPULegacy)
 	rec := &launchRecorder[*int]{fail: map[bool]error{false: errors.New("legacy boom")}}
 
+	// Verify that the legacy Chromium launch returns its error without a GPU attempt.
 	_, err := LaunchChromium(context.Background(), p, rec.launch)
 	if err == nil {
 		t.Fatal("expected the legacy launch error to surface")
@@ -185,9 +191,11 @@ func TestLaunchChromiumLegacyNeverAttemptsGPU(t *testing.T) {
 }
 
 func TestLaunchChromiumRequiredNoFallback(t *testing.T) {
+	// Prepare a Chromium policy that requires a successful GPU launch.
 	p := newTestPolicy(ChromiumGPURequired)
 	rec := &launchRecorder[*int]{fail: map[bool]error{true: errors.New("gpu boom")}}
 
+	// Verify that a required GPU launch failure returns without fallback.
 	_, err := LaunchChromium(context.Background(), p, rec.launch)
 	if err == nil || !errors.Is(err, rec.fail[true]) {
 		t.Fatalf("error = %v, want wrapped required-GPU error", err)
@@ -198,6 +206,7 @@ func TestLaunchChromiumRequiredNoFallback(t *testing.T) {
 }
 
 func TestLaunchChromiumCancelledProbeStaysUnresolved(t *testing.T) {
+	// Prepare a Chromium GPU probe that cancels its launch context.
 	p := newTestPolicy(ChromiumGPUPreferGPU)
 	ctx, cancel := context.WithCancel(context.Background())
 	rec := &launchRecorder[*int]{fail: map[bool]error{true: errors.New("probe boom")}}
@@ -207,6 +216,7 @@ func TestLaunchChromiumCancelledProbeStaysUnresolved(t *testing.T) {
 		return rec.launch(gpu)
 	}
 
+	// Verify that the canceled Chromium probe returns without legacy fallback.
 	if _, err := LaunchChromium(ctx, p, canceledLaunch); !errors.Is(err, context.Canceled) {
 		t.Fatalf("error = %v, want context.Canceled", err)
 	}
@@ -245,11 +255,13 @@ func TestLaunchChromiumNilPolicyFailsLoudly(t *testing.T) {
 }
 
 func TestLaunchChromiumCancelledBeforeLaunch(t *testing.T) {
+	// Prepare an already canceled context and a fresh Chromium policy.
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 	p := newTestPolicy(ChromiumGPUPreferGPU)
 	rec := &launchRecorder[*int]{}
 
+	// Verify that Chromium cancellation prevents every launch attempt.
 	if _, err := LaunchChromium(ctx, p, rec.launch); !errors.Is(err, context.Canceled) {
 		t.Fatalf("error = %v, want context.Canceled", err)
 	}

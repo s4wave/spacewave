@@ -23,6 +23,7 @@ func (e *EntityKeypairSet) AppendKeypair(privKey crypto.PrivKey, ekp *EntityKeyp
 		return err
 	}
 
+	// Require the keypair to match the supplied entity before signing it.
 	if ent != nil {
 		// Note: does not check if the entity keypair set contains the entity.
 		if err := ekp.ValidateMatchesEntity(ent); err != nil {
@@ -88,6 +89,7 @@ func (e *EntityKeypairSet) AppendKeypair(privKey crypto.PrivKey, ekp *EntityKeyp
 //
 // If ent != nil, checks that the keypairs match the entity.
 func (e *EntityKeypairSet) UnmarshalVerifyKeypairs(ent *Entity) ([]*EntityKeypair, error) {
+	// Read the encoded keypairs and signatures from the set.
 	keypairs := e.GetEntityKeypairs()
 	kpLen := len(keypairs)
 	keypairSigs := e.GetEntityKeypairSignatures()

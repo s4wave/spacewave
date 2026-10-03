@@ -62,6 +62,7 @@ func (t *TxStart) ExecuteTx(
 	if passState == forge_pass.State_PassState_RUNNING {
 		return nil
 	}
+
 	// ensure PENDING
 	if passState != forge_pass.State_PassState_PENDING {
 		return errors.Wrapf(

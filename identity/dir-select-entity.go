@@ -35,16 +35,20 @@ func ExSelectIdentityEntity(
 	domainID string,
 	prevErr error,
 ) (SelectIdentityEntityValue, error) {
+	// Ask the domain controller to select an entity for the requested purpose.
 	av, _, dirRef, err := bus.ExecOneOff(ctx, b, NewSelectIdentityEntity(purpose, domainID, prevErr), nil, nil)
 	if err != nil {
 		return nil, err
 	}
+
+	// Extract the selected entity and release the completed directive.
 	val := av.GetValue()
 	dirRef.Release()
 	valObj, valObjOk := val.(SelectIdentityEntityValue)
 	if !valObjOk {
 		return nil, block.ErrUnexpectedType
 	}
+
 	return valObj, nil
 }
 

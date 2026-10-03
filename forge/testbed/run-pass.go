@@ -20,6 +20,7 @@ func (tb *Testbed) RunPassWithTarget(
 	replicas uint32,
 	ts *timestamp.Timestamp,
 ) (*forge_pass.Pass, error) {
+	// Use the testbed context and World for the pass controller run.
 	ctx, le, worldState := tb.Context, tb.Logger, tb.WorldState
 
 	// create the Pass object in the world
@@ -119,10 +120,12 @@ func (tb *Testbed) RunPassWithTarget(
 		return nil, err
 	}
 
+	// Return the pass failure recorded in its final result.
 	res := finalState.GetResult()
 	if errStr := res.FailError; len(errStr) != 0 {
 		return finalState, errors.New(errStr)
 	}
+
 	// success
 	return finalState, nil
 }

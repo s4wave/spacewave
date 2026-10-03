@@ -30,6 +30,7 @@ type AndroidChrome struct {
 // ConnectAndroidChrome makes each of ports on the device reach the same port
 // on this host and connects to the device's Chrome.
 func ConnectAndroidChrome(pw *playwright.Playwright, ports ...string) (*AndroidChrome, error) {
+	// Require adb and one connected Android device before forwarding ports.
 	if _, err := exec.LookPath("adb"); err != nil {
 		return nil, ErrNoAndroidDevice
 	}
@@ -37,6 +38,7 @@ func ConnectAndroidChrome(pw *playwright.Playwright, ports ...string) (*AndroidC
 		return nil, errors.Wrap(ErrNoAndroidDevice, state)
 	}
 
+	// Forward the requested host ports to the Android device.
 	a := &AndroidChrome{}
 	for _, port := range ports {
 		spec := "tcp:" + port
@@ -46,6 +48,8 @@ func ConnectAndroidChrome(pw *playwright.Playwright, ports ...string) (*AndroidC
 		}
 		a.reverse = append(a.reverse, spec)
 	}
+
+	// Forward the Android Chrome DevTools socket to an available host port.
 	port, err := adb("forward", "tcp:0", "localabstract:chrome_devtools_remote")
 	if err != nil {
 		a.Close()
@@ -53,11 +57,13 @@ func ConnectAndroidChrome(pw *playwright.Playwright, ports ...string) (*AndroidC
 	}
 	a.forward = "tcp:" + port
 
+	// Connect Playwright to Chrome on the Android device.
 	a.Browser, err = pw.Chromium.ConnectOverCDP("http://127.0.0.1:" + port)
 	if err != nil {
 		a.Close()
 		return nil, errors.Wrap(err, "connect to Chrome on the device (is it open and unlocked?)")
 	}
+
 	return a, nil
 }
 
@@ -69,17 +75,22 @@ func (a *AndroidChrome) Context() playwright.BrowserContext {
 // ClearOrigin closes the pages of origin and clears its storage. Pages close
 // first because Chrome cannot clear OPFS under an open sync access handle.
 func (a *AndroidChrome) ClearOrigin(origin string) error {
+	// Close pages for the origin before clearing their storage.
 	ctx := a.Context()
 	for _, page := range ctx.Pages() {
 		if strings.HasPrefix(page.URL(), origin) {
 			_ = page.Close()
 		}
 	}
+
+	// Open a temporary page for the Chrome DevTools storage command.
 	page, err := ctx.NewPage()
 	if err != nil {
 		return err
 	}
 	defer page.Close()
+
+	// Clear all storage for the origin through its DevTools session.
 	cdp, err := ctx.NewCDPSession(page)
 	if err != nil {
 		return err
@@ -88,6 +99,7 @@ func (a *AndroidChrome) ClearOrigin(origin string) error {
 		"origin":       origin,
 		"storageTypes": "all",
 	})
+
 	return err
 }
 

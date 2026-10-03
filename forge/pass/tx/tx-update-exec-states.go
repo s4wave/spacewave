@@ -48,6 +48,7 @@ func (t *TxUpdateExecStates) ExecuteTx(
 	bcs *block.Cursor,
 	root *forge_pass.Pass,
 ) error {
+	// Require a running or canceling pass before refreshing execution states.
 	passState := root.GetPassState()
 	if err := passState.EnsureMatches(
 		forge_pass.State_PassState_RUNNING,
@@ -69,6 +70,7 @@ func (t *TxUpdateExecStates) ExecuteTx(
 		return err
 	}
 
+	// Complete a canceling pass once every attached execution has finished.
 	if passState == forge_pass.State_PassState_CANCELING {
 		for _, execution := range execObjs {
 			if !execution.IsComplete() {
@@ -175,6 +177,7 @@ func (t *TxUpdateExecStates) ExecuteTx(
 		}
 	}
 
+	// Store the refreshed pass state when a block cursor is available.
 	if bcs != nil {
 		bcs.SetBlock(root, true)
 	}

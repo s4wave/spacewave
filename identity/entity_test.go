@@ -10,10 +10,12 @@ import (
 
 // TestBuildEntity tests creating an entity and adding some keypairs.
 func TestBuildEntity(t *testing.T) {
+	// Choose the domain and identifiers for the test entity.
 	entityID := "test-entity"
 	entityUUID := uuid.NewV4().String()
 	domainID := "test-domain"
 
+	// Create an entity with no keypairs.
 	ent := NewEntity(domainID, entityID, entityUUID)
 
 	// Generate two private keys and their entity keypair records.
@@ -46,6 +48,8 @@ func TestBuildEntity(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Sign and append the second entity keypair.
 	p2Priv, err := p2.GetPrivKey(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -60,5 +64,6 @@ func TestBuildEntity(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// Report the number of keypairs retained by the validated entity.
 	t.Logf("successfully created entity with %d keypairs", len(ent.GetEntityKeypairSet().GetEntityKeypairs()))
 }

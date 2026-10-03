@@ -19,6 +19,7 @@ func Resolve[A any](ctx context.Context, le *logrus.Entry, opts ResolveOptions, 
 }
 
 func resolve[A any](ctx context.Context, le *logrus.Entry, opts ResolveOptions, shape Shape[A], hooks resolveHooks) (A, error) {
+	// Retain the empty artifact result for failed resolution steps.
 	var zero A
 
 	// Compute the artifact content key and inspect existing generations.

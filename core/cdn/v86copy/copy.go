@@ -145,6 +145,7 @@ func ensureCopiedWorldObject(
 	objectKey string,
 	progress bucket_lookup.ObjectCopyProgress,
 ) (bucket_lookup.ObjectCopyStats, error) {
+	// Reuse existing destination asset objects and ensure their type markers match.
 	if objectKey == "" {
 		return bucket_lookup.ObjectCopyStats{}, nil
 	}
@@ -160,6 +161,7 @@ func ensureCopiedWorldObject(
 		return bucket_lookup.ObjectCopyStats{}, nil
 	}
 
+	// Open the source asset object and resolve its root constructor and reference.
 	srcObj, srcFound, err := src.GetObject(ctx, objectKey)
 	defer world.ReleaseObjectState(srcObj)
 	if err != nil {
@@ -177,6 +179,7 @@ func ensureCopiedWorldObject(
 		return bucket_lookup.ObjectCopyStats{}, errors.Wrap(err, "get source object root")
 	}
 
+	// Copy the source asset blocks into the destination bucket with progress accounting.
 	var dstRef *bucket.ObjectRef
 	var stats bucket_lookup.ObjectCopyStats
 	err = dst.AccessWorldState(ctx, nil, func(dstCursor *bucket_lookup.Cursor) error {
@@ -198,6 +201,8 @@ func ensureCopiedWorldObject(
 	if err != nil {
 		return stats, errors.Wrap(err, "copy object blocks")
 	}
+
+	// Create the destination asset object from its copied root reference.
 	{
 		createdObject, err := dst.CreateObject(ctx, objectKey, dstRef)
 		world.ReleaseObjectState(createdObject)
@@ -205,19 +210,24 @@ func ensureCopiedWorldObject(
 			return stats, errors.Wrap(err, "create destination object")
 		}
 	}
+
+	// Apply the source type marker to the copied destination asset object.
 	if err := ensureCopiedObjectType(ctx, src, dst, objectKey); err != nil {
 		return stats, err
 	}
+
 	return stats, nil
 }
 
 func lookupCopyRootCtor(ctx context.Context, src world.WorldState, objectKey string) (block.Ctor, error) {
+	// Resolve the root constructor for a source UnixFS asset object.
 	fsType, _, err := unixfs_world.LookupFsType(ctx, src, objectKey)
 	if err == nil {
 		ctor, _, err := unixfs_world.GetFSRootWithType(fsType)
 		return ctor, err
 	}
 
+	// Distinguish untyped source objects from unsupported typed objects.
 	typeID, typeErr := world_types.GetObjectType(ctx, src, objectKey)
 	if typeErr != nil {
 		return nil, errors.Wrap(typeErr, "get source object type")
@@ -225,6 +235,7 @@ func lookupCopyRootCtor(ctx context.Context, src world.WorldState, objectKey str
 	if typeID != "" {
 		return nil, errors.Wrapf(err, "get unixfs root constructor for object type %q", typeID)
 	}
+
 	return nil, nil
 }
 
@@ -241,6 +252,7 @@ func addObjectCopyStats(a, b bucket_lookup.ObjectCopyStats) bucket_lookup.Object
 }
 
 func ensureCopiedObjectType(ctx context.Context, src, dst world.WorldState, objectKey string) error {
+	// Read the source object type and skip untyped asset objects.
 	srcType, err := world_types.GetObjectType(ctx, src, objectKey)
 	if err != nil {
 		return errors.Wrap(err, "get source object type")
@@ -249,6 +261,7 @@ func ensureCopiedObjectType(ctx context.Context, src, dst world.WorldState, obje
 		return nil
 	}
 
+	// Require any existing destination type to match the source asset type.
 	dstType, err := world_types.GetObjectType(ctx, dst, objectKey)
 	if err != nil {
 		return errors.Wrap(err, "get destination object type")
@@ -259,12 +272,14 @@ func ensureCopiedObjectType(ctx context.Context, src, dst world.WorldState, obje
 	if dstType != "" {
 		return errors.Errorf("destination object %q has type %q, expected %q", objectKey, dstType, srcType)
 	}
+
 	return world_types.SetObjectType(ctx, dst, objectKey, srcType)
 }
 
 // readCdnV86Image loads the V86Image block from =ws= at =objKey=, verifying the
 // object exists and carries the V86Image type marker.
 func readCdnV86Image(ctx context.Context, ws world.WorldState, objKey string) (*s4wave_vm.V86Image, error) {
+	// Open the source V86 image object and require it to exist.
 	objState, found, err := ws.GetObject(ctx, objKey)
 	defer world.ReleaseObjectState(objState)
 	if err != nil {
@@ -274,6 +289,7 @@ func readCdnV86Image(ctx context.Context, ws world.WorldState, objKey string) (*
 		return nil, errors.Errorf("v86 image object %q not found", objKey)
 	}
 
+	// Require a V86 image type marker on the source object.
 	typeID, err := world_types.GetObjectType(ctx, ws, objKey)
 	if err != nil {
 		return nil, errors.Wrap(err, "get object type")
@@ -282,8 +298,10 @@ func readCdnV86Image(ctx context.Context, ws world.WorldState, objKey string) (*
 		return nil, errors.Errorf("object %q is not a V86Image (type=%q)", objKey, typeID)
 	}
 
+	// Read a copy of the source V86 image metadata block.
 	var img *s4wave_vm.V86Image
 	_, _, err = world.AccessObjectState(ctx, objState, false, func(bcs *block.Cursor) error {
+		// Decode the V86 image block and retain its metadata independently of the cursor.
 		current, unmarshalErr := block.UnmarshalBlock[*s4wave_vm.V86Image](ctx, bcs, func() block.Block {
 			return &s4wave_vm.V86Image{}
 		})
@@ -299,6 +317,7 @@ func readCdnV86Image(ctx context.Context, ws world.WorldState, objKey string) (*
 	if err != nil {
 		return nil, errors.Wrap(err, "access v86 image block")
 	}
+
 	return img, nil
 }
 
@@ -320,6 +339,7 @@ func readV86ImageEdges(ctx context.Context, ws world.WorldState, objKey string) 
 // lookupV86ImageEdge returns the target object key for a single (subject,
 // predicate) pair. Returns "" when no quad exists for that edge.
 func lookupV86ImageEdge(ctx context.Context, ws world.WorldState, subject, pred string) (string, error) {
+	// Look up the first asset edge for the V86 image predicate.
 	quads, err := ws.LookupGraphQuads(
 		ctx,
 		world.NewGraphQuadWithKeys(subject, pred, "", ""),
@@ -331,10 +351,13 @@ func lookupV86ImageEdge(ctx context.Context, ws world.WorldState, subject, pred 
 	if len(quads) == 0 {
 		return "", nil
 	}
+
+	// Decode the asset object key from the graph edge target.
 	target, err := world.GraphValueToKey(quads[0].GetObj())
 	if err != nil {
 		return "", errors.Wrapf(err, "parse %s edge target key", pred)
 	}
+
 	return target, nil
 }
 
@@ -347,6 +370,7 @@ func checkDstV86Image(
 	dstObjectKey string,
 	srcImage *s4wave_vm.V86Image,
 ) (bool, error) {
+	// Require a writable destination and check whether its image object exists.
 	if dst.GetReadOnly() {
 		return false, errors.New("destination world state is read-only")
 	}
@@ -358,6 +382,8 @@ func checkDstV86Image(
 	if !found {
 		return false, nil
 	}
+
+	// Require an existing destination image to match the source metadata.
 	dstImage, err := readCdnV86Image(ctx, dst, dstObjectKey)
 	if err != nil {
 		return false, errors.Wrap(err, "read existing destination image")
@@ -365,5 +391,6 @@ func checkDstV86Image(
 	if !dstImage.EqualVT(srcImage) {
 		return false, errors.Errorf("destination object %q already contains a different V86Image", dstObjectKey)
 	}
+
 	return true, nil
 }

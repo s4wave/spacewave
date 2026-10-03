@@ -27,6 +27,7 @@ func EntityWithPrivKey(
 	authMethodID string,
 	authMethodParams []byte,
 ) (*Entity, error) {
+	// Construct the entity and its initial public keypair record.
 	ent := NewEntity(domainID, entityID, entityUUID)
 	pubKey := privKey.GetPublic()
 	ekp, err := EntityKeypairWithPubKey(
@@ -38,10 +39,13 @@ func EntityWithPrivKey(
 	if err != nil {
 		return nil, err
 	}
+
+	// Sign and append the initial keypair to the entity.
 	err = ent.AppendKeypair(privKey, ekp)
 	if err != nil {
 		return nil, err
 	}
+
 	return ent, nil
 }
 
@@ -59,6 +63,7 @@ func UnmarshalEntity(ctx context.Context, bcs *block.Cursor) (*Entity, error) {
 // Validate validates the entity object and all keypair signatures.
 // Auth method params and/or IDs are not validated.
 func (e *Entity) Validate() error {
+	// Validate the entity domain, identifier, and UUID.
 	if err := ValidateDomainID(e.GetDomainId()); err != nil {
 		return err
 	}
@@ -68,9 +73,12 @@ func (e *Entity) Validate() error {
 	if err := ValidateUUID(e.GetEntityUuid()); err != nil {
 		return err
 	}
+
+	// Verify the entity keypair records and their signatures.
 	if _, err := e.UnmarshalVerifyKeypairs(); err != nil {
 		return err
 	}
+
 	return nil
 }
 

@@ -44,16 +44,20 @@ type Transaction interface {
 
 // Validate checks the transaction (cursory checks only)
 func (t *Tx) Validate() error {
+	// Require a pass object key and a supported transaction type.
 	if len(t.GetPassObjectKey()) == 0 {
 		return errors.Wrap(world.ErrEmptyObjectKey, "pass_object_key")
 	}
 	if err := t.GetTxType().Validate(); err != nil {
 		return err
 	}
+
+	// Locate the pass transaction payload for validation.
 	ttx, err := t.LocateTx()
 	if err != nil {
 		return err
 	}
+
 	return ttx.Validate()
 }
 
@@ -97,9 +101,12 @@ func (t *Tx) LocateTx() (Transaction, error) {
 // If blk is nil, returns nil, nil
 // If the blk is already parsed to a Tx, returns the Tx.
 func ByteSliceToTx(blk block.Block) (*Tx, error) {
+	// Preserve an absent pass transaction block.
 	if blk == nil {
 		return nil, nil
 	}
+
+	// Decode a byte slice containing a pass transaction.
 	var out *Tx
 	nr, ok := blk.(*byteslice.ByteSlice)
 	if ok && nr != nil {
@@ -109,10 +116,13 @@ func ByteSliceToTx(blk block.Block) (*Tx, error) {
 		}
 		return out, nil
 	}
+
+	// Require a decoded pass transaction for other block representations.
 	out, ok = blk.(*Tx)
 	if !ok {
 		return out, block.ErrUnexpectedType
 	}
+
 	return out, nil
 }
 
@@ -128,23 +138,30 @@ func (t *Tx) ApplyWorldOp(
 	worldHandle world.WorldState,
 	sender peer.ID,
 ) (sysErr bool, err error) {
+	// Locate the pass transaction payload to apply.
 	ttx, err := t.LocateTx()
 	if err != nil {
 		return false, err
 	}
 
+	// Apply the transaction within access to the pass World object.
 	objKey := t.GetPassObjectKey()
 	_, _, err = world.AccessWorldObject(ctx, worldHandle, objKey, true, func(bcs *block.Cursor) error {
+		// Decode the current pass state from the World object.
 		ps, err := forge_pass.UnmarshalPass(ctx, bcs)
 		if err != nil {
 			return err
 		}
+
+		// Execute the pass transaction and validate the resulting state.
 		err = ttx.ExecuteTx(ctx, worldHandle, sender, objKey, bcs, ps)
 		if err == nil {
 			err = ps.Validate(true)
 		}
+
 		return err
 	})
+
 	return false, err
 }
 

@@ -32,7 +32,6 @@ func TestCopyV86ImageFromCdnCopiesAssetObjectsBeforeEdges(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer dstTB.Release()
-
 	const (
 		srcImageKey = "v86image/default"
 		dstImageKey = "vm-image/default-copy"
@@ -125,6 +124,7 @@ func createFSNodeObjectWithFile(
 	name string,
 	content []byte,
 ) {
+	// Attribute filesystem object setup failures to the calling test.
 	t.Helper()
 
 	// Create the source filesystem object and file.
@@ -158,6 +158,7 @@ func createFSNodeObjectWithFile(
 
 // Open and read the copied filesystem file.
 func readFSNodeFile(t *testing.T, ctx context.Context, ws world.WorldState, objKey, name string) []byte {
+	// Open a filesystem handle for the copied asset object.
 	t.Helper()
 	fsc := unixfs_world.NewFSCursor(logrus.NewEntry(logrus.New()), ws, objKey, unixfs_world.FSType_FSType_FS_NODE, nil, false)
 	fsh, err := unixfs.NewFSHandle(fsc)
@@ -167,21 +168,25 @@ func readFSNodeFile(t *testing.T, ctx context.Context, ws world.WorldState, objK
 	}
 	defer fsh.Release()
 
+	// Look up the copied file within the filesystem handle.
 	child, err := fsh.Lookup(ctx, name)
 	if err != nil {
 		t.Fatalf("lookup copied file %q: %v (%s)", name, err, describeFSNodeObject(t, ctx, ws, objKey))
 	}
 	defer child.Release()
 
+	// Read the copied file contents for comparison with the source.
 	got, err := unixfs.ReadFile(ctx, child)
 	if err != nil {
 		t.Fatalf("read copied file %q: %v", name, err)
 	}
+
 	return got
 }
 
 // Build diagnostic information for a filesystem object.
 func describeFSNodeObject(t *testing.T, ctx context.Context, ws world.WorldState, objKey string) string {
+	// Open the filesystem object whose blocks need diagnostic inspection.
 	t.Helper()
 	obj, found, err := ws.GetObject(ctx, objKey)
 	defer world.ReleaseObjectState(obj)
@@ -191,19 +196,26 @@ func describeFSNodeObject(t *testing.T, ctx context.Context, ws world.WorldState
 	if !found {
 		return "object not found"
 	}
+
+	// Collect root and child block availability from the filesystem object.
 	var out string
 	_, _, err = world.AccessObjectState(ctx, obj, false, func(bcs *block.Cursor) error {
+		// Inspect the filesystem root reference and its block availability.
 		store, _ := bcs.GetBlockStore()
 		rootRef := bcs.GetRef()
 		rootExists := false
 		if store != nil && rootRef != nil && !rootRef.GetEmpty() {
 			rootExists, _ = store.GetBlockExists(ctx, rootRef)
 		}
+
+		// Decode the filesystem root to inspect its directory entries.
 		root, err := unixfs_block.UnmarshalFSNode(ctx, bcs)
 		if err != nil {
 			out = fmt.Sprintf("root-ref=%s root-exists=%v root-unmarshal=%v", rootRef.MarshalString(), rootExists, err)
 			return nil
 		}
+
+		// Describe the filesystem root and each child reference with block availability.
 		out = fmt.Sprintf("root-ref=%s root-exists=%v dirents=%d", rootRef.MarshalString(), rootExists, len(root.GetDirectoryEntry()))
 		for _, dirent := range root.GetDirectoryEntry() {
 			childRef := dirent.GetNodeRef()
@@ -213,10 +225,12 @@ func describeFSNodeObject(t *testing.T, ctx context.Context, ws world.WorldState
 			}
 			out += fmt.Sprintf(" %s=%s exists=%v", dirent.GetName(), childRef.MarshalString(), childExists)
 		}
+
 		return nil
 	})
 	if err != nil {
 		return fmt.Sprintf("access object: %v", err)
 	}
+
 	return out
 }

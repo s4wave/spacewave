@@ -29,16 +29,20 @@ type SelectEntityIdValue = string
 
 // ExSelectEntityId executes the select entity id directive.
 func ExSelectEntityId(ctx context.Context, b bus.Bus, purpose, domainID string, prevErr error) (SelectEntityIdValue, error) {
+	// Ask the user to select an entity ID in the requested domain.
 	av, _, dirRef, err := bus.ExecOneOff(ctx, b, NewSelectEntityId(purpose, domainID, prevErr), nil, nil)
 	if err != nil {
 		return "", err
 	}
+
+	// Extract the selected entity ID and release the completed directive.
 	val := av.GetValue()
 	dirRef.Release()
 	valObj, valObjOk := val.(SelectEntityIdValue)
 	if !valObjOk {
 		return "", block.ErrUnexpectedType
 	}
+
 	return valObj, nil
 }
 
