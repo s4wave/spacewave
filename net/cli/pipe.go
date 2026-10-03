@@ -81,6 +81,7 @@ func (a *PipeArgs) BuildFlags() []cli.Flag {
 
 // Run executes the pipe command.
 func (a *PipeArgs) Run(c *cli.Context) error {
+	// Use the CLI context for the selected pipe operation.
 	ctx := c.Context
 
 	// Validate arguments
@@ -91,6 +92,7 @@ func (a *PipeArgs) Run(c *cli.Context) error {
 		return errors.New("cannot specify both -l (listen) and -c (connect)")
 	}
 
+	// Run the pipe listener or connector selected by the addresses.
 	if a.ListenAddr != "" {
 		return a.runListen(ctx)
 	}
@@ -179,14 +181,17 @@ func (a *PipeArgs) loadOrGenerateKey(le *logrus.Entry) (crypto.PrivKey, error) {
 
 // parseConnectAddr parses a "peer-id@host:port" string.
 func parseConnectAddr(addr string) (peer.ID, string, error) {
+	// Separate the remote peer identifier from its transport address.
 	parts := strings.SplitN(addr, "@", 2)
 	if len(parts) != 2 {
 		return "", "", errors.New("connect address must be in format peer-id@host:port")
 	}
 
+	// Trim the peer identifier and transport address for validation.
 	peerIDStr := strings.TrimSpace(parts[0])
 	hostPort := strings.TrimSpace(parts[1])
 
+	// Require both the remote peer identifier and transport address.
 	if peerIDStr == "" {
 		return "", "", errors.New("peer ID cannot be empty")
 	}
@@ -194,6 +199,7 @@ func parseConnectAddr(addr string) (peer.ID, string, error) {
 		return "", "", errors.New("host:port cannot be empty")
 	}
 
+	// Decode the remote peer identifier for the pipe connection.
 	peerID, err := confparse.ParsePeerID(peerIDStr)
 	if err != nil {
 		return "", "", errors.Wrap(err, "parse peer ID")
@@ -204,6 +210,7 @@ func parseConnectAddr(addr string) (peer.ID, string, error) {
 
 // pipeStream performs bidirectional copying between a stream and stdin/stdout.
 func pipeStream(strm io.ReadWriteCloser, stdin io.Reader, stdout io.Writer) error {
+	// Track completion of copying the remote stream to stdout.
 	done := make(chan struct{})
 
 	// stdin -> stream

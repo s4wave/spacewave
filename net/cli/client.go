@@ -86,19 +86,23 @@ func (a *ClientArgs) SetClient(client bifrost_api.BifrostAPIClient) {
 
 // BuildClient builds the client or returns it if it has been set.
 func (a *ClientArgs) BuildClient() (bifrost_api.BifrostAPIClient, error) {
+	// Reuse the configured Bifrost client when one is available.
 	if a.client != nil {
 		return a.client, nil
 	}
 
+	// Require a daemon address before connecting the Bifrost client.
 	if a.DialAddr == "" {
 		return nil, errors.New("dial address is not set")
 	}
 
+	// Connect to the Bifrost daemon over TCP.
 	nconn, err := net.Dial("tcp", a.DialAddr)
 	if err != nil {
 		return nil, err
 	}
 
+	// Wrap the daemon connection in an RPC client and retain it.
 	muxedConn, err := srpc.NewMuxedConn(nconn, true, nil)
 	if err != nil {
 		return nil, err
@@ -291,10 +295,12 @@ func (a *ClientArgs) GetContext() context.Context {
 
 // LoadOrGenerateIdentifyKey loads or generates the IdentifyKeyPath.
 func (a *ClientArgs) LoadOrGenerateIdentifyKey() ([]byte, crypto.PrivKey, error) {
+	// Require a private key path for the identify controller.
 	if a.IdentifyKeyPath == "" {
 		return nil, nil, errors.New("identification private key path not set")
 	}
 
+	// Generate and save the identification key when requested and missing.
 	var privKey crypto.PrivKey
 	var dat []byte
 	var err error
@@ -318,6 +324,7 @@ func (a *ClientArgs) LoadOrGenerateIdentifyKey() ([]byte, crypto.PrivKey, error)
 		}
 	}
 
+	// Read the identification key bytes when generation supplied none.
 	if len(dat) == 0 {
 		dat, err = os.ReadFile(a.IdentifyKeyPath)
 		if err != nil {
@@ -326,6 +333,7 @@ func (a *ClientArgs) LoadOrGenerateIdentifyKey() ([]byte, crypto.PrivKey, error)
 		privKey = nil
 	}
 
+	// Decode the identification key bytes when no private key is loaded.
 	if privKey == nil {
 		privKey, err = confparse.ParsePrivateKey(string(dat))
 		if err != nil {

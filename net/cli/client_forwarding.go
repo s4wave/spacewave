@@ -9,12 +9,14 @@ import (
 
 // RunForwarding runs the forwarding command.
 func (a *ClientArgs) RunForwarding(_ *cli.Context) error {
+	// Connect the forwarding command to the Bifrost daemon.
 	ctx := a.GetContext()
 	c, err := a.BuildClient()
 	if err != nil {
 		return err
 	}
 
+	// Start stream forwarding with the configured target.
 	req, err := c.ForwardStreams(ctx, &stream_api.ForwardStreamsRequest{
 		ForwardingConfig: &a.ForwardingConf,
 	})
@@ -22,6 +24,7 @@ func (a *ClientArgs) RunForwarding(_ *cli.Context) error {
 		return err
 	}
 
+	// Print forwarding-controller status updates as they arrive.
 	for {
 		resp, err := req.Recv()
 		if err != nil {

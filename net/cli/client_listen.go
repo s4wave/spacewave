@@ -9,6 +9,7 @@ import (
 
 // RunListen runs the listen command.
 func (a *ClientArgs) RunListen(*cli.Context) error {
+	// Connect the listen command and request the configured stream listener.
 	ctx := a.GetContext()
 	c, err := a.BuildClient()
 	if err != nil {
@@ -21,6 +22,7 @@ func (a *ClientArgs) RunListen(*cli.Context) error {
 		return err
 	}
 
+	// Print listener-controller status updates as they arrive.
 	for {
 		resp, err := req.Recv()
 		if err != nil {

@@ -31,9 +31,11 @@ func (a *PipeArgs) runConnect(ctx context.Context) error {
 	}
 	defer cleanup()
 
+	// Read the daemon bus and local identity for the outgoing stream.
 	b := d.GetControllerBus()
 	localPeerID := d.GetNodePeerID()
 
+	// Show the local identity and remote pipe destination.
 	a.logStatus("Local Peer ID: %s", localPeerID.String())
 	a.logStatus("Connecting to %s at %s", remotePeerID.String(), remoteAddr)
 
@@ -52,6 +54,7 @@ func (a *PipeArgs) runConnect(ctx context.Context) error {
 	}
 	defer rel()
 
+	// Report that the remote pipe connection is ready.
 	a.logStatus("Connected!")
 
 	// Pipe stream to stdin/stdout

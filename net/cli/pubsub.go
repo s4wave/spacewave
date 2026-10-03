@@ -20,12 +20,15 @@ var pubsubProviders = map[string](func(args *DaemonArgs) (config.Config, error))
 
 // buildPubsubUsage returns the pubsub usage string.
 func buildPubsubUsage() string {
+	// Prepare the usage text and collect the compiled pubsub providers.
 	var strb strings.Builder
 	_, _ = strb.WriteString("if set, will configure pubsub from options: [")
 	keys := make([]string, 0, len(pubsubProviders))
 	for k := range pubsubProviders {
 		keys = append(keys, k)
 	}
+
+	// Format the pubsub provider names in stable order.
 	slices.Sort(keys)
 	for i, k := range keys {
 		strb.WriteString(k)

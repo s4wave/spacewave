@@ -9,11 +9,13 @@ import (
 
 // RunIdentifyController runs an identify controller.
 func (a *ClientArgs) RunIdentifyController(_ *cli.Context) error {
+	// Connect the identify command to the Bifrost daemon.
 	c, err := a.BuildClient()
 	if err != nil {
 		return err
 	}
 
+	// Load the identification key and validate the controller configuration.
 	dat, _, err := a.LoadOrGenerateIdentifyKey()
 	if err != nil {
 		return err
@@ -23,6 +25,7 @@ func (a *ClientArgs) RunIdentifyController(_ *cli.Context) error {
 		return err
 	}
 
+	// Start the identify controller through the daemon API.
 	req, err := c.Identify(a.GetContext(), &peer_api.IdentifyRequest{
 		Config: &a.IdentifyConf,
 	})
@@ -30,6 +33,7 @@ func (a *ClientArgs) RunIdentifyController(_ *cli.Context) error {
 		return err
 	}
 
+	// Print identify-controller status updates as they arrive.
 	for {
 		resp, err := req.Recv()
 		if err != nil {

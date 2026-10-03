@@ -108,10 +108,12 @@ func (a *EnvelopeArgs) writeOutput(data []byte) error {
 
 // loadPubKeys loads public keys from the key file paths.
 func (a *EnvelopeArgs) loadPubKeys() ([]crypto.PubKey, error) {
+	// Prepare the key paths and a silent logger for recipient loading.
 	paths := a.KeyPaths.Value()
 	le := logrus.NewEntry(logrus.New())
 	le.Logger.SetOutput(io.Discard)
 
+	// Load the public recipient keys from the configured key files.
 	keys := make([]crypto.PubKey, 0, len(paths))
 	for _, path := range paths {
 		// Try loading as private key first (to extract public key).
@@ -126,10 +128,12 @@ func (a *EnvelopeArgs) loadPubKeys() ([]crypto.PubKey, error) {
 
 // loadPrivKeys loads private keys from the key file paths.
 func (a *EnvelopeArgs) loadPrivKeys() ([]crypto.PrivKey, error) {
+	// Prepare the key paths and a silent logger for envelope unlocking.
 	paths := a.KeyPaths.Value()
 	le := logrus.NewEntry(logrus.New())
 	le.Logger.SetOutput(io.Discard)
 
+	// Load the private recipient keys, accepting PEM files as a fallback.
 	keys := make([]crypto.PrivKey, 0, len(paths))
 	for _, path := range paths {
 		priv, err := keyfile.OpenOrWritePrivKey(le, path)
@@ -157,6 +161,7 @@ func (a *EnvelopeArgs) RunSeal(_ *cli.Context) error {
 		return err
 	}
 
+	// Read a nonempty payload from the selected envelope input.
 	payload, err := a.readInput()
 	if err != nil {
 		return errors.Wrap(err, "read input")
@@ -174,6 +179,7 @@ func (a *EnvelopeArgs) RunSeal(_ *cli.Context) error {
 		}
 	}
 
+	// Require an envelope threshold that fits the wire format.
 	if a.Threshold > math.MaxUint32 {
 		return errors.New("threshold exceeds maximum value")
 	}
@@ -216,6 +222,7 @@ func (a *EnvelopeArgs) RunUnseal(c *cli.Context) error {
 		return errors.Wrap(err, "read input")
 	}
 
+	// Decode the input bytes into the sealed envelope.
 	env := &envelope.Envelope{}
 	if err := env.UnmarshalVT(data); err != nil {
 		return errors.Wrap(err, "unmarshal envelope")
@@ -237,6 +244,7 @@ func (a *EnvelopeArgs) RunUnseal(c *cli.Context) error {
 		return a.writeOutput(dat)
 	}
 
+	// Require enough unlocked shares before writing the payload.
 	if !result.GetSuccess() {
 		return errors.Errorf(
 			"insufficient shares: have %d, need %d",
@@ -253,16 +261,21 @@ func marshalEnvelopeInfoJSON(
 	env *envelope.Envelope,
 	result *envelope.EnvelopeUnlockResult,
 ) ([]byte, error) {
+	// Open the unlock-info JSON object and write its success flag.
 	s := jsoniter.NewStream(nil, 256, 2)
 	s.WriteObjectStart()
 	s.WriteObjectField("success")
 	s.WriteBool(result.GetSuccess())
+
+	// Write the share counts needed to explain the unlock result.
 	s.WriteMore()
 	s.WriteObjectField("shares_available")
 	s.WriteUint32(result.GetSharesAvailable())
 	s.WriteMore()
 	s.WriteObjectField("shares_needed")
 	s.WriteUint32(result.GetSharesNeeded())
+
+	// Write the indexes of grants unlocked by the supplied keys.
 	s.WriteMore()
 	s.WriteObjectField("unlocked_grants")
 	s.WriteArrayStart()
@@ -273,12 +286,16 @@ func marshalEnvelopeInfoJSON(
 		s.WriteUint32(idx)
 	}
 	s.WriteArrayEnd()
+
+	// Write the envelope grant and keypair totals.
 	s.WriteMore()
 	s.WriteObjectField("total_grants")
 	s.WriteInt(len(env.GetGrants()))
 	s.WriteMore()
 	s.WriteObjectField("total_keypairs")
 	s.WriteInt(len(env.GetKeypairs()))
+
+	// Write the envelope threshold and identifier and close the JSON object.
 	s.WriteMore()
 	s.WriteObjectField("threshold")
 	s.WriteUint32(env.GetThreshold())
@@ -286,6 +303,8 @@ func marshalEnvelopeInfoJSON(
 	s.WriteObjectField("envelope_id")
 	s.WriteString(env.GetEnvelopeId())
 	s.WriteObjectEnd()
+
+	// Propagate any unlock-info JSON encoding error.
 	if s.Error != nil {
 		return nil, s.Error
 	}

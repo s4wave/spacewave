@@ -11,17 +11,20 @@ import (
 
 // RunDial runs the dial command.
 func (a *ClientArgs) RunDial(*cli.Context) error {
+	// Connect the dial command to the Bifrost daemon.
 	ctx := a.GetContext()
 	c, err := a.BuildClient()
 	if err != nil {
 		return err
 	}
 
+	// Open the outgoing-stream RPC with the command context.
 	client, err := c.DialStream(ctx)
 	if err != nil {
 		return err
 	}
 
+	// Apply the requested peer filter and send the dial configuration.
 	if len(a.RemotePeerIdsCsv) != 0 {
 		a.AcceptConf.RemotePeerIds = a.ParseRemotePeerIdsCsv()
 	}
@@ -32,6 +35,7 @@ func (a *ClientArgs) RunDial(*cli.Context) error {
 		return err
 	}
 
+	// Attach the outgoing stream to stdin and stdout.
 	rpcClient := stream_api.NewDialStreamClientRPC(client)
 	return stream_api_rpc.AttachRPCToStream(
 		rpcClient,

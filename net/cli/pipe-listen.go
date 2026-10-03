@@ -22,6 +22,7 @@ func (a *PipeArgs) runListen(ctx context.Context) error {
 	}
 	defer cleanup()
 
+	// Read the daemon bus and local identity for the pipe listener.
 	b := d.GetControllerBus()
 	peerID := d.GetNodePeerID()
 
@@ -106,6 +107,7 @@ func (c *pipeAcceptController) HandleDirective(
 	ctx context.Context,
 	di directive.Instance,
 ) ([]directive.Resolver, error) {
+	// Accept only mounted-stream directives before applying pipe filters.
 	dir := di.GetDirective()
 	hms, ok := dir.(link.HandleMountedStream)
 	if !ok {

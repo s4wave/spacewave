@@ -21,14 +21,17 @@ var publishTimeout = time.Second * 30
 
 // RunSubscribe runs the subscription command.
 func (a *ClientArgs) RunSubscribe(_ *cli.Context) error {
+	// Connect the subscription command to the Bifrost daemon.
 	c, err := a.BuildClient()
 	if err != nil {
 		return err
 	}
 
+	// Cancel the subscription workers when the command returns.
 	ctx, ctxCancel := context.WithCancel(a.GetContext())
 	defer ctxCancel()
 
+	// Supply the subscription identity from the configured private key.
 	if a.SubscribeConf.GetPeerId() == "" {
 		pkdat, privKey, err := a.LoadOrGenerateIdentifyKey()
 		if err != nil {
@@ -42,6 +45,7 @@ func (a *ClientArgs) RunSubscribe(_ *cli.Context) error {
 		a.SubscribeConf.PrivKeyPem = string(pkdat)
 	}
 
+	// Open the subscription stream and send its initial configuration.
 	client, err := c.Subscribe(ctx)
 	if err != nil {
 		return err
@@ -55,12 +59,15 @@ func (a *ClientArgs) RunSubscribe(_ *cli.Context) error {
 	errCh := make(chan error, 10)
 	publishAckCh := make(chan uint32, 10)
 	go func() {
+		// Prepare the stdin scanner and reusable publication request.
 		scan := bufio.NewScanner(input)
 		spubMsg := &pubsub_api.SubscribeRequest{}
 		pubMsg := &pubsub_api.PublishRequest{}
 		spubMsg.PublishRequest = pubMsg
 		var sendIdentifier uint32
 		var dataRecv bool
+
+		// Publish each nonempty stdin line and wait for its acknowledgment.
 		for scan.Scan() {
 			line := scan.Text()
 			line = strings.TrimSpace(line)
@@ -96,11 +103,14 @@ func (a *ClientArgs) RunSubscribe(_ *cli.Context) error {
 			}
 			pubCtxCancel()
 		}
+
+		// End the subscription command after all stdin publications finish.
 		if dataRecv {
 			errCh <- io.EOF
 		}
 	}()
 
+	// Receive subscription responses for the command to display.
 	recvCh := make(chan *pubsub_api.SubscribeResponse, 10)
 	go func() {
 		for {
@@ -117,6 +127,7 @@ func (a *ClientArgs) RunSubscribe(_ *cli.Context) error {
 		}
 	}()
 
+	// Display subscription events and deliver publication acknowledgments.
 	for {
 		select {
 		case <-ctx.Done():
