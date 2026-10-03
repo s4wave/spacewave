@@ -231,13 +231,21 @@ func (s *SOState) AddOperation(sharedObjectID string, op *SOOperation) (bool, er
 		return false, nil
 	}
 
-	// Insert it in hash order unless held.
+	// Insert it in hash order unless held. Hashing may suspend under GoScript,
+	// which slices callbacks do not allow, so search with a plain loop.
 	h := op.Hash()
-	i, ok := slices.BinarySearchFunc(s.Ops, h, func(o *SOOperation, h []byte) int {
-		return bytes.Compare(o.Hash(), h)
-	})
-	if ok {
-		return false, nil
+	i, j := 0, len(s.Ops)
+	for i < j {
+		m := int(uint(i+j) >> 1)
+		c := bytes.Compare(s.Ops[m].Hash(), h)
+		if c == 0 {
+			return false, nil
+		}
+		if c < 0 {
+			i = m + 1
+		} else {
+			j = m
+		}
 	}
 	if len(s.Ops) >= MaxOperations {
 		return false, errors.Wrap(ErrMaxCountExceeded, "operations")
@@ -288,13 +296,18 @@ func (s *SOState) AdoptCheckpoint(sharedObjectID string, next *SOCheckpoint) err
 		return err
 	}
 
-	// Drop the operations the new checkpoint covers.
+	// Drop the operations the new checkpoint covers. Verification may suspend
+	// under GoScript, so filter with a plain loop instead of slices.DeleteFunc.
 	set := NewSOOperationSet(sharedObjectID, inner)
 	s.Checkpoint = next.CloneVT()
-	s.Ops = slices.DeleteFunc(s.Ops, func(op *SOOperation) bool {
-		added, err := set.Add(op)
-		return err != nil || !added
-	})
+	kept := s.Ops[:0]
+	for _, op := range s.Ops {
+		if added, err := set.Add(op); err == nil && added {
+			kept = append(kept, op)
+		}
+	}
+	clear(s.Ops[len(kept):])
+	s.Ops = kept
 	return nil
 }
 
