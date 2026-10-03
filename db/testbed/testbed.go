@@ -87,7 +87,6 @@ func NewTestbed(ctx context.Context, le *logrus.Entry, opts ...Option) (tb *Test
 	if err != nil {
 		return nil, err
 	}
-
 	core.AddFactories(b, sr)
 
 	// Start the config-set controller.
@@ -185,16 +184,21 @@ func NewTestbed(ctx context.Context, le *logrus.Entry, opts ...Option) (tb *Test
 
 // RunTest executes a test.
 func RunTest(t *testing.T, cb func(t *testing.T, tb *Testbed)) {
+	// Prepare the test lifetime and debug logger.
 	ctx, ctxCancel := context.WithCancel(context.Background())
 	defer ctxCancel()
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
+
+	// Construct the testbed and retain its controller cleanup.
 	tb, err := NewTestbed(ctx, le)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	defer tb.Release()
+
+	// Run the test callback against the constructed testbed.
 	cb(t, tb)
 }
 
@@ -208,26 +212,33 @@ func RunTest(t *testing.T, cb func(t *testing.T, tb *Testbed)) {
 // must return before the outer test function for t returns.
 func RunSubtest(t *testing.T, name string, cb func(t *testing.T, tb *Testbed)) bool {
 	return t.Run(name, func(t *testing.T) {
+		// Prepare the named subtest context and debug logger.
 		ctx := t.Context()
 		log := logrus.New()
 		log.SetLevel(logrus.DebugLevel)
 		le := logrus.NewEntry(log)
+
+		// Construct the subtest testbed and retain its controller cleanup.
 		tb, err := NewTestbed(ctx, le.WithField("subtest", name))
 		if err != nil {
 			t.Fatal(err.Error())
 		}
 		defer tb.Release()
+
+		// Run the subtest callback against the constructed testbed.
 		cb(t, tb)
 	})
 }
 
 // BuildEmptyCursor builds an empty cursor rooted at the volume in the testbed.
 func (t *Testbed) BuildEmptyCursor(ctx context.Context) (*bucket_lookup.Cursor, error) {
+	// Require a configured testbed volume before constructing a cursor.
 	vol := t.Volume
 	if vol == nil {
 		return nil, errors.New("no testbed volume configured")
 	}
 
+	// Build an empty cursor in the testbed bucket on its mounted volume.
 	volID := vol.GetID()
 	oc, _, err := bucket_lookup.BuildEmptyCursor(
 		ctx,
@@ -271,12 +282,14 @@ func startVolume(
 	le *logrus.Entry,
 	conf config.Config,
 ) (volume.Controller, func(), error) {
+	// Resolve the controller factory for the requested volume configuration.
 	factory, factoryRef, err := resolver.ExLoadFactoryByConfig(ctx, b, conf)
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "load volume factory")
 	}
 	defer factoryRef.Release()
 
+	// Construct the configured controller and require its volume interface.
 	ctrl, err := factory.Construct(ctx, conf, controller.ConstructOpts{
 		Logger: le.WithField("config", conf.GetConfigID()),
 	})
@@ -289,6 +302,8 @@ func startVolume(
 		_ = ctrl.Close()
 		return nil, nil, errors.Errorf("config %s is not a volume controller", conf.GetConfigID())
 	}
+
+	// Attach the volume controller and release it if the bus rejects it.
 	rel, err := b.AddController(ctx, vc, nil)
 	if err != nil {
 		// The bus rejected the controller before running it.

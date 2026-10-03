@@ -38,11 +38,13 @@ func NewConn(
 	laddr, raddr net.Addr,
 	bufferPacketN int,
 ) *Conn {
+	// Prepare the Conn lifetime and receive queue capacity.
 	ctx, ctxCancel := context.WithCancel(ctx) //nolint:gosec // cancel stored on Conn and called by Close
 	if bufferPacketN <= 0 {
 		bufferPacketN = 10
 	}
 
+	// Start the Conn receive pump on the underlying stream.
 	c := &Conn{
 		ctx:       ctx,
 		ctxCancel: ctxCancel,
@@ -162,11 +164,14 @@ func (p *Conn) Close() error {
 
 // getArenaBuf returns a buf from the packet arena with at least the given size.
 func (p *Conn) getArenaBuf(size int) []byte {
+	// Recover a reusable packet buffer from the connection arena.
 	var buf []byte
 	bufp := p.ar.Get()
 	if bufp != nil {
 		buf = *bufp.(*[]byte)
 	}
+
+	// Resize the packet buffer to the requested size or its full capacity.
 	if size != 0 {
 		if cap(buf) < size {
 			buf = make([]byte, size)
@@ -176,6 +181,7 @@ func (p *Conn) getArenaBuf(size int) []byte {
 	} else {
 		buf = buf[:cap(buf)]
 	}
+
 	return buf
 }
 

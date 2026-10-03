@@ -15,21 +15,31 @@ const ConfigID = ControllerID
 // Validate validates the configuration.
 // This is a cursory validation to see if the values "look correct."
 func (c *Config) Validate() error {
+	// Require the filesystem identity for access resolution.
 	if c.GetFsId() == "" {
 		return unixfs_errors.ErrEmptyUnixFsId
 	}
+
+	// Require the World engine identity for filesystem access.
 	if c.GetEngineId() == "" {
 		return world.ErrEmptyEngineID
 	}
+
+	// Validate the World reference for the filesystem root.
 	if err := c.GetFsRef().Validate(); err != nil {
 		return errors.Wrap(err, "fs_ref")
 	}
+
+	// Validate the sender peer used for World changes.
 	if _, err := c.ParsePeerID(); err != nil {
 		return err
 	}
+
+	// Validate the timestamp for filesystem metadata.
 	if err := c.GetTimestamp().Validate(true); err != nil {
 		return err
 	}
+
 	return nil
 }
 

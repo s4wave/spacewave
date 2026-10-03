@@ -35,6 +35,7 @@ func (r testRuntime) ResetSession(requirement runtime.SessionRequirement) error 
 }
 
 func TestRunnerUsesDeclaredOrderAndSessionBoundaries(t *testing.T) {
+	// Record runtime resets and scenario calls in the declared registry order.
 	var calls []string
 	reset := func(requirement runtime.SessionRequirement) error {
 		calls = append(calls, "reset:"+string(requirement))
@@ -60,6 +61,7 @@ func TestRunnerUsesDeclaredOrderAndSessionBoundaries(t *testing.T) {
 		}},
 	)
 
+	// Run the Drive scenarios and verify their order across session resets.
 	report := registry.Run(context.Background(), rt, []string{"drive"})
 	if got, want := calls, []string{
 		"warm-after-install",
@@ -71,6 +73,8 @@ func TestRunnerUsesDeclaredOrderAndSessionBoundaries(t *testing.T) {
 	}; !slices.Equal(got, want) {
 		t.Fatalf("runner calls = %v, want %v", got, want)
 	}
+
+	// Require a report row for every registered Drive scenario.
 	if len(report.Rows) != 4 {
 		t.Fatalf("report rows = %d, want 4", len(report.Rows))
 	}
@@ -112,11 +116,13 @@ func (r *recordingRuntime) ResetSession(requirement runtime.SessionRequirement) 
 }
 
 func TestReportIncludesNotRunRowsAndValidatesExpectedScenarios(t *testing.T) {
+	// Register Drive scenarios with distinct first-use and upload tags.
 	registry := NewRegistry(
 		Scenario{Name: "drive.first-use", Tags: []string{"drive", "first-use"}, Run: func(context.Context, runtime.Runtime) error { return nil }},
 		Scenario{Name: "drive.upload", Tags: []string{"drive", "upload"}, Run: func(context.Context, runtime.Runtime) error { return nil }},
 	)
 
+	// Run the first-use selection and verify both executed and omitted report rows.
 	report := registry.Run(context.Background(), testRuntime{name: "devwasm"}, []string{"first-use"})
 	if got := report.Row("drive.first-use", "devwasm"); got.Status != StatusPass {
 		t.Fatalf("first-use row = %+v", got)
@@ -124,6 +130,8 @@ func TestReportIncludesNotRunRowsAndValidatesExpectedScenarios(t *testing.T) {
 	if got := report.Row("drive.upload", "devwasm"); got.Status != StatusNotRun {
 		t.Fatalf("upload row = %+v", got)
 	}
+
+	// Require the selected first-use scenario to satisfy the report expectation.
 	if err := report.ValidateExpected([]Expectation{{Scenario: "drive.first-use", Runtime: "devwasm"}}); err != nil {
 		t.Fatalf("validate expected: %v", err)
 	}

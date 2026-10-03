@@ -27,11 +27,13 @@ func (r *handleMountedStreamResolver) Resolve(
 	ctx context.Context,
 	handler directive.ResolverHandler,
 ) error {
+	// Resolve the PubSub instance for incoming protocol streams.
 	ps, err := r.c.GetPubSub(ctx)
 	if err != nil {
 		return err
 	}
 
+	// Publish the mounted stream handler for the resolved PubSub instance.
 	var val link.MountedStreamHandler = newStreamHandler(r.c, ps)
 	_, _ = handler.AddValue(val)
 	return nil

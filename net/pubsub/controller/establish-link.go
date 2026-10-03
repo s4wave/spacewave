@@ -52,10 +52,13 @@ func (e *establishLinkHandler) HandleValueAdded(inst directive.Instance, val dir
 
 // HandleValueRemoved is called when a value is removed from the directive.
 func (e *establishLinkHandler) HandleValueRemoved(inst directive.Instance, val directive.AttachedValue) {
+	// Require the removed directive value to identify a mounted link.
 	vl, ok := val.GetValue().(link.MountedLink)
 	if !ok {
 		return
 	}
+
+	// Remove the pending mounted link and cancel any active stream tracker.
 	e.c.le.Debugf("lost link with uuid %v", vl.GetLinkUUID())
 	tpl := pubsub.NewPeerLinkTuple(vl)
 	e.c.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {

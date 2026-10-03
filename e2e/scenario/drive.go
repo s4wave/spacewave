@@ -69,9 +69,12 @@ func DriveScenarios() []Scenario {
 }
 
 func driveUploadCrashRecovery(_ context.Context, rt runtime.Runtime) error {
+	// Open a ready Drive before interrupting an upload.
 	if err := prepareDrive(rt); err != nil {
 		return err
 	}
+
+	// Start a large Drive upload and require its active progress state.
 	file := runtime.File{
 		Name:     crashRecoveryUploadName,
 		MIMEType: "application/octet-stream",
@@ -83,6 +86,8 @@ func driveUploadCrashRecovery(_ context.Context, rt runtime.Runtime) error {
 	if err := rt.ExpectVisible("Uploading 1/1"); err != nil {
 		return errors.Wrap(err, "upload did not enter active state")
 	}
+
+	// Reload the interrupted session and await the app and Drive readiness events.
 	if err := rt.ReloadPage(); err != nil {
 		return err
 	}
@@ -92,6 +97,8 @@ func driveUploadCrashRecovery(_ context.Context, rt runtime.Runtime) error {
 	if err := rt.WaitForEvent(runtime.EventDriveReady); err != nil {
 		return err
 	}
+
+	// Retry the interrupted upload and require its completed Drive entry.
 	if err := rt.UploadFile("input[type='file']", file); err != nil {
 		return errors.Wrap(err, "retry interrupted upload")
 	}
@@ -101,6 +108,8 @@ func driveUploadCrashRecovery(_ context.Context, rt runtime.Runtime) error {
 	if err := rt.ExpectVisible(crashRecoveryUploadName); err != nil {
 		return errors.Wrap(err, "recovered upload entry")
 	}
+
+	// Verify that recovery leaves no active or failed upload status.
 	if err := rt.ExpectAbsent("Uploading"); err != nil {
 		return errors.Wrap(err, "recovered upload still active")
 	}
@@ -120,6 +129,7 @@ func crashRecoveryUploadContents() []byte {
 
 func driveFirstUse(route string) func(context.Context, runtime.Runtime) error {
 	return func(_ context.Context, rt runtime.Runtime) error {
+		// Open Drive through the requested first-use route.
 		if err := rt.OpenRoute(route); err != nil {
 			return err
 		}
@@ -128,6 +138,8 @@ func driveFirstUse(route string) func(context.Context, runtime.Runtime) error {
 				return err
 			}
 		}
+
+		// Await Drive readiness and require the starter file in its resolved route.
 		if err := rt.WaitForEvent(runtime.EventDriveReady); err != nil {
 			return err
 		}
@@ -149,12 +161,15 @@ func prepareDrive(rt runtime.Runtime) error {
 }
 
 func driveNavigationHistory(_ context.Context, rt runtime.Runtime) error {
+	// Preserve the Drive navigation step name in runtime errors.
 	step := func(name string, fn func() error) error {
 		if err := fn(); err != nil {
 			return errors.Wrap(err, name)
 		}
 		return nil
 	}
+
+	// Open the starter file and wait for its content.
 	if err := step("prepare drive", func() error { return prepareDrive(rt) }); err != nil {
 		return err
 	}
@@ -164,18 +179,24 @@ func driveNavigationHistory(_ context.Context, rt runtime.Runtime) error {
 	if err := step("wait for file content", func() error { return rt.ExpectVisible("Welcome to your new drive") }); err != nil {
 		return err
 	}
+
+	// Return to the Drive directory and require the starter row.
 	if err := step("navigate up", func() error { return rt.ClickControl("up") }); err != nil {
 		return err
 	}
 	if err := step("wait for starter row", func() error { return rt.ExpectVisible(starterFile) }); err != nil {
 		return err
 	}
+
+	// Follow Drive history back to the starter file content.
 	if err := step("navigate back", func() error { return rt.ClickControl("back") }); err != nil {
 		return err
 	}
 	if err := step("wait for file after back", func() error { return rt.ExpectVisible("Welcome to your new drive") }); err != nil {
 		return err
 	}
+
+	// Follow Drive history forward to the directory listing.
 	if err := step("navigate forward", func() error { return rt.ClickControl("forward") }); err != nil {
 		return err
 	}
@@ -220,9 +241,12 @@ func driveUpload(_ context.Context, rt runtime.Runtime) error {
 }
 
 func driveUploadFile(rt runtime.Runtime, name string) error {
+	// Open a ready Drive for the named file upload.
 	if err := prepareDrive(rt); err != nil {
 		return err
 	}
+
+	// Submit the named text file to the Drive upload control.
 	file := runtime.File{
 		Name:     name,
 		MIMEType: "text/plain",
@@ -231,6 +255,8 @@ func driveUploadFile(rt runtime.Runtime, name string) error {
 	if err := rt.UploadFile("input[type='file']", file); err != nil {
 		return err
 	}
+
+	// Require upload completion and the resulting Drive entry.
 	if err := rt.ExpectVisible("1/1 uploaded"); err != nil {
 		return errors.Wrap(err, "upload completion")
 	}
@@ -238,10 +264,13 @@ func driveUploadFile(rt runtime.Runtime, name string) error {
 }
 
 func driveRowMove(_ context.Context, rt runtime.Runtime) error {
+	// Upload the source file for the Drive move scenario.
 	source := "e2e-move-source.txt"
 	if err := driveUploadFile(rt, source); err != nil {
 		return err
 	}
+
+	// Create the destination folder in the current Drive directory.
 	if err := rt.ClickControl("new-folder"); err != nil {
 		return err
 	}
@@ -254,12 +283,16 @@ func driveRowMove(_ context.Context, rt runtime.Runtime) error {
 	if err := rt.ExpectVisible("e2e-move-target"); err != nil {
 		return err
 	}
+
+	// Move the source file and require its removal from the current directory.
 	if err := rt.MoveContent(source, "e2e-move-target"); err != nil {
 		return err
 	}
 	if err := rt.ExpectAbsent(source); err != nil {
 		return err
 	}
+
+	// Open the destination folder and require the moved source file.
 	if err := rt.DoubleClickContent("e2e-move-target"); err != nil {
 		return err
 	}

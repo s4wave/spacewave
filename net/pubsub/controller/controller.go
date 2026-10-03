@@ -113,6 +113,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 		c.peerID = cpeer.GetPeerID()
 	}
 
+	// Publish the resolved peer for the executing controller lifetime.
 	c.peerCtr.SetValue(&cpeer)
 	defer c.peerCtr.SetValue(nil)
 

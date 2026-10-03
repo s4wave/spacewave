@@ -60,12 +60,14 @@ func (r *resolveBuildChannelSub) Resolve(
 	ctx context.Context,
 	handler directive.ResolverHandler,
 ) error {
+	// Resolve the PubSub instance before replacing channel subscription values.
 	handler.ClearValues()
 	ps, err := r.c.GetPubSub(ctx)
 	if err != nil {
 		return err
 	}
 
+	// Subscribe the requested peer key to the PubSub channel.
 	le := r.c.le.WithField("channel-id", r.d.BuildChannelSubscriptionChannelID())
 	le.Debug("adding subscription to channel")
 	sub, err := ps.AddSubscription(r.ctx, r.d.BuildChannelSubscriptionPrivKey(), r.d.BuildChannelSubscriptionChannelID())
@@ -75,6 +77,7 @@ func (r *resolveBuildChannelSub) Resolve(
 	}
 	le.Info("successfully added subscription to channel")
 
+	// Publish the subscription with cleanup for removal and directive disposal.
 	var valueID uint32
 	var accepted bool
 	var val pubsub.BuildChannelSubscriptionValue = &emittedSubscription{

@@ -44,11 +44,13 @@ func NewPacketConn(
 	maxPacketSize uint32,
 	bufferPacketN int,
 ) *PacketConn {
+	// Prepare the PacketConn lifetime and receive queue capacity.
 	ctx, ctxCancel := context.WithCancel(ctx) //nolint:gosec // cancel stored on PacketConn and called by Close
 	if bufferPacketN <= 0 {
 		bufferPacketN = 10
 	}
 
+	// Start the PacketConn receive pump on the underlying stream.
 	c := &PacketConn{
 		ctx:           ctx,
 		ctxCancel:     ctxCancel,
@@ -145,14 +147,15 @@ func (p *PacketConn) WriteTo(pkt []byte, addr net.Addr) (n int, err error) {
 	// Reserve an arena buffer for the length-prefixed packet.
 	buf := p.getArenaBuf(pktLen + 4)
 	binary.LittleEndian.PutUint32(buf, uint32(pktLen))
-
 	copy(buf[4:], pkt)
 
+	// Require the underlying stream to write the entire framed packet.
 	n, err = p.rwc.Write(buf)
 	if err == nil && n < len(buf) {
 		err = errors.Errorf("expected conn to write %d bytes in one call but wrote %d", len(buf), n)
 	}
 
+	// Release the packet buffer and propagate any stream write error.
 	p.ar.Put(&buf)
 	if err != nil {
 		return n, err
@@ -195,11 +198,14 @@ func (p *PacketConn) Close() error {
 
 // getArenaBuf returns a buf from the packet arena with at least the given size.
 func (p *PacketConn) getArenaBuf(size int) []byte {
+	// Recover a reusable packet buffer from the connection arena.
 	var buf []byte
 	bufp := p.ar.Get()
 	if bufp != nil {
 		buf = *bufp.(*[]byte)
 	}
+
+	// Resize the packet buffer to the requested size or its full capacity.
 	if size != 0 {
 		if cap(buf) < size {
 			buf = make([]byte, size)
@@ -209,6 +215,7 @@ func (p *PacketConn) getArenaBuf(size int) []byte {
 	} else {
 		buf = buf[:cap(buf)]
 	}
+
 	return buf
 }
 

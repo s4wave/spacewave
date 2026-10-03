@@ -30,17 +30,21 @@ func (t *trackedLink) trackLink(ctx context.Context) error {
 	if t.lnk.GetLocalPeer().String() > t.lnk.GetRemotePeer().String() {
 		return nil
 	}
+
+	// Resolve the PubSub instance for this tracked link.
 	t.le.Debug("link tracking starting")
 	ps, err := t.c.GetPubSub(ctx)
 	if err != nil {
 		return err
 	}
 
+	// Open the outgoing PubSub protocol stream on the mounted link.
 	mtStrm, err := t.lnk.OpenMountedStream(ctx, t.c.protocolID, stream.OpenOpts{})
 	if err != nil {
 		return err
 	}
 
+	// Register the opened stream with the PubSub peer router.
 	t.le.WithField("protocol-id", mtStrm.GetProtocolID()).
 		Info("pubsub stream opened (by us)")
 	ps.AddPeerStream(t.tpl, true, mtStrm)

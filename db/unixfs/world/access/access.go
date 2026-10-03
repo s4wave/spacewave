@@ -37,12 +37,16 @@ type Controller struct {
 
 // newController constructs the controller with a bus controller.
 func newController(base *bus.BusController[*Config]) (*Controller, error) {
+	// Parse the sender peer required by the World filesystem.
 	senderPeerID, err := base.GetConfig().ParsePeerID()
 	if err != nil {
 		return nil, err
 	}
+
+	// Prepare the controller and its filesystem error stream.
 	ctrl := &Controller{BusController: base, sender: senderPeerID}
 	ctrl.errCtr = ccontainer.NewCContainer[*error](nil)
+
 	// note: keep the handle if we have zero references and the context is not canceled.
 	ctrl.fsRc = refcount.NewRefCount(nil, true, nil, ctrl.errCtr, ctrl.resolveFs)
 	return ctrl, nil
@@ -75,6 +79,7 @@ func NewFactory(b bus.Bus) controller.Factory {
 // Calling the release function releases the handle to the LoadControllerWithConfig.
 func NewAccessUnixFSFunc(b bus.Bus, conf *Config) unixfs_access.AccessUnixFSFunc {
 	return func(rctx context.Context, rreleased func()) (*unixfs.FSHandle, func(), error) {
+		// Bind filesystem access and release notification to the caller lifetime.
 		ctx, ctxCancel := context.WithCancel(rctx)
 		released := func() {
 			ctxCancel()
@@ -82,6 +87,8 @@ func NewAccessUnixFSFunc(b bus.Bus, conf *Config) unixfs_access.AccessUnixFSFunc
 				rreleased()
 			}
 		}
+
+		// Hold the configured access controller until the filesystem is released.
 		ctrl, _, accessCtrlRef, err := loader.WaitExecControllerRunningTyped[*Controller](
 			ctx,
 			b,
@@ -91,12 +98,15 @@ func NewAccessUnixFSFunc(b bus.Bus, conf *Config) unixfs_access.AccessUnixFSFunc
 		if err != nil {
 			return nil, nil, err
 		}
+
+		// Acquire the filesystem handle and release the controller on failure.
 		handle, rel, err := ctrl.AccessUnixFS(ctx, released)
 		if err != nil {
 			ctxCancel()
 			accessCtrlRef.Release()
 			return nil, nil, err
 		}
+
 		return handle, func() {
 			ctxCancel()
 			rel()
@@ -108,9 +118,11 @@ func NewAccessUnixFSFunc(b bus.Bus, conf *Config) unixfs_access.AccessUnixFSFunc
 
 // Execute executes the controller goroutine.
 func (c *Controller) Execute(ctx context.Context) error {
+	// Keep the shared filesystem bound to the executing controller.
 	c.fsRc.SetContext(ctx)
 	defer c.fsRc.SetContext(nil)
 
+	// Wait for a filesystem resolution failure or controller cancellation.
 	rerr, err := c.errCtr.WaitValue(ctx, nil)
 	if err != nil {
 		return err
@@ -142,17 +154,21 @@ func (c *Controller) ResolveAccessUnixFS(
 
 // AccessUnixFS accesses the filesystem.
 func (c *Controller) AccessUnixFS(ctx context.Context, released func()) (*unixfs.FSHandle, func(), error) {
+	// Hold a shared filesystem reference while awaiting its resolution.
 	valProm, valRef := c.fsRc.WaitWithReleased(ctx, released)
 	val, err := valProm.Await(ctx)
 	if err != nil {
 		valRef.Release()
 		return nil, nil, err
 	}
+
+	// Clone the resolved filesystem handle for this caller.
 	rootRef, err := val.Clone(ctx)
 	if err != nil {
 		valRef.Release()
 		return nil, nil, err
 	}
+
 	return rootRef, func() {
 		rootRef.Release()
 		valRef.Release()
@@ -161,11 +177,13 @@ func (c *Controller) AccessUnixFS(ctx context.Context, released func()) (*unixfs
 
 // resolveFs resolves building the fs.
 func (c *Controller) resolveFs(ctx context.Context, released func()) (*unixfs.FSHandle, func(), error) {
+	// Acquire the World engine that holds the filesystem object.
 	eng, engRelease, err := c.resolveWorldEngine(ctx, released)
 	if err != nil {
 		return nil, nil, err
 	}
 
+	// Build the filesystem handle with the configured World reference and watch.
 	conf := c.GetConfig()
 	fs, err := unixfs_world.BuildFSFromUnixfsRef(
 		ctx,

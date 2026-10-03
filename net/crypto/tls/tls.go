@@ -118,6 +118,7 @@ func (i *Identity) ConfigForPeer(remote peer.ID) (*tls.Config, <-chan crypto.Pub
 	keyCh := make(chan crypto.PubKey, 1)
 	conf := i.config.Clone()
 	conf.VerifyConnection = func(cs tls.ConnectionState) (err error) {
+		// Translate certificate processing panics and close the peer key result.
 		defer func() {
 			if rerr := recover(); rerr != nil {
 				err = errors.Errorf("panic processing peer certificate: %s", rerr)
@@ -125,6 +126,7 @@ func (i *Identity) ConfigForPeer(remote peer.ID) (*tls.Config, <-chan crypto.Pub
 		}()
 		defer close(keyCh)
 
+		// Require a remote certificate before extracting the peer identity.
 		if len(cs.PeerCertificates) == 0 {
 			return errors.New("expected peer certificate")
 		}
@@ -153,6 +155,7 @@ func (i *Identity) ConfigForPeer(remote peer.ID) (*tls.Config, <-chan crypto.Pub
 
 // PubKeyFromCertChain verifies the certificate chain and extracts the remote's public key.
 func PubKeyFromCertChain(chain []*x509.Certificate) (crypto.PubKey, error) {
+	// Require the single self-signed certificate used by the peer protocol.
 	if len(chain) != 1 {
 		return nil, errors.New("expected one certificate in the chain")
 	}
@@ -194,6 +197,8 @@ func PubKeyFromCertChain(chain []*x509.Certificate) (crypto.PubKey, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "unmarshalling public key failed")
 	}
+
+	// Verify the peer signature that binds the identity to the certificate key.
 	certKeyPub, err := x509.MarshalPKIXPublicKey(cert.PublicKey)
 	if err != nil {
 		return nil, err
@@ -241,17 +246,20 @@ func GenerateSignedExtension(sk crypto.PrivKey, pubKey gocrypto.PublicKey) (pkix
 // The certificate includes an extension that cryptographically ties it to the provided
 // private key to authenticate TLS connections.
 func keyToCertificate(sk crypto.PrivKey, certTmpl *x509.Certificate) (*tls.Certificate, error) {
+	// Generate the ephemeral Ed25519 key for the TLS certificate.
 	_, certKey, err := ed25519.GenerateKey(rand.Reader)
 	if err != nil {
 		return nil, err
 	}
 
+	// Bind the certificate key to the peer private key with a signed extension.
 	extension, err := GenerateSignedExtension(sk, certKey.Public())
 	if err != nil {
 		return nil, err
 	}
 	certTmpl.ExtraExtensions = append(certTmpl.ExtraExtensions, extension)
 
+	// Issue the self-signed certificate with the peer identity extension.
 	certDER, err := x509.CreateCertificate(rand.Reader, certTmpl, certTmpl, certKey.Public(), certKey)
 	if err != nil {
 		return nil, err
@@ -264,12 +272,14 @@ func keyToCertificate(sk crypto.PrivKey, certTmpl *x509.Certificate) (*tls.Certi
 
 // certTemplate returns the template for generating an Identity's TLS certificates.
 func certTemplate() (*x509.Certificate, error) {
+	// Generate the certificate serial number within the supported range.
 	bigNum := big.NewInt(1 << 62)
 	sn, err := rand.Int(rand.Reader, bigNum)
 	if err != nil {
 		return nil, err
 	}
 
+	// Generate the independent serial number for the certificate subject.
 	subjectSN, err := rand.Int(rand.Reader, bigNum)
 	if err != nil {
 		return nil, err

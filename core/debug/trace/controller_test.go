@@ -19,10 +19,15 @@ func TestRewritePprofRequest(t *testing.T) {
 }
 
 func TestServePprofIndex(t *testing.T) {
+	// Prepare an HTTP request for the runtime profile endpoint.
 	ctrl := &Controller{}
 	req := httptest.NewRequest(http.MethodGet, "/debugz/pprof/", nil)
 	rec := httptest.NewRecorder()
+
+	// Serve the runtime profile through the debug controller.
 	ctrl.ServeHTTP(rec, req)
+
+	// Verify the runtime profile response status and content.
 	resp := rec.Result()
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("expected 200 from pprof index, got %d", resp.StatusCode)
@@ -34,10 +39,15 @@ func TestServePprofIndex(t *testing.T) {
 }
 
 func TestServePprofGoroutine(t *testing.T) {
+	// Prepare an HTTP request for the runtime profile endpoint.
 	ctrl := &Controller{}
 	req := httptest.NewRequest(http.MethodGet, "/debugz/pprof/goroutine?debug=1", nil)
 	rec := httptest.NewRecorder()
+
+	// Serve the runtime profile through the debug controller.
 	ctrl.ServeHTTP(rec, req)
+
+	// Verify the runtime profile response status and content.
 	resp := rec.Result()
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("expected 200 from goroutine profile, got %d", resp.StatusCode)

@@ -12,6 +12,7 @@ import (
 )
 
 func TestIdentityHandshakeWithEd25519CertificateKey(t *testing.T) {
+	// Create the client and server peer identities for the TLS handshake.
 	clientPriv := generateHostKey(t)
 	serverPriv := generateHostKey(t)
 	clientID := peerIDFromPrivateKey(t, clientPriv)
@@ -19,20 +20,24 @@ func TestIdentityHandshakeWithEd25519CertificateKey(t *testing.T) {
 	clientIdentity := newIdentity(t, clientPriv)
 	serverIdentity := newIdentity(t, serverPriv)
 
+	// Require Ed25519 keys in both generated TLS certificates.
 	assertEd25519CertificateKey(t, clientIdentity)
 	assertEd25519CertificateKey(t, serverIdentity)
 
+	// Connect the peer-specific TLS configurations through an in-memory stream.
 	clientConf, serverKeyCh := clientIdentity.ConfigForPeer(serverID)
 	serverConf, clientKeyCh := serverIdentity.ConfigForPeer(clientID)
 	clientConn, serverConn := net.Pipe()
 	defer clientConn.Close()
 	defer serverConn.Close()
 
+	// Wrap both stream ends with TLS and retain their cleanup.
 	clientTLS := tls.Client(clientConn, clientConf)
 	defer clientTLS.Close()
 	serverTLS := tls.Server(serverConn, serverConf)
 	defer serverTLS.Close()
 
+	// Complete the client and server handshakes concurrently.
 	errCh := make(chan error, 2)
 	go func() {
 		errCh <- serverTLS.Handshake()
@@ -46,6 +51,7 @@ func TestIdentityHandshakeWithEd25519CertificateKey(t *testing.T) {
 		}
 	}
 
+	// Verify that each handshake publishes the authenticated remote peer key.
 	assertPeerKey(t, serverKeyCh, serverPriv.GetPublic(), "server")
 	assertPeerKey(t, clientKeyCh, clientPriv.GetPublic(), "client")
 }

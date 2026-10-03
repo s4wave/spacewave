@@ -95,8 +95,8 @@ func (c *Controller) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 // serveTrace starts a runtime trace, captures for the configured duration, and
 // writes the trace data to the response as a downloadable file.
 func (c *Controller) serveTrace(w http.ResponseWriter, r *http.Request) {
+	// Resolve the configured runtime trace capture duration and logger.
 	le := c.GetLogger()
-
 	dur := defaultDuration
 	if d := c.GetConfig().GetTraceDurationSeconds(); d > 0 {
 		dur = time.Duration(d) * time.Second
@@ -109,14 +109,15 @@ func (c *Controller) serveTrace(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// Start the runtime trace in a response buffer or report an active capture.
 	le.WithField("duration", dur).Info("starting runtime trace capture")
-
 	var buf bytes.Buffer
 	if err := runtime_trace.Start(&buf); err != nil {
 		http.Error(w, "trace already active: "+err.Error(), http.StatusConflict)
 		return
 	}
 
+	// Capture the runtime trace until its duration expires or the request ends.
 	ctx := r.Context()
 	select {
 	case <-time.After(dur):
@@ -124,8 +125,8 @@ func (c *Controller) serveTrace(w http.ResponseWriter, r *http.Request) {
 	}
 	runtime_trace.Stop()
 
+	// Return the completed runtime trace as a downloadable response.
 	le.WithField("bytes", buf.Len()).Info("trace capture complete")
-
 	w.Header().Set("Content-Type", "application/octet-stream")
 	w.Header().Set("Content-Disposition", "attachment; filename=\"trace.out\"")
 	w.WriteHeader(http.StatusOK)
@@ -163,12 +164,15 @@ func (c *Controller) servePprof(w http.ResponseWriter, r *http.Request) {
 }
 
 func rewritePprofRequest(r *http.Request) *http.Request {
+	// Clone the profile request and resolve its standard pprof path.
 	rewrittenReq := r.Clone(r.Context())
 	rewrittenURL := *r.URL
 	pprofPath := strings.TrimPrefix(r.URL.Path, pprofPathPrefix)
 	if pprofPath == "" {
 		pprofPath = "/"
 	}
+
+	// Apply the standard pprof URL to the cloned request.
 	rewrittenURL.Path = "/debug/pprof" + pprofPath
 	rewrittenReq.URL = &rewrittenURL
 	return rewrittenReq
