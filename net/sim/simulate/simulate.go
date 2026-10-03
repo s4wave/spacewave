@@ -46,6 +46,7 @@ func NewSimulator(
 	for _, opt := range opts {
 		if opt != nil {
 			if err := opt(s); err != nil {
+				s.ctxCancel()
 				return nil, err
 			}
 		}
@@ -87,7 +88,7 @@ func NewSimulator(
 			}
 
 			le.Debugf("added in-memory link from %s to %s", lpeerPeerIDStr, peerIDStr)
-			op.inproc.ConnectToInproc(ctx, pushedPeer.inproc)
+			op.inproc.ConnectToInproc(s.ctx, pushedPeer.inproc)
 			pushedPeer.inproc.ConnectToInproc(s.ctx, op.inproc)
 
 			pushedPeer.staticPeerMap[lpeerPeerIDStr] = &dialer.DialerOpts{
