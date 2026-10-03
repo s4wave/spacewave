@@ -98,7 +98,14 @@ func NewBroker() *Broker {
 }
 
 // NewBrokerWithTimeout constructs a broker with a specific timeout.
+// A nonpositive timeout uses DefaultPromptTimeout.
 func NewBrokerWithTimeout(timeout time.Duration) *Broker {
+	// Resolve the prompt timeout shared by deadlines and expiry.
+	if timeout <= 0 {
+		timeout = DefaultPromptTimeout
+	}
+
+	// Build the broker with an empty pending prompt set.
 	b := &Broker{
 		timeout: timeout,
 		nowFn:   time.Now,
@@ -162,12 +169,8 @@ func (b *Broker) requestTakeover(ctx context.Context, requesterName, socketPath 
 		broadcastFn()
 	})
 
-	// Bound the takeover wait by the configured or default prompt timeout.
-	remaining := b.timeout
-	if remaining <= 0 {
-		remaining = DefaultPromptTimeout
-	}
-	timer := time.NewTimer(remaining)
+	// Bound the takeover wait by the prompt timeout.
+	timer := time.NewTimer(b.timeout)
 	defer timer.Stop()
 
 	// Resolve the takeover result on cancellation, expiry, or desktop response.
