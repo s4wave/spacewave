@@ -314,11 +314,14 @@ func (c *LookupController) writeback(
 		return nil
 	}
 
-	// Preserve the block reference and edges in every bucket write.
+	// Preserve the block reference and edges in every bucket write. The copy
+	// is a cache fill: it takes no bucket ownership, so the collector removes
+	// it unless a retained root reaches it.
 	putOpts := &block.PutOpts{
 		HashType:      ref.GetHash().GetHashType(),
 		ForceBlockRef: ref,
 		Refs:          res.Refs,
+		CacheFill:     true,
 	}
 
 	// Queue writes to existing bucket handles and collect their outcomes.
