@@ -21,6 +21,7 @@ import (
 )
 
 func TestRestartMidClaimLeavesOneRunnableController(t *testing.T) {
+	// Start a World testbed with the target controller factories.
 	ctx := t.Context()
 	tb, err := world_testbed.Default(ctx)
 	if err != nil {
@@ -30,6 +31,7 @@ func TestRestartMidClaimLeavesOneRunnableController(t *testing.T) {
 	tb.StaticResolver.AddFactory(boilerplate_controller.NewFactory(tb.Bus))
 	tb.StaticResolver.AddFactory(forge_lib_kvtx.NewFactory(tb.Bus))
 
+	// Register a target handler that counts executions across claim recovery.
 	const configID = "test/count-bridge-invocations"
 	var invocations atomic.Int32
 	registry := space_exec.NewRegistry()
@@ -46,6 +48,8 @@ func TestRestartMidClaimLeavesOneRunnableController(t *testing.T) {
 	for _, factory := range space_exec.BridgeFactories(registry) {
 		tb.StaticResolver.AddFactory(factory)
 	}
+
+	// Create a pending Execution for the counted target handler.
 	target := &forge_target.Target{
 		Exec: &forge_target.Exec{
 			Controller: &configset_proto.ControllerConfig{
@@ -71,6 +75,7 @@ func TestRestartMidClaimLeavesOneRunnableController(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Claim the Execution and configure a competing observer.
 	ownerConfig := NewConfig(
 		tb.EngineID,
 		objKey,
@@ -97,12 +102,16 @@ func TestRestartMidClaimLeavesOneRunnableController(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Reconcile each controller against the same durable Execution snapshot.
 	process := func(ctrl *Controller) {
+		// Read the current Execution root for controller reconciliation.
 		t.Helper()
 		rootRef, rev, err := obj.GetRootRef(ctx)
 		if err != nil {
 			t.Fatal(err)
 		}
+
+		// Require an active Execution to keep its controller observing changes.
 		wait, err := ctrl.ProcessState(ctx, tb.Logger, tb.WorldState, obj, rootRef, rev)
 		if err != nil {
 			t.Fatal(err)
@@ -112,6 +121,7 @@ func TestRestartMidClaimLeavesOneRunnableController(t *testing.T) {
 		}
 	}
 
+	// Confirm the claim holder can recover a runnable target before stopping it.
 	owner := NewController(tb.Logger, tb.Bus, ownerConfig)
 	process(owner)
 	if owner.execRoutine.GetState() == nil {
@@ -119,12 +129,14 @@ func TestRestartMidClaimLeavesOneRunnableController(t *testing.T) {
 	}
 	owner.execRoutine.SetState(nil)
 
+	// Confirm the competing observer cannot run the claimed target.
 	observer := NewController(tb.Logger, tb.Bus, observerConfig)
 	process(observer)
 	if observer.execRoutine.GetState() != nil {
 		t.Fatal("non-owner controller constructed a runnable execution")
 	}
 
+	// Recover the target through a replacement controller with the same claim.
 	restartedOwner := NewController(tb.Logger, tb.Bus, ownerConfig.CloneVT())
 	process(restartedOwner)
 	if restartedOwner.execRoutine.GetState() == nil {
@@ -137,6 +149,7 @@ func TestRestartMidClaimLeavesOneRunnableController(t *testing.T) {
 		t.Fatal("restart left more than one runnable controller")
 	}
 
+	// Execute the recovered target and require exactly one handler invocation.
 	restartedOwner.busEngine.SetContext(ctx)
 	restartedOwner.execRoutine.SetContext(ctx, true)
 	finalState, err := forge_execution.WaitExecutionComplete(
@@ -178,6 +191,7 @@ func (s *laggingObjectState) GetRootRef(context.Context) (*bucket.ObjectRef, uin
 }
 
 func TestClaimCommitUsesObservedRootSnapshot(t *testing.T) {
+	// Start a World testbed with the target controller factories.
 	ctx := t.Context()
 	tb, err := world_testbed.Default(ctx)
 	if err != nil {
@@ -187,6 +201,7 @@ func TestClaimCommitUsesObservedRootSnapshot(t *testing.T) {
 	tb.StaticResolver.AddFactory(boilerplate_controller.NewFactory(tb.Bus))
 	tb.StaticResolver.AddFactory(forge_lib_kvtx.NewFactory(tb.Bus))
 
+	// Create a pending Execution whose root can be held behind the claim revision.
 	target, err := target_mock.ResolveMockTarget(ctx, tb.Bus)
 	if err != nil {
 		t.Fatal(err)
@@ -208,6 +223,7 @@ func TestClaimCommitUsesObservedRootSnapshot(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Save the pending Execution root before committing its claim.
 	obj, err := world.MustGetObject(ctx, tb.WorldState, objKey)
 	if err != nil {
 		t.Fatal(err)
@@ -217,6 +233,7 @@ func TestClaimCommitUsesObservedRootSnapshot(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Claim the Execution and verify that its durable revision advances.
 	config := NewConfig(
 		tb.EngineID,
 		objKey,
@@ -238,6 +255,7 @@ func TestClaimCommitUsesObservedRootSnapshot(t *testing.T) {
 		t.Fatalf("claim did not advance revision: pending %d, claimed %d", pendingRev, claimedRev)
 	}
 
+	// Reconcile the claimed snapshot while the object handle exposes an older root.
 	lagging := &laggingObjectState{
 		ObjectState: obj,
 		rootRef:     pendingRoot,

@@ -81,7 +81,6 @@ func (c *Coordinator) Watch(ctx context.Context, scope coord.Scope, afterGenerat
 		ch:    make(chan coord.Event, 16),
 		done:  make(chan struct{}),
 	}
-
 	c.mu.Lock()
 	c.watchSeq++
 	watch.id = c.watchSeq
@@ -117,7 +116,6 @@ func (c *Coordinator) TryAcquireWriteLease(ctx context.Context, scope coord.Scop
 	// Publish contention or claim the scope lock atomically.
 	c.mu.Lock()
 	defer c.mu.Unlock()
-
 	state := c.getScopeLocked(scope)
 	if state.locked {
 		state.publishLocked(coord.Event{
@@ -130,6 +128,7 @@ func (c *Coordinator) TryAcquireWriteLease(ctx context.Context, scope coord.Scop
 		return nil, false, nil
 	}
 
+	// Grant the scope lock to a new write lease.
 	state.locked = true
 	return &lease{c: c, scope: scope, state: state, done: make(chan struct{})}, true, nil
 }
@@ -155,7 +154,6 @@ func (c *Coordinator) WaitAcquireWriteLease(ctx context.Context, scope coord.Sco
 	// Wait for the scope lock and recheck context after each wakeup.
 	c.mu.Lock()
 	defer c.mu.Unlock()
-
 	state := c.getScopeLocked(scope)
 	for state.locked {
 		state.publishLocked(coord.Event{
@@ -171,6 +169,7 @@ func (c *Coordinator) WaitAcquireWriteLease(ctx context.Context, scope coord.Sco
 		}
 	}
 
+	// Grant the scope lock to a new write lease.
 	state.locked = true
 	return &lease{c: c, scope: scope, state: state, done: make(chan struct{})}, nil
 }

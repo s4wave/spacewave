@@ -15,6 +15,7 @@ import (
 
 func TestExecuteTargetControllerLogging(t *testing.T) {
 	t.Run("canceled shutdown", func(t *testing.T) {
+		// Capture warnings from a target controller with a known exit outcome.
 		logger, hook := test.NewNullLogger()
 		logger.SetLevel(logrus.WarnLevel)
 		le := logrus.NewEntry(logger)
@@ -25,7 +26,10 @@ func TestExecuteTargetControllerLogging(t *testing.T) {
 		}}
 		b := inmem.NewBus(directive_controller.NewController(ctx, le))
 
+		// Execute the target controller with the configured exit outcome.
 		err := (&Controller{le: le}).executeTargetController(ctx, b, ctrl)
+
+		// Verify the returned target error and its warning output.
 		if !errors.Is(err, context.Canceled) {
 			t.Fatalf("execute error = %v, want context canceled", err)
 		}
@@ -35,6 +39,7 @@ func TestExecuteTargetControllerLogging(t *testing.T) {
 	})
 
 	t.Run("real error", func(t *testing.T) {
+		// Capture warnings from a target controller with a known exit outcome.
 		logger, hook := test.NewNullLogger()
 		logger.SetLevel(logrus.WarnLevel)
 		le := logrus.NewEntry(logger)
@@ -42,7 +47,10 @@ func TestExecuteTargetControllerLogging(t *testing.T) {
 		ctrl := &exitController{execute: func(context.Context) error { return wantErr }}
 		b := inmem.NewBus(directive_controller.NewController(t.Context(), le))
 
+		// Execute the target controller with the configured exit outcome.
 		err := (&Controller{le: le}).executeTargetController(t.Context(), b, ctrl)
+
+		// Verify the returned target error and its warning output.
 		if !errors.Is(err, wantErr) {
 			t.Fatalf("execute error = %v, want %v", err, wantErr)
 		}

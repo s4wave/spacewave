@@ -69,12 +69,15 @@ func NewController(
 	bus bus.Bus,
 	conf *Config,
 ) *Controller {
+	// Derive the peer and durable claim identity for this Execution controller.
 	peerID, _ := conf.ParsePeerID()
 	uniqueID := conf.BuildUniqueID()
 	claimID := conf.GetClaimId()
 	if claimID == "" {
 		claimID = uniqueID
 	}
+
+	// Connect the Execution controller to its World state and cancellation signal.
 	c := &Controller{
 		le:       le,
 		bus:      bus,
@@ -91,6 +94,8 @@ func NewController(
 		conf.GetObjectKey(),
 		c.ProcessState,
 	)
+
+	// Reconcile the target execution routine as its configuration changes.
 	c.execRoutine = routine.NewStateRoutineContainerWithLogger(
 		protobuf_go_lite.CompareEqualVT[*ExecConfig](),
 		le.WithField("routine", "execution"),
@@ -107,6 +112,7 @@ func StartControllerWithConfig(
 	b bus.Bus,
 	conf *Config,
 ) (*Controller, directive.Reference, error) {
+	// Wait for the configured Execution controller to become available on the bus.
 	ctrli, _, ctrlRef, err := loader.WaitExecControllerRunning(
 		ctx,
 		b,
@@ -116,6 +122,8 @@ func StartControllerWithConfig(
 	if err != nil {
 		return nil, nil, err
 	}
+
+	// Require the loaded controller to expose the Execution controller API.
 	cl, ok := ctrli.(*Controller)
 	if !ok {
 		return nil, nil, block.ErrUnexpectedType
@@ -142,8 +150,11 @@ func (c *Controller) GetControllerInfo() *controller.Info {
 // Returning nil ends execution.
 // Returning an error triggers a retry with backoff.
 func (c *Controller) Execute(ctx context.Context) error {
+	// Bind the target routine and World engine to the Execution lifecycle.
 	c.execRoutine.SetContext(ctx, true)
 	c.busEngine.SetContext(ctx)
+
+	// Reconcile Execution state until its watch ends or the lifecycle is canceled.
 	err := c.objLoop.Execute(ctx, c.ws)
 	if ctx.Err() != nil && errors.Is(err, context.Canceled) {
 		return context.Canceled
@@ -176,6 +187,7 @@ func (c *Controller) processExecutionState(
 	obj world.ObjectState, // may be nil if not found
 	rootRef *bucket.ObjectRef, rev uint64,
 ) (execConfig *ExecConfig, waitForChanges bool, err error) {
+	// Wait for the Execution object before reconciling its durable state.
 	if obj == nil {
 		le.Debug("object does not exist, waiting")
 		return nil, true, nil
@@ -247,6 +259,7 @@ func (c *Controller) processExecutionState(
 		return nil, true, nil
 	}
 
+	// Observe another controller's claim without starting its target.
 	if exState.GetClaim().GetClaimId() != c.claimID {
 		le.Debug("observing execution owned by another controller")
 		return nil, true, nil
@@ -273,14 +286,18 @@ func (c *Controller) processExecutionState(
 	} else {
 		execConfigState.ValueSet.Outputs = nil
 	}
+
+	// Refresh the target configuration only when the Execution inputs change.
 	prevConfigState := c.execRoutine.GetState()
 	if !prevConfigState.GetExecution().EqualVT(execConfigState) {
 		var tgt *forge_target.Target
 		_, err = world.AccessObject(ctx, ws.AccessWorldState, nil, func(bcs *block.Cursor) error {
+			// Read the target from the Execution's saved target reference.
 			bcs = bcs.Detach(true)
 			bcs.ClearAllRefs()
 			bcs.SetRefAtCursor(exState.GetTargetRef(), true)
 
+			// Decode the target configuration from its block cursor.
 			var berr error
 			tgt, berr = forge_target.UnmarshalTarget(ctx, bcs)
 			return berr
@@ -289,6 +306,7 @@ func (c *Controller) processExecutionState(
 			return nil, true, errors.Wrap(err, "lookup target configuration")
 		}
 
+		// Couple the normalized Execution state with its resolved target.
 		execConfig = &ExecConfig{
 			Execution: execConfigState,
 			Target:    tgt,

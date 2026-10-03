@@ -26,6 +26,7 @@ func (*lease) Err() error {
 }
 
 func (l *lease) Refresh(ctx context.Context) (*coord.Snapshot, error) {
+	// Require a live request for a scope that supports generation snapshots.
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
@@ -33,9 +34,11 @@ func (l *lease) Refresh(ctx context.Context) (*coord.Snapshot, error) {
 		return nil, coord.ErrUnsupported
 	}
 
+	// Hold the coordinator lock while accessing the lease and scope state.
 	l.c.mu.Lock()
 	defer l.c.mu.Unlock()
 
+	// Require the lease to retain the current scope lock.
 	if l.released || l.state != l.c.getScopeLocked(l.scope) || !l.state.locked {
 		return nil, coord.ErrLeaseReleased
 	}
@@ -43,6 +46,7 @@ func (l *lease) Refresh(ctx context.Context) (*coord.Snapshot, error) {
 }
 
 func (l *lease) Publish(ctx context.Context, event coord.Event) (*coord.Snapshot, error) {
+	// Require a live request for a scope that supports generation snapshots.
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
@@ -50,13 +54,16 @@ func (l *lease) Publish(ctx context.Context, event coord.Event) (*coord.Snapshot
 		return nil, coord.ErrUnsupported
 	}
 
+	// Hold the coordinator lock while accessing the lease and scope state.
 	l.c.mu.Lock()
 	defer l.c.mu.Unlock()
 
+	// Require the lease to retain the current scope lock.
 	if l.released || l.state != l.c.getScopeLocked(l.scope) || !l.state.locked {
 		return nil, coord.ErrLeaseReleased
 	}
 
+	// Advance the scope generation and publish the lease holder's updated root.
 	event.ProcessID = l.scope.ParticipantID
 	event.VolumeID = l.scope.VolumeID
 	event.ObjectStoreID = l.scope.ObjectStoreID
@@ -76,9 +83,11 @@ func (l *lease) Publish(ctx context.Context, event coord.Event) (*coord.Snapshot
 // cleanup path that releases after a canceled write is the one that most needs
 // the scope unlocked.
 func (l *lease) Release(context.Context) error {
+	// Hold the coordinator lock while accessing the lease and scope state.
 	l.c.mu.Lock()
 	defer l.c.mu.Unlock()
 
+	// Release the lease once and notify waiters that the scope is unlocked.
 	if l.released {
 		return nil
 	}

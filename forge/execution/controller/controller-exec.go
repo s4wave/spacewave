@@ -137,6 +137,7 @@ func (c *Controller) processExec(
 	ctx context.Context,
 	execConf *ExecConfig,
 ) error {
+	// Skip target execution when its controller configuration is disabled or empty.
 	tgt := execConf.GetTarget()
 	tgtExecConf := tgt.GetExec()
 	ctrlConf := tgtExecConf.GetController()
@@ -146,6 +147,7 @@ func (c *Controller) processExec(
 		return nil
 	}
 
+	// Bound controller configuration resolution by the configured deadline.
 	resolveCtx := ctx
 	tgtBus := c.bus
 	if c.conf.GetResolveControllerConfigTimeout() != "" {
@@ -191,6 +193,7 @@ func (c *Controller) processExec(
 	}
 	defer factoryRef.Release()
 
+	// Require the factory directive to return a controller constructor.
 	fac, facOk := factoryAv.GetValue().(resolver.LoadFactoryByConfigValue)
 	if !facOk {
 		return errors.New("load exec controller factory returned unexpected type")
@@ -204,7 +207,6 @@ func (c *Controller) processExec(
 	if err != nil {
 		return errors.Wrap(err, "construct exec controller")
 	}
-
 	defer ctrl.Close()
 
 	// Resolve the target world input when configured.
@@ -231,6 +233,7 @@ func (c *Controller) processExec(
 		return err
 	}
 
+	// Resolve target inputs and retain their resources through execution.
 	inputsMap, inputsUnresolved, inputsRelease, err := forge_target.ResolveInputMap(
 		ctx,
 		tgtBus,
@@ -251,7 +254,6 @@ func (c *Controller) processExec(
 
 	// Compare resolved inputs with the execution snapshot.
 	inputValueSet := inputsMap.BuildValueSet()
-
 	var inputSet forge_value.ValueSlice = inputValueSet.GetInputs()
 	var exInputSet forge_value.ValueSlice = exState.GetValueSet().GetInputs()
 	addedInputs, removedInputs, changedInputs := exInputSet.Compare(inputSet)
@@ -307,6 +309,7 @@ func (c *Controller) executeTargetController(
 	tgtBus bus.Bus,
 	ctrl controller.Controller,
 ) error {
+	// Execute the target controller and measure its lifetime for failure logging.
 	c.le.
 		WithField("controller-id", ctrl.GetControllerInfo().Id).
 		Info("starting exec controller")
@@ -320,6 +323,7 @@ func (c *Controller) executeTargetController(
 		return err
 	}
 
+	// Report successful target completion with its execution duration.
 	durLe.Debug("exec controller completed")
 	return nil
 }

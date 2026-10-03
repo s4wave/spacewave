@@ -18,10 +18,13 @@ const ConfigID = ControllerID
 // NewConfig constructs a new execution controller config.
 // Sets the most important fields only.
 func NewConfig(engineID, objectKey string, peerID peer.ID, inpWorld *forge_target.InputWorld) *Config {
+	// Encode the optional peer identity for the Execution configuration.
 	var peerIDStr string
 	if peerID != "" {
 		peerIDStr = peerID.String()
 	}
+
+	// Bind the World object and input World to a durable execution claim.
 	conf := &Config{
 		EngineId:  engineID,
 		ObjectKey: objectKey,
@@ -36,15 +39,22 @@ func NewConfig(engineID, objectKey string, peerID peer.ID, inpWorld *forge_targe
 // Validate validates the configuration.
 // This is a cursory validation to see if the values "look correct."
 func (c *Config) Validate() error {
+	// Require a World engine before resolving the Execution object.
 	if len(c.GetEngineId()) == 0 {
 		return errors.New("world engine id must be specified")
 	}
+
+	// Require the Execution object key within the configured World.
 	if len(c.GetObjectKey()) == 0 {
 		return errors.New("world object key must be specified")
 	}
+
+	// Validate the optional peer identity used to execute the target.
 	if _, err := c.ParsePeerID(); err != nil {
 		return err
 	}
+
+	// Validate the optional deadline for controller configuration resolution.
 	if _, err := c.ParseResolveControllerConfigTimeout(); err != nil {
 		return err
 	}
@@ -53,12 +63,15 @@ func (c *Config) Validate() error {
 
 // BuildUniqueID builds the durable execution controller ID.
 func (c *Config) BuildUniqueID() string {
+	// Hash the World engine, peer and object key as the Execution identity.
 	h := blake3.NewDeriveKey("forge/execution/controller: config: unique id")
 	_, _ = h.WriteString(c.GetEngineId())
 	_, _ = h.WriteString("\x00")
 	_, _ = h.WriteString(c.GetPeerId())
 	_, _ = h.WriteString("\x00")
 	_, _ = h.WriteString(c.GetObjectKey())
+
+	// Encode the Execution identity hash as a UUID.
 	hsum := h.Sum(nil)
 	var id uuid.UUID
 	copy(id[:], hsum)

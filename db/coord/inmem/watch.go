@@ -15,9 +15,11 @@ func (w *watch) Events() <-chan coord.Event {
 }
 
 func (w *watch) Close() error {
+	// Hold the coordinator lock while detaching the scope watcher.
 	w.c.mu.Lock()
 	defer w.c.mu.Unlock()
 
+	// Close the watcher's lifecycle once before removing its event channel.
 	select {
 	case <-w.done:
 		return nil
@@ -25,6 +27,7 @@ func (w *watch) Close() error {
 		close(w.done)
 	}
 
+	// Remove the watcher from the scope and finish its event stream.
 	state := w.c.getScopeLocked(w.scope)
 	delete(state.watchers, w.id)
 	close(w.ch)

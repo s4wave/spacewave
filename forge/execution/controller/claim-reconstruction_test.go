@@ -19,6 +19,7 @@ import (
 )
 
 func TestReconstructedConfigResumesClaimBeforeTargetConstruction(t *testing.T) {
+	// Start a World testbed with a factory that counts target construction.
 	ctx := t.Context()
 	tb, err := world_testbed.Default(ctx)
 	if err != nil {
@@ -29,6 +30,7 @@ func TestReconstructedConfigResumesClaimBeforeTargetConstruction(t *testing.T) {
 	targetFactory := &countingFactory{inner: forge_lib_kvtx.NewFactory(tb.Bus)}
 	tb.StaticResolver.AddFactory(targetFactory)
 
+	// Register the World operations that create and complete Execution claims.
 	opController := world.NewLookupOpController(
 		"execution-reconstruction-tx-ops",
 		tb.EngineID,
@@ -40,6 +42,7 @@ func TestReconstructedConfigResumesClaimBeforeTargetConstruction(t *testing.T) {
 	}
 	t.Cleanup(opRelease)
 
+	// Create a pending Execution for the mock target.
 	target, err := target_mock.ResolveMockTarget(ctx, tb.Bus)
 	if err != nil {
 		t.Fatal(err)
@@ -60,12 +63,15 @@ func TestReconstructedConfigResumesClaimBeforeTargetConstruction(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Retain the Execution object for claim reconciliation.
 	obj, err := world.MustGetObject(ctx, tb.WorldState, objKey)
 	defer world.ReleaseObjectState(obj)
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	// Reconstruct equivalent configurations and reconcile them against the Execution.
 	buildConfig := func() *Config {
 		conf := NewConfig(
 			tb.EngineID,
@@ -77,11 +83,14 @@ func TestReconstructedConfigResumesClaimBeforeTargetConstruction(t *testing.T) {
 		return conf
 	}
 	process := func(ctrl *Controller) {
+		// Read the durable Execution snapshot before controller reconciliation.
 		t.Helper()
 		rootRef, rev, err := obj.GetRootRef(ctx)
 		if err != nil {
 			t.Fatal(err)
 		}
+
+		// Require the active Execution controller to keep observing changes.
 		wait, err := ctrl.ProcessState(ctx, tb.Logger, tb.WorldState, obj, rootRef, rev)
 		if err != nil {
 			t.Fatal(err)
@@ -91,6 +100,7 @@ func TestReconstructedConfigResumesClaimBeforeTargetConstruction(t *testing.T) {
 		}
 	}
 
+	// Stop the first controller after claiming and before constructing its target.
 	firstConfig := buildConfig()
 	first := NewController(tb.Logger, tb.Bus, firstConfig)
 	firstCtx, stopFirst := context.WithCancel(ctx)
@@ -98,6 +108,8 @@ func TestReconstructedConfigResumesClaimBeforeTargetConstruction(t *testing.T) {
 	first.execRoutine.SetContext(firstCtx, true)
 	process(first)
 	stopFirst()
+
+	// Confirm the first controller stopped before any target became runnable.
 	if first.execRoutine.GetState() != nil {
 		t.Fatal("first controller reached the target before reconstruction")
 	}
@@ -105,6 +117,7 @@ func TestReconstructedConfigResumesClaimBeforeTargetConstruction(t *testing.T) {
 		t.Fatalf("target construction count before reconstruction = %d, want 0", got)
 	}
 
+	// Verify the durable Execution retains the first controller's claim.
 	running, objectState, err := forge_execution.LookupExecution(ctx, tb.WorldState, objKey)
 	world.ReleaseObjectState(objectState)
 	if err != nil {
@@ -117,6 +130,7 @@ func TestReconstructedConfigResumesClaimBeforeTargetConstruction(t *testing.T) {
 		t.Fatalf("durable claim ID = %q, want %q", got, firstConfig.GetClaimId())
 	}
 
+	// Recover the runnable Execution using the reconstructed claim identity.
 	replacementConfig := buildConfig()
 	if replacementConfig.GetClaimId() != firstConfig.GetClaimId() {
 		t.Fatalf(
@@ -134,6 +148,7 @@ func TestReconstructedConfigResumesClaimBeforeTargetConstruction(t *testing.T) {
 		t.Fatalf("target construction count before replacement start = %d, want 0", got)
 	}
 
+	// Run the recovered target and require one successful construction.
 	replacement.busEngine.SetContext(ctx)
 	replacement.execRoutine.SetContext(ctx, true)
 	finalState, err := forge_execution.WaitExecutionComplete(
