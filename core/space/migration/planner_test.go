@@ -99,6 +99,8 @@ func TestPlannerRefusesUnknownAndInsufficientCapacity(t *testing.T) {
 		Source:             source.WorldState,
 		Destination:        destination.WorldState,
 	})
+
+	// Verify the unknown ObjectType produces a typed blocker.
 	if !errors.Is(err, space_migration.ErrPlanBlocked) {
 		t.Fatalf("unknown type error = %v, want ErrPlanBlocked", err)
 	}
@@ -144,6 +146,8 @@ func TestPlannerRejectsStaleWorld(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer destination.Release()
+
+	// Populate the source World and construct the baseline planner input.
 	setObject(t, ctx, source.WorldState, "known", s4wave_kv_world.KvStoreTypeID)
 	registry, err := space_migration.BuiltInRegistry()
 	if err != nil {
@@ -154,6 +158,8 @@ func TestPlannerRejectsStaleWorld(t *testing.T) {
 		SourceSpaceID: "source-space", DestinationSpaceID: "destination-space",
 		Source: source.WorldState, Destination: destination.WorldState, SelectedObjectKeys: []string{"known"},
 	}
+
+	// Plan the baseline preview before changing the source World.
 	preview, err := planner.Plan(ctx, input)
 	if err != nil {
 		t.Fatal(err)
@@ -167,6 +173,7 @@ func TestPlannerRejectsStaleWorld(t *testing.T) {
 }
 
 func TestPlannerUsesDeterministicCollisionSuggestion(t *testing.T) {
+	// Open source and destination Worlds for the object-key collision.
 	ctx := context.Background()
 	source, err := world_testbed.Default(ctx)
 	if err != nil {
@@ -178,12 +185,16 @@ func TestPlannerUsesDeterministicCollisionSuggestion(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer destination.Release()
+
+	// Populate colliding objects and construct the migration registry.
 	setObject(t, ctx, source.WorldState, "dir/file", s4wave_kv_world.KvStoreTypeID)
 	setObject(t, ctx, destination.WorldState, "dir/file", s4wave_canvas_world.CanvasTypeID)
 	registry, err := space_migration.BuiltInRegistry()
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Plan a merge that renames the colliding source object.
 	preview, err := space_migration.NewPlanner(registry).Plan(ctx, &space_migration.PlannerInput{
 		SourceSpaceID: "source-space", DestinationSpaceID: "destination-space",
 		Source: source.WorldState, Destination: destination.WorldState,
@@ -194,6 +205,8 @@ func TestPlannerUsesDeterministicCollisionSuggestion(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Verify the suggested key and destination mapping are deterministic.
 	if len(preview.GetConflicts()) != 1 || preview.GetConflicts()[0].GetSuggestedKey() != "dir/file~ce-space" {
 		t.Fatalf("collision conflict = %#v", preview.GetConflicts())
 	}
@@ -203,6 +216,7 @@ func TestPlannerUsesDeterministicCollisionSuggestion(t *testing.T) {
 }
 
 func TestPlannerRemapsDescendantClosureKeys(t *testing.T) {
+	// Open source and destination Worlds for the parent-key collision.
 	ctx := context.Background()
 	source, err := world_testbed.Default(ctx)
 	if err != nil {
@@ -214,6 +228,8 @@ func TestPlannerRemapsDescendantClosureKeys(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer destination.Release()
+
+	// Populate the source parent and child and the colliding destination.
 	setObject(t, ctx, source.WorldState, "dir", s4wave_kv_world.KvStoreTypeID)
 	setObject(t, ctx, source.WorldState, "dir/child", s4wave_kv_world.KvStoreTypeID)
 	setObject(t, ctx, destination.WorldState, "dir", s4wave_canvas_world.CanvasTypeID)
@@ -221,6 +237,8 @@ func TestPlannerRemapsDescendantClosureKeys(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Plan a merge that renames the colliding parent object.
 	preview, err := space_migration.NewPlanner(registry).Plan(ctx, &space_migration.PlannerInput{
 		SourceSpaceID: "source-space", DestinationSpaceID: "destination-space",
 		Source: source.WorldState, Destination: destination.WorldState,
@@ -231,6 +249,8 @@ func TestPlannerRemapsDescendantClosureKeys(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Verify the preview object-key mappings carry the suggested parent key.
 	mappings := make(map[string]string)
 	for _, mapping := range preview.GetIdentityMappings() {
 		if mapping.GetKind() == space_migration.MigrationReferenceKind_MIGRATION_REFERENCE_KIND_OBJECT_KEY {
@@ -243,9 +263,11 @@ func TestPlannerRemapsDescendantClosureKeys(t *testing.T) {
 }
 
 func setObject(t *testing.T, ctx context.Context, ws world.WorldState, key, typeID string) {
+	// Write the typed test object payload into the World block store.
 	t.Helper()
 	var root *bucket.ObjectRef
 	err := ws.AccessWorldState(ctx, nil, func(cursor *bucket_lookup.Cursor) error {
+		// Open a block transaction and choose the test ObjectType payload.
 		root = cursor.GetRef()
 		tx, blocks := cursor.BuildTransactionAtRef(nil, nil)
 		switch typeID {
@@ -256,6 +278,8 @@ func setObject(t *testing.T, ctx context.Context, ws world.WorldState, key, type
 		default:
 			blocks.SetBlock(block_mock.NewExampleBlock(), true)
 		}
+
+		// Persist the test payload root into the World block store.
 		var err error
 		root.RootRef, _, err = tx.Write(ctx, true)
 		return err
@@ -263,6 +287,8 @@ func setObject(t *testing.T, ctx context.Context, ws world.WorldState, key, type
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Create the test World object from its persisted root.
 	{
 		createdObject, err := ws.CreateObject(ctx, key, root)
 		world.ReleaseObjectState(createdObject)
@@ -270,12 +296,15 @@ func setObject(t *testing.T, ctx context.Context, ws world.WorldState, key, type
 			t.Fatal(err)
 		}
 	}
+
+	// Assign the test World object its requested ObjectType.
 	if err := world_types.SetObjectType(ctx, ws, key, typeID); err != nil {
 		t.Fatal(err)
 	}
 }
 
 func setCanvasState(t *testing.T, ctx context.Context, ws world.WorldState, key string, state *s4wave_canvas.CanvasState) {
+	// Create the test Canvas World object from its supplied state.
 	t.Helper()
 	createdObject, _, err := world.CreateWorldObject(ctx, ws, key, func(blocks *block.Cursor) error {
 		return s4wave_canvas.WriteCanvasState(ctx, blocks, nil, state)
@@ -284,15 +313,19 @@ func setCanvasState(t *testing.T, ctx context.Context, ws world.WorldState, key 
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Assign the test Canvas object its Canvas ObjectType.
 	if err := world_types.SetObjectType(ctx, ws, key, s4wave_canvas_world.CanvasTypeID); err != nil {
 		t.Fatal(err)
 	}
 }
 
 func setObjectBlock(t *testing.T, ctx context.Context, ws world.WorldState, key, typeID string, payload block.Block) {
+	// Write the supplied test payload into the World block store.
 	t.Helper()
 	var root *bucket.ObjectRef
 	err := ws.AccessWorldState(ctx, nil, func(cursor *bucket_lookup.Cursor) error {
+		// Open a block transaction and persist the supplied test payload.
 		root = cursor.GetRef()
 		tx, blocks := cursor.BuildTransactionAtRef(nil, nil)
 		blocks.SetBlock(payload, true)
@@ -303,6 +336,8 @@ func setObjectBlock(t *testing.T, ctx context.Context, ws world.WorldState, key,
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Create the test World object from its persisted payload root.
 	{
 		createdObject, err := ws.CreateObject(ctx, key, root)
 		world.ReleaseObjectState(createdObject)
@@ -310,6 +345,8 @@ func setObjectBlock(t *testing.T, ctx context.Context, ws world.WorldState, key,
 			t.Fatal(err)
 		}
 	}
+
+	// Assign the test World object its requested ObjectType.
 	if err := world_types.SetObjectType(ctx, ws, key, typeID); err != nil {
 		t.Fatal(err)
 	}

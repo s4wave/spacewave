@@ -37,6 +37,7 @@ if (content === expected) {
 `
 
 func TestWazeroFS(t *testing.T) {
+	// Share one context across UnixFS operations and the Wazero test runtime.
 	ctx := context.Background()
 
 	// create fs root
@@ -45,9 +46,11 @@ func TestWazeroFS(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// Open a Billy-backed UnixFS cursor for the test filesystem.
 	fsc := unixfs_billy.NewBillyFSCursor(bfs, "")
 	defer fsc.Release()
 
+	// Open a UnixFS handle for the Wazero filesystem adapter.
 	fsh, err := unixfs.NewFSHandle(fsc)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -80,6 +83,7 @@ func TestWazeroFS(t *testing.T) {
 		WithStdout(os.Stderr).
 		WithStderr(os.Stderr)
 
+	// Mount the UnixFS adapter at the Wazero module filesystem root.
 	fsConfig := wazero.NewFSConfig().(wazero_exp_sysfs.FSConfig).WithSysFSMount(wazeroFs, "/")
 	config = config.WithFSConfig(fsConfig)
 	_ = wazeroFs

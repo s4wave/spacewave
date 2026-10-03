@@ -447,9 +447,12 @@ func (p *Planner) Plan(ctx context.Context, input *PlannerInput) (*MigrationPrev
 
 // VerifyFresh rejects a preview if either World changed after planning.
 func (p *Planner) VerifyFresh(ctx context.Context, input *PlannerInput, preview *MigrationPreview) error {
+	// Require both Worlds and the preview before checking freshness.
 	if input == nil || input.Source == nil || input.Destination == nil || preview == nil {
 		return errors.New("source, destination, and preview are required")
 	}
+
+	// Read the current source and destination World revisions.
 	sourceRevision, err := input.Source.GetSeqno(ctx)
 	if err != nil {
 		return err
@@ -458,6 +461,8 @@ func (p *Planner) VerifyFresh(ctx context.Context, input *PlannerInput, preview 
 	if err != nil {
 		return err
 	}
+
+	// Verify the preview Space identities, operation, and capacity preflight.
 	if input.SourceSpaceID != preview.SourceSpaceId || input.DestinationSpaceID != preview.DestinationSpaceId {
 		return errors.Wrap(ErrStalePlan, "preview Space identities do not match the current request")
 	}
@@ -467,6 +472,8 @@ func (p *Planner) VerifyFresh(ctx context.Context, input *PlannerInput, preview 
 	if input.CapacityKnown != preview.CapacityKnown || input.DestinationCapacity != preview.DestinationCapacity {
 		return errors.Wrap(ErrStalePlan, "preview capacity preflight does not match the current request")
 	}
+
+	// Scan the current source and destination World objects.
 	sourceObjects, err := scanWorld(ctx, input.Source)
 	if err != nil {
 		return err
@@ -475,6 +482,8 @@ func (p *Planner) VerifyFresh(ctx context.Context, input *PlannerInput, preview 
 	if err != nil {
 		return err
 	}
+
+	// Resolve the current source and destination block-store identities.
 	sourceStore, err := owningBlockStoreID(ctx, input.Source, sourceObjects, "source")
 	if err != nil {
 		return errors.Wrap(ErrStalePlan, err.Error())
@@ -483,6 +492,8 @@ func (p *Planner) VerifyFresh(ctx context.Context, input *PlannerInput, preview 
 	if err != nil {
 		return errors.Wrap(ErrStalePlan, err.Error())
 	}
+
+	// Verify the preview maps the current owning block stores.
 	foundStoreMapping := false
 	for _, identity := range preview.IdentityMappings {
 		if identity != nil && identity.Kind == MigrationReferenceKind_MIGRATION_REFERENCE_KIND_BLOCK_STORE && identity.Source == sourceStore {
@@ -493,6 +504,8 @@ func (p *Planner) VerifyFresh(ctx context.Context, input *PlannerInput, preview 
 	if !foundStoreMapping {
 		return errors.Wrap(ErrStalePlan, "block-store identities do not match the preview")
 	}
+
+	// Verify the preview revisions and content digest remain unchanged.
 	if sourceRevision != preview.SourceRevision || destinationRevision != preview.DestinationRevision {
 		return errors.Wrapf(ErrStalePlan, "source revision %d/%d destination revision %d/%d", sourceRevision, preview.SourceRevision, destinationRevision, preview.DestinationRevision)
 	}
@@ -503,6 +516,7 @@ func (p *Planner) VerifyFresh(ctx context.Context, input *PlannerInput, preview 
 }
 
 func scanWorld(ctx context.Context, ws world.WorldState) (map[string]*ObjectDescriptor, error) {
+	// Open the World object iterator and collect object descriptors.
 	objects := make(map[string]*ObjectDescriptor)
 	iterator := ws.IterateObjects(ctx, "", false)
 	defer iterator.Close()
@@ -541,13 +555,19 @@ func scanWorld(ctx context.Context, ws world.WorldState) (map[string]*ObjectDesc
 			LogicalBytesKnown: logicalBytesKnown, World: ws, BlockStoreID: blockStoreID,
 		}
 	}
+
+	// Require the World object scan to finish without iterator errors.
 	if err := iterator.Err(); err != nil {
 		return nil, err
 	}
+
+	// Index known World object keys for graph dependency lookup.
 	known := make(map[string]struct{}, len(objects))
 	for key := range objects {
 		known[key] = struct{}{}
 	}
+
+	// Collect graph references and dependencies for every World object.
 	for key, object := range objects {
 		quads, err := ws.LookupGraphQuads(ctx, world.NewGraphQuadWithKeys(key, "", "", ""), 0)
 		if err != nil {
@@ -577,6 +597,7 @@ func logicalSizeForRef(ctx context.Context, ws world.WorldState, root *bucket.Ob
 	var total uint64
 	err := ws.AccessWorldState(ctx, root, func(cursor *bucket_lookup.Cursor) error {
 		return bucket_lookup.WalkObjectBlocks(ctx, bucket_lookup.NewWalkObjectBlocksWithRef(root.GetRootRef(), nil), func(entry *bucket_lookup.WalkObjectBlocksEntry) (bool, error) {
+			// Ignore absent DAG entries and propagate block read failures.
 			if entry == nil {
 				return true, nil
 			}
@@ -586,6 +607,8 @@ func logicalSizeForRef(ctx context.Context, ws world.WorldState, root *bucket.Ob
 			if !entry.Found || entry.IsSubBlock {
 				return true, nil
 			}
+
+			// Accumulate the DAG entry size without overflowing the total.
 			dataLen := uint64(len(entry.Data))
 			if dataLen == 0 {
 				dataLen = uint64(len(entry.XfrmData))
@@ -601,6 +624,7 @@ func logicalSizeForRef(ctx context.Context, ws world.WorldState, root *bucket.Ob
 }
 
 func owningBlockStoreID(ctx context.Context, ws world.WorldState, objects map[string]*ObjectDescriptor, label string) (string, error) {
+	// Read and require the World owning block-store identity.
 	var ownerID string
 	if err := ws.AccessWorldState(ctx, nil, func(cursor *bucket_lookup.Cursor) error {
 		if cursor != nil && cursor.GetRef() != nil {
@@ -613,6 +637,8 @@ func owningBlockStoreID(ctx context.Context, ws world.WorldState, objects map[st
 	if ownerID == "" {
 		return "", errors.Errorf("%s World has no block-store identity", label)
 	}
+
+	// Verify every object belongs to the World owning block store.
 	for key, object := range objects {
 		if object == nil || object.BlockStoreID == "" {
 			continue
@@ -639,10 +665,13 @@ func selectClosure(selected []string, source map[string]*ObjectDescriptor) []str
 }
 
 func collisionSuggestion(key, sourceSpaceID string) string {
+	// Derive a short source Space suffix for the collision suggestion.
 	short := sourceSpaceID
 	if len(short) > 8 {
 		short = short[len(short)-8:]
 	}
+
+	// Attach the Space suffix to the final object key component.
 	idx := strings.LastIndex(key, "/")
 	if idx < 0 {
 		return key + "~" + short
@@ -705,15 +734,22 @@ func blockerDetail(blocker *MigrationBlocker) string {
 }
 
 func digestPreview(preview *MigrationPreview) string {
+	// Preserve the empty digest for a missing migration preview.
 	if preview == nil {
 		return ""
 	}
+
+	// Prepare a delimiter-separated encoding of the preview fields.
 	var b bytes.Buffer
 	write := func(values ...string) {
 		b.WriteByte(0)
 		b.WriteString(strings.Join(values, "\x00"))
 	}
+
+	// Encode preview identities and World revisions.
 	write(strconv.Itoa(int(preview.Operation)), preview.SourceSpaceId, preview.DestinationSpaceId, strconv.FormatUint(preview.SourceRevision, 10), strconv.FormatUint(preview.DestinationRevision, 10))
+
+	// Encode the planned objects and their immutable roots.
 	for _, object := range preview.Objects {
 		if object == nil {
 			write("object:nil")
@@ -721,6 +757,8 @@ func digestPreview(preview *MigrationPreview) string {
 		}
 		write("object", object.ObjectKey, object.ObjectType, strconv.FormatUint(object.Revision, 10), object.RootDigest, strconv.FormatUint(object.LogicalBytes, 10))
 	}
+
+	// Encode the source and destination identity mappings.
 	for _, mapping := range preview.IdentityMappings {
 		if mapping == nil {
 			write("mapping:nil")
@@ -728,6 +766,8 @@ func digestPreview(preview *MigrationPreview) string {
 		}
 		write("mapping", strconv.Itoa(int(mapping.Kind)), mapping.Source, mapping.Destination)
 	}
+
+	// Encode the migration conflicts and selected resolutions.
 	for _, conflict := range preview.Conflicts {
 		if conflict == nil {
 			write("conflict:nil")
@@ -735,6 +775,8 @@ func digestPreview(preview *MigrationPreview) string {
 		}
 		write("conflict", strconv.Itoa(int(conflict.Kind)), conflict.ObjectKey, conflict.ObjectType, conflict.SuggestedKey, conflict.Detail, strconv.Itoa(int(conflict.Resolution)), strconv.FormatBool(conflict.ResolutionRequired))
 	}
+
+	// Encode the migration blockers and affected objects.
 	for _, blocker := range preview.Blockers {
 		if blocker == nil {
 			write("blocker:nil")
@@ -742,6 +784,8 @@ func digestPreview(preview *MigrationPreview) string {
 		}
 		write("blocker", blocker.Code, blocker.ObjectType, strings.Join(blocker.ObjectKeys, "\x00"), blocker.Detail)
 	}
+
+	// Encode the migration progress counters.
 	if preview.Progress == nil {
 		write("progress:nil")
 	} else {
@@ -760,11 +804,15 @@ func digestPreview(preview *MigrationPreview) string {
 			strconv.FormatUint(preview.Progress.NestedSharedObjectsCompleted, 10),
 		)
 	}
+
+	// Encode the migration terminal state.
 	if preview.Result == nil {
 		write("result:nil")
 	} else {
 		write("result", strconv.Itoa(int(preview.Result.State)), preview.Result.Code, preview.Result.Detail)
 	}
+
+	// Encode capacity preflight and hash the complete preview.
 	write("capacity", strconv.FormatUint(preview.DestinationCapacity, 10), strconv.FormatBool(preview.CapacityKnown))
 	hash := sha256.Sum256(b.Bytes())
 	return hex.EncodeToString(hash[:])

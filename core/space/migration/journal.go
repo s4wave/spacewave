@@ -6,6 +6,7 @@ import "github.com/pkg/errors"
 // migration progress. Callers may persist the returned protobuf bytes; the
 // journal owns a deep clone and never aliases the planner's preview.
 func NewMigrationJournal(operationID string, preview *MigrationPreview, retentionUntilUnixSeconds uint64) (*MigrationJournal, error) {
+	// Require the operation identity and a valid immutable preview.
 	if operationID == "" {
 		return nil, errors.New("migration journal operation ID is required")
 	}
@@ -15,12 +16,16 @@ func NewMigrationJournal(operationID string, preview *MigrationPreview, retentio
 	if preview.Digest == "" || preview.Digest != digestPreview(preview) {
 		return nil, errors.New("migration journal preview digest is invalid")
 	}
+
+	// Clone the preview identity mappings for journal ownership.
 	mappings := make([]*MigrationIdentityMapping, 0, len(preview.IdentityMappings))
 	for _, mapping := range preview.IdentityMappings {
 		if mapping != nil {
 			mappings = append(mappings, mapping.CloneVT())
 		}
 	}
+
+	// Resolve the journal source and destination block-store identities.
 	sourceBlockStoreID, destinationBlockStoreID := "", ""
 	for _, mapping := range mappings {
 		if mapping.Kind == MigrationReferenceKind_MIGRATION_REFERENCE_KIND_BLOCK_STORE {

@@ -27,6 +27,7 @@ type StdinBuffer struct {
 // Read reads from the buffer.
 func (b *StdinBuffer) Read(p []byte) (n int, err error) {
 	b.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
+		// Handle empty stdin reads using the queue terminal state.
 		readn := len(p)
 		if readn == 0 {
 			n = 0
@@ -58,6 +59,7 @@ func (b *StdinBuffer) Read(p []byte) (n int, err error) {
 			return
 		}
 
+		// Copy the next stdin queue entry and account for consumed bytes.
 		n = copy(p, nextEntry[b.readQueueOffset:])
 		b.readQueueOffset += n
 		b.readQueueSize -= n
@@ -87,6 +89,7 @@ func (b *StdinBuffer) Write(p []byte) (n int, err error) {
 	}
 
 	b.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
+		// Reject queued stdin writes after the buffer closes.
 		if b.closed {
 			err = io.ErrClosedPipe
 			return

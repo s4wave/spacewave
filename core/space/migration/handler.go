@@ -57,12 +57,15 @@ func (h *TypedHandler) TypeID() string { return h.typeID }
 func (h *TypedHandler) Classification() Classification { return h.classification }
 
 func (h *TypedHandler) sourceInspection(ctx context.Context, object *ObjectDescriptor) (*Inspection, error) {
+	// Require a live World and an admitted schema inspector.
 	if object == nil || object.World == nil {
 		return nil, errors.Wrapf(ErrPayloadSchemaRefused, "type %s requires a live read-only World for schema inspection", h.typeID)
 	}
 	if h.inspectSchema == nil {
 		return nil, errors.Wrapf(ErrPayloadSchemaRefused, "type %s has no admitted payload schema", h.typeID)
 	}
+
+	// Inspect the payload and normalize an empty inspection result.
 	inspection, err := h.inspectSchema(ctx, object)
 	if err != nil {
 		return nil, err
@@ -70,6 +73,8 @@ func (h *TypedHandler) sourceInspection(ctx context.Context, object *ObjectDescr
 	if inspection == nil {
 		inspection = &Inspection{}
 	}
+
+	// Include graph references declared by the typed handler.
 	if h.graphIRIs {
 		for _, value := range object.GraphReferences {
 			if value != "" {
@@ -83,13 +88,18 @@ func (h *TypedHandler) sourceInspection(ctx context.Context, object *ObjectDescr
 // Inspect returns typed dependencies and external disclosures from the actual
 // payload, never from caller-provided metadata.
 func (h *TypedHandler) Inspect(ctx context.Context, object *ObjectDescriptor) (*Inspection, error) {
+	// Require the migration object before inspecting its payload.
 	if object == nil {
 		return nil, errors.New("migration object is required")
 	}
+
+	// Inspect the migration payload through its registered schema.
 	inspection, err := h.sourceInspection(ctx, object)
 	if err != nil {
 		return nil, err
 	}
+
+	// Validate declared reference kinds and collect dependencies and disclosures.
 	for _, reference := range inspection.References {
 		switch reference.Kind {
 		case ReferenceObjectKey:
@@ -126,6 +136,8 @@ func (h *TypedHandler) Inspect(ctx context.Context, object *ObjectDescriptor) (*
 			return nil, errors.Errorf("type %s has unknown reference kind %d", h.typeID, reference.Kind)
 		}
 	}
+
+	// Sort and deduplicate migration dependencies and external references.
 	slices.Sort(inspection.Dependencies)
 	inspection.Dependencies = slices.Compact(inspection.Dependencies)
 	slices.Sort(inspection.ExternalReferences)
@@ -136,6 +148,7 @@ func (h *TypedHandler) Inspect(ctx context.Context, object *ObjectDescriptor) (*
 // Rewrite returns a serialized typed payload and any graph identities owned by
 // it. Descriptor-side synthetic references are intentionally ignored.
 func (h *TypedHandler) Rewrite(ctx context.Context, object *ObjectDescriptor, mapping *IdentityMap) (*RewriteResult, error) {
+	// Require the migration object, identity map, and admitted payload rewriter.
 	if object == nil || mapping == nil {
 		return nil, errors.New("migration object and identity map are required")
 	}
@@ -148,6 +161,8 @@ func (h *TypedHandler) Rewrite(ctx context.Context, object *ObjectDescriptor, ma
 	if h.rewriteSchema == nil {
 		return nil, errors.Wrapf(ErrPayloadSchemaRefused, "type %s has no admitted payload rewriter", h.typeID)
 	}
+
+	// Rewrite the migration payload and require a serialized result.
 	result, err := h.rewriteSchema(ctx, object, mapping)
 	if err != nil {
 		return nil, err

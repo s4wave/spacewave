@@ -22,6 +22,7 @@ func NewRegistry() *Registry {
 
 // Register adds one handler and rejects duplicate ObjectType registrations.
 func (r *Registry) Register(handler Handler) error {
+	// Validate the registry and handler classification before registration.
 	if r == nil {
 		return errors.New("migration registry is required")
 	}
@@ -34,6 +35,8 @@ func (r *Registry) Register(handler Handler) error {
 	if _, exists := r.handlers[handler.TypeID()]; exists {
 		return errors.Errorf("migration handler already registered for %s", handler.TypeID())
 	}
+
+	// Register the handler under its unique ObjectType identity.
 	r.handlers[handler.TypeID()] = handler
 	return nil
 }
@@ -48,9 +51,12 @@ func (r *Registry) Lookup(typeID string) Handler {
 
 // TypeIDs returns all registered ObjectTypes in lexical order.
 func (r *Registry) TypeIDs() []string {
+	// Preserve an empty type list for a missing registry.
 	if r == nil {
 		return nil
 	}
+
+	// Collect and sort the registered ObjectType identities.
 	ids := make([]string, 0, len(r.handlers))
 	for typeID := range r.handlers {
 		ids = append(ids, typeID)

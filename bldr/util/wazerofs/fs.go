@@ -99,6 +99,7 @@ func FileInfoToStat(fileInfo fs.FileInfo) wazero_sys.Stat_t {
 //   - This is like `open` in POSIX. See
 //     https://pubs.opengroup.org/onlinepubs/9699919799/functions/open.html
 func (f *FS) OpenFile(openPath string, flag wazero_exp_sys.Oflag, perm fs.FileMode) (wazero_exp_sys.File, wazero_exp_sys.Errno) {
+	// Resolve the file path relative to the UnixFS working directory.
 	pathPts, errno := f.resolvePath(openPath)
 	if errno != 0 {
 		return nil, errno
@@ -161,7 +162,6 @@ func (f *FS) OpenFile(openPath string, flag wazero_exp_sys.Oflag, perm fs.FileMo
 		fileFsh.Release()
 		return nil, UnixfsErrorToWazeroErrno(err)
 	}
-
 	if nodeType.GetIsDirectory() && (flag&wazero_exp_sys.O_RDWR != 0 || flag&wazero_exp_sys.O_WRONLY != 0) {
 		fileFsh.Release()
 		return nil, wazero_exp_sys.EISDIR
@@ -200,6 +200,7 @@ func (f *FS) OpenFile(openPath string, flag wazero_exp_sys.Oflag, perm fs.FileMo
 //   - When the path is a symbolic link, the stat returned is for the link,
 //     not the file it refers to.
 func (f *FS) Lstat(path string) (wazero_sys.Stat_t, wazero_exp_sys.Errno) {
+	// Resolve the metadata path relative to the UnixFS working directory.
 	pathPts, errno := f.resolvePath(path)
 	if errno != 0 {
 		return wazero_sys.Stat_t{}, errno
@@ -219,7 +220,6 @@ func (f *FS) Lstat(path string) (wazero_sys.Stat_t, wazero_exp_sys.Errno) {
 	// We need to traverse to the parent and then lookup the final component
 	var fileFsh *unixfs.FSHandle
 	var err error
-
 	if len(pathPts) == 1 {
 		// Looking up in root directory
 		fileFsh, err = f.fsh.Lookup(f.ctx, pathPts[0])
@@ -274,6 +274,7 @@ func (f *FS) Lstat(path string) (wazero_sys.Stat_t, wazero_exp_sys.Errno) {
 //   - When the path is a symbolic link, the stat returned is for the file
 //     it refers to.
 func (f *FS) Stat(path string) (wazero_sys.Stat_t, wazero_exp_sys.Errno) {
+	// Resolve the metadata path before following UnixFS links.
 	pathPts, errno := f.resolvePath(path)
 	if errno != 0 {
 		return wazero_sys.Stat_t{}, errno
@@ -317,6 +318,7 @@ func (f *FS) Stat(path string) (wazero_sys.Stat_t, wazero_exp_sys.Errno) {
 //     https://pubs.opengroup.org/onlinepubs/9699919799/functions/mkdir.html
 //   - Implications of permissions are described in Chmod notes.
 func (f *FS) Mkdir(path string, perm fs.FileMode) wazero_exp_sys.Errno {
+	// Resolve the directory creation path relative to the UnixFS working directory.
 	pathPts, errno := f.resolvePath(path)
 	if errno != 0 {
 		return errno
@@ -331,7 +333,6 @@ func (f *FS) Mkdir(path string, perm fs.FileMode) wazero_exp_sys.Errno {
 	var parentFsh *unixfs.FSHandle
 	var dirname string
 	var err error
-
 	if len(pathPts) == 1 {
 		// Creating in root
 		parentFsh = f.fsh
@@ -374,6 +375,7 @@ func (f *FS) Mkdir(path string, perm fs.FileMode) wazero_exp_sys.Errno {
 //   - This is like `chmod` in POSIX. See
 //     https://pubs.opengroup.org/onlinepubs/9699919799/functions/chmod.html
 func (f *FS) Chmod(path string, perm fs.FileMode) wazero_exp_sys.Errno {
+	// Resolve the permission change path relative to the UnixFS working directory.
 	pathPts, errno := f.resolvePath(path)
 	if errno != 0 {
 		return errno
@@ -418,11 +420,13 @@ func (f *FS) Chmod(path string, perm fs.FileMode) wazero_exp_sys.Errno {
 //   - This is like `rename` in POSIX. See
 //     https://pubs.opengroup.org/onlinepubs/9699919799/functions/rename.html
 func (f *FS) Rename(from, to string) wazero_exp_sys.Errno {
+	// Resolve the rename source within the UnixFS filesystem.
 	fromPathPts, errno := f.resolvePath(from)
 	if errno != 0 {
 		return errno
 	}
 
+	// Resolve the rename destination within the UnixFS filesystem.
 	toPathPts, errno := f.resolvePath(to)
 	if errno != 0 {
 		return errno
@@ -446,7 +450,6 @@ func (f *FS) Rename(from, to string) wazero_exp_sys.Errno {
 	// Get the destination parent directory handle
 	var toParentFsh *unixfs.FSHandle
 	var toFilename string
-
 	if len(toPathPts) == 1 {
 		// Renaming to root
 		toParentFsh = f.fsh
@@ -491,6 +494,7 @@ func (f *FS) Rename(from, to string) wazero_exp_sys.Errno {
 //   - This is like `rmdir` in POSIX. See
 //     https://pubs.opengroup.org/onlinepubs/9699919799/functions/rmdir.html
 func (f *FS) Rmdir(path string) wazero_exp_sys.Errno {
+	// Resolve the directory removal path relative to the UnixFS working directory.
 	pathPts, errno := f.resolvePath(path)
 	if errno != 0 {
 		return errno
@@ -505,7 +509,6 @@ func (f *FS) Rmdir(path string) wazero_exp_sys.Errno {
 	var parentFsh *unixfs.FSHandle
 	var filename string
 	var err error
-
 	if len(pathPts) == 1 {
 		// Removing from root
 		parentFsh = f.fsh
@@ -535,7 +538,6 @@ func (f *FS) Rmdir(path string) wazero_exp_sys.Errno {
 	if err != nil {
 		return UnixfsErrorToWazeroErrno(err)
 	}
-
 	if !nodeType.GetIsDirectory() {
 		return wazero_exp_sys.ENOTDIR
 	}
@@ -549,7 +551,6 @@ func (f *FS) Rmdir(path string) wazero_exp_sys.Errno {
 	if err != nil && err != context.Canceled {
 		return UnixfsErrorToWazeroErrno(err)
 	}
-
 	if hasEntries {
 		return wazero_exp_sys.ENOTEMPTY
 	}
@@ -580,6 +581,7 @@ func (f *FS) Rmdir(path string) wazero_exp_sys.Errno {
 //   - This is like `unlink` in POSIX. See
 //     https://pubs.opengroup.org/onlinepubs/9699919799/functions/unlink.html
 func (f *FS) Unlink(path string) wazero_exp_sys.Errno {
+	// Resolve the unlink path relative to the UnixFS working directory.
 	pathPts, errno := f.resolvePath(path)
 	if errno != 0 {
 		return errno
@@ -594,7 +596,6 @@ func (f *FS) Unlink(path string) wazero_exp_sys.Errno {
 	var parentFsh *unixfs.FSHandle
 	var filename string
 	var err error
-
 	if len(pathPts) == 1 {
 		// Removing from root
 		parentFsh = f.fsh
@@ -624,7 +625,6 @@ func (f *FS) Unlink(path string) wazero_exp_sys.Errno {
 	if err != nil {
 		return UnixfsErrorToWazeroErrno(err)
 	}
-
 	if nodeType.GetIsDirectory() {
 		return wazero_exp_sys.EISDIR
 	}
@@ -682,6 +682,7 @@ func (f *FS) Link(oldPath, newPath string) wazero_exp_sys.Errno {
 //     See https://github.com/bytecodealliance/cap-std/blob/v1.0.4/cap-std/src/fs/dir.rs#L404-L409
 //     for how others implement this.
 func (f *FS) Symlink(oldPath, linkName string) wazero_exp_sys.Errno {
+	// Resolve the new symlink path relative to the UnixFS working directory.
 	linkPathPts, errno := f.resolvePath(linkName)
 	if errno != 0 {
 		return errno
@@ -696,7 +697,6 @@ func (f *FS) Symlink(oldPath, linkName string) wazero_exp_sys.Errno {
 	var parentFsh *unixfs.FSHandle
 	var filename string
 	var err error
-
 	if len(linkPathPts) == 1 {
 		// Creating in root
 		parentFsh = f.fsh
@@ -741,6 +741,7 @@ func (f *FS) Symlink(oldPath, linkName string) wazero_exp_sys.Errno {
 //   - This is like `readlink` in POSIX. See
 //     https://pubs.opengroup.org/onlinepubs/9699919799/functions/readlink.html
 func (f *FS) Readlink(path string) (string, wazero_exp_sys.Errno) {
+	// Resolve the symlink path relative to the UnixFS working directory.
 	pathPts, errno := f.resolvePath(path)
 	if errno != 0 {
 		return "", errno
@@ -799,6 +800,7 @@ func (f *FS) Utimens(path string, atim, mtim int64) wazero_exp_sys.Errno {
 		return 0 // Nothing to do
 	}
 
+	// Resolve the modification-time path relative to the UnixFS working directory.
 	pathPts, errno := f.resolvePath(path)
 	if errno != 0 {
 		return errno

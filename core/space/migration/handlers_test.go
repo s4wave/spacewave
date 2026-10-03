@@ -36,12 +36,15 @@ import (
 )
 
 func TestBuiltInHandlersDecodeAndSerializePopulatedWorldPayloads(t *testing.T) {
+	// Open a World testbed for built-in payload inspection and rewriting.
 	ctx := context.Background()
 	tb, err := world_testbed.Default(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer tb.Release()
+
+	// Define and store one payload for each built-in ObjectType.
 	fixtures := []struct {
 		key     string
 		typeID  string
@@ -71,6 +74,8 @@ func TestBuiltInHandlersDecodeAndSerializePopulatedWorldPayloads(t *testing.T) {
 	for _, fixture := range fixtures {
 		setObjectBlock(t, ctx, tb.WorldState, fixture.key, fixture.typeID, fixture.payload)
 	}
+
+	// Construct the built-in registry and identity mappings.
 	registry, err := space_migration.BuiltInRegistry()
 	if err != nil {
 		t.Fatal(err)
@@ -79,19 +84,28 @@ func TestBuiltInHandlersDecodeAndSerializePopulatedWorldPayloads(t *testing.T) {
 	for _, fixture := range fixtures {
 		mapping.ObjectKeys[fixture.key] = fixture.key
 	}
+
+	// Inspect and rewrite every stored built-in payload.
 	for _, fixture := range fixtures {
+		// Require the built-in handler for this fixture ObjectType.
 		handler := registry.Lookup(fixture.typeID)
 		if handler == nil {
 			t.Fatalf("handler missing for %s", fixture.typeID)
 		}
+
+		// Verify the built-in handler can inspect the fixture payload.
 		object := &space_migration.ObjectDescriptor{ObjectKey: fixture.key, ObjectType: fixture.typeID, World: tb.WorldState}
 		if _, err := handler.Inspect(ctx, object); err != nil {
 			t.Fatalf("Inspect(%s): %v", fixture.typeID, err)
 		}
+
+		// Rewrite the fixture payload through its built-in handler.
 		result, err := handler.Rewrite(ctx, object, mapping)
 		if err != nil {
 			t.Fatalf("Rewrite(%s): %v", fixture.typeID, err)
 		}
+
+		// Verify the fixture rewrite returns a result.
 		if result == nil {
 			t.Fatalf("Rewrite(%s) returned no result", fixture.typeID)
 		}
@@ -99,12 +113,15 @@ func TestBuiltInHandlersDecodeAndSerializePopulatedWorldPayloads(t *testing.T) {
 }
 
 func TestForgeHandlersOwnPopulatedIdentities(t *testing.T) {
+	// Open a World testbed for Forge identity inspection and rewriting.
 	ctx := context.Background()
 	tb, err := world_testbed.Default(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer tb.Release()
+
+	// Define populated Forge fixtures and store their payloads.
 	value := func(key, parent string) *forge_value.Value {
 		return &forge_value.Value{
 			ValueType: forge_value.ValueType_ValueType_WORLD_OBJECT_SNAPSHOT,
@@ -205,6 +222,8 @@ func TestForgeHandlersOwnPopulatedIdentities(t *testing.T) {
 	for _, fixture := range fixtures {
 		setObjectBlock(t, ctx, tb.WorldState, fixture.key, fixture.typeID, fixture.payload)
 	}
+
+	// Construct the Forge registry and destination identity mappings.
 	registry, err := space_migration.BuiltInRegistry()
 	if err != nil {
 		t.Fatal(err)
@@ -217,23 +236,33 @@ func TestForgeHandlersOwnPopulatedIdentities(t *testing.T) {
 	for _, key := range []string{"task-object", "task-parent", "pass-execution", "pass-object", "pass-parent", "execution-object", "execution-parent"} {
 		mapping.ObjectKeys[key] = key + "-destination"
 	}
+
+	// Inspect and rewrite every Forge fixture through its registered handler.
 	for _, fixture := range fixtures {
+		// Inspect the Forge fixture and require the expected source references.
 		handler := registry.Lookup(fixture.typeID)
 		object := &space_migration.ObjectDescriptor{ObjectKey: fixture.key, ObjectType: fixture.typeID, World: tb.WorldState}
 		inspection, err := handler.Inspect(ctx, object)
 		if err != nil {
 			t.Fatalf("Inspect(%s): %v", fixture.typeID, err)
 		}
+
+		// Verify the Forge inspection preserves all source identities.
 		assertForgeReferences(t, fixture.typeID+" inspect", inspection.References, fixture.before)
+
+		// Rewrite the Forge fixture with the destination mappings.
 		result, err := handler.Rewrite(ctx, object, mapping)
 		if err != nil {
 			t.Fatalf("Rewrite(%s): %v", fixture.typeID, err)
 		}
+
+		// Verify the Forge rewrite reports the expected destination identities.
 		assertForgeReferences(t, fixture.typeID+" rewrite", result.References, fixture.after)
 	}
 }
 
 func TestGitWorktreeLinksAreOwnedThroughRegistryAndPlanner(t *testing.T) {
+	// Open source and destination Worlds for Git worktree migration.
 	ctx := context.Background()
 	source, err := world_testbed.Default(ctx)
 	if err != nil {
@@ -246,6 +275,7 @@ func TestGitWorktreeLinksAreOwnedThroughRegistryAndPlanner(t *testing.T) {
 	}
 	defer destination.Release()
 
+	// Populate Git repository, worktree, and workdir objects with graph links.
 	setObjectBlock(t, ctx, source.WorldState, "repo", git_world.GitRepoTypeID, git_block.NewRepo())
 	setObjectBlock(t, ctx, source.WorldState, "worktree", git_world.GitWorktreeTypeID, &git_world.Worktree{
 		HeadRefStore: &git_world.HeadRefStore{SubmoduleName: "main"},
@@ -262,6 +292,7 @@ func TestGitWorktreeLinksAreOwnedThroughRegistryAndPlanner(t *testing.T) {
 		}
 	}
 
+	// Construct the registry and Git worktree descriptor for inspection.
 	registry, err := space_migration.BuiltInRegistry()
 	if err != nil {
 		t.Fatal(err)
@@ -275,10 +306,14 @@ func TestGitWorktreeLinksAreOwnedThroughRegistryAndPlanner(t *testing.T) {
 			"<worktree>", git_world.GitWorktreeWorkdirPred, "<workdir>", "",
 		},
 	}
+
+	// Inspect the Git worktree through its registered handler.
 	inspection, err := registry.Inspect(ctx, worktree)
 	if err != nil {
 		t.Fatalf("Registry.Inspect(worktree): %v", err)
 	}
+
+	// Verify the Git worktree inspection owns repository and workdir links.
 	assertForgeReferences(t, "worktree inspect", inspection.References, []space_migration.TypedReference{
 		{Kind: space_migration.ReferenceObjectKey, Value: "repo"},
 		{Kind: space_migration.ReferenceObjectKey, Value: "workdir"},
@@ -289,6 +324,8 @@ func TestGitWorktreeLinksAreOwnedThroughRegistryAndPlanner(t *testing.T) {
 		{Kind: space_migration.ReferenceGraphIRI, Value: git_world.GitWorktreeWorkdirPred},
 		{Kind: space_migration.ReferenceGraphIRI, Value: "<workdir>"},
 	})
+
+	// Rewrite the Git worktree using destination object keys.
 	mapping := space_migration.NewIdentityMap()
 	mapping.ObjectKeys["repo"] = "repo-destination"
 	mapping.ObjectKeys["workdir"] = "workdir-destination"
@@ -296,11 +333,14 @@ func TestGitWorktreeLinksAreOwnedThroughRegistryAndPlanner(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Registry.Rewrite(worktree): %v", err)
 	}
+
+	// Verify the Git worktree rewrite reports mapped object references.
 	assertForgeReferences(t, "worktree rewrite", rewrite.References, []space_migration.TypedReference{
 		{Kind: space_migration.ReferenceObjectKey, Value: "repo-destination"},
 		{Kind: space_migration.ReferenceObjectKey, Value: "workdir-destination"},
 	})
 
+	// Plan migration of the Git worktree and its dependency closure.
 	preview, err := space_migration.NewPlanner(registry).Plan(ctx, &space_migration.PlannerInput{
 		SourceSpaceID:      "source-space",
 		DestinationSpaceID: "destination-space",
@@ -311,6 +351,8 @@ func TestGitWorktreeLinksAreOwnedThroughRegistryAndPlanner(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Planner.Plan(worktree): %v", err)
 	}
+
+	// Verify the planned Git closure contains all three objects and no blockers.
 	if preview.GetProgress().GetObjectsPlanned() != 3 {
 		t.Fatalf("planned closure = %d, want repo/worktree/workdir", preview.GetProgress().GetObjectsPlanned())
 	}

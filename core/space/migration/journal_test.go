@@ -10,6 +10,7 @@ import (
 )
 
 func TestMigrationJournalRoundTripRetainsCompletePreview(t *testing.T) {
+	// Open source and destination Worlds for journal preview planning.
 	ctx := context.Background()
 	source, err := world_testbed.Default(ctx)
 	if err != nil {
@@ -21,11 +22,15 @@ func TestMigrationJournalRoundTripRetainsCompletePreview(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer destination.Release()
+
+	// Populate the source World and construct the migration registry.
 	setObject(t, ctx, source.WorldState, "journal-root", s4wave_kv_world.KvStoreTypeID)
 	registry, err := space_migration.BuiltInRegistry()
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Plan the immutable preview retained by the migration journal.
 	preview, err := space_migration.NewPlanner(registry).Plan(ctx, &space_migration.PlannerInput{
 		SourceSpaceID: "journal-source", DestinationSpaceID: "journal-destination",
 		Source: source.WorldState, Destination: destination.WorldState,
@@ -34,10 +39,14 @@ func TestMigrationJournalRoundTripRetainsCompletePreview(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Create a migration journal from the complete preview.
 	journal, err := space_migration.NewMigrationJournal("journal-op", preview, 123)
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Serialize and decode the migration journal protobuf.
 	data, err := journal.MarshalVT()
 	if err != nil {
 		t.Fatal(err)
@@ -46,6 +55,8 @@ func TestMigrationJournalRoundTripRetainsCompletePreview(t *testing.T) {
 	if err := decoded.UnmarshalVT(data); err != nil {
 		t.Fatal(err)
 	}
+
+	// Verify the journal retains the preview identity, contents, and block stores.
 	if decoded.GetPreviewDigest() != preview.GetDigest() || decoded.GetPreview() == nil {
 		t.Fatalf("journal preview identity lost: %#v", decoded)
 	}
