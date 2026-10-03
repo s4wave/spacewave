@@ -198,6 +198,9 @@ type soEngine struct {
 	// unordered is the count of unplaced operations last reported, guarded by
 	// the controller's writer lock.
 	unordered uint32
+	// control is the local voter in the group's decisions, or nil when the
+	// shared object is not hosted here. Set before the engine is published.
+	control *sobject.Control
 }
 
 // newSoEngine constructs the shared object engine.

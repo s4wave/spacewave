@@ -16,7 +16,8 @@ import (
 const soConfigChangeSignatureContext = "sobject config change"
 
 // HashSOConfigChange returns the identity of a control record: the SHA-256 of
-// its encoding with signatures cleared, which is also the signed body.
+// its encoding with signatures and commit cleared, which is also the signed
+// body and the value a group decides.
 func HashSOConfigChange(entry *SOConfigChange) ([]byte, error) {
 	data, err := configChangeSignedBody(entry)
 	if err != nil {
@@ -26,11 +27,12 @@ func HashSOConfigChange(entry *SOConfigChange) ([]byte, error) {
 	return h[:], nil
 }
 
-// configChangeSignedBody encodes the record with signatures cleared.
+// configChangeSignedBody encodes the record with signatures and commit cleared.
 func configChangeSignedBody(entry *SOConfigChange) ([]byte, error) {
-	// Encode a copy without its signatures.
+	// Encode a copy without its authorization.
 	clone := entry.CloneVT()
 	clone.Signatures = nil
+	clone.Commit = nil
 	data, err := clone.MarshalVT()
 	if err != nil {
 		return nil, errors.Wrap(err, "marshal config change body")
@@ -43,7 +45,8 @@ func configChangeSignedBody(entry *SOConfigChange) ([]byte, error) {
 // 1. The shared object ID
 // 2. Monotonically increasing config_seqno (starting from 0)
 // 3. previous_hash matching the hash of the prior entry (genesis has zero previous_hash)
-// 4. Signatures authorized by the prior config; genesis by an owner of its own config
+// 4. Authorization by the prior config; genesis by an owner of its own
+// config, which must start under owner control
 func VerifyConfigChain(sharedObjectID string, entries []*SOConfigChange) error {
 	// Require a chain before validating its bootstrap entry.
 	if len(entries) == 0 {
@@ -76,7 +79,10 @@ func VerifyConfigChain(sharedObjectID string, entries []*SOConfigChange) error {
 	if err := currentConfig.Validate(); err != nil {
 		return errors.Wrap(err, "genesis entry")
 	}
-	if err := verifyConfigChangeSignatures(genesis, currentConfig); err != nil {
+	if currentConfig.IsGroupControl() {
+		return errors.New("genesis entry must start under owner control")
+	}
+	if err := verifyConfigChangeAuthority(genesis, currentConfig); err != nil {
 		return errors.Wrap(err, "genesis entry")
 	}
 
@@ -102,36 +108,52 @@ func VerifyConfigChain(sharedObjectID string, entries []*SOConfigChange) error {
 	return nil
 }
 
-// VerifyConfigChange verifies one signed transition against the held configuration
+// VerifyConfigChange verifies one authorized transition against the held configuration
 // and returns an independent configuration with its resulting chain head.
 // The resulting configuration must pass Validate, so a nonempty result keeps an OWNER.
 // An empty held head permits sequence zero for locally authorized bootstrap.
 // SELF_ENROLL_PEER requires a separate authenticated peer-to-entity binding.
 func VerifyConfigChange(sharedObjectID string, current *SharedObjectConfig, entry *SOConfigChange) (*SharedObjectConfig, error) {
-	// Require both configurations before checking the chain and its authority.
+	if err := linkConfigChange(sharedObjectID, current, entry); err != nil {
+		return nil, err
+	}
+	if err := verifyConfigChangeAuthority(entry, current); err != nil {
+		return nil, errors.Wrap(err, "verify config change")
+	}
+	return configChangeResult(entry)
+}
+
+// linkConfigChange checks that entry follows current. It does not check who
+// authorized the entry.
+func linkConfigChange(sharedObjectID string, current *SharedObjectConfig, entry *SOConfigChange) error {
+	// Require both configurations before checking the chain.
 	if current == nil || entry.GetConfig() == nil {
-		return nil, errors.New("config change requires current and next configurations")
+		return errors.New("config change requires current and next configurations")
 	}
 	if entry.GetSharedObjectId() != sharedObjectID {
-		return nil, errors.New("config change is bound to another shared object")
+		return errors.New("config change is bound to another shared object")
 	}
 	if !bytes.Equal(entry.GetPreviousHash(), current.GetConfigChainHash()) {
-		return nil, ErrConfigChainHeadMismatch
+		return ErrConfigChainHeadMismatch
 	}
+
+	// The entry takes the next sequence number.
 	var expected uint64
 	if len(current.GetConfigChainHash()) != 0 {
 		expected = current.GetConfigChainSeqno() + 1
 		if expected == 0 {
-			return nil, errors.New("config change sequence exhausted")
+			return errors.New("config change sequence exhausted")
 		}
 	}
 	if entry.GetConfigSeqno() != expected {
-		return nil, errors.Errorf("config change seqno %d does not match expected %d", entry.GetConfigSeqno(), expected)
+		return errors.Errorf("config change seqno %d does not match expected %d", entry.GetConfigSeqno(), expected)
 	}
-	if err := verifyConfigChangeSignatures(entry, current); err != nil {
-		return nil, errors.Wrap(err, "verify config change")
-	}
+	return nil
+}
 
+// configChangeResult returns the configuration entry yields, with its chain
+// head, after checking it is valid.
+func configChangeResult(entry *SOConfigChange) (*SharedObjectConfig, error) {
 	// Derive the accepted head from the signed entry without changing its input.
 	entryHash, err := HashSOConfigChange(entry)
 	if err != nil {
@@ -161,18 +183,9 @@ func VerifyConfigChainSuffix(sharedObjectID string, current, candidate *SharedOb
 		return errors.Wrap(err, "trusted config")
 	}
 
-	// Advance only through owner-signed changes linked to the evolving head.
+	// Advance only through authorized changes linked to the evolving head.
 	for i, entry := range entries {
-		switch entry.GetChangeType() {
-		case SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_ADD_PARTICIPANT,
-			SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_REMOVE_PARTICIPANT,
-			SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_ADD_INVITE,
-			SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_REVOKE_INVITE,
-			SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_INCREMENT_INVITE_USES,
-			SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_TRANSFER_OWNERSHIP,
-			SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_SET_ROSTER,
-			SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_SET_SEQUENCER:
-		default:
+		if !isPeerConfigChange(entry.GetChangeType()) {
 			return errors.Errorf("entry[%d]: unsupported peer config change %s", i, entry.GetChangeType())
 		}
 		next, err := VerifyConfigChange(sharedObjectID, current, entry)
@@ -187,6 +200,26 @@ func VerifyConfigChainSuffix(sharedObjectID string, current, candidate *SharedOb
 		return errors.New("config suffix does not match candidate configuration")
 	}
 	return nil
+}
+
+// isPeerConfigChange reports whether a change of type t may reach a peer
+// through sync: every type but genesis and self-enrollment, which need
+// their own proof.
+func isPeerConfigChange(t SOConfigChangeType) bool {
+	switch t {
+	case SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_ADD_PARTICIPANT,
+		SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_REMOVE_PARTICIPANT,
+		SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_ADD_INVITE,
+		SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_REVOKE_INVITE,
+		SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_INCREMENT_INVITE_USES,
+		SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_TRANSFER_OWNERSHIP,
+		SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_SET_ROSTER,
+		SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_SET_SEQUENCER,
+		SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_SET_CONTROL:
+		return true
+	default:
+		return false
+	}
 }
 
 // VerifyConfigLineage authenticates changes, oldest first, that lead to an
@@ -311,17 +344,38 @@ func signSOConfigChange(entry *SOConfigChange, signerPrivKey crypto.PrivKey) err
 	return nil
 }
 
-// verifyConfigChangeSignatures checks that cfg authorizes the entry: at least
-// one signature, each valid over the body, from a distinct signer, and each
-// signer an OWNER of cfg. A SELF_ENROLL_PEER entry carries exactly one
-// signature, by the enrolling peer.
-func verifyConfigChangeSignatures(entry *SOConfigChange, cfg *SharedObjectConfig) error {
-	// Require signatures in the count the change type allows.
+// verifyConfigChangeAuthority checks that cfg authorizes the entry. Under
+// group control a commit of cfg's voters decides it, with no signature, in
+// the instance after the checkpoint it seals. Under
+// owner control it carries at least one signature, each valid over the body,
+// from a distinct signer, and each signer an OWNER of cfg. A SELF_ENROLL_PEER
+// entry carries exactly one signature, by the enrolling peer, under either.
+func verifyConfigChangeAuthority(entry *SOConfigChange, cfg *SharedObjectConfig) error {
+	// A group decides every change but a device joining its own entity.
+	selfEnroll := entry.GetChangeType() == SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_SELF_ENROLL_PEER
+	if cfg.IsGroupControl() && !selfEnroll {
+		if len(entry.GetSignatures()) != 0 {
+			return errors.New("group control record must not carry signatures")
+		}
+		sealed := entry.GetConfig().GetSealedCheckpoint()
+		if sealed == nil {
+			return errors.New("group control record must seal a checkpoint")
+		}
+		entryHash, err := HashSOConfigChange(entry)
+		if err != nil {
+			return err
+		}
+		return VerifyCommit(entry.GetSharedObjectId(), cfg, sealed.GetHeight()+1, entryHash, entry.GetCommit())
+	}
+
+	// Require signatures in the count the change type allows, and no commit.
+	if len(entry.GetCommit()) != 0 {
+		return errors.New("signed control record must not carry a commit")
+	}
 	sigs := entry.GetSignatures()
 	if len(sigs) == 0 {
 		return errors.New("missing signature")
 	}
-	selfEnroll := entry.GetChangeType() == SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_SELF_ENROLL_PEER
 	if selfEnroll && len(sigs) != 1 {
 		return errors.New("self-enroll must carry exactly one signature")
 	}
@@ -418,8 +472,9 @@ func validateSelfEnrollPeerChange(entry *SOConfigChange, cfg *SharedObjectConfig
 	if nextCfg == nil {
 		return errors.New("next config is required")
 	}
-	if !bytes.Equal(nextCfg.GetConfigChainHash(), cfg.GetConfigChainHash()) ||
-		nextCfg.GetConfigChainSeqno() != cfg.GetConfigChainSeqno() {
+	prevRest, nextRest := cfg.CloneVT(), nextCfg.CloneVT()
+	prevRest.Participants, nextRest.Participants = nil, nil
+	if !prevRest.EqualVT(nextRest) {
 		return errors.New("self-enroll may not mutate config metadata")
 	}
 
@@ -486,6 +541,9 @@ func validateSelfEnrollPeerChange(entry *SOConfigChange, cfg *SharedObjectConfig
 	}
 	if addedParticipant.GetRole() > currentRole {
 		return errors.New("self-enroll role escalation is not allowed")
+	}
+	if addedParticipant.GetVotingWeight() != 0 {
+		return errors.New("self-enroll may not grant a vote")
 	}
 
 	// The enrolling peer may not rename its entity.

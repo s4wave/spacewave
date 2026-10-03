@@ -111,7 +111,7 @@ func (r *replayer) sync(ctx context.Context, snap sobject.SharedObjectStateSnaps
 		if err := r.c.retainWorldRoot(ctx, r.so, replayBaseRootName, base.GetHeadRef()); err != nil {
 			return nil, nil, err
 		}
-		if world, ok := r.coveredWorld(checkpoint); ok {
+		if world, _, ok := r.coveredWorld(checkpoint); ok {
 			r.mismatch = nil
 			if !world.EqualVT(base) {
 				r.mismatch = &sobject.SOCheckpointMismatch{Height: checkpoint.GetHeight()}
@@ -141,14 +141,14 @@ func (r *replayer) positionsAbove(base *InnerState) []replayPosition {
 }
 
 // coveredWorld returns the World this replay reached after the operations
-// checkpoint covers. It answers only when the last replay held every covered
+// checkpoint covers, and those operations in replay order. It answers only when the last replay held every covered
 // operation, placed them before every other operation, and still holds the
 // World after them; a device missing a covered operation, or holding another
 // that sorts among them, cannot judge the checkpoint.
-func (r *replayer) coveredWorld(checkpoint *sobject.SOCheckpointInner) (*InnerState, bool) {
+func (r *replayer) coveredWorld(checkpoint *sobject.SOCheckpointInner) (*InnerState, [][]byte, bool) {
 	// Judge only after a replay of a held set.
 	if r.set == nil || r.base == nil {
-		return nil, false
+		return nil, nil, false
 	}
 	covers := sobject.NewSOOperationSet(r.so.GetSharedObjectID(), checkpoint)
 	covered := func(h []byte) bool {
@@ -163,28 +163,30 @@ func (r *replayer) coveredWorld(checkpoint *sobject.SOCheckpointInner) (*InnerSt
 	}
 	for _, pos := range r.positions[n:] {
 		if covered(pos.outcome.hash) {
-			return nil, false
+			return nil, nil, false
 		}
 	}
 
 	// Each covered author head must be among them, or below the last
 	// checkpoint.
+	prefix := make([][]byte, n)
 	placed := make(map[string]struct{}, n)
-	for _, pos := range r.positions[:n] {
+	for i, pos := range r.positions[:n] {
+		prefix[i] = pos.outcome.hash
 		placed[string(pos.outcome.hash)] = struct{}{}
 	}
 	for _, author := range checkpoint.GetAuthors() {
 		if _, ok := placed[string(author.GetOpHash())]; !ok && !r.set.Covers(author.GetPeerId(), author.GetNonce()) {
-			return nil, false
+			return nil, nil, false
 		}
 	}
 
 	// Return the World after them.
 	if n == 0 {
-		return r.base, true
+		return r.base, prefix, true
 	}
 	world := r.positions[n-1].state
-	return world, world != nil
+	return world, prefix, world != nil
 }
 
 // stateAfter returns the World after prefix when the replay placed prefix

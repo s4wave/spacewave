@@ -17,7 +17,10 @@ import (
 // grants encrypted to the target's public key.
 //
 // Returns the target's grant for the current key epoch, or nil if the
-// participant already existed (no-op).
+// participant already existed (no-op). Under group control localPriv, a
+// voter, agrees to the addition and it returns ErrAwaitingGroup; a writer of
+// an entity without a voter joins with one vote, and the voters hand it the
+// key once the group decides.
 //
 // localPriv must be the private key of an OWNER in the current config.
 // localPeerIDStr is the base58 peer ID corresponding to localPriv. username is
@@ -56,22 +59,23 @@ func AddSOParticipant(
 		}
 	}
 
-	// Build the signed config change that adds the participant.
-	nextCfg := currentCfg.CloneVT()
-	nextCfg.Participants = append(nextCfg.Participants, &SOParticipantConfig{
+	// Add the participant, with a vote under group control when its entity
+	// has none.
+	added := &SOParticipantConfig{
 		PeerId:   targetPeerIDStr,
 		Role:     role,
 		EntityId: entityID,
 		Username: username,
-	})
-	entry, err := BuildSOConfigChange(soID, currentCfg, nextCfg, SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_ADD_PARTICIPANT, localPriv, nil)
-	if err != nil {
-		return nil, errors.Wrap(err, "build config change")
 	}
+	if currentCfg.IsGroupControl() && CanWriteOps(role) && !entityVotes(currentCfg, entityID) {
+		added.VotingWeight = 1
+	}
+	nextCfg := currentCfg.CloneVT()
+	nextCfg.Participants = append(nextCfg.Participants, added)
 
 	// Apply the config change and issue the grants atomically.
 	var grant *SOGrant
-	err = host.ApplyConfigChange(ctx, entry, func(st *SOState) error {
+	err = ChangeSOConfig(ctx, host, state, nextCfg, SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_ADD_PARTICIPANT, localPriv, nil, func(st *SOState) error {
 		current := st.CurrentKeyEpoch().GetEpoch()
 		for _, held := range st.GetKeyEpochs() {
 			// Skip an epoch the local peer cannot read; the current one is required.
@@ -108,4 +112,15 @@ func AddSOParticipant(
 		return nil, err
 	}
 	return grant, nil
+}
+
+// entityVotes reports whether a participant of entityID votes under cfg. A
+// participant without an entity is its own entity.
+func entityVotes(cfg *SharedObjectConfig, entityID string) bool {
+	if entityID == "" {
+		return false
+	}
+	return slices.ContainsFunc(cfg.GetParticipants(), func(p *SOParticipantConfig) bool {
+		return p.GetEntityId() == entityID && p.GetVotingWeight() != 0
+	})
 }

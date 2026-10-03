@@ -34,8 +34,8 @@ func (s *SOState) UnmarshalBlock(data []byte) error {
 	return s.UnmarshalVT(data)
 }
 
-// Validate checks the configuration, checkpoint, key epochs, operations and
-// sequence positions.
+// Validate checks the configuration, checkpoint, key epochs, operations,
+// sequence positions and control messages.
 // It authenticates every signature but does not check that a checkpoint or
 // grant signer still holds authority: that is checked when they are adopted,
 // so a signer's later departure leaves them valid.
@@ -124,7 +124,9 @@ func (s *SOState) Validate(sharedObjectID string) error {
 		}
 		prevHeight, prev = inner.GetHeight(), h
 	}
-	return nil
+
+	// Control messages are signed for this object and sorted by hash.
+	return s.validateControlMessages(sharedObjectID)
 }
 
 // GetCheckpointInner returns the held checkpoint's body, or nil before the
@@ -416,9 +418,8 @@ func (s *SOState) AdoptCheckpoint(sharedObjectID string, next *SOCheckpoint) err
 				return errors.New("checkpoint conflicts with the held checkpoint")
 			}
 			// Take the signatures of a remaining owner when the held signer left.
-			participants := s.GetConfig().GetParticipants()
-			if _, err := held.ValidateAuthority(sharedObjectID, participants); err != nil {
-				if _, err := next.ValidateAuthority(sharedObjectID, participants); err == nil {
+			if _, err := held.ValidateAuthority(sharedObjectID, s.GetConfig()); err != nil {
+				if _, err := next.ValidateAuthority(sharedObjectID, s.GetConfig()); err == nil {
 					s.Checkpoint = next.CloneVT()
 				}
 			}
@@ -429,7 +430,7 @@ func (s *SOState) AdoptCheckpoint(sharedObjectID string, next *SOCheckpoint) err
 	}
 
 	// The held config authorizes the new checkpoint.
-	if _, err := next.ValidateAuthority(sharedObjectID, s.GetConfig().GetParticipants()); err != nil {
+	if _, err := next.ValidateAuthority(sharedObjectID, s.GetConfig()); err != nil {
 		return err
 	}
 
@@ -462,6 +463,9 @@ func (s *SOState) AdoptCheckpoint(sharedObjectID string, next *SOCheckpoint) err
 	}
 	clear(s.Sequence[len(keptSeq):])
 	s.Sequence = keptSeq
+
+	// Close the decision of this checkpoint.
+	s.pruneControlMessages()
 	return nil
 }
 
@@ -471,10 +475,10 @@ func (s *SOState) AdoptCheckpoint(sharedObjectID string, next *SOCheckpoint) err
 // and epochs carries a replacement.
 func (s *SOState) MergeKeyEpochs(sharedObjectID string, epochs []*SOKeyEpoch) error {
 	// Drop the grants of removed readers.
-	participants := s.GetConfig().GetParticipants()
+	cfg := s.GetConfig()
 	for _, epoch := range s.GetKeyEpochs() {
 		epoch.Grants = slices.DeleteFunc(epoch.Grants, func(grant *SOGrant) bool {
-			return !slices.ContainsFunc(participants, func(p *SOParticipantConfig) bool {
+			return !slices.ContainsFunc(cfg.GetParticipants(), func(p *SOParticipantConfig) bool {
 				return p.GetPeerId() == grant.GetPeerId() && CanReadState(p.GetRole())
 			})
 		})
@@ -493,10 +497,10 @@ func (s *SOState) MergeKeyEpochs(sharedObjectID string, epochs []*SOKeyEpoch) er
 			i := slices.IndexFunc(merged.GetGrants(), func(g *SOGrant) bool {
 				return g.GetPeerId() == grant.GetPeerId()
 			})
-			if i != -1 && merged.GetGrants()[i].ValidateSignature(sharedObjectID, participants) == nil {
+			if i != -1 && merged.GetGrants()[i].ValidateSignature(sharedObjectID, cfg) == nil {
 				continue
 			}
-			if err := grant.ValidateSignature(sharedObjectID, participants); err != nil {
+			if err := grant.ValidateSignature(sharedObjectID, cfg); err != nil {
 				if i != -1 {
 					continue
 				}
@@ -520,15 +524,15 @@ func (s *SOState) MergeKeyEpochs(sharedObjectID string, epochs []*SOKeyEpoch) er
 // with authority under the held config. Validate checks only that the
 // signatures are authentic.
 func (s *SOState) ValidateAuthority(sharedObjectID string) error {
-	participants := s.GetConfig().GetParticipants()
+	cfg := s.GetConfig()
 	if checkpoint := s.GetCheckpoint(); checkpoint != nil {
-		if _, err := checkpoint.ValidateAuthority(sharedObjectID, participants); err != nil {
+		if _, err := checkpoint.ValidateAuthority(sharedObjectID, cfg); err != nil {
 			return err
 		}
 	}
 	for _, epoch := range s.GetKeyEpochs() {
 		for _, grant := range epoch.GetGrants() {
-			if err := grant.ValidateSignature(sharedObjectID, participants); err != nil {
+			if err := grant.ValidateSignature(sharedObjectID, cfg); err != nil {
 				return errors.Wrapf(err, "key epoch %d grant", epoch.GetEpoch())
 			}
 		}

@@ -507,7 +507,7 @@ func (s *configChainScenario) entryJSON(entry *SOConfigChange) *fastjson.Value {
 		v.Set("config", projectLeanConfig(entry.GetConfig()).json(a))
 	}
 
-	// Project each signature over the bytes verifyConfigChangeSignatures checks.
+	// Project each signature over the bytes verifyConfigChangeAuthority checks.
 	data, err := configChangeSignedBody(entry)
 	if err != nil {
 		s.t.Fatal(err)

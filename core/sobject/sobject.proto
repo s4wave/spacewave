@@ -235,6 +235,34 @@ message SharedObjectConfig {
   // Sequencer places operations in One order. An unset sequencer or an empty
   // peer ID is Merge.
   SOSequencer sequencer = 14;
+
+  // Control says who changes this config and signs checkpoints: an owner, or
+  // more than two thirds of the voting weight.
+  SOControl control = 15;
+
+  // SealedCheckpoint is the checkpoint the group held when it decided this
+  // config. The config vouches for it by hash, so it stays valid after the
+  // voters who committed it change. Required under group control; a change
+  // back to owner control keeps it.
+  SOCheckpointHead sealed_checkpoint = 16;
+}
+
+// SOControl says who changes a config and signs checkpoints.
+enum SOControl {
+  // SO_CONTROL_OWNER lets any owner device sign alone.
+  SO_CONTROL_OWNER = 0;
+  // SO_CONTROL_GROUP needs a commit from voters holding more than two thirds
+  // of the voting weight. No participant decides alone, including owners.
+  SO_CONTROL_GROUP = 1;
+}
+
+// SOCheckpointHead names one checkpoint.
+message SOCheckpointHead {
+  // Height is the checkpoint height.
+  uint64 height = 1;
+
+  // Hash is the checkpoint identity.
+  bytes hash = 2;
 }
 
 // SOSequencer names the device or service that signs the sequence: one
@@ -333,6 +361,9 @@ enum SOConfigChangeType {
   // SO_CONFIG_CHANGE_TYPE_SET_SEQUENCER chooses between Merge and One order,
   // or moves One order to another sequencer.
   SO_CONFIG_CHANGE_TYPE_SET_SEQUENCER = 10;
+  // SO_CONFIG_CHANGE_TYPE_SET_CONTROL chooses owner or group control, or
+  // changes voting weights.
+  SO_CONFIG_CHANGE_TYPE_SET_CONTROL = 11;
 }
 
 // SORevocationReason describes why a participant was removed.
@@ -381,10 +412,15 @@ message SOConfigChange {
   SOLeaveRequest leave_request = 9;
   // SharedObjectId binds the record to one shared object.
   string shared_object_id = 10;
-  // Signatures sign the record with signatures cleared.
-  // Each signer is distinct and authorized by the parent config;
-  // genesis is signed by an owner of its own config.
+  // Signatures sign the record with signatures and commit cleared, under
+  // owner control. Each signer is distinct and authorized by the parent
+  // config; genesis is signed by an owner of its own config.
   repeated .peer.Signature signatures = 11;
+
+  // Commit holds the precommits that decided the record under group control:
+  // one round, voters of the parent config, more than two thirds of its
+  // voting weight.
+  repeated SOControlMessage commit = 12;
 }
 
 // SOParticipantConfig contains a listing of an entity associated with a shared object.
@@ -408,6 +444,10 @@ message SOParticipantConfig {
   // who added the participant. A self-enrolled peer repeats the username
   // already recorded for its entity. Empty when entity_id is empty.
   string username = 4;
+
+  // VotingWeight is this device's vote under group control. Zero does not
+  // vote. Only writers and owners vote.
+  uint32 voting_weight = 5;
 }
 
 // SOCheckpoint is a signed checkpoint: the World at a point of the operation
@@ -416,9 +456,90 @@ message SOCheckpoint {
   // Inner is the encoded SOCheckpointInner.
   bytes inner = 1;
 
-  // Signatures sign inner. One must be from an owner under the config named by
-  // inner.config_hash.
+  // Signatures sign inner under owner control. One must be from an owner
+  // under the held config.
   repeated .peer.Signature signatures = 2;
+
+  // Commit holds the precommits that decided the checkpoint under group
+  // control, by voters of the config named by inner.config_hash.
+  repeated SOControlMessage commit = 3;
+}
+
+// SODecisionKind is the kind of record a group decision value is.
+enum SODecisionKind {
+  // SO_DECISION_KIND_UNKNOWN is the zero value, and the kind of a vote.
+  SO_DECISION_KIND_UNKNOWN = 0;
+  // SO_DECISION_KIND_CONFIG is a control record.
+  SO_DECISION_KIND_CONFIG = 1;
+  // SO_DECISION_KIND_CHECKPOINT is a checkpoint.
+  SO_DECISION_KIND_CHECKPOINT = 2;
+}
+
+// SOControlMessageType is the step of a group decision a message takes.
+enum SOControlMessageType {
+  // SO_CONTROL_MESSAGE_TYPE_UNKNOWN is the zero value.
+  SO_CONTROL_MESSAGE_TYPE_UNKNOWN = 0;
+  // SO_CONTROL_MESSAGE_TYPE_AGREE records that a voter agrees to a change.
+  // It carries the value; height and round are zero. A control record is
+  // agreed with its sealed_checkpoint cleared, which the proposer fills in.
+  SO_CONTROL_MESSAGE_TYPE_AGREE = 1;
+  // SO_CONTROL_MESSAGE_TYPE_PROPOSAL proposes the value of one round. Only
+  // the round's proposer sends it.
+  SO_CONTROL_MESSAGE_TYPE_PROPOSAL = 2;
+  // SO_CONTROL_MESSAGE_TYPE_PREVOTE is the first vote of a round.
+  SO_CONTROL_MESSAGE_TYPE_PREVOTE = 3;
+  // SO_CONTROL_MESSAGE_TYPE_PRECOMMIT is the second vote of a round. A
+  // non-nil precommit locks its signer on the value.
+  SO_CONTROL_MESSAGE_TYPE_PRECOMMIT = 4;
+}
+
+// SOControlMessage is one signed message of a group decision.
+message SOControlMessage {
+  // Inner is the encoded SOControlMessageInner.
+  bytes inner = 1;
+
+  // Signature is the voter's signature of inner.
+  .peer.Signature signature = 2;
+}
+
+// SOControlMessageInner is the signed body of a group decision message. A
+// decision is one instance, named by its height and the config whose voters
+// decide it. It decides one value: the next control record, which seals the
+// held checkpoint, or the next checkpoint. Either closes the instance, so the
+// two never race under one config.
+message SOControlMessageInner {
+  // SharedObjectId binds the message to one shared object.
+  string shared_object_id = 1;
+
+  // PeerId is the voter that signed the message.
+  string peer_id = 2;
+
+  // Kind is the kind of value the message carries. Unknown on a vote.
+  SODecisionKind kind = 3;
+
+  // Height is one more than the height of the checkpoint the decision
+  // follows. Zero on AGREE, which stands while the config does.
+  uint64 height = 4;
+
+  // ConfigHash is the config chain hash of the config whose voters decide.
+  bytes config_hash = 5;
+
+  // Round counts from 1. Zero on AGREE.
+  uint32 round = 6;
+
+  // Type is the step this message takes.
+  SOControlMessageType type = 7;
+
+  // ValueHash is the identity of the value. Empty on a nil vote.
+  bytes value_hash = 8;
+
+  // ValidRound is the earlier round whose prevotes justify a re-proposed
+  // value. Zero when none. Only on PROPOSAL.
+  uint32 valid_round = 9;
+
+  // Value is the encoded record: an SOConfigChange with signatures and
+  // commit cleared, or an SOCheckpointInner. Only on AGREE and PROPOSAL.
+  bytes value = 10;
 }
 
 // SOCheckpointInner is the signed body of a checkpoint.
@@ -676,6 +797,11 @@ message SOState {
   // Sequence are the positions above the checkpoint, sorted by height, then
   // by hash.
   repeated SOSequence sequence = 6;
+
+  // ControlMessages are the messages of the open group decisions under the
+  // current config, sorted by hash. A voter's own messages are its persisted
+  // locks.
+  repeated SOControlMessage control_messages = 7;
 }
 
 // SOKeyEpoch is one encryption key of a shared object. A key rotation starts

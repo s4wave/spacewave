@@ -256,6 +256,33 @@ export const SOParticipantRole_Enum = /* @__PURE__ */ createEnumType(
 )
 
 /**
+ * SOControl says who changes a config and signs checkpoints.
+ *
+ * @generated from enum sobject.SOControl
+ */
+export enum SOControl {
+  /**
+   * SO_CONTROL_OWNER lets any owner device sign alone.
+   *
+   * @generated from enum value: SO_CONTROL_OWNER = 0;
+   */
+  SO_CONTROL_OWNER = 0,
+
+  /**
+   * SO_CONTROL_GROUP needs a commit from voters holding more than two thirds
+   * of the voting weight. No participant decides alone, including owners.
+   *
+   * @generated from enum value: SO_CONTROL_GROUP = 1;
+   */
+  SO_CONTROL_GROUP = 1,
+}
+
+export const SOControl_Enum = /* @__PURE__ */ createEnumType(
+  'sobject.SOControl',
+  SOControl,
+)
+
+/**
  * SOConfigChangeType describes the kind of mutation in a config chain entry.
  *
  * @generated from enum sobject.SOConfigChangeType
@@ -340,6 +367,14 @@ export enum SOConfigChangeType {
    * @generated from enum value: SO_CONFIG_CHANGE_TYPE_SET_SEQUENCER = 10;
    */
   SO_CONFIG_CHANGE_TYPE_SET_SEQUENCER = 10,
+
+  /**
+   * SO_CONFIG_CHANGE_TYPE_SET_CONTROL chooses owner or group control, or
+   * changes voting weights.
+   *
+   * @generated from enum value: SO_CONFIG_CHANGE_TYPE_SET_CONTROL = 11;
+   */
+  SO_CONFIG_CHANGE_TYPE_SET_CONTROL = 11,
 }
 
 export const SOConfigChangeType_Enum = /* @__PURE__ */ createEnumType(
@@ -392,6 +427,90 @@ export enum SORevocationReason {
 export const SORevocationReason_Enum = /* @__PURE__ */ createEnumType(
   'sobject.SORevocationReason',
   SORevocationReason,
+)
+
+/**
+ * SODecisionKind is the kind of record a group decision value is.
+ *
+ * @generated from enum sobject.SODecisionKind
+ */
+export enum SODecisionKind {
+  /**
+   * SO_DECISION_KIND_UNKNOWN is the zero value, and the kind of a vote.
+   *
+   * @generated from enum value: SO_DECISION_KIND_UNKNOWN = 0;
+   */
+  SO_DECISION_KIND_UNKNOWN = 0,
+
+  /**
+   * SO_DECISION_KIND_CONFIG is a control record.
+   *
+   * @generated from enum value: SO_DECISION_KIND_CONFIG = 1;
+   */
+  SO_DECISION_KIND_CONFIG = 1,
+
+  /**
+   * SO_DECISION_KIND_CHECKPOINT is a checkpoint.
+   *
+   * @generated from enum value: SO_DECISION_KIND_CHECKPOINT = 2;
+   */
+  SO_DECISION_KIND_CHECKPOINT = 2,
+}
+
+export const SODecisionKind_Enum = /* @__PURE__ */ createEnumType(
+  'sobject.SODecisionKind',
+  SODecisionKind,
+)
+
+/**
+ * SOControlMessageType is the step of a group decision a message takes.
+ *
+ * @generated from enum sobject.SOControlMessageType
+ */
+export enum SOControlMessageType {
+  /**
+   * SO_CONTROL_MESSAGE_TYPE_UNKNOWN is the zero value.
+   *
+   * @generated from enum value: SO_CONTROL_MESSAGE_TYPE_UNKNOWN = 0;
+   */
+  SO_CONTROL_MESSAGE_TYPE_UNKNOWN = 0,
+
+  /**
+   * SO_CONTROL_MESSAGE_TYPE_AGREE records that a voter agrees to a change.
+   * It carries the value; height and round are zero. A control record is
+   * agreed with its sealed_checkpoint cleared, which the proposer fills in.
+   *
+   * @generated from enum value: SO_CONTROL_MESSAGE_TYPE_AGREE = 1;
+   */
+  SO_CONTROL_MESSAGE_TYPE_AGREE = 1,
+
+  /**
+   * SO_CONTROL_MESSAGE_TYPE_PROPOSAL proposes the value of one round. Only
+   * the round's proposer sends it.
+   *
+   * @generated from enum value: SO_CONTROL_MESSAGE_TYPE_PROPOSAL = 2;
+   */
+  SO_CONTROL_MESSAGE_TYPE_PROPOSAL = 2,
+
+  /**
+   * SO_CONTROL_MESSAGE_TYPE_PREVOTE is the first vote of a round.
+   *
+   * @generated from enum value: SO_CONTROL_MESSAGE_TYPE_PREVOTE = 3;
+   */
+  SO_CONTROL_MESSAGE_TYPE_PREVOTE = 3,
+
+  /**
+   * SO_CONTROL_MESSAGE_TYPE_PRECOMMIT is the second vote of a round. A
+   * non-nil precommit locks its signer on the value.
+   *
+   * @generated from enum value: SO_CONTROL_MESSAGE_TYPE_PRECOMMIT = 4;
+   */
+  SO_CONTROL_MESSAGE_TYPE_PRECOMMIT = 4,
+}
+
+export const SOControlMessageType_Enum = /* @__PURE__ */ createEnumType(
+  'sobject.SOControlMessageType',
+  SOControlMessageType,
 )
 
 /**
@@ -786,6 +905,13 @@ export interface SOParticipantConfig {
    * @generated from field: string username = 4;
    */
   username?: string
+  /**
+   * VotingWeight is this device's vote under group control. Zero does not
+   * vote. Only writers and owners vote.
+   *
+   * @generated from field: uint32 voting_weight = 5;
+   */
+  votingWeight?: number
 }
 
 export const SOParticipantConfig: MessageType<SOParticipantConfig> =
@@ -796,6 +922,7 @@ export const SOParticipantConfig: MessageType<SOParticipantConfig> =
       { no: 2, name: 'role', kind: 'enum', T: SOParticipantRole_Enum },
       { no: 3, name: 'entity_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 4, name: 'username', kind: 'scalar', T: ScalarType.STRING },
+      { no: 5, name: 'voting_weight', kind: 'scalar', T: ScalarType.UINT32 },
     ] satisfies readonly PartialFieldInfo[],
   })
 
@@ -899,6 +1026,35 @@ export const SOSequencer: MessageType<SOSequencer> =
   })
 
 /**
+ * SOCheckpointHead names one checkpoint.
+ *
+ * @generated from message sobject.SOCheckpointHead
+ */
+export interface SOCheckpointHead {
+  /**
+   * Height is the checkpoint height.
+   *
+   * @generated from field: uint64 height = 1;
+   */
+  height?: bigint
+  /**
+   * Hash is the checkpoint identity.
+   *
+   * @generated from field: bytes hash = 2;
+   */
+  hash?: Uint8Array
+}
+
+export const SOCheckpointHead: MessageType<SOCheckpointHead> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'sobject.SOCheckpointHead',
+    fields: [
+      { no: 1, name: 'height', kind: 'scalar', T: ScalarType.UINT64 },
+      { no: 2, name: 'hash', kind: 'scalar', T: ScalarType.BYTES },
+    ] satisfies readonly PartialFieldInfo[],
+  })
+
+/**
  * SharedObjectConfig configures the SharedObject.
  *
  * @generated from message sobject.SharedObjectConfig
@@ -949,6 +1105,22 @@ export interface SharedObjectConfig {
    * @generated from field: sobject.SOSequencer sequencer = 14;
    */
   sequencer?: SOSequencer
+  /**
+   * Control says who changes this config and signs checkpoints: an owner, or
+   * more than two thirds of the voting weight.
+   *
+   * @generated from field: sobject.SOControl control = 15;
+   */
+  control?: SOControl
+  /**
+   * SealedCheckpoint is the checkpoint the group held when it decided this
+   * config. The config vouches for it by hash, so it stays valid after the
+   * voters who committed it change. Required under group control; a change
+   * back to owner control keeps it.
+   *
+   * @generated from field: sobject.SOCheckpointHead sealed_checkpoint = 16;
+   */
+  sealedCheckpoint?: SOCheckpointHead
 }
 
 export const SharedObjectConfig: MessageType<SharedObjectConfig> =
@@ -989,6 +1161,13 @@ export const SharedObjectConfig: MessageType<SharedObjectConfig> =
         repeated: true,
       },
       { no: 14, name: 'sequencer', kind: 'message', T: SOSequencer },
+      { no: 15, name: 'control', kind: 'enum', T: SOControl_Enum },
+      {
+        no: 16,
+        name: 'sealed_checkpoint',
+        kind: 'message',
+        T: SOCheckpointHead,
+      },
     ] satisfies readonly PartialFieldInfo[],
   })
 
@@ -1165,6 +1344,35 @@ export const SORevocationInfo: MessageType<SORevocationInfo> =
   })
 
 /**
+ * SOControlMessage is one signed message of a group decision.
+ *
+ * @generated from message sobject.SOControlMessage
+ */
+export interface SOControlMessage {
+  /**
+   * Inner is the encoded SOControlMessageInner.
+   *
+   * @generated from field: bytes inner = 1;
+   */
+  inner?: Uint8Array
+  /**
+   * Signature is the voter's signature of inner.
+   *
+   * @generated from field: peer.Signature signature = 2;
+   */
+  signature?: Signature
+}
+
+export const SOControlMessage: MessageType<SOControlMessage> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'sobject.SOControlMessage',
+    fields: [
+      { no: 1, name: 'inner', kind: 'scalar', T: ScalarType.BYTES },
+      { no: 2, name: 'signature', kind: 'message', T: () => Signature },
+    ] satisfies readonly PartialFieldInfo[],
+  })
+
+/**
  * SOConfigChange is a control record: one signed change in the config chain.
  * Its identity is the hash of the record with signatures cleared.
  *
@@ -1217,13 +1425,21 @@ export interface SOConfigChange {
    */
   sharedObjectId?: string
   /**
-   * Signatures sign the record with signatures cleared.
-   * Each signer is distinct and authorized by the parent config;
-   * genesis is signed by an owner of its own config.
+   * Signatures sign the record with signatures and commit cleared, under
+   * owner control. Each signer is distinct and authorized by the parent
+   * config; genesis is signed by an owner of its own config.
    *
    * @generated from field: repeated peer.Signature signatures = 11;
    */
   signatures?: Signature[]
+  /**
+   * Commit holds the precommits that decided the record under group control:
+   * one round, voters of the parent config, more than two thirds of its
+   * voting weight.
+   *
+   * @generated from field: repeated sobject.SOControlMessage commit = 12;
+   */
+  commit?: SOControlMessage[]
 }
 
 export const SOConfigChange: MessageType<SOConfigChange> =
@@ -1247,6 +1463,13 @@ export const SOConfigChange: MessageType<SOConfigChange> =
         name: 'signatures',
         kind: 'message',
         T: () => Signature,
+        repeated: true,
+      },
+      {
+        no: 12,
+        name: 'commit',
+        kind: 'message',
+        T: SOControlMessage,
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
@@ -1294,12 +1517,19 @@ export interface SOCheckpoint {
    */
   inner?: Uint8Array
   /**
-   * Signatures sign inner. One must be from an owner under the config named by
-   * inner.config_hash.
+   * Signatures sign inner under owner control. One must be from an owner
+   * under the held config.
    *
    * @generated from field: repeated peer.Signature signatures = 2;
    */
   signatures?: Signature[]
+  /**
+   * Commit holds the precommits that decided the checkpoint under group
+   * control, by voters of the config named by inner.config_hash.
+   *
+   * @generated from field: repeated sobject.SOControlMessage commit = 3;
+   */
+  commit?: SOControlMessage[]
 }
 
 export const SOCheckpoint: MessageType<SOCheckpoint> =
@@ -1314,6 +1544,105 @@ export const SOCheckpoint: MessageType<SOCheckpoint> =
         T: () => Signature,
         repeated: true,
       },
+      {
+        no: 3,
+        name: 'commit',
+        kind: 'message',
+        T: SOControlMessage,
+        repeated: true,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+  })
+
+/**
+ * SOControlMessageInner is the signed body of a group decision message. A
+ * decision is one instance, named by its height and the config whose voters
+ * decide it. It decides one value: the next control record, which seals the
+ * held checkpoint, or the next checkpoint. Either closes the instance, so the
+ * two never race under one config.
+ *
+ * @generated from message sobject.SOControlMessageInner
+ */
+export interface SOControlMessageInner {
+  /**
+   * SharedObjectId binds the message to one shared object.
+   *
+   * @generated from field: string shared_object_id = 1;
+   */
+  sharedObjectId?: string
+  /**
+   * PeerId is the voter that signed the message.
+   *
+   * @generated from field: string peer_id = 2;
+   */
+  peerId?: string
+  /**
+   * Kind is the kind of value the message carries. Unknown on a vote.
+   *
+   * @generated from field: sobject.SODecisionKind kind = 3;
+   */
+  kind?: SODecisionKind
+  /**
+   * Height is one more than the height of the checkpoint the decision
+   * follows. Zero on AGREE, which stands while the config does.
+   *
+   * @generated from field: uint64 height = 4;
+   */
+  height?: bigint
+  /**
+   * ConfigHash is the config chain hash of the config whose voters decide.
+   *
+   * @generated from field: bytes config_hash = 5;
+   */
+  configHash?: Uint8Array
+  /**
+   * Round counts from 1. Zero on AGREE.
+   *
+   * @generated from field: uint32 round = 6;
+   */
+  round?: number
+  /**
+   * Type is the step this message takes.
+   *
+   * @generated from field: sobject.SOControlMessageType type = 7;
+   */
+  type?: SOControlMessageType
+  /**
+   * ValueHash is the identity of the value. Empty on a nil vote.
+   *
+   * @generated from field: bytes value_hash = 8;
+   */
+  valueHash?: Uint8Array
+  /**
+   * ValidRound is the earlier round whose prevotes justify a re-proposed
+   * value. Zero when none. Only on PROPOSAL.
+   *
+   * @generated from field: uint32 valid_round = 9;
+   */
+  validRound?: number
+  /**
+   * Value is the encoded record: an SOConfigChange with signatures and
+   * commit cleared, or an SOCheckpointInner. Only on AGREE and PROPOSAL.
+   *
+   * @generated from field: bytes value = 10;
+   */
+  value?: Uint8Array
+}
+
+export const SOControlMessageInner: MessageType<SOControlMessageInner> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'sobject.SOControlMessageInner',
+    fields: [
+      { no: 1, name: 'shared_object_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 3, name: 'kind', kind: 'enum', T: SODecisionKind_Enum },
+      { no: 4, name: 'height', kind: 'scalar', T: ScalarType.UINT64 },
+      { no: 5, name: 'config_hash', kind: 'scalar', T: ScalarType.BYTES },
+      { no: 6, name: 'round', kind: 'scalar', T: ScalarType.UINT32 },
+      { no: 7, name: 'type', kind: 'enum', T: SOControlMessageType_Enum },
+      { no: 8, name: 'value_hash', kind: 'scalar', T: ScalarType.BYTES },
+      { no: 9, name: 'valid_round', kind: 'scalar', T: ScalarType.UINT32 },
+      { no: 10, name: 'value', kind: 'scalar', T: ScalarType.BYTES },
     ] satisfies readonly PartialFieldInfo[],
   })
 
@@ -2137,6 +2466,14 @@ export interface SOState {
    * @generated from field: repeated sobject.SOSequence sequence = 6;
    */
   sequence?: SOSequence[]
+  /**
+   * ControlMessages are the messages of the open group decisions under the
+   * current config, sorted by hash. A voter's own messages are its persisted
+   * locks.
+   *
+   * @generated from field: repeated sobject.SOControlMessage control_messages = 7;
+   */
+  controlMessages?: SOControlMessage[]
 }
 
 export const SOState: MessageType<SOState> = /* @__PURE__ */ createMessageType({
@@ -2154,6 +2491,13 @@ export const SOState: MessageType<SOState> = /* @__PURE__ */ createMessageType({
     { no: 4, name: 'ops', kind: 'message', T: SOOperation, repeated: true },
     { no: 5, name: 'invites', kind: 'message', T: SOInvite, repeated: true },
     { no: 6, name: 'sequence', kind: 'message', T: SOSequence, repeated: true },
+    {
+      no: 7,
+      name: 'control_messages',
+      kind: 'message',
+      T: SOControlMessage,
+      repeated: true,
+    },
   ] satisfies readonly PartialFieldInfo[],
 })
 

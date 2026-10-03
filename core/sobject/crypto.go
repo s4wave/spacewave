@@ -164,20 +164,22 @@ func (g *SOGrant) Verify(sharedObjectID string) (string, error) {
 	return signer.String(), nil
 }
 
-// ValidateSignature authenticates the grant and checks that an owner under
-// participants, or its reading recipient, signed it.
-func (g *SOGrant) ValidateSignature(sharedObjectID string, participants []*SOParticipantConfig) error {
+// ValidateSignature authenticates the grant and checks that an owner of cfg,
+// a voter under its group control, or the grant's reading recipient signed
+// it. Under group control any voter hands the key to a member the group
+// admitted.
+func (g *SOGrant) ValidateSignature(sharedObjectID string, cfg *SharedObjectConfig) error {
 	signer, err := g.Verify(sharedObjectID)
 	if err != nil {
 		return err
 	}
-	for _, p := range participants {
+	for _, p := range cfg.GetParticipants() {
 		if p.GetPeerId() != signer {
 			continue
 		}
-		if IsOwner(p.GetRole()) || (signer == g.GetPeerId() && CanReadState(p.GetRole())) {
+		if IsOwner(p.GetRole()) || cfg.VotingWeight(signer) != 0 || (signer == g.GetPeerId() && CanReadState(p.GetRole())) {
 			return nil
 		}
 	}
-	return errors.New("grant is not signed by an owner or its recipient")
+	return errors.New("grant is not signed by an owner, a voter or its recipient")
 }

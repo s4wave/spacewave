@@ -19,7 +19,8 @@ type RosterHost interface {
 // SetSORoster signs, as the owner of signer, one configuration change that
 // drops exactly the writers in dropped from the trimming roster. Peers that
 // cannot write are ignored. It reports false without a change when the roster
-// already drops them.
+// already drops them. Under group control signer, a voter, agrees to the
+// change and it returns ErrAwaitingGroup.
 func SetSORoster(ctx context.Context, host *SOHost, dropped []string, signer crypto.PrivKey) (bool, error) {
 	// Read the current config.
 	state, err := host.GetHostState(ctx)
@@ -42,11 +43,7 @@ func SetSORoster(ctx context.Context, host *SOHost, dropped []string, signer cry
 	// Sign and apply the change.
 	nextCfg := current.CloneVT()
 	nextCfg.RosterDroppedPeerIds = next
-	entry, err := BuildSOConfigChange(host.GetSharedObjectID(), current, nextCfg, SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_SET_ROSTER, signer, nil)
-	if err != nil {
-		return false, errors.Wrap(err, "build config change")
-	}
-	if err := host.ApplyConfigChange(ctx, entry, nil); err != nil {
+	if err := ChangeSOConfig(ctx, host, state, nextCfg, SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_SET_ROSTER, signer, nil, nil); err != nil {
 		return false, err
 	}
 	return true, nil
@@ -78,12 +75,13 @@ func RestoreRoster(ctx context.Context, so SharedObject, host RosterHost) error 
 			continue
 		}
 
-		// Only the checkpointer restores, against its own operations.
+		// Only the checkpointer restores, against its own operations. A group
+		// changes its roster only by decision.
 		cfg, err := snap.GetConfig(ctx)
 		if err != nil {
 			return err
 		}
-		if cfg.Checkpointer() != peerID || len(cfg.GetRosterDroppedPeerIds()) == 0 {
+		if cfg.IsGroupControl() || cfg.Checkpointer() != peerID || len(cfg.GetRosterDroppedPeerIds()) == 0 {
 			continue
 		}
 		set, err := snap.GetOperationSet(ctx)

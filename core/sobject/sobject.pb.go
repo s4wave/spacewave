@@ -260,6 +260,43 @@ func (x SOParticipantRole) String() string {
 	return strconv.Itoa(int(x))
 }
 
+// SOControl says who changes a config and signs checkpoints.
+type SOControl int32
+
+const (
+	// SO_CONTROL_OWNER lets any owner device sign alone.
+	SOControl_SO_CONTROL_OWNER SOControl = 0
+	// SO_CONTROL_GROUP needs a commit from voters holding more than two thirds
+	// of the voting weight. No participant decides alone, including owners.
+	SOControl_SO_CONTROL_GROUP SOControl = 1
+)
+
+// Enum value maps for SOControl.
+var (
+	SOControl_name = map[int32]string{
+		0: "SO_CONTROL_OWNER",
+		1: "SO_CONTROL_GROUP",
+	}
+	SOControl_value = map[string]int32{
+		"SO_CONTROL_OWNER": 0,
+		"SO_CONTROL_GROUP": 1,
+	}
+)
+
+func (x SOControl) Enum() *SOControl {
+	p := new(SOControl)
+	*p = x
+	return p
+}
+
+func (x SOControl) String() string {
+	name, valid := SOControl_name[int32(x)]
+	if valid {
+		return name
+	}
+	return strconv.Itoa(int(x))
+}
+
 // SOConfigChangeType describes the kind of mutation in a config chain entry.
 type SOConfigChangeType int32
 
@@ -289,6 +326,9 @@ const (
 	// SO_CONFIG_CHANGE_TYPE_SET_SEQUENCER chooses between Merge and One order,
 	// or moves One order to another sequencer.
 	SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_SET_SEQUENCER SOConfigChangeType = 10
+	// SO_CONFIG_CHANGE_TYPE_SET_CONTROL chooses owner or group control, or
+	// changes voting weights.
+	SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_SET_CONTROL SOConfigChangeType = 11
 )
 
 // Enum value maps for SOConfigChangeType.
@@ -305,6 +345,7 @@ var (
 		8:  "SO_CONFIG_CHANGE_TYPE_TRANSFER_OWNERSHIP",
 		9:  "SO_CONFIG_CHANGE_TYPE_SET_ROSTER",
 		10: "SO_CONFIG_CHANGE_TYPE_SET_SEQUENCER",
+		11: "SO_CONFIG_CHANGE_TYPE_SET_CONTROL",
 	}
 	SOConfigChangeType_value = map[string]int32{
 		"SO_CONFIG_CHANGE_TYPE_UNKNOWN":               0,
@@ -318,6 +359,7 @@ var (
 		"SO_CONFIG_CHANGE_TYPE_TRANSFER_OWNERSHIP":    8,
 		"SO_CONFIG_CHANGE_TYPE_SET_ROSTER":            9,
 		"SO_CONFIG_CHANGE_TYPE_SET_SEQUENCER":         10,
+		"SO_CONFIG_CHANGE_TYPE_SET_CONTROL":           11,
 	}
 )
 
@@ -377,6 +419,98 @@ func (x SORevocationReason) Enum() *SORevocationReason {
 
 func (x SORevocationReason) String() string {
 	name, valid := SORevocationReason_name[int32(x)]
+	if valid {
+		return name
+	}
+	return strconv.Itoa(int(x))
+}
+
+// SODecisionKind is the kind of record a group decision value is.
+type SODecisionKind int32
+
+const (
+	// SO_DECISION_KIND_UNKNOWN is the zero value, and the kind of a vote.
+	SODecisionKind_SO_DECISION_KIND_UNKNOWN SODecisionKind = 0
+	// SO_DECISION_KIND_CONFIG is a control record.
+	SODecisionKind_SO_DECISION_KIND_CONFIG SODecisionKind = 1
+	// SO_DECISION_KIND_CHECKPOINT is a checkpoint.
+	SODecisionKind_SO_DECISION_KIND_CHECKPOINT SODecisionKind = 2
+)
+
+// Enum value maps for SODecisionKind.
+var (
+	SODecisionKind_name = map[int32]string{
+		0: "SO_DECISION_KIND_UNKNOWN",
+		1: "SO_DECISION_KIND_CONFIG",
+		2: "SO_DECISION_KIND_CHECKPOINT",
+	}
+	SODecisionKind_value = map[string]int32{
+		"SO_DECISION_KIND_UNKNOWN":    0,
+		"SO_DECISION_KIND_CONFIG":     1,
+		"SO_DECISION_KIND_CHECKPOINT": 2,
+	}
+)
+
+func (x SODecisionKind) Enum() *SODecisionKind {
+	p := new(SODecisionKind)
+	*p = x
+	return p
+}
+
+func (x SODecisionKind) String() string {
+	name, valid := SODecisionKind_name[int32(x)]
+	if valid {
+		return name
+	}
+	return strconv.Itoa(int(x))
+}
+
+// SOControlMessageType is the step of a group decision a message takes.
+type SOControlMessageType int32
+
+const (
+	// SO_CONTROL_MESSAGE_TYPE_UNKNOWN is the zero value.
+	SOControlMessageType_SO_CONTROL_MESSAGE_TYPE_UNKNOWN SOControlMessageType = 0
+	// SO_CONTROL_MESSAGE_TYPE_AGREE records that a voter agrees to a change.
+	// It carries the value; height and round are zero. A control record is
+	// agreed with its sealed_checkpoint cleared, which the proposer fills in.
+	SOControlMessageType_SO_CONTROL_MESSAGE_TYPE_AGREE SOControlMessageType = 1
+	// SO_CONTROL_MESSAGE_TYPE_PROPOSAL proposes the value of one round. Only
+	// the round's proposer sends it.
+	SOControlMessageType_SO_CONTROL_MESSAGE_TYPE_PROPOSAL SOControlMessageType = 2
+	// SO_CONTROL_MESSAGE_TYPE_PREVOTE is the first vote of a round.
+	SOControlMessageType_SO_CONTROL_MESSAGE_TYPE_PREVOTE SOControlMessageType = 3
+	// SO_CONTROL_MESSAGE_TYPE_PRECOMMIT is the second vote of a round. A
+	// non-nil precommit locks its signer on the value.
+	SOControlMessageType_SO_CONTROL_MESSAGE_TYPE_PRECOMMIT SOControlMessageType = 4
+)
+
+// Enum value maps for SOControlMessageType.
+var (
+	SOControlMessageType_name = map[int32]string{
+		0: "SO_CONTROL_MESSAGE_TYPE_UNKNOWN",
+		1: "SO_CONTROL_MESSAGE_TYPE_AGREE",
+		2: "SO_CONTROL_MESSAGE_TYPE_PROPOSAL",
+		3: "SO_CONTROL_MESSAGE_TYPE_PREVOTE",
+		4: "SO_CONTROL_MESSAGE_TYPE_PRECOMMIT",
+	}
+	SOControlMessageType_value = map[string]int32{
+		"SO_CONTROL_MESSAGE_TYPE_UNKNOWN":   0,
+		"SO_CONTROL_MESSAGE_TYPE_AGREE":     1,
+		"SO_CONTROL_MESSAGE_TYPE_PROPOSAL":  2,
+		"SO_CONTROL_MESSAGE_TYPE_PREVOTE":   3,
+		"SO_CONTROL_MESSAGE_TYPE_PRECOMMIT": 4,
+	}
+)
+
+func (x SOControlMessageType) Enum() *SOControlMessageType {
+	p := new(SOControlMessageType)
+	*p = x
+	return p
+}
+
+func (x SOControlMessageType) String() string {
+	name, valid := SOControlMessageType_name[int32(x)]
 	if valid {
 		return name
 	}
@@ -728,6 +862,14 @@ type SharedObjectConfig struct {
 	// Sequencer places operations in One order. An unset sequencer or an empty
 	// peer ID is Merge.
 	Sequencer *SOSequencer `protobuf:"bytes,14,opt,name=sequencer,proto3" json:"sequencer,omitempty"`
+	// Control says who changes this config and signs checkpoints: an owner, or
+	// more than two thirds of the voting weight.
+	Control SOControl `protobuf:"varint,15,opt,name=control,proto3" json:"control,omitempty"`
+	// SealedCheckpoint is the checkpoint the group held when it decided this
+	// config. The config vouches for it by hash, so it stays valid after the
+	// voters who committed it change. Required under group control; a change
+	// back to owner control keeps it.
+	SealedCheckpoint *SOCheckpointHead `protobuf:"bytes,16,opt,name=sealed_checkpoint,json=sealedCheckpoint,proto3" json:"sealedCheckpoint,omitempty"`
 }
 
 func (x *SharedObjectConfig) Reset() {
@@ -774,6 +916,49 @@ func (x *SharedObjectConfig) GetRosterDroppedPeerIds() []string {
 func (x *SharedObjectConfig) GetSequencer() *SOSequencer {
 	if x != nil {
 		return x.Sequencer
+	}
+	return nil
+}
+
+func (x *SharedObjectConfig) GetControl() SOControl {
+	if x != nil {
+		return x.Control
+	}
+	return SOControl_SO_CONTROL_OWNER
+}
+
+func (x *SharedObjectConfig) GetSealedCheckpoint() *SOCheckpointHead {
+	if x != nil {
+		return x.SealedCheckpoint
+	}
+	return nil
+}
+
+// SOCheckpointHead names one checkpoint.
+type SOCheckpointHead struct {
+	unknownFields []byte
+	// Height is the checkpoint height.
+	Height uint64 `protobuf:"varint,1,opt,name=height,proto3" json:"height,omitempty"`
+	// Hash is the checkpoint identity.
+	Hash []byte `protobuf:"bytes,2,opt,name=hash,proto3" json:"hash,omitempty"`
+}
+
+func (x *SOCheckpointHead) Reset() {
+	*x = SOCheckpointHead{}
+}
+
+func (*SOCheckpointHead) ProtoMessage() {}
+
+func (x *SOCheckpointHead) GetHeight() uint64 {
+	if x != nil {
+		return x.Height
+	}
+	return 0
+}
+
+func (x *SOCheckpointHead) GetHash() []byte {
+	if x != nil {
+		return x.Hash
 	}
 	return nil
 }
@@ -1055,10 +1240,14 @@ type SOConfigChange struct {
 	LeaveRequest *SOLeaveRequest `protobuf:"bytes,9,opt,name=leave_request,json=leaveRequest,proto3" json:"leaveRequest,omitempty"`
 	// SharedObjectId binds the record to one shared object.
 	SharedObjectId string `protobuf:"bytes,10,opt,name=shared_object_id,json=sharedObjectId,proto3" json:"sharedObjectId,omitempty"`
-	// Signatures sign the record with signatures cleared.
-	// Each signer is distinct and authorized by the parent config;
-	// genesis is signed by an owner of its own config.
+	// Signatures sign the record with signatures and commit cleared, under
+	// owner control. Each signer is distinct and authorized by the parent
+	// config; genesis is signed by an owner of its own config.
 	Signatures []*peer.Signature `protobuf:"bytes,11,rep,name=signatures,proto3" json:"signatures,omitempty"`
+	// Commit holds the precommits that decided the record under group control:
+	// one round, voters of the parent config, more than two thirds of its
+	// voting weight.
+	Commit []*SOControlMessage `protobuf:"bytes,12,rep,name=commit,proto3" json:"commit,omitempty"`
 }
 
 func (x *SOConfigChange) Reset() {
@@ -1123,6 +1312,13 @@ func (x *SOConfigChange) GetSignatures() []*peer.Signature {
 	return nil
 }
 
+func (x *SOConfigChange) GetCommit() []*SOControlMessage {
+	if x != nil {
+		return x.Commit
+	}
+	return nil
+}
+
 // SOParticipantConfig contains a listing of an entity associated with a shared object.
 // Each entity may only appear one time in the list.
 type SOParticipantConfig struct {
@@ -1142,6 +1338,9 @@ type SOParticipantConfig struct {
 	// who added the participant. A self-enrolled peer repeats the username
 	// already recorded for its entity. Empty when entity_id is empty.
 	Username string `protobuf:"bytes,4,opt,name=username,proto3" json:"username,omitempty"`
+	// VotingWeight is this device's vote under group control. Zero does not
+	// vote. Only writers and owners vote.
+	VotingWeight uint32 `protobuf:"varint,5,opt,name=voting_weight,json=votingWeight,proto3" json:"votingWeight,omitempty"`
 }
 
 func (x *SOParticipantConfig) Reset() {
@@ -1178,15 +1377,25 @@ func (x *SOParticipantConfig) GetUsername() string {
 	return ""
 }
 
+func (x *SOParticipantConfig) GetVotingWeight() uint32 {
+	if x != nil {
+		return x.VotingWeight
+	}
+	return 0
+}
+
 // SOCheckpoint is a signed checkpoint: the World at a point of the operation
 // order, from which members replay the operations after it.
 type SOCheckpoint struct {
 	unknownFields []byte
 	// Inner is the encoded SOCheckpointInner.
 	Inner []byte `protobuf:"bytes,1,opt,name=inner,proto3" json:"inner,omitempty"`
-	// Signatures sign inner. One must be from an owner under the config named by
-	// inner.config_hash.
+	// Signatures sign inner under owner control. One must be from an owner
+	// under the held config.
 	Signatures []*peer.Signature `protobuf:"bytes,2,rep,name=signatures,proto3" json:"signatures,omitempty"`
+	// Commit holds the precommits that decided the checkpoint under group
+	// control, by voters of the config named by inner.config_hash.
+	Commit []*SOControlMessage `protobuf:"bytes,3,rep,name=commit,proto3" json:"commit,omitempty"`
 }
 
 func (x *SOCheckpoint) Reset() {
@@ -1205,6 +1414,150 @@ func (x *SOCheckpoint) GetInner() []byte {
 func (x *SOCheckpoint) GetSignatures() []*peer.Signature {
 	if x != nil {
 		return x.Signatures
+	}
+	return nil
+}
+
+func (x *SOCheckpoint) GetCommit() []*SOControlMessage {
+	if x != nil {
+		return x.Commit
+	}
+	return nil
+}
+
+// SOControlMessage is one signed message of a group decision.
+type SOControlMessage struct {
+	unknownFields []byte
+	// Inner is the encoded SOControlMessageInner.
+	Inner []byte `protobuf:"bytes,1,opt,name=inner,proto3" json:"inner,omitempty"`
+	// Signature is the voter's signature of inner.
+	Signature *peer.Signature `protobuf:"bytes,2,opt,name=signature,proto3" json:"signature,omitempty"`
+}
+
+func (x *SOControlMessage) Reset() {
+	*x = SOControlMessage{}
+}
+
+func (*SOControlMessage) ProtoMessage() {}
+
+func (x *SOControlMessage) GetInner() []byte {
+	if x != nil {
+		return x.Inner
+	}
+	return nil
+}
+
+func (x *SOControlMessage) GetSignature() *peer.Signature {
+	if x != nil {
+		return x.Signature
+	}
+	return nil
+}
+
+// SOControlMessageInner is the signed body of a group decision message. A
+// decision is one instance, named by its height and the config whose voters
+// decide it. It decides one value: the next control record, which seals the
+// held checkpoint, or the next checkpoint. Either closes the instance, so the
+// two never race under one config.
+type SOControlMessageInner struct {
+	unknownFields []byte
+	// SharedObjectId binds the message to one shared object.
+	SharedObjectId string `protobuf:"bytes,1,opt,name=shared_object_id,json=sharedObjectId,proto3" json:"sharedObjectId,omitempty"`
+	// PeerId is the voter that signed the message.
+	PeerId string `protobuf:"bytes,2,opt,name=peer_id,json=peerId,proto3" json:"peerId,omitempty"`
+	// Kind is the kind of value the message carries. Unknown on a vote.
+	Kind SODecisionKind `protobuf:"varint,3,opt,name=kind,proto3" json:"kind,omitempty"`
+	// Height is one more than the height of the checkpoint the decision
+	// follows. Zero on AGREE, which stands while the config does.
+	Height uint64 `protobuf:"varint,4,opt,name=height,proto3" json:"height,omitempty"`
+	// ConfigHash is the config chain hash of the config whose voters decide.
+	ConfigHash []byte `protobuf:"bytes,5,opt,name=config_hash,json=configHash,proto3" json:"configHash,omitempty"`
+	// Round counts from 1. Zero on AGREE.
+	Round uint32 `protobuf:"varint,6,opt,name=round,proto3" json:"round,omitempty"`
+	// Type is the step this message takes.
+	Type SOControlMessageType `protobuf:"varint,7,opt,name=type,proto3" json:"type,omitempty"`
+	// ValueHash is the identity of the value. Empty on a nil vote.
+	ValueHash []byte `protobuf:"bytes,8,opt,name=value_hash,json=valueHash,proto3" json:"valueHash,omitempty"`
+	// ValidRound is the earlier round whose prevotes justify a re-proposed
+	// value. Zero when none. Only on PROPOSAL.
+	ValidRound uint32 `protobuf:"varint,9,opt,name=valid_round,json=validRound,proto3" json:"validRound,omitempty"`
+	// Value is the encoded record: an SOConfigChange with signatures and
+	// commit cleared, or an SOCheckpointInner. Only on AGREE and PROPOSAL.
+	Value []byte `protobuf:"bytes,10,opt,name=value,proto3" json:"value,omitempty"`
+}
+
+func (x *SOControlMessageInner) Reset() {
+	*x = SOControlMessageInner{}
+}
+
+func (*SOControlMessageInner) ProtoMessage() {}
+
+func (x *SOControlMessageInner) GetSharedObjectId() string {
+	if x != nil {
+		return x.SharedObjectId
+	}
+	return ""
+}
+
+func (x *SOControlMessageInner) GetPeerId() string {
+	if x != nil {
+		return x.PeerId
+	}
+	return ""
+}
+
+func (x *SOControlMessageInner) GetKind() SODecisionKind {
+	if x != nil {
+		return x.Kind
+	}
+	return SODecisionKind_SO_DECISION_KIND_UNKNOWN
+}
+
+func (x *SOControlMessageInner) GetHeight() uint64 {
+	if x != nil {
+		return x.Height
+	}
+	return 0
+}
+
+func (x *SOControlMessageInner) GetConfigHash() []byte {
+	if x != nil {
+		return x.ConfigHash
+	}
+	return nil
+}
+
+func (x *SOControlMessageInner) GetRound() uint32 {
+	if x != nil {
+		return x.Round
+	}
+	return 0
+}
+
+func (x *SOControlMessageInner) GetType() SOControlMessageType {
+	if x != nil {
+		return x.Type
+	}
+	return SOControlMessageType_SO_CONTROL_MESSAGE_TYPE_UNKNOWN
+}
+
+func (x *SOControlMessageInner) GetValueHash() []byte {
+	if x != nil {
+		return x.ValueHash
+	}
+	return nil
+}
+
+func (x *SOControlMessageInner) GetValidRound() uint32 {
+	if x != nil {
+		return x.ValidRound
+	}
+	return 0
+}
+
+func (x *SOControlMessageInner) GetValue() []byte {
+	if x != nil {
+		return x.Value
 	}
 	return nil
 }
@@ -1970,6 +2323,10 @@ type SOState struct {
 	// Sequence are the positions above the checkpoint, sorted by height, then
 	// by hash.
 	Sequence []*SOSequence `protobuf:"bytes,6,rep,name=sequence,proto3" json:"sequence,omitempty"`
+	// ControlMessages are the messages of the open group decisions under the
+	// current config, sorted by hash. A voter's own messages are its persisted
+	// locks.
+	ControlMessages []*SOControlMessage `protobuf:"bytes,7,rep,name=control_messages,json=controlMessages,proto3" json:"controlMessages,omitempty"`
 }
 
 func (x *SOState) Reset() {
@@ -2016,6 +2373,13 @@ func (x *SOState) GetInvites() []*SOInvite {
 func (x *SOState) GetSequence() []*SOSequence {
 	if x != nil {
 		return x.Sequence
+	}
+	return nil
+}
+
+func (x *SOState) GetControlMessages() []*SOControlMessage {
+	if x != nil {
+		return x.ControlMessages
 	}
 	return nil
 }
@@ -2379,11 +2743,13 @@ func (m *SharedObjectConfig) CloneVT() *SharedObjectConfig {
 	}
 	r := new(SharedObjectConfig)
 	r.ConfigChainSeqno = m.ConfigChainSeqno
+	r.Control = m.Control
 	r.Participants = protobuf_go_lite.CloneVTSlice(m.Participants)
 	r.ConfigChainHash = protobuf_go_lite.CloneBytes(m.ConfigChainHash)
 	r.RemovedAuthors = protobuf_go_lite.CloneVTSlice(m.RemovedAuthors)
 	r.RosterDroppedPeerIds = protobuf_go_lite.CloneSlice(m.RosterDroppedPeerIds)
 	r.Sequencer = protobuf_go_lite.CloneVTValue(m.Sequencer)
+	r.SealedCheckpoint = protobuf_go_lite.CloneVTValue(m.SealedCheckpoint)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -2391,6 +2757,23 @@ func (m *SharedObjectConfig) CloneVT() *SharedObjectConfig {
 }
 
 func (m *SharedObjectConfig) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *SOCheckpointHead) CloneVT() *SOCheckpointHead {
+	if m == nil {
+		return (*SOCheckpointHead)(nil)
+	}
+	r := new(SOCheckpointHead)
+	r.Height = m.Height
+	r.Hash = protobuf_go_lite.CloneBytes(m.Hash)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *SOCheckpointHead) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -2531,6 +2914,7 @@ func (m *SOConfigChange) CloneVT() *SOConfigChange {
 	r.RevocationInfo = protobuf_go_lite.CloneVTValue(m.RevocationInfo)
 	r.LeaveRequest = protobuf_go_lite.CloneVTValue(m.LeaveRequest)
 	r.Signatures = protobuf_go_lite.CloneVTSlice(m.Signatures)
+	r.Commit = protobuf_go_lite.CloneVTSlice(m.Commit)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -2550,6 +2934,7 @@ func (m *SOParticipantConfig) CloneVT() *SOParticipantConfig {
 	r.Role = m.Role
 	r.EntityId = m.EntityId
 	r.Username = m.Username
+	r.VotingWeight = m.VotingWeight
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -2567,6 +2952,7 @@ func (m *SOCheckpoint) CloneVT() *SOCheckpoint {
 	r := new(SOCheckpoint)
 	r.Inner = protobuf_go_lite.CloneBytes(m.Inner)
 	r.Signatures = protobuf_go_lite.CloneVTSlice(m.Signatures)
+	r.Commit = protobuf_go_lite.CloneVTSlice(m.Commit)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -2574,6 +2960,48 @@ func (m *SOCheckpoint) CloneVT() *SOCheckpoint {
 }
 
 func (m *SOCheckpoint) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *SOControlMessage) CloneVT() *SOControlMessage {
+	if m == nil {
+		return (*SOControlMessage)(nil)
+	}
+	r := new(SOControlMessage)
+	r.Inner = protobuf_go_lite.CloneBytes(m.Inner)
+	r.Signature = protobuf_go_lite.CloneVTValue(m.Signature)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *SOControlMessage) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *SOControlMessageInner) CloneVT() *SOControlMessageInner {
+	if m == nil {
+		return (*SOControlMessageInner)(nil)
+	}
+	r := new(SOControlMessageInner)
+	r.SharedObjectId = m.SharedObjectId
+	r.PeerId = m.PeerId
+	r.Kind = m.Kind
+	r.Height = m.Height
+	r.Round = m.Round
+	r.Type = m.Type
+	r.ValidRound = m.ValidRound
+	r.ConfigHash = protobuf_go_lite.CloneBytes(m.ConfigHash)
+	r.ValueHash = protobuf_go_lite.CloneBytes(m.ValueHash)
+	r.Value = protobuf_go_lite.CloneBytes(m.Value)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *SOControlMessageInner) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -2900,6 +3328,7 @@ func (m *SOState) CloneVT() *SOState {
 	r.Ops = protobuf_go_lite.CloneVTSlice(m.Ops)
 	r.Invites = protobuf_go_lite.CloneVTSlice(m.Invites)
 	r.Sequence = protobuf_go_lite.CloneVTSlice(m.Sequence)
+	r.ControlMessages = protobuf_go_lite.CloneVTSlice(m.ControlMessages)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -3207,11 +3636,40 @@ func (this *SharedObjectConfig) EqualVT(that *SharedObjectConfig) bool {
 	if !protobuf_go_lite.IsEqualVT(this.Sequencer, that.Sequencer) {
 		return false
 	}
+	if this.Control != that.Control {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.SealedCheckpoint, that.SealedCheckpoint) {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
 func (this *SharedObjectConfig) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*SharedObjectConfig)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *SOCheckpointHead) EqualVT(that *SOCheckpointHead) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Height != that.Height {
+		return false
+	}
+	if !protobuf_go_lite.EqualBytes(this.Hash, that.Hash) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *SOCheckpointHead) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*SOCheckpointHead)
 	if !ok {
 		return false
 	}
@@ -3424,6 +3882,9 @@ func (this *SOConfigChange) EqualVT(that *SOConfigChange) bool {
 	if !protobuf_go_lite.EqualVTSliceImplicit(this.Signatures, that.Signatures, func() *peer.Signature { return &peer.Signature{} }) {
 		return false
 	}
+	if !protobuf_go_lite.EqualVTSliceImplicit(this.Commit, that.Commit, func() *SOControlMessage { return &SOControlMessage{} }) {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -3453,6 +3914,9 @@ func (this *SOParticipantConfig) EqualVT(that *SOParticipantConfig) bool {
 	if this.Username != that.Username {
 		return false
 	}
+	if this.VotingWeight != that.VotingWeight {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -3476,11 +3940,84 @@ func (this *SOCheckpoint) EqualVT(that *SOCheckpoint) bool {
 	if !protobuf_go_lite.EqualVTSliceImplicit(this.Signatures, that.Signatures, func() *peer.Signature { return &peer.Signature{} }) {
 		return false
 	}
+	if !protobuf_go_lite.EqualVTSliceImplicit(this.Commit, that.Commit, func() *SOControlMessage { return &SOControlMessage{} }) {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
 func (this *SOCheckpoint) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*SOCheckpoint)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *SOControlMessage) EqualVT(that *SOControlMessage) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualBytes(this.Inner, that.Inner) {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.Signature, that.Signature) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *SOControlMessage) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*SOControlMessage)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *SOControlMessageInner) EqualVT(that *SOControlMessageInner) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.SharedObjectId != that.SharedObjectId {
+		return false
+	}
+	if this.PeerId != that.PeerId {
+		return false
+	}
+	if this.Kind != that.Kind {
+		return false
+	}
+	if this.Height != that.Height {
+		return false
+	}
+	if !protobuf_go_lite.EqualBytes(this.ConfigHash, that.ConfigHash) {
+		return false
+	}
+	if this.Round != that.Round {
+		return false
+	}
+	if this.Type != that.Type {
+		return false
+	}
+	if !protobuf_go_lite.EqualBytes(this.ValueHash, that.ValueHash) {
+		return false
+	}
+	if this.ValidRound != that.ValidRound {
+		return false
+	}
+	if !protobuf_go_lite.EqualBytes(this.Value, that.Value) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *SOControlMessageInner) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*SOControlMessageInner)
 	if !ok {
 		return false
 	}
@@ -3980,6 +4517,9 @@ func (this *SOState) EqualVT(that *SOState) bool {
 	if !protobuf_go_lite.EqualVTSliceImplicit(this.Sequence, that.Sequence, func() *SOSequence { return &SOSequence{} }) {
 		return false
 	}
+	if !protobuf_go_lite.EqualVTSliceImplicit(this.ControlMessages, that.ControlMessages, func() *SOControlMessage { return &SOControlMessage{} }) {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -4316,6 +4856,46 @@ func (x *SOParticipantRole) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
+// MarshalProtoJSON marshals the SOControl to JSON.
+func (x SOControl) MarshalProtoJSON(s *json.MarshalState) {
+	s.WriteEnum(int32(x), SOControl_name)
+}
+
+// MarshalText marshals the SOControl to text.
+func (x SOControl) MarshalText() ([]byte, error) {
+	return []byte(json.GetEnumString(int32(x), SOControl_name)), nil
+}
+
+// MarshalJSON marshals the SOControl to JSON.
+func (x SOControl) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the SOControl from JSON.
+func (x *SOControl) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	v := s.ReadEnum(SOControl_value)
+	if err := s.Err(); err != nil {
+		s.SetErrorf("could not read SOControl enum: %v", err)
+		return
+	}
+	*x = SOControl(v)
+}
+
+// UnmarshalText unmarshals the SOControl from text.
+func (x *SOControl) UnmarshalText(b []byte) error {
+	i, err := json.ParseEnumString(string(b), SOControl_value)
+	if err != nil {
+		return err
+	}
+	*x = SOControl(i)
+	return nil
+}
+
+// UnmarshalJSON unmarshals the SOControl from JSON.
+func (x *SOControl) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
 // MarshalProtoJSON marshals the SOConfigChangeType to JSON.
 func (x SOConfigChangeType) MarshalProtoJSON(s *json.MarshalState) {
 	s.WriteEnum(int32(x), SOConfigChangeType_name)
@@ -4393,6 +4973,86 @@ func (x *SORevocationReason) UnmarshalText(b []byte) error {
 
 // UnmarshalJSON unmarshals the SORevocationReason from JSON.
 func (x *SORevocationReason) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the SODecisionKind to JSON.
+func (x SODecisionKind) MarshalProtoJSON(s *json.MarshalState) {
+	s.WriteEnum(int32(x), SODecisionKind_name)
+}
+
+// MarshalText marshals the SODecisionKind to text.
+func (x SODecisionKind) MarshalText() ([]byte, error) {
+	return []byte(json.GetEnumString(int32(x), SODecisionKind_name)), nil
+}
+
+// MarshalJSON marshals the SODecisionKind to JSON.
+func (x SODecisionKind) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the SODecisionKind from JSON.
+func (x *SODecisionKind) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	v := s.ReadEnum(SODecisionKind_value)
+	if err := s.Err(); err != nil {
+		s.SetErrorf("could not read SODecisionKind enum: %v", err)
+		return
+	}
+	*x = SODecisionKind(v)
+}
+
+// UnmarshalText unmarshals the SODecisionKind from text.
+func (x *SODecisionKind) UnmarshalText(b []byte) error {
+	i, err := json.ParseEnumString(string(b), SODecisionKind_value)
+	if err != nil {
+		return err
+	}
+	*x = SODecisionKind(i)
+	return nil
+}
+
+// UnmarshalJSON unmarshals the SODecisionKind from JSON.
+func (x *SODecisionKind) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the SOControlMessageType to JSON.
+func (x SOControlMessageType) MarshalProtoJSON(s *json.MarshalState) {
+	s.WriteEnum(int32(x), SOControlMessageType_name)
+}
+
+// MarshalText marshals the SOControlMessageType to text.
+func (x SOControlMessageType) MarshalText() ([]byte, error) {
+	return []byte(json.GetEnumString(int32(x), SOControlMessageType_name)), nil
+}
+
+// MarshalJSON marshals the SOControlMessageType to JSON.
+func (x SOControlMessageType) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the SOControlMessageType from JSON.
+func (x *SOControlMessageType) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	v := s.ReadEnum(SOControlMessageType_value)
+	if err := s.Err(); err != nil {
+		s.SetErrorf("could not read SOControlMessageType enum: %v", err)
+		return
+	}
+	*x = SOControlMessageType(v)
+}
+
+// UnmarshalText unmarshals the SOControlMessageType from text.
+func (x *SOControlMessageType) UnmarshalText(b []byte) error {
+	i, err := json.ParseEnumString(string(b), SOControlMessageType_value)
+	if err != nil {
+		return err
+	}
+	*x = SOControlMessageType(i)
+	return nil
+}
+
+// UnmarshalJSON unmarshals the SOControlMessageType from JSON.
+func (x *SOControlMessageType) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -4954,6 +5614,16 @@ func (x *SharedObjectConfig) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("sequencer")
 		x.Sequencer.MarshalProtoJSON(s.WithField("sequencer"))
 	}
+	if x.Control != 0 || s.HasField("control") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("control")
+		x.Control.MarshalProtoJSON(s)
+	}
+	if x.SealedCheckpoint != nil || s.HasField("sealedCheckpoint") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("sealedCheckpoint")
+		x.SealedCheckpoint.MarshalProtoJSON(s.WithField("sealedCheckpoint"))
+	}
 	s.WriteObjectEnd()
 }
 
@@ -5027,12 +5697,72 @@ func (x *SharedObjectConfig) UnmarshalProtoJSON(s *json.UnmarshalState) {
 			}
 			x.Sequencer = &SOSequencer{}
 			x.Sequencer.UnmarshalProtoJSON(s.WithField("sequencer", true))
+		case "control":
+			s.AddField("control")
+			x.Control.UnmarshalProtoJSON(s)
+		case "sealed_checkpoint", "sealedCheckpoint":
+			if s.ReadNil() {
+				x.SealedCheckpoint = nil
+				return
+			}
+			x.SealedCheckpoint = &SOCheckpointHead{}
+			x.SealedCheckpoint.UnmarshalProtoJSON(s.WithField("sealed_checkpoint", true))
 		}
 	})
 }
 
 // UnmarshalJSON unmarshals the SharedObjectConfig from JSON.
 func (x *SharedObjectConfig) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the SOCheckpointHead message to JSON.
+func (x *SOCheckpointHead) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Height != 0 || s.HasField("height") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("height")
+		s.WriteUint64(x.Height)
+	}
+	if len(x.Hash) > 0 || s.HasField("hash") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("hash")
+		s.WriteBytes(x.Hash)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the SOCheckpointHead to JSON.
+func (x *SOCheckpointHead) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the SOCheckpointHead message from JSON.
+func (x *SOCheckpointHead) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "height":
+			s.AddField("height")
+			x.Height = s.ReadUint64()
+		case "hash":
+			s.AddField("hash")
+			x.Hash = s.ReadBytes()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the SOCheckpointHead from JSON.
+func (x *SOCheckpointHead) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -5538,6 +6268,17 @@ func (x *SOConfigChange) MarshalProtoJSON(s *json.MarshalState) {
 		}
 		s.WriteArrayEnd()
 	}
+	if len(x.Commit) > 0 || s.HasField("commit") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("commit")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.Commit {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("commit"))
+		}
+		s.WriteArrayEnd()
+	}
 	s.WriteObjectEnd()
 }
 
@@ -5606,6 +6347,24 @@ func (x *SOConfigChange) UnmarshalProtoJSON(s *json.UnmarshalState) {
 				}
 				x.Signatures = append(x.Signatures, v)
 			})
+		case "commit":
+			s.AddField("commit")
+			if s.ReadNil() {
+				x.Commit = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.Commit = append(x.Commit, nil)
+					return
+				}
+				v := &SOControlMessage{}
+				v.UnmarshalProtoJSON(s.WithField("commit", false))
+				if s.Err() != nil {
+					return
+				}
+				x.Commit = append(x.Commit, v)
+			})
 		}
 	})
 }
@@ -5643,6 +6402,11 @@ func (x *SOParticipantConfig) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("username")
 		s.WriteString(x.Username)
 	}
+	if x.VotingWeight != 0 || s.HasField("votingWeight") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("votingWeight")
+		s.WriteUint32(x.VotingWeight)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -5672,6 +6436,9 @@ func (x *SOParticipantConfig) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "username":
 			s.AddField("username")
 			x.Username = s.ReadString()
+		case "voting_weight", "votingWeight":
+			s.AddField("voting_weight")
+			x.VotingWeight = s.ReadUint32()
 		}
 	})
 }
@@ -5702,6 +6469,17 @@ func (x *SOCheckpoint) MarshalProtoJSON(s *json.MarshalState) {
 		for _, element := range x.Signatures {
 			s.WriteMoreIf(&wroteElement)
 			element.MarshalProtoJSON(s.WithField("signatures"))
+		}
+		s.WriteArrayEnd()
+	}
+	if len(x.Commit) > 0 || s.HasField("commit") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("commit")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.Commit {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("commit"))
 		}
 		s.WriteArrayEnd()
 	}
@@ -5743,12 +6521,198 @@ func (x *SOCheckpoint) UnmarshalProtoJSON(s *json.UnmarshalState) {
 				}
 				x.Signatures = append(x.Signatures, v)
 			})
+		case "commit":
+			s.AddField("commit")
+			if s.ReadNil() {
+				x.Commit = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.Commit = append(x.Commit, nil)
+					return
+				}
+				v := &SOControlMessage{}
+				v.UnmarshalProtoJSON(s.WithField("commit", false))
+				if s.Err() != nil {
+					return
+				}
+				x.Commit = append(x.Commit, v)
+			})
 		}
 	})
 }
 
 // UnmarshalJSON unmarshals the SOCheckpoint from JSON.
 func (x *SOCheckpoint) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the SOControlMessage message to JSON.
+func (x *SOControlMessage) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if len(x.Inner) > 0 || s.HasField("inner") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("inner")
+		s.WriteBytes(x.Inner)
+	}
+	if x.Signature != nil || s.HasField("signature") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("signature")
+		x.Signature.MarshalProtoJSON(s.WithField("signature"))
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the SOControlMessage to JSON.
+func (x *SOControlMessage) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the SOControlMessage message from JSON.
+func (x *SOControlMessage) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "inner":
+			s.AddField("inner")
+			x.Inner = s.ReadBytes()
+		case "signature":
+			if s.ReadNil() {
+				x.Signature = nil
+				return
+			}
+			x.Signature = &peer.Signature{}
+			x.Signature.UnmarshalProtoJSON(s.WithField("signature", true))
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the SOControlMessage from JSON.
+func (x *SOControlMessage) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the SOControlMessageInner message to JSON.
+func (x *SOControlMessageInner) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.SharedObjectId != "" || s.HasField("sharedObjectId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("sharedObjectId")
+		s.WriteString(x.SharedObjectId)
+	}
+	if x.PeerId != "" || s.HasField("peerId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("peerId")
+		s.WriteString(x.PeerId)
+	}
+	if x.Kind != 0 || s.HasField("kind") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("kind")
+		x.Kind.MarshalProtoJSON(s)
+	}
+	if x.Height != 0 || s.HasField("height") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("height")
+		s.WriteUint64(x.Height)
+	}
+	if len(x.ConfigHash) > 0 || s.HasField("configHash") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("configHash")
+		s.WriteBytes(x.ConfigHash)
+	}
+	if x.Round != 0 || s.HasField("round") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("round")
+		s.WriteUint32(x.Round)
+	}
+	if x.Type != 0 || s.HasField("type") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("type")
+		x.Type.MarshalProtoJSON(s)
+	}
+	if len(x.ValueHash) > 0 || s.HasField("valueHash") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("valueHash")
+		s.WriteBytes(x.ValueHash)
+	}
+	if x.ValidRound != 0 || s.HasField("validRound") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("validRound")
+		s.WriteUint32(x.ValidRound)
+	}
+	if len(x.Value) > 0 || s.HasField("value") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("value")
+		s.WriteBytes(x.Value)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the SOControlMessageInner to JSON.
+func (x *SOControlMessageInner) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the SOControlMessageInner message from JSON.
+func (x *SOControlMessageInner) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "shared_object_id", "sharedObjectId":
+			s.AddField("shared_object_id")
+			x.SharedObjectId = s.ReadString()
+		case "peer_id", "peerId":
+			s.AddField("peer_id")
+			x.PeerId = s.ReadString()
+		case "kind":
+			s.AddField("kind")
+			x.Kind.UnmarshalProtoJSON(s)
+		case "height":
+			s.AddField("height")
+			x.Height = s.ReadUint64()
+		case "config_hash", "configHash":
+			s.AddField("config_hash")
+			x.ConfigHash = s.ReadBytes()
+		case "round":
+			s.AddField("round")
+			x.Round = s.ReadUint32()
+		case "type":
+			s.AddField("type")
+			x.Type.UnmarshalProtoJSON(s)
+		case "value_hash", "valueHash":
+			s.AddField("value_hash")
+			x.ValueHash = s.ReadBytes()
+		case "valid_round", "validRound":
+			s.AddField("valid_round")
+			x.ValidRound = s.ReadUint32()
+		case "value":
+			s.AddField("value")
+			x.Value = s.ReadBytes()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the SOControlMessageInner from JSON.
+func (x *SOControlMessageInner) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -6905,6 +7869,17 @@ func (x *SOState) MarshalProtoJSON(s *json.MarshalState) {
 		}
 		s.WriteArrayEnd()
 	}
+	if len(x.ControlMessages) > 0 || s.HasField("controlMessages") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("controlMessages")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.ControlMessages {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("controlMessages"))
+		}
+		s.WriteArrayEnd()
+	}
 	s.WriteObjectEnd()
 }
 
@@ -7007,6 +7982,24 @@ func (x *SOState) UnmarshalProtoJSON(s *json.UnmarshalState) {
 					return
 				}
 				x.Sequence = append(x.Sequence, v)
+			})
+		case "control_messages", "controlMessages":
+			s.AddField("control_messages")
+			if s.ReadNil() {
+				x.ControlMessages = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.ControlMessages = append(x.ControlMessages, nil)
+					return
+				}
+				v := &SOControlMessage{}
+				v.UnmarshalProtoJSON(s.WithField("control_messages", false))
+				if s.Err() != nil {
+					return
+				}
+				x.ControlMessages = append(x.ControlMessages, v)
 			})
 		}
 	})
@@ -7798,6 +8791,23 @@ func (m *SharedObjectConfig) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.SealedCheckpoint != nil {
+		size, err := m.SealedCheckpoint.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x82
+	}
+	if m.Control != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Control))
+		i--
+		dAtA[i] = 0x78
+	}
 	if m.Sequencer != nil {
 		size, err := m.Sequencer.MarshalToSizedBufferVT(dAtA[:i])
 		if err != nil {
@@ -7848,6 +8858,48 @@ func (m *SharedObjectConfig) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 			i--
 			dAtA[i] = 0xa
 		}
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *SOCheckpointHead) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *SOCheckpointHead) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *SOCheckpointHead) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.Hash) > 0 {
+		i = protobuf_go_lite.EncodeBytes(dAtA, i, m.Hash)
+		i--
+		dAtA[i] = 0x12
+	}
+	if m.Height != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Height))
+		i--
+		dAtA[i] = 0x8
 	}
 	return len(dAtA) - i, nil
 }
@@ -8234,6 +9286,18 @@ func (m *SOConfigChange) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if len(m.Commit) > 0 {
+		for iNdEx := len(m.Commit) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.Commit[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x62
+		}
+	}
 	if len(m.Signatures) > 0 {
 		for iNdEx := len(m.Signatures) - 1; iNdEx >= 0; iNdEx-- {
 			size, err := m.Signatures[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
@@ -8328,6 +9392,11 @@ func (m *SOParticipantConfig) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.VotingWeight != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.VotingWeight))
+		i--
+		dAtA[i] = 0x28
+	}
 	if len(m.Username) > 0 {
 		i = protobuf_go_lite.EncodeString(dAtA, i, m.Username)
 		i--
@@ -8380,6 +9449,18 @@ func (m *SOCheckpoint) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if len(m.Commit) > 0 {
+		for iNdEx := len(m.Commit) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.Commit[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x1a
+		}
+	}
 	if len(m.Signatures) > 0 {
 		for iNdEx := len(m.Signatures) - 1; iNdEx >= 0; iNdEx-- {
 			size, err := m.Signatures[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
@@ -8394,6 +9475,135 @@ func (m *SOCheckpoint) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	}
 	if len(m.Inner) > 0 {
 		i = protobuf_go_lite.EncodeBytes(dAtA, i, m.Inner)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *SOControlMessage) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *SOControlMessage) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *SOControlMessage) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.Signature != nil {
+		size, err := m.Signature.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.Inner) > 0 {
+		i = protobuf_go_lite.EncodeBytes(dAtA, i, m.Inner)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *SOControlMessageInner) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *SOControlMessageInner) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *SOControlMessageInner) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.Value) > 0 {
+		i = protobuf_go_lite.EncodeBytes(dAtA, i, m.Value)
+		i--
+		dAtA[i] = 0x52
+	}
+	if m.ValidRound != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.ValidRound))
+		i--
+		dAtA[i] = 0x48
+	}
+	if len(m.ValueHash) > 0 {
+		i = protobuf_go_lite.EncodeBytes(dAtA, i, m.ValueHash)
+		i--
+		dAtA[i] = 0x42
+	}
+	if m.Type != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Type))
+		i--
+		dAtA[i] = 0x38
+	}
+	if m.Round != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Round))
+		i--
+		dAtA[i] = 0x30
+	}
+	if len(m.ConfigHash) > 0 {
+		i = protobuf_go_lite.EncodeBytes(dAtA, i, m.ConfigHash)
+		i--
+		dAtA[i] = 0x2a
+	}
+	if m.Height != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Height))
+		i--
+		dAtA[i] = 0x20
+	}
+	if m.Kind != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Kind))
+		i--
+		dAtA[i] = 0x18
+	}
+	if len(m.PeerId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.PeerId)
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.SharedObjectId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.SharedObjectId)
 		i--
 		dAtA[i] = 0xa
 	}
@@ -9308,6 +10518,18 @@ func (m *SOState) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if len(m.ControlMessages) > 0 {
+		for iNdEx := len(m.ControlMessages) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.ControlMessages[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x3a
+		}
+	}
 	if len(m.Sequence) > 0 {
 		for iNdEx := len(m.Sequence) - 1; iNdEx >= 0; iNdEx-- {
 			size, err := m.Sequence[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
@@ -9772,6 +10994,23 @@ func (m *SharedObjectConfig) SizeVT() (n int) {
 		l = m.Sequencer.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Control)
+	if m.SealedCheckpoint != nil {
+		l = m.SealedCheckpoint.SizeVT()
+		n += protobuf_go_lite.SizeMessage(2, l)
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *SOCheckpointHead) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Height)
+	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.Hash)
 	n += len(m.unknownFields)
 	return n
 }
@@ -9909,6 +11148,10 @@ func (m *SOConfigChange) SizeVT() (n int) {
 		l = e.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
+	for _, e := range m.Commit {
+		l = e.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -9923,6 +11166,7 @@ func (m *SOParticipantConfig) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.Role)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.EntityId)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Username)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.VotingWeight)
 	n += len(m.unknownFields)
 	return n
 }
@@ -9938,6 +11182,45 @@ func (m *SOCheckpoint) SizeVT() (n int) {
 		l = e.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
+	for _, e := range m.Commit {
+		l = e.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *SOControlMessage) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.Inner)
+	if m.Signature != nil {
+		l = m.Signature.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *SOControlMessageInner) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.SharedObjectId)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.PeerId)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Kind)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Height)
+	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.ConfigHash)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Round)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Type)
+	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.ValueHash)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.ValidRound)
+	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.Value)
 	n += len(m.unknownFields)
 	return n
 }
@@ -10245,6 +11528,10 @@ func (m *SOState) SizeVT() (n int) {
 		l = e.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
+	for _, e := range m.ControlMessages {
+		l = e.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -10346,11 +11633,23 @@ func (x SOParticipantRole) MarshalProtoText() string {
 	return x.String()
 }
 
+func (x SOControl) MarshalProtoText() string {
+	return x.String()
+}
+
 func (x SOConfigChangeType) MarshalProtoText() string {
 	return x.String()
 }
 
 func (x SORevocationReason) MarshalProtoText() string {
+	return x.String()
+}
+
+func (x SODecisionKind) MarshalProtoText() string {
+	return x.String()
+}
+
+func (x SOControlMessageType) MarshalProtoText() string {
 	return x.String()
 }
 
@@ -10599,10 +11898,36 @@ func (x *SharedObjectConfig) MarshalProtoText() string {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "sequencer")
 		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Sequencer)
 	}
+	if x.Control != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "control")
+		protobuf_go_lite.TextWriteStringer(&sb, SOControl(x.Control))
+	}
+	if x.SealedCheckpoint != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "sealed_checkpoint")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.SealedCheckpoint)
+	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
 
 func (x *SharedObjectConfig) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *SOCheckpointHead) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "SOCheckpointHead")
+	if x.Height != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "height")
+		protobuf_go_lite.TextWriteUint(&sb, x.Height)
+	}
+	if len(x.Hash) != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "hash")
+		protobuf_go_lite.TextWriteBytes(&sb, x.Hash)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *SOCheckpointHead) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -10811,6 +12136,18 @@ func (x *SOConfigChange) MarshalProtoText() string {
 		}
 		protobuf_go_lite.TextWriteListEnd(&sb)
 	}
+	if len(x.Commit) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "commit")
+		for i, v := range x.Commit {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			if v == nil {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, &SOControlMessage{})
+			} else {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, v)
+			}
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
 
@@ -10836,6 +12173,10 @@ func (x *SOParticipantConfig) MarshalProtoText() string {
 	if x.Username != "" {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "username")
 		protobuf_go_lite.TextWriteString(&sb, x.Username)
+	}
+	if x.VotingWeight != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "voting_weight")
+		protobuf_go_lite.TextWriteUint(&sb, x.VotingWeight)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -10863,10 +12204,90 @@ func (x *SOCheckpoint) MarshalProtoText() string {
 		}
 		protobuf_go_lite.TextWriteListEnd(&sb)
 	}
+	if len(x.Commit) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "commit")
+		for i, v := range x.Commit {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			if v == nil {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, &SOControlMessage{})
+			} else {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, v)
+			}
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
 
 func (x *SOCheckpoint) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *SOControlMessage) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "SOControlMessage")
+	if len(x.Inner) != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "inner")
+		protobuf_go_lite.TextWriteBytes(&sb, x.Inner)
+	}
+	if x.Signature != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "signature")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Signature)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *SOControlMessage) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *SOControlMessageInner) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "SOControlMessageInner")
+	if x.SharedObjectId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "shared_object_id")
+		protobuf_go_lite.TextWriteString(&sb, x.SharedObjectId)
+	}
+	if x.PeerId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "peer_id")
+		protobuf_go_lite.TextWriteString(&sb, x.PeerId)
+	}
+	if x.Kind != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "kind")
+		protobuf_go_lite.TextWriteStringer(&sb, SODecisionKind(x.Kind))
+	}
+	if x.Height != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "height")
+		protobuf_go_lite.TextWriteUint(&sb, x.Height)
+	}
+	if len(x.ConfigHash) != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "config_hash")
+		protobuf_go_lite.TextWriteBytes(&sb, x.ConfigHash)
+	}
+	if x.Round != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "round")
+		protobuf_go_lite.TextWriteUint(&sb, x.Round)
+	}
+	if x.Type != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "type")
+		protobuf_go_lite.TextWriteStringer(&sb, SOControlMessageType(x.Type))
+	}
+	if len(x.ValueHash) != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "value_hash")
+		protobuf_go_lite.TextWriteBytes(&sb, x.ValueHash)
+	}
+	if x.ValidRound != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "valid_round")
+		protobuf_go_lite.TextWriteUint(&sb, x.ValidRound)
+	}
+	if len(x.Value) != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "value")
+		protobuf_go_lite.TextWriteBytes(&sb, x.Value)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *SOControlMessageInner) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -11337,6 +12758,18 @@ func (x *SOState) MarshalProtoText() string {
 			protobuf_go_lite.TextWriteListSeparator(&sb, i)
 			if v == nil {
 				protobuf_go_lite.TextWriteTextMarshaler(&sb, &SOSequence{})
+			} else {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, v)
+			}
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
+	if len(x.ControlMessages) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "control_messages")
+		for i, v := range x.ControlMessages {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			if v == nil {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, &SOControlMessage{})
 			} else {
 				protobuf_go_lite.TextWriteTextMarshaler(&sb, v)
 			}
@@ -12151,6 +13584,92 @@ func (m *SharedObjectConfig) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		case 15:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Control", wireType)
+			}
+			m.Control = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.Control = SOControl(_v)
+			if err != nil {
+				return err
+			}
+		case 16:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SealedCheckpoint", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.SealedCheckpoint == nil {
+				m.SealedCheckpoint = &SOCheckpointHead{}
+			}
+			if err := m.SealedCheckpoint.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *SOCheckpointHead) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: SOCheckpointHead: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: SOCheckpointHead: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Height", wireType)
+			}
+			m.Height = 0
+			m.Height, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Hash", wireType)
+			}
+			m.Hash, iNdEx, err = protobuf_go_lite.DecodeBytesAppend(m.Hash, dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -12795,6 +14314,19 @@ func (m *SOConfigChange) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		case 12:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Commit", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Commit = append(m.Commit, &SOControlMessage{})
+			if err := m.Commit[len(m.Commit)-1].UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -12879,6 +14411,15 @@ func (m *SOParticipantConfig) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.Username = v
+		case 5:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field VotingWeight", wireType)
+			}
+			m.VotingWeight = 0
+			m.VotingWeight, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -12943,6 +14484,221 @@ func (m *SOCheckpoint) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Commit", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Commit = append(m.Commit, &SOControlMessage{})
+			if err := m.Commit[len(m.Commit)-1].UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *SOControlMessage) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: SOControlMessage: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: SOControlMessage: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Inner", wireType)
+			}
+			m.Inner, iNdEx, err = protobuf_go_lite.DecodeBytesAppend(m.Inner, dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Signature", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Signature == nil {
+				m.Signature = &peer.Signature{}
+			}
+			if err := m.Signature.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *SOControlMessageInner) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: SOControlMessageInner: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: SOControlMessageInner: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SharedObjectId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.SharedObjectId = v
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PeerId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.PeerId = v
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Kind", wireType)
+			}
+			m.Kind = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.Kind = SODecisionKind(_v)
+			if err != nil {
+				return err
+			}
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Height", wireType)
+			}
+			m.Height = 0
+			m.Height, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ConfigHash", wireType)
+			}
+			m.ConfigHash, iNdEx, err = protobuf_go_lite.DecodeBytesAppend(m.ConfigHash, dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 6:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Round", wireType)
+			}
+			m.Round = 0
+			m.Round, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 7:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Type", wireType)
+			}
+			m.Type = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.Type = SOControlMessageType(_v)
+			if err != nil {
+				return err
+			}
+		case 8:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ValueHash", wireType)
+			}
+			m.ValueHash, iNdEx, err = protobuf_go_lite.DecodeBytesAppend(m.ValueHash, dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 9:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ValidRound", wireType)
+			}
+			m.ValidRound = 0
+			m.ValidRound, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 10:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Value", wireType)
+			}
+			m.Value, iNdEx, err = protobuf_go_lite.DecodeBytesAppend(m.Value, dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -14326,6 +16082,19 @@ func (m *SOState) UnmarshalVT(dAtA []byte) error {
 			}
 			m.Sequence = append(m.Sequence, &SOSequence{})
 			if err := m.Sequence[len(m.Sequence)-1].UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 7:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ControlMessages", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.ControlMessages = append(m.ControlMessages, &SOControlMessage{})
+			if err := m.ControlMessages[len(m.ControlMessages)-1].UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex

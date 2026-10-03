@@ -39,7 +39,8 @@ type MainDevice interface {
 // order it already holds stays. Moving to this device and replacing a lost
 // device are both this change: positions the old sequencer signed after the
 // start are ignored and their operations placed again. It reports false
-// without a change when peerID already sequences.
+// without a change when peerID already sequences. Under group control signer,
+// a voter, agrees to the change and it returns ErrAwaitingGroup.
 func SetSOSequencer(ctx context.Context, host *SOHost, peerID string, signer crypto.PrivKey) (bool, error) {
 	// Read the current config and sequence.
 	state, err := host.GetHostState(ctx)
@@ -58,11 +59,7 @@ func SetSOSequencer(ctx context.Context, host *SOHost, peerID string, signer cry
 	// Sign and apply the change.
 	nextCfg := current.CloneVT()
 	nextCfg.Sequencer = &SOSequencer{PeerId: peerID, Start: set.SequenceTail()}
-	entry, err := BuildSOConfigChange(host.GetSharedObjectID(), current, nextCfg, SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_SET_SEQUENCER, signer, nil)
-	if err != nil {
-		return false, errors.Wrap(err, "build config change")
-	}
-	if err := host.ApplyConfigChange(ctx, entry, nil); err != nil {
+	if err := ChangeSOConfig(ctx, host, state, nextCfg, SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_SET_SEQUENCER, signer, nil, nil); err != nil {
 		return false, err
 	}
 	return true, nil

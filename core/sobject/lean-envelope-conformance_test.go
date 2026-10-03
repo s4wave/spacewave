@@ -205,7 +205,7 @@ func (e *envelopeScenario) checkpointCase(name string) leanCase {
 
 	// Record Go's decisions.
 	_, signers, verifyErr := cp.Verify(vectorObjectID)
-	_, authErr := cp.ValidateAuthority(vectorObjectID, e.participants)
+	_, authErr := cp.ValidateAuthority(vectorObjectID, &SharedObjectConfig{Participants: e.participants})
 	result := e.a.NewObject()
 	result.Set("signers", e.strings(signers))
 	result.Set("authorized", leanBool(&e.a, authErr == nil))

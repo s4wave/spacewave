@@ -13,6 +13,9 @@ import (
 
 // RemoveSOParticipants removes participant configs and grants in one signed
 // configuration change. It returns the peer IDs that were present and removed.
+// Under group control signerPriv, a voter, agrees to the removal and it
+// returns those peers with ErrAwaitingGroup; the voters take the key from them
+// once the group decides.
 func RemoveSOParticipants(
 	ctx context.Context,
 	host *SOHost,
@@ -66,16 +69,13 @@ func RemoveSOParticipants(
 	if err := pinRemovedAuthors(host.GetSharedObjectID(), state, nextCfg, removed); err != nil {
 		return nil, err
 	}
-	entry, err := BuildSOConfigChange(host.GetSharedObjectID(), currentCfg, nextCfg, SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_REMOVE_PARTICIPANT, signerPriv, revInfo)
-	if err != nil {
-		return nil, errors.Wrap(err, "build config change")
-	}
-	if err := host.ApplyConfigChange(ctx, entry, func(state *SOState) error {
+	err = ChangeSOConfig(ctx, host, state, nextCfg, SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_REMOVE_PARTICIPANT, signerPriv, revInfo, func(state *SOState) error {
 		return pruneRemovedParticipants(host.GetSharedObjectID(), state, targets, signerPriv)
-	}); err != nil {
+	})
+	if err != nil && !errors.Is(err, ErrAwaitingGroup) {
 		return nil, err
 	}
-	return removed, nil
+	return removed, err
 }
 
 // RemoveSOParticipant removes one participant config and grant.
@@ -160,7 +160,7 @@ func pruneRemovedParticipants(sharedObjectID string, state *SOState, targets map
 			checkpoint.Signatures = slices.Delete(checkpoint.Signatures, i, i+1)
 		}
 	}
-	if _, err := checkpoint.ValidateAuthority(sharedObjectID, state.GetConfig().GetParticipants()); err == nil {
+	if _, err := checkpoint.ValidateAuthority(sharedObjectID, state.GetConfig()); err == nil {
 		return nil
 	}
 	return checkpoint.CoSign(signer)

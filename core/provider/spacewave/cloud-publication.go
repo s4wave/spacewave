@@ -92,7 +92,7 @@ func (h *cloudSOHost) publishCheckpoint(ctx context.Context, sent *api.PendingSO
 		return sobject.ErrConfigHistoryUnavailable
 	}
 	if sent.GetCheckpoint() != nil {
-		if _, err := sent.GetCheckpoint().ValidateAuthority(h.soID, config.GetParticipants()); err != nil {
+		if _, err := sent.GetCheckpoint().ValidateAuthority(h.soID, config); err != nil {
 			return err
 		}
 		if err := h.client.PostCheckpoint(ctx, h.soID, sent.GetCheckpoint()); err != nil {

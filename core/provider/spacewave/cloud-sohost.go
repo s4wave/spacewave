@@ -574,14 +574,14 @@ func (h *cloudSOHost) verifyStateAgainst(state, held *sobject.SOState) error {
 	if err := state.Validate(h.soID); err != nil {
 		return err
 	}
-	participants := state.GetConfig().GetParticipants()
+	cfg := state.GetConfig()
 	for _, epoch := range state.GetKeyEpochs() {
 		heldEpoch := held.GetKeyEpoch(epoch.GetEpoch())
 		for _, grant := range epoch.GetGrants() {
 			if slices.ContainsFunc(heldEpoch.GetGrants(), grant.EqualVT) {
 				continue
 			}
-			if err := grant.ValidateSignature(h.soID, participants); err != nil {
+			if err := grant.ValidateSignature(h.soID, cfg); err != nil {
 				return errors.Wrapf(err, "key epoch %d grant", epoch.GetEpoch())
 			}
 		}
@@ -589,7 +589,7 @@ func (h *cloudSOHost) verifyStateAgainst(state, held *sobject.SOState) error {
 	if state.GetCheckpoint().EqualVT(held.GetCheckpoint()) {
 		return nil
 	}
-	next, err := state.GetCheckpoint().ValidateAuthority(h.soID, participants)
+	next, err := state.GetCheckpoint().ValidateAuthority(h.soID, cfg)
 	if err != nil {
 		return errors.Wrap(err, "checkpoint authority")
 	}

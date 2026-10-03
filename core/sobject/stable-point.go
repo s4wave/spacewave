@@ -187,11 +187,27 @@ func (s *SOState) BuildStableCheckpoint(
 	prefix [][]byte,
 	stateDataEnc []byte,
 ) (*SOCheckpoint, error) {
+	inner, err := s.StableCheckpointInner(sharedObjectID, prefix, stateDataEnc)
+	if err != nil {
+		return nil, err
+	}
+	return BuildSOCheckpoint(privKey, inner)
+}
+
+// StableCheckpointInner returns the body of the checkpoint after the held one
+// that covers prefix, a prefix of the held operations, with the state data
+// stateDataEnc. A group decides it unsigned.
+func (s *SOState) StableCheckpointInner(sharedObjectID string, prefix [][]byte, stateDataEnc []byte) (*SOCheckpointInner, error) {
 	set, err := s.OperationSet(sharedObjectID)
 	if err != nil {
 		return nil, err
 	}
-	return s.buildCheckpoint(sharedObjectID, privKey, set.cover(prefix), set.SequenceHead(prefix), stateDataEnc)
+	for _, h := range prefix {
+		if set.Get(h) == nil {
+			return nil, errors.New("checkpoint covers an operation the state does not hold")
+		}
+	}
+	return s.checkpointInner(sharedObjectID, set.cover(prefix), set.SequenceHead(prefix), stateDataEnc)
 }
 
 // buildCheckpoint signs the checkpoint after the held one with the given
@@ -203,6 +219,21 @@ func (s *SOState) buildCheckpoint(
 	sequence *SOSequenceHead,
 	stateDataEnc []byte,
 ) (*SOCheckpoint, error) {
+	inner, err := s.checkpointInner(sharedObjectID, authors, sequence, stateDataEnc)
+	if err != nil {
+		return nil, err
+	}
+	return BuildSOCheckpoint(privKey, inner)
+}
+
+// checkpointInner returns the body of the checkpoint after the held one with
+// the given author heads and sequence position.
+func (s *SOState) checkpointInner(
+	sharedObjectID string,
+	authors []*SOOperationPosition,
+	sequence *SOSequenceHead,
+	stateDataEnc []byte,
+) (*SOCheckpointInner, error) {
 	// Continue the chain from the held checkpoint.
 	prev := s.GetCheckpoint()
 	prevInner, err := s.GetCheckpointInner()
@@ -213,7 +244,7 @@ func (s *SOState) buildCheckpoint(
 		return nil, errors.New("state has no checkpoint to follow")
 	}
 
-	return BuildSOCheckpoint(privKey, &SOCheckpointInner{
+	return &SOCheckpointInner{
 		SharedObjectId:     sharedObjectID,
 		Height:             prevInner.GetHeight() + 1,
 		PrevCheckpointHash: prev.Hash(),
@@ -223,7 +254,7 @@ func (s *SOState) buildCheckpoint(
 		KeyEpoch:           s.CurrentKeyEpoch().GetEpoch(),
 		Authors:            authors,
 		Sequence:           sequenceHeadOrNil(sequence),
-	})
+	}, nil
 }
 
 // sequenceHeadOrNil returns head, or nil at height 0, so a checkpoint below

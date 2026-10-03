@@ -1408,7 +1408,7 @@
       ]
     },
     "github.com/s4wave/spacewave/core/sobject": {
-      "hash": "b647119cc6d777098a81cbe3751d65e943c36c35443e8911f28052bb4944e90e",
+      "hash": "9a7a76eb5e7533615fe75bedf08cbc8888179f5f42db16f5861bf7a9dbfc6211",
       "generatedFiles": [
         "core/sobject/sobject.pb.go",
         "core/sobject/sobject.pb.ts"

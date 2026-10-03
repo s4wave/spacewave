@@ -200,6 +200,12 @@ func (c *Controller) executeWorld(
 
 	// Wrap the world block engine with our txn logic for sobject.
 	engine := newSoEngine(c, so, blkEngine.bengine, replay)
+	if host, ok := so.(sobject.InviteHost); ok {
+		engine.control, err = sobject.NewControl(le, host.GetSOHost(), host.GetPrivKey(), engine)
+		if err != nil {
+			return err
+		}
+	}
 	var wengine world.Engine = engine
 	if c.conf.GetVerbose() {
 		wengine = world_vlogger.NewEngine(le, wengine)
@@ -211,8 +217,8 @@ func (c *Controller) executeWorld(
 	defer c.engineCtr.SetValue(nil)
 
 	// Acknowledge the edits this device builds on, restore returning devices
-	// to the trimming roster, order the Space as its main device and reclaim
-	// storage while it serves the World.
+	// to the trimming roster, order the Space as its main device, vote in the
+	// group's decisions and reclaim storage while it serves the World.
 	bgCtx, bgCancel := context.WithCancel(ctx)
 	defer bgCancel()
 	go func() {
@@ -231,6 +237,13 @@ func (c *Controller) executeWorld(
 		go func() {
 			if err := sobject.Sequence(bgCtx, so, mainDevice.SequenceOperations); err != nil && bgCtx.Err() == nil {
 				le.WithError(err).Warn("stopped ordering edits as the main device")
+			}
+		}()
+	}
+	if engine.control != nil {
+		go func() {
+			if err := engine.control.Execute(bgCtx); err != nil && bgCtx.Err() == nil {
+				le.WithError(err).Warn("stopped voting in group decisions")
 			}
 		}()
 	}

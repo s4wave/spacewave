@@ -1,6 +1,7 @@
 package sobject
 
 import (
+	"bytes"
 	"crypto/sha256"
 	"encoding/binary"
 	"slices"
@@ -173,16 +174,16 @@ func validateAuthorHeads(field string, authors []*SOOperationPosition) error {
 
 // Verify authenticates every signature on the checkpoint as written for
 // sharedObjectID and returns the body and the signers. It does not check that
-// a signer holds authority; ValidateAuthority does.
+// a signer holds authority or verify the commit; ValidateAuthority does.
 func (c *SOCheckpoint) Verify(sharedObjectID string) (*SOCheckpointInner, []string, error) {
 	// Decode the well-formed body bound to this object.
 	if len(c.GetInner()) == 0 {
 		return nil, nil, ErrEmptyInnerData
 	}
-	if len(c.GetSignatures()) == 0 {
-		return nil, nil, errors.New("checkpoint has no signature")
+	if len(c.GetSignatures()) == 0 && len(c.GetCommit()) == 0 {
+		return nil, nil, errors.New("checkpoint has no signature or commit")
 	}
-	if len(c.GetSignatures()) > MaxParticipants {
+	if len(c.GetSignatures()) > MaxParticipants || len(c.GetCommit()) > MaxParticipants {
 		return nil, nil, ErrMaxCountExceeded
 	}
 	inner, err := c.UnmarshalInner()
@@ -222,14 +223,34 @@ func (c *SOCheckpoint) Verify(sharedObjectID string) (*SOCheckpointInner, []stri
 	return inner, signers, nil
 }
 
-// ValidateAuthority authenticates the checkpoint and checks that an owner
-// under participants signed it.
-func (c *SOCheckpoint) ValidateAuthority(sharedObjectID string, participants []*SOParticipantConfig) (*SOCheckpointInner, error) {
+// ValidateAuthority authenticates the checkpoint and checks that cfg
+// authorizes it. cfg vouches for its sealed checkpoint by hash. Otherwise,
+// under group control, a commit of cfg's voters decided it under cfg, and
+// under owner control an owner of cfg signed it.
+func (c *SOCheckpoint) ValidateAuthority(sharedObjectID string, cfg *SharedObjectConfig) (*SOCheckpointInner, error) {
+	// Authenticate the body and its signatures.
 	inner, signers, err := c.Verify(sharedObjectID)
 	if err != nil {
 		return nil, err
 	}
-	for _, p := range participants {
+	if sealed := cfg.GetSealedCheckpoint(); sealed.GetHeight() == inner.GetHeight() && bytes.Equal(sealed.GetHash(), c.Hash()) {
+		return inner, nil
+	}
+
+	// A group decides each checkpoint under its current config.
+	if cfg.IsGroupControl() {
+		if !bytes.Equal(inner.GetConfigHash(), cfg.GetConfigChainHash()) {
+			return nil, errors.New("checkpoint was not decided under the held config")
+		}
+		err := VerifyCommit(sharedObjectID, cfg, inner.GetHeight(), c.Hash(), c.GetCommit())
+		if err != nil {
+			return nil, errors.Wrap(err, "checkpoint commit")
+		}
+		return inner, nil
+	}
+
+	// An owner signs under owner control.
+	for _, p := range cfg.GetParticipants() {
 		if IsOwner(p.GetRole()) && slices.Contains(signers, p.GetPeerId()) {
 			return inner, nil
 		}

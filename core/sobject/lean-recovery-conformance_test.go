@@ -510,7 +510,7 @@ func runLeanRecoveryEnrollment(t *testing.T, projection *configChainScenario, pe
 			req.Set("config", projectLeanConfig(authority).json(a))
 			cases = append(cases, leanCase{
 				name: "validateRecoveryGrant" + name, request: req.MarshalTo(nil),
-				ok: grant.ValidateSignature(objectID, authority.GetParticipants()) == nil,
+				ok: grant.ValidateSignature(objectID, authority) == nil,
 			})
 		}
 	}

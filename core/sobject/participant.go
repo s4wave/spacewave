@@ -199,8 +199,13 @@ func (s *SOStateParticipantHandle) GetCheckpoint(ctx context.Context) (*SOCheckp
 	if err != nil || inner == nil {
 		return nil, err
 	}
+	return s.DecodeCheckpoint(inner)
+}
 
-	// Decode the state with the key of its epoch.
+// DecodeCheckpoint returns a copy of a checkpoint body with its state data
+// decoded with the key of its epoch.
+func (s *SOStateParticipantHandle) DecodeCheckpoint(inner *SOCheckpointInner) (*SOCheckpointInner, error) {
+	inner = inner.CloneVT()
 	if len(inner.GetStateData()) != 0 {
 		xfrm, err := s.epochTransformer(inner.GetKeyEpoch())
 		if err != nil {

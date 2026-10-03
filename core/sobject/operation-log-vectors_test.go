@@ -328,7 +328,7 @@ func buildCheckpointVectors(t *testing.T) []checkpointVector {
 		if _, _, err := c.checkpoint.Verify(vectorObjectID); err == nil {
 			v.Hash = hex.EncodeToString(c.checkpoint.Hash())
 		}
-		_, err := c.checkpoint.ValidateAuthority(vectorObjectID, config.GetParticipants())
+		_, err := c.checkpoint.ValidateAuthority(vectorObjectID, config)
 		v.Authority = err == nil
 		out = append(out, v)
 	}

@@ -230,7 +230,7 @@ func (r *SecretResource) checkReaderGrant(ctx context.Context, secret *Secret, r
 		if grant.GetPeerId() != readerPeerID {
 			continue
 		}
-		if err := grant.ValidateSignature(so.GetSharedObjectID(), cfg.GetParticipants()); err != nil {
+		if err := grant.ValidateSignature(so.GetSharedObjectID(), cfg); err != nil {
 			return ErrPayloadAccessDenied
 		}
 		return nil

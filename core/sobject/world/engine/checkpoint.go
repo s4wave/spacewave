@@ -106,7 +106,8 @@ var errStableCheckpointStale = errors.New("held state moved past the stable poin
 // checkpointStable signs and adopts a checkpoint at the stable point when the
 // local peer is the checkpointer and at least MinCheckpointOperations
 // operations are stable. The World after the stable prefix comes from the
-// replay, so nothing replays again.
+// replay, so nothing replays again. Under group control the voters decide the
+// checkpoint instead, so the replay only wakes the local voter.
 func (e *soEngine) checkpointStable(ctx context.Context, snap sobject.SharedObjectStateSnapshot, set *sobject.SOOperationSet) error {
 	// Only the checkpointer signs, and only from a host it can sign through.
 	host, ok := e.so.(sobject.InviteHost)
@@ -116,6 +117,12 @@ func (e *soEngine) checkpointStable(ctx context.Context, snap sobject.SharedObje
 	cfg, err := snap.GetConfig(ctx)
 	if err != nil {
 		return err
+	}
+	if cfg.IsGroupControl() {
+		if e.control != nil {
+			e.control.Wake()
+		}
+		return nil
 	}
 	self := e.so.GetPeerID().String()
 	if cfg.Checkpointer() != self {
@@ -169,12 +176,7 @@ func (e *soEngine) adoptStableCheckpoint(
 	}
 
 	// Encrypt the World with the current key epoch.
-	handle := sobject.NewSOStateParticipantHandle(e.c.le, e.c.sfs, soID, state, host.GetPrivKey(), e.so.GetPeerID())
-	xfrm, err := handle.GetTransformer(ctx)
-	if err != nil {
-		return err
-	}
-	dataEnc, err := xfrm.EncodeBlock(data)
+	dataEnc, err := e.encodeCheckpointData(ctx, host, state, data)
 	if err != nil {
 		return err
 	}
@@ -186,3 +188,120 @@ func (e *soEngine) adoptStableCheckpoint(
 	}
 	return state.AdoptCheckpoint(soID, checkpoint)
 }
+
+// encodeCheckpointData encrypts World data with the current key epoch of
+// state.
+func (e *soEngine) encodeCheckpointData(ctx context.Context, host sobject.InviteHost, state *sobject.SOState, data []byte) ([]byte, error) {
+	xfrm, err := e.participant(host, state).GetTransformer(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return xfrm.EncodeBlock(data)
+}
+
+// participant returns the local participant's view of state.
+func (e *soEngine) participant(host sobject.InviteHost, state *sobject.SOState) *sobject.SOStateParticipantHandle {
+	return sobject.NewSOStateParticipantHandle(e.c.le, e.c.sfs, e.so.GetSharedObjectID(), state, host.GetPrivKey(), e.so.GetPeerID())
+}
+
+// ProposeCheckpoint returns the checkpoint after the one state holds that
+// covers its stable point, with the World the replay reached there, or nil
+// while fewer than MinCheckpointOperations operations are stable or the replay
+// has not placed them.
+func (e *soEngine) ProposeCheckpoint(ctx context.Context, state *sobject.SOState) (*sobject.SOCheckpointInner, error) {
+	// Only a host that can decrypt proposes, under the write lock.
+	host, ok := e.so.(sobject.InviteHost)
+	if !ok {
+		return nil, nil
+	}
+	unlock, err := e.c.writeMtx.Lock(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer unlock()
+
+	// Find the stable prefix and the World after it.
+	soID := e.so.GetSharedObjectID()
+	set, err := state.OperationSet(soID)
+	if err != nil {
+		return nil, err
+	}
+	prefix := set.StablePoint(state.GetConfig().TrimRoster())
+	if len(prefix) < sobject.MinCheckpointOperations {
+		return nil, nil
+	}
+	world := e.replay.stateAfter(prefix)
+	if world == nil {
+		return nil, nil
+	}
+
+	// Encrypt the World into the checkpoint body.
+	data, err := world.MarshalVT()
+	if err != nil {
+		return nil, err
+	}
+	dataEnc, err := e.encodeCheckpointData(ctx, host, state, data)
+	if err != nil {
+		return nil, err
+	}
+	return state.StableCheckpointInner(soID, prefix, dataEnc)
+}
+
+// JudgeCheckpoint reports whether inner is the checkpoint after the one state
+// holds that covers a stable prefix of its operations in the order the replay
+// placed them, with the World the replay reached after them. The encryption
+// differs between proposers, so the decrypted World is compared. ok is false
+// while the replay has not placed the covered operations first or they are
+// not yet stable.
+func (e *soEngine) JudgeCheckpoint(ctx context.Context, state *sobject.SOState, inner *sobject.SOCheckpointInner) (bool, bool, error) {
+	// Only a host that can decrypt judges, under the write lock.
+	host, ok := e.so.(sobject.InviteHost)
+	if !ok {
+		return false, false, nil
+	}
+	unlock, err := e.c.writeMtx.Lock(ctx)
+	if err != nil {
+		return false, false, err
+	}
+	defer unlock()
+
+	// Find the covered operations in replay order and the World after them.
+	world, prefix, ok := e.replay.coveredWorld(inner)
+	if !ok || len(prefix) == 0 {
+		return false, false, nil
+	}
+
+	// The covered operations must be stable here.
+	soID := e.so.GetSharedObjectID()
+	set, err := state.OperationSet(soID)
+	if err != nil {
+		return false, false, err
+	}
+	stable := set.StablePoint(state.GetConfig().TrimRoster())
+	if len(stable) < len(prefix) || !slices.EqualFunc(stable[:len(prefix)], prefix, bytes.Equal) {
+		return false, false, nil
+	}
+
+	// Compare the body this voter would build around the same state data.
+	expected, err := state.StableCheckpointInner(soID, prefix, inner.GetStateData())
+	if err != nil {
+		return false, false, nil
+	}
+	if !expected.EqualVT(inner) {
+		return false, true, nil
+	}
+
+	// Compare the World it carries.
+	decoded, err := e.participant(host, state).DecodeCheckpoint(inner)
+	if err != nil {
+		return false, true, nil
+	}
+	got := &InnerState{}
+	if err := got.UnmarshalVT(decoded.GetStateData()); err != nil {
+		return false, true, nil
+	}
+	return got.EqualVT(world), true, nil
+}
+
+// _ is a type assertion
+var _ sobject.CheckpointJudge = (*soEngine)(nil)

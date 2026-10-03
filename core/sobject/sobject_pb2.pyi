@@ -53,6 +53,11 @@ class SOParticipantRole(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     SOParticipantRole_WRITER: _ClassVar[SOParticipantRole]
     SOParticipantRole_OWNER: _ClassVar[SOParticipantRole]
 
+class SOControl(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
+    __slots__ = ()
+    SO_CONTROL_OWNER: _ClassVar[SOControl]
+    SO_CONTROL_GROUP: _ClassVar[SOControl]
+
 class SOConfigChangeType(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     __slots__ = ()
     SO_CONFIG_CHANGE_TYPE_UNKNOWN: _ClassVar[SOConfigChangeType]
@@ -66,6 +71,7 @@ class SOConfigChangeType(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     SO_CONFIG_CHANGE_TYPE_TRANSFER_OWNERSHIP: _ClassVar[SOConfigChangeType]
     SO_CONFIG_CHANGE_TYPE_SET_ROSTER: _ClassVar[SOConfigChangeType]
     SO_CONFIG_CHANGE_TYPE_SET_SEQUENCER: _ClassVar[SOConfigChangeType]
+    SO_CONFIG_CHANGE_TYPE_SET_CONTROL: _ClassVar[SOConfigChangeType]
 
 class SORevocationReason(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     __slots__ = ()
@@ -74,6 +80,20 @@ class SORevocationReason(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     SO_REVOCATION_REASON_ORG_REMOVED: _ClassVar[SORevocationReason]
     SO_REVOCATION_REASON_OWNER_REMOVED: _ClassVar[SORevocationReason]
     SO_REVOCATION_REASON_INVITE_REVOKED: _ClassVar[SORevocationReason]
+
+class SODecisionKind(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
+    __slots__ = ()
+    SO_DECISION_KIND_UNKNOWN: _ClassVar[SODecisionKind]
+    SO_DECISION_KIND_CONFIG: _ClassVar[SODecisionKind]
+    SO_DECISION_KIND_CHECKPOINT: _ClassVar[SODecisionKind]
+
+class SOControlMessageType(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
+    __slots__ = ()
+    SO_CONTROL_MESSAGE_TYPE_UNKNOWN: _ClassVar[SOControlMessageType]
+    SO_CONTROL_MESSAGE_TYPE_AGREE: _ClassVar[SOControlMessageType]
+    SO_CONTROL_MESSAGE_TYPE_PROPOSAL: _ClassVar[SOControlMessageType]
+    SO_CONTROL_MESSAGE_TYPE_PREVOTE: _ClassVar[SOControlMessageType]
+    SO_CONTROL_MESSAGE_TYPE_PRECOMMIT: _ClassVar[SOControlMessageType]
 SHARED_OBJECT_HEALTH_STATUS_UNKNOWN: SharedObjectHealthStatus
 SHARED_OBJECT_HEALTH_STATUS_LOADING: SharedObjectHealthStatus
 SHARED_OBJECT_HEALTH_STATUS_READY: SharedObjectHealthStatus
@@ -99,6 +119,8 @@ SOParticipantRole_UNKNOWN: SOParticipantRole
 SOParticipantRole_READER: SOParticipantRole
 SOParticipantRole_WRITER: SOParticipantRole
 SOParticipantRole_OWNER: SOParticipantRole
+SO_CONTROL_OWNER: SOControl
+SO_CONTROL_GROUP: SOControl
 SO_CONFIG_CHANGE_TYPE_UNKNOWN: SOConfigChangeType
 SO_CONFIG_CHANGE_TYPE_GENESIS: SOConfigChangeType
 SO_CONFIG_CHANGE_TYPE_ADD_PARTICIPANT: SOConfigChangeType
@@ -110,11 +132,20 @@ SO_CONFIG_CHANGE_TYPE_SELF_ENROLL_PEER: SOConfigChangeType
 SO_CONFIG_CHANGE_TYPE_TRANSFER_OWNERSHIP: SOConfigChangeType
 SO_CONFIG_CHANGE_TYPE_SET_ROSTER: SOConfigChangeType
 SO_CONFIG_CHANGE_TYPE_SET_SEQUENCER: SOConfigChangeType
+SO_CONFIG_CHANGE_TYPE_SET_CONTROL: SOConfigChangeType
 SO_REVOCATION_REASON_UNKNOWN: SORevocationReason
 SO_REVOCATION_REASON_SESSION_REVOKED: SORevocationReason
 SO_REVOCATION_REASON_ORG_REMOVED: SORevocationReason
 SO_REVOCATION_REASON_OWNER_REMOVED: SORevocationReason
 SO_REVOCATION_REASON_INVITE_REVOKED: SORevocationReason
+SO_DECISION_KIND_UNKNOWN: SODecisionKind
+SO_DECISION_KIND_CONFIG: SODecisionKind
+SO_DECISION_KIND_CHECKPOINT: SODecisionKind
+SO_CONTROL_MESSAGE_TYPE_UNKNOWN: SOControlMessageType
+SO_CONTROL_MESSAGE_TYPE_AGREE: SOControlMessageType
+SO_CONTROL_MESSAGE_TYPE_PROPOSAL: SOControlMessageType
+SO_CONTROL_MESSAGE_TYPE_PREVOTE: SOControlMessageType
+SO_CONTROL_MESSAGE_TYPE_PRECOMMIT: SOControlMessageType
 
 class SharedObjectRef(_message.Message):
     __slots__ = ("provider_resource_ref", "block_store_id")
@@ -195,20 +226,32 @@ class SOCheckpointMismatch(_message.Message):
     def __init__(self, height: _Optional[int] = ...) -> None: ...
 
 class SharedObjectConfig(_message.Message):
-    __slots__ = ("participants", "config_chain_hash", "config_chain_seqno", "removed_authors", "roster_dropped_peer_ids", "sequencer")
+    __slots__ = ("participants", "config_chain_hash", "config_chain_seqno", "removed_authors", "roster_dropped_peer_ids", "sequencer", "control", "sealed_checkpoint")
     PARTICIPANTS_FIELD_NUMBER: _ClassVar[int]
     CONFIG_CHAIN_HASH_FIELD_NUMBER: _ClassVar[int]
     CONFIG_CHAIN_SEQNO_FIELD_NUMBER: _ClassVar[int]
     REMOVED_AUTHORS_FIELD_NUMBER: _ClassVar[int]
     ROSTER_DROPPED_PEER_IDS_FIELD_NUMBER: _ClassVar[int]
     SEQUENCER_FIELD_NUMBER: _ClassVar[int]
+    CONTROL_FIELD_NUMBER: _ClassVar[int]
+    SEALED_CHECKPOINT_FIELD_NUMBER: _ClassVar[int]
     participants: _containers.RepeatedCompositeFieldContainer[SOParticipantConfig]
     config_chain_hash: bytes
     config_chain_seqno: int
     removed_authors: _containers.RepeatedCompositeFieldContainer[SOOperationPosition]
     roster_dropped_peer_ids: _containers.RepeatedScalarFieldContainer[str]
     sequencer: SOSequencer
-    def __init__(self, participants: _Optional[_Iterable[_Union[SOParticipantConfig, _Mapping]]] = ..., config_chain_hash: _Optional[bytes] = ..., config_chain_seqno: _Optional[int] = ..., removed_authors: _Optional[_Iterable[_Union[SOOperationPosition, _Mapping]]] = ..., roster_dropped_peer_ids: _Optional[_Iterable[str]] = ..., sequencer: _Optional[_Union[SOSequencer, _Mapping]] = ...) -> None: ...
+    control: SOControl
+    sealed_checkpoint: SOCheckpointHead
+    def __init__(self, participants: _Optional[_Iterable[_Union[SOParticipantConfig, _Mapping]]] = ..., config_chain_hash: _Optional[bytes] = ..., config_chain_seqno: _Optional[int] = ..., removed_authors: _Optional[_Iterable[_Union[SOOperationPosition, _Mapping]]] = ..., roster_dropped_peer_ids: _Optional[_Iterable[str]] = ..., sequencer: _Optional[_Union[SOSequencer, _Mapping]] = ..., control: _Optional[_Union[SOControl, str]] = ..., sealed_checkpoint: _Optional[_Union[SOCheckpointHead, _Mapping]] = ...) -> None: ...
+
+class SOCheckpointHead(_message.Message):
+    __slots__ = ("height", "hash")
+    HEIGHT_FIELD_NUMBER: _ClassVar[int]
+    HASH_FIELD_NUMBER: _ClassVar[int]
+    height: int
+    hash: bytes
+    def __init__(self, height: _Optional[int] = ..., hash: _Optional[bytes] = ...) -> None: ...
 
 class SOSequencer(_message.Message):
     __slots__ = ("peer_id", "start")
@@ -277,7 +320,7 @@ class SORevocationInfo(_message.Message):
     def __init__(self, reason: _Optional[_Union[SORevocationReason, str]] = ..., timestamp: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., nonce: _Optional[int] = ..., leave_request_hash: _Optional[bytes] = ...) -> None: ...
 
 class SOConfigChange(_message.Message):
-    __slots__ = ("config_seqno", "config", "previous_hash", "change_type", "revocation_info", "leave_request", "shared_object_id", "signatures")
+    __slots__ = ("config_seqno", "config", "previous_hash", "change_type", "revocation_info", "leave_request", "shared_object_id", "signatures", "commit")
     CONFIG_SEQNO_FIELD_NUMBER: _ClassVar[int]
     CONFIG_FIELD_NUMBER: _ClassVar[int]
     PREVIOUS_HASH_FIELD_NUMBER: _ClassVar[int]
@@ -286,6 +329,7 @@ class SOConfigChange(_message.Message):
     LEAVE_REQUEST_FIELD_NUMBER: _ClassVar[int]
     SHARED_OBJECT_ID_FIELD_NUMBER: _ClassVar[int]
     SIGNATURES_FIELD_NUMBER: _ClassVar[int]
+    COMMIT_FIELD_NUMBER: _ClassVar[int]
     config_seqno: int
     config: SharedObjectConfig
     previous_hash: bytes
@@ -294,27 +338,64 @@ class SOConfigChange(_message.Message):
     leave_request: SOLeaveRequest
     shared_object_id: str
     signatures: _containers.RepeatedCompositeFieldContainer[_peer_pb2.Signature]
-    def __init__(self, config_seqno: _Optional[int] = ..., config: _Optional[_Union[SharedObjectConfig, _Mapping]] = ..., previous_hash: _Optional[bytes] = ..., change_type: _Optional[_Union[SOConfigChangeType, str]] = ..., revocation_info: _Optional[_Union[SORevocationInfo, _Mapping]] = ..., leave_request: _Optional[_Union[SOLeaveRequest, _Mapping]] = ..., shared_object_id: _Optional[str] = ..., signatures: _Optional[_Iterable[_Union[_peer_pb2.Signature, _Mapping]]] = ...) -> None: ...
+    commit: _containers.RepeatedCompositeFieldContainer[SOControlMessage]
+    def __init__(self, config_seqno: _Optional[int] = ..., config: _Optional[_Union[SharedObjectConfig, _Mapping]] = ..., previous_hash: _Optional[bytes] = ..., change_type: _Optional[_Union[SOConfigChangeType, str]] = ..., revocation_info: _Optional[_Union[SORevocationInfo, _Mapping]] = ..., leave_request: _Optional[_Union[SOLeaveRequest, _Mapping]] = ..., shared_object_id: _Optional[str] = ..., signatures: _Optional[_Iterable[_Union[_peer_pb2.Signature, _Mapping]]] = ..., commit: _Optional[_Iterable[_Union[SOControlMessage, _Mapping]]] = ...) -> None: ...
 
 class SOParticipantConfig(_message.Message):
-    __slots__ = ("peer_id", "role", "entity_id", "username")
+    __slots__ = ("peer_id", "role", "entity_id", "username", "voting_weight")
     PEER_ID_FIELD_NUMBER: _ClassVar[int]
     ROLE_FIELD_NUMBER: _ClassVar[int]
     ENTITY_ID_FIELD_NUMBER: _ClassVar[int]
     USERNAME_FIELD_NUMBER: _ClassVar[int]
+    VOTING_WEIGHT_FIELD_NUMBER: _ClassVar[int]
     peer_id: str
     role: SOParticipantRole
     entity_id: str
     username: str
-    def __init__(self, peer_id: _Optional[str] = ..., role: _Optional[_Union[SOParticipantRole, str]] = ..., entity_id: _Optional[str] = ..., username: _Optional[str] = ...) -> None: ...
+    voting_weight: int
+    def __init__(self, peer_id: _Optional[str] = ..., role: _Optional[_Union[SOParticipantRole, str]] = ..., entity_id: _Optional[str] = ..., username: _Optional[str] = ..., voting_weight: _Optional[int] = ...) -> None: ...
 
 class SOCheckpoint(_message.Message):
-    __slots__ = ("inner", "signatures")
+    __slots__ = ("inner", "signatures", "commit")
     INNER_FIELD_NUMBER: _ClassVar[int]
     SIGNATURES_FIELD_NUMBER: _ClassVar[int]
+    COMMIT_FIELD_NUMBER: _ClassVar[int]
     inner: bytes
     signatures: _containers.RepeatedCompositeFieldContainer[_peer_pb2.Signature]
-    def __init__(self, inner: _Optional[bytes] = ..., signatures: _Optional[_Iterable[_Union[_peer_pb2.Signature, _Mapping]]] = ...) -> None: ...
+    commit: _containers.RepeatedCompositeFieldContainer[SOControlMessage]
+    def __init__(self, inner: _Optional[bytes] = ..., signatures: _Optional[_Iterable[_Union[_peer_pb2.Signature, _Mapping]]] = ..., commit: _Optional[_Iterable[_Union[SOControlMessage, _Mapping]]] = ...) -> None: ...
+
+class SOControlMessage(_message.Message):
+    __slots__ = ("inner", "signature")
+    INNER_FIELD_NUMBER: _ClassVar[int]
+    SIGNATURE_FIELD_NUMBER: _ClassVar[int]
+    inner: bytes
+    signature: _peer_pb2.Signature
+    def __init__(self, inner: _Optional[bytes] = ..., signature: _Optional[_Union[_peer_pb2.Signature, _Mapping]] = ...) -> None: ...
+
+class SOControlMessageInner(_message.Message):
+    __slots__ = ("shared_object_id", "peer_id", "kind", "height", "config_hash", "round", "type", "value_hash", "valid_round", "value")
+    SHARED_OBJECT_ID_FIELD_NUMBER: _ClassVar[int]
+    PEER_ID_FIELD_NUMBER: _ClassVar[int]
+    KIND_FIELD_NUMBER: _ClassVar[int]
+    HEIGHT_FIELD_NUMBER: _ClassVar[int]
+    CONFIG_HASH_FIELD_NUMBER: _ClassVar[int]
+    ROUND_FIELD_NUMBER: _ClassVar[int]
+    TYPE_FIELD_NUMBER: _ClassVar[int]
+    VALUE_HASH_FIELD_NUMBER: _ClassVar[int]
+    VALID_ROUND_FIELD_NUMBER: _ClassVar[int]
+    VALUE_FIELD_NUMBER: _ClassVar[int]
+    shared_object_id: str
+    peer_id: str
+    kind: SODecisionKind
+    height: int
+    config_hash: bytes
+    round: int
+    type: SOControlMessageType
+    value_hash: bytes
+    valid_round: int
+    value: bytes
+    def __init__(self, shared_object_id: _Optional[str] = ..., peer_id: _Optional[str] = ..., kind: _Optional[_Union[SODecisionKind, str]] = ..., height: _Optional[int] = ..., config_hash: _Optional[bytes] = ..., round: _Optional[int] = ..., type: _Optional[_Union[SOControlMessageType, str]] = ..., value_hash: _Optional[bytes] = ..., valid_round: _Optional[int] = ..., value: _Optional[bytes] = ...) -> None: ...
 
 class SOCheckpointInner(_message.Message):
     __slots__ = ("shared_object_id", "height", "prev_checkpoint_hash", "config_hash", "state_data", "replay_version", "key_epoch", "authors", "sequence")
@@ -493,20 +574,22 @@ class SOJoinRequestList(_message.Message):
     def __init__(self, requests: _Optional[_Iterable[_Union[SOJoinRequest, _Mapping]]] = ...) -> None: ...
 
 class SOState(_message.Message):
-    __slots__ = ("config", "checkpoint", "key_epochs", "ops", "invites", "sequence")
+    __slots__ = ("config", "checkpoint", "key_epochs", "ops", "invites", "sequence", "control_messages")
     CONFIG_FIELD_NUMBER: _ClassVar[int]
     CHECKPOINT_FIELD_NUMBER: _ClassVar[int]
     KEY_EPOCHS_FIELD_NUMBER: _ClassVar[int]
     OPS_FIELD_NUMBER: _ClassVar[int]
     INVITES_FIELD_NUMBER: _ClassVar[int]
     SEQUENCE_FIELD_NUMBER: _ClassVar[int]
+    CONTROL_MESSAGES_FIELD_NUMBER: _ClassVar[int]
     config: SharedObjectConfig
     checkpoint: SOCheckpoint
     key_epochs: _containers.RepeatedCompositeFieldContainer[SOKeyEpoch]
     ops: _containers.RepeatedCompositeFieldContainer[SOOperation]
     invites: _containers.RepeatedCompositeFieldContainer[SOInvite]
     sequence: _containers.RepeatedCompositeFieldContainer[SOSequence]
-    def __init__(self, config: _Optional[_Union[SharedObjectConfig, _Mapping]] = ..., checkpoint: _Optional[_Union[SOCheckpoint, _Mapping]] = ..., key_epochs: _Optional[_Iterable[_Union[SOKeyEpoch, _Mapping]]] = ..., ops: _Optional[_Iterable[_Union[SOOperation, _Mapping]]] = ..., invites: _Optional[_Iterable[_Union[SOInvite, _Mapping]]] = ..., sequence: _Optional[_Iterable[_Union[SOSequence, _Mapping]]] = ...) -> None: ...
+    control_messages: _containers.RepeatedCompositeFieldContainer[SOControlMessage]
+    def __init__(self, config: _Optional[_Union[SharedObjectConfig, _Mapping]] = ..., checkpoint: _Optional[_Union[SOCheckpoint, _Mapping]] = ..., key_epochs: _Optional[_Iterable[_Union[SOKeyEpoch, _Mapping]]] = ..., ops: _Optional[_Iterable[_Union[SOOperation, _Mapping]]] = ..., invites: _Optional[_Iterable[_Union[SOInvite, _Mapping]]] = ..., sequence: _Optional[_Iterable[_Union[SOSequence, _Mapping]]] = ..., control_messages: _Optional[_Iterable[_Union[SOControlMessage, _Mapping]]] = ...) -> None: ...
 
 class SOKeyEpoch(_message.Message):
     __slots__ = ("epoch", "grants")

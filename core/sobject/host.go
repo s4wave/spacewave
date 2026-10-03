@@ -241,21 +241,25 @@ func (s *SOHost) ImportPeerSnapshot(
 		next.Config = candidate.GetConfig().CloneVT()
 		next.KeyEpochs = nil
 		next.Ops = nil
+		next.ControlMessages = nil
 		if err := lock.WriteSOState(ctx, next, changes...); err != nil {
 			return err
 		}
 		return ErrParticipantRevoked
 	}
 
-	// Merge the candidate's checkpoint, grants, operations and sequence under
-	// the verified config. Invitations stay locally administered.
+	// Adopt the verified config and the candidate's checkpoint. Invitations
+	// stay locally administered.
 	next := previous.CloneVT()
 	next.Config = candidate.GetConfig().CloneVT()
+	next.pruneControlMessages()
 	if checkpoint := candidate.GetCheckpoint(); checkpoint != nil {
 		if err := next.AdoptCheckpoint(s.sharedObjectID, checkpoint); err != nil {
 			return errors.Wrap(err, "peer snapshot checkpoint")
 		}
 	}
+
+	// Merge the grants, operations, sequence and control messages.
 	if err := next.MergeKeyEpochs(s.sharedObjectID, candidate.GetKeyEpochs()); err != nil {
 		return errors.Wrap(err, "peer snapshot key epochs")
 	}
@@ -269,6 +273,9 @@ func (s *SOHost) ImportPeerSnapshot(
 			return errors.Wrap(err, "peer snapshot sequence")
 		}
 	}
+	next.MergeControlMessages(s.sharedObjectID, candidate.GetControlMessages())
+
+	// Check the merged state.
 	if err := next.Validate(s.sharedObjectID); err != nil {
 		return errors.Wrap(err, "peer snapshot state")
 	}
@@ -347,6 +354,7 @@ func (s *SOHost) ApplyConfigChange(ctx context.Context, entry *SOConfigChange, f
 	if err != nil {
 		return err
 	}
+	nextState.pruneControlMessages()
 
 	// Include associated state changes in the same provider write.
 	if fn != nil {

@@ -75,10 +75,10 @@ func TestSOGrantValidateSignatureAllowsSelfSignedParticipantGrant(t *testing.T) 
 	if err != nil {
 		t.Fatalf("EncryptSOGrant: %v", err)
 	}
-	err = grant.ValidateSignature(mockSharedObjectID, []*SOParticipantConfig{{
+	err = grant.ValidateSignature(mockSharedObjectID, &SharedObjectConfig{Participants: []*SOParticipantConfig{{
 		PeerId: grant.GetPeerId(),
 		Role:   SOParticipantRole_SOParticipantRole_READER,
-	}})
+	}}})
 	if err != nil {
 		t.Fatalf("ValidateSignature: %v", err)
 	}

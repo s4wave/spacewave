@@ -196,6 +196,11 @@ func (c *SharedObjectConfig) Validate() error {
 		return err
 	}
 
+	// The control setting matches its voting weights.
+	if err := c.validateControl(); err != nil {
+		return err
+	}
+
 	// A signed history head can retain the final departure; an empty bootstrap cannot grant authority.
 	participants := c.GetParticipants()
 	if len(participants) == 0 {
