@@ -42,6 +42,7 @@ import (
 // TestBrowserE2EWithBldr runs the browser E2E tests with a full bldr backend.
 // This test starts the complete bldr infrastructure and runs vitest browser tests.
 func TestBrowserE2EWithBldr(t *testing.T) {
+	// Require explicit opt-in before starting the browser test infrastructure.
 	if os.Getenv("RUN_BROWSER_E2E") == "" {
 		t.Skip("set RUN_BROWSER_E2E=1 to run the browser E2E test")
 	}
@@ -59,6 +60,7 @@ func TestBrowserE2EWithBldr(t *testing.T) {
 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer cancel()
 
+	// Prepare the logger for the browser testbed.
 	log := logrus.New()
 	log.SetLevel(logrus.InfoLevel) // avoid too much log spam
 	le := logrus.NewEntry(log)
@@ -106,9 +108,13 @@ func TestBrowserE2EWithBldr(t *testing.T) {
 	sr.AddFactory(plugin_host_wazero_quickjs.NewFactory(b))
 	sr.AddFactory(bldr_project_controller.NewFactory(b))
 	sr.AddFactory(bldr_manifest_builder_controller.NewFactory(b))
+
+	// Register the Go, JavaScript, and Vite compiler factories.
 	sr.AddFactory(bldr_plugin_compiler_go.NewFactory(b))
 	sr.AddFactory(bldr_plugin_compiler_js.NewFactory(b))
 	sr.AddFactory(bldr_web_bundler_vite_compiler.NewFactory(b))
+
+	// Register the volume and World storage factories.
 	sr.AddFactory(volume_rpc_server.NewFactory(b))
 	sr.AddFactory(world_block_engine.NewFactory(b))
 
@@ -181,6 +187,7 @@ func TestBrowserE2EWithBldr(t *testing.T) {
 	projCtrlConf := bldr_project_controller.NewConfig(repoRoot, workDir, projectConfig, false, true)
 	projCtrlConf.FetchManifestRemote = "devtool"
 
+	// Load the project controller with the configured devtool remote.
 	projCtrl, _, projCtrlRef, err := loader.WaitExecControllerRunningTyped[*bldr_project_controller.Controller](
 		ctx,
 		tb.GetBus(),
@@ -200,13 +207,13 @@ func TestBrowserE2EWithBldr(t *testing.T) {
 		t.Fatalf("failed to start browser test server: %v", err)
 	}
 	defer browserServer.Stop(ctx)
-
 	t.Logf("browser test server started on port %d", port)
 
 	// Build vitest command arguments.
 	// Every mode uses the browser Vitest configuration.
 	vitestBaseArgs := []string{"vitest", "--config=vitest.browser.config.ts"}
 
+	// Run the browser suite in the requested interactive or batch mode.
 	if uiMode {
 		// Use the browser UI for interactive debugging.
 		vitestArgs := append(slices.Clone(vitestBaseArgs), "--ui")
@@ -235,6 +242,7 @@ func TestBrowserE2EWithBldr(t *testing.T) {
 			t.Logf("vitest exited: %v (this is normal in interactive mode)", err)
 		}
 	} else {
+		// Discover the browser test files for the batch run.
 		testFiles, err := browserE2ETestFiles(repoRoot)
 		if err != nil {
 			t.Fatal(err.Error())
@@ -242,6 +250,7 @@ func TestBrowserE2EWithBldr(t *testing.T) {
 		testFilter := os.Getenv("BROWSER_TEST_FILTER")
 		t.Logf("running %d vitest browser test files with full bldr backend...", len(testFiles))
 		for _, testFile := range testFiles {
+			// Prepare Vitest arguments and its environment for this browser test file.
 			vitestArgs := append(slices.Clone(vitestBaseArgs), "--run", testFile)
 			if testFilter != "" {
 				vitestArgs = append(vitestArgs, "--testNamePattern", testFilter)
@@ -251,6 +260,8 @@ func TestBrowserE2EWithBldr(t *testing.T) {
 			cmd.Env = append(os.Environ(), fmt.Sprintf("VITE_E2E_SERVER_PORT=%d", port))
 			cmd.Stdout = os.Stdout
 			cmd.Stderr = os.Stderr
+
+			// Run the browser test file and report any Vitest failure.
 			t.Logf("running vitest browser test file: %s", testFile)
 			if err := cmd.Run(); err != nil {
 				t.Fatalf("vitest browser tests failed for %s: %v", testFile, err)
@@ -258,10 +269,12 @@ func TestBrowserE2EWithBldr(t *testing.T) {
 		}
 	}
 
+	// Report completion of the browser test suite.
 	t.Log("browser E2E tests with bldr backend passed")
 }
 
 func browserE2ETestFiles(repoRoot string) ([]string, error) {
+	// Collect browser test paths from the product source directories.
 	roots := []string{"app", "web", "core", "sdk", "plugin", "cmd", "forge"}
 	var out []string
 	for _, root := range roots {
@@ -272,6 +285,7 @@ func browserE2ETestFiles(repoRoot string) ([]string, error) {
 			return nil, err
 		}
 		if err := filepath.WalkDir(rootPath, func(path string, d os.DirEntry, err error) error {
+			// Ignore failed entries, directories, and files outside the browser test suffixes.
 			if err != nil {
 				return err
 			}
@@ -282,6 +296,8 @@ func browserE2ETestFiles(repoRoot string) ([]string, error) {
 			if !strings.HasSuffix(name, ".e2e.test.ts") && !strings.HasSuffix(name, ".e2e.test.tsx") {
 				return nil
 			}
+
+			// Record the browser test file relative to the repository root.
 			rel, err := filepath.Rel(repoRoot, path)
 			if err != nil {
 				return err
@@ -292,12 +308,15 @@ func browserE2ETestFiles(repoRoot string) ([]string, error) {
 			return nil, err
 		}
 	}
+
+	// Order the browser test files for a stable batch run.
 	slices.Sort(out)
 	return out, nil
 }
 
 // runWithPTY runs a command with a pseudo-terminal for interactive mode.
 func runWithPTY(ctx context.Context, cmd *exec.Cmd) error {
+	// Start the child command with a pseudo-terminal and retain its cleanup.
 	ptmx, err := pty.Start(cmd)
 	if err != nil {
 		return fmt.Errorf("failed to start pty: %w", err)
@@ -312,7 +331,10 @@ func runWithPTY(ctx context.Context, cmd *exec.Cmd) error {
 			_ = pty.InheritSize(os.Stdin, ptmx)
 		}
 	}()
-	defer signal.Stop(ch)
+	defer func() {
+		signal.Stop(ch)
+		close(ch)
+	}()
 	_ = pty.InheritSize(os.Stdin, ptmx)
 
 	// Put terminal input in raw mode for interactive controls.
@@ -331,6 +353,7 @@ func runWithPTY(ctx context.Context, cmd *exec.Cmd) error {
 	done := make(chan error, 1)
 	go func() { done <- cmd.Wait() }()
 
+	// Return the child exit result or the terminal context cancellation.
 	select {
 	case err := <-done:
 		return err
