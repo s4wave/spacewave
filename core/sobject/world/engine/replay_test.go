@@ -8,6 +8,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/core/sobject"
+	store_kvtx_inmem "github.com/s4wave/spacewave/db/store/kvtx/inmem"
 	world_block_tx "github.com/s4wave/spacewave/db/world/block/tx"
 	"github.com/s4wave/spacewave/net/crypto"
 	"github.com/s4wave/spacewave/net/peer"
@@ -221,6 +222,57 @@ func TestReplayConvergesAcrossDeliveryOrders(t *testing.T) {
 		if wantApplied := i != 2; applied != wantApplied {
 			t.Errorf("outcome %q; want applied=%v", want.res.outcomes[i], wantApplied)
 		}
+	}
+}
+
+// TestReplayResumesSavedReplay saves a replay and resumes it in a new
+// replayer, as a remounted World engine does. The resumed replayer must not
+// replay the saved operations, and must reach the World a cold replay reaches
+// when another operation arrives.
+func TestReplayResumesSavedReplay(t *testing.T) {
+	// Build the Space and its operations.
+	privA, pidA := newReplayTestKey(t)
+	privB, pidB := newReplayTestKey(t)
+	space := newReplayTestSpace(t, pidA, pidB)
+	opA := space.sign("A own", privA, "object-a", &sobject.SOOperationLink{Nonce: 1})
+	opAShared := space.sign("A shared", privA, "object-shared", &sobject.SOOperationLink{Nonce: 2, PrevOpHash: opA.Hash()})
+	opBShared := space.sign("B shared", privB, "object-shared", &sobject.SOOperationLink{Nonce: 1})
+
+	// Member A replays its own operations and saves the replay.
+	ctx := context.Background()
+	store := store_kvtx_inmem.NewStore()
+	memberA := space.member(pidA, false)
+	memberA.replayer.so.(*testSharedObject).localStore = store
+	saved := memberA.deliver(opA, opAShared)
+	if err := memberA.replayer.save(ctx); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	// A new replayer resumes the saved replay. Its snapshot resolves no
+	// config, so replaying any saved operation would change its outcome.
+	restored := &replayTestMember{
+		space: space,
+		set:   memberA.set,
+		snap:  &replayTestSnapshot{config: &sobject.SharedObjectConfig{}},
+		replayer: &replayer{
+			c:  space.c,
+			so: &testSharedObject{peerID: pidA, blockStore: space.so.blockStore, localStore: store},
+		},
+	}
+	if err := restored.replayer.load(ctx); err != nil {
+		t.Fatal(err.Error())
+	}
+	resumed := restored.deliver()
+	if !resumed.state.EqualVT(saved.state) || !slices.Equal(resumed.outcomes, saved.outcomes) {
+		t.Fatalf("resumed %q; want %q", resumed.outcomes, saved.outcomes)
+	}
+
+	// After B's operation arrives, it matches a cold replay of all three.
+	restored.snap = memberA.snap
+	got := restored.deliver(opBShared)
+	want := space.member(pidB, true).deliver(opA, opAShared, opBShared)
+	if !got.state.EqualVT(want.state) || !slices.Equal(got.outcomes, want.outcomes) {
+		t.Errorf("resumed replay %q; want %q", got.outcomes, want.outcomes)
 	}
 }
 

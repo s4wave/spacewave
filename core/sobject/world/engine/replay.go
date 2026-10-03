@@ -7,12 +7,19 @@ import (
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/core/sobject"
 	"github.com/s4wave/spacewave/db/block"
+	"github.com/s4wave/spacewave/db/kvtx"
 	"github.com/s4wave/spacewave/db/world"
 )
 
 // replayBaseRootName names the local root that holds the checkpoint's World,
 // which every replay starts from.
 const replayBaseRootName = "replay-base"
+
+// replayCursorStoreID is the local state store holding the saved replay.
+const replayCursorStoreID = "world-replay"
+
+// replayCursorKey is the key of the saved replay in its store.
+var replayCursorKey = []byte("cursor")
 
 // replayOutcome is the deterministic outcome of one replayed operation.
 type replayOutcome struct {
@@ -27,7 +34,8 @@ type replayOutcome struct {
 type replayPosition struct {
 	// outcome is the outcome of the operation.
 	outcome replayOutcome
-	// state is the World after the operation.
+	// state is the World after the operation. A position restored from a
+	// saved replay keeps it only for the last position.
 	state *InnerState
 }
 
@@ -50,7 +58,9 @@ type replayFork struct {
 // operation depends only on the operation set, never on the replaying device
 // or the order operations arrived in. It keeps the World after every replayed
 // position, so a later replay resumes after the longest prefix its order
-// shares with the previous replay. The owner of the replayer serializes calls.
+// shares with the previous replay. A replay saved by an earlier replayer of
+// the same World resumes the same way. The owner of the replayer serializes
+// calls.
 type replayer struct {
 	// c processes World operations.
 	c *Controller
@@ -60,6 +70,8 @@ type replayer struct {
 	base *InnerState
 	// positions are the replayed operations in order.
 	positions []replayPosition
+	// changed is set when base or positions differ from the saved replay.
+	changed bool
 }
 
 // newReplayer constructs a replayer for the World of so.
@@ -84,7 +96,7 @@ func (r *replayer) sync(ctx context.Context, snap sobject.SharedObjectStateSnaps
 		if err := r.c.retainWorldRoot(ctx, r.so, replayBaseRootName, base.GetHeadRef()); err != nil {
 			return nil, nil, err
 		}
-		r.base, r.positions = base, nil
+		r.base, r.positions, r.changed = base, nil, true
 	}
 
 	// Replay the operation set from the shared prefix.
@@ -93,6 +105,86 @@ func (r *replayer) sync(ctx context.Context, snap sobject.SharedObjectStateSnaps
 		return nil, nil, err
 	}
 	return r.replay(ctx, snap, set, fork)
+}
+
+// load restores the replay saved in the local state of the World, if any.
+// Only its last position keeps a World, so a later order that diverges before
+// it replays from the base.
+func (r *replayer) load(ctx context.Context) error {
+	// Read the saved replay.
+	store, release, err := r.so.AccessLocalStateStore(ctx, replayCursorStoreID, nil)
+	if err != nil {
+		return err
+	}
+	defer release()
+	open := func(ctx context.Context) (kvtx.Tx, error) { return store.NewTransaction(ctx, false) }
+	cursor := &ReplayCursor{}
+	err = kvtx.RunTransaction(ctx, false, open, func(ctx context.Context, tx kvtx.Tx) error {
+		data, found, err := tx.Get(ctx, replayCursorKey)
+		if err != nil || !found {
+			return err
+		}
+		return cursor.UnmarshalVT(data)
+	})
+	if err != nil {
+		return err
+	}
+	if cursor.GetBase() == nil {
+		return nil
+	}
+
+	// Restore its outcomes, with the World after the last one.
+	r.base = cursor.GetBase()
+	r.positions = make([]replayPosition, len(cursor.GetOutcomes()))
+	for i, outcome := range cursor.GetOutcomes() {
+		r.positions[i].outcome = replayOutcome{hash: outcome.GetHash(), reason: outcome.GetReason()}
+	}
+	if n := len(r.positions); n != 0 {
+		r.positions[n-1].state = cursor.GetHead()
+	}
+	r.changed = false
+	return nil
+}
+
+// save writes the replay to the local state of the World when it changed. The
+// caller holds the World after the replay, so a later load resumes from a
+// World whose blocks are kept.
+func (r *replayer) save(ctx context.Context) error {
+	// Skip an unchanged replay.
+	if !r.changed {
+		return nil
+	}
+
+	// Encode the base, the outcomes and the World after them.
+	base, head, _ := r.head()
+	cursor := &ReplayCursor{
+		Base:     base,
+		Head:     head,
+		Outcomes: make([]*ReplayCursorOutcome, len(r.positions)),
+	}
+	for i, pos := range r.positions {
+		cursor.Outcomes[i] = &ReplayCursorOutcome{Hash: pos.outcome.hash, Reason: pos.outcome.reason}
+	}
+	data, err := cursor.MarshalVT()
+	if err != nil {
+		return err
+	}
+
+	// Write it.
+	store, release, err := r.so.AccessLocalStateStore(ctx, replayCursorStoreID, nil)
+	if err != nil {
+		return err
+	}
+	defer release()
+	open := func(ctx context.Context) (kvtx.Tx, error) { return store.NewTransaction(ctx, true) }
+	err = kvtx.RunTransaction(ctx, true, open, func(ctx context.Context, tx kvtx.Tx) error {
+		return tx.Set(ctx, replayCursorKey, data)
+	})
+	if err != nil {
+		return err
+	}
+	r.changed = false
+	return nil
 }
 
 // head returns the replay base and the World after the last replayed position,
@@ -114,10 +206,17 @@ func (r *replayer) replay(
 	fork *replayFork,
 ) (*InnerState, []replayOutcome, error) {
 	// Keep the positions of the prefix the new order shares with the last one.
+	// A restored prefix resumes only from its last position.
 	order := set.Order()
 	n := 0
 	for n < len(order) && n < len(r.positions) && bytes.Equal(order[n], r.positions[n].outcome.hash) {
 		n++
+	}
+	if n != 0 && r.positions[n-1].state == nil {
+		n = 0
+	}
+	if n != len(r.positions) || n != len(order) {
+		r.changed = true
 	}
 	r.positions = r.positions[:n]
 

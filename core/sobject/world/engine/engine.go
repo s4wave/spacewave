@@ -392,9 +392,9 @@ func (e *soEngine) queueOperation(ctx context.Context, opData []byte, fork *repl
 	return nil
 }
 
-// updateEngineState installs a replayed World and keeps its graph and its
-// retained roots in this participant's block store. The caller holds the
-// writer lock.
+// updateEngineState installs a replayed World, keeps its graph and its
+// retained roots in this participant's block store, and saves the replay that
+// reached it. The caller holds the writer lock.
 func (e *soEngine) updateEngineState(ctx context.Context, state *InnerState) error {
 	// Trace the update.
 	ctx, task := trace.NewTask(ctx, "alpha/so-engine/update-engine-state")
@@ -424,7 +424,9 @@ func (e *soEngine) updateEngineState(ctx context.Context, state *InnerState) err
 		}
 		e.retainedRoots = state.GetRetainedRoots()
 	}
-	return nil
+
+	// Save the replay now that its World is kept.
+	return e.replay.save(ctx)
 }
 
 // acceptedWorldRootName names the local root that holds the installed World.

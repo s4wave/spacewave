@@ -2360,8 +2360,12 @@ export const WatchWorldStateRequest: MessageType<WatchWorldStateRequest> =
  */
 export interface WatchWorldStateResponse {
   /**
-   * ResourceId is the ID of the tracked WorldState resource.
-   * This changes each time tracked resources are modified.
+   * ResourceId is the ID of the tracked WorldState snapshot resource.
+   * Each change to a tracked access sends a new ID. The watch sends the new ID
+   * before it releases the snapshot the ID supersedes, so a call that fails
+   * because its snapshot was released finds the replacement on this stream.
+   * A watch that ends instead releases its snapshot and closes the stream.
+   * Adopted child resources stay readable until the client releases them.
    *
    * @generated from field: uint32 resource_id = 1;
    */

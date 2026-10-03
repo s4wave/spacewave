@@ -200,6 +200,81 @@ export const InnerState: MessageType<InnerState> =
   })
 
 /**
+ * ReplayCursorOutcome is the outcome of one replayed operation.
+ *
+ * @generated from message sobject.world.engine.ReplayCursorOutcome
+ */
+export interface ReplayCursorOutcome {
+  /**
+   * Hash identifies the operation.
+   *
+   * @generated from field: bytes hash = 1;
+   */
+  hash?: Uint8Array
+  /**
+   * Reason is empty when the operation applied. Otherwise it says why the
+   * operation was not applied.
+   *
+   * @generated from field: string reason = 2;
+   */
+  reason?: string
+}
+
+export const ReplayCursorOutcome: MessageType<ReplayCursorOutcome> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'sobject.world.engine.ReplayCursorOutcome',
+    fields: [
+      { no: 1, name: 'hash', kind: 'scalar', T: ScalarType.BYTES },
+      { no: 2, name: 'reason', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+  })
+
+/**
+ * ReplayCursor is the replay a World engine last installed. A member keeps it
+ * in local state so a remount resumes after it instead of replaying the
+ * operation set from the checkpoint.
+ *
+ * @generated from message sobject.world.engine.ReplayCursor
+ */
+export interface ReplayCursor {
+  /**
+   * Base is the World of the checkpoint the replay started from.
+   *
+   * @generated from field: sobject.world.engine.InnerState base = 1;
+   */
+  base?: InnerState
+  /**
+   * Outcomes are the replayed operations in order.
+   *
+   * @generated from field: repeated sobject.world.engine.ReplayCursorOutcome outcomes = 2;
+   */
+  outcomes?: ReplayCursorOutcome[]
+  /**
+   * Head is the World after the last outcome. The engine holds it as its
+   * installed World.
+   *
+   * @generated from field: sobject.world.engine.InnerState head = 3;
+   */
+  head?: InnerState
+}
+
+export const ReplayCursor: MessageType<ReplayCursor> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'sobject.world.engine.ReplayCursor',
+    fields: [
+      { no: 1, name: 'base', kind: 'message', T: InnerState },
+      {
+        no: 2,
+        name: 'outcomes',
+        kind: 'message',
+        T: ReplayCursorOutcome,
+        repeated: true,
+      },
+      { no: 3, name: 'head', kind: 'message', T: InnerState },
+    ] satisfies readonly PartialFieldInfo[],
+  })
+
+/**
  * RetainedRootSet is the block each member keeps as its one local named root
  * for all retained roots. Its outgoing refs are the retained World roots.
  *

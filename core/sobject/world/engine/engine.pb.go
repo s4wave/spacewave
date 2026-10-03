@@ -133,6 +133,77 @@ func (x *InnerState) GetRetainedRoots() []*RetainedRoot {
 	return nil
 }
 
+// ReplayCursor is the replay a World engine last installed. A member keeps it
+// in local state so a remount resumes after it instead of replaying the
+// operation set from the checkpoint.
+type ReplayCursor struct {
+	unknownFields []byte
+	// Base is the World of the checkpoint the replay started from.
+	Base *InnerState `protobuf:"bytes,1,opt,name=base,proto3" json:"base,omitempty"`
+	// Outcomes are the replayed operations in order.
+	Outcomes []*ReplayCursorOutcome `protobuf:"bytes,2,rep,name=outcomes,proto3" json:"outcomes,omitempty"`
+	// Head is the World after the last outcome. The engine holds it as its
+	// installed World.
+	Head *InnerState `protobuf:"bytes,3,opt,name=head,proto3" json:"head,omitempty"`
+}
+
+func (x *ReplayCursor) Reset() {
+	*x = ReplayCursor{}
+}
+
+func (*ReplayCursor) ProtoMessage() {}
+
+func (x *ReplayCursor) GetBase() *InnerState {
+	if x != nil {
+		return x.Base
+	}
+	return nil
+}
+
+func (x *ReplayCursor) GetOutcomes() []*ReplayCursorOutcome {
+	if x != nil {
+		return x.Outcomes
+	}
+	return nil
+}
+
+func (x *ReplayCursor) GetHead() *InnerState {
+	if x != nil {
+		return x.Head
+	}
+	return nil
+}
+
+// ReplayCursorOutcome is the outcome of one replayed operation.
+type ReplayCursorOutcome struct {
+	unknownFields []byte
+	// Hash identifies the operation.
+	Hash []byte `protobuf:"bytes,1,opt,name=hash,proto3" json:"hash,omitempty"`
+	// Reason is empty when the operation applied. Otherwise it says why the
+	// operation was not applied.
+	Reason string `protobuf:"bytes,2,opt,name=reason,proto3" json:"reason,omitempty"`
+}
+
+func (x *ReplayCursorOutcome) Reset() {
+	*x = ReplayCursorOutcome{}
+}
+
+func (*ReplayCursorOutcome) ProtoMessage() {}
+
+func (x *ReplayCursorOutcome) GetHash() []byte {
+	if x != nil {
+		return x.Hash
+	}
+	return nil
+}
+
+func (x *ReplayCursorOutcome) GetReason() string {
+	if x != nil {
+		return x.Reason
+	}
+	return ""
+}
+
 // RetainedRoot is a past World root kept restorable under a name.
 type RetainedRoot struct {
 	unknownFields []byte
@@ -376,6 +447,41 @@ func (m *InnerState) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
+func (m *ReplayCursor) CloneVT() *ReplayCursor {
+	if m == nil {
+		return (*ReplayCursor)(nil)
+	}
+	r := new(ReplayCursor)
+	r.Base = protobuf_go_lite.CloneVTValue(m.Base)
+	r.Outcomes = protobuf_go_lite.CloneVTSlice(m.Outcomes)
+	r.Head = protobuf_go_lite.CloneVTValue(m.Head)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *ReplayCursor) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *ReplayCursorOutcome) CloneVT() *ReplayCursorOutcome {
+	if m == nil {
+		return (*ReplayCursorOutcome)(nil)
+	}
+	r := new(ReplayCursorOutcome)
+	r.Reason = m.Reason
+	r.Hash = protobuf_go_lite.CloneBytes(m.Hash)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *ReplayCursorOutcome) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
 func (m *RetainedRoot) CloneVT() *RetainedRoot {
 	if m == nil {
 		return (*RetainedRoot)(nil)
@@ -571,6 +677,55 @@ func (this *InnerState) EqualVT(that *InnerState) bool {
 
 func (this *InnerState) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*InnerState)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *ReplayCursor) EqualVT(that *ReplayCursor) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.Base, that.Base) {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTSliceImplicit(this.Outcomes, that.Outcomes, func() *ReplayCursorOutcome { return &ReplayCursorOutcome{} }) {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.Head, that.Head) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *ReplayCursor) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*ReplayCursor)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *ReplayCursorOutcome) EqualVT(that *ReplayCursorOutcome) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualBytes(this.Hash, that.Hash) {
+		return false
+	}
+	if this.Reason != that.Reason {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *ReplayCursorOutcome) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*ReplayCursorOutcome)
 	if !ok {
 		return false
 	}
@@ -934,6 +1089,143 @@ func (x *InnerState) UnmarshalProtoJSON(s *json.UnmarshalState) {
 
 // UnmarshalJSON unmarshals the InnerState from JSON.
 func (x *InnerState) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the ReplayCursor message to JSON.
+func (x *ReplayCursor) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Base != nil || s.HasField("base") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("base")
+		x.Base.MarshalProtoJSON(s.WithField("base"))
+	}
+	if len(x.Outcomes) > 0 || s.HasField("outcomes") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("outcomes")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.Outcomes {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("outcomes"))
+		}
+		s.WriteArrayEnd()
+	}
+	if x.Head != nil || s.HasField("head") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("head")
+		x.Head.MarshalProtoJSON(s.WithField("head"))
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the ReplayCursor to JSON.
+func (x *ReplayCursor) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the ReplayCursor message from JSON.
+func (x *ReplayCursor) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "base":
+			if s.ReadNil() {
+				x.Base = nil
+				return
+			}
+			x.Base = &InnerState{}
+			x.Base.UnmarshalProtoJSON(s.WithField("base", true))
+		case "outcomes":
+			s.AddField("outcomes")
+			if s.ReadNil() {
+				x.Outcomes = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.Outcomes = append(x.Outcomes, nil)
+					return
+				}
+				v := &ReplayCursorOutcome{}
+				v.UnmarshalProtoJSON(s.WithField("outcomes", false))
+				if s.Err() != nil {
+					return
+				}
+				x.Outcomes = append(x.Outcomes, v)
+			})
+		case "head":
+			if s.ReadNil() {
+				x.Head = nil
+				return
+			}
+			x.Head = &InnerState{}
+			x.Head.UnmarshalProtoJSON(s.WithField("head", true))
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the ReplayCursor from JSON.
+func (x *ReplayCursor) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the ReplayCursorOutcome message to JSON.
+func (x *ReplayCursorOutcome) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if len(x.Hash) > 0 || s.HasField("hash") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("hash")
+		s.WriteBytes(x.Hash)
+	}
+	if x.Reason != "" || s.HasField("reason") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("reason")
+		s.WriteString(x.Reason)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the ReplayCursorOutcome to JSON.
+func (x *ReplayCursorOutcome) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the ReplayCursorOutcome message from JSON.
+func (x *ReplayCursorOutcome) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "hash":
+			s.AddField("hash")
+			x.Hash = s.ReadBytes()
+		case "reason":
+			s.AddField("reason")
+			x.Reason = s.ReadString()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the ReplayCursorOutcome from JSON.
+func (x *ReplayCursorOutcome) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -1416,6 +1708,112 @@ func (m *InnerState) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
+func (m *ReplayCursor) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ReplayCursor) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *ReplayCursor) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.Head != nil {
+		size, err := m.Head.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x1a
+	}
+	if len(m.Outcomes) > 0 {
+		for iNdEx := len(m.Outcomes) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.Outcomes[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x12
+		}
+	}
+	if m.Base != nil {
+		size, err := m.Base.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *ReplayCursorOutcome) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ReplayCursorOutcome) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *ReplayCursorOutcome) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.Reason) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.Reason)
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.Hash) > 0 {
+		i = protobuf_go_lite.EncodeBytes(dAtA, i, m.Hash)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *RetainedRoot) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -1797,6 +2195,40 @@ func (m *InnerState) SizeVT() (n int) {
 	return n
 }
 
+func (m *ReplayCursor) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Base != nil {
+		l = m.Base.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	for _, e := range m.Outcomes {
+		l = e.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	if m.Head != nil {
+		l = m.Head.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *ReplayCursorOutcome) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.Hash)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Reason)
+	n += len(m.unknownFields)
+	return n
+}
+
 func (m *RetainedRoot) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -1989,6 +2421,54 @@ func (x *InnerState) MarshalProtoText() string {
 }
 
 func (x *InnerState) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *ReplayCursor) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "ReplayCursor")
+	if x.Base != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "base")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Base)
+	}
+	if len(x.Outcomes) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "outcomes")
+		for i, v := range x.Outcomes {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			if v == nil {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, &ReplayCursorOutcome{})
+			} else {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, v)
+			}
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
+	if x.Head != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "head")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Head)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *ReplayCursor) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *ReplayCursorOutcome) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "ReplayCursorOutcome")
+	if len(x.Hash) != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "hash")
+		protobuf_go_lite.TextWriteBytes(&sb, x.Hash)
+	}
+	if x.Reason != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "reason")
+		protobuf_go_lite.TextWriteString(&sb, x.Reason)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *ReplayCursorOutcome) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -2286,6 +2766,153 @@ func (m *InnerState) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *ReplayCursor) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ReplayCursor: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ReplayCursor: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Base", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Base == nil {
+				m.Base = &InnerState{}
+			}
+			if err := m.Base.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Outcomes", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Outcomes = append(m.Outcomes, &ReplayCursorOutcome{})
+			if err := m.Outcomes[len(m.Outcomes)-1].UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Head", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Head == nil {
+				m.Head = &InnerState{}
+			}
+			if err := m.Head.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *ReplayCursorOutcome) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ReplayCursorOutcome: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ReplayCursorOutcome: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Hash", wireType)
+			}
+			m.Hash, iNdEx, err = protobuf_go_lite.DecodeBytesAppend(m.Hash, dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Reason", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Reason = v
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

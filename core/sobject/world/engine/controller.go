@@ -157,9 +157,13 @@ func (c *Controller) executeWorld(
 	so sobject.SharedObject,
 	soStateCtr ccontainer.Watchable[sobject.SharedObjectStateSnapshot],
 ) error {
-	// Replay the World, initializing it if necessary.
+	// Resume the saved replay, then replay the World, initializing it if
+	// necessary.
 	le := c.le
 	replay := newReplayer(c, so)
+	if err := replay.load(ctx); err != nil {
+		return err
+	}
 	headState, err := c.waitWorldInit(ctx, so, soStateCtr, replay)
 	if err != nil {
 		return err
