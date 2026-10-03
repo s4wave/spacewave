@@ -50,10 +50,13 @@ func (s *subscription) Publish(data []byte) error {
 // Returns a remove function.
 // The handler(s) are also removed when the subscription is released.
 func (s *subscription) AddHandler(cb func(m pubsub.Message)) func() {
+	// Register the callback in the subscription's active handler set.
 	sh := &subscriptionHandler{cb: cb}
 	s.mtx.Lock()
 	s.handlers[sh] = struct{}{}
 	s.mtx.Unlock()
+
+	// Return an idempotent removal function for this subscription handler.
 	relOnce := sync.Once{}
 	return func() {
 		relOnce.Do(func() {
@@ -72,6 +75,7 @@ func (s *subscription) Release() {
 	}
 	s.mtx.Unlock()
 	s.relOnce.Do(func() {
+		// Remove the channel subscription and wake reconciliation when it becomes empty.
 		chid := s.channelID
 		s.m.mtx.Lock()
 		subs := s.m.channels[chid]

@@ -240,6 +240,7 @@ func (f *FSCursorService) lookupCursorOpsLocked(opsHandleID uint64) (unixfs.FSCu
 // expects mtx to NOT be locked
 // translates the returned error to a UnixFSError, if any
 func (f *FSCursorService) accessCursorOps(opsHandleID uint64, cb func(ops unixfs.FSCursorOps) error) *unixfs_errors.UnixFSError {
+	// Resolve the cursor operations handle before invoking the requested operation.
 	if opsHandleID == 0 {
 		return unixfs_errors.NewUnixFSError(unixfs_rpc.ErrHandleIDEmpty)
 	}
@@ -486,6 +487,7 @@ func (f *FSCursorService) resolveFSCursorLookup(
 	clientID uint64,
 	lookupName string,
 ) (unixfs.FSCursor, uint64, error) {
+	// Require parent cursor, operations, client, and child-name identifiers for lookup.
 	if parentCursorHandleID == 0 || opsHandleID == 0 {
 		return nil, 0, unixfs_rpc.ErrHandleIDEmpty
 	}
@@ -596,6 +598,7 @@ func (f *FSCursorService) resolveFSCursorLookup(
 // expects mtx is locked
 // expects that the client already knows this cursor was released (does not send a event).
 func (f *FSCursorService) removeFSCursorRefLocked(cursorHandleID, clientHandleID uint64, removeFromClient bool) error {
+	// Require cursor and client identifiers before removing a cursor reference.
 	if cursorHandleID == 0 {
 		return unixfs_rpc.ErrHandleIDEmpty
 	}
@@ -603,6 +606,7 @@ func (f *FSCursorService) removeFSCursorRefLocked(cursorHandleID, clientHandleID
 		return unixfs_rpc.ErrClientIDEmpty
 	}
 
+	// Remove the cursor handle from the client tracking record when requested.
 	if removeFromClient {
 		clientObj := f.clients[clientHandleID]
 		if clientObj == nil {
@@ -616,11 +620,13 @@ func (f *FSCursorService) removeFSCursorRefLocked(cursorHandleID, clientHandleID
 		clientObj.cursors = append(clientObj.cursors[:clientIdx], clientObj.cursors[clientIdx:]...)
 	}
 
+	// Find the registered cursor whose client reference is being removed.
 	cursor, cursorOk := f.handleIDToCursor[cursorHandleID]
 	if !cursorOk {
 		return nil
 	}
 
+	// Find the client reference in the registered cursor before removing it.
 	idx := slices.Index(cursor.clients, clientHandleID)
 	if idx == -1 {
 		return nil
@@ -674,6 +680,7 @@ func (f *FSCursorService) ingestFSCursorLocked(
 	name string,
 	clientID uint64,
 ) error {
+	// Register the pending child cursor before resolving it outside the service lock.
 	nextFSCursor := &localFSCursor{
 		parent:  parent,
 		name:    name,
@@ -694,6 +701,7 @@ func (f *FSCursorService) ingestFSCursorLocked(
 		err = unixfs_errors.ErrReleased
 	}
 
+	// Subscribe to cursor changes and detect release during cursor initialization.
 	if err == nil {
 		// Add the change callback and detect instant release callback within the same stack.
 		fsCursor.AddChangeCb(func(ch *unixfs.FSCursorChange) bool {
@@ -774,6 +782,7 @@ func (f *FSCursorService) FSCursorClient(
 	req *unixfs_rpc.FSCursorClientRequest,
 	strm unixfs_rpc.SRPCFSCursorService_FSCursorClientStream,
 ) error {
+	// Use the RPC stream context for the cursor client lifecycle.
 	ctx := strm.Context()
 
 	// Add the client to the client set.
@@ -787,6 +796,7 @@ func (f *FSCursorService) FSCursorClient(
 
 	// Remove the client when returning.
 	defer func() {
+		// Drop the client cursor references and registration when the RPC stream exits.
 		f.mtx.Lock()
 		for _, cursorID := range clientObj.cursors {
 			_ = f.removeFSCursorRefLocked(cursorID, clientHandleID, false)
@@ -808,6 +818,7 @@ func (f *FSCursorService) FSCursorClient(
 		return err
 	}
 
+	// Drain cursor change events to the client until stream cancellation or release.
 	for {
 		select {
 		case <-ctx.Done():
@@ -860,11 +871,13 @@ func (f *FSCursorService) GetCursorOps(
 	ctx context.Context,
 	req *unixfs_rpc.GetCursorOpsRequest,
 ) (*unixfs_rpc.GetCursorOpsResponse, error) {
+	// Require a cursor handle before resolving its operations for the RPC response.
 	cursorHandleID := req.GetCursorHandleId()
 	if cursorHandleID == 0 {
 		return nil, unixfs_rpc.ErrHandleIDEmpty
 	}
 
+	// Resolve cursor operations and encode their identity, type, or error in the response.
 	var resp unixfs_rpc.GetCursorOpsResponse
 	ops, opsHandleID, err := f.resolveCursorOps(ctx, cursorHandleID)
 	if ops == nil && err == nil {
@@ -887,6 +900,7 @@ func (f *FSCursorService) ReleaseFSCursor(
 	ctx context.Context,
 	req *unixfs_rpc.ReleaseFSCursorRequest,
 ) (*unixfs_rpc.ReleaseFSCursorResponse, error) {
+	// Remove the requested client reference from the registered cursor under the service lock.
 	f.mtx.Lock()
 	err := f.removeFSCursorRefLocked(req.GetCursorHandleId(), req.GetClientHandleId(), true)
 	f.mtx.Unlock()
@@ -974,6 +988,7 @@ func (f *FSCursorService) OpsReadAt(
 	ctx context.Context,
 	req *unixfs_rpc.OpsReadAtRequest,
 ) (*unixfs_rpc.OpsReadAtResponse, error) {
+	// Validate and limit the requested file read before filling the RPC response.
 	var resp unixfs_rpc.OpsReadAtResponse
 	readSize, offset := req.GetSize(), req.GetOffset()
 	if readSize < 0 {
@@ -1157,7 +1172,9 @@ func (f *FSCursorService) OpsCopyTo(
 	ctx context.Context,
 	req *unixfs_rpc.OpsCopyToRequest,
 ) (*unixfs_rpc.OpsCopyToResponse, error) {
+	// Prepare the RPC response for copying the source cursor into a target directory.
 	var resp unixfs_rpc.OpsCopyToResponse
+
 	// access the source ops
 	var srcOps unixfs.FSCursorOps
 	resp.UnixfsError = f.accessCursorOps(req.GetOpsHandleId(), func(srcOpsRet unixfs.FSCursorOps) error {
@@ -1184,7 +1201,9 @@ func (f *FSCursorService) OpsCopyFrom(
 	ctx context.Context,
 	req *unixfs_rpc.OpsCopyFromRequest,
 ) (*unixfs_rpc.OpsCopyFromResponse, error) {
+	// Prepare the RPC response for copying a source cursor into this directory.
 	var resp unixfs_rpc.OpsCopyFromResponse
+
 	// access the source ops
 	var srcOps unixfs.FSCursorOps
 	resp.UnixfsError = f.accessCursorOps(req.GetSrcCursorOpsHandleId(), func(srcOpsRet unixfs.FSCursorOps) error {
@@ -1211,7 +1230,9 @@ func (f *FSCursorService) OpsMoveTo(
 	ctx context.Context,
 	req *unixfs_rpc.OpsMoveToRequest,
 ) (*unixfs_rpc.OpsMoveToResponse, error) {
+	// Prepare the RPC response for moving the source cursor into a target directory.
 	var resp unixfs_rpc.OpsMoveToResponse
+
 	// access the source ops
 	var srcOps unixfs.FSCursorOps
 	resp.UnixfsError = f.accessCursorOps(req.GetOpsHandleId(), func(srcOpsRet unixfs.FSCursorOps) error {
@@ -1246,7 +1267,9 @@ func (f *FSCursorService) OpsMoveFrom(
 	ctx context.Context,
 	req *unixfs_rpc.OpsMoveFromRequest,
 ) (*unixfs_rpc.OpsMoveFromResponse, error) {
+	// Prepare the RPC response for moving a source cursor into this directory.
 	var resp unixfs_rpc.OpsMoveFromResponse
+
 	// access the source ops
 	var srcOps unixfs.FSCursorOps
 	resp.UnixfsError = f.accessCursorOps(req.GetSrcOpsHandleId(), func(srcOpsRet unixfs.FSCursorOps) error {
@@ -1284,10 +1307,13 @@ func (f *FSCursorService) OpsRemove(
 // If releaseRoot is set, the root cursor is released as well.
 // Drops all clients without sending release notifications.
 func (f *FSCursorService) Release(releaseRoot bool) {
+	// Release client registrations while holding the cursor service state lock.
 	f.mtx.Lock()
 	for _, client := range f.clients {
 		client.released, client.cursors, client.txQueue = true, nil, nil
 	}
+
+	// Clear client and operations records and release the selected cursor handles.
 	// f.handleIDCtr = 1
 	f.clients = make(map[uint64]*fsCursorClient)
 	f.handleIDToOps = make(map[uint64]unixfs.FSCursorOps)

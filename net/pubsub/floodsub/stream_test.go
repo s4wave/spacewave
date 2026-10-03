@@ -38,9 +38,14 @@ func newTestStreamHandler(readErr error, buf *bytes.Buffer) *streamHandler {
 
 // TestReadPumpCleanClose tests that a clean close exits at debug level.
 func TestReadPumpCleanClose(t *testing.T) {
+	// Construct a peer reader whose transport reports a clean close.
 	var buf bytes.Buffer
 	sh := newTestStreamHandler(errors.New("NO_ERROR"), &buf)
+
+	// Run the peer reader until the clean transport close ends it.
 	sh.readPump(sh.ctx)
+
+	// Require clean peer shutdown to log its exit without a receive warning.
 	if strings.Contains(buf.String(), "error receiving message") {
 		t.Fatalf("clean close should not warn, logged: %s", buf.String())
 	}

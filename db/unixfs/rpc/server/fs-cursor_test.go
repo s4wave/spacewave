@@ -12,6 +12,7 @@ import (
 )
 
 func TestResolveFSCursorProxyTracksEveryClient(t *testing.T) {
+	// Construct a cursor service with two clients sharing the same proxy cursor.
 	ctx := t.Context()
 	proxy := newTestFSCursor(nil)
 	root := newTestFSCursor(proxy)
@@ -19,18 +20,24 @@ func TestResolveFSCursorProxyTracksEveryClient(t *testing.T) {
 	service.clients[1] = &fsCursorClient{}
 	service.clients[2] = &fsCursorClient{}
 
+	// Resolve the proxy cursor for the first client.
 	_, proxyHandleID, err := service.resolveFSCursorProxy(ctx, 1, 1)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Resolve the shared proxy cursor for the second client.
 	_, secondHandleID, err := service.resolveFSCursorProxy(ctx, 1, 2)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Require both clients to receive the same proxy cursor handle.
 	if secondHandleID != proxyHandleID {
 		t.Fatalf("proxy handle changed: first=%d second=%d", proxyHandleID, secondHandleID)
 	}
 
+	// Require the proxy and client records to track both references without changing the parent.
 	service.mtx.Lock()
 	registered := service.handleIDToCursor[proxyHandleID]
 	if registered == nil {
@@ -51,6 +58,8 @@ func TestResolveFSCursorProxyTracksEveryClient(t *testing.T) {
 			t.Fatalf("unexpected client %d cursors: %v", clientID, cursors)
 		}
 	}
+
+	// Define client teardown through the cursor service reference-removal API.
 	releaseClient := func(clientID uint64) {
 		for _, cursorHandleID := range service.clients[clientID].cursors {
 			if err := service.removeFSCursorRefLocked(cursorHandleID, clientID, false); err != nil {
@@ -59,18 +68,27 @@ func TestResolveFSCursorProxyTracksEveryClient(t *testing.T) {
 			}
 		}
 	}
+
+	// Release the first client reference to the shared proxy cursor.
 	releaseClient(1)
+
+	// Require the shared proxy cursor to remain registered for the second client.
 	if service.handleIDToCursor[proxyHandleID] == nil {
 		service.mtx.Unlock()
 		t.Fatal("first client release removed the shared proxy cursor")
 	}
+
+	// Release the final client reference to the shared proxy cursor.
 	releaseClient(2)
+
+	// Require the proxy cursor registration to disappear after its last reference.
 	if service.handleIDToCursor[proxyHandleID] != nil {
 		service.mtx.Unlock()
 		t.Fatal("last client release retained the proxy cursor")
 	}
 	service.mtx.Unlock()
 
+	// Require the final client release to reach the underlying proxy cursor.
 	select {
 	case <-proxy.releasedCh:
 	case <-time.After(time.Second):

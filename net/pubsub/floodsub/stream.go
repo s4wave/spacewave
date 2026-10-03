@@ -37,6 +37,7 @@ type streamHandler struct {
 
 // queueSubscriptions coalesces state without waiting for the peer's writer.
 func (s *streamHandler) queueSubscriptions(changes []*SubscriptionOpts) {
+	// Coalesce channel changes against the peer writer's announced state.
 	s.subMtx.Lock()
 	if s.pending == nil {
 		s.pending = make(map[string]bool)
@@ -51,6 +52,8 @@ func (s *streamHandler) queueSubscriptions(changes []*SubscriptionOpts) {
 		s.pending[id] = subscribe
 	}
 	s.subMtx.Unlock()
+
+	// Wake the peer writer to transmit its pending subscription changes.
 	select {
 	case s.subWake <- struct{}{}:
 	default:
@@ -59,11 +62,14 @@ func (s *streamHandler) queueSubscriptions(changes []*SubscriptionOpts) {
 
 // takeSubscriptions transfers the next ordered state change to the sole writer.
 func (s *streamHandler) takeSubscriptions() *Packet {
+	// Hold subscription state while checking for work for the peer writer.
 	s.subMtx.Lock()
 	defer s.subMtx.Unlock()
 	if len(s.pending) == 0 {
 		return nil
 	}
+
+	// Transfer pending channel states into a packet and the announced records.
 	packet := &Packet{Subscriptions: make([]*SubscriptionOpts, 0, len(s.pending))}
 	for id, subscribe := range s.pending {
 		packet.Subscriptions = append(packet.Subscriptions, &SubscriptionOpts{ChannelId: id, Subscribe: subscribe})
@@ -95,10 +101,14 @@ func (s *streamHandler) tryWritePacket(pkt *Packet) bool {
 
 // executeSession executes the stream session.
 func (s *streamHandler) executeSession() error {
+	// Use the peer session context for reader and writer shutdown.
 	ctx := s.ctx
+
 	// Closing the transport interrupts a blocked write as well as the reader.
 	stop := context.AfterFunc(ctx, func() { s.stream.Close() })
 	defer stop()
+
+	// Run the peer reader and join it after canceling and closing the transport.
 	readDone := make(chan struct{})
 	go func() {
 		defer close(readDone)
@@ -110,6 +120,7 @@ func (s *streamHandler) executeSession() error {
 		<-readDone
 	}()
 
+	// Drain peer subscription updates and publications through the sole writer.
 	for {
 		// Subscription changes use the same writer, preserving order under backpressure.
 		if packet := s.takeSubscriptions(); packet != nil {
@@ -117,6 +128,8 @@ func (s *streamHandler) executeSession() error {
 				return err
 			}
 		}
+
+		// Wait for peer writer work or session cancellation.
 		select {
 		case <-ctx.Done():
 			return ctx.Err()

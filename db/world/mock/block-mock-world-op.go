@@ -56,6 +56,7 @@ func (m *MockWorldOp) ApplyWorldOp(
 	worldHandle world.WorldState,
 	sender peer.ID,
 ) (sysErr bool, err error) {
+	// Identify the World object and message targeted by the mock operation.
 	nextMsg := m.GetNextMsg()
 	objectKey := m.GetObjectKey()
 
@@ -66,6 +67,7 @@ func (m *MockWorldOp) ApplyWorldOp(
 		return false, err
 	}
 
+	// Apply the mock message update through the object operation implementation.
 	op := NewMockObjectOp(nextMsg)
 	return op.ApplyWorldObjectOp(ctx, le, objState, sender)
 }

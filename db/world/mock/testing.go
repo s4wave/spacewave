@@ -37,6 +37,7 @@ func TestWorldEngine(ctx context.Context, le *logrus.Entry, eng world.Engine) er
 
 // TestWorldEngine_Basic performs basic sanity tests on a world engine.
 func TestWorldEngine_Basic(ctx context.Context, le *logrus.Entry, eng world.Engine) error {
+	// Choose the World object key used throughout the engine checks.
 	objKey := "test-object"
 
 	// Create the initial object in a writable transaction.
@@ -59,6 +60,7 @@ func TestWorldEngine_Basic(ctx context.Context, le *logrus.Entry, eng world.Engi
 		return errors.Wrapf(err, "get object: %s", objKey)
 	}
 
+	// Define the root-reference comparison used by World readback checks.
 	assertEqual := func(o1, o2 *bucket.ObjectRef) error {
 		if o1.GetBucketId() != o2.GetBucketId() {
 			return errors.Errorf("object ref different from expected: bucket=%q want %q", o1.GetBucketId(), o2.GetBucketId())
@@ -66,6 +68,7 @@ func TestWorldEngine_Basic(ctx context.Context, le *logrus.Entry, eng world.Engi
 		return nil
 	}
 
+	// Require the newly created World object to expose its initial root reference.
 	oref1b, _, err := objState.GetRootRef(ctx)
 	if err == nil {
 		err = assertEqual(oref1b, oref1)
@@ -87,6 +90,7 @@ func TestWorldEngine_Basic(ctx context.Context, le *logrus.Entry, eng world.Engi
 	}
 	defer ws.Discard()
 
+	// Read the persisted World object and require its initial reference and revision.
 	objState, err = world.MustGetObject(ctx, ws, objKey)
 	defer world.ReleaseObjectState(objState)
 	if err != nil {
@@ -106,6 +110,7 @@ func TestWorldEngine_Basic(ctx context.Context, le *logrus.Entry, eng world.Engi
 		return errors.Wrap(err, "get root ref")
 	}
 
+	// Prepare an empty root reference for read-only and writable transaction checks.
 	oref2 := &bucket.ObjectRef{}
 
 	// Confirm that read transactions reject root-reference writes.
@@ -182,6 +187,7 @@ func TestWorldEngine_Basic(ctx context.Context, le *logrus.Entry, eng world.Engi
 		return err
 	}
 
+	// Connect the two World objects with the parent graph quad.
 	testQuad1 := world.NewGraphQuad(
 		world.KeyToGraphValue(objKey).String(),
 		"<parent>",
@@ -194,6 +200,7 @@ func TestWorldEngine_Basic(ctx context.Context, le *logrus.Entry, eng world.Engi
 		return err
 	}
 
+	// Commit the World graph relationship before checking its readback.
 	err = ws2.Commit(ctx)
 	if err != nil {
 		ws2.Discard()
@@ -286,6 +293,8 @@ func TestWorldEngine_Basic(ctx context.Context, le *logrus.Entry, eng world.Engi
 			objKey, obj2Key, parentStr,
 		)
 	}
+
+	// Clear the World object parent and require an empty relationship on readback.
 	if err := world_parent.ClearObjectParent(ctx, ws2, objKey); err != nil {
 		ws2.Discard()
 		return err
@@ -323,6 +332,7 @@ func TestWorldEngine_Basic(ctx context.Context, le *logrus.Entry, eng world.Engi
 		return err
 	}
 
+	// Commit the World type update and reopen a read snapshot for type queries.
 	err = ws2.Commit(ctx)
 	if err != nil {
 		return err
@@ -336,6 +346,7 @@ func TestWorldEngine_Basic(ctx context.Context, le *logrus.Entry, eng world.Engi
 
 	// Query the graph for objects carrying the stored type.
 	err = ws.AccessCayleyGraph(ctx, false, func(ctx context.Context, h world.CayleyHandle) error {
+		// Count World graph nodes restricted to the stored object type.
 		p := path.StartPath(h)
 		p = world_types.LimitNodesToTypes(p, objTypeID)
 		ch := p.Iterate(ctx)
@@ -381,12 +392,14 @@ func TestWorldEngine_Basic(ctx context.Context, le *logrus.Entry, eng world.Engi
 		obj world.ObjectState, // may be nil if not found
 		rootRef *bucket.ObjectRef, rev uint64,
 	) (bool, error) {
+		// Log the World object state observed by the revision control loop.
 		if obj == nil {
 			le.Debug("callback called: object does not exist")
 		} else {
 			le.Debugf("callback called with rev = %v", rev)
 		}
 
+		// Normalize the root bucket reference before reading the current example message.
 		if rootRef.GetBucketId() != "" {
 			rootRef.BucketId = ""
 		}
@@ -394,6 +407,7 @@ func TestWorldEngine_Basic(ctx context.Context, le *logrus.Entry, eng world.Engi
 
 		// _, _, err = world.AccessWorldObject(ctx, ws, objKey, false, func(bcs *block.Cursor) error {
 		_, _, err = world.AccessObjectState(ctx, obj, false, func(bcs *block.Cursor) error {
+			// Read the current example block and retain its message for revision updates.
 			eb, err := block.UnmarshalBlock[*block_mock.Example](ctx, bcs, block_mock.NewExampleBlock)
 			if err != nil {
 				return err
@@ -406,6 +420,7 @@ func TestWorldEngine_Basic(ctx context.Context, le *logrus.Entry, eng world.Engi
 			return false, err
 		}
 
+		// Apply the next World revision update until the control loop reaches its target.
 		nextMsg := "Hello from rev: " + strconv.Itoa(int(rev)) //nolint:gosec
 		if rev < targetRev {
 			if rev%2 != 0 || prevMsg == "" {
@@ -467,6 +482,7 @@ func TestWorldEngine_Basic(ctx context.Context, le *logrus.Entry, eng world.Engi
 		return errors.Errorf("expected deleted %s but got false", objKey)
 	}
 
+	// Prepare a writable World transaction for recreating the object with blob data.
 	blobTestData := []byte("test creating a blob")
 	ws2, err = eng.NewTransaction(ctx, true)
 	if err != nil {
@@ -530,6 +546,7 @@ func TestWorldEngine_Basic(ctx context.Context, le *logrus.Entry, eng world.Engi
 		"other/d": {BucketId: "test-4"},
 	}
 
+	// Create each prefix fixture object in the writable World transaction.
 	for k, ref := range testObjs {
 		createdObject4, err := ws2.CreateObject(ctx, k, ref)
 		world.ReleaseObjectState(createdObject4)
@@ -539,6 +556,7 @@ func TestWorldEngine_Basic(ctx context.Context, le *logrus.Entry, eng world.Engi
 		}
 	}
 
+	// Commit the World prefix fixtures before opening iteration snapshots.
 	if err := ws2.Commit(ctx); err != nil {
 		return err
 	}
@@ -552,6 +570,7 @@ func TestWorldEngine_Basic(ctx context.Context, le *logrus.Entry, eng world.Engi
 	// Verify forward iteration order for the test prefix.
 	iter := ws2.IterateObjects(ctx, "test/", false)
 
+	// Collect the forward iterator keys and require the expected prefix order.
 	var keys []string
 	for iter.Next() {
 		if !iter.Valid() {
@@ -577,6 +596,7 @@ func TestWorldEngine_Basic(ctx context.Context, le *logrus.Entry, eng world.Engi
 		return errors.Errorf("unexpected forward iteration order: %v", keys)
 	}
 
+	// Release the forward World iterator and its read transaction.
 	iter.Close()
 	ws2.Discard()
 
@@ -589,6 +609,7 @@ func TestWorldEngine_Basic(ctx context.Context, le *logrus.Entry, eng world.Engi
 	// Verify reverse iteration order for the test prefix.
 	iter = ws2.IterateObjects(ctx, "test/", true)
 
+	// Collect the reverse iterator keys and require the expected prefix order.
 	keys = nil
 	for iter.Next() {
 		if !iter.Valid() {
@@ -614,6 +635,7 @@ func TestWorldEngine_Basic(ctx context.Context, le *logrus.Entry, eng world.Engi
 		return errors.Errorf("unexpected reverse iteration order: %v", keys)
 	}
 
+	// Release the World iterator after reverse-order assertions.
 	iter.Close()
 
 	// Open a read transaction for seek checks.
@@ -625,6 +647,7 @@ func TestWorldEngine_Basic(ctx context.Context, le *logrus.Entry, eng world.Engi
 	// Verify seeking to a prefix key.
 	iter = ws2.IterateObjects(ctx, "", false)
 
+	// Seek the World iterator to the selected key and verify its result.
 	if err := iter.Seek("test/b"); err != nil {
 		iter.Close()
 		ws2.Discard()
@@ -641,6 +664,7 @@ func TestWorldEngine_Basic(ctx context.Context, le *logrus.Entry, eng world.Engi
 		return errors.Errorf("expected seek to test/b but got %s", k)
 	}
 
+	// Release the seek iterator and its World read transaction.
 	iter.Close()
 	ws2.Discard()
 	return nil

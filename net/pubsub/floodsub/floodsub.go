@@ -93,6 +93,7 @@ func NewFloodSub(
 
 // Execute reconciles topology at known deadlines while continuously handling publications.
 func (m *FloodSub) Execute(ctx context.Context) error {
+	// Run FloodSub sessions until router shutdown closes and joins them.
 	m.le.Debug("floodsub starting")
 	var sessions errgroup.Group
 	defer func() {
@@ -104,12 +105,18 @@ func (m *FloodSub) Execute(ctx context.Context) error {
 	reconcile := time.NewTimer(time.Hour)
 	reconcile.Stop()
 	defer reconcile.Stop()
+
+	// Track the next expiry of FloodSub message deduplication records.
 	expire := time.NewTimer(time.Hour)
 	expire.Stop()
 	defer expire.Stop()
+
+	// Reconcile initial subscriptions before accepting router events.
 	var reconcileCh, expireCh <-chan time.Time
 	published := make(map[string]struct{})
 	m.reconcile(ctx, published, &sessions)
+
+	// Dispatch publications, topology changes, and known message expirations.
 	for {
 		select {
 		case <-ctx.Done():
@@ -141,6 +148,7 @@ func (m *FloodSub) Execute(ctx context.Context) error {
 // reconcile starts pending streams and publishes coalesced subscription changes.
 // The Execute goroutine owns published and sessions.
 func (m *FloodSub) reconcile(ctx context.Context, published map[string]struct{}, sessions *errgroup.Group) {
+	// Hold the FloodSub topology stable while reconciling peer streams.
 	m.mtx.Lock()
 	defer m.mtx.Unlock()
 
@@ -159,9 +167,12 @@ func (m *FloodSub) reconcile(ctx context.Context, published map[string]struct{},
 		}
 		s.queueSubscriptions(initial)
 		sessions.Go(func() error {
+			// Run the peer session and report unexpected termination.
 			if err := s.executeSession(); err != nil && !errors.Is(err, context.Canceled) {
 				s.le.WithError(err).Debug("session exited")
 			}
+
+			// Remove the finished stream only if it is still the peer's active session.
 			m.mtx.Lock()
 			if m.peers[s.tpl] == s {
 				delete(m.peers, s.tpl)
@@ -193,6 +204,8 @@ func (m *FloodSub) reconcile(ctx context.Context, published map[string]struct{},
 	if len(changes) == 0 {
 		return
 	}
+
+	// Queue the coalesced channel changes on every running peer stream.
 	for _, peer := range m.peers {
 		if peer.ctx != nil {
 			peer.queueSubscriptions(changes)
@@ -202,6 +215,7 @@ func (m *FloodSub) reconcile(ctx context.Context, published map[string]struct{},
 
 // expireSeen removes expired message IDs and returns the next known deadline.
 func (m *FloodSub) expireSeen(now time.Time) time.Time {
+	// Remove expired FloodSub message records while tracking the next deadline.
 	m.mtx.Lock()
 	defer m.mtx.Unlock()
 	var next time.Time
@@ -219,6 +233,7 @@ func (m *FloodSub) expireSeen(now time.Time) time.Time {
 
 // execPublish executes publishing a message
 func (m *FloodSub) execPublish(prevHopPeerID peer.ID, pubMsg *publishChMsg) {
+	// Prepare the publication packet and identify its channel and origin.
 	pkt := &Packet{
 		Publish: []*peer.SignedMsg{
 			pubMsg.msg,
@@ -226,6 +241,8 @@ func (m *FloodSub) execPublish(prevHopPeerID peer.ID, pubMsg *publishChMsg) {
 	}
 	chid := pubMsg.channelID
 	fromPeerID := pubMsg.msg.GetFromPeerId()
+
+	// Snapshot running channel peers other than the publication's previous hops.
 	var targets []*streamHandler
 	m.mtx.Lock()
 	for pid := range m.peerChannels[chid] {
@@ -239,6 +256,7 @@ func (m *FloodSub) execPublish(prevHopPeerID peer.ID, pubMsg *publishChMsg) {
 	}
 	m.mtx.Unlock()
 
+	// Offer the publication to each peer without waiting on a slow writer.
 	for _, peer := range targets {
 		if !peer.tryWritePacket(pkt) {
 			peer.le.
@@ -261,15 +279,18 @@ func (m *FloodSub) removePeerChannelsLocked(tpl pubsub.PeerLinkTuple) {
 
 // AddSubscription adds a channel subscription, returning a subscription handle.
 func (m *FloodSub) AddSubscription(ctx context.Context, privKey crypto.PrivKey, channelID string) (pubsub.Subscription, error) {
+	// Require a channel identifier for the FloodSub subscription.
 	if channelID == "" {
 		return nil, errors.New("channel id must be specified")
 	}
 
+	// Derive the subscription peer identity from its signing key.
 	peerID, err := peer.IDFromPrivateKey(privKey)
 	if err != nil {
 		return nil, err
 	}
 
+	// Construct the local channel subscription and its handler set.
 	ns := &subscription{
 		ctx:       ctx,
 		m:         m,
@@ -278,6 +299,8 @@ func (m *FloodSub) AddSubscription(ctx context.Context, privKey crypto.PrivKey, 
 		privKey:   privKey,
 		peerID:    peerID,
 	}
+
+	// Register the subscription and announce a newly active channel.
 	m.mtx.Lock()
 	subs := m.channels[channelID]
 	if subs == nil {
@@ -301,6 +324,7 @@ func (m *FloodSub) AddPeerStream(
 	initiator bool,
 	mstrm link.MountedStream,
 ) {
+	// Wrap the negotiated peer stream with its publication and subscription queues.
 	le := m.le.WithField("peer", tpl.PeerID.String())
 	sh := &streamHandler{
 		m:      m,
@@ -313,8 +337,9 @@ func (m *FloodSub) AddPeerStream(
 		stream:    stream_packet.NewSession(mstrm.GetStream(), maxMessageSize),
 		initiator: initiator,
 	}
-	m.mtx.Lock()
 
+	// Replace the previous peer session under the FloodSub topology lock.
+	m.mtx.Lock()
 	if e, ok := m.peers[tpl]; ok {
 		if e.ctxCancel != nil {
 			e.ctxCancel()
@@ -322,6 +347,7 @@ func (m *FloodSub) AddPeerStream(
 	}
 	m.peers[tpl] = sh
 
+	// Schedule the new peer session for execution and wake reconciliation.
 	m.incSessions = append(m.incSessions, sh)
 	m.mtx.Unlock()
 	m.wake()
@@ -334,27 +360,32 @@ func (m *FloodSub) Publish(
 	privKey crypto.PrivKey,
 	data []byte,
 ) error {
+	// Select the configured publication hash, defaulting to SHA256.
 	pht := m.conf.GetPublishHashType()
 	if pht == hash.HashType_HashType_UNKNOWN {
 		pht = hash.HashType_HashType_SHA256
 	}
 
+	// Sign the channel publication with its selected hash algorithm.
 	msg, inner, err := pubmessage.NewPubMessage(channelID, privKey, pht, data)
 	if err != nil {
 		return err
 	}
 
+	// Identify the publishing peer from its signing key.
 	pid, err := peer.IDFromPrivateKey(privKey)
 	if err != nil {
 		return err
 	}
 
+	// Deliver the signed publication through FloodSub's normal message path.
 	m.handleValidMessage(ctx, pid, msg, inner)
 	return nil
 }
 
 // Close closes the pubsub.
 func (m *FloodSub) Close() {
+	// Cancel active peer sessions under the FloodSub topology lock.
 	m.mtx.Lock()
 	for pid, s := range m.peers {
 		if s.ctxCancel != nil {
@@ -362,6 +393,8 @@ func (m *FloodSub) Close() {
 		}
 		delete(m.peers, pid)
 	}
+
+	// Close queued peer streams and clear the pending session list.
 	for _, s := range m.incSessions {
 		if s.stream != nil {
 			s.stream.Close()
@@ -378,6 +411,7 @@ func (m *FloodSub) handleValidMessage(
 	pkt *peer.SignedMsg,
 	pktInner *pubmessage.PubMessageInner,
 ) {
+	// Identify the publication channel for local delivery and forwarding.
 	channelID := pktInner.GetChannel()
 
 	// Record the message ID and report whether it was already seen.
@@ -394,6 +428,7 @@ func (m *FloodSub) handleValidMessage(
 		return
 	}
 
+	// Decode the publication origin before constructing the handler message.
 	pid, err := peer.IDB58Decode(pkt.GetFromPeerId())
 	if err != nil {
 		return
@@ -415,6 +450,8 @@ func (m *FloodSub) handleValidMessage(
 		}
 		ss.mtx.Unlock()
 	}
+
+	// Queue the validated publication for forwarding until the caller cancels.
 	select {
 	case m.publishCh <- &publishChMsg{
 		msg:         pkt,

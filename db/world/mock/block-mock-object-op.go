@@ -69,6 +69,7 @@ func (m *MockObjectOp) ApplyWorldObjectOp(
 	// update and/or create the object.
 	// if there was no change, this will have no effect.
 	_, _, err = world.AccessObjectState(ctx, objectHandle, true, func(bcs *block.Cursor) error {
+		// Read or create the example block and replace its message in the object cursor.
 		ex, err := block_mock.UnmarshalExample(ctx, bcs)
 		if err != nil {
 			return err
