@@ -25,8 +25,10 @@ type Controller struct {
 
 // NewController constructs a new signaling server controller.
 func NewController(le *logrus.Entry, b bus.Bus, c *Config) (*Controller, error) {
+	// Configure the signaling RPC protocol for the stream server.
 	srvConf := c.GetServer().ApplyDefaults([]protocol.ID{signaling_rpc.ProtocolID})
 
+	// Build the stream server with the signaling service registered.
 	var err error
 	srv := NewServer(le)
 	ctrl := &Controller{srv: srv}

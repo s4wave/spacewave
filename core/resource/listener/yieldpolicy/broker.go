@@ -133,18 +133,22 @@ func (b *Broker) MakePolicy(requesterName, socketPath string) func(ctx context.C
 // a pending prompt, broadcasts the change, and blocks until the
 // prompt is resolved or the timeout elapses.
 func (b *Broker) requestTakeover(ctx context.Context, requesterName, socketPath string) error {
+	// Identify the runtime requesting takeover for the desktop prompt.
 	if requesterName == "" {
 		requesterName = "spacewave serve"
 	}
 
+	// Determine the takeover prompt deadline from the broker clock.
 	now := b.nowFn()
 	deadline := now.Add(b.timeout)
 
+	// Prepare the pending takeover decision and its completion notification.
 	p := &pending{
 		decision: DecisionPending,
 		done:     make(chan struct{}),
 	}
 
+	// Publish the takeover prompt and notify the desktop prompt watchers.
 	var id string
 	b.bcast.HoldLock(func(broadcastFn func(), _ func() <-chan struct{}) {
 		id = b.nextID()
@@ -158,6 +162,7 @@ func (b *Broker) requestTakeover(ctx context.Context, requesterName, socketPath 
 		broadcastFn()
 	})
 
+	// Bound the takeover wait by the configured or default prompt timeout.
 	remaining := b.timeout
 	if remaining <= 0 {
 		remaining = DefaultPromptTimeout
@@ -165,6 +170,7 @@ func (b *Broker) requestTakeover(ctx context.Context, requesterName, socketPath 
 	timer := time.NewTimer(remaining)
 	defer timer.Stop()
 
+	// Resolve the takeover result on cancellation, expiry, or desktop response.
 	select {
 	case <-ctx.Done():
 		b.finalizePrompt(id, DecisionDenied)
@@ -198,11 +204,14 @@ func (b *Broker) requestTakeover(ctx context.Context, requesterName, socketPath 
 func (b *Broker) finalizePrompt(id string, decision Decision) Decision {
 	var result Decision
 	b.bcast.HoldLock(func(broadcastFn func(), _ func() <-chan struct{}) {
+		// Find the pending takeover prompt or report that it has already been removed.
 		p, ok := b.pending[id]
 		if !ok {
 			result = DecisionDenied
 			return
 		}
+
+		// Finalize the takeover decision and remove the prompt from desktop snapshots.
 		if p.decision == DecisionPending {
 			p.decision = decision
 			close(p.done)
@@ -217,9 +226,11 @@ func (b *Broker) finalizePrompt(id string, decision Decision) Decision {
 // ResolvePrompt resolves a pending prompt with the given allow flag.
 // Returns an error if the prompt id is unknown or already resolved.
 func (b *Broker) ResolvePrompt(id string, allow bool) error {
+	// Resolve the takeover prompt under the broker lock.
 	var resolved bool
 	var existed bool
 	b.bcast.HoldLock(func(broadcastFn func(), _ func() <-chan struct{}) {
+		// Find a takeover prompt whose decision is still pending.
 		p, ok := b.pending[id]
 		if !ok {
 			return
@@ -228,6 +239,8 @@ func (b *Broker) ResolvePrompt(id string, allow bool) error {
 		if p.decision != DecisionPending {
 			return
 		}
+
+		// Publish the desktop decision and wake the takeover policy.
 		if allow {
 			p.decision = DecisionAllowed
 		} else {
@@ -237,6 +250,8 @@ func (b *Broker) ResolvePrompt(id string, allow bool) error {
 		resolved = true
 		broadcastFn()
 	})
+
+	// Report missing or already resolved takeover prompts to the caller.
 	if !existed {
 		return errors.Errorf("prompt %q not found", id)
 	}
@@ -249,6 +264,7 @@ func (b *Broker) ResolvePrompt(id string, allow bool) error {
 // SnapshotPrompts returns a copy of the current pending prompt list
 // and a wait channel that closes on the next state change.
 func (b *Broker) SnapshotPrompts() ([]Prompt, <-chan struct{}) {
+	// Snapshot pending desktop prompts with their next change notification.
 	var out []Prompt
 	var waitCh <-chan struct{}
 	b.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
@@ -261,6 +277,7 @@ func (b *Broker) SnapshotPrompts() ([]Prompt, <-chan struct{}) {
 			out = append(out, p.prompt)
 		}
 	})
+
 	// Sort outside the lock; an unchanged prompt set must snapshot stably.
 	slices.SortFunc(out, func(a, b Prompt) int { return strings.Compare(a.ID, b.ID) })
 	return out, waitCh
@@ -313,9 +330,12 @@ func (b *Broker) SnapshotHandoff() (HandoffState, <-chan struct{}) {
 func (b *Broker) Reclaim() bool {
 	var fired bool
 	b.bcast.HoldLock(func(broadcastFn func(), _ func() <-chan struct{}) {
+		// Require an active handoff before reclaiming the listener socket.
 		if b.reclaim == nil {
 			return
 		}
+
+		// Signal the listener to reclaim its socket and clear the desktop handoff state.
 		close(b.reclaim)
 		b.reclaim = nil
 		b.handoff = HandoffState{}

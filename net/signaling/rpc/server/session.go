@@ -147,6 +147,7 @@ func (s *Server) Session(strm signaling.SRPCSignaling_SessionStream) error {
 	} else {
 		sess.peerB = ourPeerTkr
 	}
+
 	// Pending messages and acknowledgments belong to the replaced generation.
 	if _, prevRemotePeer := sess.getCurrPeers(localIsPeerA); prevRemotePeer != nil {
 		*prevRemotePeer = sessionPeerTracker{}
@@ -155,12 +156,13 @@ func (s *Server) Session(strm signaling.SRPCSignaling_SessionStream) error {
 	// Publish the new generation after both endpoint slots are consistent.
 	sess.seqno++
 	sess.broadcast()
-
 	s.mtx.Unlock()
 
 	// Cleanup when we return.
 	defer func() {
+		// Serialize session cleanup with endpoint replacement.
 		s.mtx.Lock()
+
 		// Check if we are still the active Session and clear out if so.
 		var currLocalPeer **sessionPeerTracker
 		if localIsPeerA {
@@ -228,6 +230,7 @@ func (s *Server) Session(strm signaling.SRPCSignaling_SessionStream) error {
 
 	// Function to handle when our peer acks an incoming message.
 	handleAckMsg := func(msgSessionSeqno, ack uint64) error {
+		// Serialize session acknowledgment updates with endpoint replacement.
 		s.mtx.Lock()
 		defer s.mtx.Unlock()
 
@@ -252,6 +255,7 @@ func (s *Server) Session(strm signaling.SRPCSignaling_SessionStream) error {
 
 	// Function to handle when our peer clears an outgoing message.
 	handleClearMsg := func(msgSessionSeqno, clear uint64) error {
+		// Serialize session cancellation updates with endpoint replacement.
 		s.mtx.Lock()
 		defer s.mtx.Unlock()
 
@@ -418,10 +422,13 @@ func (s *Server) getSession(sess sessionKey) (*sessionTracker, bool) {
 // maybeReleaseSession releases the session tracker if it has no references.
 // Returns if it was found and released.
 func (s *Server) maybeReleaseSession(sess sessionKey) bool {
+	// Require both signaling endpoints to detach before releasing the session.
 	tkr := s.sessions[sess]
 	if tkr == nil || tkr.peerA != nil || tkr.peerB != nil {
 		return false
 	}
+
+	// Remove the detached session tracker and wake its waiters.
 	delete(s.sessions, sess)
 	tkr.broadcast()
 	return true

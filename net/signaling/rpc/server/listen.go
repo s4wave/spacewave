@@ -8,6 +8,7 @@ import (
 
 // Listen watches the list of ongoing sessions with the peer.
 func (s *Server) Listen(req *signaling.ListenRequest, strm signaling.SRPCSignaling_ListenStream) error {
+	// Identify the authenticated signaling peer that will receive session requests.
 	ctx := strm.Context()
 	pid, err := s.ident(ctx)
 	if err != nil {

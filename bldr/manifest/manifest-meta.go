@@ -18,11 +18,14 @@ func NewManifestMeta(manifestID string, buildType BuildType, platformID string, 
 
 // UnmarshalManifestMetaB58 unmarshals a b58 manifest meta.
 func UnmarshalManifestMetaB58(str string) (*ManifestMeta, error) {
+	// Decode the base58 manifest metadata into protobuf bytes.
 	m := &ManifestMeta{}
 	data, err := b58.Decode(str)
 	if err != nil {
 		return nil, err
 	}
+
+	// Populate the manifest metadata from its decoded protobuf bytes.
 	if err := m.UnmarshalVT(data); err != nil {
 		return nil, err
 	}
@@ -39,6 +42,7 @@ func MustUnmarshalManifestB58(str string) *ManifestMeta {
 //
 // returns a copy of the meta object w/ the platform id set.
 func (m *ManifestMeta) Resolve() (*ManifestMeta, bldr_platform.Platform, error) {
+	// Copy the manifest metadata before qualifying its platform ID.
 	meta := m.CloneVT()
 
 	// parse platform id
@@ -76,6 +80,7 @@ func (m *ManifestMeta) UnmarshalBlock(data []byte) error {
 
 // Logger adds logging fields for the meta.
 func (m *ManifestMeta) Logger(le *logrus.Entry) *logrus.Entry {
+	// Collect the populated manifest metadata fields for the logger.
 	fields := logrus.Fields{}
 	if manifestID := m.GetManifestId(); manifestID != "" {
 		fields["manifest-id"] = manifestID

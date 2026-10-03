@@ -41,11 +41,14 @@ func NewServer(le *logrus.Entry) *Server {
 func NewServerWithIdentify(le *logrus.Entry, ident func(ctx context.Context) (peer.ID, error)) *Server {
 	if ident == nil {
 		ident = func(ctx context.Context) (peer.ID, error) {
+			// Resolve the authenticated peer from the mounted signaling stream.
 			ms := link.GetMountedStreamContext(ctx)
 			var pid peer.ID
 			if ms != nil {
 				pid = ms.GetPeerID()
 			}
+
+			// Require an authenticated peer before accepting the signaling stream.
 			if pid == "" {
 				return "", errors.New("no mounted stream context")
 			}
@@ -75,10 +78,13 @@ func (s *Server) getPeer(pidStr string) (*serverPeerTracker, bool) {
 // maybeReleasePeer releases the peer tracker if it has no references.
 // returns if it was found & released
 func (s *Server) maybeReleasePeer(pidStr string) bool {
+	// Keep the signaling peer tracker while a listener or session request needs it.
 	tkr := s.peers[pidStr]
 	if tkr == nil || tkr.listening || len(tkr.wantPeers) != 0 {
 		return false
 	}
+
+	// Remove the unused peer tracker and wake its waiters.
 	delete(s.peers, pidStr)
 	tkr.broadcast()
 	return true

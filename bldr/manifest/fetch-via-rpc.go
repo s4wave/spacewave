@@ -48,9 +48,11 @@ func FetchManifestViaRpcLookupClientSet(
 	returnOnIdle bool,
 	le *logrus.Entry,
 ) error {
+	// Scope the manifest client lookup and stream to one cancelable context.
 	ctx, ctxCancel := context.WithCancel(rctx)
 	defer ctxCancel()
 
+	// Retain the RPC client set that can fetch the requested manifest.
 	clientSet, _, ref, err := bifrost_rpc.ExLookupRpcClientSet(
 		ctx,
 		b,
@@ -64,6 +66,7 @@ func FetchManifestViaRpcLookupClientSet(
 	}
 	defer ref.Release()
 
+	// Fetch the manifest through the selected service client set.
 	srv := NewSRPCManifestFetchClientWithServiceID(clientSet, serviceID)
 	return FetchManifestViaRpc(ctx, dir, srv.FetchManifest, hnd, returnOnIdle, le)
 }

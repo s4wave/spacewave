@@ -31,6 +31,8 @@ func NewViewerRegistryResource(generations *registration.Registry) *ViewerRegist
 	if generations == nil {
 		generations = registration.NewRegistry()
 	}
+
+	// Create the viewer registry with shared generation visibility and surface notifications.
 	r := &ViewerRegistryResource{
 		generations:   generations,
 		bcast:         generations.Broadcast(),
@@ -38,6 +40,7 @@ func NewViewerRegistryResource(generations *registration.Registry) *ViewerRegist
 		registrations: make(map[uint32]*s4wave_viewer_registry.ViewerRegistration),
 		surfaceBcasts: make(map[s4wave_viewer_registry.ViewerSurface]*broadcast.Broadcast),
 	}
+
 	// Admission changes wake every surface after the shared visibility switch.
 	generations.OnChange(func() {
 		for surface := range r.surfaceBcasts {
@@ -45,6 +48,7 @@ func NewViewerRegistryResource(generations *registration.Registry) *ViewerRegist
 		}
 	})
 
+	// Expose the viewer registry service through its RPC multiplexer.
 	mux := srpc.NewMux()
 	_ = s4wave_viewer_registry.SRPCRegisterViewerRegistryResourceService(mux, r)
 	r.mux = mux
@@ -76,6 +80,7 @@ func (r *ViewerRegistryResource) RegisterViewer(
 	ctx context.Context,
 	req *s4wave_viewer_registry.RegisterViewerRequest,
 ) (*s4wave_viewer_registry.RegisterViewerResponse, error) {
+	// Validate the viewer registration and its surface, type, script, and component.
 	reg := req.GetRegistration()
 	if reg == nil {
 		return nil, ErrRegistrationRequired
@@ -94,34 +99,41 @@ func (r *ViewerRegistryResource) RegisterViewer(
 		return nil, ErrComponentIdRequired
 	}
 
+	// Resolve the plugin generation that controls registration visibility.
 	generation, err := registration.FromContext(ctx, "")
 	if err != nil {
 		return nil, err
 	}
 
+	// Acquire the resource client that will retain the viewer registration.
 	client, err := resource_server.MustGetResourceClientContext(ctx)
 	if err != nil {
 		return nil, err
 	}
 
+	// Copy the viewer registration with its normalized surface for storage.
 	stored := reg.CloneVT()
 	stored.Surface = surface
 
+	// Bind the viewer registration to its generation and notify surface watchers.
 	var regID uint32
 	r.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		// Reserve a viewer registration ID and bind its stored record to the generation.
 		regID = r.nextID
 		r.nextID++
 		if err = r.generations.BindLocked(stored, generation); err != nil {
 			return
 		}
+
+		// Publish the bound viewer registration and wake its surface watchers.
 		r.registrations[regID] = stored
 		r.broadcastSurfaceLocked(surface)
 	})
-
 	if err != nil {
 		return nil, err
 	}
 
+	// Tie the viewer registration to a client resource and remove it on release.
 	emptyMux := srpc.NewMux()
 	resourceID, err := client.AddResource(emptyMux, func() {
 		r.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
@@ -149,10 +161,13 @@ func (r *ViewerRegistryResource) ListViewers(
 	ctx context.Context,
 	req *s4wave_viewer_registry.ListViewersRequest,
 ) (*s4wave_viewer_registry.ListViewersResponse, error) {
+	// Validate the surface requested by the viewer list.
 	surface, err := normalizeViewerSurface(req.GetSurface())
 	if err != nil {
 		return nil, err
 	}
+
+	// Snapshot the visible viewer registrations under the registry lock.
 	var regs []*s4wave_viewer_registry.ViewerRegistration
 	r.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		regs = r.getRegistrationsLocked(surface, req.GetInstanceKey())
@@ -231,6 +246,7 @@ func (r *ViewerRegistryResource) getRegistrationsLocked(
 	surface s4wave_viewer_registry.ViewerSurface,
 	instanceKey string,
 ) []*s4wave_viewer_registry.ViewerRegistration {
+	// Select the visible viewer registrations by surface, type, and component.
 	regs := make([]*s4wave_viewer_registry.ViewerRegistration, 0, len(r.registrations))
 	type viewerKey struct {
 		surface             s4wave_viewer_registry.ViewerSurface
@@ -239,12 +255,16 @@ func (r *ViewerRegistryResource) getRegistrationsLocked(
 	selected := registration.SelectLocked(r.generations, r.registrations, instanceKey, func(reg *s4wave_viewer_registry.ViewerRegistration) viewerKey {
 		return viewerKey{surface: reg.GetSurface(), typeID: reg.GetTypeId(), componentID: reg.GetComponentId()}
 	})
+
+	// Copy the selected viewer registrations for the requested surface.
 	for _, reg := range selected {
 		if reg.GetSurface() != surface {
 			continue
 		}
 		regs = append(regs, reg.CloneVT())
 	}
+
+	// Order the viewer snapshot by type and component for stable readback.
 	slices.SortFunc(regs, func(a, b *s4wave_viewer_registry.ViewerRegistration) int {
 		return cmp.Or(
 			cmp.Compare(a.GetTypeId(), b.GetTypeId()),

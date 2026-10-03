@@ -121,6 +121,8 @@ func TestSessionOpenedAfterRegistrationBroadcast(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Create the second authenticated peer for the signaling session.
 	_, pubB, err := crypto.GenerateKeyPair(crypto.KeyType_Ed25519, 0)
 	if err != nil {
 		t.Fatal(err)
@@ -129,6 +131,8 @@ func TestSessionOpenedAfterRegistrationBroadcast(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Construct the signaling server with identities supplied by each test stream.
 	server := NewServerWithIdentify(logrus.NewEntry(logrus.New()), func(ctx context.Context) (peer.ID, error) {
 		pid, ok := ctx.Value(testSessionPeerIDKey{}).(peer.ID)
 		if !ok {
@@ -155,6 +159,7 @@ func TestSessionOpenedAfterRegistrationBroadcast(t *testing.T) {
 		doneA <- server.Session(streamA)
 	}()
 
+	// Require notification that the first signaling endpoint registered.
 	select {
 	case <-firstRegistrationWait:
 	case <-time.After(2 * time.Second):
@@ -166,6 +171,7 @@ func TestSessionOpenedAfterRegistrationBroadcast(t *testing.T) {
 	secondRegistrationWait := sess.getWaitCh()
 	server.mtx.Unlock()
 
+	// Attach the second signaling endpoint to the same session.
 	ctxB, cancelB := context.WithCancel(context.WithValue(ctx, testSessionPeerIDKey{}, peerB))
 	t.Cleanup(cancelB)
 	streamB := newTestSessionStream(ctxB, &signaling.SessionRequest{
@@ -176,6 +182,7 @@ func TestSessionOpenedAfterRegistrationBroadcast(t *testing.T) {
 		doneB <- server.Session(streamB)
 	}()
 
+	// Require notification that the second signaling endpoint registered.
 	select {
 	case <-secondRegistrationWait:
 	case <-time.After(2 * time.Second):

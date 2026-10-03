@@ -25,6 +25,7 @@ func AccessManifest(
 		assetsFS *unixfs.FSHandle,
 	) error,
 ) error {
+	// Decode the manifest from the bucket cursor and record its filesystem roots.
 	_, bcs := bls.BuildTransaction(nil)
 	le.Debug("unmarshalling manifest")
 	manifest, err := UnmarshalManifest(ctx, bcs)
@@ -41,6 +42,7 @@ func AccessManifest(
 	distBls := bls.Clone()
 	defer distBls.Release()
 
+	// Build the distribution filesystem over the manifest distribution root.
 	distBls.SetRootRef(manifest.GetDistFsRef())
 	le.Debug("building manifest dist filesystem handle")
 	distWriter := unixfs_block_fs.NewFSWriter()
@@ -48,6 +50,7 @@ func AccessManifest(
 	distWriter.SetFS(distFS)
 	defer distFS.Release()
 
+	// Expose the distribution filesystem through a retained UnixFS handle.
 	distUfs, err := unixfs.NewFSHandle(distFS)
 	if err != nil {
 		return err
@@ -57,18 +60,23 @@ func AccessManifest(
 	// build unixfs_block_fs backed by the assets fs
 	assetsBls := bls.Clone()
 	defer assetsBls.Release()
+
+	// Build the assets filesystem over the manifest assets root.
 	assetsBls.SetRootRef(manifest.GetAssetsFsRef())
 	le.Debug("building manifest assets filesystem handle")
 	assetsWriter := unixfs_block_fs.NewFSWriter()
 	assetsFS := unixfs_block_fs.NewFS(ctx, unixfs_block.NodeType_NodeType_DIRECTORY, assetsBls, assetsWriter)
 	assetsWriter.SetFS(assetsFS)
 	defer assetsFS.Release()
+
+	// Expose the assets filesystem through a retained UnixFS handle.
 	assetsUfs, err := unixfs.NewFSHandle(assetsFS)
 	if err != nil {
 		return err
 	}
 	defer assetsUfs.Release()
 
+	// Run the manifest callback while both filesystem handles remain retained.
 	le.Debug("calling manifest access callback")
 	return cb(ctx, bls, bcs, manifest, distUfs, assetsUfs)
 }

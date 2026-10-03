@@ -25,11 +25,14 @@ var BuildType_ALIASES = map[string]BuildType{
 
 // ToBuildType formats a BuildTypeStr into a BuildType.
 func ToBuildType(buildTypeStr string) BuildType {
+	// Normalize the requested build type and resolve its supported aliases.
 	buildTypeStr = strings.ToLower(buildTypeStr)
 	buildTypeStr = strings.TrimSpace(buildTypeStr)
 	if alias, ok := BuildType_ALIASES[buildTypeStr]; ok {
 		buildTypeStr = string(alias)
 	}
+
+	// Use development builds when the normalized build type is empty.
 	if buildTypeStr == "" {
 		return BuildType_DEV
 	}

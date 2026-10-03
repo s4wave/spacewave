@@ -26,6 +26,7 @@ func (s *testListenStream) Send(*signaling.ListenResponse) error { return nil }
 // TestListenRetainsPeerTracker verifies an attached Listen keeps its peer
 // tracker when the last session want is removed.
 func TestListenRetainsPeerTracker(t *testing.T) {
+	// Start an authenticated signaling listener whose peer tracker must remain attached.
 	pid := peer.ID("listener")
 	server := NewServerWithIdentify(logrus.NewEntry(logrus.New()), func(context.Context) (peer.ID, error) {
 		return pid, nil
@@ -52,6 +53,7 @@ func TestListenRetainsPeerTracker(t *testing.T) {
 		time.Sleep(5 * time.Millisecond)
 	}
 
+	// Verify that an attached signaling listener retains its peer tracker.
 	server.mtx.Lock()
 	released := server.maybeReleasePeer(pid.String())
 	server.mtx.Unlock()
@@ -59,6 +61,7 @@ func TestListenRetainsPeerTracker(t *testing.T) {
 		t.Fatal("listening peer tracker was released")
 	}
 
+	// Stop the signaling listener and wait for its stream to return.
 	cancel()
 	select {
 	case err := <-done:
@@ -68,6 +71,8 @@ func TestListenRetainsPeerTracker(t *testing.T) {
 	case <-time.After(2 * time.Second):
 		t.Fatal("timed out stopping listener")
 	}
+
+	// Verify that listener shutdown releases its peer tracker.
 	server.mtx.Lock()
 	_, exists := server.peers[pid.String()]
 	server.mtx.Unlock()
