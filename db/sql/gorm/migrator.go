@@ -86,24 +86,32 @@ func (m Migrator) RenameIndex(value any, oldName, newName string) error {
 	})
 }
 
+// DropTable drops the tables of the given models in dependency order.
 func (m Migrator) DropTable(values ...any) error {
-	// Order the models and suspend foreign key checks for table removal.
 	values = m.ReorderModels(values, false)
-	tx := m.DB.Session(&gorm.Session{})
-	tx.Exec("SET FOREIGN_KEY_CHECKS = 0;")
-
-	// Drop dependent tables before the tables they reference.
-	for _, v := range slices.Backward(values) {
-		if err := m.RunWithValue(v, func(stmt *gorm.Statement) error {
-			return tx.Exec("DROP TABLE IF EXISTS ? CASCADE", clause.Table{Name: stmt.Table}).Error
-		}); err != nil {
+	return m.DB.Connection(func(tx *gorm.DB) (err error) {
+		// Suspend foreign key checks on this connection for table removal.
+		if err := tx.Exec("SET FOREIGN_KEY_CHECKS = 0;").Error; err != nil {
 			return err
 		}
-	}
 
-	// Restore foreign key checks after removing the tables.
-	tx.Exec("SET FOREIGN_KEY_CHECKS = 1;")
-	return nil
+		// Restore foreign key checks even when a drop fails.
+		defer func() {
+			if rerr := tx.Exec("SET FOREIGN_KEY_CHECKS = 1;").Error; err == nil {
+				err = rerr
+			}
+		}()
+
+		// Drop dependent tables before the tables they reference.
+		for _, v := range slices.Backward(values) {
+			if err := m.RunWithValue(v, func(stmt *gorm.Statement) error {
+				return tx.Exec("DROP TABLE IF EXISTS ? CASCADE", clause.Table{Name: stmt.Table}).Error
+			}); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
 }
 
 func (m Migrator) DropConstraint(value any, name string) error {
