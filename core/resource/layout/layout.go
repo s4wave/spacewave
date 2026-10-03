@@ -158,35 +158,39 @@ func WalkLayoutModel(m *s4wave_layout.LayoutModel, fn func(node any) bool) {
 			}
 		}
 	}
-	walkRowDef(m.GetLayout(), fn)
+	_ = walkRowDef(m.GetLayout(), fn)
 }
 
 // walkRowDef walks a row definition and its children.
-func walkRowDef(row *s4wave_layout.RowDef, fn func(node any) bool) {
+// Returns false when fn stopped the walk.
+func walkRowDef(row *s4wave_layout.RowDef, fn func(node any) bool) bool {
 	if row == nil {
-		return
+		return true
 	}
 	if !fn(row) {
-		return
+		return false
 	}
 	for _, child := range row.GetChildren() {
 		if !fn(child) {
-			return
+			return false
 		}
 		switch node := child.GetNode().(type) {
 		case *s4wave_layout.RowOrTabSetDef_Row:
-			walkRowDef(node.Row, fn)
+			if !walkRowDef(node.Row, fn) {
+				return false
+			}
 		case *s4wave_layout.RowOrTabSetDef_TabSet:
 			if !fn(node.TabSet) {
-				return
+				return false
 			}
 			for _, tab := range node.TabSet.GetChildren() {
 				if !fn(tab) {
-					return
+					return false
 				}
 			}
 		}
 	}
+	return true
 }
 
 // CleanupPath normalizes a path, joining it with basePath if relative.
