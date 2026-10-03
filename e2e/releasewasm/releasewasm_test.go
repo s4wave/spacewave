@@ -3908,39 +3908,44 @@ func resumeReadySequence(snapshot map[string]any) int {
 	return int(raw)
 }
 
+// waitForDocumentHiddenState waits in the page for document.hidden to equal
+// hidden, watching visibilitychange until the timeout. It returns whether the
+// state was reached, the browser time it was observed, and the last snapshot.
 func waitForDocumentHiddenState(t *testing.T, page playwright.Page, hidden bool, timeout time.Duration) (bool, int, map[string]any) {
-	// Observe document visibility until it matches or the deadline expires.
+	// Wait in the page for the visibility change, then read its snapshot.
 	t.Helper()
-	deadline := time.Now().Add(timeout)
-	var snapshot map[string]any
-	for {
-
-		// Read the document's current visibility snapshot.
-		raw, err := page.Evaluate(`() => ({
+	raw, err := page.Evaluate(`async ({ hidden, timeoutMs }) => {
+		if (document.hidden !== hidden) {
+			await new Promise((resolve) => {
+				const finish = () => {
+					clearTimeout(timer)
+					document.removeEventListener('visibilitychange', onChange)
+					resolve()
+				}
+				const onChange = () => {
+					if (document.hidden === hidden) finish()
+				}
+				const timer = setTimeout(finish, timeoutMs)
+				document.addEventListener('visibilitychange', onChange)
+			})
+		}
+		return {
 			visibilityState: document.visibilityState,
 			hidden: document.hidden,
 			focused: document.hasFocus(),
 			browserNowMs: Math.round(performance.now()),
-		})`)
-		if err == nil {
-
-			// Accept the requested visibility when the browser reports it.
-			if next, ok := raw.(map[string]any); ok {
-				snapshot = next
-				if got, _ := next["hidden"].(bool); got == hidden {
-					return true, browserNowFromSnapshot(next), next
-				}
-			}
 		}
-
-		// Return the last snapshot when the visibility deadline expires.
-		if time.Now().After(deadline) {
-			return false, 0, snapshot
-		}
-
-		// Space the browser visibility observations within the deadline.
-		time.Sleep(50 * time.Millisecond)
+	}`, map[string]any{"hidden": hidden, "timeoutMs": timeout.Milliseconds()})
+	if err != nil {
+		return false, 0, nil
 	}
+
+	// Report whether the snapshot reached the requested visibility.
+	snapshot, _ := raw.(map[string]any)
+	if got, _ := snapshot["hidden"].(bool); got != hidden {
+		return false, 0, snapshot
+	}
+	return true, browserNowFromSnapshot(snapshot), snapshot
 }
 
 func browserNowFromSnapshot(snapshot map[string]any) int {
