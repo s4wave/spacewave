@@ -9,7 +9,6 @@ import (
 	"github.com/s4wave/spacewave/core/provider"
 	provider_local "github.com/s4wave/spacewave/core/provider/local"
 	"github.com/s4wave/spacewave/core/sobject"
-	sobject_world_engine "github.com/s4wave/spacewave/core/sobject/world/engine"
 	"github.com/s4wave/spacewave/core/space"
 	space_world "github.com/s4wave/spacewave/core/space/world"
 	space_world_ops "github.com/s4wave/spacewave/core/space/world/ops"
@@ -48,9 +47,9 @@ func TestMountSpaceBodyProvidesSpaceWorldOps(t *testing.T) {
 	}
 	defer tb.Release()
 
-	// Register the provider, engine, and space controllers.
+	// Register the provider and space controllers. The space controller runs
+	// its own engine, so no engine factory is registered.
 	tb.StaticResolver.AddFactory(provider_local.NewFactory(tb.Bus))
-	tb.StaticResolver.AddFactory(sobject_world_engine.NewFactory(tb.Bus))
 	tb.StaticResolver.AddFactory(NewFactory(tb.Bus))
 
 	// Load the local provider controller.

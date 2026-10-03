@@ -26,7 +26,7 @@ func TestReadCheckpointFreezesWorld(t *testing.T) {
 	snap := newHeldTestSnapshot(t, space, known)
 
 	// The checkpoint reads the replayed World only.
-	engine, release, err := OpenReadCheckpoint(ctx, space.c.le, space.c.bus, space.so, "test-read-checkpoint", snap)
+	engine, release, err := OpenReadCheckpoint(ctx, space.c.le, space.c.bus, space.so, "test-read-checkpoint", nil, snap)
 	if err != nil {
 		t.Fatal(err)
 	}

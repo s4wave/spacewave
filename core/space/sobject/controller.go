@@ -2,17 +2,16 @@ package space_sobject
 
 import (
 	"context"
-	"strings"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
+	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/directive"
 	cdn_sharedobject "github.com/s4wave/spacewave/core/cdn/sharedobject"
 	"github.com/s4wave/spacewave/core/sobject"
 	sobject_world_engine "github.com/s4wave/spacewave/core/sobject/world/engine"
 	"github.com/s4wave/spacewave/core/space"
 	space_world_optypes "github.com/s4wave/spacewave/core/space/world/optypes"
-	"github.com/s4wave/spacewave/db/world"
 )
 
 // ControllerID is the controller id.
@@ -49,12 +48,6 @@ func NewFactory(b bus.Bus) controller.Factory {
 // HandleDirective asks if the handler can resolve the directive.
 func (c *Controller) HandleDirective(ctx context.Context, di directive.Instance) ([]directive.Resolver, error) {
 	switch dir := di.GetDirective().(type) {
-	case world.LookupWorldOp:
-		// Serve the built-in Space operations to every Space engine, before
-		// its first replay.
-		if strings.HasPrefix(dir.LookupWorldOpEngineID(), space.SpaceBodyType+"/") {
-			return directive.R(world.NewLookupWorldOpResolver(space_world_optypes.LookupWorldOp), nil)
-		}
 	case sobject.MountSharedObjectBody:
 		switch dir.MountSharedObjectBodyType() {
 		case space.SpaceBodyType:
@@ -83,10 +76,18 @@ func (c *Controller) resolveMountSharedObjectBody(dir sobject.MountSharedObjectB
 			return nil, nil, err
 		}
 
-		// The body follows the published engine below rather than the
-		// controller's run state: a restart that fails before publishing
-		// leaves the body's engine untouched.
-		ctrl, _, ref, err := sobject_world_engine.StartEngineWithConfig(ctx, c.GetBus(), conf, nil)
+		// Run the engine on this bus with the built-in Space operations set
+		// at construction, before its first replay. The body follows the
+		// published engine below rather than the controller's run state: a
+		// restart that fails before publishing leaves the body's engine
+		// untouched.
+		factory := sobject_world_engine.NewFactoryWithLookupOp(c.GetBus(), space_world_optypes.LookupWorldOp)
+		ctrl, _, ref, err := loader.WaitExecControllerRunningRetryTyped[*sobject_world_engine.Controller](
+			ctx,
+			c.GetBus(),
+			loader.NewExecController(factory, conf),
+			nil,
+		)
 		if err != nil {
 			soRef.Release()
 			return nil, nil, err

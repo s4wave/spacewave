@@ -17,7 +17,8 @@ import (
 
 // OpenReadCheckpoint serves the World of snap, the state this participant held
 // when its read access ended, without starting a live body controller. It
-// replays the operation set as the World engine engineID would. Release closes
+// replays the operation set as the World engine engineID would, resolving
+// operations with lookupOp first, then through the bus. Release closes
 // the cursor after all readers have released their transactions.
 func OpenReadCheckpoint(
 	ctx context.Context,
@@ -25,11 +26,12 @@ func OpenReadCheckpoint(
 	b bus.Bus,
 	so sobject.SharedObject,
 	engineID string,
+	lookupOp world.LookupOp,
 	snap sobject.SharedObjectStateSnapshot,
 ) (world.Engine, func(), error) {
 	// Replay the held operations onto the checkpoint's World.
 	sfs := transform_all.BuildFactorySet()
-	state, err := ReplayWorld(ctx, le, b, sfs, so, engineID, nil, snap)
+	state, err := ReplayWorld(ctx, le, b, sfs, so, engineID, lookupOp, snap)
 	if err != nil {
 		return nil, nil, err
 	}
