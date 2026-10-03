@@ -24,6 +24,7 @@ func (e *PackReader) getBlock(ctx context.Context, key []byte, ref *block.BlockR
 		return nil, err
 	}
 
+	// Read the indexed block extent and its neighbor fetch window.
 	var (
 		off, end    int64
 		windowStart int64
@@ -31,6 +32,7 @@ func (e *PackReader) getBlock(ctx context.Context, key []byte, ref *block.BlockR
 		found       bool
 	)
 	e.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		// Resolve the target block extent and its semantic neighbor window.
 		var entry *kvfile.IndexEntry
 		entry, found = e.findEntryByKeyLocked(key)
 		if !found {
@@ -93,6 +95,7 @@ func (e *PackReader) getBlockExists(ctx context.Context, key []byte) (bool, erro
 		return false, err
 	}
 
+	// Check the block key in the validated resident index.
 	var found bool
 	e.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		_, found = e.findEntryByKeyLocked(key)

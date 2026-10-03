@@ -49,6 +49,7 @@ func (t *httpTransport) Fetch(ctx context.Context, off int64, length int) ([]byt
 
 // fetchOnce issues one HTTP range request.
 func (t *httpTransport) fetchOnce(ctx context.Context, off int64, length int) ([]byte, error) {
+	// Build and sign the HTTP request for the requested pack byte range.
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, t.url, nil)
 	if err != nil {
 		return nil, errors.Wrap(err, "build range request")
@@ -61,6 +62,7 @@ func (t *httpTransport) fetchOnce(ctx context.Context, off int64, length int) ([
 		}
 	}
 
+	// Open the range response and drain its body when the fetch finishes.
 	resp, err := t.cli.Do(req)
 	if err != nil {
 		return nil, &transientError{err: errors.Wrap(err, "range request")}
@@ -70,6 +72,7 @@ func (t *httpTransport) fetchOnce(ctx context.Context, off int64, length int) ([
 	}
 	defer httpclient.DrainAndCloseResponseBody(resp)
 
+	// Require a successful full or partial pack response.
 	if resp.StatusCode >= http.StatusInternalServerError {
 		return nil, &transientError{err: errors.Errorf("range request returned status %d", resp.StatusCode)}
 	}
@@ -86,6 +89,7 @@ func (t *httpTransport) fetchOnce(ctx context.Context, off int64, length int) ([
 		t.recordFullResponseFallback(off)
 	}
 
+	// Read the requested pack bytes and retain a short final response.
 	buf := make([]byte, length)
 	n, err := io.ReadFull(resp.Body, buf)
 	if err == io.ErrUnexpectedEOF {
@@ -98,9 +102,12 @@ func (t *httpTransport) fetchOnce(ctx context.Context, off int64, length int) ([
 }
 
 func (t *httpTransport) recordFullResponseFallback(bytes int64) {
+	// Ignore full responses that required no prefix bytes to be discarded.
 	if bytes <= 0 {
 		return
 	}
+
+	// Record full-response prefix overhead under the transport mutex.
 	t.mu.Lock()
 	t.fullResponseFallbackCount++
 	t.fullResponseFallbackBytes += bytes
@@ -131,9 +138,12 @@ func NewHTTPRangeReader(
 	signReq func(*http.Request) error,
 	observeResp func(*http.Response),
 ) *PackReader {
+	// Use the default HTTP client when none is supplied.
 	if cli == nil {
 		cli = http.DefaultClient
 	}
+
+	// Connect the pack reader to its HTTP range transport.
 	t := &httpTransport{
 		cli:         cli,
 		url:         url,
@@ -142,6 +152,8 @@ func NewHTTPRangeReader(
 		observeResp: observeResp,
 	}
 	e := NewPackReader(url, size, t)
+
+	// Apply the requested read-ahead window within the reader transport bounds.
 	if readAheadSize > 0 {
 		e.minWindow = readAheadSize
 		e.transportQuantum = readAheadSize

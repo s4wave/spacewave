@@ -35,18 +35,25 @@ func (e *PackReader) ensureIndexLoaded(ctx context.Context) error {
 	var waitCh chan struct{}
 	var cache IndexCache
 	e.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		// Reject index loading after the pack reader closes.
 		if e.closed {
 			closed = true
 			return
 		}
+
+		// Reuse the validated index already held by the reader.
 		if e.indexLoaded {
 			loaded = true
 			return
 		}
+
+		// Join the current index load instead of starting another.
 		if e.indexLoadCh != nil {
 			waitCh = e.indexLoadCh
 			return
 		}
+
+		// Register an index load under the reader lifetime.
 		e.indexLoadCh = make(chan struct{})
 		waitCh = e.indexLoadCh
 		cache = e.indexCache
@@ -71,6 +78,8 @@ func (e *PackReader) ensureIndexLoaded(ctx context.Context) error {
 		return ErrPackReaderClosed
 	case <-waitCh:
 	}
+
+	// Read the completed index load result under the reader state lock.
 	var err error
 	e.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		err = e.indexLoadErr
@@ -104,6 +113,8 @@ func (e *PackReader) startIndexLoad(cache IndexCache) {
 				e.recordIndexCacheMiss()
 			}
 		}
+
+		// Load and cache the remote index tail when cached entries are unavailable.
 		if entries == nil {
 			before := e.snapshotFetchedBytes()
 			tail, entries, err = e.readIndexTailEntries(e.ctx)
@@ -154,12 +165,15 @@ func (e *PackReader) snapshotFetchedBytes() int64 {
 
 // recordIndexCacheHit counts a valid cached tail and notifies stats consumers.
 func (e *PackReader) recordIndexCacheHit() {
+	// Publish the index cache counter change under the reader state lock.
 	var notify func()
 	e.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		e.indexCacheHits++
 		notify = e.statsChanged
 		broadcast()
 	})
+
+	// Notify stats observers after releasing the reader state lock.
 	if notify != nil {
 		notify()
 	}
@@ -167,12 +181,15 @@ func (e *PackReader) recordIndexCacheHit() {
 
 // recordIndexCacheMiss counts an absent cached tail and notifies stats consumers.
 func (e *PackReader) recordIndexCacheMiss() {
+	// Publish the index cache counter change under the reader state lock.
 	var notify func()
 	e.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		e.indexCacheMisses++
 		notify = e.statsChanged
 		broadcast()
 	})
+
+	// Notify stats observers after releasing the reader state lock.
 	if notify != nil {
 		notify()
 	}
@@ -180,12 +197,15 @@ func (e *PackReader) recordIndexCacheMiss() {
 
 // recordIndexCacheReadError counts an unreadable or invalid cached tail.
 func (e *PackReader) recordIndexCacheReadError() {
+	// Publish the index cache counter change under the reader state lock.
 	var notify func()
 	e.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		e.indexCacheReadErrors++
 		notify = e.statsChanged
 		broadcast()
 	})
+
+	// Notify stats observers after releasing the reader state lock.
 	if notify != nil {
 		notify()
 	}
@@ -193,12 +213,15 @@ func (e *PackReader) recordIndexCacheReadError() {
 
 // recordIndexCacheWriteError counts a failed attempt to cache a validated tail.
 func (e *PackReader) recordIndexCacheWriteError() {
+	// Publish the index cache counter change under the reader state lock.
 	var notify func()
 	e.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		e.indexCacheWriteErrors++
 		notify = e.statsChanged
 		broadcast()
 	})
+
+	// Notify stats observers after releasing the reader state lock.
 	if notify != nil {
 		notify()
 	}
@@ -206,17 +229,23 @@ func (e *PackReader) recordIndexCacheWriteError() {
 
 // recordRemoteIndexLoad counts one remote index load and its transport bytes.
 func (e *PackReader) recordRemoteIndexLoad(bytes int64) {
+	// Keep remote index byte accounting nonnegative.
 	if bytes < 0 {
 		bytes = 0
 	}
+
+	// Publish the remote index load totals under the reader state lock.
 	var notify func()
 	e.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		// Account for the completed remote index load and wake stats watchers.
 		e.remoteIndexLoads++
 		e.remoteIndexBytes += bytes
 		e.lastRemoteIndexBytes = bytes
 		notify = e.statsChanged
 		broadcast()
 	})
+
+	// Notify stats observers after releasing the reader state lock.
 	if notify != nil {
 		notify()
 	}
@@ -228,19 +257,27 @@ func (e *PackReader) recordRemoteIndexLoad(bytes int64) {
 // span store. Blocks fully contained in those spans can be written back
 // without another network round trip.
 func (e *PackReader) readIndexTailEntries(ctx context.Context) ([]byte, []*kvfile.IndexEntry, error) {
+	// Reject a negative pack size before reading its index tail.
 	if e.size < 0 {
 		return nil, nil, errors.Errorf("negative pack size %d", e.size)
 	}
+
+	// Read the estimated index tail through the resident span store.
 	tail, err := e.readIndexTailSuffix(ctx, false)
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "read kvfile index tail")
 	}
+
+	// Validate the estimated tail and expand it to the maximum extent if needed.
 	entries, err := e.parseIndexTail(tail)
 	if err != nil {
+		// Read the largest valid tail after the initial parse fails.
 		maxTail, maxErr := e.readIndexTailSuffix(ctx, true)
 		if maxErr != nil {
 			return nil, nil, err
 		}
+
+		// Reparse the index when the expanded tail contains additional bytes.
 		if len(maxTail) != len(tail) {
 			tail = maxTail
 			entries, err = e.parseIndexTail(tail)
@@ -279,6 +316,7 @@ func (e *PackReader) readIndexTailSuffix(ctx context.Context, maxBound bool) ([]
 
 // indexTailWindow bounds the index estimate by its maximum encoding and pack size.
 func (e *PackReader) indexTailWindow(maxBound bool) (int, error) {
+	// Bound the maximum index encoding by the manifest pack size.
 	maxTail, err := kvfile.MaxIndexTailSize(e.blockCount)
 	if err != nil {
 		return 0, err
@@ -289,6 +327,8 @@ func (e *PackReader) indexTailWindow(maxBound bool) (int, error) {
 	if maxBound {
 		return int(maxTail), nil //nolint:gosec // maxTail is capped by the non-negative int64 pack size.
 	}
+
+	// Estimate the first index-tail window within the validated maximum.
 	window := uint64(defaultIndexTailInitialWindow)
 	estimated := 8 + e.blockCount*(128+8+10)
 	if estimated > window {
@@ -305,9 +345,12 @@ func (e *PackReader) indexTailWindow(maxBound bool) (int, error) {
 
 // parseIndexTail validates the tail against the manifest size and block count.
 func (e *PackReader) parseIndexTail(tail []byte) ([]*kvfile.IndexEntry, error) {
+	// Reject a negative pack size before parsing cached index bytes.
 	if e.size < 0 {
 		return nil, errors.Errorf("negative pack size %d", e.size)
 	}
+
+	// Build the index reader and require the manifest entry count.
 	reader, err := kvfile.BuildReaderWithIndexTail(tail, uint64(e.size))
 	if err != nil {
 		return nil, errors.Wrap(err, "build kvfile reader from index tail")
@@ -315,10 +358,14 @@ func (e *PackReader) parseIndexTail(tail []byte) ([]*kvfile.IndexEntry, error) {
 	if reader.Size() != e.blockCount {
 		return nil, errors.Errorf("index entry count %d != manifest block count %d", reader.Size(), e.blockCount)
 	}
+
+	// Ensure the index entry count fits the in-memory slice length.
 	count := reader.Size()
 	if count > uint64(math.MaxInt) {
 		return nil, errors.Errorf("index entry count %d overflows int", count)
 	}
+
+	// Copy index entries out of the validated tail reader.
 	entries := make([]*kvfile.IndexEntry, 0, count)
 	err = reader.ScanPrefixEntries(nil, func(ie *kvfile.IndexEntry, _ int) error {
 		entries = append(entries, ie.CloneVT())
@@ -327,6 +374,8 @@ func (e *PackReader) parseIndexTail(tail []byte) ([]*kvfile.IndexEntry, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "scan index entries")
 	}
+
+	// Validate block keys and payload extents against the index-tail boundary.
 	tailStart := uint64(e.size) - uint64(len(tail))
 	if err := validateIndexEntries(entries, tailStart, e.blockCount); err != nil {
 		return nil, err
@@ -336,11 +385,15 @@ func (e *PackReader) parseIndexTail(tail []byte) ([]*kvfile.IndexEntry, error) {
 
 // validateIndexEntries checks key order, block references, and payload extents.
 func validateIndexEntries(entries []*kvfile.IndexEntry, tailStart uint64, blockCount uint64) error {
+	// Require one index entry for each block declared in the manifest.
 	if uint64(len(entries)) != blockCount {
 		return errors.Errorf("index entry count %d != manifest block count %d", len(entries), blockCount)
 	}
+
+	// Validate every index key and block payload extent.
 	var prev []byte
 	for i, entry := range entries {
+		// Require an index record with a nonempty key.
 		if entry == nil {
 			return errors.Errorf("nil index entry at %d", i)
 		}
@@ -348,6 +401,8 @@ func validateIndexEntries(entries []*kvfile.IndexEntry, tailStart uint64, blockC
 		if len(key) == 0 {
 			return errors.Errorf("empty index key at %d", i)
 		}
+
+		// Require strictly increasing index keys that encode block references.
 		if prev != nil && bytes.Compare(prev, key) >= 0 {
 			return errors.Errorf("duplicate or unsorted index key at %d", i)
 		}
@@ -355,6 +410,8 @@ func validateIndexEntries(entries []*kvfile.IndexEntry, tailStart uint64, blockC
 		if _, err := parseBlockRef(entry); err != nil {
 			return errors.Wrapf(err, "parse index key at %d", i)
 		}
+
+		// Require each block payload to end before the index tail without overflow.
 		off := entry.GetOffset()
 		size := entry.GetSize()
 		if size > math.MaxUint64-off {
@@ -369,14 +426,19 @@ func validateIndexEntries(entries []*kvfile.IndexEntry, tailStart uint64, blockC
 
 // setIndexEntriesLocked stores the index entries sorted by offset and by key.
 func (e *PackReader) setIndexEntriesLocked(entries []*kvfile.IndexEntry) {
+	// Order index entries by payload offset for resident window planning.
 	byOff := slices.Clone(entries)
 	slices.SortFunc(byOff, func(a, b *kvfile.IndexEntry) int {
 		return cmp.Compare(a.GetOffset(), b.GetOffset())
 	})
+
+	// Order index entries by block key for existence and metadata probes.
 	byKey := slices.Clone(entries)
 	slices.SortFunc(byKey, func(a, b *kvfile.IndexEntry) int {
 		return bytes.Compare(a.GetKey(), b.GetKey())
 	})
+
+	// Publish both index orders into the reader state.
 	e.entriesByOff = byOff
 	e.entriesByKey = byKey
 }
@@ -393,6 +455,7 @@ func (e *PackReader) findEntryByKeyLocked(key []byte) (*kvfile.IndexEntry, bool)
 // When no writeback target is configured the window shrinks to just the
 // target bytes.
 func (e *PackReader) semanticWindowLocked(target *kvfile.IndexEntry) (int64, int64) {
+	// Use the target block extent when neighbor writeback is disabled.
 	targetOff, targetEnd := entryExtent(target)
 	start := targetOff
 	end := targetEnd
@@ -400,6 +463,7 @@ func (e *PackReader) semanticWindowLocked(target *kvfile.IndexEntry) (int64, int
 		return start, end
 	}
 
+	// Compute the desired neighbor window around the target block.
 	half := e.writebackWindow / 2
 	intendedStart := int64(0)
 	if targetOff > half {
@@ -407,10 +471,12 @@ func (e *PackReader) semanticWindowLocked(target *kvfile.IndexEntry) (int64, int
 	}
 	intendedEnd := targetEnd + half
 
+	// Expand the payload extent to include complete blocks within the neighbor window.
 	pos := sort.Search(len(e.entriesByOff), func(i int) bool {
 		return int64(e.entriesByOff[i].GetOffset()) >= intendedStart //nolint:gosec // validateIndexEntries bounds offsets by the int64 pack size.
 	})
 	for ; pos < len(e.entriesByOff); pos++ {
+		// Skip neighbor blocks that extend beyond the desired window.
 		eOff, eEnd := entryExtent(e.entriesByOff[pos])
 		if eOff >= intendedEnd {
 			break
@@ -418,6 +484,8 @@ func (e *PackReader) semanticWindowLocked(target *kvfile.IndexEntry) (int64, int
 		if eEnd > intendedEnd {
 			continue
 		}
+
+		// Include the complete neighbor block in the payload fetch extent.
 		start = min(start, eOff)
 		end = max(end, eEnd)
 	}

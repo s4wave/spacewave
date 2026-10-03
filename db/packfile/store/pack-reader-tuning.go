@@ -11,12 +11,15 @@ func (e *PackReader) setTransportFetchMaxBytes(maxBytes int) {
 }
 
 func (e *PackReader) normalizeTransportLocked() {
+	// Choose valid minimum transport and alignment windows.
 	if e.minWindow <= 0 {
 		e.minWindow = defaultTransportMinWindow
 	}
 	if e.transportQuantum <= 0 {
 		e.transportQuantum = e.minWindow
 	}
+
+	// Cap transport windows at the platform fetch byte limit.
 	if e.transportFetchMaxBytes > 0 {
 		if e.minWindow > e.transportFetchMaxBytes {
 			e.minWindow = e.transportFetchMaxBytes
@@ -28,6 +31,8 @@ func (e *PackReader) normalizeTransportLocked() {
 			e.maxWindow = e.transportFetchMaxBytes
 		}
 	}
+
+	// Keep the maximum and active transport windows within normalized bounds.
 	minMaxWindow := max(e.minWindow, e.transportQuantum)
 	if e.maxWindow > 0 && e.maxWindow < minMaxWindow {
 		e.maxWindow = minMaxWindow

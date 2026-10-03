@@ -50,6 +50,7 @@ type transportStatsProvider interface {
 func (e *PackReader) SnapshotStats() PackReaderStats {
 	var snap PackReaderStats
 	e.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		// Snapshot resident byte coverage and payload transport totals.
 		snap.ResidentBytes = e.residentBytes
 		snap.SpanCount = len(e.spans)
 		snap.InFlightFetches = len(e.loading)
@@ -57,15 +58,21 @@ func (e *PackReader) SnapshotStats() PackReaderStats {
 		snap.FetchedBytes = e.fetchBytes
 		snap.RangeRequestCount = e.fetchCount
 		snap.RangeResponseBytes = e.rangeResponseBytes
+
+		// Snapshot index-tail transport totals.
 		snap.IndexTailFetchCount = e.indexTailFetchCount
 		snap.IndexTailFetchBytes = e.indexTailFetchBytes
 		snap.IndexTailResponseBytes = e.indexTailResponseBytes
+
+		// Include full-response fallback overhead reported by the transport.
 		if provider, ok := e.transport.(transportStatsProvider); ok {
 			transport := provider.SnapshotTransportStats()
 			snap.FullResponseFallbackCount = transport.FullResponseFallbackCount
 			snap.FullResponseFallbackBytes = transport.FullResponseFallbackBytes
 			snap.LastFullResponseFallback = transport.LastFullResponseFallback
 		}
+
+		// Snapshot adaptive transport settings and writeback activity.
 		snap.LastFetchAt = e.lastFetchAt
 		snap.LastFetchBytes = e.lastFetchBytes
 		snap.CurrentWindow = e.currentWindow
@@ -74,11 +81,15 @@ func (e *PackReader) SnapshotStats() PackReaderStats {
 		snap.VerifyFailures = e.verifyFailures
 		snap.WritebackCount = e.writebackCount
 		snap.WritebackErrors = e.writebackErrors
+
+		// Snapshot index availability and cache outcomes.
 		snap.IndexLoaded = e.indexLoaded
 		snap.IndexCacheHits = e.indexCacheHits
 		snap.IndexCacheMisses = e.indexCacheMisses
 		snap.IndexCacheReadErrors = e.indexCacheReadErrors
 		snap.IndexCacheWriteErrors = e.indexCacheWriteErrors
+
+		// Snapshot remote index load counts and byte usage.
 		snap.RemoteIndexLoads = e.remoteIndexLoads
 		snap.RemoteIndexBytes = e.remoteIndexBytes
 		snap.LastRemoteIndexBytes = e.lastRemoteIndexBytes

@@ -59,18 +59,25 @@ func (e *PackReader) fetchRange(ctx context.Context, off, readEnd int64, exact b
 	var load *fetchLoad
 	var notifyStart func()
 	e.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		// Reject transport demand after the pack reader closes.
 		if e.closed {
 			closed = true
 			return
 		}
+
+		// Reuse a resident span before joining transport work.
 		resident = e.findCoveringSpanLocked(off)
 		if resident != nil {
 			return
 		}
+
+		// Join a transport fetch that already covers the requested offset.
 		load = e.findLoadingLocked(off)
 		if load != nil {
 			return
 		}
+
+		// Plan a transport window within the uncovered gap.
 		if exact {
 			key = e.planExactFetchLocked(off, readEnd)
 		} else {
@@ -79,6 +86,8 @@ func (e *PackReader) fetchRange(ctx context.Context, off, readEnd int64, exact b
 		if key.size == 0 {
 			return
 		}
+
+		// Register the reader-owned fetch and retain the reader lifetime.
 		if e.loading == nil {
 			e.loading = make(map[fetchKey]*fetchLoad)
 		}
@@ -174,8 +183,13 @@ func (e *PackReader) startFetch(key fetchKey, load *fetchLoad, indexTail bool) {
 			}
 			broadcast()
 		})
+
+		// Reclaim resident bytes after publishing the fetched span.
 		budget.reclaim()
+
+		// Publish the fetch result and wake every waiting reader.
 		e.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+			// Complete the registered fetch and wake its waiting callers.
 			load.sp = sp
 			load.err = err
 			if e.loading[key] == load {
@@ -184,9 +198,13 @@ func (e *PackReader) startFetch(key fetchKey, load *fetchLoad, indexTail bool) {
 			close(load.done)
 			broadcast()
 		})
+
+		// Notify stats observers after the fetch completes.
 		if notifyDone != nil {
 			notifyDone()
 		}
+
+		// Persist verified neighbor blocks under the reader lifetime.
 		if writeback != nil {
 			startOwnerWork(writeback)
 		}
@@ -204,10 +222,13 @@ func (e *PackReader) startFetch(key fetchKey, load *fetchLoad, indexTail bool) {
 // goodput so the request rate approaches targetInterval^-1 while staying
 // clamped to [minWindow, maxWindow].
 func (e *PackReader) planFetchLocked(off, readEnd int64, readAhead int) fetchKey {
+	// Locate the uncovered byte interval containing the requested offset.
 	gapStart, gapEnd, ok := e.findGapLocked(off)
 	if !ok || gapEnd <= gapStart {
 		return fetchKey{}
 	}
+
+	// Determine the required payload extent and its sparse locality.
 	mustEnd := min(readEnd, gapEnd)
 	if mustEnd <= off {
 		mustEnd = off + 1
@@ -254,6 +275,7 @@ func (e *PackReader) planFetchLocked(off, readEnd int64, readAhead int) fetchKey
 		windowSize = max(windowSize, readAhead)
 	}
 
+	// Bound the transport window by the available gap.
 	quantum := int64(max(1, e.transportQuantum))
 	gapSize := gapEnd - gapStart
 	fetchSize := min(int64(windowSize), gapSize)
@@ -275,9 +297,11 @@ func (e *PackReader) planFetchLocked(off, readEnd int64, readAhead int) fetchKey
 
 // hasSparseLocalityLocked reports proximity to the preceding payload target.
 func (e *PackReader) hasSparseLocalityLocked(off, end int64) bool {
+	// Require a preceding payload target before detecting sparse locality.
 	if !e.lastTargetSet {
 		return false
 	}
+	// Measure the gap between the current and preceding payload targets.
 	dist := int64(0)
 	if off > e.lastTargetEnd {
 		dist = off - e.lastTargetEnd
@@ -289,9 +313,12 @@ func (e *PackReader) hasSparseLocalityLocked(off, end int64) bool {
 
 // recordSparseTargetLocked retains the latest target for locality detection.
 func (e *PackReader) recordSparseTargetLocked(off, end int64) {
+	// Retain payload targets only while sparse read planning is enabled.
 	if !e.sparseReads {
 		return
 	}
+
+	// Save the payload extent for the next sparse locality decision.
 	e.lastTargetOff = off
 	e.lastTargetEnd = end
 	e.lastTargetSet = true
@@ -299,10 +326,13 @@ func (e *PackReader) recordSparseTargetLocked(off, end int64) {
 
 // planExactFetchLocked clips index reads to the currently uncovered gap.
 func (e *PackReader) planExactFetchLocked(off, readEnd int64) fetchKey {
+	// Locate the uncovered byte interval containing the requested offset.
 	gapStart, gapEnd, ok := e.findGapLocked(off)
 	if !ok || gapEnd <= gapStart {
 		return fetchKey{}
 	}
+
+	// Clip the index-tail fetch to the uncovered interval.
 	start := max(off, gapStart)
 	end := min(readEnd, gapEnd)
 	if end <= start {
@@ -319,6 +349,7 @@ func (e *PackReader) planExactFetchLocked(off, readEnd int64) fetchKey {
 
 // recordFetchLocked notes a completed fetch for adaptive sizing.
 func (e *PackReader) recordFetchLocked(key fetchKey, responseBytes int) func() {
+	// Record completed payload transport timing and byte totals.
 	e.lastFetchAt = time.Now()
 	e.lastFetchBytes = key.size
 	e.fetchCount++
@@ -329,11 +360,14 @@ func (e *PackReader) recordFetchLocked(key fetchKey, responseBytes int) func() {
 
 // recordIndexTailFetchLocked accounts for index I/O separately from payloads.
 func (e *PackReader) recordIndexTailFetchLocked(key fetchKey, responseBytes int) func() {
+	// Record transport totals for the completed index-tail fetch.
 	e.lastFetchAt = time.Now()
 	e.lastFetchBytes = key.size
 	e.fetchCount++
 	e.fetchBytes += int64(key.size)
 	e.rangeResponseBytes += int64(responseBytes)
+
+	// Account for index-tail requests separately from payload requests.
 	e.indexTailFetchCount++
 	e.indexTailFetchBytes += int64(key.size)
 	e.indexTailResponseBytes += int64(responseBytes)
@@ -343,16 +377,22 @@ func (e *PackReader) recordIndexTailFetchLocked(key fetchKey, responseBytes int)
 // readResidentRange allocates an owned buffer for [start, end). It fills the
 // buffer and returns true only when every byte is resident under one lock.
 func (e *PackReader) readResidentRange(start, end int64) ([]byte, bool) {
+	// Accept an empty resident byte interval without allocating a buffer.
 	if end <= start {
 		return nil, true
 	}
+
+	// Copy the requested byte interval while holding the resident span lock.
 	out := make([]byte, end-start)
 	var ok bool
 	e.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		// Require complete resident coverage before copying the requested bytes.
 		spans, covered := e.collectSpansLocked(start, end)
 		if !covered {
 			return
 		}
+
+		// Copy the resident spans into the caller-owned buffer.
 		ok = copySpans(out, spans, start) == len(out)
 	})
 	return out, ok
@@ -368,10 +408,13 @@ func (e *PackReader) spanIndexLocked(off int64) int {
 // findCoveringSpanLocked returns the resident span covering off, or nil.
 // Touches the span's LRU sequence if found.
 func (e *PackReader) findCoveringSpanLocked(off int64) *span {
+	// Locate the resident span covering the requested offset.
 	i := e.spanIndexLocked(off)
 	if i == len(e.spans) || e.spans[i].off > off {
 		return nil
 	}
+
+	// Refresh the covering span in the resident LRU order.
 	s := e.spans[i]
 	e.touchSpanLocked(s)
 	return s
@@ -394,6 +437,7 @@ func (e *PackReader) findLoadingLocked(off int64) *fetchLoad {
 // where prevEnd is the end of the span before off (or 0) and nextStart is the
 // start of the next span (or the pack size).
 func (e *PackReader) findGapLocked(off int64) (int64, int64, bool) {
+	// Reject offsets before the start of the packfile.
 	if off < 0 {
 		return 0, 0, false
 	}
@@ -435,6 +479,7 @@ func (e *PackReader) findGapLocked(off int64) (int64, int64, bool) {
 // The span enters the LRU list as the newest span. The caller runs budget
 // reclaim after releasing bcast.
 func (e *PackReader) insertSpanLocked(s *span) {
+	// Index the fetched span and account for its resident bytes and recency.
 	i := sort.Search(len(e.spans), func(i int) bool {
 		return e.spans[i].off >= s.off
 	})
@@ -447,12 +492,15 @@ func (e *PackReader) insertSpanLocked(s *span) {
 
 // removeSpanLocked removes a resident span and returns its bytes to the budget.
 func (e *PackReader) removeSpanLocked(s *span) {
+	// Locate the resident span before removing it.
 	i := sort.Search(len(e.spans), func(i int) bool {
 		return e.spans[i].off >= s.off
 	})
 	if i == len(e.spans) || e.spans[i] != s {
 		return
 	}
+
+	// Detach the resident span and return its bytes to the shared budget.
 	e.spans = slices.Delete(e.spans, i, i+1)
 	e.lru.Remove(s.lru)
 	if e.newest == s {
@@ -481,12 +529,16 @@ func (e *PackReader) touchSpanLocked(s *span) {
 // collectSpansLocked returns the disjoint spans covering [start, end).
 // Returns (nil, false) if any byte in the interval is uncovered.
 func (e *PackReader) collectSpansLocked(start, end int64) ([]*span, bool) {
+	// Collect resident spans until the entire requested interval is covered.
 	var out []*span
 	cur := start
 	for _, s := range e.spans[e.spanIndexLocked(start):] {
+		// Stop when a gap interrupts resident coverage.
 		if cur < s.off {
 			return nil, false
 		}
+
+		// Retain the next resident span and advance the covered interval.
 		e.touchSpanLocked(s)
 		out = append(out, s)
 		cur = min(end, s.end())
@@ -502,10 +554,13 @@ func (e *PackReader) collectSpansLocked(start, end int64) ([]*span, bool) {
 // The span inserted last is never returned: a caller that fetched it may not
 // have read it yet.
 func (e *PackReader) oldestEvictableLocked() *span {
+	// Find the oldest span in the resident LRU order.
 	front := e.lru.Front()
 	if front == nil {
 		return nil
 	}
+
+	// Protect the newest fetched span until a caller can consume it.
 	s := front.Value.(*span)
 	if s == e.newest {
 		return nil
@@ -519,9 +574,12 @@ func (e *PackReader) oldestEvictableSeq() (uint64, bool) {
 	var seq uint64
 	var ok bool
 	e.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		// Ignore resident eviction after the reader closes.
 		if e.closed {
 			return
 		}
+
+		// Read the sequence of the oldest evictable resident span.
 		if s := e.oldestEvictableLocked(); s != nil {
 			seq, ok = s.lastUseSeq, true
 		}
@@ -532,9 +590,12 @@ func (e *PackReader) oldestEvictableSeq() (uint64, bool) {
 // evictOldestSpan removes the reader's oldest evictable span.
 func (e *PackReader) evictOldestSpan() {
 	e.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		// Ignore resident eviction after the reader closes.
 		if e.closed {
 			return
 		}
+
+		// Remove the oldest resident span that a reader no longer needs.
 		if s := e.oldestEvictableLocked(); s != nil {
 			e.removeSpanLocked(s)
 		}

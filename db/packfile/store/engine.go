@@ -169,6 +169,7 @@ func (e *PackReader) Close() {
 	// Fence new work and cancel every admitted owner job.
 	var closeOwner bool
 	e.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		// Fence reader work and cancel the admitted jobs once.
 		if e.closed {
 			return
 		}
@@ -184,12 +185,16 @@ func (e *PackReader) Close() {
 
 	// Wait for admitted jobs before releasing their reader dependencies.
 	for {
+		// Wait for admitted reader jobs before releasing their shared state.
 		var waitCh <-chan struct{}
 		e.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
+			// Retain reader dependencies until all admitted jobs finish.
 			if e.workCount != 0 {
 				waitCh = getWaitCh()
 				return
 			}
+
+			// Release transport, index, and writeback dependencies.
 			e.transport = nil
 			e.indexCache = nil
 			e.writebackCtx = nil
@@ -197,19 +202,27 @@ func (e *PackReader) Close() {
 			e.entriesByOff = nil
 			e.entriesByKey = nil
 			e.published = nil
+
+			// Release resident spans and return their bytes to the shared budget.
 			e.spans = nil
 			e.lru.Init()
 			e.newest = nil
 			e.chargeLocked(-e.residentBytes)
 			e.budget.detach(e)
+
+			// Release fetch state and publish reader close completion.
 			e.loading = nil
 			e.statsChanged = nil
 			e.closeComplete = true
 			broadcast()
 		})
+
+		// Finish once the reader dependencies have been released.
 		if waitCh == nil {
 			return
 		}
+
+		// Wait for the reader work or close state to change.
 		<-waitCh
 	}
 }
@@ -217,6 +230,7 @@ func (e *PackReader) Close() {
 // waitCloseComplete waits for the first Close caller to drain reader work.
 func (e *PackReader) waitCloseComplete() {
 	for {
+		// Read reader close completion together with its next notification.
 		var complete bool
 		var waitCh <-chan struct{}
 		e.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
@@ -225,9 +239,13 @@ func (e *PackReader) waitCloseComplete() {
 				waitCh = getWaitCh()
 			}
 		})
+
+		// Finish after the first close caller has drained the reader.
 		if complete {
 			return
 		}
+
+		// Wait for the reader work or close state to change.
 		<-waitCh
 	}
 }
@@ -242,7 +260,9 @@ func (e *PackReader) finishOwnerWork() {
 
 // setBudget moves the reader's resident bytes onto a shared budget.
 func (e *PackReader) setBudget(budget *residentBudget) {
+	// Transfer resident byte accounting to the shared reader budget.
 	e.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		// Move resident accounting only for an open reader on a different budget.
 		if e.closed || e.budget == budget {
 			return
 		}
@@ -252,6 +272,8 @@ func (e *PackReader) setBudget(budget *residentBudget) {
 		e.budget.used.Add(e.residentBytes)
 		e.budget.attach(e)
 	})
+
+	// Reclaim resident spans above the shared byte limit.
 	budget.reclaim()
 }
 
@@ -261,9 +283,12 @@ func (e *PackReader) setBudget(budget *residentBudget) {
 // copies when non-nil. windowBytes is the neighborhood fetched around a miss
 // so its co-blocks are published with it. Pass 0 to use the default.
 func (e *PackReader) SetWriteback(ctx context.Context, target block.StoreOps, windowBytes int64) {
+	// Choose the default neighbor window for pack writeback.
 	if windowBytes <= 0 {
 		windowBytes = defaultWritebackWindow
 	}
+
+	// Publish writeback configuration while the reader remains open.
 	e.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		if e.closed {
 			return
@@ -390,21 +415,27 @@ func alignUp(v, align int64) int64 {
 
 // clampWindow clamps size to [minWindow, maxWindow] aligned up to minWindow.
 func (e *PackReader) clampWindow(size int) int {
+	// Clamp the transport window to the configured byte limits.
 	if size < e.minWindow {
 		size = e.minWindow
 	}
 	if e.maxWindow > 0 && size > e.maxWindow {
 		size = e.maxWindow
 	}
+
+	// Align the transport window to its configured fetch quantum.
 	quantum := int64(max(1, e.transportQuantum))
 	return int(alignUp(int64(size), quantum))
 }
 
 // smoothWindow smooths upward window growth.
 func (e *PackReader) smoothWindow(current, target int) int {
+	// Apply a smaller transport window without smoothing.
 	if target <= current {
 		return target
 	}
+
+	// Smooth upward transport growth within the configured window bounds.
 	smoothed := int(math.Ceil((1-e.smoothing)*float64(current) + e.smoothing*float64(target)))
 	return e.clampWindow(smoothed)
 }

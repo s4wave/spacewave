@@ -91,6 +91,7 @@ const bloomFalsePositiveRiskThreshold = 0.01
 
 // SnapshotStats returns aggregate store state across all open engines.
 func (s *PackfileStore) SnapshotStats() PackfileStoreStats {
+	// Snapshot open readers, writeback configuration, and lookup counters.
 	s.mtx.Lock()
 	engines := s.snapshotEnginesLocked()
 	writebackWindow := s.writebackWindow
@@ -98,9 +99,11 @@ func (s *PackfileStore) SnapshotStats() PackfileStoreStats {
 	stats := s.stats
 	s.mtx.Unlock()
 
+	// Summarize the current manifest pack and bloom distributions.
 	entries := s.SnapshotManifest().GetEntries()
 	manifestStats := summarizeManifestDistribution(entries)
 
+	// Initialize aggregate stats from the manifest and store configuration.
 	snap := PackfileStoreStats{
 		EngineCount:               len(engines),
 		ManifestEntries:           len(entries),
@@ -127,7 +130,10 @@ func (s *PackfileStore) SnapshotStats() PackfileStoreStats {
 		LastNegativePacks:         stats.LastNegativePacks,
 		LastTargetHit:             stats.LastTargetHit,
 	}
+
+	// Combine the resident state and counters of every open pack reader.
 	for _, e := range engines {
+		// Accumulate resident bytes and payload transport totals.
 		es := e.SnapshotStats()
 		snap.ResidentBytes += es.ResidentBytes
 		snap.SpanCount += es.SpanCount
@@ -136,6 +142,8 @@ func (s *PackfileStore) SnapshotStats() PackfileStoreStats {
 		snap.FetchedBytes += es.FetchedBytes
 		snap.RangeRequestCount += es.RangeRequestCount
 		snap.RangeResponseBytes += es.RangeResponseBytes
+
+		// Accumulate index-tail and full-response transport totals.
 		snap.IndexTailFetchCount += es.IndexTailFetchCount
 		snap.IndexTailFetchBytes += es.IndexTailFetchBytes
 		snap.IndexTailResponseBytes += es.IndexTailResponseBytes
@@ -144,15 +152,21 @@ func (s *PackfileStore) SnapshotStats() PackfileStoreStats {
 		if snap.LastFullResponseFallback < es.LastFullResponseFallback {
 			snap.LastFullResponseFallback = es.LastFullResponseFallback
 		}
+
+		// Retain the latest completed transport fetch details.
 		if snap.LastFetchAt.Before(es.LastFetchAt) {
 			snap.LastFetchAt = es.LastFetchAt
 			snap.LastFetchBytes = es.LastFetchBytes
 		}
+
+		// Accumulate writeback publication and verification counters.
 		snap.PublishedBlocks += es.PublishedBlocks
 		snap.WritebackRunning += es.WritebackRunning
 		snap.VerifyFailures += es.VerifyFailures
 		snap.WritebackCount += es.WritebackCount
 		snap.WritebackErrors += es.WritebackErrors
+
+		// Accumulate index cache and remote index load totals.
 		snap.IndexCacheHits += es.IndexCacheHits
 		snap.IndexCacheMisses += es.IndexCacheMisses
 		snap.IndexCacheReadErrors += es.IndexCacheReadErrors
@@ -167,11 +181,15 @@ func (s *PackfileStore) SnapshotStats() PackfileStoreStats {
 }
 
 func summarizeManifestDistribution(entries []*packfile.PackfileEntry) PackfileStoreStats {
+	// Return an empty distribution when the manifest contains no packs.
 	stats := PackfileStoreStats{}
 	if len(entries) == 0 {
 		return stats
 	}
+
+	// Summarize pack sizes, block counts, and bloom filter risk.
 	for i, entry := range entries {
+		// Accumulate the pack block count distribution.
 		blockCount := entry.GetBlockCount()
 		sizeBytes := entry.GetSizeBytes()
 		stats.PackBlockCountTotal += blockCount
@@ -182,12 +200,16 @@ func summarizeManifestDistribution(entries []*packfile.PackfileEntry) PackfileSt
 		if stats.PackBlockCountMax < blockCount {
 			stats.PackBlockCountMax = blockCount
 		}
+
+		// Retain the smallest and largest manifest pack sizes.
 		if i == 0 || sizeBytes < stats.PackSizeBytesMin {
 			stats.PackSizeBytesMin = sizeBytes
 		}
 		if stats.PackSizeBytesMax < sizeBytes {
 			stats.PackSizeBytesMax = sizeBytes
 		}
+
+		// Count missing and invalid pack bloom filters.
 		bf := manifestEntryBloomFilter(entry)
 		if bf == nil {
 			if len(entry.GetBloomFilter()) == 0 {
@@ -197,6 +219,8 @@ func summarizeManifestDistribution(entries []*packfile.PackfileEntry) PackfileSt
 			stats.BloomInvalidCount++
 			continue
 		}
+
+		// Estimate false-positive risk for each valid pack bloom filter.
 		stats.BloomFilterCount++
 		fp := bloom.EstimateFalsePositiveRate(bf.Cap(), bf.K(), uint(blockCount))
 		if stats.BloomMaxFalsePositiveRate < fp {
@@ -210,10 +234,13 @@ func summarizeManifestDistribution(entries []*packfile.PackfileEntry) PackfileSt
 }
 
 func manifestEntryBloomFilter(entry *packfile.PackfileEntry) *bloom.Filter {
+	// Require encoded bloom bytes before decoding the pack filter.
 	bloomData := entry.GetBloomFilter()
 	if len(bloomData) == 0 {
 		return nil
 	}
+
+	// Decode the manifest bloom record into its lookup filter.
 	var pbf bloom.BloomFilter
 	if err := pbf.UnmarshalBlock(bloomData); err != nil {
 		return nil
@@ -223,11 +250,13 @@ func manifestEntryBloomFilter(entry *packfile.PackfileEntry) *bloom.Filter {
 
 // SnapshotEngineStats returns per-engine stats keyed by manifest pack id.
 func (s *PackfileStore) SnapshotEngineStats() map[string]PackReaderStats {
+	// Snapshot the reader registry before collecting per-pack stats.
 	s.mtx.Lock()
 	engines := make(map[string]*PackReader, len(s.engines))
 	maps.Copy(engines, s.engines)
 	s.mtx.Unlock()
 
+	// Collect stats from the retained pack readers.
 	stats := make(map[string]PackReaderStats, len(engines))
 	for id, e := range engines {
 		stats[id] = e.SnapshotStats()

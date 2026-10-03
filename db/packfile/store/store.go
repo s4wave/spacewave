@@ -134,7 +134,9 @@ func (s *PackfileStore) Close() {
 }
 
 func (s *PackfileStore) waitCloseComplete() {
+	// Wait for the store to finish releasing its readers.
 	for {
+		// Read store close completion together with its next notification.
 		var complete bool
 		var waitCh <-chan struct{}
 		s.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
@@ -143,9 +145,13 @@ func (s *PackfileStore) waitCloseComplete() {
 				waitCh = getWaitCh()
 			}
 		})
+
+		// Finish once every store reader has drained.
 		if complete {
 			return
 		}
+
+		// Wait for the store to publish close completion.
 		<-waitCh
 	}
 }
@@ -158,9 +164,12 @@ func (s *PackfileStore) waitCloseComplete() {
 // verifying it. ctx scopes the background work. Pass nil target to disable
 // persistence.
 func (s *PackfileStore) SetWriteback(ctx context.Context, target block.StoreOps, windowBytes int64) {
+	// Choose the default neighbor window for pack writeback.
 	if windowBytes <= 0 {
 		windowBytes = defaultWritebackWindow
 	}
+
+	// Save the writeback configuration and snapshot the open readers.
 	s.mtx.Lock()
 	if s.closed {
 		s.mtx.Unlock()
@@ -171,6 +180,8 @@ func (s *PackfileStore) SetWriteback(ctx context.Context, target block.StoreOps,
 	s.writebackWindow = windowBytes
 	engines := s.snapshotEnginesLocked()
 	s.mtx.Unlock()
+
+	// Apply the writeback configuration to every open reader.
 	for _, e := range engines {
 		e.SetWriteback(ctx, target, windowBytes)
 	}
@@ -184,6 +195,7 @@ func (s *PackfileStore) SetRangeCacheMaxBytes(maxBytes int64) {
 
 // SetStatsChangedCallback sets a callback invoked after observable stats change.
 func (s *PackfileStore) SetStatsChangedCallback(fn func()) {
+	// Save the stats callback and snapshot the open readers.
 	s.mtx.Lock()
 	if s.closed {
 		s.mtx.Unlock()
@@ -192,6 +204,8 @@ func (s *PackfileStore) SetStatsChangedCallback(fn func()) {
 	s.notify = fn
 	engines := s.snapshotEnginesLocked()
 	s.mtx.Unlock()
+
+	// Connect every open reader to the stats observer.
 	for _, e := range engines {
 		e.SetStatsChangedCallback(fn)
 	}
@@ -224,9 +238,11 @@ func (s *PackfileStore) GetBlock(ctx context.Context, ref *block.BlockRef) ([]by
 // order. The first pack that finds the block returns it. Returns nil when no
 // pack holds the block.
 func (s *PackfileStore) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*block.StoredBlock, error) {
+	// Trace the block lookup across candidate pack readers.
 	ctx, task := trace.NewTask(ctx, "provider/spacewave/packfile/store/get-block")
 	defer task.End()
 
+	// Resolve the block reference to its pack index key.
 	h := ref.GetHash()
 	if h == nil {
 		trace.Log(ctx, "result", "empty-hash")
@@ -237,9 +253,11 @@ func (s *PackfileStore) GetStoredBlock(ctx context.Context, ref *block.BlockRef)
 	}
 	key := packfile.BlockKey(h)
 
+	// Read the block from the first candidate pack that contains it.
 	var stored *block.StoredBlock
 	var lookup packLookup
 	err := s.probePacks(key, &lookup, func(eng *PackReader) (bool, error) {
+		// Trace and read the block from this candidate pack.
 		trace.Log(ctx, "pack-id", eng.packID)
 		var err error
 		stored, err = eng.getBlock(ctx, key, ref)
@@ -250,6 +268,8 @@ func (s *PackfileStore) GetStoredBlock(ctx context.Context, ref *block.BlockRef)
 		trace.Log(ctx, "result", "error")
 		return nil, err
 	}
+
+	// Record whether the candidate packs supplied the requested block.
 	trace.Logf(ctx, "candidate-packs", "%d", lookup.candidates)
 	if stored == nil {
 		trace.Log(ctx, "result", "miss")
@@ -261,12 +281,14 @@ func (s *PackfileStore) GetStoredBlock(ctx context.Context, ref *block.BlockRef)
 
 // GetBlockExists reports whether a block exists in the store.
 func (s *PackfileStore) GetBlockExists(ctx context.Context, ref *block.BlockRef) (bool, error) {
+	// Resolve the block reference to its pack index key.
 	h := ref.GetHash()
 	if h == nil {
 		return false, nil
 	}
 	key := packfile.BlockKey(h)
 
+	// Probe candidate pack indexes and record the existence result.
 	var lookup packLookup
 	err := s.probePacks(key, &lookup, func(eng *PackReader) (bool, error) {
 		return eng.getBlockExists(ctx, key)
@@ -288,14 +310,18 @@ func (s *PackfileStore) GetBlockExistsBatch(ctx context.Context, refs []*block.B
 
 // getBlockExistsBatch shares one catalog snapshot across prefetch and all probes.
 func (s *PackfileStore) getBlockExistsBatch(ctx context.Context, view *ManifestSnapshot, refs []*block.BlockRef) ([]bool, error) {
+	// Group duplicate block references by their pack index key.
 	out := make([]bool, len(refs))
 	indexes := make(map[string][]int, len(refs))
 	var keys []string
 	for i, ref := range refs {
+		// Ignore block references without a hash.
 		h := ref.GetHash()
 		if h == nil {
 			continue
 		}
+
+		// Retain each unique index key and all matching result positions.
 		key := string(packfile.BlockKey(h))
 		if _, ok := indexes[key]; !ok {
 			keys = append(keys, key)
@@ -303,19 +329,23 @@ func (s *PackfileStore) getBlockExistsBatch(ctx context.Context, view *ManifestS
 		indexes[key] = append(indexes[key], i)
 	}
 
+	// Return empty existence results when no reference has a hash.
 	if len(keys) == 0 {
 		return out, nil
 	}
 
+	// Load candidate pack indexes before probing the block keys.
 	if err := s.loadCandidateIndexes(ctx, view, keys); err != nil {
 		return nil, err
 	}
 
+	// Probe each unique key and account for the complete batch lookup.
 	var lookup packLookup
 	defer func() {
 		s.recordLookupStats(lookup)
 	}()
 	for _, key := range keys {
+		// Check whether a candidate pack contains this block key.
 		var found bool
 		err := s.probeCatalog(view, []byte(key), &lookup, func(eng *PackReader) (bool, error) {
 			var err error
@@ -325,6 +355,8 @@ func (s *PackfileStore) getBlockExistsBatch(ctx context.Context, view *ManifestS
 		if err != nil {
 			return nil, err
 		}
+
+		// Mark every duplicate reference when the block key exists.
 		if found {
 			for _, index := range indexes[key] {
 				out[index] = true
@@ -338,11 +370,13 @@ func (s *PackfileStore) getBlockExistsBatch(ctx context.Context, view *ManifestS
 // hold one of keys, indexLoadConcurrency at a time, so the probes that follow
 // search resident indexes instead of loading them one after another.
 func (s *PackfileStore) loadCandidateIndexes(ctx context.Context, view *ManifestSnapshot, keys []string) error {
-
+	// Prepare bloom keys for the batch of block references.
 	bloomKeys := make([]bloom.Key, len(keys))
 	for i, key := range keys {
 		bloomKeys[i] = bloom.NewKey([]byte(key))
 	}
+
+	// Select manifest packs whose bloom filters may contain the block keys.
 	var candidates []*packfile.PackfileEntry
 	view.entries.Scan(func(item *manifestEntry) bool {
 		if item.filter == nil || slices.ContainsFunc(bloomKeys, item.filter.TestKey) {
@@ -354,9 +388,13 @@ func (s *PackfileStore) loadCandidateIndexes(ctx context.Context, view *Manifest
 		return nil
 	}
 
+	// Load candidate pack indexes with bounded concurrency.
 	eg, ctx := errgroup.WithContext(ctx)
 	eg.SetLimit(indexLoadConcurrency)
+
+	// Schedule an index load for each nonempty candidate pack.
 	for _, entry := range candidates {
+		// Validate the candidate pack size before opening its reader.
 		size, err := manifestPackSize(entry)
 		if err != nil {
 			return err
@@ -364,7 +402,10 @@ func (s *PackfileStore) loadCandidateIndexes(ctx context.Context, view *Manifest
 		if size <= 0 {
 			continue
 		}
+
+		// Load the candidate index while holding its reader reference.
 		eg.Go(func() error {
+			// Acquire the candidate pack reader for the index load.
 			eng, release, err := s.getOrOpenEngine(entry.GetId(), size, entry.GetBlockCount())
 			if err != nil {
 				return errors.Wrap(err, "opening packfile")
@@ -379,12 +420,14 @@ func (s *PackfileStore) loadCandidateIndexes(ctx context.Context, view *Manifest
 // StatBlock returns metadata about a block without reading its data.
 // Returns nil, nil if the block does not exist.
 func (s *PackfileStore) StatBlock(ctx context.Context, ref *block.BlockRef) (*block.BlockStat, error) {
+	// Resolve the block reference to its pack index key.
 	h := ref.GetHash()
 	if h == nil {
 		return nil, nil
 	}
 	key := packfile.BlockKey(h)
 
+	// Read block metadata from the first matching candidate pack.
 	var stat *block.BlockStat
 	var lookup packLookup
 	err := s.probePacks(key, &lookup, func(eng *PackReader) (bool, error) {
@@ -428,6 +471,7 @@ func (s *PackfileStore) probeCatalog(
 	lookup *packLookup,
 	visit func(eng *PackReader) (bool, error),
 ) error {
+	// Select catalog packs whose bloom filters may contain the block key.
 	bloomKey := bloom.NewKey(key)
 	var candidates []*packfile.PackfileEntry
 	view.entries.Scan(func(item *manifestEntry) bool {
@@ -438,7 +482,9 @@ func (s *PackfileStore) probeCatalog(
 	})
 	lookup.candidates += len(candidates)
 
+	// Probe candidate pack readers until the requested block is found.
 	for _, entry := range candidates {
+		// Validate the candidate pack size before opening its reader.
 		size, err := manifestPackSize(entry)
 		if err != nil {
 			return err
@@ -446,16 +492,22 @@ func (s *PackfileStore) probeCatalog(
 		if size <= 0 {
 			continue
 		}
+
+		// Borrow the candidate pack reader for this block probe.
 		eng, release, err := s.getOrOpenEngine(entry.GetId(), size, entry.GetBlockCount())
 		if err != nil {
 			return errors.Wrap(err, "opening packfile")
 		}
+
+		// Probe the block and release the candidate reader before handling the result.
 		lookup.opened++
 		found, err := visit(eng)
 		release()
 		if err != nil {
 			return err
 		}
+
+		// Record a successful block probe or count the negative pack.
 		if found {
 			lookup.hit = true
 			return nil
@@ -467,6 +519,7 @@ func (s *PackfileStore) probeCatalog(
 
 // recordLookupStats adds one lookup to the store stats and notifies watchers.
 func (s *PackfileStore) recordLookupStats(lookup packLookup) {
+	// Accumulate the pack lookup totals under the store mutex.
 	var notify func()
 	s.mtx.Lock()
 	s.stats.LookupCount++
@@ -476,12 +529,16 @@ func (s *PackfileStore) recordLookupStats(lookup packLookup) {
 	if lookup.hit {
 		s.stats.TargetHits++
 	}
+
+	// Retain the latest lookup details and capture the stats observer.
 	s.stats.LastCandidatePacks = lookup.candidates
 	s.stats.LastOpenedPacks = lookup.opened
 	s.stats.LastNegativePacks = lookup.negative
 	s.stats.LastTargetHit = lookup.hit
 	notify = s.notify
 	s.mtx.Unlock()
+
+	// Notify the stats observer after releasing the store mutex.
 	if notify != nil {
 		notify()
 	}
@@ -544,36 +601,51 @@ func (s *PackfileStore) updateManifest(entries []*packfile.PackfileEntry, remove
 	s.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		// A full snapshot alone computes the missing IDs.
 		if replace {
+			// Collect the active pack IDs in the replacement snapshot.
 			present := make(map[string]bool, len(entries))
 			for _, entry := range entries {
 				present[entry.GetId()] = entry.GetSupersededBy() == ""
 			}
+
+			// Remove catalog entries absent from the replacement snapshot.
 			for id := range s.manifestByID {
 				if !present[id] {
 					removed = append(removed, id)
 				}
 			}
+
+			// Remove cached readers absent from the replacement snapshot.
 			for id := range s.engines {
 				if !present[id] {
 					removed = append(removed, id)
 				}
 			}
 		}
+
+		// Prepare catalog removal and reader retirement for a pack.
 		remove := func(id string) {
+			// Remove the pack descriptor from both catalog indexes.
 			if old := s.manifestByID[id]; old != nil {
 				s.manifest.Delete(old)
 				delete(s.manifestByID, id)
 			}
+
+			// Detach the pack reader for draining outside the catalog locks.
 			engine := s.engines[id]
 			delete(s.engines, id)
 			if engine != nil {
 				evicted = append(evicted, engine)
 			}
 		}
+
+		// Remove the packs explicitly retired by the manifest update.
 		for _, id := range removed {
 			remove(id)
 		}
+
+		// Publish the accepted pack descriptors into the catalog.
 		for _, entry := range entries {
+			// Ignore unnamed descriptors and remove superseded packs.
 			id := entry.GetId()
 			if id == "" {
 				continue
@@ -582,21 +654,29 @@ func (s *PackfileStore) updateManifest(entries []*packfile.PackfileEntry, remove
 				remove(id)
 				continue
 			}
+
+			// Replace changed descriptors and retire readers with changed pack contents.
 			old := s.manifestByID[id]
 			if old != nil {
+				// Retain an unchanged pack descriptor and its reader.
 				if old.entry.EqualVT(entry) {
 					continue
 				}
+
 				// Sequencing and bloom changes retain an immutable pack reader.
 				if old.entry.GetSizeBytes() != entry.GetSizeBytes() || old.entry.GetBlockCount() != entry.GetBlockCount() {
 					remove(id)
 				}
 				s.manifest.Delete(old)
 			}
+
+			// Index the accepted descriptor with its parsed bloom filter.
 			item := parseManifestEntry(entry)
 			s.manifestByID[id] = item
 			s.manifest.Set(item)
 		}
+
+		// Wake catalog observers after publishing the manifest changes.
 		broadcast()
 	})
 	s.mtx.Unlock()
@@ -610,9 +690,12 @@ func (s *PackfileStore) updateManifest(entries []*packfile.PackfileEntry, remove
 
 // notifyStatsChanged wakes observers after a committed store change.
 func (s *PackfileStore) notifyStatsChanged() {
+	// Capture the store stats observer under the mutex.
 	s.mtx.Lock()
 	notify := s.notify
 	s.mtx.Unlock()
+
+	// Notify the stats observer after releasing the store mutex.
 	if notify != nil {
 		notify()
 	}
@@ -622,11 +705,14 @@ func (s *PackfileStore) notifyStatsChanged() {
 // Readers from an older snapshot are closed by the caller instead of being
 // reinserted into the current catalog's cache after removal or replacement.
 func (s *PackfileStore) getOrOpenEngine(packID string, size int64, blockCount uint64) (*PackReader, func(), error) {
+	// Reject reader acquisition after store shutdown begins.
 	s.mtx.Lock()
 	if s.closed {
 		s.mtx.Unlock()
 		return nil, nil, ErrPackfileStoreClosed
 	}
+
+	// Check whether the requested pack metadata matches the current catalog.
 	currentMatches := func() bool {
 		entry := s.manifestByID[packID]
 		return entry != nil && entry.entry.GetSizeBytes() == uint64(size) && entry.entry.GetBlockCount() == blockCount //nolint:gosec // callers skip non-positive sizes.
@@ -635,6 +721,8 @@ func (s *PackfileStore) getOrOpenEngine(packID string, size int64, blockCount ui
 		s.mtx.Unlock()
 		return eng, func() {}, nil
 	}
+
+	// Snapshot the reader dependencies before opening outside the store mutex.
 	opener, cache := s.opener, s.cache
 	wbCtx, wbTarget, wbWindow := s.writebackCtx, s.writebackTarget, s.writebackWindow
 	notify := s.notify

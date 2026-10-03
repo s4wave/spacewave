@@ -26,12 +26,14 @@ type PackBlock struct {
 // instead of the pack's engine, so it neither evicts nor fills the resident
 // spans that serve block reads.
 func (s *PackfileStore) ReadPackBlocks(ctx context.Context, packID string, size int64) ([]PackBlock, error) {
+	// Open a private pack reader for the complete pack fetch.
 	rd, err := s.opener(packID, size)
 	if err != nil {
 		return nil, errors.Wrapf(err, "open packfile %s", packID)
 	}
 	defer rd.Close()
 
+	// Fetch the complete pack and validate its encoded index.
 	data, err := rd.transport.Fetch(ctx, 0, int(size))
 	if err != nil {
 		return nil, errors.Wrapf(err, "fetch packfile %s", packID)
@@ -44,6 +46,7 @@ func (s *PackfileStore) ReadPackBlocks(ctx context.Context, packID string, size 
 		return nil, errors.Wrapf(err, "read packfile %s index", packID)
 	}
 
+	// Collect index entries in the order of their payload offsets.
 	type located struct {
 		entry *kvfile.IndexEntry
 		idx   int
@@ -62,12 +65,16 @@ func (s *PackfileStore) ReadPackBlocks(ctx context.Context, packID string, size 
 		return int(a.off - b.off)
 	})
 
+	// Decode and verify every pack block in payload order.
 	blocks := make([]PackBlock, 0, len(entries))
 	for _, e := range entries {
+		// Decode the block reference stored in the index key.
 		h, err := packfile.ParseBlockKey(e.entry.GetKey())
 		if err != nil {
 			return nil, errors.Wrapf(err, "packfile %s key", packID)
 		}
+
+		// Read and verify the indexed block before returning its bytes.
 		value, err := kv.GetWithEntry(e.entry, e.idx)
 		if err != nil {
 			return nil, errors.Wrapf(err, "packfile %s value", packID)
