@@ -31,6 +31,7 @@ type hostedFlowIdentity struct {
 
 // newHostedFlowIdentity generates a fresh local and remote peer identity.
 func newHostedFlowIdentity(t *testing.T) *hostedFlowIdentity {
+	// Generate the local signaling identity and public key.
 	t.Helper()
 	localPriv, localPub, err := crypto.GenerateEd25519Key(rand.Reader)
 	if err != nil {
@@ -40,6 +41,8 @@ func newHostedFlowIdentity(t *testing.T) *hostedFlowIdentity {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Generate the remote peer identity for the hosted flow.
 	remotePriv, _, err := crypto.GenerateEd25519Key(rand.Reader)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -66,6 +69,7 @@ type hostedFlowLogs struct {
 // newHostedFlowLogs builds a debug-level logger that forwards every message
 // into an ordered channel.
 func newHostedFlowLogs() *hostedFlowLogs {
+	// Construct the logger and hook that retain hosted transport messages.
 	ch := make(chan string, 128)
 	lg := logrus.New()
 	lg.SetLevel(logrus.DebugLevel)
@@ -177,6 +181,7 @@ func runHostedFlowGeneration(
 	hold <-chan struct{},
 	regen <-chan struct{},
 ) error {
+	// Publish a tracker execution and construct its Pion session.
 	execution := tkr.beginExecution()
 	defer tkr.retireExecution(execution)
 	sess, _, err := tkr.newSession(ctx)
@@ -185,6 +190,7 @@ func runHostedFlowGeneration(
 	}
 	defer sess.close()
 
+	// Create and install the local offer with its generation identity.
 	localDesc, err := sess.pc.CreateOffer(nil)
 	if err != nil {
 		return pkgerrors.Wrap(err, "create hosted-flow offer")
@@ -195,6 +201,7 @@ func runHostedFlowGeneration(
 	offerSum := sha256.Sum256([]byte(localDesc.SDP))
 	sess.pendingOfferID = offerSum[:]
 
+	// Publish the session generation and its exact offer bytes.
 	gens <- &hostedFlowGeneration{
 		index:     index,
 		tracker:   tkr,
@@ -214,11 +221,14 @@ func runHostedFlowGeneration(
 	case <-hold:
 	}
 
+	// Prepare per-session SDP and candidate ingestion state.
 	lastAppliedRemoteSdp := ""
 	pendingRemoteIce := make([]pendingRemoteCandidate, 0)
 	remoteICE := remoteICECandidateApplier{add: sess.pc.AddICECandidate}
 
+	// Ingest and report each signal received by the hosted session.
 	for {
+		// Receive and accept the signal in the current tracker execution.
 		var incoming *incomingSignal
 		select {
 		case <-ctx.Done():
@@ -231,6 +241,7 @@ func runHostedFlowGeneration(
 			sess.acceptIncomingSignalLocked(incoming)
 		})
 
+		// Apply the signal body and report the resulting peer connection state.
 		var rxSdp *WebRtcSdp
 		var rxIce *WebRtcIce
 		switch b := incoming.sig.GetBody().(type) {
@@ -273,11 +284,13 @@ func startHostedFlowTracker(
 	hold <-chan struct{},
 	regen <-chan struct{},
 ) (<-chan *hostedFlowGeneration, <-chan hostedFlowDelivery) {
+	// Create channels for generation publication and signal delivery.
 	t.Helper()
 	gens := make(chan *hostedFlowGeneration, 8)
 	deliveries := make(chan hostedFlowDelivery, 64)
 	var generations atomic.Int32
 
+	// Install the hosted tracker factory and bind its test lifetime.
 	tpt.sessionTrackers = keyed.NewKeyedRefCount(
 		func(key string) (keyed.Routine, *sessionTracker) {
 			tkr := &sessionTracker{
@@ -330,6 +343,7 @@ func newHostedFlowSignalSession(ident *hostedFlowIdentity, buf int) *testSignalP
 // newHostedFlowAnswer builds an answer SDP signal for offerSDP tagged with
 // offerID, using a real Pion answerer for byte-compatible descriptions.
 func newHostedFlowAnswer(t *testing.T, api *pion_webrtc.API, pub crypto.PubKey, offerSDP string, offerID []byte) []byte {
+	// Create an answerer peer connection for the given offer.
 	t.Helper()
 	answerPC, err := api.NewPeerConnection(pion_webrtc.Configuration{})
 	if err != nil {
@@ -346,6 +360,8 @@ func newHostedFlowAnswer(t *testing.T, api *pion_webrtc.API, pub crypto.PubKey, 
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Encrypt the matching answer with its offer generation identity.
 	msg, err := EncodeWebRtcSignal(&WebRtcSignal{
 		Body: &WebRtcSignal_Sdp{Sdp: &WebRtcSdp{
 			TxSeqno: 1,
@@ -363,6 +379,7 @@ func newHostedFlowAnswer(t *testing.T, api *pion_webrtc.API, pub crypto.PubKey, 
 // newHostedFlowTrickle builds an ICE candidate signal tagged with offerID; a
 // nil offerID produces untagged era material.
 func newHostedFlowTrickle(t *testing.T, pub crypto.PubKey, offerID []byte) []byte {
+	// Encode an ICE candidate with its offer generation identity.
 	t.Helper()
 	mlineIndex := uint16(0)
 	ice, err := NewWebRtcIce(&pion_webrtc.ICECandidateInit{
@@ -395,6 +412,7 @@ func newHostedFlowMarker(t *testing.T, pub crypto.PubKey) []byte {
 
 // newHostedFlowUntaggedOffer builds an SDP description carrying no offer id.
 func newHostedFlowUntaggedOffer(t *testing.T, api *pion_webrtc.API, pub crypto.PubKey) []byte {
+	// Create the offerer peer connection and negotiated data channel.
 	t.Helper()
 	offerPC, err := api.NewPeerConnection(pion_webrtc.Configuration{})
 	if err != nil {
@@ -404,6 +422,8 @@ func newHostedFlowUntaggedOffer(t *testing.T, api *pion_webrtc.API, pub crypto.P
 	if _, err := offerPC.CreateDataChannel(dataChannelID, nil); err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Create and encrypt an offer without a generation identity.
 	offer, err := offerPC.CreateOffer(nil)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -495,9 +515,11 @@ func waitForDetachedSignalIngress(
 // an answer from the retired session's generation must not touch the successor
 // session's Pion state, and matching-generation material must still deliver.
 func TestHostedFlowDoubleSessionStaleAnswerOrdering(t *testing.T) {
+	// Create a cancellable lifetime for the hosted signaling flow.
 	ctx, cancel := context.WithCancel(t.Context())
 	t.Cleanup(cancel)
 
+	// Construct the transport, logs, and controlled tracker factory.
 	ident := newHostedFlowIdentity(t)
 	logs := newHostedFlowLogs()
 	tpt := newHostedFlowTransport(ctx, ident, logs)
@@ -505,6 +527,7 @@ func TestHostedFlowDoubleSessionStaleAnswerOrdering(t *testing.T) {
 	regen := make(chan struct{})
 	gens, deliveries := startHostedFlowTracker(t, tpt, ident.remotePeerID, hold, regen)
 
+	// Start the incoming signaling session and resolver.
 	signalSession := newHostedFlowSignalSession(ident, 4)
 	resolverErr, _ := startHostedFlowResolver(ctx, tpt, signalSession)
 
@@ -520,6 +543,8 @@ func TestHostedFlowDoubleSessionStaleAnswerOrdering(t *testing.T) {
 	if established.gen != genA.index || established.body != "request_offer" || established.err != nil {
 		t.Fatalf("lease establishment marker failed: %+v", established)
 	}
+
+	// Complete the first session negotiation with its matching answer.
 	signalSession.recvCh <- newHostedFlowAnswer(t, tpt.webrtcApi, ident.localPub, genA.offerSDP, genA.offerID)
 	deliveredA := awaitHostedFlowDelivery(t, deliveries)
 	if deliveredA.gen != genA.index || deliveredA.body != "sdp/answer" || deliveredA.err != nil || !deliveredA.remoteDesc {
@@ -533,6 +558,7 @@ func TestHostedFlowDoubleSessionStaleAnswerOrdering(t *testing.T) {
 	assertHostedFlowSuccessor(t, genA, genB)
 	hold <- struct{}{}
 
+	// Verify the stale answer leaves the successor peer connection untouched.
 	stale := awaitHostedFlowDelivery(t, deliveries)
 	if stale.gen != genB.index || stale.body != "sdp/answer" || stale.err != nil {
 		t.Fatalf("unexpected successor delivery for the stale answer: %+v", stale)
@@ -554,6 +580,7 @@ func TestHostedFlowDoubleSessionStaleAnswerOrdering(t *testing.T) {
 		t.Fatalf("era-B answer did not establish on the successor session: %+v", current)
 	}
 
+	// Cancel the hosted resolver and verify its terminal error.
 	cancel()
 	if err := <-resolverErr; err != context.Canceled {
 		t.Fatalf("resolver returned %v, want context canceled", err)
@@ -566,9 +593,11 @@ func TestHostedFlowDoubleSessionStaleAnswerOrdering(t *testing.T) {
 // after the successor was acquired, the session digest fence discards it
 // before Pion instead; either way the successor's Pion state stays untouched.
 func TestHostedFlowParkedMaterialNotReplayedIntoSuccessor(t *testing.T) {
+	// Create a cancellable lifetime for the parked-material test.
 	ctx, cancel := context.WithCancel(t.Context())
 	t.Cleanup(cancel)
 
+	// Construct the transport, logs, and controlled tracker factory.
 	ident := newHostedFlowIdentity(t)
 	logs := newHostedFlowLogs()
 	tpt := newHostedFlowTransport(ctx, ident, logs)
@@ -576,6 +605,7 @@ func TestHostedFlowParkedMaterialNotReplayedIntoSuccessor(t *testing.T) {
 	regen := make(chan struct{})
 	gens, deliveries := startHostedFlowTracker(t, tpt, ident.remotePeerID, hold, regen)
 
+	// Start the incoming signaling session and resolver.
 	signalSession := newHostedFlowSignalSession(ident, 3)
 	resolverErr, _ := startHostedFlowResolver(ctx, tpt, signalSession)
 
@@ -604,6 +634,7 @@ func TestHostedFlowParkedMaterialNotReplayedIntoSuccessor(t *testing.T) {
 	}
 	hold <- struct{}{}
 
+	// Verify successor deliveries contain only exempt marker traffic.
 	markers := 0
 	for markers < 2 {
 		d := awaitHostedFlowDelivery(t, deliveries)
@@ -636,6 +667,7 @@ func TestHostedFlowParkedMaterialNotReplayedIntoSuccessor(t *testing.T) {
 		t.Fatal("successor session carried a remote description with no applied answer")
 	}
 
+	// Cancel the hosted resolver and verify its terminal error.
 	cancel()
 	if err := <-resolverErr; err != context.Canceled {
 		t.Fatalf("resolver returned %v, want context canceled", err)
@@ -647,9 +679,11 @@ func TestHostedFlowParkedMaterialNotReplayedIntoSuccessor(t *testing.T) {
 // dropped, and that the exempt request_offer marker still wakes the successor
 // session while fenced material never reaches it.
 func TestHostedFlowRequestOfferWakeCrossesFencedEra(t *testing.T) {
+	// Create a cancellable lifetime for the fenced-era test.
 	ctx, cancel := context.WithCancel(t.Context())
 	t.Cleanup(cancel)
 
+	// Construct the transport, logs, and controlled tracker factory.
 	ident := newHostedFlowIdentity(t)
 	logs := newHostedFlowLogs()
 	tpt := newHostedFlowTransport(ctx, ident, logs)
@@ -657,6 +691,7 @@ func TestHostedFlowRequestOfferWakeCrossesFencedEra(t *testing.T) {
 	regen := make(chan struct{})
 	gens, deliveries := startHostedFlowTracker(t, tpt, ident.remotePeerID, hold, regen)
 
+	// Start the incoming signaling session and resolver.
 	signalSession := newHostedFlowSignalSession(ident, 5)
 	resolverErr, _ := startHostedFlowResolver(ctx, tpt, signalSession)
 
@@ -693,6 +728,8 @@ func TestHostedFlowRequestOfferWakeCrossesFencedEra(t *testing.T) {
 	genB := awaitHostedFlowGeneration(t, gens)
 	assertHostedFlowSuccessor(t, genA, genB)
 	hold <- struct{}{}
+
+	// Verify the successor receives the wake marker and no fenced material.
 	woke := awaitHostedFlowDelivery(t, deliveries)
 	if woke.gen != genB.index || woke.body != "request_offer" || woke.err != nil {
 		t.Fatalf("exempt marker did not wake the successor session: %+v", woke)
@@ -706,6 +743,7 @@ func TestHostedFlowRequestOfferWakeCrossesFencedEra(t *testing.T) {
 		t.Fatal("successor session carried a remote description with no applied answer")
 	}
 
+	// Cancel the hosted resolver and verify its terminal error.
 	cancel()
 	if err := <-resolverErr; err != context.Canceled {
 		t.Fatalf("resolver returned %v, want context canceled", err)
@@ -717,9 +755,11 @@ func TestHostedFlowRequestOfferWakeCrossesFencedEra(t *testing.T) {
 // keeps its membership while the lease is detached, and the next delivery
 // rebinds the successor tracker onto the same lease.
 func TestHostedFlowIngressDiscoverableAcrossRetirementGap(t *testing.T) {
+	// Create a cancellable lifetime for the ingress-retirement test.
 	ctx, cancel := context.WithCancel(t.Context())
 	t.Cleanup(cancel)
 
+	// Construct the transport, logs, and controlled tracker factory.
 	ident := newHostedFlowIdentity(t)
 	logs := newHostedFlowLogs()
 	tpt := newHostedFlowTransport(ctx, ident, logs)
@@ -728,6 +768,7 @@ func TestHostedFlowIngressDiscoverableAcrossRetirementGap(t *testing.T) {
 	gens, deliveries := startHostedFlowTracker(t, tpt, ident.remotePeerID, hold, regen)
 	peerIDStr := ident.remotePeerID.String()
 
+	// Start the incoming signaling session and retain its resolver membership.
 	signalSession := newHostedFlowSignalSession(ident, 2)
 	resolverErr, resolver := startHostedFlowResolver(ctx, tpt, signalSession)
 
@@ -754,6 +795,7 @@ func TestHostedFlowIngressDiscoverableAcrossRetirementGap(t *testing.T) {
 		t.Fatalf("successor did not receive the wake marker: %+v", second)
 	}
 
+	// Verify the successor rebinds the existing detached ingress lease.
 	var rebound *signalIngress
 	tpt.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
 		rebound = tpt.incomingSessions[peerIDStr]
@@ -768,6 +810,7 @@ func TestHostedFlowIngressDiscoverableAcrossRetirementGap(t *testing.T) {
 		t.Fatal("ingress did not rebind onto the successor tracker")
 	}
 
+	// Cancel the hosted resolver and verify its terminal error.
 	cancel()
 	if err := <-resolverErr; err != context.Canceled {
 		t.Fatalf("resolver returned %v, want context canceled", err)

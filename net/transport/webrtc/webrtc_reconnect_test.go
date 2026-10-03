@@ -33,8 +33,10 @@ import (
 // CPU starvation: the connection enters "failed", the session restarts, and the
 // renegotiation must re-establish the link once the path returns.
 func TestTransportReconnect(t *testing.T) {
+	// Use the test lifetime for the simulated peer network.
 	ctx := t.Context()
 
+	// Configure logging for transport negotiation and recovery.
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
@@ -50,6 +52,7 @@ func TestTransportReconnect(t *testing.T) {
 	}
 	router.AddChunkFilter(func(vnet.Chunk) bool { return !severed.Load() })
 
+	// Attach both peer ICE networks to the virtual router.
 	iceNet0, err := vnet.NewNet(&vnet.NetConfig{StaticIPs: []string{"10.0.0.10"}})
 	if err != nil {
 		t.Fatal(err.Error())
@@ -72,6 +75,7 @@ func TestTransportReconnect(t *testing.T) {
 	// Short ICE timeouts so a severed path reaches "failed" within a few seconds.
 	iceTimeouts := webrtc.WithICETimeouts(time.Second, 2*time.Second, 300*time.Millisecond)
 
+	// Construct the simulated peer graph and peer creation helper.
 	g := graph.NewGraph()
 	addPeer := func() *graph.Peer {
 		p, err := graph.GenerateAddPeer(ctx, g)
@@ -81,12 +85,14 @@ func TestTransportReconnect(t *testing.T) {
 		return p
 	}
 
+	// Configure the initiating peer with its virtual ICE network.
 	p0 := addPeer()
 	p0.AddFactory(func(b bus.Bus) controller.Factory { return signaling_rpc_client.NewFactory(b) })
 	p0.AddFactory(func(b bus.Bus) controller.Factory {
 		return webrtc.NewFactory(b, webrtc.WithICENet(iceNet0), iceTimeouts)
 	})
 
+	// Configure the intermediate peer as the signaling server.
 	p1 := addPeer()
 	p1.AddFactory(func(b bus.Bus) controller.Factory { return signaling_server.NewFactory(b) })
 	p1.AddConfig("signaling-server", &signaling_server.Config{
@@ -96,12 +102,14 @@ func TestTransportReconnect(t *testing.T) {
 		},
 	})
 
+	// Configure the remote peer with its virtual ICE network.
 	p2 := addPeer()
 	p2.AddFactory(func(b bus.Bus) controller.Factory {
 		return webrtc.NewFactory(b, webrtc.WithICENet(iceNet2), iceTimeouts)
 	})
 	p2.AddFactory(func(b bus.Bus) controller.Factory { return signaling_rpc_client.NewFactory(b) })
 
+	// Bind both peer signaling clients to the intermediate server.
 	signalingID := "webrtc-signaling"
 	signalClientConf := &signaling_rpc_client.Config{
 		SignalingId: signalingID,
@@ -112,6 +120,7 @@ func TestTransportReconnect(t *testing.T) {
 	p0.AddConfig("signaling-client", signalClientConf)
 	p2.AddConfig("signaling-client", signalClientConf)
 
+	// Enable WebRTC dialing between the two endpoint peers.
 	webrtcTptConf := &webrtc.Config{
 		SignalingId: signalingID,
 		AllPeers:    true,
@@ -121,16 +130,20 @@ func TestTransportReconnect(t *testing.T) {
 	p0.AddConfig("webrtc-tpt", webrtcTptConf)
 	p2.AddConfig("webrtc-tpt", webrtcTptConf)
 
+	// Connect the initiating peer to the signaling server LAN.
 	lan1 := graph.AddLAN(g)
 	lan1.AddPeer(g, p0)
 	lan1.AddPeer(g, p1)
 
+	// Connect the remote peer to the signaling server LAN.
 	lan2 := graph.AddLAN(g)
 	lan2.AddPeer(g, p1)
 	lan2.AddPeer(g, p2)
 
+	// Start the peer simulator for the configured network.
 	sim := initSimulator(t, ctx, le, g)
 
+	// Resolve the endpoint peers for connectivity checks.
 	px0 := sim.GetPeerByID(p0.GetPeerID())
 	px2 := sim.GetPeerByID(p2.GetPeerID())
 
@@ -152,6 +165,7 @@ func TestTransportReconnect(t *testing.T) {
 	// the retry loop never re-probes to catch the moment recovery completes.
 	const connectivityProbeTimeout = 5 * time.Second
 	waitConnectivity := func(stage string, timeout time.Duration) {
+		// Bound connectivity probes by the stage deadline and report recovery failures.
 		t.Helper()
 		deadline := time.NewTimer(timeout)
 		defer deadline.Stop()

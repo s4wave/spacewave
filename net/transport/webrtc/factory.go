@@ -51,9 +51,11 @@ func (t *Factory) Construct(
 	conf config.Config,
 	opts controller.ConstructOpts,
 ) (controller.Controller, error) {
+	// Read the transport configuration and construction logger.
 	le := opts.GetLogger()
 	cc := conf.(*Config)
 
+	// Resolve the configured peer identity constraint.
 	peerIDConstraint, err := cc.ParseTransportPeerID()
 	if err != nil {
 		return nil, err

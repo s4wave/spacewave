@@ -40,10 +40,12 @@ func (w *WebRTC) acquireSignalIngressLocked(
 	resolver *handleSignalPeerResolver,
 	broadcast func(),
 ) (*signalIngress, error) {
+	// Reject ingress acquisition after its resolver has closed.
 	if resolver.closed {
 		return nil, context.Canceled
 	}
 
+	// Reuse the peer ingress and attach a successor tracker when needed.
 	if current := w.incomingSessions[peerID]; current != nil {
 		_, member := current.resolvers[resolver]
 		if current.tracker == nil {
@@ -63,11 +65,13 @@ func (w *WebRTC) acquireSignalIngressLocked(
 		return current, nil
 	}
 
+	// Acquire the tracker reference for a new peer ingress.
 	ref, tracker, _, err := w.addSessionTrackerRef(peerID)
 	if err != nil {
 		return nil, err
 	}
 
+	// Publish the new ingress with its first resolver.
 	next := &signalIngress{
 		resolvers: map[*handleSignalPeerResolver]struct{}{resolver: {}},
 		ref:       ref,
@@ -93,6 +97,7 @@ func (w *WebRTC) snapshotSignalExecutionLocked(ingress *signalIngress) *sessionT
 // rebinds a successor tracker under the hold lock. The caller must hold
 // w.bcast.
 func (w *WebRTC) retireSignalIngressLocked(peerID string, tracker *sessionTracker, broadcast func()) {
+	// Detach the retired tracker and release its ingress reference.
 	ingress := w.incomingSessions[peerID]
 	if ingress == nil || ingress.tracker != tracker {
 		return
@@ -115,6 +120,7 @@ func (w *WebRTC) retireSignalIngressLocked(peerID string, tracker *sessionTracke
 func (w *WebRTC) stashAdoptableSession(peerID string, sess *session) bool {
 	stashed := false
 	w.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
+		// Retain the adoptable session only while its peer ingress exists.
 		ingress := w.incomingSessions[peerID]
 		if ingress == nil {
 			return
@@ -132,6 +138,7 @@ func (w *WebRTC) stashAdoptableSession(peerID string, sess *session) bool {
 func (w *WebRTC) takeAdoptableSession(peerID string, execution *sessionTrackerExecution) *session {
 	var sess *session
 	w.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
+		// Transfer the retained session and offer identity to the successor execution.
 		ingress := w.incomingSessions[peerID]
 		if ingress == nil {
 			return
@@ -155,6 +162,7 @@ func (w *WebRTC) takeAdoptableSession(peerID string, execution *sessionTrackerEx
 func (w *WebRTC) closeSignalIngress(peerID string, resolver *handleSignalPeerResolver) {
 	var orphan *session
 	w.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
+		// Remove the resolver and release an ingress whose last resolver has closed.
 		resolver.closed = true
 		ingress := w.incomingSessions[peerID]
 		if ingress == nil {
@@ -209,6 +217,7 @@ func signalOfferID(sig *WebRtcSignal) []byte {
 // outstanding offer being handed from a retired tracker to its successor.
 // The caller must hold w.bcast.
 func carriesAdoptedOffer(ingress *signalIngress, execution *sessionTrackerExecution, sig *WebRtcSignal) bool {
+	// Match the candidate offer identity to the adopted negotiation.
 	if _, ok := sig.GetBody().(*WebRtcSignal_Ice); !ok {
 		return false
 	}
@@ -230,14 +239,17 @@ func (w *WebRTC) deliverSignal(
 	resolver *handleSignalPeerResolver,
 	incoming *incomingSignal,
 ) error {
+	// Remember the tracker generation that first receives this signal.
 	var deliveredTracker *sessionTracker
 	var deliveredGeneration uint64
+
 	// admitTracker and admitGeneration record the first live generation this
 	// delivery was parked against. If that generation retires or is replaced,
 	// fenced material is dropped instead of replaying into a successor.
 	var admitTracker *sessionTracker
 	var admitGeneration uint64
 
+	// Deliver the signal until it is accepted or its generation is retired.
 	for {
 		select {
 		case <-incoming.accepted:
@@ -263,6 +275,7 @@ func (w *WebRTC) deliverSignal(
 				return
 			default:
 			}
+
 			// All signaling sessions for one peer deliver to the same live
 			// tracker. Replacing its ingress lease here would cancel an
 			// active negotiation before its answer or ICE arrives.
@@ -291,8 +304,10 @@ func (w *WebRTC) deliverSignal(
 				}
 			}
 
+			// Snapshot the live execution and its adopted-offer relationship.
 			execution = w.snapshotSignalExecutionLocked(ingress)
 			carried = carriesAdoptedOffer(ingress, execution, incoming.sig)
+
 			// Snapshot the tracker under the same lock: retirement and
 			// acquisition mutate it concurrently, so the admit and deliver
 			// decisions below must read the same coherent value.

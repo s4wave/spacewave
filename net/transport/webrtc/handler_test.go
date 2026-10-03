@@ -85,9 +85,11 @@ func TestHandleSignalPeerRetriesSignalAfterRoutineFailure(t *testing.T) {
 }
 
 func TestHandleSignalPeerRetriesSameTrackerExecutionGeneration(t *testing.T) {
+	// Create a cancellable lifetime for the signaling test.
 	ctx, cancel := context.WithCancel(t.Context())
 	t.Cleanup(cancel)
 
+	// Generate the local signaling identity and public key.
 	localPriv, localPub, err := crypto.GenerateEd25519Key(rand.Reader)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -96,6 +98,8 @@ func TestHandleSignalPeerRetriesSameTrackerExecutionGeneration(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Generate the remote peer identity for the ingress lease.
 	remotePriv, _, err := crypto.GenerateEd25519Key(rand.Reader)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -106,6 +110,7 @@ func TestHandleSignalPeerRetriesSameTrackerExecutionGeneration(t *testing.T) {
 	}
 	remotePeerIDStr := remotePeerID.String()
 
+	// Encode the offer request for the incoming signaling session.
 	sig := &WebRtcSignal{Body: &WebRtcSignal_RequestOffer{RequestOffer: 1}}
 	msg, err := EncodeWebRtcSignal(sig, localPub)
 	if err != nil {
@@ -120,6 +125,7 @@ func TestHandleSignalPeerRetriesSameTrackerExecutionGeneration(t *testing.T) {
 	}
 	signalSession.recvCh <- msg
 
+	// Construct the transport with an empty peer ingress registry.
 	tpt := &WebRTC{
 		ctx:              t.Context(),
 		le:               logrus.NewEntry(logrus.New()),
@@ -129,6 +135,7 @@ func TestHandleSignalPeerRetriesSameTrackerExecutionGeneration(t *testing.T) {
 		incomingSessions: make(map[string]*signalIngress),
 	}
 
+	// Define the execution delivery and exit records for restart assertions.
 	type executionDelivery struct {
 		tracker   *sessionTracker
 		execution *sessionTrackerExecution
@@ -139,17 +146,21 @@ func TestHandleSignalPeerRetriesSameTrackerExecutionGeneration(t *testing.T) {
 		err        error
 	}
 
+	// Create the channels that coordinate the two tracker executions.
 	firstReceived := make(chan executionDelivery, 1)
 	secondReceived := make(chan executionDelivery, 1)
 	secondStable := make(chan struct{})
 	failFirst := make(chan struct{})
 	unexpectedInvocation := make(chan int32, 1)
 	routineDone := make(chan executionResult, 3)
+
+	// Track construction, execution, and delivery counts across the controlled failure.
 	controlledErr := pkgerrors.New("controlled execution failure")
 	var constructions atomic.Int32
 	var invocations atomic.Int32
 	var deliveries atomic.Int32
 
+	// Install controlled tracker routines and bind them to the test lifetime.
 	tpt.sessionTrackers = keyed.NewKeyedRefCount(
 		func(key string) (keyed.Routine, *sessionTracker) {
 			constructions.Add(1)
@@ -161,6 +172,7 @@ func TestHandleSignalPeerRetriesSameTrackerExecutionGeneration(t *testing.T) {
 				offerer: true,
 			}
 			return func(ctx context.Context) (err error) {
+				// Publish the tracker execution and arrange its retirement.
 				execution := tkr.beginExecution()
 				invocation := invocations.Add(1)
 				defer func() {
@@ -168,6 +180,7 @@ func TestHandleSignalPeerRetriesSameTrackerExecutionGeneration(t *testing.T) {
 					routineDone <- executionResult{invocation: invocation, err: err}
 				}()
 
+				// Receive the pending signal on the live tracker execution.
 				var incoming *incomingSignal
 				select {
 				case <-ctx.Done():
@@ -181,6 +194,7 @@ func TestHandleSignalPeerRetriesSameTrackerExecutionGeneration(t *testing.T) {
 					incoming:  incoming,
 				}
 
+				// Run the controlled failure or acceptance for this tracker invocation.
 				switch invocation {
 				case 1:
 					firstReceived <- delivery
@@ -191,12 +205,14 @@ func TestHandleSignalPeerRetriesSameTrackerExecutionGeneration(t *testing.T) {
 						return controlledErr
 					}
 				case 2:
+					// Accept the retained signal in the second tracker execution.
 					sess := &session{t: tkr}
 					sess.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
 						sess.acceptIncomingSignalLocked(incoming)
 					})
 					secondReceived <- delivery
 
+					// Wait for resolver progress while detecting duplicate delivery.
 					select {
 					case <-ctx.Done():
 						return context.Canceled
@@ -222,18 +238,21 @@ func TestHandleSignalPeerRetriesSameTrackerExecutionGeneration(t *testing.T) {
 	tpt.sessionTrackers.SetContext(ctx, true)
 	t.Cleanup(tpt.sessionTrackers.ClearContext)
 
+	// Hold a dial reference so restart reuses the same tracker.
 	dialRef, dialTracker, existed := tpt.sessionTrackers.AddKeyRef(remotePeerIDStr)
 	t.Cleanup(dialRef.Release)
 	if existed {
 		t.Fatal("dial reference unexpectedly found an existing tracker")
 	}
 
+	// Start the incoming signaling resolver under the test lifetime.
 	resolverErr := make(chan error, 1)
 	resolver := &handleSignalPeerResolver{t: tpt, sess: signalSession}
 	go func() {
 		resolverErr <- resolver.Resolve(ctx, nil)
 	}()
 
+	// Release the first execution after confirming its tracker identity.
 	<-recvStarted
 	first := <-firstReceived
 	if first.tracker != dialTracker {
@@ -241,6 +260,7 @@ func TestHandleSignalPeerRetriesSameTrackerExecutionGeneration(t *testing.T) {
 	}
 	close(failFirst)
 
+	// Verify the restarted execution retains the tracker and incoming signal.
 	second := <-secondReceived
 	<-secondStable
 	if second.tracker != first.tracker {
@@ -261,6 +281,8 @@ func TestHandleSignalPeerRetriesSameTrackerExecutionGeneration(t *testing.T) {
 	default:
 		t.Fatal("restarted execution did not accept the retained signal")
 	}
+
+	// Verify tracker construction, restart, and delivery counts.
 	if constructions.Load() != 1 {
 		t.Fatalf("tracker constructions %d, want 1", constructions.Load())
 	}
@@ -276,11 +298,13 @@ func TestHandleSignalPeerRetriesSameTrackerExecutionGeneration(t *testing.T) {
 	default:
 	}
 
+	// Cancel the resolver and verify its terminal error.
 	cancel()
 	if err := <-resolverErr; err != context.Canceled {
 		t.Fatalf("resolver returned %v, want context canceled", err)
 	}
 
+	// Collect tracker exits and verify failure followed by cancellation.
 	results := make(map[int32]error, 2)
 	for range 2 {
 		result := <-routineDone
@@ -293,6 +317,7 @@ func TestHandleSignalPeerRetriesSameTrackerExecutionGeneration(t *testing.T) {
 		t.Fatalf("second execution returned %v, want context canceled", results[2])
 	}
 
+	// Release the dial reference and verify tracker and ingress cleanup.
 	dialRef.Release()
 	if keys := tpt.sessionTrackers.GetKeys(); len(keys) != 0 {
 		t.Fatalf("session trackers still registered after cancellation: %v", keys)
@@ -308,9 +333,11 @@ func TestHandleSignalPeerRetriesSameTrackerExecutionGeneration(t *testing.T) {
 }
 
 func TestHandleSignalPeerDeliversOncePerTrackerGeneration(t *testing.T) {
+	// Create a cancellable lifetime for the signaling test.
 	ctx, cancel := context.WithCancel(t.Context())
 	t.Cleanup(cancel)
 
+	// Generate the local signaling identity and public key.
 	localPriv, localPub, err := crypto.GenerateEd25519Key(rand.Reader)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -319,6 +346,8 @@ func TestHandleSignalPeerDeliversOncePerTrackerGeneration(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Generate the remote peer identity for the ingress lease.
 	remotePriv, _, err := crypto.GenerateEd25519Key(rand.Reader)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -328,11 +357,14 @@ func TestHandleSignalPeerDeliversOncePerTrackerGeneration(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// Encode the offer request for the incoming signaling session.
 	sig := &WebRtcSignal{Body: &WebRtcSignal_RequestOffer{RequestOffer: 1}}
 	msg, err := EncodeWebRtcSignal(sig, localPub)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Queue the encoded offer request on both signaling sessions.
 	firstRecvStarted := make(chan struct{}, 2)
 	secondRecvStarted := make(chan struct{}, 1)
 	firstSession := &testSignalPeerSession{
@@ -350,6 +382,7 @@ func TestHandleSignalPeerDeliversOncePerTrackerGeneration(t *testing.T) {
 	}
 	secondSession.recvCh <- msg
 
+	// Construct the transport with an empty peer ingress registry.
 	tpt := &WebRTC{
 		ctx:              t.Context(),
 		le:               logrus.NewEntry(logrus.New()),
@@ -359,6 +392,7 @@ func TestHandleSignalPeerDeliversOncePerTrackerGeneration(t *testing.T) {
 		incomingSessions: make(map[string]*signalIngress),
 	}
 
+	// Coordinate acceptance and count deliveries on the shared tracker.
 	firstReceived := make(chan *incomingSignal, 1)
 	acceptFirst := make(chan struct{})
 	trackerStable := make(chan struct{})
@@ -366,6 +400,7 @@ func TestHandleSignalPeerDeliversOncePerTrackerGeneration(t *testing.T) {
 	var deliveries atomic.Int32
 	var generations atomic.Int32
 
+	// Install controlled tracker routines and bind them to the test lifetime.
 	tpt.sessionTrackers = keyed.NewKeyedRefCount(
 		func(key string) (keyed.Routine, *sessionTracker) {
 			generations.Add(1)
@@ -377,6 +412,7 @@ func TestHandleSignalPeerDeliversOncePerTrackerGeneration(t *testing.T) {
 				offerer: true,
 			}
 			return func(ctx context.Context) (err error) {
+				// Publish the tracker execution and arrange its retirement.
 				execution := tkr.beginExecution()
 				defer tkr.retireExecution(execution)
 				defer func() {
@@ -386,6 +422,7 @@ func TestHandleSignalPeerDeliversOncePerTrackerGeneration(t *testing.T) {
 					trackerDone <- err
 				}()
 
+				// Receive the pending signal on the live tracker execution.
 				var incoming *incomingSignal
 				select {
 				case <-ctx.Done():
@@ -395,6 +432,7 @@ func TestHandleSignalPeerDeliversOncePerTrackerGeneration(t *testing.T) {
 				deliveries.Add(1)
 				firstReceived <- incoming
 
+				// Accept the first signal after the test releases its gate.
 				select {
 				case <-ctx.Done():
 					return context.Canceled
@@ -405,6 +443,7 @@ func TestHandleSignalPeerDeliversOncePerTrackerGeneration(t *testing.T) {
 					sess.acceptIncomingSignalLocked(incoming)
 				})
 
+				// Process joined deliveries while rejecting a repeated incoming signal.
 				for {
 					select {
 					case next := <-execution.rxSignal:
@@ -430,6 +469,7 @@ func TestHandleSignalPeerDeliversOncePerTrackerGeneration(t *testing.T) {
 	tpt.sessionTrackers.SetContext(ctx, true)
 	t.Cleanup(tpt.sessionTrackers.ClearContext)
 
+	// Start the first resolver with its own cancellation lifetime.
 	firstCtx, cancelFirst := context.WithCancel(ctx)
 	firstResolverErr := make(chan error, 1)
 	firstResolver := &handleSignalPeerResolver{t: tpt, sess: firstSession}
@@ -437,10 +477,12 @@ func TestHandleSignalPeerDeliversOncePerTrackerGeneration(t *testing.T) {
 		firstResolverErr <- firstResolver.Resolve(firstCtx, nil)
 	}()
 
+	// Capture the first resolver ingress reference after delivery begins.
 	<-firstRecvStarted
 	firstIncoming := <-firstReceived
 	firstRef := waitForSignalIngress(t, tpt, remotePeerID.String(), firstResolver).ref
 
+	// Start the second resolver while the first retains membership.
 	secondCtx, cancelSecond := context.WithCancel(ctx)
 	secondResolverErr := make(chan error, 1)
 	secondResolver := &handleSignalPeerResolver{t: tpt, sess: secondSession}
@@ -448,6 +490,7 @@ func TestHandleSignalPeerDeliversOncePerTrackerGeneration(t *testing.T) {
 		secondResolverErr <- secondResolver.Resolve(secondCtx, nil)
 	}()
 
+	// Verify both resolvers share one ingress and release signal acceptance.
 	<-secondRecvStarted
 	secondRef := waitForSignalIngress(t, tpt, remotePeerID.String(), secondResolver).ref
 	if secondRef != firstRef {
@@ -460,6 +503,7 @@ func TestHandleSignalPeerDeliversOncePerTrackerGeneration(t *testing.T) {
 		t.Fatalf("tracker retired during overlapping delivery: %v", err)
 	}
 
+	// Verify the first signal is accepted once by one tracker generation.
 	select {
 	case <-firstIncoming.accepted:
 	default:
@@ -472,6 +516,7 @@ func TestHandleSignalPeerDeliversOncePerTrackerGeneration(t *testing.T) {
 		t.Fatalf("tracker generations %d, want 1", generations.Load())
 	}
 
+	// Cancel the second resolver and verify the first retains its ingress lease.
 	cancelSecond()
 	if err := <-secondResolverErr; err != context.Canceled {
 		t.Fatalf("second resolver returned %v, want context canceled", err)
@@ -496,6 +541,7 @@ func TestHandleSignalPeerDeliversOncePerTrackerGeneration(t *testing.T) {
 		return
 	}
 
+	// Cancel the final resolver and verify tracker cleanup.
 	cancelFirst()
 	if err := <-firstResolverErr; err != context.Canceled {
 		t.Fatalf("first resolver returned %v, want context canceled", err)
@@ -509,9 +555,11 @@ func TestHandleSignalPeerDeliversOncePerTrackerGeneration(t *testing.T) {
 }
 
 func TestHandleSignalPeerReleasesOverlappingResolverReferences(t *testing.T) {
+	// Create a cancellable lifetime for the signaling test.
 	ctx, cancel := context.WithCancel(t.Context())
 	t.Cleanup(cancel)
 
+	// Generate the local signaling identity and public key.
 	localPriv, localPub, err := crypto.GenerateEd25519Key(rand.Reader)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -520,6 +568,8 @@ func TestHandleSignalPeerReleasesOverlappingResolverReferences(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Generate the remote peer identity for the ingress lease.
 	remotePriv, _, err := crypto.GenerateEd25519Key(rand.Reader)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -530,11 +580,14 @@ func TestHandleSignalPeerReleasesOverlappingResolverReferences(t *testing.T) {
 	}
 	remotePeerIDStr := remotePeerID.String()
 
+	// Encode the offer request for the incoming signaling session.
 	sig := &WebRtcSignal{Body: &WebRtcSignal_RequestOffer{RequestOffer: 1}}
 	msg, err := EncodeWebRtcSignal(sig, localPub)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Queue the encoded offer request on both signaling sessions.
 	firstRecvStarted := make(chan struct{}, 2)
 	firstSession := &testSignalPeerSession{
 		localPeerID:  localPeerID,
@@ -552,6 +605,7 @@ func TestHandleSignalPeerReleasesOverlappingResolverReferences(t *testing.T) {
 	}
 	secondSession.recvCh <- msg
 
+	// Construct the transport with an empty peer ingress registry.
 	tpt := &WebRTC{
 		ctx:              t.Context(),
 		le:               logrus.NewEntry(logrus.New()),
@@ -561,6 +615,7 @@ func TestHandleSignalPeerReleasesOverlappingResolverReferences(t *testing.T) {
 		incomingSessions: make(map[string]*signalIngress),
 	}
 
+	// Coordinate two deliveries and observe the tracker cancellation.
 	firstReceived := make(chan *incomingSignal, 1)
 	secondReceived := make(chan *incomingSignal, 1)
 	trackerDone := make(chan error, 1)
@@ -577,12 +632,14 @@ func TestHandleSignalPeerReleasesOverlappingResolverReferences(t *testing.T) {
 			}
 			tracker = tkr
 			return func(ctx context.Context) (err error) {
+				// Publish the tracker execution and arrange its retirement.
 				execution := tkr.beginExecution()
 				defer func() {
 					trackerDone <- err
 				}()
 				defer tkr.retireExecution(execution)
 
+				// Receive the pending signal on the live tracker execution.
 				var incoming *incomingSignal
 				select {
 				case <-ctx.Done():
@@ -591,6 +648,7 @@ func TestHandleSignalPeerReleasesOverlappingResolverReferences(t *testing.T) {
 				}
 				firstReceived <- incoming
 
+				// Receive the second signal on the same tracker execution.
 				select {
 				case <-ctx.Done():
 					return context.Canceled
@@ -598,6 +656,7 @@ func TestHandleSignalPeerReleasesOverlappingResolverReferences(t *testing.T) {
 				}
 				secondReceived <- incoming
 
+				// Report tracker cancellation after both signals have arrived.
 				<-ctx.Done()
 				close(trackerContextDone)
 				return context.Canceled
@@ -607,6 +666,7 @@ func TestHandleSignalPeerReleasesOverlappingResolverReferences(t *testing.T) {
 	tpt.sessionTrackers.SetContext(ctx, true)
 	t.Cleanup(tpt.sessionTrackers.ClearContext)
 
+	// Start the first resolver with its own cancellation lifetime.
 	firstCtx, cancelFirst := context.WithCancel(ctx)
 	firstResolverErr := make(chan error, 1)
 	firstResolver := &handleSignalPeerResolver{t: tpt, sess: firstSession}
@@ -614,10 +674,12 @@ func TestHandleSignalPeerReleasesOverlappingResolverReferences(t *testing.T) {
 		firstResolverErr <- firstResolver.Resolve(firstCtx, nil)
 	}()
 
+	// Capture the first resolver ingress reference after delivery begins.
 	<-firstRecvStarted
 	firstIncoming := <-firstReceived
 	firstRef := waitForSignalIngress(t, tpt, remotePeerIDStr, firstResolver).ref
 
+	// Start the second resolver while the first retains membership.
 	secondCtx, cancelSecond := context.WithCancel(ctx)
 	secondResolverErr := make(chan error, 1)
 	secondResolver := &handleSignalPeerResolver{t: tpt, sess: secondSession}
@@ -625,6 +687,7 @@ func TestHandleSignalPeerReleasesOverlappingResolverReferences(t *testing.T) {
 		secondResolverErr <- secondResolver.Resolve(secondCtx, nil)
 	}()
 
+	// Accept the first signal after the second resolver joins the ingress.
 	<-secondRecvStarted
 	secondRef := waitForSignalIngress(t, tpt, remotePeerIDStr, secondResolver).ref
 	firstLiveSession := &session{t: tracker}
@@ -632,6 +695,7 @@ func TestHandleSignalPeerReleasesOverlappingResolverReferences(t *testing.T) {
 		firstLiveSession.acceptIncomingSignalLocked(firstIncoming)
 	})
 
+	// Verify the shared ingress reference and accept the second signal.
 	secondIncoming := <-secondReceived
 	if secondRef == nil || secondRef != firstRef {
 		t.Fatal("second resolver did not join the shared ingress lease")
@@ -641,6 +705,7 @@ func TestHandleSignalPeerReleasesOverlappingResolverReferences(t *testing.T) {
 		secondLiveSession.acceptIncomingSignalLocked(secondIncoming)
 	})
 
+	// Cancel the second resolver and verify the first retains its ingress lease.
 	cancelSecond()
 	if err := <-secondResolverErr; err != context.Canceled {
 		t.Fatalf("second resolver returned %v, want context canceled", err)
@@ -663,6 +728,7 @@ func TestHandleSignalPeerReleasesOverlappingResolverReferences(t *testing.T) {
 		t.Fatalf("session tracker released while the first resolver held membership: %v", keys)
 	}
 
+	// Cancel the final resolver and verify tracker cleanup.
 	cancelFirst()
 	if err := <-firstResolverErr; err != context.Canceled {
 		t.Fatalf("first resolver returned %v, want context canceled", err)
@@ -680,9 +746,11 @@ func TestHandleSignalPeerReleasesOverlappingResolverReferences(t *testing.T) {
 }
 
 func testHandleSignalPeerRetriesRetiredTrackerSignal(t *testing.T, routineFailure bool) {
+	// Create a cancellable lifetime for the signaling test.
 	ctx, cancel := context.WithCancel(t.Context())
 	t.Cleanup(cancel)
 
+	// Generate the local signaling identity and public key.
 	localPriv, localPub, err := crypto.GenerateEd25519Key(rand.Reader)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -691,6 +759,8 @@ func testHandleSignalPeerRetriesRetiredTrackerSignal(t *testing.T, routineFailur
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Generate the remote peer identity for the ingress lease.
 	remotePriv, _, err := crypto.GenerateEd25519Key(rand.Reader)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -700,6 +770,7 @@ func testHandleSignalPeerRetriesRetiredTrackerSignal(t *testing.T, routineFailur
 		t.Fatal(err.Error())
 	}
 
+	// Encode the offer request for the incoming signaling session.
 	sig := &WebRtcSignal{Body: &WebRtcSignal_RequestOffer{RequestOffer: 1}}
 	msg, err := EncodeWebRtcSignal(sig, localPub)
 	if err != nil {
@@ -712,6 +783,7 @@ func testHandleSignalPeerRetriesRetiredTrackerSignal(t *testing.T, routineFailur
 	}
 	signalSession.recvCh <- msg
 
+	// Construct the transport with an empty peer ingress registry.
 	tpt := &WebRTC{
 		ctx:              t.Context(),
 		le:               logrus.NewEntry(logrus.New()),
@@ -721,6 +793,7 @@ func testHandleSignalPeerRetriesRetiredTrackerSignal(t *testing.T, routineFailur
 		incomingSessions: make(map[string]*signalIngress),
 	}
 
+	// Define replacement results and coordinate the tracker handoff.
 	type replacementResult struct {
 		incoming *incomingSignal
 		offers   []*WebRtcSignal
@@ -733,6 +806,7 @@ func testHandleSignalPeerRetriesRetiredTrackerSignal(t *testing.T, routineFailur
 	acceptReplacement := make(chan struct{})
 	var generations atomic.Int32
 
+	// Install controlled tracker routines and bind them to the test lifetime.
 	tpt.sessionTrackers = keyed.NewKeyedRefCount(
 		func(key string) (keyed.Routine, *sessionTracker) {
 			generation := generations.Add(1)
@@ -744,6 +818,7 @@ func testHandleSignalPeerRetriesRetiredTrackerSignal(t *testing.T, routineFailur
 				offerer: true,
 			}
 			return func(ctx context.Context) error {
+				// Publish the tracker execution and arrange its retirement.
 				execution := tkr.beginExecution()
 				defer tkr.retireExecution(execution)
 				var oldSession *session
@@ -760,6 +835,7 @@ func testHandleSignalPeerRetriesRetiredTrackerSignal(t *testing.T, routineFailur
 					}
 				}
 
+				// Receive the pending signal on the live tracker execution.
 				var incoming *incomingSignal
 				select {
 				case <-ctx.Done():
@@ -767,10 +843,12 @@ func testHandleSignalPeerRetriesRetiredTrackerSignal(t *testing.T, routineFailur
 				case incoming = <-execution.rxSignal:
 				}
 
+				// Hold the first generation until the test permits retirement.
 				if generation == 1 {
 					oldReceived <- incoming
 					<-retireOld
 
+					// Fence acceptance with the first session terminal state.
 					oldSession.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
 						if !routineFailure {
 							oldSession.connState = pion_webrtc.PeerConnectionStateFailed
@@ -778,6 +856,7 @@ func testHandleSignalPeerRetriesRetiredTrackerSignal(t *testing.T, routineFailur
 						oldSession.acceptIncomingSignalLocked(incoming)
 					})
 
+					// Verify the controlled routine failure before retiring the generation.
 					var retireErr error
 					if routineFailure {
 						if err := <-routineErrCh; err != routineErr {
@@ -789,23 +868,27 @@ func testHandleSignalPeerRetriesRetiredTrackerSignal(t *testing.T, routineFailur
 						}
 					}
 
+					// Publish the first generation retirement and its result.
 					tkr.retireExecution(execution)
 					oldRetired <- retireErr
 					return nil
 				}
 
+				// Wait for permission to accept the signal in the replacement tracker.
 				select {
 				case <-ctx.Done():
 					return context.Canceled
 				case <-acceptReplacement:
 				}
 
+				// Accept the retained signal in a new negotiation session.
 				replacementSession := &session{t: tkr}
 				replacementSession.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
 					replacementSession.localSeqno = 1
 					replacementSession.acceptIncomingSignalLocked(incoming)
 				})
 
+				// Create the replacement peer connection and its data channel.
 				pc, err := pion_webrtc.NewPeerConnection(pion_webrtc.Configuration{})
 				if err != nil {
 					replacementDone <- replacementResult{incoming: incoming, err: err}
@@ -820,6 +903,7 @@ func testHandleSignalPeerRetriesRetiredTrackerSignal(t *testing.T, routineFailur
 				}
 				replacementSession.pc = pc
 
+				// Transmit the replacement offer and report its negotiation result.
 				var offers []*WebRtcSignal
 				_, transmitted, err := tkr.transmitLocalNegotiation(
 					replacementSession,
@@ -848,12 +932,14 @@ func testHandleSignalPeerRetriesRetiredTrackerSignal(t *testing.T, routineFailur
 	tpt.sessionTrackers.SetContext(ctx, true)
 	t.Cleanup(tpt.sessionTrackers.ClearContext)
 
+	// Start the incoming signaling resolver under the test lifetime.
 	resolverErr := make(chan error, 1)
 	resolver := &handleSignalPeerResolver{t: tpt, sess: signalSession}
 	go func() {
 		resolverErr <- resolver.Resolve(ctx, nil)
 	}()
 
+	// Verify the retired generation never accepts its retained signal.
 	oldIncoming := <-oldReceived
 	select {
 	case <-oldIncoming.accepted:
@@ -871,6 +957,7 @@ func testHandleSignalPeerRetriesRetiredTrackerSignal(t *testing.T, routineFailur
 	}
 	close(acceptReplacement)
 
+	// Verify the successor accepts the same signal and emits one offer.
 	replacement := <-replacementDone
 	if replacement.err != nil {
 		t.Fatal(replacement.err.Error())
@@ -893,10 +980,13 @@ func testHandleSignalPeerRetriesRetiredTrackerSignal(t *testing.T, routineFailur
 	if replacement.offers[0].GetSdp().GetSdpType() != "offer" {
 		t.Fatalf("replacement emitted %q, want offer", replacement.offers[0].GetSdp().GetSdpType())
 	}
+
+	// Verify the handoff constructs exactly two tracker generations.
 	if generations.Load() != 2 {
 		t.Fatalf("tracker generations %d, want 2", generations.Load())
 	}
 
+	// Cancel the resolver and verify its terminal error.
 	cancel()
 	if err := <-resolverErr; err != context.Canceled {
 		t.Fatalf("resolver returned %v, want context canceled", err)
@@ -910,9 +1000,11 @@ var _ signaling.SignalPeerSession = (*testSignalPeerSession)(nil)
 // retired tracker execution must reacquire a lease and redeliver that signal
 // to a fresh tracker, instead of parking forever with no tracker live.
 func TestHandleSignalPeerReacquiresAfterTrackerExecutionRetires(t *testing.T) {
+	// Create a cancellable lifetime for the signaling test.
 	ctx, cancel := context.WithCancel(t.Context())
 	t.Cleanup(cancel)
 
+	// Generate the local signaling identity and public key.
 	localPriv, _, err := crypto.GenerateEd25519Key(rand.Reader)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -921,6 +1013,8 @@ func TestHandleSignalPeerReacquiresAfterTrackerExecutionRetires(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Generate the remote peer identity for the ingress lease.
 	remotePriv, _, err := crypto.GenerateEd25519Key(rand.Reader)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -931,6 +1025,7 @@ func TestHandleSignalPeerReacquiresAfterTrackerExecutionRetires(t *testing.T) {
 	}
 	peerKey := remotePeerID.String()
 
+	// Construct the transport with an empty peer ingress registry.
 	tpt := &WebRTC{
 		ctx:              t.Context(),
 		le:               logrus.NewEntry(logrus.New()),
@@ -940,6 +1035,7 @@ func TestHandleSignalPeerReacquiresAfterTrackerExecutionRetires(t *testing.T) {
 		incomingSessions: make(map[string]*signalIngress),
 	}
 
+	// Install controlled tracker routines and bind them to the test lifetime.
 	firstDelivered := make(chan *incomingSignal, 1)
 	var constructions atomic.Int32
 	var firstTracker *sessionTracker
@@ -980,10 +1076,12 @@ func TestHandleSignalPeerReacquiresAfterTrackerExecutionRetires(t *testing.T) {
 	tpt.sessionTrackers.SetContext(ctx, true)
 	t.Cleanup(tpt.sessionTrackers.ClearContext)
 
+	// Construct the resolver memberships for the shared peer ingress.
 	resolverA := &handleSignalPeerResolver{t: tpt}
 	resolverB := &handleSignalPeerResolver{t: tpt}
 	incoming := &incomingSignal{accepted: make(chan struct{})}
 
+	// Start delivery while the first tracker execution remains unaccepted.
 	deliverErr := make(chan error, 1)
 	go func() {
 		deliverErr <- tpt.deliverSignal(ctx, peerKey, resolverA, incoming)
@@ -1036,9 +1134,11 @@ func TestHandleSignalPeerReacquiresAfterTrackerExecutionRetires(t *testing.T) {
 }
 
 func TestHandleSignalPeerResolverExitPreservesSharedIngress(t *testing.T) {
+	// Create a cancellable lifetime for the signaling test.
 	ctx, cancel := context.WithCancel(t.Context())
 	t.Cleanup(cancel)
 
+	// Generate the local signaling identity and public key.
 	localPriv, _, err := crypto.GenerateEd25519Key(rand.Reader)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -1047,6 +1147,8 @@ func TestHandleSignalPeerResolverExitPreservesSharedIngress(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Generate the remote peer identity for the ingress lease.
 	remotePriv, _, err := crypto.GenerateEd25519Key(rand.Reader)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -1057,6 +1159,7 @@ func TestHandleSignalPeerResolverExitPreservesSharedIngress(t *testing.T) {
 	}
 	peerKey := remotePeerID.String()
 
+	// Construct the transport with an empty peer ingress registry.
 	tpt := &WebRTC{
 		ctx:              t.Context(),
 		le:               logrus.NewEntry(logrus.New()),
@@ -1066,6 +1169,7 @@ func TestHandleSignalPeerResolverExitPreservesSharedIngress(t *testing.T) {
 		incomingSessions: make(map[string]*signalIngress),
 	}
 
+	// Install controlled tracker routines and bind them to the test lifetime.
 	tpt.sessionTrackers = keyed.NewKeyedRefCount(
 		func(key string) (keyed.Routine, *sessionTracker) {
 			tkr := &sessionTracker{w: tpt, le: tpt.le, key: key}
@@ -1092,6 +1196,7 @@ func TestHandleSignalPeerResolverExitPreservesSharedIngress(t *testing.T) {
 	tpt.sessionTrackers.SetContext(ctx, true)
 	t.Cleanup(tpt.sessionTrackers.ClearContext)
 
+	// Construct the resolver memberships for the shared peer ingress.
 	resolverA := &handleSignalPeerResolver{t: tpt}
 	resolverB := &handleSignalPeerResolver{t: tpt}
 
@@ -1111,6 +1216,7 @@ func TestHandleSignalPeerResolverExitPreservesSharedIngress(t *testing.T) {
 		return
 	}
 
+	// Snapshot the tracker shared by both resolver memberships.
 	var sharedTracker *sessionTracker
 	tpt.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
 		ingress := tpt.incomingSessions[peerKey]
@@ -1127,6 +1233,7 @@ func TestHandleSignalPeerResolverExitPreservesSharedIngress(t *testing.T) {
 	// A exits. B keeps the tracker execution and its negotiation alive.
 	tpt.closeSignalIngress(peerKey, resolverA)
 
+	// Deliver and verify a signal through the remaining resolver.
 	second := &incomingSignal{
 		sig:      &WebRtcSignal{Body: &WebRtcSignal_Sdp{Sdp: &WebRtcSdp{}}},
 		accepted: make(chan struct{}),
@@ -1140,6 +1247,7 @@ func TestHandleSignalPeerResolverExitPreservesSharedIngress(t *testing.T) {
 		t.Fatal("second signal was not accepted")
 	}
 
+	// Verify the remaining resolver retains the same ingress tracker.
 	tpt.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
 		ingress := tpt.incomingSessions[peerKey]
 		if ingress == nil || ingress.tracker != sharedTracker {
@@ -1151,6 +1259,7 @@ func TestHandleSignalPeerResolverExitPreservesSharedIngress(t *testing.T) {
 		}
 	})
 
+	// Verify an exited resolver cannot reacquire the peer ingress.
 	stale := &incomingSignal{accepted: make(chan struct{})}
 	if err := tpt.deliverSignal(ctx, peerKey, resolverA, stale); !errors.Is(err, context.Canceled) {
 		t.Fatalf("stale resolver delivery returned %v, want context canceled", err)
@@ -1163,9 +1272,11 @@ func TestHandleSignalPeerResolverExitPreservesSharedIngress(t *testing.T) {
 // and completes the negotiation on the same tracker execution even after
 // the first signaling session exits.
 func TestHandleSignalPeerJoinsMidHandshakeWithoutReplacement(t *testing.T) {
+	// Create a cancellable lifetime for the signaling test.
 	ctx, cancel := context.WithCancel(t.Context())
 	t.Cleanup(cancel)
 
+	// Generate the local signaling identity and public key.
 	localPriv, _, err := crypto.GenerateEd25519Key(rand.Reader)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -1174,6 +1285,8 @@ func TestHandleSignalPeerJoinsMidHandshakeWithoutReplacement(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Generate the remote peer identity for the ingress lease.
 	remotePriv, _, err := crypto.GenerateEd25519Key(rand.Reader)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -1184,6 +1297,7 @@ func TestHandleSignalPeerJoinsMidHandshakeWithoutReplacement(t *testing.T) {
 	}
 	peerKey := remotePeerID.String()
 
+	// Construct the transport with an empty peer ingress registry.
 	tpt := &WebRTC{
 		ctx:              t.Context(),
 		le:               logrus.NewEntry(logrus.New()),
@@ -1193,6 +1307,7 @@ func TestHandleSignalPeerJoinsMidHandshakeWithoutReplacement(t *testing.T) {
 		incomingSessions: make(map[string]*signalIngress),
 	}
 
+	// Install controlled tracker routines and bind them to the test lifetime.
 	var constructions atomic.Int32
 	var invocations atomic.Int32
 	offerPending := make(chan struct{})
@@ -1202,6 +1317,7 @@ func TestHandleSignalPeerJoinsMidHandshakeWithoutReplacement(t *testing.T) {
 			constructions.Add(1)
 			tkr := &sessionTracker{w: tpt, le: tpt.le, key: key}
 			return func(ctx context.Context) error {
+				// Publish the tracker execution and pair its pending offer with the joined answer.
 				invocations.Add(1)
 				execution := tkr.beginExecution()
 				defer tkr.retireExecution(execution)
@@ -1243,9 +1359,11 @@ func TestHandleSignalPeerJoinsMidHandshakeWithoutReplacement(t *testing.T) {
 	tpt.sessionTrackers.SetContext(ctx, true)
 	t.Cleanup(tpt.sessionTrackers.ClearContext)
 
+	// Construct the resolver memberships for the shared peer ingress.
 	resolverA := &handleSignalPeerResolver{t: tpt}
 	resolverB := &handleSignalPeerResolver{t: tpt}
 
+	// Start the first resolver delivery and hold the offer pending.
 	deliverErrA := make(chan error, 1)
 	go func() {
 		deliverErrA <- tpt.deliverSignal(ctx, peerKey, resolverA, &incomingSignal{
@@ -1254,6 +1372,7 @@ func TestHandleSignalPeerJoinsMidHandshakeWithoutReplacement(t *testing.T) {
 		})
 	}()
 
+	// Verify the pending offer retains exactly one ingress member.
 	<-offerPending
 	tpt.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
 		ingress := tpt.incomingSessions[peerKey]
@@ -1271,6 +1390,7 @@ func TestHandleSignalPeerJoinsMidHandshakeWithoutReplacement(t *testing.T) {
 		})
 	}()
 
+	// Verify both deliveries complete on one tracker execution.
 	select {
 	case <-pairAccepted:
 	case <-time.After(10 * time.Second):
@@ -1315,6 +1435,7 @@ func TestHandleSignalPeerJoinsMidHandshakeWithoutReplacement(t *testing.T) {
 		}
 	})
 
+	// Verify an exited resolver cannot reacquire the peer ingress.
 	stale := &incomingSignal{accepted: make(chan struct{})}
 	if err := tpt.deliverSignal(ctx, peerKey, resolverA, stale); !errors.Is(err, context.Canceled) {
 		t.Fatalf("exited resolver delivery returned %v, want context canceled", err)
@@ -1323,6 +1444,7 @@ func TestHandleSignalPeerJoinsMidHandshakeWithoutReplacement(t *testing.T) {
 
 // newTrickleSignal builds one encoded host-candidate ICE signal.
 func newTrickleSignal(t *testing.T, localPub crypto.PubKey) []byte {
+	// Encode a host ICE candidate for the local signaling identity.
 	t.Helper()
 	mlineIndex := uint16(0)
 	ice, err := NewWebRtcIce(&pion_webrtc.ICECandidateInit{
@@ -1355,6 +1477,7 @@ func startGatedTracker(
 	releaseExecution chan struct{},
 	delivered chan *WebRtcSignal,
 ) chan error {
+	// Install a gated tracker that reports cancellation through its exit callback.
 	t.Helper()
 	trackerDone := make(chan error, 1)
 	var doneOnce sync.Once
@@ -1368,6 +1491,7 @@ func startGatedTracker(
 				offerer: true,
 			}
 			return func(ctx context.Context) (err error) {
+				// Wait for the test gate before publishing the tracker execution.
 				select {
 				case <-ctx.Done():
 					return context.Canceled
@@ -1376,6 +1500,7 @@ func startGatedTracker(
 				execution := tkr.beginExecution()
 				defer tkr.retireExecution(execution)
 
+				// Receive the pending signal on the live tracker execution.
 				var incoming *incomingSignal
 				select {
 				case <-ctx.Done():
@@ -1412,9 +1537,11 @@ func startGatedTracker(
 // execution. The owned signal must still reach the single sessionTracker
 // exactly once, and the resolver must exit canceled on its next Recv.
 func TestHandleSignalPeerDeliversParkedSignalAfterResolverCancel(t *testing.T) {
+	// Create the transport lifetime independently of the resolver lifetime.
 	transportCtx, cancelTransport := context.WithCancel(t.Context())
 	t.Cleanup(cancelTransport)
 
+	// Generate the local signaling identity and public key.
 	localPriv, localPub, err := crypto.GenerateEd25519Key(rand.Reader)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -1423,6 +1550,8 @@ func TestHandleSignalPeerDeliversParkedSignalAfterResolverCancel(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Generate the remote peer identity for the ingress lease.
 	remotePriv, _, err := crypto.GenerateEd25519Key(rand.Reader)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -1433,12 +1562,14 @@ func TestHandleSignalPeerDeliversParkedSignalAfterResolverCancel(t *testing.T) {
 	}
 	remotePeerIDStr := remotePeerID.String()
 
+	// Create a signaling session for the parked ICE candidate.
 	signalSession := &testSignalPeerSession{
 		localPeerID:  localPeerID,
 		remotePeerID: remotePeerID,
 		recvCh:       make(chan []byte, 1),
 	}
 
+	// Construct the transport with an empty peer ingress registry.
 	tpt := &WebRTC{
 		ctx:              transportCtx,
 		le:               logrus.NewEntry(logrus.New()),
@@ -1451,6 +1582,7 @@ func TestHandleSignalPeerDeliversParkedSignalAfterResolverCancel(t *testing.T) {
 	delivered := make(chan *WebRtcSignal, 1)
 	trackerDone := startGatedTracker(t, tpt, remotePeerID, releaseExecution, delivered)
 
+	// Start the resolver with a lifetime separate from the transport.
 	resolverCtx, cancelResolver := context.WithCancel(transportCtx)
 	resolverErr := make(chan error, 1)
 	resolver := &handleSignalPeerResolver{t: tpt, sess: signalSession}
@@ -1458,6 +1590,7 @@ func TestHandleSignalPeerDeliversParkedSignalAfterResolverCancel(t *testing.T) {
 		resolverErr <- resolver.Resolve(resolverCtx, nil)
 	}()
 
+	// Queue an ICE candidate and wait for its ingress membership.
 	signalSession.recvCh <- newTrickleSignal(t, localPub)
 	waitForSignalIngress(t, tpt, remotePeerIDStr, resolver)
 
@@ -1477,6 +1610,7 @@ func TestHandleSignalPeerDeliversParkedSignalAfterResolverCancel(t *testing.T) {
 		t.Fatalf("resolver returned %v, want context canceled", err)
 	}
 
+	// Cancel the transport and verify the gated tracker exits.
 	cancelTransport()
 	if err := <-trackerDone; err != context.Canceled {
 		t.Fatalf("tracker returned %v, want context canceled", err)
@@ -1486,9 +1620,11 @@ func TestHandleSignalPeerDeliversParkedSignalAfterResolverCancel(t *testing.T) {
 // TestHandleSignalPeerParkedDeliveryReleasesOnTransportCancel asserts that
 // transport shutdown releases a delivery parked on the transport lifetime.
 func TestHandleSignalPeerParkedDeliveryReleasesOnTransportCancel(t *testing.T) {
+	// Create the transport lifetime independently of the resolver lifetime.
 	transportCtx, cancelTransport := context.WithCancel(t.Context())
 	t.Cleanup(cancelTransport)
 
+	// Generate the local signaling identity and public key.
 	localPriv, localPub, err := crypto.GenerateEd25519Key(rand.Reader)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -1497,6 +1633,8 @@ func TestHandleSignalPeerParkedDeliveryReleasesOnTransportCancel(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Generate the remote peer identity for the ingress lease.
 	remotePriv, _, err := crypto.GenerateEd25519Key(rand.Reader)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -1507,12 +1645,14 @@ func TestHandleSignalPeerParkedDeliveryReleasesOnTransportCancel(t *testing.T) {
 	}
 	remotePeerIDStr := remotePeerID.String()
 
+	// Create a signaling session for the parked ICE candidate.
 	signalSession := &testSignalPeerSession{
 		localPeerID:  localPeerID,
 		remotePeerID: remotePeerID,
 		recvCh:       make(chan []byte, 1),
 	}
 
+	// Construct the transport with an empty peer ingress registry.
 	tpt := &WebRTC{
 		ctx:              transportCtx,
 		le:               logrus.NewEntry(logrus.New()),
@@ -1525,6 +1665,7 @@ func TestHandleSignalPeerParkedDeliveryReleasesOnTransportCancel(t *testing.T) {
 	delivered := make(chan *WebRtcSignal, 1)
 	trackerDone := startGatedTracker(t, tpt, remotePeerID, releaseExecution, delivered)
 
+	// Start the resolver with a lifetime separate from the transport.
 	resolverCtx, cancelResolver := context.WithCancel(transportCtx)
 	defer cancelResolver()
 	resolverErr := make(chan error, 1)
@@ -1533,6 +1674,7 @@ func TestHandleSignalPeerParkedDeliveryReleasesOnTransportCancel(t *testing.T) {
 		resolverErr <- resolver.Resolve(resolverCtx, nil)
 	}()
 
+	// Queue an ICE candidate and wait for its ingress membership.
 	signalSession.recvCh <- newTrickleSignal(t, localPub)
 	waitForSignalIngress(t, tpt, remotePeerIDStr, resolver)
 
@@ -1560,9 +1702,11 @@ func TestHandleSignalPeerParkedDeliveryReleasesOnTransportCancel(t *testing.T) {
 // bounded positive wake: post-fix the fence drops both old payloads and
 // delivers exactly the marker.
 func TestSignalIngressFencesRetiredGenerationMaterial(t *testing.T) {
+	// Create a cancellable lifetime for the signaling test.
 	ctx, cancel := context.WithCancel(t.Context())
 	t.Cleanup(cancel)
 
+	// Generate the local signaling identity and public key.
 	localPriv, localPub, err := crypto.GenerateEd25519Key(rand.Reader)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -1571,6 +1715,8 @@ func TestSignalIngressFencesRetiredGenerationMaterial(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Generate the remote peer identity for the ingress lease.
 	remotePriv, _, err := crypto.GenerateEd25519Key(rand.Reader)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -1580,6 +1726,7 @@ func TestSignalIngressFencesRetiredGenerationMaterial(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// Create and encrypt an SDP offer and its candidate and wake marker.
 	offerPC, err := pion_webrtc.NewPeerConnection(pion_webrtc.Configuration{})
 	if err != nil {
 		t.Fatal(err.Error())
@@ -1592,6 +1739,8 @@ func TestSignalIngressFencesRetiredGenerationMaterial(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Encode the original offer for the incoming signaling session.
 	offerSignal := &WebRtcSignal{
 		Body: &WebRtcSignal_Sdp{Sdp: NewWebRtcSdp(1, &offerDesc)},
 	}
@@ -1599,6 +1748,8 @@ func TestSignalIngressFencesRetiredGenerationMaterial(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Encode the candidate and exempt offer-request marker for the peer.
 	candidateMsg := newTrickleSignal(t, localPub)
 	markerSignal := &WebRtcSignal{Body: &WebRtcSignal_RequestOffer{RequestOffer: 7}}
 	markerMsg, err := EncodeWebRtcSignal(markerSignal, localPub)
@@ -1606,6 +1757,7 @@ func TestSignalIngressFencesRetiredGenerationMaterial(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// Queue the generation material before the exempt wake marker.
 	signalSession := &testSignalPeerSession{
 		localPeerID:  localPeerID,
 		remotePeerID: remotePeerID,
@@ -1615,6 +1767,7 @@ func TestSignalIngressFencesRetiredGenerationMaterial(t *testing.T) {
 	signalSession.recvCh <- candidateMsg
 	signalSession.recvCh <- markerMsg
 
+	// Construct the transport with an empty peer ingress registry.
 	tpt := &WebRTC{
 		ctx:              ctx,
 		le:               logrus.NewEntry(logrus.New()),
@@ -1624,12 +1777,14 @@ func TestSignalIngressFencesRetiredGenerationMaterial(t *testing.T) {
 		incomingSessions: make(map[string]*signalIngress),
 	}
 
+	// Define the delivery records used to inspect the ingress fence.
 	type delivery struct {
 		bodyType string
 		sig      *WebRtcSignal
 	}
 	fencedDelivered := make(chan delivery, 4)
 
+	// Install controlled tracker routines and bind them to the test lifetime.
 	tpt.sessionTrackers = keyed.NewKeyedRefCount(
 		func(key string) (keyed.Routine, *sessionTracker) {
 			tkr := &sessionTracker{
@@ -1640,9 +1795,11 @@ func TestSignalIngressFencesRetiredGenerationMaterial(t *testing.T) {
 				offerer: true,
 			}
 			return func(ctx context.Context) error {
+				// Publish the tracker execution and arrange its retirement.
 				execution := tkr.beginExecution()
 				defer tkr.retireExecution(execution)
 
+				// Classify the signal delivered to the tracker execution.
 				incoming := <-execution.rxSignal
 				bodyType := "unknown"
 				switch b := incoming.sig.GetBody().(type) {
@@ -1658,6 +1815,8 @@ func TestSignalIngressFencesRetiredGenerationMaterial(t *testing.T) {
 				case <-ctx.Done():
 					return context.Canceled
 				}
+
+				// Observe any second delivery before tracker cancellation.
 				select {
 				case <-ctx.Done():
 					return context.Canceled
@@ -1673,12 +1832,14 @@ func TestSignalIngressFencesRetiredGenerationMaterial(t *testing.T) {
 	tpt.sessionTrackers.SetContext(ctx, true)
 	t.Cleanup(tpt.sessionTrackers.ClearContext)
 
+	// Start the incoming signaling resolver under the test lifetime.
 	resolverErr := make(chan error, 1)
 	resolver := &handleSignalPeerResolver{t: tpt, sess: signalSession}
 	go func() {
 		resolverErr <- resolver.Resolve(ctx, nil)
 	}()
 
+	// Collect delivered bodies and require only exempt markers to pass the fence.
 	var delivered []string
 	for {
 		select {

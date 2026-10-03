@@ -229,11 +229,13 @@ func (w *WebRTC) MatchTransportType(transportType string) bool {
 // Called when resolving EstablishLink.
 // Return nil, nil to indicate not found or unavailable.
 func (w *WebRTC) GetPeerDialer(ctx context.Context, peerID peer.ID) (*dialer.DialerOpts, error) {
+	// Reject dialing information for a blocked remote peer.
 	peerIDStr := peerID.String()
 	if slices.Contains(w.conf.GetBlockPeers(), peerIDStr) {
 		return nil, nil
 	}
 
+	// Resolve explicit dialing options or the default policy for all peers.
 	if peerDialer, ok := w.conf.GetDialers()[peerIDStr]; ok {
 		return peerDialer, nil
 	}
@@ -361,6 +363,7 @@ func (w *WebRTC) addSessionTrackerRef(peerIDStr string) (*keyed.KeyedRef[string,
 		return nil, nil, false, errors.New("signaling: cannot self-dial")
 	}
 
+	// Acquire the validated peer session tracker reference.
 	ref, tkr, existed := w.sessionTrackers.AddKeyRef(peerID.String())
 	return ref, tkr, existed, nil
 }

@@ -71,11 +71,13 @@ type handleSignalPeerResolver struct {
 
 // Resolve resolves the directive.
 func (r *handleSignalPeerResolver) Resolve(ctx context.Context, handler directive.ResolverHandler) error {
+	// Bind the incoming signaling session to its peer ingress lifetime.
 	remotePeerID := r.sess.GetRemotePeerID()
 	remotePeerIDStr := remotePeerID.String()
 	r.t.le.Debugf("started signaling session with %v", remotePeerIDStr)
 	defer r.t.closeSignalIngress(remotePeerIDStr, r)
 
+	// Receive, validate, and deliver each incoming signaling message.
 	for {
 		// Wait for an incoming message.
 		data, err := r.sess.Recv(ctx)

@@ -12,8 +12,10 @@ import (
 // Pion rejects must be logged and skipped, not returned as a fatal error that
 // exits the session tracker routine.
 func TestMalformedCandidateDoesNotKillTracker(t *testing.T) {
+	// Create the answerer peer connection and its matching offer.
 	answerPC, offerDesc := newOfferForAnswerer(t)
 
+	// Configure an ICE applier that rejects its first candidate.
 	applied := 0
 	f := &fenceIngest{
 		tracker: &sessionTracker{
@@ -46,6 +48,7 @@ func TestMalformedCandidateDoesNotKillTracker(t *testing.T) {
 	if err := f.ingest(nil, newTestIceSignal(t, "candidate:1 1 udp 2130706431 10.5.0.2 54504 typ host", offerDigest(offerDesc.SDP))); err != nil {
 		t.Fatalf("rejected candidate was treated as fatal: %v", err)
 	}
+
 	// ...and the tracker keeps applying subsequent candidates.
 	if err := f.ingest(nil, newTestIceSignal(t, "candidate:2 1 udp 2130706431 10.5.0.3 54505 typ host", offerDigest(offerDesc.SDP))); err != nil {
 		t.Fatalf("tracker did not recover after a rejected candidate: %v", err)
@@ -59,9 +62,11 @@ func TestMalformedCandidateDoesNotKillTracker(t *testing.T) {
 // candidates that arrive before any offer generation is active are buffered
 // with their offer id, and flushed once a matching offer is applied.
 func TestCandidatesBufferedBeforeActiveOffer(t *testing.T) {
+	// Create the answerer session and retain its offer generation identity.
 	answerPC, offerDesc := newOfferForAnswerer(t)
 	offerID := offerDigest(offerDesc.SDP)
 
+	// Configure an ICE applier that records buffered candidate delivery.
 	applied := 0
 	f := &fenceIngest{
 		tracker: &sessionTracker{
@@ -114,8 +119,10 @@ func TestCandidatesBufferedBeforeActiveOffer(t *testing.T) {
 // once a generation is active, candidates tagged with any other offer id
 // must still be dropped.
 func TestStaleGenerationCandidateStillDropsAfterOfferActive(t *testing.T) {
+	// Create the answerer peer connection and its active offer.
 	answerPC, offerDesc := newOfferForAnswerer(t)
 
+	// Apply the offer with an ICE applier that counts accepted candidates.
 	applied := 0
 	f := &fenceIngest{
 		tracker: &sessionTracker{
@@ -139,6 +146,7 @@ func TestStaleGenerationCandidateStillDropsAfterOfferActive(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// Deliver a candidate from another generation and verify it is dropped.
 	otherSum := sha256.Sum256([]byte("some-other-generation"))
 	err := f.ingest(nil, newTestIceSignal(t, "candidate:1 1 udp 2130706431 10.5.0.2 54504 typ host", otherSum[:]))
 	if err != nil {
@@ -156,9 +164,11 @@ func TestStaleGenerationCandidateStillDropsAfterOfferActive(t *testing.T) {
 // after the restart must be buffered and applied when the G offer lands, so
 // the session converges instead of dropping the entire candidate set forever.
 func TestRestartLoopConverges(t *testing.T) {
+	// Create the answerer session and identify the negotiation generation.
 	answerPC, offerDesc := newOfferForAnswerer(t)
 	genID := offerDigest(offerDesc.SDP)
 
+	// Prepare the candidate set that must survive tracker restart.
 	trickled := []string{
 		"candidate:1 1 udp 2130706431 10.5.0.2 54504 typ host",
 		"candidate:2 1 udp 2130706431 10.5.0.3 54505 typ host",
@@ -195,6 +205,7 @@ func TestRestartLoopConverges(t *testing.T) {
 	}
 	trackerB.adoptSession(sessA)
 
+	// Count candidate applications in the adopted successor session.
 	applied := 0
 	fB := &fenceIngest{
 		tracker: trackerB,

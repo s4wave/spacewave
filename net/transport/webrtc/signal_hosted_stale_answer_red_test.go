@@ -200,6 +200,7 @@ func startRedResolver(
 // buildRedTaggedOffer builds one real, valid offer SDP signal tagged with its
 // own generation digest, encrypted for the local transport.
 func buildRedTaggedOffer(t *testing.T, api *pion_webrtc.API, pub crypto.PubKey) []byte {
+	// Create the offer peer connection and negotiated data channel.
 	t.Helper()
 	offerPC, err := api.NewPeerConnection(pion_webrtc.Configuration{})
 	if err != nil {
@@ -209,6 +210,8 @@ func buildRedTaggedOffer(t *testing.T, api *pion_webrtc.API, pub crypto.PubKey) 
 	if _, err := offerPC.CreateDataChannel(dataChannelID, nil); err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Create and encrypt the offer with its exact SDP digest.
 	offer, err := offerPC.CreateOffer(nil)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -235,9 +238,11 @@ func buildRedTaggedOffer(t *testing.T, api *pion_webrtc.API, pub crypto.PubKey) 
 // dropped as stale. Today's pre-fix behavior drops both answers and the join
 // stalls until ICE fails.
 func TestHostedJoinKeepsAnswersAcrossTrackerRegeneration(t *testing.T) {
+	// Create the cancellable lifetime for the hosted join test.
 	ctx, cancel := context.WithCancel(t.Context())
 	t.Cleanup(cancel)
 
+	// Construct the hosted peer identity, transport, and signal log.
 	ident := newRedIdentity(t)
 	logs := newHostedFlowLogs()
 	tpt := newHostedFlowTransport(ctx, ident.ident, logs)
@@ -272,11 +277,13 @@ func TestHostedJoinKeepsAnswersAcrossTrackerRegeneration(t *testing.T) {
 	_, cancelA := startRedResolver(ctx, tpt, signalSessionA)
 	defer cancelA()
 
+	// Request the original offer and retain its generation identity.
 	signalSessionA.recvCh <- newHostedFlowMarker(t, ident.localPub)
 	offerASig := awaitRedOutboundSignal(t, xmit.sendCh, ident.remotePriv, true)
 	offerA := offerASig.GetBody().(*WebRtcSignal_Sdp).Sdp
 	hA := sha256.Sum256([]byte(offerA.GetSdp()))
 
+	// Create and encrypt the matching answer while the offer remains outstanding.
 	answerPC, err := tpt.webrtcApi.NewPeerConnection(pion_webrtc.Configuration{})
 	if err != nil {
 		t.Fatal(err.Error())

@@ -8,6 +8,7 @@ import (
 
 // ToWebRtcConfiguration converts the WebRtcConfig into a webrtc.Configuration.
 func (c *WebRtcConfig) ToWebRtcConfiguration() *webrtc.Configuration {
+	// Convert the ICE pool size, transport policy, and server list.
 	const maxICECandidatePoolSize = uint32(^uint8(0))
 	poolSize := min(c.GetIceCandidatePoolSize(), maxICECandidatePoolSize)
 	conf := &webrtc.Configuration{

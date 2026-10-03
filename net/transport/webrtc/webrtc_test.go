@@ -24,12 +24,15 @@ var initSimulator = tests.InitSimulator
 
 // TestTransport tests the webrtc transport end to end.
 func TestTransport(t *testing.T) {
+	// Use the test lifetime for the simulated transport network.
 	ctx := t.Context()
 
+	// Configure transport logging for the connectivity check.
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
 
+	// Construct the simulated peer graph and peer creation helper.
 	g := graph.NewGraph()
 	addPeer := func(ctx context.Context, t *testing.T, g *graph.Graph) *graph.Peer {
 		p, err := graph.GenerateAddPeer(ctx, g)
@@ -39,6 +42,7 @@ func TestTransport(t *testing.T) {
 		return p
 	}
 
+	// Describe the endpoint route through the signaling server.
 	descrip := `p0 <- [webrtc signal via p1] -> p2`
 
 	// Create p0
@@ -82,6 +86,7 @@ func TestTransport(t *testing.T) {
 	p0.AddConfig("signaling-client", signalClientConf)
 	p2.AddConfig("signaling-client", signalClientConf)
 
+	// Enable WebRTC transport dialing between the endpoint peers.
 	webrtcTptConf := &webrtc.Config{
 		SignalingId: signalingID,
 		AllPeers:    true,
@@ -91,16 +96,20 @@ func TestTransport(t *testing.T) {
 	p0.AddConfig("webrtc-tpt", webrtcTptConf)
 	p2.AddConfig("webrtc-tpt", webrtcTptConf)
 
+	// Connect the initiating peer to the signaling server LAN.
 	lan1 := graph.AddLAN(g)
 	lan1.AddPeer(g, p0)
 	lan1.AddPeer(g, p1)
 
+	// Connect the remote peer to the signaling server LAN.
 	lan2 := graph.AddLAN(g)
 	lan2.AddPeer(g, p1)
 	lan2.AddPeer(g, p2)
 
+	// Start the peer simulator for the configured network.
 	sim := initSimulator(t, ctx, le, g)
 
+	// Verify endpoint connectivity through the WebRTC transport.
 	le.Infof("attempting to dial %v", descrip)
 	if err := simulate.TestConnectivity(
 		ctx,
@@ -110,5 +119,6 @@ func TestTransport(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// Report successful transport connectivity.
 	le.Info("tests successful")
 }

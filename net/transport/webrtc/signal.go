@@ -148,12 +148,14 @@ func (s *WebRtcIce) ParseICECandidateInit() (*webrtc.ICECandidateInit, error) {
 }
 
 func marshalICECandidateInit(candidate *webrtc.ICECandidateInit) ([]byte, error) {
+	// Prepare the ICE candidate JSON stream and encode an absent candidate.
 	s := jsoniter.NewStream(nil, 128, 0)
 	if candidate == nil {
 		s.WriteNil()
 		return s.Buffer(), nil
 	}
 
+	// Encode the ICE candidate string and media identifier.
 	s.WriteObjectStart()
 	s.WriteObjectField("candidate")
 	s.WriteString(candidate.Candidate)
@@ -164,6 +166,8 @@ func marshalICECandidateInit(candidate *webrtc.ICECandidateInit) ([]byte, error)
 	} else {
 		s.WriteString(*candidate.SDPMid)
 	}
+
+	// Encode the ICE candidate media line index.
 	s.WriteMore()
 	s.WriteObjectField("sdpMLineIndex")
 	if candidate.SDPMLineIndex == nil {
@@ -171,6 +175,8 @@ func marshalICECandidateInit(candidate *webrtc.ICECandidateInit) ([]byte, error)
 	} else {
 		s.WriteUint32(uint32(*candidate.SDPMLineIndex))
 	}
+
+	// Encode the ICE candidate username fragment and finish the JSON object.
 	s.WriteMore()
 	s.WriteObjectField("usernameFragment")
 	if candidate.UsernameFragment == nil {
@@ -186,6 +192,7 @@ func marshalICECandidateInit(candidate *webrtc.ICECandidateInit) ([]byte, error)
 }
 
 func unmarshalICECandidateInit(data []byte) (*webrtc.ICECandidateInit, error) {
+	// Decode the ICE candidate JSON fields and return parsing failures.
 	it := jsoniter.ParseBytes(data)
 	msg := &webrtc.ICECandidateInit{}
 	for key := it.ReadObject(); key != ""; key = it.ReadObject() {

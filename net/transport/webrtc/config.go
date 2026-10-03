@@ -14,6 +14,7 @@ const ConfigID = ControllerID
 // Validate validates the configuration.
 // This is a cursory validation to see if the values "look correct."
 func (c *Config) Validate() error {
+	// Validate the signaling service, peer identities, and reconnect policy.
 	if c.GetSignalingId() == "" {
 		return signaling.ErrEmptySignalingID
 	}

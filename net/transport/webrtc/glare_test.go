@@ -10,6 +10,7 @@ import (
 // TestAllPeersAcceptsEitherInitiator preserves one-sided peer discovery while
 // the negotiation owner still selects exactly one SDP offerer.
 func TestAllPeersAcceptsEitherInitiator(t *testing.T) {
+	// Verify either peer can initiate while negotiation chooses one offerer.
 	first, second := peer.ID("first-peer"), peer.ID("second-peer")
 	lower := &WebRTC{peerID: first, conf: &Config{AllPeers: true}}
 	upper := &WebRTC{peerID: second, conf: &Config{AllPeers: true}}
@@ -25,6 +26,7 @@ func TestAllPeersAcceptsEitherInitiator(t *testing.T) {
 		t.Fatal("negotiation did not select exactly one SDP offerer")
 	}
 
+	// Verify explicit peer dialing options override the default policy.
 	explicit := &dialer.DialerOpts{Address: "explicit"}
 	upper.conf.Dialers = map[string]*dialer.DialerOpts{first.String(): explicit}
 	got, err = upper.GetPeerDialer(t.Context(), first)

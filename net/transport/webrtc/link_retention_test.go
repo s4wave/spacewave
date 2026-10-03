@@ -133,6 +133,7 @@ func TestLinkSurvivesSignalTrackerRetirement(t *testing.T) {
 
 	// Find p0's WebRTC transport.
 	getTransport := func(px *simulate.Peer) *WebRTC {
+		// Acquire the running transport controller for the simulated peer.
 		t.Helper()
 		ctrl, _, rel, err := loader.WaitExecControllerRunningTyped[*transport_controller.Controller](
 			ctx,
@@ -144,6 +145,8 @@ func TestLinkSurvivesSignalTrackerRetirement(t *testing.T) {
 			t.Fatal(err.Error())
 		}
 		defer rel.Release()
+
+		// Resolve and verify the controller WebRTC transport.
 		tp, err := ctrl.GetTransport(ctx)
 		if err != nil {
 			t.Fatal(err.Error())
@@ -202,6 +205,7 @@ func TestLinkSurvivesSignalTrackerRetirement(t *testing.T) {
 	// original link must remain the tracker's published link throughout.
 	deadline := time.Now().Add(8 * time.Second)
 	for time.Now().Before(deadline) {
+		// Watch transport notifications during the bounded retirement window.
 		var waitCh <-chan struct{}
 		tpt0.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
 			waitCh = getWaitCh()
