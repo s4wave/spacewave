@@ -6,6 +6,7 @@ import Spacewave.SObject.State
 import Spacewave.SObject.Host
 import Spacewave.SObject.Order
 import Spacewave.SObject.Recovery
+import Spacewave.SObject.Rounds
 import Spacewave.SObject.Sync.Auth
 import Spacewave.SObject.Sync.Catchup
 import Spacewave.SObject.Sync.Sync

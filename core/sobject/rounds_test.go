@@ -2,6 +2,8 @@ package sobject
 
 import (
 	"bytes"
+	"math/rand/v2"
+	"slices"
 	"testing"
 
 	"github.com/s4wave/spacewave/net/crypto"
@@ -249,4 +251,212 @@ func TestAddControlMessageBounds(t *testing.T) {
 	if err := f.state.Validate(mockSharedObjectID); err != nil {
 		t.Fatal(err)
 	}
+}
+
+// TestStepRoundKeepsLeanRules runs three honest voters and one faulty voter
+// over random delivery and timeouts. It checks that every honest voter keeps
+// the rules of Honest in lean/Spacewave/SObject/Rounds.lean, whose theorem
+// agreement then rules out two decisions, and that no two voters decide
+// different values.
+func TestStepRoundKeepsLeanRules(t *testing.T) {
+	// Two checkpoint values compete, and voter 3 is faulty.
+	f := newRoundFixture(t)
+	values := [][]byte{checkpointValue(t, 1), checkpointValue(t, 2)}
+	hashes := make([][]byte, len(values))
+	for i, v := range values {
+		hashes[i], _ = ControlValueHash(SODecisionKind_SO_DECISION_KIND_CHECKPOINT, v)
+	}
+	faulty := f.voter(3)
+
+	// Run each seed and check its messages; some run must decide.
+	var decisions int
+	for seed := range uint64(100) {
+		rng := rand.New(rand.NewPCG(seed, 0))
+		pool := f.simulate(rng, faulty, values, hashes)
+		decisions += f.checkLeanRules(pool, faulty)
+	}
+	if decisions == 0 {
+		t.Fatal("no run decided")
+	}
+}
+
+// simulate steps the honest voters in random order for one decision. Each
+// sees its own messages and a random growing subset of the others'. It
+// returns every message sent and the value hashes the voters decided.
+func (f *roundFixture) simulate(rng *rand.Rand, faulty string, values, hashes [][]byte) *roundPool {
+	// Each honest voter starts in round 1 seeing only its own messages.
+	pool := &roundPool{}
+	views := make(map[string]map[int]struct{})
+	rounds := make(map[string]uint32)
+	var honest []string
+	for i := range 4 {
+		if v := f.voter(i); v != faulty {
+			honest = append(honest, v)
+			views[v] = make(map[int]struct{})
+			rounds[v] = 1
+		}
+	}
+
+	// send adds a valid message to the pool.
+	send := func(peer string, inner *SOControlMessageInner) {
+		// Address the message to the open decision and drop an invalid one.
+		inner.SharedObjectId, inner.Height, inner.PeerId = mockSharedObjectID, f.height, peer
+		inner.ConfigHash = f.state.GetConfig().GetConfigChainHash()
+		if inner.Validate() != nil {
+			return
+		}
+
+		// Record it and show it to its sender.
+		pool.msgs = append(pool.msgs, ControlMessage{Inner: inner})
+		if view := views[peer]; view != nil {
+			view[len(pool.msgs)-1] = struct{}{}
+		}
+	}
+
+	// Step the voters; honest voter i proposes values[i%2].
+	for range 300 {
+		// The faulty voter sends any vote or proposal, in any round.
+		if rng.IntN(3) == 0 {
+			i := rng.IntN(len(values))
+			typ := []SOControlMessageType{
+				SOControlMessageType_SO_CONTROL_MESSAGE_TYPE_PROPOSAL,
+				SOControlMessageType_SO_CONTROL_MESSAGE_TYPE_PREVOTE,
+				SOControlMessageType_SO_CONTROL_MESSAGE_TYPE_PRECOMMIT,
+			}[rng.IntN(3)]
+			inner := &SOControlMessageInner{Type: typ, Round: uint32(rng.IntN(6) + 1), ValueHash: hashes[i]}
+			if typ == SOControlMessageType_SO_CONTROL_MESSAGE_TYPE_PROPOSAL {
+				inner.Kind, inner.Value, inner.ValidRound = SODecisionKind_SO_DECISION_KIND_CHECKPOINT, values[i], uint32(rng.IntN(int(inner.Round)))
+			}
+			send(faulty, inner)
+		}
+
+		// Deliver some messages to one honest voter, then step it.
+		self := honest[rng.IntN(len(honest))]
+		if pool.decided[self] != nil {
+			continue
+		}
+		for i := range pool.msgs {
+			if rng.IntN(2) == 0 {
+				views[self][i] = struct{}{}
+			}
+		}
+		view := make([]ControlMessage, 0, len(views[self]))
+		for i := range pool.msgs {
+			if _, ok := views[self][i]; ok {
+				view = append(view, pool.msgs[i])
+			}
+		}
+		preferred := values[slices.Index(honest, self)%2]
+		out := stepRound(&roundInput{
+			self:    self,
+			cfg:     f.state.GetConfig(),
+			height:  f.height,
+			msgs:    view,
+			round:   rounds[self],
+			valid:   func(SODecisionKind, []byte) controlValidity { return controlValid },
+			value:   func() (SODecisionKind, []byte) { return SODecisionKind_SO_DECISION_KIND_CHECKPOINT, preferred },
+			expired: func(roundTimer) bool { return rng.IntN(12) == 0 },
+		})
+
+		// Apply the step.
+		switch {
+		case out.decided != nil:
+			h, _ := ControlValueHash(out.decidedKind, out.decided)
+			pool.decide(self, h)
+		case out.round != 0:
+			rounds[self] = out.round
+		case out.send != nil:
+			if out.send.GetType() == SOControlMessageType_SO_CONTROL_MESSAGE_TYPE_PROPOSAL {
+				out.send.ValueHash, _ = ControlValueHash(out.send.GetKind(), out.send.GetValue())
+			}
+			send(self, out.send)
+		}
+	}
+	return pool
+}
+
+// roundPool is every message of one simulated decision and each voter's
+// decided value hash.
+type roundPool struct {
+	msgs    []ControlMessage
+	decided map[string][]byte
+}
+
+// decide records that peer decided hash.
+func (p *roundPool) decide(peer string, hash []byte) {
+	if p.decided == nil {
+		p.decided = make(map[string][]byte)
+	}
+	p.decided[peer] = hash
+}
+
+// polka reports whether more than two thirds of the weight prevoted hash in
+// round, over every message sent.
+func (f *roundFixture) polka(pool *roundPool, round uint32, hash []byte) bool {
+	return newRoundTally(f.state.GetConfig(), pool.msgs).quorum(SOControlMessageType_SO_CONTROL_MESSAGE_TYPE_PREVOTE, round, hash)
+}
+
+// checkLeanRules checks the honest voters' messages against Honest and the
+// decisions against agreement, and returns the number of decisions.
+func (f *roundFixture) checkLeanRules(pool *roundPool, faulty string) int {
+	// Split each honest voter's prevotes and non-nil precommits.
+	prevotes := make(map[string][]*SOControlMessageInner)
+	precommits := make(map[string][]*SOControlMessageInner)
+	for _, m := range pool.msgs {
+		inner := m.Inner
+		switch {
+		case inner.GetPeerId() == faulty:
+		case inner.GetType() == SOControlMessageType_SO_CONTROL_MESSAGE_TYPE_PREVOTE:
+			prevotes[inner.GetPeerId()] = append(prevotes[inner.GetPeerId()], inner)
+		case inner.GetType() == SOControlMessageType_SO_CONTROL_MESSAGE_TYPE_PRECOMMIT && len(inner.GetValueHash()) != 0:
+			precommits[inner.GetPeerId()] = append(precommits[inner.GetPeerId()], inner)
+		}
+	}
+
+	// Check each honest voter's prevotes.
+	for peer, pvs := range prevotes {
+		// prevote_once: one prevote per round.
+		seen := make(map[uint32]struct{})
+		for _, pv := range pvs {
+			if _, ok := seen[pv.GetRound()]; ok {
+				f.t.Fatalf("%s prevoted twice in round %d", peer, pv.GetRound())
+			}
+			seen[pv.GetRound()] = struct{}{}
+		}
+
+		// lock: leaving a precommit needs a polka for the new value after it.
+		for _, pc := range precommits[peer] {
+			for _, pv := range pvs {
+				if pv.GetRound() <= pc.GetRound() || len(pv.GetValueHash()) == 0 || bytes.Equal(pv.GetValueHash(), pc.GetValueHash()) {
+					continue
+				}
+				justified := false
+				for vr := pc.GetRound(); vr < pv.GetRound() && !justified; vr++ {
+					justified = f.polka(pool, vr, pv.GetValueHash())
+				}
+				if !justified {
+					f.t.Fatalf("%s left its lock of round %d in round %d without a polka", peer, pc.GetRound(), pv.GetRound())
+				}
+			}
+		}
+	}
+
+	// precommit_polka: a precommit follows a polka in its round.
+	for peer, pcs := range precommits {
+		for _, pc := range pcs {
+			if !f.polka(pool, pc.GetRound(), pc.GetValueHash()) {
+				f.t.Fatalf("%s precommitted in round %d without a polka", peer, pc.GetRound())
+			}
+		}
+	}
+
+	// agreement: every decision names the same value.
+	var first []byte
+	for peer, h := range pool.decided {
+		if first != nil && !bytes.Equal(first, h) {
+			f.t.Fatalf("%s decided a different value", peer)
+		}
+		first = h
+	}
+	return len(pool.decided)
 }
