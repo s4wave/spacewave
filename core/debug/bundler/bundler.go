@@ -267,6 +267,8 @@ func (b *Bundler) runVite(viteCtx context.Context, ready chan<- viteStartResult)
 	b.le.Debug("waiting for vite subprocess to connect")
 	_, err = smc.WaitConn(timeoutCtx)
 	if err != nil {
+		// Stop the subprocess that never connected before reaping it.
+		_ = cmd.Process.Kill()
 		_ = cmd.Wait()
 		smc.Close()
 		pipeListener.Close()
