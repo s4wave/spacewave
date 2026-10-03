@@ -98,6 +98,7 @@ func (i *fsInode) checkReleasedWithErr() (bool, error) {
 // addReferenceLocked adds a new FSHandle pointing to this location
 // if checkReleased is false this cannot return an error.
 func (i *fsInode) addReferenceLocked(checkReleased bool) (*FSHandle, error) {
+	// Require a live inode when the caller requests release checking.
 	if checkReleased {
 		_, relErr := i.checkReleasedWithErr()
 		if relErr != nil {
@@ -105,6 +106,7 @@ func (i *fsInode) addReferenceLocked(checkReleased bool) (*FSHandle, error) {
 		}
 	}
 
+	// Attach the new handle to the inode reference list.
 	ref := &FSHandle{}
 	ref.inode.Store(i)
 	i.refs = append(i.refs, ref)
@@ -114,6 +116,7 @@ func (i *fsInode) addReferenceLocked(checkReleased bool) (*FSHandle, error) {
 // mergeReferencesLocked merges a list of Refs into the refs on the fsInode, skipping
 // any released refs.
 func (i *fsInode) mergeReferencesLocked(refs []*FSHandle) {
+	// Ignore an empty set of inode references.
 	if len(refs) == 0 {
 		return
 	}
@@ -157,9 +160,11 @@ func (i *fsInode) mergeReferencesLocked(refs []*FSHandle) {
 func (i *fsInode) mergeWithNodeLocked(node *fsInode, err error) {
 	// build list of inodes to release in depth order
 	toRelease := make([]*fsInode, 0, 1)
+
 	// build stack of inodes to visit
 	nodStk := []*fsInode{i}
 	srcStk := []*fsInode{node}
+
 	// visit children
 	for len(nodStk) != 0 {
 		// pop 1 from nodStk and srcStk
@@ -268,8 +273,10 @@ func (i *fsInode) lookup(ctx context.Context, name string) (*FSHandle, error) {
 	var nref *FSHandle
 	var childReady bool
 
+	// Find the existing child inode or its insertion position.
 	childInode, insertIdx := i.findChildInode(name, false)
 
+	// Discard a released child before acquiring a reference.
 	var wasReleased bool
 	if childInode != nil && childInode.checkReleased() {
 		childInode, wasReleased = nil, true
@@ -334,6 +341,7 @@ func (i *fsInode) lookup(ctx context.Context, name string) (*FSHandle, error) {
 // findChildInode looks for an existing non-released child by name.
 // returns nil, insertIdx, error
 func (i *fsInode) findChildInode(name string, checkReleased bool) (*fsInode, int) {
+	// Locate the named inode in the sorted child list.
 	idx := sort.Search(len(i.children), func(ix int) bool {
 		return i.children[ix].name >= name
 	})
@@ -381,6 +389,7 @@ func (i *fsInode) removeRefLocked(h *FSHandle) {
 // non-released children, pruning released children from the list.
 // returns if the node was released
 func (i *fsInode) releaseIfNecessaryLocked() bool {
+	// Preserve an inode already marked released.
 	if i.checkReleased() {
 		return true
 	}
@@ -414,6 +423,7 @@ func (i *fsInode) releaseParentsIfNecessary() {
 // caller must ensure all children are released first
 // if err is set, sets the fs inode error to err
 func (i *fsInode) releaseLocked(err error) {
+	// Mark the inode released and discard its resolved state.
 	if i.isReleased.Swap(true) {
 		return
 	}
@@ -447,8 +457,10 @@ func (i *fsInode) releaseLocked(err error) {
 func (i *fsInode) releaseWithChildrenLocked(err error) {
 	// build list of inodes to release in depth order
 	var toRelease []*fsInode
+
 	// build stack of inodes to visit
 	nodStk := []*fsInode{i}
+
 	// visit children
 	for len(nodStk) != 0 {
 		// pop 1 from nodStk

@@ -41,6 +41,7 @@ func (e *FSDirEntry) IsDir() bool {
 // Type returns the type bits for the entry.
 // The type bits are a subset of the usual FileMode bits, those returned by the FileMode.Type method.
 func (e *FSDirEntry) Type() fs.FileMode {
+	// Choose permissions from saved file information or entry defaults.
 	var defaultMode fs.FileMode
 	if e.fileInfo != nil {
 		defaultMode = e.fileInfo.Mode()

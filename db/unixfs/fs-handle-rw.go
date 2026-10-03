@@ -41,6 +41,7 @@ func (w *FSHandleReadWriter) Read(p []byte) (n int, err error) {
 
 // Write writes data to the file at the index.
 func (w *FSHandleReadWriter) Write(p []byte) (n int, err error) {
+	// Commit the file write before advancing the stream position.
 	wts := w.ts()
 	err = w.h.WriteAt(w.ctx, w.idx, p, wts)
 	if err != nil {

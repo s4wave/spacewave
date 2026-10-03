@@ -42,6 +42,7 @@ func (f *FSHandleCursor) CheckReleased() bool {
 // Return nil, nil to indicate this position is null (nothing here).
 // Return nil, ErrReleased to indicate this FSHandleCursor was released.
 func (f *FSHandleCursor) GetCursorOps(ctx context.Context) (FSCursorOps, error) {
+	// Require a live cursor and handle before resolving operations.
 	if f.released.Load() {
 		return nil, unixfs_errors.ErrReleased
 	}

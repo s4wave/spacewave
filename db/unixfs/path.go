@@ -13,11 +13,13 @@ const PathSeparator = '/'
 // Absolute paths are ignored (converted to relative paths starting at ./).
 // Returns if the path was absolute or relative.
 func SplitPath(tpath string) (out []string, isAbsolute bool) {
+	// Normalize the path and record whether it starts at the root.
 	tpath = path.Clean(tpath)
 	if len(tpath) >= 1 && tpath[0] == PathSeparator {
 		isAbsolute = true
 		tpath = tpath[1:]
 	}
+
 	// check for ./
 	if len(tpath) >= 2 && tpath[0] == '.' && tpath[1] == PathSeparator {
 		tpath = tpath[2:] // Is this even possible with path.Clean?
@@ -30,6 +32,7 @@ func SplitPath(tpath string) (out []string, isAbsolute bool) {
 
 // JoinPath joins a list of path components to a path.
 func JoinPath(pathc []string, isAbsolute bool) string {
+	// Join the path components and preserve the absolute path marker.
 	p := strings.Join(pathc, string([]rune{PathSeparator}))
 	if isAbsolute {
 		p = string([]rune{PathSeparator}) + p
@@ -61,6 +64,7 @@ func JoinPathPts(pts ...[]string) []string {
 // CleanSplitValidateRelativePath cleans a path, splits it, and validates it.
 // Coerces the path to be a relative path, not absolute.
 func CleanSplitValidateRelativePath(filePath string) (pathPts []string, err error) {
+	// Normalize the path into a valid relative filesystem path.
 	filePath = path.Clean(filePath)
 	if filePath == "/" || filePath == "." {
 		filePath = ""
@@ -72,6 +76,7 @@ func CleanSplitValidateRelativePath(filePath string) (pathPts []string, err erro
 		return nil, fs.ErrInvalid
 	}
 
+	// Split the validated path into components for traversal.
 	pathPts, _ = SplitPath(filePath)
 	return pathPts, nil
 }

@@ -452,14 +452,17 @@ func (h *FSHandle) LookupPathPts(ctx context.Context, pathParts []string) (*FSHa
 // element, and the subset of pathParts that is the path to the returned node.
 // Check if handles is empty and release them even if an error is returned.
 func (h *FSHandle) LookupPathPtsHandles(ctx context.Context, pathParts []string) ([]*FSHandle, []string, error) {
+	// Clone the starting handle for retained path traversal.
 	currHandle, err := h.Clone(ctx)
 	if err != nil {
 		return nil, nil, err
 	}
 
+	// Retain the starting handle before visiting child components.
 	handles := make([]*FSHandle, 1, len(pathParts)+1)
 	handles[0] = currHandle
 
+	// Traverse the path while retaining each resolved handle.
 	for i, pathPart := range pathParts {
 		// these should not be given but handle it anyway
 		if pathPart == "." || pathPart == "" {
@@ -570,6 +573,7 @@ func (h *FSHandle) MkdirAll(ctx context.Context, dirPath []string, perm fs.FileM
 // MkdirLookup performs a lookup for a directory in the handle, creates it if it doesn't exist,
 // then looks up again and returns the new handle.
 func (h *FSHandle) MkdirLookup(ctx context.Context, name string, perm fs.FileMode, ts time.Time) (*FSHandle, error) {
+	// Resolve or create the requested directory entry.
 	dir, err := h.Lookup(ctx, name)
 	if err == unixfs_errors.ErrNotExist {
 		// Create directory
@@ -604,6 +608,7 @@ func (h *FSHandle) MkdirLookup(ctx context.Context, name string, perm fs.FileMod
 // The permission bits perm are used for all directories that MkdirAllLookup creates.
 // If path is already a directory, MkdirAllLookup returns the handle to that directory.
 func (h *FSHandle) MkdirAllLookup(ctx context.Context, dirPath []string, perm fs.FileMode, ts time.Time) (*FSHandle, error) {
+	// Clone the starting directory for the returned path handle.
 	currHandle, err := h.Clone(ctx)
 	if err != nil {
 		return nil, err
@@ -612,6 +617,7 @@ func (h *FSHandle) MkdirAllLookup(ctx context.Context, dirPath []string, perm fs
 		return currHandle, nil
 	}
 
+	// Create or resolve each remaining directory component.
 	for _, pname := range dirPath {
 		if pname == "." {
 			continue
@@ -653,6 +659,7 @@ func (h *FSHandle) Symlink(ctx context.Context, checkExist bool, name string, ta
 // Returns ErrNotSymlink if not a symbolic link.
 // Returns the path, if the symlink is absolute, and any error.
 func (h *FSHandle) Readlink(ctx context.Context, name string) ([]string, bool, error) {
+	// Use the current handle or open the named symbolic link.
 	handle := h
 	if len(name) != 0 {
 		var err error
@@ -663,6 +670,7 @@ func (h *FSHandle) Readlink(ctx context.Context, name string) ([]string, bool, e
 		defer handle.Release()
 	}
 
+	// Read the link target and whether it is absolute.
 	var link []string
 	var isAbs bool
 	err := handle.i().accessInode(ctx, func(cursor FSCursor, ops FSCursorOps) error {
@@ -993,10 +1001,12 @@ func (h *FSHandle) Remove(ctx context.Context, names []string, ts time.Time) err
 
 // Clone makes a copy of the FSHandle.
 func (h *FSHandle) Clone(ctx context.Context) (*FSHandle, error) {
+	// Use a background context when cloning without a caller context.
 	if ctx == nil {
 		ctx = context.Background()
 	}
 
+	// Lock the inode while adding the cloned handle reference.
 	inode := h.i()
 	rel, err := inode.rmtx.Lock(ctx, true)
 	if err != nil {

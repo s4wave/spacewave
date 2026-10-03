@@ -51,6 +51,7 @@ func NewFSCursorNodeType_Symlink() FSCursorNodeType {
 
 // NodeTypeToMode converts a fstree node type into a Mode.
 func NodeTypeToMode(nodeType FSCursorNodeType, permissions fs.FileMode) fs.FileMode {
+	// Translate the cursor node type and permission bits into a file mode.
 	permissions = permissions & fs.ModePerm // filer non-permissions fields
 	if nodeType.GetIsSymlink() {
 		return permissions | os.ModeSymlink
@@ -62,6 +63,7 @@ func NodeTypeToMode(nodeType FSCursorNodeType, permissions fs.FileMode) fs.FileM
 		// regular file has no mode bits set
 		return permissions
 	}
+
 	// unknown
 	return os.ModeIrregular
 }

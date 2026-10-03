@@ -7,6 +7,7 @@ import "context"
 func (h *FSHandle) GetXattrs(ctx context.Context) ([]FSXattr, error) {
 	var xattrs []FSXattr
 	err := h.i().accessInode(ctx, func(cursor FSCursor, ops FSCursorOps) error {
+		// Read extended attributes when the cursor supports them.
 		xattrOps, ok := ops.(FSCursorXattrs)
 		if !ok {
 			return nil

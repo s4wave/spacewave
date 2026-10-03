@@ -13,6 +13,7 @@ import (
 // cb is called with rmtx UNLOCKED!
 // cb may be nil
 func (i *fsInode) accessInode(ctx context.Context, cb accessInodeCb) error {
+	// Track inode release errors while resolving its operations.
 	var lastErr error
 	handleErr := func(err error) error {
 		// if this isn't a ErrReleased, return it immediately.
@@ -20,6 +21,7 @@ func (i *fsInode) accessInode(ctx context.Context, cb accessInodeCb) error {
 			return err
 		}
 
+		// Prefer cancellation or a terminal inode error over another resolution attempt.
 		if ctxErr := ctx.Err(); ctxErr != nil {
 			err = context.Canceled
 		} else if i.checkReleased() && i.relErr != nil {
@@ -38,6 +40,7 @@ func (i *fsInode) accessInode(ctx context.Context, cb accessInodeCb) error {
 		return nil
 	}
 
+	// Resolve the inode operations and run the requested callback.
 	for range fsInodeTries {
 		isRel, relErr := i.checkReleasedWithErr()
 		if isRel {
@@ -78,6 +81,7 @@ func (i *fsInode) accessInode(ctx context.Context, cb accessInodeCb) error {
 		return nil
 	}
 
+	// Preserve the terminal resolution error when one was recorded.
 	if lastErr != nil && lastErr != unixfs_errors.ErrReleased {
 		return lastErr
 	}
@@ -96,6 +100,7 @@ func (i *fsInode) resolveOps(ctx context.Context) (FSCursor, FSCursorOps, error)
 	if err != nil {
 		return nil, nil, err
 	}
+
 	// note: it's ok to call rel() multiple times.
 	// TODO: fast path with read-only lock
 	defer rel()
@@ -122,6 +127,7 @@ func (i *fsInode) resolveOps(ctx context.Context) (FSCursor, FSCursorOps, error)
 		}
 	}
 
+	// Wait for an existing inode resolution before starting another.
 	waiting := fsWait != nil
 	if waiting {
 		// unlock rmtx for now
@@ -159,6 +165,7 @@ func (i *fsInode) resolveOps(ctx context.Context) (FSCursor, FSCursorOps, error)
 // returns with rmtx UNLOCKED
 // should be called only by resolveOps
 func (i *fsInode) resolveOpsRoutineLocked(ctx context.Context, fsWait chan struct{}, rel func()) {
+	// Retain the parent location and publish completion of this resolution.
 	iparent, iname := i.parent, i.name
 
 	// when returning indicate we finished our work
@@ -297,6 +304,7 @@ func (i *fsInode) resolveOpsRoutineLocked(ctx context.Context, fsWait chan struc
 	}
 	defer rel()
 
+	// Publish the resolved cursors and operations under the inode lock.
 	i.fsCursors, i.fsOps, i.fsWait = cursorStack, fsOps, nil
 	if err != nil {
 		i.releaseWithChildrenLocked(err)

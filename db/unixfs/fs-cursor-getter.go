@@ -58,6 +58,7 @@ func (f *FSCursorGetter) GetCursorOps(ctx context.Context) (FSCursorOps, error) 
 
 // GetProxyCursor returns the value from the getter, if set.
 func (f *FSCursorGetter) GetProxyCursor(ctx context.Context) (FSCursor, error) {
+	// Require a live getter before requesting its proxy cursor.
 	if f.CheckReleased() {
 		return nil, unixfs_errors.ErrReleased
 	}

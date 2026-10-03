@@ -128,12 +128,15 @@ func (c *fakeCursor) Release() { c.released.Store(true) }
 // destination operations when they report released, instead of proceeding
 // with the released object.
 func TestRenameResolvesReleasedDestOps(t *testing.T) {
+	// Bound the rename test and release its context afterward.
 	ctx, ctxCancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer ctxCancel()
 
+	// Provide independent source and destination cursor operations.
 	srcCursor := &fakeCursor{ops: &fakeOps{}}
 	destCursor := &fakeCursor{ops: &fakeOps{}}
 
+	// Open the source and destination handles for the rename.
 	srcHandle, err := NewFSHandle(srcCursor)
 	if err != nil {
 		t.Fatal(err)
@@ -164,6 +167,7 @@ func TestRenameResolvesReleasedDestOps(t *testing.T) {
 		destCursor.setOps(&fakeOps{})
 	}()
 
+	// Verify the rename reports the unsupported cross-location move.
 	err = srcHandle.Rename(ctx, destHandle, "moved.txt", time.Now())
 	if err == nil {
 		t.Fatal("expected cross-location rename to be unsupported")
@@ -181,12 +185,14 @@ func TestRenameResolvesReleasedDestOps(t *testing.T) {
 // intermediate inodes, and releasing the root handle then releases the root
 // cursor.
 func TestReleaseAfterChildRelease(t *testing.T) {
+	// Open the root handle whose descendants will be released.
 	cursor := &fakeCursor{ops: &fakeOps{}}
 	rootHandle, err := NewFSHandle(cursor)
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	// Build a child inode chain beneath the live root handle.
 	root := rootHandle.i()
 	mid := newFsInode(root, "a", nil)
 	root.children = []*fsInode{mid}
@@ -194,6 +200,7 @@ func TestReleaseAfterChildRelease(t *testing.T) {
 	mid.children = []*fsInode{leaf}
 	leafHandle, _ := leaf.addReferenceLocked(false)
 
+	// Release the leaf and verify the intermediate inode follows it.
 	leafHandle.Release()
 	if !mid.checkReleased() {
 		t.Fatal("intermediate inode survived its last child")
@@ -202,6 +209,7 @@ func TestReleaseAfterChildRelease(t *testing.T) {
 		t.Fatal("root inode released while its handle is live")
 	}
 
+	// Release the root handle and verify its inode and cursor close.
 	rootHandle.Release()
 	if !root.checkReleased() {
 		t.Fatal("root inode survived its last handle")
