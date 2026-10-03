@@ -28,7 +28,7 @@ require (
 	github.com/aperturerobotics/cli v1.1.1-0.20260925195436-da3cdca4d143 // master
 	github.com/aperturerobotics/common v0.35.5-0.20261003015225-453f9b46dfcf // master
 	github.com/aperturerobotics/controllerbus v0.53.6-0.20261001195447-86f830af47c0 // master
-	github.com/aperturerobotics/cpp-yamux v0.0.0-20260223122921-58339cfd0e5d
+	github.com/aperturerobotics/cpp-yamux v0.0.0-20260929192932-26bdf6cab5b3
 	github.com/aperturerobotics/esbuild v0.24.1-0.20260219011422-6d4b923e2023 // https://github.com/evanw/esbuild/pull/3413 [rejected]
 	github.com/aperturerobotics/fastjson v0.1.2-0.20260705010846-94f343f5bb34
 	github.com/aperturerobotics/fsnotify v1.9.1-0.20260506231828-931cb4bf1761 // master
@@ -42,13 +42,13 @@ require (
 	github.com/aperturerobotics/go-winjob v0.0.0-20260705010911-656e088d1b05
 	github.com/aperturerobotics/json-iterator-lite v1.1.0 // latest
 	github.com/aperturerobotics/protobuf-go-lite v0.19.1-0.20260926160815-9337dc7c6cda // master
-	github.com/aperturerobotics/starpc v0.52.3-0.20261003013036-4cdf88642ec9 // master
+	github.com/aperturerobotics/starpc v0.52.3-0.20261003025950-d2cfc2af89e9 // master
 	github.com/aperturerobotics/util v1.34.10-0.20261002030236-9b993d4c208f // master
 	github.com/cloudflare/circl v1.6.5
 	github.com/creack/pty v1.1.24
-	github.com/dgraph-io/badger/v4 v4.9.7-0.20260921130653-5688f1406ced
+	github.com/dgraph-io/badger/v4 v4.9.7-0.20261002165227-78b99b8b0f01
 	github.com/dgraph-io/ristretto/v2 v2.4.2
-	github.com/dolthub/go-mysql-server v0.20.1-0.20260928215449-83a7cb952fab
+	github.com/dolthub/go-mysql-server v0.20.1-0.20261002232316-bfee8cf129ec
 	github.com/dolthub/vitess v0.0.0-20260916192104-15c5c4158b37
 	github.com/dustin/go-humanize v1.1.0
 	github.com/fatih/color v1.19.0
@@ -56,12 +56,12 @@ require (
 	github.com/go-git/go-billy/v6 v6.0.0-beta.1 // main
 	github.com/go-git/go-git/v6 v6.0.0-alpha.5.0.20261002123423-fedc50f4303a // main
 	github.com/go-sql-driver/mysql v1.10.1
-	github.com/goccy/go-json v0.11.1
+	github.com/goccy/go-json v0.11.2
 	github.com/gomodule/redigo v2.0.0+incompatible
 	github.com/google/uuid v1.6.0
 	github.com/hack-pad/safejs v0.1.1
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
-	github.com/klauspost/compress v1.20.2-0.20260928201310-179d9a25ce9d
+	github.com/klauspost/compress v1.20.2-0.20261002184158-6b9199594fc5
 	github.com/libp2p/go-yamux/v5 v5.1.0
 	github.com/manifoldco/promptui v0.9.0
 	github.com/mattn/go-isatty v0.0.24
@@ -69,7 +69,7 @@ require (
 	github.com/mr-tron/base58 v1.3.0
 	github.com/mxschmitt/playwright-go v0.6201.1
 	github.com/ncruces/go-sqlite3 v0.35.6
-	github.com/pierrec/lz4/v4 v4.1.31
+	github.com/pierrec/lz4/v4 v4.1.33
 	github.com/pion/datachannel v1.6.3
 	github.com/pion/logging v0.2.4
 	github.com/pion/sdp/v3 v3.0.20
@@ -78,7 +78,7 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/quic-go/quic-go v0.63.0
 	github.com/restic/chunker v0.5.0
-	github.com/s4wave/goscript v0.3.4-0.20261003030414-1aa238a04e3c
+	github.com/s4wave/goscript v0.3.4-0.20261003100356-c643d7103535
 	github.com/sasha-s/go-deadlock v0.3.9
 	github.com/satori/go.uuid v1.2.0
 	github.com/sergi/go-diff v1.4.0
@@ -86,11 +86,11 @@ require (
 	github.com/spf13/afero v1.15.0
 	github.com/spf13/cast v1.10.0
 	github.com/tetratelabs/wazero v1.12.1-0.20260928190838-e234f6fe6ecd
-	github.com/tidwall/btree v1.8.1
+	github.com/tidwall/btree v1.8.2
 	github.com/vmihailenco/msgpack/v5 v5.4.1
 	github.com/whilp/git-urls v1.0.0
 	github.com/zeebo/blake3 v0.2.4
-	go.starlark.net v0.0.0-20260908191801-89a6a09411d5
+	go.starlark.net v0.0.0-20260930220527-d7438c5a85ac
 	golang.org/x/crypto v0.57.0
 	golang.org/x/exp v0.0.0-20260908205506-85c1c2202aba
 	golang.org/x/mod v0.41.0 // latest
@@ -101,7 +101,7 @@ require (
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c
 	gorm.io/gorm v1.31.2
 	gotest.tools/v3 v3.5.2
-	modernc.org/sqlite v1.60.0
+	modernc.org/sqlite v1.60.1
 )
 
 require (
