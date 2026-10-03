@@ -24,20 +24,28 @@ func (c *Config) GetConfigID() string {
 
 // Validate validates the configuration.
 func (c *Config) Validate() error {
+	// Validate the optional project that supplies the compiler inputs.
 	if projID := c.GetProjectId(); projID != "" {
 		if err := bldr_project.ValidateProjectID(projID); err != nil {
 			return errors.Wrap(err, "project_id")
 		}
 	}
+
+	// Validate the web plugin that serves package lookups.
 	if err := bldr_plugin.ValidatePluginID(c.GetWebPluginId(), false); err != nil {
 		return err
 	}
+
+	// Validate the controllers included in the compiled plugin.
 	if err := configset_proto.ConfigSetMap(c.GetConfigSet()).Validate(); err != nil {
 		return errors.Wrap(err, "config_set")
 	}
+
+	// Validate the controllers included in the plugin host.
 	if err := configset_proto.ConfigSetMap(c.GetHostConfigSet()).Validate(); err != nil {
 		return errors.Wrap(err, "host_config_set")
 	}
+
 	return nil
 }
 

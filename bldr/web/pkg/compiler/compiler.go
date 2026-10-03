@@ -67,6 +67,7 @@ func (c *Controller) BuildManifest(
 	args *bldr_manifest_builder.BuildManifestArgs,
 	host bldr_manifest_builder.BuildManifestHost,
 ) (*bldr_manifest_builder.BuilderResult, error) {
+	// Resolve the manifest metadata to identify the compiled plugin.
 	conf := c.GetConfig()
 	builderConf := args.GetBuilderConfig()
 	meta, _, err := builderConf.GetManifestMeta().Resolve()
@@ -75,15 +76,18 @@ func (c *Controller) BuildManifest(
 	}
 	pluginID := strings.TrimSpace(meta.GetManifestId())
 
+	// Configure the Go plugin compiler for this web package build.
 	pluginCompilerConf := plugin_compiler_go.NewConfig()
 	pluginCompilerConf.ProjectId = conf.GetProjectId()
 	pluginCompilerConf.DisableRpcFetch = true
 	pluginCompilerConf.DelveAddr = conf.GetDelveAddr()
 	pluginCompilerConf.ConfigSet = conf.GetConfigSet()
 
+	// Copy the configured controllers into the plugin configuration.
 	pluginCompilerConf.ConfigSet = map[string]*configset_proto.ControllerConfig{}
 	configset_proto.MergeConfigSetMaps(pluginCompilerConf.ConfigSet, conf.GetConfigSet())
 
+	// Copy the host controllers into a separate host configuration.
 	pluginCompilerConf.HostConfigSet = map[string]*configset_proto.ControllerConfig{}
 	configset_proto.MergeConfigSetMaps(pluginCompilerConf.HostConfigSet, conf.GetHostConfigSet())
 
@@ -107,6 +111,7 @@ func (c *Controller) BuildManifest(
 		}
 	}
 
+	// Construct the Go compiler that builds the web package manifest.
 	pluginCompilerCtrl, err := plugin_compiler_go.NewController(c.GetLogger(), c.GetBus(), pluginCompilerConf)
 	if err != nil {
 		return nil, err

@@ -114,9 +114,12 @@ func (c *testResourceClientContext) AddResource(mux srpc.Invoker, releaseFn func
 }
 
 func (c *testResourceClientContext) AddResourceValue(_ srpc.Invoker, value any, releaseFn func()) (uint32, error) {
+	// Preserve the configured resource registration failure.
 	if c.addErr != nil {
 		return 0, c.addErr
 	}
+
+	// Register the resource value and its release function under a new ID.
 	c.nextID++
 	if c.values == nil {
 		c.values = make(map[uint32]any)
@@ -130,10 +133,13 @@ func (c *testResourceClientContext) AddResourceValue(_ srpc.Invoker, value any, 
 }
 
 func (c *testResourceClientContext) ReleaseResource(resourceID uint32) bool {
+	// Find the registered resource before releasing it.
 	releaseFn, ok := c.releases[resourceID]
 	if !ok {
 		return false
 	}
+
+	// Remove the resource and invoke its retained release function.
 	delete(c.releases, resourceID)
 	delete(c.values, resourceID)
 	if releaseFn != nil {
@@ -159,16 +165,20 @@ func (h *testBodyMountHandler) HandleDirective(
 	_ context.Context,
 	di directive.Instance,
 ) ([]directive.Resolver, error) {
+	// Resolve only body mounting directives for the configured body type.
 	dir, ok := di.GetDirective().(sobject.MountSharedObjectBody)
 	if !ok || dir.MountSharedObjectBodyType() != h.bodyType {
 		return nil, nil
 	}
+
+	// Require the configured SharedObject reference and mounted source.
 	if !dir.MountSharedObjectBodyRef().EqualVT(h.ref) {
 		return nil, errors.New("unexpected shared object ref")
 	}
 	if dir.MountSharedObjectBodySource() != h.so {
 		return nil, errors.New("expected mounted shared object source")
 	}
+
 	return directive.R(directive.NewAccessResolver(func(context.Context, func()) (space.MountSharedObjectBodyValue, func(), error) {
 		h.resolveCt++
 		return sobject.NewMountSharedObjectBodyValue(
@@ -282,8 +292,8 @@ func recvMountedSharedObjectHealth(
 	t *testing.T,
 	msgs <-chan *s4wave_sobject.WatchSharedObjectHealthResponse,
 ) *sobject.SharedObjectHealth {
+	// Receive the mounted SharedObject health or fail with the caller location.
 	t.Helper()
-
 	select {
 	case msg := <-msgs:
 		if msg == nil || msg.GetHealth() == nil {
@@ -297,11 +307,12 @@ func recvMountedSharedObjectHealth(
 }
 
 func TestWatchSharedObjectHealthStreamsMountedLifecycle(t *testing.T) {
+	// Give the parallel health stream test a cancelable lifetime.
 	t.Parallel()
-
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
+	// Mount a SharedObject whose health begins ready.
 	healthCtr := ccontainer.NewCContainer[*sobject.SharedObjectHealth](
 		sobject.NewSharedObjectReadyHealth(
 			sobject.SharedObjectHealthLayer_SHARED_OBJECT_HEALTH_LAYER_SHARED_OBJECT,
@@ -315,6 +326,7 @@ func TestWatchSharedObjectHealthStreamsMountedLifecycle(t *testing.T) {
 	}
 	strm := newTestSharedObjectHealthStream(ctx)
 
+	// Start streaming the mounted SharedObject health.
 	errCh := make(chan error, 1)
 	go func() {
 		errCh <- r.WatchSharedObjectHealth(
@@ -323,11 +335,13 @@ func TestWatchSharedObjectHealthStreamsMountedLifecycle(t *testing.T) {
 		)
 	}()
 
+	// Verify that the stream begins with the current ready health.
 	ready := recvMountedSharedObjectHealth(t, strm.msgs)
 	if ready.GetStatus() != sobject.SharedObjectHealthStatus_SHARED_OBJECT_HEALTH_STATUS_READY {
 		t.Fatalf("expected ready status, got %v", ready.GetStatus())
 	}
 
+	// Publish a body configuration failure through the SharedObject health watch.
 	healthCtr.SetValue(sobject.NewSharedObjectClosedHealth(
 		sobject.SharedObjectHealthLayer_SHARED_OBJECT_HEALTH_LAYER_BODY,
 		sobject.SharedObjectHealthCommonReason_SHARED_OBJECT_HEALTH_COMMON_REASON_BODY_CONFIG_DECODE_FAILED,
@@ -335,6 +349,7 @@ func TestWatchSharedObjectHealthStreamsMountedLifecycle(t *testing.T) {
 		"unsupported shared object type: weird.body",
 	))
 
+	// Verify that the stream preserves the failure status, layer and reason.
 	closed := recvMountedSharedObjectHealth(t, strm.msgs)
 	if closed.GetStatus() != sobject.SharedObjectHealthStatus_SHARED_OBJECT_HEALTH_STATUS_CLOSED {
 		t.Fatalf("expected closed status, got %v", closed.GetStatus())
@@ -346,6 +361,7 @@ func TestWatchSharedObjectHealthStreamsMountedLifecycle(t *testing.T) {
 		t.Fatalf("expected body-config reason, got %v", closed.GetCommonReason())
 	}
 
+	// Stop the health stream and verify that it returns cancellation.
 	cancel()
 	if err := <-errCh; !errors.Is(err, context.Canceled) {
 		t.Fatalf("WatchSharedObjectHealth() = %v, want context canceled", err)
@@ -353,11 +369,12 @@ func TestWatchSharedObjectHealthStreamsMountedLifecycle(t *testing.T) {
 }
 
 func TestWatchSharedObjectHealthStreamsMountedCurrentTypedHealthFirst(t *testing.T) {
+	// Give the parallel health stream test a cancelable lifetime.
 	t.Parallel()
-
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
+	// Mount a SharedObject with a retained body configuration failure.
 	typedHealth := sobject.NewSharedObjectClosedHealth(
 		sobject.SharedObjectHealthLayer_SHARED_OBJECT_HEALTH_LAYER_BODY,
 		sobject.SharedObjectHealthCommonReason_SHARED_OBJECT_HEALTH_COMMON_REASON_BODY_CONFIG_DECODE_FAILED,
@@ -373,6 +390,7 @@ func TestWatchSharedObjectHealthStreamsMountedCurrentTypedHealthFirst(t *testing
 	}
 	strm := newTestSharedObjectHealthStream(ctx)
 
+	// Start streaming the mounted SharedObject health.
 	errCh := make(chan error, 1)
 	go func() {
 		errCh <- r.WatchSharedObjectHealth(
@@ -381,6 +399,7 @@ func TestWatchSharedObjectHealthStreamsMountedCurrentTypedHealthFirst(t *testing
 		)
 	}()
 
+	// Verify that the initial health preserves every typed failure detail.
 	current := recvMountedSharedObjectHealth(t, strm.msgs)
 	if current.GetStatus() != sobject.SharedObjectHealthStatus_SHARED_OBJECT_HEALTH_STATUS_CLOSED {
 		t.Fatalf("expected closed status, got %v", current.GetStatus())
@@ -398,6 +417,7 @@ func TestWatchSharedObjectHealthStreamsMountedCurrentTypedHealthFirst(t *testing
 		t.Fatalf("expected typed health detail to survive, got %q", current.GetError())
 	}
 
+	// Stop the health stream and verify that it returns cancellation.
 	cancel()
 	if err := <-errCh; !errors.Is(err, context.Canceled) {
 		t.Fatalf("WatchSharedObjectHealth() = %v, want context canceled", err)
@@ -429,14 +449,15 @@ func TestMountSharedObjectBodyReturnsTypedHealthResponseForBodyConfigFailures(t 
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
+			// Create a resource context for the parallel body configuration case.
 			t.Parallel()
-
 			resourceCtx := &testResourceClientContext{}
 			ctx := resource_server.WithResourceClientContext(context.Background(), resourceCtx)
 			r := &SharedObjectResource{
 				meta: &sobject.SharedObjectMeta{BodyType: tc.bodyType},
 			}
 
+			// Attempt to mount the SharedObject with the invalid body configuration.
 			resp, err := r.MountSharedObjectBody(
 				ctx,
 				&s4wave_sobject.MountSharedObjectBodyRequest{},
@@ -444,10 +465,13 @@ func TestMountSharedObjectBodyReturnsTypedHealthResponseForBodyConfigFailures(t 
 			if err != nil {
 				t.Fatalf("MountSharedObjectBody() error = %v", err)
 			}
+
+			// Verify that the failed body mount allocates no resource.
 			if resp.GetResourceId() != 0 {
 				t.Fatalf("expected no body resource id, got %d", resp.GetResourceId())
 			}
 
+			// Verify that the mount response preserves the typed body failure details.
 			health := resp.GetHealth()
 			if health == nil {
 				t.Fatal("expected typed health response")
@@ -467,6 +491,8 @@ func TestMountSharedObjectBodyReturnsTypedHealthResponseForBodyConfigFailures(t 
 			if health.GetError() != tc.detail {
 				t.Fatalf("expected detail %q, got %q", tc.detail, health.GetError())
 			}
+
+			// Verify that the failed body mount registers no child resources.
 			if resourceCtx.nextID != 0 {
 				t.Fatalf("expected no child resources to be registered, got %d", resourceCtx.nextID)
 			}
@@ -475,18 +501,20 @@ func TestMountSharedObjectBodyReturnsTypedHealthResponseForBodyConfigFailures(t 
 }
 
 func TestMountSharedObjectBodyUsesBodyDirectiveForNativeBody(t *testing.T) {
+	// Require native body mounting for the directive lifecycle test.
 	if !testMountSharedObjectBodyAvailable {
 		t.Skip("native body mounting is unavailable under goscript")
 	}
 
+	// Start a testbed that resolves the native body mounting directive.
 	ctx := t.Context()
-
 	tb, err := testbed.Default(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer tb.Release()
 
+	// Describe the mounted SharedObject and its native body.
 	ref := &sobject.SharedObjectRef{
 		ProviderResourceRef: &provider.ProviderResourceRef{
 			Id:                "so-native",
@@ -508,12 +536,15 @@ func TestMountSharedObjectBodyUsesBodyDirectiveForNativeBody(t *testing.T) {
 		body:      body,
 		releaseCh: make(chan struct{}, 2),
 	}
+
+	// Register the native body resolver for the test lifetime.
 	removeHandler, err := tb.Bus.AddHandler(handler)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer removeHandler()
 
+	// Create the SharedObject resource that registers mounted body children.
 	resourceCtx := &testResourceClientContext{}
 	ctx = resource_server.WithResourceClientContext(ctx, resourceCtx)
 	r := &SharedObjectResource{
@@ -525,6 +556,7 @@ func TestMountSharedObjectBodyUsesBodyDirectiveForNativeBody(t *testing.T) {
 		sessionPeerID: "session-peer",
 	}
 
+	// Mount the native body through its directive resolver.
 	resp, err := r.MountSharedObjectBody(
 		ctx,
 		&s4wave_sobject.MountSharedObjectBodyRequest{},
@@ -532,6 +564,8 @@ func TestMountSharedObjectBodyUsesBodyDirectiveForNativeBody(t *testing.T) {
 	if err != nil {
 		t.Fatalf("MountSharedObjectBody() error = %v", err)
 	}
+
+	// Verify that the mount retains one resolved SpaceResource child.
 	if handler.resolveCt != 1 {
 		t.Fatalf("expected body directive resolver to run once, got %d", handler.resolveCt)
 	}
@@ -545,10 +579,13 @@ func TestMountSharedObjectBodyUsesBodyDirectiveForNativeBody(t *testing.T) {
 	if handler.releaseCt != 0 {
 		t.Fatalf("expected child release to be retained, got %d", handler.releaseCt)
 	}
+
+	// Release the first body resource before mounting it again.
 	if !resourceCtx.ReleaseResource(resp.GetResourceId()) {
 		t.Fatal("expected child resource release")
 	}
 
+	// Mount the native body again after releasing the first child.
 	rejoined, err := r.MountSharedObjectBody(
 		ctx,
 		&s4wave_sobject.MountSharedObjectBodyRequest{},
@@ -556,9 +593,13 @@ func TestMountSharedObjectBodyUsesBodyDirectiveForNativeBody(t *testing.T) {
 	if err != nil {
 		t.Fatalf("rejoin MountSharedObjectBody() error = %v", err)
 	}
+
+	// Verify that the second mount resolves a fresh directive value.
 	if handler.resolveCt != 2 {
 		t.Fatalf("rejoin reused the released body directive value: resolver calls = %d", handler.resolveCt)
 	}
+
+	// Release the second child and verify both directive values are released.
 	if !resourceCtx.ReleaseResource(rejoined.GetResourceId()) {
 		t.Fatal("expected rejoined child resource release")
 	}

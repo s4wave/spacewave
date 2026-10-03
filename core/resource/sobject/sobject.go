@@ -78,6 +78,7 @@ func (r *SharedObjectResource) WatchSharedObjectHealth(
 	req *s4wave_sobject.WatchSharedObjectHealthRequest,
 	strm s4wave_sobject.SRPCSharedObjectResourceService_WatchSharedObjectHealthStream,
 ) error {
+	// Stream the mounted SharedObject health when it exposes a health watch.
 	ctx := strm.Context()
 	if healthAccessor, ok := r.sharedObject.(sobject.SharedObjectHealthAccessor); ok {
 		healthCtr, relHealthCtr, err := healthAccessor.AccessSharedObjectHealth(ctx, nil)
@@ -95,6 +96,7 @@ func (r *SharedObjectResource) WatchSharedObjectHealth(
 		return watchSharedObjectHealthWatchable(ctx, strm, healthCtr)
 	}
 
+	// Acquire the SharedObject state watch to derive loading and ready health.
 	stateCtr, relStateCtr, err := r.sharedObject.AccessSharedObjectState(ctx, nil)
 	if err != nil {
 		return waitSharedObjectHealth(

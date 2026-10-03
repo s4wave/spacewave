@@ -53,9 +53,11 @@ func (s *StoreReadThrough) GetSupportedFeatures() block.StoreFeature {
 // Writeback keeps the primary source writable because lower-source hits are
 // inserted into it before the scoped read returns.
 func (s *StoreReadThrough) BeginReadOperation(ctx context.Context) (block.StoreOps, func(), error) {
+	// Resolve the primary and lower stores for this read operation.
 	primary := s.source(s.primary)
 	lower := s.source(s.lower)
 
+	// Scope the primary store when lower hits will not be written back.
 	var releasePrimary, releaseLower func()
 	if primary != nil && !s.writeback {
 		scoped, release, err := primary.BeginReadOperation(ctx)
@@ -65,6 +67,8 @@ func (s *StoreReadThrough) BeginReadOperation(ctx context.Context) (block.StoreO
 		primary = scoped
 		releasePrimary = release
 	}
+
+	// Scope the lower store and release the primary scope if acquisition fails.
 	if lower != nil {
 		scoped, release, err := lower.BeginReadOperation(ctx)
 		if err != nil {
@@ -77,6 +81,7 @@ func (s *StoreReadThrough) BeginReadOperation(ctx context.Context) (block.StoreO
 		releaseLower = release
 	}
 
+	// Bind the read-through view to the acquired scopes and their cleanup.
 	scoped := &StoreReadThrough{
 		primary:   s.primary,
 		lower:     s.lower,
@@ -121,6 +126,7 @@ func (*StoreReadThrough) Sync(context.Context) (bool, error) { return true, nil 
 // into primary with its refs. A lower hit with unknown refs is served without
 // the writeback.
 func (s *StoreReadThrough) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {
+	// Serve the block from the primary store when it is available there.
 	primary := s.source(s.primary)
 	if primary != nil {
 		data, found, err := primary.GetBlock(ctx, ref)
@@ -128,6 +134,8 @@ func (s *StoreReadThrough) GetBlock(ctx context.Context, ref *block.BlockRef) ([
 			return data, found, err
 		}
 	}
+
+	// Resolve the lower store and serve directly when writeback is disabled.
 	lower := s.source(s.lower)
 	if lower == nil {
 		return nil, false, nil
@@ -135,6 +143,8 @@ func (s *StoreReadThrough) GetBlock(ctx context.Context, ref *block.BlockRef) ([
 	if !s.writeback || primary == nil {
 		return lower.GetBlock(ctx, ref)
 	}
+
+	// Read the lower block and fill the primary store when its refs are known.
 	stored, err := s.readLower(ctx, primary, lower, ref)
 	if err != nil || stored == nil {
 		return nil, false, err
@@ -147,6 +157,7 @@ func (s *StoreReadThrough) GetBlock(ctx context.Context, ref *block.BlockRef) ([
 // writeback is enabled, a lower hit with known refs is synchronously inserted
 // into primary with its refs.
 func (s *StoreReadThrough) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*block.StoredBlock, error) {
+	// Serve the stored block and its refs from the primary store when present.
 	primary := s.source(s.primary)
 	if primary != nil {
 		stored, err := primary.GetStoredBlock(ctx, ref)
@@ -154,6 +165,8 @@ func (s *StoreReadThrough) GetStoredBlock(ctx context.Context, ref *block.BlockR
 			return stored, err
 		}
 	}
+
+	// Resolve the lower store for the stored block lookup.
 	lower := s.source(s.lower)
 	if lower == nil {
 		return nil, nil

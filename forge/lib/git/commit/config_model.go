@@ -49,15 +49,20 @@ func (c *Config) GetCommitRequest() *s4wave_git.CommitFilesRequest {
 
 // EqualVT checks if two configs are equal.
 func (c *Config) EqualVT(other *Config) bool {
+	// Compare absent configurations before reading their fields.
 	if c == nil || other == nil {
 		return c == other
 	}
+
+	// Compare the Worktree and repository selected by each configuration.
 	if c.GetWorktreeObjectKey() != other.GetWorktreeObjectKey() {
 		return false
 	}
 	if c.GetRepoObjectKey() != other.GetRepoObjectKey() {
 		return false
 	}
+
+	// Compare the commit requests, including their absent values.
 	req := c.GetCommitRequest()
 	oreq := other.GetCommitRequest()
 	if req == nil || oreq == nil {
@@ -106,27 +111,38 @@ func (c *Config) UnmarshalJSON(data []byte) error {
 
 // MarshalProtoJSON marshals the Config message to JSON.
 func (c *Config) MarshalProtoJSON(s *json.MarshalState) {
+	// Encode an absent Config as a JSON null value.
 	if c == nil {
 		s.WriteNil()
 		return
 	}
+
+	// Open the Config object and track separators between its fields.
 	s.WriteObjectStart()
 	var wroteField bool
+
+	// Encode the Worktree object key when present or explicitly requested.
 	if c.WorktreeObjectKey != "" || s.HasField("worktreeObjectKey") {
 		s.WriteMoreIf(&wroteField)
 		s.WriteObjectField("worktreeObjectKey")
 		s.WriteString(c.WorktreeObjectKey)
 	}
+
+	// Encode the repository object key when present or explicitly requested.
 	if c.RepoObjectKey != "" || s.HasField("repoObjectKey") {
 		s.WriteMoreIf(&wroteField)
 		s.WriteObjectField("repoObjectKey")
 		s.WriteString(c.RepoObjectKey)
 	}
+
+	// Encode the commit request when present or explicitly requested.
 	if c.CommitRequest != nil || s.HasField("commitRequest") {
 		s.WriteMoreIf(&wroteField)
 		s.WriteObjectField("commitRequest")
 		c.CommitRequest.MarshalProtoJSON(s.WithField("commitRequest"))
 	}
+
+	// Complete the Config JSON object.
 	s.WriteObjectEnd()
 }
 

@@ -27,14 +27,19 @@ func (r *SharedObjectResource) WatchSharedObjectParticipation(
 	// Root progress and transport health do not manufacture participation transitions.
 	var previous *sobject.SharedObjectConfig
 	return ccontainer.WatchChanges(ctx, nil, state, func(value *sobject.SOState) error {
+		// Ignore SharedObject snapshots without a new accepted configuration.
 		if value.GetConfig() == nil || value.GetConfig().EqualVT(previous) {
 			return nil
 		}
+
+		// Describe participation using the viewer and accepted SharedObject configuration.
 		config := value.GetConfig().CloneVT()
 		participation := &s4wave_sobject.SharedObjectParticipation{
 			ViewerPeerId: r.sharedObject.GetPeerID().String(),
 			Config:       config,
 		}
+
+		// Attach retained configuration history when the SharedObject exposes it.
 		if history, ok := r.sharedObject.(sobject.SharedObjectConfigHistoryAccessor); ok {
 			base, changes, err := history.ReadSharedObjectConfigHistory(ctx, config)
 			if err != nil && !errors.Is(err, sobject.ErrConfigHistoryUnavailable) {
@@ -43,6 +48,8 @@ func (r *SharedObjectResource) WatchSharedObjectParticipation(
 			participation.ConfigHistoryBase = base
 			participation.ConfigHistoryChanges = changes
 		}
+
+		// Publish participation before remembering the configuration for this stream.
 		if err := stream.Send(participation); err != nil {
 			return err
 		}

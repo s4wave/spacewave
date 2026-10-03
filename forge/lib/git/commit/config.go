@@ -11,12 +11,15 @@ const ConfigID = ControllerID
 
 // Validate validates the configuration.
 func (c *Config) Validate() error {
+	// Require the Worktree and repository objects used by the commit.
 	if c.GetWorktreeObjectKey() == "" {
 		return errors.New("worktree_object_key cannot be empty")
 	}
 	if c.GetRepoObjectKey() == "" {
 		return errors.New("repo_object_key cannot be empty")
 	}
+
+	// Require a commit request with a message for the staged files.
 	req := c.GetCommitRequest()
 	if req == nil {
 		return errors.New("commit_request cannot be empty")
@@ -24,12 +27,15 @@ func (c *Config) Validate() error {
 	if req.GetMessage() == "" {
 		return errors.New("commit_request.message cannot be empty")
 	}
+
+	// Require the author identity recorded in the Git commit.
 	if req.GetAuthorName() == "" {
 		return errors.New("commit_request.author_name cannot be empty")
 	}
 	if req.GetAuthorEmail() == "" {
 		return errors.New("commit_request.author_email cannot be empty")
 	}
+
 	return nil
 }
 

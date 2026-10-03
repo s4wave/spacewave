@@ -78,10 +78,13 @@ func (c *Controller) InitForgeExecController(
 // Returning nil ends execution.
 // Returning an error triggers a retry with backoff.
 func (c *Controller) Execute(ctx context.Context) error {
+	// Require the target World input before accessing the Git Worktree.
 	inWorld := c.inputVals[inputNameWorld]
 	if inWorld == nil || inWorld.IsEmpty() {
 		return errors.New("target world input must be set")
 	}
+
+	// Resolve the World state and engine used by the Git Worktree.
 	ipv, err := forge_target.InputValueToWorld(inWorld)
 	if err != nil {
 		return errors.Wrap(err, "world")
@@ -90,6 +93,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 		return errors.New("target world input must be set")
 	}
 
+	// Commit the staged files through the Git Worktree resource.
 	resource := resource_git.NewGitWorktreeResource(
 		ipv.GetWorldState(),
 		ipv.GetWorldEngine(),
@@ -100,16 +104,21 @@ func (c *Controller) Execute(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+
+	// Encode the commit response for the target output.
 	data, err := resp.MarshalVT()
 	if err != nil {
 		return err
 	}
+
+	// Store the commit response as the named target output.
 	out, err := forge_target.StoreBlobValueFromBytes(ctx, c.handle, data)
 	if err != nil {
 		return err
 	}
 	out.Name = outputNameCommit
 
+	// Report the committed revision and its branch in the controller log.
 	c.le.WithFields(logrus.Fields{
 		"commit": resp.GetCommitHash(),
 		"base":   resp.GetBaseCommitHash(),

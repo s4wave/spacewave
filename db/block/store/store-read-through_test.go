@@ -38,10 +38,13 @@ func newRefsTestStore() *refsTestStore {
 }
 
 func (s *refsTestStore) PutBlock(ctx context.Context, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
+	// Store the block bytes before recording their references.
 	ref, existed, err := s.StoreOps.PutBlock(ctx, data, opts)
 	if err != nil {
 		return nil, false, err
 	}
+
+	// Retain the block references for later stored block reads.
 	s.mu.Lock()
 	s.refs[ref.MarshalString()] = opts.GetRefs()
 	s.mu.Unlock()
@@ -67,6 +70,7 @@ func (s *refsTestStore) getRefs(ref *block.BlockRef) []*block.BlockRef {
 }
 
 func TestStoreReadThroughWritebackUsesWritablePrimary(t *testing.T) {
+	// Create primary and lower stores with a child block in the lower store.
 	ctx := context.Background()
 	primary := newRefsTestStore()
 	lower := newRefsTestStore()
@@ -74,16 +78,20 @@ func TestStoreReadThroughWritebackUsesWritablePrimary(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Store a lower block whose references must survive writeback.
 	data := []byte("read-through writeback")
 	ref, _, err := lower.PutBlock(ctx, data, &block.PutOpts{Refs: []*block.BlockRef{child}})
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	// Verify that the primary store starts without the lower block.
 	if _, found, err := primary.GetBlock(ctx, ref); err != nil || found {
 		t.Fatalf("primary before read found=%v err=%v, want absent", found, err)
 	}
 
+	// Open a read-through scope with synchronous writeback enabled.
 	var lowerSource block.StoreOps = lower
 	store := block_store.NewStoreReadThrough(
 		func() block.StoreOps { return primary },
@@ -94,12 +102,15 @@ func TestStoreReadThroughWritebackUsesWritablePrimary(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Read the lower block through the scope and release the read operation.
 	got, found, err := scoped.GetBlock(ctx, ref)
 	release()
 	if err != nil || !found || string(got) != string(data) {
 		t.Fatalf("scoped lower read = %q/%v/%v", got, found, err)
 	}
 
+	// Verify that writeback preserves the block bytes and refs without the lower source.
 	lowerSource = nil
 	got, found, err = primary.GetBlock(ctx, ref)
 	if err != nil || !found || string(got) != string(data) {
@@ -112,6 +123,7 @@ func TestStoreReadThroughWritebackUsesWritablePrimary(t *testing.T) {
 }
 
 func TestStoreReadThroughByteOnlySourceSkipsFill(t *testing.T) {
+	// Store a lower block in a source that does not retain references.
 	ctx := context.Background()
 	primary := newRefsTestStore()
 	lower := newReadThroughTestBlockStore()
@@ -121,6 +133,7 @@ func TestStoreReadThroughByteOnlySourceSkipsFill(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Verify that read-through serves bytes from the lower source.
 	store := block_store.NewStoreReadThrough(
 		func() block.StoreOps { return primary },
 		func() block.StoreOps { return lower },
@@ -130,10 +143,14 @@ func TestStoreReadThroughByteOnlySourceSkipsFill(t *testing.T) {
 	if err != nil || !found || string(got) != string(data) {
 		t.Fatalf("lower read = %q/%v/%v", got, found, err)
 	}
+
+	// Verify that the stored block reports its references as unknown.
 	stored, err := store.GetStoredBlock(ctx, ref)
 	if err != nil || stored == nil || stored.RefsKnown {
 		t.Fatalf("GetStoredBlock = %v/%v, want bytes without refs", stored, err)
 	}
+
+	// Verify that the byte-only lower hit leaves the primary store empty.
 	if _, found, err := primary.GetBlock(ctx, ref); err != nil || found {
 		t.Fatalf("primary after byte-only read found=%v err=%v, want absent", found, err)
 	}

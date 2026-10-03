@@ -38,6 +38,7 @@ func (s *readScopeTestStore) GetBlock(ctx context.Context, ref *block.BlockRef) 
 }
 
 func TestStoreReadThroughScopesLowerWhenPrimaryUnavailable(t *testing.T) {
+	// Create a lower store that records read scope acquisition and use.
 	ctx := context.Background()
 	inner := block_store_inmem.NewInmemBlock(
 		store_kvkey.NewDefaultKVKey(),
@@ -52,12 +53,15 @@ func TestStoreReadThroughScopesLowerWhenPrimaryUnavailable(t *testing.T) {
 		beginCalls:  beginCalls,
 		scopedCalls: scopedCalls,
 	}
+
+	// Store a block that the scoped lower source must serve.
 	data := []byte("scoped lower")
 	ref, _, err := lower.PutBlock(ctx, data, &block.PutOpts{HashType: hash.HashType_HashType_BLAKE3})
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	// Open a read-through scope while the primary store is unavailable.
 	store := block_store.NewStoreReadThrough(
 		func() block.StoreOps { return nil },
 		func() block.StoreOps { return lower },
@@ -68,9 +72,13 @@ func TestStoreReadThroughScopesLowerWhenPrimaryUnavailable(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer release()
+
+	// Verify that the lower store opens exactly one read scope.
 	if beginCalls.Load() != 1 {
 		t.Fatalf("lower BeginReadOperation calls = %d, want 1", beginCalls.Load())
 	}
+
+	// Verify that the lower block is read through its acquired scope.
 	got, found, err := scoped.GetBlock(ctx, ref)
 	if err != nil || !found || string(got) != string(data) {
 		t.Fatalf("scoped lower read = %q/%v/%v", got, found, err)
@@ -131,12 +139,14 @@ func (s *wrapperBatchTestStore) EnsureDecodedBlockCacheFresh(ctx context.Context
 }
 
 func TestStoreForwardsNativeOperations(t *testing.T) {
+	// Wrap a store that records native operations on a known block.
 	ctx := context.Background()
 	inner := newWrapperBatchTestStore()
 	store := block_store.NewStore("test", inner)
 	data := []byte("hello")
 	ref := mustBuildBlockRef(t, data)
 
+	// Verify that batch insertion reaches the native batch operation.
 	if err := store.PutBlockBatch(ctx, []*block.PutBatchEntry{{Ref: ref, Data: data}}); err != nil {
 		t.Fatal(err.Error())
 	}
@@ -144,6 +154,7 @@ func TestStoreForwardsNativeOperations(t *testing.T) {
 		t.Fatalf("expected one batch call and no per-entry fallback, got batch=%d put=%d", inner.batchCalls, inner.putCalls)
 	}
 
+	// Verify that single-block insertion reaches the native put operation.
 	if _, _, err := store.PutBlock(ctx, data, &block.PutOpts{ForceBlockRef: ref}); err != nil {
 		t.Fatal(err.Error())
 	}
@@ -151,6 +162,7 @@ func TestStoreForwardsNativeOperations(t *testing.T) {
 		t.Fatalf("expected one put call, got %d", inner.putCalls)
 	}
 
+	// Verify that batch existence checks reach the native batch operation.
 	if _, err := store.GetBlockExistsBatch(ctx, []*block.BlockRef{ref}); err != nil {
 		t.Fatal(err.Error())
 	}
@@ -160,6 +172,7 @@ func TestStoreForwardsNativeOperations(t *testing.T) {
 }
 
 func TestStoreForwardsDecodedBlockCacheFreshness(t *testing.T) {
+	// Wrap a store that exposes decoded block cache freshness.
 	ctx := context.Background()
 	inner := newWrapperBatchTestStore()
 	store := block_store.NewStore("test", inner)
@@ -168,6 +181,7 @@ func TestStoreForwardsDecodedBlockCacheFreshness(t *testing.T) {
 		t.Fatal("wrapped store does not expose decoded cache freshness")
 	}
 
+	// Verify that the wrapper forwards decoded cache freshness requests.
 	if err := freshener.EnsureDecodedBlockCacheFresh(ctx); err != nil {
 		t.Fatal(err.Error())
 	}
@@ -175,6 +189,7 @@ func TestStoreForwardsDecodedBlockCacheFreshness(t *testing.T) {
 		t.Fatalf("expected one freshness call, got %d", inner.freshenCalls)
 	}
 
+	// Open a scoped wrapper and verify that it exposes cache freshness.
 	scoped, release, err := store.BeginReadOperation(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -185,6 +200,7 @@ func TestStoreForwardsDecodedBlockCacheFreshness(t *testing.T) {
 		t.Fatal("scoped wrapped store does not expose decoded cache freshness")
 	}
 
+	// Verify that the scoped wrapper forwards decoded cache freshness requests.
 	if err := scopedFreshener.EnsureDecodedBlockCacheFresh(ctx); err != nil {
 		t.Fatal(err.Error())
 	}
