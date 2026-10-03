@@ -597,6 +597,7 @@ func TestEvaluateMatchesSuppressesDuplicateOpens(t *testing.T) {
 	}
 	hashes := link_solicit.ComputeProtocolHashes(ls.sessionID, []link_solicit.SolicitEntry{entry})
 	ss := &solicitState{
+		ctx:     t.Context(),
 		dir:     link_solicit.NewSolicitProtocol(entry.ProtocolID, entry.Context, "", 0),
 		handler: handler,
 	}
@@ -627,6 +628,7 @@ func TestEvaluateMatchesSuppressesDuplicateOpens(t *testing.T) {
 // TestEvaluateMatchesStreamCloseDoesNotRearmIncarnatedPair verifies that stream
 // lifetime does not control offer-pair suppression.
 func TestEvaluateMatchesStreamCloseDoesNotRearmIncarnatedPair(t *testing.T) {
+	// Describe one incarnated offer pair on a lower-side link.
 	c := newTestSolicitController(t)
 	ls := newTestLinkState(peer.ID("a"), peer.ID("b"))
 	handler := newTestResolverHandler()
@@ -637,7 +639,10 @@ func TestEvaluateMatchesStreamCloseDoesNotRearmIncarnatedPair(t *testing.T) {
 	hash := link_solicit.ComputeProtocolHash(ls.sessionID, entry.ProtocolID, entry.Context)
 	localIncarnation := bytes.Repeat([]byte{1}, solicitationIncarnationSize)
 	remoteIncarnation := bytes.Repeat([]byte{2}, solicitationIncarnationSize)
+
+	// Register the local solicitation against the acknowledged remote offer.
 	ss := &solicitState{
+		ctx:         t.Context(),
 		dir:         link_solicit.NewSolicitProtocol(entry.ProtocolID, entry.Context, "", 0),
 		handler:     handler,
 		incarnation: localIncarnation,
@@ -651,6 +656,7 @@ func TestEvaluateMatchesStreamCloseDoesNotRearmIncarnatedPair(t *testing.T) {
 		broadcast()
 	})
 
+	// Open the pair once, then accept and close its stream.
 	c.evaluateMatches(t.Context(), ls, local, remote)
 	recvTestValue(t, ls.ml.(*testMountedLink).openCh, "opened incarnated protocol")
 	value := recvTestValue(t, handler.values, "incarnated solicit value")
@@ -663,6 +669,7 @@ func TestEvaluateMatchesStreamCloseDoesNotRearmIncarnatedPair(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Expect the closed stream to leave the pair suppressed.
 	c.evaluateMatches(t.Context(), ls, local, remote)
 	assertNoTestValue(t, ls.ml.(*testMountedLink).openCh, "reopened closed protocol")
 	assertNoTestValue(t, handler.values, "replacement for closed stream")
@@ -681,6 +688,7 @@ func TestRetainedLinkPrunesRetiredIncarnationPairs(t *testing.T) {
 	}
 	hash := link_solicit.ComputeProtocolHash(ls.sessionID, entry.ProtocolID, entry.Context)
 	ss := &solicitState{
+		ctx:     t.Context(),
 		dir:     link_solicit.NewSolicitProtocol(entry.ProtocolID, entry.Context, "", 0),
 		handler: handler,
 	}
@@ -757,6 +765,7 @@ func TestOpenSolicitedStreamWaitsForAccept(t *testing.T) {
 	localIncarnation := bytes.Repeat([]byte{1}, solicitationIncarnationSize)
 	remoteIncarnation := bytes.Repeat([]byte{2}, solicitationIncarnationSize)
 	ss := &solicitState{
+		ctx:         t.Context(),
 		dir:         link_solicit.NewSolicitProtocol(entry.ProtocolID, entry.Context, "", 0),
 		handler:     handler,
 		incarnation: localIncarnation,
@@ -886,6 +895,7 @@ func TestStartOpenRoutineRejectsLinkRemovedBeforeRegistration(t *testing.T) {
 // TestIncomingSolicitedStreamRejectsStaleIncarnation verifies both stale-pair
 // and upgraded-peer downgrade rejection.
 func TestIncomingSolicitedStreamRejectsStaleIncarnation(t *testing.T) {
+	// Describe one incarnated offer pair on a higher-side link.
 	c := newTestSolicitController(t)
 	ls := newTestLinkState(peer.ID("b"), peer.ID("a"))
 	handler := newTestResolverHandler()
@@ -896,7 +906,10 @@ func TestIncomingSolicitedStreamRejectsStaleIncarnation(t *testing.T) {
 	hash := link_solicit.ComputeProtocolHash(ls.sessionID, entry.ProtocolID, entry.Context)
 	lowerIncarnation := bytes.Repeat([]byte{1}, solicitationIncarnationSize)
 	higherIncarnation := bytes.Repeat([]byte{2}, solicitationIncarnationSize)
+
+	// Register the local solicitation against the current remote offer.
 	ss := &solicitState{
+		ctx:         t.Context(),
 		dir:         link_solicit.NewSolicitProtocol(entry.ProtocolID, entry.Context, "", 0),
 		handler:     handler,
 		incarnation: higherIncarnation,
@@ -912,15 +925,18 @@ func TestIncomingSolicitedStreamRejectsStaleIncarnation(t *testing.T) {
 		return &testMountedStream{link: ls.ml}
 	}
 
+	// Refuse a stream bound to a retired remote incarnation.
 	staleLower := bytes.Repeat([]byte{3}, solicitationIncarnationSize)
 	stalePair := hex.EncodeToString(hash) + ":" +
 		hex.EncodeToString(staleLower) + ":" + hex.EncodeToString(higherIncarnation)
 	c.handleIncomingSolicitedStream(stalePair, newStream())
 	assertNoTestValue(t, handler.values, "stale incarnation stream")
 
+	// Refuse a hash-only stream once the peer advertised incarnations.
 	c.handleIncomingSolicitedStream(hex.EncodeToString(hash), newStream())
 	assertNoTestValue(t, handler.values, "hash-only stream from upgraded peer")
 
+	// Publish a stream bound to the current pair.
 	currentPair := hex.EncodeToString(hash) + ":" +
 		hex.EncodeToString(lowerIncarnation) + ":" + hex.EncodeToString(higherIncarnation)
 	c.handleIncomingSolicitedStream(currentPair, newStream())
@@ -941,6 +957,7 @@ func TestEvaluateMatchesHigherPeerDoesNotOpenStream(t *testing.T) {
 	}
 	hashes := link_solicit.ComputeProtocolHashes(ls.sessionID, []link_solicit.SolicitEntry{entry})
 	ss := &solicitState{
+		ctx:     t.Context(),
 		dir:     link_solicit.NewSolicitProtocol(entry.ProtocolID, entry.Context, "", 0),
 		handler: handler,
 	}

@@ -21,18 +21,23 @@ func TestControlStreamUpgradeRequiresOfferAcknowledgement(t *testing.T) {
 	c := newTestSolicitController(t)
 	ls := newTestLinkState(peer.ID("a"), peer.ID("b"))
 	ss := &solicitState{
+		ctx:         t.Context(),
 		dir:         link_solicit.NewSolicitProtocol(protocol.ID("test/upgrade"), nil, "", 0),
 		incarnation: bytes.Repeat([]byte{1}, solicitationIncarnationSize),
 		handler:     newTestResolverHandler(),
 	}
 	c.links[ls.ml.GetLinkUUID()] = ls
 	c.solicitations[ss] = struct{}{}
+
+	// Run the control loop over a pipe to the manually driven peer.
 	localConn, remoteConn := net.Pipe()
 	defer localConn.Close()
 	defer remoteConn.Close()
 	maxMessageSize := maxExchangeMessageSize(c.maxHashes)
 	localSess := stream_packet.NewSession(localConn, maxMessageSize)
 	remoteSess := stream_packet.NewSession(remoteConn, maxMessageSize)
+
+	// Stop the control loop before the test returns.
 	done := make(chan struct{})
 	go func() {
 		defer close(done)

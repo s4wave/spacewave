@@ -83,6 +83,9 @@ type solicitState struct {
 	dir link_solicit.SolicitProtocol
 	// handler receives the stream produced for each bilateral incarnation.
 	handler directive.ResolverHandler
+	// ctx is the resolver lifetime of handler. Releasing the directive cancels
+	// it synchronously, before the dispose callback withdraws the offer.
+	ctx context.Context
 	// incarnation distinguishes this lifetime from equivalent successors.
 	incarnation []byte
 	// disposed prevents publication after disposal, guarded by Controller.bcast.
@@ -353,7 +356,7 @@ func (c *Controller) handleSolicitProtocol(
 			if ss.disposed {
 				return
 			}
-			ss.handler = rh
+			ss.handler, ss.ctx = rh, rctx
 			c.solicitations[ss] = struct{}{}
 			broadcast()
 		})
@@ -845,8 +848,10 @@ func (c *Controller) computeExchange(
 	}
 }
 
-// matchSolicitations returns the active local incarnations bound to the
-// current remote incarnation of match.
+// matchSolicitations returns the live local incarnations bound to the current
+// remote incarnation of match. An incarnation whose directive was released is
+// excluded even before its dispose callback withdraws the offer, so a stale
+// pair is refused before either side publishes its stream.
 func (c *Controller) matchSolicitations(
 	ls *linkState,
 	match solicitationMatch,
@@ -871,6 +876,9 @@ func (c *Controller) matchSolicitations(
 				continue
 			}
 			if match.incarnated && !bytes.Equal(ss.incarnation, match.localIncarnation) {
+				continue
+			}
+			if ss.ctx.Err() != nil {
 				continue
 			}
 			matches = append(matches, ss)
@@ -927,6 +935,12 @@ func (c *Controller) openSolicitedStream(
 ) {
 	// Resolve the match however the open ends.
 	defer c.resolveMatch(ls, match)
+
+	// Skip a pair whose local incarnation was released: the receiver would
+	// publish a stream this side then refuses.
+	if len(c.matchSolicitations(ls, match)) == 0 {
+		return
+	}
 
 	// Open a protocol bound to the exact bilateral offer pair.
 	pid := protocol.ID(SolicitStreamPrefix + encodeSolicitationMatch(ls, match))
