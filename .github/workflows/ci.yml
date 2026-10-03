@@ -287,11 +287,13 @@ jobs:
           mv "$(go env GOPATH)/bin/wasmbrowsertest" "$(go env GOPATH)/bin/go_js_wasm_exec"
 
       # The js-only Go tests of every selected product package, in Chrome.
+      # The js/wasm runtime copies the environment into each test binary and
+      # limits its size, so the package list stays out of the test process.
       - name: Test js-only Go packages
         if: ${{ matrix.test_go_js }}
         env:
           GO_JS_PACKAGES: ${{ matrix.go_js_packages }}
-        run: bun run test:go:js $GO_JS_PACKAGES
+        run: env -u GO_JS_PACKAGES bun run test:go:js $GO_JS_PACKAGES
 
       - name: Test and lint db JavaScript
         if: ${{ matrix.js }}
