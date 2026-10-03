@@ -64,10 +64,10 @@ func (t *TxDeleteObject) ExecuteTx(
 	lookupWorldOp world.LookupOp,
 	worldInstance world.WorldState,
 ) (sysErr bool, rerr error) {
+	// Validate the deletion transaction and resolve its target object key.
 	if err := t.Validate(); err != nil {
 		return false, err
 	}
-
 	objKey := t.GetObjectKey()
 
 	// Confirm the object exists when the operation requires it.

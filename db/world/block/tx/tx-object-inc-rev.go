@@ -63,6 +63,7 @@ func (t *TxObjectIncRev) ExecuteTx(
 	lookupWorldOp world.LookupOp,
 	worldInstance world.WorldState,
 ) (sysErr bool, rerr error) {
+	// Validate the object revision transaction before accessing the World.
 	if err := t.Validate(); err != nil {
 		return false, err
 	}

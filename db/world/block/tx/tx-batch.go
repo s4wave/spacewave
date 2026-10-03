@@ -55,6 +55,7 @@ func (t *TxBatch) GetEmpty() bool {
 func (t *TxBatch) Validate() error {
 	for i, tx := range t.GetTxs() {
 		err := func() error {
+			// Reject batch entries whose transaction body is empty.
 			empty, err := tx.GetEmpty()
 			if err != nil {
 				return err
@@ -62,6 +63,8 @@ func (t *TxBatch) Validate() error {
 			if empty {
 				return errors.New("empty transaction")
 			}
+
+			// Validate the nonempty transaction before batch execution.
 			if err := tx.Validate(); err != nil {
 				return err
 			}

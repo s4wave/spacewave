@@ -11,14 +11,19 @@ import (
 
 // NewTxApplyWorldOp constructs a new APPLY_WORLD_OP transaction.
 func NewTxApplyWorldOp(op world.Operation, opSender peer.ID) (*Tx, error) {
+	// Require an operation type before recording the World operation.
 	opTypeID := op.GetOperationTypeId()
 	if opTypeID == "" {
 		return nil, world.ErrEmptyOp
 	}
+
+	// Encode the World operation body for transaction replay.
 	opBody, err := op.MarshalBlock()
 	if err != nil {
 		return nil, err
 	}
+
+	// Let authenticated operations determine their sender during replay.
 	if _, authenticated := op.(world.AuthenticatedOperation); authenticated {
 		opSender = ""
 	}
@@ -87,6 +92,7 @@ func (t *TxApplyWorldOp) ExecuteTx(
 	lookupOp world.LookupOp,
 	worldInstance world.WorldState,
 ) (sysErr bool, rerr error) {
+	// Translate operation decoding panics into transaction errors.
 	defer func() {
 		if err := recover(); err != nil {
 			if v, ok := err.(error); ok {
@@ -97,9 +103,11 @@ func (t *TxApplyWorldOp) ExecuteTx(
 		}
 	}()
 
+	// Validate the World operation transaction before resolving its operation.
 	if err := t.Validate(); err != nil {
 		return false, err
 	}
+
 	// resolve + construct the operation type
 	opTypeID := t.GetOperationTypeId()
 	op, err := lookupOp(ctx, opTypeID)

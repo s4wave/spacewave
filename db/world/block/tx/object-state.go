@@ -61,27 +61,33 @@ func (t *ObjectState) AccessWorldState(
 
 // SetRootRef changes the root reference of the object.
 func (t *ObjectState) SetRootRef(ctx context.Context, nref *bucket.ObjectRef) (uint64, error) {
+	// Require a writable WorldState before changing the object root.
 	if !t.w.write {
 		return 0, tx.ErrNotWrite
 	}
 
+	// Prepare the object root change entry for the transaction batch.
 	tt, err := NewTxObjectSet(t.key, nref)
 	if err != nil {
 		return 0, err
 	}
 
+	// Hold the WorldState lock through the object root change.
 	t.w.mtx.Lock()
 	defer t.w.mtx.Unlock()
 
+	// Reject object root changes after the WorldState is discarded.
 	if t.w.discarded {
 		return 0, tx.ErrDiscarded
 	}
 
+	// Change the underlying object root and obtain its sequence number.
 	seqno, err := t.o.SetRootRef(ctx, nref)
 	if err != nil {
 		return 0, err
 	}
 
+	// Record the successful object root change in the transaction batch.
 	t.w.txBatch.Txs = append(t.w.txBatch.Txs, tt)
 	return seqno, nil
 }
@@ -125,27 +131,33 @@ func (t *ObjectState) ApplyObjectOp(ctx context.Context, op world.Operation, opS
 // IncrementRev increments the revision of the object.
 // Returns the new latest revision.
 func (t *ObjectState) IncrementRev(ctx context.Context) (uint64, error) {
+	// Require a writable WorldState before incrementing the object revision.
 	if !t.w.write {
 		return 0, tx.ErrNotWrite
 	}
 
+	// Prepare the object revision increment entry for the transaction batch.
 	tt, err := NewTxObjectIncRev(t.key)
 	if err != nil {
 		return 0, err
 	}
 
+	// Hold the WorldState lock through the object revision increment.
 	t.w.mtx.Lock()
 	defer t.w.mtx.Unlock()
 
+	// Reject object revision increments after the WorldState is discarded.
 	if t.w.discarded {
 		return 0, tx.ErrDiscarded
 	}
 
+	// Increment the underlying object revision.
 	orev, err := t.o.IncrementRev(ctx)
 	if err != nil {
 		return 0, err
 	}
 
+	// Record the successful object revision increment in the transaction batch.
 	t.w.txBatch.Txs = append(t.w.txBatch.Txs, tt)
 	return orev, nil
 }

@@ -85,6 +85,7 @@ func (t *TxApplyObjectOp) ExecuteTx(
 	lookupWorldOp world.LookupOp,
 	worldInstance world.WorldState,
 ) (sysErr bool, rerr error) {
+	// Translate operation decoding panics into transaction errors.
 	defer func() {
 		if err := recover(); err != nil {
 			if v, ok := err.(error); ok {
@@ -95,6 +96,7 @@ func (t *TxApplyObjectOp) ExecuteTx(
 		}
 	}()
 
+	// Validate the object operation transaction and resolve its recorded sender.
 	if err := t.Validate(); err != nil {
 		return false, err
 	}

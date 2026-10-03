@@ -63,13 +63,16 @@ func (o *ObjectIterator) Key() string {
 
 // Next advances to the next entry and returns Valid.
 func (o *ObjectIterator) Next() bool {
+	// Stop advancing an ObjectIterator that has already failed.
 	if o.err != nil {
 		return false
 	}
 
+	// Hold the WorldState lock while advancing its object iterator.
 	o.w.mtx.Lock()
 	defer o.w.mtx.Unlock()
 
+	// Invalidate the ObjectIterator when its WorldState is discarded.
 	if o.w.discarded {
 		o.err = kvtx.ErrDiscarded
 		o.valid = false
@@ -85,18 +88,21 @@ func (o *ObjectIterator) Next() bool {
 		}
 	}
 
+	// Advance the underlying object iterator and retain any terminal error.
 	if !o.iter.Next() {
 		o.err = o.iter.Err()
 		o.valid = false
 		return false
 	}
 
+	// Check the underlying object iterator before exposing its key.
 	if !o.iter.Valid() {
 		o.err = o.iter.Err()
 		o.valid = false
 		return false
 	}
 
+	// Expose the next object key through the ObjectIterator.
 	o.currKey = o.iter.Key()
 	o.valid = true
 	return true
@@ -104,13 +110,16 @@ func (o *ObjectIterator) Next() bool {
 
 // Seek moves the iterator to the first key >= the provided key (or <= in reverse mode).
 func (o *ObjectIterator) Seek(k string) error {
+	// Stop seeking an ObjectIterator that has already failed.
 	if o.err != nil {
 		return o.err
 	}
 
+	// Hold the WorldState lock while seeking its object iterator.
 	o.w.mtx.Lock()
 	defer o.w.mtx.Unlock()
 
+	// Invalidate the ObjectIterator when its WorldState is discarded.
 	if o.w.discarded {
 		o.err = kvtx.ErrDiscarded
 		o.valid = false
@@ -126,18 +135,21 @@ func (o *ObjectIterator) Seek(k string) error {
 		}
 	}
 
+	// Seek the underlying object iterator and retain any failure.
 	if err := o.iter.Seek(k); err != nil {
 		o.err = err
 		o.valid = false
 		return err
 	}
 
+	// Check the underlying object iterator before exposing the sought key.
 	if !o.iter.Valid() {
 		o.err = o.iter.Err()
 		o.valid = false
 		return o.err
 	}
 
+	// Expose the sought object key through the ObjectIterator.
 	o.currKey = o.iter.Key()
 	o.valid = true
 	return nil

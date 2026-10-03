@@ -79,12 +79,16 @@ func (w *WorldState) GetSeqno(ctx context.Context) (uint64, error) {
 
 // GetObjectBodiesBatchPage returns one budgeted page from the wrapped state.
 func (w *WorldState) GetObjectBodiesBatchPage(ctx context.Context, keys []string, byteBudget int) ([]*world.ObjectBody, uint32, error) {
+	// Hold the WorldState lock while reading the page.
 	w.mtx.Lock()
 	defer w.mtx.Unlock()
 
+	// Reject page reads after the WorldState is discarded.
 	if w.discarded {
 		return nil, 0, tx.ErrDiscarded
 	}
+
+	// Read the object page through the native reader when available.
 	if pager, ok := w.world.(world.ObjectBodyPageBatcher); ok {
 		return pager.GetObjectBodiesBatchPage(ctx, keys, byteBudget)
 	}
@@ -93,15 +97,21 @@ func (w *WorldState) GetObjectBodiesBatchPage(ctx context.Context, keys []string
 
 // GetObjectBodiesBatchPageWithSeqno returns one budgeted page and its transaction seqno.
 func (w *WorldState) GetObjectBodiesBatchPageWithSeqno(ctx context.Context, keys []string, byteBudget int) ([]*world.ObjectBody, uint32, uint64, error) {
+	// Hold the WorldState lock while reading the page and sequence number.
 	w.mtx.Lock()
 	defer w.mtx.Unlock()
 
+	// Reject sequence-aware page reads after the WorldState is discarded.
 	if w.discarded {
 		return nil, 0, 0, tx.ErrDiscarded
 	}
+
+	// Use the native reader when it supplies the page and sequence number together.
 	if pager, ok := w.world.(world.ObjectBodyPageSeqnoBatcher); ok {
 		return pager.GetObjectBodiesBatchPageWithSeqno(ctx, keys, byteBudget)
 	}
+
+	// Read the wrapped World sequence number and its budgeted object page.
 	seqno, err := w.world.GetSeqno(ctx)
 	if err != nil {
 		return nil, 0, 0, err
@@ -174,13 +184,16 @@ func (w *WorldState) ApplyWorldOp(
 // GetObject looks up an object by key.
 // Returns nil, false if not found.
 func (w *WorldState) GetObject(ctx context.Context, key string) (world.ObjectState, bool, error) {
+	// Hold the WorldState lock while looking up the object.
 	w.mtx.Lock()
 	defer w.mtx.Unlock()
 
+	// Reject object access after the WorldState is discarded.
 	if w.discarded {
 		return nil, false, tx.ErrDiscarded
 	}
 
+	// Wrap the object handle for transaction recording and release failed lookups.
 	objs, objsFound, err := w.world.GetObject(ctx, key)
 	if err != nil || !objsFound {
 		world.ReleaseObjectState(objs)
@@ -201,56 +214,68 @@ func (w *WorldState) IterateObjects(ctx context.Context, prefix string, reversed
 
 // CreateObject creates a object with a key and initial root ref.
 func (w *WorldState) CreateObject(ctx context.Context, key string, rootRef *bucket.ObjectRef) (world.ObjectState, error) {
+	// Require a writable WorldState before creating an object.
 	if !w.write {
 		return nil, tx.ErrNotWrite
 	}
 
+	// Prepare the object creation entry for the transaction batch.
 	t, err := NewTxCreateObject(key, rootRef)
 	if err != nil {
 		return nil, err
 	}
 
+	// Hold the WorldState lock through object creation.
 	w.mtx.Lock()
 	defer w.mtx.Unlock()
 
+	// Reject object creation after the WorldState is discarded.
 	if w.discarded {
 		return nil, tx.ErrDiscarded
 	}
 
+	// Create the underlying object and release a failed handle.
 	obj, err := w.world.CreateObject(ctx, key, rootRef)
 	if err != nil {
 		world.ReleaseObjectState(obj)
 		return nil, err
 	}
 
+	// Record the creation and return the transaction-aware object.
 	w.txBatch.Txs = append(w.txBatch.Txs, t)
 	return NewObjectState(w, key, obj), nil
 }
 
 // RenameObject renames an object key and updates associated graph quads.
 func (w *WorldState) RenameObject(ctx context.Context, oldKey, newKey string, descendants bool) (world.ObjectState, error) {
+	// Require a writable WorldState before renaming an object.
 	if !w.write {
 		return nil, tx.ErrNotWrite
 	}
 
+	// Hold the WorldState lock through object renaming.
 	w.mtx.Lock()
 	defer w.mtx.Unlock()
 
+	// Reject object renaming after the WorldState is discarded.
 	if w.discarded {
 		return nil, tx.ErrDiscarded
 	}
 
+	// Collect the object keys that the rename will change.
 	renames, err := collectObjectRenames(ctx, w.world, oldKey, newKey, descendants)
 	if err != nil {
 		return nil, err
 	}
 
+	// Rename the underlying object and release a failed handle.
 	obj, err := w.world.RenameObject(ctx, oldKey, newKey, descendants)
 	if err != nil {
 		world.ReleaseObjectState(obj)
 		return nil, err
 	}
 
+	// Record every renamed object in the transaction batch.
 	for _, rename := range renames {
 		t, err := NewTxRenameObject(rename.oldKey, rename.newKey)
 		if err != nil {
@@ -263,13 +288,17 @@ func (w *WorldState) RenameObject(ctx context.Context, oldKey, newKey string, de
 }
 
 func collectObjectRenames(ctx context.Context, ws world.WorldStateObject, oldKey, newKey string, descendants bool) ([]objectRename, error) {
+	// Start with the root object rename and stop when descendants are excluded.
 	renames := []objectRename{{oldKey: oldKey, newKey: newKey}}
 	if !descendants || oldKey == newKey {
 		return renames, nil
 	}
 
+	// Open the descendant object iterator for the source key.
 	iter := ws.IterateObjects(ctx, oldKey+"/", false)
 	defer iter.Close()
+
+	// Collect each descendant object key under its new prefix.
 	for iter.Next() {
 		key := iter.Key()
 		next, ok := rewriteObjectKeyPrefix(key, oldKey, newKey)
@@ -281,6 +310,8 @@ func collectObjectRenames(ctx context.Context, ws world.WorldStateObject, oldKey
 	if err := iter.Err(); err != nil {
 		return nil, err
 	}
+
+	// Order the rename entries so parents replay before children.
 	slices.SortFunc(renames, func(a, b objectRename) int {
 		return len(a.oldKey) - len(b.oldKey)
 	})
@@ -307,27 +338,33 @@ type objectRename struct {
 // Calls DeleteGraphObject internally.
 // Returns false, nil if not found.
 func (w *WorldState) DeleteObject(ctx context.Context, key string) (bool, error) {
+	// Require a writable WorldState before deleting an object.
 	if !w.write {
 		return false, tx.ErrNotWrite
 	}
 
+	// Prepare the object deletion entry for the transaction batch.
 	t, err := NewTxDeleteObject(key)
 	if err != nil {
 		return false, err
 	}
 
+	// Hold the WorldState lock through object deletion.
 	w.mtx.Lock()
 	defer w.mtx.Unlock()
 
+	// Reject object deletion after the WorldState is discarded.
 	if w.discarded {
 		return false, tx.ErrDiscarded
 	}
 
+	// Delete the underlying object and stop when it is absent.
 	deleted, err := w.world.DeleteObject(ctx, key)
 	if err != nil || !deleted {
 		return false, err
 	}
 
+	// Record the successful object deletion in the transaction batch.
 	w.txBatch.Txs = append(w.txBatch.Txs, t)
 	return true, nil
 }
@@ -399,26 +436,32 @@ func (w *WorldState) QueryGraphPath(ctx context.Context, query *world.GraphPathQ
 
 // SetGraphQuad sets a quad in the graph store.
 func (w *WorldState) SetGraphQuad(ctx context.Context, q world.GraphQuad) error {
+	// Require a writable WorldState before setting a graph quad.
 	if !w.write {
 		return tx.ErrNotWrite
 	}
 
+	// Prepare the graph quad insertion entry for the transaction batch.
 	t, err := NewTxSetGraphQuad(world.GraphQuadToQuad(q))
 	if err != nil {
 		return err
 	}
 
+	// Hold the WorldState lock through graph quad insertion.
 	w.mtx.Lock()
 	defer w.mtx.Unlock()
 
+	// Reject graph quad insertion after the WorldState is discarded.
 	if w.discarded {
 		return tx.ErrDiscarded
 	}
 
+	// Insert the quad into the underlying World graph.
 	if err := w.world.SetGraphQuad(ctx, q); err != nil {
 		return err
 	}
 
+	// Record the successful graph quad insertion in the transaction batch.
 	w.txBatch.Txs = append(w.txBatch.Txs, t)
 	return nil
 }
@@ -426,26 +469,32 @@ func (w *WorldState) SetGraphQuad(ctx context.Context, q world.GraphQuad) error 
 // DeleteGraphQuad deletes a quad from the graph store.
 // Note: if quad did not exist, returns nil.
 func (w *WorldState) DeleteGraphQuad(ctx context.Context, q world.GraphQuad) error {
+	// Require a writable WorldState before deleting a graph quad.
 	if !w.write {
 		return tx.ErrNotWrite
 	}
 
+	// Prepare the graph quad deletion entry for the transaction batch.
 	t, err := NewTxDeleteGraphQuad(world.GraphQuadToQuad(q))
 	if err != nil {
 		return err
 	}
 
+	// Hold the WorldState lock through graph quad deletion.
 	w.mtx.Lock()
 	defer w.mtx.Unlock()
 
+	// Reject graph quad deletion after the WorldState is discarded.
 	if w.discarded {
 		return tx.ErrDiscarded
 	}
 
+	// Delete the quad from the underlying World graph.
 	if err := w.world.DeleteGraphQuad(ctx, q); err != nil {
 		return err
 	}
 
+	// Record the successful graph quad deletion in the transaction batch.
 	w.txBatch.Txs = append(w.txBatch.Txs, t)
 	return nil
 }
@@ -494,13 +543,16 @@ func (w *WorldState) addPayloadsLocked(op world.Operation) {
 // Commit commits the transaction to storage.
 // Can return an error to indicate tx failure.
 func (w *WorldState) Commit(ctx context.Context) error {
+	// Hold the WorldState lock while closing the transaction.
 	w.mtx.Lock()
 	defer w.mtx.Unlock()
 
+	// Reject a WorldState that has already been discarded.
 	if w.discarded {
 		return tx.ErrDiscarded
 	}
 
+	// Close the WorldState to further transaction operations.
 	w.discarded = true
 	return nil
 }
