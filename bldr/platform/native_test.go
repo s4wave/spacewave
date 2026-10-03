@@ -5,6 +5,7 @@ import (
 	"testing"
 )
 
+// TestParseNativePlatform tests parsing native platform IDs.
 func TestParseNativePlatform(t *testing.T) {
 	testCases := []struct {
 		input          string
@@ -26,6 +27,9 @@ func TestParseNativePlatform(t *testing.T) {
 		{"web/js/wasm", "js", "wasm", nil, false},
 		{"web/wasi/wasm", "wasi", "wasm", nil, false},
 		{"desktop/invalid", "", "", nil, true},
+		{"desktop/linux/armv4", "", "", nil, true},
+		{"desktop/linux/armv9", "", "", nil, true},
+		{"desktop/linux/armvx", "", "", nil, true},
 	}
 
 	for _, tc := range testCases {

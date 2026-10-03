@@ -59,8 +59,11 @@ func ParseNativePlatform(str string) (*NativePlatform, error) {
 	for _, component := range components[1:] {
 		if armVerStr, ok := strings.CutPrefix(component, "armv"); ok {
 			armVer, err := strconv.Atoi(armVerStr)
-			if err != nil || armVer < 5 || armVer > 8 {
+			if err != nil {
 				return nil, errors.Wrapf(err, "invalid arm version: %s", armVerStr)
+			}
+			if armVer < 5 || armVer > 8 {
+				return nil, errors.Errorf("unsupported arm version: %d", armVer)
 			}
 			var goarch string
 			var goarm *int
