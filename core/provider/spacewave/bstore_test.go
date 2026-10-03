@@ -72,31 +72,26 @@ func (s *wrapperForwardTestStore) GetBlock(
 	return s.StoreOps.GetBlock(ctx, ref)
 }
 
-func TestBstoreTrackerDetectsPublicReadSpaceBlockStore(t *testing.T) {
-	acc := &ProviderAccount{}
-	acc.SetSharedObjectMetadata("space-1", &api.SpaceMetadataResponse{
-		ObjectType:  "space",
-		PublicRead:  true,
-		DisplayName: "Public Space",
-	})
-
-	tracker := &bstoreTracker{a: acc, id: "space-1"}
-	if !tracker.isPublicReadSpaceBlockStore(context.Background()) {
-		t.Fatal("expected public_read Space with matching block store id")
-	}
-}
-
-func TestBstoreTrackerRejectsNonPublicReadBlockStore(t *testing.T) {
-	acc := &ProviderAccount{}
-	acc.SetSharedObjectMetadata("space-1", &api.SpaceMetadataResponse{
-		ObjectType:  "space",
-		PublicRead:  false,
-		DisplayName: "Private Space",
-	})
-
-	tracker := &bstoreTracker{a: acc, id: "space-1"}
-	if tracker.isPublicReadSpaceBlockStore(context.Background()) {
-		t.Fatal("private Space should use the authenticated Worker read path")
+// TestBstoreTrackerPublicBaseURL checks that only a public Space's block
+// store reads its published files.
+func TestBstoreTrackerPublicBaseURL(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		meta *api.SpaceMetadataResponse
+		want string
+	}{
+		{"public space", &api.SpaceMetadataResponse{ObjectType: "space", PublicRead: true, PublicBaseUrl: "https://pub.test/file/public"}, "https://pub.test/file/public"},
+		{"private space", &api.SpaceMetadataResponse{ObjectType: "space"}, ""},
+		{"public other object", &api.SpaceMetadataResponse{ObjectType: "org", PublicRead: true, PublicBaseUrl: "https://pub.test/file/public"}, ""},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			acc := &ProviderAccount{}
+			acc.SetSharedObjectMetadata("space-1", tc.meta)
+			tracker := &bstoreTracker{a: acc, id: "space-1"}
+			if got := tracker.publicBaseURL(context.Background()); got != tc.want {
+				t.Fatalf("public base URL %q, want %q", got, tc.want)
+			}
+		})
 	}
 }
 

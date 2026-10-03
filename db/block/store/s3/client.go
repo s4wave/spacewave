@@ -23,8 +23,8 @@ import (
 const emptyPayloadHash = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
 
 // Client is a minimal HTTP client for an S3-compatible API.
-// Supports GET/HEAD/PUT/DELETE on objects, object and version listing, with
-// AWS SigV4 signing.
+// Supports GET/HEAD/PUT/DELETE and copies of objects, object and version
+// listing, with AWS SigV4 signing.
 type Client struct {
 	httpClient *http.Client
 	endpoint   string
@@ -55,12 +55,46 @@ func BuildClient(conf *ClientConfig) (*Client, error) {
 
 // PutObject uploads an object with the given content type.
 func (c *Client) PutObject(ctx context.Context, bucket, key string, data []byte, contentType string) error {
-	resp, err := c.do(ctx, http.MethodPut, bucket, key, nil, data, http.Header{"Content-Type": {contentType}})
+	return c.PutObjectHeader(ctx, bucket, key, data, http.Header{"Content-Type": {contentType}})
+}
+
+// PutObjectHeader uploads an object with the given headers, such as
+// Content-Type and Cache-Control, which the service stores and serves with
+// the object.
+func (c *Client) PutObjectHeader(ctx context.Context, bucket, key string, data []byte, header http.Header) error {
+	resp, err := c.do(ctx, http.MethodPut, bucket, key, nil, data, header)
 	if err != nil {
 		return err
 	}
 	defer resp.Body.Close()
 	return checkStatus(resp, bucket, key, http.MethodPut)
+}
+
+// CopyObject copies an object to another key, in the same or another bucket
+// the credentials reach, without passing its bytes through the client.
+// Returns ErrNotFound if the source does not exist.
+func (c *Client) CopyObject(ctx context.Context, srcBucket, srcKey, dstBucket, dstKey string) error {
+	// Copy the object.
+	source := http.Header{"X-Amz-Copy-Source": {uriEncode("/"+srcBucket+"/"+srcKey, false)}}
+	resp, err := c.do(ctx, http.MethodPut, dstBucket, dstKey, nil, nil, source)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	if err := checkStatus(resp, dstBucket, dstKey, http.MethodPut); err != nil {
+		return err
+	}
+
+	// The service may report a copy that failed after it began in the body
+	// of a successful response.
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return errors.Wrap(err, "read copy result")
+	}
+	if bytes.Contains(body, []byte("<Error>")) {
+		return errors.Errorf("copy %s/%s to %s/%s: %s", srcBucket, srcKey, dstBucket, dstKey, body)
+	}
+	return nil
 }
 
 // GetObject downloads an object body. Caller must Close the returned reader.

@@ -14,7 +14,6 @@ import (
 	"github.com/aperturerobotics/util/keyed"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/core/bstore"
-	"github.com/s4wave/spacewave/core/cdn"
 	cdn_bstore "github.com/s4wave/spacewave/core/cdn/bstore"
 	"github.com/s4wave/spacewave/core/provider"
 	"github.com/s4wave/spacewave/core/provider/spacewave/packfile/manifest"
@@ -658,26 +657,28 @@ func (t *bstoreTracker) buildOpener() packfile_store.Opener {
 	return t.a.BuildBlockStoreOpener(t.id)
 }
 
-// buildLowerStore selects anonymous CDN or authenticated cloud pack reads.
+// buildLowerStore selects anonymous reads of a public Space's published
+// files or authenticated cloud pack reads.
 func (t *bstoreTracker) buildLowerStore(
 	ctx context.Context,
 	cache packfile_store.IndexCache,
 	decodedBlocks *block.DecodedBlockCache,
 ) (*packfile_store.PackfileStore, *publicReadRemote) {
-	if t.isPublicReadSpaceBlockStore(ctx) {
-		remote := newPublicReadRemote(t.a.p.httpCli, cdn.BaseURL(), t.id, cache, decodedBlocks)
+	if base := t.publicBaseURL(ctx); base != "" {
+		remote := newPublicReadRemote(t.a.p.httpCli, base, t.id, cache, decodedBlocks)
 		return remote.lower, remote
 	}
 	return packfile_store.NewPackfileStore(t.buildOpener(), cache), nil
 }
 
-// isPublicReadSpaceBlockStore requires public-read Space metadata for CDN access.
-func (t *bstoreTracker) isPublicReadSpaceBlockStore(ctx context.Context) bool {
+// publicBaseURL returns the base URL of the block store's published files
+// when it belongs to a public Space, or empty.
+func (t *bstoreTracker) publicBaseURL(ctx context.Context) string {
 	metadata, err := t.a.GetSharedObjectMetadata(ctx, t.id)
-	if err != nil {
-		return false
+	if err != nil || !metadata.GetPublicRead() || metadata.GetObjectType() != space.SpaceBodyType {
+		return ""
 	}
-	return metadata.GetPublicRead() && metadata.GetObjectType() == space.SpaceBodyType
+	return metadata.GetPublicBaseUrl()
 }
 
 // publicReadRemote owns a CDN manifest and its decoded-cache invalidation.

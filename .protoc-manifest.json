@@ -4,7 +4,7 @@
   "toolVersions": "protoc=embedded,protobuf-go-lite=v0.18.0,starpc=v0.52.3-0.20261003013036-4cdf88642ec9,protobuf-es-lite=1.1.4",
   "packages": {
     "github.com/s4wave/spacewave/core/provider/spacewave/api": {
-      "hash": "4a3a6301fef595413ce0b8c995049dcb4becd21ce4be4de80b0fc255ca6188a7",
+      "hash": "e06e1c93c2d17ed1e0801625d418ad3f8ed637eb8ce7cb32cc9e3b8a1c362f5f",
       "generatedFiles": [
         "core/provider/spacewave/api/api.pb.go",
         "core/provider/spacewave/api/api.pb.ts",
