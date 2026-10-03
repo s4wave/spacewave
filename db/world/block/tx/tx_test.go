@@ -3,7 +3,6 @@ package world_block_tx
 import (
 	"context"
 	"testing"
-	"time"
 
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
@@ -194,9 +193,6 @@ func TestWorldState(t *testing.T) {
 	if got := tx.GetTxApplyObjectOp().GetOpSender(); got != sender.String() {
 		t.Fatalf("expected object op sender %q, got %q", sender.String(), got)
 	}
-
-	// wait a moment before finishing the test
-	<-time.After(time.Millisecond * 100)
 }
 
 // TestWorldStateGetObjectBodiesBatchPageAfterDiscard verifies that discarded

@@ -49,9 +49,6 @@ func InitTestbed(
 		return nil, err
 	}
 
-	// hack: wait for it to start
-	<-time.After(time.Millisecond * 100)
-
 	// uses directive to look up the engine
 	eng := tb.Engine
 	// uses short-lived engine txs to implement world state

@@ -3,7 +3,6 @@ package bifrost_rpc_access
 import (
 	"context"
 	"testing"
-	"time"
 
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/core"
@@ -82,5 +81,4 @@ func TestAccessRpcService(t *testing.T) {
 		t.Fatalf("expected response body but got %v", resp)
 	}
 	le.Infof("successfully round-tripped Echo: %s", resp.GetBody())
-	<-time.After(time.Millisecond * 50)
 }

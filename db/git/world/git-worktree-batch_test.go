@@ -32,29 +32,29 @@ import (
 	"github.com/zeebo/blake3"
 )
 
+// newGitWorldState starts a World engine on a fresh testbed with the git op
+// handlers on its bus. It returns the World state, the sending peer, and a
+// cleanup function that stops them.
 func newGitWorldState(t *testing.T) (context.Context, *logrus.Entry, world.WorldState, func(), peer.ID) {
+	// Report failures at the caller and configure debug logging.
 	t.Helper()
-
 	ctx := context.Background()
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
 
+	// Start the storage testbed with the World engine factory.
 	tb, err := testbed.NewTestbed(ctx, le)
 	if err != nil {
 		t.Fatal(err)
 	}
 	tb.StaticResolver.AddFactory(world_block_engine.NewFactory(tb.Bus))
 
-	vol := tb.Volume
-	volumeID := vol.GetID()
+	// Derive the block encryption key and build the block transform.
 	engineID := "test-world-engine"
 	objectStoreID := "test-world-engine-store"
-	bucketID := tb.BucketId
-
 	encKey := make([]byte, 32)
 	blake3.DeriveKey("hydra/test/git: git-worktree-batch_test.go", []byte(objectStoreID), encKey)
-
 	xfrmConf, err := block_transform.NewConfig([]config.Config{
 		&transform_gzip.Config{},
 		&transform_blockenc.Config{
@@ -66,8 +66,9 @@ func newGitWorldState(t *testing.T) (context.Context, *logrus.Entry, world.World
 		t.Fatal(err)
 	}
 
+	// Start the World engine in the testbed bucket.
 	initWorldRef := &bucket.ObjectRef{
-		BucketId:      bucketID,
+		BucketId:      tb.BucketId,
 		TransformConf: xfrmConf,
 	}
 	_, worldCtrlRef, err := world_block_engine.StartEngineWithConfig(
@@ -75,8 +76,8 @@ func newGitWorldState(t *testing.T) (context.Context, *logrus.Entry, world.World
 		tb.Bus,
 		world_block_engine.NewConfig(
 			engineID,
-			volumeID,
-			bucketID,
+			tb.Volume.GetID(),
+			tb.BucketId,
 			objectStoreID,
 			initWorldRef,
 			xfrmConf,
@@ -87,15 +88,19 @@ func newGitWorldState(t *testing.T) (context.Context, *logrus.Entry, world.World
 		t.Fatal(err)
 	}
 
+	// Provide the git op handlers to the bus.
 	opc := world.NewLookupOpController("test-git-ops", engineID, LookupGitOp)
-	go func() {
-		_ = tb.Bus.ExecuteController(ctx, opc)
-	}()
-	<-time.After(time.Millisecond * 100)
+	relOpc, err := tb.Bus.AddController(ctx, opc, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
 
+	// Implement the World state with short-lived transactions on the engine
+	// that the bus resolves.
 	busEngine := world.NewBusEngine(ctx, tb.Bus, engineID)
 	ws := world.NewEngineWorldState(busEngine, true)
 	cleanup := func() {
+		relOpc()
 		worldCtrlRef.Release()
 		tb.Release()
 	}

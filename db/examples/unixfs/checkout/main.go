@@ -76,19 +76,21 @@ func main() {
 	}
 }
 
+// execute writes a test file to a UnixFS World object and checks it out to
+// checkoutRoot.
 func execute(rctx context.Context) error {
+	// Scope the run and configure logging and profiling.
 	ctx, ctxCancel := context.WithCancel(rctx)
 	defer ctxCancel()
-
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
 	testbed.Verbose = verbose
-
 	if profListen != "" {
 		go prof.ListenProf(le, profListen)
 	}
 
+	// Start the storage testbed on the configured volume.
 	volConfig := daemonFlags.BuildSingleVolume("", nil)
 	tb, err := testbed.NewTestbed(
 		ctx,
@@ -99,29 +101,27 @@ func execute(rctx context.Context) error {
 		return err
 	}
 
+	// Start the World engine on the testbed.
 	wtb, err := world_testbed.NewTestbed(tb)
 	if err != nil {
 		return err
 	}
-
-	vol := tb.Volume
 	engineID := wtb.EngineID
-	senderPeerID := vol.GetPeerID()
+	senderPeerID := tb.Volume.GetPeerID()
 
-	// provide op handlers to bus
+	// Provide the filesystem op handlers to the bus.
 	opc := world.NewLookupOpController("test-fs-ops", engineID, unixfs_world.LookupFsOp)
-	go tb.Bus.ExecuteController(ctx, opc)
-	// hack: wait for it to start
-	<-time.After(time.Millisecond * 100)
+	relOpc, err := tb.Bus.AddController(ctx, opc, nil)
+	if err != nil {
+		return err
+	}
+	defer relOpc()
 
-	// initialize filesystem if it doesn't exist
+	// Use the Engine directly: BusEngine looks up the engine on the bus for
+	// every call, which is slow.
+	ws := world.NewEngineWorldState(wtb.Engine, true)
 
-	// NOTE: BusEngine looks up the engine on the bus for every call (slow)
-	// use a wrapper around the Engine directly to avoid this slowdown:
-	// ws := wtb.WorldState
-	eng := wtb.Engine
-	ws := world.NewEngineWorldState(eng, true)
-
+	// Initialize the filesystem if it does not exist.
 	objKey := "test-filesystem"
 	objectState, exists, err := ws.GetObject(ctx, objKey)
 	world.ReleaseObjectState(objectState)
@@ -139,9 +139,36 @@ func execute(rctx context.Context) error {
 		}
 	}
 
-	// access and add some test data
-	testFilename := "test-file.txt"
-	_, _, err = world.AccessWorldObject(ctx, ws, objKey, true, func(bcs *block.Cursor) error {
+	// Write the test file.
+	if err := writeTestFile(ctx, ws, objKey); err != nil {
+		return err
+	}
+
+	// Open the filesystem.
+	fsType := unixfs_world.FSType_FSType_FS_NODE
+	writer := unixfs_world.NewFSWriter(ws, objKey, fsType, senderPeerID)
+	rootFSCursor := unixfs_world.NewFSCursor(le, ws, objKey, fsType, writer, true)
+	rref, err := unixfs.NewFSHandle(rootFSCursor)
+	if err != nil {
+		return err
+	}
+	defer rref.Release()
+
+	// Check it out to the destination path.
+	le.Debugf("checking out to path: %s", checkoutRoot)
+	if err := checkout.Checkout(ctx, checkoutRoot, rref, nil); err != nil {
+		return errors.Wrap(err, "checkout fs")
+	}
+	le.Info("checkout complete")
+	return nil
+}
+
+// writeTestFile creates test-file.txt in the filesystem at objKey if needed
+// and writes a greeting to it.
+func writeTestFile(ctx context.Context, ws world.WorldState, objKey string) error {
+	_, _, err := world.AccessWorldObject(ctx, ws, objKey, true, func(bcs *block.Cursor) error {
+		// Find the file, creating it when it is missing.
+		const testFilename = "test-file.txt"
 		ftree, err := unixfs_block.NewFSTree(ctx, bcs, unixfs_block.NodeType_NodeType_DIRECTORY)
 		if err != nil {
 			return err
@@ -162,6 +189,8 @@ func execute(rctx context.Context) error {
 				return err
 			}
 		}
+
+		// Write the greeting at the start of the file.
 		fh, err := fnode.BuildFileHandle(ctx)
 		if err != nil {
 			return err
@@ -169,27 +198,5 @@ func execute(rctx context.Context) error {
 		fw := file.NewWriter(fh, nil, nil)
 		return fw.WriteBytes(0, []byte("Hello world from UnixFS\n"))
 	})
-	if err != nil {
-		return err
-	}
-
-	// start the filesystem
-	watchChanges := true
-	fsType := unixfs_world.FSType_FSType_FS_NODE
-	writer := unixfs_world.NewFSWriter(ws, objKey, fsType, senderPeerID)
-	rootFSCursor := unixfs_world.NewFSCursor(le, ws, objKey, fsType, writer, watchChanges)
-	rref, err := unixfs.NewFSHandle(rootFSCursor)
-	if err != nil {
-		return err
-	}
-	defer rref.Release()
-
-	le.Debugf("checking out to path: %s", checkoutRoot)
-	err = checkout.Checkout(ctx, checkoutRoot, rref, nil)
-	if err != nil {
-		return errors.Wrap(err, "checkout fs")
-	}
-
-	le.Info("checkout complete")
-	return nil
+	return err
 }

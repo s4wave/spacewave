@@ -32,32 +32,33 @@ import (
 	"github.com/zeebo/blake3"
 )
 
-// TestWorldEngineController tests constructing the engine controller, looking up
-// the engine on the bus, & running some basic queries.
-func TestWorldEngineController(t *testing.T) {
+// newEngineTestbed starts a storage testbed with the World engine factory. It
+// returns a function that starts the test World engine, which keeps a
+// changelog when enableChangelog is set.
+func newEngineTestbed(
+	t *testing.T,
+	enableChangelog bool,
+) (context.Context, *logrus.Entry, *testbed.Testbed, func() (*world_block_engine.Controller, directive.Reference)) {
+	// Report failures at the caller and configure debug logging.
+	t.Helper()
 	ctx := context.Background()
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
 
+	// Start the storage testbed with the World engine factory.
 	tb, err := testbed.NewTestbed(ctx, le, testbed.WithVerbose(false))
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	tb.StaticResolver.AddFactory(world_block_engine.NewFactory(tb.Bus))
 
-	vol := tb.Volume
-	volumeID := vol.GetID()
-	engineID := "test-world-engine"
+	// Derive the state encryption key and build the state transform.
 	objectStoreID := "test-world-engine-store"
-	bucketID := tb.BucketId
-
 	encKey := make([]byte, 32)
 	blake3.DeriveKey("hydra/test: engine_test.go", []byte(objectStoreID), encKey)
 	le.Infof("using encryption key: %s", b58.Encode(encKey))
-
-	nodeStateBucketID := bucketID
-	nodeStateTransformConf, err := block_transform.NewConfig([]config.Config{
+	stateTransformConf, err := block_transform.NewConfig([]config.Config{
 		&transform_blockenc.Config{
 			BlockEnc: blockenc.BlockEnc_BlockEnc_XCHACHA20_POLY1305,
 			Key:      encKey,
@@ -67,46 +68,48 @@ func TestWorldEngineController(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	// initWorldRef is only used if the world has not been previously inited.
+	// Configure the engine. initWorldRef is used only when the World has not
+	// been initialized before.
 	initWorldRef := &bucket.ObjectRef{
-		BucketId:      nodeStateBucketID,
-		TransformConf: nodeStateTransformConf,
+		BucketId:      tb.BucketId,
+		TransformConf: stateTransformConf,
 	}
-
-	// initialize world engine
+	engineConf := world_block_engine.NewConfig(
+		"test-world-engine",
+		tb.Volume.GetID(), tb.BucketId,
+		objectStoreID,
+		initWorldRef,
+		stateTransformConf,
+		enableChangelog,
+	)
 	startEngine := func() (*world_block_engine.Controller, directive.Reference) {
-		engineConf := world_block_engine.NewConfig(
-			engineID,
-			volumeID, bucketID,
-			objectStoreID,
-			initWorldRef,
-			nodeStateTransformConf,
-			true,
-		)
-		// engineConf.Verbose = true
-		worldCtrl, worldCtrlRef, err := world_block_engine.StartEngineWithConfig(
-			ctx,
-			tb.Bus,
-			engineConf,
-		)
+		worldCtrl, worldCtrlRef, err := world_block_engine.StartEngineWithConfig(ctx, tb.Bus, engineConf)
 		if err != nil {
 			t.Fatal(err.Error())
 		}
 		return worldCtrl, worldCtrlRef
 	}
+	return ctx, le, tb, startEngine
+}
 
+// TestWorldEngineController tests constructing the engine controller, looking up
+// the engine on the bus, & running some basic queries.
+func TestWorldEngineController(t *testing.T) {
+	// Start the engine with a changelog.
+	ctx, le, tb, startEngine := newEngineTestbed(t, true)
+	engineID := "test-world-engine"
 	worldCtrl, worldCtrlRef := startEngine()
 	defer worldCtrlRef.Release()
 
-	// provide object op handlers to bus
+	// Provide the mock object op handlers to the bus.
 	opc := world.NewLookupOpController("test-world-engine-ops", engineID, world_mock.LookupMockOp)
-	go func() {
-		_ = tb.Bus.ExecuteController(ctx, opc)
-	}()
+	relOpc, err := tb.Bus.AddController(ctx, opc, nil)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer relOpc()
 
-	// hack: wait for it to start
-	<-time.After(time.Millisecond * 100)
-
+	// Open and discard a write transaction on the engine.
 	eng, err := worldCtrl.GetWorldEngine(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -117,58 +120,46 @@ func TestWorldEngineController(t *testing.T) {
 	}
 	engTx.Discard()
 
-	// uses directive to look up the engine
+	// Run the World engine suite against the engine the bus resolves.
 	busEngine := world.NewBusEngine(ctx, tb.Bus, engineID)
-	err = world_mock.TestWorldEngine(ctx, le, busEngine)
-	if err != nil {
+	if err := world_mock.TestWorldEngine(ctx, le, busEngine); err != nil {
 		t.Fatal(err.Error())
 	}
 	le.Info("world engine test suite passed")
 
+	// Check that the stored World state decodes.
 	err = eng.AccessWorldState(ctx, nil, func(bls *bucket_lookup.Cursor) error {
 		_, bcs := bls.BuildTransaction(nil)
-		wi, err := bcs.Unmarshal(ctx, world_block.NewWorldBlock)
-		if err != nil {
-			t.Fatal(err.Error())
-		}
-		worldState := wi.(*world_block.World)
-		_ = worldState
-		// le.Infof("world state after test suite: %s", worldState.String())
-		return nil
+		_, err := bcs.Unmarshal(ctx, world_block.NewWorldBlock)
+		return err
 	})
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
-	// re-mount the world and make sure it still works.
+	// Remount the World.
 	worldCtrlRef.Release()
-	<-time.After(time.Second * 1)
-
 	worldCtrl, worldCtrlRef = startEngine()
 	defer worldCtrlRef.Release()
-	<-time.After(time.Millisecond * 100)
-
 	eng, err = worldCtrl.GetWorldEngine(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
-	// second test pass
+	// Check that the suite's object survived the remount.
 	engTx, err = eng.NewTransaction(ctx, true)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+	defer engTx.Discard()
 	objectState, found, err := engTx.GetObject(ctx, "test-object")
 	world.ReleaseObjectState(objectState)
-	if !found && err == nil {
-		err = errors.New("object not found after remounting")
-	}
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	engTx.Discard()
-
-	// success
+	if !found {
+		t.Fatal("object not found after remounting")
+	}
 }
 
 func TestWorldEngineControllerUsesDeferredDurabilityWithoutGenerations(t *testing.T) {
@@ -550,72 +541,12 @@ func TestWorldEngineControllerCoordinatorHeadWatch(t *testing.T) {
 // TestWorldEngineController_DisableChangelog tests constructing the engine
 // controller with the changelog disabled.
 func TestWorldEngineController_DisableChangelog(t *testing.T) {
-	ctx := context.Background()
-	log := logrus.New()
-	log.SetLevel(logrus.DebugLevel)
-	le := logrus.NewEntry(log)
-
-	tb, err := testbed.NewTestbed(ctx, le, testbed.WithVerbose(false))
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	tb.StaticResolver.AddFactory(world_block_engine.NewFactory(tb.Bus))
-
-	vol := tb.Volume
-	volumeID := vol.GetID()
-	engineID := "test-world-engine"
-	objectStoreID := "test-world-engine-store"
-	bucketID := tb.BucketId
-
-	encKey := make([]byte, 32)
-	blake3.DeriveKey("hydra/test: engine_test.go", []byte(objectStoreID), encKey)
-	le.Infof("using encryption key: %s", b58.Encode(encKey))
-
-	nodeStateBucketID := bucketID
-	nodeStateTransformConf, err := block_transform.NewConfig([]config.Config{
-		&transform_blockenc.Config{
-			BlockEnc: blockenc.BlockEnc_BlockEnc_XCHACHA20_POLY1305,
-			Key:      encKey,
-		},
-	})
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-
-	// initWorldRef is only used if the world has not been previously inited.
-	initWorldRef := &bucket.ObjectRef{
-		BucketId:      nodeStateBucketID,
-		TransformConf: nodeStateTransformConf,
-	}
-
-	// initialize world engine
-	engineConf := world_block_engine.NewConfig(
-		engineID,
-		volumeID, bucketID,
-		objectStoreID,
-		initWorldRef,
-		nodeStateTransformConf,
-		false,
-	)
-	// engineConf.Verbose = true
-	startEngine := func() (*world_block_engine.Controller, directive.Reference) {
-		worldCtrl, worldCtrlRef, err := world_block_engine.StartEngineWithConfig(
-			ctx,
-			tb.Bus,
-			engineConf,
-		)
-		if err != nil {
-			t.Fatal(err.Error())
-		}
-		return worldCtrl, worldCtrlRef
-	}
-
+	// Start the engine without a changelog.
+	ctx, le, tb, startEngine := newEngineTestbed(t, false)
 	worldCtrl, worldCtrlRef := startEngine()
 	defer worldCtrlRef.Release()
 
-	// hack: wait for it to start
-	<-time.After(time.Millisecond * 100)
-
+	// Open and discard a write transaction on the engine.
 	eng, err := worldCtrl.GetWorldEngine(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -626,39 +557,34 @@ func TestWorldEngineController_DisableChangelog(t *testing.T) {
 	}
 	engTx.Discard()
 
-	// uses directive to look up the engine
-	busEngine := world.NewBusEngine(ctx, tb.Bus, engineID)
-	err = world_mock.TestWorldEngine(ctx, le, busEngine)
-	if err != nil {
+	// Run the World engine suite against the engine the bus resolves.
+	busEngine := world.NewBusEngine(ctx, tb.Bus, "test-world-engine")
+	if err := world_mock.TestWorldEngine(ctx, le, busEngine); err != nil {
 		t.Fatal(err.Error())
 	}
 	le.Info("world engine test suite passed")
 
+	// Check that the World recorded no change beyond its sequence number.
 	err = eng.AccessWorldState(ctx, nil, func(bls *bucket_lookup.Cursor) error {
+		// Decode the World block.
 		_, bcs := bls.BuildTransaction(nil)
 		wi, err := bcs.Unmarshal(ctx, world_block.NewWorldBlock)
 		if err != nil {
-			t.Fatal(err.Error())
+			return err
 		}
 		worldState := wi.(*world_block.World)
-		// le.Infof("world state after test suite: %s", worldState.String())
-		_ = worldState
 
-		// check if any field other than seqno is set
+		// Clear the sequence number and require an empty last change.
 		lastChange := worldState.GetLastChange().CloneVT()
 		lastChange.Seqno = 0
 		if lastChange.SizeVT() != 0 || !worldState.GetLastChangeDisable() {
 			return errors.New("changelog was not disabled correctly")
 		}
-
 		return nil
 	})
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-
-	// success
-	worldCtrlRef.Release()
 }
 
 // TestWorldEngineWatchReload tests watching for changes on a WorldEngine that fully reloads with a new version.

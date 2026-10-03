@@ -111,11 +111,13 @@ func execute(rctx context.Context) error {
 	}
 	sender := tb.Volume.GetPeerID()
 
-	// Provide the filesystem op handlers to the bus. Starting the controller
-	// has no completion signal, so wait briefly.
+	// Provide the filesystem op handlers to the bus.
 	opc := world.NewLookupOpController("test-fs-ops", wtb.EngineID, unixfs_world.LookupFsOp)
-	go tb.Bus.ExecuteController(ctx, opc)
-	<-time.After(time.Millisecond * 100)
+	relOpc, err := tb.Bus.AddController(ctx, opc, nil)
+	if err != nil {
+		return err
+	}
+	defer relOpc()
 
 	// Use the Engine directly: BusEngine looks up the engine on the bus for
 	// every call, which is slow.

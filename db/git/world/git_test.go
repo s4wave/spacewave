@@ -3,106 +3,30 @@
 package git_world
 
 import (
-	"context"
 	"os"
 	"testing"
-	"time"
 
-	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/go-git/go-billy/v6"
 	"github.com/go-git/go-git/v6"
-	block_transform "github.com/s4wave/spacewave/db/block/transform"
-	transform_blockenc "github.com/s4wave/spacewave/db/block/transform/blockenc"
-	transform_gzip "github.com/s4wave/spacewave/db/block/transform/gzip"
-	bucket "github.com/s4wave/spacewave/db/bucket"
 	git_block "github.com/s4wave/spacewave/db/git/block"
-	"github.com/s4wave/spacewave/db/testbed"
 	unixfs_block "github.com/s4wave/spacewave/db/unixfs/block"
 	unixfs_world "github.com/s4wave/spacewave/db/unixfs/world"
-	"github.com/s4wave/spacewave/db/util/blockenc"
-	"github.com/s4wave/spacewave/db/world"
-	world_block_engine "github.com/s4wave/spacewave/db/world/block/engine"
-	"github.com/sirupsen/logrus"
-	"github.com/zeebo/blake3"
 )
 
 // TestGitClone tests cloning to a world.
 func TestGitClone(t *testing.T) {
-	ctx := context.Background()
-	log := logrus.New()
-	log.SetLevel(logrus.DebugLevel)
-	le := logrus.NewEntry(log)
+	// Start a World with the git op handlers.
+	ctx, le, ws, cleanup, sender := newGitWorldState(t)
+	defer cleanup()
 
-	tb, err := testbed.NewTestbed(ctx, le)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	tb.StaticResolver.AddFactory(world_block_engine.NewFactory(tb.Bus))
-
-	vol := tb.Volume
-	volumeID := vol.GetID()
-	engineID := "test-world-engine"
-	objectStoreID := "test-world-engine-store"
-	bucketID := tb.BucketId
-
-	encKey := make([]byte, 32)
-	blake3.DeriveKey("hydra/test/git: git_test.go", []byte(objectStoreID), encKey)
-
-	xfrmConf, err := block_transform.NewConfig([]config.Config{
-		&transform_gzip.Config{},
-		&transform_blockenc.Config{
-			BlockEnc: blockenc.BlockEnc_BlockEnc_XCHACHA20_POLY1305,
-			Key:      encKey,
-		},
-	})
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-
-	// initWorldRef is only used if the world has not been previously inited.
-	initWorldRef := &bucket.ObjectRef{
-		BucketId:      bucketID,
-		TransformConf: xfrmConf,
-	}
-
-	// initialize world engine
-	_, worldCtrlRef, err := world_block_engine.StartEngineWithConfig(
-		ctx,
-		tb.Bus,
-		world_block_engine.NewConfig(
-			engineID,
-			volumeID, bucketID,
-			objectStoreID,
-			initWorldRef,
-			xfrmConf,
-			false,
-		),
-	)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	defer worldCtrlRef.Release()
-
-	// provide op handlers to bus
-	opc := world.NewLookupOpController("test-git-ops", engineID, LookupGitOp)
-	go func() {
-		_ = tb.Bus.ExecuteController(ctx, opc)
-	}()
-
-	// hack: wait for it to start
-	<-time.After(time.Millisecond * 100)
-
-	// uses directive to look up the engine
-	busEngine := world.NewBusEngine(ctx, tb.Bus, engineID)
-	// uses short-lived engine txs to implement world state
-	ws := world.NewEngineWorldState(busEngine, true)
-
-	sender := tb.Volume.GetPeerID()
+	// Name the repository, its worktree and workdir, and the operation time.
 	objKey := "test-git-repo"
 	worktreeKey := objKey + "/worktree"
 	workdirKey := "test-git-workdir"
 	opTs := unixfs_block.FillPlaceholderTimestamp(nil)
 	ts := opTs.AsTime()
+
+	// Clone this repository with a worktree.
 	outRef, err := GitClone(
 		ctx,
 		ws,
@@ -132,7 +56,7 @@ func TestGitClone(t *testing.T) {
 	}
 	t.Logf("cloned to reference: %s", outRef.MarshalString())
 
-	// create alternate worktree at HEAD
+	// Create a second worktree at HEAD.
 	altWorktreeKey := "other-worktree"
 	altWorkdirKey := "other-workdir"
 	workdirRef := &unixfs_world.UnixfsRef{
@@ -156,9 +80,7 @@ func TestGitClone(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	// TODO: remove this delay
-	<-time.After(time.Millisecond * 100)
-
+	// Log the second worktree's files and status.
 	err = AccessWorldObjectRepoWithWorktree(
 		ctx,
 		le,
@@ -166,12 +88,7 @@ func TestGitClone(t *testing.T) {
 		objKey, altWorktreeKey,
 		ts, false, sender,
 		func(repo *git.Repository, workDir billy.Filesystem) error {
-			wt, err := repo.Worktree()
-			if err != nil {
-				return err
-			}
-			_ = wt
-
+			// List the workdir contents.
 			le.Info("showing workdir contents")
 			files, err := workDir.ReadDir("")
 			if err != nil {
@@ -190,7 +107,13 @@ func TestGitClone(t *testing.T) {
 					f.Name(),
 				)
 			}
+
+			// Read the worktree status.
 			le.Info("showing git status")
+			wt, err := repo.Worktree()
+			if err != nil {
+				return err
+			}
 			status, err := wt.Status()
 			if err != nil {
 				return err
@@ -228,7 +151,4 @@ func TestGitClone(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-
-	// test checking out a different reference
-	le.Info("checking out different reference")
 }
