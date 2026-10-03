@@ -40,20 +40,24 @@ func (a *API) ForwardStreams(
 	req *stream_api.ForwardStreamsRequest,
 	serv stream_api.SRPCStreamService_ForwardStreamsStream,
 ) error {
+	// Validate the stream forwarding configuration.
 	ctx := serv.Context()
 	conf := req.GetForwardingConfig()
 	if err := conf.Validate(); err != nil {
 		return err
 	}
 
+	// Resolve the forwarding target peer identity.
 	targetPeerID, err := req.GetForwardingConfig().ParsePeerID()
 	if err != nil {
 		return err
 	}
 
+	// Bind forwarding to the request lifetime.
 	reqCtx, reqCtxCancel := context.WithCancel(ctx)
 	defer reqCtxCancel()
 
+	// Bound the lookup of the forwarding target peer.
 	plCtx, plCtxCancel := context.WithTimeout(reqCtx, time.Second*3)
 	defer plCtxCancel()
 
@@ -89,12 +93,14 @@ func (a *API) ListenStreams(
 	req *stream_api.ListenStreamsRequest,
 	serv stream_api.SRPCStreamService_ListenStreamsStream,
 ) error {
+	// Validate the stream listening configuration.
 	ctx := serv.Context()
 	conf := req.GetListeningConfig()
 	if err := conf.Validate(); err != nil {
 		return err
 	}
 
+	// Bind the stream listener to the request lifetime.
 	reqCtx, reqCtxCancel := context.WithCancel(ctx)
 	defer reqCtxCancel()
 

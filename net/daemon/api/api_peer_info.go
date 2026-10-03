@@ -16,6 +16,7 @@ func (a *API) GetPeerInfo(
 	ctx context.Context,
 	req *peer_api.GetPeerInfoRequest,
 ) (*peer_api.GetPeerInfoResponse, error) {
+	// Decode the optional peer constraint before collecting local peers.
 	var peerID peer.ID
 	if peerIDStr := req.GetPeerId(); peerIDStr != "" {
 		var err error
@@ -25,17 +26,20 @@ func (a *API) GetPeerInfo(
 		}
 	}
 
+	// Collect the local peers that match the request.
 	vals, _, ref, err := bus.ExecCollectValues[peer.GetPeerValue](ctx, a.bus, peer.NewGetPeer(peerID), false, nil)
 	if err != nil {
 		return nil, err
 	}
 	ref.Release()
 
+	// Build the response records from the collected peers.
 	resp := &peer_api.GetPeerInfoResponse{}
 	for _, val := range vals {
 		resp.LocalPeers = append(resp.LocalPeers, peer_api.NewPeerInfo(val))
 	}
 
+	// Order and deduplicate the response by peer identity.
 	slices.SortFunc(resp.LocalPeers, func(a, b *peer_api.PeerInfo) int {
 		return strings.Compare(a.GetPeerId(), b.GetPeerId())
 	})

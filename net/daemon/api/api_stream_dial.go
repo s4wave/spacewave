@@ -8,12 +8,14 @@ import (
 // DialStream dials a outgoing stream.
 // Stream data is sent over the request / response streams.
 func (a *API) DialStream(serv stream_api.SRPCStreamService_DialStreamStream) error {
+	// Receive the initial stream dial request.
 	ctx := serv.Context()
 	msg, err := serv.Recv()
 	if err != nil {
 		return err
 	}
 
+	// Validate the requested stream dial configuration.
 	conf := msg.GetConfig()
 	if err := conf.Validate(); err != nil {
 		return err

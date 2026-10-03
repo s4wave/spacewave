@@ -45,9 +45,12 @@ func (s *CanvasStorage) UnmarshalBlock(data []byte) error {
 
 // ApplySubBlock applies a Canvas storage sub-block change.
 func (s *CanvasStorage) ApplySubBlock(id uint32, next block.SubBlock) error {
+	// Apply changes only to the Canvas node index sub-block.
 	if id != 1 {
 		return nil
 	}
+
+	// Require a KVTX node index before replacing the Canvas sub-block.
 	nodes, ok := next.(*block_kvtx.KeyValueStore)
 	if !ok {
 		return block.ErrUnexpectedType

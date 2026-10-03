@@ -21,7 +21,6 @@ var acquirePeerTimeout = time.Second * 10
 func (a *API) Subscribe(serv pubsub_api.SRPCPubSubService_SubscribeStream) error {
 	// Retain stream state and release the selected peer on exit.
 	ctx := serv.Context()
-
 	var channelID string
 	var handlePeerID peer.ID
 	var handlePeer peer.Peer

@@ -27,6 +27,7 @@ func materializeCanvasStorage(
 	bcs *block.Cursor,
 	storage *CanvasStorage,
 ) (*CanvasState, error) {
+	// Clone the Canvas storage metadata and open its node index.
 	state := &CanvasState{
 		Nodes:            make(map[string]*CanvasNode),
 		Edges:            cloneCanvasEdges(storage.GetEdges()),
@@ -40,6 +41,7 @@ func materializeCanvasStorage(
 	}
 	defer nodes.Discard()
 
+	// Read each indexed Canvas node into the logical state.
 	it := nodes.BlockIterate(ctx, nil, false, false)
 	defer it.Close()
 	for it.Next() {
@@ -64,6 +66,7 @@ func WriteCanvasState(
 	previous *CanvasState,
 	next *CanvasState,
 ) error {
+	// Load the current Canvas storage and normalize the requested state.
 	if next == nil {
 		next = &CanvasState{}
 	}
@@ -72,18 +75,21 @@ func WriteCanvasState(
 		return err
 	}
 
+	// Replace the Canvas edges, strokes, graph links, and layout metadata.
 	storage.Edges = cloneCanvasEdges(next.GetEdges())
 	storage.StrokeTreeRef = append(storage.StrokeTreeRef[:0], next.GetStrokeTreeRef()...)
 	storage.HiddenGraphLinks = cloneHiddenGraphLinks(next.GetHiddenGraphLinks())
 	storage.LayoutMetadata = cloneCanvasLayoutMetadata(next.GetLayoutMetadata())
 	bcs.SetBlock(storage, true)
 
+	// Open the Canvas node index for changes.
 	nodes, err := block_kvtx.BuildKvTransaction(ctx, bcs.FollowSubBlock(1), true)
 	if err != nil {
 		return err
 	}
 	defer nodes.Discard()
 
+	// Write the Canvas nodes whose contents changed.
 	for _, id := range slices.Sorted(maps.Keys(next.GetNodes())) {
 		node := next.GetNodes()[id]
 		if old := current.GetNodes()[id]; old != nil && old.EqualVT(node) {
@@ -93,6 +99,8 @@ func WriteCanvasState(
 			return err
 		}
 	}
+
+	// Remove Canvas nodes absent from the requested state.
 	for _, id := range slices.Sorted(maps.Keys(current.GetNodes())) {
 		if _, ok := next.GetNodes()[id]; ok {
 			continue
@@ -109,6 +117,7 @@ func loadCanvasStorageForWrite(
 	bcs *block.Cursor,
 	previous *CanvasState,
 ) (*CanvasStorage, *CanvasState, error) {
+	// Initialize empty Canvas storage when the root has no block.
 	_, found, err := bcs.Fetch(ctx)
 	if err != nil {
 		return nil, nil, err
@@ -119,6 +128,7 @@ func loadCanvasStorageForWrite(
 		return storage, &CanvasState{}, nil
 	}
 
+	// Validate the stored Canvas root and recover any missing previous state.
 	storage, err := UnmarshalCanvasStorage(ctx, bcs)
 	if err != nil {
 		return nil, nil, err
@@ -136,6 +146,7 @@ func loadCanvasStorageForWrite(
 }
 
 func setCanvasNode(ctx context.Context, nodes kvtx.BlockTx, id string, node *CanvasNode) error {
+	// Remove a missing Canvas node or replace its indexed block.
 	if node == nil {
 		_, err := nodes.DeleteCursorAtKey(ctx, []byte(id))
 		return err

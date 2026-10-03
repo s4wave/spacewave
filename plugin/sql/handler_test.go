@@ -78,10 +78,13 @@ func TestLookupSQLBlockTypeOwnsSQLCursorBlockTypes(t *testing.T) {
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
+			// Resolve the SQL block type for this test case.
 			got, err := lookupSQLBlockType(tc.typeID)
 			if err != nil {
 				t.Fatalf("lookupSQLBlockType(%s): %v", tc.typeID, err)
 			}
+
+			// Check absence, identity, and constructor output for the SQL block type.
 			if tc.wantAbsent {
 				if got != nil {
 					t.Fatalf("lookupSQLBlockType(%s) = %T, want nil", tc.typeID, got)
@@ -145,11 +148,13 @@ func TestSQLHandlerValidateOpUnmarshalsEverySQLOperation(t *testing.T) {
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
+			// Encode the SQL operation payload for validation.
 			data, err := tc.op.MarshalBlock()
 			if err != nil {
 				t.Fatalf("MarshalBlock: %v", err)
 			}
 
+			// Validate the encoded SQL operation through the handler.
 			h := &SQLHandler{}
 			resp, err := h.ValidateOp(context.Background(), &s4wave_worldop_registry.ValidateOpRequest{
 				OperationTypeId: tc.op.GetOperationTypeId(),
@@ -158,14 +163,19 @@ func TestSQLHandlerValidateOpUnmarshalsEverySQLOperation(t *testing.T) {
 			if err != nil {
 				t.Fatalf("ValidateOp returned RPC error: %v", err)
 			}
+
+			// Check that the handler accepts the SQL operation payload.
 			if resp.GetError() != "" {
 				t.Fatalf("ValidateOp(%s) error = %q, want empty", tc.op.GetOperationTypeId(), resp.GetError())
 			}
 
+			// Decode the SQL operation for contract checks.
 			decoded, err := h.unmarshalSQLOp(context.Background(), tc.op.GetOperationTypeId(), data)
 			if err != nil {
 				t.Fatalf("unmarshalSQLOp(%s): %v", tc.op.GetOperationTypeId(), err)
 			}
+
+			// Check the decoded operation identity and initialization mode.
 			if decoded.GetOperationTypeId() != tc.op.GetOperationTypeId() {
 				t.Fatalf("decoded op id = %q, want %q", decoded.GetOperationTypeId(), tc.op.GetOperationTypeId())
 			}
@@ -254,6 +264,7 @@ func TestRegisterSQLRejectsZeroResourceIDs(t *testing.T) {
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
+			// Install the SQL viewer registration for this registry failure case.
 			oldViewers := sqlViewerRegistrations
 			sqlViewerRegistrations = []*s4wave_viewer_registry.ViewerRegistration{{
 				TypeId:     s4wave_sql_world.SqlDbTypeID,
@@ -263,12 +274,16 @@ func TestRegisterSQLRejectsZeroResourceIDs(t *testing.T) {
 			}}
 			t.Cleanup(func() { sqlViewerRegistrations = oldViewers })
 
+			// Connect the registry harness that returns a zero resource ID.
 			fake := &zeroResourceRegistry{zeroAt: tc.zeroAt}
 			client, rootClient, cleanup := newRegisterSQLHarness(t, fake)
 			defer cleanup()
 
+			// Attempt SQL registration and retain its partial references for cleanup.
 			refs, err := (&Controller{}).registerSQL(context.Background(), client, rootClient)
 			defer releaseRefs(refs)
+
+			// Check that SQL registration reports the expected zero resource ID error.
 			if err == nil {
 				t.Fatal("registerSQL succeeded, want zero resource id error")
 			}
@@ -280,6 +295,7 @@ func TestRegisterSQLRejectsZeroResourceIDs(t *testing.T) {
 }
 
 func TestSQLHandlerSeedSQLQuickstartCreatesReadableDatabaseAndExampleQuery(t *testing.T) {
+	// Start the World testbed for SQL quickstart seeding.
 	ctx := context.Background()
 	tb, err := testbed.Default(ctx)
 	if err != nil {
@@ -287,6 +303,7 @@ func TestSQLHandlerSeedSQLQuickstartCreatesReadableDatabaseAndExampleQuery(t *te
 	}
 	defer tb.Release()
 
+	// Seed the SQL database and example query through the handler.
 	handler := &SQLHandler{
 		le: logrus.NewEntry(logrus.New()),
 		b:  tb.Bus,
@@ -295,10 +312,12 @@ func TestSQLHandlerSeedSQLQuickstartCreatesReadableDatabaseAndExampleQuery(t *te
 		t.Fatalf("seedSQLQuickstart: %v", err)
 	}
 
+	// Check the seeded database object type.
 	if err := world_types.CheckObjectType(ctx, tb.WorldState, sqlQuickstartDBKey, s4wave_sql_world.SqlDbTypeID); err != nil {
 		t.Fatalf("%s object type: %v", sqlQuickstartDBKey, err)
 	}
 
+	// Open the seeded SQL database and verify its quickstart schema.
 	store, cleanupStore := openQuickstartSQLStore(t, ctx, handler, tb)
 	defer cleanupStore()
 	rootTx := openQuickstartSQLTx(t, ctx, store, false, "")
@@ -308,16 +327,19 @@ func TestSQLHandlerSeedSQLQuickstartCreatesReadableDatabaseAndExampleQuery(t *te
 		t.Fatalf("SHOW DATABASES = %v, want quickstart", schemas)
 	}
 
+	// Check the sample person stored in the quickstart database.
 	row := queryQuickstartSingleRow(t, ctx, rootTx, "SELECT name, role FROM quickstart.people WHERE id = 1", []string{"name", "role"})
 	if row[0] != "ada" || row[1] != "analyst" {
 		t.Fatalf("quickstart.people id=1 = %v, want [ada analyst]", row)
 	}
 
+	// Check the sample project stored in the quickstart database.
 	project := queryQuickstartSingleRow(t, ctx, rootTx, "SELECT title FROM quickstart.projects WHERE id = 10", []string{"title"})
 	if project[0] != "difference engine notes" {
 		t.Fatalf("quickstart.projects id=10 = %v, want [difference engine notes]", project)
 	}
 
+	// Open the seeded example query and check its target database.
 	if err := world_types.CheckObjectType(ctx, tb.WorldState, sqlQuickstartQueryKey, s4wave_sql_query.SqlQueryTypeID); err != nil {
 		t.Fatalf("%s object type: %v", sqlQuickstartQueryKey, err)
 	}
@@ -333,6 +355,7 @@ func TestSQLHandlerSeedSQLQuickstartCreatesReadableDatabaseAndExampleQuery(t *te
 }
 
 func TestSQLObjectTypeBridgeAccessTypedObjectReadsQuickstartSchema(t *testing.T) {
+	// Start the World testbed for SQL object type bridging.
 	ctx := context.Background()
 	le := logrus.NewEntry(logrus.New())
 	tb, err := testbed.Default(ctx)
@@ -341,6 +364,7 @@ func TestSQLObjectTypeBridgeAccessTypedObjectReadsQuickstartSchema(t *testing.T)
 	}
 	defer tb.Release()
 
+	// Seed the SQL quickstart before opening its database through the bridge.
 	handler := &SQLHandler{
 		le: le,
 		b:  tb.Bus,
@@ -349,6 +373,7 @@ func TestSQLObjectTypeBridgeAccessTypedObjectReadsQuickstartSchema(t *testing.T)
 		t.Fatalf("seedSQLQuickstart: %v", err)
 	}
 
+	// Open the quickstart database through the SQL object type bridge.
 	engineClient, typedObjects, cleanupBridge := newSQLObjectTypeBridgeHarness(
 		t,
 		ctx,
@@ -368,6 +393,7 @@ func TestSQLObjectTypeBridgeAccessTypedObjectReadsQuickstartSchema(t *testing.T)
 		t.Fatalf("AccessTypedObject(%s) type = %q, want %q", sqlQuickstartDBKey, accessResp.GetTypeId(), s4wave_sql_world.SqlDbTypeID)
 	}
 
+	// Attach the bridged SQL resource as a database store.
 	sqlRef := engineClient.CreateResourceReference(accessResp.GetResourceId())
 	defer sqlRef.Release()
 	sqlClient, err := sqlRef.GetClient()
@@ -377,6 +403,8 @@ func TestSQLObjectTypeBridgeAccessTypedObjectReadsQuickstartSchema(t *testing.T)
 	store := sql_rpc_client.NewStore(sql_rpc.NewSRPCSqlClient(sqlClient))
 	tx := openQuickstartSQLTx(t, ctx, store, false, "")
 	defer tx.Discard()
+
+	// Check the quickstart schema through the bridged SQL store.
 	schemas := queryQuickstartStringColumn(t, ctx, tx, "SHOW DATABASES")
 	if !containsString(schemas, "quickstart") {
 		t.Fatalf("SHOW DATABASES through bridged SQL resource = %v, want quickstart", schemas)
@@ -384,6 +412,7 @@ func TestSQLObjectTypeBridgeAccessTypedObjectReadsQuickstartSchema(t *testing.T)
 }
 
 func TestSQLObjectTypeBridgeInitializeEmptyQueryAndWorkbench(t *testing.T) {
+	// Start the World testbed for empty SQL object initialization.
 	ctx := context.Background()
 	le := logrus.NewEntry(logrus.New())
 	tb, err := testbed.Default(ctx)
@@ -392,6 +421,7 @@ func TestSQLObjectTypeBridgeInitializeEmptyQueryAndWorkbench(t *testing.T) {
 	}
 	defer tb.Release()
 
+	// Seed the SQL database and create empty query and workbench objects.
 	handler := &SQLHandler{le: le, b: tb.Bus}
 	if err := handler.seedSQLQuickstart(ctx, tb.WorldState); err != nil {
 		t.Fatalf("seedSQLQuickstart: %v", err)
@@ -401,6 +431,7 @@ func TestSQLObjectTypeBridgeInitializeEmptyQueryAndWorkbench(t *testing.T) {
 	workbenchKey := "sql/workbench/bridge-initialize"
 	createEmptySQLTypedObject(t, ctx, tb.WorldState, workbenchKey, s4wave_sql_workbench.SqlWorkbenchTypeID)
 
+	// Connect the object type bridge for query and workbench initialization.
 	engineClient, typedObjects, cleanupBridge := newSQLObjectTypeBridgeHarness(
 		t,
 		ctx,
@@ -412,6 +443,7 @@ func TestSQLObjectTypeBridgeInitializeEmptyQueryAndWorkbench(t *testing.T) {
 	)
 	defer cleanupBridge()
 
+	// Open the empty query through the object type bridge.
 	queryAccess, err := typedObjects.AccessTypedObject(ctx, &s4wave_world.AccessTypedObjectRequest{ObjectKey: queryKey})
 	if err != nil {
 		t.Fatalf("AccessTypedObject(%s): %v", queryKey, err)
@@ -423,6 +455,8 @@ func TestSQLObjectTypeBridgeInitializeEmptyQueryAndWorkbench(t *testing.T) {
 		t.Fatalf("query resource client: %v", err)
 	}
 	queryClient := s4wave_sql_query.NewSRPCSqlQueryResourceServiceClient(querySRPC)
+
+	// Initialize the bridged query against the quickstart database.
 	if _, err := queryClient.Initialize(ctx, &s4wave_sql_query.InitializeQueryRequest{
 		SqlText:           "SELECT 1",
 		DialectHint:       "mysql",
@@ -430,6 +464,8 @@ func TestSQLObjectTypeBridgeInitializeEmptyQueryAndWorkbench(t *testing.T) {
 	}); err != nil {
 		t.Fatalf("Initialize(%s): %v", queryKey, err)
 	}
+
+	// Check the initialized query text and database target.
 	query, err := queryClient.GetQueryText(ctx, &s4wave_sql_query.GetQueryTextRequest{})
 	if err != nil {
 		t.Fatalf("GetQueryText(%s): %v", queryKey, err)
@@ -439,6 +475,7 @@ func TestSQLObjectTypeBridgeInitializeEmptyQueryAndWorkbench(t *testing.T) {
 		t.Fatalf("bridged initialized query = %#v", query)
 	}
 
+	// Open the empty workbench through the object type bridge.
 	workbenchAccess, err := typedObjects.AccessTypedObject(ctx, &s4wave_world.AccessTypedObjectRequest{ObjectKey: workbenchKey})
 	if err != nil {
 		t.Fatalf("AccessTypedObject(%s): %v", workbenchKey, err)
@@ -450,12 +487,16 @@ func TestSQLObjectTypeBridgeInitializeEmptyQueryAndWorkbench(t *testing.T) {
 		t.Fatalf("workbench resource client: %v", err)
 	}
 	workbenchClient := s4wave_sql_workbench.NewSRPCSqlWorkbenchResourceServiceClient(workbenchSRPC)
+
+	// Initialize the bridged workbench against the quickstart database.
 	if _, err := workbenchClient.Initialize(ctx, &s4wave_sql_workbench.InitializeWorkbenchRequest{
 		TargetDbObjectKey: sqlQuickstartDBKey,
 		DisplayName:       "Bridge Workbench",
 	}); err != nil {
 		t.Fatalf("Initialize(%s): %v", workbenchKey, err)
 	}
+
+	// Check the initialized workbench state.
 	workbenchResp, err := workbenchClient.GetWorkbench(ctx, &s4wave_sql_workbench.GetWorkbenchRequest{})
 	if err != nil {
 		t.Fatalf("GetWorkbench(%s): %v", workbenchKey, err)
@@ -475,6 +516,7 @@ func createEmptySQLTypedObject(
 	objectKey string,
 	typeID string,
 ) {
+	// Create the empty SQL object and assign its requested type.
 	t.Helper()
 	obj, err := ws.CreateObject(ctx, objectKey, &bucket.ObjectRef{})
 	world.ReleaseObjectState(obj)
@@ -487,6 +529,7 @@ func createEmptySQLTypedObject(
 }
 
 func TestSQLObjectTypeBridgeRunQuickstartQueryServesResultGrid(t *testing.T) {
+	// Start the World testbed for a bridged SQL query run.
 	ctx := context.Background()
 	le := logrus.NewEntry(logrus.New())
 	tb, err := testbed.Default(ctx)
@@ -495,6 +538,7 @@ func TestSQLObjectTypeBridgeRunQuickstartQueryServesResultGrid(t *testing.T) {
 	}
 	defer tb.Release()
 
+	// Seed the SQL database and example query for execution.
 	handler := &SQLHandler{
 		le: le,
 		b:  tb.Bus,
@@ -503,6 +547,7 @@ func TestSQLObjectTypeBridgeRunQuickstartQueryServesResultGrid(t *testing.T) {
 		t.Fatalf("seedSQLQuickstart: %v", err)
 	}
 
+	// Connect the SQL object type bridge for database, query, and result resources.
 	engineClient, typedObjects, cleanupBridge := newSQLObjectTypeBridgeHarness(
 		t,
 		ctx,
@@ -515,6 +560,7 @@ func TestSQLObjectTypeBridgeRunQuickstartQueryServesResultGrid(t *testing.T) {
 	)
 	defer cleanupBridge()
 
+	// Open the quickstart query through the object type bridge.
 	queryAccess, err := typedObjects.AccessTypedObject(ctx, &s4wave_world.AccessTypedObjectRequest{
 		ObjectKey: sqlQuickstartQueryKey,
 	})
@@ -524,6 +570,8 @@ func TestSQLObjectTypeBridgeRunQuickstartQueryServesResultGrid(t *testing.T) {
 	if queryAccess.GetTypeId() != s4wave_sql_query.SqlQueryTypeID {
 		t.Fatalf("AccessTypedObject(%s) type = %q, want %q", sqlQuickstartQueryKey, queryAccess.GetTypeId(), s4wave_sql_query.SqlQueryTypeID)
 	}
+
+	// Attach the bridged query resource client.
 	queryRef := engineClient.CreateResourceReference(queryAccess.GetResourceId())
 	defer queryRef.Release()
 	querySRPC, err := queryRef.GetClient()
@@ -531,6 +579,8 @@ func TestSQLObjectTypeBridgeRunQuickstartQueryServesResultGrid(t *testing.T) {
 		t.Fatalf("SQL query typed resource client: %v", err)
 	}
 	queryClient := s4wave_sql_query.NewSRPCSqlQueryResourceServiceClient(querySRPC)
+
+	// Run the quickstart query and require a result object key.
 	runResp, err := queryClient.Run(ctx, &s4wave_sql_query.RunQueryRequest{MaxRows: 8})
 	if err != nil {
 		t.Fatalf("Run(%s): %v", sqlQuickstartQueryKey, err)
@@ -543,6 +593,7 @@ func TestSQLObjectTypeBridgeRunQuickstartQueryServesResultGrid(t *testing.T) {
 		t.Fatal("Run returned empty result object key")
 	}
 
+	// Open the query result through the object type bridge.
 	resultAccess, err := typedObjects.AccessTypedObject(ctx, &s4wave_world.AccessTypedObjectRequest{
 		ObjectKey: resultKey,
 	})
@@ -552,6 +603,8 @@ func TestSQLObjectTypeBridgeRunQuickstartQueryServesResultGrid(t *testing.T) {
 	if resultAccess.GetTypeId() != s4wave_sql_query_result.SqlQueryResultTypeID {
 		t.Fatalf("AccessTypedObject(%s) type = %q, want %q", resultKey, resultAccess.GetTypeId(), s4wave_sql_query_result.SqlQueryResultTypeID)
 	}
+
+	// Attach the bridged query result resource client.
 	resultRef := engineClient.CreateResourceReference(resultAccess.GetResourceId())
 	defer resultRef.Release()
 	resultSRPC, err := resultRef.GetClient()
@@ -559,10 +612,14 @@ func TestSQLObjectTypeBridgeRunQuickstartQueryServesResultGrid(t *testing.T) {
 		t.Fatalf("SQL query result typed resource client: %v", err)
 	}
 	resultClient := s4wave_sql_query_result.NewSRPCSqlQueryResultResourceServiceClient(resultSRPC)
+
+	// Read the result grid from the bridged query result.
 	grid, err := resultClient.GetResultGrid(ctx, &s4wave_sql_query_result.GetResultGridRequest{})
 	if err != nil {
 		t.Fatalf("GetResultGrid(%s): %v", resultKey, err)
 	}
+
+	// Check the result grid source, database, rows, and columns.
 	if grid.GetError() != nil {
 		t.Fatalf("GetResultGrid(%s) returned SQL error: %s", resultKey, grid.GetError().GetMessage())
 	}
@@ -581,6 +638,8 @@ func TestSQLObjectTypeBridgeRunQuickstartQueryServesResultGrid(t *testing.T) {
 	if grid.GetColumns()[0].GetName() != "name" || grid.GetColumns()[1].GetName() != "role" {
 		t.Fatalf("columns = [%s %s], want [name role]", grid.GetColumns()[0].GetName(), grid.GetColumns()[1].GetName())
 	}
+
+	// Check the sample person returned in the result grid.
 	row := singleQuickstartResultRow(t, grid.GetRowBatches(), 2)
 	if row[0] != "ada" || row[1] != "analyst" {
 		t.Fatalf("result row = %v, want [ada analyst]", row)
@@ -593,6 +652,7 @@ func openQuickstartSQLStore(
 	handler *SQLHandler,
 	tb *testbed.Testbed,
 ) (hydra_sql.SqlStore, func()) {
+	// Open the quickstart SQL object as a database store client.
 	t.Helper()
 	inv, cleanup, err := handler.openObjectType(
 		ctx,
@@ -614,6 +674,7 @@ func openQuickstartQueryClient(
 	handler *SQLHandler,
 	tb *testbed.Testbed,
 ) (s4wave_sql_query.SRPCSqlQueryResourceServiceClient, func()) {
+	// Open the quickstart query object as a query resource client.
 	t.Helper()
 	inv, cleanup, err := handler.openObjectType(
 		ctx,
@@ -637,8 +698,8 @@ func newSQLObjectTypeBridgeHarness(
 	tb *testbed.Testbed,
 	typeIDs ...string,
 ) (*resource_client.Client, s4wave_world.SRPCTypedObjectResourceServiceClient, func()) {
+	// Retain bridge harness resources for release in reverse order.
 	t.Helper()
-
 	var cleanupFns []func()
 	cleanup := func() {
 		for _, cleanupFn := range slices.Backward(cleanupFns) {
@@ -646,6 +707,7 @@ func newSQLObjectTypeBridgeHarness(
 		}
 	}
 
+	// Register the requested SQL object types and retain their resource references.
 	registry := resource_objecttype_registry.NewObjectTypeRegistryResource(nil)
 	registryClient, registryRootClient, cleanupRegistry := newSQLResourceClient(t, registry.GetMux())
 	cleanupFns = append(cleanupFns, cleanupRegistry)
@@ -667,6 +729,7 @@ func newSQLObjectTypeBridgeHarness(
 		cleanupFns = append(cleanupFns, regRef.Release)
 	}
 
+	// Register SQL initialization operations and retain their resource references.
 	worldOpRegistry := resource_worldop_registry.NewWorldOpRegistryResource(nil)
 	worldOpRegistryClient, worldOpRegistryRootClient, cleanupWorldOpRegistry := newSQLResourceClient(t, worldOpRegistry.GetMux())
 	cleanupFns = append(cleanupFns, cleanupWorldOpRegistry)
@@ -691,6 +754,7 @@ func newSQLObjectTypeBridgeHarness(
 		cleanupFns = append(cleanupFns, regRef.Release)
 	}
 
+	// Attach the SQL plugin client to the controller bus.
 	pluginClient := newSQLPluginClient(t, handler)
 	pluginRel, err := tb.Bus.AddController(ctx, &sqlPluginLoadTestController{client: pluginClient}, nil)
 	if err != nil {
@@ -699,6 +763,7 @@ func newSQLObjectTypeBridgeHarness(
 	}
 	cleanupFns = append(cleanupFns, pluginRel)
 
+	// Attach the SQL object type bridge to the controller bus.
 	bridgeRel, err := tb.Bus.AddController(ctx, resource_objecttype_registry.NewBridgeController(le, tb.Bus, registry), nil)
 	if err != nil {
 		cleanup()
@@ -706,6 +771,7 @@ func newSQLObjectTypeBridgeHarness(
 	}
 	cleanupFns = append(cleanupFns, bridgeRel)
 
+	// Attach the SQL world operation bridge to the controller bus.
 	worldOpBridgeRel, err := tb.Bus.AddController(
 		ctx,
 		resource_worldop_registry.NewWorldOpRegistryBridgeController(le, tb.Bus, worldOpRegistry),
@@ -717,6 +783,7 @@ func newSQLObjectTypeBridgeHarness(
 	}
 	cleanupFns = append(cleanupFns, worldOpBridgeRel)
 
+	// Expose the World Engine through a typed object resource client.
 	engineResource := resource_world.NewEngineResource(le, tb.Bus, tb.BusEngine, nil, nil)
 	engineClient, engineRootClient, cleanupEngine := newSQLResourceClient(t, engineResource.GetMux())
 	cleanupFns = append(cleanupFns, cleanupEngine)
@@ -725,6 +792,7 @@ func newSQLObjectTypeBridgeHarness(
 }
 
 func newSQLPluginClient(t *testing.T, handler *SQLHandler) srpc.Client {
+	// Register SQL object type and world operation handlers in the plugin mux.
 	t.Helper()
 	rootMux := srpc.NewMux()
 	if err := s4wave_objecttype_registry.SRPCRegisterObjectTypeHandlerService(rootMux, handler); err != nil {
@@ -733,6 +801,8 @@ func newSQLPluginClient(t *testing.T, handler *SQLHandler) srpc.Client {
 	if err := s4wave_worldop_registry.SRPCRegisterWorldOpHandlerService(rootMux, handler); err != nil {
 		t.Fatalf("register SQL world op handler: %v", err)
 	}
+
+	// Expose the SQL plugin mux through the resource server.
 	serverMux := srpc.NewMux()
 	if err := resource_server.NewResourceServer(rootMux).Register(serverMux); err != nil {
 		t.Fatalf("register SQL plugin resource server: %v", err)
@@ -741,6 +811,7 @@ func newSQLPluginClient(t *testing.T, handler *SQLHandler) srpc.Client {
 }
 
 func newSQLResourceClient(t *testing.T, root srpc.Invoker) (*resource_client.Client, srpc.Client, func()) {
+	// Connect a resource client to the supplied root mux.
 	t.Helper()
 	serverMux := srpc.NewMux()
 	if err := resource_server.NewResourceServer(root).Register(serverMux); err != nil {
@@ -751,6 +822,8 @@ func newSQLResourceClient(t *testing.T, root srpc.Invoker) (*resource_client.Cli
 	if err != nil {
 		t.Fatalf("new resource client: %v", err)
 	}
+
+	// Access the root resource and transfer its cleanup to the caller.
 	rootRef := client.AccessRootResource()
 	rootClient, err := rootRef.GetClient()
 	if err != nil {
@@ -780,12 +853,15 @@ func openQuickstartSQLTx(
 }
 
 func queryQuickstartStringColumn(t *testing.T, ctx context.Context, tx hydra_sql.SqlTransaction, query string) []string {
+	// Read the SQL query rows and require a single result column.
 	t.Helper()
 	rows := queryQuickstartRows(t, ctx, tx, query)
 	defer rows.Close()
 	if cols := rows.Columns(); len(cols) != 1 {
 		t.Fatalf("%s columns = %v, want one column", query, cols)
 	}
+
+	// Collect the SQL result column as strings until the rows end.
 	var values []string
 	for {
 		dest := make([]driver.Value, 1)
@@ -806,12 +882,15 @@ func queryQuickstartSingleRow(
 	query string,
 	wantColumns []string,
 ) []string {
+	// Read the SQL query rows and verify their columns.
 	t.Helper()
 	rows := queryQuickstartRows(t, ctx, tx, query)
 	defer rows.Close()
 	if got := rows.Columns(); !equalStringSlices(got, wantColumns) {
 		t.Fatalf("%s columns = %v, want %v", query, got, wantColumns)
 	}
+
+	// Require exactly one row from the SQL query.
 	dest := make([]driver.Value, len(wantColumns))
 	if err := rows.Next(dest); err != nil {
 		t.Fatalf("%s first row: %v", query, err)
@@ -819,6 +898,8 @@ func queryQuickstartSingleRow(
 	if err := rows.Next(make([]driver.Value, len(wantColumns))); !errors.Is(err, io.EOF) {
 		t.Fatalf("%s second row = %v, want EOF", query, err)
 	}
+
+	// Convert the SQL row values to strings.
 	got := make([]string, len(dest))
 	for idx, value := range dest {
 		got[idx] = quickstartDriverString(t, query, value)
@@ -827,6 +908,7 @@ func queryQuickstartSingleRow(
 }
 
 func queryQuickstartRows(t *testing.T, ctx context.Context, tx hydra_sql.SqlTransaction, query string) driver.Rows {
+	// Execute the SQL query through the transaction operations.
 	t.Helper()
 	ops, err := tx.GetSqlOps(ctx)
 	if err != nil {
@@ -853,6 +935,7 @@ func quickstartDriverString(t *testing.T, query string, value driver.Value) stri
 }
 
 func singleQuickstartResultRow(t *testing.T, batches []*hydra_sql.RowBatch, wantValues int) []string {
+	// Require a single SQL result row with the expected value count.
 	t.Helper()
 	if len(batches) != 1 {
 		t.Fatalf("row batches = %d, want 1", len(batches))
@@ -865,6 +948,8 @@ func singleQuickstartResultRow(t *testing.T, batches []*hydra_sql.RowBatch, want
 	if len(values) != wantValues {
 		t.Fatalf("values = %d, want %d", len(values), wantValues)
 	}
+
+	// Convert the SQL result row values to strings.
 	got := make([]string, len(values))
 	for idx, value := range values {
 		got[idx] = quickstartSQLValueString(t, value)
@@ -911,8 +996,8 @@ func testSQLObjectRef(t *testing.T) *bucket.ObjectRef {
 }
 
 func newRegisterSQLHarness(t *testing.T, fake *zeroResourceRegistry) (*resource_client.Client, srpc.Client, func()) {
+	// Register the fake SQL registries in the harness root mux.
 	t.Helper()
-
 	rootMux := srpc.NewMux()
 	if err := s4wave_objecttype_registry.SRPCRegisterObjectTypeRegistryResourceService(rootMux, fake); err != nil {
 		t.Fatalf("register object type registry: %v", err)
@@ -927,6 +1012,7 @@ func newRegisterSQLHarness(t *testing.T, fake *zeroResourceRegistry) (*resource_
 		t.Fatalf("register viewer registry: %v", err)
 	}
 
+	// Connect a resource client to the fake registry server.
 	serverMux := srpc.NewMux()
 	if err := resource_server.NewResourceServer(rootMux).Register(serverMux); err != nil {
 		t.Fatalf("register resource server: %v", err)
@@ -936,6 +1022,8 @@ func newRegisterSQLHarness(t *testing.T, fake *zeroResourceRegistry) (*resource_
 	if err != nil {
 		t.Fatalf("new resource client: %v", err)
 	}
+
+	// Access the fake registry root and transfer cleanup to the caller.
 	rootRef := client.AccessRootResource()
 	rootClient, err := rootRef.GetClient()
 	if err != nil {

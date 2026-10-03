@@ -49,6 +49,7 @@ func NewFactory(b bus.Bus) controller.Factory {
 			return &Config{}
 		},
 		func(base *bus.BusController[*Config]) (*Controller, error) {
+			// Build the SQL handler mux for object types, world operations, and quickstarts.
 			handler := &SQLHandler{le: base.GetLogger(), b: b}
 			rootMux := resource_server.NewResourceMux(
 				func(mux srpc.Mux) error {
@@ -61,6 +62,8 @@ func NewFactory(b bus.Bus) controller.Factory {
 					return s4wave_quickstart_registry.SRPCRegisterQuickstartHandlerService(mux, handler)
 				},
 			)
+
+			// Expose the SQL handler mux through the resource server.
 			serverMux := srpc.NewMux()
 			if err := resource_server.NewResourceServer(rootMux).Register(serverMux); err != nil {
 				return nil, err

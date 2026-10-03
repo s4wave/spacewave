@@ -76,13 +76,18 @@ func (h *SQLHandler) InvokeObjectType(
 	ctx context.Context,
 	req *s4wave_objecttype_registry.InvokeObjectTypeRequest,
 ) (*s4wave_objecttype_registry.InvokeObjectTypeResponse, error) {
+	// Require an attached Engine before opening a SQL resource.
 	if req.GetAttachedEngineResourceId() == 0 {
 		return nil, errors.New("sql plugin: attached engine resource is required")
 	}
+
+	// Resolve the resource client context for the SQL response.
 	resourceCtx, err := resource_server.MustGetResourceClientContext(ctx)
 	if err != nil {
 		return nil, err
 	}
+
+	// Attach the Engine and open the requested SQL object type.
 	engine, err := sdk_world_engine.NewAttachedEngine(ctx, req.GetAttachedEngineResourceId())
 	if err != nil {
 		return nil, err
@@ -93,6 +98,8 @@ func (h *SQLHandler) InvokeObjectType(
 		engine.Release()
 		return nil, err
 	}
+
+	// Register the SQL resource with cleanup for its attached Engine.
 	resourceID, err := resourceCtx.AddResource(invoker, func() {
 		cleanup()
 		engine.Release()
@@ -135,9 +142,12 @@ func (h *SQLHandler) ApplyWorldOp(
 	ctx context.Context,
 	req *s4wave_worldop_registry.ApplyWorldOpRequest,
 ) (*s4wave_worldop_registry.ApplyWorldOpResponse, error) {
+	// Require an attached WorldState before applying a SQL operation.
 	if req.GetAttachedWorldStateResourceId() == 0 {
 		return nil, errors.New("sql plugin: attached world state resource is required")
 	}
+
+	// Attach the requested WorldState and release it after the operation.
 	resourceCtx, err := resource_server.MustGetResourceClientContext(ctx)
 	if err != nil {
 		return nil, err
@@ -151,6 +161,7 @@ func (h *SQLHandler) ApplyWorldOp(
 	}
 	defer ws.Release()
 
+	// Decode and apply the SQL operation to the attached WorldState.
 	op, err := h.unmarshalSQLOp(ctx, req.GetOperationTypeId(), req.GetOpData())
 	if err != nil {
 		return nil, err
@@ -167,9 +178,12 @@ func (h *SQLHandler) ApplyWorldObjectOp(
 	ctx context.Context,
 	req *s4wave_worldop_registry.ApplyWorldObjectOpRequest,
 ) (*s4wave_worldop_registry.ApplyWorldObjectOpResponse, error) {
+	// Require an attached ObjectState before applying a SQL operation.
 	if req.GetAttachedObjectStateResourceId() == 0 {
 		return nil, errors.New("sql plugin: attached object state resource is required")
 	}
+
+	// Resolve the attached object resource client.
 	resourceCtx, err := resource_server.MustGetResourceClientContext(ctx)
 	if err != nil {
 		return nil, err
@@ -181,6 +195,8 @@ func (h *SQLHandler) ApplyWorldObjectOp(
 		ref.Release()
 		return nil, err
 	}
+
+	// Read the attached object key and verify the requested target.
 	objectSvc := s4wave_world.NewSRPCObjectStateResourceServiceClient(objectClient)
 	keyResp, err := objectSvc.GetKey(ctx, &s4wave_world.GetKeyRequest{})
 	if err != nil {
@@ -192,6 +208,8 @@ func (h *SQLHandler) ApplyWorldObjectOp(
 		ref.Release()
 		return nil, errors.Errorf("sql plugin: attached object key %q does not match request key %q", objectKey, req.GetObjectKey())
 	}
+
+	// Wrap the attached resource as an ObjectState for the operation.
 	os, err := sdk_world_engine.NewSDKObjectState(client, ref, objectKey)
 	if err != nil {
 		ref.Release()
@@ -199,6 +217,7 @@ func (h *SQLHandler) ApplyWorldObjectOp(
 	}
 	defer os.Release()
 
+	// Decode and apply the SQL operation to the attached ObjectState.
 	op, err := h.unmarshalSQLOp(ctx, req.GetOperationTypeId(), req.GetOpData())
 	if err != nil {
 		return nil, err
@@ -226,6 +245,7 @@ func (h *SQLHandler) ValidateOp(
 }
 
 func (h *SQLHandler) unmarshalSQLOp(ctx context.Context, opTypeID string, data []byte) (world.Operation, error) {
+	// Resolve the SQL operation type and decode its block payload.
 	op, err := lookupSQLWorldOp(ctx, opTypeID)
 	if err != nil {
 		return nil, errors.Wrapf(err, "lookup SQL world op %s", opTypeID)
@@ -274,18 +294,22 @@ func (h *SQLHandler) SeedQuickstart(
 	ctx context.Context,
 	req *s4wave_quickstart_registry.SeedQuickstartRequest,
 ) (*s4wave_quickstart_registry.SeedQuickstartResponse, error) {
+	// Require the SQL quickstart and its attached Engine.
 	if req.GetQuickstartId() != SQLQuickstartID {
 		return nil, errors.Errorf("sql plugin: unhandled quickstart %s", req.GetQuickstartId())
 	}
 	if req.GetAttachedEngineResourceId() == 0 {
 		return nil, errors.New("sql plugin: attached engine resource is required")
 	}
+
+	// Attach the quickstart Engine until seeding completes.
 	engine, err := sdk_world_engine.NewAttachedEngine(ctx, req.GetAttachedEngineResourceId())
 	if err != nil {
 		return nil, errors.Wrap(err, "sql plugin: attach quickstart engine")
 	}
 	defer engine.Release()
 
+	// Seed the SQL database and example query in the attached WorldState.
 	ws := world.NewEngineWorldState(engine, true)
 	if err := h.seedSQLQuickstart(ctx, ws); err != nil {
 		return nil, errors.Wrap(err, "sql plugin: seed quickstart")
@@ -297,6 +321,7 @@ func (h *SQLHandler) SeedQuickstart(
 }
 
 func (h *SQLHandler) seedSQLQuickstart(ctx context.Context, ws world.WorldState) error {
+	// Create the SQL database object in the quickstart WorldState.
 	{
 		createdObject, err := ws.CreateObject(ctx, sqlQuickstartDBKey, nil)
 		world.ReleaseObjectState(createdObject)
@@ -304,12 +329,16 @@ func (h *SQLHandler) seedSQLQuickstart(ctx context.Context, ws world.WorldState)
 			return errors.Wrap(err, "create SQL database object")
 		}
 	}
+
+	// Seed the SQL database and assign its object type.
 	if err := h.seedSQLDatabase(ctx, ws); err != nil {
 		return errors.Wrap(err, "seed SQL database")
 	}
 	if err := world_types.SetObjectType(ctx, ws, sqlQuickstartDBKey, s4wave_sql_world.SqlDbTypeID); err != nil {
 		return errors.Wrap(err, "set SQL database object type")
 	}
+
+	// Create the example query against the quickstart database.
 	query := &s4wave_sql_query.Query{
 		SqlText:           "SELECT name, role FROM quickstart.people WHERE id = ?",
 		DialectHint:       "mysql",
@@ -326,6 +355,8 @@ func (h *SQLHandler) seedSQLQuickstart(ctx context.Context, ws world.WorldState)
 	if err != nil {
 		return errors.Wrap(err, "create SQL query object")
 	}
+
+	// Assign the SQL query object type to the example query.
 	if err := world_types.SetObjectType(ctx, ws, sqlQuickstartQueryKey, s4wave_sql_query.SqlQueryTypeID); err != nil {
 		return errors.Wrap(err, "set SQL query object type")
 	}
@@ -333,20 +364,25 @@ func (h *SQLHandler) seedSQLQuickstart(ctx context.Context, ws world.WorldState)
 }
 
 func (h *SQLHandler) seedSQLDatabase(ctx context.Context, ws world.WorldState) error {
+	// Open the SQL database object for quickstart seeding.
 	obj, err := world.MustGetObject(ctx, ws, sqlQuickstartDBKey)
 	defer world.ReleaseObjectState(obj)
 	if err != nil {
 		return errors.Wrap(err, "open SQL database object")
 	}
 
+	// Build the SQL database root with its schema and sample rows.
 	var committedRoot *bucket.ObjectRef
 	if err := obj.AccessWorldState(ctx, nil, func(root *bucket_lookup.Cursor) error {
+		// Open the SQL store and retain its latest committed root.
 		sqlRoot := root.Clone()
 		defer sqlRoot.Release()
 		store := sql_mysql.NewMysql(sqlRoot, func(next *bucket.ObjectRef) error {
 			committedRoot = next.Clone()
 			return nil
 		})
+
+		// Create and commit the quickstart database schema.
 		tx, err := store.NewMysqlTransaction(ctx, true)
 		if err != nil {
 			return errors.Wrap(err, "open quickstart schema transaction")
@@ -369,6 +405,8 @@ func (h *SQLHandler) seedSQLDatabase(ctx context.Context, ws world.WorldState) e
 	}); err != nil {
 		return errors.Wrap(err, "build SQL database root")
 	}
+
+	// Commit the populated SQL root to the database object.
 	if committedRoot == nil || committedRoot.GetEmpty() {
 		return errors.New("sql plugin: quickstart SQL root is empty")
 	}
@@ -379,11 +417,14 @@ func (h *SQLHandler) seedSQLDatabase(ctx context.Context, ws world.WorldState) e
 }
 
 func execSQLTx(ctx context.Context, store s4wave_sql.SqlStore, dsn string, statements []string) error {
+	// Open a writable SQL transaction for the requested database.
 	tx, err := store.NewSqlTransaction(ctx, true, dsn)
 	if err != nil {
 		return err
 	}
 	defer tx.Discard()
+
+	// Execute the supplied SQL statements through the transaction.
 	ops, err := tx.GetSqlOps(ctx)
 	if err != nil {
 		return err

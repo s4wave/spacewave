@@ -12,12 +12,14 @@ func (a *API) Identify(
 	req *peer_api.IdentifyRequest,
 	serv peer_api.SRPCPeerService_IdentifyStream,
 ) error {
+	// Validate the requested private key identity configuration.
 	ctx := serv.Context()
 	conf := req.GetConfig()
 	if err := conf.Validate(); err != nil {
 		return err
 	}
 
+	// Bind identity management to the request lifetime.
 	reqCtx, reqCtxCancel := context.WithCancel(ctx)
 	defer reqCtxCancel()
 

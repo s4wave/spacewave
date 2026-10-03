@@ -33,6 +33,7 @@ type canvasWatchSnapshot struct {
 
 // NewCanvasResource creates a new CanvasResource.
 func NewCanvasResource(ws world.WorldState, engine world.Engine, objKey string, state *CanvasState) *CanvasResource {
+	// Construct the Canvas resource with an initial logical state.
 	if state == nil {
 		state = &CanvasState{}
 	}
@@ -42,11 +43,15 @@ func NewCanvasResource(ws world.WorldState, engine world.Engine, objKey string, 
 		objKey: objKey,
 		state:  state,
 	}
+
+	// Watch the World object when the Canvas resource has a backing World.
 	if ws != nil && objKey != "" {
 		r.watch = routine.NewRoutineContainer()
 		r.watch.SetRoutine(r.watchCanvasWorld)
 		r.watch.SetContext(context.Background(), false)
 	}
+
+	// Expose the Canvas resource through its RPC mux.
 	r.mux = resource_server.NewResourceMux(func(mux srpc.Mux) error {
 		return SRPCRegisterCanvasResourceService(mux, r)
 	})
@@ -88,6 +93,7 @@ func (r *CanvasResource) UpdateCanvas(ctx context.Context, req *UpdateCanvasRequ
 	})
 	updated := previous.CloneVT()
 
+	// Prepare the Canvas node map to receive updates.
 	if updated.Nodes == nil {
 		updated.Nodes = make(map[string]*CanvasNode)
 	}
@@ -248,6 +254,7 @@ func (r *CanvasResource) watchCanvasWorld(ctx context.Context) error {
 }
 
 func (r *CanvasResource) readCanvasWorldState(ctx context.Context, objState world.ObjectState) (*CanvasState, error) {
+	// Read the Canvas logical state from the World object root.
 	var state *CanvasState
 	_, _, err := world.AccessObjectState(ctx, objState, false, func(bcs *block.Cursor) error {
 		var uerr error
@@ -309,6 +316,7 @@ func canvasWatchSnapshotsEqual(a, b *canvasWatchSnapshot) bool {
 
 // persistState writes the canvas state to the world via a write transaction.
 func (r *CanvasResource) persistState(ctx context.Context, previous, next *CanvasState) error {
+	// Open a write transaction and access the Canvas World object.
 	wtx, err := r.engine.NewTransaction(ctx, true)
 	if err != nil {
 		return err
@@ -323,6 +331,8 @@ func (r *CanvasResource) persistState(ctx context.Context, previous, next *Canva
 		wtx.Discard()
 		return world.ErrObjectNotFound
 	}
+
+	// Write the requested Canvas state before committing the transaction.
 	_, _, err = world.AccessObjectState(ctx, writeState, true, func(bcs *block.Cursor) error {
 		return WriteCanvasState(ctx, bcs, previous, next)
 	})
