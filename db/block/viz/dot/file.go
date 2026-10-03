@@ -17,15 +17,20 @@ func PlotToFile(
 	bcs *block.Cursor,
 	visitorCb traverse.Visitor,
 ) error {
+	// Render the block graph before opening its output file.
 	dat, err := Plot(ctx, blk, btx, bcs, visitorCb)
 	if err != nil {
 		return err
 	}
+
+	// Open the requested DOT file, replacing its previous contents.
 	of, err := os.OpenFile(outFilePath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0o644)
 	if err != nil {
 		return err
 	}
 	defer of.Close()
+
+	// Write the DOT graph and flush the file to storage.
 	_, _ = of.WriteString(string(dat))
 	_, _ = of.WriteString("\n")
 	if err := of.Sync(); err != nil {

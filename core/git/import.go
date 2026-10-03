@@ -28,6 +28,7 @@ func CloneGitRepoToRef(
 	authMethod client.SSHAuth,
 	progress sideband.Progress,
 ) (*bucket.ObjectRef, error) {
+	// Configure the remote clone to populate repository storage without a checkout.
 	cloneArgs := cloneOpts.BuildCloneOpts()
 	cloneArgs.NoCheckout = true
 	if authMethod != nil {
@@ -40,6 +41,7 @@ func CloneGitRepoToRef(
 		ws.AccessWorldState,
 		nil,
 		func(bcs *block.Cursor) error {
+			// Open repository storage inside the World object transaction.
 			root := git_block.NewRepo()
 			bcs.SetBlock(root, true)
 			store, err := git_block.NewStore(ctx, nil, bcs, &memory.IndexStorage{}, nil)
@@ -48,6 +50,7 @@ func CloneGitRepoToRef(
 			}
 			defer store.Close()
 
+			// Clone the remote repository and commit its stored graph.
 			_, err = git.CloneContext(ctx, store, memfs.New(), cloneArgs)
 			if err != nil {
 				return errors.Wrap(err, "clone")

@@ -13,8 +13,10 @@ import (
 )
 
 func setupGitWizardWorld(t *testing.T) (context.Context, *world_testbed.Testbed, world.WorldState) {
+	// Attribute wizard World setup failures to the calling test.
 	t.Helper()
 
+	// Start a World testbed and release its resources after the test.
 	ctx := t.Context()
 	tb, err := world_testbed.Default(ctx)
 	if err != nil {
@@ -22,6 +24,7 @@ func setupGitWizardWorld(t *testing.T) (context.Context, *world_testbed.Testbed,
 	}
 	t.Cleanup(tb.Release)
 
+	// Attach the Git operation controller used by the repository wizard.
 	gitOpc := world.NewLookupOpController("test-alpha-git-wizard-ops", tb.EngineID, git_world.LookupGitOp)
 	if _, err := tb.Bus.AddController(ctx, gitOpc, nil); err != nil {
 		t.Fatal(err)

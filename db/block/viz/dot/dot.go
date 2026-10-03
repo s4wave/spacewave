@@ -42,10 +42,12 @@ func Plot(
 
 // Marshal renders the block graph in the Graphviz DOT language.
 func Marshal(g *block.BlockGraph, name string) ([]byte, error) {
+	// Open the named DOT graph with left-to-right layout.
 	out := &bytes.Buffer{}
 	fmt.Fprintf(out, "digraph %q {\n", name)
 	fmt.Fprintf(out, "\tgraph [rankdir=LR]\n")
 
+	// Render block nodes and retain their DOT identifiers for edges.
 	nodeIDs := make(map[int64]string)
 	for _, nod := range g.Nodes() {
 		id, err := dotNodeID(nod)
@@ -64,6 +66,7 @@ func Marshal(g *block.BlockGraph, name string) ([]byte, error) {
 		out.WriteString(line + "\n")
 	}
 
+	// Render edges whose endpoints have DOT identifiers.
 	for _, e := range g.Edges() {
 		fromID, ok := nodeIDs[e.From().ID()]
 		if !ok {
@@ -76,6 +79,7 @@ func Marshal(g *block.BlockGraph, name string) ([]byte, error) {
 		fmt.Fprintf(out, "\t%s -> %s\n", fromID, toID)
 	}
 
+	// Close the DOT graph and return its encoded contents.
 	out.WriteString("}\n")
 	return out.Bytes(), nil
 }
