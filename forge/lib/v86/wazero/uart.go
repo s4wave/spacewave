@@ -43,10 +43,13 @@ type uartDevice struct {
 
 // registerUART wires a COM port at port on its ISA interrupt line; COM1
 func (h *HostRuntime) registerUART(port uint16) {
+	// Select the UART interrupt line from its COM port.
 	irq := uint32(4)
 	if port == 0x2f8 || port == 0x2e8 {
 		irq = 3
 	}
+
+	// Initialize the UART with an empty transmitter and no active interrupt.
 	u := &uartDevice{
 		host: h,
 		port: port,
@@ -55,6 +58,8 @@ func (h *HostRuntime) registerUART(port uint16) {
 		lsr:  uartLsrTransmitterEmpty | uartLsrTXEmpty,
 		iir:  uartIirNoInt,
 	}
+
+	// Connect COM1 to the Host serial interface and register the UART ports.
 	if port == 0x3f8 {
 		h.serial = u
 	}
@@ -63,6 +68,7 @@ func (h *HostRuntime) registerUART(port uint16) {
 
 // register wires the eight UART register ports, including the DLAB-shared
 func (u *uartDevice) register() {
+	// Register UART data transfers and the low divisor latch.
 	u.host.RegisterIOWrite(u.port, 8, func(ctx context.Context, _ uint16, value uint32) {
 		u.writeData(ctx, value)
 	})
@@ -71,12 +77,17 @@ func (u *uartDevice) register() {
 		u.writeData(ctx, value>>8)
 	})
 	u.host.RegisterIORead(u.port, 8, func(ctx context.Context, _ uint16) uint32 {
+		// Read the UART divisor latch when baud-rate programming is active.
 		if u.lineControl&uartDLAB != 0 {
 			return u.baudRate & 0xff
 		}
+
+		// Return an empty UART receive register when no input is queued.
 		if len(u.input) == 0 {
 			return 0
 		}
+
+		// Consume one UART input byte and clear receive interrupts when drained.
 		data := u.input[0]
 		u.input = u.input[1:]
 		if len(u.input) == 0 {
@@ -84,9 +95,11 @@ func (u *uartDevice) register() {
 			u.clearInterrupt(ctx, uartIirCTI)
 			u.clearInterrupt(ctx, uartIirRDI)
 		}
+
 		return uint32(data)
 	})
 
+	// Register the UART interrupt mask and high divisor latch.
 	u.host.RegisterIOWrite(u.port|1, 8, func(ctx context.Context, _ uint16, value uint32) {
 		if u.lineControl&uartDLAB != 0 {
 			u.baudRate = (u.baudRate & 0xff) | (value << 8)
@@ -105,6 +118,7 @@ func (u *uartDevice) register() {
 		return u.ier & 0xf
 	})
 
+	// Register UART interrupt acknowledgement and FIFO controls.
 	u.host.RegisterIORead(u.port|2, 8, func(ctx context.Context, _ uint16) uint32 {
 		ret := u.iir & 0xf
 		if u.iir == uartIirTHRI {
@@ -119,12 +133,15 @@ func (u *uartDevice) register() {
 		u.fifoControl = value
 	})
 
+	// Register UART line, modem, and transmitter status controls.
 	u.host.RegisterIORead(u.port|3, 8, func(context.Context, uint16) uint32 { return u.lineControl })
 	u.host.RegisterIOWrite(u.port|3, 8, func(_ context.Context, _ uint16, value uint32) { u.lineControl = value })
 	u.host.RegisterIORead(u.port|4, 8, func(context.Context, uint16) uint32 { return u.modemControl })
 	u.host.RegisterIOWrite(u.port|4, 8, func(_ context.Context, _ uint16, value uint32) { u.modemControl = value })
 	u.host.RegisterIORead(u.port|5, 8, func(context.Context, uint16) uint32 { return u.lsr })
 	u.host.RegisterIOWrite(u.port|5, 8, func(context.Context, uint16, uint32) {})
+
+	// Register UART modem status acknowledgement and scratch storage.
 	u.host.RegisterIORead(u.port|6, 8, func(context.Context, uint16) uint32 {
 		value := u.modemStatus
 		u.modemStatus &= 0xf0
@@ -137,15 +154,20 @@ func (u *uartDevice) register() {
 
 // writeData transmits one byte: in loopback mode it feeds the receiver,
 func (u *uartDevice) writeData(ctx context.Context, value uint32) {
+	// Program the low UART divisor byte while the latch is selected.
 	if u.lineControl&uartDLAB != 0 {
 		u.baudRate = (u.baudRate &^ 0xff) | (value & 0xff)
 		return
 	}
+
+	// Signal UART transmitter readiness and route loopback bytes to input.
 	u.throwInterrupt(ctx, uartIirTHRI)
 	if u.modemControl&uartMcrLoopback != 0 {
 		u.receive(ctx, byte(value)) //nolint:gosec // UART data registers are one byte wide.
 		return
 	}
+
+	// Deliver the UART output byte to the Host buffer and attached sink.
 	u.host.serialOutput = append(u.host.serialOutput, byte(value)) //nolint:gosec // UART data registers are one byte wide.
 	if u.host.serialSink != nil {
 		_, _ = u.host.serialSink.Write([]byte{byte(value)}) //nolint:gosec // UART data registers are one byte wide.

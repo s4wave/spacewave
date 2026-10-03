@@ -56,13 +56,18 @@ func (c NetworkConfig) toUsernet(mac [6]byte) usernet.Config {
 // of waiting on the emulator idle timer. Guest transmits flow back out through
 // SetOutbound on the CPU goroutine.
 func (h *HostRuntime) registerNetworking(ctx context.Context, cfg NetworkConfig) {
+	// Require the Host PCI bus before attaching guest networking.
 	if h.pci == nil {
 		return
 	}
+
+	// Choose the guest NIC address from the network configuration.
 	mac := cfg.GuestMAC
 	if mac == ([6]byte{}) {
 		mac = defaultGuestMAC
 	}
+
+	// Connect the guest NE2000 NIC to a usermode stack and inbound wake channel.
 	dev := h.registerNE2K(ctx, 0, mac)
 	wake := make(chan struct{}, 1)
 	stack := usernet.New(cfg.toUsernet(mac), func(frame []byte) {
@@ -73,6 +78,8 @@ func (h *HostRuntime) registerNetworking(ctx context.Context, cfg NetworkConfig)
 		}
 	}, cfg.Logger)
 	dev.SetOutbound(stack.HandleOutbound)
+
+	// Retain the guest NIC, network stack, and wake channel on the Host.
 	h.ne2k = dev
 	h.network = stack
 	h.netWake = wake

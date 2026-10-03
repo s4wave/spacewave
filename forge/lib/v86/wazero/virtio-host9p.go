@@ -29,9 +29,12 @@ type virtioHost9PDevice struct {
 
 // registerHost9P exposes a Host9PFS to the guest as a virtio PCI device
 func (h *HostRuntime) registerHost9P(fs *Host9PFS) {
+	// Require a PCI bus and filesystem before exposing the virtio host9p device.
 	if h.pci == nil || fs == nil {
 		return
 	}
+
+	// Initialize the virtio host9p features and request queue.
 	dev := &virtioHost9PDevice{
 		featuresOK: true,
 		host:       h,
@@ -44,11 +47,15 @@ func (h *HostRuntime) registerHost9P(fs *Host9PFS) {
 		size:          32,
 		sizeSupported: 32,
 	}
+
+	// Advertise the virtio host9p PCI device and its I/O BAR sizes.
 	h.pci.spaces[virtioHost9PPCIID] = newVirtioHost9PPCISpace()
 	h.pci.setBARSize(virtioHost9PPCIID, 0, 64, true)
 	h.pci.setBARSize(virtioHost9PPCIID, 1, 16, true)
 	h.pci.setBARSize(virtioHost9PPCIID, 2, 16, true)
 	h.pci.setBARSize(virtioHost9PPCIID, 3, 256, true)
+
+	// Wire the virtio host9p configuration, request, and interrupt ports.
 	dev.registerCommonPorts()
 	dev.registerNotifyPorts()
 	dev.registerISRPort()
@@ -120,6 +127,7 @@ func (d *virtioHost9PDevice) reset(ctx context.Context) {
 
 // handleQueue services one available-ring request: it publishes device
 func (d *virtioHost9PDevice) handleQueue(ctx context.Context) {
+	// Publish the virtio host9p notification and queue state to the filesystem.
 	queue := d.queue
 	d.fs.notifies.Add(1)
 	if queue.configured() {
@@ -129,6 +137,8 @@ func (d *virtioHost9PDevice) handleQueue(ctx context.Context) {
 	}
 	d.fs.availIdx.Store(uint32(queue.availIdx()))
 	d.fs.availLastIdx.Store(uint32(queue.availLastIdx))
+
+	// Serve each available virtio host9p request and publish its reply.
 	for queue.configured() && queue.hasRequest() {
 		chain, err := queue.popRequest()
 		if err != nil {
@@ -146,6 +156,8 @@ func (d *virtioHost9PDevice) handleQueue(ctx context.Context) {
 		}
 		queue.pushReply(chain)
 	}
+
+	// Arm virtio host9p queue notifications and flush completed replies.
 	queue.notifyMeAfter(0)
 	queue.flushReplies(ctx)
 }
@@ -174,6 +186,7 @@ func (d *virtioHost9PDevice) virtioRaiseIRQ(ctx context.Context, typ uint32) {
 
 // newVirtioHost9PPCISpace builds the device config space with its four PCI
 func newVirtioHost9PPCISpace() []byte {
+	// Identify the virtio host9p device in its PCI configuration header.
 	space := make([]byte, 256)
 	copy(space, []byte{
 		0xf4, 0x1a, 0x49, 0x10,
@@ -181,19 +194,26 @@ func newVirtioHost9PPCISpace() []byte {
 		0x01, 0x00, 0x02, 0x00,
 		0x00, 0x00, 0x00, 0x00,
 	})
+
+	// Advertise the virtio host9p I/O BARs and subsystem identity.
 	binary.LittleEndian.PutUint32(space[0x10:], virtioHost9PCommonPort|1)
 	binary.LittleEndian.PutUint32(space[0x14:], virtioHost9PNotifyPort|1)
 	binary.LittleEndian.PutUint32(space[0x18:], virtioHost9PISRPort|1)
 	binary.LittleEndian.PutUint32(space[0x1c:], virtioHost9PConfigPort|1)
 	binary.LittleEndian.PutUint16(space[0x2c:], 0x1af4)
 	binary.LittleEndian.PutUint16(space[0x2e:], 9)
+
+	// Configure the virtio host9p capability list and interrupt routing.
 	space[0x34] = 0x40
 	space[0x3c] = virtioHost9PIRQ
 	space[0x3d] = 1
+
+	// Describe the virtio host9p common, notify, ISR, and device capabilities.
 	writeVirtioPCICap(space, 0x40, 0x50, 1, 0, 0, 64, nil)
 	writeVirtioPCICap(space, 0x50, 0x64, 2, 1, 0, 16, []byte{2, 0, 0, 0})
 	writeVirtioPCICap(space, 0x64, 0x74, 3, 2, 0, 16, nil)
 	writeVirtioPCICap(space, 0x74, 0x84, 4, 3, 0, 256, nil)
 	writeVirtioPCICap(space, 0x84, 0, 5, 0, 0, 0, []byte{0, 0, 0, 0})
+
 	return space
 }

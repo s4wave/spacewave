@@ -21,13 +21,17 @@ type ImportReport struct {
 
 // CompileImportReport compiles a wasm artifact and reports the host surface
 func CompileImportReport(ctx context.Context, wasmPath string) (*ImportReport, error) {
+	// Read the v86 wasm artifact for compilation and import inspection.
 	wasmBytes, err := os.ReadFile(wasmPath)
 	if err != nil {
 		return nil, errors.Wrap(err, "read v86 wasm")
 	}
+
+	// Create a wazero runtime for the import report and release it afterward.
 	r := wazero.NewRuntime(ctx)
 	defer r.Close(ctx)
 
+	// Compile the v86 artifact and release the compiled module afterward.
 	compiled, err := r.CompileModule(ctx, wasmBytes)
 	if err != nil {
 		return nil, errors.Wrap(err, "compile v86 wasm with wazero")
@@ -49,11 +53,14 @@ func TryInstantiateEmscriptenV86(ctx context.Context, wasmPath string) (*ImportR
 
 // importReport summarizes the imports of a compiled v86 module and verifies
 func importReport(compiled wazero.CompiledModule, wasmBytes []byte) (*ImportReport, error) {
+	// Record the imported v86 function signatures.
 	report := &ImportReport{}
 	for _, fn := range compiled.ImportedFunctions() {
 		moduleName, name, _ := fn.Import()
 		report.Functions = append(report.Functions, formatImport(moduleName, name, fn.ParamTypes(), fn.ResultTypes()))
 	}
+
+	// Record the imported v86 memories and their size limits.
 	for _, mem := range compiled.ImportedMemories() {
 		moduleName, name, _ := mem.Import()
 		maxText := "unbounded"
@@ -63,6 +70,8 @@ func importReport(compiled wazero.CompiledModule, wasmBytes []byte) (*ImportRepo
 		report.Memories = append(report.Memories,
 			moduleName+"."+name+" min="+strconv.FormatUint(uint64(mem.Min()), 10)+" max="+maxText)
 	}
+
+	// Decode the v86 table imports from the wasm artifact.
 	imports, err := parseWasmExternImports(wasmBytes)
 	if err != nil {
 		return nil, errors.Wrap(err, "parse v86 wasm table imports")
@@ -70,9 +79,12 @@ func importReport(compiled wazero.CompiledModule, wasmBytes []byte) (*ImportRepo
 	for _, table := range imports.Tables {
 		report.Tables = append(report.Tables, table.String())
 	}
+
+	// Record the v86 exported function names.
 	for name := range compiled.ExportedFunctions() {
 		report.Exports = append(report.Exports, name)
 	}
+
 	return report, nil
 }
 
@@ -140,11 +152,14 @@ func (l wasmLimits) String() string {
 
 // parseWasmExternImports walks the wasm binary's import section and returns
 func parseWasmExternImports(wasmBytes []byte) (*wasmExternImports, error) {
+	// Validate the wasm header before traversing its sections.
 	r := wasmReader{data: wasmBytes}
 	if len(wasmBytes) < 8 || string(wasmBytes[:4]) != "\x00asm" {
 		return nil, errors.New("invalid wasm magic")
 	}
 	r.pos = 8
+
+	// Find and decode the wasm import section.
 	for r.remaining() > 0 {
 		sectionID, err := r.byte()
 		if err != nil {
@@ -163,16 +178,20 @@ func parseWasmExternImports(wasmBytes []byte) (*wasmExternImports, error) {
 		}
 		return parseImportedExterns(section)
 	}
+
 	return &wasmExternImports{}, nil
 }
 
 // parseImportedExterns decodes one import-section payload into the externs
 func parseImportedExterns(section []byte) (*wasmExternImports, error) {
+	// Read the wasm import count before decoding its entries.
 	r := wasmReader{data: section}
 	count, err := r.u32()
 	if err != nil {
 		return nil, err
 	}
+
+	// Collect the wasm memory and table imports while consuming every entry.
 	imports := &wasmExternImports{}
 	for range count {
 		moduleName, err := r.name()
@@ -226,6 +245,7 @@ func parseImportedExterns(section []byte) (*wasmExternImports, error) {
 			return nil, errors.Errorf("unknown wasm import kind %d", kind)
 		}
 	}
+
 	return imports, nil
 }
 
@@ -275,6 +295,7 @@ func (r *wasmReader) name() (string, error) {
 
 // limits consumes a flags-prefixed min/max pair.
 func (r *wasmReader) limits() (wasmLimits, error) {
+	// Decode the wasm limits flags and required minimum size.
 	flags, err := r.u32()
 	if err != nil {
 		return wasmLimits{}, err
@@ -283,13 +304,18 @@ func (r *wasmReader) limits() (wasmLimits, error) {
 	if err != nil {
 		return wasmLimits{}, err
 	}
+
+	// Return an unbounded wasm limit when no maximum is encoded.
 	if flags&1 == 0 {
 		return wasmLimits{Min: min}, nil
 	}
+
+	// Decode the optional maximum size of the wasm limit.
 	max, err := r.u32()
 	if err != nil {
 		return wasmLimits{}, err
 	}
+
 	return wasmLimits{Min: min, Max: &max}, nil
 }
 

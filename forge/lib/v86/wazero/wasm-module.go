@@ -10,12 +10,15 @@ import (
 
 // buildSharedModule emits the wasm module that re-exports the imported
 func buildSharedModule(imports *wasmExternImports, opts HostRuntimeOptions) ([]byte, error) {
+	// Require the shared v86 module to have at most one memory and table.
 	if len(imports.Memories) > 1 {
 		return nil, errors.Errorf("v86 host runtime supports one imported memory, got %d", len(imports.Memories))
 	}
 	if len(imports.Tables) > 1 {
 		return nil, errors.Errorf("v86 host runtime supports one imported table, got %d", len(imports.Tables))
 	}
+
+	// Choose the shared v86 memory size from import limits and host options.
 	memoryMin := uint32(0)
 	for _, memory := range imports.Memories {
 		memoryMin = max(memoryMin, memory.Limits.Min)
@@ -26,11 +29,14 @@ func buildSharedModule(imports *wasmExternImports, opts HostRuntimeOptions) ([]b
 	if opts.InitialMemoryPages != 0 {
 		memoryMin = max(memoryMin, opts.InitialMemoryPages)
 	}
+
+	// Choose the shared v86 table size from its import limits.
 	tableMin := uint32(0)
 	for _, table := range imports.Tables {
 		tableMin = max(tableMin, table.Limits.Min)
 	}
 
+	// Encode the shared v86 table and memory definitions.
 	var sections [][]byte
 	if len(imports.Tables) != 0 {
 		tableSection := appendU32(nil, 1)
@@ -43,13 +49,17 @@ func buildSharedModule(imports *wasmExternImports, opts HostRuntimeOptions) ([]b
 		memorySection = appendLimits(memorySection, wasmLimits{Min: memoryMin})
 		sections = append(sections, wasmSection(5, memorySection))
 	}
+
+	// Export the shared v86 memory and table under their imported names.
 	exportSection := appendExternExports(appendU32(nil, uint32(len(imports.Memories)+len(imports.Tables))), imports) //nolint:gosec // wasm export counts are in-memory module slice lengths.
 	sections = append(sections, wasmSection(7, exportSection))
+
 	return wasmModule(sections...), nil
 }
 
 // buildEnvModule emits the goenv module: it imports the shared memory and
 func buildEnvModule(compiled wazero.CompiledModule, imports *wasmExternImports) ([]byte, error) {
+	// Describe the function signatures and imports used by the v86 environment.
 	type typeEntry struct {
 		params  []api.ValueType
 		results []api.ValueType
@@ -58,6 +68,8 @@ func buildEnvModule(compiled wazero.CompiledModule, imports *wasmExternImports) 
 		name      string
 		typeIndex uint32
 	}
+
+	// Deduplicate v86 environment signatures and retain their function imports.
 	typeMap := map[string]uint32{}
 	var types []typeEntry
 	var funcs []functionImport
@@ -76,6 +88,7 @@ func buildEnvModule(compiled wazero.CompiledModule, imports *wasmExternImports) 
 		funcs = append(funcs, functionImport{name: name, typeIndex: typeIndex})
 	}
 
+	// Encode the v86 environment function signatures in the wasm type section.
 	typeSection := appendU32(nil, uint32(len(types))) //nolint:gosec // wasm section counts are in-memory slice lengths.
 	for _, typ := range types {
 		typeSection = append(typeSection, 0x60)
@@ -83,6 +96,7 @@ func buildEnvModule(compiled wazero.CompiledModule, imports *wasmExternImports) 
 		typeSection = appendValueTypes(typeSection, typ.results)
 	}
 
+	// Import shared v86 memory and tables alongside host environment functions.
 	importCount := uint32(len(funcs) + len(imports.Memories) + len(imports.Tables)) //nolint:gosec // wasm import counts are in-memory module slice lengths.
 	importSection := appendU32(nil, importCount)
 	if len(imports.Memories) != 0 {
@@ -104,6 +118,7 @@ func buildEnvModule(compiled wazero.CompiledModule, imports *wasmExternImports) 
 		importSection = appendU32(importSection, fn.typeIndex)
 	}
 
+	// Re-export the v86 environment functions, memory, and tables.
 	exportCount := uint32(len(funcs) + len(imports.Memories) + len(imports.Tables)) //nolint:gosec // wasm export counts are in-memory module slice lengths.
 	exportSection := appendU32(nil, exportCount)
 	exportSection = appendExternExports(exportSection, imports)
@@ -138,14 +153,18 @@ func appendExternExports(out []byte, imports *wasmExternImports) []byte {
 
 // signatureKey builds a map key identifying a function signature.
 func signatureKey(params, results []api.ValueType) string {
+	// Encode the wasm parameter types as the first half of the signature key.
 	var b strings.Builder
 	for _, typ := range params {
 		b.WriteByte(typ)
 	}
+
+	// Separate and encode the wasm result types in the signature key.
 	b.WriteByte(':')
 	for _, typ := range results {
 		b.WriteByte(typ)
 	}
+
 	return b.String()
 }
 

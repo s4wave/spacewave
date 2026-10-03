@@ -21,6 +21,7 @@ func (h *HostRuntime) registerEmptyATA() {
 // registerEmptyATAChannel stubs one ATA channel at the given port bases:
 // command registers read as zero, the alternate status reads zero, and the
 func (h *HostRuntime) registerEmptyATAChannel(commandBase, controlBase, busMasterBase uint16) {
+	// Expose empty ATA command and control registers on the channel.
 	for offset := range uint16(8) {
 		port := commandBase + offset
 		h.RegisterIORead(port, 8, func(context.Context, uint16) uint32 {
@@ -33,6 +34,7 @@ func (h *HostRuntime) registerEmptyATAChannel(commandBase, controlBase, busMaste
 	})
 	h.RegisterIOWrite(controlBase+ataRegAltStatus, 8, func(context.Context, uint16, uint32) {})
 
+	// Expose empty ATA bus-master registers for byte transfers.
 	for offset := range uint16(8) {
 		port := busMasterBase + offset
 		h.RegisterIORead(port, 8, func(context.Context, uint16) uint32 {
@@ -40,6 +42,8 @@ func (h *HostRuntime) registerEmptyATAChannel(commandBase, controlBase, busMaste
 		})
 		h.RegisterIOWrite(port, 8, func(context.Context, uint16, uint32) {})
 	}
+
+	// Expose empty ATA bus-master registers for full-width transfers.
 	h.RegisterIORead(busMasterBase, 32, func(context.Context, uint16) uint32 {
 		return 0
 	})

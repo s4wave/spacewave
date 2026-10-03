@@ -57,6 +57,7 @@ func OptionsFromEnv() AssetOptions {
 
 // withDefaults fills unset options with the standard fixture and cache locations.
 func (o AssetOptions) withDefaults() AssetOptions {
+	// Supply the v86 asset logger and published CDN fixture defaults.
 	if o.Le == nil {
 		o.Le = logrus.NewEntry(logrus.StandardLogger())
 	}
@@ -69,8 +70,11 @@ func (o AssetOptions) withDefaults() AssetOptions {
 	if o.ImageKey == "" {
 		o.ImageKey = DefaultV86ImageKey
 	}
+
+	// Place the default v86 asset cache under the repository root.
 	if o.CacheDir == "" {
 		o.CacheDir = filepath.Join(repoRootOrCwd(), DefaultAssetCacheSubdir)
 	}
+
 	return o
 }

@@ -59,26 +59,34 @@ func OpenV86Root(mode RootMode, rootfsTar string) (*unixfs_v86fs.Server, func(),
 
 // openV86RootLower parses the rootfs tar into a read-only lower cursor.
 func openV86RootLower(rootfsTar string) (unixfs.FSCursor, error) {
+	// Open the guest rootfs archive and close it after parsing.
 	f, err := os.Open(rootfsTar)
 	if err != nil {
 		return nil, errors.Wrap(err, "open rootfs tar")
 	}
 	defer f.Close()
+
+	// Parse the guest rootfs archive into its read-only filesystem cursor.
 	cursor, err := unixfs_tar.NewTarFSCursorFromReader(f)
 	if err != nil {
 		return nil, errors.Wrap(err, "parse rootfs tar")
 	}
+
 	return cursor, nil
 }
 
 // openV86RootServer wraps a root cursor in a v86fs server serving /.
 func openV86RootServer(cursor unixfs.FSCursor) (*unixfs_v86fs.Server, func(), error) {
+	// Transfer the guest root cursor into a filesystem handle.
 	handle, err := unixfs.NewFSHandle(cursor)
 	if err != nil {
 		cursor.Release()
 		return nil, nil, errors.Wrap(err, "build rootfs handle")
 	}
+
+	// Mount the guest root handle at the v86fs server root.
 	server := unixfs_v86fs.NewServer(nil, nil)
 	server.AddMount("", "/", handle)
+
 	return server, handle.Release, nil
 }

@@ -23,6 +23,7 @@ type pciDevice struct {
 
 // registerPCI wires the 0xcf8/0xcfc config ports and seeds the host bridge
 func (h *HostRuntime) registerPCI() {
+	// Seed the Host PCI bus with its host and ISA bridges.
 	pci := &pciDevice{
 		host: h,
 		spaces: map[uint16][]byte{
@@ -35,6 +36,7 @@ func (h *HostRuntime) registerPCI() {
 	}
 	h.pci = pci
 
+	// Register PCI configuration address access for 16-bit and 32-bit transfers.
 	h.RegisterIOWrite(pciConfigAddress, 32, func(_ context.Context, _ uint16, value uint32) {
 		pci.addr = value &^ 3
 		pci.query()
@@ -48,6 +50,8 @@ func (h *HostRuntime) registerPCI() {
 	h.RegisterIORead(pciConfigAddress+2, 16, func(context.Context, uint16) uint32 {
 		return pci.addr >> 16
 	})
+
+	// Register PCI configuration data access for 16-bit and 32-bit transfers.
 	h.RegisterIORead(pciConfigData, 32, func(context.Context, uint16) uint32 {
 		return binary.LittleEndian.Uint32(pci.response[:])
 	})
@@ -67,6 +71,7 @@ func (h *HostRuntime) registerPCI() {
 		pci.write(2, value, 2)
 	})
 
+	// Register byte access to each PCI configuration address and data lane.
 	for offset := range uint16(4) {
 		i := offset
 		h.RegisterIORead(pciConfigData+i, 8, func(context.Context, uint16) uint32 {
@@ -93,16 +98,21 @@ func (h *HostRuntime) registerPCI() {
 
 // query resolves the latched config address into the response bytes,
 func (p *pciDevice) query() {
+	// Default the PCI response to an absent device when access is disabled.
 	p.response = [4]byte{0xff, 0xff, 0xff, 0xff}
 	if p.addr&0x80000000 == 0 {
 		return
 	}
+
+	// Resolve the selected PCI device and configuration offset.
 	bdf := uint16((p.addr >> 8) & 0xffff)
 	addr := int(p.addr & 0xff)
 	space := p.spaces[bdf]
 	if space == nil || addr >= len(space) {
 		return
 	}
+
+	// Return the PCI configuration bytes or a BAR sizing probe mask.
 	copy(p.response[:], space[addr:])
 	if bar := pciBARIndex(addr); bar >= 0 && p.barProbes[bdf] != nil && p.barProbes[bdf][bar] {
 		size := p.barSizes[bdf][bar]
@@ -121,15 +131,20 @@ func (p *pciDevice) query() {
 
 // write stores config-space bytes, detecting BAR sizing probes and moving
 func (p *pciDevice) write(offset, value uint32, width int) {
+	// Ignore PCI configuration writes while the address latch is disabled.
 	if p.addr&0x80000000 == 0 {
 		return
 	}
+
+	// Resolve the target PCI device and configuration byte offset.
 	bdf := uint16((p.addr >> 8) & 0xffff)
 	addr := int(p.addr&0xff) + int(offset)
 	space := p.spaces[bdf]
 	if space == nil || addr >= len(space) {
 		return
 	}
+
+	// Apply full-width PCI writes, including BAR probes and I/O port relocation.
 	if width == 4 {
 		if bar := pciBARIndex(addr); bar >= 0 {
 			if _, ok := p.barProbes[bdf]; !ok {
@@ -149,6 +164,8 @@ func (p *pciDevice) write(offset, value uint32, width int) {
 		p.query()
 		return
 	}
+
+	// Apply PCI word writes outside the BAR registers and refresh the response.
 	if width == 2 {
 		if pciBARIndex(addr&^3) >= 0 {
 			return
@@ -157,6 +174,8 @@ func (p *pciDevice) write(offset, value uint32, width int) {
 		p.query()
 		return
 	}
+
+	// Apply a PCI byte write and refresh the selected configuration response.
 	space[addr] = byte(value) //nolint:gosec // the registered 8-bit PCI write uses the low byte.
 	p.query()
 }

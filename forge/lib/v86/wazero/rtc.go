@@ -64,6 +64,7 @@ type cmosDevice struct {
 
 // registerCMOS seeds the CMOS from wall-clock time and wires its ports.
 func (h *HostRuntime) registerCMOS() {
+	// Seed the Host CMOS clock and default interrupt configuration.
 	now := time.Now().UnixMilli()
 	cmos := &cmosDevice{
 		host:                  h,
@@ -75,6 +76,8 @@ func (h *HostRuntime) registerCMOS() {
 	}
 	h.cmos = cmos
 	cmos.fill(h.guestMemorySize)
+
+	// Expose the CMOS index and data registers to the guest.
 	h.RegisterIOWrite(0x70, 8, func(_ context.Context, _ uint16, value uint32) {
 		cmos.index = byte(value & 0x7f)     //nolint:gosec // CMOS index is the low 7 bits of the 8-bit hardware port.
 		cmos.nmiDisabled = byte(value >> 7) //nolint:gosec // the NMI flag is one hardware bit.
@@ -90,12 +93,14 @@ func (h *HostRuntime) registerCMOS() {
 // fill writes the standard CMOS memory map: base and extended memory sizes,
 // equipment info, and the SMP count byte.
 func (c *cmosDevice) fill(memorySize uint32) {
+	// Populate CMOS boot order and conventional memory sizes.
 	bootOrder := bootOrderCDFirst
 	c.data[cmosBiosBootflag1] = byte(1 | ((bootOrder >> 4) & 0xf0)) //nolint:gosec // the boot flag is an eight-bit CMOS register.
 	c.data[cmosBiosBootflag2] = byte(bootOrder & 0xff)
 	c.data[cmosMemBaseLow] = 640 & 0xff
 	c.data[cmosMemBaseHigh] = 640 >> 8
 
+	// Encode CMOS extended memory in KiB.
 	memoryAbove1M := uint32(0)
 	if memorySize >= 1024*1024 {
 		memoryAbove1M = (memorySize - 1024*1024) >> 10
@@ -106,6 +111,7 @@ func (c *cmosDevice) fill(memorySize uint32) {
 	c.data[cmosMemExtLow] = byte(memoryAbove1M)          //nolint:gosec // CMOS stores the low byte of the fixed-width field.
 	c.data[cmosMemExtHigh] = byte(memoryAbove1M >> 8)    //nolint:gosec // CMOS stores the next byte of the fixed-width field.
 
+	// Encode CMOS memory above 16 MiB in 64 KiB units.
 	memoryAbove16M := uint32(0)
 	if memorySize >= 16*1024*1024 {
 		memoryAbove16M = (memorySize - 16*1024*1024) >> 16
@@ -113,6 +119,8 @@ func (c *cmosDevice) fill(memorySize uint32) {
 	}
 	c.data[cmosMemExt2Low] = byte(memoryAbove16M)       //nolint:gosec // CMOS stores the low byte of the fixed-width field.
 	c.data[cmosMemExt2High] = byte(memoryAbove16M >> 8) //nolint:gosec // CMOS stores the next byte of the fixed-width field.
+
+	// Advertise the CMOS high-memory, equipment, and CPU configuration.
 	c.data[cmosMemHighmemLow] = 0
 	c.data[cmosMemHighmemMid] = 0
 	c.data[cmosMemHighmemHigh] = 0
@@ -230,27 +238,34 @@ func (c *cmosDevice) decodeTime(value byte) int {
 
 // timer returns the milliseconds until the next periodic or update
 func (c *cmosDevice) timer(ctx context.Context) float64 {
+	// Advance the CMOS clock by elapsed host time.
 	now := time.Now().UnixMilli()
 	c.rtcTime += now - c.lastUpdate
 	c.lastUpdate = now
 
+	// Deliver the CMOS periodic interrupt and advance its deadline.
 	if c.periodicInterrupt && c.nextPeriodicInterrupt < now {
 		_ = c.host.raiseIRQ(ctx, 8)
 		c.statusC |= (1 << 6) | (1 << 7)
 		missed := float64(now-c.nextPeriodicInterrupt) / c.periodicInterruptTime
 		c.nextPeriodicInterrupt += int64(c.periodicInterruptTime * math.Ceil(missed))
 	}
+
+	// Deliver and disarm the expired CMOS alarm.
 	if c.nextAlarmInterrupt != 0 && c.nextAlarmInterrupt < now {
 		_ = c.host.raiseIRQ(ctx, 8)
 		c.statusC |= (1 << 5) | (1 << 7)
 		c.nextAlarmInterrupt = 0
 	}
+
+	// Deliver the CMOS update interrupt and schedule the next second.
 	if c.updateInterrupt && c.updateInterruptTime < now {
 		_ = c.host.raiseIRQ(ctx, 8)
 		c.statusC |= (1 << 4) | (1 << 7)
 		c.updateInterruptTime = now + 1000
 	}
 
+	// Find the nearest enabled CMOS interrupt deadline.
 	next := 100.0
 	if c.periodicInterrupt && c.nextPeriodicInterrupt != 0 {
 		next = min(next, max(0, float64(c.nextPeriodicInterrupt-now)))
@@ -261,6 +276,7 @@ func (c *cmosDevice) timer(ctx context.Context) float64 {
 	if c.updateInterrupt {
 		next = min(next, max(0, float64(c.updateInterruptTime-now)))
 	}
+
 	return next
 }
 

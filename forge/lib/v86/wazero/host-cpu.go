@@ -19,12 +19,15 @@ const (
 
 // InitCPU initializes the v86 CPU memory and optional BIOS images.
 func (h *HostRuntime) InitCPU(ctx context.Context, opts HostBootOptions) error {
+	// Initialize the v86 Rust runtime and allocate CPU memory.
 	if err := h.RustInit(ctx); err != nil {
 		return err
 	}
 	if err := h.createMemory(ctx, opts); err != nil {
 		return err
 	}
+
+	// Configure v86 execution and reset the CPU to its boot state.
 	if !opts.EnableJIT {
 		if err := h.callVoid(ctx, "set_jit_config", 0, 1); err != nil {
 			return err
@@ -36,6 +39,8 @@ func (h *HostRuntime) InitCPU(ctx context.Context, opts HostBootOptions) error {
 	if err := h.callVoid(ctx, "reset_cpu"); err != nil {
 		return err
 	}
+
+	// Load the configured BIOS and Linux boot images into guest memory.
 	if len(opts.BIOS) != 0 {
 		if err := h.loadBIOS(ctx, opts.BIOS, opts.VGABIOS); err != nil {
 			return err
@@ -46,10 +51,14 @@ func (h *HostRuntime) InitCPU(ctx context.Context, opts HostBootOptions) error {
 			return err
 		}
 	}
+
+	// Register v86 firmware and bus devices before attaching optional peripherals.
 	h.registerFWCfgPorts()
 	h.registerA20Port()
 	h.registerCMOS()
 	h.registerPCI()
+
+	// Attach the configured v86 network and filesystem peripherals.
 	if opts.Networking != nil {
 		h.registerNetworking(ctx, *opts.Networking)
 	}
@@ -59,19 +68,25 @@ func (h *HostRuntime) InitCPU(ctx context.Context, opts HostBootOptions) error {
 	if opts.V86FSServer != nil {
 		h.registerV86FS(ctx, opts.V86FSServer)
 	}
+
+	// Register v86 timer, input, disk, and serial devices.
 	h.registerPIT()
 	h.registerPS2()
 	h.registerEmptyATA()
 	h.registerUART(0x3f8)
+
 	return nil
 }
 
 // MainLoop executes one v86 CPU loop and returns the requested delay.
 func (h *HostRuntime) MainLoop(ctx context.Context) (float64, error) {
+	// Resolve the v86 CPU loop export before executing a tick.
 	fn := h.Module.ExportedFunction("main_loop")
 	if fn == nil {
 		return 0, errors.New("v86 wasm does not export main_loop")
 	}
+
+	// Execute one v86 CPU tick and require its delay result.
 	result, err := fn.Call(ctx)
 	if err != nil {
 		return 0, errors.Wrap(err, "call v86 main_loop")
@@ -79,6 +94,7 @@ func (h *HostRuntime) MainLoop(ctx context.Context) (float64, error) {
 	if len(result) == 0 {
 		return 0, errors.New("v86 main_loop returned no result")
 	}
+
 	return api.DecodeF64(result[0]), nil
 }
 
@@ -95,10 +111,13 @@ func (h *HostRuntime) RunMainLoop(ctx context.Context, ticks int) error {
 
 // createMemory allocates guest memory pages and exports them to the module.
 func (h *HostRuntime) createMemory(ctx context.Context, opts HostBootOptions) error {
+	// Choose the configured v86 memory size or its default.
 	size := opts.MemorySize
 	if size == 0 {
 		size = defaultMemorySize
 	}
+
+	// Reserve enough v86 memory for the configured minimum and initrd.
 	minimumSize := opts.MinimumMemorySize
 	if minimumSize == 0 {
 		minimumSize = defaultMinimumMemorySize
@@ -109,11 +128,14 @@ func (h *HostRuntime) createMemory(ctx context.Context, opts HostBootOptions) er
 		}
 		minimumSize = max(minimumSize, initrdAddress+uint32(len(opts.Initrd))) //nolint:gosec // the preceding address-space check protects the uint32 guest size.
 	}
+
+	// Align the v86 allocation after applying its minimum size.
 	if size < minimumSize {
 		size = minimumSize
 	}
 	size = alignGuestMemorySize(size)
 
+	// Initialize v86 memory and FPU configuration in wasm linear memory.
 	memory := h.Module.Memory()
 	if memory == nil {
 		return errors.New("v86 wasm has no memory")
@@ -128,6 +150,7 @@ func (h *HostRuntime) createMemory(ctx context.Context, opts HostBootOptions) er
 		return errors.New("write v86 fpu_control_word")
 	}
 
+	// Allocate v86 guest memory and retain its offset and size.
 	results, err := h.call(ctx, "allocate_memory", uint64(size))
 	if err != nil {
 		return err
@@ -137,6 +160,7 @@ func (h *HostRuntime) createMemory(ctx context.Context, opts HostBootOptions) er
 	}
 	h.guestMemoryOffset = api.DecodeU32(results[0])
 	h.guestMemorySize = size
+
 	return nil
 }
 
@@ -158,21 +182,27 @@ func (h *HostRuntime) loadBIOS(ctx context.Context, bios []byte, vgaBIOS []byte)
 
 // writeGuestBlob copies bytes into guest memory at the given linear
 func (h *HostRuntime) writeGuestBlob(ctx context.Context, guestOffset uint32, data []byte) error {
+	// Ignore empty guest blobs before checking the v86 memory range.
 	if len(data) == 0 {
 		return nil
 	}
+
+	// Require the guest blob to fit initialized v86 memory.
 	if h.guestMemorySize == 0 {
 		return errors.New("v86 guest memory is not initialized")
 	}
 	if guestOffset > h.guestMemorySize || uint64(guestOffset)+uint64(len(data)) > uint64(h.guestMemorySize) {
 		return errors.Errorf("guest write range [%#x,%#x) exceeds memory size %#x", guestOffset, uint64(guestOffset)+uint64(len(data)), h.guestMemorySize)
 	}
+
+	// Invalidate v86 translated code and copy the guest blob into wasm memory.
 	if err := h.callVoid(ctx, "jit_dirty_cache", uint64(guestOffset), uint64(guestOffset)+uint64(len(data))); err != nil {
 		return err
 	}
 	if !h.Module.Memory().Write(h.guestMemoryOffset+guestOffset, data) {
 		return errors.Errorf("write guest memory at %#x", guestOffset)
 	}
+
 	return nil
 }
 
@@ -190,14 +220,18 @@ func (h *HostRuntime) callVoid(ctx context.Context, name string, args ...uint64)
 
 // call invokes an exported function by name and returns its first result.
 func (h *HostRuntime) call(ctx context.Context, name string, args ...uint64) ([]uint64, error) {
+	// Resolve the requested v86 wasm export.
 	fn := h.Module.ExportedFunction(name)
 	if fn == nil {
 		return nil, errors.Errorf("v86 wasm does not export %s", name)
 	}
+
+	// Invoke the v86 export with its arguments and preserve error context.
 	results, err := fn.Call(ctx, args...)
 	if err != nil {
 		return nil, errors.Wrapf(err, "call v86 %s", name)
 	}
+
 	return results, nil
 }
 

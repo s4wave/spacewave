@@ -22,6 +22,7 @@ type ps2QueuedByte struct {
 
 // registerPS2 wires the controller's data (0x60) and status/command (0x64)
 func (h *HostRuntime) registerPS2() {
+	// Register the PS/2 controller data and command ports for the guest.
 	ps2 := &ps2Device{host: h, commandRegister: 1 | 4}
 	h.RegisterIORead(0x60, 8, func(ctx context.Context, _ uint16) uint32 {
 		return uint32(ps2.readData(ctx))
@@ -39,19 +40,25 @@ func (h *HostRuntime) registerPS2() {
 
 // readData pops the oldest queued byte and re-raises the interrupt line for
 func (p *ps2Device) readData(ctx context.Context) uint8 {
+	// Preserve the last PS/2 data byte when the output queue is empty.
 	if len(p.queue) == 0 {
 		return p.lastData
 	}
+
+	// Consume the oldest PS/2 byte and retain it as the last data value.
 	entry := p.queue[0]
 	copy(p.queue, p.queue[1:])
 	p.queue = p.queue[:len(p.queue)-1]
 	p.lastData = entry.value
+
+	// Acknowledge the consumed PS/2 byte and signal the next queued device.
 	irq := uint32(1)
 	if entry.aux {
 		irq = 12
 	}
 	_ = p.host.lowerIRQ(ctx, irq)
 	p.raiseIRQ(ctx)
+
 	return entry.value
 }
 

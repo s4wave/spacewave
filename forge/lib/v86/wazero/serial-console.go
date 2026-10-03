@@ -25,10 +25,12 @@ var guestHaltSerialMarkers = [][]byte{
 // honors the emulator's own clock rather than polling guest state. Returns nil
 // when in reaches EOF or ctx is canceled with no other error.
 func (h *HostRuntime) RunSerialConsole(ctx context.Context, in io.Reader, out io.Writer) error {
+	// Route COM1 output through the guest halt detector for this console run.
 	haltDetector := &guestHaltDetectingWriter{dst: out}
 	h.SetSerialSink(haltDetector)
 	defer h.SetSerialSink(nil)
 
+	// Forward console input and read errors to the goroutine driving the guest.
 	inputCh := make(chan []byte)
 	readErr := make(chan error, 1)
 	go func() {
@@ -60,6 +62,7 @@ func (h *HostRuntime) RunSerialConsole(ctx context.Context, in io.Reader, out io
 	}
 	defer timer.Stop()
 
+	// Drive guest ticks and wait for console input, network frames, or tick expiry.
 	for {
 		h.drainNetwork(ctx)
 		delay, err := h.MainLoop(ctx)

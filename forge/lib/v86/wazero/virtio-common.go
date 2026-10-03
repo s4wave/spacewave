@@ -70,10 +70,13 @@ func (c *virtioCommonConfig) handleStatusWrite(
 	dev virtioCommonConfigDevice,
 	value uint32,
 ) uint32 {
+	// Reset the virtio device when its driver clears the status register.
 	if value == 0 {
 		dev.reset(ctx)
 		return 0
 	}
+
+	// Apply virtio feature negotiation and signal driver failure.
 	if !c.featuresOK {
 		value &^= 8
 	}
@@ -81,15 +84,19 @@ func (c *virtioCommonConfig) handleStatusWrite(
 	if value&virtioStatusFailed != 0 {
 		dev.raiseIRQ(ctx, virtioISRQueue)
 	}
+
 	return value
 }
 
 // resetState clears the common configuration registers.
 func (c *virtioCommonConfig) resetState() {
+	// Restore the virtio feature selectors and advertised feature set.
 	c.driverFeatureSelect = 0
 	c.deviceFeatureSelect = 0
 	c.driverFeatures = c.deviceFeatures
 	c.featuresOK = true
+
+	// Clear the virtio driver status and selected queue.
 	c.status = 0
 	c.queueSelect = 0
 }
@@ -97,6 +104,7 @@ func (c *virtioCommonConfig) resetState() {
 // registerVirtioCommonPorts wires the virtio common configuration structure
 // to the ISA ports at basePort.
 func registerVirtioCommonPorts(basePort uint16, dev virtioCommonConfigDevice) {
+	// Describe the virtio common registers and their device-specific accessors.
 	host := dev.virtioHost()
 	c := dev.commonConfig()
 	nop := func(context.Context, uint32) {}
@@ -137,6 +145,8 @@ func registerVirtioCommonPorts(basePort uint16, dev virtioCommonConfigDevice) {
 		{48, 32, func() uint32 { return dev.selectedQueue().usedAddr }, func(_ context.Context, value uint32) { dev.selectedQueue().usedAddr = value }},
 		{52, 32, func() uint32 { return 0 }, nop},
 	}
+
+	// Register the virtio common fields with their supported I/O access widths.
 	for _, field := range fields {
 		port := basePort + field.offset
 		switch field.width {

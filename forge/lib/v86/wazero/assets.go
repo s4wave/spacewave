@@ -103,6 +103,7 @@ func assetSetFromV86Dirs(v86Dir, v86fsDir, imageKey string) (*AssetSet, bool) {
 	if _, err := os.Stat(wasm); err != nil {
 		wasm = filepath.Join(v86Dir, "build", "v86-debug.wasm")
 	}
+
 	// Resolve the conventional paths for a complete boot image.
 	assets := &AssetSet{
 		Dir:           filepath.Dir(filepath.Dir(wasm)),
@@ -152,6 +153,7 @@ func hydrateAssetsFromCdn(ctx context.Context, opts AssetOptions) (*AssetSet, er
 	if err != nil {
 		return nil, err
 	}
+
 	// Download boot files while leaving the large rootfs addressable by object key.
 	specs := []assetSpec{
 		{Pred: string(s4wave_vm.PredV86ImageWasm), FileName: "v86.wasm", OutName: "v86.wasm"},
