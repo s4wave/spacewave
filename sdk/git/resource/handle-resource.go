@@ -116,16 +116,19 @@ func (r *GitRepoResource) ListRefs(ctx context.Context, req *s4wave_git.ListRefs
 
 // ResolveRef resolves a ref name to a commit hash and tree hash.
 func (r *GitRepoResource) ResolveRef(ctx context.Context, req *s4wave_git.ResolveRefRequest) (*s4wave_git.ResolveRefResponse, error) {
+	// Require a repository revision before resolving its commit.
 	refName := req.GetRefName()
 	if refName == "" {
 		return nil, errors.New("ref_name is required")
 	}
 
+	// Resolve the revision through the saved repository object.
 	resp := &s4wave_git.ResolveRefResponse{}
 	_, _, err := git_world.AccessWorldObjectRepo(
 		ctx, r.ws, r.objKey, false,
 		nil, nil, nil,
 		func(repo *git.Repository) error {
+			// Read the commit and tree hashes for the requested revision.
 			commit, err := resolveRefToCommitObject(repo, refName)
 			if err != nil {
 				return err
@@ -170,8 +173,10 @@ func (r *GitRepoResource) GetRepoInfo(ctx context.Context, req *s4wave_git.GetRe
 // The persistent block cursors, git store, and FSCursor all use this sub-context
 // and are released when the sub-resource is torn down.
 func (r *GitRepoResource) GetTreeResource(ctx context.Context, req *s4wave_git.GetTreeResourceRequest) (*s4wave_git.GetTreeResourceResponse, error) {
+	// Retain the requested tree revision for the child resource.
 	refName := req.GetRefName()
 
+	// Create a tree resource whose persistent storage uses the child context.
 	_, resourceID, err := resource_server.ConstructChildResource(ctx,
 		func(subCtx context.Context) (srpc.Invoker, *unixfs.FSHandle, func(), error) {
 			// Look up the git repo object in the world state.
@@ -223,6 +228,7 @@ func (r *GitRepoResource) GetTreeResource(ctx context.Context, req *s4wave_git.G
 				return nil, nil, nil, errors.Wrap(err, "create git store")
 			}
 
+			// Retain the store and cursor cleanup for the child resource lifetime.
 			cleanup := func() {
 				store.Close()
 				locCursor.Release()
@@ -260,6 +266,7 @@ func (r *GitRepoResource) GetTreeResource(ctx context.Context, req *s4wave_git.G
 				return nil, nil, nil, errors.Wrap(err, "create fs handle")
 			}
 
+			// Expose the tree handle and release its storage with the child resource.
 			childMux := resource_unixfs.NewFSHandleResource(fsh).GetMux()
 			return childMux, fsh, func() {
 				fsh.Release()
@@ -278,19 +285,23 @@ func (r *GitRepoResource) GetTreeResource(ctx context.Context, req *s4wave_git.G
 
 // GetRepoFilesystemResource creates a FSHandle sub-resource for the materialized repo filesystem.
 func (r *GitRepoResource) GetRepoFilesystemResource(ctx context.Context, req *s4wave_git.GetRepoFilesystemResourceRequest) (*s4wave_git.GetRepoFilesystemResourceResponse, error) {
+	// Create a repository filesystem resource with its own child context.
 	_, resourceID, err := resource_server.ConstructChildResource(ctx,
 		func(subCtx context.Context) (srpc.Invoker, *unixfs.FSHandle, func(), error) {
+			// Open the repository filesystem for the child resource lifetime.
 			fsCursor, err := git_repofs.OpenRepoFSCursor(subCtx, r.ws, r.objKey, req.GetWritable())
 			if err != nil {
 				return nil, nil, nil, err
 			}
 
+			// Wrap the repository filesystem cursor in a handle.
 			fsh, err := unixfs.NewFSHandle(fsCursor)
 			if err != nil {
 				fsCursor.Release()
 				return nil, nil, nil, errors.Wrap(err, "create fs handle")
 			}
 
+			// Expose the repository handle and release it with the child resource.
 			childMux := resource_unixfs.NewFSHandleResource(fsh).GetMux()
 			return childMux, fsh, func() {
 				fsh.Release()
@@ -308,6 +319,7 @@ func (r *GitRepoResource) GetRepoFilesystemResource(ctx context.Context, req *s4
 
 // Log returns a paginated list of commits starting from a ref.
 func (r *GitRepoResource) Log(ctx context.Context, req *s4wave_git.LogRequest) (*s4wave_git.LogResponse, error) {
+	// Choose the repository log range and page size from the request.
 	refName := req.GetRefName()
 	sinceRef := req.GetSinceRef()
 	offset := req.GetOffset()
@@ -316,11 +328,13 @@ func (r *GitRepoResource) Log(ctx context.Context, req *s4wave_git.LogRequest) (
 		limit = 50
 	}
 
+	// Read the requested commit page from the saved repository.
 	resp := &s4wave_git.LogResponse{}
 	_, _, err := git_world.AccessWorldObjectRepo(
 		ctx, r.ws, r.objKey, false,
 		nil, nil, nil,
 		func(repo *git.Repository) error {
+			// Resolve the starting revision for the commit log.
 			commitHash, err := resolveRefToCommit(repo, refName)
 			if err != nil {
 				return err
@@ -350,14 +364,17 @@ func (r *GitRepoResource) Log(ctx context.Context, req *s4wave_git.LogRequest) (
 				}
 			}
 
+			// Open the commit iterator at the requested revision.
 			iter, err := repo.Log(&git.LogOptions{From: commitHash})
 			if err != nil {
 				return errors.Wrap(err, "log")
 			}
 
+			// Collect a page of commits after exclusions and the requested offset.
 			var skipped uint32
 			var collected uint32
 			for {
+				// Advance the repository log and stop at its end.
 				commit, err := iter.Next()
 				if err == io.EOF {
 					break
@@ -365,19 +382,27 @@ func (r *GitRepoResource) Log(ctx context.Context, req *s4wave_git.LogRequest) (
 				if err != nil {
 					return errors.Wrap(err, "iterate commits")
 				}
+
+				// Omit commits reachable from the excluded revision.
 				if excludeSet != nil {
 					if _, excluded := excludeSet[commit.Hash]; excluded {
 						continue
 					}
 				}
+
+				// Skip eligible commits before the requested page.
 				if skipped < offset {
 					skipped++
 					continue
 				}
+
+				// Mark a remaining commit when the response page is full.
 				if collected >= limit {
 					resp.HasMore = true
 					break
 				}
+
+				// Append the eligible commit to the response page.
 				resp.Commits = append(resp.Commits, commitToInfo(commit))
 				collected++
 			}
@@ -393,11 +418,13 @@ func (r *GitRepoResource) Log(ctx context.Context, req *s4wave_git.LogRequest) (
 
 // GetCommit returns full metadata for a single commit.
 func (r *GitRepoResource) GetCommit(ctx context.Context, req *s4wave_git.GetCommitRequest) (*s4wave_git.GetCommitResponse, error) {
+	// Require a commit revision before reading its metadata.
 	hash := req.GetHash()
 	if hash == "" {
 		return nil, errors.New("hash is required")
 	}
 
+	// Read the requested commit from the saved repository.
 	resp := &s4wave_git.GetCommitResponse{}
 	_, _, err := git_world.AccessWorldObjectRepo(
 		ctx, r.ws, r.objKey, false,
@@ -420,22 +447,26 @@ func (r *GitRepoResource) GetCommit(ctx context.Context, req *s4wave_git.GetComm
 
 // GetDiffStat returns diff stats between two refs.
 func (r *GitRepoResource) GetDiffStat(ctx context.Context, req *s4wave_git.GetDiffStatRequest) (*s4wave_git.GetDiffStatResponse, error) {
+	// Require the first revision for the repository diff.
 	refA := req.GetRefA()
 	if refA == "" {
 		return nil, errors.New("ref_a is required")
 	}
 	refB := req.GetRefB()
 
+	// Read the diff statistics from the saved repository.
 	resp := &s4wave_git.GetDiffStatResponse{}
 	_, _, err := git_world.AccessWorldObjectRepo(
 		ctx, r.ws, r.objKey, false,
 		nil, nil, nil,
 		func(repo *git.Repository) error {
+			// Compute the patch between the requested revisions.
 			patch, err := diffRefs(repo, refA, refB)
 			if err != nil {
 				return err
 			}
 
+			// Collect per-file changes and total additions and deletions.
 			var totalAdd, totalDel uint32
 			for _, fs := range patch.Stats() {
 				add := uint32(fs.Addition) //nolint:gosec // git diff statistics are nonnegative counts from the patch parser.
@@ -462,17 +493,20 @@ func (r *GitRepoResource) GetDiffStat(ctx context.Context, req *s4wave_git.GetDi
 
 // GetDiffPatch returns a unified diff patch between two refs.
 func (r *GitRepoResource) GetDiffPatch(ctx context.Context, req *s4wave_git.GetDiffPatchRequest) (*s4wave_git.GetDiffPatchResponse, error) {
+	// Require the first revision for the repository patch.
 	refA := req.GetRefA()
 	if refA == "" {
 		return nil, errors.New("ref_a is required")
 	}
 	refB := req.GetRefB()
 
+	// Read the bounded patch from the saved repository.
 	resp := &s4wave_git.GetDiffPatchResponse{}
 	_, _, err := git_world.AccessWorldObjectRepo(
 		ctx, r.ws, r.objKey, false,
 		nil, nil, nil,
 		func(repo *git.Repository) error {
+			// Compute the patch and bound its response size.
 			patch, err := diffRefs(repo, refA, refB)
 			if err != nil {
 				return err
@@ -492,11 +526,13 @@ func (r *GitRepoResource) GetDiffPatch(ctx context.Context, req *s4wave_git.GetD
 }
 
 func diffRefs(repo *git.Repository, refA, refB string) (*object.Patch, error) {
+	// Resolve the first revision as the source commit for the patch.
 	commitA, err := resolveRefToCommitObject(repo, refA)
 	if err != nil {
 		return nil, errors.Wrap(err, "resolve ref_a")
 	}
 
+	// Resolve the second revision or use the source commit parent.
 	var commitB *object.Commit
 	if refB != "" {
 		commitB, err = resolveRefToCommitObject(repo, refB)
@@ -511,6 +547,7 @@ func diffRefs(repo *git.Repository, refA, refB string) (*object.Patch, error) {
 		}
 	}
 
+	// Compute the patch between the resolved commits.
 	patch, err := commitA.Patch(commitB)
 	if err != nil {
 		return nil, errors.Wrap(err, "compute patch")
@@ -519,11 +556,13 @@ func diffRefs(repo *git.Repository, refA, refB string) (*object.Patch, error) {
 }
 
 func boundedDiffPatch(patch string) (string, bool, uint64) {
+	// Preserve patches that fit within the response byte limit.
 	totalBytes := uint64(len(patch))
 	if len(patch) <= maxDiffPatchBytes {
 		return patch, false, totalBytes
 	}
 
+	// Truncate large patches at a complete line and valid UTF-8 boundary.
 	cut := maxDiffPatchBytes
 	if idx := strings.LastIndexByte(patch[:maxDiffPatchBytes], '\n'); idx > 0 {
 		cut = idx + 1
@@ -536,6 +575,7 @@ func boundedDiffPatch(patch string) (string, bool, uint64) {
 
 // resolveRefToCommitObject resolves a ref name to a commit object.
 func resolveRefToCommitObject(repo *git.Repository, refName string) (*object.Commit, error) {
+	// Resolve the revision and load its commit object.
 	hash, err := resolveRefToCommit(repo, refName)
 	if err != nil {
 		return nil, err
@@ -578,6 +618,7 @@ func resolveRefToCommit(repo *git.Repository, rev string) (plumbing.Hash, error)
 
 // resolveRefToTree resolves a ref name, commit hash, or HEAD (if empty) to a tree hash.
 func resolveRefToTree(repo *git.Repository, refName string) (plumbing.Hash, error) {
+	// Resolve the revision and read its commit tree hash.
 	commitHash, err := resolveRefToCommit(repo, refName)
 	if err != nil {
 		return plumbing.ZeroHash, err

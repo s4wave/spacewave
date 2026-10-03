@@ -12,6 +12,7 @@ import (
 
 // SnapshotRepo reads the initial state of the repo into a RepoSnapshot.
 func SnapshotRepo(repo *git.Repository, snap *RepoSnapshot) error {
+	// Resolve repository HEAD or mark the snapshot as empty.
 	headRef, err := repo.Head()
 	if err != nil {
 		if errors.Is(err, plumbing.ErrReferenceNotFound) {
@@ -21,14 +22,17 @@ func SnapshotRepo(repo *git.Repository, snap *RepoSnapshot) error {
 		return errors.Wrap(err, "head")
 	}
 
+	// Record the checked-out reference and commit hash.
 	snap.HeadRef = headRef.Name().Short()
 	snap.HeadCommitHash = headRef.Hash().String()
 
+	// Read the HEAD commit for the repository overview.
 	commit, err := repo.CommitObject(headRef.Hash())
 	if err != nil {
 		return errors.Wrap(err, "head commit")
 	}
 
+	// Capture the HEAD commit message and author in the snapshot.
 	snap.LastCommit = &CommitSnapshot{
 		Hash:            commit.Hash.String(),
 		Message:         commit.Message,
@@ -37,17 +41,20 @@ func SnapshotRepo(repo *git.Repository, snap *RepoSnapshot) error {
 		AuthorTimestamp: commit.Author.When.Unix(),
 	}
 
+	// Find the README path in the HEAD commit tree.
 	tree, err := commit.Tree()
 	if err != nil {
 		return errors.Wrap(err, "head tree")
 	}
 	snap.ReadmePath = findReadme(tree)
 
+	// Collect repository branch and tag references for the snapshot.
 	refs, err := repo.References()
 	if err != nil {
 		return errors.Wrap(err, "references")
 	}
 	err = refs.ForEach(func(ref *plumbing.Reference) error {
+		// Classify each named reference as a branch or tag.
 		name := ref.Name()
 		if name == plumbing.HEAD {
 			return nil

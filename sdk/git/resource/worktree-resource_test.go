@@ -68,21 +68,25 @@ func (m *testWatchStatusStream) Close() error {
 }
 
 func TestGitWorktreeResourceStatusStageUnstageUsesWorkdir(t *testing.T) {
+	// Prepare the context and logger for the worktree testbed.
 	ctx := context.Background()
 	log := logrus.New()
 	le := logrus.NewEntry(log)
 
+	// Start the block-storage testbed for the saved repository.
 	btb, err := hydra_testbed.NewTestbed(ctx, le, hydra_testbed.WithVerbose(false))
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	// Start the World testbed that stores the repository and workdir.
 	wtb, err := world_testbed.NewTestbed(btb, world_testbed.WithWorldVerbose(false))
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer wtb.Release()
 
+	// Register the filesystem and Git operations used by the worktree.
 	unixfsOpc := world.NewLookupOpController("test-git-worktree-resource-unixfs", wtb.EngineID, unixfs_world.LookupFsOp)
 	if _, err := wtb.Bus.AddController(ctx, unixfsOpc, nil); err != nil {
 		t.Fatal(err)
@@ -92,6 +96,7 @@ func TestGitWorktreeResourceStatusStageUnstageUsesWorkdir(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Create the repository object and keys for its worktree and workdir.
 	ws := world.NewEngineWorldState(wtb.Engine, true)
 	sender := wtb.Volume.GetPeerID()
 	repoKey := "repo/worktree-resource"
@@ -101,6 +106,7 @@ func TestGitWorktreeResourceStatusStageUnstageUsesWorkdir(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Create the first README commit in the saved repository.
 	workdir := memfs.New()
 	var firstHash string
 	_, _, err = git_world.AccessWorldObjectRepo(ctx, ws, repoKey, true, nil, workdir, nil, func(repo *git.Repository) error {
@@ -115,6 +121,7 @@ func TestGitWorktreeResourceStatusStageUnstageUsesWorkdir(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Link the mutable workdir and check out the initial commit.
 	workdirRef := &unixfs_world.UnixfsRef{
 		ObjectKey: workdirKey,
 		FsType:    unixfs_world.FSType_FSType_FS_NODE,
@@ -134,6 +141,7 @@ func TestGitWorktreeResourceStatusStageUnstageUsesWorkdir(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Modify the checked-out README through the saved workdir.
 	err = git_world.AccessWorldObjectRepoWithWorktree(ctx, le, ws, repoKey, worktreeKey, time.Now(), true, sender, func(repo *git.Repository, workdir billy.Filesystem) error {
 		f, err := workdir.Create("README.md")
 		if err != nil {
@@ -149,6 +157,7 @@ func TestGitWorktreeResourceStatusStageUnstageUsesWorkdir(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Expose the saved worktree through its resource snapshot.
 	resource := NewGitWorktreeResource(ws, wtb.Engine, worktreeKey, &WorktreeSnapshot{
 		RepoObjectKey:    repoKey,
 		WorkdirObjectKey: workdirKey,
@@ -158,15 +167,19 @@ func TestGitWorktreeResourceStatusStageUnstageUsesWorkdir(t *testing.T) {
 		HasWorkdir:       true,
 	})
 
+	// Verify the README change appears only in workdir status.
 	status, err := watchResourceStatus(ctx, resource)
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Verify the initial README change is confined to the workdir.
 	entry := findResourceStatus(t, status, "README.md")
 	if entry.GetStagingStatus() != s4wave_git.FileStatusCode_FILE_STATUS_CODE_UNMODIFIED || entry.GetWorktreeStatus() != s4wave_git.FileStatusCode_FILE_STATUS_CODE_MODIFIED {
 		t.Fatalf("unexpected modified status staging=%s worktree=%s", entry.GetStagingStatus().String(), entry.GetWorktreeStatus().String())
 	}
 
+	// Stage the README and verify its change moves into the index.
 	if _, err := resource.StageFiles(ctx, &s4wave_git.StageFilesRequest{Paths: []string{"README.md"}}); err != nil {
 		t.Fatal(err)
 	}
@@ -174,11 +187,14 @@ func TestGitWorktreeResourceStatusStageUnstageUsesWorkdir(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Verify the staged README has no remaining workdir change.
 	entry = findResourceStatus(t, status, "README.md")
 	if entry.GetStagingStatus() != s4wave_git.FileStatusCode_FILE_STATUS_CODE_MODIFIED || entry.GetWorktreeStatus() != s4wave_git.FileStatusCode_FILE_STATUS_CODE_UNMODIFIED {
 		t.Fatalf("unexpected staged status staging=%s worktree=%s", entry.GetStagingStatus().String(), entry.GetWorktreeStatus().String())
 	}
 
+	// Unstage the README and verify its workdir change remains.
 	if _, err := resource.UnstageFiles(ctx, &s4wave_git.UnstageFilesRequest{Paths: []string{"README.md"}}); err != nil {
 		t.Fatal(err)
 	}
@@ -186,11 +202,14 @@ func TestGitWorktreeResourceStatusStageUnstageUsesWorkdir(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Verify unstaging preserves the README workdir change.
 	entry = findResourceStatus(t, status, "README.md")
 	if entry.GetStagingStatus() != s4wave_git.FileStatusCode_FILE_STATUS_CODE_UNMODIFIED || entry.GetWorktreeStatus() != s4wave_git.FileStatusCode_FILE_STATUS_CODE_MODIFIED {
 		t.Fatalf("unexpected unstaged status staging=%s worktree=%s", entry.GetStagingStatus().String(), entry.GetWorktreeStatus().String())
 	}
 
+	// Verify a commit rejects the unstaged README without changing status.
 	if _, err := resource.CommitFiles(ctx, &s4wave_git.CommitFilesRequest{
 		Paths:           []string{"README.md"},
 		Message:         "should reject unstaged path",
@@ -204,15 +223,21 @@ func TestGitWorktreeResourceStatusStageUnstageUsesWorkdir(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Verify the rejected commit preserves the README status.
 	entry = findResourceStatus(t, status, "README.md")
 	if entry.GetStagingStatus() != s4wave_git.FileStatusCode_FILE_STATUS_CODE_UNMODIFIED || entry.GetWorktreeStatus() != s4wave_git.FileStatusCode_FILE_STATUS_CODE_MODIFIED {
 		t.Fatalf("failed commit should leave status inspectable staging=%s worktree=%s", entry.GetStagingStatus().String(), entry.GetWorktreeStatus().String())
 	}
 
+	// Stage the README before introducing an extra staged path.
 	if _, err := resource.StageFiles(ctx, &s4wave_git.StageFilesRequest{Paths: []string{"README.md"}}); err != nil {
 		t.Fatal(err)
 	}
+
+	// Add an extra staged file outside the requested commit selection.
 	err = git_world.AccessWorldObjectRepoWithWorktree(ctx, le, ws, repoKey, worktreeKey, time.Now(), true, sender, func(repo *git.Repository, workdir billy.Filesystem) error {
+		// Create the extra workdir file for commit-selection validation.
 		f, err := workdir.Create("extra.txt")
 		if err != nil {
 			return err
@@ -224,6 +249,8 @@ func TestGitWorktreeResourceStatusStageUnstageUsesWorkdir(t *testing.T) {
 		if err := f.Close(); err != nil {
 			return err
 		}
+
+		// Stage the extra file in the repository index.
 		wt, err := repo.Worktree()
 		if err != nil {
 			return err
@@ -234,6 +261,8 @@ func TestGitWorktreeResourceStatusStageUnstageUsesWorkdir(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Verify the commit rejects staged paths outside its selection.
 	if _, err := resource.CommitFiles(ctx, &s4wave_git.CommitFilesRequest{
 		Paths:           []string{"README.md"},
 		Message:         "should reject extra staged path",
@@ -243,6 +272,8 @@ func TestGitWorktreeResourceStatusStageUnstageUsesWorkdir(t *testing.T) {
 	}); err == nil || !strings.Contains(err.Error(), "unexpected staged path: extra.txt") {
 		t.Fatalf("expected extra staged path rejection, got %v", err)
 	}
+
+	// Remove the extra file from the index and workdir.
 	if _, err := resource.UnstageFiles(ctx, &s4wave_git.UnstageFilesRequest{Paths: []string{"extra.txt"}}); err != nil {
 		t.Fatal(err)
 	}
@@ -252,6 +283,8 @@ func TestGitWorktreeResourceStatusStageUnstageUsesWorkdir(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Commit the selected README with the default author timestamp.
 	commitResp, err := resource.CommitFiles(ctx, &s4wave_git.CommitFilesRequest{
 		Paths:       []string{"README.md"},
 		Message:     "update readme",
@@ -261,6 +294,8 @@ func TestGitWorktreeResourceStatusStageUnstageUsesWorkdir(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Verify the commit response describes the new commit and its base.
 	if commitResp.GetCommitHash() == "" || commitResp.GetCommitHash() == firstHash {
 		t.Fatalf("commit hash: got %q first %q", commitResp.GetCommitHash(), firstHash)
 	}
@@ -270,6 +305,8 @@ func TestGitWorktreeResourceStatusStageUnstageUsesWorkdir(t *testing.T) {
 		commitResp.GetAffectedPaths()[0] != "README.md" {
 		t.Fatalf("commit response: %+v", commitResp)
 	}
+
+	// Verify the saved commit records a nonzero default author timestamp.
 	err = git_world.AccessWorldObjectRepoWithWorktree(ctx, le, ws, repoKey, worktreeKey, time.Now(), false, "", func(repo *git.Repository, workdir billy.Filesystem) error {
 		commit, err := repo.CommitObject(plumbing.NewHash(commitResp.GetCommitHash()))
 		if err != nil {
@@ -283,6 +320,8 @@ func TestGitWorktreeResourceStatusStageUnstageUsesWorkdir(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Verify the resource retains its initial metadata snapshot after commit.
 	info, err := resource.GetWorktreeInfo(ctx, &s4wave_git.GetWorktreeInfoRequest{})
 	if err != nil {
 		t.Fatal(err)
@@ -290,6 +329,8 @@ func TestGitWorktreeResourceStatusStageUnstageUsesWorkdir(t *testing.T) {
 	if info.GetHeadCommitHash() != firstHash {
 		t.Fatalf("snapshot head should remain initial until resource is reloaded: %+v", info)
 	}
+
+	// Verify the committed worktree has no remaining status entries.
 	status, err = watchResourceStatus(ctx, resource)
 	if err != nil {
 		t.Fatal(err)
@@ -300,10 +341,13 @@ func TestGitWorktreeResourceStatusStageUnstageUsesWorkdir(t *testing.T) {
 }
 
 func commitResourceReadme(repo *git.Repository, workdir billy.Filesystem, content, message string) (string, error) {
+	// Open the repository worktree for the README commit.
 	wt, err := repo.Worktree()
 	if err != nil {
 		return "", err
 	}
+
+	// Write and close the README in the workdir.
 	f, err := workdir.Create("README.md")
 	if err != nil {
 		return "", err
@@ -315,6 +359,8 @@ func commitResourceReadme(repo *git.Repository, workdir billy.Filesystem, conten
 	if err := f.Close(); err != nil {
 		return "", err
 	}
+
+	// Stage and commit the README with the test author.
 	if _, err := wt.Add("README.md"); err != nil {
 		return "", err
 	}
@@ -332,6 +378,7 @@ func commitResourceReadme(repo *git.Repository, workdir billy.Filesystem, conten
 }
 
 func watchResourceStatus(ctx context.Context, resource *GitWorktreeResource) (*s4wave_git.WatchStatusResponse, error) {
+	// Start a cancellable worktree status stream.
 	watchCtx, cancel := context.WithCancel(ctx)
 	defer cancel()
 	stream := newTestWatchStatusStream(watchCtx)
@@ -339,12 +386,16 @@ func watchResourceStatus(ctx context.Context, resource *GitWorktreeResource) (*s
 	go func() {
 		errCh <- resource.WatchStatus(&s4wave_git.WatchStatusRequest{}, stream)
 	}()
+
+	// Receive the first worktree snapshot from the stream.
 	var resp *s4wave_git.WatchStatusResponse
 	select {
 	case resp = <-stream.msgs:
 	case <-watchCtx.Done():
 		return nil, watchCtx.Err()
 	}
+
+	// Cancel the watch and verify the streaming routine exits.
 	cancel()
 	select {
 	case err := <-errCh:
