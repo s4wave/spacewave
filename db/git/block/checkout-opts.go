@@ -46,6 +46,7 @@ func (o *CheckoutOpts) Validate() error {
 
 // BuildCheckoutOpts constructs git checkout opts.
 func (o *CheckoutOpts) BuildCheckoutOpts() (*git.CheckoutOptions, error) {
+	// Convert the requested checkout commit to its Git hash.
 	var err error
 	var checkoutHash plumbing.Hash
 	commitEmpty := o.GetCommit().IsEmpty()

@@ -11,30 +11,36 @@ import (
 
 // TestStorage_References runs a simple test of storing references.
 func TestStorage_References(t *testing.T) {
+	// Prepare the context and logger for Git reference storage.
 	ctx := context.Background()
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
 
+	// Start the reference testbed with its in-memory volume.
 	testbed.Verbose = true
 	tb, err := testbed.NewTestbed(ctx, le)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Report the volume used by the reference testbed.
 	vol := tb.Volume
 	volID := vol.GetID()
 	t.Log(volID)
 
+	// Open an empty repository cursor in the testbed.
 	oc, err := tb.BuildEmptyCursor(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Initialize the repository block at its transaction cursor.
 	btx, bcs := oc.BuildTransaction(nil)
 	root := NewRepo()
 	bcs.SetBlock(root, true)
 
+	// Open the Store for Git reference writes and reads.
 	store, err := NewStore(ctx, btx, bcs, nil, nil)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -68,6 +74,7 @@ func TestStorage_References(t *testing.T) {
 	}
 	le.Infof("wrote new root node %s", rootRef.MarshalString())
 
+	// Reopen the Store at its persisted reference root.
 	store, err = NewStore(ctx, btx, bcs, nil, nil)
 	if err != nil {
 		t.Fatal(err.Error())

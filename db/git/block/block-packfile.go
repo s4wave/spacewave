@@ -15,6 +15,7 @@ func NewPackfileBlock() block.Block {
 
 // Validate performs cursory validation of the Packfile.
 func (r *Packfile) Validate() error {
+	// Validate the packfile hash, backing blobs, object count, and sizes.
 	if err := ValidateHash(r.GetPackHash()); err != nil {
 		return errors.Wrap(err, "pack_hash")
 	}
@@ -38,6 +39,7 @@ func (r *Packfile) Validate() error {
 
 // FollowPackBlob returns the raw Git packfile blob.
 func (r *Packfile) FollowPackBlob(ctx context.Context, bcs *block.Cursor) (*blob.Blob, *block.Cursor, error) {
+	// Decode the pack data blob at its child cursor.
 	cs := bcs.FollowSubBlock(1)
 	v, err := cs.Unmarshal(ctx, blob.NewBlobBlock)
 	if err != nil {
@@ -52,6 +54,7 @@ func (r *Packfile) FollowPackBlob(ctx context.Context, bcs *block.Cursor) (*blob
 
 // FollowIdxBlob returns the Git pack index blob.
 func (r *Packfile) FollowIdxBlob(ctx context.Context, bcs *block.Cursor) (*blob.Blob, *block.Cursor, error) {
+	// Decode the pack index blob at its child cursor.
 	cs := bcs.FollowSubBlock(2)
 	v, err := cs.Unmarshal(ctx, blob.NewBlobBlock)
 	if err != nil {
@@ -96,10 +99,12 @@ func (r *Packfile) ApplySubBlock(id uint32, next block.SubBlock) error {
 // GetSubBlocks returns all constructed sub-blocks by ID.
 // May return nil, and values may also be nil.
 func (r *Packfile) GetSubBlocks() map[uint32]block.SubBlock {
+	// Preserve an absent Packfile as an absent sub-block set.
 	if r == nil {
 		return nil
 	}
 
+	// Collect the pack data and index blobs by their field IDs.
 	v := make(map[uint32]block.SubBlock)
 	v[1] = r.GetPackBlob()
 	v[2] = r.GetIdxBlob()

@@ -8,6 +8,7 @@ import (
 
 // NewTreeEntry constructs a new tree entry from a git tree entry.
 func NewTreeEntry(t *index.TreeEntry) (*TreeEntry, error) {
+	// Convert the Git tree entry metadata and its hash to a storage block.
 	if t == nil {
 		return nil, nil
 	}

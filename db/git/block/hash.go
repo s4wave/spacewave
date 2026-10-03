@@ -16,6 +16,7 @@ var gitObjectHasher = plumbing.FromObjectFormat("")
 //
 // Returns nil if the hash is empty.
 func NewHash(pt plumbing.Hash) (*hash.Hash, error) {
+	// Preserve an empty Git hash as an absent storage hash.
 	if pt.IsZero() {
 		return nil, nil
 	}
@@ -25,6 +26,7 @@ func NewHash(pt plumbing.Hash) (*hash.Hash, error) {
 		return nil, errors.Errorf("unexpected hash length: %d", pt.Size())
 	}
 
+	// Copy the SHA1 digest into its storage hash representation.
 	dat := make([]byte, pt.Size())
 	copy(dat, pt.Bytes())
 	return hash.NewHash(GitHashType, dat), nil

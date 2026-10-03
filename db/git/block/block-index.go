@@ -73,6 +73,7 @@ func (i *Index) ApplySubBlock(id uint32, next block.SubBlock) error {
 // GetSubBlocks returns all constructed sub-blocks by ID.
 // May return nil, and values may also be nil.
 func (i *Index) GetSubBlocks() map[uint32]block.SubBlock {
+	// Collect the index entries and extension blocks by their field IDs.
 	m := make(map[uint32]block.SubBlock)
 	m[2] = NewIndexEntrySet(&i.Entries, nil)
 	m[3] = i.GetCache()

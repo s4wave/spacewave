@@ -34,10 +34,12 @@ func (i *ResolveUndo) IsNil() bool {
 
 // ToGitResolveUndo converts to a git resolve undo block.
 func (i *ResolveUndo) ToGitResolveUndo() (*index.ResolveUndo, error) {
+	// Preserve absent or empty undo records as absent Git undo records.
 	if i == nil || len(i.GetEntries()) == 0 {
 		return nil, nil
 	}
 
+	// Convert stored undo entries and their stage hashes to Git records.
 	ents := i.GetEntries()
 	out := make([]index.ResolveUndoEntry, len(ents))
 	for i, e := range ents {

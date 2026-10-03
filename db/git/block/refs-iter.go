@@ -23,14 +23,18 @@ func NewReferenceIter(r *Store, it kvtx.BlockIterator) *ReferenceIter {
 
 // Next advances the iterator.
 func (i *ReferenceIter) Next() (*plumbing.Reference, error) {
+	// Advance the reference iterator and read its next tree key.
 	if !i.it.Next() {
 		return nil, io.EOF
 	}
 	key := i.it.Key()
+
 	// expect 1 byte + name
 	if len(key) < 2 {
 		return nil, errors.Errorf("unexpected ref key length %d", len(key))
 	}
+
+	// Decode the stored reference and verify its name against the tree key.
 	refName := string(key[1:])
 	encObjCs := i.it.ValueCursor()
 	refObjBlk, err := encObjCs.Unmarshal(i.r.ctx, NewReferenceBlock)

@@ -10,15 +10,18 @@ import (
 
 // SetModuleReference sets the module reference to the Repo rooted at bcs.
 func (r *Store) SetModuleReference(name string, bcs *block.Cursor) error {
+	// Require a submodule name before storing its repository reference.
 	if len(name) == 0 {
 		return ErrReferenceNameEmpty
 	}
 
+	// Resolve the submodule name to its reference tree key.
 	key, err := r.buildRefKey(name)
 	if err != nil {
 		return err
 	}
 
+	// Attach the submodule repository cursor to its reference record.
 	modRefTree := r.modTree
 	rootCs := modRefTree.GetCursor()
 	refCs := rootCs.Detach(false)
@@ -31,15 +34,18 @@ func (r *Store) SetModuleReference(name string, bcs *block.Cursor) error {
 // LookupSubmodule looks up module reference by name.
 // Returns nil, nil, nil if not found.
 func (r *Store) LookupSubmodule(name string) (*Submodule, *block.Cursor, error) {
+	// Require a submodule name before looking up its reference.
 	if len(name) == 0 {
 		return nil, nil, ErrReferenceNameEmpty
 	}
 
+	// Resolve the submodule name to its reference tree key.
 	key, err := r.buildRefKey(name)
 	if err != nil {
 		return nil, nil, err
 	}
 
+	// Find the submodule reference cursor in the Store.
 	modRefTree := r.modTree
 	refCs, err := modRefTree.GetCursorAtKey(r.ctx, key)
 	if err != nil {
@@ -49,6 +55,7 @@ func (r *Store) LookupSubmodule(name string) (*Submodule, *block.Cursor, error) 
 		return nil, nil, err
 	}
 
+	// Decode the submodule reference at its stored cursor.
 	sub, err := block.UnmarshalBlock[*Submodule](r.ctx, refCs, NewSubmoduleBlock)
 	return sub, refCs, err
 }
@@ -56,10 +63,13 @@ func (r *Store) LookupSubmodule(name string) (*Submodule, *block.Cursor, error) 
 // Module returns a Storer representing a submodule, if not exists returns a new
 // empty Storer is returned
 func (r *Store) Module(name string) (storage.Storer, error) {
+	// Look up the submodule reference before opening its repository.
 	subm, submCs, err := r.LookupSubmodule(name)
 	if err != nil {
 		return nil, err
 	}
+
+	// Initialize the repository root for a missing submodule.
 	var repoRootCs *block.Cursor
 	if subm == nil {
 		// Create the missing submodule reference and verify it can be reopened.
@@ -81,10 +91,12 @@ func (r *Store) Module(name string) (storage.Storer, error) {
 		repoRootCs.SetBlock(nrepo, true)
 	}
 
+	// Follow the stored repository root for an existing submodule.
 	if repoRootCs == nil {
 		repoRootCs = submCs.FollowRef(2, subm.GetRepoRef())
 	}
 
+	// Obtain the submodule reference store when the parent has one.
 	var refStore ReferenceStore
 	if r.refStore != nil {
 		// TODO: when to call ClearSubmoduleStore?
@@ -94,6 +106,7 @@ func (r *Store) Module(name string) (storage.Storer, error) {
 		}
 	}
 
+	// Open and retain the submodule Store for ordered commits.
 	sub, err := NewStore(r.ctx, r.btx, repoRootCs, &memory.IndexStorage{}, refStore)
 	if err != nil {
 		return nil, err

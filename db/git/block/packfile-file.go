@@ -31,6 +31,7 @@ type PackfileFile struct {
 
 // NewPackfileFile opens a read-only file at a blob cursor owned by the caller.
 func NewPackfileFile(ctx context.Context, name string, cursor *block.Cursor) (*PackfileFile, error) {
+	// Open the immutable pack blob and determine its file size.
 	reader, err := blob.NewReader(ctx, cursor)
 	if err != nil {
 		return nil, err
@@ -91,6 +92,7 @@ func (f *PackfileFile) ReadAt(p []byte, off int64) (int, error) {
 
 // Seek changes the sequential file position without reading intervening chunks.
 func (f *PackfileFile) Seek(offset int64, whence int) (int64, error) {
+	// Serialize packfile seeking and validate the requested seek origin.
 	f.mtx.Lock()
 	defer f.mtx.Unlock()
 	if f.closed {
@@ -113,6 +115,7 @@ func (f *PackfileFile) Truncate(int64) error { return fs.ErrPermission }
 
 // Close releases buffered chunks and joins the reader exactly once.
 func (f *PackfileFile) Close() error {
+	// Serialize packfile closure and release its blob reader once.
 	f.mtx.Lock()
 	defer f.mtx.Unlock()
 	if f.closed {

@@ -11,6 +11,7 @@ import (
 
 // SetReference sets the reference in the block graph.
 func (r *Store) SetReference(ref *plumbing.Reference) error {
+	// Offer the Git reference to the external reference store first.
 	if r.refStore != nil {
 		set, err := r.refStore.SetReference(ref)
 		if err != nil || set {
@@ -18,6 +19,7 @@ func (r *Store) SetReference(ref *plumbing.Reference) error {
 		}
 	}
 
+	// Convert and validate the Git reference for block storage.
 	nref, err := NewReference(ref)
 	if err == nil {
 		err = nref.Validate()
@@ -26,22 +28,26 @@ func (r *Store) SetReference(ref *plumbing.Reference) error {
 		return err
 	}
 
+	// Resolve the Git reference name to its tree key.
 	key, err := r.buildRefKey(nref.GetName())
 	if err != nil {
 		return err
 	}
 
+	// Attach the reference block to a detached Store cursor.
 	rootCs := r.refTree.GetCursor()
 	refCs := rootCs.Detach(false)
 	refCs.ClearAllRefs()
 	refCs.SetBlock(nref, true)
 
+	// Store the reference cursor under its resolved key.
 	refTree := r.refTree
 	return refTree.SetCursorAtKey(r.ctx, key, refCs, false)
 }
 
 // Reference returns the reference by name.
 func (r *Store) Reference(ref plumbing.ReferenceName) (*plumbing.Reference, error) {
+	// Look up the Git reference in the external reference store first.
 	if r.refStore != nil {
 		gref, err := r.refStore.GetReference(ref)
 		if err != nil || gref != nil {
@@ -49,11 +55,13 @@ func (r *Store) Reference(ref plumbing.ReferenceName) (*plumbing.Reference, erro
 		}
 	}
 
+	// Resolve the Git reference name to its tree key.
 	key, err := r.buildRefKey(string(ref))
 	if err != nil {
 		return nil, err
 	}
 
+	// Load the stored reference block and convert it to a Git reference.
 	refBlk, _, err := r.lookupReference(key)
 	if err != nil {
 		return nil, err
@@ -66,9 +74,12 @@ func (r *Store) Reference(ref plumbing.ReferenceName) (*plumbing.Reference, erro
 // reference value in `old`. If not, it returns an error and doesn't update
 // `new`.
 func (r *Store) CheckAndSetReference(new, old *plumbing.Reference) error {
+	// Require a named replacement Git reference.
 	if new == nil || len(new.Name()) == 0 {
 		return ErrReferenceNameEmpty
 	}
+
+	// Check the stored Git reference against the expected previous hash.
 	if old != nil {
 		oldRef, err := r.Reference(old.Name())
 		if err != nil {
@@ -125,6 +136,7 @@ func (r *Store) buildRefKey(refName string) ([]byte, error) {
 
 // lookupReference tries to build the Reference from a key.
 func (r *Store) lookupReference(key []byte) (*Reference, *block.Cursor, error) {
+	// Find the reference cursor in the Store reference tree.
 	refTree := r.refTree
 	nodCs, err := refTree.GetCursorAtKey(r.ctx, key)
 	if err != nil {
@@ -133,6 +145,8 @@ func (r *Store) lookupReference(key []byte) (*Reference, *block.Cursor, error) {
 	if nodCs == nil {
 		return nil, nil, plumbing.ErrReferenceNotFound
 	}
+
+	// Decode the stored reference and require the reference block type.
 	encObji, err := nodCs.Unmarshal(r.ctx, NewReferenceBlock)
 	if err != nil {
 		return nil, nil, err

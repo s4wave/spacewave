@@ -46,10 +46,12 @@ func (i *Tree) Validate() error {
 
 // ToGitTree converts to a git tree.
 func (i *Tree) ToGitTree() (*index.Tree, error) {
+	// Preserve an absent or empty tree cache as an absent Git tree.
 	if i == nil || len(i.GetEntries()) == 0 {
 		return nil, nil
 	}
 
+	// Convert stored tree cache entries to Git tree entries.
 	ents := i.GetEntries()
 	out := make([]index.TreeEntry, len(ents))
 	for i, e := range ents {

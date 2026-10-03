@@ -65,6 +65,7 @@ func NewStore(
 	indexStore storer.IndexStorer,
 	refStore ReferenceStore,
 ) (*Store, error) {
+	// Initialize the Store context and its repository transaction.
 	rdr := &Store{IndexStorer: indexStore, refStore: refStore}
 	rdr.btx, rdr.bcs = btx, bcs
 	rdr.ctx, rdr.ctxCancel = context.WithCancel(ctx)
@@ -107,10 +108,12 @@ func (r *Store) Commit() error {
 		}
 	}
 
+	// Leave external transactions for their caller to persist.
 	if r.btx == nil {
 		return nil
 	}
 
+	// Persist the Store transaction and reopen its repository state.
 	_, bcs, err := r.btx.Write(r.ctx, true)
 	if err != nil {
 		return err
@@ -120,6 +123,7 @@ func (r *Store) Commit() error {
 
 // Close closes the store, canceling the context.
 func (r *Store) Close() error {
+	// Close cached packfile readers and cancel the Store context.
 	for _, entry := range r.packCache {
 		if entry.pack != nil {
 			_ = entry.pack.Close()
@@ -132,6 +136,7 @@ func (r *Store) Close() error {
 
 // buildEncodedObjectTree builds the encoded object tree handle.
 func (r *Store) buildEncodedObjectTree() (kvtx.BlockTx, *block.Cursor, error) {
+	// Open the repository object store and its loose object tree.
 	encStore, storeCs, err := r.root.FollowEncodedObjectStore(r.ctx, r.bcs)
 	if err != nil {
 		return nil, nil, err
@@ -145,6 +150,7 @@ func (r *Store) buildEncodedObjectTree() (kvtx.BlockTx, *block.Cursor, error) {
 
 // buildPackfileTree builds the packfile metadata tree handle.
 func (r *Store) buildPackfileTree() (kvtx.BlockTx, *block.Cursor, error) {
+	// Open the repository object store and its packfile metadata tree.
 	encStore, storeCs, err := r.root.FollowEncodedObjectStore(r.ctx, r.bcs)
 	if err != nil {
 		return nil, nil, err
@@ -158,6 +164,7 @@ func (r *Store) buildPackfileTree() (kvtx.BlockTx, *block.Cursor, error) {
 
 // buildRefTree builds the reference tree handle.
 func (r *Store) buildRefTree() (kvtx.BlockTx, *block.Cursor, error) {
+	// Open the repository reference store and its reference tree.
 	encStore, storeCs, err := r.root.FollowReferencesStore(r.ctx, r.bcs)
 	if err != nil {
 		return nil, nil, err
@@ -171,6 +178,7 @@ func (r *Store) buildRefTree() (kvtx.BlockTx, *block.Cursor, error) {
 
 // buildModRefTree builds the sub-module references tree
 func (r *Store) buildModRefTree() (kvtx.BlockTx, *block.Cursor, error) {
+	// Open the repository submodule store and its reference tree.
 	encStore, storeCs, err := r.root.FollowModuleReferencesStore(r.ctx, r.bcs)
 	if err != nil {
 		return nil, nil, err
@@ -184,6 +192,7 @@ func (r *Store) buildModRefTree() (kvtx.BlockTx, *block.Cursor, error) {
 
 // setBlockTransaction sets the root block transaction and cursor.
 func (r *Store) setBlockTransaction(btx *block.Transaction, bcs *block.Cursor) error {
+	// Close packfile readers from the previous Store transaction.
 	for _, entry := range r.packCache {
 		if entry.pack != nil {
 			if err := entry.pack.Close(); err != nil {
@@ -191,32 +200,47 @@ func (r *Store) setBlockTransaction(btx *block.Transaction, bcs *block.Cursor) e
 			}
 		}
 	}
+
+	// Decode the repository root for the new Store transaction.
 	root, err := UnmarshalRepo(r.ctx, bcs)
 	if err != nil {
 		return err
 	}
 	r.root = root
+
+	// Open the loose object tree for the repository root.
 	r.objTree, _, err = r.buildEncodedObjectTree()
 	if err != nil {
 		return err
 	}
+
+	// Open the packfile metadata tree for the repository root.
 	r.packTree, _, err = r.buildPackfileTree()
 	if err != nil {
 		return err
 	}
+
+	// Open the reference tree for the repository root.
 	r.refTree, _, err = r.buildRefTree()
 	if err != nil {
 		return err
 	}
+
+	// Open the submodule reference tree for the repository root.
 	r.modTree, _, err = r.buildModRefTree()
 	if err != nil {
 		return err
 	}
+
+	// Initialize packfile reader tracking for the new transaction.
 	r.btx, r.bcs = btx, bcs
 	r.packCache = make(map[plumbing.Hash]*storePackCacheEntry)
 	r.packLRU = list.New()
+
 	// Match go-git's 96 MiB default once per Store, rather than once per pack.
 	r.objectCache = cache.NewObjectLRU(cache.DefaultMaxSize)
+
+	// Initialize bulk object writing for the new Store transaction.
 	r.initBulkMode()
 	return nil
 }

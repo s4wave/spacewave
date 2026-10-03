@@ -13,30 +13,36 @@ import (
 
 // TestStorage_EncodedObject runs a simple test of storing encoded objects.
 func TestStorage_EncodedObject(t *testing.T) {
+	// Prepare the context and logger for encoded object storage.
 	ctx := context.Background()
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
 
+	// Start the encoded object testbed with its in-memory volume.
 	testbed.Verbose = true
 	tb, err := testbed.NewTestbed(ctx, le)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Report the volume used by the encoded object testbed.
 	vol := tb.Volume
 	volID := vol.GetID()
 	t.Log(volID)
 
+	// Open an empty repository cursor in the testbed.
 	oc, err := tb.BuildEmptyCursor(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Initialize the repository block at its transaction cursor.
 	btx, bcs := oc.BuildTransaction(nil)
 	root := NewRepo()
 	bcs.SetBlock(root, true)
 
+	// Open the Store for encoded object writes and reads.
 	store, err := NewStore(ctx, btx, bcs, nil, nil)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -53,14 +59,18 @@ func TestStorage_EncodedObject(t *testing.T) {
 		t.Fatalf("expected ErrObjectNotFound, got: %v", err)
 	}
 
+	// Prepare helpers that write and verify the test blob.
 	objData := []byte("hello world")
 	putObject := func(store *Store, objData []byte) plumbing.Hash {
+		// Open a loose Git blob writer in the Store.
 		encObj := store.NewEncodedObject()
 		encObj.SetType(plumbing.BlobObject)
 		wc, err := encObj.Writer()
 		if err != nil {
 			t.Fatal(err.Error())
 		}
+
+		// Verify the blob writer accepts every byte of the test data.
 		n, err := wc.Write(objData)
 		if err != nil {
 			t.Fatal(err.Error())
@@ -69,6 +79,7 @@ func TestStorage_EncodedObject(t *testing.T) {
 			t.Fatalf("wrote %d bytes, expected %d", n, len(objData))
 		}
 
+		// Store the written blob and retain its Git hash.
 		ph, err := store.SetEncodedObject(encObj)
 		if err != nil {
 			t.Fatal(err.Error())
@@ -77,7 +88,9 @@ func TestStorage_EncodedObject(t *testing.T) {
 		return ph
 	}
 
+	// Prepare a reader that verifies the test blob in any reopened Store.
 	getObject := func(store *Store, ph plumbing.Hash) plumbing.EncodedObject {
+		// Open the stored blob and read its bytes for verification.
 		encObj, err := store.EncodedObject(plumbing.BlobObject, ph)
 		if err != nil {
 			t.Fatal(err.Error())
@@ -86,6 +99,8 @@ func TestStorage_EncodedObject(t *testing.T) {
 		if err != nil {
 			t.Fatal(err.Error())
 		}
+
+		// Verify the stored blob bytes match the test data.
 		data, err := io.ReadAll(rc)
 		if err != nil {
 			t.Fatal(err.Error())

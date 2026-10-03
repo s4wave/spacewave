@@ -35,6 +35,7 @@ func (r *EndOfIndexEntry) IsNil() bool {
 
 // ToGitEndOfIndexEntry converts to the git EndOfIndexEntry object.
 func (r *EndOfIndexEntry) ToGitEndOfIndexEntry() (*index.EndOfIndexEntry, error) {
+	// Convert the stored index end marker and its Git hash.
 	if r == nil || (len(r.GetHash().GetHash()) == 0 && r.GetOffset() == 0) {
 		return nil, nil
 	}

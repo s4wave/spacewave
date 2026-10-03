@@ -30,9 +30,12 @@ func (r *Store) PackfileWriter() (io.WriteCloser, error) {
 
 // ObjectPacks returns hashes of object packs in this store.
 func (r *Store) ObjectPacks() ([]plumbing.Hash, error) {
+	// Return no pack hashes when the Store has no packfile tree.
 	if r.packTree == nil {
 		return nil, nil
 	}
+
+	// Read the stored packfile hashes through the metadata iterator.
 	out := make([]plumbing.Hash, 0)
 	it := r.packTree.BlockIterate(r.ctx, nil, false, false)
 	defer it.Close()
@@ -47,6 +50,8 @@ func (r *Store) ObjectPacks() ([]plumbing.Hash, error) {
 		}
 		out = append(out, h)
 	}
+
+	// Report any failure while traversing the packfile metadata.
 	if err := it.Err(); err != nil {
 		return nil, err
 	}
@@ -55,6 +60,7 @@ func (r *Store) ObjectPacks() ([]plumbing.Hash, error) {
 
 // DeleteOldObjectPackAndIndex deletes an object pack and index if old enough.
 func (r *Store) DeleteOldObjectPackAndIndex(ph plumbing.Hash, t time.Time) error {
+	// Keep packfiles when the caller supplied an age threshold.
 	if !t.IsZero() {
 		return nil
 	}
@@ -72,6 +78,7 @@ func (r *Store) DeleteOldObjectPackAndIndex(ph plumbing.Hash, t time.Time) error
 }
 
 func (r *Store) setPackfile(packData []byte, idxData []byte, idx *idxfile.MemoryIndex) error {
+	// Require pack data and a packfile tree before storing the pack.
 	if len(packData) == 0 {
 		return go_git_packfile.ErrEmptyPackfile
 	}
@@ -79,6 +86,7 @@ func (r *Store) setPackfile(packData []byte, idxData []byte, idx *idxfile.Memory
 		return errors.New("packfile tree is unavailable")
 	}
 
+	// Read the pack checksum and indexed object count.
 	packHash := idx.PackfileChecksum
 	packStoreHash, err := NewHash(packHash)
 	if err != nil {
@@ -89,6 +97,7 @@ func (r *Store) setPackfile(packData []byte, idxData []byte, idx *idxfile.Memory
 		return err
 	}
 
+	// Discard the cached reader and index for the replacement pack.
 	key := slices.Clone(packHash.Bytes())
 	if entry := r.packCache[packHash]; entry != nil {
 		if entry.pack != nil {
@@ -99,6 +108,8 @@ func (r *Store) setPackfile(packData []byte, idxData []byte, idx *idxfile.Memory
 		}
 		delete(r.packCache, packHash)
 	}
+
+	// Construct and attach the replacement packfile metadata.
 	packCs := r.packTree.GetCursor().Detach(false)
 	packCs.ClearAllRefs()
 	pack := &Packfile{
@@ -109,10 +120,12 @@ func (r *Store) setPackfile(packData []byte, idxData []byte, idx *idxfile.Memory
 	}
 	packCs.SetBlock(pack, true)
 
+	// Store the packfile metadata under its checksum.
 	if err := r.packTree.SetCursorAtKey(r.ctx, key, packCs, false); err != nil {
 		return err
 	}
 
+	// Write the pack data blob with the Store chunker.
 	opts, err := r.packBlobBuildOpts()
 	if err != nil {
 		return err
@@ -129,6 +142,7 @@ func (r *Store) setPackfile(packData []byte, idxData []byte, idx *idxfile.Memory
 	}
 	clearBlobChunkerArgs(pack.PackBlob)
 
+	// Write the pack index blob with the Store chunker.
 	pack.IdxBlob, err = blob.BuildBlob(
 		r.ctx,
 		int64(len(idxData)),
@@ -145,9 +159,12 @@ func (r *Store) setPackfile(packData []byte, idxData []byte, idx *idxfile.Memory
 }
 
 func (r *Store) lookupPackedObject(ot plumbing.ObjectType, h plumbing.Hash) (plumbing.EncodedObject, error) {
+	// Report a missing object when the Store has no packfile tree.
 	if r.packTree == nil {
 		return nil, plumbing.ErrObjectNotFound
 	}
+
+	// Search stored packfiles for the requested Git object.
 	it := r.packTree.BlockIterate(r.ctx, nil, false, false)
 	defer it.Close()
 	for it.Next() {
@@ -163,6 +180,8 @@ func (r *Store) lookupPackedObject(ot plumbing.ObjectType, h plumbing.Hash) (plu
 		}
 		return obj, nil
 	}
+
+	// Report any failure while searching the packfile metadata.
 	if err := it.Err(); err != nil {
 		return nil, err
 	}
@@ -170,9 +189,12 @@ func (r *Store) lookupPackedObject(ot plumbing.ObjectType, h plumbing.Hash) (plu
 }
 
 func (r *Store) iterPackedObjects(ot plumbing.ObjectType, seen map[plumbing.Hash]struct{}) ([]plumbing.EncodedObject, error) {
+	// Return no packed objects when the Store has no packfile tree.
 	if r.packTree == nil {
 		return nil, nil
 	}
+
+	// Collect objects from the stored packfiles.
 	out := make([]plumbing.EncodedObject, 0)
 	it := r.packTree.BlockIterate(r.ctx, nil, false, false)
 	defer it.Close()
@@ -186,10 +208,13 @@ func (r *Store) iterPackedObjects(ot plumbing.ObjectType, seen map[plumbing.Hash
 			return nil, err
 		}
 		err = packIter.ForEach(func(obj plumbing.EncodedObject) error {
+			// Ignore packed Git objects already encountered in another storage location.
 			h := obj.Hash()
 			if _, ok := seen[h]; ok {
 				return nil
 			}
+
+			// Retain each newly encountered packed Git object.
 			seen[h] = struct{}{}
 			out = append(out, obj)
 			return nil
@@ -199,6 +224,8 @@ func (r *Store) iterPackedObjects(ot plumbing.ObjectType, seen map[plumbing.Hash
 			return nil, err
 		}
 	}
+
+	// Report any failure while traversing the packfile metadata.
 	if err := it.Err(); err != nil {
 		return nil, err
 	}
@@ -300,12 +327,14 @@ func (r *Store) packCacheEntry(cs *block.Cursor) (*storePackCacheEntry, error) {
 		return nil, err
 	}
 
+	// Retain the decoded pack index for later Store lookups.
 	entry := &storePackCacheEntry{hash: packHash, idx: idx}
 	r.packCache[packHash] = entry
 	return entry, nil
 }
 
 func (r *Store) packBlobBuildOpts() (*blob.BuildBlobOpts, error) {
+	// Prepare the object store chunker for packfile blobs.
 	if r.root.EncodedObjectStore == nil {
 		r.root.EncodedObjectStore = &EncodedObjectStore{}
 	}
@@ -317,6 +346,7 @@ func (r *Store) packBlobBuildOpts() (*blob.BuildBlobOpts, error) {
 }
 
 func unmarshalPackfileCursor(ctx context.Context, cs *block.Cursor) (*Packfile, error) {
+	// Decode the cursor and require a packfile metadata block.
 	packi, err := cs.Unmarshal(ctx, NewPackfileBlock)
 	if err != nil {
 		return nil, err
@@ -360,9 +390,12 @@ func (w *storePackfileWriter) Write(p []byte) (int, error) {
 }
 
 func (w *storePackfileWriter) Close() error {
+	// Stop packfile parsing when the Store context is canceled.
 	if err := w.store.ctx.Err(); err != nil {
 		return err
 	}
+
+	// Parse the incoming packfile and obtain its object index.
 	idxWriter := &idxfile.Writer{}
 	parser := go_git_packfile.NewParser(
 		bytes.NewReader(w.buf.Bytes()),
@@ -377,6 +410,7 @@ func (w *storePackfileWriter) Close() error {
 		return err
 	}
 
+	// Encode the object index for storage alongside the packfile.
 	var idxBuf bytes.Buffer
 	if err := idxfile.Encode(&idxBuf, hash.New(crypto.SHA1), idx); err != nil {
 		return err

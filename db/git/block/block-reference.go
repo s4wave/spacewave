@@ -10,6 +10,7 @@ import (
 
 // NewReference constructs a new repo ref.
 func NewReference(ref *plumbing.Reference) (*Reference, error) {
+	// Require a named Git reference and convert its hash when present.
 	if ref == nil || len(ref.Name()) == 0 {
 		return nil, ErrReferenceNameEmpty
 	}
@@ -42,9 +43,12 @@ func (r *Reference) IsNil() bool {
 
 // Validate checks the reference.
 func (r *Reference) Validate() error {
+	// Validate the stored reference name before checking its type.
 	if err := ValidateRefName(r.GetName(), false); err != nil {
 		return err
 	}
+
+	// Validate the reference type and its hash or symbolic target.
 	rt := plumbing.ReferenceType(r.GetReferenceType()) //nolint:gosec
 	if err := ValidateReferenceType(rt); err != nil {
 		return err

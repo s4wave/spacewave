@@ -29,6 +29,7 @@ func (m *StagesMap) BlockAliasIdentity() *block.AliasIdentityToken {
 
 // ApplySubBlock applies a sub-block change with a field id.
 func (m *StagesMap) ApplySubBlock(id uint32, next block.SubBlock) error {
+	// Ignore stage updates without an attached map.
 	if m == nil || m.v == nil {
 		return nil
 	}
@@ -67,6 +68,7 @@ func (m *StagesMap) GetSubBlockCtor(id uint32) block.SubBlockCtor {
 		return nil
 	}
 	return func(create bool) block.SubBlock {
+		// Find or create the stage map and its requested hash block.
 		ma := *m.v
 		if ma == nil {
 			if !create {

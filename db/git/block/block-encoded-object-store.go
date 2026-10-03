@@ -78,10 +78,12 @@ func (r *EncodedObjectStore) ApplySubBlock(id uint32, next block.SubBlock) error
 // GetSubBlocks returns all constructed sub-blocks by ID.
 // May return nil, and values may also be nil.
 func (r *EncodedObjectStore) GetSubBlocks() map[uint32]block.SubBlock {
+	// Preserve an absent object store as an absent sub-block set.
 	if r == nil {
 		return nil
 	}
 
+	// Collect the object and packfile metadata trees by their field IDs.
 	v := make(map[uint32]block.SubBlock)
 	v[1] = r.GetKvtxRoot()
 	v[3] = r.GetPackfileKvtxRoot()
@@ -105,6 +107,7 @@ func (r *EncodedObjectStore) GetSubBlockCtor(id uint32) block.SubBlockCtor {
 
 // getOrGenerateChunkerArgs gets or generates the chunking polynomial.
 func (r *EncodedObjectStore) getOrGenerateChunkerArgs() (*blob.ChunkerArgs, error) {
+	// Reuse the object store chunker when it has a Rabin polynomial.
 	chunkerArgs := r.GetChunkerArgs()
 	if chunkerArgs == nil {
 		chunkerArgs = &blob.ChunkerArgs{}
@@ -114,11 +117,13 @@ func (r *EncodedObjectStore) getOrGenerateChunkerArgs() (*blob.ChunkerArgs, erro
 		return chunkerArgs, nil
 	}
 
+	// Generate a Rabin polynomial for the object store chunker.
 	p, err := chunker.RandomPolynomial()
 	if err != nil {
 		return nil, err
 	}
 
+	// Retain the generated Rabin configuration on the object store.
 	pl := uint64(p)
 	chunkerArgs.ChunkerType = blob.ChunkerType_ChunkerType_RABIN
 	chunkerArgs.RabinArgs = &blob.RabinArgs{Pol: pl}

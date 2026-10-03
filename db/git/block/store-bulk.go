@@ -59,10 +59,12 @@ func bulkSortedIter(entries []bulkEntry) iter.Seq2[[]byte, *block.BlockRef] {
 // bulkBuildTree builds an IAVL tree bottom-up from accumulated entries.
 // Returns the root Node (with child BlockRefs set) or nil if entries is empty.
 func (r *Store) bulkBuildTree(entries []bulkEntry) (*kvtx_block_iavl.Node, error) {
+	// Leave an empty bulk object set without a tree root.
 	if len(entries) == 0 {
 		return nil, nil
 	}
 
+	// Build the bulk object tree from entries sorted by key.
 	tx, rootCs, err := kvtx_block_iavl.BuildTree(r.storeOps, r.bulkXfrm, r.bulkPutOpts, bulkSortedIter(entries))
 	if err != nil {
 		return nil, err
@@ -75,6 +77,7 @@ func (r *Store) bulkBuildTree(entries []bulkEntry) (*kvtx_block_iavl.Node, error
 		return nil, err
 	}
 
+	// Require an IAVL node at the completed bulk tree root.
 	rootBlk, _ := rootCs.GetBlock()
 	rootNode, ok := rootBlk.(*kvtx_block_iavl.Node)
 	if !ok {
@@ -84,6 +87,7 @@ func (r *Store) bulkBuildTree(entries []bulkEntry) (*kvtx_block_iavl.Node, error
 }
 
 func (r *Store) bulkObjectEntries() ([]bulkEntry, error) {
+	// Collect existing loose object references by their tree keys.
 	entries := make([]bulkEntry, 0, len(r.objKeys))
 	entryIdx := make(map[string]int)
 	if r.objTree != nil {
@@ -106,6 +110,7 @@ func (r *Store) bulkObjectEntries() ([]bulkEntry, error) {
 		}
 	}
 
+	// Merge bulk object references into the existing loose object entries.
 	for _, entry := range r.objKeys {
 		key := append([]byte(nil), entry.key...)
 		next := bulkEntry{
@@ -131,6 +136,7 @@ func (r *Store) bulkCommit() error {
 		}
 	}
 
+	// Build a replacement object tree when bulk writes added objects.
 	var objRoot *kvtx_block_iavl.Node
 	if len(r.objKeys) != 0 {
 		entries, err := r.bulkObjectEntries()

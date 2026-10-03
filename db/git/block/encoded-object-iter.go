@@ -25,14 +25,18 @@ func NewEncodedObjectIter(r *Store, it kvtx.BlockIterator) *EncodedObjectIter {
 
 // Next advances the iterator.
 func (i *EncodedObjectIter) Next() (plumbing.EncodedObject, error) {
+	// Advance the object iterator and read its next tree key.
 	if !i.it.Next() {
 		return nil, io.EOF
 	}
 	key := i.it.Key()
+
 	// expect byte type + hash (sha1)
 	if len(key) != 21 {
 		return nil, errors.Errorf("unexpected enc object tree key length %d", len(key))
 	}
+
+	// Decode the loose Git object and require a SHA1 data hash.
 	keyHash := key[1:]
 	encObjCs := i.it.ValueCursor()
 	encObj := NewStoreEncodedObject(i.r, encObjCs)
@@ -43,6 +47,8 @@ func (i *EncodedObjectIter) Next() (plumbing.EncodedObject, error) {
 	if encObjBlk.GetDataHash().GetHashType() != hash.HashType_HashType_SHA1 {
 		return nil, ErrHashTypeInvalid
 	}
+
+	// Verify the decoded Git object hash against its tree key.
 	encObjHash, err := FromHash(encObjBlk.GetDataHash())
 	if err != nil {
 		return nil, err

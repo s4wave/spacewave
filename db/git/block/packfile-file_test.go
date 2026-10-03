@@ -17,6 +17,7 @@ import (
 // TestPackfileFileSeeksWithoutMaterializingArchive protects bounded reads and
 // independent positional reads on a persisted chunked blob.
 func TestPackfileFileSeeksWithoutMaterializingArchive(t *testing.T) {
+	// Open a counted multi-chunk packfile for positional read checks.
 	const count, size = 16, 64 << 10
 	file, store := newCountedPackfileFile(t, count, size)
 
@@ -48,6 +49,7 @@ func TestPackfileFileSeeksWithoutMaterializingArchive(t *testing.T) {
 // TestPackfileFileRevisitsRetainedChunks protects object lookups, which reread
 // the pack header before each object, from fetching the same chunks again.
 func TestPackfileFileRevisitsRetainedChunks(t *testing.T) {
+	// Open a counted multi-chunk packfile for cache reuse checks.
 	const count, size = 16, 64 << 10
 	file, store := newCountedPackfileFile(t, count, size)
 
@@ -74,6 +76,7 @@ func TestPackfileFileRevisitsRetainedChunks(t *testing.T) {
 // newCountedPackfileFile persists a multi-chunk archive and opens it through
 // storage that counts fetched bytes.
 func newCountedPackfileFile(t *testing.T, count, size int) (*PackfileFile, *packfileReadStore) {
+	// Build the packfile fixture context and its in-memory block transaction.
 	t.Helper()
 	ctx := t.Context()
 	base := block_mock.NewMockStore(0)
@@ -84,16 +87,21 @@ func newCountedPackfileFile(t *testing.T, count, size int) (*PackfileFile, *pack
 		ChunkIndex: &blob.ChunkIndex{},
 	}
 	cursor.SetBlock(root, true)
+
+	// Populate the chunked packfile blob with distinct chunk contents.
 	chunks := root.ChunkIndex.GetChunkSet(cursor.FollowSubBlock(4))
 	for idx := range count {
 		data := bytes.Repeat([]byte{byte(idx + 1)}, size)
 		root.ChunkIndex.AppendChunk(chunks, idx, uint64(size), uint64(idx*size), data)
 	}
+
+	// Persist the chunked packfile blob to the block store.
 	ref, _, err := tx.Write(ctx, true)
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	// Open the persisted packfile through the byte-counting store.
 	store := &packfileReadStore{StoreOps: base}
 	_, cursor = block.NewTransaction(store, nil, ref, nil)
 	file, err := NewPackfileFile(ctx, "test.pack", cursor)

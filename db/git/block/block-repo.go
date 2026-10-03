@@ -38,6 +38,7 @@ func UnmarshalRepo(ctx context.Context, bcs *block.Cursor) (*Repo, error) {
 
 // Validate performs cursory checks on the repo block.
 func (r *Repo) Validate() error {
+	// Validate the repository configuration and its storage blocks.
 	if gconf := r.GetGitConfig(); len(gconf) != 0 {
 		nc := gconfig.NewConfig()
 		if err := nc.Unmarshal([]byte(gconf)); err != nil {
@@ -53,6 +54,7 @@ func (r *Repo) Validate() error {
 	if err := r.GetEncodedObjectStore().Validate(); err != nil {
 		return errors.Wrap(err, "encoded_object_store")
 	}
+
 	// allow nil reference
 	if err := r.GetShallowRefsStoreRef().Validate(true); err != nil {
 		return errors.Wrap(err, "shallow_refs_store_ref")
@@ -62,6 +64,7 @@ func (r *Repo) Validate() error {
 
 // FollowReferencesStore returns the repo references sub-block.
 func (r *Repo) FollowReferencesStore(ctx context.Context, bcs *block.Cursor) (*ReferencesStore, *block.Cursor, error) {
+	// Decode the repository reference store at its child cursor.
 	cs := bcs.FollowSubBlock(1)
 	v, err := cs.Unmarshal(ctx, NewReferencesStoreBlock)
 	if err != nil {
@@ -76,6 +79,7 @@ func (r *Repo) FollowReferencesStore(ctx context.Context, bcs *block.Cursor) (*R
 
 // FollowModuleReferencesStore returns the submodule references sub-block.
 func (r *Repo) FollowModuleReferencesStore(ctx context.Context, bcs *block.Cursor) (*ModuleReferencesStore, *block.Cursor, error) {
+	// Decode the repository submodule store at its child cursor.
 	cs := bcs.FollowSubBlock(2)
 	v, err := cs.Unmarshal(ctx, NewModuleReferencesStoreBlock)
 	if err != nil {
@@ -90,6 +94,7 @@ func (r *Repo) FollowModuleReferencesStore(ctx context.Context, bcs *block.Curso
 
 // FollowEncodedObjectStore returns the encoded object store sub-block.
 func (r *Repo) FollowEncodedObjectStore(ctx context.Context, bcs *block.Cursor) (*EncodedObjectStore, *block.Cursor, error) {
+	// Decode the repository object store at its child cursor.
 	cs := bcs.FollowSubBlock(3)
 	v, err := cs.Unmarshal(ctx, NewEncodedObjectStoreBlock)
 	if err != nil {
@@ -104,6 +109,7 @@ func (r *Repo) FollowEncodedObjectStore(ctx context.Context, bcs *block.Cursor) 
 
 // FollowShallowRefsStore returns the shallow refs store block.
 func (r *Repo) FollowShallowRefsStore(ctx context.Context, bcs *block.Cursor) (*ShallowRefsStore, *block.Cursor, error) {
+	// Follow the shallow reference block and initialize it when absent.
 	cs := bcs.FollowRef(4, r.GetShallowRefsStoreRef())
 	v, err := cs.Unmarshal(ctx, NewShallowRefsStoreBlock)
 	if err != nil {
@@ -158,6 +164,7 @@ func (r *Repo) ApplySubBlock(id uint32, next block.SubBlock) error {
 // GetSubBlocks returns all constructed sub-blocks by ID.
 // May return nil, and values may also be nil.
 func (r *Repo) GetSubBlocks() map[uint32]block.SubBlock {
+	// Collect the repository storage blocks by their field IDs.
 	v := make(map[uint32]block.SubBlock)
 	v[1] = r.GetReferencesStore()
 	v[2] = r.GetModuleReferencesStore()

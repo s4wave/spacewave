@@ -4,6 +4,7 @@ import "github.com/go-git/go-git/v6/config"
 
 // ApplyConfigPatches applies mandatory modifications to a Git config.
 func ApplyConfigPatches(c *config.Config) {
+	// Remove working-tree and author settings from the stored Git config.
 	e := config.Config{} // e is a empty config for dropping fields
 	c.Core.IsBare = true
 	c.Core.Worktree = ""
@@ -24,6 +25,7 @@ func (r *Store) Config() (*config.Config, error) {
 
 // SetConfig marshals and sets the Git config associated with the repo.
 func (r *Store) SetConfig(c *config.Config) error {
+	// Normalize and encode the requested Git config for block storage.
 	if c == nil {
 		c = config.NewConfig()
 	}
@@ -32,6 +34,8 @@ func (r *Store) SetConfig(c *config.Config) error {
 	if err != nil {
 		return err
 	}
+
+	// Replace the stored Git config when its encoded contents changed.
 	nextConf := string(dat)
 	if r.bcs != nil && nextConf != r.root.GetGitConfig() {
 		r.root.GitConfig = nextConf

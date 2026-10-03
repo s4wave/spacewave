@@ -8,6 +8,7 @@ import (
 
 // SetShallow sets the list of shallow refs.
 func (r *Store) SetShallow(refs []plumbing.Hash) error {
+	// Open the shallow reference cursor before replacing its block.
 	_, bcs, err := r.root.FollowShallowRefsStore(r.ctx, r.bcs)
 	if err != nil {
 		return err
@@ -15,6 +16,8 @@ func (r *Store) SetShallow(refs []plumbing.Hash) error {
 	if bcs == nil {
 		return block.ErrUnexpectedType
 	}
+
+	// Convert the shallow Git hashes and attach their storage block.
 	nb, err := NewShallowRefsStore(refs)
 	if err != nil {
 		return err
