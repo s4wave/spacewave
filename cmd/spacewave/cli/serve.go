@@ -283,8 +283,10 @@ func runServeCommand(
 	releaseStartupDemand := idleTracker.serviceAttached("daemon startup")
 	defer releaseStartupDemand()
 
-	// Persistent services participate in the same idle count as public clients.
+	// Persistent services and pending uploads participate in the same idle
+	// count as public clients.
 	startWebListenerKeepalive(serveCtx, le, invoker, idleTracker)
+	startSyncKeepalive(serveCtx, le, invoker, idleTracker)
 
 	// Retain desktop demand independently of the connection that opens it.
 	mux := srpc.NewMux(invoker)
