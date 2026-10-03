@@ -8,14 +8,18 @@ import (
 
 // TestKeyFiltersBuilder runs basic tests on the key filters builder.
 func TestKeyFiltersBuilder(t *testing.T) {
+	// Build filters for object keys with a shared prefix.
 	kfb := NewKeyFiltersBuilder(1024)
 	kfb.ApplyObjectKey("hello/world")
 	kfb.ApplyObjectKey("hello")
 	kf := kfb.BuildKeyFilters()
+
+	// Require the common object-key prefix in the built filters.
 	if kf.GetKeyPrefix() != "hello" {
 		t.FailNow()
 	}
 
+	// Build filters for quads with shared subject and object prefixes.
 	kfb = NewKeyFiltersBuilder(1024)
 	kfb.ApplyQuad(&quad.Quad{
 		Subject:   "this-was",
@@ -28,6 +32,8 @@ func TestKeyFiltersBuilder(t *testing.T) {
 		Obj:       "that-them",
 	})
 	kf = kfb.BuildKeyFilters()
+
+	// Require the shared subject and object prefixes in the quad filters.
 	if kf.GetQuadPrefix().GetSubject() != "this-" {
 		t.FailNow()
 	}

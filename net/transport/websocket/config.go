@@ -45,6 +45,7 @@ func (c *Config) SetTransportPeerId(peerID string) {
 // This should be something like param1="test", param2="test".
 // This is not necessarily unique, and is primarily intended for display.
 func (c *Config) GetDebugVals() config.DebugValues {
+	// Describe the configured WebSocket peer, listener, and HTTP endpoints.
 	vals := make(config.DebugValues)
 	if tp := c.GetTransportPeerId(); tp != "" {
 		vals["peer-id"] = []string{tp}

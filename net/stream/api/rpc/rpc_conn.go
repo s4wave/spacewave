@@ -36,30 +36,37 @@ func NewNetConn(localPeerID, remotePeerID peer.ID, rpc RPC) *NetConn {
 // Read can be made to time out and return an Error with Timeout() == true
 // after a fixed time limit; see SetDeadline and SetReadDeadline.
 func (n *NetConn) Read(b []byte) (int, error) {
+	// Complete empty reads without consuming an RPC packet.
 	if len(b) == 0 {
 		return 0, nil
 	}
 
+	// Serialize RPC receives and access to the unread packet suffix.
 	n.readMtx.Lock()
 	defer n.readMtx.Unlock()
 
+	// Serve buffered packet bytes before receiving another RPC packet.
 	if len(n.readBuffer) > 0 {
 		read := copy(b, n.readBuffer)
 		n.readBuffer = n.readBuffer[read:]
 		return read, nil
 	}
 
+	// Receive the next nonempty RPC packet and retain its unread suffix.
 	for {
+		// Receive an RPC packet or propagate the connection error.
 		data, err := n.rpc.Recv()
 		if err != nil {
 			return 0, err
 		}
 
+		// Ignore empty RPC packets while waiting for readable bytes.
 		buf := data.Data
 		if len(buf) == 0 {
 			continue
 		}
 
+		// Copy packet bytes to the caller and retain the remaining suffix.
 		n.readBuffer = append(n.readBuffer[:0], buf...)
 		read := copy(b, n.readBuffer)
 		n.readBuffer = n.readBuffer[read:]

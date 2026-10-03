@@ -44,6 +44,7 @@ func (r *KeyFiltersReader) TestObjectKey(key string) bool {
 
 // TestQuad tests if quad might match the KeyFilters.
 func (r *KeyFiltersReader) TestQuad(gq *quad.Quad) bool {
+	// Reject quads whose fields fall outside the stored prefix constraints.
 	quadPrefix := r.keyFilters.GetQuadPrefix()
 	if !quadPrefix.IsEmpty() {
 		if !strings.HasPrefix(gq.GetSubject(), quadPrefix.GetSubject()) {
@@ -59,6 +60,7 @@ func (r *KeyFiltersReader) TestQuad(gq *quad.Quad) bool {
 			return false
 		}
 	}
+
 	// test key bloom
 	keyBloom := r.keyBloom
 	if keyBloom != nil {
@@ -73,6 +75,7 @@ func (r *KeyFiltersReader) TestQuad(gq *quad.Quad) bool {
 			}
 		}
 	}
+
 	// key might be in filter
 	return true
 }

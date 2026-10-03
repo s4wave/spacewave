@@ -47,17 +47,23 @@ func ObjectToBlock[T any](bcs *block.Cursor, obj T) error {
 // T and dest can be a nil interface{} to unmarshal a dynamic type.
 // if bcs is nil returns dest, nil
 func BlockToObject[T comparable](ctx context.Context, bcs *block.Cursor, dest T) (T, error) {
+	// Preserve the destination when no block cursor was supplied.
 	if bcs == nil {
 		return dest, nil
 	}
+
+	// Load the MessagePack block using the supplied destination.
 	b, err := UnmarshalMsgpackBlock(ctx, bcs, func() T {
 		return dest
 	})
 	if err != nil {
 		return dest, err
 	}
+
+	// Decode cached block bytes again when they refer to another destination.
 	out := b.obj
 	if out != dest {
+		// Fetch the MessagePack bytes for the replacement destination.
 		// different object, re-parse
 		data, found, err := bcs.Fetch(ctx)
 		if err != nil {
@@ -66,6 +72,8 @@ func BlockToObject[T comparable](ctx context.Context, bcs *block.Cursor, dest T)
 		if !found {
 			return dest, block.ErrNotFound
 		}
+
+		// Decode the fetched bytes into the supplied destination.
 		b = &MsgpackBlock[T]{obj: dest}
 		err = b.UnmarshalBlock(data)
 		if err != nil {
@@ -73,6 +81,7 @@ func BlockToObject[T comparable](ctx context.Context, bcs *block.Cursor, dest T)
 		}
 		out = dest
 	}
+
 	return out, nil
 }
 

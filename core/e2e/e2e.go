@@ -16,6 +16,7 @@ import (
 
 // LoadProjectConfig loads the E2E project config and merges the configs.
 func LoadProjectConfig(bldrRootPath string) (*bldr_project.ProjectConfig, error) {
+	// Load the root project configuration before applying the E2E overlay.
 	rootProjectConfig, err := loadRootProjectConfig(bldrRootPath)
 	if err != nil {
 		return nil, err
@@ -47,9 +48,11 @@ func LoadProjectConfig(bldrRootPath string) (*bldr_project.ProjectConfig, error)
 }
 
 func loadRootProjectConfig(bldrRootPath string) (*bldr_project.ProjectConfig, error) {
+	// Resolve the YAML and Starlark root project paths.
 	yamlPath := filepath.Join(bldrRootPath, "bldr.yaml")
 	starPath := filepath.Join(bldrRootPath, "bldr.star")
 
+	// Read the root configuration sources and require at least one to exist.
 	rootProjectConfig := &bldr_project.ProjectConfig{}
 	yamlData, yamlErr := os.ReadFile(yamlPath)
 	_, starErr := os.Stat(starPath)
@@ -57,6 +60,7 @@ func loadRootProjectConfig(bldrRootPath string) (*bldr_project.ProjectConfig, er
 		return nil, errors.Wrap(yamlErr, "read bldr.yaml")
 	}
 
+	// Merge the YAML configuration and its extended modules into the root.
 	if yamlErr == nil {
 		yamlConfig := &bldr_project.ProjectConfig{}
 		if err := bldr_project.UnmarshalProjectConfig(yamlData, yamlConfig); err != nil {
@@ -70,6 +74,7 @@ func loadRootProjectConfig(bldrRootPath string) (*bldr_project.ProjectConfig, er
 		}
 	}
 
+	// Evaluate the Starlark configuration and merge its extended modules.
 	if starErr == nil {
 		result, err := bldr_project_starlark.Evaluate(starPath)
 		if err != nil {

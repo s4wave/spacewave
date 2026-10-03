@@ -38,17 +38,20 @@ func NewBlockStoreBuilder(
 	verbose bool,
 ) block_store_controller.BlockStoreBuilder {
 	return func(ctx context.Context, released func()) (block_store.Store, func(), error) {
+		// Open the kvfile backing the read-only block store.
 		fd, err := openFile()
 		if err != nil {
 			return nil, nil, err
 		}
 
+		// Build the kvfile reader and close its file if initialization fails.
 		rdr, err := kvfile.BuildReaderWithFile(fd)
 		if err != nil {
 			_ = fd.Close()
 			return nil, nil, err
 		}
 
+		// Wrap the kvfile reader as a block store with optional request logging.
 		kvfileBlock := NewKvfileBlock(ctx, kvkey, rdr)
 		blockStore := block_store.NewStore(blockStoreID, kvfileBlock)
 		if verbose {
@@ -135,12 +138,14 @@ func (k *KvfileBlock) GetBlockExistsBatch(ctx context.Context, refs []*block.Blo
 // StatBlock returns metadata about a block without reading its data.
 // Returns nil, nil if the block does not exist.
 func (k *KvfileBlock) StatBlock(ctx context.Context, ref *block.BlockRef) (*block.BlockStat, error) {
+	// Encode the block reference as a kvfile lookup key.
 	rm, err := ref.MarshalKey()
 	if err != nil {
 		return nil, err
 	}
 	key := k.kvkey.GetBlockKey(rm)
 
+	// Look up the stored block size for its metadata.
 	size, err := k.store.GetValueSize(key)
 	if err != nil || size < 0 {
 		return nil, nil

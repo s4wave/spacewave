@@ -19,10 +19,12 @@ import (
 )
 
 func buildTestbed(t *testing.T, ctx context.Context) (*testbed.Testbed, *logrus.Entry) {
+	// Configure the logger for the WebSocket transport testbed.
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
 
+	// Create a network testbed with the WebSocket transport factory.
 	tb, err := testbed.NewTestbed(ctx, le, testbed.TestbedOpts{})
 	if err != nil {
 		t.Fatal(err.Error())
@@ -37,16 +39,19 @@ func execPeer(
 	tb *testbed.Testbed,
 	conf *Config,
 ) (*transport_controller.Controller, *WebSocket, directive.Reference) {
+	// Derive the WebSocket peer identity from the testbed key.
 	peerID, err := peer.IDFromPrivateKey(tb.PrivKey)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Bind the WebSocket configuration to the testbed peer.
 	if conf == nil {
 		conf = &Config{}
 	}
 	conf.TransportPeerId = peerID.String()
 
+	// Load the WebSocket controller and wait for its running state.
 	tpc, _, tpRef, err := loader.WaitExecControllerRunningTyped[*transport_controller.Controller](
 		ctx,
 		tb.Bus,
@@ -56,6 +61,8 @@ func execPeer(
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Obtain the WebSocket transport from the running controller.
 	tpt, err := tpc.GetTransport(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -66,13 +73,14 @@ func execPeer(
 // TestWebSocketLink tests creating a WebSocket link between two peers on
 // localhost and holding the connection open for 12 seconds.
 func TestWebSocketLink(t *testing.T) {
+	// Bind the WebSocket test to the testing lifecycle.
 	ctx := t.Context()
 
+	// Create two peer testbeds for a fixed local WebSocket listener.
 	tb1, le1 := buildTestbed(t, ctx)
 	le1 = le1.WithField("testbed", 0)
 	tb2, le2 := buildTestbed(t, ctx)
 	le2 = le2.WithField("testbed", 1)
-
 	const listenAddr = "127.0.0.1:19384"
 
 	// Peer 1 listens on localhost.
@@ -95,6 +103,7 @@ func TestWebSocketLink(t *testing.T) {
 	defer ws2Ref.Release()
 	peerID2 := ws2.GetPeerID()
 
+	// Report the identities participating in the WebSocket link.
 	le1.Infof("peer 1: %s", peerID1.String())
 	le2.Infof("peer 2: %s", peerID2.String())
 
@@ -105,6 +114,7 @@ func TestWebSocketLink(t *testing.T) {
 	}
 	defer lnkRel()
 
+	// Record the established WebSocket link for the echo exchange.
 	le1.Infof("link established: %v", lnk.GetLinkUUID())
 
 	// Open an echo stream to verify the link works.
@@ -114,15 +124,20 @@ func TestWebSocketLink(t *testing.T) {
 	}
 	defer ms.GetStream().Close()
 
+	// Send the first payload through the WebSocket echo stream.
 	data := []byte("hello websocket")
 	if _, err := ms.GetStream().Write(data); err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Receive the first echoed payload over the WebSocket link.
 	buf := make([]byte, len(data)*2)
 	n, err := ms.GetStream().Read(buf)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Verify the first echo before holding the WebSocket connection open.
 	if string(buf[:n]) != string(data) {
 		t.Fatalf("echo mismatch: got %q, want %q", buf[:n], data)
 	}
@@ -141,10 +156,14 @@ func TestWebSocketLink(t *testing.T) {
 	if _, err := ms.GetStream().Write(data); err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Receive the final echo after the WebSocket connection stayed open.
 	n, err = ms.GetStream().Read(buf)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Verify the WebSocket link still returns the complete payload.
 	if string(buf[:n]) != string(data) {
 		t.Fatalf("final echo mismatch: got %q, want %q", buf[:n], data)
 	}

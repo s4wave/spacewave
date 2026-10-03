@@ -47,6 +47,7 @@ func (b *batchCountBucket) count() int {
 // chunked blob out of the bucket and Commit writes it in the same block batch
 // as the tree that references it.
 func TestBatchFSWriter_CommitWritesBlobsWithTree(t *testing.T) {
+	// Start the storage testbed for counting blob and tree writes.
 	ctx := t.Context()
 	le := logrus.NewEntry(logrus.New())
 	htb, err := hydra_testbed.NewTestbed(ctx, le)
@@ -74,6 +75,8 @@ func TestBatchFSWriter_CommitWritesBlobsWithTree(t *testing.T) {
 		base.GetTransformConf(),
 	)
 	defer cursor.Release()
+
+	// Start the World engine on the counting bucket cursor.
 	eng, err := world_block.NewEngine(ctx, le, cursor, unixfs_world.LookupFsOp, nil, false)
 	if err != nil {
 		t.Fatal(err)
@@ -81,6 +84,7 @@ func TestBatchFSWriter_CommitWritesBlobsWithTree(t *testing.T) {
 	defer eng.Close()
 	ws := world.NewEngineWorldState(eng, true)
 
+	// Initialize the filesystem root in the counting bucket.
 	now := time.Now()
 	sender := htb.Volume.GetPeerID()
 	fsType := unixfs_world.FSType_FSType_FS_NODE
@@ -130,11 +134,15 @@ func TestBatchFSWriter_CommitWritesBlobsWithTree(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer fsHandle.Release()
+
+	// Open large.bin from the committed filesystem.
 	fh, err := fsHandle.Lookup(ctx, "large.bin")
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer fh.Release()
+
+	// Verify that the committed chunked file reads back intact.
 	got := make([]byte, len(content))
 	n, err := fh.ReadAt(ctx, 0, got)
 	if err != nil && err != io.EOF {

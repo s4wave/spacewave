@@ -59,12 +59,14 @@ type ProviderAccount interface {
 // Check GetProviderInfo()=>features in advance before calling this.
 // Returns ErrUnimplementedProviderFeature if the feature is not implemented.
 func GetProviderAccountFeature[V ProviderAccountFeature](ctx context.Context, acc ProviderAccount, feature ProviderFeature) (V, error) {
+	// Ask the provider account for the requested feature implementation.
 	v, err := acc.GetProviderAccountFeature(ctx, feature)
 	if err != nil {
 		var empty V
 		return empty, err
 	}
 
+	// Require the feature implementation to satisfy the caller's type.
 	vv, ok := v.(V)
 	if !ok {
 		var empty V

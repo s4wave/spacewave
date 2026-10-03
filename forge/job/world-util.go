@@ -72,11 +72,14 @@ func CreateJobWithTasks(
 	placement *forge_worker.Placement,
 	ts *timestamp.Timestamp,
 ) (world.ObjectState, *bucket.ObjectRef, error) {
+	// Validate the placement against the linked Worker and Device peer.
 	if placement != nil {
 		if err := placement.ValidateLinked(ctx, ws); err != nil {
 			return nil, nil, errors.Wrap(err, "placement")
 		}
 	}
+
+	// Create the pending Job record with the validated placement.
 	njob := &Job{
 		JobState:  State_JobState_PENDING,
 		Placement: placement.CloneVT(),
@@ -103,6 +106,7 @@ func CreateJobWithTasks(
 
 	// create the tasks & targets & links
 	for taskName, taskTgt := range tasks {
+		// Create each named Task with its target and Job placement.
 		if err := forge_task.ValidateName(taskName); err != nil {
 			world.ReleaseObjectState(objState)
 			return nil, nil, errors.Wrapf(err, "tasks[%s]", taskName)
@@ -147,13 +151,18 @@ func WaitJobComplete(
 		jobObjectKey,
 		world_control.NewWaitForStateHandler(
 			func(ctx context.Context, ws world.WorldState, obj world.ObjectState, rootCs *block.Cursor, rev uint64) (bool, error) {
+				// Keep watching until the Job object is available.
 				if obj == nil {
 					return true, nil
 				}
+
+				// Decode the current Job record from its root cursor.
 				job, err := UnmarshalJob(ctx, rootCs)
 				if err != nil {
 					return true, err
 				}
+
+				// Report Job state transitions and their failure details.
 				nextState := job.GetJobState()
 				if nextState != lastState {
 					lastState = nextState
@@ -163,6 +172,8 @@ func WaitJobComplete(
 						le.WithError(errors.New(ferr)).Warn("job failed")
 					}
 				}
+
+				// Retain the completed Job record and stop its watch.
 				complete := job.IsComplete()
 				if complete {
 					finalState = job
@@ -196,11 +207,13 @@ func CollectJobTasks(
 	ws world.WorldState,
 	jobObjectKeys ...string,
 ) ([]*forge_task.Task, []string, error) {
+	// Collect the Task keys linked to the requested Jobs.
 	kpObjectKeys, err := ListJobTasks(ctx, ws, jobObjectKeys...)
 	if err != nil {
 		return nil, nil, err
 	}
 
+	// Load the linked Task bodies and reject missing objects.
 	bodies, err := world.LookupObjectBodies[*forge_task.Task](ctx, ws, kpObjectKeys, forge_task.NewTaskBlock)
 	if err != nil {
 		return nil, nil, err

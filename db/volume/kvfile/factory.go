@@ -104,6 +104,7 @@ func (t *Factory) Construct(
 				return nil, err
 			}
 
+			// Build the KVFile reader and close its file if initialization fails.
 			rdr, err := kvfile.BuildReaderWithFile(f)
 			if err != nil {
 				_ = f.Close()

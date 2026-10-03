@@ -150,6 +150,7 @@ func (w *WebSocket) Execute(ctx context.Context) error {
 		errCh <- w.ListenHTTP(ctx, listenAddr)
 	}()
 
+	// Wait for the WebSocket listener result or transport cancellation.
 	select {
 	case <-w.ctx.Done():
 	case <-ctx.Done():

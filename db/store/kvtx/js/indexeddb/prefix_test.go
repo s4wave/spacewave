@@ -33,13 +33,16 @@ func TestPrefixRange(t *testing.T) {
 }
 
 func TestBuildPrefixRange(t *testing.T) {
+	// Prepare bounded and unbounded prefixes for cursor resumption.
 	prefix := []byte("ab")
 	upper, _ := kvtx.PrefixSuccessor(prefix)
 	maxPrefix := []byte{0xff, 0xff}
 
+	// Describe the complete ranges returned before cursor resumption.
 	full := prefixRange{lower: prefixBoundPrefix, upper: prefixBoundUpper, upperOpen: true}
 	fullUnbounded := prefixRange{lower: prefixBoundPrefix, upper: prefixBoundNone}
 
+	// Cover forward and reverse seeks inside and outside each prefix range.
 	tests := []struct {
 		name    string
 		prefix  []byte
@@ -88,9 +91,13 @@ func TestBuildPrefixRange(t *testing.T) {
 		},
 	}
 
+	// Verify each cursor range against its expected resume bounds.
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
+			// Build the cursor range from the prefix and resume key.
 			got := buildPrefixRange(test.prefix, test.upper, test.upper != nil, test.key, test.reverse)
+
+			// Require the expected bounds and completion state.
 			if got != test.want {
 				t.Fatalf(
 					"buildPrefixRange(%v, %v, %v, %t) = %+v, want %+v",

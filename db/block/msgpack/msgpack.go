@@ -23,13 +23,18 @@ func BuildMsgpackBlob(
 	opts *blob.BuildBlobOpts,
 	obj any,
 ) (*MsgpackBlob, error) {
+	// Replace the cursor contents with the MsgpackBlob container.
 	nobj := &MsgpackBlob{}
 	bcs.ClearAllRefs()
 	bcs.SetBlock(nobj, true)
+
+	// Encode the object as MessagePack bytes for the blob.
 	dat, err := msgpack.Marshal(obj)
 	if err != nil {
 		return nil, err
 	}
+
+	// Store the encoded bytes beneath the MsgpackBlob container.
 	nobj.Blob, err = blob.BuildBlob(
 		ctx,
 		int64(len(dat)),
@@ -40,6 +45,7 @@ func BuildMsgpackBlob(
 	if err != nil {
 		return nil, err
 	}
+
 	return nobj, nil
 }
 
@@ -85,9 +91,12 @@ func (m *MsgpackBlob) UnmarshalBlock(data []byte) error {
 //
 // bcs must be located at the MsgpackBlob object.
 func (m *MsgpackBlob) BuildMsgpackDecoder(ctx context.Context, bcs *block.Cursor) (*msgpack.Decoder, error) {
+	// Decode an empty MsgpackBlob without opening a block reader.
 	if m.GetBlob().GetTotalSize() == 0 {
 		return msgpack.NewDecoder(bytes.NewReader(nil)), nil
 	}
+
+	// Open the MsgpackBlob data as a streaming block reader.
 	// streaming msgpack decoding from the block graph.
 	br, err := blob.NewReader(ctx, bcs.FollowSubBlock(1))
 	if err != nil {

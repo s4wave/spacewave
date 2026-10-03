@@ -12,11 +12,13 @@ import (
 
 // TestKvfile runs the basic volume test suite.
 func TestKvfile(t *testing.T) {
+	// Prepare the context and logger for the KVFile volume.
 	ctx := context.Background()
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
 
+	// Prepare the ordered key and value records for the KVFile.
 	var buf bytes.Buffer
 	keys := [][]byte{
 		[]byte("test-1"),
@@ -28,6 +30,8 @@ func TestKvfile(t *testing.T) {
 		[]byte("val-2"),
 		[]byte("val-3"),
 	}
+
+	// Write the ordered records to the in-memory KVFile.
 	// we write the keys in sequential order, use that here:
 	var index int
 	err := kvfile.Write(&buf, keys, func(wr io.Writer, key []byte) (uint64, error) {
@@ -42,12 +46,14 @@ func TestKvfile(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// Open a KVFile reader over the encoded records.
 	bufReader := bytes.NewReader(buf.Bytes())
 	rdr, err := kvfile.BuildReader(bufReader, uint64(buf.Len())) //nolint:gosec
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Verify that the encoded KVFile can initialize a read-only volume.
 	vol, err := NewKVFile(
 		ctx,
 		le,

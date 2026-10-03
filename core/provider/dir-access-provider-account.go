@@ -98,15 +98,18 @@ func (d *accessProviderAccount) AccessProviderAccountID() string {
 // directives are equivalent, and the new directive does not superceed the
 // old, then the new directive will be merged (de-duplicated) into the old.
 func (d *accessProviderAccount) IsEquivalent(other directive.Directive) bool {
+	// Require another provider-account directive before comparing its identity.
 	od, ok := other.(AccessProviderAccount)
 	if !ok {
 		return false
 	}
 
+	// Compare the provider IDs that locate the account.
 	if d.AccessProviderID() != od.AccessProviderID() {
 		return false
 	}
 
+	// Compare the account IDs within the matching provider.
 	if d.AccessProviderAccountID() != od.AccessProviderAccountID() {
 		return false
 	}

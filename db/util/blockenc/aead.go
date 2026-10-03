@@ -18,10 +18,13 @@ func newAeadCipher(c cipher.AEAD, deriveNonce NonceDeriver) *aeadCipher {
 
 // Encrypt encrypts the block and returns the encrypted buf.
 func (b *aeadCipher) Encrypt(alloc AllocFn, src []byte) ([]byte, error) {
+	// Allocate the encrypted block buffer and derive its deterministic nonce.
 	nonceSize := b.c.NonceSize()
 	outSize := nonceSize + len(src) + b.c.Overhead()
 	nonce := alloc(outSize)[:nonceSize]
 	b.deriveNonce(src, nonce)
+
+	// Append the authenticated ciphertext after the block nonce.
 	// note: Seal appends the data to nonce
 	encrypted := b.c.Seal(nonce, nonce, src, nil)
 	return encrypted, nil
@@ -29,10 +32,13 @@ func (b *aeadCipher) Encrypt(alloc AllocFn, src []byte) ([]byte, error) {
 
 // Decrypt decrypts the whole block and returns the decrypted buf.
 func (b *aeadCipher) Decrypt(alloc AllocFn, src []byte) ([]byte, error) {
+	// Require the encrypted block to contain a nonce and ciphertext.
 	nonceSize := b.c.NonceSize()
 	if len(src) < nonceSize+1 {
 		return nil, ErrShortMsg
 	}
+
+	// Authenticate and decrypt the ciphertext using the stored block nonce.
 	nonce, ciphertext := src[:nonceSize], src[nonceSize:]
 	dst := alloc(len(ciphertext))[:0]
 	return b.c.Open(dst, nonce, ciphertext, nil)

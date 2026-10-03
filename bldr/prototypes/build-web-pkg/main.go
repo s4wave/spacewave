@@ -15,11 +15,13 @@ import (
 )
 
 func main() {
+	// Prepare the context and logger for the web package build.
 	ctx := context.Background()
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
 
+	// Run the web package build and report a terminal failure.
 	if err := run(ctx, le); err != nil {
 		os.Stderr.WriteString(err.Error() + "\n")
 		os.Exit(1)
@@ -27,6 +29,7 @@ func main() {
 }
 
 func run(ctx context.Context, le *logrus.Entry) error {
+	// Resolve the source, output and working directories for the web packages.
 	wd, err := os.Getwd()
 	if err != nil {
 		return err
@@ -35,6 +38,7 @@ func run(ctx context.Context, le *logrus.Entry) error {
 	outDir := filepath.Join(wd, "out")
 	workingDir := filepath.Join(wd, "working")
 
+	// Declare the React and Bldr package roots and entrypoint imports.
 	refs := []*web_pkg.WebPkgRef{{
 		WebPkgId:   "react",
 		WebPkgRoot: filepath.Join(rootDir, "node_modules/react"),
@@ -57,6 +61,7 @@ func run(ctx context.Context, le *logrus.Entry) error {
 	distSourcePath := filepath.Join(rootDir, ".bldr", "src")
 
 	return web_pkg_vite.RunOneShot(ctx, le, distSourcePath, rootDir, workingDir, func(ctx context.Context, client bldr_vite.SRPCViteBundlerClient) error {
+		// Bundle the declared web packages through the managed Vite client.
 		webPkgIds, srcPaths, importMapEntries, buildErr := web_pkg_vite.BuildWebPkgsViteWithManagedRoot(
 			ctx,
 			le,
@@ -75,6 +80,8 @@ func run(ctx context.Context, le *logrus.Entry) error {
 		if buildErr != nil {
 			return buildErr
 		}
+
+		// Report the built package IDs, source count and import map.
 		le.Infof("web pkg ids: %v", webPkgIds)
 		le.Infof("source paths: %d files", len(srcPaths))
 		le.Infof("import map entries: %d", len(importMapEntries))

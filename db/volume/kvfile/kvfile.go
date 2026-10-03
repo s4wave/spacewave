@@ -33,11 +33,13 @@ func NewKVFile(
 	rdr *kvfile.Reader,
 	closeFn func() error,
 ) (*KVFile, error) {
+	// Build the key encoder for the KVFile volume.
 	kvkey, err := kvkey.NewKVKey(conf.GetKvKeyOpts())
 	if err != nil {
 		return nil, err
 	}
 
+	// Wrap the KVFile reader with the configured store logging.
 	var s store_kvtx.Store = store_kvtx_kvfile.NewStore(rdr)
 	if conf.GetVerbose() {
 		s = kvtx_vlogger.NewVLogger(le, s)

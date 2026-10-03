@@ -49,9 +49,11 @@ func (t *Factory) Construct(
 	conf config.Config,
 	opts controller.ConstructOpts,
 ) (controller.Controller, error) {
+	// Read the WebSocket configuration and construction logger.
 	le := opts.GetLogger()
 	cc := conf.(*Config)
 
+	// Validate the configured peer identity constraint for the transport.
 	peerIDConstraint, err := cc.ParseTransportPeerID()
 	if err != nil {
 		return nil, err

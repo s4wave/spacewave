@@ -27,10 +27,12 @@ var objKey = "test/fs"
 // retained filesystem handle and another World writer cannot lose each other's
 // committed values.
 func TestEngineWorldFilesystemSurvivesConcurrentWriteAndSync(t *testing.T) {
+	// Prepare the context and logger for concurrent World writes.
 	ctx := context.Background()
 	logger := logrus.New()
 	le := logrus.NewEntry(logger)
 
+	// Start the storage testbed and its World engine.
 	tb, err := hydra_testbed.NewTestbed(ctx, le)
 	if err != nil {
 		t.Fatal(err)
@@ -64,6 +66,8 @@ func TestEngineWorldFilesystemSurvivesConcurrentWriteAndSync(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Verify that the unrelated World commit advances the sequence.
 	concurrentSeqno, err := ws.GetSeqno(ctx)
 	if err != nil {
 		t.Fatal(err)
@@ -78,6 +82,8 @@ func TestEngineWorldFilesystemSurvivesConcurrentWriteAndSync(t *testing.T) {
 	if err := fsHandle.Mknod(ctx, true, []string{fileName}, unixfs.NewFSCursorNodeType_File(), 0o644, time.Now()); err != nil {
 		t.Fatal(err)
 	}
+
+	// Open the retained filesystem file and write its content.
 	fileHandle, err := fsHandle.Lookup(ctx, fileName)
 	if err != nil {
 		t.Fatal(err)
@@ -87,6 +93,8 @@ func TestEngineWorldFilesystemSurvivesConcurrentWriteAndSync(t *testing.T) {
 		t.Fatal(err)
 	}
 	fileHandle.Release()
+
+	// Verify that the filesystem commit follows the unrelated commit.
 	filesystemSeqno, err := ws.GetSeqno(ctx)
 	if err != nil {
 		t.Fatal(err)
@@ -110,6 +118,8 @@ func TestEngineWorldFilesystemSurvivesConcurrentWriteAndSync(t *testing.T) {
 	if unrelated.GetMsg() != unrelatedValue {
 		t.Fatalf("expected unrelated value %q, got %q", unrelatedValue, unrelated.GetMsg())
 	}
+
+	// Reopen the filesystem from the committed World root.
 	freshFS, err := unixfs_world.BuildFSFromUnixfsRef(
 		ctx,
 		le,
@@ -124,11 +134,15 @@ func TestEngineWorldFilesystemSurvivesConcurrentWriteAndSync(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(freshFS.Release)
+
+	// Open the committed file for reading.
 	freshFile, err := freshFS.Lookup(ctx, fileName)
 	if err != nil {
 		t.Fatal(err)
 	}
 	t.Cleanup(freshFile.Release)
+
+	// Verify that the reopened file retains the filesystem write.
 	read := make([]byte, len(content))
 	n, err := freshFile.ReadAt(ctx, 0, read)
 	if err != nil {
@@ -141,21 +155,25 @@ func TestEngineWorldFilesystemSurvivesConcurrentWriteAndSync(t *testing.T) {
 
 // TestFs runs the e2e tests.
 func TestFs(t *testing.T) {
+	// Prepare the context and logger for the filesystem checks.
 	ctx := context.Background()
 	logger := logrus.New()
 	logger.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(logger)
 
+	// Start the storage testbed for the filesystem.
 	tb, err := hydra_testbed.NewTestbed(ctx, le)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Start the World engine on the storage testbed.
 	wtb, err := world_testbed.NewTestbed(tb)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Open a filesystem that watches World changes.
 	watchWorldChanges := true
 	fsHandle, err := InitTestbed(wtb, objKey, watchWorldChanges)
 	if err != nil {
@@ -163,6 +181,7 @@ func TestFs(t *testing.T) {
 	}
 	defer fsHandle.Release()
 
+	// Exercise the filesystem through the UnixFS contract checks.
 	if err := unixfs_e2e.TestUnixFS(ctx, fsHandle); err != nil {
 		t.Fatal(err.Error())
 	}
@@ -170,16 +189,19 @@ func TestFs(t *testing.T) {
 
 // TestFs_SingleTxn runs the e2e tests with a single transaction.
 func TestFs_SingleTxn(t *testing.T) {
+	// Prepare the context and logger for transaction-backed filesystem checks.
 	ctx := context.Background()
 	logger := logrus.New()
 	logger.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(logger)
 
+	// Start the storage testbed for the filesystem transaction.
 	htb, err := hydra_testbed.NewTestbed(ctx, le)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Start the World engine for filesystem transactions.
 	tb, err := world_testbed.NewTestbed(htb)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -207,6 +229,7 @@ func TestFs_SingleTxn(t *testing.T) {
 		}
 		defer wtx.Discard()
 
+		// Initialize the filesystem root in the write transaction.
 		typeID, _ := unixfs_world.FSTypeToTypeID(fsType)
 		_, _, err = unixfs_world.FsInit(
 			ctx,
@@ -235,12 +258,15 @@ func TestFs_SingleTxn(t *testing.T) {
 	// construct full fs
 	tb.Logger.Debug("filesystem initialized")
 
+	// Provide a filesystem handle backed by a fresh write transaction.
 	buildFsh := func() (wtx world.Tx, fsh *unixfs.FSHandle, err error) {
+		// Open the World write transaction for the filesystem handle.
 		wtx, err = eng.NewTransaction(ctx, true)
 		if err != nil {
 			return nil, nil, err
 		}
 
+		// Wrap the writable filesystem cursor and release it if construction fails.
 		fsCursor, _ := unixfs_world.NewFSCursorWithWriter(ctx, le, wtx, objKey, fsType, sender)
 		fsh, err = unixfs.NewFSHandle(fsCursor)
 		if err != nil {
@@ -255,6 +281,7 @@ func TestFs_SingleTxn(t *testing.T) {
 	// quick test using a temporary (not written) txn
 	// we expect to be able to do everything on a temporary fs txn without committing
 	if err := func() error {
+		// Open a temporary filesystem transaction and retain its cleanup.
 		wtx, fsh, err := buildFsh()
 		if err != nil {
 			return err
@@ -262,14 +289,17 @@ func TestFs_SingleTxn(t *testing.T) {
 		defer wtx.Discard()
 		defer fsh.Release()
 
+		// Create the mydir directory in the temporary filesystem.
 		if err := fsh.Mknod(ctx, false, []string{"mydir"}, unixfs.NewFSCursorNodeType_Dir(), 0o644, time.Now()); err != nil {
 			return err
 		}
 
+		// Create the nested test directory in the temporary filesystem.
 		if err := fsh.MkdirAll(ctx, []string{"test", "dir"}, 0o700, time.Now()); err != nil {
 			return err
 		}
 
+		// Create the nested file path in the temporary filesystem.
 		if err := fsh.Mknod(ctx, false, []string{"hello.txt", "world.md"}, unixfs.NewFSCursorNodeType_File(), 0o644, time.Now()); err != nil {
 			return err
 		}
@@ -283,6 +313,7 @@ func TestFs_SingleTxn(t *testing.T) {
 	// full test on write txn with commit
 	// we expect to be able to do everything on a temporary fs txn without committing
 	if err := func() error {
+		// Open the filesystem transaction for the full contract checks.
 		wtx, fsh, err := buildFsh()
 		if err != nil {
 			return err
@@ -290,6 +321,7 @@ func TestFs_SingleTxn(t *testing.T) {
 		defer wtx.Discard()
 		defer fsh.Release()
 
+		// Exercise the UnixFS contract within the write transaction.
 		if err := unixfs_e2e.TestUnixFS(ctx, fsh); err != nil {
 			return err
 		}
@@ -303,21 +335,25 @@ func TestFs_SingleTxn(t *testing.T) {
 
 // TestMknodWithContent tests creating a file with content atomically.
 func TestMknodWithContent(t *testing.T) {
+	// Prepare the context and logger for atomic file creation.
 	ctx := context.Background()
 	logger := logrus.New()
 	logger.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(logger)
 
+	// Start the storage testbed for atomic file creation.
 	tb, err := hydra_testbed.NewTestbed(ctx, le)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Start the World engine for the filesystem.
 	wtb, err := world_testbed.NewTestbed(tb)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Open a filesystem that watches the atomic file commit.
 	watchWorldChanges := true
 	fsHandle, err := InitTestbed(wtb, objKey, watchWorldChanges)
 	if err != nil {
@@ -372,21 +408,25 @@ func TestMknodWithContent(t *testing.T) {
 
 // TestMknodWithContent_LargeFile tests creating a larger file that requires chunking.
 func TestMknodWithContent_LargeFile(t *testing.T) {
+	// Prepare the context and logger for chunked file creation.
 	ctx := context.Background()
 	logger := logrus.New()
 	logger.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(logger)
 
+	// Start the storage testbed for the chunked file.
 	tb, err := hydra_testbed.NewTestbed(ctx, le)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Start the World engine for the chunked filesystem.
 	wtb, err := world_testbed.NewTestbed(tb)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Open a filesystem that watches the chunked file commit.
 	watchWorldChanges := true
 	fsHandle, err := InitTestbed(wtb, objKey, watchWorldChanges)
 	if err != nil {
@@ -416,6 +456,7 @@ func TestMknodWithContent_LargeFile(t *testing.T) {
 	}
 	defer fileHandle.Release()
 
+	// Verify the stored size of the chunked file.
 	size, err := fileHandle.GetSize(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -434,6 +475,7 @@ func TestMknodWithContent_LargeFile(t *testing.T) {
 		t.Fatal("head content mismatch")
 	}
 
+	// Verify the content at the end of the chunked file.
 	tailBuf := make([]byte, 100)
 	tailOffset := int64(len(content) - 100)
 	n, err = fileHandle.ReadAt(ctx, tailOffset, tailBuf)
@@ -447,21 +489,25 @@ func TestMknodWithContent_LargeFile(t *testing.T) {
 
 // TestMknodWithContent_InSubdir tests creating a file in a subdirectory.
 func TestMknodWithContent_InSubdir(t *testing.T) {
+	// Prepare the context and logger for subdirectory file creation.
 	ctx := context.Background()
 	logger := logrus.New()
 	logger.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(logger)
 
+	// Start the storage testbed for the nested filesystem.
 	tb, err := hydra_testbed.NewTestbed(ctx, le)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Start the World engine for the nested filesystem.
 	wtb, err := world_testbed.NewTestbed(tb)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Open a filesystem that watches nested file commits.
 	watchWorldChanges := true
 	fsHandle, err := InitTestbed(wtb, objKey, watchWorldChanges)
 	if err != nil {
@@ -509,6 +555,7 @@ func TestMknodWithContent_InSubdir(t *testing.T) {
 	}
 	defer fileHandle.Release()
 
+	// Verify the nested file size through its root-relative handle.
 	size, err := fileHandle.GetSize(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -520,21 +567,25 @@ func TestMknodWithContent_InSubdir(t *testing.T) {
 
 // TestFsBilly_WriteFile tests reading from a file immediately after writing it.
 func TestFsBilly_WriteFile(t *testing.T) {
+	// Prepare the context and logger for the Billy filesystem adapter.
 	ctx := context.Background()
 	logger := logrus.New()
 	logger.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(logger)
 
+	// Start the storage testbed for the Billy filesystem.
 	tb, err := hydra_testbed.NewTestbed(ctx, le)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Start the World engine for the Billy filesystem.
 	wtb, err := world_testbed.NewTestbed(tb)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Open a filesystem that watches writes through the Billy adapter.
 	watchWorldChanges := true // TODO: test with both false/true
 	fsHandle, err := InitTestbed(wtb, objKey, watchWorldChanges)
 	if err != nil {

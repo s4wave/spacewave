@@ -12,11 +12,13 @@ import (
 )
 
 func TestCheckoutWebDistSourcesMaterializesVendorGoModules(t *testing.T) {
+	// Prepare the context and logger for dist source materialization.
 	ctx := context.Background()
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
 
+	// Resolve the repository root and prepare its temporary source directory.
 	wd, err := os.Getwd()
 	if err != nil {
 		t.Fatal(err)
@@ -26,6 +28,8 @@ func TestCheckoutWebDistSourcesMaterializesVendorGoModules(t *testing.T) {
 	if err := os.MkdirAll(tmpRoot, 0o755); err != nil {
 		t.Fatal(err)
 	}
+
+	// Create an isolated dist source tree and register its cleanup.
 	workDir, err := os.MkdirTemp(tmpRoot, "core-e2e-dist-sources-")
 	if err != nil {
 		t.Fatal(err)
@@ -37,10 +41,12 @@ func TestCheckoutWebDistSourcesMaterializesVendorGoModules(t *testing.T) {
 	})
 	distDir := filepath.Join(workDir, "src")
 
+	// Materialize the embedded web sources and their vendored Go modules.
 	if err := CheckoutWebDistSources(ctx, le, repoRoot, distDir); err != nil {
 		t.Fatal(err)
 	}
 
+	// Verify that the required vendor TypeScript sources were materialized.
 	for _, path := range []string{
 		"vendor/github.com/aperturerobotics/starpc/rpcstream/rpcstream.pb.ts",
 		"vendor/github.com/aperturerobotics/controllerbus/controller/configset/proto/configset.pb.ts",

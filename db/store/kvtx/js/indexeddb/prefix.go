@@ -44,6 +44,7 @@ func buildPrefixRange(prefix, upper []byte, hasUpper bool, key []byte, reverse b
 		return full
 	}
 
+	// Clamp reverse iteration to the prefix range or resume at its key.
 	if reverse {
 		if bytes.Compare(key, prefix) < 0 {
 			return prefixRange{done: true}
@@ -55,12 +56,14 @@ func buildPrefixRange(prefix, upper []byte, hasUpper bool, key []byte, reverse b
 		return prefixRange{lower: prefixBoundPrefix, upper: prefixBoundKey}
 	}
 
+	// Clamp forward iteration to the prefix range or stop beyond it.
 	if hasUpper && bytes.Compare(key, upper) >= 0 {
 		return prefixRange{done: true}
 	}
 	if bytes.Compare(key, prefix) < 0 {
 		return full
 	}
+
 	// Resume above key, including key itself so it is read again.
 	res := full
 	res.lower = prefixBoundKey
