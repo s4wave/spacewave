@@ -8,9 +8,8 @@ import {
   CLOUD_FEATURES,
   OVERAGE_ITEMS,
   PLAN_PRICE_MONTHLY,
-  READ_OPS_BASELINE_DISPLAY,
   STORAGE_BASELINE_GB,
-  WRITE_OPS_BASELINE_DISPLAY,
+  STORAGE_RATE_DISPLAY,
 } from '../provider/spacewave/pricing.js'
 
 export const metadata = {
@@ -64,11 +63,10 @@ const FAQ_ITEMS = [
       <>
         Your Cloud plan includes{' '}
         <strong className="text-foreground">{STORAGE_BASELINE_GB} GiB</strong>{' '}
-        of cloud storage, {WRITE_OPS_BASELINE_DISPLAY} writes, and{' '}
-        {READ_OPS_BASELINE_DISPLAY} uncached cloud reads per month. Extra usage
-        is billed up to the monthly maximum you choose. When extra usage is off
-        or at its maximum, uploads pause and cloud reads slow down until the
-        allowance resets.
+        of cloud storage. Storage above it costs {STORAGE_RATE_DISPLAY},
+        measured hourly, up to the monthly spending limit you choose. Reads and
+        writes are not billed. When extra storage is off or at its limit,
+        uploads pause until the period renews or you raise the limit.
       </>
     ),
   },

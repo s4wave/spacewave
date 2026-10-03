@@ -63,20 +63,17 @@ func TestRunBillingUsageTextOutput(t *testing.T) {
 	assertContains(t, out, "$10.00")
 	assertContains(t, out, "Extra Usage Charges:")
 	assertContains(t, out, "$1.25")
-	assertContains(t, out, "Pending Extra Charges:")
-	assertContains(t, out, "<$0.01")
 
-	// Check the per-operation rates and billing period.
-	assertContains(t, out, "$0.000004 per write")
-	assertContains(t, out, "$0.000001 per uncached read")
+	// Check the storage rate and billing period.
+	assertContains(t, out, "$0.02 per GiB-month")
 	assertContains(t, out, "Billing Period:")
 	assertContains(t, out, "2026-04-22 22:00 UTC to 2026-05-22 22:00 UTC")
 
-	// Check the operation usage allowances.
-	assertContains(t, out, "Write Ops:")
-	assertContains(t, out, "250 / 100 included")
-	assertContains(t, out, "Read Ops:")
-	assertContains(t, out, "900 / 500 included")
+	// Check the unbilled operation counts.
+	assertContains(t, out, "Writes:")
+	assertContains(t, out, "250 (not billed)")
+	assertContains(t, out, "Reads:")
+	assertContains(t, out, "900 (not billed)")
 	assertContains(t, out, "2026-04-22 22:00 UTC")
 }
 
@@ -97,13 +94,11 @@ func TestWriteBillingUsageJSONOutput(t *testing.T) {
 	assertContains(t, out, `"storageBytes":118111600640`)
 	assertContains(t, out, `"overageLimitCents":1000`)
 	assertContains(t, out, `"accruedOverageMicrodollars":"1250000"`)
-	assertContains(t, out, `"reservedOverageMicrodollars":"500"`)
 
 	// Check the offer, policy, and period contract fields.
 	assertContains(t, out, `"offerVersion":"offer-test"`)
 	assertContains(t, out, `"policyVersion":"policy-test"`)
-	assertContains(t, out, `"writeMicrodollars":4`)
-	assertContains(t, out, `"readMicrodollars":1`)
+	assertContains(t, out, `"storageMicrodollarsPerGibMonth":20000`)
 	assertContains(t, out, `"currentPeriodEnd":"1779487200000"`)
 	assertContains(t, out, `"usageMeteredThroughAt":"1776895200000"`)
 }
@@ -118,13 +113,13 @@ func TestWriteBillingUsageYAMLOutput(t *testing.T) {
 		t.Fatalf("write yaml: %v", err)
 	}
 
-	// Verify identity, charges, and operation allowances survive conversion.
+	// Verify identity, charges, and operation counts survive conversion.
 	assertContains(t, out, "applicable: true")
 	assertContains(t, out, "sessionIndex: 4")
 	assertContains(t, out, "billingAccountId: ba-yaml")
 	assertContains(t, out, `accruedOverageMicrodollars: "1250000"`)
 	assertContains(t, out, "overageLimitCents: 1000")
-	assertContains(t, out, `readOpsBaseline: "500"`)
+	assertContains(t, out, `readOps: "900"`)
 }
 
 // TestRunBillingUsageLocalSessionNotApplicable avoids cloud RPCs for local Sessions.
@@ -205,27 +200,23 @@ func stubBillingTestHooks(t *testing.T) func() {
 	}
 }
 
-// billingUsageResponse covers accepted pricing, pending charges, and metered usage.
+// billingUsageResponse covers accepted pricing, charges, and metered usage.
 func billingUsageResponse() *s4wave_provider_spacewave.WatchBillingStateResponse {
 	return &s4wave_provider_spacewave.WatchBillingStateResponse{
 		Usage: &s4wave_provider_spacewave.BillingUsageInfo{
-			StorageBytes:                110 * billingBytesPerGB,
-			StorageBaselineBytes:        100 * billingBytesPerGB,
-			WriteOps:                    250,
-			WriteOpsBaseline:            100,
-			ReadOps:                     900,
-			ReadOpsBaseline:             500,
-			OverageLimitCents:           1000,
-			AccruedOverageMicrodollars:  1250000,
-			ReservedOverageMicrodollars: 500,
-			CurrentPeriodStart:          1776895200000,
-			CurrentPeriodEnd:            1779487200000,
-			OfferVersion:                "offer-test",
-			PolicyVersion:               "policy-test",
-			MonthlyPriceCents:           500,
-			WriteMicrodollars:           4,
-			ReadMicrodollars:            1,
-			UsageMeteredThroughAt:       1776895200000,
+			StorageBytes:                   110 * billingBytesPerGB,
+			StorageBaselineBytes:           100 * billingBytesPerGB,
+			WriteOps:                       250,
+			ReadOps:                        900,
+			OverageLimitCents:              1000,
+			AccruedOverageMicrodollars:     1250000,
+			CurrentPeriodStart:             1776895200000,
+			CurrentPeriodEnd:               1779487200000,
+			OfferVersion:                   "offer-test",
+			PolicyVersion:                  "policy-test",
+			MonthlyPriceCents:              500,
+			StorageMicrodollarsPerGibMonth: 20000,
+			UsageMeteredThroughAt:          1776895200000,
 		},
 	}
 }

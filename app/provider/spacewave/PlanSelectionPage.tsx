@@ -15,8 +15,7 @@ import {
   PLAN_PRICE_MONTHLY,
   OVERAGE_EXPLANATION,
   STORAGE_BASELINE_GB,
-  WRITE_OPS_BASELINE_DISPLAY,
-  READ_OPS_BASELINE_DISPLAY,
+  STORAGE_RATE_DISPLAY,
 } from '@s4wave/app/provider/spacewave/pricing.js'
 import AnimatedLogo from '@s4wave/app/landing/AnimatedLogo.js'
 import { useNavigate, usePath } from '@s4wave/web/router/router.js'
@@ -114,7 +113,7 @@ const CLOUD_FEATURES = [
   { icon: LuServer, text: `${STORAGE_BASELINE_GB} GiB cloud storage included` },
   {
     icon: LuZap,
-    text: `${WRITE_OPS_BASELINE_DISPLAY} writes / ${READ_OPS_BASELINE_DISPLAY} uncached reads per month`,
+    text: `Extra storage at ${STORAGE_RATE_DISPLAY}, reads and writes not billed`,
   },
   { icon: LuGlobe, text: 'Always-on sync across all devices' },
   { icon: LuShield, text: 'End-to-end encrypted' },
@@ -387,6 +386,7 @@ export function PlanSelectionPage({
         <FeatureGrid features={CLOUD_FEATURES} />
 
         <button
+          type="button"
           onClick={() =>
             navigate({
               path: path.replace(/\/plan(\/.*)?$/, '/plan/upgrade'),
@@ -427,6 +427,7 @@ export function PlanSelectionPage({
         </div>
 
         <button
+          type="button"
           onClick={() => void handleFreeLocal()}
           disabled={state.loading || !session}
           className="border-foreground/20 bg-foreground/5 hover:bg-foreground/10 flex w-full cursor-pointer items-center justify-center rounded-md border px-5 py-2.5 text-sm font-medium transition duration-300 select-none disabled:cursor-not-allowed disabled:opacity-50"

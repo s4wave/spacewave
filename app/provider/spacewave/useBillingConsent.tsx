@@ -7,7 +7,7 @@ import {
   DialogDescription,
   DialogTitle,
 } from '@s4wave/web/ui/dialog.js'
-import { CLOUD_OFFER } from './pricing.js'
+import { CLOUD_OFFER, formatStorageRate } from './pricing.js'
 
 // BillingConsentForm binds the visible terms and spending choice to one action.
 export function BillingConsentForm({
@@ -26,17 +26,16 @@ export function BillingConsentForm({
   const [limit, setLimit] = useState(initialLimit)
   const monthlyPrice = offer.monthlyPriceCents / 100
   const label = spendingOnly
-    ? 'Save extra-usage maximum'
+    ? 'Save spending limit'
     : `Subscribe for $${monthlyPrice}/month`
   return (
     <div className="space-y-4 text-sm">
       <p className="text-foreground-alt text-xs">
-        Extra writes: ${(offer.writeMicrodollars / 100).toFixed(2)} per 10,000.
-        Extra uncached reads: ${(offer.readMicrodollars / 100).toFixed(2)} per
-        10,000. Charges accrue proportionally.
+        Extra storage: {formatStorageRate(offer.storageMicrodollarsPerGibMonth)}
+        , measured hourly. Reads and writes are not billed.
       </p>
       <label className="grid gap-2">
-        Extra-usage cap
+        Monthly spending limit
         <select
           className="bg-background rounded border p-2"
           value={limit}
@@ -62,18 +61,19 @@ export function BillingConsentForm({
           <a className="underline" href="#/privacy">
             Privacy Policy
           </a>
-          , and authorize the selected extra-usage maximum at the rates above.
+          , and authorize extra storage up to the selected limit at the rate
+          above.
         </p>
       )}
       {spendingOnly && (
         <p>
-          By selecting “{label}”, you authorize the selected recurring maximum
-          at the rates above. Your base subscription stays ${monthlyPrice}
-          /month. Lowering the maximum preserves accrued charges and reserved
-          work.
+          By selecting “{label}”, you authorize extra storage up to the selected
+          monthly limit at the rate above. Your base subscription stays $
+          {monthlyPrice}/month. Lowering the limit preserves accrued charges.
         </p>
       )}
       <button
+        type="button"
         className="bg-brand text-background w-full rounded px-4 py-2 disabled:opacity-50"
         disabled={disabled}
         onClick={() =>
@@ -142,14 +142,12 @@ export function useBillingConsent() {
     >
       <DialogContent className="max-h-(--max-height-confirmation) overflow-y-auto">
         <DialogTitle>
-          {choice?.spendingOnly ? 'Extra-usage maximum' : 'Cloud monthly offer'}
+          {choice?.spendingOnly ? 'Spending limit' : 'Cloud monthly offer'}
         </DialogTitle>
         <DialogDescription>
           ${offer.monthlyPriceCents / 100}/month before tax. Includes{' '}
-          {offer.storageBytes / 2 ** 30} GiB of encrypted cloud storage,{' '}
-          {offer.writeOperations.toLocaleString()} cloud writes, and{' '}
-          {offer.readOperations.toLocaleString()} uncached cloud reads per
-          subscription month.
+          {offer.storageBytes / 2 ** 30} GiB of encrypted cloud storage. Reads
+          and writes are not billed.
         </DialogDescription>
         {choice && (
           <BillingConsentForm

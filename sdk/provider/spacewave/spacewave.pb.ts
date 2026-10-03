@@ -3598,47 +3598,35 @@ export const BillingAccountInfo: MessageType<BillingAccountInfo> =
   })
 
 /**
- * BillingUsageInfo contains usage counters.
+ * BillingUsageInfo contains the payer's usage, period and accepted prices.
  *
  * @generated from message s4wave.provider.spacewave.BillingUsageInfo
  */
 export interface BillingUsageInfo {
   /**
-   * StorageBytes is total storage used.
+   * StorageBytes is the resident storage in bytes.
    *
    * @generated from field: double storage_bytes = 1;
    */
   storageBytes?: number
   /**
-   * StorageBaselineBytes is the baseline.
+   * StorageBaselineBytes is the resident storage the monthly price includes.
    *
    * @generated from field: double storage_baseline_bytes = 2;
    */
   storageBaselineBytes?: number
   /**
-   * WriteOps is total write ops this period.
+   * WriteOps is the number of pack writes this period, not billed.
    *
    * @generated from field: int64 write_ops = 3;
    */
   writeOps?: bigint
   /**
-   * WriteOpsBaseline is the baseline.
-   *
-   * @generated from field: int64 write_ops_baseline = 4;
-   */
-  writeOpsBaseline?: bigint
-  /**
-   * ReadOps is total read ops this period.
+   * ReadOps is the number of read grants this period, not billed.
    *
    * @generated from field: int64 read_ops = 5;
    */
   readOps?: bigint
-  /**
-   * ReadOpsBaseline is the baseline.
-   *
-   * @generated from field: int64 read_ops_baseline = 6;
-   */
-  readOpsBaseline?: bigint
   /**
    * UsageMeteredThroughAt is the Spacewave usage ledger freshness timestamp
    * in Unix epoch milliseconds.
@@ -3653,7 +3641,8 @@ export interface BillingUsageInfo {
    */
   overageLimitCents?: number
   /**
-   * AccruedOverageMicrodollars is the exact accepted operation charge.
+   * AccruedOverageMicrodollars is the storage overage charged so far this
+   * period.
    *
    * @generated from field: int64 accrued_overage_microdollars = 15;
    */
@@ -3665,17 +3654,11 @@ export interface BillingUsageInfo {
    */
   currentPeriodStart?: bigint
   /**
-   * CurrentPeriodEnd is the allowance reset in Unix milliseconds.
+   * CurrentPeriodEnd is the subscription-period end in Unix milliseconds.
    *
    * @generated from field: int64 current_period_end = 17;
    */
   currentPeriodEnd?: bigint
-  /**
-   * ReservedOverageMicrodollars is the additional maximum awaiting work results.
-   *
-   * @generated from field: int64 reserved_overage_microdollars = 18;
-   */
-  reservedOverageMicrodollars?: bigint
   /**
    * OfferVersion identifies the applied offer.
    *
@@ -3689,23 +3672,18 @@ export interface BillingUsageInfo {
    */
   monthlyPriceCents?: number
   /**
-   * WriteMicrodollars is the accepted charge for one extra write.
-   *
-   * @generated from field: uint32 write_microdollars = 21;
-   */
-  writeMicrodollars?: number
-  /**
-   * ReadMicrodollars is the accepted charge for one extra uncached read.
-   *
-   * @generated from field: uint32 read_microdollars = 22;
-   */
-  readMicrodollars?: number
-  /**
    * PolicyVersion identifies the policy applying to the current offer.
    *
    * @generated from field: string policy_version = 23;
    */
   policyVersion?: string
+  /**
+   * StorageMicrodollarsPerGibMonth is the accepted price of one GiB-month of
+   * resident storage above the included storage.
+   *
+   * @generated from field: uint32 storage_microdollars_per_gib_month = 24;
+   */
+  storageMicrodollarsPerGibMonth?: number
 }
 
 export const BillingUsageInfo: MessageType<BillingUsageInfo> =
@@ -3720,14 +3698,7 @@ export const BillingUsageInfo: MessageType<BillingUsageInfo> =
         T: ScalarType.DOUBLE,
       },
       { no: 3, name: 'write_ops', kind: 'scalar', T: ScalarType.INT64 },
-      {
-        no: 4,
-        name: 'write_ops_baseline',
-        kind: 'scalar',
-        T: ScalarType.INT64,
-      },
       { no: 5, name: 'read_ops', kind: 'scalar', T: ScalarType.INT64 },
-      { no: 6, name: 'read_ops_baseline', kind: 'scalar', T: ScalarType.INT64 },
       {
         no: 13,
         name: 'usage_metered_through_at',
@@ -3758,12 +3729,6 @@ export const BillingUsageInfo: MessageType<BillingUsageInfo> =
         kind: 'scalar',
         T: ScalarType.INT64,
       },
-      {
-        no: 18,
-        name: 'reserved_overage_microdollars',
-        kind: 'scalar',
-        T: ScalarType.INT64,
-      },
       { no: 19, name: 'offer_version', kind: 'scalar', T: ScalarType.STRING },
       {
         no: 20,
@@ -3771,19 +3736,13 @@ export const BillingUsageInfo: MessageType<BillingUsageInfo> =
         kind: 'scalar',
         T: ScalarType.UINT32,
       },
-      {
-        no: 21,
-        name: 'write_microdollars',
-        kind: 'scalar',
-        T: ScalarType.UINT32,
-      },
-      {
-        no: 22,
-        name: 'read_microdollars',
-        kind: 'scalar',
-        T: ScalarType.UINT32,
-      },
       { no: 23, name: 'policy_version', kind: 'scalar', T: ScalarType.STRING },
+      {
+        no: 24,
+        name: 'storage_microdollars_per_gib_month',
+        kind: 'scalar',
+        T: ScalarType.UINT32,
+      },
     ] satisfies readonly PartialFieldInfo[],
   })
 
@@ -3812,13 +3771,13 @@ export interface BillingConsent {
    */
   renewalAccepted?: boolean
   /**
-   * OverageLimitCents selects 0, 500, 1000, or 2000 additional cents per period.
+   * OverageLimitCents selects one of the offer's spending limits per period.
    *
    * @generated from field: uint32 overage_limit_cents = 4;
    */
   overageLimitCents?: number
   /**
-   * OverageAccepted expressly authorizes the displayed proportional rates.
+   * OverageAccepted expressly authorizes the displayed storage rate.
    *
    * @generated from field: bool overage_accepted = 5;
    */

@@ -210,7 +210,7 @@ describe('NoActiveBillingAccountPage', () => {
         policyVersion: CLOUD_OFFER.policyVersion,
         renewalAccepted: true,
         overageAccepted: true,
-        overageLimitCents: 1000,
+        overageLimitCents: CLOUD_OFFER.defaultOverageLimitCents,
       },
     })
     expect(mockNavigateSession).toHaveBeenCalledWith({ path: 'setup' })

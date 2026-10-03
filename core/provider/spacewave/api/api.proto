@@ -701,42 +701,36 @@ message BillingStateResponse {
 
 // BillingUsageResponse is the response body for GET /billing/:id/usage-query.
 message BillingUsageResponse {
-  // StorageBytes is the total storage usage in bytes.
+  // StorageBytes is the resident storage in bytes.
   double storage_bytes = 1;
-  // WriteOps is the number of write operations in the current period.
+  // WriteOps is the number of pack writes in the current period, not billed.
   int64 write_ops = 2;
-  // ReadOps is the number of read operations in the current period.
+  // ReadOps is the number of read grants in the current period, not billed.
   int64 read_ops = 3;
-  reserved 4 to 9;
+  reserved 4 to 9, 12, 13, 18, 21, 22;
   // UsageMeteredThroughAt is the Spacewave usage ledger freshness timestamp
   // in Unix epoch milliseconds.
   int64 usage_metered_through_at = 10;
-  // StorageBaselineBytes is the retained-content capacity.
+  // StorageBaselineBytes is the resident storage the monthly price includes.
   double storage_baseline_bytes = 11;
-  // WriteOpsBaseline is the included subscription-period write allowance.
-  int64 write_ops_baseline = 12;
-  // ReadOpsBaseline is the included subscription-period uncached read allowance.
-  int64 read_ops_baseline = 13;
   // OverageLimitCents is the customer's recurring extra-spending maximum.
   uint32 overage_limit_cents = 14;
-  // AccruedOverageMicrodollars is the exact accepted operation charge.
+  // AccruedOverageMicrodollars is the storage overage charged so far this
+  // period.
   int64 accrued_overage_microdollars = 15;
   // CurrentPeriodStart is the subscription-period start in Unix milliseconds.
   int64 current_period_start = 16;
-  // CurrentPeriodEnd is the allowance reset in Unix milliseconds.
+  // CurrentPeriodEnd is the subscription-period end in Unix milliseconds.
   int64 current_period_end = 17;
-  // ReservedOverageMicrodollars is the additional maximum awaiting work results.
-  int64 reserved_overage_microdollars = 18;
   // OfferVersion identifies the applied offer.
   string offer_version = 19;
   // MonthlyPriceCents is the accepted recurring base price before tax.
   uint32 monthly_price_cents = 20;
-  // WriteMicrodollars is the accepted charge for one extra write.
-  uint32 write_microdollars = 21;
-  // ReadMicrodollars is the accepted charge for one extra uncached read.
-  uint32 read_microdollars = 22;
   // PolicyVersion identifies the policy applying to the current offer.
   string policy_version = 23;
+  // StorageMicrodollarsPerGibMonth is the accepted price of one GiB-month of
+  // resident storage above the included storage.
+  uint32 storage_microdollars_per_gib_month = 24;
 }
 
 // CheckoutStatusMessage is a JSON message from the checkout status WebSocket.

@@ -26,8 +26,7 @@ import {
   PLAN_PRICE_MONTHLY,
   OVERAGE_EXPLANATION,
   STORAGE_BASELINE_GB,
-  WRITE_OPS_BASELINE_DISPLAY,
-  READ_OPS_BASELINE_DISPLAY,
+  STORAGE_RATE_DISPLAY,
 } from '@s4wave/app/provider/spacewave/pricing.js'
 import AnimatedLogo from '@s4wave/app/landing/AnimatedLogo.js'
 
@@ -37,7 +36,7 @@ const CLOUD_EXPANDED_FEATURES = [
   { icon: LuServer, text: `${STORAGE_BASELINE_GB} GiB cloud storage included` },
   {
     icon: LuZap,
-    text: `${WRITE_OPS_BASELINE_DISPLAY} writes / ${READ_OPS_BASELINE_DISPLAY} uncached reads per month`,
+    text: `Extra storage at ${STORAGE_RATE_DISPLAY}, reads and writes not billed`,
   },
   {
     icon: LuShield,
@@ -138,6 +137,7 @@ export function CloudConfirmationPage({
     <PageWrapper
       backButton={
         <button
+          type="button"
           onClick={onBack}
           className="text-foreground-alt hover:text-foreground flex cursor-pointer items-center gap-2 text-sm transition-colors"
         >
@@ -191,9 +191,10 @@ export function CloudConfirmationPage({
         {(checkoutUrl || polling) && (
           <div className="mt-8 flex gap-1">
             <button
+              type="button"
               onClick={() => {
                 if (showRetry && checkoutUrl) {
-                  window.open(checkoutUrl, '_blank')
+                  window.open(checkoutUrl, '_blank', 'noopener')
                   onLoading?.()
                 } else {
                   onRetry()
@@ -220,6 +221,7 @@ export function CloudConfirmationPage({
             </button>
             {showRetry && (
               <button
+                type="button"
                 onClick={() => onRetry()}
                 className="border-brand bg-brand/10 text-foreground hover:bg-brand/20 flex cursor-pointer items-center justify-center rounded-r-md border border-l-0 px-3 transition duration-300"
                 title="Retry"
