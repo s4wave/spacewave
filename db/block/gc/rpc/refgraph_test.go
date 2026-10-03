@@ -3,7 +3,9 @@ package block_gc_rpc_test
 import (
 	"context"
 	"errors"
+	"fmt"
 	"slices"
+	"strings"
 	"sync"
 	"testing"
 
@@ -622,5 +624,39 @@ func TestRPCRemoveNodeRefsSurfacesServerError(t *testing.T) {
 	}
 	if targets != nil {
 		t.Fatalf("RPC RemoveNodeRefs targets = %v, want nil", targets)
+	}
+}
+
+// TestRPCApplyRefBatchSplitsLargeBatch sends a batch larger than one RPC
+// message and expects every edge to commit across several requests.
+func TestRPCApplyRefBatchSplitsLargeBatch(t *testing.T) {
+	// Build adds that encode to more than one RPC message.
+	ctx := context.Background()
+	testbed := newRPCRefGraphTestbed(t, nil)
+	pad := strings.Repeat("x", 1024)
+	adds := make([]block_gc.RefEdge, 12_000)
+	for i := range adds {
+		adds[i] = block_gc.RefEdge{Subject: "owner", Object: fmt.Sprintf("object-%d-%s", i, pad)}
+	}
+	removes := []block_gc.RefEdge{adds[0]}
+
+	// Apply the batch and expect it to arrive in several requests.
+	testbed.observed.reset()
+	if err := testbed.client.ApplyRefBatch(ctx, adds, removes); err != nil {
+		t.Fatal(err)
+	}
+	if applyCalls, _, _, _ := testbed.observed.snapshot(); applyCalls < 3 {
+		t.Fatalf("server ApplyRefBatch calls = %d, want at least 3", applyCalls)
+	}
+
+	// The removal commits after the additions on either side of it.
+	for _, edge := range []block_gc.RefEdge{adds[0], adds[1], adds[len(adds)-1]} {
+		owned, err := testbed.client.HasIncomingRefs(ctx, edge.Object)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if want := edge != adds[0]; owned != want {
+			t.Fatalf("%.16s owned = %v, want %v", edge.Object, owned, want)
+		}
 	}
 }

@@ -2,6 +2,7 @@ package block_gc_rpc_client
 
 import (
 	"context"
+	"slices"
 
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
@@ -179,10 +180,63 @@ func (r *RefGraph) RemoveObjectRoot(ctx context.Context, objectKey string, ref *
 	return r.RemoveRef(ctx, block_gc.ObjectIRI(objectKey), t)
 }
 
-// ApplyRefBatch sends one bounded ownership transition to the server-side
-// RefGraph.
+// refBatchRequestBytes bounds the edge bytes of one ApplyRefBatch request,
+// well under the RPC message limit.
+const refBatchRequestBytes = 4 << 20
+
+// ApplyRefBatch sends an ownership transition to the server-side RefGraph in
+// requests of at most refBatchRequestBytes. Additions precede removals across
+// requests, matching the server's own slicing. A failure reports every edge
+// the server did not commit as the remainder.
 func (r *RefGraph) ApplyRefBatch(ctx context.Context, adds, removes []block_gc.RefEdge) error {
-	// Call the RPC service with the batch's adds and removes.
+	// Send each bounded request in order until the transition is delivered.
+	for len(adds) != 0 || len(removes) != 0 {
+		addCount, removeCount := refBatchRequestCounts(adds, removes)
+		err := r.applyRefBatch(ctx, adds[:addCount], removes[:removeCount])
+		if err != nil {
+			pendingAdds, pendingRemoves := adds[:addCount], removes[:removeCount]
+			if batchAdds, batchRemoves, ok := block_gc.RefBatchRemainder(err); ok {
+				pendingAdds, pendingRemoves = batchAdds, batchRemoves
+			}
+			return &refBatchError{
+				err:     err,
+				adds:    slices.Concat(pendingAdds, adds[addCount:]),
+				removes: slices.Concat(pendingRemoves, removes[removeCount:]),
+			}
+		}
+		adds, removes = adds[addCount:], removes[removeCount:]
+	}
+	return nil
+}
+
+// refBatchRequestCounts returns how many leading adds, then removes, fit in
+// one request. A request always carries at least one edge.
+func refBatchRequestCounts(adds, removes []block_gc.RefEdge) (int, int) {
+	// Count leading edges until the shared request budget is spent.
+	size := 0
+	count := func(edges []block_gc.RefEdge, taken int) int {
+		n := 0
+		for n < len(edges) {
+			// Each edge costs its IRIs plus field tags and length prefixes.
+			size += len(edges[n].Subject) + len(edges[n].Object) + 16
+			if size > refBatchRequestBytes && taken+n != 0 {
+				break
+			}
+			n++
+		}
+		return n
+	}
+
+	// Removals join the request only after every addition fits.
+	addCount := count(adds, 0)
+	if addCount < len(adds) {
+		return addCount, 0
+	}
+	return addCount, count(removes, addCount)
+}
+
+// applyRefBatch sends one request to the server-side RefGraph.
+func (r *RefGraph) applyRefBatch(ctx context.Context, adds, removes []block_gc.RefEdge) error {
 	resp, err := r.client.ApplyRefBatch(ctx, &block_gc_rpc.ApplyRefBatchRequest{
 		Adds:    refEdgesToRPC(adds),
 		Removes: refEdgesToRPC(removes),
