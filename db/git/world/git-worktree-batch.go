@@ -4,13 +4,11 @@ import (
 	"context"
 	"io/fs"
 	"os"
-	"strconv"
 	"time"
 
 	"github.com/go-git/go-billy/v6"
 	"github.com/go-git/go-billy/v6/osfs"
 	"github.com/go-git/go-git/v6"
-	"github.com/go-git/go-git/v6/plumbing"
 	"github.com/go-git/go-git/v6/plumbing/storer"
 	"github.com/pkg/errors"
 	git_block "github.com/s4wave/spacewave/db/git/block"
@@ -35,6 +33,7 @@ func materializeRepoToTempWorkdir(
 	seedHandle *unixfs.FSHandle,
 	cb func(repo *git.Repository, workDir billy.Filesystem) error,
 ) (string, error) {
+	// Seed a disposable filesystem from the existing World workdir.
 	tempDir, err := os.MkdirTemp("", "hydra-git-worktree-*")
 	if err != nil {
 		return "", err
@@ -52,6 +51,8 @@ func materializeRepoToTempWorkdir(
 			return "", err
 		}
 	}
+
+	// Apply the Git operation against the temporary files and World stores.
 	_, _, err = AccessWorldObjectRepo(
 		ctx,
 		ws,
@@ -71,6 +72,8 @@ func materializeRepoToTempWorkdir(
 		os.RemoveAll(tempDir)
 		return "", err
 	}
+
+	// Transfer the temporary directory to the caller for batch import.
 	return tempDir, nil
 }
 
@@ -85,6 +88,7 @@ func syncFSToUnixfsRefBatch(
 	ts time.Time,
 	srcFs fs.FS,
 ) error {
+	// Reset the root workdir before importing its replacement tree.
 	if path := workdirRef.GetPath(); path != nil && len(path.GetNodes()) != 0 {
 		return errors.New("batch worktree sync does not support non-root workdir paths")
 	}
@@ -101,6 +105,8 @@ func syncFSToUnixfsRefBatch(
 	if err != nil {
 		return err
 	}
+
+	// Retain a source handle until the batch writer finishes importing.
 	srcCursor, err := unixfs_iofs.NewFSCursor(srcFs)
 	if err != nil {
 		return err
@@ -112,6 +118,7 @@ func syncFSToUnixfsRefBatch(
 	}
 	defer srcHandle.Release()
 
+	// Commit the replacement filesystem through the World batch writer.
 	b := unixfs_world.NewBatchFSWriter(
 		ws,
 		workdirRef.GetObjectKey(),
@@ -122,110 +129,33 @@ func syncFSToUnixfsRefBatch(
 	return unixfs_sync.SyncToUnixfsBatch(ctx, b, srcHandle, nil)
 }
 
-// checkoutRepoWorktree applies checkout semantics without pre-setting HEAD.
-// go-git's Worktree.Checkout updates HEAD before Reset, which causes a commit
-// checkout to preserve files deleted by the target tree as untracked.
-func checkoutRepoWorktree(
-	repo *git.Repository,
-	opts *git.CheckoutOptions,
-) error {
-	if err := opts.Validate(); err != nil {
-		return err
-	}
-
+// checkoutRepoWorktree uses go-git's checkout contract to update HEAD and the
+// worktree together. A sentinel prevents pruning the temporary worktree root.
+func checkoutRepoWorktree(repo *git.Repository, opts *git.CheckoutOptions) (err error) {
+	// Open the worktree before reserving a file in its filesystem.
 	wt, err := repo.Worktree()
 	if err != nil {
 		return err
 	}
 
-	if opts.Create {
-		return wt.Checkout(opts)
-	}
-
-	if opts.Branch == "" && opts.Hash.IsZero() {
-		href, err := repo.Head()
+	// Keep the temporary root non-empty while a forced checkout deletes files.
+	if opts.Force {
+		worktreeFS := wt.Filesystem()
+		sentinel, err := worktreeFS.TempFile(".", ".spacewave-checkout-sentinel-")
 		if err != nil {
 			return err
 		}
-		opts.Branch = href.Name()
-	}
-
-	resetHash, headRef, err := resolveCheckoutTarget(repo, opts)
-	if err != nil {
-		return err
-	}
-
-	ro := &git.ResetOptions{
-		Commit:     resetHash,
-		Mode:       git.MergeReset,
-		SparseDirs: opts.SparseCheckoutDirectories,
-	}
-	if opts.Force {
-		ro.Mode = git.HardReset
-	} else if opts.Keep {
-		ro.Mode = git.SoftReset
-	}
-	var sentinelPath string
-	if ro.Mode == git.HardReset {
-		// go-git prunes empty parent dirs after deleting tracked files; keep
-		// the temp worktree root non-empty so it does not try to remove ".".
-		worktreeFS := wt.Filesystem()
-		for i := range 10 {
-			candidate := ".spacewave-checkout-sentinel-" + strconv.Itoa(i)
-			_, err := worktreeFS.Stat(candidate)
-			if err == nil {
-				continue
+		defer func() {
+			if removeErr := worktreeFS.Remove(sentinel.Name()); removeErr != nil && !os.IsNotExist(removeErr) && err == nil {
+				err = removeErr
 			}
-			if !os.IsNotExist(err) {
-				return err
-			}
-			f, err := worktreeFS.Create(candidate)
-			if err != nil {
-				return err
-			}
-			if err := f.Close(); err != nil {
-				return err
-			}
-			sentinelPath = candidate
-			break
-		}
-		if sentinelPath == "" {
-			return errors.New("unable to reserve checkout sentinel")
-		}
-	}
-	if err := wt.Reset(ro); err != nil {
-		if sentinelPath != "" {
-			_ = wt.Filesystem().Remove(sentinelPath)
-		}
-		return err
-	}
-	if sentinelPath != "" {
-		if err := wt.Filesystem().Remove(sentinelPath); err != nil && !os.IsNotExist(err) {
+		}()
+		if err := sentinel.Close(); err != nil {
 			return err
 		}
 	}
-	if headRef == nil {
-		return nil
-	}
-	return repo.Storer.SetReference(headRef)
-}
 
-// resolveCheckoutTarget resolves the reset commit and final HEAD reference for
-// a checkout request.
-func resolveCheckoutTarget(
-	repo *git.Repository,
-	opts *git.CheckoutOptions,
-) (plumbing.Hash, *plumbing.Reference, error) {
-	if !opts.Hash.IsZero() {
-		return opts.Hash, nil, nil
-	}
-	if opts.Branch == "" {
-		return plumbing.ZeroHash, nil, errors.New("checkout target empty")
-	}
-
-	ref, err := storer.ResolveReference(repo.Storer, opts.Branch)
-	if err != nil {
-		return plumbing.ZeroHash, nil, err
-	}
-	return ref.Hash(), plumbing.NewSymbolicReference(plumbing.HEAD, opts.Branch), nil
+	// Checkout retains the previous tree for deletions and sets a detached HEAD
+	// for a hash target without moving the original branch.
+	return wt.Checkout(opts)
 }
