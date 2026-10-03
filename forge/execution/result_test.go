@@ -21,7 +21,7 @@ func TestComputeExecutionOutputsValueMismatch(t *testing.T) {
 		{{Name: "store", ValueType: forge_value.ValueType_ValueType_BLOCK_REF, BlockRef: &block.BlockRef{Hash: &net_hash.Hash{HashType: net_hash.HashType_HashType_SHA256, Hash: []byte{1}}}}},
 		{{Name: "store", ValueType: forge_value.ValueType_ValueType_BLOCK_REF, BlockRef: &block.BlockRef{Hash: &net_hash.Hash{HashType: net_hash.HashType_HashType_SHA256, Hash: []byte{2}}}}},
 	}
-	if _, err := ComputeExecutionOutputs(outputs, execOutputVals, false); err == nil {
+	if _, err := ComputeExecutionOutputs(outputs, execOutputVals); err == nil {
 		t.Fatal("expected divergent execution outputs to return an error")
 	}
 }

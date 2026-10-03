@@ -359,7 +359,7 @@ func ComputeOutputsWithStates(outputs []*forge_target.Output, execStates []*Exec
 	}
 
 	// Compute the execution outputs.
-	return forge_execution.ComputeExecutionOutputs(outputs, execOutputValues, false)
+	return forge_execution.ComputeExecutionOutputs(outputs, execOutputValues)
 }
 
 // ApplyExecStates updates the exec states field with the list of Executions.

@@ -37,14 +37,12 @@ func FilterExecutionOutputs(execs []*Execution, allowFailed bool, minComplete in
 	return valid, validOutputs, nil
 }
 
-// ComputeExecutionOutputs computes the result from a set of Executions.
-// if allowFailed is set, any failed or invalid executions are skipped.
-// if no valid executions are in the list, returns an error.
-// If minComplete != 0 and len(valid execs) < minComplete, fails.
+// ComputeExecutionOutputs computes the outputs shared by a set of executions.
+// Every execution's outputs must be valid and equal; filter failed executions
+// with FilterExecutionOutputs first. Returns nil for an empty set.
 func ComputeExecutionOutputs(
 	outputs []*forge_target.Output,
 	execOutputVals []forge_value.ValueSlice,
-	allowFailed bool,
 ) ([]*forge_value.Value, error) {
 	var prevOutputs forge_value.ValueSlice
 	for i, execOutputs := range execOutputVals {
