@@ -51,6 +51,7 @@ func (r *Chunk) FetchDataNoCache(ctx context.Context, bcs *block.Cursor, copyBuf
 }
 
 func (r *Chunk) fetchData(ctx context.Context, bcs *block.Cursor, copyBuf bool, cacheData bool) ([]byte, error) {
+	// Read any chunk bytes already retained on the data cursor.
 	var data []byte
 	var dataOk bool
 	var err error
@@ -63,6 +64,8 @@ func (r *Chunk) fetchData(ctx context.Context, bcs *block.Cursor, copyBuf bool, 
 			dataOk = len(data) != 0
 		}
 	}
+
+	// Fetch chunk bytes when the cursor has no populated byte block.
 	if !dataOk {
 		data, dataOk, err = currChunkDataCs.Fetch(ctx)
 		if err != nil {
@@ -75,6 +78,8 @@ func (r *Chunk) fetchData(ctx context.Context, bcs *block.Cursor, copyBuf bool, 
 			currChunkDataCs.GetRef().MarshalString(),
 		)
 	}
+
+	// Require the stored byte length to match the declared chunk size.
 	currChunkSize := r.GetSize()
 	if currChunkSize > math.MaxInt {
 		return nil, errors.New("chunk size exceeds maximum")
@@ -87,10 +92,14 @@ func (r *Chunk) fetchData(ctx context.Context, bcs *block.Cursor, copyBuf bool, 
 			len(data),
 		)
 	}
+
+	// Retain chunk bytes on the cursor when caching is requested.
 	if cacheData && len(data) != 0 {
 		// cache the data in the cursor
 		currChunkDataCs.SetBlock(byteslice.NewByteSlice(&data), false)
 	}
+
+	// Copy chunk bytes when the caller requires an independent buffer.
 	if copyBuf {
 		buf := make([]byte, len(data))
 		copy(buf, data)

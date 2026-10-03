@@ -46,11 +46,13 @@ func BuildBlob(
 	bcs *block.Cursor,
 	opts *BuildBlobOpts,
 ) (*Blob, error) {
+	// Choose the raw blob size limit from the options or the default.
 	hwm := opts.GetRawHighWaterMark()
 	if hwm == 0 {
 		hwm = DefRawHighWaterMark
 	}
 
+	// Store the known-size payload in one raw blob when it fits the limit.
 	if dataLen <= int64(hwm) { //nolint:gosec
 		recordMetric(ctx, Metric{
 			Stage:            "raw",
@@ -97,6 +99,7 @@ func BuildBlobWithReader(
 	bcs *block.Cursor,
 	opts *BuildBlobOpts,
 ) (*Blob, error) {
+	// Choose the raw blob size limit before reading the unknown-size payload.
 	hwm := opts.GetRawHighWaterMark()
 	if hwm == 0 {
 		hwm = DefRawHighWaterMark

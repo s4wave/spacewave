@@ -26,6 +26,7 @@ func (s *batchCountStore) PutBlockBatch(ctx context.Context, entries []*block.Pu
 // TestBuildBlobWriteDrainsOnce checks that a chunked blob's staged chunks and
 // the root that references them reach the store in one batch.
 func TestBuildBlobWriteDrainsOnce(t *testing.T) {
+	// Prepare a counting store and repeatable bytes for a chunked blob.
 	ctx := t.Context()
 	store := &batchCountStore{StoreOps: block_mock.NewMockStore(0)}
 	data := make([]byte, 1<<20)
@@ -33,17 +34,24 @@ func TestBuildBlobWriteDrainsOnce(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Build the chunked blob on a transaction backed by the counting store.
 	btx, bcs := block.NewTransaction(store, nil, nil, nil)
 	if _, err := BuildBlob(ctx, int64(len(data)), bytes.NewReader(data), bcs, nil); err != nil {
 		t.Fatal(err)
 	}
+
+	// Verify blob construction stages the chunk data.
 	if staged := btx.GetStagedStore(); staged == nil {
 		t.Fatal("chunked blob did not stage its chunks")
 	}
+
+	// Write the completed blob transaction to the backing store.
 	ref, _, err := btx.Write(ctx, true)
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Verify the blob transaction drains its writes in exactly one batch.
 	if store.batches != 1 {
 		t.Fatalf("store batches: got %d want 1", store.batches)
 	}
@@ -59,6 +67,8 @@ func TestBuildBlobWriteDrainsOnce(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Verify the persisted blob contains the original bytes.
 	if !bytes.Equal(got, data) {
 		t.Fatal("blob contents differ after write")
 	}

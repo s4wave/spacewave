@@ -53,10 +53,12 @@ func (c *RabinArgs) ApplyArgs(other *RabinArgs) {
 
 // ApplyArgs merges another arguments object into JcArgs.
 func (c *JcArgs) ApplyArgs(other *JcArgs) {
+	// Require both JC argument records before merging the supplied options.
 	if c == nil || other == nil {
 		return
 	}
 
+	// Merge the supplied JC key and chunk size boundaries.
 	if okey := other.GetKey(); len(okey) != 0 {
 		c.Key = bytes.Clone(okey)
 	}

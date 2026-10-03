@@ -12,6 +12,7 @@ import (
 // TestSendSurvivesSessionReopen keeps an outstanding message owned by its
 // sender when the relay opens a new session before acknowledging it.
 func TestSendSurvivesSessionReopen(t *testing.T) {
+	// Prepare a signed-message sender and a cancelable signaling peer tracker.
 	privKey, _, err := crypto.GenerateEd25519Key(rand.Reader)
 	if err != nil {
 		t.Fatal(err)

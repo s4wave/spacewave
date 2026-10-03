@@ -43,19 +43,23 @@ func (c *Controller) resolveSignalPeer(
 // The resolver will not be retried after returning an error.
 // Values will be maintained from the previous call.
 func (r *signalPeerResolver) Resolve(ctx context.Context, handler directive.ResolverHandler) error {
+	// Clear previous directive values and wait for the signaling client.
 	handler.ClearValues()
 	client, err := r.c.client.WaitValue(ctx, nil)
 	if err != nil {
 		return err
 	}
 
+	// Require the ready client to match the requested local signaling peer.
 	if localPeerID := r.dir.SignalLocalPeerID(); localPeerID != "" && client.peerID.String() != localPeerID.String() {
 		return nil
 	}
 
+	// Acquire the remote peer session requested by the signaling directive.
 	remotePeerIDStr := r.dir.SignalRemotePeerID().String()
 	peerRef := client.AddPeerRef(remotePeerIDStr)
 
+	// Publish the signaling session or release it when another value already serves demand.
 	var val signaling.SignalPeerValue = NewSessionWithRef(peerRef)
 	vid, accepted := handler.AddValue(val)
 	if !accepted {

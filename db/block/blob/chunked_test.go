@@ -20,22 +20,26 @@ import (
 
 // testBlobChunked contains the common test logic for chunked blob tests.
 func testBlobChunked(t *testing.T, chunkerType string, chunkerArgs *ChunkerArgs) {
+	// Prepare the context and logger for the chunked blob fixture.
 	ctx := context.Background()
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
 
+	// Start the storage testbed for chunked blob operations.
 	testbed.Verbose = false
 	tb, err := testbed.NewTestbed(ctx, le)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Open an empty object cursor for the blob transaction.
 	oc, err := tb.BuildEmptyCursor(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Build the chunked blob and start measuring its write duration.
 	btx, bcs := oc.BuildTransaction(nil)
 	t1 := time.Now()
 	b1, err := buildMockChunkedBlob(bcs, chunkerArgs)
@@ -43,6 +47,8 @@ func testBlobChunked(t *testing.T, chunkerType string, chunkerArgs *ChunkerArgs)
 		t.Fatal(err.Error())
 	}
 	_ = b1
+
+	// Persist the chunked blob and measure the completed write.
 	rootRef, bcs, err := btx.Write(ctx, true)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -50,6 +56,7 @@ func testBlobChunked(t *testing.T, chunkerType string, chunkerArgs *ChunkerArgs)
 	t2 := time.Now()
 	opDur := t2.Sub(t1)
 
+	// Reload and validate the persisted chunked blob metadata.
 	b1, err = UnmarshalBlob(ctx, bcs)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -77,6 +84,8 @@ func testBlobChunked(t *testing.T, chunkerType string, chunkerArgs *ChunkerArgs)
 		humanize.Bytes(rootBlobSize),
 		math.Ceil(float64(rootBlobSize)/float64(b1.GetTotalSize())*100000)/1000,
 	)
+
+	// Read the persisted blob through its reader and measure the duration.
 	rdr, err := NewReader(ctx, bcs)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -87,6 +96,8 @@ func testBlobChunked(t *testing.T, chunkerType string, chunkerArgs *ChunkerArgs)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Verify the reader returns the declared blob length and report throughput.
 	if len(dat) != int(b1.GetTotalSize()) { //nolint:gosec
 		t.Fatalf("expected to read %d but got %d", b1.GetTotalSize(), len(dat))
 	}
@@ -104,6 +115,8 @@ func testBlobChunked(t *testing.T, chunkerType string, chunkerArgs *ChunkerArgs)
 	if err := FetchToBuffer(ctx, bcs, &bbuf); err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Verify buffer fetching returns the declared blob length.
 	if bbuf.Len() != int(b1.GetTotalSize()) { //nolint:gosec
 		t.Fail()
 	}
@@ -128,10 +141,13 @@ func testBlobChunked(t *testing.T, chunkerType string, chunkerArgs *ChunkerArgs)
 	copy(expectedData, oldData)
 	copy(expectedData[len(oldData):], nextData)
 
+	// Fetch the appended blob into a fresh buffer.
 	bbuf.Reset()
 	if err := FetchToBuffer(ctx, bcs, &bbuf); err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Verify the appended blob matches its expected length and contents.
 	if bbuf.Len() != len(expectedData) {
 		t.Fail()
 	}
@@ -149,6 +165,8 @@ func testBlobChunked(t *testing.T, chunkerType string, chunkerArgs *ChunkerArgs)
 	if err := b1.TransformToRaw(ctx, bcs, b1.GetTotalSize()); err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Verify conversion preserves the expected raw blob contents.
 	if b1.GetBlobType() != BlobType_BlobType_RAW {
 		t.Fail()
 	}
@@ -168,9 +186,13 @@ func testBlobChunked(t *testing.T, chunkerType string, chunkerArgs *ChunkerArgs)
 	if err := b1.Truncate(ctx, bcs, nil, int64(truncateSize)); err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Verify truncation keeps the required chunked blob type and size.
 	if b1.GetBlobType() != BlobType_BlobType_CHUNKED || b1.GetTotalSize() != uint64(truncateSize) { //nolint:gosec
 		t.Fail()
 	}
+
+	// Read the truncated blob to verify its contents and final chunk boundary.
 	fetched, err := FetchToBytes(ctx, bcs)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -178,6 +200,8 @@ func testBlobChunked(t *testing.T, chunkerType string, chunkerArgs *ChunkerArgs)
 	if !bytes.Equal(fetched, expectedData[:truncateSize]) {
 		t.Fail()
 	}
+
+	// Verify the last chunk ends at the truncation offset and validate the index.
 	chunks := b1.GetChunkIndex().GetChunks()
 	lastChk := chunks[len(chunks)-1]
 	lastChkEnd := lastChk.GetStart() + lastChk.GetSize()
@@ -193,6 +217,8 @@ func testBlobChunked(t *testing.T, chunkerType string, chunkerArgs *ChunkerArgs)
 	if err := b1.Truncate(ctx, bcs, nil, int64(truncateSize)); err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Verify raw truncation preserves the expected prefix and valid metadata.
 	if b1.GetBlobType() != BlobType_BlobType_RAW || len(b1.GetRawData()) != truncateSize {
 		t.Fail()
 	}
@@ -217,6 +243,7 @@ func testBlobChunked(t *testing.T, chunkerType string, chunkerArgs *ChunkerArgs)
 	for range 10000 {
 		// get random location
 		loc := int64(prand.Uint64() % uint64(len(expectedData))) //nolint:gosec
+
 		// read from that location
 		seekPos, err := blobReader.Seek(loc, io.SeekStart)
 		if err == nil && seekPos != loc {
@@ -225,10 +252,14 @@ func testBlobChunked(t *testing.T, chunkerType string, chunkerArgs *ChunkerArgs)
 		if err != nil {
 			t.Fatal(err.Error())
 		}
+
+		// Read the blob bytes at the randomly selected position.
 		n, err := blobReader.Read(buf)
 		if err != nil {
 			t.Fatal(err.Error())
 		}
+
+		// Verify the random read matches the expected blob slice.
 		readData := buf[:n]
 		readExpected := expectedData[loc : int(loc)+n]
 		if !bytes.Equal(readExpected, readData) {
@@ -264,8 +295,10 @@ func TestBlob_ChunkedJC(t *testing.T) {
 }
 
 func TestBlobReaderDoesNotCacheChunkData(t *testing.T) {
+	// Prepare the context for a sequential chunk cache check.
 	ctx := context.Background()
 
+	// Build and persist a multi-chunk blob on the mock store.
 	store := block_mock.NewMockStore(0)
 	btx, bcs := block.NewTransaction(store, nil, nil, nil)
 	body := bytes.Repeat([]byte("abcd"), 512)
@@ -294,6 +327,7 @@ func TestBlobReaderDoesNotCacheChunkData(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// Read a prefix through a fresh transaction on the persisted blob.
 	_, readCursor := block.NewTransaction(store, nil, rootRef, nil)
 	rdr, err := NewReader(ctx, readCursor)
 	if err != nil {
@@ -303,10 +337,13 @@ func TestBlobReaderDoesNotCacheChunkData(t *testing.T) {
 	if _, err := io.ReadFull(rdr, buf); err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Verify the sequential read returns the expected prefix bytes.
 	if !bytes.Equal(buf, body[:len(buf)]) {
 		t.Fatalf("read prefix %q, want %q", buf, body[:len(buf)])
 	}
 
+	// Verify sequential reads leave the chunk data cursor uncached.
 	chunkSet := rdr.root.GetChunkIndex().GetChunkSet(readCursor.FollowSubBlock(4))
 	_, firstChunkCursor := chunkSet.Get(0)
 	dataCursor := firstChunkCursor.GetExistingRef(1)
@@ -319,11 +356,14 @@ func TestBlobReaderDoesNotCacheChunkData(t *testing.T) {
 }
 
 func TestBlobReaderReusesCurrentChunkData(t *testing.T) {
+	// Prepare the context for measuring repeated reads within a chunk.
 	ctx := context.Background()
 
+	// Choose read buffers smaller than the fixture chunks.
 	const readBufferSize = 32 * 1024
 	const chunkSize = DefChunkingTargetSize
 
+	// Create the mock store and generate distinct bytes for each chunk.
 	baseStore := block_mock.NewMockStore(0)
 	xfrm := passthroughTransform{}
 	btx, bcs := block.NewTransaction(baseStore, xfrm, nil, nil)
@@ -333,6 +373,8 @@ func TestBlobReaderReusesCurrentChunkData(t *testing.T) {
 		seed = seed*1664525 + 1013904223
 		body[i] = byte(seed >> 24)
 	}
+
+	// Build and persist the fixture with chunks larger than the read buffer.
 	chunkerArgs := &ChunkerArgs{
 		ChunkerType: ChunkerType_ChunkerType_JC,
 		JcArgs: &JcArgs{
@@ -358,12 +400,15 @@ func TestBlobReaderReusesCurrentChunkData(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// Open a fresh blob reader through the counting block store.
 	countStore := &getBlockCountingStore{StoreOps: baseStore}
 	_, readCursor := block.NewTransaction(countStore, xfrm, rootRef, nil)
 	rdr, err := NewReader(ctx, readCursor)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Validate that the fixture has multiple chunks with unique data references.
 	chunks := rdr.root.GetChunkIndex().GetChunks()
 	if len(chunks) < 2 {
 		t.Fatalf("expected multi-chunk fixture, got %d chunk(s)", len(chunks))
@@ -372,9 +417,12 @@ func TestBlobReaderReusesCurrentChunkData(t *testing.T) {
 	seenRefs := make(map[string]int, len(chunks))
 	chunksLargerThanRead := 0
 	for i, chunk := range chunks {
+		// Count chunks that require multiple reader calls.
 		if chunk.GetSize() > readBufferSize {
 			chunksLargerThanRead++
 		}
+
+		// Require each chunk to have a populated and unique data reference.
 		ref := chunk.GetDataRef()
 		if ref == nil {
 			t.Fatalf("chunk %d has nil data ref", i)
@@ -386,14 +434,19 @@ func TestBlobReaderReusesCurrentChunkData(t *testing.T) {
 		if prev, ok := seenRefs[key]; ok {
 			t.Fatalf("chunk %d reuses data ref from chunk %d; fixture must use unique data refs", i, prev)
 		}
+
+		// Retain each chunk reference for the fetch-count assertions.
 		seenRefs[key] = i
 		dataRefs = append(dataRefs, key)
 	}
 	if chunksLargerThanRead == 0 {
 		t.Fatalf("expected at least one chunk larger than %d-byte read buffer", readBufferSize)
 	}
+
+	// Clear fixture-validation fetches before measuring sequential reads.
 	countStore.reset()
 
+	// Read the entire blob using buffers smaller than its chunks.
 	var out bytes.Buffer
 	buf := make([]byte, readBufferSize)
 	for {
@@ -411,6 +464,8 @@ func TestBlobReaderReusesCurrentChunkData(t *testing.T) {
 			t.Fatal("reader returned no data and no error")
 		}
 	}
+
+	// Verify sequential reads preserve the complete fixture contents.
 	got := out.Bytes()
 	if len(got) != len(body) {
 		t.Fatalf("sequential read returned %d bytes, want %d", len(got), len(body))
@@ -423,6 +478,8 @@ func TestBlobReaderReusesCurrentChunkData(t *testing.T) {
 		}
 		t.Fatal("sequential read bytes differ")
 	}
+
+	// Verify every chunk data reference was fetched exactly once.
 	for i, ref := range dataRefs {
 		if got := countStore.get(ref); got != 1 {
 			t.Fatalf("chunk %d data ref fetched %d times, want 1", i, got)
@@ -452,6 +509,7 @@ type getBlockCountingStore struct {
 }
 
 func (s *getBlockCountingStore) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {
+	// Count the requested block reference while holding the store lock.
 	key := ref.MarshalString()
 	s.mtx.Lock()
 	if s.reads == nil {

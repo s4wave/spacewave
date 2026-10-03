@@ -53,11 +53,13 @@ func NewClient(
 	privKey crypto.PrivKey,
 	backoffConf *backoff.Backoff,
 ) (*Client, error) {
+	// Derive the local signaling peer identity from its private key.
 	peerID, err := peer.IDFromPrivateKey(privKey)
 	if err != nil {
 		return nil, err
 	}
 
+	// Construct the signaling client with its RPC service and peer identity.
 	client := &Client{
 		le:      le,
 		client:  c,
@@ -100,10 +102,12 @@ func NewClientWithBus(
 		protocolID = signaling_rpc.ProtocolID
 	}
 
+	// Choose the default signaling service when the caller omits its identifier.
 	if serviceID == "" {
 		serviceID = signaling_rpc.SRPCSignalingServiceID
 	}
 
+	// Connect the signaling service through the configured Bifrost stream client.
 	signalRpcClient, err := stream_srpc_client.NewClient(le, b, clientConf, protocolID)
 	if err != nil {
 		return nil, err
@@ -157,12 +161,15 @@ func (c *Client) executeListenRoutine(ctx context.Context, handler ClientListenH
 		handler(ctx, true, false, "")
 	}()
 
+	// Forward remote session membership changes to the listen handler.
 	for {
+		// Receive the next signaling membership update from the listen stream.
 		msg, err := strm.Recv()
 		if err != nil {
 			return err
 		}
 
+		// Notify the listen handler when a remote peer requests or drops a session.
 		switch b := msg.GetBody().(type) {
 		case *signaling_rpc.ListenResponse_SetPeer:
 			if b.SetPeer != "" {
@@ -203,6 +210,7 @@ func (r *ClientPeerRef) GetRemotePeerID() peer.ID {
 // transmits the message, and waits for the remote peer to acknowledge it.
 // If context is canceled the message will also be canceled.
 func (r *ClientPeerRef) Send(ctx context.Context, msg []byte) (_ *signaling_rpc.SessionMsg, outErr error) {
+	// Sign the outgoing signaling message with a unique peer sequence number.
 	tkr := r.tkr
 	seqno := tkr.txNonce.Add(1)
 	sessMsg, err := signaling_rpc.NewSessionMsg(r.c.privKey, hash.RecommendedHashType, msg, seqno)
@@ -210,13 +218,15 @@ func (r *ClientPeerRef) Send(ctx context.Context, msg []byte) (_ *signaling_rpc.
 		return nil, err
 	}
 
+	// Track delivery and withdraw a transmitted message when this send fails.
 	var txed, acked bool
-
 	defer func() {
+		// Keep successful sends and messages that were never transmitted unchanged.
 		if !txed || outErr == nil {
 			return
 		}
 
+		// Clear acknowledged messages or request cancellation of an outstanding send.
 		tkr.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
 			if tkr.out != nil && tkr.out.Seqno == seqno {
 				// If the message was already acknowledged, clear it.
@@ -232,15 +242,19 @@ func (r *ClientPeerRef) Send(ctx context.Context, msg []byte) (_ *signaling_rpc.
 		})
 	}()
 
+	// Wait for the signaling session to accept and acknowledge this message.
 	for {
+		// Reconcile message ownership and acknowledgement under the peer tracker lock.
 		var waitCh <-chan struct{}
 		tkr.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
+			// Wait for an open signaling session before queuing this message.
 			if tkr.open == nil {
 				txed = false
 				waitCh = getWaitCh()
 				return
 			}
 
+			// Recover message ownership when the signaling session replaces its queue.
 			if txed {
 				if tkr.out == nil {
 					txed = false
@@ -251,6 +265,7 @@ func (r *ClientPeerRef) Send(ctx context.Context, msg []byte) (_ *signaling_rpc.
 				}
 			}
 
+			// Queue this message when the signaling peer has outgoing capacity.
 			if !txed {
 				if tkr.out == nil {
 					txed = true
@@ -262,6 +277,7 @@ func (r *ClientPeerRef) Send(ctx context.Context, msg []byte) (_ *signaling_rpc.
 				return
 			}
 
+			// Complete this send once the remote peer acknowledges its message.
 			if tkr.outAcked {
 				acked = true
 				tkr.out, tkr.outSent, tkr.outAcked = nil, false, false
@@ -269,13 +285,16 @@ func (r *ClientPeerRef) Send(ctx context.Context, msg []byte) (_ *signaling_rpc.
 				return
 			}
 
+			// Subscribe to the next signaling peer state change while still locked.
 			waitCh = getWaitCh()
 		})
 
+		// Return the signed message once its acknowledgement has been observed.
 		if acked {
 			return sessMsg, nil
 		}
 
+		// Wait for signaling peer progress or caller cancellation.
 		if waitCh != nil {
 			select {
 			case <-ctx.Done():
@@ -367,6 +386,7 @@ func (c *Client) newPeerTracker(peerIDStr string) (keyed.Routine, *clientPeerTra
 		return nil, nil
 	}
 
+	// Construct the peer tracker with a logger bound to its remote identity.
 	le := c.le.WithField("remote-peer-id", peerIDStr)
 	sess := &clientPeerTracker{
 		c:      c,
@@ -406,6 +426,7 @@ func (s *clientPeerTracker) execute(ctx context.Context) error {
 		})
 	}
 
+	// Reset message delivery state when the remote signaling session opens.
 	handleOpen := func(seqno uint64) {
 		s.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
 			if s.open == nil || *s.open != seqno {
@@ -418,18 +439,22 @@ func (s *clientPeerTracker) execute(ctx context.Context) error {
 		})
 	}
 
+	// Validate incoming signaling messages before publishing them to receivers.
 	handleRecv := func(msg *signaling_rpc.SessionMsg) error {
+		// Verify the incoming message signature and recover its peer identity.
 		_, id, err := msg.ExtractAndVerify()
 		if err != nil {
 			return err
 		}
 
+		// Require the incoming message identity to match the tracked remote peer.
 		expectedPeerIDStr := s.key
 		actualPeerIDStr := id.String()
 		if expectedPeerIDStr != actualPeerIDStr {
 			return errors.Errorf("expected message peer id %s but got %s", expectedPeerIDStr, actualPeerIDStr)
 		}
 
+		// Publish the verified message and wake receivers under the tracker lock.
 		s.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
 			// s.le.Debugf("signaling: client: recv msg: %v", msg.String())
 			s.recv, s.recvProcessed = msg, false
@@ -439,6 +464,7 @@ func (s *clientPeerTracker) execute(ctx context.Context) error {
 		return nil
 	}
 
+	// Withdraw an incoming message when the remote peer clears its sequence number.
 	handleClearMsg := func(msgSeqno uint64) {
 		s.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
 			// s.le.Debugf("signaling: client: remote cleared msg: %v", msgSeqno)
@@ -449,6 +475,7 @@ func (s *clientPeerTracker) execute(ctx context.Context) error {
 		})
 	}
 
+	// Complete or discard the outgoing message when its acknowledgement arrives.
 	handleAckMsg := func(msgSeqno uint64) {
 		s.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
 			// s.le.Debugf("signaling: client: remote acked msg: %v", msgSeqno)

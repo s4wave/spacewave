@@ -31,6 +31,7 @@ func buildChunkIndexRabin(
 	ci *ChunkIndex,
 	chunks *chunkAppender,
 ) (uint64, error) {
+	// Configure the chunk index to use the Rabin chunker.
 	chunkerArgs := ci.GetChunkerArgs()
 	if chunkerArgs == nil {
 		ci.ChunkerArgs = &ChunkerArgs{}
@@ -38,6 +39,7 @@ func buildChunkIndexRabin(
 	}
 	chunkerArgs.ChunkerType = ChunkerType_ChunkerType_RABIN
 
+	// Choose the configured, random, or default Rabin polynomial.
 	var poly chunker.Pol
 	rabinArgs := chunkerArgs.GetRabinArgs()
 	if ciPol := rabinArgs.GetPol(); ciPol != 0 {
@@ -52,6 +54,7 @@ func buildChunkIndexRabin(
 		poly = defRabinPol
 	}
 
+	// Apply valid Rabin chunk size boundaries with defaults for omitted sizes.
 	minChunkSize, maxChunkSize := rabinArgs.GetChunkingMinSize(), rabinArgs.GetChunkingMaxSize()
 	if minChunkSize == 0 {
 		minChunkSize = DefChunkingMinSize
@@ -63,11 +66,14 @@ func buildChunkIndexRabin(
 		maxChunkSize = minChunkSize + 1
 	}
 
+	// Open the Rabin chunker with the selected polynomial and boundaries.
 	chk := chunker.New(
 		rdr,
 		poly,
 		chunker.WithBoundaries(uint(minChunkSize), uint(maxChunkSize)),
 	)
+
+	// Resume chunk positions after the existing chunk index.
 	var idx int
 	var totalSize uint64
 	var chkStart uint64
@@ -77,6 +83,8 @@ func buildChunkIndexRabin(
 		totalSize += chkStart
 		idx += len(oldChunks)
 	}
+
+	// Cut the remaining reader bytes into indexed Rabin chunks.
 	for {
 		// note: we have to allocate 1 buffer per chunk here.
 		nchk, err := chk.Next(nil)
@@ -87,6 +95,7 @@ func buildChunkIndexRabin(
 			return 0, err
 		}
 
+		// Append the Rabin chunk and advance the index byte position.
 		totalSize += uint64(nchk.Length)
 		if err := chunks.append(idx, uint64(nchk.Length), chkStart, nchk.Data); err != nil {
 			return 0, err
@@ -94,6 +103,8 @@ func buildChunkIndexRabin(
 		chkStart += uint64(nchk.Length)
 		idx++
 	}
+
+	// Flush pending chunks and publish the completed Rabin index.
 	if err := chunks.flush(); err != nil {
 		return 0, err
 	}

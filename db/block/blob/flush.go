@@ -230,6 +230,7 @@ func (a *chunkAppender) put(chk *pendingChunk) error {
 // Write() skips re-encoding it.
 // No-op if the transaction has no backing store.
 func flushChunkData(ctx context.Context, chkSet *sbset.SubBlockSet, idx int) error {
+	// Locate the chunk data cursor and its backing transaction.
 	_, chkBcs := chkSet.Get(idx)
 	if chkBcs == nil {
 		return nil
@@ -242,6 +243,8 @@ func flushChunkData(ctx context.Context, chkSet *sbset.SubBlockSet, idx int) err
 	if tx == nil || tx.GetStoreOps() == nil {
 		return nil
 	}
+
+	// Write the chunk data block through its transaction to release buffered bytes.
 	_, _, err := tx.WriteAtRoot(ctx, true, dataBcs)
 	return err
 }

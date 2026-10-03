@@ -4,6 +4,7 @@ import "testing"
 
 // TestRabinArgsApplyArgs tests merging rabin chunker arguments.
 func TestRabinArgsApplyArgs(t *testing.T) {
+	// Merge a supplied polynomial and chunk boundaries into the Rabin arguments.
 	c := &RabinArgs{}
 	c.ApplyArgs(&RabinArgs{
 		Pol:             0x3,
@@ -11,6 +12,7 @@ func TestRabinArgsApplyArgs(t *testing.T) {
 		ChunkingMaxSize: 256,
 	})
 
+	// Verify the Rabin arguments retain every supplied option.
 	if c.Pol != 0x3 {
 		t.Errorf("expected pol 0x3, got: %x", c.Pol)
 	}

@@ -14,6 +14,7 @@ const ConfigID = ControllerID
 // Validate validates the configuration.
 // This is a cursory validation to see if the values "look correct."
 func (c *Config) Validate() error {
+	// Validate the signaling identifier, peer, RPC client, protocol, and backoff.
 	if c.GetSignalingId() == "" {
 		return signaling.ErrEmptySignalingID
 	}
@@ -57,6 +58,7 @@ func (c *Config) EqualsConfig(other config.Config) bool {
 // This should be something like param1="test", param2="test".
 // This is not necessarily unique, and is primarily intended for display.
 func (c *Config) GetDebugVals() config.DebugValues {
+	// Collect configured signaling identifiers for diagnostic display.
 	vals := make(config.DebugValues)
 	if pid, _ := c.ParsePeerID(); pid != "" {
 		vals["peer-id"] = []string{pid.String()}

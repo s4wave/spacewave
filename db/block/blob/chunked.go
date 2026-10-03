@@ -116,6 +116,7 @@ func readFromChunks(
 	start, chunkIdx int,
 	cache *chunkReadCache,
 ) (n int, outChunkIdx int, err error) {
+	// Locate and validate the chunk containing the requested byte offset.
 	chunkIdx, err = findChunk(chunkSet, start, chunkIdx)
 	if err != nil {
 		return 0, 0, err
@@ -146,13 +147,17 @@ func readFromChunks(
 // ordered chunks without following their cursors. Returns io.EOF if start is
 // past the last chunk.
 func findChunk(chunkSet *sbset.SubBlockSet, start, hint int) (int, error) {
+	// Compute chunk ends while retaining any invalid type or bounds error.
 	var boundsErr error
 	chunkEnd := func(idx int) int {
+		// Require chunk metadata before computing its byte range.
 		chunk, ok := chunkSet.GetSubBlock(idx).(*Chunk)
 		if !ok {
 			boundsErr = block.ErrUnexpectedType
 			return math.MaxInt
 		}
+
+		// Validate that the chunk byte range fits in an integer.
 		chunkStart, chunkSize := chunk.GetStart(), chunk.GetSize()
 		if chunkStart > math.MaxInt || chunkSize > math.MaxInt-chunkStart {
 			boundsErr = errors.New("chunk bounds exceed maximum")
@@ -161,6 +166,7 @@ func findChunk(chunkSet *sbset.SubBlockSet, start, hint int) (int, error) {
 		return int(chunkStart + chunkSize) //nolint:gosec
 	}
 
+	// Reuse the chunk hint or search the ordered index for the requested offset.
 	chunkLen := chunkSet.Len()
 	idx := hint
 	if idx < 0 || idx >= chunkLen || chunkEnd(idx) <= start || (idx > 0 && chunkEnd(idx-1) > start) {
@@ -193,12 +199,15 @@ func fetchChunkDataNoCursorCache(
 	chunkIdx int,
 	cache *chunkReadCache,
 ) ([]byte, error) {
+	// Reuse cached chunk bytes and reserve capacity for a cache miss.
 	if cache != nil {
 		if data, ok := cache.get(chunkIdx); ok {
 			return data, nil
 		}
 		cache.evict(int(chunk.GetSize())) //nolint:gosec
 	}
+
+	// Fetch chunk bytes through read-ahead or the chunk cursor.
 	var data []byte
 	var err error
 	if cache != nil && cache.ahead != nil {
@@ -213,6 +222,8 @@ func fetchChunkDataNoCursorCache(
 	if err != nil {
 		return nil, err
 	}
+
+	// Retain fetched chunk bytes for subsequent cached reads.
 	if cache != nil {
 		cache.add(chunkIdx, data)
 	}
