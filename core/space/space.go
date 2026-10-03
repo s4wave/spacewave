@@ -105,7 +105,7 @@ func FixupSpaceName(name string) string {
 // - Spaces allowed only in the middle
 func ValidateSpaceName(name string) error {
 	// Require a Space name within the supported length.
-	if len(name) == 0 || len(name) > 64 {
+	if name == "" || utf8.RuneCountInString(name) > 64 {
 		return errors.Errorf("space name: must be between 1 and 64 characters")
 	}
 

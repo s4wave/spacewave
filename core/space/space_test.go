@@ -1,11 +1,13 @@
 package space_test
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/s4wave/spacewave/core/space"
 )
 
+// TestValidateSpaceName tests the Space name rules.
 func TestValidateSpaceName(t *testing.T) {
 	tests := []struct {
 		name    string
@@ -28,6 +30,8 @@ func TestValidateSpaceName(t *testing.T) {
 		{"special chars", "test@space", true},
 		{"valid mixed", "My-Cool_Space 123", false},
 		{"starts with multibyte letter", "שלום", false},
+		{"64 multibyte letters", strings.Repeat("ש", 64), false},
+		{"65 multibyte letters", strings.Repeat("ש", 65), true},
 	}
 
 	for _, tt := range tests {
