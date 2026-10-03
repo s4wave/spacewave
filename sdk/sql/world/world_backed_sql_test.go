@@ -23,6 +23,7 @@ import (
 )
 
 func TestSqlDbFactoryCommitsWorldBackedRootAndReplaysOp(t *testing.T) {
+	// Start the testbed for SQL root persistence and operation replay.
 	ctx := context.Background()
 	tb, err := testbed.Default(ctx)
 	if err != nil {
@@ -30,9 +31,11 @@ func TestSqlDbFactoryCommitsWorldBackedRootAndReplaysOp(t *testing.T) {
 	}
 	defer tb.Release()
 
+	// Create a typed SQL World object and retain its initial root.
 	objectKey := "sql/test-db"
 	beforeRoot := createSqlDbObject(t, ctx, tb.WorldState, objectKey, true)
 
+	// Open the SQL World object through an SRPC client.
 	inv, cleanup, err := s4wave_sql_world.SqlDbFactory(
 		ctx,
 		logrus.NewEntry(logrus.New()),
@@ -46,11 +49,13 @@ func TestSqlDbFactoryCommitsWorldBackedRootAndReplaysOp(t *testing.T) {
 	}
 	defer cleanup()
 
+	// Commit the alpha database through the SRPC SQL store.
 	store := sql_rpc_client.NewStore(sql_rpc.NewSRPCSqlClient(srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(inv)))))
 	rootTx := openSqlTx(t, ctx, store, true, "")
 	execSql(t, ctx, rootTx, "CREATE DATABASE alpha")
 	commitSql(t, ctx, rootTx)
 
+	// Commit the people table and its first row.
 	writeTx := openSqlTx(t, ctx, store, true, "/alpha")
 	for _, query := range []string{
 		"CREATE TABLE people (id BIGINT NOT NULL PRIMARY KEY, name TEXT NOT NULL)",
@@ -60,6 +65,7 @@ func TestSqlDbFactoryCommitsWorldBackedRootAndReplaysOp(t *testing.T) {
 	}
 	commitSql(t, ctx, writeTx)
 
+	// Read the committed people row and verify its value.
 	readTx := openSqlTx(t, ctx, store, false, "/alpha")
 	name := querySingleString(t, ctx, readTx, "SELECT name FROM people WHERE id = 1")
 	readTx.Discard()
@@ -67,11 +73,13 @@ func TestSqlDbFactoryCommitsWorldBackedRootAndReplaysOp(t *testing.T) {
 		t.Fatalf("SELECT name = %q, want ada", name)
 	}
 
+	// Verify that the SQL commit advanced the World object root.
 	afterRoot := getObjectRoot(t, ctx, tb.WorldState, objectKey)
 	if beforeRoot.EqualsRef(afterRoot) {
 		t.Fatal("world object root did not advance")
 	}
 
+	// Resolve the SQL root operation by its registered identifier.
 	lookupOp, err := s4wave_sql_world.LookupSqlSetRootOp(ctx, s4wave_sql_world.SqlSetRootOpId)
 	if err != nil {
 		t.Fatalf("LookupSqlSetRootOp(%s): %v", s4wave_sql_world.SqlSetRootOpId, err)
@@ -80,6 +88,7 @@ func TestSqlDbFactoryCommitsWorldBackedRootAndReplaysOp(t *testing.T) {
 		t.Fatalf("LookupSqlSetRootOp returned %T, want *SqlSetRootOp", lookupOp)
 	}
 
+	// Round-trip the SQL root operation and replay it against the World object.
 	op := s4wave_sql_world.NewSqlSetRootOp(objectKey, afterRoot, afterRoot, nil)
 	data, err := op.MarshalBlock()
 	if err != nil {
@@ -97,6 +106,7 @@ func TestSqlDbFactoryCommitsWorldBackedRootAndReplaysOp(t *testing.T) {
 }
 
 func TestWorldBackedSqlReportsCommitPersistedWhenWorldRootUpdateFails(t *testing.T) {
+	// Start the testbed for SQL commit persistence failures.
 	ctx := context.Background()
 	tb, err := testbed.Default(ctx)
 	if err != nil {
@@ -104,15 +114,18 @@ func TestWorldBackedSqlReportsCommitPersistedWhenWorldRootUpdateFails(t *testing
 	}
 	defer tb.Release()
 
+	// Open an untyped SQL World object whose root update will fail.
 	objectKey := "sql/untyped-db"
 	beforeRoot := createSqlDbObject(t, ctx, tb.WorldState, objectKey, false)
 	store, cleanup := openWorldBackedSql(t, ctx, tb.WorldState, objectKey)
 	defer cleanup()
 
+	// Commit the database and require the persisted-commit error.
 	rootTx := openSqlTx(t, ctx, store, true, "")
 	execSql(t, ctx, rootTx, "CREATE DATABASE alpha")
 	commitSqlPersisted(t, ctx, rootTx)
 
+	// Commit the table and row while World root updates remain rejected.
 	writeTx := openSqlTx(t, ctx, store, true, "/alpha")
 	for _, query := range []string{
 		"CREATE TABLE persisted (id BIGINT NOT NULL PRIMARY KEY, name TEXT NOT NULL)",
@@ -122,6 +135,7 @@ func TestWorldBackedSqlReportsCommitPersistedWhenWorldRootUpdateFails(t *testing
 	}
 	commitSqlPersisted(t, ctx, writeTx)
 
+	// Verify the committed row remains readable from the SQL engine.
 	readTx := openSqlTx(t, ctx, store, false, "/alpha")
 	name := querySingleString(t, ctx, readTx, "SELECT name FROM persisted WHERE id = 1")
 	readTx.Discard()
@@ -129,6 +143,7 @@ func TestWorldBackedSqlReportsCommitPersistedWhenWorldRootUpdateFails(t *testing
 		t.Fatalf("inner SELECT name = %q, want inner-root", name)
 	}
 
+	// Verify the rejected World operation left the object root unchanged.
 	afterRoot := getObjectRoot(t, ctx, tb.WorldState, objectKey)
 	if !beforeRoot.EqualsRef(afterRoot) {
 		t.Fatal("world object root advanced despite failed ApplyWorldOp")
@@ -142,6 +157,7 @@ func createSqlDbObject(
 	objectKey string,
 	setType bool,
 ) *bucket.ObjectRef {
+	// Create a SQL World object with an initial database root and optional type.
 	t.Helper()
 	createdObject, rootRef, err := world.CreateWorldObject(ctx, ws, objectKey, func(bcs *block.Cursor) error {
 		bcs.SetBlock(sql_mysql.NewRootBlock(), true)
@@ -179,6 +195,7 @@ func createEmptySqlDbObject(t *testing.T, ctx context.Context, ws world.WorldSta
 }
 
 func getObjectRoot(t *testing.T, ctx context.Context, ws world.WorldState, objectKey string) *bucket.ObjectRef {
+	// Resolve the World object and read its root reference.
 	t.Helper()
 	obj, err := world.MustGetObject(ctx, ws, objectKey)
 	defer world.ReleaseObjectState(obj)
@@ -237,23 +254,30 @@ func commitSqlPersisted(t *testing.T, ctx context.Context, tx hydra_sql.SqlTrans
 }
 
 func querySingleString(t *testing.T, ctx context.Context, tx hydra_sql.SqlTransaction, query string) string {
+	// Obtain SQL operations and query the expected single string value.
 	t.Helper()
 	ops, err := tx.GetSqlOps(ctx)
 	if err != nil {
 		tx.Discard()
 		t.Fatalf("GetSqlOps: %v", err)
 	}
+
+	// Run the SQL query and release its row cursor on exit.
 	rows, err := ops.QueryContext(ctx, query, nil)
 	if err != nil {
 		tx.Discard()
 		t.Fatalf("%s: %v", query, err)
 	}
 	defer rows.Close()
+
+	// Require the SQL query to return exactly one column.
 	cols := rows.Columns()
 	if len(cols) != 1 {
 		tx.Discard()
 		t.Fatalf("%s columns = %v, want one column", query, cols)
 	}
+
+	// Read the single SQL row and require the cursor to end afterward.
 	dest := make([]driver.Value, 1)
 	if err := rows.Next(dest); err != nil {
 		tx.Discard()
@@ -263,6 +287,8 @@ func querySingleString(t *testing.T, ctx context.Context, tx hydra_sql.SqlTransa
 		tx.Discard()
 		t.Fatalf("%s next after row = %v, want EOF", query, err)
 	}
+
+	// Decode the SQL value as a string for the caller.
 	switch val := dest[0].(type) {
 	case string:
 		return val
@@ -281,6 +307,7 @@ func openWorldBackedSql(
 	ws world.WorldState,
 	objectKey string,
 ) (hydra_sql.SqlStore, func()) {
+	// Resolve the World object and open its SQL store through a storage cursor.
 	t.Helper()
 	obj, err := world.MustGetObject(ctx, ws, objectKey)
 	defer world.ReleaseObjectState(obj)

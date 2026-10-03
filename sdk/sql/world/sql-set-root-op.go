@@ -49,6 +49,7 @@ func (o *SqlSetRootOp) GetOperationTypeId() string {
 
 // Validate performs cursory checks on the operation.
 func (o *SqlSetRootOp) Validate() error {
+	// Validate the SQL object key and the proposed root reference.
 	if o.GetObjectKey() == "" {
 		return world.ErrEmptyObjectKey
 	}
@@ -59,6 +60,7 @@ func (o *SqlSetRootOp) Validate() error {
 	if err := rootRef.Validate(); err != nil {
 		return err
 	}
+
 	// An empty base ref is the object's initial root: a first commit from the
 	// empty root carries no base. Validate the base only when it is populated.
 	if baseRef := o.GetBaseRef(); baseRef != nil && !baseRef.GetEmpty() {
@@ -66,6 +68,8 @@ func (o *SqlSetRootOp) Validate() error {
 			return err
 		}
 	}
+
+	// Validate the SQL replay statements and their arguments.
 	for _, statement := range o.GetStatements() {
 		if statement == nil {
 			return errors.New("sql/db: statement is required")
@@ -95,6 +99,7 @@ func (o *SqlSetRootOp) ApplyWorldOp(
 	ws world.WorldState,
 	sender peer.ID,
 ) (bool, error) {
+	// Validate the SQL root operation and resolve its target World object.
 	if err := o.Validate(); err != nil {
 		return false, err
 	}
@@ -116,12 +121,14 @@ func (o *SqlSetRootOp) ApplyWorldObjectOp(
 	os world.ObjectState,
 	sender peer.ID,
 ) (bool, error) {
+	// Validate the SQL root operation against the resolved World object.
 	if err := o.Validate(); err != nil {
 		return false, err
 	}
 	if os.GetKey() != o.GetObjectKey() {
 		return false, errors.Errorf("sql/db: op target %s does not match object %s", o.GetObjectKey(), os.GetKey())
 	}
+
 	// Divergent commits replay this transaction's statements on the current
 	// root; conflicts resolve in world-op order by SQL statement semantics.
 	expected := o.GetBaseRef().Clone()
@@ -149,18 +156,24 @@ func (o *SqlSetRootOp) rebaseRoot(
 	os world.ObjectState,
 	currentRoot *bucket.ObjectRef,
 ) (*bucket.ObjectRef, error) {
+	// Replay SQL statements against the current World root and capture the result.
 	var nextRoot *bucket.ObjectRef
 	err := os.AccessWorldState(ctx, currentRoot, func(root *bucket_lookup.Cursor) error {
+		// Open the SQL engine on a cloned current-root cursor.
 		rootCursor := root.Clone()
 		defer rootCursor.Release()
 		db := sql_mysql.NewMysql(rootCursor, func(root *bucket.ObjectRef) error {
 			nextRoot = root.Clone()
 			return nil
 		})
+
+		// Select the SQL transaction DSN from the replay statements.
 		dsn := ""
 		if statements := o.GetStatements(); len(statements) != 0 {
 			dsn = statements[0].GetDsn()
 		}
+
+		// Open a writable SQL transaction for replay and release it on exit.
 		tx, err := db.NewSqlTransaction(ctx, true, dsn)
 		if err != nil {
 			return err
@@ -170,6 +183,8 @@ func (o *SqlSetRootOp) rebaseRoot(
 		if err != nil {
 			return err
 		}
+
+		// Replay each recorded SQL statement in transaction order.
 		for _, statement := range o.GetStatements() {
 			if statement.GetDsn() != dsn {
 				return errors.New("sql/db: mixed transaction DSNs cannot be rebased")
@@ -192,6 +207,8 @@ func (o *SqlSetRootOp) rebaseRoot(
 				return errors.New("sql/db: invalid statement kind")
 			}
 		}
+
+		// Commit the rebased SQL transaction and retain its root.
 		if err := tx.Commit(ctx); err != nil {
 			return err
 		}
@@ -235,6 +252,7 @@ func buildSqlStatement(
 }
 
 func sqlStatementNamedValues(statement *SqlStatement) []driver.NamedValue {
+	// Decode the recorded SQL arguments into driver named values.
 	args := statement.GetArgs()
 	if len(args) == 0 {
 		return nil

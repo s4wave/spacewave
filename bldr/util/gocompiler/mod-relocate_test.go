@@ -31,10 +31,13 @@ require github.com/blang/semver v3.5.1+incompatible
 
 // TestRelocateGoModFile tests relocating a sample go.mod file.
 func TestRelocateGoModFile(t *testing.T) {
+	// Choose the source and destination paths for the module fixture.
 	srcModPath := filepath.Join(testRootDir, "go.mod")
 	destModPath := filepath.Join(testRootDir, "../next/target-module/go.mod")
 
+	// Parse the source module fixture for relocation.
 	mf, err := modfile.Parse(srcModPath, []byte(testModFile), nil)
+
 	// mf, err := parseGoModFile(srcModPath)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -44,10 +47,12 @@ func TestRelocateGoModFile(t *testing.T) {
 		t.Fatalf("%s != %s", mf.Syntax.Name, srcModPath)
 	}
 
+	// Relocate the module replacements to the destination path.
 	if err := RelocateGoModFile(mf, destModPath); err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Format the relocated module for comparison with the expected text.
 	outb, err := mf.Format()
 	if err != nil {
 		t.Fatal(err.Error())
@@ -55,6 +60,7 @@ func TestRelocateGoModFile(t *testing.T) {
 	out := string(outb)
 	t.Log(out)
 
+	// Verify that the relocated module preserves the expected replacements.
 	if out != expectedRelocateModFile {
 		t.Fatalf("%s != %s", out, expectedRelocateModFile)
 	}

@@ -21,18 +21,22 @@ import (
 )
 
 func TestWorldBackedSqlFirstCommitFromEmptyRootLands(t *testing.T) {
+	// Bound the empty-root SQL commit test with a cancelable context.
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
+	// Start the testbed that holds the SQL World object.
 	tb, err := testbed.Default(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer tb.Release()
 
+	// Create a typed SQL object with an empty root.
 	objectKey := "sql/empty-root-db"
 	createEmptySqlDbObject(t, ctx, tb.WorldState, objectKey)
 
+	// Open an SRPC SQL client for the empty-root World object.
 	inv, cleanup, err := s4wave_sql_world.SqlDbFactory(
 		ctx,
 		logrus.NewEntry(logrus.New()),
@@ -47,15 +51,18 @@ func TestWorldBackedSqlFirstCommitFromEmptyRootLands(t *testing.T) {
 	t.Cleanup(cleanup)
 	store := sql_rpc_client.NewStore(sql_rpc.NewSRPCSqlClient(srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(inv)))))
 
+	// Commit the quickstart database into the initially empty SQL object.
 	rootTx := openSqlTx(t, ctx, store, true, "")
 	execSql(t, ctx, rootTx, "CREATE DATABASE quickstart")
 	commitSql(t, ctx, rootTx)
 
+	// Commit the notes table and its first row.
 	writeTx := openSqlTx(t, ctx, store, true, "/quickstart")
 	execSql(t, ctx, writeTx, "CREATE TABLE notes (id BIGINT NOT NULL PRIMARY KEY, body TEXT NOT NULL)")
 	execSql(t, ctx, writeTx, "INSERT INTO notes (id, body) VALUES (1, 'first')")
 	commitSql(t, ctx, writeTx)
 
+	// Reopen the World SQL store and verify the first row persisted.
 	finalStore, closeFn := openWorldBackedSql(t, ctx, tb.WorldState, objectKey)
 	defer closeFn()
 	readTx := openSqlTx(t, ctx, finalStore, false, "/quickstart")
@@ -66,15 +73,18 @@ func TestWorldBackedSqlFirstCommitFromEmptyRootLands(t *testing.T) {
 }
 
 func TestWorldBackedSqlFirstCommitFromEmptyObjectRefLands(t *testing.T) {
+	// Bound the empty-reference SQL commit test with a cancelable context.
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
+	// Start the testbed that holds the SQL World object.
 	tb, err := testbed.Default(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer tb.Release()
 
+	// Create and type the SQL object with an empty ObjectRef.
 	objectKey := "sql/empty-object-ref-db"
 	{
 		createdObject, err := tb.WorldState.CreateObject(ctx, objectKey, &bucket.ObjectRef{})
@@ -87,6 +97,7 @@ func TestWorldBackedSqlFirstCommitFromEmptyObjectRefLands(t *testing.T) {
 		t.Fatalf("SetObjectType(%s): %v", objectKey, err)
 	}
 
+	// Open an SRPC SQL client for the empty-reference World object.
 	inv, cleanup, err := s4wave_sql_world.SqlDbFactory(
 		ctx,
 		logrus.NewEntry(logrus.New()),
@@ -101,15 +112,18 @@ func TestWorldBackedSqlFirstCommitFromEmptyObjectRefLands(t *testing.T) {
 	t.Cleanup(cleanup)
 	store := sql_rpc_client.NewStore(sql_rpc.NewSRPCSqlClient(srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(inv)))))
 
+	// Commit the quickstart database into the initially empty SQL object.
 	rootTx := openSqlTx(t, ctx, store, true, "")
 	execSql(t, ctx, rootTx, "CREATE DATABASE quickstart")
 	commitSql(t, ctx, rootTx)
 
+	// Commit the notes table and its first row.
 	writeTx := openSqlTx(t, ctx, store, true, "/quickstart")
 	execSql(t, ctx, writeTx, "CREATE TABLE notes (id BIGINT NOT NULL PRIMARY KEY, body TEXT NOT NULL)")
 	execSql(t, ctx, writeTx, "INSERT INTO notes (id, body) VALUES (1, 'first')")
 	commitSql(t, ctx, writeTx)
 
+	// Reopen the World SQL store and verify the first row persisted.
 	finalStore, closeFn := openWorldBackedSql(t, ctx, tb.WorldState, objectKey)
 	defer closeFn()
 	readTx := openSqlTx(t, ctx, finalStore, false, "/quickstart")
@@ -120,15 +134,18 @@ func TestWorldBackedSqlFirstCommitFromEmptyObjectRefLands(t *testing.T) {
 }
 
 func TestWorldBackedSqlFirstCommitFromNilRootLands(t *testing.T) {
+	// Bound the nil-root SQL commit test with a cancelable context.
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
+	// Start the testbed that holds the SQL World object.
 	tb, err := testbed.Default(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer tb.Release()
 
+	// Create and type the SQL object with a nil root.
 	objectKey := "sql/nil-root-db"
 	{
 		createdObject, err := tb.WorldState.CreateObject(ctx, objectKey, nil)
@@ -141,6 +158,7 @@ func TestWorldBackedSqlFirstCommitFromNilRootLands(t *testing.T) {
 		t.Fatalf("SetObjectType(%s): %v", objectKey, err)
 	}
 
+	// Open an SRPC SQL client for the nil-root World object.
 	inv, cleanup, err := s4wave_sql_world.SqlDbFactory(
 		ctx,
 		logrus.NewEntry(logrus.New()),
@@ -155,15 +173,18 @@ func TestWorldBackedSqlFirstCommitFromNilRootLands(t *testing.T) {
 	t.Cleanup(cleanup)
 	store := sql_rpc_client.NewStore(sql_rpc.NewSRPCSqlClient(srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(inv)))))
 
+	// Commit the quickstart database into the initially empty SQL object.
 	rootTx := openSqlTx(t, ctx, store, true, "")
 	execSql(t, ctx, rootTx, "CREATE DATABASE quickstart")
 	commitSql(t, ctx, rootTx)
 
+	// Commit the notes table and its first row.
 	writeTx := openSqlTx(t, ctx, store, true, "/quickstart")
 	execSql(t, ctx, writeTx, "CREATE TABLE notes (id BIGINT NOT NULL PRIMARY KEY, body TEXT NOT NULL)")
 	execSql(t, ctx, writeTx, "INSERT INTO notes (id, body) VALUES (1, 'first')")
 	commitSql(t, ctx, writeTx)
 
+	// Reopen the World SQL store and verify the first row persisted.
 	finalStore, closeFn := openWorldBackedSql(t, ctx, tb.WorldState, objectKey)
 	defer closeFn()
 	readTx := openSqlTx(t, ctx, finalStore, false, "/quickstart")
@@ -174,19 +195,23 @@ func TestWorldBackedSqlFirstCommitFromNilRootLands(t *testing.T) {
 }
 
 func TestWorldBackedSqlConcurrentCommitsLandInWorldObjectRoot(t *testing.T) {
+	// Bound the concurrent SQL commit test with a cancelable context.
 	ctx, cancel := context.WithTimeout(context.Background(), 45*time.Second)
 	defer cancel()
 
+	// Start the testbed that holds the shared SQL World object.
 	tb, err := testbed.Default(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer tb.Release()
 
+	// Create and seed the SQL object shared by the concurrent clients.
 	objectKey := "sql/concurrent-db"
 	createSqlDbObject(t, ctx, tb.WorldState, objectKey, true)
 	seedConcurrentSqlTable(t, ctx, tb, objectKey)
 
+	// Open independent SRPC SQL clients against the same World object.
 	stores := make([]hydra_sql.SqlStore, 0, 2)
 	for idx := range 2 {
 		inv, cleanup, err := s4wave_sql_world.SqlDbFactory(
@@ -205,6 +230,7 @@ func TestWorldBackedSqlConcurrentCommitsLandInWorldObjectRoot(t *testing.T) {
 		stores = append(stores, store)
 	}
 
+	// Prepare the concurrent SQL writer results and start barrier.
 	type result struct {
 		client int
 		id     int
@@ -215,12 +241,15 @@ func TestWorldBackedSqlConcurrentCommitsLandInWorldObjectRoot(t *testing.T) {
 	start := make(chan struct{})
 	results := make(chan result, len(stores)*writesPerClient)
 	var wg sync.WaitGroup
+
+	// Start each SQL writer with its client and row identity.
 	for clientIdx, store := range stores {
 		for writeIdx := range writesPerClient {
 			clientIdx := clientIdx
 			writeIdx := writeIdx
 			store := store
 			wg.Go(func() {
+				// Wait for the shared start barrier and open the client write transaction.
 				<-start
 				id := clientIdx*writesPerClient + writeIdx + 1
 				name := "name-" + strconv.Itoa(id)
@@ -229,12 +258,16 @@ func TestWorldBackedSqlConcurrentCommitsLandInWorldObjectRoot(t *testing.T) {
 					results <- result{client: clientIdx, id: id, err: err}
 					return
 				}
+
+				// Obtain SQL operations for the client write transaction.
 				ops, err := tx.GetSqlOps(ctx)
 				if err != nil {
 					tx.Discard()
 					results <- result{client: clientIdx, id: id, err: err}
 					return
 				}
+
+				// Insert the client row and discard its transaction on failure.
 				_, err = ops.ExecContext(ctx, "INSERT INTO soak (id, name) VALUES (?, ?)", []driver.NamedValue{
 					{Ordinal: 1, Value: int64(id)},
 					{Ordinal: 2, Value: name},
@@ -244,6 +277,8 @@ func TestWorldBackedSqlConcurrentCommitsLandInWorldObjectRoot(t *testing.T) {
 					results <- result{client: clientIdx, id: id, err: err}
 					return
 				}
+
+				// Commit the client row and publish the writer result.
 				if err := tx.Commit(ctx); err != nil {
 					tx.Discard()
 					results <- result{client: clientIdx, id: id, err: err}
@@ -254,6 +289,8 @@ func TestWorldBackedSqlConcurrentCommitsLandInWorldObjectRoot(t *testing.T) {
 			})
 		}
 	}
+
+	// Release the SQL writer barrier and wait for every result.
 	close(start)
 	done := make(chan struct{})
 	go func() {
@@ -267,6 +304,7 @@ func TestWorldBackedSqlConcurrentCommitsLandInWorldObjectRoot(t *testing.T) {
 	}
 	close(results)
 
+	// Collect every SQL writer result and require each commit to succeed.
 	successes := make([]result, 0, len(stores)*writesPerClient)
 	for res := range results {
 		if res.err != nil {
@@ -278,6 +316,7 @@ func TestWorldBackedSqlConcurrentCommitsLandInWorldObjectRoot(t *testing.T) {
 		t.Fatalf("successful commits = %d, want %d", len(successes), len(stores)*writesPerClient)
 	}
 
+	// Reopen the SQL World root and verify every committed row.
 	finalStore, cleanup := openWorldBackedSql(t, ctx, tb.WorldState, objectKey)
 	defer cleanup()
 	readTx := openSqlTx(t, ctx, finalStore, false, "/alpha")
@@ -291,6 +330,7 @@ func TestWorldBackedSqlConcurrentCommitsLandInWorldObjectRoot(t *testing.T) {
 }
 
 func seedConcurrentSqlTable(t *testing.T, ctx context.Context, tb *testbed.Testbed, objectKey string) {
+	// Open an SRPC SQL client for seeding the concurrency fixture.
 	t.Helper()
 	inv, cleanup, err := s4wave_sql_world.SqlDbFactory(
 		ctx,
@@ -305,11 +345,13 @@ func seedConcurrentSqlTable(t *testing.T, ctx context.Context, tb *testbed.Testb
 	}
 	defer cleanup()
 
+	// Commit the alpha database for the concurrent writers.
 	store := sql_rpc_client.NewStore(sql_rpc.NewSRPCSqlClient(srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(inv)))))
 	rootTx := openSqlTx(t, ctx, store, true, "")
 	execSql(t, ctx, rootTx, "CREATE DATABASE alpha")
 	commitSql(t, ctx, rootTx)
 
+	// Commit the soak table for the concurrent inserts.
 	writeTx := openSqlTx(t, ctx, store, true, "/alpha")
 	execSql(t, ctx, writeTx, "CREATE TABLE soak (id BIGINT NOT NULL PRIMARY KEY, name TEXT NOT NULL)")
 	commitSql(t, ctx, writeTx)

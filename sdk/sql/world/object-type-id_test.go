@@ -14,10 +14,12 @@ import (
 // where SqlDbTypeID lived in that gated file and went undefined in the
 // unconstrained SqlSetRootOp under -tags=tinygo.
 func TestSqlDbTypeIDResolvesWithoutFactory(t *testing.T) {
+	// Verify the SQL database type identifier is available without the factory.
 	if s4wave_sql_world.SqlDbTypeID != "sql/db" {
 		t.Fatalf("unexpected SqlDbTypeID %q", s4wave_sql_world.SqlDbTypeID)
 	}
 
+	// Resolve the SQL root operation and verify its registered identifier.
 	op, err := s4wave_sql_world.LookupSqlSetRootOp(context.Background(), s4wave_sql_world.SqlSetRootOpId)
 	if err != nil {
 		t.Fatalf("lookup sql set root op: %v", err)

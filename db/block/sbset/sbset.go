@@ -55,6 +55,7 @@ func (r *SubBlockSet) BlockAliasIdentity() *block.AliasIdentityToken {
 //
 // returns nil if out of bounds.
 func (r *SubBlockSet) Get(idx int) (block.SubBlock, *block.Cursor) {
+	// Resolve the sub-block index and its optional graph cursor.
 	if r.sl == nil {
 		return nil, nil
 	}
@@ -89,6 +90,7 @@ func (r *SubBlockSet) Len() int {
 
 // Swap swaps the elements with indexes i and j.
 func (r *SubBlockSet) Swap(i, j int) {
+	// Resolve the sub-block entries before swapping their positions.
 	if r.sl == nil {
 		return
 	}
@@ -104,6 +106,7 @@ func (r *SubBlockSet) Swap(i, j int) {
 	if jv == nil {
 		return
 	}
+
 	// swap block cursor graph references
 	if bcs := r.bcs; bcs != nil {
 		ii := uint32(i) //nolint:gosec
@@ -113,6 +116,7 @@ func (r *SubBlockSet) Swap(i, j int) {
 		_ = ir.SetAsSubBlock(jj, bcs)
 		_ = jr.SetAsSubBlock(ii, bcs)
 	}
+
 	// swap positions in the slice
 	r.sl.Set(i, jv)
 	r.sl.Set(j, iv)
@@ -121,6 +125,7 @@ func (r *SubBlockSet) Swap(i, j int) {
 // Delete deletes the given range of elements, shifting the elements following them.
 // To remove a single element at index i, call with i, i+1.
 func (r *SubBlockSet) Delete(i, j int) {
+	// Normalize the sub-block deletion range against the container bounds.
 	ls := r.sl.Len()
 	if j > ls {
 		j = ls
@@ -132,6 +137,8 @@ func (r *SubBlockSet) Delete(i, j int) {
 	if nremove <= 0 || i >= ls {
 		return
 	}
+
+	// Shift graph references into the deleted sub-block positions.
 	for o := range nremove {
 		destIdx := uint32(i + o) //nolint:gosec
 		srcIdx := uint32(j + o)  //nolint:gosec
@@ -144,12 +151,15 @@ func (r *SubBlockSet) Delete(i, j int) {
 			}
 		}
 	}
+
+	// Truncate the sub-block container and mark its graph cursor dirty.
 	r.sl.Truncate(ls - nremove)
 	r.bcs.MarkDirty()
 }
 
 // ApplySubBlock applies a sub-block change with a field id.
 func (r *SubBlockSet) ApplySubBlock(id uint32, next block.SubBlock) error {
+	// Validate the sub-block reference and update its container entry.
 	if r.sl == nil {
 		return errors.New("sub-block container is nil")
 	}
@@ -164,6 +174,7 @@ func (r *SubBlockSet) ApplySubBlock(id uint32, next block.SubBlock) error {
 // GetSubBlocks returns all constructed sub-blocks by ID.
 // May return nil, and values may also be nil.
 func (r *SubBlockSet) GetSubBlocks() map[uint32]block.SubBlock {
+	// Collect the sub-block entries by their graph reference IDs.
 	if r.sl == nil {
 		return nil
 	}

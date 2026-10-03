@@ -111,16 +111,19 @@ func GetDefaultTinygoArgs() ([]string, error) {
 
 // TinyGoArgs converts TinyGoOptions into compiler args.
 func TinyGoArgs(opts TinyGoOptions) ([]string, error) {
+	// Resolve the TinyGo profile that supplies compiler defaults.
 	profile, err := resolveTinyGoProfile(opts.Profile)
 	if err != nil {
 		return nil, err
 	}
 
+	// Resolve the TinyGo optimization level for the selected profile.
 	opt, err := resolveTinyGoOpt(profile, opts.Opt)
 	if err != nil {
 		return nil, err
 	}
 
+	// Resolve the TinyGo panic strategy and LLVM feature set.
 	panicStrategy, err := resolveTinyGoPanicStrategy(opts.PanicStrategy)
 	if err != nil {
 		return nil, err
@@ -130,6 +133,7 @@ func TinyGoArgs(opts TinyGoOptions) ([]string, error) {
 		return nil, err
 	}
 
+	// Assemble the TinyGo panic, LLVM and optimization arguments.
 	args := []string{
 		"-panic=" + panicStrategy,
 		"-llvm-features=" + strings.Join(features, ","),
@@ -137,6 +141,8 @@ func TinyGoArgs(opts TinyGoOptions) ([]string, error) {
 	if opt != "" {
 		args = append([]string{"-opt=" + opt}, args...)
 	}
+
+	// Resolve the TinyGo garbage collector argument.
 	gc, err := resolveTinyGoGC(profile, opts.GC)
 	if err != nil {
 		return nil, err
@@ -144,12 +150,16 @@ func TinyGoArgs(opts TinyGoOptions) ([]string, error) {
 	if gc != "" {
 		args = append(args, "-gc="+gc)
 	}
+
+	// Validate and append the TinyGo scheduler override.
 	if scheduler := strings.TrimSpace(opts.Scheduler); scheduler != "" {
 		if err := validateTinyGoArgValue(TinyGoSchedulerEnv, scheduler); err != nil {
 			return nil, err
 		}
 		args = append(args, "-scheduler="+scheduler)
 	}
+
+	// Resolve the TinyGo goroutine stack argument.
 	stackSize, err := resolveTinyGoStackSize(opts.StackSize)
 	if err != nil {
 		return nil, err
@@ -157,6 +167,8 @@ func TinyGoArgs(opts TinyGoOptions) ([]string, error) {
 	if stackSize != "" {
 		args = append(args, "-stack-size="+stackSize)
 	}
+
+	// Resolve the TinyGo interpreter timeout argument.
 	interpTimeout, err := resolveTinyGoInterpTimeout(profile, opts.InterpTimeout)
 	if err != nil {
 		return nil, err
@@ -164,6 +176,8 @@ func TinyGoArgs(opts TinyGoOptions) ([]string, error) {
 	if interpTimeout != "" {
 		args = append(args, "-interp-timeout="+interpTimeout)
 	}
+
+	// Resolve whether TinyGo should print build commands.
 	trace, err := tinyGoBoolEnabled(TinyGoTraceEnv, opts.Trace)
 	if err != nil {
 		return nil, err
@@ -171,6 +185,8 @@ func TinyGoArgs(opts TinyGoOptions) ([]string, error) {
 	if trace {
 		args = append(args, "-x")
 	}
+
+	// Resolve whether TinyGo should retain its build directory.
 	work, err := tinyGoBoolEnabled(TinyGoWorkEnv, opts.Work)
 	if err != nil {
 		return nil, err
@@ -214,6 +230,7 @@ func resolveTinyGoProfile(profile string) (string, error) {
 }
 
 func resolveTinyGoOpt(profile, rawOpt string) (string, error) {
+	// Resolve and validate the TinyGo optimization level.
 	opt := strings.TrimSpace(rawOpt)
 	if opt == "" && profile == TinyGoProfileFast {
 		opt = "1"
@@ -242,6 +259,7 @@ func resolveTinyGoPanicStrategy(panicStrategy string) (string, error) {
 }
 
 func resolveTinyGoStackSize(rawStackSize string) (string, error) {
+	// Resolve and validate the TinyGo goroutine stack size.
 	stackSize := strings.TrimSpace(rawStackSize)
 	if stackSize == "" {
 		return TinyGoDefaultStackSize, nil
@@ -265,6 +283,7 @@ func validateTinyGoOpt(opt string) error {
 }
 
 func resolveTinyGoGC(profile, rawGC string) (string, error) {
+	// Resolve and validate the TinyGo garbage collector.
 	gc := strings.TrimSpace(rawGC)
 	if gc == "" && profile == TinyGoProfileFast {
 		gc = "leaking"
@@ -279,6 +298,7 @@ func resolveTinyGoGC(profile, rawGC string) (string, error) {
 }
 
 func resolveTinyGoLLVMFeatures(raw string) ([]string, error) {
+	// Resolve and validate the TinyGo LLVM feature list.
 	raw = strings.TrimSpace(raw)
 	if raw == "" {
 		return GetDefaultTinygoLlvmFeatures(), nil
@@ -303,6 +323,7 @@ func validateTinyGoArgValue(envKey, value string) error {
 }
 
 func resolveTinyGoInterpTimeout(profile, rawTimeout string) (string, error) {
+	// Resolve and validate the TinyGo interpreter timeout.
 	timeout := strings.TrimSpace(rawTimeout)
 	if timeout == "" && profile == TinyGoProfileFast {
 		timeout = "10m"

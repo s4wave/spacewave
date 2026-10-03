@@ -19,18 +19,23 @@ func RelocateGoModFile(
 	modf *modfile.File,
 	nextModPath string,
 ) error {
+	// Identify the original module path for relative replacements.
 	prevGoModPath := modf.Syntax.Name
+
 	// has no effect if the path is already absolute.
 	modPathAbs, err := filepath.Abs(path.Dir(prevGoModPath))
 	if err != nil {
 		return err
 	}
+
+	// Resolve the destination directory for the relocated module.
 	nextGoModDir := path.Dir(nextModPath)
 	codegenModDir, err := filepath.Abs(nextGoModDir)
 	if err != nil {
 		return err
 	}
 
+	// Collect relative replacements using the destination module directory.
 	var adjOps [](func() error)
 	for _, srcReplace := range modf.Replace {
 		newPath := srcReplace.New.Path
@@ -61,12 +66,14 @@ func RelocateGoModFile(
 		}
 	}
 
+	// Apply the replacement paths after inspecting the original module.
 	for _, op := range adjOps {
 		if err := op(); err != nil {
 			return err
 		}
 	}
 
+	// Remove obsolete module syntax after replacing the paths.
 	modf.Cleanup()
 	return nil
 }

@@ -73,17 +73,21 @@ func TestResolveGoCompiler(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			// Prepare the platform and compiler environment for this selection case.
 			t.Setenv(GoCompilerEnv, "")
 			plat, err := bldr_platform.ParsePlatform(tc.platformID)
 			if err != nil {
 				t.Fatalf("%s: unexpected error: %s", tc.platformID, err.Error())
 			}
 
+			// Resolve the compiler mode for the configured platform and policy.
 			actual, err := ResolveGoCompiler(
 				plat,
 				tc.goCompiler,
 				tc.defaultTinygoEnabled,
 			)
+
+			// Verify the compiler selection or the unsupported TinyGo target.
 			if tc.expectError {
 				if err == nil {
 					t.Fatalf("%s: expected error but got none", tc.platformID)
@@ -104,32 +108,40 @@ func TestResolveGoCompiler(t *testing.T) {
 }
 
 func TestResolveGoCompilerUsesEnvForDefault(t *testing.T) {
+	// Configure the browser platform with a GoScript environment default.
 	t.Setenv(GoCompilerEnv, string(GoCompilerGoScript))
 	plat, err := bldr_platform.ParsePlatform("web/js/wasm")
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	// Resolve the default compiler mode from the environment.
 	actual, err := ResolveGoCompiler(plat, GoCompilerDefault, false)
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Verify that compiler selection respects the configured precedence.
 	if actual != GoCompilerGoScript {
 		t.Fatalf("compiler mode = %s, want %s", actual, GoCompilerGoScript)
 	}
 }
 
 func TestResolveGoCompilerExplicitOverridesEnv(t *testing.T) {
+	// Configure the browser platform with a conflicting compiler environment.
 	t.Setenv(GoCompilerEnv, string(GoCompilerGoScript))
 	plat, err := bldr_platform.ParsePlatform("web/js/wasm")
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	// Resolve the explicit compiler mode with the conflicting environment.
 	actual, err := ResolveGoCompiler(plat, GoCompilerGo, false)
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Verify that compiler selection respects the configured precedence.
 	if actual != GoCompilerGo {
 		t.Fatalf("compiler mode = %s, want %s", actual, GoCompilerGo)
 	}

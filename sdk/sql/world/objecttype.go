@@ -27,6 +27,7 @@ func SqlDbFactory(
 	ws world.WorldState,
 	objectKey string,
 ) (srpc.Invoker, func(), error) {
+	// Validate the SQL object type and resolve its current World root.
 	if ws == nil {
 		return nil, nil, objecttype.ErrWorldStateRequired
 	}
@@ -42,6 +43,8 @@ func SqlDbFactory(
 	if err != nil {
 		return nil, nil, err
 	}
+
+	// Open the storage cursor and follow the SQL object root.
 	storageRoot, err := ws.BuildStorageCursor(ctx)
 	if err != nil {
 		return nil, nil, err
@@ -52,6 +55,7 @@ func SqlDbFactory(
 		return nil, nil, err
 	}
 
+	// Open the SQL store on the resolved storage cursor.
 	store, err := NewWorldBackedSql(ctx, root, ws, objectKey)
 	if err != nil {
 		root.Release()
@@ -59,6 +63,7 @@ func SqlDbFactory(
 		return nil, nil, err
 	}
 
+	// Expose the SQL store through an SRPC mux with cursor cleanup.
 	mux := srpc.NewMux()
 	if err := sql_rpc.SRPCRegisterSql(mux, sql_rpc_server.NewStore(store)); err != nil {
 		store.Close()

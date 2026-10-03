@@ -60,12 +60,16 @@ func TestResolveTinyGoEnabled(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			// Parse the platform for this TinyGo enablement case.
 			plat, err := bldr_platform.ParsePlatform(tc.platformID)
 			if err != nil {
 				t.Fatalf("%s: unexpected error: %s", tc.platformID, err.Error())
 			}
 
+			// Resolve TinyGo enablement for the configured platform and policy.
 			actual, err := ResolveTinyGoEnabled(plat, tc.opt, tc.defaultEnabled)
+
+			// Verify TinyGo enablement or the unsupported platform error.
 			if tc.expectError {
 				if err == nil {
 					t.Fatalf("%s: expected error but got none", tc.platformID)

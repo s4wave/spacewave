@@ -54,6 +54,7 @@ func ExecBuildEntrypoint(
 	buildTags []string,
 	ldFlags []string,
 ) error {
+	// Resolve the entrypoint build mode and wasm diagnostic setting.
 	isRelease := buildType.IsRelease()
 	isNativeBuildPlatform := buildPlatform.GetBasePlatformID() == bldr_platform.PlatformID_DESKTOP
 	isWasmOutput := strings.HasSuffix(outBinPath, ".wasm")
@@ -62,6 +63,7 @@ func ExecBuildEntrypoint(
 		return err
 	}
 
+	// Resolve the Go environment for the entrypoint platform.
 	platformEnv, err := bldr_platform_go.PlatformToGoEnv(buildPlatform)
 	if err != nil {
 		return err
@@ -136,6 +138,7 @@ func ExecBuildEntrypoint(
 		ecmd.Env = append(ecmd.Env, platformEnv...)
 	}
 
+	// Run the compiler and report the entrypoint build duration.
 	timeStart := time.Now()
 	if useTinygo {
 		// TinyGo's LLVM pipeline can exhaust GitHub Linux runner memory when
@@ -210,6 +213,7 @@ func newTinyGoBuildArgs(
 	outBinPathRel string,
 	buildTags []string,
 ) ([]string, error) {
+	// Resolve the TinyGo target, options and browser import tags.
 	tinygoPlat, err := bldr_platform_go.PlatformToTinyGoTarget(buildPlatform)
 	if err != nil {
 		return nil, err
@@ -227,6 +231,7 @@ func newTinyGoBuildArgs(
 		buildTags = append(buildTags, BldrTinyGoJSImportBuildTag)
 	}
 
+	// Assemble the TinyGo command for the entrypoint output.
 	args := append([]string{
 		"build",
 		"-o",
@@ -243,6 +248,7 @@ func newTinyGoBuildArgs(
 		args = append(args, tinyGoInternalNoDWARFArg)
 	}
 
+	// Include the selected build tags in the TinyGo command.
 	args = append(args, "-tags="+strings.Join(buildTags, " "))
 	return args, nil
 }

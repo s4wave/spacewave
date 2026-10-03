@@ -73,6 +73,7 @@ func (r *NamedSubBlockSet) Len() int {
 
 // ValidateUnique checks if all entries in the set are unique.
 func (r *NamedSubBlockSet) ValidateUnique(nonEmpty bool) error {
+	// Check named sub-block entries for duplicate or forbidden empty names.
 	if r.sl == nil {
 		return nil
 	}
@@ -97,6 +98,7 @@ func (r *NamedSubBlockSet) ValidateUnique(nonEmpty bool) error {
 // Less reports whether the element with
 // index i should sort before the element with index j.
 func (r *NamedSubBlockSet) Less(i, j int) bool {
+	// Check whether the named sub-block indexes can be compared.
 	if r.sl == nil {
 		return false
 	}
@@ -107,6 +109,8 @@ func (r *NamedSubBlockSet) Less(i, j int) bool {
 	if i >= ls {
 		return false
 	}
+
+	// Compare the named entries with nil values ordered last.
 	iv := r.sl.Get(i)
 	jv := r.sl.Get(j)
 	if iv == nil && jv != nil {
@@ -120,6 +124,7 @@ func (r *NamedSubBlockSet) Less(i, j int) bool {
 
 // Swap swaps the elements with indexes i and j.
 func (r *NamedSubBlockSet) Swap(i, j int) {
+	// Resolve the named sub-block entries before swapping their positions.
 	if r.sl == nil {
 		return
 	}
@@ -135,6 +140,7 @@ func (r *NamedSubBlockSet) Swap(i, j int) {
 	if jv == nil {
 		return
 	}
+
 	// swap block cursor graph references
 	if bcs := r.bcs; bcs != nil {
 		ii := uint32(i) //nolint:gosec
@@ -154,6 +160,7 @@ func (r *NamedSubBlockSet) Swap(i, j int) {
 //
 // Returns either -1 or len(sl) if not found or nil.
 func (r *NamedSubBlockSet) LookupIndexByName(name string) (idx int, sv NamedSubBlock, found bool) {
+	// Find the named sub-block in the name-sorted container.
 	if r == nil || r.sl == nil {
 		return -1, nil, false
 	}
@@ -205,6 +212,7 @@ func (r *NamedSubBlockSet) SortNamedRefs() {
 // Returns nil, false if not found.
 // Returns nil block cursor if bcs is not set.
 func (r *NamedSubBlockSet) LookupByName(name string) (NamedSubBlock, *block.Cursor, bool) {
+	// Resolve the named sub-block and its optional graph cursor.
 	idx, v, ok := r.LookupIndexByName(name)
 	if !ok {
 		return nil, nil, false
@@ -222,6 +230,7 @@ func (r *NamedSubBlockSet) LookupByName(name string) (NamedSubBlock, *block.Curs
 // Returns nil, false if not found.
 // Returns nil block cursor if bcs is not set.
 func (r *NamedSubBlockSet) LookupByNameCaseInsensitive(name string) (NamedSubBlock, *block.Cursor, bool) {
+	// Resolve the case-insensitive named sub-block and its optional graph cursor.
 	idx, v, ok := r.LookupIndexByNameCaseInsensitive(name)
 	if !ok {
 		return nil, nil, false
@@ -239,6 +248,7 @@ func (r *NamedSubBlockSet) LookupByNameCaseInsensitive(name string) (NamedSubBlo
 // Returns nil, nil, false if not found.
 // Returns old table header, cursor, true if found
 func (r *NamedSubBlockSet) DeleteByName(name string) (NamedSubBlock, *block.Cursor, bool) {
+	// Locate the named sub-block to remove and preserve its cursor.
 	idx, oldv, ok := r.LookupIndexByName(name)
 	if !ok {
 		return nil, nil, false
@@ -247,6 +257,7 @@ func (r *NamedSubBlockSet) DeleteByName(name string) (NamedSubBlock, *block.Curs
 	if r.bcs != nil {
 		ncs = r.bcs.FollowSubBlock(uint32(idx)) //nolint:gosec
 	}
+
 	// to delete: swap last index into index, decrement len, re-sort
 	slLen := r.sl.Len()
 	if slLen > 1 && idx != slLen-1 {
@@ -265,6 +276,7 @@ func (r *NamedSubBlockSet) DeleteByName(name string) (NamedSubBlock, *block.Curs
 
 // ApplySubBlock applies a sub-block change with a field id.
 func (r *NamedSubBlockSet) ApplySubBlock(id uint32, next block.SubBlock) error {
+	// Validate the named sub-block replacement and update its container entry.
 	if r.sl == nil {
 		return errors.New("sub-block container is nil")
 	}
@@ -283,6 +295,7 @@ func (r *NamedSubBlockSet) ApplySubBlock(id uint32, next block.SubBlock) error {
 // GetSubBlocks returns all constructed sub-blocks by ID.
 // May return nil, and values may also be nil.
 func (r *NamedSubBlockSet) GetSubBlocks() map[uint32]block.SubBlock {
+	// Collect the named sub-block entries by their graph reference IDs.
 	if r.sl == nil {
 		return nil
 	}

@@ -35,6 +35,7 @@ func NewWorldBackedSql(
 	ws world.WorldState,
 	objectKey string,
 ) (*WorldBackedSql, error) {
+	// Validate the World, storage cursor and SQL object key before opening the store.
 	if ws == nil {
 		return nil, objecttype.ErrWorldStateRequired
 	}
@@ -44,6 +45,8 @@ func NewWorldBackedSql(
 	if objectKey == "" {
 		return nil, world.ErrEmptyObjectKey
 	}
+
+	// Open the SQL engine with the World root commit callback.
 	st := &WorldBackedSql{
 		ws:   ws,
 		key:  objectKey,
@@ -68,6 +71,7 @@ func (s *WorldBackedSql) NewSqlTransaction(
 	write bool,
 	dsn string,
 ) (hydra_sql.SqlTransaction, error) {
+	// Serialize SQL writers and capture the root they start from.
 	if write {
 		s.writeMtx.Lock()
 	}
@@ -75,6 +79,8 @@ func (s *WorldBackedSql) NewSqlTransaction(
 	if write {
 		baseRoot = s.inner.GetRootNodeRef()
 	}
+
+	// Open the SQL transaction and release the writer lock if opening fails.
 	tx, err := s.inner.NewSqlTransaction(ctx, write, dsn)
 	if err != nil {
 		if write {
@@ -85,6 +91,8 @@ func (s *WorldBackedSql) NewSqlTransaction(
 	if !write {
 		return tx, nil
 	}
+
+	// Track the writable SQL transaction until it releases its writer lock.
 	wtx := &worldBackedSqlTx{
 		store:    s,
 		inner:    tx,
@@ -98,6 +106,7 @@ func (s *WorldBackedSql) NewSqlTransaction(
 }
 
 func (s *WorldBackedSql) captureCommittedRoot(root *bucket.ObjectRef) error {
+	// Capture the committed SQL root on the active transaction.
 	if root == nil || root.GetEmpty() {
 		return errors.New("sql/db: committed root is empty")
 	}
@@ -119,6 +128,7 @@ func (s *WorldBackedSql) clearActiveTx(tx *worldBackedSqlTx) {
 }
 
 func (s *WorldBackedSql) refreshInnerRoot(ctx context.Context) error {
+	// Reload the SQL root from the World object.
 	obj, err := world.MustGetObject(ctx, s.ws, s.key)
 	defer world.ReleaseObjectState(obj)
 	if err != nil {
@@ -144,6 +154,7 @@ type worldBackedSqlTx struct {
 
 // Commit commits the SQL transaction and advances the world object root.
 func (t *worldBackedSqlTx) Commit(ctx context.Context) error {
+	// Commit the SQL transaction and release its writer lock afterward.
 	defer t.releaseWrite()
 	t.committedRoot = nil
 	if err := t.inner.Commit(ctx); err != nil {
@@ -153,6 +164,8 @@ func (t *worldBackedSqlTx) Commit(ctx context.Context) error {
 	if root == nil {
 		return &CommitPersistedError{Err: errors.New("sql/db: committed root was not captured")}
 	}
+
+	// Advance the World object root with the committed SQL statements.
 	_, _, err := t.store.ws.ApplyWorldOp(ctx, NewSqlSetRootOp(t.store.key, t.baseRoot, root, t.statements), peer.ID(""))
 	if err != nil {
 		return &CommitPersistedError{Err: err}
@@ -200,6 +213,7 @@ func (o *recordingSqlOps) Exec(query string, args []driver.Value) (driver.Result
 }
 
 func (o *recordingSqlOps) ExecContext(ctx context.Context, query string, args []driver.NamedValue) (driver.Result, error) {
+	// Execute the SQL statement and record it for World root replay.
 	statement, err := buildSqlStatement(SqlStatementKind_SQL_STATEMENT_KIND_EXEC, o.tx.dsn, query, args)
 	if err != nil {
 		return nil, err
@@ -217,6 +231,7 @@ func (o *recordingSqlOps) Query(query string, args []driver.Value) (driver.Rows,
 }
 
 func (o *recordingSqlOps) QueryContext(ctx context.Context, query string, args []driver.NamedValue) (driver.Rows, error) {
+	// Query the SQL transaction and record the statement for World root replay.
 	statement, err := buildSqlStatement(SqlStatementKind_SQL_STATEMENT_KIND_QUERY, o.tx.dsn, query, args)
 	if err != nil {
 		return nil, err

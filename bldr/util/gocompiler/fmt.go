@@ -9,6 +9,7 @@ import (
 
 // FormatCodeFile formats ast to go code.
 func FormatCodeFile(fset *token.FileSet, pkgCodeFile *ast.File) ([]byte, error) {
+	// Print the Go syntax tree into the formatted output buffer.
 	var outBytes bytes.Buffer
 	var printerConf printer.Config
 	printerConf.Mode |= printer.SourcePos
