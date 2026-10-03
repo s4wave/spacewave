@@ -13,12 +13,14 @@ const ConfigID = ControllerID
 // Validate validates the configuration.
 // This is a cursory validation to see if the values "look correct."
 func (c *Config) Validate() error {
+	// Validate the optional local peer identity filter.
 	if c.GetLocalPeerId() != "" {
 		if _, err := c.ParseLocalPeerID(); err != nil {
 			return err
 		}
 	}
 
+	// Validate every configured remote peer identity filter.
 	if pids := c.GetRemotePeerIds(); len(pids) != 0 {
 		for _, pid := range pids {
 			if _, err := confparse.ParsePeerID(pid); err != nil {
@@ -27,6 +29,7 @@ func (c *Config) Validate() error {
 		}
 	}
 
+	// Validate the protocol used to accept mounted streams.
 	pid := protocol.ID(c.GetProtocolId())
 	if err := pid.Validate(); err != nil {
 		return err

@@ -266,6 +266,7 @@ func AnalyzeCjsExportsWithProvenance(codeRootPath, importPath string, nodePaths 
 		}
 	}
 
+	// Return verified export names and unique analysis source paths.
 	result := verifyExports(collected)
 	slices.Sort(sourceFiles)
 	return result, slices.Compact(sourceFiles), nil
@@ -273,10 +274,12 @@ func AnalyzeCjsExportsWithProvenance(codeRootPath, importPath string, nodePaths 
 
 // verifyExports filters and deduplicates export names.
 func verifyExports(names []string) *CjsExportsResult {
+	// Prepare the export result and name deduplication set.
 	exportDefault := false
 	seen := make(map[string]bool)
 	var exports []string
 
+	// Collect valid unique identifiers and detect the default export.
 	for _, name := range names {
 		if name == "default" {
 			exportDefault = true
@@ -294,6 +297,7 @@ func verifyExports(names []string) *CjsExportsResult {
 		exports = append(exports, name)
 	}
 
+	// Represent an empty export set as an allocated slice.
 	if exports == nil {
 		exports = []string{}
 	}
@@ -306,11 +310,14 @@ func verifyExports(names []string) *CjsExportsResult {
 
 // getJSONKeys reads a JSON file and returns the top-level object keys.
 func getJSONKeys(path string) ([]string, error) {
+	// Read the JSON module bytes for export discovery.
 	// #nosec G703 -- path is resolved from the package graph under analysis, not user input.
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}
+
+	// Parse the JSON module and accept object values only.
 	var p fastjson.Parser
 	v, err := p.ParseBytes(data)
 	if err != nil {
@@ -321,6 +328,8 @@ func getJSONKeys(path string) ([]string, error) {
 	if obj == nil {
 		return nil, nil
 	}
+
+	// Collect the JSON object keys as export names.
 	var keys []string
 	obj.Visit(func(k []byte, _ *fastjson.Value) {
 		keys = append(keys, string(k))

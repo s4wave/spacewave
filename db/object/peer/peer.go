@@ -37,10 +37,12 @@ type Controller struct {
 
 // NewController constructs a new Controller.
 func NewController(base *bus.BusController[*Config]) (*Controller, error) {
+	// Construct the peer cache and reference-counted resolver.
 	c := &Controller{BusController: base}
 	c.peerCtr = ccontainer.NewCContainer[peer.Peer](nil)
 	c.peerRc = refcount.NewRefCount(nil, true, c.peerCtr, nil, c.resolvePeer)
 
+	// Prepare the configured transform for stored peer keys.
 	xfrmConf := base.GetConfig().GetTransformConf()
 	if !xfrmConf.GetEmpty() {
 		sfs := block_transform.NewStepFactorySet()
@@ -110,6 +112,7 @@ func (c *Controller) HandleDirective(ctx context.Context, di directive.Instance)
 
 			// Otherwise we need to resolve the Peer to check, so return a resolver.
 			return directive.R(directive.NewAccessResolver(func(ctx context.Context, released func()) (peer.GetPeerValue, func(), error) {
+				// Acquire the resolved peer reference for this constrained directive.
 				rPeer, relPeer, err := c.ResolvePeer(ctx, released)
 				if err != nil {
 					return nil, nil, err
@@ -119,6 +122,7 @@ func (c *Controller) HandleDirective(ctx context.Context, di directive.Instance)
 					return nil, nil, nil
 				}
 
+				// Release a peer reference that does not match the requested identity.
 				rPeerID := rPeer.GetPeerID()
 				if rPeerID.String() != peerIDConstraint.String() {
 					// Mismatch, ignore
@@ -140,20 +144,22 @@ func (c *Controller) HandleDirective(ctx context.Context, di directive.Instance)
 
 // resolvePeer resolves the peer.Peer accessing the object store and reading/writing the private key.
 func (c *Controller) resolvePeer(ctx context.Context, released func()) (peer.Peer, func(), error) {
+	// Acquire the object store containing the peer key record.
 	objStoreVal, _, objStoreRef, err := volume.ExBuildObjectStoreAPI(ctx, c.GetBus(), false, c.GetConfig().GetObjectStoreId(), c.GetConfig().GetVolumeId(), nil)
 	if err != nil {
 		return nil, nil, err
 	}
 	defer objStoreRef.Release()
 
+	// Open a writable object-store transaction for loading or creating the peer record.
 	objStore := objStoreVal.GetObjectStore()
-
 	ktx, err := objStore.NewTransaction(ctx, true)
 	if err != nil {
 		return nil, nil, err
 	}
 	defer ktx.Discard()
 
+	// Read the configured peer key record or its default storage key.
 	key := []byte(c.GetConfig().GetObjectStoreKey())
 	if len(key) == 0 {
 		key = []byte("priv")
@@ -163,6 +169,7 @@ func (c *Controller) resolvePeer(ctx context.Context, released func()) (peer.Pee
 		return nil, nil, err
 	}
 
+	// Reconstruct the peer from an existing stored key record.
 	storedValue := &StoredValue{}
 	if found {
 		defer scrub.Scrub(data)
@@ -211,6 +218,7 @@ func (c *Controller) resolvePeer(ctx context.Context, released func()) (peer.Pee
 		return nil, nil, err
 	}
 
+	// Acquire the generated peer private key for storage.
 	privKey, err := p.GetPrivKey(ctx)
 	if err != nil {
 		return nil, nil, err
@@ -249,6 +257,7 @@ func (c *Controller) resolvePeer(ctx context.Context, released func()) (peer.Pee
 		return nil, nil, err
 	}
 
+	// Report the identity of the newly stored peer.
 	c.GetLogger().
 		WithField("object-store", c.GetConfig().GetObjectStoreId()).
 		WithField("peer-id", p.GetPeerID().String()).

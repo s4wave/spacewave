@@ -21,18 +21,22 @@ import (
 )
 
 func TestControllerSamePeerReplacementWakesOldPendingAndKeepsNewSession(t *testing.T) {
+	// Keep replacement sessions within the test lifetime.
 	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
 
+	// Prepare the controller and block requested from the replaced peer.
 	c := newTestDexSolicitController()
 	remote := peer.ID("peer-a")
 	ref := testDexBlockRef(t, "replace")
 
+	// Register the first peer session and retain its remote endpoint.
 	firstMS, firstRemote, firstCleanup := newTestDexMountedStreamPair(remote)
 	defer firstCleanup()
 	c.handleSolicitedStream(ctx, link_solicit.NewSolicitMountedStream(firstMS))
 	first := waitTestDexSession(t, c, remote)
 
+	// Capture the block request sent over the first session.
 	remoteReq := make(chan *DexMessage, 1)
 	remoteErr := make(chan error, 1)
 	go func() {
@@ -44,17 +48,20 @@ func TestControllerSamePeerReplacementWakesOldPendingAndKeepsNewSession(t *testi
 		remoteReq <- &req
 	}()
 
+	// Request a block whose response will be interrupted by replacement.
 	requestDone := make(chan error, 1)
 	go func() {
 		_, err := first.requestBlock(ctx, ref, 0)
 		requestDone <- err
 	}()
 
+	// Verify the old session assigned a request identity.
 	req := recvTestDexValue(t, remoteReq, "old session request")
 	if req.GetRequestId() == 0 {
 		t.Fatal("request id was not assigned")
 	}
 
+	// Replace the peer session and verify its identity changed.
 	secondMS, secondRemote, secondCleanup := newTestDexMountedStreamPair(remote)
 	defer secondCleanup()
 	c.handleSolicitedStream(ctx, link_solicit.NewSolicitMountedStream(secondMS))
@@ -63,6 +70,7 @@ func TestControllerSamePeerReplacementWakesOldPendingAndKeepsNewSession(t *testi
 		t.Fatal("replacement kept old session")
 	}
 
+	// Verify replacement wakes the old request without a remote read failure.
 	err := recvTestDexValue(t, requestDone, "old pending request result")
 	if err == nil || !strings.Contains(err.Error(), "session closed") {
 		t.Fatalf("old request err = %v, want session closed", err)
@@ -73,6 +81,7 @@ func TestControllerSamePeerReplacementWakesOldPendingAndKeepsNewSession(t *testi
 	default:
 	}
 
+	// Verify stale session cleanup preserves the replacement.
 	if err := first.waitExited(ctx); err != nil {
 		t.Fatal("old session exit:", err)
 	}
@@ -83,14 +92,17 @@ func TestControllerSamePeerReplacementWakesOldPendingAndKeepsNewSession(t *testi
 }
 
 func TestPeerSessionCloseWakesPendingRequestsWithoutRunLoop(t *testing.T) {
+	// Keep the pending request within the test lifetime.
 	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
 
+	// Prepare a peer session whose receive loop remains stopped.
 	c := newTestDexSolicitController()
 	ref := testDexBlockRef(t, "close")
 	sess, remote, cleanup := newTestPeerSessionPair(c, peer.ID("close-peer"))
 	defer cleanup()
 
+	// Capture the request sent before the peer session closes.
 	remoteReq := make(chan *DexMessage, 1)
 	remoteErr := make(chan error, 1)
 	go func() {
@@ -102,17 +114,20 @@ func TestPeerSessionCloseWakesPendingRequestsWithoutRunLoop(t *testing.T) {
 		remoteReq <- &req
 	}()
 
+	// Start a pending block request on the stopped session.
 	requestDone := make(chan error, 1)
 	go func() {
 		_, err := sess.requestBlock(ctx, ref, 0)
 		requestDone <- err
 	}()
 
+	// Verify the pending request received a request identity.
 	req := recvTestDexValue(t, remoteReq, "request before close")
 	if req.GetRequestId() == 0 {
 		t.Fatal("request id was not assigned")
 	}
 
+	// Close the session and verify its pending request fails.
 	sess.close()
 	err := recvTestDexValue(t, requestDone, "pending request close result")
 	if err == nil || !strings.Contains(err.Error(), "session closed") {
@@ -126,14 +141,17 @@ func TestPeerSessionCloseWakesPendingRequestsWithoutRunLoop(t *testing.T) {
 }
 
 func TestPeerSessionRejectsMismatchedBlockData(t *testing.T) {
+	// Keep the corrupt peer session within the test lifetime.
 	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
 
+	// Start a peer session for the corrupt response.
 	c := newTestDexSolicitController()
 	sess, remote, cleanup := newTestPeerSessionPair(c, peer.ID("corrupt-peer"))
 	defer cleanup()
 	sess.start(ctx)
 
+	// Answer the peer request with bytes that mismatch its block reference.
 	remoteErr := make(chan error, 1)
 	go func() {
 		var req DexMessage
@@ -149,6 +167,7 @@ func TestPeerSessionRejectsMismatchedBlockData(t *testing.T) {
 		})
 	}()
 
+	// Verify corrupt block bytes fail verification without returning a response.
 	resp, err := sess.requestBlock(ctx, testDexBlockRef(t, "expected"), 0)
 	if err == nil {
 		t.Fatal("mismatched block data returned no error")
@@ -162,9 +181,11 @@ func TestPeerSessionRejectsMismatchedBlockData(t *testing.T) {
 }
 
 func TestPeerBlockFanoutCancelsLosersAfterFirstSuccess(t *testing.T) {
+	// Keep the fanout sessions within the test lifetime.
 	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
 
+	// Start fast and slow peers for the same block request.
 	c := newTestDexSolicitController()
 	ref := testDexBlockRef(t, "fast-data")
 	fast, fastRemote, fastCleanup := newTestPeerSessionPair(c, peer.ID("fast"))
@@ -174,6 +195,7 @@ func TestPeerBlockFanoutCancelsLosersAfterFirstSuccess(t *testing.T) {
 	fast.start(ctx)
 	slow.start(ctx)
 
+	// Observe the slow peer receiving its fanout request.
 	slowReceived := make(chan struct{})
 	go func() {
 		var req DexMessage
@@ -182,6 +204,7 @@ func TestPeerBlockFanoutCancelsLosersAfterFirstSuccess(t *testing.T) {
 		}
 	}()
 
+	// Make the fast peer respond after both peers receive their requests.
 	fastErr := make(chan error, 1)
 	go func() {
 		var req DexMessage
@@ -203,6 +226,7 @@ func TestPeerBlockFanoutCancelsLosersAfterFirstSuccess(t *testing.T) {
 		})
 	}()
 
+	// Verify the first successful fanout response cancels the slow request.
 	found := peerBlockFanout{sessions: []*peerSession{slow, fast}, ref: ref}.run(ctx)
 	if found == nil {
 		t.Fatal("fanout did not return first successful response")
@@ -219,15 +243,18 @@ func TestPeerBlockFanoutCancelsLosersAfterFirstSuccess(t *testing.T) {
 }
 
 func TestPeerBlockFanoutDeadlineClearsPendingRequests(t *testing.T) {
+	// Bound the caller lifetime for the unanswered fanout request.
 	ctx, cancel := context.WithTimeout(t.Context(), 50*time.Millisecond)
 	defer cancel()
 
+	// Start a slow peer for the caller deadline test.
 	c := newTestDexSolicitController()
 	ref := testDexBlockRef(t, "deadline")
 	slow, slowRemote, slowCleanup := newTestPeerSessionPair(c, peer.ID("slow"))
 	defer slowCleanup()
 	slow.start(ctx)
 
+	// Observe the slow peer receiving the unanswered request.
 	received := make(chan struct{})
 	go func() {
 		var req DexMessage
@@ -236,6 +263,7 @@ func TestPeerBlockFanoutDeadlineClearsPendingRequests(t *testing.T) {
 		}
 	}()
 
+	// Verify the caller deadline ends fanout and clears its pending request.
 	found := peerBlockFanout{sessions: []*peerSession{slow}, ref: ref}.run(ctx)
 	if found != nil {
 		t.Fatalf("fanout returned data after caller deadline: %q", found.GetData())
@@ -260,9 +288,11 @@ func TestLookupResolverCompletesDemandWithoutPeers(t *testing.T) {
 }
 
 func TestLookupResolverCompletesCurrentPeerMissOnce(t *testing.T) {
+	// Keep the missing peer session within the test lifetime.
 	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
 
+	// Register the current peer session for the missing block demand.
 	c := newTestDexSolicitController()
 	remoteID := peer.ID("missing-peer")
 	sess, remote, cleanup := newTestPeerSessionPair(c, remoteID)
@@ -273,6 +303,7 @@ func TestLookupResolverCompletesCurrentPeerMissOnce(t *testing.T) {
 		broadcast()
 	})
 
+	// Answer the current peer request with a block miss.
 	requests := make(chan *DexMessage, 1)
 	remoteErr := make(chan error, 1)
 	go func() {
@@ -288,6 +319,7 @@ func TestLookupResolverCompletesCurrentPeerMissOnce(t *testing.T) {
 		})
 	}()
 
+	// Resolve one missing block while preserving an unrelated reference.
 	requested := testDexBlockRef(t, "missing")
 	untouched := testDexBlockRef(t, "untouched")
 	handler := &testDexResolverHandler{}
@@ -299,6 +331,7 @@ func TestLookupResolverCompletesCurrentPeerMissOnce(t *testing.T) {
 		}).Resolve(ctx, handler)
 	}()
 
+	// Verify the resolver requested only the missing block and completed once.
 	req := recvTestDexValue(t, requests, "single missing block request")
 	if req.GetRequestId() == 0 {
 		t.Fatal("request id was not assigned")
@@ -317,6 +350,7 @@ func TestLookupResolverCompletesCurrentPeerMissOnce(t *testing.T) {
 	}
 	assertTestDexNotFoundValue(t, handler)
 
+	// Verify a link state change does not replay the completed block request.
 	extraRequests := make(chan *DexMessage, 1)
 	go func() {
 		var req DexMessage
@@ -331,9 +365,11 @@ func TestLookupResolverCompletesCurrentPeerMissOnce(t *testing.T) {
 }
 
 func TestLookupResolverReturnsPeerDataWithoutWritingStorage(t *testing.T) {
+	// Keep the data peer session within the test lifetime.
 	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
 
+	// Register the peer session that supplies the requested block.
 	c := newTestDexSolicitController()
 	remoteID := peer.ID("data-peer")
 	sess, remote, cleanup := newTestPeerSessionPair(c, remoteID)
@@ -344,6 +380,7 @@ func TestLookupResolverReturnsPeerDataWithoutWritingStorage(t *testing.T) {
 		broadcast()
 	})
 
+	// Answer the peer request with verified block bytes.
 	want := []byte("peer-data")
 	remoteErr := make(chan error, 1)
 	go func() {
@@ -360,6 +397,7 @@ func TestLookupResolverReturnsPeerDataWithoutWritingStorage(t *testing.T) {
 		})
 	}()
 
+	// Verify the resolver publishes one successful value with the peer bytes.
 	handler := &testDexResolverHandler{}
 	if err := (&lookupResolver{
 		c:   c,
@@ -386,20 +424,24 @@ func TestLookupResolverReturnsPeerDataWithoutWritingStorage(t *testing.T) {
 }
 
 func TestControllerForwardToPeersExcludesOrigin(t *testing.T) {
+	// Keep the origin peer session within the test lifetime.
 	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
 
+	// Start an origin peer session for the forwarding exclusion test.
 	c := newTestDexSolicitController()
 	ref := testDexBlockRef(t, "forward")
 	origin, originRemote, originCleanup := newTestPeerSessionPair(c, peer.ID("origin"))
 	defer originCleanup()
 	origin.start(ctx)
 
+	// Register the origin session as the sole forwarding candidate.
 	c.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		c.sessions["origin"] = origin
 		broadcast()
 	})
 
+	// Prepare an origin response to detect an incorrectly forwarded request.
 	originErr := make(chan error, 1)
 	go func() {
 		var req DexMessage
@@ -415,6 +457,7 @@ func TestControllerForwardToPeersExcludesOrigin(t *testing.T) {
 		})
 	}()
 
+	// Verify forwarding excludes the originating peer session.
 	if found := c.forwardToPeers(ctx, ref, 0, origin); found != nil {
 		t.Fatalf("forwardToPeers used excluded origin session and returned %q", found.GetData())
 	}
@@ -422,9 +465,11 @@ func TestControllerForwardToPeersExcludesOrigin(t *testing.T) {
 }
 
 func TestControllerForwardToPeersCancelsLosersAfterFirstSuccess(t *testing.T) {
+	// Keep the forwarding peer sessions within the test lifetime.
 	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
 
+	// Start fast and slow peers for the forwarded block request.
 	c := newTestDexSolicitController()
 	ref := testDexBlockRef(t, "forward-data")
 	fast, fastRemote, fastCleanup := newTestPeerSessionPair(c, peer.ID("fast"))
@@ -434,12 +479,14 @@ func TestControllerForwardToPeersCancelsLosersAfterFirstSuccess(t *testing.T) {
 	fast.start(ctx)
 	slow.start(ctx)
 
+	// Register fast and slow sessions as forwarding candidates.
 	c.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		c.sessions["fast"] = fast
 		c.sessions["slow"] = slow
 		broadcast()
 	})
 
+	// Observe the slow peer receiving its forwarded request.
 	slowReceived := make(chan struct{})
 	go func() {
 		var req DexMessage
@@ -448,6 +495,7 @@ func TestControllerForwardToPeersCancelsLosersAfterFirstSuccess(t *testing.T) {
 		}
 	}()
 
+	// Make the fast forwarding peer answer after the slow peer receives its request.
 	fastErr := make(chan error, 1)
 	go func() {
 		var req DexMessage
@@ -469,6 +517,7 @@ func TestControllerForwardToPeersCancelsLosersAfterFirstSuccess(t *testing.T) {
 		})
 	}()
 
+	// Verify forwarded success cancels the slow peer request.
 	found := c.forwardToPeers(ctx, ref, 0, nil)
 	if found == nil {
 		t.Fatal("forwardToPeers did not return first successful response")
@@ -530,6 +579,7 @@ func (h *testDexResolverHandler) AddResolver(directive.Resolver, func()) func() 
 }
 
 func assertTestDexNotFoundValue(t *testing.T, handler *testDexResolverHandler) {
+	// Verify the resolver publishes exactly one successful block miss.
 	t.Helper()
 	if len(handler.values) != 1 {
 		t.Fatalf("values = %d, want 1", len(handler.values))
@@ -614,6 +664,7 @@ func (s *testDexMountedStream) GetLink() link.MountedLink {
 var _ link.MountedStream = (*testDexMountedStream)(nil)
 
 func newTestDexMountedStreamPair(remote peer.ID) (*testDexMountedStream, *stream_packet.Session, func()) {
+	// Construct connected packet endpoints with shared test cleanup.
 	localConn, remoteConn := net.Pipe()
 	ms := &testDexMountedStream{
 		stream: localConn,
@@ -685,6 +736,7 @@ func testDexPendingLen(s *peerSession) int {
 }
 
 func waitTestDexCondition(t *testing.T, name string, fn func() bool) {
+	// Wait for the named session condition within the test deadline.
 	t.Helper()
 	deadline := time.After(time.Second)
 	ticker := time.NewTicker(10 * time.Millisecond)

@@ -28,6 +28,7 @@ func (m *MountedStreamHandler) HandleMountedStream(
 	ctx context.Context,
 	strm link.MountedStream,
 ) error {
+	// Keep the peer link established while its mounted stream serves an RPC.
 	s := strm.GetStream()
 	_, estLinkInst, err := m.b.AddDirective(
 		link.NewEstablishLinkWithPeer(strm.GetLink().GetLocalPeer(), strm.GetPeerID()),
@@ -37,7 +38,9 @@ func (m *MountedStreamHandler) HandleMountedStream(
 		return err
 	}
 
+	// Serve the next queued RPC asynchronously on the accepted stream.
 	go func() {
+		// Wait for a queued RPC while retaining stream and link cleanup.
 		defer estLinkInst.Release()
 		defer s.Close()
 		var queued *queuedRPC
@@ -48,6 +51,7 @@ func (m *MountedStreamHandler) HandleMountedStream(
 		}
 		rpc := queued.rpc
 
+		// Notify the RPC client that its peer stream is established.
 		if err := rpc.Send(&stream_api.Data{
 			State: stream_api.StreamState_StreamState_ESTABLISHED,
 		}); err != nil {
@@ -55,6 +59,7 @@ func (m *MountedStreamHandler) HandleMountedStream(
 			return
 		}
 
+		// Transfer RPC data through the peer stream and report completion.
 		err := stream_api.AttachRPCToStream(rpc, s, nil)
 		queued.doneCb(err)
 		if err != nil &&

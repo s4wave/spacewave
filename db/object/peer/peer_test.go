@@ -18,11 +18,13 @@ import (
 )
 
 func TestObjectStorePeer(t *testing.T) {
+	// Prepare the object-store peer test context and logger.
 	ctx := context.Background()
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
 
+	// Start the storage testbed and register the peer controller factory.
 	tb, err := testbed.NewTestbed(ctx, le)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -51,6 +53,7 @@ func TestObjectStorePeer(t *testing.T) {
 	// run the controller the first time
 	var createdPeerID peer.ID
 	if err := func() error {
+		// Attach the peer controller for its first storage resolution.
 		peerCtrl, err := NewController(bus.NewBusController(le, tb.Bus, conf, ControllerID, Version, controllerDescrip))
 		if err != nil {
 			t.Fatal(err.Error())
@@ -75,6 +78,7 @@ func TestObjectStorePeer(t *testing.T) {
 
 	// run the controller the second time (should get the peer from storage)
 	if err := func() error {
+		// Start the peer controller again against the persisted key record.
 		peerCtrl, _, peerCtrlRef, err := loader.WaitExecControllerRunningTyped[*Controller](
 			ctx,
 			tb.Bus,
@@ -94,6 +98,7 @@ func TestObjectStorePeer(t *testing.T) {
 		loadedPeerID := loadedPeer.GetPeerID()
 		relLoadedPeer()
 
+		// Verify storage reload preserves the generated peer identity.
 		loadedPeerIDStr, createdPeerIDStr := loadedPeerID.String(), createdPeerID.String()
 		if loadedPeerIDStr != createdPeerIDStr {
 			return errors.Errorf("expected to load peer id %s but got %s", createdPeerIDStr, loadedPeerIDStr)

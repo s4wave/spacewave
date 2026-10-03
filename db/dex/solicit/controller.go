@@ -104,9 +104,12 @@ func (c *Controller) recordTransfer(peerID string, uploaded, downloaded int) {
 		return
 	}
 	c.bcast.HoldLock(func(changed func(), _ func() <-chan struct{}) {
+		// Update the controller payload totals and activity time.
 		c.transfer.UploadedBytes += uint64(uploaded)     //nolint:gosec // negative callback values are normalized above.
 		c.transfer.DownloadedBytes += uint64(downloaded) //nolint:gosec // negative callback values are normalized above.
 		c.transfer.LastActivity = time.Now()
+
+		// Retain the peer payload totals and notify transfer watchers.
 		if c.peerTransfers == nil {
 			c.peerTransfers = make(map[string]PeerTransferSnapshot)
 		}
@@ -182,9 +185,11 @@ func (c *Controller) handleSolicitedStream(ctx context.Context, sms link_solicit
 		return
 	}
 
+	// Identify the accepted stream in peer session logs.
 	remotePeer := ms.GetPeerID().String()
 	le := c.le.WithField("remote-peer", remotePeer)
 
+	// Construct the replacement session with cleanup bound to its identity.
 	var sess *peerSession
 	sess = newPeerSession(c, le, ms, func() {
 		c.removeSessionIfCurrent(remotePeer, sess)
@@ -321,6 +326,7 @@ type peerBlockFanout struct {
 // run requests the block from every session under a bounded timeout. Returns
 // the first verified response, or nil when no peer has the block.
 func (f peerBlockFanout) run(ctx context.Context) *DexMessage {
+	// Bound the peer fanout request lifetime.
 	if len(f.sessions) == 0 {
 		return nil
 	}

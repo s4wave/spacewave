@@ -19,6 +19,7 @@ func TestSolicitE2E_DEX(t *testing.T) {
 	ee.TestMultiNodeDEX(
 		t,
 		func(bc *bucket.Config) error {
+			// Configure concurrent bucket lookup to wait for network blocks.
 			lookupConf := &lc.Config{
 				NotFoundBehavior:  lc.NotFoundBehavior_NotFoundBehavior_LOOKUP_DIRECTIVE_WAIT,
 				PutBlockBehavior:  lc.PutBlockBehavior_PutBlockBehavior_ALL,

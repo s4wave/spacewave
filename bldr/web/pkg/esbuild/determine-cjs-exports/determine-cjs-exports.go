@@ -15,6 +15,7 @@ func GetSupportedExtensions() []string {
 
 // SupportsExtension checks if the extension is supported.
 func SupportsExtension(filename string) bool {
+	// Normalize the requested extension and check the supported module formats.
 	ext := filepath.Ext(filename)
 	if ext == "" {
 		ext = filename
@@ -39,9 +40,11 @@ type CjsExportsResult struct {
 // GenerateRemapExports generates a javascript file which imports and re-exports
 // the exports from the commonjs module as an esm module.
 func GenerateRemapExports(importPath string, result *CjsExportsResult) string {
+	// Prepare the output buffer and discovered CommonJS exports.
 	buf := bytes.NewBuffer(nil)
 	exports := result.Exports
 
+	// Emit module forwarding and the default and named export adapters.
 	fmt.Fprintf(buf, "import * as __module from %q;\n", importPath)
 	fmt.Fprintf(buf, "export * from %q;\n", importPath)
 	fmt.Fprintf(buf, "const { default: __default, ...__rest } = __module;\n")

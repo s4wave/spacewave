@@ -41,13 +41,16 @@ func TestThreeNodeRelayRequiresOneForwardHop(t *testing.T) {
 // testThreeNodeRelay exercises one forwarding budget against a real three-node
 // star with distinct local buckets.
 func testThreeNodeRelay(t *testing.T, hops uint32, wantFound bool) {
+	// Attribute relay setup failures to the calling test.
 	t.Helper()
 
+	// Bound the three-node relay lifetime and shared protocol context.
 	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
 	t.Cleanup(cancel)
 	le := logrus.NewEntry(logrus.New())
 	protocolContext := []byte("shared-object")
 
+	// Start recipient, relay, and writer nodes with distinct local buckets.
 	recipient := newTestRelayNode(t, ctx, le, "recipient", protocolContext, hops)
 	relay := newTestRelayNode(t, ctx, le, "relay", protocolContext, hops)
 	writer := newTestRelayNode(t, ctx, le, "writer", protocolContext, hops)
@@ -138,6 +141,7 @@ func newTestRelayNode(
 	protocolContext []byte,
 	hops uint32,
 ) *testRelayNode {
+	// Attribute relay node setup failures to the calling test.
 	t.Helper()
 
 	// Construct one real bus, volume, transport, solicitation controller, and
@@ -151,6 +155,7 @@ func newTestRelayNode(
 	tb.StaticResolver.AddFactory(link_solicit_controller.NewFactory())
 	tb.StaticResolver.AddFactory(NewFactory(tb.Bus))
 
+	// Create the node-specific bucket in its local volume.
 	_, _, _, err = tb.Volume.ApplyBucketConfig(ctx, &bucket.Config{
 		Id:  "relay-test-" + name,
 		Rev: 1,
@@ -159,6 +164,7 @@ func newTestRelayNode(
 		t.Fatal(err)
 	}
 
+	// Start the node transport and retain its controller reference.
 	transport, _, transportRef, err := loader.WaitExecControllerRunningTyped[*transport_controller.Controller](
 		ctx,
 		tb.Bus,
@@ -170,6 +176,7 @@ func newTestRelayNode(
 	}
 	t.Cleanup(transportRef.Release)
 
+	// Keep the node links open throughout the relay test.
 	_, _, holdOpenRef, err := loader.WaitExecControllerRunning(
 		ctx,
 		tb.Bus,
@@ -181,6 +188,7 @@ func newTestRelayNode(
 	}
 	t.Cleanup(holdOpenRef.Release)
 
+	// Start protocol solicitation on the relay node.
 	_, _, solicitRef, err := loader.WaitExecControllerRunning(
 		ctx,
 		tb.Bus,
@@ -192,6 +200,7 @@ func newTestRelayNode(
 	}
 	t.Cleanup(solicitRef.Release)
 
+	// Start DEX for the shared protocol context and local bucket.
 	bucketID := "relay-test-" + name
 	dexController, _, dexRef, err := loader.WaitExecControllerRunningTyped[*Controller](
 		ctx,
@@ -229,8 +238,10 @@ func (c *Controller) snapshotSessions() []*peerSession {
 
 // connectTestRelayNodes creates and dials one direct inproc star edge.
 func connectTestRelayNodes(t *testing.T, ctx context.Context, from, to *testRelayNode) {
+	// Attribute relay connection failures to the calling test.
 	t.Helper()
 
+	// Connect both inproc transports along the requested star edge.
 	fromTransport, err := from.transport.GetTransport(ctx)
 	if err != nil {
 		t.Fatal(err)
@@ -244,6 +255,7 @@ func connectTestRelayNodes(t *testing.T, ctx context.Context, from, to *testRela
 	fromInproc.ConnectToInproc(ctx, toInproc)
 	toInproc.ConnectToInproc(ctx, fromInproc)
 
+	// Dial the remote relay transport to establish its peer link.
 	if _, err := from.transport.DialPeerAddr(ctx, toInproc.GetPeerID(), &dialer.DialerOpts{
 		Address: toInproc.LocalAddr().String(),
 	}); err != nil {

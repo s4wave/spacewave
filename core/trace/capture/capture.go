@@ -37,6 +37,7 @@ func CaptureRuntimeTrace(
 	out io.Writer,
 	args RuntimeTraceArgs,
 ) (int64, error) {
+	// Validate the runtime trace request and start the remote capture.
 	if traceClient == nil {
 		return 0, errors.New("trace client cannot be nil")
 	}
@@ -47,6 +48,7 @@ func CaptureRuntimeTrace(
 		return 0, errors.Wrap(err, "start trace")
 	}
 
+	// Wait for the trace duration or caller cancellation and drain the timer.
 	timer := time.NewTimer(args.Duration)
 	var waitErr error
 	select {
@@ -61,6 +63,7 @@ func CaptureRuntimeTrace(
 		}
 	}
 
+	// Stop the remote trace and collect its bytes even after caller cancellation.
 	stopCtx := ctx
 	var cancel context.CancelFunc
 	if waitErr != nil && args.StopTimeout > 0 {
@@ -81,12 +84,15 @@ func CaptureCPUProfile(
 	out io.Writer,
 	args CPUProfileArgs,
 ) (int64, error) {
+	// Validate the CPU profile client and requested duration.
 	if traceClient == nil {
 		return 0, errors.New("trace client cannot be nil")
 	}
 	if args.Duration <= 0 {
 		return 0, errors.New("duration must be greater than zero")
 	}
+
+	// Convert the profile duration to the protocol millisecond field.
 	durationMillisValue := args.Duration / time.Millisecond
 	if durationMillisValue > math.MaxUint32 {
 		return 0, errors.New("duration exceeds trace protocol limit")
@@ -95,6 +101,8 @@ func CaptureCPUProfile(
 	if durationMillis == 0 {
 		durationMillis = 1
 	}
+
+	// Start the remote CPU profile stream with its bounded duration.
 	strm, err := traceClient.CaptureCPUProfile(ctx, &s4wave_trace.CaptureCPUProfileRequest{
 		DurationMillis: durationMillis,
 		Label:          args.Label,
@@ -104,6 +112,7 @@ func CaptureCPUProfile(
 	}
 	defer strm.Close()
 
+	// Copy CPU profile chunks to the output and count the written bytes.
 	var byteCount int64
 	for {
 		resp, err := strm.Recv()
@@ -128,6 +137,7 @@ func CaptureMemoryProfile(
 	out io.Writer,
 	args MemoryProfileArgs,
 ) (int64, error) {
+	// Validate the memory profile request and open its remote stream.
 	if traceClient == nil {
 		return 0, errors.New("trace client cannot be nil")
 	}
@@ -144,6 +154,7 @@ func CaptureMemoryProfile(
 	}
 	defer strm.Close()
 
+	// Copy memory profile chunks to the output and count the written bytes.
 	var byteCount int64
 	for {
 		resp, err := strm.Recv()
@@ -163,6 +174,7 @@ func CaptureMemoryProfile(
 
 // StopRuntimeTrace stops a runtime trace and writes the streamed bytes.
 func StopRuntimeTrace(ctx context.Context, traceClient s4wave_trace.SRPCTraceServiceClient, out io.Writer) (int64, error) {
+	// Stop the remote runtime trace and acquire its result stream.
 	if traceClient == nil {
 		return 0, errors.New("trace client cannot be nil")
 	}
@@ -172,6 +184,7 @@ func StopRuntimeTrace(ctx context.Context, traceClient s4wave_trace.SRPCTraceSer
 	}
 	defer strm.Close()
 
+	// Copy runtime trace chunks to the output and count the written bytes.
 	var byteCount int64
 	for {
 		resp, err := strm.Recv()
@@ -190,6 +203,7 @@ func StopRuntimeTrace(ctx context.Context, traceClient s4wave_trace.SRPCTraceSer
 }
 
 func writeChunk(out io.Writer, data []byte) (int64, error) {
+	// Write the complete profile chunk and report a short output write.
 	if len(data) == 0 {
 		return 0, nil
 	}

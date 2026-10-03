@@ -119,6 +119,7 @@ func (s *peerSession) handleRequest(ctx context.Context, req *DexMessage) {
 		}
 	}()
 
+	// Reject a block request that cannot identify stored data.
 	if ref == nil || ref.GetEmpty() {
 		resp.Error = "empty block ref"
 		return
@@ -149,17 +150,20 @@ func (s *peerSession) handleRequest(ctx context.Context, req *DexMessage) {
 // lookupLocalBlock looks up a block and its refs in the local bucket store
 // only. Returns nil when the block is not found.
 func (s *peerSession) lookupLocalBlock(ctx context.Context, ref *block.BlockRef) (*DexMessage, error) {
+	// Acquire the configured bucket lookup for this session.
 	lkv, _, lkRel, err := bucket_lookup.ExBuildBucketLookup(ctx, s.c.b, false, s.c.cc.GetBucketId(), nil)
 	if err != nil {
 		return nil, err
 	}
 	defer lkRel.Release()
 
+	// Open the bucket lookup used to read local blocks.
 	lk, err := lkv.GetLookup(ctx)
 	if err != nil || lk == nil {
 		return nil, err
 	}
 
+	// Read the requested block without consulting remote peers.
 	stored, err := lk.LookupStoredBlock(ctx, ref, bucket_lookup.WithLocalOnly())
 	if err != nil || stored == nil {
 		return nil, err
@@ -175,6 +179,7 @@ func (s *peerSession) lookupLocalBlock(ctx context.Context, ref *block.BlockRef)
 // requestBlock sends a block request and waits for the response. Returns the
 // verified response, or nil when the peer does not have the block.
 func (s *peerSession) requestBlock(ctx context.Context, ref *block.BlockRef, hops uint32) (*DexMessage, error) {
+	// Reject block requests after the peer session closes.
 	if s.closed.Load() {
 		return nil, errors.New("session closed")
 	}
@@ -230,6 +235,7 @@ func (s *peerSession) requestBlock(ctx context.Context, ref *block.BlockRef, hop
 
 // sendMsg sends a message with write serialization.
 func (s *peerSession) sendMsg(msg *DexMessage) error {
+	// Serialize the peer message and account for response payloads.
 	s.mtx.Lock()
 	err := s.sess.SendMsg(msg)
 	s.mtx.Unlock()

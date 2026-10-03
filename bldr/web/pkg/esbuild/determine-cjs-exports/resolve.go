@@ -28,6 +28,7 @@ func ResolveModuleWithNodePaths(baseDir, importPath string, nodePaths []string) 
 
 // ResolveModuleWithProvenance resolves a module and reports package manifests consulted during resolution.
 func ResolveModuleWithProvenance(baseDir, importPath string, nodePaths []string) (string, []string, error) {
+	// Resolve the module with fallback package directories while preserving the primary error.
 	r := new(moduleResolver)
 	resolved, err := r.resolveModule(baseDir, importPath)
 	primaryErr := err
@@ -42,6 +43,8 @@ func ResolveModuleWithProvenance(baseDir, importPath string, nodePaths []string)
 			err = primaryErr
 		}
 	}
+
+	// Canonicalize and deduplicate consulted package manifests.
 	for i, manifest := range r.manifests {
 		if canonical, canonicalErr := filepath.EvalSymlinks(manifest); canonicalErr == nil {
 			r.manifests[i] = canonical
@@ -105,6 +108,7 @@ func (r *moduleResolver) resolveBarePath(baseDir, importPath string) (string, er
 }
 
 func (r *moduleResolver) resolvePackageDir(packageDir string) (string, error) {
+	// Resolve an existing package file before consulting its manifest.
 	if isFile(packageDir) {
 		return packageDir, nil
 	}
@@ -115,6 +119,7 @@ func (r *moduleResolver) resolvePackageDir(packageDir string) (string, error) {
 		}
 	}
 
+	// Follow the package manifest entry and retain its provenance.
 	packageJSON := filepath.Join(packageDir, "package.json")
 	if isFile(packageJSON) {
 		r.manifests = append(r.manifests, packageJSON)

@@ -6,6 +6,7 @@ import (
 )
 
 func TestSolicitationContextMatchesLogicalStoreAcrossBuckets(t *testing.T) {
+	// Verify a shared logical store selects the same solicitation context across buckets.
 	logicalStore := []byte("shared-space")
 	left := solicitationContext(&Config{BucketId: "left-bucket", ProtocolContext: logicalStore})
 	right := solicitationContext(&Config{BucketId: "right-bucket", ProtocolContext: logicalStore})

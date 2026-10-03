@@ -22,11 +22,14 @@ type fakeTraceClient struct {
 }
 
 func TestCaptureRuntimeTraceWritesBytes(t *testing.T) {
+	// Prepare a trace client with two runtime trace chunks.
 	ctx := context.Background()
 	client := &fakeTraceClient{
 		stopData: [][]byte{[]byte("trace-"), []byte("bytes")},
 	}
 	var buf bytes.Buffer
+
+	// Capture the labeled runtime trace into the output buffer.
 	count, err := trace_capture.CaptureRuntimeTrace(ctx, client, &buf, trace_capture.RuntimeTraceArgs{
 		Duration:    time.Nanosecond,
 		Label:       "capture-helper-trace",
@@ -35,6 +38,8 @@ func TestCaptureRuntimeTraceWritesBytes(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Verify the runtime trace label, payload, and byte count.
 	if client.startReq.GetLabel() != "capture-helper-trace" {
 		t.Fatalf("trace label = %q", client.startReq.GetLabel())
 	}
@@ -44,11 +49,14 @@ func TestCaptureRuntimeTraceWritesBytes(t *testing.T) {
 }
 
 func TestCaptureCPUProfileWritesBytes(t *testing.T) {
+	// Prepare a trace client with two CPU profile chunks.
 	ctx := context.Background()
 	client := &fakeTraceClient{
 		cpuData: [][]byte{[]byte("cpu-"), []byte("profile")},
 	}
 	var buf bytes.Buffer
+
+	// Capture a labeled CPU profile into the output buffer.
 	count, err := trace_capture.CaptureCPUProfile(ctx, client, &buf, trace_capture.CPUProfileArgs{
 		Duration: time.Nanosecond,
 		Label:    "capture-helper-cpu",
@@ -56,6 +64,8 @@ func TestCaptureCPUProfileWritesBytes(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Verify CPU profile duration rounding, label, payload, and byte count.
 	if client.cpuReq.GetDurationMillis() != 1 || client.cpuReq.GetLabel() != "capture-helper-cpu" {
 		t.Fatalf("cpu request = %+v", client.cpuReq)
 	}
@@ -65,11 +75,14 @@ func TestCaptureCPUProfileWritesBytes(t *testing.T) {
 }
 
 func TestCaptureMemoryProfileWritesBytes(t *testing.T) {
+	// Prepare a trace client with two memory profile chunks.
 	ctx := context.Background()
 	client := &fakeTraceClient{
 		memoryData: [][]byte{[]byte("memory-"), []byte("profile")},
 	}
 	var buf bytes.Buffer
+
+	// Capture the requested memory profile into the output buffer.
 	count, err := trace_capture.CaptureMemoryProfile(ctx, client, &buf, trace_capture.MemoryProfileArgs{
 		Profile: "allocs",
 		GC:      true,
@@ -78,6 +91,8 @@ func TestCaptureMemoryProfileWritesBytes(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Verify memory profile options, payload, and byte count.
 	if client.memReq.GetProfile() != "allocs" || !client.memReq.GetGc() || client.memReq.GetDebug() != 1 {
 		t.Fatalf("memory request = %+v", client.memReq)
 	}

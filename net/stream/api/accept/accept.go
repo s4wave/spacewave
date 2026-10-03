@@ -41,11 +41,13 @@ func NewController(
 	conf *Config,
 	bus bus.Bus,
 ) (*Controller, error) {
+	// Resolve the local peer identity used to filter accepted streams.
 	localPeerID, err := conf.ParseLocalPeerID()
 	if err != nil {
 		return nil, err
 	}
 
+	// Decode the remote peer identities allowed to connect.
 	var remotePeerIDs []peer.ID
 	for _, pid := range conf.GetRemotePeerIds() {
 		pi, err := peer.IDB58Decode(pid)
@@ -56,6 +58,7 @@ func NewController(
 		remotePeerIDs = append(remotePeerIDs, pi)
 	}
 
+	// Validate the protocol for the stream accept controller.
 	pid := protocol.ID(conf.GetProtocolId())
 	if err := pid.Validate(); err != nil {
 		return nil, err
