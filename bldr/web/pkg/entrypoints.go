@@ -48,6 +48,7 @@ func ResolveWebPkgEntrypoints(
 	pkgJsonData, pkgJsonErr := os.ReadFile(pkgJsonPath)
 	isNodeModule := pkgJsonErr == nil && len(pkgJsonData) > 0
 
+	// Resolve the package entrypoints through its manifest when present.
 	if isNodeModule {
 		return resolveNodeModuleEntrypoints(pkgRoot, pkgJsonData, entrypoints)
 	}
@@ -64,13 +65,16 @@ func resolveLocalEntrypoints(
 		entrypoints = []WebPkgEntrypointConfig{{Path: "."}}
 	}
 
+	// Collect the files served by each local package entrypoint.
 	var imports []string
 	for _, ep := range entrypoints {
+		// Treat an empty local subpath as the package root.
 		subpath := ep.Path
 		if subpath == "" {
 			subpath = "."
 		}
 
+		// Resolve the local subpath and retain its bundleable files.
 		resolved, err := resolveSubpathEntrypoints(pkgRoot, subpath)
 		if err != nil {
 			return nil, errors.Wrapf(err, "resolve entrypoint %q", subpath)
@@ -91,12 +95,14 @@ func resolveNodeModuleEntrypoints(
 	pkgJsonData []byte,
 	entrypoints []WebPkgEntrypointConfig,
 ) ([]string, error) {
+	// Parse the package manifest for root and subpath exports.
 	var p fastjson.Parser
 	v, err := p.ParseBytes(pkgJsonData)
 	if err != nil {
 		return nil, errors.Wrap(err, "parse package.json")
 	}
 
+	// Resolve the package root import before adding explicit entrypoints.
 	rootImport := resolvePackageJSONRootImport(v)
 	if len(entrypoints) == 0 {
 		if rootImport != "" {
@@ -106,6 +112,7 @@ func resolveNodeModuleEntrypoints(
 		return resolveLocalEntrypoints(pkgRoot, nil)
 	}
 
+	// Collect distinct imports while preserving package export order.
 	var imports []string
 	add := func(imps ...string) {
 		for _, imp := range imps {
@@ -117,11 +124,13 @@ func resolveNodeModuleEntrypoints(
 	add(rootImport)
 	exports := v.Get("exports")
 	for _, ep := range entrypoints {
+		// Prefer the manifest export for the configured package subpath.
 		if exported := resolvePackageJSONSubpathExport(exports, ep.Path); exported != "" {
 			add(exported)
 			continue
 		}
 
+		// Resolve unexported package subpaths from local files.
 		resolved, err := resolveLocalEntrypoints(pkgRoot, []WebPkgEntrypointConfig{ep})
 		if err != nil {
 			return nil, err
@@ -155,10 +164,12 @@ func resolvePackageJSONRootImport(v *fastjson.Value) string {
 }
 
 func resolvePackageJSONRootExport(exports *fastjson.Value) string {
+	// Leave packages without an exports value unresolved.
 	if exports == nil {
 		return ""
 	}
 
+	// Normalize a direct root export to a bundleable import path.
 	if s := string(exports.GetStringBytes()); s != "" {
 		importPath, ok := normalizeResolvedExport(s)
 		if !ok {
@@ -167,6 +178,7 @@ func resolvePackageJSONRootExport(exports *fastjson.Value) string {
 		return importPath
 	}
 
+	// Find the root export while distinguishing subpath maps from conditions.
 	root := exports.Get(".")
 	if root == nil {
 		obj := exports.GetObject()
@@ -185,6 +197,7 @@ func resolvePackageJSONRootExport(exports *fastjson.Value) string {
 		root = exports
 	}
 
+	// Resolve the root export conditions to a bundleable import path.
 	resolved := resolveExportCondition(root)
 	if resolved == "" {
 		return ""
@@ -200,6 +213,7 @@ func resolvePackageJSONRootExport(exports *fastjson.Value) string {
 // "./langs" through a package.json exports map to its bundleable target. It
 // returns "" when the package does not export the subpath.
 func resolvePackageJSONSubpathExport(exports *fastjson.Value, subpath string) string {
+	// Normalize the requested package subpath before looking up its export.
 	if exports == nil {
 		return ""
 	}
@@ -210,6 +224,7 @@ func resolvePackageJSONSubpathExport(exports *fastjson.Value, subpath string) st
 		subpath = "./" + subpath
 	}
 
+	// Resolve the subpath export conditions to a bundleable import path.
 	resolved := resolveExportCondition(exports.Get(subpath))
 	if resolved == "" {
 		return ""
@@ -224,6 +239,7 @@ func resolvePackageJSONSubpathExport(exports *fastjson.Value, subpath string) st
 // resolveExportCondition resolves a package.json export value to a file path.
 // Handles string values and nested condition objects (import > default > require).
 func resolveExportCondition(raw *fastjson.Value) string {
+	// Leave missing export conditions unresolved.
 	if raw == nil {
 		return ""
 	}
@@ -307,6 +323,7 @@ func resolveSubpathEntrypoints(pkgRoot, subpath string) ([]string, error) {
 		}
 	}
 
+	// Collect directory entrypoint files once in discovery order.
 	dir := rel
 	var files []string
 	seen := make(map[string]struct{})
@@ -347,6 +364,7 @@ func resolveSubpathEntrypoints(pkgRoot, subpath string) ([]string, error) {
 		}
 	}
 
+	// Return the discovered entrypoint files or report an unresolved subpath.
 	if len(files) != 0 {
 		return files, nil
 	}
@@ -387,8 +405,10 @@ func ResolveWebPkgRefsFromConfig(
 		rootsByID[ref.GetWebPkgId()] = ref.GetWebPkgRoot()
 	}
 
+	// Collect references for the configured packages that can be served.
 	var refs []*WebPkgRef
 	for _, conf := range pkgConfigs {
+		// Skip package configurations without an included package identifier.
 		pkgID := conf.ID
 		if pkgID == "" || conf.Exclude {
 			continue
@@ -424,6 +444,7 @@ func ResolveWebPkgRefsFromConfig(
 			continue
 		}
 
+		// Retain the resolved package root and imports in its reference.
 		refs = append(refs, &WebPkgRef{
 			WebPkgId:   pkgID,
 			WebPkgRoot: pkgRoot,
@@ -431,6 +452,7 @@ func ResolveWebPkgRefsFromConfig(
 		})
 	}
 
+	// Order package references by identifier for the caller.
 	SortWebPkgRefs(refs)
 	return refs, nil
 }
@@ -443,6 +465,7 @@ func ResolveWebPkgRefsFromConfig(
 // earlier stages and never creates this directory, so this stage is inert
 // there. Only single-segment scoped IDs map; "@scope/name" -> ".scope/name".
 func resolveMaterializedWebPkgRoot(codeRootPath, pkgID string) string {
+	// Require a scoped package identifier before resolving its materialized root.
 	if !strings.HasPrefix(pkgID, "@") {
 		return ""
 	}
@@ -450,11 +473,15 @@ func resolveMaterializedWebPkgRoot(codeRootPath, pkgID string) string {
 	if slash < 0 {
 		return ""
 	}
+
+	// Require a single package name within the materialized scope.
 	scope := pkgID[1:slash]
 	name := pkgID[slash+1:]
 	if scope == "" || name == "" || strings.ContainsRune(name, '/') {
 		return ""
 	}
+
+	// Resolve the materialized package directory under the code root.
 	candidate := filepath.Join(codeRootPath, "."+scope, name)
 	if info, err := os.Stat(candidate); err == nil && info.IsDir() {
 		return candidate
@@ -463,23 +490,27 @@ func resolveMaterializedWebPkgRoot(codeRootPath, pkgID string) string {
 }
 
 func resolveTSConfigWebPkgRoot(codeRootPath, pkgID string) string {
+	// Read the TypeScript configuration used to locate local package roots.
 	tsConfigPath := filepath.Join(codeRootPath, "tsconfig.json")
 	tsConfigData, err := os.ReadFile(tsConfigPath)
 	if err != nil {
 		return ""
 	}
 
+	// Parse the TypeScript configuration for compiler path mappings.
 	var p fastjson.Parser
 	v, err := p.ParseBytes(tsConfigData)
 	if err != nil {
 		return ""
 	}
 
+	// Require compiler path mappings before resolving a package root.
 	paths := v.Get("compilerOptions", "paths")
 	if paths == nil {
 		return ""
 	}
 
+	// Prefer the exact package mapping before trying its wildcard mapping.
 	if root := resolveTSConfigPathTarget(codeRootPath, paths.Get(pkgID)); root != "" {
 		return root
 	}
@@ -487,6 +518,7 @@ func resolveTSConfigWebPkgRoot(codeRootPath, pkgID string) string {
 }
 
 func resolveTSConfigPathTarget(codeRootPath string, raw *fastjson.Value) string {
+	// Require a nonempty target array for the TypeScript path mapping.
 	if raw == nil {
 		return ""
 	}
@@ -495,6 +527,7 @@ func resolveTSConfigPathTarget(codeRootPath string, raw *fastjson.Value) string 
 		return ""
 	}
 
+	// Remove wildcard suffixes from the first TypeScript path target.
 	target := strings.TrimSpace(string(values[0].GetStringBytes()))
 	if target == "" {
 		return ""
@@ -506,11 +539,13 @@ func resolveTSConfigPathTarget(codeRootPath string, raw *fastjson.Value) string 
 		return ""
 	}
 
+	// Resolve the TypeScript path target against the code root.
 	if !filepath.IsAbs(target) {
 		target = filepath.Join(codeRootPath, target)
 	}
 	target = filepath.Clean(target)
 
+	// Require the resolved TypeScript path target to be a directory.
 	info, err := os.Stat(target)
 	if err != nil || !info.IsDir() {
 		return ""

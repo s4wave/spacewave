@@ -56,6 +56,7 @@ type Iterator struct {
 
 // NewIterator constructs a new SQLite iterator.
 func NewIterator(ctx context.Context, queryer sqliteQueryer, active func() error, table string, prefix []byte, sort, reverse bool) *Iterator {
+	// Bind the SQLite iterator to its queryer, prefix, and traversal direction.
 	i := &Iterator{
 		ctx:     ctx,
 		queryer: queryer,
@@ -65,6 +66,7 @@ func NewIterator(ctx context.Context, queryer sqliteQueryer, active func() error
 		reverse: reverse,
 	}
 
+	// Prepare SQLite queries for advancing from the current iterator key.
 	i.advanceForwardQuery = strings.Join([]string{"SELECT key, value FROM", table, "WHERE key > ? ORDER BY key LIMIT 1"}, " ")
 	i.advanceForwardPrefixQuery = strings.Join([]string{"SELECT key, value FROM", table, "WHERE key > ? AND key >= ? AND key < ? ORDER BY key LIMIT 1"}, " ")
 	i.advanceForwardPrefixUnboundedQuery = strings.Join([]string{"SELECT key, value FROM", table, "WHERE key > ? AND key >= ? ORDER BY key LIMIT 1"}, " ")
@@ -72,15 +74,20 @@ func NewIterator(ctx context.Context, queryer sqliteQueryer, active func() error
 	i.advanceBackwardPrefixQuery = strings.Join([]string{"SELECT key, value FROM", table, "WHERE key >= ? AND key < ? AND key < ? ORDER BY key DESC LIMIT 1"}, " ")
 	i.advanceBackwardPrefixUnboundedQuery = strings.Join([]string{"SELECT key, value FROM", table, "WHERE key >= ? AND key < ? ORDER BY key DESC LIMIT 1"}, " ")
 
+	// Prepare SQLite queries for seeking forward within the iterator prefix.
 	i.seekForwardQuery = strings.Join([]string{"SELECT key, value FROM", table, "WHERE key >= ? ORDER BY key LIMIT 1"}, " ")
 	i.seekForwardPrefixQuery = strings.Join([]string{"SELECT key, value FROM", table, "WHERE key >= ? AND key < ? ORDER BY key LIMIT 1"}, " ")
 	i.seekForwardPrefixNilQuery = strings.Join([]string{"SELECT key, value FROM", table, "WHERE key >= ? AND key < ? ORDER BY key LIMIT 1"}, " ")
 	i.seekForwardPrefixUnboundedQuery = strings.Join([]string{"SELECT key, value FROM", table, "WHERE key >= ? ORDER BY key LIMIT 1"}, " ")
+
+	// Prepare SQLite queries for seeking backward within the iterator prefix.
 	i.seekBackwardQuery = strings.Join([]string{"SELECT key, value FROM", table, "WHERE key <= ? ORDER BY key DESC LIMIT 1"}, " ")
 	i.seekBackwardPrefixQuery = strings.Join([]string{"SELECT key, value FROM", table, "WHERE key >= ? AND key <= ? AND key < ? ORDER BY key DESC LIMIT 1"}, " ")
 	i.seekBackwardPrefixNilQuery = strings.Join([]string{"SELECT key, value FROM", table, "WHERE key >= ? AND key < ? ORDER BY key DESC LIMIT 1"}, " ")
 	i.seekBackwardPrefixUnboundedQuery = strings.Join([]string{"SELECT key, value FROM", table, "WHERE key >= ? AND key <= ? ORDER BY key DESC LIMIT 1"}, " ")
 	i.seekBackwardPrefixNilUnboundedQuery = strings.Join([]string{"SELECT key, value FROM", table, "WHERE key >= ? ORDER BY key DESC LIMIT 1"}, " ")
+
+	// Prepare SQLite queries for seeking either end of the table.
 	i.seekAbsoluteStartQuery = strings.Join([]string{"SELECT key, value FROM", table, "ORDER BY key LIMIT 1"}, " ")
 	i.seekAbsoluteEndQuery = strings.Join([]string{"SELECT key, value FROM", table, "ORDER BY key DESC LIMIT 1"}, " ")
 
@@ -148,13 +155,14 @@ func (i *Iterator) Next() bool {
 
 // advance moves to the next key in sequence.
 func (i *Iterator) advance() bool {
+	// Stop advancing the SQLite iterator when it has no current key.
 	if i.currentKey == nil {
 		return false
 	}
 
+	// Select the SQLite advance query for the iterator direction and prefix.
 	var query string
 	var args []any
-
 	if i.reverse {
 		if len(i.prefix) > 0 {
 			if upperBound, ok := kvtx.PrefixSuccessor(i.prefix); ok {
@@ -183,6 +191,7 @@ func (i *Iterator) advance() bool {
 		}
 	}
 
+	// Read the next SQLite entry and record exhaustion or query failure.
 	var key, value []byte
 	err := i.queryer.QueryRowContext(i.ctx, query, args...).Scan(&key, &value)
 	if err == sql.ErrNoRows {
@@ -194,11 +203,13 @@ func (i *Iterator) advance() bool {
 		return false
 	}
 
+	// Stop the SQLite iterator when the next key leaves its prefix.
 	if len(i.prefix) > 0 && !bytes.HasPrefix(key, i.prefix) {
 		i.valid = false
 		return false
 	}
 
+	// Publish the next SQLite entry as the valid iterator position.
 	i.currentKey = key
 	i.currentValue = value
 	i.valid = true
@@ -207,6 +218,7 @@ func (i *Iterator) advance() bool {
 
 // Seek moves the iterator to the selected key, or the next key after the key.
 func (i *Iterator) Seek(k []byte) error {
+	// Require an active, open SQLite iterator before seeking.
 	if i.active != nil {
 		if err := i.active(); err != nil {
 			i.err = err
@@ -217,11 +229,10 @@ func (i *Iterator) Seek(k []byte) error {
 		return context.Canceled
 	}
 
+	// Begin SQLite iteration with a seek query for the direction, prefix, and key.
 	i.started = true
-
 	var query string
 	var args []any
-
 	if i.reverse {
 		if len(i.prefix) > 0 {
 			if upperBound, ok := kvtx.PrefixSuccessor(i.prefix); ok {
@@ -280,6 +291,7 @@ func (i *Iterator) Seek(k []byte) error {
 		}
 	}
 
+	// Read the selected SQLite entry and record exhaustion or query failure.
 	var key, value []byte
 	err := i.queryer.QueryRowContext(i.ctx, query, args...).Scan(&key, &value)
 	if err == sql.ErrNoRows {
@@ -291,11 +303,13 @@ func (i *Iterator) Seek(k []byte) error {
 		return err
 	}
 
+	// Leave the SQLite iterator invalid when the selected key leaves its prefix.
 	if len(i.prefix) > 0 && !bytes.HasPrefix(key, i.prefix) {
 		i.valid = false
 		return nil
 	}
 
+	// Publish the selected SQLite entry as the valid iterator position.
 	i.currentKey = key
 	i.currentValue = value
 	i.valid = true
@@ -304,6 +318,7 @@ func (i *Iterator) Seek(k []byte) error {
 
 // Close closes the iterator.
 func (i *Iterator) Close() {
+	// Close the SQLite iterator and discard its current entry.
 	i.closed = true
 	i.valid = false
 	i.currentKey = nil

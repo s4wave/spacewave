@@ -26,6 +26,7 @@ func (g *RoutineGroup) Wrap(r func(context.Context) error) func(context.Context)
 
 // Begin reserves a routine slot unless shutdown has begun.
 func (g *RoutineGroup) Begin() bool {
+	// Reserve a routine slot under the group lock while work is accepted.
 	g.mtx.Lock()
 	defer g.mtx.Unlock()
 	if g.closed {

@@ -45,12 +45,14 @@ func ValidateWebPkgId(id string) error {
 //
 // Returns the web pkg id and the pkg path split.
 func CheckStripWebPkgIdPrefix(pkgPath string) (pkgID, pkgSubPath string, err error) {
+	// Normalize the package path before extracting its identifier.
 	pkgPath = strings.TrimSpace(pkgPath)
 	pkgPath = strings.TrimPrefix(pkgPath, "/")
 	if len(pkgPath) == 0 {
 		return "", pkgPath, ErrEmptyPkgID
 	}
 
+	// Extract the package identifier, including its scope when present.
 	pkgIdBefore, pkgSubPath, _ := strings.Cut(pkgPath, "/")
 	if pkgIdBefore[0] == '@' {
 		var pkgIdAfter string
@@ -60,6 +62,7 @@ func CheckStripWebPkgIdPrefix(pkgPath string) (pkgID, pkgSubPath string, err err
 		pkgID = pkgIdBefore
 	}
 
+	// Normalize the package subpath for file lookup.
 	pkgSubPath = path.Clean(pkgSubPath)
 	if len(pkgSubPath) != 0 && (pkgSubPath[0] == '/' || pkgSubPath[0] == '.') {
 		pkgSubPath = pkgSubPath[1:]

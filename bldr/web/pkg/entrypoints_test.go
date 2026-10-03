@@ -8,6 +8,7 @@ import (
 )
 
 func TestResolveWebPkgRefsFromConfigUsesTSConfigPathRoot(t *testing.T) {
+	// Create a local web package with a TypeScript path mapping and state entrypoint.
 	dir := t.TempDir()
 	webDir := filepath.Join(dir, "web", "state")
 	if err := os.MkdirAll(webDir, 0o755); err != nil {
@@ -30,6 +31,7 @@ func TestResolveWebPkgRefsFromConfigUsesTSConfigPathRoot(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Resolve the state entrypoint through the TypeScript package mapping.
 	refs, err := ResolveWebPkgRefsFromConfig(
 		dir,
 		[]WebPkgResolveConfig{{
@@ -44,6 +46,8 @@ func TestResolveWebPkgRefsFromConfigUsesTSConfigPathRoot(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Verify the package reference uses the mapped root and state import.
 	if len(refs) != 1 {
 		t.Fatalf("expected 1 ref, got %d", len(refs))
 	}
@@ -56,6 +60,7 @@ func TestResolveWebPkgRefsFromConfigUsesTSConfigPathRoot(t *testing.T) {
 }
 
 func TestResolveWebPkgRefsFromConfigDirectoryEntrypointIncludesDirectFiles(t *testing.T) {
+	// Create the command package directory and its root barrel.
 	dir := t.TempDir()
 	commandDir := filepath.Join(dir, "web", "command")
 	if err := os.MkdirAll(filepath.Join(commandDir, "child"), 0o755); err != nil {
@@ -67,6 +72,8 @@ func TestResolveWebPkgRefsFromConfigDirectoryEntrypointIncludesDirectFiles(t *te
 	if err := os.WriteFile(filepath.Join(commandDir, "index.ts"), []byte("export const command = true\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
+
+	// Populate direct command files, a test file, and a nested entrypoint.
 	if err := os.WriteFile(filepath.Join(commandDir, "useCommand.ts"), []byte("export const useCommand = true\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -79,6 +86,8 @@ func TestResolveWebPkgRefsFromConfigDirectoryEntrypointIncludesDirectFiles(t *te
 	if err := os.WriteFile(filepath.Join(commandDir, "child", "nested.ts"), []byte("export const nested = true\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
+
+	// Map the local web package through the TypeScript configuration.
 	if err := os.WriteFile(filepath.Join(dir, "tsconfig.json"), []byte(`{
   "compilerOptions": {
     "paths": {
@@ -90,6 +99,7 @@ func TestResolveWebPkgRefsFromConfigDirectoryEntrypointIncludesDirectFiles(t *te
 		t.Fatal(err)
 	}
 
+	// Resolve the configured command directory entrypoint.
 	refs, err := ResolveWebPkgRefsFromConfig(
 		dir,
 		[]WebPkgResolveConfig{{
@@ -104,6 +114,8 @@ func TestResolveWebPkgRefsFromConfigDirectoryEntrypointIncludesDirectFiles(t *te
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Verify the command imports include direct files and exclude tests and children.
 	if len(refs) != 1 {
 		t.Fatalf("expected 1 ref, got %d", len(refs))
 	}
@@ -115,6 +127,7 @@ func TestResolveWebPkgRefsFromConfigDirectoryEntrypointIncludesDirectFiles(t *te
 }
 
 func TestResolveWebPkgRefsFromConfigAddsNodeModuleRootWithExplicitEntrypoints(t *testing.T) {
+	// Create a node module with a root export and an additional example file.
 	dir := t.TempDir()
 	pkgRoot := filepath.Join(dir, "node_modules", "non-index-root")
 	if err := os.MkdirAll(filepath.Join(pkgRoot, "build"), 0o755); err != nil {
@@ -142,6 +155,7 @@ func TestResolveWebPkgRefsFromConfigAddsNodeModuleRootWithExplicitEntrypoints(t 
 		t.Fatal(err)
 	}
 
+	// Resolve the configured example entrypoint alongside the node module root.
 	refs, err := ResolveWebPkgRefsFromConfig(
 		dir,
 		[]WebPkgResolveConfig{{
@@ -156,6 +170,8 @@ func TestResolveWebPkgRefsFromConfigAddsNodeModuleRootWithExplicitEntrypoints(t 
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Verify the node module serves both its root export and explicit entrypoint.
 	if len(refs) != 1 {
 		t.Fatalf("expected 1 ref, got %d", len(refs))
 	}
@@ -167,6 +183,7 @@ func TestResolveWebPkgRefsFromConfigAddsNodeModuleRootWithExplicitEntrypoints(t 
 }
 
 func TestResolveWebPkgEntrypointsNodeModuleSubpathExports(t *testing.T) {
+	// Create a package manifest with root and subpath exports.
 	pkgRoot := t.TempDir()
 	if err := os.WriteFile(filepath.Join(pkgRoot, "package.json"), []byte(`{
   "name": "exported-subpaths",
@@ -181,18 +198,24 @@ func TestResolveWebPkgEntrypointsNodeModuleSubpathExports(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Resolve the package entrypoints without explicit subpaths.
 	got, err := ResolveWebPkgEntrypoints(pkgRoot, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Verify default package imports contain only the root export.
 	if want := []string{"dist/index.mjs"}; !reflect.DeepEqual(got, want) {
 		t.Fatalf("default imports: got %v want %v", got, want)
 	}
 
+	// Resolve the package entrypoints with the explicit language subpath.
 	got, err = ResolveWebPkgEntrypoints(pkgRoot, []WebPkgEntrypointConfig{{Path: "./langs"}})
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Verify explicit package imports include the root and language exports.
 	if want := []string{"dist/index.mjs", "dist/langs.mjs"}; !reflect.DeepEqual(got, want) {
 		t.Fatalf("explicit imports: got %v want %v", got, want)
 	}

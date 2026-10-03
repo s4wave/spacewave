@@ -16,6 +16,7 @@ import (
 // ValidateTableName validates that a table name is safe to use in SQL queries.
 // It only allows alphanumeric characters and underscores, and must start with a letter or underscore.
 func ValidateTableName(table string) error {
+	// Require a nonempty SQLite table name before validating its characters.
 	if table == "" {
 		return errors.New("table name cannot be empty")
 	}
@@ -181,10 +182,12 @@ func (s *Store[T]) initTable() error {
 
 // initTableWithRetry creates the key-value table with retry on SQLITE_BUSY.
 func (s *Store[T]) initTableWithRetry(ctx context.Context) error {
+	// Bound SQLite table initialization retries and their backoff.
 	backoff := 50 * time.Millisecond
 	maxBackoff := 2 * time.Second
 	maxRetries := 10
 
+	// Retry SQLite table initialization while retaining the last busy error.
 	var lastErr error
 	for range maxRetries {
 		if err := ctx.Err(); err != nil {

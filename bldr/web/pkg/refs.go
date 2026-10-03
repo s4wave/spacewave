@@ -13,12 +13,14 @@ type WebPkgRefSlice []*WebPkgRef
 //
 // Returns true if any changes were made.
 func (sl WebPkgRefSlice) AppendWebPkgRef(webPkgID, webPkgRoot, importPath string) (WebPkgRefSlice, bool) {
+	// Merge the package root before locating its import list.
 	sl, dirty := sl.AppendWebPkgRoot(webPkgID, webPkgRoot)
 	ref, _ := FindWebPkgRef(sl, webPkgID)
 	if ref == nil || importPath == "" {
 		return sl, dirty
 	}
 
+	// Merge the import path into the package reference in sorted order.
 	if !slices.Contains(ref.Imports, importPath) {
 		ref.Imports = append(ref.Imports, importPath)
 		slices.Sort(ref.Imports)
@@ -33,10 +35,12 @@ func (sl WebPkgRefSlice) AppendWebPkgRef(webPkgID, webPkgRoot, importPath string
 //
 // Returns true if any changes were made.
 func (sl WebPkgRefSlice) AppendWebPkgRoot(webPkgID, webPkgRoot string) (WebPkgRefSlice, bool) {
+	// Leave the reference slice unchanged for an empty package identifier.
 	if webPkgID == "" {
 		return sl, false
 	}
 
+	// Create a sorted package reference when its identifier is new.
 	ref, _ := FindWebPkgRef(sl, webPkgID)
 	if ref == nil {
 		sl = append(sl, &WebPkgRef{
@@ -49,10 +53,12 @@ func (sl WebPkgRefSlice) AppendWebPkgRoot(webPkgID, webPkgRoot string) (WebPkgRe
 		return sl, true
 	}
 
+	// Preserve the package root when the incoming root adds no information.
 	if webPkgRoot == "" || ref.WebPkgRoot == webPkgRoot {
 		return sl, false
 	}
 
+	// Replace the existing package root with the incoming root.
 	ref.WebPkgRoot = webPkgRoot
 	return sl, true
 }
@@ -62,16 +68,19 @@ func (sl WebPkgRefSlice) AppendWebPkgRoot(webPkgID, webPkgRoot string) (WebPkgRe
 //
 // Returns true if any changes were made.
 func (sl WebPkgRefSlice) AppendWebPkgRefValue(add *WebPkgRef) (WebPkgRefSlice, bool) {
+	// Leave the reference slice unchanged when no reference was provided.
 	if add == nil {
 		return sl, false
 	}
 
+	// Merge the incoming root and locate the package reference to update.
 	sl, dirty := sl.AppendWebPkgRoot(add.GetWebPkgId(), add.GetWebPkgRoot())
 	ref, _ := FindWebPkgRef(sl, add.GetWebPkgId())
 	if ref == nil {
 		return sl, dirty
 	}
 
+	// Merge distinct imports into the package reference in sorted order.
 	for _, imp := range add.GetImports() {
 		if slices.Contains(ref.Imports, imp) {
 			continue
@@ -83,6 +92,7 @@ func (sl WebPkgRefSlice) AppendWebPkgRefValue(add *WebPkgRef) (WebPkgRefSlice, b
 		slices.Sort(ref.Imports)
 	}
 
+	// Merge distinct cross references into the package reference in sorted order.
 	crossRefsDirty := false
 	for _, crossRef := range add.GetCrossRefs() {
 		if slices.Contains(ref.CrossRefs, crossRef) {
@@ -134,6 +144,7 @@ func FindWebPkgRef(sl []*WebPkgRef, webPkgID string) (*WebPkgRef, int) {
 
 // ToWebPkgIDList returns a sorted, deduplicated list of web pkg ids from the slice.
 func (sl WebPkgRefSlice) ToWebPkgIDList() []string {
+	// Return no identifiers for an empty package reference slice.
 	if len(sl) == 0 {
 		return nil
 	}

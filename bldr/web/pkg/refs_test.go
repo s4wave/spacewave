@@ -6,10 +6,14 @@ import (
 )
 
 func TestWebPkgRefSliceAppendWebPkgRootMergesWithImports(t *testing.T) {
+	// Start with an empty package reference slice.
 	var refs WebPkgRefSlice
 	var dirty bool
 
+	// Add the web package root to the reference slice.
 	refs, dirty = refs.AppendWebPkgRoot("@s4wave/web", "/repo/web")
+
+	// Verify the new package reference contains its root without imports.
 	if !dirty {
 		t.Fatal("AppendWebPkgRoot returned dirty=false")
 	}
@@ -23,7 +27,10 @@ func TestWebPkgRefSliceAppendWebPkgRootMergesWithImports(t *testing.T) {
 		t.Fatalf("expected no imports, got %v", refs[0].GetImports())
 	}
 
+	// Merge the state import into the existing web package reference.
 	refs, dirty = refs.AppendWebPkgRef("@s4wave/web", "/repo/web", "state/index.tsx")
+
+	// Verify the state import was added without duplicating the package reference.
 	if !dirty {
 		t.Fatal("AppendWebPkgRef returned dirty=false")
 	}
@@ -36,6 +43,7 @@ func TestWebPkgRefSliceAppendWebPkgRootMergesWithImports(t *testing.T) {
 }
 
 func TestWebPkgRefSliceAppendWebPkgRefValueMergesFields(t *testing.T) {
+	// Create a package reference with an import and a cross reference.
 	refs := WebPkgRefSlice{{
 		WebPkgId:   "@s4wave/web",
 		WebPkgRoot: "/repo/web",
@@ -43,6 +51,7 @@ func TestWebPkgRefSliceAppendWebPkgRefValueMergesFields(t *testing.T) {
 		CrossRefs:  []string{"react"},
 	}}
 
+	// Merge an incoming package reference with overlapping imports and cross references.
 	var dirty bool
 	refs, dirty = refs.AppendWebPkgRefValue(&WebPkgRef{
 		WebPkgId:   "@s4wave/web",
@@ -50,6 +59,8 @@ func TestWebPkgRefSliceAppendWebPkgRefValueMergesFields(t *testing.T) {
 		Imports:    []string{"state/index.tsx", "object/object.ts"},
 		CrossRefs:  []string{"react", "sonner"},
 	})
+
+	// Verify merged package fields are distinct and sorted.
 	if !dirty {
 		t.Fatal("AppendWebPkgRefValue returned dirty=false")
 	}

@@ -45,6 +45,7 @@ type Tx struct {
 }
 
 func buildQueries(table string) (getQuery, sizeQuery, setQuery, scanAllQuery, scanPrefixQuery, scanPrefixUnboundedQuery, deleteQuery, existsQuery string) {
+	// Prepare the SQLite queries for key reads, writes, and prefix scans.
 	getQuery = strings.Join([]string{"SELECT value FROM", table, "WHERE key = ?"}, " ")
 	sizeQuery = strings.Join([]string{"SELECT COUNT(*) FROM", table}, " ")
 	setQuery = strings.Join([]string{"INSERT OR REPLACE INTO", table, "(key, value) VALUES (?, ?)"}, " ")
@@ -53,6 +54,7 @@ func buildQueries(table string) (getQuery, sizeQuery, setQuery, scanAllQuery, sc
 	scanPrefixUnboundedQuery = strings.Join([]string{"SELECT key, value FROM", table, "WHERE key >= ? ORDER BY key"}, " ")
 	deleteQuery = strings.Join([]string{"DELETE FROM", table, "WHERE key = ?"}, " ")
 	existsQuery = strings.Join([]string{"SELECT 1 FROM", table, "WHERE key = ? LIMIT 1"}, " ")
+
 	return
 }
 
@@ -110,6 +112,7 @@ func (t *Tx) markClosed() {
 
 // Get returns values for a key.
 func (t *Tx) Get(ctx context.Context, key []byte) ([]byte, bool, error) {
+	// Require a key and an open SQLite transaction before reading its value.
 	if len(key) == 0 {
 		return nil, false, kvtx.ErrEmptyKey
 	}
@@ -117,6 +120,7 @@ func (t *Tx) Get(ctx context.Context, key []byte) ([]byte, bool, error) {
 		return nil, false, err
 	}
 
+	// Read the SQLite value and distinguish a missing key from query failure.
 	var value []byte
 	err := t.queryer.QueryRowContext(ctx, t.getQuery, key).Scan(&value)
 	if err == sql.ErrNoRows {
@@ -142,6 +146,7 @@ func (t *Tx) Size(ctx context.Context) (uint64, error) {
 
 // Set sets the value of a key.
 func (t *Tx) Set(ctx context.Context, key, value []byte) error {
+	// Require a key and an open writable SQLite transaction before setting a value.
 	if len(key) == 0 {
 		return kvtx.ErrEmptyKey
 	}
@@ -152,19 +157,21 @@ func (t *Tx) Set(ctx context.Context, key, value []byte) error {
 		return err
 	}
 
+	// Store the key and value through the SQLite transaction.
 	_, err := t.execer.ExecContext(ctx, t.setQuery, key, value)
 	return err
 }
 
 // ScanPrefix iterates over keys with a prefix.
 func (t *Tx) ScanPrefix(ctx context.Context, prefix []byte, cb func(key, value []byte) error) error {
+	// Require an open SQLite transaction before scanning its keys.
 	if err := t.errIfClosed(); err != nil {
 		return err
 	}
 
+	// Select the SQLite scan query and bounds for the requested prefix.
 	var query string
 	var args []any
-
 	if len(prefix) == 0 {
 		query = t.scanAllQuery
 	} else if upperBound, ok := kvtx.PrefixSuccessor(prefix); ok {
@@ -175,12 +182,14 @@ func (t *Tx) ScanPrefix(ctx context.Context, prefix []byte, cb func(key, value [
 		args = []any{prefix}
 	}
 
+	// Open SQLite scan rows and release them when scanning ends.
 	rows, err := t.queryer.QueryContext(ctx, query, args...)
 	if err != nil {
 		return err
 	}
 	defer rows.Close()
 
+	// Deliver each SQLite key and value to the scan callback.
 	for rows.Next() {
 		var key, value []byte
 		if err := rows.Scan(&key, &value); err != nil {
@@ -211,6 +220,7 @@ func (t *Tx) Iterate(ctx context.Context, prefix []byte, sort, reverse bool) kvt
 
 // Delete deletes a key.
 func (t *Tx) Delete(ctx context.Context, key []byte) error {
+	// Require a key and an open writable SQLite transaction before deleting a value.
 	if len(key) == 0 {
 		return kvtx.ErrEmptyKey
 	}
@@ -221,12 +231,14 @@ func (t *Tx) Delete(ctx context.Context, key []byte) error {
 		return err
 	}
 
+	// Remove the key through the SQLite transaction.
 	_, err := t.execer.ExecContext(ctx, t.deleteQuery, key)
 	return err
 }
 
 // Commit commits the transaction to storage.
 func (t *Tx) Commit(ctx context.Context) error {
+	// Finalize a SQLite read handle without committing a database transaction.
 	if !t.write {
 		if err := t.errIfClosed(); err != nil {
 			return err
@@ -237,6 +249,7 @@ func (t *Tx) Commit(ctx context.Context) error {
 		return nil
 	}
 
+	// Commit the SQLite write transaction once and return its finalization result.
 	var (
 		err       error
 		committed bool
@@ -257,6 +270,7 @@ func (t *Tx) Commit(ctx context.Context) error {
 
 // Exists checks if a key exists.
 func (t *Tx) Exists(ctx context.Context, key []byte) (bool, error) {
+	// Require a key and an open SQLite transaction before checking key existence.
 	if len(key) == 0 {
 		return false, kvtx.ErrEmptyKey
 	}
@@ -264,6 +278,7 @@ func (t *Tx) Exists(ctx context.Context, key []byte) (bool, error) {
 		return false, err
 	}
 
+	// Check SQLite key existence and distinguish absence from query failure.
 	var exists int
 	err := t.queryer.QueryRowContext(ctx, t.existsQuery, key).Scan(&exists)
 	if err == sql.ErrNoRows {
