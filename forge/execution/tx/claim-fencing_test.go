@@ -3,6 +3,7 @@ package execution_tx
 import (
 	"errors"
 	"testing"
+	"time"
 
 	boilerplate_controller "github.com/aperturerobotics/controllerbus/example/boilerplate/controller"
 	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
@@ -85,7 +86,7 @@ func (f *claimFixture) execution(t *testing.T) *forge_execution.Execution {
 func TestSecondClaimantObservesLiveClaim(t *testing.T) {
 	// Start the first execution claim in a fresh fixture.
 	f := newClaimFixture(t)
-	if err := f.apply(t, NewTxStart(f.peerID, "owner-1")); err != nil {
+	if err := f.apply(t, NewTxStart(f.peerID, time.Now().Add(time.Hour), "owner-1")); err != nil {
 		t.Fatal(err)
 	}
 
@@ -96,7 +97,7 @@ func TestSecondClaimantObservesLiveClaim(t *testing.T) {
 	}
 
 	// Require a second claimant to observe the live claim.
-	err := f.apply(t, NewTxStart(f.peerID, "owner-2"))
+	err := f.apply(t, NewTxStart(f.peerID, time.Now().Add(time.Hour), "owner-2"))
 	var heldErr *ClaimHeldError
 	if !errors.As(err, &heldErr) {
 		t.Fatalf("second claim error = %v, want ClaimHeldError", err)
@@ -116,16 +117,18 @@ func TestSecondClaimantObservesLiveClaim(t *testing.T) {
 }
 
 func TestStaleWritesRejectedAfterReclaim(t *testing.T) {
-	// Replace the first execution claim after setting a waiting plugin.
+	// Replace the first execution claim, whose lease has expired, after
+	// setting a waiting plugin.
 	f := newClaimFixture(t)
-	if err := f.apply(t, NewTxStart(f.peerID, "owner-1")); err != nil {
+	if err := f.apply(t, NewTxStart(f.peerID, time.Now().Add(-time.Minute), "owner-1")); err != nil {
 		t.Fatal(err)
 	}
 	owner1 := &forge_execution.Claim{ClaimId: "owner-1", Epoch: 1}
 	if err := f.apply(t, NewTxSetWaitingPlugin("plugin-a", owner1)); err != nil {
 		t.Fatal(err)
 	}
-	if err := f.apply(t, NewTxReclaim(f.peerID, "owner-2", 1)); err != nil {
+	now := time.Now()
+	if err := f.apply(t, NewTxReclaim(f.peerID, "owner-2", 1, now, now.Add(time.Hour))); err != nil {
 		t.Fatal(err)
 	}
 
@@ -202,10 +205,10 @@ func TestStaleWritesRejectedAfterReclaim(t *testing.T) {
 func TestClaimOwnerSurvivesControllerRetry(t *testing.T) {
 	// Retry the execution start with the same claim identity.
 	f := newClaimFixture(t)
-	if err := f.apply(t, NewTxStart(f.peerID, "owner-1")); err != nil {
+	if err := f.apply(t, NewTxStart(f.peerID, time.Now().Add(time.Hour), "owner-1")); err != nil {
 		t.Fatal(err)
 	}
-	if err := f.apply(t, NewTxStart(f.peerID, "owner-1")); err != nil {
+	if err := f.apply(t, NewTxStart(f.peerID, time.Now().Add(time.Hour), "owner-1")); err != nil {
 		t.Fatalf("same owner retry: %v", err)
 	}
 
@@ -213,5 +216,106 @@ func TestClaimOwnerSurvivesControllerRetry(t *testing.T) {
 	execution := f.execution(t)
 	if got := execution.GetClaim(); got.GetClaimId() != "owner-1" || got.GetEpoch() != 1 {
 		t.Fatalf("claim after retry = %q/%d, want owner-1/1", got.GetClaimId(), got.GetEpoch())
+	}
+}
+
+func TestReclaimRequiresExpiredLease(t *testing.T) {
+	// Start a claim whose lease is live.
+	f := newClaimFixture(t)
+	now := time.Now()
+	if err := f.apply(t, NewTxStart(f.peerID, now.Add(time.Hour), "owner-1")); err != nil {
+		t.Fatal(err)
+	}
+
+	// Require a reclaim observed before the lease expires to leave the claim in place.
+	err := f.apply(t, NewTxReclaim(f.peerID, "owner-2", 1, now, now.Add(time.Hour)))
+	if _, ok := errors.AsType[*ClaimLiveError](err); !ok {
+		t.Fatalf("early reclaim error = %v, want ClaimLiveError", err)
+	}
+	if got := f.execution(t).GetClaim(); got.GetClaimId() != "owner-1" || got.GetEpoch() != 1 {
+		t.Fatalf("claim = %q/%d, want owner-1/1", got.GetClaimId(), got.GetEpoch())
+	}
+
+	// Require a reclaim observed at the lease expiry to take the claim and its new lease.
+	expiry := now.Add(time.Hour)
+	newLease := expiry.Add(time.Minute)
+	if err := f.apply(t, NewTxReclaim(f.peerID, "owner-2", 1, expiry, newLease)); err != nil {
+		t.Fatal(err)
+	}
+	got := f.execution(t).GetClaim()
+	if got.GetClaimId() != "owner-2" || got.GetEpoch() != 2 || !got.GetLeaseExpiresAt().AsTime().Equal(newLease) {
+		t.Fatalf("claim = %q/%d lease %v, want owner-2/2 lease %v", got.GetClaimId(), got.GetEpoch(), got.GetLeaseExpiresAt().AsTime(), newLease)
+	}
+
+	// Require a second reclaim of the replaced claim to lose the epoch fence.
+	later := newLease.Add(time.Minute)
+	err = f.apply(t, NewTxReclaim(f.peerID, "owner-3", 1, later, later.Add(time.Hour)))
+	if _, ok := errors.AsType[*StaleClaimEpochError](err); !ok {
+		t.Fatalf("second reclaim error = %v, want StaleClaimEpochError", err)
+	}
+}
+
+func TestRenewClaimExtendsLease(t *testing.T) {
+	// Start a claim and renew its lease.
+	f := newClaimFixture(t)
+	now := time.Now()
+	if err := f.apply(t, NewTxStart(f.peerID, now.Add(time.Minute), "owner-1")); err != nil {
+		t.Fatal(err)
+	}
+	owner1 := &forge_execution.Claim{ClaimId: "owner-1", Epoch: 1}
+	renewed := now.Add(time.Hour)
+	if err := f.apply(t, NewTxRenewClaim(owner1, renewed)); err != nil {
+		t.Fatal(err)
+	}
+	if got := f.execution(t).GetClaim().GetLeaseExpiresAt().AsTime(); !got.Equal(renewed) {
+		t.Fatalf("lease = %v, want %v", got, renewed)
+	}
+
+	// Require a renewal that does not extend the lease to change nothing.
+	if err := f.apply(t, NewTxRenewClaim(owner1, now.Add(time.Minute))); err != nil {
+		t.Fatal(err)
+	}
+	if got := f.execution(t).GetClaim().GetLeaseExpiresAt().AsTime(); !got.Equal(renewed) {
+		t.Fatalf("lease after shorter renewal = %v, want %v", got, renewed)
+	}
+
+	// Require a reclaim observed before the renewed lease expires to fail.
+	err := f.apply(t, NewTxReclaim(f.peerID, "owner-2", 1, now.Add(2*time.Minute), now.Add(time.Hour)))
+	if _, ok := errors.AsType[*ClaimLiveError](err); !ok {
+		t.Fatalf("reclaim of renewed claim error = %v, want ClaimLiveError", err)
+	}
+
+	// Require the previous owner's renewal to fail the epoch fence after reclaim.
+	expiry := renewed.Add(time.Minute)
+	if err := f.apply(t, NewTxReclaim(f.peerID, "owner-2", 1, expiry, expiry.Add(time.Hour))); err != nil {
+		t.Fatal(err)
+	}
+	err = f.apply(t, NewTxRenewClaim(owner1, expiry.Add(time.Hour)))
+	if _, ok := errors.AsType[*StaleClaimEpochError](err); !ok {
+		t.Fatalf("stale renewal error = %v, want StaleClaimEpochError", err)
+	}
+}
+
+func TestReclaimCancelingExecution(t *testing.T) {
+	// Cancel an execution whose claimant then missed its lease.
+	f := newClaimFixture(t)
+	now := time.Now()
+	if err := f.apply(t, NewTxStart(f.peerID, now.Add(-time.Minute), "owner-1")); err != nil {
+		t.Fatal(err)
+	}
+	if err := f.apply(t, NewTxCancel()); err != nil {
+		t.Fatal(err)
+	}
+
+	// Require another claimant to take the canceling execution.
+	if err := f.apply(t, NewTxReclaim(f.peerID, "owner-2", 1, now, now.Add(time.Hour))); err != nil {
+		t.Fatal(err)
+	}
+	execution := f.execution(t)
+	if state := execution.GetExecutionState(); state != forge_execution.State_ExecutionState_CANCELING {
+		t.Fatalf("state = %s, want CANCELING", state)
+	}
+	if got := execution.GetClaim(); got.GetClaimId() != "owner-2" || got.GetEpoch() != 2 {
+		t.Fatalf("claim = %q/%d, want owner-2/2", got.GetClaimId(), got.GetEpoch())
 	}
 }

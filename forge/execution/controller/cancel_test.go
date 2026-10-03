@@ -77,7 +77,7 @@ func TestCancellationInterruptsSetupAndDrainsTarget(t *testing.T) {
 			}
 			t.Cleanup(func() { world.ReleaseObjectState(obj) })
 			conf := NewConfig(tb.EngineID, key, peerID, &forge_target.InputWorld{EngineId: tb.EngineID})
-			if _, _, err := obj.ApplyObjectOp(ctx, execution_tx.NewTxStart(peerID, conf.GetClaimId()), peerID); err != nil {
+			if _, _, err := obj.ApplyObjectOp(ctx, execution_tx.NewTxStart(peerID, time.Now().Add(time.Hour), conf.GetClaimId()), peerID); err != nil {
 				t.Fatal(err)
 			}
 
@@ -200,7 +200,7 @@ func TestCancellationCommittedAsTargetFinishes(t *testing.T) {
 	}
 	t.Cleanup(func() { world.ReleaseObjectState(obj) })
 	conf := NewConfig(tb.EngineID, key, peerID, &forge_target.InputWorld{EngineId: tb.EngineID})
-	if _, _, err := obj.ApplyObjectOp(ctx, execution_tx.NewTxStart(peerID, conf.GetClaimId()), peerID); err != nil {
+	if _, _, err := obj.ApplyObjectOp(ctx, execution_tx.NewTxStart(peerID, time.Now().Add(time.Hour), conf.GetClaimId()), peerID); err != nil {
 		t.Fatal(err)
 	}
 

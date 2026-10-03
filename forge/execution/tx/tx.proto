@@ -3,6 +3,7 @@ package execution.tx;
 
 import "github.com/s4wave/spacewave/forge/execution/execution.proto";
 import "github.com/s4wave/spacewave/forge/value/value.proto";
+import "google/protobuf/timestamp.proto";
 
 // Tx is the on-the-wire representation of a transaction.
 message Tx {
@@ -29,6 +30,9 @@ message Tx {
   TxReclaim tx_reclaim = 7;
   // TxSetWaitingPlugin updates the plugin load wait reported by the Execution.
   TxSetWaitingPlugin tx_set_waiting_plugin = 8;
+  // TxRenewClaim extends the lease of the current claim.
+  // TxType_RENEW_CLAIM
+  TxRenewClaim tx_renew_claim = 9;
 }
 
 // TxType indicates the kind of transaction.
@@ -48,6 +52,21 @@ enum TxType {
   TxType_RECLAIM = 6;
   // TxType_SET_WAITING_PLUGIN changes the plugin load wait.
   TxType_SET_WAITING_PLUGIN = 7;
+  // TxType_RENEW_CLAIM extends the lease of the current claim.
+  TxType_RENEW_CLAIM = 8;
+}
+
+// TxRenewClaim extends the claim lease while its holder is alive.
+// Execution must be RUNNING or CANCELING.
+// TxType: TxType_RENEW_CLAIM
+message TxRenewClaim {
+  // ClaimEpoch fences this renewal to the current claim.
+  uint64 claim_epoch = 1;
+  // ClaimId identifies the controller carrying the claim.
+  string claim_id = 2;
+  // LeaseExpiresAt is the new lease expiry. A renewal that would not extend
+  // the current lease changes nothing.
+  google.protobuf.Timestamp lease_expires_at = 3;
 }
 
 // TxSetWaitingPlugin records or clears the plugin load wait under the current claim.
@@ -70,6 +89,8 @@ message TxStart {
   string peer_id = 1;
   // ClaimId is the opaque identifier of the claiming controller instance.
   string claim_id = 2;
+  // LeaseExpiresAt is the initial lease expiry of a new claim.
+  google.protobuf.Timestamp lease_expires_at = 3;
 }
 
 // TxSetOutputs updates the value of one or more execution outputs.
@@ -106,8 +127,8 @@ message TxComplete {
 message TxCancel {
 }
 
-// TxReclaim transfers a RUNNING execution to a new controller instance.
-// The current owner must already be known unavailable by the caller.
+// TxReclaim transfers a RUNNING or CANCELING execution to a new controller
+// instance once the current claim lease has expired.
 // TxType: TxType_RECLAIM
 message TxReclaim {
   // PeerId is the peer identifier to set as the executor.
@@ -116,6 +137,12 @@ message TxReclaim {
   string claim_id = 2;
   // ExpectedClaimEpoch prevents racing transfers from both succeeding.
   uint64 expected_claim_epoch = 3;
+  // ObservedAt is the time the sender observed the claim lease expired. The
+  // transaction applies only when the current lease expires at or before it.
+  google.protobuf.Timestamp observed_at = 4;
+  // LeaseExpiresAt is the initial lease expiry of the new claim.
+  // Must be after observed_at.
+  google.protobuf.Timestamp lease_expires_at = 5;
 }
 
 // TxAppendLog appends log entries to the execution.

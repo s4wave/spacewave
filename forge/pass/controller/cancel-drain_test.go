@@ -3,6 +3,7 @@ package pass_controller
 import (
 	"errors"
 	"testing"
+	"time"
 
 	boilerplate_controller "github.com/aperturerobotics/controllerbus/example/boilerplate/controller"
 	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
@@ -78,7 +79,7 @@ func TestProcessStateReplaysCancelAndWaitsForDrain(t *testing.T) {
 	// Start the execution with a claim before canceling the Pass.
 	if _, _, err := executionObject.ApplyObjectOp(
 		ctx,
-		execution_tx.NewTxStart(peerID, claimID),
+		execution_tx.NewTxStart(peerID, time.Now().Add(time.Hour), claimID),
 		peerID,
 	); err != nil {
 		t.Fatal(err)

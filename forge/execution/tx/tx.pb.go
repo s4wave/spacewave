@@ -12,6 +12,7 @@ import (
 
 	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
 	json "github.com/aperturerobotics/protobuf-go-lite/json"
+	timestamppb "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	execution "github.com/s4wave/spacewave/forge/execution"
 	value "github.com/s4wave/spacewave/forge/value"
 )
@@ -35,6 +36,8 @@ const (
 	TxType_TxType_RECLAIM TxType = 6
 	// TxType_SET_WAITING_PLUGIN changes the plugin load wait.
 	TxType_TxType_SET_WAITING_PLUGIN TxType = 7
+	// TxType_RENEW_CLAIM extends the lease of the current claim.
+	TxType_TxType_RENEW_CLAIM TxType = 8
 )
 
 // Enum value maps for TxType.
@@ -48,6 +51,7 @@ var (
 		5: "TxType_CANCEL",
 		6: "TxType_RECLAIM",
 		7: "TxType_SET_WAITING_PLUGIN",
+		8: "TxType_RENEW_CLAIM",
 	}
 	TxType_value = map[string]int32{
 		"TxType_INVALID":            0,
@@ -58,6 +62,7 @@ var (
 		"TxType_CANCEL":             5,
 		"TxType_RECLAIM":            6,
 		"TxType_SET_WAITING_PLUGIN": 7,
+		"TxType_RENEW_CLAIM":        8,
 	}
 )
 
@@ -100,6 +105,9 @@ type Tx struct {
 	TxReclaim *TxReclaim `protobuf:"bytes,7,opt,name=tx_reclaim,json=txReclaim,proto3" json:"txReclaim,omitempty"`
 	// TxSetWaitingPlugin updates the plugin load wait reported by the Execution.
 	TxSetWaitingPlugin *TxSetWaitingPlugin `protobuf:"bytes,8,opt,name=tx_set_waiting_plugin,json=txSetWaitingPlugin,proto3" json:"txSetWaitingPlugin,omitempty"`
+	// TxRenewClaim extends the lease of the current claim.
+	// TxType_RENEW_CLAIM
+	TxRenewClaim *TxRenewClaim `protobuf:"bytes,9,opt,name=tx_renew_claim,json=txRenewClaim,proto3" json:"txRenewClaim,omitempty"`
 }
 
 func (x *Tx) Reset() {
@@ -164,6 +172,54 @@ func (x *Tx) GetTxSetWaitingPlugin() *TxSetWaitingPlugin {
 	return nil
 }
 
+func (x *Tx) GetTxRenewClaim() *TxRenewClaim {
+	if x != nil {
+		return x.TxRenewClaim
+	}
+	return nil
+}
+
+// TxRenewClaim extends the claim lease while its holder is alive.
+// Execution must be RUNNING or CANCELING.
+// TxType: TxType_RENEW_CLAIM
+type TxRenewClaim struct {
+	unknownFields []byte
+	// ClaimEpoch fences this renewal to the current claim.
+	ClaimEpoch uint64 `protobuf:"varint,1,opt,name=claim_epoch,json=claimEpoch,proto3" json:"claimEpoch,omitempty"`
+	// ClaimId identifies the controller carrying the claim.
+	ClaimId string `protobuf:"bytes,2,opt,name=claim_id,json=claimId,proto3" json:"claimId,omitempty"`
+	// LeaseExpiresAt is the new lease expiry. A renewal that would not extend
+	// the current lease changes nothing.
+	LeaseExpiresAt *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=lease_expires_at,json=leaseExpiresAt,proto3" json:"leaseExpiresAt,omitempty"`
+}
+
+func (x *TxRenewClaim) Reset() {
+	*x = TxRenewClaim{}
+}
+
+func (*TxRenewClaim) ProtoMessage() {}
+
+func (x *TxRenewClaim) GetClaimEpoch() uint64 {
+	if x != nil {
+		return x.ClaimEpoch
+	}
+	return 0
+}
+
+func (x *TxRenewClaim) GetClaimId() string {
+	if x != nil {
+		return x.ClaimId
+	}
+	return ""
+}
+
+func (x *TxRenewClaim) GetLeaseExpiresAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.LeaseExpiresAt
+	}
+	return nil
+}
+
 // TxSetWaitingPlugin records or clears the plugin load wait under the current claim.
 type TxSetWaitingPlugin struct {
 	unknownFields []byte
@@ -213,6 +269,8 @@ type TxStart struct {
 	PeerId string `protobuf:"bytes,1,opt,name=peer_id,json=peerId,proto3" json:"peerId,omitempty"`
 	// ClaimId is the opaque identifier of the claiming controller instance.
 	ClaimId string `protobuf:"bytes,2,opt,name=claim_id,json=claimId,proto3" json:"claimId,omitempty"`
+	// LeaseExpiresAt is the initial lease expiry of a new claim.
+	LeaseExpiresAt *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=lease_expires_at,json=leaseExpiresAt,proto3" json:"leaseExpiresAt,omitempty"`
 }
 
 func (x *TxStart) Reset() {
@@ -233,6 +291,13 @@ func (x *TxStart) GetClaimId() string {
 		return x.ClaimId
 	}
 	return ""
+}
+
+func (x *TxStart) GetLeaseExpiresAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.LeaseExpiresAt
+	}
+	return nil
 }
 
 // TxSetOutputs updates the value of one or more execution outputs.
@@ -339,8 +404,8 @@ func (x *TxCancel) Reset() {
 
 func (*TxCancel) ProtoMessage() {}
 
-// TxReclaim transfers a RUNNING execution to a new controller instance.
-// The current owner must already be known unavailable by the caller.
+// TxReclaim transfers a RUNNING or CANCELING execution to a new controller
+// instance once the current claim lease has expired.
 // TxType: TxType_RECLAIM
 type TxReclaim struct {
 	unknownFields []byte
@@ -350,6 +415,12 @@ type TxReclaim struct {
 	ClaimId string `protobuf:"bytes,2,opt,name=claim_id,json=claimId,proto3" json:"claimId,omitempty"`
 	// ExpectedClaimEpoch prevents racing transfers from both succeeding.
 	ExpectedClaimEpoch uint64 `protobuf:"varint,3,opt,name=expected_claim_epoch,json=expectedClaimEpoch,proto3" json:"expectedClaimEpoch,omitempty"`
+	// ObservedAt is the time the sender observed the claim lease expired. The
+	// transaction applies only when the current lease expires at or before it.
+	ObservedAt *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=observed_at,json=observedAt,proto3" json:"observedAt,omitempty"`
+	// LeaseExpiresAt is the initial lease expiry of the new claim.
+	// Must be after observed_at.
+	LeaseExpiresAt *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=lease_expires_at,json=leaseExpiresAt,proto3" json:"leaseExpiresAt,omitempty"`
 }
 
 func (x *TxReclaim) Reset() {
@@ -377,6 +448,20 @@ func (x *TxReclaim) GetExpectedClaimEpoch() uint64 {
 		return x.ExpectedClaimEpoch
 	}
 	return 0
+}
+
+func (x *TxReclaim) GetObservedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.ObservedAt
+	}
+	return nil
+}
+
+func (x *TxReclaim) GetLeaseExpiresAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.LeaseExpiresAt
+	}
+	return nil
 }
 
 // TxAppendLog appends log entries to the execution.
@@ -433,6 +518,7 @@ func (m *Tx) CloneVT() *Tx {
 	r.TxCancel = protobuf_go_lite.CloneVTValue(m.TxCancel)
 	r.TxReclaim = protobuf_go_lite.CloneVTValue(m.TxReclaim)
 	r.TxSetWaitingPlugin = protobuf_go_lite.CloneVTValue(m.TxSetWaitingPlugin)
+	r.TxRenewClaim = protobuf_go_lite.CloneVTValue(m.TxRenewClaim)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -440,6 +526,24 @@ func (m *Tx) CloneVT() *Tx {
 }
 
 func (m *Tx) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *TxRenewClaim) CloneVT() *TxRenewClaim {
+	if m == nil {
+		return (*TxRenewClaim)(nil)
+	}
+	r := new(TxRenewClaim)
+	r.ClaimEpoch = m.ClaimEpoch
+	r.ClaimId = m.ClaimId
+	r.LeaseExpiresAt = protobuf_go_lite.CloneVTValue(m.LeaseExpiresAt)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *TxRenewClaim) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -468,6 +572,7 @@ func (m *TxStart) CloneVT() *TxStart {
 	r := new(TxStart)
 	r.PeerId = m.PeerId
 	r.ClaimId = m.ClaimId
+	r.LeaseExpiresAt = protobuf_go_lite.CloneVTValue(m.LeaseExpiresAt)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -538,6 +643,8 @@ func (m *TxReclaim) CloneVT() *TxReclaim {
 	r.PeerId = m.PeerId
 	r.ClaimId = m.ClaimId
 	r.ExpectedClaimEpoch = m.ExpectedClaimEpoch
+	r.ObservedAt = protobuf_go_lite.CloneVTValue(m.ObservedAt)
+	r.LeaseExpiresAt = protobuf_go_lite.CloneVTValue(m.LeaseExpiresAt)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -596,11 +703,40 @@ func (this *Tx) EqualVT(that *Tx) bool {
 	if !protobuf_go_lite.IsEqualVT(this.TxSetWaitingPlugin, that.TxSetWaitingPlugin) {
 		return false
 	}
+	if !protobuf_go_lite.IsEqualVT(this.TxRenewClaim, that.TxRenewClaim) {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
 func (this *Tx) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*Tx)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *TxRenewClaim) EqualVT(that *TxRenewClaim) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.ClaimEpoch != that.ClaimEpoch {
+		return false
+	}
+	if this.ClaimId != that.ClaimId {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.LeaseExpiresAt, that.LeaseExpiresAt) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *TxRenewClaim) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*TxRenewClaim)
 	if !ok {
 		return false
 	}
@@ -643,6 +779,9 @@ func (this *TxStart) EqualVT(that *TxStart) bool {
 		return false
 	}
 	if this.ClaimId != that.ClaimId {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.LeaseExpiresAt, that.LeaseExpiresAt) {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -741,6 +880,12 @@ func (this *TxReclaim) EqualVT(that *TxReclaim) bool {
 		return false
 	}
 	if this.ExpectedClaimEpoch != that.ExpectedClaimEpoch {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.ObservedAt, that.ObservedAt) {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.LeaseExpiresAt, that.LeaseExpiresAt) {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -868,6 +1013,11 @@ func (x *Tx) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("txSetWaitingPlugin")
 		x.TxSetWaitingPlugin.MarshalProtoJSON(s.WithField("txSetWaitingPlugin"))
 	}
+	if x.TxRenewClaim != nil || s.HasField("txRenewClaim") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("txRenewClaim")
+		x.TxRenewClaim.MarshalProtoJSON(s.WithField("txRenewClaim"))
+	}
 	s.WriteObjectEnd()
 }
 
@@ -937,12 +1087,81 @@ func (x *Tx) UnmarshalProtoJSON(s *json.UnmarshalState) {
 			}
 			x.TxSetWaitingPlugin = &TxSetWaitingPlugin{}
 			x.TxSetWaitingPlugin.UnmarshalProtoJSON(s.WithField("tx_set_waiting_plugin", true))
+		case "tx_renew_claim", "txRenewClaim":
+			if s.ReadNil() {
+				x.TxRenewClaim = nil
+				return
+			}
+			x.TxRenewClaim = &TxRenewClaim{}
+			x.TxRenewClaim.UnmarshalProtoJSON(s.WithField("tx_renew_claim", true))
 		}
 	})
 }
 
 // UnmarshalJSON unmarshals the Tx from JSON.
 func (x *Tx) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the TxRenewClaim message to JSON.
+func (x *TxRenewClaim) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.ClaimEpoch != 0 || s.HasField("claimEpoch") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("claimEpoch")
+		s.WriteUint64(x.ClaimEpoch)
+	}
+	if x.ClaimId != "" || s.HasField("claimId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("claimId")
+		s.WriteString(x.ClaimId)
+	}
+	if x.LeaseExpiresAt != nil || s.HasField("leaseExpiresAt") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("leaseExpiresAt")
+		x.LeaseExpiresAt.MarshalProtoJSON(s.WithField("leaseExpiresAt"))
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the TxRenewClaim to JSON.
+func (x *TxRenewClaim) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the TxRenewClaim message from JSON.
+func (x *TxRenewClaim) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "claim_epoch", "claimEpoch":
+			s.AddField("claim_epoch")
+			x.ClaimEpoch = s.ReadUint64()
+		case "claim_id", "claimId":
+			s.AddField("claim_id")
+			x.ClaimId = s.ReadString()
+		case "lease_expires_at", "leaseExpiresAt":
+			if s.ReadNil() {
+				x.LeaseExpiresAt = nil
+				return
+			}
+			x.LeaseExpiresAt = &timestamppb.Timestamp{}
+			x.LeaseExpiresAt.UnmarshalProtoJSON(s.WithField("lease_expires_at", true))
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the TxRenewClaim from JSON.
+func (x *TxRenewClaim) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -1022,6 +1241,11 @@ func (x *TxStart) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("claimId")
 		s.WriteString(x.ClaimId)
 	}
+	if x.LeaseExpiresAt != nil || s.HasField("leaseExpiresAt") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("leaseExpiresAt")
+		x.LeaseExpiresAt.MarshalProtoJSON(s.WithField("leaseExpiresAt"))
+	}
 	s.WriteObjectEnd()
 }
 
@@ -1045,6 +1269,13 @@ func (x *TxStart) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "claim_id", "claimId":
 			s.AddField("claim_id")
 			x.ClaimId = s.ReadString()
+		case "lease_expires_at", "leaseExpiresAt":
+			if s.ReadNil() {
+				x.LeaseExpiresAt = nil
+				return
+			}
+			x.LeaseExpiresAt = &timestamppb.Timestamp{}
+			x.LeaseExpiresAt.UnmarshalProtoJSON(s.WithField("lease_expires_at", true))
 		}
 	})
 }
@@ -1256,6 +1487,16 @@ func (x *TxReclaim) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("expectedClaimEpoch")
 		s.WriteUint64(x.ExpectedClaimEpoch)
 	}
+	if x.ObservedAt != nil || s.HasField("observedAt") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("observedAt")
+		x.ObservedAt.MarshalProtoJSON(s.WithField("observedAt"))
+	}
+	if x.LeaseExpiresAt != nil || s.HasField("leaseExpiresAt") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("leaseExpiresAt")
+		x.LeaseExpiresAt.MarshalProtoJSON(s.WithField("leaseExpiresAt"))
+	}
 	s.WriteObjectEnd()
 }
 
@@ -1282,6 +1523,20 @@ func (x *TxReclaim) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "expected_claim_epoch", "expectedClaimEpoch":
 			s.AddField("expected_claim_epoch")
 			x.ExpectedClaimEpoch = s.ReadUint64()
+		case "observed_at", "observedAt":
+			if s.ReadNil() {
+				x.ObservedAt = nil
+				return
+			}
+			x.ObservedAt = &timestamppb.Timestamp{}
+			x.ObservedAt.UnmarshalProtoJSON(s.WithField("observed_at", true))
+		case "lease_expires_at", "leaseExpiresAt":
+			if s.ReadNil() {
+				x.LeaseExpiresAt = nil
+				return
+			}
+			x.LeaseExpiresAt = &timestamppb.Timestamp{}
+			x.LeaseExpiresAt.UnmarshalProtoJSON(s.WithField("lease_expires_at", true))
 		}
 	})
 }
@@ -1399,6 +1654,16 @@ func (m *Tx) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.TxRenewClaim != nil {
+		size, err := m.TxRenewClaim.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x4a
+	}
 	if m.TxSetWaitingPlugin != nil {
 		size, err := m.TxSetWaitingPlugin.MarshalToSizedBufferVT(dAtA[:i])
 		if err != nil {
@@ -1471,6 +1736,58 @@ func (m *Tx) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	}
 	if m.TxType != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.TxType))
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *TxRenewClaim) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *TxRenewClaim) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *TxRenewClaim) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.LeaseExpiresAt != nil {
+		size, err := m.LeaseExpiresAt.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x1a
+	}
+	if len(m.ClaimId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.ClaimId)
+		i--
+		dAtA[i] = 0x12
+	}
+	if m.ClaimEpoch != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.ClaimEpoch))
 		i--
 		dAtA[i] = 0x8
 	}
@@ -1552,6 +1869,16 @@ func (m *TxStart) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	_ = l
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.LeaseExpiresAt != nil {
+		size, err := m.LeaseExpiresAt.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x1a
 	}
 	if len(m.ClaimId) > 0 {
 		i = protobuf_go_lite.EncodeString(dAtA, i, m.ClaimId)
@@ -1738,6 +2065,26 @@ func (m *TxReclaim) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.LeaseExpiresAt != nil {
+		size, err := m.LeaseExpiresAt.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x2a
+	}
+	if m.ObservedAt != nil {
+		size, err := m.ObservedAt.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x22
+	}
 	if m.ExpectedClaimEpoch != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.ExpectedClaimEpoch))
 		i--
@@ -1845,6 +2192,26 @@ func (m *Tx) SizeVT() (n int) {
 		l = m.TxSetWaitingPlugin.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
+	if m.TxRenewClaim != nil {
+		l = m.TxRenewClaim.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *TxRenewClaim) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.ClaimEpoch)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.ClaimId)
+	if m.LeaseExpiresAt != nil {
+		l = m.LeaseExpiresAt.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -1870,6 +2237,10 @@ func (m *TxStart) SizeVT() (n int) {
 	_ = l
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.PeerId)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.ClaimId)
+	if m.LeaseExpiresAt != nil {
+		l = m.LeaseExpiresAt.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -1926,6 +2297,14 @@ func (m *TxReclaim) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.PeerId)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.ClaimId)
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.ExpectedClaimEpoch)
+	if m.ObservedAt != nil {
+		l = m.ObservedAt.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	if m.LeaseExpiresAt != nil {
+		l = m.LeaseExpiresAt.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -1985,10 +2364,36 @@ func (x *Tx) MarshalProtoText() string {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "tx_set_waiting_plugin")
 		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.TxSetWaitingPlugin)
 	}
+	if x.TxRenewClaim != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "tx_renew_claim")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.TxRenewClaim)
+	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
 
 func (x *Tx) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *TxRenewClaim) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "TxRenewClaim")
+	if x.ClaimEpoch != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "claim_epoch")
+		protobuf_go_lite.TextWriteUint(&sb, x.ClaimEpoch)
+	}
+	if x.ClaimId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "claim_id")
+		protobuf_go_lite.TextWriteString(&sb, x.ClaimId)
+	}
+	if x.LeaseExpiresAt != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "lease_expires_at")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.LeaseExpiresAt)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *TxRenewClaim) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -2024,6 +2429,10 @@ func (x *TxStart) MarshalProtoText() string {
 	if x.ClaimId != "" {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "claim_id")
 		protobuf_go_lite.TextWriteString(&sb, x.ClaimId)
+	}
+	if x.LeaseExpiresAt != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "lease_expires_at")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.LeaseExpiresAt)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -2112,6 +2521,14 @@ func (x *TxReclaim) MarshalProtoText() string {
 	if x.ExpectedClaimEpoch != 0 {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "expected_claim_epoch")
 		protobuf_go_lite.TextWriteUint(&sb, x.ExpectedClaimEpoch)
+	}
+	if x.ObservedAt != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "observed_at")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.ObservedAt)
+	}
+	if x.LeaseExpiresAt != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "lease_expires_at")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.LeaseExpiresAt)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -2286,6 +2703,98 @@ func (m *Tx) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		case 9:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field TxRenewClaim", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.TxRenewClaim == nil {
+				m.TxRenewClaim = &TxRenewClaim{}
+			}
+			if err := m.TxRenewClaim.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *TxRenewClaim) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: TxRenewClaim: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: TxRenewClaim: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ClaimEpoch", wireType)
+			}
+			m.ClaimEpoch = 0
+			m.ClaimEpoch, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ClaimId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.ClaimId = v
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field LeaseExpiresAt", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.LeaseExpiresAt == nil {
+				m.LeaseExpiresAt = &timestamppb.Timestamp{}
+			}
+			if err := m.LeaseExpiresAt.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -2421,6 +2930,21 @@ func (m *TxStart) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.ClaimId = v
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field LeaseExpiresAt", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.LeaseExpiresAt == nil {
+				m.LeaseExpiresAt = &timestamppb.Timestamp{}
+			}
+			if err := m.LeaseExpiresAt.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -2698,6 +3222,36 @@ func (m *TxReclaim) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ObservedAt", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.ObservedAt == nil {
+				m.ObservedAt = &timestamppb.Timestamp{}
+			}
+			if err := m.ObservedAt.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field LeaseExpiresAt", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.LeaseExpiresAt == nil {
+				m.LeaseExpiresAt = &timestamppb.Timestamp{}
+			}
+			if err := m.LeaseExpiresAt.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

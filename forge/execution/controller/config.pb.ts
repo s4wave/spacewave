@@ -60,6 +60,14 @@ export interface Config {
    * @generated from field: string claim_id = 7;
    */
   claimId?: string
+  /**
+   * ClaimLease is how long a claim stays live without renewal, as a duration
+   * string. The controller renews at a third of the lease. Peers may reclaim
+   * an Execution once its holder has missed the lease. Defaults to one minute.
+   *
+   * @generated from field: string claim_lease = 8;
+   */
+  claimLease?: string
 }
 
 export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
@@ -82,6 +90,7 @@ export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
     },
     { no: 6, name: 'input_world', kind: 'message', T: () => InputWorld },
     { no: 7, name: 'claim_id', kind: 'scalar', T: ScalarType.STRING },
+    { no: 8, name: 'claim_lease', kind: 'scalar', T: ScalarType.STRING },
   ] satisfies readonly PartialFieldInfo[],
 })
 

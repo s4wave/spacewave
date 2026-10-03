@@ -184,6 +184,10 @@ type Claim struct {
 	ClaimId string `protobuf:"bytes,1,opt,name=claim_id,json=claimId,proto3" json:"claimId,omitempty"`
 	// Epoch is the monotonic fencing token for this claim.
 	Epoch uint64 `protobuf:"varint,2,opt,name=epoch,proto3" json:"epoch,omitempty"`
+	// LeaseExpiresAt is when the claim stops being live unless its holder renews
+	// it. Once it has passed, a peer that observed the expiry may reclaim the
+	// Execution, which advances the epoch and fences the previous holder.
+	LeaseExpiresAt *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=lease_expires_at,json=leaseExpiresAt,proto3" json:"leaseExpiresAt,omitempty"`
 }
 
 func (x *Claim) Reset() {
@@ -204,6 +208,13 @@ func (x *Claim) GetEpoch() uint64 {
 		return x.Epoch
 	}
 	return 0
+}
+
+func (x *Claim) GetLeaseExpiresAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.LeaseExpiresAt
+	}
+	return nil
 }
 
 // LogEntry is a single log line from an execution.
@@ -317,6 +328,7 @@ func (m *Claim) CloneVT() *Claim {
 	r := new(Claim)
 	r.ClaimId = m.ClaimId
 	r.Epoch = m.Epoch
+	r.LeaseExpiresAt = protobuf_go_lite.CloneVTValue(m.LeaseExpiresAt)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -420,6 +432,9 @@ func (this *Claim) EqualVT(that *Claim) bool {
 		return false
 	}
 	if this.Epoch != that.Epoch {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.LeaseExpiresAt, that.LeaseExpiresAt) {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -702,6 +717,11 @@ func (x *Claim) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("epoch")
 		s.WriteUint64(x.Epoch)
 	}
+	if x.LeaseExpiresAt != nil || s.HasField("leaseExpiresAt") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("leaseExpiresAt")
+		x.LeaseExpiresAt.MarshalProtoJSON(s.WithField("leaseExpiresAt"))
+	}
 	s.WriteObjectEnd()
 }
 
@@ -725,6 +745,13 @@ func (x *Claim) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "epoch":
 			s.AddField("epoch")
 			x.Epoch = s.ReadUint64()
+		case "lease_expires_at", "leaseExpiresAt":
+			if s.ReadNil() {
+				x.LeaseExpiresAt = nil
+				return
+			}
+			x.LeaseExpiresAt = &timestamppb.Timestamp{}
+			x.LeaseExpiresAt.UnmarshalProtoJSON(s.WithField("lease_expires_at", true))
 		}
 	})
 }
@@ -1010,6 +1037,16 @@ func (m *Claim) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.LeaseExpiresAt != nil {
+		size, err := m.LeaseExpiresAt.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x1a
+	}
 	if m.Epoch != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Epoch))
 		i--
@@ -1181,6 +1218,10 @@ func (m *Claim) SizeVT() (n int) {
 	_ = l
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.ClaimId)
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.Epoch)
+	if m.LeaseExpiresAt != nil {
+		l = m.LeaseExpiresAt.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -1292,6 +1333,10 @@ func (x *Claim) MarshalProtoText() string {
 	if x.Epoch != 0 {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "epoch")
 		protobuf_go_lite.TextWriteUint(&sb, x.Epoch)
+	}
+	if x.LeaseExpiresAt != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "lease_expires_at")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.LeaseExpiresAt)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -1560,6 +1605,21 @@ func (m *Claim) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field LeaseExpiresAt", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.LeaseExpiresAt == nil {
+				m.LeaseExpiresAt = &timestamppb.Timestamp{}
+			}
+			if err := m.LeaseExpiresAt.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

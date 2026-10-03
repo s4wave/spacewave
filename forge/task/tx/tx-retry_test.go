@@ -3,6 +3,7 @@ package task_tx
 import (
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	"github.com/s4wave/spacewave/db/block"
@@ -119,7 +120,7 @@ func TestTxRetryClearsTerminalTaskResultAndRetainsAttemptHistory(t *testing.T) {
 	// Claim the predecessor execution for this attempt.
 	const claimID = "retry-history"
 	if _, _, err := executionObject.ApplyObjectOp(ctx,
-		execution_tx.NewTxStart(sender, claimID), sender); err != nil {
+		execution_tx.NewTxStart(sender, time.Now().Add(time.Hour), claimID), sender); err != nil {
 		t.Fatal(err)
 	}
 

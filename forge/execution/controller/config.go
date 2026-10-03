@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/aperturerobotics/controllerbus/config"
+	forge_execution "github.com/s4wave/spacewave/forge/execution"
 	forge_target "github.com/s4wave/spacewave/forge/target"
 	"github.com/s4wave/spacewave/net/peer"
 	"github.com/s4wave/spacewave/net/util/confparse"
@@ -58,6 +59,11 @@ func (c *Config) Validate() error {
 	if _, err := c.ParseResolveControllerConfigTimeout(); err != nil {
 		return err
 	}
+
+	// Validate the optional claim lease duration.
+	if _, err := c.ParseClaimLease(); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -91,6 +97,25 @@ func (c *Config) ParseResolveControllerConfigTimeout() (time.Duration, error) {
 	}
 
 	return time.ParseDuration(timeoutStr)
+}
+
+// ParseClaimLease parses the claim lease duration, defaulting when unset.
+func (c *Config) ParseClaimLease() (time.Duration, error) {
+	// Use the default lease when none is configured.
+	leaseStr := c.GetClaimLease()
+	if leaseStr == "" {
+		return forge_execution.DefaultClaimLease, nil
+	}
+
+	// Require a positive duration.
+	lease, err := time.ParseDuration(leaseStr)
+	if err != nil {
+		return 0, err
+	}
+	if lease <= 0 {
+		return 0, errors.New("claim lease must be positive")
+	}
+	return lease, nil
 }
 
 // GetConfigID returns the unique string for this configuration type.

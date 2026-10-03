@@ -4,6 +4,7 @@ import (
 	"context"
 	"sync/atomic"
 	"testing"
+	"time"
 
 	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
 	boilerplate_controller "github.com/aperturerobotics/controllerbus/example/boilerplate/controller"
@@ -96,7 +97,7 @@ func TestRestartMidClaimLeavesOneRunnableController(t *testing.T) {
 	}
 	if _, _, err := obj.ApplyObjectOp(
 		ctx,
-		execution_tx.NewTxStart(peerID, ownerConfig.GetClaimId()),
+		execution_tx.NewTxStart(peerID, time.Now().Add(time.Hour), ownerConfig.GetClaimId()),
 		peerID,
 	); err != nil {
 		t.Fatal(err)
@@ -243,7 +244,7 @@ func TestClaimCommitUsesObservedRootSnapshot(t *testing.T) {
 	)
 	if _, _, err := obj.ApplyObjectOp(
 		ctx,
-		execution_tx.NewTxStart(peerID, config.GetClaimId()),
+		execution_tx.NewTxStart(peerID, time.Now().Add(time.Hour), config.GetClaimId()),
 		peerID,
 	); err != nil {
 		t.Fatal(err)

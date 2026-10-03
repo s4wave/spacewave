@@ -25,6 +25,10 @@ message Config {
   .forge.target.InputWorld input_world = 6;
   // ClaimId is the stable owner token used across controller retries.
   string claim_id = 7;
+  // ClaimLease is how long a claim stays live without renewal, as a duration
+  // string. The controller renews at a third of the lease. Peers may reclaim
+  // an Execution once its holder has missed the lease. Defaults to one minute.
+  string claim_lease = 8;
 }
 
 // ExecConfig is a configuration for the execution routine.

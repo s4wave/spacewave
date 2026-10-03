@@ -116,6 +116,14 @@ export interface Claim {
    * @generated from field: uint64 epoch = 2;
    */
   epoch?: bigint
+  /**
+   * LeaseExpiresAt is when the claim stops being live unless its holder renews
+   * it. Once it has passed, a peer that observed the expiry may reclaim the
+   * Execution, which advances the epoch and fences the previous holder.
+   *
+   * @generated from field: google.protobuf.Timestamp lease_expires_at = 3;
+   */
+  leaseExpiresAt?: Date
 }
 
 export const Claim: MessageType<Claim> = /* @__PURE__ */ createMessageType({
@@ -123,6 +131,7 @@ export const Claim: MessageType<Claim> = /* @__PURE__ */ createMessageType({
   fields: [
     { no: 1, name: 'claim_id', kind: 'scalar', T: ScalarType.STRING },
     { no: 2, name: 'epoch', kind: 'scalar', T: ScalarType.UINT64 },
+    { no: 3, name: 'lease_expires_at', kind: 'message', T: () => Timestamp },
   ] satisfies readonly PartialFieldInfo[],
 })
 

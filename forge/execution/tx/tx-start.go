@@ -2,7 +2,9 @@ package execution_tx
 
 import (
 	"context"
+	"time"
 
+	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	forge_execution "github.com/s4wave/spacewave/forge/execution"
@@ -12,7 +14,9 @@ import (
 )
 
 // NewTxStart constructs a new START transaction.
-func NewTxStart(peerID peer.ID, claimIDs ...string) *Tx {
+//
+// A new claim stays live until leaseExpiresAt unless its holder renews it.
+func NewTxStart(peerID peer.ID, leaseExpiresAt time.Time, claimIDs ...string) *Tx {
 	claimID := implicitClaim.GetClaimId()
 	if len(claimIDs) != 0 {
 		claimID = claimIDs[0]
@@ -20,8 +24,9 @@ func NewTxStart(peerID peer.ID, claimIDs ...string) *Tx {
 	return &Tx{
 		TxType: TxType_TxType_START,
 		TxStart: &TxStart{
-			PeerId:  peerID.String(),
-			ClaimId: claimID,
+			PeerId:         peerID.String(),
+			ClaimId:        claimID,
+			LeaseExpiresAt: timestamp.New(leaseExpiresAt),
 		},
 	}
 }
@@ -39,6 +44,7 @@ func (t *TxStart) GetTxType() TxType {
 // Validate performs a cursory check of the transaction.
 // Note: this should not fetch network data.
 func (t *TxStart) Validate() error {
+	// Require the executor peer, claim identity, and claim lease.
 	if len(t.GetPeerId()) == 0 {
 		return peer.ErrEmptyPeerID
 	}
@@ -47,6 +53,9 @@ func (t *TxStart) Validate() error {
 	}
 	if t.GetClaimId() == "" {
 		return errors.New("claim_id cannot be empty")
+	}
+	if t.GetLeaseExpiresAt() == nil {
+		return errors.New("lease_expires_at cannot be empty")
 	}
 	return nil
 }
@@ -111,8 +120,9 @@ func (t *TxStart) ExecuteTx(
 		return errors.New("execution claim epoch overflow")
 	}
 	root.Claim = &forge_execution.Claim{
-		ClaimId: t.GetClaimId(),
-		Epoch:   claimEpoch,
+		ClaimId:        t.GetClaimId(),
+		Epoch:          claimEpoch,
+		LeaseExpiresAt: t.GetLeaseExpiresAt(),
 	}
 	if execState == forge_execution.State_ExecutionState_PENDING {
 		root.ExecutionState = forge_execution.State_ExecutionState_RUNNING

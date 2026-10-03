@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"time"
 
 	boilerplate_controller "github.com/aperturerobotics/controllerbus/example/boilerplate/controller"
 	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
@@ -112,7 +113,7 @@ func (f *custodyFixture) startPassExecution(t *testing.T, passKey string) string
 	}
 	_, _, err = executionObject.ApplyObjectOp(
 		f.ctx,
-		execution_tx.NewTxStart(f.peerID, f.claimID),
+		execution_tx.NewTxStart(f.peerID, time.Now().Add(time.Hour), f.claimID),
 		f.peerID,
 	)
 	if err != nil {

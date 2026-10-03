@@ -2,6 +2,7 @@ package execution_controller
 
 import (
 	"context"
+	"time"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/config"
@@ -10,6 +11,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/aperturerobotics/controllerbus/directive"
 	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
+	"github.com/aperturerobotics/util/backoff"
 	"github.com/aperturerobotics/util/routine"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
@@ -45,6 +47,8 @@ type Controller struct {
 	uniqueID string
 	// claimID identifies this controller instance across Execute retries
 	claimID string
+	// claimLease is how long this controller's claim stays live between renewals.
+	claimLease time.Duration
 	// peerID is the parsed peer id
 	peerID peer.ID
 	// busEngine is the bus world engine handle
@@ -56,6 +60,9 @@ type Controller struct {
 	// execRoutine is the execution routine resolving execResult
 	// note: value_set and result are set to nil
 	execRoutine *routine.StateRoutineContainer[*ExecConfig]
+	// reclaimRoutine reclaims the Execution once the claim lease of another
+	// controller expires.
+	reclaimRoutine *routine.StateRoutineContainer[*foreignClaim]
 	// cancelCtx closes once durable cancellation is observed, including for late listeners.
 	cancelCtx context.Context
 	// cancel signals durable cancellation independently of controller restarts.
@@ -77,14 +84,21 @@ func NewController(
 		claimID = uniqueID
 	}
 
+	// Resolve the claim lease, falling back to the default when it is invalid.
+	claimLease, err := conf.ParseClaimLease()
+	if err != nil {
+		claimLease = forge_execution.DefaultClaimLease
+	}
+
 	// Connect the Execution controller to its World state and cancellation signal.
 	c := &Controller{
-		le:       le,
-		bus:      bus,
-		conf:     conf,
-		uniqueID: uniqueID,
-		peerID:   peerID,
-		claimID:  claimID,
+		le:         le,
+		bus:        bus,
+		conf:       conf,
+		uniqueID:   uniqueID,
+		peerID:     peerID,
+		claimID:    claimID,
+		claimLease: claimLease,
 	}
 	c.cancelCtx, c.cancel = context.WithCancel(context.Background())
 	c.busEngine = world.NewBusEngine(nil, bus, conf.GetEngineId())
@@ -101,6 +115,14 @@ func NewController(
 		le.WithField("routine", "execution"),
 	)
 	c.execRoutine.SetStateRoutine(c.executeWithConfig)
+
+	// Reclaim the Execution when the claim of another controller expires.
+	c.reclaimRoutine = routine.NewStateRoutineContainerWithLogger(
+		compareForeignClaim,
+		le.WithField("routine", "reclaim"),
+		routine.WithRetry(&backoff.Backoff{}),
+	)
+	c.reclaimRoutine.SetStateRoutine(c.reclaimExpiredClaim)
 	return c
 }
 
@@ -153,6 +175,7 @@ func (c *Controller) GetControllerInfo() *controller.Info {
 func (c *Controller) Execute(ctx context.Context) error {
 	// Bind the target routine and World engine to the Execution lifecycle.
 	c.execRoutine.SetContext(ctx, true)
+	c.reclaimRoutine.SetContext(ctx, true)
 	c.busEngine.SetContext(ctx)
 
 	// Reconcile Execution state until its watch ends or the lifecycle is canceled.
@@ -174,24 +197,27 @@ func (c *Controller) ProcessState(
 	obj world.ObjectState, // may be nil if not found
 	rootRef *bucket.ObjectRef, rev uint64,
 ) (waitForChanges bool, err error) {
-	execConfig, waitForChanges, err := c.processExecutionState(ctx, le, ws, obj, rootRef, rev)
+	execConfig, foreign, waitForChanges, err := c.processExecutionState(ctx, le, ws, obj, rootRef, rev)
 	c.execRoutine.SetState(execConfig)
+	c.reclaimRoutine.SetState(foreign)
 	return waitForChanges, err
 }
 
 // processExecutionState reconciles the Execution state and returns the exec
-// routine config to apply, or nil to clear the routine.
+// routine config to apply, or nil to clear the routine. It also returns the
+// claim held by another controller, or nil when this controller may run the
+// Execution.
 func (c *Controller) processExecutionState(
 	ctx context.Context,
 	le *logrus.Entry,
 	ws world.WorldState,
 	obj world.ObjectState, // may be nil if not found
 	rootRef *bucket.ObjectRef, rev uint64,
-) (execConfig *ExecConfig, waitForChanges bool, err error) {
+) (execConfig *ExecConfig, foreign *foreignClaim, waitForChanges bool, err error) {
 	// Wait for the Execution object before reconciling its durable state.
 	if obj == nil {
 		le.Debug("object does not exist, waiting")
-		return nil, true, nil
+		return nil, nil, true, nil
 	}
 
 	// unmarshal Execution state + build read cursor
@@ -202,12 +228,12 @@ func (c *Controller) processExecutionState(
 		return berr
 	})
 	if err != nil {
-		return nil, false, err
+		return nil, nil, false, err
 	}
 
 	// check execution state
 	if err := exState.Validate(); err != nil {
-		return nil, false, errors.Wrap(err, "initial state is invalid")
+		return nil, nil, false, errors.Wrap(err, "initial state is invalid")
 	}
 
 	// locally specified peer id
@@ -216,7 +242,7 @@ func (c *Controller) processExecutionState(
 		// use the peer ID specified on the state
 		peerID, err = exState.ParsePeerID()
 		if err != nil {
-			return nil, true, errors.Wrap(err, "parse peer id on execution state")
+			return nil, nil, true, errors.Wrap(err, "parse peer id on execution state")
 		}
 	}
 
@@ -227,18 +253,18 @@ func (c *Controller) processExecutionState(
 	}
 	if currState == forge_execution.State_ExecutionState_COMPLETE {
 		le.Debug("execution is marked as complete")
-		return nil, false, nil
+		return nil, nil, false, nil
 	}
 
 	// check peer id matches if set
 	if err := exState.CheckPeerID(peerID); err != nil {
-		return nil, true, err
+		return nil, nil, true, err
 	}
 
 	// lookup the peer on the bus (wait for it to exist)
 	_, _, peerRef, err := peer.GetPeerWithID(ctx, c.bus, peerID, false, nil)
 	if err != nil {
-		return nil, false, err
+		return nil, nil, false, err
 	}
 	defer peerRef.Release()
 
@@ -247,30 +273,32 @@ func (c *Controller) processExecutionState(
 	if currState == forge_execution.State_ExecutionState_PENDING ||
 		exState.GetClaim() == nil {
 		le.Debugf("claiming execution with peer id: %s", peerID.String())
-		txd := execution_transaction.NewTxStart(peerID, c.claimID)
+		txd := execution_transaction.NewTxStart(peerID, time.Now().Add(c.claimLease), c.claimID)
 		_, _, err = obj.ApplyObjectOp(ctx, txd, peerID)
 		if err != nil {
 			var heldErr *execution_transaction.ClaimHeldError
 			if errors.As(err, &heldErr) {
-				return nil, true, nil
+				return nil, nil, true, nil
 			}
-			return nil, false, err
+			return nil, nil, false, err
 		}
 		// The control loop observes the durable claim before starting work.
-		return nil, true, nil
+		return nil, nil, true, nil
 	}
 
-	// Observe another controller's claim without starting its target.
+	// Observe another controller's claim without starting its target, and
+	// reclaim the Execution once that claim lease expires.
 	if exState.GetClaim().GetClaimId() != c.claimID {
 		le.Debug("observing execution owned by another controller")
-		return nil, true, nil
+		foreign = &foreignClaim{peerID: peerID, claim: exState.GetClaim()}
+		return nil, foreign, true, nil
 	}
 
 	// RUNNING and CANCELING both retain adapter custody. Cancellation is
 	// delivered to the target while the routine retains its settlement context.
 	if currState != forge_execution.State_ExecutionState_RUNNING &&
 		currState != forge_execution.State_ExecutionState_CANCELING {
-		return nil, true, errors.Wrapf(
+		return nil, nil, true, errors.Wrapf(
 			forge_value.ErrUnknownState,
 			"%s", currState.String(),
 		)
@@ -282,6 +310,7 @@ func (c *Controller) processExecutionState(
 	execConfigState.ExecutionState = forge_execution.State_ExecutionState_RUNNING
 	execConfigState.LogEntries = nil
 	execConfigState.WaitingPluginId = ""
+	execConfigState.Claim.LeaseExpiresAt = nil
 	if execConfigState.ValueSet == nil {
 		execConfigState.ValueSet = &forge_target.ValueSet{}
 	} else {
@@ -304,7 +333,7 @@ func (c *Controller) processExecutionState(
 			return berr
 		})
 		if err != nil {
-			return nil, true, errors.Wrap(err, "lookup target configuration")
+			return nil, nil, true, errors.Wrap(err, "lookup target configuration")
 		}
 
 		// Couple the normalized Execution state with its resolved target.
@@ -316,7 +345,7 @@ func (c *Controller) processExecutionState(
 		execConfig = prevConfigState
 	}
 
-	return execConfig, true, nil
+	return execConfig, nil, true, nil
 }
 
 // _ is a type assertion
