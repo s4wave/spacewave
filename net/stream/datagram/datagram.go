@@ -59,10 +59,13 @@ func ForwardLocal(ctx context.Context, socket *net.UDPConn, peerStream stream.Me
 // separate source ports at the service, so replies cannot cross player streams.
 // It owns peerStream even if binding the socket fails.
 func ForwardTarget(ctx context.Context, target *net.UDPAddr, peerStream stream.MessageStream) error {
+	// Select the upstream UDP network from the fixed target address.
 	network := "udp4"
 	if target != nil && target.IP.To4() == nil {
 		network = "udp6"
 	}
+
+	// Bind a dedicated UDP association and forward the peer stream to its target.
 	socket, err := net.ListenUDP(network, nil)
 	if err != nil {
 		peerStream.Close()
@@ -73,6 +76,7 @@ func ForwardTarget(ctx context.Context, target *net.UDPAddr, peerStream stream.M
 
 // forward runs the socket pump and the two peer pumps until one fails.
 func forward(ctx context.Context, socket *net.UDPConn, remote netip.AddrPort, peerStream stream.MessageStream) error {
+	// Close both forwarding resources on exit and require an unconnected UDP socket.
 	defer socket.Close()
 	defer peerStream.Close()
 	if socket.RemoteAddr() != nil {
@@ -145,6 +149,7 @@ func forward(ctx context.Context, socket *net.UDPConn, remote netip.AddrPort, pe
 		return readFrame(peerStream.Control(), packet)
 	}))
 
+	// Join every forwarding pump and preserve caller cancellation as the result.
 	err := group.Wait()
 	if ctx.Err() != nil {
 		return ctx.Err()
@@ -154,6 +159,7 @@ func forward(ctx context.Context, socket *net.UDPConn, remote netip.AddrPort, pe
 
 // writeFrame writes packet to w as one length-prefixed frame.
 func writeFrame(w io.Writer, packet []byte) error {
+	// Encode and write the packet with its control-stream length prefix.
 	frame := make([]byte, 2+len(packet))
 	binary.BigEndian.PutUint16(frame, uint16(len(packet))) //nolint:gosec // callers bound packets by MaxPacketSize.
 	copy(frame[2:], packet)
@@ -164,10 +170,13 @@ func writeFrame(w io.Writer, packet []byte) error {
 // readFrame reads one length-prefixed frame from r into packet, which holds
 // at least MaxPacketSize bytes.
 func readFrame(r io.Reader, packet []byte) (int, error) {
+	// Read the control frame length before accepting its packet payload.
 	var header [2]byte
 	if _, err := io.ReadFull(r, header[:]); err != nil {
 		return 0, err
 	}
+
+	// Reject control frames larger than the supported UDP payload.
 	n := int(binary.BigEndian.Uint16(header[:]))
 	if n > MaxPacketSize {
 		return 0, errors.New("stream packet exceeds maximum size")

@@ -51,14 +51,17 @@ func TestJsPlatform_GetExecutableExt(t *testing.T) {
 
 // TestNewJsPlatform tests the NewJsPlatform constructor.
 func TestNewJsPlatform(t *testing.T) {
+	// Require the default JavaScript platform to be constructed.
 	platform := NewJsPlatform()
 	if platform == nil {
 		t.Fatal("NewJsPlatform returned nil")
 	}
+
 	// Check if InputPlatformID is set correctly.
 	if platform.GetInputPlatformID() != PlatformID_JS {
 		t.Errorf("NewJsPlatform did not set InputPlatformID correctly: expected %s, got %s", PlatformID_JS, platform.GetInputPlatformID())
 	}
+
 	// Check other methods behave as expected for the default js platform.
 	if platform.GetPlatformID() != PlatformID_JS {
 		t.Errorf("NewJsPlatform platform ID mismatch: expected %s, got %s", PlatformID_JS, platform.GetPlatformID())

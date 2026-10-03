@@ -46,10 +46,13 @@ func ToNativePlatform(p Platform) *NativePlatform {
 // ParseNativePlatform parses a Go compiler based platform ID.
 // Accepts both "desktop/" and "web/" prefixes.
 func ParseNativePlatform(str string) (*NativePlatform, error) {
+	// Require a desktop or web prefix before interpreting the target components.
 	components := strings.Split(str, "/")
 	if len(components) == 0 || (components[0] != PlatformID_DESKTOP && components[0] != PlatformID_WEB) {
 		return nil, errors.Errorf("not a native platform id: %s", str)
 	}
+
+	// Resolve the target operating system, architecture, and ARM version.
 	goOsArches := gotargets.GetOsArchValues()
 	pt := &NativePlatform{InputPlatformID: str}
 	var arches []string
@@ -168,10 +171,12 @@ func (n *NativePlatform) GetInputPlatformID() string {
 // There should be exactly one representation of the platform ID possible.
 // Web platforms (js/wasm) use the "web/" prefix, desktop uses "desktop/".
 func (n *NativePlatform) GetPlatformID() string {
+	// Choose the platform prefix from the resolved target.
 	prefix := PlatformID_DESKTOP
 	if n.IsWebPlatform() {
 		prefix = PlatformID_WEB
 	}
+
 	// build the platform ID
 	idParts := []string{
 		prefix,
@@ -202,9 +207,11 @@ func (n *NativePlatform) GetBasePlatformID() string {
 
 // GetExecutableExt returns the extension used for executables.
 func (n *NativePlatform) GetExecutableExt() string {
+	// Resolve the target that determines the executable extension.
 	goos := n.GetGOOS()
 	goarch := n.GetGOARCH()
 
+	// Select the executable extension for Windows, JavaScript, or WebAssembly.
 	if goos == "windows" {
 		return ".exe"
 	}

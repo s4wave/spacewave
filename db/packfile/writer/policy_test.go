@@ -7,6 +7,7 @@ import (
 )
 
 func TestDefaultPolicy(t *testing.T) {
+	// Verify the default pack limits, bloom rate, and metadata requirements.
 	policy := DefaultPolicy()
 	if policy.MaxPackBytes != 63*1024*1024 {
 		t.Fatalf("MaxPackBytes = %d, want 63 MiB", policy.MaxPackBytes)

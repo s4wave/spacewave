@@ -16,11 +16,14 @@ const ValueOrderIterator = "iterator"
 // DigestSortedKeys digests a pack's block keys independent of physical value
 // order.
 func DigestSortedKeys(keys [][]byte) []byte {
+	// Copy and sort the block keys without changing the caller's order.
 	sorted := make([][]byte, len(keys))
 	for i, key := range keys {
 		sorted[i] = bytes.Clone(key)
 	}
 	slices.SortFunc(sorted, bytes.Compare)
+
+	// Hash the sorted block keys with the pack identity framing.
 	h := sha256.New()
 	writePart(h, []byte("spacewave-packfile-key-digest-v1"))
 	for _, key := range sorted {

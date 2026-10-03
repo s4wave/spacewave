@@ -53,6 +53,7 @@ func TestPackBlocks(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Verify the pack count, byte count, and serialized bloom filter.
 	if result.BlockCount != uint64(len(blocks)) {
 		t.Fatalf("expected block count %d, got %d", len(blocks), result.BlockCount)
 	}
@@ -73,6 +74,7 @@ func TestPackBlocks(t *testing.T) {
 		t.Fatalf("expected %d entries, got %d", len(blocks), reader.Size())
 	}
 
+	// Verify that every packed block retains its data and references.
 	for _, b := range blocks {
 		key := packfile.BlockKey(b.hash)
 		value, found, err := reader.Get(key)
@@ -116,6 +118,7 @@ func TestPackBlocks(t *testing.T) {
 		t.Fatalf("bloom k = %d, want %d", bf.K(), policyBloom.K())
 	}
 
+	// Verify that the bloom filter recognizes every packed block hash.
 	for _, b := range blocks {
 		key := packfile.BlockKey(b.hash)
 		if !bf.Test(key) {
@@ -130,6 +133,7 @@ func TestPackBlocks(t *testing.T) {
 		t.Fatal(err)
 	}
 	unknownKey := packfile.BlockKey(unknownHash)
+
 	// Bloom may false-positive, but with 10 items and 1% FPR it is unlikely.
 	// We just log it rather than fail.
 	if bf.Test(unknownKey) {
@@ -177,11 +181,12 @@ func TestPackBlocksPolicyFalsePositiveRate(t *testing.T) {
 }
 
 func testPackBlocksFalsePositiveRate(t *testing.T, policy Policy, blockCount int) {
+	// Pack distinct blocks while retaining their hashes for membership checks.
 	blocks := make([]*hash.Hash, 0, blockCount)
-
 	var buf bytes.Buffer
 	idx := 0
 	result, err := PackBlocks(&buf, func() (*hash.Hash, *block.StoredBlock, error) {
+		// Generate each block until the requested pack size is reached.
 		if idx >= blockCount {
 			return nil, nil, nil
 		}
@@ -201,6 +206,7 @@ func testPackBlocksFalsePositiveRate(t *testing.T, policy Policy, blockCount int
 		t.Fatalf("BlockCount = %d, want %d", result.BlockCount, blockCount)
 	}
 
+	// Decode the packed bloom filter for membership and rate checks.
 	var pbf bloom.BloomFilter
 	if err := pbf.UnmarshalBlock(result.BloomFilter); err != nil {
 		t.Fatal(err)
@@ -210,12 +216,14 @@ func testPackBlocksFalsePositiveRate(t *testing.T, policy Policy, blockCount int
 		t.Fatal("bloom filter deserialized to nil")
 	}
 
+	// Verify that the bloom filter recognizes every packed block.
 	for _, h := range blocks {
 		if !bf.Test(packfile.BlockKey(h)) {
 			t.Fatalf("bloom filter should contain %s", h.MarshalString())
 		}
 	}
 
+	// Measure bloom false positives against distinct absent block hashes.
 	samples := 10000
 	falsePositives := 0
 	for i := range samples {
@@ -228,6 +236,8 @@ func testPackBlocksFalsePositiveRate(t *testing.T, policy Policy, blockCount int
 			falsePositives++
 		}
 	}
+
+	// Require the observed false-positive rate to remain within the policy bound.
 	rate := float64(falsePositives) / float64(samples)
 	if rate > policy.BloomFalsePositive*3 {
 		t.Fatalf(

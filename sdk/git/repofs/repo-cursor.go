@@ -16,6 +16,7 @@ func OpenRepoFSCursor(
 	objectKey string,
 	write bool,
 ) (unixfs.FSCursor, error) {
+	// Acquire the repository object state for the cursor lifetime.
 	objState, found, err := ws.GetObject(ctx, objectKey)
 	if err != nil {
 		world.ReleaseObjectState(objState)
@@ -25,6 +26,7 @@ func OpenRepoFSCursor(
 		return nil, world.ErrObjectNotFound
 	}
 
+	// Open the repository transaction with the requested write capability.
 	eng := NewEngine(ctx, ws, objState)
 	tx, err := eng.NewTransaction(ctx, write)
 	if err != nil {
@@ -33,6 +35,7 @@ func OpenRepoFSCursor(
 		return nil, err
 	}
 
+	// Configure the Git cursor to observe changes and permit requested writes.
 	opts := []git_unixfs.DotGitFSCursorOption{
 		git_unixfs.WithDotGitChangeSource(eng),
 	}
@@ -74,12 +77,17 @@ func (c *repoFSCursor) AddChangeCb(cb unixfs.FSCursorChangeCb) {
 		return
 	}
 	c.cursor.AddChangeCb(func(ch *unixfs.FSCursorChange) bool {
+		// Release the repository resources when the underlying cursor is released.
 		if ch != nil && ch.Released {
 			c.releaseOwned()
 		}
+
+		// Forward an absent change without replacing its cursor.
 		if ch == nil {
 			return cb(ch)
 		}
+
+		// Present the repository cursor to the change callback.
 		next := ch.Clone()
 		next.Cursor = c
 		return cb(next)

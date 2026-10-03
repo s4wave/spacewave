@@ -40,9 +40,11 @@ type BlockIterator func() (h *hash.Hash, blk *block.StoredBlock, err error)
 // block.BlockObject of the block's bytes and refs, so every block must carry
 // known refs.
 func PackBlocks(w io.Writer, iter BlockIterator) (*PackResult, error) {
+	// Hash the pack bytes while writing the kvfile.
 	packHash := sha256.New()
 	kvw := kvfile.NewWriter(io.MultiWriter(w, packHash))
 
+	// Encode each referenced block into the pack and retain its bloom key.
 	var keys [][]byte
 	for {
 		h, blk, err := iter()
@@ -67,10 +69,12 @@ func PackBlocks(w io.Writer, iter BlockIterator) (*PackResult, error) {
 		keys = append(keys, bytes.Clone(key))
 	}
 
+	// Finish the kvfile index before reporting the completed pack.
 	if err := kvw.Close(); err != nil {
 		return nil, errors.Wrap(err, "closing kvfile writer")
 	}
 
+	// Build the bloom filter from the packed block keys.
 	policy := DefaultPolicy()
 	count := uint64(len(keys))
 	bf := policy.NewBloomFilter(count)

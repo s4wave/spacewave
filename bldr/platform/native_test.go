@@ -30,6 +30,7 @@ func TestParseNativePlatform(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.input, func(t *testing.T) {
+			// Parse the native target and verify the expected error outcome.
 			native, err := ParseNativePlatform(tc.input)
 			if tc.expectError {
 				if err == nil {
@@ -42,12 +43,15 @@ func TestParseNativePlatform(t *testing.T) {
 				return
 			}
 
+			// Verify the operating system and architecture resolved from the target.
 			if val := native.GetGOOS(); tc.expectedGOOS != val {
 				t.Fatalf("%s: unexpected GOOS: expected %s got %s", tc.input, tc.expectedGOOS, val)
 			}
 			if val := native.GetGOARCH(); tc.expectedGOARCH != val {
 				t.Fatalf("%s: unexpected GOARCH: expected %s got %s", tc.input, tc.expectedGOARCH, val)
 			}
+
+			// Verify the ARM version resolved from the target.
 			expectedGOARM := 0
 			if tc.expectedGOARM != nil {
 				expectedGOARM = *tc.expectedGOARM
