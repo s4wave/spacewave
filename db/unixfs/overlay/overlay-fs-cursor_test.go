@@ -119,6 +119,37 @@ func TestOverlayFSCursor(t *testing.T) {
 			},
 		},
 		{
+			name: "recreate whiteout name",
+			run: func(t *testing.T, root unixfs.FSCursor, lower unixfs.FSCursor, upper unixfs.FSCursor) {
+				// Remove the lower-backed file so a whiteout hides it.
+				ctx := context.Background()
+				if err := mustOps(t, root).Remove(ctx, []string{"base.txt"}, overlayTestTime); err != nil {
+					t.Fatal(err)
+				}
+
+				// Recreate the hidden name with the existence check enabled.
+				err := mustOps(t, root).Mknod(
+					ctx,
+					true,
+					[]string{"base.txt"},
+					unixfs.NewFSCursorNodeType_File(),
+					0o644,
+					overlayTestTime,
+				)
+				if err != nil {
+					t.Fatalf("recreate base.txt: %v", err)
+				}
+
+				// Check that the new empty file replaces the whiteout.
+				if got := mustReadFile(t, root, "base.txt"); got != "" {
+					t.Fatalf("recreated content: %q", got)
+				}
+				if slices.Contains(mustReadDirNames(t, upper), ".wh.base.txt") {
+					t.Fatalf("upper whiteout remains: %v", mustReadDirNames(t, upper))
+				}
+			},
+		},
+		{
 			name: "readdir union dedupe upper wins",
 			run: func(t *testing.T, root unixfs.FSCursor, lower unixfs.FSCursor, upper unixfs.FSCursor) {
 				// Create an upper file that overrides the matching lower entry.

@@ -665,13 +665,20 @@ func (o *OverlayFSCursorOps) ensureUpperLocked(ctx context.Context, ts time.Time
 	return upperOps, nil
 }
 
+// visibleChildExistsLocked reports whether name is visible in the merged
+// directory. A whiteout hides the name, so a hidden name may be recreated.
 func (o *OverlayFSCursorOps) visibleChildExistsLocked(ctx context.Context, name string) (bool, error) {
+	// A whiteout hides the name in both layers.
 	if hidden, err := hasUpperChildLocked(ctx, o.c.upper, whiteoutName(name)); err != nil || hidden {
-		return hidden, err
+		return false, err
 	}
+
+	// An upper entry is visible regardless of the lower layer.
 	if ok, err := hasChildLocked(ctx, o.c.upper, name); err != nil || ok {
 		return ok, err
 	}
+
+	// An opaque upper directory hides every lower entry.
 	if opaque, err := hasUpperChildLocked(ctx, o.c.upper, opaqueMarker); err != nil || opaque {
 		return false, err
 	}

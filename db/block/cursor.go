@@ -164,58 +164,6 @@ func (c *Cursor) DetachTransaction() *Cursor {
 	return nc
 }
 
-// CopyToRecursive copies the cursor and referenced positions to another cursor.
-// The cursor can use a different block transaction.
-// Note: the same block refs will be reused (underlying data is not copied).
-// If target tx == nil: is equivalent to DetachRecursive(false, cloneBlocks)
-// If markDirty is set, marks all target positions as dirty.
-func (c *Cursor) CopyToRecursive(targetPos *Cursor, cloneBlocks, markDirty bool) {
-	// Clear the target references when the source cursor is absent.
-	if c == nil {
-		// copy from nil cursor: assume empty
-		if targetPos != nil {
-			targetPos.SetRefAtCursor(nil, true)
-			targetPos.ClearAllRefs()
-		}
-		return
-	}
-
-	// Require a target cursor before copying the block graph.
-	if targetPos == nil {
-		return
-	}
-
-	// Protect the source graph during the recursive copy.
-	if c.t != nil {
-		c.t.mtx.Lock()
-		defer c.t.mtx.Unlock()
-	}
-
-	// Protect the target graph while replacing its positions.
-	targetTx := targetPos.t
-	if targetTx != nil {
-		targetTx.mtx.Lock()
-		defer targetTx.mtx.Unlock()
-	}
-
-	// overwrite target fields (except for isSubBlock, parents, Node)
-	cpos := c.pos
-	nroot := targetPos.pos
-	nroot.blk = nil
-	nroot.blkPreWrite = cpos.blkPreWrite
-	nroot.ref = cpos.ref.Clone()
-	if cpos.dirty && !nroot.dirty {
-		targetPos.markDirty()
-	}
-	targetPos.clearRefHandles()
-
-	// copy recursively
-	c.copyToRecursive(targetPos, cloneBlocks, markDirty)
-	if c.pos.dirty || len(targetPos.pos.parents) != 0 {
-		targetPos.markDirty()
-	}
-}
-
 // DetachRecursive clones the cursor position and all referenced positions.
 //
 // Note: if !cloneBlocks, does not copy/clone the Block objects.
@@ -924,7 +872,7 @@ func (c *Cursor) SetBlock(b any, dirty bool) {
 	}
 }
 
-// GetBlockRefs returns cursors to all references.
+// GetAllRefs returns cursors to all references.
 //
 // If existingOnly, only returns references that have already been traversed.
 // If !existingOnly uses GetSubBlocks and/or GetBlockRefs to list all references.
@@ -953,6 +901,9 @@ func (c *Cursor) GetAllRefs(existingOnly bool) (map[uint32]*Cursor, error) {
 			continue
 		}
 		m[refID] = newCursor(c.t, refHandle.target, c.store)
+	}
+	if existingOnly {
+		return m, nil
 	}
 
 	// Resolve the loaded block references into cursor positions.
