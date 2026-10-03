@@ -63,6 +63,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 		return err
 	}
 
+	// Register the node API on the RPC multiplexer.
 	mux := srpc.NewMux()
 	api.RegisterAsSRPCServer(mux)
 
@@ -72,6 +73,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 		_ = bapi.RegisterAsSRPCServer(mux)
 	}
 
+	// Open the TCP listener for incoming API requests.
 	c.le.Debug("starting listener")
 	lis, err := net.Listen("tcp", c.listenAddr)
 	if err != nil {
@@ -79,6 +81,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 	}
 	c.le.Debugf("api listening: %s", lis.Addr().String())
 
+	// Serve multiplexed RPC requests and report the listener result.
 	srv := srpc.NewServer(mux)
 	errCh := make(chan error, 1)
 	go func() {
@@ -86,6 +89,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 		_ = lis.Close()
 	}()
 
+	// Close the listener on cancellation or return its terminal error.
 	select {
 	case <-ctx.Done():
 		_ = lis.Close()

@@ -27,9 +27,12 @@ func AccessOrderManifestIdentityFromRecord(record *AccessOrderRecord) AccessOrde
 
 // MatchesRecord returns true when record was captured for the same manifest.
 func (i AccessOrderManifestIdentity) MatchesRecord(record *AccessOrderRecord) bool {
+	// Require a record to compare with the manifest identity.
 	if record == nil {
 		return false
 	}
+
+	// Compare the recorded manifest, platform, build type, and revision.
 	if i.ManifestID != record.GetManifestId() {
 		return false
 	}
@@ -42,5 +45,6 @@ func (i AccessOrderManifestIdentity) MatchesRecord(record *AccessOrderRecord) bo
 	if i.ManifestRev != record.GetManifestRev() {
 		return false
 	}
+
 	return refKey(i.ManifestRootRef) == refKey(record.GetManifestRootRef())
 }

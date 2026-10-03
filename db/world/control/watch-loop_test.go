@@ -21,16 +21,19 @@ import (
 
 // TestWatchLoop tests the control loop and WaitForObjectRev.
 func TestWatchLoop(t *testing.T) {
+	// Open the World testbed for revision waits and explicit wakes.
 	ctx := context.Background()
 	tb, err := world_testbed.Default(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Select the World object whose revisions the loop will observe.
 	le := tb.Logger
 	ws := tb.WorldState
 	objKey := "test-object"
 
+	// Wait asynchronously for the object to reach revision two.
 	objCh := make(chan world.ObjectState, 1)
 	errCh := make(chan error, 1)
 	go func() {
@@ -69,6 +72,7 @@ func TestWatchLoop(t *testing.T) {
 		world.ReleaseObjectState(res)
 	}
 
+	// Start a watch loop that reports each observed object revision.
 	revCh := make(chan uint64, 10)
 	loop := world_control.NewWatchLoop(
 		le,
@@ -109,13 +113,16 @@ func TestWatchLoop(t *testing.T) {
 }
 
 func TestWatchLoopWakeBeforeWaitIsSticky(t *testing.T) {
+	// Keep the sticky-wake test within the test context lifetime.
 	ctx := t.Context()
 
+	// Open the World testbed for the wake-before-wait check.
 	tb, err := world_testbed.Default(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Wake the loop before execution and capture both handler iterations.
 	revCh := make(chan uint64, 2)
 	loop := world_control.NewWatchLoop(
 		tb.Logger,
@@ -136,6 +143,7 @@ func TestWatchLoopWakeBeforeWaitIsSticky(t *testing.T) {
 		_ = loop.Execute(ctx, tb.WorldState)
 	}()
 
+	// Verify the pending wake causes a second handler iteration.
 	for i := range 2 {
 		select {
 		case <-revCh:
@@ -146,14 +154,17 @@ func TestWatchLoopWakeBeforeWaitIsSticky(t *testing.T) {
 }
 
 func TestWatchLoopWakeAfterWaitClearIsSticky(t *testing.T) {
+	// Bound the watch loop lifetime and cancel it on test exit.
 	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
 
+	// Open the World testbed for a wake during handler execution.
 	tb, err := world_testbed.Default(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Start a handler that pauses each iteration until released.
 	events := make(chan struct{}, 4)
 	release := make(chan struct{})
 	loop := world_control.NewWatchLoop(
@@ -180,9 +191,11 @@ func TestWatchLoopWakeAfterWaitClearIsSticky(t *testing.T) {
 		done <- loop.Execute(ctx, tb.WorldState)
 	}()
 
+	// Release the initial handler so the loop can wait for World changes.
 	recvWatchLoopEvent(t, events, "initial handler")
 	release <- struct{}{}
 
+	// Create a World object to trigger the next handler iteration.
 	{
 		createdObject, err := tb.WorldState.CreateObject(ctx, "wake-after-clear", nil)
 		world.ReleaseObjectState(createdObject)
@@ -192,10 +205,12 @@ func TestWatchLoopWakeAfterWaitClearIsSticky(t *testing.T) {
 	}
 	recvWatchLoopEvent(t, events, "world-change handler")
 
+	// Wake the active handler and verify the wake survives its return.
 	loop.Wake()
 	release <- struct{}{}
 	recvWatchLoopEvent(t, events, "sticky wake handler")
 
+	// Cancel the watch loop and verify its goroutine exits.
 	cancel()
 	select {
 	case <-done:
@@ -205,14 +220,17 @@ func TestWatchLoopWakeAfterWaitClearIsSticky(t *testing.T) {
 }
 
 func TestWatchLoopReportsObjectDeletion(t *testing.T) {
+	// Bound the object-deletion watch lifetime and cancel it on test exit.
 	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
 
+	// Open the World testbed for deletion notifications.
 	tb, err := world_testbed.Default(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Create the object whose deletion the handler will observe.
 	objKey := "delete-object"
 	{
 		createdObject, err := tb.WorldState.CreateObject(ctx, objKey, nil)
@@ -222,6 +240,7 @@ func TestWatchLoopReportsObjectDeletion(t *testing.T) {
 		}
 	}
 
+	// Start a watch loop that reports whether the object still exists.
 	foundCh := make(chan bool, 4)
 	loop := world_control.NewWatchLoop(
 		tb.Logger,
@@ -242,6 +261,7 @@ func TestWatchLoopReportsObjectDeletion(t *testing.T) {
 		done <- loop.Execute(ctx, tb.WorldState)
 	}()
 
+	// Delete the watched object and verify the handler reports its absence.
 	if found := recvWatchLoopValue(t, foundCh, "initial object state"); !found {
 		t.Fatal("expected initial object state")
 	}
@@ -256,6 +276,7 @@ func TestWatchLoopReportsObjectDeletion(t *testing.T) {
 		t.Fatal("expected deleted object state")
 	}
 
+	// Cancel the deletion watch and verify its goroutine exits.
 	cancel()
 	select {
 	case <-done:
@@ -265,13 +286,16 @@ func TestWatchLoopReportsObjectDeletion(t *testing.T) {
 }
 
 func TestWatchLoopCancellationDuringWait(t *testing.T) {
+	// Create a cancelable lifetime for the World wait.
 	ctx, cancel := context.WithCancel(t.Context())
 
+	// Open the World testbed for cancellation during a wait.
 	tb, err := world_testbed.Default(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Start a watch loop that signals its initial handler call.
 	events := make(chan struct{}, 1)
 	loop := world_control.NewWatchLoop(
 		tb.Logger,
@@ -292,6 +316,7 @@ func TestWatchLoopCancellationDuringWait(t *testing.T) {
 		done <- loop.Execute(ctx, tb.WorldState)
 	}()
 
+	// Cancel the waiting loop and verify it returns context cancellation.
 	recvWatchLoopEvent(t, events, "initial handler")
 	cancel()
 	select {
@@ -305,6 +330,7 @@ func TestWatchLoopCancellationDuringWait(t *testing.T) {
 }
 
 func TestWatchLoopSkipsCanceledShutdownWarning(t *testing.T) {
+	// Open the World testbed for cancellation warning checks.
 	ctx, cancel := context.WithCancel(t.Context())
 	tb, err := world_testbed.Default(ctx)
 	if err != nil {
@@ -312,6 +338,7 @@ func TestWatchLoopSkipsCanceledShutdownWarning(t *testing.T) {
 	}
 	t.Cleanup(tb.Release)
 
+	// Capture warnings while a handler returns wrapped cancellation.
 	logger, hook := test.NewNullLogger()
 	logger.SetLevel(logrus.WarnLevel)
 	loop := world_control.NewWatchLoop(
@@ -329,6 +356,7 @@ func TestWatchLoopSkipsCanceledShutdownWarning(t *testing.T) {
 		}),
 	)
 
+	// Verify shutdown preserves cancellation without emitting warnings.
 	if err := loop.Execute(ctx, tb.WorldState); !errors.Is(err, context.Canceled) {
 		t.Fatalf("Execute err = %v, want context.Canceled", err)
 	}
@@ -338,9 +366,11 @@ func TestWatchLoopSkipsCanceledShutdownWarning(t *testing.T) {
 }
 
 func TestWatchLoopSkipsUnhandledOperation(t *testing.T) {
+	// Open a remote World for unhandled operation responses.
 	ctx := t.Context()
 	ws := setupRemoteWorldState(ctx, t)
 
+	// Start a handler that encounters an unhandled remote World operation.
 	calls := make(chan int, 2)
 	count := 0
 	loop := world_control.NewWatchLoop(
@@ -370,6 +400,7 @@ func TestWatchLoopSkipsUnhandledOperation(t *testing.T) {
 		done <- loop.Execute(ctx, ws)
 	}()
 
+	// Wake the waiting loop and verify it continues after the unhandled operation.
 	recvWatchLoopValue(t, calls, "initial handler")
 	loop.Wake()
 	select {
@@ -383,11 +414,14 @@ func TestWatchLoopSkipsUnhandledOperation(t *testing.T) {
 }
 
 func setupRemoteWorldState(ctx context.Context, t *testing.T) world.WorldState {
+	// Mark remote World setup failures at the calling test.
 	t.Helper()
 
+	// Connect a resource testbed client and register its cleanup.
 	_, resClient, cleanup := resource_testbed.SetupTestbedWithClient(ctx, t)
 	t.Cleanup(cleanup)
 
+	// Create a remote World through the root resource RPC client.
 	rootRef := resClient.AccessRootResource()
 	t.Cleanup(rootRef.Release)
 	srpcClient, err := rootRef.GetClient()
@@ -400,6 +434,7 @@ func setupRemoteWorldState(ctx context.Context, t *testing.T) world.WorldState {
 		t.Fatal(err.Error())
 	}
 
+	// Acquire the remote World engine and register its cleanup.
 	engineRef := resClient.CreateResourceReference(createResp.ResourceId)
 	t.Cleanup(engineRef.Release)
 	engine, err := sdk_world_engine.NewSDKEngine(resClient, engineRef)
@@ -407,6 +442,8 @@ func setupRemoteWorldState(ctx context.Context, t *testing.T) world.WorldState {
 		t.Fatal(err.Error())
 	}
 	t.Cleanup(engine.Release)
+
+	// Open a writable World transaction and retain it through the test.
 	tx, err := engine.NewTransaction(ctx, true)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -477,9 +514,11 @@ func recvWatchLoopValue[T any](t *testing.T, ch <-chan T, name string) T {
 // per GetObject, so a loop that watched a busy object for minutes used to leave
 // one tracked handle behind per revision.
 func TestWatchLoopReleasesObjectStatePerIteration(t *testing.T) {
+	// Bound the object-release watch lifetime and cancel it on test exit.
 	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
 
+	// Create the remote object whose handles the watch loop acquires.
 	remote := setupRemoteWorldState(ctx, t)
 	objKey := "release-object"
 	obj, err := remote.CreateObject(ctx, objKey, nil)
@@ -488,6 +527,7 @@ func TestWatchLoopReleasesObjectStatePerIteration(t *testing.T) {
 	}
 	defer world.ReleaseObjectState(obj)
 
+	// Start a watch loop over a World that counts outstanding object handles.
 	ws := &countingWorldState{WorldState: remote}
 	revs := make(chan uint64, 8)
 	loop := world_control.NewWatchLoop(
@@ -509,6 +549,7 @@ func TestWatchLoopReleasesObjectStatePerIteration(t *testing.T) {
 		done <- loop.Execute(ctx, ws)
 	}()
 
+	// Advance object revisions and verify each iteration releases its previous handle.
 	const revisions = 3
 	for i := 0; i <= revisions; i++ {
 		recvWatchLoopValue(t, revs, "handler call")
@@ -523,6 +564,7 @@ func TestWatchLoopReleasesObjectStatePerIteration(t *testing.T) {
 		}
 	}
 
+	// Cancel the watch loop and verify its goroutine exits.
 	cancel()
 	select {
 	case <-done:
@@ -530,6 +572,7 @@ func TestWatchLoopReleasesObjectStatePerIteration(t *testing.T) {
 		t.Fatal("watch loop did not exit")
 	}
 
+	// Verify the loop acquired object handles and released them all on exit.
 	if acquired := ws.acquired.Load(); acquired < revisions {
 		t.Fatalf("acquired object handles = %d, want at least %d", acquired, revisions)
 	}
@@ -548,6 +591,7 @@ type countingWorldState struct {
 }
 
 func (c *countingWorldState) GetObject(ctx context.Context, objKey string) (world.ObjectState, bool, error) {
+	// Acquire the object and count its outstanding handle when present.
 	obj, found, err := c.WorldState.GetObject(ctx, objKey)
 	if obj == nil {
 		return obj, found, err

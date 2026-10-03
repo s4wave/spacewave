@@ -19,6 +19,7 @@ import (
 func TestWatchLoopWakeAcceptsWrappedCancellation(t *testing.T) {
 	for _, key := range []string{"", "object"} {
 		t.Run("key="+key, func(t *testing.T) {
+			// Open a World testbed within the wake test deadline.
 			ctx, cancel := context.WithTimeout(t.Context(), 3*time.Second)
 			defer cancel()
 			tb, err := world_testbed.Default(ctx)
@@ -26,6 +27,8 @@ func TestWatchLoopWakeAcceptsWrappedCancellation(t *testing.T) {
 				t.Fatal(err)
 			}
 			t.Cleanup(tb.Release)
+
+			// Create the watched object for the keyed wait case.
 			if key != "" {
 				obj, err := tb.WorldState.CreateObject(ctx, key, nil)
 				world.ReleaseObjectState(obj)
@@ -33,6 +36,8 @@ func TestWatchLoopWakeAcceptsWrappedCancellation(t *testing.T) {
 					t.Fatal(err)
 				}
 			}
+
+			// Start a watch loop whose storage wait wraps cancellation.
 			state := &wrappedCancelWaitState{WorldState: tb.WorldState, entered: make(chan struct{}, 1)}
 			calls := 0
 			loop := world_control.NewWatchLoop(nil, key, func(context.Context, *logrus.Entry, world.WorldState, world.ObjectState, *bucket.ObjectRef, uint64) (bool, error) {
@@ -41,12 +46,18 @@ func TestWatchLoopWakeAcceptsWrappedCancellation(t *testing.T) {
 			})
 			done := make(chan error, 1)
 			go func() { done <- loop.Execute(ctx, state) }()
+
+			// Verify the watch loop enters its storage wait before waking it.
 			select {
 			case <-state.entered:
 			case <-ctx.Done():
 				t.Fatal("watch never waited")
 			}
+
+			// Wake the storage wait so the loop reconciles a second time.
 			loop.Wake()
+
+			// Verify wrapped cancellation preserves the second handler iteration.
 			select {
 			case err := <-done:
 				if err != nil || calls != 2 {

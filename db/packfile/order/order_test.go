@@ -36,17 +36,20 @@ func (g *testRefGraph) GetIncomingRefs(_ context.Context, node string) ([]string
 }
 
 func TestBlockRefsWalksObjectRoots(t *testing.T) {
+	// Create candidate block references for ordering.
 	ctx := context.Background()
 	rootA := testRef(t, "root-a")
 	childA := testRef(t, "child-a")
 	rootB := testRef(t, "root-b")
 	stray := testRef(t, "stray")
 
+	// Connect each object root to its available subtree.
 	graph := newTestRefGraph()
 	graph.add(block_gc.ObjectIRI("object-b"), block_gc.BlockIRI(rootB))
 	graph.add(block_gc.ObjectIRI("object-a"), block_gc.BlockIRI(rootA))
 	graph.add(block_gc.BlockIRI(rootA), block_gc.BlockIRI(childA))
 
+	// Order the candidates using the available reference graph.
 	ordered, err := BlockRefs(ctx, graph, []*block.BlockRef{
 		stray,
 		childA,
@@ -57,10 +60,12 @@ func TestBlockRefsWalksObjectRoots(t *testing.T) {
 		t.Fatalf("BlockRefs: %v", err)
 	}
 
+	// Verify object roots precede their children and unconnected blocks follow.
 	assertRefOrder(t, ordered, []*block.BlockRef{rootA, childA, rootB, stray})
 }
 
 func TestBlockRefsFallbackIsStable(t *testing.T) {
+	// Create candidate block references for ordering.
 	ctx := context.Background()
 	refs := []*block.BlockRef{
 		testRef(t, "zeta"),
@@ -68,11 +73,13 @@ func TestBlockRefsFallbackIsStable(t *testing.T) {
 		testRef(t, "middle"),
 	}
 
+	// Order the candidates using the available reference graph.
 	ordered, err := BlockRefs(ctx, nil, refs)
 	if err != nil {
 		t.Fatalf("BlockRefs: %v", err)
 	}
 
+	// Verify graph-free ordering follows sorted reference keys.
 	keys := refKeys(refs)
 	slices.Sort(keys)
 	if got := refKeys(ordered); !slices.Equal(got, keys) {

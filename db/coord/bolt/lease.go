@@ -55,10 +55,12 @@ func (l *lease) Refresh(ctx context.Context) (*coord.Snapshot, error) {
 }
 
 func (l *lease) Publish(ctx context.Context, event coord.Event) (*coord.Snapshot, error) {
+	// Validate the inner lease before publishing a bbolt event.
 	if _, err := l.inner.Refresh(ctx); err != nil {
 		return nil, err
 	}
 
+	// Attach the durable bbolt generation to the published event.
 	generation, durable := l.c.safeGeneration()
 	if durable {
 		if l.refreshed && generation != l.baseGeneration {
@@ -66,6 +68,8 @@ func (l *lease) Publish(ctx context.Context, event coord.Event) (*coord.Snapshot
 		}
 		event.Generation = generation
 	}
+
+	// Publish the event through the inner lease and retain its generation.
 	snapshot, err := l.inner.Publish(ctx, event)
 	if err != nil {
 		return nil, err
@@ -77,12 +81,15 @@ func (l *lease) Publish(ctx context.Context, event coord.Event) (*coord.Snapshot
 }
 
 func (l *lease) Release(ctx context.Context) error {
+	// Serialize lease release and preserve the first release result.
 	l.mtx.Lock()
 	defer l.mtx.Unlock()
 	if l.released {
 		return l.releaseErr
 	}
 	l.released = true
+
+	// Release the coordination lock and wake local write contenders.
 	if l.releaseCoordinationLock != nil {
 		l.releaseErr = l.releaseCoordinationLock()
 	}

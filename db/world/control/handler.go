@@ -55,6 +55,7 @@ func WaitForObjectRev(
 	objKey string,
 	rev uint64,
 ) (world.ObjectState, error) {
+	// Wait until the watched object reaches the requested revision.
 	var reached bool
 	lp := NewWatchLoop(
 		le,
@@ -73,6 +74,8 @@ func WaitForObjectRev(
 	if !reached {
 		return nil, nil
 	}
+
+	// Acquire a fresh object handle for the caller after the watch completes.
 	out, found, err := ws.GetObject(ctx, objKey)
 	if err != nil {
 		world.ReleaseObjectState(out)

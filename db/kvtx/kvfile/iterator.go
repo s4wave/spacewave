@@ -55,12 +55,15 @@ func (i *Iterator) Key() []byte {
 //
 // May cache the value between calls, copy if modifying.
 func (i *Iterator) Value() ([]byte, error) {
+	// Require a valid iterator position before reading its value.
 	if !i.Valid() {
 		return nil, i.Err()
 	}
 	if i.val != nil {
 		return *i.val, nil
 	}
+
+	// Load the current index entry when the iterator has not cached it.
 	if i.entry == nil {
 		entry, err := i.rdr.ReadIndexEntry(uint64(i.idx)) //nolint:gosec
 		if err != nil {
@@ -68,6 +71,8 @@ func (i *Iterator) Value() ([]byte, error) {
 		}
 		i.entry = entry
 	}
+
+	// Read and cache the value for the current index entry.
 	val, err := i.rdr.GetWithEntry(i.entry, i.idx)
 	if err != nil {
 		return nil, err
@@ -92,14 +97,19 @@ func (i *Iterator) ValueCopy(bt []byte) ([]byte, error) {
 
 // Next advances to the next entry and returns Valid.
 func (i *Iterator) Next() bool {
+	// Stop advancing an iterator that has already failed.
 	if err := i.Err(); err != nil {
 		return false
 	}
+
+	// Detect an empty kvfile before selecting its next entry.
 	size := i.rdr.Size()
 	if size == 0 {
 		i.oob = true
 		return false
 	}
+
+	// Select the initial matching entry or advance in the configured direction.
 	i.entry, i.val = nil, nil
 	if i.end {
 		i.end = false
@@ -148,6 +158,7 @@ func (i *Iterator) Next() bool {
 // Seek moves the iterator to the selected key or the next key after the key if not found.
 // Pass nil to seek to the beginning (or end if reversed).
 func (i *Iterator) Seek(k []byte) error {
+	// Clear the previous iterator position and handle a seek to the beginning.
 	i.entry, i.val, i.err = nil, nil, nil
 	if len(k) == 0 {
 		i.end = true

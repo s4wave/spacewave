@@ -74,6 +74,7 @@ func (c *Controller) HandleDirective(ctx context.Context, di directive.Instance)
 
 // GetBlockFromService looks up a block from the http service.
 func (c *Controller) GetBlockFromService(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {
+	// Build the S3 service request for the block reference.
 	reqURL, err := c.conf.ParseURL()
 	if err != nil {
 		return nil, false, err
@@ -83,21 +84,28 @@ func (c *Controller) GetBlockFromService(ctx context.Context, ref *block.BlockRe
 	if err != nil {
 		return nil, false, err
 	}
+
+	// Request the block and retain the response body through decoding.
 	resp, err := httplog.DoRequest(c.le, c.client, req, c.conf.GetVerbose())
 	if err != nil {
 		return nil, false, err
 	}
 	defer resp.Body.Close()
+
+	// Read the S3 response body before classifying its status.
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, false, err
 	}
+
+	// Report the S3 service failure with its response details.
 	// unexpected error
 	if resp.StatusCode == 500 {
 		err = errors.Errorf("service returned internal error: %s", strings.TrimSpace(string(respBody)))
 		return nil, false, err
 	}
 
+	// Classify the S3 response as block data, absence, or a request error.
 	var found bool
 	var data []byte
 	if resp.StatusCode == 200 {

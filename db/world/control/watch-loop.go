@@ -92,6 +92,7 @@ func ExecuteBusWatchLoop(
 	engineID string, write bool,
 	objLoop *WatchLoop,
 ) error {
+	// Run the watch loop against the bus engine and preserve cancellation.
 	busEngine := world.NewBusEngine(ctx, b, engineID)
 	ws := world.NewEngineWorldState(busEngine, true)
 	err := objLoop.Execute(ctx, ws)
@@ -123,6 +124,7 @@ func (w *watchLoopWakeState) Wake() {
 // beginWait registers a cancellable world wait, or reports a skipped wait when
 // a pending wake already arrived. The returned finish function unregisters.
 func (w *watchLoopWakeState) beginWait(ctx context.Context) (context.Context, func(), bool) {
+	// Consume a pending wake before registering a new World wait.
 	waitCtx, cancel := context.WithCancel(ctx)
 	w.mtx.Lock()
 	if w.pending {
@@ -131,6 +133,8 @@ func (w *watchLoopWakeState) beginWait(ctx context.Context) (context.Context, fu
 		cancel()
 		return waitCtx, func() {}, true
 	}
+
+	// Register the active World wait and provide its cleanup callback.
 	waiter := &watchLoopWaiter{cancel: cancel}
 	w.waiter = waiter
 	w.mtx.Unlock()

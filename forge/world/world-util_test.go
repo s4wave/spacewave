@@ -24,10 +24,12 @@ import (
 )
 
 func TestListKeypairObjectsLocalSDKParity(t *testing.T) {
+	// Connect the resource testbed for local and SDK traversal comparisons.
 	ctx := context.Background()
 	tb, resClient, cleanup := resource_testbed.SetupTestbedWithClient(ctx, t)
 	defer cleanup()
 
+	// Acquire the root resource RPC client for World creation.
 	rootRef := resClient.AccessRootResource()
 	defer rootRef.Release()
 	srpcClient, err := rootRef.GetClient()
@@ -35,6 +37,7 @@ func TestListKeypairObjectsLocalSDKParity(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// Create the World engine shared by local and SDK transactions.
 	const engineID = "forge-keypair-objects-parity"
 	testbedClient := s4wave_testbed.NewSRPCTestbedResourceServiceClient(srpcClient)
 	createResp, err := testbedClient.CreateWorld(ctx, &s4wave_testbed.CreateWorldRequest{EngineId: engineID})
@@ -42,6 +45,7 @@ func TestListKeypairObjectsLocalSDKParity(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// Acquire the SDK World engine and retain it through the parity check.
 	engineRef := resClient.CreateResourceReference(createResp.ResourceId)
 	sdkEngine, err := sdk_world_engine.NewSDKEngine(resClient, engineRef)
 	if err != nil {
@@ -50,6 +54,7 @@ func TestListKeypairObjectsLocalSDKParity(t *testing.T) {
 	}
 	defer sdkEngine.Release()
 
+	// Seed keypair-linked objects and commit them through the SDK.
 	writeTx, err := sdkEngine.NewTransaction(ctx, true)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -59,6 +64,7 @@ func TestListKeypairObjectsLocalSDKParity(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// Open a local read transaction on the shared World engine.
 	localEngine := world.NewBusEngine(ctx, tb.Bus, engineID)
 	defer localEngine.ClearContext()
 	localTx, err := localEngine.NewTransaction(ctx, false)
@@ -67,6 +73,7 @@ func TestListKeypairObjectsLocalSDKParity(t *testing.T) {
 	}
 	defer localTx.Discard()
 
+	// Verify the reference graph traversal returns all Forge object types.
 	keypairKeys := []string{"kp/beta", "kp/alpha"}
 	legacy, err := listKeypairObjectsCayley(ctx, localTx, keypairKeys...)
 	if err != nil {
@@ -84,6 +91,7 @@ func TestListKeypairObjectsLocalSDKParity(t *testing.T) {
 		t.Fatalf("unexpected legacy result: got %v, want %v", legacy, expected)
 	}
 
+	// Verify local keypair traversal matches the reference graph result.
 	local, err := forge_world.ListKeypairObjects(ctx, localTx, keypairKeys...)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -92,16 +100,21 @@ func TestListKeypairObjectsLocalSDKParity(t *testing.T) {
 		t.Fatalf("local result differs from legacy Cayley traversal: got %v, want %v", local, legacy)
 	}
 
+	// Open an SDK read transaction that counts graph and metadata requests.
 	readTx, err := sdkEngine.NewTransaction(ctx, false)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	defer readTx.Discard()
+
+	// Read the keypair-linked Forge objects through the SDK.
 	remote := &countingWorldState{WorldState: readTx}
 	remoteResult, err := forge_world.ListKeypairObjects(ctx, remote, keypairKeys...)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Verify SDK results match the reference with one graph and metadata batch.
 	if !slices.Equal(remoteResult, legacy) {
 		t.Fatalf("SDK result differs from local Cayley traversal: got %v, want %v", remoteResult, legacy)
 	}
@@ -115,6 +128,7 @@ func TestListKeypairObjectsLocalSDKParity(t *testing.T) {
 		t.Fatalf("expected one GetObjectMetadataBatch call, got %d", remote.getObjectMetadataBatchCalls)
 	}
 
+	// Verify the reference graph excludes non-Forge objects.
 	noMatchLegacy, err := listKeypairObjectsCayley(ctx, localTx, "kp/gamma")
 	if err != nil {
 		t.Fatal(err.Error())
@@ -122,6 +136,8 @@ func TestListKeypairObjectsLocalSDKParity(t *testing.T) {
 	if noMatchLegacy != nil {
 		t.Fatalf("expected nil legacy no-match result, got %v", noMatchLegacy)
 	}
+
+	// Verify local keypair traversal excludes non-Forge objects.
 	noMatchLocal, err := forge_world.ListKeypairObjects(ctx, localTx, "kp/gamma")
 	if err != nil {
 		t.Fatal(err.Error())
@@ -129,6 +145,8 @@ func TestListKeypairObjectsLocalSDKParity(t *testing.T) {
 	if noMatchLocal != nil {
 		t.Fatalf("expected nil local no-match result, got %v", noMatchLocal)
 	}
+
+	// Verify SDK keypair traversal excludes non-Forge objects without Cayley access.
 	noMatchRemote, err := forge_world.ListKeypairObjects(ctx, remote, "kp/gamma")
 	if err != nil {
 		t.Fatal(err.Error())
@@ -164,8 +182,10 @@ func (w *countingWorldState) GetObjectMetadataBatch(ctx context.Context, keys []
 }
 
 func seedKeypairObjects(t *testing.T, ctx context.Context, ws world.WorldState) {
+	// Mark fixture failures at the calling parity test.
 	t.Helper()
 
+	// Seed typed Forge objects and auxiliary keypair objects.
 	objects := []struct {
 		key    string
 		typeID string
@@ -200,6 +220,7 @@ func seedKeypairObjects(t *testing.T, ctx context.Context, ws world.WorldState) 
 		}
 	}
 
+	// Link Forge and non-Forge objects to the fixture keypairs.
 	links := [][2]string{
 		{"forge/worker", "kp/alpha"},
 		{"forge/task", "kp/beta"},

@@ -9,6 +9,7 @@ import (
 )
 
 func TestLookupWorldOpReconstructsClusterJobTransitions(t *testing.T) {
+	// Verify lookup reconstructs the cluster job start operation.
 	start, err := forge_world.LookupWorldOp(context.Background(), forge_cluster.ClusterStartJobOpId)
 	if err != nil {
 		t.Fatal(err)
@@ -17,6 +18,7 @@ func TestLookupWorldOpReconstructsClusterJobTransitions(t *testing.T) {
 		t.Fatalf("lookup %q returned %T", forge_cluster.ClusterStartJobOpId, start)
 	}
 
+	// Verify lookup reconstructs the cluster job completion operation.
 	complete, err := forge_world.LookupWorldOp(context.Background(), forge_cluster.ClusterCompleteJobOpId)
 	if err != nil {
 		t.Fatal(err)

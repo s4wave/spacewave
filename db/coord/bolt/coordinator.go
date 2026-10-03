@@ -113,6 +113,7 @@ func (c *Coordinator) TryAcquireWriteLease(ctx context.Context, scope coord.Scop
 		return nil, ok, err
 	}
 
+	// Acquire the cross-process write turn or release the local reservation.
 	releaseCoordinationLock, acquired, err := c.tryAcquireCoordinationLock()
 	if err != nil || !acquired {
 		_ = inner.Release(context.Background())

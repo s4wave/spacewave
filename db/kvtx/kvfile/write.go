@@ -72,13 +72,18 @@ func KvfileFromIterator(ctx context.Context, writer io.Writer, it kvtx.Iterator,
 			}
 		},
 		func(wr io.Writer, key []byte) (uint64, error) {
+			// Honor cancellation before reading the current kvfile value.
 			if err := ctx.Err(); err != nil {
 				return 0, context.Canceled
 			}
+
+			// Read the iterator value for the selected key.
 			val, err := it.Value()
 			if err != nil {
 				return 0, err
 			}
+
+			// Copy the selected value into the kvfile output buffer.
 			nw, err := io.CopyBuffer(wr, bytes.NewReader(val), buf)
 			if nw < 0 {
 				return 0, err

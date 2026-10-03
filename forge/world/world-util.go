@@ -31,6 +31,7 @@ var ForgeObjectTypeIDs = []string{
 // ListKeypairObjects lists all Forge objects linked to by the Keypair.
 // It returns the object keys in graph traversal order.
 func ListKeypairObjects(ctx context.Context, w world.WorldState, keypairKeys ...string) ([]string, error) {
+	// Traverse object-to-keypair links for the requested keypairs.
 	objKeys, err := world.CollectGraphPathStepWithKeys(
 		ctx,
 		w,
@@ -43,11 +44,13 @@ func ListKeypairObjects(ctx context.Context, w world.WorldState, keypairKeys ...
 		return nil, err
 	}
 
+	// Read linked object types in one metadata batch.
 	metadata, err := world_types.GetObjectMetadataBatch(ctx, w, objKeys)
 	if err != nil {
 		return nil, err
 	}
 
+	// Keep linked objects whose types belong to Forge.
 	var result []string
 	for _, md := range metadata {
 		if slices.Contains(ForgeObjectTypeIDs, md.TypeID) {

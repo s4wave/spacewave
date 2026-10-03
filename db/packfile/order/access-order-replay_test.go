@@ -10,6 +10,7 @@ import (
 )
 
 func TestReplayAccessOrderRecordPrioritizesProfileThenFallback(t *testing.T) {
+	// Create references for the access profile and fallback candidates.
 	ctx := context.Background()
 	profiledFirst := testRef(t, "profiled-first")
 	profiledSecond := testRef(t, "profiled-second")
@@ -17,10 +18,12 @@ func TestReplayAccessOrderRecordPrioritizesProfileThenFallback(t *testing.T) {
 	fallbackChild := testRef(t, "fallback-child")
 	staleRef := testRef(t, "stale-ref")
 
+	// Connect the fallback object root to its child block.
 	graph := newTestRefGraph()
 	graph.add(block_gc.ObjectIRI("fallback-object"), block_gc.BlockIRI(fallbackRoot))
 	graph.add(block_gc.BlockIRI(fallbackRoot), block_gc.BlockIRI(fallbackChild))
 
+	// Capture the profiled paths in their recorded access order.
 	record := testAccessOrderRecord(t, []*AccessOrderEntry{
 		{
 			Filesystem: AccessOrderFilesystem_ACCESS_ORDER_FILESYSTEM_DIST,
@@ -36,10 +39,14 @@ func TestReplayAccessOrderRecordPrioritizesProfileThenFallback(t *testing.T) {
 		},
 	})
 
+	// Resolve profile paths with shared, missing, and stale block references.
 	resolver := AccessOrderPathResolverFunc(func(_ context.Context, filesystem AccessOrderFilesystem, fpath string) ([]*block.BlockRef, bool, error) {
+		// Require profile lookups to use the distribution filesystem.
 		if filesystem != AccessOrderFilesystem_ACCESS_ORDER_FILESYSTEM_DIST {
 			t.Fatalf("filesystem = %s, want dist", filesystem)
 		}
+
+		// Return the recorded references for each distribution path.
 		switch fpath {
 		case "entrypoint.mjs":
 			return []*block.BlockRef{profiledFirst, staleRef}, true, nil
@@ -53,6 +60,7 @@ func TestReplayAccessOrderRecordPrioritizesProfileThenFallback(t *testing.T) {
 		}
 	})
 
+	// Replay the access profile over the available block candidates.
 	got, err := ReplayAccessOrderRecord(ctx, graph, AccessOrderManifestIdentityFromRecord(record), record, []*block.BlockRef{
 		fallbackChild,
 		profiledSecond,
@@ -63,6 +71,7 @@ func TestReplayAccessOrderRecordPrioritizesProfileThenFallback(t *testing.T) {
 		t.Fatalf("ReplayAccessOrderRecord: %v", err)
 	}
 
+	// Verify replay order and the reported stale or missing profile entries.
 	assertRefOrder(t, got.Refs, []*block.BlockRef{profiledFirst, profiledSecond, fallbackRoot, fallbackChild})
 	if !got.StaleRecord {
 		t.Fatal("StaleRecord = false, want true for missing path and missing ref")
@@ -77,10 +86,12 @@ func TestReplayAccessOrderRecordPrioritizesProfileThenFallback(t *testing.T) {
 }
 
 func TestReplayAccessOrderRecordMissingRefsDoNotMakeRecordStale(t *testing.T) {
+	// Create references for the access profile and fallback candidates.
 	ctx := context.Background()
 	present := testRef(t, "present-profiled")
 	absent := testRef(t, "already-published")
 
+	// Capture the profiled paths in their recorded access order.
 	record := testAccessOrderRecord(t, []*AccessOrderEntry{
 		{
 			Filesystem:   AccessOrderFilesystem_ACCESS_ORDER_FILESYSTEM_DIST,
@@ -89,11 +100,13 @@ func TestReplayAccessOrderRecordMissingRefsDoNotMakeRecordStale(t *testing.T) {
 		},
 	})
 
+	// Replay the access profile over the available block candidates.
 	got, err := ReplayAccessOrderRecord(ctx, newTestRefGraph(), AccessOrderManifestIdentityFromRecord(record), record, []*block.BlockRef{present}, nil)
 	if err != nil {
 		t.Fatalf("ReplayAccessOrderRecord: %v", err)
 	}
 
+	// Verify replay order and the reported stale or missing profile entries.
 	assertRefOrder(t, got.Refs, []*block.BlockRef{present})
 	if got.StaleRecord {
 		t.Fatal("StaleRecord = true, want false for refs outside the candidate set")
@@ -102,15 +115,18 @@ func TestReplayAccessOrderRecordMissingRefsDoNotMakeRecordStale(t *testing.T) {
 }
 
 func TestReplayAccessOrderRecordStaleMetadataUsesFallbackOrder(t *testing.T) {
+	// Create references for the access profile and fallback candidates.
 	ctx := context.Background()
 	root := testRef(t, "stale-fallback-root")
 	child := testRef(t, "stale-fallback-child")
 	profiled := testRef(t, "stale-profiled")
 
+	// Connect the fallback object root to its child block.
 	graph := newTestRefGraph()
 	graph.add(block_gc.ObjectIRI("fallback-object"), block_gc.BlockIRI(root))
 	graph.add(block_gc.BlockIRI(root), block_gc.BlockIRI(child))
 
+	// Capture the profiled paths in their recorded access order.
 	record := testAccessOrderRecord(t, []*AccessOrderEntry{
 		{
 			Filesystem:   AccessOrderFilesystem_ACCESS_ORDER_FILESYSTEM_DIST,
@@ -121,11 +137,13 @@ func TestReplayAccessOrderRecordStaleMetadataUsesFallbackOrder(t *testing.T) {
 	staleIdentity := AccessOrderManifestIdentityFromRecord(record)
 	staleIdentity.ManifestRev++
 
+	// Replay the access profile over the available block candidates.
 	got, err := ReplayAccessOrderRecord(ctx, graph, staleIdentity, record, []*block.BlockRef{child, profiled, root}, nil)
 	if err != nil {
 		t.Fatalf("ReplayAccessOrderRecord: %v", err)
 	}
 
+	// Verify replay order and the reported stale or missing profile entries.
 	assertRefOrder(t, got.Refs, []*block.BlockRef{root, child, profiled})
 	if !got.StaleRecord {
 		t.Fatal("StaleRecord = false, want true for stale manifest identity")
@@ -142,6 +160,7 @@ func TestReplayAccessOrderRecordStaleMetadataUsesFallbackOrder(t *testing.T) {
 }
 
 func testAccessOrderRecord(t *testing.T, entries []*AccessOrderEntry) *AccessOrderRecord {
+	// Create a manifest record containing the supplied access entries.
 	t.Helper()
 	record := &AccessOrderRecord{
 		ManifestId:      "manifest-1",
@@ -151,8 +170,11 @@ func testAccessOrderRecord(t *testing.T, entries []*AccessOrderEntry) *AccessOrd
 		ManifestRev:     7,
 		Entries:         entries,
 	}
+
+	// Assign each access entry its position in the recorded sequence.
 	for i, entry := range record.Entries {
 		entry.Ordinal = uint64(i)
 	}
+
 	return record
 }

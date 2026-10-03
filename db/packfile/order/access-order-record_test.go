@@ -8,6 +8,7 @@ import (
 )
 
 func TestAccessOrderRecordBinaryRoundTripPreservesEntries(t *testing.T) {
+	// Create a record with duplicate paths and populated or empty references.
 	refA := testRef(t, "entry-a")
 	refB := testRef(t, "entry-b")
 	record := &AccessOrderRecord{
@@ -48,20 +49,25 @@ func TestAccessOrderRecordBinaryRoundTripPreservesEntries(t *testing.T) {
 		},
 	}
 
+	// Encode the access order record into a binary buffer.
 	var buf bytes.Buffer
 	if err := EncodeAccessOrderRecord(&buf, record); err != nil {
 		t.Fatalf("EncodeAccessOrderRecord: %v", err)
 	}
+
+	// Decode the binary record for entry comparisons.
 	got, err := DecodeAccessOrderRecord(bytes.NewReader(buf.Bytes()))
 	if err != nil {
 		t.Fatalf("DecodeAccessOrderRecord: %v", err)
 	}
 
+	// Verify the binary round trip preserved all access entries.
 	entries := got.GetEntries()
 	if len(entries) != 3 {
 		t.Fatalf("got %d entries, want 3", len(entries))
 	}
 
+	// Verify the first entry retained its path, position, and references.
 	if entries[0].GetPath() != "app/main.js" {
 		t.Fatalf("entry 0 path = %q, want app/main.js", entries[0].GetPath())
 	}
@@ -70,6 +76,7 @@ func TestAccessOrderRecordBinaryRoundTripPreservesEntries(t *testing.T) {
 	}
 	assertRefOrder(t, entries[0].GetResolvedRefs(), []*block.BlockRef{refA, refB})
 
+	// Verify the duplicate path retained its import reason and empty references.
 	if entries[1].GetPath() != "app/main.js" {
 		t.Fatalf("entry 1 path = %q, want duplicate app/main.js", entries[1].GetPath())
 	}
@@ -83,6 +90,7 @@ func TestAccessOrderRecordBinaryRoundTripPreservesEntries(t *testing.T) {
 		t.Fatalf("entry 1 resolved refs = %v, want none", refKeys(entries[1].GetResolvedRefs()))
 	}
 
+	// Verify the asset entry retained its filesystem and empty references.
 	if entries[2].GetPath() != "assets/logo.svg" {
 		t.Fatalf("entry 2 path = %q, want assets/logo.svg", entries[2].GetPath())
 	}
@@ -98,6 +106,7 @@ func TestAccessOrderRecordBinaryRoundTripPreservesEntries(t *testing.T) {
 }
 
 func TestAccessOrderManifestIdentityMatchesRecordMetadata(t *testing.T) {
+	// Create a record with the manifest metadata used for identity matching.
 	record := &AccessOrderRecord{
 		ManifestId:      "manifest-1",
 		PlatformId:      "darwin-arm64",
@@ -106,11 +115,13 @@ func TestAccessOrderManifestIdentityMatchesRecordMetadata(t *testing.T) {
 		ManifestRev:     7,
 	}
 
+	// Verify the record matches its own manifest identity.
 	identity := AccessOrderManifestIdentityFromRecord(record)
 	if !identity.MatchesRecord(record) {
 		t.Fatal("exact manifest identity did not match record")
 	}
 
+	// Prepare identities that differ in each manifest metadata field.
 	cases := []struct {
 		name     string
 		identity AccessOrderManifestIdentity
@@ -167,8 +178,10 @@ func TestAccessOrderManifestIdentityMatchesRecordMetadata(t *testing.T) {
 		},
 	}
 
+	// Verify every changed metadata field prevents an identity match.
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
+			// Reject the identity whose metadata differs from the record.
 			if tc.identity.MatchesRecord(record) {
 				t.Fatal("stale manifest identity matched record")
 			}
