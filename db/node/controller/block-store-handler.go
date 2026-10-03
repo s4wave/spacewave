@@ -20,12 +20,14 @@ func (r *blockStoreRefHandler) HandleValueAdded(
 	i directive.Instance,
 	av directive.AttachedValue,
 ) {
+	// Accept only block stores published by the lookup directive.
 	v, ok := av.GetValue().(block_store.Store)
 	if !ok {
 		r.c.le.Warn("ignoring invalid value for LookupBlockStore")
 		return
 	}
 
+	// Require a block-store identity before publishing it to loaded buckets.
 	blockStoreID := v.GetID()
 	if blockStoreID == "" {
 		// this should not happen
@@ -33,6 +35,7 @@ func (r *blockStoreRefHandler) HandleValueAdded(
 		return
 	}
 
+	// Register the block store and refresh every loaded bucket that can use it.
 	r.c.mtx.Lock()
 	if vb, ok := r.c.blockStores[blockStoreID]; !ok || vb != v {
 		r.c.le.WithField("block-store-id", blockStoreID).Debug("block store added")
@@ -51,6 +54,7 @@ func (r *blockStoreRefHandler) HandleValueRemoved(
 	i directive.Instance,
 	av directive.AttachedValue,
 ) {
+	// Identify the removed block store before changing loaded buckets.
 	v, ok := av.GetValue().(block_store.Store)
 	if !ok {
 		return
@@ -59,6 +63,8 @@ func (r *blockStoreRefHandler) HandleValueRemoved(
 	if blockStoreID == "" {
 		return
 	}
+
+	// Remove the matching block store and clear it from each loaded bucket.
 	r.c.mtx.Lock()
 	if vb, ok := r.c.blockStores[blockStoreID]; ok && vb == v {
 		r.c.le.WithField("block-store-id", blockStoreID).Debug("block store removed")

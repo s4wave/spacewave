@@ -12,11 +12,14 @@ import (
 )
 
 func TestBuildDesktopRuntimeStateFromListenerReachable(t *testing.T) {
+	// Project a listening socket with two connected CLI clients.
 	state := BuildDesktopRuntimeStateFromListener(resource_listener.ListenerStatus{
 		SocketPath:       "/run/spacewave.sock",
 		Listening:        true,
 		ConnectedClients: 2,
 	})
+
+	// Verify the runtime is healthy and running after its listener binds.
 	if state.GetStatusText() != "Running" {
 		t.Fatalf("status text = %q, want Running", state.GetStatusText())
 	}
@@ -26,6 +29,8 @@ func TestBuildDesktopRuntimeStateFromListenerReachable(t *testing.T) {
 	if state.GetLifecycle() != desktop_runtime.DesktopRuntimeLifecycle_DESKTOP_RUNTIME_LIFECYCLE_RUNNING {
 		t.Fatalf("lifecycle = %v, want running", state.GetLifecycle())
 	}
+
+	// Verify listener reachability includes the connected client count.
 	listener := state.GetListener()
 	if listener.GetReachability() != desktop_runtime.DesktopRuntimeReachability_DESKTOP_RUNTIME_REACHABILITY_REACHABLE {
 		t.Fatalf("listener reachability = %v, want reachable", listener.GetReachability())
@@ -50,15 +55,20 @@ func TestBuildDesktopRuntimeStateFromListenerReachableWithoutClientsStaysCompact
 }
 
 func TestBuildDesktopRuntimeStateFromListenerStarting(t *testing.T) {
+	// Project a configured socket whose listener has not yet bound.
 	state := BuildDesktopRuntimeStateFromListener(resource_listener.ListenerStatus{
 		SocketPath: "/run/spacewave.sock",
 	})
+
+	// Verify the runtime remains starting until the listener binds.
 	if state.GetStatusText() != "Starting" {
 		t.Fatalf("status text = %q, want Starting", state.GetStatusText())
 	}
 	if state.GetHealth() != desktop_runtime.DesktopRuntimeHealth_DESKTOP_RUNTIME_HEALTH_STARTING {
 		t.Fatalf("health = %v, want starting", state.GetHealth())
 	}
+
+	// Verify the listener retains its socket path while starting.
 	listener := state.GetListener()
 	if listener.GetReachability() != desktop_runtime.DesktopRuntimeReachability_DESKTOP_RUNTIME_REACHABILITY_STARTING {
 		t.Fatalf("listener reachability = %v, want starting", listener.GetReachability())
@@ -69,7 +79,10 @@ func TestBuildDesktopRuntimeStateFromListenerStarting(t *testing.T) {
 }
 
 func TestBuildDesktopRuntimeStateFromListenerDisconnected(t *testing.T) {
+	// Project a listener with no available socket.
 	state := BuildDesktopRuntimeStateFromListener(resource_listener.ListenerStatus{})
+
+	// Verify the runtime projects the disconnected lifecycle and health.
 	if state.GetStatusText() != "Disconnected" {
 		t.Fatalf("status text = %q, want Disconnected", state.GetStatusText())
 	}
@@ -79,6 +92,8 @@ func TestBuildDesktopRuntimeStateFromListenerDisconnected(t *testing.T) {
 	if state.GetLifecycle() != desktop_runtime.DesktopRuntimeLifecycle_DESKTOP_RUNTIME_LIFECYCLE_DISCONNECTED {
 		t.Fatalf("lifecycle = %v, want disconnected", state.GetLifecycle())
 	}
+
+	// Verify the unavailable listener has no projected navigation or activity.
 	listener := state.GetListener()
 	if listener.GetReachability() != desktop_runtime.DesktopRuntimeReachability_DESKTOP_RUNTIME_REACHABILITY_UNREACHABLE {
 		t.Fatalf("listener reachability = %v, want unreachable", listener.GetReachability())
@@ -185,6 +200,7 @@ func TestBuildDesktopTrayEntriesFromRuntimeStateRoutesSettingsToActiveSession(t 
 }
 
 func TestBuildDesktopTrayEntriesFromRuntimeStateOpensAppForUpdate(t *testing.T) {
+	// Project a reachable runtime with an update ready to install.
 	state := BuildDesktopRuntimeStateFromListener(resource_listener.ListenerStatus{
 		SocketPath: "/run/spacewave.sock",
 		Listening:  true,
@@ -195,6 +211,7 @@ func TestBuildDesktopTrayEntriesFromRuntimeStateOpensAppForUpdate(t *testing.T) 
 		Label:   "Update ready",
 	}
 
+	// Build the tray and verify the update action opens the app.
 	entries := BuildDesktopTrayEntriesFromRuntimeState(state)
 	entry := findTrayEntryByID(entries, "apply-update")
 	if entry == nil {
@@ -212,11 +229,13 @@ func TestBuildDesktopTrayEntriesFromRuntimeStateOpensAppForUpdate(t *testing.T) 
 }
 
 func TestBuildDesktopTrayEntriesFromRuntimeStateOrdersMenuSections(t *testing.T) {
+	// Project a reachable runtime for the default tray menu.
 	state := BuildDesktopRuntimeStateFromListener(resource_listener.ListenerStatus{
 		SocketPath: "/run/spacewave.sock",
 		Listening:  true,
 	})
 
+	// Build the tray and define its opening navigation rows.
 	entries := BuildDesktopTrayEntriesFromRuntimeState(state)
 	want := []string{
 		"Spacewave: Running",
@@ -224,6 +243,8 @@ func TestBuildDesktopTrayEntriesFromRuntimeStateOrdersMenuSections(t *testing.T)
 		"Open Spacewave",
 		"New Window",
 	}
+
+	// Verify tray navigation labels and order match the menu sequence.
 	for idx, label := range want {
 		if entries[idx].GetLabel() != label {
 			t.Fatalf("entry %d label = %q, want %q", idx, entries[idx].GetLabel(), label)
@@ -232,6 +253,8 @@ func TestBuildDesktopTrayEntriesFromRuntimeStateOrdersMenuSections(t *testing.T)
 			t.Fatalf("entry %d order = %d, want %d", idx, entries[idx].GetOrder(), idx)
 		}
 	}
+
+	// Verify the CLI socket path stays out of visible tray labels.
 	if hasTrayEntryLabel(entries, "/run/spacewave.sock") {
 		t.Fatalf("did not expect socket path in visible tray labels")
 	}
@@ -295,6 +318,7 @@ func TestBuildSessionProjectionSortsAndFlagsAuth(t *testing.T) {
 }
 
 func TestBuildSessionProjectionFlagsStepUp(t *testing.T) {
+	// Project a ready Session whose spaces require its credential.
 	projection := BuildSessionProjection([]*SessionProjectionRow{
 		{
 			Entry: testSessionEntry(7, "spacewave", "acct-7"),
@@ -310,12 +334,16 @@ func TestBuildSessionProjectionFlagsStepUp(t *testing.T) {
 			},
 		},
 	})
+
+	// Verify the Session reports the credential requirement.
 	if len(projection.Sessions) != 1 {
 		t.Fatalf("session rows = %d, want 1", len(projection.Sessions))
 	}
 	if projection.Sessions[0].GetStatusText() != "Unlock required" {
 		t.Fatalf("session status = %q, want unlock status", projection.Sessions[0].GetStatusText())
 	}
+
+	// Verify the attention item identifies the spaces and their Session route.
 	if len(projection.AttentionItems) != 1 {
 		t.Fatalf("attention items = %d, want 1", len(projection.AttentionItems))
 	}
@@ -380,12 +408,15 @@ func TestBuildSessionProjectionUsesSharedSelfEnrollmentProjection(t *testing.T) 
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			// Build a ready Session with the case's shared enrollment projection.
 			row := &SessionProjectionRow{
 				Entry:          testSessionEntry(1, "spacewave", "acct-1"),
 				Metadata:       &session.SessionMetadata{},
 				AccountStatus:  provider.ProviderAccountStatus_ProviderAccountStatus_READY,
 				SelfEnrollment: tt.projection,
 			}
+
+			// Project the Session and verify its enrollment status text.
 			projection := BuildSessionProjection([]*SessionProjectionRow{row})
 			if len(projection.Sessions) != 1 {
 				t.Fatalf("session rows = %d, want 1", len(projection.Sessions))
@@ -393,12 +424,16 @@ func TestBuildSessionProjectionUsesSharedSelfEnrollmentProjection(t *testing.T) 
 			if got := projection.Sessions[0].GetStatusText(); got != tt.wantStatus {
 				t.Fatalf("status = %q, want %q", got, tt.wantStatus)
 			}
+
+			// Verify enrollment states without a credential requirement add no attention.
 			if tt.wantAttentionKind == desktop_runtime.DesktopRuntimeAttentionKind_DESKTOP_RUNTIME_ATTENTION_KIND_UNSPECIFIED {
 				if len(projection.AttentionItems) != 0 {
 					t.Fatalf("attention items = %d, want 0", len(projection.AttentionItems))
 				}
 				return
 			}
+
+			// Verify credential-required enrollment adds the expected attention kind.
 			if len(projection.AttentionItems) != 1 {
 				t.Fatalf("attention items = %d, want 1", len(projection.AttentionItems))
 			}

@@ -32,13 +32,17 @@ type SessionProjectionRow struct {
 
 // BuildSessionProjection builds the desktop-visible Session projection.
 func BuildSessionProjection(rows []*SessionProjectionRow) *SessionProjection {
+	// Collect Session rows that have a list entry for navigation.
 	sorted := make([]*SessionProjectionRow, 0, len(rows))
 	for _, row := range rows {
 		if row != nil && row.Entry != nil {
 			sorted = append(sorted, row)
 		}
 	}
+
+	// Order Session rows by creation time and then by index.
 	slices.SortFunc(sorted, func(a, b *SessionProjectionRow) int {
+		// Prefer the newer Session when both creation times are known.
 		aTime := a.Metadata.GetCreatedAt()
 		bTime := b.Metadata.GetCreatedAt()
 		if aTime != 0 && bTime != 0 && aTime != bTime {
@@ -47,12 +51,16 @@ func BuildSessionProjection(rows []*SessionProjectionRow) *SessionProjection {
 			}
 			return 1
 		}
+
+		// Place Sessions with unknown creation times after dated Sessions.
 		if aTime != bTime {
 			if aTime == 0 {
 				return 1
 			}
 			return -1
 		}
+
+		// Break equal creation times by descending Session index.
 		aIdx := a.Entry.GetSessionIndex()
 		bIdx := b.Entry.GetSessionIndex()
 		if aIdx > bIdx {
@@ -64,6 +72,7 @@ func BuildSessionProjection(rows []*SessionProjectionRow) *SessionProjection {
 		return 0
 	})
 
+	// Build bounded Session navigation and collect all attention items.
 	out := &SessionProjection{
 		Sessions:       []*desktop_runtime.DesktopRuntimeNavigationItem{},
 		AttentionItems: []*desktop_runtime.DesktopRuntimeAttentionItem{},
@@ -115,6 +124,7 @@ func buildSessionAttentionItem(row *SessionProjectionRow) *desktop_runtime.Deskt
 
 // SessionLabel returns the user-visible label for a Session row.
 func SessionLabel(row *SessionProjectionRow) string {
+	// Prefer Session metadata labels before falling back to the index.
 	meta := row.Metadata
 	if meta.GetDisplayName() != "" {
 		return meta.GetDisplayName()
@@ -129,6 +139,7 @@ func SessionLabel(row *SessionProjectionRow) string {
 }
 
 func sessionDetail(row *SessionProjectionRow) string {
+	// Resolve the provider label from Session metadata or its resource reference.
 	meta := row.Metadata
 	providerLabel := meta.GetProviderDisplayName()
 	if providerLabel == "" {
@@ -137,12 +148,16 @@ func sessionDetail(row *SessionProjectionRow) string {
 	if providerLabel == "" {
 		providerLabel = providerLabelFromRef(row.Entry.GetSessionRef())
 	}
+
+	// Include a cloud entity when it adds information to the Session label.
 	if meta.GetCloudEntityId() != "" && meta.GetCloudEntityId() != SessionLabel(row) {
 		if providerLabel != "" {
 			return providerLabel + " - " + meta.GetCloudEntityId()
 		}
 		return meta.GetCloudEntityId()
 	}
+
+	// Use the provider label when the Session needs no cloud entity detail.
 	if providerLabel != "" {
 		return providerLabel
 	}

@@ -118,8 +118,10 @@ func (b *loadedBucket) execute(ctx context.Context) error {
 	var waitCh <-chan struct{}
 	b.blockStores.SetContext(ctx, true)
 
+	// Reconcile the loaded bucket whenever its configuration or stores change.
 	var lookupCtrCancel context.CancelFunc
 	for {
+		// Wait for bucket changes or stop the active lookup on cancellation.
 		var stDirty bool
 
 		if waitCh != nil {
@@ -135,6 +137,7 @@ func (b *loadedBucket) execute(ctx context.Context) error {
 
 		// Reconcile bucket configuration and available block-store handles.
 		b.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
+			// Refresh bucket information and clear a lookup bound to old configuration.
 			waitCh = getWaitCh()
 			if b.lastState == nil {
 				stDirty = true
@@ -150,6 +153,7 @@ func (b *loadedBucket) execute(ctx context.Context) error {
 				}
 			}
 
+			// Push the current block-store handles into the bucket lookup controller.
 			if b.bucketHandleSetDirty && b.lookupCtrlRef != nil {
 				vols := b.blockStores.GetKeysWithData()
 				handles := make([]bucket.BucketHandle, 0, len(vols))
@@ -244,6 +248,7 @@ func (b *loadedBucket) execLookupController(
 	ctx context.Context,
 	bc *bucket.Config,
 ) (err error) {
+	// Report lookup failures with the bucket configuration revision.
 	le := b.le.WithField("bucket-conf-rev", bc.GetRev())
 	defer func() {
 		if err != nil && err != context.Canceled {
@@ -261,6 +266,8 @@ func (b *loadedBucket) execLookupController(
 		}
 		c = cc.GetDefaultLookup()
 	}
+
+	// Resolve the configured lookup or construct the default bucket lookup.
 	var conf bucket_lookup.Config
 	if c.GetId() == "" {
 		conf = BuildDefaultLookupConfig()
@@ -278,16 +285,21 @@ func (b *loadedBucket) execLookupController(
 			)
 		}
 	}
+
+	// Bind the bucket configuration and establish the lookup controller context.
 	conf.SetBucketConf(bc)
 	le = le.WithField("config-id", conf.GetConfigID())
 	le.Debug("executing lookup controller")
 	subCtx, subCtxCancel := context.WithCancel(ctx)
 	defer subCtxCancel()
+
+	// Track lookup controller values until the directive is released.
 	var lastErr error
 	di, diRef, err := b.c.b.AddDirective(
 		resolver.NewLoadControllerWithConfig(conf),
 		bus.NewCallbackHandler(
 			func(av directive.AttachedValue) {
+				// Accept controller load results and report new lookup failures.
 				lv, ok := av.GetValue().(resolver.LoadControllerWithConfigValue)
 				if !ok {
 					return
@@ -299,6 +311,8 @@ func (b *loadedBucket) execLookupController(
 					}
 					b.le.WithError(lvErr).Warn("lookup controller failed")
 				}
+
+				// Publish the loaded lookup controller for the current bucket configuration.
 				lastErr = lvErr
 				var lc bucket_lookup.Controller
 				if lvErr == nil {
@@ -319,6 +333,7 @@ func (b *loadedBucket) execLookupController(
 					}
 				})
 			}, func(av directive.AttachedValue) {
+				// Identify the removed bucket lookup controller.
 				lv, ok := av.GetValue().(resolver.LoadControllerWithConfigValue)
 				if !ok {
 					return
@@ -327,6 +342,8 @@ func (b *loadedBucket) execLookupController(
 				if !ok || lc == nil {
 					return
 				}
+
+				// Clear the bucket lookup when its published controller is removed.
 				b.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
 					if b.lookupCtrlRef == lc {
 						b.le.Debug("lookup controller exited")
@@ -345,6 +362,7 @@ func (b *loadedBucket) execLookupController(
 	defer diRef.Release()
 	_ = di
 
+	// Retain the lookup directive until its controller context ends.
 	<-subCtx.Done()
 	return nil
 }

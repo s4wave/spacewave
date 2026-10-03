@@ -14,6 +14,7 @@ import (
 // ends when the bucket run that published the handle exits, instead of waiting
 // for a lookup that no run will provide.
 func TestBucketLookupHandleReleased(t *testing.T) {
+	// Construct a loaded bucket whose handle will outlive its tracking run.
 	ctx := t.Context()
 	c := &Controller{le: logrus.NewEntry(logrus.New()), cc: &Config{}}
 	_, lb := c.newLoadedBucket("test-bucket")
@@ -33,6 +34,7 @@ func TestBucketLookupHandleReleased(t *testing.T) {
 	}
 	h := newBucketLookupHandle(lb, st)
 
+	// Start a handle lookup and stop the bucket run while the lookup is waiting.
 	lookupErr := make(chan error, 1)
 	go func() {
 		_, err := h.GetLookup(ctx)
@@ -41,6 +43,7 @@ func TestBucketLookupHandleReleased(t *testing.T) {
 	cancelRun()
 	<-runErr
 
+	// Verify the released bucket ends its lookup wait and disposes the handle.
 	select {
 	case err := <-lookupErr:
 		if !errors.Is(err, bucket.ErrBucketNotFound) {

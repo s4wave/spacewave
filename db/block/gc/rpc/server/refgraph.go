@@ -55,10 +55,12 @@ func (s *RefGraph) ApplyRefBatch(
 	ctx context.Context,
 	req *block_gc_rpc.ApplyRefBatchRequest,
 ) (*block_gc_rpc.ApplyRefBatchResponse, error) {
+	// Require a reference graph before serving the RPC request.
 	if s.rg == nil {
 		return nil, errors.ErrUnsupported
 	}
 
+	// Apply the requested reference edges and preserve any uncompleted batch.
 	resp := &block_gc_rpc.ApplyRefBatchResponse{}
 	err := s.rg.ApplyRefBatch(
 		ctx,
@@ -68,6 +70,8 @@ func (s *RefGraph) ApplyRefBatch(
 	if err == nil {
 		return resp, nil
 	}
+
+	// Return the failed reference transition and its recoverable remainder.
 	resp.Error = err.Error()
 	adds, removes, ok := block_gc.RefBatchRemainder(err)
 	if ok {
@@ -83,10 +87,12 @@ func (s *RefGraph) RemoveNodeRefs(
 	ctx context.Context,
 	req *block_gc_rpc.RemoveNodeRefsRequest,
 ) (*block_gc_rpc.RemoveNodeRefsResponse, error) {
+	// Require a reference graph before serving the RPC request.
 	if s.rg == nil {
 		return nil, errors.ErrUnsupported
 	}
 
+	// Remove the node's outgoing references and encode its affected targets.
 	targets, err := s.rg.RemoveNodeRefs(ctx, req.GetNode(), req.GetMarkOrphaned())
 	resp := &block_gc_rpc.RemoveNodeRefsResponse{}
 	if err != nil {
@@ -102,10 +108,12 @@ func (s *RefGraph) HasIncomingRefs(
 	ctx context.Context,
 	req *block_gc_rpc.HasIncomingRefsRequest,
 ) (*block_gc_rpc.HasIncomingRefsResponse, error) {
+	// Require a reference graph before serving the RPC request.
 	if s.rg == nil {
 		return nil, errors.ErrUnsupported
 	}
 
+	// Query incoming references and encode whether the node is referenced.
 	hasRefs, err := s.rg.HasIncomingRefs(ctx, req.GetNode())
 	resp := &block_gc_rpc.HasIncomingRefsResponse{}
 	if err != nil {
@@ -121,10 +129,12 @@ func (s *RefGraph) GetOutgoingRefs(
 	ctx context.Context,
 	req *block_gc_rpc.GetOutgoingRefsRequest,
 ) (*block_gc_rpc.GetOutgoingRefsResponse, error) {
+	// Require a reference graph before serving the RPC request.
 	if s.rg == nil {
 		return nil, errors.ErrUnsupported
 	}
 
+	// Read the node's outgoing reference targets into the RPC response.
 	targets, err := s.rg.GetOutgoingRefs(ctx, req.GetNode())
 	resp := &block_gc_rpc.GetOutgoingRefsResponse{}
 	if err != nil {
@@ -140,10 +150,12 @@ func (s *RefGraph) GetIncomingRefs(
 	ctx context.Context,
 	req *block_gc_rpc.GetIncomingRefsRequest,
 ) (*block_gc_rpc.GetIncomingRefsResponse, error) {
+	// Require a reference graph before serving the RPC request.
 	if s.rg == nil {
 		return nil, errors.ErrUnsupported
 	}
 
+	// Read the node's incoming reference sources into the RPC response.
 	sources, err := s.rg.GetIncomingRefs(ctx, req.GetNode())
 	resp := &block_gc_rpc.GetIncomingRefsResponse{}
 	if err != nil {
@@ -159,10 +171,12 @@ func (s *RefGraph) GetUnreferencedNodes(
 	ctx context.Context,
 	req *block_gc_rpc.GetUnreferencedNodesRequest,
 ) (*block_gc_rpc.GetUnreferencedNodesResponse, error) {
+	// Require a reference graph before serving the RPC request.
 	if s.rg == nil {
 		return nil, errors.ErrUnsupported
 	}
 
+	// Read the unreferenced nodes into the RPC response.
 	nodes, err := s.rg.GetUnreferencedNodes(ctx)
 	resp := &block_gc_rpc.GetUnreferencedNodesResponse{}
 	if err != nil {

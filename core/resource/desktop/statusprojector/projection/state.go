@@ -80,6 +80,7 @@ func hasRunningActivity(items []*desktop_runtime.DesktopRuntimeActivityItem) boo
 }
 
 func buildDesktopRuntimeListenerStatus(status resource_listener.ListenerStatus) *desktop_runtime.DesktopRuntimeListenerStatus {
+	// Start the listener projection with its configured socket and client count.
 	out := &desktop_runtime.DesktopRuntimeListenerStatus{
 		Reachability:     desktop_runtime.DesktopRuntimeReachability_DESKTOP_RUNTIME_REACHABILITY_STARTING,
 		Label:            "CLI starting",
@@ -87,15 +88,21 @@ func buildDesktopRuntimeListenerStatus(status resource_listener.ListenerStatus) 
 		SocketPath:       status.SocketPath,
 		ConnectedClients: status.ConnectedClients,
 	}
+
+	// Project a bound listener as reachable with its connected client detail.
 	if status.Listening {
 		out.Reachability = desktop_runtime.DesktopRuntimeReachability_DESKTOP_RUNTIME_REACHABILITY_REACHABLE
 		out.Label = "CLI reachable"
 		out.Detail = listenerReachableDetail(status)
 		return out
 	}
+
+	// Keep the listener starting while its configured socket is not yet bound.
 	if status.SocketPath != "" {
 		return out
 	}
+
+	// Project an unavailable listener when it has no configured socket.
 	out.Reachability = desktop_runtime.DesktopRuntimeReachability_DESKTOP_RUNTIME_REACHABILITY_UNREACHABLE
 	out.Label = "CLI unavailable"
 	out.Detail = "Listener socket unavailable"

@@ -48,6 +48,7 @@ func buildHealthyTrayEntries(state *desktop_runtime.DesktopRuntimeState) []*desk
 }
 
 func buildAttentionTrayEntries(state *desktop_runtime.DesktopRuntimeState) []*desktop_tray.DesktopTrayEntry {
+	// Resolve the primary attention label and detail for the tray.
 	item := selectPrimaryAttentionItem(state.GetAttentionItems())
 	label := "Needs attention"
 	var detail string
@@ -55,6 +56,8 @@ func buildAttentionTrayEntries(state *desktop_runtime.DesktopRuntimeState) []*de
 		label = item.GetLabel()
 		detail = item.GetDetail()
 	}
+
+	// Show runtime health and the primary attention item at the top of the tray.
 	entries := []*desktop_tray.DesktopTrayEntry{
 		statusTrayEntryWithHints(
 			"title",
@@ -74,6 +77,8 @@ func buildAttentionTrayEntries(state *desktop_runtime.DesktopRuntimeState) []*de
 	if detail != "" {
 		entries = append(entries, statusTrayEntry("attention-detail", detail))
 	}
+
+	// Offer app navigation and an available update below the attention item.
 	entries = append(entries,
 		separatorTrayEntry("open-separator"),
 		actionTrayEntry("open", "Open Spacewave", desktop_tray.DesktopTrayActionKind_DESKTOP_TRAY_ACTION_KIND_OPEN_ROUTE, "", "", true),
@@ -85,6 +90,8 @@ func buildAttentionTrayEntries(state *desktop_runtime.DesktopRuntimeState) []*de
 			applyUpdateTrayEntry(state.GetUpdate()),
 		)
 	}
+
+	// Finish the attention tray with the process exit action.
 	entries = append(entries,
 		separatorTrayEntry("quit-separator"),
 		actionTrayEntry("quit", "Quit", desktop_tray.DesktopTrayActionKind_DESKTOP_TRAY_ACTION_KIND_QUIT, "", "", true),
@@ -152,6 +159,7 @@ func buildActivityTraySection(
 }
 
 func buildActionTraySection(state *desktop_runtime.DesktopRuntimeState) []*desktop_tray.DesktopTrayEntry {
+	// Collect update, diagnostic and runtime actions for the quick actions section.
 	actions := make([]*desktop_tray.DesktopTrayEntry, 0, len(state.GetActions())+3)
 	if state.GetUpdate().GetReady() {
 		actions = append(actions, applyUpdateTrayEntry(state.GetUpdate()))
@@ -172,6 +180,7 @@ func buildActionTraySection(state *desktop_runtime.DesktopRuntimeState) []*deskt
 		return nil
 	}
 
+	// Separate the available quick actions from the other tray sections.
 	entries := []*desktop_tray.DesktopTrayEntry{
 		separatorTrayEntry("quick-actions-separator"),
 		sectionTrayEntry("quick-actions-section", "Quick Actions"),
@@ -357,10 +366,13 @@ func orderedTrayEntries(entries []*desktop_tray.DesktopTrayEntry) []*desktop_tra
 }
 
 func joinTrayEntries(groups ...[]*desktop_tray.DesktopTrayEntry) []*desktop_tray.DesktopTrayEntry {
+	// Count tray entries across sections to allocate their combined list.
 	var total int
 	for _, group := range groups {
 		total += len(group)
 	}
+
+	// Join tray sections in their supplied menu order.
 	out := make([]*desktop_tray.DesktopTrayEntry, 0, total)
 	for _, group := range groups {
 		out = append(out, group...)
