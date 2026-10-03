@@ -97,7 +97,7 @@ func (b *ByteSlice) MarshalBlock() ([]byte, error) {
 // UnmarshalBlock unmarshals the block to the object.
 // This is the final step of decoding, after transformations.
 func (b *ByteSlice) UnmarshalBlock(data []byte) error {
-	if b != nil && b.sl != nil {
+	if b.sl != nil {
 		*b.sl = data
 	} else {
 		m := make([]byte, len(data))
