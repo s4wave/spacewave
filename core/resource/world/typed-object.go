@@ -202,15 +202,27 @@ func (r *TypedObjectResource) AccessTypedObject(ctx context.Context, req *s4wave
 		ref.Release()
 		return nil, world_types.ErrUnknownObjectType
 	}
-	if handle.err != nil {
+
+	// Dispose a removed handle even when cancellation prevents its routine from starting.
+	release := func() {
+		// Remove this Resource's demand from the shared keyed handle.
 		ref.Release()
+
+		// A replacement key retains a different handle and cannot own this result.
+		retained, _ := r.objects.GetKey(key)
+		if retained != handle {
+			handle.close()
+		}
+	}
+	if handle.err != nil {
+		release()
 		return nil, handle.err
 	}
 
 	// Register the typed-object resource and its release callback.
-	id, err := resourceCtx.AddResource(handle.invoker, ref.Release)
+	id, err := resourceCtx.AddResource(handle.invoker, release)
 	if err != nil {
-		ref.Release()
+		release()
 		return nil, err
 	}
 
@@ -305,15 +317,18 @@ func (r *TypedObjectResource) buildTypedObjectHandle(key typedObjectResourceKey)
 	if err != nil {
 		return nil, &typedObjectHandle{err: err}
 	}
-	if cleanup == nil {
-		cleanup = func() {}
-	}
 
-	// Retain the invoker until the mount releases its last typed handle.
+	// Keep canceled factory results for disposal without registering a child.
 	handle := &typedObjectHandle{
 		invoker: invoker,
 		cleanup: cleanup,
 	}
+	if err := ctx.Err(); err != nil {
+		handle.err = err
+		return nil, handle
+	}
+
+	// Retain the invoker until the mount or its last Resource reference is released.
 	routine := func(ctx context.Context) error {
 		// Release the invoker after its shared routine is canceled.
 		<-ctx.Done()
