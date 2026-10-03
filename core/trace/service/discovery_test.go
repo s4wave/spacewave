@@ -47,6 +47,7 @@ func setupPluginClients(
 	startPlugins []string,
 	pluginIDs []string,
 ) map[string]srpc.Client {
+	// Attribute native plugin setup failures to the calling test.
 	t.Helper()
 
 	// Retain compiler and subprocess diagnostics for startup failures.
@@ -65,6 +66,7 @@ func setupPluginClients(
 	pluginStateDir := filepath.Join(workDir, "plugin", "state")
 	pluginDistDir := filepath.Join(workDir, "plugin", "dist")
 
+	// Create plugin state directories and materialize the build sources.
 	if err := fsutil.CleanCreateDir(pluginStateDir); err != nil {
 		t.Fatal(err)
 	}
@@ -82,15 +84,20 @@ func setupPluginClients(
 	}
 	t.Cleanup(tb.Release)
 
+	// Register native plugin hosts on the testbed bus.
 	b := tb.GetBus()
 	sr := tb.GetStaticResolver()
 	sr.AddFactory(plugin_host_process.NewFactory(b))
 	sr.AddFactory(plugin_host_wazero_quickjs.NewFactory(b))
+
+	// Register the project and manifest compilers for plugin discovery.
 	sr.AddFactory(bldr_project_controller.NewFactory(b))
 	sr.AddFactory(bldr_manifest_builder_controller.NewFactory(b))
 	sr.AddFactory(bldr_plugin_compiler_go.NewFactory(b))
 	sr.AddFactory(bldr_plugin_compiler_js.NewFactory(b))
 	sr.AddFactory(bldr_web_bundler_vite_compiler.NewFactory(b))
+
+	// Register storage controllers for the native plugin testbed.
 	sr.AddFactory(volume_rpc_server.NewFactory(b))
 	sr.AddFactory(world_block_engine.NewFactory(b))
 
@@ -106,6 +113,7 @@ func setupPluginClients(
 	}
 	t.Cleanup(relPeerCtrl)
 
+	// Attach application object types for the plugin test lifetime.
 	objectTypeCtrl := objecttype_controller.NewController(space_world_objecttypes.LookupObjectType)
 	relObjectTypeCtrl, err := b.AddController(ctx, objectTypeCtrl, nil)
 	if err != nil {
@@ -125,6 +133,7 @@ func setupPluginClients(
 	}
 	t.Cleanup(processRef.Release)
 
+	// Start the QuickJS host for JavaScript plugin execution.
 	_, _, quickjsRef, err := loader.WaitExecControllerRunningTyped[*plugin_host_wazero_quickjs.Controller](
 		ctx,
 		b,
@@ -187,6 +196,7 @@ func setupPluginClients(
 
 // TestTraceServiceDiscovery discovers and streams a trace from the core plugin.
 func TestTraceServiceDiscovery(t *testing.T) {
+	// Require explicit opt-in before compiling native discovery plugins.
 	if os.Getenv("RUN_TRACE_E2E") == "" {
 		t.Skip("set RUN_TRACE_E2E=1 to run trace service discovery E2E tests")
 	}
@@ -197,6 +207,7 @@ func TestTraceServiceDiscovery(t *testing.T) {
 	pluginClient := clients[corePluginID]
 	traceClient := s4wave_trace.NewSRPCTraceServiceClient(pluginClient)
 
+	// Start trace recording through the discovered core plugin client.
 	_, err := traceClient.StartTrace(ctx, &s4wave_trace.StartTraceRequest{Label: "discovery"})
 	if err != nil {
 		t.Fatal(err)
@@ -208,6 +219,7 @@ func TestTraceServiceDiscovery(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Count every response chunk in the discovered trace stream.
 	var chunkCount int
 	for {
 		msg, err := stopStrm.Recv()
@@ -223,6 +235,7 @@ func TestTraceServiceDiscovery(t *testing.T) {
 		chunkCount++
 	}
 
+	// Require the discovered core plugin to return trace bytes.
 	if chunkCount == 0 {
 		t.Fatal("expected at least one trace response chunk")
 	}
@@ -246,18 +259,22 @@ func TestTraceServiceAllPlugins(t *testing.T) {
 	// Verify that each provider independently returns a complete trace stream.
 	for _, pluginID := range []string{corePluginID, debugPluginID} {
 		t.Run(pluginID, func(t *testing.T) {
+			// Connect a trace client to this native plugin provider.
 			traceClient := s4wave_trace.NewSRPCTraceServiceClient(clients[pluginID])
 
+			// Start runtime recording in this native plugin provider.
 			_, err := traceClient.StartTrace(ctx, &s4wave_trace.StartTraceRequest{Label: pluginID})
 			if err != nil {
 				t.Fatal(err)
 			}
 
+			// Stop this provider's recording and open its trace stream.
 			stopStrm, err := traceClient.StopTrace(ctx, &s4wave_trace.StopTraceRequest{})
 			if err != nil {
 				t.Fatal(err)
 			}
 
+			// Count every response chunk returned by this native provider.
 			var chunkCount int
 			for {
 				msg, err := stopStrm.Recv()
@@ -273,6 +290,7 @@ func TestTraceServiceAllPlugins(t *testing.T) {
 				chunkCount++
 			}
 
+			// Require this native provider to return trace bytes.
 			if chunkCount == 0 {
 				t.Fatal("expected at least one trace response chunk")
 			}

@@ -13,12 +13,14 @@ type webPkgResolver struct {
 }
 
 func (r *webPkgResolver) Resolve(ctx context.Context, handler directive.ResolverHandler) error {
+	// Retain the web package tracker for the resolver lifetime.
 	ref, data, err := r.c.addWebPkgRef(r.key)
 	if err != nil {
 		return err
 	}
 	defer r.c.releaseWebPkgRef(ref)
 
+	// Build the directive value from the resolved package tracker.
 	val, err := r.buildValue(ctx, data)
 	if err != nil {
 		return err
@@ -27,11 +29,13 @@ func (r *webPkgResolver) Resolve(ctx context.Context, handler directive.Resolver
 		return nil
 	}
 
+	// Publish the web package value if the directive accepts it.
 	_, accepted := handler.AddValue(val)
 	if !accepted {
 		return nil
 	}
 
+	// Retain the published web package value until the resolver is canceled.
 	handler.MarkIdle(true)
 	<-ctx.Done()
 	handler.ClearValues()

@@ -10,6 +10,7 @@ import (
 )
 
 func TestCloseJoinsPostExecuteTrackerWork(t *testing.T) {
+	// Start the controller before adding tracker work outside Execute.
 	ctrl, err := NewController(logrus.NewEntry(logrus.New()), nil, NewConfig("", []string{"pkg"}))
 	if err != nil {
 		t.Fatal(err)
@@ -18,11 +19,13 @@ func TestCloseJoinsPostExecuteTrackerWork(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Create a package tracker whose shutdown waits for an explicit release.
 	started := make(chan struct{})
 	release := make(chan struct{})
 	stopped := make(chan struct{})
 	ctrl.webPkgs = keyed.NewKeyedRefCount(func(string) (keyed.Routine, *webPkgTracker) {
 		return ctrl.routines.Wrap(func(ctx context.Context) error {
+			// Signal tracker startup and retain its work until cancellation and release.
 			close(started)
 			<-ctx.Done()
 			<-release
@@ -38,6 +41,7 @@ func TestCloseJoinsPostExecuteTrackerWork(t *testing.T) {
 		t.Fatal("web-package tracker did not start")
 	}
 
+	// Require controller shutdown to wait for the blocked package tracker.
 	closeDone := make(chan struct{})
 	go func() {
 		_ = ctrl.Close()
@@ -49,6 +53,7 @@ func TestCloseJoinsPostExecuteTrackerWork(t *testing.T) {
 	case <-time.After(100 * time.Millisecond):
 	}
 
+	// Release the tracker and verify controller shutdown completes before rejecting new references.
 	close(release)
 	select {
 	case <-closeDone:
@@ -69,12 +74,14 @@ func TestCloseJoinsPostExecuteTrackerWork(t *testing.T) {
 }
 
 func TestCloseReleasesDelayedTrackerRefs(t *testing.T) {
+	// Configure prolonged retention for the web package tracker.
 	ctrl, err := NewController(logrus.NewEntry(logrus.New()), nil, NewConfig("", []string{"pkg"}))
 	if err != nil {
 		t.Fatal(err)
 	}
 	ctrl.releaseDelay = time.Hour
 
+	// Release a package reference and verify the tracker remains retained.
 	ref, _, err := ctrl.addWebPkgRef("pkg")
 	if err != nil {
 		t.Fatal(err)
@@ -84,6 +91,7 @@ func TestCloseReleasesDelayedTrackerRefs(t *testing.T) {
 		t.Fatalf("expected delayed tracker retention, got keys %v", keys)
 	}
 
+	// Require controller shutdown to release every retained package tracker.
 	if err := ctrl.Close(); err != nil {
 		t.Fatal(err)
 	}

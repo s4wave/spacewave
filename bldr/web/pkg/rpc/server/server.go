@@ -23,6 +23,7 @@ type WebPkgServer struct {
 
 // NewWebPkgServer constructs a new web pkg server.
 func NewWebPkgServer(le *logrus.Entry, pkg web_pkg.WebPkg) *WebPkgServer {
+	// Expose the web package filesystem through a cursor service mux.
 	s := &WebPkgServer{le: le, pkg: pkg}
 	mux := srpc.NewMux()
 	rootFSCursor := unixfs.NewFSCursorGetter(func(ctx context.Context) (unixfs.FSCursor, error) {

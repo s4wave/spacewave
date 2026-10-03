@@ -147,13 +147,16 @@ func (s *blockingTraceStream) SendAndClose(resp *s4wave_trace.StopTraceResponse)
 }
 
 func newTestTraceClient(t *testing.T, impl s4wave_trace.SRPCTraceServiceServer) s4wave_trace.SRPCTraceServiceClient {
+	// Attribute trace client setup failures to the calling test.
 	t.Helper()
 
+	// Register the trace Service on an in-process RPC mux.
 	mux := srpc.NewMux()
 	if err := s4wave_trace.SRPCRegisterTraceService(mux, impl); err != nil {
 		t.Fatal(err)
 	}
 
+	// Connect the trace client to its in-process RPC server.
 	server := srpc.NewServer(mux)
 	client := srpc.NewClient(srpc.NewServerPipe(server))
 	return s4wave_trace.NewSRPCTraceServiceClient(client)
@@ -167,26 +170,32 @@ func skipTraceServiceStreamingOnJS(t *testing.T) {
 }
 
 func TestTraceServiceSinglePlugin(t *testing.T) {
+	// Require a runtime that supports streaming trace calls.
 	skipTraceServiceStreamingOnJS(t)
 
+	// Connect an RPC client to an isolated trace Service.
 	ctx := context.Background()
 	client := newTestTraceClient(t, NewService())
 
+	// Start runtime trace recording through the Service client.
 	_, err := client.StartTrace(ctx, &s4wave_trace.StartTraceRequest{Label: "single-plugin"})
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	// Record a task and region in the active runtime trace.
 	traceCtx, task := runtime_trace.NewTask(ctx, "single-plugin-work")
 	runtime_trace.Log(traceCtx, "phase", "single-plugin")
 	runtime_trace.StartRegion(traceCtx, "single-plugin-region").End()
 	task.End()
 
+	// Stop the runtime trace and open its response stream.
 	stopStrm, err := client.StopTrace(ctx, &s4wave_trace.StopTraceRequest{})
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	// Collect all bytes returned by the trace response stream.
 	var traceData []byte
 	for {
 		msg, err := stopStrm.Recv()
@@ -199,14 +208,17 @@ func TestTraceServiceSinglePlugin(t *testing.T) {
 		traceData = append(traceData, msg.GetData()...)
 	}
 
+	// Require the recorded task to produce trace bytes.
 	if len(traceData) == 0 {
 		t.Fatal("expected non-empty trace data")
 	}
 }
 
 func TestTraceServiceReplaceActive(t *testing.T) {
+	// Require a runtime that supports streaming trace calls.
 	skipTraceServiceStreamingOnJS(t)
 
+	// Connect an RPC client to the trace replacement Service.
 	ctx := context.Background()
 	client := newTestTraceClient(t, NewService())
 
@@ -233,6 +245,7 @@ func TestTraceServiceReplaceActive(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Collect all bytes returned by the replacement trace stream.
 	var traceData []byte
 	for {
 		msg, err := stopStrm.Recv()
@@ -245,18 +258,22 @@ func TestTraceServiceReplaceActive(t *testing.T) {
 		traceData = append(traceData, msg.GetData()...)
 	}
 
+	// Require the replacement trace to contain recorded bytes.
 	if len(traceData) == 0 {
 		t.Fatal("expected non-empty trace data from replaced trace")
 	}
 }
 
 func TestTraceServiceStopTraceOwnsStreamedBytes(t *testing.T) {
+	// Require a runtime that supports streaming trace calls.
 	skipTraceServiceStreamingOnJS(t)
 
+	// Bound the lifetime of the Service and its blocked trace stream.
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	service := NewService()
 
+	// Populate the first runtime trace with task events.
 	_, err := service.StartTrace(ctx, &s4wave_trace.StartTraceRequest{Label: "first"})
 	if err != nil {
 		t.Fatal(err)
@@ -267,6 +284,7 @@ func TestTraceServiceStopTraceOwnsStreamedBytes(t *testing.T) {
 	}
 	task.End()
 
+	// Block the first trace response while retaining its original bytes.
 	strm := newBlockingTraceStream(ctx)
 	defer func() {
 		select {
@@ -280,12 +298,14 @@ func TestTraceServiceStopTraceOwnsStreamedBytes(t *testing.T) {
 		errCh <- service.StopTrace(&s4wave_trace.StopTraceRequest{}, strm)
 	}()
 
+	// Wait until the first trace response is available for comparison.
 	select {
 	case <-strm.firstSent:
 	case <-ctx.Done():
 		t.Fatal(ctx.Err())
 	}
 
+	// Record a replacement trace while the first response remains blocked.
 	_, err = service.StartTrace(ctx, &s4wave_trace.StartTraceRequest{Label: "second"})
 	if err != nil {
 		t.Fatal(err)
@@ -296,15 +316,18 @@ func TestTraceServiceStopTraceOwnsStreamedBytes(t *testing.T) {
 	}
 	secondTask.End()
 
+	// Require the first response bytes to survive trace replacement.
 	if !bytes.Equal(strm.firstMsg, strm.firstCopy) {
 		t.Fatal("first streamed trace chunk mutated after starting replacement trace")
 	}
 
+	// Release the first trace response and require successful stream completion.
 	close(strm.release)
 	if err := <-errCh; err != nil {
 		t.Fatal(err)
 	}
 
+	// Drain the replacement trace through a Service RPC client.
 	drain := newTestTraceClient(t, service)
 	stopStrm, err := drain.StopTrace(ctx, &s4wave_trace.StopTraceRequest{})
 	if err != nil {
@@ -322,11 +345,14 @@ func TestTraceServiceStopTraceOwnsStreamedBytes(t *testing.T) {
 }
 
 func TestTraceServiceCaptureCPUProfile(t *testing.T) {
+	// Require a runtime that supports streaming profile calls.
 	skipTraceServiceStreamingOnJS(t)
 
+	// Connect an RPC client to an isolated profiling Service.
 	ctx := context.Background()
 	client := newTestTraceClient(t, NewService())
 
+	// Request a bounded CPU profile through the Service client.
 	strm, err := client.CaptureCPUProfile(ctx, &s4wave_trace.CaptureCPUProfileRequest{
 		DurationMillis: 100,
 		Label:          "cpu-profile-test",
@@ -335,6 +361,7 @@ func TestTraceServiceCaptureCPUProfile(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Collect all bytes returned by the CPU profile stream.
 	var profileData []byte
 	for {
 		msg, err := strm.Recv()
@@ -347,22 +374,26 @@ func TestTraceServiceCaptureCPUProfile(t *testing.T) {
 		profileData = append(profileData, msg.GetData()...)
 	}
 
+	// Require CPU capture to produce profile bytes.
 	if len(profileData) == 0 {
 		t.Fatal("expected non-empty CPU profile data")
 	}
 }
 
 func TestTraceServiceRejectsBusyCPUProfile(t *testing.T) {
+	// Model an existing CPU profile reservation in the Service.
 	service := NewService()
 	service.mtx.Lock()
 	service.profileBusy = true
 	service.mtx.Unlock()
 
+	// Require the Service to reject a second CPU capture.
 	err := service.CaptureCPUProfile(&s4wave_trace.CaptureCPUProfileRequest{DurationMillis: 1}, &testCPUProfileStream{})
 	if err == nil || !strings.Contains(err.Error(), "already active") {
 		t.Fatalf("expected busy CPU profile error, got %v", err)
 	}
 
+	// Verify that rejection preserves the existing CPU reservation.
 	service.mtx.Lock()
 	defer service.mtx.Unlock()
 	if !service.profileBusy {
@@ -372,15 +403,18 @@ func TestTraceServiceRejectsBusyCPUProfile(t *testing.T) {
 }
 
 func TestTraceServiceCPUProfileCancelClearsBusy(t *testing.T) {
+	// Prepare a canceled context for the Service CPU capture.
 	service := NewService()
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
+	// Require CPU capture to return the stream cancellation error.
 	err := service.CaptureCPUProfile(&s4wave_trace.CaptureCPUProfileRequest{DurationMillis: 1000}, &testCPUProfileStream{ctx: ctx})
 	if !errors.Is(err, context.Canceled) {
 		t.Fatalf("expected context canceled, got %v", err)
 	}
 
+	// Verify that cancellation releases the Service CPU reservation.
 	service.mtx.Lock()
 	busy := service.profileBusy
 	service.mtx.Unlock()
@@ -388,6 +422,7 @@ func TestTraceServiceCPUProfileCancelClearsBusy(t *testing.T) {
 		t.Fatal("canceled CPU profile left profileBusy set")
 	}
 
+	// Verify that a new CPU capture succeeds after cancellation.
 	strm := &testCPUProfileStream{}
 	if err := service.CaptureCPUProfile(&s4wave_trace.CaptureCPUProfileRequest{DurationMillis: 1}, strm); err != nil {
 		t.Fatal(err)
@@ -398,11 +433,14 @@ func TestTraceServiceCPUProfileCancelClearsBusy(t *testing.T) {
 }
 
 func TestTraceServiceCaptureMemoryProfile(t *testing.T) {
+	// Require a runtime that supports streaming profile calls.
 	skipTraceServiceStreamingOnJS(t)
 
+	// Connect an RPC client to an isolated memory profiling Service.
 	ctx := context.Background()
 	client := newTestTraceClient(t, NewService())
 
+	// Request the runtime allocation profile through the Service client.
 	strm, err := client.CaptureMemoryProfile(ctx, &s4wave_trace.CaptureMemoryProfileRequest{
 		Profile: "allocs",
 	})
@@ -410,6 +448,7 @@ func TestTraceServiceCaptureMemoryProfile(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Collect all bytes returned by the memory profile stream.
 	var profileData []byte
 	for {
 		msg, err := strm.Recv()
@@ -422,6 +461,7 @@ func TestTraceServiceCaptureMemoryProfile(t *testing.T) {
 		profileData = append(profileData, msg.GetData()...)
 	}
 
+	// Require memory capture to produce profile bytes.
 	if len(profileData) == 0 {
 		t.Fatal("expected non-empty memory profile data")
 	}

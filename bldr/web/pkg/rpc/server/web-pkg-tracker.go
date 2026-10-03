@@ -31,9 +31,9 @@ func (c *Controller) newWebPkgTracker(key string) (keyed.Routine, *webPkgTracker
 
 // execute executes the tracker.
 func (t *webPkgTracker) execute(ctx context.Context) error {
+	// Attach the tracked web package identity to its diagnostics.
 	webPkgID := t.webPkgID
 	le := t.c.le.WithField("web-pkg-id", webPkgID)
-
 	le.Debug("starting web pkg tracker")
 
 	// we need to resolve the web pkg to construct the server.
@@ -66,6 +66,7 @@ func (t *webPkgTracker) execute(ctx context.Context) error {
 		errCh <- nil
 	})
 
+	// Update the package server promise as lookup values and idle state arrive.
 	var val web_pkg.WebPkg
 	for {
 		select {

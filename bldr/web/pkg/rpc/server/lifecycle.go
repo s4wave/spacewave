@@ -8,6 +8,7 @@ import (
 )
 
 func (c *Controller) addWebPkgRef(key string) (*keyed.KeyedRef[string, *webPkgTracker], *webPkgTracker, error) {
+	// Acquire a web package reference while the controller accepts requests.
 	c.lifecycleMtx.Lock()
 	defer c.lifecycleMtx.Unlock()
 	if c.closed {
@@ -18,6 +19,7 @@ func (c *Controller) addWebPkgRef(key string) (*keyed.KeyedRef[string, *webPkgTr
 }
 
 func (c *Controller) releaseWebPkgRef(ref *keyed.KeyedRef[string, *webPkgTracker]) {
+	// Release the web package immediately when retention is disabled or shutdown has begun.
 	c.lifecycleMtx.Lock()
 	if c.closed || c.releaseDelay == 0 {
 		c.lifecycleMtx.Unlock()
@@ -25,8 +27,10 @@ func (c *Controller) releaseWebPkgRef(ref *keyed.KeyedRef[string, *webPkgTracker
 		return
 	}
 
+	// Retain the web package reference until its configured release deadline.
 	c.delayedWG.Add(1)
 	timer := time.AfterFunc(c.releaseDelay, func() {
+		// Release the retained package reference and complete its pending timer work.
 		defer c.delayedWG.Done()
 		c.lifecycleMtx.Lock()
 		delete(c.delayedReleases, ref)
@@ -38,6 +42,7 @@ func (c *Controller) releaseWebPkgRef(ref *keyed.KeyedRef[string, *webPkgTracker
 }
 
 func (c *Controller) stopDelayedReleases() {
+	// Cancel pending release timers and collect their web package references.
 	c.lifecycleMtx.Lock()
 	refs := make([]*keyed.KeyedRef[string, *webPkgTracker], 0, len(c.delayedReleases))
 	for ref, timer := range c.delayedReleases {
@@ -49,6 +54,7 @@ func (c *Controller) stopDelayedReleases() {
 	clear(c.delayedReleases)
 	c.lifecycleMtx.Unlock()
 
+	// Release the references detached from the controller retention map.
 	for _, ref := range refs {
 		ref.Release()
 	}
