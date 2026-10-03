@@ -76,11 +76,13 @@ func (ws *SDKWorldState) WaitSeqno(ctx context.Context, value uint64) (uint64, e
 
 // BuildStorageCursor builds a cursor to the world storage with an empty ref.
 func (ws *SDKWorldState) BuildStorageCursor(ctx context.Context) (*bucket_lookup.Cursor, error) {
+	// Request a storage cursor from the remote World state.
 	resp, err := ws.service.BuildStorageCursor(ctx, &s4wave_world.BuildStorageCursorRequest{})
 	if err != nil {
 		return nil, err
 	}
 
+	// Wrap the remote cursor resource and release it if construction fails.
 	ref := ws.client.CreateResourceReference(resp.GetResourceId())
 	cursor, err := s4wave_bucket_lookup.NewCursor(ctx, ref)
 	if err != nil {
@@ -102,10 +104,13 @@ func (ws *SDKWorldState) AccessWorldState(ctx context.Context, ref *bucket.Objec
 // OpenNestedWorld opens a typed outer object's immutable sub-World.
 // Release the returned state independently of this World state.
 func (ws *SDKWorldState) OpenNestedWorld(ctx context.Context, key string) (*SDKWorldState, error) {
+	// Open the immutable sub-World through its outer object.
 	resp, err := ws.service.OpenNestedWorld(ctx, &s4wave_world.OpenNestedWorldRequest{ObjectKey: key})
 	if err != nil {
 		return nil, err
 	}
+
+	// Wrap the nested World resource with an independent reference.
 	ref := ws.client.CreateResourceReference(resp.GetResourceId())
 	nested, err := NewSDKWorldState(ws.client, ref, true)
 	if err != nil {
@@ -118,6 +123,7 @@ func (ws *SDKWorldState) OpenNestedWorld(ctx context.Context, key string) (*SDKW
 // CreateObject creates an object with a key and initial root ref.
 // Returns ErrObjectExists if the object already exists.
 func (ws *SDKWorldState) CreateObject(ctx context.Context, key string, rootRef *bucket.ObjectRef) (world.ObjectState, error) {
+	// Create the remote World object with its initial root reference.
 	resp, err := ws.service.CreateObject(ctx, &s4wave_world.CreateObjectRequest{
 		ObjectKey: key,
 		RootRef:   rootRef,
@@ -126,6 +132,7 @@ func (ws *SDKWorldState) CreateObject(ctx context.Context, key string, rootRef *
 		return nil, err
 	}
 
+	// Wrap the created object resource and release it if construction fails.
 	objRef := ws.client.CreateResourceReference(resp.ResourceId)
 	obj, err := NewSDKObjectState(ws.client, objRef, resp.ObjectKey)
 	if err != nil {
@@ -138,15 +145,18 @@ func (ws *SDKWorldState) CreateObject(ctx context.Context, key string, rootRef *
 // GetObject looks up an object by key.
 // Returns nil, false if not found.
 func (ws *SDKWorldState) GetObject(ctx context.Context, key string) (world.ObjectState, bool, error) {
+	// Look up the object in the remote World state.
 	resp, err := ws.service.GetObject(ctx, &s4wave_world.GetObjectRequest{ObjectKey: key})
 	if err != nil {
 		return nil, false, err
 	}
 
+	// Return a missing-object result without acquiring a resource reference.
 	if !resp.Found {
 		return nil, false, nil
 	}
 
+	// Wrap the found object resource and release it if construction fails.
 	objRef := ws.client.CreateResourceReference(resp.ResourceId)
 	obj, err := NewSDKObjectState(ws.client, objRef, resp.ObjectKey)
 	if err != nil {
@@ -162,6 +172,7 @@ func (ws *SDKWorldState) GetObject(ctx context.Context, key string) (world.Objec
 // Must call Next() or Seek() before valid.
 // Call Close when done with the iterator.
 func (ws *SDKWorldState) IterateObjects(ctx context.Context, prefix string, reversed bool) world.ObjectIterator {
+	// Request a remote iterator over the matching World object keys.
 	resp, err := ws.service.IterateObjects(ctx, &s4wave_world.IterateObjectsRequest{
 		Prefix:   prefix,
 		Reversed: reversed,
@@ -170,6 +181,7 @@ func (ws *SDKWorldState) IterateObjects(ctx context.Context, prefix string, reve
 		return &SDKObjectIterator{ctx: ctx, err: err}
 	}
 
+	// Wrap the iterator resource and retain construction failures on the iterator.
 	iterRef := ws.client.CreateResourceReference(resp.ResourceId)
 	iter, iterErr := NewSDKObjectIterator(ctx, iterRef)
 	if iterErr != nil {
@@ -205,6 +217,7 @@ func (ws *SDKWorldState) ListObjects(
 
 // RenameObject renames an object key and updates associated graph quads.
 func (ws *SDKWorldState) RenameObject(ctx context.Context, oldKey, newKey string, descendants bool) (world.ObjectState, error) {
+	// Rename the remote World object and its associated graph quads.
 	resp, err := ws.service.RenameObject(ctx, &s4wave_world.RenameObjectRequest{
 		OldObjectKey: oldKey,
 		NewObjectKey: newKey,
@@ -214,6 +227,7 @@ func (ws *SDKWorldState) RenameObject(ctx context.Context, oldKey, newKey string
 		return nil, err
 	}
 
+	// Wrap the renamed object resource and release it if construction fails.
 	objRef := ws.client.CreateResourceReference(resp.ResourceId)
 	obj, err := NewSDKObjectState(ws.client, objRef, resp.ObjectKey)
 	if err != nil {
@@ -240,36 +254,45 @@ func (ws *SDKWorldState) AccessCayleyGraph(ctx context.Context, write bool, cb f
 
 // SetGraphQuad sets a quad in the graph store.
 func (ws *SDKWorldState) SetGraphQuad(ctx context.Context, q world.GraphQuad) error {
+	// Encode the World graph quad for the resource service.
 	protoQuad := &quad.Quad{
 		Subject:   q.GetSubject(),
 		Predicate: q.GetPredicate(),
 		Obj:       q.GetObj(),
 		Label:     q.GetLabel(),
 	}
+
+	// Store the encoded quad in the remote World graph.
 	_, err := ws.service.SetGraphQuad(ctx, &s4wave_world.SetGraphQuadRequest{Quad: protoQuad})
 	return err
 }
 
 // DeleteGraphQuad deletes a quad from the graph store.
 func (ws *SDKWorldState) DeleteGraphQuad(ctx context.Context, q world.GraphQuad) error {
+	// Encode the World graph quad for the resource service.
 	protoQuad := &quad.Quad{
 		Subject:   q.GetSubject(),
 		Predicate: q.GetPredicate(),
 		Obj:       q.GetObj(),
 		Label:     q.GetLabel(),
 	}
+
+	// Delete the encoded quad in the remote World graph.
 	_, err := ws.service.DeleteGraphQuad(ctx, &s4wave_world.DeleteGraphQuadRequest{Quad: protoQuad})
 	return err
 }
 
 // LookupGraphQuads searches for graph quads in the store.
 func (ws *SDKWorldState) LookupGraphQuads(ctx context.Context, filter world.GraphQuad, limit uint32) ([]world.GraphQuad, error) {
+	// Encode the graph filter for the resource service.
 	protoFilter := &quad.Quad{
 		Subject:   filter.GetSubject(),
 		Predicate: filter.GetPredicate(),
 		Obj:       filter.GetObj(),
 		Label:     filter.GetLabel(),
 	}
+
+	// Query the remote World graph with the encoded filter.
 	resp, err := ws.service.LookupGraphQuads(ctx, &s4wave_world.LookupGraphQuadsRequest{
 		Filter: protoFilter,
 		Limit:  limit,
@@ -278,6 +301,7 @@ func (ws *SDKWorldState) LookupGraphQuads(ctx context.Context, filter world.Grap
 		return nil, err
 	}
 
+	// Expose the returned quads through the World graph interface.
 	quads := make([]world.GraphQuad, len(resp.Quads))
 	for i, q := range resp.Quads {
 		quads[i] = q
@@ -287,6 +311,7 @@ func (ws *SDKWorldState) LookupGraphQuads(ctx context.Context, filter world.Grap
 
 // LookupGraphQuadsBatch searches for graph quads using bounded indexed filters.
 func (ws *SDKWorldState) LookupGraphQuadsBatch(ctx context.Context, filters []world.GraphQuad, limitPerFilter uint32) ([][]world.GraphQuad, error) {
+	// Encode each graph filter for the batch resource request.
 	protoFilters := make([]*quad.Quad, len(filters))
 	for i, filter := range filters {
 		protoFilters[i] = &quad.Quad{
@@ -297,6 +322,7 @@ func (ws *SDKWorldState) LookupGraphQuadsBatch(ctx context.Context, filters []wo
 		}
 	}
 
+	// Query the remote World graph with the bounded batch of filters.
 	resp, err := ws.service.LookupGraphQuadsBatch(ctx, &s4wave_world.LookupGraphQuadsBatchRequest{
 		Filters:        protoFilters,
 		LimitPerFilter: limitPerFilter,
@@ -305,12 +331,16 @@ func (ws *SDKWorldState) LookupGraphQuadsBatch(ctx context.Context, filters []wo
 		return nil, err
 	}
 
+	// Expose each result batch through the World graph interface.
 	results := make([][]world.GraphQuad, len(resp.GetResults()))
 	for i, result := range resp.GetResults() {
+		// Convert the quads returned for this graph filter.
 		quads := make([]world.GraphQuad, len(result.GetQuads()))
 		for j, q := range result.GetQuads() {
 			quads[j] = q
 		}
+
+		// Preserve the graph filter order in the batch results.
 		results[i] = quads
 	}
 	return results, nil
@@ -318,22 +348,29 @@ func (ws *SDKWorldState) LookupGraphQuadsBatch(ctx context.Context, filters []wo
 
 // ListGraphEdgeBuckets lists grouped inbound/outbound graph edge buckets.
 func (ws *SDKWorldState) ListGraphEdgeBuckets(ctx context.Context, query *world.GraphEdgeBucketQuery) ([]*world.GraphEdgeBucket, error) {
+	// Request grouped edge buckets from the remote World graph.
 	req := s4wave_world.GraphEdgeBucketQueryToProto(query)
 	resp, err := ws.service.ListGraphEdgeBuckets(ctx, req)
 	if err != nil {
 		return nil, err
 	}
 
+	// Convert the grouped edge buckets to World graph records.
 	buckets := make([]*world.GraphEdgeBucket, len(resp.GetBuckets()))
 	for i, bucket := range resp.GetBuckets() {
+		// Expose the outgoing bucket edges through the World graph interface.
 		outgoing := make([]world.GraphQuad, len(bucket.GetOutgoing()))
 		for j, q := range bucket.GetOutgoing() {
 			outgoing[j] = q
 		}
+
+		// Expose the incoming bucket edges through the World graph interface.
 		incoming := make([]world.GraphQuad, len(bucket.GetIncoming()))
 		for j, q := range bucket.GetIncoming() {
 			incoming[j] = q
 		}
+
+		// Retain the bucket origin and truncation flags with its converted edges.
 		buckets[i] = &world.GraphEdgeBucket{
 			OriginObjectKey:   bucket.GetOriginObjectKey(),
 			Outgoing:          outgoing,
@@ -358,6 +395,7 @@ func (ws *SDKWorldState) ListObjectsWithType(ctx context.Context, typeID string)
 
 // GetObjectRootRefsBatch returns root references for object keys.
 func (ws *SDKWorldState) GetObjectRootRefsBatch(ctx context.Context, keys []string) ([]*world.ObjectRootRef, error) {
+	// Request root references for the specified remote World objects.
 	resp, err := ws.service.GetObjectRootRefsBatch(ctx, &s4wave_world.GetObjectRootRefsBatchRequest{
 		ObjectKeys: keys,
 	})
@@ -365,6 +403,7 @@ func (ws *SDKWorldState) GetObjectRootRefsBatch(ctx context.Context, keys []stri
 		return nil, err
 	}
 
+	// Copy the remote object roots and revisions into World records.
 	refs := make([]*world.ObjectRootRef, len(resp.GetRootRefs()))
 	for i, ref := range resp.GetRootRefs() {
 		refs[i] = &world.ObjectRootRef{
@@ -419,15 +458,19 @@ func (ws *SDKWorldState) GetObjectBodiesBatch(ctx context.Context, keys []string
 
 // QueryGraphPath executes a bounded server-side graph path query.
 func (ws *SDKWorldState) QueryGraphPath(ctx context.Context, query *world.GraphPathQuery) (*world.GraphPathQueryResult, error) {
+	// Encode the bounded graph path query for the resource service.
 	req, err := s4wave_world.GraphPathQueryToProto(query)
 	if err != nil {
 		return nil, err
 	}
+
+	// Open the remote graph path query resource.
 	resp, err := ws.service.QueryGraphPath(ctx, req)
 	if err != nil {
 		return nil, err
 	}
 
+	// Acquire the graph query client and release its resource when collection ends.
 	ref := ws.client.CreateResourceReference(resp.GetResourceId())
 	defer ref.Release()
 	srpcClient, err := ref.GetClient()
@@ -437,16 +480,22 @@ func (ws *SDKWorldState) QueryGraphPath(ctx context.Context, query *world.GraphP
 	service := s4wave_world.NewSRPCGraphPathQueryResourceServiceClient(srpcClient)
 	defer service.Close(ctx, &s4wave_world.CloseGraphPathQueryRequest{})
 
+	// Collect graph path pages until the remote query is complete.
 	result := &world.GraphPathQueryResult{}
 	for {
+		// Read the next page from the graph query resource.
 		page, err := service.Next(ctx, &s4wave_world.NextGraphPathQueryRequest{})
 		if err != nil {
 			return nil, err
 		}
+
+		// Accumulate the page object keys and graph quads.
 		result.ObjectKeys = append(result.ObjectKeys, page.GetObjectKeys()...)
 		for _, q := range page.GetQuads() {
 			result.Quads = append(result.Quads, q)
 		}
+
+		// Return the collected graph path once the final page arrives.
 		if page.GetDone() {
 			return result, nil
 		}
@@ -463,11 +512,13 @@ func (ws *SDKWorldState) DeleteGraphObject(ctx context.Context, value string) er
 // The handling of the operation is operation-type specific.
 // Returns seqno, sysErr, err.
 func (ws *SDKWorldState) ApplyWorldOp(ctx context.Context, op world.Operation, sender peer.ID) (uint64, bool, error) {
+	// Encode the World operation for the resource service.
 	opData, err := op.MarshalBlock()
 	if err != nil {
 		return 0, false, err
 	}
 
+	// Apply the encoded operation to the remote World and return its outcome.
 	resp, err := ws.service.ApplyWorldOp(ctx, &s4wave_world.ApplyWorldOpRequest{
 		OpTypeId: op.GetOperationTypeId(),
 		OpData:   opData,

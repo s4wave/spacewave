@@ -13,6 +13,7 @@ import (
 )
 
 func TestAttachedResourceClientUsesAttachedResourceLifetime(t *testing.T) {
+	// Prepare an attached resource context with one registered RPC client.
 	ctx := context.Background()
 	srpcClient := srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(srpc.NewMux())))
 	resourceCtx := &attachedResourceTestContext{
@@ -21,9 +22,12 @@ func TestAttachedResourceClientUsesAttachedResourceLifetime(t *testing.T) {
 		releases:  make(map[uint32]int),
 	}
 
+	// Acquire a reference to the attached resource for the lifetime test.
 	client := sdk_world_engine.NewAttachedResourceClient(resourceCtx)
 	ref := client.CreateResourceReference(42)
 	defer ref.Release()
+
+	// Verify the attached reference exposes the registered resource and RPC client.
 	if ref.GetResourceID() != 42 {
 		t.Fatalf("resource id: got %d want 42", ref.GetResourceID())
 	}
@@ -35,11 +39,14 @@ func TestAttachedResourceClientUsesAttachedResourceLifetime(t *testing.T) {
 		t.Fatal("GetClient returned nil client")
 	}
 
+	// Release the attached reference concurrently to exercise its terminal transition.
 	var callers sync.WaitGroup
 	for range 32 {
 		callers.Go(ref.Release)
 	}
 	callers.Wait()
+
+	// Verify the resource is released once and rejects later client access.
 	if got := resourceCtx.releases[42]; got != 1 {
 		t.Fatalf("release count: got %d want 1", got)
 	}

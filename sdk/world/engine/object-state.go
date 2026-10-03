@@ -77,11 +77,13 @@ func (os *SDKObjectState) AccessWorldState(ctx context.Context, ref *bucket.Obje
 // ApplyObjectOp applies a batch operation at the object level.
 // Returns rev, sysErr, err.
 func (os *SDKObjectState) ApplyObjectOp(ctx context.Context, op world.Operation, sender peer.ID) (uint64, bool, error) {
+	// Encode the object operation for the resource service.
 	opData, err := op.MarshalBlock()
 	if err != nil {
 		return 0, false, err
 	}
 
+	// Apply the encoded operation to the remote object and return its outcome.
 	resp, err := os.service.ApplyObjectOp(ctx, &s4wave_world.ApplyObjectOpRequest{
 		OpTypeId: op.GetOperationTypeId(),
 		OpData:   opData,

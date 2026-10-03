@@ -20,11 +20,13 @@ type SDKTx struct {
 // NewSDKTx creates a new SDKTx wrapping a resource reference.
 // The reference must point to a TxResource on the server.
 func NewSDKTx(client ResourceClient, ref resource_client.ResourceRef, readOnly bool) (*SDKTx, error) {
+	// Wrap the transaction resource as a World state with its read-only setting.
 	ws, err := NewSDKWorldState(client, ref, readOnly)
 	if err != nil {
 		return nil, err
 	}
 
+	// Acquire the transaction client for commit and discard requests.
 	srpcClient, err := ref.GetClient()
 	if err != nil {
 		return nil, err
@@ -41,6 +43,7 @@ func (tx *SDKTx) CommitMutations(
 	ctx context.Context,
 	mutations []*s4wave_world.TransactionMutation,
 ) ([]*s4wave_world.TransactionMutationResult, error) {
+	// Commit the ordered mutations and release the finished transaction resource.
 	resp, err := tx.txService.CommitMutations(ctx, &s4wave_world.CommitMutationsRequest{Mutations: mutations})
 	tx.finished.Store(true)
 	tx.ref.Release()

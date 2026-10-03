@@ -39,12 +39,15 @@ func NewSDKObjectIterator(ctx context.Context, ref resource_client.ResourceRef) 
 
 // Err returns any error that has closed the iterator.
 func (it *SDKObjectIterator) Err() error {
+	// Return the retained iterator error when no remote query is needed.
 	if it.err != nil {
 		return it.err
 	}
 	if it.service == nil {
 		return it.err
 	}
+
+	// Read and retain the remote iterator error.
 	resp, err := it.service.Err(it.ctx, &s4wave_world.ErrRequest{})
 	if err != nil {
 		it.err = err
@@ -99,12 +102,15 @@ func (it *SDKObjectIterator) Next() bool {
 // Seek moves the iterator to the first key >= the provided key (or <= in reverse mode).
 // Pass empty string to seek to the beginning (or end if reversed).
 func (it *SDKObjectIterator) Seek(k string) error {
+	// Preserve the iterator error when seeking cannot use a remote service.
 	if it.err != nil {
 		return it.err
 	}
 	if it.service == nil {
 		return it.err
 	}
+
+	// Seek the remote iterator and retain any request error.
 	_, err := it.service.Seek(it.ctx, &s4wave_world.SeekRequest{ObjectKey: k})
 	if err != nil {
 		it.err = err

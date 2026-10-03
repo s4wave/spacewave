@@ -22,10 +22,13 @@ func NewAttachedResourceClient(resourceCtx resource_server.ResourceClientContext
 
 // NewAttachedEngine constructs an SDKEngine from an attached world engine resource id.
 func NewAttachedEngine(ctx context.Context, resourceID uint32) (*SDKEngine, error) {
+	// Require the resource request context for the attached World engine.
 	resourceCtx, err := resource_server.MustGetResourceClientContext(ctx)
 	if err != nil {
 		return nil, err
 	}
+
+	// Wrap the attached engine resource and release it if construction fails.
 	client := NewAttachedResourceClient(resourceCtx)
 	ref := client.CreateResourceReference(resourceID)
 	engine, err := NewSDKEngine(client, ref)

@@ -49,11 +49,13 @@ func (e *SDKEngine) Release() {
 // Always call Discard() when done with the transaction.
 // Note: Engine might return a read-only transaction even if write=true.
 func (e *SDKEngine) NewTransaction(ctx context.Context, write bool) (world.Tx, error) {
+	// Open a transaction against the remote World.
 	resp, err := e.service.NewTransaction(ctx, &s4wave_world.NewTransactionRequest{Write: write})
 	if err != nil {
 		return nil, err
 	}
 
+	// Wrap the transaction resource and release it if construction fails.
 	txRef := e.client.CreateResourceReference(resp.ResourceId)
 	tx, err := NewSDKTx(e.client, txRef, resp.ReadOnly)
 	if err != nil {
@@ -116,11 +118,13 @@ func (e *SDKEngine) WatchWorldRootSnapshots(ctx context.Context) (s4wave_world.S
 
 // BuildStorageCursor builds a cursor to the world storage with an empty ref.
 func (e *SDKEngine) BuildStorageCursor(ctx context.Context) (*bucket_lookup.Cursor, error) {
+	// Request a storage cursor from the remote World engine.
 	resp, err := e.service.BuildStorageCursor(ctx, &s4wave_world.BuildStorageCursorRequest{})
 	if err != nil {
 		return nil, err
 	}
 
+	// Wrap the cursor resource and release it if construction fails.
 	ref := e.client.CreateResourceReference(resp.GetResourceId())
 	cursor, err := s4wave_bucket_lookup.NewCursor(ctx, ref)
 	if err != nil {

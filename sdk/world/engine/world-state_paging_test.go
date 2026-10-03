@@ -44,6 +44,7 @@ func (c *objectBodiesBatchClient) Close() error {
 }
 
 func TestSDKWorldStateGetObjectBodiesBatchCollectsStreamedPages(t *testing.T) {
+	// Prepare object body pages containing a missing key and a repeated key.
 	service := &objectBodiesBatchService{
 		pages: []*s4wave_world.GetObjectBodiesBatchResponse{
 			{Bodies: []*s4wave_world.ObjectBody{{ObjectKey: "body/large", Body: []byte("12345"), Exists: true}}},
@@ -58,10 +59,13 @@ func TestSDKWorldStateGetObjectBodiesBatchCollectsStreamedPages(t *testing.T) {
 	ws := &SDKWorldState{service: service}
 	keys := []string{"body/large", "body/missing", "body/large"}
 
+	// Collect the object bodies through the World state batch API.
 	bodies, err := ws.GetObjectBodiesBatch(context.Background(), keys)
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Verify one batch request preserves object count, order, and missing-body markers.
 	if len(service.requests) != 1 {
 		t.Fatalf("request count = %d, want 1", len(service.requests))
 	}
