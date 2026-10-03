@@ -10,6 +10,7 @@ import (
 
 // putMockBlock stores a mock Example block and returns its ref.
 func putMockBlock(t *testing.T, ctx context.Context, store block.StoreOps, msg string) *block.BlockRef {
+	// Store the mock payload and return its block reference.
 	t.Helper()
 	ex := block_mock.NewExample(msg)
 	ref, _, err := block.PutBlock(ctx, store, ex)
@@ -44,15 +45,21 @@ func TestExtractBlockRefs_NoRefs(t *testing.T) {
 
 // TestExtractBlockRefs_DirectRefs tests a block with direct refs.
 func TestExtractBlockRefs_DirectRefs(t *testing.T) {
+	// Create a mock block store for reference extraction.
 	ctx := context.Background()
 	mockStore := block_mock.NewMockStore(0)
 
+	// Create a stored target and a block that references it.
 	target := putMockBlock(t, ctx, mockStore, "target")
 	sub := &block_mock.SubBlock{ExamplePtr: target}
+
+	// Extract direct references from the sub-block.
 	refs, err := block.ExtractBlockRefs(sub)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Verify extraction returns the expected target reference.
 	if len(refs) != 1 {
 		t.Fatalf("expected 1 ref from SubBlock, got %d", len(refs))
 	}
@@ -64,18 +71,23 @@ func TestExtractBlockRefs_DirectRefs(t *testing.T) {
 // TestExtractBlockRefs_SubBlockRefs tests recursive extraction through
 // BlockWithSubBlocks -> BlockWithRefs.
 func TestExtractBlockRefs_SubBlockRefs(t *testing.T) {
+	// Create a mock block store for reference extraction.
 	ctx := context.Background()
 	mockStore := block_mock.NewMockStore(0)
 
+	// Create a stored target and a block that references it.
 	target := putMockBlock(t, ctx, mockStore, "nested-target")
 	root := &block_mock.Root{
 		ExampleSubBlock: &block_mock.SubBlock{ExamplePtr: target},
 	}
 
+	// Extract references through the nested root block.
 	refs, err := block.ExtractBlockRefs(root)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Verify extraction returns the expected target reference.
 	if len(refs) != 1 {
 		t.Fatalf("expected 1 ref from Root with SubBlock, got %d", len(refs))
 	}

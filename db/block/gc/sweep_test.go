@@ -33,6 +33,7 @@ func noopSTW() (func(), error) {
 }
 
 func TestSweepCycleBasic(t *testing.T) {
+	// Create the sweep graph and deletion recorder.
 	g := newMockGraph()
 	target := &mockSweepTarget{}
 
@@ -43,6 +44,7 @@ func TestSweepCycleBasic(t *testing.T) {
 	g.addEdge("live", "child")
 	g.addNode("orphan")
 
+	// Configure the sweep with graph, deletion, and replay callbacks.
 	cfg := SweepConfig{
 		Graph:      g,
 		Target:     target,
@@ -50,13 +52,18 @@ func TestSweepCycleBasic(t *testing.T) {
 		AcquireSTW: noopSTW,
 	}
 
+	// Run the sweep against the prepared graph.
 	result, err := SweepCycle(context.Background(), cfg)
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Verify the sweep counts the orphan candidate and deletion.
 	if result.SweepCandidates != 1 {
 		t.Errorf("SweepCandidates = %d, want 1", result.SweepCandidates)
 	}
+
+	// Verify the sweep deletes the orphan without rescuing it.
 	if result.Swept != 1 {
 		t.Errorf("Swept = %d, want 1", result.Swept)
 	}
@@ -66,6 +73,7 @@ func TestSweepCycleBasic(t *testing.T) {
 }
 
 func TestSweepCycleTransitiveRescue(t *testing.T) {
+	// Create the sweep graph and deletion recorder.
 	g := newMockGraph()
 	target := &mockSweepTarget{}
 
@@ -80,14 +88,17 @@ func TestSweepCycleTransitiveRescue(t *testing.T) {
 	// Phase 2 WAL replay will add an edge making orphan-parent reachable.
 	phase2Called := false
 	replay := func(_ context.Context, graph CollectorGraph) (int, error) {
+		// Leave the graph unchanged during the first replay.
 		if !phase2Called {
 			phase2Called = true
 			return 0, nil
 		}
+
 		// Phase 2: root now references orphan-parent.
 		return 1, graph.AddRef(context.Background(), "root", "orphan-parent")
 	}
 
+	// Configure the sweep with graph, deletion, and replay callbacks.
 	cfg := SweepConfig{
 		Graph:      g,
 		Target:     target,
@@ -95,10 +106,12 @@ func TestSweepCycleTransitiveRescue(t *testing.T) {
 		AcquireSTW: noopSTW,
 	}
 
+	// Run the sweep against the prepared graph.
 	result, err := SweepCycle(context.Background(), cfg)
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	// Both orphan-parent and orphan-child should be rescued.
 	if result.Rescued != 2 {
 		t.Errorf("Rescued = %d, want 2", result.Rescued)
@@ -109,6 +122,7 @@ func TestSweepCycleTransitiveRescue(t *testing.T) {
 }
 
 func TestSweepCycleGraphCleanup(t *testing.T) {
+	// Create the sweep graph and deletion recorder.
 	g := newMockGraph()
 	target := &mockSweepTarget{}
 
@@ -118,6 +132,7 @@ func TestSweepCycleGraphCleanup(t *testing.T) {
 	g.addEdge("root", "live")
 	g.addEdge("orphan", "child")
 
+	// Configure the sweep with graph, deletion, and replay callbacks.
 	cfg := SweepConfig{
 		Graph:      g,
 		Target:     target,
@@ -125,10 +140,12 @@ func TestSweepCycleGraphCleanup(t *testing.T) {
 		AcquireSTW: noopSTW,
 	}
 
+	// Run the sweep against the prepared graph.
 	result, err := SweepCycle(context.Background(), cfg)
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	// Both orphan and child are unreachable (orphan has no incoming root
 	// edge, and child is only reachable from orphan). Both are swept.
 	if result.Swept != 2 {
@@ -149,12 +166,15 @@ func TestSweepCycleGraphCleanup(t *testing.T) {
 }
 
 func TestSweepCycleObjectDelete(t *testing.T) {
+	// Create the sweep graph and deletion recorder.
 	g := newMockGraph()
 	target := &mockSweepTarget{}
 
+	// Register the live root and stale object in the graph.
 	g.addRoot("root")
 	g.addNode("object:stale-key")
 
+	// Configure the sweep with graph, deletion, and replay callbacks.
 	cfg := SweepConfig{
 		Graph:      g,
 		Target:     target,
@@ -162,49 +182,64 @@ func TestSweepCycleObjectDelete(t *testing.T) {
 		AcquireSTW: noopSTW,
 	}
 
+	// Run the sweep against the prepared graph.
 	result, err := SweepCycle(context.Background(), cfg)
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Verify the sweep deletes the stale object.
 	if result.Swept != 1 {
 		t.Errorf("Swept = %d, want 1", result.Swept)
 	}
+
+	// Verify the deletion target receives the stale object.
 	if !slices.Contains(target.deletedObjects, "object:stale-key") {
 		t.Errorf("object not deleted: %v", target.deletedObjects)
 	}
 }
 
 func TestSweepCycleRemoveRootError(t *testing.T) {
+	// Create the sweep graph and deletion recorder.
 	g := newMockGraph()
 	target := &mockSweepTarget{}
 
+	// Prepare an orphan whose graph cleanup fails.
 	g.addNode("orphan")
 	g.removeRootErr = errors.New("remove root failed")
 
+	// Run the sweep with the injected graph cleanup failure.
 	_, err := SweepCycle(context.Background(), SweepConfig{
 		Graph:      g,
 		Target:     target,
 		ReplayWAL:  noopReplay,
 		AcquireSTW: noopSTW,
 	})
+
+	// Verify the sweep reports the injected cleanup failure.
 	if err == nil || !strings.Contains(err.Error(), "remove root") {
 		t.Fatalf("expected remove root error, got %v", err)
 	}
 }
 
 func TestSweepCycleRemoveNodeError(t *testing.T) {
+	// Create the sweep graph and deletion recorder.
 	g := newMockGraph()
 	target := &mockSweepTarget{}
 
+	// Prepare an orphan whose graph cleanup fails.
 	g.addNode("orphan")
 	g.removeNodeErr = errors.New("remove node failed")
 
+	// Run the sweep with the injected graph cleanup failure.
 	_, err := SweepCycle(context.Background(), SweepConfig{
 		Graph:      g,
 		Target:     target,
 		ReplayWAL:  noopReplay,
 		AcquireSTW: noopSTW,
 	})
+
+	// Verify the sweep reports the injected cleanup failure.
 	if err == nil || !strings.Contains(err.Error(), "remove node") {
 		t.Fatalf("expected remove node error, got %v", err)
 	}

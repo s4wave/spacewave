@@ -30,19 +30,25 @@ func TestNewRefGraphOpenCostIsIndependentOfEdgeCount(t *testing.T) {
 }
 
 func TestAddRefDuplicateDoesNotCommit(t *testing.T) {
+	// Open an empty reference graph to seed the measured workload.
 	ctx := context.Background()
 	store := store_kvtx_inmem.NewStore()
 	seed, err := NewRefGraph(ctx, store, []byte("gc/"))
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Seed the ownership edge used by the duplicate-cost check.
 	if err := seed.AddRef(ctx, "owner", "target"); err != nil {
 		t.Fatal(err)
 	}
+
+	// Close the seeded graph before reopening it for measurement.
 	if err := seed.Close(); err != nil {
 		t.Fatal(err)
 	}
 
+	// Reopen the seeded graph through a transaction-counting store.
 	counted := &countingStore{Store: store}
 	rg, err := NewRefGraph(ctx, counted, []byte("gc/"))
 	if err != nil {
@@ -50,16 +56,23 @@ func TestAddRefDuplicateDoesNotCommit(t *testing.T) {
 	}
 	defer rg.Close()
 
+	// Write the duplicate edge while counting commits.
 	before := counted.commits.Load()
 	if err := rg.AddRef(ctx, "owner", "target"); err != nil {
 		t.Fatal(err)
 	}
+
+	// Verify the duplicate edge causes no commit.
 	if got := counted.commits.Load(); got != before {
 		t.Fatalf("duplicate AddRef committed %d transaction(s)", got-before)
 	}
+
+	// Write a new edge to contrast its commit cost.
 	if err := rg.AddRef(ctx, "owner", "other-target"); err != nil {
 		t.Fatal(err)
 	}
+
+	// Verify the new edge commits a transaction.
 	if got := counted.commits.Load(); got <= before {
 		t.Fatal("new AddRef did not commit a transaction")
 	}
@@ -74,6 +87,7 @@ func TestAddRefDuplicateReadCostIsIndependentOfEdgeChurn(t *testing.T) {
 }
 
 func addRefDuplicateReadCostForChurn(t *testing.T, churn int) int64 {
+	// Open an empty reference graph to seed the measured workload.
 	t.Helper()
 	ctx := context.Background()
 	store := store_kvtx_inmem.NewStore()
@@ -81,6 +95,8 @@ func addRefDuplicateReadCostForChurn(t *testing.T, churn int) int64 {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Seed anchored source and target nodes before edge churn.
 	if err := seed.ApplyRefBatch(ctx, []RefEdge{
 		{Subject: "owner", Object: "owner-anchor"},
 		{Subject: "target-anchor", Object: "target"},
@@ -88,18 +104,26 @@ func addRefDuplicateReadCostForChurn(t *testing.T, churn int) int64 {
 	}, nil); err != nil {
 		t.Fatal(err)
 	}
+
+	// Remove and restore the target edge for each churn cycle.
 	for range churn {
+		// Remove the ownership edge during a churn cycle.
 		if err := seed.RemoveRef(ctx, "owner", "target"); err != nil {
 			t.Fatal(err)
 		}
+
+		// Restore the ownership edge during a churn cycle.
 		if err := seed.AddRef(ctx, "owner", "target"); err != nil {
 			t.Fatal(err)
 		}
 	}
+
+	// Close the seeded graph before reopening it for measurement.
 	if err := seed.Close(); err != nil {
 		t.Fatal(err)
 	}
 
+	// Reopen the seeded graph through a transaction-counting store.
 	counted := &countingStore{Store: store}
 	rg, err := NewRefGraph(ctx, counted, []byte("gc/"))
 	if err != nil {
@@ -107,6 +131,7 @@ func addRefDuplicateReadCostForChurn(t *testing.T, churn int) int64 {
 	}
 	defer rg.Close()
 
+	// Measure key reads for the new or duplicate edge.
 	before := counted.reads.Load()
 	if err := rg.AddRef(ctx, "owner", "target"); err != nil {
 		t.Fatal(err)
@@ -123,6 +148,7 @@ func TestAddRefNewEdgeReadCostIsIndependentOfTargetFanIn(t *testing.T) {
 }
 
 func TestHasRefRejectsSubjectIDPrefixCollision(t *testing.T) {
+	// Open an empty reference graph to seed the measured workload.
 	ctx := context.Background()
 	store := store_kvtx_inmem.NewStore()
 	rg, err := NewRefGraph(ctx, store, []byte("gc/"))
@@ -131,6 +157,7 @@ func TestHasRefRejectsSubjectIDPrefixCollision(t *testing.T) {
 	}
 	defer rg.Close()
 
+	// Seed graph nodes with potentially colliding subject ID prefixes.
 	const subjectCount = 256
 	edges := make([]RefEdge, subjectCount+1)
 	subjects := make([]string, subjectCount)
@@ -143,6 +170,7 @@ func TestHasRefRejectsSubjectIDPrefixCollision(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Resolve the graph node IDs used to construct prefix collisions.
 	qs, ok := graph.Unwrap(rg.handle.QuadStore).(*cayley_kv.QuadStore)
 	if !ok {
 		t.Fatalf("unexpected quad store %T", graph.Unwrap(rg.handle.QuadStore))
@@ -152,23 +180,34 @@ func TestHasRefRejectsSubjectIDPrefixCollision(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Find an absent edge whose subject ID prefix collides.
 	absent, collisions := findSubjectPrefixCollisions(ids, subjects, 1)
 	if absent == "" {
 		t.Fatal("fixture did not produce a subject ID prefix collision")
 	}
+
+	// Choose the existing collision edge for the absent-edge check.
 	existing := collisions[0]
 
+	// Write the collision edge that shares the absent edge prefix.
 	if err := rg.AddRef(ctx, existing, "target"); err != nil {
 		t.Fatal(err)
 	}
+
+	// Verify the exact absent-edge lookup result.
 	if found, err := rg.hasRef(ctx, absent, "target"); err != nil {
 		t.Fatal(err)
 	} else if found {
 		t.Fatalf("edge %q -> target matched existing edge %q -> target", absent, existing)
 	}
+
+	// Write the exact edge whose prefix previously collided.
 	if err := rg.AddRef(ctx, absent, "target"); err != nil {
 		t.Fatal(err)
 	}
+
+	// Verify the exact absent-edge lookup result.
 	if found, err := rg.hasRef(ctx, absent, "target"); err != nil {
 		t.Fatal(err)
 	} else if !found {
@@ -185,6 +224,7 @@ func TestAddRefAbsentEdgeReadCostIsIndependentOfDeletedPrefixCollisions(t *testi
 }
 
 func addRefReadCostForDeletedPrefixCollisions(t *testing.T, collisionCount int) int64 {
+	// Open an empty reference graph to seed the measured workload.
 	t.Helper()
 	ctx := context.Background()
 	store := store_kvtx_inmem.NewStore()
@@ -193,6 +233,7 @@ func addRefReadCostForDeletedPrefixCollisions(t *testing.T, collisionCount int) 
 		t.Fatal(err)
 	}
 
+	// Seed graph nodes with potentially colliding subject ID prefixes.
 	const subjectCount = 1024
 	edges := make([]RefEdge, subjectCount+1)
 	subjects := make([]string, subjectCount)
@@ -205,6 +246,7 @@ func addRefReadCostForDeletedPrefixCollisions(t *testing.T, collisionCount int) 
 		t.Fatal(err)
 	}
 
+	// Resolve the graph node IDs used to construct prefix collisions.
 	qs, ok := graph.Unwrap(seed.handle.QuadStore).(*cayley_kv.QuadStore)
 	if !ok {
 		t.Fatalf("unexpected quad store %T", graph.Unwrap(seed.handle.QuadStore))
@@ -214,10 +256,14 @@ func addRefReadCostForDeletedPrefixCollisions(t *testing.T, collisionCount int) 
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Find an absent edge whose subject ID prefix collides.
 	absent, collisions := findSubjectPrefixCollisions(ids, subjects, collisionCount)
 	if absent == "" {
 		t.Fatalf("fixture did not produce %d subject ID prefix collisions", collisionCount)
 	}
+
+	// Create and delete the colliding edges before measuring reads.
 	collisionEdges := make([]RefEdge, len(collisions))
 	for i, subject := range collisions {
 		collisionEdges[i] = RefEdge{Subject: subject, Object: "target"}
@@ -225,13 +271,18 @@ func addRefReadCostForDeletedPrefixCollisions(t *testing.T, collisionCount int) 
 	if err := seed.ApplyRefBatch(ctx, collisionEdges, nil); err != nil {
 		t.Fatal(err)
 	}
+
+	// Delete the collision edges while retaining their index history.
 	if err := seed.ApplyRefBatch(ctx, nil, collisionEdges); err != nil {
 		t.Fatal(err)
 	}
+
+	// Close the seeded graph before reopening it for measurement.
 	if err := seed.Close(); err != nil {
 		t.Fatal(err)
 	}
 
+	// Reopen the seeded graph through a transaction-counting store.
 	counted := &countingStore{Store: store}
 	rg, err := NewRefGraph(ctx, counted, []byte("gc/"))
 	if err != nil {
@@ -239,7 +290,10 @@ func addRefReadCostForDeletedPrefixCollisions(t *testing.T, collisionCount int) 
 	}
 	defer rg.Close()
 
+	// Measure key reads for the new or duplicate edge.
 	before := counted.reads.Load()
+
+	// Write the exact edge whose prefix previously collided.
 	if err := rg.AddRef(ctx, absent, "target"); err != nil {
 		t.Fatal(err)
 	}
@@ -251,13 +305,17 @@ func findSubjectPrefixCollisions(
 	subjects []string,
 	limit int,
 ) (string, []string) {
+	// Search reverse-index keys for distinct subject prefix collisions.
 	index := cayley_kv.DefaultQuadIndexes[1]
 	for _, candidate := range subjects {
+		// Find extensions sharing the candidate subject key prefix.
 		candidateKey := index.Key([]uint64{ids["target"], ids[PredGCRef], ids[candidate]})
 		collisions := make([]string, 0, limit)
 		for _, extension := range subjects {
+			// Compare the extension key and retain matching prefix collisions.
 			extensionKey := index.Key([]uint64{ids["target"], ids[PredGCRef], ids[extension]})
 			if extensionKey.Compare(candidateKey) != 0 && extensionKey.HasPrefix(candidateKey) {
+				// Retain prefix collisions until the requested count is reached.
 				collisions = append(collisions, extension)
 				if len(collisions) == limit {
 					return candidate, collisions
@@ -269,6 +327,7 @@ func findSubjectPrefixCollisions(
 }
 
 func addRefReadCostForTargetFanIn(t *testing.T, fanIn int) int64 {
+	// Open an empty reference graph to seed the measured workload.
 	t.Helper()
 	ctx := context.Background()
 	store := store_kvtx_inmem.NewStore()
@@ -276,6 +335,8 @@ func addRefReadCostForTargetFanIn(t *testing.T, fanIn int) int64 {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Seed the target fan-in and the prospective new owner.
 	edges := make([]RefEdge, fanIn+1)
 	for idx := range edges {
 		edges[idx] = RefEdge{
@@ -287,10 +348,13 @@ func addRefReadCostForTargetFanIn(t *testing.T, fanIn int) int64 {
 	if err := seed.ApplyRefBatch(ctx, edges, nil); err != nil {
 		t.Fatal(err)
 	}
+
+	// Close the seeded graph before reopening it for measurement.
 	if err := seed.Close(); err != nil {
 		t.Fatal(err)
 	}
 
+	// Reopen the seeded graph through a transaction-counting store.
 	counted := &countingStore{Store: store}
 	rg, err := NewRefGraph(ctx, counted, []byte("gc/"))
 	if err != nil {
@@ -298,6 +362,7 @@ func addRefReadCostForTargetFanIn(t *testing.T, fanIn int) int64 {
 	}
 	defer rg.Close()
 
+	// Measure key reads for the new or duplicate edge.
 	before := counted.reads.Load()
 	if err := rg.AddRef(ctx, "new-owner", "target"); err != nil {
 		t.Fatal(err)
@@ -309,13 +374,15 @@ func addRefReadCostForTargetFanIn(t *testing.T, fanIn int) int64 {
 // reports how many key reads a second RefGraph over that same store performs
 // while opening.
 func openCostForEdgeCount(t *testing.T, ctx context.Context, edgeCount int) int64 {
+	// Open an empty reference graph to seed the measured workload.
 	t.Helper()
-
 	store := store_kvtx_inmem.NewStore()
 	seed, err := NewRefGraph(ctx, store, []byte("gc/"))
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Seed the requested number of reference graph edges.
 	edges := make([]RefEdge, edgeCount)
 	for i := range edges {
 		edges[i] = RefEdge{
@@ -326,15 +393,20 @@ func openCostForEdgeCount(t *testing.T, ctx context.Context, edgeCount int) int6
 	if err := seed.ApplyRefBatch(ctx, edges, nil); err != nil {
 		t.Fatal(err)
 	}
+
+	// Close the seeded graph before reopening it for measurement.
 	if err := seed.Close(); err != nil {
 		t.Fatal(err)
 	}
 
+	// Reopen the seeded graph through a transaction-counting store.
 	counted := &countingStore{Store: store}
 	rg, err := NewRefGraph(ctx, counted, []byte("gc/"))
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Capture opening reads and register the reopened graph cleanup.
 	reads := counted.reads.Load()
 	t.Cleanup(func() { _ = rg.Close() })
 	return reads

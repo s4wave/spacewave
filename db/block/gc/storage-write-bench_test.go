@@ -18,26 +18,30 @@ const (
 )
 
 func BenchmarkDriveRatioWriteAtRootStorage(b *testing.B) {
+	// Prepare the block-write context and phase duration counters.
 	ctx := context.Background()
 	var writeAtRootDuration time.Duration
 	var flushPendingDuration time.Duration
 	var applyRefBatchDuration time.Duration
 	var cayleyTransactions int
 
+	// Measure root writes and allocations over fresh graph-backed stores.
 	b.ReportAllocs()
-
 	for i := 0; i < b.N; i++ {
+		// Prepare the graph-backed block transaction outside the sample.
 		b.StopTimer()
 		store, refGraph := newDriveRatioBenchmarkStore(b, ctx)
 		tx := newDriveRatioBenchmarkTransaction(store)
 		b.StartTimer()
 
+		// Measure the root transaction write duration.
 		start := time.Now()
 		if _, _, err := tx.Write(ctx, true); err != nil {
 			b.Fatal(err)
 		}
 		writeAtRootDuration += time.Since(start)
 
+		// Accumulate graph costs and close the fixture outside the sample.
 		b.StopTimer()
 		flushPendingDuration += store.flushDuration
 		applyRefBatchDuration += refGraph.applyRefBatchDuration
@@ -45,6 +49,7 @@ func BenchmarkDriveRatioWriteAtRootStorage(b *testing.B) {
 		refGraph.Close()
 	}
 
+	// Report write and graph mutation costs per operation.
 	ops := float64(b.N)
 	b.ReportMetric(float64(writeAtRootDuration.Microseconds())/ops, "write_at_root_us/op")
 	b.ReportMetric(float64(flushPendingDuration.Microseconds())/ops, "flush_pending_us/op")
@@ -58,14 +63,16 @@ func newDriveRatioBenchmarkStore(
 	b *testing.B,
 	ctx context.Context,
 ) (*driveRatioBenchmarkStore, *driveRatioBenchmarkRefGraph) {
+	// Open the reference graph over the in-memory block store.
 	b.Helper()
-
 	kvStore := store_kvtx_inmem.NewStore()
 	rawStore := block_store_kvtx.NewKVTxBlock(store_kvkey.NewDefaultKVKey(), kvStore, 0, false)
 	refGraph, err := NewRefGraph(ctx, kvStore, []byte("gc/"))
 	if err != nil {
 		b.Fatal(err)
 	}
+
+	// Wrap the graph and block store with phase timing.
 	timedGraph := &driveRatioBenchmarkRefGraph{RefGraph: refGraph}
 	return &driveRatioBenchmarkStore{GCStoreOps: NewGCStoreOps(rawStore, timedGraph)}, timedGraph
 }
@@ -122,6 +129,7 @@ type driveRatioBenchmarkStore struct {
 }
 
 func (s *driveRatioBenchmarkStore) EndDeferFlush(ctx context.Context) error {
+	// Measure the root transaction write duration.
 	start := time.Now()
 	err := s.GCStoreOps.EndDeferFlush(ctx)
 	s.flushDuration += time.Since(start)
@@ -136,8 +144,11 @@ type driveRatioBenchmarkRefGraph struct {
 }
 
 func (rg *driveRatioBenchmarkRefGraph) ApplyRefBatch(ctx context.Context, adds, removes []RefEdge) error {
+	// Measure the root transaction write duration.
 	start := time.Now()
 	err := rg.RefGraph.ApplyRefBatch(ctx, adds, removes)
+
+	// Accumulate graph mutation duration and transaction count.
 	rg.applyRefBatchDuration += time.Since(start)
 	rg.cayleyTransactions += refBatchTransactions(len(adds), len(removes))
 	return err

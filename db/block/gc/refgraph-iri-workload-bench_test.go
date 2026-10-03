@@ -18,7 +18,10 @@ import (
 // resolution across geometric exclusion sizes. Each leaf builds and seeds an
 // isolated graph before timing the private post-442 resolver owner.
 func BenchmarkResolveIRIRefKeysByExclusionSize(b *testing.B) {
+	// Prepare the context for all IRI lookup workloads.
 	ctx := context.Background()
+
+	// Compare IRI lookup workloads across both resolver paths.
 	for _, workload := range []string{"hit-only", "miss-only", "mixed", "duplicates"} {
 		for _, path := range []struct {
 			name     string
@@ -30,6 +33,7 @@ func BenchmarkResolveIRIRefKeysByExclusionSize(b *testing.B) {
 			for _, exclusionSize := range iriWorkloadExclusionSizes() {
 				name := workload + "/" + path.name + "/K=" + strconv.Itoa(exclusionSize)
 				b.Run(name, func(b *testing.B) {
+					// Seed and validate the isolated IRI workload before timing.
 					b.ReportAllocs()
 					b.StopTimer()
 					workload := newIRIWorkloadBenchmark(b, ctx, workload, exclusionSize, path.fallback)
@@ -37,33 +41,43 @@ func BenchmarkResolveIRIRefKeysByExclusionSize(b *testing.B) {
 						b.Fatal(err)
 					}
 
+					// Measure one untimed lookup heap profile.
 					heap := measureIRIWorkloadHeap(ctx, workload, path.fallback)
 					if heap.err != nil {
 						b.Fatal(heap.err)
 					}
 					b.ResetTimer()
 
+					// Measure resolver calls and collect lookup statistics.
 					var total iriLookupStats
 					for range b.N {
+						// Measure the resolver operation without validation overhead.
 						workload.store.reset()
 						b.StartTimer()
 						keys, err := workload.graph.resolveIRIRefKeys(ctx, workload.inputs)
 						b.StopTimer()
+
+						// Validate resolver keys and lookup accounting.
 						if err := validateIRIWorkloadResult(workload, keys, err, path.fallback); err != nil {
 							b.Fatal(err)
 						}
 						total.add(*workload.store.stats)
 					}
 
+					// Report the workload input size and hit distribution.
 					b.ReportMetric(float64(workload.exclusionSize), "input_K")
 					b.ReportMetric(float64(workload.uniqueInputs), "unique_inputs")
 					b.ReportMetric(float64(total.hits)/float64(b.N), "hits")
 					b.ReportMetric(float64(total.misses)/float64(b.N), "misses")
+
+					// Report resolver path usage and returned key counts.
 					b.ReportMetric(float64(total.batchCalls)/float64(b.N), "batch_calls")
 					b.ReportMetric(float64(total.fallbackCalls)/float64(b.N), "fallback_calls")
 					b.ReportMetric(float64(total.returnedKeys)/float64(b.N), "returned_keys")
 					b.ReportMetric(float64(total.lookupInputs)/float64(b.N), "lookup_inputs")
 					b.ReportMetric(float64(workload.exclusionSize-workload.uniqueInputs), "duplicate_inputs")
+
+					// Report the workload heap profile and measurement constraints.
 					heap.report(b)
 					b.Logf("source=private resolveIRIRefKeys; post-442 resident_iri_cache=absent; native_kv_zero_sentinel=preserved_and_measured; callsite=validated mandatory=%s; heap_sys=per-leaf baseline delta only, not cross-leaf comparable without subprocess isolation", NodeUnreferenced)
 				})
@@ -95,6 +109,7 @@ func newIRIWorkloadBenchmark(
 	exclusionSize int,
 	fallback bool,
 ) *iriWorkloadBenchmark {
+	// Open an isolated reference graph for the IRI workload.
 	b.Helper()
 	graph, err := NewRefGraph(ctx, store_kvtx_inmem.NewStore(), []byte("gc/"))
 	if err != nil {
@@ -106,6 +121,7 @@ func newIRIWorkloadBenchmark(
 		}
 	})
 
+	// Seed the graph with workload hits and fixed callsite edges.
 	inputs, hitNames, expectedHits := iriWorkloadInputs(workload, exclusionSize)
 	seed := make([]RefEdge, 0, len(hitNames)+2)
 	seed = append(seed,
@@ -123,26 +139,35 @@ func newIRIWorkloadBenchmark(
 	}
 	underlyingStore := graph.handle.QuadStore
 
+	// Resolve the distinct seeded IRI keys expected from the workload.
 	expectedKeys := make(map[any]struct{}, len(hitNames))
 	uniqueHitNames := make(map[string]struct{}, len(hitNames))
 	for _, iri := range hitNames {
+		// Skip IRI keys already represented in the expected set.
 		if _, ok := uniqueHitNames[iri]; ok {
 			continue
 		}
+
+		// Resolve and retain the expected key for a seeded IRI.
 		uniqueHitNames[iri] = struct{}{}
 		ref, err := underlyingStore.ValueOf(ctx, quad.IRI(iri))
 		if err != nil {
 			b.Fatalf("resolve expected IRI ref key %q: %v", iri, err)
 		}
+
+		// Require the seeded IRI to resolve before retaining its key.
 		if ref == nil {
 			b.Fatalf("seeded hit IRI %q resolved to nil", iri)
 		}
 		expectedKeys[refs.ToKey(ref)] = struct{}{}
 	}
+
+	// Include the native batch sentinel for missing IRIs.
 	if !fallback && exclusionSize > expectedHits {
 		expectedKeys[cayley_kv.Int64Value(0)] = struct{}{}
 	}
 
+	// Wrap the selected resolver path with lookup accounting.
 	stats := new(iriLookupStats)
 	base := &iriCountingStore{QuadStore: underlyingStore, stats: stats, expectedLookup: len(inputs)}
 	var store *iriCountingStore
@@ -153,6 +178,8 @@ func newIRIWorkloadBenchmark(
 		graph.handle.QuadStore = &iriBatchQuadStore{iriCountingStore: base}
 		store = base
 	}
+
+	// Count distinct workload inputs for benchmark reporting.
 	unique := make(map[string]struct{}, len(inputs))
 	for _, input := range inputs {
 		unique[input] = struct{}{}
@@ -172,6 +199,7 @@ func newIRIWorkloadBenchmark(
 }
 
 func iriWorkloadInputs(workload string, exclusionSize int) ([]string, []string, int) {
+	// Define the hit and miss IRI naming scheme.
 	hitName := func(i int) string {
 		return "iri-workload/hit/" + strconv.Itoa(i)
 	}
@@ -179,6 +207,7 @@ func iriWorkloadInputs(workload string, exclusionSize int) ([]string, []string, 
 		return "iri-workload/miss/" + strconv.Itoa(i)
 	}
 
+	// Build inputs and expected hits for the selected workload.
 	switch workload {
 	case "hit-only":
 		inputs := make([]string, exclusionSize)
@@ -224,6 +253,7 @@ func iriWorkloadInputs(workload string, exclusionSize int) ([]string, []string, 
 }
 
 func validateIRIWorkloadCallsite(ctx context.Context, workload *iriWorkloadBenchmark, fallback bool) error {
+	// Check the production callsite excludes its fixed owner.
 	workload.store.reset()
 	found, err := workload.graph.HasIncomingRefsExcluding(
 		ctx,
@@ -233,12 +263,18 @@ func validateIRIWorkloadCallsite(ctx context.Context, workload *iriWorkloadBench
 	if err != nil {
 		return err
 	}
+
+	// Verify the fixed target has no remaining incoming reference.
 	if found {
 		return errors.New("fixed candidate graph was not excluded")
 	}
+
+	// Verify callsite accounting includes the staging exclusion.
 	if workload.store.stats.lookupInputs < 2 || workload.store.stats.hits < 2 || workload.store.stats.misses != 0 {
 		return errors.New("callsite naming accounting did not include the mandatory unreferenced exclusion")
 	}
+
+	// Verify the callsite uses per-value lookup in fallback mode.
 	if fallback && workload.store.stats.fallbackCalls < 2 {
 		return errors.New(
 			"callsite did not exercise the per-value fallback: fallback=" +
@@ -246,6 +282,8 @@ func validateIRIWorkloadCallsite(ctx context.Context, workload *iriWorkloadBench
 				" inputs=" + strconv.Itoa(workload.store.stats.lookupInputs),
 		)
 	}
+
+	// Verify the callsite uses one native batch lookup.
 	if !fallback && workload.store.stats.batchCalls != 1 {
 		return errors.New("callsite did not exercise the native batch path")
 	}
@@ -286,15 +324,20 @@ func validateIRIWorkloadResult(
 	err error,
 	fallback bool,
 ) error {
+	// Propagate a failed resolver operation before checking its result.
 	if err != nil {
 		return err
 	}
+
+	// Verify lookup retains no resident IRI key cache.
 	if got := residentIRIRefKeyCount(workload.graph); got != 0 {
 		return errors.New("post-442 resolver retained " + strconv.Itoa(got) + " IRI ref keys")
 	}
 	if err := validateIRIWorkloadKeySet(workload.expectedKeys, keys); err != nil {
 		return err
 	}
+
+	// Record returned key cardinality for workload accounting.
 	workload.store.stats.returnedKeys = len(keys)
 	return workload.store.stats.assert(
 		workload.expectedHits,
@@ -309,11 +352,13 @@ func measureIRIWorkloadHeap(
 	workload *iriWorkloadBenchmark,
 	fallback bool,
 ) iriWorkloadHeapProbe {
+	// Capture the baseline heap before resolving workload inputs.
 	workload.store.reset()
 	runtime.GC()
 	var baseline runtime.MemStats
 	runtime.ReadMemStats(&baseline)
 
+	// Measure heap usage at the final lookup and resolver return.
 	var afterLookup runtime.MemStats
 	workload.store.afterLookupProbe = func() {
 		runtime.ReadMemStats(&afterLookup)
@@ -323,14 +368,20 @@ func measureIRIWorkloadHeap(
 	if err != nil {
 		return iriWorkloadHeapProbe{err: err}
 	}
+
+	// Measure the returned and post-collection heap sizes.
 	var returned runtime.MemStats
 	runtime.ReadMemStats(&returned)
 	runtime.GC()
 	var postGC runtime.MemStats
 	runtime.ReadMemStats(&postGC)
+
+	// Require the heap probe to observe the final name lookup.
 	if !workload.store.afterLookupCalled {
 		return iriWorkloadHeapProbe{err: errors.New("heap probe did not observe the final name lookup")}
 	}
+
+	// Validate resolver keys and lookup accounting.
 	if err := validateIRIWorkloadResult(workload, keys, nil, fallback); err != nil {
 		return iriWorkloadHeapProbe{err: err}
 	}
@@ -356,6 +407,7 @@ func (s *iriLookupStats) reset() {
 }
 
 func (s *iriLookupStats) add(other iriLookupStats) {
+	// Accumulate the workload lookup counts for benchmark reporting.
 	s.lookupInputs += other.lookupInputs
 	s.hits += other.hits
 	s.misses += other.misses
@@ -365,6 +417,7 @@ func (s *iriLookupStats) add(other iriLookupStats) {
 }
 
 func (s *iriLookupStats) assert(expectedHits, expectedMisses, expectedReturned int, fallback bool) error {
+	// Verify lookup accounting matches the workload and resolver path.
 	if s.lookupInputs != expectedHits+expectedMisses {
 		return errors.New("lookup inputs did not match hits plus misses")
 	}
@@ -405,25 +458,33 @@ func (s *iriCountingStore) reset() {
 }
 
 func (s *iriCountingStore) ValueOf(ctx context.Context, value quad.Value) (graph.Ref, error) {
+	// Count and perform the per-value IRI lookup.
 	s.stats.fallbackCalls++
 	s.stats.lookupInputs++
 	ref, err := s.QuadStore.ValueOf(ctx, value)
 	if err != nil {
 		return nil, err
 	}
+
+	// Classify the resolved IRI as a hit or miss.
 	if ref == nil {
 		s.stats.misses++
 	} else {
 		s.stats.hits++
 	}
+
+	// Capture the heap probe after the final lookup.
 	s.maybeAfterLookup()
 	return ref, nil
 }
 
 func (s *iriCountingStore) countBatchResult(nodes []quad.Value, resolved []graph.Ref) error {
+	// Require batch results to align with their input IRIs.
 	if len(nodes) != len(resolved) {
 		return errors.New("RefsOf returned a non-aligned result")
 	}
+
+	// Count batch inputs and classify their resolved keys.
 	s.stats.lookupInputs += len(nodes)
 	for _, ref := range resolved {
 		if iriBatchRefIsMissing(ref) {
@@ -432,6 +493,8 @@ func (s *iriCountingStore) countBatchResult(nodes []quad.Value, resolved []graph
 			s.stats.hits++
 		}
 	}
+
+	// Capture the heap probe after the final lookup.
 	s.maybeAfterLookup()
 	return nil
 }
@@ -462,11 +525,13 @@ var (
 )
 
 func (s *iriBatchQuadStore) RefsOf(ctx context.Context, nodes []quad.Value) ([]graph.Ref, error) {
+	// Count and perform the native batch IRI lookup.
 	s.stats.batchCalls++
 	resolved, err := s.QuadStore.(refs.BatchNamer).RefsOf(ctx, nodes)
 	if err != nil {
 		return nil, err
 	}
+
 	// Preserve Cayley KV's zero sentinel in the returned slice; the benchmark
 	// counts it as a miss instead of normalizing production output.
 	if err := s.countBatchResult(nodes, resolved); err != nil {
@@ -538,20 +603,24 @@ func (s *iriHeapSample) max(other iriHeapSample) {
 }
 
 func (p iriWorkloadHeapProbe) report(b *testing.B) {
+	// Report heap usage before resolving workload inputs.
 	b.ReportMetric(float64(p.baseline.alloc), "heap_seed_baseline_alloc_bytes")
 	b.ReportMetric(float64(p.baseline.inuse), "heap_seed_baseline_inuse_bytes")
 	b.ReportMetric(float64(p.baseline.sys), "heap_seed_baseline_sys_bytes")
 
+	// Report heap growth at the final name lookup.
 	afterLookup := p.afterLookup.deltaFrom(p.baseline)
 	b.ReportMetric(afterLookup.alloc, "heap_after_name_lookup_delta_alloc_bytes")
 	b.ReportMetric(afterLookup.inuse, "heap_after_name_lookup_delta_inuse_bytes")
 	b.ReportMetric(afterLookup.sys, "heap_after_name_lookup_per_leaf_delta_sys_bytes")
 
+	// Report heap growth at resolver return.
 	returned := p.returned.deltaFrom(p.baseline)
 	b.ReportMetric(returned.alloc, "heap_returned_delta_alloc_bytes")
 	b.ReportMetric(returned.inuse, "heap_returned_delta_inuse_bytes")
 	b.ReportMetric(returned.sys, "heap_returned_per_leaf_delta_sys_bytes")
 
+	// Report peak heap growth across lookup and return.
 	peak := p.baseline
 	peak.max(p.afterLookup)
 	peak.max(p.returned)
@@ -560,6 +629,7 @@ func (p iriWorkloadHeapProbe) report(b *testing.B) {
 	b.ReportMetric(peakDelta.inuse, "heap_peak_delta_inuse_bytes")
 	b.ReportMetric(peakDelta.sys, "heap_peak_per_leaf_delta_sys_bytes")
 
+	// Report heap growth retained after garbage collection.
 	postGC := p.postGC.deltaFrom(p.baseline)
 	b.ReportMetric(postGC.alloc, "heap_post_gc_delta_live_alloc_bytes")
 	b.ReportMetric(postGC.inuse, "heap_post_gc_delta_inuse_bytes")

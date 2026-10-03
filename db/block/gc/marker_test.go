@@ -82,11 +82,14 @@ func (m *mockCollectorGraph) HasIncomingRefsExcluding(
 	node string,
 	excluded ...string,
 ) (bool, error) {
+	// Build the source exclusions for incoming reference lookup.
 	excludedSet := make(map[string]struct{}, len(excluded)+1)
 	excludedSet[NodeUnreferenced] = struct{}{}
 	for _, src := range excluded {
 		excludedSet[src] = struct{}{}
 	}
+
+	// Search graph edges for an incoming reference from an allowed source.
 	for s, targets := range m.edges {
 		if _, ok := excludedSet[s]; ok {
 			continue
@@ -180,6 +183,7 @@ func (m *mockCollectorGraph) Close() error {
 // TestMarkerBasicReachability tests that reachable nodes are black and
 // unreachable nodes are white (sweep candidates).
 func TestMarkerBasicReachability(t *testing.T) {
+	// Create the graph for reachability marking.
 	g := newMockGraph()
 
 	// Build graph:
@@ -194,6 +198,7 @@ func TestMarkerBasicReachability(t *testing.T) {
 	g.addEdge("root2", "d")
 	g.addNode("orphan")
 
+	// Mark reachable nodes and collect sweep candidates.
 	marker := NewMarker(g)
 	candidates, colors, err := marker.Mark(context.Background())
 	if err != nil {
@@ -222,21 +227,27 @@ func TestMarkerBasicReachability(t *testing.T) {
 // TestMarkerDanglingEdge tests that edges pointing to nodes not in the
 // inventory are skipped (dangling from interrupted sweeps).
 func TestMarkerDanglingEdge(t *testing.T) {
+	// Create the graph for reachability marking.
 	g := newMockGraph()
 	g.addRoot("root")
 	g.addEdge("root", "live")
+
 	// Add an edge to a node NOT in the inventory (simulates dangling ref).
 	g.edges["live"] = append(g.edges["live"], "deleted-node")
 
+	// Mark reachable nodes and collect sweep candidates.
 	marker := NewMarker(g)
 	candidates, colors, err := marker.Mark(context.Background())
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	// Verify the dangling edge preserves reachable node colors.
 	if colors["root"] != Black || colors["live"] != Black {
 		t.Errorf("reachable nodes not black: root=%d live=%d", colors["root"], colors["live"])
 	}
+
+	// Verify marking produces no unexpected sweep candidates.
 	if len(candidates) != 0 {
 		t.Errorf("unexpected sweep candidates: %v", candidates)
 	}
@@ -244,12 +255,17 @@ func TestMarkerDanglingEdge(t *testing.T) {
 
 // TestMarkerEmptyGraph tests marking an empty graph.
 func TestMarkerEmptyGraph(t *testing.T) {
+	// Create the graph for reachability marking.
 	g := newMockGraph()
+
+	// Mark reachable nodes and collect sweep candidates.
 	marker := NewMarker(g)
 	candidates, _, err := marker.Mark(context.Background())
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Verify marking produces no unexpected sweep candidates.
 	if len(candidates) != 0 {
 		t.Errorf("empty graph produced candidates: %v", candidates)
 	}
@@ -258,18 +274,21 @@ func TestMarkerEmptyGraph(t *testing.T) {
 // TestMarkerPermanentRoots tests that gcroot and unreferenced are
 // treated as roots when present in the inventory.
 func TestMarkerPermanentRoots(t *testing.T) {
+	// Create the graph for reachability marking.
 	g := newMockGraph()
 	g.addNode(NodeGCRoot)
 	g.addNode(NodeUnreferenced)
 	g.addEdge(NodeGCRoot, "managed")
 	g.addEdge(NodeUnreferenced, "orphan-tracked")
 
+	// Mark reachable nodes and collect sweep candidates.
 	marker := NewMarker(g)
 	candidates, colors, err := marker.Mark(context.Background())
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	// Verify permanent roots and managed nodes are reachable.
 	if colors[NodeGCRoot] != Black {
 		t.Errorf("gcroot not black")
 	}
@@ -279,6 +298,8 @@ func TestMarkerPermanentRoots(t *testing.T) {
 	if colors[NodeUnreferenced] != Black {
 		t.Errorf("unreferenced not black")
 	}
+
+	// Verify staging does not retain orphaned nodes.
 	if colors["orphan-tracked"] != White || !slices.Equal(candidates, []string{"orphan-tracked"}) {
 		t.Errorf("staging marker retained garbage: colors=%v candidates=%v", colors, candidates)
 	}

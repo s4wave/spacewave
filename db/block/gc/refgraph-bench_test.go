@@ -16,23 +16,32 @@ func BenchmarkRefGraphApplyRefBatch(b *testing.B) {
 	ctx := context.Background()
 	for _, edgeCount := range []int{64, 1024, 4096*2 + 17} {
 		b.Run("edges="+strconv.Itoa(edgeCount), func(b *testing.B) {
+			// Open the graph for the selected edge-count benchmark.
 			rg := newBenchRefGraph(b, ctx)
 
+			// Measure graph batch allocations and block reads.
 			b.ReportAllocs()
 			var readCount, readBytes uint64
 			b.ResetTimer()
 			for i := range b.N {
+				// Prepare the iteration edges outside the timed sample.
 				b.StopTimer()
 				adds := makeRefGraphBenchEdges(i, edgeCount)
 				b.StartTimer()
+
+				// Apply the graph batch with block-read accounting.
 				opCtx, counter := block.WithReadCounter(ctx)
 				if err := rg.ApplyRefBatch(opCtx, adds, nil); err != nil {
 					b.Fatal(err)
 				}
+
+				// Accumulate block reads performed by the graph batch.
 				snapshot := counter.Snapshot()
 				readCount += snapshot.BlockReadCount
 				readBytes += snapshot.BlockReadBytes
 			}
+
+			// Report batch size, transaction count, and block-read costs.
 			b.ReportMetric(float64(edgeCount), "ref_edges/op")
 			b.ReportMetric(float64(refGraphBenchTransactions(edgeCount)), "cayley_transactions/op")
 			reportRefGraphBenchBlockReads(b, readCount, readBytes)
@@ -41,8 +50,8 @@ func BenchmarkRefGraphApplyRefBatch(b *testing.B) {
 }
 
 func newBenchRefGraph(b *testing.B, ctx context.Context) *block_gc.RefGraph {
+	// Open a block transaction over the mock key-value store.
 	b.Helper()
-
 	store := block_mock.NewMockStore(0)
 	_, rootCursor := block.NewTransaction(store, nil, nil, nil)
 	rootCursor.SetBlock(kvtx_block.NewKeyValueStore(kvtx_block.KVImplType_KV_IMPL_TYPE_OKRA), true)
@@ -50,6 +59,8 @@ func newBenchRefGraph(b *testing.B, ctx context.Context) *block_gc.RefGraph {
 	if err != nil {
 		b.Fatal(err)
 	}
+
+	// Open the reference graph and register transaction cleanup.
 	rg, err := block_gc.NewRefGraph(ctx, kvtx.NewTxStore(ktx), []byte("gc/"))
 	if err != nil {
 		ktx.Discard()

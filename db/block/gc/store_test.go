@@ -25,18 +25,21 @@ type gcTestEnv struct {
 
 // newGCTestEnv creates a test environment with GCStoreOps wrapper.
 func newGCTestEnv(t *testing.T) *gcTestEnv {
+	// Create an in-memory block store for GC tests.
 	t.Helper()
 	ctx := context.Background()
 	kvStore := store_kvtx_inmem.NewStore()
 	kvKey := store_kvkey.NewDefaultKVKey()
 	rawStore := block_store_kvtx.NewKVTxBlock(kvKey, kvStore, 0, false)
 
+	// Open the reference graph and register its cleanup.
 	rg, err := NewRefGraph(ctx, kvStore, []byte("gc/"))
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	t.Cleanup(func() { rg.Close() })
 
+	// Wrap the block store with GC reference tracking.
 	gcStore := NewGCStoreOps(rawStore, rg)
 	return &gcTestEnv{
 		ctx:      ctx,
@@ -50,12 +53,15 @@ func newGCTestEnv(t *testing.T) *gcTestEnv {
 // putBlock stores a mock block via GCStoreOps and returns its ref.
 // Flushes pending gc operations so the ref graph is up to date.
 func (e *gcTestEnv) putBlock(t *testing.T, msg string) *block.BlockRef {
+	// Store the mock block through GC reference tracking.
 	t.Helper()
 	ex := block_mock.NewExample(msg)
 	ref, _, err := block.PutBlock(e.ctx, e.gcStore, ex)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Flush the block reference changes into the graph.
 	if err := e.gcStore.FlushPending(e.ctx); err != nil {
 		t.Fatal(err.Error())
 	}
@@ -90,22 +96,31 @@ func (e *gcTestEnv) blockExists(t *testing.T, ref *block.BlockRef) bool {
 // TestGCStoreOps_PutBlockAddsUnrefEdge tests that PutBlock adds an
 // unreferenced gc/ref edge.
 func TestGCStoreOps_PutBlockAddsUnrefEdge(t *testing.T) {
+	// Create the GC block store and reference graph for the test.
 	env := newGCTestEnv(t)
 
+	// Write a new block through the GC store.
 	ex := block_mock.NewExample("test-block")
 	ref, existed, err := block.PutBlock(env.ctx, env.gcStore, ex)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Verify the write creates a new block.
 	if existed {
 		t.Fatal("block should not have existed")
 	}
+
+	// Flush pending reference changes into the graph.
 	env.flush(t)
 
+	// Read unreferenced nodes after the new write.
 	nodes, err := env.refGraph.GetUnreferencedNodes(env.ctx)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Verify the new block is the only unreferenced node.
 	if len(nodes) != 1 {
 		t.Fatalf("expected 1 unreferenced node, got %d", len(nodes))
 	}
@@ -116,8 +131,10 @@ func TestGCStoreOps_PutBlockAddsUnrefEdge(t *testing.T) {
 }
 
 func TestGCStoreOps_NestedDeferFlushFlushesOnce(t *testing.T) {
+	// Create the GC block store and reference graph for the test.
 	env := newGCTestEnv(t)
 
+	// Write a block while two nested scopes defer flushing.
 	env.gcStore.BeginDeferFlush()
 	env.gcStore.BeginDeferFlush()
 	ex := block_mock.NewExample("nested-defer")
@@ -125,34 +142,46 @@ func TestGCStoreOps_NestedDeferFlushFlushesOnce(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// End the inner deferred-flush scope.
 	if err := env.gcStore.EndDeferFlush(env.ctx); err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Verify the inner scope leaves the unreferenced edge buffered.
 	env.gcStore.mu.Lock()
 	pending := len(env.gcStore.pendingUnref)
 	env.gcStore.mu.Unlock()
 	if pending != 1 {
 		t.Fatalf("expected pending unref to remain after inner End, got %d", pending)
 	}
+
+	// End the outer deferred-flush scope.
 	if err := env.gcStore.EndDeferFlush(env.ctx); err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Verify the outer scope flushes the buffered edge.
 	env.gcStore.mu.Lock()
 	pending = len(env.gcStore.pendingUnref)
 	env.gcStore.mu.Unlock()
 	if pending != 0 {
 		t.Fatalf("expected pending unref to flush at outer End, got %d", pending)
 	}
+
+	// Verify the block remains stored after both scopes end.
 	if !env.blockExists(t, ref) {
 		t.Fatal("expected block to persist")
 	}
 }
 
 func TestGCStoreOps_FlushPendingNormalizesDuplicateEdges(t *testing.T) {
+	// Create a GC store with a recording reference graph.
 	ctx := context.Background()
 	refGraph := &recordingRefGraph{}
 	gcStore := NewGCStoreOps(block.NopStoreOps{}, refGraph)
 
+	// Buffer duplicate reference and staging changes.
 	gcStore.mu.Lock()
 	gcStore.pendingUnref = append(gcStore.pendingUnref, "block:a", "block:a", "block:b")
 	gcStore.pendingRefs = append(
@@ -164,13 +193,17 @@ func TestGCStoreOps_FlushPendingNormalizesDuplicateEdges(t *testing.T) {
 	gcStore.pendingUnunref = append(gcStore.pendingUnunref, "block:b", "block:b")
 	gcStore.mu.Unlock()
 
+	// Flush duplicate changes to the reference graph.
 	if err := gcStore.FlushPending(ctx); err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Verify duplicate changes use one graph batch.
 	if refGraph.applyCount != 1 {
 		t.Fatalf("ApplyRefBatch called %d times, want 1", refGraph.applyCount)
 	}
 
+	// Verify the batch contains distinct additions and removals.
 	wantAdds := []RefEdge{
 		{Subject: NodeUnreferenced, Object: "block:a"},
 		{Subject: NodeUnreferenced, Object: "block:b"},
@@ -189,6 +222,7 @@ func TestGCStoreOps_FlushPendingNormalizesDuplicateEdges(t *testing.T) {
 }
 
 func TestGCStoreOps_FlushPendingRebuffersApplyRemainder(t *testing.T) {
+	// Open a reference graph for the partial-flush test.
 	ctx := context.Background()
 	rg, err := NewRefGraph(ctx, store_kvtx_inmem.NewStore(), []byte("gc/"))
 	if err != nil {
@@ -196,29 +230,38 @@ func TestGCStoreOps_FlushPendingRebuffersApplyRemainder(t *testing.T) {
 	}
 	t.Cleanup(func() { rg.Close() })
 
+	// Buffer three staging edges behind a graph that fails once.
 	refGraph := &failOnceRefGraph{RefGraphOps: rg}
 	gcStore := NewGCStoreOps(block.NopStoreOps{}, refGraph)
 	gcStore.mu.Lock()
 	gcStore.pendingUnref = []string{"block:a", "block:b", "block:c"}
 	gcStore.mu.Unlock()
 
+	// Verify the first flush reports its injected failure.
 	err = gcStore.FlushPending(ctx)
 	if err == nil || !errors.Is(err, errInjectedRefBatch) {
 		t.Fatalf("first flush error = %v, want injected ref batch error", err)
 	}
+
+	// Flush the buffered remainder after the partial failure.
 	if err := gcStore.FlushPending(ctx); err != nil {
 		t.Fatal(err)
 	}
 
+	// Read staging edges after completing the flush.
 	unreferenced, err := rg.GetUnreferencedNodes(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Verify all three blocks are staged exactly once.
 	slices.Sort(unreferenced)
 	want := []string{"block:a", "block:b", "block:c"}
 	if !slices.Equal(unreferenced, want) {
 		t.Fatalf("unreferenced nodes = %v, want %v", unreferenced, want)
 	}
+
+	// Verify each staging edge was applied exactly once.
 	if !slices.Equal(refGraph.applied, wantRefEdges(
 		RefEdge{Subject: NodeUnreferenced, Object: "block:a"},
 		RefEdge{Subject: NodeUnreferenced, Object: "block:b"},
@@ -237,11 +280,14 @@ type failOnceRefGraph struct {
 }
 
 func (r *failOnceRefGraph) ApplyRefBatch(ctx context.Context, adds, removes []RefEdge) error {
+	// Apply the complete reference batch after the injected failure.
 	if r.failed {
 		r.applied = append(r.applied, adds...)
 		r.applied = append(r.applied, removes...)
 		return r.RefGraphOps.ApplyRefBatch(ctx, adds, removes)
 	}
+
+	// Apply a committed prefix and report the remaining reference changes.
 	r.failed = true
 	prefix := 1
 	r.applied = append(r.applied, adds[:prefix]...)
@@ -262,8 +308,10 @@ func wantRefEdges(edges ...RefEdge) []RefEdge {
 // TestGCStoreOps_RecordRefsRemovesUnrefEdge tests that recording refs
 // removes the unreferenced edge from the target.
 func TestGCStoreOps_RecordRefsRemovesUnrefEdge(t *testing.T) {
+	// Create the GC block store and reference graph for the test.
 	env := newGCTestEnv(t)
 
+	// Write two initially unreferenced blocks.
 	aRef := env.putBlock(t, "block-a")
 	bRef := env.putBlock(t, "block-b")
 
@@ -272,6 +320,8 @@ func TestGCStoreOps_RecordRefsRemovesUnrefEdge(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Verify both blocks begin in the staging set.
 	if len(nodes) != 2 {
 		t.Fatalf("expected 2 unreferenced nodes before recording, got %d", len(nodes))
 	}
@@ -280,10 +330,12 @@ func TestGCStoreOps_RecordRefsRemovesUnrefEdge(t *testing.T) {
 	env.recordRefs(aRef, []*block.BlockRef{bRef})
 	env.flush(t)
 
+	// Read staging edges after recording the block reference.
 	nodes, err = env.refGraph.GetUnreferencedNodes(env.ctx)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
 	// Only a should remain unreferenced.
 	if len(nodes) != 1 {
 		t.Fatalf("expected 1 unreferenced node after recording, got %d", len(nodes))
@@ -297,8 +349,10 @@ func TestGCStoreOps_RecordRefsRemovesUnrefEdge(t *testing.T) {
 // TestGCStoreOps_DuplicatePutNoNewUnrefEdge tests that putting a
 // duplicate block does not add another unreferenced edge.
 func TestGCStoreOps_DuplicatePutNoNewUnrefEdge(t *testing.T) {
+	// Create the GC block store and reference graph for the test.
 	env := newGCTestEnv(t)
 
+	// Write the original block before testing a duplicate.
 	ex := block_mock.NewExample("dup-block")
 	_, _, err := block.PutBlock(env.ctx, env.gcStore, ex)
 	if err != nil {
@@ -310,15 +364,22 @@ func TestGCStoreOps_DuplicatePutNoNewUnrefEdge(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Verify the repeated write reports an existing block.
 	if !existed {
 		t.Fatal("duplicate block should report existed=true")
 	}
+
+	// Flush reference changes from both writes.
 	env.flush(t)
 
+	// Read staged nodes after the duplicate write.
 	nodes, err := env.refGraph.GetUnreferencedNodes(env.ctx)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Verify the duplicate produces only one staged node.
 	if len(nodes) != 1 {
 		t.Fatalf("expected 1 unreferenced node (no dup), got %d", len(nodes))
 	}
@@ -327,8 +388,10 @@ func TestGCStoreOps_DuplicatePutNoNewUnrefEdge(t *testing.T) {
 // TestGCStoreOps_AddGCRef tests that AddGCRef adds an edge and removes
 // the unreferenced edge from the object.
 func TestGCStoreOps_AddGCRef(t *testing.T) {
+	// Create the GC block store and reference graph for the test.
 	env := newGCTestEnv(t)
 
+	// Write a block and derive its graph IRI.
 	ref := env.putBlock(t, "block")
 	blockIRI := BlockIRI(ref)
 
@@ -337,6 +400,8 @@ func TestGCStoreOps_AddGCRef(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Verify the new block begins unreferenced.
 	if len(nodes) != 1 {
 		t.Fatalf("expected 1 unreferenced node, got %d", len(nodes))
 	}
@@ -352,6 +417,8 @@ func TestGCStoreOps_AddGCRef(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Verify the entity reference removes the staging edge.
 	if len(nodes) != 0 {
 		t.Fatalf("expected 0 unreferenced nodes after AddGCRef, got %d", len(nodes))
 	}
@@ -361,6 +428,8 @@ func TestGCStoreOps_AddGCRef(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Verify the graph retains the entity-to-block edge.
 	if len(outgoing) != 1 || outgoing[0] != blockIRI {
 		t.Fatalf("expected outgoing ref to %s, got %v", blockIRI, outgoing)
 	}
@@ -369,8 +438,10 @@ func TestGCStoreOps_AddGCRef(t *testing.T) {
 // TestGCStoreOps_RemoveGCRef tests that RemoveGCRef removes the edge
 // and marks the object orphaned if it has no remaining refs.
 func TestGCStoreOps_RemoveGCRef(t *testing.T) {
+	// Create the GC block store and reference graph for the test.
 	env := newGCTestEnv(t)
 
+	// Write the block whose ownership edge will be removed.
 	ref := env.putBlock(t, "block")
 	blockIRI := BlockIRI(ref)
 
@@ -389,6 +460,8 @@ func TestGCStoreOps_RemoveGCRef(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Verify removing the entity reference marks the block unreferenced.
 	found := slices.Contains(nodes, blockIRI)
 	if !found {
 		t.Fatal("block should be unreferenced after RemoveGCRef")
@@ -398,6 +471,7 @@ func TestGCStoreOps_RemoveGCRef(t *testing.T) {
 // TestGCStoreOps_TransactionRecordsRefs tests that Transaction.Write
 // automatically records block refs when using GCStoreOps.
 func TestGCStoreOps_TransactionRecordsRefs(t *testing.T) {
+	// Create the GC block store and reference graph for the test.
 	env := newGCTestEnv(t)
 
 	// Put a child block first.
@@ -417,13 +491,18 @@ func TestGCStoreOps_TransactionRecordsRefs(t *testing.T) {
 	tx, cursor := block.NewTransaction(env.gcStore, nil, nil, nil)
 	cursor.SetBlock(root, true)
 
+	// Write the root transaction to the block store.
 	rootRef, _, err := tx.Write(env.ctx, true)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Verify writing the root returns a block reference.
 	if rootRef == nil {
 		t.Fatal("expected non-nil root ref")
 	}
+
+	// Flush the transaction reference changes.
 	env.flush(t)
 
 	// The transaction should have recorded block ref edges.
@@ -432,6 +511,8 @@ func TestGCStoreOps_TransactionRecordsRefs(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Verify the root references exactly its child block.
 	if len(outgoing) != 1 {
 		t.Fatalf("expected 1 outgoing ref from root, got %d", len(outgoing))
 	}
@@ -446,6 +527,8 @@ func TestGCStoreOps_TransactionRecordsRefs(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Verify only the root remains in the staging set.
 	if len(nodes) != 1 {
 		t.Fatalf("expected 1 unreferenced node (root only), got %d", len(nodes))
 	}
@@ -457,11 +540,14 @@ func TestGCStoreOps_TransactionRecordsRefs(t *testing.T) {
 // TestGCStoreOps_CollectWithGCStore tests full GC lifecycle: put, record
 // refs, remove root, and collect.
 func TestGCStoreOps_CollectWithGCStore(t *testing.T) {
+	// Create the GC block store and reference graph for the test.
 	env := newGCTestEnv(t)
 
+	// Write an orphan block and a block that will be retained.
 	orphan := env.putBlock(t, "orphan")
 	rooted := env.putBlock(t, "rooted")
 
+	// Derive the rooted block IRI for its ownership edge.
 	rootedIRI := BlockIRI(rooted)
 
 	// Add a GC ref for the rooted block (also removes its unreferenced edge).
@@ -476,6 +562,8 @@ func TestGCStoreOps_CollectWithGCStore(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Verify the collector sweeps exactly one orphan.
 	if stats.NodesSwept != 1 {
 		t.Fatalf("expected 1 swept, got %d", stats.NodesSwept)
 	}
@@ -493,18 +581,21 @@ func TestGCStoreOps_CollectWithGCStore(t *testing.T) {
 
 // newGCTestEnvWithParent creates a test environment with parentIRI set.
 func newGCTestEnvWithParent(t *testing.T, parentIRI string) *gcTestEnv {
+	// Create an in-memory block store for parent ownership tests.
 	t.Helper()
 	ctx := context.Background()
 	kvStore := store_kvtx_inmem.NewStore()
 	kvKey := store_kvkey.NewDefaultKVKey()
 	rawStore := block_store_kvtx.NewKVTxBlock(kvKey, kvStore, 0, false)
 
+	// Open the reference graph and register its cleanup.
 	rg, err := NewRefGraph(ctx, kvStore, []byte("gc/"))
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	t.Cleanup(func() { rg.Close() })
 
+	// Wrap the block store with parent reference tracking.
 	gcStore := NewGCStoreOpsWithParent(rawStore, rg, parentIRI)
 	return &gcTestEnv{
 		ctx:      ctx,
@@ -518,9 +609,11 @@ func newGCTestEnvWithParent(t *testing.T, parentIRI string) *gcTestEnv {
 // TestGCStoreOps_ParentIRI_PutBlockAddsParentEdge tests that PutBlock
 // adds a parentIRI -> block edge when parentIRI is set.
 func TestGCStoreOps_ParentIRI_PutBlockAddsParentEdge(t *testing.T) {
+	// Create a GC store with bucket ownership.
 	parent := BucketIRI("my-bucket")
 	env := newGCTestEnvWithParent(t, parent)
 
+	// Write a block owned by the bucket.
 	ref := env.putBlock(t, "parent-block")
 	blockIRI := BlockIRI(ref)
 
@@ -529,6 +622,8 @@ func TestGCStoreOps_ParentIRI_PutBlockAddsParentEdge(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Verify the bucket references the stored block.
 	if len(outgoing) != 1 || outgoing[0] != blockIRI {
 		t.Fatalf("expected parent -> %s, got %v", blockIRI, outgoing)
 	}
@@ -538,6 +633,8 @@ func TestGCStoreOps_ParentIRI_PutBlockAddsParentEdge(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Verify the bucket-owned block is absent from staging.
 	if len(nodes) != 0 {
 		t.Fatalf("expected 0 unreferenced nodes, got %d", len(nodes))
 	}
@@ -546,9 +643,11 @@ func TestGCStoreOps_ParentIRI_PutBlockAddsParentEdge(t *testing.T) {
 // TestGCStoreOps_ParentIRI_RmBlockRemovesParentEdge tests that
 // RmBlock removes the parentIRI -> block edge when parentIRI is set.
 func TestGCStoreOps_ParentIRI_RmBlockRemovesParentEdge(t *testing.T) {
+	// Create a GC store with bucket ownership.
 	parent := BucketIRI("my-bucket")
 	env := newGCTestEnvWithParent(t, parent)
 
+	// Write the block whose parent edge will be removed.
 	ref := env.putBlock(t, "rm-parent-block")
 	blockIRI := BlockIRI(ref)
 
@@ -557,6 +656,8 @@ func TestGCStoreOps_ParentIRI_RmBlockRemovesParentEdge(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Verify the bucket initially references the block.
 	if len(outgoing) != 1 || outgoing[0] != blockIRI {
 		t.Fatalf("expected parent -> %s before rm, got %v", blockIRI, outgoing)
 	}
@@ -566,12 +667,16 @@ func TestGCStoreOps_ParentIRI_RmBlockRemovesParentEdge(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// Flush reference changes after removing the block.
 	env.flush(t)
 
+	// Read parent edges after removing the block.
 	outgoing, err = env.refGraph.GetOutgoingRefs(env.ctx, parent)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Verify the bucket has no remaining outgoing reference.
 	if len(outgoing) != 0 {
 		t.Fatalf("expected 0 outgoing from parent after rm, got %d", len(outgoing))
 	}
@@ -580,6 +685,7 @@ func TestGCStoreOps_ParentIRI_RmBlockRemovesParentEdge(t *testing.T) {
 // TestGCStoreOps_ParentIRI_FlushPending tests that FlushPending
 // works correctly with parentIRI mode.
 func TestGCStoreOps_ParentIRI_FlushPending(t *testing.T) {
+	// Create a GC store with bucket ownership.
 	parent := BucketIRI("test-bucket")
 	env := newGCTestEnvWithParent(t, parent)
 
@@ -590,6 +696,7 @@ func TestGCStoreOps_ParentIRI_FlushPending(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// Write the second block without flushing its reference changes.
 	ex2 := block_mock.NewExample("flush-b")
 	ref2, _, err := block.PutBlock(env.ctx, env.gcStore, ex2)
 	if err != nil {
@@ -601,6 +708,8 @@ func TestGCStoreOps_ParentIRI_FlushPending(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Verify parent edges remain buffered before flushing.
 	if len(outgoing) != 0 {
 		t.Fatalf("expected 0 outgoing before flush, got %d", len(outgoing))
 	}
@@ -613,9 +722,13 @@ func TestGCStoreOps_ParentIRI_FlushPending(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Verify flushing produces both parent edges.
 	if len(outgoing) != 2 {
 		t.Fatalf("expected 2 outgoing after flush, got %d", len(outgoing))
 	}
+
+	// Verify the parent edges target the two written blocks.
 	sorted := sortedStrings(outgoing)
 	iri1 := BlockIRI(ref1)
 	iri2 := BlockIRI(ref2)
@@ -636,7 +749,10 @@ func TestGCStoreOps_ParentIRI_DedupClearsStaleUnref(t *testing.T) {
 		{name: "PutBlockBatch", batch: true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
+			// Create a GC store for the selected write path.
 			env := newGCTestEnv(t)
+
+			// Stage the block through the selected write path.
 			var ref *block.BlockRef
 			if tc.batch {
 				entry := buildBatchEntry(t, "parent-dedup-batch")
@@ -652,15 +768,22 @@ func TestGCStoreOps_ParentIRI_DedupClearsStaleUnref(t *testing.T) {
 					t.Fatal(err.Error())
 				}
 			}
+
+			// Flush the initial staging edge.
 			env.flush(t)
+
+			// Read staged nodes before taking parent ownership.
 			nodes, err := env.refGraph.GetUnreferencedNodes(env.ctx)
 			if err != nil {
 				t.Fatal(err.Error())
 			}
+
+			// Verify the block initially belongs to the staging set.
 			if !slices.Contains(nodes, BlockIRI(ref)) {
 				t.Fatal("block should be staged under unreferenced")
 			}
 
+			// Write the existing block through a parent-owned store.
 			parent := BucketIRI("parent-dedup")
 			parentStore := NewGCStoreOpsWithParent(env.rawStore, env.refGraph, parent)
 			if tc.batch {
@@ -674,24 +797,35 @@ func TestGCStoreOps_ParentIRI_DedupClearsStaleUnref(t *testing.T) {
 					t.Fatal(err.Error())
 				}
 			}
+
+			// Flush the new parent ownership edge.
 			if err := parentStore.FlushPending(env.ctx); err != nil {
 				t.Fatal(err.Error())
 			}
+
+			// Read staged nodes after taking parent ownership.
 			nodes, err = env.refGraph.GetUnreferencedNodes(env.ctx)
 			if err != nil {
 				t.Fatal(err.Error())
 			}
+
+			// Verify parent ownership removes the staging edge.
 			if slices.Contains(nodes, BlockIRI(ref)) {
 				t.Fatal("parent-owned block should not remain unreferenced")
 			}
 
+			// Collect orphan blocks after taking parent ownership.
 			if _, err := NewCollector(env.refGraph, env.rawStore, nil).Collect(env.ctx); err != nil {
 				t.Fatal(err.Error())
 			}
+
+			// Read the parent-owned block after collection.
 			_, exists, err := parentStore.GetBlock(env.ctx, ref)
 			if err != nil {
 				t.Fatal(err.Error())
 			}
+
+			// Verify the parent-owned block survives collection.
 			if !exists {
 				t.Fatal("parent-owned block should survive collection")
 			}
@@ -703,6 +837,7 @@ func TestGCStoreOps_ParentIRI_DedupClearsStaleUnref(t *testing.T) {
 // staging edge created after reconciliation begins is removed by the same
 // ref-graph batch as the parent edge.
 func TestGCStoreOps_ParentIRI_FlushPendingRemovesConcurrentUnref(t *testing.T) {
+	// Write and stage the block before concurrent ownership changes.
 	env := newGCTestEnv(t)
 	ex := block_mock.NewExample("concurrent-unref")
 	ref, _, err := block.PutBlock(env.ctx, env.gcStore, ex)
@@ -711,11 +846,13 @@ func TestGCStoreOps_ParentIRI_FlushPendingRemovesConcurrentUnref(t *testing.T) {
 	}
 	env.flush(t)
 
+	// Remove the initial staging edge from the graph.
 	blockIRI := BlockIRI(ref)
 	if err := env.refGraph.RemoveRef(env.ctx, NodeUnreferenced, blockIRI); err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Create a parent store that injects staging during its graph batch.
 	raceGraph := &injectUnrefRefGraph{
 		RefGraphOps: env.refGraph,
 		object:      blockIRI,
@@ -725,23 +862,34 @@ func TestGCStoreOps_ParentIRI_FlushPendingRemovesConcurrentUnref(t *testing.T) {
 		raceGraph,
 		BucketIRI("concurrent-unref"),
 	)
+
+	// Write the existing block through the parent store.
 	_, existed, err := block.PutBlock(env.ctx, parentStore, ex)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Verify the parent write deduplicates the existing block.
 	if !existed {
 		t.Fatal("expected parent write to deduplicate the block")
 	}
+
+	// Flush parent ownership while staging is injected.
 	if err := parentStore.FlushPending(env.ctx); err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Verify the graph injected the concurrent staging edge.
 	if !raceGraph.injected {
 		t.Fatal("expected concurrent staging edge injection")
 	}
 
+	// Collect orphan blocks after the parent ownership batch.
 	if _, err := NewCollector(env.refGraph, env.rawStore, nil).Collect(env.ctx); err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Verify the parent-owned block survives collection.
 	if !env.blockExists(t, ref) {
 		t.Fatal("parent-owned block should survive collection")
 	}
@@ -790,10 +938,14 @@ func TestGCStoreOps_RemoveGCRefDoesNotReviveStagingAfterParentBatch(t *testing.T
 	if !env.blockExists(t, ref) {
 		t.Fatal("parent-owned block should survive collection")
 	}
+
+	// Read staged nodes after the concurrent ownership transition.
 	nodes, err := env.refGraph.GetUnreferencedNodes(env.ctx)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Verify parent ownership leaves no stale staging edge.
 	if slices.Contains(nodes, object) {
 		t.Fatal("parent-owned block should not be staged as unreferenced")
 	}
@@ -801,12 +953,15 @@ func TestGCStoreOps_RemoveGCRefDoesNotReviveStagingAfterParentBatch(t *testing.T
 
 // buildBatchEntry creates a PutBatchEntry from a mock block message.
 func buildBatchEntry(t *testing.T, msg string) *block.PutBatchEntry {
+	// Encode the mock block payload for a batch entry.
 	t.Helper()
 	ex := block_mock.NewExample(msg)
 	data, err := ex.MarshalBlock()
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Build the batch reference from the encoded payload.
 	ref, err := block.BuildBlockRef(data, nil)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -818,6 +973,7 @@ func buildBatchEntry(t *testing.T, msg string) *block.PutBatchEntry {
 // PutBlockBatch does not revive unreferenced edges for blocks that
 // already exist in the store.
 func TestGCStoreOps_PutBlockBatch_DuplicateNoNewUnrefEdge(t *testing.T) {
+	// Create a GC store for the duplicate batch write.
 	env := newGCTestEnv(t)
 
 	// Put a block via single put and root it.
@@ -832,6 +988,8 @@ func TestGCStoreOps_PutBlockBatch_DuplicateNoNewUnrefEdge(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Verify the rooted block begins outside the staging set.
 	if len(nodes) != 0 {
 		t.Fatalf("expected 0 unreferenced before batch, got %d", len(nodes))
 	}
@@ -849,6 +1007,8 @@ func TestGCStoreOps_PutBlockBatch_DuplicateNoNewUnrefEdge(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Verify the duplicate batch write preserves the empty staging set.
 	if len(nodes) != 0 {
 		t.Fatalf("expected 0 unreferenced after batch dup, got %d", len(nodes))
 	}
@@ -857,8 +1017,10 @@ func TestGCStoreOps_PutBlockBatch_DuplicateNoNewUnrefEdge(t *testing.T) {
 // TestGCStoreOps_PutBlockBatch_NewBlockAddsUnrefEdge tests that
 // PutBlockBatch adds unreferenced edges for genuinely new blocks.
 func TestGCStoreOps_PutBlockBatch_NewBlockAddsUnrefEdge(t *testing.T) {
+	// Create a GC store for the new batch entries.
 	env := newGCTestEnv(t)
 
+	// Write two new blocks through the batch path.
 	e1 := buildBatchEntry(t, "batch-new-a")
 	e2 := buildBatchEntry(t, "batch-new-b")
 	if err := env.gcStore.PutBlockBatch(env.ctx, []*block.PutBatchEntry{e1, e2}); err != nil {
@@ -866,10 +1028,13 @@ func TestGCStoreOps_PutBlockBatch_NewBlockAddsUnrefEdge(t *testing.T) {
 	}
 	env.flush(t)
 
+	// Read staged nodes after writing the new batch.
 	nodes, err := env.refGraph.GetUnreferencedNodes(env.ctx)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Verify both new blocks are staged.
 	if len(nodes) != 2 {
 		t.Fatalf("expected 2 unreferenced nodes from batch, got %d", len(nodes))
 	}
@@ -935,11 +1100,14 @@ func (r *orphanRaceRefGraph) ApplyRefBatch(
 	ctx context.Context,
 	adds, removes []RefEdge,
 ) error {
+	// Hold the removal batch until the parent ownership batch completes.
 	removalOnly := len(adds) == 0 && len(removes) == 1 && removes[0].Subject != NodeUnreferenced
 	if removalOnly {
 		r.signalRemoverStarted()
 		<-r.parentDone
 	}
+
+	// Apply the graph batch and signal completion of parent additions.
 	err := r.RefGraphOps.ApplyRefBatch(ctx, adds, removes)
 	if len(adds) != 0 {
 		r.signalParentDone()
@@ -997,6 +1165,7 @@ func (r *recordingRefGraph) Close() error {
 var _ RefGraphOps = (*recordingRefGraph)(nil)
 
 func TestGCStoreOpsGetStoredBlock(t *testing.T) {
+	// Store a parent block that references a child block.
 	env := newGCTestEnv(t)
 	child := env.putBlock(t, "child")
 	data := []byte("parent")
@@ -1005,36 +1174,50 @@ func TestGCStoreOpsGetStoredBlock(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// Define checks for stored payloads and references at each flush stage.
 	check := func(stage string) {
+		// Read and verify the stored parent block payload.
 		t.Helper()
 		got, err := env.gcStore.GetStoredBlock(env.ctx, parent)
 		if err != nil || got == nil || string(got.Data) != string(data) || !got.RefsKnown {
 			t.Fatalf("%s: parent = %+v/%v", stage, got, err)
 		}
+
+		// Verify the stored parent references its child.
 		if len(got.Refs) != 1 || !got.Refs[0].EqualsRef(child) {
 			t.Fatalf("%s: parent refs = %v, want [%v]", stage, got.Refs, child)
 		}
+
+		// Verify the stored child is a known leaf block.
 		got, err = env.gcStore.GetStoredBlock(env.ctx, child)
 		if err != nil || got == nil || !got.RefsKnown || len(got.Refs) != 0 {
 			t.Fatalf("%s: child = %+v/%v, want leaf", stage, got, err)
 		}
 	}
+
+	// Check stored blocks before and after flushing references.
 	check("buffered")
 	env.flush(t)
 	check("flushed")
 
+	// Read the parent edges from the reference graph.
 	targets, err := env.refGraph.GetOutgoingRefs(env.ctx, BlockIRI(parent))
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Verify the parent edge targets the stored child.
 	if !slices.Equal(targets, []string{BlockIRI(child)}) {
 		t.Fatalf("ref graph targets = %v, want [%s]", targets, BlockIRI(child))
 	}
 
+	// Build a reference for a block absent from the store.
 	missing, err := block.BuildBlockRef([]byte("missing"), nil)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Verify reading the absent block returns no stored record.
 	got, err := env.gcStore.GetStoredBlock(env.ctx, missing)
 	if err != nil || got != nil {
 		t.Fatalf("missing = %+v/%v, want not found", got, err)

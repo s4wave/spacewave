@@ -10,8 +10,11 @@ import (
 
 // TestManagerRetriesStartupReplay preserves pending ownership until replay succeeds.
 func TestManagerRetriesStartupReplay(t *testing.T) {
+	// Prepare the cancellable manager test lifecycle.
 	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
+
+	// Create retained and orphaned objects for startup replay.
 	graph := newMockGraph()
 	graph.addRoot("root")
 	graph.addNode(ObjectIRI("retained"))
@@ -19,18 +22,25 @@ func TestManagerRetriesStartupReplay(t *testing.T) {
 	target := &mockSweepTarget{}
 	replays := 0
 	maintained := false
+
+	// Configure replay failures and maintenance cancellation.
 	manager := NewManager(ManagerConfig{
 		Graph:      graph,
 		Target:     target,
 		AcquireSTW: noopSTW,
 		ReplayWAL: func(ctx context.Context, graph CollectorGraph) (int, error) {
+			// Count replay attempts and require pending ownership to protect objects.
 			replays++
 			if replays <= 3 && len(target.deletedObjects) != 0 {
 				t.Fatal("swept objects before pending ownership was replayed")
 			}
+
+			// Inject the first two replay failures.
 			if replays <= 2 {
 				return 0, errors.New("transaction attempts exhausted")
 			}
+
+			// Restore retained-object ownership on the successful replay.
 			if replays == 3 {
 				return 1, graph.AddRef(ctx, "root", ObjectIRI("retained"))
 			}
@@ -43,12 +53,18 @@ func TestManagerRetriesStartupReplay(t *testing.T) {
 			return nil
 		},
 	})
+
+	// Run the manager until its lifecycle is cancelled.
 	if err := manager.Run(ctx); !errors.Is(err, context.Canceled) {
 		t.Fatalf("manager returned %v, want cancellation after recovery", err)
 	}
+
+	// Verify startup recovery reaches maintenance after four replays.
 	if replays != 4 || !maintained {
 		t.Fatalf("replays = %d, maintained = %t, want four replays and maintenance", replays, maintained)
 	}
+
+	// Verify only the orphaned object is swept.
 	if !slices.Equal(target.deletedObjects, []string{ObjectIRI("orphan")}) {
 		t.Fatalf("deleted objects = %v, want only the orphan", target.deletedObjects)
 	}

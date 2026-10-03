@@ -19,6 +19,7 @@ func TestRemoveSharedOwnerReadCost(t *testing.T) {
 }
 
 func removeSharedOwnerReadCost(t *testing.T, owners int) int64 {
+	// Open the reference graph for shared-owner read measurements.
 	t.Helper()
 	ctx := context.Background()
 	store := store_kvtx_inmem.NewStore()
@@ -26,6 +27,8 @@ func removeSharedOwnerReadCost(t *testing.T, owners int) int64 {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Seed all owners of the shared target.
 	edges := make([]RefEdge, owners)
 	for i := range edges {
 		edges[i] = RefEdge{Subject: "owner/" + strconv.Itoa(i), Object: "shared"}
@@ -44,17 +47,25 @@ func removeSharedOwnerReadCost(t *testing.T, owners int) int64 {
 		t.Fatal(err)
 	}
 	defer rg.Close()
+
+	// Measure key reads while removing one shared owner.
 	before := counted.reads.Load()
 	if err := rg.ApplyRefBatch(ctx, nil, edges[:1]); err != nil {
 		t.Fatal(err)
 	}
 	reads := counted.reads.Load() - before
+
+	// Verify the removed ownership edge is absent.
 	if found, err := rg.hasRef(ctx, edges[0].Subject, "shared"); err != nil || found {
 		t.Fatalf("removed owner remains: found=%v err=%v", found, err)
 	}
+
+	// Verify a remaining owner still retains the shared target.
 	if found, err := rg.HasIncomingRefs(ctx, "shared"); err != nil || !found {
 		t.Fatalf("remaining owner lost: found=%v err=%v", found, err)
 	}
+
+	// Verify the shared target has no orphan marker.
 	if found, err := rg.hasRef(ctx, NodeUnreferenced, "shared"); err != nil || found {
 		t.Fatalf("shared object marked orphaned: found=%v err=%v", found, err)
 	}
@@ -64,6 +75,7 @@ func removeSharedOwnerReadCost(t *testing.T, owners int) int64 {
 // TestRefBatchReplayDoesNotCommit verifies idempotent ownership replay without
 // another durable write, including removal of already absent staging edges.
 func TestRefBatchReplayDoesNotCommit(t *testing.T) {
+	// Open the reference graph with commit accounting.
 	ctx := t.Context()
 	store := &refGraphTrackingStore{Store: store_kvtx_inmem.NewStore()}
 	rg, err := NewRefGraph(ctx, store, []byte("gc/"))
@@ -71,6 +83,8 @@ func TestRefBatchReplayDoesNotCommit(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer rg.Close()
+
+	// Prepare ownership additions and absent staging removals.
 	adds := make([]RefEdge, 722)
 	removes := make([]RefEdge, len(adds))
 	for i := range adds {
@@ -78,25 +92,36 @@ func TestRefBatchReplayDoesNotCommit(t *testing.T) {
 		adds[i] = RefEdge{Subject: "parent", Object: object}
 		removes[i] = RefEdge{Subject: NodeUnreferenced, Object: object}
 	}
+
+	// Apply the prepared ownership batch.
 	if err := rg.ApplyRefBatch(ctx, adds, removes); err != nil {
 		t.Fatal(err)
 	}
+
+	// Measure commits while replaying the unchanged ownership batch.
 	before := store.commits.Load()
 	start := time.Now()
 	for range 5 {
+		// Apply the prepared ownership batch.
 		if err := rg.ApplyRefBatch(ctx, adds, removes); err != nil {
 			t.Fatal(err)
 		}
 	}
+
+	// Verify unchanged ownership replay produces no commits.
 	commits := store.commits.Load() - before
 	t.Logf("five replays of 722 references: %s; commits=%d", time.Since(start), commits)
 	if commits != 0 {
 		t.Fatalf("unchanged ownership committed %d transactions", commits)
 	}
+
+	// Read the replayed ownership edges.
 	found, err := rg.hasRefs(ctx, adds)
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Verify every ownership edge survives replay.
 	for i, present := range found {
 		if !present {
 			t.Fatalf("replay lost reference %d", i)
@@ -106,6 +131,7 @@ func TestRefBatchReplayDoesNotCommit(t *testing.T) {
 
 // TestOwnershipTransferCommitsOnce checks the durable boundary and owner set.
 func TestOwnershipTransferCommitsOnce(t *testing.T) {
+	// Open the reference graph with commit accounting.
 	ctx := t.Context()
 	store := &refGraphTrackingStore{Store: store_kvtx_inmem.NewStore()}
 	graph, err := NewRefGraph(ctx, store, []byte("gc/"))
@@ -113,18 +139,26 @@ func TestOwnershipTransferCommitsOnce(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer graph.Close()
+
+	// Seed the current owner and prepare its replacement.
 	old := []RefEdge{{Subject: "old", Object: "shared"}}
 	next := []RefEdge{{Subject: "next", Object: "shared"}}
 	if err := graph.ApplyRefBatch(ctx, old, nil); err != nil {
 		t.Fatal(err)
 	}
+
+	// Measure commits while transferring the shared target to its next owner.
 	before := store.commits.Load()
 	if err := graph.ApplyRefBatch(ctx, next, old); err != nil {
 		t.Fatal(err)
 	}
+
+	// Verify the ownership transfer commits once.
 	if got := store.commits.Load() - before; got != 1 {
 		t.Fatalf("transfer used %d commits", got)
 	}
+
+	// Verify only the next owner retains the shared target.
 	owners, err := graph.GetIncomingRefs(ctx, "shared")
 	if err != nil || len(owners) != 1 || owners[0] != "next" {
 		t.Fatalf("owners=%v err=%v", owners, err)
