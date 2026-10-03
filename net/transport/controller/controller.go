@@ -181,6 +181,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 		return err
 	}
 
+	// Derive the local peer identity from the transport private key.
 	localPeerID, err := peer.IDFromPrivateKey(privKey)
 	if err != nil {
 		return err
@@ -202,6 +203,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 	// store the transport
 	handler.tpt.SetResult(tpt, nil)
 
+	// Prepare the transport execution context and its cancellation.
 	if c.verbose {
 		c.le.Debug("executing transport")
 	}
@@ -219,6 +221,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 	// clear on exit
 	defer func() {
 		c.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
+			// Clear the stopped transport and flush its remaining established links.
 			c.execCtx = nil
 			c.peerID = ""
 			c.tpt = nil
@@ -294,6 +297,7 @@ func (c *Controller) HandleIncomingStream(
 		defer elRef.Release()
 	}
 
+	// Bound the stream header exchange and mounted handler lookup.
 	handleDeadline := time.Now().Add(streamHandleTimeout)
 	readDeadline := time.Now().Add(streamEstablishTimeout)
 	_ = strm.SetReadDeadline(readDeadline)
@@ -337,6 +341,7 @@ func (c *Controller) HandleIncomingStream(
 		strm, strmOpts.Unreliable = msgs, true
 	}
 
+	// Wrap the incoming link and stream for the mounted protocol handler.
 	var mlnk link.MountedLink = newMountedLink(c, tpt, lnk)
 	var mstrm link.MountedStream = newMountedStream(strm, strmOpts, pid, mlnk)
 
@@ -346,8 +351,10 @@ func (c *Controller) HandleIncomingStream(
 		le.Debug("accepted stream")
 	}
 
+	// Request a mounted stream handler for the negotiated protocol and peers.
 	dir := link.NewHandleMountedStream(pid, lnk.GetLocalPeer(), mstrm.GetPeerID())
 
+	// Resolve the mounted stream handler before the lookup deadline.
 	handleMsCtx, handleMsCtxCancel := context.WithDeadline(rctx, handleDeadline)
 	dval, _, dref, err := bus.ExecOneOff(handleMsCtx, c.bus, dir, nil, nil)
 	handleMsCtxCancel()
@@ -358,6 +365,7 @@ func (c *Controller) HandleIncomingStream(
 	}
 	defer dref.Release()
 
+	// Require the resolved value to implement the mounted stream handler contract.
 	mhnd, ok := dval.GetValue().(link.MountedStreamHandler)
 	if !ok {
 		c.le.
@@ -367,11 +375,13 @@ func (c *Controller) HandleIncomingStream(
 		strm.Close()
 		return
 	}
+
 	// Close the stream when the link closes without parking a goroutine.
 	stopCloseOnLinkDone := context.AfterFunc(rctx, func() {
 		_ = mstrm.GetStream().Close()
 	})
 
+	// Hand the mounted stream to its protocol handler and close it on failure.
 	if err := mhnd.HandleMountedStream(rctx, mstrm); err != nil {
 		stopCloseOnLinkDone()
 		c.le.
@@ -390,6 +400,7 @@ func (c *Controller) HandleIncomingStream(
 // Waits for the link to be established and returns the link.
 // If the transport is not a TransportDialer, returns ErrNotTransportDialer.
 func (c *Controller) DialPeerAddr(ctx context.Context, peerID peer.ID, opts *dialer.DialerOpts) (link.Link, error) {
+	// Validate the peer address and identity before requesting a dial.
 	if err := opts.Validate(); err != nil {
 		return nil, err
 	}
@@ -397,18 +408,22 @@ func (c *Controller) DialPeerAddr(ctx context.Context, peerID peer.ID, opts *dia
 		return nil, err
 	}
 
+	// Wait for the transport that will perform the peer dial.
 	tpt, err := c.GetTransport(ctx)
 	if err != nil {
 		return nil, err
 	}
 
+	// Require the constructed transport to support peer address dialing.
 	if _, ok := tpt.(dialer.TransportDialer); !ok {
 		return nil, dialer.ErrNotTransportDialer
 	}
 
+	// Keep the peer address dialer referenced while waiting for its link.
 	ref, dial, _ := c.linkDialers.AddKeyRef(linkDialerKey{peerID: peerID, dialAddress: opts.GetAddress()})
 	defer ref.Release()
 
+	// Supply the requested peer address to the referenced dialer.
 	_ = dial.opts.SetResult(opts, nil)
 
 	return dial.lnk.WaitValue(ctx, nil)
@@ -417,11 +432,14 @@ func (c *Controller) DialPeerAddr(ctx context.Context, peerID peer.ID, opts *dia
 // flushEstablishedLink closes an established link and cleans it up.
 // mtx is locked by caller
 func (c *Controller) flushEstablishedLink(el *establishedLink, hasNextLink bool) {
+	// Report the established link loss through its identifying logger.
 	le := c.loggerForLink(el.lnk)
 	le.Info("link lost/closed")
 
+	// Remove the closed link from the controller link index.
 	delete(c.links, el.lnk.GetUUID())
 
+	// Remove the closed link from its remote peer link group.
 	peerID := el.lnk.GetRemotePeer()
 	peerLinks := c.linksByPeerID[peerID]
 	for i, plnk := range peerLinks {
@@ -442,6 +460,7 @@ func (c *Controller) flushEstablishedLink(el *establishedLink, hasNextLink bool)
 		c.linksByPeerID[peerID] = peerLinks
 	}
 
+	// Cancel the established link context to release its dependent streams.
 	el.cancel()
 
 	// close the directive if unreferenced (skipping unref dispose dir)

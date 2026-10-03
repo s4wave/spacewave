@@ -66,6 +66,7 @@ func readStreamEstablishHeader(r io.Reader) (*StreamEstablish, error) {
 		return nil, errors.New("invalid stream establish varint prefix")
 	}
 
+	// Clamp the decoded prefix width to the bytes already buffered.
 	if headerLenBytes > len(b) { // this should not be possible
 		headerLenBytes = len(b)
 	}

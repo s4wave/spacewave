@@ -20,22 +20,26 @@ type dialTptAddrResolver struct {
 // The resolver will not be retried after returning an error.
 // Values will be maintained from the previous call.
 func (o *dialTptAddrResolver) Resolve(ctx context.Context, handler directive.ResolverHandler) error {
+	// Wait for the transport that can resolve this address directive.
 	tpt, err := o.c.GetTransport(ctx)
 	if err != nil {
 		return err
 	}
 
+	// Resolve addresses only through transports that support dialing.
 	tptDialer, ok := tpt.(dialer.TransportDialer)
 	if !ok {
 		return nil
 	}
 
+	// Require the address directive to target this transport source peer.
 	tptPeerID := tpt.GetPeerID()
 	if srcPeerID := o.dir.DialTptAddrSourcePeerId(); srcPeerID != tptPeerID {
 		// tpt peer id mismatch
 		return nil
 	}
 
+	// Validate the destination peer and exclude dialing the local peer.
 	destPeerID := o.dir.DialTptAddrTargetPeerId()
 	if tptPeerID == destPeerID {
 		// self dial
@@ -45,6 +49,7 @@ func (o *dialTptAddrResolver) Resolve(ctx context.Context, handler directive.Res
 		return err
 	}
 
+	// Decode the address and match its transport type before dialing.
 	dialerOpts := o.dir.DialTptAddrDialerOpts()
 	transportID, dialAddr, err := tptaddr.ParseTptAddr(dialerOpts.GetAddress())
 	if err != nil {
@@ -54,6 +59,7 @@ func (o *dialTptAddrResolver) Resolve(ctx context.Context, handler directive.Res
 		return nil
 	}
 
+	// Reference the destination address dialer until resolution finishes.
 	c := o.c
 	ref, dialer, _ := c.linkDialers.AddKeyRef(linkDialerKey{
 		peerID:      destPeerID,
@@ -61,6 +67,7 @@ func (o *dialTptAddrResolver) Resolve(ctx context.Context, handler directive.Res
 	})
 	defer ref.Release()
 
+	// Supply the directive address to the referenced peer dialer.
 	dialer.opts.SetResult(dialerOpts, nil)
 
 	// wait for dialer to finish
@@ -81,6 +88,7 @@ func (c *Controller) resolveDialTptAddr(
 	_ directive.Instance,
 	dir tptaddr.DialTptAddr,
 ) ([]directive.Resolver, error) {
+	// Require a destination peer and address before resolving the dial directive.
 	srcPeerID := dir.DialTptAddrSourcePeerId()
 	destPeerID := dir.DialTptAddrTargetPeerId()
 	if len(destPeerID) == 0 || dir.DialTptAddrDialerOpts().GetAddress() == "" {

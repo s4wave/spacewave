@@ -19,15 +19,18 @@ type lookupTransportResolver struct {
 // The resolver will not be retried after returning an error.
 // Values will be maintained from the previous call.
 func (o *lookupTransportResolver) Resolve(ctx context.Context, handler directive.ResolverHandler) error {
+	// Wait for the transport requested by the lookup directive.
 	tpt, err := o.c.GetTransport(ctx)
 	if err != nil {
 		return err
 	}
 
+	// Apply the lookup constraints to the constructed transport.
 	if !checkLookupMatchesTpt(o.dir, tpt) {
 		return nil
 	}
 
+	// Publish the matching transport to the directive handler.
 	handler.AddValue(tpt)
 	return nil
 }

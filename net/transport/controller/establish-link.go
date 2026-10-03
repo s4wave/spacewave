@@ -20,12 +20,14 @@ type establishLinkResolver struct {
 // The resolver will not be retried after returning an error.
 // Values will be maintained from the previous call.
 func (o *establishLinkResolver) Resolve(ctx context.Context, handler directive.ResolverHandler) error {
+	// Wait for the transport that can establish the target peer link.
 	targetPeerID := o.dir.EstablishLinkTargetPeerId()
 	tpt, err := o.c.GetTransport(ctx)
 	if err != nil {
 		return err
 	}
 
+	// Keep a source-scoped link demand when this transport matches the directive.
 	sourcePeerID := o.dir.EstablishLinkSourcePeerId()
 	tptSourcePeerID := tpt.GetPeerID()
 	if sourcePeerID == "" {

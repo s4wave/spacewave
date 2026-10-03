@@ -28,6 +28,7 @@ func (h *transportHandler) HandleLinkEstablished(lnk link.Link) {
 	// Capture link identity for registration and logging.
 	le := h.c.loggerForLink(lnk)
 
+	// Capture the incoming link identity for the controller indexes.
 	luuid := lnk.GetUUID()
 	remotePeer := lnk.GetRemotePeer()
 
@@ -56,6 +57,7 @@ func (h *transportHandler) HandleLinkEstablished(lnk link.Link) {
 			return
 		}
 
+		// Reconcile an existing registration before accepting the incoming link.
 		el, elOk := h.c.links[luuid]
 		if elOk {
 			if el.lnk == lnk {
@@ -83,6 +85,7 @@ func (h *transportHandler) HandleLinkEstablished(lnk link.Link) {
 		h.c.links[luuid] = el
 		h.c.linksByPeerID[remotePeer] = append(h.c.linksByPeerID[remotePeer], el)
 
+		// Report the established link and wake transport state subscribers.
 		le.Info("link established")
 		broadcast()
 	})

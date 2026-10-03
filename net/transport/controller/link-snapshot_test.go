@@ -15,6 +15,7 @@ import (
 )
 
 func TestLinkLossBroadcastsSnapshotWaiters(t *testing.T) {
+	// Start a controller bus for observing transport link snapshots.
 	ctx := t.Context()
 	le := logrus.NewEntry(logrus.New())
 	b, _, err := cbc.NewCoreBus(ctx, le)
@@ -22,6 +23,7 @@ func TestLinkLossBroadcastsSnapshotWaiters(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// Prepare a transport controller with an active execution context.
 	localPeer := peer.ID("local-peer")
 	remotePeer := peer.ID("remote-peer")
 	tpt := &testTransport{peerID: localPeer}
@@ -42,14 +44,17 @@ func TestLinkLossBroadcastsSnapshotWaiters(t *testing.T) {
 		broadcast()
 	})
 
+	// Subscribe to link establishment before registering the incoming link.
 	h := newTransportHandler(ctx, c)
 	_ = h.tpt.SetResult(tpt, nil)
 	_, waitEstablished := c.GetLinkedPeerIDsSnapshotWithWait([]peer.ID{remotePeer})
 
+	// Establish the peer link and verify the snapshot subscriber wakes.
 	lnk := newTestLink(localPeer, remotePeer)
 	h.HandleLinkEstablished(lnk)
 	assertClosed(t, waitEstablished)
 
+	// Verify the linked peer snapshot before closing and removing its link.
 	linked, waitLost := c.GetLinkedPeerIDsSnapshotWithWait([]peer.ID{remotePeer})
 	if _, ok := linked[remotePeer]; !ok {
 		t.Fatal("expected remote peer to be linked")
@@ -60,6 +65,7 @@ func TestLinkLossBroadcastsSnapshotWaiters(t *testing.T) {
 	h.HandleLinkLost(lnk)
 	assertClosed(t, waitLost)
 
+	// Verify the peer disappears from the snapshot after link loss.
 	linked, _ = c.GetLinkedPeerIDsSnapshotWithWait([]peer.ID{remotePeer})
 	if _, ok := linked[remotePeer]; ok {
 		t.Fatal("expected remote peer to be unlinked")

@@ -55,8 +55,11 @@ type blockingMountedStreamHandler struct {
 }
 
 func (h *blockingMountedStreamHandler) HandleMountedStream(_ context.Context, ms link.MountedStream) error {
+	// Retain the mounted handler reference while the stream read is active.
 	h.refs.Add(1)
 	defer h.refs.Add(-1)
+
+	// Report the mounted handler start and the eventual stream read result.
 	close(h.started)
 	_, err := ms.GetStream().Read(make([]byte, 1))
 	h.returned <- err
@@ -150,9 +153,11 @@ func (s *blockingMountedStream) Close() error {
 // TestHandleIncomingStreamClosesOnContextCancel proves a mounted stream closes
 // when its link context is canceled, unblocking a context-unaware handler read.
 func TestHandleIncomingStreamClosesOnContextCancel(t *testing.T) {
+	// Create a cancellable transport test context.
 	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
 
+	// Start a transport testbed without peer or echo controllers.
 	log := logrus.New()
 	tb, err := testbed.NewTestbed(ctx, logrus.NewEntry(log), testbed.TestbedOpts{
 		NoPeer: true,
@@ -163,6 +168,7 @@ func TestHandleIncomingStreamClosesOnContextCancel(t *testing.T) {
 	}
 	t.Cleanup(tb.Release)
 
+	// Register a mounted stream handler that blocks while reading.
 	handler := &blockingMountedStreamHandler{
 		started:  make(chan struct{}),
 		returned: make(chan error, 1),
@@ -174,6 +180,7 @@ func TestHandleIncomingStreamClosesOnContextCancel(t *testing.T) {
 	}
 	t.Cleanup(rel)
 
+	// Prepare the transport controller and incoming mounted stream.
 	localPeer := peer.ID("local")
 	remotePeer := peer.ID("remote")
 	protocolID := protocol.ID("test/mounted")
@@ -186,6 +193,8 @@ func TestHandleIncomingStreamClosesOnContextCancel(t *testing.T) {
 	}
 	strm := newBlockingMountedStream(protocolID)
 	lnk := &mountedStreamTestLink{localPeer: localPeer, remotePeer: remotePeer}
+
+	// Run incoming stream handling under a cancellable link context.
 	rctx, cancelLink := context.WithCancel(ctx)
 	handleDone := make(chan struct{})
 	go func() {
@@ -193,14 +202,17 @@ func TestHandleIncomingStreamClosesOnContextCancel(t *testing.T) {
 		close(handleDone)
 	}()
 
+	// Wait for the mounted handler to begin its blocking read.
 	select {
 	case <-handler.started:
 	case <-time.After(2 * time.Second):
 		t.Fatal("timed out waiting for mounted stream handler")
 	}
 
+	// Cancel the link context to close the mounted stream.
 	cancelLink()
 
+	// Verify stream closure unblocks the mounted handler with a closed-pipe error.
 	select {
 	case err := <-handler.returned:
 		if !errors.Is(err, io.ErrClosedPipe) {
@@ -209,12 +221,15 @@ func TestHandleIncomingStreamClosesOnContextCancel(t *testing.T) {
 	case <-time.After(2 * time.Second):
 		t.Fatal("timed out waiting for mounted stream handler to return")
 	}
+
+	// Wait for incoming stream handling to finish after link cancellation.
 	select {
 	case <-handleDone:
 	case <-time.After(2 * time.Second):
 		t.Fatal("timed out waiting for incoming stream handler")
 	}
 
+	// Verify the mounted handler releases its reference and the stream closes.
 	if refs := handler.refs.Load(); refs != 0 {
 		t.Fatalf("mounted stream handler refs = %d, want 0", refs)
 	}
@@ -235,15 +250,20 @@ type mountedSignalingHandler struct {
 }
 
 func (h *mountedSignalingHandler) HandleMountedStream(_ context.Context, ms link.MountedStream) error {
+	// Track the signaling session and retain its active handler reference.
 	session := h.sessions.Add(1)
 	h.refs.Add(1)
 	defer h.refs.Add(-1)
+
+	// Report the first signaling session lifetime around its blocking stream read.
 	if session == 1 {
 		h.events <- "Opened"
 		_, err := ms.GetStream().Read(make([]byte, 1))
 		h.events <- "Closed"
 		return err
 	}
+
+	// Report the replacement signaling session opening to the test.
 	h.events <- "Opened"
 	return nil
 }
@@ -251,9 +271,11 @@ func (h *mountedSignalingHandler) HandleMountedStream(_ context.Context, ms link
 // TestMountedSignalingStreamReacceptAfterContextCancel proves a canceled
 // mounted signaling stream can be replaced by a fresh opened session.
 func TestMountedSignalingStreamReacceptAfterContextCancel(t *testing.T) {
+	// Create a cancellable signaling stream test context.
 	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
 
+	// Start a signaling testbed without peer or echo controllers.
 	log := logrus.New()
 	tbs, err := testbed.NewTestbed(ctx, logrus.NewEntry(log), testbed.TestbedOpts{
 		NoPeer: true,
@@ -264,6 +286,7 @@ func TestMountedSignalingStreamReacceptAfterContextCancel(t *testing.T) {
 	}
 	t.Cleanup(tbs.Release)
 
+	// Register the signaling handler that reports opened and closed sessions.
 	handler := &mountedSignalingHandler{events: make(chan string, 4)}
 	handlerCtrl := &mountedStreamHandlerController{handler: handler}
 	rel, err := tbs.Bus.AddController(ctx, handlerCtrl, nil)
@@ -272,6 +295,7 @@ func TestMountedSignalingStreamReacceptAfterContextCancel(t *testing.T) {
 	}
 	t.Cleanup(rel)
 
+	// Prepare the transport controller and peer link for both signaling sessions.
 	localPeer := peer.ID("local")
 	remotePeer := peer.ID("remote")
 	protocolID := protocol.ID("test/signaling")
@@ -284,6 +308,7 @@ func TestMountedSignalingStreamReacceptAfterContextCancel(t *testing.T) {
 	}
 	lnk := &mountedStreamTestLink{localPeer: localPeer, remotePeer: remotePeer}
 
+	// Start the first signaling stream under a cancellable link context.
 	firstStream := newBlockingMountedStream(protocolID)
 	firstCtx, cancelFirst := context.WithCancel(ctx)
 	firstDone := make(chan struct{})
@@ -291,10 +316,14 @@ func TestMountedSignalingStreamReacceptAfterContextCancel(t *testing.T) {
 		ctrl.HandleIncomingStream(firstCtx, nil, lnk, firstStream, stream.OpenOpts{})
 		close(firstDone)
 	}()
+
+	// Verify the first signaling session opens before cancelling its context.
 	if event := recvMountedSignalingEvent(t, handler.events); event != "Opened" {
 		t.Fatalf("first session event = %q, want Opened", event)
 	}
 	cancelFirst()
+
+	// Verify the canceled signaling session closes and releases its handler reference.
 	if event := recvMountedSignalingEvent(t, handler.events); event != "Closed" {
 		t.Fatalf("first session event = %q, want Closed", event)
 	}
@@ -307,6 +336,7 @@ func TestMountedSignalingStreamReacceptAfterContextCancel(t *testing.T) {
 		t.Fatalf("signaling handler refs after first session = %d, want 0", refs)
 	}
 
+	// Start a replacement signaling stream on the same peer link.
 	secondStream := newBlockingMountedStream(protocolID)
 	secondCtx, cancelSecond := context.WithCancel(ctx)
 	secondDone := make(chan struct{})
@@ -314,10 +344,14 @@ func TestMountedSignalingStreamReacceptAfterContextCancel(t *testing.T) {
 		ctrl.HandleIncomingStream(secondCtx, nil, lnk, secondStream, stream.OpenOpts{})
 		close(secondDone)
 	}()
+
+	// Verify the replacement signaling session opens before cancelling its context.
 	if event := recvMountedSignalingEvent(t, handler.events); event != "Opened" {
 		t.Fatalf("second session event = %q, want Opened", event)
 	}
 	cancelSecond()
+
+	// Verify the replacement stream finishes, closes, and releases its handler reference.
 	select {
 	case <-secondDone:
 	case <-time.After(2 * time.Second):
