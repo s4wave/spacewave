@@ -21,6 +21,47 @@ import (
 	secret "github.com/s4wave/spacewave/sdk/secret"
 )
 
+// SpaceControl is who controls a Space.
+type SpaceControl int32
+
+const (
+	// SpaceControl_UNKNOWN leaves the control unset.
+	SpaceControl_SpaceControl_UNKNOWN SpaceControl = 0
+	// SpaceControl_OWNER means an owner changes members and settings alone.
+	SpaceControl_SpaceControl_OWNER SpaceControl = 1
+	// SpaceControl_GROUP means a change needs voters with more than two thirds
+	// of the voting weight. No one decides alone, including owners.
+	SpaceControl_SpaceControl_GROUP SpaceControl = 2
+)
+
+// Enum value maps for SpaceControl.
+var (
+	SpaceControl_name = map[int32]string{
+		0: "SpaceControl_UNKNOWN",
+		1: "SpaceControl_OWNER",
+		2: "SpaceControl_GROUP",
+	}
+	SpaceControl_value = map[string]int32{
+		"SpaceControl_UNKNOWN": 0,
+		"SpaceControl_OWNER":   1,
+		"SpaceControl_GROUP":   2,
+	}
+)
+
+func (x SpaceControl) Enum() *SpaceControl {
+	p := new(SpaceControl)
+	*p = x
+	return p
+}
+
+func (x SpaceControl) String() string {
+	name, valid := SpaceControl_name[int32(x)]
+	if valid {
+		return name
+	}
+	return strconv.Itoa(int(x))
+}
+
 // SpaceSequencer is who orders a Space's edits.
 type SpaceSequencer int32
 
@@ -439,6 +480,21 @@ type SpaceSharingState struct {
 	SequencerPeerId string `protobuf:"bytes,13,opt,name=sequencer_peer_id,json=sequencerPeerId,proto3" json:"sequencerPeerId,omitempty"`
 	// SequencerChoices are the sequencers an owner can appoint on this device.
 	SequencerChoices []SpaceSequencer `protobuf:"varint,14,rep,packed,name=sequencer_choices,json=sequencerChoices,proto3" json:"sequencerChoices,omitempty"`
+	// Control is who controls the Space.
+	Control SpaceControl `protobuf:"varint,15,opt,name=control,proto3" json:"control,omitempty"`
+	// CanVote is true when the viewer votes on the group's changes.
+	CanVote bool `protobuf:"varint,16,opt,name=can_vote,json=canVote,proto3" json:"canVote,omitempty"`
+	// CanSetControl is true when the viewer can change who controls the Space:
+	// an owner under owner control, or a voter under group control.
+	CanSetControl bool `protobuf:"varint,17,opt,name=can_set_control,json=canSetControl,proto3" json:"canSetControl,omitempty"`
+	// TotalWeight is the voting weight of every voter under group control.
+	TotalWeight uint64 `protobuf:"varint,18,opt,name=total_weight,json=totalWeight,proto3" json:"totalWeight,omitempty"`
+	// QuorumWeight is the voting weight a change needs under group control:
+	// more than two thirds of TotalWeight.
+	QuorumWeight uint64 `protobuf:"varint,19,opt,name=quorum_weight,json=quorumWeight,proto3" json:"quorumWeight,omitempty"`
+	// GroupChanges are the changes voters agree to that the group has not
+	// decided, by most voting weight.
+	GroupChanges []*SpaceGroupChange `protobuf:"bytes,20,rep,name=group_changes,json=groupChanges,proto3" json:"groupChanges,omitempty"`
 }
 
 func (x *SpaceSharingState) Reset() {
@@ -543,6 +599,131 @@ func (x *SpaceSharingState) GetSequencerChoices() []SpaceSequencer {
 		return x.SequencerChoices
 	}
 	return nil
+}
+
+func (x *SpaceSharingState) GetControl() SpaceControl {
+	if x != nil {
+		return x.Control
+	}
+	return SpaceControl_SpaceControl_UNKNOWN
+}
+
+func (x *SpaceSharingState) GetCanVote() bool {
+	if x != nil {
+		return x.CanVote
+	}
+	return false
+}
+
+func (x *SpaceSharingState) GetCanSetControl() bool {
+	if x != nil {
+		return x.CanSetControl
+	}
+	return false
+}
+
+func (x *SpaceSharingState) GetTotalWeight() uint64 {
+	if x != nil {
+		return x.TotalWeight
+	}
+	return 0
+}
+
+func (x *SpaceSharingState) GetQuorumWeight() uint64 {
+	if x != nil {
+		return x.QuorumWeight
+	}
+	return 0
+}
+
+func (x *SpaceSharingState) GetGroupChanges() []*SpaceGroupChange {
+	if x != nil {
+		return x.GroupChanges
+	}
+	return nil
+}
+
+// SpaceGroupChange is a change voters agree to that the group has not decided.
+type SpaceGroupChange struct {
+	unknownFields []byte
+	// Hash identifies the change for ApproveSpaceChange.
+	Hash []byte `protobuf:"bytes,1,opt,name=hash,proto3" json:"hash,omitempty"`
+	// ChangeType is the kind of change.
+	ChangeType sobject.SOConfigChangeType `protobuf:"varint,2,opt,name=change_type,json=changeType,proto3" json:"changeType,omitempty"`
+	// AddedPeerIds are the peers the change admits.
+	AddedPeerIds []string `protobuf:"bytes,3,rep,name=added_peer_ids,json=addedPeerIds,proto3" json:"addedPeerIds,omitempty"`
+	// RemovedPeerIds are the peers the change removes.
+	RemovedPeerIds []string `protobuf:"bytes,4,rep,name=removed_peer_ids,json=removedPeerIds,proto3" json:"removedPeerIds,omitempty"`
+	// Control is who controls the Space after the change.
+	Control SpaceControl `protobuf:"varint,5,opt,name=control,proto3" json:"control,omitempty"`
+	// Sequencer is who orders the Space's edits after the change.
+	Sequencer SpaceSequencer `protobuf:"varint,6,opt,name=sequencer,proto3" json:"sequencer,omitempty"`
+	// Weight is the voting weight of the voters that agree.
+	Weight uint64 `protobuf:"varint,7,opt,name=weight,proto3" json:"weight,omitempty"`
+	// ViewerAgreed is true when the viewer agrees.
+	ViewerAgreed bool `protobuf:"varint,8,opt,name=viewer_agreed,json=viewerAgreed,proto3" json:"viewerAgreed,omitempty"`
+}
+
+func (x *SpaceGroupChange) Reset() {
+	*x = SpaceGroupChange{}
+}
+
+func (*SpaceGroupChange) ProtoMessage() {}
+
+func (x *SpaceGroupChange) GetHash() []byte {
+	if x != nil {
+		return x.Hash
+	}
+	return nil
+}
+
+func (x *SpaceGroupChange) GetChangeType() sobject.SOConfigChangeType {
+	if x != nil {
+		return x.ChangeType
+	}
+	return sobject.SOConfigChangeType(0)
+}
+
+func (x *SpaceGroupChange) GetAddedPeerIds() []string {
+	if x != nil {
+		return x.AddedPeerIds
+	}
+	return nil
+}
+
+func (x *SpaceGroupChange) GetRemovedPeerIds() []string {
+	if x != nil {
+		return x.RemovedPeerIds
+	}
+	return nil
+}
+
+func (x *SpaceGroupChange) GetControl() SpaceControl {
+	if x != nil {
+		return x.Control
+	}
+	return SpaceControl_SpaceControl_UNKNOWN
+}
+
+func (x *SpaceGroupChange) GetSequencer() SpaceSequencer {
+	if x != nil {
+		return x.Sequencer
+	}
+	return SpaceSequencer_SpaceSequencer_UNKNOWN
+}
+
+func (x *SpaceGroupChange) GetWeight() uint64 {
+	if x != nil {
+		return x.Weight
+	}
+	return 0
+}
+
+func (x *SpaceGroupChange) GetViewerAgreed() bool {
+	if x != nil {
+		return x.ViewerAgreed
+	}
+	return false
 }
 
 // TransformInfo contains redacted transform configuration for display.
@@ -1189,6 +1370,9 @@ type SetSpaceSequencerResponse struct {
 	unknownFields []byte
 	// Changed is false when the chosen sequencer already ordered the edits.
 	Changed bool `protobuf:"varint,1,opt,name=changed,proto3" json:"changed,omitempty"`
+	// AwaitingGroup is true when the viewer agreed to the change under group
+	// control, and it applies once the group decides it.
+	AwaitingGroup bool `protobuf:"varint,2,opt,name=awaiting_group,json=awaitingGroup,proto3" json:"awaitingGroup,omitempty"`
 }
 
 func (x *SetSpaceSequencerResponse) Reset() {
@@ -1203,6 +1387,85 @@ func (x *SetSpaceSequencerResponse) GetChanged() bool {
 	}
 	return false
 }
+
+func (x *SetSpaceSequencerResponse) GetAwaitingGroup() bool {
+	if x != nil {
+		return x.AwaitingGroup
+	}
+	return false
+}
+
+// SetSpaceControlRequest chooses who controls the Space.
+type SetSpaceControlRequest struct {
+	unknownFields []byte
+	// Control is OWNER or GROUP.
+	Control SpaceControl `protobuf:"varint,1,opt,name=control,proto3" json:"control,omitempty"`
+}
+
+func (x *SetSpaceControlRequest) Reset() {
+	*x = SetSpaceControlRequest{}
+}
+
+func (*SetSpaceControlRequest) ProtoMessage() {}
+
+func (x *SetSpaceControlRequest) GetControl() SpaceControl {
+	if x != nil {
+		return x.Control
+	}
+	return SpaceControl_SpaceControl_UNKNOWN
+}
+
+// SetSpaceControlResponse reports how the change proceeds.
+type SetSpaceControlResponse struct {
+	unknownFields []byte
+	// AwaitingGroup is true when the viewer agreed to the change under group
+	// control, and it applies once the group decides it.
+	AwaitingGroup bool `protobuf:"varint,1,opt,name=awaiting_group,json=awaitingGroup,proto3" json:"awaitingGroup,omitempty"`
+}
+
+func (x *SetSpaceControlResponse) Reset() {
+	*x = SetSpaceControlResponse{}
+}
+
+func (*SetSpaceControlResponse) ProtoMessage() {}
+
+func (x *SetSpaceControlResponse) GetAwaitingGroup() bool {
+	if x != nil {
+		return x.AwaitingGroup
+	}
+	return false
+}
+
+// ApproveSpaceChangeRequest agrees to a change the group has not decided.
+type ApproveSpaceChangeRequest struct {
+	unknownFields []byte
+	// Hash is the SpaceGroupChange hash.
+	Hash []byte `protobuf:"bytes,1,opt,name=hash,proto3" json:"hash,omitempty"`
+}
+
+func (x *ApproveSpaceChangeRequest) Reset() {
+	*x = ApproveSpaceChangeRequest{}
+}
+
+func (*ApproveSpaceChangeRequest) ProtoMessage() {}
+
+func (x *ApproveSpaceChangeRequest) GetHash() []byte {
+	if x != nil {
+		return x.Hash
+	}
+	return nil
+}
+
+// ApproveSpaceChangeResponse is the response to ApproveSpaceChange.
+type ApproveSpaceChangeResponse struct {
+	unknownFields []byte
+}
+
+func (x *ApproveSpaceChangeResponse) Reset() {
+	*x = ApproveSpaceChangeResponse{}
+}
+
+func (*ApproveSpaceChangeResponse) ProtoMessage() {}
 
 // SetProcessBindingRequest is a request to set a process binding state.
 type SetProcessBindingRequest struct {
@@ -1469,6 +1732,11 @@ func (m *SpaceSharingState) CloneVT() *SpaceSharingState {
 	r.DeparturePending = m.DeparturePending
 	r.Sequencer = m.Sequencer
 	r.SequencerPeerId = m.SequencerPeerId
+	r.Control = m.Control
+	r.CanVote = m.CanVote
+	r.CanSetControl = m.CanSetControl
+	r.TotalWeight = m.TotalWeight
+	r.QuorumWeight = m.QuorumWeight
 	r.Participants = protobuf_go_lite.CloneVTSlice(m.Participants)
 	r.Invites = protobuf_go_lite.CloneVTSlice(m.Invites)
 	r.MailboxEntries = protobuf_go_lite.CloneVTSlice(m.MailboxEntries)
@@ -1476,6 +1744,7 @@ func (m *SpaceSharingState) CloneVT() *SpaceSharingState {
 	r.ConfigChainHash = protobuf_go_lite.CloneBytes(m.ConfigChainHash)
 	r.JoinRequests = protobuf_go_lite.CloneVTSlice(m.JoinRequests)
 	r.SequencerChoices = protobuf_go_lite.CloneSlice(m.SequencerChoices)
+	r.GroupChanges = protobuf_go_lite.CloneVTSlice(m.GroupChanges)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -1483,6 +1752,29 @@ func (m *SpaceSharingState) CloneVT() *SpaceSharingState {
 }
 
 func (m *SpaceSharingState) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *SpaceGroupChange) CloneVT() *SpaceGroupChange {
+	if m == nil {
+		return (*SpaceGroupChange)(nil)
+	}
+	r := new(SpaceGroupChange)
+	r.ChangeType = m.ChangeType
+	r.Control = m.Control
+	r.Sequencer = m.Sequencer
+	r.Weight = m.Weight
+	r.ViewerAgreed = m.ViewerAgreed
+	r.Hash = protobuf_go_lite.CloneBytes(m.Hash)
+	r.AddedPeerIds = protobuf_go_lite.CloneSlice(m.AddedPeerIds)
+	r.RemovedPeerIds = protobuf_go_lite.CloneSlice(m.RemovedPeerIds)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *SpaceGroupChange) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -1865,6 +2157,7 @@ func (m *SetSpaceSequencerResponse) CloneVT() *SetSpaceSequencerResponse {
 	}
 	r := new(SetSpaceSequencerResponse)
 	r.Changed = m.Changed
+	r.AwaitingGroup = m.AwaitingGroup
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -1872,6 +2165,69 @@ func (m *SetSpaceSequencerResponse) CloneVT() *SetSpaceSequencerResponse {
 }
 
 func (m *SetSpaceSequencerResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *SetSpaceControlRequest) CloneVT() *SetSpaceControlRequest {
+	if m == nil {
+		return (*SetSpaceControlRequest)(nil)
+	}
+	r := new(SetSpaceControlRequest)
+	r.Control = m.Control
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *SetSpaceControlRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *SetSpaceControlResponse) CloneVT() *SetSpaceControlResponse {
+	if m == nil {
+		return (*SetSpaceControlResponse)(nil)
+	}
+	r := new(SetSpaceControlResponse)
+	r.AwaitingGroup = m.AwaitingGroup
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *SetSpaceControlResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *ApproveSpaceChangeRequest) CloneVT() *ApproveSpaceChangeRequest {
+	if m == nil {
+		return (*ApproveSpaceChangeRequest)(nil)
+	}
+	r := new(ApproveSpaceChangeRequest)
+	r.Hash = protobuf_go_lite.CloneBytes(m.Hash)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *ApproveSpaceChangeRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *ApproveSpaceChangeResponse) CloneVT() *ApproveSpaceChangeResponse {
+	if m == nil {
+		return (*ApproveSpaceChangeResponse)(nil)
+	}
+	r := new(ApproveSpaceChangeResponse)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *ApproveSpaceChangeResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -2188,11 +2544,70 @@ func (this *SpaceSharingState) EqualVT(that *SpaceSharingState) bool {
 	if !protobuf_go_lite.EqualSlice(this.SequencerChoices, that.SequencerChoices) {
 		return false
 	}
+	if this.Control != that.Control {
+		return false
+	}
+	if this.CanVote != that.CanVote {
+		return false
+	}
+	if this.CanSetControl != that.CanSetControl {
+		return false
+	}
+	if this.TotalWeight != that.TotalWeight {
+		return false
+	}
+	if this.QuorumWeight != that.QuorumWeight {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTSliceImplicit(this.GroupChanges, that.GroupChanges, func() *SpaceGroupChange { return &SpaceGroupChange{} }) {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
 func (this *SpaceSharingState) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*SpaceSharingState)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *SpaceGroupChange) EqualVT(that *SpaceGroupChange) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualBytes(this.Hash, that.Hash) {
+		return false
+	}
+	if this.ChangeType != that.ChangeType {
+		return false
+	}
+	if !protobuf_go_lite.EqualSlice(this.AddedPeerIds, that.AddedPeerIds) {
+		return false
+	}
+	if !protobuf_go_lite.EqualSlice(this.RemovedPeerIds, that.RemovedPeerIds) {
+		return false
+	}
+	if this.Control != that.Control {
+		return false
+	}
+	if this.Sequencer != that.Sequencer {
+		return false
+	}
+	if this.Weight != that.Weight {
+		return false
+	}
+	if this.ViewerAgreed != that.ViewerAgreed {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *SpaceGroupChange) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*SpaceGroupChange)
 	if !ok {
 		return false
 	}
@@ -2711,11 +3126,91 @@ func (this *SetSpaceSequencerResponse) EqualVT(that *SetSpaceSequencerResponse) 
 	if this.Changed != that.Changed {
 		return false
 	}
+	if this.AwaitingGroup != that.AwaitingGroup {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
 func (this *SetSpaceSequencerResponse) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*SetSpaceSequencerResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *SetSpaceControlRequest) EqualVT(that *SetSpaceControlRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Control != that.Control {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *SetSpaceControlRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*SetSpaceControlRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *SetSpaceControlResponse) EqualVT(that *SetSpaceControlResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.AwaitingGroup != that.AwaitingGroup {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *SetSpaceControlResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*SetSpaceControlResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *ApproveSpaceChangeRequest) EqualVT(that *ApproveSpaceChangeRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualBytes(this.Hash, that.Hash) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *ApproveSpaceChangeRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*ApproveSpaceChangeRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *ApproveSpaceChangeResponse) EqualVT(that *ApproveSpaceChangeResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *ApproveSpaceChangeResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*ApproveSpaceChangeResponse)
 	if !ok {
 		return false
 	}
@@ -2829,6 +3324,46 @@ func (this *ProcessBindingInfo) EqualMessageVT(thatMsg any) bool {
 		return false
 	}
 	return this.EqualVT(that)
+}
+
+// MarshalProtoJSON marshals the SpaceControl to JSON.
+func (x SpaceControl) MarshalProtoJSON(s *json.MarshalState) {
+	s.WriteEnum(int32(x), SpaceControl_name)
+}
+
+// MarshalText marshals the SpaceControl to text.
+func (x SpaceControl) MarshalText() ([]byte, error) {
+	return []byte(json.GetEnumString(int32(x), SpaceControl_name)), nil
+}
+
+// MarshalJSON marshals the SpaceControl to JSON.
+func (x SpaceControl) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the SpaceControl from JSON.
+func (x *SpaceControl) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	v := s.ReadEnum(SpaceControl_value)
+	if err := s.Err(); err != nil {
+		s.SetErrorf("could not read SpaceControl enum: %v", err)
+		return
+	}
+	*x = SpaceControl(v)
+}
+
+// UnmarshalText unmarshals the SpaceControl from text.
+func (x *SpaceControl) UnmarshalText(b []byte) error {
+	i, err := json.ParseEnumString(string(b), SpaceControl_value)
+	if err != nil {
+		return err
+	}
+	*x = SpaceControl(i)
+	return nil
+}
+
+// UnmarshalJSON unmarshals the SpaceControl from JSON.
+func (x *SpaceControl) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
 // MarshalProtoJSON marshals the SpaceSequencer to JSON.
@@ -3435,6 +3970,42 @@ func (x *SpaceSharingState) MarshalProtoJSON(s *json.MarshalState) {
 		}
 		s.WriteArrayEnd()
 	}
+	if x.Control != 0 || s.HasField("control") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("control")
+		x.Control.MarshalProtoJSON(s)
+	}
+	if x.CanVote || s.HasField("canVote") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("canVote")
+		s.WriteBool(x.CanVote)
+	}
+	if x.CanSetControl || s.HasField("canSetControl") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("canSetControl")
+		s.WriteBool(x.CanSetControl)
+	}
+	if x.TotalWeight != 0 || s.HasField("totalWeight") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("totalWeight")
+		s.WriteUint64(x.TotalWeight)
+	}
+	if x.QuorumWeight != 0 || s.HasField("quorumWeight") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("quorumWeight")
+		s.WriteUint64(x.QuorumWeight)
+	}
+	if len(x.GroupChanges) > 0 || s.HasField("groupChanges") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("groupChanges")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.GroupChanges {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("groupChanges"))
+		}
+		s.WriteArrayEnd()
+	}
 	s.WriteObjectEnd()
 }
 
@@ -3577,12 +4148,151 @@ func (x *SpaceSharingState) UnmarshalProtoJSON(s *json.UnmarshalState) {
 				v.UnmarshalProtoJSON(s)
 				x.SequencerChoices = append(x.SequencerChoices, v)
 			})
+		case "control":
+			s.AddField("control")
+			x.Control.UnmarshalProtoJSON(s)
+		case "can_vote", "canVote":
+			s.AddField("can_vote")
+			x.CanVote = s.ReadBool()
+		case "can_set_control", "canSetControl":
+			s.AddField("can_set_control")
+			x.CanSetControl = s.ReadBool()
+		case "total_weight", "totalWeight":
+			s.AddField("total_weight")
+			x.TotalWeight = s.ReadUint64()
+		case "quorum_weight", "quorumWeight":
+			s.AddField("quorum_weight")
+			x.QuorumWeight = s.ReadUint64()
+		case "group_changes", "groupChanges":
+			s.AddField("group_changes")
+			if s.ReadNil() {
+				x.GroupChanges = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.GroupChanges = append(x.GroupChanges, nil)
+					return
+				}
+				v := &SpaceGroupChange{}
+				v.UnmarshalProtoJSON(s.WithField("group_changes", false))
+				if s.Err() != nil {
+					return
+				}
+				x.GroupChanges = append(x.GroupChanges, v)
+			})
 		}
 	})
 }
 
 // UnmarshalJSON unmarshals the SpaceSharingState from JSON.
 func (x *SpaceSharingState) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the SpaceGroupChange message to JSON.
+func (x *SpaceGroupChange) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if len(x.Hash) > 0 || s.HasField("hash") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("hash")
+		s.WriteBytes(x.Hash)
+	}
+	if x.ChangeType != 0 || s.HasField("changeType") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("changeType")
+		x.ChangeType.MarshalProtoJSON(s)
+	}
+	if len(x.AddedPeerIds) > 0 || s.HasField("addedPeerIds") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("addedPeerIds")
+		s.WriteStringArray(x.AddedPeerIds)
+	}
+	if len(x.RemovedPeerIds) > 0 || s.HasField("removedPeerIds") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("removedPeerIds")
+		s.WriteStringArray(x.RemovedPeerIds)
+	}
+	if x.Control != 0 || s.HasField("control") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("control")
+		x.Control.MarshalProtoJSON(s)
+	}
+	if x.Sequencer != 0 || s.HasField("sequencer") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("sequencer")
+		x.Sequencer.MarshalProtoJSON(s)
+	}
+	if x.Weight != 0 || s.HasField("weight") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("weight")
+		s.WriteUint64(x.Weight)
+	}
+	if x.ViewerAgreed || s.HasField("viewerAgreed") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("viewerAgreed")
+		s.WriteBool(x.ViewerAgreed)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the SpaceGroupChange to JSON.
+func (x *SpaceGroupChange) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the SpaceGroupChange message from JSON.
+func (x *SpaceGroupChange) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "hash":
+			s.AddField("hash")
+			x.Hash = s.ReadBytes()
+		case "change_type", "changeType":
+			s.AddField("change_type")
+			x.ChangeType.UnmarshalProtoJSON(s)
+		case "added_peer_ids", "addedPeerIds":
+			s.AddField("added_peer_ids")
+			if s.ReadNil() {
+				x.AddedPeerIds = nil
+				return
+			}
+			x.AddedPeerIds = s.ReadStringArray()
+		case "removed_peer_ids", "removedPeerIds":
+			s.AddField("removed_peer_ids")
+			if s.ReadNil() {
+				x.RemovedPeerIds = nil
+				return
+			}
+			x.RemovedPeerIds = s.ReadStringArray()
+		case "control":
+			s.AddField("control")
+			x.Control.UnmarshalProtoJSON(s)
+		case "sequencer":
+			s.AddField("sequencer")
+			x.Sequencer.UnmarshalProtoJSON(s)
+		case "weight":
+			s.AddField("weight")
+			x.Weight = s.ReadUint64()
+		case "viewer_agreed", "viewerAgreed":
+			s.AddField("viewer_agreed")
+			x.ViewerAgreed = s.ReadBool()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the SpaceGroupChange from JSON.
+func (x *SpaceGroupChange) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -4763,6 +5473,11 @@ func (x *SetSpaceSequencerResponse) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("changed")
 		s.WriteBool(x.Changed)
 	}
+	if x.AwaitingGroup || s.HasField("awaitingGroup") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("awaitingGroup")
+		s.WriteBool(x.AwaitingGroup)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -4783,12 +5498,171 @@ func (x *SetSpaceSequencerResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "changed":
 			s.AddField("changed")
 			x.Changed = s.ReadBool()
+		case "awaiting_group", "awaitingGroup":
+			s.AddField("awaiting_group")
+			x.AwaitingGroup = s.ReadBool()
 		}
 	})
 }
 
 // UnmarshalJSON unmarshals the SetSpaceSequencerResponse from JSON.
 func (x *SetSpaceSequencerResponse) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the SetSpaceControlRequest message to JSON.
+func (x *SetSpaceControlRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Control != 0 || s.HasField("control") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("control")
+		x.Control.MarshalProtoJSON(s)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the SetSpaceControlRequest to JSON.
+func (x *SetSpaceControlRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the SetSpaceControlRequest message from JSON.
+func (x *SetSpaceControlRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "control":
+			s.AddField("control")
+			x.Control.UnmarshalProtoJSON(s)
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the SetSpaceControlRequest from JSON.
+func (x *SetSpaceControlRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the SetSpaceControlResponse message to JSON.
+func (x *SetSpaceControlResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.AwaitingGroup || s.HasField("awaitingGroup") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("awaitingGroup")
+		s.WriteBool(x.AwaitingGroup)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the SetSpaceControlResponse to JSON.
+func (x *SetSpaceControlResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the SetSpaceControlResponse message from JSON.
+func (x *SetSpaceControlResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "awaiting_group", "awaitingGroup":
+			s.AddField("awaiting_group")
+			x.AwaitingGroup = s.ReadBool()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the SetSpaceControlResponse from JSON.
+func (x *SetSpaceControlResponse) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the ApproveSpaceChangeRequest message to JSON.
+func (x *ApproveSpaceChangeRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if len(x.Hash) > 0 || s.HasField("hash") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("hash")
+		s.WriteBytes(x.Hash)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the ApproveSpaceChangeRequest to JSON.
+func (x *ApproveSpaceChangeRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the ApproveSpaceChangeRequest message from JSON.
+func (x *ApproveSpaceChangeRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "hash":
+			s.AddField("hash")
+			x.Hash = s.ReadBytes()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the ApproveSpaceChangeRequest from JSON.
+func (x *ApproveSpaceChangeRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the ApproveSpaceChangeResponse message to JSON.
+func (x *ApproveSpaceChangeResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the ApproveSpaceChangeResponse to JSON.
+func (x *ApproveSpaceChangeResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the ApproveSpaceChangeResponse message from JSON.
+func (x *ApproveSpaceChangeResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		// no fields
+	})
+}
+
+// UnmarshalJSON unmarshals the ApproveSpaceChangeResponse from JSON.
+func (x *ApproveSpaceChangeResponse) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -5413,6 +6287,53 @@ func (m *SpaceSharingState) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if len(m.GroupChanges) > 0 {
+		for iNdEx := len(m.GroupChanges) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.GroupChanges[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x1
+			i--
+			dAtA[i] = 0xa2
+		}
+	}
+	if m.QuorumWeight != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.QuorumWeight))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x98
+	}
+	if m.TotalWeight != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.TotalWeight))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x90
+	}
+	if m.CanSetControl {
+		i = protobuf_go_lite.EncodeBool(dAtA, i, m.CanSetControl)
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x88
+	}
+	if m.CanVote {
+		i = protobuf_go_lite.EncodeBool(dAtA, i, m.CanVote)
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x80
+	}
+	if m.Control != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Control))
+		i--
+		dAtA[i] = 0x78
+	}
 	if len(m.SequencerChoices) > 0 {
 		i = protobuf_go_lite.EncodeVarintPacked(dAtA, i, m.SequencerChoices)
 		i--
@@ -5517,6 +6438,82 @@ func (m *SpaceSharingState) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 			i--
 			dAtA[i] = 0xa
 		}
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *SpaceGroupChange) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *SpaceGroupChange) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *SpaceGroupChange) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.ViewerAgreed {
+		i = protobuf_go_lite.EncodeBool(dAtA, i, m.ViewerAgreed)
+		i--
+		dAtA[i] = 0x40
+	}
+	if m.Weight != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Weight))
+		i--
+		dAtA[i] = 0x38
+	}
+	if m.Sequencer != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Sequencer))
+		i--
+		dAtA[i] = 0x30
+	}
+	if m.Control != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Control))
+		i--
+		dAtA[i] = 0x28
+	}
+	if len(m.RemovedPeerIds) > 0 {
+		for iNdEx := len(m.RemovedPeerIds) - 1; iNdEx >= 0; iNdEx-- {
+			i = protobuf_go_lite.EncodeString(dAtA, i, m.RemovedPeerIds[iNdEx])
+			i--
+			dAtA[i] = 0x22
+		}
+	}
+	if len(m.AddedPeerIds) > 0 {
+		for iNdEx := len(m.AddedPeerIds) - 1; iNdEx >= 0; iNdEx-- {
+			i = protobuf_go_lite.EncodeString(dAtA, i, m.AddedPeerIds[iNdEx])
+			i--
+			dAtA[i] = 0x1a
+		}
+	}
+	if m.ChangeType != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.ChangeType))
+		i--
+		dAtA[i] = 0x10
+	}
+	if len(m.Hash) > 0 {
+		i = protobuf_go_lite.EncodeBytes(dAtA, i, m.Hash)
+		i--
+		dAtA[i] = 0xa
 	}
 	return len(dAtA) - i, nil
 }
@@ -6514,10 +7511,158 @@ func (m *SetSpaceSequencerResponse) MarshalToSizedBufferVT(dAtA []byte) (int, er
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.AwaitingGroup {
+		i = protobuf_go_lite.EncodeBool(dAtA, i, m.AwaitingGroup)
+		i--
+		dAtA[i] = 0x10
+	}
 	if m.Changed {
 		i = protobuf_go_lite.EncodeBool(dAtA, i, m.Changed)
 		i--
 		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *SetSpaceControlRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *SetSpaceControlRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *SetSpaceControlRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.Control != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Control))
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *SetSpaceControlResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *SetSpaceControlResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *SetSpaceControlResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.AwaitingGroup {
+		i = protobuf_go_lite.EncodeBool(dAtA, i, m.AwaitingGroup)
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *ApproveSpaceChangeRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ApproveSpaceChangeRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *ApproveSpaceChangeRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.Hash) > 0 {
+		i = protobuf_go_lite.EncodeBytes(dAtA, i, m.Hash)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *ApproveSpaceChangeResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ApproveSpaceChangeResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *ApproveSpaceChangeResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
 	return len(dAtA) - i, nil
 }
@@ -6866,6 +8011,33 @@ func (m *SpaceSharingState) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.Sequencer)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.SequencerPeerId)
 	n += protobuf_go_lite.SizeVarintPacked(1, m.SequencerChoices)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Control)
+	n += protobuf_go_lite.SizeBoolNonZero(2, m.CanVote)
+	n += protobuf_go_lite.SizeBoolNonZero(2, m.CanSetControl)
+	n += protobuf_go_lite.SizeVarintNonZero(2, m.TotalWeight)
+	n += protobuf_go_lite.SizeVarintNonZero(2, m.QuorumWeight)
+	for _, e := range m.GroupChanges {
+		l = e.SizeVT()
+		n += protobuf_go_lite.SizeMessage(2, l)
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *SpaceGroupChange) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.Hash)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.ChangeType)
+	n += protobuf_go_lite.SizeStringSlice(1, m.AddedPeerIds)
+	n += protobuf_go_lite.SizeStringSlice(1, m.RemovedPeerIds)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Control)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Sequencer)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Weight)
+	n += protobuf_go_lite.SizeBoolNonZero(1, m.ViewerAgreed)
 	n += len(m.unknownFields)
 	return n
 }
@@ -7161,6 +8333,50 @@ func (m *SetSpaceSequencerResponse) SizeVT() (n int) {
 	var l int
 	_ = l
 	n += protobuf_go_lite.SizeBoolNonZero(1, m.Changed)
+	n += protobuf_go_lite.SizeBoolNonZero(1, m.AwaitingGroup)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *SetSpaceControlRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Control)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *SetSpaceControlResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeBoolNonZero(1, m.AwaitingGroup)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *ApproveSpaceChangeRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.Hash)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *ApproveSpaceChangeResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
 	n += len(m.unknownFields)
 	return n
 }
@@ -7227,6 +8443,10 @@ func (m *ProcessBindingInfo) SizeVT() (n int) {
 	}
 	n += len(m.unknownFields)
 	return n
+}
+
+func (x SpaceControl) MarshalProtoText() string {
+	return x.String()
 }
 
 func (x SpaceSequencer) MarshalProtoText() string {
@@ -7498,10 +8718,92 @@ func (x *SpaceSharingState) MarshalProtoText() string {
 		}
 		protobuf_go_lite.TextWriteListEnd(&sb)
 	}
+	if x.Control != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "control")
+		protobuf_go_lite.TextWriteStringer(&sb, SpaceControl(x.Control))
+	}
+	if x.CanVote != false {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "can_vote")
+		protobuf_go_lite.TextWriteBool(&sb, x.CanVote)
+	}
+	if x.CanSetControl != false {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "can_set_control")
+		protobuf_go_lite.TextWriteBool(&sb, x.CanSetControl)
+	}
+	if x.TotalWeight != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "total_weight")
+		protobuf_go_lite.TextWriteUint(&sb, x.TotalWeight)
+	}
+	if x.QuorumWeight != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "quorum_weight")
+		protobuf_go_lite.TextWriteUint(&sb, x.QuorumWeight)
+	}
+	if len(x.GroupChanges) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "group_changes")
+		for i, v := range x.GroupChanges {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			if v == nil {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, &SpaceGroupChange{})
+			} else {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, v)
+			}
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
 
 func (x *SpaceSharingState) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *SpaceGroupChange) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "SpaceGroupChange")
+	if len(x.Hash) != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "hash")
+		protobuf_go_lite.TextWriteBytes(&sb, x.Hash)
+	}
+	if x.ChangeType != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "change_type")
+		protobuf_go_lite.TextWriteStringer(&sb, sobject.SOConfigChangeType(x.ChangeType))
+	}
+	if len(x.AddedPeerIds) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "added_peer_ids")
+		for i, v := range x.AddedPeerIds {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			protobuf_go_lite.TextWriteString(&sb, v)
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
+	if len(x.RemovedPeerIds) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "removed_peer_ids")
+		for i, v := range x.RemovedPeerIds {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			protobuf_go_lite.TextWriteString(&sb, v)
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
+	if x.Control != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "control")
+		protobuf_go_lite.TextWriteStringer(&sb, SpaceControl(x.Control))
+	}
+	if x.Sequencer != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "sequencer")
+		protobuf_go_lite.TextWriteStringer(&sb, SpaceSequencer(x.Sequencer))
+	}
+	if x.Weight != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "weight")
+		protobuf_go_lite.TextWriteUint(&sb, x.Weight)
+	}
+	if x.ViewerAgreed != false {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "viewer_agreed")
+		protobuf_go_lite.TextWriteBool(&sb, x.ViewerAgreed)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *SpaceGroupChange) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -7940,10 +9242,66 @@ func (x *SetSpaceSequencerResponse) MarshalProtoText() string {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "changed")
 		protobuf_go_lite.TextWriteBool(&sb, x.Changed)
 	}
+	if x.AwaitingGroup != false {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "awaiting_group")
+		protobuf_go_lite.TextWriteBool(&sb, x.AwaitingGroup)
+	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
 
 func (x *SetSpaceSequencerResponse) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *SetSpaceControlRequest) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "SetSpaceControlRequest")
+	if x.Control != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "control")
+		protobuf_go_lite.TextWriteStringer(&sb, SpaceControl(x.Control))
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *SetSpaceControlRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *SetSpaceControlResponse) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "SetSpaceControlResponse")
+	if x.AwaitingGroup != false {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "awaiting_group")
+		protobuf_go_lite.TextWriteBool(&sb, x.AwaitingGroup)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *SetSpaceControlResponse) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *ApproveSpaceChangeRequest) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "ApproveSpaceChangeRequest")
+	if len(x.Hash) != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "hash")
+		protobuf_go_lite.TextWriteBytes(&sb, x.Hash)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *ApproveSpaceChangeRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *ApproveSpaceChangeResponse) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	protobuf_go_lite.TextStartMessage(&sb, "ApproveSpaceChangeResponse")
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *ApproveSpaceChangeResponse) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -8754,6 +10112,191 @@ func (m *SpaceSharingState) UnmarshalVT(dAtA []byte) error {
 			} else {
 				return fmt.Errorf("proto: wrong wireType = %d for field SequencerChoices", wireType)
 			}
+		case 15:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Control", wireType)
+			}
+			m.Control = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.Control = SpaceControl(_v)
+			if err != nil {
+				return err
+			}
+		case 16:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CanVote", wireType)
+			}
+			var v bool
+			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.CanVote = bool(v)
+		case 17:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CanSetControl", wireType)
+			}
+			var v bool
+			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.CanSetControl = bool(v)
+		case 18:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field TotalWeight", wireType)
+			}
+			m.TotalWeight = 0
+			m.TotalWeight, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 19:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field QuorumWeight", wireType)
+			}
+			m.QuorumWeight = 0
+			m.QuorumWeight, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 20:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field GroupChanges", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.GroupChanges = append(m.GroupChanges, &SpaceGroupChange{})
+			if err := m.GroupChanges[len(m.GroupChanges)-1].UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *SpaceGroupChange) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: SpaceGroupChange: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: SpaceGroupChange: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Hash", wireType)
+			}
+			m.Hash, iNdEx, err = protobuf_go_lite.DecodeBytesAppend(m.Hash, dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ChangeType", wireType)
+			}
+			m.ChangeType = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.ChangeType = sobject.SOConfigChangeType(_v)
+			if err != nil {
+				return err
+			}
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field AddedPeerIds", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.AddedPeerIds = append(m.AddedPeerIds, v)
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RemovedPeerIds", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.RemovedPeerIds = append(m.RemovedPeerIds, v)
+		case 5:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Control", wireType)
+			}
+			m.Control = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.Control = SpaceControl(_v)
+			if err != nil {
+				return err
+			}
+		case 6:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Sequencer", wireType)
+			}
+			m.Sequencer = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.Sequencer = SpaceSequencer(_v)
+			if err != nil {
+				return err
+			}
+		case 7:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Weight", wireType)
+			}
+			m.Weight = 0
+			m.Weight, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 8:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ViewerAgreed", wireType)
+			}
+			var v bool
+			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.ViewerAgreed = bool(v)
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -10201,6 +11744,217 @@ func (m *SetSpaceSequencerResponse) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.Changed = bool(v)
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field AwaitingGroup", wireType)
+			}
+			var v bool
+			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.AwaitingGroup = bool(v)
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *SetSpaceControlRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: SetSpaceControlRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: SetSpaceControlRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Control", wireType)
+			}
+			m.Control = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.Control = SpaceControl(_v)
+			if err != nil {
+				return err
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *SetSpaceControlResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: SetSpaceControlResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: SetSpaceControlResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field AwaitingGroup", wireType)
+			}
+			var v bool
+			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.AwaitingGroup = bool(v)
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *ApproveSpaceChangeRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ApproveSpaceChangeRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ApproveSpaceChangeRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Hash", wireType)
+			}
+			m.Hash, iNdEx, err = protobuf_go_lite.DecodeBytesAppend(m.Hash, dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *ApproveSpaceChangeResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ApproveSpaceChangeResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ApproveSpaceChangeResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

@@ -12,8 +12,12 @@ import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 import { StepConfig } from '../../db/block/transform/transform.pb.js'
 import { SpaceSettings } from '../../core/space/world/world.pb.js'
-import type { SOParticipantRole } from '../../core/sobject/sobject.pb.js'
+import type {
+  SOConfigChangeType,
+  SOParticipantRole,
+} from '../../core/sobject/sobject.pb.js'
 import {
+  SOConfigChangeType_Enum,
   SOInvite,
   SOJoinRequest,
   SOParticipantConfig,
@@ -22,6 +26,40 @@ import {
 import { MailboxEntryInfo } from '../provider/spacewave/spacewave.pb.js'
 import { Secret, SecretPayload } from '../secret/secret.pb.js'
 import { Timestamp } from '@aptre/protobuf-es-lite/google/protobuf/timestamp'
+
+/**
+ * SpaceControl is who controls a Space.
+ *
+ * @generated from enum s4wave.space.SpaceControl
+ */
+export enum SpaceControl {
+  /**
+   * SpaceControl_UNKNOWN leaves the control unset.
+   *
+   * @generated from enum value: SpaceControl_UNKNOWN = 0;
+   */
+  SpaceControl_UNKNOWN = 0,
+
+  /**
+   * SpaceControl_OWNER means an owner changes members and settings alone.
+   *
+   * @generated from enum value: SpaceControl_OWNER = 1;
+   */
+  SpaceControl_OWNER = 1,
+
+  /**
+   * SpaceControl_GROUP means a change needs voters with more than two thirds
+   * of the voting weight. No one decides alone, including owners.
+   *
+   * @generated from enum value: SpaceControl_GROUP = 2;
+   */
+  SpaceControl_GROUP = 2,
+}
+
+export const SpaceControl_Enum = /* @__PURE__ */ createEnumType(
+  's4wave.space.SpaceControl',
+  SpaceControl,
+)
 
 /**
  * SpaceSequencer is who orders a Space's edits.
@@ -446,6 +484,89 @@ export const SpaceParticipantInfo: MessageType<SpaceParticipantInfo> =
   })
 
 /**
+ * SpaceGroupChange is a change voters agree to that the group has not decided.
+ *
+ * @generated from message s4wave.space.SpaceGroupChange
+ */
+export interface SpaceGroupChange {
+  /**
+   * Hash identifies the change for ApproveSpaceChange.
+   *
+   * @generated from field: bytes hash = 1;
+   */
+  hash?: Uint8Array
+  /**
+   * ChangeType is the kind of change.
+   *
+   * @generated from field: sobject.SOConfigChangeType change_type = 2;
+   */
+  changeType?: SOConfigChangeType
+  /**
+   * AddedPeerIds are the peers the change admits.
+   *
+   * @generated from field: repeated string added_peer_ids = 3;
+   */
+  addedPeerIds?: string[]
+  /**
+   * RemovedPeerIds are the peers the change removes.
+   *
+   * @generated from field: repeated string removed_peer_ids = 4;
+   */
+  removedPeerIds?: string[]
+  /**
+   * Control is who controls the Space after the change.
+   *
+   * @generated from field: s4wave.space.SpaceControl control = 5;
+   */
+  control?: SpaceControl
+  /**
+   * Sequencer is who orders the Space's edits after the change.
+   *
+   * @generated from field: s4wave.space.SpaceSequencer sequencer = 6;
+   */
+  sequencer?: SpaceSequencer
+  /**
+   * Weight is the voting weight of the voters that agree.
+   *
+   * @generated from field: uint64 weight = 7;
+   */
+  weight?: bigint
+  /**
+   * ViewerAgreed is true when the viewer agrees.
+   *
+   * @generated from field: bool viewer_agreed = 8;
+   */
+  viewerAgreed?: boolean
+}
+
+export const SpaceGroupChange: MessageType<SpaceGroupChange> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.space.SpaceGroupChange',
+    fields: [
+      { no: 1, name: 'hash', kind: 'scalar', T: ScalarType.BYTES },
+      { no: 2, name: 'change_type', kind: 'enum', T: SOConfigChangeType_Enum },
+      {
+        no: 3,
+        name: 'added_peer_ids',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+        repeated: true,
+      },
+      {
+        no: 4,
+        name: 'removed_peer_ids',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+        repeated: true,
+      },
+      { no: 5, name: 'control', kind: 'enum', T: SpaceControl_Enum },
+      { no: 6, name: 'sequencer', kind: 'enum', T: SpaceSequencer_Enum },
+      { no: 7, name: 'weight', kind: 'scalar', T: ScalarType.UINT64 },
+      { no: 8, name: 'viewer_agreed', kind: 'scalar', T: ScalarType.BOOL },
+    ] satisfies readonly PartialFieldInfo[],
+  })
+
+/**
  * SpaceSharingState contains the sharing snapshot for a space.
  *
  * @generated from message s4wave.space.SpaceSharingState
@@ -538,6 +659,45 @@ export interface SpaceSharingState {
    * @generated from field: repeated s4wave.space.SpaceSequencer sequencer_choices = 14;
    */
   sequencerChoices?: SpaceSequencer[]
+  /**
+   * Control is who controls the Space.
+   *
+   * @generated from field: s4wave.space.SpaceControl control = 15;
+   */
+  control?: SpaceControl
+  /**
+   * CanVote is true when the viewer votes on the group's changes.
+   *
+   * @generated from field: bool can_vote = 16;
+   */
+  canVote?: boolean
+  /**
+   * CanSetControl is true when the viewer can change who controls the Space:
+   * an owner under owner control, or a voter under group control.
+   *
+   * @generated from field: bool can_set_control = 17;
+   */
+  canSetControl?: boolean
+  /**
+   * TotalWeight is the voting weight of every voter under group control.
+   *
+   * @generated from field: uint64 total_weight = 18;
+   */
+  totalWeight?: bigint
+  /**
+   * QuorumWeight is the voting weight a change needs under group control:
+   * more than two thirds of TotalWeight.
+   *
+   * @generated from field: uint64 quorum_weight = 19;
+   */
+  quorumWeight?: bigint
+  /**
+   * GroupChanges are the changes voters agree to that the group has not
+   * decided, by most voting weight.
+   *
+   * @generated from field: repeated s4wave.space.SpaceGroupChange group_changes = 20;
+   */
+  groupChanges?: SpaceGroupChange[]
 }
 
 export const SpaceSharingState: MessageType<SpaceSharingState> =
@@ -602,6 +762,18 @@ export const SpaceSharingState: MessageType<SpaceSharingState> =
         name: 'sequencer_choices',
         kind: 'enum',
         T: SpaceSequencer_Enum,
+        repeated: true,
+      },
+      { no: 15, name: 'control', kind: 'enum', T: SpaceControl_Enum },
+      { no: 16, name: 'can_vote', kind: 'scalar', T: ScalarType.BOOL },
+      { no: 17, name: 'can_set_control', kind: 'scalar', T: ScalarType.BOOL },
+      { no: 18, name: 'total_weight', kind: 'scalar', T: ScalarType.UINT64 },
+      { no: 19, name: 'quorum_weight', kind: 'scalar', T: ScalarType.UINT64 },
+      {
+        no: 20,
+        name: 'group_changes',
+        kind: 'message',
+        T: SpaceGroupChange,
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
@@ -1296,6 +1468,13 @@ export interface SetSpaceSequencerResponse {
    * @generated from field: bool changed = 1;
    */
   changed?: boolean
+  /**
+   * AwaitingGroup is true when the viewer agreed to the change under group
+   * control, and it applies once the group decides it.
+   *
+   * @generated from field: bool awaiting_group = 2;
+   */
+  awaitingGroup?: boolean
 }
 
 export const SetSpaceSequencerResponse: MessageType<SetSpaceSequencerResponse> =
@@ -1303,8 +1482,89 @@ export const SetSpaceSequencerResponse: MessageType<SetSpaceSequencerResponse> =
     typeName: 's4wave.space.SetSpaceSequencerResponse',
     fields: [
       { no: 1, name: 'changed', kind: 'scalar', T: ScalarType.BOOL },
+      { no: 2, name: 'awaiting_group', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
   })
+
+/**
+ * SetSpaceControlRequest chooses who controls the Space.
+ *
+ * @generated from message s4wave.space.SetSpaceControlRequest
+ */
+export interface SetSpaceControlRequest {
+  /**
+   * Control is OWNER or GROUP.
+   *
+   * @generated from field: s4wave.space.SpaceControl control = 1;
+   */
+  control?: SpaceControl
+}
+
+export const SetSpaceControlRequest: MessageType<SetSpaceControlRequest> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.space.SetSpaceControlRequest',
+    fields: [
+      { no: 1, name: 'control', kind: 'enum', T: SpaceControl_Enum },
+    ] satisfies readonly PartialFieldInfo[],
+  })
+
+/**
+ * SetSpaceControlResponse reports how the change proceeds.
+ *
+ * @generated from message s4wave.space.SetSpaceControlResponse
+ */
+export interface SetSpaceControlResponse {
+  /**
+   * AwaitingGroup is true when the viewer agreed to the change under group
+   * control, and it applies once the group decides it.
+   *
+   * @generated from field: bool awaiting_group = 1;
+   */
+  awaitingGroup?: boolean
+}
+
+export const SetSpaceControlResponse: MessageType<SetSpaceControlResponse> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.space.SetSpaceControlResponse',
+    fields: [
+      { no: 1, name: 'awaiting_group', kind: 'scalar', T: ScalarType.BOOL },
+    ] satisfies readonly PartialFieldInfo[],
+  })
+
+/**
+ * ApproveSpaceChangeRequest agrees to a change the group has not decided.
+ *
+ * @generated from message s4wave.space.ApproveSpaceChangeRequest
+ */
+export interface ApproveSpaceChangeRequest {
+  /**
+   * Hash is the SpaceGroupChange hash.
+   *
+   * @generated from field: bytes hash = 1;
+   */
+  hash?: Uint8Array
+}
+
+export const ApproveSpaceChangeRequest: MessageType<ApproveSpaceChangeRequest> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.space.ApproveSpaceChangeRequest',
+    fields: [
+      { no: 1, name: 'hash', kind: 'scalar', T: ScalarType.BYTES },
+    ] satisfies readonly PartialFieldInfo[],
+  })
+
+/**
+ * ApproveSpaceChangeResponse is the response to ApproveSpaceChange.
+ *
+ * @generated from message s4wave.space.ApproveSpaceChangeResponse
+ */
+export interface ApproveSpaceChangeResponse {}
+
+export const ApproveSpaceChangeResponse: MessageType<ApproveSpaceChangeResponse> =
+  /* @__PURE__ */ createEmptyMessageType<ApproveSpaceChangeResponse>(
+    's4wave.space.ApproveSpaceChangeResponse',
+    true,
+  )
 
 /**
  * SetProcessBindingRequest is a request to set a process binding state.

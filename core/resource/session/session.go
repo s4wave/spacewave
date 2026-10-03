@@ -1494,6 +1494,7 @@ func (r *SessionResource) RemoveSpaceParticipants(
 	ctx context.Context,
 	req *s4wave_session.RemoveSpaceParticipantsRequest,
 ) (*s4wave_session.RemoveSpaceParticipantsResponse, error) {
+	// Check the request.
 	spaceID := req.GetSpaceId()
 	if spaceID == "" {
 		return nil, errors.New("space_id is required")
@@ -1503,17 +1504,21 @@ func (r *SessionResource) RemoveSpaceParticipants(
 		return nil, errors.New("peer_ids are required")
 	}
 
+	// Mount the Space's shared object.
 	ih, rel, err := r.mountInviteHost(ctx, spaceID)
 	if err != nil {
 		return nil, err
 	}
 	defer rel()
 
+	// Remove them, or agree to remove them under group control.
 	removed, err := sobject.RemoveSOParticipants(ctx, ih.GetSOHost(), peerIDs, ih.GetPrivKey(), nil)
+	if errors.Is(err, sobject.ErrAwaitingGroup) {
+		return &s4wave_session.RemoveSpaceParticipantsResponse{AwaitingGroup: true}, nil
+	}
 	if err != nil {
 		return nil, errors.Wrap(err, "remove participants")
 	}
-
 	return &s4wave_session.RemoveSpaceParticipantsResponse{RemovedPeerIds: removed}, nil
 }
 

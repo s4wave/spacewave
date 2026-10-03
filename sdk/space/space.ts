@@ -14,6 +14,9 @@ import {
   BuildSpacePluginResponse,
   CreateSecretRequest,
   CreateSecretResponse,
+  SetSpaceControlResponse,
+  SetSpaceSequencerResponse,
+  SpaceControl,
   SpaceSequencer,
   SpaceSharingState,
   SpaceState,
@@ -117,17 +120,31 @@ export class Space extends Resource {
     return await this.service.CreateSecret(request, abortSignal)
   }
 
-  // setSpaceSequencer chooses, as an owner, who orders the Space's edits. It
-  // reports false when that sequencer already orders them.
+  // setSpaceSequencer chooses who orders the Space's edits: an owner under
+  // owner control, or a voter asking the group under group control.
   public async setSpaceSequencer(
     sequencer: SpaceSequencer,
     abortSignal?: AbortSignal,
-  ): Promise<boolean> {
-    const response = await this.service.SetSpaceSequencer(
-      { sequencer },
-      abortSignal,
-    )
-    return response.changed ?? false
+  ): Promise<SetSpaceSequencerResponse> {
+    return await this.service.SetSpaceSequencer({ sequencer }, abortSignal)
+  }
+
+  // setSpaceControl chooses who controls the Space: an owner hands control to
+  // the group, and a voter asks the group to return it to the owner.
+  public async setSpaceControl(
+    control: SpaceControl,
+    abortSignal?: AbortSignal,
+  ): Promise<SetSpaceControlResponse> {
+    return await this.service.SetSpaceControl({ control }, abortSignal)
+  }
+
+  // approveSpaceChange agrees, as a voter, to a change another voter asked
+  // the group for.
+  public async approveSpaceChange(
+    hash: Uint8Array,
+    abortSignal?: AbortSignal,
+  ): Promise<void> {
+    await this.service.ApproveSpaceChange({ hash }, abortSignal)
   }
 
   // accessWorldState accesses the Engine as a WorldState-like interface.

@@ -3340,6 +3340,13 @@ export interface RemoveSpaceParticipantsResponse {
    * @generated from field: repeated string removed_peer_ids = 1;
    */
   removedPeerIds?: string[]
+  /**
+   * AwaitingGroup is true when the viewer agreed to the removal under group
+   * control, and it applies once the group decides it.
+   *
+   * @generated from field: bool awaiting_group = 2;
+   */
+  awaitingGroup?: boolean
 }
 
 export const RemoveSpaceParticipantsResponse: MessageType<RemoveSpaceParticipantsResponse> =
@@ -3353,6 +3360,7 @@ export const RemoveSpaceParticipantsResponse: MessageType<RemoveSpaceParticipant
         T: ScalarType.STRING,
         repeated: true,
       },
+      { no: 2, name: 'awaiting_group', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
   })
 

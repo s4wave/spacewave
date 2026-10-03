@@ -592,12 +592,14 @@ class SOState(_message.Message):
     def __init__(self, config: _Optional[_Union[SharedObjectConfig, _Mapping]] = ..., checkpoint: _Optional[_Union[SOCheckpoint, _Mapping]] = ..., key_epochs: _Optional[_Iterable[_Union[SOKeyEpoch, _Mapping]]] = ..., ops: _Optional[_Iterable[_Union[SOOperation, _Mapping]]] = ..., invites: _Optional[_Iterable[_Union[SOInvite, _Mapping]]] = ..., sequence: _Optional[_Iterable[_Union[SOSequence, _Mapping]]] = ..., control_messages: _Optional[_Iterable[_Union[SOControlMessage, _Mapping]]] = ...) -> None: ...
 
 class SOKeyEpoch(_message.Message):
-    __slots__ = ("epoch", "grants")
+    __slots__ = ("epoch", "grants", "config_chain_seqno")
     EPOCH_FIELD_NUMBER: _ClassVar[int]
     GRANTS_FIELD_NUMBER: _ClassVar[int]
+    CONFIG_CHAIN_SEQNO_FIELD_NUMBER: _ClassVar[int]
     epoch: int
     grants: _containers.RepeatedCompositeFieldContainer[SOGrant]
-    def __init__(self, epoch: _Optional[int] = ..., grants: _Optional[_Iterable[_Union[SOGrant, _Mapping]]] = ...) -> None: ...
+    config_chain_seqno: int
+    def __init__(self, epoch: _Optional[int] = ..., grants: _Optional[_Iterable[_Union[SOGrant, _Mapping]]] = ..., config_chain_seqno: _Optional[int] = ...) -> None: ...
 
 class SOConfigChainResponse(_message.Message):
     __slots__ = ("config_changes", "key_epochs")

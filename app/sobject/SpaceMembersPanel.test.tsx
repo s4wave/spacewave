@@ -1,13 +1,21 @@
 import React from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { cleanup, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 
 import { SessionContext } from '@s4wave/web/contexts/contexts.js'
 import { SpaceContainerContext } from '@s4wave/web/contexts/SpaceContainerContext.js'
 import type { Session } from '@s4wave/sdk/session/session.js'
-import type { SpaceSharingState } from '@s4wave/sdk/space/space.pb.js'
+import {
+  SpaceControl,
+  type SpaceSharingState,
+} from '@s4wave/sdk/space/space.pb.js'
+import { toast } from '@s4wave/web/ui/toaster.js'
 
 import { SpaceMembersPanel } from './SpaceMembersPanel.js'
+
+vi.mock('@s4wave/web/ui/toaster.js', () => ({
+  toast: { info: vi.fn() },
+}))
 
 const mockSession = {
   spacewave: {
@@ -115,6 +123,36 @@ describe('SpaceMembersPanel', () => {
     expect(screen.getByText('Pending Requests')).toBeDefined()
     expect(screen.getByTestId('pending-request-empty').textContent).toBe(
       'No pending requests yet',
+    )
+  })
+
+  it('lets a voter ask the group to remove a member', async () => {
+    vi.mocked(mockSession.spacewave.removeSpaceMember).mockResolvedValue({
+      awaitingGroup: true,
+    })
+    renderPanel({
+      canManage: false,
+      canVote: true,
+      control: SpaceControl.SpaceControl_GROUP,
+      participantInfo: [
+        {
+          entityId: 'alice',
+          accountId: 'acct-alice',
+          peerIds: ['peer-alice'],
+          role: 2,
+        },
+      ],
+    })
+
+    fireEvent.click(screen.getByTestId('space-member-remove'))
+    await vi.waitFor(() =>
+      expect(toast.info).toHaveBeenCalledWith('Asked the group', {
+        description: 'alice leaves once enough members agree.',
+      }),
+    )
+    expect(mockSession.spacewave.removeSpaceMember).toHaveBeenCalledWith(
+      'space-1',
+      'acct-alice',
     )
   })
 })

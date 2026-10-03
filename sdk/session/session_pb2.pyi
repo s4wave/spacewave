@@ -815,10 +815,12 @@ class RemoveSpaceParticipantsRequest(_message.Message):
     def __init__(self, space_id: _Optional[str] = ..., peer_ids: _Optional[_Iterable[str]] = ...) -> None: ...
 
 class RemoveSpaceParticipantsResponse(_message.Message):
-    __slots__ = ("removed_peer_ids",)
+    __slots__ = ("removed_peer_ids", "awaiting_group")
     REMOVED_PEER_IDS_FIELD_NUMBER: _ClassVar[int]
+    AWAITING_GROUP_FIELD_NUMBER: _ClassVar[int]
     removed_peer_ids: _containers.RepeatedScalarFieldContainer[str]
-    def __init__(self, removed_peer_ids: _Optional[_Iterable[str]] = ...) -> None: ...
+    awaiting_group: bool
+    def __init__(self, removed_peer_ids: _Optional[_Iterable[str]] = ..., awaiting_group: _Optional[bool] = ...) -> None: ...
 
 class RevokeSpaceInviteRequest(_message.Message):
     __slots__ = ("space_id", "invite_id")

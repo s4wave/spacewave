@@ -2197,6 +2197,7 @@ func (r *SpacewaveSessionResource) RemoveSpaceMember(
 	ctx context.Context,
 	req *s4wave_provider_spacewave.RemoveSpaceMemberRequest,
 ) (*s4wave_provider_spacewave.RemoveSpaceMemberResponse, error) {
+	// Check the request.
 	spaceID := req.GetSpaceId()
 	if spaceID == "" {
 		return nil, errors.New("space_id is required")
@@ -2206,6 +2207,7 @@ func (r *SpacewaveSessionResource) RemoveSpaceMember(
 		return nil, errors.New("account_id is required")
 	}
 
+	// Find the member's peers.
 	swSO, relSO, peerIDs, err := r.resolveMemberParticipantPeersAndMountSO(ctx, spaceID, accountID)
 	if err != nil {
 		return nil, err
@@ -2215,11 +2217,15 @@ func (r *SpacewaveSessionResource) RemoveSpaceMember(
 		return nil, errors.New("no participant peers found for account")
 	}
 
-	// Remove every participant peer in one config change and report each peer.
+	// Remove every participant peer in one config change, or agree to under
+	// group control, and report each peer.
 	revInfo := &sobject.SORevocationInfo{
 		Reason: sobject.SORevocationReason_SO_REVOCATION_REASON_OWNER_REMOVED,
 	}
 	removed, err := swSO.RemoveParticipantsWithRevocation(ctx, peerIDs, revInfo)
+	if errors.Is(err, sobject.ErrAwaitingGroup) {
+		return &s4wave_provider_spacewave.RemoveSpaceMemberResponse{AwaitingGroup: true}, nil
+	}
 	results := make([]*s4wave_provider_spacewave.RemoveSpaceMemberResult, 0, len(peerIDs))
 	for _, peerID := range peerIDs {
 		result := &s4wave_provider_spacewave.RemoveSpaceMemberResult{PeerId: peerID}

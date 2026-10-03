@@ -2231,6 +2231,9 @@ message RemoveSpaceMemberResult {
 message RemoveSpaceMemberResponse {
   // Results is one entry per session peer for the target account.
   repeated RemoveSpaceMemberResult results = 1;
+  // AwaitingGroup is true when the viewer agreed to the removal under group
+  // control, and it applies once the group decides it. Results is then empty.
+  bool awaiting_group = 2;
 }
 
 // LookupInviteCodeRequest is the request for LookupInviteCode.

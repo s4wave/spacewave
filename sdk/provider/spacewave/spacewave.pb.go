@@ -8061,6 +8061,9 @@ type RemoveSpaceMemberResponse struct {
 	unknownFields []byte
 	// Results is one entry per session peer for the target account.
 	Results []*RemoveSpaceMemberResult `protobuf:"bytes,1,rep,name=results,proto3" json:"results,omitempty"`
+	// AwaitingGroup is true when the viewer agreed to the removal under group
+	// control, and it applies once the group decides it. Results is then empty.
+	AwaitingGroup bool `protobuf:"varint,2,opt,name=awaiting_group,json=awaitingGroup,proto3" json:"awaitingGroup,omitempty"`
 }
 
 func (x *RemoveSpaceMemberResponse) Reset() {
@@ -8074,6 +8077,13 @@ func (x *RemoveSpaceMemberResponse) GetResults() []*RemoveSpaceMemberResult {
 		return x.Results
 	}
 	return nil
+}
+
+func (x *RemoveSpaceMemberResponse) GetAwaitingGroup() bool {
+	if x != nil {
+		return x.AwaitingGroup
+	}
+	return false
 }
 
 // LookupInviteCodeRequest is the request for LookupInviteCode.
@@ -12925,6 +12935,7 @@ func (m *RemoveSpaceMemberResponse) CloneVT() *RemoveSpaceMemberResponse {
 		return (*RemoveSpaceMemberResponse)(nil)
 	}
 	r := new(RemoveSpaceMemberResponse)
+	r.AwaitingGroup = m.AwaitingGroup
 	r.Results = protobuf_go_lite.CloneVTSlice(m.Results)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
@@ -19021,6 +19032,9 @@ func (this *RemoveSpaceMemberResponse) EqualVT(that *RemoveSpaceMemberResponse) 
 		return false
 	}
 	if !protobuf_go_lite.EqualVTSliceImplicit(this.Results, that.Results, func() *RemoveSpaceMemberResult { return &RemoveSpaceMemberResult{} }) {
+		return false
+	}
+	if this.AwaitingGroup != that.AwaitingGroup {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -32282,6 +32296,11 @@ func (x *RemoveSpaceMemberResponse) MarshalProtoJSON(s *json.MarshalState) {
 		}
 		s.WriteArrayEnd()
 	}
+	if x.AwaitingGroup || s.HasField("awaitingGroup") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("awaitingGroup")
+		s.WriteBool(x.AwaitingGroup)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -32317,6 +32336,9 @@ func (x *RemoveSpaceMemberResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
 				}
 				x.Results = append(x.Results, v)
 			})
+		case "awaiting_group", "awaitingGroup":
+			s.AddField("awaiting_group")
+			x.AwaitingGroup = s.ReadBool()
 		}
 	})
 }
@@ -43970,6 +43992,11 @@ func (m *RemoveSpaceMemberResponse) MarshalToSizedBufferVT(dAtA []byte) (int, er
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.AwaitingGroup {
+		i = protobuf_go_lite.EncodeBool(dAtA, i, m.AwaitingGroup)
+		i--
+		dAtA[i] = 0x10
+	}
 	if len(m.Results) > 0 {
 		for iNdEx := len(m.Results) - 1; iNdEx >= 0; iNdEx-- {
 			size, err := m.Results[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
@@ -47959,6 +47986,7 @@ func (m *RemoveSpaceMemberResponse) SizeVT() (n int) {
 		l = e.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
+	n += protobuf_go_lite.SizeBoolNonZero(1, m.AwaitingGroup)
 	n += len(m.unknownFields)
 	return n
 }
@@ -52803,6 +52831,10 @@ func (x *RemoveSpaceMemberResponse) MarshalProtoText() string {
 			}
 		}
 		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
+	if x.AwaitingGroup != false {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "awaiting_group")
+		protobuf_go_lite.TextWriteBool(&sb, x.AwaitingGroup)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -68685,6 +68717,16 @@ func (m *RemoveSpaceMemberResponse) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field AwaitingGroup", wireType)
+			}
+			var v bool
+			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.AwaitingGroup = bool(v)
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

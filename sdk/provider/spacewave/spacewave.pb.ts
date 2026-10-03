@@ -8399,6 +8399,13 @@ export interface RemoveSpaceMemberResponse {
    * @generated from field: repeated s4wave.provider.spacewave.RemoveSpaceMemberResult results = 1;
    */
   results?: RemoveSpaceMemberResult[]
+  /**
+   * AwaitingGroup is true when the viewer agreed to the removal under group
+   * control, and it applies once the group decides it. Results is then empty.
+   *
+   * @generated from field: bool awaiting_group = 2;
+   */
+  awaitingGroup?: boolean
 }
 
 export const RemoveSpaceMemberResponse: MessageType<RemoveSpaceMemberResponse> =
@@ -8412,6 +8419,7 @@ export const RemoveSpaceMemberResponse: MessageType<RemoveSpaceMemberResponse> =
         T: RemoveSpaceMemberResult,
         repeated: true,
       },
+      { no: 2, name: 'awaiting_group', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
   })
 

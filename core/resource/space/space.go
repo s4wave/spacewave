@@ -254,8 +254,9 @@ func (r *SpaceResource) WatchSpaceSharingState(
 	// Send each changed snapshot to the stream.
 	peerID := r.space.GetSharedObject().GetPeerID().String()
 	choices := sequencerChoices(r.space.GetSharedObject())
+	_, controlHost := r.space.GetSharedObject().(sobject.ControlHost)
 	return state.RunWatchLoop(ctx, peerID, func(state *sharingstate.SharingState) error {
-		return strm.Send(sharingStateToProto(state, choices))
+		return strm.Send(sharingStateToProto(state, choices, controlHost))
 	})
 }
 
@@ -312,12 +313,66 @@ func (r *SpaceResource) SetSpaceSequencer(
 		return nil, errors.Errorf("unsupported sequencer %v", choice)
 	}
 
-	// Appoint it.
+	// Appoint it, or agree to appoint it under group control.
 	changed, err := host.SetSequencer(ctx, peerID)
+	if errors.Is(err, sobject.ErrAwaitingGroup) {
+		return &s4wave_space.SetSpaceSequencerResponse{AwaitingGroup: true}, nil
+	}
 	if err != nil {
 		return nil, err
 	}
 	return &s4wave_space.SetSpaceSequencerResponse{Changed: changed}, nil
+}
+
+// SetSpaceControl chooses who controls the Space. An owner hands control to
+// the group at once; under group control the viewer agrees to the change and
+// the group decides it.
+func (r *SpaceResource) SetSpaceControl(
+	ctx context.Context,
+	req *s4wave_space.SetSpaceControlRequest,
+) (*s4wave_space.SetSpaceControlResponse, error) {
+	// Only a shared object whose peer can change its control has the setting.
+	host, ok := r.space.GetSharedObject().(sobject.ControlHost)
+	if !ok {
+		return nil, errors.New("this Space has no control setting")
+	}
+
+	// Resolve the choice.
+	var control sobject.SOControl
+	switch choice := req.GetControl(); choice {
+	case s4wave_space.SpaceControl_SpaceControl_OWNER:
+		control = sobject.SOControl_SO_CONTROL_OWNER
+	case s4wave_space.SpaceControl_SpaceControl_GROUP:
+		control = sobject.SOControl_SO_CONTROL_GROUP
+	default:
+		return nil, errors.Errorf("unsupported control %v", choice)
+	}
+
+	// Change it, or agree to change it under group control.
+	err := host.SetControl(ctx, control)
+	if errors.Is(err, sobject.ErrAwaitingGroup) {
+		return &s4wave_space.SetSpaceControlResponse{AwaitingGroup: true}, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &s4wave_space.SetSpaceControlResponse{}, nil
+}
+
+// ApproveSpaceChange agrees, as a voter, to a change another voter asked the
+// group for.
+func (r *SpaceResource) ApproveSpaceChange(
+	ctx context.Context,
+	req *s4wave_space.ApproveSpaceChangeRequest,
+) (*s4wave_space.ApproveSpaceChangeResponse, error) {
+	host, ok := r.space.GetSharedObject().(sobject.ControlHost)
+	if !ok {
+		return nil, errors.New("this Space has no group to agree with")
+	}
+	if err := host.ApproveConfigChange(ctx, req.GetHash()); err != nil {
+		return nil, err
+	}
+	return &s4wave_space.ApproveSpaceChangeResponse{}, nil
 }
 
 // buildTransformInfo extracts redacted transform info from the shared object state.
@@ -542,14 +597,32 @@ func bridgeSharingMailbox(
 }
 
 // sharingStateToProto converts the sharing state to its wire form, with the
-// sequencers an owner can appoint.
+// sequencers an owner can appoint and whether the shared object's control can
+// change.
 func sharingStateToProto(
 	state *sharingstate.SharingState,
 	choices []s4wave_space.SpaceSequencer,
+	controlHost bool,
 ) *s4wave_space.SpaceSharingState {
+	// No sharing state projects to none.
 	if state == nil {
 		return nil
 	}
+
+	// Under group control a voter asks for changes; otherwise an owner makes them.
+	group := state.Control == sobject.SOControl_SO_CONTROL_GROUP
+	canVote := state.ViewerWeight != 0
+	control := s4wave_space.SpaceControl_SpaceControl_OWNER
+	var quorum uint64
+	if group {
+		control = s4wave_space.SpaceControl_SpaceControl_GROUP
+		quorum = state.TotalWeight*2/3 + 1
+	}
+	changes := make([]*s4wave_space.SpaceGroupChange, 0, len(state.Agreements))
+	for _, a := range state.Agreements {
+		changes = append(changes, sharingGroupChange(state, a, choices))
+	}
+
 	return &s4wave_space.SpaceSharingState{
 		Participants:     state.Participants,
 		Invites:          state.Invites,
@@ -562,20 +635,67 @@ func sharingStateToProto(
 		ConfigChainSeqno: state.ConfigChainSeqno,
 		ViewerPeerId:     state.ViewerPeerID,
 		DeparturePending: state.DeparturePending,
-		Sequencer:        sharingSequencer(state, choices),
+		Sequencer:        sharingSequencer(state, state.SequencerPeerID, choices),
 		SequencerPeerId:  state.SequencerPeerID,
 		SequencerChoices: choices,
+		Control:          control,
+		CanVote:          canVote,
+		CanSetControl:    controlHost && (group && canVote || !group && state.CanManage),
+		TotalWeight:      state.TotalWeight,
+		QuorumWeight:     quorum,
+		GroupChanges:     changes,
 	}
 }
 
-// sharingSequencer classifies the appointed sequencer for the viewer. A
+// sharingGroupChange describes an agreed change by what it does to the held
+// config: the peers it admits or removes, the control and the sequencer.
+func sharingGroupChange(
+	state *sharingstate.SharingState,
+	a *sobject.ControlAgreement,
+	choices []s4wave_space.SpaceSequencer,
+) *s4wave_space.SpaceGroupChange {
+	// Compare the participants before and after.
+	next := a.Change.GetConfig()
+	hasPeer := func(ps []*sobject.SOParticipantConfig, peerID string) bool {
+		return slices.ContainsFunc(ps, func(p *sobject.SOParticipantConfig) bool { return p.GetPeerId() == peerID })
+	}
+	var added, removed []string
+	for _, p := range next.GetParticipants() {
+		if !hasPeer(state.Participants, p.GetPeerId()) {
+			added = append(added, p.GetPeerId())
+		}
+	}
+	for _, p := range state.Participants {
+		if !hasPeer(next.GetParticipants(), p.GetPeerId()) {
+			removed = append(removed, p.GetPeerId())
+		}
+	}
+
+	// Describe the control and the sequencer after the change.
+	control := s4wave_space.SpaceControl_SpaceControl_OWNER
+	if next.IsGroupControl() {
+		control = s4wave_space.SpaceControl_SpaceControl_GROUP
+	}
+	return &s4wave_space.SpaceGroupChange{
+		Hash:           a.Hash,
+		ChangeType:     a.Change.GetChangeType(),
+		AddedPeerIds:   added,
+		RemovedPeerIds: removed,
+		Control:        control,
+		Sequencer:      sharingSequencer(state, next.GetSequencer().GetPeerId(), choices),
+		Weight:         a.Weight,
+		ViewerAgreed:   slices.Contains(a.Voters, state.ViewerPeerID),
+	}
+}
+
+// sharingSequencer classifies the sequencer peerID for the viewer. A
 // sequencer that is not a participant is the provider's when the provider can
 // sequence, and otherwise a device that has left.
 func sharingSequencer(
 	state *sharingstate.SharingState,
+	peerID string,
 	choices []s4wave_space.SpaceSequencer,
 ) s4wave_space.SpaceSequencer {
-	peerID := state.SequencerPeerID
 	switch {
 	case peerID == "":
 		return s4wave_space.SpaceSequencer_SpaceSequencer_MERGE

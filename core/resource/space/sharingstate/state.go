@@ -64,6 +64,15 @@ type SharingState struct {
 	DeparturePending bool
 	// SequencerPeerID is the appointed sequencer, empty under Merge.
 	SequencerPeerID string
+	// Control is who controls the shared object.
+	Control sobject.SOControl
+	// ViewerWeight is the viewer's voting weight under group control.
+	ViewerWeight uint64
+	// TotalWeight is the voting weight of every voter under group control.
+	TotalWeight uint64
+	// Agreements are the changes voters agree to that the group has not
+	// decided, by most voting weight.
+	Agreements []*sobject.ControlAgreement
 }
 
 // State carries every input snapshot the sharing watch reads per emission.
@@ -207,15 +216,26 @@ func (s *State) RunWatchLoop(
 			waitCh    <-chan struct{}
 		)
 		s.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
-			// Departing peers are absent from the projected audience.
+			// Read the control state from the full config, departing peers included.
 			bridgeErr = s.err
+			cfg := s.soState.GetConfig()
+			agreements, err := s.soState.ControlAgreements()
+			if bridgeErr == nil {
+				bridgeErr = err
+			}
+
+			// Departing peers are absent from the projected audience.
 			soState := withoutPeers(s.soState, s.departing)
 			viewerRole := ViewerRole(soState, peerID)
 			canManage := sobject.IsOwner(viewerRole)
+
+			// Only owners see join requests.
 			var joinRequests []*sobject.SOJoinRequest
 			if canManage {
 				joinRequests = s.joinRequests
 			}
+
+			// Project the sharing state and take the next wait channel.
 			resp = &SharingState{
 				Participants:   soState.GetConfig().GetParticipants(),
 				Invites:        soState.GetInvites(),
@@ -233,6 +253,10 @@ func (s *State) RunWatchLoop(
 				ConfigChainSeqno: soState.GetConfig().GetConfigChainSeqno(),
 				DeparturePending: len(s.departing) != 0,
 				SequencerPeerID:  soState.GetConfig().GetSequencer().GetPeerId(),
+				Control:          cfg.GetControl(),
+				ViewerWeight:     cfg.VotingWeight(peerID),
+				TotalWeight:      cfg.TotalVotingWeight(),
+				Agreements:       agreements,
 			}
 			waitCh = getWaitCh()
 		})
@@ -384,6 +408,10 @@ func (s *SharingState) Equal(that *SharingState) bool {
 		s.ViewerPeerID == that.ViewerPeerID &&
 		s.DeparturePending == that.DeparturePending &&
 		s.SequencerPeerID == that.SequencerPeerID &&
+		s.Control == that.Control &&
+		s.ViewerWeight == that.ViewerWeight &&
+		s.TotalWeight == that.TotalWeight &&
+		slices.EqualFunc(s.Agreements, that.Agreements, equalAgreement) &&
 		bytes.Equal(s.ConfigChainHash, that.ConfigChainHash) &&
 		s.ConfigChainSeqno == that.ConfigChainSeqno &&
 		slices.EqualFunc(s.Participants, that.Participants, func(a, b *sobject.SOParticipantConfig) bool {
@@ -397,6 +425,12 @@ func (s *SharingState) Equal(that *SharingState) bool {
 			return a.EqualVT(b)
 		}) &&
 		slices.EqualFunc(s.ParticipantInfo, that.ParticipantInfo, equalParticipantInfo)
+}
+
+// equalAgreement reports whether two agreements name one change with the same
+// voters.
+func equalAgreement(a, b *sobject.ControlAgreement) bool {
+	return bytes.Equal(a.Hash, b.Hash) && a.Weight == b.Weight && slices.Equal(a.Voters, b.Voters)
 }
 
 func equalMailboxEntry(a *MailboxEntry, b *MailboxEntry) bool {

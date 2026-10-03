@@ -8,6 +8,7 @@ import { ObjectKeySelector } from '@s4wave/web/ui/ObjectKeySelector.js'
 import { useInvokeCommand } from '@s4wave/web/command/index.js'
 import { SpaceContainerContext } from '@s4wave/web/contexts/SpaceContainerContext.js'
 import { applySpaceIndexPath } from './space-settings.js'
+import { SpaceControlSection } from './SpaceControlSection.js'
 import { SpaceSyncSection } from './SpaceSyncSection.js'
 
 interface SpaceSettingsEditorProps {
@@ -104,6 +105,7 @@ export function SpaceSettingsEditor({
         </div>
       </InfoCard>
       <SpaceSyncSection />
+      <SpaceControlSection />
       <button
         type="button"
         className="border-foreground/10 bg-foreground/5 hover:border-brand/30 hover:bg-brand/5 group mt-2 flex w-full cursor-pointer items-center gap-3 rounded-md border p-2.5 text-left transition-colors"

@@ -46,6 +46,15 @@ service SpaceResourceService {
   // SetSpaceSequencer chooses, as an owner, who orders the Space's edits. The
   // sharing state reports the result.
   rpc SetSpaceSequencer(SetSpaceSequencerRequest) returns (SetSpaceSequencerResponse) {}
+
+  // SetSpaceControl chooses who controls the Space: an owner hands control to
+  // the group, and the group decides a return to owner control. The sharing
+  // state reports the result.
+  rpc SetSpaceControl(SetSpaceControlRequest) returns (SetSpaceControlResponse) {}
+
+  // ApproveSpaceChange agrees, as a voter, to a change another voter asked the
+  // group for.
+  rpc ApproveSpaceChange(ApproveSpaceChangeRequest) returns (ApproveSpaceChangeResponse) {}
 }
 
 // BuildSpacePluginRequest selects a Space source tree and authorized build device.
@@ -167,6 +176,52 @@ message SpaceSharingState {
   string sequencer_peer_id = 13;
   // SequencerChoices are the sequencers an owner can appoint on this device.
   repeated SpaceSequencer sequencer_choices = 14;
+  // Control is who controls the Space.
+  SpaceControl control = 15;
+  // CanVote is true when the viewer votes on the group's changes.
+  bool can_vote = 16;
+  // CanSetControl is true when the viewer can change who controls the Space:
+  // an owner under owner control, or a voter under group control.
+  bool can_set_control = 17;
+  // TotalWeight is the voting weight of every voter under group control.
+  uint64 total_weight = 18;
+  // QuorumWeight is the voting weight a change needs under group control:
+  // more than two thirds of TotalWeight.
+  uint64 quorum_weight = 19;
+  // GroupChanges are the changes voters agree to that the group has not
+  // decided, by most voting weight.
+  repeated SpaceGroupChange group_changes = 20;
+}
+
+// SpaceControl is who controls a Space.
+enum SpaceControl {
+  // SpaceControl_UNKNOWN leaves the control unset.
+  SpaceControl_UNKNOWN = 0;
+  // SpaceControl_OWNER means an owner changes members and settings alone.
+  SpaceControl_OWNER = 1;
+  // SpaceControl_GROUP means a change needs voters with more than two thirds
+  // of the voting weight. No one decides alone, including owners.
+  SpaceControl_GROUP = 2;
+}
+
+// SpaceGroupChange is a change voters agree to that the group has not decided.
+message SpaceGroupChange {
+  // Hash identifies the change for ApproveSpaceChange.
+  bytes hash = 1;
+  // ChangeType is the kind of change.
+  .sobject.SOConfigChangeType change_type = 2;
+  // AddedPeerIds are the peers the change admits.
+  repeated string added_peer_ids = 3;
+  // RemovedPeerIds are the peers the change removes.
+  repeated string removed_peer_ids = 4;
+  // Control is who controls the Space after the change.
+  SpaceControl control = 5;
+  // Sequencer is who orders the Space's edits after the change.
+  SpaceSequencer sequencer = 6;
+  // Weight is the voting weight of the voters that agree.
+  uint64 weight = 7;
+  // ViewerAgreed is true when the viewer agrees.
+  bool viewer_agreed = 8;
 }
 
 // SpaceSequencer is who orders a Space's edits.
@@ -390,7 +445,32 @@ message SetSpaceSequencerRequest {
 message SetSpaceSequencerResponse {
   // Changed is false when the chosen sequencer already ordered the edits.
   bool changed = 1;
+  // AwaitingGroup is true when the viewer agreed to the change under group
+  // control, and it applies once the group decides it.
+  bool awaiting_group = 2;
 }
+
+// SetSpaceControlRequest chooses who controls the Space.
+message SetSpaceControlRequest {
+  // Control is OWNER or GROUP.
+  SpaceControl control = 1;
+}
+
+// SetSpaceControlResponse reports how the change proceeds.
+message SetSpaceControlResponse {
+  // AwaitingGroup is true when the viewer agreed to the change under group
+  // control, and it applies once the group decides it.
+  bool awaiting_group = 1;
+}
+
+// ApproveSpaceChangeRequest agrees to a change the group has not decided.
+message ApproveSpaceChangeRequest {
+  // Hash is the SpaceGroupChange hash.
+  bytes hash = 1;
+}
+
+// ApproveSpaceChangeResponse is the response to ApproveSpaceChange.
+message ApproveSpaceChangeResponse {}
 
 // SetProcessBindingRequest is a request to set a process binding state.
 message SetProcessBindingRequest {

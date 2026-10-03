@@ -37,11 +37,10 @@ func TestSharingSequencer(t *testing.T) {
 	// Each appointment reads as the viewer would describe it.
 	for _, tc := range cases {
 		state := &sharingstate.SharingState{
-			Participants:    participants,
-			ViewerPeerID:    "viewer",
-			SequencerPeerID: tc.peerID,
+			Participants: participants,
+			ViewerPeerID: "viewer",
 		}
-		if got := sharingSequencer(state, tc.choices); got != tc.want {
+		if got := sharingSequencer(state, tc.peerID, tc.choices); got != tc.want {
 			t.Errorf("%s: got %v, want %v", tc.name, got, tc.want)
 		}
 	}

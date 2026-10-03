@@ -9,6 +9,7 @@ import {
 import { useWatchStateRpc } from '@aptre/bldr-react'
 import { useResourceValue } from '@aptre/bldr-sdk/hooks/useResource.js'
 import {
+  SpaceControl,
   SpaceSequencer,
   type SpaceSharingState,
 } from '@s4wave/sdk/space/space.pb.js'
@@ -57,9 +58,10 @@ const MAIN_LOST: TakeOver = {
   confirm: 'Replace main device',
 }
 
-// SpaceSyncSection shows and, for owners, chooses how the Space's edits sync:
-// Merge, where every device keeps working and edits combine, or One order,
-// where Spacewave Cloud or a main device puts every edit in order.
+// SpaceSyncSection shows how the Space's edits sync, and lets owners, or the
+// group's voters under group control, choose: Merge, where every device keeps
+// working and edits combine, or One order, where Spacewave Cloud or a main
+// device puts every edit in order.
 export function SpaceSyncSection() {
   const { spaceId, spaceSharingState } = SpaceContainerContext.useContext()
   const space = useResourceValue(SpaceContext.useContext())
@@ -72,8 +74,13 @@ export function SpaceSyncSection() {
       if (!space) return
       setPending(true)
       try {
-        await space.setSpaceSequencer(sequencer)
+        const resp = await space.setSpaceSequencer(sequencer)
         setTakeOver(null)
+        if (resp.awaitingGroup) {
+          toast.info('Asked the group', {
+            description: 'Edits sync the new way once enough members agree.',
+          })
+        }
       } catch (err) {
         toast.error('Could not change how edits sync', {
           description: err instanceof Error ? err.message : String(err),
@@ -91,7 +98,11 @@ export function SpaceSyncSection() {
     return null
 
   const choices = spaceSharingState.sequencerChoices ?? []
-  const canManage = !!spaceSharingState.canManage && !pending
+  // Under group control a voter asks the group to change how edits sync.
+  const canManage =
+    (spaceSharingState.control === SpaceControl.SpaceControl_GROUP
+      ? !!spaceSharingState.canVote
+      : !!spaceSharingState.canManage) && !pending
   const merged = sequencer === SpaceSequencer.SpaceSequencer_MERGE
   const canTakeOver =
     canManage &&

@@ -5,7 +5,10 @@ import { LuCheck, LuShield, LuTrash2, LuUsers, LuX } from 'react-icons/lu'
 import { SOParticipantRole } from '@s4wave/core/sobject/sobject.pb.js'
 import type { SOInvite } from '@s4wave/core/sobject/sobject.pb.js'
 import type { MailboxEntryInfo } from '@s4wave/sdk/provider/spacewave/spacewave.pb.js'
-import type { SpaceParticipantInfo } from '@s4wave/sdk/space/space.pb.js'
+import {
+  SpaceControl,
+  type SpaceParticipantInfo,
+} from '@s4wave/sdk/space/space.pb.js'
 import { useResourceValue } from '@aptre/bldr-sdk/hooks/useResource.js'
 import { SessionContext } from '@s4wave/web/contexts/contexts.js'
 import { SpaceContainerContext } from '@s4wave/web/contexts/SpaceContainerContext.js'
@@ -14,6 +17,7 @@ import { truncatePeerId } from '@s4wave/web/ui/credential/auth-utils.js'
 import { InfoCard } from '@s4wave/web/ui/InfoCard.js'
 import { LoadingInline } from '@s4wave/web/ui/loading/LoadingInline.js'
 import { Spinner } from '@s4wave/web/ui/loading/Spinner.js'
+import { toast } from '@s4wave/web/ui/toaster.js'
 
 const roleLabels: Record<number, string> = {
   [SOParticipantRole.SOParticipantRole_OWNER]: 'Owner',
@@ -140,18 +144,37 @@ export function SpaceMembersPanel({ compact = false }: SpaceMembersPanelProps) {
     [spaceSharingState?.mailboxEntries],
   )
   const canManage = spaceSharingState?.canManage ?? false
+  // Under group control a voter asks the group to remove a member.
+  const canRemove =
+    spaceSharingState?.control === SpaceControl.SpaceControl_GROUP
+      ? !!spaceSharingState.canVote
+      : canManage
 
   const handleRemove = useCallback(
     async (member: SpaceParticipantInfo) => {
       if (!session || !spaceId) return
       dispatch({ type: 'removing', memberId: getParticipantKey(member) })
       try {
+        let awaitingGroup = false
         if (session.spacewave && member.accountId) {
-          await session.spacewave.removeSpaceMember(spaceId, member.accountId)
+          const resp = await session.spacewave.removeSpaceMember(
+            spaceId,
+            member.accountId,
+          )
+          awaitingGroup = !!resp.awaitingGroup
         } else if (member.peerIds?.length) {
-          await session.removeSpaceParticipants(spaceId, member.peerIds)
+          const resp = await session.removeSpaceParticipants(
+            spaceId,
+            member.peerIds,
+          )
+          awaitingGroup = !!resp.awaitingGroup
         }
         dispatch({ type: 'done' })
+        if (awaitingGroup) {
+          toast.info('Asked the group', {
+            description: `${getParticipantPrimaryLabel(member)} leaves once enough members agree.`,
+          })
+        }
       } catch (err) {
         dispatch({
           type: 'error',
@@ -232,7 +255,7 @@ export function SpaceMembersPanel({ compact = false }: SpaceMembersPanelProps) {
               role={member.role ?? SOParticipantRole.SOParticipantRole_UNKNOWN}
               isSelf={member.isSelf ?? false}
               deviceCount={member.peerIds?.length ?? 0}
-              canRemove={canManage && !member.isSelf}
+              canRemove={canRemove && !member.isSelf}
               removing={state.removingMember === getParticipantKey(member)}
               onRemove={() => void handleRemove(member)}
             />
@@ -355,6 +378,8 @@ function MemberRow(props: {
       </span>
       {props.canRemove && (
         <button
+          type="button"
+          aria-label="Remove member"
           onClick={props.onRemove}
           disabled={props.removing}
           className="text-foreground-alt/40 hover:text-destructive cursor-pointer transition-colors disabled:opacity-50"
@@ -389,6 +414,8 @@ function InviteRow(props: {
       <span className="text-foreground-alt/30 text-xs">{usageText}</span>
       {props.canRevoke && (
         <button
+          type="button"
+          aria-label="Revoke invite"
           onClick={props.onRevoke}
           disabled={props.revoking}
           className="text-foreground-alt/40 hover:text-destructive cursor-pointer transition-colors disabled:opacity-50"
@@ -437,12 +464,16 @@ function PendingRequestRow(props: {
       ) : (
         <>
           <button
+            type="button"
+            aria-label="Accept join request"
             onClick={props.onAccept}
             className="text-foreground-alt/40 cursor-pointer transition-colors hover:text-green-500"
           >
             <LuCheck className="size-3" />
           </button>
           <button
+            type="button"
+            aria-label="Reject join request"
             onClick={props.onReject}
             className="text-foreground-alt/40 hover:text-destructive cursor-pointer transition-colors"
           >

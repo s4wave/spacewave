@@ -1473,6 +1473,20 @@ func (s *SharedObject) SetSequencer(ctx context.Context, peerID string) (bool, e
 	return changed, err
 }
 
+// SetControl changes who controls the shared object, signed or agreed to by
+// the local peer against the latest cloud configuration.
+func (s *SharedObject) SetControl(ctx context.Context, control sobject.SOControl) error {
+	return s.retryConfigConflicts(ctx, func() error {
+		return sobject.SetSOControl(ctx, s.GetSOHost(), control, s.privKey)
+	})
+}
+
+// ApproveConfigChange agrees, as the local peer, to a change another voter
+// asked the group for.
+func (s *SharedObject) ApproveConfigChange(ctx context.Context, hash []byte) error {
+	return sobject.ApproveSOConfigChange(ctx, s.GetSOHost(), hash, s.privKey)
+}
+
 // GetProviderSequencer returns the peer ID Spacewave Cloud signs the shared
 // object's order with.
 func (s *SharedObject) GetProviderSequencer(ctx context.Context) (string, error) {
@@ -1514,4 +1528,5 @@ var (
 	_ sobject.InviteHost                 = (*SharedObject)(nil)
 	_ sobject.RosterHost                 = (*SharedObject)(nil)
 	_ sobject.SequencerHost              = (*SharedObject)(nil)
+	_ sobject.ControlHost                = (*SharedObject)(nil)
 )

@@ -13,7 +13,7 @@ import { SpaceContainerContext } from '@s4wave/web/contexts/SpaceContainerContex
 import { SpaceSyncSection } from './SpaceSyncSection.js'
 
 const h = vi.hoisted(() => ({
-  setSpaceSequencer: vi.fn(),
+  setSpaceSequencer: vi.fn().mockResolvedValue({ changed: true }),
   unorderedCount: 0,
 }))
 

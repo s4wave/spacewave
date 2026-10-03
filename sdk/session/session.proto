@@ -869,6 +869,9 @@ message RemoveSpaceParticipantsRequest {
 message RemoveSpaceParticipantsResponse {
   // RemovedPeerIds are the participant peer IDs that were present and removed.
   repeated string removed_peer_ids = 1;
+  // AwaitingGroup is true when the viewer agreed to the removal under group
+  // control, and it applies once the group decides it.
+  bool awaiting_group = 2;
 }
 
 // RevokeSpaceInviteRequest is the request for RevokeSpaceInvite.

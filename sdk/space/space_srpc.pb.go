@@ -46,6 +46,13 @@ type SRPCSpaceResourceServiceClient interface {
 	// SetSpaceSequencer chooses, as an owner, who orders the Space's edits. The
 	// sharing state reports the result.
 	SetSpaceSequencer(ctx context.Context, in *SetSpaceSequencerRequest) (*SetSpaceSequencerResponse, error)
+	// SetSpaceControl chooses who controls the Space: an owner hands control to
+	// the group, and the group decides a return to owner control. The sharing
+	// state reports the result.
+	SetSpaceControl(ctx context.Context, in *SetSpaceControlRequest) (*SetSpaceControlResponse, error)
+	// ApproveSpaceChange agrees, as a voter, to a change another voter asked the
+	// group for.
+	ApproveSpaceChange(ctx context.Context, in *ApproveSpaceChangeRequest) (*ApproveSpaceChangeResponse, error)
 }
 
 type srpcSpaceResourceServiceClient struct {
@@ -294,6 +301,24 @@ func (c *srpcSpaceResourceServiceClient) SetSpaceSequencer(ctx context.Context, 
 	return out, nil
 }
 
+func (c *srpcSpaceResourceServiceClient) SetSpaceControl(ctx context.Context, in *SetSpaceControlRequest) (*SetSpaceControlResponse, error) {
+	out := new(SetSpaceControlResponse)
+	err := c.cc.ExecCall(ctx, c.serviceID, "SetSpaceControl", in, out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *srpcSpaceResourceServiceClient) ApproveSpaceChange(ctx context.Context, in *ApproveSpaceChangeRequest) (*ApproveSpaceChangeResponse, error) {
+	out := new(ApproveSpaceChangeResponse)
+	err := c.cc.ExecCall(ctx, c.serviceID, "ApproveSpaceChange", in, out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 type SRPCSpaceResourceServiceServer interface {
 	WatchSpaceState(*WatchSpaceStateRequest, SRPCSpaceResourceService_WatchSpaceStateStream) error
 	// WatchProcessBindings streams local process binding decisions without
@@ -326,6 +351,13 @@ type SRPCSpaceResourceServiceServer interface {
 	// SetSpaceSequencer chooses, as an owner, who orders the Space's edits. The
 	// sharing state reports the result.
 	SetSpaceSequencer(context.Context, *SetSpaceSequencerRequest) (*SetSpaceSequencerResponse, error)
+	// SetSpaceControl chooses who controls the Space: an owner hands control to
+	// the group, and the group decides a return to owner control. The sharing
+	// state reports the result.
+	SetSpaceControl(context.Context, *SetSpaceControlRequest) (*SetSpaceControlResponse, error)
+	// ApproveSpaceChange agrees, as a voter, to a change another voter asked the
+	// group for.
+	ApproveSpaceChange(context.Context, *ApproveSpaceChangeRequest) (*ApproveSpaceChangeResponse, error)
 }
 
 const SRPCSpaceResourceServiceServiceID = "s4wave.space.SpaceResourceService"
@@ -368,6 +400,8 @@ func (SRPCSpaceResourceServiceHandler) GetMethodIDs() []string {
 		"BuildSpacePlugin",
 		"OpenPluginFrontend",
 		"SetSpaceSequencer",
+		"SetSpaceControl",
+		"ApproveSpaceChange",
 	}
 }
 
@@ -408,6 +442,10 @@ func (d *SRPCSpaceResourceServiceHandler) InvokeMethod(
 		return true, d.InvokeMethod_OpenPluginFrontend(d.impl, strm)
 	case "SetSpaceSequencer":
 		return true, d.InvokeMethod_SetSpaceSequencer(d.impl, strm)
+	case "SetSpaceControl":
+		return true, d.InvokeMethod_SetSpaceControl(d.impl, strm)
+	case "ApproveSpaceChange":
+		return true, d.InvokeMethod_ApproveSpaceChange(d.impl, strm)
 	default:
 		return false, nil
 	}
@@ -559,6 +597,30 @@ func (SRPCSpaceResourceServiceHandler) InvokeMethod_SetSpaceSequencer(impl SRPCS
 		return err
 	}
 	out, err := impl.SetSpaceSequencer(strm.Context(), req)
+	if err != nil {
+		return err
+	}
+	return strm.MsgSend(out)
+}
+
+func (SRPCSpaceResourceServiceHandler) InvokeMethod_SetSpaceControl(impl SRPCSpaceResourceServiceServer, strm srpc.Stream) error {
+	req := new(SetSpaceControlRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	out, err := impl.SetSpaceControl(strm.Context(), req)
+	if err != nil {
+		return err
+	}
+	return strm.MsgSend(out)
+}
+
+func (SRPCSpaceResourceServiceHandler) InvokeMethod_ApproveSpaceChange(impl SRPCSpaceResourceServiceServer, strm srpc.Stream) error {
+	req := new(ApproveSpaceChangeRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	out, err := impl.ApproveSpaceChange(strm.Context(), req)
 	if err != nil {
 		return err
 	}
@@ -748,6 +810,22 @@ type SRPCSpaceResourceService_SetSpaceSequencerStream interface {
 }
 
 type srpcSpaceResourceService_SetSpaceSequencerStream struct {
+	srpc.Stream
+}
+
+type SRPCSpaceResourceService_SetSpaceControlStream interface {
+	srpc.Stream
+}
+
+type srpcSpaceResourceService_SetSpaceControlStream struct {
+	srpc.Stream
+}
+
+type SRPCSpaceResourceService_ApproveSpaceChangeStream interface {
+	srpc.Stream
+}
+
+type srpcSpaceResourceService_ApproveSpaceChangeStream struct {
 	srpc.Stream
 }
 

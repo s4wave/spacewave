@@ -2973,6 +2973,9 @@ type RemoveSpaceParticipantsResponse struct {
 	unknownFields []byte
 	// RemovedPeerIds are the participant peer IDs that were present and removed.
 	RemovedPeerIds []string `protobuf:"bytes,1,rep,name=removed_peer_ids,json=removedPeerIds,proto3" json:"removedPeerIds,omitempty"`
+	// AwaitingGroup is true when the viewer agreed to the removal under group
+	// control, and it applies once the group decides it.
+	AwaitingGroup bool `protobuf:"varint,2,opt,name=awaiting_group,json=awaitingGroup,proto3" json:"awaitingGroup,omitempty"`
 }
 
 func (x *RemoveSpaceParticipantsResponse) Reset() {
@@ -2986,6 +2989,13 @@ func (x *RemoveSpaceParticipantsResponse) GetRemovedPeerIds() []string {
 		return x.RemovedPeerIds
 	}
 	return nil
+}
+
+func (x *RemoveSpaceParticipantsResponse) GetAwaitingGroup() bool {
+	if x != nil {
+		return x.AwaitingGroup
+	}
+	return false
 }
 
 // RevokeSpaceInviteRequest is the request for RevokeSpaceInvite.
@@ -5265,6 +5275,7 @@ func (m *RemoveSpaceParticipantsResponse) CloneVT() *RemoveSpaceParticipantsResp
 		return (*RemoveSpaceParticipantsResponse)(nil)
 	}
 	r := new(RemoveSpaceParticipantsResponse)
+	r.AwaitingGroup = m.AwaitingGroup
 	r.RemovedPeerIds = protobuf_go_lite.CloneSlice(m.RemovedPeerIds)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
@@ -7742,6 +7753,9 @@ func (this *RemoveSpaceParticipantsResponse) EqualVT(that *RemoveSpaceParticipan
 		return false
 	}
 	if !protobuf_go_lite.EqualSlice(this.RemovedPeerIds, that.RemovedPeerIds) {
+		return false
+	}
+	if this.AwaitingGroup != that.AwaitingGroup {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -13112,6 +13126,11 @@ func (x *RemoveSpaceParticipantsResponse) MarshalProtoJSON(s *json.MarshalState)
 		s.WriteObjectField("removedPeerIds")
 		s.WriteStringArray(x.RemovedPeerIds)
 	}
+	if x.AwaitingGroup || s.HasField("awaitingGroup") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("awaitingGroup")
+		s.WriteBool(x.AwaitingGroup)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -13136,6 +13155,9 @@ func (x *RemoveSpaceParticipantsResponse) UnmarshalProtoJSON(s *json.UnmarshalSt
 				return
 			}
 			x.RemovedPeerIds = s.ReadStringArray()
+		case "awaiting_group", "awaitingGroup":
+			s.AddField("awaiting_group")
+			x.AwaitingGroup = s.ReadBool()
 		}
 	})
 }
@@ -18539,6 +18561,11 @@ func (m *RemoveSpaceParticipantsResponse) MarshalToSizedBufferVT(dAtA []byte) (i
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.AwaitingGroup {
+		i = protobuf_go_lite.EncodeBool(dAtA, i, m.AwaitingGroup)
+		i--
+		dAtA[i] = 0x10
+	}
 	if len(m.RemovedPeerIds) > 0 {
 		for iNdEx := len(m.RemovedPeerIds) - 1; iNdEx >= 0; iNdEx-- {
 			i = protobuf_go_lite.EncodeString(dAtA, i, m.RemovedPeerIds[iNdEx])
@@ -21095,6 +21122,7 @@ func (m *RemoveSpaceParticipantsResponse) SizeVT() (n int) {
 	var l int
 	_ = l
 	n += protobuf_go_lite.SizeStringSlice(1, m.RemovedPeerIds)
+	n += protobuf_go_lite.SizeBoolNonZero(1, m.AwaitingGroup)
 	n += len(m.unknownFields)
 	return n
 }
@@ -23195,6 +23223,10 @@ func (x *RemoveSpaceParticipantsResponse) MarshalProtoText() string {
 			protobuf_go_lite.TextWriteString(&sb, v)
 		}
 		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
+	if x.AwaitingGroup != false {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "awaiting_group")
+		protobuf_go_lite.TextWriteBool(&sb, x.AwaitingGroup)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -29030,6 +29062,16 @@ func (m *RemoveSpaceParticipantsResponse) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.RemovedPeerIds = append(m.RemovedPeerIds, v)
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field AwaitingGroup", wireType)
+			}
+			var v bool
+			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.AwaitingGroup = bool(v)
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

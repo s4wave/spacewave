@@ -7,6 +7,8 @@ import {
   AccessWorldResponse,
   AddSpacePluginRequest,
   AddSpacePluginResponse,
+  ApproveSpaceChangeRequest,
+  ApproveSpaceChangeResponse,
   BindAttachedRpcServiceRequest,
   BindAttachedRpcServiceResponse,
   BuildSpacePluginRequest,
@@ -22,6 +24,8 @@ import {
   RemoveSpacePluginResponse,
   SetProcessBindingRequest,
   SetProcessBindingResponse,
+  SetSpaceControlRequest,
+  SetSpaceControlResponse,
   SetSpaceSequencerRequest,
   SetSpaceSequencerResponse,
   SpaceContentsState,
@@ -191,6 +195,31 @@ export const SpaceResourceServiceDefinition = {
       O: SetSpaceSequencerResponse,
       kind: MethodKind.Unary,
     },
+    /**
+     * SetSpaceControl chooses who controls the Space: an owner hands control to
+     * the group, and the group decides a return to owner control. The sharing
+     * state reports the result.
+     *
+     * @generated from rpc s4wave.space.SpaceResourceService.SetSpaceControl
+     */
+    SetSpaceControl: {
+      name: 'SetSpaceControl',
+      I: SetSpaceControlRequest,
+      O: SetSpaceControlResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * ApproveSpaceChange agrees, as a voter, to a change another voter asked the
+     * group for.
+     *
+     * @generated from rpc s4wave.space.SpaceResourceService.ApproveSpaceChange
+     */
+    ApproveSpaceChange: {
+      name: 'ApproveSpaceChange',
+      I: ApproveSpaceChangeRequest,
+      O: ApproveSpaceChangeResponse,
+      kind: MethodKind.Unary,
+    },
   },
 } as const
 
@@ -323,6 +352,29 @@ export interface SpaceResourceService {
     request: SetSpaceSequencerRequest,
     abortSignal?: AbortSignal,
   ): Promise<SetSpaceSequencerResponse>
+
+  /**
+   * SetSpaceControl chooses who controls the Space: an owner hands control to
+   * the group, and the group decides a return to owner control. The sharing
+   * state reports the result.
+   *
+   * @generated from rpc s4wave.space.SpaceResourceService.SetSpaceControl
+   */
+  SetSpaceControl(
+    request: SetSpaceControlRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<SetSpaceControlResponse>
+
+  /**
+   * ApproveSpaceChange agrees, as a voter, to a change another voter asked the
+   * group for.
+   *
+   * @generated from rpc s4wave.space.SpaceResourceService.ApproveSpaceChange
+   */
+  ApproveSpaceChange(
+    request: ApproveSpaceChangeRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<ApproveSpaceChangeResponse>
 }
 
 /**
@@ -468,6 +520,31 @@ export interface SpaceResourceServiceHandler {
     abortSignal: AbortSignal,
     context: ServerContext,
   ): Promise<SetSpaceSequencerResponse>
+
+  /**
+   * SetSpaceControl chooses who controls the Space: an owner hands control to
+   * the group, and the group decides a return to owner control. The sharing
+   * state reports the result.
+   *
+   * @generated from rpc s4wave.space.SpaceResourceService.SetSpaceControl
+   */
+  SetSpaceControl(
+    request: SetSpaceControlRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<SetSpaceControlResponse>
+
+  /**
+   * ApproveSpaceChange agrees, as a voter, to a change another voter asked the
+   * group for.
+   *
+   * @generated from rpc s4wave.space.SpaceResourceService.ApproveSpaceChange
+   */
+  ApproveSpaceChange(
+    request: ApproveSpaceChangeRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<ApproveSpaceChangeResponse>
 }
 
 export const SpaceResourceServiceServiceName =
@@ -493,6 +570,8 @@ export class SpaceResourceServiceClient implements SpaceResourceService {
     this.BuildSpacePlugin = this.BuildSpacePlugin.bind(this)
     this.OpenPluginFrontend = this.OpenPluginFrontend.bind(this)
     this.SetSpaceSequencer = this.SetSpaceSequencer.bind(this)
+    this.SetSpaceControl = this.SetSpaceControl.bind(this)
+    this.ApproveSpaceChange = this.ApproveSpaceChange.bind(this)
   }
   /**
    * @generated from rpc s4wave.space.SpaceResourceService.WatchSpaceState
@@ -743,6 +822,47 @@ export class SpaceResourceServiceClient implements SpaceResourceService {
       abortSignal || undefined,
     )
     return SetSpaceSequencerResponse.fromBinary(result)
+  }
+
+  /**
+   * SetSpaceControl chooses who controls the Space: an owner hands control to
+   * the group, and the group decides a return to owner control. The sharing
+   * state reports the result.
+   *
+   * @generated from rpc s4wave.space.SpaceResourceService.SetSpaceControl
+   */
+  async SetSpaceControl(
+    request: SetSpaceControlRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<SetSpaceControlResponse> {
+    const requestMsg = SetSpaceControlRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      SpaceResourceServiceDefinition.methods.SetSpaceControl.name,
+      SetSpaceControlRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return SetSpaceControlResponse.fromBinary(result)
+  }
+
+  /**
+   * ApproveSpaceChange agrees, as a voter, to a change another voter asked the
+   * group for.
+   *
+   * @generated from rpc s4wave.space.SpaceResourceService.ApproveSpaceChange
+   */
+  async ApproveSpaceChange(
+    request: ApproveSpaceChangeRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<ApproveSpaceChangeResponse> {
+    const requestMsg = ApproveSpaceChangeRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      SpaceResourceServiceDefinition.methods.ApproveSpaceChange.name,
+      ApproveSpaceChangeRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return ApproveSpaceChangeResponse.fromBinary(result)
   }
 }
 /**

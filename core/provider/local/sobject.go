@@ -739,6 +739,18 @@ func (s *SharedObject) SetSequencer(ctx context.Context, peerID string) (bool, e
 	return sobject.SetSOSequencer(ctx, s.soHost, peerID, s.localPriv)
 }
 
+// SetControl changes who controls the shared object, signed or agreed to by
+// the local peer.
+func (s *SharedObject) SetControl(ctx context.Context, control sobject.SOControl) error {
+	return sobject.SetSOControl(ctx, s.soHost, control, s.localPriv)
+}
+
+// ApproveConfigChange agrees, as the local peer, to a change another voter
+// asked the group for.
+func (s *SharedObject) ApproveConfigChange(ctx context.Context, hash []byte) error {
+	return sobject.ApproveSOConfigChange(ctx, s.soHost, hash, s.localPriv)
+}
+
 // SequenceOperations places the unplaced operations while the local peer is
 // the sequencer, so this device orders the Space as its main device.
 func (s *SharedObject) SequenceOperations(ctx context.Context) error {
@@ -754,5 +766,6 @@ var (
 	_ sobject.InviteHost                 = (*SharedObject)(nil)
 	_ sobject.RosterHost                 = (*SharedObject)(nil)
 	_ sobject.SequencerHost              = (*SharedObject)(nil)
+	_ sobject.ControlHost                = (*SharedObject)(nil)
 	_ sobject.MainDevice                 = (*SharedObject)(nil)
 )

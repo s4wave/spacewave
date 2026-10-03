@@ -390,6 +390,18 @@ func reconcileGroupGrants(sharedObjectID string, state *SOState, privKey crypto.
 	return nil
 }
 
+// ControlHost is an optional interface on SharedObject implementations whose
+// local peer can change who controls the shared object and agree to changes
+// other voters asked the group for.
+type ControlHost interface {
+	// SetControl changes who controls the shared object as SetSOControl does,
+	// returning ErrAwaitingGroup when the group decides the change.
+	SetControl(ctx context.Context, control SOControl) error
+	// ApproveConfigChange agrees to the change with hash that another voter
+	// agreed to under the held config.
+	ApproveConfigChange(ctx context.Context, hash []byte) error
+}
+
 // SetSOControl changes who controls host's shared object, signed or agreed to
 // by signer. Group control gives one vote to the first writing device of each
 // entity, and seals the held checkpoint so the group's decisions follow it.
