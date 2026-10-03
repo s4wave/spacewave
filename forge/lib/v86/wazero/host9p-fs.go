@@ -168,12 +168,12 @@ func (fs *Host9PFS) loadChildren(parent *host9pInode, values []*fastjson.Value) 
 
 // Handle serves one 9P request frame and returns the reply frame bytes.
 func (fs *Host9PFS) Handle(req []byte) []byte {
-	// Require the 9P header and reject payloads longer than the frame.
+	// Require the 9P header and reject a declared size outside the frame.
 	if len(req) < 7 {
 		return nil
 	}
 	size := binary.LittleEndian.Uint32(req)
-	if uint64(size) > uint64(len(req)) {
+	if size < 7 || uint64(size) > uint64(len(req)) {
 		return p9Error(binary.LittleEndian.Uint16(req[5:]), p9EIO)
 	}
 
