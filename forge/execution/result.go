@@ -9,6 +9,7 @@ import (
 // FilterExecutionOutputs returns only valid outputs for completed executions.
 // if allowFailed, skips any failed or invalid executions.
 func FilterExecutionOutputs(execs []*Execution, allowFailed bool, minComplete int) ([]*Execution, [][]*forge_value.Value, error) {
+	// Collect complete executions and their validated output values.
 	valid := make([]*Execution, 0, len(execs))
 	validOutputs := make([][]*forge_value.Value, 0, cap(valid))
 	for i, exec := range execs {
@@ -24,6 +25,8 @@ func FilterExecutionOutputs(execs []*Execution, allowFailed bool, minComplete in
 		valid = append(valid, exec)
 		validOutputs = append(validOutputs, exec.GetValueSet().GetOutputs())
 	}
+
+	// Require enough complete executions to produce a result.
 	if minComplete != 0 && len(valid) < minComplete {
 		return nil, nil, errors.Errorf(
 			"%d complete executions required: found %d",

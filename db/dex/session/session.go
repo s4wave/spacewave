@@ -149,6 +149,8 @@ func (d *DexSession) ReceiveBlock(maxBlockSize uint64) (uint64, *block.BlockRef,
 	if init.GetError() != "" {
 		return init.GetRequestId(), init.GetRef(), nil, errors.New(init.GetError())
 	}
+
+	// Validate the declared block size before retaining the transfer identity.
 	totalSize := init.GetTotalSize()
 	if totalSize > maxBlockSize {
 		return init.GetRequestId(), init.GetRef(), nil, errors.Errorf(
@@ -163,6 +165,7 @@ func (d *DexSession) ReceiveBlock(maxBlockSize uint64) (uint64, *block.BlockRef,
 	// Accumulate chunks until the transfer is complete.
 	var buf bytes.Buffer
 
+	// Allocate the block buffer and consume the remaining transfer chunks.
 	buf.Grow(int(totalSize)) //nolint:gosec
 	for {
 		msg, rerr := d.ReadMessage()

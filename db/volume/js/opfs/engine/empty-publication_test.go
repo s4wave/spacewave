@@ -11,6 +11,7 @@ import (
 
 // TestOpenRemovesEmptyIntentWithoutLosingData proves interrupted intent creation is harmless.
 func TestOpenRemovesEmptyIntentWithoutLosingData(t *testing.T) {
+	// Publish saved data and leave an interrupted empty intent.
 	ctx := t.Context()
 	backend := newDiskBackend(t)
 	engine, err := Open(ctx, backend)
@@ -27,6 +28,7 @@ func TestOpenRemovesEmptyIntentWithoutLosingData(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Reopen the engine and require saved data to survive intent recovery.
 	engine, err = Open(ctx, backend)
 	if err != nil {
 		t.Fatal(err)
@@ -39,6 +41,8 @@ func TestOpenRemovesEmptyIntentWithoutLosingData(t *testing.T) {
 	if _, err := backend.Read(ctx, "intent", 0, readAll); !errors.Is(err, fs.ErrNotExist) {
 		t.Fatalf("empty intent remains after recovery: %v", err)
 	}
+
+	// Verify the recovered engine accepts and returns another write.
 	if err := engine.Apply(ctx, []*Record{{Key: []byte("after"), Value: []byte("new write")}}); err != nil {
 		t.Fatal(err)
 	}
@@ -50,12 +54,14 @@ func TestOpenRemovesEmptyIntentWithoutLosingData(t *testing.T) {
 
 // TestOpenIgnoresEmptyInitialRoot proves interrupted descriptor creation can restart.
 func TestOpenIgnoresEmptyInitialRoot(t *testing.T) {
+	// Create an empty root entry to simulate interrupted initialization.
 	ctx := t.Context()
 	backend := newDiskBackend(t)
 	if err := backend.Write(ctx, "root-0", nil); err != nil {
 		t.Fatal(err)
 	}
 
+	// Reopen the initial root and verify normal writes succeed.
 	engine, err := Open(ctx, backend)
 	if err != nil {
 		t.Fatal(err)
@@ -72,12 +78,14 @@ func TestOpenIgnoresEmptyInitialRoot(t *testing.T) {
 
 // TestOpenRepairsEmptyInitialIdentity proves interrupted identity creation can restart.
 func TestOpenRepairsEmptyInitialIdentity(t *testing.T) {
+	// Create an empty identity entry to simulate interrupted initialization.
 	ctx := t.Context()
 	backend := newDiskBackend(t)
 	if err := backend.Write(ctx, "identity", nil); err != nil {
 		t.Fatal(err)
 	}
 
+	// Reopen the engine and require the identity to be repaired.
 	engine, err := Open(ctx, backend)
 	if err != nil {
 		t.Fatal(err)
@@ -90,6 +98,8 @@ func TestOpenRepairsEmptyInitialIdentity(t *testing.T) {
 	if !bytes.Equal(identity, []byte("immutable-opfs-3\n")) {
 		t.Fatalf("identity = %q", identity)
 	}
+
+	// Verify the repaired identity permits normal writes.
 	if err := engine.Apply(ctx, []*Record{{Key: []byte("key"), Value: []byte("value")}}); err != nil {
 		t.Fatal(err)
 	}
@@ -101,6 +111,7 @@ func TestOpenRepairsEmptyInitialIdentity(t *testing.T) {
 
 // TestOpenRejectsNonemptyMalformedIntent preserves committed-data corruption checks.
 func TestOpenRejectsNonemptyMalformedIntent(t *testing.T) {
+	// Publish saved data and install a nonempty malformed intent.
 	ctx := t.Context()
 	backend := newDiskBackend(t)
 	engine, err := Open(ctx, backend)
@@ -118,6 +129,7 @@ func TestOpenRejectsNonemptyMalformedIntent(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Require corruption detection to preserve the malformed intent bytes.
 	if _, err := Open(ctx, backend); !errors.Is(err, ErrCorrupt) {
 		t.Fatalf("open error = %v, want %v", err, ErrCorrupt)
 	}

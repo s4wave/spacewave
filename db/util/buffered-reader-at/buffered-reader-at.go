@@ -138,6 +138,8 @@ func (br *BufferedReaderAt) ReadAt(p []byte, off int64) (n int, err error) {
 				if readErr != nil && (readErr != io.EOF || len(data) == 0) {
 					nr.err = readErr
 				}
+
+				// Remove failed cache ranges or restore ordering after an offset shift.
 				if nr.err != nil || nr.size == 0 {
 					// Existing waiters receive this attempt's error; later reads
 					// retry the source instead of retaining a poisoned cache page.
@@ -150,6 +152,8 @@ func (br *BufferedReaderAt) ReadAt(p []byte, off int64) (n int, err error) {
 						return int(a.offset - b.offset)
 					})
 				}
+
+				// Wake cache range readers after publishing the loaded data.
 				close(nr.done)
 				br.mtx.Unlock()
 			}(matchedRange)

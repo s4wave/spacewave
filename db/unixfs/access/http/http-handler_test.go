@@ -20,16 +20,19 @@ import (
 )
 
 func TestHTTPHandlerController(t *testing.T) {
+	// Prepare the logger for the UnixFS HTTP testbed.
 	ctx := context.Background()
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
 
+	// Start the block storage testbed for the filesystem.
 	btb, err := testbed.NewTestbed(ctx, le, testbed.WithVerbose(true))
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Create the World-backed filesystem and retain its root handle.
 	objKey := "test-fs"
 	rootRef, tb, err := unixfs_world_testbed.BuildTestbed(
 		btb,
@@ -42,12 +45,14 @@ func TestHTTPHandlerController(t *testing.T) {
 	}
 	defer rootRef.Release()
 
+	// Write the text fixture into the UnixFS tree.
 	rbfs := unixfs_billy.NewBillyFS(ctx, rootRef, "", time.Now())
 	testData := []byte("hello world")
 	if err := billy_util.WriteFile(rbfs, "/bat/baz/test-file.txt", testData, 0o755); err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Write the JavaScript fixture for the HTTP content-type check.
 	testJsData := []byte("console.log(\"hello world\")\n")
 	if err := billy_util.WriteFile(rbfs, "/bat/baz/script.js", testJsData, 0o755); err != nil {
 		t.Fatal(err.Error())
@@ -96,6 +101,7 @@ func TestHTTPHandlerController(t *testing.T) {
 	rw := httptest.NewRecorder()
 	busHandler.ServeHTTP(rw, req)
 
+	// Verify the text response status and stored file contents.
 	res := rw.Result()
 	if res.StatusCode != 200 {
 		t.Fatalf("status code: %d", res.StatusCode)
@@ -113,6 +119,7 @@ func TestHTTPHandlerController(t *testing.T) {
 	rw = httptest.NewRecorder()
 	busHandler.ServeHTTP(rw, req)
 
+	// Verify the JavaScript response status, contents, and browser MIME type.
 	res = rw.Result()
 	if res.StatusCode != 200 {
 		t.Fatalf("status code: %d", res.StatusCode)

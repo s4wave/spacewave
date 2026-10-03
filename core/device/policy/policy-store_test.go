@@ -10,6 +10,7 @@ import (
 )
 
 func TestPolicyStoreMissingFileLoadsEmptySnapshot(t *testing.T) {
+	// Verify a missing policy file yields an empty snapshot without creating a file.
 	stateRoot := t.TempDir()
 	store, err := NewPolicyStore(stateRoot)
 	if err != nil {
@@ -24,6 +25,7 @@ func TestPolicyStoreMissingFileLoadsEmptySnapshot(t *testing.T) {
 }
 
 func TestPolicyFileWriteReadRoundTripGeneratedJSON(t *testing.T) {
+	// Write and read a device policy containing shell and checkout settings.
 	stateRoot := t.TempDir()
 	want := &DevicePolicy{
 		Revision: 7,
@@ -50,6 +52,7 @@ func TestPolicyFileWriteReadRoundTripGeneratedJSON(t *testing.T) {
 }
 
 func TestPolicyStoreReloadBroadcastsNewSnapshot(t *testing.T) {
+	// Initialize the policy store with its first saved revision.
 	stateRoot := t.TempDir()
 	initial := &DevicePolicy{Revision: 1}
 	if err := WriteFile(stateRoot, initial); err != nil {
@@ -60,6 +63,7 @@ func TestPolicyStoreReloadBroadcastsNewSnapshot(t *testing.T) {
 		t.Fatalf("NewPolicyStore() error = %v", err)
 	}
 
+	// Start a watcher awaiting a policy snapshot different from the initial revision.
 	ctx := t.Context()
 	changed := make(chan *DevicePolicy, 1)
 	errs := make(chan error, 1)
@@ -72,6 +76,7 @@ func TestPolicyStoreReloadBroadcastsNewSnapshot(t *testing.T) {
 		changed <- policy
 	}()
 
+	// Save and reload the next device-policy revision.
 	next := &DevicePolicy{
 		Revision:    2,
 		RemoteShell: &RemoteShellPolicy{Enabled: true},
@@ -83,6 +88,7 @@ func TestPolicyStoreReloadBroadcastsNewSnapshot(t *testing.T) {
 		t.Fatalf("Reload() error = %v", err)
 	}
 
+	// Verify reload broadcasts the next snapshot and updates the current state.
 	select {
 	case err := <-errs:
 		t.Fatalf("WaitChange() error = %v", err)
@@ -99,6 +105,7 @@ func TestPolicyStoreReloadBroadcastsNewSnapshot(t *testing.T) {
 }
 
 func TestPolicyStoreWaitChangeReturnsCurrentWithoutPolling(t *testing.T) {
+	// Prepare a saved current policy for a canceled-context read.
 	stateRoot := t.TempDir()
 	want := &DevicePolicy{
 		Revision:    11,
@@ -111,6 +118,8 @@ func TestPolicyStoreWaitChangeReturnsCurrentWithoutPolling(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewPolicyStore() error = %v", err)
 	}
+
+	// Verify WaitChange returns the current policy even when the caller is canceled.
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 	got, err := store.WaitChange(ctx, nil)

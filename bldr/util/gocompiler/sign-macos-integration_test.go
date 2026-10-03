@@ -17,6 +17,7 @@ import (
 // using codesign --verify. Exercises the full sign + verify path without
 // requiring a Developer ID cert.
 func TestCodesignMacOSAdHocIntegration(t *testing.T) {
+	// Require the macOS signing and Go build tools for this integration test.
 	if _, err := exec.LookPath("codesign"); err != nil {
 		t.Skip("codesign not available")
 	}
@@ -24,6 +25,7 @@ func TestCodesignMacOSAdHocIntegration(t *testing.T) {
 		t.Skip("go not available")
 	}
 
+	// Prepare a minimal program to build and sign.
 	tempDir := t.TempDir()
 	mainGo := filepath.Join(tempDir, "main.go")
 	src := "package main\n\nfunc main() {}\n"
@@ -36,12 +38,14 @@ func TestCodesignMacOSAdHocIntegration(t *testing.T) {
 		t.Fatalf("go build failed: %v\n%s", err, out)
 	}
 
+	// Sign the binary with an ad-hoc identity.
 	t.Setenv(MacOSSignIdentityEnv, "-")
 	le := logrus.NewEntry(logrus.New())
 	if err := CodesignMacOS(context.Background(), le, binPath); err != nil {
 		t.Fatalf("CodesignMacOS: %v", err)
 	}
 
+	// Verify the generated code signature.
 	verify := exec.Command("codesign", "--verify", "--strict", binPath)
 	if out, err := verify.CombinedOutput(); err != nil {
 		t.Fatalf("codesign --verify: %v\n%s", err, out)

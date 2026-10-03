@@ -26,12 +26,15 @@ var initSimulator = tests.InitSimulator
 
 // TestSignaling tests the signaling server and client end to end.
 func TestSignaling(t *testing.T) {
+	// Use the test context for the signaling simulation.
 	ctx := t.Context()
 
+	// Create a debug logger for the signaling peers.
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
 
+	// Create the peer graph and its peer generator.
 	g := graph.NewGraph()
 	addPeer := func(ctx context.Context, t *testing.T, g *graph.Graph) *graph.Peer {
 		p, err := graph.GenerateAddPeer(ctx, g)
@@ -43,6 +46,7 @@ func TestSignaling(t *testing.T) {
 
 	// descrip := `p0 <-> p1 <-> p2`
 
+	// Create the initiating peer in the signaling graph.
 	p0 := addPeer(ctx, t, g)
 
 	// Create the signaling server peer.
@@ -62,16 +66,20 @@ func TestSignaling(t *testing.T) {
 		ServerPeerIds: []string{p1.GetPeerID().String()},
 	}
 
+	// Create the receiving peer in the signaling graph.
 	p2 := addPeer(ctx, t, g)
 
+	// Connect the initiating peer to the signaling server on one LAN.
 	lan1 := graph.AddLAN(g)
 	lan1.AddPeer(g, p0)
 	lan1.AddPeer(g, p1)
 
+	// Connect the receiving peer to the signaling server on another LAN.
 	lan2 := graph.AddLAN(g)
 	lan2.AddPeer(g, p2)
 	lan2.AddPeer(g, p1)
 
+	// Start the signaling peer simulation.
 	sim := initSimulator(
 		t,
 		ctx,
@@ -80,6 +88,7 @@ func TestSignaling(t *testing.T) {
 		// simulate.WithVerbose(),
 	)
 
+	// Locate the initiating and receiving simulated peers.
 	p0Sim, p2Sim := sim.GetPeerByID(p0.GetPeerID()), sim.GetPeerByID(p2.GetPeerID())
 
 	// Attempt to signal between the two peers.
@@ -95,6 +104,7 @@ func TestSignaling(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Create the receiving peer signaling client.
 	p2SignalClient, err := signaling_client.NewClientWithBus(
 		le.WithField("sim-peer", "2"),
 		p2Sim.GetTestbed().Bus,
@@ -107,6 +117,7 @@ func TestSignaling(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Attach the initiating client to its simulated peer lifecycle.
 	p0SignalClient.SetContext(p0Sim.GetTestbed().Context)
 	p0SignalClient.SetListenHandler(func(ctx context.Context, reset, added bool, pid string) {
 		le.Debugf("p0: listen handler called: reset(%v) added(%v) pid(%v)", reset, added, pid)
@@ -116,6 +127,7 @@ func TestSignaling(t *testing.T) {
 	p2SignalClient.SetContext(p2Sim.GetTestbed().Context)
 	gotMsg := make(chan string)
 	p2SignalClient.SetListenHandler(func(ctx context.Context, reset, added bool, pid string) {
+		// Record the receiving client session notification.
 		le.Debugf("p2: listen handler called: reset(%v) added(%v) pid(%v)", reset, added, pid)
 
 		// For this simple test assume this is an added event.
@@ -123,12 +135,15 @@ func TestSignaling(t *testing.T) {
 			return
 		}
 
-		// Add peer ref
+		// Add a reference to the announced peer.
 		ref := p2SignalClient.AddPeerRef(pid)
-		_ = ref
 
-		// Recv
+		// Receive the peer's message in the background.
 		go func() {
+			// Release the peer reference when the receive ends.
+			defer ref.Release()
+
+			// Receive and verify the incoming signed signaling message.
 			sm, err := ref.Recv(ctx)
 			if err != nil {
 				le.WithError(err).Error("unable to recv message")
@@ -140,10 +155,10 @@ func TestSignaling(t *testing.T) {
 				return
 			}
 
+			// Publish the received payload.
 			dataStr := string(sm.GetSignedMsg().GetData())
 			le.Infof("p2: got message from peer %v: %v", pid.String(), dataStr)
 			gotMsg <- dataStr
-			ref.Release()
 		}()
 	})
 
@@ -165,17 +180,21 @@ func TestSignaling(t *testing.T) {
 		t.Logf("transferred message successfully via signaling: %v", msg)
 	}
 
+	// Record successful signaling message transfer.
 	le.Info("tests successful")
 }
 
 // TestSignaling_ClientController tests the signaling client controller.
 func TestSignaling_ClientController(t *testing.T) {
+	// Use the test context for the signaling controller simulation.
 	ctx := t.Context()
 
+	// Create a debug logger for the signaling controllers.
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
 
+	// Create the controller peer graph and its peer generator.
 	g := graph.NewGraph()
 	addPeer := func(ctx context.Context, t *testing.T, g *graph.Graph) *graph.Peer {
 		p, err := graph.GenerateAddPeer(ctx, g)
@@ -187,6 +206,7 @@ func TestSignaling_ClientController(t *testing.T) {
 
 	// descrip := `p0 <-> p1 <-> p2`
 
+	// Create the initiating peer with a signaling client factory.
 	p0 := addPeer(ctx, t, g)
 	p0.AddFactory(func(b bus.Bus) controller.Factory {
 		return signaling_client.NewFactory(b)
@@ -204,6 +224,7 @@ func TestSignaling_ClientController(t *testing.T) {
 		},
 	})
 
+	// Create the receiving peer with signaling and echo factories.
 	p2 := addPeer(ctx, t, g)
 	p2.AddFactory(func(b bus.Bus) controller.Factory {
 		return signaling_client.NewFactory(b)
@@ -224,14 +245,17 @@ func TestSignaling_ClientController(t *testing.T) {
 	p2.AddConfig("signaling-client", signalingClientConf.CloneVT())
 	p2.AddConfig("signaling-echo", &signaling_echo.Config{SignalingId: signalingID})
 
+	// Connect the initiating peer to the signaling server on one LAN.
 	lan1 := graph.AddLAN(g)
 	lan1.AddPeer(g, p0)
 	lan1.AddPeer(g, p1)
 
+	// Connect the receiving peer to the signaling server on another LAN.
 	lan2 := graph.AddLAN(g)
 	lan2.AddPeer(g, p2)
 	lan2.AddPeer(g, p1)
 
+	// Start the signaling controller simulation.
 	sim := initSimulator(
 		t,
 		ctx,
@@ -240,6 +264,7 @@ func TestSignaling_ClientController(t *testing.T) {
 		// simulate.WithVerbose(),
 	)
 
+	// Locate the initiating and echoing simulated peers.
 	p0Sim, p2Sim := sim.GetPeerByID(p0.GetPeerID()), sim.GetPeerByID(p2.GetPeerID())
 
 	// Attempt to signal between the two peers.
@@ -271,5 +296,6 @@ func TestSignaling_ClientController(t *testing.T) {
 		t.Fatalf("unexpected rx message: %v", string(recvMsg))
 	}
 
+	// Record successful signaling echo transfer.
 	le.Info("tests successful")
 }

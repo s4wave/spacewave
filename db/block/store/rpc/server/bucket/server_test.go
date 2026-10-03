@@ -23,11 +23,13 @@ import (
 
 // TestBlockStoreBucketRPCServer tests the bucket block store RPC server and client.
 func TestBlockStoreBucketRPCServer(t *testing.T) {
+	// Configure logging for the bucket RPC server and client.
 	ctx := context.Background()
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
 
+	// Open an in-memory volume testbed for the bucket RPC server.
 	serverTb, err := testbed.NewTestbed(
 		ctx,
 		le.WithField("testbed", "server"),
@@ -109,6 +111,7 @@ func TestBlockStoreBucketRPCServer(t *testing.T) {
 	}
 	defer stRef.Release()
 
+	// Verify the RPC client can find the block stored by the server.
 	ex, err := st.GetBlockExists(ctx, sampleBlockRef.Clone())
 	if err != nil {
 		t.Fatal(err.Error())
@@ -117,11 +120,13 @@ func TestBlockStoreBucketRPCServer(t *testing.T) {
 		t.Fatal("expected sample block existed")
 	}
 
+	// Remove the sample block through the RPC client.
 	err = st.RmBlock(ctx, sampleBlockRef.Clone())
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Exercise the block-store contract through the bucket RPC service.
 	err = block_store_test.TestAll(ctx, st, 0)
 	if err != nil {
 		t.Fatal(err.Error())

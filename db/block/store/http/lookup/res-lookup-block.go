@@ -36,11 +36,14 @@ func (c *Controller) resolveLookupBlockFromNetwork(
 // The resolver will not be retried after returning an error.
 // Values will be maintained from the previous call.
 func (r *lookupBlockFromNetworkResolver) Resolve(ctx context.Context, handler directive.ResolverHandler) error {
+	// Obtain the HTTP store after clearing the previous resolver values.
 	handler.ClearValues()
 	store, err := r.c.GetBlockStore(ctx)
 	if err != nil {
 		return err
 	}
+
+	// Read the requested network block and publish its result.
 	val, err := dex.ReadLookupBlockFromNetworkValue(ctx, store, r.d.LookupBlockFromNetworkRef())
 	if err != nil {
 		_, _ = handler.AddValue(dex.NewLookupBlockFromNetworkValue(nil, err))

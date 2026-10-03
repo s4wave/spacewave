@@ -8,12 +8,15 @@ import (
 )
 
 func TestBuildAddsReadyAttention(t *testing.T) {
+	// Project a staged launcher update into desktop status and attention.
 	status, attention := Build(&spacewave_launcher.LauncherInfo{
 		UpdateState: &spacewave_launcher.UpdateState{
 			Phase:   spacewave_launcher.UpdatePhase_UPDATE_PHASE_STAGED,
 			Version: "1.2.3",
 		},
 	})
+
+	// Verify a staged update exposes its version and ready attention.
 	if !status.GetReady() {
 		t.Fatalf("ready = false, want true")
 	}
@@ -50,12 +53,15 @@ func TestBuildKeepsDownloadNonReady(t *testing.T) {
 }
 
 func TestBuildMapsNativeErrors(t *testing.T) {
+	// Project a failed launcher update into desktop status.
 	status, attention := Build(&spacewave_launcher.LauncherInfo{
 		UpdateState: &spacewave_launcher.UpdateState{
 			Phase:        spacewave_launcher.UpdatePhase_UPDATE_PHASE_ERROR,
 			ErrorMessage: "release metadata missing",
 		},
 	})
+
+	// Verify launcher errors remain visible without ready attention.
 	if status.GetReady() {
 		t.Fatalf("ready = true, want false")
 	}

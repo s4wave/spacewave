@@ -33,16 +33,19 @@ func (r *shiftedReader) ReadAt(p []byte, off int64) (int, error) {
 // TestConcurrentReadAt exercises concurrent ReadAt calls across shifted
 // slice reads and plain ReaderAt paths.
 func TestConcurrentReadAt(t *testing.T) {
+	// Build deterministic data for overlapping reads from a shifted source.
 	data := make([]byte, 64<<10)
 	for i := range data {
 		data[i] = byte(i)
 	}
 	br := NewBufferedReaderAt(&shiftedReader{data: data}, 4096)
 
+	// Read every data range concurrently and verify the returned bytes.
 	var wg sync.WaitGroup
 	for w := range 8 {
 		wg.Add(1)
 		go func(w int) {
+			// Verify each buffered range while retaining worker completion tracking.
 			defer wg.Done()
 			buf := make([]byte, 512)
 			for off := int64(0); off+int64(len(buf)) <= int64(len(data)); off += 512 {
@@ -60,6 +63,8 @@ func TestConcurrentReadAt(t *testing.T) {
 			}
 		}(w)
 	}
+
+	// Require every concurrent reader to complete before ending the test.
 	wg.Wait()
 }
 
@@ -77,12 +82,17 @@ func (r *retryReader) ReadAt(p []byte, off int64) (int, error) {
 }
 
 func TestReadAtRetriesFailedRange(t *testing.T) {
+	// Create a buffered source that fails its first range read.
 	source := &retryReader{}
 	reader := NewBufferedReaderAt(source, 16)
 	buf := make([]byte, 4)
+
+	// Require the first source failure to reach the buffered reader caller.
 	if _, err := reader.ReadAt(buf, 3); err == nil {
 		t.Fatal("expected first read to fail")
 	}
+
+	// Verify the next read reloads the failed range and returns its bytes.
 	if n, err := reader.ReadAt(buf, 3); err != nil || n != len(buf) {
 		t.Fatalf("retry: n=%d err=%v", n, err)
 	}

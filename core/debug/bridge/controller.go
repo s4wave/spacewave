@@ -162,6 +162,7 @@ var statementPrefixes = []string{
 // isExpression returns true if code looks like a single expression
 // (no semicolons, single line, no statement keywords).
 func isExpression(code string) bool {
+	// Classify the trimmed script against statement syntax and keywords.
 	trimmed := strings.TrimSpace(code)
 	if trimmed == "" || strings.Contains(trimmed, ";") || strings.Contains(trimmed, "\n") {
 		return false

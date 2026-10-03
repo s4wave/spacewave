@@ -43,10 +43,12 @@ func Run(ctx context.Context, le *logrus.Entry) error {
 	le.Info("storage volume resolved")
 	volCtr := av.(volume.Controller)
 
+	// Exercise the Cayley graph demo on the resolved volume.
 	if err := common.RunDemoCayley(ctx, le, b, volCtr); err != nil {
 		return err
 	}
 
+	// Exercise the Git demo with a clone source the current platform can access.
 	cloneURL := "../../"
 	if runtime.GOOS == "js" {
 		// clone from the proxy (see ./proxy)
@@ -61,10 +63,13 @@ func Run(ctx context.Context, le *logrus.Entry) error {
 }
 
 func main() {
+	// Configure logging for the cross-platform storage demos.
 	ctx := context.Background()
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
+
+	// Run the storage demos and report failures to the invoking process.
 	if err := Run(ctx, le); err != nil {
 		os.Stderr.WriteString(err.Error())
 		os.Stderr.WriteString("\n")

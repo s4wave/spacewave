@@ -15,6 +15,7 @@ import (
 )
 
 func TestFetch(t *testing.T) {
+	// Prepare the fetch test context and diagnostic logger.
 	ctx := context.Background()
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
@@ -24,12 +25,15 @@ func TestFetch(t *testing.T) {
 	testWasmBrData := []byte{0xa1, 0xb0, 0x1, 0xc0, 0x2f, 0xf0, 0xef, 0xb6, 0xde, 0xdf, 0xd0, 0xa1, 0x16, 0x43, 0x34, 0x47, 0x5, 0x93, 0x70, 0xe9, 0xe8, 0x4b, 0x4d, 0x70, 0x21, 0xa9, 0xc, 0x48, 0x65, 0xe1, 0xfc, 0x9f, 0x0, 0x85, 0xb6, 0x65, 0x2a, 0xdd, 0x44, 0x71, 0x41, 0x4c, 0xf3, 0x73, 0x2f, 0xd4, 0x8a, 0xd1, 0x9b, 0x82, 0x85, 0xde, 0x0}
 	testWasmFilename := "hello-world.wasm.br"
 
+	// Serve the compressed WebAssembly fixture through the fetch RPC service.
 	fetchServer := NewFetchServer(func(rw http.ResponseWriter, req *http.Request) {
+		// Reject paths that do not select the WebAssembly fixture.
 		if req.URL.Path != testWasmFilename {
 			rw.WriteHeader(404)
 			return
 		}
 
+		// Send the compressed fixture with its MIME type and encoding headers.
 		rw.Header().Add("Content-Type", "application/wasm")
 		rw.Header().Add("Content-Encoding", "br")
 		rw.WriteHeader(200)
@@ -57,11 +61,13 @@ func TestFetch(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// Fetch the WebAssembly response into an HTTP recorder.
 	rw := httptest.NewRecorder()
 	if err := Fetch(ctx, fetchClient.Fetch, req, rw); err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Verify the response preserves fixture bytes and HTTP metadata.
 	res := rw.Result()
 	if res.StatusCode != 200 {
 		t.Fatalf("status code: %d", res.StatusCode)
@@ -83,6 +89,7 @@ func TestFetch(t *testing.T) {
 
 // newFetchTestClient builds a SRPC pipe client over the given fetch server.
 func newFetchTestClient(server SRPCFetchServiceServer) SRPCFetchServiceClient {
+	// Connect a fetch client directly to the supplied RPC service.
 	serverMux := srpc.NewMux()
 	_ = SRPCRegisterFetchService(serverMux, server)
 	srpcServer := srpc.NewServer(serverMux)
@@ -95,6 +102,7 @@ func newFetchTestClient(server SRPCFetchServiceServer) SRPCFetchServiceClient {
 type truncatingFetchServer struct{}
 
 func (s *truncatingFetchServer) Fetch(strm SRPCFetchService_FetchStream) error {
+	// Send a partial JavaScript response without a final completion packet.
 	if _, err := strm.Recv(); err != nil {
 		return err
 	}
@@ -107,9 +115,11 @@ func (s *truncatingFetchServer) Fetch(strm SRPCFetchService_FetchStream) error {
 }
 
 func TestFetchStreamEOFBeforeDoneIsError(t *testing.T) {
+	// Prepare a fetch service that truncates its response stream.
 	ctx := context.Background()
 	fetchClient := newFetchTestClient(&truncatingFetchServer{})
 
+	// Fetch the truncated response and verify it reports unexpected EOF.
 	req, err := http.NewRequest("GET", "/module.mjs", nil)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -125,6 +135,7 @@ func TestFetchStreamEOFBeforeDoneIsError(t *testing.T) {
 }
 
 func TestHandleFetchContentLengthMismatchIsError(t *testing.T) {
+	// Prepare a response whose body is shorter than its declared length.
 	ctx := context.Background()
 	fetchClient := newFetchTestClient(NewFetchServer(func(rw http.ResponseWriter, req *http.Request) {
 		rw.Header().Set("Content-Length", "100")
@@ -132,6 +143,7 @@ func TestHandleFetchContentLengthMismatchIsError(t *testing.T) {
 		_, _ = rw.Write([]byte("short body"))
 	}))
 
+	// Fetch the short response and verify the length mismatch fails.
 	req, err := http.NewRequest("GET", "/module.mjs", nil)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -144,12 +156,14 @@ func TestHandleFetchContentLengthMismatchIsError(t *testing.T) {
 }
 
 func TestHandleFetchHeadIgnoresContentLength(t *testing.T) {
+	// Prepare a HEAD response with a declared content length.
 	ctx := context.Background()
 	fetchClient := newFetchTestClient(NewFetchServer(func(rw http.ResponseWriter, req *http.Request) {
 		rw.Header().Set("Content-Length", "100")
 		rw.WriteHeader(200)
 	}))
 
+	// Verify HEAD succeeds without requiring response body bytes.
 	req, err := http.NewRequest("HEAD", "/module.mjs", nil)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -161,6 +175,7 @@ func TestHandleFetchHeadIgnoresContentLength(t *testing.T) {
 }
 
 func TestHandleFetchAbortedBodyIsError(t *testing.T) {
+	// Prepare a fetch handler that aborts after a partial response.
 	ctx := context.Background()
 	fetchClient := newFetchTestClient(NewFetchServer(func(rw http.ResponseWriter, req *http.Request) {
 		rw.WriteHeader(200)
@@ -168,6 +183,7 @@ func TestHandleFetchAbortedBodyIsError(t *testing.T) {
 		rw.(BodyAborter).Abort(errors.New("upstream body failed"))
 	}))
 
+	// Verify fetching the aborted body reports failure.
 	req, err := http.NewRequest("GET", "/module.mjs", nil)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -180,11 +196,13 @@ func TestHandleFetchAbortedBodyIsError(t *testing.T) {
 }
 
 func TestHandleFetchHandlerPanicIsError(t *testing.T) {
+	// Prepare a fetch handler that panics before completion.
 	ctx := context.Background()
 	fetchClient := newFetchTestClient(NewFetchServer(func(rw http.ResponseWriter, req *http.Request) {
 		panic("handler exploded")
 	}))
 
+	// Verify the fetch error preserves the handler panic message.
 	req, err := http.NewRequest("GET", "/module.mjs", nil)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -200,9 +218,11 @@ func TestHandleFetchHandlerPanicIsError(t *testing.T) {
 }
 
 func TestFetchResponseWriterSplitsLargeDataPackets(t *testing.T) {
+	// Prepare a recording stream and response writer.
 	strm := &recordingFetchStream{ctx: context.Background()}
 	rw := NewFetchResponseWriter(strm)
 
+	// Write a large body and verify the writer accepts its complete length.
 	body := append(bytes.Repeat([]byte{'x'}, 32*1024), bytes.Repeat([]byte{'/'}, 105)...)
 	rw.Header().Set("Content-Length", "32873")
 	n, err := rw.Write(body)
@@ -216,6 +236,7 @@ func TestFetchResponseWriterSplitsLargeDataPackets(t *testing.T) {
 		t.Fatalf("body error after complete write: %v", err)
 	}
 
+	// Verify response packets stay bounded and reconstruct the complete body.
 	var got []byte
 	var dataPacketCount int
 	for _, pkt := range strm.sent {
@@ -238,6 +259,7 @@ func TestFetchResponseWriterSplitsLargeDataPackets(t *testing.T) {
 }
 
 func TestFetchDataPacketsOwnPayloadBytes(t *testing.T) {
+	// Verify request packets retain their payload after the source bytes change.
 	reqData := []byte("request-payload")
 	reqPkt := NewFetchRequestWithData(reqData, false)
 	reqData[0] = 'X'
@@ -245,6 +267,7 @@ func TestFetchDataPacketsOwnPayloadBytes(t *testing.T) {
 		t.Fatalf("request packet data mutated: got %q, want %q", got, want)
 	}
 
+	// Verify response packets retain their payload after the source bytes change.
 	respData := []byte("response-payload")
 	respPkt := BuildFetchResponse_Data(respData, false)
 	respData[0] = 'X'

@@ -10,10 +10,12 @@ import (
 
 // Validate checks the protocol type and bounded JSON body before storage.
 func (e *ChatEvent) Validate() error {
+	// Require a bounded UTF-8 protocol type for the chat event.
 	if e.GetType() == "" || len(e.GetType()) > 255 || strings.ContainsRune(e.GetType(), 0) || !utf8.ValidString(e.GetType()) {
 		return errors.New("chat event requires a bounded protocol type")
 	}
 
+	// Validate the chat event body as a bounded JSON object.
 	if len(e.GetContentJson()) > 64*1024 || !utf8.ValidString(e.GetContentJson()) {
 		return errors.New("chat event content exceeds its bounds or is not UTF-8")
 	}

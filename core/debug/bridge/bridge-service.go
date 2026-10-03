@@ -23,6 +23,7 @@ type bridgeService struct {
 
 // EvalJS evaluates JavaScript code in the page context.
 func (s *bridgeService) EvalJS(ctx context.Context, req *s4wave_debug.EvalJSRequest) (*s4wave_debug.EvalJSResponse, error) {
+	// Require script content and log a bounded preview for the debug bridge.
 	code := req.GetCode()
 	if code == "" {
 		return &s4wave_debug.EvalJSResponse{Error: "empty code"}, nil

@@ -17,6 +17,7 @@ func newTestPair() (*DexSession, *DexSession) {
 
 // buildTestData creates test data of the given size and a matching BlockRef.
 func buildTestData(t *testing.T, size int) ([]byte, *block.BlockRef) {
+	// Build deterministic block bytes and their matching reference.
 	t.Helper()
 	data := make([]byte, size)
 	for i := range data {
@@ -30,21 +31,27 @@ func buildTestData(t *testing.T, size int) ([]byte, *block.BlockRef) {
 }
 
 func TestSendReceiveBlock(t *testing.T) {
+	// Open paired DEX sessions for a chunked block transfer.
 	s1, s2 := newTestPair()
 	defer s1.Close()
 	defer s2.Close()
 
+	// Prepare a block spanning several transfer chunks.
 	data, ref := buildTestData(t, 3500)
 
+	// Send the block while the paired session receives it.
 	errCh := make(chan error, 1)
 	go func() {
 		errCh <- s1.SendBlock(1, ref, data)
 	}()
 
+	// Receive the chunked block from the paired session.
 	requestID, gotRef, gotData, err := s2.ReceiveBlock(0)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Verify the request identity, block reference, and reconstructed bytes.
 	if requestID != 1 {
 		t.Fatalf("expected request ID 1, got %d", requestID)
 	}
@@ -61,27 +68,34 @@ func TestSendReceiveBlock(t *testing.T) {
 		}
 	}
 
+	// Require the sending session to finish without error.
 	if err := <-errCh; err != nil {
 		t.Fatal(err.Error())
 	}
 }
 
 func TestSendReceiveSmallBlock(t *testing.T) {
+	// Open paired DEX sessions for a small block transfer.
 	s1, s2 := newTestPair()
 	defer s1.Close()
 	defer s2.Close()
 
+	// Prepare a block smaller than one transfer chunk.
 	data, ref := buildTestData(t, 100)
 
+	// Send the small block through the paired session.
 	errCh := make(chan error, 1)
 	go func() {
 		errCh <- s1.SendBlock(2, ref, data)
 	}()
 
+	// Receive the small block from the paired session.
 	requestID, gotRef, gotData, err := s2.ReceiveBlock(0)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Verify the small block request, reference, and data length.
 	if requestID != 2 {
 		t.Fatalf("expected request ID 2, got %d", requestID)
 	}
@@ -92,18 +106,22 @@ func TestSendReceiveSmallBlock(t *testing.T) {
 		t.Fatalf("expected data length %d, got %d", len(data), len(gotData))
 	}
 
+	// Require the small block sender to finish without error.
 	if err := <-errCh; err != nil {
 		t.Fatal(err.Error())
 	}
 }
 
 func TestMaxBlockSizeRejection(t *testing.T) {
+	// Open paired DEX sessions for an oversized initialization.
 	s1, s2 := newTestPair()
 	defer s1.Close()
 	defer s2.Close()
 
+	// Prepare a reference for the oversized transfer.
 	data, ref := buildTestData(t, 5000)
 
+	// Send an initialization declaring an oversized block.
 	errCh := make(chan error, 1)
 	go func() {
 		// Send init with a large total_size, then close.
@@ -117,18 +135,22 @@ func TestMaxBlockSizeRejection(t *testing.T) {
 	}
 	_ = data
 
+	// Require the oversized initialization sender to finish without error.
 	if sendErr := <-errCh; sendErr != nil {
 		t.Fatal(sendErr.Error())
 	}
 }
 
 func TestOversizeDataRejection(t *testing.T) {
+	// Open paired DEX sessions for an understated block size.
 	s1, s2 := newTestPair()
 	defer s1.Close()
 	defer s2.Close()
 
+	// Prepare block bytes larger than the declared transfer size.
 	data, ref := buildTestData(t, 200)
 
+	// Send block bytes that exceed the initialization size.
 	errCh := make(chan error, 1)
 	go func() {
 		// Lie about total_size being 100 but send 200 bytes of data.
@@ -136,23 +158,28 @@ func TestOversizeDataRejection(t *testing.T) {
 			errCh <- err
 			return
 		}
+
 		// Send all data in one chunk.
 		errCh <- s1.SendChunk(4, data, true)
 	}()
 
+	// Require the receiving session to reject the excess bytes.
 	_, _, _, err := s2.ReceiveBlock(0)
 	if err == nil {
 		t.Fatal("expected error for data exceeding declared size")
 	}
 
+	// Wait for the excess block sender to finish.
 	<-errCh
 }
 
 func TestHashMismatch(t *testing.T) {
+	// Open paired DEX sessions for a corrupt block transfer.
 	s1, s2 := newTestPair()
 	defer s1.Close()
 	defer s2.Close()
 
+	// Prepare block bytes and their uncorrupted reference.
 	data, ref := buildTestData(t, 500)
 
 	// Corrupt the data after building the ref.
@@ -160,6 +187,7 @@ func TestHashMismatch(t *testing.T) {
 	copy(corrupted, data)
 	corrupted[0] ^= 0xFF
 
+	// Send corrupted block bytes with the original reference.
 	errCh := make(chan error, 1)
 	go func() {
 		// Send init with the correct ref but wrong data.
@@ -167,24 +195,31 @@ func TestHashMismatch(t *testing.T) {
 			errCh <- err
 			return
 		}
+
+		// Complete the transfer with bytes that fail the block reference hash.
 		errCh <- s1.SendChunk(5, corrupted, true)
 	}()
 
+	// Require the receiving session to reject the hash mismatch.
 	_, _, _, err := s2.ReceiveBlock(0)
 	if err == nil {
 		t.Fatal("expected hash mismatch error")
 	}
 
+	// Wait for the corrupt block sender to finish.
 	<-errCh
 }
 
 func TestCancel(t *testing.T) {
+	// Open paired DEX sessions for a canceled transfer.
 	s1, s2 := newTestPair()
 	defer s1.Close()
 	defer s2.Close()
 
+	// Prepare the reference for the canceled block transfer.
 	_, ref := buildTestData(t, 100)
 
+	// Send the block initialization followed by cancellation.
 	errCh := make(chan error, 1)
 	go func() {
 		if err := s1.SendInit(6, ref, 100); err != nil {
@@ -212,18 +247,22 @@ func TestCancel(t *testing.T) {
 		t.Fatal("expected cancel message")
 	}
 
+	// Require the canceled transfer sender to finish without error.
 	if sendErr := <-errCh; sendErr != nil {
 		t.Fatal(sendErr.Error())
 	}
 }
 
 func TestMultipleBlocks(t *testing.T) {
+	// Open paired DEX sessions for successive block transfers.
 	s1, s2 := newTestPair()
 	defer s1.Close()
 	defer s2.Close()
 
+	// Prepare two block payloads and their references.
 	data1, ref1 := buildTestData(t, 1500)
 	data2, ref2 := buildTestData(t, 2000)
+
 	// Ensure data2 is different from data1.
 	for i := range data2 {
 		data2[i] = byte((i + 128) % 256)
@@ -234,6 +273,7 @@ func TestMultipleBlocks(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// Send both block transfers in sequence.
 	errCh := make(chan error, 1)
 	go func() {
 		if err := s1.SendBlock(10, ref1, data1); err != nil {
@@ -273,6 +313,7 @@ func TestMultipleBlocks(t *testing.T) {
 		t.Fatalf("second block data length mismatch: expected %d, got %d", len(data2), len(gotData2))
 	}
 
+	// Require the successive block sender to finish without error.
 	if sendErr := <-errCh; sendErr != nil {
 		t.Fatal(sendErr.Error())
 	}

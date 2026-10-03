@@ -9,11 +9,14 @@ import (
 // hash and the value is the encoded block.BlockObject of the block's bytes and
 // refs. It verifies the bytes against the key.
 func DecodeBlockValue(key, value []byte) (*block.BlockRef, *block.StoredBlock, error) {
+	// Resolve the packed entry key to its expected block reference.
 	h, err := ParseBlockKey(key)
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "parse block hash key")
 	}
 	ref := block.NewBlockRef(h)
+
+	// Decode the packed block and verify its data against the entry key.
 	stored, err := block.DecodeBlockObject(value)
 	if err != nil {
 		return nil, nil, errors.Wrap(err, h.MarshalString())

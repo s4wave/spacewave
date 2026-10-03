@@ -44,12 +44,15 @@ func TestWarnOnErrorUnlessCanceled(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			// Capture warnings emitted for this operation failure.
 			var output bytes.Buffer
 			logger := logrus.New()
 			logger.SetOutput(&output)
 
+			// Apply the operation warning policy to this context and error.
 			warnOnErrorUnlessCanceled(tt.ctx(), logrus.NewEntry(logger), tt.err, "operation failed")
 
+			// Verify cancellation suppresses only the expected warnings.
 			if got := output.Len() != 0; got != tt.wantLog {
 				t.Fatalf("warning logged = %t, want %t; output = %q", got, tt.wantLog, output.String())
 			}

@@ -113,11 +113,13 @@ func (d *LookupBlockFromNetworkRequest) LookupBlockFromNetworkRef() *block.Block
 // directives are equivalent, and the new directive does not superceed the
 // old, then the new directive will be merged (de-duplicated) into the old.
 func (d *LookupBlockFromNetworkRequest) IsEquivalent(other directive.Directive) bool {
+	// Require another network block lookup before comparing its target.
 	od, ok := other.(LookupBlockFromNetwork)
 	if !ok {
 		return false
 	}
 
+	// Compare the bucket and block reference requested by both lookups.
 	if d.LookupBlockFromNetworkBucketId() != od.LookupBlockFromNetworkBucketId() {
 		return false
 	}

@@ -30,6 +30,7 @@ func NewEngine(le *logrus.Entry, eng world.Engine) *Engine {
 // Always call Discard() after you are done with the transaction.
 // Check GetReadOnly, might not return a write tx if write=true.
 func (e *Engine) NewTransaction(ctx context.Context, write bool) (world.Tx, error) {
+	// Open the World transaction with a logger for its transaction ID.
 	txid := e.txInc.Add(1)
 	le := e.le.WithField("world-vlogger-txid", txid)
 	tx, err := e.Engine.NewTransaction(ctx, write)
@@ -37,6 +38,7 @@ func (e *Engine) NewTransaction(ctx context.Context, write bool) (world.Tx, erro
 		le.WithError(err).Warnf("NewTransaction(%v) errored", write)
 		return nil, err
 	}
+
 	return NewTx(le, tx), nil
 }
 

@@ -44,11 +44,14 @@ func NewController(b bus.Bus, le *logrus.Entry, conf *Config) *Controller {
 // NewBlockStoreBuilder constructs a new block store builder from config.
 func NewBlockStoreBuilder(b bus.Bus, conf *Config) block_store_controller.BlockStoreBuilder {
 	return func(ctx context.Context, released func()) (block_store.Store, func(), error) {
+		// Resolve the configured RPC client set for the block store service.
 		serviceID, clientID := conf.GetServiceId(), conf.GetClientId()
 		clientSet, _, clientSetRef, err := bifrost_rpc.ExLookupRpcClientSet(ctx, b, serviceID, clientID, true, released)
 		if err != nil {
 			return nil, nil, err
 		}
+
+		// Wrap the remote block store and transfer the client reference's release.
 		blockClient := block_rpc.NewSRPCBlockStoreClientWithServiceID(clientSet, serviceID)
 		blockStore := block_rpc_client.NewBlockStore(blockClient, conf.GetForceHashType(), conf.GetReadOnly())
 		return block_store.NewStore(conf.GetBlockStoreId(), blockStore), clientSetRef.Release, nil

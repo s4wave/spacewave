@@ -37,6 +37,7 @@ func BuildWasmRuntimeEntrypoint(
 	useTinygo bool,
 	runtimeWasmPath string,
 ) error {
+	// Expose browser runtime build progress to the caller.
 	le.Info("building runtime-wasm.mjs")
 
 	// Resolve the wasm execution shim for the selected compiler.
@@ -45,28 +46,38 @@ func BuildWasmRuntimeEntrypoint(
 		return err
 	}
 
+	// Select the browser runtime output and source-map mode.
 	runtimeJsOut := filepath.Join(buildDir, "runtime-wasm.mjs")
 	sourceMap := "none"
 	if sourcemaps {
 		sourceMap = "external"
 	}
+
+	// Prepare compiler-specific execution shims and browser module overrides.
 	inject := []string{wasmExecFile}
 	var external []string
 	var sourceOverrides map[string]string
 	if useTinygo {
+		// Supply browser stubs for the TinyGo execution shim dependencies.
 		nodeStubsLoc := distpath.Resolve(bldrDistRoot, nodeStubsPath)
 		inject = append([]string{nodeStubsLoc}, inject...)
 		external = []string{"fs", "crypto", "util", "node:fs", "node:crypto", "node:util"}
+
+		// Patch the TinyGo execution shim before bundling it for the browser.
 		patched, err := entrypoint_browser_bundle.LoadTinyGoWasmExecSource(wasmExecFile)
 		if err != nil {
 			return err
 		}
 		sourceOverrides = map[string]string{wasmExecFile: patched}
 	}
+
+	// Bind the browser runtime location in the entrypoint source.
 	defines := map[string]string{"BLDR_IS_BROWSER": "true"}
 	if runtimeWasmPath != "" {
 		defines["BLDR_RUNTIME_WASM"] = strconv.Quote(runtimeWasmPath)
 	}
+
+	// Bundle the browser runtime entrypoint with its compiler shim and overrides.
 	result, err := bldr_web_bundler_rolldown.Build(
 		ctx,
 		le,
@@ -101,8 +112,11 @@ func BuildWasmRuntimeEntrypoint(
 	if err != nil {
 		return err
 	}
+
+	// Require the runtime entrypoint to use the expected output filename.
 	if result.GetEntrypointOutputs()["runtime-wasm"] != filepath.Base(runtimeJsOut) {
 		return errors.Errorf("Wasm runtime output is %q", result.GetEntrypointOutputs()["runtime-wasm"])
 	}
+
 	return nil
 }

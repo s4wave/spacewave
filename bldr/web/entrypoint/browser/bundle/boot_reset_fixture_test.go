@@ -31,21 +31,25 @@ func TestStableBootDownloadRegistry(t *testing.T) {
 }
 
 func runStableBootFixture(t *testing.T, fixtureScript string) {
+	// Locate Bun for the executable boot fixture.
 	t.Helper()
 	if _, err := exec.LookPath("bun"); err != nil {
 		t.Skip("bun not available for executable boot reset fixture")
 	}
 
+	// Write the stable boot asset into an isolated directory.
 	dir := t.TempDir()
 	if err := WriteStableBootAsset(dir); err != nil {
 		t.Fatal(err)
 	}
 
+	// Write the fixture harness beside the boot asset.
 	harnessPath := filepath.Join(dir, "boot-reset-fixture.mjs")
 	if err := os.WriteFile(harnessPath, []byte(fixtureScript), 0o644); err != nil {
 		t.Fatal(err)
 	}
 
+	// Run the boot fixture and require its completion marker.
 	cmd := exec.Command("bun", "run", harnessPath, filepath.Join(dir, stableBootFilename), dir)
 	out, err := cmd.CombinedOutput()
 	if err != nil {

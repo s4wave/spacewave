@@ -15,6 +15,7 @@ import (
 )
 
 func TestSubManifestTrackerPublishesResultsThroughStablePromiseContainer(t *testing.T) {
+	// Create a child Manifest tracker and capture parent restart requests.
 	ctrl := &Controller{le: logrus.NewEntry(logrus.New())}
 	_, tracker := ctrl.newSubManifestBuilderTracker("child")
 	manifestConfig := &bldr_project.ManifestConfig{}
@@ -23,6 +24,7 @@ func TestSubManifestTrackerPublishesResultsThroughStablePromiseContainer(t *test
 		restartReasons <- reason
 	}
 
+	// Publish the first child Manifest result through its promise container.
 	resultPromise, err := tracker.setManifestConfig(manifestConfig, restart)
 	if err != nil {
 		t.Fatalf("set manifest config: %v", err)
@@ -30,6 +32,7 @@ func TestSubManifestTrackerPublishesResultsThroughStablePromiseContainer(t *test
 	first := newSubManifestTrackerTestResult("bucket-a")
 	tracker.build.setResult(first, nil)
 
+	// Verify the first result arrives without requesting a parent restart.
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 	got, err := resultPromise.Await(ctx)
@@ -45,6 +48,7 @@ func TestSubManifestTrackerPublishesResultsThroughStablePromiseContainer(t *test
 	default:
 	}
 
+	// Require repeated child observations to retain the same promise container.
 	sameResultPromise, err := tracker.setManifestConfig(manifestConfig, restart)
 	if err != nil {
 		t.Fatalf("set same manifest config: %v", err)
@@ -53,9 +57,11 @@ func TestSubManifestTrackerPublishesResultsThroughStablePromiseContainer(t *test
 		t.Fatal("sub-manifest promise container changed across observations")
 	}
 
+	// Publish a changed child Manifest result after the parent observes it.
 	second := newSubManifestTrackerTestResult("bucket-b")
 	tracker.build.setResult(second, nil)
 
+	// Verify the parent restarts once and the stable promise yields the new result.
 	select {
 	case reason := <-restartReasons:
 		if reason != "sub-manifest changed: child" {
@@ -79,6 +85,7 @@ func TestSubManifestTrackerPublishesResultsThroughStablePromiseContainer(t *test
 }
 
 func TestSubManifestBuildOwnerParentAttemptObservationLifecycle(t *testing.T) {
+	// Create a child Manifest tracker with parent restart notifications.
 	ctrl := &Controller{le: logrus.NewEntry(logrus.New())}
 	_, tracker := ctrl.newSubManifestBuilderTracker("child")
 	manifestConfig := &bldr_project.ManifestConfig{}
@@ -87,6 +94,7 @@ func TestSubManifestBuildOwnerParentAttemptObservationLifecycle(t *testing.T) {
 		restartReasons <- reason
 	}
 
+	// Publish and observe the child result during the first parent attempt.
 	resultPromise, err := tracker.setManifestConfig(manifestConfig, restart)
 	if err != nil {
 		t.Fatalf("set manifest config: %v", err)
@@ -96,6 +104,7 @@ func TestSubManifestBuildOwnerParentAttemptObservationLifecycle(t *testing.T) {
 		t.Fatal("sub-manifest should be observed after BuildSubManifest returns its promise")
 	}
 
+	// Begin a new parent attempt and change the unobserved child result.
 	tracker.build.prepareParentAttempt(restart)
 	if tracker.build.observedInParentAttempt() {
 		t.Fatal("new parent attempt should start with child unobserved")
@@ -107,6 +116,7 @@ func TestSubManifestBuildOwnerParentAttemptObservationLifecycle(t *testing.T) {
 	default:
 	}
 
+	// Verify the stable promise exposes the latest unobserved child result.
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 	got, err := resultPromise.Await(ctx)
@@ -117,6 +127,7 @@ func TestSubManifestBuildOwnerParentAttemptObservationLifecycle(t *testing.T) {
 		t.Fatalf("unobserved child bucket = %q, want bucket-b", got.GetManifestRef().GetManifestRef().GetBucketId())
 	}
 
+	// Observe the child again and require its next change to restart the parent.
 	if _, err := tracker.setManifestConfig(manifestConfig, restart); err != nil {
 		t.Fatalf("set same manifest config: %v", err)
 	}
@@ -136,6 +147,7 @@ func TestSubManifestBuildOwnerParentAttemptObservationLifecycle(t *testing.T) {
 		t.Fatal("child should become unobserved after its result changes and restarts the parent")
 	}
 
+	// Require later unobserved child changes to avoid duplicate parent restarts.
 	tracker.build.setResult(newSubManifestTrackerTestResult("bucket-d"), nil)
 	select {
 	case reason := <-restartReasons:

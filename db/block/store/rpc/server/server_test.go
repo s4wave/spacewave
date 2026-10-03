@@ -21,11 +21,13 @@ import (
 
 // TestBlockStoreHTTPServer tests the block store rpc server and client.
 func TestBlockStoreRPCServer(t *testing.T) {
+	// Prepare the logger for the block store RPC testbeds.
 	ctx := context.Background()
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
 
+	// Start the server testbed that stores the sample block.
 	serverTb, err := testbed.NewTestbed(ctx, le.WithField("testbed", "server"))
 	if err != nil {
 		t.Fatal(err.Error())
@@ -99,6 +101,7 @@ func TestBlockStoreRPCServer(t *testing.T) {
 	}
 	defer stRef.Release()
 
+	// Verify the client can find the sample block through the RPC service.
 	ex, err := st.GetBlockExists(ctx, sampleBlockRef.Clone())
 	if err != nil {
 		t.Fatal(err.Error())
@@ -107,11 +110,13 @@ func TestBlockStoreRPCServer(t *testing.T) {
 		t.Fatal("expected sample block existed")
 	}
 
+	// Remove the sample block through the RPC client before the store contract checks.
 	err = st.RmBlock(ctx, sampleBlockRef.Clone())
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Exercise the block store contract through the RPC client.
 	err = block_store_test.TestAll(ctx, st, 0)
 	if err != nil {
 		t.Fatal(err.Error())

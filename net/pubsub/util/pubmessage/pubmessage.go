@@ -38,7 +38,6 @@ func NewPubMessage(
 func ExtractAndVerify(msg *peer.SignedMsg) (*PubMessageInner, crypto.PubKey, peer.ID, error) {
 	// Decode and validate the signed inner message before verifying identity.
 	data := msg.GetData()
-
 	out := &PubMessageInner{}
 	err := out.UnmarshalVT(data)
 	if err == nil {

@@ -42,17 +42,25 @@ func (d *Device) UnmarshalBlock(data []byte) error {
 
 // Validate performs cursory checks on the Device block.
 func (d *Device) Validate() error {
+	// Require a peer identity for the Device.
 	if strings.TrimSpace(d.GetPeerId()) == "" {
 		return errors.New("device peer_id is required")
 	}
+
+	// Require a display label for the Device.
 	if strings.TrimSpace(d.GetLabel()) == "" {
 		return errors.New("device label is required")
 	}
+
+	// Validate capability identities, links, and checkout-root access.
 	seenCapabilities := make(map[string]struct{}, len(d.GetCapabilities()))
 	for _, cap := range d.GetCapabilities() {
+		// Ignore absent capability records.
 		if cap == nil {
 			continue
 		}
+
+		// Require a unique identity for each Device capability.
 		id := strings.TrimSpace(cap.GetId())
 		if id == "" {
 			return errors.New("device capability id is required")
@@ -61,20 +69,29 @@ func (d *Device) Validate() error {
 			return errors.Errorf("duplicate device capability id %q", id)
 		}
 		seenCapabilities[id] = struct{}{}
+
+		// Require the linked object type when the capability identifies an object.
 		link := cap.GetLink()
 		if link.GetObjectKey() != "" && strings.TrimSpace(link.GetTypeId()) == "" {
 			return errors.Errorf("device capability %q link type_id is required with object_key", id)
 		}
+
+		// Validate checkout-root metadata against the capability kind and access.
 		if checkoutRoot := cap.GetCheckoutRoot(); checkoutRoot != nil {
+			// Require a filesystem capability with a named checkout root.
 			if strings.TrimSpace(cap.GetKind()) != DeviceCapabilityKindFilesystem {
 				return errors.Errorf("device capability %q checkout_root requires filesystem kind", id)
 			}
 			if strings.TrimSpace(checkoutRoot.GetName()) == "" {
 				return errors.Errorf("device capability %q checkout_root name is required", id)
 			}
+
+			// Require read availability whenever the checkout root supports writes.
 			if checkoutRoot.GetWriteAvailable() && !checkoutRoot.GetReadAvailable() {
 				return errors.Errorf("device capability %q checkout_root write availability requires read availability", id)
 			}
+
+			// Match checkout-root availability to its declared access mode.
 			switch checkoutRoot.GetAccess() {
 			case DeviceCheckoutRootAccess_DEVICE_CHECKOUT_ROOT_ACCESS_READ_ONLY:
 				if !checkoutRoot.GetReadAvailable() || checkoutRoot.GetWriteAvailable() {
@@ -91,6 +108,7 @@ func (d *Device) Validate() error {
 			}
 		}
 	}
+
 	return nil
 }
 
@@ -235,28 +253,36 @@ func DeviceCapabilityCanWriteCheckoutRoot(cap *DeviceCapability) bool {
 // FindReadableCheckoutRoot returns a selectable checkout-root capability with a
 // linked filesystem object that can be opened through the Resource SDK.
 func (d *Device) FindReadableCheckoutRoot(name string) *DeviceCapability {
+	// Select a checkout-root capability that permits read access.
 	cap := d.FindSelectableCheckoutRoot(name)
 	if cap == nil || !DeviceCheckoutRootCanRead(cap.GetCheckoutRoot()) {
 		return nil
 	}
+
+	// Require a typed filesystem object link for the checkout root.
 	link := cap.GetLink()
 	if strings.TrimSpace(link.GetObjectKey()) == "" || strings.TrimSpace(link.GetTypeId()) == "" {
 		return nil
 	}
+
 	return cap
 }
 
 // FindWritableCheckoutRoot returns a selectable checkout-root capability with a
 // linked filesystem object that may be opened for writes after approval.
 func (d *Device) FindWritableCheckoutRoot(name string) *DeviceCapability {
+	// Select a checkout-root capability that permits approved write access.
 	cap := d.FindSelectableCheckoutRoot(name)
 	if cap == nil || !DeviceCapabilityCanWriteCheckoutRoot(cap) {
 		return nil
 	}
+
+	// Require a typed filesystem object link for the checkout root.
 	link := cap.GetLink()
 	if strings.TrimSpace(link.GetObjectKey()) == "" || strings.TrimSpace(link.GetTypeId()) == "" {
 		return nil
 	}
+
 	return cap
 }
 

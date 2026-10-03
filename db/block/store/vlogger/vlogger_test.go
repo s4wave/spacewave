@@ -13,16 +13,20 @@ import (
 )
 
 func TestVLogger(t *testing.T) {
+	// Create a logger for the verbose block store wrapper.
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
 
+	// Open the in-memory transaction store with the default key encoding.
 	ctx := context.Background()
 	st := store_kvtx_inmem.NewStore()
 	kvk, err := store_kvkey.NewKVKey(nil)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Verify the block store contract through the verbose logger.
 	blockStoreOps := block_store_kvtx.NewKVTxBlock(kvk, st, 0, true)
 	blockStore := block_store.NewStore("test/store", blockStoreOps)
 	client := NewVLoggerStore(le, blockStore)

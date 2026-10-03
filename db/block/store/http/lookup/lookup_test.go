@@ -23,11 +23,13 @@ import (
 
 // TestBlockStoreHTTPLookup tests the block store http lookup controller.
 func TestBlockStoreHTTPLookup(t *testing.T) {
+	// Prepare the HTTP lookup test context and logger.
 	ctx := context.Background()
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
 
+	// Start the server testbed that stores the sample block.
 	serverTb, err := testbed.NewTestbed(ctx, le.WithField("testbed", "server"))
 	if err != nil {
 		t.Fatal(err.Error())
@@ -39,6 +41,8 @@ func TestBlockStoreHTTPLookup(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 	defer serverBktRef.Release()
+
+	// Store the sample block for the HTTP lookup.
 	serverStore := serverBkt.GetBucket()
 	sampleBlockBody := []byte("How hard are these tests? What exactly was in that phonebook of a contract I signed?")
 	samplePutOpts := &block.PutOpts{HashType: hash.HashType_HashType_BLAKE3}
@@ -67,6 +71,7 @@ func TestBlockStoreHTTPLookup(t *testing.T) {
 
 	// Create the bucket in the client
 	bucketID := clientTb.BucketId
+
 	// override the bucket config with v2
 	bucketLkConfig, err := bucket.NewLookupConfig(configset.NewControllerConfig(1, &lookup_concurrent.Config{
 		// enable looking up via directive
@@ -106,16 +111,19 @@ func TestBlockStoreHTTPLookup(t *testing.T) {
 	}
 	defer lkRef.Release()
 
+	// Obtain the client bucket lookup interface.
 	lk, err := lkr.GetLookup(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Look up the sample block through the HTTP controller.
 	lkDat, lkFound, err := lk.LookupBlock(ctx, sampleBlockRef.Clone())
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Verify the lookup returned the sample block contents.
 	if !lkFound {
 		t.FailNow()
 	}
@@ -130,6 +138,7 @@ func TestBlockStoreHTTPLookup(t *testing.T) {
 	}
 	defer readBktRef.Release()
 
+	// Verify the fetched block was written back to the client bucket.
 	ex, err := readBkt.GetBucket().GetBlockExists(ctx, sampleBlockRef.Clone())
 	if err != nil {
 		t.Fatal(err.Error())

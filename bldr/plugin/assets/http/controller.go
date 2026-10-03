@@ -21,17 +21,21 @@ type Controller = unixfs_access_http.Controller
 
 // NewController constructs a new controller resolving LookupHTTPHandler.
 func NewController(b bus.Bus, cc *Config) *Controller {
+	// Describe the plugin assets HTTP controller.
 	info := controller.NewInfo(
 		ControllerID,
 		Version,
 		"plugin assets http handler",
 	)
+
+	// Normalize the asset and request paths for the filesystem handler.
 	unixfsPathPrefix := strings.TrimPrefix(path.Clean(cc.GetFsPath()), ".")
 	servePath := strings.TrimPrefix(path.Clean(cc.GetServePath()), ".")
 	var matchPathPrefixes []string
 	if servePath != "" {
 		matchPathPrefixes = []string{servePath}
 	}
+
 	return unixfs_access_http.NewController(
 		b,
 		info,

@@ -42,6 +42,7 @@ func TestBrowserReleaseLazyPluginFixtureIsNonEmbeddedAndPublished(t *testing.T) 
 		t.Fatal("missing release-web-lazy-plugin-fixture build")
 	}
 
+	// Decode the browser fixture and verify its bootstrap embeds and lazy terminal demand.
 	browserOverride := build.GetManifestOverrides()["spacewave-browser"]
 	if browserOverride == nil {
 		t.Fatal("missing browser fixture manifest override")
@@ -68,6 +69,8 @@ func TestBrowserReleaseLazyPluginFixtureIsNonEmbeddedAndPublished(t *testing.T) 
 	if err := launcherConf.UnmarshalJSON(launcherOverride.GetConfig()); err != nil {
 		t.Fatalf("decode launcher fixture config: %v", err)
 	}
+
+	// Verify Release World belongs to the browser host rather than its worker.
 	for _, id := range []string{
 		"release-world",
 		"release-world-fetch",
@@ -85,6 +88,8 @@ func TestBrowserReleaseLazyPluginFixtureIsNonEmbeddedAndPublished(t *testing.T) 
 	if launcherConf.GetHostConfigSet()["release-world-cdn-store"] != nil {
 		t.Fatal("launcher page host mounts an independent Release World CDN block store")
 	}
+
+	// Verify the Release World reader uses the distribution cache.
 	var releaseWorldConf cdn_world_controller.Config
 	if err := releaseWorldConf.UnmarshalJSON(launcherConf.GetHostConfigSet()["release-world"].GetConfig()); err != nil {
 		t.Fatalf("decode release-world config: %v", err)
@@ -92,6 +97,8 @@ func TestBrowserReleaseLazyPluginFixtureIsNonEmbeddedAndPublished(t *testing.T) 
 	if releaseWorldConf.GetCacheBlockStoreId() != "dist" {
 		t.Fatalf("release-world cache block store = %q, want dist", releaseWorldConf.GetCacheBlockStoreId())
 	}
+
+	// Verify the release bucket points to the shared CDN store.
 	var cdnBucketConf block_store_bucket.Config
 	if err := cdnBucketConf.UnmarshalJSON(launcherConf.GetHostConfigSet()["release-world-cdn-bucket"].GetConfig()); err != nil {
 		t.Fatalf("decode release-world-cdn-bucket config: %v", err)
@@ -151,6 +158,7 @@ func TestReleaseLauncherBrowserAndNativeAuthorityComposition(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Check the host authority and compiler for each browser release target.
 	for _, tc := range []struct {
 		build    string
 		platform string
@@ -160,6 +168,7 @@ func TestReleaseLauncherBrowserAndNativeAuthorityComposition(t *testing.T) {
 		{"release-web-tinygo", "web", bldr_plugin_compiler_go.GoCompiler_GO_COMPILER_TINYGO},
 	} {
 		t.Run(tc.build, func(t *testing.T) {
+			// Decode the selected browser launcher and verify its platform selection.
 			build := result.Config.GetBuild()[tc.build]
 			if tc.build == "release-web-tinygo" && !slices.Equal(build.GetPlatformIds(), []string{"web/js/wasm"}) {
 				t.Fatalf("TinyGo release platforms = %v, want web/js/wasm only", build.GetPlatformIds())
@@ -172,6 +181,8 @@ func TestReleaseLauncherBrowserAndNativeAuthorityComposition(t *testing.T) {
 			if err := conf.UnmarshalJSON(override.GetConfig()); err != nil {
 				t.Fatal(err)
 			}
+
+			// Verify the worker delegates Release World state to the host.
 			for id := range conf.GetConfigSet() {
 				if strings.HasPrefix(id, "release-world") {
 					t.Fatalf("browser worker mounts Release World config %q", id)
@@ -188,6 +199,8 @@ func TestReleaseLauncherBrowserAndNativeAuthorityComposition(t *testing.T) {
 			if conf.GetHostConfigSet()["release-world-cdn-store"] != nil || conf.GetHostConfigSet()["release-world-cdn-server"] != nil {
 				t.Fatal("browser host creates a duplicate CDN store or unused RPC bridge")
 			}
+
+			// Verify the launcher platform uses the selected browser compiler.
 			platform := conf.GetPlatformTypes()[tc.platform]
 			if platform == nil {
 				t.Fatalf("launcher platform %q is missing", tc.platform)
@@ -213,6 +226,8 @@ func TestReleaseLauncherBrowserAndNativeAuthorityComposition(t *testing.T) {
 	if native.GetConfigSet()["release-world-fetch"] != nil {
 		t.Fatal("native plugin bus mounts a second Release World fetcher")
 	}
+
+	// Verify the native reader and RPC client borrow the host CDN store.
 	var readerConf cdn_world_controller.Config
 	if err := readerConf.UnmarshalJSON(native.GetConfigSet()["release-world"].GetConfig()); err != nil {
 		t.Fatal(err)
@@ -232,6 +247,8 @@ func TestReleaseLauncherBrowserAndNativeAuthorityComposition(t *testing.T) {
 	if native.GetHostConfigSet()["release-world-cdn-store"] != nil {
 		t.Fatal("native host config creates a block-store alias collision")
 	}
+
+	// Verify the host RPC server exports the shared release store.
 	var serverConf block_store_rpc_server.Config
 	if err := serverConf.UnmarshalJSON(native.GetHostConfigSet()["release-world-cdn-server"].GetConfig()); err != nil {
 		t.Fatal(err)
@@ -263,6 +280,7 @@ func TestReleaseWorkflowsSeparateEntrypointAndPluginProducers(t *testing.T) {
 		}
 	}
 
+	// Verify the desktop gate preserves the entrypoint producer boundary.
 	desktopGate, err := os.ReadFile(filepath.Join("..", "..", "..", "e2e", "installedapp", "desktop_distribution_gate_test.go"))
 	if err != nil {
 		t.Fatal(err)
@@ -301,16 +319,19 @@ func TestBrowserReleasePublishedWorldFetchManifestPreflight(t *testing.T) {
 	if os.Getenv("E2E_RELEASE_WORLD_PREFLIGHT") != "1" {
 		t.Skip("set E2E_RELEASE_WORLD_PREFLIGHT=1 to probe the promoted Release World")
 	}
+
 	// Read the authoritative release composition before checking its ownership.
 	result, err := bldr_project_starlark.Evaluate(filepath.Join("..", "..", "..", "bldr.star"))
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	// Select the fixture that obtains ordinary plugins from Release World.
 	build := result.Config.GetBuild()["release-web-lazy-plugin-fixture"]
 	if build == nil {
 		t.Fatal("missing release-web-lazy-plugin-fixture build")
 	}
+
 	// Require the launcher to delegate published-state reads to its host.
 	launcherOverride := build.GetManifestOverrides()["spacewave-launcher"]
 	if launcherOverride == nil {
@@ -320,6 +341,8 @@ func TestBrowserReleasePublishedWorldFetchManifestPreflight(t *testing.T) {
 	if err := launcherConf.UnmarshalJSON(launcherOverride.GetConfig()); err != nil {
 		t.Fatalf("decode launcher fixture config: %v", err)
 	}
+
+	// Decode the host Release World configuration for the published-state probe.
 	hostConfig := launcherConf.GetHostConfigSet()["release-world"]
 	if hostConfig == nil {
 		t.Fatal("launcher host config set missing release-world")
@@ -341,6 +364,8 @@ func TestBrowserReleasePublishedWorldFetchManifestPreflight(t *testing.T) {
 	if cacheBlockStoreID != "dist" {
 		t.Fatalf("release-world host cache block store = %q, want dist", cacheBlockStoreID)
 	}
+
+	// Create isolated durable storage for the published-world cache.
 	storageID := default_storage.StorageID
 	stateRoot := t.TempDir()
 	storageCtrl := default_storage.NewController(storageID, b, stateRoot)
@@ -349,6 +374,8 @@ func TestBrowserReleasePublishedWorldFetchManifestPreflight(t *testing.T) {
 		t.Fatalf("add default storage controller: %v", err)
 	}
 	t.Cleanup(storageCtrlRelease)
+
+	// Mount the distribution cache volume before loading Release World.
 	_, _, distVolumeRef, err := loader.WaitExecControllerRunning(
 		ctx, b,
 		resolver.NewLoadControllerWithConfig(entrypoint_state.NewVolumeConfig(storageID)),
@@ -358,6 +385,8 @@ func TestBrowserReleasePublishedWorldFetchManifestPreflight(t *testing.T) {
 		t.Fatalf("start dist storage volume: %v", err)
 	}
 	t.Cleanup(distVolumeRef.Release)
+
+	// Mount Release World and retain its controller for the probe.
 	cdnCtrli, _, cdnRef, err := loader.WaitExecControllerRunning(
 		ctx, b, resolver.NewLoadControllerWithConfig(&releaseWorldConf), nil,
 	)
@@ -369,6 +398,8 @@ func TestBrowserReleasePublishedWorldFetchManifestPreflight(t *testing.T) {
 	if !ok {
 		t.Fatalf("Release World controller type = %T", cdnCtrli)
 	}
+
+	// Start the release manifest fetcher against the mounted world.
 	fetchConf := &manifest_fetch_world.Config{
 		EngineId:     releaseWorldConf.GetEngineId(),
 		ObjectKeys:   []string{"spacewave/release/manifests"},
@@ -381,6 +412,8 @@ func TestBrowserReleasePublishedWorldFetchManifestPreflight(t *testing.T) {
 		t.Fatalf("start Release World FetchManifest resolver: %v", err)
 	}
 	t.Cleanup(fetchRef.Release)
+
+	// Obtain the mounted world engine for reading manifest content.
 	engine, err := cdnCtrl.GetWorldEngine(ctx)
 	if err != nil {
 		t.Fatalf("get Release World engine: %v", err)

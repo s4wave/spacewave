@@ -42,6 +42,7 @@ func NewController(
 	bus bus.Bus,
 	conf *Config,
 ) *Controller {
+	// Construct the browser controller and register its plugin RPC service.
 	mux := srpc.NewMux()
 	ctrl := &Controller{
 		le:   le,
@@ -75,6 +76,7 @@ func (c *Controller) Execute(ctx context.Context) (rerr error) {
 	}
 	defer webPluginCtrlRel()
 
+	// Keep the web plugin controller attached until browser execution ends.
 	<-ctx.Done()
 	return nil
 }

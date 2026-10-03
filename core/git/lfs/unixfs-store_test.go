@@ -25,6 +25,7 @@ import (
 // over an in-memory SRPC connection and returns a UnixFSStore on its root
 // handle, along with the server for resource accounting.
 func newTestUnixFSStore(t *testing.T) (*UnixFSStore, *resource_server.ResourceServer) {
+	// Prepare the UnixFS resource test context and logger.
 	t.Helper()
 	ctx := t.Context()
 	le := logrus.NewEntry(logrus.New())
@@ -39,6 +40,8 @@ func newTestUnixFSStore(t *testing.T) (*UnixFSStore, *resource_server.ResourceSe
 		t.Fatal(err)
 	}
 	t.Cleanup(wtb.Release)
+
+	// Initialize the UnixFS object through its World operation controller.
 	opc := world.NewLookupOpController("test-fs-ops", wtb.EngineID, unixfs_world.LookupFsOp)
 	if _, err := wtb.Bus.AddController(ctx, opc, nil); err != nil {
 		t.Fatal(err)
@@ -49,6 +52,8 @@ func newTestUnixFSStore(t *testing.T) (*UnixFSStore, *resource_server.ResourceSe
 	if _, _, err := unixfs_world.FsInit(ctx, ws, sender, "test-fs", fsType, nil, true, time.Now()); err != nil {
 		t.Fatal(err)
 	}
+
+	// Open the UnixFS root cursor and its filesystem handle.
 	rootCursor, err := unixfs_world.FollowUnixfsRef(
 		ctx,
 		le,
@@ -74,6 +79,8 @@ func newTestUnixFSStore(t *testing.T) (*UnixFSStore, *resource_server.ResourceSe
 	if err := resourceSrv.Register(serverMux); err != nil {
 		t.Fatal(err)
 	}
+
+	// Serve the resource RPCs over an in-memory muxed connection.
 	clientPipe, serverPipe := net.Pipe()
 	t.Cleanup(func() {
 		_ = clientPipe.Close()
@@ -100,6 +107,8 @@ func newTestUnixFSStore(t *testing.T) (*UnixFSStore, *resource_server.ResourceSe
 		t.Fatal(err)
 	}
 	t.Cleanup(resClient.Release)
+
+	// Access the root filesystem resource through the connected client.
 	rootRef := resClient.AccessRootResource()
 	t.Cleanup(rootRef.Release)
 	rootClient, err := rootRef.GetClient()
@@ -113,6 +122,7 @@ func newTestUnixFSStore(t *testing.T) (*UnixFSStore, *resource_server.ResourceSe
 // TestUnixFSStore stores, replaces, and fetches objects spanning several
 // chunks, and releases every handle it opens.
 func TestUnixFSStore(t *testing.T) {
+	// Open the UnixFS store and record its baseline resource count.
 	ctx := t.Context()
 	store, resourceSrv := newTestUnixFSStore(t)
 	baseline := resourceSrv.CountTrackedResources()

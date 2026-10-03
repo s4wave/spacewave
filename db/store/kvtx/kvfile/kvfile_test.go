@@ -17,6 +17,7 @@ import (
 
 // TestKvfile tests the kvfile volume on top of inmem.
 func TestKvfile(t *testing.T) {
+	// Prepare the kvfile test context, logger and storage key codec.
 	ctx := context.Background()
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
@@ -38,6 +39,7 @@ func TestKvfile(t *testing.T) {
 		_ = writeKtx.Execute(writeKtxCtx)
 	}()
 
+	// Save a peer private key into the source memory store.
 	testPeer, err := peer.NewPeer(nil)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -64,17 +66,21 @@ func TestKvfile(t *testing.T) {
 	}
 	writeKtxCancel()
 
+	// Open a kvfile reader over the encoded source store.
 	bufReader := bytes.NewReader(buf.Bytes())
 	rdr, err := kvfile.BuildReader(bufReader, uint64(buf.Len())) //nolint:gosec
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Mount the kvfile reader through the transaction store interface.
 	ktx := store_kvtx.NewKVTx(
 		kvkey,
 		store_kvtx_vlogger.NewVLogger(le, NewStore(rdr)),
 		nil,
 	).(*store_kvtx.KVTx)
+
+	// Verify the kvfile transaction store can load the saved peer private key.
 	/*
 		if err := store_test.TestAll(ctx, ktx); err != nil {
 			t.Fatal(err.Error())

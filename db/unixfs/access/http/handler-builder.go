@@ -27,6 +27,7 @@ func NewHTTPHandlerBuilder(
 	returnIfIdle bool,
 ) bifrost_http.HTTPHandlerBuilder {
 	return func(ctx context.Context, released func()) (http.Handler, func(), error) {
+		// Resolve the UnixFS access directive and require a filesystem provider.
 		val, valRef, err := unixfs_access.ExAccessUnixFS(ctx, b, unixFsID, returnIfIdle, released)
 		if err != nil {
 			return nil, nil, err
@@ -35,12 +36,14 @@ func NewHTTPHandlerBuilder(
 			return nil, nil, errors.Wrap(unixfs_errors.ErrFsNotFound, unixFsID)
 		}
 
+		// Acquire the UnixFS handle and release the directive if acquisition fails.
 		fsHandle, fsHandleRel, err := val(ctx, released)
 		if err != nil {
 			valRef.Release()
 			return nil, nil, err
 		}
 
+		// Build the HTTP file server and transfer filesystem cleanup to its caller.
 		hfs := NewFileSystem(ctx, fsHandle, unixFsPrefix, httpPrefix)
 		handler := NewFileServer(hfs)
 		return handler, func() {

@@ -28,6 +28,7 @@ func (*scriptedRedisConn) Err() error {
 }
 
 func (c *scriptedRedisConn) Do(command string, _ ...any) (any, error) {
+	// Handle pool flushes and consume the next scripted Redis reply under the connection lock.
 	if command == "" {
 		return nil, nil
 	}
@@ -54,6 +55,7 @@ func (*scriptedRedisConn) Receive() (any, error) {
 }
 
 func newScriptedCoordinator(t *testing.T, replies ...any) *Coordinator {
+	// Build a coordinator backed by the scripted Redis connection and close its pool after the test.
 	t.Helper()
 	conn := &scriptedRedisConn{replies: replies}
 	pool := &redis.Pool{
@@ -78,16 +80,19 @@ func stopKeepalive(t *testing.T, wl coord.WriteLease) {
 }
 
 func TestCoordinatorKeyedTryAcquireContention(t *testing.T) {
+	// Prepare one keyed Redis scope with a successful and a contended reply.
 	ctx := context.Background()
 	c := newScriptedCoordinator(t, "OK", nil)
 	scope := coord.Scope{VolumeID: "volume-a", ParticipantID: "a", Key: "world-1"}
 
+	// Acquire the keyed lease and stop its keepalive after the test.
 	held, ok, err := c.TryAcquireWriteLease(ctx, scope)
 	if err != nil || !ok {
 		t.Fatalf("first acquire: ok=%v err=%v", ok, err)
 	}
 	t.Cleanup(func() { stopKeepalive(t, held) })
 
+	// Verify another acquire cannot claim the held Redis scope.
 	contender, ok, err := c.TryAcquireWriteLease(ctx, scope)
 	if err != nil {
 		t.Fatalf("contended acquire error: %v", err)
@@ -98,10 +103,12 @@ func TestCoordinatorKeyedTryAcquireContention(t *testing.T) {
 }
 
 func TestCoordinatorKeyedCapabilityDetectsLossWithoutGenerations(t *testing.T) {
+	// Prepare a keyed Redis scope with a single successful lease reply.
 	ctx := context.Background()
 	c := newScriptedCoordinator(t, "OK")
 	scope := coord.Scope{VolumeID: "volume-a", ParticipantID: "a", Key: "world-1"}
 
+	// Verify keyed Redis capabilities detect loss without generation support.
 	capability, err := c.Capability(ctx, scope)
 	if err != nil {
 		t.Fatal(err)
@@ -116,6 +123,7 @@ func TestCoordinatorKeyedCapabilityDetectsLossWithoutGenerations(t *testing.T) {
 		t.Fatalf("keyed capability does not declare loss detection: %#v", capability)
 	}
 
+	// Verify keyed scopes reject snapshots and watches.
 	if _, err := c.Snapshot(ctx, scope); !errors.Is(err, coord.ErrUnsupported) {
 		t.Fatalf("keyed Snapshot error = %v, want ErrUnsupported", err)
 	}
@@ -123,6 +131,7 @@ func TestCoordinatorKeyedCapabilityDetectsLossWithoutGenerations(t *testing.T) {
 		t.Fatalf("keyed Watch error = %v, want ErrUnsupported", err)
 	}
 
+	// Acquire the keyed lease and verify generation operations remain unsupported.
 	held, ok, err := c.TryAcquireWriteLease(ctx, scope)
 	if err != nil || !ok {
 		t.Fatalf("acquire: ok=%v err=%v", ok, err)
@@ -137,6 +146,7 @@ func TestCoordinatorKeyedCapabilityDetectsLossWithoutGenerations(t *testing.T) {
 }
 
 func TestCoordinatorDetectedLossContract(t *testing.T) {
+	// Prepare a Redis scope and read its declared loss-detection capability.
 	ctx := context.Background()
 	c := newScriptedCoordinator(t, "OK")
 	scope := coord.Scope{VolumeID: "volume-loss", Key: "world-loss"}
@@ -144,6 +154,8 @@ func TestCoordinatorDetectedLossContract(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Acquire the lease and verify the declared contract detects a severed Redis hold.
 	held, ok, err := c.TryAcquireWriteLease(ctx, scope)
 	if err != nil || !ok {
 		t.Fatalf("acquire: ok=%v err=%v", ok, err)
@@ -158,6 +170,7 @@ func TestCoordinatorDetectedLossContract(t *testing.T) {
 }
 
 func TestCoordinatorObjectStoreScopeDelegatesToInner(t *testing.T) {
+	// Prepare an object-store scope backed by an in-memory coordinator.
 	ctx := context.Background()
 	inner := coord_inmem.NewCoordinator()
 	c := NewCoordinator(nil, "store-id", inner)
@@ -167,6 +180,7 @@ func TestCoordinatorObjectStoreScopeDelegatesToInner(t *testing.T) {
 		ParticipantID: "a",
 	}
 
+	// Verify object-store capabilities come from the inner coordinator.
 	capability, err := c.Capability(ctx, scope)
 	if err != nil {
 		t.Fatal(err)
@@ -175,12 +189,14 @@ func TestCoordinatorObjectStoreScopeDelegatesToInner(t *testing.T) {
 		t.Fatalf("delegated capability = %#v", capability)
 	}
 
+	// Acquire the delegated scope and release it after the test.
 	held, ok, err := c.TryAcquireWriteLease(ctx, scope)
 	if err != nil || !ok {
 		t.Fatalf("acquire: ok=%v err=%v", ok, err)
 	}
 	defer held.Release(ctx)
 
+	// Verify the inner coordinator observes the delegated lease contention.
 	if _, ok, err := inner.TryAcquireWriteLease(ctx, scope); err != nil || ok {
 		t.Fatalf("inner acquired scope held through delegation: ok=%v err=%v", ok, err)
 	}

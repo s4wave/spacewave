@@ -10,11 +10,13 @@ import (
 )
 
 func TestHTTPBusHTTPHandler(t *testing.T) {
+	// Prepare the logger for the HTTP bus testbed.
 	ctx := context.Background()
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
 
+	// Start a testbed with a bus-mounted HTTP handler.
 	tb, err := testbed.NewTestbed(ctx, le, testbed.TestbedOpts{
 		NoEcho: true,
 		NoPeer: true,

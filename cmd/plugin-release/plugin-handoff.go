@@ -48,16 +48,21 @@ func runWritePluginHandoffManifest(args []string) error {
 	fs.SetOutput(io.Discard)
 	var opts pluginHandoffOptions
 	if err := func() error {
+		// Register the handoff paths and release selection flags.
 		fs.StringVar(&opts.rootDir, "root", "", "path to the plugin handoff root")
 		fs.StringVar(&opts.manifestRefsPath, "manifest-refs", "", "path to manifest refs JSON")
 		fs.StringVar(&opts.pluginRev, "plugin-rev", "", "plugin release revision")
 		fs.StringVar(&opts.releaseEnvironment, "release-environment", "", "release environment")
 		fs.StringVar(&opts.requestedSelection, "requested-selection", "everything", "requested plugin selection")
+
+		// Register the source provenance used by handoff consumers.
 		fs.StringVar(&opts.gitSHA, "git-sha", "", "source git SHA")
 		fs.StringVar(&opts.runID, "run-id", "", "source GitHub run id")
 		fs.StringVar(&opts.runAttempt, "run-attempt", "", "source GitHub run attempt")
 		fs.StringVar(&opts.sourceRepo, "source-repo", "", "source GitHub repository")
 		fs.StringVar(&opts.workflow, "workflow", "", "source GitHub workflow")
+
+		// Register the produced plugin surfaces before parsing the flags.
 		fs.BoolVar(&opts.includeBrowser, "include-browser", false, "browser surface was produced")
 		fs.BoolVar(&opts.includeMacOS, "include-macos", false, "macOS surface was produced")
 		fs.BoolVar(&opts.includeWindows, "include-windows", false, "Windows surface was produced")
@@ -235,11 +240,14 @@ func buildPluginEntry(rootDir, filePath string) (*pluginHandoffEntry, error) {
 
 // pluginFileSHA256 returns the hex SHA-256 of the file at path.
 func pluginFileSHA256(path string) (string, error) {
+	// Open the plugin file and retain it through hashing.
 	f, err := os.Open(path)
 	if err != nil {
 		return "", errors.Wrap(err, "open "+path)
 	}
 	defer f.Close()
+
+	// Stream the plugin bytes into the handoff SHA-256 digest.
 	h := sha256.New()
 	if _, err := io.Copy(h, f); err != nil {
 		return "", errors.Wrap(err, "hash "+path)

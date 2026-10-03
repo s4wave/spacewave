@@ -24,17 +24,22 @@ func (o *ForgeJobCreateOp) GetOperationTypeId() string {
 
 // Validate performs cursory validation of the operation.
 func (o *ForgeJobCreateOp) Validate() error {
+	// Validate the requested placement before creating the job.
 	if placement := o.GetPlacement(); placement != nil {
 		if err := placement.Validate(); err != nil {
 			return errors.Wrap(err, "placement")
 		}
 	}
+
+	// Require the job and cluster keys for assignment.
 	if o.GetJobKey() == "" {
 		return errors.Wrap(world.ErrEmptyObjectKey, "job_key")
 	}
 	if o.GetClusterKey() == "" {
 		return errors.Wrap(world.ErrEmptyObjectKey, "cluster_key")
 	}
+
+	// Require task definitions with valid Forge task names.
 	if len(o.GetTaskDefs()) == 0 {
 		return errors.New("at least one task definition is required")
 	}
@@ -53,6 +58,7 @@ func (o *ForgeJobCreateOp) ApplyWorldOp(
 	ws world.WorldState,
 	sender peer.ID,
 ) (sysErr bool, err error) {
+	// Read the cluster and job keys targeted by this operation.
 	clusterKey := o.GetClusterKey()
 	jobKey := o.GetJobKey()
 

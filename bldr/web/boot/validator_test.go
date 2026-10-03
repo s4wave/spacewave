@@ -13,6 +13,7 @@ import (
 )
 
 func loadBootReportFixture(t *testing.T, name string) *BootReport {
+	// Read and decode the named BootReport fixture.
 	t.Helper()
 	data, err := os.ReadFile(filepath.Join("testdata", name+".json"))
 	if err != nil {
@@ -80,6 +81,7 @@ func TestValidateBootReportGoldenReports(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
+			// Validate the fixture against the shared golden result and expected violations.
 			report := loadBootReportFixture(t, test.name)
 			validation := ValidateBootReport(report)
 			if !reflect.DeepEqual(validation, report.GetValidation()) {
@@ -96,6 +98,7 @@ func TestValidateBootReportGoldenReports(t *testing.T) {
 }
 
 func TestBootReportGeneratedCodeRoundTrip(t *testing.T) {
+	// Round-trip the successful report through its binary encoding.
 	report := loadBootReportFixture(t, "successful")
 	binary, err := report.MarshalVT()
 	if err != nil {
@@ -108,6 +111,8 @@ func TestBootReportGeneratedCodeRoundTrip(t *testing.T) {
 	if !reflect.DeepEqual(decoded, report) {
 		t.Fatal("binary round trip changed report")
 	}
+
+	// Round-trip the decoded report through proto JSON.
 	jsonData, err := decoded.MarshalJSON()
 	if err != nil {
 		t.Fatal(err)
@@ -122,6 +127,7 @@ func TestBootReportGeneratedCodeRoundTrip(t *testing.T) {
 }
 
 func TestMarshalBootReportJSONMatchesCrossLanguageGolden(t *testing.T) {
+	// Read the canonical JSON fixture and verify it preserves report semantics.
 	report := loadBootReportFixture(t, "successful")
 	golden, err := os.ReadFile(filepath.Join("testdata", "successful.canonical.json"))
 	if err != nil {
@@ -134,6 +140,8 @@ func TestMarshalBootReportJSONMatchesCrossLanguageGolden(t *testing.T) {
 	if !reflect.DeepEqual(goldenReport, report) {
 		t.Fatal("canonical proto JSON changed report semantics")
 	}
+
+	// Compact the golden JSON and verify repeated marshaling matches its bytes.
 	var compact bytes.Buffer
 	if err := json.Compact(&compact, golden); err != nil {
 		t.Fatal(err)
@@ -178,6 +186,7 @@ func TestValidateBootReportRejectsPrivacyVocabulary(t *testing.T) {
 }
 
 func TestValidateBootReportRejectsCollectionAndDetailBounds(t *testing.T) {
+	// Verify an oversized mark collection fails the report contract.
 	report := loadBootReportFixture(t, "successful").CloneVT()
 	report.Marks = make([]*BootMark, maxBootMarks+1)
 	if !slices.Contains(bootViolationKinds(ValidateBootReport(report)),
@@ -185,6 +194,7 @@ func TestValidateBootReportRejectsCollectionAndDetailBounds(t *testing.T) {
 		t.Fatal("oversized marks did not fail the report contract")
 	}
 
+	// Verify unordered mark details fail the report contract.
 	report = loadBootReportFixture(t, "successful").CloneVT()
 	report.Marks[0].Detail[0], report.Marks[0].Detail[1] = report.Marks[0].Detail[1], report.Marks[0].Detail[0]
 	if !slices.Contains(bootViolationKinds(ValidateBootReport(report)),
@@ -201,6 +211,7 @@ func TestValidateBootReportSharedVocabularyVectors(t *testing.T) {
 	for line := range strings.SplitSeq(strings.TrimSpace(string(data)), "\n") {
 		parts := strings.Split(line, "|")
 		t.Run(parts[0]+"-"+parts[1]+"-"+parts[2], func(t *testing.T) {
+			// Apply the selected vocabulary vector to a successful report.
 			report := loadBootReportFixture(t, "successful").CloneVT()
 			switch parts[1] {
 			case "report-id":
@@ -224,6 +235,8 @@ func TestValidateBootReportSharedVocabularyVectors(t *testing.T) {
 			default:
 				t.Fatalf("unknown target %q", parts[1])
 			}
+
+			// Validate the vocabulary vector and verify its expected acceptance or violation.
 			validation := ValidateBootReport(report)
 			if parts[0] == "accept" {
 				if !validation.GetPass() {
@@ -250,6 +263,7 @@ func TestValidateBootReportRejectsSharedUnsupportedEnumVectorsFromBinary(t *test
 	for line := range strings.SplitSeq(strings.TrimSpace(string(data)), "\n") {
 		parts := strings.Split(line, "|")
 		t.Run(parts[0], func(t *testing.T) {
+			// Apply the unsupported enum vector to a successful report.
 			report := loadBootReportFixture(t, "successful").CloneVT()
 			switch parts[0] {
 			case "report-state":
@@ -287,6 +301,8 @@ func TestValidateBootReportRejectsSharedUnsupportedEnumVectorsFromBinary(t *test
 			default:
 				t.Fatalf("unknown enum target %q", parts[0])
 			}
+
+			// Round-trip the unsupported enum through binary encoding before validation.
 			binary, marshalErr := report.MarshalVT()
 			if marshalErr != nil {
 				t.Fatal(marshalErr)
@@ -295,6 +311,8 @@ func TestValidateBootReportRejectsSharedUnsupportedEnumVectorsFromBinary(t *test
 			if unmarshalErr := decoded.UnmarshalVT(binary); unmarshalErr != nil {
 				t.Fatal(unmarshalErr)
 			}
+
+			// Verify the decoded enum produces the expected contract violation.
 			want := map[string]BootValidationViolationKind{
 				"REPORT_CONTRACT":   BootValidationViolationKind_BOOT_VALIDATION_VIOLATION_KIND_REPORT_CONTRACT,
 				"TERMINAL_CONTRACT": BootValidationViolationKind_BOOT_VALIDATION_VIOLATION_KIND_TERMINAL_CONTRACT,
@@ -320,11 +338,13 @@ func TestValidateBootReportReturnsBeforeOversizedGraphWork(t *testing.T) {
 }
 
 func TestValidateBootReportReviewRegressions(t *testing.T) {
+	// Recognize report-contract violations for the regression cases.
 	hasReportContract := func(report *BootReport) bool {
 		return slices.Contains(bootViolationKinds(ValidateBootReport(report)),
 			BootValidationViolationKind_BOOT_VALIDATION_VIOLATION_KIND_REPORT_CONTRACT)
 	}
 
+	// Verify oversized invalid vocabulary fails the report contract.
 	t.Run("oversized invalid vocabulary", func(t *testing.T) {
 		report := loadBootReportFixture(t, "successful").CloneVT()
 		report.TerminalErrorCode = strings.Repeat("x", maxBootRecordBytes)
@@ -333,7 +353,9 @@ func TestValidateBootReportReviewRegressions(t *testing.T) {
 		}
 	})
 
+	// Verify numeric identifier suffixes remain valid throughout the report.
 	t.Run("numeric identifier suffixes", func(t *testing.T) {
+		// Prepare linked spans and an attachment with numeric identifier suffixes.
 		report := loadBootReportFixture(t, "successful").CloneVT()
 		report.ReportId = "boot-report-1"
 		report.Spans[0].SpanId = "span-1"
@@ -351,6 +373,7 @@ func TestValidateBootReportReviewRegressions(t *testing.T) {
 		}
 	})
 
+	// Verify stored validation metadata cannot change the derived result.
 	t.Run("stored validation metadata ignored", func(t *testing.T) {
 		report := loadBootReportFixture(t, "successful").CloneVT()
 		report.Validation.Violations = []*BootValidationViolation{{Kind: BootValidationViolationKind(99)}}
@@ -359,6 +382,7 @@ func TestValidateBootReportReviewRegressions(t *testing.T) {
 		}
 	})
 
+	// Verify a failed report cannot claim a usable mark.
 	t.Run("failed usable mark", func(t *testing.T) {
 		report := loadBootReportFixture(t, "failed").CloneVT()
 		report.Marks[0].Label = report.UsableMark
@@ -368,6 +392,7 @@ func TestValidateBootReportReviewRegressions(t *testing.T) {
 		}
 	})
 
+	// Verify accounting samples must align with mark boundaries.
 	t.Run("accounting time between marks", func(t *testing.T) {
 		report := loadBootReportFixture(t, "successful").CloneVT()
 		report.Accounting.Samples[0].MonotonicMicros = 1
@@ -376,6 +401,7 @@ func TestValidateBootReportReviewRegressions(t *testing.T) {
 		}
 	})
 
+	// Verify attachments must belong to the report release generation.
 	t.Run("attachment generation mismatch", func(t *testing.T) {
 		report := loadBootReportFixture(t, "successful").CloneVT()
 		report.Attachments = []*BootAttachment{{

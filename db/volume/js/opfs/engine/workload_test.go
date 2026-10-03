@@ -17,6 +17,7 @@ import (
 // scoped reads to their transaction or scope, and that internal writeback,
 // read-through, and fence calls add no records.
 func TestWorkloadRecordsLogicalOperations(t *testing.T) {
+	// Open an engine and buffered store for logical operation tracing.
 	ctx := t.Context()
 	e, err := Open(ctx, newDiskBackend(t))
 	if err != nil {
@@ -74,6 +75,7 @@ func TestWorkloadRecordsLogicalOperations(t *testing.T) {
 // runWorkloadSession runs a key-value and block session that exercises every
 // kind of record the engine emits for direct, scoped, and batched calls.
 func runWorkloadSession(t *testing.T, e *Engine, s *BlockStore) {
+	// Write and commit the key-value portion of the traced session.
 	t.Helper()
 	ctx := t.Context()
 	tx, err := e.NewTransaction(ctx, true)
@@ -87,6 +89,8 @@ func runWorkloadSession(t *testing.T, e *Engine, s *BlockStore) {
 		t.Fatal(err)
 	}
 	tx.Discard()
+
+	// Exercise read, existence, and size operations in a read transaction.
 	read, err := e.NewTransaction(ctx, false)
 	if err != nil {
 		t.Fatal(err)
@@ -101,10 +105,14 @@ func runWorkloadSession(t *testing.T, e *Engine, s *BlockStore) {
 		t.Fatal(err)
 	}
 	read.Discard()
+
+	// Publish a block with its durability fence.
 	ref, _, err := s.PutBlock(ctx, []byte("block"), &block.PutOpts{Sync: true})
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Read the published block through a retained read scope.
 	scope, release, err := s.BeginReadOperation(ctx)
 	if err != nil {
 		t.Fatal(err)
@@ -113,6 +121,8 @@ func runWorkloadSession(t *testing.T, e *Engine, s *BlockStore) {
 		t.Fatal(err)
 	}
 	release()
+
+	// Check block membership through the batch existence interface.
 	if _, err := s.GetBlockExistsBatch(ctx, []*block.BlockRef{ref}); err != nil {
 		t.Fatal(err)
 	}

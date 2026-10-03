@@ -16,6 +16,7 @@ import (
 )
 
 func TestHTTPHandlersServePackRangeHeadAndMetadata(t *testing.T) {
+	// Prepare a manifest pack and its HTTP handlers.
 	ctx := context.Background()
 	meta, packBytes := testManifestPackArtifact(t, ctx)
 	handlers, err := NewHTTPHandlers(meta, packBytes)
@@ -23,10 +24,13 @@ func TestHTTPHandlersServePackRangeHeadAndMetadata(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Request the first four pack bytes through an HTTP range.
 	rangeReq := httptest.NewRequest(http.MethodGet, DefaultHTTPPackPath, nil)
 	rangeReq.Header.Set("Range", "bytes=0-3")
 	rangeRes := httptest.NewRecorder()
 	handlers.ServeHTTP(rangeRes, rangeReq)
+
+	// Verify range bytes and cross-origin response metadata.
 	if rangeRes.Code != http.StatusPartialContent {
 		t.Fatalf("range status = %d", rangeRes.Code)
 	}
@@ -43,6 +47,7 @@ func TestHTTPHandlersServePackRangeHeadAndMetadata(t *testing.T) {
 		t.Fatalf("cors origin header = %q", got)
 	}
 
+	// Verify the range preflight request succeeds.
 	optionsReq := httptest.NewRequest(http.MethodOptions, DefaultHTTPPackPath, nil)
 	optionsReq.Header.Set("Access-Control-Request-Headers", "Range")
 	optionsRes := httptest.NewRecorder()
@@ -51,6 +56,7 @@ func TestHTTPHandlersServePackRangeHeadAndMetadata(t *testing.T) {
 		t.Fatalf("options status = %d", optionsRes.Code)
 	}
 
+	// Verify HEAD reports the pack length without sending bytes.
 	headReq := httptest.NewRequest(http.MethodHead, DefaultHTTPPackPath, nil)
 	headRes := httptest.NewRecorder()
 	handlers.ServeHTTP(headRes, headReq)
@@ -64,6 +70,7 @@ func TestHTTPHandlersServePackRangeHeadAndMetadata(t *testing.T) {
 		t.Fatalf("content-length = %q", got)
 	}
 
+	// Verify metadata identifies the cache schema and producer target.
 	metaReq := httptest.NewRequest(http.MethodGet, DefaultHTTPMetadataPath, nil)
 	metaRes := httptest.NewRecorder()
 	handlers.ServeHTTP(metaRes, metaReq)
@@ -80,12 +87,15 @@ func TestHTTPHandlersServePackRangeHeadAndMetadata(t *testing.T) {
 }
 
 func TestNewHTTPHandlersFromFS(t *testing.T) {
+	// Encode a manifest pack fixture for filesystem-backed handlers.
 	ctx := context.Background()
 	meta, packBytes := testManifestPackArtifact(t, ctx)
 	metaBytes, err := meta.MarshalVT()
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Construct handlers over the fixture filesystem.
 	handlers, err := NewHTTPHandlersFromFS(fstest.MapFS{
 		ArtifactMetadataFilename: &fstest.MapFile{Data: metaBytes},
 		ArtifactPackFilename:     &fstest.MapFile{Data: packBytes},
@@ -93,6 +103,8 @@ func TestNewHTTPHandlersFromFS(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Verify the filesystem-backed handler serves HEAD.
 	res := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodHead, DefaultHTTPPackPath, nil)
 	handlers.ServeHTTP(res, req)
@@ -102,6 +114,7 @@ func TestNewHTTPHandlersFromFS(t *testing.T) {
 }
 
 func TestNewHTTPPackfileStoreServesManifestBundleBlock(t *testing.T) {
+	// Serve a manifest pack through an isolated HTTP server.
 	ctx := context.Background()
 	meta, packBytes := testManifestPackArtifact(t, ctx)
 	handlers, err := NewHTTPHandlers(meta, packBytes)
@@ -111,6 +124,7 @@ func TestNewHTTPPackfileStoreServesManifestBundleBlock(t *testing.T) {
 	server := httptest.NewServer(handlers)
 	defer server.Close()
 
+	// Read the manifest bundle root through the HTTP packfile store.
 	store, err := NewHTTPPackfileStore(ctx, meta, server.Client(), server.URL+DefaultHTTPPackPath, nil, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -128,6 +142,7 @@ func TestNewHTTPPackfileStoreServesManifestBundleBlock(t *testing.T) {
 }
 
 func testManifestPackArtifact(t *testing.T, ctx context.Context) (*ManifestPackMetadata, []byte) {
+	// Store a manifest bundle in the test World.
 	t.Helper()
 	source := newTestWorld(t, ctx, logrus.NewEntry(logrus.New()))
 	sender := peer.ID("sender")
@@ -137,6 +152,8 @@ func testManifestPackArtifact(t *testing.T, ctx context.Context) (*ManifestPackM
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Pack the stored bundle and construct its publication metadata.
 	var buf bytes.Buffer
 	entry, packDigest, err := PackManifestBundle(ctx, source, "ci-release", bundleRef, &buf)
 	if err != nil {
@@ -156,5 +173,6 @@ func testManifestPackArtifact(t *testing.T, ctx context.Context) (*ManifestPackM
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	return meta, buf.Bytes()
 }

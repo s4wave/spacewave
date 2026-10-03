@@ -38,6 +38,7 @@ func (f *fakeViteBundlerClient) BuildWebPkg(_ context.Context, req *bldr_vite.Bu
 }
 
 func TestBuildWebPkgsViteKeepsRelativeSourceFiles(t *testing.T) {
+	// Create package sources with relative and absolute identities.
 	codeRootPath := t.TempDir()
 	pkgRoot := filepath.Join(codeRootPath, "node_modules", "@aptre", "it-ws")
 	outDir := filepath.Join(t.TempDir(), "out")
@@ -53,6 +54,7 @@ func TestBuildWebPkgsViteKeepsRelativeSourceFiles(t *testing.T) {
 		}
 	}
 
+	// Provide the source inventory returned by the Vite client.
 	client := &fakeViteBundlerClient{
 		resp: &bldr_vite.BuildWebPkgResponse{
 			Success: true,
@@ -63,6 +65,7 @@ func TestBuildWebPkgsViteKeepsRelativeSourceFiles(t *testing.T) {
 		},
 	}
 
+	// Build the web package using its managed source root.
 	_, srcFiles, _, err := BuildWebPkgsViteWithManagedRoot(
 		context.Background(),
 		logrus.NewEntry(logrus.New()),
@@ -85,6 +88,7 @@ func TestBuildWebPkgsViteKeepsRelativeSourceFiles(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Verify that source identities remain relative to the code root.
 	slices.Sort(srcFiles)
 	expected := []string{
 		"node_modules/@aptre/it-ws/dist/src/duplex.js",
@@ -96,6 +100,7 @@ func TestBuildWebPkgsViteKeepsRelativeSourceFiles(t *testing.T) {
 }
 
 func TestBuildWebPkgsViteUsesOneAbsoluteWrapperIdentity(t *testing.T) {
+	// Run the wrapper build from an unrelated working directory.
 	codeRootPath := t.TempDir()
 	workingDir := t.TempDir()
 	oldWorkingDir, err := os.Getwd()
@@ -111,6 +116,7 @@ func TestBuildWebPkgsViteUsesOneAbsoluteWrapperIdentity(t *testing.T) {
 		}
 	})
 
+	// Write a CommonJS package that requires a generated wrapper.
 	pkgRoot := filepath.Join(codeRootPath, "node_modules", "stable-cjs")
 	if err := os.MkdirAll(pkgRoot, 0o755); err != nil {
 		t.Fatal(err)
@@ -118,12 +124,16 @@ func TestBuildWebPkgsViteUsesOneAbsoluteWrapperIdentity(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(pkgRoot, "index.cjs"), []byte("exports.stable = true\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
+
+	// Capture the absolute wrapper identity supplied to Vite.
 	outputPath := filepath.Join("relative-output", "plugin-C2-b7nSr")
 	var wrapperPath string
 	client := &fakeViteBundlerClient{buildResp: func(req *bldr_vite.BuildWebPkgRequest) *bldr_vite.BuildWebPkgResponse {
 		wrapperPath = req.GetImports()[0]
 		return &bldr_vite.BuildWebPkgResponse{Success: true, SourceFiles: []string{wrapperPath}}
 	}}
+
+	// Build the package into a relative output directory.
 	_, sourceFiles, _, err := BuildWebPkgsViteWithManagedRoot(
 		context.Background(), logrus.NewEntry(logrus.New()), codeRootPath, filepath.Join(codeRootPath, ".state"),
 		[]*web_pkg.WebPkgRef{{WebPkgId: "stable-cjs", WebPkgRoot: pkgRoot, Imports: []string{"index.cjs"}}},
@@ -133,6 +143,8 @@ func TestBuildWebPkgsViteUsesOneAbsoluteWrapperIdentity(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Verify the wrapper location and original source inventory.
 	if !filepath.IsAbs(wrapperPath) {
 		t.Fatalf("wrapper path = %q, want absolute", wrapperPath)
 	}
@@ -156,9 +168,12 @@ func TestBuildWebPkgsViteLegacyCall(t *testing.T) {
 }
 
 func TestBuildWebPkgsViteIgnoresManagedStateSources(t *testing.T) {
+	// Define a managed build source that must be excluded from package inputs.
 	const managedSuffix = "build/js/spacewave-app/sub/vite/build/web-pkgs/node_modules/@aptre/protobuf-es-lite/dist/assert.js"
 
+	// Exercise source filtering for the chosen managed root.
 	run := func(t *testing.T, codeRootPath, managedRootPath, managedSource string) {
+		// Create a stable package source and a managed build source.
 		pkgRoot := filepath.Join(codeRootPath, "node_modules", "stable-pkg")
 		stableSource := filepath.Join(pkgRoot, "index.js")
 		for _, source := range []string{stableSource, managedSource} {
@@ -170,6 +185,7 @@ func TestBuildWebPkgsViteIgnoresManagedStateSources(t *testing.T) {
 			}
 		}
 
+		// Build the package with both sources reported by Vite.
 		client := &fakeViteBundlerClient{resp: &bldr_vite.BuildWebPkgResponse{
 			Success:     true,
 			SourceFiles: []string{stableSource, managedSource},
@@ -184,18 +200,24 @@ func TestBuildWebPkgsViteIgnoresManagedStateSources(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
+
+		// Verify that only the stable package source is retained.
 		if want := []string{"node_modules/stable-pkg/index.js"}; !slices.Equal(sourceFiles, want) {
 			t.Fatalf("source files = %v, want %v", sourceFiles, want)
 		}
 	}
 
+	// Check filtering with the default managed root.
 	t.Run("default", func(t *testing.T) {
+		// Create a managed root beneath the code root and run the filter check.
 		codeRootPath := t.TempDir()
 		managedRootPath := filepath.Join(codeRootPath, ".bldr")
 		run(t, codeRootPath, managedRootPath, filepath.Join(managedRootPath, managedSuffix))
 	})
 
+	// Check filtering with a custom relative managed root.
 	t.Run("custom-relative", func(t *testing.T) {
+		// Change the working directory so the managed root resolves relatively.
 		codeRootPath := t.TempDir()
 		oldWorkingDir, err := os.Getwd()
 		if err != nil {
@@ -209,10 +231,14 @@ func TestBuildWebPkgsViteIgnoresManagedStateSources(t *testing.T) {
 				t.Errorf("restore working directory: %v", err)
 			}
 		})
+
+		// Run the source filter check with the relative managed root.
 		run(t, codeRootPath, ".state", filepath.Join(codeRootPath, ".state", managedSuffix))
 	})
 
+	// Check filtering with an independent absolute managed root.
 	t.Run("absolute", func(t *testing.T) {
+		// Create separate code and managed roots and run the filter check.
 		codeRootPath := t.TempDir()
 		managedRootPath := t.TempDir()
 		run(t, codeRootPath, managedRootPath, filepath.Join(managedRootPath, managedSuffix))
@@ -220,6 +246,7 @@ func TestBuildWebPkgsViteIgnoresManagedStateSources(t *testing.T) {
 }
 
 func TestBuildWebPkgsViteTracksConditionalReexportSources(t *testing.T) {
+	// Write a CommonJS entrypoint with conditional reexports.
 	codeRootPath := t.TempDir()
 	pkgRoot := filepath.Join(codeRootPath, "node_modules", "conditional-pkg")
 	if err := os.MkdirAll(pkgRoot, 0o755); err != nil {
@@ -234,6 +261,8 @@ if (process.env.NODE_ENV === "production") {
 `), 0o644); err != nil {
 		t.Fatal(err)
 	}
+
+	// Write the production and development reexport targets.
 	bareTargetRoot := filepath.Join(codeRootPath, "node_modules", "bare-target")
 	if err := os.MkdirAll(bareTargetRoot, 0o755); err != nil {
 		t.Fatal(err)
@@ -248,6 +277,7 @@ if (process.env.NODE_ENV === "production") {
 		t.Fatal(err)
 	}
 
+	// Build the package with Vite reporting the wrapper imports.
 	client := &fakeViteBundlerClient{buildResp: func(req *bldr_vite.BuildWebPkgRequest) *bldr_vite.BuildWebPkgResponse {
 		return &bldr_vite.BuildWebPkgResponse{Success: true, SourceFiles: req.GetImports()}
 	}}
@@ -261,6 +291,8 @@ if (process.env.NODE_ENV === "production") {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Verify that the source inventory follows the production reexport.
 	slices.Sort(sourceFiles)
 	want := []string{
 		"node_modules/bare-target/index.js",
@@ -273,6 +305,7 @@ if (process.env.NODE_ENV === "production") {
 }
 
 func TestBuildWebPkgsViteKeepsCjsWrappersOutsideOutDir(t *testing.T) {
+	// Write a CommonJS package with two exported fields.
 	codeRootPath := t.TempDir()
 	pkgRoot := filepath.Join(codeRootPath, "node_modules", "cjs-pkg")
 	if err := os.MkdirAll(pkgRoot, 0o755); err != nil {
@@ -286,12 +319,14 @@ func TestBuildWebPkgsViteKeepsCjsWrappersOutsideOutDir(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Create output and wrapper cache directories with a successful Vite client.
 	outDir := filepath.Join(t.TempDir(), "out")
 	cacheDir := filepath.Join(t.TempDir(), "cache")
 	client := &fakeViteBundlerClient{
 		resp: &bldr_vite.BuildWebPkgResponse{Success: true},
 	}
 
+	// Build the CommonJS package through its generated wrapper.
 	_, _, _, err := BuildWebPkgsViteWithManagedRoot(
 		context.Background(),
 		logrus.NewEntry(logrus.New()),
@@ -318,6 +353,7 @@ func TestBuildWebPkgsViteKeepsCjsWrappersOutsideOutDir(t *testing.T) {
 		t.Fatalf("unexpected request count: got %d want 1", len(client.requests))
 	}
 
+	// Verify the external runtime import and the absolute wrapper identity.
 	req := client.requests[0]
 	if !slices.Contains(req.GetExternalPkgs(), "@aptre/protobuf-es-lite") {
 		t.Fatal("request did not preserve the browser runtime import map")
@@ -329,10 +365,14 @@ func TestBuildWebPkgsViteKeepsCjsWrappersOutsideOutDir(t *testing.T) {
 	if !filepath.IsAbs(wrapperPath) {
 		t.Fatalf("wrapper path is not absolute: %s", wrapperPath)
 	}
+
+	// Verify that the wrapper is outside the output directory.
 	outPrefix := req.GetOutDir() + string(os.PathSeparator)
 	if strings.HasPrefix(wrapperPath, outPrefix) {
 		t.Fatalf("wrapper path %s is inside outDir %s", wrapperPath, req.GetOutDir())
 	}
+
+	// Verify that the wrapper uses the dedicated cache directory.
 	expectedPrefix, err := filepath.EvalSymlinks(filepath.Join(cacheDir, ".cjs-wrappers"))
 	if err != nil {
 		t.Fatal(err)
@@ -347,16 +387,19 @@ func TestBuildWebPkgsViteKeepsCjsWrappersOutsideOutDir(t *testing.T) {
 }
 
 func TestBuildWebPkgsVitePropagatesJavaScriptPolicy(t *testing.T) {
+	// Create the package used to check JavaScript build policy.
 	codeRootPath := t.TempDir()
 	pkgRoot := filepath.Join(codeRootPath, "node_modules", "policy-pkg")
 	if err := os.MkdirAll(pkgRoot, 0o755); err != nil {
 		t.Fatal(err)
 	}
 
+	// Provide a successful Vite client for inspecting build requests.
 	client := &fakeViteBundlerClient{
 		resp: &bldr_vite.BuildWebPkgResponse{Success: true},
 	}
 
+	// Build the package with release mode and source maps enabled.
 	_, _, _, err := BuildWebPkgsViteWithManagedRoot(
 		context.Background(),
 		logrus.NewEntry(logrus.New()),
@@ -379,6 +422,8 @@ func TestBuildWebPkgsVitePropagatesJavaScriptPolicy(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Verify that Vite receives the requested JavaScript policy.
 	if len(client.requests) != 1 {
 		t.Fatalf("unexpected request count: got %d want 1", len(client.requests))
 	}
@@ -397,11 +442,13 @@ func TestBuildWebPkgsVitePropagatesJavaScriptPolicy(t *testing.T) {
 // TestBuildWebPkgsViteKeepsProvidedPkgsExternal proves a web package importing
 // a package another plugin provides resolves it through /b/pkg/ like a sibling.
 func TestBuildWebPkgsViteKeepsProvidedPkgsExternal(t *testing.T) {
+	// Create a Vite client for packages supplied by separate plugins.
 	codeRootPath := t.TempDir()
 	client := &fakeViteBundlerClient{
 		resp: &bldr_vite.BuildWebPkgResponse{Success: true},
 	}
 
+	// Build both packages with the provided sibling package inventory.
 	_, _, _, err := BuildWebPkgsViteWithManagedRoot(
 		context.Background(),
 		logrus.NewEntry(logrus.New()),
@@ -427,6 +474,7 @@ func TestBuildWebPkgsViteKeepsProvidedPkgsExternal(t *testing.T) {
 		t.Fatalf("unexpected request count: got %d want 2", len(client.requests))
 	}
 
+	// Verify that the first package keeps its provided siblings external.
 	req := client.requests[0]
 	want := []string{"shiki", "@s4wave/web"}
 	if req.GetPkgId() != "@s4wave/code" || !slices.Equal(req.GetSiblingPkgIds(), want) {
@@ -435,6 +483,7 @@ func TestBuildWebPkgsViteKeepsProvidedPkgsExternal(t *testing.T) {
 }
 
 func TestBuildWebPkgsViteDropsBuildManifest(t *testing.T) {
+	// Create a package whose Vite build writes a manifest and module.
 	codeRootPath := t.TempDir()
 	pkgRoot := filepath.Join(codeRootPath, "node_modules", "manifest-pkg")
 	if err := os.MkdirAll(pkgRoot, 0o755); err != nil {
@@ -455,6 +504,7 @@ func TestBuildWebPkgsViteDropsBuildManifest(t *testing.T) {
 		return &bldr_vite.BuildWebPkgResponse{Success: true}
 	}}
 
+	// Build the package and require removal of the Vite manifest.
 	_, _, _, err := BuildWebPkgsViteWithManagedRoot(
 		context.Background(), logrus.NewEntry(logrus.New()), codeRootPath, filepath.Join(codeRootPath, ".state"),
 		[]*web_pkg.WebPkgRef{{WebPkgId: "manifest-pkg", WebPkgRoot: pkgRoot}},
@@ -463,6 +513,8 @@ func TestBuildWebPkgsViteDropsBuildManifest(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Verify that the runtime module remains after manifest cleanup.
 	if _, err := os.Stat(filepath.Join(pkgOut, ".vite")); !os.IsNotExist(err) {
 		t.Fatalf(".vite still shipped: %v", err)
 	}

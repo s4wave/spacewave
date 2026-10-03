@@ -40,14 +40,17 @@ func (t *Factory) Construct(
 	conf config.Config,
 	opts controller.ConstructOpts,
 ) (controller.Controller, error) {
+	// Resolve the logger and link establishment configuration.
 	le := opts.GetLogger()
 	cc := conf.(*Config)
 
+	// Decode the peers the link controller will establish.
 	peers, err := cc.ParsePeerIDs()
 	if err != nil {
 		return nil, err
 	}
 
+	// Decode the source peer used to establish the configured links.
 	srcPeerID, err := cc.ParseSrcPeerId()
 	if err != nil {
 		return nil, err

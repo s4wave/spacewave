@@ -102,15 +102,20 @@ const modelSpan = 300 << 10
 // checkModel applies random writes, truncates, and removes to the device and
 // to an in-memory image, then compares every file with the image.
 func checkModel(ctx context.Context, d device.Device, seed uint64) error {
+	// Create a reproducible device workload and its expected file images.
 	rng := rand.New(rand.NewPCG(seed, seed)) //nolint:gosec
 	image := make(map[string][]byte)
+
+	// Apply the same random operations to the device and file images.
 	for step := range 64 {
+		// Choose a model file and apply one random device operation.
 		name := modelFiles[rng.IntN(len(modelFiles))]
 		switch n := rng.IntN(10); {
 		case n < 7:
 			// Write a batch of random ranges.
 			var writes []device.Write
 			for range 1 + rng.IntN(4) {
+				// Generate a random range and apply it to the expected file image.
 				off := rng.Int64N(modelSpan)
 				n := 1 + rng.IntN(modelSpan/3)
 				data := make([]byte, 0, n+8)
@@ -121,6 +126,8 @@ func checkModel(ctx context.Context, d device.Device, seed uint64) error {
 				writes = append(writes, device.Write{Name: name, Offset: off, Data: data})
 				image[name] = writeImage(image[name], off, data)
 			}
+
+			// Submit the generated ranges with periodic durability fences.
 			if err := d.Write(ctx, writes, step%4 == 0); err != nil {
 				return err
 			}
@@ -129,6 +136,8 @@ func checkModel(ctx context.Context, d device.Device, seed uint64) error {
 			if _, ok := image[name]; !ok {
 				continue
 			}
+
+			// Resize the device file and its expected image to the same length.
 			size := rng.Int64N(modelSpan)
 			if err := d.Truncate(ctx, name, size); err != nil {
 				return err
@@ -145,6 +154,7 @@ func checkModel(ctx context.Context, d device.Device, seed uint64) error {
 
 	// Every file matches the image, and no other model file exists.
 	for _, name := range modelFiles {
+		// Compare each surviving model file with its expected image.
 		want, ok := image[name]
 		if !ok {
 			continue
@@ -153,6 +163,8 @@ func checkModel(ctx context.Context, d device.Device, seed uint64) error {
 			return errors.Wrap(err, "model")
 		}
 	}
+
+	// Confirm the device lists exactly the surviving model files.
 	files, err := d.List(ctx)
 	if err != nil {
 		return err
@@ -183,6 +195,7 @@ func resize(data []byte, size int64) []byte {
 // ExpectFile checks that the device lists name with want's length and reads
 // back want.
 func ExpectFile(ctx context.Context, d device.Device, name string, want []byte) error {
+	// Check that the device lists the expected file length.
 	files, err := d.List(ctx)
 	if err != nil {
 		return err
@@ -191,6 +204,8 @@ func ExpectFile(ctx context.Context, d device.Device, name string, want []byte) 
 	if i < 0 || files[i].Size != int64(len(want)) {
 		return errors.Errorf("%s: listed %v, want size %d", name, files, len(want))
 	}
+
+	// Read the device file and compare its complete contents.
 	got := make([]byte, len(want))
 	if err := d.Read(ctx, []device.Read{{Name: name, Data: got}}); err != nil {
 		return err

@@ -59,10 +59,13 @@ func (b *BucketStore) GetBucketInfo(ctx context.Context, req *bucket_store_rpc.G
 
 // ListBucketInfo lists buckets in the store.
 func (b *BucketStore) ListBucketInfo(ctx context.Context, req *bucket_store_rpc.ListBucketInfoRequest) (*bucket_store_rpc.ListBucketInfoResponse, error) {
+	// Parse the requested bucket identifier filter before listing the store.
 	re, err := req.ParseBucketIdRe()
 	if err != nil {
 		return nil, err
 	}
+
+	// Collect bucket metadata matching the RPC filter.
 	infos, err := b.store.ListBucketInfo(ctx, re)
 	if err != nil {
 		return nil, err

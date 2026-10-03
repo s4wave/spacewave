@@ -31,6 +31,7 @@ func (b *observedRootBackend) Read(ctx context.Context, name string, offset int6
 
 // TestGenerationWaitRecoversLostHintsAndCloses checks durable polling and shutdown.
 func TestGenerationWaitRecoversLostHintsAndCloses(t *testing.T) {
+	// Open the writer under a bounded test context.
 	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
 	defer cancel()
 	disk := newDiskBackend(t)
@@ -39,6 +40,8 @@ func TestGenerationWaitRecoversLostHintsAndCloses(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer writer.Close()
+
+	// Open an observed reader over the same durable files and consume startup notification.
 	observed := &observedRootBackend{Backend: disk, read: make(chan struct{}, 1)}
 	reader, err := Open(ctx, observed)
 	if err != nil {

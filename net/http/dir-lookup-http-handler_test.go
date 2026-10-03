@@ -7,6 +7,7 @@ import (
 )
 
 func TestMatchServeMuxPattern(t *testing.T) {
+	// Register exact and wildcard HTTP routes on the mux.
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /test", func(w http.ResponseWriter, r *http.Request) {})
 	mux.HandleFunc("GET /test/nested", func(w http.ResponseWriter, r *http.Request) {})
@@ -15,6 +16,7 @@ func TestMatchServeMuxPattern(t *testing.T) {
 	mux.HandleFunc("GET /posts/latest", func(w http.ResponseWriter, r *http.Request) {})
 	mux.HandleFunc("/files/{pathname...}", func(w http.ResponseWriter, r *http.Request) {})
 
+	// Define the method and path combinations the mux must resolve.
 	tests := []struct {
 		name           string
 		method         string
@@ -69,14 +71,17 @@ func TestMatchServeMuxPattern(t *testing.T) {
 	// Exercise each method and path combination against the mux.
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			// Parse the request URL for this HTTP route lookup.
 			parsedURL, err := url.Parse(tt.url)
 			if err != nil {
 				t.Fatalf("Failed to parse URL: %v", err)
 			}
 
+			// Resolve the HTTP handler and its matching mux pattern.
 			dir := NewLookupHTTPHandler(tt.method, parsedURL, "")
 			handler, pattern := MatchServeMuxPattern(mux, dir)
 
+			// Verify handler presence and the selected route pattern.
 			if tt.expectedExists {
 				if handler == nil {
 					t.Fatal("Expected handler to not be nil")

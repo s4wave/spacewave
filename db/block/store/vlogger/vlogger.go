@@ -40,14 +40,18 @@ func (s *VLoggerStore) GetSupportedFeatures() block.StoreFeature {
 
 // BeginReadOperation opens a read scope on the wrapped store.
 func (s *VLoggerStore) BeginReadOperation(ctx context.Context) (block.StoreOps, func(), error) {
+	// Open a read scope on the underlying block store.
 	st, release, err := s.st.BeginReadOperation(ctx)
 	if err != nil {
 		return nil, nil, err
 	}
+
+	// Preserve the store identity when wrapping the scoped operations for logging.
 	scopedStore, ok := st.(block_store.Store)
 	if !ok {
 		scopedStore = block_store.NewStore(s.st.GetID(), st)
 	}
+
 	return &VLoggerStore{le: s.le, st: scopedStore}, release, nil
 }
 

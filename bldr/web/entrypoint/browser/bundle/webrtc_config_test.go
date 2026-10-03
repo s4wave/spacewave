@@ -27,6 +27,7 @@ func TestBrowserRendererSpecDefinesTrustedIceServers(t *testing.T) {
 }
 
 func TestBrowserRendererSpecDefaultsAndEncodesIceServers(t *testing.T) {
+	// Create the default renderer specification and verify its trusted ICE definition.
 	spec, err := browserRendererSpec(
 		"/src", "/src/bldr", "/build", "", "", "", "", "", "",
 		false, false, false, false, false, nil, "",
@@ -39,6 +40,7 @@ func TestBrowserRendererSpecDefaultsAndEncodesIceServers(t *testing.T) {
 		t.Fatalf("default trusted ICE define = %q, want %q", got, wantDefault)
 	}
 
+	// Encode ICE fields containing control characters and require valid JSON.
 	encoded := encodeBrowserIceServers([]BrowserIceServer{{
 		URLs:       []string{"stun:example.test/\u0001"},
 		Username:   "user\u0001",

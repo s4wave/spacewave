@@ -94,6 +94,7 @@ func TestCrashRecoversAcknowledgedState(t *testing.T) {
 // crashAfter successful mutations, then recovers and checks the volume. It
 // returns the number of Write and Remove calls the workload made.
 func runCrashWorkload(t *testing.T, seed uint64, crashAfter int) int {
+	// Create a durable replay target and its acknowledged-state model.
 	ctx := t.Context()
 	d := newDiskBackend(t)
 	d.unsynced = true
@@ -117,6 +118,8 @@ func runCrashWorkload(t *testing.T, seed uint64, crashAfter int) int {
 			break
 		}
 	}
+
+	// Close the interrupted target and snapshot its mutation count.
 	_ = target.BlockStore.Close()
 	_ = target.Engine.Close()
 	d.mtx.Lock()
@@ -184,11 +187,14 @@ func (m *crashModel) step(ctx context.Context, rng *rand.Rand, target ReplayTarg
 
 // commit sets or deletes one to three keys in one transaction.
 func (m *crashModel) commit(ctx context.Context, rng *rand.Rand, target ReplayTarget) error {
+	// Open a crash workload transaction and retain its cleanup.
 	tx, err := target.NewTransaction(ctx, true)
 	if err != nil {
 		return err
 	}
 	defer tx.Discard()
+
+	// Stage random key mutations before attempting an atomic commit.
 	changes := make(map[string]*string)
 	for range 1 + rng.IntN(3) {
 		key := "k" + strconv.Itoa(rng.IntN(crashKeys))
@@ -205,6 +211,8 @@ func (m *crashModel) commit(ctx context.Context, rng *rand.Rand, target ReplayTa
 			return err
 		}
 	}
+
+	// Record uncertain changes on failure and acknowledged values on success.
 	if err := tx.Commit(ctx); err != nil {
 		m.pending = changes
 		return err
@@ -221,6 +229,7 @@ func (m *crashModel) commit(ctx context.Context, rng *rand.Rand, target ReplayTa
 
 // put admits one unique block without syncing it.
 func (m *crashModel) put(ctx context.Context, rng *rand.Rand, target ReplayTarget) error {
+	// Create a unique block and record its unsynced acknowledgement.
 	m.blocks++
 	data := bytes.Repeat([]byte("block "+strconv.Itoa(m.blocks)+" "), 8+rng.IntN(256))
 	ref, _, err := target.PutBlock(ctx, data, nil)
@@ -233,9 +242,12 @@ func (m *crashModel) put(ctx context.Context, rng *rand.Rand, target ReplayTarge
 
 // remove deletes one synced block, which RmBlock makes durable.
 func (m *crashModel) remove(ctx context.Context, rng *rand.Rand, target ReplayTarget) error {
+	// Skip removal when the workload has no synced blocks.
 	if len(m.synced) == 0 {
 		return nil
 	}
+
+	// Select a synced block deterministically from its sorted keys.
 	keys := make([]string, 0, len(m.synced))
 	for key := range m.synced {
 		keys = append(keys, key)
@@ -243,6 +255,8 @@ func (m *crashModel) remove(ctx context.Context, rng *rand.Rand, target ReplayTa
 	slices.Sort(keys)
 	key := keys[rng.IntN(len(keys))]
 	b := m.synced[key]
+
+	// Remove the selected block and record whether its deletion was acknowledged.
 	delete(m.synced, key)
 	if err := target.RmBlock(ctx, b.ref); err != nil {
 		m.unsynced[key] = b
@@ -254,6 +268,7 @@ func (m *crashModel) remove(ctx context.Context, rng *rand.Rand, target ReplayTa
 
 // append journals one or two unique edges.
 func (m *crashModel) append(ctx context.Context, target ReplayTarget) error {
+	// Journal unique edges and retain their acknowledged membership.
 	var adds []block_gc.RefEdge
 	for range 2 {
 		m.edges++
@@ -272,6 +287,7 @@ func (m *crashModel) append(ctx context.Context, target ReplayTarget) error {
 
 // check compares the recovered volume with the acknowledged state.
 func (m *crashModel) check(t *testing.T, target ReplayTarget, graph *recordingGraph) {
+	// Retain the test context for recovered-state assertions.
 	t.Helper()
 	ctx := t.Context()
 

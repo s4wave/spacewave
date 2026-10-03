@@ -18,8 +18,8 @@ import (
 )
 
 func requireObjectType(t *testing.T, typeID string) {
+	// Resolve the registered object type and verify its requested identifier.
 	t.Helper()
-
 	got, err := LookupObjectType(context.Background(), typeID)
 	if err != nil {
 		t.Fatalf("LookupObjectType(%s): %v", typeID, err)

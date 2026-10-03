@@ -11,6 +11,7 @@ import (
 )
 
 func TestRedisLeaseRenewalLossSignalsDone(t *testing.T) {
+	// Prepare a Redis lease and a controlled renewal failure.
 	lease := &lease{
 		cancel:        func() {},
 		done:          make(chan struct{}),
@@ -20,11 +21,13 @@ func TestRedisLeaseRenewalLossSignalsDone(t *testing.T) {
 	renewCh := make(chan time.Time, 1)
 	renewErr := errors.New("renewal failed")
 
+	// Trigger renewal against the failing command callback.
 	go lease.keepaliveWith(context.Background(), renewCh, func() error {
 		return renewErr
 	})
 	renewCh <- time.Time{}
 
+	// Verify renewal loss closes the lease and preserves its error.
 	select {
 	case <-lease.Done():
 	case <-time.After(time.Second):
@@ -88,6 +91,7 @@ func newTimeoutRedisLease(t *testing.T) (
 	*timeoutRedisConn,
 	*redis.Pool,
 ) {
+	// Build a bounded-command Redis fixture and close its connection and pool after the test.
 	t.Helper()
 	conn := &timeoutRedisConn{
 		closed:    make(chan struct{}),
@@ -115,12 +119,15 @@ func newTimeoutRedisLease(t *testing.T) (
 }
 
 func TestRedisLeaseHangingRenewalSignalsLoss(t *testing.T) {
+	// Prepare a Redis lease with controlled renewal notifications.
 	lease, conn, _ := newTimeoutRedisLease(t)
 	renewCh := make(chan time.Time, 1)
 
+	// Trigger renewal through the bounded Redis command.
 	go lease.keepaliveWith(context.Background(), renewCh, lease.renew)
 	renewCh <- time.Now()
 
+	// Verify a timed-out renewal closes the lease and uses a bounded command timeout.
 	select {
 	case <-lease.Done():
 	case <-time.After(time.Second):
@@ -140,9 +147,11 @@ func TestRedisLeaseHangingRenewalSignalsLoss(t *testing.T) {
 }
 
 func TestRedisLeaseReleaseTimeoutClosesDone(t *testing.T) {
+	// Prepare a Redis lease whose keepalive has already finished.
 	lease, conn, _ := newTimeoutRedisLease(t)
 	close(lease.keepaliveDone)
 
+	// Release the lease and verify the timeout still closes it with a bounded command.
 	err := lease.Release(context.Background())
 	if !errors.Is(err, context.DeadlineExceeded) {
 		t.Fatalf("release error = %v, want context deadline exceeded", err)

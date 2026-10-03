@@ -99,6 +99,7 @@ func (s *BrowserTestServer) Start(ctx context.Context) (int, error) {
 // It confirms the target tab exists; the standalone test host does not persist
 // per-tab path data.
 func (s *BrowserTestServer) navigateTab(ctx context.Context, req *s4wave_layout.NavigateTabRequest) (*s4wave_layout.NavigateTabResponse, error) {
+	// Ignore navigation requests that do not identify a layout tab.
 	tabID := req.GetTabId()
 	if tabID == "" {
 		return &s4wave_layout.NavigateTabResponse{}, nil
@@ -117,6 +118,7 @@ func (s *BrowserTestServer) navigateTab(ctx context.Context, req *s4wave_layout.
 	// its path data, which is sufficient for the layout navigation tests.
 	var tabFound bool
 	resource_layout.WalkLayoutModel(updatedModel, func(node any) bool {
+		// Find the requested tab among the layout model nodes.
 		tabDef, ok := node.(*s4wave_layout.TabDef)
 		if !ok {
 			return true
@@ -128,6 +130,7 @@ func (s *BrowserTestServer) navigateTab(ctx context.Context, req *s4wave_layout.
 		return false
 	})
 
+	// Leave the standalone layout unchanged when the requested tab is absent.
 	if !tabFound {
 		return &s4wave_layout.NavigateTabResponse{}, nil
 	}

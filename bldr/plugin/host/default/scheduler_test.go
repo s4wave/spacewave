@@ -8,6 +8,7 @@ import (
 )
 
 func TestNewNativeDesktopSchedulerConfigRestrictsJSPlatform(t *testing.T) {
+	// Configure the native desktop scheduler with selected JavaScript-capable plugins.
 	conf := NewNativeDesktopSchedulerConfig(
 		"",
 		"engine",
@@ -20,6 +21,7 @@ func TestNewNativeDesktopSchedulerConfigRestrictsJSPlatform(t *testing.T) {
 		[]string{"spacewave-app", "spacewave-web"},
 	)
 
+	// Verify the core plugin selects only the native desktop platform.
 	hostPlatforms := []string{"desktop/darwin/arm64", bldr_platform.PlatformID_JS}
 	got := conf.FilterPluginPlatformIDs("spacewave-core", hostPlatforms)
 	want := []string{"desktop/darwin/arm64"}
@@ -27,6 +29,7 @@ func TestNewNativeDesktopSchedulerConfigRestrictsJSPlatform(t *testing.T) {
 		t.Fatalf("native-only plugin platforms = %v, want %v", got, want)
 	}
 
+	// Verify an allowed application plugin retains its JavaScript platform.
 	got = conf.FilterPluginPlatformIDs("spacewave-app", hostPlatforms)
 	want = []string{"desktop/darwin/arm64", bldr_platform.PlatformID_JS}
 	if !slices.Equal(got, want) {

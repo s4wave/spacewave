@@ -16,14 +16,18 @@ import (
 )
 
 func TestOkraFixtureThroughSelector(t *testing.T) {
+	// Create stored Okra values for selector readback.
 	ctx := context.Background()
 	store := newSelectorOkraStore()
 	fixture := newSelectorOkraFixture(t, ctx, store, 48)
 
+	// Build the Okra tree from the stored value references.
 	treeTx, okraRootCursor, err := okra.BuildTree(ctx, store, nil, nil, fixture.seq())
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Persist the Okra root under a KeyValueStore selector.
 	kvsCursor := okraRootCursor.Detach(false)
 	kvsCursor.ClearAllRefs()
 	kvsCursor.SetBlock(NewKeyValueStore(KVImplType_KV_IMPL_TYPE_OKRA), true)
@@ -38,6 +42,7 @@ func TestOkraFixtureThroughSelector(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Open the Okra fixture through the KV selector.
 	_, readCursor := block.NewTransaction(store, nil, kvsRef, nil)
 	ktx, err := BuildKvTransaction(ctx, readCursor, false)
 	if err != nil {
@@ -45,6 +50,7 @@ func TestOkraFixtureThroughSelector(t *testing.T) {
 	}
 	defer ktx.Discard()
 
+	// Verify the selector returns the expected Okra value.
 	key := fixture.keys[23]
 	value, found, err := ktx.Get(ctx, key)
 	if err != nil {
@@ -54,6 +60,7 @@ func TestOkraFixtureThroughSelector(t *testing.T) {
 		t.Fatalf("Get(%q) = %q, %v, want %q, true", key, value, found, fixture.values[23])
 	}
 
+	// Verify the selector reports an absent Okra key.
 	exists, err := ktx.Exists(ctx, []byte("key-9999"))
 	if err != nil {
 		t.Fatal(err)
@@ -64,15 +71,19 @@ func TestOkraFixtureThroughSelector(t *testing.T) {
 }
 
 func TestOkraMutationThroughSelector(t *testing.T) {
+	// Create a block store for Okra selector mutations.
 	ctx := context.Background()
 	store := newSelectorOkraStore()
 
+	// Open a writable Okra root through the KV selector.
 	btx, kvsCursor := block.NewTransaction(store, nil, nil, nil)
 	kvsCursor.SetBlock(NewKeyValueStore(KVImplType_KV_IMPL_TYPE_OKRA), true)
 	ktx, err := BuildKvTransaction(ctx, kvsCursor, true)
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Insert two Okra keys and remove one before commit.
 	if err := ktx.Set(ctx, []byte("b"), []byte("2")); err != nil {
 		t.Fatal(err)
 	}
@@ -82,6 +93,8 @@ func TestOkraMutationThroughSelector(t *testing.T) {
 	if err := ktx.Delete(ctx, []byte("b")); err != nil {
 		t.Fatal(err)
 	}
+
+	// Commit the Okra changes and persist the selector root.
 	if err := ktx.Commit(ctx); err != nil {
 		t.Fatal(err)
 	}
@@ -90,6 +103,7 @@ func TestOkraMutationThroughSelector(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Reopen the selector and verify its retained Okra value.
 	_, readCursor := block.NewTransaction(store, nil, rootRef, nil)
 	readTx, err := BuildKvTransaction(ctx, readCursor, false)
 	if err != nil {
@@ -103,6 +117,8 @@ func TestOkraMutationThroughSelector(t *testing.T) {
 	if !found || !bytes.Equal(value, []byte("1")) {
 		t.Fatalf("Get(a) = %q, %v, want 1, true", value, found)
 	}
+
+	// Verify the deleted Okra key remains absent.
 	exists, err := readTx.Exists(ctx, []byte("b"))
 	if err != nil {
 		t.Fatal(err)

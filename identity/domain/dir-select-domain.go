@@ -23,16 +23,20 @@ type SelectIdentityDomainValue = *DomainInfo
 
 // ExSelectIdentityDomain executes the select entity domain directive.
 func ExSelectIdentityDomain(ctx context.Context, b bus.Bus, purpose string) (SelectIdentityDomainValue, error) {
+	// Wait for the identity domain selected for the requested purpose.
 	av, _, dirRef, err := bus.ExecOneOff(ctx, b, NewSelectIdentityDomain(purpose), nil, nil)
 	if err != nil {
 		return nil, err
 	}
+
+	// Release the selection directive and require an identity domain result.
 	val := av.GetValue()
 	dirRef.Release()
 	valObj, valObjOk := val.(SelectIdentityDomainValue)
 	if !valObjOk {
 		return nil, block.ErrUnexpectedType
 	}
+
 	return valObj, nil
 }
 

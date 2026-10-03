@@ -22,6 +22,7 @@ const packIDDigestLen = 32
 
 // BuildPackID builds a v1 packfile identifier for one resource-scoped pack.
 func BuildPackID(resourceID string, result *writer.PackResult) (string, error) {
+	// Require a resource scope and complete digests for the pack identity.
 	if resourceID == "" {
 		return "", errors.New("resource id is empty")
 	}
@@ -34,6 +35,8 @@ func BuildPackID(resourceID string, result *writer.PackResult) (string, error) {
 	if len(result.PackBytesDigest) != packIDDigestLen {
 		return "", errors.New("pack bytes digest is invalid")
 	}
+
+	// Resolve the writer policies included in the pack identity.
 	policyTag := result.PolicyTag
 	if policyTag == "" {
 		policyTag = writer.PolicyTag(writer.DefaultPolicy())
@@ -42,12 +45,16 @@ func BuildPackID(resourceID string, result *writer.PackResult) (string, error) {
 	if valueOrder == "" {
 		valueOrder = writer.ValueOrderIterator
 	}
+
+	// Hash the resource, writer version, and policies with length framing.
 	h := sha256.New()
 	writePart(h, []byte("spacewave-packfile-id-v1"))
 	writePart(h, []byte(resourceID))
 	writePart(h, []byte(WriterVersionV1))
 	writePart(h, []byte(policyTag))
 	writePart(h, []byte(valueOrder))
+
+	// Bind the sorted keys and pack bytes to the identity digest.
 	writePart(h, result.SortedKeyDigest)
 	writePart(h, result.PackBytesDigest)
 	sum := h.Sum(nil)
@@ -65,9 +72,12 @@ func NewPackID() string {
 
 // ValidatePackID validates the v1 packfile identifier shape.
 func ValidatePackID(id string) error {
+	// Require the pack identifier namespace before decoding its digest.
 	if len(id) <= len(PackIDPrefix) || id[:len(PackIDPrefix)] != PackIDPrefix {
 		return errors.New("pack id must start with pfv1_")
 	}
+
+	// Validate the base58 digest and its fixed length.
 	digest, err := b58.Decode(id[len(PackIDPrefix):])
 	if err != nil {
 		return errors.Wrap(err, "pack id suffix must be base58")

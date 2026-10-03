@@ -19,6 +19,7 @@ func TestWireCompatibility(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Encode the Ed25519 public key using its protobuf wire format.
 	pubBytes, err := MarshalPublicKey(pub)
 	if err != nil {
 		t.Fatal(err)
@@ -47,6 +48,7 @@ func TestWireCompatibility(t *testing.T) {
 		t.Fatal("round-trip failed for ed25519 public key")
 	}
 
+	// Verify the Ed25519 private key survives the protobuf round trip.
 	privBytes, err := MarshalPrivateKey(priv)
 	if err != nil {
 		t.Fatal(err)

@@ -32,26 +32,32 @@ func (s *testStore) Sync(context.Context) (bool, error) {
 }
 
 func TestBlockStoreGetSupportedFeaturesForwards(t *testing.T) {
+	// Prepare a store with native batch feature flags.
 	store := &testStore{
 		features: block.StoreFeatureNativeBatchPut | block.StoreFeatureNativeBatchExists,
 	}
 	server := NewBlockStore(store)
 
+	// Read the supported features through the RPC service.
 	resp, err := server.GetSupportedFeatures(context.Background(), &block_rpc.GetSupportedFeaturesRequest{})
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Verify the response preserves the store feature flags.
 	if got := resp.GetFeatures(); got != store.features {
 		t.Fatalf("expected features %v, got %v", store.features, got)
 	}
 }
 
 func TestBlockStorePutBlockBatchForwardsRefs(t *testing.T) {
+	// Prepare the batch store and its block references.
 	store := &testStore{}
 	server := NewBlockStore(store)
 	ref := &block.BlockRef{}
 	outRef := &block.BlockRef{}
 
+	// Send a batch containing block data and outgoing references.
 	resp, err := server.PutBlockBatch(context.Background(), &block_rpc.PutBlockBatchRequest{
 		Entries: []*block_rpc.PutBlockBatchEntry{{
 			Ref:  ref,
@@ -62,6 +68,8 @@ func TestBlockStorePutBlockBatchForwardsRefs(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Verify the batch response and forwarded outgoing references.
 	if errStr := resp.GetError(); errStr != "" {
 		t.Fatal(errStr)
 	}
@@ -74,13 +82,17 @@ func TestBlockStorePutBlockBatchForwardsRefs(t *testing.T) {
 }
 
 func TestBlockStoreSyncForwards(t *testing.T) {
+	// Prepare a store that reports a durability fence.
 	store := &testStore{fenced: true}
 	server := NewBlockStore(store)
 
+	// Sync the store through the RPC service.
 	resp, err := server.Sync(context.Background(), &block_rpc.SyncRequest{})
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Verify the service forwards the fence with one store sync.
 	if errStr := resp.GetError(); errStr != "" {
 		t.Fatal(errStr)
 	}

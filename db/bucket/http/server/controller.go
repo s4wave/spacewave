@@ -44,6 +44,7 @@ func NewController(b bus.Bus, conf *Config) *Controller {
 				return nil, nil, err
 			}
 
+			// Expose the selected bucket through the configured HTTP block handler.
 			srv := block_store_http_server.NewHTTPBlock(bkt, conf.GetWrite(), conf.GetPathPrefix(), conf.GetForceHashType())
 			var handler http.Handler = srv
 			return handler, bktRel, nil

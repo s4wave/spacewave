@@ -90,6 +90,7 @@ func (o *establishLinkResolver) Resolve(ctx context.Context, handler directive.R
 		handleErr(directive.ErrDirectiveDisposed)
 	})()
 
+	// Wait for resolver cancellation or a transport address lookup failure.
 	select {
 	case <-ctx.Done():
 		return context.Canceled

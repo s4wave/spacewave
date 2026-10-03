@@ -7,16 +7,19 @@ import (
 )
 
 func TestWriteLockNameDerivesDistinctNamesFromOnePrefix(t *testing.T) {
+	// Prepare object-store and keyed scopes sharing one lock-name prefix.
 	prefix := "spacewave/volume-a"
 	storeScope := coord.Scope{VolumeID: "volume-a", ObjectStoreID: "objects"}
 	keyedScope := coord.Scope{VolumeID: "volume-a", Key: "world-1"}
 	otherKeyedScope := coord.Scope{VolumeID: "volume-a", Key: "world-2"}
 
+	// Verify the object-store lock name includes its scope.
 	storeName := writeLockName(prefix, storeScope)
 	if storeName == prefix+"/coord/write" {
 		t.Fatalf("object store lock name does not include its scope: %q", storeName)
 	}
 
+	// Verify keyed scopes have distinct and reproducible lock names.
 	keyedName := writeLockName(prefix, keyedScope)
 	if keyedName == storeName {
 		t.Fatalf("keyed lock name %q collides with object store lock name", keyedName)

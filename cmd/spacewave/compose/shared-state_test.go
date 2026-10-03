@@ -37,6 +37,8 @@ func TestSharedSessionCatalogSurvivesEntrypointChange(t *testing.T) {
 	}
 	t.Cleanup(cliBus.Release)
 	cliBus.GetStaticResolver().AddFactory(session_controller.NewFactory(cliBus.GetBus()))
+
+	// Register the CLI Session and release its mounted catalog.
 	cliSessions, releaseCLI := openSharedStateSessions(t, ctx, cliBus.GetBus())
 	ref := &session.SessionRef{ProviderResourceRef: &provider.ProviderResourceRef{
 		ProviderId: "local", ProviderAccountId: "account", Id: "session",
@@ -61,11 +63,15 @@ func TestSharedSessionCatalogSurvivesEntrypointChange(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(releaseStorage)
+
+	// Mount the distribution Session volume on the host storage.
 	_, volumeRef, err := storage_volume.ExecVolumeController(ctx, distBus, entrypoint_state.NewVolumeConfig(default_storage.StorageID))
 	if err != nil {
 		t.Fatal(err)
 	}
 	t.Cleanup(volumeRef.Release)
+
+	// Read the CLI Session through the distribution catalog.
 	distSessions, releaseDist := openSharedStateSessions(t, ctx, distBus)
 	entries, err := distSessions.ListSessions(ctx)
 	if err != nil {
@@ -85,6 +91,8 @@ func TestSharedSessionCatalogSurvivesEntrypointChange(t *testing.T) {
 	if err := distBus.Close(); err != nil {
 		t.Fatal(err)
 	}
+
+	// Reopen the persisted catalog through a fresh CLI bus.
 	reopened, err := cli_entrypoint.BuildCliBus(ctx, le, "spacewave", root)
 	if err != nil {
 		t.Fatal(err)
@@ -93,6 +101,8 @@ func TestSharedSessionCatalogSurvivesEntrypointChange(t *testing.T) {
 	reopened.GetStaticResolver().AddFactory(session_controller.NewFactory(reopened.GetBus()))
 	reopenedSessions, releaseReopened := openSharedStateSessions(t, ctx, reopened.GetBus())
 	t.Cleanup(releaseReopened)
+
+	// Verify the CLI observes the desktop metadata change.
 	metadata, err := reopenedSessions.GetSessionMetadata(ctx, entry.GetSessionIndex())
 	if err != nil {
 		t.Fatal(err)

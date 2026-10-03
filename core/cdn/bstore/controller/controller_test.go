@@ -33,6 +33,7 @@ import (
 )
 
 func TestConfigValidation(t *testing.T) {
+	// Validate the CDN store configuration and parse its pointer lifetime.
 	valid := NewConfig("release-cdn", "01release", "https://cdn.example.invalid")
 	valid.PointerTtlDur = "5s"
 	valid.RangeCacheMaxBytes = 1024
@@ -50,6 +51,7 @@ func TestConfigValidation(t *testing.T) {
 }
 
 func TestControllerResolvesBlockStore(t *testing.T) {
+	// Start a controller bus with the CDN store factory registered.
 	ctx := context.Background()
 	b, sr, err := core_test.NewTestingBus(ctx, logrus.NewEntry(logrus.New()))
 	if err != nil {
@@ -57,6 +59,7 @@ func TestControllerResolvesBlockStore(t *testing.T) {
 	}
 	sr.AddFactory(NewFactory(b))
 
+	// Load the CDN block-store controller with its configured store identifier.
 	conf := NewConfig("release-cdn", "01release", "https://cdn.example.invalid")
 	_, _, ctrlRef, err := loader.WaitExecControllerRunning(ctx, b, resolver.NewLoadControllerWithConfig(conf), nil)
 	if err != nil {
@@ -64,6 +67,7 @@ func TestControllerResolvesBlockStore(t *testing.T) {
 	}
 	defer ctrlRef.Release()
 
+	// Resolve the CDN block store and verify its identifier.
 	store, _, storeRef, err := block_store.ExLookupFirstBlockStore(ctx, b, "release-cdn", false, nil)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -75,10 +79,12 @@ func TestControllerResolvesBlockStore(t *testing.T) {
 }
 
 func TestBlockStoreBuilderReleaseClosesCdnStore(t *testing.T) {
+	// Prepare the CDN block-store builder for release checks.
 	ctx := context.Background()
 	conf := NewConfig("release-cdn", "01release", "https://cdn.example.invalid")
 	builder := NewBlockStoreBuilder(logrus.NewEntry(logrus.New()), nil, conf)
 
+	// Build the CDN store and verify its decoded cache is active.
 	store, release, err := builder(ctx, nil)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -91,6 +97,7 @@ func TestBlockStoreBuilderReleaseClosesCdnStore(t *testing.T) {
 		t.Fatal("expected CDN store decoded cache before release")
 	}
 
+	// Release the CDN store and verify its decoded cache closes.
 	release()
 	if handle.cdnStore.GetDecodedBlockCache() != nil {
 		t.Fatal("release did not close CDN store decoded cache")
@@ -140,6 +147,7 @@ func (s *notifyingStore) waitPut(ctx context.Context) error {
 }
 
 func TestBlockStoreBuilderDurableIndexCacheSurvivesRestart(t *testing.T) {
+	// Prepare stable CDN identifiers and bound the cache restart test.
 	const (
 		spaceID = "01kpftest0000000000000003"
 		cacheID = "dist"
@@ -148,6 +156,7 @@ func TestBlockStoreBuilderDurableIndexCacheSurvivesRestart(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
+	// Pack a source block and encode the CDN root pointer.
 	data := []byte("bstore controller durable cache")
 	blockHash, err := hash.Sum(hash.HashType_HashType_SHA256, data)
 	if err != nil {
@@ -163,6 +172,8 @@ func TestBlockStoreBuilderDurableIndexCacheSurvivesRestart(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Publish the packed block through the encoded CDN root pointer.
 	pointer, err := (&cdn.CdnRootPointer{
 		SpaceId: spaceID,
 		Packs: []*packfile.PackfileEntry{{
@@ -177,6 +188,7 @@ func TestBlockStoreBuilderDurableIndexCacheSurvivesRestart(t *testing.T) {
 	}
 	pointer = []byte(packedmsg.EncodePackedMessage(pointer))
 
+	// Serve the CDN pointer and pack ranges while recording cache misses.
 	var reqMu sync.Mutex
 	var rangeRequests int
 	var packBlocked bool
@@ -229,6 +241,7 @@ func TestBlockStoreBuilderDurableIndexCacheSurvivesRestart(t *testing.T) {
 	}))
 	defer httpServer.Close()
 
+	// Start a storage testbed for the durable CDN cache.
 	tb, err := testbed.NewTestbed(ctx, logrus.NewEntry(logrus.New()), testbed.WithVolumeConfig(
 		&volume_kvtxinmem.Config{
 			VolumeConfig: &volume_controller.Config{
@@ -242,6 +255,7 @@ func TestBlockStoreBuilderDurableIndexCacheSurvivesRestart(t *testing.T) {
 	}
 	defer tb.Release()
 
+	// Register a cache block store that signals completed writes.
 	cacheStoreOps := &notifyingStore{
 		StoreOps: tb.Volume,
 		putCh:    make(chan struct{}, 1),
@@ -264,6 +278,7 @@ func TestBlockStoreBuilderDurableIndexCacheSurvivesRestart(t *testing.T) {
 	}
 	defer cacheControllerRelease()
 
+	// Build the first CDN store with durable caching enabled.
 	conf := NewConfig("release-cdn", spaceID, httpServer.URL)
 	conf.CacheBlockStoreId = cacheID
 	conf.WritebackWindowBytes = 1 << 20
@@ -275,6 +290,8 @@ func TestBlockStoreBuilderDurableIndexCacheSurvivesRestart(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Fetch the CDN block and wait for durable cache writeback.
 	ref := &block.BlockRef{Hash: blockHash}
 	got, found, err := firstStore.GetBlock(ctx, ref)
 	if err != nil || !found || !bytes.Equal(got, data) {
@@ -284,6 +301,7 @@ func TestBlockStoreBuilderDurableIndexCacheSurvivesRestart(t *testing.T) {
 		t.Fatalf("wait for CDN writeback: %v", err)
 	}
 
+	// Read the saved pack index from the durable object store.
 	objHandle, _, objRef, err := volume.ExBuildObjectStoreAPI(
 		ctx,
 		tb.Bus,
@@ -304,6 +322,7 @@ func TestBlockStoreBuilderDurableIndexCacheSurvivesRestart(t *testing.T) {
 		t.Fatalf("durable pack index found=%v bytes=%d", indexFound, len(indexData))
 	}
 
+	// Block further pack ranges after the first store populates its cache.
 	reqMu.Lock()
 	firstRanges := rangeRequests
 	packBlocked = true
@@ -313,6 +332,7 @@ func TestBlockStoreBuilderDurableIndexCacheSurvivesRestart(t *testing.T) {
 	}
 	releaseFirst()
 
+	// Rebuild the CDN store and verify cached block retrieval.
 	secondStore, releaseSecond, err := NewBlockStoreBuilder(
 		logrus.NewEntry(logrus.New()),
 		tb.Bus,
@@ -326,6 +346,8 @@ func TestBlockStoreBuilderDurableIndexCacheSurvivesRestart(t *testing.T) {
 	if err != nil || !found || !bytes.Equal(got, data) {
 		t.Fatalf("restart cache read found=%v err=%v data=%q", found, err, got)
 	}
+
+	// Verify the restarted store avoided further CDN range requests.
 	reqMu.Lock()
 	restartRanges := rangeRequests
 	reqMu.Unlock()

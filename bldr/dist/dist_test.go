@@ -8,11 +8,13 @@ import (
 )
 
 func TestDistBucketConfigDoesNotWriteBackStaticFallbackBlocks(t *testing.T) {
+	// Build the Dist bucket configuration with its static fallback policy.
 	conf, err := NewDistBucketConfig("spacewave")
 	if err != nil {
 		t.Fatalf("NewDistBucketConfig failed: %v", err)
 	}
 
+	// Decode the lookup controller configuration for the fallback assertions.
 	lookup := &lookup_concurrent.Config{}
 	if err := lookup.UnmarshalVT(conf.GetLookup().GetController().GetConfig()); err != nil {
 		t.Fatalf("unmarshal lookup config failed: %v", err)

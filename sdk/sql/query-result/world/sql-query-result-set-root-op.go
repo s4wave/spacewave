@@ -45,9 +45,12 @@ func (o *SqlQueryResultSetRootOp) ApplyWorldOp(
 	ws world.WorldState,
 	sender peer.ID,
 ) (bool, error) {
+	// Validate the set-root operation before accessing its World object.
 	if err := o.Validate(); err != nil {
 		return false, err
 	}
+
+	// Require a SQL query result object and retain it for the root update.
 	if err := world_types.CheckObjectType(ctx, ws, o.GetObjectKey(), s4wave_sql_query_result.SqlQueryResultTypeID); err != nil {
 		return false, err
 	}
@@ -56,9 +59,12 @@ func (o *SqlQueryResultSetRootOp) ApplyWorldOp(
 	if err != nil {
 		return false, err
 	}
+
+	// Apply the result root before synchronizing its graph relationships.
 	if sysErr, err := o.ApplyWorldObjectOp(ctx, le, obj, sender); err != nil || sysErr {
 		return sysErr, err
 	}
+
 	return false, s4wave_sql_query_result.SyncResultGraphQuads(ctx, ws, o.GetObjectKey())
 }
 
@@ -69,6 +75,7 @@ func (o *SqlQueryResultSetRootOp) ApplyWorldObjectOp(
 	os world.ObjectState,
 	_ peer.ID,
 ) (bool, error) {
+	// Validate the set-root operation and its target object.
 	if err := o.Validate(); err != nil {
 		return false, err
 	}
@@ -78,6 +85,8 @@ func (o *SqlQueryResultSetRootOp) ApplyWorldObjectOp(
 	if os.GetKey() != o.GetObjectKey() {
 		return false, errors.Errorf("sql/query-result: op target %s does not match object %s", o.GetObjectKey(), os.GetKey())
 	}
+
+	// Advance the SQL query result object to the requested root.
 	_, err := os.SetRootRef(ctx, o.GetRootRef())
 	return false, err
 }

@@ -13,20 +13,22 @@ import (
 
 // TestTransaction tests the basic transaction mechanics.
 func TestTransaction(t *testing.T) {
+	// Start a testbed with debug logging.
 	ctx := context.Background()
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
-
 	tb, err := testbed.NewTestbed(ctx, le)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+	defer tb.Release()
 
+	// Use the testbed volume.
 	vol := tb.Volume
 	volID := vol.GetID()
 
-	// store the bucket
+	// Store the bucket config on the volume.
 	bucketID := "test-bucket-1"
 	_, _, bc, err := vol.ApplyBucketConfig(ctx, &bucket.Config{
 		Id:  bucketID,
@@ -38,6 +40,7 @@ func TestTransaction(t *testing.T) {
 	t.Log(volID)
 	_ = bc
 
+	// Open a read-write handle to the bucket.
 	bk, bhRel, err := bucket_lookup.StartBucketRWOperation(
 		ctx,
 		tb.Bus,
@@ -51,9 +54,10 @@ func TestTransaction(t *testing.T) {
 	}
 	defer bhRel()
 
-	// store the root block.
+	// Store the example block and a root block whose sub-block points to it.
 	var rootBlock *block.BlockRef
 	if err := func() (err error) {
+		// Put the example block, then the root that references it.
 		rb := &Root{}
 		rb.ExampleSubBlock = &SubBlock{}
 		ex := &Example{Msg: "hello world"}
@@ -67,7 +71,7 @@ func TestTransaction(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	// br is the root block ref
+	// Open a transaction at the root block and fetch its data.
 	t.Logf("root block: %s", rootBlock.MarshalString())
 	tr, cr := block.NewTransaction(bk, nil, rootBlock, nil)
 	data, found, err := cr.Fetch(ctx)
@@ -75,6 +79,8 @@ func TestTransaction(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 	t.Logf("data fetched: found (%v): %x", found, data)
+
+	// Decode the root and check that it carries the sub-block.
 	nri, err := cr.Unmarshal(
 		ctx,
 		func() block.Block {
@@ -89,12 +95,15 @@ func TestTransaction(t *testing.T) {
 		t.Fail()
 	}
 
+	// Decode the sub-block.
 	sbPtr := cr.FollowSubBlock(1)
 	sbi, err := sbPtr.Unmarshal(ctx, nil)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	sb := sbi.(*SubBlock)
+
+	// Follow the sub-block's pointer to the example block and check its message.
 	cptr := sbPtr.FollowRef(1, sb.GetExamplePtr())
 	exi, err := cptr.Unmarshal(
 		ctx,
@@ -111,19 +120,20 @@ func TestTransaction(t *testing.T) {
 	if ex.GetMsg() != "hello world" {
 		t.FailNow()
 	}
+
+	// Change the example message and write the transaction.
 	ex.Msg = "test data"
 	cptr.SetBlock(ex, true)
 	blockRef, _, err := tr.Write(ctx, true)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-
 	t.Logf(
 		"block put: %s",
 		blockRef.MarshalString(),
 	)
 
-	// test a new tx
+	// Read the written root in a new transaction.
 	_, ncr := block.NewTransaction(
 		bk,
 		nil,
@@ -134,6 +144,8 @@ func TestTransaction(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Follow the new root to the example block and check the changed message.
 	sbcr := ncr.FollowSubBlock(1)
 	nncr := sbcr.FollowRef(1, ri.(*Root).GetExampleSubBlock().GetExamplePtr())
 	eei, err := nncr.Unmarshal(ctx, func() block.Block { return &Example{} })
@@ -145,18 +157,21 @@ func TestTransaction(t *testing.T) {
 	}
 	t.Log("read written data correctly")
 
-	// attempt to set a reference to a subblock from a new block
+	// Open another transaction at the written root.
 	_, cr = block.NewTransaction(bk, nil, blockRef, nil)
 	ri, err = cr.Unmarshal(ctx, NewRootBlock)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	_ = ri
+
+	// Reference the sub-block from a new detached block.
 	sbcr = cr.FollowSubBlock(1)
 	ncr = cr.Detach(false)
 	ncr.SetBlock(NewSubBlockBlock, false)
 	ncr.SetRef(1, sbcr)
-	// expect the sub-block to be unlinked from the block.
+
+	// Expect the sub-block to be unlinked from the block.
 	if sbcr.IsSubBlock() {
 		t.Fail()
 	}

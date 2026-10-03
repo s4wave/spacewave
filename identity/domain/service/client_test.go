@@ -10,6 +10,7 @@ import (
 
 // TestValidateLookupEntity tests validating a looked-up entity.
 func TestValidateLookupEntity(t *testing.T) {
+	// Create a signed entity for the requested domain and entity IDs.
 	privKey, _, err := crypto.GenerateEd25519Key(nil)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -19,6 +20,8 @@ func TestValidateLookupEntity(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Verify entity validation accepts the fixture and rejects missing or mismatched identities.
 	if err := ValidateLookupEntity(ent, domainID, entityID); err != nil {
 		t.Fatal(err.Error())
 	}

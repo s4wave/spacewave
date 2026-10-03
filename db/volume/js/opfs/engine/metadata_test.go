@@ -6,6 +6,7 @@ import "testing"
 
 // TestMetadataTransactionIgnoresBlockAndGCChanges preserves the metadata view.
 func TestMetadataTransactionIgnoresBlockAndGCChanges(t *testing.T) {
+	// Open a durable engine and define metadata transaction writes.
 	ctx := t.Context()
 	e, err := Open(ctx, newDiskBackend(t))
 	if err != nil {
@@ -14,6 +15,7 @@ func TestMetadataTransactionIgnoresBlockAndGCChanges(t *testing.T) {
 	defer e.Close()
 	store := e.MetadataStore()
 	writeMetadata := func(key string) {
+		// Commit one metadata record with transaction cleanup.
 		t.Helper()
 		tx, err := store.NewTransaction(ctx, true)
 		if err != nil {
@@ -27,6 +29,8 @@ func TestMetadataTransactionIgnoresBlockAndGCChanges(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
+
+	// Retain a metadata transaction that observes the saved record.
 	writeMetadata("saved")
 	tx, err := store.NewTransaction(ctx, true)
 	if err != nil {

@@ -51,6 +51,7 @@ func (b *mockBucket) GetSupportedFeatures() block.StoreFeature {
 
 // BeginReadOperation opens a read scope on the inner store.
 func (b *mockBucket) BeginReadOperation(ctx context.Context) (block.StoreOps, func(), error) {
+	// Open the inner read scope and return a bucket copy bound to it.
 	store, release, err := b.store.BeginReadOperation(ctx)
 	if err != nil {
 		return nil, nil, err

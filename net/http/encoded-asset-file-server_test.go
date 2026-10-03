@@ -57,9 +57,12 @@ func TestEncodedAssetFileServerPlainOpensOnce(t *testing.T) {
 
 // TestEncodedAssetFileServerMissingModuleKeepsErrorType checks HTTP error metadata.
 func TestEncodedAssetFileServerMissingModuleKeepsErrorType(t *testing.T) {
+	// Request a missing module from an empty asset filesystem.
 	handler := NewEncodedAssetFileServer(http.FS(fstest.MapFS{}))
 	rw := httptest.NewRecorder()
 	handler.ServeHTTP(rw, httptest.NewRequest(http.MethodGet, "/missing.mjs", nil))
+
+	// Verify the missing asset response preserves ordinary HTTP error metadata.
 	if rw.Code != http.StatusNotFound {
 		t.Fatalf("status = %d, want 404", rw.Code)
 	}
@@ -175,10 +178,13 @@ func TestEncodedAssetFileServerModuleContentTypes(t *testing.T) {
 
 // TestEncodedAssetFileServerMissingGzipDoesNotSetEncodedHeaders checks error metadata.
 func TestEncodedAssetFileServerMissingGzipDoesNotSetEncodedHeaders(t *testing.T) {
+	// Request a missing compressed asset from an empty filesystem.
 	handler := NewEncodedAssetFileServer(http.FS(fstest.MapFS{}))
 	rw := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "https://spacewave.local/missing.wasm.gz", nil)
 	handler.ServeHTTP(rw, req)
+
+	// Verify the missing asset response preserves ordinary HTTP error metadata.
 	if rw.Code != http.StatusNotFound {
 		t.Fatalf("status = %d, want 404", rw.Code)
 	}

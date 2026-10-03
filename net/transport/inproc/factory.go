@@ -44,9 +44,11 @@ func (t *Factory) Construct(
 	conf config.Config,
 	opts controller.ConstructOpts,
 ) (controller.Controller, error) {
+	// Prepare the logger and in-process transport configuration.
 	le := opts.GetLogger()
 	cc := conf.(*Config)
 
+	// Validate the peer constraint before constructing the transport controller.
 	peerIDConstraint, err := cc.ParseTransportPeerID()
 	if err != nil {
 		return nil, err

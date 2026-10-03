@@ -128,6 +128,7 @@ func (d *buildChannelSubscription) GetName() string {
 // This should be something like param1="test", param2="test".
 // This is not necessarily unique, and is primarily intended for display.
 func (d *buildChannelSubscription) GetDebugVals() directive.DebugValues {
+	// Describe the subscription channel and signing peer for diagnostics.
 	vals := directive.DebugValues{}
 	vals["channel-id"] = []string{d.BuildChannelSubscriptionChannelID()}
 	pkey := d.BuildChannelSubscriptionPrivKey()
@@ -137,6 +138,7 @@ func (d *buildChannelSubscription) GetDebugVals() directive.DebugValues {
 			vals["peer-id"] = []string{pid.String()}
 		}
 	}
+
 	return vals
 }
 

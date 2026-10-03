@@ -57,11 +57,13 @@ func (c *Config) ApplyDefaults(protocolIds []protocol.ID) *Config {
 
 // BuildServer constructs the server from the args.
 func (c *Config) BuildServer(b bus.Bus, le *logrus.Entry, info *controller.Info, registerFns []RegisterFn) (*Server, error) {
+	// Resolve the configured protocols before constructing the SRPC server.
 	protocolIDs, err := c.ParseProtocolIDs()
 	if err != nil {
 		return nil, err
 	}
 
+	// Resolve the peer filter used by the SRPC server.
 	peerIDs, err := c.ParsePeerIDs()
 	if err != nil {
 		return nil, err

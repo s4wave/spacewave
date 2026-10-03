@@ -63,6 +63,7 @@ type desktopDistributionRun struct {
 
 // TIER: nightly
 func TestMacOSPackagedDesktopDistributionLifecycleGate(t *testing.T) {
+	// Require an enabled macOS desktop distribution run.
 	if !desktopDistributionGateEnabled() {
 		t.Skipf("set %s=true to run the macOS desktop distribution lifecycle gate; current GOOS=%s", desktopDistributionGateEnv, runtime.GOOS)
 	}
@@ -70,6 +71,7 @@ func TestMacOSPackagedDesktopDistributionLifecycleGate(t *testing.T) {
 		t.Skipf("macOS desktop distribution gate only runs on darwin; got %s", runtime.GOOS)
 	}
 
+	// Locate the checkout and create the distribution evidence directory.
 	repoRoot, err := gitroot.FindRepoRoot()
 	if err != nil {
 		t.Fatalf("find repo root: %v", err)
@@ -80,6 +82,7 @@ func TestMacOSPackagedDesktopDistributionLifecycleGate(t *testing.T) {
 	}
 	t.Logf("desktop distribution gate artifacts: %s", artifactDir)
 
+	// Require enough free memory before packaging the desktop application.
 	vmStat, minFreeBytes, err := checkDesktopDistributionFreeMemory(artifactDir)
 	if err != nil {
 		t.Fatalf("check macOS free memory before packaging: %v", err)
@@ -90,6 +93,7 @@ func TestMacOSPackagedDesktopDistributionLifecycleGate(t *testing.T) {
 		t.Skipf("vm_stat freeable memory %d bytes is below %s=%d; skipping desktop distribution build on shared Mac", freeBytes, desktopDistributionMinFreeBytesEnv, minFreeBytes)
 	}
 
+	// Create an isolated application state root with cleanup.
 	stateRoot, err := createDesktopDistributionStateRoot()
 	if err != nil {
 		t.Fatalf("create desktop distribution state root: %v", err)
@@ -101,6 +105,7 @@ func TestMacOSPackagedDesktopDistributionLifecycleGate(t *testing.T) {
 		}
 	})
 
+	// Build or reuse the packaged desktop application.
 	pkg, err := getDesktopDistributionPackagedApp(t, repoRoot, artifactDir)
 	if err != nil {
 		t.Fatal(err)
@@ -110,6 +115,7 @@ func TestMacOSPackagedDesktopDistributionLifecycleGate(t *testing.T) {
 	buildLogPath := pkg.BuildLogPath
 	buildTailPath := pkg.BuildTailPath
 
+	// Launch the packaged application and write a persistent state sentinel.
 	sentinelPath := filepath.Join(stateRoot, "spacewave-data", "desktop-distribution-sentinel.txt")
 	sentinelBody := "spacewave desktop distribution gate sentinel\n"
 	initial, err := runDesktopDistributionLaunch(t, executablePath, stateRoot, artifactDir, "initial", func() error {
@@ -118,6 +124,8 @@ func TestMacOSPackagedDesktopDistributionLifecycleGate(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Relaunch the packaged application and verify the state sentinel survives.
 	relaunched, err := runDesktopDistributionLaunch(t, executablePath, stateRoot, artifactDir, "relaunch", nil)
 	if err != nil {
 		t.Fatal(err)
@@ -130,6 +138,7 @@ func TestMacOSPackagedDesktopDistributionLifecycleGate(t *testing.T) {
 		t.Fatalf("sentinel contents changed after relaunch: got %q", gotSentinel)
 	}
 
+	// Write the desktop distribution lifecycle evidence.
 	breadcrumbPath, err := writeDesktopDistributionBreadcrumbs(
 		artifactDir,
 		appPath,
@@ -160,10 +169,13 @@ func createDesktopDistributionStateRoot() (string, error) {
 }
 
 func checkDesktopDistributionFreeMemory(artifactDir string) (*desktopDistributionVMStat, int64, error) {
+	// Resolve the minimum memory required for desktop packaging.
 	minFreeBytes, err := resolveDesktopDistributionMinFreeBytes()
 	if err != nil {
 		return nil, 0, err
 	}
+
+	// Capture macOS memory statistics and preserve the raw evidence.
 	cmd := exec.Command("vm_stat")
 	out, err := cmd.CombinedOutput()
 	if err != nil {
@@ -173,6 +185,8 @@ func checkDesktopDistributionFreeMemory(artifactDir string) (*desktopDistributio
 	if err := os.WriteFile(vmStatPath, out, 0o644); err != nil {
 		return nil, 0, fmt.Errorf("write vm_stat artifact: %w", err)
 	}
+
+	// Decode the captured memory statistics for the packaging decision.
 	stat, err := parseVMStat(string(out))
 	if err != nil {
 		return nil, 0, err
@@ -181,6 +195,7 @@ func checkDesktopDistributionFreeMemory(artifactDir string) (*desktopDistributio
 }
 
 func resolveDesktopDistributionMinFreeBytes() (int64, error) {
+	// Resolve and validate the configured minimum free memory.
 	raw := strings.TrimSpace(os.Getenv(desktopDistributionMinFreeBytesEnv))
 	if raw == "" {
 		return defaultDesktopDistributionMinFreeMem, nil
@@ -200,6 +215,7 @@ func (s *desktopDistributionVMStat) FreeableBytes() int64 {
 }
 
 func parseVMStat(raw string) (*desktopDistributionVMStat, error) {
+	// Decode page size and memory counts from macOS memory statistics.
 	var pageSize int64
 	var pagesFree int64
 	var pagesInactive int64
@@ -256,6 +272,7 @@ func parseVMStat(raw string) (*desktopDistributionVMStat, error) {
 }
 
 func parseVMStatPageCount(line string, prefix string) (int64, error) {
+	// Decode a formatted memory page count.
 	pagesRaw := strings.TrimSpace(strings.TrimPrefix(line, prefix))
 	pagesRaw = strings.TrimSuffix(pagesRaw, ".")
 	pagesRaw = strings.ReplaceAll(pagesRaw, ",", "")
@@ -267,6 +284,7 @@ func parseVMStatPageCount(line string, prefix string) (int64, error) {
 }
 
 func runDesktopDistributionPackaging(t *testing.T, repoRoot string, artifactDir string) (string, string, error) {
+	// Open the desktop packaging log for the calling test.
 	t.Helper()
 	logPath := filepath.Join(artifactDir, "macos-packaging.log")
 	logFile, err := os.Create(logPath)
@@ -275,9 +293,11 @@ func runDesktopDistributionPackaging(t *testing.T, repoRoot string, artifactDir 
 	}
 	defer logFile.Close()
 
+	// Bound the desktop packaging process lifetime.
 	ctx, cancel := context.WithTimeout(context.Background(), desktopDistributionBuildTimeout)
 	defer cancel()
 
+	// Build, stage, and package the desktop application with ad hoc signing.
 	if err := cleanDesktopDistributionReleaseOutputs(repoRoot); err != nil {
 		return logPath, "", err
 	}
@@ -331,6 +351,7 @@ func runDesktopDistributionPackaging(t *testing.T, repoRoot string, artifactDir 
 		return logPath, "", fmt.Errorf("%w\n%s", err, readTailForError(logPath))
 	}
 
+	// Preserve the desktop packaging log tail.
 	tailPath := filepath.Join(artifactDir, "macos-packaging-tail.txt")
 	if err := writeLogTail(logPath, tailPath); err != nil {
 		return logPath, "", fmt.Errorf("write packaging log tail: %w", err)
@@ -365,12 +386,15 @@ func runDesktopDistributionPackagingCommand(
 	args []string,
 	env []string,
 ) error {
+	// Require packaging arguments and record the command in its log.
 	if len(args) == 0 {
 		return errors.New("packaging command has no args")
 	}
 	if _, err := fmt.Fprintf(logFile, "\n=== %s: %s ===\n", name, strings.Join(args, " ")); err != nil {
 		return err
 	}
+
+	// Run the packaging command in the checkout with its configured environment.
 	// #nosec G204 -- the package gate runs only the fixed command table above.
 	cmd := exec.CommandContext(ctx, args[0], args[1:]...)
 	cmd.Dir = repoRoot
@@ -384,6 +408,7 @@ func runDesktopDistributionPackagingCommand(
 }
 
 func stageDesktopDistributionRuntimeBinary(repoRoot string) error {
+	// Stage the desktop runtime binary with executable permissions.
 	srcBin := filepath.Join(
 		repoRoot,
 		".bldr",
@@ -407,6 +432,7 @@ func stageDesktopDistributionRuntimeBinary(repoRoot string) error {
 }
 
 func copyDesktopDistributionFile(srcPath string, dstPath string) error {
+	// Copy distribution bytes while keeping the source open until the output closes.
 	src, err := os.Open(srcPath)
 	if err != nil {
 		return err
@@ -424,10 +450,12 @@ func copyDesktopDistributionFile(srcPath string, dstPath string) error {
 }
 
 func getDesktopDistributionPackagedApp(t *testing.T, repoRoot string, artifactDir string) (*desktopDistributionPackage, error) {
+	// Serialize packaged application lookup for the calling test.
 	t.Helper()
 	desktopDistributionPackageCache.Lock()
 	defer desktopDistributionPackageCache.Unlock()
 
+	// Reuse a cached packaged application only when its binary and signature remain valid.
 	if desktopDistributionPackageCache.pkg != nil {
 		if _, err := os.Stat(desktopDistributionPackageCache.pkg.ExecutablePath); err == nil {
 			if err := verifyDarwinCodeSignature(desktopDistributionPackageCache.pkg.AppPath); err != nil {
@@ -438,6 +466,7 @@ func getDesktopDistributionPackagedApp(t *testing.T, repoRoot string, artifactDi
 		desktopDistributionPackageCache.pkg = nil
 	}
 
+	// Package the desktop application and cache its verified executable.
 	buildLogPath, buildTailPath, err := runDesktopDistributionPackaging(t, repoRoot, artifactDir)
 	if err != nil {
 		return nil, err
@@ -467,8 +496,10 @@ func runDesktopDistributionLaunch(
 	name string,
 	afterReady func() error,
 ) (*desktopDistributionRun, error) {
+	// Attribute desktop launch failures to the calling test.
 	t.Helper()
 
+	// Prepare isolated application and Electron data directories.
 	spacewaveDataDir := filepath.Join(stateRoot, "spacewave-data")
 	electronUserDataDir := filepath.Join(stateRoot, "electron-user-data")
 	if err := os.MkdirAll(spacewaveDataDir, 0o755); err != nil {
@@ -478,6 +509,7 @@ func runDesktopDistributionLaunch(
 		return nil, fmt.Errorf("create BLDR_PLUGIN_STATE_PATH: %w", err)
 	}
 
+	// Preserve the desktop launch log tail when the launch attempt finishes.
 	logPath := filepath.Join(artifactDir, "desktop-distribution-"+name+".log")
 	tailPath := filepath.Join(artifactDir, "desktop-distribution-"+name+"-tail.txt")
 	defer func() {
@@ -486,6 +518,7 @@ func runDesktopDistributionLaunch(
 		}
 	}()
 
+	// Configure the packaged application process and its logs.
 	cmd := exec.Command(executablePath)
 	cmd.Dir = filepath.Dir(executablePath)
 	cmd.Env = append(os.Environ(),
@@ -496,6 +529,7 @@ func runDesktopDistributionLaunch(
 	)
 	cmd.SysProcAttr = processGroupAttr()
 
+	// Arrange process cleanup for any incomplete desktop launch.
 	waitStarted := false
 	defer func() {
 		if !waitStarted {
@@ -504,11 +538,13 @@ func runDesktopDistributionLaunch(
 		stopStateRootProcesses(stateRoot)
 	}()
 
+	// Start the packaged desktop process and retain its process ID.
 	if err := cmd.Start(); err != nil {
 		return nil, fmt.Errorf("start packaged desktop app %q: %w", executablePath, err)
 	}
 	pid := cmd.Process.Pid
 
+	// Wait for renderer readiness before applying the optional ready action.
 	readyCtx, readyCancel := context.WithTimeout(context.Background(), desktopDistributionReadyTimeout)
 	defer readyCancel()
 	readyMarker, err := waitForDesktopDistributionLogReady(readyCtx, logPath)
@@ -521,6 +557,7 @@ func runDesktopDistributionLaunch(
 		}
 	}
 
+	// Stop the desktop process and verify its process group is empty.
 	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), desktopDistributionShutdownTimeout)
 	defer shutdownCancel()
 	waitStarted = true
@@ -598,6 +635,7 @@ func writeLogTailIfPresent(srcPath string, dstPath string) error {
 }
 
 func readTailForError(path string) string {
+	// Read the available desktop log tail for failure diagnostics.
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return "unable to read log tail: " + err.Error()
@@ -622,6 +660,7 @@ func writeDesktopDistributionBreadcrumbs(
 	initial *desktopDistributionRun,
 	relaunched *desktopDistributionRun,
 ) (string, error) {
+	// Write paths and lifecycle proofs for both packaged desktop launches.
 	breadcrumbPath := filepath.Join(artifactDir, "desktop-distribution-lifecycle-breadcrumbs.txt")
 	lines := []string{
 		"gate=macos-packaged-desktop-distribution-lifecycle",

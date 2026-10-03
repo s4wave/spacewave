@@ -5,6 +5,7 @@ import "testing"
 // TestEnginePolicy prevents browser brands and unknown hosts from enabling the
 // Chromium optimization on WebKit or unsupported environments.
 func TestEnginePolicy(t *testing.T) {
+	// Cover browser engine tokens and hosts that must retain baseline policy.
 	for _, test := range []struct {
 		// name identifies the host variant.
 		name string
@@ -24,10 +25,13 @@ func TestEnginePolicy(t *testing.T) {
 		{"empty", "", EngineUnknown},
 	} {
 		t.Run(test.name, func(t *testing.T) {
+			// Verify the host user agent resolves to its conservative engine class.
 			engine := detectEngine(test.ua)
 			if engine != test.engine {
 				t.Fatalf("engine = %q, want %q", engine, test.engine)
 			}
+
+			// Verify Chromium alone enables batch existence checks and unknown features stay off.
 			environment := Environment{Engine: engine}
 			if got, want := environment.Enabled(BatchCopyExistence), test.engine == EngineChromium; got != want {
 				t.Fatalf("batch copy existence = %t, want %t", got, want)

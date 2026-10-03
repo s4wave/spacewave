@@ -72,6 +72,7 @@ func Check(ctx context.Context, s records.Store) error {
 
 // expectScan checks the records a prefix scan visits.
 func expectScan(ctx context.Context, s records.Store, prefix []byte, want ...string) error {
+	// Collect the records visited by the store's prefix scan.
 	var got []string
 	err := s.Scan(ctx, prefix, func(key, value []byte) error {
 		got = append(got, string(key)+"="+string(value))
@@ -80,9 +81,12 @@ func expectScan(ctx context.Context, s records.Store, prefix []byte, want ...str
 	if err != nil {
 		return err
 	}
+
+	// Verify the scanned records match the expected contents and order.
 	if !slices.Equal(got, want) {
 		return errors.Errorf("scan %q: %q, want %q", prefix, got, want)
 	}
+
 	return nil
 }
 

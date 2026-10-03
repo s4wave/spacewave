@@ -26,6 +26,7 @@ func NewConfig(blockStoreId, lowerBlockStoreID, upperBlockStoreID string, overla
 
 // Validate validates the configuration.
 func (c *Config) Validate() error {
+	// Require identifiers for the overlay and both backing block stores.
 	if c.GetBlockStoreId() == "" {
 		return block_store.ErrBlockStoreIDEmpty
 	}
@@ -35,6 +36,8 @@ func (c *Config) Validate() error {
 	if c.GetUpperBlockStoreId() == "" {
 		return errors.Wrap(block_store.ErrBlockStoreIDEmpty, "upper_block_store")
 	}
+
+	// Keep the overlay and its backing block stores distinct.
 	if c.GetLowerBlockStoreId() == c.GetUpperBlockStoreId() {
 		return errors.New("lower and upper block store cannot be the same")
 	}
@@ -44,12 +47,15 @@ func (c *Config) Validate() error {
 	if c.GetBlockStoreId() == c.GetUpperBlockStoreId() {
 		return errors.New("block store id and upper block store id cannot be the same")
 	}
+
+	// Validate the timeout and put options used by writeback.
 	if _, err := c.ParseWritebackTimeoutDur(); err != nil {
 		return errors.Wrap(err, "writeback_timeout_dur")
 	}
 	if err := c.GetWritebackPutOpts().Validate(); err != nil {
 		return errors.Wrap(err, "writeback_put_opts")
 	}
+
 	return nil
 }
 

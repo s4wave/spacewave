@@ -14,6 +14,7 @@ import (
 )
 
 func TestControllerOwnsProcessLifetimeHostRoot(t *testing.T) {
+	// Construct the plugin-host controller and arrange its cleanup.
 	ctrl := NewController(
 		logrus.NewEntry(logrus.New()),
 		nil,
@@ -25,6 +26,8 @@ func TestControllerOwnsProcessLifetimeHostRoot(t *testing.T) {
 			t.Fatalf("Close: %v", err)
 		}
 	}()
+
+	// Verify the host root provides its desktop tray and structured log registries.
 	root := ctrl.GetHostRoot()
 	if root == nil {
 		t.Fatal("expected host root")
@@ -35,6 +38,8 @@ func TestControllerOwnsProcessLifetimeHostRoot(t *testing.T) {
 	if root.GetStructuredLogs() == nil {
 		t.Fatal("expected structured log hub")
 	}
+
+	// Verify the host-root mux exposes the desktop tray resource service.
 	mux := root.GetMux()
 	query, ok := mux.(srpc.QueryableInvoker)
 	if !ok {
@@ -49,8 +54,8 @@ func TestControllerOwnsProcessLifetimeHostRoot(t *testing.T) {
 }
 
 func TestControllerAttachesOneHostLogrusHookPerBus(t *testing.T) {
+	// Create a shared controller bus with host logging enabled.
 	ctx := t.Context()
-
 	log := logrus.New()
 	log.SetOutput(io.Discard)
 	log.SetLevel(logrus.DebugLevel)
@@ -60,6 +65,7 @@ func TestControllerAttachesOneHostLogrusHookPerBus(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Create the first host controller and verify one logging hook is installed.
 	ctrlA := NewController(
 		le,
 		b,
@@ -70,6 +76,7 @@ func TestControllerAttachesOneHostLogrusHookPerBus(t *testing.T) {
 		t.Fatalf("host logrus hooks after first controller = %d, want 1", got)
 	}
 
+	// Create a second host controller and verify the bus still has one hook.
 	ctrlB := NewController(
 		le,
 		b,
@@ -80,20 +87,24 @@ func TestControllerAttachesOneHostLogrusHookPerBus(t *testing.T) {
 		t.Fatalf("host logrus hooks after second controller = %d, want 1", got)
 	}
 
+	// Open log views on both host roots to retain the shared event.
 	viewA := ctrlA.GetHostRoot().GetStructuredLogs().OpenView(nil, nil)
 	defer viewA.Release()
 	viewB := ctrlB.GetHostRoot().GetStructuredLogs().OpenView(nil, nil)
 	defer viewB.Release()
 
+	// Emit a structured host warning with plugin and instance fields.
 	le.WithFields(logrus.Fields{
 		"plugin-id":    "runner",
 		"instance-key": "main",
 		"attempt":      2,
 	}).Warn("host captured")
 
+	// Verify both host roots capture the shared warning event.
 	assertCapturedHostLogEvent(t, ctrlA.GetHostRoot().GetStructuredLogs().Snapshot(nil, nil))
 	assertCapturedHostLogEvent(t, ctrlB.GetHostRoot().GetStructuredLogs().Snapshot(nil, nil))
 
+	// Close both host controllers and verify the final close removes the hook.
 	if err := ctrlB.Close(); err != nil {
 		t.Fatalf("Close ctrlB: %v", err)
 	}
@@ -109,8 +120,8 @@ func TestControllerAttachesOneHostLogrusHookPerBus(t *testing.T) {
 }
 
 func TestControllerHostLogrusHookDoesNotRetainHistoryAfterViewRelease(t *testing.T) {
+	// Create a controller bus for log-history retention checks.
 	ctx := t.Context()
-
 	log := logrus.New()
 	log.SetOutput(io.Discard)
 	log.SetLevel(logrus.DebugLevel)
@@ -120,6 +131,7 @@ func TestControllerHostLogrusHookDoesNotRetainHistoryAfterViewRelease(t *testing
 		t.Fatal(err)
 	}
 
+	// Construct the host controller and arrange its cleanup.
 	ctrl := NewController(
 		le,
 		b,
@@ -132,6 +144,7 @@ func TestControllerHostLogrusHookDoesNotRetainHistoryAfterViewRelease(t *testing
 		}
 	}()
 
+	// Verify releasing the last log view drops the retained history.
 	hub := ctrl.GetHostRoot().GetStructuredLogs()
 	view := hub.OpenView(nil, nil)
 	defer view.Release()
@@ -144,6 +157,7 @@ func TestControllerHostLogrusHookDoesNotRetainHistoryAfterViewRelease(t *testing
 		t.Fatalf("retained events after view release = %d, want 0", got)
 	}
 
+	// Verify events emitted without a log view are absent after reopening.
 	le.Info("not retained after view release")
 	reopened := hub.OpenView(nil, nil)
 	defer reopened.Release()
@@ -155,8 +169,8 @@ func TestControllerHostLogrusHookDoesNotRetainHistoryAfterViewRelease(t *testing
 // assertCapturedHostLogEvent checks that state captured exactly the one host
 // log event the test emitted.
 func assertCapturedHostLogEvent(t *testing.T, state *plugin_host_logs.StructuredLogState) {
+	// Verify the captured host state contains one event from the expected plugin.
 	t.Helper()
-
 	events := state.GetEvents()
 	if len(events) != 1 {
 		t.Fatalf("captured events = %d, want 1", len(events))
@@ -168,6 +182,8 @@ func assertCapturedHostLogEvent(t *testing.T, state *plugin_host_logs.Structured
 	if event.GetInstanceKey() != "main" {
 		t.Fatalf("instance key = %q, want main", event.GetInstanceKey())
 	}
+
+	// Verify the captured event preserves its stream, severity, message and fields.
 	if event.GetStream() != plugin_host_logs.StructuredLogStream_STRUCTURED_LOG_STREAM_LOGGER {
 		t.Fatalf("stream = %s, want logger", event.GetStream())
 	}

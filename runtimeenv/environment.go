@@ -44,6 +44,7 @@ func (e Environment) Enabled(feature Feature) bool {
 // detectEngine recognizes engine tokens conservatively. iOS browser branding
 // alone must not enable Chromium performance policy.
 func detectEngine(userAgent string) Engine {
+	// Classify iOS browser tokens before recognizing desktop Chromium engines.
 	ua := strings.ToLower(userAgent)
 	if strings.Contains(ua, "iphone") || strings.Contains(ua, "ipad") || strings.Contains(ua, "ipod") {
 		if strings.Contains(ua, "applewebkit/") {
@@ -51,6 +52,8 @@ func detectEngine(userAgent string) Engine {
 		}
 		return EngineUnknown
 	}
+
+	// Recognize desktop engine tokens and preserve unknown hosts.
 	if strings.Contains(ua, "chrome/") || strings.Contains(ua, "chromium/") {
 		return EngineChromium
 	}

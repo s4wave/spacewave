@@ -10,11 +10,13 @@ import (
 )
 
 func TestHashMapKVTX(t *testing.T) {
+	// Prepare the transaction conformance test context and logger.
 	ctx := context.Background()
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
 
+	// Exercise the hashmap store through the shared transaction conformance suite.
 	m := NewHashmap[[]byte]()
 	store := NewHashmapKvtx(m)
 	store = kvtx_vlogger.NewVLogger(le, store)

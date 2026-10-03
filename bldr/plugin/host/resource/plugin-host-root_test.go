@@ -40,6 +40,7 @@ func (c *testResourceClientContext) AddResource(mux srpc.Invoker, releaseFn func
 }
 
 func (c *testResourceClientContext) AddResourceValue(mux srpc.Invoker, value any, releaseFn func()) (uint32, error) {
+	// Retain a new resource identifier with its mux, value and release callback.
 	c.nextID++
 	resourceID := c.nextID
 	c.muxes[resourceID] = mux
@@ -49,6 +50,7 @@ func (c *testResourceClientContext) AddResourceValue(mux srpc.Invoker, value any
 }
 
 func (c *testResourceClientContext) ReleaseResource(resourceID uint32) bool {
+	// Release the retained resource and remove its mock client records.
 	releaseFn := c.releases[resourceID]
 	if releaseFn == nil {
 		return false
@@ -114,6 +116,7 @@ func (s *testWatchStream) SendAndClose(resp *desktop_tray.WatchDesktopTrayRespon
 }
 
 func TestPluginHostRootReportsInitialCapabilityRegistrationTerminalState(t *testing.T) {
+	// Verify completed capability registration reports success when the plugin root is released.
 	ctx := t.Context()
 	hostRoot := plugin_host_root.NewRoot()
 	var completed []bool
@@ -142,6 +145,7 @@ func TestPluginHostRootReportsInitialCapabilityRegistrationTerminalState(t *test
 		t.Fatalf("completion reports = %v, want [true]", completed)
 	}
 
+	// Verify releasing an incomplete plugin root reports unsuccessful registration.
 	completed = nil
 	pluginRoot = NewPluginHostRoot(
 		nil,
@@ -164,11 +168,13 @@ func TestPluginHostRootReportsInitialCapabilityRegistrationTerminalState(t *test
 }
 
 func TestPluginHostRootAccessDesktopTrayUsesProcessLifetimeRoot(t *testing.T) {
+	// Create a plugin root that accesses the process-lifetime desktop tray.
 	ctx := context.Background()
 	hostRoot := plugin_host_root.NewRoot()
 	pluginRoot := NewPluginHostRoot(nil, "test-plugin", "main", nil, nil, nil, hostRoot, "atoms", "volume", nil)
 	pluginClient := newTestResourceClientContext(ctx)
 
+	// Access the desktop tray and verify its plugin resource exposes registration.
 	resp, err := pluginRoot.AccessDesktopTray(
 		resource_server.WithResourceClientContext(ctx, pluginClient),
 		&sdk_plugin_host.AccessDesktopTrayRequest{},
@@ -188,6 +194,7 @@ func TestPluginHostRootAccessDesktopTrayUsesProcessLifetimeRoot(t *testing.T) {
 		t.Fatal("expected desktop tray service on plugin-accessible resource")
 	}
 
+	// Register a desktop tray entry directly on the process-lifetime root.
 	regClient := newTestResourceClientContext(ctx)
 	regResp, err := hostRoot.GetDesktopTray().RegisterDesktopTrayEntry(
 		resource_server.WithResourceClientContext(ctx, regClient),
@@ -204,12 +211,14 @@ func TestPluginHostRootAccessDesktopTrayUsesProcessLifetimeRoot(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Verify the tray entry survives release of the accessing plugin root.
 	pluginRoot.Release()
 	state := snapshotDesktopTray(t, hostRoot.GetDesktopTray())
 	if len(state.GetEntries()) != 1 {
 		t.Fatalf("expected host root entry to survive plugin root release, got %d", len(state.GetEntries()))
 	}
 
+	// Release the tray registration and verify its entry disappears.
 	if !regClient.ReleaseResource(regResp.GetResourceId()) {
 		t.Fatal("expected registration release")
 	}
@@ -220,8 +229,8 @@ func TestPluginHostRootAccessDesktopTrayUsesProcessLifetimeRoot(t *testing.T) {
 }
 
 func snapshotDesktopTray(t *testing.T, tray *desktop_tray.DesktopTray) *desktop_tray.DesktopTrayState {
+	// Capture one desktop tray watch response and end the watch.
 	t.Helper()
-
 	ctx, cancel := context.WithCancel(context.Background())
 	strm := &testWatchStream{
 		ctx:    ctx,

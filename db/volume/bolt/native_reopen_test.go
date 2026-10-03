@@ -46,17 +46,20 @@ var nativeReopenRole = flag.String("spacewave-native-reopen-role", "", "native r
 // a manually attached SpaceResource and the public Space and World RPC services.
 // Full Session/Space mount and persisted Space resolution remain outside this slice.
 func TestBoltVolumeFreshProcessSpaceReopen(t *testing.T) {
+	// Dispatch the native reopen subprocess role.
 	if *nativeReopenRole != "" {
 		runNativeReopenRole(t, *nativeReopenRole)
 		return
 	}
 
+	// Prepare the shared database and cleanup marker paths.
 	dir := t.TempDir()
 	boltPath := filepath.Join(dir, "space-reopen.db")
 	metadataPath := filepath.Join(dir, "seed-metadata")
 	seedClosedPath := filepath.Join(dir, "seed-closed")
 	reopenClosedPath := filepath.Join(dir, "reopen-closed")
 
+	// Seed the database and verify its metadata and cleanup marker.
 	seed := nativeReopenCommand(t, "seed", boltPath, "", "", metadataPath, seedClosedPath)
 	if err := seed.Run(); err != nil {
 		t.Fatalf("seed failed: %v\n%s", err, cmdOutput(seed))
@@ -72,6 +75,7 @@ func TestBoltVolumeFreshProcessSpaceReopen(t *testing.T) {
 		t.Fatalf("seed cleanup marker: %v", err)
 	}
 
+	// Reopen the database and verify the subprocess result and cleanup.
 	reopen := nativeReopenCommand(t, "reopen", boltPath, metadata["volume_id"], metadata["controller_id"], "", reopenClosedPath)
 	if err := reopen.Run(); err != nil {
 		t.Fatalf("reopen failed: %v\n%s", err, cmdOutput(reopen))
@@ -94,8 +98,10 @@ func nativeReopenCommand(
 	metadataPath string,
 	closedPath string,
 ) *exec.Cmd {
+	// Identify failures at the native reopen command caller.
 	t.Helper()
 
+	// Configure the native reopen subprocess and capture its output.
 	cmd := exec.Command(os.Args[0], "-test.run=^TestBoltVolumeFreshProcessSpaceReopen$", "-test.v", "-spacewave-native-reopen-role="+role) //nolint:gosec
 	var output bytes.Buffer
 	cmd.Stdout = &output
@@ -111,8 +117,10 @@ func nativeReopenCommand(
 }
 
 func runNativeReopenRole(t *testing.T, role string) {
+	// Identify failures at the native reopen role caller.
 	t.Helper()
 
+	// Start the subprocess context and record the reopen start time.
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	var started time.Time
@@ -120,6 +128,7 @@ func runNativeReopenRole(t *testing.T, role string) {
 		started = time.Now()
 	}
 
+	// Open the native environment and record its completed cleanup.
 	env, err := newNativeReopenEnv(ctx, os.Getenv(nativeReopenPathEnv))
 	if err != nil {
 		t.Fatal(err)
@@ -134,9 +143,11 @@ func runNativeReopenRole(t *testing.T, role string) {
 		}
 	}()
 
+	// Connect the native environment to the resource client.
 	resClient, cleanup := resource_testbed.SetupResourceClient(ctx, t, env.tb)
 	clientCleanup = cleanup
 
+	// Seed or read the native database for the selected role.
 	switch role {
 	case "seed":
 		runNativeReopenSeed(t, ctx, env, resClient)
@@ -194,6 +205,7 @@ func (e *nativeReopenEnv) Release(clientCleanup func()) {
 }
 
 func attachNativeSpaceResource(ctx context.Context, t *testing.T, env *nativeReopenEnv, resClient *resource_client.Client) resource_client.ResourceRef {
+	// Build and attach the native Space resource to the client.
 	t.Helper()
 	spaceRef := &sobject.SharedObjectRef{
 		ProviderResourceRef: &provider.ProviderResourceRef{
@@ -223,47 +235,63 @@ func attachNativeSpaceResource(ctx context.Context, t *testing.T, env *nativeReo
 }
 
 func runNativeReopenSeed(t *testing.T, ctx context.Context, env *nativeReopenEnv, resClient *resource_client.Client) {
+	// Attach the Space resource and obtain its RPC client.
 	spaceRef := attachNativeSpaceResource(ctx, t, env, resClient)
 	spaceClient, err := spaceRef.GetClient()
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Access the Space World through its RPC service.
 	spaceSvc := s4wave_space.NewSRPCSpaceResourceServiceClient(spaceClient)
 	worldResp, err := spaceSvc.AccessWorld(ctx, &s4wave_space.AccessWorldRequest{})
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Obtain the World engine RPC client.
 	worldRef := resClient.CreateResourceReference(worldResp.GetResourceId())
 	worldClient, err := worldRef.GetClient()
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Open a writable World transaction through the engine.
 	engineSvc := s4wave_world.NewSRPCEngineResourceServiceClient(worldClient)
 	txResp, err := engineSvc.NewTransaction(ctx, &s4wave_world.NewTransactionRequest{Write: true})
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Obtain the World transaction RPC client.
 	txRef := resClient.CreateResourceReference(txResp.GetResourceId())
 	txClient, err := txRef.GetClient()
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Create the fixed World object through the transaction.
 	worldTxSvc := s4wave_world.NewSRPCWorldStateResourceServiceClient(txClient)
 	objResp, err := worldTxSvc.CreateObject(ctx, &s4wave_world.CreateObjectRequest{ObjectKey: nativeReopenObjectKey})
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Commit the object and release its transaction resources.
 	if _, err := s4wave_world.NewSRPCTxResourceServiceClient(txClient).Commit(ctx, &s4wave_world.CommitRequest{}); err != nil {
 		t.Fatal(err)
 	}
 	releaseResource(resClient, objResp.GetResourceId())
 	txRef.Release()
+
+	// Sync the World engine and release the World and Space references.
 	if _, err := engineSvc.Sync(ctx, &s4wave_world.SyncRequest{}); err != nil {
 		t.Fatal(err)
 	}
 	worldRef.Release()
 	spaceRef.Release()
 
+	// Save the seed controller and volume identities for the reopen process.
 	metadata := fmt.Sprintf(
 		"controller_id=%s\tvolume_id=%s\n",
 		nativeReopenCompiledControllerID(env.tb),
@@ -275,6 +303,7 @@ func runNativeReopenSeed(t *testing.T, ctx context.Context, env *nativeReopenEnv
 }
 
 func runNativeReopenRead(t *testing.T, ctx context.Context, env *nativeReopenEnv, resClient *resource_client.Client) string {
+	// Verify the reopened controller and volume identities.
 	if got, want := nativeReopenCompiledControllerID(env.tb), os.Getenv(nativeReopenExpectedCtrlEnv); got != want {
 		t.Fatalf("controller_id = %q, want %q", got, want)
 	}
@@ -282,31 +311,42 @@ func runNativeReopenRead(t *testing.T, ctx context.Context, env *nativeReopenEnv
 		t.Fatalf("volume_id = %q, want %q", got, want)
 	}
 
+	// Attach the reopened Space and obtain its RPC client.
 	spaceRef := attachNativeSpaceResource(ctx, t, env, resClient)
 	spaceClient, err := spaceRef.GetClient()
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Access the reopened World through the Space RPC service.
 	spaceSvc := s4wave_space.NewSRPCSpaceResourceServiceClient(spaceClient)
 	worldResp, err := spaceSvc.AccessWorld(ctx, &s4wave_space.AccessWorldRequest{})
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Obtain the reopened World engine RPC client.
 	worldRef := resClient.CreateResourceReference(worldResp.GetResourceId())
 	worldClient, err := worldRef.GetClient()
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Open a read transaction on the reopened World.
 	engineSvc := s4wave_world.NewSRPCEngineResourceServiceClient(worldClient)
 	txResp, err := engineSvc.NewTransaction(ctx, &s4wave_world.NewTransactionRequest{})
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Obtain the reopened World transaction RPC client.
 	txRef := resClient.CreateResourceReference(txResp.GetResourceId())
 	txClient, err := txRef.GetClient()
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Read and verify the fixed object in the reopened World.
 	worldTxSvc := s4wave_world.NewSRPCWorldStateResourceServiceClient(txClient)
 	obj, err := worldTxSvc.GetObject(ctx, &s4wave_world.GetObjectRequest{ObjectKey: nativeReopenObjectKey})
 	if err != nil {
@@ -315,6 +355,8 @@ func runNativeReopenRead(t *testing.T, ctx context.Context, env *nativeReopenEnv
 	if !obj.GetFound() || obj.GetObjectKey() != nativeReopenObjectKey {
 		t.Fatalf("fixed object read = found:%v key:%q", obj.GetFound(), obj.GetObjectKey())
 	}
+
+	// Preserve the observed key and release its resource references.
 	observedAnswer := obj.GetObjectKey()
 	releaseResource(resClient, obj.GetResourceId())
 	txRef.Release()
@@ -330,10 +372,13 @@ func releaseResource(resClient *resource_client.Client, id uint32) {
 }
 
 func readNativeReopenMetadata(path string) (map[string]string, error) {
+	// Read the seed metadata file.
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}
+
+	// Parse and validate the seed metadata fields.
 	fields := strings.Fields(string(data))
 	metadata := make(map[string]string, len(fields))
 	for _, field := range fields {

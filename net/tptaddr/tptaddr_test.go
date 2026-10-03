@@ -16,8 +16,10 @@ import (
 
 // TestTptAddr tests the tpt addr controllers end-to-end.
 func TestTptAddr(t *testing.T) {
+	// Bind the transport testbeds to the test lifetime.
 	ctx := t.Context()
 
+	// Create a logger for both transport testbeds.
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)

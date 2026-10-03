@@ -12,6 +12,7 @@ import (
 )
 
 func main() {
+	// Configure the handoff command defaults and artifact flags.
 	args := &handoff.Args{}
 	args.FillDefaults()
 	app := appcli.NewApp()
@@ -52,6 +53,8 @@ func main() {
 		&appcli.StringFlag{Name: "manifest-dist-dir", Usage: "packaged directory replacing the produced manifest contents", Destination: &args.ManifestDistDir},
 		&appcli.StringFlag{Name: "manifest-entrypoint", Usage: "entrypoint path within --manifest-dist-dir", Destination: &args.ManifestEntrypoint},
 	}
+
+	// Run the handoff operation and report command failures to stderr.
 	app.Action = func(ctx *appcli.Context) error {
 		return handoff.Run(context.Background(), args)
 	}

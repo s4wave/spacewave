@@ -77,6 +77,7 @@ func newDiskBackend(t *testing.T) *diskBackend {
 // rejects it, and whether this call is the one the crash interrupted. The
 // caller holds mtx.
 func (d *diskBackend) crash() (rejected, interrupted bool) {
+	// Count backend mutations and enforce the injected crash boundary.
 	d.mutations++
 	if d.crashed {
 		return true, false
@@ -100,9 +101,12 @@ func (d *diskBackend) restart() {
 
 // Read reads one immutable file or range from disk.
 func (d *diskBackend) Read(ctx context.Context, name string, offset int64, length int) ([]byte, error) {
+	// Honor cancellation before reading the durable fixture.
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
+
+	// Track backend reads and retain any payload-read injection.
 	d.mtx.Lock()
 	d.reads++
 	var callback func()
@@ -115,6 +119,8 @@ func (d *diskBackend) Read(ctx context.Context, name string, offset int64, lengt
 	if callback != nil {
 		defer callback()
 	}
+
+	// Read the immutable fixture file or its requested byte range.
 	f, err := os.Open(filepath.Join(d.root, name))
 	if err != nil {
 		return nil, err
@@ -130,6 +136,7 @@ func (d *diskBackend) Read(ctx context.Context, name string, offset int64, lengt
 
 // Write flushes a complete file and atomically replaces its directory entry.
 func (d *diskBackend) Write(ctx context.Context, name string, data []byte) error {
+	// Honor cancellation and wait for gated payload publication.
 	if err := ctx.Err(); err != nil {
 		return err
 	}
@@ -144,6 +151,7 @@ func (d *diskBackend) Write(ctx context.Context, name string, data []byte) error
 		case <-d.writeGate:
 		}
 	}
+
 	// Allocate crash and failure boundaries across concurrent immutable writes.
 	// A crash interrupting the first creation of a file leaves an empty entry,
 	// as the Backend contract allows.
@@ -163,12 +171,16 @@ func (d *diskBackend) Write(ctx context.Context, name string, data []byte) error
 	if d.failAfter > 0 {
 		d.failAfter--
 	}
+
+	// Record the published file bytes and snapshot the durability policy.
 	d.written += int64(len(data))
 	d.files++
 	kind, _, _ := strings.Cut(name, "-")
 	d.kindBytes[kind] += int64(len(data))
 	unsynced := d.unsynced
 	d.mtx.Unlock()
+
+	// Write and optionally flush the replacement file before publication.
 	f, err := os.CreateTemp(d.root, "write-")
 	if err != nil {
 		return err
@@ -184,6 +196,8 @@ func (d *diskBackend) Write(ctx context.Context, name string, data []byte) error
 			return err
 		}
 	}
+
+	// Publish the replacement directory entry after closing the file.
 	if err := f.Close(); err != nil {
 		return err
 	}
@@ -193,6 +207,8 @@ func (d *diskBackend) Write(ctx context.Context, name string, data []byte) error
 	if unsynced {
 		return nil
 	}
+
+	// Flush the containing directory to make the replacement durable.
 	dir, err := os.Open(d.root)
 	if err != nil {
 		return err
@@ -203,15 +219,20 @@ func (d *diskBackend) Write(ctx context.Context, name string, data []byte) error
 
 // Remove idempotently deletes a fixture file.
 func (d *diskBackend) Remove(ctx context.Context, name string) error {
+	// Honor cancellation before removing a durable fixture file.
 	if err := ctx.Err(); err != nil {
 		return err
 	}
+
+	// Reject removal after the fixture crash boundary.
 	d.mtx.Lock()
 	rejected, _ := d.crash()
 	d.mtx.Unlock()
 	if rejected {
 		return errCrashed
 	}
+
+	// Delete the fixture entry while treating absence as success.
 	err := os.Remove(filepath.Join(d.root, name))
 	if errors.Is(err, os.ErrNotExist) {
 		return nil
@@ -221,6 +242,7 @@ func (d *diskBackend) Remove(ctx context.Context, name string) error {
 
 // Lock acquires a context-aware fair shared or exclusive fixture lock.
 func (d *diskBackend) Lock(ctx context.Context, name string, exclusive bool) (func(), error) {
+	// Resolve the shared semaphore for the named fixture lock.
 	const capacity = 1 << 30
 	d.mtx.Lock()
 	lock := d.locks[name]
@@ -229,6 +251,8 @@ func (d *diskBackend) Lock(ctx context.Context, name string, exclusive bool) (fu
 		d.locks[name] = lock
 	}
 	d.mtx.Unlock()
+
+	// Acquire the requested shared or exclusive lock weight.
 	weight := int64(1)
 	if exclusive {
 		weight = capacity
@@ -241,12 +265,15 @@ func (d *diskBackend) Lock(ctx context.Context, name string, exclusive bool) (fu
 
 // TestDurableIndexReopen proves splits, overwrites, tombstones, and bounded open.
 func TestDurableIndexReopen(t *testing.T) {
+	// Open a durable engine for index reopen checks.
 	ctx := t.Context()
 	d := newDiskBackend(t)
 	e, err := Open(ctx, d)
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Populate enough index records to force branching.
 	value := bytes.Repeat([]byte("v"), 8192)
 	for batch := range 12 {
 		var records []*Record
@@ -258,11 +285,15 @@ func TestDurableIndexReopen(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
+
+	// Overwrite one key repeatedly and tombstone its neighbor.
 	for round := range 9 {
 		if err := e.Apply(ctx, []*Record{{Key: []byte("100020"), Value: []byte(strconv.Itoa(round))}, {Key: []byte("100021"), Deleted: true}}); err != nil {
 			t.Fatal(err)
 		}
 	}
+
+	// Reopen the index and require bounded startup reads.
 	if err := e.Close(); err != nil {
 		t.Fatal(err)
 	}
@@ -275,6 +306,8 @@ func TestDurableIndexReopen(t *testing.T) {
 	if d.reads > 8 {
 		t.Fatalf("open visited %d files", d.reads)
 	}
+
+	// Verify retained values, the latest overwrite, and the tombstone.
 	for _, key := range []string{"100000", "100999", "101535"} {
 		got, found, _, err := e.Get(ctx, []byte(key))
 		if err != nil || !found || !bytes.Equal(got, value) {
@@ -292,14 +325,18 @@ func TestDurableIndexReopen(t *testing.T) {
 
 // TestPublicationCrashRecovery rejects partial output at every commit boundary.
 func TestPublicationCrashRecovery(t *testing.T) {
+	// Exercise recovery at each publication failure boundary.
 	for boundary := range 6 {
 		t.Run(strconv.Itoa(boundary), func(t *testing.T) {
+			// Open a fresh durable engine for this failure boundary.
 			ctx := t.Context()
 			d := newDiskBackend(t)
 			e, err := Open(ctx, d)
 			if err != nil {
 				t.Fatal(err)
 			}
+
+			// Interrupt publication and reopen the engine for recovery.
 			d.failAfter = boundary
 			commitErr := e.Apply(ctx, []*Record{{Key: []byte("key"), Value: []byte("value")}})
 			d.failAfter = -1
@@ -309,6 +346,8 @@ func TestPublicationCrashRecovery(t *testing.T) {
 				t.Fatal(err)
 			}
 			defer e.Close()
+
+			// Verify commit atomicity and require a successful recovery write.
 			value, found, _, err := e.Get(ctx, []byte("key"))
 			if err != nil || found != (commitErr == nil) || (found && string(value) != "value") {
 				t.Fatalf("commit=%v reopened=%q found=%t error=%v", commitErr, value, found, err)
@@ -322,6 +361,7 @@ func TestPublicationCrashRecovery(t *testing.T) {
 
 // TestReclamationProtectsReadersAndTerminates exercises quiescent progress.
 func TestReclamationProtectsReadersAndTerminates(t *testing.T) {
+	// Open a durable engine for reclamation checks.
 	ctx := t.Context()
 	d := newDiskBackend(t)
 	e, err := Open(ctx, d)
@@ -329,11 +369,15 @@ func TestReclamationProtectsReadersAndTerminates(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer e.Close()
+
+	// Publish successive values to create reclaimable generations.
 	for i := range 8 {
 		if err := e.Apply(ctx, []*Record{{Key: []byte("key"), Value: bytes.Repeat([]byte{byte(i)}, 100000)}}); err != nil {
 			t.Fatal(err)
 		}
 	}
+
+	// Require a live snapshot to block reclamation.
 	s, err := e.snapshot(ctx)
 	if err != nil {
 		t.Fatal(err)
@@ -343,6 +387,8 @@ func TestReclamationProtectsReadersAndTerminates(t *testing.T) {
 	if _, err := e.Reclaim(timed); !errors.Is(err, context.DeadlineExceeded) {
 		t.Fatalf("reclamation bypassed live reader: %v", err)
 	}
+
+	// Release the snapshot and require reclamation to finish.
 	s.release()
 	var count int
 	for ; count < 100; count++ {
@@ -357,6 +403,8 @@ func TestReclamationProtectsReadersAndTerminates(t *testing.T) {
 	if count == 100 {
 		t.Fatal("quiescent reclamation never completed")
 	}
+
+	// Verify reclamation preserves the latest published value.
 	value, found, _, err := e.Get(ctx, []byte("key"))
 	if err != nil || !found || len(value) != 100000 || value[0] != 7 {
 		t.Fatalf("reclaimed current data: found=%t error=%v", found, err)
@@ -365,6 +413,7 @@ func TestReclamationProtectsReadersAndTerminates(t *testing.T) {
 
 // TestStaleTransactionCannotOverwriteNewGeneration proves validation across instances.
 func TestStaleTransactionCannotOverwriteNewGeneration(t *testing.T) {
+	// Open the engine that will create a stale transaction.
 	ctx := t.Context()
 	d := newDiskBackend(t)
 	e, err := Open(ctx, d)
@@ -372,11 +421,15 @@ func TestStaleTransactionCannotOverwriteNewGeneration(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer e.Close()
+
+	// Open a competing engine over the same durable files.
 	other, err := Open(ctx, d)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer other.Close()
+
+	// Create a transaction that observes the key before another publication.
 	tx, err := e.NewTransaction(ctx, true)
 	if err != nil {
 		t.Fatal(err)
@@ -385,6 +438,8 @@ func TestStaleTransactionCannotOverwriteNewGeneration(t *testing.T) {
 	if _, _, err := tx.Get(ctx, []byte("key")); err != nil {
 		t.Fatal(err)
 	}
+
+	// Publish the competing value and require the stale commit to fail.
 	if err := other.Apply(ctx, []*Record{{Key: []byte("key"), Value: []byte("other")}}); err != nil {
 		t.Fatal(err)
 	}
@@ -398,12 +453,15 @@ func TestStaleTransactionCannotOverwriteNewGeneration(t *testing.T) {
 
 // TestTransactionCursor preserves ordering, overlays, seeks, and snapshot reads.
 func TestTransactionCursor(t *testing.T) {
+	// Open a durable engine for cursor ordering checks.
 	ctx := t.Context()
 	e, err := Open(ctx, newDiskBackend(t))
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer e.Close()
+
+	// Populate ordered records across several committed batches.
 	for batch := range 5 {
 		tx, err := e.NewTransaction(ctx, true)
 		if err != nil {
@@ -419,6 +477,8 @@ func TestTransactionCursor(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
+
+	// Create a cursor transaction with deletion and overwrite overlays.
 	tx, err := e.NewTransaction(ctx, true)
 	if err != nil {
 		t.Fatal(err)
@@ -433,6 +493,8 @@ func TestTransactionCursor(t *testing.T) {
 	if err := tx.Set(ctx, []byte("p/1250-extra"), []byte("inserted")); err != nil {
 		t.Fatal(err)
 	}
+
+	// Verify forward and reverse cursors expose ordered overlay values.
 	for _, reverse := range []bool{false, true} {
 		it := tx.Iterate(ctx, []byte("p/12"), true, reverse)
 		var previous []byte
@@ -465,6 +527,8 @@ func TestTransactionCursor(t *testing.T) {
 		}
 		it.Close()
 	}
+
+	// Commit the cursor transaction after validating its seeks.
 	if err := tx.Commit(ctx); err != nil {
 		t.Fatal(err)
 	}
@@ -490,6 +554,7 @@ func TestTransactionCursor(t *testing.T) {
 
 // TestPackIndexAndQuiescentReclamation separates index work from payload work.
 func TestPackIndexAndQuiescentReclamation(t *testing.T) {
+	// Open a durable engine for pack index and reclamation checks.
 	ctx := t.Context()
 	d := newDiskBackend(t)
 	e, err := Open(ctx, d)
@@ -497,6 +562,8 @@ func TestPackIndexAndQuiescentReclamation(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer e.Close()
+
+	// Build and publish a batch of immutable blocks.
 	s := &packStore{engine: e}
 	var entries []*block.PutBatchEntry
 	for j := range 32 {
@@ -510,6 +577,8 @@ func TestPackIndexAndQuiescentReclamation(t *testing.T) {
 	if err := s.PutBlockBatch(ctx, entries); err != nil {
 		t.Fatal(err)
 	}
+
+	// Require existence and stat queries to use the index without payload reads.
 	for _, entry := range entries {
 		if exists, err := s.GetBlockExists(ctx, entry.Ref); err != nil || !exists {
 			t.Fatalf("existence: %t %v", exists, err)
@@ -521,6 +590,8 @@ func TestPackIndexAndQuiescentReclamation(t *testing.T) {
 	if d.payloadReads != 0 {
 		t.Fatalf("existence/stat visited %d payload files", d.payloadReads)
 	}
+
+	// Preserve duplicate detection before removing the other blocks.
 	if _, existed, err := s.PutBlock(ctx, entries[0].Data, nil); err != nil || !existed {
 		t.Fatalf("duplicate: %t %v", existed, err)
 	}
@@ -529,6 +600,8 @@ func TestPackIndexAndQuiescentReclamation(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
+
+	// Clean the sparse pack and finish its pending reclamation.
 	if progress, err := e.CleanPack(ctx); err != nil || !progress {
 		t.Fatalf("pack clean: %t %v", progress, err)
 	}
@@ -544,6 +617,8 @@ func TestPackIndexAndQuiescentReclamation(t *testing.T) {
 			t.Fatal("retirement did not finish")
 		}
 	}
+
+	// Measure surviving pack bytes after quiescent reclamation.
 	files, err := os.ReadDir(d.root)
 	if err != nil {
 		t.Fatal(err)
@@ -561,6 +636,8 @@ func TestPackIndexAndQuiescentReclamation(t *testing.T) {
 	if packBytes > 8300 {
 		t.Fatalf("quiescent deleted payload bytes remain: %d", packBytes)
 	}
+
+	// Verify the remaining block statistics and payload.
 	count, size, err := e.BlockStats(ctx)
 	if err != nil || count != 1 || size != 8192 {
 		t.Fatalf("stats: %d %d %v", count, size, err)
@@ -573,8 +650,10 @@ func TestPackIndexAndQuiescentReclamation(t *testing.T) {
 
 // TestRelocationDoesNotResurrectDeletedOrReinsertedBlocks tests conditional moves.
 func TestRelocationDoesNotResurrectDeletedOrReinsertedBlocks(t *testing.T) {
+	// Check relocation with both deletion and reinsertion during pack reading.
 	for _, reinsert := range []bool{false, true} {
 		t.Run(strconv.FormatBool(reinsert), func(t *testing.T) {
+			// Open a durable engine for the relocation race.
 			ctx := t.Context()
 			d := newDiskBackend(t)
 			e, err := Open(ctx, d)
@@ -582,6 +661,8 @@ func TestRelocationDoesNotResurrectDeletedOrReinsertedBlocks(t *testing.T) {
 				t.Fatal(err)
 			}
 			defer e.Close()
+
+			// Publish two blocks and retire the first to make the pack sparse.
 			s := &packStore{engine: e}
 			first, err := block.BuildBlockRef([]byte("first"), nil)
 			if err != nil {
@@ -597,6 +678,8 @@ func TestRelocationDoesNotResurrectDeletedOrReinsertedBlocks(t *testing.T) {
 			if err := s.RmBlock(ctx, first); err != nil {
 				t.Fatal(err)
 			}
+
+			// Change the second block while cleaning holds its copied payload.
 			d.afterPayloadRead = func() {
 				if err := s.RmBlock(ctx, second); err != nil {
 					t.Fatal(err)
@@ -607,6 +690,8 @@ func TestRelocationDoesNotResurrectDeletedOrReinsertedBlocks(t *testing.T) {
 					}
 				}
 			}
+
+			// Verify cleaning honors the current block membership.
 			if progress, err := e.CleanPack(ctx); err != nil || !progress {
 				t.Fatalf("conditional clean: %t %v", progress, err)
 			}
@@ -620,6 +705,7 @@ func TestRelocationDoesNotResurrectDeletedOrReinsertedBlocks(t *testing.T) {
 
 // TestBufferedFencePublishesPrecedingWrites proves local visibility and durability.
 func TestBufferedFencePublishesPrecedingWrites(t *testing.T) {
+	// Open a durable engine with payload publication held at a gate.
 	ctx := t.Context()
 	d := newDiskBackend(t)
 	gate := make(chan struct{})
@@ -630,6 +716,8 @@ func TestBufferedFencePublishesPrecedingWrites(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer e.Close()
+
+	// Buffer a block and verify local visibility before publication.
 	s := NewBlockStore(ctx, e, 0)
 	defer s.Close()
 	ref, existed, err := s.PutBlock(ctx, []byte("pending content"), nil)
@@ -639,11 +727,15 @@ func TestBufferedFencePublishesPrecedingWrites(t *testing.T) {
 	if data, found, err := s.GetBlock(ctx, ref); err != nil || !found || string(data) != "pending content" {
 		t.Fatalf("read-through: %q %t %v", data, found, err)
 	}
+
+	// Wait for publication to reach the fixture gate.
 	select {
 	case <-d.writeStarted:
 	case <-time.After(5 * time.Second):
 		t.Fatal("writeback did not start")
 	}
+
+	// Start a durability fence and require it to wait for publication.
 	fenced := make(chan error, 1)
 	go func() {
 		ok, err := s.Sync(ctx)
@@ -657,10 +749,14 @@ func TestBufferedFencePublishesPrecedingWrites(t *testing.T) {
 		t.Fatalf("fence returned before publication: %v", err)
 	case <-time.After(10 * time.Millisecond):
 	}
+
+	// Resume publication and require the durability fence to finish.
 	close(gate)
 	if err := <-fenced; err != nil {
 		t.Fatal(err)
 	}
+
+	// Reopen the durable engine and verify the fenced payload.
 	other, err := Open(ctx, d)
 	if err != nil {
 		t.Fatal(err)
@@ -670,6 +766,8 @@ func TestBufferedFencePublishesPrecedingWrites(t *testing.T) {
 	if data, found, err := read.GetBlock(ctx, ref); err != nil || !found || string(data) != "pending content" {
 		t.Fatalf("fenced reopen: %q %t %v", data, found, err)
 	}
+
+	// Delete and synchronously reinsert the block for the reopened reader.
 	if err := s.RmBlock(ctx, ref); err != nil {
 		t.Fatal(err)
 	}
@@ -683,6 +781,7 @@ func TestBufferedFencePublishesPrecedingWrites(t *testing.T) {
 
 // TestCloseCancelsQueuedPublication proves shutdown joins the writer and recovers.
 func TestCloseCancelsQueuedPublication(t *testing.T) {
+	// Open a durable engine with publication held at a fixture gate.
 	ctx := t.Context()
 	d := newDiskBackend(t)
 	d.writeGate = make(chan struct{})
@@ -691,6 +790,8 @@ func TestCloseCancelsQueuedPublication(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Buffer a block and wait for its publication attempt.
 	s := NewBlockStore(ctx, e, 0)
 	ref, _, err := s.PutBlock(ctx, []byte("canceled pending data"), nil)
 	if err != nil {
@@ -701,12 +802,16 @@ func TestCloseCancelsQueuedPublication(t *testing.T) {
 	case <-time.After(5 * time.Second):
 		t.Fatal("writeback did not start")
 	}
+
+	// Close the buffered store and reject reads after shutdown.
 	if err := s.Close(); err != nil {
 		t.Fatal(err)
 	}
 	if _, _, err := s.GetBlock(ctx, ref); !errors.Is(err, ErrClosed) {
 		t.Fatalf("closed store served pending bytes: %v", err)
 	}
+
+	// Reopen the engine and require canceled publication to remain absent.
 	if err := e.Close(); err != nil {
 		t.Fatal(err)
 	}
@@ -723,6 +828,7 @@ func TestCloseCancelsQueuedPublication(t *testing.T) {
 
 // TestMissingCommittedRootsNeverInitializeEmpty proves data-loss detection.
 func TestMissingCommittedRootsNeverInitializeEmpty(t *testing.T) {
+	// Publish a saved record in a durable engine.
 	ctx := t.Context()
 	d := newDiskBackend(t)
 	e, err := Open(ctx, d)
@@ -732,6 +838,8 @@ func TestMissingCommittedRootsNeverInitializeEmpty(t *testing.T) {
 	if err := e.Apply(ctx, []*Record{{Key: []byte("saved"), Value: []byte("data")}}); err != nil {
 		t.Fatal(err)
 	}
+
+	// Remove both committed roots and require corruption detection.
 	_ = e.Close()
 	if err := d.Remove(ctx, "root-0"); err != nil {
 		t.Fatal(err)

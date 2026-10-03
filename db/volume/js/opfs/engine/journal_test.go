@@ -31,6 +31,7 @@ func (t *journalSweepTarget) DeleteObject(context.Context, string) error { retur
 
 // TestJournalSweepRescuesReferenceAppendedBetweenReplays proves the two-phase fence.
 func TestJournalSweepRescuesReferenceAppendedBetweenReplays(t *testing.T) {
+	// Open a durable engine for the journal sweep race.
 	ctx := t.Context()
 	engine, err := Open(ctx, newDiskBackend(t))
 	if err != nil {
@@ -38,6 +39,7 @@ func TestJournalSweepRescuesReferenceAppendedBetweenReplays(t *testing.T) {
 	}
 	defer engine.Close()
 
+	// Publish reachable, doomed, and rescue-candidate blocks.
 	store := &packStore{engine: engine}
 	put := func(data string) *block.BlockRef {
 		t.Helper()
@@ -51,6 +53,7 @@ func TestJournalSweepRescuesReferenceAppendedBetweenReplays(t *testing.T) {
 	doomedRef := put("unreferenced block")
 	rescuedRef := put("rescued block")
 
+	// Journal the initial reference graph before sweeping.
 	reachable := block_gc.BlockIRI(reachableRef)
 	doomed := block_gc.BlockIRI(doomedRef)
 	rescued := block_gc.BlockIRI(rescuedRef)
@@ -62,9 +65,11 @@ func TestJournalSweepRescuesReferenceAppendedBetweenReplays(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Run a sweep that appends a rescue reference between its replay phases.
 	graph := refgraph.NewGraph(engine)
 	replayCount := 0
 	replay := func(ctx context.Context, graph block_gc.CollectorGraph) (int, error) {
+		// Replay the current journal before injecting the rescue reference.
 		count, err := engine.ReplayWAL(ctx, graph)
 		if err != nil {
 			return count, err
@@ -94,6 +99,7 @@ func TestJournalSweepRescuesReferenceAppendedBetweenReplays(t *testing.T) {
 		t.Fatalf("sweep result = %+v, want one rescued and one swept candidate", result)
 	}
 
+	// Verify surviving block membership matches reachability and rescue.
 	for _, check := range []struct {
 		name string
 		ref  *block.BlockRef

@@ -9,6 +9,7 @@ import (
 
 // NewHashmapKvtxTx constructs a new hashmap kvtx transaction.
 func NewHashmapKvtxTx(m *HashmapKvtx, write bool) (kvtx.Tx, error) {
+	// Hold the hashmap read lock until the transaction releases it.
 	m.rmtx.RLock()
 	var readCloseOnce atomic.Bool
 	readOps := &kvtxTxOps{
@@ -21,6 +22,7 @@ func NewHashmapKvtxTx(m *HashmapKvtx, write bool) (kvtx.Tx, error) {
 		},
 	}
 
+	// Wrap the read operations with a cache that acquires the write lock on commit.
 	tc, err := kvtx_txcache.NewTxWithCbs(
 		readOps,
 		write,

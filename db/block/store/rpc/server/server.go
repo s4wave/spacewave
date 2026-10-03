@@ -52,6 +52,7 @@ func NewRpcServiceBuilder(b bus.Bus, conf *Config) bifrost_rpc.RpcServiceBuilder
 			return nil, nil, err
 		}
 
+		// Register the block store RPC service on the mux and release a failed binding.
 		mux := srpc.NewMux()
 		if err := mux.Register(
 			block_rpc.NewSRPCBlockStoreHandler(
@@ -63,6 +64,7 @@ func NewRpcServiceBuilder(b bus.Bus, conf *Config) bifrost_rpc.RpcServiceBuilder
 			return nil, nil, err
 		}
 
+		// Transfer the RPC invoker and block store reference cleanup to the caller.
 		var handler srpc.Invoker = mux
 		return handler, ref.Release, nil
 	}

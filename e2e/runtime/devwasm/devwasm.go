@@ -241,10 +241,13 @@ func needsDocumentLoad(pageURL string) bool {
 
 // pageHash returns the route fragment without its query parameters.
 func pageHash(pageURL string) string {
+	// Locate the route fragment in the browser page URL.
 	hashIndex := strings.IndexByte(pageURL, '#')
 	if hashIndex < 0 {
 		return ""
 	}
+
+	// Exclude route query parameters from the page fragment.
 	hash := pageURL[hashIndex:]
 	if queryIndex := strings.IndexByte(hash, '?'); queryIndex >= 0 {
 		hash = hash[:queryIndex]

@@ -125,6 +125,7 @@ func (d *handleMountedStream) GetName() string {
 // GetDebugVals returns the directive arguments as k/v pairs.
 // This is not necessarily unique, and is primarily intended for display.
 func (d *handleMountedStream) GetDebugVals() directive.DebugValues {
+	// Describe the protocol and peer pair requested by the stream handler.
 	vals := directive.DebugValues{}
 	vals["protocol-id"] = []string{string(d.HandleMountedStreamProtocolID())}
 	vals["local-peer"] = []string{d.HandleMountedStreamLocalPeerID().String()}

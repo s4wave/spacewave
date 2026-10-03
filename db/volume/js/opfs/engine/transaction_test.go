@@ -13,6 +13,7 @@ import (
 
 // TestTransactionBlindWritesSerialize proves unobserved writes use commit order.
 func TestTransactionBlindWritesSerialize(t *testing.T) {
+	// Open a durable engine for blind-write serialization.
 	ctx := t.Context()
 	engine, err := Open(ctx, newDiskBackend(t))
 	if err != nil {
@@ -20,6 +21,7 @@ func TestTransactionBlindWritesSerialize(t *testing.T) {
 	}
 	defer engine.Close()
 
+	// Stage competing blind writes in two independent transactions.
 	first, err := engine.NewTransaction(ctx, true)
 	if err != nil {
 		t.Fatal(err)
@@ -42,6 +44,8 @@ func TestTransactionBlindWritesSerialize(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
+
+	// Commit both blind writes in the requested order.
 	if err := first.Commit(ctx); err != nil {
 		t.Fatal(err)
 	}
@@ -49,6 +53,7 @@ func TestTransactionBlindWritesSerialize(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Verify shared and independent keys reflect the serialized commits.
 	read, err := engine.NewTransaction(ctx, false)
 	if err != nil {
 		t.Fatal(err)
@@ -99,6 +104,7 @@ func TestTransactionReadSetValidation(t *testing.T) {
 		write: "q",
 	}} {
 		t.Run(tc.name, func(t *testing.T) {
+			// Seed a durable engine for this read-set conflict case.
 			ctx := t.Context()
 			engine, err := Open(ctx, newDiskBackend(t))
 			if err != nil {
@@ -109,6 +115,7 @@ func TestTransactionReadSetValidation(t *testing.T) {
 				t.Fatal(err)
 			}
 
+			// Observe the dependency and stage its derived result.
 			dependent, err := engine.NewTransaction(ctx, true)
 			if err != nil {
 				t.Fatal(err)
@@ -120,6 +127,8 @@ func TestTransactionReadSetValidation(t *testing.T) {
 			if err := dependent.Set(ctx, []byte("derived"), []byte("result")); err != nil {
 				t.Fatal(err)
 			}
+
+			// Publish the competing key and verify commit conflict detection.
 			if err := engine.Apply(ctx, []*Record{{Key: []byte(tc.write), Value: []byte("competing")}}); err != nil {
 				t.Fatal(err)
 			}
@@ -128,6 +137,7 @@ func TestTransactionReadSetValidation(t *testing.T) {
 				t.Fatalf("dependent commit error = %v, want conflict %t", err, tc.conflict)
 			}
 
+			// Require derived data to appear only when the commit succeeds.
 			_, found, _, err := engine.Get(ctx, []byte("derived"))
 			if err != nil || found == tc.conflict {
 				t.Fatalf("derived write found = %t, error = %v", found, err)
@@ -153,6 +163,7 @@ func scanPrefix(prefix string) func(context.Context, kvtx.Tx) error {
 
 // TestTransactionRetainsSnapshot proves reads remain stable and reclamation resumes.
 func TestTransactionRetainsSnapshot(t *testing.T) {
+	// Open and seed an engine that exposes queued reclamation.
 	ctx := t.Context()
 	disk := newDiskBackend(t)
 	queued := make(chan struct{}, 1)
@@ -166,6 +177,7 @@ func TestTransactionRetainsSnapshot(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Verify snapshot retention through both discard and commit release paths.
 	for _, commit := range []bool{false, true} {
 		tx, err := engine.NewTransaction(ctx, false)
 		if err != nil {

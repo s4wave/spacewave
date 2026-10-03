@@ -20,21 +20,27 @@ import (
 )
 
 func TestFetchResolvesHTTPHandlerThroughBus(t *testing.T) {
+	// Bound the HTTP lookup test and release its context afterward.
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
+	// Start the controller bus that resolves HTTP handler directives.
 	le := logrus.NewEntry(logrus.New())
 	b, _, err := core.NewCoreBus(ctx, le)
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	// Register an HTTP handler that serves the proof path.
 	handlerCtrl := &fetchServiceHTTPHandlerController{
 		pathPrefix: "/fs/",
 		handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			// Verify that the HTTP lookup preserves the requested proof path.
 			if r.URL.Path != "/fs/proof.txt" {
 				t.Fatalf("request path = %q, want /fs/proof.txt", r.URL.Path)
 			}
+
+			// Return the proof response with its content type and accepted status.
 			w.Header().Set("Content-Type", "text/plain")
 			w.WriteHeader(http.StatusAccepted)
 			_, _ = w.Write([]byte("fetch proof"))
@@ -46,6 +52,7 @@ func TestFetchResolvesHTTPHandlerThroughBus(t *testing.T) {
 	}
 	defer handlerRel()
 
+	// Connect the fetch service client to the controller through an RPC pipe.
 	fetchCtrl := NewController(le, b, NewConfig())
 	mux := srpc.NewMux()
 	if err := web_fetch.SRPCRegisterFetchService(mux, fetchCtrl); err != nil {
@@ -54,6 +61,7 @@ func TestFetchResolvesHTTPHandlerThroughBus(t *testing.T) {
 	client := srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(mux)))
 	fetchClient := web_fetch.NewSRPCFetchServiceClient(client)
 
+	// Send the proof request and record the HTTP response.
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, "https://example.test/fs/proof.txt", nil)
 	if err != nil {
 		t.Fatal(err)
@@ -63,6 +71,7 @@ func TestFetchResolvesHTTPHandlerThroughBus(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Verify the proof response status and content type.
 	resp := rw.Result()
 	if resp.StatusCode != http.StatusAccepted {
 		t.Fatalf("status = %d, want %d", resp.StatusCode, http.StatusAccepted)
@@ -70,6 +79,8 @@ func TestFetchResolvesHTTPHandlerThroughBus(t *testing.T) {
 	if got := resp.Header.Get("Content-Type"); got != "text/plain" {
 		t.Fatalf("Content-Type = %q, want text/plain", got)
 	}
+
+	// Verify that the HTTP response contains the handler's proof body.
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		t.Fatal(err)
@@ -80,21 +91,27 @@ func TestFetchResolvesHTTPHandlerThroughBus(t *testing.T) {
 }
 
 func TestDirectLookupHTTPHandlerThroughBus(t *testing.T) {
+	// Bound the HTTP lookup test and release its context afterward.
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
+	// Start the controller bus that resolves HTTP handler directives.
 	le := logrus.NewEntry(logrus.New())
 	b, _, err := core.NewCoreBus(ctx, le)
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	// Register an HTTP handler that serves the proof path.
 	handlerCtrl := &fetchServiceHTTPHandlerController{
 		pathPrefix: "/fs/",
 		handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			// Verify that the HTTP lookup preserves the requested proof path.
 			if r.URL.Path != "/fs/proof.txt" {
 				t.Fatalf("request path = %q, want /fs/proof.txt", r.URL.Path)
 			}
+
+			// Return the proof response with its content type and accepted status.
 			w.Header().Set("Content-Type", "text/plain")
 			w.WriteHeader(http.StatusAccepted)
 			_, _ = w.Write([]byte("direct proof"))
@@ -106,6 +123,7 @@ func TestDirectLookupHTTPHandlerThroughBus(t *testing.T) {
 	}
 	defer handlerRel()
 
+	// Resolve the proof URL through the controller bus and retain the handler.
 	handlerURL, err := url.Parse("https://example.test/fs/proof.txt")
 	if err != nil {
 		t.Fatal(err)
@@ -127,6 +145,7 @@ func TestDirectLookupHTTPHandlerThroughBus(t *testing.T) {
 	}
 	defer handlerRef.Release()
 
+	// Send the proof request and record the HTTP response.
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, handlerURL.String(), nil)
 	if err != nil {
 		t.Fatal(err)
@@ -134,6 +153,7 @@ func TestDirectLookupHTTPHandlerThroughBus(t *testing.T) {
 	rw := httptest.NewRecorder()
 	handler.ServeHTTP(rw, req)
 
+	// Verify the proof response status and content type.
 	resp := rw.Result()
 	if resp.StatusCode != http.StatusAccepted {
 		t.Fatalf("status = %d, want %d", resp.StatusCode, http.StatusAccepted)
@@ -141,6 +161,8 @@ func TestDirectLookupHTTPHandlerThroughBus(t *testing.T) {
 	if got := resp.Header.Get("Content-Type"); got != "text/plain" {
 		t.Fatalf("Content-Type = %q, want text/plain", got)
 	}
+
+	// Verify that the HTTP response contains the handler's proof body.
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		t.Fatal(err)
@@ -151,27 +173,33 @@ func TestDirectLookupHTTPHandlerThroughBus(t *testing.T) {
 }
 
 func TestServeHTTPReturnsNotFoundWhenLookupIsIdle(t *testing.T) {
+	// Bound the HTTP lookup test and release its context afterward.
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
+	// Start the controller bus that resolves HTTP handler directives.
 	le := logrus.NewEntry(logrus.New())
 	b, _, err := core.NewCoreBus(ctx, le)
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	// Request a missing path from a controller whose idle lookup returns 404.
 	ctrl := NewController(le, b, &Config{NotFoundIfIdle: true})
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, "https://example.test/missing", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 	rw := httptest.NewRecorder()
+
+	// Run the HTTP request with a completion signal for the idle lookup.
 	done := make(chan struct{})
 	go func() {
 		ctrl.ServeHTTP(rw, req)
 		close(done)
 	}()
 
+	// Require the idle lookup to finish before the request context expires.
 	select {
 	case <-done:
 	case <-ctx.Done():
@@ -183,6 +211,7 @@ func TestServeHTTPReturnsNotFoundWhenLookupIsIdle(t *testing.T) {
 		}
 	}
 
+	// Verify that the idle lookup returns the missing-path status.
 	if rw.Code != http.StatusNotFound {
 		t.Fatalf("status = %d, want %d", rw.Code, http.StatusNotFound)
 	}

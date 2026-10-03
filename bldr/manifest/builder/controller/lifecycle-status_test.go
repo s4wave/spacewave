@@ -11,14 +11,17 @@ import (
 )
 
 func TestControllerLifecycleStatusReplayAndRebuildMetadata(t *testing.T) {
+	// Create a Manifest builder controller for lifecycle replay.
 	ctrl := &Controller{}
 
+	// Retain a completed startup-cache result before attaching a lifecycle sink.
 	ctrl.setLifecycleStatus(ManifestBuilderLifecycleStatus{
 		State:    ManifestBuilderLifecycleStateDone,
 		CacheHit: true,
 		Summary:  "startup cache hit",
 	})
 
+	// Attach the lifecycle sink and verify it receives the retained cache result.
 	sink := &recordingLifecycleSink{}
 	ctrl.SetManifestBuilderLifecycleSink(sink)
 	cacheHit := sink.last(t)
@@ -26,6 +29,7 @@ func TestControllerLifecycleStatusReplayAndRebuildMetadata(t *testing.T) {
 		t.Fatalf("unexpected replayed cache-hit status: %#v", cacheHit)
 	}
 
+	// Publish a full rebuild and verify its lifecycle metadata.
 	ctrl.setLifecycleStatus(ManifestBuilderLifecycleStatus{
 		State:       ManifestBuilderLifecycleStateRunning,
 		FullRebuild: true,
@@ -39,6 +43,7 @@ func TestControllerLifecycleStatusReplayAndRebuildMetadata(t *testing.T) {
 		t.Fatalf("unexpected full rebuild summary: %q", fullRebuild.Summary)
 	}
 
+	// Publish a hot rebuild and verify its dependency and watched-file metadata.
 	ctrl.setLifecycleStatus(ManifestBuilderLifecycleStatus{
 		State:                   ManifestBuilderLifecycleStateRunning,
 		HotRebuild:              true,
@@ -56,12 +61,15 @@ func TestControllerLifecycleStatusReplayAndRebuildMetadata(t *testing.T) {
 }
 
 func TestRebuildStatusSummaries(t *testing.T) {
+	// Verify the full and hot rebuild summaries describe their rebuild modes.
 	if got := rebuildSummary(true, false); got != "full rebuild" {
 		t.Fatalf("unexpected full rebuild summary: %q", got)
 	}
 	if got := rebuildSummary(false, true); got != "hot rebuild" {
 		t.Fatalf("unexpected hot rebuild summary: %q", got)
 	}
+
+	// Verify filesystem change summaries distinguish zero, one, and several files.
 	if got := changedFilesSummary(0); got != "filesystem change" {
 		t.Fatalf("unexpected zero-file change summary: %q", got)
 	}
@@ -80,11 +88,13 @@ type recordingLifecycleSink struct {
 }
 
 func (s *recordingLifecycleSink) SetManifestBuilderLifecycleStatus(status ManifestBuilderLifecycleStatus) {
+	// Record the lifecycle status and snapshot its notification channel under lock.
 	s.mtx.Lock()
 	s.statuses = append(s.statuses, status)
 	notifyCh := s.notifyCh
 	s.mtx.Unlock()
 
+	// Notify lifecycle waiters after releasing the status lock.
 	if notifyCh != nil {
 		select {
 		case notifyCh <- struct{}{}:
@@ -94,6 +104,7 @@ func (s *recordingLifecycleSink) SetManifestBuilderLifecycleStatus(status Manife
 }
 
 func (s *recordingLifecycleSink) last(t *testing.T) ManifestBuilderLifecycleStatus {
+	// Require a recorded lifecycle status before returning the latest entry.
 	t.Helper()
 	s.mtx.Lock()
 	defer s.mtx.Unlock()

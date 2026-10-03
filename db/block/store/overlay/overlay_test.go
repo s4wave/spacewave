@@ -33,9 +33,11 @@ func TestBlockStoreOverlay(t *testing.T) {
 	// For each test:
 	for _, overlayMode := range overlayModes {
 		t.Run(overlayMode.String(), func(t *testing.T) {
+			// Bound the overlay controllers to this mode subtest.
 			ctx, ctxCancel := context.WithCancel(ctx)
 			defer ctxCancel()
 
+			// Capture debug diagnostics from the overlay test bus.
 			log := logrus.New()
 			log.SetLevel(logrus.DebugLevel)
 			le := logrus.NewEntry(log)

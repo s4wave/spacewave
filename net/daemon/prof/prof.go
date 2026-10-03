@@ -12,6 +12,7 @@ import (
 // ListenProf enables block and mutex profiling and serves the pprof
 // handlers on profListen until the process exits.
 func ListenProf(le *logrus.Entry, profListen string) error {
+	// Enable runtime profiling and prepare its HTTP multiplexer.
 	runtime.SetBlockProfileRate(1)
 	runtime.SetMutexProfileFraction(1)
 	le.Debugf("profiling listener running: %s", profListen)
@@ -30,6 +31,7 @@ func ListenProf(le *logrus.Entry, profListen string) error {
 	mux.Handle("/debug/pprof/threadcreate", pprof.Handler("threadcreate"))
 	mux.Handle("/debug/pprof/block", pprof.Handler("block"))
 
+	// Serve the profiling endpoints and report the listener exit.
 	server := &http.Server{Addr: profListen, Handler: mux, ReadHeaderTimeout: time.Second * 10}
 	err := server.ListenAndServe()
 	le.WithError(err).Warn("profiling listener exited")

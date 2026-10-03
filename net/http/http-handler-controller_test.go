@@ -9,6 +9,7 @@ import (
 )
 
 func TestHTTPHandlerController(t *testing.T) {
+	// Start a testbed with a controller that publishes the HTTP handler.
 	ctx := context.Background()
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)

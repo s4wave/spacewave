@@ -21,6 +21,7 @@ func LookupEntity(
 	// Construct the identity-domain client and lookup request.
 	svc := NewSRPCIdentityDomainClient(cl)
 
+	// Construct the entity lookup request for the requested domain.
 	req, err := NewLookupEntityReq(domainID, entityID, nil, 0)
 	if err != nil {
 		return nil, err
@@ -54,6 +55,7 @@ func LookupEntity(
 // ValidateLookupEntity checks that a looked-up entity is valid and matches the
 // requested domain and entity ID.
 func ValidateLookupEntity(ent *identity.Entity, domainID, entityID string) error {
+	// Require the returned entity to match the requested identity and validate.
 	if ent == nil {
 		return errors.New("lookup returned empty entity")
 	}

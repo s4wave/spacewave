@@ -24,6 +24,7 @@ import (
 
 // TestRPCVolume tests the RPC volume end to end.
 func TestRPCVolume(t *testing.T) {
+	// Prepare the RPC volume context and diagnostic logger.
 	ctx := context.Background()
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
@@ -122,10 +123,12 @@ func TestRPCVolume(t *testing.T) {
 	}
 	volRef.Release()
 
+	// Check the remote volume against the coordinator conformance contract.
 	conformance.Check(t, func(testing.TB) (coord.Coordinator, coord.Coordinator) {
 		return vol, vol
 	})
 
+	// Verify the proxy exposes remote coordination with the expected scope identity.
 	capability, err := vol.Capability(ctx, coord.Scope{
 		VolumeID:      vol.GetID(),
 		ObjectStoreID: "rpc-volume-test",
@@ -150,6 +153,7 @@ func TestRPCVolume(t *testing.T) {
 		t.Fatalf("expected no fallback reason, got %q", capability.FallbackReason)
 	}
 
+	// Open a coordinator watch on the remote object-store scope.
 	scope := coord.Scope{
 		VolumeID:      proxyVolumeID,
 		ObjectStoreID: "rpc-volume-watch-test",
@@ -161,7 +165,9 @@ func TestRPCVolume(t *testing.T) {
 	}
 	defer watch.Close()
 
+	// Publish a server-side prefix change through a held write lease.
 	publishPrefix := func() error {
+		// Acquire the server write lease, publish the prefix change, and release the lease.
 		lease, err := tb1.Volume.WaitAcquireWriteLease(ctx, coord.Scope{
 			VolumeID:      proxyVolumeID,
 			ObjectStoreID: scope.ObjectStoreID,
@@ -185,6 +191,7 @@ func TestRPCVolume(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// Receive and verify the remote prefix event before closing the watch.
 	timeout := time.After(5 * time.Second)
 	retryPublish := time.NewTicker(50 * time.Millisecond)
 	defer retryPublish.Stop()
@@ -216,6 +223,7 @@ func TestRPCVolume(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// Verify the remote coordinator snapshot identifies the proxied volume.
 	snapshot, err := vol.Snapshot(ctx, scope)
 	if err != nil {
 		t.Fatalf("expected RPC coordinator snapshot, got %v", err)
@@ -223,6 +231,8 @@ func TestRPCVolume(t *testing.T) {
 	if snapshot.VolumeID != proxyVolumeID {
 		t.Fatalf("expected snapshot volume id %q, got %q", proxyVolumeID, snapshot.VolumeID)
 	}
+
+	// Acquire a remote lease and verify refresh, publication, and release.
 	lease, ok, err := vol.TryAcquireWriteLease(ctx, scope)
 	if err != nil {
 		t.Fatalf("expected RPC coordinator try-lease, got %v", err)
@@ -244,6 +254,7 @@ func TestRPCVolume(t *testing.T) {
 		t.Fatalf("expected RPC coordinator lease release, got %v", err)
 	}
 
+	// Verify waiting acquisition can acquire and release a remote lease.
 	lease, err = vol.WaitAcquireWriteLease(ctx, scope)
 	if err != nil {
 		t.Fatalf("expected RPC coordinator wait-lease, got %v", err)
@@ -252,6 +263,7 @@ func TestRPCVolume(t *testing.T) {
 		t.Fatalf("expected RPC coordinator wait-lease release, got %v", err)
 	}
 
+	// Verify keyed remote coordination declares loss detection without generations.
 	keyedScope := coord.Scope{VolumeID: vol.GetID(), ParticipantID: "rpc-a", Key: "rpc-world-engine-object"}
 	keyedCapability, err := vol.Capability(ctx, keyedScope)
 	if err != nil {
@@ -260,6 +272,8 @@ func TestRPCVolume(t *testing.T) {
 	if !keyedCapability.Supported || keyedCapability.Generations || !keyedCapability.DetectsLoss {
 		t.Fatalf("unexpected RPC keyed capability: %#v", keyedCapability)
 	}
+
+	// Verify contention and forged volume selection cannot acquire the held key.
 	keyedLease, acquired, err := vol.TryAcquireWriteLease(ctx, keyedScope)
 	if err != nil || !acquired {
 		t.Fatalf("expected RPC keyed lease: acquired=%v err=%v", acquired, err)
@@ -272,6 +286,8 @@ func TestRPCVolume(t *testing.T) {
 	if contender, acquired, err := vol.TryAcquireWriteLease(ctx, forgedScope); err != nil || acquired || contender != nil {
 		t.Fatalf("forged-volume RPC keyed lease = (%v, %v, %v), want (nil, false, nil)", contender, acquired, err)
 	}
+
+	// Verify a different object key can acquire and release independently.
 	differentScope := keyedScope
 	differentScope.Key = "rpc-world-engine-other"
 	differentLease, acquired, err := vol.TryAcquireWriteLease(ctx, differentScope)
@@ -283,6 +299,8 @@ func TestRPCVolume(t *testing.T) {
 		_ = keyedLease.Release(ctx)
 		t.Fatalf("release different RPC keyed lease: %v", err)
 	}
+
+	// Verify canceled-context release permits reacquiring the original key.
 	canceled, cancelRelease := context.WithCancel(ctx)
 	cancelRelease()
 	if err := keyedLease.Release(canceled); err != nil {
@@ -296,6 +314,7 @@ func TestRPCVolume(t *testing.T) {
 		t.Fatalf("release reacquired RPC keyed lease: %v", err)
 	}
 
+	// Run the object-store contract against the RPC volume.
 	t.Log("testing object store api")
 	if err := store_test.TestObjectStore(ctx, vol, store_test.WithVLogger(le)); err != nil {
 		t.Fatal(err.Error())

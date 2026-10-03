@@ -16,12 +16,14 @@ import (
 
 // TestWorldVlogger tests the world engine w/ vlogger enabled.
 func TestWorldVlogger(t *testing.T) {
+	// Open a World testbed with verbose transaction logging.
 	ctx := context.Background()
 	tb, err := testbed.Default(ctx, testbed.WithWorldVerbose(true))
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Verify the World engine contract through the logging wrapper.
 	// basic sanity tests
 	le, eng := tb.Logger, tb.Engine
 	err = world_mock.TestWorldEngine_Basic(ctx, le, eng)
@@ -29,11 +31,13 @@ func TestWorldVlogger(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// Report completion of the World engine checks.
 	// success
 	t.Log("tests successful")
 }
 
 func TestWorldVloggerRedactsObjectKeys(t *testing.T) {
+	// Capture verbose World logs for the object-key redaction checks.
 	ctx := context.Background()
 	logBuf := bytes.NewBuffer(nil)
 	log := logrus.New()
@@ -41,6 +45,7 @@ func TestWorldVloggerRedactsObjectKeys(t *testing.T) {
 	log.SetOutput(logBuf)
 	le := logrus.NewEntry(log)
 
+	// Open the storage and World testbeds for the logging wrapper.
 	coreTB, err := core_testbed.NewTestbed(ctx, le)
 	if err != nil {
 		t.Fatal(err)
@@ -51,6 +56,7 @@ func TestWorldVloggerRedactsObjectKeys(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Create a World object whose key must remain absent from logs.
 	const secretObjectKey = "secrets/ssh/password"
 	ws := world_vlogger.NewWorldState(le, tb.WorldState)
 	obj, err := ws.CreateObject(ctx, secretObjectKey, nil)
@@ -58,6 +64,8 @@ func TestWorldVloggerRedactsObjectKeys(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Exercise root reads, object lookup, and graph deletion through the logger.
 	if _, _, err := obj.GetRootRef(ctx); err != nil {
 		t.Fatal(err)
 	}
@@ -72,6 +80,7 @@ func TestWorldVloggerRedactsObjectKeys(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Verify the World logs summarize the key without exposing its contents.
 	output := logBuf.String()
 	if strings.Contains(output, secretObjectKey) {
 		t.Fatalf("world vlogger exposed object key in logs: %s", output)

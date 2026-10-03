@@ -18,6 +18,7 @@ import (
 // TestDesktopDistributionSocket opens the built fixture through the protected
 // daemon socket. Build preparation is deliberately separate from this short test.
 func TestDesktopDistributionSocket(t *testing.T) {
+	// Require the prepared desktop fixture before creating its isolated state.
 	bin := os.Getenv("SPACEWAVE_OFFLINE_DESKTOP_BIN")
 	if bin == "" {
 		t.Skip("build with e2e/desktopoffline/build.sh and set SPACEWAVE_OFFLINE_DESKTOP_BIN")
@@ -30,6 +31,8 @@ func TestDesktopDistributionSocket(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Watch the fixture state directory for daemon readiness changes.
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
 		t.Fatal(err)
@@ -38,12 +41,15 @@ func TestDesktopDistributionSocket(t *testing.T) {
 	if err := watcher.Add(statePath); err != nil {
 		t.Fatal(err)
 	}
+
+	// Capture the desktop fixture daemon output for failure diagnosis.
 	logFile, err := os.Create(filepath.Join(statePath, "serve.log"))
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer logFile.Close()
 
+	// Start the desktop fixture daemon with a bounded test lifetime.
 	ctx, cancel := context.WithTimeout(t.Context(), 80*time.Second)
 	defer cancel()
 	cmd := exec.Command(bin, "--state-path", statePath, "serve", "--idle-timeout=0")
@@ -58,6 +64,8 @@ func TestDesktopDistributionSocket(t *testing.T) {
 	if err := cmd.Start(); err != nil {
 		t.Fatal(err)
 	}
+
+	// Observe daemon exit and arrange process cleanup after the test.
 	done := make(chan struct{})
 	var processErr error
 	go func() {
@@ -74,6 +82,7 @@ func TestDesktopDistributionSocket(t *testing.T) {
 		}
 	}()
 
+	// Wait for the daemon readiness marker or its terminal failure.
 	readyPath := filepath.Join(statePath, daemon.SocketName) + ".ready"
 	for {
 		ready, err := os.ReadFile(readyPath)
@@ -91,11 +100,14 @@ func TestDesktopDistributionSocket(t *testing.T) {
 		}
 	}
 
+	// Connect to the ready fixture daemon over its protected socket.
 	client, err := daemon.Connect(ctx, statePath, filepath.Join(statePath, daemon.SocketName))
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer client.Close()
+
+	// Verify the fixture exposes its local provider and session listing.
 	providers, err := client.Root().ListProviders(ctx)
 	if err != nil {
 		t.Fatal(err)
@@ -116,6 +128,7 @@ func TestDesktopDistributionSocket(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Open the desktop and verify the response identifies the fixture daemon and UI.
 	opened, err := desktop_control.NewSRPCDesktopControlServiceClient(client.RPC()).OpenOrFocusDesktop(
 		ctx,
 		&desktop_control.OpenOrFocusDesktopRequest{},

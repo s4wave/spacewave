@@ -17,6 +17,7 @@ import (
 
 // TestCayleyGraph_Basic performs a basic cayley test.
 func TestCayleyGraph_Basic(t *testing.T) {
+	// Prepare the graph test context and debug logger.
 	ctx := context.Background()
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
@@ -35,6 +36,7 @@ func TestCayleyGraph_Basic(t *testing.T) {
 	// perform the example hello_world from the cayley repository:
 	store := graph
 
+	// Populate the graph with two phrase values.
 	_ = store.AddQuad(ctx, quad.Make("phrase of the day", "is of course", "Hello World!", nil))
 	_ = store.AddQuad(ctx, quad.Make("phrase of the day", "is of course", "I like trains!", nil))
 
@@ -60,24 +62,34 @@ func TestCayleyGraph_Basic(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// Count the nodes yielded by a graph iterator.
 	iterateShape := func(shape iterator.Shape) int {
+		// Open the shape iterator and count its resolved nodes.
 		itt := shape.Iterate(ctx)
 		var nm int
 		for itt.Next(ctx) {
+			// Read the next graph node from the iterator.
 			resi, err := itt.Result(ctx)
 			if err != nil {
 				t.Fatal(err.Error())
 			}
+
+			// Resolve the graph node to its named value.
 			nv, err := store.NameOf(ctx, resi)
 			if err != nil {
 				t.Fatal(err.Error())
 			}
+
+			// Record the resolved node in the iterator count.
 			t.Logf("value: %v", nv)
 			nm++
 		}
+
+		// Require the graph iterator to finish without an error.
 		if err := itt.Err(); err != nil {
 			t.Fatal(err.Error())
 		}
+
 		return nm
 	}
 
@@ -85,12 +97,14 @@ func TestCayleyGraph_Basic(t *testing.T) {
 	shape := store.NodesAllIterator(ctx)
 	nodesAllN := iterateShape(shape)
 
+	// Compare the empty path with the all-nodes iterator.
 	pshape := path.NewPath(store).Shape().BuildIterator(ctx, store)
 	shapeN := iterateShape(pshape)
 	if shapeN != nodesAllN {
 		t.Fatalf("got %d nodes", shapeN)
 	}
 
+	// Verify the graph contains the four distinct fixture nodes.
 	t.Logf("total matched nodes: %v", nodesAllN)
 	if nodesAllN != 4 {
 		t.Fatalf("expected 4 nodes but got %d", nodesAllN)

@@ -20,10 +20,12 @@ func NewUnsupportedCoordinator(backend BackendKind, reason FallbackReason) *Unsu
 
 // Capability reports an unsupported coordination capability.
 func (c *UnsupportedCoordinator) Capability(ctx context.Context, scope Scope) (*Capability, error) {
+	// Honor cancellation before reporting the Volume fallback.
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
 
+	// Describe the unsupported backend and its fallback reason.
 	backend := c.Backend
 	if backend == BackendKindUnknown {
 		backend = BackendKindUnsupported

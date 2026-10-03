@@ -12,6 +12,7 @@ import (
 const allOnesDigestPackIDSuffix = "4vJ9JU1bJJE96FWSJKvHsmmFADCg4gpZQff4P3bkLKi"
 
 func TestBuildPackIDIsDeterministic(t *testing.T) {
+	// Prepare fixed pack digests and writer policies.
 	result := &writer.PackResult{
 		SortedKeyDigest:  bytes.Repeat([]byte{1}, 32),
 		PackBytesDigest:  bytes.Repeat([]byte{2}, 32),
@@ -19,6 +20,7 @@ func TestBuildPackIDIsDeterministic(t *testing.T) {
 		ValueOrderPolicy: writer.ValueOrderIterator,
 	}
 
+	// Build the resource pack identity twice from the same result.
 	first, err := BuildPackID("resource-a", result)
 	if err != nil {
 		t.Fatal(err)
@@ -27,6 +29,8 @@ func TestBuildPackIDIsDeterministic(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Verify deterministic identities use the compact base58 shape.
 	if first != second {
 		t.Fatalf("pack id changed: %q != %q", first, second)
 	}
@@ -42,12 +46,15 @@ func TestBuildPackIDIsDeterministic(t *testing.T) {
 }
 
 func TestBuildPackIDBindsResourceAndBytes(t *testing.T) {
+	// Prepare fixed pack digests and writer policies.
 	result := &writer.PackResult{
 		SortedKeyDigest:  bytes.Repeat([]byte{1}, 32),
 		PackBytesDigest:  bytes.Repeat([]byte{2}, 32),
 		PolicyTag:        writer.PolicyTag(writer.DefaultPolicy()),
 		ValueOrderPolicy: writer.ValueOrderIterator,
 	}
+
+	// Build identities for the same pack in two resource scopes.
 	base, err := BuildPackID("resource-a", result)
 	if err != nil {
 		t.Fatal(err)
@@ -56,11 +63,15 @@ func TestBuildPackIDBindsResourceAndBytes(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Build another identity after changing the pack bytes digest.
 	result.PackBytesDigest = bytes.Repeat([]byte{3}, 32)
 	otherBytes, err := BuildPackID("resource-a", result)
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Verify resource scope and pack bytes each affect the identity.
 	if base == otherResource {
 		t.Fatal("resource scope did not affect pack id")
 	}

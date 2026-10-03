@@ -22,6 +22,7 @@ import (
 
 // openReplayTarget opens a fresh engine on d.
 func openReplayTarget(t *testing.T, d *diskBackend) ReplayTarget {
+	// Open an engine and buffered block store with test-scoped cleanup.
 	t.Helper()
 	e, err := Open(t.Context(), d)
 	if err != nil {
@@ -35,6 +36,7 @@ func openReplayTarget(t *testing.T, d *diskBackend) ReplayTarget {
 
 // traceRecords runs fn under an execution trace and returns its records.
 func traceRecords(t *testing.T, fn func()) []workload.Record {
+	// Record the callback operations under an execution trace.
 	t.Helper()
 	var buf bytes.Buffer
 	if err := trace.Start(&buf); err != nil {
@@ -42,6 +44,8 @@ func traceRecords(t *testing.T, fn func()) []workload.Record {
 	}
 	fn()
 	trace.Stop()
+
+	// Extract workload records from the completed trace.
 	events, err := workload.Extract(&buf)
 	if err != nil {
 		t.Fatalf("extract: %v", err)
@@ -106,6 +110,7 @@ func TestWorkloadReplayReproducesRecording(t *testing.T) {
 // replay metrics. WORKLOAD_FILL_BLOCKS first fills the volume with that many
 // blocks of WORKLOAD_FILL_SIZE bytes (default 1024) to measure scale.
 func TestWorkloadReplayTraces(t *testing.T) {
+	// Read captured trace paths and skip replay when none were supplied.
 	paths := os.Getenv("WORKLOAD_TRACES")
 	if paths == "" {
 		t.Skip("set WORKLOAD_TRACES to replay captured traces")
@@ -121,6 +126,7 @@ func TestWorkloadReplayTraces(t *testing.T) {
 
 // replayTrace replays one captured trace and logs its metrics.
 func replayTrace(t *testing.T, path string, fillBlocks, fillSize int) {
+	// Retain the test context for the workload replay.
 	ctx := t.Context()
 
 	// Prepare the workload and the volume it runs against.
@@ -133,6 +139,8 @@ func replayTrace(t *testing.T, path string, fillBlocks, fillSize int) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Convert the captured events into a replay and open its target volume.
 	records := make([]workload.Record, len(events))
 	for i, ev := range events {
 		records[i] = ev.Record
@@ -265,6 +273,7 @@ func (d *diskBackend) setUnsynced(unsynced bool) {
 
 // envInt parses an optional integer environment variable.
 func envInt(t *testing.T, name string, def int) int {
+	// Read an optional integer environment setting with its default.
 	t.Helper()
 	raw := os.Getenv(name)
 	if raw == "" {
@@ -290,9 +299,11 @@ func cpuTime(t *testing.T) time.Duration {
 // diskUsage sums the sizes of the files under root, skipping files that
 // background maintenance removes during the walk.
 func diskUsage(t *testing.T, root string) int64 {
+	// Measure durable file sizes while tolerating concurrent reclamation.
 	t.Helper()
 	var total int64
 	err := filepath.WalkDir(root, func(_ string, entry fs.DirEntry, err error) error {
+		// Skip directory entries and resolve file metadata for the size total.
 		if err != nil || entry.IsDir() {
 			return err
 		}

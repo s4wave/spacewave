@@ -90,6 +90,7 @@ func NewBolt(
 		conf.GetNoGenerateKey(),
 		conf.GetNoWriteKey(),
 		func(ctx context.Context) (*volume.StorageStats, error) {
+			// Measure the Bolt file size for the volume statistics.
 			var totalBytes uint64
 			if fi, err := os.Stat(boltDB.Path()); err == nil {
 				if fi.Size() < 0 {
@@ -97,6 +98,8 @@ func NewBolt(
 				}
 				totalBytes = uint64(fi.Size()) //nolint:gosec
 			}
+
+			// Count stored blocks through a read transaction.
 			tx, err := store.NewTransaction(ctx, false)
 			if err != nil {
 				return nil, err
@@ -141,11 +144,14 @@ type storeUnwrapper interface {
 // Returns nil if the volume does not use bolt. Handles wrapped stores
 // (VLoggerStore, BatchStore).
 func GetBoltDB(vol volume.Volume) *bdb.DB {
+	// Require a key-value volume before inspecting its store.
 	kv, ok := vol.(kvtx.KvtxVolume)
 	if !ok {
 		return nil
 	}
 	var store any = kv.GetKvtxStore()
+
+	// Unwrap the volume store to find its Bolt database.
 	for range 10 {
 		if p, ok := store.(boltDBProvider); ok {
 			return p.GetDB()

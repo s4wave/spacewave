@@ -31,6 +31,5 @@ func main() {
 	if err != nil {
 		log.Fatalf("clone failed: %v", err)
 	}
-
 	log.Printf("clone succeeded")
 }

@@ -154,15 +154,19 @@ func (r *Root) WatchWebListeners(ctx context.Context) (SRPCRootResourceService_W
 
 // ListWebListeners lists daemon-owned localhost web listeners.
 func (r *Root) ListWebListeners(ctx context.Context) ([]*WebListenerInfo, error) {
+	// Open the daemon's web listener watch for a current snapshot.
 	strm, err := r.WatchWebListeners(ctx)
 	if err != nil {
 		return nil, err
 	}
 	defer strm.Close()
+
+	// Receive the first listener snapshot before closing the watch.
 	resp, err := strm.Recv()
 	if err != nil {
 		return nil, err
 	}
+
 	return resp.GetListeners(), nil
 }
 

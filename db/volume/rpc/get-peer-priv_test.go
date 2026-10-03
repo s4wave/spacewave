@@ -9,6 +9,7 @@ import (
 
 // TestGetPeerPrivResponse tests the GetPeerPrivResponse object.
 func TestGetPeerPrivResponse(t *testing.T) {
+	// Create a peer and obtain its generated private key.
 	testPeer, err := peer.NewPeer(nil)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -18,6 +19,8 @@ func TestGetPeerPrivResponse(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Build and validate the private-key response.
 	resp, err := NewGetPeerPrivResponse(privKey)
 	if err == nil {
 		err = resp.Validate()
@@ -25,6 +28,8 @@ func TestGetPeerPrivResponse(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Verify parsing the response recovers the original private key.
 	parsedPriv, err := resp.ParsePrivKey()
 	if err != nil {
 		t.Fatal(err.Error())

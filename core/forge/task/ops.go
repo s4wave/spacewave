@@ -40,6 +40,7 @@ func (o *ForgeTaskCreateOp) ApplyWorldOp(
 	ws world.WorldState,
 	sender peer.ID,
 ) (sysErr bool, err error) {
+	// Prepare the task and optional job identities for placement and linking.
 	taskKey := o.GetTaskKey()
 	jobKey := o.GetJobKey()
 	var placement *forge_worker.Placement

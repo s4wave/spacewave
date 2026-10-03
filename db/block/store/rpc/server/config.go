@@ -27,6 +27,7 @@ func NewConfig(blockStoreID string, write bool, serviceID, serverIdRe string, fo
 
 // Validate validates the configuration.
 func (c *Config) Validate() error {
+	// Validate the block store identity, RPC service, server pattern, and hash policy.
 	if c.GetBlockStoreId() == "" {
 		return block_store.ErrBlockStoreIDEmpty
 	}

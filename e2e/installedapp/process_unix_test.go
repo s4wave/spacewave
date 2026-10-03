@@ -15,6 +15,7 @@ func processGroupAttr() *syscall.SysProcAttr {
 }
 
 func stopProcessTree(cmd *exec.Cmd) error {
+	// Signal the running application process group to stop gracefully.
 	if cmd.Process == nil {
 		return nil
 	}
@@ -23,11 +24,13 @@ func stopProcessTree(cmd *exec.Cmd) error {
 	}
 	_ = syscall.Kill(-cmd.Process.Pid, syscall.SIGINT)
 
+	// Observe process completion while shutdown proceeds.
 	done := make(chan error, 1)
 	go func() {
 		done <- cmd.Wait()
 	}()
 
+	// Accept graceful shutdown or kill the process group when its deadline expires.
 	select {
 	case err := <-done:
 		if err == nil {

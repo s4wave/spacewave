@@ -126,6 +126,7 @@ func ReplaceLayoutModelTab(m *s4wave_layout.LayoutModel, tabID string, replaceme
 	}
 	var replaced bool
 	WalkLayoutModel(m, func(node any) bool {
+		// Locate the requested tab definition within the layout model.
 		tabDef, ok := node.(*s4wave_layout.TabDef)
 		if !ok {
 			return true
@@ -133,6 +134,8 @@ func ReplaceLayoutModelTab(m *s4wave_layout.LayoutModel, tabID string, replaceme
 		if tabDef.GetId() != tabID {
 			return true
 		}
+
+		// Replace the tab payload while preserving its layout position and policy.
 		tabDef.Name = replacement.GetName()
 		tabDef.HelpText = replacement.GetHelpText()
 		tabDef.Data = append(tabDef.Data[:0], replacement.GetData()...)

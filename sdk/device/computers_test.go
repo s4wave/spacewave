@@ -11,6 +11,7 @@ import (
 )
 
 func TestCreateComputersDashboardOpCreatesTypedDashboard(t *testing.T) {
+	// Open a World testbed for the Computers dashboard.
 	ctx := t.Context()
 	tb, err := testbed.Default(ctx)
 	if err != nil {
@@ -18,11 +19,13 @@ func TestCreateComputersDashboardOpCreatesTypedDashboard(t *testing.T) {
 	}
 	defer tb.Release()
 
+	// Create the typed Computers dashboard in the World.
 	op := NewCreateComputersDashboardOp("computers", "Computers", time.Unix(100, 0))
 	if _, _, err := tb.WorldState.ApplyWorldOp(ctx, op, ""); err != nil {
 		t.Fatalf("ApplyWorldOp: %v", err)
 	}
 
+	// Verify the dashboard object carries the Computers dashboard type.
 	typeID, err := world_types.GetObjectType(ctx, tb.WorldState, "computers")
 	if err != nil {
 		t.Fatalf("GetObjectType: %v", err)
@@ -31,6 +34,7 @@ func TestCreateComputersDashboardOpCreatesTypedDashboard(t *testing.T) {
 		t.Fatalf("type id = %q, want %q", typeID, ComputersDashboardTypeID)
 	}
 
+	// Acquire the saved Computers dashboard object for inspection.
 	obj, found, err := tb.WorldState.GetObject(ctx, "computers")
 	defer world.ReleaseObjectState(obj)
 	if err != nil {
@@ -40,6 +44,7 @@ func TestCreateComputersDashboardOpCreatesTypedDashboard(t *testing.T) {
 		t.Fatal("computers object not found")
 	}
 
+	// Read the Computers dashboard block from its saved object.
 	var dashboard *ComputersDashboard
 	_, _, err = world.AccessObjectState(ctx, obj, false, func(bcs *block.Cursor) error {
 		var uerr error
@@ -49,6 +54,8 @@ func TestCreateComputersDashboardOpCreatesTypedDashboard(t *testing.T) {
 	if err != nil {
 		t.Fatalf("AccessObjectState: %v", err)
 	}
+
+	// Verify the saved Computers dashboard retains its display name.
 	if dashboard.GetName() != "Computers" {
 		t.Fatalf("dashboard name = %q, want Computers", dashboard.GetName())
 	}

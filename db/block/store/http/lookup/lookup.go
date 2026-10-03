@@ -51,10 +51,13 @@ func (c *Controller) GetControllerInfo() *controller.Info {
 
 // Execute executes the controller.
 func (c *Controller) Execute(ctx context.Context) error {
+	// Validate the HTTP block endpoint before constructing its store.
 	baseURL, err := c.conf.ParseURL()
 	if err != nil {
 		return err
 	}
+
+	// Publish the configured HTTP store to waiting block resolvers.
 	httpStore := block_store_http.NewHTTPBlock(c.le, false, http.DefaultClient, baseURL, 0, c.conf.GetVerbose())
 	store := block_store.NewStore(c.conf.GetBucketId(), httpStore)
 	if c.conf.GetVerbose() {

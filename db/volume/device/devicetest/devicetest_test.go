@@ -32,17 +32,22 @@ func TestDevices(t *testing.T) {
 
 // TestDirReopen checks that flushed files survive reopening a directory.
 func TestDirReopen(t *testing.T) {
+	// Open a directory device for a file that must survive closing.
 	root := t.TempDir()
 	d, err := device.OpenDir(root)
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Flush the file contents and close the directory device.
 	if err := d.Write(t.Context(), []device.Write{{Name: "a", Data: []byte("kept")}}, true); err != nil {
 		t.Fatal(err)
 	}
 	if err := d.Close(); err != nil {
 		t.Fatal(err)
 	}
+
+	// Reopen the directory device and verify the flushed file contents.
 	d, err = device.OpenDir(root)
 	if err != nil {
 		t.Fatal(err)

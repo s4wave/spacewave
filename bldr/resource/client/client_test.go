@@ -28,6 +28,7 @@ type mockResourceService struct {
 func (m *mockResourceService) SRPCClient() srpc.Client { return nil }
 
 func (m *mockResourceService) ResourceClient(ctx context.Context) (resource.SRPCResourceService_ResourceClientClient, error) {
+	// Initialize the mock resource event stream under the service lock.
 	m.mu.Lock()
 	if m.clientEvents == nil {
 		m.clientEvents = make(chan *resource.ResourceClientResponse, 32)
@@ -45,9 +46,11 @@ func (m *mockResourceService) ResourceRpc(ctx context.Context) (resource.SRPCRes
 }
 
 func (m *mockResourceService) ResourceAttach(ctx context.Context) (resource.SRPCResourceService_ResourceAttachClient, error) {
+	// Lock the mock service while constructing its attachment stream.
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
+	// Prepare an attachment stream with its initial acknowledgement.
 	m.attachCalls++
 	strm := &mockResourceAttachClient{
 		ctx:      ctx,
@@ -112,6 +115,7 @@ func (m *mockResourceClientClient) Send(req *resource.ResourceClientRequest) err
 }
 
 func (m *mockResourceClientClient) MsgRecv(msg srpc.Message) error {
+	// Receive a resource event and require the destination response type.
 	resp, err := m.Recv()
 	if err != nil {
 		return err
@@ -125,6 +129,7 @@ func (m *mockResourceClientClient) MsgRecv(msg srpc.Message) error {
 }
 
 func (m *mockResourceClientClient) Recv() (*resource.ResourceClientResponse, error) {
+	// Deliver the client initialization once before reading resource events.
 	var resp *resource.ResourceClientResponse
 	var sent bool
 	m.initOnce.Do(func() {
@@ -142,6 +147,7 @@ func (m *mockResourceClientClient) Recv() (*resource.ResourceClientResponse, err
 		return resp, nil
 	}
 
+	// Wait for the next resource event or client cancellation.
 	select {
 	case <-m.ctx.Done():
 		return nil, m.ctx.Err()
@@ -204,6 +210,7 @@ func (m *mockResourceAttachClient) MsgSend(msg srpc.Message) error {
 }
 
 func (m *mockResourceAttachClient) MsgRecv(msg srpc.Message) error {
+	// Receive an attachment response and require the destination message type.
 	resp, err := m.Recv()
 	if err != nil {
 		return err
@@ -274,6 +281,7 @@ func (s *errorResourceServer) ResourceClient(
 }
 
 func TestNewClientReturnsResourceClientStreamError(t *testing.T) {
+	// Register a resource server whose client stream returns an error.
 	serverMux := srpc.NewMux()
 	server := &errorResourceServer{
 		ResourceServer: resource_server.NewResourceServer(nil),
@@ -283,6 +291,7 @@ func TestNewClientReturnsResourceClientStreamError(t *testing.T) {
 		t.Fatalf("register resource service: %v", err)
 	}
 
+	// Verify client construction surfaces the resource stream failure.
 	service := resource.NewSRPCResourceServiceClient(
 		srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(serverMux))),
 	)
@@ -292,6 +301,7 @@ func TestNewClientReturnsResourceClientStreamError(t *testing.T) {
 }
 
 func TestResourceRPCHonorsCallerContext(t *testing.T) {
+	// Prepare a resource RPC that blocks until its caller cancels.
 	resourceRPCStarted := make(chan context.Context, 1)
 	svc := &mockResourceService{
 		onResourceRPC: func(ctx context.Context) (resource.SRPCResourceService_ResourceRpcClient, error) {
@@ -305,12 +315,16 @@ func TestResourceRPCHonorsCallerContext(t *testing.T) {
 		t.Fatalf("NewClient: %v", err)
 	}
 
-	rootClient, err := client.AccessRootResource().GetClient()
+	// Access the root resource client for the blocking RPC.
+	rootRef := client.AccessRootResource()
+	defer rootRef.Release()
+	rootClient, err := rootRef.GetClient()
 	if err != nil {
 		client.Release()
 		t.Fatalf("root client: %v", err)
 	}
 
+	// Start the resource RPC with an independently cancelable caller context.
 	callCtx, cancelCall := context.WithCancel(context.Background())
 	done := make(chan error, 1)
 	go func() {
@@ -323,6 +337,7 @@ func TestResourceRPCHonorsCallerContext(t *testing.T) {
 		)
 	}()
 
+	// Wait for the blocking resource RPC to begin.
 	select {
 	case <-resourceRPCStarted:
 	case <-time.After(time.Second):
@@ -330,8 +345,10 @@ func TestResourceRPCHonorsCallerContext(t *testing.T) {
 		t.Fatal("ResourceRpc did not start")
 	}
 
+	// Cancel the caller context of the blocked resource RPC.
 	cancelCall()
 
+	// Verify the resource RPC returns cancellation without client retirement.
 	select {
 	case err := <-done:
 		if !errors.Is(err, context.Canceled) {
@@ -346,10 +363,12 @@ func TestResourceRPCHonorsCallerContext(t *testing.T) {
 		t.Fatal("ExecCall did not return after caller context cancellation")
 	}
 
+	// Release the resource client after the cancellation check.
 	client.Release()
 }
 
 func TestAttachResourceAddAckErrorReturnsError(t *testing.T) {
+	// Prepare a mock attachment service that rejects resource additions.
 	svc := &mockResourceService{
 		onAttachSend: func(strm *mockResourceAttachClient, req *resource.ResourceAttachRequest) {
 			if add := req.GetAdd(); add != nil {
@@ -366,28 +385,33 @@ func TestAttachResourceAddAckErrorReturnsError(t *testing.T) {
 	}
 	ctx := t.Context()
 
+	// Open a resource client for the rejected attachment.
 	c, err := NewClient(ctx, svc)
 	if err != nil {
 		t.Fatalf("NewClient: %v", err)
 	}
 	defer c.Release()
 
+	// Verify attaching the resource returns the server rejection.
 	_, err = c.AttachResource(context.Background(), "test", srpc.InvokerFunc(nil))
 	if err == nil || err.Error() != "attach rejected" {
 		t.Fatalf("expected attach rejected error, got %v", err)
 	}
 
+	// Inspect the attachment session retained after the rejection.
 	sess := c.attach.currentSession()
 	if sess == nil {
 		t.Fatalf("expected attach session")
 	}
 
+	// Verify the rejected attachment leaves no pending acknowledgements.
 	if got := sess.pending.len(); got != 0 {
 		t.Fatalf("expected no pending attaches, got %d", got)
 	}
 }
 
 func TestAttachResourceReusesSharedSession(t *testing.T) {
+	// Prepare an attachment service that acknowledges each resource addition.
 	svc := &mockResourceService{
 		onAttachSend: func(strm *mockResourceAttachClient, req *resource.ResourceAttachRequest) {
 			if add := req.GetAdd(); add != nil {
@@ -403,18 +427,21 @@ func TestAttachResourceReusesSharedSession(t *testing.T) {
 		},
 	}
 
+	// Open a resource client for repeated attachments.
 	c, err := NewClient(context.Background(), svc)
 	if err != nil {
 		t.Fatalf("NewClient: %v", err)
 	}
 	defer c.Release()
 
+	// Attach two resources through the same client.
 	for i := range 2 {
 		if _, err := c.AttachResource(context.Background(), "test", srpc.InvokerFunc(nil)); err != nil {
 			t.Fatalf("AttachResource %d: %v", i, err)
 		}
 	}
 
+	// Verify both resources use one shared attachment stream.
 	svc.mu.Lock()
 	attachCalls := svc.attachCalls
 	svc.mu.Unlock()
@@ -424,6 +451,7 @@ func TestAttachResourceReusesSharedSession(t *testing.T) {
 }
 
 func TestReleaseDrainsControlsBeforeCancelingGeneration(t *testing.T) {
+	// Capture resource releases and the control stream completion event.
 	events := make(chan *resource.ResourceClientResponse)
 	closeSend := make(chan struct{})
 	var closeSendOnce sync.Once
@@ -442,6 +470,8 @@ func TestReleaseDrainsControlsBeforeCancelingGeneration(t *testing.T) {
 			closeSendOnce.Do(func() { close(closeSend) })
 		},
 	}
+
+	// Create a child reference and retire it with the resource client.
 	client, err := NewClient(context.Background(), svc)
 	if err != nil {
 		t.Fatal(err)
@@ -450,6 +480,7 @@ func TestReleaseDrainsControlsBeforeCancelingGeneration(t *testing.T) {
 	child.Release()
 	client.Release()
 
+	// Verify resource release controls drain before generation cancellation.
 	select {
 	case <-closeSend:
 	case <-time.After(time.Second):
@@ -467,6 +498,7 @@ func TestReleaseDrainsControlsBeforeCancelingGeneration(t *testing.T) {
 	default:
 	}
 
+	// Close the response stream and verify the client generation retires.
 	close(events)
 	select {
 	case <-client.Done():
@@ -476,6 +508,7 @@ func TestReleaseDrainsControlsBeforeCancelingGeneration(t *testing.T) {
 }
 
 func TestAttachSessionClearedOnClientRelease(t *testing.T) {
+	// Prepare an attachment service for the client retirement check.
 	svc := &mockResourceService{
 		onAttachSend: func(strm *mockResourceAttachClient, req *resource.ResourceAttachRequest) {
 			if add := req.GetAdd(); add != nil {
@@ -491,15 +524,18 @@ func TestAttachSessionClearedOnClientRelease(t *testing.T) {
 		},
 	}
 
+	// Open the resource client whose attachment session must be retired.
 	c, err := NewClient(context.Background(), svc)
 	if err != nil {
 		t.Fatalf("NewClient: %v", err)
 	}
 
+	// Attach a resource before retiring its client.
 	if _, err := c.AttachResource(context.Background(), "test", srpc.InvokerFunc(nil)); err != nil {
 		t.Fatalf("AttachResource: %v", err)
 	}
 
+	// Retire the resource client and wait for its attachment session to clear.
 	c.Release()
 	waitFor(t, time.Second, func() bool {
 		return c.attach.currentSession() == nil
@@ -507,6 +543,7 @@ func TestAttachSessionClearedOnClientRelease(t *testing.T) {
 }
 
 func TestConcurrentFirstAttachUsesOneSession(t *testing.T) {
+	// Prepare an attachment service for simultaneous first attachments.
 	svc := &mockResourceService{
 		onAttachSend: func(strm *mockResourceAttachClient, req *resource.ResourceAttachRequest) {
 			if add := req.GetAdd(); add != nil {
@@ -522,12 +559,14 @@ func TestConcurrentFirstAttachUsesOneSession(t *testing.T) {
 		},
 	}
 
+	// Open a shared resource client for the concurrent attachments.
 	c, err := NewClient(context.Background(), svc)
 	if err != nil {
 		t.Fatalf("NewClient: %v", err)
 	}
 	defer c.Release()
 
+	// Release two attachment calls together through the same client.
 	startCh := make(chan struct{})
 	errCh := make(chan error, 2)
 	for range 2 {
@@ -539,12 +578,14 @@ func TestConcurrentFirstAttachUsesOneSession(t *testing.T) {
 	}
 	close(startCh)
 
+	// Verify both concurrent attachment calls complete successfully.
 	for range 2 {
 		if err := <-errCh; err != nil {
 			t.Fatalf("AttachResource: %v", err)
 		}
 	}
 
+	// Verify concurrent first attachments open one shared stream.
 	svc.mu.Lock()
 	attachCalls := svc.attachCalls
 	svc.mu.Unlock()
@@ -554,6 +595,7 @@ func TestConcurrentFirstAttachUsesOneSession(t *testing.T) {
 }
 
 func TestAttachResourceReopensAfterSessionClose(t *testing.T) {
+	// Prepare an attachment service that can reopen its stream.
 	svc := &mockResourceService{
 		onAttachSend: func(strm *mockResourceAttachClient, req *resource.ResourceAttachRequest) {
 			if add := req.GetAdd(); add != nil {
@@ -569,16 +611,19 @@ func TestAttachResourceReopensAfterSessionClose(t *testing.T) {
 		},
 	}
 
+	// Open the resource client for attachment session replacement.
 	c, err := NewClient(context.Background(), svc)
 	if err != nil {
 		t.Fatalf("NewClient: %v", err)
 	}
 	defer c.Release()
 
+	// Attach the first resource to establish a session.
 	if _, err := c.AttachResource(context.Background(), "test", srpc.InvokerFunc(nil)); err != nil {
 		t.Fatalf("AttachResource: %v", err)
 	}
 
+	// Close the attachment connection and wait for its session to clear.
 	sess := c.attach.currentSession()
 	if sess == nil {
 		t.Fatalf("expected attach session")
@@ -590,10 +635,12 @@ func TestAttachResourceReopensAfterSessionClose(t *testing.T) {
 		return c.attach.currentSession() == nil
 	})
 
+	// Attach another resource after the original session closes.
 	if _, err := c.AttachResource(context.Background(), "test", srpc.InvokerFunc(nil)); err != nil {
 		t.Fatalf("AttachResource after close: %v", err)
 	}
 
+	// Verify attaching after closure opens a second attachment stream.
 	svc.mu.Lock()
 	attachCalls := svc.attachCalls
 	svc.mu.Unlock()
@@ -603,6 +650,7 @@ func TestAttachResourceReopensAfterSessionClose(t *testing.T) {
 }
 
 func TestCanceledAttachDetachesLateSuccessfulAck(t *testing.T) {
+	// Prepare a delayed attachment acknowledgement after caller cancellation.
 	detachCh := make(chan uint32, 1)
 	ctx, cancel := context.WithCancel(context.Background())
 	svc := &mockResourceService{
@@ -627,17 +675,20 @@ func TestCanceledAttachDetachesLateSuccessfulAck(t *testing.T) {
 		},
 	}
 
+	// Open a resource client for the canceled attachment.
 	c, err := NewClient(context.Background(), svc)
 	if err != nil {
 		t.Fatalf("NewClient: %v", err)
 	}
 	defer c.Release()
 
+	// Verify caller cancellation ends the attachment request.
 	_, err = c.AttachResource(ctx, "test", srpc.InvokerFunc(nil))
 	if !errors.Is(err, context.Canceled) {
 		t.Fatalf("expected context canceled, got %v", err)
 	}
 
+	// Verify the late successful acknowledgement triggers resource detachment.
 	select {
 	case resourceID := <-detachCh:
 		if resourceID != 42 {
@@ -649,9 +700,11 @@ func TestCanceledAttachDetachesLateSuccessfulAck(t *testing.T) {
 }
 
 func TestAttachPendingCancelAfterResolvedAckDetaches(t *testing.T) {
+	// Allocate a pending attachment acknowledgement for cancellation.
 	pending := newAttachPendingAcks()
 	attachID, ch := pending.add()
 
+	// Resolve the attachment acknowledgement and verify cancellation detaches it.
 	if resourceID, detach := pending.resolve(&resource.ResourceAttachAddAck{
 		AttachId:   attachID,
 		ResourceId: 42,
@@ -663,6 +716,7 @@ func TestAttachPendingCancelAfterResolvedAckDetaches(t *testing.T) {
 		t.Fatalf("cancel after resolved ack returned detach=%v resource=%d, want detach 42", detach, resourceID)
 	}
 
+	// Verify the resolved acknowledgement notifies its waiter and clears pending state.
 	select {
 	case result := <-ch:
 		if result.err != nil || result.resourceID != 42 {
@@ -677,6 +731,7 @@ func TestAttachPendingCancelAfterResolvedAckDetaches(t *testing.T) {
 }
 
 func TestAttachPendingDuplicateAckDoesNotResend(t *testing.T) {
+	// Allocate a pending attachment acknowledgement for duplicate delivery.
 	pending := newAttachPendingAcks()
 	attachID, ch := pending.add()
 	ack := &resource.ResourceAttachAddAck{
@@ -684,6 +739,7 @@ func TestAttachPendingDuplicateAckDoesNotResend(t *testing.T) {
 		ResourceId: 42,
 	}
 
+	// Deliver the attachment acknowledgement twice without requesting detachment.
 	if resourceID, detach := pending.resolve(ack); detach || resourceID != 0 {
 		t.Fatalf("first resolve returned detach=%v resource=%d, want no detach", detach, resourceID)
 	}
@@ -691,6 +747,7 @@ func TestAttachPendingDuplicateAckDoesNotResend(t *testing.T) {
 		t.Fatalf("duplicate resolve returned detach=%v resource=%d, want no detach", detach, resourceID)
 	}
 
+	// Verify duplicate acknowledgement delivery produces one waiter result.
 	select {
 	case result := <-ch:
 		if result.err != nil || result.resourceID != 42 {
@@ -711,6 +768,7 @@ func TestAttachPendingDuplicateAckDoesNotResend(t *testing.T) {
 }
 
 func TestAttachSessionCloseFailsPendingAttachAndSend(t *testing.T) {
+	// Prepare an attachment session with a pending request and open transport.
 	ctx, cancel := context.WithCancel(context.Background())
 	strm := &mockResourceAttachClient{
 		ctx:    context.Background(),
@@ -731,8 +789,10 @@ func TestAttachSessionCloseFailsPendingAttachAndSend(t *testing.T) {
 	}
 	_, ch := sess.pending.add()
 
+	// Close the attachment session with its request still pending.
 	sess.close()
 
+	// Verify closing the session fails pending requests and closes its transports.
 	select {
 	case result := <-ch:
 		if !errors.Is(result.err, context.Canceled) {
@@ -756,6 +816,7 @@ func TestAttachSessionCloseFailsPendingAttachAndSend(t *testing.T) {
 		t.Fatal("attach stream close did not unblock recv")
 	}
 
+	// Verify a closed attachment session rejects further sends.
 	err := sess.send(&resource.ResourceAttachRequest{
 		Body: &resource.ResourceAttachRequest_Detach{
 			Detach: &resource.ResourceAttachDetach{ResourceId: 1},
@@ -767,6 +828,7 @@ func TestAttachSessionCloseFailsPendingAttachAndSend(t *testing.T) {
 }
 
 func TestAttachSessionCloseRemovesMuxAndRejectsLateMux(t *testing.T) {
+	// Create an attachment session with a callable resource route.
 	sess := newAttachSession(
 		context.Background(),
 		nil,
@@ -785,8 +847,10 @@ func TestAttachSessionCloseRemovesMuxAndRejectsLateMux(t *testing.T) {
 		t.Fatalf("route before close ok=%v called=%v err=%v, want successful dispatch", ok, called, err)
 	}
 
+	// Close the attachment session after confirming its route works.
 	sess.close()
 
+	// Verify closing removes resource routes and rejects new registrations.
 	called = false
 	ok, err = sess.router.InvokeMethod("42/test.Service", "Call", nil)
 	if ok || !errors.Is(err, resource.ErrResourceNotFound) || called {
@@ -798,6 +862,7 @@ func TestAttachSessionCloseRemovesMuxAndRejectsLateMux(t *testing.T) {
 }
 
 func TestAttachSessionCloseMarksReleasedBeforeTransportClose(t *testing.T) {
+	// Prepare an attachment transport that registers a route during closure.
 	sess := newAttachSession(
 		context.Background(),
 		nil,
@@ -812,8 +877,10 @@ func TestAttachSessionCloseMarksReleasedBeforeTransportClose(t *testing.T) {
 		},
 	}
 
+	// Close the attachment session to exercise transport cleanup reentry.
 	sess.close()
 
+	// Verify transport cleanup observes the attachment session as canceled.
 	select {
 	case err := <-errCh:
 		if !errors.Is(err, context.Canceled) {
@@ -825,11 +892,13 @@ func TestAttachSessionCloseMarksReleasedBeforeTransportClose(t *testing.T) {
 }
 
 func TestCreateResourceReferenceAfterClientReleaseIsReleased(t *testing.T) {
+	// Open a resource client for reference creation after retirement.
 	c, err := NewClient(context.Background(), &mockResourceService{})
 	if err != nil {
 		t.Fatalf("NewClient: %v", err)
 	}
 
+	// Verify a reference created after client retirement is already released.
 	c.Release()
 	ref := c.CreateResourceReference(42) //nolint:lostresource // The test verifies that retirement creates an already-released reference.
 	if _, err := ref.GetClient(); !errors.Is(err, resource.ErrResourceOrClientReleased) {
@@ -838,11 +907,13 @@ func TestCreateResourceReferenceAfterClientReleaseIsReleased(t *testing.T) {
 }
 
 func TestCreateResourceReferenceRacingClientReleaseReturnsReleasedRefs(t *testing.T) {
+	// Open a resource client for concurrent reference creation and retirement.
 	c, err := NewClient(context.Background(), &mockResourceService{})
 	if err != nil {
 		t.Fatalf("NewClient: %v", err)
 	}
 
+	// Start resource reference creation concurrently with client retirement.
 	start := make(chan struct{})
 	refs := make(chan ResourceRef, 16)
 	var wg sync.WaitGroup
@@ -855,11 +926,13 @@ func TestCreateResourceReferenceRacingClientReleaseReturnsReleasedRefs(t *testin
 		}(resourceID)
 	}
 
+	// Retire the client and wait for every concurrent reference creation.
 	close(start)
 	c.Release()
 	wg.Wait()
 	close(refs)
 
+	// Verify all references created during retirement are released.
 	for ref := range refs {
 		if _, err := ref.GetClient(); !errors.Is(err, resource.ErrResourceOrClientReleased) {
 			t.Fatalf("racing ref GetClient error = %v, want released", err)
@@ -869,6 +942,7 @@ func TestCreateResourceReferenceRacingClientReleaseReturnsReleasedRefs(t *testin
 }
 
 func TestDetachResourceReleasesAttachedRootOnce(t *testing.T) {
+	// Prepare attachment acknowledgements and count attached-root releases.
 	var releaseCalls atomic.Int32
 	released := make(chan struct{}, 1)
 	svc := &mockResourceService{
@@ -895,12 +969,14 @@ func TestDetachResourceReleasesAttachedRootOnce(t *testing.T) {
 		},
 	}
 
+	// Open the resource client for attached-root detachment.
 	c, err := NewClient(context.Background(), svc)
 	if err != nil {
 		t.Fatalf("NewClient: %v", err)
 	}
 	defer c.Release()
 
+	// Attach a root resource and record its release callback.
 	rootID, err := c.AttachResource(context.Background(), "root", srpc.InvokerFunc(nil))
 	if err != nil {
 		t.Fatalf("AttachResource: %v", err)
@@ -913,6 +989,7 @@ func TestDetachResourceReleasesAttachedRootOnce(t *testing.T) {
 		}
 	})
 
+	// Detach the root twice and verify its release callback runs once.
 	if err := c.DetachResource(context.Background(), rootID); err != nil {
 		t.Fatalf("DetachResource: %v", err)
 	}
@@ -930,6 +1007,7 @@ func TestDetachResourceReleasesAttachedRootOnce(t *testing.T) {
 }
 
 func TestAttachSessionCloseReleasesAttachedResources(t *testing.T) {
+	// Prepare an attachment service and count releases during session closure.
 	var releaseCalls atomic.Int32
 	svc := &mockResourceService{
 		onAttachSend: func(strm *mockResourceAttachClient, req *resource.ResourceAttachRequest) {
@@ -946,12 +1024,14 @@ func TestAttachSessionCloseReleasesAttachedResources(t *testing.T) {
 		},
 	}
 
+	// Open a resource client for attached-resource cleanup.
 	c, err := NewClient(context.Background(), svc)
 	if err != nil {
 		t.Fatalf("NewClient: %v", err)
 	}
 	defer c.Release()
 
+	// Attach a root resource with a counted release callback.
 	rootID, err := c.AttachResource(context.Background(), "root", srpc.InvokerFunc(nil))
 	if err != nil {
 		t.Fatalf("AttachResource: %v", err)
@@ -960,6 +1040,7 @@ func TestAttachSessionCloseReleasesAttachedResources(t *testing.T) {
 		releaseCalls.Add(1)
 	})
 
+	// Close the attachment connection while its resource remains attached.
 	sess := c.attach.currentSession()
 	if sess == nil {
 		t.Fatal("expected attach session")
@@ -968,22 +1049,26 @@ func TestAttachSessionCloseReleasesAttachedResources(t *testing.T) {
 		t.Fatalf("close attach session: %v", err)
 	}
 
+	// Verify session closure releases the attached resource exactly once.
 	waitFor(t, time.Second, func() bool {
 		return c.attach.currentSession() == nil && releaseCalls.Load() == 1
 	})
 }
 
 func TestAttachSessionSetReleaseAfterCloseRunsRelease(t *testing.T) {
+	// Prepare an attachment session whose resource releases are retired.
 	sess := &attachSession{
 		releaseFns: make(map[uint32]func()),
 	}
 	sess.releaseAllAttachedResources()
 
+	// Register a resource release callback after attachment retirement.
 	released := make(chan struct{}, 1)
 	sess.setRelease(42, func() {
 		released <- struct{}{}
 	})
 
+	// Verify a callback registered after resource retirement runs immediately.
 	select {
 	case <-released:
 	case <-time.After(time.Second):
@@ -992,6 +1077,7 @@ func TestAttachSessionSetReleaseAfterCloseRunsRelease(t *testing.T) {
 }
 
 func TestResourceCallWaitsForPriorLifecycleControl(t *testing.T) {
+	// Prepare root RPCs and a child release callback held behind a gate.
 	releaseStarted := make(chan struct{})
 	allowRelease := make(chan struct{})
 	rootCalled := make(chan struct{}, 1)
@@ -1023,6 +1109,8 @@ func TestResourceCallWaitsForPriorLifecycleControl(t *testing.T) {
 			return false, nil
 		}
 	}))
+
+	// Connect the root RPC server to a resource client.
 	server := resource_server.NewResourceServer(rootMux)
 	serverMux := srpc.NewMux()
 	if err := server.Register(serverMux); err != nil {
@@ -1035,12 +1123,15 @@ func TestResourceCallWaitsForPriorLifecycleControl(t *testing.T) {
 	}
 	defer client.Release()
 
+	// Access the root client that creates the releasable child.
 	rootRef := client.AccessRootResource()
 	defer rootRef.Release()
 	rootClient, err := rootRef.GetClient()
 	if err != nil {
 		t.Fatalf("root client: %v", err)
 	}
+
+	// Create a child resource and wait for its blocked release callback.
 	child := new(resource.ResourceAttachAddAck)
 	if err := rootClient.ExecCall(t.Context(), "test.Root", "CreateChild", &resource.ResourceClientInitRequest{}, child); err != nil {
 		t.Fatalf("CreateChild: %v", err)
@@ -1053,6 +1144,7 @@ func TestResourceCallWaitsForPriorLifecycleControl(t *testing.T) {
 		t.Fatal("release callback did not start")
 	}
 
+	// Verify a later root RPC waits for the prior resource release.
 	callDone := make(chan error, 1)
 	go func() {
 		callDone <- rootClient.ExecCall(t.Context(), "test.Root", "AfterRelease", &resource.ResourceClientInitRequest{}, &resource.ResourceClientInit{})
@@ -1062,6 +1154,8 @@ func TestResourceCallWaitsForPriorLifecycleControl(t *testing.T) {
 		t.Fatal("ResourceRpc started before the prior release callback completed")
 	case <-time.After(50 * time.Millisecond):
 	}
+
+	// Complete the child release and verify the waiting root RPC proceeds.
 	close(allowRelease)
 	select {
 	case err := <-callDone:
@@ -1079,6 +1173,7 @@ func TestResourceCallWaitsForPriorLifecycleControl(t *testing.T) {
 }
 
 func TestAttachedResourceTreeCanPublishCallableChild(t *testing.T) {
+	// Connect a resource server for a callable attached resource tree.
 	rootMux := srpc.NewMux()
 	server := resource_server.NewResourceServer(rootMux)
 	serverMux := srpc.NewMux()
@@ -1092,14 +1187,18 @@ func TestAttachedResourceTreeCanPublishCallableChild(t *testing.T) {
 	}
 	defer client.Release()
 
+	// Attach a root invoker that can publish a callable child resource.
 	childReleased := make(chan struct{}, 1)
 	rootID, err := client.AttachResourceTree(t.Context(), "test-root", srpc.InvokerFunc(func(serviceID, methodID string, strm srpc.Stream) (bool, error) {
+		// Require the child creation method before reading its request.
 		if serviceID != "test.Root" || methodID != "CreateChild" {
 			return false, nil
 		}
 		if err := strm.MsgRecv(&resource.ResourceClientInitRequest{}); err != nil {
 			return true, err
 		}
+
+		// Read the resource client context and publish a callable child.
 		owner, err := resource_server.MustGetResourceClientContext(strm.Context())
 		if err != nil {
 			return true, err
@@ -1124,6 +1223,7 @@ func TestAttachedResourceTreeCanPublishCallableChild(t *testing.T) {
 		t.Fatalf("AttachResource: %v", err)
 	}
 
+	// Call the attached root and verify it returns a child resource identifier.
 	rootRef := client.CreateResourceReference(rootID)
 	defer rootRef.Release()
 	rootClient, err := rootRef.GetClient()
@@ -1138,6 +1238,7 @@ func TestAttachedResourceTreeCanPublishCallableChild(t *testing.T) {
 		t.Fatal("CreateChild returned empty child resource id")
 	}
 
+	// Access the published child and verify its Ping method works.
 	childRef := client.CreateResourceReference(child.GetResourceId())
 	defer childRef.Release()
 	childClient, err := childRef.GetClient()
@@ -1148,6 +1249,7 @@ func TestAttachedResourceTreeCanPublishCallableChild(t *testing.T) {
 		t.Fatalf("Ping child: %v", err)
 	}
 
+	// Release the child and verify its attached-tree cleanup runs.
 	childRef.Release()
 	select {
 	case <-childReleased:
@@ -1157,10 +1259,14 @@ func TestAttachedResourceTreeCanPublishCallableChild(t *testing.T) {
 }
 
 func TestAttachRawInvokerAndResourceTreeShareSessionWithDistinctContracts(t *testing.T) {
+	// Connect a root server that calls a raw attached invoker.
 	rootMux := srpc.NewMux(srpc.InvokerFunc(func(serviceID, methodID string, strm srpc.Stream) (bool, error) {
+		// Require the raw callback request before reading its resource identifier.
 		if serviceID != "test.Root" || methodID != "UseRaw" {
 			return false, nil
 		}
+
+		// Read the raw resource identifier and its client context.
 		req := new(resource.ResourceAttachAddAck)
 		if err := strm.MsgRecv(req); err != nil {
 			return true, err
@@ -1169,6 +1275,8 @@ func TestAttachRawInvokerAndResourceTreeShareSessionWithDistinctContracts(t *tes
 		if err != nil {
 			return true, err
 		}
+
+		// Verify raw attachment exposes a callable invoker without a resource value.
 		if _, err := owner.GetResourceValue(req.GetResourceId()); err != resource.ErrResourceNotFound {
 			if err == nil {
 				return true, errors.New("raw attached invoker unexpectedly resolved as resource value")
@@ -1184,6 +1292,8 @@ func TestAttachRawInvokerAndResourceTreeShareSessionWithDistinctContracts(t *tes
 		}
 		return true, strm.MsgSend(&resource.ResourceClientInit{})
 	}))
+
+	// Connect the raw-callback server to a resource client.
 	server := resource_server.NewResourceServer(rootMux)
 	serverMux := srpc.NewMux()
 	if err := server.Register(serverMux); err != nil {
@@ -1196,6 +1306,7 @@ func TestAttachRawInvokerAndResourceTreeShareSessionWithDistinctContracts(t *tes
 	}
 	defer client.Release()
 
+	// Attach a raw Ping invoker and retain its shared attachment session.
 	rawCalled := make(chan struct{}, 1)
 	rawID, err := client.AttachRawInvoker(t.Context(), "raw-callback", srpc.InvokerFunc(func(serviceID, methodID string, strm srpc.Stream) (bool, error) {
 		if serviceID != "test.Raw" || methodID != "Ping" {
@@ -1218,14 +1329,18 @@ func TestAttachRawInvokerAndResourceTreeShareSessionWithDistinctContracts(t *tes
 		t.Fatal("expected attach session after raw attach")
 	}
 
+	// Attach a resource tree that can publish a callable child.
 	childReleased := make(chan struct{}, 1)
 	treeID, err := client.AttachResourceTree(t.Context(), "tree-root", srpc.InvokerFunc(func(serviceID, methodID string, strm srpc.Stream) (bool, error) {
+		// Require the tree child creation method before reading its request.
 		if serviceID != "test.Tree" || methodID != "CreateChild" {
 			return false, nil
 		}
 		if err := strm.MsgRecv(&resource.ResourceClientInitRequest{}); err != nil {
 			return true, err
 		}
+
+		// Publish a callable child under the attached resource tree.
 		owner, err := resource_server.MustGetResourceClientContext(strm.Context())
 		if err != nil {
 			return true, err
@@ -1253,6 +1368,7 @@ func TestAttachRawInvokerAndResourceTreeShareSessionWithDistinctContracts(t *tes
 		t.Fatalf("attach session changed between raw and tree attaches: %p != %p", got, rawSession)
 	}
 
+	// Call the root through its raw attachment and verify Ping delivery.
 	rootRef := client.AccessRootResource()
 	defer rootRef.Release()
 	rootClient, err := rootRef.GetClient()
@@ -1268,6 +1384,7 @@ func TestAttachRawInvokerAndResourceTreeShareSessionWithDistinctContracts(t *tes
 		t.Fatal("raw attached invoker was not called")
 	}
 
+	// Call the tree root and verify child resource publication.
 	treeRef := client.CreateResourceReference(treeID)
 	defer treeRef.Release()
 	treeClient, err := treeRef.GetClient()
@@ -1282,6 +1399,7 @@ func TestAttachRawInvokerAndResourceTreeShareSessionWithDistinctContracts(t *tes
 		t.Fatal("CreateChild returned empty child resource id")
 	}
 
+	// Call Ping on the child published by the resource tree.
 	childRef := client.CreateResourceReference(child.GetResourceId())
 	defer childRef.Release()
 	childClient, err := childRef.GetClient()
@@ -1292,6 +1410,7 @@ func TestAttachRawInvokerAndResourceTreeShareSessionWithDistinctContracts(t *tes
 		t.Fatalf("Ping child: %v", err)
 	}
 
+	// Release the published child and verify its cleanup callback.
 	childRef.Release()
 	select {
 	case <-childReleased:
@@ -1322,12 +1441,14 @@ var (
 )
 
 func TestResourceControlQueueRetiresWhenIdleStreamCloses(t *testing.T) {
+	// Prepare an idle resource control stream with retirement callbacks.
 	ctx, cancel := context.WithCancel(context.Background())
 	done := make(chan struct{})
 	failure := make(chan error, 1)
 	stream := &mockResourceClientClient{ctx: ctx, events: make(chan *resource.ResourceClientResponse)}
 	newResourceControlQueue(stream, func(err error) { failure <- err }, func() { close(done) })
 
+	// Cancel the idle stream and verify queue failure and completion.
 	cancel()
 	select {
 	case err := <-failure:

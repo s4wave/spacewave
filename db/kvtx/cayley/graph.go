@@ -18,20 +18,26 @@ func NewGraph(
 	objStore kvtx.Store,
 	graphOpts graph.Options,
 ) (*cayley.Handle, error) {
+	// Initialize the Cayley database over the transaction store.
 	hidalgoKv := flat.Upgrade(hidalgo.NewKV(objStore))
 	if err := cayley_kv.Init(ctx, hidalgoKv, graphOpts); err != nil {
 		if err != graph.ErrDatabaseExists {
 			return nil, err
 		}
 	}
+
+	// Open the initialized Cayley quad store.
 	quadStore, err := cayley_kv.New(ctx, hidalgoKv, graphOpts)
 	if err != nil {
 		return nil, err
 	}
+
+	// Create the quad writer with the graph options.
 	// respects ignore_missing ignore_duplicate
 	quadWriter, err := writer.NewSingleReplication(quadStore, graphOpts)
 	if err != nil {
 		return nil, err
 	}
+
 	return &cayley.Handle{QuadWriter: quadWriter, QuadStore: quadStore}, nil
 }

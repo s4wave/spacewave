@@ -15,6 +15,7 @@ import (
 // TestDesktopActionKeepsStateRootsSeparate checks that desktop requests and a
 // retained Resource stream follow their selected protected socket.
 func TestDesktopActionKeepsStateRootsSeparate(t *testing.T) {
+	// Prepare two isolated daemon roots and a shared launcher connector.
 	rootA := desktopActionStatePath(t)
 	rootB := desktopActionStatePath(t)
 	fixtureA := newDesktopActionFixture(t, rootA, true)
@@ -55,12 +56,16 @@ func TestDesktopActionKeepsStateRootsSeparate(t *testing.T) {
 	if err := stream.CloseSend(); err != nil {
 		t.Fatal(err)
 	}
+
+	// Reopen root A without switching the retained root B client.
 	if err := os.Setenv("SPACEWAVE_STATE_PATH", rootA); err != nil {
 		t.Fatal(err)
 	}
 	if err := openDesktopWithConnector(ctx, connector); err != nil {
 		t.Fatal(err)
 	}
+
+	// Verify desktop demand stays separate and root B still delivers events.
 	if fixtureA.control.openCount() != 2 || fixtureB.control.openCount() != 1 {
 		t.Fatalf("desktop opens: A=%d B=%d, want 2 and 1", fixtureA.control.openCount(), fixtureB.control.openCount())
 	}

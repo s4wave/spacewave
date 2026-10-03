@@ -28,12 +28,15 @@ func NewConfig(bucketID, volumeID string, write bool, serviceID, serverIdRe stri
 
 // Validate validates the configuration.
 func (c *Config) Validate() error {
+	// Require bucket and service identities for the RPC configuration.
 	if c.GetBucketId() == "" {
 		return bucket.ErrBucketIDEmpty
 	}
 	if c.GetServiceId() == "" {
 		return srpc.ErrEmptyServiceID
 	}
+
+	// Validate the configured server selector and forced block hash type.
 	if _, err := c.ParseServerIdRe(); err != nil {
 		return errors.Wrap(err, "server_id")
 	}

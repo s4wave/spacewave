@@ -27,10 +27,12 @@ func SecretFactory(
 	ws world.WorldState,
 	objectKey string,
 ) (srpc.Invoker, func(), error) {
+	// Require a World state before resolving the Secret object.
 	if ws == nil {
 		return nil, nil, objecttype.ErrWorldStateRequired
 	}
 
+	// Acquire the Secret object from the World.
 	objState, found, err := ws.GetObject(ctx, objectKey)
 	defer world.ReleaseObjectState(objState)
 	if err != nil {
@@ -39,6 +41,8 @@ func SecretFactory(
 	if !found {
 		return nil, nil, world.ErrObjectNotFound
 	}
+
+	// Verify the saved object contains a readable Secret block.
 	_, _, err = world.AccessObjectState(ctx, objState, false, func(bcs *block.Cursor) error {
 		_, err := s4wave_secret.UnmarshalSecret(ctx, bcs)
 		return err
@@ -47,6 +51,7 @@ func SecretFactory(
 		return nil, nil, err
 	}
 
+	// Expose the Secret resource through its RPC mux.
 	resource := s4wave_secret.NewSecretResource(le, b, ws, objectKey)
 	return resource.GetMux(), func() {}, nil
 }

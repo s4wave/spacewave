@@ -87,6 +87,7 @@ func NewTransport(
 		staticPeerMap: staticPeerMap,
 	}
 
+	// Enable QUIC dialing when packet addresses can be parsed.
 	var dialFn transport_quic.DialFunc
 	if addrParser != nil {
 		// Parse the dial address and negotiate QUIC over the packet transport.

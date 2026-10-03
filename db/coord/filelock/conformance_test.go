@@ -11,12 +11,15 @@ import (
 
 func TestCoordinatorConformance(t *testing.T) {
 	conformance.Check(t, func(tb testing.TB) (coord.Coordinator, coord.Coordinator) {
+		// Select a backing-store path usable by this platform.
 		dir := ""
 		storeID := tb.Name()
 		if lockFilesSupported {
 			dir = tb.TempDir()
 			storeID = filepath.Join(dir, "volume.db")
 		}
+
+		// Share the inner coordinator between two handles to the same file lock.
 		inner := coord_inmem.NewCoordinator()
 		return NewCoordinator(dir, storeID, inner), NewCoordinator(dir, storeID, inner)
 	})

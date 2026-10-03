@@ -53,6 +53,7 @@ func (s *testDevicePolicyStream) SendAndClose(resp *plugin_host.WatchDevicePolic
 // TestWatchDevicePolicyForwardsCurrentRevisionAndChanges checks the host's
 // read-only stream and its cancellation path.
 func TestWatchDevicePolicyForwardsCurrentRevisionAndChanges(t *testing.T) {
+	// Connect the host root to a device-policy source and response stream.
 	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
 	root := plugin_host_root.NewRoot()
@@ -60,17 +61,23 @@ func TestWatchDevicePolicyForwardsCurrentRevisionAndChanges(t *testing.T) {
 	root.SetDevicePolicySource(source)
 	resource := &PluginHostRoot{pluginID: "spacewave-core", hostRoot: root}
 	stream := &testDevicePolicyStream{ctx: ctx, sent: make(chan *plugin_host.WatchDevicePolicyResponse, 2)}
+
+	// Start the device-policy watch and verify its initial revision.
 	done := make(chan error, 1)
 	go func() { done <- resource.WatchDevicePolicy(&plugin_host.WatchDevicePolicyRequest{}, stream) }()
 	first := <-stream.sent
 	if first.GetRevision() != 1 || first.GetDeviceObjectKey() != "devices/self" {
 		t.Fatalf("initial policy = %+v", first)
 	}
+
+	// Publish the next device-policy revision and verify stream delivery.
 	source.changes <- []byte{2}
 	second := <-stream.sent
 	if second.GetRevision() != 2 || second.GetPolicy()[0] != 2 {
 		t.Fatalf("changed policy = %+v", second)
 	}
+
+	// Cancel the device-policy watch and verify its terminal result.
 	cancel()
 	if err := <-done; err != context.Canceled {
 		t.Fatalf("watch cancellation = %v", err)

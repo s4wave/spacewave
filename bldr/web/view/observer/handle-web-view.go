@@ -14,11 +14,13 @@ func (c *Controller) observeHandleWebView(
 	di directive.Instance,
 	dir web_view.HandleWebView,
 ) error {
+	// Ignore HandleWebView directives without a view to observe.
 	webView := dir.HandleWebView()
 	if webView == nil {
 		return nil
 	}
 
+	// Publish the WebView in the controller registry and wake its observers.
 	webViewID := webView.GetId()
 	c.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
 		if c.webViews[webViewID] != webView {

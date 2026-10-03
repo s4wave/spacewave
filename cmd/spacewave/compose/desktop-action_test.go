@@ -53,6 +53,7 @@ type fixtureResourceWatch struct {
 
 // newDesktopActionFixture starts one isolated socket fixture.
 func newDesktopActionFixture(t *testing.T, root string, withDesktop bool) *desktopActionFixture {
+	// Listen on the isolated daemon socket and retain its fixture context.
 	t.Helper()
 	listener, err := resource_listener.ListenProtectedUnix(filepath.Join(root, daemon.SocketName), true)
 	if err != nil {
@@ -66,6 +67,8 @@ func newDesktopActionFixture(t *testing.T, root string, withDesktop bool) *deskt
 		events:   make(chan struct{}, 1),
 		control:  &fixtureDesktopControl{},
 	}
+
+	// Register the Resource watch and optional desktop control capability.
 	rootMux := srpc.NewMux()
 	if err := rootMux.Register(&fixtureResourceWatch{events: fixture.events}); err != nil {
 		t.Fatal(err)
@@ -79,6 +82,8 @@ func newDesktopActionFixture(t *testing.T, root string, withDesktop bool) *deskt
 			t.Fatal(err)
 		}
 	}
+
+	// Serve fixture connections until test cleanup closes the listener.
 	server := srpc.NewServer(mux)
 	go func() {
 		defer close(fixture.finished)
@@ -101,6 +106,7 @@ func newDesktopActionFixture(t *testing.T, root string, withDesktop bool) *deskt
 		_ = listener.Close()
 		<-fixture.finished
 	})
+
 	return fixture
 }
 
@@ -175,6 +181,7 @@ func TestDesktopActionStartsOrAttachesWithoutClosingOtherResources(t *testing.T)
 	}
 	for _, order := range []string{"desktop-first", "client-first"} {
 		t.Run(order, func(t *testing.T) {
+			// Prepare the selected launch order and count daemon startup requests.
 			root := desktopActionStatePath(t)
 			ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
 			defer cancel()
@@ -189,6 +196,7 @@ func TestDesktopActionStartsOrAttachesWithoutClosingOtherResources(t *testing.T)
 				return daemon.PublishReady(filepath.Join(root, daemon.SocketName))
 			})
 
+			// Open the desktop and retain a client in the selected order.
 			if order == "desktop-first" {
 				if err := openDesktopWithConnector(ctx, connector); err != nil {
 					t.Fatal(err)
@@ -204,6 +212,8 @@ func TestDesktopActionStartsOrAttachesWithoutClosingOtherResources(t *testing.T)
 					t.Fatal(err)
 				}
 			}
+
+			// Verify both clients attach to one daemon and acknowledge one desktop request.
 			if starts != 1 {
 				t.Fatalf("daemon starts = %d, want 1", starts)
 			}
@@ -211,6 +221,7 @@ func TestDesktopActionStartsOrAttachesWithoutClosingOtherResources(t *testing.T)
 				t.Fatalf("desktop acknowledgements = %d, want 1", opens)
 			}
 
+			// Open a Resource watch on the retained client.
 			rootRPC, err := retained.Root().GetResourceRef().GetClient()
 			if err != nil {
 				t.Fatal(err)
@@ -223,6 +234,8 @@ func TestDesktopActionStartsOrAttachesWithoutClosingOtherResources(t *testing.T)
 			if err := stream.CloseSend(); err != nil {
 				t.Fatal(err)
 			}
+
+			// Verify the Resource watch survives the desktop launcher exit.
 			fixture.events <- struct{}{}
 			if err := stream.MsgRecv(&emptypb.Empty{}); err != nil {
 				t.Fatalf("retained Resource stream after desktop launcher exit: %v", err)
@@ -234,6 +247,7 @@ func TestDesktopActionStartsOrAttachesWithoutClosingOtherResources(t *testing.T)
 // TestDesktopActionExplicitSocketNeverStarts checks connect-only selection even
 // when the selected state root has no daemon of its own.
 func TestDesktopActionExplicitSocketNeverStarts(t *testing.T) {
+	// Prepare a desktop daemon outside the selected state root.
 	root := desktopActionStatePath(t)
 	other := filepath.Join(root, "other")
 	if err := os.Mkdir(other, 0o700); err != nil {
@@ -241,11 +255,15 @@ func TestDesktopActionExplicitSocketNeverStarts(t *testing.T) {
 	}
 	fixture := newDesktopActionFixture(t, other, true)
 	t.Setenv("SPACEWAVE_SOCKET_PATH", filepath.Join(other, daemon.SocketName))
+
+	// Run the composed desktop action against the explicitly selected socket.
 	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
 	defer cancel()
 	if err := Compose().NativeAction(ctx, nil); err != nil {
 		t.Fatal(err)
 	}
+
+	// Verify the explicit socket receives demand without starting another daemon.
 	if opens := fixture.control.openCount(); opens != 1 {
 		t.Fatalf("explicit socket desktop acknowledgements = %d, want 1", opens)
 	}
@@ -257,6 +275,7 @@ func TestDesktopActionExplicitSocketNeverStarts(t *testing.T) {
 // TestDesktopActionAcceptsDifferentDaemonRelease checks capability attachment
 // and reports the executing daemon and selected UI independently of the launcher.
 func TestDesktopActionAcceptsDifferentDaemonRelease(t *testing.T) {
+	// Prepare an older daemon whose connector refuses replacement.
 	root := desktopActionStatePath(t)
 	fixture := newDesktopActionFixture(t, root, true)
 	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
@@ -281,12 +300,16 @@ func TestDesktopActionAcceptsDifferentDaemonRelease(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Verify the daemon reports its own release independently of the launcher.
 	if response.GetDaemonRelease() == appversion.GetVersion() {
 		t.Fatalf("daemon release = %q, launcher release = %q", response.GetDaemonRelease(), appversion.GetVersion())
 	}
 	if response.GetDaemonRelease() != "fixture-older-release" {
 		t.Fatalf("daemon release = %q, want fixture-older-release", response.GetDaemonRelease())
 	}
+
+	// Verify the response identifies the executing daemon and selected UI.
 	executable, err := os.Executable()
 	if err != nil {
 		t.Fatal(err)
@@ -308,6 +331,7 @@ func TestDesktopActionAcceptsDifferentDaemonRelease(t *testing.T) {
 // TestDesktopActionMissingCapabilityRequiresUpgrade checks that a Resource
 // daemon without desktop control is never replaced by the launcher.
 func TestDesktopActionMissingCapabilityRequiresUpgrade(t *testing.T) {
+	// Prepare a Resource daemon without the desktop control capability.
 	root := desktopActionStatePath(t)
 	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
 	defer cancel()
@@ -328,6 +352,8 @@ func TestDesktopActionMissingCapabilityRequiresUpgrade(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer retained.Close()
+
+	// Open the retained Resource watch before attempting unsupported desktop launches.
 	rootRPC, err := retained.Root().GetResourceRef().GetClient()
 	if err != nil {
 		t.Fatal(err)
@@ -360,6 +386,7 @@ func TestDesktopActionMissingCapabilityRequiresUpgrade(t *testing.T) {
 
 // desktopActionStatePath constrains every fixture to a short worktree root.
 func desktopActionStatePath(t *testing.T) string {
+	// Create an isolated short socket root and remove it after the test.
 	t.Helper()
 	base := filepath.Join("..", "..", "..", ".tmp")
 	if err := os.MkdirAll(base, 0o700); err != nil {
@@ -370,12 +397,15 @@ func desktopActionStatePath(t *testing.T) string {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = os.RemoveAll(root) })
+
+	// Select the absolute fixture root and clear any explicit socket override.
 	root, err = filepath.Abs(root)
 	if err != nil {
 		t.Fatal(err)
 	}
 	t.Setenv("SPACEWAVE_STATE_PATH", root)
 	t.Setenv("SPACEWAVE_SOCKET_PATH", "")
+
 	return root
 }
 

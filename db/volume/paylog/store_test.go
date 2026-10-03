@@ -57,6 +57,7 @@ func (e engine) openStore(ctx context.Context, d device.Device) (*Store, error) 
 
 // openStore opens a Store on d with e and closes it when the test ends.
 func openStore(t *testing.T, e engine, d device.Device) *Store {
+	// Open the selected store engine and close it after the test.
 	t.Helper()
 	s, err := e.openStore(t.Context(), d)
 	if err != nil {
@@ -76,6 +77,7 @@ func TestStore(t *testing.T) {
 
 // testStore runs TestStore on e.
 func testStore(t *testing.T, e engine) {
+	// Prepare an in-memory device and store for the selected engine.
 	ctx := t.Context()
 	d := device.NewMemory()
 	s := openStore(t, e, d)
@@ -149,6 +151,8 @@ func testStore(t *testing.T, e engine) {
 			t.Fatalf("get %s = %q, %v, %v", key, got, found, err)
 		}
 	}
+
+	// Verify committed and removed blocks survive reopening with their expected state.
 	data, found, err := s.GetBlock(ctx, kept)
 	if err != nil || !found || string(data) != "kept" {
 		t.Fatalf("get kept block = %q, %v, %v", data, found, err)
@@ -156,6 +160,8 @@ func testStore(t *testing.T, e engine) {
 	if exists, err := s.GetBlockExists(ctx, gone); err != nil || exists {
 		t.Fatalf("removed block exists %v, err %v", exists, err)
 	}
+
+	// Verify the reopened journal replays both recorded edges.
 	var replayed int
 	err = s.ReplayJournal(ctx, func(adds, removes []block_gc.RefEdge) error {
 		if len(adds) != 1 || adds[0] != edge[0] || len(removes) != 0 {
@@ -176,6 +182,7 @@ func testStore(t *testing.T, e engine) {
 // WORKLOAD_FILL_BLOCKS first fills the volume with that many blocks of
 // WORKLOAD_FILL_SIZE bytes (default 1024) to measure scale.
 func TestWorkloadReplayTraces(t *testing.T) {
+	// Select captured workload traces and replay them under both durability policies.
 	paths := os.Getenv("WORKLOAD_TRACES")
 	if paths == "" {
 		t.Skip("set WORKLOAD_TRACES to replay captured traces")
@@ -196,6 +203,7 @@ func TestWorkloadReplayTraces(t *testing.T) {
 // replayTrace replays one captured trace, with ordered commits if ordered is
 // set, and logs its metrics.
 func replayTrace(t *testing.T, e engine, path string, ordered bool, fillBlocks, fillSize int) {
+	// Use the test context for the workload replay and recovery measurements.
 	ctx := t.Context()
 
 	// Prepare the workload and the volume it runs against.
@@ -283,6 +291,7 @@ type deviceStats struct {
 
 // Write counts and forwards a write.
 func (c *countingDevice) Write(ctx context.Context, writes []device.Write, flush bool) error {
+	// Count write bytes and flushes under the device statistics lock.
 	c.mtx.Lock()
 	c.stats.calls++
 	if flush {
@@ -314,6 +323,7 @@ func (s deviceStats) String() string {
 
 // envInt parses an optional integer environment variable.
 func envInt(t *testing.T, name string, def int) int {
+	// Read the optional integer setting and reject malformed values.
 	t.Helper()
 	raw := os.Getenv(name)
 	if raw == "" {

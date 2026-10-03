@@ -38,13 +38,18 @@ func startMockHandler(t *testing.T, tb *testbed.Testbed) func() {
 }
 
 func checkMockRequest(t *testing.T, handler http.Handler) {
+	// Serve the mock HTTP route.
 	req := httptest.NewRequest("GET", "/foo/bar", nil)
 	w := httptest.NewRecorder()
 	handler.ServeHTTP(w, req)
+
+	// Verify the mock route returns its successful HTTP status.
 	resp := w.Result()
 	if resp.StatusCode != 200 {
 		t.Fatalf("expected 200 status but got %v: %s", resp.StatusCode, resp.Status)
 	}
+
+	// Read the mock response and verify its expected body.
 	data, err := io.ReadAll(resp.Body)
 	if err != nil {
 		t.Fatal(err.Error())

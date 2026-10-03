@@ -33,10 +33,13 @@ func (a *ApplyBucketConfig) ParseVolumeIdRe() (*regexp.Regexp, error) {
 
 // BuildDirective builds a ApplyBucketConfig directive.
 func (a *ApplyBucketConfig) BuildDirective() (bucket.ApplyBucketConfig, error) {
+	// Parse the volume selector for the bucket configuration.
 	r, err := a.ParseVolumeIdRe()
 	if err != nil {
 		return nil, err
 	}
+
+	// Build and validate the bucket application directive.
 	dir := bucket.NewApplyBucketConfig(
 		a.GetConfig(),
 		r,
@@ -45,5 +48,6 @@ func (a *ApplyBucketConfig) BuildDirective() (bucket.ApplyBucketConfig, error) {
 	if err := dir.Validate(); err != nil {
 		return nil, err
 	}
+
 	return dir, nil
 }

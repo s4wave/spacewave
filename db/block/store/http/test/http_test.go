@@ -24,15 +24,18 @@ import (
 
 // TestBlockStoreHTTPEndToEnd tests the block store http controller end to end.
 func TestBlockStoreHTTPEndToEnd(t *testing.T) {
+	// Prepare the HTTP block-store test context and debug logger.
 	ctx := context.Background()
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
 
+	// Start the storage testbed that serves the source bucket.
 	serverTb, err := testbed.NewTestbed(ctx, le.WithField("testbed", "server"))
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+	defer serverTb.Release()
 
 	// Create a block to lookup in the server bucket, which records its refs.
 	serverBkt, _, serverBktRef, err := bucket.ExBuildBucketAPI(ctx, serverTb.Bus, false, serverTb.BucketId, serverTb.Volume.GetID(), nil)
@@ -40,6 +43,8 @@ func TestBlockStoreHTTPEndToEnd(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 	defer serverBktRef.Release()
+
+	// Write a referenced sample block into the server bucket.
 	serverStore := serverBkt.GetBucket()
 	sampleBlockBody := []byte("How hard are these tests? What exactly was in that phonebook of a contract I signed?")
 	samplePutOpts := &block.PutOpts{HashType: hash.HashType_HashType_BLAKE3}
@@ -64,10 +69,12 @@ func TestBlockStoreHTTPEndToEnd(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+	defer clientTb.Release()
 	clientTb.StaticResolver.AddFactory(block_store_http.NewFactory(clientTb.Bus))
 
 	// Create the bucket in the client
 	bucketID := clientTb.BucketId
+
 	// override the bucket config with v2
 	blockStoreID := "test/http-block-store"
 	bucketLkConfig, err := bucket.NewLookupConfig(configset.NewControllerConfig(1, &lookup_concurrent.Config{
@@ -109,16 +116,19 @@ func TestBlockStoreHTTPEndToEnd(t *testing.T) {
 	}
 	defer lkRef.Release()
 
+	// Acquire the configured client bucket lookup interface.
 	lk, err := lkr.GetLookup(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Fetch the sample block through the HTTP-backed bucket lookup.
 	lkDat, lkFound, err := lk.LookupBlock(ctx, sampleBlockRef.Clone())
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Verify the HTTP-backed lookup returns the original block bytes.
 	if !lkFound {
 		t.FailNow()
 	}
@@ -133,6 +143,7 @@ func TestBlockStoreHTTPEndToEnd(t *testing.T) {
 	}
 	defer readBktRef.Release()
 
+	// Verify the fetched block was written back into the client bucket.
 	ex, err := readBkt.GetBucket().GetBlockExists(ctx, sampleBlockRef.Clone())
 	if err != nil {
 		t.Fatal(err.Error())

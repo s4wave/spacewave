@@ -14,6 +14,7 @@ import (
 )
 
 func TestHTTPHandler(t *testing.T) {
+	// Start a testbed with a bus-mounted HTTP handler.
 	ctx := context.Background()
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
@@ -27,6 +28,7 @@ func TestHTTPHandler(t *testing.T) {
 	}
 	defer startMockHandler(t, tb)()
 
+	// Build the HTTP handler from the testbed bus.
 	busHandler := NewBusHandler(tb.Bus, "test-client", true)
 	handler := NewHTTPHandler(ctx, NewHTTPHandlerBuilder(busHandler))
 
@@ -35,6 +37,7 @@ func TestHTTPHandler(t *testing.T) {
 }
 
 func TestHTTPHandlerRebindsBeforeCommit(t *testing.T) {
+	// Build a handler that releases its first binding before writing a response.
 	ctx := context.Background()
 	var resolveCount atomic.Int32
 	var replacementServed atomic.Int32
@@ -54,9 +57,12 @@ func TestHTTPHandlerRebindsBeforeCommit(t *testing.T) {
 		}
 	})
 
+	// Serve the request after releasing the initial handler binding.
 	req := httptest.NewRequest("GET", "/foo/bar", nil)
 	w := httptest.NewRecorder()
 	handler.ServeHTTP(w, req)
+
+	// Verify the response status, body, and replacement handler invocation count.
 	resp := w.Result()
 	if resp.StatusCode != 200 {
 		t.Fatalf("expected 200 status but got %v: %s", resp.StatusCode, resp.Status)
@@ -71,6 +77,7 @@ func TestHTTPHandlerRebindsBeforeCommit(t *testing.T) {
 }
 
 func TestHTTPHandlerDoesNotReplayAfterCommit(t *testing.T) {
+	// Build a handler that releases its binding after committing a response.
 	ctx := context.Background()
 	var resolveCount atomic.Int32
 	var replacementServed atomic.Int32
@@ -91,9 +98,12 @@ func TestHTTPHandlerDoesNotReplayAfterCommit(t *testing.T) {
 		}
 	})
 
+	// Serve the request through the handler that commits its first response.
 	req := httptest.NewRequest("GET", "/foo/bar", nil)
 	w := httptest.NewRecorder()
 	handler.ServeHTTP(w, req)
+
+	// Verify the response status, body, and replacement handler invocation count.
 	resp := w.Result()
 	if resp.StatusCode != 200 {
 		t.Fatalf("expected 200 status but got %v: %s", resp.StatusCode, resp.Status)
@@ -108,6 +118,7 @@ func TestHTTPHandlerDoesNotReplayAfterCommit(t *testing.T) {
 }
 
 func TestHTTPHandlerTimesOutWaitingForReplacement(t *testing.T) {
+	// Build a handler whose replacement waits for request cancellation.
 	ctx := context.Background()
 	var resolveCount atomic.Int32
 	handler := NewHTTPHandler(ctx, func(ctx context.Context, released func()) (http.Handler, func(), error) {
@@ -123,11 +134,14 @@ func TestHTTPHandlerTimesOutWaitingForReplacement(t *testing.T) {
 		}
 	})
 
+	// Serve the request with a deadline while the replacement remains unresolved.
 	reqCtx, reqCancel := context.WithTimeout(context.Background(), 25*time.Millisecond)
 	defer reqCancel()
 	req := httptest.NewRequest("GET", "/foo/bar", nil).WithContext(reqCtx)
 	w := httptest.NewRecorder()
 	handler.ServeHTTP(w, req)
+
+	// Verify the HTTP response reports the replacement resolution timeout.
 	resp := w.Result()
 	if resp.StatusCode != 500 {
 		t.Fatalf("expected 500 status but got %v: %s", resp.StatusCode, resp.Status)

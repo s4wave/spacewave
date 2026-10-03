@@ -19,16 +19,19 @@ import (
 )
 
 func TestFSWatcher(t *testing.T) {
+	// Configure logging for the filesystem watcher test.
 	ctx := context.Background()
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
 
+	// Open a storage testbed for the watched filesystem.
 	btb, err := testbed.NewTestbed(ctx, le, testbed.WithVerbose(true))
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Create the World filesystem and resolve its root handle.
 	objKey := "test-fs"
 	rootRef, tb, err := unixfs_world_testbed.BuildTestbed(
 		btb,
@@ -40,6 +43,7 @@ func TestFSWatcher(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// Populate the watched directory with a test file.
 	rbfs := unixfs_billy.NewBillyFS(ctx, rootRef, "", time.Now())
 	testData := []byte("hello world")
 	if err := billy_util.WriteFile(rbfs, "/bat/baz/test-file.txt", testData, 0o755); err != nil {
@@ -133,6 +137,7 @@ func TestFSWatcher(t *testing.T) {
 		}
 	}
 	assertCalled()
+
 	// assert that the callback is not called twice
 	assertNotCalled()
 

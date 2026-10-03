@@ -9,6 +9,7 @@ import (
 )
 
 func TestManagedSourceRootUsesFilesystemIdentity(t *testing.T) {
+	// Create a managed state directory and a filesystem alias containing a source.
 	rootPath := filepath.Join(t.TempDir(), "state")
 	if err := os.Mkdir(rootPath, 0o755); err != nil {
 		t.Fatal(err)
@@ -25,6 +26,7 @@ func TestManagedSourceRootUsesFilesystemIdentity(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Verify that the alias source belongs to the managed root.
 	root, err := newManagedSourceRoot("", rootPath)
 	if err != nil {
 		t.Fatal(err)
@@ -35,6 +37,7 @@ func TestManagedSourceRootUsesFilesystemIdentity(t *testing.T) {
 }
 
 func TestManagedSourceRootContainsNonexistentLexicalDescendant(t *testing.T) {
+	// Verify lexical containment of missing descendants and exclusion of siblings.
 	rootPath := filepath.Join(t.TempDir(), "state")
 	root, err := newManagedSourceRoot("", rootPath)
 	if err != nil {

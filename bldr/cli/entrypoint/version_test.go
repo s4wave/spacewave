@@ -10,6 +10,7 @@ import (
 )
 
 func TestStandaloneVersionCommandReportsUnmanagedIdentity(t *testing.T) {
+	// Run the standalone version command and capture its JSON identity.
 	var buf bytes.Buffer
 	app := cli.NewApp()
 	app.Writer = &buf
@@ -18,11 +19,14 @@ func TestStandaloneVersionCommandReportsUnmanagedIdentity(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Decode the standalone version response for identity assertions.
 	var parser fastjson.Parser
 	got, err := parser.ParseBytes(buf.Bytes())
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Verify the standalone project identity and native platform.
 	if projectID := string(got.GetStringBytes("projectId")); projectID != "spacewave" {
 		t.Fatalf("project = %q, want spacewave", projectID)
 	}
@@ -33,6 +37,8 @@ func TestStandaloneVersionCommandReportsUnmanagedIdentity(t *testing.T) {
 	if platformID := string(got.GetStringBytes("platformId")); platformID != wantPlatform {
 		t.Fatalf("platform = %q, want %q", platformID, wantPlatform)
 	}
+
+	// Require an unmanaged entrypoint to omit Manifest identity.
 	if manifestID := string(got.GetStringBytes("manifest", "manifestId")); manifestID != "" {
 		t.Fatalf("manifest ID = %q, want empty", manifestID)
 	}

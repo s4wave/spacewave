@@ -37,10 +37,13 @@ func NewController(le *logrus.Entry, conf *Config) *Controller {
 // NewBlockStoreBuilder constructs a new block store builder from config.
 func NewBlockStoreBuilder(le *logrus.Entry, conf *Config) block_store_controller.BlockStoreBuilder {
 	return func(ctx context.Context, released func()) (block_store.Store, func(), error) {
+		// Validate the key encoding for the in-memory block store.
 		kvk, err := kvkey.NewKVKey(conf.GetKvKeyOpts())
 		if err != nil {
 			return nil, nil, err
 		}
+
+		// Wrap the in-memory transaction store with the configured block store.
 		st := store_kvtx_inmem.NewStore()
 		storeOps := NewInmemBlock(kvk, st, conf.GetForceHashType(), conf.GetHashGet())
 		store := block_store.NewStore(conf.GetBlockStoreId(), storeOps)

@@ -38,6 +38,7 @@ func (m *MountedStreamHandler) HandleMountedStream(
 		return err
 	}
 	go func() {
+		// Echo the mounted stream while retaining its peer link demand.
 		defer elRef.Release()
 		m.le.Debug("echoing stream")
 		s := strm.GetStream()

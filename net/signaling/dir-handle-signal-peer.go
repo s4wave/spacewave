@@ -37,18 +37,22 @@ func NewHandleSignalPeer(signalingID string, signalPeerSession SignalPeerSession
 // Validate validates the directive.
 // This is a cursory validation to see if the values "look correct."
 func (d *handleSignalPeer) Validate() error {
+	// Require a signaling channel and session before checking the peer identities.
 	if d.signalingID == "" {
 		return ErrEmptySignalingID
 	}
 	if d.signalPeerSession == nil {
 		return errors.New("signal peer session cannot be nil")
 	}
+
+	// Validate both peer identities carried by the signaling session.
 	if err := d.signalPeerSession.GetLocalPeerID().Validate(); err != nil {
 		return errors.Wrap(err, "signal peer session: local peer")
 	}
 	if err := d.signalPeerSession.GetRemotePeerID().Validate(); err != nil {
 		return errors.Wrap(err, "signal peer session: remote peer")
 	}
+
 	return nil
 }
 

@@ -32,6 +32,7 @@ func (b *queuedReclaimBackend) Lock(ctx context.Context, name string, exclusive 
 
 // TestScopedReadSurvivesQueuedReclaimAndDrain proves nested work reuses its lease.
 func TestScopedReadSurvivesQueuedReclaimAndDrain(t *testing.T) {
+	// Open an engine whose backend exposes queued reclamation.
 	ctx := t.Context()
 	disk := newDiskBackend(t)
 	backend := &queuedReclaimBackend{Backend: disk}
@@ -41,12 +42,14 @@ func TestScopedReadSurvivesQueuedReclaimAndDrain(t *testing.T) {
 	}
 	defer engine.Close()
 
+	// Publish a durable block before opening the scoped reader.
 	durable := &packStore{engine: engine}
 	durableRef, existed, err := durable.PutBlock(ctx, []byte("durable content"), &block.PutOpts{Sync: true})
 	if err != nil || existed {
 		t.Fatalf("durable seed: %t %v", existed, err)
 	}
 
+	// Hold another block at the publication gate and await its write attempt.
 	writeGate := make(chan struct{})
 	disk.writeGate = writeGate
 	disk.writeStarted = make(chan struct{}, 1)
@@ -62,12 +65,14 @@ func TestScopedReadSurvivesQueuedReclaimAndDrain(t *testing.T) {
 		t.Fatal("pending publication did not reach the write gate")
 	}
 
+	// Retain an outer read scope over durable and pending blocks.
 	outer, releaseOuter, err := store.BeginReadOperation(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer func() { releaseOuter() }()
 
+	// Queue reclamation behind the retained read scope.
 	reclaimQueued := make(chan struct{}, 1)
 	backend.queued = reclaimQueued
 	reclaimed := make(chan error, 1)
@@ -81,8 +86,10 @@ func TestScopedReadSurvivesQueuedReclaimAndDrain(t *testing.T) {
 		t.Fatal("reclamation did not join the lock queue")
 	}
 
+	// Verify a nested read reuses the outer scope while reclamation waits.
 	nestedDone := make(chan error, 1)
 	go func() {
+		// Acquire the nested scope and verify durable and pending block membership.
 		nested, releaseNested, err := outer.BeginReadOperation(ctx)
 		if err != nil {
 			nestedDone <- err
@@ -104,6 +111,7 @@ func TestScopedReadSurvivesQueuedReclaimAndDrain(t *testing.T) {
 		t.Fatal("nested scoped read queued behind reclamation")
 	}
 
+	// Resume publication and require a scoped durability fence to finish.
 	synced := make(chan error, 1)
 	go func() {
 		ok, err := outer.Sync(ctx)
@@ -122,6 +130,7 @@ func TestScopedReadSurvivesQueuedReclaimAndDrain(t *testing.T) {
 		t.Fatal("scoped sync did not complete after publication resumed")
 	}
 
+	// Verify pending bytes survive drain and reclamation resumes after release.
 	data, found, err := outer.GetBlock(ctx, pendingRef)
 	if err != nil || !found || string(data) != "pending content" {
 		t.Fatalf("captured pending read after drain: %q %t %v", data, found, err)

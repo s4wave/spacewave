@@ -30,14 +30,17 @@ func newComposedBus(ctx context.Context, le *logrus.Entry) (bus.Bus, error) {
 // TestComposedBusResolvesReleaseWorldHostConfigSet resolves the Release World
 // host config set against the composed distribution bus.
 func TestComposedBusResolvesReleaseWorldHostConfigSet(t *testing.T) {
+	// Bound release configuration resolution to the test context.
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
+	// Build the distribution bus with its production controller factories.
 	b, err := newComposedBus(ctx, logrus.NewEntry(logrus.New()))
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	// Describe the Release World host controllers and their shared engine.
 	configSet := &configset_proto.ConfigSet{
 		Configs: map[string]*configset_proto.ControllerConfig{
 			"release-world": {
@@ -68,22 +71,29 @@ func TestComposedBusResolvesReleaseWorldHostConfigSet(t *testing.T) {
 		},
 	}
 
+	// Resolve the Release World host configuration against the composed bus.
 	resolved, err := configSet.Resolve(ctx, b)
 	if err != nil {
 		t.Fatalf("resolve Release World host config set: %v", err)
 	}
+
+	// Verify that the world reader and operations share the release engine.
 	if got := resolved["release-world"].GetConfig().(*cdn_world_controller.Config).GetEngineId(); got != "spacewave-release-world" {
 		t.Fatalf("release-world engine id = %q", got)
 	}
 	if got := resolved["release-world-ops"].GetConfig().(*space_world_ops.Config).GetEngineId(); got != "spacewave-release-world" {
 		t.Fatalf("release-world-ops engine id = %q", got)
 	}
+
+	// Verify the manifest fetcher reads the release manifest object.
 	fetchConf := resolved["release-world-fetch"].GetConfig().(*manifest_fetch_world.Config)
 	if fetchConf.GetEngineId() != "spacewave-release-world" ||
 		len(fetchConf.GetObjectKeys()) != 1 ||
 		fetchConf.GetObjectKeys()[0] != "spacewave/release/manifests" {
 		t.Fatalf("release-world-fetch config = %#v", fetchConf)
 	}
+
+	// Verify the CDN store uses the release Space and distribution cache.
 	cdnStoreConf := resolved["release-world-cdn-store"].GetConfig().(*cdn_bstore_controller.Config)
 	if cdnStoreConf.GetBlockStoreId() != "spacewave-release-cdn" ||
 		cdnStoreConf.GetSpaceId() != "01kqjmfxd44r7ggrq78efad3d2" ||
@@ -93,6 +103,8 @@ func TestComposedBusResolvesReleaseWorldHostConfigSet(t *testing.T) {
 		cdnStoreConf.GetBucketIds()[0] != "spacewave-release" {
 		t.Fatalf("release-world-cdn-store config = %#v", cdnStoreConf)
 	}
+
+	// Verify the release bucket maps to the same CDN store.
 	cdnBucketConf := resolved["release-world-cdn-bucket"].GetConfig().(*block_store_bucket.Config)
 	if cdnBucketConf.GetBlockStoreId() != "spacewave-release-cdn" ||
 		cdnBucketConf.GetBucketStoreId() != cdnBucketConf.GetBlockStoreId() ||

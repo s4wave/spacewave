@@ -22,9 +22,12 @@ func (c *Config) EqualsConfig(c2 config.Config) bool {
 
 // Validate validates the configuration.
 func (c *Config) Validate() error {
+	// Require at least one topic for the pubsub relay.
 	if len(c.GetTopicIds()) == 0 {
 		return errors.New("at least one topic id required")
 	}
+
+	// Require a valid peer identity for the pubsub relay.
 	peerID, err := c.ParsePeerID()
 	if err != nil {
 		return err

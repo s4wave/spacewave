@@ -11,11 +11,14 @@ import (
 )
 
 func TestPrefixer(t *testing.T) {
+	// Verify the transaction contract on the unprefixed in-memory store.
 	ctx := context.Background()
 	store := sinmem.NewStore()
 	if err := kvtx_kvtest.TestAll(ctx, store); err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Verify the same transaction contract through the prefixer.
 	prefixed := NewPrefixer(store, []byte("testing-prefix/"))
 	if err := kvtx_kvtest.TestAll(ctx, prefixed); err != nil {
 		t.Fatal(err.Error())
@@ -46,6 +49,7 @@ func (t *typedCommitTx) Commit(ctx context.Context) error {
 }
 
 func TestPrefixerPreservesInvalidSnapshot(t *testing.T) {
+	// Open a prefixed transaction whose base commit reports a snapshot conflict.
 	store := &typedCommitStore{Store: sinmem.NewStore()}
 	prefixed := NewPrefixer(store, []byte("prefix/"))
 	tx, err := prefixed.NewTransaction(context.Background(), true)
@@ -54,6 +58,7 @@ func TestPrefixerPreservesInvalidSnapshot(t *testing.T) {
 	}
 	defer tx.Discard()
 
+	// Verify the prefixer preserves the base transaction's conflict identity.
 	err = tx.Commit(context.Background())
 	if !errors.Is(err, kvtx.ErrInvalidSnapshot) {
 		t.Fatalf("commit error = %v, want ErrInvalidSnapshot", err)

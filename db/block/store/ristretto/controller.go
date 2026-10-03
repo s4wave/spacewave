@@ -37,10 +37,13 @@ func NewController(le *logrus.Entry, conf *Config) *Controller {
 // NewBlockStoreBuilder constructs a new block store builder from config.
 func NewBlockStoreBuilder(le *logrus.Entry, conf *Config) block_store_controller.BlockStoreBuilder {
 	return func(ctx context.Context, released func()) (block_store.Store, func(), error) {
+		// Resolve block key encoding before constructing the cache store.
 		kvk, err := kvkey.NewKVKey(conf.GetKvKeyOpts())
 		if err != nil {
 			return nil, nil, err
 		}
+
+		// Create the Ristretto cache and expose it as a block store.
 		st, err := store_kvtx_ristretto.NewStore(conf.GetRistretto())
 		if err != nil {
 			return nil, nil, err

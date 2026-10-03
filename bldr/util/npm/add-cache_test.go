@@ -39,6 +39,8 @@ func TestEnsureBunAddIsolatesDownloads(t *testing.T) {
 	if err := compressed.Close(); err != nil {
 		t.Fatal(err)
 	}
+
+	// Serve npm metadata and the fixture archive from a local registry.
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Resolve the pinned package through npm metadata before its tarball fetch.
 		if r.URL.Path != "/fixture.tgz" {
@@ -61,6 +63,7 @@ func TestEnsureBunAddIsolatesDownloads(t *testing.T) {
 	t.Setenv("BUN_INSTALL_CACHE_DIR", blockedCache)
 	for _, target := range []string{"arm64", "amd64"} {
 		t.Run(target, func(t *testing.T) {
+			// Run the target install concurrently with the other target.
 			t.Parallel()
 
 			// Install the same archive through the real cached dependency helper.

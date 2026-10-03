@@ -135,11 +135,13 @@ func (d *lookupHTTPHandler) LookupHTTPHandlerClientID() string {
 // directives are equivalent, and the new directive does not superceed the
 // old, then the new directive will be merged (de-duplicated) into the old.
 func (d *lookupHTTPHandler) IsEquivalent(other directive.Directive) bool {
+	// Require another HTTP handler lookup before comparing request identities.
 	od, ok := other.(LookupHTTPHandler)
 	if !ok {
 		return false
 	}
 
+	// Compare the method, URL, and client that select the HTTP handler.
 	if d.LookupHTTPHandlerMethod() != od.LookupHTTPHandlerMethod() {
 		return false
 	}
@@ -168,6 +170,7 @@ func (d *lookupHTTPHandler) GetName() string {
 // This should be something like param1="test", param2="test".
 // This is not necessarily unique, and is primarily intended for display.
 func (d *lookupHTTPHandler) GetDebugVals() directive.DebugValues {
+	// Describe the HTTP handler request for directive diagnostics.
 	vals := directive.DebugValues{}
 	if method := d.LookupHTTPHandlerMethod(); method != "" {
 		vals["method"] = []string{method}

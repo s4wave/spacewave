@@ -32,11 +32,13 @@ func NewFileSystem(
 	prefix string,
 	iofsOpts ...unixfs_iofs.FSOption,
 ) (*FileSystem, error) {
+	// Normalize the HTTP filesystem prefix as a relative path.
 	if len(prefix) != 0 {
 		prefix = path.Clean(prefix)
 	}
 	prefix = strings.TrimPrefix(prefix, "/")
 
+	// Restrict the UnixFS view to the normalized HTTP prefix.
 	var iofs fs.FS = unixfs_iofs.NewFS(ctx, fsh, iofsOpts...)
 	if prefix != "" && prefix != "." {
 		var err error

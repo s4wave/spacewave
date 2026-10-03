@@ -30,18 +30,21 @@ func NewController(
 	b bus.Bus,
 	conf *Config,
 ) (*Controller, error) {
+	// Retain the bus and configuration for the stream RPC controller.
 	// note: checked in Validate()
 	c := &Controller{
 		b:    b,
 		conf: conf,
 	}
 
+	// Select the configured RPC service prefixes, defaulting to all services.
 	serviceIdPrefixes := conf.GetServiceIdPrefixes()
 	if len(serviceIdPrefixes) == 0 {
 		// match all service ids
 		serviceIdPrefixes = append(serviceIdPrefixes, "")
 	}
 
+	// Construct the stream RPC client for the configured protocol.
 	client, err := stream_srpc_client.NewClient(
 		le,
 		b,
@@ -52,6 +55,7 @@ func NewController(
 		return nil, err
 	}
 
+	// Mount the stream RPC client under the selected service prefixes.
 	c.ClientController = bifrost_rpc.NewClientController(
 		le,
 		b,

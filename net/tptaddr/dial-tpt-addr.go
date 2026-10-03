@@ -105,12 +105,14 @@ func (d *dialTptAddr) GetName() string {
 // GetDebugVals returns the directive arguments as k/v pairs.
 // This is not necessarily unique, and is primarily intended for display.
 func (d *dialTptAddr) GetDebugVals() directive.DebugValues {
+	// Describe the dial target and any constrained source peer for diagnostics.
 	vals := directive.NewDebugValues()
 	vals["peer-id"] = []string{d.DialTptAddrTargetPeerId().String()}
 	vals["tpt-addr"] = []string{d.DialTptAddrDialerOpts().GetAddress()}
 	if src := d.DialTptAddrSourcePeerId(); len(src) != 0 {
 		vals["from-peer-id"] = []string{d.DialTptAddrSourcePeerId().String()}
 	}
+
 	return vals
 }
 

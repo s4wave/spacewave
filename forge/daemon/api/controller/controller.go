@@ -97,11 +97,13 @@ func (c *Controller) Execute(ctx context.Context) error {
 		_ = bapi.RegisterAsSRPCServer(mux)
 	}
 
+	// Open the TCP listener for the configured daemon API address.
 	lis, err := net.Listen("tcp", c.listenAddr)
 	if err != nil {
 		return err
 	}
 
+	// Serve the registered daemon APIs and report listener completion.
 	errCh := make(chan error, 1)
 	srv := srpc.NewServer(mux)
 	go func() {
@@ -109,6 +111,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 		_ = lis.Close()
 	}()
 
+	// Close the daemon API listener on cancellation or return its serving error.
 	select {
 	case <-ctx.Done():
 		_ = lis.Close()

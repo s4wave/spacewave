@@ -68,16 +68,20 @@ func (v *BucketStore) GetBucketInfo(ctx context.Context, id string) (*bucket.Buc
 
 // ListBucketInfo lists buckets with an optional regex match.
 func (v *BucketStore) ListBucketInfo(ctx context.Context, idRegex *regexp.Regexp) ([]*bucket.BucketInfo, error) {
+	// Encode the optional bucket ID filter for the remote store.
 	var idReStr string
 	if idRegex != nil {
 		idReStr = idRegex.String()
 	}
+
+	// Request the bucket information matching the encoded filter.
 	resp, err := v.client.ListBucketInfo(ctx, &bucket_store_rpc.ListBucketInfoRequest{
 		BucketIdRe: idReStr,
 	})
 	if err != nil {
 		return nil, err
 	}
+
 	return resp.GetBucketInfo(), nil
 }
 

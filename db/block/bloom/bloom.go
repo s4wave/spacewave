@@ -17,12 +17,15 @@ type Filter struct {
 
 // NewFilter creates a bloom filter sized for n entries and p false-positive rate.
 func NewFilter(n uint, p float64) *Filter {
+	// Normalize the entry count and false-positive rate for filter sizing.
 	if n == 0 {
 		n = 1
 	}
 	if p <= 0 || p >= 1 {
 		p = 0.1
 	}
+
+	// Calculate the bloom filter bit count and number of hash functions.
 	m := uint(math.Ceil(-float64(n) * math.Log(p) / (math.Ln2 * math.Ln2)))
 	if m == 0 {
 		m = 1
@@ -139,6 +142,7 @@ type Key struct {
 
 // NewKey hashes a key for Filter.AddKey and Filter.TestKey.
 func NewKey(key []byte) Key {
+	// Hash the key into the two values used for bloom bit positions.
 	h := fnv.New128a()
 	_, _ = h.Write(key)
 	sum := h.Sum(nil)

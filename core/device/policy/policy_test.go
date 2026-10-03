@@ -25,6 +25,7 @@ func writeRawPolicyFile(t *testing.T, stateRoot, data string) {
 // rejected at read time with the forge-worker validation error and never
 // decodes as an available envelope.
 func TestReadFileRejectsInvalidForgeWorkerEnvelope(t *testing.T) {
+	// Write an incomplete Forge worker policy and verify reading rejects it.
 	stateRoot := t.TempDir()
 	writeRawPolicyFile(t, stateRoot,
 		`{"forgeWorker":{"workerObjectKey":"worker/a","milliCpu":0,`+
@@ -102,6 +103,7 @@ func TestValidateAcceptsAbsentSection(t *testing.T) {
 // survives the file codec unchanged and that an unknown-section document
 // decodes to a zero section (legacy tolerance).
 func TestForgeWorkerEnvelopeJSONRoundTrip(t *testing.T) {
+	// Decode the declared Forge worker capacity and verify its fields and validity.
 	var policy DevicePolicy
 	if err := policy.UnmarshalJSON([]byte(validForgeWorkerJSON)); err != nil {
 		t.Fatal(err)
@@ -115,6 +117,7 @@ func TestForgeWorkerEnvelopeJSONRoundTrip(t *testing.T) {
 		t.Fatalf("decoded envelope must validate: %v", err)
 	}
 
+	// Encode and decode the device policy and verify every declared field survives.
 	data, err := policy.MarshalJSON()
 	if err != nil {
 		t.Fatal(err)
@@ -127,6 +130,7 @@ func TestForgeWorkerEnvelopeJSONRoundTrip(t *testing.T) {
 		t.Fatalf("marshal lost fields: %s", string(data))
 	}
 
+	// Decode a policy without a Forge worker section and verify it remains valid.
 	var legacy DevicePolicy
 	if err := legacy.UnmarshalJSON([]byte(`{"revision":2}`)); err != nil {
 		t.Fatal(err)

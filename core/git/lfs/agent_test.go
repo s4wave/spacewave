@@ -32,6 +32,7 @@ func (s *memStore) Has(_ context.Context, oid string, size int64) (bool, error) 
 }
 
 func (s *memStore) Put(_ context.Context, oid string, _ int64, rdr io.Reader) error {
+	// Store the uploaded bytes unless the fixture requires a write failure.
 	s.puts++
 	if s.putErr != nil {
 		return s.putErr
@@ -62,12 +63,15 @@ func testObject(content string) ([]byte, string) {
 // runAgent runs an Agent over store with the given request lines and returns
 // the parsed response lines.
 func runAgent(t *testing.T, store Store, tmpDir string, requests ...string) []*fastjson.Value {
+	// Run the LFS agent against the requested protocol events.
 	t.Helper()
 	var out bytes.Buffer
 	in := strings.NewReader(strings.Join(requests, "\n") + "\n")
 	if err := NewAgent(store, tmpDir).Run(context.Background(), in, &out); err != nil {
 		t.Fatal(err)
 	}
+
+	// Decode each LFS response line into a protocol message.
 	var msgs []*fastjson.Value
 	for line := range strings.Lines(out.String()) {
 		v, err := fastjson.Parse(line)
@@ -108,6 +112,7 @@ const (
 // TestAgentUploadDownload uploads an object, skips it on the second upload,
 // and downloads it back into a verified file.
 func TestAgentUploadDownload(t *testing.T) {
+	// Prepare an LFS object file and its backing store.
 	dir := t.TempDir()
 	data, oid := testObject("hello git-lfs")
 	src := filepath.Join(dir, "src")
@@ -168,6 +173,7 @@ func TestAgentUploadDownload(t *testing.T) {
 // TestAgentRejectsCorruptDownload reports a download whose bytes do not match
 // the pointer as failed and removes its file.
 func TestAgentRejectsCorruptDownload(t *testing.T) {
+	// Prepare stored objects whose contents disagree with their LFS pointers.
 	tmpDir := t.TempDir()
 	data, oid := testObject("expected")
 	_, otherOid := testObject("different")
@@ -207,6 +213,7 @@ func TestAgentRejectsCorruptDownload(t *testing.T) {
 // TestAgentReportsTransferErrors reports store failures and invalid oids to
 // git-lfs and keeps serving later requests.
 func TestAgentReportsTransferErrors(t *testing.T) {
+	// Prepare an LFS object file and its backing store.
 	dir := t.TempDir()
 	data, oid := testObject("payload")
 	src := filepath.Join(dir, "src")
@@ -215,6 +222,7 @@ func TestAgentReportsTransferErrors(t *testing.T) {
 	}
 	store := &memStore{objects: map[string][]byte{}, putErr: errors.New("store offline")}
 
+	// Require invalid object IDs and failed uploads to return transfer errors.
 	done := completes(runAgent(t, store, dir,
 		initRequest,
 		uploadRequest("../escape", len(data), src),

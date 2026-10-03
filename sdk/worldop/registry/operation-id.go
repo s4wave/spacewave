@@ -17,20 +17,28 @@ func PinnedOperationID(pluginID, manifestRoot, handlerID string) string {
 // ParsePinnedOperationID decodes an immutable operation identity.
 // It rejects malformed identities before any plugin or transaction is acquired.
 func ParsePinnedOperationID(id string) (pluginID, manifestRoot, handlerID string, ok bool) {
+	// Require the pinned operation prefix and all identity components.
 	parts := strings.SplitN(id, "/", 4)
 	if len(parts) != 4 || parts[0] != "plugin-op" {
 		return "", "", "", false
 	}
+
+	// Validate the plugin identity before resolving its pinned manifest.
 	if err := bldr_plugin.ValidatePluginID(parts[1], false); err != nil {
 		return "", "", "", false
 	}
+
+	// Validate the manifest root as a content hash.
 	var root hash.Hash
 	if err := root.ParseFromB58(parts[2]); err != nil || root.Validate() != nil {
 		return "", "", "", false
 	}
+
+	// Decode the nonempty handler identity from its path component.
 	handler, err := url.PathUnescape(parts[3])
 	if err != nil || handler == "" {
 		return "", "", "", false
 	}
+
 	return parts[1], parts[2], handler, true
 }

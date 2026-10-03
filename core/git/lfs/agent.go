@@ -222,6 +222,7 @@ type progress struct {
 
 // Write counts p and reports it to git-lfs.
 func (p *progress) Write(b []byte) (int, error) {
+	// Report the accumulated and current byte counts for the LFS transfer.
 	p.sofar += int64(len(b))
 	msg := p.out.event("progress", p.oid)
 	msg.Set("bytesSoFar", p.out.arena.NewNumberString(strconv.FormatInt(p.sofar, 10)))

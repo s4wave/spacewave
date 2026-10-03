@@ -97,6 +97,7 @@ func (s *StateAtomStoreIndex) buildStoreIDsSnapshot(
 			return s.objStore.NewTransaction(ctx, false)
 		},
 		func(ctx context.Context, tx kvtx.Tx) error {
+			// Merge persisted state atom store IDs into the tracked snapshot.
 			attemptTrackedStoreIDs := maps.Clone(trackedStoreIDs)
 			err := tx.ScanPrefixKeys(ctx, []byte(stateAtomStoreKeyPrefix), func(key []byte) error {
 				keyStr := string(key)
@@ -110,6 +111,7 @@ func (s *StateAtomStoreIndex) buildStoreIDsSnapshot(
 				return err
 			}
 
+			// Publish the merged state atom store IDs in sorted order.
 			attemptStoreIDs := make([]string, 0, len(attemptTrackedStoreIDs))
 			for storeID := range attemptTrackedStoreIDs {
 				attemptStoreIDs = append(attemptStoreIDs, storeID)

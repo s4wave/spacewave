@@ -63,10 +63,13 @@ func (h *AccessWebViewsViaBus) GetWebViewInvoker(
 	webViewID string,
 	released func(),
 ) (srpc.Invoker, func(), error) {
+	// Acquire the requested web view and retain its directive reference.
 	webView, _, webViewRef, err := web_view.ExLookupWebView(ctx, h.b, false, webViewID, true, released)
 	if err != nil {
 		return nil, nil, err
 	}
+
+	// Register the web view service and transfer reference release to the caller.
 	handler := web_view.NewSRPCWebViewHandler(NewWebViewServer(webView), "")
 	mux := srpc.NewMux(srpc.NewClientInvoker(webView.GetClient()))
 	if err := mux.Register(handler); err != nil {

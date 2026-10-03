@@ -48,23 +48,27 @@ const (
 
 // TestBoltVolume tests the bolt-backed volume including storage stats.
 func TestBoltVolume(t *testing.T) {
+	// Prepare the Bolt test logger and context.
 	ctx := context.Background()
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
 
+	// Register the Bolt factory on the test bus.
 	b, sr, err := core.NewCoreBus(ctx, le)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	sr.AddFactory(volume_bolt.NewFactory(b))
 
+	// Create a temporary directory for the Bolt database.
 	tempDir, err := os.MkdirTemp("", "bolt_test_*")
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	defer os.RemoveAll(tempDir)
 
+	// Load the Bolt volume controller for the temporary database.
 	path := filepath.Join(tempDir, "test.db")
 	volCtrl, _, diRef, err := loader.WaitExecControllerRunningTyped[volume.Controller](
 		ctx,
@@ -77,19 +81,23 @@ func TestBoltVolume(t *testing.T) {
 	}
 	defer diRef.Release()
 
+	// Obtain the mounted Bolt volume.
 	bvol, err := volCtrl.GetVolume(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Verify the Bolt volume storage contract.
 	if err := volume_test.CheckVolume(ctx, bvol); err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Verify the Bolt volume reports nonzero storage statistics.
 	if err := volume_test.CheckStorageStatsNonZero(ctx, bvol); err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Verify the Bolt volume supports bbolt coordination.
 	capability, err := bvol.Capability(ctx, coord.Scope{
 		VolumeID:      bvol.GetID(),
 		ObjectStoreID: "objects",
@@ -109,23 +117,27 @@ func TestBoltVolume(t *testing.T) {
 // TestBoltVolumeSyncsFreelistByDefault verifies bolt volumes use bbolt's
 // multi-process-safe freelist mode.
 func TestBoltVolumeSyncsFreelistByDefault(t *testing.T) {
+	// Prepare the Bolt freelist test logger and context.
 	ctx := context.Background()
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
 
+	// Register the Bolt factory on the test bus.
 	b, sr, err := core.NewCoreBus(ctx, le)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	sr.AddFactory(volume_bolt.NewFactory(b))
 
+	// Create a temporary directory for the Bolt database.
 	tempDir, err := os.MkdirTemp("", "bolt_test_*")
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	defer os.RemoveAll(tempDir)
 
+	// Load the Bolt volume controller for the temporary database.
 	path := filepath.Join(tempDir, "test.db")
 	volCtrl, _, diRef, err := loader.WaitExecControllerRunningTyped[volume.Controller](
 		ctx,
@@ -138,6 +150,7 @@ func TestBoltVolumeSyncsFreelistByDefault(t *testing.T) {
 	}
 	defer diRef.Release()
 
+	// Verify the mounted Bolt database syncs its freelist and writes.
 	bvol, err := volCtrl.GetVolume(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -155,11 +168,13 @@ func TestBoltVolumeSyncsFreelistByDefault(t *testing.T) {
 }
 
 func TestBoltVolumeMultiprocessBlockVisibility(t *testing.T) {
+	// Dispatch the block visibility subprocess role.
 	if role := os.Getenv(boltBlockVisibilityRoleEnv); role != "" {
 		runBoltBlockVisibilityRole(t, role)
 		return
 	}
 
+	// Initialize the shared block database and reference directory.
 	dir := t.TempDir()
 	boltPath := filepath.Join(dir, "blocks.db")
 	refsDir := filepath.Join(dir, "refs")
@@ -171,6 +186,7 @@ func TestBoltVolumeMultiprocessBlockVisibility(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Run concurrent block writers and wait for their completion.
 	const writers = 3
 	const iterations = 20
 	cmds := make([]*exec.Cmd, 0, writers)
@@ -188,6 +204,7 @@ func TestBoltVolumeMultiprocessBlockVisibility(t *testing.T) {
 		}
 	}
 
+	// Verify every writer block from a fresh process.
 	verifier := boltBlockVisibilityCommand(t, "verifier", boltPath, refsDir, 0, iterations, writers)
 	if err := verifier.Run(); err != nil {
 		t.Fatalf("verifier failed: %v\n%s", err, cmdOutput(verifier))
@@ -211,8 +228,10 @@ func TestBoltVolumeMultiprocessScopedGCGraphVisibility(t *testing.T) {
 }
 
 func runBoltGraphVisibilityParent(t *testing.T, useGC bool) {
+	// Identify failures at the graph visibility caller.
 	t.Helper()
 
+	// Prepare the shared graph database and process markers.
 	dir := t.TempDir()
 	boltPath := filepath.Join(dir, "graphs.db")
 	refsDir := filepath.Join(dir, "refs")
@@ -222,6 +241,7 @@ func runBoltGraphVisibilityParent(t *testing.T, useGC bool) {
 		t.Fatal(err)
 	}
 
+	// Seed the initial graph and close its volume.
 	vol := openBoltVisibilityVolume(t, boltPath)
 	initialRef := writeBoltGraph(t, context.Background(), vol, "initial", useGC)
 	if err := os.WriteFile(filepath.Join(refsDir, "initial.ref"), []byte(initialRef.MarshalString()), 0o600); err != nil {
@@ -231,6 +251,7 @@ func runBoltGraphVisibilityParent(t *testing.T, useGC bool) {
 		t.Fatal(err)
 	}
 
+	// Start the graph reader and wait for its readiness marker.
 	reader := boltGraphCommand(t, "reader", boltPath, refsDir, readyPath, donePath, 0, 0, 0)
 	if useGC {
 		reader.Env = append(reader.Env, boltGraphGCEnv+"=1")
@@ -240,6 +261,7 @@ func runBoltGraphVisibilityParent(t *testing.T, useGC bool) {
 	}
 	waitForPath(t, readyPath)
 
+	// Run concurrent graph writers and signal their completion.
 	const writers = 2
 	const iterations = 12
 	cmds := make([]*exec.Cmd, 0, writers)
@@ -267,6 +289,7 @@ func runBoltGraphVisibilityParent(t *testing.T, useGC bool) {
 		t.Fatalf("reader failed: %v\n%s", err, cmdOutput(reader))
 	}
 
+	// Verify the committed graphs from a fresh process.
 	verifier := boltGraphCommand(t, "verifier", boltPath, refsDir, readyPath, donePath, 0, iterations, writers)
 	if useGC {
 		verifier.Env = append(verifier.Env, boltGraphGCEnv+"=1")
@@ -285,8 +308,10 @@ func boltBlockVisibilityCommand(
 	iterations int,
 	writers int,
 ) *exec.Cmd {
+	// Identify failures at the block command caller.
 	t.Helper()
 
+	// Configure the block subprocess role and capture its output.
 	cmd := exec.Command(os.Args[0], "-test.run=^TestBoltVolumeMultiprocessBlockVisibility$", "-test.v") //nolint:gosec
 	cmd.Env = append(os.Environ(),
 		boltBlockVisibilityRoleEnv+"="+role,
@@ -303,8 +328,10 @@ func boltBlockVisibilityCommand(
 }
 
 func runBoltBlockVisibilityRole(t *testing.T, role string) {
+	// Identify failures at the block role caller.
 	t.Helper()
 
+	// Read the block writer identity and workload from the environment.
 	id, err := strconv.Atoi(os.Getenv(boltBlockVisibilityIDEnv))
 	if err != nil {
 		t.Fatal(err)
@@ -318,10 +345,12 @@ func runBoltBlockVisibilityRole(t *testing.T, role string) {
 		t.Fatal(err)
 	}
 
+	// Open the shared block volume for the subprocess lifetime.
 	ctx := context.Background()
 	vol := openBoltVisibilityVolume(t, os.Getenv(boltBlockVisibilityPathEnv))
 	defer vol.Close()
 
+	// Write or verify the blocks for the selected subprocess role.
 	switch role {
 	case "writer":
 		for i := range iterations {
@@ -373,8 +402,10 @@ func boltGraphCommand(
 	iterations int,
 	writers int,
 ) *exec.Cmd {
+	// Identify failures at the graph command caller.
 	t.Helper()
 
+	// Configure the graph subprocess role and capture its output.
 	cmd := exec.Command(os.Args[0], "-test.run=^TestBoltVolumeMultiprocessScopedGraphVisibility$", "-test.v") //nolint:gosec
 	cmd.Env = append(os.Environ(),
 		boltGraphRoleEnv+"="+role,
@@ -393,8 +424,10 @@ func boltGraphCommand(
 }
 
 func runBoltGraphRole(t *testing.T, role string) {
+	// Identify failures at the graph role caller.
 	t.Helper()
 
+	// Read the graph writer identity and workload from the environment.
 	id, err := strconv.Atoi(os.Getenv(boltGraphIDEnv))
 	if err != nil {
 		t.Fatal(err)
@@ -408,11 +441,13 @@ func runBoltGraphRole(t *testing.T, role string) {
 		t.Fatal(err)
 	}
 
+	// Open the shared graph volume and select its store wrapper.
 	ctx := context.Background()
 	vol := openBoltVisibilityVolume(t, os.Getenv(boltGraphPathEnv))
 	defer vol.Close()
 	useGC := os.Getenv(boltGraphGCEnv) == "1"
 
+	// Read, write, or verify graphs for the selected subprocess role.
 	switch role {
 	case "reader":
 		refData, err := os.ReadFile(filepath.Join(os.Getenv(boltGraphRefsDirEnv), "initial.ref"))
@@ -474,6 +509,7 @@ func runBoltGraphRole(t *testing.T, role string) {
 }
 
 func writeBoltGraph(t *testing.T, ctx context.Context, vol *volume_bolt.Bolt, label string, useGC bool) *block.BlockRef {
+	// Identify failures at the graph writer caller.
 	t.Helper()
 
 	// Cross-process bbolt graph writes must refresh the shared freelist before
@@ -500,6 +536,7 @@ func writeBoltGraph(t *testing.T, ctx context.Context, vol *volume_bolt.Bolt, la
 		t.Fatal(err)
 	}
 
+	// Build and commit the graph in a block transaction.
 	store := boltGraphStore(vol, useGC)
 	tx, cursor := block.NewTransaction(store, nil, nil, nil)
 	root := &block_mock.Root{ExampleSubBlock: &block_mock.SubBlock{}}
@@ -510,11 +547,15 @@ func writeBoltGraph(t *testing.T, ctx context.Context, vol *volume_bolt.Bolt, la
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Flush pending graph references before publishing the write.
 	if gcOps, ok := store.(*block_gc.GCStoreOps); ok {
 		if err := gcOps.FlushPending(ctx); err != nil {
 			t.Fatal(err)
 		}
 	}
+
+	// Publish the graph generation and release its write lease.
 	if _, err := lease.Publish(ctx, coord.Event{KeyPrefixChanged: []byte("bolt-graph-visibility/")}); err != nil {
 		t.Fatal(err)
 	}
@@ -533,6 +574,7 @@ func boltGraphStore(vol *volume_bolt.Bolt, useGC bool) block.StoreOps {
 }
 
 func readBoltGraph(ctx context.Context, store block.StoreOps, ref *block.BlockRef, want string) error {
+	// Read and validate the graph root.
 	_, cursor := block.NewTransaction(store, nil, ref, nil)
 	root, err := block.UnmarshalBlock[*block_mock.Root](ctx, cursor, block_mock.NewRootBlock)
 	if err != nil {
@@ -541,6 +583,8 @@ func readBoltGraph(ctx context.Context, store block.StoreOps, ref *block.BlockRe
 	if root == nil || root.GetExampleSubBlock() == nil {
 		return fmt.Errorf("graph root missing sub block")
 	}
+
+	// Read and validate the referenced graph example.
 	exampleCursor := cursor.FollowSubBlock(1).FollowRef(1, root.GetExampleSubBlock().GetExamplePtr())
 	example, err := block_mock.UnmarshalExample(ctx, exampleCursor)
 	if err != nil {
@@ -560,8 +604,10 @@ func boltGraphRefPath(writerID int, iteration int) string {
 }
 
 func openBoltVisibilityVolume(t *testing.T, boltPath string) *volume_bolt.Bolt {
+	// Identify failures at the volume opener caller.
 	t.Helper()
 
+	// Open a Bolt volume with background garbage collection disabled.
 	log := logrus.New()
 	log.SetLevel(logrus.WarnLevel)
 	vol, err := volume_bolt.NewBolt(context.Background(), logrus.NewEntry(log), &volume_bolt.Config{

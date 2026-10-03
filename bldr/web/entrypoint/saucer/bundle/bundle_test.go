@@ -79,6 +79,7 @@ func TestGetSaucerBinName(t *testing.T) {
 }
 
 func TestGenerateBootstrapHtml(t *testing.T) {
+	// Prepare the React import map for the Saucer bootstrap document.
 	importMap := web_entrypoint_index.ImportMap{
 		Imports: map[string]string{
 			"react": "/b/pkg/react/index.mjs",
@@ -86,6 +87,7 @@ func TestGenerateBootstrapHtml(t *testing.T) {
 	}
 	html := generateBootstrapHtml(importMap)
 
+	// Render the Saucer bootstrap document with the configured import map.
 	if !strings.Contains(html, "<!doctype html>") {
 		t.Error("expected HTML doctype")
 	}
@@ -127,6 +129,7 @@ func TestBuildSaucerJSBundle(t *testing.T) {
 	}
 	defer os.RemoveAll(buildDir)
 
+	// Prepare a debug logger for Saucer bundle generation.
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
@@ -148,10 +151,12 @@ func TestBuildSaucerJSBundle(t *testing.T) {
 		t.Error("expected non-empty BootstrapHTML")
 	}
 
+	// Verify the generated bootstrap contains the HTML document declaration.
 	if !strings.Contains(bundle.BootstrapHTML, "<!doctype html>") {
 		t.Error("expected HTML doctype in bootstrap")
 	}
 
+	// Verify the generated bootstrap includes the application mount point.
 	if !strings.Contains(bundle.BootstrapHTML, `<div id="bldr-root"></div>`) {
 		t.Error("expected bldr-root div in bootstrap")
 	}
@@ -166,6 +171,7 @@ func TestBuildSaucerJSBundle(t *testing.T) {
 		t.Error("expected importmap script tag in bootstrap")
 	}
 
+	// Report the generated Saucer bundle and bootstrap sizes.
 	t.Logf("Successfully built saucer JS bundle, HTML size: %d bytes, JS size: %d bytes",
 		len(bundle.BootstrapHTML), len(bundle.EntrypointJS))
 }
@@ -230,6 +236,7 @@ func TestFindSaucerBinary(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Verify binary lookup uses the source-build fallback after package removal.
 	found = findSaucerBinary(tmpDir, plat)
 	if found != fallbackPath {
 		t.Errorf("expected fallback %q, got %q", fallbackPath, found)

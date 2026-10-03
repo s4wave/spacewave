@@ -24,15 +24,18 @@ import (
 
 // TestBlockStoreRPCLookup tests the block store rpc lookup controller.
 func TestBlockStoreRPCLookup(t *testing.T) {
+	// Prepare the RPC block-store test context and debug logger.
 	ctx := context.Background()
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
 
+	// Start the storage testbed serving the source block over RPC.
 	serverTb, err := testbed.NewTestbed(ctx, le.WithField("testbed", "server"))
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+	defer serverTb.Release()
 
 	// Create a block to lookup.
 	serverVol := serverTb.Volume
@@ -66,6 +69,7 @@ func TestBlockStoreRPCLookup(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+	defer clientTb.Release()
 	clientTb.StaticResolver.AddFactory(NewFactory(clientTb.Bus))
 
 	// Add the client controller
@@ -121,16 +125,19 @@ func TestBlockStoreRPCLookup(t *testing.T) {
 	}
 	defer lkRef.Release()
 
+	// Acquire the configured client bucket lookup interface.
 	lk, err := lkr.GetLookup(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Fetch the sample block through the RPC-backed bucket lookup.
 	lkDat, lkFound, err := lk.LookupBlock(ctx, sampleBlockRef.Clone())
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Verify the RPC-backed lookup returns the original block bytes.
 	if !lkFound {
 		t.FailNow()
 	}
@@ -145,6 +152,7 @@ func TestBlockStoreRPCLookup(t *testing.T) {
 	}
 	defer readBktRef.Release()
 
+	// Verify the RPC-fetched block was written back into the client bucket.
 	ex, err := readBkt.GetBucket().GetBlockExists(ctx, sampleBlockRef.Clone())
 	if err != nil {
 		t.Fatal(err.Error())

@@ -14,6 +14,7 @@ import (
 
 // TestExecutionController_Simple tests basic mechanics of the execution controller.
 func TestExecutionController(t *testing.T) {
+	// Start the Forge testbed used by the end-to-end execution controller.
 	ctx := context.Background()
 	tb, err := testbed.Default(ctx)
 	if err != nil {

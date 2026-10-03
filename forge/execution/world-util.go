@@ -30,9 +30,12 @@ func WaitExecutionComplete(
 		executionObjectKey,
 		world_control.NewWaitForStateHandler(
 			func(ctx context.Context, ws world.WorldState, obj world.ObjectState, rootCs *block.Cursor, rev uint64) (bool, error) {
+				// Keep watching until the execution object exists.
 				if obj == nil {
 					return true, nil
 				}
+
+				// Decode the execution revision and report its state transitions.
 				exec, err := UnmarshalExecution(ctx, rootCs)
 				if err != nil {
 					return false, err
@@ -46,6 +49,8 @@ func WaitExecutionComplete(
 						le.WithError(errors.New(ferr)).Warn("execution failed")
 					}
 				}
+
+				// Retain the completed execution and end the state watch.
 				complete := exec.IsComplete()
 				if complete {
 					finalState = exec

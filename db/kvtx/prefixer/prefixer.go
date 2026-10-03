@@ -21,14 +21,18 @@ func NewPrefixer(base kvtx.Store, prefix []byte) kvtx.Store {
 // Indicate write if the transaction will not be read-only.
 // Always call Discard() after you are done with the transaction.
 func (p *Prefixer) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, error) {
+	// Open the base transaction before applying the key prefix.
 	btx, err := p.base.NewTransaction(ctx, write)
 	if err != nil {
 		return nil, err
 	}
+
+	// Preserve write batching when wrapping a writable base transaction.
 	tx := newTx(btx, p.prefix)
 	if batch, ok := btx.(kvtx.WriteBatchTxOps); write && ok {
 		return &writeBatchTx{tx: tx, batch: batch}, nil
 	}
+
 	return tx, nil
 }
 

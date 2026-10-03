@@ -3,6 +3,7 @@ package s4wave_device
 import "testing"
 
 func TestDeviceValidatePinsIdentityAndCapabilityIds(t *testing.T) {
+	// Construct a Device with distinct filesystem and worker capabilities.
 	dev := &Device{
 		PeerId: "12D3KooWDevice",
 		Label:  "Build Host",
@@ -11,17 +12,25 @@ func TestDeviceValidatePinsIdentityAndCapabilityIds(t *testing.T) {
 			{Id: "forge-worker", Kind: "forge-worker", Label: "Forge Worker"},
 		},
 	}
+
+	// Verify the complete Device identity and capabilities pass validation.
 	if err := dev.Validate(); err != nil {
 		t.Fatalf("valid device failed validation: %v", err)
 	}
 
+	// Remove the Device peer identity to exercise required identity validation.
 	dev.PeerId = ""
+
+	// Verify Device validation rejects a missing peer identity.
 	if err := dev.Validate(); err == nil {
 		t.Fatal("expected missing peer_id to fail validation")
 	}
 
+	// Restore the Device identity and duplicate its filesystem capability.
 	dev.PeerId = "12D3KooWDevice"
 	dev.Capabilities = append(dev.Capabilities, &DeviceCapability{Id: "filesystem"})
+
+	// Verify Device validation rejects duplicate capability identities.
 	if err := dev.Validate(); err == nil {
 		t.Fatal("expected duplicate capability id to fail validation")
 	}
@@ -43,6 +52,7 @@ func TestDeviceValidateCapabilityLinkRequiresType(t *testing.T) {
 }
 
 func TestDeviceSelectableLimaWorkflowTarget(t *testing.T) {
+	// Construct a ready Device with linked checkout-root and worker capabilities.
 	dev := &Device{
 		PeerId:     "12D3KooWLima",
 		Label:      "lima",
@@ -94,6 +104,8 @@ func TestDeviceSelectableLimaWorkflowTarget(t *testing.T) {
 			},
 		},
 	}
+
+	// Verify the Device is a valid target with selectable filesystem and worker capabilities.
 	if err := dev.Validate(); err != nil {
 		t.Fatalf("lima workflow target failed validation: %v", err)
 	}
@@ -106,6 +118,8 @@ func TestDeviceSelectableLimaWorkflowTarget(t *testing.T) {
 	if !dev.HasSelectableCapabilityKind(DeviceCapabilityKindForgeWorker) {
 		t.Fatal("expected selectable forge-worker capability")
 	}
+
+	// Verify capability selection preserves the worker and checkout-root object links.
 	if got := dev.FindSelectableForgeWorker().GetLink().GetObjectKey(); got != "forge/workers/lima" {
 		t.Fatalf("expected forge worker object link, got %q", got)
 	}
@@ -115,7 +129,11 @@ func TestDeviceSelectableLimaWorkflowTarget(t *testing.T) {
 	if got := dev.FindSelectableCheckoutRoot("skiffos").GetCheckoutRoot().GetSelectionRef(); got != "device/lima/filesystem/skiffos" {
 		t.Fatalf("expected checkout root selection ref, got %q", got)
 	}
+
+	// Select the readable checkout root from the Device.
 	readable := dev.FindReadableCheckoutRoot("skiffos")
+
+	// Verify the checkout root exposes a typed filesystem link and approved write access.
 	if readable == nil {
 		t.Fatal("expected readable checkout root")
 	}
@@ -134,6 +152,7 @@ func TestDeviceSelectableLimaWorkflowTarget(t *testing.T) {
 }
 
 func TestDeviceCapabilitySelectionRejectsBlockedStates(t *testing.T) {
+	// Construct a ready Device whose filesystem capability is blocked by a grant.
 	dev := &Device{
 		PeerId:     "12D3KooWLima",
 		Label:      "lima",
@@ -150,6 +169,8 @@ func TestDeviceCapabilitySelectionRejectsBlockedStates(t *testing.T) {
 			},
 		}},
 	}
+
+	// Verify the Device remains selectable while its blocked filesystem cannot be selected or read.
 	if !dev.IsSelectable() {
 		t.Fatal("expected device identity and setup state to remain selectable")
 	}
@@ -165,6 +186,7 @@ func TestDeviceCapabilitySelectionRejectsBlockedStates(t *testing.T) {
 }
 
 func TestDeviceValidateCheckoutRootShape(t *testing.T) {
+	// Validate a checkout root attached to a terminal capability.
 	err := (&Device{
 		PeerId: "peer-device",
 		Label:  "Device",
@@ -179,10 +201,13 @@ func TestDeviceValidateCheckoutRootShape(t *testing.T) {
 			},
 		}},
 	}).Validate()
+
+	// Verify Device validation restricts checkout roots to filesystem capabilities.
 	if err == nil {
 		t.Fatal("Validate accepted checkout_root on non-filesystem capability")
 	}
 
+	// Validate a checkout root offering writes without reads.
 	err = (&Device{
 		PeerId: "peer-device",
 		Label:  "Device",
@@ -197,10 +222,13 @@ func TestDeviceValidateCheckoutRootShape(t *testing.T) {
 			},
 		}},
 	}).Validate()
+
+	// Verify Device validation requires reads when checkout-root writes are available.
 	if err == nil {
 		t.Fatal("Validate accepted checkout_root write availability without read availability")
 	}
 
+	// Validate a readable checkout root without a declared access mode.
 	err = (&Device{
 		PeerId: "peer-device",
 		Label:  "Device",
@@ -215,10 +243,13 @@ func TestDeviceValidateCheckoutRootShape(t *testing.T) {
 			},
 		}},
 	}).Validate()
+
+	// Verify Device validation requires an access mode for available checkout roots.
 	if err == nil {
 		t.Fatal("Validate accepted checkout_root availability without access mode")
 	}
 
+	// Validate a read-only checkout root that also advertises writes.
 	err = (&Device{
 		PeerId: "peer-device",
 		Label:  "Device",
@@ -235,6 +266,8 @@ func TestDeviceValidateCheckoutRootShape(t *testing.T) {
 			},
 		}},
 	}).Validate()
+
+	// Verify Device validation rejects writes through read-only checkout-root access.
 	if err == nil {
 		t.Fatal("Validate accepted read-only checkout_root access with write availability")
 	}

@@ -135,10 +135,13 @@ func PublicKeyToProto(k PubKey) (*PublicKey, error) {
 
 // UnmarshalPrivateKey converts a protobuf serialized private key into its representative object.
 func UnmarshalPrivateKey(data []byte) (PrivKey, error) {
+	// Decode the private key protobuf before choosing its key implementation.
 	pmes := new(PrivateKey)
 	if err := pmes.UnmarshalVT(data); err != nil {
 		return nil, err
 	}
+
+	// Decode the raw private key with the registered key implementation.
 	um, ok := PrivKeyUnmarshallers[pmes.GetKeyType()]
 	if !ok {
 		return nil, ErrBadKeyType
@@ -170,9 +173,12 @@ func ConfigEncodeKey(b []byte) string {
 
 // basicEquals compares two keys by raw bytes.
 func basicEquals(k1, k2 Key) bool {
+	// Require matching key types before comparing their raw bytes.
 	if k1.Type() != k2.Type() {
 		return false
 	}
+
+	// Read both keys for a constant-time comparison of their bytes.
 	a, err := k1.Raw()
 	if err != nil {
 		return false

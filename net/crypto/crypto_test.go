@@ -6,6 +6,7 @@ import (
 )
 
 func TestGenerateEd25519Key(t *testing.T) {
+	// Generate an Ed25519 key pair for the cryptographic checks.
 	priv, pub, err := GenerateEd25519Key(rand.Reader)
 	if err != nil {
 		t.Fatal(err)
@@ -42,6 +43,7 @@ func TestGenerateEd25519Key(t *testing.T) {
 }
 
 func TestMarshalUnmarshalEd25519(t *testing.T) {
+	// Generate an Ed25519 key pair for the cryptographic checks.
 	priv, pub, err := GenerateEd25519Key(rand.Reader)
 	if err != nil {
 		t.Fatal(err)
@@ -89,6 +91,7 @@ func TestMarshalUnmarshalEd25519(t *testing.T) {
 }
 
 func TestGenerateKeyPair(t *testing.T) {
+	// Verify key pair generation returns matching Ed25519 keys.
 	priv, pub, err := GenerateKeyPair(KeyType_Ed25519, 0)
 	if err != nil {
 		t.Fatal(err)
@@ -100,6 +103,7 @@ func TestGenerateKeyPair(t *testing.T) {
 		t.Fatal("public key mismatch")
 	}
 
+	// Require an unsupported key type to return the key type error.
 	_, _, err = GenerateKeyPair(KeyType(999), 0)
 	if err != ErrBadKeyType {
 		t.Fatalf("expected ErrBadKeyType, got %v", err)
@@ -107,16 +111,19 @@ func TestGenerateKeyPair(t *testing.T) {
 }
 
 func TestKeyPairFromStdKey(t *testing.T) {
+	// Generate the private key for the standard library conversion.
 	priv, _, err := GenerateEd25519Key(rand.Reader)
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	// Convert the private key to its standard library representation.
 	stdKey, err := PrivKeyToStdKey(priv)
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	// Verify the standard library key recovers the original key pair.
 	priv2, pub2, err := KeyPairFromStdKey(stdKey)
 	if err != nil {
 		t.Fatal(err)
@@ -130,6 +137,7 @@ func TestKeyPairFromStdKey(t *testing.T) {
 }
 
 func TestConfigEncodeDecodeKey(t *testing.T) {
+	// Generate and marshal a public key for configuration encoding.
 	_, pub, err := GenerateEd25519Key(rand.Reader)
 	if err != nil {
 		t.Fatal(err)
@@ -138,11 +146,15 @@ func TestConfigEncodeDecodeKey(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Round-trip the public key through its base64 configuration encoding.
 	encoded := ConfigEncodeKey(data)
 	decoded, err := ConfigDecodeKey(encoded)
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Verify the configuration bytes recover the original public key.
 	pub2, err := UnmarshalPublicKey(decoded)
 	if err != nil {
 		t.Fatal(err)

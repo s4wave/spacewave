@@ -24,26 +24,31 @@ import (
 
 // TestInitUnixFSDemo tests the InitUnixFSDemoOp operation.
 func TestInitUnixFSDemo(t *testing.T) {
+	// Prepare the UnixFS demo test context and logger.
 	ctx := context.Background()
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
 
+	// Start the storage testbed with the World engine factory.
 	tb, err := testbed.NewTestbed(ctx, le)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	tb.StaticResolver.AddFactory(world_block_engine.NewFactory(tb.Bus))
 
+	// Select the volume, bucket, and World engine identities.
 	vol := tb.Volume
 	volumeID := vol.GetID()
 	engineID := "test-world-engine"
 	objectStoreID := "test-world-engine-store"
 	bucketID := tb.BucketId
 
+	// Derive the encryption key for the demo World store.
 	encKey := make([]byte, 32)
 	blake3.DeriveKey("hydra/test/unixfs: init_unixfs_demo_test.go", []byte(objectStoreID), encKey)
 
+	// Configure compression and encryption for the demo World.
 	xfrmConf, err := block_transform.NewConfig([]config.Config{
 		&transform_gzip.Config{},
 		&transform_blockenc.Config{
@@ -88,9 +93,11 @@ func TestInitUnixFSDemo(t *testing.T) {
 
 	// uses directive to look up the engine
 	busEngine := world.NewBusEngine(ctx, tb.Bus, engineID)
+
 	// uses short-lived engine txs to implement world state
 	ws := world.NewEngineWorldState(busEngine, true)
 
+	// Select the sender, object key, and timestamp for demo initialization.
 	sender := tb.Volume.GetPeerID()
 	objKey := "test-unixfs-demo"
 	ts := unixfs_block.FillPlaceholderTimestamp(nil).AsTime()
@@ -140,5 +147,6 @@ func TestInitUnixFSDemo(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// Report the verified UnixFS demo structure.
 	le.Info("verified UnixFS demo filesystem structure")
 }

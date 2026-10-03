@@ -48,6 +48,7 @@ func NewController(
 	webDocumentVersion controller.Version,
 	ctor Constructor,
 ) (*Controller, error) {
+	// Construct the controller and its WebDocument with a shared handler.
 	ctrl := &Controller{
 		le:  le.WithField("document-id", webDocumentId),
 		bus: bus,
@@ -91,10 +92,12 @@ func (c *Controller) GetControllerInfo() *controller.Info {
 // Returning nil ends execution.
 // Returning an error triggers a retry with backoff.
 func (c *Controller) Execute(rctx context.Context) error {
+	// Retain the WebDocument execution context until its execution ends.
 	ctx, ctxCancel := context.WithCancel(rctx)
 	c.ctx = ctx
 	defer ctxCancel()
 
+	// Run the WebDocument under the controller execution context.
 	c.le.Debug("executing web document controller")
 	return c.doc.Execute(ctx)
 }

@@ -13,6 +13,7 @@ import (
 // TestDurableIndexScale proves bounded reopen, lookup, scan cache, and deletion
 // behavior beyond the catalogue's first branching threshold.
 func TestDurableIndexScale(t *testing.T) {
+	// Open a durable engine for index scale checks.
 	ctx := t.Context()
 	d := newDiskBackend(t)
 	e, err := Open(ctx, d)
@@ -21,6 +22,7 @@ func TestDurableIndexScale(t *testing.T) {
 	}
 	defer func() { _ = e.Close() }()
 
+	// Define ordered keys and synchronized backend read counters.
 	key := func(index int) []byte {
 		encoded := make([]byte, 8)
 		binary.BigEndian.PutUint64(encoded, uint64(index))
@@ -39,6 +41,7 @@ func TestDurableIndexScale(t *testing.T) {
 		return d.reads, d.payloadReads
 	}
 	reopenAndProbe := func(count int) {
+		// Reopen the engine before measuring lookup work.
 		t.Helper()
 		if err := e.Close(); err != nil {
 			t.Fatal(err)
@@ -47,6 +50,8 @@ func TestDurableIndexScale(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
+
+		// Verify present and absent key lookups after reopening.
 		resetReads()
 		got, found, _, err := e.Get(ctx, key(count/2))
 		if err != nil || !found || !bytes.Equal(got, value) {
@@ -55,6 +60,8 @@ func TestDurableIndexScale(t *testing.T) {
 		if _, found, _, err := e.Get(ctx, key(count)); err != nil || found {
 			t.Fatalf("get absent key at %d: found=%t error=%v", count, found, err)
 		}
+
+		// Require reopened lookups to use bounded index reads without payload visits.
 		reads, payloadReads := readCounts()
 		t.Logf("%d keys: two reopened lookups read %d files (%d payload files)", count, reads, payloadReads)
 		if payloadReads != 0 {
@@ -65,6 +72,7 @@ func TestDurableIndexScale(t *testing.T) {
 		}
 	}
 
+	// Populate and probe the index across its branching thresholds.
 	previous := 0
 	for _, target := range []int{1024, 32768} {
 		for start := previous; start < target; start += 512 {
@@ -80,6 +88,7 @@ func TestDurableIndexScale(t *testing.T) {
 		previous = target
 	}
 
+	// Scan all ordered records through one retained transaction.
 	tx, err := e.NewTransaction(ctx, false)
 	if err != nil {
 		t.Fatal(err)
@@ -98,6 +107,8 @@ func TestDurableIndexScale(t *testing.T) {
 	if scanned != 32768 {
 		t.Fatalf("scan visited %d records", scanned)
 	}
+
+	// Require a full scan to respect cache byte and file limits.
 	e.mtx.Lock()
 	cacheBytes, cacheFiles := e.cacheBytes, len(e.cache)
 	e.mtx.Unlock()
@@ -107,6 +118,7 @@ func TestDurableIndexScale(t *testing.T) {
 	}
 	tx.Discard()
 
+	// Delete every populated key in bounded publication batches.
 	for start := 0; start < 32768; start += 512 {
 		records := make([]*Record, 0, 512)
 		for index := start; index < start+512; index++ {
@@ -116,6 +128,8 @@ func TestDurableIndexScale(t *testing.T) {
 			t.Fatalf("delete through key %d: %v", start+511, err)
 		}
 	}
+
+	// Reopen the emptied index and verify the deleted key is absent.
 	if err := e.Close(); err != nil {
 		t.Fatal(err)
 	}
@@ -127,6 +141,8 @@ func TestDurableIndexScale(t *testing.T) {
 	if _, found, _, err := e.Get(ctx, key(0)); err != nil || found {
 		t.Fatalf("get after deletion: found=%t error=%v", found, err)
 	}
+
+	// Require the reopened index scan to yield no records.
 	tx, err = e.NewTransaction(ctx, false)
 	if err != nil {
 		t.Fatal(err)
@@ -142,6 +158,8 @@ func TestDurableIndexScale(t *testing.T) {
 	if scanned != 0 {
 		t.Fatalf("scan after deletion visited %d records", scanned)
 	}
+
+	// Require the empty index lookup and scan to use bounded reads.
 	reads, payloadReads := readCounts()
 	t.Logf("empty reopened lookup and scan read %d files (%d payload files)", reads, payloadReads)
 	if payloadReads != 0 {
@@ -156,6 +174,7 @@ func TestDurableIndexScale(t *testing.T) {
 // partition, like a queue keyed by block hash, rewrite each record a bounded
 // number of times while filling and draining.
 func TestScatteredKeyWriteAmplification(t *testing.T) {
+	// Open a durable engine for scattered-key write measurements.
 	ctx := t.Context()
 	d := newDiskBackend(t)
 	e, err := Open(ctx, d)
@@ -164,6 +183,7 @@ func TestScatteredKeyWriteAmplification(t *testing.T) {
 	}
 	defer func() { _ = e.Close() }()
 
+	// Populate and delete hash-distributed keys in sorted batches.
 	const count, batch = 32768, 512
 	key := func(index int) []byte {
 		sum := sha256.Sum256(binary.BigEndian.AppendUint64(nil, uint64(index)))
@@ -190,6 +210,7 @@ func TestScatteredKeyWriteAmplification(t *testing.T) {
 	apply(false)
 	apply(true)
 
+	// Compare physical run writes with the logical record volume.
 	d.mtx.Lock()
 	written := d.kindBytes["run"]
 	d.mtx.Unlock()

@@ -19,6 +19,7 @@ func OpenStreamWithPeerEx(
 	transportID uint64,
 	openOpts stream.OpenOpts,
 ) (MountedStream, func(), error) {
+	// Acquire the peer link reference needed to open the mounted stream.
 	mlnk, _, ref, err := bus.ExecWaitValue[EstablishLinkWithPeerValue](
 		ctx,
 		b,
@@ -34,6 +35,7 @@ func OpenStreamWithPeerEx(
 		return nil, func() {}, err
 	}
 
+	// Open the mounted stream and release the link reference on failure.
 	mstrm, err := mlnk.OpenMountedStream(ctx, protocolID, openOpts)
 	if err != nil {
 		ref.Release()

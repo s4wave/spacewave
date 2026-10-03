@@ -79,10 +79,12 @@ func (c *Controller) WaitUnixFSMounted(ctx context.Context) error {
 // Returning nil ends execution.
 // Returning an error triggers a retry with backoff.
 func (c *Controller) Execute(ctx context.Context) error {
+	// Resolve the checkout destination from the mount configuration.
 	mountPath := c.conf.GetMountPath()
 	// mountVerbose := c.conf.GetVerbose()
 	// mountOpts := c.conf.BuildFuseMountOptions()
 
+	// Create the checkout directory before synchronizing UnixFS files.
 	if err := os.MkdirAll(mountPath, 0o755); err != nil {
 		return err
 	}
@@ -102,6 +104,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 		return err
 	}
 
+	// Publish the mounted state until the controller context is canceled.
 	le.Debug("done checking out files to mount path")
 	c.mountedCtr.SetValue(true)
 	<-ctx.Done()

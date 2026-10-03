@@ -62,11 +62,13 @@ func (c *Controller) HandleDirective(ctx context.Context, di directive.Instance)
 
 // resolveLookupObjectType resolves a LookupObjectType directive.
 func (c *Controller) resolveLookupObjectType(dir objecttype.LookupObjectType) ([]directive.Resolver, error) {
+	// Require an object type ID before searching the plugin registrations.
 	tid := dir.LookupObjectTypeID()
 	if tid == "" {
 		return nil, nil
 	}
 
+	// Find the plugin object type requested by the lookup.
 	ot, ok := c.types[tid]
 	if !ok {
 		return nil, nil

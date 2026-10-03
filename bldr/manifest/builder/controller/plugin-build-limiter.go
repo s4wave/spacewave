@@ -40,10 +40,13 @@ func NewPluginBuildLimiter(concurrency int64) *PluginBuildLimiter {
 // PluginBuildConcurrencyEnv. An unset, empty, or zero value leaves builds
 // unbounded.
 func NewPluginBuildLimiterFromEnv() (*PluginBuildLimiter, error) {
+	// Read the plugin build concurrency policy from the environment.
 	raw := strings.TrimSpace(os.Getenv(PluginBuildConcurrencyEnv))
 	if raw == "" {
 		return NewPluginBuildLimiter(0), nil
 	}
+
+	// Parse a nonnegative plugin build capacity before constructing the limiter.
 	concurrency, err := strconv.ParseInt(raw, 10, 64)
 	if err != nil {
 		return nil, errors.Wrapf(err, "parse %s", PluginBuildConcurrencyEnv)

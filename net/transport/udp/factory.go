@@ -44,9 +44,11 @@ func (t *Factory) Construct(
 	conf config.Config,
 	opts controller.ConstructOpts,
 ) (controller.Controller, error) {
+	// Read the UDP controller configuration and construction logger.
 	le := opts.GetLogger()
 	cc := conf.(*Config)
 
+	// Resolve the peer identity constraint for the UDP transport.
 	peerIDConstraint, err := cc.ParseTransportPeerID()
 	if err != nil {
 		return nil, err

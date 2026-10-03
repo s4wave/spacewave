@@ -28,11 +28,13 @@ func NewKVTxInmem(
 	le *logrus.Entry,
 	conf *Config,
 ) (*KVTxInmem, error) {
+	// Build the volume key configuration.
 	kvkey, err := kvkey.NewKVKey(conf.GetKvKeyOpts())
 	if err != nil {
 		return nil, err
 	}
 
+	// Create the in-memory store with optional operation logging.
 	var s store_kvtx.Store = sinmem.NewStore()
 	if conf.GetVerbose() {
 		s = kvtx_vlogger.NewVLogger(le, s)

@@ -19,6 +19,7 @@ func newConnTx(conn *Conn, tx SqlTransaction) *ConnTx {
 }
 
 func (c *ConnTx) Commit() error {
+	// Lock the connection and require its active transaction before finishing it.
 	c.conn.mtx.Lock()
 	defer c.conn.mtx.Unlock()
 	storeTx := c.conn.storeTx
@@ -26,6 +27,8 @@ func (c *ConnTx) Commit() error {
 		c.tx.Discard()
 		return tx.ErrDiscarded
 	}
+
+	// Commit the active transaction and clear the connection transaction state.
 	err := storeTx.Commit(c.conn.storeTxCtx)
 	c.conn.storeTx = nil
 	c.conn.storeTxCtx = nil
@@ -33,6 +36,7 @@ func (c *ConnTx) Commit() error {
 }
 
 func (c *ConnTx) Rollback() error {
+	// Lock the connection and require its active transaction before finishing it.
 	c.conn.mtx.Lock()
 	defer c.conn.mtx.Unlock()
 	storeTx := c.conn.storeTx
@@ -40,6 +44,8 @@ func (c *ConnTx) Rollback() error {
 		c.tx.Discard()
 		return tx.ErrDiscarded
 	}
+
+	// Discard the active transaction and clear the connection transaction state.
 	storeTx.Discard()
 	c.conn.storeTx = nil
 	c.conn.storeTxCtx = nil

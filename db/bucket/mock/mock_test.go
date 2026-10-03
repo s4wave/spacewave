@@ -21,16 +21,19 @@ import (
 
 // TestCursor tests the basic object cursor mechanics.
 func TestCursor(t *testing.T) {
+	// Prepare the cursor test context and logger.
 	ctx := context.Background()
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
 
+	// Start the storage testbed used by the cursor operations.
 	tb, err := testbed.NewTestbed(ctx, le)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Read the test volume identity for cursor construction.
 	vol := tb.Volume
 	volID := vol.GetID()
 	t.Log(volID)
@@ -76,6 +79,7 @@ func TestCursor(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// Persist an example block beneath the cursor root.
 	txc, tcc := oc.BuildTransaction(nil)
 	tcc.SetBlock(&block_mock.Root{}, true)
 	tsb1 := tcc.FollowSubBlock(1)
@@ -86,20 +90,24 @@ func TestCursor(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// Build a new root containing a reference to the persisted example.
 	oc.SetRootRef(nrb)
 	txc, tcc = oc.BuildTransaction(nil)
 	tcc.SetBlock(&Root{ExamplePtr: oc.GetRef()}, true)
 
+	// Persist the root that points to the example cursor.
 	nrb, _, err = txc.Write(ctx, true)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Select the persisted root for subsequent cursor reads.
 	t.Logf("root block: %s", nrb.MarshalString())
 	oc.SetRootRef(nrb)
 
 	// fetch the root out again building a whole new cursor
 	ocr := oc.GetRef()
+
 	// oct := oc.GetTransformConf()
 	oc.Release()
 	oc, err = bucket_lookup.BuildCursor(
@@ -117,6 +125,7 @@ func TestCursor(t *testing.T) {
 	}
 	defer oc.Release()
 
+	// Decode the persisted root and inspect its example reference.
 	rbi, err := oc.Unmarshal(ctx, func() block.Block { return &Root{} })
 	if err != nil {
 		t.Fatal(err.Error())
@@ -127,6 +136,7 @@ func TestCursor(t *testing.T) {
 		rb.GetExamplePtr().GetRootRef().MarshalString(),
 	)
 
+	// Follow the example reference and decode its nested root.
 	occ, err := oc.FollowRef(ctx, rb.GetExamplePtr())
 	if err != nil {
 		t.Fatal(err.Error())
@@ -139,6 +149,7 @@ func TestCursor(t *testing.T) {
 	}
 	bm := bmr.(*block_mock.Root)
 
+	// Follow the nested example block and verify its message is present.
 	sbcr := tcc.FollowSubBlock(1)
 	tcc = sbcr.FollowRef(1, bm.GetExampleSubBlock().GetExamplePtr())
 	if err != nil {
@@ -166,6 +177,7 @@ func TestCursor(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// Persist an example block with an inline encryption transform.
 	nc, err := oc.FollowRef(ctx, &bucket.ObjectRef{
 		TransformConf: tconf,
 	})
@@ -179,11 +191,14 @@ func TestCursor(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Require the encrypted cursor to retain its inline transform.
 	if !nc.GetTransformConf().EqualVT(tconf) {
 		t.FailNow()
 	}
 	nc.Release()
 
+	// Reopen the encrypted example cursor and verify its decoded message.
 	nc, err = oc.FollowRefWithOpArgs(ctx, &bucket.ObjectRef{
 		RootRef:       nrootRef,
 		TransformConf: tconf,

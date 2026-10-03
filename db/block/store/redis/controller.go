@@ -36,10 +36,13 @@ func NewController(le *logrus.Entry, conf *Config) *Controller {
 // NewBlockStoreBuilder constructs a new block store builder from config.
 func NewBlockStoreBuilder(le *logrus.Entry, conf *Config) block_store_controller.BlockStoreBuilder {
 	return func(ctx context.Context, released func()) (block_store.Store, func(), error) {
+		// Resolve block key encoding before connecting the Redis store.
 		kvk, err := kvkey.NewKVKey(conf.GetKvKeyOpts())
 		if err != nil {
 			return nil, nil, err
 		}
+
+		// Connect Redis and expose block storage with pool cleanup.
 		st, err := conf.GetClient().Connect(ctx)
 		if err != nil {
 			return nil, nil, err

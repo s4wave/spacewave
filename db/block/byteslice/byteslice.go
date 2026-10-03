@@ -73,9 +73,12 @@ func (b *ByteSlice) GetBytes() []byte {
 
 // CloneBlock clones the byte slice block without sharing the backing slice.
 func (b *ByteSlice) CloneBlock() (block.Block, error) {
+	// Preserve an empty ByteSlice when no backing data exists.
 	if b == nil || b.sl == nil {
 		return &ByteSlice{}, nil
 	}
+
+	// Copy the ByteSlice data into an independent clone.
 	sl := *b.sl
 	clone := make([]byte, len(sl))
 	copy(clone, sl)
@@ -85,9 +88,12 @@ func (b *ByteSlice) CloneBlock() (block.Block, error) {
 // MarshalBlock marshals the block to binary.
 // This is the initial step of marshaling, before transformations.
 func (b *ByteSlice) MarshalBlock() ([]byte, error) {
+	// Encode an absent ByteSlice as empty block data.
 	if b == nil || b.sl == nil {
 		return nil, nil
 	}
+
+	// Return block data without sharing the ByteSlice backing storage.
 	sl := *b.sl
 	d := make([]byte, len(sl))
 	copy(d, sl)

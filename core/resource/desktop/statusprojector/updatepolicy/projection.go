@@ -9,10 +9,13 @@ import (
 func Build(
 	info *spacewave_launcher.LauncherInfo,
 ) (*desktop_runtime.DesktopRuntimeUpdateStatus, *desktop_runtime.DesktopRuntimeAttentionItem) {
+	// Project an empty desktop status when the launcher has no update state.
 	state := info.GetUpdateState()
 	if state == nil {
 		return &desktop_runtime.DesktopRuntimeUpdateStatus{}, nil
 	}
+
+	// Describe the launcher update and expose staged updates as ready attention.
 	status := &desktop_runtime.DesktopRuntimeUpdateStatus{
 		Version: state.GetVersion(),
 		Label:   label(state),
@@ -27,6 +30,7 @@ func Build(
 			Detail:   detail(state),
 		}
 	}
+
 	return status, nil
 }
 

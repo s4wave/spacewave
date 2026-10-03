@@ -53,6 +53,7 @@ func NewInitUnixFSDemoOpBlock() block.Block {
 
 // Validate performs cursory checks on the op.
 func (o *InitUnixFSDemoOp) Validate() error {
+	// Validate the effective demo object key and operation timestamp.
 	objKey := o.GetObjectKey()
 	if objKey == "" {
 		objKey = DefaultUnixFSObjectKey

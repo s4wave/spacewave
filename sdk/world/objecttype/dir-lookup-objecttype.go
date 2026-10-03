@@ -103,11 +103,13 @@ func (d *lookupObjectType) LookupObjectTypeEngineID() string {
 // directives are equivalent, and the new directive does not superceed the
 // old, then the new directive will be merged (de-duplicated) into the old.
 func (d *lookupObjectType) IsEquivalent(other directive.Directive) bool {
+	// Require another object-type lookup before comparing its scope.
 	od, ok := other.(LookupObjectType)
 	if !ok {
 		return false
 	}
 
+	// Compare the object type and engine demanded by both lookups.
 	if d.LookupObjectTypeID() != od.LookupObjectTypeID() {
 		return false
 	}

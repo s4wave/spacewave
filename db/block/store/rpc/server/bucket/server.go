@@ -56,6 +56,7 @@ func NewRpcServiceBuilder(b bus.Bus, conf *Config) bifrost_rpc.RpcServiceBuilder
 			return nil, nil, err
 		}
 
+		// Register the bucket block-store service on the RPC mux.
 		mux := srpc.NewMux()
 		if err := mux.Register(
 			block_rpc.NewSRPCBlockStoreHandler(
@@ -67,6 +68,7 @@ func NewRpcServiceBuilder(b bus.Bus, conf *Config) bifrost_rpc.RpcServiceBuilder
 			return nil, nil, err
 		}
 
+		// Transfer the RPC mux and bucket release function to the service caller.
 		var handler srpc.Invoker = mux
 		return handler, bktRel, nil
 	}

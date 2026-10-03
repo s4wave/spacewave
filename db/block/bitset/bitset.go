@@ -15,12 +15,16 @@ func NewBitset(words []uint64, length uint32) *BitSet {
 
 // Clone clones the bitset block.
 func (b *BitSet) Clone() *BitSet {
+	// Preserve an absent bitset when cloning.
 	if b == nil {
 		return nil
 	}
+
+	// Copy the bitset words so the clone can change independently.
 	set := b.GetSet()
 	bs := make([]uint64, len(set))
 	copy(bs, set)
+
 	return &BitSet{
 		Set: bs,
 		Len: b.GetLen(),

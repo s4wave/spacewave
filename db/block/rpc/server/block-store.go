@@ -156,6 +156,7 @@ func (s *BlockStore) StatBlock(
 	ctx context.Context,
 	req *block_rpc.StatBlockRequest,
 ) (*block_rpc.StatBlockResponse, error) {
+	// Read block metadata and report an error or missing block.
 	stat, err := s.store.StatBlock(ctx, req.GetRef())
 	resp := &block_rpc.StatBlockResponse{}
 	if err != nil {
@@ -165,6 +166,8 @@ func (s *BlockStore) StatBlock(
 	if stat == nil {
 		return resp, nil
 	}
+
+	// Encode the existing block metadata in the RPC response.
 	resp.Ref = stat.Ref
 	resp.Size = stat.Size
 	resp.Exists = true
@@ -176,6 +179,7 @@ func (s *BlockStore) Sync(
 	ctx context.Context,
 	_ *block_rpc.SyncRequest,
 ) (*block_rpc.SyncResponse, error) {
+	// Drain the store writes and encode the durability fence result.
 	resp := &block_rpc.SyncResponse{}
 	fenced, err := s.store.Sync(ctx)
 	resp.Fenced = fenced

@@ -22,6 +22,7 @@ func NewConfig(engineID, spaceID, cdnBaseURL string) *Config {
 
 // Validate validates the configuration.
 func (c *Config) Validate() error {
+	// Require the engine, Space, and CDN endpoint for World synchronization.
 	if c.GetEngineId() == "" {
 		return errors.New("engine_id cannot be empty")
 	}
@@ -31,6 +32,8 @@ func (c *Config) Validate() error {
 	if c.GetCdnBaseUrl() == "" {
 		return errors.New("cdn_base_url cannot be empty")
 	}
+
+	// Validate pointer lifetime and block store writeback configuration.
 	if _, err := c.ParsePointerTTLDur(); err != nil {
 		return errors.Wrap(err, "pointer_ttl_dur")
 	}

@@ -19,6 +19,7 @@ func RunCloneExample(
 	storage storage.Storer,
 	worktree billy.Filesystem,
 ) error {
+	// Clone the remote repository into the supplied storage and worktree.
 	cloneOpts := &git.CloneOptions{
 		URL:      url,
 		Progress: os.Stdout,
@@ -35,6 +36,7 @@ func RunCloneExample(
 	le.Info("cloned")
 	_ = repo
 
+	// Log the cloned worktree entries and their file modes.
 	files, err := worktree.ReadDir("")
 	if err != nil {
 		return err
