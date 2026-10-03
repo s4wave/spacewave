@@ -215,24 +215,34 @@ func (c *LookupController) lookupBlock(
 		}
 
 		// Subscribe to bucket read completion before releasing the lock.
-		waitCh = getWaitCh()
+		if running != 0 {
+			waitCh = getWaitCh()
+		}
 	})
 
-	// wait for running == 0
-	select {
-	case <-reqCtx.Done():
-		return nil, context.Canceled
-	case <-waitCh:
+	// Wait for a result, an error, or every bucket read to finish.
+	if waitCh != nil {
+		select {
+		case <-reqCtx.Done():
+			return nil, context.Canceled
+		case <-waitCh:
+		}
 	}
 
+	// Copy the outcome under the lock because remaining reads may still publish.
+	var res *block.StoredBlock
+	bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
+		res, err = rres, rerr
+	})
+
 	// Return the bucket result or search the remaining block sources.
-	if rerr != nil {
-		return nil, rerr
+	if err != nil {
+		return nil, err
 	}
-	if rres == nil {
+	if res == nil {
 		return c.lookupMissing(reqCtx, bh, ref, opts)
 	}
-	return rres, nil
+	return res, nil
 }
 
 // lookupMissing reads a block that no bucket handle holds from the fallback
