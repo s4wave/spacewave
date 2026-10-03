@@ -27,24 +27,30 @@ func NewConfig(
 
 // This is a cursory validation to see if the values "look correct."
 func (c *Config) Validate() error {
+	// Determine whether the volume config supplies an initial head.
 	initRef := c.GetInitHeadRef()
 	hasInitRef := !initRef.GetEmpty()
 
+	// Validate the initial head reference when configured.
 	if hasInitRef {
 		if err := c.GetInitHeadRef().Validate(); err != nil {
 			return errors.Wrap(err, "init_head_ref")
 		}
 	}
+
+	// Validate the transform used to persist the volume head.
 	if err := c.GetStateTransformConf().Validate(); err != nil {
 		return errors.Wrap(err, "state_transform_conf")
 	}
 
+	// Require a backing volume identifier for block writes.
 	if c.GetVolumeId() == "" {
 		return errors.New(
 			"block volume requires volume_id to be set for writes",
 		)
 	}
 
+	// Validate the key encoding used by the volume store.
 	if err := c.GetKvKeyOpts().Validate(); err != nil {
 		return err
 	}

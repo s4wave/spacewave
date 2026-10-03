@@ -12,58 +12,69 @@ const defaultHeadStateKey = "volume-head"
 
 // loadHeadState loads the head ref from the store.
 func (v *Volume) loadHeadState(ctx context.Context, store object.ObjectStore) (*HeadState, bool, error) {
+	// Open a read transaction for the volume head state.
 	ktx, err := store.NewTransaction(ctx, false)
 	if err != nil {
 		return nil, false, err
 	}
 	defer ktx.Discard()
 
+	// Resolve the configured key for the saved volume head.
 	headKey := []byte(v.conf.GetObjectStoreHeadKey())
 	if len(headKey) == 0 {
 		headKey = []byte(defaultHeadStateKey)
 	}
 
+	// Read the encoded volume head from the state store.
 	data, found, err := ktx.Get(ctx, headKey)
 	if err != nil || !found {
 		return nil, false, err
 	}
 
+	// Decode the volume head with the configured state transform.
 	decData, err := v.stateXfrm.DecodeBlock(data)
 	if err != nil {
 		return nil, false, err
 	}
 
+	// Unmarshal the saved volume head reference.
 	s := &HeadState{}
 	if err := s.UnmarshalVT(decData); err != nil {
 		return nil, true, err
 	}
+
 	return s, true, nil
 }
 
 // writeHeadState writes the head state to the store.
 func (v *Volume) writeHeadState(ctx context.Context, store object.ObjectStore, nref *bucket.ObjectRef) error {
+	// Open a write transaction for the new volume head.
 	ktx, err := store.NewTransaction(ctx, true)
 	if err != nil {
 		return err
 	}
 	defer ktx.Discard()
 
+	// Resolve the configured key for the saved volume head.
 	headKey := []byte(v.conf.GetObjectStoreHeadKey())
 	if len(headKey) == 0 {
 		headKey = []byte(defaultHeadStateKey)
 	}
 
+	// Serialize the new volume head reference.
 	hs := &HeadState{HeadRef: nref}
 	data, err := hs.MarshalVT()
 	if err != nil {
 		return err
 	}
 
+	// Encode the volume head with the configured state transform.
 	encData, err := v.stateXfrm.EncodeBlock(data)
 	if err != nil {
 		return err
 	}
 
+	// Stage the encoded volume head in the state transaction.
 	if err := ktx.Set(ctx, headKey, encData); err != nil {
 		return err
 	}

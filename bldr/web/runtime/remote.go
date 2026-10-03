@@ -71,10 +71,12 @@ func NewRemote(
 	rpcClient srpc.Client,
 	execListener func(ctx context.Context, r *Remote) error,
 ) (*Remote, error) {
+	// Validate the runtime identifier before constructing the Remote.
 	if err := ValidateRuntimeId(runtimeID); err != nil {
 		return nil, err
 	}
 
+	// Retain the runtime client and document handler in the Remote.
 	r := &Remote{
 		runtimeID:    runtimeID,
 		le:           le,
@@ -84,6 +86,7 @@ func NewRemote(
 		execListener: execListener,
 	}
 
+	// Publish Remote state changes as runtime status snapshots.
 	r.cstate = cstate.NewCState(r)
 	r.snapshotCtr = ccontainer.NewCContainerVT[*WebRuntimeStatus](nil)
 	_, _ = r.cstate.AddWatcher(context.Background(), false, func(ctx context.Context, state *Remote) {
@@ -151,19 +154,25 @@ func (r *Remote) GetWebDocuments(ctx context.Context) (map[string]web_document.W
 // If wait is set, waits for the web document ID to exist.
 // Otherwise, returns nil, nil if not found.
 func (r *Remote) GetWebDocument(ctx context.Context, webDocumentID string, wait bool) (web_document.WebDocument, error) {
+	// Wait for the Remote to expose the requested web document.
 	var out web_document.WebDocument
 	err := r.cstate.Wait(ctx, func(ctx context.Context, val *Remote) (bool, error) {
+		// Wait for the Remote to receive its initial status.
 		if !val.ready {
 			return false, nil
 		}
 
+		// Resolve the requested document or honor the caller's wait policy.
 		_, rdoc := r.lookupRemoteWebDocument(webDocumentID)
 		if rdoc == nil {
 			return !wait, nil
 		}
+
+		// Return the remote document found in the runtime state.
 		out = rdoc.remote
 		return true, nil
 	})
+
 	return out, err
 }
 
@@ -211,33 +220,41 @@ func (r *Remote) RemoveWebDocument(ctx context.Context, webDocumentID string) (r
 // Execute executes the runtime.
 // Returns any errors, nil if Execute is not required.
 func (r *Remote) Execute(rctx context.Context) error {
+	// Scope runtime listeners and monitoring to this execution.
 	ctx, ctxCancel := context.WithCancel(rctx)
 	defer ctxCancel()
 
+	// Prepare runtime logging and collect listener completion errors.
 	le := r.le.WithField("runtime-id", r.runtimeID)
 	errCh := make(chan error, 2)
 
 	// start incoming stream listener, if applicable
 	if r.execListener != nil {
 		go func() {
+			// Run the incoming stream listener and report unexpected failures.
 			err := r.execListener(ctx, r)
 			if err != nil && err != context.Canceled {
 				le.
 					WithError(err).
 					Warn("listen for streams exited with error")
 			}
+
+			// Forward listener completion to the runtime state loop.
 			errCh <- err
 		}()
 	}
 
 	// start web document monitoring loop
 	go func() {
+		// Monitor remote documents and report unexpected failures.
 		err := r.monitorWebDocuments(ctx, le)
 		if err != nil && err != context.Canceled {
 			le.
 				WithError(err).
 				Warn("monitor web documents exited with error")
 		}
+
+		// Forward document monitoring completion to the runtime state loop.
 		errCh <- err
 	}()
 
@@ -263,25 +280,32 @@ func (r *Remote) WebDocumentOpenStream(
 	closeHandler srpc.CloseHandler,
 	webDocumentID string,
 ) (srpc.PacketWriter, error) {
+	// Wait for the document RPC stream to become available.
 	var writer srpc.PacketWriter
 	err := r.cstate.Wait(ctx, func(ctx context.Context, val *Remote) (bool, error) {
+		// Wait for the Remote to receive its initial status.
 		if !r.ready {
 			return false, nil
 		}
+
 		// wait for web document to exist
 		_, doc := r.lookupRemoteWebDocument(webDocumentID)
 		if doc == nil {
 			return false, nil
 		}
+
 		// request a stream with the web document
 		rw, err := rpcstream.OpenRpcStream(ctx, r.webRuntime.WebDocumentRpc, webDocumentID, false)
 		if err != nil {
 			return false, err
 		}
+
+		// Connect document packet delivery and expose the stream writer.
 		go rpcstream.ReadPump(rw, msgHandler, closeHandler)
 		writer = rpcstream.NewRpcStreamWriter(rw)
 		return true, nil
 	})
+
 	return writer, err
 }
 
@@ -303,20 +327,26 @@ func (r *Remote) WebWorkerOpenStream(
 	closeHandler srpc.CloseHandler,
 	webWorkerID string,
 ) (srpc.PacketWriter, error) {
+	// Wait for the worker RPC stream to become available.
 	var writer srpc.PacketWriter
 	err := r.cstate.Wait(ctx, func(ctx context.Context, val *Remote) (bool, error) {
+		// Wait for the Remote to receive its initial status.
 		if !r.ready {
 			return false, nil
 		}
+
 		// request a stream with the web worker
 		rw, err := rpcstream.OpenRpcStream(ctx, r.webRuntime.WebWorkerRpc, webWorkerID, false)
 		if err != nil {
 			return false, err
 		}
+
+		// Connect worker packet delivery and expose the stream writer.
 		go rpcstream.ReadPump(rw, msgHandler, closeHandler)
 		writer = rpcstream.NewRpcStreamWriter(rw)
 		return true, nil
 	})
+
 	return writer, err
 }
 
@@ -336,11 +366,13 @@ func (r *Remote) monitorWebDocuments(ctx context.Context, le *logrus.Entry) erro
 	le.Debug("starting WebRuntime status monitoring")
 	defer le.Debug("stopped WebRuntime status monitoring")
 
+	// Subscribe to runtime status updates from the remote client.
 	stream, err := r.webRuntime.WatchWebRuntimeStatus(ctx, NewWatchWebRuntimeStatusRequest())
 	if err != nil {
 		return err
 	}
 
+	// Apply each runtime status update to the Remote document set.
 	var firstRx bool
 	for {
 		// ensure context is not canceled
@@ -355,16 +387,19 @@ func (r *Remote) monitorWebDocuments(ctx context.Context, le *logrus.Entry) erro
 		default:
 		}
 
+		// Receive the next runtime status from the watch stream.
 		resp, err := stream.Recv()
 		if err != nil {
 			return err
 		}
 
+		// Record the document count in the initial runtime status.
 		if !firstRx {
 			le.Debugf("rx: initial list of %d web documents", len(resp.GetWebDocuments()))
 			firstRx = true
 		}
 
+		// Apply the received runtime status under the Remote state lock.
 		_, err = r.cstate.Apply(ctx, func(ctx context.Context, v *cstate.CStateWriter[*Remote]) (dirty bool, err error) {
 			return r.handleWebRuntimeStatus(ctx, resp)
 		})
@@ -388,6 +423,7 @@ func (r *Remote) handleWebRuntimeStatus(ctx context.Context, ws *WebRuntimeStatu
 // returns dirty, err
 // expects mtx to be locked
 func (r *Remote) handleWebDocumentStatuses(ctx context.Context, snapshot bool, statuses []*WebDocumentStatus) (bool, error) {
+	// Ignore empty incremental document status updates.
 	if !snapshot && len(statuses) == 0 {
 		return false, nil
 	}
@@ -399,6 +435,7 @@ func (r *Remote) handleWebDocumentStatuses(ctx context.Context, snapshot bool, s
 	var dirty bool
 	notSeenDocs := r.buildRemoteWebDocumentsMap()
 	for _, status := range statuses {
+		// Require a document identifier before applying its status.
 		webDocumentID := status.GetId()
 		if webDocumentID == "" {
 			continue
@@ -418,12 +455,14 @@ func (r *Remote) handleWebDocumentStatuses(ctx context.Context, snapshot bool, s
 		// insert / update
 		insertIdx, rwv := r.lookupRemoteWebDocument(webDocumentID)
 		if rwv != nil {
+			// Reconcile the existing document's permanence with its status.
 			isPermanent := status.GetPermanent()
 			if rwv.permanent != isPermanent {
 				rwv.permanent = isPermanent
 				dirty = true
 			}
 		} else {
+			// Construct a remote document for the newly reported identifier.
 			var err error
 			rwv, err = NewRemoteWebDocument(ctx, r, webDocumentID, status.GetPermanent())
 			if err != nil {
@@ -431,6 +470,8 @@ func (r *Remote) handleWebDocumentStatuses(ctx context.Context, snapshot bool, s
 				r.le.WithError(err).Error("skipping invalid web document")
 				continue
 			}
+
+			// Publish the new document in the Remote document set.
 			r.insertRemoteWebDocument(insertIdx, rwv)
 			dirty = true
 		}
@@ -489,18 +530,25 @@ func (r *Remote) WaitFirstWebDocument(ctx context.Context) (web_document.WebDocu
 //
 // Waits for the given web view ID to be available, or ctx to be canceled.
 func (r *Remote) GetWebDocumentHost(ctx context.Context, webDocumentID string, _ func()) (srpc.Invoker, func(), error) {
+	// Wait for the requested document to expose its RPC mux.
 	var mux srpc.Mux
 	err := r.cstate.Wait(ctx, func(ctx context.Context, val *Remote) (bool, error) {
+		// Wait for the Remote to receive its initial status.
 		if !r.ready {
 			return false, nil
 		}
+
+		// Wait for the requested document to appear in the Remote state.
 		_, doc := r.lookupRemoteWebDocument(webDocumentID)
 		if doc == nil {
 			return false, nil
 		}
+
+		// Resolve the requested document's RPC mux.
 		mux = doc.remote.GetMux()
 		return mux != nil, nil
 	})
+
 	return mux, nil, err
 }
 
@@ -520,6 +568,7 @@ func (r *Remote) GetWebWorkerHost(ctx context.Context, webWorkerID string, _ fun
 // returns val, error, returns nil, nil if not found
 // expects mtx to be locked
 func (r *Remote) removeRemoteWebDocument(id string) *RemoteWebDocument {
+	// Locate the remote document before removing it.
 	idx, doc := r.lookupRemoteWebDocument(id)
 	if doc == nil {
 		return nil
@@ -530,15 +579,18 @@ func (r *Remote) removeRemoteWebDocument(id string) *RemoteWebDocument {
 	if rdoc != nil {
 		rdoc.Close()
 	}
+
 	return rdoc
 }
 
 // removeRemoteWebDocumentAtIdx removes a remote web document at the given index.
 func (r *Remote) removeRemoteWebDocumentAtIdx(idx int) *RemoteWebDocument {
+	// Require an index within the Remote document set.
 	if idx < 0 || idx >= len(r.remoteWebDocuments) {
 		return nil
 	}
 
+	// Remove the document from the Remote set and record its removal.
 	doc := r.remoteWebDocuments[idx]
 	id := doc.id
 	r.remoteWebDocuments = append(r.remoteWebDocuments[:idx], r.remoteWebDocuments[idx+1:]...)
@@ -546,6 +598,7 @@ func (r *Remote) removeRemoteWebDocumentAtIdx(idx int) *RemoteWebDocument {
 		WithField("document-id", id).
 		WithField("document-count", len(r.remoteWebDocuments)).
 		Debug("removed remote web document")
+
 	return doc
 }
 

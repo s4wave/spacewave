@@ -20,9 +20,12 @@ func IsWebRuntimeClientClosed(err error) bool {
 // IsNormalWebRuntimeClientClose reports whether err is a normal-close web
 // runtime client generation teardown rather than an unexpected failure.
 func IsNormalWebRuntimeClientClose(err error) bool {
+	// Require an error before recognizing a runtime client teardown.
 	if err == nil {
 		return false
 	}
+
+	// Isolate the runtime client portion of the error message.
 	msg := err.Error()
 	const clientPrefix = "WebRuntimeClient: "
 	clientIdx := strings.Index(msg, clientPrefix)
@@ -31,6 +34,7 @@ func IsNormalWebRuntimeClientClose(err error) bool {
 	}
 	msg = msg[clientIdx+len(clientPrefix):]
 
+	// Extract the runtime client generation from the teardown message.
 	const generationMarker = ": runtime client generation "
 	_, after, ok := strings.Cut(msg, generationMarker)
 	if !ok {
@@ -38,6 +42,7 @@ func IsNormalWebRuntimeClientClose(err error) bool {
 	}
 	generation := after
 
+	// Require a normal-close suffix and a numeric client generation.
 	const normalCloseSuffix = " closed: normal-close"
 	if !strings.HasSuffix(generation, normalCloseSuffix) {
 		return false
@@ -46,11 +51,14 @@ func IsNormalWebRuntimeClientClose(err error) bool {
 	if generation == "" {
 		return false
 	}
+
+	// Verify that the client generation contains only decimal digits.
 	for _, r := range generation {
 		if r < '0' || r > '9' {
 			return false
 		}
 	}
+
 	return true
 }
 

@@ -27,26 +27,31 @@ import (
 
 // TestBlockVolume tests the block graph backed volume.
 func TestBlockVolume(t *testing.T) {
+	// Prepare logging for the block volume test.
 	ctx := context.Background()
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
 
+	// Create a testbed that can resolve the block volume controller.
 	tb, err := testbed.NewTestbed(ctx, le)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	tb.StaticResolver.AddFactory(volume_block.NewFactory(tb.Bus))
 
+	// Select the backing volume, object store, and bucket for the test.
 	vol := tb.Volume
 	volumeID := vol.GetID()
 	objectStoreID := "test-block-volume-store"
 	bucketID := tb.BucketId
 
+	// Derive a deterministic encryption key for the test volume.
 	encKey := make([]byte, 32)
 	blake3.DeriveKey("hydra/volume/block/test: block_test.go", []byte(objectStoreID), encKey)
 	le.Infof("using encryption key: %s", b58.Encode(encKey))
 
+	// Configure block encryption for the volume root.
 	transformConf, err := block_transform.NewConfig([]config.Config{
 		&transform_blockenc.Config{
 			BlockEnc: blockenc.BlockEnc_BlockEnc_XCHACHA20_POLY1305,
@@ -73,13 +78,16 @@ func TestBlockVolume(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// Assemble the block transform factories for the volume cursor.
 	sfs := transform_all.BuildFactorySet()
 
+	// Open a cursor on the initial block volume root.
 	bcs, err := bucket_lookup.BuildCursor(ctx, tb.Bus, le, sfs, volumeID, initHeadRef, nil)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Initialize the block volume with the generated private key.
 	volBlockConf := &volume_block.Config{NoGenerateKey: true}
 	initHeadRef, err = volume_block.InitVolume(ctx, le, volBlockConf, bcs, nvolPriv)
 	if err != nil {
@@ -104,6 +112,7 @@ func TestBlockVolume(t *testing.T) {
 	}
 	defer diRef.Release()
 
+	// Obtain the running block volume from its controller.
 	bvol, err := volCtrl.GetVolume(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -114,12 +123,15 @@ func TestBlockVolume(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// Acquire a block volume write lease for the shared engine key.
 	scope := coord.Scope{VolumeID: bvol.GetID(), Key: "shared-world-engine"}
 	lease, acquired, err := bvol.TryAcquireWriteLease(ctx, scope)
 	if err != nil || !acquired {
 		t.Fatalf("block volume keyed lease = (%v, %v), want acquired: %v", lease, acquired, err)
 	}
 	defer lease.Release(context.Background())
+
+	// Verify that the backing volume rejects the competing write lease.
 	if contender, acquired, err := vol.TryAcquireWriteLease(ctx, scope); err != nil || acquired || contender != nil {
 		t.Fatalf("backing volume keyed lease = (%v, %v, %v), want (nil, false, nil)", contender, acquired, err)
 	}
@@ -130,10 +142,14 @@ func TestBlockVolume(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Load the private key stored in the block volume.
 	bvolPriv, err := bvolPeer.GetPrivKey(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Verify that the block volume retains the generated Ed25519 identity.
 	if !bvolPriv.GetPublic().Equals(nvolPriv.GetPublic()) {
 		t.Fatal("key mismatch")
 	}

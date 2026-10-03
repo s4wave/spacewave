@@ -34,23 +34,27 @@ func InitVolume(
 		}
 	}
 
+	// Build a block transaction store rooted at an empty volume.
 	cursor.SetRootRef(nil)
 	bstore, err := kvtx_block.NewStore(ctx, le, cursor, commitFn)
 	if err != nil {
 		return nil, err
 	}
 
+	// Construct the configured key encoding for the volume store.
 	kvkey, err := kvkey.NewKVKey(conf.GetKvKeyOpts())
 	if err != nil {
 		return nil, err
 	}
 
+	// Persist the new volume private key in the block transaction store.
 	hstore := store_kvtx.NewKVTx(kvkey, bstore, conf.GetStoreConfig())
 	err = hstore.StorePeerPriv(ctx, nvolPriv)
 	if err != nil {
 		return nil, err
 	}
 
+	// Return the committed volume root or context cancellation.
 	select {
 	case <-ctx.Done():
 		return nil, context.Canceled

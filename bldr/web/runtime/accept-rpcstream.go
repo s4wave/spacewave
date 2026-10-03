@@ -29,11 +29,14 @@ func (r *Remote) AcceptServiceWorkerRpcStreams(ctx context.Context, mc srpc.Muxe
 
 // handleServiceWorkerRpcStream handles a single RpcStream for ServiceWorkerHost.
 func (r *Remote) handleServiceWorkerRpcStream(ctx context.Context, rwc io.ReadWriteCloser) {
+	// Release the service worker connection when request handling ends.
 	defer rwc.Close()
 
+	// Scope the service worker request stream to this handler.
 	subCtx, subCtxCancel := context.WithCancel(ctx)
 	defer subCtxCancel()
 
+	// Route framed requests to the service worker host.
 	stream := framedstream.New(subCtx, rwc)
 	_ = rpcstream.HandleRpcStream(stream, r.GetServiceWorkerHost)
 }

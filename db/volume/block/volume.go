@@ -45,6 +45,7 @@ func NewVolume(
 	sfs *block_transform.StepFactorySet,
 	conf *Config,
 ) (v *Volume, err error) {
+	// Release acquired volume resources if construction fails.
 	var rels []func()
 	rel := func() {
 		for _, f := range rels {
@@ -58,6 +59,7 @@ func NewVolume(
 		}
 	}()
 
+	// Construct the transform for persisted volume head state.
 	le.Debug("building volume")
 	stateXfrm, err := block_transform.NewTransformer(
 		controller.ConstructOpts{Logger: le},
@@ -68,6 +70,7 @@ func NewVolume(
 		return nil, err
 	}
 
+	// Retain the block volume dependencies and state transform.
 	v = &Volume{
 		le:        le,
 		b:         b,
@@ -97,6 +100,7 @@ func NewVolume(
 		le.Debug("no volume id set, using any available volume")
 	}
 
+	// Resolve the object store and retain its backing volume.
 	var stateStore object.ObjectStore
 	var stateStoreVolume volume.Volume
 	if stateStoreID != "" {
@@ -108,12 +112,15 @@ func NewVolume(
 		stateStore = storeVal.GetObjectStore()
 		stateStoreVolume = storeVal.GetVolume()
 	}
+
+	// Restore the persisted head reference when a state store is available.
 	var headState *HeadState
 	if stateStore != nil {
 		// apply object store prefix
 		if prefix := conf.GetObjectStorePrefix(); len(prefix) != 0 {
 			stateStore = object.NewPrefixer(stateStore, []byte(prefix))
 		}
+
 		// load initial head ref
 		var headStateFound bool
 		var err error
@@ -130,9 +137,12 @@ func NewVolume(
 			le.Debug("no initial head reference provided, initializing empty world")
 		}
 	}
+
+	// Provide an empty head reference when no initial state exists.
 	if headRef == nil {
 		headRef = &bucket.ObjectRef{}
 	}
+
 	// override bucket id if configured
 	if confBucketID := conf.GetBucketId(); confBucketID != "" {
 		headRef.BucketId = confBucketID
@@ -156,6 +166,7 @@ func NewVolume(
 	}
 	rels = append(rels, cursor.Release)
 
+	// Persist committed block roots through the volume state store.
 	var commitFn kvtx_block.CommitFn
 	if stateStore != nil {
 		commitFn = func(nref *bucket.ObjectRef) error {
@@ -170,6 +181,7 @@ func NewVolume(
 		return nil, err
 	}
 
+	// Wrap the block transaction store with logging when configured.
 	var store kvtx.Store = bstore
 	if conf.GetVerbose() {
 		store = kvtx_vlogger.NewVLogger(le, store)
@@ -195,10 +207,13 @@ func NewVolume(
 	if err != nil {
 		return nil, err
 	}
+
+	// Coordinate block writes through the backing volume.
 	if stateStoreVolume != nil {
 		bvol.Coordinator = stateStoreVolume
 	}
 	v.Volume = bvol
+
 	return v, nil
 }
 

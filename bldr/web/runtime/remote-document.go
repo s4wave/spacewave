@@ -36,6 +36,7 @@ type RemoteWebDocument struct {
 //
 // if permanent, this web document is the primary and cannot be closed
 func NewRemoteWebDocument(ctx context.Context, r *Remote, id string, permanent bool) (*RemoteWebDocument, error) {
+	// Retain the document identity and runtime stream opener.
 	openStream := r.GetWebDocumentOpenStream(id)
 	v := &RemoteWebDocument{
 		r:          r,
@@ -44,6 +45,8 @@ func NewRemoteWebDocument(ctx context.Context, r *Remote, id string, permanent b
 		openStream: openStream,
 	}
 	var err error
+
+	// Construct the document controller within its cancelable context.
 	v.ctx, v.ctxCancel = context.WithCancel(ctx)
 	v.ctrl, err = web_document_controller.NewController(
 		r.le,
@@ -51,18 +54,23 @@ func NewRemoteWebDocument(ctx context.Context, r *Remote, id string, permanent b
 		id,
 		web_document.RemoteVersion,
 		func(le *logrus.Entry, b bus.Bus, handler web_document.WebDocumentHandler, id string) (web_document.WebDocument, error) {
+			// Connect the controller to the remote document RPC stream.
 			var err error
 			v.remote, err = web_document.NewRemote(v.ctx, le, b, handler, id, openStream)
 			if err != nil {
 				return nil, err
 			}
+
 			return v.remote, nil
 		},
 	)
 	if err != nil {
 		return nil, err
 	}
+
+	// Start the remote document controller.
 	go v.Execute()
+
 	return v, nil
 }
 
