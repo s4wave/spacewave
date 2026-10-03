@@ -130,17 +130,21 @@ func (w *FSWatcher) SetPathPts(pathPts []string) bool {
 // The callback will be canceled and not called again until SetPath is called.
 // Returns if there was previously a path set.
 func (w *FSWatcher) ClearPath() bool {
+	// Clear the FSWatcher path and release its handles under the state lock.
 	var changed bool
 	w.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
+		// Leave an FSWatcher without a path unchanged.
 		changed = w.pathPts != nil
 		if !changed {
 			return
 		}
 
+		// Release the cleared path and wake the FSWatcher execution loop.
 		w.pathPts = nil
 		w.releaseLocked()
 		broadcast()
 	})
+
 	return changed
 }
 
@@ -150,6 +154,7 @@ func (w *FSWatcher) ClearPath() bool {
 // If the callback returns any error other than ErrReleased, returns that error.
 // errCh is an optional error channel to interrupt execution. can be nil.
 func (w *FSWatcher) Execute(rctx context.Context, errCh <-chan error) error {
+	// Bind FSWatcher execution to the caller and release its handles on exit.
 	ctx, ctxCancel := context.WithCancel(rctx)
 	defer func() {
 		ctxCancel()
@@ -166,6 +171,7 @@ func (w *FSWatcher) Execute(rctx context.Context, errCh <-chan error) error {
 	var err error
 	var waitCh <-chan struct{}
 	var waitCursorChanged <-chan struct{}
+watch:
 	for {
 		// wait for changes if necessary
 		if waitCh != nil || waitCursorChanged != nil {
@@ -239,10 +245,11 @@ func (w *FSWatcher) Execute(rctx context.Context, errCh <-chan error) error {
 			currHandle := currHandles[len(currHandles)-1]
 			nextHandle, err := currHandle.Lookup(ctx, nextDir)
 			if err != nil {
-				// If something was released while performing the op, try again right away.
+				// If something was released while performing the op, reload the
+				// handles and try again right away.
 				if err == unixfs_errors.ErrReleased || err == context.Canceled {
 					waitCh, waitCursorChanged = nil, nil
-					continue
+					continue watch
 				}
 
 				// The error must be some problem accessing this fs node.
@@ -262,9 +269,10 @@ func (w *FSWatcher) Execute(rctx context.Context, errCh <-chan error) error {
 				}
 			})
 			if !valid {
-				// Something changed, try again.
+				// Something changed, reload the handles and try again.
 				nextHandle.Release()
-				continue
+				waitCh, waitCursorChanged = nil, nil
+				continue watch
 			}
 		}
 
