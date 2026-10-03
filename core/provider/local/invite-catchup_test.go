@@ -8,11 +8,10 @@ import (
 
 	provider_local "github.com/s4wave/spacewave/core/provider/local"
 	"github.com/s4wave/spacewave/core/sobject"
-	"github.com/s4wave/spacewave/net/hash"
 )
 
 // TestInvitedProviderCatchup proves invitation checkpoint installation and
-// encrypted content convergence through the account-owned sync compositions.
+// encrypted operation convergence through the account-owned sync compositions.
 func TestInvitedProviderCatchup(t *testing.T) {
 	// Start an owner and a reader provider.
 	skipFullP2PSyncUnderGoScript(t)
@@ -98,44 +97,24 @@ func TestInvitedProviderCatchup(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Load the owner's transformer.
-	snapshot, err := ownerObject.GetSharedObjectState(ctx)
-	if err != nil {
-		t.Fatal(err)
-	}
-	transformer, err := snapshot.GetTransformer(ctx)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// Encrypt new content into the next root.
+	// Write new content as an operation while the reader is offline.
 	want := []byte("readable content written while the other device is offline")
-	root := current.Root.CloneVT()
-	root.InnerSeqno++
-	inner, err := (&sobject.SORootInner{Seqno: root.InnerSeqno, StateData: want}).MarshalVT()
+	localID, err := ownerObject.QueueOperation(ctx, want)
 	if err != nil {
 		t.Fatal(err)
 	}
-	root.Inner, err = transformer.EncodeBlock(inner)
-	if err != nil {
-		t.Fatal(err)
-	}
+	ownerID := ownerObject.GetPeerID().String()
 
-	// Sign and publish the root.
-	root.ValidatorSignatures = nil
-	if err := root.SignInnerData(ownerObject.GetPrivKey(), joined.SharedObjectID, root.InnerSeqno, hash.RecommendedHashType); err != nil {
-		t.Fatal(err)
-	}
-	if err := ownerObject.GetSOHost().UpdateRootState(ctx, root, ownerObject.GetPeerID().String(), nil, nil); err != nil {
-		t.Fatal(err)
-	}
-
-	// Restart sync; the reader accepts the root and the config change.
+	// Restart sync; the reader accepts the operation and the config change.
 	if err := reader.StartPersistentP2PSync(ctx, reader.GetSessionTransport()); err != nil {
 		t.Fatal(err)
 	}
 	accepted, err := states.WaitValueWithValidator(ctx, func(state *sobject.SOState) (bool, error) {
-		return state.GetRoot().EqualVT(root) && state.GetConfig().GetConfigChainSeqno() == checkpoint.GetConfigChainSeqno()+1, nil
+		set, err := state.OperationSet(joined.SharedObjectID)
+		if err != nil {
+			return false, err
+		}
+		return set.Find(ownerID, localID) != nil && state.GetConfig().GetConfigChainSeqno() == checkpoint.GetConfigChainSeqno()+1, nil
 	}, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -151,11 +130,20 @@ func TestInvitedProviderCatchup(t *testing.T) {
 	}
 	defer releaseReadable()
 	if _, err := readableStates.WaitValueWithValidator(ctx, func(snapshot sobject.SharedObjectStateSnapshot) (bool, error) {
+		// Wait for the owner's operation to decode to want.
 		if snapshot == nil {
 			return false, nil
 		}
-		content, err := snapshot.GetRootInner(ctx)
-		return bytes.Equal(content.GetStateData(), want), err
+		set, err := snapshot.GetOperationSet(ctx)
+		if err != nil {
+			return false, err
+		}
+		h := set.Find(ownerID, localID)
+		if h == nil {
+			return false, nil
+		}
+		content, err := snapshot.DecodeOperation(ctx, set.Get(h))
+		return bytes.Equal(content, want), err
 	}, nil); err != nil {
 		t.Fatalf("readable content did not converge: %v", err)
 	}

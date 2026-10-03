@@ -83,18 +83,14 @@ class Identity(_message.Message):
     def __init__(self, session_ref: _Optional[_Union[_session_pb2.SessionRef, _Mapping]] = ..., session_proof: _Optional[_Union[_sobject_pb2.SOJoinResponse, _Mapping]] = ..., storage_proof: _Optional[_Union[_sobject_pb2.SOJoinResponse, _Mapping]] = ...) -> None: ...
 
 class SharedObject(_message.Message):
-    __slots__ = ("entry", "state", "history_base", "history", "genesis")
+    __slots__ = ("entry", "state", "config_lineage")
     ENTRY_FIELD_NUMBER: _ClassVar[int]
     STATE_FIELD_NUMBER: _ClassVar[int]
-    HISTORY_BASE_FIELD_NUMBER: _ClassVar[int]
-    HISTORY_FIELD_NUMBER: _ClassVar[int]
-    GENESIS_FIELD_NUMBER: _ClassVar[int]
+    CONFIG_LINEAGE_FIELD_NUMBER: _ClassVar[int]
     entry: _sobject_pb2.SharedObjectListEntry
     state: _sobject_pb2.SOState
-    history_base: _sobject_pb2.SharedObjectConfig
-    history: _containers.RepeatedCompositeFieldContainer[_sobject_pb2.SOConfigChange]
-    genesis: _sobject_pb2.SOConfigChange
-    def __init__(self, entry: _Optional[_Union[_sobject_pb2.SharedObjectListEntry, _Mapping]] = ..., state: _Optional[_Union[_sobject_pb2.SOState, _Mapping]] = ..., history_base: _Optional[_Union[_sobject_pb2.SharedObjectConfig, _Mapping]] = ..., history: _Optional[_Iterable[_Union[_sobject_pb2.SOConfigChange, _Mapping]]] = ..., genesis: _Optional[_Union[_sobject_pb2.SOConfigChange, _Mapping]] = ...) -> None: ...
+    config_lineage: _containers.RepeatedCompositeFieldContainer[_sobject_pb2.SOConfigChange]
+    def __init__(self, entry: _Optional[_Union[_sobject_pb2.SharedObjectListEntry, _Mapping]] = ..., state: _Optional[_Union[_sobject_pb2.SOState, _Mapping]] = ..., config_lineage: _Optional[_Iterable[_Union[_sobject_pb2.SOConfigChange, _Mapping]]] = ...) -> None: ...
 
 class Frame(_message.Message):
     __slots__ = ("account", "identity", "object", "complete", "error", "choice")

@@ -63,15 +63,16 @@ type AcceptInviteResponse struct {
 	Grant *sobject.SOGrant `protobuf:"bytes,1,opt,name=grant,proto3" json:"grant,omitempty"`
 	// SharedObjectId is the ID of the shared object the invitee was enrolled in.
 	SharedObjectId string `protobuf:"bytes,2,opt,name=shared_object_id,json=sharedObjectId,proto3" json:"sharedObjectId,omitempty"`
-	// OwnerGrant is the owner's existing root grant. The invitee preserves it so
-	// the owner can read later state written by the joined copy.
-	OwnerGrant *sobject.SOGrant `protobuf:"bytes,3,opt,name=owner_grant,json=ownerGrant,proto3" json:"ownerGrant,omitempty"`
-	// SharedObjectState is the owner's authorized state after enrollment. The
-	// invitee installs this state so both copies use the same root transform.
+	// SharedObjectState is the owner's authorized state after enrollment. Its
+	// key epochs hold the grants of every participant, including the invitee.
 	SharedObjectState *sobject.SOState `protobuf:"bytes,4,opt,name=shared_object_state,json=sharedObjectState,proto3" json:"sharedObjectState,omitempty"`
 	// Pending reports that the owner queued the redemption as a join request
 	// instead of admitting it. Every other field is empty.
 	Pending bool `protobuf:"varint,5,opt,name=pending,proto3" json:"pending,omitempty"`
+	// ConfigLineage is the owner's retained configuration changes leading to the
+	// config of shared_object_state, oldest first. It lets the invitee resolve
+	// the config of every operation the state holds.
+	ConfigLineage []*sobject.SOConfigChange `protobuf:"bytes,6,rep,name=config_lineage,json=configLineage,proto3" json:"configLineage,omitempty"`
 }
 
 func (x *AcceptInviteResponse) Reset() {
@@ -94,13 +95,6 @@ func (x *AcceptInviteResponse) GetSharedObjectId() string {
 	return ""
 }
 
-func (x *AcceptInviteResponse) GetOwnerGrant() *sobject.SOGrant {
-	if x != nil {
-		return x.OwnerGrant
-	}
-	return nil
-}
-
 func (x *AcceptInviteResponse) GetSharedObjectState() *sobject.SOState {
 	if x != nil {
 		return x.SharedObjectState
@@ -113,6 +107,13 @@ func (x *AcceptInviteResponse) GetPending() bool {
 		return x.Pending
 	}
 	return false
+}
+
+func (x *AcceptInviteResponse) GetConfigLineage() []*sobject.SOConfigChange {
+	if x != nil {
+		return x.ConfigLineage
+	}
+	return nil
 }
 
 // WithdrawJoinRequestRequest is sent by a requester to the owner. The owner
@@ -174,8 +175,8 @@ func (m *AcceptInviteResponse) CloneVT() *AcceptInviteResponse {
 	r.SharedObjectId = m.SharedObjectId
 	r.Pending = m.Pending
 	r.Grant = protobuf_go_lite.CloneVTValue(m.Grant)
-	r.OwnerGrant = protobuf_go_lite.CloneVTValue(m.OwnerGrant)
 	r.SharedObjectState = protobuf_go_lite.CloneVTValue(m.SharedObjectState)
+	r.ConfigLineage = protobuf_go_lite.CloneVTSlice(m.ConfigLineage)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -255,13 +256,13 @@ func (this *AcceptInviteResponse) EqualVT(that *AcceptInviteResponse) bool {
 	if this.SharedObjectId != that.SharedObjectId {
 		return false
 	}
-	if !protobuf_go_lite.IsEqualVT(this.OwnerGrant, that.OwnerGrant) {
-		return false
-	}
 	if !protobuf_go_lite.IsEqualVT(this.SharedObjectState, that.SharedObjectState) {
 		return false
 	}
 	if this.Pending != that.Pending {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTSliceImplicit(this.ConfigLineage, that.ConfigLineage, func() *sobject.SOConfigChange { return &sobject.SOConfigChange{} }) {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -396,11 +397,6 @@ func (x *AcceptInviteResponse) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("sharedObjectId")
 		s.WriteString(x.SharedObjectId)
 	}
-	if x.OwnerGrant != nil || s.HasField("ownerGrant") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("ownerGrant")
-		x.OwnerGrant.MarshalProtoJSON(s.WithField("ownerGrant"))
-	}
 	if x.SharedObjectState != nil || s.HasField("sharedObjectState") {
 		s.WriteMoreIf(&wroteField)
 		s.WriteObjectField("sharedObjectState")
@@ -410,6 +406,17 @@ func (x *AcceptInviteResponse) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteMoreIf(&wroteField)
 		s.WriteObjectField("pending")
 		s.WriteBool(x.Pending)
+	}
+	if len(x.ConfigLineage) > 0 || s.HasField("configLineage") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("configLineage")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.ConfigLineage {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("configLineage"))
+		}
+		s.WriteArrayEnd()
 	}
 	s.WriteObjectEnd()
 }
@@ -438,13 +445,6 @@ func (x *AcceptInviteResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "shared_object_id", "sharedObjectId":
 			s.AddField("shared_object_id")
 			x.SharedObjectId = s.ReadString()
-		case "owner_grant", "ownerGrant":
-			if s.ReadNil() {
-				x.OwnerGrant = nil
-				return
-			}
-			x.OwnerGrant = &sobject.SOGrant{}
-			x.OwnerGrant.UnmarshalProtoJSON(s.WithField("owner_grant", true))
 		case "shared_object_state", "sharedObjectState":
 			if s.ReadNil() {
 				x.SharedObjectState = nil
@@ -455,6 +455,24 @@ func (x *AcceptInviteResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "pending":
 			s.AddField("pending")
 			x.Pending = s.ReadBool()
+		case "config_lineage", "configLineage":
+			s.AddField("config_lineage")
+			if s.ReadNil() {
+				x.ConfigLineage = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.ConfigLineage = append(x.ConfigLineage, nil)
+					return
+				}
+				v := &sobject.SOConfigChange{}
+				v.UnmarshalProtoJSON(s.WithField("config_lineage", false))
+				if s.Err() != nil {
+					return
+				}
+				x.ConfigLineage = append(x.ConfigLineage, v)
+			})
 		}
 	})
 }
@@ -622,6 +640,18 @@ func (m *AcceptInviteResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) 
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if len(m.ConfigLineage) > 0 {
+		for iNdEx := len(m.ConfigLineage) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.ConfigLineage[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x32
+		}
+	}
 	if m.Pending {
 		i = protobuf_go_lite.EncodeBool(dAtA, i, m.Pending)
 		i--
@@ -636,16 +666,6 @@ func (m *AcceptInviteResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) 
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
 		i--
 		dAtA[i] = 0x22
-	}
-	if m.OwnerGrant != nil {
-		size, err := m.OwnerGrant.MarshalToSizedBufferVT(dAtA[:i])
-		if err != nil {
-			return 0, err
-		}
-		i -= size
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
-		i--
-		dAtA[i] = 0x1a
 	}
 	if len(m.SharedObjectId) > 0 {
 		i = protobuf_go_lite.EncodeString(dAtA, i, m.SharedObjectId)
@@ -764,15 +784,15 @@ func (m *AcceptInviteResponse) SizeVT() (n int) {
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.SharedObjectId)
-	if m.OwnerGrant != nil {
-		l = m.OwnerGrant.SizeVT()
-		n += protobuf_go_lite.SizeMessage(1, l)
-	}
 	if m.SharedObjectState != nil {
 		l = m.SharedObjectState.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
 	n += protobuf_go_lite.SizeBoolNonZero(1, m.Pending)
+	for _, e := range m.ConfigLineage {
+		l = e.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -831,10 +851,6 @@ func (x *AcceptInviteResponse) MarshalProtoText() string {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "shared_object_id")
 		protobuf_go_lite.TextWriteString(&sb, x.SharedObjectId)
 	}
-	if x.OwnerGrant != nil {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "owner_grant")
-		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.OwnerGrant)
-	}
 	if x.SharedObjectState != nil {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "shared_object_state")
 		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.SharedObjectState)
@@ -842,6 +858,18 @@ func (x *AcceptInviteResponse) MarshalProtoText() string {
 	if x.Pending != false {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "pending")
 		protobuf_go_lite.TextWriteBool(&sb, x.Pending)
+	}
+	if len(x.ConfigLineage) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "config_lineage")
+		for i, v := range x.ConfigLineage {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			if v == nil {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, &sobject.SOConfigChange{})
+			} else {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, v)
+			}
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -1000,21 +1028,6 @@ func (m *AcceptInviteResponse) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.SharedObjectId = v
-		case 3:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field OwnerGrant", wireType)
-			}
-			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-			if m.OwnerGrant == nil {
-				m.OwnerGrant = &sobject.SOGrant{}
-			}
-			if err := m.OwnerGrant.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
 		case 4:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field SharedObjectState", wireType)
@@ -1040,6 +1053,19 @@ func (m *AcceptInviteResponse) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.Pending = bool(v)
+		case 6:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ConfigLineage", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.ConfigLineage = append(m.ConfigLineage, &sobject.SOConfigChange{})
+			if err := m.ConfigLineage[len(m.ConfigLineage)-1].UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

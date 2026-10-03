@@ -1,7 +1,6 @@
 package sobject_sync
 
 import (
-	"bytes"
 	"context"
 	"crypto/sha256"
 	"errors"
@@ -11,7 +10,6 @@ import (
 	"time"
 
 	"github.com/s4wave/spacewave/core/sobject"
-	"github.com/s4wave/spacewave/net/hash"
 	"github.com/s4wave/spacewave/net/peer"
 	stream_packet "github.com/s4wave/spacewave/net/stream/packet"
 )
@@ -44,8 +42,9 @@ func TestAuthenticatedCatchupPinsPagesAndContinues(t *testing.T) {
 		}
 	}
 	if err := local.soHost.UpdateSOState(ctx, func(state *sobject.SOState) error {
-		state.Root = &sobject.SORoot{InnerSeqno: 7, Inner: []byte("visible content after offline work")}
-		return state.Root.SignInnerData(owner, soID, 7, hash.RecommendedHashType)
+		advanceSnapshotCheckpoint(t, soID, state, owner)
+		writeSyncOp(t, soID, state, owner, "visible write after offline work")
+		return nil
 	}); err != nil {
 		t.Fatal(err)
 	}
@@ -74,8 +73,8 @@ func TestAuthenticatedCatchupPinsPagesAndContinues(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !bytes.Equal(accepted.GetRoot().GetInner(), target.GetRoot().GetInner()) {
-		t.Fatal("accepted configuration did not bring its signed visible content")
+	if !accepted.GetCheckpoint().EqualVT(target.GetCheckpoint()) || len(accepted.GetOps()) != 1 {
+		t.Fatal("accepted configuration did not bring its checkpoint and write")
 	}
 
 	// Every page stays within both limits, and the receiver can serve the retained suffix.
@@ -97,7 +96,7 @@ func TestAuthenticatedCatchupPinsPagesAndContinues(t *testing.T) {
 		t.Fatalf("receiver retained %d changes: %v", len(retained), err)
 	}
 
-	// The same open stream must notice a configuration change without a newer root.
+	// The same open stream must notice a configuration change without a newer checkpoint.
 	change, err := sobject.BuildSOConfigChange(soID, target.Config, target.Config, sobject.SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_ADD_INVITE, owner, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -111,8 +110,8 @@ func TestAuthenticatedCatchupPinsPagesAndContinues(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !accepted.Root.EqualVT(target.Root) {
-		t.Fatal("configuration-only catch-up changed the root")
+	if !accepted.GetCheckpoint().EqualVT(target.GetCheckpoint()) {
+		t.Fatal("configuration-only catch-up changed the checkpoint")
 	}
 
 	// Cancellation closes transport and joins all workers in both directions.
@@ -156,20 +155,17 @@ func TestAuthenticatedReaderCannotPromoteSnapshot(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// The reader signs a higher root under its self-promoted, same-head configuration.
+	// The reader signs a checkpoint under its self-promoted, same-head configuration.
 	forged := initial.CloneVT()
 	forged.Config.Participants[1].Role = sobject.SOParticipantRole_SOParticipantRole_OWNER
-	forged.Root = &sobject.SORoot{InnerSeqno: 20, Inner: []byte("attacker replacement content")}
-	if err := forged.Root.SignInnerData(reader, soID, 20, hash.RecommendedHashType); err != nil {
-		t.Fatal(err)
-	}
+	advanceSnapshotCheckpoint(t, soID, forged, reader)
 	data, err := forged.MarshalVT()
 	if err != nil {
 		t.Fatal(err)
 	}
 	digest := sha256.Sum256(data)
 	if err := session.SendMsg(&SOSyncMessage{Body: &SOSyncMessage_Head{Head: &SOSyncHead{
-		Revision: 1, StateHash: digest[:], ConfigHash: forged.Config.ConfigChainHash, ConfigSeqno: forged.Config.ConfigChainSeqno, RootSeqno: 20,
+		Revision: 1, StateHash: digest[:], ConfigHash: forged.Config.ConfigChainHash, ConfigSeqno: forged.Config.ConfigChainSeqno,
 	}}}); err != nil {
 		t.Fatal(err)
 	}
@@ -180,7 +176,7 @@ func TestAuthenticatedReaderCannotPromoteSnapshot(t *testing.T) {
 		t.Fatal(err)
 	}
 	if err := session.SendMsg(&SOSyncMessage{Body: &SOSyncMessage_Snapshot{Snapshot: &SOSyncSnapshot{
-		Revision: 1, BaseHash: request.GetHistoryRequest().GetBaseHash(), SoState: data, RootSeqno: 20,
+		Revision: 1, BaseHash: request.GetHistoryRequest().GetBaseHash(), SoState: data,
 	}}}); err != nil {
 		t.Fatal(err)
 	}
@@ -291,7 +287,7 @@ func TestLegacyCatchupRequiresRecovery(t *testing.T) {
 				if err != nil {
 					t.Fatal(err)
 				}
-				if err := session.SendMsg(&SOSyncMessage{Body: &SOSyncMessage_Snapshot{Snapshot: &SOSyncSnapshot{SoState: data, RootSeqno: 1}}}); err != nil {
+				if err := session.SendMsg(&SOSyncMessage{Body: &SOSyncMessage_Snapshot{Snapshot: &SOSyncSnapshot{SoState: data}}}); err != nil {
 					t.Fatal(err)
 				}
 			}

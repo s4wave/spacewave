@@ -10,17 +10,19 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func decodePostedRootInner(
+// decodePostedCheckpointState decrypts the state data of a posted checkpoint
+// with the read key epoch grants to the local peer.
+func decodePostedCheckpointState(
 	t *testing.T,
 	soID string,
 	localPriv crypto.PrivKey,
 	localPeerID string,
 	epoch *sobject.SOKeyEpoch,
-	root *sobject.SORoot,
-) *sobject.SORootInner {
+	checkpoint *sobject.SOCheckpoint,
+) []byte {
+	// Decrypt the local peer's grant.
 	t.Helper()
-
-	grant := findSOGrantByPeerID(epoch.GetGrants(), localPeerID)
+	grant := epoch.FindGrant(localPeerID)
 	if grant == nil {
 		t.Fatal("expected local grant")
 	}
@@ -28,6 +30,8 @@ func decodePostedRootInner(
 	if err != nil {
 		t.Fatalf("decrypt grant inner: %v", err)
 	}
+
+	// Build the transformer of its epoch.
 	xfrm, err := block_transform.NewTransformer(
 		controller.ConstructOpts{Logger: logrus.New().WithField("test", t.Name())},
 		buildStandaloneSpaceInitStepFactorySet(),
@@ -36,13 +40,18 @@ func decodePostedRootInner(
 	if err != nil {
 		t.Fatalf("build transformer: %v", err)
 	}
-	innerData, err := xfrm.DecodeBlock(root.GetInner())
+
+	// Decode the checkpoint state, if any.
+	inner, err := checkpoint.UnmarshalInner()
 	if err != nil {
-		t.Fatalf("decode root inner: %v", err)
+		t.Fatalf("unmarshal checkpoint inner: %v", err)
 	}
-	inner := &sobject.SORootInner{}
-	if err := inner.UnmarshalVT(innerData); err != nil {
-		t.Fatalf("unmarshal root inner: %v", err)
+	if len(inner.GetStateData()) == 0 {
+		return nil
 	}
-	return inner
+	data, err := xfrm.DecodeBlock(inner.GetStateData())
+	if err != nil {
+		t.Fatalf("decode checkpoint state: %v", err)
+	}
+	return data
 }

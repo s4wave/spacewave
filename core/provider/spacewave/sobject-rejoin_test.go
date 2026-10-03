@@ -17,28 +17,27 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// TestTryRecoverMissingSharedObjectPeerSkipsWhenEnrolled covers Phase 9
-// iter 1: a hydrated verified cache that already contains a grant for our
-// local peer in the current key epoch must short-circuit the rejoin sweep
-// before any HTTP call. The httptest server fails the test if any path is
-// hit; tryRecoverMissingSharedObjectPeer must return nil immediately.
+// TestTryRecoverMissingSharedObjectPeerSkipsWhenEnrolled checks that a
+// verified cache granting the local peer in the current key epoch ends the
+// rejoin sweep before any HTTP call.
 func TestTryRecoverMissingSharedObjectPeerSkipsWhenEnrolled(t *testing.T) {
+	// A local peer holds a grant in the verified current key epoch.
 	const (
 		soID      = "so-enrolled"
 		accountID = "test-account"
 	)
-
 	_, pid := generateTestKeypair(t)
 	priv, _ := generateTestKeypair(t)
 
+	// Fail the test on any HTTP call through the account's Session client.
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		t.Fatalf("unexpected HTTP call from rejoin gate: %s", r.URL.Path)
 	}))
 	defer srv.Close()
-
 	acc := NewTestProviderAccount(t, srv.URL)
 	acc.sessionClient = NewSessionClient(http.DefaultClient, srv.URL, DefaultSigningEnvPrefix, priv, pid.String())
 
+	// Host the object over a verified cache that already grants the local peer.
 	host := newCloudSOHost(
 		logrus.New().WithField("test", t.Name()),
 		acc.sessionClient,
@@ -52,8 +51,7 @@ func TestTryRecoverMissingSharedObjectPeerSkipsWhenEnrolled(t *testing.T) {
 			VerifiedConfigChainHash:  []byte("verified-head"),
 			VerifiedConfigChainSeqno: 4,
 			KeyEpochs: []*sobject.SOKeyEpoch{{
-				Epoch:      2,
-				SeqnoStart: 1,
+				Epoch: 2,
 				Grants: []*sobject.SOGrant{{
 					PeerId: pid.String(),
 				}},
@@ -71,6 +69,7 @@ func TestTryRecoverMissingSharedObjectPeerSkipsWhenEnrolled(t *testing.T) {
 	}
 	ref := sobject.NewSharedObjectRef("spacewave", accountID, soID, soID)
 
+	// The rejoin sweep returns before any request.
 	if err := so.tkr.tryRecoverMissingSharedObjectPeer(
 		context.Background(),
 		ref,
@@ -81,12 +80,14 @@ func TestTryRecoverMissingSharedObjectPeerSkipsWhenEnrolled(t *testing.T) {
 	}
 }
 
+// TestTryRecoverMissingSharedObjectPeerRefreshesCachedEpochGrants checks that
+// the rejoin sweep replaces a stale local grant with the verified cached one.
 func TestTryRecoverMissingSharedObjectPeerRefreshesCachedEpochGrants(t *testing.T) {
+	// Derive the current and a stale transform config for the local peer.
 	const (
 		soID      = "so-enrolled-stale-grants"
 		accountID = "test-account"
 	)
-
 	priv, pid := generateTestKeypair(t)
 	transformConf, err := block_transform.NewConfig([]config.Config{
 		&transform_blockenc.Config{
@@ -106,6 +107,8 @@ func TestTryRecoverMissingSharedObjectPeerRefreshesCachedEpochGrants(t *testing.
 	if err != nil {
 		t.Fatalf("build stale transform config: %v", err)
 	}
+
+	// Encrypt a stale grant and a valid grant to the local peer.
 	pub, err := pid.ExtractPublicKey()
 	if err != nil {
 		t.Fatalf("extract public key: %v", err)
@@ -129,14 +132,15 @@ func TestTryRecoverMissingSharedObjectPeerRefreshesCachedEpochGrants(t *testing.
 		t.Fatalf("encrypt valid grant: %v", err)
 	}
 
+	// Fail the test on any HTTP call through the account's Session client.
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		t.Fatalf("unexpected HTTP call from rejoin gate: %s", r.URL.Path)
 	}))
 	defer srv.Close()
-
 	acc := NewTestProviderAccount(t, srv.URL)
 	acc.sessionClient = NewSessionClient(http.DefaultClient, srv.URL, DefaultSigningEnvPrefix, priv, pid.String())
 
+	// Cache the valid grant in the verified epoch; local state holds the stale one.
 	host := newCloudSOHost(
 		logrus.New().WithField("test", t.Name()),
 		acc.sessionClient,
@@ -150,9 +154,8 @@ func TestTryRecoverMissingSharedObjectPeerRefreshesCachedEpochGrants(t *testing.
 			VerifiedConfigChainHash:  []byte("verified-head"),
 			VerifiedConfigChainSeqno: 4,
 			KeyEpochs: []*sobject.SOKeyEpoch{{
-				Epoch:      2,
-				SeqnoStart: 1,
-				Grants:     []*sobject.SOGrant{validGrant},
+				Epoch:  2,
+				Grants: []*sobject.SOGrant{validGrant},
 			}},
 		},
 		nil,
@@ -167,10 +170,10 @@ func TestTryRecoverMissingSharedObjectPeerRefreshesCachedEpochGrants(t *testing.
 				EntityId: accountID,
 			}},
 		},
-		Root: &sobject.SORoot{
-			InnerSeqno: 1,
-		},
-		RootGrants: []*sobject.SOGrant{staleGrant},
+		KeyEpochs: []*sobject.SOKeyEpoch{{
+			Epoch:  1,
+			Grants: []*sobject.SOGrant{staleGrant},
+		}},
 	})
 	so := &SharedObject{
 		tkr:      &sobjectTracker{a: acc, id: soID},
@@ -180,6 +183,7 @@ func TestTryRecoverMissingSharedObjectPeerRefreshesCachedEpochGrants(t *testing.
 	}
 	ref := sobject.NewSharedObjectRef("spacewave", accountID, soID, soID)
 
+	// The rejoin sweep refreshes the local grant from the verified cache.
 	if err := so.tkr.tryRecoverMissingSharedObjectPeer(
 		context.Background(),
 		ref,
@@ -188,11 +192,11 @@ func TestTryRecoverMissingSharedObjectPeerRefreshesCachedEpochGrants(t *testing.
 	); err != nil {
 		t.Fatalf("tryRecoverMissingSharedObjectPeer: %v", err)
 	}
-	next := host.stateCtr.GetValue()
-	if len(next.GetRootGrants()) != 1 {
-		t.Fatalf("expected one root grant, got %d", len(next.GetRootGrants()))
+	grant := host.stateCtr.GetValue().CurrentKeyEpoch().FindGrant(pid.String())
+	if grant == nil {
+		t.Fatal("expected a local grant in the current key epoch")
 	}
-	grantInner, err := next.GetRootGrants()[0].DecryptInnerData(priv, soID)
+	grantInner, err := grant.DecryptInnerData(priv, soID)
 	if err != nil {
 		t.Fatalf("decrypt refreshed grant: %v", err)
 	}
@@ -200,10 +204,12 @@ func TestTryRecoverMissingSharedObjectPeerRefreshesCachedEpochGrants(t *testing.
 		t.Fatalf("expected refreshed grant with transform config: %v", err)
 	}
 	if !grantInner.GetTransformConf().EqualVT(transformConf) {
-		t.Fatal("expected root grant to refresh from cached current epoch")
+		t.Fatal("expected state grant to refresh from cached current epoch")
 	}
 }
 
+// TestTryRecoverMissingSharedObjectPeerAllowsReadOnlyLifecycle checks that a
+// read-only grace account still attempts self-enrollment.
 func TestTryRecoverMissingSharedObjectPeerAllowsReadOnlyLifecycle(t *testing.T) {
 	const (
 		soID      = "so-readonly"
@@ -264,6 +270,8 @@ func TestTryRecoverMissingSharedObjectPeerAllowsReadOnlyLifecycle(t *testing.T) 
 	}
 }
 
+// TestTryRecoverMissingSharedObjectPeerSkipsPendingDeleteLifecycle checks that
+// an account pending deletion makes no rejoin request.
 func TestTryRecoverMissingSharedObjectPeerSkipsPendingDeleteLifecycle(t *testing.T) {
 	const (
 		soID      = "so-pending-delete"

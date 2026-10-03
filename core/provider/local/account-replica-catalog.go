@@ -43,6 +43,7 @@ func (a *ProviderAccount) publishAccountCatalogEntry(ctx context.Context, entry 
 // runAccountReplicaSync reacts to settings and local inventory changes. Network
 // failures use the owning routine's backoff; unchanged accounts produce no traffic.
 func (a *ProviderAccount) runAccountReplicaSync(ctx context.Context, state *p2pSyncState) error {
+	// Deliver account transitions as the settings change.
 	delivery := routine.NewStateRoutineContainerWithLoggerVT[*account_settings.AccountSettings](a.le.WithField("routine", "account-transition-delivery"), routine.WithRetry(providerBackoff))
 	delivery.SetStateRoutine(func(ctx context.Context, settings *account_settings.AccountSettings) error {
 		return a.deliverAccountTransitions(ctx, state, settings)
@@ -53,6 +54,8 @@ func (a *ProviderAccount) runAccountReplicaSync(ctx context.Context, state *p2pS
 			<-exited
 		}
 	}()
+
+	// Watch the settings object.
 	ref, err := a.GetAccountSettingsRef(ctx)
 	if err != nil {
 		return err
@@ -67,6 +70,8 @@ func (a *ProviderAccount) runAccountReplicaSync(ctx context.Context, state *p2pS
 		return err
 	}
 	defer releaseStates()
+
+	// Reconcile the replica on each settings change.
 	var snapshot sobject.SharedObjectStateSnapshot
 	for {
 		// Catalog mutations wake this same owner through the settings state.
@@ -75,7 +80,7 @@ func (a *ProviderAccount) runAccountReplicaSync(ctx context.Context, state *p2pS
 			return err
 		}
 		if snapshot != nil {
-			settings, _, err := decodeAccountSettingsSnapshot(ctx, snapshot)
+			settings, err := account_settings.ReadSnapshot(ctx, snapshot)
 			if err != nil {
 				return err
 			}

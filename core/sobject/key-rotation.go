@@ -13,29 +13,29 @@ import (
 	"github.com/s4wave/spacewave/net/peer"
 )
 
-// RotateTransformKey generates a new transform key and creates grants for the
-// given participants. Returns the new transform config, grants, and key epoch.
-// The caller (an OWNER) provides their private key for signing
-// grants and the list of remaining participants (after revocation).
+// RotateTransformKey generates a new transform key and grants it to every
+// reader in participants as the key epoch after currentEpoch. The caller, an
+// owner, signs the grants with privKey and passes the participants that remain
+// after a revocation.
 func RotateTransformKey(
 	privKey crypto.PrivKey,
 	sharedObjectID string,
 	participants []*SOParticipantConfig,
 	currentEpoch uint64,
-	currentSeqno uint64,
-) (*block_transform.Config, []*SOGrant, *SOKeyEpoch, error) {
-	// An epoch or root range must never wrap into an earlier generation.
-	if currentEpoch == ^uint64(0) || currentSeqno == ^uint64(0) {
-		return nil, nil, nil, errors.New("key epoch or root sequence exhausted")
+) (*block_transform.Config, *SOKeyEpoch, error) {
+	// An epoch number must never wrap into an earlier generation.
+	if currentEpoch == ^uint64(0) {
+		return nil, nil, errors.New("key epoch exhausted")
 	}
 
 	// Generate a new random key for the default block transform.
 	encKey := make([]byte, 32)
 	if _, err := rand.Read(encKey); err != nil {
-		return nil, nil, nil, errors.Wrap(err, "generate encryption key")
+		return nil, nil, errors.Wrap(err, "generate encryption key")
 	}
 	defer scrub.Scrub(encKey)
 
+	// Build the transform config of the new key.
 	soTransformConf, err := block_transform.NewConfig([]config.Config{
 		&transform_blockenc.Config{
 			BlockEnc: blockenc.DefaultBlockEnc,
@@ -43,7 +43,7 @@ func RotateTransformKey(
 		},
 	})
 	if err != nil {
-		return nil, nil, nil, errors.Wrap(err, "build transform config")
+		return nil, nil, errors.Wrap(err, "build transform config")
 	}
 
 	// Build grants for each participant with read access.
@@ -54,62 +54,24 @@ func RotateTransformKey(
 		}
 	}
 
+	// Seal a grant of the config to each peer.
 	grants := make([]*SOGrant, len(grantToPeerIDs))
 	grantInner := &SOGrantInner{TransformConf: soTransformConf}
 	for i, peerIDStr := range grantToPeerIDs {
 		pid, err := peer.IDB58Decode(peerIDStr)
 		if err != nil {
-			return nil, nil, nil, errors.Wrapf(err, "participant[%d]: invalid peer id", i)
+			return nil, nil, errors.Wrapf(err, "participant[%d]: invalid peer id", i)
 		}
 		pub, err := pid.ExtractPublicKey()
 		if err != nil {
-			return nil, nil, nil, errors.Wrapf(err, "participant[%d]: extract public key", i)
+			return nil, nil, errors.Wrapf(err, "participant[%d]: extract public key", i)
 		}
 		grant, err := EncryptSOGrant(privKey, pub, sharedObjectID, grantInner)
 		if err != nil {
-			return nil, nil, nil, errors.Wrapf(err, "participant[%d]: encrypt grant", i)
+			return nil, nil, errors.Wrapf(err, "participant[%d]: encrypt grant", i)
 		}
 		grants[i] = grant
 	}
 
-	nextEpoch := currentEpoch + 1
-	epoch := &SOKeyEpoch{
-		Epoch:      nextEpoch,
-		SeqnoStart: currentSeqno + 1,
-		Grants:     grants,
-	}
-
-	return soTransformConf, grants, epoch, nil
-}
-
-// FindCoveringEpoch finds the key epoch that covers the given seqno.
-// Returns nil if no epoch or more than one entry covers the seqno.
-// Absent entries do not cover any sequence.
-func FindCoveringEpoch(epochs []*SOKeyEpoch, seqno uint64) *SOKeyEpoch {
-	var covering *SOKeyEpoch
-	for _, ep := range epochs {
-		if ep == nil {
-			continue
-		}
-		start := ep.GetSeqnoStart()
-		end := ep.GetSeqnoEnd()
-		if seqno >= start && (end == 0 || seqno <= end) {
-			if covering != nil {
-				return nil
-			}
-			covering = ep
-		}
-	}
-	return covering
-}
-
-// CurrentEpochNumber returns the highest epoch number from the list, or 0 if empty.
-func CurrentEpochNumber(epochs []*SOKeyEpoch) uint64 {
-	var max uint64
-	for _, ep := range epochs {
-		if ep.GetEpoch() > max {
-			max = ep.GetEpoch()
-		}
-	}
-	return max
+	return soTransformConf, &SOKeyEpoch{Epoch: currentEpoch + 1, Grants: grants}, nil
 }

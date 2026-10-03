@@ -22,9 +22,9 @@ func TestProviderAccountCreateSpaceSeedsWorldHead(t *testing.T) {
 	_, entityPID := generateTestKeypair(t)
 	const soID = "so-space-create"
 	var (
-		acc         *ProviderAccount
-		postedRoot  *sobject.SORoot
-		postedEpoch *sobject.SOKeyEpoch
+		acc              *ProviderAccount
+		postedCheckpoint *sobject.SOCheckpoint
+		postedEpoch      *sobject.SOKeyEpoch
 	)
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		calls = append(calls, r.Method+" "+r.URL.Path)
@@ -66,21 +66,21 @@ func TestProviderAccountCreateSpaceSeedsWorldHead(t *testing.T) {
 		case "/api/session/write-tickets/" + soID:
 			w.WriteHeader(http.StatusOK)
 			_, _ = w.Write(mustMarshalVT(t, &api.WriteTicketBundleResponse{
-				SoRootTicket: "ticket-root",
+				SoCheckpointTicket: "ticket-checkpoint",
 			}))
-		case "/api/sobject/" + soID + "/root":
-			if got := r.Header.Get("X-Write-Ticket"); got != "ticket-root" {
+		case "/api/sobject/" + soID + "/checkpoint":
+			if got := r.Header.Get("X-Write-Ticket"); got != "ticket-checkpoint" {
 				t.Fatalf("unexpected write ticket: %q", got)
 			}
 			body, err := io.ReadAll(r.Body)
 			if err != nil {
-				t.Fatalf("read root body: %v", err)
+				t.Fatalf("read checkpoint body: %v", err)
 			}
-			req := &api.PostRootRequest{}
+			req := &api.PostCheckpointRequest{}
 			if err := req.UnmarshalVT(body); err != nil {
-				t.Fatalf("unmarshal root request: %v", err)
+				t.Fatalf("unmarshal checkpoint request: %v", err)
 			}
-			postedRoot = req.GetRoot()
+			postedCheckpoint = req.GetCheckpoint()
 			w.WriteHeader(http.StatusOK)
 		case "/api/account/state":
 			_, _ = w.Write(mustMarshalVT(t, &api.AccountStateResponse{EntityId: "alice"}))
@@ -100,23 +100,23 @@ func TestProviderAccountCreateSpaceSeedsWorldHead(t *testing.T) {
 		t.Fatalf("CreateSharedObject: %v", err)
 	}
 
-	// Check that the posted root seeds a World head.
-	if postedRoot == nil {
-		t.Fatal("expected root write")
+	// Check that the posted checkpoint seeds a World head.
+	if postedCheckpoint == nil {
+		t.Fatal("expected checkpoint write")
 	}
 	if postedEpoch == nil {
 		t.Fatal("expected key epoch in config-state")
 	}
-	inner := decodePostedRootInner(
+	stateData := decodePostedCheckpointState(
 		t,
 		soID,
 		acc.sessionClient.priv,
 		acc.sessionClient.peerID.String(),
 		postedEpoch,
-		postedRoot,
+		postedCheckpoint,
 	)
 	worldState := &sobject_world_engine.InnerState{}
-	if err := worldState.UnmarshalVT(inner.GetStateData()); err != nil {
+	if err := worldState.UnmarshalVT(stateData); err != nil {
 		t.Fatalf("unmarshal world state: %v", err)
 	}
 	if worldState.GetHeadRef().GetEmpty() {
@@ -130,7 +130,7 @@ func TestProviderAccountCreateSpaceSeedsWorldHead(t *testing.T) {
 		"GET /api/sobject/" + soID + "/recovery-entity-keypairs",
 		"POST /api/sobject/" + soID + "/config-state",
 		"POST /api/session/write-tickets/" + soID,
-		"POST /api/sobject/" + soID + "/root",
+		"POST /api/sobject/" + soID + "/checkpoint",
 	}
 	if !slices.Equal(calls, expectedCalls) {
 		t.Fatalf("unexpected call sequence: %v", calls)
@@ -143,9 +143,9 @@ func TestEnsureAccountSettingsSharedObject_CreatesWhenMissing(t *testing.T) {
 	_, entityPID := generateTestKeypair(t)
 	const soID = "so-123"
 	var (
-		acc         *ProviderAccount
-		postedRoot  *sobject.SORoot
-		postedEpoch *sobject.SOKeyEpoch
+		acc              *ProviderAccount
+		postedCheckpoint *sobject.SOCheckpoint
+		postedEpoch      *sobject.SOKeyEpoch
 	)
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		calls = append(calls, r.Method+" "+r.URL.Path)
@@ -194,21 +194,21 @@ func TestEnsureAccountSettingsSharedObject_CreatesWhenMissing(t *testing.T) {
 		case "/api/session/write-tickets/" + soID:
 			w.WriteHeader(http.StatusOK)
 			_, _ = w.Write(mustMarshalVT(t, &api.WriteTicketBundleResponse{
-				SoRootTicket: "ticket-root",
+				SoCheckpointTicket: "ticket-checkpoint",
 			}))
-		case "/api/sobject/" + soID + "/root":
-			if got := r.Header.Get("X-Write-Ticket"); got != "ticket-root" {
+		case "/api/sobject/" + soID + "/checkpoint":
+			if got := r.Header.Get("X-Write-Ticket"); got != "ticket-checkpoint" {
 				t.Fatalf("unexpected write ticket: %q", got)
 			}
 			body, err := io.ReadAll(r.Body)
 			if err != nil {
-				t.Fatalf("read root body: %v", err)
+				t.Fatalf("read checkpoint body: %v", err)
 			}
-			req := &api.PostRootRequest{}
+			req := &api.PostCheckpointRequest{}
 			if err := req.UnmarshalVT(body); err != nil {
-				t.Fatalf("unmarshal root request: %v", err)
+				t.Fatalf("unmarshal checkpoint request: %v", err)
 			}
-			postedRoot = req.GetRoot()
+			postedCheckpoint = req.GetCheckpoint()
 			w.WriteHeader(http.StatusOK)
 		case "/api/sobject/" + soID + "/recovery-entity-keypairs":
 			w.WriteHeader(http.StatusOK)
@@ -259,7 +259,7 @@ func TestEnsureAccountSettingsSharedObject_CreatesWhenMissing(t *testing.T) {
 		"GET /api/sobject/" + soID + "/recovery-entity-keypairs",
 		"POST /api/sobject/" + soID + "/config-state",
 		"POST /api/session/write-tickets/" + soID,
-		"POST /api/sobject/" + soID + "/root",
+		"POST /api/sobject/" + soID + "/checkpoint",
 		"POST /api/account/sobject-binding/finalize",
 	}
 	if !slices.Equal(calls, expectedCalls) {
@@ -290,22 +290,22 @@ func TestEnsureAccountSettingsSharedObject_CreatesWhenMissing(t *testing.T) {
 		t.Fatalf("unexpected cached object type: %q", metadata.GetObjectType())
 	}
 
-	// Check that the posted root holds empty settings state.
-	if postedRoot == nil {
-		t.Fatal("expected root write")
+	// Check that the posted checkpoint holds empty settings state.
+	if postedCheckpoint == nil {
+		t.Fatal("expected checkpoint write")
 	}
 	if postedEpoch == nil {
 		t.Fatal("expected key epoch in config-state")
 	}
-	inner := decodePostedRootInner(
+	stateData := decodePostedCheckpointState(
 		t,
 		soID,
 		acc.sessionClient.priv,
 		acc.sessionClient.peerID.String(),
 		postedEpoch,
-		postedRoot,
+		postedCheckpoint,
 	)
-	if len(inner.GetStateData()) != 0 {
-		t.Fatalf("expected account settings root state to be empty, got %d bytes", len(inner.GetStateData()))
+	if len(stateData) != 0 {
+		t.Fatalf("expected account settings checkpoint state to be empty, got %d bytes", len(stateData))
 	}
 }

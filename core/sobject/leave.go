@@ -100,10 +100,6 @@ func leaveSOParticipants(ctx context.Context, host *SOHost, owner crypto.PrivKey
 		return nil, err
 	}
 	requestHash := sha256.Sum256(data)
-	committer, err := peer.IDFromPrivateKey(owner)
-	if err != nil {
-		return nil, err
-	}
 
 	// Rebase the removal onto the current configuration until it applies.
 	for {
@@ -142,9 +138,6 @@ func leaveSOParticipants(ctx context.Context, host *SOHost, owner crypto.PrivKey
 		if len(next.Participants) == len(current.GetParticipants()) {
 			return nil, errors.New("leave proofs name no current participant")
 		}
-		if len(next.Participants) != 0 && slices.Contains(peers, committer.String()) {
-			return nil, errors.New("remaining root grants require ownership transfer before owner departure")
-		}
 		for _, p := range next.Participants {
 			if slices.Contains(promote, p.GetPeerId()) {
 				p.Role = SOParticipantRole_SOParticipantRole_OWNER
@@ -159,7 +152,7 @@ func leaveSOParticipants(ctx context.Context, host *SOHost, owner crypto.PrivKey
 			targets[peerID] = struct{}{}
 		}
 		err = host.ApplyConfigChange(ctx, change, func(state *SOState) error {
-			return pruneRemovedParticipants(host.GetSharedObjectID(), state, current, targets, owner)
+			return pruneRemovedParticipants(host.GetSharedObjectID(), state, targets, owner)
 		})
 		if err == nil {
 			return &SOLeaveResponse{Changes: append(changes, change)}, nil

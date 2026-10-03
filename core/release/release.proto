@@ -75,8 +75,8 @@ message BrowserAsset {
 message UpdateNotification {
   // ChannelKey is the release channel that changed.
   string channel_key = 1;
-  // InnerSeqno is the SORoot inner_seqno of the observed public root.
-  uint64 inner_seqno = 2;
+  // CheckpointHeight is the height of the observed public checkpoint.
+  uint64 checkpoint_height = 2;
   // RootPointerUrl is the URL of the root.packedmsg that produced this
   // notification.
   string root_pointer_url = 3;

@@ -125,12 +125,8 @@ func testChatResourceCrossSessionAppend(t *testing.T, transactionID string) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	inner, err := snapshot.GetRootInner(ctx)
+	head, err := sobject_world_engine.ReplayWorld(ctx, tb.Logger, tb.Bus, tb.StepFactorySet, ownerObject, "", optypes.LookupWorldOp, snapshot)
 	if err != nil {
-		t.Fatal(err)
-	}
-	head := &sobject_world_engine.InnerState{}
-	if err := head.UnmarshalVT(inner.GetStateData()); err != nil {
 		t.Fatal(err)
 	}
 	if err := block.CopyGraph(ctx, ownerObject.GetBlockStore(), writerObject.GetBlockStore(), head.GetHeadRef().GetRootRef(), nil); err != nil {
@@ -169,7 +165,7 @@ func testChatResourceCrossSessionAppend(t *testing.T, transactionID string) {
 		t.Fatal("writer synchronized before preparing its append")
 	}
 
-	// Watch the writer's SharedObject state for its queued append.
+	// Watch the writer's SharedObject state for its append.
 	states, releaseStates, err := writerObject.AccessSharedObjectState(ctx, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -190,10 +186,15 @@ func testChatResourceCrossSessionAppend(t *testing.T, transactionID string) {
 		<-done
 	}()
 
-	// Wait for the stale append to enter the real SharedObject queue before sync.
+	// Wait for the stale append to enter the writer's operation set before sync.
+	writerPeerID := writerObject.GetPeerID().String()
 	if _, err := states.WaitValueWithValidator(ctx, func(snapshot sobject.SharedObjectStateSnapshot) (bool, error) {
-		queued, local, err := snapshot.GetOpQueue(ctx)
-		return len(queued)+len(local) != 0, err
+		set, err := snapshot.GetOperationSet(ctx)
+		if err != nil {
+			return false, err
+		}
+		nonce, _ := set.AuthorHead(writerPeerID)
+		return nonce != 0, nil
 	}, nil); err != nil {
 		t.Fatal(err)
 	}
@@ -217,6 +218,26 @@ func testChatResourceCrossSessionAppend(t *testing.T, transactionID string) {
 		t.Fatal("different senders shared a transaction message key")
 	}
 
+	// Wait for each replica to hold both sends.
+	heads := map[string]uint64{}
+	for _, object := range []sobject.SharedObject{ownerObject, writerObject} {
+		author := object.GetPeerID().String()
+		heads[author] = waitOperationSet(t, ctx, object, func(set *sobject.SOOperationSet) bool {
+			nonce, _ := set.AuthorHead(author)
+			return nonce != 0
+		}, author)
+	}
+	for _, object := range []sobject.SharedObject{ownerObject, writerObject} {
+		waitOperationSet(t, ctx, object, func(set *sobject.SOOperationSet) bool {
+			for author, head := range heads {
+				if nonce, _ := set.AuthorHead(author); nonce < head {
+					return false
+				}
+			}
+			return true
+		}, "")
+	}
+
 	// Fence each engine against the accepted SharedObject snapshot before readback.
 	for _, engine := range []world.Engine{ownerEngine, writerEngine} {
 		tx, err := engine.NewTransaction(ctx, true)
@@ -225,29 +246,47 @@ func testChatResourceCrossSessionAppend(t *testing.T, transactionID string) {
 		}
 		tx.Discard()
 	}
-	want := []string{seed.GetMessageKey(), accepted.GetMessageKey(), writerAccepted.GetMessageKey()}
+
+	// Both replicas place the concurrent sends after the seed in one order,
+	// each with its content and author.
+	type sentMessage struct {
+		text   string
+		engine world.Engine
+	}
+	sent := map[string]sentMessage{
+		seed.GetMessageKey():           {"shared history", ownerEngine},
+		accepted.GetMessageKey():       {request.GetText(), ownerEngine},
+		writerAccepted.GetMessageKey(): {writerRequest.GetText(), writerEngine},
+	}
+	var want []string
 	for _, resource := range []*chat.ChatResource{first, second} {
 		page, err := resource.ListMessages(ctx, &chat_rpc.ListMessagesRequest{})
 		if err != nil {
 			t.Fatal(err)
 		}
+		if want == nil {
+			want = []string{seed.GetMessageKey()}
+			for _, message := range page.GetMessages()[min(1, len(page.GetMessages())):] {
+				want = append(want, message.GetObjectKey())
+			}
+		}
 		requireSessionHistory(t, page.GetMessages(), want)
-		for i, text := range []string{"shared history", request.GetText(), writerRequest.GetText()} {
-			if page.GetMessages()[i].GetText() != text {
+		for i, message := range page.GetMessages() {
+			msg, ok := sent[message.GetObjectKey()]
+			if !ok {
+				t.Fatalf("message %d was never sent", i)
+			}
+			if message.GetText() != msg.text {
 				t.Fatalf("message %d content changed during replay", i)
 			}
-			engine := ownerEngine
-			if i == 2 {
-				engine = writerEngine
-			}
-			device, person, err := engine.OperationAuthor(ctx)
+			device, person, err := msg.engine.OperationAuthor(ctx)
 			if err != nil {
 				t.Fatal(err)
 			}
-			if page.GetMessages()[i].GetSenderPeerId() != device.String() {
+			if message.GetSenderPeerId() != device.String() {
 				t.Fatalf("message %d lost its authenticated author during replay", i)
 			}
-			if page.GetMessages()[i].GetPersonId() != person {
+			if message.GetPersonId() != person {
 				t.Fatalf("message %d lost its person attribution during replay", i)
 			}
 		}
@@ -272,11 +311,12 @@ func testChatResourceCrossSessionAppend(t *testing.T, transactionID string) {
 	}
 	for i, resource := range []*chat.ChatResource{first, second} {
 		retryRequest := []*chat_rpc.SendMessageRequest{request, writerRequest}[i]
+		key := []*chat_rpc.SendMessageResponse{accepted, writerAccepted}[i].GetMessageKey()
 		retry, err := resource.SendMessage(ctx, retryRequest)
 		if err != nil {
 			t.Fatal(err)
 		}
-		if retry.GetMessageKey() != want[i+1] {
+		if retry.GetMessageKey() != key {
 			t.Fatal("retry changed the accepted message key")
 		}
 		page, err := resource.ListMessages(ctx, &chat_rpc.ListMessagesRequest{})
@@ -296,7 +336,7 @@ func testChatResourceCrossSessionAppend(t *testing.T, transactionID string) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if reused.GetMessageKey() != want[i+1] {
+		if reused.GetMessageKey() != key {
 			t.Fatal("explicit reuse changed an accepted message key")
 		}
 	}
@@ -329,7 +369,13 @@ func newChatSession(t *testing.T, ctx context.Context, local *provider_local.Pro
 
 // mountChatEngine retains a real SharedObject World engine on the replica's store.
 func mountChatEngine(t *testing.T, ctx context.Context, tb *testbed.Testbed, ref *sobject.SharedObjectRef, id string) world.Engine {
+	// Serve the Space operations to the engine before its first replay.
 	t.Helper()
+	releaseLookup, err := tb.Bus.AddController(ctx, world.NewLookupOpController("chat-ops/"+id, id, optypes.LookupWorldOp), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(releaseLookup)
 
 	// Keep the engine controller mounted until all chat reads and writes finish.
 	controller, _, release, err := sobject_world_engine.StartEngineWithConfig(ctx, tb.Bus, sobject_world_engine.NewConfig(id, ref), nil)
@@ -337,12 +383,35 @@ func mountChatEngine(t *testing.T, ctx context.Context, tb *testbed.Testbed, ref
 		t.Fatal(err)
 	}
 	t.Cleanup(release.Release)
-	controller.SetStaticLookupOp(optypes.LookupWorldOp)
 	engine, err := controller.GetWorldEngine(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
 	return engine
+}
+
+// waitOperationSet waits until the operation set of object satisfies cond and
+// returns the nonce of author's latest operation in it.
+func waitOperationSet(t *testing.T, ctx context.Context, object sobject.SharedObject, cond func(*sobject.SOOperationSet) bool, author string) uint64 {
+	// Watch for a snapshot whose operation set satisfies cond.
+	t.Helper()
+	states, release, err := object.AccessSharedObjectState(ctx, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer release()
+	var nonce uint64
+	if _, err := states.WaitValueWithValidator(ctx, func(snapshot sobject.SharedObjectStateSnapshot) (bool, error) {
+		set, err := snapshot.GetOperationSet(ctx)
+		if err != nil || !cond(set) {
+			return false, err
+		}
+		nonce, _ = set.AuthorHead(author)
+		return true, nil
+	}, nil); err != nil {
+		t.Fatal(err)
+	}
+	return nonce
 }
 
 // requireSessionHistory checks complete, contiguous history and stable identities.

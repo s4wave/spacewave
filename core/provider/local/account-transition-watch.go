@@ -5,6 +5,7 @@ import (
 
 	"github.com/aperturerobotics/util/routine"
 	"github.com/pkg/errors"
+	account_settings "github.com/s4wave/spacewave/core/account/settings"
 	"github.com/s4wave/spacewave/core/pairing"
 	"github.com/s4wave/spacewave/core/provider"
 	provider_migration "github.com/s4wave/spacewave/core/provider/migration"
@@ -71,7 +72,7 @@ func (s *Session) followAccountTransition(ctx context.Context, ref *sobject.Shar
 		if previous == nil {
 			continue
 		}
-		settings, _, err := decodeAccountSettingsSnapshot(ctx, previous)
+		settings, err := account_settings.ReadSnapshot(ctx, previous)
 		if err != nil {
 			return err
 		}

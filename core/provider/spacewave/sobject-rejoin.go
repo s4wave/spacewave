@@ -1,7 +1,9 @@
 package provider_spacewave
 
 import (
+	"cmp"
 	"context"
+	"slices"
 	"time"
 
 	"github.com/pkg/errors"
@@ -61,9 +63,9 @@ func (t *sobjectTracker) tryRecoverMissingSharedObjectPeer(
 		if epoch == nil {
 			return errSharedObjectCurrentKeyEpochMissing
 		}
-		if localParticipant != nil && soGrantSliceHasPeerID(epoch.GetGrants(), localPeerID) {
+		if localParticipant != nil && epoch.FindGrant(localPeerID) != nil {
 			stateGrantExists := state != nil &&
-				soGrantSliceHasPeerID(state.GetRootGrants(), localPeerID)
+				state.CurrentKeyEpoch().FindGrant(localPeerID) != nil
 			if !peerEnrolledInCurrentEpoch(epochs, localPeerID) || !stateGrantExists {
 				so.host.applyKeyEpoch(ctx, epoch)
 			}
@@ -189,7 +191,7 @@ func (t *sobjectTracker) tryRecoverMissingSharedObjectPeer(
 			continue
 		}
 		t.persistOwnRecoveryEnvelope(ctx, so.GetSharedObjectID(), recoveryEnvelopes)
-		return so.host.applyConfigMutation(ctx, entry, nil, epoch, nil)
+		return so.host.applyConfigMutation(ctx, entry, nil, epoch)
 	}
 
 	return errors.New("self-enroll recovery failed after max retries due to config conflicts")
@@ -320,18 +322,10 @@ func peerEnrolledInCurrentEpoch(epochs []*sobject.SOKeyEpoch, peerID string) boo
 	if len(epochs) == 0 || peerID == "" {
 		return false
 	}
-	current := sobject.CurrentEpochNumber(epochs)
-	for _, ep := range epochs {
-		if ep.GetEpoch() != current {
-			continue
-		}
-		for _, grant := range ep.GetGrants() {
-			if grant.GetPeerId() == peerID {
-				return true
-			}
-		}
-	}
-	return false
+	current := slices.MaxFunc(epochs, func(a, b *sobject.SOKeyEpoch) int {
+		return cmp.Compare(a.GetEpoch(), b.GetEpoch())
+	})
+	return current.FindGrant(peerID) != nil
 }
 
 func participantConfigForPeer(

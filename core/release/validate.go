@@ -171,8 +171,8 @@ func (n *UpdateNotification) Validate() error {
 	if strings.TrimSpace(n.GetChannelKey()) == "" {
 		return errors.New("missing channel key")
 	}
-	if n.GetInnerSeqno() == 0 {
-		return errors.New("missing inner seqno")
+	if n.GetCheckpointHeight() == 0 {
+		return errors.New("missing checkpoint height")
 	}
 	if strings.TrimSpace(n.GetRootPointerUrl()) == "" {
 		return errors.New("missing root pointer url")

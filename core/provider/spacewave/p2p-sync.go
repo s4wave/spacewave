@@ -300,7 +300,7 @@ func (a *ProviderAccount) runP2PSpace(ctx context.Context, childBus bus.Bus, sta
 	}
 	validateSnapshotAccess := func(ctx context.Context, state *sobject.SOState) error {
 		snapshot := sobject.NewSOStateParticipantHandle(a.le, a.p.sfs, key.id, state, swSO.privKey, swSO.localPid)
-		_, err := snapshot.GetRootInner(ctx)
+		_, err := snapshot.GetCheckpoint(ctx)
 		return err
 	}
 	syncer := sobject_sync.NewSOSync(

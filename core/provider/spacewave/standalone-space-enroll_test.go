@@ -12,16 +12,17 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// TestSessionClientEnrollSpaceMember checks that enrolling an account member
+// posts a config change and key grant for its peer.
 func TestSessionClientEnrollSpaceMember(t *testing.T) {
+	// Serve the fixtures of an owner's Space and a target peer to enroll.
 	const (
 		soID      = "so-standalone-enroll"
 		accountID = "test-account"
 	)
-
 	entityPriv, _ := generateTestKeypair(t)
 	ownerPriv, ownerPID := generateTestKeypair(t)
 	_, targetPID := generateTestKeypair(t)
-
 	state, chainResp, _, keypairResp := buildRejoinTestFixtures(
 		t,
 		soID,
@@ -31,11 +32,11 @@ func TestSessionClientEnrollSpaceMember(t *testing.T) {
 		entityPriv,
 		3,
 	)
-
 	stateJSON := mustMarshalSOStateMessageSnapshotJSON(t, state)
 	chainJSON := mustMarshalVT(t, chainResp)
 	keypairJSON := mustMarshalVT(t, keypairResp)
 
+	// Fake the cloud: answer enrollment and record the posted config change.
 	var posted *api.PostConfigStateRequest
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
@@ -85,6 +86,7 @@ func TestSessionClientEnrollSpaceMember(t *testing.T) {
 	}))
 	defer srv.Close()
 
+	// Enroll the member through the Session client.
 	cli := NewSessionClient(
 		http.DefaultClient,
 		srv.URL,
@@ -113,6 +115,8 @@ func TestSessionClientEnrollSpaceMember(t *testing.T) {
 	if !result.GetEnrolled() {
 		t.Fatalf("expected enrolled result, got %+v", result)
 	}
+
+	// The posted config change adds the target with a key grant.
 	if posted == nil {
 		t.Fatal("expected config-state write")
 	}
@@ -129,21 +133,22 @@ func TestSessionClientEnrollSpaceMember(t *testing.T) {
 	if posted.GetKeyEpoch() == nil {
 		t.Fatal("expected posted key epoch")
 	}
-	if !soGrantSliceHasPeerID(posted.GetKeyEpoch().GetGrants(), targetPID.String()) {
+	if posted.GetKeyEpoch().FindGrant(targetPID.String()) == nil {
 		t.Fatal("expected target grant in posted key epoch")
 	}
 }
 
+// TestSessionClientEnrollSpacePeer checks that enrolling a bare peer posts a
+// writer config change and key grant.
 func TestSessionClientEnrollSpacePeer(t *testing.T) {
+	// Serve the fixtures of an owner's Space and a target peer to enroll.
 	const (
 		soID      = "so-standalone-peer-enroll"
 		accountID = "test-account"
 	)
-
 	entityPriv, _ := generateTestKeypair(t)
 	ownerPriv, ownerPID := generateTestKeypair(t)
 	_, targetPID := generateTestKeypair(t)
-
 	state, chainResp, _, keypairResp := buildRejoinTestFixtures(
 		t,
 		soID,
@@ -153,11 +158,11 @@ func TestSessionClientEnrollSpacePeer(t *testing.T) {
 		entityPriv,
 		3,
 	)
-
 	stateJSON := mustMarshalSOStateMessageSnapshotJSON(t, state)
 	chainJSON := mustMarshalVT(t, chainResp)
 	keypairJSON := mustMarshalVT(t, keypairResp)
 
+	// Fake the cloud: accept the posted config change and record it.
 	var posted *api.PostConfigStateRequest
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
@@ -184,6 +189,7 @@ func TestSessionClientEnrollSpacePeer(t *testing.T) {
 	}))
 	defer srv.Close()
 
+	// Enroll the peer through the Session client.
 	cli := NewSessionClient(
 		http.DefaultClient,
 		srv.URL,
@@ -203,6 +209,8 @@ func TestSessionClientEnrollSpacePeer(t *testing.T) {
 	if !changed {
 		t.Fatal("expected changed")
 	}
+
+	// The posted config change names the target peer.
 	if posted == nil {
 		t.Fatal("expected config-state write")
 	}
@@ -210,6 +218,8 @@ func TestSessionClientEnrollSpacePeer(t *testing.T) {
 	if err := change.UnmarshalVT(posted.GetConfigChange()); err != nil {
 		t.Fatalf("unmarshal posted config change: %v", err)
 	}
+
+	// The target joins as a writer without an entity, and holds a key grant.
 	got := participantConfigForPeer(change.GetConfig(), targetPID.String())
 	if got == nil {
 		t.Fatal("expected target peer in posted config")
@@ -223,7 +233,7 @@ func TestSessionClientEnrollSpacePeer(t *testing.T) {
 	if posted.GetKeyEpoch() == nil {
 		t.Fatal("expected posted key epoch")
 	}
-	if !soGrantSliceHasPeerID(posted.GetKeyEpoch().GetGrants(), targetPID.String()) {
+	if posted.GetKeyEpoch().FindGrant(targetPID.String()) == nil {
 		t.Fatal("expected target grant in posted key epoch")
 	}
 }

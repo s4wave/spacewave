@@ -97,15 +97,8 @@ func queueAccountSettingsOp(
 	if err != nil {
 		return errors.Wrap(err, "marshal account settings op")
 	}
-	localID, err := so.QueueOperation(ctx, opData)
-	if err != nil {
-		return errors.Wrap(err, "queue account settings op")
-	}
-	if _, rejected, err := so.WaitOperation(ctx, localID); err != nil {
-		if rejected {
-			_ = so.ClearOperationResult(ctx, localID)
-		}
-		return errors.Wrap(err, "wait for account settings op")
+	if _, err := sobject.WriteOperation(ctx, so, opData, account_settings.ProcessAccountSettingsOps); err != nil {
+		return errors.Wrap(err, "write account settings op")
 	}
 	return nil
 }

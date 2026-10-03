@@ -1,7 +1,6 @@
 package sobject_world_engine
 
 import (
-	"bytes"
 	"context"
 	"testing"
 
@@ -9,7 +8,6 @@ import (
 	"github.com/s4wave/spacewave/core/sobject"
 	"github.com/s4wave/spacewave/db/block"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
-	transform_blockenc "github.com/s4wave/spacewave/db/block/transform/blockenc"
 	transform_gzip "github.com/s4wave/spacewave/db/block/transform/gzip"
 	"github.com/s4wave/spacewave/db/bucket"
 	world_block "github.com/s4wave/spacewave/db/world/block"
@@ -72,7 +70,10 @@ func TestProcessApplyTxOpRejectsUninitializedWorld(t *testing.T) {
 	}
 }
 
+// TestProcessInitWorldOpWritesDisabledChangelogRoot checks that an init op
+// disabling the changelog writes a World root that records it.
 func TestProcessInitWorldOpWritesDisabledChangelogRoot(t *testing.T) {
+	// Start a testbed.
 	ctx := context.Background()
 	tb, err := alpha_testbed.Default(ctx)
 	if err != nil {
@@ -80,17 +81,19 @@ func TestProcessInitWorldOpWritesDisabledChangelogRoot(t *testing.T) {
 	}
 	t.Cleanup(tb.Release)
 
+	// Encode an init op that disables the changelog.
 	store := newTestBlockStore(tb.EngineBucketID, tb.Volume)
 	pid := newProcessTestPeerID(t)
-	opData, err := (&SOWorldOp{
-		Body: &SOWorldOp_InitWorld{
-			InitWorld: &InitWorldOp{LastChangeDisable: true},
-		},
-	}).MarshalVT()
+	initOp, err := NewInitWorldOp(&InitWorldOp{LastChangeDisable: true})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	opData, err := (&SOWorldOp{Body: &SOWorldOp_InitWorld{InitWorld: initOp}}).MarshalVT()
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Process it from an empty state.
 	nextState, res, err := (&Controller{
 		le:   tb.Logger,
 		bus:  tb.Bus,
@@ -118,6 +121,7 @@ func TestProcessInitWorldOpWritesDisabledChangelogRoot(t *testing.T) {
 		t.Fatal("expected disabled changelog init to write an initial world root")
 	}
 
+	// The written World root disables the changelog.
 	xfrm, err := block_transform.NewTransformer(
 		controller.ConstructOpts{Logger: tb.Logger},
 		tb.StepFactorySet,
@@ -137,7 +141,7 @@ func TestProcessInitWorldOpWritesDisabledChangelogRoot(t *testing.T) {
 	}
 }
 
-// TestProcessOpAppliesOrdinaryTx checks that the validator applies an ordinary
+// TestProcessOpAppliesOrdinaryTx checks that replay applies an ordinary
 // World transaction and produces the next World state.
 func TestProcessOpAppliesOrdinaryTx(t *testing.T) {
 	// Build the World and an object creation transaction.
@@ -173,176 +177,26 @@ func TestProcessOpAppliesOrdinaryTx(t *testing.T) {
 	}
 }
 
-func TestProcessOpCandidateRequiresSharedObjectRootUpdate(t *testing.T) {
-	// Use one owner key.
-	ctx := context.Background()
-	sharedObjectID := "test-candidate-finalization"
-	priv, _, err := crypto.GenerateEd25519Key(nil)
+// applyTransactionTestObject applies a transaction creating key to head and
+// returns the World after it.
+func applyTransactionTestObject(t *testing.T, c *Controller, so sobject.SharedObject, head *InnerState, key string) *InnerState {
+	// Process a transaction creating key.
+	t.Helper()
+	op, err := world_block_tx.NewTxCreateObject(key, head.GetHeadRef())
 	if err != nil {
-		t.Fatal(err.Error())
+		t.Fatal(err)
 	}
-	pid, err := peer.IDFromPrivateKey(priv)
+	next, result, err := c.processOp(t.Context(), c.le, so, marshalApplyTxOpForProcessTest(t, op), key, newProcessTestPeerID(t), 1, 0, head)
 	if err != nil {
-		t.Fatal(err.Error())
+		t.Fatal(err)
 	}
-	pub, err := pid.ExtractPublicKey()
-	if err != nil {
-		t.Fatal(err.Error())
+	if !result.GetSuccess() {
+		t.Fatalf("create object rejected: %v", result)
 	}
-
-	// Start a world and encode its head.
-	c, so, headState := newProcessTestWorld(t, ctx)
-	baseStateData, err := headState.MarshalVT()
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-
-	// Grant the owner a root key.
-	transformConf := newStateTestTransformConfig(t, &transform_gzip.Config{})
-	grant, err := sobject.EncryptSOGrant(
-		priv,
-		pub,
-		sharedObjectID,
-		&sobject.SOGrantInner{TransformConf: transformConf},
-	)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-
-	// Build the transformer.
-	sfs := block_transform.NewStepFactorySet()
-	sfs.AddStepFactory(transform_gzip.NewStepFactory())
-	sfs.AddStepFactory(transform_blockenc.NewStepFactory())
-	xfrm, err := block_transform.NewTransformer(controller.ConstructOpts{
-		Logger: logrus.NewEntry(logrus.New()),
-	}, sfs, transformConf)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-
-	// Encrypt the head as root seqno 1.
-	rootInnerData, err := (&sobject.SORootInner{
-		Seqno:     1,
-		StateData: baseStateData,
-	}).MarshalVT()
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	encodedStateData, err := xfrm.EncodeBlock(rootInnerData)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-
-	// Hold the owner state and a participant handle.
-	state := &sobject.SOState{
-		Config: &sobject.SharedObjectConfig{
-			Participants: []*sobject.SOParticipantConfig{{
-				PeerId: pid.String(),
-				Role:   sobject.SOParticipantRole_SOParticipantRole_OWNER,
-			}},
-			ConfigChainHash: bytes.Repeat([]byte{1}, 32),
-		},
-		Root: &sobject.SORoot{
-			Inner:      encodedStateData,
-			InnerSeqno: 1,
-		},
-		RootGrants: []*sobject.SOGrant{grant},
-	}
-	snap := sobject.NewSOStateParticipantHandle(
-		logrus.NewEntry(logrus.New()),
-		sfs,
-		sharedObjectID,
-		state,
-		priv,
-		pid,
-	)
-
-	// Queue an operation that creates an object.
-	objectTx, err := world_block_tx.NewTxCreateObject("candidate-object", headState.GetHeadRef())
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	encodedOpData, err := xfrm.EncodeBlock(marshalApplyTxOpForProcessTest(t, objectTx))
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	op, err := sobject.BuildSOOperation(
-		sharedObjectID,
-		priv,
-		encodedOpData,
-		state.NextOperationLink(pid.String()),
-		sobject.NewSOOperationLocalID(),
-	)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	if err := state.QueueOperation(sharedObjectID, op); err != nil {
-		t.Fatal(err.Error())
-	}
-
-	// Processing the candidate leaves the root unchanged.
-	nextRoot, rejectedOps, acceptedOps, err := snap.ProcessOperations(
-		ctx,
-		[]*sobject.SOOperation{op},
-		func(ctx context.Context, currentStateData []byte, ops []*sobject.SOOperationInner) (*[]byte, []*sobject.SOOperationResult, error) {
-			if len(ops) != 1 {
-				t.Fatalf("expected 1 op, got %d", len(ops))
-			}
-			currentHead := &InnerState{}
-			if err := currentHead.UnmarshalVT(currentStateData); err != nil {
-				t.Fatal(err.Error())
-			}
-			nextState, res, err := c.processOp(
-				ctx,
-				logrus.NewEntry(logrus.New()),
-				so,
-				ops[0].GetOpData(),
-				ops[0].GetLocalId(),
-				pid,
-				ops[0].GetNonce(),
-				0,
-				currentHead,
-			)
-			if err != nil {
-				return nil, nil, err
-			}
-			nextStateData, err := nextState.MarshalVT()
-			if err != nil {
-				return nil, nil, err
-			}
-			return &nextStateData, []*sobject.SOOperationResult{res}, nil
-		},
-	)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	if len(rejectedOps) != 0 {
-		t.Fatalf("expected no rejected ops, got %d", len(rejectedOps))
-	}
-	if len(acceptedOps) != 1 {
-		t.Fatalf("expected 1 accepted op, got %d", len(acceptedOps))
-	}
-	rootInner, err := snap.GetRootInner(ctx)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	if !bytes.Equal(rootInner.GetStateData(), baseStateData) {
-		t.Fatal("candidate processing must not update the SharedObject root before UpdateRootState")
-	}
-
-	// Applying the candidate root changes the state.
-	if err := state.UpdateRootState(sharedObjectID, nextRoot, pid.String(), rejectedOps, acceptedOps); err != nil {
-		t.Fatal(err.Error())
-	}
-	rootInner, err = snap.GetRootInner(ctx)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	if bytes.Equal(rootInner.GetStateData(), baseStateData) {
-		t.Fatal("SharedObject root state should change only after UpdateRootState accepts the candidate")
-	}
+	return next
 }
 
+// newProcessTestPeerID returns a fresh peer ID.
 func newProcessTestPeerID(t *testing.T) peer.ID {
 	t.Helper()
 	priv, _, err := crypto.GenerateEd25519Key(nil)

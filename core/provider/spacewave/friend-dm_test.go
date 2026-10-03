@@ -82,7 +82,10 @@ func TestGetFriendDM(t *testing.T) {
 	}
 }
 
+// TestCreateFriendDMWithState checks that creating a DM posts its metadata and
+// initial states and returns the bootstrap.
 func TestCreateFriendDMWithState(t *testing.T) {
+	// Encode a config state and a checkpoint state.
 	priv, peerID := generateTestKeypair(t)
 	configState, err := (&api.PostConfigStateRequest{
 		ConfigChange: []byte("config"),
@@ -91,13 +94,16 @@ func TestCreateFriendDMWithState(t *testing.T) {
 	if err != nil {
 		t.Fatalf("marshal config state: %v", err)
 	}
-	rootState, err := (&api.PostRootRequest{
-		Root: &sobject.SORoot{InnerSeqno: 1, Inner: []byte("root")},
+	checkpointState, err := (&api.PostCheckpointRequest{
+		Checkpoint: &sobject.SOCheckpoint{Inner: []byte("checkpoint")},
 	}).MarshalVT()
 	if err != nil {
-		t.Fatalf("marshal root state: %v", err)
+		t.Fatalf("marshal checkpoint state: %v", err)
 	}
+
+	// Serve a DM creation that checks the request.
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// The request is a binary POST for the friend.
 		if r.Method != http.MethodPost {
 			t.Fatalf("method = %s, want POST", r.Method)
 		}
@@ -107,6 +113,8 @@ func TestCreateFriendDMWithState(t *testing.T) {
 		if got := r.Header.Get("Content-Type"); got != "application/octet-stream" {
 			t.Fatalf("content type = %q, want application/octet-stream", got)
 		}
+
+		// It carries the DM metadata.
 		body, err := io.ReadAll(r.Body)
 		if err != nil {
 			t.Fatalf("read body: %v", err)
@@ -122,6 +130,8 @@ func TestCreateFriendDMWithState(t *testing.T) {
 			!req.AccountPrivate {
 			t.Fatalf("unexpected request metadata: %+v", req)
 		}
+
+		// It wraps the config state and the checkpoint unchanged.
 		postedConfig := &api.PostConfigStateRequest{}
 		if err := postedConfig.UnmarshalVT(req.ConfigState); err != nil {
 			t.Fatalf("unmarshal config state wrapper: %v", err)
@@ -131,28 +141,29 @@ func TestCreateFriendDMWithState(t *testing.T) {
 			postedConfig.GetKeyEpoch().GetEpoch() != 0 {
 			t.Fatalf("unexpected config state wrapper: %+v", postedConfig)
 		}
-		postedRoot := &api.PostRootRequest{}
-		if err := postedRoot.UnmarshalVT(req.RootState); err != nil {
-			t.Fatalf("unmarshal root state wrapper: %v", err)
+		postedCheckpoint := &api.PostCheckpointRequest{}
+		if err := postedCheckpoint.UnmarshalVT(req.CheckpointState); err != nil {
+			t.Fatalf("unmarshal checkpoint state wrapper: %v", err)
 		}
-		if postedRoot.GetRoot() == nil ||
-			postedRoot.GetRoot().GetInnerSeqno() != 1 ||
-			string(postedRoot.GetRoot().GetInner()) != "root" {
-			t.Fatalf("unexpected root state wrapper: %+v", postedRoot)
+		if string(postedCheckpoint.GetCheckpoint().GetInner()) != "checkpoint" {
+			t.Fatalf("unexpected checkpoint state wrapper: %+v", postedCheckpoint)
 		}
+
+		// Answer with a ready DM owned by the caller.
 		resp := friendDmTestResponse()
 		resp.OwnerAccountId = "acct-a"
 		writeFriendDmResponse(t, w, resp)
 	}))
 	defer srv.Close()
 
+	// Create the DM and receive the ready bootstrap.
 	cli := NewSessionClient(http.DefaultClient, srv.URL, DefaultSigningEnvPrefix, priv, peerID.String())
 	got, err := cli.CreateFriendDMWithState(
 		context.Background(),
 		"acct-b",
 		"acct-a",
 		configState,
-		rootState,
+		checkpointState,
 	)
 	if err != nil {
 		t.Fatalf("CreateFriendDMWithState: %v", err)
@@ -162,6 +173,8 @@ func TestCreateFriendDMWithState(t *testing.T) {
 	}
 }
 
+// TestGetFriendDMHidesUnauthorizedTarget checks that an empty response reads as
+// not found.
 func TestGetFriendDMHidesUnauthorizedTarget(t *testing.T) {
 	priv, peerID := generateTestKeypair(t)
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

@@ -2,72 +2,15 @@
 // @generated from file github.com/s4wave/spacewave/core/sobject/world/engine/engine.proto (package sobject.world.engine, syntax proto3)
 /* eslint-disable */
 
-import { createEnumType } from '@aptre/protobuf-es-lite/enum'
 import { Config as Config$1 } from '../../../../db/block/transform/transform.pb.js'
 import type { MessageType } from '@aptre/protobuf-es-lite/message'
 import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
-import { SharedObjectRef, SORoot } from '../../sobject.pb.js'
-import { Backoff } from '@go/github.com/aperturerobotics/util/backoff/backoff.pb.js'
+import { SharedObjectRef } from '../../sobject.pb.js'
 import { BlockRef } from '../../../../db/block/block.pb.js'
 import { ObjectRef } from '../../../../db/bucket/bucket.pb.js'
 import { Tx } from '../../../../db/world/block/tx/tx.pb.js'
-
-/**
- * SpaceWorldFinalizationStatus is the authority owner's decision for a packet.
- *
- * @generated from enum sobject.world.engine.SpaceWorldFinalizationStatus
- */
-export enum SpaceWorldFinalizationStatus {
-  /**
-   * SPACE_WORLD_FINALIZATION_STATUS_UNKNOWN is invalid.
-   *
-   * @generated from enum value: SPACE_WORLD_FINALIZATION_STATUS_UNKNOWN = 0;
-   */
-  UNKNOWN = 0,
-
-  /**
-   * SPACE_WORLD_FINALIZATION_STATUS_ACCEPTED means the SharedObject root was finalized.
-   *
-   * @generated from enum value: SPACE_WORLD_FINALIZATION_STATUS_ACCEPTED = 1;
-   */
-  ACCEPTED = 1,
-
-  /**
-   * SPACE_WORLD_FINALIZATION_STATUS_REJECTED means the candidate is not accepted and should be retained follower-side only.
-   *
-   * @generated from enum value: SPACE_WORLD_FINALIZATION_STATUS_REJECTED = 2;
-   */
-  REJECTED = 2,
-
-  /**
-   * SPACE_WORLD_FINALIZATION_STATUS_STALE_BASE means the candidate was based on stale SharedObject or World state.
-   *
-   * @generated from enum value: SPACE_WORLD_FINALIZATION_STATUS_STALE_BASE = 3;
-   */
-  STALE_BASE = 3,
-
-  /**
-   * SPACE_WORLD_FINALIZATION_STATUS_MISSING_BLOCK means the authority owner could not read candidate blocks.
-   *
-   * @generated from enum value: SPACE_WORLD_FINALIZATION_STATUS_MISSING_BLOCK = 4;
-   */
-  MISSING_BLOCK = 4,
-
-  /**
-   * SPACE_WORLD_FINALIZATION_STATUS_LOST_AUTHORITY means the contacted owner no longer holds finalization authority.
-   *
-   * @generated from enum value: SPACE_WORLD_FINALIZATION_STATUS_LOST_AUTHORITY = 5;
-   */
-  LOST_AUTHORITY = 5,
-}
-
-export const SpaceWorldFinalizationStatus_Enum = /* @__PURE__ */ createEnumType(
-  'sobject.world.engine.SpaceWorldFinalizationStatus',
-  SpaceWorldFinalizationStatus,
-  'SPACE_WORLD_FINALIZATION_STATUS_',
-)
 
 /**
  * InitWorldOp is the operation to initialize the inner state.
@@ -85,7 +28,8 @@ export interface InitWorldOp {
   lastChangeDisable?: boolean
   /**
    * TransformConf is the transform configuration to use for the world.
-   * If unset, a default transform config with a random key will be generated.
+   * The author sets it so every member replays the same World. Replay
+   * rejects an operation without it.
    *
    * @generated from field: block.transform.Config transform_conf = 2;
    */
@@ -109,7 +53,7 @@ export const InitWorldOp: MessageType<InitWorldOp> =
 /**
  * Config configures a World Graph engine bound to a block graph and controlled by a Shared Object.
  * Uses MountSharedObject to mount and access the shared object and block store.
- * Stores the HEAD reference in the Shared Object.
+ * Every member replays the Shared Object operation set to the same World.
  *
  * @generated from message sobject.world.engine.Config
  */
@@ -160,13 +104,6 @@ export interface Config {
    * @generated from field: bool verbose = 7;
    */
   verbose?: boolean
-  /**
-   * ProcessOpsBackoff is the backoff for processing ops as a validator.
-   * Defaults to reasonable defaults if unset.
-   *
-   * @generated from field: backoff.Backoff process_ops_backoff = 8;
-   */
-  processOpsBackoff?: Backoff
 }
 
 export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
@@ -189,7 +126,6 @@ export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
       T: ScalarType.BOOL,
     },
     { no: 7, name: 'verbose', kind: 'scalar', T: ScalarType.BOOL },
-    { no: 8, name: 'process_ops_backoff', kind: 'message', T: () => Backoff },
   ] satisfies readonly PartialFieldInfo[],
 })
 
@@ -223,8 +159,8 @@ export const RetainedRoot: MessageType<RetainedRoot> =
   })
 
 /**
- * InnerState contains the inner state object for the SharedObject.
- * Note that the SharedObject inner state thas a very small size limit.
+ * InnerState is the World state a SharedObject checkpoint carries and replay
+ * computes. Checkpoint state data has a small size limit.
  *
  * @generated from message sobject.world.engine.InnerState
  */
@@ -264,7 +200,7 @@ export const InnerState: MessageType<InnerState> =
   })
 
 /**
- * RetainedRootSet is the block the validator keeps as its one local named root
+ * RetainedRootSet is the block each member keeps as its one local named root
  * for all retained roots. Its outgoing refs are the retained World roots.
  *
  * @generated from message sobject.world.engine.RetainedRootSet
@@ -413,240 +349,6 @@ export const SOWorldOp: MessageType<SOWorldOp> =
         kind: 'message',
         T: SetRetainedRootOp,
         oneof: 'body',
-      },
-    ] satisfies readonly PartialFieldInfo[],
-  })
-
-/**
- * SpaceWorldFinalizationPacket is submitted by a follower after it has produced
- * candidate World content but before any SharedObject root is finalized.
- *
- * @generated from message sobject.world.engine.SpaceWorldFinalizationPacket
- */
-export interface SpaceWorldFinalizationPacket {
-  /**
-   * BaseSharedObjectRoot is the SharedObject root observed before candidate work.
-   *
-   * @generated from field: sobject.SORoot base_shared_object_root = 1;
-   */
-  baseSharedObjectRoot?: SORoot
-  /**
-   * BaseWorldRoot is the World root observed before candidate work.
-   *
-   * @generated from field: bucket.ObjectRef base_world_root = 2;
-   */
-  baseWorldRoot?: ObjectRef
-  /**
-   * CandidateWorldRoot is the follower-produced candidate World root.
-   *
-   * @generated from field: bucket.ObjectRef candidate_world_root = 3;
-   */
-  candidateWorldRoot?: ObjectRef
-  /**
-   * CandidateContentId identifies the candidate content/op payload being finalized.
-   *
-   * @generated from field: bytes candidate_content_id = 4;
-   */
-  candidateContentId?: Uint8Array
-  /**
-   * AuthorityEpoch identifies the leader/daemon authority epoch observed by the follower.
-   *
-   * @generated from field: uint64 authority_epoch = 6;
-   */
-  authorityEpoch?: bigint
-  /**
-   * BlocksAvailable is true when the follower believes candidate blocks are readable by the authority owner.
-   *
-   * @generated from field: bool blocks_available = 7;
-   */
-  blocksAvailable?: boolean
-  /**
-   * Op is the SharedObject World operation that produced the candidate root.
-   *
-   * @generated from field: sobject.world.engine.SOWorldOp op = 8;
-   */
-  op?: SOWorldOp
-  /**
-   * FollowerParticipantId identifies the submitting follower.
-   *
-   * @generated from field: string follower_participant_id = 9;
-   */
-  followerParticipantId?: string
-  /**
-   * LocalOperationId lets the follower correlate accepted/rejected decisions.
-   *
-   * @generated from field: string local_operation_id = 10;
-   */
-  localOperationId?: string
-}
-
-export const SpaceWorldFinalizationPacket: MessageType<SpaceWorldFinalizationPacket> =
-  /* @__PURE__ */ createMessageType({
-    typeName: 'sobject.world.engine.SpaceWorldFinalizationPacket',
-    fields: [
-      {
-        no: 1,
-        name: 'base_shared_object_root',
-        kind: 'message',
-        T: () => SORoot,
-      },
-      { no: 2, name: 'base_world_root', kind: 'message', T: () => ObjectRef },
-      {
-        no: 3,
-        name: 'candidate_world_root',
-        kind: 'message',
-        T: () => ObjectRef,
-      },
-      {
-        no: 4,
-        name: 'candidate_content_id',
-        kind: 'scalar',
-        T: ScalarType.BYTES,
-      },
-      { no: 6, name: 'authority_epoch', kind: 'scalar', T: ScalarType.UINT64 },
-      { no: 7, name: 'blocks_available', kind: 'scalar', T: ScalarType.BOOL },
-      { no: 8, name: 'op', kind: 'message', T: SOWorldOp },
-      {
-        no: 9,
-        name: 'follower_participant_id',
-        kind: 'scalar',
-        T: ScalarType.STRING,
-      },
-      {
-        no: 10,
-        name: 'local_operation_id',
-        kind: 'scalar',
-        T: ScalarType.STRING,
-      },
-    ] satisfies readonly PartialFieldInfo[],
-  })
-
-/**
- * SpaceWorldFinalizationDecision is returned by the leader or Spacewave daemon.
- *
- * @generated from message sobject.world.engine.SpaceWorldFinalizationDecision
- */
-export interface SpaceWorldFinalizationDecision {
-  /**
-   * Status is the accept/reject/fence result.
-   *
-   * @generated from field: sobject.world.engine.SpaceWorldFinalizationStatus status = 1;
-   */
-  status?: SpaceWorldFinalizationStatus
-  /**
-   * AcceptedSharedObjectRoot is set only when status is ACCEPTED.
-   *
-   * @generated from field: sobject.SORoot accepted_shared_object_root = 2;
-   */
-  acceptedSharedObjectRoot?: SORoot
-  /**
-   * AcceptedWorldRoot is set only when status is ACCEPTED.
-   *
-   * @generated from field: bucket.ObjectRef accepted_world_root = 3;
-   */
-  acceptedWorldRoot?: ObjectRef
-  /**
-   * Error explains rejected or retryable decisions.
-   *
-   * @generated from field: string error = 4;
-   */
-  error?: string
-  /**
-   * Retryable indicates the follower may refresh and resubmit a new packet.
-   *
-   * @generated from field: bool retryable = 5;
-   */
-  retryable?: boolean
-  /**
-   * LocalOperationId echoes the packet local id for follower correlation.
-   *
-   * @generated from field: string local_operation_id = 6;
-   */
-  localOperationId?: string
-}
-
-export const SpaceWorldFinalizationDecision: MessageType<SpaceWorldFinalizationDecision> =
-  /* @__PURE__ */ createMessageType({
-    typeName: 'sobject.world.engine.SpaceWorldFinalizationDecision',
-    fields: [
-      {
-        no: 1,
-        name: 'status',
-        kind: 'enum',
-        T: SpaceWorldFinalizationStatus_Enum,
-      },
-      {
-        no: 2,
-        name: 'accepted_shared_object_root',
-        kind: 'message',
-        T: () => SORoot,
-      },
-      {
-        no: 3,
-        name: 'accepted_world_root',
-        kind: 'message',
-        T: () => ObjectRef,
-      },
-      { no: 4, name: 'error', kind: 'scalar', T: ScalarType.STRING },
-      { no: 5, name: 'retryable', kind: 'scalar', T: ScalarType.BOOL },
-      {
-        no: 6,
-        name: 'local_operation_id',
-        kind: 'scalar',
-        T: ScalarType.STRING,
-      },
-    ] satisfies readonly PartialFieldInfo[],
-  })
-
-/**
- * SpaceWorldRejectedCandidate records follower-local retention bookkeeping for
- * a candidate that authority did not accept. The record does not grant any
- * leader-side block deletion authority.
- *
- * @generated from message sobject.world.engine.SpaceWorldRejectedCandidate
- */
-export interface SpaceWorldRejectedCandidate {
-  /**
-   * Packet is the candidate submission that was not accepted.
-   *
-   * @generated from field: sobject.world.engine.SpaceWorldFinalizationPacket packet = 1;
-   */
-  packet?: SpaceWorldFinalizationPacket
-  /**
-   * Decision is the non-accepted authority outcome.
-   *
-   * @generated from field: sobject.world.engine.SpaceWorldFinalizationDecision decision = 2;
-   */
-  decision?: SpaceWorldFinalizationDecision
-  /**
-   * RetainedUnixNano records when the follower retained cleanup bookkeeping.
-   *
-   * @generated from field: uint64 retained_unix_nano = 3;
-   */
-  retainedUnixNano?: bigint
-}
-
-export const SpaceWorldRejectedCandidate: MessageType<SpaceWorldRejectedCandidate> =
-  /* @__PURE__ */ createMessageType({
-    typeName: 'sobject.world.engine.SpaceWorldRejectedCandidate',
-    fields: [
-      {
-        no: 1,
-        name: 'packet',
-        kind: 'message',
-        T: SpaceWorldFinalizationPacket,
-      },
-      {
-        no: 2,
-        name: 'decision',
-        kind: 'message',
-        T: SpaceWorldFinalizationDecision,
-      },
-      {
-        no: 3,
-        name: 'retained_unix_nano',
-        kind: 'scalar',
-        T: ScalarType.UINT64,
       },
     ] satisfies readonly PartialFieldInfo[],
   })

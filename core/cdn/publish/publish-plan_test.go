@@ -2,6 +2,7 @@ package publish
 
 import (
 	"context"
+	"crypto/rand"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -16,10 +17,14 @@ import (
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/bucket"
 	"github.com/s4wave/spacewave/db/packfile"
+	"github.com/s4wave/spacewave/net/crypto"
 	"github.com/s4wave/spacewave/net/hash"
 )
 
+// TestBuildPublishPlanNoOpWhenDestinationMatches checks that a matching
+// destination needs no packs and no checkpoint.
 func TestBuildPublishPlanNoOpWhenDestinationMatches(t *testing.T) {
+	// Plan against a destination with the same packs and head.
 	srcHeadRef := testPublishHeadRef("src-same")
 	dstHeadRef := testPublishHeadRef("src-same")
 	plan := BuildPublishPlan(
@@ -31,12 +36,15 @@ func TestBuildPublishPlanNoOpWhenDestinationMatches(t *testing.T) {
 	if len(plan.MissingPackIDs) != 0 {
 		t.Fatalf("missing packs = %v", plan.MissingPackIDs)
 	}
-	if plan.NeedRootPost {
+	if plan.NeedCheckpoint {
 		t.Fatal("expected no-op root plan when destination head matches source")
 	}
 }
 
+// TestBuildPublishPlanCopiesAllSourcePacksWhenRootDiffers checks that a new
+// head copies every source pack and posts a checkpoint.
 func TestBuildPublishPlanCopiesAllSourcePacksWhenRootDiffers(t *testing.T) {
+	// Plan against a destination with an older head.
 	srcHeadRef := testPublishHeadRef("src-new")
 	dstHeadRef := testPublishHeadRef("dst-old")
 	plan := BuildPublishPlan(
@@ -50,12 +58,15 @@ func TestBuildPublishPlanCopiesAllSourcePacksWhenRootDiffers(t *testing.T) {
 		plan.MissingPackIDs[1] != "01PACKB" {
 		t.Fatalf("unexpected missing packs: %v", plan.MissingPackIDs)
 	}
-	if !plan.NeedRootPost {
+	if !plan.NeedCheckpoint {
 		t.Fatal("expected root repost when destination head differs from source")
 	}
 }
 
+// TestBuildPublishPlanSkipsPackRepairWhenRootAlreadyMatches checks that a
+// matching head needs nothing even when the destination lacks packs.
 func TestBuildPublishPlanSkipsPackRepairWhenRootAlreadyMatches(t *testing.T) {
+	// Plan against a destination with the same head but fewer packs.
 	srcHeadRef := testPublishHeadRef("src-same")
 	dstHeadRef := testPublishHeadRef("src-same")
 	plan := BuildPublishPlan(
@@ -67,7 +78,7 @@ func TestBuildPublishPlanSkipsPackRepairWhenRootAlreadyMatches(t *testing.T) {
 	if len(plan.MissingPackIDs) != 0 {
 		t.Fatalf("unexpected missing packs: %v", plan.MissingPackIDs)
 	}
-	if plan.NeedRootPost {
+	if plan.NeedCheckpoint {
 		t.Fatal("expected root post skip when destination head already matches source")
 	}
 }
@@ -80,7 +91,7 @@ func TestPromoteNoOpWhenDestinationMatches(t *testing.T) {
 	const dstSpaceID = "01DSTSPACE000000000000000000"
 	headRef := testPublishObjectRef(1)
 	client := &promoteTestClient{
-		state: testPublishStateBytes(t, headRef),
+		state: testPublishStateBytes(t, srcSpaceID, headRef),
 		pulls: map[string]*packfile.PullResponse{
 			srcSpaceID: {Entries: []*packfile.PackfileEntry{{Id: "01PACKA"}}},
 			dstSpaceID: {Entries: []*packfile.PackfileEntry{{Id: "01PACKA"}}},
@@ -113,16 +124,19 @@ func TestPromoteNoOpWhenDestinationMatches(t *testing.T) {
 		t.Fatalf("output = %q", out.String())
 	}
 
-	// Nothing was pushed and no root was posted.
+	// Nothing was pushed and no checkpoint was posted.
 	if client.pushes != 0 {
 		t.Fatalf("pushes = %d", client.pushes)
 	}
-	if client.roots != 0 {
-		t.Fatalf("roots = %d", client.roots)
+	if client.checkpoints != 0 {
+		t.Fatalf("checkpoints = %d", client.checkpoints)
 	}
 }
 
-func TestFetchDestinationHeadRefRejectsMalformedRootInner(t *testing.T) {
+// TestFetchDestinationHeadRefRejectsMalformedCheckpoint checks that a root
+// pointer with a malformed checkpoint body fails.
+func TestFetchDestinationHeadRefRejectsMalformedCheckpoint(t *testing.T) {
+	// Serve a root pointer whose checkpoint body is not a checkpoint.
 	const dstSpaceID = "01DSTSPACE000000000000000000"
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/"+dstSpaceID+"/root.packedmsg" {
@@ -130,8 +144,8 @@ func TestFetchDestinationHeadRefRejectsMalformedRootInner(t *testing.T) {
 			return
 		}
 		ptrBytes, err := (&alpha_cdn.CdnRootPointer{
-			SpaceId: dstSpaceID,
-			Root:    &sobject.SORoot{Inner: []byte("not-a-root-inner")},
+			SpaceId:    dstSpaceID,
+			Checkpoint: &sobject.SOCheckpoint{Inner: []byte("not-a-checkpoint")},
 		}).MarshalVT()
 		if err != nil {
 			t.Fatalf("MarshalVT() error = %v", err)
@@ -140,29 +154,30 @@ func TestFetchDestinationHeadRefRejectsMalformedRootInner(t *testing.T) {
 	}))
 	defer srv.Close()
 
+	// Fetching the head fails to decode the checkpoint.
 	_, err := FetchDestinationHeadRef(context.Background(), srv.URL, dstSpaceID)
 	if err == nil {
-		t.Fatal("expected malformed destination root error")
+		t.Fatal("expected malformed destination checkpoint error")
 	}
-	if !strings.Contains(err.Error(), "unmarshal destination SORootInner") {
+	if !strings.Contains(err.Error(), "unmarshal checkpoint inner") {
 		t.Fatalf("unexpected error: %v", err)
 	}
 }
 
+// TestFetchDestinationHeadRefRejectsMalformedInnerState checks that a
+// checkpoint without World state fails.
 func TestFetchDestinationHeadRefRejectsMalformedInnerState(t *testing.T) {
+	// Serve a root pointer whose checkpoint state is not a World state.
 	const dstSpaceID = "01DSTSPACE000000000000000000"
-	rootInner, err := (&sobject.SORootInner{StateData: []byte("not-inner-state")}).MarshalVT()
-	if err != nil {
-		t.Fatalf("MarshalVT() error = %v", err)
-	}
+	checkpoint := testPublishCheckpoint(t, dstSpaceID, []byte("not-inner-state"))
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/"+dstSpaceID+"/root.packedmsg" {
 			http.NotFound(w, r)
 			return
 		}
 		ptrBytes, err := (&alpha_cdn.CdnRootPointer{
-			SpaceId: dstSpaceID,
-			Root:    &sobject.SORoot{Inner: rootInner},
+			SpaceId:    dstSpaceID,
+			Checkpoint: checkpoint,
 		}).MarshalVT()
 		if err != nil {
 			t.Fatalf("MarshalVT() error = %v", err)
@@ -171,7 +186,8 @@ func TestFetchDestinationHeadRefRejectsMalformedInnerState(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	_, err = FetchDestinationHeadRef(context.Background(), srv.URL, dstSpaceID)
+	// Fetching the head fails to decode the state.
+	_, err := FetchDestinationHeadRef(context.Background(), srv.URL, dstSpaceID)
 	if err == nil {
 		t.Fatal("expected malformed destination inner state error")
 	}
@@ -180,12 +196,15 @@ func TestFetchDestinationHeadRefRejectsMalformedInnerState(t *testing.T) {
 	}
 }
 
+// testPublishHeadRef returns a head ref named by id.
 func testPublishHeadRef(id string) *bucket.ObjectRef {
 	return &bucket.ObjectRef{
 		BucketId: id,
 	}
 }
 
+// testPublishObjectRef returns an object ref whose root block hash derives from
+// seed.
 func testPublishObjectRef(seed byte) *bucket.ObjectRef {
 	return &bucket.ObjectRef{
 		RootRef: &block.BlockRef{
@@ -197,19 +216,38 @@ func testPublishObjectRef(seed byte) *bucket.ObjectRef {
 	}
 }
 
-func testPublishStateBytes(t *testing.T, headRef *bucket.ObjectRef) []byte {
+// testPublishCheckpoint signs a genesis checkpoint of spaceID holding
+// stateData with disposable test material.
+func testPublishCheckpoint(t *testing.T, spaceID string, stateData []byte) *sobject.SOCheckpoint {
+	// Sign with a disposable key.
+	t.Helper()
+	key, _, err := crypto.GenerateEd25519Key(rand.Reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+	checkpoint, err := sobject.BuildGenesisSOCheckpoint(key, spaceID, make([]byte, 32), stateData)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return checkpoint
+}
+
+// testPublishHeadCheckpoint signs a genesis checkpoint of spaceID whose World
+// is headRef.
+func testPublishHeadCheckpoint(t *testing.T, spaceID string, headRef *bucket.ObjectRef) *sobject.SOCheckpoint {
 	t.Helper()
 	stateData, err := (&sobject_world_engine.InnerState{HeadRef: headRef}).MarshalVT()
 	if err != nil {
 		t.Fatalf("MarshalVT() error = %v", err)
 	}
-	inner, err := (&sobject.SORootInner{StateData: stateData}).MarshalVT()
-	if err != nil {
-		t.Fatalf("MarshalVT() error = %v", err)
-	}
+	return testPublishCheckpoint(t, spaceID, stateData)
+}
+
+func testPublishStateBytes(t *testing.T, spaceID string, headRef *bucket.ObjectRef) []byte {
+	t.Helper()
 	out, err := (&api.SOStateMessage{
 		Content: &api.SOStateMessage_Snapshot{
-			Snapshot: &sobject.SOState{Root: &sobject.SORoot{Inner: inner}},
+			Snapshot: &sobject.SOState{Checkpoint: testPublishHeadCheckpoint(t, spaceID, headRef)},
 		},
 	}).MarshalVT()
 	if err != nil {
@@ -220,17 +258,9 @@ func testPublishStateBytes(t *testing.T, headRef *bucket.ObjectRef) []byte {
 
 func testPublishRootPointer(t *testing.T, spaceID string, headRef *bucket.ObjectRef) string {
 	t.Helper()
-	stateData, err := (&sobject_world_engine.InnerState{HeadRef: headRef}).MarshalVT()
-	if err != nil {
-		t.Fatalf("MarshalVT() error = %v", err)
-	}
-	inner, err := (&sobject.SORootInner{StateData: stateData}).MarshalVT()
-	if err != nil {
-		t.Fatalf("MarshalVT() error = %v", err)
-	}
 	ptrBytes, err := (&alpha_cdn.CdnRootPointer{
-		SpaceId: spaceID,
-		Root:    &sobject.SORoot{Inner: inner},
+		SpaceId:    spaceID,
+		Checkpoint: testPublishHeadCheckpoint(t, spaceID, headRef),
 	}).MarshalVT()
 	if err != nil {
 		t.Fatalf("MarshalVT() error = %v", err)
@@ -245,10 +275,10 @@ func testPublishDigest(seed byte) []byte {
 }
 
 type promoteTestClient struct {
-	state  []byte
-	pulls  map[string]*packfile.PullResponse
-	pushes int
-	roots  int
+	state       []byte
+	pulls       map[string]*packfile.PullResponse
+	pushes      int
+	checkpoints int
 }
 
 func (c *promoteTestClient) Do(*http.Request) (*http.Response, error) {
@@ -268,7 +298,7 @@ func (c *promoteTestClient) SyncPushData(context.Context, string, string, int, [
 	return nil
 }
 
-func (c *promoteTestClient) PostRoot(context.Context, string, *sobject.SORoot, []*sobject.SOOperationRejection) error {
-	c.roots++
+func (c *promoteTestClient) PostCheckpoint(context.Context, string, *sobject.SOCheckpoint) error {
+	c.checkpoints++
 	return nil
 }

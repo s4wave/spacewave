@@ -16,7 +16,7 @@ import (
 // TestCloudConfigParticipantOrder accepts reordered membership without accepting
 // changes to signed authority, and retains that state across cache hydration.
 func TestCloudConfigParticipantOrder(t *testing.T) {
-	// Build a real signed root.
+	// Build a real signed genesis state.
 	owner, ownerID := generateTestKeypair(t)
 	entity, _ := generateTestKeypair(t)
 	_, readerID := generateTestKeypair(t)
@@ -52,9 +52,8 @@ func TestCloudConfigParticipantOrder(t *testing.T) {
 		{name: "entity", mutate: func(s *sobject.SOState) { s.Config.Participants[0].EntityId = "different-account" }},
 		{name: "missing", mutate: func(s *sobject.SOState) { s.Config.Participants = s.Config.Participants[1:] }},
 		{name: "duplicate", mutate: func(s *sobject.SOState) { s.Config.Participants[0] = s.Config.Participants[1].CloneVT() }},
-		{name: "consensus", mutate: func(s *sobject.SOState) { s.Config.ConsensusMode++ }},
 		{name: "sequence", mutate: func(s *sobject.SOState) { s.Config.ConfigChainSeqno++ }},
-		{name: "root signature", mutate: func(s *sobject.SOState) { s.Root.ValidatorSignatures = nil }},
+		{name: "checkpoint signature", mutate: func(s *sobject.SOState) { s.Checkpoint.Signatures = nil }},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			// Preserve the signed chain while the response projects participants differently.

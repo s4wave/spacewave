@@ -3,30 +3,33 @@ package provider_spacewave
 import (
 	"context"
 	"errors"
-	"io"
 	"net/http"
 	"net/http/httptest"
+	"slices"
 	"strings"
 	"sync/atomic"
 	"testing"
-	"time"
 
 	"github.com/aperturerobotics/util/ccontainer"
 	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
 	"github.com/s4wave/spacewave/core/sobject"
 	"github.com/s4wave/spacewave/db/block"
 	block_store_writeback "github.com/s4wave/spacewave/db/block/store/writeback"
+	"github.com/s4wave/spacewave/net/crypto"
+	"github.com/s4wave/spacewave/net/peer"
 	"github.com/sirupsen/logrus"
 )
 
-// TestCloudPublicationSurvivesRestart exercises signed local acceptance, failed
-// persistence, cloud loss, coalescing, and blocks-before-root acknowledgment.
+// TestCloudPublicationSurvivesRestart exercises local acceptance, failed
+// persistence, cloud loss, checkpoint coalescing, and blocks-before-checkpoint
+// acknowledgment.
 func TestCloudPublicationSurvivesRestart(t *testing.T) {
-	// Serve publication routes that fail until released, checking blocks precede roots.
-	var requests, roots, uploads atomic.Int32
+	// Serve publication routes that fail until released, checking blocks precede checkpoints.
+	var requests, checkpoints, uploads atomic.Int32
 	var unavailable atomic.Bool
 	unavailable.Store(true)
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Fail while unavailable, then count each publication route.
 		requests.Add(1)
 		if unavailable.Load() {
 			w.WriteHeader(http.StatusServiceUnavailable)
@@ -34,11 +37,11 @@ func TestCloudPublicationSurvivesRestart(t *testing.T) {
 		}
 		if strings.HasSuffix(r.URL.Path, "/sync/push") {
 			uploads.Add(1)
-		} else if strings.HasSuffix(r.URL.Path, "/root") {
+		} else if strings.HasSuffix(r.URL.Path, "/checkpoint") {
 			if uploads.Load() == 0 {
-				t.Error("root reached the cloud before its blocks")
+				t.Error("checkpoint reached the cloud before its blocks")
 			}
-			roots.Add(1)
+			checkpoints.Add(1)
 		} else {
 			t.Errorf("unexpected publication route: %s", r.URL.Path)
 		}
@@ -47,22 +50,14 @@ func TestCloudPublicationSurvivesRestart(t *testing.T) {
 	}))
 	t.Cleanup(server.Close)
 
-	// Open a session client and syncer.
-	key, peerID := generateTestKeypair(t)
-	client := NewSessionClient(server.Client(), server.URL, DefaultSigningEnvPrefix, key, peerID.String())
-	client.executeWriteTicketAudience = func(ctx context.Context, resourceID string, audience writeTicketAudience, submit func(string) error) error {
-		return submit("test-ticket")
-	}
+	// Open a session client and syncer for the owner of a genesis state.
+	initial, key := newTestGenesisState(t)
+	peerID := mustPeerID(t, key)
+	client := newTestPublicationClient(server, key, peerID)
 	syncer := newDirtySyncExecuteTestController(t, client, nil)
 	account := &ProviderAccount{objStore: newSyncTestKvStore()}
 
-	// Hold a signed root and a cache store that fails at first.
-	config := &sobject.SharedObjectConfig{
-		ConfigChainHash: testConfigHash,
-		ConsensusMode:   sobject.SOConsensusMode_SO_CONSENSUS_MODE_SINGLE_VALIDATOR,
-		Participants:    []*sobject.SOParticipantConfig{{PeerId: peerID.String(), Role: sobject.SOParticipantRole_SOParticipantRole_OWNER}},
-	}
-	initial := &sobject.SOState{Config: config, Root: buildTestSORoot(t, key, 1, nil)}
+	// Hold a cache store that fails at first.
 	persistErr := errors.New("metadata unavailable")
 	failPersist := true
 	persist := func(ctx context.Context, cache *api.VerifiedSOStateCache) error {
@@ -74,22 +69,17 @@ func TestCloudPublicationSurvivesRestart(t *testing.T) {
 	host := &cloudSOHost{
 		le: logrus.New().WithField("test", t.Name()), client: client,
 		soID: testSharedObjectID, peerID: peerID, stateCtr: ccontainer.NewCContainer(initial),
-		verifiedConfig: config, lastConfigChainHash: config.ConfigChainHash,
+		verifiedConfig: initial.GetConfig(), lastConfigChainHash: initial.GetConfig().GetConfigChainHash(),
 		cloudState: initial.CloneVT(), persistVerifiedStateCache: persist, syncer: syncer,
-	}
-	queue := func() error {
-		return host.QueueOperation(t.Context(), peerID, func(link *sobject.SOOperationLink) (*sobject.SOOperation, error) {
-			return sobject.BuildSOOperation(testSharedObjectID, key, []byte("operation"), link, sobject.NewSOOperationLocalID())
-		})
 	}
 
 	// Failed persistence acknowledges nothing; later operations stay local.
-	if err := queue(); !errors.Is(err, persistErr) || len(host.stateCtr.GetValue().GetOps()) != 0 {
+	if err := writeLocalOperation(t, host, key); !errors.Is(err, persistErr) || len(host.stateCtr.GetValue().GetOps()) != 0 {
 		t.Fatalf("failed persistence acknowledged local work: %v", err)
 	}
 	failPersist = false
 	for range 2 {
-		if err := queue(); err != nil {
+		if err := writeLocalOperation(t, host, key); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -98,17 +88,21 @@ func TestCloudPublicationSurvivesRestart(t *testing.T) {
 	}
 	first := host.pending.GetFirstPendingUnixMilli()
 
-	// Validator acceptance coalesces both operations into one signed checkpoint.
-	state := host.stateCtr.GetValue().CloneVT()
-	root := buildTestSORoot(t, key, 2, []*sobject.SOAccountNonce{{PeerId: peerID.String(), Nonce: 2, OpHash: state.Ops[1].Hash()}})
-	if err := state.UpdateRootState(testSharedObjectID, root, peerID.String(), nil, state.Ops); err != nil {
+	// The owner's checkpoint coalesces both operations.
+	base := host.stateCtr.GetValue()
+	written := base.CloneVT()
+	checkpoint, err := written.BuildNextCheckpoint(testSharedObjectID, key, []byte("state"))
+	if err != nil {
 		t.Fatal(err)
 	}
-	if err := host.acceptLocalState(t.Context(), state); err != nil {
+	if err := written.AdoptCheckpoint(testSharedObjectID, checkpoint); err != nil {
+		t.Fatal(err)
+	}
+	if err := host.acceptLocalWrite(t.Context(), base, written); err != nil {
 		t.Fatal(err)
 	}
 	if len(host.pending.Operations) != 0 || host.pending.GetFirstPendingUnixMilli() != first {
-		t.Fatal("coalescing retained resolved operations or extended the deadline")
+		t.Fatal("coalescing retained covered operations or extended the deadline")
 	}
 
 	// Restart from serialized storage, retaining the cloud delta base and timer.
@@ -134,7 +128,7 @@ func TestCloudPublicationSurvivesRestart(t *testing.T) {
 	if err := reopened.acceptCloudSnapshot(t.Context(), initial, 1); err != nil {
 		t.Fatal(err)
 	}
-	if reopened.stateCtr.GetValue().GetRoot().GetInnerSeqno() != 2 {
+	if !reopened.stateCtr.GetValue().GetCheckpoint().EqualVT(checkpoint) {
 		t.Fatal("cloud lag rolled back accepted local state")
 	}
 
@@ -142,17 +136,17 @@ func TestCloudPublicationSurvivesRestart(t *testing.T) {
 	if err := syncer.FlushNowUnordered(t.Context()); err == nil {
 		t.Fatal("cloud outage was acknowledged")
 	}
-	if reopened.pending == nil || roots.Load() != 0 {
-		t.Fatal("failed upload lost publication or exposed its root")
+	if reopened.pending == nil || checkpoints.Load() != 0 {
+		t.Fatal("failed upload lost publication or exposed its checkpoint")
 	}
 
-	// Once the cloud returns, one root acknowledges the publication durably.
+	// Once the cloud returns, one checkpoint acknowledges the publication durably.
 	unavailable.Store(false)
 	if err := syncer.FlushNowUnordered(t.Context()); err != nil {
 		t.Fatal(err)
 	}
-	if roots.Load() != 1 || reopened.pending != nil {
-		t.Fatal("checkpoint did not acknowledge exactly one coalesced root")
+	if checkpoints.Load() != 1 || reopened.pending != nil {
+		t.Fatal("flush did not acknowledge exactly one coalesced checkpoint")
 	}
 	cache, err = account.loadVerifiedSOStateCache(t.Context(), testSharedObjectID)
 	if err != nil || cache.GetPendingPublication() != nil {
@@ -160,7 +154,7 @@ func TestCloudPublicationSurvivesRestart(t *testing.T) {
 	}
 }
 
-// TestCloudPublicationMissingBlockCannotPublish keeps root visibility behind the
+// TestCloudPublicationMissingBlockCannotPublish keeps checkpoint visibility behind the
 // complete dirty-block fence even when all state metadata is already durable.
 func TestCloudPublicationMissingBlockCannotPublish(t *testing.T) {
 	syncer := newDirtySyncExecuteTestController(t, nil, nil)
@@ -179,17 +173,18 @@ func TestCloudPublicationMissingBlockCannotPublish(t *testing.T) {
 }
 
 // TestCloudPublicationConcurrentAcceptance preserves work accepted during a
-// checkpoint and fences retained work when the writer loses publication rights.
+// publication.
 func TestCloudPublicationConcurrentAcceptance(t *testing.T) {
 	// Hold the first operation upload until released.
 	started := make(chan struct{})
 	resume := make(chan struct{})
-	var calls atomic.Int32
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if !strings.HasSuffix(r.URL.Path, "/ops") {
 			t.Errorf("unexpected route: %s", r.URL.Path)
 		}
-		if calls.Add(1) == 1 {
+		select {
+		case <-started:
+		default:
 			close(started)
 			select {
 			case <-resume:
@@ -201,38 +196,23 @@ func TestCloudPublicationConcurrentAcceptance(t *testing.T) {
 	}))
 	t.Cleanup(server.Close)
 
-	// Open a host as the owner and queue one operation per call.
-	key, peerID := generateTestKeypair(t)
-	client := NewSessionClient(server.Client(), server.URL, DefaultSigningEnvPrefix, key, peerID.String())
-	client.executeWriteTicketAudience = func(ctx context.Context, resourceID string, audience writeTicketAudience, submit func(string) error) error {
-		return submit("test-ticket")
-	}
+	// Open a host as the owner of a genesis state.
+	initial, key := newTestGenesisState(t)
+	peerID := mustPeerID(t, key)
 	account := &ProviderAccount{objStore: newSyncTestKvStore()}
-	config := &sobject.SharedObjectConfig{
-		ConfigChainHash: testConfigHash,
-		ConsensusMode:   sobject.SOConsensusMode_SO_CONSENSUS_MODE_SINGLE_VALIDATOR,
-		Participants:    []*sobject.SOParticipantConfig{{PeerId: peerID.String(), Role: sobject.SOParticipantRole_SOParticipantRole_OWNER}},
-	}
 	host := &cloudSOHost{
-		le: logrus.New().WithField("test", t.Name()), client: client,
-		soID: testSharedObjectID, peerID: peerID,
-		stateCtr:       ccontainer.NewCContainer(&sobject.SOState{Config: config}),
-		verifiedConfig: config, lastConfigChainHash: config.ConfigChainHash,
+		le: logrus.New().WithField("test", t.Name()), client: newTestPublicationClient(server, key, peerID),
+		soID: testSharedObjectID, peerID: peerID, stateCtr: ccontainer.NewCContainer(initial),
+		verifiedConfig: initial.GetConfig(), lastConfigChainHash: initial.GetConfig().GetConfigChainHash(),
 		persistVerifiedStateCache: func(ctx context.Context, cache *api.VerifiedSOStateCache) error {
 			return account.writeVerifiedSOStateCache(ctx, testSharedObjectID, cache)
 		},
 	}
-	queue := func() {
-		t.Helper()
-		if err := host.QueueOperation(t.Context(), peerID, func(link *sobject.SOOperationLink) (*sobject.SOOperation, error) {
-			return sobject.BuildSOOperation(testSharedObjectID, key, []byte("operation"), link, sobject.NewSOOperationLocalID())
-		}); err != nil {
-			t.Fatal(err)
-		}
-	}
 
-	// Queue a second operation while the first publication is in flight.
-	queue()
+	// Write a second operation while the first publication is in flight.
+	if err := writeLocalOperation(t, host, key); err != nil {
+		t.Fatal(err)
+	}
 	sent := host.pendingPublication()
 	done := make(chan error, 1)
 	go func() { done <- host.publishCheckpoint(t.Context(), sent) }()
@@ -241,7 +221,9 @@ func TestCloudPublicationConcurrentAcceptance(t *testing.T) {
 	case <-t.Context().Done():
 		t.Fatal(t.Context().Err())
 	}
-	queue()
+	if err := writeLocalOperation(t, host, key); err != nil {
+		t.Fatal(err)
+	}
 	close(resume)
 	if err := <-done; err != nil {
 		t.Fatal(err)
@@ -256,230 +238,39 @@ func TestCloudPublicationConcurrentAcceptance(t *testing.T) {
 	if len(pending.GetOperations()) != 1 || pending.GetFirstPendingUnixMilli() != sent.GetFirstPendingUnixMilli() {
 		t.Fatal("acknowledgment lost concurrent work or extended its deadline")
 	}
-	inner, err := pending.Operations[0].UnmarshalInner()
-	if err != nil || inner.GetNonce() != 2 {
-		t.Fatalf("wrong pending operation: %v", err)
-	}
-
-	// A revoked writer cannot publish retained work.
-	revoked := config.CloneVT()
-	revoked.Participants[0].Role = sobject.SOParticipantRole_SOParticipantRole_READER
-	host.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) { host.verifiedConfig = revoked })
-	if err := host.publishCheckpoint(t.Context(), host.pendingPublication()); err == nil {
-		t.Fatal("revoked writer published retained work")
-	}
-	if calls.Load() != 1 || len(host.pendingPublication().GetOperations()) != 1 {
-		t.Fatal("revocation contacted the cloud or discarded retained work")
+	kept := pending.Operations[0]
+	if kept.EqualVT(sent.GetOperations()[0]) || !slices.ContainsFunc(host.stateCtr.GetValue().GetOps(), kept.EqualVT) {
+		t.Fatal("acknowledgment kept the wrong operation")
 	}
 }
 
-// TestCloudPublicationRecoversRejectedNonce preserves unsubmitted local work
-// when a restored cache reused a nonce consumed by a different rejected write.
-func TestCloudPublicationRecoversRejectedNonce(t *testing.T) {
-	// Sign two operations at nonce 2 and a later one after the second.
-	key, peerID := generateTestKeypair(t)
-	config := &sobject.SharedObjectConfig{
-		ConfigChainHash: testConfigHash,
-		ConsensusMode:   sobject.SOConsensusMode_SO_CONSENSUS_MODE_SINGLE_VALIDATOR,
-		Participants:    []*sobject.SOParticipantConfig{{PeerId: peerID.String(), Role: sobject.SOParticipantRole_SOParticipantRole_OWNER}},
-	}
-	rejectedOp := buildTestSOOperation(t, key, testOperationLink(2))
-	pendingOp := buildTestSOOperation(t, key, testOperationLink(2))
-	laterOp := buildTestSOOperation(t, key, &sobject.SOOperationLink{Nonce: 3, PrevOpHash: pendingOp.Hash(), ConfigHash: testConfigHash})
-	original, err := pendingOp.UnmarshalInner()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// The cloud root names the rejected operation.
-	cloud := &sobject.SOState{
-		Config:       config,
-		Root:         buildTestSORoot(t, key, 3, []*sobject.SOAccountNonce{{PeerId: peerID.String(), Nonce: 2, OpHash: rejectedOp.Hash()}}),
-		OpRejections: []*sobject.SOPeerOpRejections{{PeerId: peerID.String(), Rejections: []*sobject.SOOperationRejection{buildTestSOOperationRejection(t, key, peerID, 2, rejectedOp)}}},
-	}
-	if got := cloud.NextOperationLink(peerID.String()).Nonce; got != 3 {
-		t.Fatalf("next nonce = %d", got)
-	}
-
-	// Restore local state that queued the reused nonce and a later operation.
-	previous := cloud.CloneVT()
-	previous.OpRejections = nil
-	previous.Ops = []*sobject.SOOperation{pendingOp, laterOp}
-	var persisted *api.VerifiedSOStateCache
-	host := &cloudSOHost{
-		le: logrus.New().WithField("test", t.Name()), soID: testSharedObjectID,
-		privKey: key, peerID: peerID, stateCtr: ccontainer.NewCContainer(previous),
-		verifiedConfig: config, lastConfigChainHash: config.ConfigChainHash,
-		cloudState: cloud.CloneVT(), peerState: previous,
-		pending: &api.PendingSOPublication{FirstPendingUnixMilli: 17, Operations: []*sobject.SOOperation{pendingOp, laterOp}},
-		persistVerifiedStateCache: func(_ context.Context, cache *api.VerifiedSOStateCache) error {
-			persisted = cache.CloneVT()
-			return nil
-		},
-	}
-
-	// Refuse the first batch as a nonce conflict, then accept the rechained batch.
-	var submissions atomic.Int32
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if strings.HasSuffix(r.URL.Path, "/ops") {
-			if submissions.Add(1) > 1 {
-				data, err := io.ReadAll(r.Body)
-				if err != nil {
-					t.Error(err)
-					return
-				}
-				var batch api.PostOpsRequest
-				if err := batch.UnmarshalVT(data); err != nil {
-					t.Error(err)
-					return
-				}
-				if len(batch.Operations) != 2 {
-					t.Errorf("batch operation count = %d", len(batch.Operations))
-					return
-				}
-				for i, operation := range batch.Operations {
-					inner, err := operation.UnmarshalInner()
-					if err != nil {
-						t.Error(err)
-						return
-					}
-					if inner.Nonce != uint64(i+3) {
-						t.Errorf("batch operation %d nonce = %d", i, inner.Nonce)
-					}
-				}
-				w.Header().Set("Content-Type", "application/protobuf")
-				return
-			}
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusConflict)
-			_, _ = w.Write([]byte(`{"code":"nonce_too_low","message":"Operation nonce conflicts with accepted work"}`))
-			return
-		}
-		data, err := (&api.SOStateMessage{Content: &api.SOStateMessage_Snapshot{Snapshot: cloud}, Seqno: 4}).MarshalVT()
-		if err != nil {
-			t.Error(err)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-		w.Header().Set("Content-Type", "application/protobuf")
-		_, _ = w.Write(data)
-	}))
-	t.Cleanup(server.Close)
-	host.client = NewSessionClient(server.Client(), server.URL, DefaultSigningEnvPrefix, key, peerID.String())
-	host.client.executeWriteTicketAudience = func(_ context.Context, _ string, _ writeTicketAudience, submit func(string) error) error {
-		return submit("test-ticket")
-	}
-
-	// The conflict rechains the pending work without changing its identity.
-	if err := host.publishCheckpoint(t.Context(), host.pendingPublication()); err == nil {
-		t.Fatal("conflicting request was acknowledged")
-	}
-	recovered := host.pending.GetOperations()[0]
-	inner, err := recovered.UnmarshalInner()
-	if err != nil {
-		t.Fatal(err)
-	}
-	if inner.GetNonce() != 3 || inner.GetLocalId() != original.GetLocalId() || string(inner.GetOpData()) != string(original.GetOpData()) {
-		t.Fatalf("recovery changed operation identity or contents: %v", inner)
-	}
-	if err := recovered.ValidateSignature(testSharedObjectID, config.Participants); err != nil {
-		t.Fatal(err)
-	}
-	if persisted == nil || !persisted.GetPendingPublication().EqualVT(host.pending) || host.pending.GetFirstPendingUnixMilli() != 17 {
-		t.Fatal("recovery was not durable or extended the publication deadline")
-	}
-	if got := host.stateCtr.GetValue().NextOperationLink(peerID.String()).Nonce; got != 5 {
-		t.Fatalf("next nonce after recovery = %d", got)
-	}
-
-	// A restart keeps the recovered operation and publishes it.
-	host.hydrateVerifiedStateCache(persisted)
-	if err := host.acceptCloudSnapshot(t.Context(), cloud, 4); err != nil {
-		t.Fatal(err)
-	}
-	if !host.pending.GetOperations()[0].EqualVT(recovered) {
-		t.Fatal("restart rewrote the recovered operation again")
-	}
-	if err := host.publishCheckpoint(t.Context(), host.pendingPublication()); err != nil {
-		t.Fatal(err)
-	}
-	if host.pending != nil {
-		t.Fatal("accepted recovery batch remained pending")
-	}
-}
-
-// TestWaitOperationPublishesWithoutBatchDelay exercises the confirmation wait
-// against the real publication scheduler with its background routine stopped.
-func TestWaitOperationPublishesWithoutBatchDelay(t *testing.T) {
-	// Bound the test and make an owner config.
-	ctx, cancel := context.WithTimeout(t.Context(), 2*time.Second)
-	defer cancel()
-	key, peerID := generateTestKeypair(t)
-	config := &sobject.SharedObjectConfig{
-		ConfigChainHash: testConfigHash,
-		ConsensusMode:   sobject.SOConsensusMode_SO_CONSENSUS_MODE_SINGLE_VALIDATOR,
-		Participants:    []*sobject.SOParticipantConfig{{PeerId: peerID.String(), Role: sobject.SOParticipantRole_SOParticipantRole_OWNER}},
-	}
-
-	// Queue one operation; the cloud root accepts it.
-	operation := buildTestSOOperation(t, key, testOperationLink(1))
-	inner, err := operation.UnmarshalInner()
-	if err != nil {
-		t.Fatal(err)
-	}
-	initial := &sobject.SOState{Config: config, Root: buildTestSORoot(t, key, 1, nil), Ops: []*sobject.SOOperation{operation}, QueuedAccountNonces: []*sobject.SOAccountNonce{{PeerId: peerID.String(), Nonce: 1, OpHash: operation.Hash()}}}
-	accepted := &sobject.SOState{Config: config, Root: buildTestSORoot(t, key, 2, []*sobject.SOAccountNonce{{PeerId: peerID.String(), Nonce: 1, OpHash: operation.Hash()}})}
-
-	// The cloud accepts the operation only after its blocks.
-	var host *cloudSOHost
-	var posts, uploads atomic.Int32
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if strings.HasSuffix(r.URL.Path, "/sync/push") {
-			uploads.Add(1)
-			w.Header().Set("Content-Type", "application/protobuf")
-			return
-		}
-		if !strings.HasSuffix(r.URL.Path, "/ops") {
-			t.Errorf("unexpected request: %s", r.URL.Path)
-			w.WriteHeader(http.StatusBadRequest)
-			return
-		}
-		if uploads.Load() == 0 {
-			t.Error("operation reached cloud before its blocks")
-		}
-		posts.Add(1)
-		if err := host.handleStateDelta(ctx, &api.SOStateMessage{Content: &api.SOStateMessage_Snapshot{Snapshot: accepted}, Seqno: 2}); err != nil {
-			t.Error(err)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-		w.Header().Set("Content-Type", "application/protobuf")
-	}))
-	t.Cleanup(server.Close)
-
-	// Open a host with the operation pending.
+// newTestPublicationClient returns a session client for server that submits
+// each write with a fixed ticket.
+func newTestPublicationClient(server *httptest.Server, key crypto.PrivKey, peerID peer.ID) *SessionClient {
 	client := NewSessionClient(server.Client(), server.URL, DefaultSigningEnvPrefix, key, peerID.String())
 	client.executeWriteTicketAudience = func(_ context.Context, _ string, _ writeTicketAudience, submit func(string) error) error {
 		return submit("test-ticket")
 	}
-	syncer := newDirtySyncExecuteTestController(t, client, nil)
-	host = &cloudSOHost{
-		le: logrus.New().WithField("test", t.Name()), client: client, soID: testSharedObjectID,
-		privKey: key, peerID: peerID, stateCtr: ccontainer.NewCContainer(initial),
-		verifiedConfig: config, lastConfigChainHash: config.ConfigChainHash,
-		cloudState: initial.CloneVT(), peerState: initial.CloneVT(), syncer: syncer,
-		pending:                   &api.PendingSOPublication{FirstPendingUnixMilli: time.Now().UnixMilli(), Operations: []*sobject.SOOperation{operation}},
-		persistVerifiedStateCache: func(context.Context, *api.VerifiedSOStateCache) error { return nil },
-	}
-	host.soHost = sobject.NewSOHost(ctx, func(context.Context, string, func()) (ccontainer.Watchable[*sobject.SOState], func(), error) {
-		return host.stateCtr, func() {}, nil
-	}, nil, testSharedObjectID)
-	syncer.setPublication(host, host.pending)
+	return client
+}
 
-	// Waiting publishes at once instead of after the batch delay.
-	shared := &SharedObject{host: host, localPid: peerID}
-	seq, rejected, err := shared.WaitOperation(ctx, inner.GetLocalId())
-	if err != nil || rejected || seq != 2 || posts.Load() != 1 {
-		t.Fatalf("confirmation did not publish immediately: seq=%d rejected=%t posts=%d error=%v", seq, rejected, posts.Load(), err)
+// writeLocalOperation writes one operation signed with key to the accepted
+// state of host, as the local Shared Object host does.
+func writeLocalOperation(t *testing.T, host *cloudSOHost, key crypto.PrivKey) error {
+	// Write an operation onto a copy of the host state and accept it.
+	t.Helper()
+	base := host.stateCtr.GetValue()
+	written := base.CloneVT()
+	writeTestOperation(t, written, key)
+	return host.acceptLocalWrite(t.Context(), base, written)
+}
+
+// mustPeerID returns the peer ID of key.
+func mustPeerID(t *testing.T, key crypto.PrivKey) peer.ID {
+	t.Helper()
+	peerID, err := peer.IDFromPrivateKey(key)
+	if err != nil {
+		t.Fatal(err)
 	}
+	return peerID
 }

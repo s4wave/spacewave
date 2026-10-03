@@ -177,9 +177,10 @@ message SOStateDelta {
 message SOStateDeltaEntry {
   // Seqno is the change_log sequence number for this entry.
   uint64 seqno = 1;
-  // ChangeType is the type of change ("op" or "root").
+  // ChangeType is the type of change ("op" or "checkpoint").
   string change_type = 2;
-  // ChangeData is the serialized change data.
+  // ChangeData is an SOOperation for "op" and a PostCheckpointRequest for
+  // "checkpoint".
   bytes change_data = 3;
 }
 
@@ -189,12 +190,10 @@ message PostOpsRequest {
   repeated .sobject.SOOperation operations = 1;
 }
 
-// PostRootRequest is the binary payload for POST /sobject/:id/root.
-message PostRootRequest {
-  // Root is the next signed root state.
-  .sobject.SORoot root = 1;
-  // RejectedOps are the operations the validator rejected while producing Root.
-  repeated .sobject.SOOperationRejection rejected_ops = 2;
+// PostCheckpointRequest is the binary payload for POST /sobject/:id/checkpoint.
+message PostCheckpointRequest {
+  // Checkpoint is the owner-signed checkpoint that follows the held one.
+  .sobject.SOCheckpoint checkpoint = 1;
 }
 
 // SessionMessage is the multiplexed WebSocket envelope sent from
@@ -353,7 +352,7 @@ message SONotifyEventPayload {
   // Seqno is the server's current change_log sequence number after the
   // mutation that triggered this notify.
   uint64 seqno = 1;
-  // ChangeType identifies the mutation category ("op", "root",
+  // ChangeType identifies the mutation category ("op", "checkpoint",
   // "configChanged", "metadata", "delete", "access_changed").
   // "access_changed" means the receiving account gained or lost access, so
   // its shared object list must be refetched.
@@ -784,9 +783,9 @@ message SubmitOpResponse {
   uint64 seqno = 1;
 }
 
-// SubmitRootResponse is the response body for POST /sobject/:id/root.
-message SubmitRootResponse {
-  // Seqno is the change_log seqno assigned to the accepted root.
+// SubmitCheckpointResponse is the response body for POST /sobject/:id/checkpoint.
+message SubmitCheckpointResponse {
+  // Seqno is the change_log seqno assigned to the accepted checkpoint.
   uint64 seqno = 1;
 }
 
@@ -1537,14 +1536,12 @@ message VerifiedSOStateCache {
 
 // PendingSOPublication survives process loss without moving its first deadline.
 message PendingSOPublication {
-  // Root is the newest locally validated checkpoint awaiting cloud acceptance.
-  .sobject.SORoot root = 1;
+  // Checkpoint is the newest local checkpoint awaiting cloud acceptance.
+  .sobject.SOCheckpoint checkpoint = 1;
   // Operations are signed local writes not yet acknowledged by the cloud.
   repeated .sobject.SOOperation operations = 2;
-  // Rejections are signed outcomes accompanying the coalesced root.
-  repeated .sobject.SOOperationRejection rejections = 3;
-  // FirstPendingUnixMilli starts the bounded cloud-checkpoint interval.
-  int64 first_pending_unix_milli = 4;
+  // FirstPendingUnixMilli starts the bounded cloud-publication interval.
+  int64 first_pending_unix_milli = 3;
 }
 
 // TicketResponse is the response body for POST /session/ticket.
@@ -1559,8 +1556,9 @@ message TicketResponse {
 message WriteTicketBundleResponse {
   // SoOpTicket authorizes POST /sobject/:id/op for the addressed resource.
   string so_op_ticket = 1;
-  // SoRootTicket authorizes POST /sobject/:id/root for the addressed resource.
-  string so_root_ticket = 2;
+  // SoCheckpointTicket authorizes POST /sobject/:id/checkpoint for the
+  // addressed resource.
+  string so_checkpoint_ticket = 2;
   // BstoreSyncPushTicket authorizes POST /bstore/:id/sync/push for the
   // addressed resource.
   string bstore_sync_push_ticket = 3;
@@ -2847,10 +2845,11 @@ message CreateWithStateRequest {
   bool account_private = 5;
   // ConfigState is the signed initial config state payload.
   bytes config_state = 6;
-  // RootState is the signed initial root state payload.
-  bytes root_state = 7;
+  // CheckpointState is the PostCheckpointRequest carrying the owner-signed
+  // initial checkpoint.
+  bytes checkpoint_state = 7;
   // ConfigHistory imports the complete signed chain and retained key epochs.
-  // When present, ConfigState is its final checkpoint and RootState may be later
-  // than the first root. The authenticated account must own that checkpoint.
+  // When present, ConfigState is its final config and CheckpointState may be
+  // later than genesis. The authenticated account must own that config.
   bytes config_history = 8;
 }

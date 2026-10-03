@@ -11,24 +11,25 @@ import (
 	provider_local "github.com/s4wave/spacewave/core/provider/local"
 	provider_transfer "github.com/s4wave/spacewave/core/provider/transfer"
 	"github.com/s4wave/spacewave/core/sobject"
+	sobject_world_engine "github.com/s4wave/spacewave/core/sobject/world/engine"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/object"
 	"github.com/s4wave/spacewave/db/volume"
+	"github.com/s4wave/spacewave/net/crypto"
 	"github.com/s4wave/spacewave/testbed"
 	"github.com/sirupsen/logrus"
 )
 
 type orderTestSource struct {
-	list  *sobject.SharedObjectList
-	state *sobject.SOState
+	list *sobject.SharedObjectList
 }
 
 func (s *orderTestSource) GetSharedObjectList(context.Context) (*sobject.SharedObjectList, error) {
 	return s.list, nil
 }
 
-func (s *orderTestSource) GetSharedObjectState(context.Context, string) (*sobject.SOState, error) {
-	return s.state, nil
+func (s *orderTestSource) ReplaySharedObject(context.Context, *logrus.Entry, *sobject.SharedObjectRef) (*sobject_world_engine.InnerState, error) {
+	return &sobject_world_engine.InnerState{}, nil
 }
 
 func (s *orderTestSource) GetBlockStore(context.Context, *sobject.SharedObjectRef) (block.StoreOps, func(), error) {
@@ -52,15 +53,17 @@ func (t *orderTestTarget) AddSharedObject(_ context.Context, ref *sobject.Shared
 	return nil
 }
 
-func (t *orderTestTarget) WriteSharedObjectState(_ context.Context, sharedObjectID string, _ *sobject.SOState) error {
+func (t *orderTestTarget) WriteSharedObjectState(_ context.Context, _ *logrus.Entry, sharedObjectID string, _ crypto.PrivKey, _ []byte) error {
 	t.calls = append(t.calls, "write:"+sharedObjectID)
 	return nil
 }
 
 func TestTransferWatchStatePairsSnapshotAndWaitChannel(t *testing.T) {
+	// Start an idle transfer.
 	xfer := provider_transfer.NewTransfer(
 		nil,
 		provider_transfer.TransferMode_TransferMode_MERGE,
+		nil,
 		nil,
 		nil,
 		1,
@@ -68,6 +71,7 @@ func TestTransferWatchStatePairsSnapshotAndWaitChannel(t *testing.T) {
 		nil,
 	)
 
+	// Failing it closes the watch channel.
 	state, ch := xfer.WatchState()
 	if state.GetPhase() != provider_transfer.TransferPhase_TransferPhase_IDLE {
 		t.Fatalf("initial phase = %s, want IDLE", state.GetPhase())
@@ -81,6 +85,7 @@ func TestTransferWatchStatePairsSnapshotAndWaitChannel(t *testing.T) {
 		t.Fatal("watch channel did not close after state change")
 	}
 
+	// A new watch reports the failure.
 	state, _ = xfer.WatchState()
 	if state.GetPhase() != provider_transfer.TransferPhase_TransferPhase_FAILED {
 		t.Fatalf("final phase = %s, want FAILED", state.GetPhase())
@@ -155,19 +160,19 @@ func createTestSpace(ctx context.Context, t *testing.T, acc *provider_local.Prov
 // TestLocalTransferSourceReadsSoList verifies that the local transfer source
 // can read the shared object list from a provider account.
 func TestLocalTransferSourceReadsSoList(t *testing.T) {
+	// Start a testbed with a local provider.
 	ctx := context.Background()
-
 	tb, err := testbed.Default(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer tb.Release()
-
 	providerID := "local"
 	prov, provRel := setupLocalProvider(ctx, t, tb, providerID)
 	defer provRel()
 
-	acc, accountID, accRel := createAccount(ctx, t, prov)
+	// Create an account on it.
+	acc, _, accRel := createAccount(ctx, t, prov)
 	defer accRel()
 
 	// Create two shared objects.
@@ -175,7 +180,7 @@ func TestLocalTransferSourceReadsSoList(t *testing.T) {
 	createTestSpace(ctx, t, acc, "space-b")
 
 	// Build the transfer source and read the SO list.
-	src := provider_transfer.NewLocalTransferSource(acc, providerID, accountID, tb.Bus)
+	src := provider_transfer.NewLocalTransferSource(acc, tb.Bus)
 	soList, err := src.GetSharedObjectList(ctx)
 	if err != nil {
 		t.Fatal(err)
@@ -199,8 +204,8 @@ func TestLocalTransferSourceReadsSoList(t *testing.T) {
 }
 
 func TestTransferAddsTargetSharedObjectBeforeWritingState(t *testing.T) {
+	// Transfer one Space to a target that records its calls.
 	ctx := context.Background()
-
 	ref := &sobject.SharedObjectRef{
 		ProviderResourceRef: &provider.ProviderResourceRef{
 			Id:                "space-a",
@@ -216,17 +221,14 @@ func TestTransferAddsTargetSharedObjectBeforeWritingState(t *testing.T) {
 				Meta: &sobject.SharedObjectMeta{BodyType: "space"},
 			}},
 		},
-		state: &sobject.SOState{
-			Root: &sobject.SORoot{InnerSeqno: 1},
-		},
 	}
 	tgt := &orderTestTarget{}
-
 	xfer := provider_transfer.NewTransfer(
 		logrus.NewEntry(logrus.StandardLogger()),
 		provider_transfer.TransferMode_TransferMode_MERGE,
 		src,
 		tgt,
+		nil,
 		1,
 		2,
 		nil,
@@ -235,6 +237,7 @@ func TestTransferAddsTargetSharedObjectBeforeWritingState(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// The target adds the Space before writing its state.
 	got := strings.Join(tgt.calls, ",")
 	want := "add:space-a,write:space-a"
 	if got != want {
@@ -245,14 +248,13 @@ func TestTransferAddsTargetSharedObjectBeforeWritingState(t *testing.T) {
 // TestLocalMergeBlockCopy verifies that the transfer copies blocks from the
 // source account's block store to the target account's block store.
 func TestLocalMergeBlockCopy(t *testing.T) {
+	// Start a testbed with a local provider.
 	ctx := context.Background()
-
 	tb, err := testbed.Default(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer tb.Release()
-
 	providerID := "local"
 	prov, provRel := setupLocalProvider(ctx, t, tb, providerID)
 	defer provRel()
@@ -273,6 +275,7 @@ func TestLocalMergeBlockCopy(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Write three test blocks.
 	testData := [][]byte{
 		[]byte("block-data-one"),
 		[]byte("block-data-two"),
@@ -291,11 +294,11 @@ func TestLocalMergeBlockCopy(t *testing.T) {
 
 	// Build source and target.
 	le := logrus.NewEntry(logrus.StandardLogger())
-	src := provider_transfer.NewLocalTransferSource(srcAcc, providerID, srcAccountID, tb.Bus)
+	src := provider_transfer.NewLocalTransferSource(srcAcc, tb.Bus)
 	tgt := provider_transfer.NewLocalTransferTarget(tgtAcc, providerID, tgtAccountID, tb.Bus)
 
 	// Run the transfer.
-	xfer := provider_transfer.NewTransfer(le, provider_transfer.TransferMode_TransferMode_MERGE, src, tgt, 1, 2, nil)
+	xfer := provider_transfer.NewTransfer(le, provider_transfer.TransferMode_TransferMode_MERGE, src, tgt, ownerKey(ctx, t, tgtAcc), 1, 2, nil)
 	if err := xfer.Execute(ctx); err != nil {
 		t.Fatal(err)
 	}
@@ -320,6 +323,7 @@ func TestLocalMergeBlockCopy(t *testing.T) {
 	}
 	defer tgtBSRel()
 
+	// Each block reads back from the target with its data.
 	for i, data := range testData {
 		// Re-put the same data to get the same ref and check it exists.
 		exists, err := tgtBS.GetBlockExists(ctx, mustParseBlockRef(t, blockRefs[i]))
@@ -345,19 +349,19 @@ func TestLocalMergeBlockCopy(t *testing.T) {
 // TestLocalMergeSoList verifies that after a merge transfer, the target SO list
 // contains both the original target SOs and the merged source SOs.
 func TestLocalMergeSoList(t *testing.T) {
+	// Start a testbed with a local provider.
 	ctx := context.Background()
-
 	tb, err := testbed.Default(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer tb.Release()
-
 	providerID := "local"
 	prov, provRel := setupLocalProvider(ctx, t, tb, providerID)
 	defer provRel()
 
-	srcAcc, srcAccountID, srcRel := createAccount(ctx, t, prov)
+	// Create source and target accounts.
+	srcAcc, _, srcRel := createAccount(ctx, t, prov)
 	defer srcRel()
 	tgtAcc, tgtAccountID, tgtRel := createAccount(ctx, t, prov)
 	defer tgtRel()
@@ -371,15 +375,15 @@ func TestLocalMergeSoList(t *testing.T) {
 
 	// Run the transfer.
 	le := logrus.NewEntry(logrus.StandardLogger())
-	src := provider_transfer.NewLocalTransferSource(srcAcc, providerID, srcAccountID, tb.Bus)
+	src := provider_transfer.NewLocalTransferSource(srcAcc, tb.Bus)
 	tgt := provider_transfer.NewLocalTransferTarget(tgtAcc, providerID, tgtAccountID, tb.Bus)
-	xfer := provider_transfer.NewTransfer(le, provider_transfer.TransferMode_TransferMode_MERGE, src, tgt, 1, 2, nil)
+	xfer := provider_transfer.NewTransfer(le, provider_transfer.TransferMode_TransferMode_MERGE, src, tgt, ownerKey(ctx, t, tgtAcc), 1, 2, nil)
 	if err := xfer.Execute(ctx); err != nil {
 		t.Fatal(err)
 	}
 
 	// Read target SO list.
-	tgtSrc := provider_transfer.NewLocalTransferSource(tgtAcc, providerID, tgtAccountID, tb.Bus)
+	tgtSrc := provider_transfer.NewLocalTransferSource(tgtAcc, tb.Bus)
 	tgtList, err := tgtSrc.GetSharedObjectList(ctx)
 	if err != nil {
 		t.Fatal(err)
@@ -391,6 +395,7 @@ func TestLocalMergeSoList(t *testing.T) {
 		t.Fatalf("expected 4 SOs on target, got %d", len(entries))
 	}
 
+	// Both the merged and the existing Spaces are present.
 	ids := make(map[string]bool)
 	for _, entry := range entries {
 		ids[entry.GetRef().GetProviderResourceRef().GetId()] = true
@@ -405,18 +410,18 @@ func TestLocalMergeSoList(t *testing.T) {
 // TestLocalMergeResume verifies that a transfer can resume from a checkpoint
 // after being interrupted mid-copy.
 func TestLocalMergeResume(t *testing.T) {
+	// Start a testbed with a local provider.
 	ctx := context.Background()
-
 	tb, err := testbed.Default(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer tb.Release()
-
 	providerID := "local"
 	prov, provRel := setupLocalProvider(ctx, t, tb, providerID)
 	defer provRel()
 
+	// Create source and target accounts.
 	srcAcc, srcAccountID, srcRel := createAccount(ctx, t, prov)
 	defer srcRel()
 	tgtAcc, tgtAccountID, tgtRel := createAccount(ctx, t, prov)
@@ -427,8 +432,9 @@ func TestLocalMergeResume(t *testing.T) {
 	createTestSpace(ctx, t, srcAcc, "space-b")
 	createTestSpace(ctx, t, srcAcc, "space-c")
 
+	// Build the source and target.
 	le := logrus.NewEntry(logrus.StandardLogger())
-	src := provider_transfer.NewLocalTransferSource(srcAcc, providerID, srcAccountID, tb.Bus)
+	src := provider_transfer.NewLocalTransferSource(srcAcc, tb.Bus)
 	tgt := provider_transfer.NewLocalTransferTarget(tgtAcc, providerID, tgtAccountID, tb.Bus)
 
 	// Build a checkpoint store using the source account's object store.
@@ -458,7 +464,7 @@ func TestLocalMergeResume(t *testing.T) {
 	createTestSpace(ctx, t, tgtAcc, "space-a")
 
 	// Run the transfer with the checkpoint. It should skip space-a.
-	xfer := provider_transfer.NewTransfer(le, provider_transfer.TransferMode_TransferMode_MERGE, src, tgt, 1, 2, &provider_transfer.TransferOptions{Checkpoint: cpStore})
+	xfer := provider_transfer.NewTransfer(le, provider_transfer.TransferMode_TransferMode_MERGE, src, tgt, ownerKey(ctx, t, tgtAcc), 1, 2, &provider_transfer.TransferOptions{Checkpoint: cpStore})
 	if err := xfer.Execute(ctx); err != nil {
 		t.Fatal(err)
 	}
@@ -473,17 +479,19 @@ func TestLocalMergeResume(t *testing.T) {
 	}
 
 	// Verify target has all 3 SOs (space-a from manual add + space-b, space-c from resume).
-	tgtSrc := provider_transfer.NewLocalTransferSource(tgtAcc, providerID, tgtAccountID, tb.Bus)
+	tgtSrc := provider_transfer.NewLocalTransferSource(tgtAcc, tb.Bus)
 	tgtList, err := tgtSrc.GetSharedObjectList(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	// The target holds the three Spaces and its settings object.
 	entries := tgtList.GetSharedObjects()
 	if len(entries) != 4 {
 		t.Fatalf("expected 4 SOs on target (3 spaces + account-settings), got %d", len(entries))
 	}
 
+	// Each source Space is present.
 	ids := make(map[string]bool)
 	for _, entry := range entries {
 		ids[entry.GetRef().GetProviderResourceRef().GetId()] = true
@@ -498,19 +506,19 @@ func TestLocalMergeResume(t *testing.T) {
 // TestLocalMergeCleanup verifies that after a merge, the source session's SOs
 // are deleted and the volume is removed.
 func TestLocalMergeCleanup(t *testing.T) {
+	// Start a testbed with a local provider.
 	ctx := context.Background()
-
 	tb, err := testbed.Default(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer tb.Release()
-
 	providerID := "local"
 	prov, provRel := setupLocalProvider(ctx, t, tb, providerID)
 	defer provRel()
 
-	srcAcc, srcAccountID, srcRel := createAccount(ctx, t, prov)
+	// Create source and target accounts.
+	srcAcc, _, srcRel := createAccount(ctx, t, prov)
 	defer srcRel()
 	tgtAcc, tgtAccountID, tgtRel := createAccount(ctx, t, prov)
 	defer tgtRel()
@@ -518,12 +526,13 @@ func TestLocalMergeCleanup(t *testing.T) {
 	// Create an SO on source.
 	createTestSpace(ctx, t, srcAcc, "merge-space")
 
+	// Build the source and target.
 	le := logrus.NewEntry(logrus.StandardLogger())
-	src := provider_transfer.NewLocalTransferSource(srcAcc, providerID, srcAccountID, tb.Bus)
+	src := provider_transfer.NewLocalTransferSource(srcAcc, tb.Bus)
 	tgt := provider_transfer.NewLocalTransferTarget(tgtAcc, providerID, tgtAccountID, tb.Bus)
 
 	// Run transfer WITH cleanup.
-	xfer := provider_transfer.NewTransfer(le, provider_transfer.TransferMode_TransferMode_MERGE, src, tgt, 1, 2, &provider_transfer.TransferOptions{Cleanup: src})
+	xfer := provider_transfer.NewTransfer(le, provider_transfer.TransferMode_TransferMode_MERGE, src, tgt, ownerKey(ctx, t, tgtAcc), 1, 2, &provider_transfer.TransferOptions{Cleanup: src})
 	if err := xfer.Execute(ctx); err != nil {
 		t.Fatal(err)
 	}
@@ -538,7 +547,7 @@ func TestLocalMergeCleanup(t *testing.T) {
 	}
 
 	// Verify target has the transferred SO + its own account-settings.
-	tgtSrc := provider_transfer.NewLocalTransferSource(tgtAcc, providerID, tgtAccountID, tb.Bus)
+	tgtSrc := provider_transfer.NewLocalTransferSource(tgtAcc, tb.Bus)
 	tgtList, err := tgtSrc.GetSharedObjectList(ctx)
 	if err != nil {
 		t.Fatal(err)
@@ -569,6 +578,22 @@ func buildTestObjectStore(
 		return nil, nil, err
 	}
 	return handle.GetObjectStore(), diRef.Release, nil
+}
+
+// ownerKey returns the private key of the account's volume peer, which owns
+// the Spaces a transfer writes to the account.
+func ownerKey(ctx context.Context, t *testing.T, acc *provider_local.ProviderAccount) crypto.PrivKey {
+	// Read the private key of the volume peer.
+	t.Helper()
+	p, err := acc.GetVolume().GetPeer(ctx, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	priv, err := p.GetPrivKey(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return priv
 }
 
 // mustParseBlockRef parses a b58 block ref string.

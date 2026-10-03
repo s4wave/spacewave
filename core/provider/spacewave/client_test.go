@@ -145,7 +145,8 @@ func TestSignRequest_Headers(t *testing.T) {
 	}
 }
 
-// TestSignRequest_SignedHeaders verifies X-Signed-Headers is set when signable headers are present.
+// TestSignRequest_SignedHeaders verifies X-Signed-Headers is set when signable
+// headers are present.
 func TestSignRequest_SignedHeaders(t *testing.T) {
 	priv, pid := generateTestKeypair(t)
 	cli := &SignedHTTPClient{
@@ -185,8 +186,8 @@ func TestSignRequest_SignedHeaders(t *testing.T) {
 	}
 }
 
-// TestSignRequest_NoSignedHeadersWhenAbsent verifies X-Signed-Headers is not set
-// when no signable headers are present on the request.
+// TestSignRequest_NoSignedHeadersWhenAbsent verifies X-Signed-Headers is not
+// set when no signable headers are present on the request.
 func TestSignRequest_NoSignedHeadersWhenAbsent(t *testing.T) {
 	priv, pid := generateTestKeypair(t)
 	cli := &SignedHTTPClient{
@@ -211,7 +212,8 @@ func TestSignRequest_NoSignedHeadersWhenAbsent(t *testing.T) {
 	}
 }
 
-// TestSignRequest_NoPrivateKey verifies signRequest returns an error without a key.
+// TestSignRequest_NoPrivateKey verifies signRequest returns an error without a
+// key.
 func TestSignRequest_NoPrivateKey(t *testing.T) {
 	cli := &SignedHTTPClient{
 		httpCli: http.DefaultClient,
@@ -230,7 +232,8 @@ func TestSignRequest_NoPrivateKey(t *testing.T) {
 	}
 }
 
-// TestSignRequest_SignatureVerifies verifies the signature can be verified with the public key.
+// TestSignRequest_SignatureVerifies verifies the signature can be verified with
+// the public key.
 func TestSignRequest_SignatureVerifies(t *testing.T) {
 	priv, pid := generateTestKeypair(t)
 	cli := &SignedHTTPClient{
@@ -539,7 +542,8 @@ func TestDoPost_ExtraHeaders(t *testing.T) {
 	}
 }
 
-// TestDoPost_ErrorStatus verifies doPost returns an error for non-2xx status codes.
+// TestDoPost_ErrorStatus verifies doPost returns an error for non-2xx status
+// codes.
 func TestDoPost_ErrorStatus(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusForbidden)
@@ -620,7 +624,8 @@ func TestDoGet_ServerError(t *testing.T) {
 	}
 }
 
-// TestUpdateSOMetadata_Success verifies UpdateSOMetadata posts the expected payload.
+// TestUpdateSOMetadata_Success verifies UpdateSOMetadata posts the expected
+// payload.
 func TestUpdateSOMetadata_Success(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
@@ -831,7 +836,8 @@ func TestTargetedInvitationEnvelopeSignatureVerification(t *testing.T) {
 	}
 }
 
-// TestRegisterAccount_Success verifies RegisterAccount sends the correct proto binary and parses the response.
+// TestRegisterAccount_Success verifies RegisterAccount sends the correct proto
+// binary and parses the response.
 func TestRegisterAccount_Success(t *testing.T) {
 	priv, pid := generateTestKeypair(t)
 
@@ -885,7 +891,8 @@ func TestRegisterAccount_Success(t *testing.T) {
 	}
 }
 
-// TestRegisterAccount_MissingAccountID verifies RegisterAccount returns error when response has no account_id.
+// TestRegisterAccount_MissingAccountID verifies RegisterAccount returns error
+// when response has no account_id.
 func TestRegisterAccount_MissingAccountID(t *testing.T) {
 	priv, pid := generateTestKeypair(t)
 
@@ -908,7 +915,8 @@ func TestRegisterAccount_MissingAccountID(t *testing.T) {
 	}
 }
 
-// TestRegisterAccount_NoPrivateKey verifies RegisterAccount returns error without a key.
+// TestRegisterAccount_NoPrivateKey verifies RegisterAccount returns error
+// without a key.
 func TestRegisterAccount_NoPrivateKey(t *testing.T) {
 	_, pid := generateTestKeypair(t)
 	cli := &EntityClient{
@@ -926,7 +934,8 @@ func TestRegisterAccount_NoPrivateKey(t *testing.T) {
 	}
 }
 
-// TestRegisterAccount_ServerError verifies RegisterAccount returns error for server failures.
+// TestRegisterAccount_ServerError verifies RegisterAccount returns error for
+// server failures.
 func TestRegisterAccount_ServerError(t *testing.T) {
 	priv, pid := generateTestKeypair(t)
 
@@ -943,7 +952,8 @@ func TestRegisterAccount_ServerError(t *testing.T) {
 	}
 }
 
-// TestRegisterSessionDirect_Success verifies RegisterSessionDirect sends the correct request.
+// TestRegisterSessionDirect_Success verifies RegisterSessionDirect sends the
+// correct request.
 func TestRegisterSessionDirect_Success(t *testing.T) {
 	priv, pid := generateTestKeypair(t)
 	_, sessionPID := generateTestKeypair(t)
@@ -1085,7 +1095,8 @@ func TestRollbackSessionRegistration_Success(t *testing.T) {
 	}
 }
 
-// TestIsBlockedCloudError verifies isBlockedCloudError returns true for dmca_blocked.
+// TestIsBlockedCloudError verifies isBlockedCloudError returns true for
+// dmca_blocked.
 func TestIsBlockedCloudError(t *testing.T) {
 	tests := []struct {
 		name string
@@ -1148,7 +1159,8 @@ func TestIsRefreshableWriteTicketCloudError_NonCloudError(t *testing.T) {
 	}
 }
 
-// TestIsBlockedCloudError_NonCloudError verifies isBlockedCloudError returns false for non-cloud errors.
+// TestIsBlockedCloudError_NonCloudError verifies isBlockedCloudError returns
+// false for non-cloud errors.
 func TestIsBlockedCloudError_NonCloudError(t *testing.T) {
 	err := errors.New("generic error")
 	if isBlockedCloudError(err) {
@@ -1238,7 +1250,8 @@ func TestSignMultiSig_Success(t *testing.T) {
 	}
 }
 
-// TestSignMultiSig_LengthMismatch verifies signMultiSig rejects mismatched key/peerID lengths.
+// TestSignMultiSig_LengthMismatch verifies signMultiSig rejects mismatched
+// key/peerID lengths.
 func TestSignMultiSig_LengthMismatch(t *testing.T) {
 	priv, pid := generateTestKeypair(t)
 	cli := NewEntityClientDirect(http.DefaultClient, "http://localhost", DefaultSigningEnvPrefix, priv, pid)
@@ -1609,8 +1622,12 @@ func TestFinalizeAccountSObjectBinding_Success(t *testing.T) {
 	}
 }
 
+// TestSessionClientGetWriteTicketBundle checks that a Session fetches every
+// write ticket of a resource at once.
 func TestSessionClientGetWriteTicketBundle(t *testing.T) {
+	// Serve a ticket bundle for the resource.
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// The request is a signed mutation for the resource.
 		if r.Method != http.MethodPost {
 			t.Fatalf("expected POST, got %s", r.Method)
 		}
@@ -1621,9 +1638,10 @@ func TestSessionClientGetWriteTicketBundle(t *testing.T) {
 			t.Fatalf("unexpected %s: got %q", SeedReasonHeader, got)
 		}
 
+		// Answer with one ticket of each kind.
 		body, err := (&api.WriteTicketBundleResponse{
 			SoOpTicket:           "so-op-ticket",
-			SoRootTicket:         "so-root-ticket",
+			SoCheckpointTicket:   "so-checkpoint-ticket",
 			BstoreSyncPushTicket: "sync-push-ticket",
 		}).MarshalVT()
 		if err != nil {
@@ -1634,9 +1652,9 @@ func TestSessionClientGetWriteTicketBundle(t *testing.T) {
 	}))
 	defer srv.Close()
 
+	// A Session fetches the bundle and receives each ticket.
 	priv, pid := generateTestKeypair(t)
 	cli := NewSessionClient(http.DefaultClient, srv.URL, DefaultSigningEnvPrefix, priv, pid.String())
-
 	resp, err := cli.GetWriteTicketBundle(context.Background(), "res-1")
 	if err != nil {
 		t.Fatalf("GetWriteTicketBundle: %v", err)
@@ -1644,8 +1662,8 @@ func TestSessionClientGetWriteTicketBundle(t *testing.T) {
 	if resp.GetSoOpTicket() != "so-op-ticket" {
 		t.Fatalf("unexpected so op ticket: %q", resp.GetSoOpTicket())
 	}
-	if resp.GetSoRootTicket() != "so-root-ticket" {
-		t.Fatalf("unexpected so root ticket: %q", resp.GetSoRootTicket())
+	if resp.GetSoCheckpointTicket() != "so-checkpoint-ticket" {
+		t.Fatalf("unexpected so checkpoint ticket: %q", resp.GetSoCheckpointTicket())
 	}
 	if resp.GetBstoreSyncPushTicket() != "sync-push-ticket" {
 		t.Fatalf("unexpected sync push ticket: %q", resp.GetBstoreSyncPushTicket())

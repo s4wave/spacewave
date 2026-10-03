@@ -1,4 +1,4 @@
-import Spacewave.SObject.State
+import Spacewave.SObject.Crypto
 
 /-!
 # Entity recovery and self-enrollment
@@ -278,21 +278,18 @@ theorem recoveryGrant_admitted {current admitted : Config} {sig : Sig}
   have member : Participant.mk peer role entity ∈ admitted.participants := by
     rw [audience]
     simp
-  have readable : role ∈ [Role.reader, Role.writer, Role.validator, Role.owner] := by
-    simp only [Role.reader, Role.writer, Role.validator, Role.owner] at lower upper ⊢
+  have readable : role ∈ [Role.reader, Role.writer, Role.owner] := by
+    simp only [Role.reader, Role.writer, Role.owner] at lower upper ⊢
     simp only [List.mem_cons, List.not_mem_nil, or_false]
     change (1 : Int) ≤ role at lower
-    change role ≤ (4 : Int) at upper
-    change role = (1 : Int) ∨ role = 2 ∨ role = 3 ∨ role = 4
+    change role ≤ (3 : Int) at upper
+    change role = (1 : Int) ∨ role = 2 ∨ role = 3
     rcases Int.le_iff_eq_or_lt.mp lower with one | greater
     · exact Or.inl one.symm
     · have lowerTwo : (2 : Int) ≤ role := Int.add_one_le_of_lt greater
       rcases Int.le_iff_eq_or_lt.mp lowerTwo with two | greater
       · exact Or.inr (Or.inl two.symm)
-      · have lowerThree : (3 : Int) ≤ role := Int.add_one_le_of_lt greater
-        rcases Int.le_iff_eq_or_lt.mp lowerThree with three | greater
-        · exact Or.inr (Or.inr (Or.inl three.symm))
-        · exact Or.inr (Or.inr (Or.inr (Int.le_antisymm upper (Int.add_one_le_of_lt greater))))
+      · exact Or.inr (Or.inr (Int.le_antisymm upper (Int.add_one_le_of_lt greater)))
   simp only [Grant.valid, format, signature, recipient]
   simp only [Bool.true_and, Bool.and_eq_true, bne_iff_ne]
   refine ⟨nonempty, List.any_eq_true.mpr ⟨⟨peer, role, entity⟩, member, ?_⟩⟩

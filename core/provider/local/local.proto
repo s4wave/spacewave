@@ -1,7 +1,6 @@
 syntax = "proto3";
 package provider.local;
 
-import "github.com/s4wave/spacewave/core/sobject/sobject.proto";
 import "github.com/s4wave/spacewave/core/pairing/pairing.proto";
 import "github.com/s4wave/spacewave/db/bucket/bucket.proto";
 
@@ -40,22 +39,6 @@ message Config {
   // SignalingEnvPrefix is the request-signing namespace of the signaling server.
   // Empty uses the production namespace.
   string signaling_env_prefix = 5;
-}
-
-// LocalSOState contains the local state for a shared object.
-message LocalSOState {
-  // OpQueue contains locally queued ops not applied to the SOHost yet.
-  repeated .sobject.QueuedSOOperation op_queue = 1;
-}
-
-// LocalSOOperationResult contains the result of a SOOperation.
-message LocalSOOperationResult {
-  // LocalId is the local operation id, must be a valid ulid.
-  string local_id = 1;
-  // Result is the operation result.
-  .sobject.SOOperationResult result = 2;
-  // RootSeqno is the root seqno that accepted or rejected the operation.
-  uint64 root_seqno = 3;
 }
 
 // AccountReplicaCopyState records local durability for one accepted World head.

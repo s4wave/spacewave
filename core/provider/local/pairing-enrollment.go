@@ -42,7 +42,7 @@ func (a *ProviderAccount) OfferPairingAccount(ctx context.Context, key crypto.Pr
 	if err != nil {
 		return nil, err
 	}
-	accountSettings, _, err := decodeAccountSettingsSnapshot(ctx, snapshot)
+	accountSettings, err := account_settings.ReadSnapshot(ctx, snapshot)
 	if err != nil {
 		return nil, err
 	}

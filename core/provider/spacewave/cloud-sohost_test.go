@@ -12,8 +12,9 @@ import (
 	"github.com/aperturerobotics/util/ccontainer"
 	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
 	"github.com/s4wave/spacewave/core/sobject"
+	block_transform "github.com/s4wave/spacewave/db/block/transform"
+	transform_blockenc "github.com/s4wave/spacewave/db/block/transform/blockenc"
 	"github.com/s4wave/spacewave/net/crypto"
-	"github.com/s4wave/spacewave/net/hash"
 	"github.com/s4wave/spacewave/net/peer"
 	"github.com/sirupsen/logrus"
 )
@@ -396,149 +397,67 @@ func waitAsyncCallbackJobsEmpty(t *testing.T, jobs *asyncCallbackJobs) {
 	}
 }
 
-func TestApplyChangeLogEntryRootPrunesAcceptedAndRejectedOps(t *testing.T) {
-	// Create a validator and two writers.
-	validator, err := peer.NewPeer(nil)
+// TestApplyChangeLogEntryCheckpointCoversOps checks that change log entries
+// add operations and that a checkpoint entry drops the operations it covers,
+// once even when replayed.
+func TestApplyChangeLogEntryCheckpointCoversOps(t *testing.T) {
+	// The owner writes two operations to its copy of genesis.
+	state, priv := newTestGenesisState(t)
+	replica := state.CloneVT()
+	ops := []*sobject.SOOperation{writeTestOperation(t, state, priv), writeTestOperation(t, state, priv)}
+	opsData, err := (&api.PostOpsRequest{Operations: ops}).MarshalVT()
 	if err != nil {
-		t.Fatalf("validator peer: %v", err)
-	}
-	writer1, err := peer.NewPeer(nil)
-	if err != nil {
-		t.Fatalf("writer1 peer: %v", err)
-	}
-	writer2, err := peer.NewPeer(nil)
-	if err != nil {
-		t.Fatalf("writer2 peer: %v", err)
+		t.Fatal(err)
 	}
 
-	// Load their keys.
-	validatorPriv, err := validator.GetPrivKey(context.Background())
-	if err != nil {
-		t.Fatalf("validator privkey: %v", err)
+	// The replica applies the operations from the change log.
+	if err := applyChangeLogEntry(testSharedObjectID, replica, &api.SOStateDeltaEntry{ChangeType: "ops", ChangeData: opsData}); err != nil {
+		t.Fatal(err)
 	}
-	writer1Priv, err := writer1.GetPrivKey(context.Background())
-	if err != nil {
-		t.Fatalf("writer1 privkey: %v", err)
-	}
-	writer2Priv, err := writer2.GetPrivKey(context.Background())
-	if err != nil {
-		t.Fatalf("writer2 privkey: %v", err)
+	if len(replica.GetOps()) != 2 {
+		t.Fatalf("replica holds %d operations; want 2", len(replica.GetOps()))
 	}
 
-	// Reject writer 1's second operation and keep writer 2's pending; the root accepts writer 1's first.
-	op1 := buildTestSOOperation(t, writer1Priv, testOperationLink(1))
-	op2 := buildTestSOOperation(t, writer1Priv, &sobject.SOOperationLink{Nonce: 2, PrevOpHash: op1.Hash(), ConfigHash: testConfigHash})
-	op3 := buildTestSOOperation(t, writer2Priv, testOperationLink(1))
-	rejection := buildTestSOOperationRejection(t, validatorPriv, writer1.GetPeerID(), 2, op2)
-	state := &sobject.SOState{
-		Config: buildTestSharedObjectConfig(validator, writer1, writer2),
-		Root:   buildTestSORoot(t, validatorPriv, 1, nil),
-		Ops:    []*sobject.SOOperation{op1, op2, op3},
-		OpRejections: []*sobject.SOPeerOpRejections{{
-			PeerId:     writer1.GetPeerID().String(),
-			Rejections: []*sobject.SOOperationRejection{rejection},
-		}},
-	}
-	root := buildTestSORoot(t, validatorPriv, 2, []*sobject.SOAccountNonce{{
-		PeerId: writer1.GetPeerID().String(),
-		Nonce:  1,
-		OpHash: op1.Hash(),
-	}})
-	rootData, err := (&api.PostRootRequest{Root: root}).MarshalVT()
+	// The checkpoint covering both drops them, and replaying it or a delayed
+	// echo of the operations changes nothing.
+	checkpoint, err := state.BuildNextCheckpoint(testSharedObjectID, priv, []byte("state"))
 	if err != nil {
-		t.Fatalf("marshal post root request: %v", err)
+		t.Fatal(err)
 	}
-
-	// Applying the root prunes the accepted and rejected operations.
-	err = applyChangeLogEntry(testSharedObjectID, state, &api.SOStateDeltaEntry{
-		ChangeType: "root",
-		ChangeData: rootData,
-	})
+	checkpointData, err := (&api.PostCheckpointRequest{Checkpoint: checkpoint}).MarshalVT()
 	if err != nil {
-		t.Fatalf("applyChangeLogEntry(root): %v", err)
+		t.Fatal(err)
 	}
-	if len(state.GetOps()) != 1 {
-		t.Fatalf("expected 1 pending op after prune, got %d", len(state.GetOps()))
-	}
-
-	// Only writer 2's operation remains.
-	inner, err := state.GetOps()[0].UnmarshalInner()
-	if err != nil {
-		t.Fatalf("unmarshal remaining op: %v", err)
-	}
-	if inner.GetPeerId() != writer2.GetPeerID().String() || inner.GetNonce() != 1 {
-		t.Fatalf("unexpected remaining op: peer=%s nonce=%d", inner.GetPeerId(), inner.GetNonce())
+	for _, entry := range []*api.SOStateDeltaEntry{
+		{ChangeType: "checkpoint", ChangeData: checkpointData},
+		{ChangeType: "checkpoint", ChangeData: checkpointData},
+		{ChangeType: "ops", ChangeData: opsData},
+	} {
+		if err := applyChangeLogEntry(testSharedObjectID, replica, entry); err != nil {
+			t.Fatal(err)
+		}
+		if len(replica.GetOps()) != 0 || !replica.GetCheckpoint().EqualVT(checkpoint) {
+			t.Fatalf("%s entry restored covered operations", entry.GetChangeType())
+		}
 	}
 }
 
-func TestApplyChangeLogEntryRootIsIdempotentForMatchingRoot(t *testing.T) {
-	validator, err := peer.NewPeer(nil)
-	if err != nil {
-		t.Fatalf("validator peer: %v", err)
-	}
-	validatorPriv, err := validator.GetPrivKey(context.Background())
-	if err != nil {
-		t.Fatalf("validator privkey: %v", err)
-	}
-	root := buildTestSORoot(t, validatorPriv, 6, nil)
-	reqData, err := (&api.PostRootRequest{Root: root}).MarshalVT()
-	if err != nil {
-		t.Fatalf("marshal post root request: %v", err)
-	}
-
-	state := &sobject.SOState{
-		Config: &sobject.SharedObjectConfig{
-			ConsensusMode: sobject.SOConsensusMode_SO_CONSENSUS_MODE_SINGLE_VALIDATOR,
-			Participants: []*sobject.SOParticipantConfig{{
-				PeerId: validator.GetPeerID().String(),
-				Role:   sobject.SOParticipantRole_SOParticipantRole_VALIDATOR,
-			}},
-		},
-		Root: root.CloneVT(),
-	}
-	if err := applyChangeLogEntry(testSharedObjectID, state, &api.SOStateDeltaEntry{
-		ChangeType: "root",
-		ChangeData: reqData,
-	}); err != nil {
-		t.Fatalf("applyChangeLogEntry(root): %v", err)
-	}
-	if !state.GetRoot().EqualVT(root) {
-		t.Fatal("expected matching root replay to leave cached root unchanged")
-	}
-}
-
+// TestVerifyPulledStateIgnoresChangeLogSeqno checks that the change log
+// sequence number does not take part in rollback checks of pulled state.
 func TestVerifyPulledStateIgnoresChangeLogSeqno(t *testing.T) {
-	validator, err := peer.NewPeer(nil)
-	if err != nil {
-		t.Fatalf("validator peer: %v", err)
-	}
-	validatorPriv, err := validator.GetPrivKey(context.Background())
-	if err != nil {
-		t.Fatalf("validator privkey: %v", err)
-	}
-	cachedRoot := buildTestSORoot(t, validatorPriv, 6, nil)
+	state, _ := newTestGenesisState(t)
 	h := &cloudSOHost{
 		soID:     testSharedObjectID,
-		stateCtr: ccontainer.NewCContainer[*sobject.SOState](&sobject.SOState{Root: cachedRoot}),
+		stateCtr: ccontainer.NewCContainer(state),
 		le:       logrus.New().WithField("test", t.Name()),
 	}
 	h.lastSeqno = 10
-
-	next := &sobject.SOState{
-		Config: &sobject.SharedObjectConfig{
-			ConsensusMode: sobject.SOConsensusMode_SO_CONSENSUS_MODE_SINGLE_VALIDATOR,
-			Participants: []*sobject.SOParticipantConfig{{
-				PeerId: validator.GetPeerID().String(),
-				Role:   sobject.SOParticipantRole_SOParticipantRole_VALIDATOR,
-			}},
-		},
-		Root: cachedRoot.CloneVT(),
-	}
-	if err := h.verifyPulledState(next); err != nil {
+	if err := h.verifyPulledState(state.CloneVT()); err != nil {
 		t.Fatalf("verifyPulledState should ignore changelog seqno for rollback checks: %v", err)
 	}
 }
 
+// TestVerifyChangeLogSeqnoUsesSnapshotCounter rejects a change log rollback.
 func TestVerifyChangeLogSeqnoUsesSnapshotCounter(t *testing.T) {
 	h := &cloudSOHost{
 		stateCtr: ccontainer.NewCContainer[*sobject.SOState](nil),
@@ -554,118 +473,53 @@ func TestVerifyChangeLogSeqnoUsesSnapshotCounter(t *testing.T) {
 	}
 }
 
-// buildTestSharedObjectConfig builds a single-validator configuration whose
-// validator is also the required OWNER.
-func buildTestSharedObjectConfig(
-	validator peer.Peer,
-	writer1 peer.Peer,
-	writer2 peer.Peer,
-) *sobject.SharedObjectConfig {
-	return &sobject.SharedObjectConfig{
-		ConsensusMode: sobject.SOConsensusMode_SO_CONSENSUS_MODE_SINGLE_VALIDATOR,
-		Participants: []*sobject.SOParticipantConfig{
-			{
-				PeerId: validator.GetPeerID().String(),
-				Role:   sobject.SOParticipantRole_SOParticipantRole_OWNER,
-			},
-			{
-				PeerId: writer1.GetPeerID().String(),
-				Role:   sobject.SOParticipantRole_SOParticipantRole_WRITER,
-			},
-			{
-				PeerId: writer2.GetPeerID().String(),
-				Role:   sobject.SOParticipantRole_SOParticipantRole_WRITER,
-			},
-		},
-	}
+// testStepFactorySet returns the block transforms of shared object keys.
+func testStepFactorySet() *block_transform.StepFactorySet {
+	sfs := block_transform.NewStepFactorySet()
+	sfs.AddStepFactory(transform_blockenc.NewStepFactory())
+	return sfs
 }
 
-func buildTestSOOperation(
-	t *testing.T,
-	privKey crypto.PrivKey,
-	link *sobject.SOOperationLink,
-) *sobject.SOOperation {
+// newTestGenesisState returns the genesis state of a new owner and its key.
+func newTestGenesisState(t *testing.T) (*sobject.SOState, crypto.PrivKey) {
+	// Build a genesis for a new owner.
 	t.Helper()
-
-	op, err := sobject.BuildSOOperation(
-		testSharedObjectID,
-		privKey,
-		[]byte("op"),
-		link,
-		sobject.NewSOOperationLocalID(),
-	)
+	owner, err := peer.NewPeer(nil)
 	if err != nil {
-		t.Fatalf("build op: %v", err)
+		t.Fatal(err)
+	}
+	priv, err := owner.GetPrivKey(t.Context())
+	if err != nil {
+		t.Fatal(err)
+	}
+	state, _, err := sobject.BuildGenesisSOState(logrus.NewEntry(logrus.New()), testStepFactorySet(), testSharedObjectID, priv, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return state, priv
+}
+
+// writeTestOperation signs an operation as priv at the head of its chain in
+// state, adds it and returns it.
+func writeTestOperation(t *testing.T, state *sobject.SOState, priv crypto.PrivKey) *sobject.SOOperation {
+	// Link the operation to the author's chain.
+	t.Helper()
+	peerID, err := peer.IDFromPrivateKey(priv)
+	if err != nil {
+		t.Fatal(err)
+	}
+	link, err := state.NextOperationLink(testSharedObjectID, peerID.String())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Build and add the operation.
+	op, err := sobject.BuildSOOperation(testSharedObjectID, priv, []byte("op"), link, sobject.NewSOOperationLocalID())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := state.AddOperation(testSharedObjectID, op); err != nil {
+		t.Fatal(err)
 	}
 	return op
-}
-
-func buildTestSOOperationRejection(
-	t *testing.T,
-	validatorPrivKey crypto.PrivKey,
-	submitterPeerID peer.ID,
-	nonce uint64,
-	op *sobject.SOOperation,
-) *sobject.SOOperationRejection {
-	t.Helper()
-
-	inner, err := op.UnmarshalInner()
-	if err != nil {
-		t.Fatalf("unmarshal op inner: %v", err)
-	}
-	rejection, err := sobject.BuildSOOperationRejection(
-		validatorPrivKey,
-		testSharedObjectID,
-		submitterPeerID,
-		nonce,
-		inner.GetLocalId(),
-		nil,
-	)
-	if err != nil {
-		t.Fatalf("build rejection: %v", err)
-	}
-	return rejection
-}
-
-func buildTestSORoot(
-	t *testing.T,
-	validatorPrivKey crypto.PrivKey,
-	seqno uint64,
-	accountNonces []*sobject.SOAccountNonce,
-) *sobject.SORoot {
-	t.Helper()
-
-	innerData, err := (&sobject.SORootInner{
-		Seqno:     seqno,
-		StateData: []byte("state"),
-	}).MarshalVT()
-	if err != nil {
-		t.Fatalf("marshal root inner: %v", err)
-	}
-	root := &sobject.SORoot{
-		Inner:         innerData,
-		InnerSeqno:    seqno,
-		AccountNonces: accountNonces,
-	}
-	if err := root.SignInnerData(
-		validatorPrivKey,
-		testSharedObjectID,
-		seqno,
-		hash.RecommendedHashType,
-	); err != nil {
-		t.Fatalf("sign root: %v", err)
-	}
-	return root
-}
-
-// testConfigHash is the config chain hash test operations are written under.
-var testConfigHash = bytes.Repeat([]byte{0xc0}, 32)
-
-// testOperationLink places an operation at nonce under fixed chain hashes.
-func testOperationLink(nonce uint64) *sobject.SOOperationLink {
-	link := &sobject.SOOperationLink{Nonce: nonce, ConfigHash: testConfigHash}
-	if nonce > 1 {
-		link.PrevOpHash = bytes.Repeat([]byte{0xa0}, 32)
-	}
-	return link
 }

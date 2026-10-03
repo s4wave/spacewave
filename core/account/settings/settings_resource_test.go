@@ -120,8 +120,9 @@ func waitForSingleEntityKeypair(ctx context.Context, t *testing.T, so sobject.Sh
 		nil,
 		stateCtr,
 		func(snap sobject.SharedObjectStateSnapshot) error {
+			// Read the settings of the snapshot.
 			var err error
-			settings, err = decodeAccountSettings(ctx, snap)
+			settings, err = account_settings.ReadSnapshot(ctx, snap)
 			if err != nil {
 				return err
 			}

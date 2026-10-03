@@ -1,24 +1,16 @@
 package sobject_world_engine
 
 import (
-	"bytes"
-	"context"
 	"errors"
 	"strconv"
 	"strings"
 	"testing"
 
-	"github.com/aperturerobotics/controllerbus/bus"
-	"github.com/aperturerobotics/util/ccontainer"
-	"github.com/s4wave/spacewave/core/bstore"
-	"github.com/s4wave/spacewave/core/sobject"
 	"github.com/s4wave/spacewave/db/block"
 	block_mock "github.com/s4wave/spacewave/db/block/mock"
-	block_transform "github.com/s4wave/spacewave/db/block/transform"
-	"github.com/s4wave/spacewave/db/kvtx"
+	store_kvtx_inmem "github.com/s4wave/spacewave/db/store/kvtx/inmem"
 	"github.com/s4wave/spacewave/db/testbed"
 	"github.com/s4wave/spacewave/net/hash"
-	"github.com/s4wave/spacewave/net/peer"
 	"github.com/sirupsen/logrus"
 )
 
@@ -141,9 +133,9 @@ func TestRetainRootsCopiesFromStorage(t *testing.T) {
 
 	// Retain it through a store that reads storage on a local miss.
 	overlay := block.NewOverlay(ctx, le, source.GetBucket(), target.GetBucket(), block.OverlayMode_UPPER_WRITE_CACHE, 0, nil)
-	so := &retainedRootsTestSharedObject{
-		testSharedObject: testSharedObject{blockStore: newTestBlockStore("retained-roots-test", overlay)},
-		proofs:           newTestRejectedCandidateStore(),
+	so := &testSharedObject{
+		blockStore: newTestBlockStore("retained-roots-test", overlay),
+		localStore: store_kvtx_inmem.NewStore(),
 	}
 	c := &Controller{le: le}
 	roots := []*RetainedRoot{{Name: "backup", RootRef: root}}
@@ -167,16 +159,6 @@ func TestRetainRootsCopiesFromStorage(t *testing.T) {
 	}
 }
 
-// retainedRootsTestSharedObject serves one local proof store.
-type retainedRootsTestSharedObject struct {
-	testSharedObject
-	proofs kvtx.Store
-}
-
-func (s *retainedRootsTestSharedObject) AccessLocalStateStore(context.Context, string, func()) (kvtx.Store, func(), error) {
-	return s.proofs, func() {}, nil
-}
-
 // testRetainedRootHash returns a distinct hash for a test block ref.
 func testRetainedRootHash(t *testing.T, seed string) *hash.Hash {
 	t.Helper()
@@ -190,145 +172,24 @@ func testRetainedRootHash(t *testing.T, seed string) *hash.Hash {
 // TestSetRetainedRootRequiresAcceptedHead checks a root other than the
 // accepted head is refused without queueing.
 func TestSetRetainedRootRequiresAcceptedHead(t *testing.T) {
-	// Retain a root on an engine whose accepted head is empty.
-	c := &Controller{le: logrus.NewEntry(logrus.New()), conf: &Config{}}
-	so := &testMaintenanceSharedObject{snapshot: &testMaintenanceSnapshot{}}
-	e := newSoEngine(c, so, nil)
-	ref := &block.BlockRef{Hash: testRetainedRootHash(t, "old")}
-	if err := e.SetRetainedRoot(t.Context(), "backup", ref); !errors.Is(err, errRetainedRootNotHead) {
-		t.Fatalf("retain non-head root = %v; want errRetainedRootNotHead", err)
-	}
-
-	// Check nothing was queued.
-	if len(so.queueOps) != 0 {
-		t.Fatalf("queued %d operations", len(so.queueOps))
-	}
-}
-
-// TestCommitMaintenanceOpWaitsForWriteTransaction verifies that a maintenance
-// operation cannot advance the SharedObject root while a write transaction
-// holds its base.
-func TestCommitMaintenanceOpWaitsForWriteTransaction(t *testing.T) {
-	// Build a controller.
-	c := &Controller{
-		le:   logrus.NewEntry(logrus.New()),
-		conf: &Config{},
-	}
-	so := &testMaintenanceSharedObject{snapshot: &testMaintenanceSnapshot{}}
-
-	// Hold the write lock as an open write transaction does.
-	unlockWriteMtx, err := c.writeMtx.Lock(t.Context())
+	// Open an engine whose accepted World is empty.
+	ctx := t.Context()
+	c, so, head := newProcessTestWorld(t, ctx)
+	so.localStore = store_kvtx_inmem.NewStore()
+	so.snapshot = &testSharedObjectSnapshot{}
+	blk, err := buildBlockEngine(ctx, c.le, c.bus, c.sfs, so, head.GetHeadRef(), head.GetHeadRef().GetTransformConf(), nil, false)
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer unlockWriteMtx()
+	t.Cleanup(blk.Release)
+	e := newSoEngine(c, so, blk.bengine, newReplayer(c, so))
 
-	// A maintenance operation gives up without queueing.
-	ctx, cancel := context.WithCancel(t.Context())
-	cancel()
-	build := func(state *InnerState) (*SOWorldOp, error) {
-		return &SOWorldOp{Body: &SOWorldOp_SetRetainedRoot{
-			SetRetainedRoot: &SetRetainedRootOp{Name: "backup"},
-		}}, nil
+	// Retaining another root is refused before anything is queued.
+	ref := &block.BlockRef{Hash: testRetainedRootHash(t, "old")}
+	if err := e.SetRetainedRoot(ctx, "backup", ref); !errors.Is(err, errRetainedRootNotHead) {
+		t.Fatalf("retain non-head root = %v; want errRetainedRootNotHead", err)
 	}
-	if _, err := c.commitMaintenanceOp(ctx, so, build); !errors.Is(err, context.Canceled) {
-		t.Fatalf("maintenance during write transaction: got %v, want context.Canceled", err)
+	if len(so.queued) != 0 {
+		t.Fatalf("queued %d operations", len(so.queued))
 	}
-	if len(so.queueOps) != 0 {
-		t.Fatal("maintenance op queued while a write transaction held its base")
-	}
-}
-
-type testMaintenanceSharedObject struct {
-	snapshot   sobject.SharedObjectStateSnapshot
-	blockStore bstore.BlockStore
-	queueOps   [][]byte
-}
-
-func (s *testMaintenanceSharedObject) GetBus() bus.Bus {
-	return nil
-}
-
-func (s *testMaintenanceSharedObject) GetPeerID() peer.ID {
-	return ""
-}
-
-func (s *testMaintenanceSharedObject) GetSharedObjectID() string {
-	return ""
-}
-
-func (s *testMaintenanceSharedObject) GetBlockStore() bstore.BlockStore {
-	return s.blockStore
-}
-
-func (s *testMaintenanceSharedObject) AccessLocalStateStore(ctx context.Context, storeID string, released func()) (kvtx.Store, func(), error) {
-	return nil, nil, nil
-}
-
-func (s *testMaintenanceSharedObject) GetSharedObjectState(ctx context.Context) (sobject.SharedObjectStateSnapshot, error) {
-	return s.snapshot, nil
-}
-
-func (s *testMaintenanceSharedObject) AccessSharedObjectState(ctx context.Context, released func()) (ccontainer.Watchable[sobject.SharedObjectStateSnapshot], func(), error) {
-	return nil, nil, nil
-}
-
-func (s *testMaintenanceSharedObject) QueueOperation(ctx context.Context, op []byte) (string, error) {
-	s.queueOps = append(s.queueOps, bytes.Clone(op))
-	return "maintenance-op", nil
-}
-
-func (s *testMaintenanceSharedObject) WaitOperation(ctx context.Context, localID string) (uint64, bool, error) {
-	return 0, false, nil
-}
-
-func (s *testMaintenanceSharedObject) ClearOperationResult(ctx context.Context, localID string) error {
-	return nil
-}
-
-func (s *testMaintenanceSharedObject) ProcessOperations(ctx context.Context, watch bool, cb sobject.ProcessOpsFunc) error {
-	return nil
-}
-
-type testMaintenanceSnapshot struct{}
-
-func (s *testMaintenanceSnapshot) GetParticipantConfig(ctx context.Context) (*sobject.SOParticipantConfig, error) {
-	return &sobject.SOParticipantConfig{}, nil
-}
-
-func (s *testMaintenanceSnapshot) GetParticipantConfigForPeer(ctx context.Context, _ string) (*sobject.SOParticipantConfig, error) {
-	return s.GetParticipantConfig(ctx)
-}
-
-func (s *testMaintenanceSnapshot) GetTransformer(ctx context.Context) (*block_transform.Transformer, error) {
-	return nil, nil
-}
-
-func (s *testMaintenanceSnapshot) GetTransformInfo(ctx context.Context) (*sobject.TransformInfo, error) {
-	return nil, nil
-}
-
-func (s *testMaintenanceSnapshot) GetOpQueue(ctx context.Context) ([]*sobject.SOOperation, []*sobject.QueuedSOOperation, error) {
-	return nil, nil, nil
-}
-
-func (s *testMaintenanceSnapshot) GetRootInner(ctx context.Context) (*sobject.SORootInner, error) {
-	return nil, nil
-}
-
-func (s *testMaintenanceSnapshot) GetRootState(ctx context.Context) (*sobject.SORoot, error) {
-	return nil, nil
-}
-
-func (s *testMaintenanceSnapshot) ProcessOperations(
-	ctx context.Context,
-	ops []*sobject.SOOperation,
-	cb sobject.SnapshotProcessOpsFunc,
-) (
-	nextRoot *sobject.SORoot,
-	rejectedOps []*sobject.SOOperationRejection,
-	acceptedOps []*sobject.SOOperation,
-	err error,
-) {
-	return nil, nil, nil, nil
 }

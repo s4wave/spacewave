@@ -24,7 +24,7 @@ namespace Spacewave.SObject.Sync
 
 /-- readableRole mirrors the four `CanReadState` cases, including unknown enum codes. -/
 def readableRole (role : Int) : Bool :=
-  role == Role.reader || role == Role.writer || role == Role.validator || role == Role.owner
+  role == Role.reader || role == Role.writer || role == Role.owner
 
 /-- readableParticipant mirrors the loop's accumulated readable occurrence. -/
 def readableParticipant (participants : List Participant) (peer : String) : Bool :=

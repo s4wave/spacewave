@@ -41,6 +41,7 @@ import (
 // It does not write an actual KV store; a store-layer mutation would need a
 // separate hop against the real store implementation.
 func TestTransformStepConfigBindingChain(t *testing.T) {
+	// Share one context across the hops.
 	ctx := context.Background()
 
 	// Deterministic key and object ID so both legs hash identical inputs.
@@ -87,19 +88,23 @@ func TestTransformStepConfigBindingChain(t *testing.T) {
 	if err != nil {
 		t.Fatalf("H2 extract peer pub key: %v", err)
 	}
+
+	// Encrypt the grant and cross the SOState wire boundary.
 	grant, err := EncryptSOGrant(priv, pub, mockSharedObjectID, inner)
 	if err != nil {
 		t.Fatalf("H2 EncryptSOGrant: %v", err)
 	}
-	stateData := mustMarshalVT(t, &SOState{RootGrants: []*SOGrant{grant}})
+	stateData := mustMarshalVT(t, &SOState{KeyEpochs: []*SOKeyEpoch{{Grants: []*SOGrant{grant}}}})
 	stateBack := &SOState{}
 	if err := stateBack.UnmarshalVT(stateData); err != nil {
 		t.Fatalf("H2 unmarshal SOState: %v", err)
 	}
-	if len(stateBack.GetRootGrants()) != 1 {
-		t.Fatalf("H2 expected 1 root grant, got %d", len(stateBack.GetRootGrants()))
+	if stateBack.CurrentKeyEpoch().FindGrant(grant.GetPeerId()) == nil {
+		t.Fatal("H2 lost the grant")
 	}
-	innerDec, err := stateBack.GetRootGrants()[0].DecryptInnerData(priv, mockSharedObjectID)
+
+	// Decrypt it back; the step config bytes survive.
+	innerDec, err := stateBack.CurrentKeyEpoch().GetGrants()[0].DecryptInnerData(priv, mockSharedObjectID)
 	if err != nil {
 		t.Fatalf("H2 DecryptInnerData: %v", err)
 	}

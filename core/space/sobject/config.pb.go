@@ -11,7 +11,6 @@ import (
 
 	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
 	json "github.com/aperturerobotics/protobuf-go-lite/json"
-	backoff "github.com/aperturerobotics/util/backoff"
 )
 
 // Config configures the space shared object controller.
@@ -20,9 +19,6 @@ type Config struct {
 	unknownFields []byte
 	// Verbose logs all operation results as debug messages.
 	Verbose bool `protobuf:"varint,1,opt,name=verbose,proto3" json:"verbose,omitempty"`
-	// ProcessOpsBackoff is the backoff for processing ops as a validator.
-	// Defaults to reasonable defaults if unset.
-	ProcessOpsBackoff *backoff.Backoff `protobuf:"bytes,2,opt,name=process_ops_backoff,json=processOpsBackoff,proto3" json:"processOpsBackoff,omitempty"`
 }
 
 func (x *Config) Reset() {
@@ -38,20 +34,12 @@ func (x *Config) GetVerbose() bool {
 	return false
 }
 
-func (x *Config) GetProcessOpsBackoff() *backoff.Backoff {
-	if x != nil {
-		return x.ProcessOpsBackoff
-	}
-	return nil
-}
-
 func (m *Config) CloneVT() *Config {
 	if m == nil {
 		return (*Config)(nil)
 	}
 	r := new(Config)
 	r.Verbose = m.Verbose
-	r.ProcessOpsBackoff = protobuf_go_lite.CloneVTValue(m.ProcessOpsBackoff)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -69,9 +57,6 @@ func (this *Config) EqualVT(that *Config) bool {
 		return false
 	}
 	if this.Verbose != that.Verbose {
-		return false
-	}
-	if !protobuf_go_lite.IsEqualVT(this.ProcessOpsBackoff, that.ProcessOpsBackoff) {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -98,11 +83,6 @@ func (x *Config) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("verbose")
 		s.WriteBool(x.Verbose)
 	}
-	if x.ProcessOpsBackoff != nil || s.HasField("processOpsBackoff") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("processOpsBackoff")
-		x.ProcessOpsBackoff.MarshalProtoJSON(s.WithField("processOpsBackoff"))
-	}
 	s.WriteObjectEnd()
 }
 
@@ -123,13 +103,6 @@ func (x *Config) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "verbose":
 			s.AddField("verbose")
 			x.Verbose = s.ReadBool()
-		case "process_ops_backoff", "processOpsBackoff":
-			if s.ReadNil() {
-				x.ProcessOpsBackoff = nil
-				return
-			}
-			x.ProcessOpsBackoff = &backoff.Backoff{}
-			x.ProcessOpsBackoff.UnmarshalProtoJSON(s.WithField("process_ops_backoff", true))
 		}
 	})
 }
@@ -168,16 +141,6 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
-	if m.ProcessOpsBackoff != nil {
-		size, err := m.ProcessOpsBackoff.MarshalToSizedBufferVT(dAtA[:i])
-		if err != nil {
-			return 0, err
-		}
-		i -= size
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
-		i--
-		dAtA[i] = 0x12
-	}
 	if m.Verbose {
 		i = protobuf_go_lite.EncodeBool(dAtA, i, m.Verbose)
 		i--
@@ -193,10 +156,6 @@ func (m *Config) SizeVT() (n int) {
 	var l int
 	_ = l
 	n += protobuf_go_lite.SizeBoolNonZero(1, m.Verbose)
-	if m.ProcessOpsBackoff != nil {
-		l = m.ProcessOpsBackoff.SizeVT()
-		n += protobuf_go_lite.SizeMessage(1, l)
-	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -207,10 +166,6 @@ func (x *Config) MarshalProtoText() string {
 	if x.Verbose != false {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "verbose")
 		protobuf_go_lite.TextWriteBool(&sb, x.Verbose)
-	}
-	if x.ProcessOpsBackoff != nil {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "process_ops_backoff")
-		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.ProcessOpsBackoff)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -249,21 +204,6 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.Verbose = bool(v)
-		case 2:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field ProcessOpsBackoff", wireType)
-			}
-			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-			if m.ProcessOpsBackoff == nil {
-				m.ProcessOpsBackoff = &backoff.Backoff{}
-			}
-			if err := m.ProcessOpsBackoff.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

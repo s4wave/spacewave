@@ -3,6 +3,7 @@ package cdn_world_controller
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
 	"errors"
 	"net/http"
 	"strconv"
@@ -120,6 +121,27 @@ func encodeRootPointer(t *testing.T, ptr *cdn.CdnRootPointer) []byte {
 		t.Fatal(err)
 	}
 	return []byte(packedmsg.EncodePackedMessage(data))
+}
+
+// testHeadCheckpoint returns a genesis checkpoint of spaceID whose plain World
+// has an empty head ref.
+func testHeadCheckpoint(t *testing.T, spaceID string) *sobject.SOCheckpoint {
+	// Sign a checkpoint whose World has an empty head.
+	t.Helper()
+	state, err := (&sobject_world_engine.InnerState{HeadRef: &bucket.ObjectRef{}}).MarshalVT()
+	if err != nil {
+		t.Fatal(err)
+	}
+	inner, err := (&sobject.SOCheckpointInner{
+		SharedObjectId: spaceID,
+		ConfigHash:     make([]byte, sha256.Size),
+		ReplayVersion:  sobject.SOReplayVersion,
+		StateData:      state,
+	}).MarshalVT()
+	if err != nil {
+		t.Fatal(err)
+	}
+	return &sobject.SOCheckpoint{Inner: inner}
 }
 
 // writePackRange answers an HTTP Range request for "bytes=off-end" or
@@ -441,28 +463,14 @@ func TestReleaseWorldSharesTransportAndDurableCacheAcrossRpcBridge(t *testing.T)
 	data := []byte("shared release world block")
 	blockHash, packData, packEntry := packTestBlock(t, packID, data)
 	invalidPointer := encodeRootPointer(t, &cdn.CdnRootPointer{
-		SpaceId: spaceID,
-		Root: &sobject.SORoot{
-			Inner:      []byte("invalid root inner"),
-			InnerSeqno: 1,
-		},
-		Packs: []*packfile.PackfileEntry{packEntry},
+		SpaceId:    spaceID,
+		Checkpoint: &sobject.SOCheckpoint{Inner: []byte("invalid checkpoint")},
+		Packs:      []*packfile.PackfileEntry{packEntry},
 	})
-	innerState, err := (&sobject_world_engine.InnerState{HeadRef: &bucket.ObjectRef{}}).MarshalVT()
-	if err != nil {
-		t.Fatal(err)
-	}
-	rootInner, err := (&sobject.SORootInner{Seqno: 1, StateData: innerState}).MarshalVT()
-	if err != nil {
-		t.Fatal(err)
-	}
 	validPointer := encodeRootPointer(t, &cdn.CdnRootPointer{
-		SpaceId: spaceID,
-		Root: &sobject.SORoot{
-			Inner:      rootInner,
-			InnerSeqno: 1,
-		},
-		Packs: []*packfile.PackfileEntry{packEntry},
+		SpaceId:    spaceID,
+		Checkpoint: testHeadCheckpoint(t, spaceID),
+		Packs:      []*packfile.PackfileEntry{packEntry},
 	})
 
 	// Serve the invalid root first and hold the first Range request until

@@ -61,11 +61,8 @@ func (a *ProviderAccount) installPairingObject(ctx context.Context, offer *pairi
 		return errors.New("pairing object checkpoint is incomplete")
 	}
 
-	// Mount the enrolled object and retain its enrollment history.
-	if err := a.mountEnrolledSO(ctx, providerRef.GetId(), entry.GetMeta(), entry.GetSource(), object.GetState(), sourcePeer); err != nil {
-		return err
-	}
-	return a.retainEnrollmentHistory(ctx, object)
+	// Mount the enrolled object with its config lineage.
+	return a.mountEnrolledSO(ctx, providerRef.GetId(), entry.GetMeta(), entry.GetSource(), object.GetState(), object.GetConfigLineage(), sourcePeer)
 }
 
 // bindPairingSettings replaces only the empty settings object created while
@@ -99,11 +96,11 @@ func (a *ProviderAccount) bindPairingSettings(ctx context.Context, offer *pairin
 	if err != nil {
 		return err
 	}
-	root, err := snapshot.GetRootInner(ctx)
+	folded, err := sobject.Fold(ctx, snapshot, account_settings.ProcessAccountSettingsOps)
 	if err != nil {
 		return err
 	}
-	if len(root.GetStateData()) != 0 {
+	if len(folded.StateData) != 0 {
 		return errors.New("existing account settings contain data; merge or repair is required")
 	}
 
@@ -143,8 +140,7 @@ func (a *ProviderAccount) bindPairingSettings(ctx context.Context, offer *pairin
 		return err
 	}
 
-	// Publish the new list in memory and restart the settings processor.
+	// Publish the new list in memory.
 	a.soListCtr.SetValue(next)
-	a.accountSettingsProcessor.SetRoutine(a.runAccountSettingsProcessor)
 	return nil
 }

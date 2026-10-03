@@ -2,6 +2,7 @@ package provider_spacewave_test
 
 import (
 	"context"
+	"crypto/rand"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -13,6 +14,8 @@ import (
 	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
 	provider_transfer "github.com/s4wave/spacewave/core/provider/transfer"
 	"github.com/s4wave/spacewave/core/sobject"
+	"github.com/s4wave/spacewave/net/crypto"
+	"github.com/sirupsen/logrus"
 )
 
 // buildTestTransferSource creates a SpacewaveTransferSource backed by a
@@ -20,7 +23,7 @@ import (
 func buildTestTransferSource(t *testing.T, srvURL string) *provider_transfer.SpacewaveTransferSource {
 	t.Helper()
 	acc := provider_spacewave.NewTestProviderAccount(t, srvURL)
-	return provider_transfer.NewSpacewaveTransferSource(acc, "spacewave", "test-account")
+	return provider_transfer.NewSpacewaveTransferSource(acc, "spacewave", "test-account", nil)
 }
 
 // TestCloudTransferSource verifies that the spacewave transfer source reads
@@ -82,43 +85,6 @@ func TestCloudTransferSource(t *testing.T) {
 	}
 }
 
-// TestCloudTransferSourceSOState verifies that the spacewave transfer source
-// reads SO state from the cloud API.
-func TestCloudTransferSourceSOState(t *testing.T) {
-	stateData, err := (&api.SOStateMessage{
-		Seqno: 1,
-		Content: &api.SOStateMessage_Snapshot{
-			Snapshot: &sobject.SOState{Root: &sobject.SORoot{InnerSeqno: 1}},
-		},
-	}).MarshalVT()
-	if err != nil {
-		t.Fatalf("marshal SO state: %v", err)
-	}
-
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if strings.HasSuffix(r.URL.Path, "/state") {
-			w.WriteHeader(http.StatusOK)
-			_, _ = w.Write(stateData)
-			return
-		}
-		w.WriteHeader(http.StatusNotFound)
-	}))
-	defer srv.Close()
-
-	src := buildTestTransferSource(t, srv.URL)
-
-	state, err := src.GetSharedObjectState(context.Background(), "so-1")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if state == nil {
-		t.Fatal("expected non-nil state")
-	}
-	if state.GetRoot().GetInnerSeqno() != 1 {
-		t.Fatalf("expected inner seqno 1, got %d", state.GetRoot().GetInnerSeqno())
-	}
-}
-
 // TestCloudTransferSourceEmptyList verifies empty SO list returns empty entries.
 func TestCloudTransferSourceEmptyList(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -146,12 +112,12 @@ func buildTestTransferTarget(t *testing.T, srvURL string) *provider_transfer.Spa
 }
 
 // TestCloudTransferTarget verifies that the spacewave transfer target creates
-// shared objects and writes state to the cloud.
+// shared objects and writes their genesis config and checkpoint to the cloud.
 func TestCloudTransferTarget(t *testing.T) {
+	// Record what the fake cloud receives.
 	var createdID string
-	var statePosted bool
-	var postedBody []byte
-
+	var configPosted bool
+	var postedCheckpoint []byte
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch {
 		case strings.Contains(r.URL.Path, "/create"):
@@ -159,19 +125,21 @@ func TestCloudTransferTarget(t *testing.T) {
 			w.WriteHeader(http.StatusOK)
 		case r.URL.Path == "/api/session/write-tickets/test-so":
 			resp, err := (&api.WriteTicketBundleResponse{
-				SoRootTicket: "ticket-root",
+				SoCheckpointTicket: "ticket-checkpoint",
 			}).MarshalVT()
 			if err != nil {
 				t.Fatalf("marshal write ticket bundle: %v", err)
 			}
 			w.WriteHeader(http.StatusOK)
 			_, _ = w.Write(resp)
-		case strings.Contains(r.URL.Path, "/root"):
-			if got := r.Header.Get("X-Write-Ticket"); got != "ticket-root" {
+		case r.URL.Path == "/api/sobject/test-so/config-state":
+			configPosted = true
+			w.WriteHeader(http.StatusOK)
+		case r.URL.Path == "/api/sobject/test-so/checkpoint":
+			if got := r.Header.Get("X-Write-Ticket"); got != "ticket-checkpoint" {
 				t.Fatalf("unexpected write ticket: %q", got)
 			}
-			statePosted = true
-			postedBody, _ = io.ReadAll(r.Body)
+			postedCheckpoint, _ = io.ReadAll(r.Body)
 			w.WriteHeader(http.StatusOK)
 		default:
 			w.WriteHeader(http.StatusNotFound)
@@ -179,8 +147,8 @@ func TestCloudTransferTarget(t *testing.T) {
 	}))
 	defer srv.Close()
 
+	// Target the fake cloud with a Space.
 	tgt := buildTestTransferTarget(t, srv.URL)
-
 	ref := &sobject.SharedObjectRef{
 		ProviderResourceRef: &provider.ProviderResourceRef{
 			Id:                "test-so",
@@ -191,7 +159,7 @@ func TestCloudTransferTarget(t *testing.T) {
 	}
 	meta := &sobject.SharedObjectMeta{BodyType: "space"}
 
-	// Test AddSharedObject
+	// Create the shared object.
 	err := tgt.AddSharedObject(context.Background(), ref, meta)
 	if err != nil {
 		t.Fatal(err)
@@ -200,28 +168,30 @@ func TestCloudTransferTarget(t *testing.T) {
 		t.Fatalf("expected SO ID test-so, got %q", createdID)
 	}
 
-	// Test WriteSharedObjectState
-	state := &sobject.SOState{
-		Root: &sobject.SORoot{InnerSeqno: 1},
-	}
-	err = tgt.WriteSharedObjectState(context.Background(), "test-so", state)
+	// Write its state as a genesis owned by a new key.
+	owner, _, err := crypto.GenerateEd25519Key(rand.Reader)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !statePosted {
-		t.Fatal("expected state to be posted")
+	le := logrus.NewEntry(logrus.New())
+	if err := tgt.WriteSharedObjectState(context.Background(), le, "test-so", owner, []byte("world")); err != nil {
+		t.Fatal(err)
 	}
-	if len(postedBody) == 0 {
-		t.Fatal("expected non-empty state body")
+	if !configPosted {
+		t.Fatal("expected the genesis config to be posted")
 	}
 
-	// Verify the posted body can be unmarshaled back.
-	req := &api.PostRootRequest{}
-	if err := req.UnmarshalVT(postedBody); err != nil {
-		t.Fatalf("unmarshal posted root request: %v", err)
+	// The posted checkpoint is the genesis checkpoint.
+	req := &api.PostCheckpointRequest{}
+	if err := req.UnmarshalVT(postedCheckpoint); err != nil {
+		t.Fatalf("unmarshal posted checkpoint request: %v", err)
 	}
-	if req.GetRoot().GetInnerSeqno() != 1 {
-		t.Fatalf("expected inner seqno 1, got %d", req.GetRoot().GetInnerSeqno())
+	inner, err := req.GetCheckpoint().UnmarshalInner()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if inner.GetHeight() != 0 || inner.GetSharedObjectId() != "test-so" {
+		t.Fatalf("posted checkpoint is not the genesis: %+v", inner)
 	}
 }
 

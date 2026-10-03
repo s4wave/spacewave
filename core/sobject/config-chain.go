@@ -187,6 +187,51 @@ func VerifyConfigChainSuffix(sharedObjectID string, current, candidate *SharedOb
 	return nil
 }
 
+// VerifyConfigLineage authenticates changes, oldest first, that lead to an
+// authenticated target configuration. Each change links by hash to the next
+// and the last produced target, so target's head authenticates every earlier
+// change; each change after the first must also be authorized by the
+// configuration before it. It returns the configuration the first change
+// produced, or target when lineage is empty.
+func VerifyConfigLineage(sharedObjectID string, target *SharedObjectConfig, lineage []*SOConfigChange) (*SharedObjectConfig, error) {
+	// An empty lineage holds only the target.
+	if len(lineage) == 0 {
+		return target, nil
+	}
+	if len(lineage) > MaxConfigSuffixEntries {
+		return nil, ErrConfigHistoryUnavailable
+	}
+
+	// Derive the base from the first change; a genesis verifies on its own.
+	first := lineage[0]
+	if first.GetSharedObjectId() != sharedObjectID {
+		return nil, errors.New("config lineage is bound to another shared object")
+	}
+	if first.GetChangeType() == SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_GENESIS {
+		if err := VerifyConfigChain(sharedObjectID, lineage[:1]); err != nil {
+			return nil, err
+		}
+	}
+	hash, err := HashSOConfigChange(first)
+	if err != nil {
+		return nil, err
+	}
+	base := configWithAppliedConfigChainHead(first.GetConfig(), first.GetConfigSeqno(), hash)
+
+	// Advance through the remaining changes to the target.
+	current := base
+	for i, entry := range lineage[1:] {
+		current, err = VerifyConfigChange(sharedObjectID, current, entry)
+		if err != nil {
+			return nil, errors.Wrapf(err, "lineage[%d]", i+1)
+		}
+	}
+	if !EqualSOConfigs(current, target) {
+		return nil, errors.New("config lineage does not lead to the target configuration")
+	}
+	return base, nil
+}
+
 // configWithAppliedConfigChainHead clones a configuration with a verified head.
 func configWithAppliedConfigChainHead(
 	cfg *SharedObjectConfig,
@@ -371,8 +416,7 @@ func validateSelfEnrollPeerChange(entry *SOConfigChange, cfg *SharedObjectConfig
 	if nextCfg == nil {
 		return errors.New("next config is required")
 	}
-	if (nextCfg.GetConsensusMode() != cfg.GetConsensusMode()) ||
-		!bytes.Equal(nextCfg.GetConfigChainHash(), cfg.GetConfigChainHash()) ||
+	if !bytes.Equal(nextCfg.GetConfigChainHash(), cfg.GetConfigChainHash()) ||
 		nextCfg.GetConfigChainSeqno() != cfg.GetConfigChainSeqno() {
 		return errors.New("self-enroll may not mutate config metadata")
 	}

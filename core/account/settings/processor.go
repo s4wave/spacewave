@@ -63,6 +63,24 @@ func ProcessAccountSettingsOps(
 	return &nextData, results, nil
 }
 
+// ReadSnapshot returns the account settings of snap, replayed from its
+// checkpoint through its operation set. A nil snap holds empty settings.
+func ReadSnapshot(ctx context.Context, snap sobject.SharedObjectStateSnapshot) (*AccountSettings, error) {
+	// Replay the settings from the checkpoint.
+	settings := &AccountSettings{}
+	if snap == nil {
+		return settings, nil
+	}
+	res, err := sobject.Fold(ctx, snap, ProcessAccountSettingsOps)
+	if err != nil {
+		return nil, errors.Wrap(err, "replay account settings")
+	}
+	if err := settings.UnmarshalVT(res.StateData); err != nil {
+		return nil, errors.Wrap(err, "unmarshal account settings state")
+	}
+	return settings, nil
+}
+
 // applyOpData decodes one AccountSettingsOp and applies it.
 func (s *AccountSettings) applyOpData(opData []byte) error {
 	op := &AccountSettingsOp{}

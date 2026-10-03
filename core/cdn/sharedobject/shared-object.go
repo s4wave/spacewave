@@ -22,8 +22,8 @@ const CdnDisplayName = "Spacewave CDN"
 var ErrCdnReadOnly = errors.New("cdn shared object is read-only")
 
 // CdnSharedObject is a read-only sobject.SharedObject backed by the anonymous
-// CDN block store. It exposes the decoded SORoot from the cached CdnRootPointer
-// so callers can build a WorldState against the CDN's world without going
+// CDN block store. It exposes the checkpoint from the cached CdnRootPointer so
+// callers can build a WorldState against the CDN's world without going
 // through the normal SO-world-engine controller path.
 type CdnSharedObject struct {
 	spaceID string
@@ -53,8 +53,8 @@ type CdnSharedObjectOptions struct {
 }
 
 // NewCdnSharedObject constructs a new CdnSharedObject. The caller is expected
-// to refresh the block store pointer before the first read so GetSORoot
-// returns the current published root.
+// to refresh the block store pointer before the first read so GetCheckpoint
+// returns the current published checkpoint.
 func NewCdnSharedObject(opts CdnSharedObjectOptions) (*CdnSharedObject, error) {
 	if opts.SpaceID == "" {
 		return nil, errors.New("cdn shared object: SpaceID required")
@@ -124,31 +124,18 @@ func (s *CdnSharedObject) IsPublicRead() bool {
 	return true
 }
 
-// GetSORoot returns the signed SORoot decoded from the most recent
-// CdnRootPointer. Returns nil if the CDN Space has no published root yet.
-func (s *CdnSharedObject) GetSORoot() *sobject.SORoot {
-	ptr := s.bs.Pointer()
-	if ptr == nil {
-		return nil
-	}
-	return ptr.GetRoot()
-}
-
-// GetPlainRootInner decodes the CDN-published SORootInner. Initialized empty
-// CDN Spaces can have a normal shared-object root before any world packs are
-// published; treat that as "no CDN world head yet" only while the pointer has
-// no packs.
-func (s *CdnSharedObject) GetPlainRootInner() (*sobject.SORootInner, error) {
-	ptr := s.bs.Pointer()
-	if ptr == nil || ptr.GetRoot() == nil || len(ptr.GetRoot().GetInner()) == 0 {
+// GetCheckpoint returns the body of the checkpoint in the most recent
+// CdnRootPointer. Returns nil, nil before the first published checkpoint. CDN
+// Spaces publish plain (unencrypted) state data because the data is public.
+func (s *CdnSharedObject) GetCheckpoint() (*sobject.SOCheckpointInner, error) {
+	// Decode the published checkpoint.
+	checkpoint := s.bs.Pointer().GetCheckpoint()
+	if checkpoint == nil {
 		return nil, nil
 	}
-	inner := &sobject.SORootInner{}
-	if err := inner.UnmarshalVT(ptr.GetRoot().GetInner()); err != nil {
-		if len(ptr.GetPacks()) == 0 {
-			return nil, nil
-		}
-		return nil, errors.Wrap(err, "decode SORootInner")
+	inner, err := checkpoint.UnmarshalInner()
+	if err != nil {
+		return nil, errors.Wrap(err, "decode cdn checkpoint")
 	}
 	return inner, nil
 }
@@ -170,24 +157,16 @@ func (s *CdnSharedObject) RefreshSnapshot(ctx context.Context) error {
 	return nil
 }
 
-// GetHeadInnerState decodes SORoot.Inner as a SORootInner, then unmarshals its
-// StateData as the sobject_world_engine.InnerState. CDN Spaces publish Inner
-// as plain (unencrypted) protobuf because the data is public; the admin CLI
-// (runPostRoot) produces the same shape.
-// Returns nil, nil when there is no published root yet.
+// GetHeadInnerState decodes the World of the published checkpoint. Returns
+// nil, nil before the first published checkpoint.
 func (s *CdnSharedObject) GetHeadInnerState() (*sobject_world_engine.InnerState, error) {
-	sori, err := s.GetPlainRootInner()
-	if err != nil {
+	// Decode the World state of the checkpoint.
+	checkpoint, err := s.GetCheckpoint()
+	if err != nil || checkpoint == nil {
 		return nil, err
 	}
-	if sori == nil {
-		return nil, nil
-	}
 	inner := &sobject_world_engine.InnerState{}
-	if len(sori.GetStateData()) == 0 {
-		return inner, nil
-	}
-	if err := inner.UnmarshalVT(sori.GetStateData()); err != nil {
+	if err := inner.UnmarshalVT(checkpoint.GetStateData()); err != nil {
 		return nil, errors.Wrap(err, "decode InnerState")
 	}
 	return inner, nil
@@ -198,15 +177,15 @@ func (s *CdnSharedObject) AccessLocalStateStore(_ context.Context, _ string, _ f
 	return nil, nil, ErrCdnReadOnly
 }
 
-// GetSharedObjectState returns a snapshot that exposes the decoded CDN root.
-// Mutation-oriented snapshot methods (ProcessOperations, GetParticipantConfig)
-// return errors because the CDN mount has no participants and no transformer.
+// GetSharedObjectState returns a snapshot that exposes the published CDN
+// checkpoint. Participant and transform methods return errors because the CDN
+// mount has no participants and no transformer.
 func (s *CdnSharedObject) GetSharedObjectState(_ context.Context) (sobject.SharedObjectStateSnapshot, error) {
 	return s.snap, nil
 }
 
 // AccessSharedObjectState returns a watchable state container. Callers
-// observe refreshed CDN roots by waiting on value changes; the session
+// observe refreshed CDN checkpoints by waiting on value changes; the session
 // layer invokes RefreshSnapshot after cdn-root-changed WS frames so a
 // fresh cdnStateSnapshot is emitted here.
 func (s *CdnSharedObject) AccessSharedObjectState(_ context.Context, _ func()) (ccontainer.Watchable[sobject.SharedObjectStateSnapshot], func(), error) {
@@ -221,21 +200,6 @@ func (s *CdnSharedObject) AccessSharedObjectHealth(_ context.Context, _ func()) 
 // QueueOperation is not supported on a read-only CDN mount.
 func (s *CdnSharedObject) QueueOperation(_ context.Context, _ []byte) (string, error) {
 	return "", ErrCdnReadOnly
-}
-
-// WaitOperation is not supported on a read-only CDN mount.
-func (s *CdnSharedObject) WaitOperation(_ context.Context, _ string) (uint64, bool, error) {
-	return 0, false, ErrCdnReadOnly
-}
-
-// ClearOperationResult is not supported on a read-only CDN mount.
-func (s *CdnSharedObject) ClearOperationResult(_ context.Context, _ string) error {
-	return ErrCdnReadOnly
-}
-
-// ProcessOperations is not supported on a read-only CDN mount.
-func (s *CdnSharedObject) ProcessOperations(_ context.Context, _ bool, _ sobject.ProcessOpsFunc) error {
-	return ErrCdnReadOnly
 }
 
 // cdnStateSnapshot is a minimal sobject.SharedObjectStateSnapshot tied to a
@@ -288,9 +252,15 @@ func (s *cdnStateSnapshot) GetParticipantConfigForPeer(_ context.Context, _ stri
 	return nil, sobject.ErrNotParticipant
 }
 
+// GetConfigByHash returns ErrConfigHistoryUnavailable because the CDN mount
+// holds no config history.
+func (s *cdnStateSnapshot) GetConfigByHash(_ context.Context, _ []byte) (*sobject.SharedObjectConfig, error) {
+	return nil, sobject.ErrConfigHistoryUnavailable
+}
+
 // GetTransformer is not available on a CDN mount because the mount has no
-// grants to decrypt a transform config from. CDN Spaces publish their state
-// as plain SORootInner, so callers should use GetRootInner directly instead.
+// grants to decrypt a transform config from. CDN Spaces publish plain state
+// data, so callers read the checkpoint directly.
 func (s *cdnStateSnapshot) GetTransformer(_ context.Context) (*block_transform.Transformer, error) {
 	return nil, ErrCdnReadOnly
 }
@@ -300,39 +270,24 @@ func (s *cdnStateSnapshot) GetTransformInfo(_ context.Context) (*sobject.Transfo
 	return nil, ErrCdnReadOnly
 }
 
-// GetOpQueue returns empty queues because CDN mounts do not submit operations.
-func (s *cdnStateSnapshot) GetOpQueue(_ context.Context) ([]*sobject.SOOperation, []*sobject.QueuedSOOperation, error) {
-	return nil, nil, nil
+// GetCheckpoint returns the published checkpoint, whose state data is plain.
+func (s *cdnStateSnapshot) GetCheckpoint(_ context.Context) (*sobject.SOCheckpointInner, error) {
+	return s.so.GetCheckpoint()
 }
 
-// GetRootInner decodes the plain-encoded SORootInner that the CDN admin CLI
-// emits for public_read Spaces (see runPostRoot). Returns nil, nil when no
-// root has been published yet.
-func (s *cdnStateSnapshot) GetRootInner(_ context.Context) (*sobject.SORootInner, error) {
-	return s.so.GetPlainRootInner()
-}
-
-// GetRootState returns a copy of the current signed CDN root.
-func (s *cdnStateSnapshot) GetRootState(_ context.Context) (*sobject.SORoot, error) {
-	root := s.so.GetSORoot()
-	if root == nil {
-		return nil, nil
+// GetOperationSet returns an empty set because CDN Spaces publish only
+// checkpoints.
+func (s *cdnStateSnapshot) GetOperationSet(_ context.Context) (*sobject.SOOperationSet, error) {
+	checkpoint, err := s.so.GetCheckpoint()
+	if err != nil {
+		return nil, err
 	}
-	return root.CloneVT(), nil
+	return sobject.NewSOOperationSet(s.so.spaceID, checkpoint), nil
 }
 
-// ProcessOperations is not supported on a read-only CDN mount.
-func (s *cdnStateSnapshot) ProcessOperations(
-	_ context.Context,
-	_ []*sobject.SOOperation,
-	_ sobject.SnapshotProcessOpsFunc,
-) (
-	*sobject.SORoot,
-	[]*sobject.SOOperationRejection,
-	[]*sobject.SOOperation,
-	error,
-) {
-	return nil, nil, nil, ErrCdnReadOnly
+// DecodeOperation is not available because CDN Spaces hold no operations.
+func (s *cdnStateSnapshot) DecodeOperation(_ context.Context, _ *sobject.SOOperationInner) ([]byte, error) {
+	return nil, ErrCdnReadOnly
 }
 
 // _ is a type assertion.

@@ -12,16 +12,19 @@ import (
 	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
 )
 
+// TestOwnerCachesBundle checks that a resolved bundle is cached and that callers receive copies.
 func TestOwnerCachesBundle(t *testing.T) {
+	// Serve one bundle.
 	fetcher := &testFetcher{
 		bundle: &api.WriteTicketBundleResponse{
 			SoOpTicket:           "so-op-a",
-			SoRootTicket:         "so-root-a",
+			SoCheckpointTicket:   "so-checkpoint-a",
 			BstoreSyncPushTicket: "sync-a",
 		},
 	}
 	owner := newTestOwner(fetcher)
 
+	// Resolve it and mutate the returned copy.
 	first, releaseFirst, err := owner.Resolve(context.Background())
 	if err != nil {
 		t.Fatalf("first Resolve: %v", err)
@@ -29,33 +32,37 @@ func TestOwnerCachesBundle(t *testing.T) {
 	first.SoOpTicket = "mutated-local-copy"
 	releaseFirst()
 
+	// Resolve again from the cache.
 	second, releaseSecond, err := owner.Resolve(context.Background())
 	if err != nil {
 		t.Fatalf("second Resolve: %v", err)
 	}
 	defer releaseSecond()
 
+	// One fetch served both, and the cache kept its own copy.
 	if fetcher.bundleCalls != 1 {
 		t.Fatalf("bundle fetch count: got %d, want 1", fetcher.bundleCalls)
 	}
 	if second.GetSoOpTicket() != "so-op-a" {
 		t.Fatalf("cached bundle mutated through caller copy: got %q", second.GetSoOpTicket())
 	}
-	if second.GetSoRootTicket() != "so-root-a" {
-		t.Fatalf("unexpected so root ticket: %q", second.GetSoRootTicket())
+	if second.GetSoCheckpointTicket() != "so-checkpoint-a" {
+		t.Fatalf("unexpected so checkpoint ticket: %q", second.GetSoCheckpointTicket())
 	}
 	if second.GetBstoreSyncPushTicket() != "sync-a" {
 		t.Fatalf("unexpected sync push ticket: %q", second.GetBstoreSyncPushTicket())
 	}
 }
 
+// TestOwnerBundleSingleflight checks that concurrent resolves share one bundle fetch.
 func TestOwnerBundleSingleflight(t *testing.T) {
+	// Hold the first bundle fetch until a second resolve joins it.
 	firstReqStarted := make(chan struct{})
 	allowResponse := make(chan struct{})
 	fetcher := &testFetcher{
 		bundle: &api.WriteTicketBundleResponse{
 			SoOpTicket:           "so-op-a",
-			SoRootTicket:         "so-root-a",
+			SoCheckpointTicket:   "so-checkpoint-a",
 			BstoreSyncPushTicket: "sync-a",
 		},
 		onBundle: func(call int) {
@@ -67,6 +74,7 @@ func TestOwnerBundleSingleflight(t *testing.T) {
 	}
 	owner := newTestOwner(fetcher)
 
+	// Collect each resolve's result.
 	type result struct {
 		bundle  *api.WriteTicketBundleResponse
 		release func()
@@ -78,11 +86,13 @@ func TestOwnerBundleSingleflight(t *testing.T) {
 		results <- result{bundle: bundle, release: release, err: err}
 	}
 
+	// Start a second resolve while the first fetch is in flight.
 	go runFetch()
 	<-firstReqStarted
 	go runFetch()
 	close(allowResponse)
 
+	// Both resolves succeed.
 	first := <-results
 	second := <-results
 	if first.err != nil {
@@ -94,6 +104,7 @@ func TestOwnerBundleSingleflight(t *testing.T) {
 	defer first.release()
 	defer second.release()
 
+	// They shared one fetch and its bundle.
 	if fetcher.bundleCalls != 1 {
 		t.Fatalf("bundle fetch count: got %d, want 1", fetcher.bundleCalls)
 	}
@@ -105,12 +116,14 @@ func TestOwnerBundleSingleflight(t *testing.T) {
 	}
 }
 
+// TestOwnerRetryBackoffAvoidsStampede checks that resolves after a failed fetch share one retry.
 func TestOwnerRetryBackoffAvoidsStampede(t *testing.T) {
+	// Fail the first bundle fetch, then retry after a short backoff.
 	fetchErr := errors.New("retry later")
 	fetcher := &testFetcher{
 		bundle: &api.WriteTicketBundleResponse{
 			SoOpTicket:           "so-op-a",
-			SoRootTicket:         "so-root-a",
+			SoCheckpointTicket:   "so-checkpoint-a",
 			BstoreSyncPushTicket: "sync-a",
 		},
 		bundleErr: fetchErr,
@@ -128,6 +141,7 @@ func TestOwnerRetryBackoffAvoidsStampede(t *testing.T) {
 	}
 	owner := NewOwner(func(context.Context) (Fetcher, error) { return fetcher, nil }, "res-1", opts, nil)
 
+	// The first resolve fails without a release.
 	_, release, err := owner.Resolve(context.Background())
 	if err == nil {
 		t.Fatal("expected first Resolve to fail")
@@ -137,6 +151,7 @@ func TestOwnerRetryBackoffAvoidsStampede(t *testing.T) {
 	}
 	fetcher.bundleErr = nil
 
+	// Collect each resolve's result.
 	type result struct {
 		bundle  *api.WriteTicketBundleResponse
 		release func()
@@ -148,9 +163,11 @@ func TestOwnerRetryBackoffAvoidsStampede(t *testing.T) {
 		results <- result{bundle: bundle, release: release, err: err}
 	}
 
+	// Resolve twice at once after the failure.
 	go runFetch()
 	go runFetch()
 
+	// Both share the single retry fetch.
 	first := <-results
 	second := <-results
 	if first.err != nil {
@@ -166,43 +183,49 @@ func TestOwnerRetryBackoffAvoidsStampede(t *testing.T) {
 	}
 }
 
+// TestOwnerRefreshAudiencePreservesOthers checks that refreshing one audience keeps the other tickets.
 func TestOwnerRefreshAudiencePreservesOthers(t *testing.T) {
+	// Serve a bundle and a fresh checkpoint ticket.
 	fetcher := &testFetcher{
 		bundle: &api.WriteTicketBundleResponse{
 			SoOpTicket:           "so-op-a",
-			SoRootTicket:         "so-root-a",
+			SoCheckpointTicket:   "so-checkpoint-a",
 			BstoreSyncPushTicket: "sync-a",
 		},
-		tickets: map[Audience]string{AudienceSORoot: "so-root-b"},
+		tickets: map[Audience]string{AudienceSOCheckpoint: "so-checkpoint-b"},
 	}
 	owner := newTestOwner(fetcher)
 
+	// Resolve the initial bundle.
 	bundle, release, err := owner.Resolve(context.Background())
 	if err != nil {
 		t.Fatalf("initial Resolve: %v", err)
 	}
 	release()
-	if bundle.GetSoRootTicket() != "so-root-a" {
-		t.Fatalf("unexpected initial so root ticket: %q", bundle.GetSoRootTicket())
+	if bundle.GetSoCheckpointTicket() != "so-checkpoint-a" {
+		t.Fatalf("unexpected initial so checkpoint ticket: %q", bundle.GetSoCheckpointTicket())
 	}
 
-	if err := owner.InvalidateAudience(AudienceSORoot); err != nil {
+	// Invalidate and refresh the checkpoint audience.
+	if err := owner.InvalidateAudience(AudienceSOCheckpoint); err != nil {
 		t.Fatalf("InvalidateAudience: %v", err)
 	}
-	refreshed, err := owner.RefreshAudience(context.Background(), AudienceSORoot)
+	refreshed, err := owner.RefreshAudience(context.Background(), AudienceSOCheckpoint)
 	if err != nil {
 		t.Fatalf("RefreshAudience: %v", err)
 	}
-	if refreshed != "so-root-b" {
+	if refreshed != "so-checkpoint-b" {
 		t.Fatalf("unexpected refreshed ticket: %q", refreshed)
 	}
 
+	// Resolve the bundle again.
 	bundle, release, err = owner.Resolve(context.Background())
 	if err != nil {
 		t.Fatalf("final Resolve: %v", err)
 	}
 	defer release()
 
+	// Only the checkpoint ticket changed, without another bundle fetch.
 	if fetcher.bundleCalls != 1 {
 		t.Fatalf("bundle fetch count: got %d, want 1", fetcher.bundleCalls)
 	}
@@ -212,24 +235,26 @@ func TestOwnerRefreshAudiencePreservesOthers(t *testing.T) {
 	if bundle.GetSoOpTicket() != "so-op-a" {
 		t.Fatalf("unexpected so op ticket after refresh: %q", bundle.GetSoOpTicket())
 	}
-	if bundle.GetSoRootTicket() != "so-root-b" {
-		t.Fatalf("unexpected so root ticket after refresh: %q", bundle.GetSoRootTicket())
+	if bundle.GetSoCheckpointTicket() != "so-checkpoint-b" {
+		t.Fatalf("unexpected so checkpoint ticket after refresh: %q", bundle.GetSoCheckpointTicket())
 	}
 	if bundle.GetBstoreSyncPushTicket() != "sync-a" {
 		t.Fatalf("unexpected sync push ticket: %q", bundle.GetBstoreSyncPushTicket())
 	}
 }
 
+// TestOwnerRefreshAudienceSingleflight checks that concurrent refreshes of one audience share one fetch.
 func TestOwnerRefreshAudienceSingleflight(t *testing.T) {
+	// Hold the first ticket refresh until a second refresh joins it.
 	refreshStarted := make(chan struct{})
 	allowRefresh := make(chan struct{})
 	fetcher := &testFetcher{
 		bundle: &api.WriteTicketBundleResponse{
 			SoOpTicket:           "so-op-a",
-			SoRootTicket:         "so-root-a",
+			SoCheckpointTicket:   "so-checkpoint-a",
 			BstoreSyncPushTicket: "sync-a",
 		},
-		tickets: map[Audience]string{AudienceSORoot: "so-root-b"},
+		tickets: map[Audience]string{AudienceSOCheckpoint: "so-checkpoint-b"},
 		onTicket: func(call int) {
 			if call == 1 {
 				close(refreshStarted)
@@ -239,35 +264,40 @@ func TestOwnerRefreshAudienceSingleflight(t *testing.T) {
 	}
 	owner := newTestOwner(fetcher)
 
+	// Resolve the initial bundle.
 	bundle, release, err := owner.Resolve(context.Background())
 	if err != nil {
 		t.Fatalf("initial Resolve: %v", err)
 	}
 	release()
-	if bundle.GetSoRootTicket() != "so-root-a" {
-		t.Fatalf("unexpected initial so root ticket: %q", bundle.GetSoRootTicket())
+	if bundle.GetSoCheckpointTicket() != "so-checkpoint-a" {
+		t.Fatalf("unexpected initial so checkpoint ticket: %q", bundle.GetSoCheckpointTicket())
 	}
 
-	if err := owner.InvalidateAudience(AudienceSORoot); err != nil {
+	// Invalidate the checkpoint audience.
+	if err := owner.InvalidateAudience(AudienceSOCheckpoint); err != nil {
 		t.Fatalf("InvalidateAudience: %v", err)
 	}
 
+	// Collect each refresh's result.
 	type result struct {
 		ticket string
 		err    error
 	}
 	results := make(chan result, 2)
 	runRefresh := func() {
-		ticket, err := owner.RefreshAudience(context.Background(), AudienceSORoot)
+		ticket, err := owner.RefreshAudience(context.Background(), AudienceSOCheckpoint)
 		results <- result{ticket: ticket, err: err}
 	}
 
+	// Start a second refresh while the first is in flight.
 	go runRefresh()
 	<-refreshStarted
 	go runRefresh()
 	time.Sleep(20 * time.Millisecond)
 	close(allowRefresh)
 
+	// Both refreshes share one fetch and its ticket.
 	first := <-results
 	second := <-results
 	if first.err != nil {
@@ -276,10 +306,10 @@ func TestOwnerRefreshAudienceSingleflight(t *testing.T) {
 	if second.err != nil {
 		t.Fatalf("second RefreshAudience: %v", second.err)
 	}
-	if first.ticket != "so-root-b" {
+	if first.ticket != "so-checkpoint-b" {
 		t.Fatalf("unexpected first refreshed ticket: %q", first.ticket)
 	}
-	if second.ticket != "so-root-b" {
+	if second.ticket != "so-checkpoint-b" {
 		t.Fatalf("unexpected second refreshed ticket: %q", second.ticket)
 	}
 	if fetcher.ticketCalls != 1 {

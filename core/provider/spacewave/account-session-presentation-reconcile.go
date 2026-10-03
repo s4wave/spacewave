@@ -11,7 +11,8 @@ import (
 	"github.com/s4wave/spacewave/core/sobject"
 )
 
-// sessionPresentationReconcileState is the desired authoritative reconcile target.
+// sessionPresentationReconcileState is the desired authoritative reconcile
+// target.
 type sessionPresentationReconcileState struct {
 	// accountSettingsSOID is the bound account-settings shared object ID.
 	accountSettingsSOID string
@@ -29,8 +30,8 @@ func equalSessionPresentationReconcileState(
 		slices.Equal(v1.liveSessionPeerIDs, v2.liveSessionPeerIDs)
 }
 
-// buildSessionPresentationReconcileStateLocked builds the desired reconcile target.
-// Must be called within an accountBcast HoldLock scope.
+// buildSessionPresentationReconcileStateLocked builds the desired reconcile
+// target. Must be called within an accountBcast HoldLock scope.
 func (a *ProviderAccount) buildSessionPresentationReconcileStateLocked() *sessionPresentationReconcileState {
 	if !a.state.sessionsValid {
 		return nil
@@ -119,8 +120,8 @@ func (a *ProviderAccount) runSessionPresentationReconcile(
 	return nil
 }
 
-// reconcileSessionPresentationState removes mirrored session rows missing from the
-// authoritative live session set.
+// reconcileSessionPresentationState removes mirrored session rows missing from
+// the authoritative live session set.
 func (a *ProviderAccount) reconcileSessionPresentationState(
 	ctx context.Context,
 	so sobject.SharedObject,
@@ -143,26 +144,28 @@ func (a *ProviderAccount) reconcileSessionPresentationState(
 	return nil
 }
 
+// getSessionPresentationPeerIDs returns the peer ID of every Session
+// presentation in the account settings of so.
 func getSessionPresentationPeerIDs(
 	ctx context.Context,
 	so sobject.SharedObject,
 ) ([]string, error) {
+	// Read the current settings.
 	stateCtr, relStateCtr, err := so.AccessSharedObjectState(ctx, nil)
 	if err != nil {
 		return nil, errors.Wrap(err, "access account settings state")
 	}
 	defer relStateCtr()
-
 	snap, err := stateCtr.WaitValue(ctx, nil)
 	if err != nil {
 		return nil, errors.Wrap(err, "wait account settings state")
 	}
-
-	settings, err := decodeAccountSettingsSnapshot(ctx, snap)
+	settings, err := account_settings.ReadSnapshot(ctx, snap)
 	if err != nil {
 		return nil, err
 	}
 
+	// Collect the peer ID of each presentation that names one.
 	peerIDs := make([]string, 0, len(settings.GetSessionPresentations()))
 	for _, pres := range settings.GetSessionPresentations() {
 		peerID := pres.GetPeerId()
@@ -174,6 +177,8 @@ func getSessionPresentationPeerIDs(
 	return peerIDs, nil
 }
 
+// buildOrphanedSessionPresentationPeerIDs returns the presentation peer IDs
+// that name no live Session.
 func buildOrphanedSessionPresentationPeerIDs(
 	presentationPeerIDs []string,
 	liveSessionPeerIDs []string,
@@ -202,28 +207,4 @@ func buildOrphanedSessionPresentationPeerIDs(
 	}
 	slices.Sort(orphaned)
 	return orphaned
-}
-
-func decodeAccountSettingsSnapshot(
-	ctx context.Context,
-	snap sobject.SharedObjectStateSnapshot,
-) (*account_settings.AccountSettings, error) {
-	settings := &account_settings.AccountSettings{}
-	if snap == nil {
-		return settings, nil
-	}
-
-	rootInner, err := snap.GetRootInner(ctx)
-	if err != nil {
-		return nil, errors.Wrap(err, "get account settings root")
-	}
-	if rootInner == nil {
-		return settings, nil
-	}
-	if data := rootInner.GetStateData(); len(data) > 0 {
-		if err := settings.UnmarshalVT(data); err != nil {
-			return nil, errors.Wrap(err, "unmarshal account settings state")
-		}
-	}
-	return settings, nil
 }

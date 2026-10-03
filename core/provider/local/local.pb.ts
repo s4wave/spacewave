@@ -6,10 +6,6 @@ import type { MessageType } from '@aptre/protobuf-es-lite/message'
 import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
-import {
-  QueuedSOOperation,
-  SOOperationResult,
-} from '../../sobject/sobject.pb.js'
 import { ObjectRef } from '../../../db/bucket/bucket.pb.js'
 
 /**
@@ -103,70 +99,6 @@ export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
     },
   ] satisfies readonly PartialFieldInfo[],
 })
-
-/**
- * LocalSOState contains the local state for a shared object.
- *
- * @generated from message provider.local.LocalSOState
- */
-export interface LocalSOState {
-  /**
-   * OpQueue contains locally queued ops not applied to the SOHost yet.
-   *
-   * @generated from field: repeated sobject.QueuedSOOperation op_queue = 1;
-   */
-  opQueue?: QueuedSOOperation[]
-}
-
-export const LocalSOState: MessageType<LocalSOState> =
-  /* @__PURE__ */ createMessageType({
-    typeName: 'provider.local.LocalSOState',
-    fields: [
-      {
-        no: 1,
-        name: 'op_queue',
-        kind: 'message',
-        T: () => QueuedSOOperation,
-        repeated: true,
-      },
-    ] satisfies readonly PartialFieldInfo[],
-  })
-
-/**
- * LocalSOOperationResult contains the result of a SOOperation.
- *
- * @generated from message provider.local.LocalSOOperationResult
- */
-export interface LocalSOOperationResult {
-  /**
-   * LocalId is the local operation id, must be a valid ulid.
-   *
-   * @generated from field: string local_id = 1;
-   */
-  localId?: string
-  /**
-   * Result is the operation result.
-   *
-   * @generated from field: sobject.SOOperationResult result = 2;
-   */
-  result?: SOOperationResult
-  /**
-   * RootSeqno is the root seqno that accepted or rejected the operation.
-   *
-   * @generated from field: uint64 root_seqno = 3;
-   */
-  rootSeqno?: bigint
-}
-
-export const LocalSOOperationResult: MessageType<LocalSOOperationResult> =
-  /* @__PURE__ */ createMessageType({
-    typeName: 'provider.local.LocalSOOperationResult',
-    fields: [
-      { no: 1, name: 'local_id', kind: 'scalar', T: ScalarType.STRING },
-      { no: 2, name: 'result', kind: 'message', T: () => SOOperationResult },
-      { no: 3, name: 'root_seqno', kind: 'scalar', T: ScalarType.UINT64 },
-    ] satisfies readonly PartialFieldInfo[],
-  })
 
 /**
  * AccountReplicaCopyState records local durability for one accepted World head.

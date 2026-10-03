@@ -8,6 +8,7 @@ import (
 	"github.com/aperturerobotics/util/broadcast"
 	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/pkg/errors"
+	account_settings "github.com/s4wave/spacewave/core/account/settings"
 	provider_spacewave "github.com/s4wave/spacewave/core/provider/spacewave"
 	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
 	"github.com/s4wave/spacewave/core/session"
@@ -192,7 +193,8 @@ func (r *AccountResource) UnlockEntityKeypair(
 	return &s4wave_account.UnlockEntityKeypairResponse{}, nil
 }
 
-// SignWithEntityKeypair signs an arbitrary payload with an unlocked entity keypair.
+// SignWithEntityKeypair signs an arbitrary payload with an unlocked entity
+// keypair.
 func (r *AccountResource) SignWithEntityKeypair(
 	ctx context.Context,
 	req *s4wave_account.SignWithEntityKeypairRequest,
@@ -307,12 +309,14 @@ func (r *AccountResource) resolveOrSignWithStore(
 	return envelope, storeSigs, nil
 }
 
+// watchLocalEntityKeypairs streams the entity keypairs of the local account
+// with its unlocked peers.
 func (r *AccountResource) watchLocalEntityKeypairs(
 	strm s4wave_account.SRPCAccountResourceService_WatchEntityKeypairsStream,
 ) error {
+	// Mount the local account settings.
 	ctx, ctxCancel := context.WithCancel(strm.Context())
 	defer ctxCancel()
-
 	_, relSO, stateCtr, relStateCtr, err := r.mountLocalAccountSettingsState(ctx, ctxCancel)
 	if err != nil {
 		return err
@@ -320,11 +324,12 @@ func (r *AccountResource) watchLocalEntityKeypairs(
 	defer relSO()
 	defer relStateCtr()
 
+	// Seed the watch state from the current settings and the key store.
 	store, err := r.entityKeyStore()
 	if err != nil {
 		return err
 	}
-	settings, err := decodeLocalAccountSettingsSnapshot(ctx, stateCtr.GetValue())
+	settings, err := account_settings.ReadSnapshot(ctx, stateCtr.GetValue())
 	if err != nil {
 		return err
 	}
@@ -334,6 +339,7 @@ func (r *AccountResource) watchLocalEntityKeypairs(
 		unlockedPeers: store.GetUnlockedPeerIDs(),
 	}
 
+	// Bridge settings and key store changes into the watch loop.
 	bridgeCtx, cancelBridges := context.WithCancel(ctx)
 	defer cancelBridges()
 	go state.bridgeLocalAccountSettings(bridgeCtx, stateCtr)
@@ -342,6 +348,8 @@ func (r *AccountResource) watchLocalEntityKeypairs(
 	return state.runWatchLoop(ctx, strm.Send)
 }
 
+// bridgeLocalAccountSettings publishes the entity keypairs of each settings
+// change.
 func (s *entityKeypairsWatchState) bridgeLocalAccountSettings(
 	ctx context.Context,
 	stateCtr ccontainer.Watchable[sobject.SharedObjectStateSnapshot],
@@ -353,7 +361,7 @@ func (s *entityKeypairsWatchState) bridgeLocalAccountSettings(
 			return
 		}
 		current = next
-		settings, err := decodeLocalAccountSettingsSnapshot(ctx, next)
+		settings, err := account_settings.ReadSnapshot(ctx, next)
 		if err != nil {
 			return
 		}
@@ -365,6 +373,7 @@ func (s *entityKeypairsWatchState) bridgeLocalAccountSettings(
 	}
 }
 
+// entityKeyStore returns the entity key store of the account.
 func (r *AccountResource) entityKeyStore() (*provider_spacewave.EntityKeyStore, error) {
 	if r.localAccount != nil {
 		return r.localEntityKeyStore, nil

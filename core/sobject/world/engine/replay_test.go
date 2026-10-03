@@ -70,27 +70,47 @@ func (s *replayTestSpace) sign(name string, priv crypto.PrivKey, key string, lin
 func (s *replayTestSpace) member(device peer.ID, cold bool) *replayTestMember {
 	return &replayTestMember{
 		space: s,
-		set:   sobject.NewSOOperationSet(replayTestObjectID),
+		set:   sobject.NewSOOperationSet(replayTestObjectID, &sobject.SOCheckpointInner{}),
 		cold:  cold,
+		snap:  &replayTestSnapshot{config: s.config},
 		replayer: &replayer{
-			c:      s.c,
-			so:     &testSharedObject{peerID: device, blockStore: s.so.blockStore},
-			base:   s.genesis,
-			decode: func(data []byte) ([]byte, error) { return data, nil },
-			config: func(_ context.Context, hash []byte) (*sobject.SharedObjectConfig, error) {
-				if !bytes.Equal(hash, s.config.GetConfigChainHash()) {
-					return nil, errors.New("unknown config")
-				}
-				return s.config, nil
-			},
+			c:    s.c,
+			so:   &testSharedObject{peerID: device, blockStore: s.so.blockStore},
+			base: s.genesis,
 		},
 	}
+}
+
+// replayTestSnapshot resolves the one config every operation names, whose
+// participants are the current members.
+type replayTestSnapshot struct {
+	testSharedObjectSnapshot
+	config *sobject.SharedObjectConfig
+}
+
+// GetParticipantConfigForPeer returns the member peerID of the config.
+func (s *replayTestSnapshot) GetParticipantConfigForPeer(_ context.Context, peerID string) (*sobject.SOParticipantConfig, error) {
+	for _, p := range s.config.GetParticipants() {
+		if p.GetPeerId() == peerID {
+			return p, nil
+		}
+	}
+	return nil, sobject.ErrNotParticipant
+}
+
+// GetConfigByHash returns the config when hash names it.
+func (s *replayTestSnapshot) GetConfigByHash(_ context.Context, hash []byte) (*sobject.SharedObjectConfig, error) {
+	if !bytes.Equal(hash, s.config.GetConfigChainHash()) {
+		return nil, errors.New("unknown config")
+	}
+	return s.config, nil
 }
 
 // replayTestMember is one device holding operations and replaying them.
 type replayTestMember struct {
 	space    *replayTestSpace
 	set      *sobject.SOOperationSet
+	snap     *replayTestSnapshot
 	cold     bool
 	replayer *replayer
 }
@@ -116,7 +136,7 @@ func (m *replayTestMember) deliver(ops ...*sobject.SOOperation) replayTestResult
 	if m.cold {
 		m.replayer.positions = nil
 	}
-	state, outcomes, err := m.replayer.replay(context.Background(), m.set)
+	state, outcomes, err := m.replayer.replay(context.Background(), m.snap, m.set, nil)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -181,7 +201,7 @@ func TestReplayConvergesAcrossDeliveryOrders(t *testing.T) {
 	}
 
 	// Only the later of the two shared creations is rejected.
-	set := sobject.NewSOOperationSet(replayTestObjectID)
+	set := sobject.NewSOOperationSet(replayTestObjectID, &sobject.SOCheckpointInner{})
 	for _, op := range []*sobject.SOOperation{opA, opAShared, opBShared} {
 		if _, err := set.Add(op); err != nil {
 			t.Fatal(err.Error())
@@ -211,7 +231,7 @@ func TestReplayRejectsAuthorOutsideConfig(t *testing.T) {
 	// Both the writer and the outsider reject it.
 	for _, device := range []peer.ID{pidA, pidC} {
 		res := space.member(device, true).deliver(opC)
-		want := []string{"C own: its author could not write to the Space"}
+		want := []string{"C own: its author could not write to the shared object"}
 		if !slices.Equal(res.outcomes, want) || !res.state.EqualVT(space.genesis) {
 			t.Errorf("replay on %s: outcomes %q; want %q", device, res.outcomes, want)
 		}

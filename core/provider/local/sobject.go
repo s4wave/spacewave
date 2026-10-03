@@ -2,30 +2,22 @@ package provider_local
 
 import (
 	"context"
-	"crypto/rand"
 	"slices"
 	"strings"
 
 	"github.com/aperturerobotics/controllerbus/bus"
-	"github.com/aperturerobotics/controllerbus/config"
-	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/aperturerobotics/util/csync"
 	"github.com/aperturerobotics/util/keyed"
 	"github.com/aperturerobotics/util/promise"
-	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/core/bstore"
 	"github.com/s4wave/spacewave/core/sobject"
 	block_gc "github.com/s4wave/spacewave/db/block/gc"
-	block_transform "github.com/s4wave/spacewave/db/block/transform"
-	transform_blockenc "github.com/s4wave/spacewave/db/block/transform/blockenc"
 	"github.com/s4wave/spacewave/db/kvtx"
 	"github.com/s4wave/spacewave/db/object"
-	"github.com/s4wave/spacewave/db/util/blockenc"
 	"github.com/s4wave/spacewave/db/volume"
 	kvtx_volume "github.com/s4wave/spacewave/db/volume/common/kvtx"
 	"github.com/s4wave/spacewave/net/crypto"
-	"github.com/s4wave/spacewave/net/hash"
 	"github.com/s4wave/spacewave/net/peer"
 	"github.com/sirupsen/logrus"
 )
@@ -141,119 +133,10 @@ func (s *SharedObject) AccessSharedObjectHealth(ctx context.Context, released fu
 	return s.tkr.a.AccessSharedObjectHealth(ctx, ref, released)
 }
 
-// QueueOperation applies an operation to the shared object op queue.
-// Returns after the operation is applied to the local queue.
-// Returns the local operation ID.
+// QueueOperation signs op as the local participant and adds it to the
+// operation set. Returns the local operation ID.
 func (s *SharedObject) QueueOperation(ctx context.Context, op []byte) (string, error) {
 	return s.lsoHost.QueueOperation(ctx, op)
-}
-
-// WaitOperation waits for the operation to be confirmed or rejected by the provider.
-// Returns the current state nonce (greater than or equal to the nonce when the op was applied).
-// After ClearOperation has been called, this will return success even for failed ops!
-// If the operation was rejected, returns 0, true, error.
-// Any other error returns 0, false, error.
-func (s *SharedObject) WaitOperation(ctx context.Context, localID string) (uint64, bool, error) {
-	return s.lsoHost.WaitOperation(ctx, localID)
-}
-
-// ClearOperationResult clears the operation state (rejection).
-// No-op if the operation was successfully applied.
-// Be sure to call this after WaitOperation returns an error.
-// Call with the local operation id.
-func (s *SharedObject) ClearOperationResult(ctx context.Context, localID string) error {
-	// Clearing the rejected operations happens in the Execute loop.
-	// Here, we can just clear the locally stored op state.
-	return s.lsoHost.clearLocalOpResult(ctx, localID)
-}
-
-// ProcessOperations processes operations as a validator.
-// The ops should be processed in the order they are provided.
-// The results must be a subset of ops (but does not need to have all ops).
-// If watch is set, waits for ops to be queued, then calls cb. Does not return.
-// If watch is unset, if there are no available ops, returns immediately.
-// cb is called with the state snapshot and the decoded inner state.
-func (s *SharedObject) ProcessOperations(ctx context.Context, watch bool, cb sobject.ProcessOpsFunc) error {
-	// Retain accepted state while processing successive operation batches.
-	stateCtr, relStateCtr, err := s.soHost.GetSOStateCtr(ctx, nil)
-	if err != nil {
-		return err
-	}
-	defer relStateCtr()
-
-	// A watching validator also validates local operations as they are queued.
-	if watch {
-		defer s.lsoHost.setValidator(cb)()
-	}
-
-	// Validate each pending batch against the state that exposed it.
-	var current *sobject.SOState
-	for {
-		// Wait for a newly accepted state.
-		next, err := stateCtr.WaitValueChange(ctx, current, nil)
-		if err != nil {
-			return err
-		}
-		current = next
-
-		// Stop a one-shot pass when no pending work remains.
-		pendingOps := current.GetOps()
-		if len(pendingOps) == 0 {
-			if !watch {
-				return nil
-			}
-			continue
-		}
-
-		// Bind validation to the current participant and state snapshot.
-		snap := sobject.NewSOStateParticipantHandle(
-			s.tkr.a.le,
-			s.tkr.a.t.p.sfs,
-			s.GetSharedObjectID(),
-			current,
-			s.localPriv,
-			s.localPid,
-		)
-
-		// Compute the accepted root and per-operation rejection results.
-		nextRoot, rejectedOps, acceptedOps, err := snap.ProcessOperations(
-			ctx,
-			pendingOps,
-			func(ctx context.Context, currentStateData []byte, ops []*sobject.SOOperationInner) (*[]byte, []*sobject.SOOperationResult, error) {
-				return cb(ctx, snap, currentStateData, ops)
-			},
-		)
-		if err != nil {
-			if ctx.Err() != nil {
-				return context.Canceled
-			}
-			if !watch {
-				return err
-			}
-			s.tkr.a.le.WithError(err).Warn("error processing operations")
-			continue
-		}
-
-		// Publish the complete validation result before watching another batch.
-		if err := s.soHost.UpdateRootState(
-			ctx,
-			nextRoot,
-			s.GetPeerID().String(),
-			rejectedOps,
-			acceptedOps,
-		); err != nil {
-			// Another validator may accept a root while this batch replays.
-			// Re-read that accepted state without restarting the World owner.
-			if errors.Is(err, sobject.ErrInvalidSeqno) &&
-				stateCtr.GetValue().GetRoot().GetInnerSeqno() != current.GetRoot().GetInnerSeqno() {
-				continue
-			}
-			return err
-		}
-		if !watch {
-			return nil
-		}
-	}
 }
 
 // sobjectTracker tracks a SharedObject in the ProviderAccount.
@@ -373,7 +256,6 @@ func (t *sobjectTracker) executeSharedObjectTracker(rctx context.Context) (rerr 
 		return err
 	}
 	localPeerID := localPeer.GetPeerID()
-	localPeerIDStr := localPeerID.String()
 
 	// Obtain the local signing key for state and operation ownership.
 	localPriv, err := localPeer.GetPrivKey(ctx)
@@ -390,7 +272,6 @@ func (t *sobjectTracker) executeSharedObjectTracker(rctx context.Context) (rerr 
 		objStore,
 		objStoreKey,
 		sharedObjectID,
-		localPeerIDStr,
 		localPriv,
 	); err != nil {
 		return err
@@ -405,12 +286,11 @@ func (t *sobjectTracker) executeSharedObjectTracker(rctx context.Context) (rerr 
 	}
 	soHost := sobject.NewSOHost(ctx, watchFn, lockFn, sharedObjectID, syncFuncs)
 
-	// Construct the local operation queue and mounted SharedObject handle.
+	// Construct the local publisher and mounted SharedObject handle.
 	lsoHost, err := NewLocalSOHost(
 		le,
 		localPriv,
 		soHost,
-		objStore,
 		sharedObjectID,
 		t.a.t.p.sfs,
 	)
@@ -649,7 +529,6 @@ func (t *sobjectTracker) initSharedObjectState(
 	objStore object.ObjectStore,
 	objStoreKey []byte,
 	sharedObjectID string,
-	localPeerIDStr string,
 	localPriv crypto.PrivKey,
 ) error {
 	// Retry classification: external to RunTransaction. Initialization generates
@@ -675,97 +554,15 @@ func (t *sobjectTracker) initSharedObjectState(
 			return err
 		}
 	} else {
-		// Give the storage peer ownership of the new SharedObject.
+		// Give the storage peer ownership of the new SharedObject, pinned to its
+		// signed genesis in the state transaction.
 		le.Debug("initializing shared object with empty state")
-		val.Config = &sobject.SharedObjectConfig{
-			Participants: []*sobject.SOParticipantConfig{{
-				PeerId: localPeerIDStr,
-				Role:   sobject.SOParticipantRole_SOParticipantRole_OWNER,
-			}},
-		}
-
-		// Pin new objects to their creator's signed genesis in the state transaction.
-		initialConfig := val.Config
-		genesis, err := sobject.BuildSOConfigChange(sharedObjectID, initialConfig, initialConfig, sobject.SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_GENESIS, localPriv, nil)
+		var genesis *sobject.SOConfigChange
+		val, genesis, err = sobject.BuildGenesisSOState(le, t.a.t.p.sfs, sharedObjectID, localPriv, nil)
 		if err != nil {
 			return err
 		}
-		val.Config, err = sobject.VerifyConfigChange(sharedObjectID, initialConfig, genesis)
-		if err != nil {
-			return err
-		}
-		if err := WriteSOConfigHistory(ctx, otx, sharedObjectID, initialConfig, val.Config, []*sobject.SOConfigChange{genesis}); err != nil {
-			return err
-		}
-
-		// Create the first empty state and its random encryption configuration.
-		ninner := &sobject.SORootInner{
-			Seqno:     1,
-			StateData: nil,
-		}
-		encKey := make([]byte, 32)
-		_, err = rand.Read(encKey)
-		if err != nil {
-			return err
-		}
-		soTransformConf, err := block_transform.NewConfig([]config.Config{
-			&transform_blockenc.Config{
-				BlockEnc: blockenc.DefaultBlockEnc,
-				Key:      encKey,
-			},
-		})
-		if err != nil {
-			return err
-		}
-		soTransform, err := block_transform.NewTransformer(controller.ConstructOpts{Logger: le}, t.a.t.p.sfs, soTransformConf)
-		if err != nil {
-			return err
-		}
-
-		// Encrypt and sign the initial root under the creator's identity.
-		innerDataDec, err := ninner.MarshalVT()
-		if err != nil {
-			return err
-		}
-		innerDataEnc, err := soTransform.EncodeBlock(innerDataDec)
-		if err != nil {
-			return err
-		}
-		nroot := &sobject.SORoot{InnerSeqno: 1, Inner: innerDataEnc}
-		if err := nroot.SignInnerData(localPriv, sharedObjectID, nroot.GetInnerSeqno(), hash.RecommendedHashType); err != nil {
-			return err
-		}
-		val.Root = nroot
-
-		// Make a grant for each of the remote peers.
-		participants := val.GetConfig().GetParticipants()
-		grantToPeerIDs := make([]string, 0, len(participants))
-		for _, participant := range participants {
-			if sobject.CanReadState(participant.GetRole()) {
-				grantToPeerIDs = append(grantToPeerIDs, participant.GetPeerId())
-			}
-		}
-		grants := make([]*sobject.SOGrant, len(grantToPeerIDs))
-		nextGrantInner := &sobject.SOGrantInner{TransformConf: soTransformConf}
-		for i, grantPeerIDStr := range grantToPeerIDs {
-			grantPeerID, err := peer.IDB58Decode(grantPeerIDStr)
-			if err != nil {
-				return errors.Wrapf(err, "participants[%d]: invalid participant peer id", i)
-			}
-			grantPub, err := grantPeerID.ExtractPublicKey()
-			if err != nil {
-				return errors.Wrapf(err, "participants[%d]: invalid participant peer pub: %s", i, grantPeerID.String())
-			}
-			grant, err := sobject.EncryptSOGrant(localPriv, grantPub, sharedObjectID, nextGrantInner)
-			if err != nil {
-				return err
-			}
-			grants[i] = grant
-		}
-		val.RootGrants = grants
-
-		// Commit only a complete state with valid configuration, root, and grants.
-		if err := val.Validate(sharedObjectID); err != nil {
+		if err := WriteSOConfigHistory(ctx, otx, sharedObjectID, genesis.GetConfig(), val.GetConfig(), []*sobject.SOConfigChange{genesis}); err != nil {
 			return err
 		}
 		data, err = val.MarshalVT()
@@ -903,5 +700,4 @@ var (
 	_ sobject.SharedObjectProvider       = (*ProviderAccount)(nil)
 	_ sobject.SharedObject               = (*SharedObject)(nil)
 	_ sobject.InviteHost                 = (*SharedObject)(nil)
-	_ sobject.SharedObjectStateSnapshot  = (*lsoStateSnapshot)(nil)
 )

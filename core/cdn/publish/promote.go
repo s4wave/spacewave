@@ -14,14 +14,15 @@ import (
 )
 
 // Promote copies missing packs from the source Space to the destination Space
-// and posts the destination root after all required packs are present.
+// and posts the destination checkpoint after all required packs are present.
 func Promote(ctx context.Context, opts Options) error {
+	// Read the source head and both pack manifests.
 	srcHeadRef, err := FetchSourceHeadRef(ctx, opts.Client, opts.SrcSpaceID)
 	if err != nil {
 		return errors.Wrap(err, "fetch source head ref")
 	}
 	if srcHeadRef == nil {
-		return errors.New("source space has no committed root")
+		return errors.New("source space has no published World")
 	}
 	srcPacks, err := FetchPackEntries(ctx, opts.Client, opts.SrcSpaceID)
 	if err != nil {
@@ -31,16 +32,19 @@ func Promote(ctx context.Context, opts Options) error {
 	if err != nil {
 		return errors.Wrap(err, "fetch destination pack manifest")
 	}
+
+	// Plan against the destination head; a matching destination needs nothing.
 	dstHeadRef, err := FetchDestinationHeadRef(ctx, opts.CdnBaseURL, opts.DstSpaceID)
 	if err != nil {
 		return errors.Wrap(err, "fetch destination head ref")
 	}
 	plan := BuildPublishPlan(srcPacks, dstPacks, srcHeadRef, dstHeadRef)
-	if len(plan.MissingPackIDs) == 0 && !plan.NeedRootPost {
+	if len(plan.MissingPackIDs) == 0 && !plan.NeedCheckpoint {
 		_, err := io.WriteString(opts.output(), "publish-space: no changes (destination already matches source)\n")
 		return err
 	}
 
+	// Push each missing pack from the source.
 	srcPackMap := make(map[string]*packfile.PackfileEntry, len(srcPacks))
 	for _, entry := range srcPacks {
 		srcPackMap[entry.GetId()] = entry
@@ -69,17 +73,18 @@ func Promote(ctx context.Context, opts Options) error {
 		}
 	}
 
-	if !plan.NeedRootPost {
-		_, err := io.WriteString(opts.output(), "destination root already matches source; skipped root post\n")
+	// Post the checkpoint when the World differs.
+	if !plan.NeedCheckpoint {
+		_, err := io.WriteString(opts.output(), "destination World already matches source; skipped checkpoint post\n")
 		return err
 	}
-	root, err := PostRoot(ctx, opts, srcHeadRef)
+	checkpoint, err := PostCheckpoint(ctx, opts, srcHeadRef)
 	if err != nil {
 		return err
 	}
 	_, err = io.WriteString(
 		opts.output(),
-		"published root seqno="+strconv.FormatUint(root.GetInnerSeqno(), 10)+
+		"published checkpoint height="+strconv.FormatUint(checkpoint.GetHeight(), 10)+
 			" to destination="+opts.DstSpaceID+"\n",
 	)
 	return err

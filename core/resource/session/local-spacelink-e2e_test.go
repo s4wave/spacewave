@@ -360,12 +360,9 @@ func TestLocalSpaceLinkDeviceEnrollmentEndToEnd(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Assert the join returned the grant, owner grant, and shared object state.
+	// Assert the join returned the grant and shared object state.
 	if joinResult == nil || joinResult.Grant == nil {
 		t.Fatal("invite join returned no grant")
-	}
-	if joinResult.OwnerGrant == nil {
-		t.Fatal("invite join returned no owner grant")
 	}
 	if joinResult.SharedObjectState == nil {
 		t.Fatal("invite join returned no owner shared object state")
@@ -389,7 +386,14 @@ func TestLocalSpaceLinkDeviceEnrollmentEndToEnd(t *testing.T) {
 	}
 
 	// The originating owner retains decryption authority over the joined copy.
-	if _, err := joinResult.OwnerGrant.DecryptInnerData(ownerMountedSO.GetPrivKey(), spaceID); err != nil {
+	ownerPeerID := ownerMountedSO.GetPeerID().String()
+	var ownerGrant *sobject.SOGrant
+	for _, grant := range joinResult.SharedObjectState.CurrentKeyEpoch().GetGrants() {
+		if grant.GetPeerId() == ownerPeerID {
+			ownerGrant = grant
+		}
+	}
+	if _, err := ownerGrant.DecryptInnerData(ownerMountedSO.GetPrivKey(), spaceID); err != nil {
 		t.Fatalf("originating owner cannot decrypt joined state: %v", err)
 	}
 
@@ -462,7 +466,7 @@ func TestLocalSpaceLinkDeviceEnrollmentEndToEnd(t *testing.T) {
 	foundGrant := false
 	foundStorageGrant := false
 	storagePeerID := localDeviceSO.GetPeerID().String()
-	for _, grant := range deviceSOState.GetRootGrants() {
+	for _, grant := range deviceSOState.CurrentKeyEpoch().GetGrants() {
 		switch grant.GetPeerId() {
 		case devicePeerID.String():
 			foundGrant = true
@@ -572,7 +576,7 @@ func TestLocalSpaceLinkDeviceEnrollmentEndToEnd(t *testing.T) {
 		t.Fatal(err)
 	}
 	foundGrant = false
-	for _, grant := range restartedState.GetRootGrants() {
+	for _, grant := range restartedState.CurrentKeyEpoch().GetGrants() {
 		if grant.GetPeerId() == devicePeerID.String() {
 			foundGrant = true
 		}

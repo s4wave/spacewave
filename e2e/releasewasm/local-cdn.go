@@ -14,14 +14,13 @@ import (
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/bldr/util/packedmsg"
 	"github.com/s4wave/spacewave/core/cdn"
+	cdn_publish "github.com/s4wave/spacewave/core/cdn/publish"
 	"github.com/s4wave/spacewave/core/release"
 	"github.com/s4wave/spacewave/core/release/publisher"
 	"github.com/s4wave/spacewave/core/sobject"
-	world_engine "github.com/s4wave/spacewave/core/sobject/world/engine"
 	"github.com/s4wave/spacewave/db/packfile"
 	"github.com/s4wave/spacewave/db/world"
 	"github.com/s4wave/spacewave/net/crypto"
-	"github.com/s4wave/spacewave/net/hash"
 	"github.com/sirupsen/logrus"
 )
 
@@ -130,13 +129,7 @@ func exportLocalCDN(ctx context.Context, le *logrus.Entry, stateDir, distDir str
 	}
 
 	// Publish the pointer only after all immutable packs are available.
-	head = head.CloneVT()
-	head.BucketId = ""
-	stateData, err := (&world_engine.InnerState{HeadRef: head}).MarshalVT()
-	if err != nil {
-		return err
-	}
-	inner, err := (&sobject.SORootInner{Seqno: 1, StateData: stateData}).MarshalVT()
+	stateData, err := cdn_publish.EncodeHeadState(head)
 	if err != nil {
 		return err
 	}
@@ -144,11 +137,13 @@ func exportLocalCDN(ctx context.Context, le *logrus.Entry, stateDir, distDir str
 	if err != nil {
 		return err
 	}
-	root := &sobject.SORoot{Inner: inner, InnerSeqno: 1}
-	if err := root.SignInnerData(key, localCDNSpaceID, 1, hash.RecommendedHashType); err != nil {
+
+	// Sign a genesis checkpoint of the head and write the pointer.
+	checkpoint, err := sobject.BuildGenesisSOCheckpoint(key, localCDNSpaceID, nil, stateData)
+	if err != nil {
 		return err
 	}
-	data, err := (&cdn.CdnRootPointer{SpaceId: localCDNSpaceID, Root: root, Packs: packs}).MarshalVT()
+	data, err := (&cdn.CdnRootPointer{SpaceId: localCDNSpaceID, Checkpoint: checkpoint, Packs: packs}).MarshalVT()
 	if err != nil {
 		return err
 	}

@@ -4,31 +4,89 @@ import (
 	"context"
 
 	"github.com/aperturerobotics/controllerbus/bus"
+	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/core/sobject"
 	"github.com/s4wave/spacewave/db/block"
 	transform_all "github.com/s4wave/spacewave/db/block/transform/all"
 	"github.com/s4wave/spacewave/db/bucket"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
+	"github.com/s4wave/spacewave/db/kvtx"
 	"github.com/s4wave/spacewave/db/tx"
 	"github.com/s4wave/spacewave/db/world"
 	"github.com/sirupsen/logrus"
 )
 
-// OpenReadCheckpoint serves one retained World without starting a live body controller.
-// Release closes the cursor after all readers have released their transactions.
+// worldHeadStoreID is the local state store holding the head of the World
+// this participant last installed.
+const worldHeadStoreID = "world-head"
+
+// worldHeadKey is the key of the head in the world head store.
+var worldHeadKey = []byte("head")
+
+// writeWorldHead records head as the last installed World. It stays after this
+// participant loses read access, so its read checkpoint can serve the World it
+// last held.
+func writeWorldHead(ctx context.Context, so sobject.SharedObject, head *bucket.ObjectRef) error {
+	// Store the head without its local bucket.
+	stored := head.CloneVT()
+	stored.BucketId = ""
+	data, err := stored.MarshalVT()
+	if err != nil {
+		return err
+	}
+	store, release, err := so.AccessLocalStateStore(ctx, worldHeadStoreID, nil)
+	if err != nil {
+		return err
+	}
+	defer release()
+	return kvtx.RunTransaction(ctx, true, func(ctx context.Context) (kvtx.Tx, error) {
+		return store.NewTransaction(ctx, true)
+	}, func(ctx context.Context, tx kvtx.Tx) error {
+		return tx.Set(ctx, worldHeadKey, data)
+	})
+}
+
+// readWorldHead returns the head writeWorldHead last recorded, or nil.
+func readWorldHead(ctx context.Context, so sobject.SharedObject) (*bucket.ObjectRef, error) {
+	// Open the local state store.
+	store, release, err := so.AccessLocalStateStore(ctx, worldHeadStoreID, nil)
+	if err != nil {
+		return nil, err
+	}
+	defer release()
+	var head *bucket.ObjectRef
+	err = kvtx.RunTransaction(ctx, false, func(ctx context.Context) (kvtx.Tx, error) {
+		return store.NewTransaction(ctx, false)
+	}, func(ctx context.Context, tx kvtx.Tx) error {
+		// Read the head, if any.
+		head = nil
+		data, found, err := tx.Get(ctx, worldHeadKey)
+		if err != nil || !found {
+			return err
+		}
+		head = &bucket.ObjectRef{}
+		return head.UnmarshalVT(data)
+	})
+	return head, err
+}
+
+// OpenReadCheckpoint serves the World this participant last installed without
+// starting a live body controller. Release closes the cursor after all readers
+// have released their transactions.
 func OpenReadCheckpoint(
 	ctx context.Context,
 	le *logrus.Entry,
 	b bus.Bus,
 	so sobject.SharedObject,
-	snapshot sobject.SharedObjectStateSnapshot,
 ) (world.Engine, func(), error) {
-	// Open a block engine on the snapshot's World head.
-	state, err := snapshotWorldState(ctx, snapshot)
+	// Open a block engine on the last installed World head.
+	head, err := readWorldHead(ctx, so)
 	if err != nil {
 		return nil, nil, err
 	}
-	head := state.GetHeadRef()
+	if head == nil {
+		return nil, nil, errors.New("no World was retained for the read checkpoint")
+	}
 	engine, err := buildBlockEngine(ctx, le, b, transform_all.BuildFactorySet(), so, head, head.GetTransformConf(), nil, false)
 	if err != nil {
 		return nil, nil, err

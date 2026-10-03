@@ -17,7 +17,6 @@ import { Spinner } from '@s4wave/web/ui/loading/Spinner.js'
 
 const roleLabels: Record<number, string> = {
   [SOParticipantRole.SOParticipantRole_OWNER]: 'Owner',
-  [SOParticipantRole.SOParticipantRole_VALIDATOR]: 'Validator',
   [SOParticipantRole.SOParticipantRole_WRITER]: 'Writer',
   [SOParticipantRole.SOParticipantRole_READER]: 'Reader',
 }

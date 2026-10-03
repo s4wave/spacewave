@@ -2,6 +2,11 @@ import { bytesToHex } from '@noble/hashes/utils.js'
 import { describe, expect, it } from 'vitest'
 
 import {
+  hashSOCheckpointInner,
+  verifySOCheckpoint,
+  verifySOCheckpointAuthority,
+} from './checkpoint.js'
+import {
   SOConfigChangeError,
   verifySOConfigChain,
   verifySOConfigChange,
@@ -13,6 +18,7 @@ import {
 } from './operation-log.js'
 import {
   SharedObjectConfig,
+  SOCheckpoint,
   SOConfigChange,
   SOOperation,
 } from './sobject.pb.js'
@@ -108,5 +114,35 @@ describe('control record vectors', () => {
     // The result matches Go and the expected rejection kind.
     expect(kind).toBe(v.kind)
     expect(next).toBe(v.nextHash)
+  })
+})
+
+describe('checkpoint vectors', () => {
+  it.each(vectors.checkpoints)('$name verifies as Go does', async (v) => {
+    // Verify the checkpoint under the vector object.
+    const checkpoint = SOCheckpoint.fromBinary(fromBase64(v.checkpoint))
+    const verified = await verifySOCheckpoint(objectID, checkpoint).then(
+      () => true,
+      () => false,
+    )
+
+    // A valid checkpoint has Go's hash; an invalid one is rejected.
+    expect(verified).toBe(v.hash !== '')
+    if (verified) {
+      expect(bytesToHex(hashSOCheckpointInner(checkpoint.inner!))).toBe(v.hash)
+    }
+
+    // Owner authority matches Go under the vector config.
+    const participants =
+      SharedObjectConfig.fromBinary(fromBase64(v.config)).participants ?? []
+    const authority = await verifySOCheckpointAuthority(
+      objectID,
+      checkpoint,
+      participants,
+    ).then(
+      () => true,
+      () => false,
+    )
+    expect(authority).toBe(v.authority)
   })
 })

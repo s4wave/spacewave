@@ -122,28 +122,39 @@ func TestNativeOwnerTransfer(t *testing.T) {
 	waitSOEndpoint(ctx, t, second, id, "")
 	waitSOEndpoint(ctx, t, first, id, secondSession.GetPeerId().String())
 
-	// The remaining writer's operation is admitted by the new host.
+	// The new host receives and replays the remaining writer's operation.
 	localID, err := remaining.QueueOperation(ctx, []byte("after transfer"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := states.WaitValueWithValidator(ctx, func(state *sobject.SOState) (bool, error) {
-		return len(state.GetOps()) != 0, nil
+
+	// Wait for the successor to accept it.
+	accept := func(_ context.Context, _ sobject.SharedObjectStateSnapshot, cur []byte, _ []*sobject.SOOperationInner) (*[]byte, []*sobject.SOOperationResult, error) {
+		return &cur, nil, nil
+	}
+	snapshots, releaseSnapshots, err := successor.AccessSharedObjectState(ctx, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer releaseSnapshots()
+	writer := remaining.GetPeerID().String()
+	var outcome *sobject.FoldOutcome
+	if _, err := snapshots.WaitValueWithValidator(ctx, func(snap sobject.SharedObjectStateSnapshot) (bool, error) {
+		// Fold the snapshot until it holds the outcome of the writer's operation.
+		if snap == nil {
+			return false, nil
+		}
+		res, err := sobject.Fold(ctx, snap, accept)
+		if err != nil {
+			return false, err
+		}
+		outcome = res.Outcome(writer, localID)
+		return outcome != nil, nil
 	}, nil); err != nil {
 		t.Fatalf("new host did not receive the operation: %v", err)
 	}
-	if err := successor.ProcessOperations(ctx, false, func(_ context.Context, _ sobject.SharedObjectStateSnapshot, _ []byte, ops []*sobject.SOOperationInner) (*[]byte, []*sobject.SOOperationResult, error) {
-		data := []byte("accepted")
-		results := make([]*sobject.SOOperationResult, len(ops))
-		for i, op := range ops {
-			results[i] = sobject.BuildSOOperationResult(op.GetPeerId(), op.GetNonce(), true, nil)
-		}
-		return &data, results, nil
-	}); err != nil {
-		t.Fatal(err)
-	}
-	if _, _, err := remaining.WaitOperation(ctx, localID); err != nil {
-		t.Fatalf("operation was not admitted after the transfer: %v", err)
+	if outcome.Reason != "" {
+		t.Fatalf("new host rejected the operation: %s", outcome.Reason)
 	}
 }
 

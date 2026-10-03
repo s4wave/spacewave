@@ -2,6 +2,7 @@ package provider_spacewave
 
 import (
 	"bytes"
+	"cmp"
 	"context"
 	"path"
 	"slices"
@@ -65,7 +66,8 @@ func (s *SharedObject) GetBackingVolume() volume.Volume {
 	return s.tkr.a.vol
 }
 
-// AccessLocalStateStore accesses a kvtx ops for a local state store with the given ID.
+// AccessLocalStateStore accesses a kvtx ops for a local state store with the
+// given ID.
 func (s *SharedObject) AccessLocalStateStore(ctx context.Context, storeID string, released func()) (kvtx.Store, func(), error) {
 	if s.tkr.a.objStore == nil {
 		return nil, nil, errors.New("account object store not ready")
@@ -115,7 +117,8 @@ func (s *SharedObject) GetSharedObjectState(ctx context.Context) (sobject.Shared
 	return snap, nil
 }
 
-// AccessSharedObjectState adds a reference to the state and returns the state container.
+// AccessSharedObjectState adds a reference to the state and returns the state
+// container.
 func (s *SharedObject) AccessSharedObjectState(ctx context.Context, released func()) (ccontainer.Watchable[sobject.SharedObjectStateSnapshot], func(), error) {
 	return s.host.AccessSharedObjectSnapshot(), func() {}, nil
 }
@@ -129,171 +132,12 @@ func (s *SharedObject) AccessSharedObjectHealth(ctx context.Context, released fu
 	return s.tkr.a.AccessSharedObjectHealth(ctx, ref, released)
 }
 
-// QueueOperation applies an operation to the shared object op queue.
+// QueueOperation signs op as the session peer and adds it to the operation
+// set. It returns the operation's local ID once the state holding it is
+// durably accepted for publication.
 func (s *SharedObject) QueueOperation(ctx context.Context, op []byte) (string, error) {
-	snap, err := s.GetSharedObjectState(ctx)
-	if err != nil {
-		return "", err
-	}
-
-	xfrm, err := snap.GetTransformer(ctx)
-	if err != nil {
-		return "", err
-	}
-
-	encOp, err := xfrm.EncodeBlock(op)
-	if err != nil {
-		return "", err
-	}
-
-	id := sobject.NewSOOperationLocalID()
-	err = s.host.QueueOperation(ctx, s.localPid, func(link *sobject.SOOperationLink) (*sobject.SOOperation, error) {
-		return sobject.BuildSOOperation(
-			s.host.soHost.GetSharedObjectID(),
-			s.privKey,
-			encOp,
-			link,
-			id,
-		)
-	})
-	if err != nil {
-		return "", err
-	}
-	return id, nil
-}
-
-// WaitOperation waits for the operation to be confirmed or rejected by the provider.
-func (s *SharedObject) WaitOperation(ctx context.Context, localID string) (uint64, bool, error) {
-	// Watch the same accepted state used by the publication coordinator.
-	soStateCtr, relSoStateCtr, err := s.host.GetSOHost().GetSOStateCtr(ctx, nil)
-	if err != nil {
-		return 0, false, err
-	}
-	defer relSoStateCtr()
-
-	var current *sobject.SOState
-	flushed := false
-	for {
-		next, err := soStateCtr.WaitValueChange(ctx, current, nil)
-		if err != nil {
-			return 0, false, err
-		}
-		current = next
-
-		// Check if the operation is still in the queue.
-		found := false
-		for _, op := range current.GetOps() {
-			opInner, err := op.UnmarshalInner()
-			if err != nil {
-				continue
-			}
-			if opInner.GetLocalId() == localID {
-				found = true
-				break
-			}
-		}
-
-		if found {
-			// A caller waiting for confirmation needs its write published now,
-			// rather than after the background batching deadline.
-			if !flushed && s.host.syncer != nil {
-				if err := s.host.syncer.FlushNowUnordered(ctx); err != nil {
-					return 0, false, errors.Wrap(err, "publish shared operation")
-				}
-				flushed = true
-			}
-			continue
-		}
-
-		// Check for rejection.
-		for _, peerRej := range current.GetOpRejections() {
-			for _, rej := range peerRej.GetRejections() {
-				rejInner := &sobject.SOOperationRejectionInner{}
-				if err := rejInner.UnmarshalVT(rej.GetInner()); err != nil {
-					continue
-				}
-				if rejInner.GetLocalId() == localID {
-					return 0, true, sobject.ErrRejectedOp
-				}
-			}
-		}
-
-		// Not in queue and not rejected: accepted.
-		return current.GetRoot().GetInnerSeqno(), false, nil
-	}
-}
-
-// ClearOperationResult clears the operation state.
-func (s *SharedObject) ClearOperationResult(ctx context.Context, localID string) error {
-	// For cloud provider, no local op result store to clear.
-	return nil
-}
-
-// ProcessOperations processes operations as a validator.
-func (s *SharedObject) ProcessOperations(ctx context.Context, watch bool, cb sobject.ProcessOpsFunc) error {
-	soStateCtr, relSoStateCtr, err := s.host.GetSOHost().GetSOStateCtr(ctx, nil)
-	if err != nil {
-		return err
-	}
-	defer relSoStateCtr()
-
-	var current *sobject.SOState
-	for {
-		next, err := soStateCtr.WaitValueChange(ctx, current, nil)
-		if err != nil {
-			return err
-		}
-		current = next
-
-		pendingOps := current.GetOps()
-		if len(pendingOps) == 0 {
-			if !watch {
-				return nil
-			}
-			continue
-		}
-
-		snap := sobject.NewSOStateParticipantHandle(
-			s.tkr.a.le,
-			s.tkr.a.sfs,
-			s.GetSharedObjectID(),
-			current,
-			s.privKey,
-			s.localPid,
-		)
-
-		nextRoot, rejectedOps, acceptedOps, err := snap.ProcessOperations(
-			ctx,
-			pendingOps,
-			func(ctx context.Context, currentStateData []byte, ops []*sobject.SOOperationInner) (*[]byte, []*sobject.SOOperationResult, error) {
-				return cb(ctx, snap, currentStateData, ops)
-			},
-		)
-		if err != nil {
-			if ctx.Err() != nil {
-				return context.Canceled
-			}
-			if !watch {
-				return err
-			}
-			s.tkr.a.le.WithError(err).Warn("error processing operations")
-			continue
-		}
-
-		if err := s.host.GetSOHost().UpdateRootState(
-			ctx,
-			nextRoot,
-			s.GetPeerID().String(),
-			rejectedOps,
-			acceptedOps,
-		); err != nil {
-			return err
-		}
-
-		if !watch {
-			return nil
-		}
-	}
+	localID, _, err := s.host.GetSOHost().AddLocalOperation(ctx, s.tkr.a.le, s.tkr.a.sfs, s.privKey, op)
+	return localID, err
 }
 
 // sobjectTracker tracks a SharedObject in the ProviderAccount.
@@ -326,7 +170,8 @@ func (a *ProviderAccount) buildSharedObjectTracker(sobjectID string) (keyed.Rout
 	return tracker.executeSharedObjectTracker, tracker
 }
 
-// setHealth updates the current shared object health snapshot when tracking is enabled.
+// setHealth updates the current shared object health snapshot when tracking is
+// enabled.
 func (t *sobjectTracker) setHealth(health *sobject.SharedObjectHealth) {
 	if t.healthCtr == nil {
 		return
@@ -431,13 +276,14 @@ func (t *sobjectTracker) executeSharedObjectTracker(rctx context.Context) (rerr 
 	}
 	host.blockManifestSequence = cloudBlkStore.RemoteSequence
 	host.stateObserved = func(state *sobject.SOState) {
-		if state == nil || state.GetRoot() == nil {
+		checkpoint, err := state.GetCheckpointInner()
+		if err != nil || checkpoint == nil {
 			return
 		}
-		t.a.setSyncTelemetryAcceptedRoot(
+		t.a.setSyncTelemetryAcceptedCheckpoint(
 			sobjectRef.GetBlockStoreId(),
 			sharedObjectID,
-			state.GetRoot().GetInnerSeqno(),
+			checkpoint.GetHeight(),
 		)
 	}
 	so := &SharedObject{
@@ -494,7 +340,8 @@ func (t *sobjectTracker) holdTerminalMountError(
 	return context.Canceled
 }
 
-// MountSharedObject attempts to mount a SharedObject returning the sobject and a release function.
+// MountSharedObject attempts to mount a SharedObject returning the sobject and
+// a release function.
 func (a *ProviderAccount) MountSharedObject(ctx context.Context, ref *sobject.SharedObjectRef, released func()) (sobject.SharedObject, func(), error) {
 	if err := ref.Validate(); err != nil {
 		return nil, nil, err
@@ -583,7 +430,7 @@ func (a *ProviderAccount) CreateSharedObject(ctx context.Context, id string, met
 		}
 		defer release()
 		host := object.(*SharedObject).host
-		if host.stateCtr.GetValue().GetRoot() == nil {
+		if host.stateCtr.GetValue().GetCheckpoint() == nil {
 			if err := host.pullState(ctx, SeedReasonMutation); err != nil {
 				return nil, errors.Wrap(err, "publish initialized shared object")
 			}
@@ -634,7 +481,8 @@ func (a *ProviderAccount) normalizeSharedObjectCreateOwner(
 	return sobject.OwnerTypeAccount, a.accountID
 }
 
-// buildSharedObjectRef constructs a SharedObjectRef for the given shared object ID.
+// buildSharedObjectRef constructs a SharedObjectRef for the given shared object
+// ID.
 func (a *ProviderAccount) buildSharedObjectRef(id string) *sobject.SharedObjectRef {
 	providerID := a.p.info.GetProviderId()
 	providerAccountID := a.accountID
@@ -708,7 +556,8 @@ func (a *ProviderAccount) PatchSharedObjectListMetadata(
 	a.refreshSelfEnrollmentSummary(context.Background())
 }
 
-// RemoveSharedObjectListEntry removes a deleted shared object from the cached list.
+// RemoveSharedObjectListEntry removes a deleted shared object from the cached
+// list.
 func (a *ProviderAccount) RemoveSharedObjectListEntry(
 	soID string,
 ) {
@@ -754,7 +603,8 @@ func (a *ProviderAccount) settleCreatedSharedObjectListEntry(soID string) {
 	})
 }
 
-// sharedObjectListMetaFromMetadata builds typed metadata for a supported object.
+// sharedObjectListMetaFromMetadata builds typed metadata for a supported
+// object.
 func sharedObjectListMetaFromMetadata(
 	metadata *api.SpaceMetadataResponse,
 ) (*sobject.SharedObjectMeta, bool) {
@@ -772,7 +622,8 @@ func sharedObjectListMetaFromMetadata(
 	}
 }
 
-// getSharedObjectDisplayName extracts the display name from a space SO's metadata.
+// getSharedObjectDisplayName extracts the display name from a space SO's
+// metadata.
 func getSharedObjectDisplayName(meta *sobject.SharedObjectMeta) string {
 	if meta.GetBodyType() != space.SpaceBodyType {
 		return ""
@@ -812,7 +663,8 @@ func (a *ProviderAccount) DeleteSharedObject(ctx context.Context, id string) err
 	return nil
 }
 
-// AccessSharedObjectList adds a reference to the list of shared objects and returns the container.
+// AccessSharedObjectList adds a reference to the list of shared objects and
+// returns the container.
 func (a *ProviderAccount) AccessSharedObjectList(ctx context.Context, released func()) (ccontainer.Watchable[*sobject.SharedObjectList], func(), error) {
 	ref := a.soListRc.AddRef(nil)
 	return a.soListCtr, ref.Release, nil
@@ -867,7 +719,8 @@ func (a *ProviderAccount) HasCachedSharedObject(soID string) bool {
 	return false
 }
 
-// fetchSharedObjectList fetches the shared object list from the server and updates the persistent container.
+// fetchSharedObjectList fetches the shared object list from the server and
+// updates the persistent container.
 func (a *ProviderAccount) fetchSharedObjectList(ctx context.Context) error {
 	cli := a.currentSessionClient()
 	if cli == nil {
@@ -975,7 +828,7 @@ func (s *SharedObject) AddParticipant(
 
 	// Write the change against the latest config, retrying on a conflict.
 	for attempt := range maxWriteRetries {
-		// Load the latest config, root grants and key epochs.
+		// Load the latest config and key epochs.
 		state, currentCfg, epochs, err := s.loadLatestConfigState(ctx)
 		if err != nil {
 			return nil, err
@@ -996,19 +849,16 @@ func (s *SharedObject) AddParticipant(
 
 		// Return early when the participant and its grant are current.
 		epoch := currentEpochWithFallback(state, epochs)
-		grantExists := soGrantSliceHasPeerID(state.GetRootGrants(), targetPeerIDStr)
-		if !grantExists && epoch != nil {
-			grantExists = soGrantSliceHasPeerID(epoch.GetGrants(), targetPeerIDStr)
+		if epoch == nil {
+			return nil, errors.New("current key epoch missing")
 		}
+		grantExists := epoch.FindGrant(targetPeerIDStr) != nil
 		if participantExists && !participantNeedsUpdate && grantExists {
 			return nil, nil
 		}
 
-		localPeerIDStr := s.localPid.String()
-		localGrant := findSOGrantByPeerID(state.GetRootGrants(), localPeerIDStr)
-		if localGrant == nil && epoch != nil {
-			localGrant = findSOGrantByPeerID(epoch.GetGrants(), localPeerIDStr)
-		}
+		// Recover the read key from the local grant.
+		localGrant := epoch.FindGrant(s.localPid.String())
 		if localGrant == nil {
 			return nil, errors.New("local grant not found")
 		}
@@ -1072,17 +922,6 @@ func (s *SharedObject) AddParticipant(
 			if err != nil {
 				return nil, errors.Wrap(err, "encrypt grant for target peer")
 			}
-
-			if epoch == nil {
-				epoch = &sobject.SOKeyEpoch{
-					Epoch:      sobject.CurrentEpochNumber(epochs),
-					SeqnoStart: state.GetRoot().GetInnerSeqno(),
-					Grants:     slices.Clone(state.GetRootGrants()),
-				}
-			}
-			if epoch.GetSeqnoStart() == 0 {
-				epoch.SeqnoStart = state.GetRoot().GetInnerSeqno()
-			}
 			epoch.Grants = append(epoch.GetGrants(), grant)
 		}
 
@@ -1095,14 +934,10 @@ func (s *SharedObject) AddParticipant(
 		if err != nil {
 			return nil, errors.Wrap(err, "build recovery config snapshot")
 		}
-		recoveryKeyEpoch := sobject.CurrentEpochNumber(epochs)
-		if postedEpoch != nil {
-			recoveryKeyEpoch = postedEpoch.GetEpoch()
-		}
+		recoveryKeyEpoch := epoch.GetEpoch()
 		recoveryEnvelopes, err := s.buildRecoveryEnvelopesForConfig(
 			ctx,
 			cli,
-			state,
 			epoch,
 			recoveryCfg,
 			recoveryKeyEpoch,
@@ -1116,7 +951,6 @@ func (s *SharedObject) AddParticipant(
 			recoveryEnvelopes, err = s.buildRecoveryEnvelopesForConfig(
 				ctx,
 				cli,
-				state,
 				epoch,
 				recoveryConfigWithoutEntity(recoveryCfg, entityID),
 				recoveryKeyEpoch,
@@ -1156,7 +990,7 @@ func (s *SharedObject) AddParticipant(
 			}
 		}
 		if entry != nil {
-			if err := s.host.applyConfigMutation(ctx, entry, nil, postedEpoch, nil); err != nil {
+			if err := s.host.applyConfigMutation(ctx, entry, nil, postedEpoch); err != nil {
 				return nil, err
 			}
 		} else if postedEpoch != nil {
@@ -1177,39 +1011,14 @@ func (s *SharedObject) getReadyWriteSessionClient(ctx context.Context) (*Session
 	return cli, nil
 }
 
+// currentEpochWithFallback returns a copy of the newest key epoch held by
+// state or listed in epochs, which ascend by epoch.
 func currentEpochWithFallback(state *sobject.SOState, epochs []*sobject.SOKeyEpoch) *sobject.SOKeyEpoch {
-	currentEpoch := sobject.CurrentEpochNumber(epochs)
-	for _, epoch := range epochs {
-		if epoch.GetEpoch() == currentEpoch {
-			return epoch.CloneVT()
-		}
+	current := state.CurrentKeyEpoch()
+	if n := len(epochs); n != 0 && (current == nil || epochs[n-1].GetEpoch() > current.GetEpoch()) {
+		current = epochs[n-1]
 	}
-	if state == nil || state.GetRoot() == nil {
-		return nil
-	}
-	return &sobject.SOKeyEpoch{
-		Epoch:      currentEpoch,
-		SeqnoStart: state.GetRoot().GetInnerSeqno(),
-		Grants:     slices.Clone(state.GetRootGrants()),
-	}
-}
-
-func soGrantSliceHasPeerID(grants []*sobject.SOGrant, peerID string) bool {
-	for _, grant := range grants {
-		if grant.GetPeerId() == peerID {
-			return true
-		}
-	}
-	return false
-}
-
-func findSOGrantByPeerID(grants []*sobject.SOGrant, peerID string) *sobject.SOGrant {
-	for _, grant := range grants {
-		if grant.GetPeerId() == peerID {
-			return grant
-		}
-	}
-	return nil
+	return current.CloneVT()
 }
 
 func configWithConfigChangeHash(
@@ -1261,14 +1070,10 @@ func recoveryConfigWithoutEntity(
 	return next
 }
 
-func (s *SharedObject) decryptLocalGrantInner(
-	state *sobject.SOState,
-	epoch *sobject.SOKeyEpoch,
-) (*sobject.SOGrantInner, error) {
-	localGrant := findSOGrantByPeerID(state.GetRootGrants(), s.localPid.String())
-	if localGrant == nil && epoch != nil {
-		localGrant = findSOGrantByPeerID(epoch.GetGrants(), s.localPid.String())
-	}
+// decryptLocalGrantInner decrypts the session peer's grant in epoch.
+func (s *SharedObject) decryptLocalGrantInner(epoch *sobject.SOKeyEpoch) (*sobject.SOGrantInner, error) {
+	// Find and decrypt the session peer's grant.
+	localGrant := epoch.FindGrant(s.localPid.String())
 	if localGrant == nil {
 		return nil, errors.New("local grant not found")
 	}
@@ -1282,15 +1087,17 @@ func (s *SharedObject) decryptLocalGrantInner(
 	return grantInner, nil
 }
 
+// buildRecoveryEnvelopesForConfig seals the local grant of epoch into recovery
+// envelopes for the entities of recoveryCfg.
 func (s *SharedObject) buildRecoveryEnvelopesForConfig(
 	ctx context.Context,
 	cli *SessionClient,
-	state *sobject.SOState,
 	epoch *sobject.SOKeyEpoch,
 	recoveryCfg *sobject.SharedObjectConfig,
 	recoveryKeyEpoch uint64,
 ) ([]*sobject.SOEntityRecoveryEnvelope, error) {
-	grantInner, err := s.decryptLocalGrantInner(state, epoch)
+	// Seal the local grant for the config's entities.
+	grantInner, err := s.decryptLocalGrantInner(epoch)
 	if err != nil {
 		return nil, err
 	}
@@ -1317,31 +1124,22 @@ func cloneVTSlice[T interface{ CloneVT() T }](items []T) []T {
 	return cloned
 }
 
-// mergeSOKeyEpochs appends a new epoch to the cloned epoch list, closing the previous epoch's seqno range.
+// mergeSOKeyEpochs returns a copy of epochs, which ascend by epoch, with next
+// added or replacing the epoch of the same number.
 func mergeSOKeyEpochs(epochs []*sobject.SOKeyEpoch, next *sobject.SOKeyEpoch) []*sobject.SOKeyEpoch {
+	// Replace the epoch of the same number, or insert next in order.
 	cloned := cloneVTSlice(epochs)
 	if next == nil {
 		return cloned
 	}
-
-	next = next.CloneVT()
-	if next.GetEpoch() > 0 {
-		prevEpoch := next.GetEpoch() - 1
-		for _, epoch := range cloned {
-			if epoch.GetEpoch() == prevEpoch && epoch.GetSeqnoEnd() == 0 {
-				epoch.SeqnoEnd = next.GetSeqnoStart() - 1
-				break
-			}
-		}
+	i, ok := slices.BinarySearchFunc(cloned, next.GetEpoch(), func(e *sobject.SOKeyEpoch, n uint64) int {
+		return cmp.Compare(e.GetEpoch(), n)
+	})
+	if ok {
+		cloned[i] = next.CloneVT()
+		return cloned
 	}
-
-	for i, epoch := range cloned {
-		if epoch.GetEpoch() == next.GetEpoch() {
-			cloned[i] = next
-			return cloned
-		}
-	}
-	return append(cloned, next)
+	return slices.Insert(cloned, i, next.CloneVT())
 }
 
 func (s *SharedObject) loadLatestConfigState(ctx context.Context) (*sobject.SOState, *sobject.SharedObjectConfig, []*sobject.SOKeyEpoch, error) {
@@ -1443,10 +1241,9 @@ func (s *SharedObject) applyInviteMutation(
 		recoveryEnvelopes, err := s.buildRecoveryEnvelopesForConfig(
 			ctx,
 			cli,
-			state,
 			epoch,
 			recoveryCfg,
-			sobject.CurrentEpochNumber(epochs),
+			epoch.GetEpoch(),
 		)
 		if err != nil {
 			return err
@@ -1466,7 +1263,7 @@ func (s *SharedObject) applyInviteMutation(
 			}
 			continue
 		}
-		if err := s.host.applyConfigMutation(ctx, entry, nextInvites, nil, nil); err != nil {
+		if err := s.host.applyConfigMutation(ctx, entry, nextInvites, nil); err != nil {
 			return err
 		}
 		return nil
@@ -1475,7 +1272,8 @@ func (s *SharedObject) applyInviteMutation(
 	return errors.New("invite mutation failed after max retries due to config conflicts")
 }
 
-// CreateSOInviteOp creates a cloud-backed invite and returns the signed invite message.
+// CreateSOInviteOp creates a cloud-backed invite and returns the signed invite
+// message.
 func (s *SharedObject) CreateSOInviteOp(
 	ctx context.Context,
 	ownerPrivKey crypto.PrivKey,

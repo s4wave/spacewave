@@ -13,6 +13,7 @@ import (
 	"github.com/s4wave/spacewave/db/kvtx/hashmap"
 )
 
+// TestAuthorizeSharedObjectMutationAccountOwner allows the owning account to mutate its object.
 func TestAuthorizeSharedObjectMutationAccountOwner(t *testing.T) {
 	t.Parallel()
 
@@ -29,6 +30,7 @@ func TestAuthorizeSharedObjectMutationAccountOwner(t *testing.T) {
 	}
 }
 
+// TestAuthorizeSharedObjectMutationRejectsNonOwnerAccount refuses an account that does not own the object.
 func TestAuthorizeSharedObjectMutationRejectsNonOwnerAccount(t *testing.T) {
 	t.Parallel()
 
@@ -46,6 +48,7 @@ func TestAuthorizeSharedObjectMutationRejectsNonOwnerAccount(t *testing.T) {
 	}
 }
 
+// TestAuthorizeSharedObjectMutationRejectsNonOwnerOrgMember refuses an organization member who is not an owner.
 func TestAuthorizeSharedObjectMutationRejectsNonOwnerOrgMember(t *testing.T) {
 	t.Parallel()
 
@@ -91,6 +94,7 @@ func TestAuthorizeSharedObjectMutationRejectsNonOwnerOrgMember(t *testing.T) {
 	}
 }
 
+// TestAuthorizeSharedObjectMutationAllowsOrgOwner allows an owner of the owning organization.
 func TestAuthorizeSharedObjectMutationAllowsOrgOwner(t *testing.T) {
 	t.Parallel()
 
@@ -137,12 +141,13 @@ func TestAuthorizeSharedObjectMutationAllowsOrgOwner(t *testing.T) {
 	}
 }
 
+// TestReinitializeSharedObjectClearsVerifiedCacheBeforeReseed checks that reinitializing an object clears its verified cache and reseeds it.
 func TestReinitializeSharedObjectClearsVerifiedCacheBeforeReseed(t *testing.T) {
+	// Serve an account Space that reinitializes empty, recording each reseed.
 	const soID = "so-reinitialize-cache"
-
 	var acc *ProviderAccount
 	var postedConfig bool
-	var postedRoot bool
+	var postedCheckpoint bool
 	var postedEpoch bool
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
@@ -185,18 +190,18 @@ func TestReinitializeSharedObjectClearsVerifiedCacheBeforeReseed(t *testing.T) {
 			w.WriteHeader(http.StatusOK)
 		case "/api/session/write-tickets/" + soID:
 			body, err := (&api.WriteTicketBundleResponse{
-				SoRootTicket: "root-ticket",
+				SoCheckpointTicket: "checkpoint-ticket",
 			}).MarshalVT()
 			if err != nil {
 				t.Fatal(err)
 			}
 			w.Header().Set("Content-Type", "application/octet-stream")
 			_, _ = w.Write(body)
-		case "/api/sobject/" + soID + "/root":
+		case "/api/sobject/" + soID + "/checkpoint":
 			if _, err := io.Copy(io.Discard, r.Body); err != nil {
-				t.Fatalf("read root body: %v", err)
+				t.Fatalf("read checkpoint body: %v", err)
 			}
-			postedRoot = true
+			postedCheckpoint = true
 			w.WriteHeader(http.StatusOK)
 		case "/api/account/state":
 			_, _ = w.Write(mustMarshalVT(t, &api.AccountStateResponse{EntityId: "alice"}))
@@ -206,6 +211,7 @@ func TestReinitializeSharedObjectClearsVerifiedCacheBeforeReseed(t *testing.T) {
 	}))
 	defer srv.Close()
 
+	// Hold a stale verified cache for the object.
 	acc = NewTestProviderAccount(t, srv.URL)
 	acc.objStore = hashmap.NewHashmapKvtx(hashmap.NewHashmap[[]byte]())
 	acc.sobjects = keyed.NewKeyedRefCount[string, *sobjectTracker](
@@ -220,10 +226,12 @@ func TestReinitializeSharedObjectClearsVerifiedCacheBeforeReseed(t *testing.T) {
 		t.Fatalf("write verified cache: %v", err)
 	}
 
+	// Reinitialize the object.
 	if err := acc.ReinitializeSharedObject(context.Background(), soID); err != nil {
 		t.Fatalf("ReinitializeSharedObject: %v", err)
 	}
 
+	// The cache is cleared and the config, key epoch and checkpoint are reseeded.
 	cache, err := acc.loadVerifiedSOStateCache(context.Background(), soID)
 	if err != nil {
 		t.Fatalf("load verified cache: %v", err)
@@ -234,20 +242,21 @@ func TestReinitializeSharedObjectClearsVerifiedCacheBeforeReseed(t *testing.T) {
 	if !postedConfig {
 		t.Fatal("expected config-state reseed")
 	}
-	if !postedRoot {
-		t.Fatal("expected root reseed")
+	if !postedCheckpoint {
+		t.Fatal("expected checkpoint reseed")
 	}
 	if !postedEpoch {
 		t.Fatal("expected key epoch reseed")
 	}
 }
 
-func TestRepairStandaloneEmptyRootClearsVerifiedCacheBeforeReseed(t *testing.T) {
-	const soID = "so-standalone-empty-root"
-
+// TestRepairStandaloneEmptyClearsVerifiedCacheBeforeReseed checks that repairing an empty standalone Space clears its verified cache and reseeds it.
+func TestRepairStandaloneEmptyClearsVerifiedCacheBeforeReseed(t *testing.T) {
+	// Serve an empty standalone Space, recording each reseed.
+	const soID = "so-standalone-empty"
 	var acc *ProviderAccount
 	var postedConfig bool
-	var postedRoot bool
+	var postedCheckpoint bool
 	var postedEpoch bool
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
@@ -264,10 +273,10 @@ func TestRepairStandaloneEmptyRootClearsVerifiedCacheBeforeReseed(t *testing.T) 
 			postedEpoch = configStateIncludesKeyEpoch(t, r)
 			w.WriteHeader(http.StatusOK)
 		case "/api/session/write-tickets/" + soID:
-			writeRootTicketBundle(t, w)
-		case "/api/sobject/" + soID + "/root":
+			writeCheckpointTicketBundle(t, w)
+		case "/api/sobject/" + soID + "/checkpoint":
 			drainTestRequestBody(t, r)
-			postedRoot = true
+			postedCheckpoint = true
 			w.WriteHeader(http.StatusOK)
 		default:
 			t.Fatalf("unexpected path: %s", r.URL.Path)
@@ -275,108 +284,36 @@ func TestRepairStandaloneEmptyRootClearsVerifiedCacheBeforeReseed(t *testing.T) 
 	}))
 	defer srv.Close()
 
+	// Repair the Space.
 	acc = newSharedObjectRepairCacheTestAccount(t, srv.URL, soID)
-	_, sessionPriv, _, err := acc.getReadySessionClient(context.Background())
-	if err != nil {
-		t.Fatalf("get ready session client: %v", err)
-	}
 	if err := acc.repairStandaloneSharedObject(
 		context.Background(),
 		acc.sessionClient,
-		sessionPriv,
 		soID,
 	); err != nil {
 		t.Fatalf("repairStandaloneSharedObject: %v", err)
 	}
 
+	// The cache is cleared and the config, key epoch and checkpoint are reseeded.
 	assertVerifiedCacheCleared(t, acc, soID)
 	if !postedConfig {
 		t.Fatal("expected config-state reseed")
 	}
-	if !postedRoot {
-		t.Fatal("expected root reseed")
+	if !postedCheckpoint {
+		t.Fatal("expected checkpoint reseed")
 	}
 	if !postedEpoch {
 		t.Fatal("expected key epoch reseed")
 	}
 }
 
-func TestPostRepairedSharedObjectRootPreservesStateData(t *testing.T) {
-	const soID = "so-repair-preserve-state"
-	stateData := []byte("existing world state")
-
-	var acc *ProviderAccount
-	var postedRoot *sobject.SORoot
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.URL.Path {
-		case "/api/session/write-tickets/" + soID:
-			writeRootTicketBundle(t, w)
-		case "/api/sobject/" + soID + "/root":
-			body, err := io.ReadAll(r.Body)
-			if err != nil {
-				t.Fatalf("read root body: %v", err)
-			}
-			req := &api.PostRootRequest{}
-			if err := req.UnmarshalVT(body); err != nil {
-				t.Fatalf("unmarshal post root request: %v", err)
-			}
-			postedRoot = req.GetRoot()
-			_, _ = w.Write(mustMarshalVT(t, &api.SubmitRootResponse{}))
-		default:
-			t.Fatalf("unexpected path: %s", r.URL.Path)
-		}
-	}))
-	defer srv.Close()
-
-	acc = NewTestProviderAccount(t, srv.URL)
-	acc.sessionClient.executeWriteTicketAudience = func(
-		ctx context.Context,
-		resourceID string,
-		audience writeTicketAudience,
-		fn func(ticket string) error,
-	) error {
-		return fn("root-ticket")
-	}
-	_, xfrm, grantInner, err := buildInitialSpaceTransform(acc.le, acc.sfs)
-	if err != nil {
-		t.Fatalf("build initial space transform: %v", err)
-	}
-	if err := acc.postRepairedSharedObjectRoot(
-		context.Background(),
-		acc.sessionClient,
-		acc.sessionClient.priv,
-		soID,
-		2,
-		grantInner,
-		stateData,
-	); err != nil {
-		t.Fatalf("postRepairedSharedObjectRoot: %v", err)
-	}
-	if postedRoot == nil {
-		t.Fatal("expected posted root")
-	}
-	innerData, err := xfrm.DecodeBlock(postedRoot.GetInner())
-	if err != nil {
-		t.Fatalf("decode posted root: %v", err)
-	}
-	inner := &sobject.SORootInner{}
-	if err := inner.UnmarshalVT(innerData); err != nil {
-		t.Fatalf("unmarshal posted root inner: %v", err)
-	}
-	if inner.GetSeqno() != 2 {
-		t.Fatalf("expected seqno 2, got %d", inner.GetSeqno())
-	}
-	if string(inner.GetStateData()) != string(stateData) {
-		t.Fatalf("expected state data %q, got %q", stateData, inner.GetStateData())
-	}
-}
-
-func TestRepairOrganizationRootEmptyRootClearsVerifiedCacheBeforeReseed(t *testing.T) {
-	const orgID = "org-empty-root"
-
+// TestRepairOrganizationRootEmptyClearsVerifiedCacheBeforeReseed checks that repairing an empty organization root clears its verified cache and reseeds it.
+func TestRepairOrganizationRootEmptyClearsVerifiedCacheBeforeReseed(t *testing.T) {
+	// Serve an empty organization root, recording each reseed.
+	const orgID = "org-empty"
 	var acc *ProviderAccount
 	var postedConfig bool
-	var postedRoot bool
+	var postedCheckpoint bool
 	var postedEpoch bool
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
@@ -393,10 +330,10 @@ func TestRepairOrganizationRootEmptyRootClearsVerifiedCacheBeforeReseed(t *testi
 			postedEpoch = configStateIncludesKeyEpoch(t, r)
 			w.WriteHeader(http.StatusOK)
 		case "/api/session/write-tickets/" + orgID:
-			writeRootTicketBundle(t, w)
-		case "/api/sobject/" + orgID + "/root":
+			writeCheckpointTicketBundle(t, w)
+		case "/api/sobject/" + orgID + "/checkpoint":
 			drainTestRequestBody(t, r)
-			postedRoot = true
+			postedCheckpoint = true
 			w.WriteHeader(http.StatusOK)
 		default:
 			http.NotFound(w, r)
@@ -404,33 +341,31 @@ func TestRepairOrganizationRootEmptyRootClearsVerifiedCacheBeforeReseed(t *testi
 	}))
 	defer srv.Close()
 
+	// Repair the root; reading its organization afterward fails.
 	acc = newSharedObjectRepairCacheTestAccount(t, srv.URL, orgID)
-	_, sessionPriv, _, err := acc.getReadySessionClient(context.Background())
-	if err != nil {
-		t.Fatalf("get ready session client: %v", err)
-	}
-	err = acc.repairOrganizationRootSharedObject(
+	err := acc.repairOrganizationRootSharedObject(
 		context.Background(),
 		acc.sessionClient,
-		sessionPriv,
 		orgID,
 	)
 	if err == nil {
 		t.Fatal("expected organization info fetch to fail after reseed")
 	}
 
+	// The cache is cleared and the config, key epoch and checkpoint are reseeded.
 	assertVerifiedCacheCleared(t, acc, orgID)
 	if !postedConfig {
 		t.Fatal("expected config-state reseed")
 	}
-	if !postedRoot {
-		t.Fatal("expected root reseed")
+	if !postedCheckpoint {
+		t.Fatal("expected checkpoint reseed")
 	}
 	if !postedEpoch {
 		t.Fatal("expected key epoch reseed")
 	}
 }
 
+// newSharedObjectRepairCacheTestAccount returns a test account holding a stale verified cache for sharedObjectID.
 func newSharedObjectRepairCacheTestAccount(
 	t *testing.T,
 	endpoint string,
@@ -454,6 +389,7 @@ func newSharedObjectRepairCacheTestAccount(
 	return acc
 }
 
+// writeEmptyOwnerState writes a state response whose config names the session peer as the sole owner.
 func writeEmptyOwnerState(
 	t *testing.T,
 	w http.ResponseWriter,
@@ -473,11 +409,12 @@ func writeEmptyOwnerState(
 	_, _ = w.Write(mustMarshalSOStateMessageSnapshotJSON(t, state))
 }
 
-func writeRootTicketBundle(t *testing.T, w http.ResponseWriter) {
+// writeCheckpointTicketBundle writes a write-ticket bundle holding only a checkpoint ticket.
+func writeCheckpointTicketBundle(t *testing.T, w http.ResponseWriter) {
+	// Serve a bundle holding only the checkpoint ticket.
 	t.Helper()
-
 	body, err := (&api.WriteTicketBundleResponse{
-		SoRootTicket: "root-ticket",
+		SoCheckpointTicket: "checkpoint-ticket",
 	}).MarshalVT()
 	if err != nil {
 		t.Fatal(err)
@@ -486,6 +423,7 @@ func writeRootTicketBundle(t *testing.T, w http.ResponseWriter) {
 	_, _ = w.Write(body)
 }
 
+// drainTestRequestBody reads and discards the request body.
 func drainTestRequestBody(t *testing.T, r *http.Request) {
 	t.Helper()
 
@@ -494,6 +432,7 @@ func drainTestRequestBody(t *testing.T, r *http.Request) {
 	}
 }
 
+// configStateIncludesKeyEpoch reports whether a config-state post carries a key epoch.
 func configStateIncludesKeyEpoch(t *testing.T, r *http.Request) bool {
 	t.Helper()
 
@@ -508,6 +447,7 @@ func configStateIncludesKeyEpoch(t *testing.T, r *http.Request) bool {
 	return req.GetKeyEpoch() != nil
 }
 
+// assertVerifiedCacheCleared fails unless the verified cache of sharedObjectID is empty.
 func assertVerifiedCacheCleared(
 	t *testing.T,
 	acc *ProviderAccount,

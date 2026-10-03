@@ -22,6 +22,8 @@ import (
 	"github.com/s4wave/spacewave/testbed"
 )
 
+// TestCreateSecretStoresPayloadOnlyInNestedSharedObject checks that a payload
+// lives in its nested shared object, never in the parent World.
 func TestCreateSecretStoresPayloadOnlyInNestedSharedObject(t *testing.T) {
 	ctx := t.Context()
 	tb, soProvider, release := setupSecretTest(ctx, t)
@@ -75,6 +77,8 @@ func TestCreateSecretStoresPayloadOnlyInNestedSharedObject(t *testing.T) {
 	}
 }
 
+// TestSSHSecretContractStoresCredentialPayloadOnlyInNestedSharedObject checks
+// the same for an SSH credential.
 func TestSSHSecretContractStoresCredentialPayloadOnlyInNestedSharedObject(t *testing.T) {
 	ctx := t.Context()
 	tb, soProvider, release := setupSecretTest(ctx, t)
@@ -131,11 +135,13 @@ func TestSSHSecretContractStoresCredentialPayloadOnlyInNestedSharedObject(t *tes
 	}
 }
 
+// TestSecretPayloadAccessUsesSharedObjectGrants checks that only a peer granted
+// on the nested object reads the payload, and only until it is removed.
 func TestSecretPayloadAccessUsesSharedObjectGrants(t *testing.T) {
+	// Create a secret in a fresh provider.
 	ctx := t.Context()
 	tb, soProvider, release := setupSecretTest(ctx, t)
 	defer release()
-
 	value := []byte("grant-gated-secret")
 	secret, err := s4wave_secret.CreateSecret(ctx, tb.Bus, soProvider, tb.BusEngine, s4wave_secret.CreateSecretOptions{
 		ObjectKey:   "secrets/grants",
@@ -148,6 +154,7 @@ func TestSecretPayloadAccessUsesSharedObjectGrants(t *testing.T) {
 		t.Fatalf("CreateSecret: %v", err)
 	}
 
+	// The nested object accepts participant changes.
 	so, soRef, err := sobject.ExMountSharedObject(ctx, tb.Bus, secret.GetRef(), false, nil)
 	if err != nil {
 		t.Fatalf("mount nested SO: %v", err)
@@ -156,6 +163,7 @@ func TestSecretPayloadAccessUsesSharedObjectGrants(t *testing.T) {
 		t.Fatal("nested SO does not support participant mutation")
 	}
 
+	// Grant one peer read access and leave another ungranted.
 	grantedPriv, grantedPub, grantedPeerID := makePeer(t)
 	ungrantedPriv, _, ungrantedPeerID := makePeer(t)
 	if _, err := s4wave_secret.AddSecretParticipant(
@@ -171,6 +179,7 @@ func TestSecretPayloadAccessUsesSharedObjectGrants(t *testing.T) {
 	}
 	soRef.Release()
 
+	// Remount the nested object to observe the grant.
 	so, soRef, err = sobject.ExMountSharedObject(ctx, tb.Bus, secret.GetRef(), false, nil)
 	if err != nil {
 		t.Fatalf("remount nested SO after grant: %v", err)
@@ -180,6 +189,7 @@ func TestSecretPayloadAccessUsesSharedObjectGrants(t *testing.T) {
 		t.Fatal("remounted nested SO does not support participant mutation")
 	}
 
+	// The granted peer reads the payload from the host state.
 	state, err := ih.GetSOHost().GetHostState(ctx)
 	if err != nil {
 		t.Fatalf("GetHostState: %v", err)
@@ -191,7 +201,7 @@ func TestSecretPayloadAccessUsesSharedObjectGrants(t *testing.T) {
 		state,
 		grantedPriv,
 		grantedPeerID,
-	)
+	).WithConfigHistory(ih.GetSOHost().ReadConfigEntry)
 	grantedPayload, err := s4wave_secret.ReadSecretPayloadFromSnapshot(ctx, grantedSnap)
 	if err != nil {
 		t.Fatalf("granted ReadSecretPayloadFromSnapshot: %v", err)
@@ -200,6 +210,7 @@ func TestSecretPayloadAccessUsesSharedObjectGrants(t *testing.T) {
 		t.Fatalf("granted payload mismatch: %q", grantedPayload.GetValue())
 	}
 
+	// The ungranted peer is denied.
 	ungrantedSnap := sobject.NewSOStateParticipantHandle(
 		tb.Logger,
 		tb.StepFactorySet,
@@ -207,11 +218,12 @@ func TestSecretPayloadAccessUsesSharedObjectGrants(t *testing.T) {
 		state,
 		ungrantedPriv,
 		ungrantedPeerID,
-	)
+	).WithConfigHistory(ih.GetSOHost().ReadConfigEntry)
 	if _, err := s4wave_secret.ReadSecretPayloadFromSnapshot(ctx, ungrantedSnap); !errors.Is(err, s4wave_secret.ErrPayloadAccessDenied) {
 		t.Fatalf("expected ungranted access denied, got %v", err)
 	}
 
+	// Remove the granted peer.
 	removed, err := s4wave_secret.RemoveSecretParticipant(ctx, tb.Bus, secret, grantedPeerID.String(), nil)
 	if err != nil {
 		t.Fatalf("RemoveSecretParticipant: %v", err)
@@ -221,6 +233,7 @@ func TestSecretPayloadAccessUsesSharedObjectGrants(t *testing.T) {
 	}
 	soRef.Release()
 
+	// Remount the nested object to observe the removal.
 	so, soRef, err = sobject.ExMountSharedObject(ctx, tb.Bus, secret.GetRef(), false, nil)
 	if err != nil {
 		t.Fatalf("remount nested SO after revocation: %v", err)
@@ -230,6 +243,8 @@ func TestSecretPayloadAccessUsesSharedObjectGrants(t *testing.T) {
 	if !ok {
 		t.Fatal("revoked nested SO does not support participant mutation")
 	}
+
+	// The removed peer is denied under the new host state.
 	revokedState, err := ih.GetSOHost().GetHostState(ctx)
 	if err != nil {
 		t.Fatalf("GetHostState after removal: %v", err)
@@ -241,12 +256,14 @@ func TestSecretPayloadAccessUsesSharedObjectGrants(t *testing.T) {
 		revokedState,
 		grantedPriv,
 		grantedPeerID,
-	)
+	).WithConfigHistory(ih.GetSOHost().ReadConfigEntry)
 	if _, err := s4wave_secret.ReadSecretPayloadFromSnapshot(ctx, revokedSnap); !errors.Is(err, s4wave_secret.ErrPayloadAccessDenied) {
 		t.Fatalf("expected revoked access denied, got %v", err)
 	}
 }
 
+// TestSecretResourceReadPayloadRequiresSignedGrantedPeer checks that the Secret
+// resource reads a payload only for a granted peer that signs its challenge.
 func TestSecretResourceReadPayloadRequiresSignedGrantedPeer(t *testing.T) {
 	ctx := t.Context()
 	tb, soProvider, release := setupSecretTest(ctx, t)
@@ -381,6 +398,7 @@ func TestSecretResourceReadPayloadRequiresSignedGrantedPeer(t *testing.T) {
 	}
 }
 
+// setupSecretTest starts a testbed with a local shared object provider.
 func setupSecretTest(
 	ctx context.Context,
 	t *testing.T,
@@ -424,6 +442,7 @@ func setupSecretTest(
 	}
 }
 
+// readParentSecret reads the Secret at objectKey in ws.
 func readParentSecret(
 	ctx context.Context,
 	t *testing.T,
@@ -451,6 +470,7 @@ func readParentSecret(
 	return secret
 }
 
+// makePeer generates an Ed25519 peer.
 func makePeer(t *testing.T) (spacewave_crypto.PrivKey, spacewave_crypto.PubKey, peer.ID) {
 	t.Helper()
 	priv, pub, err := spacewave_crypto.GenerateEd25519Key(rand.Reader)

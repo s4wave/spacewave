@@ -27,14 +27,14 @@ import (
 	"github.com/s4wave/spacewave/net/hash"
 )
 
-// Publish uploads a committed release World, then advances its public root.
+// Publish uploads a committed release World, then advances its public checkpoint.
 // Every referenced block must exist before any network write begins. Failed
-// uploads leave the previous root intact; content-addressed packs are retryable.
+// uploads leave the previous checkpoint intact; content-addressed packs are retryable.
 // The caller must exclusively own the local World for the operation's lifetime.
-func Publish(ctx context.Context, eng world.Engine, metadata *release.ReleaseMetadata, opts cdn_publish.Options) (*sobject.SORoot, error) {
+func Publish(ctx context.Context, eng world.Engine, metadata *release.ReleaseMetadata, opts cdn_publish.Options) (*sobject.SOCheckpointInner, error) {
 	// Require explicit cloud authority and a complete release before exporting.
-	if eng == nil || opts.Client == nil || opts.DstSpaceID == "" || opts.ValidatorKeyPem == "" || opts.CdnBaseURL == "" {
-		return nil, errors.New("release World, session, destination Space, signer, and CDN URL are required")
+	if eng == nil || opts.Client == nil || opts.DstSpaceID == "" || opts.OwnerKeyPem == "" || opts.CdnBaseURL == "" {
+		return nil, errors.New("release World, session, destination Space, owner key, and CDN URL are required")
 	}
 	if err := metadata.Validate(); err != nil {
 		return nil, err
@@ -46,14 +46,19 @@ func Publish(ctx context.Context, eng world.Engine, metadata *release.ReleaseMet
 	if opts.Logger != nil {
 		opts.Logger.WithField("blocks", len(blocks)).Info("verified release content")
 	}
+
+	// Fetch the published pack entries.
 	entries, err := cdn_publish.FetchPackEntries(ctx, opts.Client, opts.DstSpaceID)
 	if err != nil {
 		return nil, err
 	}
+
 	// Exact pack indexes prove presence; Bloom filters only narrow the search.
 	remote := packfile_store.NewPackfileStore(cdn_bstore.NewAnonymousOpener(nil, opts.CdnBaseURL, opts.DstSpaceID), nil)
 	defer remote.Close()
 	remote.UpdateManifest(entries)
+
+	// Ask the CDN which blocks it holds.
 	refs := make([]*block.BlockRef, len(blocks))
 	for i, entry := range blocks {
 		refs[i] = entry.ref
@@ -62,6 +67,8 @@ func Publish(ctx context.Context, eng world.Engine, metadata *release.ReleaseMet
 	if err != nil {
 		return nil, errors.Wrap(err, "check published release blocks")
 	}
+
+	// Keep only the missing blocks.
 	missing := blocks[:0]
 	var missingBytes uint64
 	for i, entry := range blocks {
@@ -94,8 +101,8 @@ func Publish(ctx context.Context, eng world.Engine, metadata *release.ReleaseMet
 		return nil, errors.Wrap(err, "upload release packs")
 	}
 
-	// The signed root is the sole publication point after all packs are durable.
-	return cdn_publish.PostRoot(ctx, opts, head)
+	// The signed checkpoint is the sole publication point after all packs are durable.
+	return cdn_publish.PostCheckpoint(ctx, opts, head)
 }
 
 // packedBlock retains a content-addressed block from the verified local

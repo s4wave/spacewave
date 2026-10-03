@@ -17,17 +17,20 @@ func (r *SharedObjectResource) OpenReadCheckpoint(
 	ctx context.Context,
 	_ *s4wave_sobject.OpenReadCheckpointRequest,
 ) (*s4wave_sobject.OpenReadCheckpointResponse, error) {
+	// Read the held checkpoint, if any.
 	accessor, ok := r.sharedObject.(sobject.SharedObjectReadCheckpointAccessor)
 	if !ok {
 		return &s4wave_sobject.OpenReadCheckpointResponse{}, nil
 	}
-	snapshot, err := accessor.GetSharedObjectReadCheckpoint(ctx)
+	checkpoint, err := accessor.GetSharedObjectReadCheckpoint(ctx)
 	if err != nil {
 		return nil, err
 	}
-	if snapshot == nil {
+	if checkpoint == nil {
 		return &s4wave_sobject.OpenReadCheckpointResponse{}, nil
 	}
+
+	// Resolve the client context and the session peer.
 	resourceCtx, err := resource_server.MustGetResourceClientContext(ctx)
 	if err != nil {
 		return nil, err
@@ -39,7 +42,9 @@ func (r *SharedObjectResource) OpenReadCheckpoint(
 			return nil, err
 		}
 	}
-	engine, release, err := sobject_world_engine.OpenReadCheckpoint(ctx, r.le, r.b, r.sharedObject, snapshot.Snapshot)
+
+	// Serve the checkpoint's World as an engine resource.
+	engine, release, err := sobject_world_engine.OpenReadCheckpoint(ctx, r.le, r.b, r.sharedObject)
 	if err != nil {
 		return nil, err
 	}
@@ -53,5 +58,5 @@ func (r *SharedObjectResource) OpenReadCheckpoint(
 		releaseResource()
 		return nil, err
 	}
-	return &s4wave_sobject.OpenReadCheckpointResponse{ResourceId: id, Config: snapshot.Config}, nil
+	return &s4wave_sobject.OpenReadCheckpointResponse{ResourceId: id, Config: checkpoint.Config}, nil
 }

@@ -1,41 +1,30 @@
 package sobject
 
-import (
-	"bytes"
-	"testing"
-)
+import "testing"
 
 // TestRemovalMissingSigner rejects absent proof keys without panicking or publishing a clone.
 func TestRemovalMissingSigner(t *testing.T) {
+	// Build a state with a member and an owner.
 	peers := createMockPeers(t, 2)
-	creator, err := peers[0].GetPrivKey(t.Context())
-	if err != nil {
-		t.Fatal(err)
-	}
 	owner, err := peers[1].GetPrivKey(t.Context())
 	if err != nil {
 		t.Fatal(err)
 	}
-	initial := createMockSOState(peers, []SOParticipantRole{
+	initial, _ := newTestSOState(t, peers,
 		SOParticipantRole_SOParticipantRole_OWNER,
 		SOParticipantRole_SOParticipantRole_OWNER,
-	})
-	initial.Config.ConfigChainHash = bytes.Repeat([]byte{1}, 32)
-	initial.Root = createMockSORoot(t, 1, peers[0])
-	_, initial.RootGrants, _, err = RotateTransformKey(creator, mockSharedObjectID, initial.Config.Participants, 1, 1)
-	if err != nil {
-		t.Fatal(err)
-	}
-	for _, kind := range []string{"grant", "root", "nil-grant"} {
+	)
+	for _, kind := range []string{"grant", "checkpoint", "nil-grant"} {
 		t.Run(kind, func(t *testing.T) {
+			// Break one part of the removal proof.
 			state := initial.CloneVT()
 			switch kind {
 			case "grant":
-				state.RootGrants[1].Signature.PubKey = nil
-			case "root":
-				state.Root.ValidatorSignatures[0].PubKey = nil
+				state.KeyEpochs[0].Grants[1].Signature.PubKey = nil
+			case "checkpoint":
+				state.Checkpoint.Signatures[0].PubKey = nil
 			case "nil-grant":
-				state.RootGrants = append(state.RootGrants, nil)
+				state.KeyEpochs[0].Grants = append(state.KeyEpochs[0].Grants, nil)
 			}
 			host, held := newTestSOHost(t.Context(), state)
 			if _, err := RemoveSOParticipants(t.Context(), host, []string{peers[0].GetPeerID().String()}, owner, nil); err == nil {

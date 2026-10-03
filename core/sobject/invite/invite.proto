@@ -36,15 +36,17 @@ message AcceptInviteResponse {
   .sobject.SOGrant grant = 1;
   // SharedObjectId is the ID of the shared object the invitee was enrolled in.
   string shared_object_id = 2;
-  // OwnerGrant is the owner's existing root grant. The invitee preserves it so
-  // the owner can read later state written by the joined copy.
-  .sobject.SOGrant owner_grant = 3;
-  // SharedObjectState is the owner's authorized state after enrollment. The
-  // invitee installs this state so both copies use the same root transform.
+  reserved 3;
+  // SharedObjectState is the owner's authorized state after enrollment. Its
+  // key epochs hold the grants of every participant, including the invitee.
   .sobject.SOState shared_object_state = 4;
   // Pending reports that the owner queued the redemption as a join request
   // instead of admitting it. Every other field is empty.
   bool pending = 5;
+  // ConfigLineage is the owner's retained configuration changes leading to the
+  // config of shared_object_state, oldest first. It lets the invitee resolve
+  // the config of every operation the state holds.
+  repeated .sobject.SOConfigChange config_lineage = 6;
 }
 
 // WithdrawJoinRequestRequest is sent by a requester to the owner. The owner

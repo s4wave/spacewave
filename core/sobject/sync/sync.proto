@@ -8,13 +8,13 @@ option go_package = "github.com/s4wave/spacewave/core/sobject/sync;sobject_sync"
 
 // SOSyncMessage is the bidirectional message on the solicit stream.
 message SOSyncMessage {
+  reserved 2;
+
   // Body is the message body.
   oneof body {
     // Snapshot is a full SOState snapshot exchanged after mutual authentication.
     SOSyncSnapshot snapshot = 1;
-    // Op carries a signed operation for the peer to apply.
-    SOSyncOp op = 2;
-    // Ack acknowledges receipt up to a sequence number.
+    // Ack releases a pinned advertisement.
     SOSyncAck ack = 3;
     // Challenge begins authentication without disclosing object state.
     SOSyncChallenge challenge = 4;
@@ -33,34 +33,22 @@ message SOSyncMessage {
   }
 }
 
-// SOSyncSnapshot is a full SOState snapshot exchanged after mutual authentication.
+// SOSyncSnapshot is a full SOState snapshot exchanged after mutual
+// authentication. The receiver merges its checkpoint, key epochs and
+// operations into the state it holds.
 message SOSyncSnapshot {
   // SoState is the full SOState proto bytes (MarshalVT).
   bytes so_state = 1;
-  // RootSeqno is the inner_seqno from SORoot.
-  uint64 root_seqno = 2;
   // Revision binds this snapshot to the requested, pinned advertisement.
-  uint64 revision = 3;
-  // BaseHash is the trusted checkpoint named by the request.
-  bytes base_hash = 4;
-}
-
-// SOSyncOp carries a signed operation for the peer to apply.
-message SOSyncOp {
-  // Operation is the SOOperation proto bytes (MarshalVT).
-  bytes operation = 1;
-  // Nonce is the sender's nonce counter.
-  uint64 nonce = 2;
-  // PeerId is the sender's peer ID (raw multihash bytes).
-  bytes peer_id = 3;
-}
-
-// SOSyncAck acknowledges receipt up to a sequence number.
-message SOSyncAck {
-  // AckedSeqno is the acknowledged sequence number.
-  uint64 acked_seqno = 1;
-  // Revision releases the sender's pinned advertisement after receipt or decline.
   uint64 revision = 2;
+  // BaseHash is the trusted checkpoint named by the request.
+  bytes base_hash = 3;
+}
+
+// SOSyncAck releases a pinned advertisement.
+message SOSyncAck {
+  // Revision releases the sender's pinned advertisement after receipt or decline.
+  uint64 revision = 1;
 }
 
 // SOSyncChallenge provides fresh entropy for one stream authentication.
@@ -97,10 +85,8 @@ message SOSyncHead {
   bytes config_hash = 2;
   // ConfigSeqno is the configuration-chain sequence at ConfigHash.
   uint64 config_seqno = 3;
-  // RootSeqno is the advertised signed root sequence.
-  uint64 root_seqno = 4;
   // StateHash is SHA-256 of the serialized transferable snapshot; it grants no authority.
-  bytes state_hash = 5;
+  bytes state_hash = 4;
 }
 
 // SOSyncHistoryRequest requests one complete candidate rooted in held trust.

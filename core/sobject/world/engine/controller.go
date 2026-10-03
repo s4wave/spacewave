@@ -3,19 +3,14 @@ package sobject_world_engine
 import (
 	"context"
 	"sync"
-	"sync/atomic"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
-	"github.com/aperturerobotics/util/backoff"
 	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/aperturerobotics/util/csync"
-	"github.com/aperturerobotics/util/routine"
 	"github.com/s4wave/spacewave/core/sobject"
-	"github.com/s4wave/spacewave/db/block"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
-	"github.com/s4wave/spacewave/db/bucket"
 	"github.com/s4wave/spacewave/db/world"
 	world_vlogger "github.com/s4wave/spacewave/db/world/vlogger"
 	"github.com/sirupsen/logrus"
@@ -23,7 +18,7 @@ import (
 
 // Controller drives a World Graph engine bound to a block graph and controlled by a Shared Object.
 // Uses MountSharedObject to mount and access the shared object and block store.
-// Stores the HEAD reference in the Shared Object.
+// Every member replays the Shared Object operation set to the same World.
 type Controller struct {
 	// le is the logger.
 	le *logrus.Entry
@@ -36,9 +31,6 @@ type Controller struct {
 	// engineID identifies the engine served by lookup directives.
 	engineID string
 
-	// processOpsAsValidator is the routine to process incoming operations as a validator.
-	processOpsAsValidator *routine.RoutineContainer
-
 	// sfs constructs the World block transformers.
 	sfs *block_transform.StepFactorySet
 	// staticLookupOpMu guards staticLookupOp.
@@ -46,31 +38,9 @@ type Controller struct {
 	// staticLookupOp supplies built-in operations before bus lookup.
 	staticLookupOp world.LookupOp
 
-	// writeMtx guards write transactions / updating local state due to watching SOState.
-	// only one of the two activities will be active at a time.
+	// writeMtx serializes write transactions and replay of the watched
+	// SharedObject state.
 	writeMtx csync.Mutex
-
-	// retainMtx serializes retainRoots, which owns the retained roots' proof
-	// store and local named root.
-	retainMtx sync.Mutex
-
-	// lastCommitResult caches the latest foreground commit for replay adoption.
-	// Written during foreground writes under writeMtx and read by the
-	// validator without writeMtx.
-	lastCommitResult atomic.Pointer[commitResult]
-}
-
-// commitResult caches a foreground commit result for replay adoption.
-// Replay consumers can adopt this result when the base root ref and op bytes
-// match, avoiding expensive re-execution of processOp.
-// It is immutable once published to the validator.
-type commitResult struct {
-	// baseRootRef identifies the accepted World used to compute the candidate.
-	baseRootRef *block.BlockRef
-	// opData is the exact encoded operation used to compute the candidate.
-	opData []byte
-	// resultRef is the candidate World head.
-	resultRef *bucket.ObjectRef
 }
 
 // NewController constructs a new World Engine controller.
@@ -80,24 +50,13 @@ func NewController(
 	conf *Config,
 	sfs *block_transform.StepFactorySet,
 ) (*Controller, error) {
-	processBackoff := conf.GetProcessOpsBackoff()
-	if processBackoff == nil {
-		processBackoff = &backoff.Backoff{BackoffKind: backoff.BackoffKind_BackoffKind_EXPONENTIAL}
-	}
-
 	return &Controller{
 		le:        le.WithField("engine-id", conf.GetEngineId()),
 		conf:      conf,
 		bus:       bus,
 		engineCtr: ccontainer.NewCContainer[*Engine](nil),
 		engineID:  conf.GetEngineId(),
-
-		processOpsAsValidator: routine.NewRoutineContainer(
-			routine.WithExitLogger(le),
-			routine.WithRetry(processBackoff),
-		),
-
-		sfs: sfs,
+		sfs:       sfs,
 	}, nil
 }
 
@@ -175,17 +134,10 @@ func (c *Controller) Execute(ctx context.Context) error {
 	}
 	defer soStateCtrRel()
 
-	// start the process ops routine (as a validator)
-	_, _ = c.processOpsAsValidator.SetRoutine(func(ctx context.Context) error {
-		return c.executeProcessOpsWhenValidator(ctx, so, soStateCtr)
-	})
-	_ = c.processOpsAsValidator.SetContext(rctx, true)
-	defer c.processOpsAsValidator.ClearContext()
-
-	// Serve the World while this participant can read it. A participant that
-	// loses read access waits for readmission here: restarting through the
-	// controller backoff would report the stale denial to body mounts made
-	// after readmission.
+	// Serve the World while this participant can replay it. A participant
+	// that loses read access waits for readmission or a missing grant here:
+	// restarting through the controller backoff would report the stale denial
+	// to body mounts made after readmission.
 	for {
 		err := c.executeWorld(rctx, so, soStateCtr)
 		if !isReadAccessLoss(err) {
@@ -198,34 +150,30 @@ func (c *Controller) Execute(ctx context.Context) error {
 	}
 }
 
-// executeWorld builds the World from the accepted head, publishes its engine,
-// and follows accepted state until an error ends it.
+// executeWorld replays the World, publishes its engine, and follows the
+// operation set until an error ends it.
 func (c *Controller) executeWorld(
 	ctx context.Context,
 	so sobject.SharedObject,
 	soStateCtr ccontainer.Watchable[sobject.SharedObjectStateSnapshot],
 ) error {
-	// Initialize the shared object if necessary.
+	// Replay the World, initializing it if necessary.
 	le := c.le
-	headState, err := c.loadOrInitHeadFromSharedObject(ctx, so, soStateCtr)
+	replay := newReplayer(c, so)
+	headState, err := c.waitWorldInit(ctx, so, soStateCtr, replay)
 	if err != nil {
 		return err
 	}
 
-	// The World bucket is the SharedObject block store.
-	if headState.HeadRef == nil {
-		headState.HeadRef = &bucket.ObjectRef{}
-	}
-	headState.HeadRef.BucketId = so.GetBlockStore().GetID()
-
 	// Blocks are unreadable without the head's transform configuration.
-	transformConf := headState.HeadRef.GetTransformConf()
+	headRef := headState.GetHeadRef()
+	transformConf := headRef.GetTransformConf()
 	if len(transformConf.GetSteps()) == 0 {
 		return sobject.ErrEmptyTransformConfig
 	}
 
 	// Bind the head to the block store.
-	blkEngine, err := c.buildBlkEngine(ctx, le, so, headState.HeadRef, transformConf)
+	blkEngine, err := c.buildBlkEngine(ctx, le, so, headRef, transformConf)
 	if err != nil {
 		return err
 	}
@@ -234,7 +182,7 @@ func (c *Controller) executeWorld(
 	// Log the bound root and read the World sequence number.
 	if c.conf.GetVerbose() {
 		le.
-			WithField("world-root", headState.HeadRef.MarshalB58()).
+			WithField("world-root", headRef.MarshalB58()).
 			Debug("initialized world root")
 	}
 	seqno, err := blkEngine.bengine.GetSeqno(ctx)
@@ -243,7 +191,7 @@ func (c *Controller) executeWorld(
 	}
 
 	// Wrap the world block engine with our txn logic for sobject.
-	engine := newSoEngine(c, so, blkEngine.bengine)
+	engine := newSoEngine(c, so, blkEngine.bengine, replay)
 	var wengine world.Engine = engine
 	if c.conf.GetVerbose() {
 		wengine = world_vlogger.NewEngine(le, wengine)
@@ -254,7 +202,7 @@ func (c *Controller) executeWorld(
 	c.engineCtr.SetValue(&wengine)
 	defer c.engineCtr.SetValue(nil)
 
-	// Follow accepted state into the World.
+	// Follow the operation set into the World.
 	return c.executeWatchSOState(ctx, soStateCtr, engine)
 }
 

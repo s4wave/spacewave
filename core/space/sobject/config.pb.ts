@@ -2,7 +2,6 @@
 // @generated from file github.com/s4wave/spacewave/core/space/sobject/config.proto (package space.sobject, syntax proto3)
 /* eslint-disable */
 
-import { Backoff } from '@go/github.com/aperturerobotics/util/backoff/backoff.pb.js'
 import type { MessageType } from '@aptre/protobuf-es-lite/message'
 import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
@@ -21,19 +20,11 @@ export interface Config {
    * @generated from field: bool verbose = 1;
    */
   verbose?: boolean
-  /**
-   * ProcessOpsBackoff is the backoff for processing ops as a validator.
-   * Defaults to reasonable defaults if unset.
-   *
-   * @generated from field: backoff.Backoff process_ops_backoff = 2;
-   */
-  processOpsBackoff?: Backoff
 }
 
 export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
   typeName: 'space.sobject.Config',
   fields: [
     { no: 1, name: 'verbose', kind: 'scalar', T: ScalarType.BOOL },
-    { no: 2, name: 'process_ops_backoff', kind: 'message', T: () => Backoff },
   ] satisfies readonly PartialFieldInfo[],
 })

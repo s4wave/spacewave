@@ -6,7 +6,6 @@ import { verifySignature } from '../../net/peer/signature.js'
 import {
   SOConfigChange,
   SOConfigChangeType,
-  SOConsensusMode,
   SOParticipantConfig,
   SOParticipantRole,
   type SharedObjectConfig,
@@ -297,10 +296,7 @@ function validateSelfEnrollPeerChange(
   const deny = (message: string) =>
     new SOConfigChangeError('unauthorized', message)
   const next = entry.config ?? {}
-  const mode = (c: SharedObjectConfig) =>
-    c.consensusMode ?? SOConsensusMode.SO_CONSENSUS_MODE_SINGLE_VALIDATOR
   if (
-    mode(next) !== mode(cfg) ||
     bytesToHex(next.configChainHash ?? new Uint8Array()) !==
       bytesToHex(cfg.configChainHash ?? new Uint8Array()) ||
     (next.configChainSeqno ?? 0n) !== (cfg.configChainSeqno ?? 0n)

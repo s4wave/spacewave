@@ -11,16 +11,17 @@ import (
 	"github.com/s4wave/spacewave/core/sobject"
 )
 
+// TestSessionClientSelfEnrollSpacePeer checks that a new Session self-enrolls
+// with the account entity key as an account owner with a key grant.
 func TestSessionClientSelfEnrollSpacePeer(t *testing.T) {
+	// Build an owner's Space and a new Session of the same account.
 	const (
 		soID      = "so-standalone-self-enroll"
 		accountID = "test-account"
 	)
-
 	entityPriv, _ := generateTestKeypair(t)
 	ownerPriv, ownerPID := generateTestKeypair(t)
 	newSessionPriv, newSessionPID := generateTestKeypair(t)
-
 	state, chainResp, envResp, keypairResp := buildRejoinTestFixtures(
 		t,
 		soID,
@@ -31,11 +32,11 @@ func TestSessionClientSelfEnrollSpacePeer(t *testing.T) {
 		3,
 	)
 
+	// Fake the cloud from the fixtures and record the posted config change.
 	stateJSON := mustMarshalSOStateMessageSnapshotJSON(t, state)
 	chainJSON := mustMarshalVT(t, chainResp)
 	envData := mustMarshalVT(t, envResp)
 	keypairData := mustMarshalVT(t, keypairResp)
-
 	var posted *api.PostConfigStateRequest
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
@@ -64,6 +65,7 @@ func TestSessionClientSelfEnrollSpacePeer(t *testing.T) {
 	}))
 	defer srv.Close()
 
+	// Self-enroll the new Session with the account entity key.
 	cli := NewSessionClient(
 		http.DefaultClient,
 		srv.URL,
@@ -87,6 +89,7 @@ func TestSessionClientSelfEnrollSpacePeer(t *testing.T) {
 		t.Fatal("expected config-state write")
 	}
 
+	// The posted change self-enrolls the Session as an account owner.
 	change := &sobject.SOConfigChange{}
 	if err := change.UnmarshalVT(posted.GetConfigChange()); err != nil {
 		t.Fatalf("unmarshal posted config change: %v", err)
@@ -104,10 +107,12 @@ func TestSessionClientSelfEnrollSpacePeer(t *testing.T) {
 	if got.GetRole() != sobject.SOParticipantRole_SOParticipantRole_OWNER {
 		t.Fatalf("role = %v", got.GetRole())
 	}
+
+	// The posted key epoch grants the Session.
 	if posted.GetKeyEpoch() == nil {
 		t.Fatal("expected posted key epoch")
 	}
-	if !soGrantSliceHasPeerID(posted.GetKeyEpoch().GetGrants(), newSessionPID.String()) {
+	if posted.GetKeyEpoch().FindGrant(newSessionPID.String()) == nil {
 		t.Fatal("expected self-enrolled peer grant in posted key epoch")
 	}
 }

@@ -1136,11 +1136,11 @@ export interface SyncBlockStoreStatus {
    */
   lastSource?: SyncBlockSource
   /**
-   * AcceptedRootInnerSequence is the latest accepted SharedObject root sequence observed for this block store.
+   * AcceptedCheckpointHeight is the height of the latest accepted SharedObject checkpoint observed for this block store.
    *
-   * @generated from field: uint64 accepted_root_inner_sequence = 6;
+   * @generated from field: uint64 accepted_checkpoint_height = 6;
    */
-  acceptedRootInnerSequence?: bigint
+  acceptedCheckpointHeight?: bigint
   /**
    * CloudRemoteSequence is the latest Cloud block-store sequence observed locally.
    *
@@ -1148,7 +1148,7 @@ export interface SyncBlockStoreStatus {
    */
   cloudRemoteSequence?: bigint
   /**
-   * SharedObjectId identifies the SharedObject that supplied AcceptedRootInnerSequence.
+   * SharedObjectId identifies the SharedObject that supplied AcceptedCheckpointHeight.
    *
    * @generated from field: string shared_object_id = 8;
    */
@@ -1166,7 +1166,7 @@ export const SyncBlockStoreStatus: MessageType<SyncBlockStoreStatus> =
       { no: 5, name: 'last_source', kind: 'enum', T: SyncBlockSource_Enum },
       {
         no: 6,
-        name: 'accepted_root_inner_sequence',
+        name: 'accepted_checkpoint_height',
         kind: 'scalar',
         T: ScalarType.UINT64,
       },

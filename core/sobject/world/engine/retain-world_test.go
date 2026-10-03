@@ -4,6 +4,8 @@ import (
 	"context"
 	"testing"
 
+	store_kvtx_inmem "github.com/s4wave/spacewave/db/store/kvtx/inmem"
+
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/s4wave/spacewave/db/block"
 	block_mock "github.com/s4wave/spacewave/db/block/mock"
@@ -21,6 +23,7 @@ import (
 // TestRetainPublicationWorldRecoversPeerDependencies exercises the engine's
 // retention boundary with a peer-only nested payload and a separate local cache.
 func TestRetainPublicationWorldRecoversPeerDependencies(t *testing.T) {
+	// Build a remote and a local testbed.
 	ctx := t.Context()
 	le := logrus.NewEntry(logrus.New())
 	remote, err := testbed.NewTestbed(ctx, le)
@@ -33,6 +36,8 @@ func TestRetainPublicationWorldRecoversPeerDependencies(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(local.Release)
+
+	// Open a cursor on each.
 	source, err := remote.BuildEmptyCursor(ctx)
 	if err != nil {
 		t.Fatal(err)
@@ -43,6 +48,8 @@ func TestRetainPublicationWorldRecoversPeerDependencies(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(target.Release)
+
+	// Commit a World whose object references a nested payload.
 	ws, err := world_block.BuildMockWorldState(ctx, le, true, source, false)
 	if err != nil {
 		t.Fatal(err)
@@ -56,6 +63,8 @@ func TestRetainPublicationWorldRecoversPeerDependencies(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Create the object with the nested type.
 	{
 		createdObject, err := ws.CreateObject(ctx, "content", &bucket.ObjectRef{RootRef: root})
 		world.ReleaseObjectState(createdObject)
@@ -69,6 +78,8 @@ func TestRetainPublicationWorldRecoversPeerDependencies(t *testing.T) {
 	if err := ws.Commit(ctx); err != nil {
 		t.Fatal(err)
 	}
+
+	// Register the nested block type locally.
 	release, err := local.Bus.AddController(ctx, blocktype_controller.NewController(func(context.Context, string) (blocktype.BlockType, error) {
 		return blocktype.NewBlockType("test/nested", block_mock.NewRootBlock), nil
 	}), nil)
@@ -81,7 +92,7 @@ func TestRetainPublicationWorldRecoversPeerDependencies(t *testing.T) {
 	overlay := block.NewOverlay(ctx, le, source.GetBucket(), target.GetBucket(), block.OverlayMode_UPPER_WRITE_CACHE, 0, nil)
 	shared := &publicationTestSharedObject{
 		blockStore: newTestBlockStore("publication-test", overlay),
-		bus:        local.Bus, retained: newTestRejectedCandidateStore(),
+		bus:        local.Bus, retained: store_kvtx_inmem.NewStore(),
 	}
 	c := &Controller{le: le, bus: local.Bus, sfs: local.StepFactorySet}
 	head := &bucket.ObjectRef{RootRef: ws.GetRootRef()}

@@ -38,6 +38,8 @@ type SOOperationLink struct {
 	ParentHashes [][]byte
 	// ConfigHash is the config chain hash the operation is written under.
 	ConfigHash []byte
+	// KeyEpoch is the key epoch whose key encrypts the operation data.
+	KeyEpoch uint64
 }
 
 // HashSOOperationInner returns the identity of an operation from its signed body.
@@ -57,7 +59,7 @@ func (op *SOOperation) Hash() []byte {
 }
 
 // BuildSOOperation signs a new operation by the author of privKey.
-// opDataEnc should be opData encoded with the root state transform.
+// opDataEnc should be opData encoded with the key of link.KeyEpoch.
 func BuildSOOperation(
 	sharedObjectID string,
 	privKey crypto.PrivKey,
@@ -82,6 +84,7 @@ func BuildSOOperation(
 		PrevOpHash:      link.PrevOpHash,
 		ParentHashes:    sortedOperationHashes(link.ParentHashes, link.PrevOpHash),
 		ConfigHash:      link.ConfigHash,
+		KeyEpoch:        link.KeyEpoch,
 	}
 	if err := inner.Validate(); err != nil {
 		return nil, err
@@ -218,12 +221,17 @@ func (op *SOOperation) ValidateSignature(sharedObjectID string, participants []*
 	return ErrNotParticipant
 }
 
-// SOOperationSet is a set of verified operations of one shared object.
-// Adding operations in any order yields the same set, heads and evidence.
+// SOOperationSet is a set of verified operations of one shared object above
+// its checkpoint. Adding operations in any order yields the same set, heads
+// and evidence.
 type SOOperationSet struct {
 	sharedObjectID string
 	ops            map[string]*SOOperationInner
 	byAuthorSeq    map[soAuthorSeq][]string
+	// frontier holds the checkpoint's heads.
+	frontier map[string]struct{}
+	// authors holds the last covered operation of each author.
+	authors map[string]*SOCheckpointAuthor
 }
 
 // soAuthorSeq identifies one position in one author's chain.
@@ -242,22 +250,56 @@ type SOEquivocation struct {
 	Hashes [][]byte
 }
 
-// NewSOOperationSet returns an empty operation set for one shared object.
-func NewSOOperationSet(sharedObjectID string) *SOOperationSet {
-	return &SOOperationSet{
+// NewSOOperationSet returns an empty operation set for one shared object above
+// checkpoint, which may be nil before the first checkpoint.
+func NewSOOperationSet(sharedObjectID string, checkpoint *SOCheckpointInner) *SOOperationSet {
+	s := &SOOperationSet{
 		sharedObjectID: sharedObjectID,
 		ops:            make(map[string]*SOOperationInner),
 		byAuthorSeq:    make(map[soAuthorSeq][]string),
+		frontier:       make(map[string]struct{}, len(checkpoint.GetFrontier())),
+		authors:        make(map[string]*SOCheckpointAuthor, len(checkpoint.GetAuthors())),
 	}
+	for _, h := range checkpoint.GetFrontier() {
+		s.frontier[string(h)] = struct{}{}
+	}
+	for _, author := range checkpoint.GetAuthors() {
+		s.authors[author.GetPeerId()] = author
+	}
+	return s
 }
 
-// Add verifies op and adds it. It reports false when the set already holds it.
-// An author's second operation at one sequence is kept as evidence.
+// Covers reports whether the checkpoint below the set covers the operation
+// at nonce in peerID's chain.
+func (s *SOOperationSet) Covers(peerID string, nonce uint64) bool {
+	author, ok := s.authors[peerID]
+	return ok && nonce <= author.GetNonce()
+}
+
+// below reports whether h names an operation the checkpoint covers.
+func (s *SOOperationSet) below(h string) bool {
+	if _, ok := s.frontier[h]; ok {
+		return true
+	}
+	for _, author := range s.authors {
+		if string(author.GetOpHash()) == h {
+			return true
+		}
+	}
+	return false
+}
+
+// Add verifies op and adds it. It reports false when the set already holds it
+// or the checkpoint covers it. An author's second operation at one sequence is
+// kept as evidence.
 func (s *SOOperationSet) Add(op *SOOperation) (bool, error) {
-	// Verify the operation and skip one the set holds.
+	// Verify the operation and skip one the set or the checkpoint holds.
 	inner, err := op.Verify(s.sharedObjectID)
 	if err != nil {
 		return false, err
+	}
+	if s.Covers(inner.GetPeerId(), inner.GetNonce()) {
+		return false, nil
 	}
 	key := string(op.Hash())
 	if _, ok := s.ops[key]; ok {
@@ -276,7 +318,8 @@ func (s *SOOperationSet) Len() int {
 	return len(s.ops)
 }
 
-// Heads returns the operations no other operation in the set names, in byte order.
+// Heads returns the operations and checkpoint heads no operation in the set
+// names, in byte order.
 func (s *SOOperationSet) Heads() [][]byte {
 	// Collect every hash an operation names.
 	named := make(map[string]struct{}, len(s.ops))
@@ -287,9 +330,14 @@ func (s *SOOperationSet) Heads() [][]byte {
 		}
 	}
 
-	// The heads are the operations left unnamed.
-	heads := make([][]byte, 0, len(s.ops))
+	// The heads are the operations and checkpoint heads left unnamed.
+	heads := make([][]byte, 0, len(s.ops)+len(s.frontier))
 	for key := range s.ops {
+		if _, ok := named[key]; !ok {
+			heads = append(heads, []byte(key))
+		}
+	}
+	for key := range s.frontier {
 		if _, ok := named[key]; !ok {
 			heads = append(heads, []byte(key))
 		}
@@ -298,16 +346,45 @@ func (s *SOOperationSet) Heads() [][]byte {
 	return heads
 }
 
+// AuthorHead returns the nonce and hash of peerID's latest operation in the
+// set or its checkpoint, or 0 and nil when it has written none.
+func (s *SOOperationSet) AuthorHead(peerID string) (uint64, []byte) {
+	// Start from the checkpoint's last covered operation.
+	var nonce uint64
+	var head []byte
+	if author, ok := s.authors[peerID]; ok {
+		nonce, head = author.GetNonce(), author.GetOpHash()
+	}
+
+	// Raise it to the author's highest operation in the set.
+	for key, inner := range s.ops {
+		if inner.GetPeerId() == peerID && inner.GetNonce() > nonce {
+			nonce, head = inner.GetNonce(), []byte(key)
+		}
+	}
+	return nonce, head
+}
+
 // Get returns the verified body of the operation with hash h, or nil.
 func (s *SOOperationSet) Get(h []byte) *SOOperationInner {
 	return s.ops[string(h)]
 }
 
-// Order returns the replay order of the operations whose ancestry the set
-// holds: a topological order of the operation DAG with concurrent operations in
-// byte order of their hashes. Every member holding the same operations computes
-// the same order. An operation naming one the set lacks waits, with its
-// descendants, until the missing operation arrives.
+// Find returns the hash of peerID's operation with localID, or nil.
+func (s *SOOperationSet) Find(peerID, localID string) []byte {
+	for key, inner := range s.ops {
+		if inner.GetPeerId() == peerID && inner.GetLocalId() == localID {
+			return []byte(key)
+		}
+	}
+	return nil
+}
+
+// Order returns the replay order of the operations whose ancestry the set or
+// its checkpoint holds: a topological order of the operation DAG with
+// concurrent operations in byte order of their hashes. Every member holding the
+// same operations computes the same order. An operation naming one the set
+// lacks waits, with its descendants, until the missing operation arrives.
 func (s *SOOperationSet) Order() [][]byte {
 	// Count the links of every operation and index its children.
 	pending := make(map[string]int, len(s.ops))
@@ -318,11 +395,16 @@ func (s *SOOperationSet) Order() [][]byte {
 		if prev := inner.GetPrevOpHash(); len(prev) != 0 {
 			links = append(slices.Clip(links), prev)
 		}
+		n := 0
 		for _, link := range links {
+			if _, ok := s.ops[string(link)]; !ok && s.below(string(link)) {
+				continue
+			}
 			children[string(link)] = append(children[string(link)], key)
+			n++
 		}
-		pending[key] = len(links)
-		if len(links) == 0 {
+		pending[key] = n
+		if n == 0 {
 			ready = append(ready, key)
 		}
 	}
@@ -343,6 +425,16 @@ func (s *SOOperationSet) Order() [][]byte {
 		}
 	}
 	return order
+}
+
+// Equivocated reports whether the author of the operation with hash h signed
+// another operation at the same sequence.
+func (s *SOOperationSet) Equivocated(h []byte) bool {
+	inner, ok := s.ops[string(h)]
+	if !ok {
+		return false
+	}
+	return len(s.byAuthorSeq[soAuthorSeq{author: inner.GetPeerId(), nonce: inner.GetNonce()}]) > 1
 }
 
 // Equivocations returns every author sequence with more than one operation,

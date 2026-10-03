@@ -2,7 +2,6 @@ package sobject_world_engine
 
 import (
 	"context"
-	"errors"
 	"testing"
 	"time"
 
@@ -26,102 +25,37 @@ import (
 	alpha_testbed "github.com/s4wave/spacewave/testbed"
 )
 
-func TestExecuteProcessOpsWaitsForValidatorRole(t *testing.T) {
+// TestWaitReadableSnapshotWaitsForReadmission keeps waiting while the
+// participant is removed and returns once it is readmitted.
+func TestWaitReadableSnapshotWaitsForReadmission(t *testing.T) {
 	// Bound the test.
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	ctx, cancel := context.WithTimeout(t.Context(), 2*time.Second)
 	defer cancel()
 
-	// Start the validator routine on a writer's snapshot.
+	// Wait on a departed participant's snapshot.
 	inspected := make(chan struct{}, 1)
-	processCalled := make(chan struct{}, 1)
-	writer := &testSharedObjectSnapshot{
-		participant: &sobject.SOParticipantConfig{Role: sobject.SOParticipantRole_SOParticipantRole_WRITER},
-		inspected:   inspected,
-	}
-	state := ccontainer.NewCContainer[sobject.SharedObjectStateSnapshot](writer)
-	so := &testSharedObject{processOperations: func(ctx context.Context, _ bool, _ sobject.ProcessOpsFunc) error {
-		processCalled <- struct{}{}
-		<-ctx.Done()
-		return ctx.Err()
-	}}
-	controller := &Controller{}
-	done := make(chan error, 1)
-	go func() {
-		done <- controller.executeProcessOpsWhenValidator(ctx, so, state)
-	}()
-
-	// The writer snapshot is inspected without validating.
-	select {
-	case <-inspected:
-	case <-ctx.Done():
-		t.Fatal(ctx.Err())
-	}
-	select {
-	case <-processCalled:
-		t.Fatal("writer participant attempted to validate queued operations")
-	default:
-	}
-
-	// Promotion to validator starts processing.
-	state.SetValue(&testSharedObjectSnapshot{
-		participant: &sobject.SOParticipantConfig{Role: sobject.SOParticipantRole_SOParticipantRole_VALIDATOR},
-	})
-	select {
-	case <-processCalled:
-	case <-ctx.Done():
-		t.Fatal(ctx.Err())
-	}
-	cancel()
-	if err := <-done; !errors.Is(err, context.Canceled) {
-		t.Fatalf("validator routine returned %v", err)
-	}
-}
-
-// TestExecuteProcessOpsWaitsForReadmission keeps the validator routine waiting
-// while its participant is removed and validates again once readmitted.
-func TestExecuteProcessOpsWaitsForReadmission(t *testing.T) {
-	// Bound the test.
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
-	defer cancel()
-
-	// Start the validator routine on a departed participant's snapshot.
-	inspected := make(chan struct{}, 1)
-	processCalled := make(chan struct{}, 1)
 	departed := &testSharedObjectSnapshot{readErr: sobject.ErrNotParticipant, inspected: inspected}
 	state := ccontainer.NewCContainer[sobject.SharedObjectStateSnapshot](departed)
-	so := &testSharedObject{processOperations: func(ctx context.Context, _ bool, _ sobject.ProcessOpsFunc) error {
-		processCalled <- struct{}{}
-		<-ctx.Done()
-		return ctx.Err()
-	}}
 	done := make(chan error, 1)
 	go func() {
-		done <- (&Controller{}).executeProcessOpsWhenValidator(ctx, so, state)
+		done <- waitReadableSnapshot(ctx, state)
 	}()
 
-	// The departed snapshot is inspected without ending the routine.
+	// The departed snapshot is inspected without ending the wait.
 	select {
 	case <-inspected:
 	case err := <-done:
-		t.Fatalf("departed participant ended the validator routine: %v", err)
+		t.Fatalf("departed participant ended the wait: %v", err)
 	case <-ctx.Done():
 		t.Fatal(ctx.Err())
 	}
 
-	// Readmission as a validator resumes processing.
+	// Readmission ends the wait.
 	state.SetValue(&testSharedObjectSnapshot{
-		participant: &sobject.SOParticipantConfig{Role: sobject.SOParticipantRole_SOParticipantRole_VALIDATOR},
+		participant: &sobject.SOParticipantConfig{Role: sobject.SOParticipantRole_SOParticipantRole_WRITER},
 	})
-	select {
-	case <-processCalled:
-	case err := <-done:
-		t.Fatalf("validator routine returned %v", err)
-	case <-ctx.Done():
-		t.Fatal(ctx.Err())
-	}
-	cancel()
-	if err := <-done; !errors.Is(err, context.Canceled) {
-		t.Fatalf("validator routine returned %v", err)
+	if err := <-done; err != nil {
+		t.Fatalf("wait returned %v", err)
 	}
 }
 
@@ -221,10 +155,14 @@ func TestBuildBlkEngineBorrowsTransformAwareBlockStoreDecodedCache(t *testing.T)
 	}
 }
 
+// testSharedObject serves a block store, a local state store and a fixed
+// snapshot, and records the operations queued on it.
 type testSharedObject struct {
-	peerID            peer.ID
-	blockStore        bstore.BlockStore
-	processOperations func(context.Context, bool, sobject.ProcessOpsFunc) error
+	peerID     peer.ID
+	blockStore bstore.BlockStore
+	localStore kvtx.Store
+	snapshot   sobject.SharedObjectStateSnapshot
+	queued     [][]byte
 }
 
 type testBlockStore struct {
@@ -261,11 +199,11 @@ func (s *testSharedObject) GetBlockStore() bstore.BlockStore {
 }
 
 func (s *testSharedObject) AccessLocalStateStore(ctx context.Context, storeID string, released func()) (kvtx.Store, func(), error) {
-	return nil, nil, nil
+	return s.localStore, func() {}, nil
 }
 
 func (s *testSharedObject) GetSharedObjectState(ctx context.Context) (sobject.SharedObjectStateSnapshot, error) {
-	return nil, nil
+	return s.snapshot, nil
 }
 
 func (s *testSharedObject) AccessSharedObjectState(ctx context.Context, released func()) (ccontainer.Watchable[sobject.SharedObjectStateSnapshot], func(), error) {
@@ -273,26 +211,11 @@ func (s *testSharedObject) AccessSharedObjectState(ctx context.Context, released
 }
 
 func (s *testSharedObject) QueueOperation(ctx context.Context, op []byte) (string, error) {
+	s.queued = append(s.queued, op)
 	return "", nil
 }
 
-func (s *testSharedObject) WaitOperation(ctx context.Context, localID string) (uint64, bool, error) {
-	return 0, false, nil
-}
-
-func (s *testSharedObject) ClearOperationResult(ctx context.Context, localID string) error {
-	return nil
-}
-
-func (s *testSharedObject) ProcessOperations(ctx context.Context, watch bool, cb sobject.ProcessOpsFunc) error {
-	if s.processOperations != nil {
-		return s.processOperations(ctx, watch, cb)
-	}
-	return nil
-}
-
 type testSharedObjectSnapshot struct {
-	rootInner    *sobject.SORootInner
 	participant  *sobject.SOParticipantConfig
 	participants map[string]*sobject.SOParticipantConfig
 	inspected    chan<- struct{}
@@ -325,32 +248,20 @@ func (s *testSharedObjectSnapshot) GetTransformInfo(ctx context.Context) (*sobje
 	return nil, nil
 }
 
-func (s *testSharedObjectSnapshot) GetOpQueue(ctx context.Context) ([]*sobject.SOOperation, []*sobject.QueuedSOOperation, error) {
-	return nil, nil, nil
+func (s *testSharedObjectSnapshot) GetConfigByHash(ctx context.Context, hash []byte) (*sobject.SharedObjectConfig, error) {
+	return nil, nil
 }
 
-func (s *testSharedObjectSnapshot) GetRootInner(ctx context.Context) (*sobject.SORootInner, error) {
-	return s.rootInner, nil
+func (s *testSharedObjectSnapshot) GetCheckpoint(ctx context.Context) (*sobject.SOCheckpointInner, error) {
+	return &sobject.SOCheckpointInner{}, nil
 }
 
-func (s *testSharedObjectSnapshot) GetRootState(ctx context.Context) (*sobject.SORoot, error) {
-	if s.rootInner == nil {
-		return nil, nil
-	}
-	return &sobject.SORoot{InnerSeqno: s.rootInner.GetSeqno()}, nil
+func (s *testSharedObjectSnapshot) GetOperationSet(ctx context.Context) (*sobject.SOOperationSet, error) {
+	return sobject.NewSOOperationSet("", &sobject.SOCheckpointInner{}), nil
 }
 
-func (s *testSharedObjectSnapshot) ProcessOperations(
-	ctx context.Context,
-	ops []*sobject.SOOperation,
-	cb sobject.SnapshotProcessOpsFunc,
-) (
-	nextRoot *sobject.SORoot,
-	rejectedOps []*sobject.SOOperationRejection,
-	acceptedOps []*sobject.SOOperation,
-	err error,
-) {
-	return nil, nil, nil, nil
+func (s *testSharedObjectSnapshot) DecodeOperation(ctx context.Context, inner *sobject.SOOperationInner) ([]byte, error) {
+	return inner.GetOpData(), nil
 }
 
 func newStateTestTransformConfig(t *testing.T, steps ...config.Config) *block_transform.Config {

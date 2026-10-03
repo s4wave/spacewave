@@ -20,10 +20,11 @@ type JoinResult struct {
 	Grant *sobject.SOGrant
 	// SharedObjectID is the ID of the shared object.
 	SharedObjectID string
-	// OwnerGrant keeps the originating owner's root access on the joined copy.
-	OwnerGrant *sobject.SOGrant
 	// SharedObjectState is the owner's authorized state after enrollment.
 	SharedObjectState *sobject.SOState
+	// ConfigLineage is the owner's retained configuration changes leading to
+	// the config of SharedObjectState, oldest first.
+	ConfigLineage []*sobject.SOConfigChange
 	// Pending is set when the owner queued the redemption for approval
 	// instead of enrolling the invitee.
 	Pending bool
@@ -87,8 +88,8 @@ func JoinViaInvite(
 	return &JoinResult{
 		Grant:             resp.GetGrant(),
 		SharedObjectID:    resp.GetSharedObjectId(),
-		OwnerGrant:        resp.GetOwnerGrant(),
 		SharedObjectState: resp.GetSharedObjectState(),
+		ConfigLineage:     resp.GetConfigLineage(),
 		Pending:           resp.GetPending(),
 	}, nil
 }

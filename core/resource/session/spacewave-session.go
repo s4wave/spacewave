@@ -1628,8 +1628,6 @@ func targetedSpaceRoleFromString(role string) (sobject.SOParticipantRole, error)
 		return sobject.SOParticipantRole_SOParticipantRole_READER, nil
 	case "writer":
 		return sobject.SOParticipantRole_SOParticipantRole_WRITER, nil
-	case "validator":
-		return sobject.SOParticipantRole_SOParticipantRole_VALIDATOR, nil
 	default:
 		return sobject.SOParticipantRole_SOParticipantRole_UNKNOWN, errors.New("unsupported space invite role")
 	}

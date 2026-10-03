@@ -2,7 +2,6 @@ package space_sobject
 
 import (
 	"github.com/aperturerobotics/controllerbus/config"
-	"github.com/pkg/errors"
 )
 
 // ConfigID is the config identifier.
@@ -10,9 +9,6 @@ const ConfigID = ControllerID
 
 // Validate validates the configuration.
 func (c *Config) Validate() error {
-	if err := c.GetProcessOpsBackoff().Validate(true); err != nil {
-		return errors.Wrap(err, "process_ops_backoff")
-	}
 	return nil
 }
 

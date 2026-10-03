@@ -92,7 +92,7 @@ func TestBuildFriendDmInitialStateIncludesBilateralRecovery(t *testing.T) {
 		t.Fatalf("grants = %d, want %d", len(state.keyEpoch.GetGrants()), len(participants))
 	}
 	for _, participant := range participants {
-		if !soGrantSliceHasPeerID(state.keyEpoch.GetGrants(), participant.GetPeerId()) {
+		if state.keyEpoch.FindGrant(participant.GetPeerId()) == nil {
 			t.Fatalf("missing grant for %s", participant.GetPeerId())
 		}
 	}
@@ -128,8 +128,8 @@ func TestBuildFriendDmInitialStateIncludesBilateralRecovery(t *testing.T) {
 		}
 	}
 
-	// Check the config and root request wrappers.
-	configData, rootData, err := marshalFriendDmInitialState(state)
+	// Check the config and checkpoint request wrappers.
+	configData, checkpointData, err := marshalFriendDmInitialState(state)
 	if err != nil {
 		t.Fatalf("marshal friend dm wrappers: %v", err)
 	}
@@ -142,17 +142,20 @@ func TestBuildFriendDmInitialStateIncludesBilateralRecovery(t *testing.T) {
 		len(configRequest.GetKeyEpoch().GetGrants()) != 3 {
 		t.Fatalf("incomplete config wrapper: %+v", configRequest)
 	}
-	rootRequest := &api.PostRootRequest{}
-	if err := rootRequest.UnmarshalVT(rootData); err != nil {
-		t.Fatalf("unmarshal root wrapper: %v", err)
+
+	// The checkpoint wrapper holds the genesis checkpoint.
+	checkpointRequest := &api.PostCheckpointRequest{}
+	if err := checkpointRequest.UnmarshalVT(checkpointData); err != nil {
+		t.Fatalf("unmarshal checkpoint wrapper: %v", err)
 	}
-	if rootRequest.GetRoot() == nil || rootRequest.GetRoot().GetInnerSeqno() != 1 {
-		t.Fatalf("incomplete root wrapper: %+v", rootRequest)
+	inner, err := checkpointRequest.GetCheckpoint().UnmarshalInner()
+	if err != nil || inner.GetHeight() != 0 {
+		t.Fatalf("incomplete checkpoint wrapper: %+v: %v", checkpointRequest, err)
 	}
 }
 
 func TestSessionClientInitEmptyStandaloneSpace(t *testing.T) {
-	// Describe an owner config without a root.
+	// Describe an owner config without a checkpoint.
 	const (
 		soID      = "so-standalone-init"
 		accountID = "test-account"
@@ -173,11 +176,11 @@ func TestSessionClientInitEmptyStandaloneSpace(t *testing.T) {
 	keypairResp := buildRecoveryKeypairResponse(t, accountID, otherPriv)
 	keypairData := mustMarshalVT(t, keypairResp)
 
-	// Serve the object, recording the config, key epoch and root writes.
+	// Serve the object, recording the config, key epoch and checkpoint writes.
 	var (
-		postedConfig *api.PostConfigStateRequest
-		postedRoot   *sobject.SORoot
-		postedEpoch  *sobject.SOKeyEpoch
+		postedConfig     *api.PostConfigStateRequest
+		postedCheckpoint *sobject.SOCheckpoint
+		postedEpoch      *sobject.SOKeyEpoch
 	)
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
@@ -199,16 +202,16 @@ func TestSessionClientInitEmptyStandaloneSpace(t *testing.T) {
 			postedConfig = req
 			postedEpoch = req.GetKeyEpoch()
 			w.WriteHeader(http.StatusOK)
-		case "/api/sobject/" + soID + "/root":
+		case "/api/sobject/" + soID + "/checkpoint":
 			body, err := io.ReadAll(r.Body)
 			if err != nil {
-				t.Fatalf("read root body: %v", err)
+				t.Fatalf("read checkpoint body: %v", err)
 			}
-			req := &api.PostRootRequest{}
+			req := &api.PostCheckpointRequest{}
 			if err := req.UnmarshalVT(body); err != nil {
-				t.Fatalf("unmarshal post root request: %v", err)
+				t.Fatalf("unmarshal post checkpoint request: %v", err)
 			}
-			postedRoot = req.GetRoot()
+			postedCheckpoint = req.GetCheckpoint()
 			w.WriteHeader(http.StatusOK)
 		default:
 			t.Fatalf("unexpected path: %s", r.URL.Path)
@@ -232,18 +235,18 @@ func TestSessionClientInitEmptyStandaloneSpace(t *testing.T) {
 		t.Fatal("expected init mutation")
 	}
 
-	// Check that the config, root and key epoch were written.
+	// Check that the config, checkpoint and key epoch were written.
 	if postedConfig == nil {
 		t.Fatal("expected config-state write")
 	}
-	if postedRoot == nil {
-		t.Fatal("expected root write")
+	if postedCheckpoint == nil {
+		t.Fatal("expected checkpoint write")
 	}
 	if postedEpoch == nil {
 		t.Fatal("expected key-epoch write")
 	}
 
-	// Check the genesis owner, the root seqno and the owner grant.
+	// Check the genesis owner, the genesis checkpoint and the owner grant.
 	change := &sobject.SOConfigChange{}
 	if err := change.UnmarshalVT(postedConfig.GetConfigChange()); err != nil {
 		t.Fatalf("unmarshal posted config change: %v", err)
@@ -258,120 +261,50 @@ func TestSessionClientInitEmptyStandaloneSpace(t *testing.T) {
 	if got.GetEntityId() != accountID {
 		t.Fatalf("entity id = %q", got.GetEntityId())
 	}
-	if postedRoot.GetInnerSeqno() != 1 {
-		t.Fatalf("root seqno = %d", postedRoot.GetInnerSeqno())
+
+	// The posted checkpoint is the genesis.
+	inner, err := postedCheckpoint.UnmarshalInner()
+	if err != nil || inner.GetHeight() != 0 {
+		t.Fatalf("posted checkpoint is not genesis: %v", err)
 	}
-	if !soGrantSliceHasPeerID(postedEpoch.GetGrants(), localPID.String()) {
+	if postedEpoch.FindGrant(localPID.String()) == nil {
 		t.Fatal("expected local owner grant in posted key epoch")
 	}
 }
 
-func TestSessionClientInitEmptyStandaloneSpaceRepairsGrantlessGenesis(t *testing.T) {
-	// Describe an owner config with a root but an empty key epoch.
+func TestSessionClientInitEmptyStandaloneSpaceRejectsGrantlessCheckpoint(t *testing.T) {
+	// Describe an initialized Space whose key epoch has no grants.
 	const (
-		soID      = "so-standalone-repair"
+		soID      = "so-standalone-grantless"
 		accountID = "test-account"
 	)
 	localPriv, localPID := generateTestKeypair(t)
-	otherPriv, _ := generateTestKeypair(t)
-	state := &sobject.SOState{
-		Config: &sobject.SharedObjectConfig{
-			Participants: []*sobject.SOParticipantConfig{{
-				PeerId:   localPID.String(),
-				Role:     sobject.SOParticipantRole_SOParticipantRole_OWNER,
-				EntityId: accountID,
-			}},
-		},
-		Root: &sobject.SORoot{
-			InnerSeqno: 1,
-			Inner:      []byte("existing-root"),
-		},
+	state, _, err := sobject.BuildGenesisSOState(logrus.NewEntry(logrus.New()), testStepFactorySet(), soID, localPriv, nil)
+	if err != nil {
+		t.Fatal(err)
 	}
+	state.KeyEpochs = []*sobject.SOKeyEpoch{{}}
 	stateJSON := mustMarshalSOStateMessageSnapshotJSON(t, state)
-	chainData := mustMarshalVT(t, &sobject.SOConfigChainResponse{
-		KeyEpochs: []*sobject.SOKeyEpoch{{
-			Epoch:      0,
-			SeqnoStart: 0,
-		}},
-	})
-	keypairResp := buildRecoveryKeypairResponse(t, accountID, otherPriv)
-	keypairData := mustMarshalVT(t, keypairResp)
+	chainData := mustMarshalVT(t, &sobject.SOConfigChainResponse{KeyEpochs: state.KeyEpochs})
 
-	// Serve the object, recording the key epoch and root writes.
-	var (
-		postedRoot  *sobject.SORoot
-		postedEpoch *api.PostKeyEpochRequest
-	)
+	// Serve only reads; any write would replace the initialized Space.
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case "/api/sobject/" + soID + "/state":
 			_, _ = w.Write(stateJSON)
 		case "/api/sobject/" + soID + "/config-chain":
 			_, _ = w.Write(chainData)
-		case "/api/sobject/" + soID + "/recovery-entity-keypairs":
-			_, _ = w.Write(keypairData)
-		case "/api/sobject/" + soID + "/key-epoch":
-			body, err := io.ReadAll(r.Body)
-			if err != nil {
-				t.Fatalf("read key-epoch body: %v", err)
-			}
-			req := &api.PostKeyEpochRequest{}
-			if err := req.UnmarshalVT(body); err != nil {
-				t.Fatalf("unmarshal key-epoch request: %v", err)
-			}
-			postedEpoch = req
-			w.WriteHeader(http.StatusOK)
-		case "/api/sobject/" + soID + "/root":
-			body, err := io.ReadAll(r.Body)
-			if err != nil {
-				t.Fatalf("read root body: %v", err)
-			}
-			req := &api.PostRootRequest{}
-			if err := req.UnmarshalVT(body); err != nil {
-				t.Fatalf("unmarshal post root request: %v", err)
-			}
-			postedRoot = req.GetRoot()
-			w.WriteHeader(http.StatusOK)
 		default:
 			t.Fatalf("unexpected path: %s", r.URL.Path)
 		}
 	}))
 	defer srv.Close()
 
-	// Initialize the Space through a session client.
+	// Initialization refuses to replace the Space.
 	cli := newStandaloneInitTestClient(srv.URL, localPriv, localPID)
-	changed, err := cli.InitEmptyStandaloneSpace(
-		context.Background(),
-		nil,
-		accountID,
-		"",
-		soID,
-	)
-	if err != nil {
-		t.Fatalf("InitEmptyStandaloneSpace: %v", err)
-	}
-	if !changed {
-		t.Fatal("expected repair mutation")
-	}
-
-	// Check that the repair wrote the next epoch with the owner grant and root.
-	if postedEpoch == nil {
-		t.Fatal("expected key-epoch repair write")
-	}
-	if postedRoot == nil {
-		t.Fatal("expected root repair write")
-	}
-	if postedEpoch.GetKeyEpoch().GetEpoch() != 1 {
-		t.Fatalf("epoch = %d", postedEpoch.GetKeyEpoch().GetEpoch())
-	}
-	if postedEpoch.GetKeyEpoch().GetSeqnoStart() != 2 {
-		t.Fatalf("epoch seqno_start = %d", postedEpoch.GetKeyEpoch().GetSeqnoStart())
-	}
-	if !soGrantSliceHasPeerID(postedEpoch.GetKeyEpoch().GetGrants(), localPID.String()) {
-		t.Fatal("expected local owner grant in repaired key epoch")
-	}
-	if postedRoot.GetInnerSeqno() != 2 {
-		t.Fatalf("root seqno = %d", postedRoot.GetInnerSeqno())
+	changed, err := cli.InitEmptyStandaloneSpace(context.Background(), nil, accountID, "", soID)
+	if err == nil || changed {
+		t.Fatalf("InitEmptyStandaloneSpace = %t, %v; want a missing grant error", changed, err)
 	}
 }
 

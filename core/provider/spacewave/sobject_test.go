@@ -176,28 +176,33 @@ func TestPostOp_UsesWriteTicketWhenConfigured(t *testing.T) {
 	}
 }
 
-// TestPostRoot_UsesWriteTicketWhenConfigured verifies PostRoot switches to the
-// write-ticket proof path when the shared ticket executor is configured.
-func TestPostRoot_UsesWriteTicketWhenConfigured(t *testing.T) {
+// TestPostCheckpoint_UsesWriteTicketWhenConfigured verifies PostCheckpoint
+// uses the write-ticket proof path when the shared ticket executor is
+// configured.
+func TestPostCheckpoint_UsesWriteTicketWhenConfigured(t *testing.T) {
+	// Serve a checkpoint post that must carry a write-ticket proof.
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// The request is a ticketed POST to the checkpoint route.
 		if r.Method != http.MethodPost {
 			t.Errorf("expected POST, got %s", r.Method)
 		}
-		if r.URL.Path != "/api/sobject/root-so-id/root" {
+		if r.URL.Path != "/api/sobject/checkpoint-so-id/checkpoint" {
 			t.Errorf("unexpected path: %s", r.URL.Path)
 		}
-		if got := r.Header.Get("X-Write-Ticket"); got != "ticket-root" {
+		if got := r.Header.Get("X-Write-Ticket"); got != "ticket-checkpoint" {
 			t.Errorf("unexpected write ticket: %q", got)
 		}
 		if r.Header.Get("X-Signature") != "" {
 			t.Error("signed auth should not be used on the write-ticket path")
 		}
 
+		// It has a body.
 		body, _ := io.ReadAll(r.Body)
 		if len(body) == 0 {
 			t.Fatal("missing body")
 		}
 
+		// Decode the write proof.
 		proofB64 := r.Header.Get("X-Write-Proof")
 		if proofB64 == "" {
 			t.Fatal("missing X-Write-Proof")
@@ -206,6 +211,8 @@ func TestPostRoot_UsesWriteTicketWhenConfigured(t *testing.T) {
 		if err != nil {
 			t.Fatalf("decode proof: %v", err)
 		}
+
+		// Unmarshal the proof and its payload.
 		var proof api.WriteTicketProof
 		if err := proof.UnmarshalVT(proofBytes); err != nil {
 			t.Fatalf("unmarshal proof: %v", err)
@@ -214,13 +221,15 @@ func TestPostRoot_UsesWriteTicketWhenConfigured(t *testing.T) {
 		if err := payload.UnmarshalVT(proof.GetPayload()); err != nil {
 			t.Fatalf("unmarshal proof payload: %v", err)
 		}
-		if payload.GetTicket() != "ticket-root" {
+
+		// The proof binds the ticket, method, path and body.
+		if payload.GetTicket() != "ticket-checkpoint" {
 			t.Errorf("unexpected proof ticket: %q", payload.GetTicket())
 		}
 		if payload.GetMethod() != http.MethodPost {
 			t.Errorf("unexpected proof method: %q", payload.GetMethod())
 		}
-		if payload.GetPath() != "/api/sobject/root-so-id/root" {
+		if payload.GetPath() != "/api/sobject/checkpoint-so-id/checkpoint" {
 			t.Errorf("unexpected proof path: %q", payload.GetPath())
 		}
 		if payload.GetContentLength() != int64(len(body)) {
@@ -231,10 +240,12 @@ func TestPostRoot_UsesWriteTicketWhenConfigured(t *testing.T) {
 			t.Errorf("unexpected proof body hash: %q", payload.GetBodyHashHex())
 		}
 
+		// Accept the checkpoint.
 		w.WriteHeader(http.StatusOK)
 	}))
 	defer srv.Close()
 
+	// Build a client whose executor issues the checkpoint ticket.
 	priv, pid := generateTestKeypair(t)
 	cli := NewSessionClient(http.DefaultClient, srv.URL, DefaultSigningEnvPrefix, priv, pid.String())
 	cli.executeWriteTicketAudience = func(
@@ -243,21 +254,21 @@ func TestPostRoot_UsesWriteTicketWhenConfigured(t *testing.T) {
 		audience writeTicketAudience,
 		fn func(ticket string) error,
 	) error {
-		if resourceID != "root-so-id" {
+		if resourceID != "checkpoint-so-id" {
 			t.Errorf("unexpected resource id: %s", resourceID)
 		}
-		if audience != writeTicketAudienceSORoot {
+		if audience != writeTicketAudienceSOCheckpoint {
 			t.Errorf("unexpected audience: %s", audience)
 		}
-		return fn("ticket-root")
+		return fn("ticket-checkpoint")
 	}
 
-	err := cli.PostRoot(context.Background(), "root-so-id", &sobject.SORoot{
-		InnerSeqno: 7,
-		Inner:      []byte("root-bytes"),
-	}, nil)
+	// Post a checkpoint.
+	err := cli.PostCheckpoint(context.Background(), "checkpoint-so-id", &sobject.SOCheckpoint{
+		Inner: []byte("checkpoint-bytes"),
+	})
 	if err != nil {
-		t.Fatalf("PostRoot: %v", err)
+		t.Fatalf("PostCheckpoint: %v", err)
 	}
 }
 
@@ -698,158 +709,32 @@ func TestRefreshSharedObjectListRefreshesAccountAccess(t *testing.T) {
 	}
 }
 
-// TestPostRoot_MissingWriteTicketExecutor verifies PostRoot fails locally when
-// the write-ticket executor is unavailable.
-func TestPostRoot_MissingWriteTicketExecutor(t *testing.T) {
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		t.Fatalf("unexpected request: %s %s", r.Method, r.URL.Path)
-	}))
-	defer srv.Close()
-
-	priv, pid := generateTestKeypair(t)
-	cli := NewSessionClient(http.DefaultClient, srv.URL, DefaultSigningEnvPrefix, priv, pid.String())
-
-	err := cli.PostRoot(context.Background(), "root-so-id", &sobject.SORoot{
-		Inner: []byte("root-data"),
-	}, nil)
-	if err == nil || !strings.Contains(err.Error(), "missing write-ticket executor") {
-		t.Fatalf("expected missing write-ticket executor error, got %v", err)
-	}
-}
-
-// TestPostInitState_MissingWriteTicketExecutor verifies PostInitState fails
+// TestPostCheckpoint_MissingWriteTicketExecutor verifies PostCheckpoint fails
 // locally when the write-ticket executor is unavailable.
-func TestPostInitState_MissingWriteTicketExecutor(t *testing.T) {
+func TestPostCheckpoint_MissingWriteTicketExecutor(t *testing.T) {
+	// Fail any request.
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		t.Fatalf("unexpected request: %s %s", r.Method, r.URL.Path)
 	}))
 	defer srv.Close()
 
+	// Build a client without a write-ticket executor.
 	priv, pid := generateTestKeypair(t)
 	cli := NewSessionClient(http.DefaultClient, srv.URL, DefaultSigningEnvPrefix, priv, pid.String())
 
-	rootData, err := (&sobject.SORoot{
-		Inner: []byte("init-root-data"),
-	}).MarshalVT()
-	if err != nil {
-		t.Fatalf("marshal root: %v", err)
-	}
-
-	err = cli.PostInitState(context.Background(), "init-so-id", rootData)
+	// Posting fails before any request.
+	err := cli.PostCheckpoint(context.Background(), "checkpoint-so-id", &sobject.SOCheckpoint{
+		Inner: []byte("checkpoint-data"),
+	})
 	if err == nil || !strings.Contains(err.Error(), "missing write-ticket executor") {
 		t.Fatalf("expected missing write-ticket executor error, got %v", err)
-	}
-}
-
-// TestPostInitState_UsesWriteTicketWhenConfigured verifies PostInitState uses
-// the write-ticket proof path when the shared ticket executor is configured.
-func TestPostInitState_UsesWriteTicketWhenConfigured(t *testing.T) {
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPost {
-			t.Errorf("expected POST, got %s", r.Method)
-		}
-		if r.URL.Path != "/api/sobject/init-so-id/root" {
-			t.Errorf("unexpected path: %s", r.URL.Path)
-		}
-		if got := r.Header.Get("X-Write-Ticket"); got != "ticket-init-root" {
-			t.Errorf("unexpected write ticket: %q", got)
-		}
-		if r.Header.Get("X-Signature") != "" {
-			t.Error("signed auth should not be used on the write-ticket path")
-		}
-		if r.Header.Get("X-Peer-ID") != "" {
-			t.Error("write-ticket path should not set X-Peer-ID on the outer request")
-		}
-		if got := r.Header.Get(SeedReasonHeader); got != string(SeedReasonMutation) {
-			t.Errorf("unexpected seed reason: %q", got)
-		}
-
-		body, _ := io.ReadAll(r.Body)
-		req := &api.PostRootRequest{}
-		if err := req.UnmarshalVT(body); err != nil {
-			t.Fatalf("unmarshal post root request: %v", err)
-		}
-		if req.GetRoot() == nil {
-			t.Fatal("expected root in post init request")
-		}
-		if string(req.GetRoot().GetInner()) != "init-root-data" {
-			t.Errorf("unexpected root inner: %q", req.GetRoot().GetInner())
-		}
-
-		proofB64 := r.Header.Get("X-Write-Proof")
-		if proofB64 == "" {
-			t.Fatal("missing X-Write-Proof")
-		}
-		proofBytes, err := base64.StdEncoding.DecodeString(proofB64)
-		if err != nil {
-			t.Fatalf("decode proof: %v", err)
-		}
-		var proof api.WriteTicketProof
-		if err := proof.UnmarshalVT(proofBytes); err != nil {
-			t.Fatalf("unmarshal proof: %v", err)
-		}
-		var payload api.WriteTicketProofPayload
-		if err := payload.UnmarshalVT(proof.GetPayload()); err != nil {
-			t.Fatalf("unmarshal proof payload: %v", err)
-		}
-		if payload.GetTicket() != "ticket-init-root" {
-			t.Errorf("unexpected proof ticket: %q", payload.GetTicket())
-		}
-		if payload.GetMethod() != http.MethodPost {
-			t.Errorf("unexpected proof method: %q", payload.GetMethod())
-		}
-		if payload.GetPath() != "/api/sobject/init-so-id/root" {
-			t.Errorf("unexpected proof path: %q", payload.GetPath())
-		}
-		if payload.GetContentLength() != int64(len(body)) {
-			t.Errorf("unexpected proof content length: %d", payload.GetContentLength())
-		}
-		wantHash := sha256.Sum256(body)
-		if payload.GetBodyHashHex() != hex.EncodeToString(wantHash[:]) {
-			t.Errorf("unexpected proof body hash: %q", payload.GetBodyHashHex())
-		}
-		if payload.GetSignedHeaders() != "content-type=application%2Foctet-stream" {
-			t.Errorf("unexpected proof signed headers: %q", payload.GetSignedHeaders())
-		}
-
-		w.WriteHeader(http.StatusOK)
-	}))
-	defer srv.Close()
-
-	priv, pid := generateTestKeypair(t)
-	cli := NewSessionClient(http.DefaultClient, srv.URL, DefaultSigningEnvPrefix, priv, pid.String())
-	cli.executeWriteTicketAudience = func(
-		ctx context.Context,
-		resourceID string,
-		audience writeTicketAudience,
-		fn func(ticket string) error,
-	) error {
-		if resourceID != "init-so-id" {
-			t.Errorf("unexpected resource id: %s", resourceID)
-		}
-		if audience != writeTicketAudienceSORoot {
-			t.Errorf("unexpected audience: %s", audience)
-		}
-		return fn("ticket-init-root")
-	}
-
-	rootData, err := (&sobject.SORoot{
-		Inner: []byte("init-root-data"),
-	}).MarshalVT()
-	if err != nil {
-		t.Fatalf("marshal root: %v", err)
-	}
-
-	err = cli.PostInitState(context.Background(), "init-so-id", rootData)
-	if err != nil {
-		t.Fatalf("PostInitState: %v", err)
 	}
 }
 
 // TestGetSOState_Success verifies GetSOState sends GET to the correct path.
 func TestGetSOState_Success(t *testing.T) {
-	respBody := `{"root":{}}`
-
+	// Serve a state response.
+	respBody := `{"checkpoint":{}}`
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
 			t.Errorf("expected GET, got %s", r.Method)
@@ -862,9 +747,11 @@ func TestGetSOState_Success(t *testing.T) {
 	}))
 	defer srv.Close()
 
+	// Build a client.
 	priv, pid := generateTestKeypair(t)
 	cli := NewSessionClient(http.DefaultClient, srv.URL, DefaultSigningEnvPrefix, priv, pid.String())
 
+	// Fetching returns the response body.
 	data, err := cli.GetSOState(context.Background(), "state-so-id", 0, SeedReasonColdSeed)
 	if err != nil {
 		t.Fatalf("GetSOState: %v", err)

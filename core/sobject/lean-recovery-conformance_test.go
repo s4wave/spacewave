@@ -38,6 +38,7 @@ func FuzzLeanRecovery(f *testing.F) {
 
 // runLeanRecoveryScenario retains real encrypted envelopes and each recovered plaintext.
 func runLeanRecoveryScenario(t *testing.T, peers []peer.Peer, seed uint64) []leanCase {
+	// Derive each peer's key.
 	t.Helper()
 	projection := &configChainScenario{t: t}
 	a := &projection.arena
@@ -50,17 +51,21 @@ func runLeanRecoveryScenario(t *testing.T, peers []peer.Peer, seed uint64) []lea
 		}
 		keys[i], pubs[i] = key, key.GetPublic()
 	}
+
+	// Build an owner-readable grant for one entity at a seed-chosen config.
 	config := &SharedObjectConfig{ConfigChainSeqno: seed%23 + 1, ConfigChainHash: bytes.Repeat([]byte{byte(seed%254 + 1)}, 32)}
-	transform, _, _, err := RotateTransformKey(keys[0], mockSharedObjectID, []*SOParticipantConfig{
+	transform, _, err := RotateTransformKey(keys[0], mockSharedObjectID, []*SOParticipantConfig{
 		{PeerId: peers[0].GetPeerID().String(), Role: SOParticipantRole_SOParticipantRole_OWNER},
-	}, 1, 1)
+	}, 0)
 	if err != nil {
 		t.Fatal(err)
 	}
 	base := &SOEntityRecoveryMaterial{
-		EntityId: "entity", Role: SOParticipantRole(seed%4 + 1),
+		EntityId: "entity", Role: SOParticipantRole(seed%3 + 1),
 		GrantInner: &SOGrantInner{TransformConf: transform},
 	}
+
+	// Build every envelope variant, valid and malformed, with its expected result.
 	var cases []leanCase
 	for variant := range 25 {
 		cfg, material := config.CloneVT(), base.CloneVT()
@@ -331,12 +336,12 @@ func runLeanRecoveryEnrollment(t *testing.T, projection *configChainScenario, pe
 		current := checkpoint.CloneVT()
 		current.Participants = []*SOParticipantConfig{
 			{PeerId: peers[0].GetPeerID().String(), Role: SOParticipantRole_SOParticipantRole_OWNER, EntityId: "owner"},
-			{PeerId: peers[1].GetPeerID().String(), Role: SOParticipantRole(seed%3 + 1), EntityId: "entity"},
+			{PeerId: peers[1].GetPeerID().String(), Role: SOParticipantRole(seed%2 + 1), EntityId: "entity"},
 		}
 		signer, grantSigner := keys[2], keys[2]
 		peerID, grantPeer := peers[2].GetPeerID().String(), peers[2].GetPeerID()
 		entity, objectID := "entity", mockSharedObjectID
-		role := SOParticipantRole(seed%4 + 1)
+		role := SOParticipantRole(seed%3 + 1)
 		material := base.CloneVT()
 		switch variant {
 		case 1:
@@ -372,8 +377,6 @@ func runLeanRecoveryEnrollment(t *testing.T, projection *configChainScenario, pe
 		case 16:
 			current.Participants[0].EntityId = "entity"
 			role = SOParticipantRole_SOParticipantRole_OWNER
-		case 17:
-			current.ConsensusMode = SOConsensusMode(99)
 		case 18:
 			current.Participants = append(current.Participants, current.Participants[1].CloneVT())
 		case 19:
@@ -487,7 +490,7 @@ func runLeanRecoveryEnrollment(t *testing.T, projection *configChainScenario, pe
 				t.Fatalf("self-enrollment grant changed recovered key material: %v", err)
 			}
 			value = a.NewObject()
-			projected := projectLeanReencryptState(t, a, &SOState{RootGrants: []*SOGrant{grant}}, objectID).GetArray("grants")[0]
+			projected := projectLeanGrant(t, a, grant, objectID)
 			value.Set("grant", projected)
 			value.Set("material", a.NewString(hex.EncodeToString(mustMarshalVT(t, plain))))
 		}
@@ -511,4 +514,46 @@ func runLeanRecoveryEnrollment(t *testing.T, projection *configChainScenario, pe
 		}
 	}
 	return append(cases, projection.cases...)
+}
+
+// projectLeanGrant retains the grant bytes, its format check and its signer.
+func projectLeanGrant(t *testing.T, a *fastjson.Arena, grant *SOGrant, objectID string) *fastjson.Value {
+	// Encode the grant, or nil.
+	t.Helper()
+	data := "nil"
+	if grant != nil {
+		data = hex.EncodeToString(mustMarshalVT(t, grant))
+	}
+
+	// Project its bytes, peer, format check, and signature.
+	v := a.NewObject()
+	v.Set("data", a.NewString(data))
+	v.Set("peer", a.NewString(grant.GetPeerId()))
+	v.Set("format", leanBool(a, grant.Validate() == nil))
+	v.Set("sig", projectLeanSig(a, grant.GetSignature(), grant.GetInnerData(), func(signer string) string {
+		return BuildSOGrantSignatureContext(objectID, signer, grant.GetPeerId())
+	}))
+	return v
+}
+
+// projectLeanSig retains the signer and whether the signature verifies under
+// the context built for that signer.
+func projectLeanSig(a *fastjson.Arena, sig *peer.Signature, data []byte, context func(string) string) *fastjson.Value {
+	// ParsePubKey returns nil without error when the envelope omits its key.
+	id, valid := "", false
+	pub, err := sig.ParsePubKey()
+	if err == nil && pub != nil {
+		parsed, parseErr := peer.IDFromPublicKey(pub)
+		if parseErr == nil {
+			id = parsed.String()
+			verified, verifyErr := sig.VerifyWithPublic(context(id), pub, data)
+			valid = verifyErr == nil && verified
+		}
+	}
+
+	// Preserve the signer even when the message signature is invalid.
+	v := a.NewObject()
+	v.Set("signer", a.NewString(id))
+	v.Set("valid", leanBool(a, valid))
+	return v
 }

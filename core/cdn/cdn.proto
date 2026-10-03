@@ -8,15 +8,15 @@ import "github.com/s4wave/spacewave/db/packfile/packfile.proto";
 // The Worker writes it at cdn.spacewave.app/{spaceId}/root.packedmsg as a
 // packedmsg-encoded blob (see repos/bldr/util/packedmsg) on every successful
 // sync/push for a public_read Space. Anonymous clients fetch and decode this
-// blob to discover the current signed root and the set of packs they need to
+// blob to discover the current signed checkpoint and the set of packs they need to
 // reconstruct Space state; no Worker round-trip is required on the read path.
 message CdnRootPointer {
   // SpaceId is the SharedObject ULID for this Space.
   string space_id = 1;
 
-  // Root is the signed SORoot for the Space at the time of publication.
-  // Clients verify it against the config chain's validator peers.
-  .sobject.SORoot root = 2;
+  // Checkpoint is the owner-signed checkpoint covering every operation at the
+  // time of publication. Clients verify it against the config chain's owners.
+  .sobject.SOCheckpoint checkpoint = 2;
 
   // ConfigChainHash is the hash of the current config chain head.
   bytes config_chain_hash = 3;

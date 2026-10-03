@@ -118,10 +118,13 @@ func (c *Controller) processInitWorldOp(
 		return nil, opRejection(peerID, nonce, "world is already initialized"), nil
 	}
 
-	// Build the initial World and persist its root.
+	// Build the initial World and persist its root. The transform is part of
+	// the operation, so a missing or unauthenticated one is a rejection every
+	// member agrees on.
 	finalState, err := BuildInitialInnerState(initOp)
 	if err != nil {
-		return nil, nil, err
+		le.WithError(err).Warn("rejecting world init op")
+		return nil, opRejection(peerID, nonce, "invalid world init: "+err.Error()), nil
 	}
 	if err := c.writeInitialWorldRoot(ctx, le, so, initOp, finalState.GetHeadRef()); err != nil {
 		return nil, nil, err
@@ -248,6 +251,12 @@ func (c *Controller) processApplyTxOpWithEngine(
 	// A canceled context explains any failure.
 	if ctx.Err() != nil {
 		return nil, nil, context.Canceled
+	}
+
+	// A missing block is a local gap, not a property of the operation, so it
+	// stops replay instead of rejecting.
+	if errors.Is(aerr, block.ErrNotFound) {
+		return nil, nil, aerr
 	}
 
 	// Reject a transaction that failed to apply.

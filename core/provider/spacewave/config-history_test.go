@@ -9,10 +9,10 @@ import (
 	"github.com/s4wave/spacewave/core/sobject"
 )
 
-// TestCloudHostRejectsConfigChangesThroughRootWrite preserves the server's
+// TestCloudHostRejectsConfigChangesThroughStateWrite preserves the server's
 // configuration publication boundary when shared host writes carry lineage.
-func TestCloudHostRejectsConfigChangesThroughRootWrite(t *testing.T) {
-	// Count real HTTP requests so an accidental root publication cannot pass unnoticed.
+func TestCloudHostRejectsConfigChangesThroughStateWrite(t *testing.T) {
+	// Count real HTTP requests so an accidental publication cannot pass unnoticed.
 	var requests atomic.Int32
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		requests.Add(1)
@@ -33,7 +33,7 @@ func TestCloudHostRejectsConfigChangesThroughRootWrite(t *testing.T) {
 		t.Fatal(err)
 	}
 	if err := host.soHost.ApplyConfigChange(t.Context(), entry, nil); err == nil {
-		t.Fatal("cloud root write accepted a configuration transition")
+		t.Fatal("cloud state write accepted a configuration transition")
 	}
 	if requests.Load() != 0 {
 		t.Fatalf("unexpected HTTP requests = %d", requests.Load())

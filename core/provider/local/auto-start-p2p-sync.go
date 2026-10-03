@@ -81,16 +81,12 @@ func (a *ProviderAccount) AutoStartP2PSyncIfNeeded(
 			if err != nil {
 				return errors.Wrap(err, "inspect invitation state")
 			}
-			shared := len(state.GetRootGrants()) > 1
+			epoch := state.CurrentKeyEpoch()
+			shared := len(epoch.GetGrants()) > 1
 			for _, invite := range state.GetInvites() {
 				target := invite.GetTargetPeerId()
-				active := sobject.ValidateInviteUsable(invite) == nil
-				for _, grant := range state.GetRootGrants() {
-					if target != "" && grant.GetPeerId() == target {
-						active = true
-						break
-					}
-				}
+				active := sobject.ValidateInviteUsable(invite) == nil ||
+					(target != "" && epoch.FindGrant(target) != nil)
 				if active {
 					shared = true
 					if target != "" {

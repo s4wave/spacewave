@@ -115,8 +115,6 @@ type ProviderAccount struct {
 	gcCleanupRunner *provider_gccleanup.Runner
 	// accountFetcherRoutine runs account-state refetches for this account.
 	accountFetcherRoutine *routine.RoutineContainer
-	// orgProcessors watches org SO membership and runs org processors.
-	orgProcessors *routine.RoutineContainer
 	// launcherRecheckJobs schedules update_available launcher recheck work.
 	launcherRecheckJobs *asyncCallbackJobs
 	// presentationJobs mirrors Session presentation metadata off the caller's path.
@@ -431,11 +429,6 @@ func (t *providerAccountTracker) executeProviderAccountTracker(rctx context.Cont
 		}),
 	)
 	acc.accountFetcherRoutine.SetRoutine(acc.accountFetcher)
-	acc.orgProcessors = routine.NewRoutineContainerWithLogger(
-		le.WithField("routine", "org-processors"),
-		routine.WithRetry(providerBackoff),
-	)
-	acc.orgProcessors.SetRoutine(acc.watchOrgProcessors)
 
 	// Build the launcher recheck and presentation jobs.
 	acc.launcherRecheckJobs = newAsyncCallbackJobs(func(jobCtx context.Context) {
@@ -755,10 +748,6 @@ func (t *providerAccountTracker) executeProviderAccountTracker(rctx context.Cont
 	// Start the account state fetcher.
 	acc.accountFetcherRoutine.SetContext(ctx, false)
 	defer acc.accountFetcherRoutine.ClearContext()
-
-	// Start the organization processors.
-	acc.orgProcessors.SetContext(ctx, true)
-	defer acc.orgProcessors.ClearContext()
 
 	// Load cached account state from ObjectStore for instant bootstrap.
 	if cached, err := acc.loadAccountStateCache(ctx); err != nil {

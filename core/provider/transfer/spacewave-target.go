@@ -8,6 +8,8 @@ import (
 	provider_spacewave "github.com/s4wave/spacewave/core/provider/spacewave"
 	"github.com/s4wave/spacewave/core/sobject"
 	"github.com/s4wave/spacewave/db/block"
+	"github.com/s4wave/spacewave/net/crypto"
+	"github.com/sirupsen/logrus"
 )
 
 // SpacewaveTransferTarget implements TransferTarget for a spacewave cloud account.
@@ -70,18 +72,23 @@ func (t *SpacewaveTransferTarget) AddSharedObject(ctx context.Context, ref *sobj
 	return err
 }
 
-// WriteSharedObjectState writes the SO state to the cloud.
-func (t *SpacewaveTransferTarget) WriteSharedObjectState(ctx context.Context, sharedObjectID string, state *sobject.SOState) error {
-	if state == nil || state.GetRoot() == nil {
-		return errors.New("shared object root is required")
-	}
-
-	data, err := state.GetRoot().MarshalVT()
+// WriteSharedObjectState initializes the cloud shared object with the
+// genesis config and key epoch, then its checkpoint.
+func (t *SpacewaveTransferTarget) WriteSharedObjectState(ctx context.Context, le *logrus.Entry, sharedObjectID string, owner crypto.PrivKey, stateData []byte) error {
+	// Build the genesis, then post its config and checkpoint.
+	state, genesis, err := sobject.BuildGenesisSOState(le, t.account.GetStepFactorySet(), sharedObjectID, owner, stateData)
 	if err != nil {
-		return errors.Wrap(err, "marshal SO root")
+		return err
+	}
+	genesisData, err := genesis.MarshalVT()
+	if err != nil {
+		return err
 	}
 	cli := t.account.GetSessionClient()
-	return cli.PostInitState(ctx, sharedObjectID, data)
+	if err := cli.PostConfigState(ctx, sharedObjectID, genesisData, nil, state.CurrentKeyEpoch(), nil); err != nil {
+		return err
+	}
+	return cli.PostCheckpoint(ctx, sharedObjectID, state.GetCheckpoint())
 }
 
 // _ is a type assertion

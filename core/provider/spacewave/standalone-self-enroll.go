@@ -53,7 +53,7 @@ func (c *SessionClient) SelfEnrollSpacePeer(
 		if epoch == nil {
 			return false, errSharedObjectCurrentKeyEpochMissing
 		}
-		if localParticipant != nil && soGrantSliceHasPeerID(epoch.GetGrants(), localPeerID) {
+		if localParticipant != nil && epoch.FindGrant(localPeerID) != nil {
 			return false, nil
 		}
 

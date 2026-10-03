@@ -165,18 +165,13 @@ func (a *ProviderAccount) watchAndRewrapEnvelope(ctx context.Context) error {
 		nil,
 		stateCtr,
 		func(snap sobject.SharedObjectStateSnapshot) error {
+			// Rewrap the envelope when the entity keypairs change.
 			if snap == nil {
 				return nil
 			}
-			rootInner, err := snap.GetRootInner(ctx)
+			settings, err := account_settings.ReadSnapshot(ctx, snap)
 			if err != nil {
 				return err
-			}
-			settings := &account_settings.AccountSettings{}
-			if data := rootInner.GetStateData(); len(data) > 0 {
-				if err := settings.UnmarshalVT(data); err != nil {
-					return err
-				}
 			}
 			keypairs := settings.GetEntityKeypairs()
 			if len(keypairs) == prevKeypairCount && prevKeypairCount == 0 {

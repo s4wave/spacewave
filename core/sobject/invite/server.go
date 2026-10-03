@@ -234,27 +234,6 @@ func (s *Server) AcceptInvite(ctx context.Context, req *AcceptInviteRequest) (*A
 		}
 	}
 
-	// Preserve the owner's root grant on the joined copy. Without it, state
-	// written by the invitee can no longer be decoded by the originating owner.
-	ownerPeerID, err := peer.IDFromPrivateKey(result.OwnerPrivKey)
-	if err != nil {
-		return nil, errors.Wrap(err, "derive owner peer ID")
-	}
-	ownerState, err := result.Host.GetHostState(ctx)
-	if err != nil {
-		return nil, errors.Wrap(err, "read owner shared object state")
-	}
-	var ownerGrant *sobject.SOGrant
-	for _, candidate := range ownerState.GetRootGrants() {
-		if candidate.GetPeerId() == ownerPeerID.String() {
-			ownerGrant = candidate.CloneVT()
-			break
-		}
-	}
-	if ownerGrant == nil {
-		return nil, errors.New("owner root grant not found")
-	}
-
 	// Enrollment succeeded. Increment invite uses.
 	inviteMutator := result.InviteMutator
 	if inviteMutator == nil {
@@ -265,7 +244,7 @@ func (s *Server) AcceptInvite(ctx context.Context, req *AcceptInviteRequest) (*A
 	}
 
 	// Transfer the configuration after every acceptance mutation has completed.
-	ownerState, err = result.Host.GetHostState(ctx)
+	ownerState, err := result.Host.GetHostState(ctx)
 	if err != nil {
 		return nil, errors.Wrap(err, "read updated owner shared object state")
 	}
@@ -273,11 +252,16 @@ func (s *Server) AcceptInvite(ctx context.Context, req *AcceptInviteRequest) (*A
 		return nil, errors.Wrap(err, "wait for durable shared object state")
 	}
 
+	// Return the grant with the owner state and its config lineage.
+	lineage, err := result.Host.ReadConfigLineage(ctx, ownerState.GetConfig().GetConfigChainHash())
+	if err != nil {
+		return nil, errors.Wrap(err, "read shared object config lineage")
+	}
 	return &AcceptInviteResponse{
 		Grant:             grant,
 		SharedObjectId:    result.SharedObjectID,
-		OwnerGrant:        ownerGrant,
 		SharedObjectState: ownerState.CloneVT(),
+		ConfigLineage:     lineage,
 	}, nil
 }
 

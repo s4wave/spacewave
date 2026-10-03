@@ -12,7 +12,6 @@ import (
 	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
 	json "github.com/aperturerobotics/protobuf-go-lite/json"
 	_ "github.com/s4wave/spacewave/core/pairing"
-	sobject "github.com/s4wave/spacewave/core/sobject"
 	bucket "github.com/s4wave/spacewave/db/bucket"
 )
 
@@ -108,64 +107,6 @@ func (x *Config) GetSignalingEnvPrefix() string {
 		return x.SignalingEnvPrefix
 	}
 	return ""
-}
-
-// LocalSOState contains the local state for a shared object.
-type LocalSOState struct {
-	unknownFields []byte
-	// OpQueue contains locally queued ops not applied to the SOHost yet.
-	OpQueue []*sobject.QueuedSOOperation `protobuf:"bytes,1,rep,name=op_queue,json=opQueue,proto3" json:"opQueue,omitempty"`
-}
-
-func (x *LocalSOState) Reset() {
-	*x = LocalSOState{}
-}
-
-func (*LocalSOState) ProtoMessage() {}
-
-func (x *LocalSOState) GetOpQueue() []*sobject.QueuedSOOperation {
-	if x != nil {
-		return x.OpQueue
-	}
-	return nil
-}
-
-// LocalSOOperationResult contains the result of a SOOperation.
-type LocalSOOperationResult struct {
-	unknownFields []byte
-	// LocalId is the local operation id, must be a valid ulid.
-	LocalId string `protobuf:"bytes,1,opt,name=local_id,json=localId,proto3" json:"localId,omitempty"`
-	// Result is the operation result.
-	Result *sobject.SOOperationResult `protobuf:"bytes,2,opt,name=result,proto3" json:"result,omitempty"`
-	// RootSeqno is the root seqno that accepted or rejected the operation.
-	RootSeqno uint64 `protobuf:"varint,3,opt,name=root_seqno,json=rootSeqno,proto3" json:"rootSeqno,omitempty"`
-}
-
-func (x *LocalSOOperationResult) Reset() {
-	*x = LocalSOOperationResult{}
-}
-
-func (*LocalSOOperationResult) ProtoMessage() {}
-
-func (x *LocalSOOperationResult) GetLocalId() string {
-	if x != nil {
-		return x.LocalId
-	}
-	return ""
-}
-
-func (x *LocalSOOperationResult) GetResult() *sobject.SOOperationResult {
-	if x != nil {
-		return x.Result
-	}
-	return nil
-}
-
-func (x *LocalSOOperationResult) GetRootSeqno() uint64 {
-	if x != nil {
-		return x.RootSeqno
-	}
-	return 0
 }
 
 // AccountReplicaCopyState records local durability for one accepted World head.
@@ -270,40 +211,6 @@ func (m *Config) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
-func (m *LocalSOState) CloneVT() *LocalSOState {
-	if m == nil {
-		return (*LocalSOState)(nil)
-	}
-	r := new(LocalSOState)
-	r.OpQueue = protobuf_go_lite.CloneVTSlice(m.OpQueue)
-	if len(m.unknownFields) > 0 {
-		r.unknownFields = slices.Clone(m.unknownFields)
-	}
-	return r
-}
-
-func (m *LocalSOState) CloneMessageVT() protobuf_go_lite.CloneMessage {
-	return m.CloneVT()
-}
-
-func (m *LocalSOOperationResult) CloneVT() *LocalSOOperationResult {
-	if m == nil {
-		return (*LocalSOOperationResult)(nil)
-	}
-	r := new(LocalSOOperationResult)
-	r.LocalId = m.LocalId
-	r.RootSeqno = m.RootSeqno
-	r.Result = protobuf_go_lite.CloneVTValue(m.Result)
-	if len(m.unknownFields) > 0 {
-		r.unknownFields = slices.Clone(m.unknownFields)
-	}
-	return r
-}
-
-func (m *LocalSOOperationResult) CloneMessageVT() protobuf_go_lite.CloneMessage {
-	return m.CloneVT()
-}
-
 func (m *AccountReplicaCopyState) CloneVT() *AccountReplicaCopyState {
 	if m == nil {
 		return (*AccountReplicaCopyState)(nil)
@@ -374,52 +281,6 @@ func (this *Config) EqualVT(that *Config) bool {
 
 func (this *Config) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*Config)
-	if !ok {
-		return false
-	}
-	return this.EqualVT(that)
-}
-
-func (this *LocalSOState) EqualVT(that *LocalSOState) bool {
-	if this == that {
-		return true
-	} else if this == nil || that == nil {
-		return false
-	}
-	if !protobuf_go_lite.EqualVTSliceImplicit(this.OpQueue, that.OpQueue, func() *sobject.QueuedSOOperation { return &sobject.QueuedSOOperation{} }) {
-		return false
-	}
-	return string(this.unknownFields) == string(that.unknownFields)
-}
-
-func (this *LocalSOState) EqualMessageVT(thatMsg any) bool {
-	that, ok := thatMsg.(*LocalSOState)
-	if !ok {
-		return false
-	}
-	return this.EqualVT(that)
-}
-
-func (this *LocalSOOperationResult) EqualVT(that *LocalSOOperationResult) bool {
-	if this == that {
-		return true
-	} else if this == nil || that == nil {
-		return false
-	}
-	if this.LocalId != that.LocalId {
-		return false
-	}
-	if !protobuf_go_lite.IsEqualVT(this.Result, that.Result) {
-		return false
-	}
-	if this.RootSeqno != that.RootSeqno {
-		return false
-	}
-	return string(this.unknownFields) == string(that.unknownFields)
-}
-
-func (this *LocalSOOperationResult) EqualMessageVT(thatMsg any) bool {
-	that, ok := thatMsg.(*LocalSOOperationResult)
 	if !ok {
 		return false
 	}
@@ -582,131 +443,6 @@ func (x *Config) UnmarshalProtoJSON(s *json.UnmarshalState) {
 
 // UnmarshalJSON unmarshals the Config from JSON.
 func (x *Config) UnmarshalJSON(b []byte) error {
-	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
-}
-
-// MarshalProtoJSON marshals the LocalSOState message to JSON.
-func (x *LocalSOState) MarshalProtoJSON(s *json.MarshalState) {
-	if x == nil {
-		s.WriteNil()
-		return
-	}
-	s.WriteObjectStart()
-	var wroteField bool
-	if len(x.OpQueue) > 0 || s.HasField("opQueue") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("opQueue")
-		s.WriteArrayStart()
-		var wroteElement bool
-		for _, element := range x.OpQueue {
-			s.WriteMoreIf(&wroteElement)
-			element.MarshalProtoJSON(s.WithField("opQueue"))
-		}
-		s.WriteArrayEnd()
-	}
-	s.WriteObjectEnd()
-}
-
-// MarshalJSON marshals the LocalSOState to JSON.
-func (x *LocalSOState) MarshalJSON() ([]byte, error) {
-	return json.DefaultMarshalerConfig.Marshal(x)
-}
-
-// UnmarshalProtoJSON unmarshals the LocalSOState message from JSON.
-func (x *LocalSOState) UnmarshalProtoJSON(s *json.UnmarshalState) {
-	if s.ReadNil() {
-		return
-	}
-	s.ReadObject(func(key string) {
-		switch key {
-		default:
-			s.Skip() // ignore unknown field
-		case "op_queue", "opQueue":
-			s.AddField("op_queue")
-			if s.ReadNil() {
-				x.OpQueue = nil
-				return
-			}
-			s.ReadArray(func() {
-				if s.ReadNil() {
-					x.OpQueue = append(x.OpQueue, nil)
-					return
-				}
-				v := &sobject.QueuedSOOperation{}
-				v.UnmarshalProtoJSON(s.WithField("op_queue", false))
-				if s.Err() != nil {
-					return
-				}
-				x.OpQueue = append(x.OpQueue, v)
-			})
-		}
-	})
-}
-
-// UnmarshalJSON unmarshals the LocalSOState from JSON.
-func (x *LocalSOState) UnmarshalJSON(b []byte) error {
-	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
-}
-
-// MarshalProtoJSON marshals the LocalSOOperationResult message to JSON.
-func (x *LocalSOOperationResult) MarshalProtoJSON(s *json.MarshalState) {
-	if x == nil {
-		s.WriteNil()
-		return
-	}
-	s.WriteObjectStart()
-	var wroteField bool
-	if x.LocalId != "" || s.HasField("localId") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("localId")
-		s.WriteString(x.LocalId)
-	}
-	if x.Result != nil || s.HasField("result") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("result")
-		x.Result.MarshalProtoJSON(s.WithField("result"))
-	}
-	if x.RootSeqno != 0 || s.HasField("rootSeqno") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("rootSeqno")
-		s.WriteUint64(x.RootSeqno)
-	}
-	s.WriteObjectEnd()
-}
-
-// MarshalJSON marshals the LocalSOOperationResult to JSON.
-func (x *LocalSOOperationResult) MarshalJSON() ([]byte, error) {
-	return json.DefaultMarshalerConfig.Marshal(x)
-}
-
-// UnmarshalProtoJSON unmarshals the LocalSOOperationResult message from JSON.
-func (x *LocalSOOperationResult) UnmarshalProtoJSON(s *json.UnmarshalState) {
-	if s.ReadNil() {
-		return
-	}
-	s.ReadObject(func(key string) {
-		switch key {
-		default:
-			s.Skip() // ignore unknown field
-		case "local_id", "localId":
-			s.AddField("local_id")
-			x.LocalId = s.ReadString()
-		case "result":
-			if s.ReadNil() {
-				x.Result = nil
-				return
-			}
-			x.Result = &sobject.SOOperationResult{}
-			x.Result.UnmarshalProtoJSON(s.WithField("result", true))
-		case "root_seqno", "rootSeqno":
-			s.AddField("root_seqno")
-			x.RootSeqno = s.ReadUint64()
-		}
-	})
-}
-
-// UnmarshalJSON unmarshals the LocalSOOperationResult from JSON.
-func (x *LocalSOOperationResult) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -895,102 +631,6 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
-func (m *LocalSOState) MarshalVT() (dAtA []byte, err error) {
-	if m == nil {
-		return nil, nil
-	}
-	size := m.SizeVT()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *LocalSOState) MarshalToVT(dAtA []byte) (int, error) {
-	size := m.SizeVT()
-	return m.MarshalToSizedBufferVT(dAtA[:size])
-}
-
-func (m *LocalSOState) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
-	if m == nil {
-		return 0, nil
-	}
-	i := len(dAtA)
-	_ = i
-	var l int
-	_ = l
-	if m.unknownFields != nil {
-		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
-	}
-	if len(m.OpQueue) > 0 {
-		for iNdEx := len(m.OpQueue) - 1; iNdEx >= 0; iNdEx-- {
-			size, err := m.OpQueue[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
-			if err != nil {
-				return 0, err
-			}
-			i -= size
-			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
-			i--
-			dAtA[i] = 0xa
-		}
-	}
-	return len(dAtA) - i, nil
-}
-
-func (m *LocalSOOperationResult) MarshalVT() (dAtA []byte, err error) {
-	if m == nil {
-		return nil, nil
-	}
-	size := m.SizeVT()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *LocalSOOperationResult) MarshalToVT(dAtA []byte) (int, error) {
-	size := m.SizeVT()
-	return m.MarshalToSizedBufferVT(dAtA[:size])
-}
-
-func (m *LocalSOOperationResult) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
-	if m == nil {
-		return 0, nil
-	}
-	i := len(dAtA)
-	_ = i
-	var l int
-	_ = l
-	if m.unknownFields != nil {
-		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
-	}
-	if m.RootSeqno != 0 {
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.RootSeqno))
-		i--
-		dAtA[i] = 0x18
-	}
-	if m.Result != nil {
-		size, err := m.Result.MarshalToSizedBufferVT(dAtA[:i])
-		if err != nil {
-			return 0, err
-		}
-		i -= size
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
-		i--
-		dAtA[i] = 0x12
-	}
-	if len(m.LocalId) > 0 {
-		i = protobuf_go_lite.EncodeString(dAtA, i, m.LocalId)
-		i--
-		dAtA[i] = 0xa
-	}
-	return len(dAtA) - i, nil
-}
-
 func (m *AccountReplicaCopyState) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -1085,36 +725,6 @@ func (m *Config) SizeVT() (n int) {
 	return n
 }
 
-func (m *LocalSOState) SizeVT() (n int) {
-	if m == nil {
-		return 0
-	}
-	var l int
-	_ = l
-	for _, e := range m.OpQueue {
-		l = e.SizeVT()
-		n += protobuf_go_lite.SizeMessage(1, l)
-	}
-	n += len(m.unknownFields)
-	return n
-}
-
-func (m *LocalSOOperationResult) SizeVT() (n int) {
-	if m == nil {
-		return 0
-	}
-	var l int
-	_ = l
-	n += protobuf_go_lite.SizeStringNonEmpty(1, m.LocalId)
-	if m.Result != nil {
-		l = m.Result.SizeVT()
-		n += protobuf_go_lite.SizeMessage(1, l)
-	}
-	n += protobuf_go_lite.SizeVarintNonZero(1, m.RootSeqno)
-	n += len(m.unknownFields)
-	return n
-}
-
 func (m *AccountReplicaCopyState) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -1179,50 +789,6 @@ func (x *Config) MarshalProtoText() string {
 }
 
 func (x *Config) String() string {
-	return x.MarshalProtoText()
-}
-
-func (x *LocalSOState) MarshalProtoText() string {
-	var sb protobuf_go_lite.TextBuilder
-	initialLen := protobuf_go_lite.TextStartMessage(&sb, "LocalSOState")
-	if len(x.OpQueue) > 0 {
-		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "op_queue")
-		for i, v := range x.OpQueue {
-			protobuf_go_lite.TextWriteListSeparator(&sb, i)
-			if v == nil {
-				protobuf_go_lite.TextWriteTextMarshaler(&sb, &sobject.QueuedSOOperation{})
-			} else {
-				protobuf_go_lite.TextWriteTextMarshaler(&sb, v)
-			}
-		}
-		protobuf_go_lite.TextWriteListEnd(&sb)
-	}
-	return protobuf_go_lite.TextFinishMessage(&sb)
-}
-
-func (x *LocalSOState) String() string {
-	return x.MarshalProtoText()
-}
-
-func (x *LocalSOOperationResult) MarshalProtoText() string {
-	var sb protobuf_go_lite.TextBuilder
-	initialLen := protobuf_go_lite.TextStartMessage(&sb, "LocalSOOperationResult")
-	if x.LocalId != "" {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "local_id")
-		protobuf_go_lite.TextWriteString(&sb, x.LocalId)
-	}
-	if x.Result != nil {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "result")
-		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Result)
-	}
-	if x.RootSeqno != 0 {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "root_seqno")
-		protobuf_go_lite.TextWriteUint(&sb, x.RootSeqno)
-	}
-	return protobuf_go_lite.TextFinishMessage(&sb)
-}
-
-func (x *LocalSOOperationResult) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -1393,139 +959,6 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.SignalingEnvPrefix = v
-		default:
-			iNdEx = preIndex
-			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if (skippy < 0) || (iNdEx+skippy) < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-
-func (m *LocalSOState) UnmarshalVT(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	var err error
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-		if err != nil {
-			return err
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: LocalSOState: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: LocalSOState: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field OpQueue", wireType)
-			}
-			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-			m.OpQueue = append(m.OpQueue, &sobject.QueuedSOOperation{})
-			if err := m.OpQueue[len(m.OpQueue)-1].UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		default:
-			iNdEx = preIndex
-			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if (skippy < 0) || (iNdEx+skippy) < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-
-func (m *LocalSOOperationResult) UnmarshalVT(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	var err error
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-		if err != nil {
-			return err
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: LocalSOOperationResult: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: LocalSOOperationResult: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field LocalId", wireType)
-			}
-			var v string
-			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-			m.LocalId = v
-		case 2:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Result", wireType)
-			}
-			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-			if m.Result == nil {
-				m.Result = &sobject.SOOperationResult{}
-			}
-			if err := m.Result.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 3:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field RootSeqno", wireType)
-			}
-			m.RootSeqno = 0
-			m.RootSeqno, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

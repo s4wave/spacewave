@@ -7,32 +7,23 @@ import (
 	"github.com/s4wave/spacewave/core/bstore"
 	provider_local "github.com/s4wave/spacewave/core/provider/local"
 	"github.com/s4wave/spacewave/core/sobject"
+	sobject_world_engine "github.com/s4wave/spacewave/core/sobject/world/engine"
 	"github.com/s4wave/spacewave/db/block"
-	"github.com/s4wave/spacewave/db/kvtx"
-	"github.com/s4wave/spacewave/db/object"
-	"github.com/s4wave/spacewave/db/volume"
+	"github.com/sirupsen/logrus"
 )
 
 // LocalTransferSource implements TransferSource for a local provider account.
 type LocalTransferSource struct {
-	account    *provider_local.ProviderAccount
-	providerID string
-	accountID  string
-	b          bus.Bus
+	account *provider_local.ProviderAccount
+	b       bus.Bus
 }
 
 // NewLocalTransferSource creates a new LocalTransferSource.
 func NewLocalTransferSource(
 	account *provider_local.ProviderAccount,
-	providerID, accountID string,
 	b bus.Bus,
 ) *LocalTransferSource {
-	return &LocalTransferSource{
-		account:    account,
-		providerID: providerID,
-		accountID:  accountID,
-		b:          b,
-	}
+	return &LocalTransferSource{account: account, b: b}
 }
 
 // GetAccount returns the underlying local provider account.
@@ -55,38 +46,9 @@ func (s *LocalTransferSource) GetSharedObjectList(ctx context.Context) (*sobject
 	return val.CloneVT(), nil
 }
 
-// GetSharedObjectState reads the SO state for a shared object from the object store.
-func (s *LocalTransferSource) GetSharedObjectState(ctx context.Context, sharedObjectID string) (*sobject.SOState, error) {
-	objStore, rel, err := s.buildObjectStore(ctx)
-	if err != nil {
-		return nil, err
-	}
-	defer rel()
-
-	var state *sobject.SOState
-	err = kvtx.RunTransaction(ctx, false,
-		func(ctx context.Context) (kvtx.Tx, error) {
-			return objStore.NewTransaction(ctx, false)
-		},
-		func(ctx context.Context, tx kvtx.Tx) error {
-			key := provider_local.SobjectObjectStoreHostStateKey(sharedObjectID)
-			data, found, err := tx.Get(ctx, key)
-			if err != nil {
-				return err
-			}
-			if !found {
-				return sobject.ErrSharedObjectNotFound
-			}
-
-			next := &sobject.SOState{}
-			if err := next.UnmarshalVT(data); err != nil {
-				return err
-			}
-			state = next
-			return nil
-		},
-	)
-	return state, err
+// ReplaySharedObject returns the World of a Space after its last operation.
+func (s *LocalTransferSource) ReplaySharedObject(ctx context.Context, le *logrus.Entry, ref *sobject.SharedObjectRef) (*sobject_world_engine.InnerState, error) {
+	return replaySharedObject(ctx, le, s.b, s.account.GetStepFactorySet(), s.account, ref)
 }
 
 // GetBlockStore returns the block store ops for reading blocks from a shared object.
@@ -105,17 +67,6 @@ func (s *LocalTransferSource) GetBlockStore(ctx context.Context, ref *sobject.Sh
 // GetBlockRefs returns all block refs tracked for a shared object's block store.
 func (s *LocalTransferSource) GetBlockRefs(ctx context.Context, ref *sobject.SharedObjectRef) ([]*block.BlockRef, error) {
 	return s.account.ListBlockStoreRefs(ctx, ref.GetBlockStoreId())
-}
-
-// buildObjectStore builds an object store handle for the source account.
-func (s *LocalTransferSource) buildObjectStore(ctx context.Context) (object.ObjectStore, func(), error) {
-	objStoreID := provider_local.SobjectObjectStoreID(s.providerID, s.accountID)
-	volID := s.account.GetVolume().GetID()
-	handle, _, diRef, err := volume.ExBuildObjectStoreAPI(ctx, s.b, false, objStoreID, volID, nil)
-	if err != nil {
-		return nil, nil, err
-	}
-	return handle.GetObjectStore(), diRef.Release, nil
 }
 
 // DeleteSharedObject deletes a shared object from the source account.

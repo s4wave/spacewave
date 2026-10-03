@@ -119,6 +119,7 @@ func (a *ProviderAccount) deliverAccountTransitions(ctx context.Context, transpo
 // accountRecoveryCheckpoint reads the exact resource named by the committed
 // account migration. The returning client verifies it against its held history.
 func (a *ProviderAccount) accountRecoveryCheckpoint(ctx context.Context, transition *provider.AccountTransition) (*pairing.SharedObject, error) {
+	// Mount the source account object.
 	id := transition.GetSource().GetId()
 	ref := sobject.NewSharedObjectRef(a.GetProviderID(), a.accountID, id, SobjectBlockStoreID(id))
 	object, release, err := a.MountSharedObject(ctx, ref, nil)
@@ -126,17 +127,19 @@ func (a *ProviderAccount) accountRecoveryCheckpoint(ctx context.Context, transit
 		return nil, err
 	}
 	defer release()
+
+	// Return its host state and config lineage.
 	cloud := object.(*SharedObject)
 	state, err := cloud.GetSOHost().GetHostState(ctx)
 	if err != nil {
 		return nil, err
 	}
-	base, history, err := cloud.ReadSharedObjectConfigHistory(ctx, state.GetConfig())
+	lineage, err := cloud.GetSOHost().ReadConfigLineage(ctx, state.GetConfig().GetConfigChainHash())
 	if err != nil {
 		return nil, err
 	}
 	return &pairing.SharedObject{
 		Entry: &sobject.SharedObjectListEntry{Ref: ref, Meta: &sobject.SharedObjectMeta{BodyType: "account-settings", AccountPrivate: true}, Source: "migration-recovery"},
-		State: state, HistoryBase: base, History: history,
+		State: state, ConfigLineage: lineage,
 	}, nil
 }

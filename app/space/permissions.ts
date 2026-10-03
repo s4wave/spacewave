@@ -27,7 +27,6 @@ export function canDeleteSpaceObject(
   }
   return (
     viewerRole === SOParticipantRole.SOParticipantRole_WRITER ||
-    viewerRole === SOParticipantRole.SOParticipantRole_VALIDATOR ||
     viewerRole === SOParticipantRole.SOParticipantRole_OWNER
   )
 }

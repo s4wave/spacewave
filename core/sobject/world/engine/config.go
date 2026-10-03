@@ -26,10 +26,6 @@ func (c *Config) Validate() error {
 	if err := c.GetInitWorldOp().Validate(); err != nil {
 		return errors.Wrap(err, "init_world_op")
 	}
-	if err := c.GetProcessOpsBackoff().Validate(true); err != nil {
-		return errors.Wrap(err, "process_ops_backoff")
-	}
-
 	return nil
 }
 

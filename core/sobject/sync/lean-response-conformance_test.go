@@ -1,7 +1,6 @@
 package sobject_sync
 
 import (
-	"bytes"
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
@@ -25,229 +24,77 @@ func leanSyncMarshal(t *testing.T, value interface{ MarshalVT() ([]byte, error) 
 	return data
 }
 
-// leanSyncSig projects key parsing and raw cryptographic verification, leaving
-// membership and consensus decisions to the Lean model.
-func leanSyncSig(a *fastjson.Arena, sig *peer.Signature, data []byte, context func(string) string) *fastjson.Value {
-	// ParsePubKey returns nil without error when the envelope omits its key.
-	id, valid := "", false
-	pub, err := sig.ParsePubKey()
-	if err == nil && pub != nil {
-		parsed, parseErr := peer.IDFromPublicKey(pub)
-		if parseErr == nil {
-			id = parsed.String()
-			verified, verifyErr := sig.VerifyWithPublic(context(id), pub, data)
-			valid = verifyErr == nil && verified
-		}
-	}
-
-	// Preserve the signer even when the message signature is invalid.
-	v := a.NewObject()
-	v.Set("signer", a.NewString(id))
-	v.Set("valid", leanSyncBool(a, valid))
-	return v
-}
-
-// leanSyncNonces retains nonce order, duplicates, and all uint64 bits.
-func leanSyncNonces(a *fastjson.Arena, nonces []*sobject.SOAccountNonce) *fastjson.Value {
+// leanSyncEncoded projects each value as the hex of its encoding, or "nil".
+func leanSyncEncoded[T interface {
+	comparable
+	MarshalVT() ([]byte, error)
+}](t *testing.T, a *fastjson.Arena, values []T) *fastjson.Value {
+	t.Helper()
 	result := a.NewArray()
-	for i, nonce := range nonces {
-		v := a.NewObject()
-		v.Set("peer", a.NewString(nonce.GetPeerId()))
-		v.Set("nonce", a.NewNumberString(strconv.FormatUint(nonce.GetNonce(), 10)))
-		result.SetArrayItem(i, v)
+	for i, value := range values {
+		result.SetArrayItem(i, a.NewString(leanSyncHex(t, value)))
 	}
 	return result
 }
 
-// leanSyncRoot abstracts encoding and signature structure, retaining all root
-// progression, nonce-order, signer-authorization, and consensus decisions.
-func leanSyncRoot(t *testing.T, a *fastjson.Arena, objectID string, root *sobject.SORoot) *fastjson.Value {
-
-	// helper.
+// leanSyncHex returns the hex of the encoding of value, or "nil" when it is nil.
+func leanSyncHex[T interface {
+	comparable
+	MarshalVT() ([]byte, error)
+}](t *testing.T, value T) string {
 	t.Helper()
-	data, err := root.BuildSignatureData()
-	if err != nil {
-		t.Fatal(err)
+	var zero T
+	if value == zero {
+		return "nil"
 	}
-	var digest []byte
-
-	// Check the condition before continuing.
-	if root != nil {
-		digest, err = sobject.DigestSOAuthoritativeRoot(root)
-		if err != nil {
-			t.Fatal(err)
-		}
-	}
-	format := len(root.GetInner()) <= sobject.MaxInnerDataSize
-	for _, nonce := range root.GetAccountNonces() {
-		if _, err := nonce.ParsePeerID(); err != nil {
-			format = false
-		}
-	}
-	sigs := a.NewArray()
-	for i, sig := range root.GetValidatorSignatures() {
-		format = format && sig.Validate() == nil
-		sigs.SetArrayItem(i, leanSyncSig(a, sig, data, func(string) string {
-			return sobject.BuildValidatorRootSignatureContext(objectID, root.GetInnerSeqno())
-		}))
-	}
-
-	// newObject v via a.
-	v := a.NewObject()
-	encoded := "nil"
-	if root != nil {
-		encoded = hex.EncodeToString(leanSyncMarshal(t, root))
-	}
-	v.Set("data", a.NewString(encoded))
-	v.Set("content", a.NewString(hex.EncodeToString(root.GetInner())))
-	v.Set("seqno", a.NewNumberString(strconv.FormatUint(root.GetInnerSeqno(), 10)))
-
-	// Set via v.
-	v.Set("digest", a.NewString(hex.EncodeToString(digest)))
-	v.Set("format", leanSyncBool(a, format))
-	v.Set("hasInner", leanSyncBool(a, len(root.GetInner()) != 0))
-	v.Set("nonces", leanSyncNonces(a, root.GetAccountNonces()))
-	v.Set("sigs", sigs)
-	return v
+	return hex.EncodeToString(leanSyncMarshal(t, value))
 }
 
-// leanSyncOperation retains decoded identity and verifies the signed bytes.
-func leanSyncOperation(t *testing.T, a *fastjson.Arena, objectID string, operation *sobject.SOOperation) *fastjson.Value {
-
-	// helper.
+// leanSyncState projects the config and the encoded checkpoint, key epochs,
+// operations and invitations. The host merge that combines them is a
+// primitive observation, so the model compares them only as values.
+func leanSyncState(t *testing.T, a *fastjson.Arena, state *sobject.SOState) *fastjson.Value {
+	// Default a missing config.
 	t.Helper()
-	inner := &sobject.SOOperationInner{}
-	parsed := inner.UnmarshalVT(operation.GetInner()) == nil
-	v := a.NewObject()
-	data := "nil"
-	if operation != nil {
-		data = hex.EncodeToString(leanSyncMarshal(t, operation))
-	}
-	v.Set("data", a.NewString(data))
-
-	// Set via v.
-	v.Set("peer", a.NewString(inner.GetPeerId()))
-	v.Set("localId", a.NewString(inner.GetLocalId()))
-	v.Set("nonce", a.NewNumberString(strconv.FormatUint(inner.GetNonce(), 10)))
-	v.Set("parsed", leanSyncBool(a, parsed))
-	v.Set("innerValid", leanSyncBool(a, parsed && inner.Validate() == nil))
-	v.Set("format", leanSyncBool(a, operation.Validate() == nil))
-	v.Set("sig", leanSyncSig(a, operation.GetSignature(), operation.GetInner(), func(string) string {
-		return sobject.SOOperationSignatureContext
-	}))
-	return v
-}
-
-// leanSyncOperations projects a pending or explicitly accepted batch.
-func leanSyncOperations(t *testing.T, a *fastjson.Arena, objectID string, operations []*sobject.SOOperation) *fastjson.Value {
-	t.Helper()
-	v := a.NewArray()
-	for i, operation := range operations {
-		v.SetArrayItem(i, leanSyncOperation(t, a, objectID, operation))
-	}
-	return v
-}
-
-// leanSyncRejections projects signed rejections without deciding their authority.
-func leanSyncRejections(t *testing.T, a *fastjson.Arena, objectID string, rejections []*sobject.SOOperationRejection) *fastjson.Value {
-	t.Helper()
-	v := a.NewArray()
-	for i, rejection := range rejections {
-		inner := &sobject.SOOperationRejectionInner{}
-		parsed := inner.UnmarshalVT(rejection.GetInner()) == nil
-		r := a.NewObject()
-		data := "nil"
-		if rejection != nil {
-			data = hex.EncodeToString(leanSyncMarshal(t, rejection))
-		}
-		r.Set("data", a.NewString(data))
-		r.Set("peer", a.NewString(inner.GetPeerId()))
-		r.Set("localId", a.NewString(inner.GetLocalId()))
-		r.Set("nonce", a.NewNumberString(strconv.FormatUint(inner.GetOpNonce(), 10)))
-		r.Set("parsed", leanSyncBool(a, parsed))
-		r.Set("innerValid", leanSyncBool(a, parsed && inner.Validate() == nil))
-		r.Set("format", leanSyncBool(a, rejection.Validate() == nil))
-		r.Set("sig", leanSyncSig(a, rejection.GetSignature(), rejection.GetInner(), func(id string) string {
-			return sobject.BuildSOOperationRejectionSignatureContext(objectID, id, inner.GetPeerId(), inner.GetOpNonce(), inner.GetLocalId())
-		}))
-		v.SetArrayItem(i, r)
-	}
-	return v
-}
-
-// leanSyncState retains all state fields, including grant authority and the
-// opaque invitation records that host imports preserve locally.
-func leanSyncState(t *testing.T, a *fastjson.Arena, objectID string, state *sobject.SOState) *fastjson.Value {
-
-	// helper.
-	t.Helper()
-	grants := a.NewArray()
-	for i, grant := range state.GetRootGrants() {
-		g := a.NewObject()
-		data := "nil"
-		if grant != nil {
-			data = hex.EncodeToString(leanSyncMarshal(t, grant))
-		}
-		g.Set("data", a.NewString(data))
-		g.Set("peer", a.NewString(grant.GetPeerId()))
-		g.Set("format", leanSyncBool(a, grant.Validate() == nil))
-		g.Set("sig", leanSyncSig(a, grant.GetSignature(), grant.GetInnerData(), func(signer string) string {
-			return sobject.BuildSOGrantSignatureContext(objectID, signer, grant.GetPeerId())
-		}))
-		grants.SetArrayItem(i, g)
-	}
-	invites := a.NewArray()
-	for i, invite := range state.GetInvites() {
-		invites.SetArrayItem(i, leanSyncInvite(t, a, invite))
-	}
-	groups := a.NewArray()
-	for i, group := range state.GetOpRejections() {
-		g := a.NewObject()
-		g.Set("peer", a.NewString(group.GetPeerId()))
-		g.Set("entries", leanSyncRejections(t, a, objectID, group.GetRejections()))
-		groups.SetArrayItem(i, g)
-	}
-
-	// newObject v via a.
-	v := a.NewObject()
 	config := state.GetConfig()
 	if config == nil {
 		config = &sobject.SharedObjectConfig{}
 	}
-	v.Set("config", leanSyncConfig(a, config))
-	v.Set("root", leanSyncRoot(t, a, objectID, state.GetRoot()))
 
-	// Set via v.
-	v.Set("grants", grants)
-	v.Set("invites", invites)
-	v.Set("ops", leanSyncOperations(t, a, objectID, state.GetOps()))
-	v.Set("queued", leanSyncNonces(a, state.GetQueuedAccountNonces()))
-	v.Set("rejections", groups)
+	// Project each part of the state.
+	v := a.NewObject()
+	v.Set("config", leanSyncConfig(a, config))
+	v.Set("checkpoint", a.NewString(leanSyncHex(t, state.GetCheckpoint())))
+	v.Set("epochs", leanSyncEncoded(t, a, state.GetKeyEpochs()))
+	v.Set("ops", leanSyncEncoded(t, a, state.GetOps()))
+	v.Set("invites", leanSyncEncoded(t, a, state.GetInvites()))
 	return v
 }
 
-// leanSyncInvite retains immutable bytes separately from the fields updated by invite.go.
-func leanSyncInvite(t *testing.T, a *fastjson.Arena, invite *sobject.SOInvite) *fastjson.Value {
-
-	// helper.
+// leanSyncMerged observes the host merge of candidate into previous under the
+// candidate's config, returning null when the merge fails.
+func leanSyncMerged(t *testing.T, a *fastjson.Arena, objectID string, previous, candidate *sobject.SOState) *fastjson.Value {
+	// Merge the candidate into a copy of previous, as the host does.
 	t.Helper()
-	data := "nil"
-	if invite != nil {
-		immutable := invite.CloneVT()
-		immutable.Uses = 0
-		immutable.Revoked = false
-		data = hex.EncodeToString(leanSyncMarshal(t, immutable))
+	next := previous.CloneVT()
+	next.Config = candidate.GetConfig().CloneVT()
+	if checkpoint := candidate.GetCheckpoint(); checkpoint != nil {
+		if err := next.AdoptCheckpoint(objectID, checkpoint); err != nil {
+			return a.NewNull()
+		}
 	}
-	v := a.NewObject()
-	v.Set("data", a.NewString(data))
-
-	// Set via v.
-	v.Set("id", a.NewString(invite.GetInviteId()))
-	v.Set("tokenHash", a.NewString(hex.EncodeToString(invite.GetTokenHash())))
-	v.Set("maxUses", a.NewNumberString(strconv.FormatUint(uint64(invite.GetMaxUses()), 10)))
-	v.Set("uses", a.NewNumberString(strconv.FormatUint(uint64(invite.GetUses()), 10)))
-	v.Set("revoked", leanSyncBool(a, invite.GetRevoked()))
-	return v
+	if err := next.MergeKeyEpochs(objectID, candidate.GetKeyEpochs()); err != nil {
+		return a.NewNull()
+	}
+	for _, op := range candidate.GetOps() {
+		if _, err := next.AddOperation(objectID, op); err != nil {
+			return a.NewNull()
+		}
+	}
+	if err := next.Validate(objectID); err != nil {
+		return a.NewNull()
+	}
+	return leanSyncState(t, a, next)
 }
 
 // TestLeanSyncResponseConformance connects real pages, pinned snapshots and atomic host imports.
@@ -299,14 +146,11 @@ func leanSyncResponseCases(t *testing.T, seed uint64) []leanSyncCase {
 	if err != nil {
 		t.Fatal(err)
 	}
-	target.Root.InnerSeqno = 2 + seed%4
-	signSnapshotRoot(t, objectID, target, owner)
+	for range 1 + seed%3 {
+		advanceSnapshotCheckpoint(t, objectID, target, owner)
+	}
+	writeSyncOp(t, objectID, target, owner, "response operation")
 	target.Invites = []*sobject.SOInvite{{InviteId: "remote capability", TokenHash: []byte("secret token")}}
-	target.QueuedAccountNonces = []*sobject.SOAccountNonce{{
-		PeerId: mustPeerIDStr(t, owner),
-		Nonce:  42,
-		OpHash: bytes.Repeat([]byte{1}, sha256.Size),
-	}}
 
 	// Record request.
 	request := &SOSyncHistoryRequest{Revision: seed + 1, BaseHash: initial.Config.ConfigChainHash}
@@ -322,7 +166,7 @@ func leanSyncResponseCases(t *testing.T, seed uint64) []leanSyncCase {
 
 	// Record head.
 	head := &SOSyncHead{Revision: request.Revision, ConfigHash: target.Config.ConfigChainHash,
-		ConfigSeqno: target.Config.ConfigChainSeqno, RootSeqno: target.Root.InnerSeqno, StateHash: digest}
+		ConfigSeqno: target.Config.ConfigChainSeqno, StateHash: digest}
 	received := &syncReceive{head: head, base: request.BaseHash, cursor: request.BaseHash}
 	var cases []leanSyncCase
 	var pages []*SOSyncMessage
@@ -359,11 +203,11 @@ func leanSyncResponseCases(t *testing.T, seed uint64) []leanSyncCase {
 	if err := decoded.UnmarshalVT(message.GetSnapshot().GetSoState()); err != nil {
 		t.Fatal(err)
 	}
-	if len(decoded.Invites) != 0 || len(decoded.QueuedAccountNonces) != 0 {
-		t.Fatal("prepared snapshot disclosed local capabilities or reservations")
+	if len(decoded.Invites) != 0 {
+		t.Fatal("prepared snapshot disclosed local capabilities")
 	}
 	cases = append(cases, leanSyncReceptionCases(t, head, request.BaseHash, pages)...)
-	for variant := range 29 {
+	for variant := range 26 {
 		previous, candidate := initial.CloneVT(), decoded.CloneVT()
 		receiving := &syncReceive{head: head.CloneVT(), base: append([]byte(nil), received.base...),
 			cursor: append([]byte(nil), received.cursor...), size: received.size}
@@ -381,46 +225,34 @@ func leanSyncResponseCases(t *testing.T, seed uint64) []leanSyncCase {
 		case 3:
 			receiving.cursor = []byte("incomplete suffix")
 		case 6:
-			snapshot.RootSeqno++
-		case 7:
-			candidate.Root.InnerSeqno++
-		case 8:
 			candidate.Config.ConfigChainSeqno++
-		case 9:
+		case 7:
 			candidate.Config.ConfigChainHash = []byte("unadvertised config")
-		case 10:
+		case 8:
 			receiving.changes = receiving.changes[1:]
-		case 11:
+		case 9:
 			receiving.changes[0].Signatures[0].SigData = []byte("invalid signature")
-		case 12:
-			candidate.Root.ValidatorSignatures[0].SigData = []byte("invalid root proof")
-		case 13:
-			candidate.Root.InnerSeqno = previous.Root.InnerSeqno
-			candidate.Root.Inner = []byte("conflicting accepted content")
-			snapshot.RootSeqno = candidate.Root.InnerSeqno
-			receiving.head.RootSeqno = candidate.Root.InnerSeqno
-		case 14:
+		case 10:
+			candidate.Checkpoint.Signatures[0].SigData = []byte("invalid checkpoint proof")
+		case 11:
 			accessOK = false
-		case 15:
+		case 12:
 			lockOK = false
-		case 16:
+		case 13:
 			writeOK = false
-		case 17:
+		case 14:
 			previous = target.CloneVT()
 			previous.Config.ConfigChainSeqno++
-			previous.Root.InnerSeqno++
-		case 18:
+		case 15:
 			candidate.Config.ConfigChainHash = []byte("equal-sequence fork")
 			receiving.head.ConfigHash = candidate.Config.ConfigChainHash
 			receiving.cursor = candidate.Config.ConfigChainHash
-		case 19:
-			previous.Root.InnerSeqno = candidate.Root.InnerSeqno + 1
-		case 20:
+		case 16:
 			previous = decoded.CloneVT()
 			receiving.changes = nil
-		case 22:
+		case 18:
 			candidate.Config = nil
-		case 23:
+		case 19:
 			config := candidate.Config.CloneVT()
 			config.Participants = config.Participants[:1]
 			change, err := sobject.BuildSOConfigChange(objectID, candidate.Config, config,
@@ -436,28 +268,39 @@ func leanSyncResponseCases(t *testing.T, seed uint64) []leanSyncCase {
 			receiving.cursor = candidate.Config.ConfigChainHash
 			receiving.head.ConfigHash = candidate.Config.ConfigChainHash
 			receiving.head.ConfigSeqno = candidate.Config.ConfigChainSeqno
-		case 24:
+		case 20:
 			writeOK = false
 			advanced = candidate.CloneVT()
-			advanced.Root.InnerSeqno++
-		case 25:
+			advanced.Config.ConfigChainSeqno++
+		case 21:
 			readOK = false
-		case 26:
-			candidate.Root = previous.Root.CloneVT()
-			candidate.Root.ValidatorSignatures[0].SigData = []byte("historical proof replaced")
-			snapshot.RootSeqno = candidate.Root.InnerSeqno
-			receiving.head.RootSeqno = candidate.Root.InnerSeqno
-		case 27:
-			candidate.Ops = []*sobject.SOOperation{{Inner: []byte("malformed operation")}}
-		case 28:
+		case 22:
+			candidate.Ops = append(candidate.Ops, &sobject.SOOperation{Inner: []byte("malformed operation")})
+		case 23:
 			candidate.Invites = target.Invites
-			candidate.QueuedAccountNonces = target.QueuedAccountNonces
+		case 24:
+			previous = decoded.CloneVT()
+			advanceSnapshotCheckpoint(t, objectID, previous, owner)
+			receiving.changes = nil
+		case 25:
+			previous = decoded.CloneVT()
+			inner, err := previous.GetCheckpointInner()
+			if err != nil {
+				t.Fatal(err)
+			}
+			inner = inner.CloneVT()
+			inner.StateData = []byte("conflicting checkpoint")
+			previous.Checkpoint, err = sobject.BuildSOCheckpoint(owner, inner)
+			if err != nil {
+				t.Fatal(err)
+			}
+			receiving.changes = nil
 		}
 		snapshot.SoState = leanSyncMarshal(t, candidate)
-		if variant == 5 {
+		switch variant {
+		case 5:
 			snapshot.SoState = []byte{0xff}
-		}
-		if variant == 21 {
+		case 17:
 			snapshot = nil
 		}
 		contentDigest := sha256.Sum256(snapshot.GetSoState())
@@ -506,19 +349,24 @@ func leanSyncResponseCases(t *testing.T, seed uint64) []leanSyncCase {
 			})
 		var arena fastjson.Arena
 		input := arena.NewObject()
-		input.Set("previous", leanSyncState(t, &arena, objectID, previous))
+		input.Set("previous", leanSyncState(t, &arena, previous))
 		input.Set("receiving", leanSyncReceive(t, &arena, receiving))
 		input.Set("snapshot", leanSyncSnapshot(&arena, snapshot))
 		input.Set("digest", arena.NewString(hex.EncodeToString(contentDigest[:])))
 		projection := arena.NewNull()
 		if decodeErr == nil {
-			projection = leanSyncState(t, &arena, objectID, candidate)
+			projection = leanSyncState(t, &arena, candidate)
 		}
 		input.Set("decoded", projection)
+		merged := arena.NewNull()
+		if decodeErr == nil {
+			merged = leanSyncMerged(t, &arena, objectID, previous, candidate)
+		}
+		input.Set("merged", merged)
 		input.Set("candidateBytes", arena.NewNumberInt(candidate.SizeVT()))
 		beforeRead := arena.NewNull()
 		if readOK {
-			beforeRead = leanSyncState(t, &arena, objectID, previous)
+			beforeRead = leanSyncState(t, &arena, previous)
 		}
 		input.Set("beforeRead", beforeRead)
 		input.Set("localPeer", arena.NewString(localID.String()))
@@ -528,7 +376,7 @@ func leanSyncResponseCases(t *testing.T, seed uint64) []leanSyncCase {
 		err = local.acceptResponse(t.Context(), receiving, snapshot)
 		afterRead := arena.NewNull()
 		if readOK {
-			afterRead = leanSyncState(t, &arena, objectID, observed.GetValue())
+			afterRead = leanSyncState(t, &arena, observed.GetValue())
 		}
 		input.Set("afterRead", afterRead)
 		req, expected, accepted, publication := arena.NewObject(), arena.NewObject(), arena.NewObject(), arena.NewObject()
@@ -536,7 +384,7 @@ func leanSyncResponseCases(t *testing.T, seed uint64) []leanSyncCase {
 		req.Set("input", input)
 		expected.Set("ok", leanSyncBool(&arena, err == nil))
 		accepted.Set("ok", leanSyncBool(&arena, err == nil))
-		publication.Set("state", leanSyncState(t, &arena, objectID, published))
+		publication.Set("state", leanSyncState(t, &arena, published))
 		publication.Set("wrote", leanSyncBool(&arena, wrote))
 		publication.Set("revoked", leanSyncBool(&arena, errors.Is(err, sobject.ErrParticipantRevoked)))
 		accepted.Set("host", publication)
@@ -591,14 +439,14 @@ func leanSyncPreparedCases(t *testing.T, objectID string, sender *SOSync, target
 		t.Cleanup(host.ClearContext)
 		local := NewSOSync(gateLogger(), nil, objectID, sender.localObjectPeerID, sender.localObjectKey, host, nil)
 		wire := state.CloneVT()
-		wire.Invites, wire.QueuedAccountNonces = nil, nil
+		wire.Invites = nil
 		encoded := leanSyncMarshal(t, wire)
-		snapshot := &SOSyncSnapshot{SoState: encoded, RootSeqno: state.Root.InnerSeqno, Revision: req.Revision, BaseHash: req.BaseHash}
+		snapshot := &SOSyncSnapshot{SoState: encoded, Revision: req.Revision, BaseHash: req.BaseHash}
 		frame := &SOSyncMessage{Body: &SOSyncMessage_Snapshot{Snapshot: snapshot}}
 		var arena fastjson.Arena
 		input, requestJSON := arena.NewObject(), arena.NewObject()
 		input.Set("op", arena.NewString("prepareSyncResponse"))
-		input.Set("state", leanSyncState(t, &arena, objectID, state))
+		input.Set("state", leanSyncState(t, &arena, state))
 		requestJSON.Set("revision", arena.NewNumberString(strconv.FormatUint(req.Revision, 10)))
 		requestJSON.Set("base", arena.NewString(hex.EncodeToString(req.BaseHash)))
 		input.Set("request", requestJSON)
@@ -622,7 +470,7 @@ func leanSyncPreparedCases(t *testing.T, objectID string, sender *SOSync, target
 
 		input = arena.NewObject()
 		input.Set("op", arena.NewString("syncStateHash"))
-		input.Set("state", leanSyncState(t, &arena, objectID, state))
+		input.Set("state", leanSyncState(t, &arena, state))
 		input.Set("bytes", arena.NewNumberInt(wire.SizeVT()))
 		input.Set("encoded", arena.NewString(hex.EncodeToString(encoded)))
 		digest := sha256.Sum256(encoded)
@@ -648,16 +496,16 @@ func TestLeanSyncResponseSizeLimits(t *testing.T) {
 	owner, reader := mustKeyPair(t), mustKeyPair(t)
 	for extra := range 3 {
 		state := authenticationState(t, objectID, owner, reader)
-		state.Root.Inner = make([]byte, maxMessageSize)
-		snapshot := &SOSyncSnapshot{RootSeqno: state.Root.InnerSeqno, Revision: 1, BaseHash: state.Config.ConfigChainHash}
+		state.Checkpoint.Inner = make([]byte, maxMessageSize)
+		snapshot := &SOSyncSnapshot{Revision: 1, BaseHash: state.Config.ConfigChainHash}
 		frame := &SOSyncMessage{Body: &SOSyncMessage_Snapshot{Snapshot: snapshot}}
 		for range 3 {
 			snapshot.SoState = leanSyncMarshal(t, state)
-			padding := len(state.Root.Inner) + maxMessageSize + extra - frame.SizeVT()
+			padding := len(state.Checkpoint.Inner) + maxMessageSize + extra - frame.SizeVT()
 			if extra == 2 {
-				padding = len(state.Root.Inner) + maxMessageSize + 1 - state.SizeVT()
+				padding = len(state.Checkpoint.Inner) + maxMessageSize + 1 - state.SizeVT()
 			}
-			state.Root.Inner = make([]byte, padding)
+			state.Checkpoint.Inner = make([]byte, padding)
 		}
 		snapshot.SoState = leanSyncMarshal(t, state)
 		if extra < 2 && frame.SizeVT() != maxMessageSize+extra || extra == 2 && state.SizeVT() != maxMessageSize+1 {
@@ -668,7 +516,7 @@ func TestLeanSyncResponseSizeLimits(t *testing.T) {
 		var arena fastjson.Arena
 		input, req := arena.NewObject(), arena.NewObject()
 		input.Set("op", arena.NewString("prepareSyncResponse"))
-		input.Set("state", leanSyncState(t, &arena, objectID, state))
+		input.Set("state", leanSyncState(t, &arena, state))
 		req.Set("revision", arena.NewNumberInt(1))
 		req.Set("base", arena.NewString(hex.EncodeToString(request.BaseHash)))
 		input.Set("request", req)
@@ -688,7 +536,7 @@ func TestLeanSyncResponseSizeLimits(t *testing.T) {
 
 		input, expected = arena.NewObject(), arena.NewObject()
 		input.Set("op", arena.NewString("syncStateHash"))
-		input.Set("state", leanSyncState(t, &arena, objectID, state))
+		input.Set("state", leanSyncState(t, &arena, state))
 		input.Set("bytes", arena.NewNumberInt(state.SizeVT()))
 		input.Set("encoded", arena.NewString(hex.EncodeToString(snapshot.SoState)))
 		digest := sha256.Sum256(snapshot.SoState)
@@ -705,28 +553,25 @@ func TestLeanSyncResponseSizeLimits(t *testing.T) {
 	}
 }
 
-// leanSyncObsoleteCases covers every ordering of the two sequence coordinates.
+// leanSyncObsoleteCases covers every ordering of the held and advertised config sequence.
 func leanSyncObsoleteCases(t *testing.T, objectID string, state *sobject.SOState) []leanSyncCase {
 	t.Helper()
 	var cases []leanSyncCase
 	for configDelta := -1; configDelta <= 1; configDelta++ {
-		for rootDelta := -1; rootDelta <= 1; rootDelta++ {
-			head := &SOSyncHead{ConfigSeqno: state.Config.ConfigChainSeqno, RootSeqno: state.Root.InnerSeqno}
-			current := state.CloneVT()
-			current.Config.ConfigChainSeqno = uint64(int64(head.ConfigSeqno) + int64(configDelta))
-			current.Root.InnerSeqno = uint64(int64(head.RootSeqno) + int64(rootDelta))
-			host, _ := newMemHost(objectID, current)
-			t.Cleanup(host.ClearContext)
-			local := &SOSync{soHost: host}
-			var arena fastjson.Arena
-			input, expected := arena.NewObject(), arena.NewObject()
-			input.Set("op", arena.NewString("syncResponseObsolete"))
-			input.Set("current", leanSyncState(t, &arena, objectID, current))
-			input.Set("head", leanSyncHead(&arena, head))
-			expected.Set("ok", leanSyncBool(&arena, local.responseObsolete(t.Context(), head)))
-			cases = append(cases, leanSyncCase{name: "obsolete coordinates " + strconv.Itoa(configDelta) + "/" + strconv.Itoa(rootDelta),
-				request: input.MarshalTo(nil), expected: expected.MarshalTo(nil)})
-		}
+		head := &SOSyncHead{ConfigSeqno: state.Config.ConfigChainSeqno}
+		current := state.CloneVT()
+		current.Config.ConfigChainSeqno = uint64(int64(head.ConfigSeqno) + int64(configDelta))
+		host, _ := newMemHost(objectID, current)
+		t.Cleanup(host.ClearContext)
+		local := &SOSync{soHost: host}
+		var arena fastjson.Arena
+		input, expected := arena.NewObject(), arena.NewObject()
+		input.Set("op", arena.NewString("syncResponseObsolete"))
+		input.Set("current", leanSyncState(t, &arena, current))
+		input.Set("head", leanSyncHead(&arena, head))
+		expected.Set("ok", leanSyncBool(&arena, local.responseObsolete(t.Context(), head)))
+		cases = append(cases, leanSyncCase{name: "obsolete config delta " + strconv.Itoa(configDelta),
+			request: input.MarshalTo(nil), expected: expected.MarshalTo(nil)})
 	}
 	return cases
 }

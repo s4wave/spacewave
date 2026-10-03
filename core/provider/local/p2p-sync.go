@@ -907,9 +907,6 @@ func (a *ProviderAccount) stopP2PSyncState(state *p2pSyncState) {
 			if syncRoutine.copy != nil {
 				syncRoutines = append(syncRoutines, syncRoutine.copy)
 			}
-			if syncRoutine.body != nil {
-				syncRoutines = append(syncRoutines, syncRoutine.body)
-			}
 			if syncRoutine.hosting != nil {
 				syncRoutines = append(syncRoutines, syncRoutine.hosting)
 			}
@@ -976,39 +973,6 @@ func (a *ProviderAccount) startSOSync(
 	}
 	localSO := so.(*SharedObject)
 
-	// Keep the body processor running on validators while the Space is shared.
-	// Writers submit operations through SO sync; without a validator body
-	// admission, their operations remain queued whenever no UI has the Space
-	// open on the primary host. An ownership transfer can promote this account
-	// later, so the processor waits for the role instead of deciding once.
-	var bodyRoutine *routine.RoutineContainer
-	if bodyType == space.SpaceBodyType && ref.GetProviderResourceRef() != nil {
-		bodyRoutine = routine.NewRoutineContainerWithLogger(a.le.WithField("routine", "account-space-body"), routine.WithRetry(providerBackoff))
-		bodyRoutine.SetRoutine(func(ctx context.Context) error {
-			// Mount the body only once this account can validate.
-			if err := waitSOValidator(ctx, localSO); err != nil {
-				return err
-			}
-			_, bodyRef, err := sobject.ExMountSharedObjectBodyWithSource[space.SpaceSharedObjectBody](
-				ctx,
-				a.t.p.b,
-				ref,
-				space.SpaceBodyType,
-				localSO,
-				false,
-				nil,
-			)
-			if err != nil {
-				return err
-			}
-			defer bodyRef.Release()
-
-			// Hold the mounted body until the object stops syncing.
-			<-ctx.Done()
-			return ctx.Err()
-		})
-	}
-
 	// Validate inbound snapshots against the local storage identity that holds
 	// the Space grant. The session transport peer routes the stream but is not
 	// necessarily a participant in a local Space.
@@ -1021,7 +985,7 @@ func (a *ProviderAccount) startSOSync(
 			localSO.localPriv,
 			localSO.localPid,
 		)
-		_, err := snapshot.GetRootInner(ctx)
+		_, err := snapshot.GetCheckpoint(ctx)
 		return err
 	}
 
@@ -1061,7 +1025,7 @@ func (a *ProviderAccount) startSOSync(
 	// Move hosting with each ownership transfer.
 	hostingRoutine := routine.NewRoutineContainerWithLogger(a.le.WithField("routine", "account-so-hosting"), routine.WithRetry(providerBackoff))
 	hostingRoutine.SetRoutine(func(ctx context.Context) error { return a.watchSOHosting(ctx, soID, localSO) })
-	objectSync := &accountObjectSync{sync: syncRoutine, body: bodyRoutine, hosting: hostingRoutine, cancel: cancel, release: relSO}
+	objectSync := &accountObjectSync{sync: syncRoutine, hosting: hostingRoutine, cancel: cancel, release: relSO}
 
 	// Copy a Space to the account replica alongside its sync.
 	if bodyType == space.SpaceBodyType {
@@ -1084,9 +1048,6 @@ func (a *ProviderAccount) startSOSync(
 	syncRoutine.SetContext(ctx, false)
 	if objectSync.copy != nil {
 		objectSync.copy.SetContext(ctx, false)
-	}
-	if objectSync.body != nil {
-		objectSync.body.SetContext(ctx, false)
 	}
 	objectSync.hosting.SetContext(ctx, false)
 	return nil
@@ -1174,20 +1135,15 @@ func (a *ProviderAccount) startInviteServer(ctx context.Context, childBus bus.Bu
 			return nil, err
 		}
 
-		// Return the existing root grant when the invitee was already added.
+		// Return the existing grant when the invitee was already added.
 		if grant == nil {
 			state, err := result.Host.GetHostState(ctx)
 			if err != nil {
 				return nil, err
 			}
-			for _, existing := range state.GetRootGrants() {
-				if existing.GetPeerId() == inviteePeerID.String() {
-					grant = existing.CloneVT()
-					break
-				}
-			}
+			grant = state.CurrentKeyEpoch().FindGrant(inviteePeerID.String())
 			if grant == nil {
-				return nil, errors.New("participant exists without a root grant")
+				return nil, errors.New("participant exists without a current key epoch grant")
 			}
 		}
 

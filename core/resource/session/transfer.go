@@ -14,8 +14,8 @@ import (
 	"github.com/s4wave/spacewave/core/session"
 	"github.com/s4wave/spacewave/core/sobject"
 	"github.com/s4wave/spacewave/core/space"
-	block_transform "github.com/s4wave/spacewave/db/block/transform"
 	"github.com/s4wave/spacewave/db/volume"
+	"github.com/s4wave/spacewave/net/crypto"
 	s4wave_provider_spacewave "github.com/s4wave/spacewave/sdk/provider/spacewave"
 	s4wave_session "github.com/s4wave/spacewave/sdk/session"
 	"github.com/sirupsen/logrus"
@@ -182,10 +182,10 @@ func (r *SessionResource) StartTransfer(
 		"transfer-mode": mode.String(),
 	})
 
-	// Build a state rewriter to re-key SO state from source to target peer.
-	stateRewriter, err := buildStateRewriter(ctx, le, source, target)
+	// Sign the transferred Spaces as the peer the target holds after the transfer.
+	owner, err := transferOwnerKey(ctx, mode, source, target)
 	if err != nil {
-		return nil, errors.Wrap(err, "build state rewriter")
+		return nil, errors.Wrap(err, "load transfer owner key")
 	}
 
 	// Build the transfer from the source, target, and checkpoint store.
@@ -194,12 +194,12 @@ func (r *SessionResource) StartTransfer(
 		mode,
 		source,
 		target,
+		owner,
 		srcIdx,
 		tgtIdx,
 		&provider_transfer.TransferOptions{
 			Cleanup:        cleanup,
 			Checkpoint:     checkpoint,
-			StateRewriter:  stateRewriter,
 			FilterSpaceIDs: req.GetSpaceIds(),
 		},
 	)
@@ -438,10 +438,10 @@ func buildTransferSource(
 	// Build a transfer source for the account type.
 	switch acc := provAcc.(type) {
 	case *provider_local.ProviderAccount:
-		src := provider_transfer.NewLocalTransferSource(acc, provID, accountID, b)
+		src := provider_transfer.NewLocalTransferSource(acc, b)
 		return src, src, nil
 	case *provider_spacewave.ProviderAccount:
-		src := provider_transfer.NewSpacewaveTransferSource(acc, provID, accountID)
+		src := provider_transfer.NewSpacewaveTransferSource(acc, provID, accountID, b)
 		return src, nil, nil
 	default:
 		return nil, nil, errors.New("unsupported provider type for transfer source")
@@ -516,54 +516,28 @@ func buildCheckpointStore(
 	}
 }
 
-// buildStateRewriter builds an SOStateRewriter that re-keys SO state from
-// source peer to target peer. Returns nil if neither side is a local account
-// (no re-keying needed when keys are the same).
-func buildStateRewriter(
+// transferOwnerKey returns the key of the peer that owns the transferred
+// Spaces: the source peer for MIGRATE, which copies the source keypair to the
+// target, and the target peer otherwise.
+func transferOwnerKey(
 	ctx context.Context,
-	le *logrus.Entry,
+	mode provider_transfer.TransferMode,
 	source provider_transfer.TransferSource,
 	target provider_transfer.TransferTarget,
-) (provider_transfer.SOStateRewriter, error) {
-	// Require source and target volumes.
-	srcVol := getTransferSourceVolume(source)
-	tgtVol := getTransferTargetVolume(target)
-	if srcVol == nil || tgtVol == nil {
-		return nil, nil
+) (crypto.PrivKey, error) {
+	// Pick the volume whose peer owns the transfer.
+	vol := getTransferTargetVolume(target)
+	if mode == provider_transfer.TransferMode_TransferMode_MIGRATE {
+		vol = getTransferSourceVolume(source)
 	}
-
-	// Require a source step-factory set.
-	sfs := getTransferSourceStepFactorySet(source)
-	if sfs == nil {
-		return nil, nil
+	if vol == nil {
+		return nil, errors.New("transfer account has no volume")
 	}
-
-	// Load the source and target private keys.
-	srcPeer, err := srcVol.GetPeer(ctx, true)
+	p, err := vol.GetPeer(ctx, true)
 	if err != nil {
-		return nil, errors.Wrap(err, "get source peer")
+		return nil, err
 	}
-	tgtPeer, err := tgtVol.GetPeer(ctx, true)
-	if err != nil {
-		return nil, errors.Wrap(err, "get target peer")
-	}
-	srcPriv, err := srcPeer.GetPrivKey(ctx)
-	if err != nil {
-		return nil, errors.Wrap(err, "get source private key")
-	}
-	tgtPriv, err := tgtPeer.GetPrivKey(ctx)
-	if err != nil {
-		return nil, errors.Wrap(err, "get target private key")
-	}
-
-	// Skip rewriting when both volumes use the same peer.
-	if srcPeer.GetPeerID().String() == tgtPeer.GetPeerID().String() {
-		return nil, nil
-	}
-
-	return func(ctx context.Context, soID string, state *sobject.SOState) (*sobject.SOState, error) {
-		return provider_transfer.RekeySOState(ctx, le, sfs, state, srcPriv, tgtPriv, soID)
-	}, nil
+	return p.GetPrivKey(ctx)
 }
 
 // getTransferSourceVolume extracts the volume from a transfer source.
@@ -584,18 +558,6 @@ func getTransferTargetVolume(target provider_transfer.TransferTarget) volume.Vol
 		return t.GetAccount().GetVolume()
 	case *provider_transfer.SpacewaveTransferTarget:
 		return t.GetAccount().GetVolume()
-	}
-	return nil
-}
-
-// getTransferSourceStepFactorySet extracts the block transform step factory set
-// needed to decrypt source SO roots before re-keying.
-func getTransferSourceStepFactorySet(source provider_transfer.TransferSource) *block_transform.StepFactorySet {
-	switch s := source.(type) {
-	case *provider_transfer.LocalTransferSource:
-		return s.GetAccount().GetStepFactorySet()
-	case *provider_transfer.SpacewaveTransferSource:
-		return s.GetAccount().GetStepFactorySet()
 	}
 	return nil
 }

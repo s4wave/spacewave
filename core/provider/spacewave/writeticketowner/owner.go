@@ -16,7 +16,7 @@ type Audience string
 // Write-ticket audiences.
 const (
 	AudienceSOOp           Audience = "so-op"
-	AudienceSORoot         Audience = "so-root"
+	AudienceSOCheckpoint   Audience = "so-checkpoint"
 	AudienceBstoreSyncPush Audience = "bstore-sync-push"
 )
 
@@ -315,7 +315,7 @@ func (o *Owner) fetcher(ctx context.Context) (Fetcher, error) {
 // ValidateAudience validates a write-ticket audience.
 func ValidateAudience(audience Audience) error {
 	switch audience {
-	case AudienceSOOp, AudienceSORoot, AudienceBstoreSyncPush:
+	case AudienceSOOp, AudienceSOCheckpoint, AudienceBstoreSyncPush:
 		return nil
 	default:
 		return errors.Errorf("unknown write ticket audience: %s", audience)
@@ -334,8 +334,8 @@ func GetBundleAudience(
 	switch audience {
 	case AudienceSOOp:
 		return bundle.GetSoOpTicket()
-	case AudienceSORoot:
-		return bundle.GetSoRootTicket()
+	case AudienceSOCheckpoint:
+		return bundle.GetSoCheckpointTicket()
 	case AudienceBstoreSyncPush:
 		return bundle.GetBstoreSyncPushTicket()
 	default:
@@ -356,8 +356,8 @@ func SetBundleAudience(
 	switch audience {
 	case AudienceSOOp:
 		bundle.SoOpTicket = ticket
-	case AudienceSORoot:
-		bundle.SoRootTicket = ticket
+	case AudienceSOCheckpoint:
+		bundle.SoCheckpointTicket = ticket
 	case AudienceBstoreSyncPush:
 		bundle.BstoreSyncPushTicket = ticket
 	}

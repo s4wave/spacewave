@@ -4,20 +4,27 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/s4wave/spacewave/core/sobject"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
+	store_kvtx_inmem "github.com/s4wave/spacewave/db/store/kvtx/inmem"
 	"github.com/s4wave/spacewave/db/tx"
 	world_block "github.com/s4wave/spacewave/db/world/block"
 )
 
-// TestReadCheckpointFreezesWorld verifies the historical root and rejects write transactions.
+// TestReadCheckpointFreezesWorld checks the read checkpoint serves the last
+// installed World head and rejects every write.
 func TestReadCheckpointFreezesWorld(t *testing.T) {
+	// Install a World holding one object, then build a later World.
 	ctx := t.Context()
 	c, so, head := newProcessTestWorld(t, ctx)
+	so.localStore = store_kvtx_inmem.NewStore()
 	known := applyTransactionTestObject(t, c, so, head, "known-object")
-	snapshot := newTestFinalizationSnapshot(t, &sobject.SORoot{InnerSeqno: 2}, known.GetHeadRef())
+	if err := writeWorldHead(ctx, so, known.GetHeadRef()); err != nil {
+		t.Fatal(err)
+	}
 	_ = applyTransactionTestObject(t, c, so, known, "later-object")
-	engine, release, err := OpenReadCheckpoint(ctx, c.le, c.bus, so, snapshot)
+
+	// The checkpoint reads the installed World only.
+	engine, release, err := OpenReadCheckpoint(ctx, c.le, c.bus, so)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -27,6 +34,8 @@ func TestReadCheckpointFreezesWorld(t *testing.T) {
 			t.Fatalf("released checkpoint retained its engine: %v", err)
 		}
 	}()
+
+	// A read transaction sees the known object only.
 	read, err := engine.NewTransaction(ctx, false)
 	if err != nil {
 		t.Fatal(err)
@@ -38,9 +47,13 @@ func TestReadCheckpointFreezesWorld(t *testing.T) {
 	if found, err := read.HasObject(ctx, "later-object"); err != nil || found {
 		t.Fatalf("checkpoint exposed later object: found=%v err=%v", found, err)
 	}
+
+	// It refuses writes.
 	if _, err := engine.NewTransaction(ctx, true); !errors.Is(err, tx.ErrNotWrite) {
 		t.Fatalf("checkpoint accepted write transaction: %v", err)
 	}
+
+	// Both of its cursors refuse writes.
 	cursor, err := engine.BuildStorageCursor(ctx)
 	if err != nil {
 		t.Fatal(err)

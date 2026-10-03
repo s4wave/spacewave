@@ -32,6 +32,7 @@ import (
 // TestAccountReplicaEnrollment checks account identity, independent credentials,
 // authorized Space state, and durable Session readback across isolated stores.
 func TestAccountReplicaEnrollment(t *testing.T) {
+	// Open isolated source and receiver providers.
 	ctx, cancel := context.WithTimeout(t.Context(), 20*time.Second)
 	defer cancel()
 	_, _, source, sourceSession, releaseSource := setupProviderAndSessionInternal(ctx, t)
@@ -59,6 +60,8 @@ func TestAccountReplicaEnrollment(t *testing.T) {
 	}
 	defer releaseAccount()
 	replica := account.(*ProviderAccount)
+
+	// Mount a Session with its own credential, never a reused one.
 	sess, releaseSession, err := replica.MountSession(ctx, ref, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -67,6 +70,8 @@ func TestAccountReplicaEnrollment(t *testing.T) {
 	if sess.GetPeerId() == sourceSession.GetPeerId() || sess.GetPeerId() == receiverSession.GetPeerId() {
 		t.Fatal("enrollment reused an existing Session credential")
 	}
+
+	// Its pairing identity proves the offer from both existing Sessions.
 	identity, err := replica.buildPairingIdentity(ctx, offer, sess, sourceSession.GetPeerId(), receiverSession.GetPeerId())
 	if err != nil {
 		t.Fatal(err)
@@ -95,6 +100,8 @@ func TestAccountReplicaEnrollment(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
+
+	// The replica binds the canonical settings and lists both objects.
 	bound, err := replica.GetAccountSettingsRef(ctx)
 	if err != nil {
 		t.Fatal(err)
@@ -105,6 +112,8 @@ func TestAccountReplicaEnrollment(t *testing.T) {
 	if len(replica.GetSOListCtr().GetValue().GetSharedObjects()) != 2 {
 		t.Fatal("replica did not discover the original Space")
 	}
+
+	// The receiving storage key reads the Space checkpoint.
 	so, releaseSO, err := replica.MountSharedObject(ctx, spaceRef, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -114,7 +123,7 @@ func TestAccountReplicaEnrollment(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := snapshot.GetRootInner(ctx); err != nil {
+	if _, err := snapshot.GetCheckpoint(ctx); err != nil {
 		t.Fatalf("receiving storage key cannot read the Space: %v", err)
 	}
 
@@ -140,6 +149,7 @@ func TestAccountPairingExchange(t *testing.T) {
 			name = "enroll"
 		}
 		t.Run(name, func(t *testing.T) {
+			// Open isolated source and receiver providers.
 			ctx, cancel := context.WithTimeout(t.Context(), 20*time.Second)
 			defer cancel()
 			_, _, source, sourceSession, releaseSource := setupProviderAndSessionInternal(ctx, t)
@@ -178,23 +188,27 @@ func TestAccountPairingExchange(t *testing.T) {
 			if _, err := controller.RegisterSession(ctx, receivingSession.GetSessionRef(), nil); err != nil {
 				t.Fatal(err)
 			}
+
+			// Create the offered Space, seeding a payload when enrollment proceeds.
 			spaceRef, err := source.CreateSharedObject(ctx, ulid.NewULID(), &sobject.SharedObjectMeta{BodyType: "space"}, "", "")
 			if err != nil {
 				t.Fatal(err)
 			}
-
 			var payloadRef *block.BlockRef
 			var payload []byte
 			if approve {
 				payloadRef, payload = seedAccountReplicaPayload(ctx, t, source, spaceRef)
 			}
 
+			// Run both pairing engines over one in-memory duplex stream.
 			const agentLabel = "Test agent on build host"
 			sourceEngine := pairingEngineForTest(t, sourceSession)
 			receivingEngine := pairingEngineForTest(t, receivingSession)
 			left, right := net.Pipe()
 			defer left.Close()
 			defer right.Close()
+
+			// Each engine signals finished when its side of the exchange ends.
 			finished := make(chan struct{}, 2)
 			go func() {
 				defer left.Close()
@@ -273,12 +287,16 @@ func TestAccountPairingExchange(t *testing.T) {
 			if !named {
 				t.Fatal("paired Session was not named with the receiver's label")
 			}
+
+			// Open the offered account on the receiving store.
 			account, releaseAccount, err := receiver.t.p.AccessProviderAccount(ctx, source.GetAccountID(), nil)
 			if err != nil {
 				t.Fatal(err)
 			}
 			defer releaseAccount()
 			replica := account.(*ProviderAccount)
+
+			// The replica reads the original Space checkpoint.
 			so, releaseSO, err := replica.MountSharedObject(ctx, spaceRef, nil)
 			if err != nil {
 				t.Fatal(err)
@@ -288,7 +306,7 @@ func TestAccountPairingExchange(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if _, err := snapshot.GetRootInner(ctx); err != nil {
+			if _, err := snapshot.GetCheckpoint(ctx); err != nil {
 				t.Fatalf("paired replica cannot read the original Space: %v", err)
 			}
 
@@ -311,6 +329,8 @@ func TestAccountPairingExchange(t *testing.T) {
 				case <-changed:
 				}
 			}
+
+			// The payload counted as peer traffic, split across the peers.
 			localStore := so.GetBlockStore().(*BlockStore).store
 			trafficBefore, _ := replica.GetAccountTransferSnapshot()
 			if trafficBefore.DownloadedBytes < uint64(len(payload)) {
@@ -323,6 +343,8 @@ func TestAccountPairingExchange(t *testing.T) {
 			if peerBytes != trafficBefore.DownloadedBytes {
 				t.Fatal("per-peer traffic does not add up to the account total")
 			}
+
+			// Reading the local copy adds no peer traffic.
 			copied, found, err := localStore.GetBlock(ctx, payloadRef)
 			if err != nil || !found || !bytes.Equal(copied, payload) {
 				t.Fatalf("background payload is not local: found=%v err=%v", found, err)
@@ -392,6 +414,8 @@ func TestAccountPairingExchange(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
+
+			// The active Session fetches a checkpoint until the source unlinks it.
 			open := stream_srpc.NewOpenStreamFunc(replica.GetSessionTransport().GetChildBus(), accountReplicaProtocol, paired.GetPeerId(), sourceSession.GetPeerId(), 0)
 			client := NewSRPCAccountReplicaServiceClient(srpc.NewClient(open))
 			request := &AccountReplicaObjectRequest{SettingsId: settingsRef.GetProviderResourceRef().GetId(), ObjectId: spaceRef.GetProviderResourceRef().GetId()}
@@ -404,14 +428,16 @@ func TestAccountPairingExchange(t *testing.T) {
 			if _, err := client.FetchObject(ctx, request); err == nil {
 				t.Fatal("revoked account Session fetched a checkpoint")
 			}
+
+			// No object keeps a grant for the Session or its storage peer.
 			storage, err := replica.vol.GetPeer(ctx, true)
 			if err != nil {
 				t.Fatal(err)
 			}
 			for _, entry := range source.soListCtr.GetValue().GetSharedObjects() {
 				state := getSOState(ctx, t, source, entry.GetRef(), entry.GetRef().GetProviderResourceRef().GetId())
-				for _, grant := range state.GetRootGrants() {
-					if grant.GetPeerId() == paired.GetPeerId().String() || grant.GetPeerId() == storage.GetPeerID().String() {
+				for _, epoch := range state.GetKeyEpochs() {
+					if epoch.FindGrant(paired.GetPeerId().String()) != nil || epoch.FindGrant(storage.GetPeerID().String()) != nil {
 						t.Fatal("unlink retained an enrolled Session or storage grant")
 					}
 				}
@@ -421,13 +447,14 @@ func TestAccountPairingExchange(t *testing.T) {
 }
 
 // seedAccountReplicaPayload publishes a real nested block graph under a signed
-// Space root. Its leaf is large enough to exercise authenticated DEX transfer.
+// Space checkpoint. Its leaf is large enough to exercise authenticated DEX transfer.
 func seedAccountReplicaPayload(ctx context.Context, t *testing.T, account *ProviderAccount, ref *sobject.SharedObjectRef) (*block.BlockRef, []byte) {
 	return seedProviderReplicaPayload(ctx, t, account, account, ref)
 }
 
 // seedProviderReplicaPayload exercises either native provider on the fixture bus.
 func seedProviderReplicaPayload(ctx context.Context, t *testing.T, fixture *ProviderAccount, account sobject.SharedObjectProvider, ref *sobject.SharedObjectRef) (*block.BlockRef, []byte) {
+	// Mount the Space to seed.
 	t.Helper()
 	so, release, err := account.MountSharedObject(ctx, ref, nil)
 	if err != nil {
@@ -455,6 +482,7 @@ func seedProviderReplicaPayload(ctx context.Context, t *testing.T, fixture *Prov
 		t.Fatalf("wait for readable Space before seeding: %v", err)
 	}
 
+	// Write a large leaf under a nested root block.
 	store := so.GetBlockStore()
 	data, err := (&block_mock.Example{Msg: string(bytes.Repeat([]byte("paired account payload\n"), 8192))}).MarshalVT()
 	if err != nil {
@@ -468,6 +496,8 @@ func seedProviderReplicaPayload(ctx context.Context, t *testing.T, fixture *Prov
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Build a World over the store that names the root as an object.
 	cursor := bucket_lookup.NewCursor(ctx, fixture.t.p.b, fixture.le, fixture.t.p.sfs, store, nil, &bucket.ObjectRef{}, nil, nil)
 	defer cursor.Release()
 	ws, err := world_block.BuildWorldStateFromCursor(ctx, fixture.le, true, cursor, world.NewWorldStorageFromCursor(cursor), nil, false)
@@ -482,6 +512,8 @@ func seedProviderReplicaPayload(ctx context.Context, t *testing.T, fixture *Prov
 			t.Fatal(err)
 		}
 	}
+
+	// Type the object, commit the World, and encode its head as checkpoint state.
 	if err := world_types.SetObjectType(ctx, ws, "payload", "test/replica-payload"); err != nil {
 		t.Fatal(err)
 	}
@@ -492,30 +524,45 @@ func seedProviderReplicaPayload(ctx context.Context, t *testing.T, fixture *Prov
 	if err != nil {
 		t.Fatal(err)
 	}
-	id, err := so.QueueOperation(ctx, []byte("initialize replica fixture"))
-	if err != nil {
-		t.Fatalf("queue initial Space operation: %v", err)
+
+	// Publish the World as a checkpoint signed by the owner.
+	host, ok := so.(sobject.InviteHost)
+	if !ok {
+		t.Fatal("Space host cannot sign a checkpoint")
 	}
-	states, releaseStates, err := so.(sobject.InviteHost).GetSOHost().GetSOStateCtr(ctx, nil)
+	snapshot, err := so.GetSharedObjectState(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer releaseStates()
-	if _, err := states.WaitValueWithValidator(ctx, func(state *sobject.SOState) (bool, error) {
-		return len(state.GetOps()) != 0, nil
-	}, nil); err != nil {
+
+	// Encrypt the state with the current key.
+	xfrm, err := snapshot.GetTransformer(ctx)
+	if err != nil {
 		t.Fatal(err)
 	}
-	if err := so.ProcessOperations(ctx, false, func(_ context.Context, _ sobject.SharedObjectStateSnapshot, _ []byte, ops []*sobject.SOOperationInner) (*[]byte, []*sobject.SOOperationResult, error) {
-		results := make([]*sobject.SOOperationResult, 0, len(ops))
-		for _, op := range ops {
-			results = append(results, sobject.BuildSOOperationResult(op.GetPeerId(), op.GetNonce(), true, nil))
+	stateEnc, err := xfrm.EncodeBlock(state)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Adopt the next checkpoint and wait until readers see it.
+	id := so.GetSharedObjectID()
+	if err := host.GetSOHost().UpdateSOState(ctx, func(next *sobject.SOState) error {
+		checkpoint, err := next.BuildNextCheckpoint(id, host.GetPrivKey(), stateEnc)
+		if err != nil {
+			return err
 		}
-		return &state, results, nil
+		return next.AdoptCheckpoint(id, checkpoint)
 	}); err != nil {
-		t.Fatalf("process initial Space operation: %v", err)
+		t.Fatalf("publish the replica fixture checkpoint: %v", err)
 	}
-	if _, _, err := so.WaitOperation(ctx, id); err != nil {
+	if _, err := snapshots.WaitValueWithValidator(ctx, func(snapshot sobject.SharedObjectStateSnapshot) (bool, error) {
+		checkpoint, err := snapshot.GetCheckpoint(ctx)
+		if err != nil {
+			return false, err
+		}
+		return bytes.Equal(checkpoint.GetStateData(), state), nil
+	}, nil); err != nil {
 		t.Fatal(err)
 	}
 	return leaf, data

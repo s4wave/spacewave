@@ -1,103 +1,17 @@
 package sobject
 
 import (
-	"crypto/sha256"
-	"encoding/binary"
-	"slices"
-	"strconv"
 	"strings"
 
 	"github.com/aperturerobotics/util/scrub"
-	b58 "github.com/mr-tron/base58/base58"
 	"github.com/pkg/errors"
-	"github.com/s4wave/spacewave/db/util/blockenc"
 	"github.com/s4wave/spacewave/net/crypto"
 	"github.com/s4wave/spacewave/net/hash"
 	"github.com/s4wave/spacewave/net/peer"
 )
 
-// soAuthoritativeRootDigestDomain separates authoritative root hashes.
-const soAuthoritativeRootDigestDomain = "spacewave/sharedobject/authoritative-root/v1"
-
-// DigestSOAuthoritativeRoot hashes the domain- and length-framed root signature preimage.
-// BuildSignatureData excludes root validator signatures and includes the deterministic
-// inner bytes followed by account nonces in their canonical order.
-func DigestSOAuthoritativeRoot(root *SORoot) ([]byte, error) {
-	if root == nil {
-		return nil, errors.New("authoritative root is required")
-	}
-
-	signatureData, err := root.BuildSignatureData()
-	if err != nil {
-		return nil, errors.Wrap(err, "build authoritative root signature data")
-	}
-
-	preimage := make([]byte, 0, len(soAuthoritativeRootDigestDomain)+8+len(signatureData))
-	preimage = append(preimage, soAuthoritativeRootDigestDomain...)
-	preimage = binary.BigEndian.AppendUint64(preimage, uint64(len(signatureData)))
-	preimage = append(preimage, signatureData...)
-	digest := sha256.Sum256(preimage)
-	return digest[:], nil
-}
-
 // baseCryptoContext is the base string for the crypto context.
 var baseCryptoContext = "sobject 2024-05-22T20:10:42.613604Z shared object crypto ctx v1."
-
-// BuildValidatorRootSignatureContext builds the context string for a validator signature on shared object root.
-func BuildValidatorRootSignatureContext(sharedObjectID string, seqno uint64) string {
-	var b strings.Builder
-	b.WriteString(baseCryptoContext)
-	b.WriteString("validator_root_signature ")
-	b.WriteString(sharedObjectID)
-	b.WriteString(" seqno ")
-	b.WriteString(strconv.FormatUint(seqno, 10))
-	return b.String()
-}
-
-// hashNonce derives a nonce token using sb's contents as its crypto context and
-// appends the token to sb.
-func hashNonce(sb *strings.Builder, nonce uint64) {
-	opNonceBytes := binary.LittleEndian.AppendUint64(nil, nonce)
-	key := make([]byte, 32)
-	blockenc.DeriveKeySHA256(sb.String(), opNonceBytes, key)
-	sb.WriteString(" op-nonce ")
-	sb.WriteString(b58.Encode(key))
-	scrub.Scrub(key)
-}
-
-// BuildSOOperationRejectionSignatureContext builds the context string for a validator signature on a shared object operation rejection.
-func BuildSOOperationRejectionSignatureContext(sharedObjectID string, validatorPeerID, submitterPeerID string, opNonce uint64, localID string) string {
-	var b strings.Builder
-	b.WriteString(baseCryptoContext)
-	b.WriteString("validator_operation_rejection_signature ")
-	b.WriteString(sharedObjectID)
-	b.WriteString(" validator ")
-	b.WriteString(validatorPeerID)
-	b.WriteString(" submitter ")
-	b.WriteString(submitterPeerID)
-	b.WriteString(" local-id ")
-	b.WriteString(localID)
-	hashNonce(&b, opNonce)
-
-	return b.String()
-}
-
-// BuildSOOperationRejectionErrorDetailsContext builds the context string for error details on a shared object operation rejection.
-func BuildSOOperationRejectionErrorDetailsContext(sharedObjectID string, validatorPeerID, submitterPeerID string, opNonce uint64, localID string) string {
-	var b strings.Builder
-	b.WriteString(baseCryptoContext)
-	b.WriteString("validator_operation_rejection_error_details_enc ")
-	b.WriteString(sharedObjectID)
-	b.WriteString(" validator ")
-	b.WriteString(validatorPeerID)
-	b.WriteString(" submitter ")
-	b.WriteString(submitterPeerID)
-	b.WriteString(" local-id ")
-	b.WriteString(localID)
-	hashNonce(&b, opNonce)
-
-	return b.String()
-}
 
 // BuildSOGrantSignatureContext builds the context string for a signature on a SOGrant.
 func BuildSOGrantSignatureContext(sharedObjectID string, signerPeerID, recipientPeerID string) string {
@@ -123,100 +37,6 @@ func BuildSOGrantEncContext(sharedObjectID string, fromPeerID string, recipientP
 	b.WriteString(" recipient ")
 	b.WriteString(recipientPeerID)
 	return b.String()
-}
-
-// BuildSOClearOperationResultSignatureContext builds the context string for a signature on a clear operation result.
-func BuildSOClearOperationResultSignatureContext(sharedObjectID string, peerID string, localID string) string {
-	var b strings.Builder
-	b.WriteString(baseCryptoContext)
-	b.WriteString("clear_operation_result_signature ")
-	b.WriteString(sharedObjectID)
-	b.WriteString(" peer ")
-	b.WriteString(peerID)
-	b.WriteString(" local-id ")
-	b.WriteString(localID)
-	return b.String()
-}
-
-// ValidateSignatures validates the signatures on a SORoot.
-// Returns the number of valid validator signatures and any error.
-func (r *SORoot) ValidateSignatures(sharedObjectID string, participants []*SOParticipantConfig) (int, error) {
-	if len(r.GetInner()) == 0 {
-		return 0, ErrEmptyInnerData
-	}
-
-	// Canonical nonce order is part of the signed root preimage.
-	if !slices.IsSortedFunc(r.GetAccountNonces(), func(a, b *SOAccountNonce) int {
-		return strings.Compare(a.GetPeerId(), b.GetPeerId())
-	}) {
-		return 0, errors.New("account nonces not sorted by peer_id")
-	}
-
-	signData, err := r.BuildSignatureData()
-	if err != nil {
-		return 0, err
-	}
-	defer scrub.Scrub(signData)
-
-	// Each validator contributes at most one signature to consensus.
-	seenValidators := make(map[string]struct{})
-
-	for i, sig := range r.GetValidatorSignatures() {
-		pubKey, err := sig.ParsePubKey()
-		if err != nil {
-			return 0, err
-		}
-		if pubKey == nil {
-			return 0, peer.ErrEmptyPeerID
-		}
-
-		peerID, err := peer.IDFromPublicKey(pubKey)
-		if err != nil {
-			return 0, errors.Wrapf(err, "validator_signatures[%d]", i)
-		}
-
-		peerIDStr := peerID.String()
-		if _, ok := seenValidators[peerIDStr]; ok {
-			return 0, errors.Errorf("validator_signatures[%d]: duplicate validator signature for peer %s", i, peerIDStr)
-		}
-		seenValidators[peerIDStr] = struct{}{}
-
-		var canValidate bool
-		for _, p := range participants {
-			if p.GetPeerId() == peerIDStr {
-				canValidate = IsValidatorOrOwner(p.GetRole())
-				break
-			}
-		}
-		if !canValidate {
-			return 0, errors.Errorf("validator_signatures[%d]: not a valid validator signature", i)
-		}
-
-		encContext := BuildValidatorRootSignatureContext(sharedObjectID, r.GetInnerSeqno())
-		valid, err := sig.VerifyWithPublic(encContext, pubKey, signData)
-		if err != nil {
-			return 0, errors.Wrapf(err, "validator_signatures[%d]: failed to verify", i)
-		}
-		if !valid {
-			return 0, errors.Errorf("validator_signatures[%d]: invalid signature", i)
-		}
-	}
-
-	return len(seenValidators), nil
-}
-
-// CheckConsensusAcceptance checks whether the given number of valid signatures
-// satisfies the consensus mode. Returns an error if consensus is not met.
-func CheckConsensusAcceptance(mode SOConsensusMode, validSigs int) error {
-	switch mode {
-	case SOConsensusMode_SO_CONSENSUS_MODE_SINGLE_VALIDATOR:
-		if validSigs < 1 {
-			return ErrEmptyValidatorSignatures
-		}
-		return nil
-	default:
-		return errors.Errorf("unsupported consensus mode: %d", int32(mode))
-	}
 }
 
 // EncryptSOGrant encrypts the inner data of a SOGrant.
@@ -312,108 +132,52 @@ func (g *SOGrant) DecryptInnerData(privKey crypto.PrivKey, sharedObjectID string
 	return innerDataObj, nil
 }
 
-// ValidateSignature validates the signature on a SOGrant.
-func (g *SOGrant) ValidateSignature(sharedObjectID string, participants []*SOParticipantConfig) error {
+// Verify authenticates the grant's signature and returns its signer. It does
+// not check that the signer may issue the grant; ValidateSignature does.
+func (g *SOGrant) Verify(sharedObjectID string) (string, error) {
+	// Identify the signer.
 	if len(g.GetInnerData()) == 0 {
-		return ErrEmptyInnerData
+		return "", ErrEmptyInnerData
 	}
-
 	sig := g.GetSignature()
 	pubKey, err := sig.ParsePubKey()
 	if err != nil {
-		return err
+		return "", err
 	}
 	if pubKey == nil {
-		return peer.ErrEmptyPeerID
+		return "", peer.ErrEmptyPeerID
 	}
-
-	peerID, err := peer.IDFromPublicKey(pubKey)
+	signer, err := peer.IDFromPublicKey(pubKey)
 	if err != nil {
-		return err
+		return "", err
 	}
 
-	peerIDStr := peerID.String()
-	var canValidate bool
-	for _, p := range participants {
-		if p.GetPeerId() != peerIDStr {
-			continue
-		}
-		if IsValidatorOrOwner(p.GetRole()) {
-			canValidate = true
-			break
-		}
-		if peerIDStr == g.GetPeerId() && CanReadState(p.GetRole()) {
-			canValidate = true
-			break
-		}
-	}
-	if !canValidate {
-		return ErrEmptyValidatorSignatures
-	}
-
-	encContext := BuildSOGrantSignatureContext(sharedObjectID, peerIDStr, g.GetPeerId())
+	// The signature binds the signer and recipient to the encrypted key.
+	encContext := BuildSOGrantSignatureContext(sharedObjectID, signer.String(), g.GetPeerId())
 	valid, err := sig.VerifyWithPublic(encContext, pubKey, g.GetInnerData())
 	if err != nil {
-		return errors.Wrap(err, "failed to verify signature")
+		return "", errors.Wrap(err, "failed to verify signature")
 	}
 	if !valid {
-		return peer.ErrSignatureInvalid
+		return "", peer.ErrSignatureInvalid
 	}
-
-	return nil
+	return signer.String(), nil
 }
 
-// ValidateSignature validates the signature on a SOOperationRejection.
-func (r *SOOperationRejection) ValidateSignature(sharedObjectID string, participants []*SOParticipantConfig) (*SOOperationRejectionInner, error) {
-	if len(r.GetInner()) == 0 {
-		return nil, ErrEmptyInnerData
-	}
-
-	sig := r.GetSignature()
-	pubKey, err := sig.ParsePubKey()
+// ValidateSignature authenticates the grant and checks that an owner under
+// participants, or its reading recipient, signed it.
+func (g *SOGrant) ValidateSignature(sharedObjectID string, participants []*SOParticipantConfig) error {
+	signer, err := g.Verify(sharedObjectID)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	if pubKey == nil {
-		return nil, peer.ErrEmptyPeerID
-	}
-
-	validatorPeerID, err := peer.IDFromPublicKey(pubKey)
-	if err != nil {
-		return nil, err
-	}
-
-	validatorPeerIDStr := validatorPeerID.String()
-	var canValidate bool
 	for _, p := range participants {
-		if p.GetPeerId() == validatorPeerIDStr && IsValidatorOrOwner(p.GetRole()) {
-			canValidate = true
-			break
+		if p.GetPeerId() != signer {
+			continue
+		}
+		if IsOwner(p.GetRole()) || (signer == g.GetPeerId() && CanReadState(p.GetRole())) {
+			return nil
 		}
 	}
-	if !canValidate {
-		return nil, ErrEmptyValidatorSignatures
-	}
-
-	// Parse and validate the signed rejection before verifying its context.
-	inner := &SOOperationRejectionInner{}
-	if err := inner.UnmarshalVT(r.GetInner()); err != nil {
-		return nil, errors.Wrap(err, "failed to unmarshal inner data")
-	}
-	if err := inner.Validate(); err != nil {
-		return nil, err
-	}
-
-	encContext := BuildSOOperationRejectionSignatureContext(sharedObjectID, validatorPeerIDStr, inner.GetPeerId(), inner.GetOpNonce(), inner.GetLocalId())
-	valid, err := sig.VerifyWithPublic(encContext, pubKey, r.GetInner())
-	if err != nil {
-		inner.Reset()
-		return nil, err
-	}
-	if !valid {
-		inner.Reset()
-		return nil, peer.ErrSignatureInvalid
-	}
-
-	return inner, nil
+	return errors.New("grant is not signed by an owner or its recipient")
 }

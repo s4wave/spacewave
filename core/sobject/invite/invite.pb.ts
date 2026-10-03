@@ -2,7 +2,12 @@
 // @generated from file github.com/s4wave/spacewave/core/sobject/invite/invite.proto (package sobject.invite, syntax proto3)
 /* eslint-disable */
 
-import { SOGrant, SOJoinResponse, SOState } from '../sobject.pb.js'
+import {
+  SOConfigChange,
+  SOGrant,
+  SOJoinResponse,
+  SOState,
+} from '../sobject.pb.js'
 import type { MessageType } from '@aptre/protobuf-es-lite/message'
 import {
   createEmptyMessageType,
@@ -80,15 +85,8 @@ export interface AcceptInviteResponse {
    */
   sharedObjectId?: string
   /**
-   * OwnerGrant is the owner's existing root grant. The invitee preserves it so
-   * the owner can read later state written by the joined copy.
-   *
-   * @generated from field: sobject.SOGrant owner_grant = 3;
-   */
-  ownerGrant?: SOGrant
-  /**
-   * SharedObjectState is the owner's authorized state after enrollment. The
-   * invitee installs this state so both copies use the same root transform.
+   * SharedObjectState is the owner's authorized state after enrollment. Its
+   * key epochs hold the grants of every participant, including the invitee.
    *
    * @generated from field: sobject.SOState shared_object_state = 4;
    */
@@ -100,6 +98,14 @@ export interface AcceptInviteResponse {
    * @generated from field: bool pending = 5;
    */
   pending?: boolean
+  /**
+   * ConfigLineage is the owner's retained configuration changes leading to the
+   * config of shared_object_state, oldest first. It lets the invitee resolve
+   * the config of every operation the state holds.
+   *
+   * @generated from field: repeated sobject.SOConfigChange config_lineage = 6;
+   */
+  configLineage?: SOConfigChange[]
 }
 
 export const AcceptInviteResponse: MessageType<AcceptInviteResponse> =
@@ -108,9 +114,15 @@ export const AcceptInviteResponse: MessageType<AcceptInviteResponse> =
     fields: [
       { no: 1, name: 'grant', kind: 'message', T: () => SOGrant },
       { no: 2, name: 'shared_object_id', kind: 'scalar', T: ScalarType.STRING },
-      { no: 3, name: 'owner_grant', kind: 'message', T: () => SOGrant },
       { no: 4, name: 'shared_object_state', kind: 'message', T: () => SOState },
       { no: 5, name: 'pending', kind: 'scalar', T: ScalarType.BOOL },
+      {
+        no: 6,
+        name: 'config_lineage',
+        kind: 'message',
+        T: () => SOConfigChange,
+        repeated: true,
+      },
     ] satisfies readonly PartialFieldInfo[],
   })
 

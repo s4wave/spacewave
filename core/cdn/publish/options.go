@@ -18,7 +18,7 @@ type SessionClient interface {
 	GetSOState(ctx context.Context, soID string, since uint64, reason spacewave_provider.SeedReason) ([]byte, error)
 	SyncPull(ctx context.Context, resourceID string, since uint64) (*packfile.PullResponse, error)
 	SyncPushData(ctx context.Context, resourceID string, packID string, blockCount int, packData []byte, bodyHash []byte, bloomFilter []byte, bloomFormatVersion uint32) error
-	PostRoot(ctx context.Context, soID string, root *sobject.SORoot, rejectedOps []*sobject.SOOperationRejection) error
+	PostCheckpoint(ctx context.Context, soID string, checkpoint *sobject.SOCheckpoint) error
 }
 
 // TempFileFactory creates a temporary file for a staged pack.
@@ -33,7 +33,7 @@ type Options struct {
 	CdnBaseURL      string
 	SrcSpaceID      string
 	DstSpaceID      string
-	ValidatorKeyPem string
+	OwnerKeyPem     string
 	TempFileFactory TempFileFactory
 }
 

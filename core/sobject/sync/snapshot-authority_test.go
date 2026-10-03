@@ -28,13 +28,11 @@ func TestSnapshotExchangeRequiresHeldAuthority(t *testing.T) {
 			participantCfg(mustPeerIDStr(t, reader), sobject.SOParticipantRole_SOParticipantRole_READER),
 			participantCfg(localID.String(), sobject.SOParticipantRole_SOParticipantRole_WRITER),
 		}},
-		Root: &sobject.SORoot{InnerSeqno: 1},
 	}
 	trustSnapshotConfig(t, soID, initial, owner)
-	signSnapshotRoot(t, soID, initial, owner)
-	initial.RootGrants = append(initial.RootGrants, buildGrant(t, soID, owner, local.GetPublic()))
+	initial.KeyEpochs = []*sobject.SOKeyEpoch{{Grants: []*sobject.SOGrant{buildGrant(t, soID, owner, local.GetPublic())}}}
 
-	// Each rejection preserves every held byte, including configuration and queue state.
+	// Each rejection preserves every held byte, including configuration and operations.
 	for _, test := range []struct {
 		// name identifies the attempted authority violation.
 		name string
@@ -43,10 +41,10 @@ func TestSnapshotExchangeRequiresHeldAuthority(t *testing.T) {
 		// wantError names the decisive boundary rather than an unrelated earlier failure.
 		wantError string
 	}{
-		{name: "authorized sequence jump"},
+		{name: "authorized height jump"},
 		{name: "same head self promotion", mutate: func(_, candidate *sobject.SOState) {
 			candidate.Config.Participants[1].Role = sobject.SOParticipantRole_SOParticipantRole_OWNER
-			signSnapshotRoot(t, soID, candidate, reader)
+			advanceSnapshotCheckpoint(t, soID, candidate, reader)
 		}, wantError: "configuration authority"},
 		{name: "chainless different head", mutate: func(_, candidate *sobject.SOState) {
 			candidate.Config.ConfigChainHash[0] ^= 1
@@ -56,26 +54,26 @@ func TestSnapshotExchangeRequiresHeldAuthority(t *testing.T) {
 			held.Config.ConfigChainHash = nil
 			candidate.Config = held.Config.CloneVT()
 		}, wantError: "configuration authority"},
-		{name: "reader signed root", mutate: func(_, candidate *sobject.SOState) {
-			signSnapshotRoot(t, soID, candidate, reader)
-		}, wantError: "root authority"},
-		{name: "tampered root", mutate: func(_, candidate *sobject.SOState) {
-			candidate.Root.Inner[0] ^= 1
-		}, wantError: "root authority"},
-		{name: "unsigned root", mutate: func(_, candidate *sobject.SOState) {
-			candidate.Root.ValidatorSignatures = nil
-		}, wantError: "consensus"},
-		{name: "duplicate signer", mutate: func(_, candidate *sobject.SOState) {
-			candidate.Root.ValidatorSignatures = append(candidate.Root.ValidatorSignatures, candidate.Root.ValidatorSignatures[0].CloneVT())
-		}, wantError: "root authority"},
+		{name: "reader signed checkpoint", mutate: func(_, candidate *sobject.SOState) {
+			advanceSnapshotCheckpoint(t, soID, candidate, reader)
+		}, wantError: "checkpoint"},
+		{name: "tampered checkpoint", mutate: func(_, candidate *sobject.SOState) {
+			candidate.Checkpoint.Inner[0] ^= 1
+		}, wantError: "checkpoint"},
+		{name: "unsigned checkpoint", mutate: func(_, candidate *sobject.SOState) {
+			candidate.Checkpoint.Signatures = nil
+		}, wantError: "checkpoint"},
+		{name: "divergent checkpoint", mutate: func(held, _ *sobject.SOState) {
+			writeSyncOp(t, soID, held, owner, "covered only by the held checkpoint")
+			advanceSnapshotCheckpoint(t, soID, held, owner)
+		}, wantError: "does not follow"},
 	} {
 		t.Run(test.name, func(t *testing.T) {
-
-			// cloneVT held via initial.
+			// The owner advances the candidate two heights past the held checkpoint.
 			held := initial.CloneVT()
 			candidate := held.CloneVT()
-			candidate.Root.InnerSeqno = 5
-			signSnapshotRoot(t, soID, candidate, owner)
+			advanceSnapshotCheckpoint(t, soID, candidate, owner)
+			advanceSnapshotCheckpoint(t, soID, candidate, owner)
 			if test.mutate != nil {
 				test.mutate(held, candidate)
 			}
@@ -83,26 +81,19 @@ func TestSnapshotExchangeRequiresHeldAuthority(t *testing.T) {
 			host, ctr := newMemHost(soID, held)
 			t.Cleanup(host.ClearContext)
 
-			// newSOSync syncer.
+			// Exchange the candidate, or import it directly when no chain is held.
 			syncer := NewSOSync(gateLogger(), nil, soID, localID, local, host, nil)
-			data, err := candidate.MarshalVT()
-			if err != nil {
-				t.Fatal(err)
-			}
-			snapshot := &SOSyncSnapshot{SoState: data, RootSeqno: 5}
 			if len(held.GetConfig().GetConfigChainHash()) == 0 {
 				err = host.ImportPeerSnapshot(t.Context(), candidate, nil, localID, nil)
 			} else {
-				err = runSnapshotExchange(t, syncer, t.Context(), &SOSyncMessage{
-					Body: &SOSyncMessage_Snapshot{Snapshot: snapshot},
-				})
+				err = runSnapshotExchange(t, syncer, t.Context(), snapshotMessage(t, candidate))
 			}
 			if test.wantError == "" {
 				if err != nil {
 					t.Fatal(err)
 				}
 				if !ctr.GetValue().EqualVT(candidate) {
-					t.Fatal("authorized sequence jump did not converge")
+					t.Fatal("authorized height jump did not converge")
 				}
 				return
 			}
@@ -116,12 +107,11 @@ func TestSnapshotExchangeRequiresHeldAuthority(t *testing.T) {
 	}
 }
 
-// TestPeerSnapshotSameContentKeepsHeldProof accepts independently signed
-// identical state while rejecting changes to either signed content component.
+// TestPeerSnapshotSameContentKeepsHeldProof accepts an independently signed
+// copy of the held checkpoint while rejecting a different one at its height.
 func TestPeerSnapshotSameContentKeepsHeldProof(t *testing.T) {
-
-	// Perform the action.
-	const soID = "same-content-independent-validators"
+	// Two owners; the first signed the held genesis checkpoint.
+	const soID = "same-content-independent-owners"
 	first, second := mustKeyPair(t), mustKeyPair(t)
 	localID, err := peer.IDFromPrivateKey(first)
 	if err != nil {
@@ -132,17 +122,24 @@ func TestPeerSnapshotSameContentKeepsHeldProof(t *testing.T) {
 			participantCfg(localID.String(), sobject.SOParticipantRole_SOParticipantRole_OWNER),
 			participantCfg(mustPeerIDStr(t, second), sobject.SOParticipantRole_SOParticipantRole_OWNER),
 		}},
-		Root: &sobject.SORoot{InnerSeqno: 1},
 	}
 	trustSnapshotConfig(t, soID, initial, first)
-	signSnapshotRoot(t, soID, initial, first)
 
-	// cloneVT candidate via initial.
+	// The second owner signs the same checkpoint body.
+	inner, err := initial.GetCheckpointInner()
+	if err != nil {
+		t.Fatal(err)
+	}
 	candidate := initial.CloneVT()
-	signSnapshotRoot(t, soID, candidate, second)
-	if candidate.GetRoot().EqualVT(initial.GetRoot()) {
+	candidate.Checkpoint, err = sobject.BuildSOCheckpoint(second, inner)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if candidate.GetCheckpoint().EqualVT(initial.GetCheckpoint()) {
 		t.Fatal("fixture needs independent signatures")
 	}
+
+	// Importing it keeps the held proof.
 	host, state := newMemHost(soID, initial)
 	t.Cleanup(host.ClearContext)
 	if err := host.ImportPeerSnapshot(t.Context(), candidate, nil, localID, nil); err != nil {
@@ -151,18 +148,18 @@ func TestPeerSnapshotSameContentKeepsHeldProof(t *testing.T) {
 	if !state.GetValue().EqualVT(initial) {
 		t.Fatal("same-content import replaced held proof")
 	}
-	for _, field := range []string{"inner", "nonces"} {
-		changed := candidate.CloneVT()
-		if field == "inner" {
-			changed.Root.Inner = append(changed.Root.Inner, 1)
-		} else {
-			changed.Root.AccountNonces = []*sobject.SOAccountNonce{{PeerId: localID.String(), Nonce: 1}}
-		}
-		if err := host.ImportPeerSnapshot(t.Context(), changed, nil, localID, nil); err == nil || !strings.Contains(err.Error(), "conflicts") {
-			t.Fatalf("changed %s accepted: %v", field, err)
-		}
-		if !state.GetValue().EqualVT(initial) {
-			t.Fatal("conflicting import modified held state")
-		}
+
+	// A different body at the held height conflicts.
+	changed := inner.CloneVT()
+	changed.StateData = append(changed.StateData, 1)
+	candidate.Checkpoint, err = sobject.BuildSOCheckpoint(second, changed)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := host.ImportPeerSnapshot(t.Context(), candidate, nil, localID, nil); err == nil || !strings.Contains(err.Error(), "conflicts") {
+		t.Fatalf("conflicting checkpoint accepted: %v", err)
+	}
+	if !state.GetValue().EqualVT(initial) {
+		t.Fatal("conflicting import modified held state")
 	}
 }

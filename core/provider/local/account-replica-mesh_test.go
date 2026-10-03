@@ -211,16 +211,19 @@ func waitReplicaObject(ctx context.Context, t *testing.T, account *ProviderAccou
 
 // replicaWorldHead returns the World head of a mounted Space.
 func replicaWorldHead(ctx context.Context, t *testing.T, so sobject.SharedObject) *bucket.ObjectRef {
+	// Read the checkpoint of the mounted Space.
 	t.Helper()
 	states, release, err := so.AccessSharedObjectState(ctx, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer release()
-	inner, err := states.GetValue().GetRootInner(ctx)
+	inner, err := states.GetValue().GetCheckpoint(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Return its World head.
 	head := &sobject_world_engine.InnerState{}
 	if err := head.UnmarshalVT(inner.GetStateData()); err != nil {
 		t.Fatal(err)

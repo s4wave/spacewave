@@ -22,7 +22,8 @@ type payloadReadChallenge struct {
 	expiresAt time.Time
 }
 
-// ReadSecretPayloadForPeer reads a Secret payload after checking kind and reader grant.
+// ReadSecretPayloadForPeer reads a Secret payload after checking kind and
+// reader grant.
 func ReadSecretPayloadForPeer(
 	ctx context.Context,
 	b bus.Bus,
@@ -185,7 +186,10 @@ func (r *SecretResource) takePayloadReadChallenge(challengeID string) (*payloadR
 	return entry, nil
 }
 
+// checkReaderGrant returns nil when readerPeerID may read the secret and holds
+// a grant signed under the current config.
 func (r *SecretResource) checkReaderGrant(ctx context.Context, secret *Secret, readerPeerID string) error {
+	// Mount the secret's nested object.
 	if secret == nil || secret.GetRef() == nil {
 		return ErrMissingSecretRef
 	}
@@ -195,6 +199,7 @@ func (r *SecretResource) checkReaderGrant(ctx context.Context, secret *Secret, r
 	}
 	defer soRef.Release()
 
+	// Read the object's host state.
 	ih, ok := so.(sobject.InviteHost)
 	if !ok {
 		return ErrPayloadAccessDenied
@@ -207,6 +212,8 @@ func (r *SecretResource) checkReaderGrant(ctx context.Context, secret *Secret, r
 	if cfg == nil {
 		return ErrPayloadAccessDenied
 	}
+
+	// The reader holds a readable role.
 	var readable bool
 	for _, participant := range cfg.GetParticipants() {
 		if participant.GetPeerId() == readerPeerID && sobject.CanReadState(participant.GetRole()) {
@@ -217,7 +224,9 @@ func (r *SecretResource) checkReaderGrant(ctx context.Context, secret *Secret, r
 	if !readable {
 		return ErrPayloadAccessDenied
 	}
-	for _, grant := range state.GetRootGrants() {
+
+	// The reader holds a validly signed grant in the current key epoch.
+	for _, grant := range state.CurrentKeyEpoch().GetGrants() {
 		if grant.GetPeerId() != readerPeerID {
 			continue
 		}

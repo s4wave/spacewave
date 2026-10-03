@@ -384,7 +384,7 @@ func TestReadLinkedCloudAccountID(t *testing.T) {
 	}
 
 	// Verify readLinkedCloudAccountID detects the cloud link.
-	src := provider_transfer.NewLocalTransferSource(acc, provID, accountID, env.tb.Bus)
+	src := provider_transfer.NewLocalTransferSource(acc, env.tb.Bus)
 	got, err := resource_session.ReadLinkedCloudAccountID(ctx, env.tb.Bus, entry, src)
 	if err != nil {
 		t.Fatal(err)
@@ -400,8 +400,7 @@ func TestReadLinkedCloudAccountID(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	otherProvRef := otherRef.GetProviderResourceRef()
-	otherSrc := provider_transfer.NewLocalTransferSource(otherAcc, otherProvRef.GetProviderId(), otherProvRef.GetProviderAccountId(), env.tb.Bus)
+	otherSrc := provider_transfer.NewLocalTransferSource(otherAcc, env.tb.Bus)
 
 	// Read the other session, which has no linked-cloud key.
 	got2, err := resource_session.ReadLinkedCloudAccountID(ctx, env.tb.Bus, otherEntry, otherSrc)
@@ -460,7 +459,7 @@ func TestMergeLinkedSessionReportsCleanupFailure(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	srcSource := provider_transfer.NewLocalTransferSource(srcAcc, provID, accountID, env.tb.Bus)
+	srcSource := provider_transfer.NewLocalTransferSource(srcAcc, env.tb.Bus)
 	cloudAccID, err := resource_session.ReadLinkedCloudAccountID(ctx, env.tb.Bus, entry, srcSource)
 	if err != nil {
 		t.Fatal(err)

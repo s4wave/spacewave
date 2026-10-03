@@ -44,14 +44,7 @@ func verifyParticipantOnAllSOs(
 		}
 
 		// Check grant exists.
-		grantFound := false
-		for _, g := range hostState.GetRootGrants() {
-			if g.GetPeerId() == remotePeerIDStr {
-				grantFound = true
-				break
-			}
-		}
-		if !grantFound {
+		if hostState.CurrentKeyEpoch().FindGrant(remotePeerIDStr) == nil {
 			t.Fatalf("SO %s: no grant found for remote peer", soID)
 		}
 	}
@@ -101,18 +94,13 @@ func TestRecordPairedDevicePersists(t *testing.T) {
 		nil,
 		stateCtr,
 		func(snap sobject.SharedObjectStateSnapshot) error {
+			// Find the paired device in the settings.
 			if snap == nil {
 				return nil
 			}
-			rootInner, err := snap.GetRootInner(ctx)
+			settings, err := account_settings.ReadSnapshot(ctx, snap)
 			if err != nil {
 				return err
-			}
-			settings := &account_settings.AccountSettings{}
-			if data := rootInner.GetStateData(); len(data) > 0 {
-				if err := settings.UnmarshalVT(data); err != nil {
-					return err
-				}
 			}
 			for _, d := range settings.GetPairedDevices() {
 				if d.GetPeerId() == remotePeerIDStr {
@@ -207,8 +195,8 @@ func TestUnlinkDevice(t *testing.T) {
 				t.Fatalf("SO %s: remote peer still in participants after unlink", soID)
 			}
 		}
-		for _, g := range hostState.GetRootGrants() {
-			if g.GetPeerId() == remotePeerIDStr {
+		for _, epoch := range hostState.GetKeyEpochs() {
+			if epoch.FindGrant(remotePeerIDStr) != nil {
 				t.Fatalf("SO %s: grant still exists for remote peer after unlink", soID)
 			}
 		}

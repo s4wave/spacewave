@@ -87,7 +87,7 @@ func TestCatchupBudgetsRejectWithoutMutation(t *testing.T) {
 					changes = append(changes, change)
 				}
 				if err := session.SendMsg(&SOSyncMessage{Body: &SOSyncMessage_Head{Head: &SOSyncHead{
-					Revision: 1, ConfigHash: cursor, ConfigSeqno: uint64(test.count), RootSeqno: 1, StateHash: bytes.Repeat([]byte{1}, 32),
+					Revision: 1, ConfigHash: cursor, ConfigSeqno: uint64(test.count), StateHash: bytes.Repeat([]byte{1}, 32),
 				}}}); err != nil {
 					t.Fatal(err)
 				}
@@ -179,10 +179,9 @@ func TestCatchupRecoveryFencesTrailingSnapshot(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// The advertised newer root is admissible, so only the terminal stream decision can fence it.
+	// The advertised newer checkpoint is admissible, so only the terminal stream decision can fence it.
 	candidate := initial.CloneVT()
-	candidate.Root.InnerSeqno++
-	signSnapshotRoot(t, soID, candidate, owner)
+	advanceSnapshotCheckpoint(t, soID, candidate, owner)
 	data, err := candidate.MarshalVT()
 	if err != nil {
 		t.Fatal(err)
@@ -192,13 +191,13 @@ func TestCatchupRecoveryFencesTrailingSnapshot(t *testing.T) {
 	// Check the condition before continuing.
 	if err := session.SendMsg(&SOSyncMessage{Body: &SOSyncMessage_Head{Head: &SOSyncHead{
 		Revision: 1, ConfigHash: candidate.Config.ConfigChainHash, ConfigSeqno: candidate.Config.ConfigChainSeqno,
-		RootSeqno: candidate.Root.InnerSeqno, StateHash: digest[:],
+		StateHash: digest[:],
 	}}}); err != nil {
 		t.Fatal(err)
 	}
 	request := &SOSyncMessage{}
 	if err := session.RecvMsg(request); err != nil || request.GetHistoryRequest() == nil {
-		t.Fatalf("newer root was not requested: %v", err)
+		t.Fatalf("newer checkpoint was not requested: %v", err)
 	}
 	changes := make([]*sobject.SOConfigChange, maxHistoryPageEntries+1)
 	for index := range changes {
@@ -223,15 +222,15 @@ func TestCatchupRecoveryFencesTrailingSnapshot(t *testing.T) {
 		break
 	}
 	if err := session.SendMsg(&SOSyncMessage{Body: &SOSyncMessage_Snapshot{Snapshot: &SOSyncSnapshot{
-		SoState: data, RootSeqno: candidate.Root.InnerSeqno, Revision: 1, BaseHash: initial.Config.ConfigChainHash,
+		SoState: data, Revision: 1, BaseHash: initial.Config.ConfigChainHash,
 	}}}); err != nil {
 		t.Fatal(err)
 	}
 
-	// Three empty operations exceed the reader's one queued and one in-progress frame.
+	// Three discarded frames exceed the reader's one queued and one in-progress frame.
 	// Completing these writes proves the owner handled the earlier snapshot before recovery can finish.
 	for range 3 {
-		if err := session.SendMsg(&SOSyncMessage{Body: &SOSyncMessage_Op{Op: &SOSyncOp{}}}); err != nil {
+		if err := session.SendMsg(&SOSyncMessage{Body: &SOSyncMessage_Ack{Ack: &SOSyncAck{}}}); err != nil {
 			t.Fatal(err)
 		}
 	}

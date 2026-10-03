@@ -3,12 +3,14 @@ package sobject
 import (
 	"bytes"
 	"context"
-	"slices"
 
 	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/aperturerobotics/util/refcount"
 	"github.com/pkg/errors"
+	block_transform "github.com/s4wave/spacewave/db/block/transform"
+	"github.com/s4wave/spacewave/net/crypto"
 	"github.com/s4wave/spacewave/net/peer"
+	"github.com/sirupsen/logrus"
 )
 
 // SOStateWatchFunc is a function to watch the SOState for changes.
@@ -88,32 +90,6 @@ func (s *SOHost) GetHostState(ctx context.Context) (*SOState, error) {
 		return nil, err
 	}
 	return st.CloneVT(), nil
-}
-
-// GetRootState returns a snapshot of the current root state.
-func (s *SOHost) GetRootState(ctx context.Context) (*SORoot, error) {
-	hs, err := s.GetHostState(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	return hs.GetRoot(), nil
-}
-
-// GetRootInnerState returns a snapshot of the SORoot and unmarshals the SORootInner.
-func (s *SOHost) GetRootInnerState(ctx context.Context) (*SORootInner, *SORoot, error) {
-	// Read the signed root from the current host snapshot.
-	sr, err := s.GetRootState(ctx)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	// Decode and validate the signed root's inner value.
-	sri := &SORootInner{}
-	if err := sri.UnmarshalVT(sr.GetInner()); err != nil {
-		return nil, sr, err
-	}
-	return sri, sr, sri.Validate()
 }
 
 // UpdateSOState locks the SO state, clones it, calls the provided function
@@ -197,6 +173,15 @@ func (s *SOHost) ReadConfigEntry(ctx context.Context, head []byte) (*SOConfigCha
 	return entry, nil
 }
 
+// ReadConfigLineage returns the retained changes that lead to the config head
+// target, oldest first. See ReadConfigLineage.
+func (s *SOHost) ReadConfigLineage(ctx context.Context, target []byte) ([]*SOConfigChange, error) {
+	if s.syncFuncs.Entry == nil {
+		return nil, nil
+	}
+	return ReadConfigLineage(ctx, target, s.ReadConfigEntry)
+}
+
 // ImportPeerSnapshot verifies a candidate against held authority and commits it
 // with its lineage. Access validation runs under the provider lock and must not
 // reacquire host state. A committed local removal returns ErrParticipantRevoked.
@@ -247,57 +232,36 @@ func (s *SOHost) ImportPeerSnapshot(
 		}
 	}
 
-	// Apply proven revocation independently of root progress or access to new keys.
+	// Apply proven revocation independently of access to new keys.
 	if !readable {
 		if len(changes) == 0 {
 			return ErrParticipantRevoked
 		}
 		next := previous.CloneVT()
 		next.Config = candidate.GetConfig().CloneVT()
-		next.RootGrants = nil
+		next.KeyEpochs = nil
 		next.Ops = nil
-		next.QueuedAccountNonces = nil
-		next.OpRejections = nil
 		if err := lock.WriteSOState(ctx, next, changes...); err != nil {
 			return err
 		}
 		return ErrParticipantRevoked
 	}
 
-	// Authenticate root progress; unchanged accepted roots may carry role updates.
-	next := candidate.CloneVT()
-	seqno := next.GetRoot().GetInnerSeqno()
-	previousSeqno := previous.GetRoot().GetInnerSeqno()
-	if seqno < previousSeqno {
-		return errors.New("peer snapshot root rollback")
+	// Merge the candidate's checkpoint, grants and operations under the
+	// verified config. Invitations stay locally administered.
+	next := previous.CloneVT()
+	next.Config = candidate.GetConfig().CloneVT()
+	if checkpoint := candidate.GetCheckpoint(); checkpoint != nil {
+		if err := next.AdoptCheckpoint(s.sharedObjectID, checkpoint); err != nil {
+			return errors.Wrap(err, "peer snapshot checkpoint")
+		}
 	}
-	if seqno == previousSeqno {
-		acceptedRoot := previous.GetRoot()
-		candidateRoot := next.GetRoot()
-		if !bytes.Equal(candidateRoot.GetInner(), acceptedRoot.GetInner()) ||
-			!slices.EqualFunc(candidateRoot.GetAccountNonces(), acceptedRoot.GetAccountNonces(), func(a, b *SOAccountNonce) bool { return a.EqualVT(b) }) {
-			return errors.New("peer snapshot conflicts with accepted root")
-		}
-		// The held checkpoint already authenticated this exact content. Later
-		// membership changes do not revoke authority over historical roots.
-		next.Root = acceptedRoot.CloneVT()
-	} else if len(next.GetRoot().GetInner()) != 0 {
-		// Catch-up may skip roots, but cannot forget a committed account nonce.
-		nextNonces := make(map[string]uint64, len(next.GetRoot().GetAccountNonces()))
-		for _, nonce := range next.GetRoot().GetAccountNonces() {
-			nextNonces[nonce.GetPeerId()] = nonce.GetNonce()
-		}
-		for _, nonce := range previous.GetRoot().GetAccountNonces() {
-			if nextNonces[nonce.GetPeerId()] < nonce.GetNonce() {
-				return errors.Wrap(ErrInvalidNonce, "peer snapshot root account nonce rollback")
-			}
-		}
-		validSigs, err := next.GetRoot().ValidateSignatures(s.sharedObjectID, next.GetConfig().GetParticipants())
-		if err != nil {
-			return errors.Wrap(err, "peer snapshot root authority")
-		}
-		if err := CheckConsensusAcceptance(next.GetConfig().GetConsensusMode(), validSigs); err != nil {
-			return errors.Wrap(err, "peer snapshot consensus")
+	if err := next.MergeKeyEpochs(s.sharedObjectID, candidate.GetKeyEpochs()); err != nil {
+		return errors.Wrap(err, "peer snapshot key epochs")
+	}
+	for _, op := range candidate.GetOps() {
+		if _, err := next.AddOperation(s.sharedObjectID, op); err != nil {
+			return errors.Wrap(err, "peer snapshot operation")
 		}
 	}
 	if err := next.Validate(s.sharedObjectID); err != nil {
@@ -309,48 +273,6 @@ func (s *SOHost) ImportPeerSnapshot(
 		}
 	}
 
-	// Invitation capabilities are locally administered, not authenticated by a root.
-	next.Invites = previous.CloneVT().Invites
-	operations := next.Ops
-	next.Ops = nil
-	next.QueuedAccountNonces = nil
-	for _, operation := range operations {
-		if err := next.QueueOperation(s.sharedObjectID, operation); err != nil {
-			return errors.Wrap(err, "peer snapshot operation")
-		}
-	}
-
-	// Preserve unresolved local operations that remain admissible under new authority.
-	for _, operation := range previous.GetOps() {
-		inner, err := operation.UnmarshalInner()
-		if err != nil {
-			return err
-		}
-		existing, rejection, err := next.GetOperationStatus(inner.GetPeerId(), inner.GetLocalId())
-		if err != nil {
-			return err
-		}
-		if existing != nil || rejection != nil {
-			continue
-		}
-
-		// The held state admitted its operations in chain order, so the
-		// operation's predecessor was resolved or queued, even when the
-		// candidate no longer shows it. Committed, revoked or over-capacity
-		// local operations cannot be requeued, and keep the queued heads
-		// they found.
-		queued := make([]*SOAccountNonce, 0, len(next.GetQueuedAccountNonces()))
-		for _, nonce := range next.GetQueuedAccountNonces() {
-			queued = append(queued, nonce.CloneVT())
-		}
-		if nonce := inner.GetNonce(); nonce > 1 {
-			next.QueuedAccountNonces = advanceAccountNonce(next.QueuedAccountNonces, inner.GetPeerId(), nonce-1, inner.GetPrevOpHash())
-		}
-		if err := next.QueueOperation(s.sharedObjectID, operation); err != nil {
-			next.QueuedAccountNonces = queued
-		}
-	}
-
 	// Avoid publishing unchanged snapshots back through watches or provider writes.
 	if next.EqualVT(previous) {
 		return nil
@@ -358,87 +280,35 @@ func (s *SOHost) ImportPeerSnapshot(
 	return lock.WriteSOState(ctx, next, changes...)
 }
 
-// InstallInviteSnapshot installs an explicit, externally authenticated invitation result.
-// The caller must have authenticated the invitation owner and its response before
-// calling this operation. Ordinary peer synchronization must use ImportPeerSnapshot.
-func (s *SOHost) InstallInviteSnapshot(ctx context.Context, candidate *SOState) error {
-	// Validate the new checkpoint before opening the provider's replacement boundary.
+// InstallInviteSnapshot installs an explicit, externally authenticated
+// invitation result with lineage, the inviter's retained changes leading to
+// its config, oldest first. The lineage lets this replica resolve the config
+// of every operation the candidate holds. The caller must have authenticated
+// the invitation owner and its response before calling this operation.
+// Ordinary peer synchronization must use ImportPeerSnapshot.
+func (s *SOHost) InstallInviteSnapshot(ctx context.Context, candidate *SOState, lineage []*SOConfigChange) error {
+	// Validate the new checkpoint and lineage before opening the provider's
+	// replacement boundary.
 	if s.syncFuncs.CheckpointLock == nil || len(candidate.GetConfig().GetConfigChainHash()) == 0 {
 		return ErrConfigHistoryUnavailable
 	}
 	if err := candidate.Validate(s.sharedObjectID); err != nil {
 		return err
 	}
-	signatures, err := candidate.GetRoot().ValidateSignatures(s.sharedObjectID, candidate.GetConfig().GetParticipants())
-	if err != nil {
+	if err := candidate.ValidateAuthority(s.sharedObjectID); err != nil {
 		return err
 	}
-	if err := CheckConsensusAcceptance(candidate.GetConfig().GetConsensusMode(), signatures); err != nil {
-		return err
+	if _, err := VerifyConfigLineage(s.sharedObjectID, candidate.GetConfig(), lineage); err != nil {
+		return errors.Wrap(err, "invitation config lineage")
 	}
 
-	// Commit state and its invitation-authenticated checkpoint under one provider lock.
+	// Commit state, its checkpoint and its lineage under one provider lock.
 	lock, err := s.syncFuncs.CheckpointLock(ctx, s.sharedObjectID)
 	if err != nil {
 		return err
 	}
 	defer lock.Release()
-	return lock.WriteSOState(ctx, candidate.CloneVT())
-}
-
-// UpdateRootState locks the host state and applies the UpdateRootState operation.
-//
-// Admission failures leave the held state unchanged; persistence is atomic at the provider boundary.
-// If enforceValidatorPeerID is non-empty, ensures the given validator is in the set of signatures.
-func (s *SOHost) UpdateRootState(
-	ctx context.Context,
-	nextRootState *SORoot,
-	enforceValidatorPeerID string,
-	rejectedOps []*SOOperationRejection,
-	acceptedOps []*SOOperation,
-) error {
-	// Serialize root acceptance with other host mutations.
-	lk, err := s.lockFn(ctx, s.sharedObjectID)
-	if err != nil {
-		return err
-	}
-	defer lk.Release()
-
-	// Clone the locked state before root validation.
-	prevState := lk.GetSOState()
-	nextState := prevState.CloneVT()
-
-	// Validate root authorization and the operation results together.
-	err = nextState.UpdateRootState(s.sharedObjectID, nextRootState, enforceValidatorPeerID, rejectedOps, acceptedOps)
-	if err != nil {
-		return err
-	}
-
-	// Publish the accepted state through the provider's write boundary.
-	return lk.WriteSOState(ctx, nextState)
-}
-
-// ClearRejectedOperation clears a rejected operation from the state.
-// The clear operation must be signed by the peer that submitted the original operation.
-func (s *SOHost) ClearRejectedOperation(ctx context.Context, clearOp *SOClearOperationResult) error {
-	// Serialize rejection cleanup with other host mutations.
-	lk, err := s.lockFn(ctx, s.sharedObjectID)
-	if err != nil {
-		return err
-	}
-	defer lk.Release()
-
-	// Clone the locked state before changing rejection records.
-	prevState := lk.GetSOState()
-	nextState := prevState.CloneVT()
-
-	// Validate the clearing signature against the original operation.
-	if err := nextState.ClearOperationResult(s.sharedObjectID, clearOp); err != nil {
-		return err
-	}
-
-	// Commit the accepted rejection cleanup.
-	return lk.WriteSOState(ctx, nextState)
+	return lock.WriteSOState(ctx, candidate.CloneVT(), lineage...)
 }
 
 // ApplyConfigChange applies a signed SOConfigChange to the shared object state.
@@ -483,89 +353,55 @@ func (s *SOHost) ApplyConfigChange(ctx context.Context, entry *SOConfigChange, f
 	return lk.WriteSOState(ctx, nextState, entry)
 }
 
-// QueuedOpsProcessor validates the pending operations of a locked state and
-// returns the next root and operation results in the form UpdateRootState
-// admits.
-type QueuedOpsProcessor = func(
+// AddLocalOperation signs opData as the owner of privKey and adds it to the
+// operation set, encoded with the key of the epoch the operation names. It
+// returns the operation's local ID and nonce once the state holding it is
+// written.
+func (s *SOHost) AddLocalOperation(
 	ctx context.Context,
-	state *SOState,
-) (nextRoot *SORoot, rejectedOps []*SOOperationRejection, acceptedOps []*SOOperation, err error)
-
-// QueueOperation locks the host state and applies the QueueOperation operation.
-//
-// Calls the callback to build the SOOperation with the given nonce.
-//
-// Returns an error if the operation cannot be queued or if the nonce doesn't match the expected value.
-func (s *SOHost) QueueOperation(
-	ctx context.Context,
-	peerID peer.ID,
-	cb func(link *SOOperationLink) (*SOOperation, error),
-) error {
-	return s.QueueOperationAndProcess(ctx, peerID, cb, nil)
-}
-
-// QueueOperationAndProcess queues an operation like QueueOperation. When
-// process is set, peerID must be a validator: the root that process returns
-// for the queued state is admitted as by UpdateRootState and written with the
-// queued operation in one state write. If processing or admission fails, only
-// the queued operation is written, leaving it for the next validator pass.
-func (s *SOHost) QueueOperationAndProcess(
-	ctx context.Context,
-	peerID peer.ID,
-	cb func(link *SOOperationLink) (*SOOperation, error),
-	process QueuedOpsProcessor,
-) error {
-	// Serialize nonce selection and operation acceptance under the provider lock.
+	le *logrus.Entry,
+	sfs *block_transform.StepFactorySet,
+	privKey crypto.PrivKey,
+	opData []byte,
+) (string, uint64, error) {
+	// Serialize nonce selection and admission under the provider lock.
+	peerID, err := peer.IDFromPrivateKey(privKey)
+	if err != nil {
+		return "", 0, err
+	}
 	lk, err := s.lockFn(ctx, s.sharedObjectID)
 	if err != nil {
-		return err
+		return "", 0, err
 	}
 	defer lk.Release()
 
-	// Clone the locked state before selecting an operation nonce.
-	prevState := lk.GetSOState()
-	nextState := prevState.CloneVT()
-
-	// Build the operation at the head of this peer's chain.
-	op, err := cb(nextState.NextOperationLink(peerID.String()))
+	// Encode the data for the head of this peer's chain.
+	next := lk.GetSOState().CloneVT()
+	link, err := next.NextOperationLink(s.sharedObjectID, peerID.String())
 	if err != nil {
-		return err
+		return "", 0, err
 	}
-
-	// Validate and queue the operation in the cloned state.
-	err = nextState.QueueOperation(s.sharedObjectID, op)
+	handle := NewSOStateParticipantHandle(le, sfs, s.sharedObjectID, next, privKey, peerID)
+	xfrm, err := handle.epochTransformer(link.KeyEpoch)
 	if err != nil {
-		return err
+		return "", 0, err
 	}
-
-	// Apply the validated root when processing succeeds.
-	if process != nil {
-		if validated, ok := s.processQueued(ctx, peerID, nextState, process); ok {
-			nextState = validated
-		}
-	}
-
-	// Commit the accepted operation.
-	return lk.WriteSOState(ctx, nextState)
-}
-
-// processQueued runs process on a locked state and applies the root it
-// returns to a copy. ok is false if processing or admission failed; the
-// validator's next pass reports those errors.
-func (s *SOHost) processQueued(
-	ctx context.Context,
-	validatorPeerID peer.ID,
-	state *SOState,
-	process QueuedOpsProcessor,
-) (*SOState, bool) {
-	nextRoot, rejectedOps, acceptedOps, err := process(ctx, state)
+	opDataEnc, err := xfrm.EncodeBlock(opData)
 	if err != nil {
-		return nil, false
+		return "", 0, err
 	}
-	validated := state.CloneVT()
-	err = validated.UpdateRootState(s.sharedObjectID, nextRoot, validatorPeerID.String(), rejectedOps, acceptedOps)
+
+	// Sign it, add it to the set and commit.
+	localID := NewSOOperationLocalID()
+	op, err := BuildSOOperation(s.sharedObjectID, privKey, opDataEnc, link, localID)
 	if err != nil {
-		return nil, false
+		return "", 0, err
 	}
-	return validated, true
+	if _, err := next.AddOperation(s.sharedObjectID, op); err != nil {
+		return "", 0, err
+	}
+	if err := lk.WriteSOState(ctx, next); err != nil {
+		return "", 0, err
+	}
+	return localID, link.Nonce, nil
 }

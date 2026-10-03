@@ -126,18 +126,8 @@ func (r *LocalSessionResource) AddEntityKeypair(
 	}
 	defer relSO()
 
-	// Queue the operation on that SharedObject.
-	localID, err := so.QueueOperation(ctx, opData)
-	if err != nil {
-		return nil, errors.Wrap(err, "queue add entity keypair operation")
-	}
-
-	// Wait for the operation and clear a rejected result.
-	_, wasRejected, err := so.WaitOperation(ctx, localID)
-	if err != nil {
-		if wasRejected {
-			_ = so.ClearOperationResult(ctx, localID)
-		}
+	// Write the operation and wait for its outcome.
+	if _, err := sobject.WriteOperation(ctx, so, opData, account_settings.ProcessAccountSettingsOps); err != nil {
 		return nil, errors.Wrap(err, "add entity keypair")
 	}
 
@@ -177,18 +167,8 @@ func (r *LocalSessionResource) RemoveEntityKeypair(
 	}
 	defer relSO()
 
-	// Queue the operation on that SharedObject.
-	localID, err := so.QueueOperation(ctx, opData)
-	if err != nil {
-		return nil, errors.Wrap(err, "queue remove entity keypair operation")
-	}
-
-	// Wait for the operation and clear a rejected result.
-	_, wasRejected, err := so.WaitOperation(ctx, localID)
-	if err != nil {
-		if wasRejected {
-			_ = so.ClearOperationResult(ctx, localID)
-		}
+	// Write the operation and wait for its outcome.
+	if _, err := sobject.WriteOperation(ctx, so, opData, account_settings.ProcessAccountSettingsOps); err != nil {
 		return nil, errors.Wrap(err, "remove entity keypair")
 	}
 
@@ -223,18 +203,8 @@ func (r *LocalSessionResource) SetDisplayName(
 	}
 	defer relSO()
 
-	// Queue the operation on that SharedObject.
-	localID, err := so.QueueOperation(ctx, opData)
-	if err != nil {
-		return nil, errors.Wrap(err, "queue update display name operation")
-	}
-
-	// Wait for the operation and clear a rejected result.
-	_, wasRejected, err := so.WaitOperation(ctx, localID)
-	if err != nil {
-		if wasRejected {
-			_ = so.ClearOperationResult(ctx, localID)
-		}
+	// Write the operation and wait for its outcome.
+	if _, err := sobject.WriteOperation(ctx, so, opData, account_settings.ProcessAccountSettingsOps); err != nil {
 		return nil, errors.Wrap(err, "update display name")
 	}
 
@@ -281,16 +251,10 @@ func (r *LocalSessionResource) WatchDisplayName(
 				return nil
 			}
 
-			// Decode account settings from the root inner.
-			rootInner, err := snap.GetRootInner(ctx)
+			// Read the settings.
+			settings, err := account_settings.ReadSnapshot(ctx, snap)
 			if err != nil {
 				return err
-			}
-			settings := &account_settings.AccountSettings{}
-			if data := rootInner.GetStateData(); len(data) > 0 {
-				if err := settings.UnmarshalVT(data); err != nil {
-					return err
-				}
 			}
 
 			// Send the display name when it changes.

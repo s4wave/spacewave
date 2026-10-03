@@ -2,6 +2,7 @@ package space_sobject
 
 import (
 	"context"
+	"strings"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
@@ -11,6 +12,7 @@ import (
 	sobject_world_engine "github.com/s4wave/spacewave/core/sobject/world/engine"
 	"github.com/s4wave/spacewave/core/space"
 	space_world_optypes "github.com/s4wave/spacewave/core/space/world/optypes"
+	"github.com/s4wave/spacewave/db/world"
 )
 
 // ControllerID is the controller id.
@@ -47,6 +49,12 @@ func NewFactory(b bus.Bus) controller.Factory {
 // HandleDirective asks if the handler can resolve the directive.
 func (c *Controller) HandleDirective(ctx context.Context, di directive.Instance) ([]directive.Resolver, error) {
 	switch dir := di.GetDirective().(type) {
+	case world.LookupWorldOp:
+		// Serve the built-in Space operations to every Space engine, before
+		// its first replay.
+		if strings.HasPrefix(dir.LookupWorldOpEngineID(), space.SpaceBodyType+"/") {
+			return directive.R(world.NewLookupWorldOpResolver(space_world_optypes.LookupWorldOp), nil)
+		}
 	case sobject.MountSharedObjectBody:
 		switch dir.MountSharedObjectBodyType() {
 		case space.SpaceBodyType:
@@ -83,7 +91,6 @@ func (c *Controller) resolveMountSharedObjectBody(dir sobject.MountSharedObjectB
 			soRef.Release()
 			return nil, nil, err
 		}
-		ctrl.SetStaticLookupOp(space_world_optypes.LookupWorldOp)
 
 		// Wait for the controller to publish its engine.
 		eng, err := ctrl.GetWorldEngine(ctx)
@@ -124,8 +131,7 @@ func newSpaceWorldEngineConfig(mountRef *sobject.SharedObjectRef, conf *Config) 
 		InitWorldOp: &sobject_world_engine.InitWorldOp{
 			LastChangeDisable: true,
 		},
-		Verbose:           conf.GetVerbose(),
-		ProcessOpsBackoff: conf.GetProcessOpsBackoff().CloneVT(),
+		Verbose: conf.GetVerbose(),
 	}
 }
 

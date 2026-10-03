@@ -2,6 +2,7 @@ package provider_spacewave
 
 import (
 	"context"
+	"net/http"
 	"slices"
 
 	"github.com/pkg/errors"
@@ -120,7 +121,8 @@ func (c *SessionClient) EnrollSpacePeer(
 	return grant != nil, nil
 }
 
-// addStandaloneParticipant adds or updates a participant with a root grant.
+// addStandaloneParticipant adds or updates a participant with a current key
+// epoch grant.
 // It keeps a higher existing role and fills a missing entity or username.
 // Returns nil when the participant and its grant are already current.
 func (c *SessionClient) addStandaloneParticipant(
@@ -134,7 +136,7 @@ func (c *SessionClient) addStandaloneParticipant(
 ) (*sobject.SOGrant, error) {
 	// Write the change against the latest config, retrying on a conflict.
 	for attempt := range maxWriteRetries {
-		// Load the latest config, root grants and key epochs.
+		// Load the latest config and key epochs.
 		state, currentCfg, epochs, err := c.loadStandaloneConfigState(ctx, spaceID)
 		if err != nil {
 			return nil, err
@@ -160,26 +162,18 @@ func (c *SessionClient) addStandaloneParticipant(
 
 		// Return early when the participant and its grant are current.
 		epoch := currentEpochWithFallback(state, epochs)
-		grantExists := soGrantSliceHasPeerID(state.GetRootGrants(), targetPeerID)
-		if !grantExists && epoch != nil {
-			grantExists = soGrantSliceHasPeerID(epoch.GetGrants(), targetPeerID)
+		if epoch == nil {
+			return nil, errSharedObjectCurrentKeyEpochMissing
 		}
+		grantExists := epoch.FindGrant(targetPeerID) != nil
 		if participantExists && !participantNeedsUpdate && grantExists {
 			return nil, nil
 		}
 
 		// Decrypt the local grant to re-encrypt it for the target.
-		localPeerIDStr := c.peerID.String()
-		localGrant := findSOGrantByPeerID(state.GetRootGrants(), localPeerIDStr)
-		if localGrant == nil && epoch != nil {
-			localGrant = findSOGrantByPeerID(epoch.GetGrants(), localPeerIDStr)
-		}
-		if localGrant == nil {
-			return nil, errors.New("local grant not found")
-		}
-		grantInner, err := localGrant.DecryptInnerData(c.priv, spaceID)
+		grantInner, err := c.decryptLocalEpochGrant(spaceID, epoch)
 		if err != nil {
-			return nil, errors.Wrap(err, "decrypt local grant")
+			return nil, err
 		}
 
 		var entry *sobject.SOConfigChange
@@ -221,38 +215,23 @@ func (c *SessionClient) addStandaloneParticipant(
 			}
 		}
 
+		// Add the target's grant to the current key epoch when it lacks one.
 		var grant *sobject.SOGrant
+		var postedEpoch *sobject.SOKeyEpoch
 		if !grantExists {
 			grant, err = sobject.EncryptSOGrant(c.priv, targetPub, spaceID, grantInner)
 			if err != nil {
 				return nil, errors.Wrap(err, "encrypt grant for target peer")
 			}
-			if epoch == nil {
-				epoch = &sobject.SOKeyEpoch{
-					Epoch:      sobject.CurrentEpochNumber(epochs),
-					SeqnoStart: state.GetRoot().GetInnerSeqno(),
-					Grants:     slices.Clone(state.GetRootGrants()),
-				}
-			}
-			if epoch.GetSeqnoStart() == 0 {
-				epoch.SeqnoStart = state.GetRoot().GetInnerSeqno()
-			}
-			epoch.Grants = append(epoch.GetGrants(), grant)
-		}
-
-		var postedEpoch *sobject.SOKeyEpoch
-		if !grantExists {
 			postedEpoch = epoch
+			postedEpoch.Grants = append(postedEpoch.GetGrants(), grant)
 		}
 
 		recoveryCfg, err := recoveryConfigSnapshot(currentCfg, entry)
 		if err != nil {
 			return nil, errors.Wrap(err, "build recovery config snapshot")
 		}
-		recoveryKeyEpoch := sobject.CurrentEpochNumber(epochs)
-		if postedEpoch != nil {
-			recoveryKeyEpoch = postedEpoch.GetEpoch()
-		}
+		recoveryKeyEpoch := epoch.GetEpoch()
 		recoveryEnvelopes, err := buildSORecoveryEnvelopes(
 			ctx,
 			c,
@@ -280,31 +259,15 @@ func (c *SessionClient) addStandaloneParticipant(
 			}
 		}
 
-		if entryData != nil {
-			if err := c.PostConfigState(
-				ctx,
-				spaceID,
-				entryData,
-				nil,
-				postedEpoch,
-				recoveryEnvelopes,
-			); err != nil {
-				var ce *cloudError
-				if !errors.As(err, &ce) || ce.StatusCode != 409 || attempt+1 == maxWriteRetries {
-					return nil, err
-				}
-				continue
-			}
-		} else if postedEpoch != nil {
-			if err := c.PostKeyEpoch(ctx, spaceID, epoch, recoveryEnvelopes); err != nil {
-				var ce *cloudError
-				if !errors.As(err, &ce) || ce.StatusCode != 409 || attempt+1 == maxWriteRetries {
-					return nil, err
-				}
-				continue
-			}
+		// Post the change, retrying a config conflict.
+		err = c.postStandaloneParticipant(ctx, spaceID, entryData, postedEpoch, recoveryEnvelopes)
+		var ce *cloudError
+		if errors.As(err, &ce) && ce.StatusCode == http.StatusConflict && attempt+1 < maxWriteRetries {
+			continue
 		}
-
+		if err != nil {
+			return nil, err
+		}
 		return grant, nil
 	}
 
@@ -342,10 +305,10 @@ func (c *SessionClient) addStandalonePeerParticipant(
 			participantCount++
 		}
 		epoch := currentEpochWithFallback(state, epochs)
-		grantExists := soGrantSliceHasPeerID(state.GetRootGrants(), targetPeerID)
-		if !grantExists && epoch != nil {
-			grantExists = soGrantSliceHasPeerID(epoch.GetGrants(), targetPeerID)
+		if epoch == nil {
+			return nil, errSharedObjectCurrentKeyEpochMissing
 		}
+		grantExists := epoch.FindGrant(targetPeerID) != nil
 		participantNeedsUpdate := !participantExists ||
 			participantCount != 1 ||
 			currentCfg.GetParticipants()[participantIdx].GetRole() != role ||
@@ -354,17 +317,9 @@ func (c *SessionClient) addStandalonePeerParticipant(
 			return nil, nil
 		}
 
-		localPeerIDStr := c.peerID.String()
-		localGrant := findSOGrantByPeerID(state.GetRootGrants(), localPeerIDStr)
-		if localGrant == nil && epoch != nil {
-			localGrant = findSOGrantByPeerID(epoch.GetGrants(), localPeerIDStr)
-		}
-		if localGrant == nil {
-			return nil, errors.New("local grant not found")
-		}
-		grantInner, err := localGrant.DecryptInnerData(c.priv, spaceID)
+		grantInner, err := c.decryptLocalEpochGrant(spaceID, epoch)
 		if err != nil {
-			return nil, errors.Wrap(err, "decrypt local grant")
+			return nil, err
 		}
 
 		var entry *sobject.SOConfigChange
@@ -396,37 +351,22 @@ func (c *SessionClient) addStandalonePeerParticipant(
 			}
 		}
 
+		// Add the target's grant to the current key epoch when it lacks one.
 		var grant *sobject.SOGrant
+		var postedEpoch *sobject.SOKeyEpoch
 		if !grantExists {
 			grant, err = sobject.EncryptSOGrant(c.priv, targetPub, spaceID, grantInner)
 			if err != nil {
 				return nil, errors.Wrap(err, "encrypt grant for target peer")
 			}
-			if epoch == nil {
-				epoch = &sobject.SOKeyEpoch{
-					Epoch:      sobject.CurrentEpochNumber(epochs),
-					SeqnoStart: state.GetRoot().GetInnerSeqno(),
-					Grants:     slices.Clone(state.GetRootGrants()),
-				}
-			}
-			if epoch.GetSeqnoStart() == 0 {
-				epoch.SeqnoStart = state.GetRoot().GetInnerSeqno()
-			}
-			epoch.Grants = append(epoch.GetGrants(), grant)
-		}
-
-		var postedEpoch *sobject.SOKeyEpoch
-		if !grantExists {
 			postedEpoch = epoch
+			postedEpoch.Grants = append(postedEpoch.GetGrants(), grant)
 		}
 		recoveryCfg, err := recoveryConfigSnapshot(currentCfg, entry)
 		if err != nil {
 			return nil, errors.Wrap(err, "build recovery config snapshot")
 		}
-		recoveryKeyEpoch := sobject.CurrentEpochNumber(epochs)
-		if postedEpoch != nil {
-			recoveryKeyEpoch = postedEpoch.GetEpoch()
-		}
+		recoveryKeyEpoch := epoch.GetEpoch()
 		recoveryEnvelopes, err := buildSORecoveryEnvelopes(
 			ctx,
 			c,
@@ -439,35 +379,52 @@ func (c *SessionClient) addStandalonePeerParticipant(
 			return nil, err
 		}
 
-		if entryData != nil {
-			if err := c.PostConfigState(
-				ctx,
-				spaceID,
-				entryData,
-				nil,
-				postedEpoch,
-				recoveryEnvelopes,
-			); err != nil {
-				var ce *cloudError
-				if !errors.As(err, &ce) || ce.StatusCode != 409 || attempt+1 == maxWriteRetries {
-					return nil, err
-				}
-				continue
-			}
-		} else if postedEpoch != nil {
-			if err := c.PostKeyEpoch(ctx, spaceID, epoch, recoveryEnvelopes); err != nil {
-				var ce *cloudError
-				if !errors.As(err, &ce) || ce.StatusCode != 409 || attempt+1 == maxWriteRetries {
-					return nil, err
-				}
-				continue
-			}
+		// Post the change, retrying a config conflict.
+		err = c.postStandaloneParticipant(ctx, spaceID, entryData, postedEpoch, recoveryEnvelopes)
+		var ce *cloudError
+		if errors.As(err, &ce) && ce.StatusCode == http.StatusConflict && attempt+1 < maxWriteRetries {
+			continue
 		}
-
+		if err != nil {
+			return nil, err
+		}
 		return grant, nil
 	}
 
 	return nil, errors.New("add peer participant failed after max retries due to config conflicts")
+}
+
+// decryptLocalEpochGrant decrypts the local session's grant in epoch.
+func (c *SessionClient) decryptLocalEpochGrant(spaceID string, epoch *sobject.SOKeyEpoch) (*sobject.SOGrantInner, error) {
+	// Find and decrypt the local grant.
+	localGrant := epoch.FindGrant(c.peerID.String())
+	if localGrant == nil {
+		return nil, errors.New("local grant not found")
+	}
+	grantInner, err := localGrant.DecryptInnerData(c.priv, spaceID)
+	if err != nil {
+		return nil, errors.Wrap(err, "decrypt local grant")
+	}
+	return grantInner, nil
+}
+
+// postStandaloneParticipant posts a participant's config change with epoch,
+// or epoch alone when the config is current. A nil epoch adds no grant.
+func (c *SessionClient) postStandaloneParticipant(
+	ctx context.Context,
+	spaceID string,
+	entryData []byte,
+	epoch *sobject.SOKeyEpoch,
+	envelopes []*sobject.SOEntityRecoveryEnvelope,
+) error {
+	switch {
+	case entryData != nil:
+		return c.PostConfigState(ctx, spaceID, entryData, nil, epoch, envelopes)
+	case epoch != nil:
+		return c.PostKeyEpoch(ctx, spaceID, epoch, envelopes)
+	default:
+		return nil
+	}
 }
 
 func removeParticipantPeerID(

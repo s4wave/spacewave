@@ -29,26 +29,46 @@ const retainedRootsName = "retained-roots"
 const retainedRootsProofStoreID = "retained-root-retention"
 
 // errRetainedRootNotHead is returned when the root to retain is no longer the
-// accepted World head.
-var errRetainedRootNotHead = errors.New("root is not the accepted World head, export it again")
+// installed World head.
+var errRetainedRootNotHead = errors.New("root is not the current World head, export it again")
 
-// SetRetainedRoot submits a SetRetainedRootOp and waits for the validator's
-// decision. ref must be the accepted head or empty.
+// SetRetainedRoot adds a SetRetainedRootOp to the operation set and returns
+// its replay outcome. ref must be the installed World head or empty.
 func (e *soEngine) SetRetainedRoot(ctx context.Context, name string, ref *block.BlockRef) error {
+	// Reject a malformed name.
 	if err := validateRetainedRootName(name); err != nil {
 		return err
 	}
-	_, err := e.c.commitMaintenanceOp(ctx, e.so, func(state *InnerState) (*SOWorldOp, error) {
-		if !ref.GetEmpty() && !ref.EqualVT(state.GetHeadRef().GetRootRef()) {
-			return nil, errRetainedRootNotHead
-		}
-		return &SOWorldOp{
-			Body: &SOWorldOp_SetRetainedRoot{
-				SetRetainedRoot: &SetRetainedRootOp{Name: name, RootRef: ref},
-			},
-		}, nil
-	})
-	return err
+
+	// Build the operation on the current World, excluding write transactions
+	// until it is placed.
+	unlockWriteMtx, err := e.c.writeMtx.Lock(ctx)
+	if err != nil {
+		return err
+	}
+	defer unlockWriteMtx()
+	snap, err := e.so.GetSharedObjectState(ctx)
+	if err != nil {
+		return err
+	}
+	if _, err := e.advance(ctx, snap); err != nil {
+		return err
+	}
+	_, head, _ := e.replay.head()
+	if !ref.GetEmpty() && !ref.EqualVT(head.GetHeadRef().GetRootRef()) {
+		return errRetainedRootNotHead
+	}
+
+	// Add it and wait for its outcome.
+	opData, err := (&SOWorldOp{
+		Body: &SOWorldOp_SetRetainedRoot{
+			SetRetainedRoot: &SetRetainedRootOp{Name: name, RootRef: ref},
+		},
+	}).MarshalVT()
+	if err != nil {
+		return err
+	}
+	return e.queueOperation(ctx, opData, nil)
 }
 
 // processSetRetainedRootOp sets or releases one retained root.
@@ -98,12 +118,8 @@ func validateRetainedRootName(name string) error {
 // retainRoots copies every retained root's World graph into the local store
 // and holds the set under one local named root, releasing roots no longer in
 // the set. Returns block.ErrNotFound when a root's block is missing locally
-// and from storage.
+// and from storage. Callers serialize calls through the writer lock.
 func (c *Controller) retainRoots(ctx context.Context, so sobject.SharedObject, roots []*RetainedRoot) error {
-	// Serialize with other retainRoots calls.
-	c.retainMtx.Lock()
-	defer c.retainMtx.Unlock()
-
 	// Release the set when it is empty.
 	store := so.GetBlockStore()
 	if len(roots) == 0 {
@@ -139,55 +155,6 @@ func (c *Controller) retainRoots(ctx context.Context, so sobject.SharedObject, r
 		return err
 	}
 	return block.SetRetainedRoot(ctx, store, retainedRootsName, setRef)
-}
-
-// commitMaintenanceOp builds an operation on the accepted World state, queues
-// it, and waits for the validator's decision. A rejection is cleared from the
-// SharedObject state and returned as rejected with its error.
-//
-// The operation advances the SharedObject root like a foreground write, so it
-// holds writeMtx from building until the decision. Otherwise a write
-// transaction open across it would commit against a stale base.
-func (c *Controller) commitMaintenanceOp(
-	ctx context.Context,
-	so sobject.SharedObject,
-	build func(state *InnerState) (*SOWorldOp, error),
-) (bool, error) {
-	// Exclude write transactions until the decision.
-	unlockWriteMtx, err := c.writeMtx.Lock(ctx)
-	if err != nil {
-		return false, err
-	}
-	defer unlockWriteMtx()
-
-	// Build the operation on the accepted World state.
-	snap, err := so.GetSharedObjectState(ctx)
-	if err != nil {
-		return false, err
-	}
-	state, err := ReadInnerState(ctx, snap)
-	if err != nil {
-		return false, err
-	}
-	op, err := build(state)
-	if err != nil {
-		return false, err
-	}
-
-	// Queue it and wait for the decision.
-	opData, err := op.MarshalVT()
-	if err != nil {
-		return false, err
-	}
-	localOpID, err := so.QueueOperation(ctx, opData)
-	if err != nil {
-		return false, err
-	}
-	_, rejected, err := so.WaitOperation(ctx, localOpID)
-	if rejected {
-		_ = so.ClearOperationResult(ctx, localOpID)
-	}
-	return rejected, err
 }
 
 // _ is a type assertion

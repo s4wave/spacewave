@@ -235,54 +235,24 @@ export enum SOParticipantRole {
   SOParticipantRole_READER = 1,
 
   /**
-   * SOParticipantRole_WRITER can submit transactions to apply.
+   * SOParticipantRole_WRITER can also write operations.
    *
    * @generated from enum value: SOParticipantRole_WRITER = 2;
    */
   SOParticipantRole_WRITER = 2,
 
   /**
-   * SOParticipantRole_VALIDATOR can validate and apply transactions.
+   * SOParticipantRole_OWNER can modify config, manage participants and sign
+   * checkpoints.
    *
-   * @generated from enum value: SOParticipantRole_VALIDATOR = 3;
+   * @generated from enum value: SOParticipantRole_OWNER = 3;
    */
-  SOParticipantRole_VALIDATOR = 3,
-
-  /**
-   * SOParticipantRole_OWNER can modify config and manage participants.
-   *
-   * @generated from enum value: SOParticipantRole_OWNER = 4;
-   */
-  SOParticipantRole_OWNER = 4,
+  SOParticipantRole_OWNER = 3,
 }
 
 export const SOParticipantRole_Enum = /* @__PURE__ */ createEnumType(
   'sobject.SOParticipantRole',
   SOParticipantRole,
-)
-
-/**
- * SOConsensusMode defines the consensus mechanism for validating root state updates.
- *
- * @generated from enum sobject.SOConsensusMode
- */
-export enum SOConsensusMode {
-  /**
-   * SO_CONSENSUS_MODE_SINGLE_VALIDATOR requires at least one valid validator signature.
-   * This is the default mode and matches the existing behavior.
-   *
-   * Reserved for future consensus modes.
-   * SO_CONSENSUS_MODE_OWNER_QUORUM = 1;
-   * SO_CONSENSUS_MODE_SNOWMAN = 2;
-   *
-   * @generated from enum value: SO_CONSENSUS_MODE_SINGLE_VALIDATOR = 0;
-   */
-  SO_CONSENSUS_MODE_SINGLE_VALIDATOR = 0,
-}
-
-export const SOConsensusMode_Enum = /* @__PURE__ */ createEnumType(
-  'sobject.SOConsensusMode',
-  SOConsensusMode,
 )
 
 /**
@@ -675,8 +645,8 @@ export interface SOParticipantConfig {
    * Role is the general role of the participant.
    *
    * - READER: can read the value of the shared object only.
-   * - WRITER: can submit transactions to apply.
-   * - VALIDATOR: can validate and apply transactions.
+   * - WRITER: can also write operations.
+   * - OWNER: can also change the config and sign checkpoints.
    *
    * @generated from field: sobject.SOParticipantRole role = 2;
    */
@@ -723,13 +693,6 @@ export interface SharedObjectConfig {
    */
   participants?: SOParticipantConfig[]
   /**
-   * ConsensusMode is the consensus mechanism for validating root state updates.
-   * Default (zero value) is SINGLE_VALIDATOR.
-   *
-   * @generated from field: sobject.SOConsensusMode consensus_mode = 2;
-   */
-  consensusMode?: SOConsensusMode
-  /**
    * ConfigChainHash is the hash of the latest SOConfigChange entry.
    *
    * @generated from field: bytes config_chain_hash = 10;
@@ -756,7 +719,6 @@ export const SharedObjectConfig: MessageType<SharedObjectConfig> =
         T: SOParticipantConfig,
         repeated: true,
       },
-      { no: 2, name: 'consensus_mode', kind: 'enum', T: SOConsensusMode_Enum },
       {
         no: 10,
         name: 'config_chain_hash',
@@ -979,35 +941,71 @@ export const SOLeaveResponse: MessageType<SOLeaveResponse> =
   })
 
 /**
- * SOAccountNonce contains the head of an account's operation chain.
- * The accounts are sorted lexicographically by peer_id.
+ * SOCheckpoint is a signed checkpoint: the World at a point of the operation
+ * order, from which members replay the operations after it.
  *
- * @generated from message sobject.SOAccountNonce
+ * @generated from message sobject.SOCheckpoint
  */
-export interface SOAccountNonce {
+export interface SOCheckpoint {
   /**
-   * PeerId is the identifier of the account.
+   * Inner is the encoded SOCheckpointInner.
+   *
+   * @generated from field: bytes inner = 1;
+   */
+  inner?: Uint8Array
+  /**
+   * Signatures sign inner. One must be from an owner under the config named by
+   * inner.config_hash.
+   *
+   * @generated from field: repeated peer.Signature signatures = 2;
+   */
+  signatures?: Signature[]
+}
+
+export const SOCheckpoint: MessageType<SOCheckpoint> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'sobject.SOCheckpoint',
+    fields: [
+      { no: 1, name: 'inner', kind: 'scalar', T: ScalarType.BYTES },
+      {
+        no: 2,
+        name: 'signatures',
+        kind: 'message',
+        T: () => Signature,
+        repeated: true,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+  })
+
+/**
+ * SOCheckpointAuthor is the last operation of one author a checkpoint covers.
+ *
+ * @generated from message sobject.SOCheckpointAuthor
+ */
+export interface SOCheckpointAuthor {
+  /**
+   * PeerId is the author.
    *
    * @generated from field: string peer_id = 1;
    */
   peerId?: string
   /**
-   * Nonce is the author sequence of the account's latest operation.
+   * Nonce is the author sequence of the operation.
    *
    * @generated from field: uint64 nonce = 2;
    */
   nonce?: bigint
   /**
-   * OpHash is the hash of the account's operation at nonce.
+   * OpHash is the hash of the operation.
    *
    * @generated from field: bytes op_hash = 3;
    */
   opHash?: Uint8Array
 }
 
-export const SOAccountNonce: MessageType<SOAccountNonce> =
+export const SOCheckpointAuthor: MessageType<SOCheckpointAuthor> =
   /* @__PURE__ */ createMessageType({
-    typeName: 'sobject.SOAccountNonce',
+    typeName: 'sobject.SOCheckpointAuthor',
     fields: [
       { no: 1, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'nonce', kind: 'scalar', T: ScalarType.UINT64 },
@@ -1016,88 +1014,101 @@ export const SOAccountNonce: MessageType<SOAccountNonce> =
   })
 
 /**
- * SORoot is the signed root state on a SharedObject.
+ * SOCheckpointInner is the signed body of a checkpoint.
  *
- * @generated from message sobject.SORoot
+ * @generated from message sobject.SOCheckpointInner
  */
-export interface SORoot {
+export interface SOCheckpointInner {
   /**
-   * Inner is the encoded and encrypted SORootInner.
+   * SharedObjectId binds the checkpoint to one shared object.
    *
-   * @generated from field: bytes inner = 1;
+   * @generated from field: string shared_object_id = 1;
    */
-  inner?: Uint8Array
+  sharedObjectId?: string
   /**
-   * InnerSeqno is the sequence number of the SORootInner.
-   * Must match inner.seqno.
+   * Height is 0 for genesis, then one more than the previous checkpoint.
    *
-   * @generated from field: uint64 inner_seqno = 2;
+   * @generated from field: uint64 height = 2;
    */
-  innerSeqno?: bigint
+  height?: bigint
   /**
-   * AccountNonces contains the current nonce for each account.
-   * The accounts are sorted lexicographically by peer_id.
+   * PrevCheckpointHash is the hash of the previous checkpoint's inner.
+   * Empty only at genesis.
    *
-   * @generated from field: repeated sobject.SOAccountNonce account_nonces = 3;
+   * @generated from field: bytes prev_checkpoint_hash = 3;
    */
-  accountNonces?: SOAccountNonce[]
+  prevCheckpointHash?: Uint8Array
   /**
-   * ValidatorSignatures contains the set of signatures of []byte(inner + account_nonces).
-   * The signature public key must match a peer id of a validator.
+   * ConfigHash is the config chain hash the checkpoint was signed under.
    *
-   * @generated from field: repeated peer.Signature validator_signatures = 4;
+   * @generated from field: bytes config_hash = 4;
    */
-  validatorSignatures?: Signature[]
-}
-
-export const SORoot: MessageType<SORoot> = /* @__PURE__ */ createMessageType({
-  typeName: 'sobject.SORoot',
-  fields: [
-    { no: 1, name: 'inner', kind: 'scalar', T: ScalarType.BYTES },
-    { no: 2, name: 'inner_seqno', kind: 'scalar', T: ScalarType.UINT64 },
-    {
-      no: 3,
-      name: 'account_nonces',
-      kind: 'message',
-      T: SOAccountNonce,
-      repeated: true,
-    },
-    {
-      no: 4,
-      name: 'validator_signatures',
-      kind: 'message',
-      T: () => Signature,
-      repeated: true,
-    },
-  ] satisfies readonly PartialFieldInfo[],
-})
-
-/**
- * SORootInner is the inner signed message on SORoot.
- *
- * @generated from message sobject.SORootInner
- */
-export interface SORootInner {
+  configHash?: Uint8Array
   /**
-   * Seqno is the sequence number of the root state.
+   * Frontier is the heads of the operation prefix the checkpoint covers,
+   * strictly sorted. Empty at genesis.
    *
-   * @generated from field: uint64 seqno = 1;
+   * @generated from field: repeated bytes frontier = 5;
    */
-  seqno?: bigint
+  frontier?: Uint8Array[]
   /**
-   * StateData is the root state data for the shared object.
+   * StateData is the World state after the prefix, encrypted with the key of
+   * key_epoch.
    *
-   * @generated from field: bytes state_data = 2;
+   * @generated from field: bytes state_data = 6;
    */
   stateData?: Uint8Array
+  /**
+   * ReplayVersion is the replay rule version the World was computed with.
+   *
+   * @generated from field: uint32 replay_version = 7;
+   */
+  replayVersion?: number
+  /**
+   * KeyEpoch is the key epoch whose key encrypted state_data.
+   *
+   * @generated from field: uint64 key_epoch = 8;
+   */
+  keyEpoch?: bigint
+  /**
+   * Authors are the last covered operation of each author, sorted by peer_id.
+   * An operation at or below its author's entry is covered. Empty at genesis.
+   *
+   * @generated from field: repeated sobject.SOCheckpointAuthor authors = 9;
+   */
+  authors?: SOCheckpointAuthor[]
 }
 
-export const SORootInner: MessageType<SORootInner> =
+export const SOCheckpointInner: MessageType<SOCheckpointInner> =
   /* @__PURE__ */ createMessageType({
-    typeName: 'sobject.SORootInner',
+    typeName: 'sobject.SOCheckpointInner',
     fields: [
-      { no: 1, name: 'seqno', kind: 'scalar', T: ScalarType.UINT64 },
-      { no: 2, name: 'state_data', kind: 'scalar', T: ScalarType.BYTES },
+      { no: 1, name: 'shared_object_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'height', kind: 'scalar', T: ScalarType.UINT64 },
+      {
+        no: 3,
+        name: 'prev_checkpoint_hash',
+        kind: 'scalar',
+        T: ScalarType.BYTES,
+      },
+      { no: 4, name: 'config_hash', kind: 'scalar', T: ScalarType.BYTES },
+      {
+        no: 5,
+        name: 'frontier',
+        kind: 'scalar',
+        T: ScalarType.BYTES,
+        repeated: true,
+      },
+      { no: 6, name: 'state_data', kind: 'scalar', T: ScalarType.BYTES },
+      { no: 7, name: 'replay_version', kind: 'scalar', T: ScalarType.UINT32 },
+      { no: 8, name: 'key_epoch', kind: 'scalar', T: ScalarType.UINT64 },
+      {
+        no: 9,
+        name: 'authors',
+        kind: 'message',
+        T: SOCheckpointAuthor,
+        repeated: true,
+      },
     ] satisfies readonly PartialFieldInfo[],
   })
 
@@ -1161,7 +1172,7 @@ export interface SOOperationInner {
    */
   nonce?: bigint
   /**
-   * OpData is the operation data, transformed with the same transform config as root.
+   * OpData is the operation data, encrypted with the key of key_epoch.
    *
    * @generated from field: bytes op_data = 4;
    */
@@ -1198,6 +1209,12 @@ export interface SOOperationInner {
    * @generated from field: bytes config_hash = 9;
    */
   configHash?: Uint8Array
+  /**
+   * KeyEpoch is the key epoch whose key encrypted op_data.
+   *
+   * @generated from field: uint64 key_epoch = 10;
+   */
+  keyEpoch?: bigint
 }
 
 export const SOOperationInner: MessageType<SOOperationInner> =
@@ -1219,6 +1236,7 @@ export const SOOperationInner: MessageType<SOOperationInner> =
         repeated: true,
       },
       { no: 9, name: 'config_hash', kind: 'scalar', T: ScalarType.BYTES },
+      { no: 10, name: 'key_epoch', kind: 'scalar', T: ScalarType.UINT64 },
     ] satisfies readonly PartialFieldInfo[],
   })
 
@@ -1343,83 +1361,6 @@ export const SOOperationResult: MessageType<SOOperationResult> =
         T: SOOperationRejectionErrorDetails,
         oneof: 'body',
       },
-    ] satisfies readonly PartialFieldInfo[],
-  })
-
-/**
- * SOOperationRejection represents the rejection of an operation by a validator.
- * This tracks rejected operations until the participant acknowledges them.
- *
- * @generated from message sobject.SOOperationRejection
- */
-export interface SOOperationRejection {
-  /**
-   * Inner is the encoded SOOperationRejectionInner object.
-   *
-   * @generated from field: bytes inner = 1;
-   */
-  inner?: Uint8Array
-  /**
-   * Signature is the signature of inner by the validator.
-   * The pub key must match the peer id of a valid validator.
-   *
-   * @generated from field: peer.Signature signature = 2;
-   */
-  signature?: Signature
-}
-
-export const SOOperationRejection: MessageType<SOOperationRejection> =
-  /* @__PURE__ */ createMessageType({
-    typeName: 'sobject.SOOperationRejection',
-    fields: [
-      { no: 1, name: 'inner', kind: 'scalar', T: ScalarType.BYTES },
-      { no: 2, name: 'signature', kind: 'message', T: () => Signature },
-    ] satisfies readonly PartialFieldInfo[],
-  })
-
-/**
- * SOOperationRejectionInner is the inner message of SOOperationRejection.
- *
- * @generated from message sobject.SOOperationRejectionInner
- */
-export interface SOOperationRejectionInner {
-  /**
-   * PeerId is the identifier of the participant that submitted the operation.
-   *
-   * @generated from field: string peer_id = 1;
-   */
-  peerId?: string
-  /**
-   * OpNonce is the nonce of the operation for the peer.
-   *
-   * @generated from field: uint64 op_nonce = 2;
-   */
-  opNonce?: bigint
-  /**
-   * LocalId is the locally-assigned ulid for the operation.
-   * Must be a valid ulid.
-   * Must be lower-case.
-   *
-   * @generated from field: string local_id = 3;
-   */
-  localId?: string
-  /**
-   * ErrorDetails contains details about the rejection encoded to the peer id.
-   * May be empty if there are no details.
-   *
-   * @generated from field: bytes error_details = 4;
-   */
-  errorDetails?: Uint8Array
-}
-
-export const SOOperationRejectionInner: MessageType<SOOperationRejectionInner> =
-  /* @__PURE__ */ createMessageType({
-    typeName: 'sobject.SOOperationRejectionInner',
-    fields: [
-      { no: 1, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
-      { no: 2, name: 'op_nonce', kind: 'scalar', T: ScalarType.UINT64 },
-      { no: 3, name: 'local_id', kind: 'scalar', T: ScalarType.STRING },
-      { no: 4, name: 'error_details', kind: 'scalar', T: ScalarType.BYTES },
     ] satisfies readonly PartialFieldInfo[],
   })
 
@@ -1819,37 +1760,33 @@ export const SOJoinRequestList: MessageType<SOJoinRequestList> =
   })
 
 /**
- * SOPeerOpRejections contains all rejections for a specific peer.
+ * SOKeyEpoch is one encryption key of a shared object. A key rotation starts
+ * the next epoch; operations and checkpoints name the epoch they used.
  *
- * @generated from message sobject.SOPeerOpRejections
+ * @generated from message sobject.SOKeyEpoch
  */
-export interface SOPeerOpRejections {
+export interface SOKeyEpoch {
   /**
-   * PeerId is the identifier of the participant.
+   * Epoch is the epoch number (0-based, increments on rotation).
    *
-   * @generated from field: string peer_id = 1;
+   * @generated from field: uint64 epoch = 1;
    */
-  peerId?: string
+  epoch?: bigint
   /**
-   * Rejections is the list of rejections for this peer.
+   * Grants are the key encrypted to each reader of this epoch.
+   * Each grant is signed by an owner or by its recipient.
    *
-   * @generated from field: repeated sobject.SOOperationRejection rejections = 2;
+   * @generated from field: repeated sobject.SOGrant grants = 2;
    */
-  rejections?: SOOperationRejection[]
+  grants?: SOGrant[]
 }
 
-export const SOPeerOpRejections: MessageType<SOPeerOpRejections> =
+export const SOKeyEpoch: MessageType<SOKeyEpoch> =
   /* @__PURE__ */ createMessageType({
-    typeName: 'sobject.SOPeerOpRejections',
+    typeName: 'sobject.SOKeyEpoch',
     fields: [
-      { no: 1, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
-      {
-        no: 2,
-        name: 'rejections',
-        kind: 'message',
-        T: SOOperationRejection,
-        repeated: true,
-      },
+      { no: 1, name: 'epoch', kind: 'scalar', T: ScalarType.UINT64 },
+      { no: 2, name: 'grants', kind: 'message', T: SOGrant, repeated: true },
     ] satisfies readonly PartialFieldInfo[],
   })
 
@@ -1867,49 +1804,29 @@ export interface SOState {
    */
   config?: SharedObjectConfig
   /**
-   * Root is the current shared object root state.
+   * Checkpoint is the latest checkpoint: the World members replay from.
    *
-   * @generated from field: sobject.SORoot root = 2;
+   * @generated from field: sobject.SOCheckpoint checkpoint = 2;
    */
-  root?: SORoot
+  checkpoint?: SOCheckpoint
   /**
-   * RootGrants are grants to each of the participants.
-   * Each grant contains the transform config for the SORoot.
-   * Each grant must be signed by one of the validators.
-   * Each grant must be signed with the correct shared object id.
+   * KeyEpochs are the key epochs, sorted by epoch, each with a grant to every
+   * reader that holds its key.
    *
-   * @generated from field: repeated sobject.SOGrant root_grants = 3;
+   * @generated from field: repeated sobject.SOKeyEpoch key_epochs = 3;
    */
-  rootGrants?: SOGrant[]
+  keyEpochs?: SOKeyEpoch[]
   /**
-   * Ops are the list of pending operations.
-   * Validators can choose how many ops to apply.
-   * Each op must have a unique (peer_id, nonce) pair.
+   * Ops are the operations above the checkpoint, sorted by hash.
    *
    * @generated from field: repeated sobject.SOOperation ops = 4;
    */
   ops?: SOOperation[]
   /**
-   * OpRejections contains the rejections of operations by validators for each peer.
-   * These are kept until the participant acknowledges them.
-   * The list is sorted by peer_id.
-   *
-   * @generated from field: repeated sobject.SOPeerOpRejections op_rejections = 5;
-   */
-  opRejections?: SOPeerOpRejections[]
-  /**
-   * QueuedAccountNonces tracks the highest queued nonce for each account.
-   * These nonces are not signed and are only used for local state tracking.
-   * The accounts are sorted lexicographically by peer_id.
-   *
-   * @generated from field: repeated sobject.SOAccountNonce queued_account_nonces = 6;
-   */
-  queuedAccountNonces?: SOAccountNonce[]
-  /**
    * Invites is the list of pending invites on this shared object.
    * Stored in plaintext so both providers and cloud can verify invite validity.
    *
-   * @generated from field: repeated sobject.SOInvite invites = 7;
+   * @generated from field: repeated sobject.SOInvite invites = 5;
    */
   invites?: SOInvite[]
 }
@@ -1918,130 +1835,18 @@ export const SOState: MessageType<SOState> = /* @__PURE__ */ createMessageType({
   typeName: 'sobject.SOState',
   fields: [
     { no: 1, name: 'config', kind: 'message', T: SharedObjectConfig },
-    { no: 2, name: 'root', kind: 'message', T: SORoot },
-    { no: 3, name: 'root_grants', kind: 'message', T: SOGrant, repeated: true },
+    { no: 2, name: 'checkpoint', kind: 'message', T: SOCheckpoint },
+    {
+      no: 3,
+      name: 'key_epochs',
+      kind: 'message',
+      T: SOKeyEpoch,
+      repeated: true,
+    },
     { no: 4, name: 'ops', kind: 'message', T: SOOperation, repeated: true },
-    {
-      no: 5,
-      name: 'op_rejections',
-      kind: 'message',
-      T: SOPeerOpRejections,
-      repeated: true,
-    },
-    {
-      no: 6,
-      name: 'queued_account_nonces',
-      kind: 'message',
-      T: SOAccountNonce,
-      repeated: true,
-    },
-    { no: 7, name: 'invites', kind: 'message', T: SOInvite, repeated: true },
+    { no: 5, name: 'invites', kind: 'message', T: SOInvite, repeated: true },
   ] satisfies readonly PartialFieldInfo[],
 })
-
-/**
- * SOClearOperationResult represents a request to clear a rejected operation result.
- *
- * @generated from message sobject.SOClearOperationResult
- */
-export interface SOClearOperationResult {
-  /**
-   * Inner is the encoded SOClearOperationResultInner object.
-   *
-   * @generated from field: bytes inner = 1;
-   */
-  inner?: Uint8Array
-  /**
-   * Signature is the signature of inner by the operation submitter.
-   * The pub key must match the peer id that submitted the original operation.
-   *
-   * @generated from field: peer.Signature signature = 2;
-   */
-  signature?: Signature
-}
-
-export const SOClearOperationResult: MessageType<SOClearOperationResult> =
-  /* @__PURE__ */ createMessageType({
-    typeName: 'sobject.SOClearOperationResult',
-    fields: [
-      { no: 1, name: 'inner', kind: 'scalar', T: ScalarType.BYTES },
-      { no: 2, name: 'signature', kind: 'message', T: () => Signature },
-    ] satisfies readonly PartialFieldInfo[],
-  })
-
-/**
- * SOClearOperationResultInner is the inner message of SOClearOperationResult.
- *
- * @generated from message sobject.SOClearOperationResultInner
- */
-export interface SOClearOperationResultInner {
-  /**
-   * PeerId is the identifier of the participant that submitted the operation.
-   *
-   * @generated from field: string peer_id = 1;
-   */
-  peerId?: string
-  /**
-   * LocalId is the locally-assigned ulid for the operation.
-   * Must be a valid ulid.
-   * Must be lower-case.
-   *
-   * @generated from field: string local_id = 2;
-   */
-  localId?: string
-}
-
-export const SOClearOperationResultInner: MessageType<SOClearOperationResultInner> =
-  /* @__PURE__ */ createMessageType({
-    typeName: 'sobject.SOClearOperationResultInner',
-    fields: [
-      { no: 1, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
-      { no: 2, name: 'local_id', kind: 'scalar', T: ScalarType.STRING },
-    ] satisfies readonly PartialFieldInfo[],
-  })
-
-/**
- * SOKeyEpoch represents a key epoch with grants for that period.
- *
- * @generated from message sobject.SOKeyEpoch
- */
-export interface SOKeyEpoch {
-  /**
-   * Epoch is the epoch number (0-based, increments on rotation).
-   *
-   * @generated from field: uint64 epoch = 1;
-   */
-  epoch?: bigint
-  /**
-   * SeqnoStart is the first root seqno this key covers.
-   *
-   * @generated from field: uint64 seqno_start = 2;
-   */
-  seqnoStart?: bigint
-  /**
-   * SeqnoEnd is the last root seqno this key covers (0 = current/open).
-   *
-   * @generated from field: uint64 seqno_end = 3;
-   */
-  seqnoEnd?: bigint
-  /**
-   * Grants are the encrypted transform key grants for this epoch.
-   *
-   * @generated from field: repeated sobject.SOGrant grants = 4;
-   */
-  grants?: SOGrant[]
-}
-
-export const SOKeyEpoch: MessageType<SOKeyEpoch> =
-  /* @__PURE__ */ createMessageType({
-    typeName: 'sobject.SOKeyEpoch',
-    fields: [
-      { no: 1, name: 'epoch', kind: 'scalar', T: ScalarType.UINT64 },
-      { no: 2, name: 'seqno_start', kind: 'scalar', T: ScalarType.UINT64 },
-      { no: 3, name: 'seqno_end', kind: 'scalar', T: ScalarType.UINT64 },
-      { no: 4, name: 'grants', kind: 'message', T: SOGrant, repeated: true },
-    ] satisfies readonly PartialFieldInfo[],
-  })
 
 /**
  * SOConfigChainResponse is returned by GET /sobject/{id}/config-chain.
@@ -2081,35 +1886,6 @@ export const SOConfigChainResponse: MessageType<SOConfigChainResponse> =
         T: SOKeyEpoch,
         repeated: true,
       },
-    ] satisfies readonly PartialFieldInfo[],
-  })
-
-/**
- * QueuedSOOperation is a queued SOOperation which does not yet have an nonce.
- *
- * @generated from message sobject.QueuedSOOperation
- */
-export interface QueuedSOOperation {
-  /**
-   * LocalId is the local operation id, must be a valid ulid.
-   *
-   * @generated from field: string local_id = 1;
-   */
-  localId?: string
-  /**
-   * OpData is the operation data, not transformed.
-   *
-   * @generated from field: bytes op_data = 2;
-   */
-  opData?: Uint8Array
-}
-
-export const QueuedSOOperation: MessageType<QueuedSOOperation> =
-  /* @__PURE__ */ createMessageType({
-    typeName: 'sobject.QueuedSOOperation',
-    fields: [
-      { no: 1, name: 'local_id', kind: 'scalar', T: ScalarType.STRING },
-      { no: 2, name: 'op_data', kind: 'scalar', T: ScalarType.BYTES },
     ] satisfies readonly PartialFieldInfo[],
   })
 

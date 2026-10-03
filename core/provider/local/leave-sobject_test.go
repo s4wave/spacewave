@@ -104,7 +104,7 @@ func TestNativeSpaceLeave(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !retired.GetConfig().EqualVT(after.GetConfig()) || len(retired.GetRootGrants()) != 0 {
+	if !retired.GetConfig().EqualVT(after.GetConfig()) || countGrants(retired) != 0 {
 		t.Fatal("departing copy retained native authority after acknowledgment")
 	}
 
@@ -130,16 +130,13 @@ func TestNativeSpaceLeave(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// The read checkpoint keeps the history the reader could read before leaving.
+	// The read checkpoint records the audience the reader last read with.
 	checkpoint, err := copy.GetSharedObjectReadCheckpoint(ctx)
 	if err != nil || checkpoint == nil {
 		t.Fatalf("departed copy lost read checkpoint: %v", err)
 	}
 	if !checkpoint.Config.EqualVT(before.GetConfig()) {
 		t.Fatal("checkpoint audience differs from the readable native snapshot")
-	}
-	if _, err := checkpoint.Snapshot.GetTransformer(ctx); err != nil {
-		t.Fatalf("checkpoint lost its historical decryption grant: %v", err)
 	}
 
 	// Leaving again succeeds and keeps the local data.
@@ -191,7 +188,7 @@ func TestNativeSpaceLeave(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(closed.GetConfig().GetParticipants()) != 0 || len(closed.GetRootGrants()) != 0 {
+	if len(closed.GetConfig().GetParticipants()) != 0 || countGrants(closed) != 0 {
 		t.Fatal("last departure retained native participant authority")
 	}
 	if err := closed.GetConfig().Validate(); err != nil {
@@ -200,4 +197,13 @@ func TestNativeSpaceLeave(t *testing.T) {
 	if err := owner.LeaveSharedObject(ctx, ownerSession.GetPrivKey(), id, ""); err != nil {
 		t.Fatal(err)
 	}
+}
+
+// countGrants returns the number of key grants state holds across its epochs.
+func countGrants(state *sobject.SOState) int {
+	var n int
+	for _, epoch := range state.GetKeyEpochs() {
+		n += len(epoch.GetGrants())
+	}
+	return n
 }

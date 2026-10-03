@@ -2,13 +2,12 @@ package sobject
 
 import (
 	"bytes"
+	"cmp"
 	"context"
 	"slices"
-	"strings"
 
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
-	"github.com/s4wave/spacewave/net/peer"
 )
 
 // NewSOStateBlock constructs a new SOState block.
@@ -33,537 +32,339 @@ func (s *SOState) UnmarshalBlock(data []byte) error {
 	return s.UnmarshalVT(data)
 }
 
-// Validate checks the configuration, root, grants, pending operations and
-// rejections against the configuration's participants.
-// Each submitter's rejections identify distinct operations.
+// Validate checks the configuration, checkpoint, key epochs and operations.
+// It authenticates every signature but does not check that a checkpoint or
+// grant signer still holds authority: that is checked when they are adopted,
+// so a signer's later departure leaves them valid.
 func (s *SOState) Validate(sharedObjectID string) error {
-	// The configuration and root must be structurally valid.
+	// The configuration must be structurally valid.
 	if err := s.GetConfig().Validate(); err != nil {
 		return errors.Wrap(err, "invalid config")
 	}
-	if err := s.GetRoot().Validate(); err != nil {
-		return errors.Wrap(err, "invalid root")
-	}
-	participants := s.GetConfig().GetParticipants()
-	roles := make(map[string]SOParticipantRole, len(participants))
-	for _, participant := range participants {
-		roles[participant.GetPeerId()] = participant.GetRole()
+	readers := make(map[string]bool, len(s.GetConfig().GetParticipants()))
+	for _, participant := range s.GetConfig().GetParticipants() {
+		readers[participant.GetPeerId()] = CanReadState(participant.GetRole())
 	}
 
-	// Each grant is signed and belongs to one distinct reader.
-	seenGrantPeerIDs := make(map[string]struct{}, len(s.GetRootGrants()))
-	for i, grant := range s.GetRootGrants() {
-		if err := grant.Validate(); err != nil {
-			return errors.Wrapf(err, "root_grants[%d]", i)
-		}
-		peerID := grant.GetPeerId()
-		if _, ok := seenGrantPeerIDs[peerID]; ok {
-			return errors.Errorf("root_grants[%d]: duplicate peer id: %s", i, peerID)
-		}
-		seenGrantPeerIDs[peerID] = struct{}{}
-		if err := grant.ValidateSignature(sharedObjectID, participants); err != nil {
-			return errors.Wrapf(err, "root_grants[%d]", i)
-		}
-		if !CanReadState(roles[peerID]) {
-			return errors.Errorf("peer %s has grant but no read access in participants", peerID)
+	// A held checkpoint is signed for this object.
+	var checkpoint *SOCheckpointInner
+	if s.GetCheckpoint() != nil {
+		var err error
+		checkpoint, _, err = s.GetCheckpoint().Verify(sharedObjectID)
+		if err != nil {
+			return errors.Wrap(err, "checkpoint")
 		}
 	}
 
-	// Pending operations are signed and strictly increase in nonce per peer.
-	seenOpNonces := make(map[string]uint64)
-	queuedLocalIDs := make(map[string]map[string]struct{})
-	queuedNonces := make(map[string]map[uint64]struct{})
+	// Key epochs ascend, and each grants one key to each distinct reader.
+	for i, epoch := range s.GetKeyEpochs() {
+		if i > 0 && s.GetKeyEpochs()[i-1].GetEpoch() >= epoch.GetEpoch() {
+			return errors.New("key epochs must be strictly sorted by epoch")
+		}
+		seen := make(map[string]struct{}, len(epoch.GetGrants()))
+		for j, grant := range epoch.GetGrants() {
+			if err := grant.Validate(); err != nil {
+				return errors.Wrapf(err, "key_epochs[%d].grants[%d]", i, j)
+			}
+			if _, err := grant.Verify(sharedObjectID); err != nil {
+				return errors.Wrapf(err, "key_epochs[%d].grants[%d]", i, j)
+			}
+			peerID := grant.GetPeerId()
+			if _, ok := seen[peerID]; ok {
+				return errors.Errorf("key_epochs[%d].grants[%d]: duplicate peer id: %s", i, j, peerID)
+			}
+			seen[peerID] = struct{}{}
+			if !readers[peerID] {
+				return errors.Errorf("key_epochs[%d]: peer %s has grant but no read access in participants", i, peerID)
+			}
+		}
+	}
+
+	// Operations are signed, above the checkpoint, and sorted by hash.
+	if len(s.GetOps()) > MaxOperations {
+		return errors.Wrap(ErrMaxCountExceeded, "operations")
+	}
+	set := NewSOOperationSet(sharedObjectID, checkpoint)
+	var prev []byte
 	for i, op := range s.GetOps() {
-		if err := op.Validate(); err != nil {
+		added, err := set.Add(op)
+		if err != nil {
 			return errors.Wrapf(err, "ops[%d]", i)
 		}
-		if err := op.ValidateSignature(sharedObjectID, participants); err != nil {
-			return errors.Wrapf(err, "ops[%d]", i)
+		if !added {
+			return errors.Errorf("ops[%d]: duplicate or covered by the checkpoint", i)
 		}
-		inner := &SOOperationInner{}
-		if err := inner.UnmarshalVT(op.GetInner()); err != nil {
-			return errors.Wrapf(err, "ops[%d]: failed to unmarshal inner data", i)
+		h := op.Hash()
+		if i > 0 && bytes.Compare(prev, h) >= 0 {
+			return errors.New("ops must be strictly sorted by hash")
 		}
-		if err := inner.Validate(); err != nil {
-			return errors.Wrapf(err, "ops[%d]", i)
-		}
-		peerID, nonce := inner.GetPeerId(), inner.GetNonce()
-		if lastNonce, ok := seenOpNonces[peerID]; ok && nonce <= lastNonce {
-			return errors.Errorf("ops[%d]: duplicate or out-of-order nonce for peer %s", i, peerID)
-		}
-		seenOpNonces[peerID] = nonce
-		if queuedLocalIDs[peerID] == nil {
-			queuedLocalIDs[peerID] = make(map[string]struct{})
-			queuedNonces[peerID] = make(map[uint64]struct{})
-		}
-		if _, ok := queuedLocalIDs[peerID][inner.GetLocalId()]; ok {
-			return errors.Errorf("ops[%d]: duplicate local id for peer %s", i, peerID)
-		}
-		queuedLocalIDs[peerID][inner.GetLocalId()] = struct{}{}
-		queuedNonces[peerID][nonce] = struct{}{}
+		prev = h
 	}
-
-	// Queued nonces hold one entry per peer, sorted by peer ID.
-	if !slices.IsSortedFunc(s.GetQueuedAccountNonces(), func(a, b *SOAccountNonce) int {
-		return strings.Compare(a.GetPeerId(), b.GetPeerId())
-	}) {
-		return errors.New("queued account nonces not sorted by peer_id")
-	}
-	seenQueuedPeerIDs := make(map[string]struct{}, len(s.GetQueuedAccountNonces()))
-	for i, nonce := range s.GetQueuedAccountNonces() {
-		if err := nonce.Validate(); err != nil {
-			return errors.Wrapf(err, "queued_account_nonces[%d]", i)
-		}
-		if _, ok := seenQueuedPeerIDs[nonce.GetPeerId()]; ok {
-			return errors.Errorf("queued_account_nonces[%d]: duplicate peer id", i)
-		}
-		seenQueuedPeerIDs[nonce.GetPeerId()] = struct{}{}
-	}
-
-	// Rejections form one group per submitter, sorted by peer ID.
-	if !slices.IsSortedFunc(s.GetOpRejections(), func(a, b *SOPeerOpRejections) int {
-		return strings.Compare(a.GetPeerId(), b.GetPeerId())
-	}) {
-		return errors.New("op_rejections is not sorted by peer_id")
-	}
-	seenRejectionPeerIDs := make(map[string]struct{}, len(s.GetOpRejections()))
-	for i, peerRejections := range s.GetOpRejections() {
-		if err := peerRejections.Validate(); err != nil {
-			return errors.Wrapf(err, "op_rejections[%d]", i)
-		}
-		peerID := peerRejections.GetPeerId()
-		if _, ok := seenRejectionPeerIDs[peerID]; ok {
-			return errors.Errorf("op_rejections[%d]: duplicate peer id: %s", i, peerID)
-		}
-		seenRejectionPeerIDs[peerID] = struct{}{}
-
-		// Each signed rejection names this submitter and one distinct operation.
-		seenNonces := make(map[uint64]struct{}, len(peerRejections.GetRejections()))
-		seenLocalIDs := make(map[string]struct{}, len(peerRejections.GetRejections()))
-		for j, rejection := range peerRejections.GetRejections() {
-			inner, err := rejection.ValidateSignature(sharedObjectID, participants)
-			if err != nil {
-				return errors.Wrapf(err, "op_rejections[%d].rejections[%d]", i, j)
-			}
-			if inner.GetPeerId() != peerID {
-				return errors.Errorf("op_rejections[%d].rejections[%d]: peer id %s does not match group", i, j, inner.GetPeerId())
-			}
-			if _, ok := seenNonces[inner.GetOpNonce()]; ok {
-				return errors.Errorf("op_rejections[%d].rejections[%d]: duplicate op nonce %d", i, j, inner.GetOpNonce())
-			}
-			seenNonces[inner.GetOpNonce()] = struct{}{}
-			if _, ok := seenLocalIDs[inner.GetLocalId()]; ok {
-				return errors.Errorf("op_rejections[%d].rejections[%d]: duplicate local id %s", i, j, inner.GetLocalId())
-			}
-			seenLocalIDs[inner.GetLocalId()] = struct{}{}
-			if _, ok := queuedLocalIDs[peerID][inner.GetLocalId()]; ok {
-				return errors.Errorf("op_rejections[%d].rejections[%d]: local id is still queued", i, j)
-			}
-			if _, ok := queuedNonces[peerID][inner.GetOpNonce()]; ok {
-				return errors.Errorf("op_rejections[%d].rejections[%d]: nonce is still queued", i, j)
-			}
-		}
-	}
-
 	return nil
 }
 
-// UpdateRootState advances the held root by exactly one sequence number.
-//
-// The next root must carry consensus from the held configuration and, when
-// enforceValidatorPeerID is non-empty, a signature from that validator.
-// Rejections are recorded once per operation. Pending operations resolved by
-// the root, acceptedOps or a rejection are removed. If an error is returned
-// the SOState should be considered invalid.
-func (s *SOState) UpdateRootState(
-	sharedObjectID string,
-	nextRootState *SORoot,
-	enforceValidatorPeerID string,
-	rejectedOps []*SOOperationRejection,
-	acceptedOps []*SOOperation,
-) error {
-	// Authorize the next root before changing held state.
-	if err := s.validateNextRootState(sharedObjectID, nextRootState, enforceValidatorPeerID); err != nil {
-		return err
+// GetCheckpointInner returns the held checkpoint's body, or nil before the
+// first checkpoint.
+func (s *SOState) GetCheckpointInner() (*SOCheckpointInner, error) {
+	if s.GetCheckpoint() == nil {
+		return nil, nil
 	}
-
-	// Parse the rejections and the accepted batch before applying either. The
-	// accepted batch drains exactly even if account nonces lag in tests or
-	// partial replay data.
-	innerRejectedOps := make([]*SOOperationRejectionInner, len(rejectedOps))
-	for i, ro := range rejectedOps {
-		var err error
-		innerRejectedOps[i], err = ro.UnmarshalInner()
-		if err != nil {
-			return err
-		}
-	}
-	innerAcceptedOps := make([]*SOOperationInner, len(acceptedOps))
-	for i, ao := range acceptedOps {
-		var err error
-		innerAcceptedOps[i], err = ao.UnmarshalInner()
-		if err != nil {
-			return err
-		}
-	}
-
-	// Record new rejections before pruning resolved pending operations.
-	for i, rejection := range rejectedOps {
-		s.recordRejection(rejection, innerRejectedOps[i])
-	}
-	slices.SortFunc(s.OpRejections, func(a, b *SOPeerOpRejections) int {
-		return strings.Compare(a.GetPeerId(), b.GetPeerId())
-	})
-
-	// Preserve consumed nonces even when an explicitly accepted batch is ahead
-	// of the root's account nonce projection.
-	for i, ao := range acceptedOps {
-		inner := innerAcceptedOps[i]
-		s.QueuedAccountNonces = advanceAccountNonce(s.QueuedAccountNonces, inner.GetPeerId(), inner.GetNonce(), ao.Hash())
-	}
-
-	// Advance the root and drop pending state it resolves.
-	s.Root = nextRootState.CloneVT()
-	s.Ops = FilterResolvedOperations(
-		s.Ops,
-		s.Root.GetAccountNonces(),
-		innerAcceptedOps,
-		s.GetOpRejections(),
-	)
-	s.updateQueuedNonces()
-
-	return s.Validate(sharedObjectID)
+	return s.GetCheckpoint().UnmarshalInner()
 }
 
-// validateNextRootState checks that the next root follows the held root and
-// carries consensus from the held configuration's validators.
-func (s *SOState) validateNextRootState(
-	sharedObjectID string,
-	nextRootState *SORoot,
-	enforceValidatorPeerID string,
-) error {
-	// The root advances by exactly one sequence number.
-	if nextRootState.GetInnerSeqno() != s.GetRoot().GetInnerSeqno()+1 {
-		return ErrInvalidSeqno
+// OperationSet returns the held operations as a verified set above the
+// held checkpoint.
+func (s *SOState) OperationSet(sharedObjectID string) (*SOOperationSet, error) {
+	// Anchor the set at the checkpoint.
+	checkpoint, err := s.GetCheckpointInner()
+	if err != nil {
+		return nil, err
 	}
 
-	// Every signature is valid, distinct and from a validator, and together
-	// they satisfy the configured consensus mode.
-	if err := nextRootState.Validate(); err != nil {
-		return err
-	}
-
-	// A later root cannot forget operations already committed by an earlier one.
-	nextNonces := make(map[string]uint64, len(nextRootState.GetAccountNonces()))
-	for _, nonce := range nextRootState.GetAccountNonces() {
-		nextNonces[nonce.GetPeerId()] = nonce.GetNonce()
-	}
-	for _, nonce := range s.GetRoot().GetAccountNonces() {
-		if nextNonces[nonce.GetPeerId()] < nonce.GetNonce() {
-			return errors.Wrap(ErrInvalidNonce, "root account nonce rollback")
+	// Verify every held operation into the set.
+	set := NewSOOperationSet(sharedObjectID, checkpoint)
+	for i, op := range s.GetOps() {
+		if _, err := set.Add(op); err != nil {
+			return nil, errors.Wrapf(err, "ops[%d]", i)
 		}
 	}
+	return set, nil
+}
 
-	// The held configuration authorizes every signature on the next root.
-	validSigs, err := nextRootState.ValidateSignatures(
-		sharedObjectID,
-		s.GetConfig().GetParticipants(),
-	)
-	if err != nil {
-		return err
-	}
-	if err := CheckConsensusAcceptance(s.GetConfig().GetConsensusMode(), validSigs); err != nil {
-		return err
-	}
-
-	// A caller that knows the expected validator requires its signature.
-	if enforceValidatorPeerID == "" {
+// CurrentKeyEpoch returns the latest key epoch, or nil before the first.
+func (s *SOState) CurrentKeyEpoch() *SOKeyEpoch {
+	epochs := s.GetKeyEpochs()
+	if len(epochs) == 0 {
 		return nil
 	}
-	return s.validateEnforcedValidator(nextRootState, enforceValidatorPeerID)
+	return epochs[len(epochs)-1]
 }
 
-// validateEnforcedValidator checks that the enforced validator signed the root.
-func (s *SOState) validateEnforcedValidator(nextRootState *SORoot, enforceValidatorPeerID string) error {
-	for _, sig := range nextRootState.GetValidatorSignatures() {
-		sigPub, err := sig.ParsePubKey()
-		if err != nil {
-			return err
-		}
-		sigPeerID, err := peer.IDFromPublicKey(sigPub)
-		if err != nil {
-			return err
-		}
-		if sigPeerID.String() == enforceValidatorPeerID {
-			return nil
+// FindGrant returns the grant of peerID in the epoch, or nil.
+func (e *SOKeyEpoch) FindGrant(peerID string) *SOGrant {
+	for _, grant := range e.GetGrants() {
+		if grant.GetPeerId() == peerID {
+			return grant
 		}
 	}
-	return ErrInvalidValidator
+	return nil
 }
 
-// updateQueuedNonces drops queued nonces the root has committed.
-func (s *SOState) updateQueuedNonces() {
-	s.QueuedAccountNonces = slices.DeleteFunc(s.QueuedAccountNonces, func(qNonce *SOAccountNonce) bool {
-		for _, rNonce := range s.Root.GetAccountNonces() {
-			if qNonce.GetPeerId() == rNonce.GetPeerId() && qNonce.GetNonce() <= rNonce.GetNonce() {
-				return true
-			}
-		}
-		return false
+// GetKeyEpoch returns the key epoch with the given number, or nil.
+func (s *SOState) GetKeyEpoch(epoch uint64) *SOKeyEpoch {
+	i, ok := slices.BinarySearchFunc(s.GetKeyEpochs(), epoch, func(e *SOKeyEpoch, n uint64) int {
+		return cmp.Compare(e.GetEpoch(), n)
 	})
+	if !ok {
+		return nil
+	}
+	return s.GetKeyEpochs()[i]
 }
 
-// recordRejection records a rejection under its submitter once.
-// A replayed rejection of an already rejected operation is ignored.
-// The caller restores the peer ID order of OpRejections.
-func (s *SOState) recordRejection(rejection *SOOperationRejection, inner *SOOperationRejectionInner) {
-	// Append to the submitter's group unless the operation is already rejected.
-	peerID := inner.GetPeerId()
-	for _, peerRejections := range s.OpRejections {
-		if peerRejections.GetPeerId() != peerID {
-			continue
-		}
-		for _, existing := range peerRejections.GetRejections() {
-			existingInner, err := existing.UnmarshalInner()
-			if err == nil &&
-				existingInner.GetOpNonce() == inner.GetOpNonce() &&
-				existingInner.GetLocalId() == inner.GetLocalId() {
-				return
-			}
-		}
-		peerRejections.Rejections = append(peerRejections.Rejections, rejection)
+// SetKeyEpoch adds epoch, or replaces the held epoch with its number,
+// keeping the epochs sorted.
+func (s *SOState) SetKeyEpoch(epoch *SOKeyEpoch) {
+	i, ok := slices.BinarySearchFunc(s.KeyEpochs, epoch.GetEpoch(), func(e *SOKeyEpoch, n uint64) int {
+		return cmp.Compare(e.GetEpoch(), n)
+	})
+	if ok {
+		s.KeyEpochs[i] = epoch
 		return
 	}
-
-	// Start a group for a submitter with no prior rejections.
-	s.OpRejections = append(s.OpRejections, &SOPeerOpRejections{
-		PeerId:     peerID,
-		Rejections: []*SOOperationRejection{rejection},
-	})
-}
-
-// GetOperationStatus returns the pending operation or the rejection with the
-// given submitter and local ID. It returns nil, nil, nil if neither exists.
-func (s *SOState) GetOperationStatus(peerID, localID string) (*SOOperation, *SOOperationRejection, error) {
-	// A pending operation takes precedence over a rejection.
-	for _, op := range s.Ops {
-		inner, err := op.UnmarshalInner()
-		if err != nil {
-			return nil, nil, err
-		}
-		if inner.GetPeerId() == peerID && inner.GetLocalId() == localID {
-			return op, nil, nil
-		}
-	}
-
-	// Rejections are grouped by submitter.
-	for _, peerRejections := range s.OpRejections {
-		if peerRejections.GetPeerId() != peerID {
-			continue
-		}
-		for _, rejection := range peerRejections.GetRejections() {
-			rejInner, err := rejection.UnmarshalInner()
-			if err != nil {
-				return nil, nil, err
-			}
-			if rejInner.GetLocalId() == localID {
-				return nil, rejection, nil
-			}
-		}
-		break
-	}
-
-	return nil, nil, nil
+	s.KeyEpochs = slices.Insert(s.KeyEpochs, i, epoch)
 }
 
 // NextOperationLink returns where peerID's next operation goes: one past the
-// head of its chain, with every other participant's head as a parent, under
-// the current config. The head is the latest operation that is pending,
-// queued, or resolved by the root, applied or rejected.
-func (s *SOState) NextOperationLink(peerID string) *SOOperationLink {
+// head of its chain, naming every other head of the operation DAG, under the
+// current config and key epoch.
+func (s *SOState) NextOperationLink(sharedObjectID, peerID string) (*SOOperationLink, error) {
 	// Extend the author's own head.
-	heads := s.authorHeads()
-	link := &SOOperationLink{ConfigHash: s.GetConfig().GetConfigChainHash()}
-	if head, ok := heads[peerID]; ok {
-		link.Nonce = head.GetNonce() + 1
-		link.PrevOpHash = head.GetOpHash()
-	} else {
-		link.Nonce = 1
+	set, err := s.OperationSet(sharedObjectID)
+	if err != nil {
+		return nil, err
+	}
+	nonce, prev := set.AuthorHead(peerID)
+	link := &SOOperationLink{
+		Nonce:      nonce + 1,
+		PrevOpHash: prev,
+		ConfigHash: s.GetConfig().GetConfigChainHash(),
+		KeyEpoch:   s.CurrentKeyEpoch().GetEpoch(),
 	}
 
-	// Name the head of every other current participant.
-	for _, p := range s.GetConfig().GetParticipants() {
-		if head, ok := heads[p.GetPeerId()]; ok && p.GetPeerId() != peerID {
-			link.ParentHashes = append(link.ParentHashes, head.GetOpHash())
+	// Name every other head.
+	for _, head := range set.Heads() {
+		if !bytes.Equal(head, prev) {
+			link.ParentHashes = append(link.ParentHashes, head)
 		}
 	}
-	return link
+	return link, nil
 }
 
-// authorHeads returns the latest known operation of each author.
-func (s *SOState) authorHeads() map[string]*SOAccountNonce {
-	// Keep the highest sequence seen for each author.
-	heads := make(map[string]*SOAccountNonce)
-	advance := func(peerID string, nonce uint64, opHash []byte) {
-		if head, ok := heads[peerID]; !ok || nonce > head.GetNonce() {
-			heads[peerID] = &SOAccountNonce{PeerId: peerID, Nonce: nonce, OpHash: opHash}
-		}
-	}
-
-	// Resolved, queued, and pending operations all advance a head.
-	for _, nonce := range s.GetRoot().GetAccountNonces() {
-		advance(nonce.GetPeerId(), nonce.GetNonce(), nonce.GetOpHash())
-	}
-	for _, nonce := range s.GetQueuedAccountNonces() {
-		advance(nonce.GetPeerId(), nonce.GetNonce(), nonce.GetOpHash())
-	}
+// GetOperation returns peerID's held operation with localID, or nil.
+func (s *SOState) GetOperation(peerID, localID string) (*SOOperation, error) {
 	for _, op := range s.GetOps() {
 		inner, err := op.UnmarshalInner()
-		if err == nil {
-			advance(inner.GetPeerId(), inner.GetNonce(), op.Hash())
+		if err != nil {
+			return nil, err
+		}
+		if inner.GetPeerId() == peerID && inner.GetLocalId() == localID {
+			return op, nil
 		}
 	}
-	return heads
+	return nil, nil
 }
 
-// QueueOperation queues a signed operation from a writer or validator.
-// The operation must extend the head of its author's chain and carry a local
-// ID that is neither pending nor rejected.
-func (s *SOState) QueueOperation(sharedObjectID string, op *SOOperation) error {
-	// Admit only a signed, next-in-sequence, unique operation.
-	inner, err := s.validateOperation(sharedObjectID, op)
+// AddOperation verifies op and adds it to the set. It reports false when the
+// state already holds op or the checkpoint covers it. Authorization is decided
+// by replay under the config op names.
+func (s *SOState) AddOperation(sharedObjectID string, op *SOOperation) (bool, error) {
+	// Admit an authentic operation above the checkpoint.
+	inner, err := op.Verify(sharedObjectID)
 	if err != nil {
-		return err
+		return false, err
 	}
-	if err := s.validateOperationChain(inner); err != nil {
-		return err
+	checkpoint, err := s.GetCheckpointInner()
+	if err != nil {
+		return false, err
 	}
-	if err := s.validateOperationUnique(inner); err != nil {
-		return err
+	if NewSOOperationSet(sharedObjectID, checkpoint).Covers(inner.GetPeerId(), inner.GetNonce()) {
+		return false, nil
 	}
 
-	// Advance the author's head and queue the operation.
-	s.QueuedAccountNonces = advanceAccountNonce(s.QueuedAccountNonces, inner.GetPeerId(), inner.GetNonce(), op.Hash())
-	s.Ops = append(s.Ops, op)
-	return nil
-}
-
-// validateOperation checks queue capacity, operation format and signature,
-// and returns the parsed inner operation.
-func (s *SOState) validateOperation(
-	sharedObjectID string,
-	op *SOOperation,
-) (*SOOperationInner, error) {
+	// Insert it in hash order unless held.
+	h := op.Hash()
+	i, ok := slices.BinarySearchFunc(s.Ops, h, func(o *SOOperation, h []byte) int {
+		return bytes.Compare(o.Hash(), h)
+	})
+	if ok {
+		return false, nil
+	}
 	if len(s.Ops) >= MaxOperations {
-		return nil, errors.Wrap(ErrMaxCountExceeded, "operation queue")
+		return false, errors.Wrap(ErrMaxCountExceeded, "operations")
 	}
-	if err := op.Validate(); err != nil {
-		return nil, errors.Wrap(err, "invalid operation")
-	}
-	if err := op.ValidateSignature(sharedObjectID, s.GetConfig().GetParticipants()); err != nil {
-		return nil, errors.Wrap(err, "failed to verify operation signature")
-	}
-	inner, err := op.UnmarshalInner()
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to unmarshal operation inner data")
-	}
-	return inner, nil
+	s.Ops = slices.Insert(s.Ops, i, op)
+	return true, nil
 }
 
-// validateOperationChain checks that the operation directly follows the head
-// of its author's chain.
-func (s *SOState) validateOperationChain(inner *SOOperationInner) error {
-	next := s.NextOperationLink(inner.GetPeerId())
-	if inner.GetNonce() != next.Nonce {
-		return errors.Wrapf(ErrInvalidNonce, "expected %d, got %d", next.Nonce, inner.GetNonce())
-	}
-	if !bytes.Equal(inner.GetPrevOpHash(), next.PrevOpHash) {
-		return errors.Wrap(ErrInvalidNonce, "operation does not follow its author's previous operation")
-	}
-	return nil
-}
-
-// validateOperationUnique ensures the operation is not already queued or rejected.
-func (s *SOState) validateOperationUnique(inner *SOOperationInner) error {
-	peerID, localID := inner.GetPeerId(), inner.GetLocalId()
-	existingOp, existingReject, err := s.GetOperationStatus(peerID, localID)
+// AdoptCheckpoint replaces the held checkpoint with next when an owner under
+// the held config signed it and it descends from the held checkpoint. The held
+// checkpoint, or one below its height, is ignored without an authority check:
+// a lagging peer's state imports cleanly even after its signer left. The
+// operations next covers leave the set.
+func (s *SOState) AdoptCheckpoint(sharedObjectID string, next *SOCheckpoint) error {
+	// Keep the held checkpoint unless next is its successor. A skipped height
+	// cannot be linked and is taken on the owner's signature alone.
+	inner, _, err := next.Verify(sharedObjectID)
 	if err != nil {
 		return err
 	}
-	if existingOp != nil {
-		return errors.Errorf("operation with localID %s already exists for peer %s", localID, peerID)
-	}
-	if existingReject != nil {
-		return errors.Errorf("rejection with localID %s already exists for peer %s", localID, peerID)
-	}
-	return nil
-}
-
-// ClearOperationResult removes a rejection at the request of the peer that
-// submitted the rejected operation. Clearing an absent rejection succeeds.
-func (s *SOState) ClearOperationResult(sharedObjectID string, clearOp *SOClearOperationResult) error {
-	// Parse the request and bind its inner peer ID to the signing key.
-	if err := clearOp.Validate(); err != nil {
-		return err
-	}
-	signerPubKey, err := clearOp.GetSignature().ParsePubKey()
-	if err != nil {
-		return err
-	}
-	signerPeerID, err := peer.IDFromPublicKey(signerPubKey)
-	if err != nil {
-		return err
-	}
-	signerPeerIDStr := signerPeerID.String()
-	inner := &SOClearOperationResultInner{}
-	if err := inner.UnmarshalVT(clearOp.GetInner()); err != nil {
-		return errors.Wrap(err, "failed to unmarshal inner data")
-	}
-	if err := inner.Validate(); err != nil {
-		return errors.Wrap(err, "invalid inner data")
-	}
-	if inner.GetPeerId() != signerPeerIDStr {
-		return errors.New("signer peer ID does not match inner peer ID")
-	}
-
-	// Verify the signature in this shared object's context.
-	encContext := BuildSOClearOperationResultSignatureContext(
-		sharedObjectID,
-		signerPeerIDStr,
-		inner.GetLocalId(),
-	)
-	valid, err := clearOp.GetSignature().VerifyWithPublic(encContext, signerPubKey, clearOp.GetInner())
-	if err != nil {
-		return errors.Wrap(err, "failed to verify signature")
-	}
-	if !valid {
-		return peer.ErrSignatureInvalid
-	}
-
-	// Remove the signer's rejection with that local ID, and its group if emptied.
-	for i, peerRejections := range s.OpRejections {
-		if peerRejections.GetPeerId() != signerPeerIDStr {
-			continue
+	if held := s.GetCheckpoint(); held != nil {
+		heldInner, err := held.UnmarshalInner()
+		if err != nil {
+			return err
 		}
-		for j, rejection := range peerRejections.GetRejections() {
-			rejInner, err := rejection.UnmarshalInner()
-			if err != nil {
-				return err
+		switch {
+		case inner.GetHeight() < heldInner.GetHeight():
+			return nil
+		case inner.GetHeight() == heldInner.GetHeight():
+			if !bytes.Equal(held.Hash(), next.Hash()) {
+				return errors.New("checkpoint conflicts with the held checkpoint")
 			}
-			if rejInner.GetLocalId() != inner.GetLocalId() {
-				continue
-			}
-
-			peerRejections.Rejections = slices.Delete(peerRejections.Rejections, j, j+1)
-			if len(peerRejections.GetRejections()) == 0 {
-				s.OpRejections = slices.Delete(s.OpRejections, i, i+1)
+			// Take the signatures of a remaining owner when the held signer left.
+			participants := s.GetConfig().GetParticipants()
+			if _, err := held.ValidateAuthority(sharedObjectID, participants); err != nil {
+				if _, err := next.ValidateAuthority(sharedObjectID, participants); err == nil {
+					s.Checkpoint = next.CloneVT()
+				}
 			}
 			return nil
+		case inner.GetHeight() == heldInner.GetHeight()+1 && !bytes.Equal(inner.GetPrevCheckpointHash(), held.Hash()):
+			return errors.New("checkpoint does not follow the held checkpoint")
 		}
-		return nil
+	}
+
+	// The held config authorizes the new checkpoint.
+	if _, err := next.ValidateAuthority(sharedObjectID, s.GetConfig().GetParticipants()); err != nil {
+		return err
+	}
+
+	// Drop the operations the new checkpoint covers.
+	set := NewSOOperationSet(sharedObjectID, inner)
+	s.Checkpoint = next.CloneVT()
+	s.Ops = slices.DeleteFunc(s.Ops, func(op *SOOperation) bool {
+		added, err := set.Add(op)
+		return err != nil || !added
+	})
+	return nil
+}
+
+// MergeKeyEpochs drops the held grants of peers that can no longer read, then
+// adds the grants in epochs that the state lacks, checking each against the
+// held config. A held grant for a recipient is kept unless its signer has left
+// and epochs carries a replacement.
+func (s *SOState) MergeKeyEpochs(sharedObjectID string, epochs []*SOKeyEpoch) error {
+	// Drop the grants of removed readers.
+	participants := s.GetConfig().GetParticipants()
+	for _, epoch := range s.GetKeyEpochs() {
+		epoch.Grants = slices.DeleteFunc(epoch.Grants, func(grant *SOGrant) bool {
+			return !slices.ContainsFunc(participants, func(p *SOParticipantConfig) bool {
+				return p.GetPeerId() == grant.GetPeerId() && CanReadState(p.GetRole())
+			})
+		})
+	}
+
+	for _, epoch := range epochs {
+		// Start from the held epoch, or a new one.
+		merged := s.GetKeyEpoch(epoch.GetEpoch()).CloneVT()
+		if merged == nil {
+			merged = &SOKeyEpoch{Epoch: epoch.GetEpoch()}
+		}
+
+		// Add or replace each authorized grant.
+		changed := false
+		for _, grant := range epoch.GetGrants() {
+			i := slices.IndexFunc(merged.GetGrants(), func(g *SOGrant) bool {
+				return g.GetPeerId() == grant.GetPeerId()
+			})
+			if i != -1 && merged.GetGrants()[i].ValidateSignature(sharedObjectID, participants) == nil {
+				continue
+			}
+			if err := grant.ValidateSignature(sharedObjectID, participants); err != nil {
+				if i != -1 {
+					continue
+				}
+				return errors.Wrapf(err, "key epoch %d grant", epoch.GetEpoch())
+			}
+			if i != -1 {
+				merged.Grants[i] = grant.CloneVT()
+			} else {
+				merged.Grants = append(merged.Grants, grant.CloneVT())
+			}
+			changed = true
+		}
+		if changed {
+			s.SetKeyEpoch(merged)
+		}
 	}
 	return nil
 }
 
-// _ is a type assertion
-var _ block.Block = (*SOState)(nil)
+// ValidateAuthority checks that the checkpoint and every grant were signed
+// with authority under the held config. Validate checks only that the
+// signatures are authentic.
+func (s *SOState) ValidateAuthority(sharedObjectID string) error {
+	participants := s.GetConfig().GetParticipants()
+	if checkpoint := s.GetCheckpoint(); checkpoint != nil {
+		if _, err := checkpoint.ValidateAuthority(sharedObjectID, participants); err != nil {
+			return err
+		}
+	}
+	for _, epoch := range s.GetKeyEpochs() {
+		for _, grant := range epoch.GetGrants() {
+			if err := grant.ValidateSignature(sharedObjectID, participants); err != nil {
+				return errors.Wrapf(err, "key epoch %d grant", epoch.GetEpoch())
+			}
+		}
+	}
+	return nil
+}

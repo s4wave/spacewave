@@ -267,14 +267,14 @@ func syncStatusFromSpacewaveTelemetry(
 	resp.BlockStores = make([]*s4wave_session.SyncBlockStoreStatus, 0, len(telemetry.BlockStores))
 	for _, store := range telemetry.BlockStores {
 		resp.BlockStores = append(resp.BlockStores, &s4wave_session.SyncBlockStoreStatus{
-			BlockStoreId:              store.BlockStoreID,
-			SharedObjectId:            store.SharedObjectID,
-			DirectHitCount:            store.DirectHitCount,
-			CloudHitCount:             store.CloudHitCount,
-			CacheHitCount:             store.CacheHitCount,
-			LastSource:                syncStatusBlockSource(store.LastSource),
-			AcceptedRootInnerSequence: store.AcceptedRootInnerSequence,
-			CloudRemoteSequence:       store.CloudRemoteSequence,
+			BlockStoreId:             store.BlockStoreID,
+			SharedObjectId:           store.SharedObjectID,
+			DirectHitCount:           store.DirectHitCount,
+			CloudHitCount:            store.CloudHitCount,
+			CacheHitCount:            store.CacheHitCount,
+			LastSource:               syncStatusBlockSource(store.LastSource),
+			AcceptedCheckpointHeight: store.AcceptedCheckpointHeight,
+			CloudRemoteSequence:      store.CloudRemoteSequence,
 		})
 	}
 

@@ -33,6 +33,8 @@ func TestPairingAccountChoice(t *testing.T) {
 			ctx, cancel := context.WithTimeout(t.Context(), 20*time.Second)
 			t.Cleanup(cancel)
 			network := inproc.NewNetwork()
+
+			// Collect each store's account, Session, Space and payload.
 			var accounts []*ProviderAccount
 			var sessions []*Session
 			var controllers []session.SessionController
@@ -87,6 +89,8 @@ func TestPairingAccountChoice(t *testing.T) {
 				engines[1].StartOnStream(ctx, right, sessions[0].GetPeerId(), false, true, "")
 				finished <- struct{}{}
 			}()
+
+			// Each side offers both existing accounts.
 			for _, engine := range engines {
 				waitForPairingStatus(ctx, t, engine, pairing.StatusSelectingAccount)
 				snapshot, _ := engine.Snapshot()
@@ -132,9 +136,13 @@ func TestPairingAccountChoice(t *testing.T) {
 			if outcome == pairing.AccountOutcome_AccountOutcome_SIGN_IN_RECEIVING || outcome == pairing.AccountOutcome_AccountOutcome_MERGE_INTO_RECEIVING {
 				source, receiving = 1, 0
 			}
+
+			// Wait for both sides to confirm.
 			for _, engine := range engines {
 				waitForPairingStatus(ctx, t, engine, pairing.StatusBothConfirmed)
 			}
+
+			// The receiver attaches the source account and keeps its own Session.
 			ref, err := engines[receiving].Result(sessions[source].GetPeerId())
 			if err != nil || ref.GetProviderResourceRef().GetProviderAccountId() != accounts[source].GetAccountID() {
 				t.Fatalf("wrong selected account attachment: %v, %v", ref, err)
@@ -143,6 +151,8 @@ func TestPairingAccountChoice(t *testing.T) {
 			if err != nil || len(entries) != 2 {
 				t.Fatalf("sign-in did not retain the original Session: %v, %v", entries, err)
 			}
+
+			// Both original Spaces still mount.
 			for i, account := range accounts {
 				_, release, err := account.MountSharedObject(ctx, spaces[i], nil)
 				if err != nil {
@@ -150,6 +160,8 @@ func TestPairingAccountChoice(t *testing.T) {
 				}
 				release()
 			}
+
+			// The receiver mounts the source Space.
 			account, releaseAccount, err := accounts[receiving].t.p.AccessProviderAccount(ctx, accounts[source].GetAccountID(), nil)
 			if err != nil {
 				t.Fatal(err)
@@ -164,9 +176,13 @@ func TestPairingAccountChoice(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if _, err := state.GetRootInner(ctx); err != nil {
+
+			// The source Space is readable.
+			if _, err := state.GetCheckpoint(ctx); err != nil {
 				t.Fatalf("selected account Space is not readable: %v", err)
 			}
+
+			// A merge records the redirect and keeps the client's Session.
 			if outcome == pairing.AccountOutcome_AccountOutcome_MERGE_INTO_OFFERED || outcome == pairing.AccountOutcome_AccountOutcome_MERGE_INTO_RECEIVING {
 				merged := account.(*ProviderAccount)
 				settings, err := accounts[receiving].readAccountSettings(ctx)

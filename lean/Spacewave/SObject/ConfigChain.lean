@@ -32,8 +32,7 @@ namespace Role
 def unknown : Role := 0
 def reader : Role := 1
 def writer : Role := 2
-def validator : Role := 3
-def owner : Role := 4
+def owner : Role := 3
 
 end Role
 
@@ -77,7 +76,6 @@ structure Participant where
 /-- Config is a `SharedObjectConfig` with its applied chain head. -/
 structure Config where
   participants : List Participant
-  mode : Int
   hash : String
   seqno : Nat
   deriving DecidableEq, Repr
@@ -130,7 +128,7 @@ in any order. Go sorts by peer ID, which matches a permutation whenever one
 side has unique peers, as every validated configuration does.
 -/
 def Config.same (a b : Config) : Bool :=
-  a.mode == b.mode && a.hash == b.hash && a.seqno == b.seqno &&
+  a.hash == b.hash && a.seqno == b.seqno &&
     a.participants.isPerm b.participants
 
 /-- isOwner mirrors `isOwnerPeer`. -/
@@ -154,7 +152,7 @@ than that entity's strongest role.
 -/
 def validateSelfEnroll (cur next : Config) (signer : String) : Bool :=
   let added := next.participants.filter fun p => !cur.participants.any (·.peer == p.peer)
-  next.mode == cur.mode && next.hash == cur.hash && next.seqno == cur.seqno &&
+  next.hash == cur.hash && next.seqno == cur.seqno &&
     next.participants.length == cur.participants.length + 1 &&
     cur.participants.all (fun p => lookupPeer next.participants p.peer ==
       lookupPeer cur.participants p.peer) &&
@@ -260,9 +258,9 @@ theorem Config.validate_withHead {c : Config} (hne : c.participants ≠ []) (seq
 theorem Config.same_trans {a b c : Config} (hab : a.same b = true) (hbc : b.same c = true) :
     a.same c = true := by
   simp only [Config.same, Bool.and_eq_true, beq_iff_eq, List.isPerm_iff] at hab hbc ⊢
-  obtain ⟨⟨⟨hm, hh⟩, hs⟩, hp⟩ := hab
-  obtain ⟨⟨⟨hm', hh'⟩, hs'⟩, hp'⟩ := hbc
-  exact ⟨⟨⟨hm.trans hm', hh.trans hh'⟩, hs.trans hs'⟩, hp.trans hp'⟩
+  obtain ⟨⟨hh, hs⟩, hp⟩ := hab
+  obtain ⟨⟨hh', hs'⟩, hp'⟩ := hbc
+  exact ⟨⟨hh.trans hh', hs.trans hs'⟩, hp.trans hp'⟩
 
 /-- OWNER authority does not depend on participant order. -/
 theorem isOwner_perm {a b : Config} (hp : a.participants.Perm b.participants) (peer : String) :
@@ -337,7 +335,7 @@ theorem verifyChange_stale {cur : Config} {e : Entry} (hh : cur.hash ≠ "")
 theorem suffixStep_congr {a b : Config} (h : a.same b = true) (e : Entry) :
     suffixStep a e = suffixStep b e := by
   simp only [Config.same, Bool.and_eq_true, beq_iff_eq, List.isPerm_iff] at h
-  obtain ⟨⟨⟨_, hh⟩, hs⟩, hp⟩ := h
+  obtain ⟨⟨hh, hs⟩, hp⟩ := h
   unfold suffixStep
   split
   · rename_i hk

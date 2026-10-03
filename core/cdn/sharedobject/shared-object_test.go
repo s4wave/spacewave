@@ -2,6 +2,7 @@ package cdn_sharedobject
 
 import (
 	"context"
+	"crypto/sha256"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -20,11 +21,37 @@ import (
 // testSpaceID identifies the isolated CDN fixture.
 const testSpaceID = "01kpftest0000000000000001"
 
+// testCheckpoint returns a genesis checkpoint of the fixture holding the plain
+// World state data.
+func testCheckpoint(t *testing.T, stateData []byte) *sobject.SOCheckpoint {
+	t.Helper()
+	inner, err := (&sobject.SOCheckpointInner{
+		SharedObjectId: testSpaceID,
+		ConfigHash:     make([]byte, sha256.Size),
+		ReplayVersion:  sobject.SOReplayVersion,
+		StateData:      stateData,
+	}).MarshalVT()
+	if err != nil {
+		t.Fatal(err)
+	}
+	return &sobject.SOCheckpoint{Inner: inner}
+}
+
+// testHeadCheckpoint returns a checkpoint whose World has an empty head ref.
+func testHeadCheckpoint(t *testing.T) *sobject.SOCheckpoint {
+	t.Helper()
+	data, err := (&sobject_world_engine.InnerState{HeadRef: &bucket.ObjectRef{}}).MarshalVT()
+	if err != nil {
+		t.Fatal(err)
+	}
+	return testCheckpoint(t, data)
+}
+
 // newTestSharedObject builds a CdnSharedObject wrapped around a CdnBlockStore
-// whose pointer has been pre-populated with a synthetic SORoot carrying a
-// single head ref. The block store's network side is unused because the test
-// touches only the metadata / state-snapshot surface.
-func newTestSharedObject(t *testing.T, seed *sobject.SORoot) *CdnSharedObject {
+// whose pointer holds seed, when set. The block store's network side is
+// unused because the test touches only the metadata and snapshot surface.
+func newTestSharedObject(t *testing.T, seed *sobject.SOCheckpoint) *CdnSharedObject {
+	// Build the CDN block store, seed its pointer, and wrap it.
 	t.Helper()
 	bs, err := cdn_bstore.NewCdnBlockStore(cdn_bstore.Options{
 		CdnBaseURL: "https://example.invalid",
@@ -36,8 +63,8 @@ func newTestSharedObject(t *testing.T, seed *sobject.SORoot) *CdnSharedObject {
 	t.Cleanup(bs.Close)
 	if seed != nil {
 		bs.SetPointer(&alpha_cdn.CdnRootPointer{
-			SpaceId: testSpaceID,
-			Root:    seed,
+			SpaceId:    testSpaceID,
+			Checkpoint: seed,
 		})
 	}
 	so, err := NewCdnSharedObject(CdnSharedObjectOptions{
@@ -92,15 +119,6 @@ func TestWritePathsRejected(t *testing.T) {
 	if _, err := so.QueueOperation(ctx, []byte("x")); err == nil {
 		t.Fatal("expected QueueOperation to error")
 	}
-	if _, _, err := so.WaitOperation(ctx, "local"); err == nil {
-		t.Fatal("expected WaitOperation to error")
-	}
-	if err := so.ClearOperationResult(ctx, "local"); err == nil {
-		t.Fatal("expected ClearOperationResult to error")
-	}
-	if err := so.ProcessOperations(ctx, false, nil); err == nil {
-		t.Fatal("expected ProcessOperations to error")
-	}
 	if _, _, err := so.AccessLocalStateStore(ctx, "state", nil); err == nil {
 		t.Fatal("expected AccessLocalStateStore to error")
 	}
@@ -108,100 +126,79 @@ func TestWritePathsRejected(t *testing.T) {
 
 // TestSnapshotBeforeAndAfterPointer distinguishes an absent head from a decoded published head.
 func TestSnapshotBeforeAndAfterPointer(t *testing.T) {
+	// Before any pointer is cached, the snapshot holds no checkpoint and no
+	// operations, so callers can tell a fresh Space from a decode error.
 	ctx := context.Background()
 	so := newTestSharedObject(t, nil)
-
-	// Before any pointer is cached, the snapshot surfaces an empty queue
-	// and a nil root inner so callers can distinguish "fresh Space" from
-	// "decode error".
 	snap, err := so.GetSharedObjectState(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
-	ops, local, err := snap.GetOpQueue(ctx)
+
+	// It holds no operations.
+	set, err := snap.GetOperationSet(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(ops) != 0 || len(local) != 0 {
-		t.Fatalf("expected empty queues, got ops=%d local=%d", len(ops), len(local))
-	}
-	inner, err := snap.GetRootInner(ctx)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if inner != nil {
-		t.Fatalf("expected nil root inner before pointer is cached, got %+v", inner)
+	if set.Len() != 0 {
+		t.Fatalf("expected no operations, got %d", set.Len())
 	}
 
-	// After a pointer is cached, GetRootInner should decode the plain
-	// SORootInner and expose the InnerState HeadRef.
-	head := &bucket.ObjectRef{}
-	innerState := &sobject_world_engine.InnerState{HeadRef: head}
-	innerStateBytes, err := innerState.MarshalVT()
+	// It holds no checkpoint.
+	checkpoint, err := snap.GetCheckpoint(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
-	sori := &sobject.SORootInner{Seqno: 7, StateData: innerStateBytes}
-	soriBytes, err := sori.MarshalVT()
-	if err != nil {
-		t.Fatal(err)
-	}
-	setTestPointer(t, so, &alpha_cdn.CdnRootPointer{
-		SpaceId: testSpaceID,
-		Root:    &sobject.SORoot{Inner: soriBytes, InnerSeqno: 7},
-	})
-
-	decoded, err := snap.GetRootInner(ctx)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if decoded == nil || decoded.GetSeqno() != 7 {
-		t.Fatalf("decoded SORootInner mismatch: %+v", decoded)
+	if checkpoint != nil {
+		t.Fatalf("expected no checkpoint before the pointer is cached, got %+v", checkpoint)
 	}
 
-	decodedInner, err := so.GetHeadInnerState()
+	// After a pointer is cached, the snapshot decodes the plain checkpoint
+	// and its World head.
+	published := testHeadCheckpoint(t)
+	setTestPointer(t, so, &alpha_cdn.CdnRootPointer{SpaceId: testSpaceID, Checkpoint: published})
+	checkpoint, err = snap.GetCheckpoint(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if decodedInner == nil {
-		t.Fatal("expected non-nil InnerState")
+	want, err := published.UnmarshalInner()
+	if err != nil {
+		t.Fatal(err)
 	}
-}
+	if !checkpoint.EqualVT(want) {
+		t.Fatalf("decoded checkpoint mismatch: %+v", checkpoint)
+	}
 
-// TestEmptyInitializedPointerHasNoHead treats an unpopulated CDN pointer as loading.
-func TestEmptyInitializedPointerHasNoHead(t *testing.T) {
-	ctx := context.Background()
-	so := newTestSharedObject(t, &sobject.SORoot{
-		Inner:      []byte("not a plaintext SORootInner"),
-		InnerSeqno: 1,
-	})
-
-	snap, err := so.GetSharedObjectState(ctx)
-	if err != nil {
-		t.Fatal(err)
-	}
-	inner, err := snap.GetRootInner(ctx)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if inner != nil {
-		t.Fatalf("root inner = %+v, want nil for empty initialized CDN root", inner)
-	}
+	// The published World head is readable.
 	head, err := so.GetHeadInnerState()
 	if err != nil {
 		t.Fatal(err)
 	}
-	if head != nil {
-		t.Fatalf("head inner state = %+v, want nil for empty initialized CDN root", head)
+	if head.GetHeadRef() == nil {
+		t.Fatal("expected the published World head")
+	}
+}
+
+// TestEmptyInitializedPointerHasNoHead treats a genesis checkpoint with no
+// World as loading.
+func TestEmptyInitializedPointerHasNoHead(t *testing.T) {
+	so := newTestSharedObject(t, testCheckpoint(t, nil))
+	head, err := so.GetHeadInnerState()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if head.GetHeadRef() != nil {
+		t.Fatalf("head = %+v, want none for an empty genesis checkpoint", head)
 	}
 }
 
 // TestWorldEngineMissingPublishedHeadReturnsSharedObjectLoadingHealth reports retryable loading health before publication.
 func TestWorldEngineMissingPublishedHeadReturnsSharedObjectLoadingHealth(t *testing.T) {
+	// Publish a genesis checkpoint with no World.
 	ctx := context.Background()
 	ptr := &alpha_cdn.CdnRootPointer{
-		SpaceId: testSpaceID,
-		Root:    &sobject.SORoot{},
+		SpaceId:    testSpaceID,
+		Checkpoint: testCheckpoint(t, nil),
 	}
 	ptrBytes, err := ptr.MarshalVT()
 	if err != nil {
@@ -209,6 +206,7 @@ func TestWorldEngineMissingPublishedHeadReturnsSharedObjectLoadingHealth(t *test
 	}
 	encoded := []byte(packedmsg.EncodePackedMessage(ptrBytes))
 
+	// Serve the pointer from a test CDN.
 	mux := http.NewServeMux()
 	mux.HandleFunc("/"+testSpaceID+"/root.packedmsg", func(w http.ResponseWriter, _ *http.Request) {
 		_, _ = w.Write(encoded)
@@ -216,6 +214,7 @@ func TestWorldEngineMissingPublishedHeadReturnsSharedObjectLoadingHealth(t *test
 	hs := httptest.NewServer(mux)
 	t.Cleanup(hs.Close)
 
+	// Build the shared object over the test CDN.
 	bs, err := cdn_bstore.NewCdnBlockStore(cdn_bstore.Options{
 		CdnBaseURL: hs.URL,
 		SpaceID:    testSpaceID,
@@ -233,6 +232,7 @@ func TestWorldEngineMissingPublishedHeadReturnsSharedObjectLoadingHealth(t *test
 		t.Fatal(err)
 	}
 
+	// Building a World engine reports loading health on the shared object layer.
 	_, err = NewWorldEngine(ctx, logrus.NewEntry(logrus.New()), nil, so)
 	if err == nil {
 		t.Fatal("expected missing published head to block world engine construction")
@@ -252,20 +252,11 @@ func TestWorldEngineMissingPublishedHeadReturnsSharedObjectLoadingHealth(t *test
 // TestWorldEngineFollowsRefsThroughCdnBucket resolves authoring bucket refs
 // through the CDN Space bucket.
 func TestWorldEngineFollowsRefsThroughCdnBucket(t *testing.T) {
+	// Publish a World head.
 	ctx := context.Background()
-	head := &bucket.ObjectRef{}
-	innerState := &sobject_world_engine.InnerState{HeadRef: head}
-	innerStateBytes, err := innerState.MarshalVT()
-	if err != nil {
-		t.Fatal(err)
-	}
-	sori := &sobject.SORootInner{Seqno: 1, StateData: innerStateBytes}
-	soriBytes, err := sori.MarshalVT()
-	if err != nil {
-		t.Fatal(err)
-	}
-	so := newTestSharedObject(t, &sobject.SORoot{Inner: soriBytes, InnerSeqno: 1})
+	so := newTestSharedObject(t, testHeadCheckpoint(t))
 
+	// Build a World engine and follow an authoring ref into the CDN bucket.
 	le := logrus.NewEntry(logrus.New())
 	first, err := NewWorldEngine(ctx, le, nil, so)
 	if err != nil {
@@ -283,16 +274,13 @@ func TestWorldEngineFollowsRefsThroughCdnBucket(t *testing.T) {
 	followed.Release()
 }
 
-// TestPackedPointerRejectsUndecodableRoot rejects corrupt metadata once packs are published.
-func TestPackedPointerRejectsUndecodableRoot(t *testing.T) {
+// TestPackedPointerRejectsUndecodableCheckpoint rejects corrupt metadata.
+func TestPackedPointerRejectsUndecodableCheckpoint(t *testing.T) {
 	so := newTestSharedObject(t, nil)
 	setTestPointer(t, so, &alpha_cdn.CdnRootPointer{
-		SpaceId: testSpaceID,
-		Root: &sobject.SORoot{
-			Inner:      []byte("not a plaintext SORootInner"),
-			InnerSeqno: 1,
-		},
-		Packs: []*packfile.PackfileEntry{{Id: "01PACKA"}},
+		SpaceId:    testSpaceID,
+		Checkpoint: &sobject.SOCheckpoint{Inner: []byte("not a plaintext checkpoint")},
+		Packs:      []*packfile.PackfileEntry{{Id: "01PACKA"}},
 	})
 
 	if _, err := so.GetHeadInnerState(); err == nil {
@@ -371,17 +359,19 @@ func TestRefreshSnapshotEmitsOnWatch(t *testing.T) {
 
 // TestHealthSurfaceTracksPointerLifecycle publishes loading and ready health as the CDN head changes.
 func TestHealthSurfaceTracksPointerLifecycle(t *testing.T) {
+	// Start a shared object with no pointer.
 	t.Parallel()
-
 	ctx := context.Background()
 	so := newTestSharedObject(t, nil)
 
+	// Watch its health.
 	healthCtr, rel, err := so.AccessSharedObjectHealth(ctx, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 	t.Cleanup(rel)
 
+	// It starts loading.
 	initial := healthCtr.GetValue()
 	if initial == nil {
 		t.Fatal("expected initial health")
@@ -390,12 +380,14 @@ func TestHealthSurfaceTracksPointerLifecycle(t *testing.T) {
 		t.Fatalf("expected loading health, got %v", initial.GetStatus())
 	}
 
+	// Publish a genesis checkpoint with no World.
 	setTestPointer(t, so, &alpha_cdn.CdnRootPointer{
-		SpaceId: testSpaceID,
-		Root:    &sobject.SORoot{},
+		SpaceId:    testSpaceID,
+		Checkpoint: testCheckpoint(t, nil),
 	})
 	so.setHealth(nil)
 
+	// Health stays loading while the head is missing.
 	loadingCtx, loadingCancel := context.WithTimeout(ctx, 2*time.Second)
 	t.Cleanup(loadingCancel)
 	next, err := healthCtr.WaitValueChange(loadingCtx, initial, nil)
@@ -406,23 +398,14 @@ func TestHealthSurfaceTracksPointerLifecycle(t *testing.T) {
 		t.Fatalf("expected loading health for missing head, got %v", next.GetStatus())
 	}
 
-	head := &bucket.ObjectRef{}
-	innerState := &sobject_world_engine.InnerState{HeadRef: head}
-	innerStateBytes, err := innerState.MarshalVT()
-	if err != nil {
-		t.Fatal(err)
-	}
-	sori := &sobject.SORootInner{Seqno: 1, StateData: innerStateBytes}
-	soriBytes, err := sori.MarshalVT()
-	if err != nil {
-		t.Fatal(err)
-	}
+	// Publish a World head.
 	setTestPointer(t, so, &alpha_cdn.CdnRootPointer{
-		SpaceId: testSpaceID,
-		Root:    &sobject.SORoot{Inner: soriBytes, InnerSeqno: 1},
+		SpaceId:    testSpaceID,
+		Checkpoint: testHeadCheckpoint(t),
 	})
 	so.setHealth(nil)
 
+	// Health becomes ready.
 	readyCtx, readyCancel := context.WithTimeout(ctx, 2*time.Second)
 	t.Cleanup(readyCancel)
 	next, err = healthCtr.WaitValueChange(readyCtx, next, nil)

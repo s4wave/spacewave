@@ -144,6 +144,37 @@ func WriteSOConfigCheckpoint(ctx context.Context, tx kvtx.Tx, id string, config 
 	return tx.Set(ctx, key, data)
 }
 
+// WriteSOConfigLineage replaces the history checkpoint with the config the
+// first change of lineage produced, or with target when lineage is empty, and
+// retains every change. The caller has verified lineage against target with
+// sobject.VerifyConfigLineage.
+func WriteSOConfigLineage(ctx context.Context, tx kvtx.Tx, id string, target *sobject.SharedObjectConfig, lineage []*sobject.SOConfigChange) error {
+	// Replace the checkpoint with the lineage base.
+	base, err := sobject.VerifyConfigLineage(id, target, lineage)
+	if err != nil {
+		return err
+	}
+	if err := WriteSOConfigCheckpoint(ctx, tx, id, base, true); err != nil {
+		return err
+	}
+
+	// Retain each change by its hash.
+	for _, change := range lineage {
+		hash, err := sobject.HashSOConfigChange(change)
+		if err != nil {
+			return err
+		}
+		data, err := change.MarshalVT()
+		if err != nil {
+			return err
+		}
+		if err := tx.Set(ctx, SOConfigHistoryEntryKey(id, hash), data); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // readSOConfigHistory traverses immutable entries in the caller's read transaction.
 func readSOConfigHistory(ctx context.Context, tx kvtx.Tx, id string, base, target []byte) ([]*sobject.SOConfigChange, error) {
 	return sobject.ReadConfigSuffix(ctx, base, target, func(ctx context.Context, head []byte) (*sobject.SOConfigChange, error) {

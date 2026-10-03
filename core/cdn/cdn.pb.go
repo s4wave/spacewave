@@ -19,15 +19,15 @@ import (
 // The Worker writes it at cdn.spacewave.app/{spaceId}/root.packedmsg as a
 // packedmsg-encoded blob (see repos/bldr/util/packedmsg) on every successful
 // sync/push for a public_read Space. Anonymous clients fetch and decode this
-// blob to discover the current signed root and the set of packs they need to
+// blob to discover the current signed checkpoint and the set of packs they need to
 // reconstruct Space state; no Worker round-trip is required on the read path.
 type CdnRootPointer struct {
 	unknownFields []byte
 	// SpaceId is the SharedObject ULID for this Space.
 	SpaceId string `protobuf:"bytes,1,opt,name=space_id,json=spaceId,proto3" json:"spaceId,omitempty"`
-	// Root is the signed SORoot for the Space at the time of publication.
-	// Clients verify it against the config chain's validator peers.
-	Root *sobject.SORoot `protobuf:"bytes,2,opt,name=root,proto3" json:"root,omitempty"`
+	// Checkpoint is the owner-signed checkpoint covering every operation at the
+	// time of publication. Clients verify it against the config chain's owners.
+	Checkpoint *sobject.SOCheckpoint `protobuf:"bytes,2,opt,name=checkpoint,proto3" json:"checkpoint,omitempty"`
 	// ConfigChainHash is the hash of the current config chain head.
 	ConfigChainHash []byte `protobuf:"bytes,3,opt,name=config_chain_hash,json=configChainHash,proto3" json:"configChainHash,omitempty"`
 	// ConfigChainSeqno is the seqno of the current config chain head.
@@ -55,9 +55,9 @@ func (x *CdnRootPointer) GetSpaceId() string {
 	return ""
 }
 
-func (x *CdnRootPointer) GetRoot() *sobject.SORoot {
+func (x *CdnRootPointer) GetCheckpoint() *sobject.SOCheckpoint {
 	if x != nil {
-		return x.Root
+		return x.Checkpoint
 	}
 	return nil
 }
@@ -98,7 +98,7 @@ func (m *CdnRootPointer) CloneVT() *CdnRootPointer {
 	r.SpaceId = m.SpaceId
 	r.ConfigChainSeqno = m.ConfigChainSeqno
 	r.CreatedAtMs = m.CreatedAtMs
-	r.Root = protobuf_go_lite.CloneVTValue(m.Root)
+	r.Checkpoint = protobuf_go_lite.CloneVTValue(m.Checkpoint)
 	r.ConfigChainHash = protobuf_go_lite.CloneBytes(m.ConfigChainHash)
 	r.Packs = protobuf_go_lite.CloneVTSlice(m.Packs)
 	if len(m.unknownFields) > 0 {
@@ -120,7 +120,7 @@ func (this *CdnRootPointer) EqualVT(that *CdnRootPointer) bool {
 	if this.SpaceId != that.SpaceId {
 		return false
 	}
-	if !protobuf_go_lite.IsEqualVT(this.Root, that.Root) {
+	if !protobuf_go_lite.IsEqualVT(this.Checkpoint, that.Checkpoint) {
 		return false
 	}
 	if !protobuf_go_lite.EqualBytes(this.ConfigChainHash, that.ConfigChainHash) {
@@ -159,10 +159,10 @@ func (x *CdnRootPointer) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("spaceId")
 		s.WriteString(x.SpaceId)
 	}
-	if x.Root != nil || s.HasField("root") {
+	if x.Checkpoint != nil || s.HasField("checkpoint") {
 		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("root")
-		x.Root.MarshalProtoJSON(s.WithField("root"))
+		s.WriteObjectField("checkpoint")
+		x.Checkpoint.MarshalProtoJSON(s.WithField("checkpoint"))
 	}
 	if len(x.ConfigChainHash) > 0 || s.HasField("configChainHash") {
 		s.WriteMoreIf(&wroteField)
@@ -210,13 +210,13 @@ func (x *CdnRootPointer) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "space_id", "spaceId":
 			s.AddField("space_id")
 			x.SpaceId = s.ReadString()
-		case "root":
+		case "checkpoint":
 			if s.ReadNil() {
-				x.Root = nil
+				x.Checkpoint = nil
 				return
 			}
-			x.Root = &sobject.SORoot{}
-			x.Root.UnmarshalProtoJSON(s.WithField("root", true))
+			x.Checkpoint = &sobject.SOCheckpoint{}
+			x.Checkpoint.UnmarshalProtoJSON(s.WithField("checkpoint", true))
 		case "config_chain_hash", "configChainHash":
 			s.AddField("config_chain_hash")
 			x.ConfigChainHash = s.ReadBytes()
@@ -309,8 +309,8 @@ func (m *CdnRootPointer) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i--
 		dAtA[i] = 0x1a
 	}
-	if m.Root != nil {
-		size, err := m.Root.MarshalToSizedBufferVT(dAtA[:i])
+	if m.Checkpoint != nil {
+		size, err := m.Checkpoint.MarshalToSizedBufferVT(dAtA[:i])
 		if err != nil {
 			return 0, err
 		}
@@ -334,8 +334,8 @@ func (m *CdnRootPointer) SizeVT() (n int) {
 	var l int
 	_ = l
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.SpaceId)
-	if m.Root != nil {
-		l = m.Root.SizeVT()
+	if m.Checkpoint != nil {
+		l = m.Checkpoint.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
 	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.ConfigChainHash)
@@ -356,9 +356,9 @@ func (x *CdnRootPointer) MarshalProtoText() string {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "space_id")
 		protobuf_go_lite.TextWriteString(&sb, x.SpaceId)
 	}
-	if x.Root != nil {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "root")
-		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Root)
+	if x.Checkpoint != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "checkpoint")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Checkpoint)
 	}
 	if len(x.ConfigChainHash) != 0 {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "config_chain_hash")
@@ -423,16 +423,16 @@ func (m *CdnRootPointer) UnmarshalVT(dAtA []byte) error {
 			m.SpaceId = v
 		case 2:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Root", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field Checkpoint", wireType)
 			}
 			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
 			if err != nil {
 				return err
 			}
-			if m.Root == nil {
-				m.Root = &sobject.SORoot{}
+			if m.Checkpoint == nil {
+				m.Checkpoint = &sobject.SOCheckpoint{}
 			}
-			if err := m.Root.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+			if err := m.Checkpoint.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex

@@ -29,8 +29,8 @@ type failingUpload struct {
 	cdn_publish.SessionClient
 	// uploads counts attempted pack uploads.
 	uploads int
-	// roots counts attempted root replacement.
-	roots int
+	// checkpoints counts attempted checkpoint publications.
+	checkpoints int
 	// existing is the cloud's committed pack inventory.
 	existing []*packfile.PackfileEntry
 	// data and entry retain the attempted immutable pack for the next check.
@@ -51,9 +51,9 @@ func (c *failingUpload) SyncPushData(_ context.Context, _ string, id string, cou
 	return errors.New("upload failed")
 }
 
-// PostRoot records an unexpected publication after upload failure.
-func (c *failingUpload) PostRoot(context.Context, string, *sobject.SORoot, []*sobject.SOOperationRejection) error {
-	c.roots++
+// PostCheckpoint records an unexpected publication after upload failure.
+func (c *failingUpload) PostCheckpoint(context.Context, string, *sobject.SOCheckpoint) error {
+	c.checkpoints++
 	return nil
 }
 
@@ -82,6 +82,8 @@ func TestPublishPreservesRootAfterUploadFailure(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Install it in a manifest store under the application key.
 	if _, err := manifest_world.CreateManifestStore(ctx, tx, manifestKey); err != nil {
 		t.Fatal(err)
 	}
@@ -92,6 +94,8 @@ func TestPublishPreservesRootAfterUploadFailure(t *testing.T) {
 	if err := tx.SetGraphQuad(ctx, manifest_world.NewManifestQuad(manifestKey, "test/native", meta.GetManifestId())); err != nil {
 		t.Fatal(err)
 	}
+
+	// Stage the release channel.
 	metadata, err := StageChannel(ctx, tx, manifestKey, &release.ReleaseMetadata{ProjectId: "test", Version: "0.1.0", ChannelKey: "alpha", Rev: 1})
 	if err != nil {
 		t.Fatal(err)
@@ -139,9 +143,9 @@ func TestPublishPreservesRootAfterUploadFailure(t *testing.T) {
 
 	// A failed pack write must leave the previously advertised root untouched.
 	client := &failingUpload{}
-	_, err = Publish(ctx, w.Engine, metadata, cdn_publish.Options{Client: client, DstSpaceID: "test-space", ValidatorKeyPem: "must-not-read.pem", CdnBaseURL: "https://unused.example"})
-	if err == nil || client.uploads != 1 || client.roots != 0 {
-		t.Fatalf("publication: error=%v uploads=%d roots=%d", err, client.uploads, client.roots)
+	_, err = Publish(ctx, w.Engine, metadata, cdn_publish.Options{Client: client, DstSpaceID: "test-space", OwnerKeyPem: "must-not-read.pem", CdnBaseURL: "https://unused.example"})
+	if err == nil || client.uploads != 1 || client.checkpoints != 0 {
+		t.Fatalf("publication: error=%v uploads=%d checkpoints=%d", err, client.uploads, client.checkpoints)
 	}
 
 	// After that pack becomes durable, changing channel metadata must upload
@@ -152,6 +156,8 @@ func TestPublishPreservesRootAfterUploadFailure(t *testing.T) {
 		http.ServeContent(w, r, "release.kvf", time.Time{}, bytes.NewReader(previousData))
 	}))
 	t.Cleanup(server.Close)
+
+	// Stage and commit new channel metadata.
 	tx, err = w.Engine.NewTransaction(ctx, true)
 	if err != nil {
 		t.Fatal(err)
@@ -164,12 +170,16 @@ func TestPublishPreservesRootAfterUploadFailure(t *testing.T) {
 	if err := tx.Commit(ctx); err != nil {
 		t.Fatal(err)
 	}
+
+	// Publish against the durable pack, which uploads one new pack.
 	client.existing = []*packfile.PackfileEntry{previousEntry}
 	client.uploads = 0
-	_, err = Publish(ctx, w.Engine, metadata, cdn_publish.Options{Client: client, DstSpaceID: "test-space", ValidatorKeyPem: "must-not-read.pem", CdnBaseURL: server.URL})
-	if err == nil || client.uploads != 1 || client.roots != 0 {
-		t.Fatalf("incremental publication: error=%v uploads=%d roots=%d", err, client.uploads, client.roots)
+	_, err = Publish(ctx, w.Engine, metadata, cdn_publish.Options{Client: client, DstSpaceID: "test-space", OwnerKeyPem: "must-not-read.pem", CdnBaseURL: server.URL})
+	if err == nil || client.uploads != 1 || client.checkpoints != 0 {
+		t.Fatalf("incremental publication: error=%v uploads=%d checkpoints=%d", err, client.uploads, client.checkpoints)
 	}
+
+	// The new pack holds no existing block.
 	reader, err := kvfile.BuildReader(bytes.NewReader(client.data), uint64(len(client.data)))
 	if err != nil {
 		t.Fatal(err)
@@ -184,8 +194,8 @@ func TestPublishPreservesRootAfterUploadFailure(t *testing.T) {
 	// Missing executable content must fail before even attempting a pack upload.
 	client.uploads = 0
 	metadata.ManifestRefs[0].ManifestRef.RootRef.Hash.Hash[0] ^= 0xff
-	_, err = Publish(ctx, w.Engine, metadata, cdn_publish.Options{Client: client, DstSpaceID: "test-space", ValidatorKeyPem: "must-not-read.pem", CdnBaseURL: "https://unused.example"})
-	if err == nil || client.uploads != 0 || client.roots != 0 {
-		t.Fatalf("missing content: error=%v uploads=%d roots=%d", err, client.uploads, client.roots)
+	_, err = Publish(ctx, w.Engine, metadata, cdn_publish.Options{Client: client, DstSpaceID: "test-space", OwnerKeyPem: "must-not-read.pem", CdnBaseURL: "https://unused.example"})
+	if err == nil || client.uploads != 0 || client.checkpoints != 0 {
+		t.Fatalf("missing content: error=%v uploads=%d checkpoints=%d", err, client.uploads, client.checkpoints)
 	}
 }

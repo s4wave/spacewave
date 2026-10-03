@@ -6,7 +6,6 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/net/crypto"
-	"github.com/s4wave/spacewave/net/hash"
 	"github.com/s4wave/spacewave/net/peer"
 )
 
@@ -62,7 +61,7 @@ func RemoveSOParticipants(
 		return nil, errors.Wrap(err, "build config change")
 	}
 	if err := host.ApplyConfigChange(ctx, entry, func(state *SOState) error {
-		return pruneRemovedParticipants(host.sharedObjectID, state, currentCfg, targets, signerPriv)
+		return pruneRemovedParticipants(host.GetSharedObjectID(), state, targets, signerPriv)
 	}); err != nil {
 		return nil, err
 	}
@@ -81,126 +80,87 @@ func RemoveSOParticipant(
 	return len(removed) != 0, err
 }
 
-// pruneRemovedParticipants removes the targets' grants and replaces or drops
-// every state proof the targets signed, so the held state remains valid under
-// the next configuration already set on state. currentCfg is the configuration
-// before the change and signerPriv is a remaining owner's key.
-func pruneRemovedParticipants(
-	sharedObjectID string,
-	state *SOState,
-	currentCfg *SharedObjectConfig,
-	targets map[string]struct{},
-	signerPriv crypto.PrivKey,
-) error {
-	nextCfg := state.GetConfig()
-
-	// Pending operations and signed outcomes must remain admissible under the
-	// next configuration. Account nonces stay reserved so a remaining peer
-	// cannot reuse the nonce of a dropped rejection.
-	state.Ops = slices.DeleteFunc(state.Ops, func(op *SOOperation) bool {
-		return op.ValidateSignature(sharedObjectID, nextCfg.GetParticipants()) != nil
-	})
-	rejections := state.OpRejections[:0]
-	for _, group := range state.OpRejections {
-		group.Rejections = slices.DeleteFunc(group.Rejections, func(rejection *SOOperationRejection) bool {
-			_, err := rejection.ValidateSignature(sharedObjectID, nextCfg.GetParticipants())
-			return err != nil
-		})
-		if len(group.Rejections) != 0 {
-			rejections = append(rejections, group)
-		}
-	}
-	state.OpRejections = rejections
-
-	// Retained readers need proofs from a remaining validator. Grant
-	// encryption binds its signer, so replacing a signature also requires
-	// wrapping the unchanged transform key for each affected recipient.
-	signerID, err := peer.IDFromPrivateKey(signerPriv)
+// pruneRemovedParticipants removes the targets' grants from every key epoch
+// and replaces their proofs that remaining participants depend on, signed by
+// the remaining owner of signer. Their operations stay in the set, and replay
+// skips them.
+func pruneRemovedParticipants(sharedObjectID string, state *SOState, targets map[string]struct{}, signer crypto.PrivKey) error {
+	// Drop the targets' grants and re-wrap the grants they signed.
+	signerID, err := peer.IDFromPrivateKey(signer)
 	if err != nil {
 		return err
 	}
-	removedSigner := func(signature *peer.Signature) (bool, error) {
-		pub, err := signature.ParsePubKey()
-		if err != nil {
-			return false, err
+	current := state.CurrentKeyEpoch().GetEpoch()
+	for _, epoch := range state.GetKeyEpochs() {
+		epoch.Grants = slices.DeleteFunc(epoch.Grants, func(grant *SOGrant) bool {
+			_, ok := targets[grant.GetPeerId()]
+			return ok
+		})
+		if err := rewrapRemovedGrants(sharedObjectID, epoch, targets, signer, signerID.String(), epoch.GetEpoch() == current); err != nil {
+			return errors.Wrapf(err, "key epoch %d", epoch.GetEpoch())
 		}
-		if pub == nil {
-			return false, peer.ErrEmptyPeerID
-		}
-		id, err := peer.IDFromPublicKey(pub)
-		if err != nil {
-			return false, err
-		}
-		_, removed := targets[id.String()]
-		return removed, nil
 	}
-	state.RootGrants = slices.DeleteFunc(state.RootGrants, func(grant *SOGrant) bool {
-		_, ok := targets[grant.GetPeerId()]
-		return ok
-	})
+
+	// Co-sign the held checkpoint when no remaining owner signed it.
+	checkpoint := state.GetCheckpoint()
+	if checkpoint == nil {
+		return nil
+	}
+	_, signers, err := checkpoint.Verify(sharedObjectID)
+	if err != nil {
+		return err
+	}
+	for i, signer := range slices.Backward(signers) {
+		if _, removed := targets[signer]; removed {
+			checkpoint.Signatures = slices.Delete(checkpoint.Signatures, i, i+1)
+		}
+	}
+	if _, err := checkpoint.ValidateAuthority(sharedObjectID, state.GetConfig().GetParticipants()); err == nil {
+		return nil
+	}
+	return checkpoint.CoSign(signer)
+}
+
+// rewrapRemovedGrants re-encrypts, as signer, each grant in epoch that a
+// target signed. Without its own grant to the epoch's key, signer drops those
+// grants instead, unless the epoch is the current one.
+func rewrapRemovedGrants(sharedObjectID string, epoch *SOKeyEpoch, targets map[string]struct{}, signer crypto.PrivKey, signerID string, required bool) error {
 	var inner *SOGrantInner
-	for i, grant := range state.RootGrants {
-		removed, err := removedSigner(grant.GetSignature())
+	for i := 0; i < len(epoch.Grants); i++ {
+		// Keep a grant whose signer remains.
+		grant := epoch.Grants[i]
+		grantSigner, err := grant.Verify(sharedObjectID)
 		if err != nil {
 			return err
 		}
-		if !removed {
+		if _, removed := targets[grantSigner]; !removed {
 			continue
 		}
+
+		// Read the epoch key from signer's own grant.
 		if inner == nil {
-			for _, ownGrant := range state.RootGrants {
-				if ownGrant.GetPeerId() == signerID.String() {
-					if err := ownGrant.ValidateSignature(sharedObjectID, currentCfg.GetParticipants()); err != nil {
-						return err
-					}
-					inner, err = ownGrant.DecryptInnerData(signerPriv, sharedObjectID)
-					if err != nil {
-						return err
-					}
-					break
+			own := epoch.FindGrant(signerID)
+			if own == nil {
+				if required {
+					return errors.New("remaining owner grant required to replace removed signer grants")
 				}
+				epoch.Grants = slices.Delete(epoch.Grants, i, i+1)
+				i--
+				continue
 			}
-			if inner == nil {
-				return errors.New("remaining owner grant required to replace removed validator proofs")
+			if inner, err = own.DecryptInnerData(signer, sharedObjectID); err != nil {
+				return err
 			}
 		}
+
+		// Wrap it for the recipient.
 		_, recipient, err := peer.ParsePeerIDWithPubKey(grant.GetPeerId())
 		if err != nil {
 			return err
 		}
-		state.RootGrants[i], err = EncryptSOGrant(signerPriv, recipient, sharedObjectID, inner)
-		if err != nil {
+		if epoch.Grants[i], err = EncryptSOGrant(signer, recipient, sharedObjectID, inner); err != nil {
 			return err
 		}
-		if err := state.RootGrants[i].ValidateSignature(sharedObjectID, nextCfg.GetParticipants()); err != nil {
-			return err
-		}
-	}
-
-	// A final departure leaves no validator to sign the retained root.
-	root := state.GetRoot()
-	if len(root.GetInner()) != 0 && len(nextCfg.GetParticipants()) != 0 {
-		retained := root.ValidatorSignatures[:0]
-		for _, signature := range root.GetValidatorSignatures() {
-			removed, err := removedSigner(signature)
-			if err != nil {
-				return err
-			}
-			if !removed {
-				retained = append(retained, signature)
-			}
-		}
-		root.ValidatorSignatures = retained
-		if len(retained) == 0 {
-			if err := root.SignInnerData(signerPriv, sharedObjectID, root.GetInnerSeqno(), hash.RecommendedHashType); err != nil {
-				return err
-			}
-		}
-		valid, err := root.ValidateSignatures(sharedObjectID, nextCfg.GetParticipants())
-		if err != nil {
-			return err
-		}
-		return CheckConsensusAcceptance(nextCfg.GetConsensusMode(), valid)
 	}
 	return nil
 }

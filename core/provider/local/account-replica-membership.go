@@ -30,44 +30,19 @@ func (a *ProviderAccount) readAccountSettings(ctx context.Context) (*account_set
 	if err != nil {
 		return nil, err
 	}
-	settings, _, err := decodeAccountSettingsSnapshot(ctx, snapshot)
+	settings, err := account_settings.ReadSnapshot(ctx, snapshot)
 	return settings, err
 }
 
-// commitAccountSettingsOp waits for durable acceptance and its readable snapshot.
+// commitAccountSettingsOp writes op and waits for a readable snapshot whose
+// replay applied it.
 func commitAccountSettingsOp(ctx context.Context, so sobject.SharedObject, op *account_settings.AccountSettingsOp) error {
-	// Queue the operation and wait for its durable sequence number.
 	data, err := op.MarshalVT()
 	if err != nil {
 		return err
 	}
-	id, err := so.QueueOperation(ctx, data)
-	if err != nil {
-		return err
-	}
-	seqno, _, err := so.WaitOperation(ctx, id)
-	if err != nil {
-		return err
-	}
-
-	// Wait for the snapshot to include the committed sequence number.
-	states, release, err := so.AccessSharedObjectState(ctx, nil)
-	if err != nil {
-		return err
-	}
-	defer release()
-	if _, err := states.WaitValueWithValidator(ctx, func(snapshot sobject.SharedObjectStateSnapshot) (bool, error) {
-		if snapshot == nil {
-			return false, nil
-		}
-		root, err := snapshot.GetRootInner(ctx)
-		return root.GetSeqno() >= seqno, err
-	}, nil); err != nil {
-		return err
-	}
-
-	// Clear the queued operation's stored result.
-	return so.ClearOperationResult(ctx, id)
+	_, err = sobject.WriteOperation(ctx, so, data, account_settings.ProcessAccountSettingsOps)
+	return err
 }
 
 // registerPairingReplicas publishes the approved identity bindings before
@@ -176,23 +151,19 @@ func (a *ProviderAccount) enrollAccountMemberObject(ctx context.Context, entry *
 		}
 	}
 
-	// Export the state, history, genesis, and durable state.
+	// Export the durable state and its config lineage.
 	state, err := local.soHost.GetHostState(ctx)
 	if err != nil {
 		return nil, err
 	}
-	base, history, err := local.ReadSharedObjectConfigHistory(ctx, state.GetConfig())
-	if err != nil {
-		return nil, err
-	}
-	genesis, err := local.ReadSharedObjectGenesis(ctx, base)
+	lineage, err := local.soHost.ReadConfigLineage(ctx, state.GetConfig().GetConfigChainHash())
 	if err != nil {
 		return nil, err
 	}
 	if err := local.soHost.WaitDurable(ctx); err != nil {
 		return nil, err
 	}
-	return &pairing.SharedObject{Entry: entry.CloneVT(), State: state.CloneVT(), HistoryBase: base, History: history, Genesis: genesis}, nil
+	return &pairing.SharedObject{Entry: entry.CloneVT(), State: state.CloneVT(), ConfigLineage: lineage}, nil
 }
 
 // revokeAccountReplicaAccess lets the initiating replica finish its one signed

@@ -11,24 +11,15 @@ import (
 	"github.com/aperturerobotics/util/promise"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/core/sobject"
-	"github.com/s4wave/spacewave/net/crypto"
-	"github.com/s4wave/spacewave/net/hash"
 	"github.com/sirupsen/logrus"
 )
 
+// TestEnsureInitialStateReturnsTerminalErrorAfterRejectedPull checks that a
+// served state the host cannot verify fails the mount for good.
 func TestEnsureInitialStateReturnsTerminalErrorAfterRejectedPull(t *testing.T) {
-	validatorPriv, _ := generateTestKeypair(t)
-	_, otherPID := generateTestKeypair(t)
-	state := &sobject.SOState{
-		Config: &sobject.SharedObjectConfig{
-			ConsensusMode: sobject.SOConsensusMode_SO_CONSENSUS_MODE_SINGLE_VALIDATOR,
-			Participants: []*sobject.SOParticipantConfig{{
-				PeerId: otherPID.String(),
-				Role:   sobject.SOParticipantRole_SOParticipantRole_VALIDATOR,
-			}},
-		},
-		Root: buildMountErrorTestSORoot(t, validatorPriv, 1),
-	}
+	// Serve a state whose checkpoint belongs to another owner's genesis.
+	state := buildMountErrorGenesisState(t)
+	state.Checkpoint = buildMountErrorGenesisState(t).GetCheckpoint()
 	stateData := mustMarshalSOStateMessageSnapshotJSON(t, state)
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/api/sobject/so-invalid/state" {
@@ -38,6 +29,7 @@ func TestEnsureInitialStateReturnsTerminalErrorAfterRejectedPull(t *testing.T) {
 	}))
 	defer srv.Close()
 
+	// A fresh client host rejects the served state as terminal.
 	clientPriv, clientPID := generateTestKeypair(t)
 	h := newCloudSOHost(
 		logrus.New().WithField("test", t.Name()),
@@ -52,27 +44,23 @@ func TestEnsureInitialStateReturnsTerminalErrorAfterRejectedPull(t *testing.T) {
 		nil,
 		nil,
 	)
-
 	err := h.ensureInitialState(context.Background(), SeedReasonColdSeed)
 	if !errors.Is(err, errSharedObjectInitialStateRejected) {
 		t.Fatalf("ensureInitialState() = %v, want terminal shared object mount error", err)
 	}
 }
 
-func buildMountErrorTestSORoot(t *testing.T, validatorPriv crypto.PrivKey, seqno uint64) *sobject.SORoot {
+// buildMountErrorGenesisState returns the genesis state of a new owner of
+// so-invalid.
+func buildMountErrorGenesisState(t *testing.T) *sobject.SOState {
+	// Build a genesis for a new owner.
 	t.Helper()
-	innerData, err := (&sobject.SORootInner{
-		Seqno:     seqno,
-		StateData: []byte("state"),
-	}).MarshalVT()
+	priv, _ := generateTestKeypair(t)
+	state, _, err := sobject.BuildGenesisSOState(logrus.NewEntry(logrus.New()), testStepFactorySet(), "so-invalid", priv, nil)
 	if err != nil {
-		t.Fatalf("marshal root inner: %v", err)
+		t.Fatal(err)
 	}
-	root := &sobject.SORoot{InnerSeqno: seqno, Inner: innerData}
-	if err := root.SignInnerData(validatorPriv, "so-invalid", seqno, hash.RecommendedHashType); err != nil {
-		t.Fatalf("sign root: %v", err)
-	}
-	return root
+	return state
 }
 
 func TestSobjectTrackerHoldTerminalMountError(t *testing.T) {

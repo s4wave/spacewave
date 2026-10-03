@@ -574,14 +574,14 @@ func TestSyncStatusProjectsCloudCompositionAndSourceMechanics(t *testing.T) {
 	resp := syncStatusFromSpacewaveTelemetry(
 		provider_spacewave.SyncTelemetrySnapshot{
 			BlockStores: []provider_spacewave.SyncTelemetryBlockStoreSnapshot{{
-				BlockStoreID:              "store",
-				SharedObjectID:            "object",
-				DirectHitCount:            2,
-				CloudHitCount:             1,
-				CacheHitCount:             3,
-				LastSource:                provider_spacewave.SyncTelemetryBlockSourceDirect,
-				AcceptedRootInnerSequence: 7,
-				CloudRemoteSequence:       9,
+				BlockStoreID:             "store",
+				SharedObjectID:           "object",
+				DirectHitCount:           2,
+				CloudHitCount:            1,
+				CacheHitCount:            3,
+				LastSource:               provider_spacewave.SyncTelemetryBlockSourceDirect,
+				AcceptedCheckpointHeight: 7,
+				CloudRemoteSequence:      9,
 			}},
 		},
 		provider.ProviderAccountStatus_ProviderAccountStatus_READY,
@@ -611,7 +611,7 @@ func TestSyncStatusProjectsCloudCompositionAndSourceMechanics(t *testing.T) {
 		store.GetCloudHitCount() != 1 ||
 		store.GetCacheHitCount() != 3 ||
 		store.GetLastSource() != s4wave_session.SyncBlockSource_SyncBlockSource_DIRECT ||
-		store.GetAcceptedRootInnerSequence() != 7 ||
+		store.GetAcceptedCheckpointHeight() != 7 ||
 		store.GetCloudRemoteSequence() != 9 {
 		t.Fatalf("unexpected block store projection: %+v", store)
 	}

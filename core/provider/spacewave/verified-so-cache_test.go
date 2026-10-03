@@ -14,7 +14,10 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// TestVerifiedSOStateCacheRoundTrip checks that a written verified state cache
+// loads back unchanged.
 func TestVerifiedSOStateCacheRoundTrip(t *testing.T) {
+	// Cache a verified state for one object.
 	objStore := hashmap.NewHashmapKvtx(hashmap.NewHashmap[[]byte]())
 	acc := &ProviderAccount{objStore: objStore}
 	cache := &api.VerifiedSOStateCache{
@@ -28,18 +31,19 @@ func TestVerifiedSOStateCacheRoundTrip(t *testing.T) {
 			}},
 		},
 		KeyEpochs: []*sobject.SOKeyEpoch{{
-			Epoch:      2,
-			SeqnoStart: 5,
+			Epoch: 2,
 			Grants: []*sobject.SOGrant{{
 				PeerId: "peer-1",
 			}},
 		}},
 	}
 
+	// Write the cache.
 	if err := acc.writeVerifiedSOStateCache(context.Background(), "so-1", cache); err != nil {
 		t.Fatalf("write verified SO state cache: %v", err)
 	}
 
+	// It loads back unchanged.
 	loaded, err := acc.loadVerifiedSOStateCache(context.Background(), "so-1")
 	if err != nil {
 		t.Fatalf("load verified SO state cache: %v", err)
@@ -52,7 +56,10 @@ func TestVerifiedSOStateCacheRoundTrip(t *testing.T) {
 	}
 }
 
+// TestNewCloudSOHostHydratesVerifiedStateCache checks that a new cloud host
+// adopts its verified state cache.
 func TestNewCloudSOHostHydratesVerifiedStateCache(t *testing.T) {
+	// Hydrate a host from a verified cache.
 	priv, pid := generateTestKeypair(t)
 	cache := &api.VerifiedSOStateCache{
 		GenesisHash:              []byte("genesis"),
@@ -65,11 +72,9 @@ func TestNewCloudSOHostHydratesVerifiedStateCache(t *testing.T) {
 			}},
 		},
 		KeyEpochs: []*sobject.SOKeyEpoch{{
-			Epoch:      3,
-			SeqnoStart: 8,
+			Epoch: 3,
 		}},
 	}
-
 	host := newCloudSOHost(
 		nil,
 		NewSessionClient(http.DefaultClient, "http://example.com", DefaultSigningEnvPrefix, priv, pid.String()),
@@ -84,6 +89,7 @@ func TestNewCloudSOHostHydratesVerifiedStateCache(t *testing.T) {
 		nil,
 	)
 
+	// The host adopts the cached head, key epochs, and config.
 	if string(host.genesisHash) != "genesis" {
 		t.Fatalf("unexpected genesis hash: %q", host.genesisHash)
 	}
@@ -354,17 +360,15 @@ func TestPullStateTriggersConfigChainOnColdMount(t *testing.T) {
 	}
 }
 
-// TestHandleSONotifyDeferToConfigChainOnInlineDelta covers the Phase 6
-// iter 6 regression: an inline so_notify carrying a state whose
-// config_chain_hash differs from the verified hash made handleStateDelta
-// return errSOConfigChainChanged, after which handleSONotify previously
-// fell through to triggerPull and fired a redundant GET /state.
-//
-// Contract: handleSONotify must signal the config-chain verifier (so it
-// can fetch /config-chain) and must NOT signal the pull routine (the inline state
-// already arrived; the next inline event after the chain syncs carries
-// it forward, or gap recovery rerun a full pull). The HTTP server fails
-// the test if /state is hit at all.
+// TestHandleSONotifyDeferToConfigChainOnInlineDelta covers the Phase 6 iter 6
+// regression: an inline so_notify carrying a state whose config_chain_hash
+// differs from the verified hash made handleStateDelta return
+// errSOConfigChainChanged, after which handleSONotify previously fell through
+// to triggerPull and fired a redundant GET /state. Contract: handleSONotify
+// must signal the config-chain verifier (so it can fetch /config-chain) and
+// must NOT signal the pull routine (the inline state already arrived; the next
+// inline event after the chain syncs carries it forward, or gap recovery rerun
+// a full pull). The HTTP server fails the test if /state is hit at all.
 func TestHandleSONotifyDeferToConfigChainOnInlineDelta(t *testing.T) {
 	const soID = "so-bump"
 	priv, pid := generateTestKeypair(t)
@@ -393,10 +397,7 @@ func TestHandleSONotifyDeferToConfigChainOnInlineDelta(t *testing.T) {
 		nil,
 	)
 
-	// Root must be non-nil so verifyPulledState exercises the config-chain
-	// hash check (it short-circuits to nil when there is no root).
 	snapshot := &sobject.SOState{
-		Root: &sobject.SORoot{InnerSeqno: 10},
 		Config: &sobject.SharedObjectConfig{
 			ConfigChainHash:  append([]byte(nil), bumpedHash...),
 			ConfigChainSeqno: 6,
@@ -522,7 +523,7 @@ func TestApplyConfigMutationPersistsVerifiedStateCache(t *testing.T) {
 	}
 
 	// Applying persists the new verified head.
-	if err := host.applyConfigMutation(context.Background(), entry, nil, nil, nil); err != nil {
+	if err := host.applyConfigMutation(context.Background(), entry, nil, nil); err != nil {
 		t.Fatalf("apply config mutation: %v", err)
 	}
 	if persisted == nil {

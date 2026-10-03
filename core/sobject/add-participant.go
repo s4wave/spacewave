@@ -9,13 +9,14 @@ import (
 )
 
 // AddSOParticipant adds a target peer as a participant on a single shared
-// object and issues an encrypted grant for the peer.
+// object and grants it every key epoch the local peer holds, so it can replay
+// operations written before a rotation.
 //
 // Reads the current SOState, checks for duplicate participant, builds a signed
-// SOConfigChange adding the participant, and applies it atomically with a new
-// SOGrant encrypted to the target's public key.
+// SOConfigChange adding the participant, and applies it atomically with the
+// grants encrypted to the target's public key.
 //
-// Returns the newly created SOGrant for the target peer, or nil if the
+// Returns the target's grant for the current key epoch, or nil if the
 // participant already existed (no-op).
 //
 // localPriv must be the private key of an OWNER in the current config.
@@ -68,28 +69,39 @@ func AddSOParticipant(
 		return nil, errors.Wrap(err, "build config change")
 	}
 
-	// Apply config change and issue grant atomically.
+	// Apply the config change and issue the grants atomically.
 	var grant *SOGrant
 	err = host.ApplyConfigChange(ctx, entry, func(st *SOState) error {
-		// Find the local peer's root grant.
-		grants := st.GetRootGrants()
-		localGrantIdx := slices.IndexFunc(grants, func(g *SOGrant) bool {
-			return g.GetPeerId() == localPeerIDStr
-		})
-		if localGrantIdx == -1 {
+		current := st.CurrentKeyEpoch().GetEpoch()
+		for _, held := range st.GetKeyEpochs() {
+			// Skip an epoch the local peer cannot read; the current one is required.
+			i := slices.IndexFunc(held.GetGrants(), func(g *SOGrant) bool {
+				return g.GetPeerId() == localPeerIDStr
+			})
+			if i == -1 {
+				if held.GetEpoch() == current {
+					return errors.New("local grant not found")
+				}
+				continue
+			}
+
+			// Re-encrypt the local grant's inner data for the target peer.
+			grantInner, err := held.GetGrants()[i].DecryptInnerData(localPriv, soID)
+			if err != nil {
+				return errors.Wrapf(err, "decrypt local grant for key epoch %d", held.GetEpoch())
+			}
+			next, err := EncryptSOGrant(localPriv, targetPub, soID, grantInner)
+			if err != nil {
+				return errors.Wrapf(err, "encrypt key epoch %d grant for target peer", held.GetEpoch())
+			}
+			held.Grants = append(held.Grants, next)
+			if held.GetEpoch() == current {
+				grant = next
+			}
+		}
+		if grant == nil {
 			return errors.New("local grant not found")
 		}
-
-		// Re-encrypt the local grant's inner data for the target peer.
-		grantInner, err := grants[localGrantIdx].DecryptInnerData(localPriv, soID)
-		if err != nil {
-			return errors.Wrap(err, "decrypt local grant")
-		}
-		grant, err = EncryptSOGrant(localPriv, targetPub, soID, grantInner)
-		if err != nil {
-			return errors.Wrap(err, "encrypt grant for target peer")
-		}
-		st.RootGrants = append(st.RootGrants, grant)
 		return nil
 	})
 	if err != nil {

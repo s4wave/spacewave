@@ -38,14 +38,14 @@ const (
 
 // BlockStoreSnapshot describes source and convergence mechanics for one block store.
 type BlockStoreSnapshot struct {
-	BlockStoreID              string
-	SharedObjectID            string
-	DirectHitCount            uint64
-	CloudHitCount             uint64
-	CacheHitCount             uint64
-	LastSource                BlockSource
-	AcceptedRootInnerSequence uint64
-	CloudRemoteSequence       uint64
+	BlockStoreID             string
+	SharedObjectID           string
+	DirectHitCount           uint64
+	CloudHitCount            uint64
+	CacheHitCount            uint64
+	LastSource               BlockSource
+	AcceptedCheckpointHeight uint64
+	CloudRemoteSequence      uint64
 }
 
 // Snapshot describes Spacewave cloud sync activity.
@@ -200,33 +200,33 @@ type state struct {
 	id         string
 	fetchStats FetchStatsProvider
 
-	pendingUploadBytes        int64
-	pendingUploadCount        int
-	pendingPublications       int
-	activeUploadBytes         int64
-	activeUploadSent          int64
-	inFlightPushes            int
-	pushCount                 uint64
-	pushedBytes               int64
-	dedupedUploadCount        uint64
-	dedupedUploadBytes        int64
-	mergeCount                uint64
-	mergedPackCount           uint64
-	pullActiveCount           int
-	lastPushAt                time.Time
-	lastPullAt                time.Time
-	lastActivityAt            time.Time
-	lastPushError             string
-	lastPushErrorAt           time.Time
-	lastPullError             string
-	lastPullErrorAt           time.Time
-	directHitCount            uint64
-	cloudHitCount             uint64
-	cacheHitCount             uint64
-	lastSource                BlockSource
-	acceptedRootInnerSequence uint64
-	sharedObjectID            string
-	cloudRemoteSequence       uint64
+	pendingUploadBytes       int64
+	pendingUploadCount       int
+	pendingPublications      int
+	activeUploadBytes        int64
+	activeUploadSent         int64
+	inFlightPushes           int
+	pushCount                uint64
+	pushedBytes              int64
+	dedupedUploadCount       uint64
+	dedupedUploadBytes       int64
+	mergeCount               uint64
+	mergedPackCount          uint64
+	pullActiveCount          int
+	lastPushAt               time.Time
+	lastPullAt               time.Time
+	lastActivityAt           time.Time
+	lastPushError            string
+	lastPushErrorAt          time.Time
+	lastPullError            string
+	lastPullErrorAt          time.Time
+	directHitCount           uint64
+	cloudHitCount            uint64
+	cacheHitCount            uint64
+	lastSource               BlockSource
+	acceptedCheckpointHeight uint64
+	sharedObjectID           string
+	cloudRemoteSequence      uint64
 }
 
 // Broadcast returns the broadcast guarding Spacewave sync telemetry.
@@ -472,14 +472,15 @@ func (s *Store) RecordBlockSource(bstoreID string, source BlockSource) {
 	})
 }
 
-// SetAcceptedRoot records the latest accepted SharedObject root for a block store.
-func (s *Store) SetAcceptedRoot(bstoreID, sharedObjectID string, sequence uint64) {
+// SetAcceptedCheckpoint records the height of the latest accepted SharedObject checkpoint for a block store.
+func (s *Store) SetAcceptedCheckpoint(bstoreID, sharedObjectID string, height uint64) {
 	s.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		// Record a changed height and broadcast it.
 		state := s.getOrCreateStateLocked(bstoreID)
-		if sequence == state.acceptedRootInnerSequence && sharedObjectID == state.sharedObjectID {
+		if height == state.acceptedCheckpointHeight && sharedObjectID == state.sharedObjectID {
 			return
 		}
-		state.acceptedRootInnerSequence = sequence
+		state.acceptedCheckpointHeight = height
 		state.sharedObjectID = sharedObjectID
 		broadcast()
 	})
@@ -499,20 +500,21 @@ func (s *Store) SetCloudRemoteSequence(bstoreID string, sequence uint64) {
 
 // BuildSnapshot builds aggregate Spacewave sync telemetry from store states.
 func BuildSnapshot(states []state) Snapshot {
+	// Copy each store's counters and sum the totals.
 	snap := Snapshot{
 		StoreCount: len(states),
 	}
 	snap.BlockStores = make([]BlockStoreSnapshot, 0, len(states))
 	for _, state := range states {
 		snap.BlockStores = append(snap.BlockStores, BlockStoreSnapshot{
-			BlockStoreID:              state.id,
-			SharedObjectID:            state.sharedObjectID,
-			DirectHitCount:            state.directHitCount,
-			CloudHitCount:             state.cloudHitCount,
-			CacheHitCount:             state.cacheHitCount,
-			LastSource:                state.lastSource,
-			AcceptedRootInnerSequence: state.acceptedRootInnerSequence,
-			CloudRemoteSequence:       state.cloudRemoteSequence,
+			BlockStoreID:             state.id,
+			SharedObjectID:           state.sharedObjectID,
+			DirectHitCount:           state.directHitCount,
+			CloudHitCount:            state.cloudHitCount,
+			CacheHitCount:            state.cacheHitCount,
+			LastSource:               state.lastSource,
+			AcceptedCheckpointHeight: state.acceptedCheckpointHeight,
+			CloudRemoteSequence:      state.cloudRemoteSequence,
 		})
 		snap.PendingUploadBytes += state.pendingUploadBytes
 		snap.PendingUploadCount += state.pendingUploadCount + state.pendingPublications

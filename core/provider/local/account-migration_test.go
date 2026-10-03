@@ -10,6 +10,7 @@ import (
 
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/aperturerobotics/util/ulid"
+	account_settings "github.com/s4wave/spacewave/core/account/settings"
 	"github.com/s4wave/spacewave/core/pairing"
 	"github.com/s4wave/spacewave/core/session"
 	session_controller "github.com/s4wave/spacewave/core/session/controller"
@@ -193,10 +194,11 @@ func waitReplicaMigrationAdmission(ctx context.Context, t *testing.T, account *P
 	}
 	defer releaseStates()
 	if _, err := states.WaitValueWithValidator(ctx, func(snapshot sobject.SharedObjectStateSnapshot) (bool, error) {
+		// Wait for the settings to accept the migration.
 		if snapshot == nil {
 			return false, nil
 		}
-		settings, _, err := decodeAccountSettingsSnapshot(ctx, snapshot)
+		settings, err := account_settings.ReadSnapshot(ctx, snapshot)
 		if err != nil {
 			return false, err
 		}

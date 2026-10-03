@@ -9,7 +9,7 @@ import (
 
 // RootBlockStore reads a CDN Space and tracks its root pointer.
 //
-// The pointer carries the SORoot a reader builds its world head from,
+// The pointer carries the checkpoint a reader builds its world head from,
 // so every mount of a CDN Space needs one whether or not that mount owns the
 // CDN transport. CdnBlockStore owns transport, pack readers, and writeback;
 // SuppliedBlockStore reads through an owner that already holds them.

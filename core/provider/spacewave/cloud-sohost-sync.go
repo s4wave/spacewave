@@ -3,6 +3,7 @@ package provider_spacewave
 import (
 	"bytes"
 	"context"
+	"slices"
 
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/core/sobject"
@@ -82,10 +83,11 @@ func (h *cloudSOHost) readConfigEntry(ctx context.Context, _ string, hash []byte
 	return h.historyIndex[string(hash)].CloneVT(), nil
 }
 
-// stateWithVerifiedConfig preserves the accepted root while fencing capabilities
-// and queued work that no longer have authority in the verified configuration.
+// stateWithVerifiedConfig preserves the accepted checkpoint and operations
+// under the verified configuration, keeping key grants only for participants
+// that can still read.
 func (h *cloudSOHost) stateWithVerifiedConfig(state *sobject.SOState, config *sobject.SharedObjectConfig) *sobject.SOState {
-	// Reject a missing state and compute read access for each participant.
+	// A nil state stays nil.
 	if state == nil {
 		return nil
 	}
@@ -101,42 +103,16 @@ func (h *cloudSOHost) stateWithVerifiedConfig(state *sobject.SOState, config *so
 
 	// Local revocation fences all content capabilities before notification.
 	if !readable[h.peerID.String()] {
-		next.RootGrants = nil
+		next.KeyEpochs = nil
 		next.Ops = nil
-		next.OpRejections = nil
-		next.QueuedAccountNonces = nil
 		return next
 	}
 
-	// Retain only grants and outcomes still signed by allowed participants.
-	grants := next.RootGrants
-	next.RootGrants = nil
-	for _, grant := range grants {
-		if readable[grant.GetPeerId()] && grant.ValidateSignature(h.soID, participants) == nil {
-			next.RootGrants = append(next.RootGrants, grant)
-		}
-	}
-	rejections := next.OpRejections
-	next.OpRejections = nil
-	for _, group := range rejections {
-		pending := group.Rejections
-		group.Rejections = nil
-		for _, rejection := range pending {
-			if _, err := rejection.ValidateSignature(h.soID, participants); err == nil {
-				group.Rejections = append(group.Rejections, rejection)
-			}
-		}
-		if len(group.Rejections) != 0 {
-			next.OpRejections = append(next.OpRejections, group)
-		}
-	}
-
-	// Rebuild derived nonce state from the remaining signed, admissible operations.
-	operations := next.Ops
-	next.Ops = nil
-	next.QueuedAccountNonces = nil
-	for _, operation := range operations {
-		_ = next.QueueOperation(h.soID, operation)
+	// Retain only the grants of readers.
+	for _, epoch := range next.GetKeyEpochs() {
+		epoch.Grants = slices.DeleteFunc(epoch.Grants, func(grant *sobject.SOGrant) bool {
+			return !readable[grant.GetPeerId()]
+		})
 	}
 	return next
 }

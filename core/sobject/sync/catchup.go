@@ -312,7 +312,7 @@ func (x *syncExchange) prepareSend(current *sobject.SOState) error {
 			x.requested = false
 			x.outgoing = &SOSyncMessage{Body: &SOSyncMessage_Head{Head: &SOSyncHead{
 				Revision: x.revision, ConfigHash: bytes.Clone(current.GetConfig().GetConfigChainHash()),
-				ConfigSeqno: current.GetConfig().GetConfigChainSeqno(), RootSeqno: current.GetRoot().GetInnerSeqno(), StateHash: digest,
+				ConfigSeqno: current.GetConfig().GetConfigChainSeqno(), StateHash: digest,
 			}}}
 		}
 	}
@@ -351,9 +351,11 @@ func (x *syncExchange) receive(ctx context.Context, le *logrus.Entry, current *s
 		if bytes.Equal(head.GetStateHash(), digest) && x.sync.peerRecovery != nil {
 			x.sync.peerRecovery(x.remoteID, false)
 		}
+		// Decline an equal state, or one behind the held config. A peer behind
+		// the config first catches up from this side, then advertises its merged
+		// state again.
 		config := current.GetConfig()
-		if bytes.Equal(head.GetStateHash(), digest) || head.GetConfigSeqno() < config.GetConfigChainSeqno() ||
-			(bytes.Equal(head.GetConfigHash(), config.GetConfigChainHash()) && head.GetRootSeqno() < current.GetRoot().GetInnerSeqno()) {
+		if bytes.Equal(head.GetStateHash(), digest) || head.GetConfigSeqno() < config.GetConfigChainSeqno() {
 			x.control = syncAcknowledgment(head.GetRevision())
 			return nil
 		}
@@ -418,8 +420,6 @@ func (x *syncExchange) receive(ctx context.Context, le *logrus.Entry, current *s
 			return errors.New("unsolicited recovery response")
 		}
 		return sobject.ErrConfigHistoryUnavailable
-	case *SOSyncMessage_Op:
-		x.sync.handleRemoteOp(ctx, le, body.Op)
 	default:
 		return errors.New("unexpected authenticated sync message")
 	}
@@ -485,17 +485,16 @@ func (s *SOSync) prepareResponse(ctx context.Context, state *sobject.SOState, re
 		}
 	}
 
-	// Invitations are local capabilities; peers import neither invitations nor nonce bookkeeping.
+	// Invitations are local capabilities; peers do not import them.
 	state = state.CloneVT()
 	state.Invites = nil
-	state.QueuedAccountNonces = nil
 	data, err := state.MarshalVT()
 	if err != nil {
 		return nil, err
 	}
 
 	// Serialize the snapshot and reject one that exceeds the frame budget.
-	snapshot := &SOSyncSnapshot{SoState: data, RootSeqno: state.GetRoot().GetInnerSeqno(), Revision: request.GetRevision(), BaseHash: bytes.Clone(request.GetBaseHash())}
+	snapshot := &SOSyncSnapshot{SoState: data, Revision: request.GetRevision(), BaseHash: bytes.Clone(request.GetBaseHash())}
 	if (&SOSyncMessage{Body: &SOSyncMessage_Snapshot{Snapshot: snapshot}}).SizeVT() > maxMessageSize {
 		return nil, sobject.ErrConfigHistoryUnavailable
 	}
@@ -586,7 +585,7 @@ func (s *SOSync) acceptResponse(ctx context.Context, receiving *syncReceive, sna
 	}
 
 	// Verify the snapshot matches the pinned advertisement and import it.
-	if snapshot.GetRootSeqno() != receiving.head.GetRootSeqno() || state.GetRoot().GetInnerSeqno() != snapshot.GetRootSeqno() || state.GetConfig().GetConfigChainSeqno() != receiving.head.GetConfigSeqno() || !bytes.Equal(state.GetConfig().GetConfigChainHash(), receiving.head.GetConfigHash()) {
+	if state.GetConfig().GetConfigChainSeqno() != receiving.head.GetConfigSeqno() || !bytes.Equal(state.GetConfig().GetConfigChainHash(), receiving.head.GetConfigHash()) {
 		return errors.New("snapshot differs from pinned advertisement")
 	}
 	err := s.soHost.ImportPeerSnapshot(ctx, state, receiving.changes, s.localObjectPeerID, s.validateSnapshotAccess)
@@ -606,7 +605,6 @@ func syncStateHash(state *sobject.SOState) ([]byte, error) {
 	// Strip local capabilities and hash the remaining state.
 	state = state.CloneVT()
 	state.Invites = nil
-	state.QueuedAccountNonces = nil
 	if state.SizeVT() > maxMessageSize {
 		return nil, sobject.ErrConfigHistoryUnavailable
 	}
@@ -618,14 +616,13 @@ func syncStateHash(state *sobject.SOState) ([]byte, error) {
 	return digest[:], nil
 }
 
-// responseObsolete permits declining a delayed response after local progress.
-// Equal-sequence conflicting heads still require rejection at the host boundary.
+// responseObsolete permits declining a delayed response after the held config
+// moved past it. A conflicting config at the same sequence still fails at the
+// host boundary.
 func (s *SOSync) responseObsolete(ctx context.Context, head *SOSyncHead) bool {
 	current, err := s.soHost.GetHostState(ctx)
 	if err != nil {
 		return false
 	}
-	configSeqno, rootSeqno := current.GetConfig().GetConfigChainSeqno(), current.GetRoot().GetInnerSeqno()
-	return configSeqno >= head.GetConfigSeqno() && rootSeqno >= head.GetRootSeqno() &&
-		(configSeqno > head.GetConfigSeqno() || rootSeqno > head.GetRootSeqno())
+	return current.GetConfig().GetConfigChainSeqno() > head.GetConfigSeqno()
 }

@@ -3,7 +3,6 @@ package provider_spacewave
 import (
 	"context"
 	"crypto/rand"
-	"path"
 	"slices"
 
 	"github.com/aperturerobotics/controllerbus/config"
@@ -18,17 +17,16 @@ import (
 	transform_gzip "github.com/s4wave/spacewave/db/block/transform/gzip"
 	hydra_blockenc "github.com/s4wave/spacewave/db/util/blockenc"
 	"github.com/s4wave/spacewave/net/crypto"
-	"github.com/s4wave/spacewave/net/hash"
 	"github.com/s4wave/spacewave/net/peer"
 	"github.com/sirupsen/logrus"
 )
 
-// InitEmptyStandaloneSpace bootstraps the initial owner config/root/grant for
-// an existing empty cloud shared object. username is the owner account's
-// username.
+// InitEmptyStandaloneSpace bootstraps the initial owner config, key epoch and
+// genesis checkpoint for an existing empty cloud shared object. username is
+// the owner account's username.
 //
-// Returns true when initialization wrote the initial config/root state, or
-// false when the shared object was already initialized.
+// Returns true when initialization wrote the initial state, or false when the
+// shared object was already initialized.
 func (c *SessionClient) InitEmptyStandaloneSpace(
 	ctx context.Context,
 	le *logrus.Entry,
@@ -72,51 +70,25 @@ func (c *SessionClient) InitEmptyStandaloneSpace(
 		return false, errors.New("local participant is not owner on empty space")
 	}
 	epoch := currentEpochWithFallback(state, chain.GetKeyEpochs())
-	if soGrantSliceHasPeerID(state.GetRootGrants(), localPeerID) ||
-		(epoch != nil && soGrantSliceHasPeerID(epoch.GetGrants(), localPeerID)) {
+	if epoch.FindGrant(localPeerID) != nil {
 		return false, nil
 	}
 
-	// Initialize an unrooted shared object when needed.
-	root := state.GetRoot()
-	if root == nil || root.GetInnerSeqno() == 0 {
-		if err := initializeCloudSharedObjectState(
-			ctx,
-			c,
-			le,
-			accountID,
-			username,
-			spaceID,
-			c.priv,
-			buildStandaloneSpaceInitStepFactorySet(),
-			false,
-		); err != nil {
-			return false, err
-		}
-		return true, nil
+	// Initialize a shared object without a checkpoint. An initialized one
+	// without the local grant is unreadable by this session.
+	if state.GetCheckpoint() != nil {
+		return false, errors.New("local grant missing on initialized space")
 	}
-
-	// Reject inconsistent config history before repair.
-	if len(chain.GetConfigChanges()) != 0 {
-		return false, errors.New("local grant missing on initialized space with config history")
-	}
-	for _, keyEpoch := range chain.GetKeyEpochs() {
-		if len(keyEpoch.GetGrants()) != 0 {
-			return false, errors.New("local grant missing on initialized space with existing key grants")
-		}
-	}
-
-	// Repair an initialized shared object missing the local grant.
-	if err := repairGrantlessStandaloneSpace(
+	if err := initializeCloudSharedObjectState(
 		ctx,
 		c,
 		le,
 		accountID,
+		username,
 		spaceID,
 		c.priv,
-		state,
-		chain.GetKeyEpochs(),
 		buildStandaloneSpaceInitStepFactorySet(),
+		false,
 	); err != nil {
 		return false, err
 	}
@@ -161,11 +133,18 @@ func buildStandaloneSpaceInitStepFactorySet() *block_transform.StepFactorySet {
 	return sfs
 }
 
+// buildInitialWorldStateData returns the encoded World state of a new Space: an
+// initialized World when seedWorldHead is set, or nil.
 func buildInitialWorldStateData(seedWorldHead bool) ([]byte, error) {
+	// Encode an initialized World, unless asked for none.
 	if !seedWorldHead {
 		return nil, nil
 	}
-	state, err := sobject_world_engine.BuildInitialInnerState(nil)
+	initOp, err := sobject_world_engine.NewInitWorldOp(nil)
+	if err != nil {
+		return nil, err
+	}
+	state, err := sobject_world_engine.BuildInitialInnerState(initOp)
 	if err != nil {
 		return nil, err
 	}
@@ -216,22 +195,23 @@ func initializeCloudSharedObjectState(
 		return errors.Wrap(err, "post signed genesis config")
 	}
 
-	// Marshal and publish the initial root state.
-	rootData, err := state.root.MarshalVT()
-	if err != nil {
-		return errors.Wrap(err, "marshal root")
-	}
-	if err := cli.PostInitState(ctx, sharedObjectID, rootData); err != nil {
-		return err
+	// Publish the genesis checkpoint.
+	if err := cli.PostCheckpoint(ctx, sharedObjectID, state.checkpoint); err != nil {
+		return errors.Wrap(err, "post genesis checkpoint")
 	}
 	return nil
 }
 
+// standaloneSpaceInitState is the signed initial state of a new shared object.
 type standaloneSpaceInitState struct {
-	configData        []byte
-	keyEpoch          *sobject.SOKeyEpoch
+	// configData is the encoded genesis config change.
+	configData []byte
+	// keyEpoch is key epoch 0 with a grant for each participant.
+	keyEpoch *sobject.SOKeyEpoch
+	// recoveryEnvelopes carry the grant material to each entity's recovery keys.
 	recoveryEnvelopes []*sobject.SOEntityRecoveryEnvelope
-	root              *sobject.SORoot
+	// checkpoint is the owner-signed genesis checkpoint.
+	checkpoint *sobject.SOCheckpoint
 }
 
 // buildStandaloneGenesisParticipants builds the genesis participant list. A
@@ -398,7 +378,8 @@ func buildFriendDmRecoveryEnvelopes(
 func marshalFriendDmInitialState(
 	state *standaloneSpaceInitState,
 ) ([]byte, []byte, error) {
-	if state == nil || state.keyEpoch == nil || state.root == nil {
+	// Encode the config and checkpoint request wrappers.
+	if state == nil || state.keyEpoch == nil || state.checkpoint == nil {
 		return nil, nil, errors.New("friend dm initial state is incomplete")
 	}
 	configData, err := (&api.PostConfigStateRequest{
@@ -409,11 +390,11 @@ func marshalFriendDmInitialState(
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "marshal friend dm config state")
 	}
-	rootData, err := (&api.PostRootRequest{Root: state.root}).MarshalVT()
+	checkpointData, err := (&api.PostCheckpointRequest{Checkpoint: state.checkpoint}).MarshalVT()
 	if err != nil {
-		return nil, nil, errors.Wrap(err, "marshal friend dm root state")
+		return nil, nil, errors.Wrap(err, "marshal friend dm checkpoint state")
 	}
-	return configData, rootData, nil
+	return configData, checkpointData, nil
 }
 
 func buildStandaloneSpaceInitState(
@@ -489,11 +470,7 @@ func buildStandaloneSpaceInitState(
 		}
 		grants = append(grants, grant)
 	}
-	epoch := &sobject.SOKeyEpoch{
-		Epoch:      0,
-		SeqnoStart: 1,
-		Grants:     grants,
-	}
+	epoch := &sobject.SOKeyEpoch{Grants: grants}
 
 	// Advance the config to the genesis head for recovery.
 	genesisHash, err := sobject.HashSOConfigChange(genesisEntry)
@@ -535,34 +512,26 @@ func buildStandaloneSpaceInitState(
 		return nil, errors.Wrap(err, "build friend dm recovery envelopes")
 	}
 
-	// Encode the first root inner with the initial World state.
+	// Sign the genesis checkpoint holding the encrypted initial World state.
 	stateData, err := buildInitialWorldStateData(seedWorldHead)
 	if err != nil {
 		return nil, err
 	}
-	ninner := &sobject.SORootInner{
-		Seqno:     1,
-		StateData: stateData,
+	if len(stateData) != 0 {
+		stateData, err = soTransform.EncodeBlock(stateData)
+		if err != nil {
+			return nil, errors.Wrap(err, "encrypt initial state")
+		}
 	}
-	innerDataDec, err := ninner.MarshalVT()
+	checkpoint, err := sobject.BuildGenesisSOCheckpoint(localPriv, sharedObjectID, genesisHash, stateData)
 	if err != nil {
-		return nil, err
-	}
-
-	// Encrypt and sign the first root.
-	innerDataEnc, err := soTransform.EncodeBlock(innerDataDec)
-	if err != nil {
-		return nil, errors.Wrap(err, "encrypt root inner")
-	}
-	root := &sobject.SORoot{InnerSeqno: 1, Inner: innerDataEnc}
-	if err := root.SignInnerData(localPriv, sharedObjectID, root.GetInnerSeqno(), hash.RecommendedHashType); err != nil {
-		return nil, errors.Wrap(err, "sign root")
+		return nil, errors.Wrap(err, "sign genesis checkpoint")
 	}
 	return &standaloneSpaceInitState{
 		configData:        genesisData,
 		keyEpoch:          epoch,
 		recoveryEnvelopes: recoveryEnvelopes,
-		root:              root,
+		checkpoint:        checkpoint,
 	}, nil
 }
 
@@ -575,154 +544,23 @@ func buildCreateWithStateRequest(
 	ownerID string,
 	accountPrivate bool,
 	configState []byte,
-	rootState []byte,
+	checkpointState []byte,
 ) (*api.CreateWithStateRequest, error) {
 	if (displayName == "" && objectType == "space") || objectType == "" || ownerType == "" || ownerID == "" {
 		return nil, errors.New("space metadata is required")
 	}
-	if len(configState) == 0 || len(rootState) == 0 {
+	if len(configState) == 0 || len(checkpointState) == 0 {
 		return nil, errors.New("space initial state is required")
 	}
 	return &api.CreateWithStateRequest{
-		DisplayName:    displayName,
-		ObjectType:     objectType,
-		OwnerType:      ownerType,
-		OwnerId:        ownerID,
-		AccountPrivate: accountPrivate,
-		ConfigState:    configState,
-		RootState:      rootState,
+		DisplayName:     displayName,
+		ObjectType:      objectType,
+		OwnerType:       ownerType,
+		OwnerId:         ownerID,
+		AccountPrivate:  accountPrivate,
+		ConfigState:     configState,
+		CheckpointState: checkpointState,
 	}, nil
-}
-
-// CreateSpaceWithState atomically creates a private shared object with signed
-// config and root state. A 200 response is an idempotent existing-state match;
-// a 201 response creates the canonical state.
-func (c *SessionClient) CreateSpaceWithState(
-	ctx context.Context,
-	spaceID string,
-	displayName string,
-	objectType string,
-	ownerType string,
-	ownerID string,
-	accountPrivate bool,
-	configState []byte,
-	rootState []byte,
-) error {
-	if c == nil {
-		return errors.New("session client is required")
-	}
-	if spaceID == "" {
-		return errors.New("space id is required")
-	}
-	req, err := buildCreateWithStateRequest(
-		displayName,
-		objectType,
-		ownerType,
-		ownerID,
-		accountPrivate,
-		configState,
-		rootState,
-	)
-	if err != nil {
-		return err
-	}
-	body, err := req.MarshalVT()
-	if err != nil {
-		return errors.Wrap(err, "marshal create request")
-	}
-	_, err = c.doPostBinary(
-		ctx,
-		path.Join("/api/sobject", spaceID, "create-with-state"),
-		body,
-		nil,
-		SeedReasonMutation,
-	)
-	return errors.Wrap(err, "create space with state")
-}
-
-func repairGrantlessStandaloneSpace(
-	ctx context.Context,
-	cli *SessionClient,
-	le *logrus.Entry,
-	accountID string,
-	sharedObjectID string,
-	localPriv crypto.PrivKey,
-	state *sobject.SOState,
-	epochs []*sobject.SOKeyEpoch,
-	sfs *block_transform.StepFactorySet,
-) error {
-	root := state.GetRoot()
-	if root == nil || root.GetInnerSeqno() == 0 {
-		return errors.New("grantless space repair requires an initialized root")
-	}
-	currentSeqno := root.GetInnerSeqno()
-
-	_, soTransform, grantInner, err := buildInitialSpaceTransform(
-		le,
-		sfs,
-	)
-	if err != nil {
-		return err
-	}
-
-	localPeerID, err := peer.IDFromPrivateKey(localPriv)
-	if err != nil {
-		return err
-	}
-	localPub, err := localPeerID.ExtractPublicKey()
-	if err != nil {
-		return errors.Wrap(err, "extract local public key")
-	}
-	grant, err := sobject.EncryptSOGrant(localPriv, localPub, sharedObjectID, grantInner)
-	if err != nil {
-		return errors.Wrap(err, "encrypt local repair grant")
-	}
-
-	nextEpoch := sobject.CurrentEpochNumber(epochs) + 1
-	keyEpoch := &sobject.SOKeyEpoch{
-		Epoch:      nextEpoch,
-		SeqnoStart: currentSeqno + 1,
-		Grants:     []*sobject.SOGrant{grant},
-	}
-
-	recoveryCfg := &sobject.SharedObjectConfig{}
-	if cfg := state.GetConfig(); cfg != nil {
-		recoveryCfg = cfg.CloneVT()
-	}
-	recoveryEnvelopes, err := buildSORecoveryEnvelopes(
-		ctx,
-		cli,
-		sharedObjectID,
-		recoveryCfg,
-		keyEpoch.GetEpoch(),
-		grantInner,
-	)
-	if err != nil {
-		var missingErr *missingRecoveryKeypairsError
-		if !errors.As(err, &missingErr) || missingErr.entityID != accountID {
-			return errors.Wrap(err, "build recovery envelopes")
-		}
-		recoveryEnvelopes = nil
-	}
-	if err := cli.PostKeyEpoch(ctx, sharedObjectID, keyEpoch, recoveryEnvelopes); err != nil {
-		return err
-	}
-
-	ninner := &sobject.SORootInner{Seqno: currentSeqno + 1}
-	innerDataDec, err := ninner.MarshalVT()
-	if err != nil {
-		return err
-	}
-	innerDataEnc, err := soTransform.EncodeBlock(innerDataDec)
-	if err != nil {
-		return errors.Wrap(err, "encrypt repaired root inner")
-	}
-
-	nroot := &sobject.SORoot{InnerSeqno: currentSeqno + 1, Inner: innerDataEnc}
-	if err := nroot.SignInnerData(localPriv, sharedObjectID, nroot.GetInnerSeqno(), hash.RecommendedHashType); err != nil {
-		return errors.Wrap(err, "sign repaired root")
-	}
-	return cli.PostRoot(ctx, sharedObjectID, nroot, nil)
 }
 
 func buildInitialSpaceTransform(

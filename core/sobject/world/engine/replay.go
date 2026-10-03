@@ -4,9 +4,15 @@ import (
 	"bytes"
 	"context"
 
+	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/core/sobject"
+	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/world"
 )
+
+// replayBaseRootName names the local root that holds the checkpoint's World,
+// which every replay starts from.
+const replayBaseRootName = "replay-base"
 
 // replayOutcome is the deterministic outcome of one replayed operation.
 type replayOutcome struct {
@@ -25,29 +31,88 @@ type replayPosition struct {
 	state *InnerState
 }
 
+// replayFork is a local write computed on the World after the first index
+// positions of a replay from base. Replay adopts its World as the outcome of
+// the write when the write follows exactly those positions.
+type replayFork struct {
+	// base is the replay base the fork started from.
+	base *InnerState
+	// index is the number of positions the fork followed.
+	index int
+	// hash identifies the written operation.
+	hash []byte
+	// state is the World after the write.
+	state *InnerState
+}
+
 // replayer replays an operation set to a World in the set's deterministic
-// order. The outcome of every operation depends only on the operation set,
-// never on the replaying device or the order operations arrived in. It keeps
-// the World after every replayed position, so a later replay resumes after the
-// longest prefix its order shares with the previous replay.
+// order, starting from the World of the set's checkpoint. The outcome of every
+// operation depends only on the operation set, never on the replaying device
+// or the order operations arrived in. It keeps the World after every replayed
+// position, so a later replay resumes after the longest prefix its order
+// shares with the previous replay. The owner of the replayer serializes calls.
 type replayer struct {
 	// c processes World operations.
 	c *Controller
 	// so holds the World blocks.
 	so sobject.SharedObject
-	// base is the World before the first operation.
+	// base is the World of the checkpoint, before the first operation.
 	base *InnerState
-	// decode decodes operation data written with the Space's block transform.
-	decode func([]byte) ([]byte, error)
-	// config returns the config with the given config chain hash.
-	config func(ctx context.Context, hash []byte) (*sobject.SharedObjectConfig, error)
 	// positions are the replayed operations in order.
 	positions []replayPosition
 }
 
-// replay replays set and returns the World after the last operation it can
-// place, with the outcome of every placed operation in order.
-func (r *replayer) replay(ctx context.Context, set *sobject.SOOperationSet) (*InnerState, []replayOutcome, error) {
+// newReplayer constructs a replayer for the World of so.
+func newReplayer(c *Controller, so sobject.SharedObject) *replayer {
+	return &replayer{c: c, so: so}
+}
+
+// sync replays snap and returns the World after the last operation it can
+// place, with the outcome of every placed operation in order. fork, when set,
+// supplies the World after a local write in place of replaying it.
+func (r *replayer) sync(ctx context.Context, snap sobject.SharedObjectStateSnapshot, fork *replayFork) (*InnerState, []replayOutcome, error) {
+	// Restart from the checkpoint's World when it changed.
+	checkpoint, err := snap.GetCheckpoint(ctx)
+	if err != nil {
+		return nil, nil, err
+	}
+	base := &InnerState{}
+	if err := base.UnmarshalVT(checkpoint.GetStateData()); err != nil {
+		return nil, nil, errors.Wrap(err, "checkpoint World state")
+	}
+	if !base.EqualVT(r.base) {
+		if err := r.c.retainWorldRoot(ctx, r.so, replayBaseRootName, base.GetHeadRef()); err != nil {
+			return nil, nil, err
+		}
+		r.base, r.positions = base, nil
+	}
+
+	// Replay the operation set from the shared prefix.
+	set, err := snap.GetOperationSet(ctx)
+	if err != nil {
+		return nil, nil, err
+	}
+	return r.replay(ctx, snap, set, fork)
+}
+
+// head returns the replay base and the World after the last replayed position,
+// with the number of positions.
+func (r *replayer) head() (*InnerState, *InnerState, int) {
+	if len(r.positions) == 0 {
+		return r.base, r.base, 0
+	}
+	return r.base, r.positions[len(r.positions)-1].state, len(r.positions)
+}
+
+// replay replays set after the longest prefix its order shares with the
+// previous replay. A World of that prefix may have been collected since, so a
+// missing block while resuming replays again from the base.
+func (r *replayer) replay(
+	ctx context.Context,
+	snap sobject.SharedObjectStateSnapshot,
+	set *sobject.SOOperationSet,
+	fork *replayFork,
+) (*InnerState, []replayOutcome, error) {
 	// Keep the positions of the prefix the new order shares with the last one.
 	order := set.Order()
 	n := 0
@@ -61,18 +126,25 @@ func (r *replayer) replay(ctx context.Context, set *sobject.SOOperationSet) (*In
 	if n != 0 {
 		state = r.positions[n-1].state
 	}
-	equivocated := make(map[string]bool)
-	for _, ev := range set.Equivocations() {
-		for _, h := range ev.Hashes {
-			equivocated[string(h)] = true
-		}
-	}
 	for i, h := range order[n:] {
+		// Adopt a local write that follows exactly the positions it forked
+		// from.
+		if i == 0 && fork != nil && fork.base == r.base && fork.index == n && bytes.Equal(fork.hash, h) {
+			state = fork.state
+			r.positions = append(r.positions, replayPosition{outcome: replayOutcome{hash: h}, state: state})
+			continue
+		}
+
+		// Apply every other operation as every member does.
 		var reason string
-		if equivocated[string(h)] {
-			reason = "its author signed another operation at the same sequence"
+		if set.Equivocated(h) {
+			reason = sobject.ReasonEquivocated
 		} else {
-			next, why, err := r.replayOp(ctx, set.Get(h), n+i, state)
+			next, why, err := r.replayOp(ctx, snap, set.Get(h), n+i, state)
+			if errors.Is(err, block.ErrNotFound) && n != 0 {
+				r.positions = nil
+				return r.replay(ctx, snap, set, nil)
+			}
 			if err != nil {
 				return nil, nil, err
 			}
@@ -98,31 +170,21 @@ func (r *replayer) replay(ctx context.Context, set *sobject.SOOperationSet) (*In
 // replayOp applies one operation to state as its author, under the config the
 // operation names. It returns the next World, or nil and the reason the
 // operation was not applied.
-func (r *replayer) replayOp(ctx context.Context, inner *sobject.SOOperationInner, idx int, state *InnerState) (*InnerState, string, error) {
-	// Authorize the author under the config the operation was written under.
+func (r *replayer) replayOp(
+	ctx context.Context,
+	snap sobject.SharedObjectStateSnapshot,
+	inner *sobject.SOOperationInner,
+	idx int,
+	state *InnerState,
+) (*InnerState, string, error) {
+	// Authorize and decode the operation as every member does.
+	writer, opData, reason, err := sobject.PrepareReplayOp(ctx, snap, inner)
+	if err != nil || reason != "" {
+		return nil, reason, err
+	}
 	author, err := inner.ParsePeerID()
 	if err != nil {
 		return nil, "", err
-	}
-	cfg, err := r.config(ctx, inner.GetConfigHash())
-	if err != nil {
-		return nil, "", err
-	}
-	var writer *sobject.SOParticipantConfig
-	for _, p := range cfg.GetParticipants() {
-		if p.GetPeerId() == inner.GetPeerId() && sobject.CanWriteOps(p.GetRole()) {
-			writer = p
-			break
-		}
-	}
-	if writer == nil {
-		return nil, "its author could not write to the Space", nil
-	}
-
-	// Decode the World operation.
-	opData, err := r.decode(inner.GetOpData())
-	if err != nil {
-		return nil, "its data could not be decoded", nil
 	}
 
 	// Apply it as the author's person.
@@ -148,4 +210,15 @@ func (r *replayer) replayOp(ctx context.Context, inner *sobject.SOOperationInner
 		return nil, res.GetErrorDetails().GetErrorMsg(), nil
 	}
 	return next, "", nil
+}
+
+// outcomeReason returns the reason the operation with hash h was not applied,
+// and whether replay placed it.
+func outcomeReason(outcomes []replayOutcome, h []byte) (string, bool) {
+	for _, outcome := range outcomes {
+		if bytes.Equal(outcome.hash, h) {
+			return outcome.reason, true
+		}
+	}
+	return "", false
 }

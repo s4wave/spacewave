@@ -47,8 +47,9 @@ func (c *SessionClient) CreateFriendDMWithState(
 	targetAccountID string,
 	ownerAccountID string,
 	configState []byte,
-	rootState []byte,
+	checkpointState []byte,
 ) (*api.GetFriendDmResponse, error) {
+	// Check the client and the account ids.
 	if c == nil {
 		return nil, errors.New("session client is required")
 	}
@@ -57,6 +58,8 @@ func (c *SessionClient) CreateFriendDMWithState(
 	if targetAccountID == "" || ownerAccountID == "" {
 		return nil, errors.New("friend dm account ids are required")
 	}
+
+	// The config state holds a change and an epoch.
 	configRequest := &api.PostConfigStateRequest{}
 	if err := configRequest.UnmarshalVT(configState); err != nil {
 		return nil, errors.Wrap(err, "unmarshal friend dm config state")
@@ -64,21 +67,25 @@ func (c *SessionClient) CreateFriendDMWithState(
 	if len(configRequest.GetConfigChange()) == 0 || configRequest.GetKeyEpoch() == nil {
 		return nil, errors.New("friend dm config state wrapper is incomplete")
 	}
-	rootRequest := &api.PostRootRequest{}
-	if err := rootRequest.UnmarshalVT(rootState); err != nil {
-		return nil, errors.Wrap(err, "unmarshal friend dm root state")
+
+	// The checkpoint state holds a checkpoint.
+	checkpointRequest := &api.PostCheckpointRequest{}
+	if err := checkpointRequest.UnmarshalVT(checkpointState); err != nil {
+		return nil, errors.Wrap(err, "unmarshal friend dm checkpoint state")
 	}
-	if rootRequest.GetRoot() == nil {
-		return nil, errors.New("friend dm root state wrapper is incomplete")
+	if checkpointRequest.GetCheckpoint() == nil {
+		return nil, errors.New("friend dm checkpoint state wrapper is incomplete")
 	}
+
+	// Create the DM with both states.
 	body, err := (&api.CreateWithStateRequest{
-		DisplayName:    "Friend DM",
-		ObjectType:     "space",
-		OwnerType:      "account",
-		OwnerId:        ownerAccountID,
-		AccountPrivate: true,
-		ConfigState:    configState,
-		RootState:      rootState,
+		DisplayName:     "Friend DM",
+		ObjectType:      "space",
+		OwnerType:       "account",
+		OwnerId:         ownerAccountID,
+		AccountPrivate:  true,
+		ConfigState:     configState,
+		CheckpointState: checkpointState,
 	}).MarshalVT()
 	if err != nil {
 		return nil, errors.Wrap(err, "marshal create request")

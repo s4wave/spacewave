@@ -302,11 +302,11 @@ export interface UpdateNotification {
    */
   channelKey?: string
   /**
-   * InnerSeqno is the SORoot inner_seqno of the observed public root.
+   * CheckpointHeight is the height of the observed public checkpoint.
    *
-   * @generated from field: uint64 inner_seqno = 2;
+   * @generated from field: uint64 checkpoint_height = 2;
    */
-  innerSeqno?: bigint
+  checkpointHeight?: bigint
   /**
    * RootPointerUrl is the URL of the root.packedmsg that produced this
    * notification.
@@ -321,7 +321,12 @@ export const UpdateNotification: MessageType<UpdateNotification> =
     typeName: 'release.UpdateNotification',
     fields: [
       { no: 1, name: 'channel_key', kind: 'scalar', T: ScalarType.STRING },
-      { no: 2, name: 'inner_seqno', kind: 'scalar', T: ScalarType.UINT64 },
+      {
+        no: 2,
+        name: 'checkpoint_height',
+        kind: 'scalar',
+        T: ScalarType.UINT64,
+      },
       { no: 3, name: 'root_pointer_url', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
   })

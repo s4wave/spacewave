@@ -1,18 +1,16 @@
 package sobject
 
-import (
-	"bytes"
-	"testing"
-)
+import "testing"
 
 // TestCreateInviteOverLimit rejects a finite invitation whose initial count exceeds its limit.
 func TestCreateInviteOverLimit(t *testing.T) {
+	// Build the genesis of one owner.
 	peers := createMockPeers(t, 1)
 	owner, err := peers[0].GetPrivKey(t.Context())
 	if err != nil {
 		t.Fatal(err)
 	}
-	initial := createMockSOState(peers, nil)
+	initial, _ := newTestSOState(t, peers)
 	host, held := newTestSOHost(t.Context(), initial)
 	invite := &SOInvite{InviteId: "bounded", TokenHash: []byte{1}, MaxUses: 1, Uses: 2}
 	if err := host.CreateInvite(t.Context(), owner, invite); err == nil {
@@ -25,14 +23,13 @@ func TestCreateInviteOverLimit(t *testing.T) {
 
 // TestInviteLockedCheckpoint validates invitations against the checkpoint held for mutation.
 func TestInviteLockedCheckpoint(t *testing.T) {
+	// Build the genesis of one owner.
 	peers := createMockPeers(t, 1)
 	owner, err := peers[0].GetPrivKey(t.Context())
 	if err != nil {
 		t.Fatal(err)
 	}
-	initial := createMockSOState(peers, nil)
-	initial.Config.ConfigChainHash = bytes.Repeat([]byte{1}, 32)
-	initial.Root = createMockSORoot(t, 1, peers[0])
+	initial, _ := newTestSOState(t, peers)
 	initial.Invites = []*SOInvite{{InviteId: "bounded", TokenHash: []byte{1}, MaxUses: 1}}
 	for _, action := range []string{"create", "increment", "revoke"} {
 		t.Run(action, func(t *testing.T) {

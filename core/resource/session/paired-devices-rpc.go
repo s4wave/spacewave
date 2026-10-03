@@ -88,7 +88,7 @@ func (r *SessionResource) buildPairedDevicesResponse(
 	if snap == nil {
 		return nil, nil, nil
 	}
-	settings, err := decodeAccountSettings(ctx, snap)
+	settings, err := account_settings.ReadSnapshot(ctx, snap)
 	if err != nil {
 		return nil, nil, err
 	}

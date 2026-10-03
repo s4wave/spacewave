@@ -9,9 +9,6 @@ import (
 
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/s4wave/spacewave/core/cdn"
-	"github.com/s4wave/spacewave/core/sobject"
-	sobject_engine "github.com/s4wave/spacewave/core/sobject/world/engine"
-	"github.com/s4wave/spacewave/db/bucket"
 	"github.com/sirupsen/logrus"
 )
 
@@ -23,17 +20,9 @@ func TestRefreshRPCRefetchesMountedWorld(t *testing.T) {
 	defer cancel()
 
 	// Build a root pointer for a world with an empty head.
-	state, err := (&sobject_engine.InnerState{HeadRef: &bucket.ObjectRef{}}).MarshalVT()
-	if err != nil {
-		t.Fatal(err)
-	}
-	inner, err := (&sobject.SORootInner{Seqno: 1, StateData: state}).MarshalVT()
-	if err != nil {
-		t.Fatal(err)
-	}
 	pointer := encodeRootPointer(t, &cdn.CdnRootPointer{
-		SpaceId: "release-space",
-		Root:    &sobject.SORoot{Inner: inner, InnerSeqno: 1},
+		SpaceId:    "release-space",
+		Checkpoint: testHeadCheckpoint(t, "release-space"),
 	})
 
 	// Serve the pointer and signal each fetch after the first.

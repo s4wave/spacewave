@@ -236,33 +236,33 @@ func (a *ProviderAccount) mountInvitedSO(
 	result *sobject_invite.JoinResult,
 	ownerPeerID peer.ID,
 ) error {
+	// The result carries a grant, a state, and an object ID.
 	if result.Grant == nil {
 		return errors.New("invite result has no grant")
-	}
-	if result.OwnerGrant == nil {
-		return errors.New("invite result has no owner grant")
 	}
 	if result.SharedObjectState == nil {
 		return errors.New("invite result has no shared object state")
 	}
-
 	soID := result.SharedObjectID
 	if soID == "" {
 		return errors.New("invite result has no shared object ID")
 	}
-	return a.mountEnrolledSO(ctx, soID, &sobject.SharedObjectMeta{BodyType: "space"}, "shared", result.SharedObjectState, ownerPeerID)
+	return a.mountEnrolledSO(ctx, soID, &sobject.SharedObjectMeta{BodyType: "space"}, "shared", result.SharedObjectState, result.ConfigLineage, ownerPeerID)
 }
 
 // mountEnrolledSO persists a checkpoint received through an authorized enrollment
-// exchange. The SharedObject host validates its state and configuration lineage.
+// exchange with the config lineage leading to its config, oldest first. The
+// SharedObject host validates the state and the lineage.
 func (a *ProviderAccount) mountEnrolledSO(
 	ctx context.Context,
 	soID string,
 	meta *sobject.SharedObjectMeta,
 	source string,
 	state *sobject.SOState,
+	lineage []*sobject.SOConfigChange,
 	ownerPeerID peer.ID,
 ) error {
+	// Name the object in this account.
 	providerID := a.t.accountInfo.GetProviderId()
 	accountID := a.t.accountInfo.GetProviderAccountId()
 	blockStoreID := SobjectBlockStoreID(soID)
@@ -275,13 +275,13 @@ func (a *ProviderAccount) mountEnrolledSO(
 	}
 	defer relSO()
 
-	// Store the grant on the SO state so the invitee can decrypt the SO data.
+	// Install the invited state and lineage, whose grant lets the invitee
+	// decrypt the SO data.
 	localSO, ok := so.(*SharedObject)
 	if !ok {
 		return errors.New("unexpected shared object type")
 	}
-
-	if err := localSO.soHost.InstallInviteSnapshot(ctx, state); err != nil {
+	if err := localSO.soHost.InstallInviteSnapshot(ctx, state, lineage); err != nil {
 		return errors.Wrap(err, "install owner shared object state")
 	}
 
@@ -301,6 +301,7 @@ func (a *ProviderAccount) mountEnrolledSO(
 	}
 	defer relMtx()
 
+	// Load the account's object list.
 	soList := a.soListCtr.GetValue().CloneVT()
 	if soList == nil {
 		soList = &sobject.SharedObjectList{}
@@ -318,6 +319,7 @@ func (a *ProviderAccount) mountEnrolledSO(
 		}
 	}
 
+	// Otherwise add the object in ID order.
 	soList.SharedObjects = append(soList.SharedObjects, &sobject.SharedObjectListEntry{
 		Ref:             ref.CloneVT(),
 		Source:          source,
@@ -328,10 +330,10 @@ func (a *ProviderAccount) mountEnrolledSO(
 		return strings.Compare(a.GetRef().GetProviderResourceRef().GetId(), b.GetRef().GetProviderResourceRef().GetId())
 	})
 
+	// Persist the list and publish it.
 	if err := a.writeSharedObjectList(ctx, soList); err != nil {
 		return errors.Wrap(err, "persist SO list")
 	}
 	a.soListCtr.SetValue(soList)
-
 	return nil
 }

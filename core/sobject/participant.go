@@ -3,14 +3,12 @@ package sobject
 import (
 	"bytes"
 	"context"
-	"slices"
+	"sync"
 
 	"github.com/aperturerobotics/controllerbus/controller"
-	"github.com/aperturerobotics/util/scrub"
 	"github.com/pkg/errors"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
 	"github.com/s4wave/spacewave/net/crypto"
-	"github.com/s4wave/spacewave/net/hash"
 	"github.com/s4wave/spacewave/net/peer"
 	"github.com/s4wave/spacewave/net/util/confparse"
 	"github.com/sirupsen/logrus"
@@ -22,7 +20,6 @@ func ValidateSOParticipantRole(role SOParticipantRole, allowUnknown bool) error 
 	switch role {
 	case SOParticipantRole_SOParticipantRole_READER,
 		SOParticipantRole_SOParticipantRole_WRITER,
-		SOParticipantRole_SOParticipantRole_VALIDATOR,
 		SOParticipantRole_SOParticipantRole_OWNER:
 		return nil
 	case SOParticipantRole_SOParticipantRole_UNKNOWN:
@@ -67,7 +64,6 @@ func CanReadState(role SOParticipantRole) bool {
 	switch role {
 	case SOParticipantRole_SOParticipantRole_READER,
 		SOParticipantRole_SOParticipantRole_WRITER,
-		SOParticipantRole_SOParticipantRole_VALIDATOR,
 		SOParticipantRole_SOParticipantRole_OWNER:
 		return true
 	default:
@@ -79,7 +75,6 @@ func CanReadState(role SOParticipantRole) bool {
 func CanWriteOps(role SOParticipantRole) bool {
 	switch role {
 	case SOParticipantRole_SOParticipantRole_WRITER,
-		SOParticipantRole_SOParticipantRole_VALIDATOR,
 		SOParticipantRole_SOParticipantRole_OWNER:
 		return true
 	default:
@@ -92,18 +87,8 @@ func IsOwner(role SOParticipantRole) bool {
 	return role == SOParticipantRole_SOParticipantRole_OWNER
 }
 
-// IsValidatorOrOwner checks if the given role is VALIDATOR or OWNER.
-func IsValidatorOrOwner(role SOParticipantRole) bool {
-	switch role {
-	case SOParticipantRole_SOParticipantRole_VALIDATOR,
-		SOParticipantRole_SOParticipantRole_OWNER:
-		return true
-	default:
-		return false
-	}
-}
-
-// SOStateParticipantHandle implements SharedObjectStateSnapshot backed by a SOState plus a few extra functions.
+// SOStateParticipantHandle implements SharedObjectStateSnapshot over a SOState
+// as one participant.
 type SOStateParticipantHandle struct {
 	le             *logrus.Entry
 	sfs            *block_transform.StepFactorySet
@@ -112,6 +97,15 @@ type SOStateParticipantHandle struct {
 	privKey        crypto.PrivKey
 	peerID         peer.ID
 	peerIDStr      string
+	// configEntry reads a retained config change by hash, or is nil.
+	configEntry func(context.Context, []byte) (*SOConfigChange, error)
+
+	// mtx guards the fields below.
+	mtx sync.Mutex
+	// transformers caches the transformer of each decoded key epoch.
+	transformers map[uint64]*block_transform.Transformer
+	// opSet caches the verified operation set, or is nil.
+	opSet *SOOperationSet
 }
 
 // NewSOStateParticipantHandle constructs a SOStateParticipantHandle from a SOState and private key.
@@ -131,20 +125,23 @@ func NewSOStateParticipantHandle(
 		privKey:        privKey,
 		peerID:         localPeerID,
 		peerIDStr:      localPeerID.String(),
+		transformers:   make(map[uint64]*block_transform.Transformer),
 	}
+}
+
+// WithConfigHistory resolves configs other than the current one through read,
+// which returns the retained config change with a hash, or nil. Call it before
+// sharing the handle.
+func (s *SOStateParticipantHandle) WithConfigHistory(read func(context.Context, []byte) (*SOConfigChange, error)) *SOStateParticipantHandle {
+	s.configEntry = read
+	return s
 }
 
 // GetParticipantConfig returns the participant record for our participant.
 // uses the peer identity from the SharedObject.
 // returns ErrNotParticipant if the local peer is not a participant.
 func (s *SOStateParticipantHandle) GetParticipantConfig(ctx context.Context) (*SOParticipantConfig, error) {
-	for _, participantConfig := range s.state.GetConfig().GetParticipants() {
-		if participantConfig.GetPeerId() == s.peerIDStr {
-			return participantConfig, nil
-		}
-	}
-
-	return nil, ErrNotParticipant
+	return s.GetParticipantConfigForPeer(ctx, s.peerIDStr)
 }
 
 // GetParticipantConfigForPeer returns a participant from this accepted config.
@@ -157,309 +154,112 @@ func (s *SOStateParticipantHandle) GetParticipantConfigForPeer(_ context.Context
 	return nil, ErrNotParticipant
 }
 
-// GetOpQueue returns the operation queue for our participant.
-// uses the peer identity from the SharedObject.
-func (s *SOStateParticipantHandle) GetOpQueue(ctx context.Context) ([]*SOOperation, []*QueuedSOOperation, error) {
-	ops := s.state.GetOps()
-	var opq []*SOOperation
-	for _, op := range ops {
-		pubKey, err := op.GetSignature().ParsePubKey()
-		if err != nil {
-			return nil, nil, err
-		}
-
-		peerID, err := peer.IDFromPublicKey(pubKey)
-		if err != nil {
-			return nil, nil, err
-		}
-
-		if peerID.String() == s.peerIDStr {
-			opq = append(opq, op)
-		}
+// GetConfigByHash returns the current config or a retained earlier one.
+func (s *SOStateParticipantHandle) GetConfigByHash(ctx context.Context, hash []byte) (*SharedObjectConfig, error) {
+	// The current config needs no history.
+	current := s.state.GetConfig()
+	if bytes.Equal(current.GetConfigChainHash(), hash) {
+		return current, nil
 	}
 
-	return opq, nil, nil
-}
-
-// GetRootInner attempts to decode the current SORootInner and return it.
-// uses the peer identity from the SharedObject to decode.
-func (s *SOStateParticipantHandle) GetRootInner(ctx context.Context) (*SORootInner, error) {
-	// blank state
-	stateRoot := s.state.GetRoot()
-	if stateRoot.GetInnerSeqno() == 0 {
-		return nil, nil
+	// Read the retained change that produced the config.
+	if s.configEntry == nil || len(hash) == 0 {
+		return nil, ErrConfigHistoryUnavailable
 	}
-
-	xfrm, err := s.GetTransformer(ctx)
+	entry, err := s.configEntry(ctx, hash)
 	if err != nil {
 		return nil, err
 	}
-	return s.decodeRootInnerWithTransformer(xfrm)
-}
-
-// GetRootState returns the raw SharedObject root.
-func (s *SOStateParticipantHandle) GetRootState(ctx context.Context) (*SORoot, error) {
-	return s.state.GetRoot().CloneVT(), nil
-}
-
-func (s *SOStateParticipantHandle) decodeRootInnerWithTransformer(xfrm *block_transform.Transformer) (*SORootInner, error) {
-	stateRoot := s.state.GetRoot()
-	if stateRoot.GetInnerSeqno() == 0 {
-		return nil, nil
+	if entry == nil {
+		return nil, ErrConfigHistoryUnavailable
 	}
 
-	rootInnerData := bytes.Clone(stateRoot.GetInner())
-	if len(rootInnerData) == 0 {
-		return nil, ErrEmptyInnerData
-	}
-	defer scrub.Scrub(rootInnerData)
-
-	rootInnerDataDec, err := xfrm.DecodeBlock(rootInnerData)
+	// The change must hash to the requested config.
+	entryHash, err := HashSOConfigChange(entry)
 	if err != nil {
 		return nil, err
 	}
-	defer scrub.Scrub(rootInnerDataDec)
+	if !bytes.Equal(entryHash, hash) {
+		return nil, ErrConfigHistoryUnavailable
+	}
+	cfg := entry.GetConfig().CloneVT()
+	cfg.ConfigChainHash = hash
+	return cfg, nil
+}
 
-	rootInnerObj := &SORootInner{}
-	if err := rootInnerObj.UnmarshalVT(rootInnerDataDec); err != nil {
+// GetCheckpoint returns the checkpoint body with its state data decoded.
+func (s *SOStateParticipantHandle) GetCheckpoint(ctx context.Context) (*SOCheckpointInner, error) {
+	// A state without a checkpoint has no readable state.
+	inner, err := s.state.GetCheckpointInner()
+	if err != nil || inner == nil {
 		return nil, err
 	}
-	if rootInnerObj.GetSeqno() != stateRoot.GetInnerSeqno() {
-		return nil, errors.Wrapf(
-			ErrInvalidSeqno,
-			"root had %d but inner had %d",
-			s.state.GetRoot().GetInnerSeqno(),
-			rootInnerObj.GetSeqno(),
-		)
-	}
 
-	return rootInnerObj, nil
+	// Decode the state with the key of its epoch.
+	if len(inner.GetStateData()) != 0 {
+		xfrm, err := s.epochTransformer(inner.GetKeyEpoch())
+		if err != nil {
+			return nil, err
+		}
+		inner.StateData, err = xfrm.DecodeBlock(inner.GetStateData())
+		if err != nil {
+			return nil, errors.Wrap(err, "decode checkpoint state")
+		}
+	}
+	return inner, nil
 }
 
-type operationMatch struct {
-	op      *SOOperation
-	localID string
+// GetOperationSet returns the verified operations above the checkpoint. The
+// handle verifies them once and shares the set, which callers must not modify.
+func (s *SOStateParticipantHandle) GetOperationSet(context.Context) (*SOOperationSet, error) {
+	// Verify the operations once, under the lock.
+	s.mtx.Lock()
+	defer s.mtx.Unlock()
+	if s.opSet != nil {
+		return s.opSet, nil
+	}
+	set, err := s.state.OperationSet(s.sharedObjectID)
+	if err != nil {
+		return nil, err
+	}
+	s.opSet = set
+	return set, nil
 }
 
-// ProcessOperations implements SharedObjectStateSnapshot.ProcessOperations
-func (s *SOStateParticipantHandle) ProcessOperations(
-	ctx context.Context,
-	ops []*SOOperation,
-	cb SnapshotProcessOpsFunc,
-) (*SORoot, []*SOOperationRejection, []*SOOperation, error) {
-	// Check if we are a validator
-	participantConfig, err := s.GetParticipantConfig(ctx)
+// DecodeOperation decodes the operation data with the key of its epoch.
+func (s *SOStateParticipantHandle) DecodeOperation(_ context.Context, inner *SOOperationInner) ([]byte, error) {
+	xfrm, err := s.epochTransformer(inner.GetKeyEpoch())
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, err
 	}
-	if !IsValidatorOrOwner(participantConfig.GetRole()) {
-		return nil, nil, nil, errors.New("local peer is not a validator or owner")
-	}
-
-	// Get transformer for decoding op data
-	xfrm, err := s.GetTransformer(ctx)
-	if err != nil {
-		return nil, nil, nil, err
-	}
-
-	// Decode inner operations
-	innerOps := make([]*SOOperationInner, 0, len(ops))
-	opMatches := make(map[string]map[uint64]operationMatch, len(ops))
-	var rejectedOps []*SOOperationRejection
-	var acceptedOps []*SOOperation
-	var undecodable []*SOOperation
-
-	// Process each operation
-	for _, op := range ops {
-		inner, err := op.UnmarshalInner()
-		if err == nil {
-			err = inner.Validate()
-		}
-		if err != nil {
-			return nil, nil, nil, err
-		}
-
-		innerPeerID, err := inner.ParsePeerID()
-		if err != nil {
-			return nil, nil, nil, err
-		}
-
-		// Decode operation data if present
-		if len(inner.GetOpData()) > 0 {
-			opDataDec, err := xfrm.DecodeBlock(inner.GetOpData())
-			if err != nil {
-				// Build rejection for failed decode / validate
-				rejection, rerr := BuildSOOperationRejection(
-					s.privKey,
-					s.sharedObjectID,
-					innerPeerID,
-					inner.GetNonce(),
-					inner.GetLocalId(),
-					&SOOperationRejectionErrorDetails{
-						ErrorMsg: errors.Wrap(err, "failed to decode operation data").Error(),
-					},
-				)
-				if rerr != nil {
-					return nil, nil, nil, rerr
-				}
-				rejectedOps = append(rejectedOps, rejection)
-				undecodable = append(undecodable, op)
-				continue
-			}
-			inner.OpData = opDataDec
-		}
-		innerOps = append(innerOps, inner)
-		peerMatches := opMatches[inner.GetPeerId()]
-		if peerMatches == nil {
-			peerMatches = make(map[uint64]operationMatch)
-			opMatches[inner.GetPeerId()] = peerMatches
-		}
-		if _, ok := peerMatches[inner.GetNonce()]; !ok {
-			peerMatches[inner.GetNonce()] = operationMatch{
-				op:      op,
-				localID: inner.GetLocalId(),
-			}
-		}
-	}
-
-	// Get current root inner state to access current state data
-	rootInner, err := s.decodeRootInnerWithTransformer(xfrm)
-	if err != nil {
-		return nil, nil, nil, err
-	}
-
-	// Get current state data - may be nil if initial state
-	var currentStateData []byte
-	if rootInner != nil {
-		currentStateData = rootInner.GetStateData()
-	}
-	currentRoot := s.state.GetRoot()
-
-	// Call callback with current state data and valid operations
-	rawNextStateData, opResults, err := cb(ctx, currentStateData, innerOps)
-	if err != nil {
-		return nil, nil, nil, err
-	}
-
-	// If nothing happened, return early. Decode rejections still advance the
-	// root so the rejected operations leave the queue.
-	if rawNextStateData == nil && len(opResults) == 0 && len(rejectedOps) == 0 {
-		return currentRoot.CloneVT(), rejectedOps, nil, nil
-	}
-
-	// If no state changes, use current state
-	if rawNextStateData == nil {
-		rawNextStateData = &currentStateData
-	}
-
-	// Build next root state
-	nextInner := &SORootInner{
-		Seqno:     s.state.GetRoot().GetInnerSeqno() + 1,
-		StateData: *rawNextStateData,
-	}
-
-	// Marshal and encode the inner state
-	innerData, err := nextInner.MarshalVT()
-	if err != nil {
-		return nil, nil, nil, err
-	}
-	encodedInnerData, err := xfrm.EncodeBlock(innerData)
-	if err != nil {
-		return nil, nil, nil, err
-	}
-
-	// Build root state
-	nextRoot := currentRoot.CloneVT()
-	if nextRoot == nil {
-		nextRoot = &SORoot{}
-	}
-	nextRoot.Inner = encodedInnerData
-	nextRoot.InnerSeqno = nextInner.GetSeqno()
-	nextRoot.ValidatorSignatures = nil
-
-	// A rejected operation still ends its author's chain: the next one names it.
-	for _, op := range undecodable {
-		inner, err := op.UnmarshalInner()
-		if err != nil {
-			return nil, nil, nil, err
-		}
-		nextRoot.AccountNonces = advanceAccountNonce(nextRoot.AccountNonces, inner.GetPeerId(), inner.GetNonce(), op.Hash())
-	}
-
-	// Process operation results
-	for _, result := range opResults {
-		opRef := result.GetOpRef()
-		if opRef == nil {
-			continue
-		}
-
-		// Validate the operation reference
-		if err := opRef.Validate(); err != nil {
-			return nil, nil, nil, errors.Wrap(err, "invalid operation reference")
-		}
-
-		// Parse the peer ID
-		submitterPeerID, err := opRef.ParsePeerID()
-		if err != nil {
-			return nil, nil, nil, errors.Wrap(err, "failed to parse submitter peer ID")
-		}
-
-		match, ok := opMatches[opRef.GetPeerId()][opRef.GetNonce()]
-		if !ok {
-			continue
-		}
-
-		switch body := result.GetBody().(type) {
-		case *SOOperationResult_ErrorDetails:
-			rejection, err := BuildSOOperationRejection(
-				s.privKey,
-				s.sharedObjectID,
-				submitterPeerID,
-				opRef.GetNonce(),
-				match.localID,
-				body.ErrorDetails,
-			)
-			if err != nil {
-				return nil, nil, nil, err
-			}
-			rejectedOps = append(rejectedOps, rejection)
-		default:
-			acceptedOps = append(acceptedOps, match.op)
-		}
-		nextRoot.AccountNonces = advanceAccountNonce(nextRoot.AccountNonces, opRef.GetPeerId(), opRef.GetNonce(), match.op.Hash())
-	}
-
-	// Sign the root state
-	if err := nextRoot.SignInnerData(
-		s.privKey,
-		s.sharedObjectID,
-		nextRoot.GetInnerSeqno(),
-		hash.RecommendedHashType,
-	); err != nil {
-		return nil, nil, nil, err
-	}
-
-	return nextRoot, rejectedOps, acceptedOps, nil
+	return xfrm.DecodeBlock(inner.GetOpData())
 }
 
-// GetTransformer implements SharedObjectStateSnapshot.GetTransformer
-func (s *SOStateParticipantHandle) GetTransformer(ctx context.Context) (*block_transform.Transformer, error) {
-	grants := s.state.GetRootGrants()
-	localGrantIdx := slices.IndexFunc(grants, func(g *SOGrant) bool {
-		return g.GetPeerId() == s.peerIDStr
-	})
-	if localGrantIdx == -1 {
+// GetTransformer returns the transformer of the current key epoch.
+func (s *SOStateParticipantHandle) GetTransformer(context.Context) (*block_transform.Transformer, error) {
+	current := s.state.CurrentKeyEpoch()
+	if current == nil {
 		return nil, ErrCannotDecode
 	}
+	return s.epochTransformer(current.GetEpoch())
+}
 
-	localGrant := grants[localGrantIdx]
-	innerDataObj, err := localGrant.DecryptInnerData(s.privKey, s.sharedObjectID)
-	if err != nil {
-		return nil, errors.Wrap(err, "so grant: decode inner data")
+// epochTransformer returns the transformer of one key epoch from the local
+// peer's grant.
+func (s *SOStateParticipantHandle) epochTransformer(epoch uint64) (*block_transform.Transformer, error) {
+	// Reuse a transformer already built for the epoch.
+	s.mtx.Lock()
+	defer s.mtx.Unlock()
+	if xfrm, ok := s.transformers[epoch]; ok {
+		return xfrm, nil
 	}
 
-	transformConf := innerDataObj.GetTransformConf()
-	if err := transformConf.Validate(); err != nil {
+	// Decrypt the local peer's grant for the epoch.
+	conf, err := s.epochTransformConf(epoch)
+	if err != nil {
+		return nil, err
+	}
+	if err := conf.Validate(); err != nil {
 		return nil, NewSharedObjectHealthError(NewSharedObjectClosedHealth(
 			SharedObjectHealthLayer_SHARED_OBJECT_HEALTH_LAYER_BODY,
 			SharedObjectHealthCommonReason_SHARED_OBJECT_HEALTH_COMMON_REASON_TRANSFORM_CONFIG_DECODE_FAILED,
@@ -468,78 +268,58 @@ func (s *SOStateParticipantHandle) GetTransformer(ctx context.Context) (*block_t
 		), err)
 	}
 
-	return block_transform.NewTransformer(controller.ConstructOpts{Logger: s.le}, s.sfs, transformConf)
+	// Build and cache its transformer.
+	xfrm, err := block_transform.NewTransformer(controller.ConstructOpts{Logger: s.le}, s.sfs, conf)
+	if err != nil {
+		return nil, err
+	}
+	s.transformers[epoch] = xfrm
+	return xfrm, nil
+}
+
+// epochTransformConf decrypts the local peer's grant for one key epoch.
+func (s *SOStateParticipantHandle) epochTransformConf(epoch uint64) (*block_transform.Config, error) {
+	// Decrypt the local peer's grant in the epoch.
+	grant := s.localGrant(s.state.GetKeyEpoch(epoch))
+	if grant == nil {
+		return nil, errors.Wrapf(ErrKeyEpochUnavailable, "epoch %d", epoch)
+	}
+	inner, err := grant.DecryptInnerData(s.privKey, s.sharedObjectID)
+	if err != nil {
+		return nil, errors.Wrap(err, "so grant: decode inner data")
+	}
+	return inner.GetTransformConf(), nil
+}
+
+// localGrant returns the local peer's grant in epoch, or nil.
+func (s *SOStateParticipantHandle) localGrant(epoch *SOKeyEpoch) *SOGrant {
+	for _, grant := range epoch.GetGrants() {
+		if grant.GetPeerId() == s.peerIDStr {
+			return grant
+		}
+	}
+	return nil
 }
 
 // GetTransformInfo implements SharedObjectStateSnapshot.GetTransformInfo.
-func (s *SOStateParticipantHandle) GetTransformInfo(ctx context.Context) (*TransformInfo, error) {
-	grants := s.state.GetRootGrants()
+func (s *SOStateParticipantHandle) GetTransformInfo(context.Context) (*TransformInfo, error) {
+	// Count the current epoch's grants.
+	current := s.state.CurrentKeyEpoch()
 	info := &TransformInfo{
-		GrantCount: uint32(len(grants)), //nolint:gosec // grants is the bounded in-memory grant set.
+		GrantCount: uint32(len(current.GetGrants())), //nolint:gosec // grants is the bounded in-memory grant set.
 	}
 
-	// Find and decrypt local grant to extract transform steps.
-	localGrantIdx := slices.IndexFunc(grants, func(g *SOGrant) bool {
-		return g.GetPeerId() == s.peerIDStr
-	})
-	if localGrantIdx == -1 {
+	// Redact the steps of the local peer's grant.
+	grant := s.localGrant(current)
+	if grant == nil {
 		return info, nil
 	}
-
-	localGrant := grants[localGrantIdx]
-	innerDataObj, err := localGrant.DecryptInnerData(s.privKey, s.sharedObjectID)
+	inner, err := grant.DecryptInnerData(s.privKey, s.sharedObjectID)
 	if err != nil {
 		return info, nil
 	}
-
-	transformConf := innerDataObj.GetTransformConf()
-	info.Steps = RedactStepConfigs(transformConf.GetSteps())
+	info.Steps = RedactStepConfigs(inner.GetTransformConf().GetSteps())
 	return info, nil
-}
-
-// GetOpRejections returns any operation rejections for our participant along with their decoded error details.
-// uses the peer identity from the SharedObject.
-// The error details slice corresponds 1:1 with the rejections slice.
-// If a rejection has no error details, the corresponding entry will be nil.
-func (s *SOStateParticipantHandle) GetOpRejections(ctx context.Context) ([]*SOOperationRejection, []*SOOperationRejectionErrorDetails, error) {
-	// Find rejections for our peer ID
-	for _, peerRejections := range s.state.GetOpRejections() {
-		if peerRejections.GetPeerId() == s.peerIDStr {
-			rejections := peerRejections.GetRejections()
-			if len(rejections) == 0 {
-				return nil, nil, nil
-			}
-
-			// Decode error details for each rejection
-			errorDetails := make([]*SOOperationRejectionErrorDetails, len(rejections))
-			for i, rejection := range rejections {
-				// Get validator peer ID from signature
-				validatorPubKey, err := rejection.GetSignature().ParsePubKey()
-				if err != nil {
-					return nil, nil, err
-				}
-				validatorPeerID, err := peer.IDFromPublicKey(validatorPubKey)
-				if err != nil {
-					return nil, nil, err
-				}
-
-				// Unmarshal inner data
-				inner, err := rejection.UnmarshalInner()
-				if err != nil {
-					return nil, nil, err
-				}
-
-				// Decode error details if present
-				details, err := inner.DecodeErrorDetails(s.privKey, s.sharedObjectID, validatorPeerID)
-				if err != nil {
-					return nil, nil, errors.Wrapf(err, "failed to decode error details for rejection %d", i)
-				}
-				errorDetails[i] = details
-			}
-			return rejections, errorDetails, nil
-		}
-	}
-	return nil, nil, nil
 }
 
 // _ is a type assertion

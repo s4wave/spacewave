@@ -323,11 +323,11 @@ message SyncBlockStoreStatus {
   uint64 cache_hit_count = 4;
   // LastSource is the latest observed source for this block store.
   SyncBlockSource last_source = 5;
-  // AcceptedRootInnerSequence is the latest accepted SharedObject root sequence observed for this block store.
-  uint64 accepted_root_inner_sequence = 6;
+  // AcceptedCheckpointHeight is the height of the latest accepted SharedObject checkpoint observed for this block store.
+  uint64 accepted_checkpoint_height = 6;
   // CloudRemoteSequence is the latest Cloud block-store sequence observed locally.
   uint64 cloud_remote_sequence = 7;
-  // SharedObjectId identifies the SharedObject that supplied AcceptedRootInnerSequence.
+  // SharedObjectId identifies the SharedObject that supplied AcceptedCheckpointHeight.
   string shared_object_id = 8;
 }
 

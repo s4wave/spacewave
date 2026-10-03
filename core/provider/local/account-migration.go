@@ -12,6 +12,7 @@ import (
 	provider_migration "github.com/s4wave/spacewave/core/provider/migration"
 	"github.com/s4wave/spacewave/core/session"
 	"github.com/s4wave/spacewave/core/sobject"
+	sobject_world_engine "github.com/s4wave/spacewave/core/sobject/world/engine"
 	"github.com/s4wave/spacewave/net/crypto"
 	"github.com/s4wave/spacewave/net/peer"
 )
@@ -204,42 +205,31 @@ func (a *ProviderAccount) ImportMigrationObject(ctx context.Context, _ provider_
 	}
 	defer release()
 
-	// Copy a Space body, then mount the enrolled object on this replica.
+	// Checkpoint and copy a Space.
 	if entry.GetMeta().GetBodyType() == "space" {
-		if err := provider_migration.CopyWorld(ctx, a.le, a.t.p.sfs, object, state, blocks); err != nil {
-			return err
-		}
-	}
-	if err := a.mountEnrolledSO(ctx, id, entry.GetMeta(), entry.GetSource(), state, object.GetPeerID()); err != nil {
-		return err
-	}
-
-	// Retain the config history checkpoint when the source records one.
-	next := entry.CloneVT()
-	next.Ref = ref
-	if history, ok := object.(interface {
-		ReadSharedObjectConfigHistory(context.Context, *sobject.SharedObjectConfig) (*sobject.SharedObjectConfig, []*sobject.SOConfigChange, error)
-	}); ok {
-		// Read the config history and build the pairing checkpoint.
-		base, changes, err := history.ReadSharedObjectConfigHistory(ctx, state.GetConfig())
+		var world *sobject_world_engine.InnerState
+		state, world, err = provider_migration.Checkpoint(ctx, a.le, a.t.p.b, a.t.p.sfs, entry.GetRef(), object, state)
 		if err != nil {
 			return err
 		}
-		checkpoint := &pairing.SharedObject{Entry: next, State: state, HistoryBase: base, History: changes}
-
-		// Retain the genesis change when the source records one.
-		if genesis, ok := object.(interface {
-			ReadSharedObjectGenesis(context.Context, *sobject.SharedObjectConfig) (*sobject.SOConfigChange, error)
-		}); ok {
-			checkpoint.Genesis, err = genesis.ReadSharedObjectGenesis(ctx, base)
-			if err != nil {
-				return err
-			}
-		}
-		if err := a.retainEnrollmentHistory(ctx, checkpoint); err != nil {
+		if err := provider_migration.CopyWorld(ctx, object, world, blocks); err != nil {
 			return err
 		}
 	}
+
+	// Mount the enrolled object with the source's config lineage.
+	var lineage []*sobject.SOConfigChange
+	if host, ok := object.(sobject.InviteHost); ok {
+		lineage, err = host.GetSOHost().ReadConfigLineage(ctx, state.GetConfig().GetConfigChainHash())
+		if err != nil {
+			return err
+		}
+	}
+	if err := a.mountEnrolledSO(ctx, id, entry.GetMeta(), entry.GetSource(), state, lineage, object.GetPeerID()); err != nil {
+		return err
+	}
+	next := entry.CloneVT()
+	next.Ref = ref
 	return a.publishAccountCatalogEntry(ctx, next, false)
 }
 

@@ -24,6 +24,7 @@ func (r *replicaDestination) GetBlockStore() bstore.BlockStore {
 // TestAccountReplicaCopyRetainsCompletedSubtrees copies a complete graph from a
 // separate source. Durable completion proofs skip unchanged graphs on later heads.
 func TestAccountReplicaCopyRetainsCompletedSubtrees(t *testing.T) {
+	// Start a provider account and create a seeded Space.
 	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
 	defer cancel()
 	_, _, account, _, release := setupProviderAndSessionInternal(ctx, t)
@@ -33,6 +34,8 @@ func TestAccountReplicaCopyRetainsCompletedSubtrees(t *testing.T) {
 		t.Fatal(err)
 	}
 	leaf, payload := seedAccountReplicaPayload(ctx, t, account, ref)
+
+	// Mount it.
 	so, releaseSO, err := account.MountSharedObject(ctx, ref, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -43,7 +46,9 @@ func TestAccountReplicaCopyRetainsCompletedSubtrees(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer releaseStates()
-	inner, err := states.GetValue().GetRootInner(ctx)
+
+	// Decode its World head.
+	inner, err := states.GetValue().GetCheckpoint(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -51,6 +56,8 @@ func TestAccountReplicaCopyRetainsCompletedSubtrees(t *testing.T) {
 	if err := head.UnmarshalVT(inner.GetStateData()); err != nil {
 		t.Fatal(err)
 	}
+
+	// Copying twice copies the graph once, in batches.
 	local := newBatchForwardTestStore()
 	destination := &replicaDestination{SharedObject: so, store: &BlockStore{
 		store: local, readStore: so.GetBlockStore(),
@@ -71,6 +78,8 @@ func TestAccountReplicaCopyRetainsCompletedSubtrees(t *testing.T) {
 		}
 		local.putBlockBatchHits = 0
 	}
+
+	// The local store holds the leaf.
 	data, found, err := local.GetBlock(ctx, leaf)
 	if err != nil || !found || string(data) != string(payload) {
 		t.Fatalf("local leaf after copy: found=%v err=%v", found, err)

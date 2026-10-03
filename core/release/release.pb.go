@@ -283,8 +283,8 @@ type UpdateNotification struct {
 	unknownFields []byte
 	// ChannelKey is the release channel that changed.
 	ChannelKey string `protobuf:"bytes,1,opt,name=channel_key,json=channelKey,proto3" json:"channelKey,omitempty"`
-	// InnerSeqno is the SORoot inner_seqno of the observed public root.
-	InnerSeqno uint64 `protobuf:"varint,2,opt,name=inner_seqno,json=innerSeqno,proto3" json:"innerSeqno,omitempty"`
+	// CheckpointHeight is the height of the observed public checkpoint.
+	CheckpointHeight uint64 `protobuf:"varint,2,opt,name=checkpoint_height,json=checkpointHeight,proto3" json:"checkpointHeight,omitempty"`
 	// RootPointerUrl is the URL of the root.packedmsg that produced this
 	// notification.
 	RootPointerUrl string `protobuf:"bytes,3,opt,name=root_pointer_url,json=rootPointerUrl,proto3" json:"rootPointerUrl,omitempty"`
@@ -303,9 +303,9 @@ func (x *UpdateNotification) GetChannelKey() string {
 	return ""
 }
 
-func (x *UpdateNotification) GetInnerSeqno() uint64 {
+func (x *UpdateNotification) GetCheckpointHeight() uint64 {
 	if x != nil {
-		return x.InnerSeqno
+		return x.CheckpointHeight
 	}
 	return 0
 }
@@ -421,7 +421,7 @@ func (m *UpdateNotification) CloneVT() *UpdateNotification {
 	}
 	r := new(UpdateNotification)
 	r.ChannelKey = m.ChannelKey
-	r.InnerSeqno = m.InnerSeqno
+	r.CheckpointHeight = m.CheckpointHeight
 	r.RootPointerUrl = m.RootPointerUrl
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
@@ -596,7 +596,7 @@ func (this *UpdateNotification) EqualVT(that *UpdateNotification) bool {
 	if this.ChannelKey != that.ChannelKey {
 		return false
 	}
-	if this.InnerSeqno != that.InnerSeqno {
+	if this.CheckpointHeight != that.CheckpointHeight {
 		return false
 	}
 	if this.RootPointerUrl != that.RootPointerUrl {
@@ -1055,10 +1055,10 @@ func (x *UpdateNotification) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("channelKey")
 		s.WriteString(x.ChannelKey)
 	}
-	if x.InnerSeqno != 0 || s.HasField("innerSeqno") {
+	if x.CheckpointHeight != 0 || s.HasField("checkpointHeight") {
 		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("innerSeqno")
-		s.WriteUint64(x.InnerSeqno)
+		s.WriteObjectField("checkpointHeight")
+		s.WriteUint64(x.CheckpointHeight)
 	}
 	if x.RootPointerUrl != "" || s.HasField("rootPointerUrl") {
 		s.WriteMoreIf(&wroteField)
@@ -1085,9 +1085,9 @@ func (x *UpdateNotification) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "channel_key", "channelKey":
 			s.AddField("channel_key")
 			x.ChannelKey = s.ReadString()
-		case "inner_seqno", "innerSeqno":
-			s.AddField("inner_seqno")
-			x.InnerSeqno = s.ReadUint64()
+		case "checkpoint_height", "checkpointHeight":
+			s.AddField("checkpoint_height")
+			x.CheckpointHeight = s.ReadUint64()
 		case "root_pointer_url", "rootPointerUrl":
 			s.AddField("root_pointer_url")
 			x.RootPointerUrl = s.ReadString()
@@ -1445,8 +1445,8 @@ func (m *UpdateNotification) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i--
 		dAtA[i] = 0x1a
 	}
-	if m.InnerSeqno != 0 {
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.InnerSeqno))
+	if m.CheckpointHeight != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.CheckpointHeight))
 		i--
 		dAtA[i] = 0x10
 	}
@@ -1556,7 +1556,7 @@ func (m *UpdateNotification) SizeVT() (n int) {
 	var l int
 	_ = l
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.ChannelKey)
-	n += protobuf_go_lite.SizeVarintNonZero(1, m.InnerSeqno)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.CheckpointHeight)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.RootPointerUrl)
 	n += len(m.unknownFields)
 	return n
@@ -1735,9 +1735,9 @@ func (x *UpdateNotification) MarshalProtoText() string {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "channel_key")
 		protobuf_go_lite.TextWriteString(&sb, x.ChannelKey)
 	}
-	if x.InnerSeqno != 0 {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "inner_seqno")
-		protobuf_go_lite.TextWriteUint(&sb, x.InnerSeqno)
+	if x.CheckpointHeight != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "checkpoint_height")
+		protobuf_go_lite.TextWriteUint(&sb, x.CheckpointHeight)
 	}
 	if x.RootPointerUrl != "" {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "root_pointer_url")
@@ -2247,10 +2247,10 @@ func (m *UpdateNotification) UnmarshalVT(dAtA []byte) error {
 			m.ChannelKey = v
 		case 2:
 			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field InnerSeqno", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field CheckpointHeight", wireType)
 			}
-			m.InnerSeqno = 0
-			m.InnerSeqno, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.CheckpointHeight = 0
+			m.CheckpointHeight, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
 			if err != nil {
 				return err
 			}

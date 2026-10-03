@@ -54,7 +54,7 @@ func (r *SessionResource) WatchStorageBackends(
 		if err != nil {
 			return err
 		}
-		settings, err := decodeAccountSettings(ctx, snap)
+		settings, err := account_settings.ReadSnapshot(ctx, snap)
 		if err != nil {
 			return err
 		}
@@ -202,27 +202,6 @@ func (r *SessionResource) localProviderAccount() (*provider_local.ProviderAccoun
 		return nil, errStorageBackendsLocalOnly
 	}
 	return localAcc, nil
-}
-
-// decodeAccountSettings decodes the account settings in a snapshot.
-func decodeAccountSettings(
-	ctx context.Context,
-	snap sobject.SharedObjectStateSnapshot,
-) (*account_settings.AccountSettings, error) {
-	// Read the snapshot's root inner state.
-	rootInner, err := snap.GetRootInner(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	// Decode the account settings payload when present.
-	settings := &account_settings.AccountSettings{}
-	if data := rootInner.GetStateData(); len(data) > 0 {
-		if err := settings.UnmarshalVT(data); err != nil {
-			return nil, err
-		}
-	}
-	return settings, nil
 }
 
 // placeNewSpaceBlockStore places a new Space's block store on the requested

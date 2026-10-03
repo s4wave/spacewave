@@ -7,7 +7,9 @@ import (
 	"encoding/hex"
 	"os"
 	"path/filepath"
+	"slices"
 	"strconv"
+	"strings"
 	"testing"
 
 	"github.com/aperturerobotics/fastjson"
@@ -31,6 +33,7 @@ type operationLogVectors struct {
 	OperationSets  []operationSetVector
 	ConfigChains   []configChainVector
 	ConfigChanges  []configChangeVector
+	Checkpoints    []checkpointVector
 }
 
 // operationVector is one operation and its verification under the object.
@@ -77,6 +80,18 @@ type configChangeVector struct {
 	Kind string
 }
 
+// checkpointVector is one checkpoint verified under the object and checked
+// against the participants of a configuration.
+type checkpointVector struct {
+	Name       string
+	Checkpoint []byte
+	Config     []byte
+	// Hash is the checkpoint hash in hex, empty when verification fails.
+	Hash string
+	// Authority reports whether an owner under Config signed the checkpoint.
+	Authority bool
+}
+
 // marshalJSON encodes the vectors as the JSON the TypeScript tests import.
 // Byte fields are standard base64.
 func (v *operationLogVectors) marshalJSON() []byte {
@@ -106,8 +121,18 @@ func (v *operationLogVectors) marshalJSON() []byte {
 		return jsonObject(&a, "name", a.NewString(c.Name), "current", jsonBytes(&a, c.Current), "entry", jsonBytes(&a, c.Entry), "nextHash", a.NewString(c.NextHash), "kind", a.NewString(c.Kind))
 	})
 
+	// Encode the checkpoint cases.
+	checkpoints := jsonArray(&a, len(v.Checkpoints), func(i int) *fastjson.Value {
+		c := v.Checkpoints[i]
+		authority := a.NewFalse()
+		if c.Authority {
+			authority = a.NewTrue()
+		}
+		return jsonObject(&a, "name", a.NewString(c.Name), "checkpoint", jsonBytes(&a, c.Checkpoint), "config", jsonBytes(&a, c.Config), "hash", a.NewString(c.Hash), "authority", authority)
+	})
+
 	// Join them under the object ID.
-	out := jsonObject(&a, "sharedObjectId", a.NewString(v.SharedObjectID), "operations", ops, "operationSets", sets, "configChains", chains, "configChanges", changes)
+	out := jsonObject(&a, "sharedObjectId", a.NewString(v.SharedObjectID), "operations", ops, "operationSets", sets, "configChains", chains, "configChanges", changes, "checkpoints", checkpoints)
 	return append(out.MarshalTo(nil), '\n')
 }
 
@@ -197,9 +222,88 @@ func buildOperationLogVectors(t *testing.T) *operationLogVectors {
 	ops := buildOperationVectors(t, vectors)
 	vectors.OperationSets = buildOperationSetVectors(t, ops)
 
-	// Build the control-record cases.
+	// Build the control-record and checkpoint cases.
 	buildConfigVectors(t, vectors)
+	vectors.Checkpoints = buildCheckpointVectors(t)
 	return vectors
+}
+
+// buildCheckpointVectors returns the checkpoint cases, each checked in Go.
+func buildCheckpointVectors(t *testing.T) []checkpointVector {
+	// Owner A and owner C govern the object with writer B.
+	t.Helper()
+	privA, peerA := vectorKey(t, "owner-a")
+	privB, peerB := vectorKey(t, "member-b")
+	privC, peerC := vectorKey(t, "owner-c")
+	config := &SharedObjectConfig{Participants: []*SOParticipantConfig{
+		{PeerId: peerA, Role: SOParticipantRole_SOParticipantRole_OWNER},
+		{PeerId: peerB, Role: SOParticipantRole_SOParticipantRole_WRITER},
+		{PeerId: peerC, Role: SOParticipantRole_SOParticipantRole_OWNER},
+	}}
+	configHash := bytes.Repeat([]byte{0xc1}, 32)
+	sign := func(inner *SOCheckpointInner, privs ...crypto.PrivKey) *SOCheckpoint {
+		checkpoint := &SOCheckpoint{Inner: mustMarshalVT(t, inner)}
+		for _, priv := range privs {
+			if err := checkpoint.CoSign(priv); err != nil {
+				t.Fatal(err)
+			}
+		}
+		return checkpoint
+	}
+
+	// Build a genesis.
+	genesisInner := &SOCheckpointInner{SharedObjectId: vectorObjectID, ConfigHash: configHash, StateData: []byte("genesis"), ReplayVersion: SOReplayVersion}
+	genesis := sign(genesisInner, privA)
+	authors := []*SOCheckpointAuthor{
+		{PeerId: peerA, Nonce: 3, OpHash: bytes.Repeat([]byte{0xa3}, 32)},
+		{PeerId: peerB, Nonce: 1, OpHash: bytes.Repeat([]byte{0xb1}, 32)},
+	}
+	slices.SortFunc(authors, func(x, y *SOCheckpointAuthor) int { return strings.Compare(x.GetPeerId(), y.GetPeerId()) })
+
+	// Build its successor covering one operation of each author.
+	nextInner := &SOCheckpointInner{
+		SharedObjectId: vectorObjectID, Height: 1, PrevCheckpointHash: genesis.Hash(), ConfigHash: configHash,
+		Frontier: [][]byte{bytes.Repeat([]byte{0xa3}, 32), bytes.Repeat([]byte{0xb1}, 32)}, StateData: []byte("next"),
+		ReplayVersion: SOReplayVersion, KeyEpoch: 1, Authors: authors,
+	}
+
+	// Derive the invalid variants.
+	unsorted := nextInner.CloneVT()
+	slices.Reverse(unsorted.Authors)
+	genesisWithFrontier := genesisInner.CloneVT()
+	genesisWithFrontier.Frontier = nextInner.GetFrontier()
+	otherObject := genesisInner.CloneVT()
+	otherObject.SharedObjectId = "other-object"
+	forged := sign(genesisInner, privA)
+	forged.Inner = mustMarshalVT(t, nextInner)
+
+	// Record each case with its Go result.
+	cases := []struct {
+		name       string
+		checkpoint *SOCheckpoint
+	}{
+		{"genesis-by-owner", genesis},
+		{"next-co-signed-by-owners", sign(nextInner, privA, privC)},
+		{"signed-by-writer", sign(nextInner, privB)},
+		{"writer-and-owner", sign(nextInner, privB, privC)},
+		{"duplicate-signer", sign(nextInner, privA, privA)},
+		{"unsigned", sign(nextInner)},
+		{"signature-over-other-body", forged},
+		{"bound-to-other-object", sign(otherObject, privA)},
+		{"authors-unsorted", sign(unsorted, privA)},
+		{"genesis-names-frontier", sign(genesisWithFrontier, privA)},
+	}
+	out := make([]checkpointVector, 0, len(cases))
+	for _, c := range cases {
+		v := checkpointVector{Name: c.name, Checkpoint: mustMarshalVT(t, c.checkpoint), Config: mustMarshalVT(t, config)}
+		if _, _, err := c.checkpoint.Verify(vectorObjectID); err == nil {
+			v.Hash = hex.EncodeToString(c.checkpoint.Hash())
+		}
+		_, err := c.checkpoint.ValidateAuthority(vectorObjectID, config.GetParticipants())
+		v.Authority = err == nil
+		out = append(out, v)
+	}
+	return out
 }
 
 // buildOperationVectors adds the single-operation cases and returns the
@@ -285,7 +389,7 @@ func buildOperationSetVectors(t *testing.T, ops map[string]*SOOperation) []opera
 	out := make([]operationSetVector, 0, len(sets))
 	for _, names := range sets {
 		// Add each operation, keeping duplicates out of the set.
-		set := NewSOOperationSet(vectorObjectID)
+		set := NewSOOperationSet(vectorObjectID, nil)
 		for _, name := range names {
 			if _, err := set.Add(ops[name]); err != nil {
 				t.Fatal(err)

@@ -103,24 +103,8 @@ func mountAccountSettingsSO(ctx context.Context, t *testing.T, b bus.Bus, accoun
 	return so, func() { mountRef.Release() }
 }
 
-// decodeAccountSettings decodes AccountSettings from a SharedObjectStateSnapshot.
-func decodeAccountSettings(ctx context.Context, snap sobject.SharedObjectStateSnapshot) (*account_settings.AccountSettings, error) {
-	rootInner, err := snap.GetRootInner(ctx)
-	if err != nil {
-		return nil, err
-	}
-	settings := &account_settings.AccountSettings{}
-	if data := rootInner.GetStateData(); len(data) > 0 {
-		if err := settings.UnmarshalVT(data); err != nil {
-			return nil, err
-		}
-	}
-	return settings, nil
-}
-
-// queueOpAndWaitState queues an operation and watches the state until the
-// validator function returns true. This avoids the WaitOperation race when
-// the processor goroutine runs concurrently.
+// queueOpAndWaitState queues an operation and watches the state until valid
+// accepts the replayed settings.
 func queueOpAndWaitState(
 	ctx context.Context,
 	t *testing.T,
@@ -146,7 +130,7 @@ func queueOpAndWaitState(
 		nil,
 		stateCtr,
 		func(snap sobject.SharedObjectStateSnapshot) error {
-			settings, err := decodeAccountSettings(ctx, snap)
+			settings, err := account_settings.ReadSnapshot(ctx, snap)
 			if err != nil {
 				return err
 			}
@@ -165,8 +149,8 @@ func queueOpAndWaitState(
 // TestAccountSettingsSOCreate verifies that the account settings SO is
 // automatically created when a ProviderAccount initializes.
 func TestAccountSettingsSOCreate(t *testing.T) {
+	// Start a provider account.
 	ctx := t.Context()
-
 	tb, _, accountID, acc, release := setupProviderAccount(ctx, t)
 	defer release()
 
@@ -182,12 +166,12 @@ func TestAccountSettingsSOCreate(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer soListRel()
-
 	soList := soListCtr.GetValue()
 	if soList == nil {
 		t.Fatal("shared object list is nil")
 	}
 
+	// Each account has its own settings ID, not the binding purpose.
 	ref, err := acc.GetAccountSettingsRef(ctx)
 	if err != nil {
 		t.Fatal(err)
@@ -215,29 +199,21 @@ func TestAccountSettingsSOCreate(t *testing.T) {
 	// Mount the account settings SO and verify it's readable.
 	so, soRelease := mountAccountSettingsSO(ctx, t, tb.Bus, accountID)
 	defer soRelease()
-
 	state, err := so.GetSharedObjectState(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
-
-	rootInner, err := state.GetRootInner(ctx)
-	if err != nil {
+	if _, err := account_settings.ReadSnapshot(ctx, state); err != nil {
 		t.Fatal(err)
-	}
-
-	if rootInner.GetSeqno() == 0 {
-		t.Fatal("expected seqno > 0")
 	}
 }
 
 // TestPairedDeviceCRUD verifies adding and removing paired devices via SO operations.
 func TestPairedDeviceCRUD(t *testing.T) {
+	// Start a provider account and mount its settings object.
 	ctx := t.Context()
-
 	tb, _, accountID, _, release := setupProviderAccount(ctx, t)
 	defer release()
-
 	so, soRelease := mountAccountSettingsSO(ctx, t, tb.Bus, accountID)
 	defer soRelease()
 
@@ -255,7 +231,6 @@ func TestPairedDeviceCRUD(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-
 	queueOpAndWaitState(ctx, t, so, addOpData, func(s *account_settings.AccountSettings) bool {
 		return len(s.GetPairedDevices()) == 1
 	})
@@ -268,7 +243,8 @@ func TestPairedDeviceCRUD(t *testing.T) {
 	snap := stateCtr.GetValue()
 	relStateCtr()
 
-	settings, err := decodeAccountSettings(ctx, snap)
+	// Decode the settings and check the device.
+	settings, err := account_settings.ReadSnapshot(ctx, snap)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -294,7 +270,6 @@ func TestPairedDeviceCRUD(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-
 	queueOpAndWaitState(ctx, t, so, addOp2Data, func(s *account_settings.AccountSettings) bool {
 		return len(s.GetPairedDevices()) == 2
 	})
@@ -311,7 +286,6 @@ func TestPairedDeviceCRUD(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-
 	queueOpAndWaitState(ctx, t, so, rmOpData, func(s *account_settings.AccountSettings) bool {
 		if len(s.GetPairedDevices()) != 1 {
 			return false
@@ -372,11 +346,10 @@ func TestSessionPresentationCRUD(t *testing.T) {
 
 // TestEntityKeypairCRUD verifies adding and removing entity keypairs via SO operations.
 func TestEntityKeypairCRUD(t *testing.T) {
+	// Start a provider account and mount its settings object.
 	ctx := t.Context()
-
 	tb, _, accountID, _, release := setupProviderAccount(ctx, t)
 	defer release()
-
 	so, soRelease := mountAccountSettingsSO(ctx, t, tb.Bus, accountID)
 	defer soRelease()
 
@@ -393,7 +366,6 @@ func TestEntityKeypairCRUD(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-
 	queueOpAndWaitState(ctx, t, so, addOpData, func(s *account_settings.AccountSettings) bool {
 		return len(s.GetEntityKeypairs()) == 1
 	})
@@ -406,7 +378,8 @@ func TestEntityKeypairCRUD(t *testing.T) {
 	snap := stateCtr.GetValue()
 	relStateCtr()
 
-	settings, err := decodeAccountSettings(ctx, snap)
+	// Decode the settings and check the keypair.
+	settings, err := account_settings.ReadSnapshot(ctx, snap)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -431,7 +404,6 @@ func TestEntityKeypairCRUD(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-
 	queueOpAndWaitState(ctx, t, so, addOp2Data, func(s *account_settings.AccountSettings) bool {
 		return len(s.GetEntityKeypairs()) == 2
 	})
@@ -449,7 +421,6 @@ func TestEntityKeypairCRUD(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-
 	queueOpAndWaitState(ctx, t, so, addOp3Data, func(s *account_settings.AccountSettings) bool {
 		for _, k := range s.GetEntityKeypairs() {
 			if k.GetPeerId() == "12D3KooWKeypair1" && k.GetAuthMethod() == "password" {
@@ -471,7 +442,6 @@ func TestEntityKeypairCRUD(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-
 	queueOpAndWaitState(ctx, t, so, rmOpData, func(s *account_settings.AccountSettings) bool {
 		if len(s.GetEntityKeypairs()) != 1 {
 			return false
@@ -480,9 +450,8 @@ func TestEntityKeypairCRUD(t *testing.T) {
 	})
 }
 
-// TestKeybindingOverrideCRUD verifies account-scoped keybinding override ops
-// validate command IDs, replace duplicate command rows, reject malformed ops,
-// and leave existing state intact on rejection.
+// TestReplaceKeybindingOverrideSetRejectsConflictingPartition checks that of
+// two replacements expecting the same override set, only the first applies.
 func TestReplaceKeybindingOverrideSetRejectsConflictingPartition(t *testing.T) {
 	ctx := t.Context()
 	initialSet := &s4wave_command.KeybindingOverrideSet{

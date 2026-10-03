@@ -48,7 +48,6 @@ func leanSyncConfig(arena *fastjson.Arena, config *sobject.SharedObjectConfig) *
 
 	// Set via value.
 	value.Set("participants", participants)
-	value.Set("mode", arena.NewNumberInt(int(config.GetConsensusMode())))
 	value.Set("hash", arena.NewString(hex.EncodeToString(config.GetConfigChainHash())))
 	value.Set("seqno", arena.NewNumberString(strconv.FormatUint(config.GetConfigChainSeqno(), 10)))
 	return value
@@ -122,7 +121,6 @@ func leanSyncHead(arena *fastjson.Arena, head *SOSyncHead) *fastjson.Value {
 	value.Set("revision", arena.NewNumberString(strconv.FormatUint(head.GetRevision(), 10)))
 	value.Set("configHash", arena.NewString(hex.EncodeToString(head.GetConfigHash())))
 	value.Set("configSeqno", arena.NewNumberString(strconv.FormatUint(head.GetConfigSeqno(), 10)))
-	value.Set("rootSeqno", arena.NewNumberString(strconv.FormatUint(head.GetRootSeqno(), 10)))
 	value.Set("stateHash", arena.NewString(hex.EncodeToString(head.GetStateHash())))
 	return value
 }
@@ -169,7 +167,6 @@ func leanSyncSnapshot(arena *fastjson.Arena, snapshot *SOSyncSnapshot) *fastjson
 	}
 	value := arena.NewObject()
 	value.Set("data", arena.NewString(hex.EncodeToString(snapshot.GetSoState())))
-	value.Set("rootSeqno", arena.NewNumberString(strconv.FormatUint(snapshot.GetRootSeqno(), 10)))
 	value.Set("revision", arena.NewNumberString(strconv.FormatUint(snapshot.GetRevision(), 10)))
 	value.Set("base", arena.NewString(hex.EncodeToString(snapshot.GetBaseHash())))
 	return value
@@ -228,7 +225,7 @@ func leanSyncCatchupCases(t *testing.T, seed uint64) []leanSyncCase {
 	// Record head.
 	head := &SOSyncHead{
 		Revision: response.revision, ConfigHash: target.Config.ConfigChainHash,
-		ConfigSeqno: target.Config.ConfigChainSeqno, RootSeqno: target.Root.InnerSeqno, StateHash: digest,
+		ConfigSeqno: target.Config.ConfigChainSeqno, StateHash: digest,
 	}
 	var cases []leanSyncCase
 	for variant := range 14 {

@@ -938,9 +938,10 @@ type SOStateDeltaEntry struct {
 	unknownFields []byte
 	// Seqno is the change_log sequence number for this entry.
 	Seqno uint64 `protobuf:"varint,1,opt,name=seqno,proto3" json:"seqno,omitempty"`
-	// ChangeType is the type of change ("op" or "root").
+	// ChangeType is the type of change ("op" or "checkpoint").
 	ChangeType string `protobuf:"bytes,2,opt,name=change_type,json=changeType,proto3" json:"changeType,omitempty"`
-	// ChangeData is the serialized change data.
+	// ChangeData is an SOOperation for "op" and a PostCheckpointRequest for
+	// "checkpoint".
 	ChangeData []byte `protobuf:"bytes,3,opt,name=change_data,json=changeData,proto3" json:"changeData,omitempty"`
 }
 
@@ -991,31 +992,22 @@ func (x *PostOpsRequest) GetOperations() []*sobject.SOOperation {
 	return nil
 }
 
-// PostRootRequest is the binary payload for POST /sobject/:id/root.
-type PostRootRequest struct {
+// PostCheckpointRequest is the binary payload for POST /sobject/:id/checkpoint.
+type PostCheckpointRequest struct {
 	unknownFields []byte
-	// Root is the next signed root state.
-	Root *sobject.SORoot `protobuf:"bytes,1,opt,name=root,proto3" json:"root,omitempty"`
-	// RejectedOps are the operations the validator rejected while producing Root.
-	RejectedOps []*sobject.SOOperationRejection `protobuf:"bytes,2,rep,name=rejected_ops,json=rejectedOps,proto3" json:"rejectedOps,omitempty"`
+	// Checkpoint is the owner-signed checkpoint that follows the held one.
+	Checkpoint *sobject.SOCheckpoint `protobuf:"bytes,1,opt,name=checkpoint,proto3" json:"checkpoint,omitempty"`
 }
 
-func (x *PostRootRequest) Reset() {
-	*x = PostRootRequest{}
+func (x *PostCheckpointRequest) Reset() {
+	*x = PostCheckpointRequest{}
 }
 
-func (*PostRootRequest) ProtoMessage() {}
+func (*PostCheckpointRequest) ProtoMessage() {}
 
-func (x *PostRootRequest) GetRoot() *sobject.SORoot {
+func (x *PostCheckpointRequest) GetCheckpoint() *sobject.SOCheckpoint {
 	if x != nil {
-		return x.Root
-	}
-	return nil
-}
-
-func (x *PostRootRequest) GetRejectedOps() []*sobject.SOOperationRejection {
-	if x != nil {
-		return x.RejectedOps
+		return x.Checkpoint
 	}
 	return nil
 }
@@ -1584,7 +1576,7 @@ type SONotifyEventPayload struct {
 	// Seqno is the server's current change_log sequence number after the
 	// mutation that triggered this notify.
 	Seqno uint64 `protobuf:"varint,1,opt,name=seqno,proto3" json:"seqno,omitempty"`
-	// ChangeType identifies the mutation category ("op", "root",
+	// ChangeType identifies the mutation category ("op", "checkpoint",
 	// "configChanged", "metadata", "delete", "access_changed").
 	// "access_changed" means the receiving account gained or lost access, so
 	// its shared object list must be refetched.
@@ -2948,20 +2940,20 @@ func (x *SubmitOpResponse) GetSeqno() uint64 {
 	return 0
 }
 
-// SubmitRootResponse is the response body for POST /sobject/:id/root.
-type SubmitRootResponse struct {
+// SubmitCheckpointResponse is the response body for POST /sobject/:id/checkpoint.
+type SubmitCheckpointResponse struct {
 	unknownFields []byte
-	// Seqno is the change_log seqno assigned to the accepted root.
+	// Seqno is the change_log seqno assigned to the accepted checkpoint.
 	Seqno uint64 `protobuf:"varint,1,opt,name=seqno,proto3" json:"seqno,omitempty"`
 }
 
-func (x *SubmitRootResponse) Reset() {
-	*x = SubmitRootResponse{}
+func (x *SubmitCheckpointResponse) Reset() {
+	*x = SubmitCheckpointResponse{}
 }
 
-func (*SubmitRootResponse) ProtoMessage() {}
+func (*SubmitCheckpointResponse) ProtoMessage() {}
 
-func (x *SubmitRootResponse) GetSeqno() uint64 {
+func (x *SubmitCheckpointResponse) GetSeqno() uint64 {
 	if x != nil {
 		return x.Seqno
 	}
@@ -5544,14 +5536,12 @@ func (x *VerifiedSOStateCache) GetCloudSequence() uint64 {
 // PendingSOPublication survives process loss without moving its first deadline.
 type PendingSOPublication struct {
 	unknownFields []byte
-	// Root is the newest locally validated checkpoint awaiting cloud acceptance.
-	Root *sobject.SORoot `protobuf:"bytes,1,opt,name=root,proto3" json:"root,omitempty"`
+	// Checkpoint is the newest local checkpoint awaiting cloud acceptance.
+	Checkpoint *sobject.SOCheckpoint `protobuf:"bytes,1,opt,name=checkpoint,proto3" json:"checkpoint,omitempty"`
 	// Operations are signed local writes not yet acknowledged by the cloud.
 	Operations []*sobject.SOOperation `protobuf:"bytes,2,rep,name=operations,proto3" json:"operations,omitempty"`
-	// Rejections are signed outcomes accompanying the coalesced root.
-	Rejections []*sobject.SOOperationRejection `protobuf:"bytes,3,rep,name=rejections,proto3" json:"rejections,omitempty"`
-	// FirstPendingUnixMilli starts the bounded cloud-checkpoint interval.
-	FirstPendingUnixMilli int64 `protobuf:"varint,4,opt,name=first_pending_unix_milli,json=firstPendingUnixMilli,proto3" json:"firstPendingUnixMilli,omitempty"`
+	// FirstPendingUnixMilli starts the bounded cloud-publication interval.
+	FirstPendingUnixMilli int64 `protobuf:"varint,3,opt,name=first_pending_unix_milli,json=firstPendingUnixMilli,proto3" json:"firstPendingUnixMilli,omitempty"`
 }
 
 func (x *PendingSOPublication) Reset() {
@@ -5560,9 +5550,9 @@ func (x *PendingSOPublication) Reset() {
 
 func (*PendingSOPublication) ProtoMessage() {}
 
-func (x *PendingSOPublication) GetRoot() *sobject.SORoot {
+func (x *PendingSOPublication) GetCheckpoint() *sobject.SOCheckpoint {
 	if x != nil {
-		return x.Root
+		return x.Checkpoint
 	}
 	return nil
 }
@@ -5570,13 +5560,6 @@ func (x *PendingSOPublication) GetRoot() *sobject.SORoot {
 func (x *PendingSOPublication) GetOperations() []*sobject.SOOperation {
 	if x != nil {
 		return x.Operations
-	}
-	return nil
-}
-
-func (x *PendingSOPublication) GetRejections() []*sobject.SOOperationRejection {
-	if x != nil {
-		return x.Rejections
 	}
 	return nil
 }
@@ -5615,8 +5598,9 @@ type WriteTicketBundleResponse struct {
 	unknownFields []byte
 	// SoOpTicket authorizes POST /sobject/:id/op for the addressed resource.
 	SoOpTicket string `protobuf:"bytes,1,opt,name=so_op_ticket,json=soOpTicket,proto3" json:"soOpTicket,omitempty"`
-	// SoRootTicket authorizes POST /sobject/:id/root for the addressed resource.
-	SoRootTicket string `protobuf:"bytes,2,opt,name=so_root_ticket,json=soRootTicket,proto3" json:"soRootTicket,omitempty"`
+	// SoCheckpointTicket authorizes POST /sobject/:id/checkpoint for the
+	// addressed resource.
+	SoCheckpointTicket string `protobuf:"bytes,2,opt,name=so_checkpoint_ticket,json=soCheckpointTicket,proto3" json:"soCheckpointTicket,omitempty"`
 	// BstoreSyncPushTicket authorizes POST /bstore/:id/sync/push for the
 	// addressed resource.
 	BstoreSyncPushTicket string `protobuf:"bytes,3,opt,name=bstore_sync_push_ticket,json=bstoreSyncPushTicket,proto3" json:"bstoreSyncPushTicket,omitempty"`
@@ -5635,9 +5619,9 @@ func (x *WriteTicketBundleResponse) GetSoOpTicket() string {
 	return ""
 }
 
-func (x *WriteTicketBundleResponse) GetSoRootTicket() string {
+func (x *WriteTicketBundleResponse) GetSoCheckpointTicket() string {
 	if x != nil {
-		return x.SoRootTicket
+		return x.SoCheckpointTicket
 	}
 	return ""
 }
@@ -10283,11 +10267,12 @@ type CreateWithStateRequest struct {
 	AccountPrivate bool `protobuf:"varint,5,opt,name=account_private,json=accountPrivate,proto3" json:"accountPrivate,omitempty"`
 	// ConfigState is the signed initial config state payload.
 	ConfigState []byte `protobuf:"bytes,6,opt,name=config_state,json=configState,proto3" json:"configState,omitempty"`
-	// RootState is the signed initial root state payload.
-	RootState []byte `protobuf:"bytes,7,opt,name=root_state,json=rootState,proto3" json:"rootState,omitempty"`
+	// CheckpointState is the PostCheckpointRequest carrying the owner-signed
+	// initial checkpoint.
+	CheckpointState []byte `protobuf:"bytes,7,opt,name=checkpoint_state,json=checkpointState,proto3" json:"checkpointState,omitempty"`
 	// ConfigHistory imports the complete signed chain and retained key epochs.
-	// When present, ConfigState is its final checkpoint and RootState may be later
-	// than the first root. The authenticated account must own that checkpoint.
+	// When present, ConfigState is its final config and CheckpointState may be
+	// later than genesis. The authenticated account must own that config.
 	ConfigHistory []byte `protobuf:"bytes,8,opt,name=config_history,json=configHistory,proto3" json:"configHistory,omitempty"`
 }
 
@@ -10339,9 +10324,9 @@ func (x *CreateWithStateRequest) GetConfigState() []byte {
 	return nil
 }
 
-func (x *CreateWithStateRequest) GetRootState() []byte {
+func (x *CreateWithStateRequest) GetCheckpointState() []byte {
 	if x != nil {
-		return x.RootState
+		return x.CheckpointState
 	}
 	return nil
 }
@@ -10685,20 +10670,19 @@ func (m *PostOpsRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
-func (m *PostRootRequest) CloneVT() *PostRootRequest {
+func (m *PostCheckpointRequest) CloneVT() *PostCheckpointRequest {
 	if m == nil {
-		return (*PostRootRequest)(nil)
+		return (*PostCheckpointRequest)(nil)
 	}
-	r := new(PostRootRequest)
-	r.Root = protobuf_go_lite.CloneVTValue(m.Root)
-	r.RejectedOps = protobuf_go_lite.CloneVTSlice(m.RejectedOps)
+	r := new(PostCheckpointRequest)
+	r.Checkpoint = protobuf_go_lite.CloneVTValue(m.Checkpoint)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
 	return r
 }
 
-func (m *PostRootRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+func (m *PostCheckpointRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -11622,11 +11606,11 @@ func (m *SubmitOpResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
-func (m *SubmitRootResponse) CloneVT() *SubmitRootResponse {
+func (m *SubmitCheckpointResponse) CloneVT() *SubmitCheckpointResponse {
 	if m == nil {
-		return (*SubmitRootResponse)(nil)
+		return (*SubmitCheckpointResponse)(nil)
 	}
-	r := new(SubmitRootResponse)
+	r := new(SubmitCheckpointResponse)
 	r.Seqno = m.Seqno
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
@@ -11634,7 +11618,7 @@ func (m *SubmitRootResponse) CloneVT() *SubmitRootResponse {
 	return r
 }
 
-func (m *SubmitRootResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+func (m *SubmitCheckpointResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -12820,9 +12804,8 @@ func (m *PendingSOPublication) CloneVT() *PendingSOPublication {
 	}
 	r := new(PendingSOPublication)
 	r.FirstPendingUnixMilli = m.FirstPendingUnixMilli
-	r.Root = protobuf_go_lite.CloneVTValue(m.Root)
+	r.Checkpoint = protobuf_go_lite.CloneVTValue(m.Checkpoint)
 	r.Operations = protobuf_go_lite.CloneVTSlice(m.Operations)
-	r.Rejections = protobuf_go_lite.CloneVTSlice(m.Rejections)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -12855,7 +12838,7 @@ func (m *WriteTicketBundleResponse) CloneVT() *WriteTicketBundleResponse {
 	}
 	r := new(WriteTicketBundleResponse)
 	r.SoOpTicket = m.SoOpTicket
-	r.SoRootTicket = m.SoRootTicket
+	r.SoCheckpointTicket = m.SoCheckpointTicket
 	r.BstoreSyncPushTicket = m.BstoreSyncPushTicket
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
@@ -15485,7 +15468,7 @@ func (m *CreateWithStateRequest) CloneVT() *CreateWithStateRequest {
 	r.OwnerId = m.OwnerId
 	r.AccountPrivate = m.AccountPrivate
 	r.ConfigState = protobuf_go_lite.CloneBytes(m.ConfigState)
-	r.RootState = protobuf_go_lite.CloneBytes(m.RootState)
+	r.CheckpointState = protobuf_go_lite.CloneBytes(m.CheckpointState)
 	r.ConfigHistory = protobuf_go_lite.CloneBytes(m.ConfigHistory)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
@@ -15982,23 +15965,20 @@ func (this *PostOpsRequest) EqualMessageVT(thatMsg any) bool {
 	return this.EqualVT(that)
 }
 
-func (this *PostRootRequest) EqualVT(that *PostRootRequest) bool {
+func (this *PostCheckpointRequest) EqualVT(that *PostCheckpointRequest) bool {
 	if this == that {
 		return true
 	} else if this == nil || that == nil {
 		return false
 	}
-	if !protobuf_go_lite.IsEqualVT(this.Root, that.Root) {
-		return false
-	}
-	if !protobuf_go_lite.EqualVTSliceImplicit(this.RejectedOps, that.RejectedOps, func() *sobject.SOOperationRejection { return &sobject.SOOperationRejection{} }) {
+	if !protobuf_go_lite.IsEqualVT(this.Checkpoint, that.Checkpoint) {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
-func (this *PostRootRequest) EqualMessageVT(thatMsg any) bool {
-	that, ok := thatMsg.(*PostRootRequest)
+func (this *PostCheckpointRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*PostCheckpointRequest)
 	if !ok {
 		return false
 	}
@@ -17335,7 +17315,7 @@ func (this *SubmitOpResponse) EqualMessageVT(thatMsg any) bool {
 	return this.EqualVT(that)
 }
 
-func (this *SubmitRootResponse) EqualVT(that *SubmitRootResponse) bool {
+func (this *SubmitCheckpointResponse) EqualVT(that *SubmitCheckpointResponse) bool {
 	if this == that {
 		return true
 	} else if this == nil || that == nil {
@@ -17347,8 +17327,8 @@ func (this *SubmitRootResponse) EqualVT(that *SubmitRootResponse) bool {
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
-func (this *SubmitRootResponse) EqualMessageVT(thatMsg any) bool {
-	that, ok := thatMsg.(*SubmitRootResponse)
+func (this *SubmitCheckpointResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*SubmitCheckpointResponse)
 	if !ok {
 		return false
 	}
@@ -19069,13 +19049,10 @@ func (this *PendingSOPublication) EqualVT(that *PendingSOPublication) bool {
 	} else if this == nil || that == nil {
 		return false
 	}
-	if !protobuf_go_lite.IsEqualVT(this.Root, that.Root) {
+	if !protobuf_go_lite.IsEqualVT(this.Checkpoint, that.Checkpoint) {
 		return false
 	}
 	if !protobuf_go_lite.EqualVTSliceImplicit(this.Operations, that.Operations, func() *sobject.SOOperation { return &sobject.SOOperation{} }) {
-		return false
-	}
-	if !protobuf_go_lite.EqualVTSliceImplicit(this.Rejections, that.Rejections, func() *sobject.SOOperationRejection { return &sobject.SOOperationRejection{} }) {
 		return false
 	}
 	if this.FirstPendingUnixMilli != that.FirstPendingUnixMilli {
@@ -19121,7 +19098,7 @@ func (this *WriteTicketBundleResponse) EqualVT(that *WriteTicketBundleResponse) 
 	if this.SoOpTicket != that.SoOpTicket {
 		return false
 	}
-	if this.SoRootTicket != that.SoRootTicket {
+	if this.SoCheckpointTicket != that.SoCheckpointTicket {
 		return false
 	}
 	if this.BstoreSyncPushTicket != that.BstoreSyncPushTicket {
@@ -22754,7 +22731,7 @@ func (this *CreateWithStateRequest) EqualVT(that *CreateWithStateRequest) bool {
 	if !protobuf_go_lite.EqualBytes(this.ConfigState, that.ConfigState) {
 		return false
 	}
-	if !protobuf_go_lite.EqualBytes(this.RootState, that.RootState) {
+	if !protobuf_go_lite.EqualBytes(this.CheckpointState, that.CheckpointState) {
 		return false
 	}
 	if !protobuf_go_lite.EqualBytes(this.ConfigHistory, that.ConfigHistory) {
@@ -24037,40 +24014,29 @@ func (x *PostOpsRequest) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
-// MarshalProtoJSON marshals the PostRootRequest message to JSON.
-func (x *PostRootRequest) MarshalProtoJSON(s *json.MarshalState) {
+// MarshalProtoJSON marshals the PostCheckpointRequest message to JSON.
+func (x *PostCheckpointRequest) MarshalProtoJSON(s *json.MarshalState) {
 	if x == nil {
 		s.WriteNil()
 		return
 	}
 	s.WriteObjectStart()
 	var wroteField bool
-	if x.Root != nil || s.HasField("root") {
+	if x.Checkpoint != nil || s.HasField("checkpoint") {
 		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("root")
-		x.Root.MarshalProtoJSON(s.WithField("root"))
-	}
-	if len(x.RejectedOps) > 0 || s.HasField("rejectedOps") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("rejectedOps")
-		s.WriteArrayStart()
-		var wroteElement bool
-		for _, element := range x.RejectedOps {
-			s.WriteMoreIf(&wroteElement)
-			element.MarshalProtoJSON(s.WithField("rejectedOps"))
-		}
-		s.WriteArrayEnd()
+		s.WriteObjectField("checkpoint")
+		x.Checkpoint.MarshalProtoJSON(s.WithField("checkpoint"))
 	}
 	s.WriteObjectEnd()
 }
 
-// MarshalJSON marshals the PostRootRequest to JSON.
-func (x *PostRootRequest) MarshalJSON() ([]byte, error) {
+// MarshalJSON marshals the PostCheckpointRequest to JSON.
+func (x *PostCheckpointRequest) MarshalJSON() ([]byte, error) {
 	return json.DefaultMarshalerConfig.Marshal(x)
 }
 
-// UnmarshalProtoJSON unmarshals the PostRootRequest message from JSON.
-func (x *PostRootRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+// UnmarshalProtoJSON unmarshals the PostCheckpointRequest message from JSON.
+func (x *PostCheckpointRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
 	if s.ReadNil() {
 		return
 	}
@@ -24078,37 +24044,19 @@ func (x *PostRootRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		switch key {
 		default:
 			s.Skip() // ignore unknown field
-		case "root":
+		case "checkpoint":
 			if s.ReadNil() {
-				x.Root = nil
+				x.Checkpoint = nil
 				return
 			}
-			x.Root = &sobject.SORoot{}
-			x.Root.UnmarshalProtoJSON(s.WithField("root", true))
-		case "rejected_ops", "rejectedOps":
-			s.AddField("rejected_ops")
-			if s.ReadNil() {
-				x.RejectedOps = nil
-				return
-			}
-			s.ReadArray(func() {
-				if s.ReadNil() {
-					x.RejectedOps = append(x.RejectedOps, nil)
-					return
-				}
-				v := &sobject.SOOperationRejection{}
-				v.UnmarshalProtoJSON(s.WithField("rejected_ops", false))
-				if s.Err() != nil {
-					return
-				}
-				x.RejectedOps = append(x.RejectedOps, v)
-			})
+			x.Checkpoint = &sobject.SOCheckpoint{}
+			x.Checkpoint.UnmarshalProtoJSON(s.WithField("checkpoint", true))
 		}
 	})
 }
 
-// UnmarshalJSON unmarshals the PostRootRequest from JSON.
-func (x *PostRootRequest) UnmarshalJSON(b []byte) error {
+// UnmarshalJSON unmarshals the PostCheckpointRequest from JSON.
+func (x *PostCheckpointRequest) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -26850,8 +26798,8 @@ func (x *SubmitOpResponse) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
-// MarshalProtoJSON marshals the SubmitRootResponse message to JSON.
-func (x *SubmitRootResponse) MarshalProtoJSON(s *json.MarshalState) {
+// MarshalProtoJSON marshals the SubmitCheckpointResponse message to JSON.
+func (x *SubmitCheckpointResponse) MarshalProtoJSON(s *json.MarshalState) {
 	if x == nil {
 		s.WriteNil()
 		return
@@ -26866,13 +26814,13 @@ func (x *SubmitRootResponse) MarshalProtoJSON(s *json.MarshalState) {
 	s.WriteObjectEnd()
 }
 
-// MarshalJSON marshals the SubmitRootResponse to JSON.
-func (x *SubmitRootResponse) MarshalJSON() ([]byte, error) {
+// MarshalJSON marshals the SubmitCheckpointResponse to JSON.
+func (x *SubmitCheckpointResponse) MarshalJSON() ([]byte, error) {
 	return json.DefaultMarshalerConfig.Marshal(x)
 }
 
-// UnmarshalProtoJSON unmarshals the SubmitRootResponse message from JSON.
-func (x *SubmitRootResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+// UnmarshalProtoJSON unmarshals the SubmitCheckpointResponse message from JSON.
+func (x *SubmitCheckpointResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
 	if s.ReadNil() {
 		return
 	}
@@ -26887,8 +26835,8 @@ func (x *SubmitRootResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
 	})
 }
 
-// UnmarshalJSON unmarshals the SubmitRootResponse from JSON.
-func (x *SubmitRootResponse) UnmarshalJSON(b []byte) error {
+// UnmarshalJSON unmarshals the SubmitCheckpointResponse from JSON.
+func (x *SubmitCheckpointResponse) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -31103,10 +31051,10 @@ func (x *PendingSOPublication) MarshalProtoJSON(s *json.MarshalState) {
 	}
 	s.WriteObjectStart()
 	var wroteField bool
-	if x.Root != nil || s.HasField("root") {
+	if x.Checkpoint != nil || s.HasField("checkpoint") {
 		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("root")
-		x.Root.MarshalProtoJSON(s.WithField("root"))
+		s.WriteObjectField("checkpoint")
+		x.Checkpoint.MarshalProtoJSON(s.WithField("checkpoint"))
 	}
 	if len(x.Operations) > 0 || s.HasField("operations") {
 		s.WriteMoreIf(&wroteField)
@@ -31116,17 +31064,6 @@ func (x *PendingSOPublication) MarshalProtoJSON(s *json.MarshalState) {
 		for _, element := range x.Operations {
 			s.WriteMoreIf(&wroteElement)
 			element.MarshalProtoJSON(s.WithField("operations"))
-		}
-		s.WriteArrayEnd()
-	}
-	if len(x.Rejections) > 0 || s.HasField("rejections") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("rejections")
-		s.WriteArrayStart()
-		var wroteElement bool
-		for _, element := range x.Rejections {
-			s.WriteMoreIf(&wroteElement)
-			element.MarshalProtoJSON(s.WithField("rejections"))
 		}
 		s.WriteArrayEnd()
 	}
@@ -31152,13 +31089,13 @@ func (x *PendingSOPublication) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		switch key {
 		default:
 			s.Skip() // ignore unknown field
-		case "root":
+		case "checkpoint":
 			if s.ReadNil() {
-				x.Root = nil
+				x.Checkpoint = nil
 				return
 			}
-			x.Root = &sobject.SORoot{}
-			x.Root.UnmarshalProtoJSON(s.WithField("root", true))
+			x.Checkpoint = &sobject.SOCheckpoint{}
+			x.Checkpoint.UnmarshalProtoJSON(s.WithField("checkpoint", true))
 		case "operations":
 			s.AddField("operations")
 			if s.ReadNil() {
@@ -31176,24 +31113,6 @@ func (x *PendingSOPublication) UnmarshalProtoJSON(s *json.UnmarshalState) {
 					return
 				}
 				x.Operations = append(x.Operations, v)
-			})
-		case "rejections":
-			s.AddField("rejections")
-			if s.ReadNil() {
-				x.Rejections = nil
-				return
-			}
-			s.ReadArray(func() {
-				if s.ReadNil() {
-					x.Rejections = append(x.Rejections, nil)
-					return
-				}
-				v := &sobject.SOOperationRejection{}
-				v.UnmarshalProtoJSON(s.WithField("rejections", false))
-				if s.Err() != nil {
-					return
-				}
-				x.Rejections = append(x.Rejections, v)
 			})
 		case "first_pending_unix_milli", "firstPendingUnixMilli":
 			s.AddField("first_pending_unix_milli")
@@ -31262,10 +31181,10 @@ func (x *WriteTicketBundleResponse) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("soOpTicket")
 		s.WriteString(x.SoOpTicket)
 	}
-	if x.SoRootTicket != "" || s.HasField("soRootTicket") {
+	if x.SoCheckpointTicket != "" || s.HasField("soCheckpointTicket") {
 		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("soRootTicket")
-		s.WriteString(x.SoRootTicket)
+		s.WriteObjectField("soCheckpointTicket")
+		s.WriteString(x.SoCheckpointTicket)
 	}
 	if x.BstoreSyncPushTicket != "" || s.HasField("bstoreSyncPushTicket") {
 		s.WriteMoreIf(&wroteField)
@@ -31292,9 +31211,9 @@ func (x *WriteTicketBundleResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "so_op_ticket", "soOpTicket":
 			s.AddField("so_op_ticket")
 			x.SoOpTicket = s.ReadString()
-		case "so_root_ticket", "soRootTicket":
-			s.AddField("so_root_ticket")
-			x.SoRootTicket = s.ReadString()
+		case "so_checkpoint_ticket", "soCheckpointTicket":
+			s.AddField("so_checkpoint_ticket")
+			x.SoCheckpointTicket = s.ReadString()
 		case "bstore_sync_push_ticket", "bstoreSyncPushTicket":
 			s.AddField("bstore_sync_push_ticket")
 			x.BstoreSyncPushTicket = s.ReadString()
@@ -38901,10 +38820,10 @@ func (x *CreateWithStateRequest) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("configState")
 		s.WriteBytes(x.ConfigState)
 	}
-	if len(x.RootState) > 0 || s.HasField("rootState") {
+	if len(x.CheckpointState) > 0 || s.HasField("checkpointState") {
 		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("rootState")
-		s.WriteBytes(x.RootState)
+		s.WriteObjectField("checkpointState")
+		s.WriteBytes(x.CheckpointState)
 	}
 	if len(x.ConfigHistory) > 0 || s.HasField("configHistory") {
 		s.WriteMoreIf(&wroteField)
@@ -38946,9 +38865,9 @@ func (x *CreateWithStateRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "config_state", "configState":
 			s.AddField("config_state")
 			x.ConfigState = s.ReadBytes()
-		case "root_state", "rootState":
-			s.AddField("root_state")
-			x.RootState = s.ReadBytes()
+		case "checkpoint_state", "checkpointState":
+			s.AddField("checkpoint_state")
+			x.CheckpointState = s.ReadBytes()
 		case "config_history", "configHistory":
 			s.AddField("config_history")
 			x.ConfigHistory = s.ReadBytes()
@@ -39844,7 +39763,7 @@ func (m *PostOpsRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
-func (m *PostRootRequest) MarshalVT() (dAtA []byte, err error) {
+func (m *PostCheckpointRequest) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
 	}
@@ -39857,12 +39776,12 @@ func (m *PostRootRequest) MarshalVT() (dAtA []byte, err error) {
 	return dAtA[:n], nil
 }
 
-func (m *PostRootRequest) MarshalToVT(dAtA []byte) (int, error) {
+func (m *PostCheckpointRequest) MarshalToVT(dAtA []byte) (int, error) {
 	size := m.SizeVT()
 	return m.MarshalToSizedBufferVT(dAtA[:size])
 }
 
-func (m *PostRootRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+func (m *PostCheckpointRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m == nil {
 		return 0, nil
 	}
@@ -39873,20 +39792,8 @@ func (m *PostRootRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
-	if len(m.RejectedOps) > 0 {
-		for iNdEx := len(m.RejectedOps) - 1; iNdEx >= 0; iNdEx-- {
-			size, err := m.RejectedOps[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
-			if err != nil {
-				return 0, err
-			}
-			i -= size
-			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
-			i--
-			dAtA[i] = 0x12
-		}
-	}
-	if m.Root != nil {
-		size, err := m.Root.MarshalToSizedBufferVT(dAtA[:i])
+	if m.Checkpoint != nil {
+		size, err := m.Checkpoint.MarshalToSizedBufferVT(dAtA[:i])
 		if err != nil {
 			return 0, err
 		}
@@ -42262,7 +42169,7 @@ func (m *SubmitOpResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
-func (m *SubmitRootResponse) MarshalVT() (dAtA []byte, err error) {
+func (m *SubmitCheckpointResponse) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
 	}
@@ -42275,12 +42182,12 @@ func (m *SubmitRootResponse) MarshalVT() (dAtA []byte, err error) {
 	return dAtA[:n], nil
 }
 
-func (m *SubmitRootResponse) MarshalToVT(dAtA []byte) (int, error) {
+func (m *SubmitCheckpointResponse) MarshalToVT(dAtA []byte) (int, error) {
 	size := m.SizeVT()
 	return m.MarshalToSizedBufferVT(dAtA[:size])
 }
 
-func (m *SubmitRootResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+func (m *SubmitCheckpointResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m == nil {
 		return 0, nil
 	}
@@ -45641,19 +45548,7 @@ func (m *PendingSOPublication) MarshalToSizedBufferVT(dAtA []byte) (int, error) 
 	if m.FirstPendingUnixMilli != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.FirstPendingUnixMilli))
 		i--
-		dAtA[i] = 0x20
-	}
-	if len(m.Rejections) > 0 {
-		for iNdEx := len(m.Rejections) - 1; iNdEx >= 0; iNdEx-- {
-			size, err := m.Rejections[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
-			if err != nil {
-				return 0, err
-			}
-			i -= size
-			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
-			i--
-			dAtA[i] = 0x1a
-		}
+		dAtA[i] = 0x18
 	}
 	if len(m.Operations) > 0 {
 		for iNdEx := len(m.Operations) - 1; iNdEx >= 0; iNdEx-- {
@@ -45667,8 +45562,8 @@ func (m *PendingSOPublication) MarshalToSizedBufferVT(dAtA []byte) (int, error) 
 			dAtA[i] = 0x12
 		}
 	}
-	if m.Root != nil {
-		size, err := m.Root.MarshalToSizedBufferVT(dAtA[:i])
+	if m.Checkpoint != nil {
+		size, err := m.Checkpoint.MarshalToSizedBufferVT(dAtA[:i])
 		if err != nil {
 			return 0, err
 		}
@@ -45751,8 +45646,8 @@ func (m *WriteTicketBundleResponse) MarshalToSizedBufferVT(dAtA []byte) (int, er
 		i--
 		dAtA[i] = 0x1a
 	}
-	if len(m.SoRootTicket) > 0 {
-		i = protobuf_go_lite.EncodeString(dAtA, i, m.SoRootTicket)
+	if len(m.SoCheckpointTicket) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.SoCheckpointTicket)
 		i--
 		dAtA[i] = 0x12
 	}
@@ -52323,8 +52218,8 @@ func (m *CreateWithStateRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error
 		i--
 		dAtA[i] = 0x42
 	}
-	if len(m.RootState) > 0 {
-		i = protobuf_go_lite.EncodeBytes(dAtA, i, m.RootState)
+	if len(m.CheckpointState) > 0 {
+		i = protobuf_go_lite.EncodeBytes(dAtA, i, m.CheckpointState)
 		i--
 		dAtA[i] = 0x3a
 	}
@@ -52648,18 +52543,14 @@ func (m *PostOpsRequest) SizeVT() (n int) {
 	return n
 }
 
-func (m *PostRootRequest) SizeVT() (n int) {
+func (m *PostCheckpointRequest) SizeVT() (n int) {
 	if m == nil {
 		return 0
 	}
 	var l int
 	_ = l
-	if m.Root != nil {
-		l = m.Root.SizeVT()
-		n += protobuf_go_lite.SizeMessage(1, l)
-	}
-	for _, e := range m.RejectedOps {
-		l = e.SizeVT()
+	if m.Checkpoint != nil {
+		l = m.Checkpoint.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
 	n += len(m.unknownFields)
@@ -53401,7 +53292,7 @@ func (m *SubmitOpResponse) SizeVT() (n int) {
 	return n
 }
 
-func (m *SubmitRootResponse) SizeVT() (n int) {
+func (m *SubmitCheckpointResponse) SizeVT() (n int) {
 	if m == nil {
 		return 0
 	}
@@ -54374,15 +54265,11 @@ func (m *PendingSOPublication) SizeVT() (n int) {
 	}
 	var l int
 	_ = l
-	if m.Root != nil {
-		l = m.Root.SizeVT()
+	if m.Checkpoint != nil {
+		l = m.Checkpoint.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
 	for _, e := range m.Operations {
-		l = e.SizeVT()
-		n += protobuf_go_lite.SizeMessage(1, l)
-	}
-	for _, e := range m.Rejections {
 		l = e.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
@@ -54409,7 +54296,7 @@ func (m *WriteTicketBundleResponse) SizeVT() (n int) {
 	var l int
 	_ = l
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.SoOpTicket)
-	n += protobuf_go_lite.SizeStringNonEmpty(1, m.SoRootTicket)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.SoCheckpointTicket)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.BstoreSyncPushTicket)
 	n += len(m.unknownFields)
 	return n
@@ -56484,7 +56371,7 @@ func (m *CreateWithStateRequest) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.OwnerId)
 	n += protobuf_go_lite.SizeBoolNonZero(1, m.AccountPrivate)
 	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.ConfigState)
-	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.RootState)
+	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.CheckpointState)
 	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.ConfigHistory)
 	n += len(m.unknownFields)
 	return n
@@ -56922,29 +56809,17 @@ func (x *PostOpsRequest) String() string {
 	return x.MarshalProtoText()
 }
 
-func (x *PostRootRequest) MarshalProtoText() string {
+func (x *PostCheckpointRequest) MarshalProtoText() string {
 	var sb protobuf_go_lite.TextBuilder
-	initialLen := protobuf_go_lite.TextStartMessage(&sb, "PostRootRequest")
-	if x.Root != nil {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "root")
-		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Root)
-	}
-	if len(x.RejectedOps) > 0 {
-		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "rejected_ops")
-		for i, v := range x.RejectedOps {
-			protobuf_go_lite.TextWriteListSeparator(&sb, i)
-			if v == nil {
-				protobuf_go_lite.TextWriteTextMarshaler(&sb, &sobject.SOOperationRejection{})
-			} else {
-				protobuf_go_lite.TextWriteTextMarshaler(&sb, v)
-			}
-		}
-		protobuf_go_lite.TextWriteListEnd(&sb)
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "PostCheckpointRequest")
+	if x.Checkpoint != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "checkpoint")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Checkpoint)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
 
-func (x *PostRootRequest) String() string {
+func (x *PostCheckpointRequest) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -57999,9 +57874,9 @@ func (x *SubmitOpResponse) String() string {
 	return x.MarshalProtoText()
 }
 
-func (x *SubmitRootResponse) MarshalProtoText() string {
+func (x *SubmitCheckpointResponse) MarshalProtoText() string {
 	var sb protobuf_go_lite.TextBuilder
-	initialLen := protobuf_go_lite.TextStartMessage(&sb, "SubmitRootResponse")
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "SubmitCheckpointResponse")
 	if x.Seqno != 0 {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "seqno")
 		protobuf_go_lite.TextWriteUint(&sb, x.Seqno)
@@ -58009,7 +57884,7 @@ func (x *SubmitRootResponse) MarshalProtoText() string {
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
 
-func (x *SubmitRootResponse) String() string {
+func (x *SubmitCheckpointResponse) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -59610,9 +59485,9 @@ func (x *VerifiedSOStateCache) String() string {
 func (x *PendingSOPublication) MarshalProtoText() string {
 	var sb protobuf_go_lite.TextBuilder
 	initialLen := protobuf_go_lite.TextStartMessage(&sb, "PendingSOPublication")
-	if x.Root != nil {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "root")
-		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Root)
+	if x.Checkpoint != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "checkpoint")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Checkpoint)
 	}
 	if len(x.Operations) > 0 {
 		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "operations")
@@ -59620,18 +59495,6 @@ func (x *PendingSOPublication) MarshalProtoText() string {
 			protobuf_go_lite.TextWriteListSeparator(&sb, i)
 			if v == nil {
 				protobuf_go_lite.TextWriteTextMarshaler(&sb, &sobject.SOOperation{})
-			} else {
-				protobuf_go_lite.TextWriteTextMarshaler(&sb, v)
-			}
-		}
-		protobuf_go_lite.TextWriteListEnd(&sb)
-	}
-	if len(x.Rejections) > 0 {
-		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "rejections")
-		for i, v := range x.Rejections {
-			protobuf_go_lite.TextWriteListSeparator(&sb, i)
-			if v == nil {
-				protobuf_go_lite.TextWriteTextMarshaler(&sb, &sobject.SOOperationRejection{})
 			} else {
 				protobuf_go_lite.TextWriteTextMarshaler(&sb, v)
 			}
@@ -59670,9 +59533,9 @@ func (x *WriteTicketBundleResponse) MarshalProtoText() string {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "so_op_ticket")
 		protobuf_go_lite.TextWriteString(&sb, x.SoOpTicket)
 	}
-	if x.SoRootTicket != "" {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "so_root_ticket")
-		protobuf_go_lite.TextWriteString(&sb, x.SoRootTicket)
+	if x.SoCheckpointTicket != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "so_checkpoint_ticket")
+		protobuf_go_lite.TextWriteString(&sb, x.SoCheckpointTicket)
 	}
 	if x.BstoreSyncPushTicket != "" {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "bstore_sync_push_ticket")
@@ -62520,9 +62383,9 @@ func (x *CreateWithStateRequest) MarshalProtoText() string {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "config_state")
 		protobuf_go_lite.TextWriteBytes(&sb, x.ConfigState)
 	}
-	if len(x.RootState) != 0 {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "root_state")
-		protobuf_go_lite.TextWriteBytes(&sb, x.RootState)
+	if len(x.CheckpointState) != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "checkpoint_state")
+		protobuf_go_lite.TextWriteBytes(&sb, x.CheckpointState)
 	}
 	if len(x.ConfigHistory) != 0 {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "config_history")
@@ -63778,7 +63641,7 @@ func (m *PostOpsRequest) UnmarshalVT(dAtA []byte) error {
 	return nil
 }
 
-func (m *PostRootRequest) UnmarshalVT(dAtA []byte) error {
+func (m *PostCheckpointRequest) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
 	var err error
@@ -63792,37 +63655,24 @@ func (m *PostRootRequest) UnmarshalVT(dAtA []byte) error {
 		fieldNum := int32(wire >> 3)
 		wireType := int(wire & 0x7)
 		if wireType == 4 {
-			return fmt.Errorf("proto: PostRootRequest: wiretype end group for non-group")
+			return fmt.Errorf("proto: PostCheckpointRequest: wiretype end group for non-group")
 		}
 		if fieldNum <= 0 {
-			return fmt.Errorf("proto: PostRootRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+			return fmt.Errorf("proto: PostCheckpointRequest: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		case 1:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Root", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field Checkpoint", wireType)
 			}
 			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
 			if err != nil {
 				return err
 			}
-			if m.Root == nil {
-				m.Root = &sobject.SORoot{}
+			if m.Checkpoint == nil {
+				m.Checkpoint = &sobject.SOCheckpoint{}
 			}
-			if err := m.Root.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 2:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field RejectedOps", wireType)
-			}
-			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-			m.RejectedOps = append(m.RejectedOps, &sobject.SOOperationRejection{})
-			if err := m.RejectedOps[len(m.RejectedOps)-1].UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+			if err := m.Checkpoint.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
@@ -67252,7 +67102,7 @@ func (m *SubmitOpResponse) UnmarshalVT(dAtA []byte) error {
 	return nil
 }
 
-func (m *SubmitRootResponse) UnmarshalVT(dAtA []byte) error {
+func (m *SubmitCheckpointResponse) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
 	var err error
@@ -67266,10 +67116,10 @@ func (m *SubmitRootResponse) UnmarshalVT(dAtA []byte) error {
 		fieldNum := int32(wire >> 3)
 		wireType := int(wire & 0x7)
 		if wireType == 4 {
-			return fmt.Errorf("proto: SubmitRootResponse: wiretype end group for non-group")
+			return fmt.Errorf("proto: SubmitCheckpointResponse: wiretype end group for non-group")
 		}
 		if fieldNum <= 0 {
-			return fmt.Errorf("proto: SubmitRootResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+			return fmt.Errorf("proto: SubmitCheckpointResponse: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		case 1:
@@ -72238,16 +72088,16 @@ func (m *PendingSOPublication) UnmarshalVT(dAtA []byte) error {
 		switch fieldNum {
 		case 1:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Root", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field Checkpoint", wireType)
 			}
 			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
 			if err != nil {
 				return err
 			}
-			if m.Root == nil {
-				m.Root = &sobject.SORoot{}
+			if m.Checkpoint == nil {
+				m.Checkpoint = &sobject.SOCheckpoint{}
 			}
-			if err := m.Root.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+			if err := m.Checkpoint.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
@@ -72265,19 +72115,6 @@ func (m *PendingSOPublication) UnmarshalVT(dAtA []byte) error {
 			}
 			iNdEx = postIndex
 		case 3:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Rejections", wireType)
-			}
-			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-			m.Rejections = append(m.Rejections, &sobject.SOOperationRejection{})
-			if err := m.Rejections[len(m.Rejections)-1].UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 4:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field FirstPendingUnixMilli", wireType)
 			}
@@ -72394,14 +72231,14 @@ func (m *WriteTicketBundleResponse) UnmarshalVT(dAtA []byte) error {
 			m.SoOpTicket = v
 		case 2:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field SoRootTicket", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field SoCheckpointTicket", wireType)
 			}
 			var v string
 			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
 			if err != nil {
 				return err
 			}
-			m.SoRootTicket = v
+			m.SoCheckpointTicket = v
 		case 3:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field BstoreSyncPushTicket", wireType)
@@ -81802,9 +81639,9 @@ func (m *CreateWithStateRequest) UnmarshalVT(dAtA []byte) error {
 			}
 		case 7:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field RootState", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field CheckpointState", wireType)
 			}
-			m.RootState, iNdEx, err = protobuf_go_lite.DecodeBytesAppend(m.RootState, dAtA, iNdEx)
+			m.CheckpointState, iNdEx, err = protobuf_go_lite.DecodeBytesAppend(m.CheckpointState, dAtA, iNdEx)
 			if err != nil {
 				return err
 			}

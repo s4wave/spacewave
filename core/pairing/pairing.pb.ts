@@ -9,7 +9,6 @@ import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 import { SessionRef } from '../session/session.pb.js'
 import {
-  SharedObjectConfig,
   SharedObjectListEntry,
   SOConfigChange,
   SOJoinResponse,
@@ -334,21 +333,12 @@ export interface SharedObject {
    */
   state?: SOState
   /**
-   * HistoryBase and History retain the verified lineage leading to State.
+   * ConfigLineage is the sender's retained configuration changes leading to
+   * the config of State, oldest first.
    *
-   * @generated from field: sobject.SharedObjectConfig history_base = 3;
+   * @generated from field: repeated sobject.SOConfigChange config_lineage = 3;
    */
-  historyBase?: SharedObjectConfig
-  /**
-   * @generated from field: repeated sobject.SOConfigChange history = 4;
-   */
-  history?: SOConfigChange[]
-  /**
-   * Genesis retains the signed first entry when HistoryBase is that entry.
-   *
-   * @generated from field: sobject.SOConfigChange genesis = 5;
-   */
-  genesis?: SOConfigChange
+  configLineage?: SOConfigChange[]
 }
 
 export const SharedObject: MessageType<SharedObject> =
@@ -359,18 +349,11 @@ export const SharedObject: MessageType<SharedObject> =
       { no: 2, name: 'state', kind: 'message', T: () => SOState },
       {
         no: 3,
-        name: 'history_base',
-        kind: 'message',
-        T: () => SharedObjectConfig,
-      },
-      {
-        no: 4,
-        name: 'history',
+        name: 'config_lineage',
         kind: 'message',
         T: () => SOConfigChange,
         repeated: true,
       },
-      { no: 5, name: 'genesis', kind: 'message', T: () => SOConfigChange },
     ] satisfies readonly PartialFieldInfo[],
   })
 

@@ -12,7 +12,7 @@ import (
 	"github.com/s4wave/spacewave/db/kvtx"
 )
 
-// runAccountReplicaCopy hydrates every accepted World head through the Session's
+// runAccountReplicaCopy hydrates every checkpoint World head through the Session's
 // existing DEX read-through store. Cached blocks survive cancellation and restart;
 // a persisted completion record is valid only for its exact immutable head.
 func (a *ProviderAccount) runAccountReplicaCopy(ctx context.Context, so sobject.SharedObject, state *p2pSyncState) error {
@@ -50,8 +50,9 @@ func (a *ProviderAccount) runAccountReplicaCopy(ctx context.Context, so sobject.
 			continue
 		}
 
-		// Skip empty snapshots and roots.
-		inner, err := snapshot.GetRootInner(ctx)
+		// Skip snapshots without a checkpoint. Replay rebuilds the World of
+		// later operations from their transactions.
+		inner, err := snapshot.GetCheckpoint(ctx)
 		if err != nil {
 			return err
 		}

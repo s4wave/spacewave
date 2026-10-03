@@ -124,21 +124,3 @@ func (a *ProviderAccount) writeSOEndpoint(ctx context.Context, soID, endpoint st
 	a.soListCtr.SetValue(list)
 	return true, nil
 }
-
-// waitSOValidator waits until the local storage identity can validate so.
-func waitSOValidator(ctx context.Context, so *SharedObject) error {
-	// Watch the accepted state of the object.
-	states, release, err := so.soHost.GetSOStateCtr(ctx, nil)
-	if err != nil {
-		return err
-	}
-	defer release()
-
-	// Return once the storage identity holds a validating role.
-	_, err = states.WaitValueWithValidator(ctx, func(state *sobject.SOState) (bool, error) {
-		return slices.ContainsFunc(state.GetConfig().GetParticipants(), func(p *sobject.SOParticipantConfig) bool {
-			return p.GetPeerId() == so.localPid.String() && sobject.IsValidatorOrOwner(p.GetRole())
-		}), nil
-	}, nil)
-	return err
-}

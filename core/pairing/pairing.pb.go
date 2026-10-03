@@ -315,11 +315,9 @@ type SharedObject struct {
 	Entry *sobject.SharedObjectListEntry `protobuf:"bytes,1,opt,name=entry,proto3" json:"entry,omitempty"`
 	// State is accepted only through the SharedObject host's enrollment contract.
 	State *sobject.SOState `protobuf:"bytes,2,opt,name=state,proto3" json:"state,omitempty"`
-	// HistoryBase and History retain the verified lineage leading to State.
-	HistoryBase *sobject.SharedObjectConfig `protobuf:"bytes,3,opt,name=history_base,json=historyBase,proto3" json:"historyBase,omitempty"`
-	History     []*sobject.SOConfigChange   `protobuf:"bytes,4,rep,name=history,proto3" json:"history,omitempty"`
-	// Genesis retains the signed first entry when HistoryBase is that entry.
-	Genesis *sobject.SOConfigChange `protobuf:"bytes,5,opt,name=genesis,proto3" json:"genesis,omitempty"`
+	// ConfigLineage is the sender's retained configuration changes leading to
+	// the config of State, oldest first.
+	ConfigLineage []*sobject.SOConfigChange `protobuf:"bytes,3,rep,name=config_lineage,json=configLineage,proto3" json:"configLineage,omitempty"`
 }
 
 func (x *SharedObject) Reset() {
@@ -342,23 +340,9 @@ func (x *SharedObject) GetState() *sobject.SOState {
 	return nil
 }
 
-func (x *SharedObject) GetHistoryBase() *sobject.SharedObjectConfig {
+func (x *SharedObject) GetConfigLineage() []*sobject.SOConfigChange {
 	if x != nil {
-		return x.HistoryBase
-	}
-	return nil
-}
-
-func (x *SharedObject) GetHistory() []*sobject.SOConfigChange {
-	if x != nil {
-		return x.History
-	}
-	return nil
-}
-
-func (x *SharedObject) GetGenesis() *sobject.SOConfigChange {
-	if x != nil {
-		return x.Genesis
+		return x.ConfigLineage
 	}
 	return nil
 }
@@ -566,9 +550,7 @@ func (m *SharedObject) CloneVT() *SharedObject {
 	r := new(SharedObject)
 	r.Entry = protobuf_go_lite.CloneVTValue(m.Entry)
 	r.State = protobuf_go_lite.CloneVTValue(m.State)
-	r.HistoryBase = protobuf_go_lite.CloneVTValue(m.HistoryBase)
-	r.History = protobuf_go_lite.CloneVTSlice(m.History)
-	r.Genesis = protobuf_go_lite.CloneVTValue(m.Genesis)
+	r.ConfigLineage = protobuf_go_lite.CloneVTSlice(m.ConfigLineage)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -821,13 +803,7 @@ func (this *SharedObject) EqualVT(that *SharedObject) bool {
 	if !protobuf_go_lite.IsEqualVT(this.State, that.State) {
 		return false
 	}
-	if !protobuf_go_lite.IsEqualVT(this.HistoryBase, that.HistoryBase) {
-		return false
-	}
-	if !protobuf_go_lite.EqualVTSliceImplicit(this.History, that.History, func() *sobject.SOConfigChange { return &sobject.SOConfigChange{} }) {
-		return false
-	}
-	if !protobuf_go_lite.IsEqualVT(this.Genesis, that.Genesis) {
+	if !protobuf_go_lite.EqualVTSliceImplicit(this.ConfigLineage, that.ConfigLineage, func() *sobject.SOConfigChange { return &sobject.SOConfigChange{} }) {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -1368,26 +1344,16 @@ func (x *SharedObject) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("state")
 		x.State.MarshalProtoJSON(s.WithField("state"))
 	}
-	if x.HistoryBase != nil || s.HasField("historyBase") {
+	if len(x.ConfigLineage) > 0 || s.HasField("configLineage") {
 		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("historyBase")
-		x.HistoryBase.MarshalProtoJSON(s.WithField("historyBase"))
-	}
-	if len(x.History) > 0 || s.HasField("history") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("history")
+		s.WriteObjectField("configLineage")
 		s.WriteArrayStart()
 		var wroteElement bool
-		for _, element := range x.History {
+		for _, element := range x.ConfigLineage {
 			s.WriteMoreIf(&wroteElement)
-			element.MarshalProtoJSON(s.WithField("history"))
+			element.MarshalProtoJSON(s.WithField("configLineage"))
 		}
 		s.WriteArrayEnd()
-	}
-	if x.Genesis != nil || s.HasField("genesis") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("genesis")
-		x.Genesis.MarshalProtoJSON(s.WithField("genesis"))
 	}
 	s.WriteObjectEnd()
 }
@@ -1420,38 +1386,24 @@ func (x *SharedObject) UnmarshalProtoJSON(s *json.UnmarshalState) {
 			}
 			x.State = &sobject.SOState{}
 			x.State.UnmarshalProtoJSON(s.WithField("state", true))
-		case "history_base", "historyBase":
+		case "config_lineage", "configLineage":
+			s.AddField("config_lineage")
 			if s.ReadNil() {
-				x.HistoryBase = nil
-				return
-			}
-			x.HistoryBase = &sobject.SharedObjectConfig{}
-			x.HistoryBase.UnmarshalProtoJSON(s.WithField("history_base", true))
-		case "history":
-			s.AddField("history")
-			if s.ReadNil() {
-				x.History = nil
+				x.ConfigLineage = nil
 				return
 			}
 			s.ReadArray(func() {
 				if s.ReadNil() {
-					x.History = append(x.History, nil)
+					x.ConfigLineage = append(x.ConfigLineage, nil)
 					return
 				}
 				v := &sobject.SOConfigChange{}
-				v.UnmarshalProtoJSON(s.WithField("history", false))
+				v.UnmarshalProtoJSON(s.WithField("config_lineage", false))
 				if s.Err() != nil {
 					return
 				}
-				x.History = append(x.History, v)
+				x.ConfigLineage = append(x.ConfigLineage, v)
 			})
-		case "genesis":
-			if s.ReadNil() {
-				x.Genesis = nil
-				return
-			}
-			x.Genesis = &sobject.SOConfigChange{}
-			x.Genesis.UnmarshalProtoJSON(s.WithField("genesis", true))
 		}
 	})
 }
@@ -1865,37 +1817,17 @@ func (m *SharedObject) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
-	if m.Genesis != nil {
-		size, err := m.Genesis.MarshalToSizedBufferVT(dAtA[:i])
-		if err != nil {
-			return 0, err
-		}
-		i -= size
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
-		i--
-		dAtA[i] = 0x2a
-	}
-	if len(m.History) > 0 {
-		for iNdEx := len(m.History) - 1; iNdEx >= 0; iNdEx-- {
-			size, err := m.History[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+	if len(m.ConfigLineage) > 0 {
+		for iNdEx := len(m.ConfigLineage) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.ConfigLineage[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
 			if err != nil {
 				return 0, err
 			}
 			i -= size
 			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
 			i--
-			dAtA[i] = 0x22
+			dAtA[i] = 0x1a
 		}
-	}
-	if m.HistoryBase != nil {
-		size, err := m.HistoryBase.MarshalToSizedBufferVT(dAtA[:i])
-		if err != nil {
-			return 0, err
-		}
-		i -= size
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
-		i--
-		dAtA[i] = 0x1a
 	}
 	if m.State != nil {
 		size, err := m.State.MarshalToSizedBufferVT(dAtA[:i])
@@ -2174,16 +2106,8 @@ func (m *SharedObject) SizeVT() (n int) {
 		l = m.State.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
-	if m.HistoryBase != nil {
-		l = m.HistoryBase.SizeVT()
-		n += protobuf_go_lite.SizeMessage(1, l)
-	}
-	for _, e := range m.History {
+	for _, e := range m.ConfigLineage {
 		l = e.SizeVT()
-		n += protobuf_go_lite.SizeMessage(1, l)
-	}
-	if m.Genesis != nil {
-		l = m.Genesis.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
 	n += len(m.unknownFields)
@@ -2434,13 +2358,9 @@ func (x *SharedObject) MarshalProtoText() string {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "state")
 		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.State)
 	}
-	if x.HistoryBase != nil {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "history_base")
-		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.HistoryBase)
-	}
-	if len(x.History) > 0 {
-		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "history")
-		for i, v := range x.History {
+	if len(x.ConfigLineage) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "config_lineage")
+		for i, v := range x.ConfigLineage {
 			protobuf_go_lite.TextWriteListSeparator(&sb, i)
 			if v == nil {
 				protobuf_go_lite.TextWriteTextMarshaler(&sb, &sobject.SOConfigChange{})
@@ -2449,10 +2369,6 @@ func (x *SharedObject) MarshalProtoText() string {
 			}
 		}
 		protobuf_go_lite.TextWriteListEnd(&sb)
-	}
-	if x.Genesis != nil {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "genesis")
-		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Genesis)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -2975,44 +2891,14 @@ func (m *SharedObject) UnmarshalVT(dAtA []byte) error {
 			iNdEx = postIndex
 		case 3:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field HistoryBase", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field ConfigLineage", wireType)
 			}
 			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
 			if err != nil {
 				return err
 			}
-			if m.HistoryBase == nil {
-				m.HistoryBase = &sobject.SharedObjectConfig{}
-			}
-			if err := m.HistoryBase.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 4:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field History", wireType)
-			}
-			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-			m.History = append(m.History, &sobject.SOConfigChange{})
-			if err := m.History[len(m.History)-1].UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 5:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Genesis", wireType)
-			}
-			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-			if m.Genesis == nil {
-				m.Genesis = &sobject.SOConfigChange{}
-			}
-			if err := m.Genesis.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+			m.ConfigLineage = append(m.ConfigLineage, &sobject.SOConfigChange{})
+			if err := m.ConfigLineage[len(m.ConfigLineage)-1].UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex

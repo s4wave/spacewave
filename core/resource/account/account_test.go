@@ -784,10 +784,7 @@ func queueAccountSettingsOp(
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, wasRejected, err := so.WaitOperation(ctx, localID); err != nil {
-		if wasRejected {
-			_ = so.ClearOperationResult(ctx, localID)
-		}
+	if _, err := sobject.WaitOperation(ctx, so, localID, account_settings.ProcessAccountSettingsOps); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -799,18 +796,8 @@ func decodeAccountSettings(
 ) *account_settings.AccountSettings {
 	t.Helper()
 
-	settings := &account_settings.AccountSettings{}
-	if snap == nil {
-		return settings
-	}
-	rootInner, err := snap.GetRootInner(ctx)
+	settings, err := account_settings.ReadSnapshot(ctx, snap)
 	if err != nil {
-		t.Fatal(err)
-	}
-	if rootInner == nil || len(rootInner.GetStateData()) == 0 {
-		return settings
-	}
-	if err := settings.UnmarshalVT(rootInner.GetStateData()); err != nil {
 		t.Fatal(err)
 	}
 	return settings

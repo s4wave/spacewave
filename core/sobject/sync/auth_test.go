@@ -117,10 +117,8 @@ func authenticationState(t *testing.T, soID string, owner, reader crypto.PrivKey
 			participantCfg(mustPeerIDStr(t, owner), sobject.SOParticipantRole_SOParticipantRole_OWNER),
 			participantCfg(mustPeerIDStr(t, reader), sobject.SOParticipantRole_SOParticipantRole_READER),
 		}},
-		Root: &sobject.SORoot{InnerSeqno: 1},
 	}
 	trustSnapshotConfig(t, soID, state, owner)
-	signSnapshotRoot(t, soID, state, owner)
 	return state
 }
 
@@ -235,7 +233,7 @@ func TestParticipantAuthenticationDeniesBeforeDisclosure(t *testing.T) {
 			if denied {
 				for len(observed.messages) > 0 {
 					message := <-observed.messages
-					if message.GetSnapshot() != nil || message.GetOp() != nil || message.GetHead() != nil || message.GetHistoryPage() != nil {
+					if message.GetSnapshot() != nil || message.GetHead() != nil || message.GetHistoryPage() != nil {
 						t.Fatal("unauthorized stream received object data")
 					}
 				}
@@ -313,15 +311,12 @@ func TestParticipantRevocationNotifiesConnectedPeer(t *testing.T) {
 	// The notice reveals neither the removed configuration nor any operation history.
 	for len(observed.messages) != 0 {
 		message := <-observed.messages
-		if message.GetOp() != nil {
-			t.Fatal("revocation disclosed new object data")
-		}
 		if snapshot := message.GetSnapshot(); snapshot != nil {
 			decoded := &sobject.SOState{}
 			if err := decoded.UnmarshalVT(snapshot.GetSoState()); err != nil {
 				t.Fatal(err)
 			}
-			if !decoded.GetConfig().EqualVT(state.GetConfig()) || snapshot.GetRootSeqno() != state.GetRoot().GetInnerSeqno() {
+			if !decoded.GetConfig().EqualVT(state.GetConfig()) || !decoded.GetCheckpoint().EqualVT(state.GetCheckpoint()) {
 				t.Fatal("revocation disclosed new configuration or history")
 			}
 		}

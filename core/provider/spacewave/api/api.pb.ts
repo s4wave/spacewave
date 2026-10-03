@@ -16,6 +16,7 @@ import { AccountTransition } from '../../provider.pb.js'
 import {
   SharedObjectConfig,
   SharedObjectList,
+  SOCheckpoint,
   SOConfigChainResponse,
   SOConfigChange,
   SOEntityRecoveryEnvelope,
@@ -23,8 +24,6 @@ import {
   SOJoinResponse,
   SOKeyEpoch,
   SOOperation,
-  SOOperationRejection,
-  SORoot,
   SOState,
 } from '../../../sobject/sobject.pb.js'
 import { Timestamp } from '@aptre/protobuf-es-lite/google/protobuf/timestamp'
@@ -804,13 +803,14 @@ export interface SOStateDeltaEntry {
    */
   seqno?: bigint
   /**
-   * ChangeType is the type of change ("op" or "root").
+   * ChangeType is the type of change ("op" or "checkpoint").
    *
    * @generated from field: string change_type = 2;
    */
   changeType?: string
   /**
-   * ChangeData is the serialized change data.
+   * ChangeData is an SOOperation for "op" and a PostCheckpointRequest for
+   * "checkpoint".
    *
    * @generated from field: bytes change_data = 3;
    */
@@ -1039,37 +1039,24 @@ export const PostOpsRequest: MessageType<PostOpsRequest> =
   })
 
 /**
- * PostRootRequest is the binary payload for POST /sobject/:id/root.
+ * PostCheckpointRequest is the binary payload for POST /sobject/:id/checkpoint.
  *
- * @generated from message provider.spacewave.api.PostRootRequest
+ * @generated from message provider.spacewave.api.PostCheckpointRequest
  */
-export interface PostRootRequest {
+export interface PostCheckpointRequest {
   /**
-   * Root is the next signed root state.
+   * Checkpoint is the owner-signed checkpoint that follows the held one.
    *
-   * @generated from field: sobject.SORoot root = 1;
+   * @generated from field: sobject.SOCheckpoint checkpoint = 1;
    */
-  root?: SORoot
-  /**
-   * RejectedOps are the operations the validator rejected while producing Root.
-   *
-   * @generated from field: repeated sobject.SOOperationRejection rejected_ops = 2;
-   */
-  rejectedOps?: SOOperationRejection[]
+  checkpoint?: SOCheckpoint
 }
 
-export const PostRootRequest: MessageType<PostRootRequest> =
+export const PostCheckpointRequest: MessageType<PostCheckpointRequest> =
   /* @__PURE__ */ createMessageType({
-    typeName: 'provider.spacewave.api.PostRootRequest',
+    typeName: 'provider.spacewave.api.PostCheckpointRequest',
     fields: [
-      { no: 1, name: 'root', kind: 'message', T: () => SORoot },
-      {
-        no: 2,
-        name: 'rejected_ops',
-        kind: 'message',
-        T: () => SOOperationRejection,
-        repeated: true,
-      },
+      { no: 1, name: 'checkpoint', kind: 'message', T: () => SOCheckpoint },
     ] satisfies readonly PartialFieldInfo[],
   })
 
@@ -1954,7 +1941,7 @@ export interface SONotifyEventPayload {
    */
   seqno?: bigint
   /**
-   * ChangeType identifies the mutation category ("op", "root",
+   * ChangeType identifies the mutation category ("op", "checkpoint",
    * "configChanged", "metadata", "delete", "access_changed").
    * "access_changed" means the receiving account gained or lost access, so
    * its shared object list must be refetched.
@@ -3310,22 +3297,22 @@ export const SubmitOpResponse: MessageType<SubmitOpResponse> =
   })
 
 /**
- * SubmitRootResponse is the response body for POST /sobject/:id/root.
+ * SubmitCheckpointResponse is the response body for POST /sobject/:id/checkpoint.
  *
- * @generated from message provider.spacewave.api.SubmitRootResponse
+ * @generated from message provider.spacewave.api.SubmitCheckpointResponse
  */
-export interface SubmitRootResponse {
+export interface SubmitCheckpointResponse {
   /**
-   * Seqno is the change_log seqno assigned to the accepted root.
+   * Seqno is the change_log seqno assigned to the accepted checkpoint.
    *
    * @generated from field: uint64 seqno = 1;
    */
   seqno?: bigint
 }
 
-export const SubmitRootResponse: MessageType<SubmitRootResponse> =
+export const SubmitCheckpointResponse: MessageType<SubmitCheckpointResponse> =
   /* @__PURE__ */ createMessageType({
-    typeName: 'provider.spacewave.api.SubmitRootResponse',
+    typeName: 'provider.spacewave.api.SubmitCheckpointResponse',
     fields: [
       { no: 1, name: 'seqno', kind: 'scalar', T: ScalarType.UINT64 },
     ] satisfies readonly PartialFieldInfo[],
@@ -5745,11 +5732,11 @@ export const AccountStateCache: MessageType<AccountStateCache> =
  */
 export interface PendingSOPublication {
   /**
-   * Root is the newest locally validated checkpoint awaiting cloud acceptance.
+   * Checkpoint is the newest local checkpoint awaiting cloud acceptance.
    *
-   * @generated from field: sobject.SORoot root = 1;
+   * @generated from field: sobject.SOCheckpoint checkpoint = 1;
    */
-  root?: SORoot
+  checkpoint?: SOCheckpoint
   /**
    * Operations are signed local writes not yet acknowledged by the cloud.
    *
@@ -5757,15 +5744,9 @@ export interface PendingSOPublication {
    */
   operations?: SOOperation[]
   /**
-   * Rejections are signed outcomes accompanying the coalesced root.
+   * FirstPendingUnixMilli starts the bounded cloud-publication interval.
    *
-   * @generated from field: repeated sobject.SOOperationRejection rejections = 3;
-   */
-  rejections?: SOOperationRejection[]
-  /**
-   * FirstPendingUnixMilli starts the bounded cloud-checkpoint interval.
-   *
-   * @generated from field: int64 first_pending_unix_milli = 4;
+   * @generated from field: int64 first_pending_unix_milli = 3;
    */
   firstPendingUnixMilli?: bigint
 }
@@ -5774,7 +5755,7 @@ export const PendingSOPublication: MessageType<PendingSOPublication> =
   /* @__PURE__ */ createMessageType({
     typeName: 'provider.spacewave.api.PendingSOPublication',
     fields: [
-      { no: 1, name: 'root', kind: 'message', T: () => SORoot },
+      { no: 1, name: 'checkpoint', kind: 'message', T: () => SOCheckpoint },
       {
         no: 2,
         name: 'operations',
@@ -5784,13 +5765,6 @@ export const PendingSOPublication: MessageType<PendingSOPublication> =
       },
       {
         no: 3,
-        name: 'rejections',
-        kind: 'message',
-        T: () => SOOperationRejection,
-        repeated: true,
-      },
-      {
-        no: 4,
         name: 'first_pending_unix_milli',
         kind: 'scalar',
         T: ScalarType.INT64,
@@ -5952,11 +5926,12 @@ export interface WriteTicketBundleResponse {
    */
   soOpTicket?: string
   /**
-   * SoRootTicket authorizes POST /sobject/:id/root for the addressed resource.
+   * SoCheckpointTicket authorizes POST /sobject/:id/checkpoint for the
+   * addressed resource.
    *
-   * @generated from field: string so_root_ticket = 2;
+   * @generated from field: string so_checkpoint_ticket = 2;
    */
-  soRootTicket?: string
+  soCheckpointTicket?: string
   /**
    * BstoreSyncPushTicket authorizes POST /bstore/:id/sync/push for the
    * addressed resource.
@@ -5971,7 +5946,12 @@ export const WriteTicketBundleResponse: MessageType<WriteTicketBundleResponse> =
     typeName: 'provider.spacewave.api.WriteTicketBundleResponse',
     fields: [
       { no: 1, name: 'so_op_ticket', kind: 'scalar', T: ScalarType.STRING },
-      { no: 2, name: 'so_root_ticket', kind: 'scalar', T: ScalarType.STRING },
+      {
+        no: 2,
+        name: 'so_checkpoint_ticket',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+      },
       {
         no: 3,
         name: 'bstore_sync_push_ticket',
@@ -10565,15 +10545,16 @@ export interface CreateWithStateRequest {
    */
   configState?: Uint8Array
   /**
-   * RootState is the signed initial root state payload.
+   * CheckpointState is the PostCheckpointRequest carrying the owner-signed
+   * initial checkpoint.
    *
-   * @generated from field: bytes root_state = 7;
+   * @generated from field: bytes checkpoint_state = 7;
    */
-  rootState?: Uint8Array
+  checkpointState?: Uint8Array
   /**
    * ConfigHistory imports the complete signed chain and retained key epochs.
-   * When present, ConfigState is its final checkpoint and RootState may be later
-   * than the first root. The authenticated account must own that checkpoint.
+   * When present, ConfigState is its final config and CheckpointState may be
+   * later than genesis. The authenticated account must own that config.
    *
    * @generated from field: bytes config_history = 8;
    */
@@ -10590,7 +10571,7 @@ export const CreateWithStateRequest: MessageType<CreateWithStateRequest> =
       { no: 4, name: 'owner_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 5, name: 'account_private', kind: 'scalar', T: ScalarType.BOOL },
       { no: 6, name: 'config_state', kind: 'scalar', T: ScalarType.BYTES },
-      { no: 7, name: 'root_state', kind: 'scalar', T: ScalarType.BYTES },
+      { no: 7, name: 'checkpoint_state', kind: 'scalar', T: ScalarType.BYTES },
       { no: 8, name: 'config_history', kind: 'scalar', T: ScalarType.BYTES },
     ] satisfies readonly PartialFieldInfo[],
   })

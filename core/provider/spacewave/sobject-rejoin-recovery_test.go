@@ -17,7 +17,6 @@ import (
 	"github.com/s4wave/spacewave/db/kvtx/hashmap"
 	"github.com/s4wave/spacewave/db/util/blockenc"
 	"github.com/s4wave/spacewave/net/crypto"
-	"github.com/s4wave/spacewave/net/hash"
 	"github.com/s4wave/spacewave/net/peer"
 	"github.com/sirupsen/logrus"
 )
@@ -148,6 +147,7 @@ func TestTryRecoverMissingSharedObjectPeer(t *testing.T) {
 
 // TestTryRecoverMissingSharedObjectPeerRepairsMissingGrant restores the grant without changing existing membership.
 func TestTryRecoverMissingSharedObjectPeerRepairsMissingGrant(t *testing.T) {
+	// Recover the object of one account.
 	const (
 		soID      = "so-rejoin"
 		accountID = "test-account"
@@ -260,13 +260,13 @@ func TestTryRecoverMissingSharedObjectPeerRepairsMissingGrant(t *testing.T) {
 		t.Fatalf("expected recovery envelope for %s", accountID)
 	}
 
-	// Require the repaired grant in both root and epoch caches.
+	// Require the repaired grant in both the state and key epoch caches.
 	cachedState := host.stateCtr.GetValue()
 	if got := participantConfigForPeer(cachedState.GetConfig(), newPID.String()); got == nil {
 		t.Fatal("expected enrolled peer in cached config")
 	}
-	if !soGrantSliceHasPeerID(cachedState.GetRootGrants(), newPID.String()) {
-		t.Fatal("expected recovered peer grant in cached root grants")
+	if cachedState.CurrentKeyEpoch().FindGrant(newPID.String()) == nil {
+		t.Fatal("expected recovered peer grant in cached state grants")
 	}
 	if !peerEnrolledInCurrentEpoch(host.GetKeyEpochs(), newPID.String()) {
 		t.Fatal("expected recovered peer grant in cached key epochs")
@@ -782,22 +782,10 @@ func buildRejoinTestFixtures(
 		t.Fatalf("encrypt owner grant: %v", err)
 	}
 
-	// Sign the initial shared-object root with its sequence number.
-	rootInnerData, err := (&sobject.SORootInner{
-		Seqno:     1,
-		StateData: []byte("state"),
-	}).MarshalVT()
+	// Sign the genesis checkpoint.
+	checkpoint, err := sobject.BuildGenesisSOCheckpoint(ownerPriv, soID, genesisHash, []byte("state"))
 	if err != nil {
-		t.Fatalf("marshal root inner: %v", err)
-	}
-	root := &sobject.SORoot{InnerSeqno: 1, Inner: rootInnerData}
-	if err := root.SignInnerData(
-		ownerPriv,
-		soID,
-		root.GetInnerSeqno(),
-		hash.RecommendedHashType,
-	); err != nil {
-		t.Fatalf("sign root: %v", err)
+		t.Fatalf("build genesis checkpoint: %v", err)
 	}
 
 	// Encrypt recovery material for the entity credential.
@@ -823,15 +811,17 @@ func buildRejoinTestFixtures(
 	// Return consistent state, history, recovery material, and entity keys.
 	state := &sobject.SOState{
 		Config:     cfg,
-		Root:       root,
-		RootGrants: []*sobject.SOGrant{ownerGrant},
+		Checkpoint: checkpoint,
+		KeyEpochs: []*sobject.SOKeyEpoch{{
+			Epoch:  keyEpoch,
+			Grants: []*sobject.SOGrant{ownerGrant},
+		}},
 	}
 	chain := &sobject.SOConfigChainResponse{
 		ConfigChanges: []*sobject.SOConfigChange{genesisEntry},
 		KeyEpochs: []*sobject.SOKeyEpoch{{
-			Epoch:      keyEpoch,
-			SeqnoStart: 1,
-			Grants:     []*sobject.SOGrant{ownerGrant},
+			Epoch:  keyEpoch,
+			Grants: []*sobject.SOGrant{ownerGrant},
 		}},
 	}
 	envelope := &api.GetSORecoveryEnvelopeResponse{
@@ -937,22 +927,10 @@ func buildRejoinMissingGrantFixtures(
 		t.Fatalf("encrypt owner grant: %v", err)
 	}
 
-	// Sign the initial shared-object root with its sequence number.
-	rootInnerData, err := (&sobject.SORootInner{
-		Seqno:     1,
-		StateData: []byte("state"),
-	}).MarshalVT()
+	// Sign the genesis checkpoint.
+	checkpoint, err := sobject.BuildGenesisSOCheckpoint(ownerPriv, soID, genesisHash, []byte("state"))
 	if err != nil {
-		t.Fatalf("marshal root inner: %v", err)
-	}
-	root := &sobject.SORoot{InnerSeqno: 1, Inner: rootInnerData}
-	if err := root.SignInnerData(
-		ownerPriv,
-		soID,
-		root.GetInnerSeqno(),
-		hash.RecommendedHashType,
-	); err != nil {
-		t.Fatalf("sign root: %v", err)
+		t.Fatalf("build genesis checkpoint: %v", err)
 	}
 
 	// Encrypt recovery material for the entity credential.
@@ -978,15 +956,17 @@ func buildRejoinMissingGrantFixtures(
 	// Return consistent state, history, recovery material, and entity keys.
 	state := &sobject.SOState{
 		Config:     currentCfg,
-		Root:       root,
-		RootGrants: []*sobject.SOGrant{ownerGrant},
+		Checkpoint: checkpoint,
+		KeyEpochs: []*sobject.SOKeyEpoch{{
+			Epoch:  keyEpoch,
+			Grants: []*sobject.SOGrant{ownerGrant},
+		}},
 	}
 	chain := &sobject.SOConfigChainResponse{
 		ConfigChanges: []*sobject.SOConfigChange{genesisEntry, selfEnrollEntry},
 		KeyEpochs: []*sobject.SOKeyEpoch{{
-			Epoch:      keyEpoch,
-			SeqnoStart: 1,
-			Grants:     []*sobject.SOGrant{ownerGrant},
+			Epoch:  keyEpoch,
+			Grants: []*sobject.SOGrant{ownerGrant},
 		}},
 	}
 	envelope := &api.GetSORecoveryEnvelopeResponse{

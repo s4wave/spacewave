@@ -1012,11 +1012,11 @@ type SyncBlockStoreStatus struct {
 	CacheHitCount uint64 `protobuf:"varint,4,opt,name=cache_hit_count,json=cacheHitCount,proto3" json:"cacheHitCount,omitempty"`
 	// LastSource is the latest observed source for this block store.
 	LastSource SyncBlockSource `protobuf:"varint,5,opt,name=last_source,json=lastSource,proto3" json:"lastSource,omitempty"`
-	// AcceptedRootInnerSequence is the latest accepted SharedObject root sequence observed for this block store.
-	AcceptedRootInnerSequence uint64 `protobuf:"varint,6,opt,name=accepted_root_inner_sequence,json=acceptedRootInnerSequence,proto3" json:"acceptedRootInnerSequence,omitempty"`
+	// AcceptedCheckpointHeight is the height of the latest accepted SharedObject checkpoint observed for this block store.
+	AcceptedCheckpointHeight uint64 `protobuf:"varint,6,opt,name=accepted_checkpoint_height,json=acceptedCheckpointHeight,proto3" json:"acceptedCheckpointHeight,omitempty"`
 	// CloudRemoteSequence is the latest Cloud block-store sequence observed locally.
 	CloudRemoteSequence uint64 `protobuf:"varint,7,opt,name=cloud_remote_sequence,json=cloudRemoteSequence,proto3" json:"cloudRemoteSequence,omitempty"`
-	// SharedObjectId identifies the SharedObject that supplied AcceptedRootInnerSequence.
+	// SharedObjectId identifies the SharedObject that supplied AcceptedCheckpointHeight.
 	SharedObjectId string `protobuf:"bytes,8,opt,name=shared_object_id,json=sharedObjectId,proto3" json:"sharedObjectId,omitempty"`
 }
 
@@ -1061,9 +1061,9 @@ func (x *SyncBlockStoreStatus) GetLastSource() SyncBlockSource {
 	return SyncBlockSource_SyncBlockSource_UNKNOWN
 }
 
-func (x *SyncBlockStoreStatus) GetAcceptedRootInnerSequence() uint64 {
+func (x *SyncBlockStoreStatus) GetAcceptedCheckpointHeight() uint64 {
 	if x != nil {
-		return x.AcceptedRootInnerSequence
+		return x.AcceptedCheckpointHeight
 	}
 	return 0
 }
@@ -4242,7 +4242,7 @@ func (m *SyncBlockStoreStatus) CloneVT() *SyncBlockStoreStatus {
 	r.CloudHitCount = m.CloudHitCount
 	r.CacheHitCount = m.CacheHitCount
 	r.LastSource = m.LastSource
-	r.AcceptedRootInnerSequence = m.AcceptedRootInnerSequence
+	r.AcceptedCheckpointHeight = m.AcceptedCheckpointHeight
 	r.CloudRemoteSequence = m.CloudRemoteSequence
 	r.SharedObjectId = m.SharedObjectId
 	if len(m.unknownFields) > 0 {
@@ -6317,7 +6317,7 @@ func (this *SyncBlockStoreStatus) EqualVT(that *SyncBlockStoreStatus) bool {
 	if this.LastSource != that.LastSource {
 		return false
 	}
-	if this.AcceptedRootInnerSequence != that.AcceptedRootInnerSequence {
+	if this.AcceptedCheckpointHeight != that.AcceptedCheckpointHeight {
 		return false
 	}
 	if this.CloudRemoteSequence != that.CloudRemoteSequence {
@@ -9850,10 +9850,10 @@ func (x *SyncBlockStoreStatus) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("lastSource")
 		x.LastSource.MarshalProtoJSON(s)
 	}
-	if x.AcceptedRootInnerSequence != 0 || s.HasField("acceptedRootInnerSequence") {
+	if x.AcceptedCheckpointHeight != 0 || s.HasField("acceptedCheckpointHeight") {
 		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("acceptedRootInnerSequence")
-		s.WriteUint64(x.AcceptedRootInnerSequence)
+		s.WriteObjectField("acceptedCheckpointHeight")
+		s.WriteUint64(x.AcceptedCheckpointHeight)
 	}
 	if x.CloudRemoteSequence != 0 || s.HasField("cloudRemoteSequence") {
 		s.WriteMoreIf(&wroteField)
@@ -9897,9 +9897,9 @@ func (x *SyncBlockStoreStatus) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "last_source", "lastSource":
 			s.AddField("last_source")
 			x.LastSource.UnmarshalProtoJSON(s)
-		case "accepted_root_inner_sequence", "acceptedRootInnerSequence":
-			s.AddField("accepted_root_inner_sequence")
-			x.AcceptedRootInnerSequence = s.ReadUint64()
+		case "accepted_checkpoint_height", "acceptedCheckpointHeight":
+			s.AddField("accepted_checkpoint_height")
+			x.AcceptedCheckpointHeight = s.ReadUint64()
 		case "cloud_remote_sequence", "cloudRemoteSequence":
 			s.AddField("cloud_remote_sequence")
 			x.CloudRemoteSequence = s.ReadUint64()
@@ -15747,8 +15747,8 @@ func (m *SyncBlockStoreStatus) MarshalToSizedBufferVT(dAtA []byte) (int, error) 
 		i--
 		dAtA[i] = 0x38
 	}
-	if m.AcceptedRootInnerSequence != 0 {
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.AcceptedRootInnerSequence))
+	if m.AcceptedCheckpointHeight != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.AcceptedCheckpointHeight))
 		i--
 		dAtA[i] = 0x30
 	}
@@ -20300,7 +20300,7 @@ func (m *SyncBlockStoreStatus) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.CloudHitCount)
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.CacheHitCount)
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.LastSource)
-	n += protobuf_go_lite.SizeVarintNonZero(1, m.AcceptedRootInnerSequence)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.AcceptedCheckpointHeight)
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.CloudRemoteSequence)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.SharedObjectId)
 	n += len(m.unknownFields)
@@ -21929,9 +21929,9 @@ func (x *SyncBlockStoreStatus) MarshalProtoText() string {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "last_source")
 		protobuf_go_lite.TextWriteStringer(&sb, SyncBlockSource(x.LastSource))
 	}
-	if x.AcceptedRootInnerSequence != 0 {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "accepted_root_inner_sequence")
-		protobuf_go_lite.TextWriteUint(&sb, x.AcceptedRootInnerSequence)
+	if x.AcceptedCheckpointHeight != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "accepted_checkpoint_height")
+		protobuf_go_lite.TextWriteUint(&sb, x.AcceptedCheckpointHeight)
 	}
 	if x.CloudRemoteSequence != 0 {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "cloud_remote_sequence")
@@ -25072,10 +25072,10 @@ func (m *SyncBlockStoreStatus) UnmarshalVT(dAtA []byte) error {
 			}
 		case 6:
 			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field AcceptedRootInnerSequence", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field AcceptedCheckpointHeight", wireType)
 			}
-			m.AcceptedRootInnerSequence = 0
-			m.AcceptedRootInnerSequence, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.AcceptedCheckpointHeight = 0
+			m.AcceptedCheckpointHeight, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
 			if err != nil {
 				return err
 			}

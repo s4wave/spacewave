@@ -7,12 +7,11 @@ import (
 	"github.com/s4wave/spacewave/core/sobject"
 )
 
-// accountObjectSync ties a SharedObject's sync, body, copy, and hosting work
+// accountObjectSync ties a SharedObject's sync, copy, and hosting work
 // to its presence in the local account inventory. Account retirement also cancels it.
 type accountObjectSync struct {
 	sync    *routine.RoutineContainer
 	copy    *routine.RoutineContainer
-	body    *routine.RoutineContainer
 	hosting *routine.RoutineContainer
 	cancel  context.CancelFunc
 	release func()
@@ -45,7 +44,7 @@ func (s *p2pSyncState) removeMissingObjects(list *sobject.SharedObjectList) {
 	// Release each removed sync after its workers exit.
 	for _, object := range removed {
 		object.cancel()
-		for _, worker := range []*routine.RoutineContainer{object.sync, object.copy, object.body, object.hosting} {
+		for _, worker := range []*routine.RoutineContainer{object.sync, object.copy, object.hosting} {
 			if worker == nil {
 				continue
 			}

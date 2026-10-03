@@ -166,7 +166,8 @@ func (r *AccountResource) WatchKeybindingOverrides(
 	)
 }
 
-// ReplaceKeybindingOverrideSet atomically applies a complete account layer replacement.
+// ReplaceKeybindingOverrideSet atomically applies a complete account layer
+// replacement.
 func (r *AccountResource) ReplaceKeybindingOverrideSet(
 	ctx context.Context,
 	req *s4wave_account.ReplaceKeybindingOverrideSetRequest,
@@ -220,10 +221,12 @@ func (r *AccountResource) mountLocalAccountSettingsState(
 	return so, relSO, stateCtr, relStateCtr, nil
 }
 
+// queueLocalAccountSettingsOp writes op to the local account settings.
 func (r *AccountResource) queueLocalAccountSettingsOp(
 	ctx context.Context,
 	op *account_settings.AccountSettingsOp,
 ) error {
+	// Mount the local account settings.
 	soRef, err := r.localAccount.GetAccountSettingsRef(ctx)
 	if err != nil {
 		return err
@@ -234,25 +237,13 @@ func (r *AccountResource) queueLocalAccountSettingsOp(
 	}
 	defer relSO()
 
+	// Write the operation.
 	opData, err := op.MarshalVT()
 	if err != nil {
 		return errors.Wrap(err, "marshal account settings op")
 	}
-	localID, err := so.QueueOperation(ctx, opData)
-	if err != nil {
-		return errors.Wrap(err, "queue account settings op")
-	}
-	_, rejected, err := so.WaitOperation(ctx, localID)
-	if rejected {
-		_ = so.ClearOperationResult(ctx, localID)
-		if err == nil {
-			return errors.New("account settings operation rejected")
-		}
-	}
-	if err != nil {
-		return errors.Wrap(err, "wait for account settings op")
-	}
-	return nil
+	_, err = sobject.WriteOperation(ctx, so, opData, account_settings.ProcessAccountSettingsOps)
+	return errors.Wrap(err, "write account settings op")
 }
 
 // watchLocalSettingsStream drives a local account-settings watch loop. It
@@ -284,7 +275,8 @@ func watchLocalSettingsStream[T interface{ EqualVT(T) bool }](
 		nil,
 		stateCtr,
 		func(snap sobject.SharedObjectStateSnapshot) error {
-			settings, err := decodeLocalAccountSettingsSnapshot(ctx, snap)
+			// Send the response built from each changed settings.
+			settings, err := account_settings.ReadSnapshot(ctx, snap)
 			if err != nil {
 				return err
 			}
@@ -300,27 +292,6 @@ func watchLocalSettingsStream[T interface{ EqualVT(T) bool }](
 		},
 		nil,
 	)
-}
-
-func decodeLocalAccountSettingsSnapshot(
-	ctx context.Context,
-	snap sobject.SharedObjectStateSnapshot,
-) (*account_settings.AccountSettings, error) {
-	settings := &account_settings.AccountSettings{}
-	if snap == nil {
-		return settings, nil
-	}
-	rootInner, err := snap.GetRootInner(ctx)
-	if err != nil {
-		return nil, err
-	}
-	if rootInner == nil || len(rootInner.GetStateData()) == 0 {
-		return settings, nil
-	}
-	if err := settings.UnmarshalVT(rootInner.GetStateData()); err != nil {
-		return nil, err
-	}
-	return settings, nil
 }
 
 // watchCloudBcast drives a bcast-based watch loop. snapshot reads
@@ -585,9 +556,12 @@ func buildCloudSessionRows(
 	return out
 }
 
+// buildSessionPresentationMapFromSnapshot returns the Session presentations of
+// the current settings, by peer ID.
 func buildSessionPresentationMapFromSnapshot(
 	stateCtr ccontainer.Watchable[sobject.SharedObjectStateSnapshot],
 ) map[string]*account_settings.SessionPresentation {
+	// Read the current settings, if any.
 	if stateCtr == nil {
 		return nil
 	}
@@ -595,19 +569,15 @@ func buildSessionPresentationMapFromSnapshot(
 	if snap == nil {
 		return nil
 	}
-	rootInner, err := snap.GetRootInner(context.Background())
+	settings, err := account_settings.ReadSnapshot(context.Background(), snap)
 	if err != nil {
 		return nil
-	}
-	settings := &account_settings.AccountSettings{}
-	if data := rootInner.GetStateData(); len(data) > 0 {
-		if err := settings.UnmarshalVT(data); err != nil {
-			return nil
-		}
 	}
 	return buildSessionPresentationMap(settings)
 }
 
+// buildSessionPresentationMap returns the named Session presentations of
+// settings, by peer ID.
 func buildSessionPresentationMap(
 	settings *account_settings.AccountSettings,
 ) map[string]*account_settings.SessionPresentation {

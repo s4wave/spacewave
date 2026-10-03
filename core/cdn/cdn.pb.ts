@@ -2,7 +2,7 @@
 // @generated from file github.com/s4wave/spacewave/core/cdn/cdn.proto (package cdn, syntax proto3)
 /* eslint-disable */
 
-import { SORoot } from '../sobject/sobject.pb.js'
+import { SOCheckpoint } from '../sobject/sobject.pb.js'
 import { PackfileEntry } from '../../db/packfile/packfile.pb.js'
 import type { MessageType } from '@aptre/protobuf-es-lite/message'
 import { createMessageType } from '@aptre/protobuf-es-lite/message'
@@ -14,7 +14,7 @@ import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
  * The Worker writes it at cdn.spacewave.app/{spaceId}/root.packedmsg as a
  * packedmsg-encoded blob (see repos/bldr/util/packedmsg) on every successful
  * sync/push for a public_read Space. Anonymous clients fetch and decode this
- * blob to discover the current signed root and the set of packs they need to
+ * blob to discover the current signed checkpoint and the set of packs they need to
  * reconstruct Space state; no Worker round-trip is required on the read path.
  *
  * @generated from message cdn.CdnRootPointer
@@ -27,12 +27,12 @@ export interface CdnRootPointer {
    */
   spaceId?: string
   /**
-   * Root is the signed SORoot for the Space at the time of publication.
-   * Clients verify it against the config chain's validator peers.
+   * Checkpoint is the owner-signed checkpoint covering every operation at the
+   * time of publication. Clients verify it against the config chain's owners.
    *
-   * @generated from field: sobject.SORoot root = 2;
+   * @generated from field: sobject.SOCheckpoint checkpoint = 2;
    */
-  root?: SORoot
+  checkpoint?: SOCheckpoint
   /**
    * ConfigChainHash is the hash of the current config chain head.
    *
@@ -68,7 +68,7 @@ export const CdnRootPointer: MessageType<CdnRootPointer> =
     typeName: 'cdn.CdnRootPointer',
     fields: [
       { no: 1, name: 'space_id', kind: 'scalar', T: ScalarType.STRING },
-      { no: 2, name: 'root', kind: 'message', T: () => SORoot },
+      { no: 2, name: 'checkpoint', kind: 'message', T: () => SOCheckpoint },
       { no: 3, name: 'config_chain_hash', kind: 'scalar', T: ScalarType.BYTES },
       {
         no: 4,

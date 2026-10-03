@@ -10,7 +10,9 @@ import { SOConfigChange } from '../sobject.pb.js'
 import { Signature } from '../../../net/peer/peer.pb.js'
 
 /**
- * SOSyncSnapshot is a full SOState snapshot exchanged after mutual authentication.
+ * SOSyncSnapshot is a full SOState snapshot exchanged after mutual
+ * authentication. The receiver merges its checkpoint, key epochs and
+ * operations into the state it holds.
  *
  * @generated from message sobject.sync.SOSyncSnapshot
  */
@@ -22,21 +24,15 @@ export interface SOSyncSnapshot {
    */
   soState?: Uint8Array
   /**
-   * RootSeqno is the inner_seqno from SORoot.
-   *
-   * @generated from field: uint64 root_seqno = 2;
-   */
-  rootSeqno?: bigint
-  /**
    * Revision binds this snapshot to the requested, pinned advertisement.
    *
-   * @generated from field: uint64 revision = 3;
+   * @generated from field: uint64 revision = 2;
    */
   revision?: bigint
   /**
    * BaseHash is the trusted checkpoint named by the request.
    *
-   * @generated from field: bytes base_hash = 4;
+   * @generated from field: bytes base_hash = 3;
    */
   baseHash?: Uint8Array
 }
@@ -46,64 +42,21 @@ export const SOSyncSnapshot: MessageType<SOSyncSnapshot> =
     typeName: 'sobject.sync.SOSyncSnapshot',
     fields: [
       { no: 1, name: 'so_state', kind: 'scalar', T: ScalarType.BYTES },
-      { no: 2, name: 'root_seqno', kind: 'scalar', T: ScalarType.UINT64 },
-      { no: 3, name: 'revision', kind: 'scalar', T: ScalarType.UINT64 },
-      { no: 4, name: 'base_hash', kind: 'scalar', T: ScalarType.BYTES },
+      { no: 2, name: 'revision', kind: 'scalar', T: ScalarType.UINT64 },
+      { no: 3, name: 'base_hash', kind: 'scalar', T: ScalarType.BYTES },
     ] satisfies readonly PartialFieldInfo[],
   })
 
 /**
- * SOSyncOp carries a signed operation for the peer to apply.
- *
- * @generated from message sobject.sync.SOSyncOp
- */
-export interface SOSyncOp {
-  /**
-   * Operation is the SOOperation proto bytes (MarshalVT).
-   *
-   * @generated from field: bytes operation = 1;
-   */
-  operation?: Uint8Array
-  /**
-   * Nonce is the sender's nonce counter.
-   *
-   * @generated from field: uint64 nonce = 2;
-   */
-  nonce?: bigint
-  /**
-   * PeerId is the sender's peer ID (raw multihash bytes).
-   *
-   * @generated from field: bytes peer_id = 3;
-   */
-  peerId?: Uint8Array
-}
-
-export const SOSyncOp: MessageType<SOSyncOp> =
-  /* @__PURE__ */ createMessageType({
-    typeName: 'sobject.sync.SOSyncOp',
-    fields: [
-      { no: 1, name: 'operation', kind: 'scalar', T: ScalarType.BYTES },
-      { no: 2, name: 'nonce', kind: 'scalar', T: ScalarType.UINT64 },
-      { no: 3, name: 'peer_id', kind: 'scalar', T: ScalarType.BYTES },
-    ] satisfies readonly PartialFieldInfo[],
-  })
-
-/**
- * SOSyncAck acknowledges receipt up to a sequence number.
+ * SOSyncAck releases a pinned advertisement.
  *
  * @generated from message sobject.sync.SOSyncAck
  */
 export interface SOSyncAck {
   /**
-   * AckedSeqno is the acknowledged sequence number.
-   *
-   * @generated from field: uint64 acked_seqno = 1;
-   */
-  ackedSeqno?: bigint
-  /**
    * Revision releases the sender's pinned advertisement after receipt or decline.
    *
-   * @generated from field: uint64 revision = 2;
+   * @generated from field: uint64 revision = 1;
    */
   revision?: bigint
 }
@@ -112,8 +65,7 @@ export const SOSyncAck: MessageType<SOSyncAck> =
   /* @__PURE__ */ createMessageType({
     typeName: 'sobject.sync.SOSyncAck',
     fields: [
-      { no: 1, name: 'acked_seqno', kind: 'scalar', T: ScalarType.UINT64 },
-      { no: 2, name: 'revision', kind: 'scalar', T: ScalarType.UINT64 },
+      { no: 1, name: 'revision', kind: 'scalar', T: ScalarType.UINT64 },
     ] satisfies readonly PartialFieldInfo[],
   })
 
@@ -186,15 +138,9 @@ export interface SOSyncHead {
    */
   configSeqno?: bigint
   /**
-   * RootSeqno is the advertised signed root sequence.
-   *
-   * @generated from field: uint64 root_seqno = 4;
-   */
-  rootSeqno?: bigint
-  /**
    * StateHash is SHA-256 of the serialized transferable snapshot; it grants no authority.
    *
-   * @generated from field: bytes state_hash = 5;
+   * @generated from field: bytes state_hash = 4;
    */
   stateHash?: Uint8Array
 }
@@ -206,8 +152,7 @@ export const SOSyncHead: MessageType<SOSyncHead> =
       { no: 1, name: 'revision', kind: 'scalar', T: ScalarType.UINT64 },
       { no: 2, name: 'config_hash', kind: 'scalar', T: ScalarType.BYTES },
       { no: 3, name: 'config_seqno', kind: 'scalar', T: ScalarType.UINT64 },
-      { no: 4, name: 'root_seqno', kind: 'scalar', T: ScalarType.UINT64 },
-      { no: 5, name: 'state_hash', kind: 'scalar', T: ScalarType.BYTES },
+      { no: 4, name: 'state_hash', kind: 'scalar', T: ScalarType.BYTES },
     ] satisfies readonly PartialFieldInfo[],
   })
 
@@ -331,16 +276,7 @@ export interface SOSyncMessage {
       }
     | {
         /**
-         * Op carries a signed operation for the peer to apply.
-         *
-         * @generated from field: sobject.sync.SOSyncOp op = 2;
-         */
-        value: SOSyncOp
-        case: 'op'
-      }
-    | {
-        /**
-         * Ack acknowledges receipt up to a sequence number.
+         * Ack releases a pinned advertisement.
          *
          * @generated from field: sobject.sync.SOSyncAck ack = 3;
          */
@@ -423,7 +359,6 @@ export const SOSyncMessage: MessageType<SOSyncMessage> =
         T: SOSyncSnapshot,
         oneof: 'body',
       },
-      { no: 2, name: 'op', kind: 'message', T: SOSyncOp, oneof: 'body' },
       { no: 3, name: 'ack', kind: 'message', T: SOSyncAck, oneof: 'body' },
       {
         no: 4,

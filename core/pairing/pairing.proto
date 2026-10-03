@@ -86,11 +86,9 @@ message SharedObject {
   .sobject.SharedObjectListEntry entry = 1;
   // State is accepted only through the SharedObject host's enrollment contract.
   .sobject.SOState state = 2;
-  // HistoryBase and History retain the verified lineage leading to State.
-  .sobject.SharedObjectConfig history_base = 3;
-  repeated .sobject.SOConfigChange history = 4;
-  // Genesis retains the signed first entry when HistoryBase is that entry.
-  .sobject.SOConfigChange genesis = 5;
+  // ConfigLineage is the sender's retained configuration changes leading to
+  // the config of State, oldest first.
+  repeated .sobject.SOConfigChange config_lineage = 3;
 }
 
 // Frame carries the ordered account enrollment exchange.

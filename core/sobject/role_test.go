@@ -22,10 +22,10 @@ func TestMaxSOParticipantRolePreservesHigherRole(t *testing.T) {
 			want: SOParticipantRole_SOParticipantRole_WRITER,
 		},
 		{
-			name: "preserve validator over reader",
-			a:    SOParticipantRole_SOParticipantRole_VALIDATOR,
+			name: "preserve owner over reader",
+			a:    SOParticipantRole_SOParticipantRole_OWNER,
 			b:    SOParticipantRole_SOParticipantRole_READER,
-			want: SOParticipantRole_SOParticipantRole_VALIDATOR,
+			want: SOParticipantRole_SOParticipantRole_OWNER,
 		},
 	}
 	for _, tc := range tests {

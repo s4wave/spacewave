@@ -29,7 +29,6 @@ describe('canDeleteSpaceObject', () => {
 
   it.each([
     SOParticipantRole.SOParticipantRole_WRITER,
-    SOParticipantRole.SOParticipantRole_VALIDATOR,
     SOParticipantRole.SOParticipantRole_OWNER,
   ])('allows cloud roles that can apply object mutations', (role) => {
     expect(canDeleteSpaceObject('spacewave', role)).toBe(true)

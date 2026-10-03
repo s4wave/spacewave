@@ -5,30 +5,26 @@ import (
 	"testing"
 
 	"github.com/pkg/errors"
-	"github.com/s4wave/spacewave/net/hash"
 )
 
-// TestImportHistoricalRoot retains the proof accepted before an owner departed.
-func TestImportHistoricalRoot(t *testing.T) {
-	// Hold a root signed by an owner who will depart.
+// TestImportKeepsCheckpointAfterSignerLeaves checks that a reader keeps the
+// held checkpoint, with proofs the remaining owner signed, when the owner who
+// signed it removes itself.
+func TestImportKeepsCheckpointAfterSignerLeaves(t *testing.T) {
+	// Two owners and a reader hold the genesis checkpoint signed by the first owner.
 	peers := createMockPeers(t, 3)
-	previous := createMockSOState(peers, []SOParticipantRole{
+	keys := mustPrivKeys(t, peers)
+	previous, _ := newTestSOState(t, peers,
 		SOParticipantRole_SOParticipantRole_OWNER,
 		SOParticipantRole_SOParticipantRole_OWNER,
 		SOParticipantRole_SOParticipantRole_READER,
-	})
-	previous.Config.ConfigChainHash = bytes.Repeat([]byte{1}, 32)
-	previous.Root = createMockSORoot(t, 1, peers[0])
-	owner, err := peers[0].GetPrivKey(t.Context())
-	if err != nil {
-		t.Fatal(err)
-	}
+	)
 
-	// The departing owner removes itself.
+	// The first owner removes itself.
 	candidate := previous.CloneVT()
 	candidate.Config.Participants = candidate.Config.Participants[1:]
 	entry, err := BuildSOConfigChange(mockSharedObjectID, previous.Config, candidate.Config,
-		SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_REMOVE_PARTICIPANT, owner, nil)
+		SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_REMOVE_PARTICIPANT, keys[0], nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -36,14 +32,20 @@ func TestImportHistoricalRoot(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	if err := pruneRemovedParticipants(mockSharedObjectID, candidate, map[string]struct{}{peers[0].GetPeerID().String(): {}}, keys[1]); err != nil {
+		t.Fatal(err)
+	}
 
-	// A reader imports the snapshot and keeps the accepted root.
+	// The reader imports the snapshot and keeps the checkpoint.
 	host, current := newTestSOHost(t.Context(), previous)
 	if err := host.ImportPeerSnapshot(t.Context(), candidate, []*SOConfigChange{entry}, peers[2].GetPeerID(), nil); err != nil {
 		t.Fatal(err)
 	}
-	if !(*current).Root.EqualVT(previous.Root) || !EqualSOConfigs((*current).Config, candidate.Config) {
-		t.Fatal("import did not preserve the accepted root and advance configuration")
+	if !bytes.Equal((*current).GetCheckpoint().Hash(), previous.GetCheckpoint().Hash()) || !EqualSOConfigs((*current).Config, candidate.Config) {
+		t.Fatal("import did not keep the checkpoint and advance the configuration")
+	}
+	if err := (*current).ValidateAuthority(mockSharedObjectID); err != nil {
+		t.Fatalf("import kept proofs of the departed owner: %v", err)
 	}
 }
 
@@ -52,16 +54,12 @@ func TestImportHistoricalRoot(t *testing.T) {
 func TestImportProofAfterPartialSync(t *testing.T) {
 	// Use two owners and a reader.
 	peers := createMockPeers(t, 3)
-	previous := createMockSOState(peers, []SOParticipantRole{
+	keys := mustPrivKeys(t, peers)
+	previous, _ := newTestSOState(t, peers,
 		SOParticipantRole_SOParticipantRole_OWNER,
 		SOParticipantRole_SOParticipantRole_OWNER,
 		SOParticipantRole_SOParticipantRole_READER,
-	})
-	previous.Config.ConfigChainHash = bytes.Repeat([]byte{1}, 32)
-	owner, err := peers[0].GetPrivKey(t.Context())
-	if err != nil {
-		t.Fatal(err)
-	}
+	)
 
 	// The owner removes the reader and then peer 1; the replica has synced only the first.
 	var entries []*SOConfigChange
@@ -70,7 +68,7 @@ func TestImportProofAfterPartialSync(t *testing.T) {
 		next := config.CloneVT()
 		next.Participants = next.Participants[:len(next.Participants)-1]
 		entry, err := BuildSOConfigChange(mockSharedObjectID, config, next,
-			SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_REMOVE_PARTICIPANT, owner, nil)
+			SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_REMOVE_PARTICIPANT, keys[0], nil)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -83,8 +81,12 @@ func TestImportProofAfterPartialSync(t *testing.T) {
 
 	// The replica holds the first removal and receives both.
 	synced := previous.CloneVT()
+	var err error
 	synced.Config, err = VerifyConfigChange(mockSharedObjectID, previous.Config, entries[0])
 	if err != nil {
+		t.Fatal(err)
+	}
+	if err := pruneRemovedParticipants(mockSharedObjectID, synced, map[string]struct{}{peers[2].GetPeerID().String(): {}}, keys[0]); err != nil {
 		t.Fatal(err)
 	}
 	candidate := synced.CloneVT()
@@ -101,105 +103,40 @@ func TestImportProofAfterPartialSync(t *testing.T) {
 	}
 }
 
-// TestImportRootNonceRollback rejects omission or rollback in a newer signed root.
-func TestImportRootNonceRollback(t *testing.T) {
-	// Hold a root with a head at nonce 7.
-	peers := createMockPeers(t, 1)
-	previous := createMockSOState(peers, nil)
-	previous.Config.ConfigChainHash = bytes.Repeat([]byte{1}, 32)
-	previous.Root = createMockSORoot(t, 1, peers[0])
-	previous.Root.AccountNonces = []*SOAccountNonce{{PeerId: peers[0].GetPeerID().String(), Nonce: 7, OpHash: mockPrevOpHash}}
-	previous.Root.ValidatorSignatures = nil
-
-	// Sign it as the owner.
-	owner, err := peers[0].GetPrivKey(t.Context())
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := previous.Root.SignInnerData(owner, mockSharedObjectID, 1, hash.RecommendedHashType); err != nil {
-		t.Fatal(err)
-	}
-
-	// A newer root that lowers or drops the head is refused.
-	for _, omitted := range []bool{false, true} {
-		candidate := previous.CloneVT()
-		candidate.Root = createMockSORoot(t, 2, peers[0])
-		candidate.Root.AccountNonces = []*SOAccountNonce{{PeerId: peers[0].GetPeerID().String(), Nonce: 6, OpHash: mockPrevOpHash}}
-		if omitted {
-			candidate.Root.AccountNonces = nil
-		}
-		candidate.Root.ValidatorSignatures = nil
-		if err := candidate.Root.SignInnerData(owner, mockSharedObjectID, 2, hash.RecommendedHashType); err != nil {
-			t.Fatal(err)
-		}
-		host, current := newTestSOHost(t.Context(), previous)
-		if err := host.ImportPeerSnapshot(t.Context(), candidate, nil, peers[0].GetPeerID(), nil); err == nil {
-			t.Fatalf("accepted nonce rollback, omitted=%v", omitted)
-		}
-		if !(*current).EqualVT(previous) {
-			t.Fatal("rejected import changed the held state")
-		}
-	}
-}
-
-// TestPeerSnapshotExchangeConverges advances the older peer and retains local invitations.
+// TestPeerSnapshotExchangeConverges checks that two peers who exchange
+// snapshots hold the newer checkpoint and every operation, and keep their own
+// invitations.
 func TestPeerSnapshotExchangeConverges(t *testing.T) {
+	// The left peer writes; the right peer advances the checkpoint.
 	peers := createMockPeers(t, 2)
-	older := createMockSOState(peers, nil)
-	older.Config.ConfigChainHash = bytes.Repeat([]byte{1}, 32)
-	older.Root = createMockSORoot(t, 1, peers[0])
+	keys := mustPrivKeys(t, peers)
+	genesis, _ := newTestSOState(t, peers)
+	older, newer := genesis.CloneVT(), genesis.CloneVT()
+	writeTestOp(t, older, keys[1], "pending")
+	advanceTestCheckpoint(t, newer, keys[0])
 	older.Invites = []*SOInvite{{InviteId: "older peer invitation"}}
-	newer := older.CloneVT()
-	newer.Root = createMockSORoot(t, 3, peers[0])
 	newer.Invites = []*SOInvite{{InviteId: "newer peer invitation"}}
+
+	// Each imports the other's snapshot.
 	left, leftState := newTestSOHost(t.Context(), older)
 	right, rightState := newTestSOHost(t.Context(), newer)
-	if err := left.ImportPeerSnapshot(t.Context(), newer, nil, peers[0].GetPeerID(), nil); err != nil {
+	if err := left.ImportPeerSnapshot(t.Context(), newer, nil, peers[1].GetPeerID(), nil); err != nil {
 		t.Fatal(err)
 	}
-	if err := right.ImportPeerSnapshot(t.Context(), older, nil, peers[1].GetPeerID(), nil); err == nil {
-		t.Fatal("reverse exchange accepted an older root")
+	if err := right.ImportPeerSnapshot(t.Context(), older, nil, peers[0].GetPeerID(), nil); err != nil {
+		t.Fatal(err)
 	}
-	if !EqualSOConfigs((*leftState).Config, (*rightState).Config) || !(*leftState).Root.EqualVT((*rightState).Root) {
-		t.Fatal("peers did not converge to the newer checkpoint")
+
+	// Both hold the newer checkpoint, the pending operation and their own invitations.
+	for _, state := range []*SOState{*leftState, *rightState} {
+		if !state.GetCheckpoint().EqualVT(newer.GetCheckpoint()) {
+			t.Fatal("peers did not converge to the newer checkpoint")
+		}
+		if len(state.GetOps()) != 1 || !state.GetOps()[0].EqualVT(older.GetOps()[0]) {
+			t.Fatal("peers did not converge to the pending operation")
+		}
 	}
 	if (*leftState).Invites[0].InviteId != older.Invites[0].InviteId || (*rightState).Invites[0].InviteId != newer.Invites[0].InviteId {
 		t.Fatal("snapshot exchange replaced local invitation capabilities")
-	}
-}
-
-// TestImportRequeuesAfterClearedRejection keeps a pending local operation
-// whose preceding nonce a since-cleared rejection consumed.
-func TestImportRequeuesAfterClearedRejection(t *testing.T) {
-	// Hold a single-writer state at an accepted root.
-	peers := createMockPeers(t, 1)
-	previous := createMockSOState(peers, nil)
-	previous.Config.ConfigChainHash = bytes.Repeat([]byte{1}, 32)
-	previous.Root = createMockSORoot(t, 1, peers[0])
-	priv, err := peers[0].GetPrivKey(t.Context())
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// Nonce 1 was rejected and cleared; nonce 2 waits for the validator.
-	previous.QueuedAccountNonces = []*SOAccountNonce{{PeerId: peers[0].GetPeerID().String(), Nonce: 1, OpHash: mockPrevOpHash}}
-	op, err := BuildSOOperation(mockSharedObjectID, priv, []byte("two"), linkAt(previous, priv, 2), NewSOOperationLocalID())
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := previous.QueueOperation(mockSharedObjectID, op); err != nil {
-		t.Fatal(err)
-	}
-
-	// The validator's snapshot has neither the operation nor the rejection.
-	candidate := previous.CloneVT()
-	candidate.Ops = nil
-	candidate.QueuedAccountNonces = nil
-	host, current := newTestSOHost(t.Context(), previous)
-	if err := host.ImportPeerSnapshot(t.Context(), candidate, nil, peers[0].GetPeerID(), nil); err != nil {
-		t.Fatal(err)
-	}
-	if len((*current).GetOps()) != 1 || !(*current).GetOps()[0].EqualVT(op) {
-		t.Fatal("import dropped the pending local operation")
 	}
 }

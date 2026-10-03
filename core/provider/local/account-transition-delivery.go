@@ -48,7 +48,7 @@ func (a *ProviderAccount) DeliverAccountTransition(ctx context.Context, checkpoi
 	}
 
 	// Reject a checkpoint whose history is too large to verify.
-	if checkpoint.SizeVT() > 10*1024*1024 || len(checkpoint.GetHistory()) > sobject.MaxConfigSuffixEntries {
+	if checkpoint.SizeVT() > 10*1024*1024 || len(checkpoint.GetConfigLineage()) > sobject.MaxConfigSuffixEntries {
 		return nil, sobject.ErrConfigHistoryUnavailable
 	}
 
@@ -65,8 +65,8 @@ func (a *ProviderAccount) DeliverAccountTransition(ctx context.Context, checkpoi
 	}
 
 	// Index the delivered history by config hash.
-	entries := make(map[string]*sobject.SOConfigChange, len(checkpoint.GetHistory()))
-	for _, entry := range checkpoint.GetHistory() {
+	entries := make(map[string]*sobject.SOConfigChange, len(checkpoint.GetConfigLineage()))
+	for _, entry := range checkpoint.GetConfigLineage() {
 		hash, err := sobject.HashSOConfigChange(entry)
 		if err != nil {
 			return nil, err
@@ -81,10 +81,19 @@ func (a *ProviderAccount) DeliverAccountTransition(ctx context.Context, checkpoi
 	if err != nil {
 		return nil, err
 	}
+
+	// Resolve operation configs from the delivered history, which import has
+	// not yet retained, and then from local history.
+	readConfig := func(ctx context.Context, hash []byte) (*sobject.SOConfigChange, error) {
+		if entry := entries[hex.EncodeToString(hash)]; entry != nil {
+			return entry, nil
+		}
+		return local.soHost.ReadConfigEntry(ctx, hash)
+	}
 	err = local.soHost.ImportPeerSnapshot(ctx, checkpoint.GetState(), suffix, local.GetPeerID(), func(ctx context.Context, state *sobject.SOState) error {
 		// Decode the imported settings snapshot.
-		snapshot := sobject.NewSOStateParticipantHandle(a.le, a.t.p.sfs, local.GetSharedObjectID(), state, local.GetPrivKey(), local.GetPeerID())
-		settings, _, err := decodeAccountSettingsSnapshot(ctx, snapshot)
+		snapshot := sobject.NewSOStateParticipantHandle(a.le, a.t.p.sfs, local.GetSharedObjectID(), state, local.GetPrivKey(), local.GetPeerID()).WithConfigHistory(readConfig)
+		settings, err := account_settings.ReadSnapshot(ctx, snapshot)
 		if err != nil {
 			return err
 		}
@@ -134,7 +143,7 @@ func (a *ProviderAccount) deliverAccountTransitions(ctx context.Context, state *
 					release()
 					return err
 				}
-				base, history, err := local.ReadSharedObjectConfigHistory(ctx, checkpoint.GetConfig())
+				lineage, err := local.soHost.ReadConfigLineage(ctx, checkpoint.GetConfig().GetConfigChainHash())
 				if err == nil {
 					err = local.soHost.WaitDurable(ctx)
 				}
@@ -142,7 +151,7 @@ func (a *ProviderAccount) deliverAccountTransitions(ctx context.Context, state *
 				if err != nil {
 					return err
 				}
-				message := &pairing.SharedObject{Entry: entry, State: checkpoint, HistoryBase: base, History: history}
+				message := &pairing.SharedObject{Entry: entry, State: checkpoint, ConfigLineage: lineage}
 				for _, connection := range links {
 					remote := connection.RemotePeerID
 					if !slices.Contains(transition.GetSessionPeerIds(), remote.String()) || settings.FindAccountSession(remote.String()) != nil {

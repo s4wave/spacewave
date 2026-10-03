@@ -12,23 +12,34 @@ import (
 
 var errUnauthenticatedWorldTransform = errors.New("world transform requires authenticated encryption")
 
-// BuildInitialInnerState builds the initialized empty world state.
-func BuildInitialInnerState(initOp *InitWorldOp) (*InnerState, error) {
-	var transformConf *block_transform.Config
-	if initOp != nil {
-		transformConf = initOp.GetTransformConf()
+// NewInitWorldOp returns a copy of base, or an empty operation, with a fresh
+// World transform when base names none. The author chooses the transform, so
+// every member replays the same World.
+func NewInitWorldOp(base *InitWorldOp) (*InitWorldOp, error) {
+	op := base.CloneVT()
+	if op == nil {
+		op = &InitWorldOp{}
 	}
-	if transformConf.GetEmpty() {
-		var err error
-		transformConf, err = buildDefaultTransformConf()
+	if op.GetTransformConf().GetEmpty() {
+		conf, err := buildDefaultTransformConf()
 		if err != nil {
 			return nil, err
 		}
+		op.TransformConf = conf
+	}
+	return op, nil
+}
+
+// BuildInitialInnerState builds the empty World initOp initializes. initOp
+// must name an authenticated World transform.
+func BuildInitialInnerState(initOp *InitWorldOp) (*InnerState, error) {
+	transformConf := initOp.GetTransformConf()
+	if transformConf.GetEmpty() {
+		return nil, errors.New("world init operation names no transform")
 	}
 	if err := validateWorldWriteTransform(transformConf); err != nil {
 		return nil, err
 	}
-
 	return &InnerState{
 		HeadRef: &bucket.ObjectRef{
 			TransformConf: transformConf,

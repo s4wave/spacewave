@@ -8,6 +8,7 @@ import (
 	"github.com/aperturerobotics/util/broadcast"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/core/sobject"
+	"github.com/s4wave/spacewave/net/crypto"
 	"github.com/sirupsen/logrus"
 )
 
@@ -19,40 +20,33 @@ type Transfer struct {
 	target         TransferTarget
 	cleanup        CleanupSource
 	checkpoint     CheckpointStore
-	stateRewriter  SOStateRewriter
+	owner          crypto.PrivKey
 	filterSpaceIDs []string
 
 	bcast broadcast.Broadcast
 	state *TransferState
 }
 
-// NewTransfer creates a new Transfer.
-// cleanup may be nil to skip source cleanup after merge.
-// checkpoint may be nil to disable checkpoint persistence.
-// stateRewriter may be nil to copy SO state verbatim (only safe when source
-// and target share the same peer key).
-// filterSpaceIDs, if non-empty, restricts the transfer to only those space IDs.
 // TransferOptions carries the optional collaborators of a Transfer. The zero
-// value is valid: no cleanup, no checkpointing, no state rewrite, and no
-// space-ID filter.
+// value is valid: no cleanup, no checkpointing, and no space-ID filter.
 type TransferOptions struct {
 	// Cleanup deletes the source volume after a successful transfer.
 	Cleanup CleanupSource
 	// Checkpoint persists resumable transfer progress.
 	Checkpoint CheckpointStore
-	// StateRewriter rewrites persisted SOState during the copy.
-	StateRewriter SOStateRewriter
 	// FilterSpaceIDs restricts the transfer to the listed Space IDs.
 	FilterSpaceIDs []string
 }
 
 // NewTransfer constructs a Transfer for the given mode, source, target, and
-// session indexes.
+// session indexes. Each transferred Space starts a new lineage on the target
+// owned solely by owner, holding the World the source replayed.
 func NewTransfer(
 	le *logrus.Entry,
 	mode TransferMode,
 	source TransferSource,
 	target TransferTarget,
+	owner crypto.PrivKey,
 	sourceSessionIdx, targetSessionIdx uint32,
 	opts *TransferOptions,
 ) *Transfer {
@@ -66,7 +60,7 @@ func NewTransfer(
 		target:         target,
 		cleanup:        opts.Cleanup,
 		checkpoint:     opts.Checkpoint,
-		stateRewriter:  opts.StateRewriter,
+		owner:          owner,
 		filterSpaceIDs: opts.FilterSpaceIDs,
 		state: &TransferState{
 			Mode:               mode,
@@ -129,12 +123,14 @@ func (t *Transfer) setSpaceBlocksCopied(idx int, count uint64) {
 // Execute runs the transfer operation.
 // If a checkpoint from the same transfer exists, skips the spaces it completed.
 func (t *Transfer) Execute(ctx context.Context) error {
+	// Resume after the spaces a previous run completed.
 	done := t.loadCompletedSpaces(ctx)
 
 	// Phase: scanning
 	t.setPhase(TransferPhase_TransferPhase_SCANNING)
 	t.le.Info("scanning source shared objects")
 
+	// List the source objects.
 	soList, err := t.source.GetSharedObjectList(ctx)
 	if err != nil {
 		return t.fail(errors.Wrap(err, "scan source SO list"))
@@ -180,8 +176,10 @@ func (t *Transfer) Execute(ctx context.Context) error {
 		broadcast()
 	})
 
-	// Phase: copying blocks per space.
+	// Phase: replaying and copying blocks per space. Replay writes the blocks
+	// of the replayed World, so it runs before the copy.
 	t.setPhase(TransferPhase_TransferPhase_COPYING_BLOCKS)
+	worlds := make([][]byte, len(entries))
 	for i, entry := range entries {
 		if _, ok := done[spaceIDs[i]]; ok {
 			continue
@@ -194,8 +192,17 @@ func (t *Transfer) Execute(ctx context.Context) error {
 		le := t.le.WithField("so-id", soID)
 
 		t.setSpacePhase(i, TransferPhase_TransferPhase_COPYING_BLOCKS)
-		le.Debug("copying blocks for space")
+		le.Debug("replaying space")
+		world, err := t.source.ReplaySharedObject(ctx, le, soRef)
+		if err != nil {
+			return t.fail(errors.Wrapf(err, "replay: %s", soID))
+		}
+		worlds[i], err = world.MarshalVT()
+		if err != nil {
+			return t.fail(err)
+		}
 
+		le.Debug("copying blocks for space")
 		if err := t.copyBlocksForSpace(ctx, i, soRef); err != nil {
 			return t.fail(errors.Wrapf(err, "copy blocks: %s", soID))
 		}
@@ -226,23 +233,9 @@ func (t *Transfer) Execute(ctx context.Context) error {
 			return t.fail(errors.Wrapf(err, "add SO to target list: %s", soID))
 		}
 
-		// Copy SO state from source to target object store if it exists.
-		// The state may not exist if the SO was created but never mounted.
-		state, err := t.source.GetSharedObjectState(ctx, soID)
-		if err != nil && !errors.Is(err, sobject.ErrSharedObjectNotFound) {
-			return t.fail(errors.Wrapf(err, "read source SO state: %s", soID))
-		}
-		if state != nil {
-			// Re-key the state for the target peer if a rewriter is configured.
-			if t.stateRewriter != nil {
-				state, err = t.stateRewriter(ctx, soID, state)
-				if err != nil {
-					return t.fail(errors.Wrapf(err, "re-key SO state: %s", soID))
-				}
-			}
-			if err := t.target.WriteSharedObjectState(ctx, soID, state); err != nil {
-				return t.fail(errors.Wrapf(err, "write target SO state: %s", soID))
-			}
+		// Start the target lineage at the replayed World.
+		if err := t.target.WriteSharedObjectState(ctx, le, soID, t.owner, worlds[i]); err != nil {
+			return t.fail(errors.Wrapf(err, "write target SO state: %s", soID))
 		}
 
 		t.setSpacePhase(i, TransferPhase_TransferPhase_COMPLETE)
@@ -278,6 +271,7 @@ func (t *Transfer) Execute(ctx context.Context) error {
 		}
 	}
 
+	// Report completion.
 	t.setPhase(TransferPhase_TransferPhase_COMPLETE)
 	t.le.Info("transfer complete")
 	return nil

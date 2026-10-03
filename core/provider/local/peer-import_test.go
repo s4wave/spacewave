@@ -9,23 +9,16 @@ import (
 	kvtest "github.com/s4wave/spacewave/db/kvtx/kvtest"
 	store_inmem "github.com/s4wave/spacewave/db/store/kvtx/inmem"
 	"github.com/s4wave/spacewave/net/crypto"
-	"github.com/s4wave/spacewave/net/hash"
 	"github.com/s4wave/spacewave/net/peer"
 )
 
 // TestPeerImportRetainsAuthority exercises host acceptance through real local
 // transactions, including failed access, retry, reopening and signed revocation.
 func TestPeerImportRetainsAuthority(t *testing.T) {
-	// Generate the owner key.
+	// Seed the genesis state in the real in-memory store.
 	ctx := t.Context()
-	owner, _, err := crypto.GenerateKeyPair(crypto.KeyType_Ed25519, 0)
-	if err != nil {
-		t.Fatal(err)
-	}
-	ownerID, err := peer.IDFromPrivateKey(owner)
-	if err != nil {
-		t.Fatal(err)
-	}
+	backend := store_inmem.NewStore()
+	genesisState, _, owner := seedTestGenesisState(t, backend)
 
 	// Generate the reader key.
 	reader, _, err := crypto.GenerateKeyPair(crypto.KeyType_Ed25519, 0)
@@ -37,46 +30,27 @@ func TestPeerImportRetainsAuthority(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Sign a genesis and root under an owner and a reader.
-	initial := &sobject.SOState{
-		Config: &sobject.SharedObjectConfig{Participants: []*sobject.SOParticipantConfig{
-			{PeerId: ownerID.String(), Role: sobject.SOParticipantRole_SOParticipantRole_OWNER},
-			{PeerId: readerID.String(), Role: sobject.SOParticipantRole_SOParticipantRole_READER},
-		}},
-		Root: &sobject.SORoot{InnerSeqno: 1, Inner: []byte("held-root")},
-	}
-	genesis, err := sobject.BuildSOConfigChange(testSharedObjectID, initial.Config, initial.Config, sobject.SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_GENESIS, owner, nil)
+	// Add the reader through a host over the seeded store.
+	withReader := genesisState.GetConfig().CloneVT()
+	withReader.Participants = append(withReader.Participants, &sobject.SOParticipantConfig{
+		PeerId: readerID.String(), Role: sobject.SOParticipantRole_SOParticipantRole_READER,
+	})
+	addReader, err := sobject.BuildSOConfigChange(testSharedObjectID, genesisState.GetConfig(), withReader, sobject.SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_ADD_PARTICIPANT, owner, nil)
 	if err != nil {
-		t.Fatal(err)
-	}
-	initial.Config, err = sobject.VerifyConfigChange(testSharedObjectID, initial.Config, genesis)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := initial.Root.SignInnerData(owner, testSharedObjectID, 1, hash.RecommendedHashType); err != nil {
 		t.Fatal(err)
 	}
 
-	// Seed the state in the real in-memory store.
-	backend := store_inmem.NewStore()
-	seed, err := backend.NewTransaction(ctx, true)
+	// Apply it and read the resulting state.
+	seedWatch, seedLock, seedSync := NewObjectStoreSOStateFuncs(ctx, backend, readerID)
+	seedHost := sobject.NewSOHost(ctx, seedWatch, seedLock, testSharedObjectID, seedSync)
+	if err := seedHost.ApplyConfigChange(ctx, addReader, nil); err != nil {
+		t.Fatal(err)
+	}
+	initial, err := seedHost.GetHostState(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Cleanup(seed.Discard)
-
-	// Commit the encoded state.
-	data, err := initial.MarshalVT()
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := seed.Set(ctx, SobjectObjectStoreHostStateKey(testSharedObjectID), data); err != nil {
-		t.Fatal(err)
-	}
-	if err := seed.Commit(ctx); err != nil {
-		t.Fatal(err)
-	}
-	seed.Discard()
+	seedHost.ClearContext()
 
 	// Open a host over a store whose first commit fails.
 	faults := kvtest.NewFaultStore(backend, kvtest.FaultBeforeCommit)
@@ -97,7 +71,7 @@ func TestPeerImportRetainsAuthority(t *testing.T) {
 	}
 
 	// Reject inaccessible candidates before any durable or watched state changes.
-	denied := errors.New("cannot decode root")
+	denied := errors.New("cannot decode checkpoint")
 	if err := host.ImportPeerSnapshot(ctx, candidate, []*sobject.SOConfigChange{change}, readerID, func(context.Context, *sobject.SOState) error {
 		return denied
 	}); !errors.Is(err, denied) {
@@ -132,7 +106,7 @@ func TestPeerImportRetainsAuthority(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// A proven local removal commits without requiring a new root or decryptable grant.
+	// A proven local removal commits without requiring a new checkpoint or decryptable grant.
 	nextConfig := candidate.Config.CloneVT()
 	nextConfig.Participants = nextConfig.Participants[:1]
 	removal, err := sobject.BuildSOConfigChange(testSharedObjectID, candidate.Config, nextConfig, sobject.SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_REMOVE_PARTICIPANT, owner, nil)
@@ -145,8 +119,7 @@ func TestPeerImportRetainsAuthority(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Import the removal without a root; it reports the revocation.
-	revoked.Root = nil
+	// Import the removal; it reports the revocation without decrypting.
 	if err := host.ImportPeerSnapshot(ctx, revoked, []*sobject.SOConfigChange{removal}, readerID, func(context.Context, *sobject.SOState) error {
 		t.Error("revocation requested decryption")
 		return denied
@@ -154,11 +127,11 @@ func TestPeerImportRetainsAuthority(t *testing.T) {
 		t.Fatalf("revocation result = %v", err)
 	}
 	got, err = host.GetHostState(ctx)
-	if err != nil || !got.Config.EqualVT(revoked.Config) || !got.Root.EqualVT(initial.Root) {
-		t.Fatalf("revocation did not preserve root and commit authority: %v", err)
+	if err != nil || !got.Config.EqualVT(revoked.Config) || !got.Checkpoint.EqualVT(initial.Checkpoint) {
+		t.Fatalf("revocation did not preserve the checkpoint and commit authority: %v", err)
 	}
 
-	// A fresh storage read recovers only the last readable configuration and root.
+	// A fresh storage read recovers the last readable audience.
 	archived, err := backend.NewTransaction(ctx, false)
 	if err != nil {
 		t.Fatal(err)
@@ -168,12 +141,12 @@ func TestPeerImportRetainsAuthority(t *testing.T) {
 	if err != nil || !found {
 		t.Fatalf("read checkpoint missing after removal: %v", err)
 	}
-	checkpointState := &sobject.SOState{}
-	if err := checkpointState.UnmarshalVT(archiveData); err != nil {
+	audience := &sobject.SharedObjectConfig{}
+	if err := audience.UnmarshalVT(archiveData); err != nil {
 		t.Fatal(err)
 	}
-	if !checkpointState.Config.EqualVT(candidate.Config) || !checkpointState.Root.EqualVT(candidate.Root) {
-		t.Fatal("read checkpoint did not retain the last readable snapshot")
+	if !audience.EqualVT(candidate.Config) {
+		t.Fatal("read checkpoint did not retain the last readable audience")
 	}
 
 	// Explicit invitation authority replaces the upgrade checkpoint with its accepted head.
@@ -187,7 +160,7 @@ func TestPeerImportRetainsAuthority(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := host.InstallInviteSnapshot(ctx, rejoined); err != nil {
+	if err := host.InstallInviteSnapshot(ctx, rejoined, []*sobject.SOConfigChange{reauthorization}); err != nil {
 		t.Fatal(err)
 	}
 

@@ -165,24 +165,12 @@ enum SOParticipantRole {
   // SOParticipantRole_READER can read the value of the shared object only.
   SOParticipantRole_READER = 1;
 
-  // SOParticipantRole_WRITER can submit transactions to apply.
+  // SOParticipantRole_WRITER can also write operations.
   SOParticipantRole_WRITER = 2;
 
-  // SOParticipantRole_VALIDATOR can validate and apply transactions.
-  SOParticipantRole_VALIDATOR = 3;
-
-  // SOParticipantRole_OWNER can modify config and manage participants.
-  SOParticipantRole_OWNER = 4;
-}
-
-// SOConsensusMode defines the consensus mechanism for validating root state updates.
-enum SOConsensusMode {
-  // SO_CONSENSUS_MODE_SINGLE_VALIDATOR requires at least one valid validator signature.
-  // This is the default mode and matches the existing behavior.
-  SO_CONSENSUS_MODE_SINGLE_VALIDATOR = 0;
-  // Reserved for future consensus modes.
-  // SO_CONSENSUS_MODE_OWNER_QUORUM = 1;
-  // SO_CONSENSUS_MODE_SNOWMAN = 2;
+  // SOParticipantRole_OWNER can modify config, manage participants and sign
+  // checkpoints.
+  SOParticipantRole_OWNER = 3;
 }
 
 // SharedObjectConfig configures the SharedObject.
@@ -190,9 +178,6 @@ message SharedObjectConfig {
   // Participants is the list of shared object participants.
   // An empty audience with a retained signed history head represents final departure.
   repeated SOParticipantConfig participants = 1;
-  // ConsensusMode is the consensus mechanism for validating root state updates.
-  // Default (zero value) is SINGLE_VALIDATOR.
-  SOConsensusMode consensus_mode = 2;
 
   // ConfigChainHash is the hash of the latest SOConfigChange entry.
   bytes config_chain_hash = 10;
@@ -302,8 +287,8 @@ message SOParticipantConfig {
   // Role is the general role of the participant.
   //
   // - READER: can read the value of the shared object only.
-  // - WRITER: can submit transactions to apply.
-  // - VALIDATOR: can validate and apply transactions.
+  // - WRITER: can also write operations.
+  // - OWNER: can also change the config and sign checkpoints.
   SOParticipantRole role = 2;
 
   // EntityId is the account ID of the entity that owns this participant's session.
@@ -316,44 +301,61 @@ message SOParticipantConfig {
   string username = 4;
 }
 
-// SORoot is the signed root state on a SharedObject.
-message SORoot {
-  // Inner is the encoded and encrypted SORootInner.
+// SOCheckpoint is a signed checkpoint: the World at a point of the operation
+// order, from which members replay the operations after it.
+message SOCheckpoint {
+  // Inner is the encoded SOCheckpointInner.
   bytes inner = 1;
 
-  // InnerSeqno is the sequence number of the SORootInner.
-  // Must match inner.seqno.
-  uint64 inner_seqno = 2;
-
-  // AccountNonces contains the current nonce for each account.
-  // The accounts are sorted lexicographically by peer_id.
-  repeated SOAccountNonce account_nonces = 3;
-
-  // ValidatorSignatures contains the set of signatures of []byte(inner + account_nonces).
-  // The signature public key must match a peer id of a validator.
-  repeated .peer.Signature validator_signatures = 4;
+  // Signatures sign inner. One must be from an owner under the config named by
+  // inner.config_hash.
+  repeated .peer.Signature signatures = 2;
 }
 
-// SOAccountNonce contains the head of an account's operation chain.
-// The accounts are sorted lexicographically by peer_id.
-message SOAccountNonce {
-  // PeerId is the identifier of the account.
+// SOCheckpointInner is the signed body of a checkpoint.
+message SOCheckpointInner {
+  // SharedObjectId binds the checkpoint to one shared object.
+  string shared_object_id = 1;
+
+  // Height is 0 for genesis, then one more than the previous checkpoint.
+  uint64 height = 2;
+
+  // PrevCheckpointHash is the hash of the previous checkpoint's inner.
+  // Empty only at genesis.
+  bytes prev_checkpoint_hash = 3;
+
+  // ConfigHash is the config chain hash the checkpoint was signed under.
+  bytes config_hash = 4;
+
+  // Frontier is the heads of the operation prefix the checkpoint covers,
+  // strictly sorted. Empty at genesis.
+  repeated bytes frontier = 5;
+
+  // StateData is the World state after the prefix, encrypted with the key of
+  // key_epoch.
+  bytes state_data = 6;
+
+  // ReplayVersion is the replay rule version the World was computed with.
+  uint32 replay_version = 7;
+
+  // KeyEpoch is the key epoch whose key encrypted state_data.
+  uint64 key_epoch = 8;
+
+  // Authors are the last covered operation of each author, sorted by peer_id.
+  // An operation at or below its author's entry is covered. Empty at genesis.
+  repeated SOCheckpointAuthor authors = 9;
+}
+
+// SOCheckpointAuthor is the last operation of one author a checkpoint covers.
+message SOCheckpointAuthor {
+  // PeerId is the author.
   string peer_id = 1;
 
-  // Nonce is the author sequence of the account's latest operation.
+  // Nonce is the author sequence of the operation.
   uint64 nonce = 2;
 
-  // OpHash is the hash of the account's operation at nonce.
+  // OpHash is the hash of the operation.
   bytes op_hash = 3;
-}
-
-// SORootInner is the inner signed message on SORoot.
-message SORootInner {
-  // Seqno is the sequence number of the root state.
-  uint64 seqno = 1;
-
-  // StateData is the root state data for the shared object.
-  bytes state_data = 2;
 }
 
 // SOOperation represents an individual operation submitted by a participant.
@@ -382,7 +384,7 @@ message SOOperationInner {
   // then one more than the operation named by prev_op_hash.
   uint64 nonce = 3;
 
-  // OpData is the operation data, transformed with the same transform config as root.
+  // OpData is the operation data, encrypted with the key of key_epoch.
   bytes op_data = 4;
 
   // SharedObjectId binds the operation to one shared object.
@@ -401,6 +403,9 @@ message SOOperationInner {
 
   // ConfigHash is the config chain hash the operation was written under.
   bytes config_hash = 9;
+
+  // KeyEpoch is the key epoch whose key encrypted op_data.
+  uint64 key_epoch = 10;
 }
 
 // SOOperationRef is a reference to an operation that was queued.
@@ -423,35 +428,6 @@ message SOOperationResult {
     // ErrorDetails contains the rejection error details.
     .sobject.SOOperationRejectionErrorDetails error_details = 3;
   }
-}
-
-// SOOperationRejection represents the rejection of an operation by a validator.
-// This tracks rejected operations until the participant acknowledges them.
-message SOOperationRejection {
-  // Inner is the encoded SOOperationRejectionInner object.
-  bytes inner = 1;
-
-  // Signature is the signature of inner by the validator.
-  // The pub key must match the peer id of a valid validator.
-  .peer.Signature signature = 2;
-}
-
-// SOOperationRejectionInner is the inner message of SOOperationRejection.
-message SOOperationRejectionInner {
-  // PeerId is the identifier of the participant that submitted the operation.
-  string peer_id = 1;
-
-  // OpNonce is the nonce of the operation for the peer.
-  uint64 op_nonce = 2;
-
-  // LocalId is the locally-assigned ulid for the operation.
-  // Must be a valid ulid.
-  // Must be lower-case.
-  string local_id = 3;
-
-  // ErrorDetails contains details about the rejection encoded to the peer id.
-  // May be empty if there are no details.
-  bytes error_details = 4;
 }
 
 // SOOperationRejectionErrorDetails contains error details.
@@ -569,75 +545,30 @@ message SOState {
   // Config is the shared object config.
   SharedObjectConfig config = 1;
 
-  // Root is the current shared object root state.
-  SORoot root = 2;
+  // Checkpoint is the latest checkpoint: the World members replay from.
+  SOCheckpoint checkpoint = 2;
 
-  // RootGrants are grants to each of the participants.
-  // Each grant contains the transform config for the SORoot.
-  // Each grant must be signed by one of the validators.
-  // Each grant must be signed with the correct shared object id.
-  repeated SOGrant root_grants = 3;
+  // KeyEpochs are the key epochs, sorted by epoch, each with a grant to every
+  // reader that holds its key.
+  repeated SOKeyEpoch key_epochs = 3;
 
-  // Ops are the list of pending operations.
-  // Validators can choose how many ops to apply.
-  // Each op must have a unique (peer_id, nonce) pair.
+  // Ops are the operations above the checkpoint, sorted by hash.
   repeated SOOperation ops = 4;
-
-  // OpRejections contains the rejections of operations by validators for each peer.
-  // These are kept until the participant acknowledges them.
-  // The list is sorted by peer_id.
-  repeated SOPeerOpRejections op_rejections = 5;
-
-  // QueuedAccountNonces tracks the highest queued nonce for each account.
-  // These nonces are not signed and are only used for local state tracking.
-  // The accounts are sorted lexicographically by peer_id.
-  repeated SOAccountNonce queued_account_nonces = 6;
 
   // Invites is the list of pending invites on this shared object.
   // Stored in plaintext so both providers and cloud can verify invite validity.
-  repeated SOInvite invites = 7;
+  repeated SOInvite invites = 5;
 }
 
-// SOPeerOpRejections contains all rejections for a specific peer.
-message SOPeerOpRejections {
-  // PeerId is the identifier of the participant.
-  string peer_id = 1;
-
-  // Rejections is the list of rejections for this peer.
-  repeated SOOperationRejection rejections = 2;
-}
-
-// SOClearOperationResult represents a request to clear a rejected operation result.
-message SOClearOperationResult {
-  // Inner is the encoded SOClearOperationResultInner object.
-  bytes inner = 1;
-
-  // Signature is the signature of inner by the operation submitter.
-  // The pub key must match the peer id that submitted the original operation.
-  .peer.Signature signature = 2;
-}
-
-// SOClearOperationResultInner is the inner message of SOClearOperationResult.
-message SOClearOperationResultInner {
-  // PeerId is the identifier of the participant that submitted the operation.
-  string peer_id = 1;
-
-  // LocalId is the locally-assigned ulid for the operation.
-  // Must be a valid ulid.
-  // Must be lower-case.
-  string local_id = 2;
-}
-
-// SOKeyEpoch represents a key epoch with grants for that period.
+// SOKeyEpoch is one encryption key of a shared object. A key rotation starts
+// the next epoch; operations and checkpoints name the epoch they used.
 message SOKeyEpoch {
   // Epoch is the epoch number (0-based, increments on rotation).
   uint64 epoch = 1;
-  // SeqnoStart is the first root seqno this key covers.
-  uint64 seqno_start = 2;
-  // SeqnoEnd is the last root seqno this key covers (0 = current/open).
-  uint64 seqno_end = 3;
-  // Grants are the encrypted transform key grants for this epoch.
-  repeated SOGrant grants = 4;
+
+  // Grants are the key encrypted to each reader of this epoch.
+  // Each grant is signed by an owner or by its recipient.
+  repeated SOGrant grants = 2;
 }
 
 // SOConfigChainResponse is returned by GET /sobject/{id}/config-chain.
@@ -646,15 +577,6 @@ message SOConfigChainResponse {
   repeated SOConfigChange config_changes = 1;
   // KeyEpochs are the key epochs with grants for each period.
   repeated SOKeyEpoch key_epochs = 2;
-}
-
-// QueuedSOOperation is a queued SOOperation which does not yet have an nonce.
-message QueuedSOOperation {
-  // LocalId is the local operation id, must be a valid ulid.
-  string local_id = 1;
-
-  // OpData is the operation data, not transformed.
-  bytes op_data = 2;
 }
 
 // SOInviteMessage is a signed invite distributed out-of-band to an invitee.

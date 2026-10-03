@@ -4,14 +4,10 @@ import (
 	"context"
 	"time"
 
-	"github.com/aperturerobotics/controllerbus/controller"
 	timestamppb "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	"github.com/pkg/errors"
 	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
 	"github.com/s4wave/spacewave/core/sobject"
-	block_transform "github.com/s4wave/spacewave/db/block/transform"
-	"github.com/s4wave/spacewave/net/crypto"
-	"github.com/s4wave/spacewave/net/hash"
 	s4wave_org "github.com/s4wave/spacewave/sdk/org"
 )
 
@@ -20,6 +16,7 @@ func (a *ProviderAccount) RepairSharedObject(
 	ctx context.Context,
 	sharedObjectID string,
 ) error {
+	// Require a live context, an object, and a mutation-capable session.
 	if err := ctx.Err(); err != nil {
 		return err
 	}
@@ -30,11 +27,11 @@ func (a *ProviderAccount) RepairSharedObject(
 		return errors.New("mutation-capable cloud session is required")
 	}
 
-	cli, sessionPriv, _, err := a.getReadySessionClient(ctx)
+	// Reach the cloud and authorize the mutation.
+	cli, _, _, err := a.getReadySessionClient(ctx)
 	if err != nil {
 		return err
 	}
-
 	meta, err := a.GetSharedObjectMetadata(ctx, sharedObjectID)
 	if err != nil {
 		return err
@@ -42,11 +39,12 @@ func (a *ProviderAccount) RepairSharedObject(
 	if err := a.authorizeSharedObjectMutation(ctx, meta, sharedObjectID); err != nil {
 		return err
 	}
+
+	// An organization root has its own repair.
 	if isOrganizationRootSharedObject(meta, sharedObjectID) {
 		if err := a.repairOrganizationRootSharedObject(
 			ctx,
 			cli,
-			sessionPriv,
 			sharedObjectID,
 		); err != nil {
 			return err
@@ -55,10 +53,10 @@ func (a *ProviderAccount) RepairSharedObject(
 		return nil
 	}
 
+	// Repair a standalone object and drop its cached mount.
 	if err := a.repairStandaloneSharedObject(
 		ctx,
 		cli,
-		sessionPriv,
 		sharedObjectID,
 	); err != nil {
 		return err
@@ -196,20 +194,18 @@ func (a *ProviderAccount) authorizeSharedObjectMutation(
 func (a *ProviderAccount) repairOrganizationRootSharedObject(
 	ctx context.Context,
 	cli *SessionClient,
-	sessionPriv crypto.PrivKey,
 	orgID string,
 ) error {
-	// Repair a written root like any standalone object.
+	// Repair a written organization like any standalone object.
 	state, _, _, err := cli.loadStandaloneConfigState(ctx, orgID)
 	if err != nil {
 		return err
 	}
-	root := state.GetRoot()
-	if root != nil && root.GetInnerSeqno() != 0 {
-		return a.repairStandaloneSharedObject(ctx, cli, sessionPriv, orgID)
+	if state.GetCheckpoint() != nil {
+		return a.repairStandaloneSharedObject(ctx, cli, orgID)
 	}
 
-	// Reseed an empty root and restore the organization record.
+	// Reseed an empty object and restore the organization record.
 	if err := a.reseedEmptySharedObject(ctx, cli, orgID); err != nil {
 		return err
 	}
@@ -220,19 +216,20 @@ func (a *ProviderAccount) repairOrganizationRootSharedObject(
 	return a.populateOrganizationSharedObject(ctx, orgID, info)
 }
 
+// repairStandaloneSharedObject reseeds an object that was never written, and
+// otherwise enrolls this session as a participant again with an unlocked
+// entity key. The held checkpoint stays valid, so nothing is re-signed.
 func (a *ProviderAccount) repairStandaloneSharedObject(
 	ctx context.Context,
 	cli *SessionClient,
-	sessionPriv crypto.PrivKey,
 	sharedObjectID string,
 ) error {
-	// Reseed an object whose root was never written.
+	// Reseed an object that was never written.
 	state, _, _, err := cli.loadStandaloneConfigState(ctx, sharedObjectID)
 	if err != nil {
 		return err
 	}
-	root := state.GetRoot()
-	if root == nil || root.GetInnerSeqno() == 0 {
+	if state.GetCheckpoint() == nil {
 		return a.reseedEmptySharedObject(ctx, cli, sharedObjectID)
 	}
 
@@ -253,36 +250,7 @@ func (a *ProviderAccount) repairStandaloneSharedObject(
 	); err != nil && !errors.Is(err, sobject.ErrNotParticipant) {
 		return err
 	}
-
-	// Decode the root state with the recovered grant.
-	material, err := a.readSharedObjectRecoveryMaterial(
-		ctx,
-		cli,
-		entityPriv,
-		sharedObjectID,
-	)
-	if err != nil {
-		return err
-	}
-	stateData, err := a.decodeSharedObjectRootStateData(
-		sharedObjectID,
-		root,
-		material.GetGrantInner(),
-	)
-	if err != nil {
-		return err
-	}
-
-	// Post the same state under the next root seqno.
-	return a.postRepairedSharedObjectRoot(
-		ctx,
-		cli,
-		sessionPriv,
-		sharedObjectID,
-		root.GetInnerSeqno()+1,
-		material.GetGrantInner(),
-		stateData,
-	)
+	return nil
 }
 
 func (a *ProviderAccount) clearSharedObjectRecoveryLocalState(
@@ -294,127 +262,6 @@ func (a *ProviderAccount) clearSharedObjectRecoveryLocalState(
 	}
 	a.getWriteTicketOwner(sharedObjectID).Invalidate()
 	return nil
-}
-
-func (a *ProviderAccount) readSharedObjectRecoveryMaterial(
-	ctx context.Context,
-	cli *SessionClient,
-	entityPriv crypto.PrivKey,
-	sharedObjectID string,
-) (*sobject.SOEntityRecoveryMaterial, error) {
-	if cli == nil {
-		return nil, errors.New("session client is required")
-	}
-	env, err := cli.GetSORecoveryEnvelope(ctx, sharedObjectID)
-	if err != nil {
-		return nil, err
-	}
-	if env.GetEntityId() != "" && env.GetEntityId() != a.accountID {
-		return nil, sobject.ErrSharedObjectRecoveryEntityMismatch
-	}
-	material, err := sobject.UnlockSOEntityRecoveryEnvelope(
-		[]crypto.PrivKey{entityPriv},
-		env,
-	)
-	if err != nil {
-		return nil, err
-	}
-	if material.GetEntityId() != "" && material.GetEntityId() != a.accountID {
-		return nil, sobject.ErrSharedObjectRecoveryEntityMismatch
-	}
-	if material.GetGrantInner() == nil {
-		return nil, errors.New("shared object recovery material is missing grant inner")
-	}
-	return material, nil
-}
-
-func (a *ProviderAccount) decodeSharedObjectRootStateData(
-	sharedObjectID string,
-	root *sobject.SORoot,
-	grantInner *sobject.SOGrantInner,
-) ([]byte, error) {
-	if root == nil {
-		return nil, errors.New("root is required")
-	}
-	if grantInner == nil {
-		return nil, errors.New("grant inner is required")
-	}
-	xfrm, err := block_transform.NewTransformer(
-		controller.ConstructOpts{
-			Logger: a.le.WithField("sobject-id", sharedObjectID),
-		},
-		a.sfs,
-		grantInner.GetTransformConf(),
-	)
-	if err != nil {
-		return nil, errors.Wrap(err, "build repair decode transformer")
-	}
-	innerDataDec, err := xfrm.DecodeBlock(root.GetInner())
-	if err != nil {
-		return nil, errors.Wrap(err, "decode repair root inner")
-	}
-	inner := &sobject.SORootInner{}
-	if err := inner.UnmarshalVT(innerDataDec); err != nil {
-		return nil, errors.Wrap(err, "unmarshal repair root inner")
-	}
-	if inner.GetSeqno() != root.GetInnerSeqno() {
-		return nil, errors.Wrapf(
-			sobject.ErrInvalidSeqno,
-			"root had %d but inner had %d",
-			root.GetInnerSeqno(),
-			inner.GetSeqno(),
-		)
-	}
-	return inner.GetStateData(), nil
-}
-
-func (a *ProviderAccount) postRepairedSharedObjectRoot(
-	ctx context.Context,
-	cli *SessionClient,
-	sessionPriv crypto.PrivKey,
-	sharedObjectID string,
-	nextSeqno uint64,
-	grantInner *sobject.SOGrantInner,
-	stateData []byte,
-) error {
-	if grantInner == nil {
-		return errors.New("grant inner is required")
-	}
-	xfrm, err := block_transform.NewTransformer(
-		controller.ConstructOpts{
-			Logger: a.le.WithField("sobject-id", sharedObjectID),
-		},
-		a.sfs,
-		grantInner.GetTransformConf(),
-	)
-	if err != nil {
-		return errors.Wrap(err, "build repair transformer")
-	}
-	innerDataDec, err := (&sobject.SORootInner{
-		Seqno:     nextSeqno,
-		StateData: stateData,
-	}).MarshalVT()
-	if err != nil {
-		return errors.Wrap(err, "marshal repaired root inner")
-	}
-	innerDataEnc, err := xfrm.EncodeBlock(innerDataDec)
-	if err != nil {
-		return errors.Wrap(err, "encode repaired root inner")
-	}
-
-	root := &sobject.SORoot{
-		InnerSeqno: nextSeqno,
-		Inner:      innerDataEnc,
-	}
-	if err := root.SignInnerData(
-		sessionPriv,
-		sharedObjectID,
-		root.GetInnerSeqno(),
-		hash.RecommendedHashType,
-	); err != nil {
-		return errors.Wrap(err, "sign repaired root")
-	}
-	return cli.PostRoot(ctx, sharedObjectID, root, nil)
 }
 
 func (a *ProviderAccount) populateOrganizationSharedObject(

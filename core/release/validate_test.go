@@ -253,9 +253,9 @@ func testBrowserAsset(ref *block.BlockRef) *BrowserAsset {
 
 func testUpdateNotification() *UpdateNotification {
 	return &UpdateNotification{
-		ChannelKey:     "stable",
-		InnerSeqno:     1,
-		RootPointerUrl: "https://example.invalid/root.packedmsg",
+		ChannelKey:       "stable",
+		CheckpointHeight: 1,
+		RootPointerUrl:   "https://example.invalid/root.packedmsg",
 	}
 }
 

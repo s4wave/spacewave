@@ -81,12 +81,8 @@ type ProviderAccount struct {
 	// linkedCloudAccountDiscovery discovers an existing linked cloud account
 	// after the ProviderAccount is published.
 	linkedCloudAccountDiscovery *routine.RoutineContainer
-	// accountSettingsProcessor processes account settings operations.
-	accountSettingsProcessor *routine.RoutineContainer
 	// envelopeRewrapWatcher watches for envelope rewrap work.
 	envelopeRewrapWatcher *routine.RoutineContainer
-	// orgProcessors watches org SO membership and runs org processors.
-	orgProcessors *routine.RoutineContainer
 	// placedUploads keeps placed block stores mounted so their writes upload.
 	placedUploads *routine.RoutineContainer
 	// gcCleanup runs block GC cleanup after foreground delete paths unroot data.
@@ -223,21 +219,11 @@ func (t *providerAccountTracker) executeProviderAccountTracker(rctx context.Cont
 		routine.WithRetry(providerBackoff),
 	)
 	providerAcc.linkedCloudAccountDiscovery.SetRoutine(providerAcc.runLinkedCloudAccountDiscovery)
-	providerAcc.accountSettingsProcessor = routine.NewRoutineContainerWithLogger(
-		le.WithField("routine", "account-settings-processor"),
-		routine.WithRetry(providerBackoff),
-	)
-	providerAcc.accountSettingsProcessor.SetRoutine(providerAcc.runAccountSettingsProcessor)
 	providerAcc.envelopeRewrapWatcher = routine.NewRoutineContainerWithLogger(
 		le.WithField("routine", "envelope-rewrap-watcher"),
 		routine.WithRetry(providerBackoff),
 	)
 	providerAcc.envelopeRewrapWatcher.SetRoutine(providerAcc.watchAndRewrapEnvelope)
-	providerAcc.orgProcessors = routine.NewRoutineContainerWithLogger(
-		le.WithField("routine", "org-processors"),
-		routine.WithRetry(providerBackoff),
-	)
-	providerAcc.orgProcessors.SetRoutine(providerAcc.watchOrgProcessors)
 	providerAcc.placedUploads = routine.NewRoutineContainerWithLogger(
 		le.WithField("routine", "placed-uploads"),
 		routine.WithRetry(providerBackoff),
@@ -289,12 +275,8 @@ func (t *providerAccountTracker) executeProviderAccountTracker(rctx context.Cont
 	defer providerAcc.linkedCloudAccountDiscovery.ClearContext()
 	providerAcc.accountSettingsCloudSync.SetContext(ctx, true)
 	defer providerAcc.accountSettingsCloudSync.ClearContext()
-	providerAcc.accountSettingsProcessor.SetContext(ctx, true)
-	defer providerAcc.accountSettingsProcessor.ClearContext()
 	providerAcc.envelopeRewrapWatcher.SetContext(ctx, true)
 	defer providerAcc.envelopeRewrapWatcher.ClearContext()
-	providerAcc.orgProcessors.SetContext(ctx, true)
-	defer providerAcc.orgProcessors.ClearContext()
 	providerAcc.placedUploads.SetContext(ctx, true)
 	defer providerAcc.placedUploads.ClearContext()
 	providerAcc.gcCleanup.SetContext(ctx, true)

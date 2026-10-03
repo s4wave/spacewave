@@ -104,8 +104,8 @@ func (a *ProviderAccount) recordSyncTelemetryBlockSource(bstoreID string, source
 	a.syncTelemetry.RecordBlockSource(bstoreID, source)
 }
 
-func (a *ProviderAccount) setSyncTelemetryAcceptedRoot(bstoreID, sharedObjectID string, sequence uint64) {
-	a.syncTelemetry.SetAcceptedRoot(bstoreID, sharedObjectID, sequence)
+func (a *ProviderAccount) setSyncTelemetryAcceptedCheckpoint(bstoreID, sharedObjectID string, height uint64) {
+	a.syncTelemetry.SetAcceptedCheckpoint(bstoreID, sharedObjectID, height)
 }
 
 func (a *ProviderAccount) setSyncTelemetryCloudRemoteSequence(bstoreID string, sequence uint64) {

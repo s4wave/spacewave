@@ -42,7 +42,7 @@ func TestSOOperationSetOrder(t *testing.T) {
 	// Order the set built in the delivered order and in reverse.
 	var want [][]byte
 	for _, ops := range []iter.Seq2[int, *SOOperation]{slices.All(delivered), slices.Backward(delivered)} {
-		set := NewSOOperationSet(vectorObjectID)
+		set := NewSOOperationSet(vectorObjectID, nil)
 		for _, op := range ops {
 			if _, err := set.Add(op); err != nil {
 				t.Fatal(err)

@@ -15,10 +15,11 @@ import (
 	provider "github.com/s4wave/spacewave/core/provider"
 	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
 	"github.com/s4wave/spacewave/core/sobject"
-	block_transform "github.com/s4wave/spacewave/db/block/transform"
 	"github.com/s4wave/spacewave/db/kvtx"
+	"github.com/s4wave/spacewave/net/crypto"
 	"github.com/s4wave/spacewave/net/peer"
 	s4wave_provider_spacewave "github.com/s4wave/spacewave/sdk/provider/spacewave"
+	"github.com/sirupsen/logrus"
 )
 
 func TestBuildSessionPresentationReconcileStateLocked(t *testing.T) {
@@ -203,21 +204,47 @@ func TestUpsertSessionPresentationReadOnlySkipsCloudCall(t *testing.T) {
 	}
 }
 
+// testSessionPresentationSharedObject is an account settings Shared Object
+// over a real genesis state, owned by the local peer, that records each
+// session presentation removal it is asked to write.
 type testSessionPresentationSharedObject struct {
 	t              *testing.T
-	settings       *account_settings.AccountSettings
+	priv           crypto.PrivKey
+	peerID         peer.ID
+	state          *sobject.SOState
+	snaps          *ccontainer.CContainer[sobject.SharedObjectStateSnapshot]
 	removedPeerIDs []string
 }
 
+// newTestSessionPresentationSharedObject returns a Shared Object whose genesis
+// checkpoint holds settings.
 func newTestSessionPresentationSharedObject(
 	t *testing.T,
 	settings *account_settings.AccountSettings,
 ) *testSessionPresentationSharedObject {
+	// Create an owner.
 	t.Helper()
-	return &testSessionPresentationSharedObject{
-		t:        t,
-		settings: settings.CloneVT(),
+	owner, err := peer.NewPeer(nil)
+	if err != nil {
+		t.Fatal(err)
 	}
+	priv, err := owner.GetPrivKey(t.Context())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Encode the settings into a genesis state the owner holds.
+	data, err := settings.MarshalVT()
+	if err != nil {
+		t.Fatal(err)
+	}
+	state, _, err := sobject.BuildGenesisSOState(logrus.NewEntry(logrus.New()), testStepFactorySet(), "so-settings", priv, data)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := &testSessionPresentationSharedObject{t: t, priv: priv, peerID: owner.GetPeerID(), state: state}
+	s.snaps = ccontainer.NewCContainer(s.snapshot())
+	return s
 }
 
 func (s *testSessionPresentationSharedObject) GetBus() bus.Bus {
@@ -225,7 +252,7 @@ func (s *testSessionPresentationSharedObject) GetBus() bus.Bus {
 }
 
 func (s *testSessionPresentationSharedObject) GetPeerID() peer.ID {
-	panic("unexpected GetPeerID call")
+	return s.peerID
 }
 
 func (s *testSessionPresentationSharedObject) GetSharedObjectID() string {
@@ -241,21 +268,23 @@ func (s *testSessionPresentationSharedObject) AccessLocalStateStore(context.Cont
 }
 
 func (s *testSessionPresentationSharedObject) GetSharedObjectState(context.Context) (sobject.SharedObjectStateSnapshot, error) {
-	return s.snapshot(), nil
+	return s.snaps.GetValue(), nil
 }
 
 func (s *testSessionPresentationSharedObject) AccessSharedObjectState(
 	context.Context,
 	func(),
 ) (ccontainer.Watchable[sobject.SharedObjectStateSnapshot], func(), error) {
-	ctr := ccontainer.NewCContainer[sobject.SharedObjectStateSnapshot](s.snapshot())
-	return ctr, func() {}, nil
+	return s.snaps, func() {}, nil
 }
 
+// QueueOperation records a session presentation removal, then signs the
+// operation encrypted with the current key and publishes the state holding it.
 func (s *testSessionPresentationSharedObject) QueueOperation(
-	_ context.Context,
+	ctx context.Context,
 	op []byte,
 ) (string, error) {
+	// Record the removal.
 	msg := &account_settings.AccountSettingsOp{}
 	if err := msg.UnmarshalVT(op); err != nil {
 		return "", err
@@ -265,83 +294,42 @@ func (s *testSessionPresentationSharedObject) QueueOperation(
 		s.t.Fatalf("expected remove session presentation op, got %T", msg.GetOp())
 	}
 	s.removedPeerIDs = append(s.removedPeerIDs, rm.GetPeerId())
-	return rm.GetPeerId(), nil
-}
 
-func (s *testSessionPresentationSharedObject) WaitOperation(
-	context.Context,
-	string,
-) (uint64, bool, error) {
-	return 1, false, nil
-}
-
-func (s *testSessionPresentationSharedObject) ClearOperationResult(
-	context.Context,
-	string,
-) error {
-	return nil
-}
-
-func (s *testSessionPresentationSharedObject) ProcessOperations(
-	context.Context,
-	bool,
-	sobject.ProcessOpsFunc,
-) error {
-	panic("unexpected ProcessOperations call")
-}
-
-func (s *testSessionPresentationSharedObject) snapshot() sobject.SharedObjectStateSnapshot {
-	data, err := s.settings.MarshalVT()
+	// Encrypt the operation and link it after the owner's last one.
+	xfrm, err := s.snaps.GetValue().GetTransformer(ctx)
 	if err != nil {
-		s.t.Fatalf("marshal settings: %v", err)
+		return "", err
 	}
-	return &testSessionPresentationSnapshot{
-		rootInner: &sobject.SORootInner{
-			StateData: data,
-		},
+	link, err := s.state.NextOperationLink(s.GetSharedObjectID(), s.peerID.String())
+	if err != nil {
+		return "", err
 	}
-}
-
-type testSessionPresentationSnapshot struct {
-	rootInner *sobject.SORootInner
-}
-
-func (s *testSessionPresentationSnapshot) GetParticipantConfig(context.Context) (*sobject.SOParticipantConfig, error) {
-	panic("unexpected GetParticipantConfig call")
-}
-
-// GetParticipantConfigForPeer rejects participant lookups outside this fixture's contract.
-func (s *testSessionPresentationSnapshot) GetParticipantConfigForPeer(context.Context, string) (*sobject.SOParticipantConfig, error) {
-	panic("unexpected GetParticipantConfigForPeer call")
-}
-
-func (s *testSessionPresentationSnapshot) GetTransformer(context.Context) (*block_transform.Transformer, error) {
-	panic("unexpected GetTransformer call")
-}
-
-func (s *testSessionPresentationSnapshot) GetTransformInfo(context.Context) (*sobject.TransformInfo, error) {
-	panic("unexpected GetTransformInfo call")
-}
-
-func (s *testSessionPresentationSnapshot) GetOpQueue(context.Context) ([]*sobject.SOOperation, []*sobject.QueuedSOOperation, error) {
-	panic("unexpected GetOpQueue call")
-}
-
-func (s *testSessionPresentationSnapshot) GetRootInner(context.Context) (*sobject.SORootInner, error) {
-	return s.rootInner, nil
-}
-
-func (s *testSessionPresentationSnapshot) GetRootState(context.Context) (*sobject.SORoot, error) {
-	if s.rootInner == nil {
-		return nil, nil
+	data, err := xfrm.EncodeBlock(op)
+	if err != nil {
+		return "", err
 	}
-	return &sobject.SORoot{InnerSeqno: s.rootInner.GetSeqno()}, nil
+
+	// Sign the operation, add it, and publish the state.
+	localID := sobject.NewSOOperationLocalID()
+	signed, err := sobject.BuildSOOperation(s.GetSharedObjectID(), s.priv, data, link, localID)
+	if err != nil {
+		return "", err
+	}
+	if _, err := s.state.AddOperation(s.GetSharedObjectID(), signed); err != nil {
+		return "", err
+	}
+	s.snaps.SetValue(s.snapshot())
+	return localID, nil
 }
 
-func (s *testSessionPresentationSnapshot) ProcessOperations(
-	context.Context,
-	[]*sobject.SOOperation,
-	sobject.SnapshotProcessOpsFunc,
-) (*sobject.SORoot, []*sobject.SOOperationRejection, []*sobject.SOOperation, error) {
-	panic("unexpected ProcessOperations call")
+// snapshot returns the owner's handle over a copy of the current state.
+func (s *testSessionPresentationSharedObject) snapshot() sobject.SharedObjectStateSnapshot {
+	return sobject.NewSOStateParticipantHandle(
+		logrus.NewEntry(logrus.New()),
+		testStepFactorySet(),
+		s.GetSharedObjectID(),
+		s.state.CloneVT(),
+		s.priv,
+		s.peerID,
+	)
 }

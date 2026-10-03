@@ -3,12 +3,9 @@ package sobject_test
 import (
 	"bytes"
 	"context"
-	"io"
 	"testing"
 
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
-	"github.com/aperturerobotics/util/ccontainer"
-	"github.com/pkg/errors"
 	provider "github.com/s4wave/spacewave/core/provider"
 	provider_local "github.com/s4wave/spacewave/core/provider/local"
 	"github.com/s4wave/spacewave/core/sobject"
@@ -19,21 +16,18 @@ import (
 
 // TestSharedObject tests the shared object end to end.
 func TestSharedObject(t *testing.T) {
-	ctx, ctxCancel := context.WithCancel(context.Background())
-	defer ctxCancel()
-
+	// Start a testbed.
+	ctx := t.Context()
 	tb, err := testbed.Default(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	defer tb.Release()
 
+	// Name the test volume's peer.
 	le := tb.Logger
 	vol := tb.Volume
 	peerID := vol.GetPeerID()
-	// volumeID := vol.GetID()
-	// bucketID := tb.EngineBucketID
-	// engineID := tb.EngineID
 
 	// Create the provider controller
 	providerID := "local"
@@ -78,8 +72,8 @@ func TestSharedObject(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	_ = createdSoRef
 
+	// Log the created object.
 	tb.Logger.Infof(
 		"created shared object with provider %s id %s",
 		createdSoRef.GetProviderResourceRef().GetProviderId(),
@@ -106,122 +100,41 @@ func TestSharedObject(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	// Test the operation queue.
-	testOp := []byte("mock operation")
-	opID, err := so.QueueOperation(ctx, testOp)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	le.Debugf("queued op with id: %v", opID)
-
-	// Wait for the Execute loop to apply the operation to the SOHost.
-	soStateCtr, relSoStateCtr, err := so.AccessSharedObjectState(ctx, ctxCancel)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	defer relSoStateCtr()
-
-	// Wait for changes
-	err = ccontainer.WatchChanges(
-		ctx,
-		nil,
-		soStateCtr,
-		func(snap sobject.SharedObjectStateSnapshot) error {
-			ops, _, err := snap.GetOpQueue(ctx)
-			if err != nil {
-				return err
-			}
-			if len(ops) == 0 {
-				// keep waiting
-				return nil
-			}
-			if len(ops) > 1 {
-				return errors.Errorf("expected 1 op but got %d", len(ops))
-			}
-			// done waiting
-			return io.EOF
-		},
-		nil,
-	)
-	if err != nil && err != io.EOF {
-		t.Fatal(err.Error())
-	}
-
-	// Check the state.
-	stateSnap, err := so.GetSharedObjectState(ctx)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-
-	// Check the op queue.
-	opQueue, _, err := stateSnap.GetOpQueue(ctx)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	if len(opQueue) != 1 {
-		t.Fatalf("expected 1 op but got %d", len(opQueue))
-	}
-	le.Debugf("op %s was queued successfully", opID)
-
-	// process operation (state transition logic)
+	// Write an operation and replay it through a processor that joins the data.
 	processOperationFn := func(
-		ctx context.Context,
-		snap sobject.SharedObjectStateSnapshot,
+		_ context.Context,
+		_ sobject.SharedObjectStateSnapshot,
 		currentStateData []byte,
 		ops []*sobject.SOOperationInner,
 	) (*[]byte, []*sobject.SOOperationResult, error) {
 		nextStateData := currentStateData
-		var opResults []*sobject.SOOperationResult
-
 		for _, inner := range ops {
-			opData := inner.GetOpData()
 			if len(nextStateData) == 0 {
-				nextStateData = opData
+				nextStateData = inner.GetOpData()
 			} else {
-				nextStateData = bytes.Join([][]byte{nextStateData, opData}, []byte(" "))
-			}
-
-			opResults = append(opResults, sobject.BuildSOOperationResult(
-				inner.GetPeerId(),
-				inner.GetNonce(),
-				true,
-				nil,
-			))
-		}
-
-		return &nextStateData, opResults, nil
-	}
-
-	// Process the operation in another goroutine.
-	go func() {
-		if err := so.ProcessOperations(ctx, true, processOperationFn); err != nil {
-			if ctx.Err() == nil {
-				le.WithError(err).Fatal("error processing operations in test case")
+				nextStateData = bytes.Join([][]byte{nextStateData, inner.GetOpData()}, []byte(" "))
 			}
 		}
-	}()
-
-	// Wait for the operation to be applied.
-	appliedNonce, _, err := so.WaitOperation(ctx, opID)
+		return &nextStateData, nil, nil
+	}
+	res, err := sobject.WriteOperation(ctx, so, []byte("mock operation"), processOperationFn)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	le.Debugf("op applied at nonce: %v", appliedNonce)
+	if !bytes.Equal(res.StateData, []byte("mock operation")) {
+		t.Fatalf("unexpected state data: %q", string(res.StateData))
+	}
 
-	// Check the result
-	stateSnap, err = so.GetSharedObjectState(ctx)
+	// The operation set holds exactly the written operation.
+	stateSnap, err := so.GetSharedObjectState(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	afterRootInner, err := stateSnap.GetRootInner(ctx)
+	set, err := stateSnap.GetOperationSet(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	if !bytes.Equal(afterRootInner.GetStateData(), []byte("mock operation")) {
-		t.Fatalf("unexpected after state data: %q", string(afterRootInner.GetStateData()))
+	if set.Len() != 1 {
+		t.Fatalf("expected 1 op but got %d", set.Len())
 	}
-
-	// TODO test op queue, multi-validator, etc.
-	_ = so
-	le.Debug("shared object local storage tests successful")
 }

@@ -144,12 +144,14 @@ func NewObjectStoreSOStateFuncs(rctx context.Context, objStore object.ObjectStor
 						return kvtx.WithOrderedCommit(tx), nil
 					},
 					func(ctx context.Context, tx kvtx.Tx) error {
-						if checkpoint || peerImport {
-							config := initialState.GetConfig()
-							if checkpoint {
-								config = state.GetConfig()
+						// Record the config history and the read checkpoint with the state.
+						if checkpoint {
+							if err := WriteSOConfigLineage(ctx, tx, sharedObjectID, state.GetConfig(), changes); err != nil {
+								return err
 							}
-							if err := WriteSOConfigCheckpoint(ctx, tx, sharedObjectID, config, checkpoint); err != nil {
+						}
+						if peerImport {
+							if err := WriteSOConfigCheckpoint(ctx, tx, sharedObjectID, initialState.GetConfig(), false); err != nil {
 								return err
 							}
 						}

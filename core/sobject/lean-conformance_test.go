@@ -363,11 +363,11 @@ func (s *configChainScenario) change(cur *SharedObjectConfig) *SOConfigChange {
 	return entry
 }
 
-// mutate applies one or two random membership and metadata edits to cfg.
+// mutate applies one or two random membership edits to cfg.
 func (s *configChainScenario) mutate(cfg *SharedObjectConfig) {
 	for range 1 + s.rng.IntN(2) {
 		parts := cfg.GetParticipants()
-		switch op := s.rng.IntN(8); {
+		switch op := s.rng.IntN(7); {
 		case op < 3:
 			// Add a participant, possibly already present or malformed.
 			cfg.Participants = append(parts, s.participant(cfg))
@@ -378,9 +378,6 @@ func (s *configChainScenario) mutate(cfg *SharedObjectConfig) {
 		case op < 7 && len(parts) != 0:
 			// Change a participant's role, including to values outside the enum.
 			parts[s.rng.IntN(len(parts))].Role = s.role()
-		default:
-			// Change metadata a self-enrollment must preserve.
-			cfg.ConsensusMode = SOConsensusMode(s.rng.IntN(2))
 		}
 	}
 }
@@ -448,7 +445,7 @@ func (s *configChainScenario) role() SOParticipantRole {
 	if s.rng.IntN(8) == 0 {
 		return []SOParticipantRole{-1, 0, 5}[s.rng.IntN(3)]
 	}
-	return SOParticipantRole(1 + s.rng.IntN(4))
+	return SOParticipantRole(1 + s.rng.IntN(3))
 }
 
 // sign signs entry with the key of peer index signer.
@@ -540,8 +537,6 @@ type leanParticipant struct {
 type leanConfig struct {
 	// participants preserves participant order and duplicates.
 	participants []leanParticipant
-	// mode preserves the consensus enum code.
-	mode int32
 	// hash is the hexadecimal configuration chain head hash.
 	hash string
 	// seqno is the chain head's uint64 sequence number.
@@ -552,7 +547,6 @@ type leanConfig struct {
 // becomes the empty string, which the model treats as malformed.
 func projectLeanConfig(cfg *SharedObjectConfig) leanConfig {
 	c := leanConfig{
-		mode:  int32(cfg.GetConsensusMode()),
 		hash:  hex.EncodeToString(cfg.GetConfigChainHash()),
 		seqno: cfg.GetConfigChainSeqno(),
 	}
@@ -569,7 +563,6 @@ func projectLeanConfig(cfg *SharedObjectConfig) leanConfig {
 // parseLeanConfig reads a Lean Config from an oracle answer.
 func parseLeanConfig(v *fastjson.Value) leanConfig {
 	c := leanConfig{
-		mode:  int32(v.GetInt("mode")),
 		hash:  string(v.GetStringBytes("hash")),
 		seqno: v.GetUint64("seqno"),
 	}
@@ -586,7 +579,7 @@ func parseLeanConfig(v *fastjson.Value) leanConfig {
 // equal reports whether two projected configurations are identical, including
 // participant order.
 func (c leanConfig) equal(o leanConfig) bool {
-	return c.mode == o.mode && c.hash == o.hash && c.seqno == o.seqno &&
+	return c.hash == o.hash && c.seqno == o.seqno &&
 		slices.Equal(c.participants, o.participants)
 }
 
@@ -603,7 +596,6 @@ func (c leanConfig) json(a *fastjson.Arena) *fastjson.Value {
 
 	v := a.NewObject()
 	v.Set("participants", parts)
-	v.Set("mode", a.NewNumberInt(int(c.mode)))
 	v.Set("hash", a.NewString(c.hash))
 	v.Set("seqno", a.NewNumberString(strconv.FormatUint(c.seqno, 10)))
 	return v
@@ -615,4 +607,30 @@ func leanBool(a *fastjson.Arena, b bool) *fastjson.Value {
 		return a.NewTrue()
 	}
 	return a.NewFalse()
+}
+
+// equalLeanJSON compares JSON structurally without depending on object key order.
+func equalLeanJSON(a, b *fastjson.Value) bool {
+	if a == nil || b == nil {
+		return a == b
+	}
+	if a.Type() != b.Type() {
+		return false
+	}
+	switch a.Type() {
+	case fastjson.TypeObject:
+		x, y := a.GetObject(), b.GetObject()
+		if x.Len() != y.Len() {
+			return false
+		}
+		equal := true
+		x.Visit(func(key []byte, value *fastjson.Value) {
+			equal = equal && equalLeanJSON(value, y.Get(string(key)))
+		})
+		return equal
+	case fastjson.TypeArray:
+		return slices.EqualFunc(a.GetArray(), b.GetArray(), equalLeanJSON)
+	default:
+		return bytes.Equal(a.MarshalTo(nil), b.MarshalTo(nil))
+	}
 }

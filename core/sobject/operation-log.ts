@@ -151,7 +151,6 @@ export async function verifySOOperation(
 export function canWriteOps(role: SOParticipantRole | undefined): boolean {
   return (
     role === SOParticipantRole.SOParticipantRole_WRITER ||
-    role === SOParticipantRole.SOParticipantRole_VALIDATOR ||
     role === SOParticipantRole.SOParticipantRole_OWNER
   )
 }

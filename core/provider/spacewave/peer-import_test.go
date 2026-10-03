@@ -12,7 +12,7 @@ import (
 	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
 	"github.com/s4wave/spacewave/core/sobject"
 	"github.com/s4wave/spacewave/db/kvtx/hashmap"
-	"github.com/s4wave/spacewave/net/hash"
+	"github.com/s4wave/spacewave/net/crypto"
 	"github.com/sirupsen/logrus"
 )
 
@@ -27,27 +27,12 @@ func TestCloudPeerImportCommitsWithoutPublication(t *testing.T) {
 	}))
 	t.Cleanup(server.Close)
 
-	// Sign a genesis and root as the only owner.
+	// Sign a genesis state as the only owner.
 	ctx := t.Context()
 	priv, pid := generateTestKeypair(t)
 	client := NewSessionClient(server.Client(), server.URL, DefaultSigningEnvPrefix, priv, pid.String())
-	initial := &sobject.SOState{
-		Config: &sobject.SharedObjectConfig{Participants: []*sobject.SOParticipantConfig{{
-			PeerId: pid.String(), Role: sobject.SOParticipantRole_SOParticipantRole_OWNER,
-		}}},
-		Root: &sobject.SORoot{InnerSeqno: 1, Inner: []byte("trusted-root")},
-	}
-
-	// Verify the genesis and sign the root.
-	genesis, err := sobject.BuildSOConfigChange(testSharedObjectID, initial.Config, initial.Config, sobject.SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_GENESIS, priv, nil)
+	initial, genesis, err := sobject.BuildGenesisSOState(logrus.NewEntry(logrus.New()), testStepFactorySet(), testSharedObjectID, priv, nil)
 	if err != nil {
-		t.Fatal(err)
-	}
-	initial.Config, err = sobject.VerifyConfigChange(testSharedObjectID, initial.Config, genesis)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := initial.Root.SignInnerData(priv, testSharedObjectID, 1, hash.RecommendedHashType); err != nil {
 		t.Fatal(err)
 	}
 
@@ -76,7 +61,7 @@ func TestCloudPeerImportCommitsWithoutPublication(t *testing.T) {
 	host.soHost.SetContext(ctx)
 	t.Cleanup(host.soHost.ClearContext)
 
-	// Sign a newer root under an invite change.
+	// Sign a newer checkpoint under an invite change.
 	change, err := sobject.BuildSOConfigChange(testSharedObjectID, initial.Config, initial.Config, sobject.SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_ADD_INVITE, priv, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -86,11 +71,7 @@ func TestCloudPeerImportCommitsWithoutPublication(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	candidate.Root.InnerSeqno = 5
-	candidate.Root.ValidatorSignatures = nil
-	if err := candidate.Root.SignInnerData(priv, testSharedObjectID, 5, hash.RecommendedHashType); err != nil {
-		t.Fatal(err)
-	}
+	candidate = advanceTestCheckpoint(t, candidate, priv, "trusted checkpoint")
 
 	// Failure leaves the held authority, watched state and saved cache unchanged.
 	if err := host.soHost.ImportPeerSnapshot(ctx, candidate, []*sobject.SOConfigChange{change}, pid, nil); !errors.Is(err, failed) {
@@ -124,7 +105,7 @@ func TestCloudPeerImportCommitsWithoutPublication(t *testing.T) {
 		t.Fatalf("reopened peer history mismatch: %v", err)
 	}
 
-	// A cloud response prepared before the import cannot roll back its root or authority.
+	// A cloud response prepared before the import cannot roll back its checkpoint or authority.
 	stale := initial.CloneVT()
 	stale.Config = candidate.Config.CloneVT()
 	if err := reopened.handleStateDelta(ctx, &api.SOStateMessage{Seqno: 99, Content: &api.SOStateMessage_Snapshot{Snapshot: stale}}); err != nil {
@@ -134,11 +115,12 @@ func TestCloudPeerImportCommitsWithoutPublication(t *testing.T) {
 		t.Fatal("stale cloud response changed accepted peer state")
 	}
 
-	// Hold peer persistence while a cloud completion tries to publish an older root.
+	// Hold peer persistence while a cloud completion tries to publish an older checkpoint.
 	persisting, allowCommit := make(chan struct{}), make(chan struct{})
+	var newer *sobject.SOState
 	var blocked bool
 	reopened.persistVerifiedStateCache = func(ctx context.Context, cache *api.VerifiedSOStateCache) error {
-		if cache.GetPeerState().GetRoot().GetInnerSeqno() == 9 && !blocked {
+		if cache.GetPeerState().GetCheckpoint().EqualVT(newer.GetCheckpoint()) && !blocked {
 			blocked = true
 			close(persisting)
 			select {
@@ -150,17 +132,9 @@ func TestCloudPeerImportCommitsWithoutPublication(t *testing.T) {
 		return persist(ctx, cache)
 	}
 
-	// Sign a newer peer root and an older cloud root.
-	newer := candidate.CloneVT()
-	newer.Root = &sobject.SORoot{InnerSeqno: 9, Inner: []byte("newer peer root")}
-	if err := newer.Root.SignInnerData(priv, testSharedObjectID, 9, hash.RecommendedHashType); err != nil {
-		t.Fatal(err)
-	}
-	late := candidate.CloneVT()
-	late.Root = &sobject.SORoot{InnerSeqno: 8, Inner: []byte("delayed cloud root")}
-	if err := late.Root.SignInnerData(priv, testSharedObjectID, 8, hash.RecommendedHashType); err != nil {
-		t.Fatal(err)
-	}
+	// Sign an older cloud checkpoint and a newer peer checkpoint after it.
+	late := advanceTestCheckpoint(t, candidate, priv, "delayed cloud checkpoint")
+	newer = advanceTestCheckpoint(t, late, priv, "newer peer checkpoint")
 
 	// The peer import blocks in persistence before it becomes visible.
 	peerDone, cloudDone := make(chan error, 1), make(chan error, 1)
@@ -192,12 +166,8 @@ func TestCloudPeerImportCommitsWithoutPublication(t *testing.T) {
 		t.Fatal("delayed cloud completion overwrote the peer winner or created a publication")
 	}
 
-	// Later valid cloud progress also advances the durable root used on restart.
-	cloudNext := newer.CloneVT()
-	cloudNext.Root = &sobject.SORoot{InnerSeqno: 10, Inner: []byte("latest cloud root")}
-	if err := cloudNext.Root.SignInnerData(priv, testSharedObjectID, 10, hash.RecommendedHashType); err != nil {
-		t.Fatal(err)
-	}
+	// Later valid cloud progress also advances the durable checkpoint used on restart.
+	cloudNext := advanceTestCheckpoint(t, newer, priv, "latest cloud checkpoint")
 	if err := reopened.handleStateDelta(ctx, &api.SOStateMessage{Seqno: 101, Content: &api.SOStateMessage_Snapshot{Snapshot: cloudNext}}); err != nil {
 		t.Fatal(err)
 	}
@@ -208,4 +178,20 @@ func TestCloudPeerImportCommitsWithoutPublication(t *testing.T) {
 	if requests.Load() != 0 {
 		t.Fatalf("peer import made %d HTTP requests", requests.Load())
 	}
+}
+
+// advanceTestCheckpoint returns state advanced to the next checkpoint, signed
+// with priv, holding data.
+func advanceTestCheckpoint(t *testing.T, state *sobject.SOState, priv crypto.PrivKey, data string) *sobject.SOState {
+	// Adopt the next checkpoint signed by priv.
+	t.Helper()
+	checkpoint, err := state.BuildNextCheckpoint(testSharedObjectID, priv, []byte(data))
+	if err != nil {
+		t.Fatal(err)
+	}
+	next := state.CloneVT()
+	if err := next.AdoptCheckpoint(testSharedObjectID, checkpoint); err != nil {
+		t.Fatal(err)
+	}
+	return next
 }

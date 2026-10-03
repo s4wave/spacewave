@@ -2,10 +2,8 @@ package provider_spacewave
 
 import (
 	"bytes"
-	"cmp"
 	"context"
 	"slices"
-	"strings"
 	"time"
 
 	"github.com/pkg/errors"
@@ -18,10 +16,12 @@ const cloudOpsBodyLimit = 256 << 10
 
 // retainPublication commits accepted state and its cloud obligation atomically.
 // The caller holds acceptMu. No watched local success precedes this transaction.
-func (h *cloudSOHost) retainPublication(ctx context.Context, state *sobject.SOState, operation *sobject.SOOperation, root bool) error {
-	// Reject an operation that exceeds the cloud checkpoint limit.
-	if operation != nil && (&api.PostOpsRequest{Operations: []*sobject.SOOperation{operation}}).SizeVT() > cloudOpsBodyLimit {
-		return errors.New("operation exceeds the cloud checkpoint limit")
+func (h *cloudSOHost) retainPublication(ctx context.Context, state *sobject.SOState, operations []*sobject.SOOperation, checkpoint bool) error {
+	// Reject an operation that exceeds the cloud request limit.
+	for _, op := range operations {
+		if (&api.PostOpsRequest{Operations: []*sobject.SOOperation{op}}).SizeVT() > cloudOpsBodyLimit {
+			return errors.New("operation exceeds the cloud request limit")
+		}
 	}
 
 	// Fence the local block store before recording the obligation.
@@ -39,18 +39,17 @@ func (h *cloudSOHost) retainPublication(ctx context.Context, state *sobject.SOSt
 		return errors.New("local publication requires durable verified state")
 	}
 
-	// Extend the pending publication with the operation or new root.
+	// Extend the pending publication with the operation or new checkpoint.
 	pending := cache.GetPendingPublication()
 	if pending == nil {
 		pending = &api.PendingSOPublication{FirstPendingUnixMilli: time.Now().UnixMilli()}
 	}
-	if operation != nil {
-		pending.Operations = append(pending.Operations, operation.CloneVT())
-	}
-	if root {
-		pending.Root = state.GetRoot().CloneVT()
-		pending.Rejections = append(pending.Rejections, diffSOOperationRejections(h.stateCtr.GetValue(), state)...)
-		pending.Operations = sobject.FilterResolvedOperations(pending.Operations, pending.Root.GetAccountNonces(), nil, state.GetOpRejections())
+	pending.Operations = append(pending.Operations, cloneVTSlice(operations)...)
+	if checkpoint && state.GetCheckpoint() != nil {
+		pending.Checkpoint = state.GetCheckpoint().CloneVT()
+		if err := dropCoveredOperations(h.soID, pending); err != nil {
+			return err
+		}
 	}
 	cache.PeerState = state.CloneVT()
 	cache.PendingPublication = pending
@@ -80,54 +79,32 @@ func (h *cloudSOHost) pendingPublication() *api.PendingSOPublication {
 
 // publishCheckpoint sends only work captured before the corresponding block
 // fence. Newer local writes keep their own obligation through acknowledgment.
-func (h *cloudSOHost) publishCheckpoint(ctx context.Context, sent *api.PendingSOPublication) (retErr error) {
-	// A nonce conflict requires authoritative state before the scheduler retries.
-	// Refresh through the existing seed coordinator so persisted work can reconcile.
-	defer func() {
-		var cloudErr *cloudError
-		if errors.As(retErr, &cloudErr) && cloudErr.Code == "nonce_too_low" {
-			if err := h.pullStateSingleflight(ctx, SeedReasonGapRecovery); err != nil {
-				retErr = errors.Wrap(err, "refresh conflicting publication")
-			}
-		}
-	}()
+func (h *cloudSOHost) publishCheckpoint(ctx context.Context, sent *api.PendingSOPublication) error {
+	// A nil publication has nothing to send.
 	if sent == nil {
 		return nil
 	}
 
-	// Publish a validated root before the operation batch.
+	// Publish an authorized checkpoint before the operation batch.
 	var config *sobject.SharedObjectConfig
 	h.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) { config = h.verifiedConfig.CloneVT() })
 	if config == nil {
 		return sobject.ErrConfigHistoryUnavailable
 	}
-	if sent.GetRoot() != nil {
-		valid, err := sent.Root.ValidateSignatures(h.soID, config.GetParticipants())
-		if err != nil {
+	if sent.GetCheckpoint() != nil {
+		if _, err := sent.GetCheckpoint().ValidateAuthority(h.soID, config.GetParticipants()); err != nil {
 			return err
 		}
-		if err := sobject.CheckConsensusAcceptance(config.GetConsensusMode(), valid); err != nil {
-			return err
-		}
-		if err := h.client.PostRoot(ctx, h.soID, sent.Root, sent.Rejections); err != nil {
+		if err := h.client.PostCheckpoint(ctx, h.soID, sent.GetCheckpoint()); err != nil {
 			return err
 		}
 	}
 
-	// Re-signing can move a recovered write beyond newer queued nonces.
-	// The cloud batch wire contract requires strictly increasing nonce order.
-	slices.SortStableFunc(sent.GetOperations(), func(a, b *sobject.SOOperation) int {
-		aa, _ := a.UnmarshalInner()
-		bb, _ := b.UnmarshalInner()
-		return cmp.Compare(aa.GetNonce(), bb.GetNonce())
-	})
-
-	// Post signed operations in bounded batches.
+	// Post signed operations in bounded batches. Pending operations are held
+	// in the order they were written, so each follows its author's previous
+	// operation.
 	var batch []*sobject.SOOperation
 	for _, operation := range sent.GetOperations() {
-		if err := operation.ValidateSignature(h.soID, config.GetParticipants()); err != nil {
-			return err
-		}
 		candidate := append(batch, operation)
 		if len(candidate) > 50 || (&api.PostOpsRequest{Operations: candidate}).SizeVT() > cloudOpsBodyLimit {
 			if err := h.client.PostOps(ctx, h.soID, batch); err != nil {
@@ -159,16 +136,13 @@ func (h *cloudSOHost) publishCheckpoint(ctx context.Context, sent *api.PendingSO
 	if pending == nil {
 		return nil
 	}
-	if pending.GetRoot().EqualVT(sent.GetRoot()) {
-		pending.Root = nil
+	if pending.GetCheckpoint().EqualVT(sent.GetCheckpoint()) {
+		pending.Checkpoint = nil
 	}
 	pending.Operations = slices.DeleteFunc(pending.Operations, func(op *sobject.SOOperation) bool {
 		return slices.ContainsFunc(sent.Operations, func(other *sobject.SOOperation) bool { return op.EqualVT(other) })
 	})
-	pending.Rejections = slices.DeleteFunc(pending.Rejections, func(rejection *sobject.SOOperationRejection) bool {
-		return slices.ContainsFunc(sent.Rejections, func(other *sobject.SOOperationRejection) bool { return rejection.EqualVT(other) })
-	})
-	if pending.GetRoot() == nil && len(pending.Operations) == 0 && len(pending.Rejections) == 0 {
+	if pending.GetCheckpoint() == nil && len(pending.Operations) == 0 {
 		pending = nil
 	}
 	cache.PendingPublication = pending
@@ -205,8 +179,9 @@ func (s *syncController) setPublication(h *cloudSOHost, pending *api.PendingSOPu
 	})
 }
 
-// flushCheckpoint runs under flushMtx. Snapshotting roots before blocks prevents
-// a concurrent edit from publishing a root whose dependencies missed this flush.
+// flushCheckpoint runs under flushMtx. Snapshotting publications before blocks
+// prevents a concurrent edit from publishing state whose blocks missed this
+// flush.
 func (s *syncController) flushCheckpoint(ctx context.Context, orderBlocks bool) (retErr error) {
 	// Record sync errors in telemetry for the resource.
 	if s.telemetry != nil {
@@ -243,85 +218,43 @@ func (s *syncController) flushCheckpoint(ctx context.Context, orderBlocks bool) 
 	return nil
 }
 
-// acceptCloudSnapshot keeps the cloud cursor paired with its authenticated base,
-// while preserving newer peer roots and unresolved local operations. The caller
-// holds acceptMu and has verified both cloud signatures and changelog progression.
+// acceptCloudSnapshot keeps the cloud cursor paired with its authenticated
+// base, while preserving a newer peer checkpoint and operations the cloud does
+// not hold yet. The caller holds acceptMu and has verified the cloud state and
+// changelog progression.
 func (h *cloudSOHost) acceptCloudSnapshot(ctx context.Context, cloud *sobject.SOState, sequence uint64) error {
-	// Select the newer root between the cloud snapshot and the accepted state.
+	// Select the higher checkpoint between the cloud snapshot and the accepted
+	// state.
 	previous := h.stateCtr.GetValue()
-	next := cloud.CloneVT()
-	other := previous
-	if previous.GetRoot().GetInnerSeqno() > cloud.GetRoot().GetInnerSeqno() {
-		next = h.stateWithVerifiedConfig(previous, cloud.GetConfig())
-		other = cloud
-	} else if previous.GetRoot().GetInnerSeqno() == cloud.GetRoot().GetInnerSeqno() && previous.GetRoot() != nil && !previous.GetRoot().EqualVT(cloud.GetRoot()) {
-		return errors.New("cloud root conflicts with accepted peer root")
+	cloudCheckpoint, err := cloud.GetCheckpointInner()
+	if err != nil {
+		return err
+	}
+	previousCheckpoint, err := previous.GetCheckpointInner()
+	if err != nil {
+		return err
+	}
+	next, other := cloud.CloneVT(), previous
+	switch {
+	case previousCheckpoint.GetHeight() > cloudCheckpoint.GetHeight():
+		next, other = h.stateWithVerifiedConfig(previous, cloud.GetConfig()), cloud
+	case previousCheckpoint != nil && previousCheckpoint.GetHeight() == cloudCheckpoint.GetHeight() &&
+		!previous.GetCheckpoint().EqualVT(cloud.GetCheckpoint()):
+		return errors.New("cloud checkpoint conflicts with accepted peer checkpoint")
 	}
 
-	// Rebuild admissible work against the selected root. Its committed nonces
-	// discard resolved operations; signed rejection identities remain available.
-	for _, rejection := range diffSOOperationRejections(next, other) {
-		inner, err := rejection.ValidateSignature(h.soID, next.GetConfig().GetParticipants())
-		if err != nil {
-			continue
-		}
-		group := slices.IndexFunc(next.OpRejections, func(group *sobject.SOPeerOpRejections) bool { return group.GetPeerId() == inner.GetPeerId() })
-		if group == -1 {
-			next.OpRejections = append(next.OpRejections, &sobject.SOPeerOpRejections{PeerId: inner.GetPeerId(), Rejections: []*sobject.SOOperationRejection{rejection.CloneVT()}})
-		} else {
-			next.OpRejections[group].Rejections = append(next.OpRejections[group].Rejections, rejection.CloneVT())
+	// Union the operation sets. Operations the selected checkpoint covers drop
+	// out.
+	for _, op := range other.GetOps() {
+		if _, err := next.AddOperation(h.soID, op); err != nil {
+			return errors.Wrap(err, "merge operation")
 		}
 	}
-	slices.SortFunc(next.OpRejections, func(a, b *sobject.SOPeerOpRejections) int { return strings.Compare(a.GetPeerId(), b.GetPeerId()) })
-	operations := append(next.Ops, cloneVTSlice(other.GetOps())...)
-	operations = sobject.FilterResolvedOperations(operations, next.GetRoot().GetAccountNonces(), nil, next.GetOpRejections())
-	slices.SortStableFunc(operations, func(a, b *sobject.SOOperation) int {
-		aa, _ := a.UnmarshalInner()
-		bb, _ := b.UnmarshalInner()
-		if cmp := strings.Compare(aa.GetPeerId(), bb.GetPeerId()); cmp != 0 {
-			return cmp
-		}
-		return cmp.Compare(aa.GetNonce(), bb.GetNonce())
-	})
-	next.Ops = nil
-	next.QueuedAccountNonces = nil
-	for _, operation := range operations {
-		// Duplicate, committed, or revoked work is not admissible in this state.
-		_ = next.QueueOperation(h.soID, operation)
-	}
-
-	// A signed rejection consumes its nonce even when an older cache reused it
-	// for different local work. Re-sign that provably unpublished collision and
-	// every later local operation, which named the replaced operation as its
-	// predecessor. Retain operation IDs, encrypted contents, and the original
-	// flush deadline.
 	pending := h.pendingPublication()
-	var rechain bool
-	for i, operation := range pending.GetOperations() {
-		inner, err := operation.UnmarshalInner()
-		if err != nil {
+	if pending != nil {
+		if err := dropCoveredOperations(h.soID, &api.PendingSOPublication{Checkpoint: next.GetCheckpoint(), Operations: pending.GetOperations()}); err != nil {
 			return err
 		}
-		if inner.GetPeerId() != h.peerID.String() {
-			continue
-		}
-		if !rechain {
-			rechain = rejectionCollides(next, inner)
-		}
-		if !rechain {
-			continue
-		}
-		if err := operation.ValidateSignature(h.soID, next.GetConfig().GetParticipants()); err != nil {
-			return err
-		}
-		operation, err = sobject.BuildSOOperation(h.soID, h.privKey, inner.GetOpData(), next.NextOperationLink(inner.GetPeerId()), inner.GetLocalId())
-		if err != nil {
-			return err
-		}
-		if err := next.QueueOperation(h.soID, operation); err != nil {
-			return err
-		}
-		pending.Operations[i] = operation
 	}
 
 	// Persist the accepted state and its obligation to the verified cache.
@@ -355,25 +288,23 @@ func (h *cloudSOHost) acceptCloudSnapshot(ctx context.Context, cloud *sobject.SO
 	if configChanged {
 		h.triggerConfigChanged()
 	}
-	h.logNewOpRejections(previous, next, "cloud-checkpoint")
 	return nil
 }
 
-// rejectionCollides reports whether state holds a signed rejection of different
-// work at the operation's nonce.
-func rejectionCollides(state *sobject.SOState, inner *sobject.SOOperationInner) bool {
-	for _, group := range state.GetOpRejections() {
-		if group.GetPeerId() != inner.GetPeerId() {
-			continue
-		}
-		for _, rejection := range group.GetRejections() {
-			rejected, err := rejection.UnmarshalInner()
-			if err == nil && rejected.GetOpNonce() == inner.GetNonce() && rejected.GetLocalId() != inner.GetLocalId() {
-				return true
-			}
-		}
+// dropCoveredOperations removes the pending operations that the pending
+// checkpoint covers.
+func dropCoveredOperations(sharedObjectID string, pending *api.PendingSOPublication) error {
+	// Drop the operations the checkpoint covers.
+	checkpoint, err := pending.GetCheckpoint().UnmarshalInner()
+	if err != nil || checkpoint == nil {
+		return err
 	}
-	return false
+	set := sobject.NewSOOperationSet(sharedObjectID, checkpoint)
+	pending.Operations = slices.DeleteFunc(pending.Operations, func(op *sobject.SOOperation) bool {
+		inner, err := op.UnmarshalInner()
+		return err == nil && set.Covers(inner.GetPeerId(), inner.GetNonce())
+	})
+	return nil
 }
 
 // publishConfigChange posts a signed configuration change with the state it
@@ -381,49 +312,20 @@ func rejectionCollides(state *sobject.SOState, inner *sobject.SOOperationInner) 
 // prev is the state held under the write lock and next is that state after the
 // change. The caller holds writeMu.
 func (h *cloudSOHost) publishConfigChange(ctx context.Context, prev, next *sobject.SOState, entry *sobject.SOConfigChange) error {
-	// Settle accepted local work so the cloud holds the locked root.
+	// Settle accepted local work so the cloud holds the locked state.
 	if h.syncer != nil {
 		if err := h.syncer.FlushNow(ctx); err != nil {
 			return errors.Wrap(err, "flush pending publication")
 		}
 	}
 
-	// The cloud accepts only a newer root. When the change replaced the root's
-	// proofs, sign the unchanged contents at the next seqno and publish that
-	// root first, so the stored root verifies under the next configuration.
-	var root *sobject.SORoot
-	if !next.GetRoot().EqualVT(prev.GetRoot()) {
-		snap := sobject.NewSOStateParticipantHandle(h.le, h.sfs, h.soID, prev, h.privKey, h.peerID)
-		var err error
-		root, _, _, err = snap.ProcessOperations(ctx, nil, func(_ context.Context, stateData []byte, _ []*sobject.SOOperationInner) (*[]byte, []*sobject.SOOperationResult, error) {
-			return &stateData, nil, nil
-		})
-		if err != nil {
-			return errors.Wrap(err, "advance root")
-		}
-		valid, err := root.ValidateSignatures(h.soID, next.GetConfig().GetParticipants())
-		if err != nil {
-			return err
-		}
-		if err := sobject.CheckConsensusAcceptance(next.GetConfig().GetConsensusMode(), valid); err != nil {
-			return err
-		}
-		if err := h.client.PostRoot(ctx, h.soID, root, nil); err != nil {
-			return err
-		}
-	}
-
-	// Carry changed grants in the current key epoch and changed invites.
+	// Carry a changed current key epoch and changed invites.
 	var epochs []*sobject.SOKeyEpoch
 	h.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) { epochs = cloneVTSlice(h.keyEpochs) })
 	current := currentEpochWithFallback(prev, epochs)
 	var epoch *sobject.SOKeyEpoch
-	if !slices.EqualFunc(prev.GetRootGrants(), next.GetRootGrants(), (*sobject.SOGrant).EqualVT) {
-		if current == nil {
-			return errors.New("current key epoch missing for grant change")
-		}
-		epoch = current
-		epoch.Grants = cloneVTSlice(next.GetRootGrants())
+	if nextEpoch := next.CurrentKeyEpoch(); !nextEpoch.EqualVT(prev.CurrentKeyEpoch()) {
+		epoch = nextEpoch.CloneVT()
 	}
 	var invites []*sobject.SOInvite
 	if !slices.EqualFunc(prev.GetInvites(), next.GetInvites(), (*sobject.SOInvite).EqualVT) {
@@ -431,10 +333,7 @@ func (h *cloudSOHost) publishConfigChange(ctx context.Context, prev, next *sobje
 	}
 
 	// Recover the read key from the local grant.
-	grant := findSOGrantByPeerID(prev.GetRootGrants(), h.peerID.String())
-	if grant == nil && current != nil {
-		grant = findSOGrantByPeerID(current.GetGrants(), h.peerID.String())
-	}
+	grant := current.FindGrant(h.peerID.String())
 	if grant == nil {
 		return errors.New("local grant not found")
 	}
@@ -448,7 +347,7 @@ func (h *cloudSOHost) publishConfigChange(ctx context.Context, prev, next *sobje
 	if err != nil {
 		return err
 	}
-	keyEpoch := sobject.CurrentEpochNumber(epochs)
+	keyEpoch := current.GetEpoch()
 	if epoch != nil {
 		keyEpoch = epoch.GetEpoch()
 	}
@@ -457,7 +356,7 @@ func (h *cloudSOHost) publishConfigChange(ctx context.Context, prev, next *sobje
 		return errors.Wrap(err, "build recovery envelopes")
 	}
 
-	// Commit the change, then accept it with the published root.
+	// Commit the change, then accept it.
 	entryData, err := entry.MarshalVT()
 	if err != nil {
 		return err
@@ -465,5 +364,5 @@ func (h *cloudSOHost) publishConfigChange(ctx context.Context, prev, next *sobje
 	if err := h.client.PostConfigState(ctx, h.soID, entryData, invites, epoch, envelopes); err != nil {
 		return err
 	}
-	return h.applyConfigMutation(ctx, entry, invites, epoch, root)
+	return h.applyConfigMutation(ctx, entry, invites, epoch)
 }

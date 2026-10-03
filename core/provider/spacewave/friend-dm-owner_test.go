@@ -10,45 +10,7 @@ import (
 
 	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
 	"github.com/s4wave/spacewave/core/sobject"
-	sobject_world_engine "github.com/s4wave/spacewave/core/sobject/world/engine"
-	world_block_tx "github.com/s4wave/spacewave/db/world/block/tx"
-	spacewave_chat "github.com/s4wave/spacewave/sdk/chat"
 )
-
-// TestMarshalFriendDmChannelWorldOp builds an authenticated channel creation.
-func TestMarshalFriendDmChannelWorldOp(t *testing.T) {
-	// Decode the World operation.
-	data, err := marshalFriendDmChannelWorldOp()
-	if err != nil {
-		t.Fatalf("marshalFriendDmChannelWorldOp: %v", err)
-	}
-	worldOp := &sobject_world_engine.SOWorldOp{}
-	if err := worldOp.UnmarshalVT(data); err != nil {
-		t.Fatalf("unmarshal world op: %v", err)
-	}
-
-	// Check the transaction envelope.
-	apply := worldOp.GetApplyTxOp()
-	if apply == nil || apply.GetTx() == nil {
-		t.Fatal("expected ApplyTxOp envelope")
-	}
-	tx := apply.GetTx()
-	if tx.GetTxType() != world_block_tx.TxType_TxType_APPLY_WORLD_OP {
-		t.Fatalf("tx type = %v", tx.GetTxType())
-	}
-
-	// Check the channel operation, with the sender left to the signer.
-	chatOp := &spacewave_chat.CreateChatChannelOp{}
-	if err := chatOp.UnmarshalBlock(tx.GetTxApplyWorldOp().GetOperationBody()); err != nil {
-		t.Fatalf("unmarshal chat operation: %v", err)
-	}
-	if chatOp.GetObjectKey() != FriendDmChannelObjectKey {
-		t.Fatalf("object key = %q", chatOp.GetObjectKey())
-	}
-	if tx.GetTxApplyWorldOp().GetOpSender() != "" {
-		t.Fatalf("op sender = %q", tx.GetTxApplyWorldOp().GetOpSender())
-	}
-}
 
 func TestOpenFriendDMHiddenTargetDoesNotMutate(t *testing.T) {
 	// Count Cloud authorization requests served by the test server.

@@ -42,17 +42,16 @@ var (
 	// rebuild the change against the current one.
 	ErrConfigChainHeadMismatch = errors.New("config change previous_hash does not match current config_chain_hash")
 
-	// ErrInvalidSeqno is returned if the root seqno was unexpected.
-	ErrInvalidSeqno = errors.New("invalid shared object root seqno")
-
 	// ErrInvalidNonce is returned if the op nonce was unexpected.
 	ErrInvalidNonce = errors.New("invalid shared object op nonce")
 
-	// ErrEmptyValidatorSignatures is returned if there are no validator signatures.
-	ErrEmptyValidatorSignatures = errors.New("at least one validator signature required")
-
 	// ErrCannotDecode is returned if our local peer cannot decode the inner data (no valid grant).
 	ErrCannotDecode = errors.New("access denied: no valid grant for our peer")
+
+	// ErrKeyEpochUnavailable is returned if the local peer holds no grant for
+	// the key epoch an operation or checkpoint names. Replay stops instead of
+	// deciding an outcome, so members never diverge on what they could read.
+	ErrKeyEpochUnavailable = errors.New("no grant for the key epoch")
 
 	// ErrNotParticipant is returned if the peer is not a participant in the shared object.
 	ErrNotParticipant = errors.New("access denied: peer is not a participant")
@@ -71,12 +70,6 @@ var (
 
 	// ErrRejectedOp is returned if the op was rejected.
 	ErrRejectedOp = errors.New("rejected op")
-
-	// ErrDroppedOp is returned if the op left the queue without being accepted or rejected.
-	ErrDroppedOp = errors.New("op dropped from the queue without a decision")
-
-	// ErrInvalidValidator is returned if the required validator peer is not in the set of signatures.
-	ErrInvalidValidator = errors.New("required validator peer not in set of signatures")
 
 	// ErrInvalidMeta is returned if the metadata is invalid.
 	ErrInvalidMeta = errors.New("sobject: meta: invalid shared object metadata")

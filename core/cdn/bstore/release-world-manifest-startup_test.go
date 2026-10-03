@@ -9,7 +9,6 @@ import (
 
 	"github.com/aperturerobotics/controllerbus/controller"
 	bldr_manifest_world "github.com/s4wave/spacewave/bldr/manifest/world"
-	"github.com/s4wave/spacewave/core/sobject"
 	sobject_world_engine "github.com/s4wave/spacewave/core/sobject/world/engine"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
 	transform_all "github.com/s4wave/spacewave/db/block/transform/all"
@@ -129,23 +128,23 @@ func newReleaseWorldProbeEngine(
 	ctx context.Context,
 	store *CdnBlockStore,
 ) (*world_block.Engine, func()) {
-	// Refresh the CDN root pointer and require a shared-object root.
+	// Refresh the CDN root pointer and require a checkpoint.
 	t.Helper()
 	if _, err := store.Refresh(ctx); err != nil {
 		t.Fatalf("refresh CDN root pointer: %v", err)
 	}
 	pointer := store.Pointer()
-	if pointer == nil || pointer.GetRoot() == nil {
-		t.Fatal("CDN root pointer has no shared-object root")
+	if pointer.GetCheckpoint() == nil {
+		t.Fatal("CDN root pointer has no checkpoint")
 	}
 
-	// Decode the shared-object root into the world engine head state.
-	soRootInner := &sobject.SORootInner{}
-	if err := soRootInner.UnmarshalVT(pointer.GetRoot().GetInner()); err != nil {
-		t.Fatalf("decode CDN shared-object root: %v", err)
+	// Decode the checkpoint into the world engine head state.
+	checkpoint, err := pointer.GetCheckpoint().UnmarshalInner()
+	if err != nil {
+		t.Fatalf("decode CDN checkpoint: %v", err)
 	}
 	inner := &sobject_world_engine.InnerState{}
-	if err := inner.UnmarshalVT(soRootInner.GetStateData()); err != nil {
+	if err := inner.UnmarshalVT(checkpoint.GetStateData()); err != nil {
 		t.Fatalf("decode CDN world head: %v", err)
 	}
 	if inner.GetHeadRef() == nil {

@@ -62,7 +62,7 @@ func (w *settingsWatch) next(ctx context.Context) (*account_settings.AccountSett
 		return nil, err
 	}
 	w.snapshot = snapshot
-	settings, _, err := decodeAccountSettingsSnapshot(ctx, snapshot)
+	settings, err := account_settings.ReadSnapshot(ctx, snapshot)
 	return settings, err
 }
 

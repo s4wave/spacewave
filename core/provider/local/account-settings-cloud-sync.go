@@ -25,16 +25,15 @@ const (
 	accountSettingsSyncSourceCloud
 )
 
+// accountSettingsSyncEvent is the replayed settings of one side.
 type accountSettingsSyncEvent struct {
-	source   accountSettingsSyncSource
+	// source is the side the settings came from.
+	source accountSettingsSyncSource
+	// settings are the settings after the side's last operation.
 	settings *account_settings.AccountSettings
-	seqno    uint64
-}
-
-type accountSettingsSyncTarget interface {
-	QueueOperation(ctx context.Context, op []byte) (string, error)
-	WaitOperation(ctx context.Context, localID string) (uint64, bool, error)
-	ClearOperationResult(ctx context.Context, localID string) error
+	// opCount is the number of operations the side's replay placed. The side
+	// with more operations wins a sync.
+	opCount int
 }
 
 func (a *ProviderAccount) setLinkedCloudAccountID(cloudAccountID string) {
@@ -179,10 +178,14 @@ func accountSettingsSyncTerminalError(err error) bool {
 	return clouderror.IsNonRetryable(err)
 }
 
+// syncAccountSettingsToCloud mirrors the local account settings into the
+// settings of the linked cloud account cloudAccountID until ctx ends or the
+// cloud Session locks.
 func (a *ProviderAccount) syncAccountSettingsToCloud(
 	ctx context.Context,
 	cloudAccountID string,
 ) error {
+	// Mount the local account settings.
 	localRef, err := a.GetAccountSettingsRef(ctx)
 	if err != nil {
 		return errors.Wrap(err, "get local account settings ref")
@@ -193,6 +196,7 @@ func (a *ProviderAccount) syncAccountSettingsToCloud(
 	}
 	defer relLocalSO()
 
+	// Find the linked cloud Session.
 	sessionCtrl, sessionCtrlRef, err := session.ExLookupSessionController(
 		ctx,
 		a.t.p.b,
@@ -208,6 +212,8 @@ func (a *ProviderAccount) syncAccountSettingsToCloud(
 	if err != nil {
 		return errors.Wrap(err, "wait for linked cloud session")
 	}
+
+	// Mount the cloud Session.
 	cloudSession, cloudSessionDiRef, err := session.ExMountSession(
 		ctx,
 		a.t.p.b,
@@ -223,6 +229,7 @@ func (a *ProviderAccount) syncAccountSettingsToCloud(
 	}
 	defer cloudSessionDiRef.Release()
 
+	// Stop syncing when the cloud Session locks.
 	syncCtx, syncCancel := context.WithCancel(ctx)
 	defer syncCancel()
 	errCh := make(chan error, 3)
@@ -237,6 +244,7 @@ func (a *ProviderAccount) syncAccountSettingsToCloud(
 		}
 	}()
 
+	// Access the cloud provider account.
 	provAcc, provAccRef, err := provider.ExAccessProviderAccount(
 		syncCtx,
 		a.t.p.b,
@@ -248,15 +256,18 @@ func (a *ProviderAccount) syncAccountSettingsToCloud(
 	if err != nil {
 		return errors.Wrap(err, "access cloud provider account")
 	}
+
 	// Retain the mount while its authenticated dependents are live. A lock
 	// cancels those dependents before releasing the mount for a fresh tracker.
 	defer provAccRef.Release()
 
+	// Only a Spacewave cloud account holds the settings.
 	swAcc, ok := provAcc.(*provider_spacewave.ProviderAccount)
 	if !ok {
 		return errors.New("unexpected cloud provider account type")
 	}
 
+	// Mount the cloud account settings.
 	cloudRef, err := waitForCloudAccountSettingsRef(syncCtx, swAcc)
 	if err != nil {
 		return err
@@ -267,6 +278,7 @@ func (a *ProviderAccount) syncAccountSettingsToCloud(
 	}
 	defer relCloudSO()
 
+	// Access the local and cloud settings states.
 	localCtr, relLocalCtr, err := localSO.AccessSharedObjectState(syncCtx, nil)
 	if err != nil {
 		return errors.Wrap(err, "access local account settings state")
@@ -278,6 +290,7 @@ func (a *ProviderAccount) syncAccountSettingsToCloud(
 	}
 	defer relCloudCtr()
 
+	// Feed every change of either state to one event loop.
 	evCh := make(chan accountSettingsSyncEvent)
 	go watchAccountSettingsSyncState(
 		syncCtx,
@@ -294,16 +307,18 @@ func (a *ProviderAccount) syncAccountSettingsToCloud(
 		errCh,
 	)
 
+	// Track the latest settings and operation count of each side.
 	var (
 		localSettings *account_settings.AccountSettings
-		localSeqno    uint64
+		localOpCount  int
 		localReady    bool
 
 		cloudSettings *account_settings.AccountSettings
-		cloudSeqno    uint64
+		cloudOpCount  int
 		cloudReady    bool
 	)
 
+	// Reconcile whenever either side changes or the cloud permits writes.
 	writeAllowed, accountCh := loadCloudAccountSettingsSyncState(swAcc)
 	for {
 		select {
@@ -330,17 +345,17 @@ func (a *ProviderAccount) syncAccountSettingsToCloud(
 			switch ev.source {
 			case accountSettingsSyncSourceLocal:
 				localSettings = ev.settings
-				localSeqno = ev.seqno
+				localOpCount = ev.opCount
 				localReady = true
 			case accountSettingsSyncSourceCloud:
 				cloudSettings = ev.settings
-				cloudSeqno = ev.seqno
+				cloudOpCount = ev.opCount
 				cloudReady = true
 			}
 			if !localReady || !cloudReady {
 				continue
 			}
-			if localSeqno >= cloudSeqno {
+			if localOpCount >= cloudOpCount {
 				if !writeAllowed {
 					continue
 				}
@@ -461,7 +476,7 @@ func watchAccountSettingsSyncState(
 			return
 		}
 		prev = next
-		settings, seqno, err := decodeAccountSettingsSnapshot(ctx, next)
+		settings, opCount, err := readAccountSettingsSyncState(ctx, next)
 		if err != nil {
 			errCh <- err
 			return
@@ -472,52 +487,45 @@ func watchAccountSettingsSyncState(
 		case evCh <- accountSettingsSyncEvent{
 			source:   source,
 			settings: settings,
-			seqno:    seqno,
+			opCount:  opCount,
 		}:
 		}
 	}
 }
 
-func decodeAccountSettingsSnapshot(
+// readAccountSettingsSyncState replays snap and returns its settings and the
+// number of operations replay placed.
+func readAccountSettingsSyncState(
 	ctx context.Context,
 	snap sobject.SharedObjectStateSnapshot,
-) (*account_settings.AccountSettings, uint64, error) {
-	rootInner, err := snap.GetRootInner(ctx)
+) (*account_settings.AccountSettings, int, error) {
+	// Fold the operations over the checkpoint and decode the settings.
+	res, err := sobject.Fold(ctx, snap, account_settings.ProcessAccountSettingsOps)
 	if err != nil {
-		return nil, 0, err
+		return nil, 0, errors.Wrap(err, "replay account settings")
 	}
 	settings := &account_settings.AccountSettings{}
-	if rootInner == nil {
-		return settings, 0, nil
+	if err := settings.UnmarshalVT(res.StateData); err != nil {
+		return nil, 0, errors.Wrap(err, "unmarshal account settings")
 	}
-	if len(rootInner.GetStateData()) != 0 {
-		if err := settings.UnmarshalVT(rootInner.GetStateData()); err != nil {
-			return nil, 0, errors.Wrap(err, "unmarshal account settings")
-		}
-	}
-	return settings, rootInner.GetSeqno(), nil
+	return settings, len(res.Outcomes), nil
 }
 
+// syncAccountSettingsState writes the operations that bring target to source
+// into targetSO.
 func syncAccountSettingsState(
 	ctx context.Context,
 	source *account_settings.AccountSettings,
 	target *account_settings.AccountSettings,
-	targetSO accountSettingsSyncTarget,
+	targetSO sobject.SharedObject,
 ) error {
 	ops, err := buildAccountSettingsSyncOps(source, target)
 	if err != nil {
 		return err
 	}
 	for _, opData := range ops {
-		localID, err := targetSO.QueueOperation(ctx, opData)
-		if err != nil {
-			return errors.Wrap(err, "queue sync op")
-		}
-		if _, rejected, err := targetSO.WaitOperation(ctx, localID); err != nil {
-			if rejected {
-				_ = targetSO.ClearOperationResult(ctx, localID)
-			}
-			return errors.Wrap(err, "wait for sync op")
+		if _, err := sobject.WriteOperation(ctx, targetSO, opData, account_settings.ProcessAccountSettingsOps); err != nil {
+			return errors.Wrap(err, "write sync op")
 		}
 	}
 	return nil

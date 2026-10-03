@@ -2,27 +2,22 @@ package sobject
 
 import (
 	"context"
-	"crypto/sha256"
-	"slices"
-	"strings"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/aperturerobotics/util/refcount"
-	"github.com/aperturerobotics/util/scrub"
 	"github.com/aperturerobotics/util/ulid"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/core/bstore"
 	"github.com/s4wave/spacewave/db/kvtx"
 	"github.com/s4wave/spacewave/net/crypto"
-	"github.com/s4wave/spacewave/net/hash"
 	"github.com/s4wave/spacewave/net/peer"
 	"github.com/s4wave/spacewave/net/util/confparse"
 )
 
-// ProcessOpsFunc is a function which processes operations against a state.
-// cb is called with the state snapshot and the decoded inner state.
-// If rawNextStateData is nil, no changes will be applied to the state (no-op).
+// ProcessOpsFunc applies decoded operations to the state of a non-World
+// shared object. Replay calls it with one operation at a time.
+// If rawNextStateData is nil, the state is unchanged.
 type ProcessOpsFunc = func(
 	ctx context.Context,
 	snap SharedObjectStateSnapshot,
@@ -57,33 +52,9 @@ type SharedObject interface {
 	// Returns a release function. Accepts a function that is called if the Watchable becomes invalid.
 	AccessSharedObjectState(ctx context.Context, released func()) (ccontainer.Watchable[SharedObjectStateSnapshot], func(), error)
 
-	// QueueOperation applies an operation to the shared object op queue.
-	// Returns after the operation is applied to the local queue.
-	// Returns the local operation id.
+	// QueueOperation signs op as the local peer and adds it to the operation
+	// set. Returns the local operation id once the local state holds it.
 	QueueOperation(ctx context.Context, op []byte) (string, error)
-
-	// WaitOperation waits for the operation to be confirmed or rejected by the provider.
-	// Returns the current state nonce (greater than or equal to the nonce when the op was applied).
-	// After ClearOperation has been called, this will return success even for failed ops!
-	// If the operation was rejected, returns 0, true, error.
-	// Any other error returns 0, false, error.
-	WaitOperation(ctx context.Context, localID string) (uint64, bool, error)
-
-	// ClearOperationResult clears the operation state.
-	// No-op if the operation was successfully applied or ClearOperationResult was already called.
-	// Be sure to call this after checking WaitOperation (not before).
-	ClearOperationResult(ctx context.Context, localID string) error
-
-	// ProcessOperations processes operations as a validator.
-	// The ops should be processed in the order they are provided.
-	// The results must be a subset of ops (but does not need to have all ops).
-	//
-	// If watch is set, waits for ops to be queued, then calls cb. Does not return.
-	// If watch is unset, if there are no available ops, returns immediately.
-	//
-	// cb is called with the state snapshot and the decoded inner state.
-	// If rawNextStateData is nil, no changes will be applied to the state (no-op).
-	ProcessOperations(ctx context.Context, watch bool, cb ProcessOpsFunc) error
 }
 
 // PublicationRetention is implemented by providers that publish local state
@@ -223,90 +194,6 @@ func (c *SharedObjectConfig) Validate() error {
 	return nil
 }
 
-// BuildSOOperationRejection constructs a new SOOperationRejection.
-// The privKey is used to sign the rejection.
-// The sharedObjectID is used to build the signature context.
-// The submitterPeerID is the peer ID of the operation submitter.
-// The opNonce is the nonce of the rejected operation.
-// The opLocalID is the local ID of the rejected operation, must match the original operation.
-// The errorDetails are optional and may be nil.
-func BuildSOOperationRejection(
-	privKey crypto.PrivKey,
-	sharedObjectID string,
-	submitterPeerID peer.ID,
-	opNonce uint64,
-	opLocalID string,
-	errorDetails *SOOperationRejectionErrorDetails,
-) (*SOOperationRejection, error) {
-	// Construct the inner rejection
-	inner := &SOOperationRejectionInner{
-		PeerId:  submitterPeerID.String(),
-		OpNonce: opNonce,
-		LocalId: opLocalID,
-	}
-
-	// Get the validator's peer ID
-	validatorPeerID, err := peer.IDFromPrivateKey(privKey)
-	if err != nil {
-		return nil, err
-	}
-
-	// Add error details if provided
-	errorDetailsData, err := errorDetails.MarshalVT()
-	if err != nil {
-		return nil, err
-	}
-	if len(errorDetailsData) != 0 {
-		defer scrub.Scrub(errorDetailsData)
-		submitterPubKey, err := submitterPeerID.ExtractPublicKey()
-		if err != nil {
-			return nil, err
-		}
-
-		encErrorDetails, err := peer.EncryptToPubKey(
-			submitterPubKey,
-			BuildSOOperationRejectionErrorDetailsContext(
-				sharedObjectID,
-				validatorPeerID.String(),
-				submitterPeerID.String(),
-				opNonce,
-				opLocalID,
-			),
-			errorDetailsData,
-		)
-		if err != nil {
-			return nil, err
-		}
-		inner.ErrorDetails = encErrorDetails
-	}
-
-	// Validate the rejection.
-	if err := inner.Validate(); err != nil {
-		return nil, err
-	}
-
-	// Marshal the inner rejection
-	innerData, err := inner.MarshalVT()
-	if err != nil {
-		return nil, err
-	}
-
-	// Create the signature
-	encContext := BuildSOOperationRejectionSignatureContext(sharedObjectID, validatorPeerID.String(), submitterPeerID.String(), opNonce, opLocalID)
-	sig, err := peer.NewSignature(encContext, privKey, hash.RecommendedHashType, innerData, true)
-	if err != nil {
-		return nil, err
-	}
-
-	// Construct the SOOperationRejection
-	rejection := &SOOperationRejection{
-		Inner:     innerData,
-		Signature: sig,
-	}
-
-	return rejection, nil
-}
-
 // NewSOOperationLocalID constructs a new randomized local ID for a op.
 func NewSOOperationLocalID() string {
 	return ulid.NewULID()
@@ -402,179 +289,8 @@ func (r *SOOperationRef) Validate() error {
 }
 
 // ParsePeerID parses the peer ID.
-func (n *SOAccountNonce) ParsePeerID() (peer.ID, error) {
-	return parsePeerIDField(n.GetPeerId())
-}
-
-// ParsePeerID parses the peer ID.
 func (i *SOOperationInner) ParsePeerID() (peer.ID, error) {
 	return parsePeerIDField(i.GetPeerId())
-}
-
-// Validate checks the account names a peer and the hash of an operation.
-func (n *SOAccountNonce) Validate() error {
-	if _, err := n.ParsePeerID(); err != nil {
-		return err
-	}
-	if n.GetNonce() == 0 {
-		return ErrInvalidNonce
-	}
-	if len(n.GetOpHash()) != sha256.Size {
-		return errors.New("account op_hash must be a 32-byte hash")
-	}
-	return nil
-}
-
-// advanceAccountNonce raises the head of peerID's chain in nonces to the
-// operation at nonce with opHash, keeping nonces sorted by peer ID.
-// A head at or past nonce is kept.
-func advanceAccountNonce(nonces []*SOAccountNonce, peerID string, nonce uint64, opHash []byte) []*SOAccountNonce {
-	for _, accNonce := range nonces {
-		if accNonce.GetPeerId() == peerID {
-			if nonce > accNonce.GetNonce() {
-				accNonce.Nonce = nonce
-				accNonce.OpHash = opHash
-			}
-			return nonces
-		}
-	}
-	nonces = append(nonces, &SOAccountNonce{PeerId: peerID, Nonce: nonce, OpHash: opHash})
-	slices.SortFunc(nonces, func(a, b *SOAccountNonce) int {
-		return strings.Compare(a.GetPeerId(), b.GetPeerId())
-	})
-	return nonces
-}
-
-// Validate checks the root envelope, ordered participant nonces, and signature structure.
-func (r *SORoot) Validate() error {
-	// The envelope carries a sequence, bounded state, and bounded signatures.
-	if r.GetInnerSeqno() == 0 {
-		return ErrInvalidSeqno
-	}
-	if len(r.GetInner()) == 0 {
-		return ErrEmptyInnerData
-	}
-	if len(r.GetInner()) > MaxInnerDataSize {
-		return ErrMaxSizeExceeded
-	}
-	if len(r.GetValidatorSignatures()) == 0 {
-		return ErrEmptyValidatorSignatures
-	}
-	if len(r.GetValidatorSignatures()) > MaxValidatorSignatures {
-		return ErrMaxCountExceeded
-	}
-
-	// Validate account nonces are sorted and unique by peer ID
-	var prevPeerID string
-	for i, nonce := range r.GetAccountNonces() {
-		if err := nonce.Validate(); err != nil {
-			return errors.Wrapf(err, "account_nonces[%d]", i)
-		}
-		nPeerID := nonce.GetPeerId()
-		if prevPeerID != "" {
-			cmp := strings.Compare(prevPeerID, nPeerID)
-			if cmp >= 0 {
-				return errors.New("account nonces not sorted by peer_id or not unique")
-			}
-		}
-		prevPeerID = nPeerID
-	}
-
-	// Validate validator signatures
-	for i, sig := range r.GetValidatorSignatures() {
-		if err := sig.Validate(); err != nil {
-			return errors.Wrapf(err, "validator_signatures[%d]", i)
-		}
-	}
-
-	return nil
-}
-
-// ApplyUpdatedState applies an updated state to the SORoot.
-// Asserts that the previous (current) seqno is prevSeqno.
-// Signs the updated state.
-// Updates the SORoot in-place.
-// innerData should be the transformed marshaled inner data object.
-func (r *SORoot) ApplyUpdatedState(privKey crypto.PrivKey, sharedObjectID string, prevSeqno uint64, hashType hash.HashType, innerData []byte) error {
-	if r.GetInnerSeqno() != prevSeqno {
-		return ErrInvalidSeqno
-	}
-
-	nextSeqno := prevSeqno + 1
-	r.InnerSeqno = nextSeqno
-	r.ValidatorSignatures = nil
-	r.Inner = innerData
-
-	return r.SignInnerData(privKey, sharedObjectID, nextSeqno, hashType)
-}
-
-// BuildSignatureData builds the signature data that includes both inner and account nonces.
-func (r *SORoot) BuildSignatureData() ([]byte, error) {
-	var signData []byte
-	signData = append(signData, r.GetInner()...)
-	for _, nonce := range r.GetAccountNonces() {
-		nonceData, err := nonce.MarshalVT()
-		if err != nil {
-			return nil, err
-		}
-		signData = append(signData, nonceData...)
-	}
-	return signData, nil
-}
-
-// SignInnerData signs the inner data with a validator privKey.
-// If the privKey was already used to sign the data, does nothing.
-// seqno asserts that r.InnerSeqno matches the given value.
-func (r *SORoot) SignInnerData(privKey crypto.PrivKey, sharedObjectID string, seqno uint64, hashType hash.HashType) error {
-	pubKey := privKey.GetPublic()
-
-	// check if already signed
-	for _, sig := range r.GetValidatorSignatures() {
-		sigPubKey, err := sig.ParsePubKey()
-		if err != nil {
-			return err
-		}
-		if pubKey.Equals(sigPubKey) {
-			return nil
-		}
-	}
-
-	// assert seqno
-	innerData, innerSeqno := r.GetInner(), r.GetInnerSeqno()
-	if len(innerData) == 0 {
-		return ErrEmptyInnerData
-	}
-	if innerSeqno != seqno {
-		return ErrInvalidSeqno
-	}
-
-	// build inner data
-	signData, err := r.BuildSignatureData()
-	if err != nil {
-		return err
-	}
-	defer scrub.Scrub(signData)
-
-	// sign
-	encContext := BuildValidatorRootSignatureContext(sharedObjectID, seqno)
-	sig, err := peer.NewSignature(encContext, privKey, hashType, signData, true)
-	if err != nil {
-		return err
-	}
-
-	r.ValidatorSignatures = append(r.ValidatorSignatures, sig)
-	return nil
-}
-
-// Validate performs cursory checks on the SORootInner.
-func (r *SORootInner) Validate() error {
-	if r.GetSeqno() == 0 {
-		return ErrInvalidSeqno
-	}
-	if len(r.GetStateData()) > MaxStateDataSize {
-		return ErrMaxSizeExceeded
-	}
-	return nil
 }
 
 // ParsePeerID parses the peer ID.
@@ -607,40 +323,6 @@ func (g *SOGrantInner) Validate() error {
 	return g.GetTransformConf().Validate()
 }
 
-// Validate performs cursory checks on the SOOperationRejection.
-func (r *SOOperationRejection) Validate() error {
-	if len(r.GetInner()) == 0 {
-		return ErrEmptyInnerData
-	}
-	if len(r.GetInner()) > MaxInnerDataSize {
-		return ErrMaxSizeExceeded
-	}
-
-	if err := r.GetSignature().Validate(); err != nil {
-		return peer.ErrSignatureInvalid
-	}
-
-	// Unmarshal and validate the inner data
-	_, err := r.UnmarshalInner()
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-// UnmarshalInner unmarshals and verifies the SOOperationRejectionInner.
-func (r *SOOperationRejection) UnmarshalInner() (*SOOperationRejectionInner, error) {
-	inner := &SOOperationRejectionInner{}
-	if err := inner.UnmarshalVT(r.GetInner()); err != nil {
-		return nil, errors.Wrap(err, "failed to unmarshal inner data")
-	}
-	if err := inner.Validate(); err != nil {
-		return nil, errors.Wrap(err, "invalid inner data")
-	}
-	return inner, nil
-}
-
 // BuildSOOperationResult constructs a new SOOperationResult.
 // If success is false, errorDetails must be non-nil.
 func BuildSOOperationResult(
@@ -665,202 +347,4 @@ func BuildSOOperationResult(
 		}
 	}
 	return result
-}
-
-// ParsePeerID parses the peer ID.
-func (i *SOOperationRejectionInner) ParsePeerID() (peer.ID, error) {
-	return parsePeerIDField(i.GetPeerId())
-}
-
-// Validate performs cursory checks on the SOOperationRejectionInner.
-func (i *SOOperationRejectionInner) Validate() error {
-	// Parse and validate the peer ID
-	if _, err := i.ParsePeerID(); err != nil {
-		return err
-	}
-
-	if i.GetOpNonce() == 0 {
-		return ErrInvalidNonce
-	}
-
-	if len(i.GetErrorDetails()) > MaxErrorDetailsSize {
-		return ErrMaxSizeExceeded
-	}
-
-	if _, err := ParseSOOperationLocalID(i.GetLocalId()); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-// ParsePeerID parses the peer ID for the SOPeerOpRejections.
-func (r *SOPeerOpRejections) ParsePeerID() (peer.ID, error) {
-	return parsePeerIDField(r.GetPeerId())
-}
-
-// BuildSOClearOperationResult constructs a new SOClearOperationResult.
-// The privKey must belong to the peer that submitted the original operation.
-func BuildSOClearOperationResult(
-	sharedObjectID string,
-	privKey crypto.PrivKey,
-	localID string,
-) (*SOClearOperationResult, error) {
-	// Get the peer ID from the private key
-	peerID, err := peer.IDFromPrivateKey(privKey)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to get peer ID from private key")
-	}
-	peerIDStr := peerID.String()
-
-	// Create the inner message
-	inner := &SOClearOperationResultInner{
-		PeerId:  peerIDStr,
-		LocalId: localID,
-	}
-
-	// Marshal the inner data
-	innerData, err := inner.MarshalVT()
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to marshal inner data")
-	}
-
-	// Sign the inner data
-	sig, err := peer.NewSignature(
-		BuildSOClearOperationResultSignatureContext(
-			sharedObjectID,
-			peerIDStr,
-			localID,
-		),
-		privKey,
-		hash.RecommendedHashType,
-		innerData,
-		true,
-	)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to sign inner data")
-	}
-
-	// Create and return the clear operation
-	return &SOClearOperationResult{
-		Inner:     innerData,
-		Signature: sig,
-	}, nil
-}
-
-// UnmarshalInner unmarshals and verifies the SOClearOperationResultInner.
-func (c *SOClearOperationResult) UnmarshalInner() (*SOClearOperationResultInner, error) {
-	inner := &SOClearOperationResultInner{}
-	if err := inner.UnmarshalVT(c.GetInner()); err != nil {
-		return nil, errors.Wrap(err, "failed to unmarshal inner data")
-	}
-	if err := inner.Validate(); err != nil {
-		return nil, errors.Wrap(err, "invalid inner data")
-	}
-	return inner, nil
-}
-
-// Validate performs cursory checks on the SOClearOperationResult.
-func (c *SOClearOperationResult) Validate() error {
-	if len(c.GetInner()) == 0 {
-		return ErrEmptyInnerData
-	}
-	if len(c.GetInner()) > MaxInnerDataSize {
-		return ErrMaxSizeExceeded
-	}
-	if err := c.GetSignature().Validate(); err != nil {
-		return err
-	}
-	return nil
-}
-
-// Validate performs cursory checks on the SOClearOperationResultInner.
-func (i *SOClearOperationResultInner) Validate() error {
-	if _, err := i.ParsePeerID(); err != nil {
-		return err
-	}
-	if _, err := ParseSOOperationLocalID(i.GetLocalId()); err != nil {
-		return err
-	}
-	return nil
-}
-
-// ParsePeerID parses the peer ID.
-func (i *SOClearOperationResultInner) ParsePeerID() (peer.ID, error) {
-	return parsePeerIDField(i.GetPeerId())
-}
-
-// Validate performs cursory checks on the QueuedSOOperation.
-func (q *QueuedSOOperation) Validate() error {
-	if _, err := ParseSOOperationLocalID(q.GetLocalId()); err != nil {
-		return err
-	}
-
-	if len(q.GetOpData()) == 0 {
-		return ErrEmptyInnerData
-	}
-	if len(q.GetOpData()) > MaxInnerDataSize {
-		return ErrMaxSizeExceeded
-	}
-
-	return nil
-}
-
-// Validate performs cursory checks on the SOPeerOpRejections.
-func (r *SOPeerOpRejections) Validate() error {
-	_, err := r.ParsePeerID()
-	if err != nil {
-		return err
-	}
-	for i, rejection := range r.GetRejections() {
-		if err := rejection.Validate(); err != nil {
-			return errors.Wrapf(err, "rejection[%d]", i)
-		}
-	}
-	return nil
-}
-
-// DecodeErrorDetails decodes the error details message.
-//
-// If the field is empty, returns nil, nil
-func (i *SOOperationRejectionInner) DecodeErrorDetails(privKey crypto.PrivKey, sharedObjectID string, validatorPeerID peer.ID) (*SOOperationRejectionErrorDetails, error) {
-	if len(i.GetErrorDetails()) == 0 {
-		return nil, nil
-	}
-
-	privPeerID, err := peer.IDFromPrivateKey(privKey)
-	if err != nil {
-		return nil, err
-	}
-	privPeerIDStr := privPeerID.String()
-
-	if iPeerID := i.GetPeerId(); privPeerIDStr != iPeerID {
-		return nil, errors.Errorf("unexpected peer id for error details: %s != expected %s", privPeerIDStr, iPeerID)
-	}
-
-	decData, err := peer.DecryptWithPrivKey(
-		privKey,
-		BuildSOOperationRejectionErrorDetailsContext(
-			sharedObjectID,
-			validatorPeerID.String(),
-			privPeerIDStr,
-			i.GetOpNonce(),
-			i.GetLocalId(),
-		),
-		i.GetErrorDetails(),
-	)
-	if err != nil {
-		return nil, err
-	}
-	defer scrub.Scrub(decData)
-
-	errorDetails := &SOOperationRejectionErrorDetails{}
-	if err := errorDetails.UnmarshalVT(decData); err != nil {
-		return nil, errors.Wrap(err, "failed to unmarshal error details")
-	}
-	if len(errorDetails.GetErrorMsg()) == 0 {
-		return nil, errors.New("error details message was non-zero length but had an empty error msg")
-	}
-
-	return errorDetails, nil
 }

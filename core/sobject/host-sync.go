@@ -26,7 +26,9 @@ type SOHostSyncFuncs struct {
 	// Lock imports accepted peer state without publishing a local root to a server.
 	// When nil, the host uses its ordinary local persistence lock.
 	Lock SOStateLockFunc
-	// CheckpointLock atomically installs an externally authenticated invitation checkpoint.
+	// CheckpointLock atomically installs an externally authenticated invitation
+	// checkpoint. The changes written with it are the verified lineage of the
+	// state's config, oldest first; the first produced the new history base.
 	// It is never used for peer synchronization or an unauthenticated recovery candidate.
 	CheckpointLock SOStateLockFunc
 	// History returns a bounded oldest-first suffix between two exact head hashes.
@@ -81,6 +83,39 @@ func ReadConfigSuffix(ctx context.Context, base, target []byte, read func(contex
 		}
 		if !bytes.Equal(hash, target) {
 			return nil, ErrConfigHistoryUnavailable
+		}
+		entries = append(entries, entry)
+		target = entry.GetPreviousHash()
+	}
+
+	// Verification and transmission consume transitions in causal order.
+	slices.Reverse(entries)
+	return entries, nil
+}
+
+// ReadConfigLineage follows retained hash-addressed entries back from target,
+// through genesis or the oldest entry read holds, and returns them oldest
+// first. A replica sends it so the receiver can resolve the config of every
+// operation it holds. Past the suffix bounds it keeps the newest entries.
+func ReadConfigLineage(ctx context.Context, target []byte, read func(context.Context, []byte) (*SOConfigChange, error)) ([]*SOConfigChange, error) {
+	// Walk back from target while the entries fit the suffix bounds.
+	var entries []*SOConfigChange
+	var size int
+	for len(target) != 0 && len(entries) < MaxConfigSuffixEntries {
+		// Stop at the first entry this replica does not hold.
+		entry, err := read(ctx, target)
+		if errors.Is(err, ErrConfigHistoryUnavailable) {
+			break
+		}
+		if err != nil {
+			return nil, err
+		}
+		if entry == nil {
+			break
+		}
+		size += entry.SizeVT()
+		if size > MaxConfigSuffixBytes {
+			break
 		}
 		entries = append(entries, entry)
 		target = entry.GetPreviousHash()

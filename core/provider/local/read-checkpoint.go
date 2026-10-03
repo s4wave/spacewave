@@ -15,10 +15,11 @@ func readCheckpointKey(sharedObjectID string) []byte {
 	return []byte("so/" + sharedObjectID + "/read-checkpoint")
 }
 
-// writeReadCheckpoint retains the last readable root at the authority commit boundary.
-// A peer whose leave the head ownership transfer carries is no longer readable.
-// Readmission removes the checkpoint because the current World owns history again.
-// It runs after the commit's configuration history is written to tx.
+// writeReadCheckpoint retains the audience of the last readable state at the
+// authority commit boundary. A peer whose leave the head ownership transfer
+// carries is no longer readable. Readmission removes the checkpoint because the
+// current World owns history again. It runs after the commit's configuration
+// history is written to tx.
 func writeReadCheckpoint(
 	ctx context.Context,
 	tx kvtx.Tx,
@@ -66,33 +67,24 @@ func writeReadCheckpoint(
 		return err
 	}
 
-	// Delete the checkpoint on readmission; retain the readable root on departure.
+	// Delete the checkpoint on readmission; retain the readable audience on departure.
 	key := readCheckpointKey(sharedObjectID)
 	if isReadable {
 		return tx.Delete(ctx, key)
 	}
 
-	// Only this participant's grant is needed to decode the retained root.
-	checkpoint := &sobject.SOState{
-		Config: previous.GetConfig(),
-		Root:   previous.GetRoot(),
-	}
-	for _, grant := range previous.GetRootGrants() {
-		if grant.GetPeerId() == localPeer.String() {
-			checkpoint.RootGrants = append(checkpoint.RootGrants, grant)
-		}
-	}
-	data, err := checkpoint.MarshalVT()
+	// Retain the audience of the World this peer last installed.
+	data, err := previous.GetConfig().MarshalVT()
 	if err != nil {
 		return err
 	}
 	return tx.Set(ctx, key, data)
 }
 
-// GetSharedObjectReadCheckpoint returns the last readable snapshot retained at departure.
-// A nil snapshot means this provider has no retained history for this participant.
+// GetSharedObjectReadCheckpoint returns the audience retained at departure.
+// A nil checkpoint means this participant can still read the shared object.
 func (s *SharedObject) GetSharedObjectReadCheckpoint(ctx context.Context) (*sobject.SharedObjectReadCheckpoint, error) {
-	// Read the retained checkpoint or build one from the current state.
+	// Read the audience retained at departure.
 	read, err := s.objStore.NewTransaction(ctx, false)
 	if err != nil {
 		return nil, err
@@ -102,36 +94,22 @@ func (s *SharedObject) GetSharedObjectReadCheckpoint(ctx context.Context) (*sobj
 	if err != nil {
 		return nil, err
 	}
-
-	// Decode the retained checkpoint or snapshot the current denied state.
-	state := &sobject.SOState{}
 	if found {
-		if err := state.UnmarshalVT(data); err != nil {
+		config := &sobject.SharedObjectConfig{}
+		if err := config.UnmarshalVT(data); err != nil {
 			return nil, err
 		}
-	} else {
-		current, err := s.soHost.GetHostState(ctx)
-		if err != nil {
-			return nil, err
-		}
-		if !sobject.AuthoritativeSyncDenied(current.GetConfig(), s.tkr.healthCtr.GetValue()) {
-			return nil, nil
-		}
-		state.Config = current.GetConfig().CloneVT()
-		state.Root = current.GetRoot().CloneVT()
-		for _, grant := range current.GetRootGrants() {
-			if grant.GetPeerId() == s.localPid.String() {
-				state.RootGrants = append(state.RootGrants, grant.CloneVT())
-			}
-		}
+		return &sobject.SharedObjectReadCheckpoint{Config: config}, nil
 	}
 
-	// Validate and return the checkpoint handle.
-	if err := state.Validate(s.GetSharedObjectID()); err != nil {
+	// Without a recorded departure, an authoritative denial ends access at the
+	// current audience.
+	current, err := s.soHost.GetHostState(ctx)
+	if err != nil {
 		return nil, err
 	}
-	return &sobject.SharedObjectReadCheckpoint{
-		Snapshot: sobject.NewSOStateParticipantHandle(s.lsoHost.le, s.lsoHost.sfs, s.GetSharedObjectID(), state, s.localPriv, s.localPid),
-		Config:   state.GetConfig().CloneVT(),
-	}, nil
+	if !sobject.AuthoritativeSyncDenied(current.GetConfig(), s.tkr.healthCtr.GetValue()) {
+		return nil, nil
+	}
+	return &sobject.SharedObjectReadCheckpoint{Config: current.GetConfig().CloneVT()}, nil
 }

@@ -9,9 +9,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	"github.com/aperturerobotics/starpc/srpc"
-	"github.com/aperturerobotics/util/broadcast"
 	"github.com/aperturerobotics/util/ccontainer"
-	"github.com/aperturerobotics/util/routine"
 	"github.com/pkg/errors"
 	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
 	"github.com/s4wave/spacewave/core/sobject"
@@ -77,21 +75,6 @@ type CreateSecretOptions struct {
 	Timestamp time.Time
 	// NestedSharedObjectId optionally fixes the nested SharedObject id.
 	NestedSharedObjectId string
-}
-
-type secretPayloadStoreOperation struct {
-	so         sobject.SharedObject
-	stateCtr   ccontainer.Watchable[sobject.SharedObjectStateSnapshot]
-	expected   *SecretPayload
-	processor  *routine.RoutineContainer
-	state      *routine.RoutineContainer
-	waiter     *routine.RoutineContainer
-	bcast      broadcast.Broadcast
-	localID    string
-	stored     bool
-	waitDone   bool
-	err        error
-	processErr error
 }
 
 // NewSecretResource creates a new SecretResource.
@@ -281,6 +264,7 @@ func CreateSecretObject(
 
 // StoreSecretPayload replaces the payload in the nested SharedObject.
 func StoreSecretPayload(ctx context.Context, b bus.Bus, ref *sobject.SharedObjectRef, payload *SecretPayload) error {
+	// Encode the payload.
 	if ref == nil {
 		return ErrMissingSecretRef
 	}
@@ -292,20 +276,14 @@ func StoreSecretPayload(ctx context.Context, b bus.Bus, ref *sobject.SharedObjec
 		return err
 	}
 
+	// Write it as an operation on the nested object.
 	so, soRef, err := sobject.ExMountSharedObject(ctx, b, ref, false, nil)
 	if err != nil {
 		return err
 	}
 	defer soRef.Release()
-
-	stateCtr, relStateCtr, err := so.AccessSharedObjectState(ctx, nil)
-	if err != nil {
-		return err
-	}
-	defer relStateCtr()
-
-	op := newSecretPayloadStoreOperation(so, stateCtr, payload)
-	return op.Store(ctx, data)
+	_, err = sobject.WriteOperation(ctx, so, data, replaceSecretPayload)
+	return err
 }
 
 // ReadSecretPayload reads the nested SharedObject payload for a granted caller.
@@ -328,15 +306,16 @@ func ReadSecretPayload(ctx context.Context, b bus.Bus, secret *Secret) (*SecretP
 
 // ReadSecretPayloadFromSnapshot decodes payload bytes from a granted snapshot.
 func ReadSecretPayloadFromSnapshot(ctx context.Context, snap sobject.SharedObjectStateSnapshot) (*SecretPayload, error) {
+	// Fold the operations over the checkpoint and decode the payload.
 	if snap == nil {
 		return nil, ErrPayloadAccessDenied
 	}
-	root, err := snap.GetRootInner(ctx)
+	folded, err := sobject.Fold(ctx, snap, replaceSecretPayload)
 	if err != nil {
 		return nil, ErrPayloadAccessDenied
 	}
 	payload := &SecretPayload{}
-	if data := root.GetStateData(); len(data) != 0 {
+	if data := folded.StateData; len(data) != 0 {
 		if err := payload.UnmarshalVT(data); err != nil {
 			return nil, err
 		}
@@ -528,176 +507,6 @@ func replaceSecretPayload(
 		))
 	}
 	return &nextStateData, opResults, nil
-}
-
-func newSecretPayloadStoreOperation(
-	so sobject.SharedObject,
-	stateCtr ccontainer.Watchable[sobject.SharedObjectStateSnapshot],
-	expected *SecretPayload,
-) *secretPayloadStoreOperation {
-	op := &secretPayloadStoreOperation{
-		so:       so,
-		stateCtr: stateCtr,
-		expected: expected,
-	}
-	op.processor = routine.NewRoutineContainer()
-	op.processor.SetRoutine(op.processOperations)
-	op.state = routine.NewRoutineContainer()
-	op.state.SetRoutine(op.watchPayload)
-	op.waiter = routine.NewRoutineContainer()
-	op.waiter.SetRoutine(op.waitOperation)
-	return op
-}
-
-func (op *secretPayloadStoreOperation) Store(ctx context.Context, data []byte) error {
-	op.processor.SetContext(ctx, false)
-	op.state.SetContext(ctx, false)
-	defer op.stop()
-
-	localID, err := op.so.QueueOperation(ctx, data)
-	if err != nil {
-		return err
-	}
-	op.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
-		op.localID = localID
-		broadcast()
-	})
-	op.waiter.SetContext(ctx, false)
-	if err := op.waitStored(ctx); err != nil {
-		return err
-	}
-	return op.getProcessErr()
-}
-
-func (op *secretPayloadStoreOperation) processOperations(ctx context.Context) (err error) {
-	defer func() {
-		if errors.Is(err, context.Canceled) {
-			err = nil
-		}
-		op.setProcessDone(err)
-	}()
-	return op.so.ProcessOperations(ctx, true, replaceSecretPayload)
-}
-
-func (op *secretPayloadStoreOperation) waitOperation(ctx context.Context) (err error) {
-	localID, err := op.waitLocalID(ctx)
-	if err != nil {
-		return err
-	}
-	defer func() {
-		if err != nil && !errors.Is(err, context.Canceled) {
-			op.setErr(err)
-			return
-		}
-		if err == nil {
-			op.setWaitDone()
-		}
-	}()
-	_, rejected, err := op.so.WaitOperation(ctx, localID)
-	if rejected && err == nil {
-		err = errors.New("secret payload operation rejected")
-	}
-	return err
-}
-
-func (op *secretPayloadStoreOperation) waitLocalID(ctx context.Context) (string, error) {
-	var localID string
-	err := op.bcast.Wait(ctx, func(_ func(), _ func() <-chan struct{}) (bool, error) {
-		localID = op.localID
-		return localID != "", nil
-	})
-	return localID, err
-}
-
-func (op *secretPayloadStoreOperation) watchPayload(ctx context.Context) (err error) {
-	defer func() {
-		if err != nil && !errors.Is(err, context.Canceled) {
-			op.setErr(err)
-		}
-	}()
-
-	var current sobject.SharedObjectStateSnapshot
-	for {
-		next, err := op.stateCtr.WaitValueChange(ctx, current, nil)
-		if err != nil {
-			return err
-		}
-		current = next
-		payload, err := ReadSecretPayloadFromSnapshot(ctx, next)
-		if err == nil && payload.EqualVT(op.expected) {
-			op.setStored()
-			return nil
-		}
-	}
-}
-
-func (op *secretPayloadStoreOperation) waitStored(ctx context.Context) error {
-	return op.bcast.Wait(ctx, func(_ func(), _ func() <-chan struct{}) (bool, error) {
-		if op.stored && op.waitDone {
-			return true, nil
-		}
-		if op.err != nil {
-			return true, op.err
-		}
-		return false, nil
-	})
-}
-
-func (op *secretPayloadStoreOperation) stop() {
-	waitRoutineStopped(op.state)
-	waitRoutineStopped(op.waiter)
-	waitRoutineStopped(op.processor)
-}
-
-func (op *secretPayloadStoreOperation) setStored() {
-	op.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
-		op.stored = true
-		broadcast()
-	})
-}
-
-func (op *secretPayloadStoreOperation) setProcessDone(err error) {
-	op.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
-		op.processErr = err
-		if err != nil {
-			op.err = err
-		}
-		broadcast()
-	})
-}
-
-func (op *secretPayloadStoreOperation) setWaitDone() {
-	op.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
-		op.waitDone = true
-		broadcast()
-	})
-}
-
-func (op *secretPayloadStoreOperation) setErr(err error) {
-	op.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
-		if err != nil {
-			op.err = err
-			broadcast()
-		}
-	})
-}
-
-func (op *secretPayloadStoreOperation) getProcessErr() error {
-	var err error
-	op.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-		err = op.processErr
-	})
-	return err
-}
-
-func waitRoutineStopped(rc *routine.RoutineContainer) {
-	if rc == nil {
-		return
-	}
-	waitCh, _ := rc.SetRoutine(nil)
-	if waitCh != nil {
-		<-waitCh
-	}
 }
 
 func mountSecretInviteHost(

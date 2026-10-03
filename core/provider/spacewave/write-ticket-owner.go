@@ -15,7 +15,7 @@ type writeTicketAudience = writeticketowner.Audience
 // write-ticket audience constants.
 const (
 	writeTicketAudienceSOOp           = writeticketowner.AudienceSOOp
-	writeTicketAudienceSORoot         = writeticketowner.AudienceSORoot
+	writeTicketAudienceSOCheckpoint   = writeticketowner.AudienceSOCheckpoint
 	writeTicketAudienceBstoreSyncPush = writeticketowner.AudienceBstoreSyncPush
 )
 

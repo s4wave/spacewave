@@ -12,6 +12,8 @@ import (
 	"github.com/s4wave/spacewave/db/kvtx"
 	"github.com/s4wave/spacewave/db/object"
 	"github.com/s4wave/spacewave/db/volume"
+	"github.com/s4wave/spacewave/net/crypto"
+	"github.com/sirupsen/logrus"
 )
 
 // LocalTransferTarget implements TransferTarget for a local provider account.
@@ -74,26 +76,38 @@ func (t *LocalTransferTarget) AddSharedObject(ctx context.Context, ref *sobject.
 	return err
 }
 
-// WriteSharedObjectState writes the SO state for a shared object to the target's object store.
-func (t *LocalTransferTarget) WriteSharedObjectState(ctx context.Context, sharedObjectID string, state *sobject.SOState) error {
+// WriteSharedObjectState replaces the state and config history of a shared
+// object in the target's object store.
+func (t *LocalTransferTarget) WriteSharedObjectState(ctx context.Context, le *logrus.Entry, sharedObjectID string, owner crypto.PrivKey, stateData []byte) error {
+	// Build the genesis and open the object store.
+	state, genesis, err := sobject.BuildGenesisSOState(le, t.account.GetStepFactorySet(), sharedObjectID, owner, stateData)
+	if err != nil {
+		return err
+	}
 	objStore, rel, err := t.buildObjectStore(ctx)
 	if err != nil {
 		return err
 	}
 	defer rel()
 
+	// Write the genesis state and its history.
 	data, err := state.MarshalVT()
 	if err != nil {
 		return err
 	}
-
-	key := provider_local.SobjectObjectStoreHostStateKey(sharedObjectID)
 	return kvtx.RunTransaction(ctx, true,
 		func(ctx context.Context) (kvtx.Tx, error) {
 			return objStore.NewTransaction(ctx, true)
 		},
 		func(ctx context.Context, tx kvtx.Tx) error {
-			return tx.Set(ctx, key, data)
+			// The genesis starts a new lineage, so drop the old history checkpoint.
+			if err := tx.Delete(ctx, provider_local.SOConfigHistoryCheckpointKey(sharedObjectID)); err != nil {
+				return err
+			}
+			if err := provider_local.WriteSOConfigHistory(ctx, tx, sharedObjectID, genesis.GetConfig(), state.GetConfig(), []*sobject.SOConfigChange{genesis}); err != nil {
+				return err
+			}
+			return tx.Set(ctx, provider_local.SobjectObjectStoreHostStateKey(sharedObjectID), data)
 		},
 	)
 }

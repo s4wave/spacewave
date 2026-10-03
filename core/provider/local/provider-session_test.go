@@ -2,6 +2,7 @@ package provider_local_test
 
 import (
 	"context"
+	"errors"
 	"io"
 	"testing"
 
@@ -126,32 +127,10 @@ func mountAccountSettingsSO(ctx context.Context, t *testing.T, b bus.Bus, accoun
 	return so, func() { mountRef.Release() }
 }
 
-// addPairedDeviceAndWait adds a paired device to the account settings SO and
-// waits for the state to reflect it.
-func addPairedDeviceAndWait(ctx context.Context, t *testing.T, so sobject.SharedObject, peerID, name string) {
-	t.Helper()
-
-	addOp := &account_settings.AccountSettingsOp{
-		Op: &account_settings.AccountSettingsOp_AddPairedDevice{
-			AddPairedDevice: &account_settings.PairedDevice{
-				PeerId:      peerID,
-				DisplayName: name,
-				PairedAt:    1000,
-			},
-		},
-	}
-	opData, err := addOp.MarshalVT()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if _, err := so.QueueOperation(ctx, opData); err != nil {
-		t.Fatal(err)
-	}
-	waitPairedDevice(ctx, t, so, peerID)
-}
-
+// waitPairedDevice waits until the account settings of so list peerID as a
+// paired device.
 func waitPairedDevice(ctx context.Context, t *testing.T, so sobject.SharedObject, peerID string) {
+	// Watch the settings state.
 	t.Helper()
 	stateCtr, relStateCtr, err := so.AccessSharedObjectState(ctx, nil)
 	if err != nil {
@@ -159,20 +138,15 @@ func waitPairedDevice(ctx context.Context, t *testing.T, so sobject.SharedObject
 	}
 	defer relStateCtr()
 
+	// Stop at the first snapshot that lists the device.
 	err = ccontainer.WatchChanges(
 		ctx,
 		nil,
 		stateCtr,
 		func(snap sobject.SharedObjectStateSnapshot) error {
-			rootInner, err := snap.GetRootInner(ctx)
+			settings, err := account_settings.ReadSnapshot(ctx, snap)
 			if err != nil {
 				return err
-			}
-			settings := &account_settings.AccountSettings{}
-			if data := rootInner.GetStateData(); len(data) > 0 {
-				if err := settings.UnmarshalVT(data); err != nil {
-					return err
-				}
 			}
 			for _, d := range settings.GetPairedDevices() {
 				if d.GetPeerId() == peerID {
@@ -183,7 +157,7 @@ func waitPairedDevice(ctx context.Context, t *testing.T, so sobject.SharedObject
 		},
 		nil,
 	)
-	if err != nil && err != io.EOF {
+	if err != nil && !errors.Is(err, io.EOF) {
 		t.Fatal(err)
 	}
 }

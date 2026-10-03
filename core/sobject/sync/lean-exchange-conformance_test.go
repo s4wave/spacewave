@@ -7,7 +7,6 @@ import (
 	"errors"
 	"math"
 	"strconv"
-	"strings"
 	"testing"
 	"time"
 
@@ -28,8 +27,6 @@ func leanSyncExchangeFrame(t *testing.T, a *fastjson.Arena, message *SOSyncMessa
 
 	// Switch on message.GetBody().(type).
 	switch message.GetBody().(type) {
-	case *SOSyncMessage_Op:
-		kind = 2
 	case *SOSyncMessage_Challenge:
 		kind = 4
 
@@ -85,7 +82,7 @@ func leanSyncExchange(t *testing.T, a *fastjson.Arena, x *syncExchange) *fastjso
 	for name, state := range map[string]*sobject.SOState{"advertised": x.advertised, "lastAdvertised": x.lastAdvertised} {
 		projected := a.NewNull()
 		if state != nil {
-			projected = leanSyncState(t, a, x.sync.soID, state)
+			projected = leanSyncState(t, a, state)
 		}
 		v.Set(name, projected)
 	}
@@ -144,7 +141,7 @@ func leanSyncExchangeCheck(t *testing.T, x *syncExchange, current *sobject.SOSta
 	if wire == nil {
 		wire = &sobject.SOState{}
 	}
-	wire.Invites, wire.QueuedAccountNonces = nil, nil
+	wire.Invites = nil
 
 	// leanSyncMarshal encoded.
 	encoded := leanSyncMarshal(t, wire)
@@ -163,10 +160,10 @@ func leanSyncExchangeCheck(t *testing.T, x *syncExchange, current *sobject.SOSta
 			history = leanSyncChanges(t, &a, entries)
 		}
 		advertised := x.advertised.CloneVT()
-		advertised.Invites, advertised.QueuedAccountNonces = nil, nil
+		advertised.Invites = nil
 		data := leanSyncMarshal(t, advertised)
 		advertisedEncoded = a.NewString(hex.EncodeToString(data))
-		snapshot := &SOSyncSnapshot{SoState: data, RootSeqno: advertised.GetRoot().GetInnerSeqno(),
+		snapshot := &SOSyncSnapshot{SoState: data,
 			Revision: message.GetHistoryRequest().GetRevision(), BaseHash: message.GetHistoryRequest().GetBaseHash()}
 		snapshotBytes = (&SOSyncMessage{Body: &SOSyncMessage_Snapshot{Snapshot: snapshot}}).SizeVT()
 	}
@@ -184,32 +181,36 @@ func leanSyncExchangeCheck(t *testing.T, x *syncExchange, current *sobject.SOSta
 	}
 	input.Set("sizes", sizes)
 
-	// Set via input.
+	// Enable both observers and record the accepted base.
 	input.Set("admissionObserver", a.NewTrue())
 	input.Set("recoveryObserver", a.NewTrue())
 	accepted := a.NewObject()
-	accepted.Set("previous", leanSyncState(t, &a, x.sync.soID, previous))
+	accepted.Set("previous", leanSyncState(t, &a, previous))
 	receiving := x.receiving
 	if receiving == nil {
 		receiving = &syncReceive{}
 	}
 	accepted.Set("receiving", leanSyncReceive(t, &a, receiving))
 
-	// getSnapshot snapshot via message.
+	// Record the snapshot and its digest.
 	snapshot := message.GetSnapshot()
 	accepted.Set("snapshot", leanSyncSnapshot(&a, snapshot))
 	contentDigest := sha256.Sum256(snapshot.GetSoState())
 	accepted.Set("digest", a.NewString(hex.EncodeToString(contentDigest[:])))
+
+	// Decode and merge the candidate state.
 	candidate := &sobject.SOState{}
-	decoded := a.NewNull()
+	decoded, merged := a.NewNull(), a.NewNull()
 	if candidate.UnmarshalVT(snapshot.GetSoState()) == nil {
-		decoded = leanSyncState(t, &a, x.sync.soID, candidate)
+		decoded = leanSyncState(t, &a, candidate)
+		merged = leanSyncMerged(t, &a, x.sync.soID, previous, candidate)
 	}
 	accepted.Set("decoded", decoded)
+	accepted.Set("merged", merged)
 
-	// Set via accepted.
+	// Record the admission view of the host.
 	accepted.Set("candidateBytes", a.NewNumberInt(candidate.SizeVT()))
-	accepted.Set("beforeRead", leanSyncState(t, &a, x.sync.soID, previous))
+	accepted.Set("beforeRead", leanSyncState(t, &a, previous))
 	accepted.Set("localPeer", a.NewString(x.sync.localObjectPeerID.String()))
 	for _, field := range []string{"lockOK", "accessOK", "writeOK"} {
 		accepted.Set(field, a.NewTrue())
@@ -224,8 +225,6 @@ func leanSyncExchangeCheck(t *testing.T, x *syncExchange, current *sobject.SOSta
 	}
 	writeCount := *writes
 	logger := gateLogger()
-	var logs bytes.Buffer
-	logger.Logger.SetOutput(&logs)
 	start := time.Now()
 	if loop != nil {
 		err = loop.run(t, x, logger)
@@ -262,8 +261,8 @@ func leanSyncExchangeCheck(t *testing.T, x *syncExchange, current *sobject.SOSta
 	if readErr != nil {
 		t.Fatal(readErr)
 	}
-	accepted.Set("afterRead", leanSyncState(t, &a, x.sync.soID, after))
-	input.Set("healthRead", leanSyncState(t, &a, x.sync.soID, after))
+	accepted.Set("afterRead", leanSyncState(t, &a, after))
+	input.Set("healthRead", leanSyncState(t, &a, after))
 	request, expected, result := a.NewObject(), a.NewObject(), a.NewObject()
 	request.Set("op", a.NewString("receiveSyncExchange"))
 	if pump {
@@ -274,7 +273,7 @@ func leanSyncExchangeCheck(t *testing.T, x *syncExchange, current *sobject.SOSta
 
 	// Check the condition before continuing.
 	if current != nil {
-		projectedCurrent = leanSyncState(t, &a, x.sync.soID, current)
+		projectedCurrent = leanSyncState(t, &a, current)
 	}
 	request.Set("current", projectedCurrent)
 	frame := leanSyncExchangeFrame(t, &a, message)
@@ -289,7 +288,7 @@ func leanSyncExchangeCheck(t *testing.T, x *syncExchange, current *sobject.SOSta
 		observation.Set("current", projectedCurrent)
 		fresh := a.NewNull()
 		if loop.next != nil {
-			fresh = leanSyncState(t, &a, x.sync.soID, loop.next)
+			fresh = leanSyncState(t, &a, loop.next)
 		}
 		observation.Set("incomingCurrent", fresh)
 		observation.Set("event", a.NewNumberInt(loop.event))
@@ -318,8 +317,6 @@ func leanSyncExchangeCheck(t *testing.T, x *syncExchange, current *sobject.SOSta
 
 	// Set via result.
 	result.Set("state", leanSyncExchange(t, &a, x))
-	dispatched := strings.Contains(logs.String(), "failed to unmarshal remote op")
-	result.Set("operation", leanSyncBool(&a, dispatched))
 	for field, value := range map[string]*bool{"admission": admission, "recovery": recovery} {
 		observation := a.NewNull()
 		if value != nil {
@@ -330,13 +327,10 @@ func leanSyncExchangeCheck(t *testing.T, x *syncExchange, current *sobject.SOSta
 	expected.Set("ok", leanSyncBool(&a, err == nil))
 	expected.Set("exchange", result)
 	if !pump || loop != nil {
-		host := a.NewNull()
-		if !dispatched {
-			host = a.NewObject()
-			host.Set("state", leanSyncState(t, &a, x.sync.soID, after))
-			host.Set("wrote", leanSyncBool(&a, *writes != writeCount))
-			host.Set("revoked", leanSyncBool(&a, errors.Is(err, sobject.ErrParticipantRevoked)))
-		}
+		host := a.NewObject()
+		host.Set("state", leanSyncState(t, &a, after))
+		host.Set("wrote", leanSyncBool(&a, *writes != writeCount))
+		host.Set("revoked", leanSyncBool(&a, errors.Is(err, sobject.ErrParticipantRevoked)))
 		expected.Set("host", host)
 	}
 	return leanSyncCase{name: name, request: request.MarshalTo(nil), expected: expected.MarshalTo(nil)}
@@ -384,8 +378,9 @@ func leanSyncExchangeCases(t *testing.T, seed uint64, withLoop bool) []leanSyncC
 	if err != nil {
 		t.Fatal(err)
 	}
-	target.Root.InnerSeqno = 2 + seed%4
-	signSnapshotRoot(t, soID, target, owner)
+	for range 1 + seed%4 {
+		advanceSnapshotCheckpoint(t, soID, target, owner)
+	}
 
 	// iDFromPrivateKey localID,err via peer.
 	localID, err := peer.IDFromPrivateKey(reader)
@@ -405,7 +400,7 @@ func leanSyncExchangeCases(t *testing.T, seed uint64, withLoop bool) []leanSyncC
 		t.Fatal(err)
 	}
 	head := &SOSyncHead{Revision: revision, ConfigHash: target.Config.ConfigChainHash,
-		ConfigSeqno: target.Config.ConfigChainSeqno, RootSeqno: target.Root.InnerSeqno, StateHash: digest}
+		ConfigSeqno: target.Config.ConfigChainSeqno, StateHash: digest}
 	var cases []leanSyncCase
 	variants := 55
 	if withLoop {
@@ -495,7 +490,6 @@ func leanSyncExchangeCases(t *testing.T, seed uint64, withLoop bool) []leanSyncC
 			message.GetHead().ConfigSeqno = 0
 		case 23:
 			message.GetHead().ConfigHash = current.Config.ConfigChainHash
-			message.GetHead().RootSeqno = 0
 		case 24, 25, 26, 27, 28:
 			advertise()
 			message = &SOSyncMessage{Body: &SOSyncMessage_HistoryRequest{HistoryRequest: request.CloneVT()}}
@@ -542,7 +536,7 @@ func leanSyncExchangeCases(t *testing.T, seed uint64, withLoop bool) []leanSyncC
 				message = &SOSyncMessage{Body: &SOSyncMessage_Snapshot{}}
 			}
 		case 39, 40:
-			message = &SOSyncMessage{Body: &SOSyncMessage_Op{Op: &SOSyncOp{Operation: []byte{0xff}}}}
+			message = &SOSyncMessage{}
 			if variant == 39 {
 				x.terminal = sobject.ErrConfigHistoryUnavailable
 			}

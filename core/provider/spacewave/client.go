@@ -1714,18 +1714,21 @@ func (c *SessionClient) PostOp(ctx context.Context, soID string, opData []byte) 
 	return errors.Wrap(err, "post op")
 }
 
-// PostOps posts one bounded atomic operation checkpoint using its write ticket.
+// PostOps posts one bounded batch of signed operations using its write ticket.
 func (c *SessionClient) PostOps(ctx context.Context, soID string, operations []*sobject.SOOperation) error {
+	// Encode a batch within the size limits.
 	if len(operations) == 0 || len(operations) > 50 {
-		return errors.New("operation checkpoint must contain 1 to 50 operations")
+		return errors.New("operation batch must contain 1 to 50 operations")
 	}
 	body, err := (&api.PostOpsRequest{Operations: operations}).MarshalVT()
 	if err != nil {
 		return err
 	}
 	if len(body) > 1<<20 {
-		return errors.New("operation checkpoint exceeds 1 MiB")
+		return errors.New("operation batch exceeds 1 MiB")
 	}
+
+	// Post it with an operation ticket.
 	return c.executeRequiredWriteTicketAudience(ctx, soID, writeTicketAudienceSOOp, func(ticket string) error {
 		data, err := c.postSObjectWriteWithTicket(ctx, soID, "ops", body, ticket)
 		if err != nil {
@@ -1736,34 +1739,22 @@ func (c *SessionClient) PostOps(ctx context.Context, soID string, operations []*
 	})
 }
 
-// PostRoot posts a root state update to a shared object.
-func (c *SessionClient) PostRoot(
-	ctx context.Context,
-	soID string,
-	root *sobject.SORoot,
-	rejectedOps []*sobject.SOOperationRejection,
-) error {
-	body, err := marshalPostRootRequest(root, rejectedOps)
+// PostCheckpoint posts an owner-signed checkpoint to a shared object. The
+// first checkpoint of a new object is its genesis checkpoint.
+func (c *SessionClient) PostCheckpoint(ctx context.Context, soID string, checkpoint *sobject.SOCheckpoint) error {
+	body, err := (&api.PostCheckpointRequest{Checkpoint: checkpoint}).MarshalVT()
 	if err != nil {
-		return errors.Wrap(err, "marshal post root request")
+		return err
 	}
-	err = c.executeRequiredWriteTicketAudience(
-		ctx,
-		soID,
-		writeTicketAudienceSORoot,
-		func(ticket string) error {
-			data, err := c.postSObjectWriteWithTicket(ctx, soID, "root", body, ticket)
-			if err != nil {
-				return err
-			}
-			var resp api.SubmitRootResponse
-			if err := resp.UnmarshalVT(data); err != nil {
-				return errors.Wrap(err, "unmarshal submit root response")
-			}
-			return nil
-		},
-	)
-	return errors.Wrap(err, "post root")
+	err = c.executeRequiredWriteTicketAudience(ctx, soID, writeTicketAudienceSOCheckpoint, func(ticket string) error {
+		data, err := c.postSObjectWriteWithTicket(ctx, soID, "checkpoint", body, ticket)
+		if err != nil {
+			return err
+		}
+		var resp api.SubmitCheckpointResponse
+		return errors.Wrap(resp.UnmarshalVT(data), "unmarshal submit checkpoint response")
+	})
+	return errors.Wrap(err, "post checkpoint")
 }
 
 // PostClientErrorReport submits a best-effort diagnostic report for a client-side failure.
@@ -1861,45 +1852,6 @@ func (c *SessionClient) GetSOState(ctx context.Context, soID string, since uint6
 		return nil, errors.Wrap(err, "get so state")
 	}
 	return data, nil
-}
-
-// PostInitState posts the initial root state for a newly created shared object.
-func (c *SessionClient) PostInitState(ctx context.Context, soID string, rootData []byte) error {
-	root := &sobject.SORoot{}
-	if err := root.UnmarshalVT(rootData); err != nil {
-		return errors.Wrap(err, "unmarshal root")
-	}
-	body, err := marshalPostRootRequest(root, nil)
-	if err != nil {
-		return errors.Wrap(err, "marshal post root request")
-	}
-	err = c.executeRequiredWriteTicketAudience(
-		ctx,
-		soID,
-		writeTicketAudienceSORoot,
-		func(ticket string) error {
-			data, err := c.postSObjectWriteWithTicket(ctx, soID, "root", body, ticket)
-			if err != nil {
-				return err
-			}
-			var resp api.SubmitRootResponse
-			if err := resp.UnmarshalVT(data); err != nil {
-				return errors.Wrap(err, "unmarshal submit root response")
-			}
-			return nil
-		},
-	)
-	return errors.Wrap(err, "post init state")
-}
-
-func marshalPostRootRequest(
-	root *sobject.SORoot,
-	rejectedOps []*sobject.SOOperationRejection,
-) ([]byte, error) {
-	return (&api.PostRootRequest{
-		Root:        root,
-		RejectedOps: rejectedOps,
-	}).MarshalVT()
 }
 
 // GetConfigChain retrieves the config change chain and key epochs for a shared object.

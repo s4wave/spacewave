@@ -1,12 +1,12 @@
 package sobject_sync
 
 import (
-	"bytes"
 	"context"
 	"crypto/sha256"
 	"errors"
 	"io"
 	"net"
+	"strconv"
 	"testing"
 	"time"
 
@@ -18,7 +18,6 @@ import (
 	transform_blockenc "github.com/s4wave/spacewave/db/block/transform/blockenc"
 	"github.com/s4wave/spacewave/db/util/blockenc"
 	"github.com/s4wave/spacewave/net/crypto"
-	"github.com/s4wave/spacewave/net/hash"
 	"github.com/s4wave/spacewave/net/peer"
 	stream_packet "github.com/s4wave/spacewave/net/stream/packet"
 	"github.com/sirupsen/logrus"
@@ -102,11 +101,6 @@ func participantCfg(peerIDStr string, role sobject.SOParticipantRole) *sobject.S
 	return &sobject.SOParticipantConfig{PeerId: peerIDStr, Role: role}
 }
 
-// testOperationLink places an operation at nonce under a fixed config hash.
-func testOperationLink(nonce uint64) *sobject.SOOperationLink {
-	return &sobject.SOOperationLink{Nonce: nonce, ConfigHash: bytes.Repeat([]byte{0xc0}, 32)}
-}
-
 // pipeSessions builds a paired send/receive packet session.
 func pipeSessions(t *testing.T) (local *stream_packet.Session, remote *stream_packet.Session) {
 	t.Helper()
@@ -173,7 +167,7 @@ func runSnapshotExchange(t *testing.T, s *SOSync, ctx context.Context, peerSnap 
 
 	// sum256 digest via sha256.
 	digest := sha256.Sum256(peerSnap.GetSnapshot().GetSoState())
-	head := &SOSyncHead{Revision: 1, StateHash: digest[:], ConfigHash: state.GetConfig().GetConfigChainHash(), ConfigSeqno: state.GetConfig().GetConfigChainSeqno(), RootSeqno: peerSnap.GetSnapshot().GetRootSeqno()}
+	head := &SOSyncHead{Revision: 1, StateHash: digest[:], ConfigHash: state.GetConfig().GetConfigChainHash(), ConfigSeqno: state.GetConfig().GetConfigChainSeqno()}
 	if err := remoteSess.SendMsg(&SOSyncMessage{Body: &SOSyncMessage_Head{Head: head}}); err != nil {
 		return <-done
 	}
@@ -210,461 +204,149 @@ func runSnapshotExchange(t *testing.T, s *SOSync, ctx context.Context, peerSnap 
 	return nil
 }
 
-func TestSnapshotExchangeRejectsExcludedLocalPeer(t *testing.T) {
+// gateState returns a state whose genesis config, signed by owner, names
+// owner and local with role, holding the genesis checkpoint.
+func gateState(t *testing.T, soID string, owner crypto.PrivKey, local string, role sobject.SOParticipantRole) *sobject.SOState {
+	t.Helper()
+	state := &sobject.SOState{Config: &sobject.SharedObjectConfig{Participants: []*sobject.SOParticipantConfig{
+		participantCfg(mustPeerIDStr(t, owner), sobject.SOParticipantRole_SOParticipantRole_OWNER),
+		participantCfg(local, role),
+	}}}
+	trustSnapshotConfig(t, soID, state, owner)
+	return state
+}
 
-	// background ctx via context.
-	ctx := context.Background()
-	soID := "gate-object"
-	localPriv := mustKeyPair(t)
-	localPeerStr := mustPeerIDStr(t, localPriv)
+// snapshotMessage encodes state as a snapshot frame.
+func snapshotMessage(t *testing.T, state *sobject.SOState) *SOSyncMessage {
+	t.Helper()
+	data, err := state.MarshalVT()
+	if err != nil {
+		t.Fatal(err)
+	}
+	return &SOSyncMessage{Body: &SOSyncMessage_Snapshot{Snapshot: &SOSyncSnapshot{SoState: data}}}
+}
+
+func TestSnapshotExchangeRejectsExcludedLocalPeer(t *testing.T) {
+	// Create the local reader.
+	const soID = "gate-object"
+	localPriv, ownerPriv := mustKeyPair(t), mustKeyPair(t)
 	localPeer, err := peer.IDFromPrivateKey(localPriv)
 	if err != nil {
 		t.Fatal(err)
 	}
-	ownerPriv := mustKeyPair(t)
-	ownerPeerStr := mustPeerIDStr(t, ownerPriv)
-
-	// Record held.
-	held := &sobject.SOState{
-		Config: &sobject.SharedObjectConfig{Participants: []*sobject.SOParticipantConfig{
-			participantCfg(ownerPeerStr, sobject.SOParticipantRole_SOParticipantRole_OWNER),
-			participantCfg(localPeerStr, sobject.SOParticipantRole_SOParticipantRole_READER),
-		}},
-		Root: &sobject.SORoot{InnerSeqno: 1},
-	}
-	trustSnapshotConfig(t, soID, held, ownerPriv)
-	localHost, ctr := newMemHost(soID, held)
+	held := gateState(t, soID, ownerPriv, localPeer.String(), sobject.SOParticipantRole_SOParticipantRole_READER)
+	localHost, ctr := newMemHost(soID, held.CloneVT())
 	s := NewSOSync(gateLogger(), nil, soID, localPeer, localPriv, localHost, nil)
 
-	// Record peerState.
-	peerState := &sobject.SOState{
-		Config: &sobject.SharedObjectConfig{
-			Participants: []*sobject.SOParticipantConfig{participantCfg(ownerPeerStr, sobject.SOParticipantRole_SOParticipantRole_OWNER)},
-		},
-		Root: &sobject.SORoot{InnerSeqno: 5},
-	}
-	snapData, err := peerState.MarshalVT()
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	err = runSnapshotExchange(t, s, ctx, &SOSyncMessage{
-		Body: &SOSyncMessage_Snapshot{Snapshot: &SOSyncSnapshot{SoState: snapData, RootSeqno: 5}},
-	})
-	if err == nil {
+	// The peer offers an unproven config without the local peer.
+	peerState := held.CloneVT()
+	peerState.Config.Participants = peerState.Config.Participants[:1]
+	advanceSnapshotCheckpoint(t, soID, peerState, ownerPriv)
+	if err := runSnapshotExchange(t, s, t.Context(), snapshotMessage(t, peerState)); err == nil {
 		t.Fatal("expected snapshot from config excluding the local peer to be rejected")
 	}
-	if got := ctr.GetValue().GetRoot().GetInnerSeqno(); got != 1 {
-		t.Fatalf("local state advanced to seqno %d; expected rejection to keep seqno 1", got)
+	if !ctr.GetValue().EqualVT(held) {
+		t.Fatal("rejected snapshot changed the local state")
 	}
 }
 
 func TestSnapshotExchangeRejectsSnapshotWithoutLocalGrant(t *testing.T) {
-
-	// background ctx via context.
-	ctx := context.Background()
-	soID := "gate-object-local-grant"
-	localPriv := mustKeyPair(t)
+	// The local reader requires a key grant to accept a snapshot.
+	const soID = "gate-object-local-grant"
+	localPriv, ownerPriv := mustKeyPair(t), mustKeyPair(t)
 	localPeer, err := peer.IDFromPrivateKey(localPriv)
-
-	// Abort if peer iDFromPrivateKey fails.
 	if err != nil {
-		t.Fatal(err.Error())
+		t.Fatal(err)
 	}
-	ownerPriv := mustKeyPair(t)
-	ownerPeer := mustPeerIDStr(t, ownerPriv)
-	held := &sobject.SOState{
-		Config: &sobject.SharedObjectConfig{Participants: []*sobject.SOParticipantConfig{
-			participantCfg(ownerPeer, sobject.SOParticipantRole_SOParticipantRole_OWNER),
-			participantCfg(localPeer.String(), sobject.SOParticipantRole_SOParticipantRole_READER),
-		}},
-		Root: &sobject.SORoot{InnerSeqno: 1},
-	}
-	trustSnapshotConfig(t, soID, held, ownerPriv)
-
-	// newMemHost localHost,ctr.
-	localHost, ctr := newMemHost(soID, held)
+	held := gateState(t, soID, ownerPriv, localPeer.String(), sobject.SOParticipantRole_SOParticipantRole_READER)
+	localHost, ctr := newMemHost(soID, held.CloneVT())
 	validateAccess := func(_ context.Context, state *sobject.SOState) error {
-		for _, grant := range state.GetRootGrants() {
-			if grant.GetPeerId() == localPeer.String() {
-				return nil
-			}
+		if state.CurrentKeyEpoch().FindGrant(localPeer.String()) == nil {
+			return errors.New("no local key grant")
 		}
-		return errors.New("no local root grant")
+		return nil
 	}
 	s := NewSOSync(gateLogger(), nil, soID, localPeer, localPriv, localHost, nil, validateAccess)
-	peerState := &sobject.SOState{
-		Config: &sobject.SharedObjectConfig{Participants: []*sobject.SOParticipantConfig{
-			participantCfg(ownerPeer, sobject.SOParticipantRole_SOParticipantRole_OWNER),
-			participantCfg(localPeer.String(), sobject.SOParticipantRole_SOParticipantRole_READER),
-		}},
-		Root: &sobject.SORoot{InnerSeqno: 5},
-	}
 
-	// marshalVT snapData,err via peerState.
-	snapData, err := peerState.MarshalVT()
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	err = runSnapshotExchange(t, s, ctx, &SOSyncMessage{
-		Body: &SOSyncMessage_Snapshot{Snapshot: &SOSyncSnapshot{SoState: snapData, RootSeqno: 5}},
-	})
-	if err == nil {
+	// The peer offers a newer checkpoint without a grant.
+	peerState := held.CloneVT()
+	advanceSnapshotCheckpoint(t, soID, peerState, ownerPriv)
+	if err := runSnapshotExchange(t, s, t.Context(), snapshotMessage(t, peerState)); err == nil {
 		t.Fatal("expected inaccessible snapshot to be rejected")
 	}
-	if got := ctr.GetValue().GetRoot().GetInnerSeqno(); got != 1 {
-		t.Fatalf("local state advanced to seqno %d; expected rejection to keep seqno 1", got)
+	if !ctr.GetValue().EqualVT(held) {
+		t.Fatal("rejected snapshot changed the local state")
 	}
 }
 
 func TestSnapshotExchangeRejectsTamperedGrant(t *testing.T) {
-
-	// background ctx via context.
-	ctx := context.Background()
-	soID := "gate-object-grant"
+	// Create the local reader.
+	const soID = "gate-object-grant"
 	localPriv, localPub, err := crypto.GenerateKeyPair(crypto.KeyType_Ed25519, 0)
 	if err != nil {
-		t.Fatal(err.Error())
+		t.Fatal(err)
 	}
 	localPeer, err := peer.IDFromPrivateKey(localPriv)
 	if err != nil {
-		t.Fatal(err.Error())
+		t.Fatal(err)
 	}
-	ownerPriv := mustKeyPair(t)
-	ownerPeerStr := mustPeerIDStr(t, ownerPriv)
 
-	// Record held.
-	held := &sobject.SOState{
-		Config: &sobject.SharedObjectConfig{Participants: []*sobject.SOParticipantConfig{
-			participantCfg(ownerPeerStr, sobject.SOParticipantRole_SOParticipantRole_OWNER),
-			participantCfg(localPeer.String(), sobject.SOParticipantRole_SOParticipantRole_READER),
-		}},
-		Root: &sobject.SORoot{InnerSeqno: 1},
-	}
-	trustSnapshotConfig(t, soID, held, ownerPriv)
-	localHost, ctr := newMemHost(soID, held)
+	// An owner's genesis makes it a reader, held by its host.
+	ownerPriv := mustKeyPair(t)
+	held := gateState(t, soID, ownerPriv, localPeer.String(), sobject.SOParticipantRole_SOParticipantRole_READER)
+	localHost, ctr := newMemHost(soID, held.CloneVT())
 	s := NewSOSync(gateLogger(), nil, soID, localPeer, localPriv, localHost, nil)
 
-	// buildGrant grant.
+	// The peer offers a grant whose signed body was altered.
 	grant := buildGrant(t, soID, ownerPriv, localPub)
 	grant.InnerData[0] ^= 0xFF
-
-	// Record peerState.
-	peerState := &sobject.SOState{
-		Config: &sobject.SharedObjectConfig{
-			Participants: []*sobject.SOParticipantConfig{
-				participantCfg(ownerPeerStr, sobject.SOParticipantRole_SOParticipantRole_OWNER),
-				participantCfg(localPeer.String(), sobject.SOParticipantRole_SOParticipantRole_READER),
-			},
-		},
-		Root:       &sobject.SORoot{InnerSeqno: 5},
-		RootGrants: []*sobject.SOGrant{grant},
+	peerState := held.CloneVT()
+	peerState.KeyEpochs = []*sobject.SOKeyEpoch{{Grants: []*sobject.SOGrant{grant}}}
+	if err := runSnapshotExchange(t, s, t.Context(), snapshotMessage(t, peerState)); err == nil {
+		t.Fatal("expected snapshot with tampered key grant to be rejected")
 	}
-	snapData, err := peerState.MarshalVT()
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	err = runSnapshotExchange(t, s, ctx, &SOSyncMessage{
-		Body: &SOSyncMessage_Snapshot{Snapshot: &SOSyncSnapshot{SoState: snapData, RootSeqno: 5}},
-	})
-	if err == nil {
-		t.Fatal("expected snapshot with tampered root grant to be rejected")
-	}
-	if got := ctr.GetValue().GetRoot().GetInnerSeqno(); got != 1 {
-		t.Fatalf("local state advanced to seqno %d; expected rejection to keep seqno 1", got)
+	if !ctr.GetValue().EqualVT(held) {
+		t.Fatal("rejected snapshot changed the local state")
 	}
 }
 
 func TestSnapshotExchangeAcceptsObjectPeerDistinctFromTransportPeer(t *testing.T) {
-
-	// background ctx via context.
-	ctx := context.Background()
-	soID := "gate-object-valid"
+	// The local writer's object identity differs from its transport identity.
+	const soID = "gate-object-valid"
 	transportPeer := mustPeerIDStr(t, mustKeyPair(t))
 	localPriv, localPub, err := crypto.GenerateKeyPair(crypto.KeyType_Ed25519, 0)
 	if err != nil {
-		t.Fatal(err.Error())
+		t.Fatal(err)
 	}
-
-	// iDFromPrivateKey localPeer,err via peer.
 	localPeer, err := peer.IDFromPrivateKey(localPriv)
 	if err != nil {
-		t.Fatal(err.Error())
+		t.Fatal(err)
 	}
 	if localPeer.String() == transportPeer {
 		t.Fatal("local object and transport peers unexpectedly match")
 	}
 	ownerPriv := mustKeyPair(t)
-	ownerPeerStr := mustPeerIDStr(t, ownerPriv)
 
-	// Record participants.
-	participants := []*sobject.SOParticipantConfig{
-		participantCfg(ownerPeerStr, sobject.SOParticipantRole_SOParticipantRole_OWNER),
-		participantCfg(localPeer.String(), sobject.SOParticipantRole_SOParticipantRole_WRITER),
-	}
-	grant := buildGrant(t, soID, ownerPriv, localPub)
-	pendingID := ulid.NewULID()
-	pending, err := sobject.BuildSOOperation(soID, localPriv, []byte("pending-local-write"), testOperationLink(1), pendingID)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-
-	// Record localState.
-	localState := &sobject.SOState{
-		Config:     &sobject.SharedObjectConfig{Participants: participants},
-		Root:       &sobject.SORoot{InnerSeqno: 1},
-		RootGrants: []*sobject.SOGrant{grant},
-	}
-	trustSnapshotConfig(t, soID, localState, ownerPriv)
-	if err := localState.QueueOperation(soID, pending); err != nil {
-		t.Fatal(err.Error())
-	}
+	// The local writer holds a pending write; the peer holds a newer checkpoint.
+	genesis := gateState(t, soID, ownerPriv, localPeer.String(), sobject.SOParticipantRole_SOParticipantRole_WRITER)
+	genesis.KeyEpochs = []*sobject.SOKeyEpoch{{Grants: []*sobject.SOGrant{buildGrant(t, soID, ownerPriv, localPub)}}}
+	localState := genesis.CloneVT()
+	pending := writeSyncOp(t, soID, localState, localPriv, "pending-local-write")
 	localHost, ctr := newMemHost(soID, localState)
 	s := NewSOSync(gateLogger(), nil, soID, localPeer, localPriv, localHost, nil)
+	peerState := genesis.CloneVT()
+	advanceSnapshotCheckpoint(t, soID, peerState, ownerPriv)
 
-	// Record peerState.
-	peerState := &sobject.SOState{
-		Config:     localState.GetConfig().CloneVT(),
-		Root:       &sobject.SORoot{InnerSeqno: 5},
-		RootGrants: []*sobject.SOGrant{grant},
-	}
-	signSnapshotRoot(t, soID, peerState, ownerPriv)
-	snapData, err := peerState.MarshalVT()
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	if err := runSnapshotExchange(t, s, ctx, &SOSyncMessage{
-		Body: &SOSyncMessage_Snapshot{Snapshot: &SOSyncSnapshot{SoState: snapData, RootSeqno: 5}},
-	}); err != nil {
+	// The local writer adopts the checkpoint and keeps its pending write.
+	if err := runSnapshotExchange(t, s, t.Context(), snapshotMessage(t, peerState)); err != nil {
 		t.Fatalf("validated snapshot should converge: %v", err)
 	}
 	got := ctr.GetValue()
-
-	// Check the condition before continuing.
-	if got.GetRoot().GetInnerSeqno() != 5 {
-		t.Fatalf("expected converged root seqno 5, got %d", got.GetRoot().GetInnerSeqno())
+	if !got.GetCheckpoint().EqualVT(peerState.GetCheckpoint()) {
+		t.Fatal("local writer did not adopt the peer checkpoint")
 	}
-	if len(got.GetConfig().GetParticipants()) != 2 {
-		t.Fatalf("expected applied config participants, got %d", len(got.GetConfig().GetParticipants()))
-	}
-	if len(got.GetOps()) != 1 {
-		t.Fatalf("pending local write count = %d, want 1", len(got.GetOps()))
-	}
-	inner, err := got.GetOps()[0].UnmarshalInner()
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	if inner.GetLocalId() != pendingID {
-		t.Fatalf("pending local write = %q, want %q", inner.GetLocalId(), pendingID)
-	}
-}
-
-// TestPeerImportDropsDemotedWriterQueue exercises queue merging under verified authority.
-func TestPeerImportDropsDemotedWriterQueue(t *testing.T) {
-
-	// Perform the action.
-	const soID = "gate-object-writer-demotion"
-	owner, writer := mustKeyPair(t), mustKeyPair(t)
-	writerID, err := peer.IDFromPrivateKey(writer)
-	if err != nil {
-		t.Fatal(err)
-	}
-	previous := &sobject.SOState{
-		Config: &sobject.SharedObjectConfig{Participants: []*sobject.SOParticipantConfig{
-			participantCfg(mustPeerIDStr(t, owner), sobject.SOParticipantRole_SOParticipantRole_OWNER),
-			participantCfg(writerID.String(), sobject.SOParticipantRole_SOParticipantRole_WRITER),
-		}},
-		Root: &sobject.SORoot{InnerSeqno: 1},
-	}
-
-	// trustSnapshotConfig.
-	trustSnapshotConfig(t, soID, previous, owner)
-	signSnapshotRoot(t, soID, previous, owner)
-	operation, err := sobject.BuildSOOperation(soID, writer, []byte("pending-before-demotion"), testOperationLink(1), ulid.NewULID())
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := previous.QueueOperation(soID, operation); err != nil {
-		t.Fatal(err)
-	}
-
-	// The owner demotes the writer without changing the accepted root.
-	candidate := previous.CloneVT()
-	candidate.Config.Participants[1].Role = sobject.SOParticipantRole_SOParticipantRole_READER
-	change, err := sobject.BuildSOConfigChange(soID, previous.Config, candidate.Config, sobject.SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_ADD_PARTICIPANT, owner, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	candidate.Config, err = sobject.VerifyConfigChange(soID, previous.Config, change)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// Perform the action.
-	candidate.Ops = nil
-	candidate.QueuedAccountNonces = nil
-	host, state := newMemHost(soID, previous)
-	t.Cleanup(host.ClearContext)
-	if err := host.ImportPeerSnapshot(t.Context(), candidate, []*sobject.SOConfigChange{change}, writerID, nil); err != nil {
-		t.Fatal(err)
-	}
-	if len(state.GetValue().GetOps()) != 0 || state.GetValue().GetConfig().GetParticipants()[1].GetRole() != sobject.SOParticipantRole_SOParticipantRole_READER {
-		t.Fatal("demoted writer's pending operation survived import")
-	}
-}
-
-func TestRemoteOpNonparticipantRejected(t *testing.T) {
-
-	// background ctx via context.
-	ctx := context.Background()
-	soID := "gate-object-op"
-	localPriv := mustKeyPair(t)
-	localPeer, err := peer.IDFromPrivateKey(localPriv)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	strangerPriv := mustKeyPair(t)
-
-	// mustKeyPair ownerPriv.
-	ownerPriv := mustKeyPair(t)
-	ownerPeerStr := mustPeerIDStr(t, ownerPriv)
-
-	// newMemHost host,ctr.
-	host, ctr := newMemHost(soID, &sobject.SOState{
-		Config: &sobject.SharedObjectConfig{
-			Participants: []*sobject.SOParticipantConfig{
-				participantCfg(ownerPeerStr, sobject.SOParticipantRole_SOParticipantRole_OWNER),
-				participantCfg(localPeer.String(), sobject.SOParticipantRole_SOParticipantRole_WRITER),
-			},
-		},
-		Root: &sobject.SORoot{InnerSeqno: 1},
-	})
-	s := NewSOSync(gateLogger(), nil, soID, localPeer, localPriv, host, nil)
-
-	// newULID opLocalID via ulid.
-	opLocalID := ulid.NewULID()
-	op, err := sobject.BuildSOOperation(soID, strangerPriv, []byte("op-data"), testOperationLink(1), opLocalID)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	s.handleRemoteOp(ctx, gateLogger(), &SOSyncOp{Operation: func() []byte {
-		data, err := op.MarshalVT()
-		if err != nil {
-			t.Fatal(err.Error())
-		}
-		return data
-	}()})
-
-	// Check the condition before continuing.
-	if got := len(ctr.GetValue().GetOps()); got != 0 {
-		t.Fatalf("nonparticipant op was queued (%d ops)", got)
-	}
-}
-
-func TestRemoteOpReplayIsIdempotent(t *testing.T) {
-	for _, test := range []struct {
-		name       string
-		rootNonce  uint64
-		queueFirst bool
-	}{
-		{name: "applied root", rootNonce: 1},
-		{name: "pending queue", queueFirst: true},
-	} {
-		t.Run(test.name, func(t *testing.T) {
-
-			// background ctx via context.
-			ctx := context.Background()
-			soID := "gate-object-op-replay"
-			writerPriv := mustKeyPair(t)
-			writerPeer, err := peer.IDFromPrivateKey(writerPriv)
-
-			// Abort if peer iDFromPrivateKey fails.
-			if err != nil {
-				t.Fatal(err.Error())
-			}
-			state := &sobject.SOState{
-				Config: &sobject.SharedObjectConfig{Participants: []*sobject.SOParticipantConfig{
-					participantCfg(writerPeer.String(), sobject.SOParticipantRole_SOParticipantRole_WRITER),
-				}},
-				Root: &sobject.SORoot{InnerSeqno: 2},
-			}
-			op, err := sobject.BuildSOOperation(soID, writerPriv, []byte("replayed"), testOperationLink(1), ulid.NewULID())
-			if err != nil {
-				t.Fatal(err.Error())
-			}
-			if test.rootNonce != 0 {
-				state.Root.AccountNonces = []*sobject.SOAccountNonce{{
-					PeerId: writerPeer.String(), Nonce: test.rootNonce, OpHash: op.Hash(),
-				}}
-			}
-
-			// Check the condition before continuing.
-			if test.queueFirst {
-				if err := state.QueueOperation(soID, op); err != nil {
-					t.Fatal(err.Error())
-				}
-			}
-			host, ctr := newMemHost(soID, state)
-			s := NewSOSync(gateLogger(), nil, soID, writerPeer, writerPriv, host, nil)
-			opData, err := op.MarshalVT()
-
-			// Abort if op marshalVT fails.
-			if err != nil {
-				t.Fatal(err.Error())
-			}
-			s.handleRemoteOp(ctx, gateLogger(), &SOSyncOp{Operation: opData})
-			wantOps := 0
-			if test.queueFirst {
-				wantOps = 1
-			}
-			if got := len(ctr.GetValue().GetOps()); got != wantOps {
-				t.Fatalf("operation queue length = %d, want %d", got, wantOps)
-			}
-		})
-	}
-}
-
-func TestRemoteOpTamperedSignatureRejected(t *testing.T) {
-
-	// background ctx via context.
-	ctx := context.Background()
-	soID := "gate-object-optamper"
-	writerPriv := mustKeyPair(t)
-	writerPeer, err := peer.IDFromPrivateKey(writerPriv)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-
-	// newMemHost host,ctr.
-	host, ctr := newMemHost(soID, &sobject.SOState{
-		Config: &sobject.SharedObjectConfig{
-			Participants: []*sobject.SOParticipantConfig{
-				participantCfg(writerPeer.String(), sobject.SOParticipantRole_SOParticipantRole_WRITER),
-			},
-		},
-		Root: &sobject.SORoot{InnerSeqno: 1},
-	})
-	s := NewSOSync(gateLogger(), nil, soID, writerPeer, writerPriv, host, nil)
-
-	// newULID opLocalID via ulid.
-	opLocalID := ulid.NewULID()
-	op, err := sobject.BuildSOOperation(soID, writerPriv, []byte("op-data"), testOperationLink(1), opLocalID)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	op.Inner[0] ^= 0xFF
-
-	// handleRemoteOp.
-	s.handleRemoteOp(ctx, gateLogger(), &SOSyncOp{Operation: func() []byte {
-		data, err := op.MarshalVT()
-		if err != nil {
-			t.Fatal(err.Error())
-		}
-		return data
-	}()})
-
-	// Check the condition before continuing.
-	if got := len(ctr.GetValue().GetOps()); got != 0 {
-		t.Fatalf("tampered op was queued (%d ops)", got)
+	if len(got.GetOps()) != 1 || !got.GetOps()[0].EqualVT(pending) {
+		t.Fatalf("pending local writes = %d, want the one local write", len(got.GetOps()))
 	}
 }
 
@@ -681,14 +363,45 @@ func trustSnapshotConfig(t *testing.T, soID string, state *sobject.SOState, owne
 	if err != nil {
 		t.Fatal(err)
 	}
-}
-
-// signSnapshotRoot signs the candidate sequence and content with a real participant key.
-func signSnapshotRoot(t *testing.T, soID string, state *sobject.SOState, signer crypto.PrivKey) {
-	t.Helper()
-	state.Root.Inner = []byte("snapshot-root")
-	state.Root.ValidatorSignatures = nil
-	if err := state.Root.SignInnerData(signer, soID, state.Root.GetInnerSeqno(), hash.RecommendedHashType); err != nil {
+	state.Checkpoint, err = sobject.BuildGenesisSOCheckpoint(owner, soID, state.Config.GetConfigChainHash(), nil)
+	if err != nil {
 		t.Fatal(err)
 	}
+}
+
+// advanceSnapshotCheckpoint signs, as signer, the checkpoint after the one
+// state holds, covering its operations, and installs it without an authority
+// check so tests can also build forged successors.
+func advanceSnapshotCheckpoint(t *testing.T, soID string, state *sobject.SOState, signer crypto.PrivKey) {
+	// Sign the next checkpoint over the held one and drop the covered operations.
+	t.Helper()
+	inner, err := state.GetCheckpointInner()
+	if err != nil {
+		t.Fatal(err)
+	}
+	data := []byte("snapshot-checkpoint-" + strconv.FormatUint(inner.GetHeight()+1, 10))
+	checkpoint, err := state.BuildNextCheckpoint(soID, signer, data)
+	if err != nil {
+		t.Fatal(err)
+	}
+	state.Checkpoint = checkpoint
+	state.Ops = nil
+}
+
+// writeSyncOp signs data as priv at the author's next link and adds it to state.
+func writeSyncOp(t *testing.T, soID string, state *sobject.SOState, priv crypto.PrivKey, data string) *sobject.SOOperation {
+	// Sign the operation at the author's next link and add it.
+	t.Helper()
+	link, err := state.NextOperationLink(soID, mustPeerIDStr(t, priv))
+	if err != nil {
+		t.Fatal(err)
+	}
+	op, err := sobject.BuildSOOperation(soID, priv, []byte(data), link, ulid.NewULID())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := state.AddOperation(soID, op); err != nil {
+		t.Fatal(err)
+	}
+	return op
 }

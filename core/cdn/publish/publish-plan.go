@@ -5,15 +5,14 @@ import (
 	"github.com/s4wave/spacewave/db/packfile"
 )
 
-// PublishPlan describes the pack and root delta between a source and destination Space.
+// PublishPlan describes the pack and checkpoint delta between a source and destination Space.
 type PublishPlan struct {
 	MissingPackIDs []string
-	NeedRootPost   bool
+	NeedCheckpoint bool
 }
 
-// BuildPublishPlan computes whether the destination root pointer must be
-// updated. Pack IDs are resource-scoped, so source IDs cannot be compared
-// directly to destination IDs; when the root differs, all source packs are
+// BuildPublishPlan computes whether the destination needs a new checkpoint. Pack IDs are resource-scoped, so source IDs cannot be compared
+// directly to destination IDs; when the World differs, all source packs are
 // copied and destination-side v1 IDs make retries idempotent.
 func BuildPublishPlan(
 	srcPacks []*packfile.PackfileEntry,
@@ -21,23 +20,23 @@ func BuildPublishPlan(
 	srcHeadRef *bucket.ObjectRef,
 	dstHeadRef *bucket.ObjectRef,
 ) *PublishPlan {
-	// Post the root unless both heads are nil or already identical.
-	needRootPost := true
+	// Post a checkpoint unless both heads are nil or already identical.
+	needCheckpoint := true
 	if srcHeadRef == nil && dstHeadRef == nil {
-		needRootPost = false
+		needCheckpoint = false
 	} else if srcHeadRef != nil && dstHeadRef != nil && srcHeadRef.EqualVT(dstHeadRef) {
-		needRootPost = false
+		needCheckpoint = false
 	}
 
-	// Collect every source pack ID when the root must be updated.
+	// Collect every source pack ID when the checkpoint must be posted.
 	missingPackIDs := make([]string, 0, len(srcPacks))
-	if needRootPost {
+	if needCheckpoint {
 		for _, entry := range srcPacks {
 			missingPackIDs = append(missingPackIDs, entry.GetId())
 		}
 	}
 	return &PublishPlan{
 		MissingPackIDs: missingPackIDs,
-		NeedRootPost:   needRootPost,
+		NeedCheckpoint: needCheckpoint,
 	}
 }

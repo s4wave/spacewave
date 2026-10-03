@@ -22,25 +22,40 @@ func FetchPackEntries(ctx context.Context, client SessionClient, spaceID string)
 	return catalog.GetEntries(), nil
 }
 
-// DecodeHeadRef decodes a World head ref from a shared-object state snapshot.
+// DecodeHeadRef decodes the World head ref of the checkpoint in a
+// shared-object state snapshot. CDN Spaces hold only checkpoints with plain
+// state data, so the checkpoint is their complete state.
 func DecodeHeadRef(snapshot *sobject.SOState) (*bucket.ObjectRef, error) {
-	root := snapshot.GetRoot()
-	if root == nil || len(root.GetInner()) == 0 {
-		return nil, nil
-	}
-	sori := &sobject.SORootInner{}
-	if err := sori.UnmarshalVT(root.GetInner()); err != nil {
-		return nil, errors.Wrap(err, "unmarshal SORootInner")
-	}
-	return DecodeHeadRefFromRootInner(sori)
+	return decodeCheckpointHeadRef(snapshot.GetCheckpoint())
 }
 
-// DecodeHeadRefFromRootInner decodes the mounted World head ref from SORootInner.
-func DecodeHeadRefFromRootInner(sori *sobject.SORootInner) (*bucket.ObjectRef, error) {
+// FetchDestinationHeadRef reads the public CDN root pointer and decodes the
+// World head ref of its checkpoint.
+func FetchDestinationHeadRef(ctx context.Context, cdnBaseURL string, spaceID string) (*bucket.ObjectRef, error) {
+	ptr, err := FetchRemoteRootPointer(ctx, cdnBaseURL, spaceID)
+	if err != nil {
+		return nil, err
+	}
+	return decodeCheckpointHeadRef(ptr.GetCheckpoint())
+}
+
+// decodeCheckpointHeadRef decodes the World head ref from the plain state data
+// of checkpoint. Returns nil, nil when there is no published World.
+func decodeCheckpointHeadRef(checkpoint *sobject.SOCheckpoint) (*bucket.ObjectRef, error) {
+	// Decode the checkpoint's World state.
+	if checkpoint == nil {
+		return nil, nil
+	}
+	inner, err := checkpoint.UnmarshalInner()
+	if err != nil {
+		return nil, err
+	}
 	innerState := &sobject_world_engine.InnerState{}
-	if err := innerState.UnmarshalVT(sori.GetStateData()); err != nil {
+	if err := innerState.UnmarshalVT(inner.GetStateData()); err != nil {
 		return nil, errors.Wrap(err, "unmarshal inner state")
 	}
+
+	// Return its head without the bucket binding.
 	headRef := innerState.GetHeadRef()
 	if headRef == nil || headRef.GetEmpty() {
 		return nil, nil
@@ -51,38 +66,6 @@ func DecodeHeadRefFromRootInner(sori *sobject.SORootInner) (*bucket.ObjectRef, e
 		return nil, errors.Wrap(err, "validate head ref")
 	}
 	return headRef, nil
-}
-
-// FetchDestinationHeadRef reads the public CDN root pointer and decodes its World head ref.
-func FetchDestinationHeadRef(ctx context.Context, cdnBaseURL string, spaceID string) (*bucket.ObjectRef, error) {
-	ptr, err := FetchRemoteRootPointer(ctx, cdnBaseURL, spaceID)
-	if err != nil {
-		return nil, err
-	}
-	if ptr == nil || ptr.GetRoot() == nil || len(ptr.GetRoot().GetInner()) == 0 {
-		return nil, nil
-	}
-	sori := &sobject.SORootInner{}
-	if err := sori.UnmarshalVT(ptr.GetRoot().GetInner()); err != nil {
-		return nil, errors.Wrap(err, "unmarshal destination SORootInner")
-	}
-	headRef, err := DecodeHeadRefFromRootInner(sori)
-	if err != nil {
-		return nil, err
-	}
-	return headRef, nil
-}
-
-// FetchRemoteRootSeqno fetches the CDN root pointer seqno. Missing roots return zero.
-func FetchRemoteRootSeqno(ctx context.Context, cdnBaseURL, spaceID string) (uint64, error) {
-	ptr, err := FetchRemoteRootPointer(ctx, cdnBaseURL, spaceID)
-	if err != nil {
-		return 0, err
-	}
-	if ptr == nil {
-		return 0, nil
-	}
-	return ptr.GetRoot().GetInnerSeqno(), nil
 }
 
 // FetchRemoteRootPointer fetches and decodes the public CDN root pointer.

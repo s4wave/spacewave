@@ -52,50 +52,64 @@ func (c *Controller) executeWatchSOState(
 	}
 }
 
-// executeWatchSOStateOnce processes a single shared object state change.
+// executeWatchSOStateOnce replays one shared object state into the World.
 func (c *Controller) executeWatchSOStateOnce(
 	ctx context.Context,
 	snap sobject.SharedObjectStateSnapshot,
 	soEngine *soEngine,
 ) error {
-	// Trace the adoption.
 	ctx, task := trace.NewTask(ctx, "alpha/watch-state/process-snapshot")
 	defer task.End()
-
-	// Only accepted roots may become the local World. Queue replay belongs to
-	// the validator; installing its speculative result would make the next
-	// transaction base disagree with this same SharedObject snapshot.
-	state, err := snapshotWorldState(ctx, snap)
-	if err != nil {
-		return err
-	}
-	head := state.GetHeadRef()
-
-	// Publish the accepted head.
-	taskCtx, task2 := trace.NewTask(ctx, "alpha/watch-state/update-engine-state")
-	err = soEngine.updateEngineState(taskCtx, head)
-	task2.End()
+	_, err := soEngine.advance(ctx, snap)
 	return err
 }
 
-// isReadAccessLoss reports whether err means this participant cannot read the
-// accepted state, which readmission can restore.
+// isReadAccessLoss reports whether err means this participant cannot replay
+// the state, which a later grant or readmission can restore.
 func isReadAccessLoss(err error) bool {
-	return errors.Is(err, sobject.ErrCannotDecode) || errors.Is(err, sobject.ErrNotParticipant)
+	return errors.Is(err, sobject.ErrCannotDecode) ||
+		errors.Is(err, sobject.ErrNotParticipant) ||
+		errors.Is(err, sobject.ErrKeyEpochUnavailable) ||
+		errors.Is(err, sobject.ErrConfigHistoryUnavailable)
 }
 
-// waitReadableSnapshot waits for a snapshot whose root this participant can
-// decode. Other snapshot errors end the wait so the caller surfaces them.
+// waitReadableSnapshot waits for a snapshot this participant can replay: it
+// decodes the checkpoint and holds the config and key of every operation.
+// Other snapshot errors end the wait so the caller surfaces them.
 func waitReadableSnapshot(ctx context.Context, soStateCtr ccontainer.Watchable[sobject.SharedObjectStateSnapshot]) error {
 	_, err := soStateCtr.WaitValueWithValidator(ctx, func(snap sobject.SharedObjectStateSnapshot) (bool, error) {
 		if snap == nil {
 			return false, nil
 		}
-		_, err := snap.GetParticipantConfig(ctx)
-		if err == nil {
-			_, err = snap.GetRootInner(ctx)
-		}
-		return !isReadAccessLoss(err), nil
+		return !isReadAccessLoss(checkReplayable(ctx, snap)), nil
 	}, nil)
 	return err
+}
+
+// checkReplayable returns the first error replaying snap would meet reading
+// its checkpoint, configs and keys.
+func checkReplayable(ctx context.Context, snap sobject.SharedObjectStateSnapshot) error {
+	// The participant must decode the checkpoint.
+	if _, err := snap.GetParticipantConfig(ctx); err != nil {
+		return err
+	}
+	if _, err := snap.GetCheckpoint(ctx); err != nil {
+		return err
+	}
+
+	// Every operation needs its config and its epoch key.
+	set, err := snap.GetOperationSet(ctx)
+	if err != nil {
+		return err
+	}
+	for _, h := range set.Order() {
+		inner := set.Get(h)
+		if _, err := snap.GetConfigByHash(ctx, inner.GetConfigHash()); err != nil {
+			return err
+		}
+		if _, err := snap.DecodeOperation(ctx, inner); err != nil && isReadAccessLoss(err) {
+			return err
+		}
+	}
+	return nil
 }

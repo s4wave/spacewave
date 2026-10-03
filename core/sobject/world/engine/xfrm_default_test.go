@@ -21,11 +21,19 @@ import (
 	world_block "github.com/s4wave/spacewave/db/world/block"
 )
 
+// TestDefaultWorldTransformEncryptsStoredWorldBlock checks that the default
+// World transform encrypts the blocks it writes and authenticates them.
 func TestDefaultWorldTransformEncryptsStoredWorldBlock(t *testing.T) {
+	// Name a plaintext marker to look for in stored blocks.
 	const marker = "spacewave-world-plaintext-regression-marker-20260811"
 	ctx := context.Background()
 
-	state, err := BuildInitialInnerState(nil)
+	// Build the default World transform.
+	initOp, err := NewInitWorldOp(nil)
+	if err != nil {
+		t.Fatalf("NewInitWorldOp: %v", err)
+	}
+	state, err := BuildInitialInnerState(initOp)
 	if err != nil {
 		t.Fatalf("BuildInitialInnerState: %v", err)
 	}
@@ -36,6 +44,7 @@ func TestDefaultWorldTransformEncryptsStoredWorldBlock(t *testing.T) {
 		t.Fatalf("NewTransformer: %v", err)
 	}
 
+	// Write a World object that holds the marker.
 	store := block_mock.NewMockStore(0)
 	tx, cursor := block.NewTransaction(store, xfrm, nil, nil)
 	cursor.SetBlock(world_block.NewObject(marker, nil), true)
@@ -43,6 +52,8 @@ func TestDefaultWorldTransformEncryptsStoredWorldBlock(t *testing.T) {
 	if err != nil {
 		t.Fatalf("write world block: %v", err)
 	}
+
+	// The stored block hides the marker.
 	raw, found, err := store.GetBlock(ctx, ref)
 	if err != nil {
 		t.Fatalf("read stored world block: %v", err)
@@ -54,10 +65,12 @@ func TestDefaultWorldTransformEncryptsStoredWorldBlock(t *testing.T) {
 		t.Fatal("stored world block contains plaintext marker")
 	}
 
+	// Gzip alone does not reveal it.
 	if recovered, err := gunzip(raw); err == nil && bytes.Contains(recovered, []byte(marker)) {
 		t.Fatal("stored world block is recoverable without the participant transform key")
 	}
 
+	// The participant key decodes the object.
 	decoded, err := xfrm.DecodeBlock(raw)
 	if err != nil {
 		t.Fatalf("decode with participant transform key: %v", err)
@@ -70,12 +83,14 @@ func TestDefaultWorldTransformEncryptsStoredWorldBlock(t *testing.T) {
 		t.Fatalf("decrypted world object key = %q, want %q", obj.GetKey(), marker)
 	}
 
+	// Tampering fails authentication.
 	tampered := bytes.Clone(raw)
 	tampered[len(tampered)-1] ^= 1
 	if _, err := xfrm.DecodeBlock(tampered); err == nil {
 		t.Fatal("tampered world block decrypted without authentication failure")
 	}
 
+	// A key that differs in one bit cannot decode the block.
 	wrongConf := conf.CloneVT()
 	foundEncryption := false
 	for i, step := range wrongConf.GetSteps() {
@@ -109,6 +124,8 @@ func TestDefaultWorldTransformEncryptsStoredWorldBlock(t *testing.T) {
 	}
 }
 
+// TestDefaultWorldTransformDecodesNativeCiphertext checks that the default
+// transform decodes a native ciphertext fixture.
 func TestDefaultWorldTransformDecodesNativeCiphertext(t *testing.T) {
 	const ciphertextHex = "592821e714255f798541eaff788680b7aa65868bad9da8baf606d315dd58e31c5cbd447cbba2ddeb9ebbeba71761bf6164b1113436ca77f190fb22a3075540aa23d0ebe9"
 	key := []byte("0123456789abcdef0123456789abcdef")
@@ -136,6 +153,8 @@ func TestDefaultWorldTransformDecodesNativeCiphertext(t *testing.T) {
 	}
 }
 
+// TestUnauthenticatedWorldInitializationIsRejected checks that a World cannot
+// start with an unauthenticated transform.
 func TestUnauthenticatedWorldInitializationIsRejected(t *testing.T) {
 	conf, err := block_transform.NewConfig([]config.Config{&transform_gzip.Config{}})
 	if err != nil {
@@ -147,6 +166,8 @@ func TestUnauthenticatedWorldInitializationIsRejected(t *testing.T) {
 	}
 }
 
+// TestLegacyPlaintextWorldTransformIsReadOnly checks that a World with a
+// plaintext transform reads its blocks but refuses to write.
 func TestLegacyPlaintextWorldTransformIsReadOnly(t *testing.T) {
 	conf, err := block_transform.NewConfig([]config.Config{&transform_gzip.Config{}})
 	if err != nil {
@@ -178,6 +199,7 @@ func TestLegacyPlaintextWorldTransformIsReadOnly(t *testing.T) {
 	}
 }
 
+// gunzip decompresses data.
 func gunzip(data []byte) ([]byte, error) {
 	rd, err := gzip.NewReader(bytes.NewReader(data))
 	if err != nil {

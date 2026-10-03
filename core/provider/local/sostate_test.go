@@ -1,17 +1,16 @@
 package provider_local
 
 import (
-	"bytes"
 	"context"
 	"testing"
 
-	"github.com/aperturerobotics/util/ulid"
 	"github.com/s4wave/spacewave/core/sobject"
+	block_transform "github.com/s4wave/spacewave/db/block/transform"
+	transform_blockenc "github.com/s4wave/spacewave/db/block/transform/blockenc"
 	"github.com/s4wave/spacewave/db/kvtx"
 	store_inmem "github.com/s4wave/spacewave/db/store/kvtx/inmem"
 	"github.com/s4wave/spacewave/net/crypto"
-	"github.com/s4wave/spacewave/net/hash"
-	"github.com/s4wave/spacewave/net/peer"
+	"github.com/sirupsen/logrus"
 )
 
 // commitCountStore counts how the write transactions of a store commit.
@@ -50,72 +49,85 @@ func (t *commitCountTx) CommitOrdered(ctx context.Context) error {
 	return t.Tx.Commit(ctx)
 }
 
-// TestSOStateWriteOrderedOperation checks that only an operation marked with
-// sobject.WithOrderedOperation writes the host state with an ordered commit.
-func TestSOStateWriteOrderedOperation(t *testing.T) {
-	// Generate the local peer key.
-	ctx := t.Context()
+// seedTestGenesisState writes to store the genesis state of a shared object
+// owned by a fresh key, with its config history, as a new object is created.
+// It returns the state, its genesis config change and the owner key.
+func seedTestGenesisState(t *testing.T, store kvtx.Store) (*sobject.SOState, *sobject.SOConfigChange, crypto.PrivKey) {
+	// Build the genesis state of a new owner.
+	t.Helper()
 	priv, _, err := crypto.GenerateKeyPair(crypto.KeyType_Ed25519, 0)
 	if err != nil {
 		t.Fatal(err)
 	}
-	pid, err := peer.IDFromPrivateKey(priv)
+	le := logrus.NewEntry(logrus.New())
+	state, genesis, err := sobject.BuildGenesisSOState(le, testStepFactorySet(), testSharedObjectID, priv, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	// Sign a root owned by the local peer.
-	initial := &sobject.SOState{
-		Config: &sobject.SharedObjectConfig{
-			Participants: []*sobject.SOParticipantConfig{{
-				PeerId: pid.String(), Role: sobject.SOParticipantRole_SOParticipantRole_OWNER,
-			}},
-			ConfigChainHash: bytes.Repeat([]byte{0xc0}, 32),
-		},
-		Root: &sobject.SORoot{InnerSeqno: 1, Inner: []byte("root")},
-	}
-	if err := initial.Root.SignInnerData(priv, testSharedObjectID, 1, hash.RecommendedHashType); err != nil {
-		t.Fatal(err)
-	}
-
-	// Seed the encoded state into a commit-counting store.
-	data, err := initial.MarshalVT()
+	// Commit the encoded state and its history.
+	data, err := state.MarshalVT()
 	if err != nil {
 		t.Fatal(err)
 	}
-	store := &commitCountStore{Store: store_inmem.NewStore()}
+	ctx := t.Context()
 	if err := kvtx.RunTransaction(ctx, true, func(ctx context.Context) (kvtx.Tx, error) {
 		return store.NewTransaction(ctx, true)
 	}, func(ctx context.Context, tx kvtx.Tx) error {
+		if err := WriteSOConfigHistory(ctx, tx, testSharedObjectID, genesis.GetConfig(), state.GetConfig(), []*sobject.SOConfigChange{genesis}); err != nil {
+			return err
+		}
 		return tx.Set(ctx, SobjectObjectStoreHostStateKey(testSharedObjectID), data)
 	}); err != nil {
 		t.Fatal(err)
 	}
+	return state, genesis, priv
+}
 
-	// Open a host and queue one operation per call.
-	watch, lock, syncFuncs := NewObjectStoreSOStateFuncs(ctx, store, "")
-	host := sobject.NewSOHost(ctx, watch, lock, testSharedObjectID, syncFuncs)
+// newTestGenesisHost returns a host over store seeded with the genesis state
+// of a shared object owned by a fresh key, and that key.
+func newTestGenesisHost(t *testing.T, store kvtx.Store) (*sobject.SOHost, crypto.PrivKey) {
+	// Seed a genesis store and host it.
+	t.Helper()
+	_, _, priv := seedTestGenesisState(t, store)
+	watch, lock, syncFuncs := NewObjectStoreSOStateFuncs(t.Context(), store, "")
+	host := sobject.NewSOHost(t.Context(), watch, lock, testSharedObjectID, syncFuncs)
 	t.Cleanup(host.ClearContext)
-	queue := func(ctx context.Context) {
-		// Reset the counters and queue one operation.
+	return host, priv
+}
+
+// testStepFactorySet returns the step factories of the default block transform.
+func testStepFactorySet() *block_transform.StepFactorySet {
+	sfs := block_transform.NewStepFactorySet()
+	sfs.AddStepFactory(transform_blockenc.NewStepFactory())
+	return sfs
+}
+
+// TestSOStateWriteOrderedOperation checks that only an operation marked with
+// sobject.WithOrderedOperation writes the host state with an ordered commit.
+func TestSOStateWriteOrderedOperation(t *testing.T) {
+	// Open a host over a commit-counting store.
+	ctx := t.Context()
+	store := &commitCountStore{Store: store_inmem.NewStore()}
+	host, priv := newTestGenesisHost(t, store)
+	le := logrus.NewEntry(logrus.New())
+	add := func(ctx context.Context) {
+		// Reset the counters and add one operation.
 		t.Helper()
 		store.full, store.ordered = 0, 0
-		err := host.QueueOperation(ctx, pid, func(link *sobject.SOOperationLink) (*sobject.SOOperation, error) {
-			return sobject.BuildSOOperation(testSharedObjectID, priv, []byte("op"), link, ulid.NewULID())
-		})
-		if err != nil {
+		if _, _, err := host.AddLocalOperation(ctx, le, testStepFactorySet(), priv, []byte("op")); err != nil {
 			t.Fatal(err)
 		}
 	}
 
 	// A marked operation skips the full flush.
-	queue(sobject.WithOrderedOperation(ctx))
+	add(sobject.WithOrderedOperation(ctx))
 	if store.full != 0 || store.ordered != 1 {
 		t.Fatalf("marked operation: full = %d, ordered = %d", store.full, store.ordered)
 	}
 
 	// An unmarked operation keeps its full commit.
-	queue(ctx)
+	add(ctx)
 	if store.full != 1 || store.ordered != 0 {
 		t.Fatalf("unmarked operation: full = %d, ordered = %d", store.full, store.ordered)
 	}
