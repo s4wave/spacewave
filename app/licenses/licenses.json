@@ -941,7 +941,7 @@
     },
     {
       "name": "github.com/aperturerobotics/starpc",
-      "version": "v0.52.2-0.20261002012525-997e5e5b919b",
+      "version": "v0.52.3-0.20261003013036-4cdf88642ec9",
       "spdx": "MIT",
       "source": "go",
       "repo": "https://github.com/aperturerobotics/starpc",
@@ -1090,7 +1090,7 @@
     },
     {
       "name": "github.com/go-git/go-billy/v6",
-      "version": "v6.0.0-alpha.2.0.20260818093742-7bd059496705",
+      "version": "v6.0.0-beta.1",
       "spdx": "Apache-2.0",
       "source": "go",
       "repo": "https://github.com/go-git/go-billy",
@@ -1525,7 +1525,7 @@
     },
     {
       "name": "github.com/s4wave/goscript",
-      "version": "v0.3.4-0.20261002054650-343661c8b6fc",
+      "version": "v0.3.4-0.20261003030414-1aa238a04e3c",
       "spdx": "MIT",
       "source": "go",
       "repo": "https://github.com/s4wave/goscript",
@@ -1763,7 +1763,7 @@
     },
     {
       "name": "golang.org/x/tools",
-      "version": "v0.50.0",
+      "version": "v0.51.0",
       "spdx": "BSD-3-Clause",
       "source": "go",
       "repo": "https://github.com/golang/tools",
