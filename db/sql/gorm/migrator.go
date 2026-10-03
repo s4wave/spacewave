@@ -51,17 +51,20 @@ func (m Migrator) RenameColumn(value any, oldName, newName string) error {
 			}
 		*/
 
+		// Resolve the old column name and schema for the rename.
 		var field *schema.Field
 		if f := stmt.Schema.LookUpField(oldName); f != nil {
 			oldName = f.DBName
 			field = f
 		}
 
+		// Resolve the new column name and its schema when available.
 		if f := stmt.Schema.LookUpField(newName); f != nil {
 			newName = f.DBName
 			field = f
 		}
 
+		// Rename the column using the resolved field definition.
 		if field != nil {
 			return m.DB.Exec(
 				"ALTER TABLE ? CHANGE ? ? ?",
@@ -84,9 +87,12 @@ func (m Migrator) RenameIndex(value any, oldName, newName string) error {
 }
 
 func (m Migrator) DropTable(values ...any) error {
+	// Order the models and suspend foreign key checks for table removal.
 	values = m.ReorderModels(values, false)
 	tx := m.DB.Session(&gorm.Session{})
 	tx.Exec("SET FOREIGN_KEY_CHECKS = 0;")
+
+	// Drop dependent tables before the tables they reference.
 	for _, v := range slices.Backward(values) {
 		if err := m.RunWithValue(v, func(stmt *gorm.Statement) error {
 			return tx.Exec("DROP TABLE IF EXISTS ? CASCADE", clause.Table{Name: stmt.Table}).Error
@@ -94,20 +100,27 @@ func (m Migrator) DropTable(values ...any) error {
 			return err
 		}
 	}
+
+	// Restore foreign key checks after removing the tables.
 	tx.Exec("SET FOREIGN_KEY_CHECKS = 1;")
 	return nil
 }
 
 func (m Migrator) DropConstraint(value any, name string) error {
 	return m.RunWithValue(value, func(stmt *gorm.Statement) error {
+		// Resolve the constraint and distinguish a check from a foreign key.
 		constraint, table := m.GuessConstraintInterfaceAndTable(stmt, name)
 		chk, chkOk := constraint.(*schema.CheckConstraint)
 		if chkOk {
 			constraint = nil
 		}
+
+		// Remove a check constraint with the table check syntax.
 		if chk != nil {
 			return m.DB.Exec("ALTER TABLE ? DROP CHECK ?", clause.Table{Name: stmt.Table}, clause.Column{Name: chk.Name}).Error
 		}
+
+		// Resolve the foreign key name before removing it.
 		if constraint != nil {
 			name = constraint.GetName()
 		}
@@ -119,33 +132,41 @@ func (m Migrator) DropConstraint(value any, name string) error {
 }
 
 func (m Migrator) ColumnTypes(value any) (columnTypes []gorm.ColumnType, err error) {
+	// Collect column metadata from the driver and information schema.
 	columnTypes = make([]gorm.ColumnType, 0)
 	err = m.RunWithValue(value, func(stmt *gorm.Statement) error {
+		// Prepare the database and metadata query for the requested table.
 		var (
 			currentDatabase = m.DB.Migrator().CurrentDatabase()
 			// columnTypeSQL   = "SELECT column_name, is_nullable, data_type FROM information_schema.columns WHERE table_schema = ? AND table_name = ?"
 			columnTypeSQL = "SELECT column_name, column_default, is_nullable = 'YES', data_type, character_maximum_length, column_type, column_key, extra, column_comment"
 		)
 
+		// Open a table query to obtain the driver column descriptions.
 		rows, err := m.DB.Session(&gorm.Session{}).Table(stmt.Table).Limit(1).Rows()
 		if err != nil {
 			return err
 		}
 
+		// Read the driver descriptions and release the table rows.
 		rawColumnTypes, err := rows.ColumnTypes()
 		if err := rows.Close(); err != nil {
 			return err
 		}
 
+		// Restrict the metadata query to this table in column order.
 		columnTypeSQL += " FROM information_schema.columns WHERE table_schema = ? AND table_name = ? ORDER BY ORDINAL_POSITION"
 
+		// Open the information schema rows for the table columns.
 		columns, rowErr := m.DB.Raw(columnTypeSQL, currentDatabase, stmt.Table).Rows()
 		if rowErr != nil {
 			return rowErr
 		}
 		defer columns.Close()
 
+		// Combine information schema values with each driver description.
 		for columns.Next() {
+			// Prepare destinations for the column metadata row.
 			var (
 				column     migrator.ColumnType
 				extraValue sql.NullString
@@ -163,10 +184,12 @@ func (m Migrator) ColumnTypes(value any) (columnTypes []gorm.ColumnType, err err
 				}
 			)
 
+			// Read the information schema values for this column.
 			if scanErr := columns.Scan(values...); scanErr != nil {
 				return scanErr
 			}
 
+			// Interpret the column key as primary or unique membership.
 			column.PrimaryKeyValue = sql.NullBool{Bool: false, Valid: true}
 			column.UniqueValue = sql.NullBool{Bool: false, Valid: true}
 			switch columnKey.String {
@@ -176,12 +199,15 @@ func (m Migrator) ColumnTypes(value any) (columnTypes []gorm.ColumnType, err err
 				column.UniqueValue = sql.NullBool{Bool: true, Valid: true}
 			}
 
+			// Identify columns whose values are assigned by auto increment.
 			if strings.Contains(extraValue.String, "auto_increment") {
 				column.AutoIncrementValue = sql.NullBool{Bool: true, Valid: true}
 			}
 
+			// Normalize the column default by removing surrounding quotes.
 			column.DefaultValueValue.String = strings.Trim(column.DefaultValueValue.String, "'")
 
+			// Attach the matching driver description to the column metadata.
 			for _, c := range rawColumnTypes {
 				if c.Name() == column.NameValue.String {
 					column.SQLColumnType = c
@@ -189,6 +215,7 @@ func (m Migrator) ColumnTypes(value any) (columnTypes []gorm.ColumnType, err err
 				}
 			}
 
+			// Include the completed column in the table metadata.
 			columnTypes = append(columnTypes, column)
 		}
 

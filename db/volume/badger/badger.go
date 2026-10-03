@@ -30,16 +30,19 @@ func NewBadger(
 	le *logrus.Entry,
 	conf *Config,
 ) (*Badger, error) {
+	// Build the volume key encoding from the Badger configuration.
 	kvkey, err := kvkey.NewKVKey(conf.GetKvKeyOpts())
 	if err != nil {
 		return nil, err
 	}
 
+	// Resolve the Badger database options before opening storage.
 	badgerOpts, err := conf.BuildBadgerOptions()
 	if err != nil {
 		return nil, err
 	}
 
+	// Open the Badger database with the configured logging level.
 	withDebugLogging := conf.GetBadgerDebug()
 	store, err := sbadger.Open(
 		badgerOpts.WithLogger(newBadgerLogger(le, withDebugLogging)),
@@ -48,11 +51,13 @@ func NewBadger(
 		return nil, err
 	}
 
+	// Wrap the transaction store with verbose logging when requested.
 	var vstore skvtx.Store = store
 	if conf.GetVerbose() {
 		vstore = kvtx_vlogger.NewVLogger(le, vstore)
 	}
 
+	// Construct the volume with Badger storage statistics and database cleanup.
 	db := store.GetDB()
 	vol, err := kvtx.NewVolume(
 		ctx,
@@ -63,10 +68,13 @@ func NewBadger(
 		conf.GetNoGenerateKey(),
 		false,
 		func(ctx context.Context) (*volume.StorageStats, error) {
+			// Measure the Badger table and value log storage sizes.
 			lsm, vlog := db.Size()
 			if lsm < 0 || vlog < 0 {
 				return nil, errors.New("badger reported negative size")
 			}
+
+			// Count the stored blocks within a read transaction.
 			tx, err := store.NewTransaction(ctx, false)
 			if err != nil {
 				return nil, err
@@ -86,6 +94,8 @@ func NewBadger(
 	if err != nil {
 		return nil, err
 	}
+
+	// Coordinate volume access through locks in the Badger directory.
 	vol.Coordinator = coord_filelock.NewCoordinator(badgerOpts.Dir, badgerOpts.Dir, vol.Coordinator)
 	return vol, nil
 }

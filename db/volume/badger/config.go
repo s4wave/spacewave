@@ -11,9 +11,12 @@ var ConfigID = ControllerID
 
 // BuildBadgerOptions builds badger options from the config.
 func (c *Config) BuildBadgerOptions() (*bdb.Options, error) {
+	// Require a storage directory for the Badger database.
 	if c.GetDir() == "" {
 		return nil, errors.New("db dir cannot be empty")
 	}
+
+	// Resolve the table and value log directories from the configuration.
 	o := bdb.DefaultOptions(c.GetDir())
 	if vd := c.GetValueDir(); vd != "" {
 		o.ValueDir = vd
@@ -24,13 +27,17 @@ func (c *Config) BuildBadgerOptions() (*bdb.Options, error) {
 	// We use a write mutex, so conflict checking is unnecessary.
 	o.DetectConflicts = false
 
+	// Apply the configured durability policy to Badger writes.
 	if c.GetNoSyncWrites() {
 		o.SyncWrites = false
 	}
 
+	// Configure how many historical versions Badger retains.
 	if nvc := c.GetNumVersionsToKeep(); nvc != 0 {
 		o.NumVersionsToKeep = int(nvc)
 	}
+
+	// Tune Badger table growth and the number of storage levels.
 	if bts := c.GetBaseTableSize(); bts != 0 {
 		o.BaseTableSize = int64(bts) //nolint:gosec
 	}
@@ -40,12 +47,16 @@ func (c *Config) BuildBadgerOptions() (*bdb.Options, error) {
 	if ml := c.GetMaxLevels(); ml != 0 {
 		o.MaxLevels = int(ml)
 	}
+
+	// Tune in-memory buffering and which values remain in the tables.
 	if vt := c.GetValueThreshold(); vt != 0 {
 		o.ValueThreshold = int64(vt) //nolint:gosec
 	}
 	if nmt := c.GetNumMemtables(); nmt != 0 {
 		o.NumMemtables = int(nmt)
 	}
+
+	// Tune level zero pressure and the base storage level size.
 	if nlzt := c.GetNumLevelZeroTables(); nlzt != 0 {
 		o.NumLevelZeroTables = int(nlzt)
 	}
@@ -55,12 +66,16 @@ func (c *Config) BuildBadgerOptions() (*bdb.Options, error) {
 	if los := c.GetBaseLevelSize(); los != 0 {
 		o.BaseLevelSize = int64(los) //nolint:gosec
 	}
+
+	// Bound Badger value log files by size and entry count.
 	if vlfs := c.GetValueLogFileSize(); vlfs != 0 {
 		o.ValueLogFileSize = int64(vlfs) //nolint:gosec
 	}
 	if vlme := c.GetValueLogMaxEntries(); vlme != 0 {
 		o.ValueLogMaxEntries = vlme
 	}
+
+	// Configure the Badger background compaction concurrency.
 	if nc := c.GetNumCompactors(); nc != 0 {
 		o.NumCompactors = int(nc)
 	}

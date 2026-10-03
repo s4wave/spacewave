@@ -49,15 +49,20 @@ type remoteShellOpenResult struct {
 
 // StartHandler registers the daemon-side remote-shell stream handler.
 func StartHandler(ctx context.Context, le *logrus.Entry, b bus.Bus, policyStore *device_policy.PolicyStore) func() {
+	// Require a controller bus before registering the remote shell handler.
 	if b == nil {
 		return func() {}
 	}
+
+	// Configure the remote shell controller with device policy and PTY startup.
 	ctrl := &deviceRemoteShellController{
 		le:      le.WithField("controller", deviceRemoteShellControllerID),
 		b:       b,
 		policy:  resolveRemoteShellPolicy(policyStore),
 		starter: startPtyRemoteShell,
 	}
+
+	// Attach the remote shell controller for the supplied context lifetime.
 	release, err := b.AddController(ctx, ctrl, nil)
 	if err != nil {
 		le.WithError(err).Warn("device remote-shell handler unavailable")
@@ -130,6 +135,7 @@ type deviceRemoteShellHandler struct {
 }
 
 func (h *deviceRemoteShellHandler) HandleMountedStream(ctx context.Context, ms link.MountedStream) error {
+	// Retain the peer link while its remote shell session runs.
 	_, elRef, err := h.b.AddDirective(
 		link.NewEstablishLinkWithPeer(ms.GetLink().GetLocalPeer(), ms.GetPeerID()),
 		nil,
@@ -138,6 +144,7 @@ func (h *deviceRemoteShellHandler) HandleMountedStream(ctx context.Context, ms l
 		return err
 	}
 
+	// Run the terminal protocol and release the stream and link on completion.
 	go func() {
 		defer elRef.Release()
 		defer ms.GetStream().Close()
@@ -156,6 +163,7 @@ func runRemoteShellSession(
 	policy remoteShellPolicy,
 	starter remoteShellStarter,
 ) error {
+	// Receive the terminal opening request before evaluating device policy.
 	openFrame, err := receiveRemoteShellOpenFrame(ctx, session)
 	if err != nil {
 		return errors.Wrap(err, "receive terminal open frame")
@@ -163,27 +171,34 @@ func runRemoteShellSession(
 	if openFrame.GetKind() != s4wave_terminal.TerminalFrameKind_TERMINAL_FRAME_KIND_OPEN {
 		return sendTerminalError(session, "expected terminal OPEN frame")
 	}
+
+	// Require device policy to permit the requested remote shell.
 	if policy != nil {
 		if err := policy(openFrame); err != nil {
 			return sendTerminalError(session, err.Error())
 		}
 	}
+
+	// Require a process starter for the remote shell request.
 	if starter == nil {
 		return sendTerminalError(session, "remote shell starter unavailable")
 	}
 
+	// Start the shell process and close it when the session ends.
 	proc, err := starter(ctx, openFrame)
 	if err != nil {
 		return sendTerminalError(session, err.Error())
 	}
 	defer proc.Close()
 
+	// Notify the terminal client that the shell is ready.
 	if err := session.SendMsg(&s4wave_terminal.TerminalFrame{
 		Kind: s4wave_terminal.TerminalFrameKind_TERMINAL_FRAME_KIND_READY,
 	}); err != nil {
 		return err
 	}
 
+	// Run shell input, output, and process completion under one session context.
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 	errCh := make(chan error, 3)
@@ -191,6 +206,7 @@ func runRemoteShellSession(
 	go waitRemoteShellProcess(session, proc, errCh)
 	go receiveRemoteShellInput(ctx, session, proc, errCh)
 
+	// End the shell session on process completion, stream failure, or cancellation.
 	select {
 	case err = <-errCh:
 	case <-ctx.Done():
@@ -264,11 +280,14 @@ func waitRemoteShellProcess(
 	proc remoteShellProcess,
 	errCh chan<- error,
 ) {
+	// Collect the shell process exit code and any failure detail.
 	exitCode, err := proc.Wait()
 	exitErr := ""
 	if err != nil {
 		exitErr = err.Error()
 	}
+
+	// Deliver the process exit status to the terminal client.
 	if serr := session.SendMsg(&s4wave_terminal.TerminalFrame{
 		Kind:     s4wave_terminal.TerminalFrameKind_TERMINAL_FRAME_KIND_EXIT,
 		ExitCode: remoteShellExitCode(exitCode),
@@ -277,6 +296,8 @@ func waitRemoteShellProcess(
 		errCh <- serr
 		return
 	}
+
+	// Complete the shell session with the process result.
 	errCh <- err
 }
 
@@ -347,6 +368,7 @@ func resolveRemoteShellPolicy(store *device_policy.PolicyStore) remoteShellPolic
 }
 
 func startPtyRemoteShell(ctx context.Context, openFrame *s4wave_terminal.TerminalFrame) (remoteShellProcess, error) {
+	// Start the requested shell in a PTY sized for the terminal client.
 	cmd := buildRemoteShellCommand(ctx, openFrame)
 	cols, rows := s4wave_terminal.NormalizeTerminalFrameSize(openFrame.GetCols(), openFrame.GetRows())
 	ptmx, err := pty.StartWithSize(cmd, &pty.Winsize{
@@ -360,6 +382,7 @@ func startPtyRemoteShell(ctx context.Context, openFrame *s4wave_terminal.Termina
 }
 
 func buildRemoteShellCommand(ctx context.Context, openFrame *s4wave_terminal.TerminalFrame) *exec.Cmd {
+	// Select the shell and platform arguments for the requested command.
 	shell := defaultRemoteShell()
 	command := openFrame.GetCommand()
 	args := []string{}
@@ -369,6 +392,8 @@ func buildRemoteShellCommand(ctx context.Context, openFrame *s4wave_terminal.Ter
 	if command != "" && runtime.GOOS != "windows" {
 		args = []string{"-lc", command}
 	}
+
+	// Bind the shell command to cancellation and the requested environment.
 	cmd := exec.CommandContext(ctx, shell, args...)
 	cmd.Env = append(os.Environ(), openFrame.GetEnvironment()...)
 	return cmd
@@ -421,9 +446,12 @@ func ptyDimension(value uint32) uint16 {
 }
 
 func (p *ptyRemoteShellProcess) Close() error {
+	// Keep repeated PTY closure calls from closing the process again.
 	if !p.closed.CompareAndSwap(false, true) {
 		return p.closeErr
 	}
+
+	// Close the PTY and terminate its attached shell process.
 	p.closeErr = p.ptmx.Close()
 	if p.cmd.Process != nil {
 		_ = p.cmd.Process.Kill()

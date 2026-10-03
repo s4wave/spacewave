@@ -39,21 +39,26 @@ type Server struct {
 
 // NewServer constructs a new server, looking up the world handle.
 func NewServer(le *logrus.Entry, b bus.Bus, c *Config) (*Server, error) {
+	// Validate the identity server configuration before construction.
 	if err := c.Validate(); err != nil {
 		return nil, err
 	}
+
+	// Retain the identity server dependencies for request handling.
 	srv := &Server{
 		le: le,
 		b:  b,
 		c:  c,
 	}
 
+	// Supply the identity domain protocol as the default server protocol.
 	srvConf := c.
 		GetServer().
 		ApplyDefaults([]protocol.ID{
 			identity_domain_service.IdentityDomainProtocol,
 		})
 
+	// Build the stream server with the identity domain service registered.
 	var err error
 	srv.server, err = srvConf.BuildServer(
 		b,
@@ -93,23 +98,27 @@ func (s *Server) LookupEntity(
 	ctx context.Context,
 	sreq *peer.SignedMsg,
 ) (*identity_domain_service.LookupEntityResp, error) {
+	// Decode the signed entity lookup request and its public key.
 	req := &identity_domain_service.LookupEntityReq{}
 	pubKey, err := req.UnmarshalFrom(sreq)
 	if err != nil {
 		return nil, err
 	}
 
+	// Reject expired entity lookup requests before resolving the identifier.
 	now := time.Now()
 	if err := req.CheckTimestamp(now); err != nil {
 		return nil, err
 	}
 
+	// Derive the requesting peer identity for lookup diagnostics.
 	// NOTE: The identity of the peer making the request is not checked here.
 	reqPeerID, err := peer.IDFromPublicKey(pubKey)
 	if err != nil {
 		return nil, err
 	}
 
+	// Require the requested entity domain to be served by this server.
 	lookupId := req.GetIdentifier()
 	entityID, domainID := lookupId.GetEntityId(), lookupId.GetDomainId()
 	if !s.DomainIdMatches(domainID) {
@@ -120,6 +129,7 @@ func (s *Server) LookupEntity(
 		}, nil
 	}
 
+	// Attach the requesting peer and entity identifier to lookup diagnostics.
 	le := s.le.
 		WithField("request-peer", reqPeerID.String()).
 		WithField("entity-id", entityID).
@@ -138,17 +148,20 @@ func (s *Server) LookupEntity(
 		return nil, err
 	}
 
+	// Preserve an entity lookup failure in the protocol response.
 	var lookupErr string
 	if err := lookupRes.GetError(); err != nil {
 		lookupErr = err.Error()
 	}
 
+	// Include the entity record only when the lookup found one.
 	var ent *identity.Entity
 	notFound := lookupRes.IsNotFound()
 	if lookupRes != nil && !notFound {
 		ent = lookupRes.GetEntity()
 	}
 
+	// Return the entity lookup result with its original identifier.
 	le.Debugf("entity lookup finished: found(%v)", ent != nil)
 	return &identity_domain_service.LookupEntityResp{
 		Identifier:   lookupId,
