@@ -104,6 +104,7 @@ func (i *Iterator) Next() bool {
 // Seek moves the iterator to the selected key, or the next key after the key.
 // Pass nil to seek to the beginning (or end if reversed).
 func (i *Iterator) Seek(k []byte) error {
+	// Seek the wrapped iterator while logging only the key length and result.
 	logKey := keyForLogging(k)
 	i.le.Debugf(
 		"Seek(%s)",

@@ -29,6 +29,7 @@ func (l *VLoggerStore) Unwrap() kvtx.Store {
 // Indicate write if the transaction will not be read-only.
 // Always call Discard() after you are done with the transaction.
 func (l *VLoggerStore) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, error) {
+	// Open the underlying transaction with a distinct verbose log identifier.
 	txid := l.txInc.Add(1)
 	le := l.le.WithField("kvtx-vlogger-txid", txid)
 	le.Debugf("NewTransaction(%v)", write)

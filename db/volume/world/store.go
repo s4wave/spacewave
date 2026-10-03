@@ -27,6 +27,7 @@ type worldStore struct {
 
 // NewTransaction opens the current object root while retaining its World writer.
 func (s *worldStore) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, error) {
+	// Acquire the World transaction and retain it until the KV operation ends.
 	wtx, err := s.engine.NewTransaction(ctx, write)
 	if err != nil {
 		return nil, err
@@ -38,6 +39,8 @@ func (s *worldStore) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, e
 			t.Discard()
 		}
 	}()
+
+	// Read the current World object root or use its initial backing reference.
 	obj, found, err := wtx.GetObject(ctx, t.key)
 	t.object = obj
 	if err != nil {
@@ -53,6 +56,8 @@ func (s *worldStore) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, e
 	if ref == nil {
 		ref = &bucket.ObjectRef{}
 	}
+
+	// Select the configured bucket and open its storage cursor.
 	if bucketID := s.conf.GetBucketId(); bucketID != "" {
 		ref.BucketId = bucketID
 	}
@@ -69,6 +74,8 @@ func (s *worldStore) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, e
 	if err != nil {
 		return nil, err
 	}
+
+	// Build the KV transaction over the retained World storage cursor.
 	var bcs *block.Cursor
 	t.blocks, bcs = t.cursor.BuildTransaction(nil)
 	t.Tx, err = kvtx_block.BuildKvTransaction(ctx, bcs, write && !wtx.GetReadOnly())
@@ -93,10 +100,13 @@ type worldTransaction struct {
 
 // Commit publishes the KV root before committing the enclosing World head.
 func (t *worldTransaction) Commit(ctx context.Context) error {
+	// Reject a discarded World transaction and release resources after commit.
 	if t.discarded {
 		return tx.ErrDiscarded
 	}
 	defer t.Discard()
+
+	// Commit the KV changes and write their block graph root.
 	if err := t.Tx.Commit(ctx); err != nil {
 		return err
 	}
@@ -104,6 +114,8 @@ func (t *worldTransaction) Commit(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+
+	// Publish the new KV root on the World object.
 	ref := t.cursor.GetRefWithOpArgs()
 	ref.RootRef = root
 	if t.object == nil {
@@ -119,6 +131,7 @@ func (t *worldTransaction) Commit(ctx context.Context) error {
 
 // Discard releases all resources, including the World's writer coordination.
 func (t *worldTransaction) Discard() {
+	// Release the KV transaction, object, and cursor once with the World transaction.
 	if t.discarded {
 		return
 	}

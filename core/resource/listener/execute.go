@@ -49,6 +49,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 	le := c.GetLogger()
 	b := c.GetBus()
 
+	// Read the listener socket configuration before acquiring services.
 	sockPath, err := c.GetConfig().DetermineSocketPath()
 	if err != nil {
 		return errors.Wrap(err, "determine socket path")
@@ -64,6 +65,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 		return errors.Wrap(err, "resolve socket path")
 	}
 
+	// Require the listener status and handoff brokers before serving clients.
 	if c.statusBroker == nil {
 		return errors.New("listener status broker is not injected")
 	}
@@ -201,9 +203,11 @@ func (c *Controller) serveOnce(
 	status.SetListening(true)
 	defer status.SetListening(false)
 
+	// Give the listener and its clients a shared cancellation lifetime.
 	serveCtx, serveCancel := context.WithCancel(parentCtx)
 	defer serveCancel()
 
+	// Register socket handoff and trace RPCs on the resource service mux.
 	yieldCh := make(chan struct{})
 	var yieldRequested atomic.Bool
 	mux := srpc.NewMux(invoker)
@@ -222,6 +226,7 @@ func (c *Controller) serveOnce(
 		return false, errors.Wrap(err, "register trace service")
 	}
 
+	// Close the listener when the serve context ends.
 	go func() {
 		<-serveCtx.Done()
 		lis.Close()
@@ -240,6 +245,8 @@ func (c *Controller) serveOnce(
 		}
 	default:
 	}
+
+	// Cancel and drain clients after accepting ends or handoff completes.
 	serveCanceled := serveCtx.Err() != nil
 	serveCancel()
 	drainClients()

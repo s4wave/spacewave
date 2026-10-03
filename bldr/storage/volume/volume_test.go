@@ -17,11 +17,13 @@ import (
 )
 
 func TestStorageDefaultVolume(t *testing.T) {
+	// Configure a context and logger for the default storage volume test.
 	ctx := context.Background()
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
 
+	// Start the core bus and register the storage volume controller factory.
 	b, sr, err := core.NewCoreBus(ctx, le)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -55,12 +57,14 @@ func TestStorageDefaultVolume(t *testing.T) {
 	}
 	defer ref.Release()
 
+	// Acquire the volume exposed by the running storage controller.
 	volCtrl := volCtrlI.(volume.Controller)
 	vol, err := volCtrl.GetVolume(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Check the default storage volume against the volume contract.
 	if err := volume_test.CheckVolume(ctx, vol); err != nil {
 		t.Fatal(err.Error())
 	}

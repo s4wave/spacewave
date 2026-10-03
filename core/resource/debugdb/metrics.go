@@ -52,20 +52,24 @@ func (m *MetricCollector) MaybeYield() {
 
 // Build computes aggregates and returns a BenchmarkMetric.
 func (m *MetricCollector) Build() *s4wave_debugdb.BenchmarkMetric {
+	// Return an empty benchmark metric when the collector has no samples.
 	n := len(m.samples)
 	if n == 0 {
 		return &s4wave_debugdb.BenchmarkMetric{Name: m.name, Unit: m.unit}
 	}
 
+	// Sort a copy of the timing samples for benchmark percentiles.
 	sorted := make([]float64, n)
 	copy(sorted, m.samples)
 	slices.Sort(sorted)
 
+	// Sum the benchmark timing samples for the total duration.
 	total := 0.0
 	for _, s := range sorted {
 		total += s
 	}
 
+	// Build the benchmark metric with timing aggregates and percentiles.
 	metric := &s4wave_debugdb.BenchmarkMetric{
 		Name:    m.name,
 		Unit:    m.unit,
@@ -77,6 +81,7 @@ func (m *MetricCollector) Build() *s4wave_debugdb.BenchmarkMetric {
 		MaxMs:   sorted[n-1],
 	}
 
+	// Retain raw benchmark samples when their count fits the reporting limit.
 	if n <= maxRawSamples {
 		metric.Samples = m.samples
 	}
@@ -86,6 +91,7 @@ func (m *MetricCollector) Build() *s4wave_debugdb.BenchmarkMetric {
 
 // percentile returns the value at the given percentile from a sorted slice.
 func percentile(sorted []float64, p float64) float64 {
+	// Locate the requested percentile within the sorted timing samples.
 	n := len(sorted)
 	if n == 0 {
 		return 0

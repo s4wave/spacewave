@@ -52,6 +52,7 @@ func NewFactory(b bus.Bus) controller.Factory {
 
 // Execute executes the controller goroutine.
 func (d *App) Execute(ctx context.Context) error {
+	// Report that the app1 controller has started.
 	le := d.GetLogger()
 	le.Info("app1 running")
 
@@ -63,16 +64,19 @@ func (d *App) Execute(ctx context.Context) error {
 	}
 	defer plugRef.Release()
 
+	// Build the prototype RPC client for the loaded app2 plugin.
 	le.Info("app1 starting request to app2")
 	plugRpcClient := plug.GetRpcClient()
 	rpcClient := prototype_webworker_rpcstream_common.NewSRPCPrototypeServiceClient(plugRpcClient)
 
+	// Start the app2 prototype stream with the app1 greeting.
 	testBody := "hello from app1"
 	strm, err := rpcClient.Prototype(ctx, &prototype_webworker_rpcstream_common.PrototypeRequest{Body: testBody})
 	if err != nil {
 		return err
 	}
 
+	// Read app2 stream responses until cancellation or the prototype duration ends.
 	le.Info("started Prototype rpc with app2")
 	waitTimer := time.After(time.Second * 5)
 WaitLoop:
@@ -92,6 +96,7 @@ WaitLoop:
 		le.Infof("got response from app2: %v", resp.String())
 	}
 
+	// Close both directions of the app2 prototype stream.
 	le.Info("closing stream")
 	if err := strm.CloseSend(); err != nil {
 		return err
@@ -100,6 +105,7 @@ WaitLoop:
 		return err
 	}
 
+	// Report that the app2 prototype stream has closed.
 	le.Info("stream closed")
 
 	return nil

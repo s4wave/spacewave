@@ -29,20 +29,24 @@ func (c *Config) GetConfigID() string {
 
 // EqualsConfig checks equality between two configs.
 func (c *Config) EqualsConfig(c2 config.Config) bool {
+	// Require another peer controller configuration before comparing identities.
 	oc, ok := c2.(*Config)
 	if !ok {
 		return false
 	}
 
+	// Accept identical private key encodings without parsing them.
 	if c.GetPrivKey() == oc.GetPrivKey() {
 		return true
 	}
 
+	// Parse this configuration private key for an identity comparison.
 	pk1, err := c.ParsePrivateKey()
 	if err != nil {
 		return false
 	}
 
+	// Parse the other configuration private key for an identity comparison.
 	pk2, err := oc.ParsePrivateKey()
 	if err != nil {
 		return false

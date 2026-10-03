@@ -25,9 +25,12 @@ func (b *Backing) UnmarshalBlock(data []byte) error { return b.UnmarshalVT(data)
 
 // LoadBacking reads a typed Volume's backing selection.
 func LoadBacking(ctx context.Context, ws world.WorldState, key string) (*Backing, error) {
+	// Validate the Volume type before reading its backing selection.
 	if err := world_types.CheckObjectType(ctx, ws, key, ObjectTypeID); err != nil {
 		return nil, err
 	}
+
+	// Load the Volume backing and validate its referenced KV object.
 	backing, err := world.LookupObjectBody[*Backing](ctx, ws, key, func() block.Block { return &Backing{} })
 	if err != nil {
 		return nil, err

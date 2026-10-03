@@ -14,11 +14,13 @@ import (
 )
 
 func TestVlogger(t *testing.T) {
+	// Configure a verbose logger for the KV store contract checks.
 	ctx := context.Background()
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
 
+	// Run the KV store contract checks through the verbose wrapper.
 	var underlyingStore kvtx.Store = sinmem.NewStore()
 	vstore := NewVLogger(le, underlyingStore)
 	if err := kvtx_kvtest.TestAll(ctx, vstore); err != nil {
@@ -27,14 +29,17 @@ func TestVlogger(t *testing.T) {
 }
 
 func TestKeyForLoggingRedactsKeyMaterial(t *testing.T) {
+	// Prepare key material whose contents must stay out of verbose logs.
 	const secret = "password=correct-horse-battery-staple"
 
+	// Capture verbose log output for the key redaction check.
 	logBuf := bytes.NewBuffer(nil)
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
 	log.SetOutput(logBuf)
 	le := logrus.NewEntry(log)
 
+	// Acquire a writable transaction through the verbose store wrapper.
 	var underlyingStore kvtx.Store = sinmem.NewStore()
 	vstore := NewVLogger(le, underlyingStore)
 	tx, err := vstore.NewTransaction(context.Background(), true)
@@ -43,10 +48,12 @@ func TestKeyForLoggingRedactsKeyMaterial(t *testing.T) {
 	}
 	defer tx.Discard()
 
+	// Write the sensitive key through the verbose transaction.
 	if err := tx.Set(context.Background(), []byte(secret), []byte("value")); err != nil {
 		t.Fatal(err)
 	}
 
+	// Check that verbose logs describe key structure without revealing contents.
 	output := logBuf.String()
 	if strings.Contains(output, secret) {
 		t.Fatalf("vlogger exposed key material in logs: %s", output)
@@ -80,6 +87,7 @@ func (t *typedCommitTx) Commit(ctx context.Context) error {
 }
 
 func TestVloggerPreservesInvalidSnapshot(t *testing.T) {
+	// Wrap a store whose commit reports a typed snapshot conflict.
 	store := &typedCommitStore{Store: sinmem.NewStore()}
 	log := logrus.New()
 	vstore := NewVLogger(logrus.NewEntry(log), store)
@@ -89,6 +97,7 @@ func TestVloggerPreservesInvalidSnapshot(t *testing.T) {
 	}
 	defer tx.Discard()
 
+	// Check that verbose transaction logging preserves the typed commit error.
 	err = tx.Commit(context.Background())
 	if !errors.Is(err, kvtx.ErrInvalidSnapshot) {
 		t.Fatalf("commit error = %v, want ErrInvalidSnapshot", err)

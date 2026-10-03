@@ -21,14 +21,17 @@ import (
 
 // TestWorldVolume tests the world backed volume.
 func TestWorldVolume(t *testing.T) {
+	// Give the World-backed volume test a context for its operations.
 	ctx := context.Background()
 
+	// Start a World testbed with the World-backed volume controller factory.
 	tb, err := testbed.Default(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	tb.StaticResolver.AddFactory(volume_world.NewFactory(tb.Bus))
 
+	// Select the testbed volume, bucket, and engine for the volume configuration.
 	le := tb.Logger
 	vol := tb.Volume
 	volumeID := vol.GetID()
@@ -36,10 +39,12 @@ func TestWorldVolume(t *testing.T) {
 	bucketID := tb.EngineBucketID
 	engineID := tb.EngineID
 
+	// Derive a test encryption key for the volume block store.
 	encKey := make([]byte, 32)
 	blake3.DeriveKey("hydra/volume/block/test: block_test.go", []byte(objectStoreID), encKey)
 	le.Infof("using encryption key: %s", b58.Encode(encKey))
 
+	// Configure the block encryption transform for the World-backed volume.
 	transformConf, err := block_transform.NewConfig([]config.Config{
 		&transform_blockenc.Config{
 			BlockEnc: blockenc.BlockEnc_BlockEnc_XCHACHA20_POLY1305,
@@ -75,6 +80,7 @@ func TestWorldVolume(t *testing.T) {
 	}
 	defer diRef.Release()
 
+	// Acquire the volume exposed by the running World-backed controller.
 	volCtrl := vctrl.(volume.Controller)
 	bvol, err := volCtrl.GetVolume(ctx)
 	if err != nil {

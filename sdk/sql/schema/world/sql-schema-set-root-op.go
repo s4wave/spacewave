@@ -45,12 +45,15 @@ func (o *SqlSchemaSetRootOp) ApplyWorldOp(
 	ws world.WorldState,
 	sender peer.ID,
 ) (bool, error) {
+	// Validate the SQL schema root operation and its target object type.
 	if err := o.Validate(); err != nil {
 		return false, err
 	}
 	if err := world_types.CheckObjectType(ctx, ws, o.GetObjectKey(), s4wave_sql_schema.SqlSchemaTypeID); err != nil {
 		return false, err
 	}
+
+	// Acquire the SQL schema object and apply its new root reference.
 	obj, err := world.MustGetObject(ctx, ws, o.GetObjectKey())
 	defer world.ReleaseObjectState(obj)
 	if err != nil {
@@ -59,6 +62,8 @@ func (o *SqlSchemaSetRootOp) ApplyWorldOp(
 	if sysErr, err := o.ApplyWorldObjectOp(ctx, le, obj, sender); err != nil || sysErr {
 		return sysErr, err
 	}
+
+	// Synchronize the schema graph after publishing the new root reference.
 	return false, s4wave_sql_schema.SyncSchemaGraphQuads(ctx, ws, o.GetObjectKey())
 }
 
@@ -69,6 +74,7 @@ func (o *SqlSchemaSetRootOp) ApplyWorldObjectOp(
 	os world.ObjectState,
 	_ peer.ID,
 ) (bool, error) {
+	// Validate the root operation and require its matching SQL schema object.
 	if err := o.Validate(); err != nil {
 		return false, err
 	}
@@ -78,6 +84,8 @@ func (o *SqlSchemaSetRootOp) ApplyWorldObjectOp(
 	if os.GetKey() != o.GetObjectKey() {
 		return false, errors.Errorf("sql/schema: op target %s does not match object %s", o.GetObjectKey(), os.GetKey())
 	}
+
+	// Publish the root reference on the matching SQL schema object.
 	_, err := os.SetRootRef(ctx, o.GetRootRef())
 	return false, err
 }

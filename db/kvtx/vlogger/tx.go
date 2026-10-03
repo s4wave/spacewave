@@ -95,6 +95,7 @@ func (t *Tx) ScanPrefix(ctx context.Context, prefix []byte, cb func(key, value [
 		)
 	}()
 	return t.Tx.ScanPrefix(ctx, prefix, func(key, value []byte) error {
+		// Measure the key-value callback and log its result without key material.
 		ta := time.Now()
 		err := cb(key, value)
 		tb := time.Now()
@@ -125,6 +126,7 @@ func (t *Tx) ScanPrefixKeys(ctx context.Context, prefix []byte, cb func(key []by
 		)
 	}()
 	return t.Tx.ScanPrefixKeys(ctx, prefix, func(key []byte) error {
+		// Measure the key callback and log its result without key material.
 		ta := time.Now()
 		err := cb(key)
 		tb := time.Now()
@@ -142,6 +144,7 @@ func (t *Tx) ScanPrefixKeys(ctx context.Context, prefix []byte, cb func(key []by
 
 // Iterate returns an iterator with a given key prefix.
 func (t *Tx) Iterate(ctx context.Context, prefix []byte, sort, reverse bool) kvtx.Iterator {
+	// Open a transaction iterator and attach its identifier to verbose logs.
 	ii := t.iter.Add(1) - 1
 	it := t.Tx.Iterate(ctx, prefix, sort, reverse)
 	t.le.Debugf(

@@ -37,9 +37,11 @@ func (t *Factory) Construct(
 	conf config.Config,
 	opts controller.ConstructOpts,
 ) (controller.Controller, error) {
+	// Select the peer configuration and controller construction logger.
 	le := opts.GetLogger()
 	cc := conf.(*Config)
 
+	// Parse the configured peer before constructing its controller.
 	confPeer, err := cc.ParseToPeer()
 	if err != nil {
 		return nil, err
