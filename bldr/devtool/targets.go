@@ -12,6 +12,7 @@ import (
 
 // ListTargets lists available deployment targets.
 func (a *DevtoolArgs) ListTargets() error {
+	// Introduce the available deployment targets.
 	fmt.Println("Available deployment targets:")
 	fmt.Println()
 
@@ -19,6 +20,7 @@ func (a *DevtoolArgs) ListTargets() error {
 	targetIDs := bldr_platform.ListBuiltinTargetIDs()
 	slices.Sort(targetIDs)
 
+	// Print each builtin target with its description and supported platforms.
 	for _, id := range targetIDs {
 		target := bldr_platform.GetBuiltinTarget(id)
 		if target == nil {
@@ -30,12 +32,15 @@ func (a *DevtoolArgs) ListTargets() error {
 		fmt.Println()
 	}
 
+	// Describe desktop targets parameterized by operating system and architecture.
 	fmt.Println("Parameterized targets:")
 	fmt.Println()
 	fmt.Println("  desktop/{os}/{arch}")
 	fmt.Println("    Desktop for a specific OS and architecture")
 	fmt.Println("    Example: desktop/darwin/arm64, desktop/linux/amd64")
 	fmt.Println()
+
+	// Describe the desktop target that builds all common architectures.
 	fmt.Println("  desktop/cross")
 	fmt.Println("    Cross-compile for all common desktop architectures")
 	fmt.Println()

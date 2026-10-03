@@ -33,6 +33,7 @@ func InitTx(
 	write bool,
 	dsn string,
 ) (*Tx, error) {
+	// Request a remote SQL transaction with the selected access mode and data source.
 	err := client.Send(&sql_rpc.SqlTransactionRequest{
 		Body: &sql_rpc.SqlTransactionRequest_Init{
 			Init: &sql_rpc.SqlTransactionInit{
@@ -46,24 +47,28 @@ func InitTx(
 		return nil, err
 	}
 
+	// Receive the remote SQL transaction initialization response.
 	resp, err := client.Recv()
 	if err != nil {
 		_ = client.Close()
 		return nil, err
 	}
 
+	// Reject a failed remote SQL transaction acknowledgment.
 	ackMsg := resp.GetAck()
 	if errStr := ackMsg.GetError(); errStr != "" {
 		_ = client.Close()
 		return nil, errors.New(errStr)
 	}
 
+	// Require a transaction identifier before opening the SQL operations stream.
 	txID := ackMsg.GetTransactionId()
 	if txID == "" {
 		_ = client.Close()
 		return nil, errors.New("sql rpc: remote returned empty transaction id")
 	}
 
+	// Bind SQL operations to the acknowledged remote transaction.
 	openStream := rpcstream.NewRpcStreamOpenStream(opsCaller, txID, false)
 	openStreamClient := srpc.NewClient(openStream)
 	opsClient := sql_rpc.NewSRPCSqlOpsClient(openStreamClient)
@@ -77,9 +82,12 @@ func InitTx(
 
 // Commit commits the transaction to storage.
 func (t *Tx) Commit(ctx context.Context) error {
+	// Claim the SQL transaction completion before committing it.
 	if t.released.Swap(true) {
 		return tx.ErrDiscarded
 	}
+
+	// Request the remote SQL transaction commit.
 	err := t.client.Send(&sql_rpc.SqlTransactionRequest{
 		Body: &sql_rpc.SqlTransactionRequest_Commit{Commit: true},
 	})
@@ -87,11 +95,15 @@ func (t *Tx) Commit(ctx context.Context) error {
 		_ = t.client.Close()
 		return err
 	}
+
+	// Receive the remote SQL transaction completion response.
 	resp, err := t.client.Recv()
 	if err != nil {
 		_ = t.client.Close()
 		return err
 	}
+
+	// Translate the remote completion state into the SQL transaction result.
 	complete := resp.GetComplete()
 	if errStr := complete.GetError(); errStr != "" {
 		err = errors.New(errStr)

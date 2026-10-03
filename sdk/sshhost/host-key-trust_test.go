@@ -13,6 +13,7 @@ import (
 )
 
 func TestRememberSshHostKeyPinNormalizesAndDeduplicatesAcceptedKey(t *testing.T) {
+	// Start a testbed for persistent SSH Host trust.
 	ctx := t.Context()
 	tb, err := testbed.Default(ctx)
 	if err != nil {
@@ -20,6 +21,7 @@ func TestRememberSshHostKeyPinNormalizesAndDeduplicatesAcceptedKey(t *testing.T)
 	}
 	defer tb.Release()
 
+	// Create an SSH Host without remembered trust pins.
 	op := NewCreateSshHostOp(
 		"hosts/prod",
 		"Prod Host",
@@ -32,6 +34,7 @@ func TestRememberSshHostKeyPinNormalizesAndDeduplicatesAcceptedKey(t *testing.T)
 		t.Fatalf("ApplyWorldOp: %v", err)
 	}
 
+	// Generate an SSH signing key and a host-prefixed trust pin.
 	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
 	if err != nil {
 		t.Fatal(err)
@@ -47,6 +50,7 @@ func TestRememberSshHostKeyPinNormalizesAndDeduplicatesAcceptedKey(t *testing.T)
 	)
 	pin.PublicKey = "[192.168.1.15]:1940 " + pin.GetPublicKey()
 
+	// Remember the accepted SSH key twice to exercise deduplication.
 	if err := RememberSshHostKeyPin(ctx, tb.Engine, "hosts/prod", pin); err != nil {
 		t.Fatalf("RememberSshHostKeyPin: %v", err)
 	}
@@ -54,6 +58,7 @@ func TestRememberSshHostKeyPinNormalizesAndDeduplicatesAcceptedKey(t *testing.T)
 		t.Fatalf("RememberSshHostKeyPin duplicate: %v", err)
 	}
 
+	// Read the SSH Host after storing its accepted key.
 	host, objectState, err := world.LookupObject[*SshHost](
 		ctx,
 		tb.WorldState,
@@ -64,6 +69,8 @@ func TestRememberSshHostKeyPinNormalizesAndDeduplicatesAcceptedKey(t *testing.T)
 	if err != nil {
 		t.Fatalf("LookupObject: %v", err)
 	}
+
+	// Verify the stored trust pin is unique, normalized, and attributed to the accepting peer.
 	if got := len(host.GetHostKeyPins()); got != 1 {
 		t.Fatalf("host key pins = %d, want 1", got)
 	}

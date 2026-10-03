@@ -16,6 +16,7 @@ import (
 )
 
 func TestValidateSshHostCredentialSecretsChecksSecretKinds(t *testing.T) {
+	// Start a testbed for SSH Host credential validation.
 	ctx := t.Context()
 	tb, err := testbed.Default(ctx)
 	if err != nil {
@@ -23,25 +24,31 @@ func TestValidateSshHostCredentialSecretsChecksSecretKinds(t *testing.T) {
 	}
 	defer tb.Release()
 
+	// Create Secrets with the expected SSH credential kinds and one mismatched kind.
 	createSecretParent(ctx, t, tb.WorldState, "secrets/ssh/key", s4wave_secret.SecretKindSSHPrivateKey)
 	createSecretParent(ctx, t, tb.WorldState, "secrets/ssh/password", s4wave_secret.SecretKindSSHPassword)
 	createSecretParent(ctx, t, tb.WorldState, "secrets/ssh/passphrase", s4wave_secret.SecretKindSSHPassphrase)
 	createSecretParent(ctx, t, tb.WorldState, "secrets/ssh/wrong", s4wave_secret.SecretKindProviderCredential)
 
+	// Configure references to all three SSH credential Secrets.
 	refs := &SshHostCredentialRefs{
 		PrivateKeySecretObjectKey: "secrets/ssh/key",
 		PasswordSecretObjectKey:   "secrets/ssh/password",
 		PassphraseSecretObjectKey: "secrets/ssh/passphrase",
 	}
+
+	// Verify the SSH credential references accept the matching Secret kinds.
 	if err := ValidateSshHostCredentialSecrets(ctx, tb.WorldState, refs); err != nil {
 		t.Fatalf("ValidateSshHostCredentialSecrets: %v", err)
 	}
 
+	// Verify a private key reference rejects a provider credential Secret.
 	refs.PrivateKeySecretObjectKey = "secrets/ssh/wrong"
 	if err := ValidateSshHostCredentialSecrets(ctx, tb.WorldState, refs); err == nil {
 		t.Fatal("expected mismatched SSH credential kind to fail")
 	}
 
+	// Verify a private key reference rejects a missing Secret.
 	refs.PrivateKeySecretObjectKey = "secrets/ssh/missing"
 	if err := ValidateSshHostCredentialSecrets(ctx, tb.WorldState, refs); err == nil {
 		t.Fatal("expected missing SSH credential Secret to fail")
@@ -49,6 +56,7 @@ func TestValidateSshHostCredentialSecretsChecksSecretKinds(t *testing.T) {
 }
 
 func TestCredentialMaterialAbsentFromHostDeviceTerminalComputersBlocks(t *testing.T) {
+	// Construct Host, Device, and Computers blocks that reference SSH credentials.
 	rawCredential := []byte("-----BEGIN OPENSSH PRIVATE KEY-----\nspacewave-secret\n-----END OPENSSH PRIVATE KEY-----")
 	host := &SshHost{
 		Label: "SSH Host",
@@ -81,15 +89,19 @@ func TestCredentialMaterialAbsentFromHostDeviceTerminalComputersBlocks(t *testin
 	}
 	computers := &s4wave_device.ComputersDashboard{Name: "Computers"}
 
+	// Check every serialized block for raw SSH credential material.
 	for name, block := range map[string]block.Block{
 		"ssh host":  host,
 		"device":    device,
 		"computers": computers,
 	} {
+		// Serialize the current block through its production interface.
 		data, err := block.MarshalBlock()
 		if err != nil {
 			t.Fatalf("%s MarshalBlock: %v", name, err)
 		}
+
+		// Verify the serialized block excludes the raw SSH private key.
 		if bytes.Contains(data, rawCredential) {
 			t.Fatalf("%s block contains raw SSH credential bytes", name)
 		}

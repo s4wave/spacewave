@@ -12,6 +12,7 @@ import (
 
 // ExecuteStaticHttpServer runs the static http server command.
 func (a *DevtoolArgs) ExecuteStaticHttpServer(ctx context.Context) error {
+	// Resolve the static server address and filesystem root.
 	le := a.Logger
 	listenAddr := a.WebListenAddr
 	servePath := a.ServeStaticPath
@@ -30,6 +31,7 @@ func (a *DevtoolArgs) ExecuteStaticHttpServer(ctx context.Context) error {
 		fileServer.ServeHTTP(rw, req)
 	})
 
+	// Start the static HTTP server with the configured listener.
 	le.Infof("listening on: %s", listenAddr)
 	hserver := &http.Server{Addr: listenAddr, Handler: handler, ReadHeaderTimeout: time.Second * 30}
 	return hserver.ListenAndServe()

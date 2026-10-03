@@ -65,16 +65,22 @@ func (r *rows) Close() error {
 
 // Next populates dest with the values of the next row.
 func (r *rows) Next(dest []driver.Value) error {
+	// Stop row iteration when the SQL query is closed.
 	if r.closed {
 		return io.EOF
 	}
+
+	// Request SQL result batches until a row is buffered.
 	for len(r.buffer) == 0 {
+		// Request the next row from the remote SQL query.
 		if err := r.client.Send(&sql_rpc.SqlQueryRequest{
 			Body: &sql_rpc.SqlQueryRequest_Next{Next: 1},
 		}); err != nil {
 			r.closed = true
 			return mapTxError(err)
 		}
+
+		// Receive the SQL query response and handle stream failures.
 		resp, err := r.client.Recv()
 		if err != nil {
 			r.closed = true
@@ -84,6 +90,8 @@ func (r *rows) Next(dest []driver.Value) error {
 			}
 			return mapTxError(err)
 		}
+
+		// Handle SQL query errors and remote query closure.
 		if errStr := resp.GetReqError(); errStr != "" {
 			r.closed = true
 			_ = r.client.Close()
@@ -94,6 +102,8 @@ func (r *rows) Next(dest []driver.Value) error {
 			_ = r.client.Close()
 			return io.EOF
 		}
+
+		// Buffer the SQL rows returned by the query batch.
 		batch := resp.GetBatch()
 		if batch == nil {
 			r.closed = true
@@ -102,11 +112,13 @@ func (r *rows) Next(dest []driver.Value) error {
 		r.buffer = append(r.buffer, batch.GetRows()...)
 	}
 
+	// Consume the first buffered SQL row and release its buffer slot.
 	row := r.buffer[0]
 	copy(r.buffer, r.buffer[1:])
 	r.buffer[len(r.buffer)-1] = nil
 	r.buffer = r.buffer[:len(r.buffer)-1]
 
+	// Convert the SQL row values into the driver destination.
 	values := row.GetValues()
 	for i := range dest {
 		if i < len(values) {

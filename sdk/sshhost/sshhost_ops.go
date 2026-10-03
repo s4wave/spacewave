@@ -48,12 +48,15 @@ func (o *CreateSshHostOp) GetOperationTypeId() string {
 
 // Validate performs cursory checks on the op.
 func (o *CreateSshHostOp) Validate() error {
+	// Require an object key and label for the SSH Host creation.
 	if len(o.GetObjectKey()) == 0 {
 		return world.ErrEmptyObjectKey
 	}
 	if strings.TrimSpace(o.GetLabel()) == "" {
 		return world.ErrEmptyOp
 	}
+
+	// Validate the normalized SSH Host and its creation timestamp.
 	host := o.buildSshHost()
 	if err := host.Validate(); err != nil {
 		return err
@@ -71,10 +74,12 @@ func (o *CreateSshHostOp) ApplyWorldOp(
 	ws world.WorldState,
 	sender peer.ID,
 ) (sysErr bool, err error) {
+	// Validate the SSH Host operation before changing the World.
 	if err := o.Validate(); err != nil {
 		return false, err
 	}
 
+	// Create the SSH Host object and release its temporary state handle.
 	host := o.buildSshHost()
 	var createdObject world.ObjectState
 	createdObject, _, err = world.CreateWorldObject(ctx, ws, o.GetObjectKey(), func(bcs *block.Cursor) error {
@@ -86,6 +91,7 @@ func (o *CreateSshHostOp) ApplyWorldOp(
 		return false, err
 	}
 
+	// Assign the SSH Host type to the created World object.
 	if err := world_types.SetObjectType(ctx, ws, o.GetObjectKey(), SshHostTypeID); err != nil {
 		return false, err
 	}

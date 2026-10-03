@@ -18,9 +18,12 @@ type SshHostCredentialSecretExpectation struct {
 
 // SshHostCredentialSecretExpectations returns the expected Secret kind for each set credential ref.
 func SshHostCredentialSecretExpectations(refs *SshHostCredentialRefs) []SshHostCredentialSecretExpectation {
+	// Preserve absent SSH Host credential references.
 	if refs == nil {
 		return nil
 	}
+
+	// Describe the Secret kind required by each configured SSH credential.
 	expectations := make([]SshHostCredentialSecretExpectation, 0, 3)
 	if key := refs.GetPrivateKeySecretObjectKey(); key != "" {
 		expectations = append(expectations, SshHostCredentialSecretExpectation{

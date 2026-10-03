@@ -37,9 +37,12 @@ func (h *SshHost) UnmarshalBlock(data []byte) error {
 
 // NormalizeSshHostEndpoint fills endpoint defaults without changing identity.
 func NormalizeSshHostEndpoint(endpoint *SshHostEndpoint) *SshHostEndpoint {
+	// Supply the default port when the SSH endpoint is absent.
 	if endpoint == nil {
 		return &SshHostEndpoint{Port: DefaultSshPort}
 	}
+
+	// Normalize a copy of the SSH endpoint and fill its missing port.
 	out := endpoint.CloneVT()
 	out.Host = strings.TrimSpace(out.GetHost())
 	out.Username = strings.TrimSpace(out.GetUsername())
@@ -51,9 +54,12 @@ func NormalizeSshHostEndpoint(endpoint *SshHostEndpoint) *SshHostEndpoint {
 
 // Validate performs cursory checks on the SSH Host block.
 func (h *SshHost) Validate() error {
+	// Require a label for the SSH Host.
 	if strings.TrimSpace(h.GetLabel()) == "" {
 		return errors.New("ssh host label is required")
 	}
+
+	// Require a complete SSH endpoint with a usable port.
 	endpoint := h.GetEndpoint()
 	if endpoint == nil {
 		return errors.New("ssh host endpoint is required")
@@ -67,9 +73,13 @@ func (h *SshHost) Validate() error {
 	if strings.TrimSpace(endpoint.GetUsername()) == "" {
 		return errors.New("ssh host endpoint username is required")
 	}
+
+	// Validate the SSH Host credential references.
 	if err := validateCredentialRefs(h.GetCredentials()); err != nil {
 		return err
 	}
+
+	// Validate every SSH Host trust pin.
 	for _, pin := range h.GetHostKeyPins() {
 		if err := validateHostKeyPin(pin); err != nil {
 			return err
@@ -102,6 +112,7 @@ func validateCredentialRefs(refs *SshHostCredentialRefs) error {
 }
 
 func validateHostKeyPin(pin *SshHostKeyPin) error {
+	// Require an SSH Host trust pin with an algorithm and key identity.
 	if pin == nil {
 		return errors.New("ssh host key pin is required")
 	}
@@ -111,6 +122,8 @@ func validateHostKeyPin(pin *SshHostKeyPin) error {
 	if strings.TrimSpace(pin.GetPublicKey()) == "" && strings.TrimSpace(pin.GetSha256Fingerprint()) == "" {
 		return errors.New("ssh host key pin public_key or sha256_fingerprint is required")
 	}
+
+	// Validate the trust pin acceptance timestamp when present.
 	if pin.GetAcceptedAt() != nil {
 		if err := pin.GetAcceptedAt().Validate(false); err != nil {
 			return err

@@ -36,13 +36,16 @@ type SpacewaveURI struct {
 //
 // A plain string without /-/ is treated as an object key only.
 func ParseSpacewaveURI(uri string) (SpacewaveURI, error) {
+	// Normalize the Spacewave URI before interpreting its session prefix.
 	cleaned := path.Clean("/" + uri)
 	uri = strings.TrimPrefix(cleaned, "/")
 
+	// Parse session-qualified Spacewave URIs through the full URI parser.
 	if strings.HasPrefix(uri, "u/") {
 		return parseFullURI(uri)
 	}
 
+	// Parse unqualified Spacewave URI segments under the default session.
 	result := SpacewaveURI{SessionIdx: 1}
 	result.Segments = splitSegments(uri)
 	return result, nil
@@ -61,6 +64,7 @@ func parseFullURI(uri string) (SpacewaveURI, error) {
 	}
 	result := SpacewaveURI{SessionIdx: uint32(sessIdx)}
 
+	// Return the parsed session when the URI has no remaining segments.
 	if rest == "" {
 		return result, nil
 	}
@@ -78,6 +82,7 @@ func parseFullURI(uri string) (SpacewaveURI, error) {
 		rest = rest[delimIdx+len(SubpathDelimiter):]
 	}
 
+	// Parse object and nested path segments after the Spacewave session and space.
 	if rest != "" {
 		result.Segments = splitSegments(rest)
 	}
@@ -91,10 +96,12 @@ func splitSegments(s string) []string {
 	// strip trailing "/-" marker
 	s = strings.TrimSuffix(s, "/-")
 
+	// Preserve an empty URI remainder as an absent segment list.
 	if s == "" {
 		return nil
 	}
 
+	// Collect URI segments while discarding empty trailing delimiter markers.
 	parts := strings.Split(s, SubpathDelimiter)
 	result := make([]string, 0, len(parts))
 	for _, p := range parts {
@@ -130,6 +137,7 @@ type ObjectURI struct {
 // Uses /-/ as delimiter between object key and subpath.
 // A trailing /- is treated the same as /-/ with empty path.
 func ParseObjectURI(uri string) ObjectURI {
+	// Normalize the object URI before interpreting its subpath delimiter.
 	cleaned := path.Clean("/" + uri)
 	uri = strings.TrimPrefix(cleaned, "/")
 
@@ -142,6 +150,7 @@ func ParseObjectURI(uri string) ObjectURI {
 	trimmed := strings.TrimPrefix(SubpathDelimiter, "/")
 	uri = strings.TrimPrefix(uri, trimmed)
 
+	// Separate the object key from its subpath and normalize the trailing marker.
 	delimIdx := strings.Index(uri, SubpathDelimiter)
 	if delimIdx != -1 {
 		objectKey := uri[:delimIdx]
@@ -154,6 +163,7 @@ func ParseObjectURI(uri string) ObjectURI {
 		return ObjectURI{ObjectKey: objectKey, Path: p}
 	}
 
+	// Parse an object key without a subpath delimiter.
 	uri = strings.TrimSuffix(uri, "/-")
 	return ObjectURI{ObjectKey: uri}
 }
@@ -161,6 +171,7 @@ func ParseObjectURI(uri string) ObjectURI {
 // JoinObjectURIPath joins path parts into a single path string.
 // Empty segments are filtered and a trailing "-" is removed.
 func JoinObjectURIPath(parts []string, absolute bool) string {
+	// Collect nonempty object URI path segments without surrounding slashes.
 	filtered := make([]string, 0, len(parts))
 	for _, p := range parts {
 		p = strings.Trim(p, "/")
@@ -169,10 +180,12 @@ func JoinObjectURIPath(parts []string, absolute bool) string {
 		}
 	}
 
+	// Remove the trailing delimiter marker from the object URI path.
 	if n := len(filtered); n > 0 && filtered[n-1] == "-" {
 		filtered = filtered[:n-1]
 	}
 
+	// Join the object URI path segments and apply the requested absolute prefix.
 	joined := strings.Join(filtered, PathSeparator)
 	if joined != "" && absolute {
 		return PathSeparator + joined

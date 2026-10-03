@@ -39,13 +39,18 @@ func (o *Ops) Exec(query string, args []driver.Value) (driver.Result, error) {
 
 // ExecContext executes a query that doesn't return rows.
 func (o *Ops) ExecContext(ctx context.Context, query string, args []driver.NamedValue) (driver.Result, error) {
+	// Require an active SQL transaction before executing a statement.
 	if o.released.Load() {
 		return nil, tx.ErrDiscarded
 	}
+
+	// Encode the SQL statement arguments for the remote service.
 	wireArgs, err := sql_rpc.NamedValuesToSqlValues(args)
 	if err != nil {
 		return nil, err
 	}
+
+	// Execute the remote SQL statement and translate service errors.
 	resp, err := o.client.Exec(ctx, &sql_rpc.SqlExecRequest{
 		Query: query,
 		Args:  wireArgs,
@@ -69,13 +74,18 @@ func (o *Ops) Query(query string, args []driver.Value) (driver.Rows, error) {
 
 // QueryContext executes a query that may return rows.
 func (o *Ops) QueryContext(ctx context.Context, query string, args []driver.NamedValue) (driver.Rows, error) {
+	// Require an active SQL transaction before opening a query.
 	if o.released.Load() {
 		return nil, tx.ErrDiscarded
 	}
+
+	// Encode the SQL query arguments for the remote service.
 	wireArgs, err := sql_rpc.NamedValuesToSqlValues(args)
 	if err != nil {
 		return nil, err
 	}
+
+	// Open and initialize the remote SQL query stream.
 	client, err := o.client.Query(ctx)
 	if err != nil {
 		return nil, mapTxError(err)
@@ -91,6 +101,8 @@ func (o *Ops) QueryContext(ctx context.Context, query string, args []driver.Name
 		_ = client.Close()
 		return nil, mapTxError(err)
 	}
+
+	// Receive the SQL query initialization response and translate service errors.
 	resp, err := client.Recv()
 	if err != nil {
 		_ = client.Close()
@@ -100,6 +112,8 @@ func (o *Ops) QueryContext(ctx context.Context, query string, args []driver.Name
 		_ = client.Close()
 		return nil, errors.New(errStr)
 	}
+
+	// Require the SQL query acknowledgment before exposing its rows.
 	ack := resp.GetAck()
 	if ack == nil {
 		_ = client.Close()

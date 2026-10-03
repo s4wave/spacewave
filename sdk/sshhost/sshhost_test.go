@@ -3,6 +3,7 @@ package s4wave_sshhost
 import "testing"
 
 func TestSshHostValidatePinsEndpointAndCredentialRefs(t *testing.T) {
+	// Construct an SSH Host with a complete endpoint, credential references, and trust pin.
 	host := &SshHost{
 		Label: "Prod Host",
 		Endpoint: &SshHostEndpoint{
@@ -19,15 +20,19 @@ func TestSshHostValidatePinsEndpointAndCredentialRefs(t *testing.T) {
 			Sha256Fingerprint: "SHA256:example",
 		}},
 	}
+
+	// Verify the complete SSH Host passes validation.
 	if err := host.Validate(); err != nil {
 		t.Fatalf("valid ssh host failed validation: %v", err)
 	}
 
+	// Verify SSH Host validation rejects a missing endpoint host.
 	host.Endpoint.Host = ""
 	if err := host.Validate(); err == nil {
 		t.Fatal("expected missing endpoint host to fail validation")
 	}
 
+	// Verify SSH Host validation rejects raw credential material in a Secret reference.
 	host.Endpoint.Host = "prod.example.com"
 	host.Credentials.PrivateKeySecretObjectKey = "-----BEGIN PRIVATE KEY-----\n"
 	if err := host.Validate(); err == nil {

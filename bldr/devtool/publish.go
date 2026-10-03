@@ -14,10 +14,12 @@ func (a *DevtoolArgs) PublishProject(ctx context.Context) error {
 	// init repo root and storage directories
 	le := a.Logger
 
+	// Configure a finite release build with a minified entrypoint.
 	a.Watch = false                                       // explicitly disable watching during dist
 	a.BuildType = string(bldr_manifest.BuildType_RELEASE) // explicitly set release build type
 	a.MinifyEntrypoint = true                             // explicitly minify entrypoint during dist
 
+	// Locate the project root and its persistent build state.
 	repoRoot, stateDir, err := a.InitRepoRoot()
 	if err != nil {
 		return err

@@ -37,6 +37,7 @@ func (o *countingObjectState) Release() {
 // TestValidateSshHostCredentialSecretsReleasesLookedUpStates fails if a
 // body-only Secret lookup leaves its remote-releasable ObjectState alive.
 func TestValidateSshHostCredentialSecretsReleasesLookedUpStates(t *testing.T) {
+	// Start a testbed for SSH credential state release checks.
 	ctx := t.Context()
 	tb, err := testbed.Default(ctx)
 	if err != nil {
@@ -44,22 +45,30 @@ func TestValidateSshHostCredentialSecretsReleasesLookedUpStates(t *testing.T) {
 	}
 	defer tb.Release()
 
+	// Create matching and mismatched SSH credential Secrets.
 	createSecretParent(ctx, t, tb.WorldState, "secrets/ssh/key", s4wave_secret.SecretKindSSHPrivateKey)
 	createSecretParent(ctx, t, tb.WorldState, "secrets/ssh/wrong", s4wave_secret.SecretKindProviderCredential)
 
+	// Count state releases through the credential lookup World.
 	var released int
 	ws := &countingWorldState{WorldState: tb.WorldState, released: &released}
 
+	// Validate the matching SSH private key Secret reference.
 	refs := &SshHostCredentialRefs{PrivateKeySecretObjectKey: "secrets/ssh/key"}
 	if err := ValidateSshHostCredentialSecrets(ctx, ws, refs); err != nil {
 		t.Fatalf("ValidateSshHostCredentialSecrets: %v", err)
 	}
+
+	// Verify successful validation releases the Secret state.
 	if released != 1 {
 		t.Fatalf("success path: released %d states, want 1", released)
 	}
 
+	// Validate a private key reference to a mismatched Secret kind.
 	refs.PrivateKeySecretObjectKey = "secrets/ssh/wrong"
 	err = ValidateSshHostCredentialSecrets(ctx, ws, refs)
+
+	// Verify failed validation releases the Secret state.
 	if err == nil {
 		t.Fatal("expected mismatched SSH credential kind to fail")
 	}

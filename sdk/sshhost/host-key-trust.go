@@ -61,9 +61,12 @@ func SshHostKeyPinsMatchPublicKey(pins []*SshHostKeyPin, key ssh.PublicKey) bool
 
 // RememberSshHostKeyPin appends a newly accepted key pin to the SSH Host if it is not already remembered.
 func RememberSshHostKeyPin(ctx context.Context, eng world.Engine, objectKey string, pin *SshHostKeyPin) error {
+	// Require a World engine before remembering SSH trust.
 	if eng == nil {
 		return errors.New("world engine is required to remember SSH host keys")
 	}
+
+	// Normalize and validate the accepted SSH Host trust pin.
 	rememberedPin := normalizeRememberedSshHostKeyPin(pin)
 	if err := validateHostKeyPin(rememberedPin); err != nil {
 		return err
@@ -73,6 +76,7 @@ func RememberSshHostKeyPin(ctx context.Context, eng world.Engine, objectKey stri
 		return err
 	}
 	return world.ExecTransaction(ctx, eng, true, func(ctx context.Context, wtx world.WorldState) error {
+		// Open the SSH Host state and verify its World object type.
 		writeState, found, err := wtx.GetObject(ctx, objectKey)
 		defer world.ReleaseObjectState(writeState)
 		if err != nil {
@@ -84,7 +88,10 @@ func RememberSshHostKeyPin(ctx context.Context, eng world.Engine, objectKey stri
 		if err := world_types.CheckObjectType(ctx, wtx, objectKey, SshHostTypeID); err != nil {
 			return err
 		}
+
+		// Update the SSH Host trust pins within its write scope.
 		_, _, err = world.AccessObjectState(ctx, writeState, true, func(bcs *block.Cursor) error {
+			// Read the SSH Host and preserve an already remembered key.
 			host, err := UnmarshalSshHost(ctx, bcs)
 			if err != nil {
 				return err
@@ -92,6 +99,8 @@ func RememberSshHostKeyPin(ctx context.Context, eng world.Engine, objectKey stri
 			if SshHostKeyPinsMatchPublicKey(host.GetHostKeyPins(), pinKey) {
 				return nil
 			}
+
+			// Append the accepted key and validate the updated SSH Host.
 			host.HostKeyPins = append(host.HostKeyPins, rememberedPin.CloneVT())
 			host.UpdatedAt = timestamppb.New(time.Now())
 			if err := host.Validate(); err != nil {
@@ -105,9 +114,12 @@ func RememberSshHostKeyPin(ctx context.Context, eng world.Engine, objectKey stri
 }
 
 func normalizeRememberedSshHostKeyPin(pin *SshHostKeyPin) *SshHostKeyPin {
+	// Preserve an absent SSH Host trust pin.
 	if pin == nil {
 		return nil
 	}
+
+	// Normalize a copy of the trust pin and fill its acceptance timestamp.
 	out := pin.CloneVT()
 	out.PublicKey = normalizeSshHostPinnedPublicKey(out.GetPublicKey())
 	if out.GetAcceptedAt() == nil {

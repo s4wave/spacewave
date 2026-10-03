@@ -19,6 +19,7 @@ import (
 // Watches for manifest changes and restarts the subprocess automatically.
 // Forwards signals to the child and propagates its exit code.
 func (a *DevtoolArgs) ExecuteCliProject(ctx context.Context, manifestID string, args []string) error {
+	// Locate the CLI project root and its persistent build state.
 	le := a.Logger
 	repoRoot, stateDir, err := a.InitRepoRoot()
 	if err != nil {
@@ -111,6 +112,7 @@ func (a *DevtoolArgs) ExecuteCliProject(ctx context.Context, manifestID string, 
 		return err
 	}
 
+	// Announce the CLI entrypoint before starting its subprocess.
 	le.Infof("starting CLI: %s %v", entrypoint, args)
 
 	// run the subprocess, restart on manifest changes
@@ -125,6 +127,7 @@ func (a *DevtoolArgs) runCliSubprocess(
 	manifestID, binaryPath string,
 	args []string,
 ) error {
+	// Resolve the native platform for CLI manifest selection.
 	np, err := bldr_platform.ParseNativePlatform("desktop")
 	if err != nil {
 		return err
@@ -134,7 +137,9 @@ func (a *DevtoolArgs) runCliSubprocess(
 	// track the last known manifest revision
 	var lastRev uint64
 
+	// Run the CLI subprocess again whenever its manifest is rebuilt.
 	for {
+		// Start the CLI subprocess with a cancellable manifest watch.
 		runCtx, cancelRun := context.WithCancel(ctx)
 		proc := newCliSubprocessSupervisor(runCtx, le, binaryPath, args)
 		if err := proc.start(); err != nil {
@@ -146,6 +151,7 @@ func (a *DevtoolArgs) runCliSubprocess(
 		rebuildCh := make(chan error, 1)
 		if a.Watch {
 			go func() {
+				// Wait for a rebuilt CLI manifest and forward watch failures.
 				watchErr := a.watchManifestChanges(runCtx, b, manifestID, platformID, &lastRev)
 				if watchErr != nil {
 					if runCtx.Err() == nil {
@@ -157,6 +163,8 @@ func (a *DevtoolArgs) runCliSubprocess(
 					}
 					return
 				}
+
+				// Notify the CLI supervisor that a new manifest is ready.
 				select {
 				case rebuildCh <- nil:
 				default:
@@ -164,6 +172,7 @@ func (a *DevtoolArgs) runCliSubprocess(
 			}()
 		}
 
+		// Handle CLI exit, manifest rebuild, or command cancellation.
 		select {
 		case err := <-proc.wait():
 			// subprocess exited on its own (not killed by us)
