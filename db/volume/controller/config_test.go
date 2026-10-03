@@ -37,17 +37,22 @@ func TestParseGCIntervalDur(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
+			// Configure and parse the collection interval for this case.
 			conf := &Config{GcIntervalDur: test.raw}
 			got, err := conf.ParseGCIntervalDur()
 			if err != nil {
 				t.Fatal(err)
 			}
+
+			// Verify the interval and disabled state match the configuration.
 			if got != test.want {
 				t.Fatalf("ParseGCIntervalDur() = %s, want %s", got, test.want)
 			}
 			if conf.GCDisabled() != test.disabled {
 				t.Fatalf("GCDisabled() = %v, want %v", conf.GCDisabled(), test.disabled)
 			}
+
+			// Verify the full volume configuration accepts this interval.
 			if err := conf.Validate(); err != nil {
 				t.Fatalf("Validate() error = %v", err)
 			}

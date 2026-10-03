@@ -15,6 +15,7 @@ import (
 // concurrent GC manager when the volume provides the required hooks.
 // Otherwise it falls back to the legacy unreferenced-node collector.
 func (c *Controller) runGCSweep(ctx context.Context) error {
+	// Choose the configured collection interval or disable volume collection.
 	interval, err := c.config.ParseGCIntervalDur()
 	if err != nil {
 		c.le.WithError(err).Warn("invalid gc_interval_dur, using default")
@@ -25,11 +26,13 @@ func (c *Controller) runGCSweep(ctx context.Context) error {
 		return nil
 	}
 
+	// Wait for the volume before choosing its collection mechanism.
 	vol, err := c.GetVolume(ctx)
 	if err != nil {
 		return err
 	}
 
+	// Use the concurrent collector when the volume supplies its required hooks.
 	type gcManagerHooksProvider interface {
 		GetGCManagerHooks() (block_gc.ManagerHooks, bool)
 	}
@@ -51,29 +54,36 @@ func (c *Controller) runGCSweep(ctx context.Context) error {
 		}
 	}
 
+	// Require a reference graph for legacy volume collection.
 	rg := vol.GetRefGraph()
 	if rg == nil {
 		c.le.Debug("volume has no ref graph, gc sweep disabled")
 		return nil
 	}
 
+	// Construct the legacy collector for the volume reference graph.
 	collector := block_gc.NewCollector(rg, vol, nil)
 	c.le.WithField("interval", interval.String()).Debug("gc sweep routine started")
 
+	// Collect unreferenced volume nodes on each maintenance deadline.
 	timer := time.NewTimer(interval)
 	defer timer.Stop()
 	for ; ; timer.Reset(interval) {
+		// Wait for the next collection deadline or volume cancellation.
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
 		case <-timer.C:
 		}
 
+		// Reap expired volume root pins before collecting orphaned nodes.
 		if reaper, ok := vol.(interface{ ReapRootPins(context.Context) error }); ok {
 			if err := reaper.ReapRootPins(ctx); err != nil {
 				return err
 			}
 		}
+
+		// Collect unreferenced nodes and propagate terminal storage errors.
 		stats, err := collector.Collect(ctx)
 		if err != nil {
 			if ctx.Err() != nil {
@@ -85,6 +95,8 @@ func (c *Controller) runGCSweep(ctx context.Context) error {
 			c.le.WithError(err).Warn("gc sweep failed")
 			continue
 		}
+
+		// Report the reclaimed nodes and collection duration.
 		if stats.NodesSwept > 0 {
 			c.le.
 				WithField("swept", stats.NodesSwept).

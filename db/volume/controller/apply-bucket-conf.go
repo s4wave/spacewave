@@ -25,22 +25,27 @@ type applyBucketConfigResolver struct {
 // The resolver will not be retried after returning an error.
 // Values will be maintained from the previous call.
 func (o *applyBucketConfigResolver) Resolve(ctx context.Context, handler directive.ResolverHandler) error {
+	// Wait for the controlled volume before applying its bucket configuration.
 	vol, err := o.c.GetVolume(ctx)
 	if err != nil {
 		return err
 	}
 
+	// Require the bucket configuration directive to match this volume.
 	if !bucket.CheckApplyBucketConfigMatchesVolume(o.dir, vol.GetID(), o.c.config.GetVolumeIdAlias()) {
 		return nil
 	}
 
+	// Serialize bucket configuration attempts through this resolver.
 	o.mtx.Lock()
 	defer o.mtx.Unlock()
 
+	// Skip a bucket configuration already applied by this resolver.
 	if o.applied {
 		return nil
 	}
 
+	// Apply the bucket configuration and publish any storage failure.
 	ts := timestamp.Now()
 	updated, prev, curr, err := vol.ApplyBucketConfig(ctx, o.dir.ApplyBucketConfigBucketConf())
 	if err != nil {
@@ -66,6 +71,7 @@ func (o *applyBucketConfigResolver) Resolve(ctx context.Context, handler directi
 		}
 	}
 
+	// Report the current bucket configuration without a previous update.
 	if !updated {
 		if curr == nil && prev != nil {
 			curr = prev
@@ -73,6 +79,7 @@ func (o *applyBucketConfigResolver) Resolve(ctx context.Context, handler directi
 		prev = nil
 	}
 
+	// Refresh updated bucket handles and publish the configuration result.
 	volID := vol.GetID()
 	o.applied = true
 	if updated {

@@ -16,6 +16,7 @@ import (
 )
 
 func TestBucketHandleBeginReadOperationUsesScopedStore(t *testing.T) {
+	// Create an in-memory volume for the scoped bucket read.
 	ctx := context.Background()
 	vol, err := common_kvtx.NewVolume(
 		ctx,
@@ -33,6 +34,7 @@ func TestBucketHandleBeginReadOperationUsesScopedStore(t *testing.T) {
 	}
 	defer vol.Close()
 
+	// Give the bucket handle a volume with a distinct scoped block store.
 	scopedStore := &bucketHandleScopedReadStore{
 		data: []byte("scoped"),
 	}
@@ -44,16 +46,20 @@ func TestBucketHandleBeginReadOperationUsesScopedStore(t *testing.T) {
 		bucketConf: &bucket.Config{Id: "test"},
 	}
 
+	// Acquire the bucket read scope for the test lifetime.
 	scoped, release, err := handle.BeginReadOperation(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer release()
 
+	// Read the block through the bucket read scope.
 	data, found, err := scoped.GetBlock(ctx, &block.BlockRef{})
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Verify the scoped store supplied the block through one read.
 	if !found {
 		t.Fatal("expected scoped store block to be found")
 	}
@@ -80,8 +86,8 @@ func TestBucketHandleUsesGCTrackingWhenGCEnabled(t *testing.T) {
 }
 
 func buildBucketHandleForGCConfig(t *testing.T, conf *Config) *bucketHandle {
+	// Create a test-owned volume for bucket collection tracking.
 	t.Helper()
-
 	ctx := context.Background()
 	vol, err := common_kvtx.NewVolume(
 		ctx,
@@ -103,10 +109,12 @@ func buildBucketHandleForGCConfig(t *testing.T, conf *Config) *bucketHandle {
 		}
 	})
 
+	// Create the bucket whose handle will expose collection tracking.
 	if _, _, _, err := vol.ApplyBucketConfig(ctx, &bucket.Config{Id: "test", Rev: 1}); err != nil {
 		t.Fatal(err)
 	}
 
+	// Publish the volume with the requested collection configuration.
 	c := &Controller{
 		config: conf,
 		volume: ccontainer.NewCContainer[*volumeCtxPair](nil),
@@ -119,6 +127,7 @@ func buildBucketHandleForGCConfig(t *testing.T, conf *Config) *bucketHandle {
 		ctx: ctx,
 	})
 
+	// Run the bucket tracker to construct its API handle.
 	tracker := &bucketHandleTracker{
 		c:         c,
 		bucketID:  "test",
@@ -128,6 +137,7 @@ func buildBucketHandleForGCConfig(t *testing.T, conf *Config) *bucketHandle {
 		t.Fatal(err)
 	}
 
+	// Retrieve the constructed bucket handle from its tracker.
 	handle, err := tracker.handleCtr.WaitValue(ctx, nil)
 	if err != nil {
 		t.Fatal(err)

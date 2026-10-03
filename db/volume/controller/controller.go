@@ -106,6 +106,7 @@ func NewController(
 // Returning nil ends execution.
 // Returning an error triggers a retry with backoff.
 func (c *Controller) Execute(ctx context.Context) error {
+	// Keep volume activity within the controller execution lifetime.
 	volCtx, volCtxCancel := context.WithCancel(ctx)
 	defer volCtxCancel()
 
@@ -152,6 +153,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 		default:
 		}
 	}
+
 	// Join volume execution and GC before closing their shared storage.
 	var routines errgroup.Group
 	defer func() {
@@ -299,8 +301,11 @@ func (c *Controller) GetControllerInfo() *controller.Info {
 // setTerminal records a permanent construction failure and wakes GetVolume
 // waiters. The first error wins; later calls are ignored.
 func (c *Controller) setTerminal(err error) {
+	// Serialize the permanent volume construction failure.
 	c.terminalMtx.Lock()
 	defer c.terminalMtx.Unlock()
+
+	// Keep the first terminal error and wake the volume waiters.
 	if c.terminalErr != nil {
 		return
 	}
@@ -320,9 +325,12 @@ func (c *Controller) getTerminal() error {
 // (for example, the browser denied OPFS storage for this profile), it returns
 // that error instead of waiting for a volume that can never be constructed.
 func (c *Controller) GetVolume(ctx context.Context) (volume.Volume, error) {
+	// Return the volume immediately when construction has completed.
 	if vb := c.volume.GetValue(); vb != nil && vb.vol != nil {
 		return vb.vol, nil
 	}
+
+	// Report a permanent construction failure before waiting for readiness.
 	if err := c.getTerminal(); err != nil {
 		return nil, err
 	}
@@ -342,6 +350,7 @@ func (c *Controller) GetVolume(ctx context.Context) (volume.Volume, error) {
 		}
 	}()
 
+	// Wait for the ready volume or its permanent construction failure.
 	rv, err := c.volume.WaitValue(ctx, errCh)
 	if err != nil {
 		return nil, err

@@ -19,15 +19,18 @@ type lookupVolumeResolver struct {
 // The resolver will not be retried after returning an error.
 // Values will be maintained from the previous call.
 func (o *lookupVolumeResolver) Resolve(ctx context.Context, handler directive.ResolverHandler) error {
+	// Wait for the controlled volume to become available.
 	vol, err := o.c.GetVolume(ctx)
 	if err != nil {
 		return err
 	}
 
+	// Require the lookup directive to match the volume or an alias.
 	if !volume.CheckLookupMatchesVolume(o.dir, vol, o.c.config.GetVolumeIdAlias()) {
 		return nil
 	}
 
+	// Publish the matching volume to the directive handler.
 	handler.AddValue(vol)
 	return nil
 }

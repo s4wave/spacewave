@@ -80,9 +80,11 @@ func (stubCollectorGraph) RemoveRoot(context.Context, string) error { return nil
 func (stubCollectorGraph) RemoveNode(context.Context, string) error { return nil }
 
 func TestRunGCSweepUsesManagerHooks(t *testing.T) {
+	// Give the collection manager a cancellable test lifetime.
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
+	// Create an in-memory volume for collection manager hooks.
 	le := logrus.NewEntry(logrus.New())
 	vol, err := common_kvtx.NewVolume(
 		ctx,
@@ -100,6 +102,7 @@ func TestRunGCSweepUsesManagerHooks(t *testing.T) {
 	}
 	defer vol.Close()
 
+	// Observe WAL replay and cancel collection after manager maintenance.
 	replayed := make(chan struct{}, 3)
 	maintained := make(chan struct{}, 1)
 	vol.SetGCManagerHooks(block_gc.ManagerHooks{
@@ -115,15 +118,19 @@ func TestRunGCSweepUsesManagerHooks(t *testing.T) {
 			return func() {}, nil
 		},
 		Maintenance: func(context.Context) error {
+			// Record that the collection manager reached volume maintenance.
 			select {
 			case maintained <- struct{}{}:
 			default:
 			}
+
+			// End the manager lifetime after recording maintenance.
 			cancel()
 			return nil
 		},
 	})
 
+	// Publish the test volume to the collection controller.
 	c := &Controller{
 		le:     le,
 		config: &Config{GcIntervalDur: "1ms"},
@@ -131,16 +138,20 @@ func TestRunGCSweepUsesManagerHooks(t *testing.T) {
 	}
 	c.volume.SetValue(&volumeCtxPair{vol: vol, ctx: ctx})
 
+	// Run volume collection and verify maintenance cancels the manager.
 	err = c.runGCSweep(ctx)
 	if !errors.Is(err, context.Canceled) {
 		t.Fatalf("runGCSweep error = %v, want context.Canceled", err)
 	}
 
+	// Verify the collection manager replayed its WAL on startup.
 	select {
 	case <-replayed:
 	default:
 		t.Fatal("expected manager startup replay to run")
 	}
+
+	// Verify the collection manager ran volume maintenance.
 	select {
 	case <-maintained:
 	default:
@@ -149,9 +160,11 @@ func TestRunGCSweepUsesManagerHooks(t *testing.T) {
 }
 
 func TestRunGCSweepReturnsLockFileChanged(t *testing.T) {
+	// Bound the test lifetime if collection fails to return its storage error.
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
+	// Create an in-memory volume for the failing reference graph.
 	vol, err := common_kvtx.NewVolume(
 		ctx,
 		"test-volume",
@@ -168,6 +181,7 @@ func TestRunGCSweepReturnsLockFileChanged(t *testing.T) {
 	}
 	defer vol.Close()
 
+	// Expose a reference graph whose collection reports a changed lock file.
 	wrapped := &gcSweepTestVolume{
 		Volume: vol,
 		rg:     stubCollectorGraph{unreferencedErr: bbolt_errors.ErrLockFileChanged},
@@ -179,6 +193,7 @@ func TestRunGCSweepReturnsLockFileChanged(t *testing.T) {
 	}
 	c.volume.SetValue(&volumeCtxPair{vol: wrapped, ctx: ctx})
 
+	// Verify collection propagates the changed lock file error.
 	err = c.runGCSweep(ctx)
 	if !errors.Is(err, bbolt_errors.ErrLockFileChanged) {
 		t.Fatalf("runGCSweep error = %v, want %v", err, bbolt_errors.ErrLockFileChanged)

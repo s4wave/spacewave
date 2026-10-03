@@ -39,9 +39,12 @@ func (l *coordinatorLeases) add(lease coord.WriteLease) (string, error) {
 }
 
 func (l *coordinatorLeases) get(id string) (coord.WriteLease, error) {
+	// Read the tracked lease under the lease registry lock.
 	l.mu.Lock()
 	lease := l.leases[id]
 	l.mu.Unlock()
+
+	// Report a released lease when its identifier is absent.
 	if lease == nil {
 		return nil, coord.ErrLeaseReleased
 	}
@@ -49,10 +52,13 @@ func (l *coordinatorLeases) get(id string) (coord.WriteLease, error) {
 }
 
 func (l *coordinatorLeases) release(ctx context.Context, id string) error {
+	// Remove the lease from the registry before releasing it.
 	l.mu.Lock()
 	lease := l.leases[id]
 	delete(l.leases, id)
 	l.mu.Unlock()
+
+	// Release the acquired lease when it was still registered.
 	if lease == nil {
 		return nil
 	}

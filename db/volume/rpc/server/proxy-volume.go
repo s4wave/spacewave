@@ -55,6 +55,7 @@ func RegisterProxyVolume(mux srpc.Mux, proxyVol *ProxyVolume) error {
 
 // RegisterProxyVolumeWithPrefix registers all ProxyVolume services with a service id prefix.
 func RegisterProxyVolumeWithPrefix(mux srpc.Mux, proxyVol *ProxyVolume, prefix string) error {
+	// Register the volume service under the requested prefix.
 	// register ProxyVolume
 	if err := mux.Register(volume_rpc.NewSRPCProxyVolumeHandler(
 		proxyVol,
@@ -62,6 +63,8 @@ func RegisterProxyVolumeWithPrefix(mux srpc.Mux, proxyVol *ProxyVolume, prefix s
 	)); err != nil {
 		return err
 	}
+
+	// Register the block store alongside the volume service.
 	// register BlockStore
 	if err := mux.Register(rpc_block.NewSRPCBlockStoreHandler(
 		proxyVol,
@@ -69,6 +72,8 @@ func RegisterProxyVolumeWithPrefix(mux srpc.Mux, proxyVol *ProxyVolume, prefix s
 	)); err != nil {
 		return err
 	}
+
+	// Register the bucket store alongside the volume service.
 	// register BucketStore
 	if err := mux.Register(rpc_bucket.NewSRPCBucketStoreHandler(
 		proxyVol,
@@ -76,6 +81,8 @@ func RegisterProxyVolumeWithPrefix(mux srpc.Mux, proxyVol *ProxyVolume, prefix s
 	)); err != nil {
 		return err
 	}
+
+	// Register the object store alongside the volume service.
 	// register ObjectStore
 	if err := mux.Register(rpc_object.NewSRPCObjectStoreHandler(
 		proxyVol,
@@ -83,6 +90,8 @@ func RegisterProxyVolumeWithPrefix(mux srpc.Mux, proxyVol *ProxyVolume, prefix s
 	)); err != nil {
 		return err
 	}
+
+	// Register the reference graph alongside the volume service.
 	// register RefGraph
 	if err := mux.Register(rpc_gc.NewSRPCRefGraphHandler(
 		proxyVol,
@@ -117,13 +126,16 @@ func (v *ProxyVolume) GetCoordinatorCapability(
 	ctx context.Context,
 	req *volume_rpc.GetCoordinatorCapabilityRequest,
 ) (*volume_rpc.GetCoordinatorCapabilityResponse, error) {
+	// Stop the capability request when its context has ended.
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
 
+	// Bind the capability scope to the proxied volume.
 	scope := req.GetScope().ToCoordScope()
 	scope.VolumeID = v.vol.GetID()
 
+	// Describe coordinator support through the RPC backend.
 	capability, err := v.vol.Capability(ctx, scope)
 	if err != nil {
 		return nil, err
@@ -152,10 +164,12 @@ func (v *ProxyVolume) WatchCoordinatorEvents(
 	req *volume_rpc.WatchCoordinatorEventsRequest,
 	strm volume_rpc.SRPCProxyVolume_WatchCoordinatorEventsStream,
 ) error {
+	// Bind the event watch scope to the proxied volume.
 	ctx := strm.Context()
 	scope := req.GetScope().ToCoordScope()
 	scope.VolumeID = v.vol.GetID()
 
+	// Register the volume watch for the lifetime of the event stream.
 	watch, err := v.vol.Watch(ctx, scope, req.GetAfterGeneration())
 	if err != nil {
 		return err
@@ -168,6 +182,7 @@ func (v *ProxyVolume) WatchCoordinatorEvents(
 		return err
 	}
 
+	// Forward coordinator events until the watch or stream ends.
 	for {
 		select {
 		case <-ctx.Done():
@@ -190,9 +205,11 @@ func (v *ProxyVolume) GetCoordinatorSnapshot(
 	ctx context.Context,
 	req *volume_rpc.GetCoordinatorSnapshotRequest,
 ) (*volume_rpc.GetCoordinatorSnapshotResponse, error) {
+	// Bind the snapshot scope to the proxied volume.
 	scope := req.GetScope().ToCoordScope()
 	scope.VolumeID = v.vol.GetID()
 
+	// Read the coordinator snapshot from the volume.
 	snapshot, err := v.vol.Snapshot(ctx, scope)
 	if err != nil {
 		return nil, err
@@ -207,10 +224,12 @@ func (v *ProxyVolume) TryAcquireCoordinatorWriteLease(
 	req *volume_rpc.TryAcquireCoordinatorWriteLeaseRequest,
 	strm volume_rpc.SRPCProxyVolume_TryAcquireCoordinatorWriteLeaseStream,
 ) error {
+	// Bind the lease attempt to the proxied volume and stream.
 	ctx := strm.Context()
 	scope := req.GetScope().ToCoordScope()
 	scope.VolumeID = v.vol.GetID()
 
+	// Attempt the volume write lease without waiting for another writer.
 	lease, acquired, err := v.vol.TryAcquireWriteLease(ctx, scope)
 	if err != nil {
 		return err
@@ -220,6 +239,8 @@ func (v *ProxyVolume) TryAcquireCoordinatorWriteLease(
 			Acquired: false,
 		})
 	}
+
+	// Track the acquired lease until this stream ends.
 	leaseID, err := v.coordinatorLeases.add(lease)
 	if err != nil {
 		_ = lease.Release(context.Background())
@@ -227,6 +248,7 @@ func (v *ProxyVolume) TryAcquireCoordinatorWriteLease(
 	}
 	defer v.coordinatorLeases.release(context.Background(), leaseID)
 
+	// Publish the lease identifier and wait for the lease or stream to end.
 	if err := strm.Send(&volume_rpc.AcquireCoordinatorWriteLeaseResponse{
 		LeaseId:  leaseID,
 		Acquired: true,
@@ -246,14 +268,18 @@ func (v *ProxyVolume) WaitAcquireCoordinatorWriteLease(
 	req *volume_rpc.WaitAcquireCoordinatorWriteLeaseRequest,
 	strm volume_rpc.SRPCProxyVolume_WaitAcquireCoordinatorWriteLeaseStream,
 ) error {
+	// Bind the waiting lease request to the proxied volume and stream.
 	ctx := strm.Context()
 	scope := req.GetScope().ToCoordScope()
 	scope.VolumeID = v.vol.GetID()
 
+	// Wait for the volume write lease to become available.
 	lease, err := v.vol.WaitAcquireWriteLease(ctx, scope)
 	if err != nil {
 		return err
 	}
+
+	// Track the acquired lease until this stream ends.
 	leaseID, err := v.coordinatorLeases.add(lease)
 	if err != nil {
 		_ = lease.Release(context.Background())
@@ -261,6 +287,7 @@ func (v *ProxyVolume) WaitAcquireCoordinatorWriteLease(
 	}
 	defer v.coordinatorLeases.release(context.Background(), leaseID)
 
+	// Publish the lease identifier and wait for the lease or stream to end.
 	if err := strm.Send(&volume_rpc.AcquireCoordinatorWriteLeaseResponse{
 		LeaseId:  leaseID,
 		Acquired: true,
@@ -280,10 +307,13 @@ func (v *ProxyVolume) RefreshCoordinatorWriteLease(
 	ctx context.Context,
 	req *volume_rpc.CoordinatorWriteLeaseRequest,
 ) (*volume_rpc.CoordinatorWriteLeaseSnapshotResponse, error) {
+	// Find the tracked lease before refreshing its coordinator snapshot.
 	lease, err := v.coordinatorLeases.get(req.GetLeaseId())
 	if err != nil {
 		return nil, err
 	}
+
+	// Refresh the lease and return its current coordinator snapshot.
 	snapshot, err := lease.Refresh(ctx)
 	if err != nil {
 		return nil, err
@@ -298,10 +328,13 @@ func (v *ProxyVolume) PublishCoordinatorWriteLease(
 	ctx context.Context,
 	req *volume_rpc.PublishCoordinatorWriteLeaseRequest,
 ) (*volume_rpc.CoordinatorWriteLeaseSnapshotResponse, error) {
+	// Find the tracked lease before publishing the coordinator event.
 	lease, err := v.coordinatorLeases.get(req.GetLeaseId())
 	if err != nil {
 		return nil, err
 	}
+
+	// Publish the event through the lease and return its coordinator snapshot.
 	snapshot, err := lease.Publish(ctx, req.GetEvent().ToCoordEvent())
 	if err != nil {
 		return nil, err
@@ -327,14 +360,18 @@ func (v *ProxyVolume) GetPeerPriv(
 	ctx context.Context,
 	req *volume_rpc.GetPeerPrivRequest,
 ) (*volume_rpc.GetPeerPrivResponse, error) {
+	// Require private key exposure before accessing the volume peer.
 	if !v.exposePrivKey {
 		return nil, peer.ErrNoPrivKey
 	}
 
+	// Obtain the volume peer with access to its private key.
 	peerWithPriv, err := v.vol.GetPeer(ctx, true)
 	if err != nil {
 		return nil, err
 	}
+
+	// Read the peer private key for the RPC response.
 	peerPriv, err := peerWithPriv.GetPrivKey(ctx)
 	if err != nil {
 		return nil, err

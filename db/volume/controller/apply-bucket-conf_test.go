@@ -13,6 +13,7 @@ import (
 
 // TestApplyBucketConfigPublishesStorageError prevents failed creation from leaving callers waiting.
 func TestApplyBucketConfigPublishesStorageError(t *testing.T) {
+	// Create a volume whose bucket configuration fails in storage.
 	ctx := t.Context()
 	failure := errors.New("bucket storage failed")
 	ctrl := &Controller{
@@ -22,6 +23,8 @@ func TestApplyBucketConfigPublishesStorageError(t *testing.T) {
 			ctx: ctx,
 		}),
 	}
+
+	// Resolve the bucket configuration request against the failing volume.
 	resolver := &applyBucketConfigResolver{
 		c:   ctrl,
 		dir: bucket.NewApplyBucketConfigToVolume(&bucket.Config{Id: "space", Rev: 1}, "volume"),
@@ -30,6 +33,8 @@ func TestApplyBucketConfigPublishesStorageError(t *testing.T) {
 	if err := resolver.Resolve(ctx, handler); err != nil {
 		t.Fatal(err)
 	}
+
+	// Verify the resolver published one failure for the requested bucket.
 	if len(handler.results) != 1 {
 		t.Fatalf("published %d results, want one storage error", len(handler.results))
 	}

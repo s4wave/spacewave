@@ -22,16 +22,20 @@ func (o *buildObjectStoreAPIResolver) Resolve(
 	ctx context.Context,
 	handler directive.ResolverHandler,
 ) error {
+	// Wait for the volume before resolving an object store handle.
 	vol, err := o.c.GetVolume(ctx)
 	if err != nil {
 		return err
 	}
+
+	// Require the object store request to target this volume or an alias.
 	volID := vol.GetID()
 	targetVolID := o.dir.BuildObjectStoreAPIVolumeID()
 	if !volume.CheckIDMatchesAliases(targetVolID, volID, o.c.config.GetVolumeIdAlias()) {
 		return nil
 	}
 
+	// Resolve an object store handle with the directive access lifetime.
 	storeID := o.dir.BuildObjectStoreAPIStoreID()
 	resolve := directive.NewAccessResolver(func(ctx context.Context, released func()) (volume.BuildObjectStoreAPIValue, func(), error) {
 		objStore, rel, err := vol.AccessObjectStore(ctx, storeID, released)

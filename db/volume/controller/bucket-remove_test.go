@@ -22,6 +22,7 @@ func TestBucketRemovalPreservesSharedBlock(t *testing.T) {
 			name = "batch"
 		}
 		t.Run(name, func(t *testing.T) {
+			// Create an in-memory volume for shared bucket block ownership.
 			ctx := t.Context()
 			vol, err := volume_kvtx.NewVolume(ctx, "test", store_kvkey.NewDefaultKVKey(), store_inmem.NewStore(), nil, false, false, nil, nil)
 			if err != nil {
@@ -32,6 +33,8 @@ func TestBucketRemovalPreservesSharedBlock(t *testing.T) {
 					t.Error(err)
 				}
 			})
+
+			// Construct bucket handles rooted in the volume reference graph.
 			rg := vol.GetRefGraph()
 			makeBucket := func(id string) *bucketHandle {
 				t.Helper()

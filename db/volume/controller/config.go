@@ -33,10 +33,13 @@ func (c *Config) ParseBlockStoreWritebackTimeoutDur() (time.Duration, error) {
 // ParseGCIntervalDur parses the GC interval duration field.
 // Returns defaultGCInterval if empty.
 func (c *Config) ParseGCIntervalDur() (time.Duration, error) {
+	// Recognize the explicit setting that disables volume collection.
 	raw := c.GetGcIntervalDur()
 	if raw == "0" {
 		return 0, nil
 	}
+
+	// Parse the collection interval and apply the default when omitted.
 	dur, err := confparse.ParseDuration(raw)
 	if err != nil {
 		return 0, err

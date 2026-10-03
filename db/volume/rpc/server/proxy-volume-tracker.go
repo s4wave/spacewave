@@ -37,9 +37,11 @@ func (c *Controller) newProxyVolumeTracker(key string) (keyed.Routine, *proxyVol
 
 // execute executes the proxy volume tracker.
 func (t *proxyVolumeTracker) execute(ctx context.Context) error {
+	// Identify the tracked volume in proxy server logs.
 	volumeID := t.volumeID
 	le := t.c.le.WithField("volume-id", volumeID)
 
+	// Watch the volume lookup for the lifetime of the tracker.
 	le.Debug("starting proxy volume")
 	valCh, _, valRef, err := bus.ExecOneOffWatchCh[volume.LookupVolumeValue](
 		t.c.bus,
@@ -50,9 +52,11 @@ func (t *proxyVolumeTracker) execute(ctx context.Context) error {
 	}
 	defer valRef.Release()
 
+	// Replace the published proxy services whenever the volume changes.
 	var vol volume.Volume
 WaitLoop:
 	for {
+		// Wait for the next volume lookup value or tracker cancellation.
 		select {
 		case <-ctx.Done():
 			return context.Canceled
@@ -66,12 +70,15 @@ WaitLoop:
 			}
 			vol = lvv
 		}
+
+		// Clear published services when the volume lookup becomes unavailable.
 		if vol == nil {
 			t.proxyVolCtr.SetValue(nil)
 			t.muxCtr.SetValue(nil)
 			continue
 		}
 
+		// Register and publish the services for the current volume.
 		mux := srpc.NewMux()
 		proxyVol := NewProxyVolume(ctx, vol, t.c.cc.GetExposePrivateKey())
 		if err := RegisterProxyVolume(mux, proxyVol); err != nil {

@@ -47,14 +47,19 @@ func NewController(
 	bus bus.Bus,
 	cc *Config,
 ) (*Controller, error) {
+	// Parse the volume filter before constructing the RPC server.
 	volumeIDRe, err := cc.ParseVolumeIdRe()
 	if err != nil {
 		return nil, err
 	}
+
+	// Parse how long unused volume trackers remain available.
 	releaseDelay, err := cc.ParseReleaseDelay()
 	if err != nil {
 		return nil, err
 	}
+
+	// Construct the controller and register its volume access service.
 	mux := srpc.NewMux()
 	c := &Controller{
 		le:              le,
@@ -66,6 +71,8 @@ func NewController(
 	if err := mux.Register(volume_rpc.NewSRPCAccessVolumesHandler(c, cc.GetServiceId())); err != nil {
 		return nil, err
 	}
+
+	// Retain each proxy volume tracker while clients reference it.
 	c.proxyVolumes = keyed.NewKeyedRefCount(
 		c.newProxyVolumeTracker,
 		keyed.WithExitLogger[string, *proxyVolumeTracker](le),
@@ -175,10 +182,12 @@ func (c *Controller) VolumeRpc(strm volume_rpc.SRPCAccessVolumes_VolumeRpcStream
 
 // GetRpcStreamMux returns the mux for the given volume id proxy service.
 func (c *Controller) GetRpcStreamMux(ctx context.Context, volumeID string, _ func()) (srpc.Invoker, func(), error) {
+	// Require the requested volume to match the configured filter.
 	if !c.checkVolumeID(volumeID) {
 		return nil, nil, volume_rpc.ErrUnknownVolumeID
 	}
 
+	// Retain the volume tracker until its RPC mux is ready.
 	ref, tracker, _ := c.proxyVolumes.AddKeyRef(volumeID)
 	mux, err := tracker.waitMux(ctx)
 	if err != nil {

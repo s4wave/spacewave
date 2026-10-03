@@ -30,15 +30,22 @@ func (c *Config) GetConfigID() string {
 // Validate validates the configuration.
 // This is a cursory validation to see if the values "look correct."
 func (c *Config) Validate() error {
+	// Require a service identifier for the volume access server.
 	if c.GetServiceId() == "" {
 		return srpc.ErrEmptyServiceID
 	}
+
+	// Require a filter that selects the volumes exposed by the server.
 	if len(c.GetVolumeIdList()) == 0 && len(c.GetVolumeIdRe()) == 0 {
 		return errors.New("volume id regex or volume id list is set")
 	}
+
+	// Validate the configured volume identifier expression.
 	if _, err := c.ParseVolumeIdRe(); err != nil {
 		return err
 	}
+
+	// Validate the configured tracker release delay.
 	if _, err := c.ParseReleaseDelay(); err != nil {
 		return errors.Wrap(err, "release_delay")
 	}
