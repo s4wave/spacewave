@@ -45,12 +45,15 @@ func (c *udpConn) start() {
 
 // write forwards guest payload bytes to the host socket.
 func (c *udpConn) write(dat []byte) {
+	// Check the UDP socket state under the flow lock before writing.
 	c.mtx.Lock()
 	closed := c.closed
 	c.mtx.Unlock()
 	if closed {
 		return
 	}
+
+	// Forward the guest UDP payload and release the relay on a write failure.
 	_, err := c.host.Write(dat)
 	if err != nil {
 		c.stack.releaseUDP(c.key)
@@ -63,6 +66,7 @@ func (c *udpConn) write(dat []byte) {
 
 // close shuts the host socket exactly once and marks the flow closed.
 func (c *udpConn) close() error {
+	// Mark the UDP socket closed under the flow lock before releasing it.
 	c.mtx.Lock()
 	if c.closed {
 		c.mtx.Unlock()

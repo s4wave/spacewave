@@ -41,9 +41,12 @@ type Stack struct {
 // does not nil-guard Entry methods); Debug records stay silent at the default
 // level.
 func New(cfg Config, inbound func(frame []byte), le *logrus.Entry) *Stack {
+	// Supply the Stack logger used by host socket error paths.
 	if le == nil {
 		le = logrus.NewEntry(logrus.New())
 	}
+
+	// Create the Stack context, default configuration, and connection tables.
 	ctx, cancel := context.WithCancel(context.Background())
 	cfg = cfg.withDefaults()
 	s := &Stack{
@@ -60,25 +63,36 @@ func New(cfg Config, inbound func(frame []byte), le *logrus.Entry) *Stack {
 
 // HandleOutbound processes one guest-transmitted Ethernet frame.
 func (s *Stack) HandleOutbound(frame []byte) {
+	// Decode the guest Ethernet frame before dispatching its payload.
 	packet, err := parseEth(frame)
 	if err != nil {
 		return
 	}
+
+	// Dispatch ARP requests to the gateway address responder.
 	if packet.arp != nil {
 		s.handleARP(packet)
 		return
 	}
+
+	// Require an IPv4 payload for transport and echo handling.
 	if packet.ipv4 == nil {
 		return
 	}
+
+	// Dispatch ICMP echo requests to the gateway responder.
 	if packet.ipv4.icmp != nil {
 		s.handleICMP(packet)
 		return
 	}
+
+	// Dispatch UDP datagrams to the service or host relay.
 	if packet.ipv4.udp != nil {
 		s.handleUDP(packet)
 		return
 	}
+
+	// Dispatch TCP segments to the connection state machine.
 	if packet.ipv4.tcp != nil {
 		s.handleTCP(packet)
 	}
@@ -86,6 +100,7 @@ func (s *Stack) HandleOutbound(frame []byte) {
 
 // Close tears down all live TCP/UDP host connections.
 func (s *Stack) Close() error {
+	// Mark the Stack closed and cancel its socket read loops under the lock.
 	s.mtx.Lock()
 	if s.closed {
 		s.mtx.Unlock()
@@ -93,6 +108,8 @@ func (s *Stack) Close() error {
 	}
 	s.closed = true
 	s.cancel()
+
+	// Detach the live UDP and TCP connections before closing their sockets.
 	udp := make([]*udpConn, 0, len(s.udp))
 	for _, conn := range s.udp {
 		udp = append(udp, conn)
@@ -105,6 +122,7 @@ func (s *Stack) Close() error {
 	s.tcp = make(map[string]*tcpConn)
 	s.mtx.Unlock()
 
+	// Close the detached host sockets and retain the first failure.
 	var ret error
 	for _, conn := range udp {
 		if err := conn.close(); err != nil && ret == nil {
@@ -156,10 +174,13 @@ func (s *Stack) handleUDP(packet *ethPacket) {
 
 // handleDHCP performs the offer/ack exchange that leases the configured
 func (s *Stack) handleDHCP(packet *ethPacket) {
+	// Decode the guest DHCP request before choosing a lease reply.
 	req, err := parseDHCP(packet.ipv4.udp.data)
 	if err != nil {
 		return
 	}
+
+	// Recognize discover and request messages from the DHCP options.
 	msgType := byte(0)
 	for _, option := range req.options {
 		if len(option) == 3 && option[0] == 53 {
@@ -170,6 +191,7 @@ func (s *Stack) handleDHCP(packet *ethPacket) {
 		return
 	}
 
+	// Offer the configured lease or acknowledge it with its lease duration.
 	replyType := byte(2)
 	options := [][]byte{{53, 1, replyType}}
 	if msgType == 3 {
@@ -177,6 +199,8 @@ func (s *Stack) handleDHCP(packet *ethPacket) {
 		options[0] = []byte{53, 1, replyType}
 		options = append(options, []byte{51, 4, 8, 0, 0, 0})
 	}
+
+	// Advertise the configured subnet, gateway, and DNS service.
 	options = append(options,
 		append([]byte{1, 4}, s.cfg.Netmask.AsSlice()...),
 		append([]byte{3, 4}, s.cfg.GatewayIP.AsSlice()...),
@@ -186,6 +210,7 @@ func (s *Stack) handleDHCP(packet *ethPacket) {
 		[]byte{255, 0},
 	)
 
+	// Build and emit the DHCP reply for the requesting guest.
 	resp := &dhcpPacket{
 		op:      2,
 		htype:   1,
@@ -204,21 +229,29 @@ func (s *Stack) handleDHCP(packet *ethPacket) {
 
 // handleDNS resolves each A/AAAA question through the configured resolver
 func (s *Stack) handleDNS(packet *ethPacket) {
+	// Decode the guest DNS query before resolving its questions.
 	req, err := parseDNS(packet.ipv4.udp.data)
 	if err != nil {
 		return
 	}
+
+	// Resolve supported DNS questions into address answer records.
 	answers := make([][]byte, 0)
 	rcode := byte(0)
 	for _, q := range req.questions {
+		// Require an Internet address question supported by the DNS proxy.
 		if q.qclass != 1 || (q.qtype != 1 && q.qtype != 28) {
 			continue
 		}
+
+		// Resolve the DNS question name through the configured host resolver.
 		addrs, err := s.cfg.Resolver.LookupIPAddr(s.ctx, q.name)
 		if err != nil {
 			rcode = 3
 			continue
 		}
+
+		// Encode address answers matching the requested DNS record type.
 		for _, addr := range addrs {
 			if q.qtype == 1 {
 				if v4 := addr.IP.To4(); v4 != nil {
@@ -233,6 +266,8 @@ func (s *Stack) handleDNS(packet *ethPacket) {
 			}
 		}
 	}
+
+	// Frame and emit the DNS response to the requesting guest.
 	data := buildDNSResponse(req, answers, rcode)
 	udp := buildUDP(s.cfg.DNSServer, packet.ipv4.src, 53, packet.ipv4.udp.sport, data)
 	ip := buildIPv4(ipProtoUDP, s.cfg.DNSServer, packet.ipv4.src, udp)
@@ -241,6 +276,7 @@ func (s *Stack) handleDNS(packet *ethPacket) {
 
 // handleUDPHost relays guest UDP datagrams to the host over an existing or
 func (s *Stack) handleUDPHost(packet *ethPacket) {
+	// Reuse a live UDP relay while checking whether the Stack is closed.
 	key := tupleKey(packet.ipv4.src, packet.ipv4.udp.sport, packet.ipv4.dest, packet.ipv4.udp.dport)
 	s.mtx.Lock()
 	if s.closed {
@@ -255,11 +291,14 @@ func (s *Stack) handleUDPHost(packet *ethPacket) {
 	}
 	s.mtx.Unlock()
 
+	// Dial the UDP destination for a new guest flow.
 	addr := net.JoinHostPort(packet.ipv4.dest.String(), strconv.Itoa(int(packet.ipv4.udp.dport)))
 	host, err := s.cfg.Dialer.DialContext(s.ctx, "udp", addr)
 	if err != nil {
 		return
 	}
+
+	// Register the UDP relay unless shutdown or another relay won the race.
 	conn = newUDPConn(s, key, host, packet)
 	s.mtx.Lock()
 	if s.closed {
@@ -281,17 +320,22 @@ func (s *Stack) handleUDPHost(packet *ethPacket) {
 	}
 	s.udp[key] = conn
 	s.mtx.Unlock()
+
+	// Start the UDP read loop and forward the first guest datagram.
 	conn.start()
 	conn.write(packet.ipv4.udp.data)
 }
 
 // handleTCP dispatches one TCP segment: SYNs open connections, unknown
 func (s *Stack) handleTCP(packet *ethPacket) {
+	// Open a TCP relay for a guest connection request.
 	key := tupleKey(packet.ipv4.src, packet.ipv4.tcp.sport, packet.ipv4.dest, packet.ipv4.tcp.dport)
 	if tcpFlag(packet.ipv4.tcp, tcpFlagSYN) && !tcpFlag(packet.ipv4.tcp, tcpFlagACK) {
 		s.openTCP(key, packet)
 		return
 	}
+
+	// Find the established TCP relay or reset an unknown guest flow.
 	s.mtx.Lock()
 	conn := s.tcp[key]
 	s.mtx.Unlock()
@@ -299,17 +343,22 @@ func (s *Stack) handleTCP(packet *ethPacket) {
 		s.sendTCPReset(packet)
 		return
 	}
+
+	// Process the guest segment through the registered TCP relay.
 	conn.process(packet)
 }
 
 // openTCP dials the host target for a new connection and registers it
 func (s *Stack) openTCP(key string, packet *ethPacket) {
+	// Dial the TCP destination or reset the failed guest connection request.
 	addr := net.JoinHostPort(packet.ipv4.dest.String(), strconv.Itoa(int(packet.ipv4.tcp.dport)))
 	host, err := s.cfg.Dialer.DialContext(s.ctx, "tcp", addr)
 	if err != nil {
 		s.sendTCPReset(packet)
 		return
 	}
+
+	// Register the TCP relay while checking shutdown and replacing an old flow.
 	conn := newTCPConn(s, key, host, packet)
 	s.mtx.Lock()
 	if s.closed {
@@ -329,12 +378,15 @@ func (s *Stack) openTCP(key string, packet *ethPacket) {
 	}
 	s.tcp[key] = conn
 	s.mtx.Unlock()
+
+	// Complete the guest TCP handshake and start the host read loop.
 	conn.accept(packet)
 	conn.start()
 }
 
 // sendTCPReset emits a RST segment answering a stray packet.
 func (s *Stack) sendTCPReset(packet *ethPacket) {
+	// Account for handshake and close flags in the TCP reset sequence numbers.
 	bop := packet.ipv4.tcp.ack
 	if tcpFlag(packet.ipv4.tcp, tcpFlagFIN) || tcpFlag(packet.ipv4.tcp, tcpFlagSYN) {
 		bop++
@@ -343,6 +395,8 @@ func (s *Stack) sendTCPReset(packet *ethPacket) {
 	if tcpFlag(packet.ipv4.tcp, tcpFlagSYN) {
 		ack++
 	}
+
+	// Build the TCP reset flags and reversed connection addresses.
 	reply := &tcpPacket{
 		sport:   packet.ipv4.tcp.dport,
 		dport:   packet.ipv4.tcp.sport,
@@ -354,6 +408,8 @@ func (s *Stack) sendTCPReset(packet *ethPacket) {
 	if tcpFlag(packet.ipv4.tcp, tcpFlagSYN) {
 		reply.flags |= tcpFlagACK
 	}
+
+	// Frame and emit the TCP reset toward the guest.
 	tcp := buildTCP(packet.ipv4.dest, packet.ipv4.src, reply, nil, 0)
 	ip := buildIPv4(ipProtoTCP, packet.ipv4.dest, packet.ipv4.src, tcp)
 	s.emit(buildEth(packet.src, routerMAC, ethTypeIPv4, ip))

@@ -31,6 +31,7 @@ type Config struct {
 
 // withDefaults fills unset configuration values: gateway, netmask, DNS,
 func (c Config) withDefaults() Config {
+	// Supply the guest subnet and gateway addresses for the network stack.
 	if !c.GuestIP.IsValid() {
 		c.GuestIP = netip.MustParseAddr("10.0.2.15")
 	}
@@ -40,6 +41,8 @@ func (c Config) withDefaults() Config {
 	if !c.Netmask.IsValid() {
 		c.Netmask = netip.MustParseAddr("255.255.255.0")
 	}
+
+	// Supply the DNS service address and host networking implementations.
 	if !c.DNSServer.IsValid() {
 		c.DNSServer = c.GatewayIP
 	}

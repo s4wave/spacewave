@@ -67,12 +67,15 @@ func newTCPConn(stack *Stack, key string, host net.Conn, packet *ethPacket) *tcp
 
 // accept completes the handshake with a SYN-ACK and enters established
 func (c *tcpConn) accept(packet *ethPacket) {
+	// Establish the guest TCP sequence numbers and advertised window under the lock.
 	c.mtx.Lock()
 	c.seq = 1338
 	c.ack = packet.ipv4.tcp.seq + 1
 	c.startSeq = packet.ipv4.tcp.seq
 	c.winsize = packet.ipv4.tcp.winsize
 	c.state = tcpStateEstablished
+
+	// Send the guest SYN-ACK with the negotiated maximum segment size.
 	reply := &tcpPacket{
 		sport:   c.sport,
 		dport:   c.dport,
@@ -92,6 +95,7 @@ func (c *tcpConn) start() {
 
 // process services one inbound segment: ACK accounting, FIN handling, and
 func (c *tcpConn) process(packet *ethPacket) {
+	// Lock the TCP flow and reset segments received after it closed.
 	tcp := packet.ipv4.tcp
 	var data []byte
 	c.mtx.Lock()
@@ -101,31 +105,44 @@ func (c *tcpConn) process(packet *ethPacket) {
 		c.mtx.Unlock()
 		return
 	}
+
+	// Release the TCP flow when the guest resets the connection.
 	if tcpFlag(tcp, tcpFlagRST) {
 		c.state = tcpStateClosed
 		c.mtx.Unlock()
 		c.release(true)
 		return
 	}
+
+	// Ignore repeated guest TCP handshake requests on this flow.
 	if tcpFlag(tcp, tcpFlagSYN) {
 		c.mtx.Unlock()
 		return
 	}
+
+	// Advance the TCP connection state and send buffer for guest acknowledgments.
 	if tcpFlag(tcp, tcpFlagACK) {
+		// Advance the TCP handshake or FIN wait when the guest acknowledges it.
 		if c.state == tcpStateSynReceived {
 			c.state = tcpStateEstablished
 		}
 		if c.state == tcpStateFinWait1 && !tcpFlag(tcp, tcpFlagFIN) {
 			c.state = tcpStateFinWait2
 		}
+
+		// Finish the TCP close when its final acknowledgment arrives.
 		if c.state == tcpStateClosing || c.state == tcpStateLastAck {
 			c.state = tcpStateClosed
 			c.mtx.Unlock()
 			c.release(true)
 			return
 		}
+
+		// Retire host bytes acknowledged by the guest.
 		c.consumeAckLocked(tcp)
 	}
+
+	// Apply the guest FIN and release the TCP flow when its close completes.
 	if tcpFlag(tcp, tcpFlagFIN) {
 		release := c.processFINLocked(tcp)
 		c.mtx.Unlock()
@@ -134,6 +151,8 @@ func (c *tcpConn) process(packet *ethPacket) {
 		}
 		return
 	}
+
+	// Acknowledge unexpected guest sequence numbers without accepting their payload.
 	if c.ack != tcp.seq {
 		if c.ack != tcp.seq+1 {
 			reply := c.packetReplyLocked(tcp, tcpFlagACK)
@@ -142,14 +161,20 @@ func (c *tcpConn) process(packet *ethPacket) {
 		c.mtx.Unlock()
 		return
 	}
+
+	// Acknowledge and retain the guest TCP payload for the host socket.
 	if tcpFlag(tcp, tcpFlagACK) && len(tcp.data) > 0 {
 		c.ack += uint32(len(tcp.data)) //nolint:gosec // TCP receive data is bounded by the negotiated guest MSS.
 		reply := c.ipv4ReplyLocked(tcpFlagACK)
 		c.stack.sendTCP(c, reply, nil, 0)
 		data = bytes.Clone(tcp.data)
 	}
+
+	// Send any queued host payload and release the TCP flow lock.
 	c.pumpLocked()
 	c.mtx.Unlock()
+
+	// Forward the accepted guest payload to the host socket.
 	if len(data) != 0 {
 		c.writeHost(data)
 	}
@@ -212,6 +237,7 @@ func (c *tcpConn) closeFromHost() {
 
 // closeHost closes the host socket exactly once.
 func (c *tcpConn) closeHost() error {
+	// Mark the TCP host socket closed under the flow lock before releasing it.
 	c.mtx.Lock()
 	if c.closed {
 		c.mtx.Unlock()
@@ -272,14 +298,19 @@ func (c *tcpConn) consumeAckLocked(tcp *tcpPacket) {
 
 // processFINLocked applies a guest FIN and reports whether the connection
 func (c *tcpConn) processFINLocked(tcp *tcpPacket) bool {
+	// Acknowledge the guest FIN with the current TCP sequence numbers.
 	c.ack++
 	reply := c.packetReplyLocked(tcp, tcpFlagACK)
+
+	// Half-close the host write side when the guest begins closing.
 	if c.state == tcpStateEstablished {
 		c.state = tcpStateCloseWait
 		c.stack.sendTCP(c, reply, nil, 0)
 		c.shutdownHostWriteLocked()
 		return false
 	}
+
+	// Complete or continue the TCP close while awaiting the host FIN acknowledgment.
 	if c.state == tcpStateFinWait1 {
 		if tcpFlag(tcp, tcpFlagACK) {
 			c.state = tcpStateClosed
@@ -290,11 +321,15 @@ func (c *tcpConn) processFINLocked(tcp *tcpPacket) bool {
 		c.stack.sendTCP(c, reply, nil, 0)
 		return false
 	}
+
+	// Complete the TCP close after the host FIN was acknowledged.
 	if c.state == tcpStateFinWait2 {
 		c.state = tcpStateClosed
 		c.stack.sendTCP(c, reply, nil, 0)
 		return true
 	}
+
+	// Reset the TCP flow when the guest FIN arrives in another state.
 	reply.flags = tcpFlagRST
 	c.state = tcpStateClosed
 	c.stack.sendTCP(c, reply, nil, 0)
@@ -303,14 +338,19 @@ func (c *tcpConn) processFINLocked(tcp *tcpPacket) bool {
 
 // pumpLocked sends buffered host data while the guest window allows.
 func (c *tcpConn) pumpLocked() {
+	// Require queued host data and no pending guest acknowledgment.
 	if c.sendBuffer.Len() == 0 || c.pending {
 		return
 	}
+
+	// Bound the TCP payload to the guest maximum segment size.
 	size := c.sendBuffer.Len()
 	maxSize := defaultMTU - ipv4HeaderSize - tcpHeaderSize
 	if size > maxSize {
 		size = maxSize
 	}
+
+	// Send the queued TCP payload and await the guest acknowledgment.
 	dat := bytes.Clone(c.sendBuffer.Bytes()[:size])
 	reply := c.ipv4ReplyLocked(tcpFlagACK | tcpFlagPSH)
 	c.stack.sendTCP(c, reply, dat, 0)

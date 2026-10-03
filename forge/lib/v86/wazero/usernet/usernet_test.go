@@ -26,10 +26,13 @@ func newTestSink() *testSink {
 }
 
 func (s *testSink) inbound(frame []byte) {
+	// Retain an independent copy of the guest frame in the test sink.
 	cp := bytes.Clone(frame)
 	s.mtx.Lock()
 	s.frames = append(s.frames, cp)
 	s.mtx.Unlock()
+
+	// Deliver the recorded guest frame to the waiting test.
 	s.ch <- cp
 }
 
@@ -55,6 +58,7 @@ func testConfig() Config {
 }
 
 func TestARPReply(t *testing.T) {
+	// Create an ARP responder Stack and release it after the test.
 	cfg := testConfig()
 	sink := newTestSink()
 	stack := New(cfg, sink.inbound, nil)
@@ -65,9 +69,11 @@ func TestARPReply(t *testing.T) {
 		}
 	})
 
+	// Request the gateway hardware address from the guest.
 	frame := buildARPRequest(cfg.GuestMAC, netip.MustParseAddr("10.0.2.15"), cfg.GatewayIP)
 	stack.HandleOutbound(frame)
 
+	// Verify the ARP response advertises the configured gateway address.
 	got := sink.next(t)
 	want := buildARPReply(cfg.GuestMAC, cfg.GatewayIP, cfg.GuestIP)
 	if !bytes.Equal(got, want) {
@@ -76,6 +82,7 @@ func TestARPReply(t *testing.T) {
 }
 
 func TestICMPEchoReply(t *testing.T) {
+	// Create an ICMP responder Stack and release it after the test.
 	cfg := testConfig()
 	sink := newTestSink()
 	stack := New(cfg, sink.inbound, nil)
@@ -86,11 +93,13 @@ func TestICMPEchoReply(t *testing.T) {
 		}
 	})
 
+	// Send an ICMP echo request from the guest to the gateway.
 	data := []byte{0x12, 0x34, 0x00, 0x01, 'p', 'i', 'n', 'g'}
 	icmp := buildICMP(8, 0, data)
 	ip := buildIPv4(ipProtoICMP, cfg.GuestIP, cfg.GatewayIP, icmp)
 	stack.HandleOutbound(buildEth(routerMAC, cfg.GuestMAC, ethTypeIPv4, ip))
 
+	// Verify the ICMP echo reply preserves the guest payload.
 	got := sink.next(t)
 	wantICMP := buildICMP(0, 0, data)
 	wantIP := buildIPv4(ipProtoICMP, cfg.GatewayIP, cfg.GuestIP, wantICMP)
@@ -101,6 +110,7 @@ func TestICMPEchoReply(t *testing.T) {
 }
 
 func TestDHCPDiscoverRequestLease(t *testing.T) {
+	// Create a DHCP responder Stack and release it after the test.
 	cfg := testConfig()
 	sink := newTestSink()
 	stack := New(cfg, sink.inbound, nil)
@@ -111,8 +121,11 @@ func TestDHCPDiscoverRequestLease(t *testing.T) {
 		}
 	})
 
+	// Discover the DHCP lease offered to the guest.
 	stack.HandleOutbound(buildDHCPFrame(cfg, 0x12345678, 1))
 	offer := parseDHCPReply(t, sink.next(t))
+
+	// Verify the DHCP offer contains the configured addresses and message type.
 	if offer.op != 2 {
 		t.Fatalf("offer op = %d, want 2", offer.op)
 	}
@@ -129,8 +142,11 @@ func TestDHCPDiscoverRequestLease(t *testing.T) {
 		t.Fatalf("offer dns = %s, want %s", got, cfg.DNSServer)
 	}
 
+	// Request the offered DHCP lease from the guest.
 	stack.HandleOutbound(buildDHCPFrame(cfg, 0x12345678, 3))
 	ack := parseDHCPReply(t, sink.next(t))
+
+	// Verify the DHCP acknowledgment includes its message type and lease duration.
 	if got := dhcpOptionByte(ack, 53); got != 5 {
 		t.Fatalf("ack message type = %d, want 5", got)
 	}
@@ -140,6 +156,7 @@ func TestDHCPDiscoverRequestLease(t *testing.T) {
 }
 
 func TestDNSProxy(t *testing.T) {
+	// Start a local DNS responder and release its packet socket after the test.
 	cfg := testConfig()
 	dnsConn, err := net.ListenPacket("udp", "127.0.0.1:0")
 	if err != nil {
@@ -153,6 +170,7 @@ func TestDNSProxy(t *testing.T) {
 	})
 	go serveTestDNS(dnsConn)
 
+	// Configure a Stack whose host resolver uses the local DNS responder.
 	dialer := &net.Dialer{}
 	cfg.Resolver = &net.Resolver{
 		PreferGo: true,
@@ -169,11 +187,13 @@ func TestDNSProxy(t *testing.T) {
 		}
 	})
 
+	// Send a guest DNS query for the test IPv4 address.
 	query := buildDNSQuery(0x4242, "example.test", 1)
 	udp := buildUDP(cfg.GuestIP, cfg.DNSServer, 53000, 53, query)
 	ip := buildIPv4(ipProtoUDP, cfg.GuestIP, cfg.DNSServer, udp)
 	stack.HandleOutbound(buildEth(routerMAC, cfg.GuestMAC, ethTypeIPv4, ip))
 
+	// Decode the DNS response returned to the guest.
 	got := sink.next(t)
 	packet, err := parseEth(got)
 	if err != nil {
@@ -183,6 +203,8 @@ func TestDNSProxy(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Verify the DNS response identifies the query and contains its address answer.
 	if resp.id != 0x4242 {
 		t.Fatalf("dns id = %#x, want 0x4242", resp.id)
 	}
@@ -195,6 +217,7 @@ func TestDNSProxy(t *testing.T) {
 }
 
 func TestUDPEchoThroughHost(t *testing.T) {
+	// Start a local UDP echo service and release its socket after the test.
 	cfg := testConfig()
 	pc, err := net.ListenPacket("udp", "127.0.0.1:0")
 	if err != nil {
@@ -208,6 +231,7 @@ func TestUDPEchoThroughHost(t *testing.T) {
 	})
 	go serveUDPEcho(pc)
 
+	// Create a guest UDP relay Stack targeting the local echo service.
 	destIP, destPort := packetAddr(t, pc.LocalAddr())
 	sink := newTestSink()
 	stack := New(cfg, sink.inbound, nil)
@@ -218,22 +242,27 @@ func TestUDPEchoThroughHost(t *testing.T) {
 		}
 	})
 
+	// Send the guest UDP payload through the host relay.
 	payload := []byte("udp echo")
 	udp := buildUDP(cfg.GuestIP, destIP, 40000, destPort, payload)
 	ip := buildIPv4(ipProtoUDP, cfg.GuestIP, destIP, udp)
 	stack.HandleOutbound(buildEth(routerMAC, cfg.GuestMAC, ethTypeIPv4, ip))
 
+	// Decode the relayed UDP response returned to the guest.
 	got := sink.next(t)
 	packet, err := parseEth(got)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Verify the UDP relay preserves the echo payload.
 	if !bytes.Equal(packet.ipv4.udp.data, payload) {
 		t.Fatalf("udp payload = %q, want %q", packet.ipv4.udp.data, payload)
 	}
 }
 
 func TestTCPConnectEchoCloseThroughHost(t *testing.T) {
+	// Start a local TCP echo service and release its listener after the test.
 	cfg := testConfig()
 	ln, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
@@ -247,6 +276,7 @@ func TestTCPConnectEchoCloseThroughHost(t *testing.T) {
 	})
 	go serveTCPEcho(ln)
 
+	// Create a guest TCP relay Stack targeting the local echo service.
 	destIP, destPort := packetAddr(t, ln.Addr())
 	sink := newTestSink()
 	stack := New(cfg, sink.inbound, nil)
@@ -257,9 +287,12 @@ func TestTCPConnectEchoCloseThroughHost(t *testing.T) {
 		}
 	})
 
+	// Open the guest TCP connection through the host relay.
 	guestPort := uint16(41000)
 	guestSeq := uint32(1000)
 	stack.HandleOutbound(buildTCPFrame(cfg, destIP, guestPort, destPort, guestSeq, 0, tcpFlagSYN, nil))
+
+	// Verify the TCP handshake flags and guest sequence acknowledgment.
 	synAck := parseTCPInbound(t, sink.next(t))
 	if synAck.flags&(tcpFlagSYN|tcpFlagACK) != tcpFlagSYN|tcpFlagACK {
 		t.Fatalf("syn ack flags = %#x", synAck.flags)
@@ -268,29 +301,41 @@ func TestTCPConnectEchoCloseThroughHost(t *testing.T) {
 		t.Fatalf("syn ack ack = %d, want %d", synAck.ack, guestSeq+1)
 	}
 
+	// Complete the guest handshake and send the TCP echo payload.
 	stack.HandleOutbound(buildTCPFrame(cfg, destIP, guestPort, destPort, guestSeq+1, synAck.seq+1, tcpFlagACK, nil))
 	payload := []byte("tcp echo")
 	stack.HandleOutbound(buildTCPFrame(cfg, destIP, guestPort, destPort, guestSeq+1, synAck.seq+1, tcpFlagACK|tcpFlagPSH, payload))
+
+	// Verify the TCP relay acknowledges the guest payload.
 	ack := parseTCPInbound(t, sink.next(t))
 	if ack.flags&tcpFlagACK == 0 || len(ack.data) != 0 {
 		t.Fatalf("data ack flags/data = %#x/%x", ack.flags, ack.data)
 	}
+
+	// Verify the TCP relay returns the host echo payload.
 	echo := parseTCPInbound(t, sink.next(t))
 	if !bytes.Equal(echo.data, payload) {
 		t.Fatalf("tcp echo payload = %q, want %q", echo.data, payload)
 	}
 
+	// Acknowledge the host payload and begin closing the guest TCP flow.
 	guestSeq += 1 + uint32(len(payload))
 	stack.HandleOutbound(buildTCPFrame(cfg, destIP, guestPort, destPort, guestSeq, echo.seq+uint32(len(echo.data)), tcpFlagACK, nil))
 	stack.HandleOutbound(buildTCPFrame(cfg, destIP, guestPort, destPort, guestSeq, echo.seq+uint32(len(echo.data)), tcpFlagACK|tcpFlagFIN, nil))
+
+	// Verify the TCP relay acknowledges the guest FIN.
 	finAck := parseTCPInbound(t, sink.next(t))
 	if finAck.flags&tcpFlagACK == 0 {
 		t.Fatalf("fin ack flags = %#x", finAck.flags)
 	}
+
+	// Verify the host TCP close reaches the guest.
 	hostFin := parseTCPInbound(t, sink.next(t))
 	if hostFin.flags&tcpFlagFIN == 0 {
 		t.Fatalf("host fin flags = %#x", hostFin.flags)
 	}
+
+	// Acknowledge the host FIN to complete the guest TCP close.
 	stack.HandleOutbound(buildTCPFrame(cfg, destIP, guestPort, destPort, guestSeq+1, hostFin.seq+1, tcpFlagACK, nil))
 }
 
@@ -299,6 +344,7 @@ func TestTCPConnectEchoCloseThroughHost(t *testing.T) {
 // methods, so le.WithError(...).Debug(...) on a nil entry would dereference nil;
 // New must substitute a usable entry.
 func TestNilLoggerCloseErrorNoPanic(t *testing.T) {
+	// Create a Stack with a nil logger and host sockets that fail to close.
 	cfg := testConfig()
 	cfg.Dialer = dialerFunc(func(_ context.Context, _ string, _ string) (net.Conn, error) {
 		return &errCloseConn{done: make(chan struct{})}, nil
@@ -306,6 +352,7 @@ func TestNilLoggerCloseErrorNoPanic(t *testing.T) {
 	sink := newTestSink()
 	stack := New(cfg, sink.inbound, nil)
 
+	// Establish a guest TCP flow backed by the failing host socket.
 	destIP := netip.MustParseAddr("203.0.113.50")
 	stack.HandleOutbound(buildTCPFrame(cfg, destIP, 41100, 80, 2000, 0, tcpFlagSYN, nil))
 	parseTCPInbound(t, sink.next(t))
@@ -342,12 +389,15 @@ func (c *errCloseConn) Close() error {
 }
 
 func buildARPRequest(src [6]byte, srcIP netip.Addr, targetIP netip.Addr) []byte {
+	// Encode an ARP request header for IPv4 hardware address resolution.
 	payload := make([]byte, 28)
 	binary.BigEndian.PutUint16(payload[0:2], 1)
 	binary.BigEndian.PutUint16(payload[2:4], ethTypeIPv4)
 	payload[4] = 6
 	payload[5] = 4
 	binary.BigEndian.PutUint16(payload[6:8], 1)
+
+	// Encode the guest and target addresses in the ARP request.
 	copy(payload[8:14], src[:])
 	copy(payload[14:18], srcIP.AsSlice())
 	copy(payload[24:28], targetIP.AsSlice())
@@ -355,6 +405,7 @@ func buildARPRequest(src [6]byte, srcIP netip.Addr, targetIP netip.Addr) []byte 
 }
 
 func buildDHCPFrame(cfg Config, xid uint32, msgType byte) []byte {
+	// Build the DHCP request transaction and its guest hardware address.
 	req := &dhcpPacket{
 		op:    1,
 		htype: 1,
@@ -366,17 +417,22 @@ func buildDHCPFrame(cfg Config, xid uint32, msgType byte) []byte {
 		},
 	}
 	copy(req.chaddr[:], cfg.GuestMAC[:])
+
+	// Broadcast the DHCP request in a guest UDP frame.
 	udp := buildUDP(netip.MustParseAddr("0.0.0.0"), netip.MustParseAddr("255.255.255.255"), 68, 67, buildDHCP(req))
 	ip := buildIPv4(ipProtoUDP, netip.MustParseAddr("0.0.0.0"), netip.MustParseAddr("255.255.255.255"), udp)
 	return buildEth(broadcastMAC, cfg.GuestMAC, ethTypeIPv4, ip)
 }
 
 func parseDHCPReply(t *testing.T, frame []byte) *dhcpPacket {
+	// Decode the Ethernet frame carrying the DHCP reply.
 	t.Helper()
 	packet, err := parseEth(frame)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Decode the DHCP record from the reply payload.
 	dhcp, err := parseDHCP(packet.ipv4.udp.data)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -411,14 +467,19 @@ func dhcpOptionAddr(t *testing.T, p *dhcpPacket, code byte) netip.Addr {
 }
 
 func buildDNSQuery(id uint16, name string, qtype uint16) []byte {
+	// Encode a DNS query header with one recursive question.
 	msg := make([]byte, 12)
 	binary.BigEndian.PutUint16(msg[0:2], id)
 	binary.BigEndian.PutUint16(msg[2:4], 0x0100)
 	binary.BigEndian.PutUint16(msg[4:6], 1)
+
+	// Encode the DNS name as wire-format labels.
 	for part := range bytes.SplitSeq([]byte(name), []byte{'.'}) {
 		msg = append(msg, byte(len(part)))
 		msg = append(msg, part...)
 	}
+
+	// Terminate the DNS name and encode the question type and class.
 	msg = append(msg, 0, 0, 0, 0, 0)
 	binary.BigEndian.PutUint16(msg[len(msg)-4:len(msg)-2], qtype)
 	binary.BigEndian.PutUint16(msg[len(msg)-2:], 1)
@@ -485,15 +546,20 @@ func serveTCPEcho(ln net.Listener) {
 }
 
 func packetAddr(t *testing.T, addr net.Addr) (netip.Addr, uint16) {
+	// Split the host socket address into its host and port fields.
 	t.Helper()
 	host, port, err := net.SplitHostPort(addr.String())
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Parse the host socket IP address.
 	ip, err := netip.ParseAddr(host)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Parse the host socket port as a decimal number.
 	portInt, err := strconv.Atoi(port)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -516,11 +582,14 @@ func buildTCPFrame(cfg Config, destIP netip.Addr, sport uint16, dport uint16, se
 }
 
 func parseTCPInbound(t *testing.T, frame []byte) *tcpPacket {
+	// Decode the Ethernet frame carrying the guest TCP response.
 	t.Helper()
 	packet, err := parseEth(frame)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Verify the inbound frame contains a TCP segment.
 	if packet.ipv4 == nil || packet.ipv4.tcp == nil {
 		t.Fatalf("inbound frame is not TCP: %x", frame)
 	}
