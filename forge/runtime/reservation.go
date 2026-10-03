@@ -197,9 +197,11 @@ func (r *Reservation) UnmarshalJSON(data []byte) error {
 		return err
 	}
 
+	// Clear the receiver so omitted optional fields decode as unset.
+	*r = Reservation{}
+
 	// Accept a null reservation or require an object for decoding.
 	if value.Type() == fastjson.TypeNull {
-		*r = Reservation{}
 		return nil
 	}
 	if value.Type() != fastjson.TypeObject {
