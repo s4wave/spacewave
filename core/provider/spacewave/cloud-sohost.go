@@ -812,8 +812,8 @@ func (h *cloudSOHost) handleStateDelta(ctx context.Context, msg *api.SOStateMess
 
 // applyChangeLogEntry applies a single change_log entry to the cached state.
 // The change_data wire format mirrors the cloud's sharedobject DO: 'op' carries
-// an SOOperation, 'ops' a PostOpsRequest and 'checkpoint' a
-// PostCheckpointRequest. Entries are idempotent.
+// an SOOperation, 'ops' a PostOpsRequest, 'checkpoint' a PostCheckpointRequest
+// and 'sequence' an SOSequenceBatch. Entries are idempotent.
 func applyChangeLogEntry(
 	sharedObjectID string,
 	state *sobject.SOState,
@@ -851,6 +851,18 @@ func applyChangeLogEntry(
 			return errors.New("post checkpoint request missing checkpoint")
 		}
 		return errors.Wrap(state.AdoptCheckpoint(sharedObjectID, req.GetCheckpoint()), "adopt checkpoint")
+
+	case "sequence":
+		batch := &api.SOSequenceBatch{}
+		if err := batch.UnmarshalVT(entry.GetChangeData()); err != nil {
+			return errors.Wrap(err, "unmarshal sequence batch")
+		}
+		for _, record := range batch.GetSequence() {
+			if _, err := state.AddSequence(sharedObjectID, record); err != nil {
+				return errors.Wrap(err, "add sequence position")
+			}
+		}
+		return nil
 
 	default:
 		return errors.Errorf("unknown change_type %q", entry.GetChangeType())

@@ -190,6 +190,13 @@ message PostOpsRequest {
   repeated .sobject.SOOperation operations = 1;
 }
 
+// SOSequenceBatch is the change-log payload of positions the cloud sequencer
+// signed in one commit.
+message SOSequenceBatch {
+  // Sequence holds the positions in height order.
+  repeated .sobject.SOSequence sequence = 1;
+}
+
 // PostCheckpointRequest is the binary payload for POST /sobject/:id/checkpoint.
 message PostCheckpointRequest {
   // Checkpoint is the owner-signed checkpoint that follows the held one.

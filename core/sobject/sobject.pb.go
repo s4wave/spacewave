@@ -286,21 +286,25 @@ const (
 	// SO_CONFIG_CHANGE_TYPE_SET_ROSTER changes which writers the trimming roster
 	// drops.
 	SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_SET_ROSTER SOConfigChangeType = 9
+	// SO_CONFIG_CHANGE_TYPE_SET_SEQUENCER chooses between Merge and One order,
+	// or moves One order to another sequencer.
+	SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_SET_SEQUENCER SOConfigChangeType = 10
 )
 
 // Enum value maps for SOConfigChangeType.
 var (
 	SOConfigChangeType_name = map[int32]string{
-		0: "SO_CONFIG_CHANGE_TYPE_UNKNOWN",
-		1: "SO_CONFIG_CHANGE_TYPE_GENESIS",
-		2: "SO_CONFIG_CHANGE_TYPE_ADD_PARTICIPANT",
-		3: "SO_CONFIG_CHANGE_TYPE_REMOVE_PARTICIPANT",
-		4: "SO_CONFIG_CHANGE_TYPE_ADD_INVITE",
-		5: "SO_CONFIG_CHANGE_TYPE_REVOKE_INVITE",
-		6: "SO_CONFIG_CHANGE_TYPE_INCREMENT_INVITE_USES",
-		7: "SO_CONFIG_CHANGE_TYPE_SELF_ENROLL_PEER",
-		8: "SO_CONFIG_CHANGE_TYPE_TRANSFER_OWNERSHIP",
-		9: "SO_CONFIG_CHANGE_TYPE_SET_ROSTER",
+		0:  "SO_CONFIG_CHANGE_TYPE_UNKNOWN",
+		1:  "SO_CONFIG_CHANGE_TYPE_GENESIS",
+		2:  "SO_CONFIG_CHANGE_TYPE_ADD_PARTICIPANT",
+		3:  "SO_CONFIG_CHANGE_TYPE_REMOVE_PARTICIPANT",
+		4:  "SO_CONFIG_CHANGE_TYPE_ADD_INVITE",
+		5:  "SO_CONFIG_CHANGE_TYPE_REVOKE_INVITE",
+		6:  "SO_CONFIG_CHANGE_TYPE_INCREMENT_INVITE_USES",
+		7:  "SO_CONFIG_CHANGE_TYPE_SELF_ENROLL_PEER",
+		8:  "SO_CONFIG_CHANGE_TYPE_TRANSFER_OWNERSHIP",
+		9:  "SO_CONFIG_CHANGE_TYPE_SET_ROSTER",
+		10: "SO_CONFIG_CHANGE_TYPE_SET_SEQUENCER",
 	}
 	SOConfigChangeType_value = map[string]int32{
 		"SO_CONFIG_CHANGE_TYPE_UNKNOWN":               0,
@@ -313,6 +317,7 @@ var (
 		"SO_CONFIG_CHANGE_TYPE_SELF_ENROLL_PEER":      7,
 		"SO_CONFIG_CHANGE_TYPE_TRANSFER_OWNERSHIP":    8,
 		"SO_CONFIG_CHANGE_TYPE_SET_ROSTER":            9,
+		"SO_CONFIG_CHANGE_TYPE_SET_SEQUENCER":         10,
 	}
 )
 
@@ -710,6 +715,9 @@ type SharedObjectConfig struct {
 	// Every other writer is on the roster: the stable point waits until each
 	// has built on an operation before history below it is trimmed.
 	RosterDroppedPeerIds []string `protobuf:"bytes,13,rep,name=roster_dropped_peer_ids,json=rosterDroppedPeerIds,proto3" json:"rosterDroppedPeerIds,omitempty"`
+	// Sequencer places operations in One order. An unset sequencer or an empty
+	// peer ID is Merge.
+	Sequencer *SOSequencer `protobuf:"bytes,14,opt,name=sequencer,proto3" json:"sequencer,omitempty"`
 }
 
 func (x *SharedObjectConfig) Reset() {
@@ -751,6 +759,164 @@ func (x *SharedObjectConfig) GetRosterDroppedPeerIds() []string {
 		return x.RosterDroppedPeerIds
 	}
 	return nil
+}
+
+func (x *SharedObjectConfig) GetSequencer() *SOSequencer {
+	if x != nil {
+		return x.Sequencer
+	}
+	return nil
+}
+
+// SOSequencer names the device or service that signs the sequence: one
+// position per operation, each naming the position before it.
+type SOSequencer struct {
+	unknownFields []byte
+	// PeerId is the sequencer's key. Empty is Merge: nothing places operations
+	// after start.
+	PeerId string `protobuf:"bytes,1,opt,name=peer_id,json=peerId,proto3" json:"peerId,omitempty"`
+	// Start is the last position of the sequence before this sequencer, as the
+	// owner who appointed it held the sequence. Positions up to start are
+	// authenticated by their hash links to it; the sequencer signs every later
+	// one. Unset when no position came before.
+	Start *SOSequenceHead `protobuf:"bytes,2,opt,name=start,proto3" json:"start,omitempty"`
+}
+
+func (x *SOSequencer) Reset() {
+	*x = SOSequencer{}
+}
+
+func (*SOSequencer) ProtoMessage() {}
+
+func (x *SOSequencer) GetPeerId() string {
+	if x != nil {
+		return x.PeerId
+	}
+	return ""
+}
+
+func (x *SOSequencer) GetStart() *SOSequenceHead {
+	if x != nil {
+		return x.Start
+	}
+	return nil
+}
+
+// SOSequenceHead names one position of the sequence.
+type SOSequenceHead struct {
+	unknownFields []byte
+	// Height is the position, counted from 1.
+	Height uint64 `protobuf:"varint,1,opt,name=height,proto3" json:"height,omitempty"`
+	// Hash is the identity of the position's signed record.
+	Hash []byte `protobuf:"bytes,2,opt,name=hash,proto3" json:"hash,omitempty"`
+}
+
+func (x *SOSequenceHead) Reset() {
+	*x = SOSequenceHead{}
+}
+
+func (*SOSequenceHead) ProtoMessage() {}
+
+func (x *SOSequenceHead) GetHeight() uint64 {
+	if x != nil {
+		return x.Height
+	}
+	return 0
+}
+
+func (x *SOSequenceHead) GetHash() []byte {
+	if x != nil {
+		return x.Hash
+	}
+	return nil
+}
+
+// SOSequence is one signed position of the sequence.
+type SOSequence struct {
+	unknownFields []byte
+	// Inner is the encoded SOSequenceInner.
+	Inner []byte `protobuf:"bytes,1,opt,name=inner,proto3" json:"inner,omitempty"`
+	// Signature is the sequencer's signature of inner.
+	Signature *peer.Signature `protobuf:"bytes,2,opt,name=signature,proto3" json:"signature,omitempty"`
+}
+
+func (x *SOSequence) Reset() {
+	*x = SOSequence{}
+}
+
+func (*SOSequence) ProtoMessage() {}
+
+func (x *SOSequence) GetInner() []byte {
+	if x != nil {
+		return x.Inner
+	}
+	return nil
+}
+
+func (x *SOSequence) GetSignature() *peer.Signature {
+	if x != nil {
+		return x.Signature
+	}
+	return nil
+}
+
+// SOSequenceInner is the signed body of a position. Its identity is the hash
+// of this encoded body.
+type SOSequenceInner struct {
+	unknownFields []byte
+	// SharedObjectId binds the position to one shared object.
+	SharedObjectId string `protobuf:"bytes,1,opt,name=shared_object_id,json=sharedObjectId,proto3" json:"sharedObjectId,omitempty"`
+	// Height is one more than the previous position, 1 for the first.
+	Height uint64 `protobuf:"varint,2,opt,name=height,proto3" json:"height,omitempty"`
+	// PrevHash is the identity of the previous position. Empty at height 1.
+	PrevHash []byte `protobuf:"bytes,3,opt,name=prev_hash,json=prevHash,proto3" json:"prevHash,omitempty"`
+	// Op is the operation placed at this position. Its author and nonce let a
+	// member skip an operation its checkpoint covers.
+	Op *SOOperationPosition `protobuf:"bytes,4,opt,name=op,proto3" json:"op,omitempty"`
+	// PeerId is the sequencer that signed the position, so positions two
+	// sequencers sign for one operation differ.
+	PeerId string `protobuf:"bytes,5,opt,name=peer_id,json=peerId,proto3" json:"peerId,omitempty"`
+}
+
+func (x *SOSequenceInner) Reset() {
+	*x = SOSequenceInner{}
+}
+
+func (*SOSequenceInner) ProtoMessage() {}
+
+func (x *SOSequenceInner) GetSharedObjectId() string {
+	if x != nil {
+		return x.SharedObjectId
+	}
+	return ""
+}
+
+func (x *SOSequenceInner) GetHeight() uint64 {
+	if x != nil {
+		return x.Height
+	}
+	return 0
+}
+
+func (x *SOSequenceInner) GetPrevHash() []byte {
+	if x != nil {
+		return x.PrevHash
+	}
+	return nil
+}
+
+func (x *SOSequenceInner) GetOp() *SOOperationPosition {
+	if x != nil {
+		return x.Op
+	}
+	return nil
+}
+
+func (x *SOSequenceInner) GetPeerId() string {
+	if x != nil {
+		return x.PeerId
+	}
+	return ""
 }
 
 // SOLeaveRequest relinquishes only the identities that sign this exact object and configuration head.
@@ -1055,6 +1221,9 @@ type SOCheckpointInner struct {
 	// Authors are the last covered operation of each author, sorted by peer_id.
 	// An operation at or below its author's entry is covered. Empty at genesis.
 	Authors []*SOOperationPosition `protobuf:"bytes,9,rep,name=authors,proto3" json:"authors,omitempty"`
+	// Sequence is the last position the checkpoint covers. Unset when it covers
+	// none.
+	Sequence *SOSequenceHead `protobuf:"bytes,10,opt,name=sequence,proto3" json:"sequence,omitempty"`
 }
 
 func (x *SOCheckpointInner) Reset() {
@@ -1115,6 +1284,13 @@ func (x *SOCheckpointInner) GetKeyEpoch() uint64 {
 func (x *SOCheckpointInner) GetAuthors() []*SOOperationPosition {
 	if x != nil {
 		return x.Authors
+	}
+	return nil
+}
+
+func (x *SOCheckpointInner) GetSequence() *SOSequenceHead {
+	if x != nil {
+		return x.Sequence
 	}
 	return nil
 }
@@ -1781,6 +1957,9 @@ type SOState struct {
 	// Invites is the list of pending invites on this shared object.
 	// Stored in plaintext so both providers and cloud can verify invite validity.
 	Invites []*SOInvite `protobuf:"bytes,5,rep,name=invites,proto3" json:"invites,omitempty"`
+	// Sequence are the positions above the checkpoint, sorted by height, then
+	// by hash.
+	Sequence []*SOSequence `protobuf:"bytes,6,rep,name=sequence,proto3" json:"sequence,omitempty"`
 }
 
 func (x *SOState) Reset() {
@@ -1820,6 +1999,13 @@ func (x *SOState) GetOps() []*SOOperation {
 func (x *SOState) GetInvites() []*SOInvite {
 	if x != nil {
 		return x.Invites
+	}
+	return nil
+}
+
+func (x *SOState) GetSequence() []*SOSequence {
+	if x != nil {
+		return x.Sequence
 	}
 	return nil
 }
@@ -2186,6 +2372,7 @@ func (m *SharedObjectConfig) CloneVT() *SharedObjectConfig {
 	r.ConfigChainHash = protobuf_go_lite.CloneBytes(m.ConfigChainHash)
 	r.RemovedAuthors = protobuf_go_lite.CloneVTSlice(m.RemovedAuthors)
 	r.RosterDroppedPeerIds = protobuf_go_lite.CloneSlice(m.RosterDroppedPeerIds)
+	r.Sequencer = protobuf_go_lite.CloneVTValue(m.Sequencer)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -2193,6 +2380,77 @@ func (m *SharedObjectConfig) CloneVT() *SharedObjectConfig {
 }
 
 func (m *SharedObjectConfig) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *SOSequencer) CloneVT() *SOSequencer {
+	if m == nil {
+		return (*SOSequencer)(nil)
+	}
+	r := new(SOSequencer)
+	r.PeerId = m.PeerId
+	r.Start = protobuf_go_lite.CloneVTValue(m.Start)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *SOSequencer) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *SOSequenceHead) CloneVT() *SOSequenceHead {
+	if m == nil {
+		return (*SOSequenceHead)(nil)
+	}
+	r := new(SOSequenceHead)
+	r.Height = m.Height
+	r.Hash = protobuf_go_lite.CloneBytes(m.Hash)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *SOSequenceHead) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *SOSequence) CloneVT() *SOSequence {
+	if m == nil {
+		return (*SOSequence)(nil)
+	}
+	r := new(SOSequence)
+	r.Inner = protobuf_go_lite.CloneBytes(m.Inner)
+	r.Signature = protobuf_go_lite.CloneVTValue(m.Signature)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *SOSequence) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *SOSequenceInner) CloneVT() *SOSequenceInner {
+	if m == nil {
+		return (*SOSequenceInner)(nil)
+	}
+	r := new(SOSequenceInner)
+	r.SharedObjectId = m.SharedObjectId
+	r.Height = m.Height
+	r.PeerId = m.PeerId
+	r.PrevHash = protobuf_go_lite.CloneBytes(m.PrevHash)
+	r.Op = protobuf_go_lite.CloneVTValue(m.Op)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *SOSequenceInner) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -2321,6 +2579,7 @@ func (m *SOCheckpointInner) CloneVT() *SOCheckpointInner {
 	r.ConfigHash = protobuf_go_lite.CloneBytes(m.ConfigHash)
 	r.StateData = protobuf_go_lite.CloneBytes(m.StateData)
 	r.Authors = protobuf_go_lite.CloneVTSlice(m.Authors)
+	r.Sequence = protobuf_go_lite.CloneVTValue(m.Sequence)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -2629,6 +2888,7 @@ func (m *SOState) CloneVT() *SOState {
 	r.KeyEpochs = protobuf_go_lite.CloneVTSlice(m.KeyEpochs)
 	r.Ops = protobuf_go_lite.CloneVTSlice(m.Ops)
 	r.Invites = protobuf_go_lite.CloneVTSlice(m.Invites)
+	r.Sequence = protobuf_go_lite.CloneVTSlice(m.Sequence)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -2930,11 +3190,115 @@ func (this *SharedObjectConfig) EqualVT(that *SharedObjectConfig) bool {
 	if !protobuf_go_lite.EqualSlice(this.RosterDroppedPeerIds, that.RosterDroppedPeerIds) {
 		return false
 	}
+	if !protobuf_go_lite.IsEqualVT(this.Sequencer, that.Sequencer) {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
 func (this *SharedObjectConfig) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*SharedObjectConfig)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *SOSequencer) EqualVT(that *SOSequencer) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.PeerId != that.PeerId {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.Start, that.Start) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *SOSequencer) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*SOSequencer)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *SOSequenceHead) EqualVT(that *SOSequenceHead) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Height != that.Height {
+		return false
+	}
+	if !protobuf_go_lite.EqualBytes(this.Hash, that.Hash) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *SOSequenceHead) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*SOSequenceHead)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *SOSequence) EqualVT(that *SOSequence) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualBytes(this.Inner, that.Inner) {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.Signature, that.Signature) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *SOSequence) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*SOSequence)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *SOSequenceInner) EqualVT(that *SOSequenceInner) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.SharedObjectId != that.SharedObjectId {
+		return false
+	}
+	if this.Height != that.Height {
+		return false
+	}
+	if !protobuf_go_lite.EqualBytes(this.PrevHash, that.PrevHash) {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.Op, that.Op) {
+		return false
+	}
+	if this.PeerId != that.PeerId {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *SOSequenceInner) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*SOSequenceInner)
 	if !ok {
 		return false
 	}
@@ -3137,6 +3501,9 @@ func (this *SOCheckpointInner) EqualVT(that *SOCheckpointInner) bool {
 		return false
 	}
 	if !protobuf_go_lite.EqualVTSliceImplicit(this.Authors, that.Authors, func() *SOOperationPosition { return &SOOperationPosition{} }) {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.Sequence, that.Sequence) {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -3594,6 +3961,9 @@ func (this *SOState) EqualVT(that *SOState) bool {
 		return false
 	}
 	if !protobuf_go_lite.EqualVTSliceImplicit(this.Invites, that.Invites, func() *SOInvite { return &SOInvite{} }) {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTSliceImplicit(this.Sequence, that.Sequence, func() *SOSequence { return &SOSequence{} }) {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -4557,6 +4927,11 @@ func (x *SharedObjectConfig) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("rosterDroppedPeerIds")
 		s.WriteStringArray(x.RosterDroppedPeerIds)
 	}
+	if x.Sequencer != nil || s.HasField("sequencer") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("sequencer")
+		x.Sequencer.MarshalProtoJSON(s.WithField("sequencer"))
+	}
 	s.WriteObjectEnd()
 }
 
@@ -4623,12 +4998,255 @@ func (x *SharedObjectConfig) UnmarshalProtoJSON(s *json.UnmarshalState) {
 				return
 			}
 			x.RosterDroppedPeerIds = s.ReadStringArray()
+		case "sequencer":
+			if s.ReadNil() {
+				x.Sequencer = nil
+				return
+			}
+			x.Sequencer = &SOSequencer{}
+			x.Sequencer.UnmarshalProtoJSON(s.WithField("sequencer", true))
 		}
 	})
 }
 
 // UnmarshalJSON unmarshals the SharedObjectConfig from JSON.
 func (x *SharedObjectConfig) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the SOSequencer message to JSON.
+func (x *SOSequencer) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.PeerId != "" || s.HasField("peerId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("peerId")
+		s.WriteString(x.PeerId)
+	}
+	if x.Start != nil || s.HasField("start") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("start")
+		x.Start.MarshalProtoJSON(s.WithField("start"))
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the SOSequencer to JSON.
+func (x *SOSequencer) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the SOSequencer message from JSON.
+func (x *SOSequencer) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "peer_id", "peerId":
+			s.AddField("peer_id")
+			x.PeerId = s.ReadString()
+		case "start":
+			if s.ReadNil() {
+				x.Start = nil
+				return
+			}
+			x.Start = &SOSequenceHead{}
+			x.Start.UnmarshalProtoJSON(s.WithField("start", true))
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the SOSequencer from JSON.
+func (x *SOSequencer) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the SOSequenceHead message to JSON.
+func (x *SOSequenceHead) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Height != 0 || s.HasField("height") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("height")
+		s.WriteUint64(x.Height)
+	}
+	if len(x.Hash) > 0 || s.HasField("hash") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("hash")
+		s.WriteBytes(x.Hash)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the SOSequenceHead to JSON.
+func (x *SOSequenceHead) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the SOSequenceHead message from JSON.
+func (x *SOSequenceHead) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "height":
+			s.AddField("height")
+			x.Height = s.ReadUint64()
+		case "hash":
+			s.AddField("hash")
+			x.Hash = s.ReadBytes()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the SOSequenceHead from JSON.
+func (x *SOSequenceHead) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the SOSequence message to JSON.
+func (x *SOSequence) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if len(x.Inner) > 0 || s.HasField("inner") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("inner")
+		s.WriteBytes(x.Inner)
+	}
+	if x.Signature != nil || s.HasField("signature") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("signature")
+		x.Signature.MarshalProtoJSON(s.WithField("signature"))
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the SOSequence to JSON.
+func (x *SOSequence) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the SOSequence message from JSON.
+func (x *SOSequence) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "inner":
+			s.AddField("inner")
+			x.Inner = s.ReadBytes()
+		case "signature":
+			if s.ReadNil() {
+				x.Signature = nil
+				return
+			}
+			x.Signature = &peer.Signature{}
+			x.Signature.UnmarshalProtoJSON(s.WithField("signature", true))
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the SOSequence from JSON.
+func (x *SOSequence) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the SOSequenceInner message to JSON.
+func (x *SOSequenceInner) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.SharedObjectId != "" || s.HasField("sharedObjectId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("sharedObjectId")
+		s.WriteString(x.SharedObjectId)
+	}
+	if x.Height != 0 || s.HasField("height") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("height")
+		s.WriteUint64(x.Height)
+	}
+	if len(x.PrevHash) > 0 || s.HasField("prevHash") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("prevHash")
+		s.WriteBytes(x.PrevHash)
+	}
+	if x.Op != nil || s.HasField("op") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("op")
+		x.Op.MarshalProtoJSON(s.WithField("op"))
+	}
+	if x.PeerId != "" || s.HasField("peerId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("peerId")
+		s.WriteString(x.PeerId)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the SOSequenceInner to JSON.
+func (x *SOSequenceInner) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the SOSequenceInner message from JSON.
+func (x *SOSequenceInner) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "shared_object_id", "sharedObjectId":
+			s.AddField("shared_object_id")
+			x.SharedObjectId = s.ReadString()
+		case "height":
+			s.AddField("height")
+			x.Height = s.ReadUint64()
+		case "prev_hash", "prevHash":
+			s.AddField("prev_hash")
+			x.PrevHash = s.ReadBytes()
+		case "op":
+			if s.ReadNil() {
+				x.Op = nil
+				return
+			}
+			x.Op = &SOOperationPosition{}
+			x.Op.UnmarshalProtoJSON(s.WithField("op", true))
+		case "peer_id", "peerId":
+			s.AddField("peer_id")
+			x.PeerId = s.ReadString()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the SOSequenceInner from JSON.
+func (x *SOSequenceInner) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -5166,6 +5784,11 @@ func (x *SOCheckpointInner) MarshalProtoJSON(s *json.MarshalState) {
 		}
 		s.WriteArrayEnd()
 	}
+	if x.Sequence != nil || s.HasField("sequence") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("sequence")
+		x.Sequence.MarshalProtoJSON(s.WithField("sequence"))
+	}
 	s.WriteObjectEnd()
 }
 
@@ -5222,6 +5845,13 @@ func (x *SOCheckpointInner) UnmarshalProtoJSON(s *json.UnmarshalState) {
 				}
 				x.Authors = append(x.Authors, v)
 			})
+		case "sequence":
+			if s.ReadNil() {
+				x.Sequence = nil
+				return
+			}
+			x.Sequence = &SOSequenceHead{}
+			x.Sequence.UnmarshalProtoJSON(s.WithField("sequence", true))
 		}
 	})
 }
@@ -6242,6 +6872,17 @@ func (x *SOState) MarshalProtoJSON(s *json.MarshalState) {
 		}
 		s.WriteArrayEnd()
 	}
+	if len(x.Sequence) > 0 || s.HasField("sequence") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("sequence")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.Sequence {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("sequence"))
+		}
+		s.WriteArrayEnd()
+	}
 	s.WriteObjectEnd()
 }
 
@@ -6326,6 +6967,24 @@ func (x *SOState) UnmarshalProtoJSON(s *json.UnmarshalState) {
 					return
 				}
 				x.Invites = append(x.Invites, v)
+			})
+		case "sequence":
+			s.AddField("sequence")
+			if s.ReadNil() {
+				x.Sequence = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.Sequence = append(x.Sequence, nil)
+					return
+				}
+				v := &SOSequence{}
+				v.UnmarshalProtoJSON(s.WithField("sequence", false))
+				if s.Err() != nil {
+					return
+				}
+				x.Sequence = append(x.Sequence, v)
 			})
 		}
 	})
@@ -7112,6 +7771,16 @@ func (m *SharedObjectConfig) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.Sequencer != nil {
+		size, err := m.Sequencer.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x72
+	}
 	if len(m.RosterDroppedPeerIds) > 0 {
 		for iNdEx := len(m.RosterDroppedPeerIds) - 1; iNdEx >= 0; iNdEx-- {
 			i = protobuf_go_lite.EncodeString(dAtA, i, m.RosterDroppedPeerIds[iNdEx])
@@ -7152,6 +7821,204 @@ func (m *SharedObjectConfig) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 			i--
 			dAtA[i] = 0xa
 		}
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *SOSequencer) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *SOSequencer) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *SOSequencer) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.Start != nil {
+		size, err := m.Start.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.PeerId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.PeerId)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *SOSequenceHead) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *SOSequenceHead) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *SOSequenceHead) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.Hash) > 0 {
+		i = protobuf_go_lite.EncodeBytes(dAtA, i, m.Hash)
+		i--
+		dAtA[i] = 0x12
+	}
+	if m.Height != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Height))
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *SOSequence) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *SOSequence) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *SOSequence) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.Signature != nil {
+		size, err := m.Signature.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.Inner) > 0 {
+		i = protobuf_go_lite.EncodeBytes(dAtA, i, m.Inner)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *SOSequenceInner) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *SOSequenceInner) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *SOSequenceInner) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.PeerId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.PeerId)
+		i--
+		dAtA[i] = 0x2a
+	}
+	if m.Op != nil {
+		size, err := m.Op.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x22
+	}
+	if len(m.PrevHash) > 0 {
+		i = protobuf_go_lite.EncodeBytes(dAtA, i, m.PrevHash)
+		i--
+		dAtA[i] = 0x1a
+	}
+	if m.Height != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Height))
+		i--
+		dAtA[i] = 0x10
+	}
+	if len(m.SharedObjectId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.SharedObjectId)
+		i--
+		dAtA[i] = 0xa
 	}
 	return len(dAtA) - i, nil
 }
@@ -7534,6 +8401,16 @@ func (m *SOCheckpointInner) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	_ = l
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.Sequence != nil {
+		size, err := m.Sequence.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x52
 	}
 	if len(m.Authors) > 0 {
 		for iNdEx := len(m.Authors) - 1; iNdEx >= 0; iNdEx-- {
@@ -8404,6 +9281,18 @@ func (m *SOState) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if len(m.Sequence) > 0 {
+		for iNdEx := len(m.Sequence) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.Sequence[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x32
+		}
+	}
 	if len(m.Invites) > 0 {
 		for iNdEx := len(m.Invites) - 1; iNdEx >= 0; iNdEx-- {
 			size, err := m.Invites[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
@@ -8851,6 +9740,70 @@ func (m *SharedObjectConfig) SizeVT() (n int) {
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
 	n += protobuf_go_lite.SizeStringSlice(1, m.RosterDroppedPeerIds)
+	if m.Sequencer != nil {
+		l = m.Sequencer.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *SOSequencer) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.PeerId)
+	if m.Start != nil {
+		l = m.Start.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *SOSequenceHead) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Height)
+	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.Hash)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *SOSequence) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.Inner)
+	if m.Signature != nil {
+		l = m.Signature.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *SOSequenceInner) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.SharedObjectId)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Height)
+	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.PrevHash)
+	if m.Op != nil {
+		l = m.Op.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.PeerId)
 	n += len(m.unknownFields)
 	return n
 }
@@ -8976,6 +9929,10 @@ func (m *SOCheckpointInner) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.KeyEpoch)
 	for _, e := range m.Authors {
 		l = e.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	if m.Sequence != nil {
+		l = m.Sequence.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
 	n += len(m.unknownFields)
@@ -9253,6 +10210,10 @@ func (m *SOState) SizeVT() (n int) {
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
 	for _, e := range m.Invites {
+		l = e.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	for _, e := range m.Sequence {
 		l = e.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
@@ -9602,10 +10563,98 @@ func (x *SharedObjectConfig) MarshalProtoText() string {
 		}
 		protobuf_go_lite.TextWriteListEnd(&sb)
 	}
+	if x.Sequencer != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "sequencer")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Sequencer)
+	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
 
 func (x *SharedObjectConfig) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *SOSequencer) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "SOSequencer")
+	if x.PeerId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "peer_id")
+		protobuf_go_lite.TextWriteString(&sb, x.PeerId)
+	}
+	if x.Start != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "start")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Start)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *SOSequencer) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *SOSequenceHead) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "SOSequenceHead")
+	if x.Height != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "height")
+		protobuf_go_lite.TextWriteUint(&sb, x.Height)
+	}
+	if len(x.Hash) != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "hash")
+		protobuf_go_lite.TextWriteBytes(&sb, x.Hash)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *SOSequenceHead) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *SOSequence) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "SOSequence")
+	if len(x.Inner) != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "inner")
+		protobuf_go_lite.TextWriteBytes(&sb, x.Inner)
+	}
+	if x.Signature != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "signature")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Signature)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *SOSequence) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *SOSequenceInner) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "SOSequenceInner")
+	if x.SharedObjectId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "shared_object_id")
+		protobuf_go_lite.TextWriteString(&sb, x.SharedObjectId)
+	}
+	if x.Height != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "height")
+		protobuf_go_lite.TextWriteUint(&sb, x.Height)
+	}
+	if len(x.PrevHash) != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "prev_hash")
+		protobuf_go_lite.TextWriteBytes(&sb, x.PrevHash)
+	}
+	if x.Op != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "op")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Op)
+	}
+	if x.PeerId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "peer_id")
+		protobuf_go_lite.TextWriteString(&sb, x.PeerId)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *SOSequenceInner) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -9831,6 +10880,10 @@ func (x *SOCheckpointInner) MarshalProtoText() string {
 			}
 		}
 		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
+	if x.Sequence != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "sequence")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Sequence)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -10240,6 +11293,18 @@ func (x *SOState) MarshalProtoText() string {
 			protobuf_go_lite.TextWriteListSeparator(&sb, i)
 			if v == nil {
 				protobuf_go_lite.TextWriteTextMarshaler(&sb, &SOInvite{})
+			} else {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, v)
+			}
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
+	if len(x.Sequence) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "sequence")
+		for i, v := range x.Sequence {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			if v == nil {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, &SOSequence{})
 			} else {
 				protobuf_go_lite.TextWriteTextMarshaler(&sb, v)
 			}
@@ -11030,6 +12095,310 @@ func (m *SharedObjectConfig) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.RosterDroppedPeerIds = append(m.RosterDroppedPeerIds, v)
+		case 14:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Sequencer", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Sequencer == nil {
+				m.Sequencer = &SOSequencer{}
+			}
+			if err := m.Sequencer.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *SOSequencer) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: SOSequencer: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: SOSequencer: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PeerId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.PeerId = v
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Start", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Start == nil {
+				m.Start = &SOSequenceHead{}
+			}
+			if err := m.Start.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *SOSequenceHead) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: SOSequenceHead: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: SOSequenceHead: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Height", wireType)
+			}
+			m.Height = 0
+			m.Height, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Hash", wireType)
+			}
+			m.Hash, iNdEx, err = protobuf_go_lite.DecodeBytesAppend(m.Hash, dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *SOSequence) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: SOSequence: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: SOSequence: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Inner", wireType)
+			}
+			m.Inner, iNdEx, err = protobuf_go_lite.DecodeBytesAppend(m.Inner, dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Signature", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Signature == nil {
+				m.Signature = &peer.Signature{}
+			}
+			if err := m.Signature.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *SOSequenceInner) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: SOSequenceInner: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: SOSequenceInner: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SharedObjectId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.SharedObjectId = v
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Height", wireType)
+			}
+			m.Height = 0
+			m.Height, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PrevHash", wireType)
+			}
+			m.PrevHash, iNdEx, err = protobuf_go_lite.DecodeBytesAppend(m.PrevHash, dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Op", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Op == nil {
+				m.Op = &SOOperationPosition{}
+			}
+			if err := m.Op.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PeerId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.PeerId = v
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -11647,6 +13016,21 @@ func (m *SOCheckpointInner) UnmarshalVT(dAtA []byte) error {
 			}
 			m.Authors = append(m.Authors, &SOOperationPosition{})
 			if err := m.Authors[len(m.Authors)-1].UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 10:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Sequence", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Sequence == nil {
+				m.Sequence = &SOSequenceHead{}
+			}
+			if err := m.Sequence.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
@@ -12888,6 +14272,19 @@ func (m *SOState) UnmarshalVT(dAtA []byte) error {
 			}
 			m.Invites = append(m.Invites, &SOInvite{})
 			if err := m.Invites[len(m.Invites)-1].UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 6:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Sequence", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Sequence = append(m.Sequence, &SOSequence{})
+			if err := m.Sequence[len(m.Sequence)-1].UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex

@@ -332,6 +332,14 @@ export enum SOConfigChangeType {
    * @generated from enum value: SO_CONFIG_CHANGE_TYPE_SET_ROSTER = 9;
    */
   SO_CONFIG_CHANGE_TYPE_SET_ROSTER = 9,
+
+  /**
+   * SO_CONFIG_CHANGE_TYPE_SET_SEQUENCER chooses between Merge and One order,
+   * or moves One order to another sequencer.
+   *
+   * @generated from enum value: SO_CONFIG_CHANGE_TYPE_SET_SEQUENCER = 10;
+   */
+  SO_CONFIG_CHANGE_TYPE_SET_SEQUENCER = 10,
 }
 
 export const SOConfigChangeType_Enum = /* @__PURE__ */ createEnumType(
@@ -820,6 +828,69 @@ export const SOOperationPosition: MessageType<SOOperationPosition> =
   })
 
 /**
+ * SOSequenceHead names one position of the sequence.
+ *
+ * @generated from message sobject.SOSequenceHead
+ */
+export interface SOSequenceHead {
+  /**
+   * Height is the position, counted from 1.
+   *
+   * @generated from field: uint64 height = 1;
+   */
+  height?: bigint
+  /**
+   * Hash is the identity of the position's signed record.
+   *
+   * @generated from field: bytes hash = 2;
+   */
+  hash?: Uint8Array
+}
+
+export const SOSequenceHead: MessageType<SOSequenceHead> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'sobject.SOSequenceHead',
+    fields: [
+      { no: 1, name: 'height', kind: 'scalar', T: ScalarType.UINT64 },
+      { no: 2, name: 'hash', kind: 'scalar', T: ScalarType.BYTES },
+    ] satisfies readonly PartialFieldInfo[],
+  })
+
+/**
+ * SOSequencer names the device or service that signs the sequence: one
+ * position per operation, each naming the position before it.
+ *
+ * @generated from message sobject.SOSequencer
+ */
+export interface SOSequencer {
+  /**
+   * PeerId is the sequencer's key. Empty is Merge: nothing places operations
+   * after start.
+   *
+   * @generated from field: string peer_id = 1;
+   */
+  peerId?: string
+  /**
+   * Start is the last position of the sequence before this sequencer, as the
+   * owner who appointed it held the sequence. Positions up to start are
+   * authenticated by their hash links to it; the sequencer signs every later
+   * one. Unset when no position came before.
+   *
+   * @generated from field: sobject.SOSequenceHead start = 2;
+   */
+  start?: SOSequenceHead
+}
+
+export const SOSequencer: MessageType<SOSequencer> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'sobject.SOSequencer',
+    fields: [
+      { no: 1, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'start', kind: 'message', T: SOSequenceHead },
+    ] satisfies readonly PartialFieldInfo[],
+  })
+
+/**
  * SharedObjectConfig configures the SharedObject.
  *
  * @generated from message sobject.SharedObjectConfig
@@ -863,6 +934,13 @@ export interface SharedObjectConfig {
    * @generated from field: repeated string roster_dropped_peer_ids = 13;
    */
   rosterDroppedPeerIds?: string[]
+  /**
+   * Sequencer places operations in One order. An unset sequencer or an empty
+   * peer ID is Merge.
+   *
+   * @generated from field: sobject.SOSequencer sequencer = 14;
+   */
+  sequencer?: SOSequencer
 }
 
 export const SharedObjectConfig: MessageType<SharedObjectConfig> =
@@ -902,6 +980,89 @@ export const SharedObjectConfig: MessageType<SharedObjectConfig> =
         T: ScalarType.STRING,
         repeated: true,
       },
+      { no: 14, name: 'sequencer', kind: 'message', T: SOSequencer },
+    ] satisfies readonly PartialFieldInfo[],
+  })
+
+/**
+ * SOSequence is one signed position of the sequence.
+ *
+ * @generated from message sobject.SOSequence
+ */
+export interface SOSequence {
+  /**
+   * Inner is the encoded SOSequenceInner.
+   *
+   * @generated from field: bytes inner = 1;
+   */
+  inner?: Uint8Array
+  /**
+   * Signature is the sequencer's signature of inner.
+   *
+   * @generated from field: peer.Signature signature = 2;
+   */
+  signature?: Signature
+}
+
+export const SOSequence: MessageType<SOSequence> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'sobject.SOSequence',
+    fields: [
+      { no: 1, name: 'inner', kind: 'scalar', T: ScalarType.BYTES },
+      { no: 2, name: 'signature', kind: 'message', T: () => Signature },
+    ] satisfies readonly PartialFieldInfo[],
+  })
+
+/**
+ * SOSequenceInner is the signed body of a position. Its identity is the hash
+ * of this encoded body.
+ *
+ * @generated from message sobject.SOSequenceInner
+ */
+export interface SOSequenceInner {
+  /**
+   * SharedObjectId binds the position to one shared object.
+   *
+   * @generated from field: string shared_object_id = 1;
+   */
+  sharedObjectId?: string
+  /**
+   * Height is one more than the previous position, 1 for the first.
+   *
+   * @generated from field: uint64 height = 2;
+   */
+  height?: bigint
+  /**
+   * PrevHash is the identity of the previous position. Empty at height 1.
+   *
+   * @generated from field: bytes prev_hash = 3;
+   */
+  prevHash?: Uint8Array
+  /**
+   * Op is the operation placed at this position. Its author and nonce let a
+   * member skip an operation its checkpoint covers.
+   *
+   * @generated from field: sobject.SOOperationPosition op = 4;
+   */
+  op?: SOOperationPosition
+  /**
+   * PeerId is the sequencer that signed the position, so positions two
+   * sequencers sign for one operation differ.
+   *
+   * @generated from field: string peer_id = 5;
+   */
+  peerId?: string
+}
+
+export const SOSequenceInner: MessageType<SOSequenceInner> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'sobject.SOSequenceInner',
+    fields: [
+      { no: 1, name: 'shared_object_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'height', kind: 'scalar', T: ScalarType.UINT64 },
+      { no: 3, name: 'prev_hash', kind: 'scalar', T: ScalarType.BYTES },
+      { no: 4, name: 'op', kind: 'message', T: SOOperationPosition },
+      { no: 5, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
   })
 
@@ -1205,6 +1366,13 @@ export interface SOCheckpointInner {
    * @generated from field: repeated sobject.SOOperationPosition authors = 9;
    */
   authors?: SOOperationPosition[]
+  /**
+   * Sequence is the last position the checkpoint covers. Unset when it covers
+   * none.
+   *
+   * @generated from field: sobject.SOSequenceHead sequence = 10;
+   */
+  sequence?: SOSequenceHead
 }
 
 export const SOCheckpointInner: MessageType<SOCheckpointInner> =
@@ -1230,6 +1398,7 @@ export const SOCheckpointInner: MessageType<SOCheckpointInner> =
         T: SOOperationPosition,
         repeated: true,
       },
+      { no: 10, name: 'sequence', kind: 'message', T: SOSequenceHead },
     ] satisfies readonly PartialFieldInfo[],
   })
 
@@ -1953,6 +2122,13 @@ export interface SOState {
    * @generated from field: repeated sobject.SOInvite invites = 5;
    */
   invites?: SOInvite[]
+  /**
+   * Sequence are the positions above the checkpoint, sorted by height, then
+   * by hash.
+   *
+   * @generated from field: repeated sobject.SOSequence sequence = 6;
+   */
+  sequence?: SOSequence[]
 }
 
 export const SOState: MessageType<SOState> = /* @__PURE__ */ createMessageType({
@@ -1969,6 +2145,7 @@ export const SOState: MessageType<SOState> = /* @__PURE__ */ createMessageType({
     },
     { no: 4, name: 'ops', kind: 'message', T: SOOperation, repeated: true },
     { no: 5, name: 'invites', kind: 'message', T: SOInvite, repeated: true },
+    { no: 6, name: 'sequence', kind: 'message', T: SOSequence, repeated: true },
   ] satisfies readonly PartialFieldInfo[],
 })
 

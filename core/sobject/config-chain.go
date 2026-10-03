@@ -170,7 +170,8 @@ func VerifyConfigChainSuffix(sharedObjectID string, current, candidate *SharedOb
 			SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_REVOKE_INVITE,
 			SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_INCREMENT_INVITE_USES,
 			SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_TRANSFER_OWNERSHIP,
-			SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_SET_ROSTER:
+			SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_SET_ROSTER,
+			SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_SET_SEQUENCER:
 		default:
 			return errors.Errorf("entry[%d]: unsupported peer config change %s", i, entry.GetChangeType())
 		}

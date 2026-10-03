@@ -247,8 +247,8 @@ func (s *SOHost) ImportPeerSnapshot(
 		return ErrParticipantRevoked
 	}
 
-	// Merge the candidate's checkpoint, grants and operations under the
-	// verified config. Invitations stay locally administered.
+	// Merge the candidate's checkpoint, grants, operations and sequence under
+	// the verified config. Invitations stay locally administered.
 	next := previous.CloneVT()
 	next.Config = candidate.GetConfig().CloneVT()
 	if checkpoint := candidate.GetCheckpoint(); checkpoint != nil {
@@ -262,6 +262,11 @@ func (s *SOHost) ImportPeerSnapshot(
 	for _, op := range candidate.GetOps() {
 		if _, err := next.AddOperation(s.sharedObjectID, op); err != nil {
 			return errors.Wrap(err, "peer snapshot operation")
+		}
+	}
+	for _, record := range candidate.GetSequence() {
+		if _, err := next.AddSequence(s.sharedObjectID, record); err != nil {
+			return errors.Wrap(err, "peer snapshot sequence")
 		}
 	}
 	if err := next.Validate(s.sharedObjectID); err != nil {

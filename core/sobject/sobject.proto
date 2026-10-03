@@ -227,6 +227,63 @@ message SharedObjectConfig {
   // Every other writer is on the roster: the stable point waits until each
   // has built on an operation before history below it is trimmed.
   repeated string roster_dropped_peer_ids = 13;
+
+  // Sequencer places operations in One order. An unset sequencer or an empty
+  // peer ID is Merge.
+  SOSequencer sequencer = 14;
+}
+
+// SOSequencer names the device or service that signs the sequence: one
+// position per operation, each naming the position before it.
+message SOSequencer {
+  // PeerId is the sequencer's key. Empty is Merge: nothing places operations
+  // after start.
+  string peer_id = 1;
+
+  // Start is the last position of the sequence before this sequencer, as the
+  // owner who appointed it held the sequence. Positions up to start are
+  // authenticated by their hash links to it; the sequencer signs every later
+  // one. Unset when no position came before.
+  SOSequenceHead start = 2;
+}
+
+// SOSequenceHead names one position of the sequence.
+message SOSequenceHead {
+  // Height is the position, counted from 1.
+  uint64 height = 1;
+
+  // Hash is the identity of the position's signed record.
+  bytes hash = 2;
+}
+
+// SOSequence is one signed position of the sequence.
+message SOSequence {
+  // Inner is the encoded SOSequenceInner.
+  bytes inner = 1;
+
+  // Signature is the sequencer's signature of inner.
+  .peer.Signature signature = 2;
+}
+
+// SOSequenceInner is the signed body of a position. Its identity is the hash
+// of this encoded body.
+message SOSequenceInner {
+  // SharedObjectId binds the position to one shared object.
+  string shared_object_id = 1;
+
+  // Height is one more than the previous position, 1 for the first.
+  uint64 height = 2;
+
+  // PrevHash is the identity of the previous position. Empty at height 1.
+  bytes prev_hash = 3;
+
+  // Op is the operation placed at this position. Its author and nonce let a
+  // member skip an operation its checkpoint covers.
+  SOOperationPosition op = 4;
+
+  // PeerId is the sequencer that signed the position, so positions two
+  // sequencers sign for one operation differ.
+  string peer_id = 5;
 }
 
 // SOLeaveRequest relinquishes only the identities that sign this exact object and configuration head.
@@ -269,6 +326,9 @@ enum SOConfigChangeType {
   // SO_CONFIG_CHANGE_TYPE_SET_ROSTER changes which writers the trimming roster
   // drops.
   SO_CONFIG_CHANGE_TYPE_SET_ROSTER = 9;
+  // SO_CONFIG_CHANGE_TYPE_SET_SEQUENCER chooses between Merge and One order,
+  // or moves One order to another sequencer.
+  SO_CONFIG_CHANGE_TYPE_SET_SEQUENCER = 10;
 }
 
 // SORevocationReason describes why a participant was removed.
@@ -387,6 +447,10 @@ message SOCheckpointInner {
   // Authors are the last covered operation of each author, sorted by peer_id.
   // An operation at or below its author's entry is covered. Empty at genesis.
   repeated SOOperationPosition authors = 9;
+
+  // Sequence is the last position the checkpoint covers. Unset when it covers
+  // none.
+  SOSequenceHead sequence = 10;
 }
 
 // SOOperationPosition is an operation at one position of its author's chain.
@@ -604,6 +668,10 @@ message SOState {
   // Invites is the list of pending invites on this shared object.
   // Stored in plaintext so both providers and cloud can verify invite validity.
   repeated SOInvite invites = 5;
+
+  // Sequence are the positions above the checkpoint, sorted by height, then
+  // by hash.
+  repeated SOSequence sequence = 6;
 }
 
 // SOKeyEpoch is one encryption key of a shared object. A key rotation starts

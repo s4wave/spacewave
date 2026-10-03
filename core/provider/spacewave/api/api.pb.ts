@@ -24,6 +24,7 @@ import {
   SOJoinResponse,
   SOKeyEpoch,
   SOOperation,
+  SOSequence,
   SOState,
 } from '../../../sobject/sobject.pb.js'
 import { Timestamp } from '@aptre/protobuf-es-lite/google/protobuf/timestamp'
@@ -1033,6 +1034,35 @@ export const PostOpsRequest: MessageType<PostOpsRequest> =
         name: 'operations',
         kind: 'message',
         T: () => SOOperation,
+        repeated: true,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+  })
+
+/**
+ * SOSequenceBatch is the change-log payload of positions the cloud sequencer
+ * signed in one commit.
+ *
+ * @generated from message provider.spacewave.api.SOSequenceBatch
+ */
+export interface SOSequenceBatch {
+  /**
+   * Sequence holds the positions in height order.
+   *
+   * @generated from field: repeated sobject.SOSequence sequence = 1;
+   */
+  sequence?: SOSequence[]
+}
+
+export const SOSequenceBatch: MessageType<SOSequenceBatch> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'provider.spacewave.api.SOSequenceBatch',
+    fields: [
+      {
+        no: 1,
+        name: 'sequence',
+        kind: 'message',
+        T: () => SOSequence,
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],

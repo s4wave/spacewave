@@ -2,7 +2,11 @@ import { sha256 } from '@noble/hashes/sha2.js'
 import { concatBytes } from '@noble/hashes/utils.js'
 
 import { verifySignature } from '../../net/peer/signature.js'
-import { MAX_SO_PARTICIPANTS, validateSOAuthorHeads } from './config-chain.js'
+import {
+  MAX_SO_PARTICIPANTS,
+  validateSOAuthorHeads,
+  validateSOSequenceHead,
+} from './config-chain.js'
 import { SOBJECT_BASE_CRYPTO_CONTEXT } from './operation-log.js'
 import {
   SOCheckpoint,
@@ -65,7 +69,7 @@ export function validateSOCheckpointInner(inner: SOCheckpointInner): void {
   const authors = inner.authors ?? []
   const prev = inner.prevCheckpointHash ?? new Uint8Array()
   if ((inner.height ?? 0n) === 0n) {
-    if (prev.length !== 0 || authors.length !== 0) {
+    if (prev.length !== 0 || authors.length !== 0 || inner.sequence) {
       throw new Error('genesis checkpoint must not name previous operations')
     }
     return
@@ -73,7 +77,7 @@ export function validateSOCheckpointInner(inner: SOCheckpointInner): void {
   if (prev.length !== 32) {
     throw new Error('checkpoint prev_checkpoint_hash must be a 32-byte hash')
   }
-
+  validateSOSequenceHead('checkpoint sequence', inner.sequence)
   validateSOAuthorHeads('authors', authors)
 }
 

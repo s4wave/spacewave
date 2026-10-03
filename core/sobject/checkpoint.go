@@ -99,7 +99,7 @@ func (s *SOState) BuildNextCheckpoint(sharedObjectID string, privKey crypto.Priv
 	for key := range set.ops {
 		held = append(held, []byte(key))
 	}
-	return s.buildCheckpoint(sharedObjectID, privKey, set.cover(held), stateDataEnc)
+	return s.buildCheckpoint(sharedObjectID, privKey, set.cover(held), set.SequenceHead(held), stateDataEnc)
 }
 
 // UnmarshalInner decodes and checks the checkpoint body.
@@ -132,7 +132,7 @@ func (i *SOCheckpointInner) Validate() error {
 
 	// Genesis starts the chain; every later checkpoint names its predecessor.
 	if i.GetHeight() == 0 {
-		if len(i.GetPrevCheckpointHash()) != 0 || len(i.GetAuthors()) != 0 {
+		if len(i.GetPrevCheckpointHash()) != 0 || len(i.GetAuthors()) != 0 || i.GetSequence() != nil {
 			return errors.New("genesis checkpoint must not name previous operations")
 		}
 		return nil
@@ -140,18 +140,29 @@ func (i *SOCheckpointInner) Validate() error {
 	if len(i.GetPrevCheckpointHash()) != sha256.Size {
 		return errors.New("checkpoint prev_checkpoint_hash must be a 32-byte hash")
 	}
+	if err := validateSequenceHead("checkpoint sequence", i.GetSequence()); err != nil {
+		return err
+	}
 	return validateAuthorHeads("authors", i.GetAuthors())
+}
+
+// validatePosition checks that pos names a real operation.
+func validatePosition(pos *SOOperationPosition) error {
+	if _, err := parsePeerIDField(pos.GetPeerId()); err != nil {
+		return err
+	}
+	if pos.GetNonce() == 0 || len(pos.GetOpHash()) != sha256.Size {
+		return errors.New("position must name an operation")
+	}
+	return nil
 }
 
 // validateAuthorHeads checks that each author appears once, in peer ID order,
 // at a real operation. field names the list in errors.
 func validateAuthorHeads(field string, authors []*SOOperationPosition) error {
 	for j, author := range authors {
-		if _, err := parsePeerIDField(author.GetPeerId()); err != nil {
+		if err := validatePosition(author); err != nil {
 			return errors.Wrapf(err, "%s[%d]", field, j)
-		}
-		if author.GetNonce() == 0 || len(author.GetOpHash()) != sha256.Size {
-			return errors.Errorf("%s[%d] must name an operation", field, j)
 		}
 		if j > 0 && strings.Compare(authors[j-1].GetPeerId(), author.GetPeerId()) >= 0 {
 			return errors.Errorf("%s must be strictly sorted by peer_id", field)

@@ -34,6 +34,7 @@ type operationLogVectors struct {
 	ConfigChains   []configChainVector
 	ConfigChanges  []configChangeVector
 	Checkpoints    []checkpointVector
+	Sequences      []sequenceVector
 }
 
 // operationVector is one operation and its verification under the object.
@@ -92,6 +93,16 @@ type checkpointVector struct {
 	Authority bool
 }
 
+// sequenceVector is one sequence position verified under the object.
+type sequenceVector struct {
+	Name     string
+	Sequence []byte
+	// Hash is the position hash in hex, empty when verification fails.
+	Hash string
+	// Signer is the verified signer, empty when verification fails.
+	Signer string
+}
+
 // marshalJSON encodes the vectors as the JSON the TypeScript tests import.
 // Byte fields are standard base64.
 func (v *operationLogVectors) marshalJSON() []byte {
@@ -131,8 +142,14 @@ func (v *operationLogVectors) marshalJSON() []byte {
 		return jsonObject(&a, "name", a.NewString(c.Name), "checkpoint", jsonBytes(&a, c.Checkpoint), "config", jsonBytes(&a, c.Config), "hash", a.NewString(c.Hash), "authority", authority)
 	})
 
+	// Encode the sequence cases.
+	sequences := jsonArray(&a, len(v.Sequences), func(i int) *fastjson.Value {
+		c := v.Sequences[i]
+		return jsonObject(&a, "name", a.NewString(c.Name), "sequence", jsonBytes(&a, c.Sequence), "hash", a.NewString(c.Hash), "signer", a.NewString(c.Signer))
+	})
+
 	// Join them under the object ID.
-	out := jsonObject(&a, "sharedObjectId", a.NewString(v.SharedObjectID), "operations", ops, "operationSets", sets, "configChains", chains, "configChanges", changes, "checkpoints", checkpoints)
+	out := jsonObject(&a, "sharedObjectId", a.NewString(v.SharedObjectID), "operations", ops, "operationSets", sets, "configChains", chains, "configChanges", changes, "checkpoints", checkpoints, "sequences", sequences)
 	return append(out.MarshalTo(nil), '\n')
 }
 
@@ -225,6 +242,7 @@ func buildOperationLogVectors(t *testing.T) *operationLogVectors {
 	// Build the control-record and checkpoint cases.
 	buildConfigVectors(t, vectors)
 	vectors.Checkpoints = buildCheckpointVectors(t)
+	vectors.Sequences = buildSequenceVectors(t)
 	return vectors
 }
 
@@ -277,6 +295,14 @@ func buildCheckpointVectors(t *testing.T) []checkpointVector {
 	forged := sign(genesisInner, privA)
 	forged.Inner = mustMarshalVT(t, nextInner)
 
+	// Derive the sequence head variants.
+	sequenced := nextInner.CloneVT()
+	sequenced.Sequence = &SOSequenceHead{Height: 2, Hash: bytes.Repeat([]byte{0x5e}, 32)}
+	sequenceNoHash := nextInner.CloneVT()
+	sequenceNoHash.Sequence = &SOSequenceHead{Height: 2}
+	genesisWithSequence := genesisInner.CloneVT()
+	genesisWithSequence.Sequence = &SOSequenceHead{}
+
 	// Record each case with its Go result.
 	cases := []struct {
 		name       string
@@ -292,6 +318,9 @@ func buildCheckpointVectors(t *testing.T) []checkpointVector {
 		{"bound-to-other-object", sign(otherObject, privA)},
 		{"authors-unsorted", sign(unsorted, privA)},
 		{"genesis-names-authors", sign(genesisWithAuthors, privA)},
+		{"next-with-sequence-head", sign(sequenced, privA)},
+		{"sequence-head-without-hash", sign(sequenceNoHash, privA)},
+		{"genesis-names-sequence", sign(genesisWithSequence, privA)},
 	}
 	out := make([]checkpointVector, 0, len(cases))
 	for _, c := range cases {
@@ -513,6 +542,15 @@ func buildConfigVectors(t *testing.T, vectors *operationLogVectors) {
 	otherObject := buildVectorChange(t, "other-object", cur2, withParticipants(cur2, cfg0.Participants[0]),
 		SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_REMOVE_PARTICIPANT, privA)
 
+	// A appoints sequencer S, once validly and once with a start lacking its hash.
+	_, peerS := vectorKey(t, "sequencer-s")
+	appointed := cur2.CloneVT()
+	appointed.Sequencer = &SOSequencer{PeerId: peerS}
+	appoint := buildVectorChange(t, vectorObjectID, cur2, appointed, SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_SET_SEQUENCER, privA)
+	badStart := appointed.CloneVT()
+	badStart.Sequencer.Start = &SOSequenceHead{Height: 3}
+	appointBadStart := buildVectorChange(t, vectorObjectID, cur2, badStart, SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_SET_SEQUENCER, privA)
+
 	// Record each transition with its Go result.
 	changes := []struct {
 		name    string
@@ -526,6 +564,8 @@ func buildConfigVectors(t *testing.T, vectors *operationLogVectors) {
 		{"self-enroll-role-escalation", "unauthorized", cur2, escalate},
 		{"writer-removes-participant", "unauthorized", cur2, byWriter},
 		{"record-for-other-object", "invalid", cur2, otherObject},
+		{"owner-appoints-sequencer", "", cur2, appoint},
+		{"sequencer-start-without-hash", "invalid", cur2, appointBadStart},
 	}
 	for _, c := range changes {
 		v := configChangeVector{Name: c.name, Kind: c.kind, Current: mustMarshalVT(t, c.current), Entry: mustMarshalVT(t, c.entry)}
@@ -580,4 +620,58 @@ func mustHashConfigChange(t *testing.T, entry *SOConfigChange) []byte {
 		t.Fatal(err)
 	}
 	return h
+}
+
+// buildSequenceVectors returns the sequence position cases, each checked in Go.
+func buildSequenceVectors(t *testing.T) []sequenceVector {
+	// S places two operations of writer B.
+	t.Helper()
+	privS, peerS := vectorKey(t, "sequencer-s")
+	privB, peerB := vectorKey(t, "member-b")
+	first := &SOOperationPosition{PeerId: peerB, Nonce: 1, OpHash: bytes.Repeat([]byte{0xb1}, 32)}
+	second := &SOOperationPosition{PeerId: peerB, Nonce: 2, OpHash: bytes.Repeat([]byte{0xb2}, 32)}
+	build := func(objectID string, priv crypto.PrivKey, prev *SOSequenceHead, op *SOOperationPosition) *SOSequence {
+		record, err := BuildSOSequence(objectID, priv, prev, op)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return record
+	}
+	one := build(vectorObjectID, privS, nil, first)
+	two := build(vectorObjectID, privS, &SOSequenceHead{Height: 1, Hash: one.Hash()}, second)
+
+	// Derive the invalid variants.
+	forged := one.CloneVT()
+	forged.Inner = two.GetInner()
+	byB := build(vectorObjectID, privB, nil, first)
+	byB.Inner = one.GetInner()
+	noPrev := &SOSequenceInner{SharedObjectId: vectorObjectID, Height: 2, Op: second, PeerId: peerS}
+	noPrevData := mustMarshalVT(t, noPrev)
+	sig, err := peer.NewSignature(SOSequenceSignatureContext, privS, hash.RecommendedHashType, noPrevData, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Record each case with its Go result.
+	cases := []struct {
+		name   string
+		record *SOSequence
+	}{
+		{"first-position", one},
+		{"second-position", two},
+		{"signature-over-other-body", forged},
+		{"signer-is-not-named-sequencer", byB},
+		{"later-position-without-prev", &SOSequence{Inner: noPrevData, Signature: sig}},
+		{"bound-to-other-object", build("other-object", privS, nil, first)},
+	}
+	out := make([]sequenceVector, 0, len(cases))
+	for _, c := range cases {
+		v := sequenceVector{Name: c.name, Sequence: mustMarshalVT(t, c.record)}
+		if _, signer, err := c.record.Verify(vectorObjectID); err == nil {
+			v.Hash = hex.EncodeToString(c.record.Hash())
+			v.Signer = signer
+		}
+		out = append(out, v)
+	}
+	return out
 }

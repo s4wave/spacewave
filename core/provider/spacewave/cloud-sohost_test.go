@@ -453,6 +453,55 @@ func TestApplyChangeLogEntryCheckpointCoversOps(t *testing.T) {
 	}
 }
 
+// TestApplyChangeLogEntrySequence checks that a sequence entry adds the
+// sequencer's positions once, so the replica places the operation as the
+// sequencer did.
+func TestApplyChangeLogEntrySequence(t *testing.T) {
+	// The owner appoints sequencer S.
+	state, priv := newTestGenesisState(t)
+	sequencer, err := peer.NewPeer(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	state.Config.Sequencer = &sobject.SOSequencer{PeerId: sequencer.GetPeerID().String()}
+	replica := state.CloneVT()
+
+	// The owner writes an operation, and S places it.
+	op := writeTestOperation(t, state, priv)
+	sequencerKey, err := sequencer.GetPrivKey(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	records, err := state.SequenceOperations(testSharedObjectID, sequencerKey)
+	if err != nil || len(records) != 1 {
+		t.Fatalf("sequencer placed %d operations, err %v", len(records), err)
+	}
+	data, err := (&api.SOSequenceBatch{Sequence: records}).MarshalVT()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// The replica holds the operation and the position, once when replayed.
+	if _, err := replica.AddOperation(testSharedObjectID, op); err != nil {
+		t.Fatal(err)
+	}
+	for range 2 {
+		if err := applyChangeLogEntry(testSharedObjectID, replica, &api.SOStateDeltaEntry{ChangeType: "sequence", ChangeData: data}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if len(replica.GetSequence()) != 1 || !replica.GetSequence()[0].EqualVT(records[0]) {
+		t.Fatalf("replica holds %d positions; want the sequencer's one", len(replica.GetSequence()))
+	}
+	set, err := replica.OperationSet(testSharedObjectID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := set.StablePoint(nil); len(got) != 1 || !bytes.Equal(got[0], op.Hash()) {
+		t.Fatal("replica did not place the sequenced operation")
+	}
+}
+
 // TestVerifyPulledStateIgnoresChangeLogSeqno checks that the change log
 // sequence number does not take part in rollback checks of pulled state.
 func TestVerifyPulledStateIgnoresChangeLogSeqno(t *testing.T) {

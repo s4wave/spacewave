@@ -245,6 +245,8 @@ type SOOperationSet struct {
 	byAuthorSeq    map[soAuthorSeq][]string
 	// authors holds the last covered operation of each author.
 	authors map[string]*SOOperationPosition
+	// sequence is the resolved sequence above the checkpoint.
+	sequence soSequence
 }
 
 // soAuthorSeq identifies one position in one author's chain.
@@ -266,6 +268,7 @@ type SOEquivocation struct {
 // NewSOOperationSet returns an empty operation set for one shared object above
 // checkpoint, which may be nil before the first checkpoint.
 func NewSOOperationSet(sharedObjectID string, checkpoint *SOCheckpointInner) *SOOperationSet {
+	// Index the authors the checkpoint covers.
 	s := &SOOperationSet{
 		sharedObjectID: sharedObjectID,
 		ops:            make(map[string]*SOOperationInner),
@@ -275,7 +278,20 @@ func NewSOOperationSet(sharedObjectID string, checkpoint *SOCheckpointInner) *SO
 	for _, author := range checkpoint.GetAuthors() {
 		s.authors[author.GetPeerId()] = author
 	}
+
+	// Start the sequence at the checkpoint's head.
+	s.sequence = soSequence{base: checkpoint.GetSequence()}
+	if s.sequence.base == nil {
+		s.sequence.base = &SOSequenceHead{}
+	}
 	return s
+}
+
+// setSequence resolves the sequence above the checkpoint from records under
+// sequencer. Order places the sequenced operations first, and StablePoint
+// stops at them while the sequence is open.
+func (s *SOOperationSet) setSequence(sequencer *SOSequencer, records []*SOSequence) {
+	s.sequence = resolveSequence(s.sharedObjectID, s.sequence.base, sequencer, records)
 }
 
 // Covers reports whether the checkpoint below the set covers the operation
@@ -416,28 +432,70 @@ func (s *SOOperationSet) Ancestors(h []byte) map[string]struct{} {
 }
 
 // Order returns the replay order of the operations whose ancestry the set or
-// its checkpoint holds: a topological order of the operation DAG with
-// concurrent operations in byte order of their hashes. Every member holding the
-// same operations above the same checkpoint computes the same order. A link
-// to a position the checkpoint covers is satisfied, even when the set holds an
-// operation with its hash, so placement never depends on which other
-// operations have arrived. An operation naming one the set lacks and the
-// checkpoint does not cover waits, with its descendants, until the missing
-// operation arrives. An operation that arrives after the checkpoint covered
-// what it names, such as an edit from a device off the trimming roster, is
-// placed above the checkpoint.
+// its checkpoint holds. The sequenced operations come first, in sequence
+// order. The rest follow in a topological order of the operation DAG with
+// concurrent operations in byte order of their hashes. Every member holding
+// the same operations and positions above the same checkpoint computes the
+// same order. A link to a position the checkpoint covers is satisfied, even
+// when the set holds an operation with its hash, so placement never depends on
+// which other operations have arrived. An operation naming one the set lacks
+// and the checkpoint does not cover waits, with its descendants, until the
+// missing operation arrives. An operation that arrives after the checkpoint
+// covered what it names, such as an edit from a device off the trimming
+// roster, is placed above the checkpoint.
 func (s *SOOperationSet) Order() [][]byte {
-	// Count the links of every operation and index its children.
+	return s.order().order
+}
+
+// soOrder is the replay order with the sequence's share of it.
+type soOrder struct {
+	// order is the replay order.
+	order [][]byte
+	// sequenced is the length of the prefix the sequence placed.
+	sequenced int
+	// tail is the last position the prefix consumed, or the base.
+	tail *SOSequenceHead
+	// complete is set when the prefix consumed every resolved position.
+	complete bool
+}
+
+// order computes the replay order and the sequenced prefix.
+func (s *SOOperationSet) order() soOrder {
+	// Place the sequenced operations in sequence order, skipping covered and
+	// repeated ones, until one is missing or names an unplaced operation.
+	out := soOrder{order: make([][]byte, 0, len(s.ops)), tail: s.sequence.base, complete: true}
+	placed := make(map[string]struct{}, len(s.ops))
+	for _, pos := range s.sequence.positions {
+		key := string(pos.op.GetOpHash())
+		_, repeated := placed[key]
+		if !repeated && !s.Covers(pos.op.GetPeerId(), pos.op.GetNonce()) {
+			inner := s.ops[key]
+			if inner == nil || !s.linksPlaced(inner, placed) {
+				out.complete = false
+				break
+			}
+			placed[key] = struct{}{}
+			out.order = append(out.order, []byte(key))
+		}
+		out.tail = pos.head
+	}
+	out.sequenced = len(out.order)
+
+	// Count the unplaced links of every other operation and index its
+	// children.
 	pending := make(map[string]int, len(s.ops))
 	children := make(map[string][]string, len(s.ops))
 	var ready []string
 	for key, inner := range s.ops {
+		if _, ok := placed[key]; ok {
+			continue
+		}
 		n := 0
 		for _, link := range links(inner) {
-			if s.Covers(link.GetPeerId(), link.GetNonce()) {
+			h := string(link.GetOpHash())
+			if _, ok := placed[h]; ok || s.Covers(link.GetPeerId(), link.GetNonce()) {
 				continue
 			}
-			h := string(link.GetOpHash())
 			children[h] = append(children[h], key)
 			n++
 		}
@@ -450,11 +508,10 @@ func (s *SOOperationSet) Order() [][]byte {
 
 	// Place the lowest ready operation and release its children. A missing
 	// link is never placed, so its descendants stay pending.
-	order := make([][]byte, 0, len(s.ops))
 	for len(ready) != 0 {
 		key := ready[0]
 		ready = ready[1:]
-		order = append(order, []byte(key))
+		out.order = append(out.order, []byte(key))
 		for _, child := range children[key] {
 			if pending[child]--; pending[child] == 0 {
 				i, _ := slices.BinarySearch(ready, child)
@@ -462,7 +519,39 @@ func (s *SOOperationSet) Order() [][]byte {
 			}
 		}
 	}
-	return order
+	return out
+}
+
+// linksPlaced reports whether every link of inner is placed or covered.
+func (s *SOOperationSet) linksPlaced(inner *SOOperationInner, placed map[string]struct{}) bool {
+	for _, link := range links(inner) {
+		if _, ok := placed[string(link.GetOpHash())]; !ok && !s.Covers(link.GetPeerId(), link.GetNonce()) {
+			return false
+		}
+	}
+	return true
+}
+
+// SequenceHead returns the last position a checkpoint covering prefix, a
+// prefix of Order, covers: the last position before the first one whose
+// operation is neither covered nor in prefix. It is the checkpoint's position
+// when the prefix holds no sequenced operation.
+func (s *SOOperationSet) SequenceHead(prefix [][]byte) *SOSequenceHead {
+	// Mark the prefix.
+	in := make(map[string]struct{}, len(prefix))
+	for _, h := range prefix {
+		in[string(h)] = struct{}{}
+	}
+
+	// Advance through the positions whose operations the checkpoint covers.
+	head := s.sequence.base
+	for _, pos := range s.sequence.positions {
+		if _, ok := in[string(pos.op.GetOpHash())]; !ok && !s.Covers(pos.op.GetPeerId(), pos.op.GetNonce()) {
+			break
+		}
+		head = pos.head
+	}
+	return head
 }
 
 // Equivocated reports whether the author of the operation with hash h signed

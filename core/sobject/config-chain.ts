@@ -9,6 +9,8 @@ import {
   SOParticipantConfig,
   type SOOperationPosition,
   SOParticipantRole,
+  type SOSequenceHead,
+  type SOSequencer,
   type SharedObjectConfig,
 } from './sobject.pb.js'
 
@@ -55,6 +57,30 @@ export function validateSOConfig(cfg: SharedObjectConfig): void {
   // Pinned operations of removed authors outlive the final departure too.
   try {
     validateSOAuthorHeads('removed_authors', cfg.removedAuthors ?? [])
+  } catch (err) {
+    throw new SOConfigChangeError('invalid', (err as Error).message)
+  }
+
+  // The roster drops each peer once, in order.
+  const dropped = cfg.rosterDroppedPeerIds ?? []
+  for (const [i, peerID] of dropped.entries()) {
+    if (!extractPublicKeyFromPeerID(peerID)) {
+      throw new SOConfigChangeError(
+        'invalid',
+        `roster_dropped_peer_ids[${i}]: invalid peer id`,
+      )
+    }
+    if (i > 0 && dropped[i - 1] >= peerID) {
+      throw new SOConfigChangeError(
+        'invalid',
+        'roster_dropped_peer_ids must be strictly sorted',
+      )
+    }
+  }
+
+  // An appointed sequencer names a key and a real start.
+  try {
+    validateSOSequencer(cfg.sequencer)
   } catch (err) {
     throw new SOConfigChangeError('invalid', (err as Error).message)
   }
@@ -117,20 +143,56 @@ export function validateSOAuthorHeads(
   field: string,
   authors: readonly SOOperationPosition[],
 ): void {
-  let lastPeer = ''
   for (const [i, author] of authors.entries()) {
-    const peerId = author.peerId ?? ''
-    if (!extractPublicKeyFromPeerID(peerId)) {
-      throw new Error(`${field}[${i}]: peer_id is invalid`)
+    try {
+      validateSOPosition(author)
+    } catch (err) {
+      throw new Error(`${field}[${i}]: ${(err as Error).message}`, {
+        cause: err,
+      })
     }
-    if ((author.nonce ?? 0n) === 0n || (author.opHash?.length ?? 0) !== 32) {
-      throw new Error(`${field}[${i}] must name an operation`)
-    }
-    if (i > 0 && peerId <= lastPeer) {
+    if (i > 0 && (authors[i - 1].peerId ?? '') >= (author.peerId ?? '')) {
       throw new Error(`${field} must be strictly sorted by peer_id`)
     }
-    lastPeer = peerId
   }
+}
+
+// validateSOPosition checks that pos names a real operation, matching Go
+// validatePosition. It throws on violation.
+export function validateSOPosition(pos: SOOperationPosition | undefined): void {
+  if (!extractPublicKeyFromPeerID(pos?.peerId ?? '')) {
+    throw new Error('position peer_id is invalid')
+  }
+  if ((pos?.nonce ?? 0n) === 0n || (pos?.opHash?.length ?? 0) !== 32) {
+    throw new Error('position must name an operation')
+  }
+}
+
+// validateSOSequenceHead checks that head is unset, height 0 with no hash, or
+// a real position, matching Go validateSequenceHead. field names the head in
+// errors.
+export function validateSOSequenceHead(
+  field: string,
+  head: SOSequenceHead | undefined,
+): void {
+  const height = head?.height ?? 0n
+  const length = head?.hash?.length ?? 0
+  if (height === 0n && length !== 0) {
+    throw new Error(`${field} at height 0 must not name a position`)
+  }
+  if (height !== 0n && length !== 32) {
+    throw new Error(`${field} hash must be a 32-byte hash`)
+  }
+}
+
+// validateSOSequencer checks the sequencer's structure, matching Go
+// SOSequencer.Validate. An unset sequencer is Merge.
+export function validateSOSequencer(sequencer: SOSequencer | undefined): void {
+  const peerId = sequencer?.peerId ?? ''
+  if (peerId && !extractPublicKeyFromPeerID(peerId)) {
+    throw new Error('sequencer peer_id is invalid')
+  }
+  validateSOSequenceHead('sequencer start', sequencer?.start)
 }
 
 // verifySOConfigChain verifies a control chain from genesis and returns the

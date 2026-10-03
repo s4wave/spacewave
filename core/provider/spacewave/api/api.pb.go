@@ -992,6 +992,27 @@ func (x *PostOpsRequest) GetOperations() []*sobject.SOOperation {
 	return nil
 }
 
+// SOSequenceBatch is the change-log payload of positions the cloud sequencer
+// signed in one commit.
+type SOSequenceBatch struct {
+	unknownFields []byte
+	// Sequence holds the positions in height order.
+	Sequence []*sobject.SOSequence `protobuf:"bytes,1,rep,name=sequence,proto3" json:"sequence,omitempty"`
+}
+
+func (x *SOSequenceBatch) Reset() {
+	*x = SOSequenceBatch{}
+}
+
+func (*SOSequenceBatch) ProtoMessage() {}
+
+func (x *SOSequenceBatch) GetSequence() []*sobject.SOSequence {
+	if x != nil {
+		return x.Sequence
+	}
+	return nil
+}
+
 // PostCheckpointRequest is the binary payload for POST /sobject/:id/checkpoint.
 type PostCheckpointRequest struct {
 	unknownFields []byte
@@ -10670,6 +10691,22 @@ func (m *PostOpsRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
+func (m *SOSequenceBatch) CloneVT() *SOSequenceBatch {
+	if m == nil {
+		return (*SOSequenceBatch)(nil)
+	}
+	r := new(SOSequenceBatch)
+	r.Sequence = protobuf_go_lite.CloneVTSlice(m.Sequence)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *SOSequenceBatch) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
 func (m *PostCheckpointRequest) CloneVT() *PostCheckpointRequest {
 	if m == nil {
 		return (*PostCheckpointRequest)(nil)
@@ -15959,6 +15996,26 @@ func (this *PostOpsRequest) EqualVT(that *PostOpsRequest) bool {
 
 func (this *PostOpsRequest) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*PostOpsRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *SOSequenceBatch) EqualVT(that *SOSequenceBatch) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTSliceImplicit(this.Sequence, that.Sequence, func() *sobject.SOSequence { return &sobject.SOSequence{} }) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *SOSequenceBatch) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*SOSequenceBatch)
 	if !ok {
 		return false
 	}
@@ -24011,6 +24068,69 @@ func (x *PostOpsRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
 
 // UnmarshalJSON unmarshals the PostOpsRequest from JSON.
 func (x *PostOpsRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the SOSequenceBatch message to JSON.
+func (x *SOSequenceBatch) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if len(x.Sequence) > 0 || s.HasField("sequence") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("sequence")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.Sequence {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("sequence"))
+		}
+		s.WriteArrayEnd()
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the SOSequenceBatch to JSON.
+func (x *SOSequenceBatch) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the SOSequenceBatch message from JSON.
+func (x *SOSequenceBatch) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "sequence":
+			s.AddField("sequence")
+			if s.ReadNil() {
+				x.Sequence = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.Sequence = append(x.Sequence, nil)
+					return
+				}
+				v := &sobject.SOSequence{}
+				v.UnmarshalProtoJSON(s.WithField("sequence", false))
+				if s.Err() != nil {
+					return
+				}
+				x.Sequence = append(x.Sequence, v)
+			})
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the SOSequenceBatch from JSON.
+func (x *SOSequenceBatch) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -39763,6 +39883,50 @@ func (m *PostOpsRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
+func (m *SOSequenceBatch) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *SOSequenceBatch) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *SOSequenceBatch) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.Sequence) > 0 {
+		for iNdEx := len(m.Sequence) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.Sequence[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0xa
+		}
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *PostCheckpointRequest) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -52543,6 +52707,20 @@ func (m *PostOpsRequest) SizeVT() (n int) {
 	return n
 }
 
+func (m *SOSequenceBatch) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	for _, e := range m.Sequence {
+		l = e.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
 func (m *PostCheckpointRequest) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -56806,6 +56984,28 @@ func (x *PostOpsRequest) MarshalProtoText() string {
 }
 
 func (x *PostOpsRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *SOSequenceBatch) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "SOSequenceBatch")
+	if len(x.Sequence) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "sequence")
+		for i, v := range x.Sequence {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			if v == nil {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, &sobject.SOSequence{})
+			} else {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, v)
+			}
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *SOSequenceBatch) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -63615,6 +63815,62 @@ func (m *PostOpsRequest) UnmarshalVT(dAtA []byte) error {
 			}
 			m.Operations = append(m.Operations, &sobject.SOOperation{})
 			if err := m.Operations[len(m.Operations)-1].UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *SOSequenceBatch) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: SOSequenceBatch: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: SOSequenceBatch: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Sequence", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Sequence = append(m.Sequence, &sobject.SOSequence{})
+			if err := m.Sequence[len(m.Sequence)-1].UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex

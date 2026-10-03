@@ -243,11 +243,16 @@ func (h *cloudSOHost) acceptCloudSnapshot(ctx context.Context, cloud *sobject.SO
 		return errors.New("cloud checkpoint conflicts with accepted peer checkpoint")
 	}
 
-	// Union the operation sets. Operations the selected checkpoint covers drop
-	// out.
+	// Union the operation sets and the sequences. Whatever the selected
+	// checkpoint covers drops out.
 	for _, op := range other.GetOps() {
 		if _, err := next.AddOperation(h.soID, op); err != nil {
 			return errors.Wrap(err, "merge operation")
+		}
+	}
+	for _, record := range other.GetSequence() {
+		if _, err := next.AddSequence(h.soID, record); err != nil {
+			return errors.Wrap(err, "merge sequence")
 		}
 	}
 	pending := h.pendingPublication()

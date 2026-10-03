@@ -16,11 +16,13 @@ import {
   SOOperationSet,
   verifySOOperation,
 } from './operation-log.js'
+import { hashSOSequenceInner, verifySOSequence } from './sequence.js'
 import {
   SharedObjectConfig,
   SOCheckpoint,
   SOConfigChange,
   SOOperation,
+  SOSequence,
 } from './sobject.pb.js'
 import vectors from './testdata/operation-log-vectors.json'
 
@@ -144,5 +146,23 @@ describe('checkpoint vectors', () => {
       () => false,
     )
     expect(authority).toBe(v.authority)
+  })
+})
+
+describe('sequence vectors', () => {
+  it.each(vectors.sequences)('$name verifies as Go does', async (v) => {
+    // Verify the position under the vector object.
+    const record = SOSequence.fromBinary(fromBase64(v.sequence))
+    const inner = await verifySOSequence(objectID, record).then(
+      (inner) => inner,
+      () => null,
+    )
+
+    // A valid position has Go's hash and signer; an invalid one is rejected.
+    expect(inner !== null).toBe(v.hash !== '')
+    if (inner) {
+      expect(bytesToHex(hashSOSequenceInner(record.inner!))).toBe(v.hash)
+      expect(inner.peerId).toBe(v.signer)
+    }
   })
 })

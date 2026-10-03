@@ -187,6 +187,11 @@ func (c *SharedObjectConfig) Validate() error {
 		}
 	}
 
+	// An appointed sequencer names a key and a real start.
+	if err := c.GetSequencer().Validate(); err != nil {
+		return err
+	}
+
 	// A signed history head can retain the final departure; an empty bootstrap cannot grant authority.
 	participants := c.GetParticipants()
 	if len(participants) == 0 {

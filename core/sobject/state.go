@@ -8,6 +8,8 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
+	"github.com/s4wave/spacewave/net/crypto"
+	"github.com/s4wave/spacewave/net/peer"
 )
 
 // NewSOStateBlock constructs a new SOState block.
@@ -32,7 +34,8 @@ func (s *SOState) UnmarshalBlock(data []byte) error {
 	return s.UnmarshalVT(data)
 }
 
-// Validate checks the configuration, checkpoint, key epochs and operations.
+// Validate checks the configuration, checkpoint, key epochs, operations and
+// sequence positions.
 // It authenticates every signature but does not check that a checkpoint or
 // grant signer still holds authority: that is checked when they are adopted,
 // so a signer's later departure leaves them valid.
@@ -100,6 +103,27 @@ func (s *SOState) Validate(sharedObjectID string) error {
 		}
 		prev = h
 	}
+
+	// Positions are signed for this object, above the checkpoint, and sorted
+	// by height, then by hash.
+	if len(s.GetSequence()) > MaxOperations {
+		return errors.Wrap(ErrMaxCountExceeded, "sequence")
+	}
+	var prevHeight uint64
+	for i, record := range s.GetSequence() {
+		inner, _, err := record.Verify(sharedObjectID)
+		if err != nil {
+			return errors.Wrapf(err, "sequence[%d]", i)
+		}
+		if inner.GetHeight() <= checkpoint.GetSequence().GetHeight() {
+			return errors.Errorf("sequence[%d]: covered by the checkpoint", i)
+		}
+		h := record.Hash()
+		if i > 0 && (inner.GetHeight() < prevHeight || inner.GetHeight() == prevHeight && bytes.Compare(prev, h) >= 0) {
+			return errors.New("sequence must be strictly sorted by height, then by hash")
+		}
+		prevHeight, prev = inner.GetHeight(), h
+	}
 	return nil
 }
 
@@ -121,13 +145,14 @@ func (s *SOState) OperationSet(sharedObjectID string) (*SOOperationSet, error) {
 		return nil, err
 	}
 
-	// Verify every held operation into the set.
+	// Verify every held operation into the set, and resolve the sequence.
 	set := NewSOOperationSet(sharedObjectID, checkpoint)
 	for i, op := range s.GetOps() {
 		if _, err := set.Add(op); err != nil {
 			return nil, errors.Wrapf(err, "ops[%d]", i)
 		}
 	}
+	set.setSequence(s.GetConfig().GetSequencer(), s.GetSequence())
 	return set, nil
 }
 
@@ -254,6 +279,118 @@ func (s *SOState) AddOperation(sharedObjectID string, op *SOOperation) (bool, er
 	return true, nil
 }
 
+// AddSequence verifies a sequence position and adds it. It reports false when
+// the state holds it, the checkpoint covers it, or it is above the
+// sequencer's start and the sequencer did not sign it. Whether it extends the
+// sequence is decided when the sequence is resolved.
+func (s *SOState) AddSequence(sharedObjectID string, record *SOSequence) (bool, error) {
+	// Admit a position above the checkpoint that the start path or the
+	// sequencer can account for.
+	inner, signer, err := record.Verify(sharedObjectID)
+	if err != nil {
+		return false, err
+	}
+	checkpoint, err := s.GetCheckpointInner()
+	if err != nil {
+		return false, err
+	}
+	sequencer := s.GetConfig().GetSequencer()
+	if inner.GetHeight() <= checkpoint.GetSequence().GetHeight() ||
+		inner.GetHeight() > sequencer.GetStart().GetHeight() && signer != sequencer.GetPeerId() {
+		return false, nil
+	}
+
+	// Insert it in height, then hash order unless held. Hashing may suspend
+	// under GoScript, so search with a plain loop.
+	h := record.Hash()
+	i := 0
+	for ; i < len(s.Sequence); i++ {
+		held, err := s.Sequence[i].UnmarshalHeight()
+		if err != nil {
+			return false, err
+		}
+		if held > inner.GetHeight() {
+			break
+		}
+		if held < inner.GetHeight() {
+			continue
+		}
+		c := bytes.Compare(s.Sequence[i].Hash(), h)
+		if c == 0 {
+			return false, nil
+		}
+		if c > 0 {
+			break
+		}
+	}
+	if len(s.Sequence) >= MaxOperations {
+		return false, errors.Wrap(ErrMaxCountExceeded, "sequence")
+	}
+	s.Sequence = slices.Insert(s.Sequence, i, record)
+	return true, nil
+}
+
+// SequenceOperations signs, as the sequencer of privKey, a position for each
+// placed operation after the sequence. It signs nothing unless privKey is the
+// config's sequencer, every resolved position up to the sequencer's start is
+// placed, and the sequencer has signed nothing above them, so it extends the
+// one sequence every member resolves and never forks it. It returns the new
+// positions.
+func (s *SOState) SequenceOperations(sharedObjectID string, privKey crypto.PrivKey) ([]*SOSequence, error) {
+	// Only the appointed sequencer extends a fully placed sequence.
+	peerID, err := peer.IDFromPrivateKey(privKey)
+	if err != nil {
+		return nil, err
+	}
+	sequencer := s.GetConfig().GetSequencer()
+	if sequencer.GetPeerId() != peerID.String() {
+		return nil, nil
+	}
+	set, err := s.OperationSet(sharedObjectID)
+	if err != nil {
+		return nil, err
+	}
+	placed := set.order()
+	if !placed.complete || placed.tail.GetHeight() < sequencer.GetStart().GetHeight() {
+		return nil, nil
+	}
+
+	// A position it already signed above the tail would fork the sequence.
+	for _, record := range s.GetSequence() {
+		inner, signer, err := record.Verify(sharedObjectID)
+		if err == nil && signer == sequencer.GetPeerId() && inner.GetHeight() > placed.tail.GetHeight() {
+			return nil, nil
+		}
+	}
+
+	// Place the rest of the order after the tail.
+	var added []*SOSequence
+	prev := placed.tail
+	for _, h := range placed.order[placed.sequenced:] {
+		inner := set.Get(h)
+		op := &SOOperationPosition{PeerId: inner.GetPeerId(), Nonce: inner.GetNonce(), OpHash: h}
+		record, err := BuildSOSequence(sharedObjectID, privKey, prev, op)
+		if err != nil {
+			return nil, err
+		}
+		if _, err := s.AddSequence(sharedObjectID, record); err != nil {
+			return nil, err
+		}
+		added = append(added, record)
+		prev = &SOSequenceHead{Height: prev.GetHeight() + 1, Hash: record.Hash()}
+	}
+	return added, nil
+}
+
+// UnmarshalHeight decodes the position's height.
+func (q *SOSequence) UnmarshalHeight() (uint64, error) {
+	inner := &SOSequenceInner{}
+	if err := inner.UnmarshalVT(q.GetInner()); err != nil {
+		return 0, errors.Wrap(err, "unmarshal sequence inner")
+	}
+	return inner.GetHeight(), nil
+}
+
 // AdoptCheckpoint replaces the held checkpoint with next when an owner under
 // the held config signed it and it descends from the held checkpoint. The held
 // checkpoint, or one below its height, is ignored without an authority check:
@@ -308,6 +445,23 @@ func (s *SOState) AdoptCheckpoint(sharedObjectID string, next *SOCheckpoint) err
 	}
 	clear(s.Ops[len(kept):])
 	s.Ops = kept
+
+	// Drop the positions it covers, and the ones the sequencer can no longer
+	// account for.
+	sequencer := s.GetConfig().GetSequencer()
+	keptSeq := s.Sequence[:0]
+	for _, record := range s.Sequence {
+		seqInner, signer, err := record.Verify(sharedObjectID)
+		if err != nil || seqInner.GetHeight() <= inner.GetSequence().GetHeight() {
+			continue
+		}
+		if seqInner.GetHeight() > sequencer.GetStart().GetHeight() && signer != sequencer.GetPeerId() {
+			continue
+		}
+		keptSeq = append(keptSeq, record)
+	}
+	clear(s.Sequence[len(keptSeq):])
+	s.Sequence = keptSeq
 	return nil
 }
 

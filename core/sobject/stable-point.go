@@ -17,14 +17,22 @@ const AcknowledgmentLag = 64
 // for before it signs a checkpoint below them.
 const MinCheckpointOperations = 32
 
-// StablePoint returns the stable prefix of Order: the longest prefix whose
-// operations every member of roster has built on. Each later operation of a
-// roster member descends from every stable operation, so replay never places
-// a new operation inside the stable prefix and a checkpoint may cover it. An
-// empty roster makes the whole order stable.
+// StablePoint returns the stable prefix of Order. While the sequence is open
+// it is the sequenced prefix: the sequencer places every later operation after
+// it. Otherwise it is the longest prefix whose operations every member of
+// roster has built on. Each later operation of a roster member descends from
+// every stable operation, so replay never places a new operation inside the
+// stable prefix and a checkpoint may cover it. An empty roster makes the whole
+// order stable.
 func (s *SOOperationSet) StablePoint(roster []string) [][]byte {
+	// Stop at the sequenced prefix while the sequence is open.
+	placed := s.order()
+	order := placed.order
+	if s.sequence.open {
+		return order[:placed.sequenced]
+	}
+
 	// Intersect what each roster member has built on.
-	order := s.Order()
 	if len(roster) == 0 {
 		return order
 	}
@@ -47,14 +55,17 @@ func (s *SOOperationSet) StablePoint(roster []string) [][]byte {
 }
 
 // NeedsAcknowledgment reports whether the writer peerID should write an
-// acknowledgment. Every head must be placed, so the acknowledgment it would
-// write is placed too. It then acknowledges when at least lag placed
-// edits are not below its own latest operations, or when it has not built on
-// an acknowledgment of checkpointer, which asks every member to answer at
-// once. Other acknowledgments ask nothing, so members never answer each
-// other's answers.
+// acknowledgment. A sequencer makes operations stable without them. Otherwise
+// every head must be placed, so the acknowledgment it would write is placed
+// too. It then acknowledges when at least lag placed edits are not below its
+// own latest operations, or when it has not built on an acknowledgment of
+// checkpointer, which asks every member to answer at once. Other
+// acknowledgments ask nothing, so members never answer each other's answers.
 func (s *SOOperationSet) NeedsAcknowledgment(checkpointer, peerID string, lag int) bool {
 	// An acknowledgment naming an unplaced head would itself wait unplaced.
+	if s.sequence.sequencer != "" {
+		return false
+	}
 	order := s.Order()
 	placed := make(map[string]struct{}, len(order))
 	for _, h := range order {
@@ -180,15 +191,16 @@ func (s *SOState) BuildStableCheckpoint(
 	if err != nil {
 		return nil, err
 	}
-	return s.buildCheckpoint(sharedObjectID, privKey, set.cover(prefix), stateDataEnc)
+	return s.buildCheckpoint(sharedObjectID, privKey, set.cover(prefix), set.SequenceHead(prefix), stateDataEnc)
 }
 
 // buildCheckpoint signs the checkpoint after the held one with the given
-// author heads.
+// author heads and sequence position.
 func (s *SOState) buildCheckpoint(
 	sharedObjectID string,
 	privKey crypto.PrivKey,
 	authors []*SOOperationPosition,
+	sequence *SOSequenceHead,
 	stateDataEnc []byte,
 ) (*SOCheckpoint, error) {
 	// Continue the chain from the held checkpoint.
@@ -210,5 +222,15 @@ func (s *SOState) buildCheckpoint(
 		ReplayVersion:      SOReplayVersion,
 		KeyEpoch:           s.CurrentKeyEpoch().GetEpoch(),
 		Authors:            authors,
+		Sequence:           sequenceHeadOrNil(sequence),
 	})
+}
+
+// sequenceHeadOrNil returns head, or nil at height 0, so a checkpoint below
+// every position encodes no position.
+func sequenceHeadOrNil(head *SOSequenceHead) *SOSequenceHead {
+	if head.GetHeight() == 0 {
+		return nil
+	}
+	return head.CloneVT()
 }
