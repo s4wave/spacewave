@@ -546,14 +546,24 @@ func (s *SOOperationSet) SequenceTail() *SOSequenceHead {
 	return tail.CloneVT()
 }
 
-// Unordered returns how many operations of the order the appointed sequencer
-// has not placed. It is zero under Merge.
+// Unordered returns how many edits of the order the appointed sequencer has
+// not placed. Acknowledgments are not edits and do not count. It is zero under
+// Merge.
 func (s *SOOperationSet) Unordered() int {
+	// Merge appoints no sequencer, so nothing waits.
 	if s.sequence.sequencer == "" {
 		return 0
 	}
+
+	// Count the edits after the last placed position.
 	placed := s.order()
-	return len(placed.order) - placed.sequenced
+	n := 0
+	for _, key := range placed.order[placed.sequenced:] {
+		if !s.ops[string(key)].IsAcknowledgment() {
+			n++
+		}
+	}
+	return n
 }
 
 // SequenceHead returns the last position a checkpoint covering prefix, a
