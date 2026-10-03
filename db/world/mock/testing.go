@@ -635,8 +635,9 @@ func TestWorldEngine_Basic(ctx context.Context, le *logrus.Entry, eng world.Engi
 		return errors.Errorf("unexpected reverse iteration order: %v", keys)
 	}
 
-	// Release the World iterator after reverse-order assertions.
+	// Release the reverse iterator and its World read transaction.
 	iter.Close()
+	ws2.Discard()
 
 	// Open a read transaction for seek checks.
 	ws2, err = eng.NewTransaction(ctx, false)
