@@ -16,6 +16,7 @@ import (
 
 // TestOpenSnapshotRecoversHistoricalWorld checks recovery without the original engine.
 func TestOpenSnapshotRecoversHistoricalWorld(t *testing.T) {
+	// Open a logger for the snapshot.
 	ctx := t.Context()
 	le := logrus.NewEntry(logrus.New())
 
@@ -53,6 +54,8 @@ func TestOpenSnapshotRecoversHistoricalWorld(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Record the saved root, then create a later object.
 	root := engine.GetRootRef()
 	root.TransformConf = transform
 	obj, err = ws.CreateObject(ctx, "later", nil)

@@ -14,6 +14,7 @@ func (e *EngineTx) GetObjectBodiesBatchPage(ctx context.Context, keys []string, 
 
 // GetObjectBodiesBatchPageWithSeqno returns one budgeted page and its transaction seqno.
 func (e *EngineTx) GetObjectBodiesBatchPageWithSeqno(ctx context.Context, keys []string, byteBudget int) ([]*world.ObjectBody, uint32, uint64, error) {
+	// Read one page of object bodies and the transaction seqno.
 	var bodies []*world.ObjectBody
 	var consumed uint32
 	var seqno uint64

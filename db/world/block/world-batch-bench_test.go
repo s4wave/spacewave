@@ -14,10 +14,12 @@ import (
 )
 
 func TestWorldStateLookupGraphQuadsBatchMatchesPrimitiveLoop(t *testing.T) {
+	// Create the relationship fanout fixture.
 	ctx := context.Background()
 	ws, filters, cleanup := setupRelationshipFanoutBenchWorld(ctx, t, 8)
 	defer cleanup()
 
+	// Require batch graph lookups to match primitive lookups.
 	results, err := ws.LookupGraphQuadsBatch(ctx, filters, 16)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -37,11 +39,14 @@ func TestWorldStateLookupGraphQuadsBatchMatchesPrimitiveLoop(t *testing.T) {
 }
 
 func BenchmarkWorldStateLookupGraphQuadsBatchRelationshipFanout(b *testing.B) {
+	// Create the relationship benchmark fixture.
 	ctx := context.Background()
 	ws, filters, cleanup := setupRelationshipFanoutBenchWorld(ctx, b, 96)
 	defer cleanup()
 
+	// Measure graph lookups one filter at a time.
 	b.Run("primitive-loop", func(b *testing.B) {
+		// Count block reads across primitive lookup iterations.
 		b.ResetTimer()
 		b.ReportAllocs()
 		var readCount, readBytes uint64
@@ -65,7 +70,9 @@ func BenchmarkWorldStateLookupGraphQuadsBatchRelationshipFanout(b *testing.B) {
 		reportBlockReadMetrics(b, readCount, readBytes)
 	})
 
+	// Measure graph lookups through the batch API.
 	b.Run("owner-batch", func(b *testing.B) {
+		// Count block reads across batch lookup iterations.
 		b.ResetTimer()
 		b.ReportAllocs()
 		var readCount, readBytes uint64
@@ -91,11 +98,13 @@ func BenchmarkWorldStateLookupGraphQuadsBatchRelationshipFanout(b *testing.B) {
 }
 
 func BenchmarkWorldStateListGraphEdgeBucketsRelationshipFanout(b *testing.B) {
+	// Create the graph edge bucket fixture.
 	ctx := context.Background()
 	const roots = 96
 	ws, _, cleanup := setupRelationshipFanoutBenchWorld(ctx, b, roots)
 	defer cleanup()
 
+	// Build the query for incoming and outgoing edges.
 	originKeys := make([]string, roots)
 	for i := range roots {
 		originKeys[i] = relationshipFanoutRootKey(i)
@@ -106,6 +115,7 @@ func BenchmarkWorldStateListGraphEdgeBucketsRelationshipFanout(b *testing.B) {
 		Direction:        world.GraphEdgeBucketDirectionBoth,
 	}
 
+	// Measure the graph edge bucket query and its block reads.
 	b.ResetTimer()
 	b.ReportAllocs()
 	var readCount, readBytes uint64
@@ -133,6 +143,7 @@ func BenchmarkWorldStateQueryGraphPathRelationshipFanout(b *testing.B) {
 	ctx := context.Background()
 
 	b.Run("existing-handle", func(b *testing.B) {
+		// Measure graph paths through the existing World handle.
 		ws, roots, cleanup := setupGraphPathBenchWorld(ctx, b, 96)
 		defer cleanup()
 		query := buildGraphPathBenchQuery(roots)
@@ -155,6 +166,7 @@ func BenchmarkWorldStateQueryGraphPathRelationshipFanout(b *testing.B) {
 		reportBlockReadMetrics(b, readCount, readBytes)
 	})
 	b.Run("scoped-read-operation", func(b *testing.B) {
+		// Measure graph paths through a scoped read operation.
 		ws, roots, cleanup := setupGraphPathBenchWorld(ctx, b, 96)
 		defer cleanup()
 		query := buildGraphPathBenchQuery(roots)
@@ -194,8 +206,10 @@ func buildGraphPathBenchQuery(roots []string) *world.GraphPathQuery {
 }
 
 func setupRelationshipFanoutBenchWorld(ctx context.Context, tb testing.TB, roots int) (*world_block.WorldState, []world.GraphQuad, func()) {
+	// Identify relationship fixture failures at the caller.
 	tb.Helper()
 
+	// Open a writable World for the relationship fixture.
 	le := logrus.NewEntry(logrus.New())
 	tbed, err := testbed.NewTestbed(ctx, le)
 	if err != nil {
@@ -213,6 +227,7 @@ func setupRelationshipFanoutBenchWorld(ctx context.Context, tb testing.TB, roots
 		tb.Fatal(err.Error())
 	}
 
+	// Create the fanout objects and their incoming and outgoing edges.
 	outPredicates := []string{
 		"<bench/workfront-goal>",
 		"<bench/workfront-session>",
@@ -287,6 +302,7 @@ func setupRelationshipFanoutBenchWorld(ctx context.Context, tb testing.TB, roots
 	ocs.SetRootRef(writeWs.GetRootRef())
 	writeWs.Discard()
 
+	// Open a read-only World on the committed fanout.
 	readWs, err := world_block.BuildMockWorldState(ctx, le, false, ocs, false)
 	if err != nil {
 		ocs.Release()
@@ -294,6 +310,7 @@ func setupRelationshipFanoutBenchWorld(ctx context.Context, tb testing.TB, roots
 		tb.Fatal(err.Error())
 	}
 
+	// Return the fanout World with its cleanup.
 	cleanup := func() {
 		readWs.Discard()
 		ocs.Release()
@@ -307,8 +324,10 @@ func relationshipFanoutRootKey(i int) string {
 }
 
 func setupGraphPathBenchWorld(ctx context.Context, tb testing.TB, roots int) (*world_block.WorldState, []string, func()) {
+	// Identify graph path fixture failures at the caller.
 	tb.Helper()
 
+	// Open a writable World for the graph path fixture.
 	le := logrus.NewEntry(logrus.New())
 	tbed, err := testbed.NewTestbed(ctx, le)
 	if err != nil {
@@ -326,6 +345,7 @@ func setupGraphPathBenchWorld(ctx context.Context, tb testing.TB, roots int) (*w
 		tb.Fatal(err.Error())
 	}
 
+	// Create root objects with one outgoing edge each.
 	rootKeys := make([]string, roots)
 	for i := range roots {
 		rootKey := "bench/path/root/" + strconv.Itoa(i)
@@ -367,6 +387,7 @@ func setupGraphPathBenchWorld(ctx context.Context, tb testing.TB, roots int) (*w
 	ocs.SetRootRef(writeWs.GetRootRef())
 	writeWs.Discard()
 
+	// Return the read-only graph path World with its cleanup.
 	readWs, err := world_block.BuildMockWorldState(ctx, le, false, ocs, false)
 	if err != nil {
 		ocs.Release()

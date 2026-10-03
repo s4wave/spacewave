@@ -33,12 +33,14 @@ func NewTx(state *WorldState) *Tx {
 //
 // Creates a new block transaction.
 func (t *Tx) Fork(ctx context.Context) (world.WorldState, error) {
+	// Lock the transaction for the fork.
 	unlock, err := t.rmtx.Lock(ctx, false)
 	if err != nil {
 		return nil, err
 	}
 	defer unlock()
 
+	// Fork the transaction state.
 	forkedState, err := t.state.Fork(ctx)
 	if err != nil {
 		return nil, err
@@ -89,12 +91,14 @@ func (t *Tx) GetObjectBodiesBatchPage(ctx context.Context, keys []string, byteBu
 
 // GetObjectBodiesBatchPageWithSeqno returns one budgeted page and its transaction seqno.
 func (t *Tx) GetObjectBodiesBatchPageWithSeqno(ctx context.Context, keys []string, byteBudget int) ([]*world.ObjectBody, uint32, uint64, error) {
+	// Lock the transaction for the body-page read.
 	unlock, err := t.rmtx.Lock(ctx, false)
 	if err != nil {
 		return nil, 0, 0, err
 	}
 	defer unlock()
 
+	// Read the seqno and one page of object bodies.
 	seqno, err := t.state.GetSeqno(ctx)
 	if err != nil {
 		return nil, 0, 0, err
@@ -150,15 +154,18 @@ func (t *Tx) ApplyWorldOp(
 // Commit commits the transaction to storage.
 // Can return an error to indicate tx failure.
 func (t *Tx) CommitBlockTransaction(ctx context.Context) (*block.BlockRef, error) {
+	// Start the commit trace.
 	ctx, task := trace.NewTask(ctx, "hydra/world-block/tx/commit-block-transaction")
 	defer task.End()
 
+	// Lock the transaction for the commit.
 	unlock, err := t.rmtx.Lock(ctx, true)
 	if err != nil {
 		return nil, err
 	}
 	defer unlock()
 
+	// Commit the transaction state.
 	{
 		taskCtx, task := trace.NewTask(ctx, "hydra/world-block/tx/commit-block-transaction/state-commit")
 		err = t.state.Commit(taskCtx)
@@ -168,6 +175,7 @@ func (t *Tx) CommitBlockTransaction(ctx context.Context) (*block.BlockRef, error
 		return nil, err
 	}
 
+	// Return the committed root ref.
 	taskCtx, task := trace.NewTask(ctx, "hydra/world-block/tx/commit-block-transaction/get-root-ref")
 	ref := t.state.GetRootRef()
 	task.End()

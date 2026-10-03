@@ -19,9 +19,11 @@ import (
 )
 
 func TestEngineRootPublicationUnlocksBeforeReadTransactionDrain(t *testing.T) {
+	// Bound the root publication test.
 	ctx, cancel := context.WithTimeout(t.Context(), 3*time.Second)
 	defer cancel()
 
+	// Open the retirement testbed.
 	le := logrus.NewEntry(logrus.New())
 	tb, err := testbed.NewTestbed(ctx, le)
 	if err != nil {
@@ -29,18 +31,21 @@ func TestEngineRootPublicationUnlocksBeforeReadTransactionDrain(t *testing.T) {
 	}
 	defer tb.Release()
 
+	// Build the empty root cursor.
 	base, err := tb.BuildEmptyCursor(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer base.Release()
 
+	// Open the engine on the test root.
 	engine, err := NewEngine(ctx, le, base, world_mock.LookupMockOp, nil, false)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer engine.Close()
 
+	// Create an object in the pending writer.
 	writer, err := engine.NewBlockEngineTransaction(ctx, true)
 	if err != nil {
 		t.Fatal(err)
@@ -54,6 +59,7 @@ func TestEngineRootPublicationUnlocksBeforeReadTransactionDrain(t *testing.T) {
 		}
 	}
 
+	// Hold the old read transaction across publication.
 	locked := engine.bcast.Lock()
 	oldRead := engine.head.readTx
 	locked.Unlock()
@@ -71,6 +77,7 @@ func TestEngineRootPublicationUnlocksBeforeReadTransactionDrain(t *testing.T) {
 		}
 	}()
 
+	// Signal when the commit reaches root publication.
 	commitEntered := make(chan struct{})
 	locked = engine.bcast.Lock()
 	engine.commitFn = func(context.Context, *bucket.ObjectRef, *bucket.ObjectRef) error {
@@ -79,24 +86,28 @@ func TestEngineRootPublicationUnlocksBeforeReadTransactionDrain(t *testing.T) {
 	}
 	locked.Unlock()
 
+	// Commit the writer while the old reader is held.
 	commitDone := make(chan error, 1)
 	go func() {
 		_, err := writer.CommitBlockTransaction(ctx)
 		commitDone <- err
 	}()
 
+	// Wait for root publication to begin.
 	select {
 	case <-commitEntered:
 	case <-ctx.Done():
 		t.Fatalf("commit did not reach root publication: %v", ctx.Err())
 	}
 
+	// Read the published root from another goroutine.
 	reentered := make(chan struct{})
 	go func() {
 		engine.GetRootRef()
 		close(reentered)
 	}()
 
+	// Require root access to finish before the old reader drains.
 	var reentryErr error
 	select {
 	case <-reentered:
@@ -104,6 +115,7 @@ func TestEngineRootPublicationUnlocksBeforeReadTransactionDrain(t *testing.T) {
 		reentryErr = context.DeadlineExceeded
 	}
 
+	// Release the old reader and check the commit result.
 	readHeld = false
 	holdRead()
 	if err := <-commitDone; err != nil {
@@ -115,6 +127,7 @@ func TestEngineRootPublicationUnlocksBeforeReadTransactionDrain(t *testing.T) {
 }
 
 func TestEngineConcurrentCloseWaitsForFinalBroadcast(t *testing.T) {
+	// Open an engine with a bounded close context.
 	ctx, cancel := context.WithTimeout(t.Context(), 3*time.Second)
 	defer cancel()
 	engine := newRetirementTestEngine(t, ctx)
@@ -145,11 +158,14 @@ func TestEngineConcurrentCloseWaitsForFinalBroadcast(t *testing.T) {
 		<-ready
 	}
 	close(start)
+
+	// Let the queued closers subscribe before releasing the guard.
 	for range 100 {
 		runtime.Gosched()
 	}
 	locked.Unlock()
 
+	// Require every closer to observe completion.
 	for i := range closers {
 		select {
 		case err := <-done:
@@ -201,6 +217,7 @@ func TestEngineHeadPublishesRootAndReadTransactionTogether(t *testing.T) {
 }
 
 func TestEngineCloseDrainsCoordinatorSnapshot(t *testing.T) {
+	// Open an engine with coordinated snapshots.
 	ctx := t.Context()
 	coordinator := coord_inmem.NewCoordinator()
 	engine := newRetirementTestEngine(
@@ -214,6 +231,7 @@ func TestEngineCloseDrainsCoordinatorSnapshot(t *testing.T) {
 		),
 	)
 
+	// Require the read snapshot to register with the engine.
 	snapshot, err := engine.NewBlockEngineTransaction(ctx, false)
 	if err != nil {
 		t.Fatal(err)
@@ -226,6 +244,7 @@ func TestEngineCloseDrainsCoordinatorSnapshot(t *testing.T) {
 		t.Fatalf("coordinator snapshot registrations = %d, want 1", registered)
 	}
 
+	// Close the engine and require the snapshot to be drained.
 	if err := engine.Close(); err != nil {
 		t.Fatal(err)
 	}
@@ -251,10 +270,12 @@ func TestEngineCloseDrainsCoordinatorSnapshot(t *testing.T) {
 }
 
 func TestEngineWriterLockReleasesAfterTransactionDrain(t *testing.T) {
+	// Open an engine with a bounded writer context.
 	ctx, cancel := context.WithTimeout(t.Context(), 3*time.Second)
 	defer cancel()
 	engine := newRetirementTestEngine(t, ctx)
 
+	// Hold the first writer transaction against discard.
 	first, err := engine.NewBlockEngineTransaction(ctx, true)
 	if err != nil {
 		t.Fatal(err)
@@ -270,6 +291,7 @@ func TestEngineWriterLockReleasesAfterTransactionDrain(t *testing.T) {
 		}
 	}()
 
+	// Discard the first writer and wait for it to detach.
 	discardDone := make(chan struct{})
 	go func() {
 		first.Discard()
@@ -290,6 +312,7 @@ func TestEngineWriterLockReleasesAfterTransactionDrain(t *testing.T) {
 		}
 	}
 
+	// Require the successor writer to wait for transaction drain.
 	type writerResult struct {
 		tx  *EngineTx
 		err error
@@ -308,6 +331,7 @@ func TestEngineWriterLockReleasesAfterTransactionDrain(t *testing.T) {
 	case <-time.After(100 * time.Millisecond):
 	}
 
+	// Release the first writer and require the successor to proceed.
 	writeHeld = false
 	holdWrite()
 	select {
@@ -355,6 +379,7 @@ func TestCoordinatorSnapshotDeregistersOnDiscard(t *testing.T) {
 }
 
 func TestEngineReleasesCoordinatorLeaseAndWriterLockAfterUnlock(t *testing.T) {
+	// Open an engine whose lease checks the engine lock.
 	ctx := t.Context()
 	var engine *Engine
 	checking := &lockCheckingCoordinator{
@@ -372,6 +397,7 @@ func TestEngineReleasesCoordinatorLeaseAndWriterLockAfterUnlock(t *testing.T) {
 		),
 	)
 
+	// Record whether writer cleanup holds the engine lock.
 	writer, err := engine.NewBlockEngineTransaction(ctx, true)
 	if err != nil {
 		t.Fatal(err)
@@ -388,6 +414,7 @@ func TestEngineReleasesCoordinatorLeaseAndWriterLockAfterUnlock(t *testing.T) {
 	}
 	locked.Unlock()
 
+	// Discard the writer and require cleanup outside the engine lock.
 	writer.Discard()
 	if !checking.leaseReleased {
 		t.Fatal("coordinator lease was not released")
@@ -401,6 +428,7 @@ func TestEngineReleasesCoordinatorLeaseAndWriterLockAfterUnlock(t *testing.T) {
 }
 
 func TestEngineCloseWaitsForInFlightCommitLease(t *testing.T) {
+	// Create a pending write with a blocked lease refresh.
 	ctx, cancel := context.WithTimeout(t.Context(), 3*time.Second)
 	defer cancel()
 	coordinator := &blockingRefreshCoordinator{
@@ -431,6 +459,7 @@ func TestEngineCloseWaitsForInFlightCommitLease(t *testing.T) {
 		}
 	}
 
+	// Commit the writer and wait for lease refresh.
 	commitDone := make(chan error, 1)
 	go func() {
 		_, err := writer.CommitBlockTransaction(ctx)
@@ -442,6 +471,7 @@ func TestEngineCloseWaitsForInFlightCommitLease(t *testing.T) {
 		t.Fatalf("commit did not reach lease refresh: %v", ctx.Err())
 	}
 
+	// Require Close to wait for the blocked commit.
 	closeDone := make(chan error, 1)
 	go func() { closeDone <- engine.Close() }()
 	select {
@@ -450,6 +480,7 @@ func TestEngineCloseWaitsForInFlightCommitLease(t *testing.T) {
 	case <-time.After(100 * time.Millisecond):
 	}
 
+	// Release the lease refresh and require Close to join the commit.
 	close(coordinator.proceed)
 	if err := <-commitDone; !errors.Is(err, tx.ErrDiscarded) {
 		t.Fatalf("commit during Close = %v, want %v", err, tx.ErrDiscarded)
@@ -506,6 +537,7 @@ func (l *blockingRefreshLease) Refresh(ctx context.Context) (*coord.Snapshot, er
 }
 
 func TestEngineCloseWaitsForPublishedCommitCleanup(t *testing.T) {
+	// Create a pending write with blocked publication.
 	ctx, cancel := context.WithTimeout(t.Context(), 3*time.Second)
 	defer cancel()
 	coordinator := &blockingPublishCoordinator{
@@ -536,6 +568,7 @@ func TestEngineCloseWaitsForPublishedCommitCleanup(t *testing.T) {
 		}
 	}
 
+	// Commit the writer and wait for publication.
 	commitDone := make(chan error, 1)
 	go func() {
 		_, err := writer.CommitBlockTransaction(ctx)
@@ -547,6 +580,7 @@ func TestEngineCloseWaitsForPublishedCommitCleanup(t *testing.T) {
 		t.Fatalf("commit did not reach coordinator publication: %v", ctx.Err())
 	}
 
+	// Require Close to wait for publication cleanup.
 	closeDone := make(chan error, 1)
 	go func() { closeDone <- engine.Close() }()
 	select {
@@ -555,6 +589,7 @@ func TestEngineCloseWaitsForPublishedCommitCleanup(t *testing.T) {
 	case <-time.After(100 * time.Millisecond):
 	}
 
+	// Release publication and require Close to join cleanup.
 	close(coordinator.proceed)
 	if err := <-commitDone; err != nil {
 		t.Fatal(err)
@@ -628,6 +663,7 @@ func (c *lockCheckingCoordinator) WaitAcquireWriteLease(
 	return &lockCheckingLease{
 		WriteLease: lease,
 		release: func() {
+			// Check whether lease release holds the engine lock.
 			c.leaseReleased = true
 			engine := c.engine()
 			locked, ok := engine.bcast.TryLock()
@@ -655,6 +691,7 @@ func newRetirementTestEngine(
 	ctx context.Context,
 	opts ...EngineOption,
 ) *Engine {
+	// Open the engine testbed.
 	t.Helper()
 	le := logrus.NewEntry(logrus.New())
 	tb, err := testbed.NewTestbed(ctx, le)
@@ -662,11 +699,15 @@ func newRetirementTestEngine(
 		t.Fatal(err)
 	}
 	t.Cleanup(tb.Release)
+
+	// Build the empty engine root.
 	base, err := tb.BuildEmptyCursor(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
 	t.Cleanup(base.Release)
+
+	// Open the engine and close it when the test ends.
 	engine, err := NewEngine(ctx, le, base, world_mock.LookupMockOp, nil, false, opts...)
 	if err != nil {
 		t.Fatal(err)

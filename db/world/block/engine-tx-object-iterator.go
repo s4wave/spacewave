@@ -60,10 +60,12 @@ func (e *engineTxObjectIterator) Key() string {
 
 // Next advances to the next entry and returns Valid.
 func (e *engineTxObjectIterator) Next() bool {
+	// Stop when the iterator has already failed.
 	if e.err != nil {
 		return false
 	}
 
+	// Rebuild the transaction iterator and advance it.
 	var valid bool
 	err := e.e.performOp(e.ctx, func(tx *Tx) error {
 		// Build a fresh iterator on each attempt: a retry must not reuse the
@@ -76,6 +78,7 @@ func (e *engineTxObjectIterator) Next() bool {
 			return err
 		}
 
+		// Seek past the current key on a retry.
 		if e.currKey != "" {
 			if err := iter.Seek(e.currKey); err != nil {
 				return err
@@ -99,10 +102,12 @@ func (e *engineTxObjectIterator) Next() bool {
 			}
 		}
 
+		// Stop when the rebuilt iterator has no entry.
 		if !iter.Valid() {
 			return iter.Err()
 		}
 
+		// Store the current key.
 		e.currKey = iter.Key()
 		valid = true
 		return nil
@@ -113,29 +118,36 @@ func (e *engineTxObjectIterator) Next() bool {
 		return false
 	}
 
+	// Publish the advanced key.
 	e.valid = valid
 	return valid
 }
 
 // Seek moves the iterator to the first key >= the provided key (or <= in reverse mode).
 func (e *engineTxObjectIterator) Seek(k string) error {
+	// Return an earlier seek error.
 	if e.err != nil {
 		return e.err
 	}
 
+	// Rebuild the transaction iterator and seek it.
 	var valid bool
 	err := e.e.performOp(e.ctx, func(tx *Tx) error {
+		// Open a fresh object iterator.
 		iter := tx.IterateObjects(e.ctx, e.prefix, e.reversed)
 		defer iter.Close()
 
+		// Seek the inner iterator.
 		if err := iter.Seek(k); err != nil {
 			return err
 		}
 
+		// Stop when the seek finds no entry.
 		if !iter.Valid() {
 			return iter.Err()
 		}
 
+		// Store the seeked key.
 		e.currKey = iter.Key()
 		valid = true
 		return nil
@@ -146,6 +158,7 @@ func (e *engineTxObjectIterator) Seek(k string) error {
 		return err
 	}
 
+	// Publish the seeked key.
 	e.valid = valid
 	return nil
 }

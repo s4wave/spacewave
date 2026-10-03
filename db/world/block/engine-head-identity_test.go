@@ -30,6 +30,8 @@ func TestEngineUnchangedHeadDoesNotReadBlocks(t *testing.T) {
 				t.Fatal(err)
 			}
 			t.Cleanup(writer.Discard)
+
+			// Create an object, commit it, and require a published root.
 			{
 				createdObject, err := writer.CreateObject(t.Context(), "identity/example", nil)
 				world.ReleaseObjectState(createdObject)

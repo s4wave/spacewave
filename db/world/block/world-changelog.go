@@ -13,6 +13,7 @@ import (
 // expects rmtx to be locked
 // returns nil, nil if changelog disabled
 func (t *WorldState) queueWorldChange(ctx context.Context, w *WorldChange) (*block.Cursor, error) {
+	// Reject an empty change or a read-only state.
 	if w == nil {
 		return nil, world.ErrEmptyOp
 	}
@@ -20,11 +21,13 @@ func (t *WorldState) queueWorldChange(ctx context.Context, w *WorldChange) (*blo
 		return nil, tx.ErrNotWrite
 	}
 
+	// Load the World root.
 	r, err := t.GetRoot(ctx)
 	if err != nil {
 		return nil, err
 	}
 
+	// Stage the change block unless the changelog is disabled.
 	var changeBcs *block.Cursor
 	if !r.GetLastChangeDisable() {
 		changeBcs = t.bcs.Detach(false)
@@ -32,6 +35,7 @@ func (t *WorldState) queueWorldChange(ctx context.Context, w *WorldChange) (*blo
 	}
 	t.pendingChanges = append(t.pendingChanges, changeBcs)
 
+	// Update the sequence number and return the change cursor.
 	t.updateSeqno(r)
 	return changeBcs, nil
 }
@@ -52,16 +56,20 @@ func (t *WorldState) updateSeqno(r *World) {
 // flushWorldChanges flushes the queued world changes to the log.
 // if an error is returned, the changelog is likely now in a broken state.
 func (t *WorldState) flushWorldChanges(ctx context.Context, w *World) error {
+	// Start the flush trace.
 	ctx, task := trace.NewTask(ctx, "hydra/world-block/world-state/flush-world-changes")
 	defer task.End()
 
+	// Reject a read-only state.
 	if !t.write {
 		return tx.ErrNotWrite
 	}
 
+	// Take the pending change queue.
 	queue := t.pendingChanges
 	t.pendingChanges = nil
 
+	// Advance a disabled changelog, or follow the last-change block.
 	taskCtx, subtask := trace.NewTask(ctx, "hydra/world-block/world-state/flush-world-changes/get-root")
 	r, err := t.GetRoot(taskCtx)
 	subtask.End()
@@ -78,6 +86,7 @@ func (t *WorldState) flushWorldChanges(ctx context.Context, w *World) error {
 		return nil
 	}
 
+	// Walk the pending change queue.
 	i := 0
 	for i < len(queue) {
 		chi := queue[i]
@@ -123,20 +132,25 @@ func (t *WorldState) flushWorldChanges(ctx context.Context, w *World) error {
 // returns the block cursor containing HEAD ChangeLogLL (sub-block)
 // changes must all have the same change type.
 func (t *WorldState) appendChangelogEntry(ctx context.Context, w *World, changesBcs []*block.Cursor) (*block.Cursor, error) {
+	// Start the append trace.
 	ctx, task := trace.NewTask(ctx, "hydra/world-block/world-state/append-changelog-entry")
 	defer task.End()
 
+	// Return the last-change cursor when there is nothing to append.
 	lastChangeBcs := t.bcs.FollowSubBlock(3)
 	if len(changesBcs) == 0 {
 		return lastChangeBcs, nil
 	}
 
+	// Read the object-tree size for the changelog filter.
 	taskCtx, subtask := trace.NewTask(ctx, "hydra/world-block/world-state/append-changelog-entry/object-tree-size")
 	objSize, err := t.objTree.Size(taskCtx)
 	subtask.End()
 	if err != nil {
 		return nil, err
 	}
+
+	// Append the changelog node and store it as the last change.
 	taskCtx, subtask = trace.NewTask(ctx, "hydra/world-block/world-state/append-changelog-entry/append-change-log")
 	lc, err := AppendChangeLogLL(taskCtx, objSize, lastChangeBcs, lastChangeBcs, changesBcs)
 	subtask.End()

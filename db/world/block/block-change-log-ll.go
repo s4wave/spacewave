@@ -48,10 +48,12 @@ func AppendChangeLogLL(
 	prevBcs *block.Cursor,
 	worldChangesBcs []*block.Cursor,
 ) (*ChangeLogLL, error) {
+	// Reject an empty change list.
 	if len(worldChangesBcs) == 0 {
 		return nil, world.ErrEmptyChange
 	}
 
+	// Load the previous changelog node when one was given.
 	var prevChangeLogLL *ChangeLogLL
 	var err error
 	if prevBcs != nil {
@@ -67,6 +69,7 @@ func AppendChangeLogLL(
 		}
 	}
 
+	// Start the next changelog node from the first change and link the previous node.
 	firstChange, err := UnmarshalWorldChange(ctx, worldChangesBcs[0])
 	if err != nil {
 		return nil, err
@@ -92,6 +95,7 @@ func AppendChangeLogLL(
 		bloomCapacity = minChangeLogLLBloomCapacity
 	}
 
+	// Build a key filter when the batch is large enough to need one.
 	var kfb *filters.KeyFiltersBuilder
 	if bloomCapacity != 0 {
 		kfb = filters.NewKeyFiltersBuilder(bloomCapacity)
@@ -135,6 +139,7 @@ func AppendChangeLogLL(
 		i += len(changeBatch)
 	}
 
+	// Store the built key filter on the changelog node.
 	if kfb != nil {
 		cll.KeyFilters = kfb.BuildKeyFilters()
 	}

@@ -72,6 +72,7 @@ func (w *WorldChange) ApplyBlockRef(id uint32, ptr *block.BlockRef) error {
 // May return nil, and values may also be nil.
 // Note: this does not include pending references (in a cursor)
 func (w *WorldChange) GetBlockRefs() (map[uint32]*block.BlockRef, error) {
+	// Return the transaction, object, and previous object refs.
 	m := make(map[uint32]*block.BlockRef, 4)
 	m[4] = w.GetTransactionRef()
 	m[5] = w.GetObjectRef()

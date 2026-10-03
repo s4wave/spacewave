@@ -48,11 +48,13 @@ func ReadChangeLogEntriesFromCursor(
 	rootBcs *block.Cursor,
 	opts ChangeLogReadOptions,
 ) ([]*ChangeLogEntry, error) {
+	// Unmarshal the World root and stop when it has no changelog.
 	worldRoot, err := UnmarshalWorld(ctx, rootBcs)
 	if err != nil || worldRoot == nil || worldRoot.GetLastChange().GetSeqno() == 0 {
 		return nil, err
 	}
 
+	// Walk changelog nodes and collect entries until the limit or cursor.
 	entryBcs := rootBcs.FollowSubBlock(3)
 	entry := worldRoot.GetLastChange()
 	entries := make([]*ChangeLogEntry, 0)
@@ -90,6 +92,7 @@ func readWorldChangeBatch(
 	batchBcs *block.Cursor,
 	batch *WorldChangeLL,
 ) ([]*WorldChange, error) {
+	// Walk the change-batch linked list into chunks.
 	var chunks [][]*WorldChange
 	for batch != nil && !batch.IsEmpty() {
 		chunks = append(chunks, slices.Clone(batch.GetChanges()))
@@ -104,6 +107,7 @@ func readWorldChangeBatch(
 		}
 	}
 
+	// Flatten the chunks from oldest to newest.
 	var changes []*WorldChange
 	for _, chunk := range slices.Backward(chunks) {
 		changes = append(changes, chunk...)

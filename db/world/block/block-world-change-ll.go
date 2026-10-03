@@ -58,6 +58,7 @@ func AppendWorldChangeLL(
 			return nil, err
 		}
 	}
+
 	// perform some initial checks
 	if err := w.Validate(); err != nil {
 		return nil, err
@@ -83,6 +84,7 @@ func (w *WorldChangeLL) IsNil() bool {
 
 // Validate performs checks on the world change ll block.
 func (w *WorldChangeLL) Validate() error {
+	// Require at least one change and a total size that covers them.
 	changes := w.GetChanges()
 	if len(changes) == 0 {
 		return world.ErrEmptyOp
@@ -121,6 +123,7 @@ func (w *WorldChangeLL) IsEmpty() bool {
 // returns cursor containing ch within the linked-list node
 // returns nil if bcs was nil
 func (w *WorldChangeLL) AppendWorldChange(ch *WorldChange, bcs *block.Cursor) *block.Cursor {
+	// Append the change and return its cursor.
 	if bcs != nil {
 		bcs = bcs.FollowSubBlock(4)
 	}

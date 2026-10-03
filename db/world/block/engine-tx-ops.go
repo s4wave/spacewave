@@ -73,6 +73,7 @@ func (e *EngineTx) CreateObject(ctx context.Context, key string, rootRef *bucket
 // GetObject looks up an object by key.
 // Returns nil, false if not found.
 func (e *EngineTx) GetObject(ctx context.Context, key string) (world.ObjectState, bool, error) {
+	// Look up the object in the transaction.
 	var found bool
 	var obj world.ObjectState
 	err := e.performOp(ctx, func(tx *Tx) error {
@@ -86,6 +87,7 @@ func (e *EngineTx) GetObject(ctx context.Context, key string) (world.ObjectState
 		return nil, found, err
 	}
 
+	// Wrap the object for a write transaction.
 	if e.writeTx == nil {
 		world.ReleaseObjectState(obj)
 		obj = nil
@@ -257,6 +259,7 @@ func (e *EngineTx) performOp(ctx context.Context, cb func(tx *Tx) error) error {
 
 // refreshReadSnapshot reopens storage for the same revision after invalidation.
 func (e *EngineTx) refreshReadSnapshot(ctx context.Context, previous *Tx) error {
+	// Reopen storage at the transaction's captured read root.
 	locked := e.engine.bcast.Lock()
 	if e.engine.closed || e.rel.Load() {
 		locked.Unlock()

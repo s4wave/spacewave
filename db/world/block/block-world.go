@@ -68,6 +68,7 @@ func (w *World) ApplySubBlock(id uint32, next block.SubBlock) error {
 // GetSubBlocks returns all constructed sub-blocks by ID.
 // May return nil, and values may also be nil.
 func (w *World) GetSubBlocks() map[uint32]block.SubBlock {
+	// Return the object, graph, and last-change sub-blocks.
 	m := make(map[uint32]block.SubBlock)
 	m[1] = w.GetObjectKeyValue()
 	m[2] = w.GetGraphKeyValue()

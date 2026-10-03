@@ -64,6 +64,7 @@ func (o *objectIterator) Next() bool {
 
 // Seek moves the iterator to the first key >= the provided key (or <= in reverse mode).
 func (o *objectIterator) Seek(k string) error {
+	// Stop when the iterator has failed or was not opened.
 	if o.err != nil {
 		return o.err
 	}
@@ -71,6 +72,7 @@ func (o *objectIterator) Seek(k string) error {
 		return context.Canceled
 	}
 
+	// Seek to the object key.
 	err := o.iter.Seek([]byte(objectKeyPrefix + k))
 	if err != nil {
 		o.err = err

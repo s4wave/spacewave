@@ -43,12 +43,14 @@ func (s *replayCommitStore) NewTransaction(ctx context.Context, write bool) (kvt
 }
 
 func TestEngineCreateObjectCommitReplaysIdentically(t *testing.T) {
+	// Define the replay result and the run helper.
 	type result struct {
 		objectRef *bucket.ObjectRef
 		revision  uint64
 		blockData map[string][]byte
 	}
 	run := func(t *testing.T, injectFault bool) (result, *kvtest.FaultStore) {
+		// Build an in-memory block store.
 		t.Helper()
 		ctx := t.Context()
 		backend := store_kvtx_inmem.NewStore()
@@ -59,6 +61,8 @@ func TestEngineCreateObjectCommitReplaysIdentically(t *testing.T) {
 			0,
 			false,
 		)
+
+		// Open the World state on the block store.
 		blockTx, blockCursor := block.NewTransaction(blockStore, nil, nil, nil)
 		state, err := NewWorldState(
 			ctx,
@@ -87,6 +91,7 @@ func TestEngineCreateObjectCommitReplaysIdentically(t *testing.T) {
 			}
 		}
 
+		// Commit the write transaction, injecting the fault when requested.
 		var faultStore *kvtest.FaultStore
 		if injectFault {
 			faultStore = kvtest.NewFaultStore(backend, kvtest.FaultBeforeCommit)
@@ -97,6 +102,7 @@ func TestEngineCreateObjectCommitReplaysIdentically(t *testing.T) {
 		}
 		commitStore.faultStore = nil
 
+		// Read the replayed object and its root ref.
 		object, found, err := state.GetObject(ctx, "replay/object")
 		defer world.ReleaseObjectState(object)
 		if err != nil {
@@ -110,6 +116,7 @@ func TestEngineCreateObjectCommitReplaysIdentically(t *testing.T) {
 			t.Fatal(err)
 		}
 
+		// Scan the backend and return the stored blocks.
 		tx, err := backend.NewTransaction(ctx, false)
 		if err != nil {
 			t.Fatal(err)
@@ -129,6 +136,7 @@ func TestEngineCreateObjectCommitReplaysIdentically(t *testing.T) {
 		}, faultStore
 	}
 
+	// Require the faulted commit to replay the same object once.
 	want, _ := run(t, false)
 	got, faultStore := run(t, true)
 	if !got.objectRef.EqualVT(want.objectRef) {

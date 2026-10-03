@@ -23,6 +23,7 @@ type ObjectState struct {
 
 // NewObjectState constructs a new ObjectState from a block cursor and world state.
 func NewObjectState(ctx context.Context, w *WorldState, bcs *block.Cursor) (*ObjectState, error) {
+	// Unmarshal the object and require a key.
 	s := &ObjectState{w: w, bcs: bcs}
 	obj, err := UnmarshalObject(ctx, bcs)
 	if err != nil {
@@ -70,6 +71,7 @@ func (o *ObjectState) AccessWorldState(
 
 // SetRootRef changes the root reference of the object.
 func (o *ObjectState) SetRootRef(ctx context.Context, nref *bucket.ObjectRef) (uint64, error) {
+	// Validate the new root ref and return the current revision when it is unchanged.
 	if err := nref.Validate(); err != nil {
 		return 0, err
 	}
@@ -83,17 +85,21 @@ func (o *ObjectState) SetRootRef(ctx context.Context, nref *bucket.ObjectRef) (u
 		return root.GetRev(), nil
 	}
 
+	// Keep the previous root for the changelog.
 	prevBlk := root.Clone()
 
+	// Clone the root, store the new ref, and advance the revision.
 	root = root.Clone()
 	root.RootRef = nref
 	root.Rev++
 	r := root.Rev
 
+	// Store the updated root.
 	if err := o.setRoot(ctx, root); err != nil {
 		return 0, err
 	}
 
+	// Queue the object-set change and link the current and previous roots.
 	changeBcs, err := o.w.queueWorldChange(ctx, &WorldChange{
 		Key:        o.key,
 		ChangeType: WorldChangeType_WorldChange_OBJECT_SET,
@@ -121,6 +127,7 @@ func (o *ObjectState) ApplyObjectOp(
 	op world.Operation,
 	opSender peer.ID,
 ) (uint64, bool, error) {
+	// Reject an empty operation.
 	if op == nil {
 		return 0, false, world.ErrEmptyOp
 	}
@@ -128,14 +135,17 @@ func (o *ObjectState) ApplyObjectOp(
 		return 0, false, err
 	}
 
+	// Cancel the apply context when the operation returns.
 	ctx, subCtxCancel := context.WithCancel(rctx)
 	defer subCtxCancel()
 
+	// Apply the object operation.
 	sysErr, err := op.ApplyWorldObjectOp(ctx, o.w.le, o, opSender)
 	if err != nil {
 		return 0, sysErr, err
 	}
 
+	// Read the revision after the operation.
 	_, rev, err := o.GetRootRef(ctx)
 	if err != nil {
 		return rev, true, err
@@ -157,6 +167,7 @@ func (o *ObjectState) incrementRev(ctx context.Context, addToChangelog bool) (ui
 
 // incrementRevBy applies a batch's revision delta with one immutable root copy.
 func (o *ObjectState) incrementRevBy(ctx context.Context, count uint64, addToChangelog bool) (uint64, error) {
+	// Read the root and queue a revision change when requested.
 	if err := ctx.Err(); err != nil {
 		return 0, err
 	}
@@ -175,6 +186,8 @@ func (o *ObjectState) incrementRevBy(ctx context.Context, count uint64, addToCha
 			return 0, err
 		}
 	}
+
+	// Copy the root and store the new revision.
 	root = root.Clone()
 	root.Rev = nrev
 	if err := o.setRoot(ctx, root); err != nil {
@@ -187,6 +200,7 @@ func (o *ObjectState) incrementRevBy(ctx context.Context, count uint64, addToCha
 // IAVL follows mutable cursors directly; Okra must rebuild the entry's hash
 // and page boundaries after its value changes.
 func (o *ObjectState) setRoot(ctx context.Context, root *Object) error {
+	// Write the root block and rebuild a packed index entry.
 	cursor, err := o.getCursor(ctx)
 	if err != nil {
 		return err

@@ -13,10 +13,12 @@ import (
 )
 
 func BenchmarkWorldStateGetObjectRootRefsBatch(b *testing.B) {
+	// Set up the bench World and release it when the benchmark ends.
 	ctx := context.Background()
 	ws, keys, cleanup := setupObjectRootRefBenchWorld(ctx, b, 256)
 	defer cleanup()
 
+	// Benchmark one root-ref lookup per object.
 	b.Run("object-root-ref-loop", func(b *testing.B) {
 		b.ReportAllocs()
 		for range b.N {
@@ -43,6 +45,7 @@ func BenchmarkWorldStateGetObjectRootRefsBatch(b *testing.B) {
 		}
 	})
 
+	// Benchmark the owner batch lookup.
 	b.Run("owner-batch", func(b *testing.B) {
 		b.ReportAllocs()
 		for range b.N {
@@ -64,8 +67,10 @@ func BenchmarkWorldStateGetObjectRootRefsBatch(b *testing.B) {
 }
 
 func setupObjectRootRefBenchWorld(ctx context.Context, tb testing.TB, count int) (*world_block.WorldState, []string, func()) {
+	// Attribute root-reference fixture failures to the caller.
 	tb.Helper()
 
+	// Open a testbed and a writable mock World.
 	le := logrus.NewEntry(logrus.New())
 	tbed, err := testbed.NewTestbed(ctx, le)
 	if err != nil {
@@ -83,6 +88,7 @@ func setupObjectRootRefBenchWorld(ctx context.Context, tb testing.TB, count int)
 		tb.Fatal(err.Error())
 	}
 
+	// Create the bench objects.
 	keys := make([]string, 0, count)
 	for i := range count {
 		key := "bench/root-ref/" + strconv.Itoa(i)
@@ -99,6 +105,7 @@ func setupObjectRootRefBenchWorld(ctx context.Context, tb testing.TB, count int)
 		keys = append(keys, key)
 	}
 
+	// Release the World and the testbed.
 	cleanup := func() {
 		ws.Discard()
 		ocs.Release()

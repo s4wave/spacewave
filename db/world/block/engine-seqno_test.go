@@ -35,6 +35,8 @@ func TestEngineGetSeqnoRefreshesDurableHead(t *testing.T) {
 			var invalid atomic.Bool
 			root := writer.baseRoot.Clone()
 			t.Cleanup(root.Release)
+
+			// Open the reader on the writer's root and read its seqno.
 			reader, err := NewEngine(
 				ctx,
 				writer.le,

@@ -14,6 +14,7 @@ import (
 // is invalidated when the object is deleted or renamed and reset when the
 // transaction rebuilds or discards its block state.
 func (t *WorldState) HasObject(ctx context.Context, key string) (bool, error) {
+	// Return a known object, or look it up and remember that it exists.
 	if t.objectExistsKnown(key) {
 		return true, nil
 	}

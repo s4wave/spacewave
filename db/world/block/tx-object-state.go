@@ -38,12 +38,14 @@ func (t *TxObjectState) GetKey() string {
 
 // GetRootRef returns the root reference of the object.
 func (t *TxObjectState) GetRootRef(ctx context.Context) (*bucket.ObjectRef, uint64, error) {
+	// Lock the transaction for the root-ref read.
 	unlock, err := t.tx.rmtx.Lock(ctx, false)
 	if err != nil {
 		return nil, 0, err
 	}
 	defer unlock()
 
+	// Reject a discarded transaction.
 	if t.tx.state.discarded.Load() {
 		return nil, 0, tx.ErrDiscarded
 	}
@@ -113,26 +115,31 @@ func (t *TxObjectState) WaitRev(
 		var currSeqno uint64
 		var currObjRev uint64
 		err := func() error {
+			// Lock the transaction for the revision check.
 			unlock, err := t.tx.rmtx.Lock(ctx, false)
 			if err != nil {
 				return err
 			}
 			defer unlock()
 
+			// Load the object and require that it exists.
 			obj, err := t.tx.state.mustGetObject(ctx, t.key)
 			if err != nil {
 				return err
 			}
 
+			// Read the object's current revision.
 			_, currObjRev, err = obj.GetRootRef(ctx)
 			if err != nil {
 				return err
 			}
 
+			// Return when the revision has reached the target.
 			if currObjRev >= rev {
 				return nil
 			}
 
+			// Read the transaction seqno for the wait.
 			currSeqno, err = t.tx.state.GetSeqno(ctx)
 			return err
 		}()

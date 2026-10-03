@@ -86,10 +86,12 @@ func (t *EngineTxObjectState) ApplyObjectOp(
 	op world.Operation,
 	opSender peer.ID,
 ) (uint64, bool, error) {
+	// Reject a read-only transaction.
 	if t.t.GetReadOnly() {
 		return 0, false, tx.ErrNotWrite
 	}
 
+	// Apply the object operation and return its revision.
 	var outRev uint64
 	var outSysErr bool
 	err := t.t.performOp(ctx, func(tx *Tx) error {
@@ -159,15 +161,18 @@ func (t *EngineTxObjectState) WaitRev(
 
 // withObject borrows the cached write handle or scopes a fresh read handle to cb.
 func (t *EngineTxObjectState) withObject(ctx context.Context, tx *Tx, cb func(world.ObjectState) error) error {
+	// Reuse the cached object while the write transaction holds it.
 	if t.obj != nil && t.t.writeTx != nil {
 		return cb(t.obj)
 	}
 
+	// Load the object and cache it on a write transaction.
 	obj, found, err := tx.GetObject(ctx, t.key)
 	if err != nil {
 		world.ReleaseObjectState(obj)
 		return err
 	}
+
 	// note: to create a EngineTxObjectState, we previously checked
 	// if the object key exists. it must have been deleted since.
 	if !found {

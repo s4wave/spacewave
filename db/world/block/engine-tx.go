@@ -60,6 +60,7 @@ func (e *EngineTx) Commit(ctx context.Context) error {
 // Can return an error to indicate tx failure.
 // If not write, returns ErrNotWrite.
 func (e *EngineTx) CommitBlockTransaction(ctx context.Context) (*bucket.ObjectRef, error) {
+	// Submit a staged session transaction and wait for its receipt.
 	if e.staged != nil && e.session != nil {
 		ref, receipt, err := e.SubmitBlockTransaction(ctx)
 		if err != nil {
@@ -72,6 +73,7 @@ func (e *EngineTx) CommitBlockTransaction(ctx context.Context) (*bucket.ObjectRe
 		}
 		return ref, nil
 	}
+
 	// Start the commit trace.
 	ctx, task := trace.NewTask(ctx, "hydra/world-block/engine-tx/commit-block-transaction")
 	defer task.End()

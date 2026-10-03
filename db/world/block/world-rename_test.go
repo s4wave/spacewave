@@ -17,27 +17,32 @@ import (
 
 // TestWorldState_RenameObject tests object key rename behavior.
 func TestWorldState_RenameObject(t *testing.T) {
+	// Enable logs for the object rename test.
 	ctx := context.Background()
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
 
+	// Open the rename testbed.
 	tb, err := testbed.NewTestbed(ctx, le)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Build the empty root cursor.
 	ocs, err := tb.BuildEmptyCursor(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	defer ocs.Release()
 
+	// Open the writable rename World.
 	ws, err := world_block.BuildMockWorldState(ctx, le, true, ocs, true)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Create the source object and a conflicting target.
 	oldKey := "rename-old"
 	newKey := "rename-new"
 	otherKey := "rename-other"
@@ -57,6 +62,7 @@ func TestWorldState_RenameObject(t *testing.T) {
 		}
 	}
 
+	// Create graph edges that reference the source key.
 	oldValue := world.KeyToGraphValue(oldKey).String()
 	newValue := world.KeyToGraphValue(newKey).String()
 	otherValue := world.KeyToGraphValue(otherKey).String()
@@ -70,6 +76,7 @@ func TestWorldState_RenameObject(t *testing.T) {
 		}
 	}
 
+	// Record the original object root and revision.
 	oldObj, err := world.MustGetObject(ctx, ws, oldKey)
 	defer world.ReleaseObjectState(oldObj)
 	if err != nil {
@@ -80,6 +87,7 @@ func TestWorldState_RenameObject(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// Rename the object and require its root and revision to survive.
 	renamed, err := ws.RenameObject(ctx, oldKey, newKey, false)
 	defer world.ReleaseObjectState(renamed)
 	if err != nil {
@@ -96,12 +104,15 @@ func TestWorldState_RenameObject(t *testing.T) {
 		t.Fatalf("expected rev %d to be preserved, got %d", oldRev, newRev)
 	}
 
+	// Reject renaming onto an existing object.
 	var objectState world.ObjectState
 	objectState, err = ws.RenameObject(ctx, newKey, otherKey, false)
 	world.ReleaseObjectState(objectState)
 	if !errors.Is(err, world.ErrObjectExists) {
 		t.Fatalf("expected ErrObjectExists, got %v", err)
 	}
+
+	// Reject renaming a missing object.
 	var objectState2 world.ObjectState
 	objectState2, err = ws.RenameObject(ctx, "rename-missing", "rename-unused", false)
 	world.ReleaseObjectState(objectState2)
@@ -115,10 +126,12 @@ func TestWorldState_RenameObject(t *testing.T) {
 		t.Fatalf("expected ErrObjectNotFound, got %v", err)
 	}
 
+	// Commit the object rename.
 	if err := ws.Commit(ctx); err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Require the source key to disappear and the target key to exist.
 	{
 		objectState4, found, err := ws.GetObject(ctx, oldKey)
 		world.ReleaseObjectState(objectState4)
@@ -138,6 +151,7 @@ func TestWorldState_RenameObject(t *testing.T) {
 		}
 	}
 
+	// Require the old key to disappear from the graph.
 	oldSubj, err := ws.LookupGraphQuads(ctx, world.NewGraphQuad(oldValue, "", "", ""), 0)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -149,6 +163,8 @@ func TestWorldState_RenameObject(t *testing.T) {
 	if len(oldSubj) != 0 || len(oldObjQuads) != 0 {
 		t.Fatalf("expected no graph quads referencing old key")
 	}
+
+	// Require graph references to use the new key.
 	newSubj, err := ws.LookupGraphQuads(ctx, world.NewGraphQuad(newValue, "", "", ""), 0)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -161,6 +177,7 @@ func TestWorldState_RenameObject(t *testing.T) {
 		t.Fatalf("expected rewritten graph quads for new key, got subj=%d obj=%d", len(newSubj), len(newObjQuads))
 	}
 
+	// Require the changelog to record the old and new keys.
 	worldRoot, err := ws.GetRoot(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -182,27 +199,32 @@ func TestWorldState_RenameObject(t *testing.T) {
 // TestWorldState_RenameGitRepoWithWizardChildren tests renaming the parent
 // object shape created by the Git repository clone wizard.
 func TestWorldState_RenameGitRepoWithWizardChildren(t *testing.T) {
+	// Enable logs for the repository rename test.
 	ctx := context.Background()
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
 
+	// Open the repository rename testbed.
 	tb, err := testbed.NewTestbed(ctx, le)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Build the empty repository root cursor.
 	ocs, err := tb.BuildEmptyCursor(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	defer ocs.Release()
 
+	// Open the writable repository World.
 	ws, err := world_block.BuildMockWorldState(ctx, le, true, ocs, true)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Create the repository and its wizard children.
 	repoKey := "repo-1"
 	workdirKey := repoKey + "/workdir"
 	worktreeKey := repoKey + "/worktree"
@@ -215,6 +237,8 @@ func TestWorldState_RenameGitRepoWithWizardChildren(t *testing.T) {
 			}
 		}
 	}
+
+	// Assign object types and graph relationships to the repository.
 	if err := world_types.SetObjectType(ctx, ws, repoKey, git_world.GitRepoTypeID); err != nil {
 		t.Fatal(err.Error())
 	}
@@ -234,6 +258,7 @@ func TestWorldState_RenameGitRepoWithWizardChildren(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// Rename the repository with its descendants.
 	{
 		objectState, err := ws.RenameObject(ctx, repoKey, "myrepo", true)
 		world.ReleaseObjectState(objectState)
@@ -242,6 +267,7 @@ func TestWorldState_RenameGitRepoWithWizardChildren(t *testing.T) {
 		}
 	}
 
+	// Require every child to move under the new repository key.
 	for _, key := range []string{repoKey, workdirKey, worktreeKey} {
 		{
 			objectState2, found, err := ws.GetObject(ctx, key)

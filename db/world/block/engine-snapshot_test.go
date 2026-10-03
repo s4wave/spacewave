@@ -27,6 +27,7 @@ func TestReadTransactionKeepsRevision(t *testing.T) {
 			))
 		}
 		t.Run(name, func(t *testing.T) {
+			// Open a reader and a writer on the retirement engine.
 			ctx := t.Context()
 			engine := newRetirementTestEngine(t, ctx, options...)
 			reader, err := engine.NewBlockEngineTransaction(ctx, false)
@@ -39,6 +40,8 @@ func TestReadTransactionKeepsRevision(t *testing.T) {
 				t.Fatal(err)
 			}
 			defer writer.Discard()
+
+			// Create the later object and commit it.
 			object, err := writer.CreateObject(ctx, "snapshot/later", nil)
 			world.ReleaseObjectState(object)
 			if err != nil {
@@ -57,6 +60,8 @@ func TestReadTransactionKeepsRevision(t *testing.T) {
 			if err != nil || found {
 				t.Fatalf("original snapshot contains later object: found=%t err=%v", found, err)
 			}
+
+			// Fork the reader and require it to miss the later object.
 			fork, err := reader.Fork(ctx)
 			if err != nil {
 				t.Fatal(err)
@@ -68,6 +73,7 @@ func TestReadTransactionKeepsRevision(t *testing.T) {
 				t.Fatalf("fork advanced beyond its source snapshot: found=%t err=%v", found, err)
 			}
 
+			// Require a fresh transaction to see the committed object.
 			fresh, err := engine.NewTransaction(ctx, false)
 			if err != nil {
 				t.Fatal(err)
@@ -84,6 +90,7 @@ func TestReadTransactionKeepsRevision(t *testing.T) {
 
 // TestReadSnapshotWaitRev observes live acceptance without moving snapshot reads.
 func TestReadSnapshotWaitRev(t *testing.T) {
+	// Open a writer on the retirement engine.
 	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
 	defer cancel()
 	engine := newRetirementTestEngine(t, ctx)
@@ -91,6 +98,8 @@ func TestReadSnapshotWaitRev(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Create the watched object and commit it.
 	object, err := writer.CreateObject(ctx, "watched", nil)
 	world.ReleaseObjectState(object)
 	if err != nil {
@@ -101,6 +110,7 @@ func TestReadSnapshotWaitRev(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Open a reader and record the watched revision.
 	reader, err := engine.NewTransaction(ctx, false)
 	if err != nil {
 		t.Fatal(err)
@@ -128,11 +138,15 @@ func TestReadSnapshotWaitRev(t *testing.T) {
 		_, err := watch.WaitRev(ctx, before+1, false)
 		waited <- err
 	}()
+
+	// Open a writer for the revision increment.
 	writer, err = engine.NewTransaction(ctx, true)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer writer.Discard()
+
+	// Increment the watched object and commit it.
 	updated, _, err := writer.GetObject(ctx, "watched")
 	if err != nil {
 		t.Fatal(err)
@@ -148,6 +162,8 @@ func TestReadSnapshotWaitRev(t *testing.T) {
 	if err := <-waited; err != nil {
 		t.Fatal(err)
 	}
+
+	// Require the snapshot revision to stay put.
 	_, after, err := object.GetRootRef(ctx)
 	if err != nil || after != before {
 		t.Fatalf("wait advanced snapshot: before=%d after=%d err=%v", before, after, err)

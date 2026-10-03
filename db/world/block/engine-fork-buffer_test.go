@@ -21,6 +21,7 @@ type forkBufferRecordingStore struct {
 }
 
 func (s *forkBufferRecordingStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) error {
+	// Record the batch and delegate it to the store.
 	s.mu.Lock()
 	s.batchCalls++
 	s.batchEntries += len(entries)
@@ -47,10 +48,13 @@ func writeForkBufferTestBlock(
 	tx *Tx,
 	message string,
 ) *block.BlockRef {
+	// Attribute nested block write failures to the caller.
 	t.Helper()
 
+	// Write the example block through the World state.
 	var ref *block.BlockRef
 	err := tx.AccessWorldState(ctx, nil, func(cursor *bucket_lookup.Cursor) error {
+		// Write the example block and return its ref.
 		btx, bcs := cursor.BuildTransaction(nil)
 		bcs.SetBlock(block_mock.NewExample(message), true)
 		var err error
@@ -64,22 +68,26 @@ func writeForkBufferTestBlock(
 }
 
 func TestForkBlockTransactionBuffersNestedWritesUntilSync(t *testing.T) {
+	// Open a retirement engine and record its write store.
 	ctx := t.Context()
 	engine := newRetirementTestEngine(t, ctx)
 	recording := &forkBufferRecordingStore{StoreOps: engine.writeBlockStore}
 	engine.writeBlockStore = recording
 
+	// Fork a write transaction.
 	tx, err := engine.ForkBlockTransaction(ctx, true)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer tx.Discard()
 
+	// Require the nested write to stay buffered.
 	ref := writeForkBufferTestBlock(ctx, t, tx, "nested buffered block")
 	if batches, _, _ := recording.counts(); batches != 0 {
 		t.Fatalf("lower store batches before commit: got %d want 0", batches)
 	}
 
+	// Read the buffered block back from the transaction.
 	if err := tx.AccessWorldState(ctx, &bucket.ObjectRef{RootRef: ref}, func(cursor *bucket_lookup.Cursor) error {
 		_, bcs := cursor.BuildTransaction(nil)
 		got, err := block_mock.UnmarshalExample(ctx, bcs)
@@ -91,6 +99,7 @@ func TestForkBlockTransactionBuffersNestedWritesUntilSync(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Commit the fork and require the write to stay buffered.
 	if _, err := tx.CommitBlockTransaction(ctx); err != nil {
 		t.Fatal(err)
 	}
@@ -98,6 +107,7 @@ func TestForkBlockTransactionBuffersNestedWritesUntilSync(t *testing.T) {
 		t.Fatalf("lower store batches before Sync: got %d want 0", batches)
 	}
 
+	// Sync the fork and require one batch and one sync.
 	if _, err := tx.Sync(ctx); err != nil {
 		t.Fatal(err)
 	}
@@ -114,11 +124,13 @@ func TestForkBlockTransactionBuffersNestedWritesUntilSync(t *testing.T) {
 }
 
 func TestForkBlockTransactionDiscardDropsNestedWrites(t *testing.T) {
+	// Open a retirement engine and record its write store.
 	ctx := t.Context()
 	engine := newRetirementTestEngine(t, ctx)
 	recording := &forkBufferRecordingStore{StoreOps: engine.writeBlockStore}
 	engine.writeBlockStore = recording
 
+	// Fork a transaction, write a block, and discard it.
 	tx, err := engine.ForkBlockTransaction(ctx, true)
 	if err != nil {
 		t.Fatal(err)
@@ -126,6 +138,7 @@ func TestForkBlockTransactionDiscardDropsNestedWrites(t *testing.T) {
 	writeForkBufferTestBlock(ctx, t, tx, "discarded buffered block")
 	tx.Discard()
 
+	// Sync the engine and require the discarded write to be gone.
 	if _, err := engine.Sync(ctx); err != nil {
 		t.Fatal(err)
 	}
@@ -136,17 +149,20 @@ func TestForkBlockTransactionDiscardDropsNestedWrites(t *testing.T) {
 }
 
 func TestForkBlockTransactionFlushWritesWithoutSync(t *testing.T) {
+	// Open a retirement engine and record its write store.
 	ctx := t.Context()
 	engine := newRetirementTestEngine(t, ctx)
 	recording := &forkBufferRecordingStore{StoreOps: engine.writeBlockStore}
 	engine.writeBlockStore = recording
 
+	// Fork a write transaction.
 	tx, err := engine.ForkBlockTransaction(ctx, true)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer tx.Discard()
 
+	// Flush the committed fork and require a batch without a sync.
 	writeForkBufferTestBlock(ctx, t, tx, "flushed buffered block")
 	if _, err := tx.CommitBlockTransaction(ctx); err != nil {
 		t.Fatal(err)

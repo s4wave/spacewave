@@ -10,12 +10,14 @@ import (
 // GetObject looks up an object by key.
 // Returns nil, false if not found.
 func (t *Tx) GetObject(ctx context.Context, key string) (world.ObjectState, bool, error) {
+	// Lock the transaction for the object read.
 	unlock, err := t.rmtx.Lock(ctx, false)
 	if err != nil {
 		return nil, false, err
 	}
 	defer unlock()
 
+	// Load the object and wrap it.
 	cobj, ok, err := t.state.GetObject(ctx, key)
 	if err != nil || !ok || cobj == nil {
 		world.ReleaseObjectState(cobj)
@@ -39,12 +41,14 @@ func (t *Tx) IterateObjects(ctx context.Context, prefix string, reversed bool) w
 // CreateObject creates a object with a key and initial root ref.
 // Returns ErrObjectExists if the object already exists.
 func (t *Tx) CreateObject(ctx context.Context, key string, rootRef *bucket.ObjectRef) (world.ObjectState, error) {
+	// Lock the transaction for the object create.
 	unlock, err := t.rmtx.Lock(ctx, true)
 	if err != nil {
 		return nil, err
 	}
 	defer unlock()
 
+	// Create the object and wrap it.
 	cobj, err := t.state.CreateObject(ctx, key, rootRef)
 	if err != nil || cobj == nil {
 		world.ReleaseObjectState(cobj)
@@ -55,12 +59,14 @@ func (t *Tx) CreateObject(ctx context.Context, key string, rootRef *bucket.Objec
 
 // RenameObject renames an object key and updates associated graph quads.
 func (t *Tx) RenameObject(ctx context.Context, oldKey, newKey string, descendants bool) (world.ObjectState, error) {
+	// Lock the transaction for the rename.
 	unlock, err := t.rmtx.Lock(ctx, true)
 	if err != nil {
 		return nil, err
 	}
 	defer unlock()
 
+	// Rename the object and wrap the result.
 	cobj, err := t.state.RenameObject(ctx, oldKey, newKey, descendants)
 	if err != nil || cobj == nil {
 		world.ReleaseObjectState(cobj)

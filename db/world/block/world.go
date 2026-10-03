@@ -88,9 +88,11 @@ func NewWorldState(
 	lookupOp world.LookupOp,
 	verbose bool,
 ) (*WorldState, error) {
+	// Start the World-state trace.
 	ctx, task := trace.NewTask(ctx, "hydra/world-block/world-state/new")
 	defer task.End()
 
+	// Build the World state and load it from the block transaction.
 	_, subtask := trace.NewTask(ctx, "hydra/world-block/world-state/new/init-struct")
 	tx := &WorldState{
 		btx:     btx,
@@ -262,6 +264,7 @@ func (t *WorldState) WaitSeqno(ctx context.Context, value uint64) (uint64, error
 // The cursor should be released independently of the WorldState.
 // Be sure to call Release on the cursor when done.
 func (t *WorldState) BuildStorageCursor(ctx context.Context) (*bucket_lookup.Cursor, error) {
+	// Build a storage cursor and attach the transaction store.
 	storage := t.storage
 	if storage == nil {
 		return nil, world.ErrWorldStorageUnavailable
@@ -305,6 +308,7 @@ func (t *WorldState) ApplyWorldOp(
 	op world.Operation,
 	opSender peer.ID,
 ) (uint64, bool, error) {
+	// Reject an empty or discarded operation.
 	if op == nil {
 		return 0, false, world.ErrEmptyOp
 	}
@@ -312,18 +316,22 @@ func (t *WorldState) ApplyWorldOp(
 		return 0, false, tx.ErrDiscarded
 	}
 
+	// Validate the world operation.
 	if err := op.Validate(); err != nil {
 		return 0, false, err
 	}
 
+	// Cancel the apply context when the operation returns.
 	ctx, subCtxCancel := context.WithCancel(rctx)
 	defer subCtxCancel()
 
+	// Apply the world operation.
 	sysErr, err := op.ApplyWorldOp(ctx, t.le, t, opSender)
 	if err != nil {
 		return 0, sysErr, err
 	}
 
+	// Read the sequence number after the operation.
 	seq, err := t.GetSeqno(ctx)
 	if err != nil {
 		return 0, true, err
@@ -395,9 +403,11 @@ func (t *WorldState) setBlockTransaction(
 	btx *block.Transaction,
 	bcs *block.Cursor,
 ) error {
+	// Start the block-transaction trace.
 	ctx, task := trace.NewTask(ctx, "hydra/world-block/world-state/set-block-transaction")
 	defer task.End()
 
+	// Unmarshal the World root.
 	taskCtx, subtask := trace.NewTask(ctx, "hydra/world-block/world-state/set-block-transaction/unmarshal-root")
 	root, err := block.UnmarshalBlock[*World](taskCtx, bcs, NewWorldBlock)
 	subtask.End()
@@ -405,6 +415,7 @@ func (t *WorldState) setBlockTransaction(
 		return err
 	}
 
+	// Build the object tree.
 	taskCtx, subtask = trace.NewTask(ctx, "hydra/world-block/world-state/set-block-transaction/build-object-tree")
 	objTree, err := t.buildObjectTree(taskCtx, bcs)
 	subtask.End()
@@ -412,6 +423,7 @@ func (t *WorldState) setBlockTransaction(
 		return err
 	}
 
+	// Build the graph tree.
 	taskCtx, subtask = trace.NewTask(ctx, "hydra/world-block/world-state/set-block-transaction/build-graph-tree")
 	graphTree, graphHandle, err := t.buildGraphTree(taskCtx, bcs)
 	subtask.End()
@@ -419,6 +431,7 @@ func (t *WorldState) setBlockTransaction(
 		return err
 	}
 
+	// Swap in the rebuilt trees and drop the object memo.
 	_, subtask = trace.NewTask(ctx, "hydra/world-block/world-state/set-block-transaction/swap-handles")
 	t.btx, t.bcs = btx, bcs
 	if t.graphHd != nil {
@@ -431,10 +444,12 @@ func (t *WorldState) setBlockTransaction(
 		t.objTree.Discard()
 	}
 	t.objTree, t.graphTree, t.graphHd = objTree, graphTree, graphHandle
+
 	// The rebuilt block state supersedes any transaction-local object memo.
 	t.objectExistsMemo = nil
 	subtask.End()
 
+	// Update the sequence number from the new root.
 	_, subtask = trace.NewTask(ctx, "hydra/world-block/world-state/set-block-transaction/update-seqno")
 	t.updateSeqno(root)
 	subtask.End()
@@ -535,9 +550,11 @@ func (t *WorldState) buildObjectTree(ctx context.Context, bcs *block.Cursor) (kv
 
 // buildGraphTree builds the graph tree (kv storage) handle.
 func (t *WorldState) buildGraphTree(ctx context.Context, bcs *block.Cursor) (kvtx.BlockTx, *cayley.Handle, error) {
+	// Start the graph-tree trace.
 	ctx, task := trace.NewTask(ctx, "hydra/world-block/world-state/build-graph-tree")
 	defer task.End()
 
+	// Build the graph key-value transaction.
 	taskCtx, subtask := trace.NewTask(ctx, "hydra/world-block/world-state/build-graph-tree/build-kv-transaction")
 	ktx, err := kvtx_block.BuildKvTransaction(taskCtx, bcs.FollowSubBlock(2), true)
 	subtask.End()
@@ -545,6 +562,7 @@ func (t *WorldState) buildGraphTree(ctx context.Context, bcs *block.Cursor) (kvt
 		return nil, nil, err
 	}
 
+	// Wrap the graph transaction in a verbose logger when requested.
 	if t.verbose {
 		ktx = kvtx_vlogger.NewBlockTx(t.le, ktx)
 	}
@@ -552,9 +570,11 @@ func (t *WorldState) buildGraphTree(ctx context.Context, bcs *block.Cursor) (kvt
 	// makes frequent NewTx() Get() Discard() calls
 	// back it all w/ a single transaction
 	graphOpts := make(graph.Options, 1)
+
 	// disable custom indexes: use the default set
 	// reduces the number of Get calls to zero
 	graphOpts[cayley_kv.OptAssumeDefaultIdx] = true
+
 	// NOTE: the ctx is used here for internal hidalgo k/v transactions!
 	// it must not be canceled while WorldState is in use!
 	taskCtx, subtask = trace.NewTask(ctx, "hydra/world-block/world-state/build-graph-tree/new-graph-handle")

@@ -31,6 +31,7 @@ func (t *WorldState) GetObjectRootRefsBatch(ctx context.Context, keys []string) 
 }
 
 func (t *WorldState) getObjectRootRef(ctx context.Context, key string) (*Object, bool, error) {
+	// Read the object block at the key and return it.
 	ot := t.objTree
 	k := []byte(objectKeyPrefix + key)
 	bcs, err := ot.GetCursorAtKey(ctx, k)

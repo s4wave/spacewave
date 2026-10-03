@@ -45,6 +45,7 @@ type sessionPublisher struct {
 }
 
 func (p *sessionPublisher) arm(t *testing.T, err error) *sessionGate {
+	// Install a gate and open it when the test ends.
 	t.Helper()
 	g := &sessionGate{entered: make(chan struct{}), release: make(chan struct{}), err: err}
 	p.mu.Lock()
@@ -55,6 +56,7 @@ func (p *sessionPublisher) arm(t *testing.T, err error) *sessionGate {
 }
 
 func (p *sessionPublisher) SubmitAtomic(ctx context.Context, publication *block.AtomicPublication) (*block.PublicationReceipt, error) {
+	// Take the gate and submit the publication.
 	p.mu.Lock()
 	g, unsupported := p.gate, p.unsupported
 	p.gate = nil
@@ -66,6 +68,7 @@ func (p *sessionPublisher) SubmitAtomic(ctx context.Context, publication *block.
 		copy := *publication
 		validate := publication.Validate
 		copy.Validate = func(ctx context.Context, store block.StoreOps) error {
+			// Wait for the gate, then run the original validation.
 			close(g.entered)
 			select {
 			case <-g.release:
@@ -95,6 +98,7 @@ type sessionFixture struct {
 }
 
 func newSessionFixture(t *testing.T) *sessionFixture {
+	// Open a quiet testbed.
 	t.Helper()
 	ctx := t.Context()
 	log := logrus.New()
@@ -106,6 +110,8 @@ func newSessionFixture(t *testing.T) *sessionFixture {
 		t.Fatal(err)
 	}
 	t.Cleanup(tb.Release)
+
+	// Build an empty cursor and require atomic publication.
 	cursor, err := tb.BuildEmptyCursor(ctx)
 	if err != nil {
 		t.Fatal(err)
@@ -115,6 +121,8 @@ func newSessionFixture(t *testing.T) *sessionFixture {
 	if !ok || !publisher.SupportsAtomicPublication() {
 		t.Fatal("native synced bucket must support publication")
 	}
+
+	// Open the session-head store and require durable Bolt.
 	store, rel, err := tb.Volume.AccessObjectStore(ctx, "session-head", nil)
 	if err != nil {
 		t.Fatal(err)
@@ -124,7 +132,10 @@ func newSessionFixture(t *testing.T) *sessionFixture {
 	if f.db == nil || f.db.NoSync || f.db.NoFreelistSync {
 		t.Fatal("test requires durable native Bolt")
 	}
+
+	// Define the head callbacks and open the session engine.
 	f.load = func(ctx context.Context) (*bucket.ObjectRef, error) {
+		// Read the durable head ref from the object store.
 		tx, err := store.NewTransaction(ctx, false)
 		if err != nil {
 			return nil, err
@@ -158,6 +169,7 @@ func newSessionFixture(t *testing.T) *sessionFixture {
 		}}
 	}
 	legacy := func(ctx context.Context, base, next *bucket.ObjectRef) error {
+		// Open a write transaction on the head store.
 		f.legacy.Add(1)
 		tx, err := store.NewTransaction(ctx, true)
 		if err != nil {
@@ -168,6 +180,8 @@ func newSessionFixture(t *testing.T) *sessionFixture {
 		if err != nil {
 			return err
 		}
+
+		// Replace the head and commit it.
 		data, err = head(base, next).Replace(ctx, data, found)
 		if err != nil {
 			return err
@@ -192,6 +206,7 @@ func newSessionFixture(t *testing.T) *sessionFixture {
 }
 
 func sessionWriter(t *testing.T, f *sessionFixture) *EngineTx {
+	// Open a write transaction and discard it when the test ends.
 	t.Helper()
 	ctx, cancel := context.WithTimeout(t.Context(), 3*time.Second)
 	defer cancel()
@@ -204,6 +219,7 @@ func sessionWriter(t *testing.T, f *sessionFixture) *EngineTx {
 }
 
 func sessionObject(t *testing.T, w *EngineTx, key string) (*bucket_lookup.Cursor, *bucket.ObjectRef) {
+	// Write the example block and release the cursor when the test ends.
 	t.Helper()
 	c, err := w.BuildStorageCursor(t.Context())
 	if err != nil {
@@ -216,6 +232,8 @@ func sessionObject(t *testing.T, w *EngineTx, key string) (*bucket_lookup.Cursor
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Create the object at the written root.
 	next := c.GetRef().Clone()
 	next.RootRef = ref
 	obj, err := w.CreateObject(t.Context(), key, next)
@@ -227,6 +245,7 @@ func sessionObject(t *testing.T, w *EngineTx, key string) (*bucket_lookup.Cursor
 }
 
 func sessionSubmit(t *testing.T, w *EngineTx) world.CommitReceipt {
+	// Submit the write transaction.
 	t.Helper()
 	ctx, cancel := context.WithTimeout(t.Context(), 3*time.Second)
 	defer cancel()
@@ -262,6 +281,7 @@ func sessionEntered(t *testing.T, g *sessionGate) {
 }
 
 func TestEngineSessionRunAheadGroupsWithoutPublishingPrivateHead(t *testing.T) {
+	// Submit the first object and hold publication.
 	f := newSessionFixture(t)
 	initial := f.engine.GetRootRef()
 	g := f.publisher.arm(t, nil)
@@ -272,6 +292,8 @@ func TestEngineSessionRunAheadGroupsWithoutPublishingPrivateHead(t *testing.T) {
 	sessionObject(t, first, "one")
 	r1 := sessionSubmit(t, first)
 	sessionEntered(t, g)
+
+	// Submit a second object that links to the first.
 	second := sessionWriter(t, f)
 	sessionHas(t, second, "one", true)
 	sessionObject(t, second, "two")
@@ -279,6 +301,8 @@ func TestEngineSessionRunAheadGroupsWithoutPublishingPrivateHead(t *testing.T) {
 		t.Fatal(err)
 	}
 	r2 := sessionSubmit(t, second)
+
+	// Require the private head to stay hidden from a reader.
 	for _, r := range []world.CommitReceipt{r1, r2} {
 		select {
 		case <-r.Done():
@@ -299,6 +323,8 @@ func TestEngineSessionRunAheadGroupsWithoutPublishingPrivateHead(t *testing.T) {
 	defer reader.Discard()
 	sessionHas(t, reader, "one", false)
 	sessionHas(t, reader, "two", false)
+
+	// Release the gate and require one physical commit.
 	g.open()
 	if err := sessionWait(t, r1); err != nil {
 		t.Fatal(err)
@@ -311,6 +337,8 @@ func TestEngineSessionRunAheadGroupsWithoutPublishingPrivateHead(t *testing.T) {
 	}).GetPublicationStats().PhysicalCommits - before; n != 1 {
 		t.Fatalf("two revisions used %d physical commits, want 1", n)
 	}
+
+	// Read the published objects.
 	reader2, err := f.engine.NewBlockEngineTransaction(t.Context(), false)
 	if err != nil {
 		t.Fatal(err)
@@ -318,6 +346,8 @@ func TestEngineSessionRunAheadGroupsWithoutPublishingPrivateHead(t *testing.T) {
 	defer reader2.Discard()
 	sessionHas(t, reader2, "one", true)
 	sessionHas(t, reader2, "two", true)
+
+	// Require both objects and their graph edge.
 	qs, err := reader2.LookupGraphQuads(t.Context(), world.NewGraphQuadWithKeys("one", "next", "two", ""), 0)
 	if err != nil || len(qs) != 1 {
 		t.Fatalf("relationship lost: %v %v", qs, err)
@@ -325,12 +355,15 @@ func TestEngineSessionRunAheadGroupsWithoutPublishingPrivateHead(t *testing.T) {
 }
 
 func TestEngineSessionCompletionPreservesActiveSuccessor(t *testing.T) {
+	// Hold the first publication in preflight.
 	f := newSessionFixture(t)
 	g := f.publisher.arm(t, nil)
 	first := sessionWriter(t, f)
 	sessionObject(t, first, "one")
 	r := sessionSubmit(t, first)
 	sessionEntered(t, g)
+
+	// Open a successor and complete the first publication.
 	second := sessionWriter(t, f)
 	sessionObject(t, second, "two")
 	g.open()
@@ -343,6 +376,8 @@ func TestEngineSessionCompletionPreservesActiveSuccessor(t *testing.T) {
 	if retainsBatch {
 		t.Fatal("completed publication retained returned data borrow")
 	}
+
+	// Require the successor to commit both objects.
 	sessionHas(t, second, "one", true)
 	sessionHas(t, second, "two", true)
 	if err := second.Commit(t.Context()); err != nil {
@@ -351,6 +386,7 @@ func TestEngineSessionCompletionPreservesActiveSuccessor(t *testing.T) {
 }
 
 func TestEngineSessionFailureInvalidatesDescendantsAndRetainsCursorForRetry(t *testing.T) {
+	// Submit the first object and open a dependent writer.
 	f := newSessionFixture(t)
 	failure := errors.New("reject prepared candidate")
 	g := f.publisher.arm(t, failure)
@@ -359,6 +395,8 @@ func TestEngineSessionFailureInvalidatesDescendantsAndRetainsCursorForRetry(t *t
 	r1 := sessionSubmit(t, first)
 	sessionEntered(t, g)
 	second := sessionWriter(t, f)
+
+	// Submit dependents and require the first publication to fail.
 	sessionObject(t, second, "two")
 	r2 := sessionSubmit(t, second)
 	third := sessionWriter(t, f)
@@ -367,6 +405,8 @@ func TestEngineSessionFailureInvalidatesDescendantsAndRetainsCursorForRetry(t *t
 	if err := sessionWait(t, r1); !errors.Is(err, failure) {
 		t.Fatalf("first result: %v", err)
 	}
+
+	// Require dependents to be discarded without a durable head.
 	if err := sessionWait(t, r2); !errors.Is(err, block.ErrPublicationDependency) {
 		t.Fatalf("dependent result: %v", err)
 	}
@@ -379,6 +419,8 @@ func TestEngineSessionFailureInvalidatesDescendantsAndRetainsCursorForRetry(t *t
 	if f.legacy.Load() != 0 {
 		t.Fatal("failure retried through legacy publication")
 	}
+
+	// Require the retained cursor to still hold the payload.
 	retained, err := cursor.FollowRef(t.Context(), body)
 	if err != nil {
 		t.Fatal(err)
@@ -389,6 +431,8 @@ func TestEngineSessionFailureInvalidatesDescendantsAndRetainsCursorForRetry(t *t
 	if err != nil || got.GetMsg() != "payload one" {
 		t.Fatalf("retained cursor lost bytes: %v %v", got, err)
 	}
+
+	// Retry the retained root on a new writer.
 	retry := sessionWriter(t, f)
 	obj, err := retry.CreateObject(t.Context(), "retry", body)
 	world.ReleaseObjectState(obj)
@@ -401,6 +445,7 @@ func TestEngineSessionFailureInvalidatesDescendantsAndRetainsCursorForRetry(t *t
 }
 
 func TestEngineSessionCommitCancellationDoesNotAbandonAcceptedWrite(t *testing.T) {
+	// Start a commit and hold it in preflight.
 	f := newSessionFixture(t)
 	g := f.publisher.arm(t, nil)
 	writer := sessionWriter(t, f)
@@ -409,6 +454,8 @@ func TestEngineSessionCommitCancellationDoesNotAbandonAcceptedWrite(t *testing.T
 	defer cancel()
 	done := make(chan error, 1)
 	go func() { done <- writer.Commit(ctx) }()
+
+	// Cancel the commit and read the accepted object.
 	sessionEntered(t, g)
 	cancel()
 	select {
@@ -431,6 +478,7 @@ func TestEngineSessionCommitCancellationDoesNotAbandonAcceptedWrite(t *testing.T
 }
 
 func TestEngineSessionCloseJoinsAcceptedPublication(t *testing.T) {
+	// Submit an object and open a successor.
 	f := newSessionFixture(t)
 	g := f.publisher.arm(t, nil)
 	writer := sessionWriter(t, f)
@@ -439,6 +487,8 @@ func TestEngineSessionCloseJoinsAcceptedPublication(t *testing.T) {
 	sessionEntered(t, g)
 	successor := sessionWriter(t, f)
 	sessionObject(t, successor, "two")
+
+	// Start two Close calls and require them to wait.
 	done := make(chan error, 2)
 	go func() { done <- f.engine.Close() }()
 	go func() { done <- f.engine.Close() }()
@@ -452,6 +502,8 @@ func TestEngineSessionCloseJoinsAcceptedPublication(t *testing.T) {
 		t.Fatalf("Close returned before receipt: %v", err)
 	default:
 	}
+
+	// Open the gate and require Close to finish.
 	g.open()
 	if err := sessionWait(t, r); err != nil {
 		t.Fatal(err)
@@ -475,6 +527,7 @@ func TestEngineSessionCloseJoinsAcceptedPublication(t *testing.T) {
 }
 
 func TestEngineSessionBoundedAdmissionAndSyncFence(t *testing.T) {
+	// Fill the publication queue and hold the first one.
 	f := newSessionFixture(t)
 	g := f.publisher.arm(t, nil)
 	var receipts []world.CommitReceipt
@@ -486,6 +539,8 @@ func TestEngineSessionBoundedAdmissionAndSyncFence(t *testing.T) {
 			sessionEntered(t, g)
 		}
 	}
+
+	// Require a new writer to wait for admission.
 	ctx, cancel := context.WithTimeout(t.Context(), 20*time.Millisecond)
 	w, err := f.engine.NewBlockEngineTransaction(ctx, true)
 	cancel()
@@ -495,12 +550,16 @@ func TestEngineSessionBoundedAdmissionAndSyncFence(t *testing.T) {
 	if !errors.Is(err, context.DeadlineExceeded) {
 		t.Fatalf("bounded admission: %v", err)
 	}
+
+	// Require Sync to wait for the undurable fence.
 	ctx, cancel = context.WithTimeout(t.Context(), 20*time.Millisecond)
 	_, err = f.engine.Sync(ctx)
 	cancel()
 	if !errors.Is(err, context.DeadlineExceeded) {
 		t.Fatalf("Sync crossed undurable fence: %v", err)
 	}
+
+	// Release the queue and require the session to clear.
 	g.open()
 	for _, r := range receipts {
 		if err := sessionWait(t, r); err != nil {
@@ -519,6 +578,7 @@ func TestEngineSessionBoundedAdmissionAndSyncFence(t *testing.T) {
 }
 
 func TestEngineSessionOnlyUnsupportedFallsBack(t *testing.T) {
+	// Mark publication unsupported and commit through the legacy path.
 	f := newSessionFixture(t)
 	f.publisher.mu.Lock()
 	f.publisher.unsupported = true
@@ -531,6 +591,8 @@ func TestEngineSessionOnlyUnsupportedFallsBack(t *testing.T) {
 	if f.legacy.Load() != 1 {
 		t.Fatal("unsupported capability did not use legacy CAS")
 	}
+
+	// Read the committed object back.
 	reader, err := f.engine.NewBlockEngineTransaction(t.Context(), false)
 	if err != nil {
 		t.Fatal(err)
@@ -540,6 +602,7 @@ func TestEngineSessionOnlyUnsupportedFallsBack(t *testing.T) {
 }
 
 func TestEngineSessionSyncFencesRetainedConstructionWithoutPublishingHead(t *testing.T) {
+	// Stage a construction block on the engine.
 	f := newSessionFixture(t)
 	initial := f.engine.GetRootRef()
 	cursor, err := f.engine.BuildStorageCursor(t.Context())
@@ -551,6 +614,8 @@ func TestEngineSessionSyncFencesRetainedConstructionWithoutPublishingHead(t *tes
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Fence the staged block without publishing the head.
 	if found, err := f.engine.writeBlockStore.GetBlockExists(t.Context(), ref); err != nil || found {
 		t.Fatalf("construction bypassed staging: %v %v", found, err)
 	}

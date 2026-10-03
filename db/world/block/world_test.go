@@ -31,22 +31,26 @@ import (
 
 // TestWorldEngine performs a simple test of operations against world engine.
 func TestWorldEngine(t *testing.T) {
+	// Prepare the context and logger for the block World test.
 	ctx := context.Background()
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
 
+	// Start the storage testbed for the block World.
 	tb, err := testbed.NewTestbed(ctx, le)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Open an empty storage cursor for the World root.
 	ocs, err := tb.BuildEmptyCursor(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	defer ocs.Release()
 
+	// Create the engine over the storage cursor.
 	eng, err := world_block.NewEngine(
 		ctx,
 		le,
@@ -70,20 +74,24 @@ func TestWorldEngine(t *testing.T) {
 }
 
 func TestWorldEngineCloseReleasesReadState(t *testing.T) {
+	// Prepare the context and logger for the block World test.
 	ctx := context.Background()
 	log := logrus.New()
 	le := logrus.NewEntry(log)
 
+	// Start the storage testbed for the block World.
 	tb, err := testbed.NewTestbed(ctx, le)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Open an empty storage cursor for the World root.
 	ocs, err := tb.BuildEmptyCursor(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Create the engine over the storage cursor.
 	eng, err := world_block.NewEngine(
 		ctx,
 		le,
@@ -95,12 +103,16 @@ func TestWorldEngineCloseReleasesReadState(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Close the engine twice to verify idempotent teardown.
 	if err := eng.Close(); err != nil {
 		t.Fatal(err.Error())
 	}
 	if err := eng.Close(); err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Require closed engine APIs to reject new storage reads.
 	if _, err := eng.NewTransaction(ctx, false); err == nil {
 		t.Fatal("expected closed engine to reject read transaction")
 	}
@@ -113,10 +125,12 @@ func TestWorldEngineCloseReleasesReadState(t *testing.T) {
 }
 
 func TestObjectGetSubBlocksExposesRootRefForExtraction(t *testing.T) {
+	// Build an object whose root reference must remain discoverable.
 	rootRef := worldTestBlockRef(t, "world-object-root-ref")
 	objRoot := &bucket.ObjectRef{RootRef: rootRef}
 	obj := world_block.NewObject("object-with-root", objRoot)
 
+	// Verify the object exposes its root as sub-block field 2.
 	subBlocks := obj.GetSubBlocks()
 	sub, ok := subBlocks[2]
 	if !ok {
@@ -130,6 +144,7 @@ func TestObjectGetSubBlocksExposesRootRefForExtraction(t *testing.T) {
 		t.Fatalf("object sub-block root = %s, want %s", gotRoot.GetRootRef().MarshalString(), rootRef.MarshalString())
 	}
 
+	// Extract the object references and verify the root is retained.
 	refs, err := block.ExtractBlockRefs(obj)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -153,26 +168,31 @@ func worldTestBlockRef(t *testing.T, data string) *block.BlockRef {
 
 // TestWorldState_GetObjectMetadataBatch checks batched parent+type lookup behavior.
 func TestWorldState_GetObjectMetadataBatch(t *testing.T) {
+	// Prepare the context and logger for the block World test.
 	ctx := context.Background()
 	log := logrus.New()
 	le := logrus.NewEntry(log)
 
+	// Start the storage testbed for the block World.
 	tb, err := testbed.NewTestbed(ctx, le)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Open an empty storage cursor for the World root.
 	ocs, err := tb.BuildEmptyCursor(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	defer ocs.Release()
 
+	// Open a writable block World over the storage cursor.
 	ws, err := world_block.BuildMockWorldState(ctx, le, true, ocs, false)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Create the parent and children used by the metadata lookup.
 	oref := &bucket.ObjectRef{BucketId: "test-bucket"}
 	for _, key := range []string{"parent", "child-a", "child-b", "child-c"} {
 		{
@@ -184,6 +204,7 @@ func TestWorldState_GetObjectMetadataBatch(t *testing.T) {
 		}
 	}
 
+	// Assign child types and the parent relationship.
 	if err := world_types.SetObjectType(ctx, ws, "child-a", "type/a"); err != nil {
 		t.Fatal(err.Error())
 	}
@@ -194,10 +215,12 @@ func TestWorldState_GetObjectMetadataBatch(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// Commit the child metadata before reading it back.
 	if err := ws.Commit(ctx); err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Read metadata in an order that includes a duplicate child.
 	mds, err := world_types.GetObjectMetadataBatch(ctx, ws, []string{"child-b", "child-c", "child-a", "child-a"})
 	if err != nil {
 		t.Fatal(err.Error())
@@ -206,6 +229,7 @@ func TestWorldState_GetObjectMetadataBatch(t *testing.T) {
 		t.Fatalf("expected 4 metadata results, got %d", len(mds))
 	}
 
+	// Define the metadata assertion for each lookup result.
 	checkMetadata := func(md *world_types.ObjectMetadata, key, typeID, parentKey string) {
 		if md.ObjectKey != key || md.TypeID != typeID || md.ParentObjectKey != parentKey {
 			t.Fatalf(
@@ -218,6 +242,7 @@ func TestWorldState_GetObjectMetadataBatch(t *testing.T) {
 		}
 	}
 
+	// Verify ordered metadata results and duplicate preservation.
 	checkMetadata(mds[0], "child-b", "type/b", "")
 	checkMetadata(mds[1], "child-c", "", "")
 	checkMetadata(mds[2], "child-a", "type/a", "parent")
@@ -237,27 +262,33 @@ func TestWorldStateExplicitKVImplCompatibility(t *testing.T) {
 }
 
 func TestWorldStateDefaultGraphKVTXUsesOkra(t *testing.T) {
+	// Prepare the context and logger for the block World test.
 	ctx := context.Background()
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
 
+	// Start the storage testbed for the block World.
 	tb, err := testbed.NewTestbed(ctx, le)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Open an empty storage cursor for the World root.
 	ocs, err := tb.BuildEmptyCursor(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	defer ocs.Release()
 
+	// Open a writable block World over the storage cursor.
 	ws, err := world_block.BuildMockWorldState(ctx, le, true, ocs, false)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	defer ws.Discard()
 
+	// Create objects for the default graph store round trip.
 	oref := &bucket.ObjectRef{BucketId: "test-bucket"}
 	{
 		createdObject, err := ws.CreateObject(ctx, "default/a", oref)
@@ -273,15 +304,20 @@ func TestWorldStateDefaultGraphKVTXUsesOkra(t *testing.T) {
 			t.Fatal(err.Error())
 		}
 	}
+
+	// Connect the default objects with a graph edge.
 	quad := world.NewGraphQuadWithKeys("default/a", "<default-rel>", "default/b", "")
 	if err := ws.SetGraphQuad(ctx, quad); err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Commit the default stores and publish their root.
 	if err := ws.Commit(ctx); err != nil {
 		t.Fatal(err.Error())
 	}
 	ocs.SetRootRef(ws.GetRootRef())
 
+	// Verify the default object and graph storage implementations.
 	writtenRoot, err := ws.GetRoot(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -289,11 +325,14 @@ func TestWorldStateDefaultGraphKVTXUsesOkra(t *testing.T) {
 	assertWorldStoreImpl(t, "object", writtenRoot.GetObjectKeyValue(), kvtx_block.KVImplType_KV_IMPL_TYPE_IAVL)
 	assertWorldStoreImpl(t, "graph", writtenRoot.GetGraphKeyValue(), kvtx_block.KVImplType_KV_IMPL_TYPE_OKRA_INLINE)
 
+	// Reopen the committed World for graph readback.
 	readWS, err := world_block.BuildMockWorldState(ctx, le, false, ocs, false)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	defer readWS.Discard()
+
+	// Verify the graph edge survives the default store round trip.
 	quads, err := readWS.LookupGraphQuads(ctx, world.NewGraphQuadWithKeys("default/a", "<default-rel>", "", ""), 0)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -304,21 +343,26 @@ func TestWorldStateDefaultGraphKVTXUsesOkra(t *testing.T) {
 }
 
 func testWorldStateExplicitKVImplCompatibility(t *testing.T, impl kvtx_block.KVImplType) {
+	// Prepare the context and logger for the block World test.
 	ctx := context.Background()
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
 
+	// Start the storage testbed for the block World.
 	tb, err := testbed.NewTestbed(ctx, le)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Open an empty storage cursor for the World root.
 	ocs, err := tb.BuildEmptyCursor(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	defer ocs.Release()
 
+	// Write a World root with the requested storage implementation.
 	btx, bcs := ocs.BuildTransaction(nil)
 	root := world_block.NewWorld(false)
 	root.ObjectKeyValue = kvtx_block.NewKeyValueStore(impl)
@@ -330,12 +374,14 @@ func testWorldStateExplicitKVImplCompatibility(t *testing.T, impl kvtx_block.KVI
 	}
 	ocs.SetRootRef(rootRef)
 
+	// Open a writable block World over the storage cursor.
 	ws, err := world_block.BuildMockWorldState(ctx, le, true, ocs, false)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	defer ws.Discard()
 
+	// Create objects for the explicit storage round trip.
 	oref := &bucket.ObjectRef{BucketId: "test-bucket"}
 	{
 		createdObject, err := ws.CreateObject(ctx, "explicit/a", oref)
@@ -351,6 +397,8 @@ func testWorldStateExplicitKVImplCompatibility(t *testing.T, impl kvtx_block.KVI
 			t.Fatal(err.Error())
 		}
 	}
+
+	// Verify the first explicit object can be read before commit.
 	{
 		objectState, err := world.MustGetObject(ctx, ws, "explicit/a")
 		world.ReleaseObjectState(objectState)
@@ -358,23 +406,31 @@ func testWorldStateExplicitKVImplCompatibility(t *testing.T, impl kvtx_block.KVI
 			t.Fatal(err.Error())
 		}
 	}
+
+	// Retain the object used to check graph-induced revision changes.
 	quad := world.NewGraphQuadWithKeys("explicit/a", "<explicit-rel>", "explicit/b", "")
 	retained, err := world.MustGetObject(ctx, ws, "explicit/a")
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer world.ReleaseObjectState(retained)
+
+	// Capture the object index hash before graph mutations.
 	beforeRoot, err := ws.GetRoot(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
 	beforeHash := slices.Clone(beforeRoot.GetObjectKeyValue().GetOkraRoot().GetRootHash())
+
+	// Connect the objects and verify the retained object revision.
 	if err := ws.SetGraphQuad(ctx, quad); err != nil {
 		t.Fatal(err.Error())
 	}
 	if _, rev, err := retained.GetRootRef(ctx); err != nil || rev != 2 {
 		t.Fatalf("retained object revision=%d err=%v", rev, err)
 	}
+
+	// Advance the retained object revision and commit the explicit stores.
 	if _, err := retained.IncrementRev(ctx); err != nil {
 		t.Fatal(err)
 	}
@@ -383,6 +439,7 @@ func testWorldStateExplicitKVImplCompatibility(t *testing.T, impl kvtx_block.KVI
 	}
 	ocs.SetRootRef(ws.GetRootRef())
 
+	// Verify the storage implementation and changed object index hash.
 	writtenRoot, err := ws.GetRoot(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -392,15 +449,20 @@ func testWorldStateExplicitKVImplCompatibility(t *testing.T, impl kvtx_block.KVI
 		t.Fatal("object mutation left the packed index hash unchanged")
 	}
 
+	// Reopen the explicit stores for readback.
 	readWS, err := world_block.BuildMockWorldState(ctx, le, false, ocs, false)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	defer readWS.Discard()
+
+	// Verify object revisions survive the explicit store round trip.
 	refs, err := readWS.GetObjectRootRefsBatch(ctx, []string{"explicit/a", "explicit/b"})
 	if err != nil || refs[0].Rev != 3 || refs[1].Rev != 2 {
 		t.Fatalf("object revisions after readback=%v err=%v", refs, err)
 	}
+
+	// Verify the explicit object remains addressable after reopening.
 	{
 		objectState2, err := world.MustGetObject(ctx, readWS, "explicit/a")
 		world.ReleaseObjectState(objectState2)
@@ -408,6 +470,8 @@ func testWorldStateExplicitKVImplCompatibility(t *testing.T, impl kvtx_block.KVI
 			t.Fatal(err.Error())
 		}
 	}
+
+	// Verify the graph edge survives the explicit store round trip.
 	quads, err := readWS.LookupGraphQuads(ctx, world.NewGraphQuadWithKeys("explicit/a", "<explicit-rel>", "", ""), 0)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -440,26 +504,31 @@ func assertWorldStoreImpl(t *testing.T, name string, store *kvtx_block.KeyValueS
 
 // TestWorldState_GetObjectRootRefsBatch checks batched root-ref lookup behavior.
 func TestWorldState_GetObjectRootRefsBatch(t *testing.T) {
+	// Prepare the context and logger for the block World test.
 	ctx := context.Background()
 	log := logrus.New()
 	le := logrus.NewEntry(log)
 
+	// Start the storage testbed for the block World.
 	tb, err := testbed.NewTestbed(ctx, le)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Open an empty storage cursor for the World root.
 	ocs, err := tb.BuildEmptyCursor(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	defer ocs.Release()
 
+	// Open a writable block World over the storage cursor.
 	ws, err := world_block.BuildMockWorldState(ctx, le, true, ocs, false)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Create the objects used by the batched root lookup.
 	alphaRef := &bucket.ObjectRef{BucketId: "alpha-bucket"}
 	betaRef := &bucket.ObjectRef{BucketId: "beta-bucket"}
 	{
@@ -477,6 +546,7 @@ func TestWorldState_GetObjectRootRefsBatch(t *testing.T) {
 		}
 	}
 
+	// Read root references with missing and duplicate object keys.
 	refs, err := world.GetObjectRootRefsBatch(ctx, ws, []string{"beta", "missing", "alpha", "alpha"})
 	if err != nil {
 		t.Fatal(err.Error())
@@ -485,6 +555,7 @@ func TestWorldState_GetObjectRootRefsBatch(t *testing.T) {
 		t.Fatalf("expected 4 root ref results, got %d", len(refs))
 	}
 
+	// Define the root metadata assertion for present and missing objects.
 	checkRootRef := func(ref *world.ObjectRootRef, key string, exists bool, bucketID string) {
 		if ref.ObjectKey != key || ref.Exists != exists {
 			t.Fatalf("unexpected root ref metadata for %s: got key=%q exists=%v", key, ref.ObjectKey, ref.Exists)
@@ -505,6 +576,7 @@ func TestWorldState_GetObjectRootRefsBatch(t *testing.T) {
 		}
 	}
 
+	// Verify ordered root metadata and duplicate preservation.
 	checkRootRef(refs[0], "beta", true, "beta-bucket")
 	checkRootRef(refs[1], "missing", false, "")
 	checkRootRef(refs[2], "alpha", true, "alpha-bucket")
@@ -512,26 +584,31 @@ func TestWorldState_GetObjectRootRefsBatch(t *testing.T) {
 }
 
 func TestWorldState_LookupGraphQuadsReturnsFullTypeQuad(t *testing.T) {
+	// Prepare the context and logger for the block World test.
 	ctx := context.Background()
 	log := logrus.New()
 	le := logrus.NewEntry(log)
 
+	// Start the storage testbed for the block World.
 	tb, err := testbed.NewTestbed(ctx, le)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Open an empty storage cursor for the World root.
 	ocs, err := tb.BuildEmptyCursor(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	defer ocs.Release()
 
+	// Open a writable block World over the storage cursor.
 	ws, err := world_block.BuildMockWorldState(ctx, le, true, ocs, false)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Create the repository object and persist its type relationship.
 	{
 		createdObject, err := ws.CreateObject(ctx, "repo-1", nil)
 		world.ReleaseObjectState(createdObject)
@@ -546,6 +623,7 @@ func TestWorldState_LookupGraphQuadsReturnsFullTypeQuad(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// Verify the type lookup returns the full graph object value.
 	quads, err := ws.LookupGraphQuads(
 		ctx,
 		world.NewGraphQuad("<repo-1>", "<type>", "", ""),
@@ -563,28 +641,33 @@ func TestWorldState_LookupGraphQuadsReturnsFullTypeQuad(t *testing.T) {
 }
 
 func TestWorldState_QueryGraphPathSeesUncommittedWrite(t *testing.T) {
+	// Prepare the context and logger for the block World test.
 	ctx := context.Background()
 	log := logrus.New()
 	le := logrus.NewEntry(log)
 
+	// Start the storage testbed for the block World.
 	tb, err := testbed.NewTestbed(ctx, le)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	defer tb.Release()
 
+	// Open an empty storage cursor for the World root.
 	ocs, err := tb.BuildEmptyCursor(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	defer ocs.Release()
 
+	// Open a writable block World over the storage cursor.
 	ws, err := world_block.BuildMockWorldState(ctx, le, true, ocs, false)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	defer ws.Discard()
 
+	// Create the endpoints and uncommitted graph edge for path lookup.
 	{
 		createdObject, err := ws.CreateObject(ctx, "path-pending/a", nil)
 		world.ReleaseObjectState(createdObject)
@@ -603,6 +686,7 @@ func TestWorldState_QueryGraphPathSeesUncommittedWrite(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// Verify path lookup sees the pending graph edge.
 	result, err := ws.QueryGraphPath(ctx, &world.GraphPathQuery{
 		StartKeys: []string{"path-pending/a"},
 		Steps: []world.GraphPathStep{
@@ -627,28 +711,33 @@ func TestWorldState_QueryGraphPathSeesUncommittedWrite(t *testing.T) {
 }
 
 func TestWorldState_LookupGraphQuadsBatchSeesUncommittedWrite(t *testing.T) {
+	// Prepare the context and logger for the block World test.
 	ctx := context.Background()
 	log := logrus.New()
 	le := logrus.NewEntry(log)
 
+	// Start the storage testbed for the block World.
 	tb, err := testbed.NewTestbed(ctx, le)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	defer tb.Release()
 
+	// Open an empty storage cursor for the World root.
 	ocs, err := tb.BuildEmptyCursor(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	defer ocs.Release()
 
+	// Open a writable block World over the storage cursor.
 	ws, err := world_block.BuildMockWorldState(ctx, le, true, ocs, false)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	defer ws.Discard()
 
+	// Create the endpoints and uncommitted graph edge for batch lookup.
 	{
 		createdObject, err := ws.CreateObject(ctx, "batch-pending/a", nil)
 		world.ReleaseObjectState(createdObject)
@@ -667,6 +756,7 @@ func TestWorldState_LookupGraphQuadsBatchSeesUncommittedWrite(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// Verify batched lookup sees the pending graph edge.
 	results, err := ws.LookupGraphQuadsBatch(ctx, []world.GraphQuad{
 		world.NewGraphQuadWithKeys("batch-pending/a", "<batch-pending-rel>", "", ""),
 	}, 10)
@@ -683,22 +773,26 @@ func TestWorldState_LookupGraphQuadsBatchSeesUncommittedWrite(t *testing.T) {
 
 // TestWorldState_DeleteObject tests the DeleteObject functionality
 func TestWorldState_DeleteObject(t *testing.T) {
+	// Prepare the context and logger for the block World test.
 	ctx := context.Background()
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
 
+	// Start the storage testbed for the block World.
 	tb, err := testbed.NewTestbed(ctx, le)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Open an empty storage cursor for the World root.
 	ocs, err := tb.BuildEmptyCursor(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	defer ocs.Release()
 
+	// Open a writable block World over the storage cursor.
 	ws, err := world_block.BuildMockWorldState(ctx, le, true, ocs, true)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -714,6 +808,7 @@ func TestWorldState_DeleteObject(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// Create the second object for graph deletion checks.
 	objKey2 := "test-obj2"
 	var createdObject2 world.ObjectState
 	createdObject2, err = ws.CreateObject(ctx, objKey2, oref)
@@ -733,6 +828,7 @@ func TestWorldState_DeleteObject(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// Add the reverse edge to test incoming graph cleanup.
 	err = ws.SetGraphQuad(ctx, world.NewGraphQuad(
 		world.KeyToGraphValue(objKey2).String(),
 		"<predicate2>",
@@ -790,30 +886,36 @@ func TestWorldState_DeleteObject(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// Require both graph queries to omit edges of the deleted object.
 	if len(subjQuads) != 0 || len(objQuads) != 0 {
 		t.Fatalf("expected DeleteGraphObject to delete quads for the object but got %d", len(subjQuads)+len(objQuads))
 	}
 
+	// Report successful object deletion assertions.
 	t.Log("DeleteObject test successful")
 }
 
 func TestWorldState_DisabledChangelogObjectOperations(t *testing.T) {
+	// Prepare the context and logger for the block World test.
 	ctx := context.Background()
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
 
+	// Start the storage testbed for the block World.
 	tb, err := testbed.NewTestbed(ctx, le)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Open an empty storage cursor for the World root.
 	ocs, err := tb.BuildEmptyCursor(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	defer ocs.Release()
 
+	// Write a World root with changelog recording disabled.
 	btx, bcs := ocs.BuildTransaction(nil)
 	bcs.ClearAllRefs()
 	bcs.SetBlock(world_block.NewWorld(true), true)
@@ -823,11 +925,13 @@ func TestWorldState_DisabledChangelogObjectOperations(t *testing.T) {
 	}
 	ocs.SetRootRef(rootRef)
 
+	// Open a writable block World over the storage cursor.
 	ws, err := world_block.BuildMockWorldState(ctx, le, true, ocs, true)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Create the object used to exercise disabled changelog mutations.
 	objKey := "disabled-changelog-object"
 	oref := &bucket.ObjectRef{BucketId: "test-bucket"}
 	obj, err := ws.CreateObject(ctx, objKey, oref)
@@ -835,10 +939,14 @@ func TestWorldState_DisabledChangelogObjectOperations(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Replace the object root without enabling changelog recording.
 	_, err = obj.SetRootRef(ctx, &bucket.ObjectRef{BucketId: "test-bucket-next"})
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Delete the updated object and commit the disabled changelog World.
 	deleted, err := ws.DeleteObject(ctx, objKey)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -850,6 +958,7 @@ func TestWorldState_DisabledChangelogObjectOperations(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// Verify the committed World keeps changelog recording disabled.
 	root, err := world_block.UnmarshalWorld(ctx, ws.GetBcs())
 	if err != nil {
 		t.Fatal(err.Error())
@@ -857,6 +966,8 @@ func TestWorldState_DisabledChangelogObjectOperations(t *testing.T) {
 	if !root.GetLastChangeDisable() {
 		t.Fatal("expected changelog to remain disabled")
 	}
+
+	// Require the disabled changelog to retain only its sequence number.
 	lastChange := root.GetLastChange().CloneVT()
 	lastChange.Seqno = 0
 	if lastChange.SizeVT() != 0 {
@@ -868,27 +979,32 @@ func TestWorldState_DisabledChangelogObjectOperations(t *testing.T) {
 }
 
 func TestWorldState_DeleteObjectRemovesLiteralPredicateQuads(t *testing.T) {
+	// Prepare the context and logger for the block World test.
 	ctx := context.Background()
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
 
+	// Start the storage testbed for the block World.
 	tb, err := testbed.NewTestbed(ctx, le)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Open an empty storage cursor for the World root.
 	ocs, err := tb.BuildEmptyCursor(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	defer ocs.Release()
 
+	// Open a writable block World over the storage cursor.
 	ws, err := world_block.BuildMockWorldState(ctx, le, true, ocs, true)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Create the image and asset objects linked by a literal predicate.
 	rootRef := &bucket.ObjectRef{BucketId: "test-bucket"}
 	imageKey := "image"
 	oldAssetKey := "image-old-asset"
@@ -906,6 +1022,8 @@ func TestWorldState_DeleteObjectRemovesLiteralPredicateQuads(t *testing.T) {
 			t.Fatal(err.Error())
 		}
 	}
+
+	// Persist the literal predicate edge between the objects.
 	if err := ws.SetGraphQuad(ctx, world.NewGraphQuadWithKeys(imageKey, "v86image/wasm", oldAssetKey, "")); err != nil {
 		t.Fatal(err.Error())
 	}
@@ -913,6 +1031,7 @@ func TestWorldState_DeleteObjectRemovesLiteralPredicateQuads(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// Delete the image and commit its graph cleanup.
 	deleted, err := ws.DeleteObject(ctx, imageKey)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -924,6 +1043,7 @@ func TestWorldState_DeleteObjectRemovesLiteralPredicateQuads(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// Require graph lookup to omit the deleted image edge.
 	quads, err := ws.LookupGraphQuads(ctx, world.NewGraphQuadWithKeys(imageKey, "", "", ""), 0)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -935,27 +1055,32 @@ func TestWorldState_DeleteObjectRemovesLiteralPredicateQuads(t *testing.T) {
 
 // TestWorldState_DeleteObjectWithMalformedGraphQuad verifies object deletion can clean up legacy graph quads.
 func TestWorldState_DeleteObjectWithMalformedGraphQuad(t *testing.T) {
+	// Prepare the context and logger for the block World test.
 	ctx := context.Background()
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
 
+	// Start the storage testbed for the block World.
 	tb, err := testbed.NewTestbed(ctx, le)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Open an empty storage cursor for the World root.
 	ocs, err := tb.BuildEmptyCursor(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	defer ocs.Release()
 
+	// Open a writable block World over the storage cursor.
 	ws, err := world_block.BuildMockWorldState(ctx, le, true, ocs, true)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Create endpoints for the malformed graph quad.
 	objKey := "delete-malformed-obj"
 	otherKey := "delete-malformed-other"
 	oref := &bucket.ObjectRef{BucketId: "test-bucket"}
@@ -974,6 +1099,7 @@ func TestWorldState_DeleteObjectWithMalformedGraphQuad(t *testing.T) {
 		}
 	}
 
+	// Insert a graph quad without a predicate through the Cayley writer.
 	err = ws.AccessCayleyGraph(ctx, true, func(ctx context.Context, h world.CayleyHandle) error {
 		w, ok := h.(graph.QuadWriter)
 		if !ok {
@@ -988,6 +1114,7 @@ func TestWorldState_DeleteObjectWithMalformedGraphQuad(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// Delete the object associated with the malformed graph quad.
 	deleted, err := ws.DeleteObject(ctx, objKey)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -995,6 +1122,8 @@ func TestWorldState_DeleteObjectWithMalformedGraphQuad(t *testing.T) {
 	if !deleted {
 		t.Fatalf("expected %q to be deleted", objKey)
 	}
+
+	// Require graph lookup to omit the malformed quad after deletion.
 	quads, err := ws.LookupGraphQuads(ctx, world.NewGraphQuadWithKeys(objKey, "", "", ""), 0)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -1005,32 +1134,39 @@ func TestWorldState_DeleteObjectWithMalformedGraphQuad(t *testing.T) {
 }
 
 func TestWorldState_ChangelogObjectSetStoresCurrentAndPreviousObjectRefs(t *testing.T) {
+	// Prepare the context and logger for the block World test.
 	ctx := context.Background()
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
 
+	// Start the storage testbed for the block World.
 	tb, err := testbed.NewTestbed(ctx, le)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Open an empty storage cursor for the World root.
 	ocs, err := tb.BuildEmptyCursor(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	defer ocs.Release()
 
+	// Open a writable block World over the storage cursor.
 	ws, err := world_block.BuildMockWorldState(ctx, le, true, ocs, true)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Create the object whose root replacement is recorded in the changelog.
 	obj, err := ws.CreateObject(ctx, "changelog-set-ref", &bucket.ObjectRef{BucketId: "initial-bucket"})
 	defer world.ReleaseObjectState(obj)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Replace the object root and commit its changelog entry.
 	if _, err := obj.SetRootRef(ctx, &bucket.ObjectRef{BucketId: "next-bucket"}); err != nil {
 		t.Fatal(err.Error())
 	}
@@ -1038,6 +1174,7 @@ func TestWorldState_ChangelogObjectSetStoresCurrentAndPreviousObjectRefs(t *test
 		t.Fatal(err.Error())
 	}
 
+	// Verify the latest changelog records an object set.
 	worldRoot, err := ws.GetRoot(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -1047,6 +1184,7 @@ func TestWorldState_ChangelogObjectSetStoresCurrentAndPreviousObjectRefs(t *test
 		t.Fatalf("expected last change type OBJECT_SET, got %s", ct.String())
 	}
 
+	// Require the root replacement to retain both object references.
 	var foundSetRootRefChange bool
 	for _, change := range lastChange.GetChangeBatch().GetChanges() {
 		if change.GetKey() != "changelog-set-ref" || change.GetPrevObjectRef().GetEmpty() {
@@ -1063,27 +1201,32 @@ func TestWorldState_ChangelogObjectSetStoresCurrentAndPreviousObjectRefs(t *test
 }
 
 func TestWorldState_ChangelogDeleteObjectStoresPreviousObjectRef(t *testing.T) {
+	// Prepare the context and logger for the block World test.
 	ctx := context.Background()
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
 
+	// Start the storage testbed for the block World.
 	tb, err := testbed.NewTestbed(ctx, le)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Open an empty storage cursor for the World root.
 	ocs, err := tb.BuildEmptyCursor(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	defer ocs.Release()
 
+	// Open a writable block World over the storage cursor.
 	ws, err := world_block.BuildMockWorldState(ctx, le, true, ocs, true)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Create and delete the object whose previous reference must be retained.
 	{
 		createdObject, err := ws.CreateObject(ctx, "changelog-delete-ref", &bucket.ObjectRef{BucketId: "deleted-bucket"})
 		world.ReleaseObjectState(createdObject)
@@ -1102,6 +1245,7 @@ func TestWorldState_ChangelogDeleteObjectStoresPreviousObjectRef(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// Verify the latest changelog records an object deletion.
 	worldRoot, err := ws.GetRoot(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -1110,6 +1254,8 @@ func TestWorldState_ChangelogDeleteObjectStoresPreviousObjectRef(t *testing.T) {
 	if ct := lastChange.GetChangeType(); ct != world_block.WorldChangeType_WorldChange_OBJECT_DELETE {
 		t.Fatalf("expected last change type OBJECT_DELETE, got %s", ct.String())
 	}
+
+	// Require the deletion to retain only the previous object reference.
 	changes := lastChange.GetChangeBatch().GetChanges()
 	if len(changes) != 1 {
 		t.Fatalf("expected one object delete change, got %d", len(changes))
@@ -1126,22 +1272,26 @@ func TestWorldState_ChangelogDeleteObjectStoresPreviousObjectRef(t *testing.T) {
 //
 // Applies the result to the original WorldState & checks.
 func TestWorldEngine_Fork(t *testing.T) {
+	// Prepare the context and logger for the block World test.
 	ctx := context.Background()
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
 
+	// Start the storage testbed for the block World.
 	tb, err := testbed.NewTestbed(ctx, le)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Open an empty storage cursor for the World root.
 	ocs, err := tb.BuildEmptyCursor(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	defer ocs.Release()
 
+	// Open a writable block World over the storage cursor.
 	ws, err := world_block.BuildMockWorldState(ctx, le, true, ocs, false)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -1156,6 +1306,7 @@ func TestWorldEngine_Fork(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// Commit the original object and publish its root.
 	err = ws.Commit(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -1174,6 +1325,7 @@ func TestWorldEngine_Fork(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// Fork the writable World before applying the mock operation.
 	forkedWs, err := ws.Fork(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -1238,22 +1390,26 @@ func TestWorldEngine_Fork(t *testing.T) {
 
 // TestWorldEngine_UpdateRootRef tests updating the root ref while a write tx is active.
 func TestWorldEngine_UpdateRootRef(t *testing.T) {
+	// Prepare the context and logger for the block World test.
 	ctx := context.Background()
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
 
+	// Start the storage testbed for the block World.
 	tb, err := testbed.NewTestbed(ctx, le)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Open an empty storage cursor for the World root.
 	ocs, err := tb.BuildEmptyCursor(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	defer ocs.Release()
 
+	// Create the engine over the storage cursor.
 	eng, err := world_block.NewEngine(
 		ctx,
 		le,
@@ -1266,6 +1422,7 @@ func TestWorldEngine_UpdateRootRef(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// Choose the object key shared by root rollback checks.
 	objKey := "test-object"
 
 	// Create and commit the initial object state.
@@ -1350,11 +1507,14 @@ func TestWorldEngine_UpdateRootRef(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// Open a fresh reader at the rolled-back root.
 	fresh, err := eng.NewTransaction(ctx, false)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer fresh.Discard()
+
+	// Verify the fresh reader observes the earlier object revision.
 	rolledBack, err := world.MustGetObject(ctx, fresh, objKey)
 	if err != nil {
 		t.Fatal(err)
@@ -1381,22 +1541,26 @@ func TestWorldEngine_UpdateRootRef(t *testing.T) {
 
 // TestWorldState_Basic performs a simple test of operations against world.
 func TestWorldState_Basic(t *testing.T) {
+	// Prepare the context and logger for the block World test.
 	ctx := context.Background()
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
 
+	// Start the storage testbed for the block World.
 	tb, err := testbed.NewTestbed(ctx, le)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Open an empty storage cursor for the World root.
 	ocs, err := tb.BuildEmptyCursor(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	defer ocs.Release()
 
+	// Open a writable block World over the storage cursor.
 	ws, err := world_block.BuildMockWorldState(ctx, le, true, ocs, true)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -1413,6 +1577,7 @@ func TestWorldState_Basic(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// Build the object keys and traversal helper for the changelog test.
 	nObjects := 100
 	keys := make([]string, 0, nObjects)
 	for i := range nObjects {
@@ -1479,6 +1644,7 @@ func TestWorldState_Basic(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// Commit object changes and publish the World root.
 	err = ws.Commit(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -1554,12 +1720,15 @@ func TestWorldState_Basic(t *testing.T) {
 // commitObjectInEngine creates one object through an engine block transaction
 // and advances the engine root, failing the test on any error.
 func commitObjectInEngine(t *testing.T, ctx context.Context, eng *world_block.Engine, key string) {
+	// Open a block engine transaction for the test commit.
 	t.Helper()
 	btx, err := eng.NewBlockEngineTransaction(ctx, true)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	defer btx.Discard()
+
+	// Create the test object in the block transaction.
 	{
 		createdObject, err := btx.CreateObject(ctx, key, &bucket.ObjectRef{BucketId: "test"})
 		world.ReleaseObjectState(createdObject)
@@ -1567,6 +1736,8 @@ func commitObjectInEngine(t *testing.T, ctx context.Context, eng *world_block.En
 			t.Fatal(err.Error())
 		}
 	}
+
+	// Commit the object blocks and advance the engine root.
 	ref, err := btx.CommitBlockTransaction(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -1582,16 +1753,19 @@ func commitObjectInEngine(t *testing.T, ctx context.Context, eng *world_block.En
 // drop) before the next Sync rolls recovery back to the last Sync'd head with all
 // of its blocks present and the unsynced commit gone.
 func TestEngineDeferredDurabilityCrashRecovery(t *testing.T) {
+	// Prepare the context and logger for the block World test.
 	ctx := context.Background()
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
 
+	// Start the storage testbed for the block World.
 	tb, err := testbed.NewTestbed(ctx, le)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Open an empty storage cursor for the World root.
 	cur, err := tb.BuildEmptyCursor(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -1607,6 +1781,7 @@ func TestEngineDeferredDurabilityCrashRecovery(t *testing.T) {
 		return nil
 	}
 
+	// Create an engine with deferred durable head writes.
 	eng, err := world_block.NewEngine(ctx, le, cur, world_mock.LookupMockOp, commitFn, false, world_block.WithDeferredDurability())
 	if err != nil {
 		t.Fatal(err.Error())
@@ -1677,6 +1852,7 @@ func TestEngineDeferredDurabilityCrashRecovery(t *testing.T) {
 }
 
 func TestEngineTxObjectBodyPagePairsSeqnoWithBodies(t *testing.T) {
+	// Start the World testbed for concurrent body page reads.
 	ctx := t.Context()
 	wtb, err := db_world_testbed.Default(ctx)
 	if err != nil {
@@ -1684,12 +1860,14 @@ func TestEngineTxObjectBodyPagePairsSeqnoWithBodies(t *testing.T) {
 	}
 	defer wtb.Release()
 
+	// Open the transaction shared by the body reader and writer.
 	tx, err := wtb.Engine.NewTransaction(ctx, true)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer tx.Discard()
 
+	// Create the initial body version for the shared object.
 	const objectKey = "body/race"
 	initialBody := []byte("version-initial")
 	var createdObject world.ObjectState
@@ -1702,17 +1880,20 @@ func TestEngineTxObjectBodyPagePairsSeqnoWithBodies(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Record the initial body by its transaction sequence number.
 	initialSeqno, err := tx.GetSeqno(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
 	versions := map[uint64]string{initialSeqno: string(initialBody)}
 
+	// Require sequence-numbered body page batching on the transaction.
 	pager, ok := tx.(world.ObjectBodyPageSeqnoBatcher)
 	if !ok {
 		t.Fatal("transaction does not expose body page seqno batching")
 	}
 
+	// Build repeated object keys to exercise body page reads.
 	const (
 		keyCount = 2048
 		rounds   = 64
@@ -1722,6 +1903,7 @@ func TestEngineTxObjectBodyPagePairsSeqnoWithBodies(t *testing.T) {
 		keys[i] = objectKey
 	}
 
+	// Prepare page results and synchronization for the concurrent workers.
 	type pageResult struct {
 		seqno  uint64
 		bodies []string
@@ -1732,6 +1914,7 @@ func TestEngineTxObjectBodyPagePairsSeqnoWithBodies(t *testing.T) {
 	var wg sync.WaitGroup
 	wg.Add(2)
 
+	// Read body pages while the object body changes.
 	go func() {
 		defer wg.Done()
 		<-start
@@ -1757,6 +1940,7 @@ func TestEngineTxObjectBodyPagePairsSeqnoWithBodies(t *testing.T) {
 		}
 	}()
 
+	// Write new body versions and record their sequence numbers.
 	go func() {
 		defer wg.Done()
 		<-start
@@ -1784,6 +1968,7 @@ func TestEngineTxObjectBodyPagePairsSeqnoWithBodies(t *testing.T) {
 		}
 	}()
 
+	// Run both workers and report any page or mutation error.
 	close(start)
 	wg.Wait()
 	close(results)
@@ -1793,6 +1978,7 @@ func TestEngineTxObjectBodyPagePairsSeqnoWithBodies(t *testing.T) {
 	default:
 	}
 
+	// Verify every page body matches its captured sequence number.
 	for page := range results {
 		expected, ok := versions[page.seqno]
 		if !ok {
@@ -1817,36 +2003,45 @@ func TestEngineTxObjectBodyPagePairsSeqnoWithBodies(t *testing.T) {
 // advances the durable head immediately. This is the contract the SharedObject,
 // CDN, and CLI engines depend on for cross-participant block availability.
 func TestEngineDefaultDurableOnWrite(t *testing.T) {
+	// Prepare the context and logger for the block World test.
 	ctx := context.Background()
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
 
+	// Start the storage testbed for the block World.
 	tb, err := testbed.NewTestbed(ctx, le)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Open an empty storage cursor for the World root.
 	cur, err := tb.BuildEmptyCursor(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Count durable head writes made by the engine.
 	var commitCount int
 	commitFn := func(_ context.Context, _, _ *bucket.ObjectRef) error {
 		commitCount++
 		return nil
 	}
 
+	// Create the engine over the storage cursor.
 	eng, err := world_block.NewEngine(ctx, le, cur, world_mock.LookupMockOp, commitFn, false)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	defer eng.Close()
 
+	// Verify the first commit immediately advances the durable head.
 	commitObjectInEngine(t, ctx, eng, "obj-a")
 	if commitCount != 1 {
 		t.Fatalf("default single-writer must advance the durable head per commit, got %d", commitCount)
 	}
+
+	// Verify the second commit immediately advances the durable head.
 	commitObjectInEngine(t, ctx, eng, "obj-b")
 	if commitCount != 2 {
 		t.Fatalf("default single-writer must advance the durable head per commit, got %d", commitCount)

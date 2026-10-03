@@ -20,6 +20,7 @@ import (
 // TestNestedWorldBucketBoundary rejects a foreign root instead of silently
 // redirecting it into the enclosing bucket.
 func TestNestedWorldBucketBoundary(t *testing.T) {
+	// Build a nested World and require the local bucket id.
 	worldRef := &bucket.ObjectRef{
 		BucketId:      "home",
 		TransformConf: &block_transform.Config{Steps: []*block_transform.StepConfig{{Id: "test"}}},
@@ -53,9 +54,11 @@ func TestNestedWorldBucketBoundary(t *testing.T) {
 // TestNestedWorldPublication verifies that a typed outer object retains an
 // immutable, independently readable World snapshot through a block roundtrip.
 func TestNestedWorldPublication(t *testing.T) {
+	// Open a testbed World.
 	ctx := t.Context()
 	tb := world_testbed.MustDefault(t, ctx)
 
+	// Import the nested snapshot.
 	nestedRef, err := world_block.ImportSnapshot(ctx, tb.Engine, maps.All(map[string]block.Block{
 		"inner": block_mock.NewExample("nested content"),
 	}), nil)
@@ -72,6 +75,7 @@ func TestNestedWorldPublication(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Publish the nested World under the outer key.
 	const outerKey = "projection/example"
 	err = world.ExecTransaction(ctx, tb.Engine, true, func(ctx context.Context, state world.WorldState) error {
 		_, _, err := world.AccessWorldObject(ctx, state, outerKey, true, func(cursor *block.Cursor) error {
@@ -91,7 +95,9 @@ func TestNestedWorldPublication(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Read the published nested World back.
 	err = world.ExecTransaction(ctx, tb.Engine, false, func(ctx context.Context, state world.WorldState) error {
+		// Require the published type.
 		typeID, err := world_types.GetObjectType(ctx, state, outerKey)
 		if err != nil {
 			return err
@@ -103,6 +109,8 @@ func TestNestedWorldPublication(t *testing.T) {
 		if err != nil {
 			return err
 		}
+
+		// Require the published refs to drop the outer bucket id.
 		localReceipt := receiptRef.Clone()
 		localReceipt.BucketId = ""
 		if !published.GetPayloadRef().EqualVT(localReceipt) {
@@ -114,6 +122,7 @@ func TestNestedWorldPublication(t *testing.T) {
 			t.Fatalf("published World ref = %v, want %v", published.GetWorldRef(), localWorld)
 		}
 		if err := tb.Engine.AccessWorldState(ctx, published.GetPayloadRef(), func(cursor *bucket_lookup.Cursor) error {
+			// Require the payload block to hold the source receipt.
 			_, bcs := cursor.BuildTransaction(nil)
 			body, err := block.UnmarshalBlock[*block_mock.Example](ctx, bcs, block_mock.NewExampleBlock)
 			if err != nil {
@@ -127,6 +136,7 @@ func TestNestedWorldPublication(t *testing.T) {
 			return err
 		}
 		return tb.Engine.AccessWorldState(ctx, published.GetWorldRef(), func(cursor *bucket_lookup.Cursor) error {
+			// Open the nested World and require its inner object.
 			nested, err := world_block.BuildWorldStateFromCursor(ctx, tb.Logger, false, cursor, tb.Engine, nil, false)
 			if err != nil {
 				return err
@@ -217,6 +227,7 @@ func TestNestedWorldReplacementGC(t *testing.T) {
 			return err
 		}
 		return tb.Engine.AccessWorldState(ctx, outer.GetWorldRef(), func(cursor *bucket_lookup.Cursor) error {
+			// Open the updated nested World and require the new inner object.
 			nested, err := world_block.BuildWorldStateFromCursor(ctx, tb.Logger, false, cursor, tb.Engine, nil, false)
 			if err != nil {
 				return err

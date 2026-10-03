@@ -34,6 +34,8 @@ func TestEngineRevisionWaitersShareHeadWatch(t *testing.T) {
 	t.Cleanup(root.Release)
 	constructorCtx, constructorCancel := context.WithCancel(ctx)
 	t.Cleanup(constructorCancel)
+
+	// Open the reader engine and cancel its constructor.
 	reader, err := NewEngine(constructorCtx, writer.le, root, world_mock.LookupMockOp, nil, false,
 		WithWriteCoordinator(coordinator, scope, nil,
 			func(context.Context) (*bucket.ObjectRef, error) { return writer.GetRootRef(), nil }),
@@ -76,6 +78,8 @@ func TestEngineRevisionWaitersShareHeadWatch(t *testing.T) {
 	if _, _, err := ws.ApplyWorldOp(ctx, world_mock.NewMockWorldOp("head-watch/example", "after"), ""); err != nil {
 		t.Fatal(err)
 	}
+
+	// Publish the writer root and collect every waiter.
 	lease, err := coordinator.WaitAcquireWriteLease(ctx, scope)
 	if err != nil {
 		t.Fatal(err)

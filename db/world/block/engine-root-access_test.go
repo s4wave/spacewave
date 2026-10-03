@@ -13,10 +13,12 @@ import (
 )
 
 func TestEngineAccessWorldStateSameBucketConcurrentClose(t *testing.T) {
+	// Skip the race when the process has one processor.
 	if runtime.GOMAXPROCS(0) < 2 {
 		t.Skip("requires concurrent execution")
 	}
 
+	// Open a testbed for the concurrent close.
 	ctx := context.Background()
 	le := logrus.NewEntry(logrus.New())
 	tb, err := testbed.NewTestbed(ctx, le)
@@ -25,12 +27,14 @@ func TestEngineAccessWorldStateSameBucketConcurrentClose(t *testing.T) {
 	}
 	defer tb.Release()
 
+	// Build an empty World cursor.
 	base, err := tb.BuildEmptyCursor(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer base.Release()
 
+	// Run each close round with concurrent readers.
 	const rounds = 32
 	const workers = 16
 	for range rounds {
@@ -87,6 +91,7 @@ func TestEngineAccessWorldStateSameBucketConcurrentClose(t *testing.T) {
 }
 
 func TestEngineAccessWorldStateReferencesAndCallbackBoundary(t *testing.T) {
+	// Open a testbed for the reference boundary.
 	ctx := context.Background()
 	le := logrus.NewEntry(logrus.New())
 	tb, err := testbed.NewTestbed(ctx, le)
@@ -95,21 +100,25 @@ func TestEngineAccessWorldStateReferencesAndCallbackBoundary(t *testing.T) {
 	}
 	defer tb.Release()
 
+	// Build an empty World cursor.
 	base, err := tb.BuildEmptyCursor(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer base.Release()
 
+	// Open a World engine on the empty cursor.
 	eng, err := NewEngine(ctx, le, base, nil, nil, false)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer eng.Close()
 
+	// Define the access check for a root ref.
 	testAccess := func(ref *bucket.ObjectRef) {
 		t.Helper()
 		if err := eng.AccessWorldState(ctx, ref, func(cursor *bucket_lookup.Cursor) error {
+			// Require the callback to run without holding the engine lock.
 			locked, ok := eng.bcast.TryLock()
 			if !ok {
 				t.Fatal("callback ran while Engine.bcast was held")
@@ -124,6 +133,7 @@ func TestEngineAccessWorldStateReferencesAndCallbackBoundary(t *testing.T) {
 		}
 	}
 
+	// Check a nil ref and an empty ref.
 	testAccess(nil)
 	testAccess(&bucket.ObjectRef{})
 }

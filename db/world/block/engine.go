@@ -238,6 +238,7 @@ func NewEngine(
 		}
 	}
 
+	// Stage writes when the engine can publish a head atomically.
 	if e.writeCoordinator != nil && e.atomicPublisher != nil && e.atomicHeadFn != nil && e.atomicPublisher.SupportsAtomicPublication() {
 		// Content-addressed bytes are engine-retained, not transaction authority.
 		// A discarded attempt can leave a cursor or ref in use by a retry. Keep
@@ -270,6 +271,7 @@ func NewEngine(
 
 // GetRootRef gets the current root cursor reference.
 func (e *Engine) GetRootRef() *bucket.ObjectRef {
+	// Clone the published head ref under the engine lock.
 	locked := e.bcast.Lock()
 	var ref *bucket.ObjectRef
 	if e.head != nil {
@@ -306,6 +308,7 @@ func (e *Engine) Sync(ctx context.Context) (bool, error) {
 			return false, err
 		}
 	}
+
 	// Hold the published root stable across the backing-store fence.
 	locked = e.bcast.Lock()
 	defer locked.Unlock()
@@ -435,6 +438,7 @@ func (e *Engine) setRootRefLocked(
 // installRootRefLocked can preserve the active provisional successor. Durable
 // completion of N must never discard the already preparing N+1 transaction.
 func (e *Engine) installRootRefLocked(ctx context.Context, ref *bucket.ObjectRef, invalidateWriter bool) (engineRetirement, error) {
+	// Start the root-ref trace.
 	ctx, task := trace.NewTask(ctx, "hydra/world-block/engine/set-root-ref")
 	defer task.End()
 
@@ -510,6 +514,7 @@ func (e *Engine) invalidateHeadReadTxLocked() engineRetirement {
 // drainRetirement waits for detached transaction users before releasing their
 // cursor, coordinator, and writer authorities.
 func (e *Engine) drainRetirement(ctx context.Context, retirement engineRetirement) error {
+	// Return when the retirement has nothing to drain.
 	if retirement.empty() {
 		return nil
 	}
@@ -567,6 +572,7 @@ func (e *Engine) finishCommit() {
 // Durable head publication must not happen before a fresh cursor can follow the
 // full root graph outside the committing transaction.
 func (e *Engine) validateRootRefLocked(ctx context.Context, ref *bucket.ObjectRef) error {
+	// Start the root-validation trace.
 	ctx, task := trace.NewTask(ctx, "hydra/world-block/engine/validate-root-ref")
 	defer task.End()
 
@@ -621,6 +627,7 @@ func (e *Engine) NewTransaction(ctx context.Context, write bool) (world.Tx, erro
 
 // NewBlockEngineTransaction returns the world-block specific EngineTx type.
 func (e *Engine) NewBlockEngineTransaction(ctx context.Context, write bool) (*EngineTx, error) {
+	// Start the transaction trace.
 	ctx, task := trace.NewTask(ctx, "hydra/world-block/engine/new-block-engine-transaction")
 	defer task.End()
 
@@ -765,6 +772,8 @@ func (e *Engine) NewBlockEngineTransaction(ctx context.Context, write bool) (*En
 	e.writeTx = engTx
 	e.writeTxRel = relLock
 	locked.Unlock()
+
+	// Drain retired roots and return the write transaction.
 	e.drainRetirement(ctx, retirement)
 	return engTx, nil
 }
@@ -772,6 +781,7 @@ func (e *Engine) NewBlockEngineTransaction(ctx context.Context, write bool) (*En
 // refreshReadHead adopts the durable head when no local writer owns publication.
 // External I/O and retirement run without holding bcast.
 func (e *Engine) refreshReadHead(ctx context.Context) error {
+	// Skip refresh when no durable head writer is configured.
 	if e.writeHeadRefresh == nil {
 		return nil
 	}
@@ -913,6 +923,7 @@ func (e *Engine) ForkBlockTransaction(ctx context.Context, write bool) (*Tx, err
 // The cursor should be released independently of the WorldState.
 // Be sure to call Release on the cursor when done.
 func (e *Engine) BuildStorageCursor(ctx context.Context) (*bucket_lookup.Cursor, error) {
+	// Clone the base root under the engine lock.
 	locked := e.bcast.Lock()
 	defer locked.Unlock()
 	if e.closed {
@@ -956,6 +967,8 @@ func (e *Engine) AccessWorldState(
 	if ref != nil && e.stagedStore != nil {
 		ncs.SetTransactionStore(e.stagedStore)
 	}
+
+	// Release the engine lock and the cloned root after the callback.
 	locked.Unlock()
 	defer ncs.Release()
 
@@ -1159,6 +1172,7 @@ func (e *Engine) Close() error {
 // initializeHeadReadTx constructs or restores the shared read transaction.
 // The caller must hold bcast after construction.
 func (e *Engine) initializeHeadReadTx(ctx context.Context) error {
+	// Start the head read-transaction trace.
 	ctx, task := trace.NewTask(ctx, "hydra/world-block/engine/initialize-head-read-tx")
 	defer task.End()
 
