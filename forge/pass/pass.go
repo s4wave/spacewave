@@ -72,7 +72,6 @@ func CreatePassWithTarget(
 	ts *timestamp.Timestamp,
 ) (world.ObjectState, *bucket.ObjectRef, error) {
 	// Validate the placement when one is attached.
-	// Validate the placement when one is attached.
 	if placement != nil {
 		if err := placement.ValidateLinked(ctx, ws); err != nil {
 			return nil, nil, errors.Wrap(err, "placement")
@@ -378,7 +377,7 @@ func (e *Pass) ApplyExecStates(
 	// Build an exec state for each execution and validate it.
 	states := make([]*ExecState, len(execObjs))
 	for i, obj := range execObjs {
-		if !e.GetPlacement().EqualVT(obj.GetPlacement()) {
+		if placement := e.GetPlacement(); placement != nil && !placement.EqualVT(obj.GetPlacement()) {
 			return errors.Errorf("executions[%d]: placement does not match pass", i)
 		}
 		objKey := execObjKeys[i]

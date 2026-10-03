@@ -8,7 +8,6 @@ import (
 	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/aperturerobotics/util/keyed"
 	"github.com/pkg/errors"
-	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/bucket"
 	"github.com/s4wave/spacewave/db/world"
 	world_control "github.com/s4wave/spacewave/db/world/control"
@@ -26,32 +25,34 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// objectTracker tracks a object managed by the Worker.
+// objectTracker watches a managed object and retains its controller demand.
 type objectTracker struct {
-	// c is the controller
+	// c is the Worker controller that retains this tracker.
 	c *Controller
-	// objKey is the object key
+	// objKey identifies the managed object.
 	objKey string
 
-	// objLoop tracks the object changes
+	// objLoop watches managed-object revisions.
 	objLoop *world_control.WatchLoop
-	// objTypeCtr is the object type ccontainer
+	// objTypeCtr publishes the object type this Worker can execute.
 	objTypeCtr *ccontainer.CContainer[string]
 
-	// the following fields are modified by execute() only
-	// ctrlCancel is the context cancel for the controller
+	// ctrlCancel stops the controller demand; only execute modifies it.
 	ctrlCancel context.CancelFunc
-	// ctrlObjType is the current running object type
+	// ctrlObjType is the running type; only execute modifies it.
 	ctrlObjType string
 }
 
 // newObjectTracker constructs a new object tracker routine.
 func (c *Controller) newObjectTracker(key string) (keyed.Routine, *objectTracker) {
+	// Create the tracker and its object-type notification.
 	tr := &objectTracker{
 		c:          c,
 		objKey:     key,
 		objTypeCtr: ccontainer.NewCContainer(""),
 	}
+
+	// Watch object revisions through the Worker's World engine.
 	tr.objLoop = world_control.NewWatchLoop(
 		c.le.WithField("object-loop", "object-tracker"),
 		key,
@@ -62,8 +63,8 @@ func (c *Controller) newObjectTracker(key string) (keyed.Routine, *objectTracker
 
 // execute executes the job tracker.
 func (t *objectTracker) execute(ctx context.Context) error {
+	// Run the World revision watch for this tracker's lifetime.
 	objKey, le := t.objKey, t.c.le
-
 	le.Debugf("starting object tracker: %s", objKey)
 	errCh := make(chan error, 2)
 	go func() {
@@ -76,18 +77,19 @@ func (t *objectTracker) execute(ctx context.Context) error {
 		)
 	}()
 
+	// Reconcile controller demand whenever the executable object type changes.
 	var err error
 	var prevVal string
 	var objType string
 	for {
-		// Wait for the object type to be set and/or changed
+		// Observe the next executable object type.
 		prevVal, err = t.objTypeCtr.WaitValueChange(ctx, prevVal, errCh)
 		if err != nil {
 			return err
 		}
 		objType = prevVal
 
-		// Sync object type to the controller if needed
+		// Reconcile the controller demand to the observed type.
 		if err := t.applyObjectType(ctx, objType); err != nil {
 			if ctx.Err() == nil || !errors.Is(err, context.Canceled) {
 				t.c.le.WithError(err).Warn("unable to start object controller")
@@ -98,6 +100,7 @@ func (t *objectTracker) execute(ctx context.Context) error {
 
 // applyObjectType is called by the execute() loop to apply the object type.
 func (t *objectTracker) applyObjectType(ctx context.Context, objType string) error {
+	// Replace the prior controller demand only when its object type changes.
 	if t.ctrlObjType == objType {
 		return nil
 	}
@@ -110,7 +113,7 @@ func (t *objectTracker) applyObjectType(ctx context.Context, objType string) err
 		return nil
 	}
 
-	// generate controller config for the object type
+	// Resolve the controller configuration for the new object type.
 	ctrlConf, err := t.buildCtrlConf(ctx, objType)
 	if err != nil {
 		return err
@@ -119,6 +122,7 @@ func (t *objectTracker) applyObjectType(ctx context.Context, objType string) err
 		return nil
 	}
 
+	// Retain the new controller demand until this tracker stops.
 	ctrlCtx, ctrlCancel := context.WithCancel(ctx)
 	t.ctrlCancel = ctrlCancel
 	go t.executeController(ctrlCtx, objType, ctrlConf)
@@ -127,6 +131,7 @@ func (t *objectTracker) applyObjectType(ctx context.Context, objType string) err
 
 // buildCtrlConf builds the controller config for a given object type.
 func (t *objectTracker) buildCtrlConf(ctx context.Context, objType string) (config.Config, error) {
+	// Select the controller for the managed object's Forge type.
 	engineID := t.c.conf.GetEngineId()
 	objKey := t.objKey
 	peerID := t.c.peerID
@@ -138,8 +143,6 @@ func (t *objectTracker) buildCtrlConf(ctx context.Context, objType string) (conf
 	case forge_pass.PassTypeID:
 		return pass_controller.NewConfig(engineID, objKey, peerID, t.c.conf.GetAssignSelf()), nil
 	case forge_execution.ExecutionTypeID:
-		// TODO: where do we get the "target world" from?
-		// clean up the "target world" concept
 		return exec_controller.NewConfig(
 			engineID,
 			objKey,
@@ -157,6 +160,7 @@ func (t *objectTracker) buildCtrlConf(ctx context.Context, objType string) (conf
 // executeController applies the directive to execute the object controller.
 // exits when ctx is canceled
 func (t *objectTracker) executeController(ctx context.Context, objType string, ctrlConf config.Config) {
+	// Retain the directive that runs the managed object's controller.
 	t.c.le.
 		WithField("config-id", ctrlConf.GetConfigID()).
 		WithField("obj-type", objType).
@@ -168,8 +172,10 @@ func (t *objectTracker) executeController(ctx context.Context, objType string, c
 		}
 		return
 	}
+	defer diRef.Release()
+
+	// Release controller demand when the tracker lifetime ends.
 	<-ctx.Done()
-	diRef.Release()
 }
 
 // processState processes the state for the job.
@@ -180,35 +186,42 @@ func (t *objectTracker) processState(
 	obj world.ObjectState, // may be nil if not found
 	rootRef *bucket.ObjectRef, rev uint64,
 ) (waitForChanges bool, err error) {
+	// Clear the running controller when reading or binding custody fails.
 	objKey := t.objKey
-
 	defer func() {
 		if err != nil {
 			t.pushObjType("")
 		}
 	}()
 
-	// check the <type> of the object
+	// Read the managed object type before choosing its controller.
 	objType, err := world_types.GetObjectType(ctx, ws, objKey)
 	if err != nil {
 		return false, err
 	}
+
+	// Bind automatic placement before an Execution controller can start its target.
 	if objType == forge_execution.ExecutionTypeID {
-		var execution *forge_execution.Execution
-		_, err = world.AccessObject(ctx, ws.AccessWorldState, rootRef, func(cursor *block.Cursor) error {
-			var readErr error
-			execution, readErr = forge_execution.UnmarshalExecution(ctx, cursor)
-			return readErr
+		engine := world.NewBusEngine(ctx, t.c.bus, t.c.conf.GetEngineId())
+		var assigned bool
+		err = world.ExecTransaction(ctx, engine, true, func(ctx context.Context, tx world.WorldState) error {
+			var err error
+			assigned, err = forge_execution.BindExecutionWorker(ctx, tx, objKey, &forge_worker.Placement{
+				WorkerObjectKey: t.c.objKey,
+				PeerId:          t.c.peerID.String(),
+			})
+			return err
 		})
 		if err != nil {
 			return false, err
 		}
-		if placement := execution.GetPlacement(); placement != nil && placement.GetWorkerObjectKey() != t.c.objKey {
+		if !assigned {
 			t.pushObjType("")
 			return true, nil
 		}
 	}
 
+	// Publish only objects this Worker can execute.
 	t.pushObjType(objType)
 	return true, nil
 }

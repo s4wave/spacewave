@@ -196,3 +196,74 @@ func TestExecutionPlacementWorkerToJob(t *testing.T) {
 		}
 	}
 }
+
+// TestBindExecutionWorkerUsesAssignedPeer permits an unpinned Worker to bind an
+// Execution while retaining exclusive custody against a second eligible Worker.
+func TestBindExecutionWorkerUsesAssignedPeer(t *testing.T) {
+	// Open the real World used by the execution writer.
+	ctx := t.Context()
+	tb, err := forge_testbed.Default(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(tb.Release)
+
+	// Link two eligible Workers to the Execution peer.
+	peerID := tb.Volume.GetPeerID()
+	publicKey, err := peerID.ExtractPublicKey()
+	if err != nil {
+		t.Fatal(err)
+	}
+	keypair, err := identity.NewKeypair(publicKey, "", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, key := range []string{"worker/first", "worker/second"} {
+		if _, _, err := forge_worker.CreateWorker(ctx, tb.WorldState, key, "worker", []*identity.Keypair{keypair}, peerID); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	// Bind an unplaced Execution, then repeat and challenge the same custody.
+	for i, key := range []string{"worker/first", "worker/first", "worker/second"} {
+		// Mutate custody in a caller-owned write transaction.
+		tx, err := tb.Engine.NewTransaction(ctx, true)
+		if err != nil {
+			t.Fatal(err)
+		}
+		t.Cleanup(tx.Discard)
+		if i == 0 {
+			if _, err := forge_execution.CreateExecutionWithTarget(ctx, tx, peerID, "execution/unplaced",
+				peerID, forge_target.NewValueSet(), &forge_target.Target{Exec: &forge_target.Exec{Disable: true}}, nil, timestamp.Now()); err != nil {
+				t.Fatal(err)
+			}
+		}
+		bound, err := forge_execution.BindExecutionWorker(ctx, tx, "execution/unplaced", &forge_worker.Placement{WorkerObjectKey: key})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if bound != (i < 2) {
+			t.Fatalf("binding %s = %v", key, bound)
+		}
+		if err := tx.Commit(ctx); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	// Require the recorded peer and sole Worker edge to survive competing custody.
+	execution, object, err := forge_execution.LookupExecution(ctx, tb.WorldState, "execution/unplaced")
+	world.ReleaseObjectState(object)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if execution.GetPlacement().GetWorkerObjectKey() != "worker/first" || execution.GetPlacement().GetPeerId() != peerID.String() {
+		t.Fatalf("placement = %v", execution.GetPlacement())
+	}
+	quads, err := tb.WorldState.LookupGraphQuads(ctx, forge_execution.NewExecutionToWorkerQuad("execution/unplaced", ""), 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(quads) != 1 || !world.GraphQuadToQuad(quads[0]).EqualVT(world.GraphQuadToQuad(forge_execution.NewExecutionToWorkerQuad("execution/unplaced", "worker/first"))) {
+		t.Fatalf("Worker edges = %v", quads)
+	}
+}

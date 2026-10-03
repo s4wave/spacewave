@@ -112,6 +112,52 @@ func CreateExecutionWithTarget(
 	return rootRef, nil
 }
 
+// BindExecutionWorker records the Worker taking custody of an unplaced Execution.
+// It returns false when another Worker has custody or the Execution is complete.
+// An empty placement peer selects the Execution peer for a Worker tracking all peers.
+// The caller must hold a write transaction; the body and graph commit together.
+func BindExecutionWorker(ctx context.Context, ws world.WorldState, objKey string, placement *forge_worker.Placement) (bool, error) {
+	// Read current custody from the caller's transaction, not a watched snapshot.
+	execution, err := world.LookupObjectBody[*Execution](ctx, ws, objKey, NewExecutionBlock)
+	if err != nil {
+		return false, err
+	}
+
+	// Resolve the Execution peer when the Worker tracks all its linked peers.
+	placement = placement.CloneVT()
+	if placement.GetPeerId() == "" {
+		placement.PeerId = execution.GetPeerId()
+	}
+	if current := execution.GetPlacement(); current != nil {
+		return current.EqualVT(placement), nil
+	}
+	if execution.IsComplete() {
+		return false, nil
+	}
+
+	// Require the selected Worker to carry the Execution's assigned peer.
+	if err := placement.ValidateLinked(ctx, ws); err != nil {
+		return false, err
+	}
+	if execution.GetPeerId() != placement.GetPeerId() {
+		return false, errors.New("execution peer_id does not match placement")
+	}
+
+	// Bind the Execution body and its sole Worker relationship atomically.
+	_, _, err = world.AccessWorldObject(ctx, ws, objKey, true, func(cursor *block.Cursor) error {
+		execution.Placement = placement.CloneVT()
+		cursor.SetBlock(execution, true)
+		return nil
+	})
+	if err != nil {
+		return false, err
+	}
+	if err := ws.SetGraphQuad(ctx, NewExecutionToWorkerQuad(objKey, placement.GetWorkerObjectKey())); err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
 // UnmarshalExecution unmarshals an execution block from the cursor.
 func UnmarshalExecution(ctx context.Context, bcs *block.Cursor) (*Execution, error) {
 	return block.UnmarshalBlock[*Execution](ctx, bcs, NewExecutionBlock)

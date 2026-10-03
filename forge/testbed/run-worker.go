@@ -27,6 +27,7 @@ func (tb *Testbed) RunWorkerWithTasks(
 	clusterKey string,
 	workerPeer peer.Peer,
 ) (*forge_job.Job, error) {
+	// Read the testbed's World and operation author.
 	ctx, le, worldState := tb.Context, tb.Logger, tb.WorldState
 	sender := tb.Volume.GetPeerID()
 
@@ -122,7 +123,7 @@ func (tb *Testbed) RunWorkerWithTasks(
 	// start the Worker controller, which will schedule all matching Keypair objects to controllers.
 	workerCtrlCfg := worker_controller.NewConfig(
 		tb.EngineID,
-		clusterKey,
+		workerKey,
 		workerPeer.GetPeerID(),
 		true,
 	)
@@ -171,10 +172,12 @@ func (tb *Testbed) RunWorkerWithTasks(
 		return nil, err
 	}
 
+	// Return the Job's terminal failure to the test caller.
 	res := finalState.GetResult()
 	if errStr := res.FailError; len(errStr) != 0 {
 		return finalState, errors.New(errStr)
 	}
-	// success
+
+	// Return the completed Job with its retained result.
 	return finalState, nil
 }
