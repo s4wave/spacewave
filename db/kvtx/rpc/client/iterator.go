@@ -66,19 +66,23 @@ func (i *Iterator) Key() []byte {
 //
 // May cache the value between calls, copy if modifying.
 func (i *Iterator) Value() ([]byte, error) {
+	// Reuse the value cached for the current iterator entry.
 	currVal := i.value.Load()
 	if currVal != nil {
 		return currVal.value, nil
 	}
 
+	// Serialize the value lookup with other iterator requests.
 	id := i.pipeline.Next()
 	i.pipeline.StartRequest(id)
 	defer i.pipeline.EndRequest(id)
 
+	// Reject a value lookup on a closed iterator.
 	if i.closed.Load() {
 		return nil, kvtx.ErrDiscarded
 	}
 
+	// Request the current entry value from the remote iterator.
 	if err := i.client.Send(&kvtx_rpc.KvtxIterateRequest{
 		Body: &kvtx_rpc.KvtxIterateRequest_LookupValue{LookupValue: true},
 	}); err != nil {
@@ -109,10 +113,13 @@ func (i *Iterator) Value() ([]byte, error) {
 // May use the value cached from Value() call as the source of the data.
 // May return nil if !Valid().
 func (i *Iterator) ValueCopy(buf []byte) ([]byte, error) {
+	// Read the current iterator value before copying it.
 	val, err := i.Value()
 	if err != nil {
 		return nil, err
 	}
+
+	// Copy the iterator value into a buffer with enough capacity.
 	if cap(buf) < len(val) {
 		buf = make([]byte, len(val))
 	} else {
@@ -139,14 +146,17 @@ func (i *Iterator) storeErr(err error) {
 
 // Next advances to the next entry and returns Valid.
 func (i *Iterator) Next() bool {
+	// Serialize advancement with other iterator requests.
 	id := i.pipeline.Next()
 	i.pipeline.StartRequest(id)
 	defer i.pipeline.EndRequest(id)
 
+	// Reject advancement on a closed iterator.
 	if i.closed.Load() {
 		return false
 	}
 
+	// Invalidate the cached value and advance the remote iterator.
 	i.value.Store(nil)
 	if err := i.client.Send(&kvtx_rpc.KvtxIterateRequest{
 		Body: &kvtx_rpc.KvtxIterateRequest_Next{Next: true},
@@ -173,6 +183,7 @@ func (i *Iterator) Next() bool {
 		}
 	}
 
+	// Retain the failure when the iterator sends no advancement status.
 	i.storeErr(errors.New("unexpected iterator response: next"))
 	return false
 }
@@ -180,14 +191,17 @@ func (i *Iterator) Next() bool {
 // Seek moves the iterator to the first key >= the provided key (or <= in reverse mode).
 // Pass nil to seek to the beginning (or end if reversed).
 func (i *Iterator) Seek(k []byte) error {
+	// Serialize the seek with other iterator requests.
 	id := i.pipeline.Next()
 	i.pipeline.StartRequest(id)
 	defer i.pipeline.EndRequest(id)
 
+	// Reject a seek on a closed iterator.
 	if i.closed.Load() {
 		return kvtx.ErrDiscarded
 	}
 
+	// Invalidate the cached value and request the new iterator position.
 	i.value.Store(nil)
 	req := &kvtx_rpc.KvtxIterateRequest{}
 	if len(k) != 0 {
@@ -224,6 +238,7 @@ func (i *Iterator) Seek(k []byte) error {
 		}
 	}
 
+	// Retain the failure when the iterator sends no seek status.
 	err := errors.New("unexpected iterator response: seek")
 	i.storeErr(err)
 	return err
@@ -231,14 +246,17 @@ func (i *Iterator) Seek(k []byte) error {
 
 // Close closes the iterator.
 func (i *Iterator) Close() {
+	// Claim the iterator shutdown once.
 	if i.closed.Swap(true) {
 		return
 	}
 
+	// Serialize shutdown with outstanding iterator requests.
 	id := i.pipeline.Next()
 	i.pipeline.StartRequest(id)
 	defer i.pipeline.EndRequest(id)
 
+	// Clear the cached entry and expose the discarded iterator status.
 	i.value.Store(nil)
 	i.status.Store(&kvtx_rpc.KvtxIterateStatus{
 		Error: kvtx.ErrDiscarded.Error(),
@@ -248,6 +266,7 @@ func (i *Iterator) Close() {
 	time.AfterFunc(time.Second, func() {
 		_ = i.client.Close()
 	})
+
 	// write Close and expect Recv or an error.
 	_ = i.client.Send(&kvtx_rpc.KvtxIterateRequest{
 		Body: &kvtx_rpc.KvtxIterateRequest_Close{Close: true},

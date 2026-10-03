@@ -22,10 +22,12 @@ func WizardFactory(
 	ws world.WorldState,
 	objectKey string,
 ) (srpc.Invoker, func(), error) {
+	// Require the World that contains the wizard object.
 	if ws == nil {
 		return nil, nil, objecttype.ErrWorldStateRequired
 	}
 
+	// Acquire the wizard object and retain it through initialization.
 	var state *wizard.WizardState
 	objState, found, err := ws.GetObject(ctx, objectKey)
 	defer world.ReleaseObjectState(objState)
@@ -36,6 +38,7 @@ func WizardFactory(
 		return nil, nil, world.ErrObjectNotFound
 	}
 
+	// Decode the wizard state through its read cursor.
 	_, _, err = world.AccessObjectState(ctx, objState, false, func(bcs *block.Cursor) error {
 		var uerr error
 		state, uerr = wizard.UnmarshalWizardState(ctx, bcs)
@@ -45,10 +48,12 @@ func WizardFactory(
 		return nil, nil, err
 	}
 
+	// Supply the initial state for an empty wizard object.
 	if state == nil {
 		state = &wizard.WizardState{}
 	}
 
+	// Expose the wizard service with its resource cleanup callback.
 	resource := NewWizardResource(ws, engine, objectKey, state)
 	return resource.GetMux(), resource.Close, nil
 }

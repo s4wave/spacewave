@@ -33,6 +33,7 @@ func TestRemoteErrorLeavesUnclassifiedErrorUntyped(t *testing.T) {
 }
 
 func TestRetryClassRoundTripsOnComplete(t *testing.T) {
+	// Encode a transaction completion carrying a classified failure.
 	want := &kvtx_rpc.KvtxTransactionComplete{
 		Error:      "backend page diagnostic",
 		RetryClass: kvtx_rpc.KvtxRetryClass_KVTX_RETRY_CLASS_INVALID_SNAPSHOT,
@@ -41,16 +42,22 @@ func TestRetryClassRoundTripsOnComplete(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Decode the completion from its wire representation.
 	got := new(kvtx_rpc.KvtxTransactionComplete)
 	if err := got.UnmarshalVT(data); err != nil {
 		t.Fatal(err)
 	}
+
+	// Verify the completion retains its retry class and diagnostic.
 	if got.GetRetryClass() != want.GetRetryClass() {
 		t.Fatalf("retry class = %v, want %v", got.GetRetryClass(), want.GetRetryClass())
 	}
 	if got.GetError() != want.GetError() {
 		t.Fatalf("diagnostic = %q, want %q", got.GetError(), want.GetError())
 	}
+
+	// Verify the decoded retry class reconstructs the snapshot error.
 	err = remoteError(got.GetError(), got.GetRetryClass())
 	if !errors.Is(err, kvtx.ErrInvalidSnapshot) {
 		t.Fatalf("round-trip error = %v, want ErrInvalidSnapshot", err)

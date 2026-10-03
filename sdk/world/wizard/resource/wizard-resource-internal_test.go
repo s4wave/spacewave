@@ -11,11 +11,14 @@ import (
 )
 
 func TestWizardResourceClosePreventsLateStatePublish(t *testing.T) {
+	// Close a wizard resource before a late state update arrives.
 	resource := NewWizardResource(nil, nil, "", &wizard.WizardState{Name: "Initial"})
 	resource.Close()
 
+	// Deliver the wizard update after resource shutdown.
 	resource.setWizardStateWatchState(&wizard.WizardState{Name: "Late"}, 1)
 
+	// Verify the closed wizard still reports cancellation.
 	var snap *wizardStateWatchSnapshot
 	resource.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		snap = resource.snapshotWizardStateWatchLocked()
@@ -26,11 +29,14 @@ func TestWizardResourceClosePreventsLateStatePublish(t *testing.T) {
 }
 
 func TestWizardResourceRejectsStaleWorldStatePublish(t *testing.T) {
+	// Create a wizard resource with its initial state.
 	resource := NewWizardResource(nil, nil, "", &wizard.WizardState{Name: "Initial"})
 
+	// Deliver a current wizard revision followed by a stale revision.
 	resource.setWizardStateWatchState(&wizard.WizardState{Name: "Current"}, 2)
 	resource.setWizardStateWatchState(&wizard.WizardState{Name: "Stale"}, 1)
 
+	// Verify the wizard retains the newest revision.
 	var snap *wizardStateWatchSnapshot
 	resource.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		snap = resource.snapshotWizardStateWatchLocked()

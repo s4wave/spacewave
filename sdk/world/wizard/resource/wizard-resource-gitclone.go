@@ -34,6 +34,7 @@ func (r *WizardResource) failGitClone(objectKey, message string, err error) {
 }
 
 func (r *WizardResource) runGitClone(ctx context.Context, req *wizard.StartGitCloneRequest) {
+	// Decode and validate the requested repository clone.
 	op := &s4wave_git.CreateGitRepoWizardOp{}
 	if err := op.UnmarshalVT(req.GetConfigData()); err != nil {
 		r.failGitClone(req.GetObjectKey(), "Clone configuration is invalid.", err)
@@ -48,17 +49,21 @@ func (r *WizardResource) runGitClone(ctx context.Context, req *wizard.StartGitCl
 		return
 	}
 
+	// Resolve the peer that will publish the cloned repository.
 	sender, err := confparse.ParsePeerID(req.GetOpSender())
 	if err != nil {
 		r.failGitClone(req.GetObjectKey(), "Clone sender is invalid.", err)
 		return
 	}
 
+	// Prepare the World view and repository timestamp.
 	ws := world.NewEngineWorldState(r.engine, true)
 	ts := op.GetTimestamp()
 	if ts == nil {
 		ts = timestamppb.Now()
 	}
+
+	// Clone the repository while publishing progress to the wizard.
 	repoRef, err := s4wave_git.CloneGitRepoToRef(
 		ctx,
 		r.engine,
@@ -71,12 +76,15 @@ func (r *WizardResource) runGitClone(ctx context.Context, req *wizard.StartGitCl
 		return
 	}
 
+	// Open a transaction to publish the cloned repository.
 	wtx, err := r.engine.NewTransaction(ctx, true)
 	if err != nil {
 		r.failGitClone(req.GetObjectKey(), "Repository was cloned, but publish failed.", err)
 		return
 	}
 	defer wtx.Discard()
+
+	// Initialize and commit the repository object in the World.
 	initOp := git_world.NewGitInitOp(req.GetObjectKey(), repoRef, true, nil, ts)
 	_, _, err = wtx.ApplyWorldOp(ctx, initOp, sender)
 	if err != nil {
@@ -88,16 +96,19 @@ func (r *WizardResource) runGitClone(ctx context.Context, req *wizard.StartGitCl
 		return
 	}
 
+	// Point the Space index at the repository when this wizard is current.
 	if err := r.replaceSpaceIndexIfWizardIsCurrent(ctx, ws, req.GetObjectKey()); err != nil {
 		r.failGitClone(req.GetObjectKey(), "Repository was cloned, but space index update failed.", err)
 		return
 	}
 
+	// Remove the wizard object after publishing its repository.
 	if _, err := ws.DeleteObject(ctx, r.objKey); err != nil {
 		r.failGitClone(req.GetObjectKey(), "Repository was cloned, but wizard cleanup failed.", err)
 		return
 	}
 
+	// Notify clone watchers that the repository is ready.
 	r.setGitCloneProgress(&wizard.GitCloneProgress{
 		State:     wizard.GitCloneProgressState_GIT_CLONE_PROGRESS_STATE_DONE,
 		Message:   "Repository cloned.",

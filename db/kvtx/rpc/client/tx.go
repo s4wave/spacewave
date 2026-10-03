@@ -39,6 +39,7 @@ func InitTx(
 	opsCaller rpcstream.RpcStreamCaller[kvtx_rpc.SRPCKvtx_KvtxTransactionRpcClient],
 	write bool,
 ) (*Tx, error) {
+	// Request a remote transaction with the required write mode.
 	err := client.Send(&kvtx_rpc.KvtxTransactionRequest{
 		Body: &kvtx_rpc.KvtxTransactionRequest_Init{
 			Init: &kvtx_rpc.KvtxTransactionInit{
@@ -51,24 +52,28 @@ func InitTx(
 		return nil, err
 	}
 
+	// Receive the remote transaction acknowledgement.
 	resp, err := client.Recv()
 	if err != nil {
 		_ = client.Close()
 		return nil, err
 	}
 
+	// Reject a transaction initialization failure from the remote store.
 	ackMsg := resp.GetAck()
 	if errStr := ackMsg.GetError(); errStr != "" {
 		_ = client.Close()
 		return nil, remoteError(errStr, ackMsg.GetRetryClass())
 	}
 
+	// Require the remote transaction ID for operation routing.
 	txID := ackMsg.GetTransactionId()
 	if txID == "" {
 		_ = client.Close()
 		return nil, errors.New("kvtx_rpc: remote returned empty transaction id")
 	}
 
+	// Bind transaction operations to the negotiated remote ID.
 	openStream := rpcstream.NewRpcStreamOpenStream(opsCaller, txID, false)
 	openStreamClient := srpc.NewClient(openStream)
 	opsClient := kvtx_rpc.NewSRPCKvtxOpsClient(openStreamClient)
@@ -80,9 +85,12 @@ func InitTx(
 // Commit commits the transaction to storage.
 // Can return an error to indicate tx failure.
 func (t *Tx) Commit(ctx context.Context) error {
+	// Claim the transaction completion before sending the commit.
 	if t.released.Swap(true) {
 		return kvtx.ErrDiscarded
 	}
+
+	// Request the remote store to commit the transaction.
 	err := t.client.Send(&kvtx_rpc.KvtxTransactionRequest{
 		Body: &kvtx_rpc.KvtxTransactionRequest_Commit{Commit: true},
 	})
@@ -90,11 +98,15 @@ func (t *Tx) Commit(ctx context.Context) error {
 		_ = t.client.Close()
 		return err
 	}
+
+	// Receive the remote transaction completion.
 	resp, err := t.client.Recv()
 	if err != nil {
 		_ = t.client.Close()
 		return err
 	}
+
+	// Report the remote commit result or a discarded transaction.
 	complete := resp.GetComplete()
 	if errStr := complete.GetError(); errStr != "" {
 		err = remoteError(errStr, complete.GetRetryClass())
@@ -102,6 +114,7 @@ func (t *Tx) Commit(ctx context.Context) error {
 	if err == nil && !resp.GetComplete().GetCommitted() {
 		err = kvtx.ErrDiscarded
 	}
+
 	return err
 }
 

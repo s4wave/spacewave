@@ -40,9 +40,12 @@ func (s *Store) WatchPrefix(ctx context.Context, prefix []byte, cb func(entries 
 // while each snapshot stays within limits.
 // Returns ErrWatchLimit without any callback when a snapshot exceeds limits.
 func (s *Store) WatchPrefixBounded(ctx context.Context, prefix []byte, limits kvtx.WatchLimits, cb func(entries []kvtx.WatchEntry) error) error {
+	// Require a snapshot consumer before opening the remote watch.
 	if cb == nil {
 		return nil
 	}
+
+	// Open a remote watch with the requested snapshot limits.
 	client, err := s.client.Watch(ctx, &kvtx_rpc.KvtxWatchRequest{
 		Prefix:     prefix,
 		MaxRecords: limits.MaxRecords,
@@ -52,7 +55,10 @@ func (s *Store) WatchPrefixBounded(ctx context.Context, prefix []byte, limits kv
 		return err
 	}
 	defer client.Close()
+
+	// Deliver bounded key snapshots until the remote watch ends.
 	for {
+		// Read the next committed key snapshot from the remote store.
 		resp, err := client.Recv()
 		if err == io.EOF {
 			return nil
@@ -60,12 +66,16 @@ func (s *Store) WatchPrefixBounded(ctx context.Context, prefix []byte, limits kv
 		if err != nil {
 			return err
 		}
+
+		// Preserve remote failures and snapshot limit errors.
 		if errStr := resp.GetError(); errStr != "" {
 			if resp.GetLimitExceeded() {
 				return kvtx.ErrWatchLimit
 			}
 			return errors.New(errStr)
 		}
+
+		// Convert the remote snapshot and deliver it to the consumer.
 		entries := make([]kvtx.WatchEntry, 0, len(resp.GetEntries()))
 		for _, entry := range resp.GetEntries() {
 			entries = append(entries, kvtx.WatchEntry{

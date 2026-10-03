@@ -41,9 +41,12 @@ func (o *Ops) Size(ctx context.Context) (uint64, error) {
 
 // Get looks up a key and data from the store.
 func (o *Ops) Get(ctx context.Context, key []byte) (data []byte, found bool, err error) {
+	// Require live transaction operations before reading a remote key.
 	if o.released.Load() {
 		return nil, false, kvtx.ErrDiscarded
 	}
+
+	// Read the remote key and preserve its classified failure.
 	resp, err := o.client.KeyData(ctx, kvtx_rpc.NewKeyRequest(key))
 	if err != nil {
 		return nil, false, err
@@ -100,6 +103,7 @@ func (o *Ops) Exists(ctx context.Context, key []byte) (bool, error) {
 
 // Iterate iterates over the store.
 func (o *Ops) Iterate(ctx context.Context, prefix []byte, sort bool, reverse bool) kvtx.Iterator {
+	// Open an iterator stream for live transaction operations.
 	if o.released.Load() {
 		return kvtx.NewErrIterator(kvtx.ErrDiscarded)
 	}
@@ -108,6 +112,7 @@ func (o *Ops) Iterate(ctx context.Context, prefix []byte, sort bool, reverse boo
 		return kvtx.NewErrIterator(err)
 	}
 
+	// Initialize the remote iterator with its traversal options.
 	err = itClient.Send(&kvtx_rpc.KvtxIterateRequest{
 		Body: &kvtx_rpc.KvtxIterateRequest_Init{
 			Init: &kvtx_rpc.KvtxIterateInit{
