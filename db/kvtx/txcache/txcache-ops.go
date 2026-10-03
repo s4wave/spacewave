@@ -30,6 +30,7 @@ func (s *opsSorter) Less(i, j int) bool {
 
 // Swap swaps the elements with indexes i and j.
 func (s *opsSorter) Swap(i, j int) {
+	// Exchange each transaction operation together with its sorting key.
 	vj := s.opsSet[j]
 	kj := s.opsKeys[j]
 	s.opsSet[j] = s.opsSet[i]
@@ -43,12 +44,14 @@ var _ sort.Interface = (*opsSorter)(nil)
 
 // BuildOps returns a sorted set of operations.
 func (t *TXCache) BuildOps(ctx context.Context, sorted bool) ([]Op, error) {
+	// Reserve operation storage and optional keys for sorting the transaction changes.
 	opsSet := make([]Op, 0, t.set.Len()+t.remove.Len())
 	var opsKeys [][]byte
 	if sorted {
 		opsKeys = make([][]byte, 0, cap(opsSet))
 	}
 
+	// Build delete operations for the pending transaction tombstones.
 	t.remove.Ascend(nil, func(item *cacheItem) bool {
 		removedKey := item.key
 		opsSet = append(opsSet, func(ops kvtx.TxOps) error {
@@ -60,11 +63,15 @@ func (t *TXCache) BuildOps(ctx context.Context, sorted bool) ([]Op, error) {
 		return true
 	})
 
+	// Build write operations for pending values without tombstones.
 	t.set.Ascend(nil, func(item *cacheItem) bool {
+		// Exclude pending writes whose keys have transaction tombstones.
 		addedKey := item.key
 		if _, ok := t.remove.Get(&cacheItem{key: addedKey}); ok {
 			return true
 		}
+
+		// Capture the pending value in a write operation and retain its sorting key.
 		addedVal := item.val
 		opsSet = append(opsSet, func(ops kvtx.TxOps) error {
 			return ops.Set(ctx, addedKey, addedVal)
@@ -75,6 +82,7 @@ func (t *TXCache) BuildOps(ctx context.Context, sorted bool) ([]Op, error) {
 		return true
 	})
 
+	// Order the transaction operations by key when requested.
 	if sorted {
 		sort.Sort(&opsSorter{opsSet: opsSet, opsKeys: opsKeys})
 	}

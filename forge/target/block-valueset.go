@@ -38,6 +38,7 @@ func (v *ValueSet) IsNil() bool {
 
 // Validate performs cursory checks of the ValueSet.
 func (v *ValueSet) Validate() error {
+	// Validate the input and output values in the ValueSet.
 	for idx, inp := range v.GetInputs() {
 		if err := inp.Validate(false); err != nil {
 			return errors.Wrapf(err, "inputs[%d]", idx)
@@ -49,6 +50,7 @@ func (v *ValueSet) Validate() error {
 		}
 	}
 
+	// Require the ValueSet inputs and outputs to be sorted by name.
 	if !block.IsNamedSubBlocksSorted(v.GetInputs()) {
 		return errors.New("inputs: must be sorted by name")
 	}
@@ -70,13 +72,16 @@ func (v *ValueSet) SortValues() {
 
 // Clone copies the ValueSet.
 func (v *ValueSet) Clone() *ValueSet {
+	// Capture the ValueSet slices for independent input and output copies.
 	origInputs, origOutputs := v.GetInputs(), v.GetOutputs()
 
+	// Clone the input values into a separate ValueSet slice.
 	inputs := make([]*forge_value.Value, len(origInputs))
 	for i, inp := range origInputs {
 		inputs[i] = inp.Clone()
 	}
 
+	// Clone the output values into a separate ValueSet slice.
 	outputs := make([]*forge_value.Value, len(origOutputs))
 	for i, outp := range origOutputs {
 		outputs[i] = outp.Clone()

@@ -31,6 +31,7 @@ func LoadMsgpackValue[T any](
 	value *forge_value.Value,
 	ctor func() T,
 ) (T, error) {
+	// Return the requested default when the msgpack value is empty.
 	if value.IsEmpty() {
 		if ctor == nil {
 			var empty T
@@ -38,6 +39,8 @@ func LoadMsgpackValue[T any](
 		}
 		return ctor(), nil
 	}
+
+	// Decode the stored msgpack value through its block cursor.
 	var outObj T
 	_, err := AccessValue(ctx, handle, value, func(bcs *block.Cursor) error {
 		outBlk, berr := block_msgpack.UnmarshalMsgpackBlock(ctx, bcs, ctor)

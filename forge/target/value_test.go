@@ -17,11 +17,13 @@ import (
 
 // buildTestbedHandle builds a testbed with a handle.
 func buildTestbedHandle(t *testing.T) (*testbed.Testbed, world.WorldState, ExecControllerHandle) {
+	// Create the context and logger for the execution-handle testbed.
 	ctx := context.Background()
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
 
+	// Start the storage testbed and register its controller factories.
 	tb, err := testbed.NewTestbed(ctx, le)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -51,11 +53,13 @@ func buildTestbedHandle(t *testing.T) (*testbed.Testbed, world.WorldState, ExecC
 	}
 	t.Cleanup(worldCtrlRef.Release)
 
+	// Obtain the mounted World engine for the execution handle.
 	wh, err := worldCtrl.GetWorldEngine(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Construct the execution handle over the mounted World state.
 	worldState := world.NewEngineWorldState(wh, true)
 	ts := timestamp.Now()
 	uniqueID := "test-handle"
@@ -65,17 +69,21 @@ func buildTestbedHandle(t *testing.T) (*testbed.Testbed, world.WorldState, ExecC
 
 // TestStoreBlobValue tests storing a byte slice as a blob value.
 func TestStoreBlobValue(t *testing.T) {
+	// Create the storage testbed and execution handle for the blob round trip.
 	tb, _, handle := buildTestbedHandle(t)
 	ctx := tb.Context
 
 	// Store a large blob value.
 	rnd := prng.BuildSeededReader([]byte("test-store-blob-value"))
 
+	// Fill a large byte slice from the seeded blob reader.
 	dat := make([]byte, 250000) // 250kb
 	_, err := io.ReadFull(rnd, dat)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Store the large byte slice as a blob value.
 	fv, err := StoreBlobValueFromBytes(ctx, handle, dat)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -86,6 +94,8 @@ func TestStoreBlobValue(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Verify the loaded blob matches the stored bytes.
 	if !bytes.Equal(outData, dat) {
 		t.Fatalf("output value was different: len(%d) and expected len(%d)", len(outData), len(dat))
 	}
@@ -93,6 +103,7 @@ func TestStoreBlobValue(t *testing.T) {
 
 // TestStoreMsgpackBlobValue tests storing a blob value.
 func TestStoreMsgpackBlobValue(t *testing.T) {
+	// Create the storage testbed and execution handle for the structured-value round trip.
 	tb, _, handle := buildTestbedHandle(t)
 	ctx := tb.Context
 
@@ -103,12 +114,15 @@ func TestStoreMsgpackBlobValue(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// Load the stored structured value from its msgpack block.
 	loaded, err := LoadMsgpackValue(ctx, handle, fv, func() map[string]int {
 		return map[string]int{}
 	})
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Verify the decoded structured value retains its map entry.
 	if loaded == nil || loaded["test"] != 2 {
 		t.Fatalf("output value was different: %#v", loaded)
 	}
@@ -116,6 +130,7 @@ func TestStoreMsgpackBlobValue(t *testing.T) {
 
 // TestStoreMsgpackBlockValue tests storing a msgpack block
 func TestStoreMsgpackBlockValue(t *testing.T) {
+	// Create the storage testbed and execution handle for the msgpack block round trip.
 	tb, _, handle := buildTestbedHandle(t)
 	ctx := tb.Context
 
@@ -131,6 +146,8 @@ func TestStoreMsgpackBlockValue(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Verify the decoded msgpack block retains its map entry.
 	if loaded == nil || loaded["test"] != 2 {
 		t.Fatalf("output value was different: %#v", loaded)
 	}

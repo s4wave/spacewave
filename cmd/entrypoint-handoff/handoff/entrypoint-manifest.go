@@ -44,6 +44,7 @@ type entrypointHandoffEntry struct {
 
 // WriteEntrypointHandoffManifest writes manifest.json for an entrypoint handoff.
 func WriteEntrypointHandoffManifest(opts EntrypointHandoffOptions) error {
+	// Require the entrypoint paths, release identity, and source provenance.
 	if opts.RootDir == "" {
 		return errors.New("handoff root dir is required")
 	}
@@ -66,6 +67,7 @@ func WriteEntrypointHandoffManifest(opts EntrypointHandoffOptions) error {
 		return errors.New("source provenance is required")
 	}
 
+	// Collect the browser staging entries for the release handoff.
 	browserEntries, err := collectEntrypointHandoffFiles(opts.RootDir, opts.BrowserStagingDir)
 	if err != nil {
 		return errors.Wrap(err, "collect browser staging files")
@@ -73,6 +75,8 @@ func WriteEntrypointHandoffManifest(opts EntrypointHandoffOptions) error {
 	if len(browserEntries) == 0 {
 		return errors.New("browser staging files are required")
 	}
+
+	// Require the static manifest at the handoff root.
 	staticEntry, err := buildEntrypointHandoffEntry(opts.RootDir, opts.StaticManifestPath)
 	if err != nil {
 		return errors.Wrap(err, "collect static manifest")
@@ -80,6 +84,8 @@ func WriteEntrypointHandoffManifest(opts EntrypointHandoffOptions) error {
 	if staticEntry.Path != "static-manifest.ts" {
 		return errors.New("static manifest path must be static-manifest.ts")
 	}
+
+	// Write the entrypoint handoff manifest with its files and provenance.
 	manifest := &entrypointHandoffManifest{
 		browserStaging: browserEntries,
 		staticManifest: staticEntry,
@@ -94,12 +100,15 @@ func WriteEntrypointHandoffManifest(opts EntrypointHandoffOptions) error {
 func collectEntrypointHandoffFiles(rootDir, dir string) ([]*entrypointHandoffEntry, error) {
 	var out []*entrypointHandoffEntry
 	if err := filepath.WalkDir(dir, func(path string, entry fs.DirEntry, err error) error {
+		// Propagate traversal errors and skip browser staging directories.
 		if err != nil {
 			return errors.Wrap(err, "walk "+path)
 		}
 		if entry.IsDir() {
 			return nil
 		}
+
+		// Record each browser file within the browser staging root.
 		file, err := buildEntrypointHandoffEntry(rootDir, path)
 		if err != nil {
 			return err
@@ -119,6 +128,7 @@ func collectEntrypointHandoffFiles(rootDir, dir string) ([]*entrypointHandoffEnt
 }
 
 func buildEntrypointHandoffEntry(rootDir, filePath string) (*entrypointHandoffEntry, error) {
+	// Inspect the handoff file and reject directories and symlinks.
 	info, err := os.Lstat(filePath)
 	if err != nil {
 		return nil, errors.Wrap(err, "stat "+filePath)
@@ -129,6 +139,8 @@ func buildEntrypointHandoffEntry(rootDir, filePath string) (*entrypointHandoffEn
 	if info.Mode()&os.ModeSymlink != 0 {
 		return nil, errors.New("handoff entry must not be a symlink: " + filePath)
 	}
+
+	// Require a normalized handoff path contained in the root directory.
 	rel, err := filepath.Rel(rootDir, filePath)
 	if err != nil {
 		return nil, errors.Wrap(err, "rel handoff path")
@@ -140,6 +152,8 @@ func buildEntrypointHandoffEntry(rootDir, filePath string) (*entrypointHandoffEn
 	if filepath.ToSlash(rel) != clean {
 		return nil, errors.New("handoff entry path is not normalized: " + filePath)
 	}
+
+	// Hash the handoff file to identify its contents.
 	digest, err := fileSHA256(filePath)
 	if err != nil {
 		return nil, err
@@ -152,6 +166,7 @@ func buildEntrypointHandoffEntry(rootDir, filePath string) (*entrypointHandoffEn
 }
 
 func marshalEntrypointHandoffManifest(manifest *entrypointHandoffManifest) string {
+	// Write the entrypoint handoff format and release identity.
 	var b strings.Builder
 	opts := manifest.opts
 	b.WriteString("{\n")
@@ -160,11 +175,15 @@ func marshalEntrypointHandoffManifest(manifest *entrypointHandoffManifest) strin
 	writeEntrypointJSONField(&b, 1, "version", opts.Version, true)
 	writeEntrypointJSONField(&b, 1, "rev", opts.Rev, true)
 	writeEntrypointJSONField(&b, 1, "tag", opts.Tag, true)
+
+	// Write the source provenance of the entrypoint release.
 	writeEntrypointJSONField(&b, 1, "git_sha", opts.GitSHA, true)
 	writeEntrypointJSONField(&b, 1, "run_id", opts.RunID, true)
 	writeEntrypointJSONField(&b, 1, "run_attempt", opts.RunAttempt, true)
 	writeEntrypointJSONField(&b, 1, "source_repo", opts.SourceRepo, true)
 	writeEntrypointJSONField(&b, 1, "workflow", opts.Workflow, true)
+
+	// Write the browser staging entries in their collected order.
 	b.WriteString("  \"browser_staging\": [\n")
 	for i, entry := range manifest.browserStaging {
 		b.WriteString("    ")
@@ -174,6 +193,8 @@ func marshalEntrypointHandoffManifest(manifest *entrypointHandoffManifest) strin
 		}
 		b.WriteByte('\n')
 	}
+
+	// Write the static manifest entry and close the entrypoint handoff.
 	b.WriteString("  ],\n")
 	b.WriteString("  \"static_manifest\": ")
 	writeEntrypointHandoffEntry(&b, manifest.staticManifest)
@@ -182,6 +203,7 @@ func marshalEntrypointHandoffManifest(manifest *entrypointHandoffManifest) strin
 }
 
 func writeEntrypointJSONField(b *strings.Builder, indent int, name, value string, trailing bool) {
+	// Write the named handoff field as an indented JSON string.
 	b.WriteString(strings.Repeat("  ", indent))
 	b.WriteString(strconv.Quote(name))
 	b.WriteString(": ")
@@ -193,14 +215,19 @@ func writeEntrypointJSONField(b *strings.Builder, indent int, name, value string
 }
 
 func writeEntrypointHandoffEntry(b *strings.Builder, entry *entrypointHandoffEntry) {
+	// Write the handoff entry path within its JSON record.
 	b.WriteString("{")
 	b.WriteString(strconv.Quote("path"))
 	b.WriteString(": ")
 	b.WriteString(strconv.Quote(entry.Path))
+
+	// Write the handoff entry digest identifying its contents.
 	b.WriteString(", ")
 	b.WriteString(strconv.Quote("sha256"))
 	b.WriteString(": ")
 	b.WriteString(strconv.Quote(entry.SHA256))
+
+	// Write the handoff entry size and close its JSON record.
 	b.WriteString(", ")
 	b.WriteString(strconv.Quote("size"))
 	b.WriteString(": ")

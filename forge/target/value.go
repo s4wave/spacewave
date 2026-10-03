@@ -34,6 +34,7 @@ func AccessValue(
 	val *forge_value.Value,
 	cb func(*block.Cursor) error,
 ) (*forge_value.Value, error) {
+	// Resolve a cloned value to the bucket reference used for object access.
 	nval := val.Clone()
 	if nval == nil {
 		nval = &forge_value.Value{}
@@ -42,6 +43,8 @@ func AccessValue(
 	if err != nil {
 		return nil, err
 	}
+
+	// Access the value object and retain the cloned value if its reference is unchanged.
 	nobj, err := AccessObject(ctx, handle, bref, cb)
 	if err != nil {
 		return nil, err
@@ -49,6 +52,8 @@ func AccessValue(
 	if nobj.EqualsRef(bref) {
 		return nval, nil
 	}
+
+	// Represent the updated object using the original value reference type.
 	if nval.GetValueType() == forge_value.ValueType_ValueType_BLOCK_REF {
 		return forge_value.NewValueWithBlockRef("", nobj.GetRootRef()), nil
 	} else {
@@ -133,17 +138,22 @@ func CopyValueToBucket(
 	handle ExecControllerHandle,
 	val *forge_value.Value,
 ) (*forge_value.Value, error) {
+	// Resolve the source value to its bucket reference.
 	bktRef, err := val.ToBucketRef()
 	if err != nil {
 		return nil, err
 	}
 
+	// Return no value when the source bucket or root reference is empty.
 	outputRef := bktRef.GetRootRef()
 	if bktRef.GetEmpty() || outputRef.GetEmpty() {
 		return nil, nil
 	}
+
+	// Copy a root block from another bucket into the target storage.
 	// fetch the data if the bucket id is different
 	if bktRef.GetBucketId() != "" {
+		// Fetch the source root block and require it to exist.
 		var rootBlockData []byte
 		var rootBlockFound bool
 		err = handle.AccessStorage(
@@ -168,6 +178,8 @@ func CopyValueToBucket(
 		if err != nil {
 			return nil, err
 		}
+
+		// Persist the fetched root block in the target bucket.
 		err = handle.AccessStorage(ctx, nil, func(bls *bucket_lookup.Cursor) error {
 			var berr error
 			outputRef, _, berr = bls.PutBlock(ctx, rootBlockData, &block.PutOpts{Sync: true})

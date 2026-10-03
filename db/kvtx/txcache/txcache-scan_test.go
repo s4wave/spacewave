@@ -11,12 +11,15 @@ import (
 
 // newTestTXCache builds a TXCache over a store holding the given keys.
 func newTestTXCache(t *testing.T, sortScan bool, keys ...string) *TXCache {
+	// Open a write transaction for the cache test store.
 	ctx := context.Background()
 	store := sinmem.NewStore()
 	wtx, err := store.NewTransaction(ctx, true)
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Populate and commit the underlying keys for the cache test.
 	for _, k := range keys {
 		if err := wtx.Set(ctx, []byte(k), []byte("v")); err != nil {
 			t.Fatal(err)
@@ -25,6 +28,8 @@ func newTestTXCache(t *testing.T, sortScan bool, keys ...string) *TXCache {
 	if err := wtx.Commit(ctx); err != nil {
 		t.Fatal(err)
 	}
+
+	// Open a read transaction for the cache and register its cleanup.
 	rtx, err := store.NewTransaction(ctx, false)
 	if err != nil {
 		t.Fatal(err)
@@ -62,15 +67,20 @@ func TestScanPrefixFiltersPendingSets(t *testing.T) {
 // TestScanPrefixUnsortedReturnsCallbackError verifies a callback error on a
 // pending set is returned.
 func TestScanPrefixUnsortedReturnsCallbackError(t *testing.T) {
+	// Buffer a prefix key in an unsorted transaction cache.
 	ctx := context.Background()
 	tc := newTestTXCache(t, false)
 	if err := tc.Set(ctx, []byte("a/1"), []byte("v")); err != nil {
 		t.Fatal(err)
 	}
+
+	// Stop the unsorted cache scan through its callback error.
 	errStop := errors.New("stop")
 	err := tc.ScanPrefix(ctx, []byte("a/"), func(key, value []byte) error {
 		return errStop
 	})
+
+	// Verify the cache scan returns the callback error.
 	if !errors.Is(err, errStop) {
 		t.Fatalf("got %v, want %v", err, errStop)
 	}
@@ -78,17 +88,22 @@ func TestScanPrefixUnsortedReturnsCallbackError(t *testing.T) {
 
 // TestDeleteCopiesKey verifies Delete does not retain the caller's key slice.
 func TestDeleteCopiesKey(t *testing.T) {
+	// Delete an underlying key using a caller-owned byte slice.
 	ctx := context.Background()
 	tc := newTestTXCache(t, true, "abc")
 	key := []byte("abc")
 	if err := tc.Delete(ctx, key); err != nil {
 		t.Fatal(err)
 	}
+
+	// Reuse the caller key slice and check the originally deleted key.
 	copy(key, "xyz")
 	exists, err := tc.Exists(ctx, []byte("abc"))
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Verify the cache retains the deleted key after the caller reuses its slice.
 	if exists {
 		t.Fatal("deleted key abc still exists after caller reused its slice")
 	}
@@ -97,35 +112,49 @@ func TestDeleteCopiesKey(t *testing.T) {
 // TestSizeCountsPendingChanges verifies Size counts overwrites and deletes of
 // missing keys correctly.
 func TestSizeCountsPendingChanges(t *testing.T) {
+	// Create a cache over two existing transaction keys.
 	ctx := context.Background()
 	tc := newTestTXCache(t, true, "a", "b")
+
+	// Buffer an overwrite and a new key for the size check.
 	// overwrite, new key, delete existing, delete missing
 	for _, k := range []string{"a", "c"} {
 		if err := tc.Set(ctx, []byte(k), []byte("v2")); err != nil {
 			t.Fatal(err)
 		}
 	}
+
+	// Buffer deletes of an existing key and a missing key.
 	for _, k := range []string{"b", "missing"} {
 		if err := tc.Delete(ctx, []byte(k)); err != nil {
 			t.Fatal(err)
 		}
 	}
+
+	// Measure the transaction size after the pending changes.
 	n, err := tc.Size(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Verify overwrites and missing deletes preserve the expected key count.
 	if n != 2 {
 		t.Fatalf("size = %d, want 2", n)
 	}
 
+	// Buffer a missing-key delete in an empty transaction cache.
 	empty := newTestTXCache(t, true)
 	if err := empty.Delete(ctx, []byte("missing")); err != nil {
 		t.Fatal(err)
 	}
+
+	// Measure the empty transaction size after its pending delete.
 	n, err = empty.Size(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Verify deleting a missing key leaves the empty transaction size at zero.
 	if n != 0 {
 		t.Fatalf("size = %d, want 0", n)
 	}

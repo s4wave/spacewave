@@ -10,6 +10,7 @@ import (
 )
 
 func TestTXCacheGetBatchAlignsCachedRemovedAndUnderlyingResults(t *testing.T) {
+	// Create a transaction cache containing a write and an underlying-key tombstone.
 	ctx := context.Background()
 	underlying := &txCacheBatchSpyOps{
 		values: map[string][]byte{
@@ -25,6 +26,7 @@ func TestTXCacheGetBatchAlignsCachedRemovedAndUnderlyingResults(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Read cached, removed, missing, and underlying keys in one batch.
 	values, found, err := cache.GetBatch(ctx, [][]byte{
 		[]byte("cached"),
 		[]byte("removed"),
@@ -35,6 +37,8 @@ func TestTXCacheGetBatchAlignsCachedRemovedAndUnderlyingResults(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Verify the cache batches only its unresolved keys in the underlying transaction.
 	if underlying.batchCalls != 1 {
 		t.Fatalf("underlying GetBatch calls = %d, want 1", underlying.batchCalls)
 	}
@@ -45,6 +49,8 @@ func TestTXCacheGetBatchAlignsCachedRemovedAndUnderlyingResults(t *testing.T) {
 		[]byte("missing"),
 		[]byte("underlying"),
 	})
+
+	// Verify batch values and presence flags align with the original request.
 	assertTXCacheBatchResults(t, values, found, []txCacheBatchResult{
 		{value: []byte("from-cache"), found: true},
 		{found: false},
@@ -55,11 +61,15 @@ func TestTXCacheGetBatchAlignsCachedRemovedAndUnderlyingResults(t *testing.T) {
 }
 
 func TestTXCacheGetBatchRejectsEmptyKeyBeforeUnderlyingLookup(t *testing.T) {
+	// Create a transaction cache over an instrumented underlying key.
 	ctx := context.Background()
 	underlying := &txCacheBatchSpyOps{values: map[string][]byte{"present": []byte("value")}}
 	cache := NewTXCache(underlying, false)
 
+	// Request a batch containing an empty transaction key.
 	_, _, err := cache.GetBatch(ctx, [][]byte{[]byte("present"), nil})
+
+	// Verify the empty key fails before any underlying lookup.
 	if !errors.Is(err, kvtx.ErrEmptyKey) {
 		t.Fatalf("GetBatch empty key err = %v, want %v", err, kvtx.ErrEmptyKey)
 	}
@@ -90,6 +100,7 @@ func (t *txCacheBatchSpyOps) Get(_ context.Context, key []byte) ([]byte, bool, e
 }
 
 func (t *txCacheBatchSpyOps) GetBatch(_ context.Context, keys [][]byte) ([][]byte, []bool, error) {
+	// Record the underlying batch request and copy its matching values.
 	t.batchCalls++
 	t.batchKeys = cloneTXCacheBatchBytes(keys)
 	values := make([][]byte, len(keys))

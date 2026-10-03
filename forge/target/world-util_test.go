@@ -15,6 +15,7 @@ import (
 // on a real testbed WorldState whose GetObject result is wrapped, so the wrapper
 // forwards each release to the real owner rather than standing in for it.
 func TestLookupTargetReleasesObjectState(t *testing.T) {
+	// Start a World testbed for measuring Target object-state releases.
 	ctx := t.Context()
 	wtb, err := world_testbed.Default(ctx, world_testbed.WithWorldVerbose(false))
 	if err != nil {
@@ -22,6 +23,7 @@ func TestLookupTargetReleasesObjectState(t *testing.T) {
 	}
 	defer wtb.Release()
 
+	// Create the Target object used by the successful lookup checks.
 	const key = "forge/target/lookup-release"
 	created, _, err := CreateTarget(ctx, wtb.WorldState, key, &Target{})
 	world.ReleaseObjectState(created)
@@ -29,6 +31,7 @@ func TestLookupTargetReleasesObjectState(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Look up the Target repeatedly through a World wrapper that counts releases.
 	wrapped := &lookupReleaseWorldState{WorldState: wtb.WorldState}
 	for range 3 {
 		tgt, err := LookupTarget(ctx, wrapped, key)
@@ -39,10 +42,13 @@ func TestLookupTargetReleasesObjectState(t *testing.T) {
 			t.Fatal("expected target")
 		}
 	}
+
+	// Verify every successful Target lookup releases its object state.
 	if wrapped.releases != 3 {
 		t.Fatalf("expected repeated lookups to release once each, got %d", wrapped.releases)
 	}
 
+	// Create a World object whose block cannot decode as a Target.
 	const badKey = "forge/target/lookup-release-bad"
 	badObj, _, err := world.CreateWorldObject(ctx, wtb.WorldState, badKey, func(bcs *block.Cursor) error {
 		bcs.SetBlock(&invalidTargetBlock{}, true)
@@ -52,18 +58,25 @@ func TestLookupTargetReleasesObjectState(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Look up the invalid Target block through the release-counting World.
 	wrapped.releases = 0
 	if _, err := LookupTarget(ctx, wrapped, badKey); err == nil {
 		t.Fatal("expected target decode error")
 	}
+
+	// Verify a failed Target decode releases its object state once.
 	if wrapped.releases != 1 {
 		t.Fatalf("expected decode error to release once, got %d", wrapped.releases)
 	}
 
+	// Look up a missing Target through the release-counting World.
 	wrapped.releases = 0
 	if _, err := LookupTarget(ctx, wrapped, "forge/target/lookup-release-missing"); err == nil {
 		t.Fatal("expected not-found error")
 	}
+
+	// Verify a missing Target lookup acquires no object state to release.
 	if wrapped.releases != 0 {
 		t.Fatalf("expected not-found lookup to release no state, got %d", wrapped.releases)
 	}

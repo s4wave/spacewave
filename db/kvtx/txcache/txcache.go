@@ -96,14 +96,18 @@ func (t *TXCache) WasRemoved(key []byte) bool {
 
 // Get returns values for a key.
 func (t *TXCache) Get(ctx context.Context, key []byte) (data []byte, found bool, err error) {
+	// Require a nonempty transaction key before reading the cache.
 	if len(key) == 0 {
 		return nil, false, kvtx.ErrEmptyKey
 	}
+
+	// Capture the pending transaction trees under the cache lock.
 	t.mtx.RLock()
 	snapRemove := t.remove
 	snapSet := t.set
 	t.mtx.RUnlock()
 
+	// Resolve pending deletes and writes before reading the underlying transaction.
 	if checkWasRemoved(snapRemove, key) {
 		return nil, false, nil
 	}
@@ -115,11 +119,13 @@ func (t *TXCache) Get(ctx context.Context, key []byte) (data []byte, found bool,
 
 // GetBatch returns values for multiple keys.
 func (t *TXCache) GetBatch(ctx context.Context, keys [][]byte) ([][]byte, []bool, error) {
+	// Capture the pending transaction trees for the batch lookup.
 	t.mtx.RLock()
 	snapRemove := t.remove
 	snapSet := t.set
 	t.mtx.RUnlock()
 
+	// Resolve cached batch results and retain the keys needing underlying reads.
 	values := make([][]byte, len(keys))
 	found := make([]bool, len(keys))
 	missingKeys := make([][]byte, 0, len(keys))
@@ -142,10 +148,14 @@ func (t *TXCache) GetBatch(ctx context.Context, keys [][]byte) ([][]byte, []bool
 	if len(missingKeys) == 0 {
 		return values, found, nil
 	}
+
+	// Read the uncached keys together from the underlying transaction.
 	missingValues, missingFound, err := kvtx.GetBatch(ctx, t.underlying, missingKeys)
 	if err != nil {
 		return nil, nil, err
 	}
+
+	// Merge the underlying batch results into their original request positions.
 	for i, index := range missingIndexes {
 		values[index] = missingValues[i]
 		found[index] = missingFound[i]
@@ -158,12 +168,15 @@ func (t *TXCache) GetBatch(ctx context.Context, keys [][]byte) ([][]byte, []bool
 // Checks each pending set and delete against the underlying store, so the cost
 // scales with the number of pending changes.
 func (t *TXCache) Size(ctx context.Context) (uint64, error) {
+	// Hold the pending changes while reading the underlying transaction size.
 	t.mtx.RLock()
 	defer t.mtx.RUnlock()
 	n, err := t.underlying.Size(ctx)
 	if err != nil {
 		return 0, err
 	}
+
+	// Count pending writes whose keys are absent from the underlying transaction.
 	t.set.Scan(func(item *cacheItem) bool {
 		var exists bool
 		exists, err = t.underlying.Exists(ctx, item.key)
@@ -175,6 +188,8 @@ func (t *TXCache) Size(ctx context.Context) (uint64, error) {
 	if err != nil {
 		return 0, err
 	}
+
+	// Subtract pending deletes whose keys exist in the underlying transaction.
 	t.remove.Scan(func(item *cacheItem) bool {
 		var exists bool
 		exists, err = t.underlying.Exists(ctx, item.key)
@@ -192,9 +207,12 @@ func (t *TXCache) Size(ctx context.Context) (uint64, error) {
 // Set sets the value of a key.
 // This will not be committed until Commit is called.
 func (t *TXCache) Set(ctx context.Context, key, value []byte) error {
+	// Require a nonempty transaction key before buffering a write.
 	if len(key) == 0 {
 		return kvtx.ErrEmptyKey
 	}
+
+	// Replace the key tombstone with a buffered copy of the new value.
 	t.mtx.Lock()
 	searchItem := &cacheItem{key: key}
 	t.remove.Delete(searchItem)
@@ -210,9 +228,12 @@ func (t *TXCache) Set(ctx context.Context, key, value []byte) error {
 // This will not be committed until Commit is called.
 // Not found should not return an error.
 func (t *TXCache) Delete(ctx context.Context, key []byte) error {
+	// Require a nonempty transaction key before buffering a delete.
 	if len(key) == 0 {
 		return kvtx.ErrEmptyKey
 	}
+
+	// Replace the buffered value with a copied key tombstone.
 	t.mtx.Lock()
 	searchItem := &cacheItem{key: key}
 	t.set.Delete(searchItem)
@@ -250,14 +271,18 @@ func (t *TXCache) Iterate(ctx context.Context, prefix []byte, sort, reverse bool
 
 // Exists checks if a key exists.
 func (t *TXCache) Exists(ctx context.Context, key []byte) (bool, error) {
+	// Require a nonempty transaction key before checking its presence.
 	if len(key) == 0 {
 		return false, kvtx.ErrEmptyKey
 	}
+
+	// Capture the pending transaction trees under the cache lock.
 	t.mtx.RLock()
 	snapRemove := t.remove
 	snapSet := t.set
 	t.mtx.RUnlock()
 
+	// Resolve pending key changes before checking the underlying transaction.
 	searchItem := &cacheItem{key: key}
 	if _, ok := snapRemove.Get(searchItem); ok {
 		return false, nil

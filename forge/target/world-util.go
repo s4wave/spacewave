@@ -9,11 +9,14 @@ import (
 
 // LookupTarget looks up a Target in the world.
 func LookupTarget(ctx context.Context, ws world.WorldState, objKey string) (*Target, error) {
+	// Acquire the Target World object and release its state after access.
 	obj, err := world.MustGetObject(ctx, ws, objKey)
 	if err != nil {
 		return nil, err
 	}
 	defer world.ReleaseObjectState(obj)
+
+	// Decode the Target block from the acquired World object.
 	var tgt *Target
 	_, _, err = world.AccessObjectState(ctx, obj, false, func(bcs *block.Cursor) error {
 		var err error

@@ -65,6 +65,7 @@ func WriteCLIHandoffManifest(
 	repoDir string,
 	opts CLIHandoffOptions,
 ) error {
+	// Require the CLI artifact paths, release identity, and source provenance.
 	if opts.RootDir == "" {
 		return errors.New("handoff root dir is required")
 	}
@@ -84,6 +85,7 @@ func WriteCLIHandoffManifest(
 		return errors.New("source provenance is required")
 	}
 
+	// Resolve the manifest packs that supply the CLI release.
 	manifestPackDirs, err := expandManifestPackDirs(splitCSV(opts.ManifestPackDirsCSV))
 	if err != nil {
 		return err
@@ -91,6 +93,8 @@ func WriteCLIHandoffManifest(
 	if len(manifestPackDirs) == 0 {
 		return errors.New("no cli manifest-pack artifacts found")
 	}
+
+	// Recreate the CLI handoff root for the staged release.
 	if err := os.RemoveAll(opts.RootDir); err != nil {
 		return errors.Wrap(err, "clean cli handoff root")
 	}
@@ -98,18 +102,25 @@ func WriteCLIHandoffManifest(
 		return errors.Wrap(err, "create cli handoff root")
 	}
 
+	// Import the CLI manifests and collect their platform references.
 	manifestRefs, err := importAndCollectCLIHandoffManifestRefs(ctx, le, repoDir, manifestPackDirs)
 	if err != nil {
 		return err
 	}
+
+	// Stage the World containing the imported CLI manifests.
 	worldEntry, err := stageCLIHandoffWorld(repoDir, opts.RootDir)
 	if err != nil {
 		return err
 	}
+
+	// Stage the native CLI archives under the handoff root.
 	artifacts, err := stageCLIHandoffArtifacts(opts.RootDir, opts.CLIArtifactsDir)
 	if err != nil {
 		return err
 	}
+
+	// Write the CLI handoff manifest with its staged files and provenance.
 	manifest := &cliHandoffManifest{
 		manifestRefs: manifestRefs,
 		world:        worldEntry,
@@ -128,14 +139,19 @@ func importAndCollectCLIHandoffManifestRefs(
 	repoDir string,
 	manifestPackDirs []string,
 ) ([]*cliHandoffManifestRef, error) {
+	// Start the devtool bus for importing the CLI manifests.
 	busHandle, err := startDevtoolBus(ctx, le, repoDir, false)
 	if err != nil {
 		return nil, err
 	}
 	defer busHandle.Release()
+
+	// Import the CLI manifest packs into the devtool World.
 	if err := importManifestPacksIntoBus(ctx, busHandle, manifestPackDirs); err != nil {
 		return nil, err
 	}
+
+	// Collect the release references from the imported devtool World.
 	refs, err := collectCLIHandoffManifestRefs(ctx, busHandle.GetWorldState())
 	if err != nil {
 		return nil, err
@@ -147,6 +163,7 @@ func collectCLIHandoffManifestRefs(
 	ctx context.Context,
 	ws world.WorldState,
 ) ([]*cliHandoffManifestRef, error) {
+	// Collect the CLI manifests for every supported release platform.
 	collected, manifestErrs, err := bldr_manifest_world.CollectManifestsForManifestID(
 		ctx,
 		ws,
@@ -161,8 +178,10 @@ func collectCLIHandoffManifestRefs(
 		return nil, errors.Wrap(manifestErrs[0], "collect cli handoff manifest")
 	}
 
+	// Select the newest CLI release manifest for each platform.
 	byPlatform := make(map[string]*bldr_manifest_world.CollectedManifest, len(cliHandoffPlatformIDs))
 	for _, manifest := range collected {
+		// Require a complete CLI release manifest before comparing revisions.
 		if manifest == nil || manifest.Manifest == nil || manifest.ManifestRef == nil {
 			return nil, errors.New("invalid collected cli handoff manifest")
 		}
@@ -174,6 +193,8 @@ func collectCLIHandoffManifestRefs(
 		if bldr_manifest.ToBuildType(meta.GetBuildType()) != bldr_manifest.BuildType_RELEASE {
 			return nil, errors.New("collected cli handoff manifest has wrong build type: " + meta.GetBuildType())
 		}
+
+		// Retain the newest platform revision and reject conflicting frontiers.
 		current := byPlatform[platformID]
 		if current == nil || manifest.GetRev() > current.GetRev() {
 			byPlatform[platformID] = manifest
@@ -184,6 +205,7 @@ func collectCLIHandoffManifestRefs(
 		}
 	}
 
+	// Build the CLI references in platform order and require a complete matrix.
 	out := make([]*cliHandoffManifestRef, 0, len(cliHandoffPlatformIDs))
 	var missing []string
 	for _, platformID := range cliHandoffPlatformIDs {
@@ -215,14 +237,18 @@ func stageCLIHandoffWorld(repoDir, rootDir string) (*entrypointHandoffEntry, err
 }
 
 func stageCLIHandoffArtifacts(rootDir, artifactsDir string) ([]*entrypointHandoffEntry, error) {
+	// Copy the CLI archives and collect their handoff entries.
 	var out []*entrypointHandoffEntry
 	if err := filepath.WalkDir(artifactsDir, func(filePath string, entry os.DirEntry, err error) error {
+		// Propagate traversal errors and skip CLI artifact directories.
 		if err != nil {
 			return errors.Wrap(err, "walk "+filePath)
 		}
 		if entry.IsDir() {
 			return nil
 		}
+
+		// Require a regular CLI artifact before copying its contents.
 		info, err := entry.Info()
 		if err != nil {
 			return errors.Wrap(err, "stat "+filePath)
@@ -233,6 +259,8 @@ func stageCLIHandoffArtifacts(rootDir, artifactsDir string) ([]*entrypointHandof
 		if !info.Mode().IsRegular() {
 			return errors.New("cli handoff artifact is not regular: " + filePath)
 		}
+
+		// Resolve the CLI artifact path within the supplied artifact root.
 		rel, err := filepath.Rel(artifactsDir, filePath)
 		if err != nil {
 			return errors.Wrap(err, "rel cli artifact")
@@ -243,10 +271,14 @@ func stageCLIHandoffArtifacts(rootDir, artifactsDir string) ([]*entrypointHandof
 			strings.Contains(rel, "\\") || strings.Contains(clean, "\\") {
 			return errors.New("cli handoff artifact path escapes root: " + filePath)
 		}
+
+		// Copy the CLI artifact into the native handoff directory.
 		dst := filepath.Join(rootDir, "native", "cli", filepath.FromSlash(clean))
 		if err := copyFile(filePath, dst); err != nil {
 			return errors.Wrap(err, "stage cli artifact")
 		}
+
+		// Record the staged CLI artifact with a path relative to the native root.
 		file, err := buildEntrypointHandoffEntry(rootDir, dst)
 		if err != nil {
 			return err
@@ -263,6 +295,8 @@ func stageCLIHandoffArtifacts(rootDir, artifactsDir string) ([]*entrypointHandof
 	if len(out) == 0 {
 		return nil, errors.New("cli artifacts are required")
 	}
+
+	// Order the CLI artifact entries by their handoff paths.
 	slices.SortFunc(out, func(a, b *entrypointHandoffEntry) int {
 		return strings.Compare(a.Path, b.Path)
 	})
@@ -270,6 +304,7 @@ func stageCLIHandoffArtifacts(rootDir, artifactsDir string) ([]*entrypointHandof
 }
 
 func marshalCLIHandoffManifest(manifest *cliHandoffManifest) string {
+	// Write the CLI handoff format and release identity.
 	var b strings.Builder
 	opts := manifest.opts
 	b.WriteString("{\n")
@@ -277,13 +312,18 @@ func marshalCLIHandoffManifest(manifest *cliHandoffManifest) string {
 	writeEntrypointJSONField(&b, 1, "release_environment", opts.ReleaseEnvironment, true)
 	writeEntrypointJSONField(&b, 1, "cli_rev", opts.CLIRev, true)
 	writeEntrypointJSONField(&b, 1, "tag", opts.Tag, true)
+
+	// Write the source provenance of the CLI release.
 	writeEntrypointJSONField(&b, 1, "git_sha", opts.GitSHA, true)
 	writeEntrypointJSONField(&b, 1, "run_id", opts.RunID, true)
 	writeEntrypointJSONField(&b, 1, "run_attempt", opts.RunAttempt, true)
 	writeEntrypointJSONField(&b, 1, "source_repo", opts.SourceRepo, true)
 	writeEntrypointJSONField(&b, 1, "workflow", opts.Workflow, true)
+
+	// Write the CLI manifest references in their platform order.
 	b.WriteString("  \"manifest_refs\": [\n")
 	for i, ref := range manifest.manifestRefs {
+		// Write the manifest and platform identities for this CLI reference.
 		b.WriteString("    {")
 		b.WriteString(strconv.Quote("manifest_id"))
 		b.WriteString(": ")
@@ -292,6 +332,8 @@ func marshalCLIHandoffManifest(manifest *cliHandoffManifest) string {
 		b.WriteString(strconv.Quote("platform_id"))
 		b.WriteString(": ")
 		b.WriteString(strconv.Quote(ref.PlatformID))
+
+		// Write the revision and block reference for this CLI manifest.
 		b.WriteString(", ")
 		b.WriteString(strconv.Quote("rev"))
 		b.WriteString(": ")
@@ -300,16 +342,22 @@ func marshalCLIHandoffManifest(manifest *cliHandoffManifest) string {
 		b.WriteString(strconv.Quote("ref"))
 		b.WriteString(": ")
 		b.WriteString(strconv.Quote(ref.Ref))
+
+		// Terminate the CLI reference record and separate it from the next record.
 		b.WriteByte('}')
 		if i != len(manifest.manifestRefs)-1 {
 			b.WriteByte(',')
 		}
 		b.WriteByte('\n')
 	}
+
+	// Write the World entry containing the imported CLI manifests.
 	b.WriteString("  ],\n")
 	b.WriteString("  \"world\": ")
 	writeEntrypointHandoffEntry(&b, manifest.world)
 	b.WriteString(",\n")
+
+	// Write the staged CLI artifact entries and close the handoff manifest.
 	b.WriteString("  \"artifacts\": [\n")
 	for i, artifact := range manifest.artifacts {
 		b.WriteString("    ")

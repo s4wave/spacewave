@@ -33,6 +33,7 @@ func (i *InputWorldObject) ResolveValue(
 		return nil, nil, err
 	}
 
+	// Resolve the input World object to a snapshot value or an empty value.
 	var inpObjs world.ObjectState
 	var inpObjsExists bool
 	var inpObjsValue InputValueInline
@@ -56,6 +57,7 @@ func (i *InputWorldObject) ResolveValue(
 		}
 	}
 
+	// Read the revision of the resolved input World object.
 	var inpObjsRev uint64
 	if inpObjsExists {
 		_, inpObjsRev, err = inpObjs.GetRootRef(ctx)
@@ -65,6 +67,7 @@ func (i *InputWorldObject) ResolveValue(
 		}
 	}
 
+	// Require the input World object to reach the requested minimum revision.
 	desiredMinimumRev := i.GetObjectRev()
 	if desiredMinimumRev != 0 {
 		if desiredMinimumRev > inpObjsRev {

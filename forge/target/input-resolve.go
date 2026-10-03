@@ -22,6 +22,7 @@ func ResolveInputMap(
 	tgt *Target,
 	inputVals forge_value.ValueMap,
 ) (im InputMap, unresolved []*Input, relAll func(), err error) {
+	// Reserve the resolved input map for the Target inputs.
 	im = make(InputMap, len(tgt.GetInputs()))
 
 	// add all values provided in the value map
@@ -51,6 +52,7 @@ func ResolveInputMap(
 	tgtInputs := tgt.GetInputs()
 	resolved := make(map[string]struct{}, len(tgtInputs))
 
+	// Resolve dependent Target inputs until a pass makes no further progress.
 	prevResolved := -1
 	for prevResolved != len(resolved) {
 		prevResolved = len(resolved)
@@ -84,6 +86,7 @@ func ResolveInputMap(
 		relAll = func() {}
 	}
 
+	// Collect the unresolved Target inputs in name order.
 	unresolved = make([]*Input, 0, len(tgtInputs)-len(resolved))
 	for _, inp := range tgtInputs {
 		// TODO: check Validate() here?

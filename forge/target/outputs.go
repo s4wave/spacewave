@@ -9,6 +9,7 @@ import (
 //
 // returns an empty value (Type=0) for any unset outputs.
 func ComputeOutput(output *Output, execValues []*forge_value.Value) (*forge_value.Value, error) {
+	// Select the inline or execution value for the requested output.
 	outpType := output.GetOutputType()
 	var outpVal *forge_value.Value
 	switch outpType {
@@ -26,6 +27,7 @@ func ComputeOutput(output *Output, execValues []*forge_value.Value) (*forge_valu
 		return nil, errors.Wrap(ErrUnknownOutputType, outpType.String())
 	}
 
+	// Apply the output name and validate any resolved value.
 	if outpVal == nil {
 		outpVal = &forge_value.Value{Name: output.GetName()}
 	} else {
@@ -40,6 +42,7 @@ func ComputeOutput(output *Output, execValues []*forge_value.Value) (*forge_valu
 
 // ComputeOutputs computes the output set for a list of Execution output values.
 func ComputeOutputs(outputs []*Output, execValues []*forge_value.Value) (forge_value.ValueSlice, error) {
+	// Compute every output value from the execution results.
 	var err error
 	outpVals := make(forge_value.ValueSlice, len(outputs))
 	for i, outp := range outputs {
@@ -48,6 +51,8 @@ func ComputeOutputs(outputs []*Output, execValues []*forge_value.Value) (forge_v
 			return nil, errors.Wrap(err, outp.GetName())
 		}
 	}
+
+	// Order the computed outputs by name.
 	outpVals.SortByName()
 	return outpVals, nil
 }

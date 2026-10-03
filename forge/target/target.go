@@ -33,20 +33,27 @@ func CreateTarget(
 
 // Validate performs cursory validation of the target.
 func (t *Target) Validate() error {
+	// Require a Target before validating its fields.
 	// prevent nil reference exception below.
 	if t == nil {
 		return errors.New("target cannot be empty")
 	}
+
+	// Require unique names for the Target inputs.
 	// ensure all input names are unique
 	inputSet := newSubBlockSetContainer(&t.Inputs, nil)
 	if err := inputSet.ValidateUnique(true); err != nil {
 		return errors.Wrap(err, "inputs")
 	}
+
+	// Require unique names for the Target outputs.
 	// ensure all output names are unique
 	outputSet := newSubBlockSetContainer(&t.Outputs, nil)
 	if err := outputSet.ValidateUnique(true); err != nil {
 		return errors.Wrap(err, "outputs")
 	}
+
+	// Validate the Target execution definition.
 	if err := t.GetExec().Validate(); err != nil {
 		return errors.Wrap(err, "exec")
 	}
@@ -74,6 +81,7 @@ func (t *Target) ApplySubBlock(id uint32, next block.SubBlock) error {
 // GetSubBlocks returns all constructed sub-blocks by ID.
 // May return nil, and values may also be nil.
 func (t *Target) GetSubBlocks() map[uint32]block.SubBlock {
+	// Expose the Target input, output, and execution sub-blocks by field ID.
 	m := make(map[uint32]block.SubBlock)
 	m[1] = t.GetSubBlockCtor(1)(false)
 	m[2] = t.GetSubBlockCtor(2)(false)

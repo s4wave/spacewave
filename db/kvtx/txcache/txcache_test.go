@@ -13,11 +13,13 @@ import (
 )
 
 func TestTXCache_Store(t *testing.T) {
+	// Create the context and logger for the transaction-cache store checks.
 	ctx := context.Background()
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
 
+	// Exercise the cache store through the shared key-value contract checks.
 	var underlyingStore kvtx.Store = sinmem.NewStore()
 	underlyingStore = kvtx_vlogger.NewVLogger(le, underlyingStore)
 	tstore := NewStore(underlyingStore)
@@ -38,6 +40,7 @@ func (t *invalidSnapshotCommitTx) Commit(ctx context.Context) error {
 }
 
 func TestTxCacheCommitPreservesInvalidSnapshot(t *testing.T) {
+	// Open the underlying read transaction for the cache commit test.
 	ctx := context.Background()
 	store := sinmem.NewStore()
 	readTx, err := store.NewTransaction(ctx, false)
@@ -45,6 +48,7 @@ func TestTxCacheCommitPreservesInvalidSnapshot(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Construct a cache transaction whose rebuilt writer returns a snapshot conflict.
 	tx, err := NewTxWithCbs(
 		readTx,
 		true,
@@ -63,10 +67,13 @@ func TestTxCacheCommitPreservesInvalidSnapshot(t *testing.T) {
 	}
 	defer tx.Discard()
 
+	// Buffer a transaction value and attempt the conflicting commit.
 	if err := tx.Set(ctx, []byte("key"), []byte("value")); err != nil {
 		t.Fatal(err)
 	}
 	err = tx.Commit(ctx)
+
+	// Verify the cache commit preserves the invalid snapshot error.
 	if !errors.Is(err, kvtx.ErrInvalidSnapshot) {
 		t.Fatalf("commit error = %v, want ErrInvalidSnapshot", err)
 	}
