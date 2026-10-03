@@ -141,3 +141,37 @@ func assertOrgSummary(
 		t.Fatalf("expected org %s spaces %v, got %v", id, spaceIDs, org.GetSpaceIds())
 	}
 }
+
+func TestRefreshOrganizationStateRefetchesLoadedList(t *testing.T) {
+	// Serve a list that gained a Space while the cached copy went stale.
+	var listCalls int
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet || r.URL.Path != "/api/org/list" {
+			t.Fatalf("unexpected request: %s %s", r.Method, r.URL.Path)
+		}
+		listCalls++
+		w.Header().Set("Content-Type", "application/octet-stream")
+		_, _ = w.Write(mustMarshalVT(t, &api.ListOrgsResponse{
+			Organizations: []*api.OrgResponse{
+				{Id: "org-1", DisplayName: "Org", Role: "org:member", SpaceIds: []string{"space-1"}},
+			},
+		}))
+	}))
+	defer srv.Close()
+
+	// Leave an unloaded list cold.
+	acc := NewTestProviderAccount(t, srv.URL)
+	acc.refreshOrganizationState(t.Context())
+	if listCalls != 0 {
+		t.Fatalf("unloaded list fetched %d times, want 0", listCalls)
+	}
+
+	// Refetch a loaded list and publish the Space it gained.
+	acc.orgListValid = true
+	acc.orgList = []*api.OrgResponse{{Id: "org-1", DisplayName: "Org", Role: "org:member"}}
+	acc.refreshOrganizationState(t.Context())
+	if listCalls != 1 {
+		t.Fatalf("loaded list fetched %d times, want 1", listCalls)
+	}
+	assertOrgSummary(t, acc.GetCachedOrganization("org-1"), "org-1", "Org", "org:member", []string{"space-1"})
+}

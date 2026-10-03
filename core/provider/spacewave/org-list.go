@@ -23,6 +23,22 @@ func (a *ProviderAccount) fetchAndUpdateOrgList(ctx context.Context) {
 	})
 }
 
+// refreshOrganizationState drops cached organization snapshots and refetches a
+// loaded organization list. Organization change events sent while the Session
+// websocket was disconnected are lost, so each connect calls it; an unloaded
+// list fetches on its next read instead.
+func (a *ProviderAccount) refreshOrganizationState(ctx context.Context) {
+	var valid bool
+	a.orgBcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		valid = a.orgListValid
+		a.invalidateOrganizationSnapshotsLocked("")
+		broadcast()
+	})
+	if valid {
+		a.fetchAndUpdateOrgList(ctx)
+	}
+}
+
 // GetOrganizationList returns the cached org list, fetching on cache miss.
 func (a *ProviderAccount) GetOrganizationList(
 	ctx context.Context,

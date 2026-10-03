@@ -119,6 +119,8 @@ type ProviderAccount struct {
 	launcherRecheckJobs *asyncCallbackJobs
 	// presentationJobs mirrors Session presentation metadata off the caller's path.
 	presentationJobs *asyncCallbackJobs
+	// orgListJobs refetches the loaded organization list after a reconnect.
+	orgListJobs *asyncCallbackJobs
 	// entityKeyStore holds unlocked entity keypairs shared across account
 	// resources for this provider account.
 	entityKeyStore *EntityKeyStore
@@ -437,6 +439,7 @@ func (t *providerAccountTracker) executeProviderAccountTracker(rctx context.Cont
 		}
 	})
 	acc.presentationJobs = newAsyncCallbackJobs(nil)
+	acc.orgListJobs = newAsyncCallbackJobs(acc.refreshOrganizationState)
 
 	// Refetch account state when a checkout completes.
 	acc.checkoutWatcher = newCheckoutWatcher(
@@ -512,6 +515,7 @@ func (t *providerAccountTracker) executeProviderAccountTracker(rctx context.Cont
 		acc.InvalidatePendingMailboxEntries()
 		acc.InvalidateSharedObjectMetadataCache()
 		acc.invalidateSharedObjectList()
+		acc.orgListJobs.Trigger()
 
 		// Re-evaluate every mounted SO once per connection: the cold-start
 		// gate short-circuits warm SOs and the cache-aware classifier fetches
@@ -709,11 +713,13 @@ func (t *providerAccountTracker) executeProviderAccountTracker(rctx context.Cont
 	acc.checkoutWatcher.SetContext(ctx)
 	defer acc.checkoutWatcher.ClearContext()
 
-	// Start the launcher recheck and presentation jobs.
+	// Start the launcher recheck, presentation and organization list jobs.
 	acc.launcherRecheckJobs.SetContext(ctx)
 	defer acc.launcherRecheckJobs.ClearContext()
 	acc.presentationJobs.SetContext(ctx)
 	defer acc.presentationJobs.ClearContext()
+	acc.orgListJobs.SetContext(ctx)
+	defer acc.orgListJobs.ClearContext()
 
 	// Start the Session websocket and hold it for the account.
 	acc.wsTracker.SetContext(ctx)
