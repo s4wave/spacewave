@@ -90,15 +90,18 @@ func (d *buildBucketAPI) BuildBucketAPIStoreID() string {
 // directives are equivalent, and the new directive does not superceed the
 // old, then the new directive will be merged (de-duplicated) into the old.
 func (d *buildBucketAPI) IsEquivalent(other directive.Directive) bool {
+	// Require a bucket API directive before comparing its target.
 	od, ok := other.(BuildBucketAPI)
 	if !ok {
 		return false
 	}
 
+	// Compare the stores selected for the bucket API.
 	if d.BuildBucketAPIStoreID() != od.BuildBucketAPIStoreID() {
 		return false
 	}
 
+	// Compare the buckets selected for the API.
 	if d.BuildBucketAPIBucketID() != od.BuildBucketAPIBucketID() {
 		return false
 	}

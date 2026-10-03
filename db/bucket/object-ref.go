@@ -172,27 +172,34 @@ func (o *ObjectRef) MarshalString() string {
 
 // MarshalB58 marshals the reference to a base58 string form.
 func (o *ObjectRef) MarshalB58() string {
+	// Represent an absent object reference with an empty string.
 	if o == nil {
 		return ""
 	}
+
+	// Encode the object reference before converting it to base58.
 	dat, err := o.MarshalVT()
 	if err != nil {
 		return ""
 	}
+
 	return b58.Encode(dat)
 }
 
 // UnmarshalB58 unmarshals the reference from base58 string form.
 func (o *ObjectRef) UnmarshalB58(ref string) error {
+	// Clear the object reference before accepting a new encoded value.
 	o.Reset()
 	if ref == "" {
 		return nil
 	}
 
+	// Decode the base58 object reference for binary unmarshaling.
 	dat, err := b58.Decode(ref)
 	if err != nil {
 		return err
 	}
+
 	return o.UnmarshalVT(dat)
 }
 
@@ -247,10 +254,13 @@ func (o *ObjectRef) GetBlockRefCtor(id uint32) block.Ctor {
 
 // MarshalProtoJSON marshals the ObjectRef message to JSON.
 func (o *ObjectRef) MarshalProtoJSON(s *json.MarshalState) {
+	// Encode an absent object reference as JSON null.
 	if o == nil {
 		s.WriteNil()
 		return
 	}
+
+	// Write the object reference fields selected for JSON output.
 	s.WriteObjectStart()
 	var wroteField bool
 	if o.RootRef != nil || s.HasField("rootRef") {

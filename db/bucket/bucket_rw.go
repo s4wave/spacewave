@@ -44,12 +44,16 @@ func (b *bucketRW) GetSupportedFeatures() block.StoreFeature {
 
 // BeginReadOperation opens a read scope on the inner store.
 func (b *bucketRW) BeginReadOperation(ctx context.Context) (block.StoreOps, func(), error) {
+	// Open a read scope on the combined bucket store.
 	store, release, err := b.store.BeginReadOperation(ctx)
 	if err != nil {
 		return nil, nil, err
 	}
+
+	// Wrap the scoped store with the bucket configuration.
 	scoped := *b
 	scoped.store = store
+
 	return &scoped, release, nil
 }
 

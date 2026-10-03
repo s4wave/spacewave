@@ -101,11 +101,13 @@ func (d *ListBucketsRequest) ListBucketsVolumeIDList() []string {
 // directives are equivalent, and the new directive does not superceed the
 // old, then the new directive will be merged (de-duplicated) into the old.
 func (d *ListBucketsRequest) IsEquivalent(other directive.Directive) bool {
+	// Require a bucket-list directive before comparing its constraints.
 	od, ok := other.(ListBuckets)
 	if !ok {
 		return false
 	}
 
+	// Compare the volume patterns that constrain both bucket lists.
 	var vid1s, vid2s string
 	if vid1 := d.ListBucketsVolumeIDRe(); vid1 != nil {
 		vid1s = vid1.String()
@@ -117,10 +119,12 @@ func (d *ListBucketsRequest) IsEquivalent(other directive.Directive) bool {
 		return false
 	}
 
+	// Compare the explicit volumes selected by both bucket lists.
 	if !slices.Equal(d.ListBucketsVolumeIDList(), od.ListBucketsVolumeIDList()) {
 		return false
 	}
 
+	// Compare the bucket selected by both directives.
 	if d.ListBucketsBucketId() != od.ListBucketsBucketId() {
 		return false
 	}
@@ -142,6 +146,7 @@ func (d *ListBucketsRequest) GetName() string {
 
 // GetDebugString returns the directive arguments stringified.
 func (d *ListBucketsRequest) GetDebugVals() directive.DebugValues {
+	// Describe the bucket and volume constraints for directive diagnostics.
 	vals := directive.DebugValues{}
 	if d.ListBucketsBucketId() != "" {
 		vals["bucket-id"] = []string{d.ListBucketsBucketId()}
@@ -152,6 +157,7 @@ func (d *ListBucketsRequest) GetDebugVals() directive.DebugValues {
 	if ids := d.ListBucketsVolumeIDList(); ids != nil {
 		vals["volume-id-list"] = ids
 	}
+
 	return vals
 }
 

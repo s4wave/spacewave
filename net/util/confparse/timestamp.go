@@ -12,9 +12,12 @@ import (
 // The string can be either a unix time milliseconds or RFC3339 timestamp.
 // Returns nil, nil if empty.
 func ParseTimestamp(timestampStr string) (*timestamppb.Timestamp, error) {
+	// Treat an empty timestamp setting as an absent value.
 	if timestampStr == "" {
 		return nil, nil
 	}
+
+	// Parse the timestamp as a quoted date or numeric Unix time.
 	ts := &timestamppb.Timestamp{}
 	jdat := []byte(strconv.Quote(timestampStr))
 	if err := ts.UnmarshalJSON(jdat); err != nil {
@@ -23,6 +26,7 @@ func ParseTimestamp(timestampStr string) (*timestamppb.Timestamp, error) {
 			return nil, err
 		}
 	}
+
 	return ts, nil
 }
 

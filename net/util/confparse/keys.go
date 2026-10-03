@@ -58,15 +58,18 @@ func ParsePeer(
 // Otherwise: the string is a b58 encoded libp2p public key.
 // If there is no public key specified, returns nil, nil.
 func ParsePublicKey(pubKeyStr string) (crypto.PubKey, error) {
+	// Treat an empty public-key setting as an absent key.
 	pubKeyStr = strings.TrimSpace(pubKeyStr)
 	if len(pubKeyStr) == 0 {
 		return nil, nil
 	}
 
+	// Parse the public key as PEM when its header selects that encoding.
 	if strings.HasPrefix(pubKeyStr, "-----BEGIN") {
 		return ParsePublicKeyPEM([]byte(pubKeyStr))
 	}
 
+	// Decode the public key from its base58 representation.
 	data, err := b58.Decode(pubKeyStr)
 	if err != nil {
 		return nil, errors.New("public key must be valid b58")
@@ -93,19 +96,23 @@ func MarshalPublicKey(key crypto.PubKey) (string, error) {
 // Otherwise: the string is a b58 encoded libp2p private key.
 // If there is no private key specified, returns nil, nil.
 func ParsePrivateKey(privKeyStr string) (crypto.PrivKey, error) {
+	// Treat an empty private-key setting as an absent key.
 	privKeyStr = strings.TrimSpace(privKeyStr)
 	if len(privKeyStr) == 0 {
 		return nil, nil
 	}
 
+	// Parse the private key as PEM when its header selects that encoding.
 	if strings.HasPrefix(privKeyStr, "-----BEGIN") {
 		return ParsePrivateKeyPEM([]byte(privKeyStr))
 	}
 
+	// Decode the private key from its base58 representation.
 	data, err := b58.Decode(privKeyStr)
 	if err != nil {
 		return nil, errors.New("private key must be valid b58")
 	}
+
 	return crypto.UnmarshalPrivateKey(data)
 }
 
@@ -126,6 +133,7 @@ func MarshalPrivateKey(key crypto.PrivKey) (string, error) {
 //
 // if the peer id is given, checks if it matches
 func ValidatePubKey(id string, peerID peer.ID) error {
+	// Require a configured public key before checking its peer identity.
 	pkey, err := ParsePublicKey(id)
 	if err == nil && pkey == nil {
 		err = errors.New("pub_key cannot be empty")
@@ -134,6 +142,7 @@ func ValidatePubKey(id string, peerID peer.ID) error {
 		return err
 	}
 
+	// Reject a public key whose identity differs from the configured peer.
 	if !peerID.MatchesPublicKey(pkey) {
 		pkeyID, err := peer.IDFromPublicKey(pkey)
 		if err != nil {

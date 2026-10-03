@@ -71,15 +71,18 @@ func (d *buildObjectStoreAPI) BuildObjectStoreAPIVolumeID() string {
 // directives are equivalent, and the new directive does not superceed the
 // old, then the new directive will be merged (de-duplicated) into the old.
 func (d *buildObjectStoreAPI) IsEquivalent(other directive.Directive) bool {
+	// Require an object-store API directive before comparing its target.
 	od, ok := other.(BuildObjectStoreAPI)
 	if !ok {
 		return false
 	}
 
+	// Compare the volumes selected for the object-store API.
 	if d.BuildObjectStoreAPIVolumeID() != od.BuildObjectStoreAPIVolumeID() {
 		return false
 	}
 
+	// Compare the object stores selected for the API.
 	if d.BuildObjectStoreAPIStoreID() != od.BuildObjectStoreAPIStoreID() {
 		return false
 	}

@@ -32,9 +32,13 @@ func NewBusObjectStore(ctx context.Context, b bus.Bus, returnIfIdle bool, storeI
 // Always call Discard() after you are done with the transaction.
 // The transaction will be read-only unless write is set.
 func (b *BusObjectStore) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, error) {
+	// Bind the transaction lifetime to the bus object store context.
 	subCtx, subCtxCancel := context.WithCancel(b.ctx)
 	var tx atomic.Pointer[busObjectStoreTx]
+
+	// Acquire the object-store handle and discard its transaction on disposal.
 	handle, ref, err := b.BuildObjectStore(subCtx, func() {
+		// Cancel the handle lifetime and discard any attached transaction.
 		subCtxCancel()
 		ttx := tx.Load()
 		if ttx != nil {
@@ -45,6 +49,8 @@ func (b *BusObjectStore) NewTransaction(ctx context.Context, write bool) (kvtx.T
 		subCtxCancel()
 		return nil, err
 	}
+
+	// Open the underlying transaction and release the handle on failure.
 	store := handle.GetObjectStore()
 	utx, err := store.NewTransaction(ctx, write)
 	if err != nil {
@@ -52,8 +58,11 @@ func (b *BusObjectStore) NewTransaction(ctx context.Context, write bool) (kvtx.T
 		ref.Release()
 		return nil, err
 	}
+
+	// Attach the transaction to the bus handle for disposal cleanup.
 	btx := &busObjectStoreTx{ctx: subCtx, cancel: subCtxCancel, ref: ref, utx: utx}
 	tx.Store(btx)
+
 	return btx, nil
 }
 

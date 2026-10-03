@@ -32,14 +32,18 @@ func (v *VolumeBlockStore) GetSupportedFeatures() block.StoreFeature {
 
 // PutBlock puts a block into the store.
 func (v *VolumeBlockStore) PutBlock(ctx context.Context, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
+	// Write the block through the wrapped store without its sync option.
 	putOpts, syncRequested := block.PutOptsWithoutSync(opts)
 	ref, existed, err := v.store.PutBlock(ctx, data, putOpts)
 	if err != nil || !syncRequested {
 		return ref, existed, err
 	}
+
+	// Fence the block store and volume when the write requests durability.
 	if _, err := v.Sync(ctx); err != nil {
 		return ref, existed, err
 	}
+
 	return ref, existed, nil
 }
 
@@ -76,14 +80,18 @@ func (v *VolumeBlockStore) PutBlockBatch(ctx context.Context, entries []*block.P
 
 // Sync fences the decorator block store and the base volume lifecycle.
 func (v *VolumeBlockStore) Sync(ctx context.Context) (bool, error) {
+	// Fence writes in the wrapped block store.
 	storeFenced, err := v.store.Sync(ctx)
 	if err != nil {
 		return false, err
 	}
+
+	// Fence the base volume lifecycle after its block store.
 	volumeFenced, err := v.Volume.Sync(ctx)
 	if err != nil {
 		return false, err
 	}
+
 	return storeFenced && volumeFenced, nil
 }
 

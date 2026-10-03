@@ -50,10 +50,12 @@ func (s *bucketRWTestStore) RmBlock(ctx context.Context, ref *block.BlockRef) er
 }
 
 func (s *bucketRWTestStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) error {
+	// Count the batch call and its entries before forwarding the write.
 	s.mtx.Lock()
 	s.batchCalls++
 	s.batchEntries += len(entries)
 	s.mtx.Unlock()
+
 	return s.StoreOps.PutBlockBatch(ctx, entries)
 }
 
@@ -80,6 +82,7 @@ func (b *bucketRWTestBucket) GetBucketConfig() *Config {
 }
 
 func TestBucketRWForwardsBlockStoreExtensions(t *testing.T) {
+	// Construct a bucket with separate stores for reads and writes.
 	ctx := context.Background()
 	readStore := newBucketRWTestStore()
 	writeStore := newBucketRWTestStore()
@@ -92,30 +95,41 @@ func TestBucketRWForwardsBlockStoreExtensions(t *testing.T) {
 		conf:              &Config{Id: "bucket"},
 	}
 	b := NewBucketRW(readBucket, writeBucket)
+
+	// Build a block reference shared by the forwarding checks.
 	ref, err := block.BuildBlockRef([]byte("hello"), &block.PutOpts{HashType: hash.HashType_HashType_BLAKE3})
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Write a block batch through the combined bucket.
 	if err := b.PutBlockBatch(ctx, []*block.PutBatchEntry{{Ref: ref, Data: []byte("hello")}}); err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Verify the write store receives the native batch call.
 	putCalls, _, batchCalls, _, _ := writeStore.getCounts()
 	if batchCalls != 1 || putCalls != 0 {
 		t.Fatalf("expected one batch call and no per-entry fallback, got batch=%d put=%d", batchCalls, putCalls)
 	}
 
+	// Write one block through the combined bucket.
 	if _, _, err := b.PutBlock(ctx, []byte("hello"), &block.PutOpts{ForceBlockRef: ref}); err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Verify the write store receives the individual write.
 	putCalls, _, _, _, _ = writeStore.getCounts()
 	if putCalls != 1 {
 		t.Fatalf("expected one put call, got %d", putCalls)
 	}
 
+	// Probe block existence through the combined bucket.
 	if _, err := b.GetBlockExistsBatch(ctx, []*block.BlockRef{ref}); err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Verify the read store receives the native batch probe.
 	_, _, _, _, existsBatchCalls := readStore.getCounts()
 	if existsBatchCalls != 1 {
 		t.Fatalf("expected one exists batch call and no fallback, got %d", existsBatchCalls)
@@ -123,6 +137,7 @@ func TestBucketRWForwardsBlockStoreExtensions(t *testing.T) {
 }
 
 func TestBucketRWTransactionWriteUsesBatchPut(t *testing.T) {
+	// Construct a transaction bucket with separate read and write stores.
 	ctx := context.Background()
 	readStore := newBucketRWTestStore()
 	writeStore := newBucketRWTestStore()
@@ -135,16 +150,19 @@ func TestBucketRWTransactionWriteUsesBatchPut(t *testing.T) {
 		conf:              &Config{Id: "bucket"},
 	}
 
+	// Populate a transaction with a root and one child block.
 	tx, root := block.NewTransaction(NewBucketRW(readBucket, writeBucket), nil, nil, nil)
 	root.SetBlock(&block_mock.Root{}, true)
 	sub := root.FollowSubBlock(1)
 	ref := sub.FollowRef(1, nil)
 	ref.SetBlock(block_mock.NewExample("hello world"), true)
 
+	// Write the transaction blocks through the combined bucket.
 	if _, _, err := tx.Write(ctx, true); err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Verify the transaction uses native batches for its root and child blocks.
 	putCalls, _, batchCalls, batchEntries, _ := writeStore.getCounts()
 	if batchCalls == 0 {
 		t.Fatal("expected transaction write to use PutBlockBatch on the write bucket")
