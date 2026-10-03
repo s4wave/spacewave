@@ -29,6 +29,7 @@ func (f *mustDefaultTB) Cleanup(fn func()) {
 
 // TestMustDefaultFatalOnConstructionError verifies construction failure fails t.
 func TestMustDefaultFatalOnConstructionError(t *testing.T) {
+	// Catch the testing stub fatal signal while preserving unexpected panics.
 	defer func() {
 		if r := recover(); r != nil {
 			if _, ok := r.(fatalPanic); !ok {
@@ -37,6 +38,7 @@ func TestMustDefaultFatalOnConstructionError(t *testing.T) {
 		}
 	}()
 
+	// Require invalid World options to stop the test before returning a testbed.
 	ftb := &mustDefaultTB{}
 	tb := MustDefault(ftb, context.Background(), struct{}{})
 	tb.Release()
@@ -46,6 +48,7 @@ func TestMustDefaultFatalOnConstructionError(t *testing.T) {
 // TestMustDefaultRegistersRelease verifies the success path registers
 // tb.Release with t.Cleanup exactly once.
 func TestMustDefaultRegistersRelease(t *testing.T) {
+	// Construct a World testbed with the testing stub that records cleanup.
 	ftb := &mustDefaultTB{}
 	tb := MustDefault(ftb, context.Background())
 	if tb == nil {

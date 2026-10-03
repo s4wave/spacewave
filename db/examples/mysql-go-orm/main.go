@@ -23,23 +23,28 @@ import (
 )
 
 func main() {
+	// Configure the example context and debug logger.
 	ctx := context.Background()
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
 
+	// Start the controller bus that resolves the example storage.
 	b, _, err := core.NewCoreBus(ctx, le)
 	if err != nil {
 		panic(err)
 	}
 
+	// Enable verbose logging for the in-memory storage volume.
 	verbose := true
+
 	/*
 		av, _, ref, err := common.AddStorageVolume(ctx, le, b, sr, verbose)
 		if err != nil {
 			panic(err)
 		}
 	*/
+	// Resolve the in-memory volume and retain its controller directive.
 	av, _, ref, err := loader.WaitExecControllerRunning(
 		ctx,
 		b,
@@ -62,6 +67,7 @@ func main() {
 	defer ncRef.Release()
 	le.Info("node controller resolved")
 
+	// Access the storage volume exposed by its resolved controller.
 	le.Info("storage volume resolved")
 	volCtr := av.(volume.Controller)
 	vol, err := volCtr.GetVolume(ctx)
@@ -69,6 +75,7 @@ func main() {
 		panic(err)
 	}
 
+	// Create the bucket that stores the example MySQL database.
 	bucketID := "test-bucket-mysql"
 	volID := vol.GetID()
 	_, _, _, err = vol.ApplyBucketConfig(ctx, &bucket.Config{
@@ -79,6 +86,7 @@ func main() {
 		panic(err)
 	}
 
+	// Open an empty bucket cursor for the MySQL storage engine.
 	oc, _, err := bucket_lookup.BuildEmptyCursor(
 		ctx,
 		b,
@@ -97,15 +105,19 @@ func main() {
 	dbName := "test-db"
 	dsn := "/" + dbName
 	buildTx := func(write bool) (*mysql.Tx, *gorm.DB, *sql.DB) {
+		// Open the MySQL transaction used by the ORM adapter.
 		tx, err := sq.NewMysqlTransaction(ctx, true)
 		if err != nil {
 			panic(err)
 		}
+
 		// assert that the database exists
 		_, err = tx.OpenDatabase(ctx, dbName, true)
 		if err != nil {
 			panic(err)
 		}
+
+		// Attach the GORM adapter to the transaction and example database.
 		db, sqlDB, err := gormadapter.NewMysqlGorm(
 			ctx,
 			le,
@@ -119,10 +131,13 @@ func main() {
 		return tx, db, sqlDB
 	}
 
+	// Prepare the Entry table in a writable MySQL transaction.
 	tx, db, _ := buildTx(true)
 	if err := db.AutoMigrate(&Entry{}); err != nil {
 		panic(err)
 	}
+
+	// Insert the three example entries through GORM.
 	createVals := []*Entry{
 		{Value: 4, ID: 1},
 		{Value: 10, ID: 2},
@@ -131,12 +146,15 @@ func main() {
 	for _, v := range createVals {
 		db.Create(v)
 	}
+
+	// Commit the example entries to the bucket-backed database.
 	err = tx.Commit(ctx)
 	if err != nil {
 		panic(err)
 	}
 	le.Infof("successfully stored %d objects", 3)
 
+	// Read all persisted entries and require the complete result set.
 	tx, db, _ = buildTx(false)
 	_ = tx
 	var se []Entry
@@ -149,6 +167,7 @@ func main() {
 	}
 	le.Infof("successfully retrieved %d objects", len(se))
 
+	// Verify that a GORM value query retrieves the matching entry.
 	var e Entry
 	out = db.Where("value = ?", 30).Find(&e)
 	if out.Error != nil {
@@ -159,6 +178,7 @@ func main() {
 	}
 	le.Infof("successfully retrieved object by value lookup: %#v", e)
 
+	// Release the transaction after the example queries finish.
 	tx.Discard()
 }
 

@@ -52,12 +52,14 @@ func buildGridCheckCommand() *cli.Command {
 		Usage:     "check height consistency of grid children by row",
 		ArgsUsage: "<selector>",
 		Action: func(c *cli.Context) error {
+			// Require a grid selector and prepare the page geometry query.
 			if c.NArg() < 1 {
 				return errors.New("usage: grid-check <selector>")
 			}
 			sel := c.Args().First()
 			code := jsGridCheck + "(" + escapeJSString(sel) + ")"
 
+			// Collect grid row labels and heights from the running page.
 			type gridRow struct {
 				labels  []string
 				heights []float64
@@ -78,6 +80,8 @@ func buildGridCheckCommand() *cli.Command {
 			}); err != nil {
 				return err
 			}
+
+			// Report each grid row and count inconsistent child heights.
 			w := os.Stdout
 			if len(rows) == 0 {
 				w.WriteString("no children found\n")

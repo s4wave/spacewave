@@ -33,10 +33,12 @@ func buildWatchCommand() *cli.Command {
 			},
 		},
 		Action: func(c *cli.Context) error {
+			// Keep the repeated JavaScript evaluations within the command lifetime.
 			ctx := c.Context
 			ticker := time.NewTicker(interval)
 			defer ticker.Stop()
 
+			// Read the JavaScript file for each evaluation against the running page.
 			run := func() error {
 				data, err := os.ReadFile(filePath)
 				if err != nil {
@@ -50,6 +52,7 @@ func buildWatchCommand() *cli.Command {
 				os.Stderr.WriteString(err.Error() + "\n")
 			}
 
+			// Evaluate the JavaScript file on each tick until command cancellation.
 			for {
 				select {
 				case <-ctx.Done():

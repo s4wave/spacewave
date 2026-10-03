@@ -42,6 +42,7 @@ func NewCreateWizardObjectOpBlock() block.Block {
 
 // Validate performs cursory checks on the op.
 func (o *CreateWizardObjectOp) Validate() error {
+	// Require the wizard object key, type identifiers and valid timestamp.
 	if len(o.GetObjectKey()) == 0 {
 		return world.ErrEmptyObjectKey
 	}
@@ -69,10 +70,12 @@ func (o *CreateWizardObjectOp) ApplyWorldOp(
 	worldHandle world.WorldState,
 	sender peer.ID,
 ) (sysErr bool, err error) {
+	// Validate the wizard creation request before changing World state.
 	if err := o.Validate(); err != nil {
 		return false, err
 	}
 
+	// Create the World object with the initial wizard step and target configuration.
 	objKey := o.GetObjectKey()
 	state := &WizardState{
 		Step:            o.GetInitialStep(),
@@ -91,6 +94,7 @@ func (o *CreateWizardObjectOp) ApplyWorldOp(
 		return false, err
 	}
 
+	// Assign the wizard type to the newly created World object.
 	if err := world_types.SetObjectType(ctx, worldHandle, objKey, o.GetWizardTypeId()); err != nil {
 		return false, err
 	}

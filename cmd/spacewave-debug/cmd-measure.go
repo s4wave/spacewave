@@ -52,12 +52,14 @@ func buildMeasureCommand() *cli.Command {
 		Usage:     "dump geometry and typography for elements",
 		ArgsUsage: "<selector>",
 		Action: func(c *cli.Context) error {
+			// Require an element selector and prepare the page measurement query.
 			if c.NArg() < 1 {
 				return errors.New("usage: measure <selector>")
 			}
 			sel := c.Args().First()
 			code := jsMeasure + "(" + escapeJSString(sel) + ")"
 
+			// Collect geometry and typography for the matching page elements.
 			type measureEntry struct {
 				selector     string
 				width        float64
@@ -86,6 +88,8 @@ func buildMeasureCommand() *cli.Command {
 			if len(results) == 0 {
 				return errors.Errorf("no elements matched %q", sel)
 			}
+
+			// Print the measured element dimensions and typography.
 			w := os.Stdout
 			for _, r := range results {
 				width := strconv.FormatFloat(math.Round(r.width*100)/100, 'f', 2, 64)

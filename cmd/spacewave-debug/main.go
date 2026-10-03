@@ -14,10 +14,12 @@ import (
 var args debug_cli.ClientArgs
 
 func main() {
+	// Cancel debug commands when the process receives an interrupt.
 	ctx, stop := signal.NotifyContext(args.GetContext(), os.Interrupt)
 	defer stop()
 	args.SetContext(ctx)
 
+	// Register and run the page inspection and debug commands.
 	app := appcli.NewApp()
 	app.Name = "spacewave-debug"
 	app.HideVersion = true

@@ -52,6 +52,7 @@ func (r *WizardRegistryResource) RegisterWizard(
 	ctx context.Context,
 	req *RegisterWizardRequest,
 ) (*RegisterWizardResponse, error) {
+	// Require the wizard identity and display name before registration.
 	wizard := req.GetWizard()
 	if wizard == nil {
 		return nil, ErrWizardRequired
@@ -66,11 +67,13 @@ func (r *WizardRegistryResource) RegisterWizard(
 		return nil, ErrWizardNameRequired
 	}
 
+	// Locate the plugin registration generation associated with the wizard.
 	generation, err := registration.FromContext(ctx, wizard.GetPluginId())
 	if err != nil {
 		return nil, err
 	}
 
+	// Access the resource client that retains the wizard registration.
 	client, err := resource_server.MustGetResourceClientContext(ctx)
 	if err != nil {
 		return nil, err
@@ -79,12 +82,15 @@ func (r *WizardRegistryResource) RegisterWizard(
 	// Independent installations may each register the same type id.
 	var regID uint32
 	r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		// Reject a wizard type that conflicts with the plugin generation.
 		for _, v := range r.registrations {
 			if v.GetTypeId() == wizard.GetTypeId() && !r.generations.CanShareNameLocked(v, generation) {
 				err = ErrWizardAlreadyRegistered
 				return
 			}
 		}
+
+		// Bind the cloned wizard to its generation and publish the registration.
 		regID = r.nextID
 		r.nextID++
 		stored := wizard.CloneVT()
@@ -99,6 +105,7 @@ func (r *WizardRegistryResource) RegisterWizard(
 		return nil, err
 	}
 
+	// Tie the wizard registration to the resource client lifetime.
 	emptyMux := srpc.NewMux()
 	resourceID, err := client.AddResource(emptyMux, func() {
 		r.releaseRegistration(regID)
@@ -114,6 +121,7 @@ func (r *WizardRegistryResource) RegisterWizard(
 // releaseRegistration removes one registration and its generation binding.
 func (r *WizardRegistryResource) releaseRegistration(regID uint32) {
 	r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		// Remove the retained wizard and generation binding, then notify watchers.
 		stored, ok := r.registrations[regID]
 		if !ok {
 			return
@@ -160,11 +168,13 @@ func (r *WizardRegistryResource) WatchWizards(
 // wizards sorted by type id. Built-in type ids take precedence. The caller
 // holds bcast.
 func (r *WizardRegistryResource) getWizardsLocked(instanceKey string) []*ObjectWizard {
+	// Select visible plugin wizards in stable type order.
 	selected := registration.SelectLocked(r.generations, r.registrations, instanceKey, (*ObjectWizard).GetTypeId)
 	slices.SortFunc(selected, func(a, b *ObjectWizard) int {
 		return cmp.Compare(a.GetTypeId(), b.GetTypeId())
 	})
 
+	// Collect built-in wizards and reserve their type identifiers.
 	wizards := make([]*ObjectWizard, 0, len(ObjectWizards)+len(selected))
 	builtin := make(map[string]struct{}, len(ObjectWizards))
 	for _, wizard := range ObjectWizards {
@@ -174,6 +184,8 @@ func (r *WizardRegistryResource) getWizardsLocked(instanceKey string) []*ObjectW
 		builtin[wizard.GetTypeId()] = struct{}{}
 		wizards = append(wizards, wizard.CloneVT())
 	}
+
+	// Append visible plugin wizards whose types have no built-in definition.
 	for _, wizard := range selected {
 		if _, ok := builtin[wizard.GetTypeId()]; ok {
 			continue

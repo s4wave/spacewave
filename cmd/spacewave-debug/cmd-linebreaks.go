@@ -41,12 +41,14 @@ func buildLinebreaksCommand() *cli.Command {
 		Usage:     "show exact visual line breaks for text elements",
 		ArgsUsage: "<selector>",
 		Action: func(c *cli.Context) error {
+			// Require an element selector and prepare the page line-break query.
 			if c.NArg() < 1 {
 				return errors.New("usage: linebreaks <selector>")
 			}
 			sel := c.Args().First()
 			code := jsDetectLineBreaks + "(" + escapeJSString(sel) + ")"
 
+			// Collect the rendered text lines for matching page elements.
 			var results []linebreaksEntry
 			if err := args.RunEvalJSON(c.Context, code, func(v *fastjson.Value) {
 				results = parseLinebreaksEntries(v)
@@ -56,6 +58,8 @@ func buildLinebreaksCommand() *cli.Command {
 			if len(results) == 0 {
 				return errors.Errorf("no elements matched %q", sel)
 			}
+
+			// Print each element width and its rendered text lines.
 			w := os.Stdout
 			for _, r := range results {
 				w.WriteString("[" + r.selector + "] (" + strconv.Itoa(len(r.lines)) + " lines, w:" + strconv.Itoa(r.width) + ")\n")
