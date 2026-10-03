@@ -15,11 +15,13 @@ import (
 // opData is the marshaled OrgSOOp.
 // Returns the next marshaled OrgState.
 func ApplyOrgSOOp(ctx context.Context, stateData []byte, opData []byte, sender peer.ID) ([]byte, error) {
+	// Decode the organization operation supplied by the shared object.
 	op := &OrgSOOp{}
 	if err := op.UnmarshalVT(opData); err != nil {
 		return nil, errors.Wrap(err, "unmarshal org op")
 	}
 
+	// Decode the saved organization body or start with an empty state.
 	state := &OrgState{}
 	if len(stateData) > 0 {
 		if err := state.UnmarshalVT(stateData); err != nil {
@@ -27,6 +29,7 @@ func ApplyOrgSOOp(ctx context.Context, stateData []byte, opData []byte, sender p
 		}
 	}
 
+	// Apply the operation body to the organization state.
 	switch body := op.GetBody().(type) {
 	case *OrgSOOp_InitOrg:
 		if err := applyInitOrg(state, body.InitOrg); err != nil {

@@ -50,12 +50,15 @@ func (o *SqlQuerySetRootOp) ApplyWorldOp(
 	ws world.WorldState,
 	sender peer.ID,
 ) (bool, error) {
+	// Validate the root operation and its SQL query target type.
 	if err := o.Validate(); err != nil {
 		return false, err
 	}
 	if err := world_types.CheckObjectType(ctx, ws, o.GetObjectKey(), s4wave_sql_query.SqlQueryTypeID); err != nil {
 		return false, err
 	}
+
+	// Open the query object and apply the requested root transition.
 	obj, err := world.MustGetObject(ctx, ws, o.GetObjectKey())
 	defer world.ReleaseObjectState(obj)
 	if err != nil {
@@ -74,6 +77,7 @@ func (o *SqlQuerySetRootOp) ApplyWorldObjectOp(
 	os world.ObjectState,
 	_ peer.ID,
 ) (bool, error) {
+	// Validate that the root operation targets this object.
 	if err := o.Validate(); err != nil {
 		return false, err
 	}
@@ -83,6 +87,8 @@ func (o *SqlQuerySetRootOp) ApplyWorldObjectOp(
 	if os.GetKey() != o.GetObjectKey() {
 		return false, errors.Errorf("sql/query: op target %s does not match object %s", o.GetObjectKey(), os.GetKey())
 	}
+
+	// Preserve the existing root when initialization is create-once.
 	if o.GetInitializeOnly() {
 		rootRef, _, err := os.GetRootRef(ctx)
 		if err != nil {
@@ -92,6 +98,8 @@ func (o *SqlQuerySetRootOp) ApplyWorldObjectOp(
 			return false, ErrQueryAlreadyInitialized
 		}
 	}
+
+	// Advance the query object to the requested root reference.
 	_, err := os.SetRootRef(ctx, o.GetRootRef())
 	return false, err
 }

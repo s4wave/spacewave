@@ -53,8 +53,8 @@ func (o *UpdateOrgOp) ApplyWorldOp(
 	ws world.WorldState,
 	sender peer.ID,
 ) (bool, error) {
+	// Open the requested organization object for update and release its handle afterward.
 	objKey := o.GetOrgObjectKey()
-
 	objState, found, err := ws.GetObject(ctx, objKey)
 	defer world.ReleaseObjectState(objState)
 	if err != nil {
@@ -64,6 +64,7 @@ func (o *UpdateOrgOp) ApplyWorldOp(
 		return false, errors.New("organization object not found")
 	}
 
+	// Read the organization body before applying its update.
 	var state *OrgState
 	_, _, err = world.AccessObjectState(ctx, objState, false, func(bcs *block.Cursor) error {
 		var uErr error
@@ -74,14 +75,17 @@ func (o *UpdateOrgOp) ApplyWorldOp(
 		return true, err
 	}
 
+	// Supply an empty organization body when the object has no state.
 	if state == nil {
 		state = &OrgState{}
 	}
 
+	// Apply the requested change to the organization body.
 	if err := applyUpdateOrg(state, o); err != nil {
 		return false, err
 	}
 
+	// Save the updated organization body in the World object.
 	_, _, err = world.AccessObjectState(ctx, objState, true, func(bcs *block.Cursor) error {
 		bcs.SetBlock(state, true)
 		return nil
@@ -113,11 +117,13 @@ func LookupUpdateOrgOp(ctx context.Context, opTypeID string) (world.Operation, e
 
 // generateInvite creates an OrgInvite from a CreateOrgInviteOp.
 func generateInvite(op *CreateOrgInviteOp) (*OrgInvite, error) {
+	// Require an invitation type before generating its token.
 	inviteType := op.GetType()
 	if inviteType == OrgInviteType_ORG_INVITE_TYPE_UNKNOWN {
 		return nil, errors.New("invite type is required")
 	}
 
+	// Generate a random token with the length required by the invitation type.
 	var token string
 	switch inviteType {
 	case OrgInviteType_ORG_INVITE_TYPE_CODE:
@@ -151,6 +157,7 @@ func generateInvite(op *CreateOrgInviteOp) (*OrgInvite, error) {
 
 // applyJoinViaInvite validates the invite token and adds the joiner as a member.
 func applyJoinViaInvite(state *OrgState, join *JoinOrgViaInviteOp) error {
+	// Require the invitation token and the account joining the organization.
 	token := join.GetToken()
 	accountID := join.GetAccountId()
 	if token == "" {

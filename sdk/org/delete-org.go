@@ -48,8 +48,8 @@ func (o *DeleteOrganizationOp) ApplyWorldOp(
 	ws world.WorldState,
 	sender peer.ID,
 ) (bool, error) {
+	// Open the requested organization object for deletion and release its handle afterward.
 	objKey := o.GetOrgObjectKey()
-
 	objState, found, err := ws.GetObject(ctx, objKey)
 	defer world.ReleaseObjectState(objState)
 	if err != nil {
@@ -59,6 +59,7 @@ func (o *DeleteOrganizationOp) ApplyWorldOp(
 		return false, errors.New("organization object not found")
 	}
 
+	// Read the organization body to check its child shared objects.
 	var state *OrgState
 	_, _, err = world.AccessObjectState(ctx, objState, false, func(bcs *block.Cursor) error {
 		var uErr error
@@ -69,10 +70,12 @@ func (o *DeleteOrganizationOp) ApplyWorldOp(
 		return true, err
 	}
 
+	// Keep organizations whose child shared objects still depend on them.
 	if state != nil && len(state.GetChildSharedObjects()) > 0 {
 		return false, errors.New("cannot delete organization with child shared objects")
 	}
 
+	// Remove the organization object from the World.
 	if _, err := ws.DeleteObject(ctx, objKey); err != nil {
 		return true, err
 	}

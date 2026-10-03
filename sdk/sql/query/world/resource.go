@@ -68,17 +68,22 @@ func (r *SqlQueryResource) Initialize(
 	ctx context.Context,
 	req *s4wave_sql_query.InitializeQueryRequest,
 ) (*s4wave_sql_query.InitializeQueryResponse, error) {
+	// Require a World containing a SQL query object before initialization.
 	if r.ws == nil {
 		return nil, errors.New("sql/query: world state is required")
 	}
 	if err := world_types.CheckObjectType(ctx, r.ws, r.objectKey, s4wave_sql_query.SqlQueryTypeID); err != nil {
 		return nil, err
 	}
+
+	// Validate the requested target database type when a target is supplied.
 	if targetKey := req.GetTargetDbObjectKey(); targetKey != "" {
 		if err := world_types.CheckObjectType(ctx, r.ws, targetKey, s4wave_sql_world.SqlDbTypeID); err != nil {
 			return nil, err
 		}
 	}
+
+	// Write the initial query body into World storage.
 	query := &s4wave_sql_query.Query{
 		SqlText:           req.GetSqlText(),
 		DialectHint:       req.GetDialectHint(),
@@ -88,6 +93,8 @@ func (r *SqlQueryResource) Initialize(
 	if err != nil {
 		return nil, err
 	}
+
+	// Initialize the query object root through its create-once operation.
 	_, sysErr, err := r.ws.ApplyWorldOp(ctx, NewSqlQueryInitializeRootOp(r.objectKey, rootRef), "")
 	if err != nil {
 		return nil, err
@@ -120,15 +127,20 @@ func (r *SqlQueryResource) SetQueryText(
 	ctx context.Context,
 	req *s4wave_sql_query.SetQueryTextRequest,
 ) (*s4wave_sql_query.SetQueryTextResponse, error) {
+	// Read the saved query before changing its text and target.
 	query, err := r.readQuery(ctx)
 	if err != nil {
 		return nil, err
 	}
+
+	// Validate the replacement target database when supplied.
 	if targetKey := req.GetTargetDbObjectKey(); targetKey != "" {
 		if err := world_types.CheckObjectType(ctx, r.ws, targetKey, s4wave_sql_world.SqlDbTypeID); err != nil {
 			return nil, err
 		}
 	}
+
+	// Save the replacement query text, dialect, and database target.
 	next := query.CloneVT()
 	next.SqlText = req.GetSqlText()
 	next.DialectHint = req.GetDialectHint()
@@ -144,10 +156,13 @@ func (r *SqlQueryResource) SetParameters(
 	ctx context.Context,
 	req *s4wave_sql_query.SetParametersRequest,
 ) (*s4wave_sql_query.SetParametersResponse, error) {
+	// Read the saved query before changing its bind parameters.
 	query, err := r.readQuery(ctx)
 	if err != nil {
 		return nil, err
 	}
+
+	// Save an independent copy of the replacement query parameters.
 	next := query.CloneVT()
 	next.Parameters = cloneSqlValues(req.GetParameters())
 	if err := r.commitQueryRoot(ctx, next); err != nil {
@@ -161,6 +176,7 @@ func (r *SqlQueryResource) Run(
 	ctx context.Context,
 	req *s4wave_sql_query.RunQueryRequest,
 ) (*s4wave_sql_query.RunQueryResponse, error) {
+	// Require a writable resource and load the query to execute.
 	if r.engine == nil {
 		return nil, errors.New("sql/query: resource is read-only")
 	}
@@ -168,6 +184,8 @@ func (r *SqlQueryResource) Run(
 	if err != nil {
 		return nil, err
 	}
+
+	// Require a SQL database target for query execution.
 	targetKey := query.GetTargetDbObjectKey()
 	if targetKey == "" {
 		return nil, errors.New("sql/query: target database object key is required")
@@ -176,6 +194,7 @@ func (r *SqlQueryResource) Run(
 		return nil, err
 	}
 
+	// Execute the query into a timestamped result body.
 	now := time.Now().UTC()
 	result := &s4wave_sql_query_result.QueryResult{
 		ExecutedAt:           timestamppb.New(now),
@@ -184,10 +203,13 @@ func (r *SqlQueryResource) Run(
 	}
 	r.executeQuery(ctx, query, req.GetMaxRows(), result)
 
+	// Persist the query result as a linked World object.
 	resultKey, err := r.createResultObject(ctx, result, now)
 	if err != nil {
 		return nil, err
 	}
+
+	// Return the result object key and any recorded SQL error.
 	resp := &s4wave_sql_query.RunQueryResponse{ResultObjectKey: resultKey}
 	if result.GetError() != nil {
 		resp.Error = result.GetError().GetMessage()
@@ -206,10 +228,13 @@ func (r *SqlQueryResource) readQuery(ctx context.Context) (*s4wave_sql_query.Que
 }
 
 func (r *SqlQueryResource) commitQueryRoot(ctx context.Context, query *s4wave_sql_query.Query) error {
+	// Write the replacement query body into World storage.
 	rootRef, err := s4wave_sql_query.WriteQueryRootRef(ctx, r.ws, query)
 	if err != nil {
 		return err
 	}
+
+	// Advance the query object root through its World operation.
 	_, sysErr, err := r.ws.ApplyWorldOp(ctx, NewSqlQuerySetRootOp(r.objectKey, rootRef), "")
 	if err != nil {
 		return err
@@ -226,6 +251,7 @@ func (r *SqlQueryResource) executeQuery(
 	maxRows uint32,
 	result *s4wave_sql_query_result.QueryResult,
 ) {
+	// Open query rows with the requested limit or the default limit.
 	if maxRows == 0 {
 		maxRows = defaultRunMaxRows
 	}
@@ -236,6 +262,7 @@ func (r *SqlQueryResource) executeQuery(
 	}
 	defer cleanup()
 
+	// Capture the column names and database types in the result schema.
 	columns := rows.Columns()
 	columnTypes, _ := rows.(driver.RowsColumnTypeDatabaseTypeName)
 	result.Columns = make([]*hydra_sql.ColumnSchema, len(columns))
@@ -246,9 +273,11 @@ func (r *SqlQueryResource) executeQuery(
 		}
 	}
 
+	// Collect query rows into bounded result batches.
 	dest := make([]driver.Value, len(columns))
 	batch := &hydra_sql.RowBatch{}
 	for result.GetRowCount() < uint64(maxRows) {
+		// Read the next database row or retain its read failure.
 		clear(dest)
 		if err := rows.Next(dest); err != nil {
 			if err == io.EOF {
@@ -257,6 +286,8 @@ func (r *SqlQueryResource) executeQuery(
 			result.Error = &s4wave_sql_query_result.QueryResultError{Message: err.Error()}
 			break
 		}
+
+		// Convert the database values into the result row wire representation.
 		row := &hydra_sql.Row{Values: make([]*hydra_sql.SqlValue, len(dest))}
 		for i, value := range dest {
 			wireValue, err := sql_rpc.DriverValueToSqlValue(value)
@@ -266,6 +297,8 @@ func (r *SqlQueryResource) executeQuery(
 			}
 			row.Values[i] = wireValue
 		}
+
+		// Accumulate the result row and flush a full batch.
 		batch.Rows = append(batch.Rows, row)
 		result.RowCount++
 		if len(batch.GetRows()) == resultRowBatchSize {
@@ -273,12 +306,16 @@ func (r *SqlQueryResource) executeQuery(
 			batch = &hydra_sql.RowBatch{}
 		}
 	}
+
+	// Retain the final partial result batch before handling truncation.
 	if len(batch.GetRows()) != 0 {
 		result.RowBatches = append(result.RowBatches, batch)
 	}
 	if result.GetError() != nil {
 		return
 	}
+
+	// Read beyond the row limit to determine whether the result was truncated.
 	clear(dest)
 	err = rows.Next(dest)
 	if err == nil {
@@ -294,6 +331,7 @@ func (r *SqlQueryResource) openRows(
 	ctx context.Context,
 	query *s4wave_sql_query.Query,
 ) (driver.Rows, func(), error) {
+	// Open the target database object and retain its root reference.
 	targetKey := query.GetTargetDbObjectKey()
 	obj, err := world.MustGetObject(ctx, r.ws, targetKey)
 	defer world.ReleaseObjectState(obj)
@@ -304,6 +342,8 @@ func (r *SqlQueryResource) openRows(
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "sql/query: read target db root")
 	}
+
+	// Follow the database root from the engine storage cursor.
 	storageRoot, err := r.engine.BuildStorageCursor(ctx)
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "sql/query: open target db storage cursor")
@@ -313,18 +353,24 @@ func (r *SqlQueryResource) openRows(
 		storageRoot.Release()
 		return nil, nil, errors.Wrap(err, "sql/query: follow target db root")
 	}
+
+	// Open the World-backed SQL store at the database root.
 	store, err := s4wave_sql_world.NewWorldBackedSql(ctx, root, r.ws, targetKey)
 	if err != nil {
 		root.Release()
 		storageRoot.Release()
 		return nil, nil, errors.Wrap(err, "sql/query: open target db store")
 	}
+
+	// Begin a read transaction on the target database.
 	tx, err := store.NewSqlTransaction(ctx, false, "")
 	if err != nil {
 		store.Close()
 		storageRoot.Release()
 		return nil, nil, errors.Wrap(err, "sql/query: open target db read transaction")
 	}
+
+	// Acquire the SQL operations for the database read transaction.
 	ops, err := tx.GetSqlOps(ctx)
 	if err != nil {
 		tx.Discard()
@@ -332,6 +378,8 @@ func (r *SqlQueryResource) openRows(
 		storageRoot.Release()
 		return nil, nil, errors.Wrap(err, "sql/query: open target db SQL ops")
 	}
+
+	// Execute the saved SQL text with its bind parameters.
 	args := sql_rpc.SqlValuesToNamedValues(query.GetParameters())
 	rows, err := ops.QueryContext(ctx, query.GetSqlText(), args)
 	if std_errors.Is(err, driver.ErrSkip) {
@@ -349,6 +397,8 @@ func (r *SqlQueryResource) openRows(
 		storageRoot.Release()
 		return nil, nil, errors.New("sql/query: query returned nil rows")
 	}
+
+	// Return cleanup that closes the result rows and their database resources.
 	cleanup := func() {
 		rows.Close()
 		tx.Discard()
@@ -387,6 +437,7 @@ func (r *SqlQueryResource) createResultObjectAtKey(
 	resultKey string,
 	result *s4wave_sql_query_result.QueryResult,
 ) error {
+	// Open a write transaction and validate the query and database object types.
 	wtx, err := r.engine.NewTransaction(ctx, true)
 	if err != nil {
 		return err
@@ -399,6 +450,8 @@ func (r *SqlQueryResource) createResultObjectAtKey(
 		wtx.Discard()
 		return err
 	}
+
+	// Create the result World object with the executed query body.
 	var createdObject world.ObjectState
 	createdObject, _, err = world.CreateWorldObject(ctx, wtx, resultKey, func(bcs *block.Cursor) error {
 		bcs.SetBlock(result, true)
@@ -409,10 +462,14 @@ func (r *SqlQueryResource) createResultObjectAtKey(
 		wtx.Discard()
 		return err
 	}
+
+	// Register the SQL result type on the new object.
 	if err := world_types.SetObjectType(ctx, wtx, resultKey, s4wave_sql_query_result.SqlQueryResultTypeID); err != nil {
 		wtx.Discard()
 		return err
 	}
+
+	// Link the result to its source query and target database.
 	if err := wtx.SetGraphQuad(ctx, world.NewGraphQuadWithKeys(
 		resultKey,
 		s4wave_sql.PredSqlQueryProducedBy.String(),
@@ -431,6 +488,8 @@ func (r *SqlQueryResource) createResultObjectAtKey(
 		wtx.Discard()
 		return err
 	}
+
+	// Commit the result object and its graph relationships together.
 	if err := wtx.Commit(ctx); err != nil {
 		wtx.Discard()
 		return err

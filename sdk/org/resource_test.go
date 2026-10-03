@@ -55,6 +55,7 @@ func (s *orgStateStream) SendAndClose(resp *WatchOrgStateResponse) error {
 }
 
 func recvOrgTestValue[T any](t *testing.T, ch <-chan T, name string) T {
+	// Mark stream receive failures at the calling assertion.
 	t.Helper()
 
 	// Cleanup joins the stream after t.Context is canceled, so its bounded
@@ -73,6 +74,7 @@ func recvOrgTestValue[T any](t *testing.T, ch <-chan T, name string) T {
 		t.Fatalf("timed out waiting for %s", name)
 	}
 
+	// Provide the generic fallback after the missing-event assertion.
 	var zero T
 	return zero
 }
@@ -84,6 +86,7 @@ func setupOrgWatchWorld(
 	objKey string,
 	state *OrgState,
 ) *world_block.Tx {
+	// Mark World setup failures at the calling test.
 	t.Helper()
 
 	// Keep the backing store alive until the watcher and transaction close.

@@ -28,6 +28,7 @@ import (
 )
 
 func TestSqlQueryInitializeCreatesFirstRootOnce(t *testing.T) {
+	// Start a testbed for create-once query initialization.
 	ctx := context.Background()
 	tb, err := testbed.Default(ctx)
 	if err != nil {
@@ -35,6 +36,7 @@ func TestSqlQueryInitializeCreatesFirstRootOnce(t *testing.T) {
 	}
 	defer tb.Release()
 
+	// Create two database targets and open a client for an empty query object.
 	firstDBKey := "sql/query-initialize-test/db-first"
 	createSqlDbObject(t, ctx, tb.WorldState, firstDBKey)
 	secondDBKey := "sql/query-initialize-test/db-second"
@@ -44,6 +46,7 @@ func TestSqlQueryInitializeCreatesFirstRootOnce(t *testing.T) {
 	client, cleanup := openSqlQueryClient(t, ctx, tb, queryKey)
 	defer cleanup()
 
+	// Initialize the first query root against the first database.
 	if _, err := client.Initialize(ctx, &s4wave_sql_query.InitializeQueryRequest{
 		SqlText:           "SELECT 1",
 		DialectHint:       "mysql",
@@ -51,6 +54,8 @@ func TestSqlQueryInitializeCreatesFirstRootOnce(t *testing.T) {
 	}); err != nil {
 		t.Fatalf("Initialize: %v", err)
 	}
+
+	// Read back the initialized query and verify its target and empty parameters.
 	query, err := client.GetQueryText(ctx, &s4wave_sql_query.GetQueryTextRequest{})
 	if err != nil {
 		t.Fatalf("GetQueryText: %v", err)
@@ -61,6 +66,7 @@ func TestSqlQueryInitializeCreatesFirstRootOnce(t *testing.T) {
 	}
 	assertGraphQuad(t, ctx, tb.WorldState, queryKey, s4wave_sql.PredSqlQueryAgainst.String(), firstDBKey)
 
+	// Reject a second initialization with replacement query metadata.
 	_, err = client.Initialize(ctx, &s4wave_sql_query.InitializeQueryRequest{
 		SqlText:           "SELECT 2",
 		DialectHint:       "postgres",
@@ -69,6 +75,8 @@ func TestSqlQueryInitializeCreatesFirstRootOnce(t *testing.T) {
 	if err == nil || err.Error() != s4wave_sql_query_world.ErrQueryAlreadyInitialized.Error() {
 		t.Fatalf("duplicate Initialize error = %v, want %q", err, s4wave_sql_query_world.ErrQueryAlreadyInitialized)
 	}
+
+	// Verify that duplicate initialization preserves the first query and target.
 	query, err = client.GetQueryText(ctx, &s4wave_sql_query.GetQueryTextRequest{})
 	if err != nil {
 		t.Fatalf("GetQueryText after duplicate: %v", err)
@@ -79,6 +87,7 @@ func TestSqlQueryInitializeCreatesFirstRootOnce(t *testing.T) {
 }
 
 func TestSqlQueryInitializeAcceptsEmptyTarget(t *testing.T) {
+	// Start a testbed for initialization without a database target.
 	ctx := context.Background()
 	tb, err := testbed.Default(ctx)
 	if err != nil {
@@ -86,17 +95,21 @@ func TestSqlQueryInitializeAcceptsEmptyTarget(t *testing.T) {
 	}
 	defer tb.Release()
 
+	// Open a client for an empty query object.
 	queryKey := "sql/query-initialize-empty-target/query"
 	createEmptySqlQueryObject(t, ctx, tb.WorldState, queryKey)
 	client, cleanup := openSqlQueryClient(t, ctx, tb, queryKey)
 	defer cleanup()
 
+	// Initialize the query with an empty database target.
 	if _, err := client.Initialize(ctx, &s4wave_sql_query.InitializeQueryRequest{
 		SqlText:     "SELECT 1",
 		DialectHint: "sqlite",
 	}); err != nil {
 		t.Fatalf("Initialize: %v", err)
 	}
+
+	// Verify the saved query text and the absence of parameters and target links.
 	query, err := client.GetQueryText(ctx, &s4wave_sql_query.GetQueryTextRequest{})
 	if err != nil {
 		t.Fatalf("GetQueryText: %v", err)
@@ -109,6 +122,7 @@ func TestSqlQueryInitializeAcceptsEmptyTarget(t *testing.T) {
 }
 
 func TestSqlQueryInitializeRejectsInvalidTarget(t *testing.T) {
+	// Start a testbed for rejecting a query target with the wrong type.
 	ctx := context.Background()
 	tb, err := testbed.Default(ctx)
 	if err != nil {
@@ -116,6 +130,7 @@ func TestSqlQueryInitializeRejectsInvalidTarget(t *testing.T) {
 	}
 	defer tb.Release()
 
+	// Create a query object as the invalid database target and open the query client.
 	invalidTargetKey := "sql/query-initialize-invalid-target/not-db"
 	createEmptySqlQueryObject(t, ctx, tb.WorldState, invalidTargetKey)
 	queryKey := "sql/query-initialize-invalid-target/query"
@@ -123,6 +138,7 @@ func TestSqlQueryInitializeRejectsInvalidTarget(t *testing.T) {
 	client, cleanup := openSqlQueryClient(t, ctx, tb, queryKey)
 	defer cleanup()
 
+	// Verify that initialization rejects the target and leaves the query root empty.
 	if _, err := client.Initialize(ctx, &s4wave_sql_query.InitializeQueryRequest{
 		SqlText:           "SELECT 1",
 		TargetDbObjectKey: invalidTargetKey,
@@ -133,6 +149,7 @@ func TestSqlQueryInitializeRejectsInvalidTarget(t *testing.T) {
 }
 
 func TestSqlQueryInitializeWorldOpCreateOnce(t *testing.T) {
+	// Start a testbed for direct create-once root operations.
 	ctx := context.Background()
 	tb, err := testbed.Default(ctx)
 	if err != nil {
@@ -140,6 +157,7 @@ func TestSqlQueryInitializeWorldOpCreateOnce(t *testing.T) {
 	}
 	defer tb.Release()
 
+	// Open an empty query object for direct root operations.
 	queryKey := "sql/query-initialize-op/query"
 	createEmptySqlQueryObject(t, ctx, tb.WorldState, queryKey)
 	obj, err := world.MustGetObject(ctx, tb.WorldState, queryKey)
@@ -148,6 +166,7 @@ func TestSqlQueryInitializeWorldOpCreateOnce(t *testing.T) {
 	}
 	defer world.ReleaseObjectState(obj)
 
+	// Initialize the first root and verify its saved query text.
 	firstRef := writeQueryRootRef(t, ctx, tb.WorldState, &s4wave_sql_query.Query{SqlText: "SELECT 1"})
 	if _, err := s4wave_sql_query_world.NewSqlQueryInitializeRootOp(queryKey, firstRef).
 		ApplyWorldObjectOp(ctx, nil, obj, ""); err != nil {
@@ -155,6 +174,7 @@ func TestSqlQueryInitializeWorldOpCreateOnce(t *testing.T) {
 	}
 	assertQueryRoot(t, ctx, tb.WorldState, queryKey, "SELECT 1")
 
+	// Reject a second create-once root and preserve the first query text.
 	secondRef := writeQueryRootRef(t, ctx, tb.WorldState, &s4wave_sql_query.Query{SqlText: "SELECT 2"})
 	_, err = s4wave_sql_query_world.NewSqlQueryInitializeRootOp(queryKey, secondRef).
 		ApplyWorldObjectOp(ctx, nil, obj, "")
@@ -166,6 +186,7 @@ func TestSqlQueryInitializeWorldOpCreateOnce(t *testing.T) {
 	}
 	assertQueryRoot(t, ctx, tb.WorldState, queryKey, "SELECT 1")
 
+	// Verify that an ordinary root update can replace the initialized query.
 	if _, err := s4wave_sql_query_world.NewSqlQuerySetRootOp(queryKey, secondRef).
 		ApplyWorldObjectOp(ctx, nil, obj, ""); err != nil {
 		t.Fatalf("ordinary set-root op: %v", err)
@@ -174,6 +195,7 @@ func TestSqlQueryInitializeWorldOpCreateOnce(t *testing.T) {
 }
 
 func TestSqlQueryInitializeConcurrentWinnerRetriesStaleGeneration(t *testing.T) {
+	// Start a bounded testbed for competing query initialization requests.
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	tb, err := testbed.Default(ctx)
@@ -182,6 +204,7 @@ func TestSqlQueryInitializeConcurrentWinnerRetriesStaleGeneration(t *testing.T) 
 	}
 	defer tb.Release()
 
+	// Prepare a race engine, a target database, and an empty query resource.
 	raceEngine := newQueryInitializeRaceEngine(tb.Engine)
 	ws := world.NewEngineWorldState(raceEngine, true)
 	dbKey := "sql/query-initialize-race/db"
@@ -191,6 +214,7 @@ func TestSqlQueryInitializeConcurrentWinnerRetriesStaleGeneration(t *testing.T) 
 	resource := s4wave_sql_query_world.NewSqlQueryResource(ws, raceEngine, queryKey)
 	raceEngine.EnableStaleCommitRace()
 
+	// Run two initialization requests against the same query object.
 	requests := []*s4wave_sql_query.InitializeQueryRequest{
 		{SqlText: "SELECT 1", DialectHint: "mysql", TargetDbObjectKey: dbKey},
 		{SqlText: "SELECT 2", DialectHint: "postgres", TargetDbObjectKey: dbKey},
@@ -204,6 +228,7 @@ func TestSqlQueryInitializeConcurrentWinnerRetriesStaleGeneration(t *testing.T) 
 	}
 	wg.Wait()
 
+	// Require exactly one initialization winner and a create-once error for the loser.
 	winner := -1
 	for i, err := range errs {
 		if err == nil {
@@ -220,10 +245,14 @@ func TestSqlQueryInitializeConcurrentWinnerRetriesStaleGeneration(t *testing.T) 
 	if winner == -1 {
 		t.Fatalf("Initialize errors = %v, want one success", errs)
 	}
+
+	// Verify the race reached two commits and one stale generation.
 	commits, staleCommits := raceEngine.CommitCounts()
 	if commits != 2 || staleCommits != 1 {
 		t.Fatalf("commit attempts = %d, stale = %d, want 2 and 1", commits, staleCommits)
 	}
+
+	// Read the saved query and verify that its body and target match the winner.
 	query, err := s4wave_sql_query.ReadQueryRoot(ctx, ws, queryKey)
 	if err != nil {
 		t.Fatalf("ReadQueryRoot: %v", err)
@@ -253,6 +282,7 @@ func newQueryInitializeRaceEngine(engine world.Engine) *queryInitializeRaceEngin
 }
 
 func (e *queryInitializeRaceEngine) EnableStaleCommitRace() {
+	// Arm the engine with fresh counters and a winner completion signal.
 	e.mu.Lock()
 	defer e.mu.Unlock()
 	e.enabled = true
@@ -263,10 +293,13 @@ func (e *queryInitializeRaceEngine) EnableStaleCommitRace() {
 }
 
 func (e *queryInitializeRaceEngine) NewTransaction(ctx context.Context, write bool) (world.Tx, error) {
+	// Open the underlying transaction before assigning its race sequence.
 	tx, err := e.Engine.NewTransaction(ctx, write)
 	if err != nil {
 		return nil, err
 	}
+
+	// Assign a sequence to write transactions while the race is enabled.
 	e.mu.Lock()
 	var sequence int
 	if e.enabled && write {
@@ -290,6 +323,7 @@ type queryInitializeRaceTx struct {
 }
 
 func (tx *queryInitializeRaceTx) Commit(ctx context.Context) error {
+	// Record the commit attempt and capture the race completion signal.
 	tx.engine.mu.Lock()
 	enabled := tx.engine.enabled
 	if enabled {
@@ -301,6 +335,7 @@ func (tx *queryInitializeRaceTx) Commit(ctx context.Context) error {
 		return tx.Tx.Commit(ctx)
 	}
 
+	// Control commit ordering to produce one stale transaction and one winner.
 	switch tx.sequence {
 	case 1:
 		tx.Discard()
@@ -338,12 +373,15 @@ func assertQueryText(
 }
 
 func assertObjectRootEmpty(t *testing.T, ctx context.Context, ws world.WorldState, objectKey string) {
+	// Open the query object for checking its uninitialized root.
 	t.Helper()
 	obj, err := world.MustGetObject(ctx, ws, objectKey)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer world.ReleaseObjectState(obj)
+
+	// Verify that the query root reference is empty.
 	rootRef, _, err := obj.GetRootRef(ctx)
 	if err != nil {
 		t.Fatal(err)
@@ -385,6 +423,7 @@ func assertQueryRoot(
 }
 
 func TestSqlQueryRunCreatesLinkedQueryResult(t *testing.T) {
+	// Start a testbed for executing a query into a linked result object.
 	ctx := context.Background()
 	tb, err := testbed.Default(ctx)
 	if err != nil {
@@ -392,15 +431,18 @@ func TestSqlQueryRunCreatesLinkedQueryResult(t *testing.T) {
 	}
 	defer tb.Release()
 
+	// Create and seed the target database with a people table.
 	dbKey := "sql/query-test/db"
 	createSqlDbObject(t, ctx, tb.WorldState, dbKey)
 	seedSqlDb(t, ctx, tb, dbKey)
 
+	// Create the query object and open its resource client.
 	queryKey := "sql/query-test/query"
 	createSqlQueryObject(t, ctx, tb.WorldState, queryKey)
 	queryClient, queryCleanup := openSqlQueryClient(t, ctx, tb, queryKey)
 	defer queryCleanup()
 
+	// Save the SQL text and target database for the parameterized query.
 	if _, err := queryClient.SetQueryText(ctx, &s4wave_sql_query.SetQueryTextRequest{
 		SqlText:           "SELECT name FROM alpha.people WHERE id = ?",
 		DialectHint:       "mysql",
@@ -408,6 +450,8 @@ func TestSqlQueryRunCreatesLinkedQueryResult(t *testing.T) {
 	}); err != nil {
 		t.Fatalf("SetQueryText: %v", err)
 	}
+
+	// Save the query parameter selecting the seeded person.
 	if _, err := queryClient.SetParameters(ctx, &s4wave_sql_query.SetParametersRequest{
 		Parameters: []*hydra_sql.SqlValue{
 			{Value: &hydra_sql.SqlValue_IntValue{IntValue: 1}},
@@ -415,6 +459,8 @@ func TestSqlQueryRunCreatesLinkedQueryResult(t *testing.T) {
 	}); err != nil {
 		t.Fatalf("SetParameters: %v", err)
 	}
+
+	// Read back the query metadata and verify the saved database target.
 	queryText, err := queryClient.GetQueryText(ctx, &s4wave_sql_query.GetQueryTextRequest{})
 	if err != nil {
 		t.Fatalf("GetQueryText: %v", err)
@@ -422,6 +468,8 @@ func TestSqlQueryRunCreatesLinkedQueryResult(t *testing.T) {
 	if queryText.GetTargetDbObjectKey() != dbKey {
 		t.Fatalf("target db = %q, want %q", queryText.GetTargetDbObjectKey(), dbKey)
 	}
+
+	// Verify the saved bind parameter and the query database graph link.
 	params := queryText.GetParameters()
 	if len(params) != 1 {
 		t.Fatalf("parameters = %d, want 1", len(params))
@@ -432,6 +480,7 @@ func TestSqlQueryRunCreatesLinkedQueryResult(t *testing.T) {
 	}
 	assertGraphQuad(t, ctx, tb.WorldState, queryKey, s4wave_sql.PredSqlQueryAgainst.String(), dbKey)
 
+	// Run the query and verify its successful result object and type.
 	runResp, err := queryClient.Run(ctx, &s4wave_sql_query.RunQueryRequest{MaxRows: 16})
 	if err != nil {
 		t.Fatalf("Run: %v", err)
@@ -447,12 +496,15 @@ func TestSqlQueryRunCreatesLinkedQueryResult(t *testing.T) {
 		t.Fatalf("result object type: %v", err)
 	}
 
+	// Open the result resource and read its grid.
 	resultClient, resultCleanup := openSqlQueryResultClient(t, ctx, tb, resultKey)
 	defer resultCleanup()
 	grid, err := resultClient.GetResultGrid(ctx, &s4wave_sql_query_result.GetResultGridRequest{})
 	if err != nil {
 		t.Fatalf("GetResultGrid: %v", err)
 	}
+
+	// Verify the result source, target, and column schema.
 	if grid.GetSourceQueryObjectKey() != queryKey {
 		t.Fatalf("source query key = %q, want %q", grid.GetSourceQueryObjectKey(), queryKey)
 	}
@@ -465,6 +517,8 @@ func TestSqlQueryRunCreatesLinkedQueryResult(t *testing.T) {
 	if len(grid.GetColumns()) != 1 || grid.GetColumns()[0].GetName() != "name" {
 		t.Fatalf("columns = %#v, want one name column", grid.GetColumns())
 	}
+
+	// Verify the result value and its graph links to the query and database.
 	value := singleResultValue(t, grid.GetRowBatches())
 	if value != "ada" {
 		t.Fatalf("result value = %q, want ada", value)
@@ -474,6 +528,7 @@ func TestSqlQueryRunCreatesLinkedQueryResult(t *testing.T) {
 }
 
 func createSqlDbObject(t *testing.T, ctx context.Context, ws world.WorldState, objectKey string) {
+	// Create a SQL database object with an empty MySQL root.
 	t.Helper()
 	createdObject, _, err := world.CreateWorldObject(ctx, ws, objectKey, func(bcs *block.Cursor) error {
 		bcs.SetBlock(sql_mysql.NewRootBlock(), true)
@@ -483,24 +538,30 @@ func createSqlDbObject(t *testing.T, ctx context.Context, ws world.WorldState, o
 	if err != nil {
 		t.Fatalf("CreateWorldObject(%s): %v", objectKey, err)
 	}
+
+	// Register the database type on the created World object.
 	if err := world_types.SetObjectType(ctx, ws, objectKey, s4wave_sql_world.SqlDbTypeID); err != nil {
 		t.Fatalf("SetObjectType(%s): %v", objectKey, err)
 	}
 }
 
 func createEmptySqlQueryObject(t *testing.T, ctx context.Context, ws world.WorldState, objectKey string) {
+	// Create a query object with an empty root reference.
 	t.Helper()
 	obj, err := ws.CreateObject(ctx, objectKey, &bucket.ObjectRef{})
 	world.ReleaseObjectState(obj)
 	if err != nil {
 		t.Fatalf("CreateObject(%s): %v", objectKey, err)
 	}
+
+	// Register the query type on the empty World object.
 	if err := world_types.SetObjectType(ctx, ws, objectKey, s4wave_sql_query.SqlQueryTypeID); err != nil {
 		t.Fatalf("SetObjectType(%s): %v", objectKey, err)
 	}
 }
 
 func createSqlQueryObject(t *testing.T, ctx context.Context, ws world.WorldState, objectKey string) {
+	// Create a query object with an empty query body.
 	t.Helper()
 	createdObject, _, err := world.CreateWorldObject(ctx, ws, objectKey, func(bcs *block.Cursor) error {
 		bcs.SetBlock(&s4wave_sql_query.Query{}, true)
@@ -510,12 +571,15 @@ func createSqlQueryObject(t *testing.T, ctx context.Context, ws world.WorldState
 	if err != nil {
 		t.Fatalf("CreateWorldObject(%s): %v", objectKey, err)
 	}
+
+	// Register the query type on the initialized World object.
 	if err := world_types.SetObjectType(ctx, ws, objectKey, s4wave_sql_query.SqlQueryTypeID); err != nil {
 		t.Fatalf("SetObjectType(%s): %v", objectKey, err)
 	}
 }
 
 func seedSqlDb(t *testing.T, ctx context.Context, tb *testbed.Testbed, objectKey string) {
+	// Open the database factory for seeding through its SQL service.
 	t.Helper()
 	inv, cleanup, err := s4wave_sql_world.SqlDbFactory(
 		ctx,
@@ -530,11 +594,13 @@ func seedSqlDb(t *testing.T, ctx context.Context, tb *testbed.Testbed, objectKey
 	}
 	defer cleanup()
 
+	// Create the alpha database through the SQL RPC store.
 	store := sql_rpc_client.NewStore(sql_rpc.NewSRPCSqlClient(srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(inv)))))
 	rootTx := openSqlTx(t, ctx, store, true, "")
 	execSql(t, ctx, rootTx, "CREATE DATABASE alpha")
 	commitSql(t, ctx, rootTx)
 
+	// Create the people table and commit its seeded row.
 	writeTx := openSqlTx(t, ctx, store, true, "/alpha")
 	for _, query := range []string{
 		"CREATE TABLE people (id BIGINT NOT NULL PRIMARY KEY, name TEXT NOT NULL)",
@@ -551,6 +617,7 @@ func openSqlQueryClient(
 	tb *testbed.Testbed,
 	objectKey string,
 ) (s4wave_sql_query.SRPCSqlQueryResourceServiceClient, func()) {
+	// Open the query factory and expose it through a local RPC client.
 	t.Helper()
 	inv, cleanup, err := s4wave_sql_query_world.SqlQueryFactory(
 		ctx,
@@ -573,6 +640,7 @@ func openSqlQueryResultClient(
 	tb *testbed.Testbed,
 	objectKey string,
 ) (s4wave_sql_query_result.SRPCSqlQueryResultResourceServiceClient, func()) {
+	// Open the query result factory and expose it through a local RPC client.
 	t.Helper()
 	inv, cleanup, err := s4wave_sql_query_result_world.SqlQueryResultFactory(
 		ctx,
@@ -628,18 +696,25 @@ func commitSql(t *testing.T, ctx context.Context, tx hydra_sql.SqlTransaction) {
 }
 
 func singleResultValue(t *testing.T, batches []*hydra_sql.RowBatch) string {
+	// Require one result batch containing the expected single value.
 	t.Helper()
 	if len(batches) != 1 {
 		t.Fatalf("row batches = %d, want 1", len(batches))
 	}
+
+	// Require one row in the result batch.
 	rows := batches[0].GetRows()
 	if len(rows) != 1 {
 		t.Fatalf("rows = %d, want 1", len(rows))
 	}
+
+	// Require one column value in the result row.
 	values := rows[0].GetValues()
 	if len(values) != 1 {
 		t.Fatalf("values = %d, want 1", len(values))
 	}
+
+	// Decode the result value from its supported string or blob representation.
 	switch value := values[0].GetValue().(type) {
 	case *hydra_sql.SqlValue_StrValue:
 		return value.StrValue

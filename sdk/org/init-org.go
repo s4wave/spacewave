@@ -54,11 +54,13 @@ func (o *InitOrganizationOp) ApplyWorldOp(
 	ws world.WorldState,
 	sender peer.ID,
 ) (bool, error) {
+	// Resolve the organization key, using the shared object default when omitted.
 	objKey := o.GetOrgObjectKey()
 	if objKey == "" {
 		objKey = OrgObjectKey
 	}
 
+	// Prepare the initial organization body with its creator as owner.
 	state := &OrgState{
 		DisplayName: o.GetDisplayName(),
 		CreatedAt:   o.GetTimestamp(),
@@ -68,6 +70,8 @@ func (o *InitOrganizationOp) ApplyWorldOp(
 			JoinedAt:    o.GetTimestamp(),
 		}},
 	}
+
+	// Create the organization World object with its initial body.
 	{
 		createdObject, _, err := world.CreateWorldObject(ctx, ws, objKey, func(bcs *block.Cursor) error {
 			bcs.SetBlock(state, true)
@@ -78,6 +82,8 @@ func (o *InitOrganizationOp) ApplyWorldOp(
 			return true, err
 		}
 	}
+
+	// Register the organization type on the new World object.
 	if err := world_types.SetObjectType(ctx, ws, objKey, OrganizationTypeID); err != nil {
 		return true, err
 	}

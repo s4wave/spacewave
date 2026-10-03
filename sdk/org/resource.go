@@ -28,6 +28,7 @@ type OrgResource struct {
 // If ws and objKey are set, the resource watches the World object and
 // streams state revisions to WatchOrgState callers.
 func NewOrgResource(ws world.WorldState, objKey string, state *OrgState) *OrgResource {
+	// Prepare the organization resource with an initialized state snapshot.
 	if state == nil {
 		state = &OrgState{}
 	}
@@ -36,11 +37,15 @@ func NewOrgResource(ws world.WorldState, objKey string, state *OrgState) *OrgRes
 		objKey: objKey,
 		state:  state,
 	}
+
+	// Watch World revisions when the resource refers to an organization object.
 	if ws != nil && objKey != "" {
 		r.watch = routine.NewRoutineContainer()
 		r.watch.SetRoutine(r.watchOrgWorld)
 		r.watch.SetContext(context.Background(), false)
 	}
+
+	// Expose the organization service through the resource mux.
 	r.mux = resource_server.NewResourceMux(func(mux srpc.Mux) error {
 		return SRPCRegisterOrgResourceService(mux, r)
 	})
